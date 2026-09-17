@@ -1,0 +1,63 @@
+id: recon
+name: 网络信息获取与任务自动化
+description: 以 web/search/schedule/async/delegate 的情报采集与自动化编排为主线，其余为辅助层。
+enabled: true
+plane_weights:
+  resident: 0.7
+  perceive: 1.0
+  act: 0.9
+  govern: 0.0
+plane_floors:
+  resident: 3
+  perceive: 5
+  act: 3
+boost:
+- web_search
+- web_get
+- web_batch
+- web_extract
+- get_weather
+- schedule_task
+- list_scheduled_tasks
+- cancel_scheduled_task
+- pause_scheduled_task
+- resume_scheduled_task
+- submit_task
+- get_task_status
+- get_task_result
+- list_async_tasks
+- cancel_task
+- delegate
+- write_file
+- remember
+- search_memory
+- todo_write
+mute:
+- shell_execute
+- run_program
+- stop_process
+- edit
+- code_review
+- arch_diagram
+- humanize_zh
+tags:
+- web
+- news
+- schedule
+- async
+- orchestrate
+max_tools: 22
+effect_allow:
+- read
+- write
+- execute
+requires_approval:
+- execute
+allow_govern: false
+skills:
+- global-core-principles
+prompt_note: '本线以"采到—判真—入库—可复跑"为闭环：每条结论要带来源；周期任务要能被暂停与复盘。
+
+  编码执行不是本线的手段——需要改代码时委派给 engineering 线，不要自己动手。
+
+  '

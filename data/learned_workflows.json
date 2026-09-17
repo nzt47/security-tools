@@ -184,7 +184,7 @@
       },
       {
         "step_id": "step_3",
-        "tool_name": "json_to_yaml",
+        "tool_name": "data_convert",
         "params_template": {},
         "output_key": "step_3_output",
         "output_schema": null,

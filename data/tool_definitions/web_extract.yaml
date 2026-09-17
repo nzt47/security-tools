@@ -1,0 +1,46 @@
+name: web_extract
+category: web
+description: 从网页或 HTML 源码中抽取结构化内容。kind='xpath' 用 XPath 表达式提取；kind='css' 用 CSS 选择器提取（可用 attr 取 href、src 等属性）；kind='clean' 清洗文本（去 HTML 标签、实体解码、压缩空白）。可传 url 抓取，也可直接传 html 或 text。Extract data from HTML by XPath or CSS selector, extract attributes, clean text
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: medium
+tags: [web]
+schema:
+  type: object
+  properties:
+    kind:
+      type: string
+      enum: [xpath, css, clean]
+      description: 提取方式（必填）。xpath=XPath 表达式提取；css=CSS 选择器提取；clean=文本清洗
+    selector:
+      type: string
+      description: 选择器：kind='xpath' 传 XPath 表达式，kind='css' 传 CSS 选择器
+    html:
+      type: string
+      description: 直接提供 HTML 源码（替代 url）；kind='clean' 时作为待清洗文本
+    url:
+      type: string
+      description: 网页 URL（未提供 html 时抓取该页面）
+    max_items:
+      type: integer
+      description: 返回结果条数上限，默认不限
+    aggressive:
+      type: boolean
+      description: kind='clean' 时启用加强清洗：额外做单行化与重复行去除，默认 false
+    attr:
+      type: string
+      description: kind='css' 时提取的属性名，如 href、src；不传则提取文本
+    expression:
+      type: string
+      description: XPath 表达式（selector 的兼容别名）
+    text:
+      type: string
+      description: 待清洗文本（kind='clean' 下 html 的兼容别名）
+    items:
+      type: array
+      description: kind='clean' 时的数据项列表，走去重、评分、清洗管线
+  required:
+  - kind
+examples: []

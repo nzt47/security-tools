@@ -1,14 +1,17 @@
 """工具注册 — 把"过程蒸馏"暴露为云枢可自主调用的工具。
 
-注册 3 个工具：
-    1. distill_process_from_knowledge（同步）
-        知识库/素材 → 蒸馏 → workflow/skill 固化，同步返回结果（短任务）。
-    2. distill_process_async（异步）
-        提交到 AsyncExecutor 后台执行，立即返回 task_id，不阻塞对话；
-        用既有 get_task_status/get_task_result 轮询。
-    3. process_distill_run（内部，异步任务的实际执行体）
+注册 2 个工具：
+    1. distill_process_from_knowledge（同步 / 异步同一入口）
+        知识库/素材 → 蒸馏 → workflow/skill 固化。
+        async_=false（默认）同步返回结果（短任务）；
+        async_=true 提交到 AsyncExecutor 后台执行，立即返回 task_id 不阻塞对话，
+        用既有 get_task_status/get_task_result 轮询取结果（原 distill_process_async）。
+    2. process_distill_run（内部，异步任务的实际执行体）
         供 AsyncExecutor submit(tool_name="process_distill_run") 调用，
         也可由任何注册工具复用作"纯蒸馏执行"。
+        **必须保留注册**：AsyncExecutor 经 `call()` 按名调用，
+        而 `call()` 要求名字在 `_registry` 中；它只从模型可见集隐藏
+        （data/tool_definitions/process_distill_run.yaml 的 `internal: true`）。
 
 注册方式（与 knowledge/tools.py 同风格，显式注册不侵入全局）：
     from agent.process_distill.tools import register_distill_tools
@@ -23,6 +26,15 @@ from typing import Any, Dict, Optional
 from agent.process_distill.service import ProcessDistillService
 
 logger = logging.getLogger(__name__)
+
+# 对外注册的工具名。process_distill_run **必须保留注册**（AsyncExecutor 经 call()
+# 按名调用，而 call() 要求名字在 _registry 中），只是不进模型可见集（YAML internal: true）。
+_NAMES = ["distill_process_from_knowledge", "process_distill_run"]
+
+# 历史名字：distill_process_async 已并入 distill_process_from_knowledge(async_=True)。
+# 保留在清理列表里只为**热重载幂等**——同一进程内热重载时把旧注册从 _registry 摘掉，
+# 否则它会作为幽灵工具继续对模型可见（新进程本就不会有它）。
+_LEGACY_NAMES = ["distill_process_async"]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -110,6 +122,51 @@ _SYNC_SCHEMA = {
     },
 }
 
+# 面向模型的那个入口（distill_process_from_knowledge）= _SYNC_SCHEMA + 异步开关
+# + 原 distill_process_async 独有的 `name`（任务名），否则合并会丢能力。
+# 注意：process_distill_run 仍用 _SYNC_SCHEMA，其 YAML 不受本次合并影响。
+_ASYNC_SCHEMA = {
+    **_SYNC_SCHEMA,
+    "properties": {
+        **_SYNC_SCHEMA["properties"],
+        "async_": {
+            "type": "boolean",
+            "description": "是否提交后台异步执行（默认 false=同步返回结果）；"
+                           "true 时立即返回 task_id 不阻塞对话，"
+                           "适合素材多/耗时长的大批量蒸馏",
+        },
+        "name": {
+            "type": "string",
+            "description": "任务名称（可选，仅 async_=true 时使用）",
+        },
+    },
+}
+
+
+def _submit_async_distill(kw: Dict[str, Any]) -> Dict[str, Any]:
+    """提交蒸馏任务到 AsyncExecutor 后台执行。
+
+    即原 `distill_process_async` 的提交路径（第 0 档合并，评估报告 §6.2-7：
+    它本来就是 `submit_task(tool_name="process_distill_run", …)` 的硬编码别名）,
+    逐行保留：同样的参数白名单、同样的任务名默认值、同样的错误文案。
+    """
+    try:
+        from agent.async_executor import get_async_executor
+        p = _parse_params(kw)
+        if not p["query"] and not p["paths"]:
+            return {"ok": False,
+                    "error": "query 与 paths 至少提供一个"}
+        name = str(kw.get("name") or "process-distill")[:80]
+        return get_async_executor().submit(
+            name=name,
+            tool_name="process_distill_run",
+            params={k: v for k, v in kw.items()
+                    if k in ("query", "paths", "artifacts",
+                             "top_k", "max_workers")},
+        )
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": f"提交异步蒸馏失败: {e}"}
+
 
 def register_distill_tools(clear_first: bool = True) -> int:
     """注册蒸馏工具到 agent.tools 全局注册表。
@@ -121,10 +178,8 @@ def register_distill_tools(clear_first: bool = True) -> int:
     """
     from agent import tools as _tools
 
-    _NAMES = ["distill_process_from_knowledge", "distill_process_async",
-              "process_distill_run"]
     if clear_first:
-        for name in _NAMES:
+        for name in _NAMES + _LEGACY_NAMES:
             try:
                 _tools.unregister(name)
             except Exception:  # noqa: BLE001
@@ -135,40 +190,16 @@ def register_distill_tools(clear_first: bool = True) -> int:
         "把知识库或素材路径中的其他 agent 编程过程/复盘/SOP 蒸馏为可复现"
         "步骤序列，并固化为云枢可复用的 workflow（0-Token 执行）与 skill"
         "（语义层召回）资产。参数 query 为知识库检索词，paths 为素材文件或"
-        "目录列表（二选一或并用）；artifacts 指定固化产物。短任务同步执行。",
-        schema=_SYNC_SCHEMA,
+        "目录列表（二选一或并用）；artifacts 指定固化产物。默认同步执行并"
+        "返回结果；async_=true 时提交后台异步执行、立即返回 task_id（用 "
+        "get_task_status 轮询、get_task_result 取结果），name 可指定任务名称。",
+        schema=_ASYNC_SCHEMA,
     )
-    def _sync_handler(**kw):  # noqa: D103
+    def _distill_handler(**kw):  # noqa: D103
+        # async_=true 走原 distill_process_async 的提交路径，否则同步执行
+        if bool(kw.get("async_")):
+            return _submit_async_distill(kw)
         return _execute_distill(kw)
-
-    @_tools.register(
-        "distill_process_async",
-        "把蒸馏任务提交到后台异步执行，立即返回 task_id 不阻塞对话。"
-        "适合素材多/耗时长的大批量蒸馏。用 get_task_status 轮询、"
-        "get_task_result 取结果。参数同 distill_process_from_knowledge。",
-        schema={**_SYNC_SCHEMA,
-                "properties": {**_SYNC_SCHEMA["properties"],
-                               "name": {
-                                   "type": "string",
-                                   "description": "任务名称（可选）"}}},
-    )
-    def _async_handler(**kw):  # noqa: D103
-        try:
-            from agent.async_executor import get_async_executor
-            p = _parse_params(kw)
-            if not p["query"] and not p["paths"]:
-                return {"ok": False,
-                        "error": "query 与 paths 至少提供一个"}
-            name = str(kw.get("name") or "process-distill")[:80]
-            return get_async_executor().submit(
-                name=name,
-                tool_name="process_distill_run",
-                params={k: v for k, v in kw.items()
-                        if k in ("query", "paths", "artifacts",
-                                 "top_k", "max_workers")},
-            )
-        except Exception as e:  # noqa: BLE001
-            return {"ok": False, "error": f"提交异步蒸馏失败: {e}"}
 
     @_tools.register(
         "process_distill_run",
@@ -187,9 +218,7 @@ def unregister_distill_tools() -> int:
     """注销全部蒸馏工具（测试隔离用）。"""
     from agent import tools as _tools
 
-    _NAMES = ["distill_process_from_knowledge", "distill_process_async",
-              "process_distill_run"]
-    for name in _NAMES:
+    for name in _NAMES + _LEGACY_NAMES:
         try:
             _tools.unregister(name)
         except Exception:  # noqa: BLE001

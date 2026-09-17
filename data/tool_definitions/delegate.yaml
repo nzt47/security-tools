@@ -6,6 +6,10 @@ description: 把任务委派给一个独立的子代理执行（delegate / subag
   a task to an independent subagent under the eight-element delegation contract.
 deprecated: false
 version: 1.0.0
+plane: act
+effect: execute
+risk: medium
+tags: [orchestrate]
 schema:
   type: object
   properties:

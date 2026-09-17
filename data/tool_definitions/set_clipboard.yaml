@@ -1,0 +1,18 @@
+name: set_clipboard
+category: system
+description: 把文本放进系统剪贴板（clipboard），最多 50000 字符。会覆盖用户剪贴板里已有的内容，属有副作用的写操作，需通过权限与内容安全检查。Set clipboard text.
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: medium
+tags: [clipboard]
+schema:
+  type: object
+  properties:
+    text:
+      type: string
+      description: 要写入剪贴板的文本内容（最长 50000 字符）
+  required:
+  - text
+examples: []

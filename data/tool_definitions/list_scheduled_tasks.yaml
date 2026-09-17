@@ -1,8 +1,12 @@
 name: list_scheduled_tasks
 category: schedule
-description: 列出所有已创建的定时任务
+description: 列出所有已创建的定时任务。同时列出由系统命令调度器管理的任务（managed_by=system_command，只读）
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [schedule]
 schema:
   type: object
   properties: {}

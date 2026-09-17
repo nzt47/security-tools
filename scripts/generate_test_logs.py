@@ -156,7 +156,7 @@ def simulate_market_search(trace_id):
     log = {
         "trace_id": trace_id,
         "module_name": "extensions_api",
-        "action": "market_search",
+        "action": "ext_discover",
         "query": "calculator",
         "ext_type": "all",
         "include_github": True,

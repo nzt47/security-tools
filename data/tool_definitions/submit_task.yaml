@@ -4,6 +4,10 @@ description: 提交异步任务在后台执行，立即返回任务ID不阻塞�
   查状态，用 get_task_result 获取结果
 deprecated: false
 version: 1.0.0
+plane: act
+effect: execute
+risk: medium
+tags: [async]
 schema:
   type: object
   properties:

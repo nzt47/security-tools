@@ -1,0 +1,58 @@
+id: harness
+name: Harness 自研主线
+description: 以 Cordis 组合自省与自改、composition 编辑、preset 装配为核心链路；编码工具是手段而非目的。
+enabled: true
+
+# 自省与自改都需要"读组合、改组合"——感知与行动同等重要
+plane_weights:
+  resident: 0.8
+  perceive: 1.0
+  act: 1.0
+  govern: 0.9
+
+plane_floors:
+  resident: 4
+  perceive: 3
+  act: 3
+  govern: 2
+
+boost:
+  # ── 自省链路：读组合、读 preset、读工具/技能清单 ──
+  - read_file
+  - grep
+  - search_files
+  - list_directory
+  - get_file_info
+  - web_search
+  - search_memory
+  # ── 自改链路：改写 composition / preset / 插件行 ──
+  - edit
+  - write_file
+  - shell_execute
+  - delegate
+  # ── 能力装配：装插件、生成工具、配扩展 ──
+  - generate_tool
+  - ext_install
+  - ext_configure
+  - ext_toggle
+  - ext_list
+  - connect_mcp
+
+tags: [code, self_modify, extension, mcp, harness]
+
+# 这条线要动自身组合，名额给足
+max_tools: 26
+
+effect_allow: [read, write, execute, extend]
+requires_approval: [execute, extend]
+allow_govern: true
+
+skills:
+  - code-observability
+  - engineering-test-delivery
+  - global-core-principles
+
+prompt_note: |
+  本线服务"改云枢自己的运行框架"：优先用 file/grep 自省组合与 preset 现状，
+  用 edit/write_file 做最小改动，改动后必须验证（重启或跑一致性检查）。
+  govern 平面的动作（装插件、生成工具、改扩展配置）会改变自身能力集，必须先取得确认。

@@ -1010,6 +1010,17 @@ try:
 except Exception as e:
     logger.error("加载监控仪表盘路由失败: %s", e)
 
+# ── 主线管理（/api/agent-lines/*）──
+#  ⚠ 必须在此显式注册：`agent/server_routes/__init__.py::register_all_routes` 是
+#    **无调用方的死代码**（同 routes_approval 当年的前科，见上方 857 行注释）。
+#    只把它加进 register_all_routes 不会生效 —— 表现是前端拿到 HTTP 404。
+try:
+    from agent.server_routes.routes_agent_lines import register_routes as reg_agent_lines
+    reg_agent_lines(app, lambda: None)
+    logger.info("主线管理路由已注册 (/api/agent-lines/*)")
+except Exception as e:
+    logger.error("加载主线管理路由失败: %s", e)
+
 # T6：orchestrator 语义层配置热更（原 routes_config.register_semantic_config_routes
 # 已随重构移除，路由由 agent/api_gateway.py 与 orchestrator 提供，此处不再接线）
 

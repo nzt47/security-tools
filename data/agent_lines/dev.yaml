@@ -1,0 +1,53 @@
+id: dev
+name: 通用研发 Agent
+description: 编码/软件工程为主线的通用研发 Agent。把 self-modification、委派、长任务降为支撑层——与 engineering
+  的区别是不含任何自身能力改写。
+enabled: true
+plane_weights:
+  resident: 0.5
+  perceive: 1.0
+  act: 1.0
+  govern: 0.0
+plane_floors:
+  resident: 3
+  perceive: 4
+  act: 4
+boost:
+- read_file
+- grep
+- search_files
+- list_directory
+- get_file_info
+- write_file
+- edit
+- shell_execute
+- code_review
+- todo_write
+- delegate
+mute:
+- web_extract
+- web_batch
+- web_download
+- web_search
+- ext_install
+- ext_uninstall
+- ext_toggle
+- ext_configure
+- generate_tool
+- scan_mcp
+- connect_mcp
+- disconnect_mcp
+tags:
+- code
+max_tools: 22
+effect_allow:
+- read
+- write
+- execute
+requires_approval:
+- execute
+allow_govern: false
+skills:
+- engineering-test-delivery
+- testing-anti-patterns
+prompt_note: 纯研发线：只碰代码，不碰自身能力集（永不用 govern 平面工具）。

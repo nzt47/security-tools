@@ -3,6 +3,10 @@ category: extension
 description: 启用或禁用扩展。临时打开/关闭某个技能、MCP服务或通道。
 deprecated: false
 version: 1.0.0
+plane: govern
+effect: extend
+risk: medium
+tags: [extension, self_modify]
 schema:
   type: object
   properties:

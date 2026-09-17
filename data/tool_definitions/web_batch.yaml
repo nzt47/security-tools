@@ -3,6 +3,10 @@ category: web
 description: 批量请求多个 URL
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: medium
+tags: [web]
 schema:
   type: object
   properties:

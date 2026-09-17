@@ -1,0 +1,23 @@
+name: workspace_write
+category: file
+description: 把内容写入受保护工作区内的文件（自动创建父目录，覆盖同名文件）。相对路径越出工作区会被拒绝。Write a file inside the
+  protected workspace
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: medium
+tags: [workspace]
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 工作区内的相对文件路径，如 notes/plan.md
+    content:
+      type: string
+      description: 要写入的文本内容
+  required:
+  - path
+  - content
+examples: []

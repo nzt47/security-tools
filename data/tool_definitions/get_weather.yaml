@@ -4,6 +4,10 @@ description: 查询天气信息。使用 wttr.in 服务，无需 API Key。支�
   weather forecast, temperature for a city
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [web]
 schema:
   type: object
   properties:

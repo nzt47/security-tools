@@ -1,0 +1,23 @@
+name: apply_patch
+category: code
+description: 把 unified diff 补丁应用到工作区（支持 --- a/路径、+++ b/路径 文件头与 @@ -l,s +l,s @@ hunk）。先逐
+  hunk 校验上下文，全部通过才写盘：任何一处不匹配都不会产生半截改动。dry_run=true 时只校验不写。不能删除文件，拒绝越出项目根目录的路径。Apply
+  a unified diff patch to files
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: high
+tags: [code, patch]
+schema:
+  type: object
+  properties:
+    patch:
+      type: string
+      description: unified diff 文本，需含 --- / +++ 文件头与 @@ hunk 头
+    dry_run:
+      type: boolean
+      description: 为 true 时只做校验、不写盘，默认 false
+  required:
+  - patch
+examples: []

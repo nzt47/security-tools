@@ -1,0 +1,39 @@
+name: distill_process_from_knowledge
+category: knowledge
+description: 把知识库或素材路径中的其他 agent 编程过程/复盘/SOP 蒸馏为可复现步骤序列，并固化为云枢可复用的 workflow（0-Token 执行）与 skill（语义层召回）资产。参数 query 为知识库检索词，paths 为素材文件或目录列表（二选一或并用）；artifacts 指定固化产物。默认同步执行并返回结果；async_=true 时提交后台异步执行、立即返回 task_id（用 get_task_status 轮询、get_task_result 取结果），name 可指定任务名称。
+deprecated: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: medium
+tags: [evolution, knowledge, async]
+schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 知识库 wiki 检索关键词（可空）
+    paths:
+      type: array
+      items:
+        type: string
+      description: 素材文件/目录路径列表（可空，如 ['docs/xxx.md'] 或外部 SKILL.md 目录）
+    artifacts:
+      type: array
+      items:
+        type: string
+        enum: [workflow, skill]
+      description: 固化产物类型，默认 ['workflow','skill']
+    top_k:
+      type: integer
+      description: wiki 检索召回数，默认 5
+    max_workers:
+      type: integer
+      description: 并行子代理数，默认 4
+    async_:
+      type: boolean
+      description: 是否提交后台异步执行（默认 false=同步返回结果）；true 时立即返回 task_id 不阻塞对话，适合素材多/耗时长的大批量蒸馏
+    name:
+      type: string
+      description: 任务名称（可选，仅 async_=true 时使用）
+examples: []

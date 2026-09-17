@@ -1,0 +1,14 @@
+name: browser_screenshot
+category: web
+description: 截取当前浏览器页面的截图，返回 base64 编码的 PNG（最多 500000 字符）。需先调用 browser_navigate 打开页面。Take
+  a screenshot of the current page
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: medium
+tags: [web, browser]
+schema:
+  type: object
+  properties: {}
+examples: []

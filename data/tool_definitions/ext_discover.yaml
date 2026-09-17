@@ -1,8 +1,12 @@
 name: ext_discover
 category: extension
-description: 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。
+description: 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。type 为扩展类型（含 tool 与 claude_skill/channel）；命中市场时同时返回扁平 results（每项带 _market_source）与内置/社区/GitHub 嵌套字段。
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: medium
+tags: [extension]
 schema:
   type: object
   properties:
@@ -17,6 +21,8 @@ schema:
       - mcp
       - channel
       - plugin
+      - tool
+      - all
       - ''
-      description: 按类型筛选（可选）
+      description: 按类型筛选（可选）：skill/claude_skill/mcp/channel/plugin/tool/all；tool 为工具类扩展（市场中以 plugin 分发），all 或留空表示不筛选
 examples: []

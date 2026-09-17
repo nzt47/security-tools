@@ -4,6 +4,18 @@ from agent import tools as _tools
 
 logger = logging.getLogger(__name__)
 
+# ── 扩展市场类型别名 ──────────────────────────────────────────────
+# 【为什么需要】吸收 market_search 时暴露的真实缺陷（评估报告 §6.3-a）：
+#   两者都调 ExtensionMarket.search_all，但枚举互不兼容 ——
+#   ext_discover 用 skill/claude_skill/mcp/channel/plugin，
+#   market_search 用 tool/skill/mcp/plugin，
+#   ⇒ 经 market_search 永远查不到 claude_skill/channel；
+#     经 ext_discover 永远查不到 tool。
+#   统一为**并集** enum 后，tool 归一到 plugin：市场的内置注册表按
+#   ExtensionType 建键（skill/claude_skill/mcp/channel/plugin），并无 tool 键，
+#   而"工具"在市场里就是以插件形式分发的（原 install_tool 兜底也判为 plugin）。
+_MARKET_TYPE_ALIAS = {"tool": "plugin"}
+
 
 def register_all(dl):
     """注册所有扩展管理工具
@@ -12,17 +24,21 @@ def register_all(dl):
         dl: DigitalLife 实例（用于访问 self 属性）
     """
 
-    @_tools.register("ext_install", "安装扩展（技能/MCP服务/通道/插件）。让我能自主获取新能力。", schema={
+    @_tools.register("ext_install", "安装扩展（技能/MCP服务/通道/插件），或按ID自动判别类型后从扩展市场安装。让我能自主获取新能力。", schema={
         "type": "object",
         "properties": {
             "type": {
                 "type": "string",
-                "enum": ["skill", "claude_skill", "mcp", "channel", "plugin"],
-                "description": "扩展类型：skill=应用层技能, claude_skill=Claude Code技能, mcp=MCP服务, channel=通信通道, plugin=插件",
+                "enum": ["skill", "claude_skill", "mcp", "channel", "plugin", "auto"],
+                "description": "扩展类型：skill=应用层技能, claude_skill=Claude Code技能, mcp=MCP服务, channel=通信通道, plugin=插件, auto=按 tool_id/source 从内置注册表自动判别类型安装",
             },
             "source": {
                 "type": "string",
-                "description": "扩展来源。格式：内置ID(如 self_reflection / filesystem)，github:user/repo，url:https://...，local:/path，npm:package，pip:package",
+                "description": "扩展来源。格式：内置ID(如 self_reflection / filesystem)，github:user/repo，url:https://...，local:/path，npm:package，pip:package；type=auto 且未给 tool_id 时此值即为待安装的工具/扩展ID",
+            },
+            "tool_id": {
+                "type": "string",
+                "description": "工具/扩展ID（type=auto 时使用，如 'yunshu-email-plugin'）；与 source 同时给出时 source 视为本次安装来源",
             },
             "name": {
                 "type": "string",
@@ -44,7 +60,34 @@ def register_all(dl):
         source = kwargs.get("source", "")
         params = kwargs.get("params", {})
 
-        if not ext_type or not source:
+        if not ext_type:
+            return {"ok": False, "error": "请指定扩展类型和来源"}
+
+        # ── type="auto"：吸收原 install_tool（第 0 档合并，评估报告 §6.2-8）──
+        # 原 install_tool 只是 ext_install 的自动判别封装：tool_id → _guess_ext_type
+        # → discovery.install_and_register → **同一个** _ext_mgr.install。
+        # 两种历史调用形态在此一一对应：
+        #   只给 source          ⇒ 它既是待安装 ID 也是安装来源（≡ install_tool(tool_id)）
+        #   给 tool_id + source  ⇒ tool_id 为待安装 ID、source 为安装来源
+        #                          （≡ install_tool(tool_id, source)）
+        # 返回值照原样透传（发现服务的 ok/message/tools 形状），不做 message→error 归一，
+        # 以免改变原 install_tool 调用方看到的字段。
+        if ext_type == "auto":
+            target = str(kwargs.get("tool_id") or source or "")
+            if not target:
+                return {"ok": False,
+                        "error": "type=auto 时请指定 tool_id（或 source 作为工具/扩展ID）"}
+            install_source = source if kwargs.get("tool_id") else None
+            try:
+                discovery = getattr(dl, '_discovery_service', None)
+                if not discovery:
+                    return {"ok": False, "error": "发现服务未初始化"}
+                return discovery.install_and_register(target, install_source)
+            except Exception as e:
+                logger.error(f"自动判别安装失败: {target}: {e}")
+                return {"ok": False, "error": str(e)}
+
+        if not source:
             return {"ok": False, "error": "请指定扩展类型和来源"}
 
         # 使用扩展管理器单例
@@ -167,7 +210,7 @@ def register_all(dl):
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
-    @_tools.register("ext_discover", "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。", schema={
+    @_tools.register("ext_discover", "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。type 为扩展类型（含 tool 与 claude_skill/channel）；命中市场时同时返回扁平 results（每项带 _market_source）与内置/社区/GitHub 嵌套字段。", schema={
         "type": "object",
         "properties": {
             "query": {
@@ -176,25 +219,40 @@ def register_all(dl):
             },
             "type": {
                 "type": "string",
-                "enum": ["skill", "claude_skill", "mcp", "channel", "plugin", ""],
-                "description": "按类型筛选（可选）",
+                "enum": ["skill", "claude_skill", "mcp", "channel", "plugin", "tool", "all", ""],
+                "description": "按类型筛选（可选）：skill/claude_skill/mcp/channel/plugin/tool/all；tool 为工具类扩展（市场中以 plugin 分发），all 或留空表示不筛选",
             },
         },
     })
     def _ext_discover(**kwargs):
         query = kwargs.get("query", "")
         ext_type = kwargs.get("type") or None
+        # all 与留空同义：不筛选类型
+        if ext_type == "all":
+            ext_type = None
+        market_type = _MARKET_TYPE_ALIAS.get(ext_type, ext_type)
         try:
             from agent.extensions.market import ExtensionMarket as _ExtMarket
             _em = dl._get_ext_manager()
             _market = _ExtMarket()
 
+            # 已安装/内置清单（不受 type 筛选影响，保持原 ext_discover 语义）
             installed = _em.discover_all()
             if query:
-                market_results = _market.search_all(query, ext_type)
+                market_results = _market.search_all(query, market_type)
+                # 扁平化：与已吸收的 market_search 返回形状逐字段一致
+                # （即 ToolDiscoveryService.search_market 的展平逻辑，含 _market_source 标记）
+                # ⇒ 原 market_search 调用方无需改结构；嵌套字段同时保留给原 ext_discover 调用方。
+                flat = []
+                for _src, _items in market_results.items():
+                    for _item in _items:
+                        _item["_market_source"] = _src
+                        flat.append(_item)
                 return {
                     "ok": True,
                     "query": query,
+                    "count": len(flat),
+                    "results": flat,
                     "builtin": installed,
                     "market": market_results,
                 }
@@ -264,56 +322,14 @@ def register_all(dl):
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
-    @_tools.register("market_search", "搜索扩展市场寻找可用工具。当你发现当前缺少某个能力时，用此工具搜索有没有现成的扩展可以安装。", schema={
-        "type": "object",
-        "properties": {
-            "query": {
-                "type": "string",
-                "description": "搜索关键词，如'发送邮件'、'日期计算'、'天气预报'",
-            },
-            "category": {
-                "type": "string",
-                "enum": ["tool", "skill", "mcp", "plugin", ""],
-                "description": "过滤类别（留空搜索全部）",
-            },
-        },
-        "required": ["query"],
-    })
-    def _market_search(**kw):
-        query = kw.get("query", "")
-        category = kw.get("category") or None
-        try:
-            discovery = getattr(dl, '_discovery_service', None)
-            if discovery:
-                return discovery.search_market(query, category)
-            return {"ok": False, "error": "发现服务未初始化"}
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
-
-    @_tools.register("install_tool", "从扩展市场安装工具。安装后工具立即可用，无需重启。", schema={
-        "type": "object",
-        "properties": {
-            "tool_id": {
-                "type": "string",
-                "description": "工具/扩展ID，如 'yunshu-email-plugin'",
-            },
-            "source": {
-                "type": "string",
-                "description": "安装来源（可选），如 'github:user/repo'",
-            },
-        },
-        "required": ["tool_id"],
-    })
-    def _install_tool(**kw):
-        tool_id = kw.get("tool_id", "")
-        source = kw.get("source")
-        try:
-            discovery = getattr(dl, '_discovery_service', None)
-            if discovery:
-                return discovery.install_and_register(tool_id, source)
-            return {"ok": False, "error": "发现服务未初始化"}
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
+    # ── market_search 已并入 ext_discover（第 0 档合并，评估报告 §6.2-9）──
+    # 原 market_search 调 discovery.search_market → ExtensionMarket.search_all，
+    # 与 ext_discover 是同一后端；两者 enum 互不兼容造成两个检索缺口，
+    # 合并后 ext_discover 统一为并集 enum 并返回扁平 results（见其 handler 注释）。
+    # 原调用等价于：ext_discover(query=..., type=<category>)。
+    #
+    # ── install_tool 已并入 ext_install(type="auto")（第 0 档合并，§6.2-8）──
+    # 原调用等价于：ext_install(type="auto", source=<tool_id>)（或加 tool_id/source）。
 
     @_tools.register("generate_tool", "生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。", schema={
         "type": "object",

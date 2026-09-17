@@ -3,6 +3,10 @@ category: v2
 description: 查看当前人格配置
 deprecated: false
 version: 1.0.0
+plane: resident
+effect: read
+risk: low
+tags: [persona]
 schema:
   type: object
   properties: {}

@@ -3,6 +3,10 @@ category: file
 description: 获取文件或目录的详细信息（大小、修改时间、权限等）
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [code]
 schema:
   type: object
   properties:

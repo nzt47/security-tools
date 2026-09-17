@@ -3,6 +3,10 @@ category: v2
 description: 触发一次人格蒸馏学习
 deprecated: false
 version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [persona, evolution]
 schema:
   type: object
   properties: {}

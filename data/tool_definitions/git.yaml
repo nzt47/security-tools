@@ -1,0 +1,69 @@
+name: git
+category: code
+description: 执行 git 版本控制操作。action 取值：status（工作区状态）、diff（代码改动）、log（提交历史）、branch（分支列表）、show（查看某次提交）、add（暂存文件）、commit（提交）、checkout（切换分支/检出文件）、stash（储藏改动）。add/commit/checkout/stash
+  属于写操作，必须显式传 confirm=true 才会执行。Run git commands, version control operations, git
+  status diff log commit
+deprecated: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: high
+tags: [code, git]
+schema:
+  type: object
+  properties:
+    action:
+      type: string
+      enum:
+      - status
+      - diff
+      - log
+      - branch
+      - show
+      - add
+      - commit
+      - checkout
+      - stash
+      description: 要执行的 git 动作：status/diff/log/branch/show 为只读；add/commit/checkout/stash
+        为写操作（需 confirm）
+    cwd:
+      type: string
+      description: 仓库工作目录，默认项目根目录；相对路径按项目根目录解析
+    paths:
+      type: array
+      items:
+        type: string
+      description: 限定文件/目录列表（add 必填；diff/log/checkout 可选）
+    message:
+      type: string
+      description: commit 的提交信息（commit 必填）；stash 时作为储藏说明
+    target:
+      type: string
+      description: checkout 的目标（分支名/提交/标签）；show 的修订版本，默认 HEAD
+    staged:
+      type: boolean
+      description: diff 是否查看已暂存的改动（等价 git diff --staged），默认 false
+    count:
+      type: integer
+      description: log 返回的提交条数，默认 20，范围 1-200
+    stat:
+      type: boolean
+      description: show 是否只输出变更统计（--stat），默认 false
+    stash_action:
+      type: string
+      enum:
+      - push
+      - pop
+      - apply
+      - list
+      - show
+      description: stash 子命令，默认 push（储藏）；pop/apply 用于恢复储藏，list/show 用于查看
+    timeout_sec:
+      type: integer
+      description: 执行超时秒数，默认 60，最大 120
+    confirm:
+      type: boolean
+      description: 写操作确认开关：add/commit/checkout/stash 必须传 true，否则拒绝执行
+  required:
+  - action
+examples: []

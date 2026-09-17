@@ -28,6 +28,31 @@ except ImportError:  # pragma: no cover - PyYAML 为项目依赖，缺失时降�
 
 logger = logging.getLogger(__name__)
 
+#: 工具发现服务（由 lifecycle_manager 注入）
+#: 历史问题：`lifecycle_manager.py:1026` 一直在调 `tool_router.set_discovery_service(...)`，
+#: 但本模块**没有这个函数** ⇒ AttributeError 被内层 `except: pass` 静默吞掉，
+#: "路由层感知不到发现服务"这件事从不报错也从不生效（评估报告 §4.4c 同源问题）。
+_discovery_service = None
+
+
+def set_discovery_service(service):
+    """注入工具发现服务（此前缺失的符号，补上以消除静默 AttributeError）
+
+    路由层当前**不依赖**发现服务做召回（候选来自 tool_index.json），
+    保留此入口是为了：① 让既有调用点不再静默失败；② 为后续"路由到未索引工具"
+    留出接线位。返回上一次的服务实例，便于调用方断言。
+    """
+    global _discovery_service
+    prev = _discovery_service
+    _discovery_service = service
+    logger.info("[工具路由] 发现服务已注入: %s", type(service).__name__ if service else None)
+    return prev
+
+
+def get_discovery_service():
+    """读取已注入的发现服务（可能为 None）"""
+    return _discovery_service
+
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 KEYWORDS_FILE = os.path.join(_PROJECT_ROOT, "data", "tool_router_keywords.json")
 # 工具定义 YAML 目录（source of truth）；缺失时回退到下方代码内默认值
@@ -45,7 +70,8 @@ _DEFAULT_TOOL_CATEGORIES = {
         "always": True,
         "priority": 0,
         "tools": [
-            "get_status", "search_memory", "remember", "expand_context",
+            # expand_context 已并入 search_memory(scope="vector")（第 0 档合并）
+            "get_status", "search_memory", "remember",
             # todo_write 归 core：core 恒被命中（classify_user_input 以 matched={"core"}
             # 起步）⇒ 等于"始终可见"；且 core 优先级 0，不会被 max_tools 截断。
             # 它只有一个数组参数，常驻 schema 的 token 成本很小（对比 delegate 的八要素）。
@@ -59,8 +85,12 @@ _DEFAULT_TOOL_CATEGORIES = {
         "always": False,
         "priority": 1,
         "tools": [
-            "web_search", "web_get", "web_post", "web_xpath", "web_css",
-            "web_clean_data", "web_download", "web_batch", "fetch_news",
+            "web_search", "web_get", "web_post", "web_download", "web_batch",
+            # 第 0 档合并：web_xpath + web_css + web_clean_data → web_extract；
+            # fetch_news → web_search(preset="news")（见 docs/工具集评估与重分类报告.md §6.2）
+            "web_extract",
+            # 浏览器自动化（能力补全：实现早已存在、此前未注册为工具）
+            "browser_navigate", "browser_screenshot", "browser_close",
         ],
     },
     "file": {
@@ -72,7 +102,12 @@ _DEFAULT_TOOL_CATEGORIES = {
         "tools": [
             "read_file", "write_file", "list_directory", "get_file_info",
             "search_files", "compress", "decompress", "diff_files",
-            "grep", "edit",
+            # grep / edit 已改归 code 分类（评估报告 §6.5）：
+            # 它们是代码工程原语，不是文件系统原语。留在 file 类会导致
+            # 「写代码并运行测试」这类输入命中 code 却拿不到 edit/grep（实测缺失）。
+            # 能力补全：工作区管理与报表生成
+            "workspace_init", "workspace_list", "workspace_write", "workspace_delete",
+            "weekly_report",
         ],
     },
     "code": {
@@ -83,8 +118,16 @@ _DEFAULT_TOOL_CATEGORIES = {
         "priority": 3,
         "tools": [
             "shell_execute", "code_review", "arch_diagram", "humanize_zh",
-            "json_query", "json_to_yaml", "yaml_to_json", "json_validate",
-            "data_format_detect",
+            "json_query", "data_format_detect",
+            # 第 0 档合并：json_to_yaml + yaml_to_json → data_convert(to=)；
+            # json_validate → data_format_detect（其 JSON 分支本就是同一个 json.loads）
+            "data_convert",
+            # 能力补全：工程交付的三个基础原语（此前完全缺失）
+            "git", "run_tests", "apply_patch", "run_sandbox",
+            # 由 file 类迁入：代码工程原语（报告 §6.5）
+            "grep", "edit",
+            # 能力补全（B 档）：只读 sqlite 查询 + 代码检查
+            "sqlite_query", "run_lint",
         ],
     },
     "system": {
@@ -95,17 +138,28 @@ _DEFAULT_TOOL_CATEGORIES = {
         "priority": 4,
         "tools": [
             "run_program", "list_processes", "stop_process", "get_weather",
+            # 能力补全：剪贴板与屏幕视觉
+            "get_clipboard", "set_clipboard", "look_at_screen",
+            # 能力补全（B 档）：主动通知/提醒（schedule_task 是周期执行，不是到点提醒）
+            "notify",
         ],
     },
     "extension": {
         "label": "扩展插件",
         "icon": "🧩",
-        "description": "技能/MCP/通道/插件的安装卸载管理",
+        "description": "技能/MCP/通道/插件的安装卸载管理，以及工具自生成",
         "always": False,
         "priority": 5,
         "tools": [
             "ext_install", "ext_uninstall", "ext_list", "ext_toggle",
             "ext_discover", "ext_configure", "ext_send_channel",
+            # 评估报告 §1.5-A：这 6 个此前是 uncategorized ⇒ 被分类表静默丢弃、
+            # 关键词路由永不返回（含"自我扩展"入口 generate_tool）。已归档到本类。
+            # market_search → ext_discover、install_tool → ext_install(type="auto")
+            # （第 0 档合并，2026-09-17；两处 enum 缺口同时修复）
+            "generate_tool", "scan_mcp", "connect_mcp", "disconnect_mcp",
+            # 能力补全：查看活跃 MCP 连接（实现早已存在、此前无工具暴露）
+            "list_mcp_connections",
         ],
     },
     "pdf": {
@@ -116,18 +170,17 @@ _DEFAULT_TOOL_CATEGORIES = {
         "priority": 6,
         "tools": [
             "read_pdf", "merge_pdf", "split_pdf", "get_pdf_info",
+            # 能力补全：PDF 表格抽取（实现早已存在、此前未注册）
+            "read_pdf_tables",
         ],
     },
-    "software": {
-        "label": "软件管理",
-        "icon": "📦",
-        "description": "软件搜索、安装、卸载、列表",
-        "always": False,
-        "priority": 7,
-        "tools": [
-            "software_search", "software_install", "software_list", "software_uninstall",
-        ],
-    },
+    # ── software 分类已退役（2026-09-17）──
+    # 原 "software" 类的 4 个工具（software_search/install/list/uninstall）是空壳：
+    # software_install 会返回成功却什么都没装（见 docs/工具集评估与重分类报告.md §4.4a）。
+    # 实现模块 agent/tools/software_tools.py 与 4 个 YAML 均已删除，此处整个分类一并移除
+    # ——留一个永远为空的分类会在前端渲染成空分组，也会污染路由推导。
+    # 恢复时需同时恢复：本分类、data/tool_definitions/software_*.yaml、
+    # agent/tools/software_tools.py，并先补齐 software_manager 的真实实现。
     "async": {
         "label": "异步任务",
         "icon": "⏳",
@@ -136,7 +189,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "priority": 8,
         "tools": [
             "submit_task", "get_task_status", "get_task_result", "cancel_task",
-            "list_async_tasks", "delegate",
+            "list_async_tasks", "delegate", "fan_out",
         ],
     },
     "schedule": {
@@ -161,8 +214,23 @@ _DEFAULT_TOOL_CATEGORIES = {
             "trigger_distillation",
         ],
     },
+    # ── 知识库与过程蒸馏 ──
+    # 历史问题：kb_* 6 个工具从未在生产注册、也无 YAML（故无 category），
+    # distill_* 3 个无 YAML ⇒ 两者都进不了本表（见评估报告 §1.5-C/D）。
+    # 现已补 YAML 定义并接线注册，在此归类使其在关键词路由下同样可达。
+    "knowledge": {
+        "label": "知识与蒸馏",
+        "icon": "📚",
+        "description": "素材入库、提炼、产卡、巡检、语义检索与过程蒸馏固化",
+        "always": False,
+        "priority": 5,
+        "tools": [
+            "kb_capture", "kb_distill", "kb_discuss", "kb_card", "kb_lint", "kb_search",
+            # distill_process_async → distill_process_from_knowledge(async_=true)
+            "distill_process_from_knowledge",
+        ],
+    },
 }
-
 
 def _load_tool_categories_from_yaml() -> Optional[dict]:
     """从 data/tool_definitions/*.yaml 派生 TOOL_CATEGORIES。
@@ -200,6 +268,10 @@ def _load_tool_categories_from_yaml() -> Optional[dict]:
                 continue
             name = doc.get("name")
             category = doc.get("category")
+            # internal: true 的工具（如 process_distill_run）必须留在注册表里供内部按名调用，
+            # 但**不得进入路由分类表** —— 它是内部执行体，不该被模型选中。
+            if doc.get("internal") is True:
+                continue
             if isinstance(name, str) and isinstance(category, str):
                 # 仅记录已知分类的工具；uncategorized 不进入路由分类表
                 if category in default_cat_keys:
@@ -235,16 +307,33 @@ TOOL_CATEGORIES = _load_tool_categories_from_yaml() or _DEFAULT_TOOL_CATEGORIES
 # 平铺所有工具（用于校验完整性）
 ALL_TOOLS_SET = {tool for cat in TOOL_CATEGORIES.values() for tool in cat["tools"]}
 
-# 工具别名映射(main_name → [alias_names])
-# 【不易】别名是工具名的等价替代,解析后必须映射到已注册工具;
-#        主工具被选中时,其别名工具必须从结果中移除(避免重复语义工具)
-# 【变易】运行时可扩展,按需追加新别名对
-# 【简易】主工具/别名都必须存在于 ALL_TOOLS_SET(test_tool_count_consistency 守门)
-TOOL_ALIASES: dict[str, list[str]] = {
-    "shell_execute": ["run_program"],      # 两者都是命令执行,保留 code 分类的高优先级工具
-    "read_file": ["read_pdf"],             # 读取 PDF 时优先通用 read_file
-    "list_directory": ["list_processes"],  # "列出"语义歧义,目录列出优先于进程列出
-}
+# 工具别名映射 —— **已废弃为空**（2026-09-17）
+# ══════════════════════════════════════════════════════════════════════════
+# 【为什么废弃：这套机制的设计意图是去重，实际效果是**删掉唯一可用的工具**】
+#   原三条映射全部是错的，且已实测造成能力丢失：
+#     "shell_execute":  ["run_program"]      → 方向尚可，但 code 分类优先级 3，在
+#                                              复合请求的截断中根本进不了结果 ⇒ 等于
+#                                              把 shell_execute 与 run_program 双双删掉
+#     "read_file":      ["read_pdf"]         → **硬功能缺陷**：read_file 对二进制内容
+#                                              返回 binary=True，读不了 PDF；read_pdf 才
+#                                              是唯一能读 PDF 的工具。实测「读取pdf文件
+#                                              的内容」→ 结果里 read_pdf 缺席、read_file
+#                                              在场 ⇒ 用户要读 PDF，拿到的工具读不了 PDF
+#     "list_directory": ["list_processes"]   → 说"列出进程"时进程工具被目录工具挤掉，
+#                                              二者语义毫无关系
+#   生效点在 `_apply_alias_merge_and_priority_sort`，且**两条路由路径共用**
+#   （关键词路由与 hybrid 路由），故 hybrid 路径同样中招（hybrid 会传入全部类别，
+#   read_file 与 read_pdf 同时进 top-k 是常态，删除纯由词面碰撞触发）。
+#
+# 【正确的去重方式是合并实现，不是对候选集做减法】
+#   一个工具 + 一个 `mode` 参数。第 0 档合并（docs/工具集评估与重分类报告.md §6.2）
+#   正是按这个方向做的：web_extract / data_convert 等。
+#
+# 【为什么保留这个空符号而不删】多处（tests/unit/test_tool_router_pinned.py 的
+#   `_candidates` 复刻、若干 scripts/ 诊断脚本）仍 `from agent.tool_router import
+#   TOOL_ALIASES` 并遍历它。保留空 dict ⇒ 这些调用方行为不变（遍历零次）而不 ImportError。
+#   新增映射**一律不允许**：要合并就去合并实现。
+TOOL_ALIASES: dict[str, list[str]] = {}
 
 # ════════════════════════════════════════════════════════════
 #  "永不被截断"关注名单（pin list）
@@ -278,38 +367,57 @@ DEFAULT_KEYWORDS = {
         "信息", "资料", "文章", "页面", "链接", "抓取", "爬虫",
         "translate", "翻译", "search", "web", "internet", "fetch",
         "最新", "热点", "资讯",
+        # 能力补全后新增：浏览器自动化（此前实现存在但未注册为工具）
+        "浏览器", "browser", "无头浏览器", "网页截图", "渲染页面", "js 渲染",
     ],
     "file": [
         "文件", "读取", "写入", "目录", "文件夹", "保存", "打开文件",
         "创建文件", "删除文件", "移动文件", "复制文件", "压缩", "解压",
         "zip", "tar", "diff", "对比文件", "文件信息", "搜索文件",
         "列出", "文件大小", "修改时间", "file", "read", "write",
+        # 编码动作也落在文件写路径上（实测「写代码」需召回 write_file）
+        "写代码", "改代码", "编辑代码", "新建文件", "创建文件", "保存到文件",
     ],
     "code": [
         "执行", "命令", "shell", "终端", "cmd", "powershell", "bash",
         "json", "yaml", "xml", "格式化", "校验", "转换", "检测格式",
         "代码审查", "架构图", "review", "代码", "脚本", "运行",
         "humanize", "ai写作", "代码检查",
+        # 工程交付原语（能力补全后新增的 git / run_tests / apply_patch）
+        "跑测试", "运行测试", "单元测试", "测试一下", "跑一下测试", "回归测试",
+        "pytest", "跑用例", "执行测试", "lint", "类型检查",
+        "git", "提交代码", "提交改动", "打个补丁", "应用补丁", "patch", "diff 应用",
+        "沙箱执行", "沙箱里跑",
+        # 编码动作（实测「写代码并运行测试」曾召回不到 write_file/edit/grep）
+        "写代码", "改代码", "编辑代码", "重构", "加个函数", "实现功能",
+        "代码修改", "改一下代码", "搜索代码", "找代码",
+        # 软件安装/卸载（原 software 分类的 4 个工具已于 2026-09-17 注销）
+        # 语义迁移到 code 分类的 shell_execute —— 装软件的正确做法是调系统包管理器，
+        # 而不是让一个空壳工具谎报成功。原 software 关键词键已随之移除（否则会变成死键）。
+        "安装软件", "卸载软件", "搜索软件", "软件包", "软件列表", "软件管理",
+        "安装包", "装个软件", "chocolatey", "pip install", "npm install",
+        "apt install", "apt-get", "brew install", "winget",
     ],
     "system": [
         "进程", "启动程序", "运行程序", "天气", "温度", "天气预报",
         "程序", "process", "weather", "停止", "打开", "notepad",
         "calc", "白名单",
+        # 能力补全后新增：剪贴板与屏幕视觉
+        "剪贴板", "粘贴板", "clipboard", "屏幕", "截屏", "截图",
+        "看一下屏幕", "屏幕上", "识别图片文字", "ocr",
     ],
     "extension": [
         "安装扩展", "卸载扩展", "技能", "插件", "mcp", "通道",
         "扩展市场", "扩展列表", "扩展管理", "安装技能",
         "安装插件", "拓展", "channel", "webhook", "邮件",
         "ext_", "扩展",
+        # 自我扩展入口（评估报告 §1.5-A：这些工具此前 uncategorized ⇒ 永不命中）
+        "生成工具", "新工具", "自生成", "写个工具", "造个工具", "自定义工具",
+        "安装工具", "装个工具", "连接 mcp", "扫描 mcp", "市场",
     ],
     "pdf": [
         "pdf", "合并pdf", "拆分pdf", "读取pdf", "pdf信息",
         "pdf文件", "pdf处理", "pdf合并",
-    ],
-    "software": [
-        "安装软件", "卸载软件", "搜索软件", "软件包", "软件列表",
-        "chocolatey", "pip install", "npm install", "安装包",
-        "软件管理",
     ],
     "async": [
         "异步", "后台", "提交任务", "任务状态", "任务结果",
@@ -324,6 +432,11 @@ DEFAULT_KEYWORDS = {
     "v2": [
         "lifetrace", "人格", "persona", "蒸馏", "distillation",
         "偏好", "preference", "记忆检索",
+    ],
+    "knowledge": [
+        "知识库", "知识", "素材", "入库", "提炼", "笔记", "卡片", "产卡",
+        "巡检", "断链", "孤儿", "wiki", "kb_", "过程蒸馏", "固化",
+        "workflow 固化", "sop", "复盘",
     ],
 }
 
@@ -512,38 +625,51 @@ def _restore_pinned_tools(
     sorted_tools: list[str],
     selected: set,
     max_tools: int,
+    keep: set | None = None,
 ) -> list[str]:
-    """按 priority 截断,再把 PINNED_TOOLS 中被截掉的工具补回末尾
-
-    (从 _apply_alias_merge_and_priority_sort 的"数量截断"步骤抽出,供其两处定义共用)
+    """截断到 max_tools，但**保底工具与 PINNED_TOOLS 一律保留**
 
     Args:
-        sorted_tools: 已按 priority 升序排序、**尚未截断**的工具名列表
-        selected: 已过白名单交集与别名合并的候选集合(＝类别命中集合)
-        max_tools: 上限;调用方保证 ``max_tools`` 为正整数且 ``len(sorted_tools) > max_tools``
+        sorted_tools: 已排序、**尚未截断**的工具名列表
+        selected: 已过白名单交集的候选集合(＝类别命中集合)
+        max_tools: 上限;调用方保证为正整数且 ``len(sorted_tools) > max_tools``
+        keep: **必保集合**（类别保底工具）。这些即使在截断点之外也保留，
+              并占用名额 ⇒ 截断只裁非保底部分。见 `_apply_alias_merge_and_priority_sort`
+              的"类别保底"说明（防止优先级阶梯把靠后类别饿死）。
 
     Returns:
-        截断后(可能补回若干 pinned 工具)的工具名列表;
-        **补回后总数允许略超 max_tools**——见模块常量 PINNED_TOOLS 的理由。
+        截断后的工具名列表；**保底与补回后总数允许略超 max_tools**。
 
-    【不易】补回条件必须同时成立:①该工具在 PINNED_TOOLS 里;②它**本来就在
-            `selected` 里**(＝其所属类别被关键词命中,且通过了白名单交集;
-            别名合并也可能把它移除);③它**本来就在 `sorted_tools` 里却被截断点丢掉**。
-            故未命中类别的 pinned 工具**不可能**被加入——不会绕过路由。
-    【变易】名单可增删;`selected` / `sorted_tools` 的语义由调用方保证。
-    【简易】纯函数;只读 max_tools,不改写任何模块状态。
+    【不易】① pinned 补回条件必须同时成立：在 PINNED_TOOLS 里 ∧ 本就在 `selected` 里
+            ∧ 本就在 `sorted_tools` 里却被丢掉 ⇒ 未命中类别的 pinned 工具**不可能**
+            被加入，不会绕过路由。② `keep` 里的工具必须**本来就在 sorted_tools 中**
+            （保底集合由调用方从 selected 派生），同样不会引入未命中类别的工具。
+    【变易】名单可增删；`selected` / `sorted_tools` 的语义由调用方保证。
+    【简易】纯函数；只读 max_tools，不改写任何模块状态。
     """
-    kept = list(sorted_tools[:max_tools])
-    dropped = set(sorted_tools[max_tools:])
-    for tool in PINNED_TOOLS:
-        if tool in kept:
+    keep = set(keep or ())
+    # 保底工具全部保留，且优先占位
+    kept: list[str] = [t for t in sorted_tools if t in keep]
+    kept_set = set(kept)
+    # 剩余名额按原顺序填充
+    room = max(0, max_tools - len(kept))
+    for t in sorted_tools:
+        if len(kept) >= max_tools:
+            break
+        if t in kept_set:
             continue
-        # 只补"本来就被类别命中"的工具:dropped 是 selected 的子集(selected 已过
-        # 白名单交集与别名合并),两项同时检查是为了把这条不变量写在代码里。
+        kept.append(t)
+        kept_set.add(t)
+
+    dropped = set(sorted_tools) - kept_set
+    for tool in PINNED_TOOLS:
+        if tool in kept_set:
+            continue
         if tool in dropped and tool in selected:
             logger.info("[工具路由] 关注名单补回被截断的工具: %s(总数 %d → %d, 上限 %d)",
                         tool, len(kept), len(kept) + 1, max_tools)
             kept.append(tool)
+            kept_set.add(tool)
     return kept
 
 
@@ -551,21 +677,29 @@ def _apply_alias_merge_and_priority_sort(
     selected: set,
     categories: set,
     max_tools: int,
+    preferred_order: list[str] | None = None,
 ) -> list[str]:
-    """别名合并 + 优先级排序 + 数量截断(从 get_tools_for_input 抽取,行为不变)
+    """相关度优先 + 类别兜底排序 + 数量截断(供关键词路由与 hybrid 路由共用)
 
-    Why: tool_router_hybrid.py 复用此 helper,确保别名/优先级/截断逻辑单一来源。
-    约束: 行为与 get_tools_for_input L445 的调用口径完全一致(包括 TOOL_ALIASES 顺序、
-         tool_to_priority 取最小值、max_tools<=0 不限制、PINNED_TOOLS 关注名单补回)。
+    Why: tool_router_hybrid.py 复用此 helper,确保排序/截断逻辑单一来源。
+    约束: tool_to_priority 取最小值、max_tools<=0 不限制、PINNED_TOOLS 关注名单补回。
+
+    【preferred_order：为什么需要它（2026-09-17）】
+      关键词路由没有"相关度"这个概念——它只有"命中了哪些类别"，所以按类别 priority
+      排序是对的。但 hybrid 路由**有真实相关度分数**（BM25+Embedding 融合排序）。
+      若把 hybrid 的候选也一律按类别 priority 重排，就会出现**相关度被优先级覆盖**：
+      例如「读取 PDF 的内容」，pdf 类别 priority=6，web(1)/file(2) 的工具会把名额吃光，
+      `read_pdf` 被挤出到 max_tools 之外 ⇒ 命中了却拿不到。
+      因此：传入 `preferred_order`（= 检索器的相关度序）时，**先按相关度保留**，
+      再用类别 priority 补充剩余名额。这样"命中且相关"的工具不会被优先级挤掉，
+      而"类别命中但检索没召回"的工具仍能补进来（这才是补位的目的）。
+
+    【别名合并已移除（2026-09-17）】原第一步会把"主工具已入选"的别名工具从候选集里
+    减去，而原三条映射全是错的 —— 最严重的是 `read_file → read_pdf`：read_file 对
+    二进制返回 binary=True 读不了 PDF，read_pdf 才是唯一能读的工具，于是别名机制
+    把唯一可用的那个删掉了。详见 TOOL_ALIASES 处的长注释。
+    正确做法是合并**实现**（一个工具 + mode 参数），不是对候选集做减法。
     """
-    # 【功能 2】别名合并:主工具被选中时,移除其别名工具
-    if TOOL_ALIASES:
-        aliases_to_remove: set[str] = set()
-        for main_tool, alias_list in TOOL_ALIASES.items():
-            if main_tool in selected:
-                aliases_to_remove.update(alias_list)
-        selected -= aliases_to_remove
-
     # 【功能 1】优先级排序:工具 → 其所属类别中最小的 priority
     tool_to_priority: dict[str, int] = {}
     for cat in categories:
@@ -577,13 +711,79 @@ def _apply_alias_merge_and_priority_sort(
             if tool in selected:
                 if tool not in tool_to_priority or pri < tool_to_priority[tool]:
                     tool_to_priority[tool] = pri
-    result = sorted(selected, key=lambda t: tool_to_priority.get(t, 99))
 
-    # 【功能 3】数量限制:按 priority 排序后截断
-    # 【功能 4】截断后补回 PINNED_TOOLS 中被挤掉的工具(见 _restore_pinned_tools;
+    # 【功能 2】**类别保底**（2026-09-17）
+    # 【为什么必须有】纯按类别 priority 排序时，优先级阶梯会把靠后的类别饿死：
+    #   core(0)=7 + file(2)=13 = 20，再往下 code(3)=15 只能挤进 5 个 ⇒
+    #   实测「帮我写代码并运行测试」里属于 code 的 edit/grep/shell_execute 全被挤掉。
+    #   这与老旧口径"core+web+file 恰好 25 ⇒ 七个类别全为 0"是同一个病。
+    #   修法与主线装配器的平面保底同精神：**每个命中类别先各取 N 个**，
+    #   剩余名额再按相关度/优先级分配；截断只裁"非保底"部分。
+    _FLOOR_PER_CATEGORY = 3
+    # 【不易】保底必须让位于 max_tools，不能突破它。
+    #   主线装配器（agent/lines/assembler.py）刻意选择"保底优先、允许略超 max_tools"，
+    #   但**旧路由的 max_tools 是硬上限契约**——调用方用它做 token 预算。
+    #   实测 `hybrid_select_tools("搜索", max_tools=2)` 曾因保底返回 6 个而破坏契约。
+    #   故按预算**缩放**保底数：floor_n ≤ max_tools / 命中类别数 ⇒ Σ保底 ≤ max_tools。
+    #   预算太小就保不住（上限说了算），但预算够时任何命中类别都不会归零。
+    matched_cats = [
+        c for c in categories
+        if TOOL_CATEGORIES.get(c, {}).get("tools")
+        and any(t in selected for t in TOOL_CATEGORIES[c]["tools"])
+    ]
+    floor_n = _FLOOR_PER_CATEGORY
+    if max_tools and max_tools > 0 and matched_cats:
+        if max_tools >= len(matched_cats):
+            # 保底总额不超过**半预算**：否则大量类别命中时保底会吃光名额，
+            # 相关度排序就没了意义（保底是"防饿死"，不是"平均分配"）。
+            floor_n = max(1, min(_FLOOR_PER_CATEGORY,
+                                 (max_tools // 2) // len(matched_cats)))
+        else:
+            # 预算连"每个命中类别 1 个"都不够 ⇒ 保底无从谈起，让顺序决定（守硬上限）
+            floor_n = 0
+
+    floors: list[str] = []
+    floor_set: set[str] = set()
+    _pref_index = {t: i for i, t in enumerate(preferred_order or [])}
+    for cat in sorted(matched_cats,
+                      key=lambda c: TOOL_CATEGORIES.get(c, {}).get("priority", 99)):
+        cat_tools = [t for t in TOOL_CATEGORIES.get(cat, {}).get("tools", []) if t in selected]
+        if not cat_tools:
+            continue
+        # 类别内排序：相关度优先（有则用），否则保持类别内既定顺序
+        cat_tools.sort(key=lambda t: (_pref_index.get(t, 10_000),))
+        for t in cat_tools[:floor_n]:
+            if t not in floor_set:
+                floor_set.add(t)
+                floors.append(t)
+
+    # 【功能 3】剩余名额：相关度领跑 → 类别优先级补位 → 余下相关度
+    if preferred_order:
+        head_all: list[str] = []
+        seen: set[str] = set()
+        for t in preferred_order:
+            if t in selected and t not in seen:
+                seen.add(t)
+                head_all.append(t)
+        head_set = set(head_all)
+        tail = [t for t in sorted(selected, key=lambda x: tool_to_priority.get(x, 99))
+                if t not in head_set]
+        if max_tools and max_tools > 0:
+            head_cap = max(1, max_tools // 2)
+            result = head_all[:head_cap] + tail + head_all[head_cap:]
+        else:
+            result = head_all + tail
+    else:
+        result = sorted(selected, key=lambda t: tool_to_priority.get(t, 99))
+
+    # 保底工具前置（它们已在 selected 内，不会引入未命中类别的工具）
+    result = floors + [t for t in result if t not in floor_set]
+
+    # 【功能 4】数量截断：只裁"非保底"部分，保底一律保留
+    #         最后补回 PINNED_TOOLS 中被挤掉的工具(见 _restore_pinned_tools;
     #         补回后允许总数略超 max_tools)
     if max_tools is not None and max_tools > 0 and len(result) > max_tools:
-        result = _restore_pinned_tools(result, selected, max_tools)
+        result = _restore_pinned_tools(result, selected, max_tools, keep=floor_set)
     return result
 
 

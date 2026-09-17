@@ -1,0 +1,23 @@
+name: run_sandbox
+category: code
+description: 在受限 Python 沙盒中执行纯计算代码片段。独立子进程 + 超时强杀；仅暴露安全内置函数，禁用 import、open、eval、getattr
+  及一切类型属性遍历。注意：沙盒不提供 print，输出通道仅有异常信息，因此它适合验证纯计算逻辑是否报错。Run Python code in a restricted
+  sandbox, execute python snippet
+deprecated: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: critical
+tags: [sandbox, code]
+schema:
+  type: object
+  properties:
+    code:
+      type: string
+      description: 要执行的 Python 代码（纯计算；含 import/open/eval/双下划线属性 等模式会被直接拒绝）
+    timeout_sec:
+      type: integer
+      description: 执行超时秒数，默认 5，范围 1-60
+  required:
+  - code
+examples: []

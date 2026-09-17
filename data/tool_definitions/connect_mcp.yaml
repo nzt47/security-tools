@@ -1,8 +1,12 @@
 name: connect_mcp
-category: uncategorized
+category: extension
 description: 手动连接一个 MCP 服务并注册其工具。支持 STDIO(本地进程)和 HTTP(远程服务)两种模式。
 deprecated: false
 version: 1.0.0
+plane: govern
+effect: extend
+risk: high
+tags: [mcp, self_modify]
 schema:
   type: object
   properties:

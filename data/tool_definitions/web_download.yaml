@@ -3,6 +3,10 @@ category: web
 description: 从 URL 下载文件到本地
 deprecated: false
 version: 1.0.0
+plane: act
+effect: write
+risk: medium
+tags: [web]
 schema:
   type: object
   properties:

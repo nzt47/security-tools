@@ -3,6 +3,10 @@ category: extension
 description: 列出已安装的扩展（技能/MCP服务/通道/插件）。查询当前有哪些能力可用。
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [extension]
 schema:
   type: object
   properties:

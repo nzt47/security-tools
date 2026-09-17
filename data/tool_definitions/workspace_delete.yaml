@@ -1,0 +1,19 @@
+name: workspace_delete
+category: file
+description: 删除受保护工作区内的文件或目录（目录递归删除），不可撤销。禁止删除工作区根目录，路径越界会被拒绝。Delete a file or directory
+  inside the protected workspace
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: high
+tags: [workspace]
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 工作区内的相对路径（不允许空值或工作区根目录）
+  required:
+  - path
+examples: []

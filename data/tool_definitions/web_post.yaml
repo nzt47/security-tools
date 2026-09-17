@@ -3,6 +3,10 @@ category: web
 description: 发送 HTTP POST 请求，支持表单数据和 JSON 数据
 deprecated: false
 version: 1.0.0
+plane: act
+effect: execute
+risk: medium
+tags: [web, egress]
 schema:
   type: object
   properties:

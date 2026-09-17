@@ -4,6 +4,10 @@ description: 获取异步任务的执行结果。已完成的结果保留 1 小�
   → get_task_result
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [async]
 schema:
   type: object
   properties:

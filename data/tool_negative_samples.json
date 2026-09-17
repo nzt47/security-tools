@@ -17,11 +17,10 @@
     {
       "group_id": "G1_web_search_family",
       "category": "web",
-      "description": "网页搜索类工具区分:web_search=搜索引擎检索,web_get=抓取指定 URL,fetch_news=新闻聚合",
+      "description": "网页搜索类工具区分:web_search=搜索引擎检索(含 preset='news' 的新闻聚合),web_get=抓取指定 URL。注：fetch_news 已于 2026-09-17 并入 web_search(preset='news')，故不再作为负样本。",
       "tools": [
         "web_search",
-        "web_get",
-        "fetch_news"
+        "web_get"
       ],
       "queries": [
         {
@@ -30,10 +29,9 @@
             "web_search"
           ],
           "negative": [
-            "web_get",
-            "fetch_news"
+            "web_get"
           ],
-          "rationale": "用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
+          "rationale": "用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合（2026-09-17：fetch_news 已并入 web_search(preset='news')，故 web_search 由负样本转为期望，已从 negative 移除）"
         },
         {
           "query": "抓取 https://example.com 的 HTML 内容",
@@ -41,21 +39,19 @@
             "web_get"
           ],
           "negative": [
-            "web_search",
-            "fetch_news"
+            "web_search"
           ],
           "rationale": "用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
         },
         {
           "query": "查看今日科技头条新闻",
           "expected_positive": [
-            "fetch_news"
+            "web_search"
           ],
           "negative": [
-            "web_search",
             "web_get"
           ],
-          "rationale": "用户意图是新闻聚合,而非搜索关键词或抓取 URL"
+          "rationale": "用户意图是新闻聚合,而非搜索关键词或抓取 URL（2026-09-17：fetch_news 已并入 web_search(preset='news')，故 web_search 由负样本转为期望，已从 negative 移除）"
         }
       ]
     },
@@ -166,11 +162,11 @@
     {
       "group_id": "G5_install_family",
       "category": "extension",
-      "description": "安装/列出类工具区分:ext_install=装扩展,ext_list=列扩展,software_install=装软件包",
+      "description": "安装/列出类工具区分:ext_install=装扩展,ext_list=列扩展。注：software_install 已于 2026-09-17 注销，装系统软件包改由 shell_execute 承担。",
       "tools": [
         "ext_install",
         "ext_list",
-        "software_install"
+        "shell_execute"
       ],
       "queries": [
         {
@@ -179,8 +175,7 @@
             "ext_install"
           ],
           "negative": [
-            "ext_list",
-            "software_install"
+            "ext_list"
           ],
           "rationale": "装扩展,不是列扩展或装系统软件包"
         },
@@ -190,15 +185,14 @@
             "ext_list"
           ],
           "negative": [
-            "ext_install",
-            "software_install"
+            "ext_install"
           ],
           "rationale": "列扩展,不是装扩展或装软件包"
         },
         {
           "query": "用 apt 安装 nginx 软件包",
           "expected_positive": [
-            "software_install"
+            "shell_execute"
           ],
           "negative": [
             "ext_install",
@@ -287,31 +281,31 @@
     {
       "group_id": "G8_format_convert_direction",
       "category": "code",
-      "description": "格式转换方向性:json_to_yaml=JSON→YAML,yaml_to_json=YAML→JSON。报告 q08 风险点:BM25 无法区分转换方向,两者词频完全相同",
+      "description": "格式转换方向性:原 json_to_yaml/yaml_to_json 已并入 data_convert(to=)，方向由参数决定；同域近似工具 data_format_detect(只探测格式、不做转换)为负样本。报告 q08 风险点:BM25 无法区分同域近邻工具。",
       "tools": [
-        "json_to_yaml",
-        "yaml_to_json"
+        "data_convert",
+        "data_format_detect"
       ],
       "queries": [
         {
           "query": "把 config.json 转换成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
-          "rationale": "JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
+          "rationale": "JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记（2026-09-17：fetch_news 已并入 web_search(preset='news')，故 web_search 由负样本转为期望，已从 negative 移除）"
         },
         {
           "query": "读取 data.yaml 转成 JSON 对象",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
-          "rationale": "YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
+          "rationale": "YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json（2026-09-17：fetch_news 已并入 web_search(preset='news')，故 web_search 由负样本转为期望，已从 negative 移除）"
         }
       ]
     },

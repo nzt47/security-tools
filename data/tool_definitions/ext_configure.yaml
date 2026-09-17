@@ -3,6 +3,10 @@ category: extension
 description: 配置扩展参数。调整技能、MCP服务或通道的设置项。
 deprecated: false
 version: 1.0.0
+plane: govern
+effect: extend
+risk: medium
+tags: [extension, self_modify]
 schema:
   type: object
   properties:

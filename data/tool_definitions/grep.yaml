@@ -1,10 +1,14 @@
 name: grep
-category: file
+category: code
 description: 按内容（正则表达式）检索文件，返回命中的相对路径、1-based 行号与该行原文。自动跳过 .git/data/node_modules
   等大目录、二进制文件与超过 2MB 的文件。Search file contents by regular expression, search in files,
   grep
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [code]
 schema:
   type: object
   properties:

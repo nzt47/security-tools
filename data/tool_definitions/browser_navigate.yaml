@@ -1,0 +1,19 @@
+name: browser_navigate
+category: web
+description: 用受控浏览器打开网页并返回标题与正文文本（最多 5000 字符）。仅允许 http/https，且拒绝 localhost 与内网地址。需要
+  selenium，未安装时返回明确错误。Open a web page with a browser, browse URL
+deprecated: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: medium
+tags: [web, browser]
+schema:
+  type: object
+  properties:
+    url:
+      type: string
+      description: 要打开的网址，必须以 http:// 或 https:// 开头
+  required:
+  - url
+examples: []

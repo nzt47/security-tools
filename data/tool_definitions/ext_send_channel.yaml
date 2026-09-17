@@ -3,6 +3,10 @@ category: extension
 description: 通过已安装的通信通道发送消息。比如发Webhook、邮件等。
 deprecated: false
 version: 1.0.0
+plane: act
+effect: execute
+risk: high
+tags: [channel, egress]
 schema:
   type: object
   properties:

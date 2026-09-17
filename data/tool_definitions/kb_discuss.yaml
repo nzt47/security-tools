@@ -1,0 +1,19 @@
+name: kb_discuss
+category: knowledge
+description: 深度讨论（围绕笔记人机追问校准，返回讨论记录路径）
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: medium
+tags: [knowledge]
+schema:
+  type: object
+  properties:
+    note_slug:
+      type: string
+      description: processed/ 笔记 slug
+    question:
+      type: string
+      description: 讨论问题
+examples: []

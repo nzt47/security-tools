@@ -1,0 +1,13 @@
+name: browser_close
+category: web
+description: 关闭受控浏览器并释放驱动进程。浏览器不可用或已关闭时同样返回成功（幂等）。Close the browser
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [web, browser]
+schema:
+  type: object
+  properties: {}
+examples: []

@@ -1,0 +1,13 @@
+name: get_clipboard
+category: system
+description: 获取系统剪贴板（clipboard）里已有的文本，最多 10000 字符。仅用于「把剪贴板里的东西拿过来」这类需求；要读文件请用 read_file，要读 PDF 请用 read_pdf。Get clipboard text.
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [clipboard]
+schema:
+  type: object
+  properties: {}
+examples: []

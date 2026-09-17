@@ -70,13 +70,20 @@ _SANDBOX_BLOCKED_PATTERNS = [
 ]
 
 # 沙盒允许的安全内置函数（去除了异常类和可反射的类型）
+# 【修复】补上 print：原表漏了它，而 _sandbox_worker 把 sys.stdout 换成 StringIO 并读回
+#         stdout（见下方 run_sandbox 的"捕获 stdout/stderr 输出"承诺）。没有 print，
+#         沙盒里的代码**无法产出任何输出**，只能观察"是否抛异常"——等于把 run_sandbox
+#         最常用的用法（算个数、看一眼结果）整个废掉。
+#         安全性：print 是纯输出，不提供反射面也不构成逃逸路径，与"去除异常类/可反射类型"
+#         的剔除原则无关，属遗漏而非有意限制。
 _SAFE_BUILTINS = {
     "abs": abs, "all": all, "any": any, "bool": bool, "chr": chr,
     "dict": dict, "enumerate": enumerate, "filter": filter, "float": float,
     "int": int, "len": len, "list": list,
-    "map": map, "max": max, "min": min, "ord": ord, "range": range,
-    "reversed": reversed, "round": round, "set": set, "slice": slice,
-    "sorted": sorted, "str": str, "sum": sum, "tuple": tuple, "zip": zip,
+    "map": map, "max": max, "min": min, "ord": ord, "print": print,
+    "range": range, "reversed": reversed, "round": round, "set": set,
+    "slice": slice, "sorted": sorted, "str": str, "sum": sum,
+    "tuple": tuple, "zip": zip,
     "True": True, "False": False, "None": None,
 }
 

@@ -1,8 +1,12 @@
 name: generate_tool
-category: uncategorized
+category: extension
 description: 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
 deprecated: false
 version: 1.0.0
+plane: govern
+effect: extend
+risk: critical
+tags: [evolution, self_modify, codegen]
 schema:
   type: object
   properties:

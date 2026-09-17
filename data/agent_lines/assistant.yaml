@@ -1,0 +1,59 @@
+id: assistant
+name: 通用助手 / 研究检索
+description: 以 web_search、读取、子代理调研为主，编码执行降为可选能力的轻量线。
+enabled: true
+plane_weights:
+  resident: 0.9
+  perceive: 1.0
+  act: 0.6
+  govern: 0.0
+plane_floors:
+  resident: 4
+  perceive: 5
+  act: 2
+boost:
+- web_search
+- web_get
+- web_extract
+- get_weather
+- read_file
+- read_pdf
+- get_pdf_info
+- search_files
+- list_directory
+- get_file_info
+- search_memory
+- remember
+- todo_write
+- write_file
+- delegate
+mute:
+- shell_execute
+- run_program
+- stop_process
+- edit
+- code_review
+- compress
+- decompress
+- ext_install
+- ext_uninstall
+- ext_toggle
+- ext_configure
+- generate_tool
+- scan_mcp
+- connect_mcp
+- disconnect_mcp
+tags:
+- web
+- document
+max_tools: 18
+effect_allow:
+- read
+- write
+- execute
+requires_approval:
+- execute
+allow_govern: false
+skills:
+- global-core-principles
+prompt_note: 轻量助手线：能查、能读、能写产物；不做命令执行、不改自身能力集。需要动手改代码时委派。

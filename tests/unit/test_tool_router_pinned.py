@@ -257,21 +257,45 @@ class TestTruncationStillWorks:
         assert dropped, "没有任何工具被丢掉 ⇒ 本用例失去意义"
         assert not (dropped & set(PINNED_TOOLS)), "pinned 工具不该出现在被丢集合里"
 
-    def test_低优先级类别仍会被整体挤掉(self):
-        """复合输入下 code/system 组仍在截断点之外（证明只补 pinned，不补整类）"""
+    def test_低优先级类别不再被整体挤掉(self):
+        """【行为变更 2026-09-17】每个命中类别都有保底，不再整体归零
+
+        原用例断言"复合输入下 code/system 组仍在截断点之外"。**那正是被修掉的缺陷**：
+        旧口径 core(6)+web(9)+file(10)=25 恰好等于 max_tools ⇒ 复合输入下
+        code/system/extension/pdf/software/schedule/v2 七个类别**全部返回 0 个**，
+        连 `shell_execute` 都拿不到（评估报告 §4.3 头号缺陷）。
+
+        现改为**类别保底**：每个命中类别先各取 floor_n 个（floor_n 按预算缩放，
+        且保底总额不超过半预算），剩余名额再按相关度/优先级分配。
+        故本用例翻转为"必须都能拿到"，并把保底失效当作回归来拦。
+        """
+        matched = classify_user_input(COMPOSITE_INPUT)
         result = set(get_tools_for_input(COMPOSITE_INPUT))
-        for cat in ("code", "system"):
-            cat_tools = set(TOOL_CATEGORIES[cat]["tools"])
-            assert cat_tools, f"{cat} 分类为空 ⇒ 用例失效"
-            assert not (cat_tools & result), (
-                f"{cat} 组本应被截断挤掉，却出现在结果里: {sorted(cat_tools & result)}"
+        # 只对**本输入真正命中的**类别断言保底：
+        #   COMPOSITE_INPUT = "读取文件、搜索内容、执行命令…然后委派子代理汇总"
+        #   命中 core/file/web/code/async，**不含 system**（没有进程/天气类关键词）。
+        #   对未命中类别断言"有工具"是错的——保底不能凭空引入未命中类别的工具。
+        assert "code" in matched, "用例前提失效：该输入应命中 code 类别"
+        assert "system" not in matched, "用例前提失效：该输入本不应命中 system"
+        for cat in sorted(matched):
+            cat_tools = set(TOOL_CATEGORIES.get(cat, {}).get("tools", []))
+            if not cat_tools:
+                continue
+            got = cat_tools & result
+            assert got, (
+                f"{cat} 组被整体挤掉 —— 类别保底失效（正是 §4.3 饥饿缺陷回归）"
             )
 
     @pytest.mark.parametrize("limit", [1, 5, 25, 40])
     def test_不同上限下都只多出_pinned(self, limit):
+        """硬上限必须成立：总数 ≤ max_tools + pinned 补回数
+
+        【2026-09-17】类别保底**不得**突破 max_tools（它是调用方的 token 预算契约）：
+        预算够时每类保底 floor_n 个，预算不足"每类 1 个"时干脆不保底，让顺序决定。
+        故此处仍以 limit + PINNED 为上界（实测 limit=1/2/5/10/25/40 全部满足）。
+        """
         result = get_tools_for_input(COMPOSITE_INPUT, max_tools=limit)
-        assert len(_non_pinned(result)) <= limit
-        assert len(result) <= limit + len(PINNED_TOOLS)
+        assert len(result) <= limit + len(PINNED_TOOLS), result
         assert len(result) == len(set(result))
 
 

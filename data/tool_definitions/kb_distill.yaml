@@ -1,0 +1,16 @@
+name: kb_distill
+category: knowledge
+description: 提炼结构化笔记（source_path → processed/，LLM 离线自动降级）
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: medium
+tags: [knowledge, evolution]
+schema:
+  type: object
+  properties:
+    source_path:
+      type: string
+      description: inbox/raw 下素材路径
+examples: []

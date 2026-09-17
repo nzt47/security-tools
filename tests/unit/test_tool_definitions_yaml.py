@@ -59,9 +59,15 @@ class TestYamlLoading:
             "YAML 派生的 TOOL_CATEGORIES 与默认值不一致，违反不变量#1"
         )
 
-    def test_tool_categories_has_11_categories(self):
-        from agent.tool_router import TOOL_CATEGORIES
-        assert len(TOOL_CATEGORIES) == 11
+    def test_tool_categories_has_expected_category_count(self):
+        """分类数 = 代码内默认分类数（新增分类须同时改两处，此断言即守门）"""
+        from agent.tool_router import TOOL_CATEGORIES, _DEFAULT_TOOL_CATEGORIES
+        assert len(TOOL_CATEGORIES) == len(_DEFAULT_TOOL_CATEGORIES) == 11
+        # 11 = 原 12 类（11 + knowledge）− software
+        #      （software_* 4 个工具是空壳、会谎报安装成功，2026-09-17 整族退役，
+        #       分类一并移除；恢复办法见 agent/tool_router.py 的退役说明）
+        assert "knowledge" in TOOL_CATEGORIES
+        assert "software" not in TOOL_CATEGORIES
 
     def test_all_tools_set_matches_categories(self):
         """ALL_TOOLS_SET 与 TOOL_CATEGORIES 平铺一致。"""
@@ -138,17 +144,30 @@ class TestYamlFieldIntegrity:
             )
 
     def test_categorized_tools_match_router(self):
-        """YAML 中已知分类的工具集合应与 tool_router 一致。"""
+        """YAML 中已知分类的工具集合应与 tool_router 一致。
+
+        注意：`internal: true` 的工具（如 process_distill_run）**有意**不进路由分类表
+        ——它们留在注册表里供内部按名调用，但不得被模型选中（见 agent/tool_router.py
+        的 `_load_tool_categories_from_yaml`）。此处必须同样排除，否则会把
+        "设计上不该路由"误判成"YAML 与 router 不一致"。
+        """
         from agent.tool_router import TOOL_CATEGORIES
         yaml_by_cat: dict[str, set[str]] = {}
+        internal: set[str] = set()
         for f in _DEFS_DIR.glob("*.yaml"):
             doc = yaml.safe_load(f.read_text(encoding="utf-8"))
+            if doc.get("internal") is True:
+                internal.add(doc["name"])
+                continue
             if doc["category"] != "uncategorized":
                 yaml_by_cat.setdefault(doc["category"], set()).add(doc["name"])
         for cat_key, meta in TOOL_CATEGORIES.items():
             assert yaml_by_cat.get(cat_key, set()) == set(meta["tools"]), (
                 f"分类 {cat_key}: YAML 与 router 不一致"
             )
+        # 反向锁住：internal 工具确实被排除在路由表之外
+        routed = {t for meta in TOOL_CATEGORIES.values() for t in meta["tools"]}
+        assert not (internal & routed), f"internal 工具泄漏进路由表: {internal & routed}"
 
 
 # ════════════════════════════════════════════════════════════
@@ -177,7 +196,18 @@ class TestIndexSync:
         index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
 
         data = json.loads(index_path.read_text(encoding="utf-8"))
-        assert data["tool_count"] == len(docs)
+        # 索引必须排除 internal 工具：hybrid 检索路由以本索引为候选来源且**不做分类过滤**，
+        # 若 internal 工具进了索引，BM25 就可能把它召回 ⇒ 模型看见并通过 tool_defs 调用它，
+        # 从而绕过 get_tool_defs 对 internal 的隐藏（process_distill_run 就曾这样泄漏过）。
+        # 故索引条数 = 全部 YAML − internal。
+        expected = len([d for d in docs if d.get("internal") is not True])
+        assert data["tool_count"] == expected, (
+            f"索引条数 {data['tool_count']} != 非 internal 的 YAML 数 {expected}")
+        assert expected < len(docs), "样本应至少含一个 internal 工具以覆盖本逻辑"
+        indexed_names = {t["name"] for t in data["tools"]}
+        internal_names = {d["name"] for d in docs if d.get("internal") is True}
+        assert not (indexed_names & internal_names), (
+            f"internal 工具泄漏进索引（hybrid 会召回它）: {indexed_names & internal_names}")
         assert all("name" in t and "version" in t for t in data["tools"])
 
     def test_sync_detects_missing_required_field(self, tmp_path):
@@ -591,7 +621,7 @@ class TestFallbackAdvanced:
         assert web_tools == ["web_search", "apple_new_tool", "zebra_new_tool"]
 
     def test_loader_returns_default_keys_set(self, tmp_path, monkeypatch):
-        """派生表的分类键集合应与默认值完全一致（11 个，无多余）。"""
+        """派生表的分类键集合应与默认值完全一致（无多余、无缺失）。"""
         from agent import tool_router
         d = tmp_path / "keyset"
         d.mkdir()
@@ -600,7 +630,7 @@ class TestFallbackAdvanced:
         result = tool_router._load_tool_categories_from_yaml()
         assert result is not None
         assert set(result.keys()) == set(tool_router._DEFAULT_TOOL_CATEGORIES.keys())
-        assert len(result) == 11
+        assert len(result) == len(tool_router._DEFAULT_TOOL_CATEGORIES)
 
 
 # ════════════════════════════════════════════════════════════
@@ -680,19 +710,17 @@ class TestMigrationScript:
         plain = ast.parse('register("x")', mode="eval").body
         assert migrate_mod._is_register_call(plain) is False
 
-    def test_build_category_map_has_68_categorized_tools(self):
-        """_build_category_map 反查表包含 68 个 categorized 工具。
+    def test_build_category_map_matches_router_categories(self):
+        """_build_category_map 反查表必须与路由分类表逐项一致。
 
-        方法名里的数字必须与断言一致——本仓的教训是"写下就会过期的数字"会静默骗人
-        （曾出现方法名写 64、断言写 67 的错位）。
+        不硬编码数字：分类表随工具增减而变化，硬编码会静默骗人
+        （曾出现方法名写 64、断言写 67 的错位）。改为与 router 对拍。
         """
+        from agent.tool_router import TOOL_CATEGORIES
         cat_map = migrate_mod._build_category_map()
-        assert len(cat_map) == 68  # 11 个分类的工具总数
-        # 不应包含 uncategorized 工具
-        uncat = {"market_search", "install_tool", "generate_tool",
-                 "scan_mcp", "connect_mcp", "disconnect_mcp"}
-        for name in uncat:
-            assert name not in cat_map, f"{name} 不应在 category_map 中"
+        expected = {t for cat in TOOL_CATEGORIES.values() for t in cat["tools"]}
+        assert set(cat_map) == expected, (
+            f"反查表与路由分类表不一致: 多={set(cat_map) - expected} 少={expected - set(cat_map)}")
 
     def test_to_yaml_doc_has_all_required_fields(self):
         """_to_yaml_doc 生成的文档包含所有必填字段。"""
@@ -730,15 +758,57 @@ class TestMigrationScript:
 #  7. 74 个 YAML 与原 Python @register 字段一致性
 # ════════════════════════════════════════════════════════════
 
+def _extract_knowledge_toolddefs() -> dict:
+    """从 agent/knowledge/tools.py 的 `_TOOL_DEFS` 字面量里抽取 (name, description, schema)。
+
+    为什么需要特殊处理：kb_* 6 个工具不是用 `@register` 装饰器注册的，而是由一个
+    数据表 `_TOOL_DEFS` 循环注册。旧提取器只认装饰器，会把它们判成"YAML 有、Python 无"。
+    """
+    import ast
+    path = _PROJECT_ROOT / "agent" / "knowledge" / "tools.py"
+    out: dict[str, dict] = {}
+    if not path.exists():
+        return out
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for node in tree.body:
+        if not isinstance(node, ast.AnnAssign) and not isinstance(node, ast.Assign):
+            continue
+        targets = [node.target] if isinstance(node, ast.AnnAssign) else node.targets
+        if not any(isinstance(t, ast.Name) and t.id == "_TOOL_DEFS" for t in targets):
+            continue
+        try:
+            items = ast.literal_eval(node.value)
+        except (ValueError, SyntaxError):
+            continue
+        for item in items:
+            if isinstance(item, (list, tuple)) and len(item) >= 3:
+                out[str(item[0])] = {
+                    "name": str(item[0]),
+                    "description": str(item[1]),
+                    "schema": item[2],
+                    "src_file": "knowledge/tools.py",
+                }
+    return out
+
+
 def _extract_python_register_defs() -> dict:
     """从 agent/tools/*.py 抽取所有 @register 调用的 name/description/schema。
 
     用 AST 静态抽取（不执行工具代码），与迁移脚本使用相同逻辑。
+    另外合并两处**包外注册点**：
+      - agent/process_distill/tools.py（3 个 distill_*，装饰器形式）
+      - agent/knowledge/tools.py 的 _TOOL_DEFS（6 个 kb_*，数据表形式）
+    评估报告 §1.5-C/D 指出这两处此前无 YAML 定义；补完后必须继续被本测试守住。
     """
     import ast
     tools_dir = _PROJECT_ROOT / "agent" / "tools"
     py_defs: dict[str, dict] = {}
-    for f in sorted(tools_dir.glob("*.py")):
+    scan_files = sorted(tools_dir.glob("*.py"))
+    # 包外注册点（显式列入，避免"注册点搬家后守门静默失效"）
+    extra_files = [
+        _PROJECT_ROOT / "agent" / "process_distill" / "tools.py",
+    ]
+    for f in scan_files + [p for p in extra_files if p.exists()]:
         if f.name == "__init__.py":
             continue
         try:
@@ -756,6 +826,9 @@ def _extract_python_register_defs() -> dict:
                 if extracted and extracted["name"] not in py_defs:
                     extracted["src_file"] = f.name
                     py_defs[extracted["name"]] = extracted
+    # 数据表形式注册的 kb_*
+    for name, d in _extract_knowledge_toolddefs().items():
+        py_defs.setdefault(name, d)
     return py_defs
 
 
@@ -774,9 +847,16 @@ class TestYamlPythonConsistency:
         return docs
 
     def test_yaml_count_equals_python_register_count(self, py_defs, yaml_docs):
-        """YAML 文件数应等于 Python @register 调用数（74）。"""
-        assert len(py_defs) == 74, f"Python @register 抽取数: {len(py_defs)}"
-        assert len(yaml_docs) == 74, f"YAML 文件数: {len(yaml_docs)}"
+        """YAML 文件数应等于"包内 + 包外"全部注册点的抽取数。
+
+        不硬编码数量（工具会持续增长）；只守住**两边相等**这个不变量，
+        外加一个下界防止抽取器静默失效后"0 == 0"式地假通过。
+        """
+        assert len(py_defs) >= 80, f"Python 注册点抽取数异常偏少: {len(py_defs)}"
+        assert len(yaml_docs) == len(py_defs), (
+            f"YAML={len(yaml_docs)} 与 Python 注册={len(py_defs)} 不一致: "
+            f"YAML 独有={set(yaml_docs) - set(py_defs)} "
+            f"Python 独有={set(py_defs) - set(yaml_docs)}")
 
     def test_all_yaml_names_have_python_counterpart(self, py_defs, yaml_docs):
         """每个 YAML 工具在 Python @register 中都有对应定义。"""
@@ -809,22 +889,36 @@ class TestYamlPythonConsistency:
                     mismatched.append(name)
         assert not mismatched, f"schema 不一致的工具: {mismatched}"
 
-    def test_uncategorized_tools_count(self, yaml_docs):
-        """uncategorized 工具数量为 6，且为预期集合。"""
-        uncat = [n for n, d in yaml_docs.items() if d["category"] == "uncategorized"]
-        assert len(uncat) == 6
-        assert set(uncat) == {
-            "market_search", "install_tool", "generate_tool",
-            "scan_mcp", "connect_mcp", "disconnect_mcp",
-        }
+    def test_no_uncategorized_tools_remain(self, yaml_docs):
+        """`uncategorized` 必须为零 —— 它曾让 6 个工具被路由彻底漏掉
 
-    def test_uncategorized_not_in_default_categories(self, yaml_docs):
-        """6 个 uncategorized 工具不在 _DEFAULT_TOOL_CATEGORIES 的任何分类中。"""
-        from agent.tool_router import _DEFAULT_TOOL_CATEGORIES
+        【为什么这条断言是"归零"而不是"等于 6"】
+        这 6 个工具（market_search / install_tool / generate_tool / scan_mcp /
+        connect_mcp / disconnect_mcp）原先 category 是 `uncategorized`，
+        而 `tool_router._load_tool_categories_from_yaml()` 只接受已知分类键，
+        于是它们被**静默丢弃**：关键词路由永远不会返回它们——包括"自我扩展"的入口
+        `generate_tool`（见 docs/工具集评估与重分类报告.md §1.5-A）。
+
+        现已全部归档到 `extension` 类。本测试由"断言有 6 个孤儿"改为
+        **"断言孤儿为零"**，防止将来又有新工具掉进这个静默失效的坑。
+        """
+        uncat = sorted(n for n, d in yaml_docs.items() if d["category"] == "uncategorized")
+        assert uncat == [], (
+            f"出现新的 uncategorized 工具（会被路由静默漏掉）: {uncat}；"
+            "请为其指定真实分类并同步 agent/tool_router.py 的 _DEFAULT_TOOL_CATEGORIES")
+
+    def test_formerly_uncategorized_tools_are_now_routed(self, yaml_docs):
+        """原先的 6 个孤儿工具必须已进入路由分类表（回归锁）"""
+        from agent.tool_router import ALL_TOOLS_SET, _DEFAULT_TOOL_CATEGORIES
         all_default = {t for cat in _DEFAULT_TOOL_CATEGORIES.values() for t in cat["tools"]}
-        uncat = [n for n, d in yaml_docs.items() if d["category"] == "uncategorized"]
-        for name in uncat:
-            assert name not in all_default, f"{name}: 不应在 _DEFAULT_TOOL_CATEGORIES 中"
+        # 注：market_search → ext_discover、install_tool → ext_install(type="auto")
+        # 已于第 0 档合并（2026-09-17），故不再列这两个名字。
+        for name in ("generate_tool",
+                     "scan_mcp", "connect_mcp", "disconnect_mcp"):
+            assert name in all_default, f"{name}: 仍在 _DEFAULT_TOOL_CATEGORIES 之外"
+            assert name in ALL_TOOLS_SET, f"{name}: 路由分类表里没有它"
+            assert yaml_docs[name]["category"] == "extension", \
+                f"{name}: category 应为 extension，实为 {yaml_docs[name]['category']}"
 
     def test_all_yaml_src_files_are_known(self, py_defs):
         """所有 Python @register 工具的 src_file 应在 agent/tools/ 目录下。"""
@@ -840,27 +934,74 @@ class TestYamlPythonConsistency:
 class TestMigrationIdempotency:
     """迁移脚本幂等性：多次运行结果一致，可安全重复执行。"""
 
-    def test_migrate_script_is_idempotent(self):
-        """运行迁移脚本后，74 个 YAML 文件 hash 完全一致（幂等）。"""
+    def test_migrate_script_is_idempotent(self, tmp_path):
+        """迁移脚本**写进临时目录**，两次运行 hash 一致（幂等）。
+
+        ⚠️ 危险教训（本测试曾破坏生产数据）
+        ------------------------------------------------------------------
+        本测试原先调用 `migrate_tools_to_yaml.py` **不带 `--out`**，于是脚本按默认值
+        写入 `data/tool_definitions/` —— 也就是**真实的生产工具定义目录**。
+        而迁移脚本是从 Python `@register` 调用反推 YAML 的，Python 源码里没有
+        `plane/effect/risk/tags` 这些字段，所以每跑一次测试，就把 91 个 YAML 的
+        治理声明**整段抹掉**，工具随之退回 `load_tool_meta` 的保守默认
+        （plane=act / effect=execute / risk=medium）——四项平面统计瞬间从
+        `resident 8 / perceive 36 / act 30 / govern 9` 塌成 `act 98 / perceive 2`，
+        而主线装配、治理分级、UI 全都被这个静默破坏带偏。
+
+        修法：`--out` 指向 tmp_path，真实目录**只读校验**（跑完必须逐字节不变）。
+        """
         import hashlib
         import subprocess
 
-        def hash_yamls() -> dict:
-            hashes = {}
-            for f in _DEFS_DIR.glob("*.yaml"):
-                hashes[f.name] = hashlib.sha256(f.read_bytes()).hexdigest()
-            return hashes
+        def hash_dir(d) -> dict:
+            return {f.name: hashlib.sha256(f.read_bytes()).hexdigest()
+                    for f in d.glob("*.yaml")}
 
-        before = hash_yamls()
-        assert len(before) == 74, f"迁移前 YAML 数量异常: {len(before)}"
+        real_before = hash_dir(_DEFS_DIR)
+        assert len(real_before) >= 80, f"迁移前 YAML 数量异常偏少: {len(real_before)}"
 
-        # 运行迁移脚本
+        out = tmp_path / "migrated"
+        args = [sys.executable, "scripts/migrate_tools_to_yaml.py", "--out", str(out)]
+
+        # 第一次：写入临时目录
+        r1 = subprocess.run(args, capture_output=True, text=True,
+                            encoding="utf-8", errors="replace", cwd=str(_PROJECT_ROOT))
+        assert r1.returncode == 0, f"迁移脚本失败: {r1.stderr}"
+        first = hash_dir(out)
+        assert first, "迁移脚本没有产出任何 YAML"
+
+        # 第二次：同目录再跑一次，结果必须逐字节一致
+        r2 = subprocess.run(args, capture_output=True, text=True,
+                            encoding="utf-8", errors="replace", cwd=str(_PROJECT_ROOT))
+        assert r2.returncode == 0, f"迁移脚本第二次失败: {r2.stderr}"
+        assert hash_dir(out) == first, "迁移脚本不幂等：第二次运行后内容发生变化"
+
+        # 【关键断言】真实生产目录必须**一个字节都没变**
+        assert hash_dir(_DEFS_DIR) == real_before, (
+            "迁移测试污染了生产目录 data/tool_definitions/ —— "
+            "该测试必须用 --out 指向临时目录")
+
+    def test_migration_output_lacks_governance_fields(self, tmp_path):
+        """锁住"迁移脚本产出不含治理字段"这一事实，解释为何不能让测试写生产目录
+
+        这不是缺陷报告，而是**防止误判**：迁移脚本只搬 name/description/schema
+        （Python 源码里有的事实），plane/effect/risk 是后来补的治理声明，
+        只能由 `scripts/backfill_tool_planes.py` 维护。
+        若哪天迁移脚本开始产出治理字段，本测试会失败，提示应同步更新本说明。
+        """
+        import subprocess
+
+        out = tmp_path / "migrated2"
         r = subprocess.run(
-            [sys.executable, "scripts/migrate_tools_to_yaml.py"],
+            [sys.executable, "scripts/migrate_tools_to_yaml.py", "--out", str(out)],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
-            cwd=str(_PROJECT_ROOT),
-        )
+            cwd=str(_PROJECT_ROOT))
         assert r.returncode == 0, f"迁移脚本失败: {r.stderr}"
+        docs = [yaml.safe_load(f.read_text(encoding="utf-8"))
+                for f in sorted(out.glob("*.yaml"))]
+        assert docs, "无产出"
+        with_gov = [d["name"] for d in docs if "plane" in d]
+        assert not with_gov, (
+            f"迁移脚本现在会产出 plane 字段（{with_gov[:5]}…）⇒ "
+            "请更新本测试与 docs/主线装配指南.md 的说明")
 
-        after = hash_yamls()
-        assert before == after, "迁移脚本不幂等：运行后 YAML 内容发生变化"

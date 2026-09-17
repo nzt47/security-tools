@@ -3,6 +3,10 @@ category: core
 description: 查看所有传感器状态
 deprecated: false
 version: 1.0.0
+plane: resident
+effect: read
+risk: low
+tags: [sensor]
 schema:
   type: object
   properties: {}

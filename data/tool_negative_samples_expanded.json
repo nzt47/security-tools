@@ -17,11 +17,10 @@
     {
       "group_id": "G1_web_search_family",
       "category": "web",
-      "description": "网页搜索类工具区分:web_search=搜索引擎检索,web_get=抓取指定 URL,fetch_news=新闻聚合",
+      "description": "网页搜索类工具区分:web_search=搜索引擎检索(含 preset='news' 的新闻聚合),web_get=抓取指定 URL。注：fetch_news 已于 2026-09-17 并入 web_search(preset='news')，故不再作为负样本。",
       "tools": [
         "web_search",
-        "web_get",
-        "fetch_news"
+        "web_get"
       ],
       "queries": [
         {
@@ -30,8 +29,7 @@
             "web_search"
           ],
           "negative": [
-            "web_get",
-            "fetch_news"
+            "web_get"
           ],
           "rationale": "用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
         },
@@ -41,8 +39,7 @@
             "web_search"
           ],
           "negative": [
-            "web_get",
-            "fetch_news"
+            "web_get"
           ],
           "rationale": "[增强-同义改写] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
         },
@@ -52,8 +49,7 @@
             "web_search"
           ],
           "negative": [
-            "web_get",
-            "fetch_news"
+            "web_get"
           ],
           "rationale": "[增强-同义改写] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
         },
@@ -63,8 +59,7 @@
             "web_search"
           ],
           "negative": [
-            "web_get",
-            "fetch_news"
+            "web_get"
           ],
           "rationale": "[增强-同义改写] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
         },
@@ -74,8 +69,7 @@
             "web_search"
           ],
           "negative": [
-            "web_get",
-            "fetch_news"
+            "web_get"
           ],
           "rationale": "[增强-同义改写] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
         },
@@ -85,8 +79,7 @@
             "web_search"
           ],
           "negative": [
-            "web_get",
-            "fetch_news"
+            "web_get"
           ],
           "rationale": "[增强-句式变换] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
         },
@@ -96,8 +89,7 @@
             "web_search"
           ],
           "negative": [
-            "web_get",
-            "fetch_news"
+            "web_get"
           ],
           "rationale": "[增强-句式变换] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
         },
@@ -107,8 +99,7 @@
             "web_search"
           ],
           "negative": [
-            "web_get",
-            "fetch_news"
+            "web_get"
           ],
           "rationale": "[增强-句式变换] 用户意图是搜索引擎查询,而非抓取指定 URL 或新闻聚合"
         },
@@ -118,8 +109,7 @@
             "web_get"
           ],
           "negative": [
-            "web_search",
-            "fetch_news"
+            "web_search"
           ],
           "rationale": "用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
         },
@@ -129,8 +119,7 @@
             "web_get"
           ],
           "negative": [
-            "web_search",
-            "fetch_news"
+            "web_search"
           ],
           "rationale": "[增强-同义改写] 用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
         },
@@ -140,8 +129,7 @@
             "web_get"
           ],
           "negative": [
-            "web_search",
-            "fetch_news"
+            "web_search"
           ],
           "rationale": "[增强-同义改写] 用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
         },
@@ -151,18 +139,16 @@
             "web_get"
           ],
           "negative": [
-            "web_search",
-            "fetch_news"
+            "web_search"
           ],
           "rationale": "[增强-同义改写] 用户给出明确 URL,意图是抓取该网页,而非搜索或新闻"
         },
         {
           "query": "查看今日科技头条新闻",
           "expected_positive": [
-            "fetch_news"
+            "web_search"
           ],
           "negative": [
-            "web_search",
             "web_get"
           ],
           "rationale": "用户意图是新闻聚合,而非搜索关键词或抓取 URL"
@@ -170,10 +156,9 @@
         {
           "query": "列出今日科技头条新闻",
           "expected_positive": [
-            "fetch_news"
+            "web_search"
           ],
           "negative": [
-            "web_search",
             "web_get"
           ],
           "rationale": "[增强-同义改写] 用户意图是新闻聚合,而非搜索关键词或抓取 URL"
@@ -181,10 +166,9 @@
         {
           "query": "看今日科技头条新闻",
           "expected_positive": [
-            "fetch_news"
+            "web_search"
           ],
           "negative": [
-            "web_search",
             "web_get"
           ],
           "rationale": "[增强-同义改写] 用户意图是新闻聚合,而非搜索关键词或抓取 URL"
@@ -192,10 +176,9 @@
         {
           "query": "查询今日科技头条新闻",
           "expected_positive": [
-            "fetch_news"
+            "web_search"
           ],
           "negative": [
-            "web_search",
             "web_get"
           ],
           "rationale": "[增强-同义改写] 用户意图是新闻聚合,而非搜索关键词或抓取 URL"
@@ -605,11 +588,11 @@
     {
       "group_id": "G5_install_family",
       "category": "extension",
-      "description": "安装/列出类工具区分:ext_install=装扩展,ext_list=列扩展,software_install=装软件包",
+      "description": "安装/列出类工具区分:ext_install=装扩展,ext_list=列扩展。注：software_install 已于 2026-09-17 注销，装系统软件包改由 shell_execute 承担。",
       "tools": [
         "ext_install",
         "ext_list",
-        "software_install"
+        "shell_execute"
       ],
       "queries": [
         {
@@ -618,8 +601,7 @@
             "ext_install"
           ],
           "negative": [
-            "ext_list",
-            "software_install"
+            "ext_list"
           ],
           "rationale": "装扩展,不是列扩展或装系统软件包"
         },
@@ -629,8 +611,7 @@
             "ext_install"
           ],
           "negative": [
-            "ext_list",
-            "software_install"
+            "ext_list"
           ],
           "rationale": "[增强-同义改写] 装扩展,不是列扩展或装系统软件包"
         },
@@ -640,8 +621,7 @@
             "ext_install"
           ],
           "negative": [
-            "ext_list",
-            "software_install"
+            "ext_list"
           ],
           "rationale": "[增强-同义改写] 装扩展,不是列扩展或装系统软件包"
         },
@@ -651,8 +631,7 @@
             "ext_list"
           ],
           "negative": [
-            "ext_install",
-            "software_install"
+            "ext_install"
           ],
           "rationale": "列扩展,不是装扩展或装软件包"
         },
@@ -662,8 +641,7 @@
             "ext_list"
           ],
           "negative": [
-            "ext_install",
-            "software_install"
+            "ext_install"
           ],
           "rationale": "[增强-同义改写] 列扩展,不是装扩展或装软件包"
         },
@@ -673,8 +651,7 @@
             "ext_list"
           ],
           "negative": [
-            "ext_install",
-            "software_install"
+            "ext_install"
           ],
           "rationale": "[增强-同义改写] 列扩展,不是装扩展或装软件包"
         },
@@ -684,8 +661,7 @@
             "ext_list"
           ],
           "negative": [
-            "ext_install",
-            "software_install"
+            "ext_install"
           ],
           "rationale": "[增强-同义改写] 列扩展,不是装扩展或装软件包"
         },
@@ -695,16 +671,13 @@
             "ext_list"
           ],
           "negative": [
-            "ext_install",
-            "software_install"
+            "ext_install"
           ],
           "rationale": "[增强-同义改写] 列扩展,不是装扩展或装软件包"
         },
         {
           "query": "用 apt 安装 nginx 软件包",
-          "expected_positive": [
-            "software_install"
-          ],
+          "expected_positive": [],
           "negative": [
             "ext_install",
             "ext_list"
@@ -713,9 +686,7 @@
         },
         {
           "query": "用 apt 部署 nginx 软件包",
-          "expected_positive": [
-            "software_install"
-          ],
+          "expected_positive": [],
           "negative": [
             "ext_install",
             "ext_list"
@@ -724,9 +695,7 @@
         },
         {
           "query": "用 apt 装 nginx 软件包",
-          "expected_positive": [
-            "software_install"
-          ],
+          "expected_positive": [],
           "negative": [
             "ext_install",
             "ext_list"
@@ -1156,239 +1125,239 @@
     {
       "group_id": "G8_format_convert_direction",
       "category": "code",
-      "description": "格式转换方向性:json_to_yaml=JSON→YAML,yaml_to_json=YAML→JSON。报告 q08 风险点:BM25 无法区分转换方向,两者词频完全相同",
+      "description": "格式转换方向性:原 json_to_yaml/yaml_to_json 已并入 data_convert(to=)，方向由参数决定；同域近似工具 data_format_detect(只探测格式、不做转换)为负样本。报告 q08 风险点:BM25 无法区分同域近邻工具。",
       "tools": [
-        "json_to_yaml",
-        "yaml_to_json"
+        "data_convert",
+        "data_format_detect"
       ],
       "queries": [
         {
           "query": "把 config.json 转换成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "把 config.json 转为成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-同义改写] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "把 config.json 转成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-同义改写] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "把 config.json 改成成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-同义改写] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "把 config.json 变成成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-同义改写] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "我要把 config.json 转换成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-句式变换] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "请把 config.json 转换成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-句式变换] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "帮我把 config.json 转换成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-句式变换] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "config.json 转 yaml",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-长度变化] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "请帮我把 config.json 这个 JSON 文件转换成 yaml 格式",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-长度变化] JSON→YAML 方向。报告 q08:yaml_to_json 排第 1 是 BM25 退化。本 case 预期 BM25 失败,xfail 标记"
         },
         {
           "query": "读取 data.yaml 转成 JSON 对象",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
         },
         {
           "query": "读入 data.yaml 转成 JSON 对象",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-同义改写] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
         },
         {
           "query": "加载 data.yaml 转成 JSON 对象",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-同义改写] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
         },
         {
           "query": "查看 data.yaml 转成 JSON 对象",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-同义改写] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
         },
         {
           "query": "读入 data.yaml 转成 JSON 对象",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-句式变换] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
         },
         {
           "query": "加载 data.yaml 转成 JSON 对象",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-句式变换] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
         },
         {
           "query": "解析 data.yaml 转成 JSON 对象",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-句式变换] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
         },
         {
           "query": "data.yaml 转 JSON",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-长度变化] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
         },
         {
           "query": "请读取 data.yaml 文件并把它转换成 JSON 对象格式",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-长度变化] YAML→JSON 方向,动词「读取」+「转成 JSON」应匹配 yaml_to_json"
         },
         {
           "query": "把 settings.json 改写成 yaml",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-方向反转] JSON→YAML 方向变体"
         },
         {
           "query": "将 package.json 转为 yaml 配置",
           "expected_positive": [
-            "json_to_yaml"
+            "data_convert"
           ],
           "negative": [
-            "yaml_to_json"
+            "data_format_detect"
           ],
           "rationale": "[增强-方向反转] JSON→YAML 方向变体"
         },
         {
           "query": "把 docker-compose.yaml 转成 JSON",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-方向反转] YAML→JSON 方向变体"
         },
         {
           "query": "将 config.yaml 解析为 JSON",
           "expected_positive": [
-            "yaml_to_json"
+            "data_convert"
           ],
           "negative": [
-            "json_to_yaml"
+            "data_format_detect"
           ],
           "rationale": "[增强-方向反转] YAML→JSON 方向变体"
         }

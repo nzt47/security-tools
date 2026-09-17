@@ -278,80 +278,76 @@ def json_query(data, path: str) -> dict:
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-#  JSON ↔ YAML 转换
+#  JSON ↔ YAML 转换（单入口、双方向）
 # ════════════════════════════════════════════════════════════════════════════════
 
+#: to 参数 → 源格式显示名（to="yaml" 表示输入是 JSON，反之亦然）
+_CONVERT_SOURCE_NAMES = {"yaml": "JSON", "json": "YAML"}
 
-def json_to_yaml(json_data: str) -> dict:
-    """将 JSON 字符串转换为 YAML 字符串。
-
-    Args:
-        json_data: JSON 格式的字符串
-
-    Returns:
-        {"ok": True, "data": "<yaml 字符串>"}
-        或 {"ok": False, "error": "..."}
-    """
-    try:
-        if not isinstance(json_data, str):
-            return {
-                "ok": False,
-                "error": f"数据必须是字符串，收到类型: {type(json_data).__name__}",
-            }
-
-        if not json_data.strip():
-            return {"ok": False, "error": "JSON 数据为空"}
-
-        # 解析 JSON
-        try:
-            obj = json.loads(json_data)
-        except json.JSONDecodeError as e:
-            return {"ok": False, "error": f"JSON 解析失败: {e}"}
-
-        # 转换为 YAML
-        import yaml
-
-        yaml_str = yaml.dump(
-            obj,
-            allow_unicode=True,
-            default_flow_style=False,
-            sort_keys=False,
-        )
-
-        return {"ok": True, "data": yaml_str}
-
-    except ImportError:
-        return {"ok": False, "error": "pyyaml 库未安装，无法进行 JSON→YAML 转换"}
-    except Exception as e:
-        logger.error("json_to_yaml 异常: %s", e)
-        return {"ok": False, "error": f"转换失败: {e}"}
+#: JSON 输出默认缩进 —— 与合并前的 yaml_to_json 逐字节一致（原先写死 indent=2）
+_DEFAULT_JSON_INDENT = 2
 
 
-def yaml_to_json(yaml_data: str) -> dict:
-    """将 YAML 字符串转换为 JSON 字符串。
+def data_convert(data: str, to: str, *, indent: int = None) -> dict:
+    """把 data 从另一种格式转换成 to 指定的格式（双向单入口）。
+
+    【为什么合并】原 `json_to_yaml` / `yaml_to_json` 是一对互逆镜像：同一动作的
+    两个方向，词频完全相同（评估报告 §6.2 第 0 档第 5 行、q08 风险点）。用一个
+    `to` 参数表达方向，范式与本项目既有的 `compress(format="zip"|"tar.gz")` 一致。
 
     Args:
-        yaml_data: YAML 格式的字符串
+        data: 待转换的字符串。to="yaml" 时按 JSON 解析；to="json" 时按 YAML 解析。
+        to: 目标格式，仅接受 "yaml" | "json"（必填）。非法值返回结构化错误。
+        indent: JSON 输出缩进（仅 to="json" 生效）。None → 2（与合并前一致）。
 
     Returns:
-        {"ok": True, "data": "<json 字符串>"}
+        {"ok": True, "data": "<转换结果字符串>"}  —— 与合并前两个工具返回值同形
         或 {"ok": False, "error": "..."}
     """
+    # 先判 to：它决定 data 按哪种格式解析，也是唯一的必填枚举参数
+    if not isinstance(to, str) or to not in _CONVERT_SOURCE_NAMES:
+        return {
+            "ok": False,
+            "error": f"不支持的转换目标 to={to!r}，仅支持 'yaml' 或 'json'",
+        }
+
+    source_name = _CONVERT_SOURCE_NAMES[to]
+    direction = f"{source_name}→{to.upper()}"
+
     try:
-        if not isinstance(yaml_data, str):
+        if not isinstance(data, str):
             return {
                 "ok": False,
-                "error": f"数据必须是字符串，收到类型: {type(yaml_data).__name__}",
+                "error": f"数据必须是字符串，收到类型: {type(data).__name__}",
             }
 
-        if not yaml_data.strip():
-            return {"ok": False, "error": "YAML 数据为空"}
+        if not data.strip():
+            return {"ok": False, "error": f"{source_name} 数据为空"}
 
-        # 解析 YAML
+        if to == "yaml":
+            # ── JSON → YAML ──
+            try:
+                obj = json.loads(data)
+            except json.JSONDecodeError as e:
+                # 带上原始异常文本（含 line/column/char），不静默返回空
+                return {"ok": False, "error": f"JSON 解析失败: {e}"}
+
+            import yaml
+
+            yaml_str = yaml.dump(
+                obj,
+                allow_unicode=True,
+                default_flow_style=False,
+                sort_keys=False,
+            )
+
+            return {"ok": True, "data": yaml_str}
+
+        # ── YAML → JSON ──
         import yaml
 
         try:
-            obj = yaml.safe_load(yaml_data)
+            obj = yaml.safe_load(data)
         except yaml.YAMLError as e:
             return {"ok": False, "error": f"YAML 解析失败: {e}"}
 
@@ -365,16 +361,39 @@ def yaml_to_json(yaml_data: str) -> dict:
                 "error": f"YAML 解析结果类型不支持: {type(obj).__name__}",
             }
 
-        # 转换为 JSON 字符串
-        json_str = json.dumps(obj, ensure_ascii=False, indent=2)
+        if indent is not None and (isinstance(indent, bool) or not isinstance(indent, int)):
+            return {
+                "ok": False,
+                "error": f"indent 必须是整数，收到类型: {type(indent).__name__}",
+            }
+
+        json_str = json.dumps(
+            obj,
+            ensure_ascii=False,
+            indent=_DEFAULT_JSON_INDENT if indent is None else indent,
+        )
 
         return {"ok": True, "data": json_str}
 
     except ImportError:
-        return {"ok": False, "error": "pyyaml 库未安装，无法进行 YAML→JSON 转换"}
+        return {"ok": False, "error": f"pyyaml 库未安装，无法进行 {direction} 转换"}
     except Exception as e:
-        logger.error("yaml_to_json 异常: %s", e)
+        logger.error("data_convert(%s) 异常: %s", direction, e)
         return {"ok": False, "error": f"转换失败: {e}"}
+
+
+# ── 已合并工具的函数级兼容入口 ────────────────────────────────────────────────
+# 工具注册已下线（改挂 data_convert，见 agent/tools/code_tools.py），但函数保留：
+# 站内调用点与既有单元测试仍按名引用，且实现只有一份 —— 都走 data_convert。
+
+def json_to_yaml(json_data: str) -> dict:
+    """[已并入 data_convert(json_data, "yaml")] JSON 字符串 → YAML 字符串。"""
+    return data_convert(json_data, "yaml")
+
+
+def yaml_to_json(yaml_data: str) -> dict:
+    """[已并入 data_convert(yaml_data, "json")] YAML 字符串 → JSON 字符串。"""
+    return data_convert(yaml_data, "json")
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -382,8 +401,57 @@ def yaml_to_json(yaml_data: str) -> dict:
 # ════════════════════════════════════════════════════════════════════════════════
 
 
+def _json_parsed_type(obj) -> str:
+    """JSON 解析结果的类型名。
+
+    bool 必须在 int/float 之前判定 —— bool 是 int 的子类，顺序写反会把 true
+    报成 "number"。本函数是唯一一份判定：`json_validate` 与 `data_format_detect`
+    曾各写一份，正是 json_validate 被合并的原因（评估报告 §6.2 第 0 档第 4 行）。
+    """
+    if isinstance(obj, dict):
+        return "object"
+    if isinstance(obj, list):
+        return "array"
+    if isinstance(obj, str):
+        return "string"
+    if isinstance(obj, bool):
+        return "boolean"
+    if isinstance(obj, (int, float)):
+        return "number"
+    if obj is None:
+        return "null"
+    return type(obj).__name__
+
+
+def _json_keys_count(obj):
+    """dict 的键数 / list 的元素数；其他类型返回 None（与迁移前口径一致）。"""
+    return len(obj) if isinstance(obj, (dict, list)) else None
+
+
+def _json_check_fields(json_block: dict) -> dict:
+    """把 JSON 校验块摊平成 data_format_detect 的返回字段。
+
+    扁平字段 `valid` / `parsed_type` / `keys_count` / `data` 与被合并的
+    `json_validate` 同名同义（调用方从 data_format_detect 即可拿到全部输出）；
+    嵌套 `json` 块额外承载 `error` —— 放平级会与 data_format_detect 自身的失败
+    字段 `error` 撞名（ok=False 表示"检测失败"，而 ok=True + valid=False 表示
+    "检测成功且不是合法 JSON"）。
+    """
+    return {
+        "valid": json_block["valid"],
+        "parsed_type": json_block["parsed_type"],
+        "keys_count": json_block["keys_count"],
+        "data": json_block["data"],
+        "json": dict(json_block),
+    }
+
+
 def json_validate(data: str) -> dict:
     """验证字符串是否为合法 JSON。
+
+    [已并入 data_format_detect] 工具注册已下线；本函数保留供站内调用与既有测试
+    使用，其全部输出均可从 `data_format_detect` 的 valid / parsed_type /
+    keys_count / data / json.error 得到。
 
     Args:
         data: 待验证的字符串
@@ -410,27 +478,11 @@ def json_validate(data: str) -> dict:
             error_msg = str(e)
             return {"ok": True, "valid": False, "error": f"JSON 格式无效: {error_msg}"}
 
-        # 确定解析后的类型（bool 必须在 int/float 之前检查，因为 bool 是 int 的子类）
-        if isinstance(obj, dict):
-            parsed_type = "object"
-        elif isinstance(obj, list):
-            parsed_type = "array"
-        elif isinstance(obj, str):
-            parsed_type = "string"
-        elif isinstance(obj, bool):
-            parsed_type = "boolean"
-        elif isinstance(obj, (int, float)):
-            parsed_type = "number"
-        elif obj is None:
-            parsed_type = "null"
-        else:
-            parsed_type = type(obj).__name__
-
         return {
             "ok": True,
             "valid": True,
-            "parsed_type": parsed_type,
-            "keys_count": len(obj) if isinstance(obj, dict) else len(obj) if isinstance(obj, list) else None,
+            "parsed_type": _json_parsed_type(obj),
+            "keys_count": _json_keys_count(obj),
             "data": obj,
         }
 
@@ -551,7 +603,13 @@ def data_format_detect(data: str) -> dict:
 
     Returns:
         {"ok": True, "format": "json"|"xml"|"yaml"|"csv"|"unknown",
-         "confidence": 0.0-1.0, "details": "..."}
+         "confidence": 0.0-1.0, "details": "...", "scores": {"json":..,"xml":..,"yaml":..,"csv":..},
+         # ↓ 以下 JSON 校验字段由已合并的 json_validate 提供（同名同义）
+         "valid": bool,              # 是否合法 JSON
+         "parsed_type": str|None,    # object|array|string|boolean|number|null
+         "keys_count": int|None,     # dict 键数 / list 元素数，其他类型为 None
+         "data": <解析后的 JSON>|None,
+         "json": {...上述五项 + "error": 失败原因|None}}
         或 {"ok": False, "error": "..."}
     """
     try:
@@ -567,14 +625,30 @@ def data_format_detect(data: str) -> dict:
                 "format": "unknown",
                 "confidence": 0.0,
                 "details": "数据为空",
+                **_json_check_fields({
+                    "valid": False,
+                    "parsed_type": None,
+                    "keys_count": None,
+                    "data": None,
+                    "error": "数据为空字符串",
+                }),
             }
 
         stripped = data.strip()
         results = []
 
         # 1. JSON 检测 — 尝试 json.loads
+        #    同时产出原 json_validate 的校验字段：此处与 json_validate 用的是同一个
+        #    json.loads + 同一套类型判定，后者独有价值仅 parsed_type / keys_count
+        #    （评估报告 §6.2 第 0 档第 4 行）。
         json_confidence = 0.0
-        parsed_obj = None
+        json_block = {
+            "valid": False,
+            "parsed_type": None,
+            "keys_count": None,
+            "data": None,
+            "error": "JSON 格式无效: 不是合法 JSON",
+        }
         try:
             parsed_obj = json.loads(stripped)
             if isinstance(parsed_obj, (dict, list)):
@@ -584,8 +658,16 @@ def data_format_detect(data: str) -> dict:
                 json_confidence = 0.70
             else:
                 json_confidence = 0.50
-        except (json.JSONDecodeError, ValueError):
-            pass
+            json_block = {
+                "valid": True,
+                "parsed_type": _json_parsed_type(parsed_obj),
+                "keys_count": _json_keys_count(parsed_obj),
+                "data": parsed_obj,
+                "error": None,
+            }
+        except (json.JSONDecodeError, ValueError) as e:
+            # 保留原始异常文本（含 line/column），不静默丢掉失败原因
+            json_block["error"] = f"JSON 格式无效: {e}"
         results.append(("json", json_confidence))
 
         # 2. XML 检测
@@ -610,6 +692,7 @@ def data_format_detect(data: str) -> dict:
                 "confidence": 0.0,
                 "details": "无法识别数据格式",
                 "scores": {fmt: conf for fmt, conf in results},
+                **_json_check_fields(json_block),
             }
 
         # 生成描述
@@ -626,6 +709,7 @@ def data_format_detect(data: str) -> dict:
             "confidence": round(best[1], 4),
             "details": format_descriptions.get(best[0], best[0]),
             "scores": {fmt: round(conf, 4) for fmt, conf in results},
+            **_json_check_fields(json_block),
         }
 
     except Exception as e:

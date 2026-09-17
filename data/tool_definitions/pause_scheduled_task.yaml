@@ -3,6 +3,10 @@ category: schedule
 description: 暂停指定的定时任务
 deprecated: false
 version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [schedule]
 schema:
   type: object
   properties:

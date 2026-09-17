@@ -142,6 +142,11 @@ data/task_history.jsonl
 data/auto_tuning/
 data/resource_monitor_history.jsonl
 data/schedules.json
+# 动态工具运行时台账与自生成工具模块（云枢自生成能力的本地状态）
+# 与 data/scheduled_tasks.json / data/skills.json 同类：启动时为空、运行期填充，
+# 属环境本地状态而非源码。见 agent/tools/persistence.py 与 docs/工具能力补全路线.md。
+data/dynamic_tools.json
+agent/tools/custom/
 
 # 测试产物（覆盖率/成本日志/报告，不入库）
 .coverage

@@ -1,0 +1,23 @@
+name: kb_card
+category: knowledge
+description: 产卡（已确认笔记或讨论记录 → wiki/ 卡片，产物恒为 draft）
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [knowledge]
+schema:
+  type: object
+  properties:
+    note_slug:
+      type: string
+      description: 已 approve 的笔记 slug
+    discussion_path:
+      type: string
+      description: 讨论记录路径
+    card_type:
+      type: string
+      enum: [concepts, entities, insights]
+      description: 卡片类型（默认 concepts）
+examples: []

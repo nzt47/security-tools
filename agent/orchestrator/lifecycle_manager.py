@@ -1040,12 +1040,39 @@ class LifecycleManager:
         from agent.tools.web_tools import register_all as reg_web
         from agent.tools.ext_tools import register_all as reg_ext
         from agent.tools.pdf_tools import register_all as reg_pdf
-        from agent.tools.software_tools import register_all as reg_software
+        # ── software_* 4 个工具已注销（2026-09-17）──────────────────────
+        # 原因：agent/software_manager.py 与 agent/software_backends.py 是机器生成的
+        #   空壳（见 scripts/create_software_manager.py）——SoftwareManager 没有
+        #   register_backend/search 等方法，而 install()/uninstall() 的实现就是
+        #   `return True`、_installed_software 从不写入。结果 software_install
+        #   **返回成功却什么都没装**、software_list 恒为空 ⇒ 对用户谎报成功，
+        #   比直接报错更危险。判据见 docs/工具集评估与重分类报告.md §4.4a。
+        # 范围：已删 agent/tools/software_tools.py 与 4 个 tool_definitions YAML，
+        #   并从 tool_router 的 software 分类剔除 ⇒ 模型完全看不到这 4 个工具。
+        #   同时修正了 system_prompt_manager 里"你拥有软件管理能力…必须调用
+        #   software_search/install/list/uninstall"的旧提示词（否则模型会去调不存在的工具）。
+        # 恢复：`git log --diff-filter=D -- agent/tools/software_tools.py` 取回实现，
+        #   并先补齐 software_manager.py 的真实后端注册与安装/卸载实现再接线。
+        # from agent.tools.software_tools import register_all as reg_software
         from agent.tools.system_tools import register_all as reg_system
         from agent.tools.code_tools import register_all as reg_code
         from agent.tools.search_tools import register_all as reg_search
         from agent.tools.subagent_tools import register_all as reg_subagent
+        # 并行多线委派（一次调用把 N 个任务并发派给 N 个子代理，各按主线档案装配工具集）
+        from agent.tools.fan_out_tools import register_all as reg_fan_out
         from agent.tools.plan_tools import register_all as reg_plan
+        # 补登记（沙盒/剪贴板/浏览器/工作区/PDF表格/MCP清单/屏幕OCR/周报）
+        from agent.tools.extra_tools import register_all as reg_extra
+        # 工程闭环三件套（git / run_tests / apply_patch）
+        from agent.tools.git_tools import register_all as reg_git
+        from agent.tools.test_tools import register_all as reg_test
+        # B 档能力补全（docs/工具能力补全路线.md）：
+        #   notify       —— 主动通知/提醒（schedule_task 是"周期重复执行"，不是"到点提醒"）
+        #   sqlite_query —— 只读查询本地 sqlite（此前 Agent 查不到自己的运行数据）
+        #   run_lint     —— 代码静态检查/类型检查（此前只有文风检测与数据格式识别）
+        from agent.tools.notify_tools import register_all as reg_notify
+        from agent.tools.db_tools import register_all as reg_db
+        from agent.tools.lint_tools import register_all as reg_lint
         # 过程蒸馏工具（知识库 → 可复现步骤 → workflow/skill 固化）
         # 失败仅记日志，不影响其余内置工具注册（守主链路稳定）
         try:
@@ -1054,17 +1081,34 @@ class LifecycleManager:
         except Exception as _pd_e:  # noqa: BLE001
             logger.warning("[lifecycle] 过程蒸馏工具注册失败（跳过）: %s", _pd_e)
 
+        # 知识库工具（kb_*：素材入库 → 提炼 → 讨论 → 产卡 → 巡检 → 检索）
+        # 历史问题：这 6 个工具此前只有测试与开发脚本调用 register_knowledge_tools()，
+        # 生产链路从未接线 ⇒ 整个知识能力在生产中不存在（见评估报告 §1.5-D）。
+        try:
+            from agent.knowledge.tools import register_knowledge_tools
+            _kb_n = register_knowledge_tools()
+            logger.info("[lifecycle] 知识库工具注册完成: %d 个", _kb_n)
+        except Exception as _kb_e:  # noqa: BLE001
+            logger.warning("[lifecycle] 知识库工具注册失败（跳过）: %s", _kb_e)
+
         reg_core(self)
         reg_file(self)
         reg_web(self)
         reg_ext(self)
         reg_pdf(self)
-        reg_software(self)
+        # reg_software(self)   # 已注销：software_* 4 个工具是空壳（见上方 import 处说明）
         reg_system(self)
         reg_code(self)
         reg_search(self)
         reg_subagent(self)
+        reg_fan_out(self)
         reg_plan(self)
+        reg_extra(self)
+        reg_git(self)
+        reg_test(self)
+        reg_notify(self)
+        reg_db(self)
+        reg_lint(self)
 
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._register_builtin_tools.log', 'message': '全部内置工具注册完成（模块化加载）'}))
 

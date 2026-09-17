@@ -4,6 +4,10 @@ description: 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 
   title（标题）、components（组件列表）和 output_path（输出路径）
 deprecated: false
 version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [produce]
 schema:
   type: object
   properties:

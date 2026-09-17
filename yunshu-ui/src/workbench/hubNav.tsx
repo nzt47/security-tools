@@ -12,7 +12,7 @@ import {
   Activity, FileText, Server, BookOpen, Search, Boxes, Terminal, Plug, Monitor,
   HeartPulse, CalendarClock, Users, Copy, Hammer, FolderHeart, Lightbulb, Palette,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Smile, Puzzle,
-  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
+  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, Route,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -32,6 +32,9 @@ const ToolsToolset = lazy(() => import('@/pages/hub/tools/toolset'))
 const ToolsCli = lazy(() => import('@/pages/hub/tools/cli'))
 const ToolsMcp = lazy(() => import('@/pages/hub/tools/mcp'))
 const ToolsComputerUse = lazy(() => import('@/pages/hub/tools/computer-use'))
+// 主线管理：能力平面档案（四平面权重 + 保底 + 效果上限）+ 实时装配预览
+// 数据源 data/agent_lines/*.yaml；后端 agent/server_routes/routes_agent_lines.py
+const ToolsAgentLines = lazy(() => import('@/pages/hub/tools/lines'))
 const EngineHeartbeat = lazy(() => import('@/pages/hub/engine/heartbeat'))
 const EngineScheduler = lazy(() => import('@/pages/hub/engine/scheduler'))
 const NetworkPage = lazy(() => import('@/pages/hub/network'))
@@ -99,6 +102,9 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'tools/cli', label: 'CLI 软件', icon: Terminal, component: ToolsCli },
       { key: 'tools/mcp', label: 'MCP 系统', icon: Plug, component: ToolsMcp },
       { key: 'tools/computer-use', label: 'Computer Use', icon: Monitor, component: ToolsComputerUse },
+      // 主线管理：一条主线 = 一份「平面权重 + 核心工具 + 效果上限 + 技能包」的档案，
+      // 决定本轮暴露给模型的工具集（改权重可即时看到装配结果）
+      { key: 'tools/lines', label: '主线管理', icon: Route, component: ToolsAgentLines },
     ],
   },
   {

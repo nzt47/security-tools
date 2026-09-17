@@ -1,0 +1,24 @@
+name: read_pdf_tables
+category: pdf
+description: 提取 PDF 文件中的表格数据，返回每页每个表格的二维单元格数组。依赖 pdfplumber，未安装时返回明确错误。Extract tables
+  from PDF files, parse PDF table data
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [document]
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: PDF 文件路径
+    pages:
+      type: array
+      items:
+        type: integer
+      description: 要提取的页码列表（1-based），如 [1, 3]，不传则提取全部页面
+  required:
+  - path
+examples: []

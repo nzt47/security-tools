@@ -8,6 +8,19 @@
 - shell: 2 tokens, 0.2 refill/s (Shell 工具)
 - file: 15 tokens, 1 refill/s (文件工具)
 - default: 10 tokens, 1 refill/s (普通工具)
+
+**分桶判据的唯一真相**：``data/tool_definitions/*.yaml`` 的 ``tags`` / ``effect``
+（见 :func:`RateLimiter.get_category`）。**改动前**用一串子串关键词并按
+network→shell→file 的顺序匹配，于是：
+
+    search_memory / search_files / search_lifetrace / software_search
+        因含 "search" 命中 network 关键词 ⇒ 本地检索与真实网络共用最紧的桶
+        （5 容量、0.5/s）——**与危险程度和网络无关的误判**；
+    edit / grep
+        一个关键词都不命中 ⇒ 落进 default，与 file 桶（15 容量、1.0/s）分家。
+
+改动后按 YAML 分桶，``_limits`` 的键与数值**一字未改**（``network`` / ``shell`` /
+``file`` / ``default`` 的容量与补充速率保持设计值）。
 """
 
 from __future__ import annotations
@@ -38,6 +51,100 @@ except ImportError:
 def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
+
+
+# ── 工具类别派生（唯一真相：data/tool_definitions/*.yaml 的 tags / effect）─────
+
+#: 类别取值集合（与 ``_limits`` 的键一一对应；**不得增删**）
+CATEGORIES = ("default", "network", "shell", "file")
+
+#: tags → 类别，**按顺序先命中先返回**（web 最专有，故排第一）
+_TAG_CATEGORY_RULES = (
+    ("network", ("web",)),
+    ("shell", ("shell", "process")),
+    ("file", ("code", "document", "data", "software")),
+)
+
+#: 元数据与类别缓存的锁（首次派生要读 97 个 YAML，只做一次）
+_CATEGORY_LOCK = threading.Lock()
+#: ``name → ToolMeta`` 缓存；``None`` = 尚未加载
+_TOOL_META_CACHE: Optional[dict] = None
+#: ``工具名 → 类别`` 缓存（每次限流检查都会问同一个名字，别再读一遍 YAML）
+_CATEGORY_CACHE: dict = {}
+
+
+def _tool_meta() -> dict:
+    """惰性加载并缓存工具能力元数据（``data/tool_definitions/*.yaml``）
+
+    【为什么缓存】``get_category()`` 在**每次限流检查**里被调用，而加载要读 97 个
+        YAML ⇒ 不缓存等于把 97 次文件 IO 放进热路径。
+    【简易】加载失败（缺 ``yaml`` 依赖 / 目录不可读 / 任何异常）⇒ 空 dict，不抛异常；
+        调用方据此回退字符串启发式（**不是** fail-closed，理由见 ``get_category``）。
+    """
+    global _TOOL_META_CACHE
+    if _TOOL_META_CACHE is None:
+        with _CATEGORY_LOCK:
+            if _TOOL_META_CACHE is None:
+                try:
+                    from agent.lines import load_tool_meta
+                    _TOOL_META_CACHE = dict(load_tool_meta())
+                except Exception as e:  # noqa: BLE001  读不到元数据 ⇒ 回退启发式
+                    logger.warning("[rate_limiter] 工具元数据加载失败（回退字符串启发式"
+                                   "分桶）: %s: %s", type(e).__name__, e)
+                    _TOOL_META_CACHE = {}
+    return _TOOL_META_CACHE
+
+
+def clear_category_cache() -> None:
+    """清空"工具名 → 类别"缓存与元数据缓存（**测试用**：改完 YAML 后重新派生）"""
+    global _TOOL_META_CACHE
+    with _CATEGORY_LOCK:
+        _CATEGORY_CACHE.clear()
+        _TOOL_META_CACHE = None
+
+
+def _category_from_meta(meta: Any) -> str:
+    """按 YAML 元数据分桶：``tags`` 优先，其次 ``effect == "write"`` ⇒ file"""
+    tags = {str(t).strip().lower() for t in (getattr(meta, "tags", ()) or ())}
+    for category, keys in _TAG_CATEGORY_RULES:
+        if tags.intersection(keys):
+            return category
+    if str(getattr(meta, "effect", "") or "").strip().lower() == "write":
+        return "file"
+    return "default"
+
+
+def _category_from_name(tool_name: str) -> str:
+    """**元数据缺失时**的字符串启发式兜底（改动前的原实现，顺序一字未改）
+
+    它有两个已知缺陷（network 关键词过宽、edit/grep 无关键词），只有在 YAML 读不到
+    或工具未登记时才会走到这里。
+    """
+    name_lower = tool_name.lower()
+
+    network_keywords = [
+        "http", "fetch", "search", "web_", "browse", "download",
+        "post", "xpath", "css", "scrape", "crawl", "news",
+        "weather", "translate",
+    ]
+    if any(k in name_lower for k in network_keywords):
+        return "network"
+
+    shell_keywords = [
+        "shell", "execute", "process", "run_program",
+        "start_process", "stop_process",
+    ]
+    if any(k in name_lower for k in shell_keywords):
+        return "shell"
+
+    file_keywords = [
+        "read_file", "write_file", "list_dir", "search_file",
+        "compress", "decompress", "diff", "get_file_info",
+    ]
+    if any(k in name_lower for k in file_keywords):
+        return "file"
+
+    return "default"
 
 
 # ── 令牌桶实现 ──────────────────────────────────────────────
@@ -320,32 +427,47 @@ class RateLimiter:
                 return False
 
     def get_category(self, tool_name: str) -> str:
-        """根据工具名称确定类别（旧 API）"""
-        name_lower = tool_name.lower()
+        """根据工具名确定类别（旧 API）
 
-        network_keywords = [
-            "http", "fetch", "search", "web_", "browse", "download",
-            "post", "xpath", "css", "scrape", "crawl", "news",
-            "weather", "translate",
-        ]
-        if any(k in name_lower for k in network_keywords):
-            return "network"
+        **判据（唯一真相：``data/tool_definitions/*.yaml``）**，按 ``tags`` / ``effect``
+        分桶，与 ``HITLManager.assess`` / ``tool_gate`` 共用同一份元数据：
 
-        shell_keywords = [
-            "shell", "execute", "process", "run_program",
-            "start_process", "stop_process",
-        ]
-        if any(k in name_lower for k in shell_keywords):
-            return "shell"
+            tags 含 web                                    → network
+            tags 含 shell 或 process                        → shell
+            tags 含 code / document / data / software，
+            或 effect == "write"                            → file
+            其余                                             → default
 
-        file_keywords = [
-            "read_file", "write_file", "list_dir", "search_file",
-            "compress", "decompress", "diff", "get_file_info",
-        ]
-        if any(k in name_lower for k in file_keywords):
-            return "file"
+        **元数据缺失 ⇒ 回退改动前的字符串启发式（刻意不 fail-closed）**：
+            限流是**性能**判据，不是安全判据 —— "分不出桶"按 default 放行不会让任何危险
+            操作绕过审批，却会让"YAML 读不到"直接演变成"所有工具被最紧的桶限流、主链路
+            卡死"。故此处与 :meth:`HITLManager.assess` 的 **fail-closed** 形成**刻意的不
+            对称**：安全判据从严（读不到就不放行），性能判据从宽（读不到就走旧启发式）。
 
-        return "default"
+        返回值恒为 ``CATEGORIES`` 之一（``network`` / ``shell`` / ``file`` / ``default``）
+        —— ``_limits`` 字典依赖它们；**签名与取值集合不得改动**。
+        """
+        name = str(tool_name or "").strip()
+        if not name:
+            return "default"
+
+        with _CATEGORY_LOCK:
+            cached = _CATEGORY_CACHE.get(name)
+        if cached is not None:
+            return cached
+
+        metas = _tool_meta()
+        meta = metas.get(name) or metas.get(name.lower())
+        if meta is not None:
+            category = _category_from_meta(meta)
+        else:
+            category = _category_from_name(name)
+        if category not in CATEGORIES:  # 防御：派生结果越界即按 default（不放宽也不收紧）
+            category = "default"
+
+        with _CATEGORY_LOCK:
+            _CATEGORY_CACHE[name] = category
+        return category
 
     # ── 规则与桶管理 ─────────────────────────────────────────
 

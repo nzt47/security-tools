@@ -1,0 +1,26 @@
+name: weekly_report
+category: file
+description: 生成本周工作总结报告（含统计、洞察与建议）并按指定格式落盘。默认写入 data/reports，支持 json/html/text 三种格式。Generate
+  a weekly work report
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [document, report]
+schema:
+  type: object
+  properties:
+    output_dir:
+      type: string
+      description: 报告输出目录，默认 data/reports（相对路径按项目根目录解析）
+    save_formats:
+      type: array
+      items:
+        type: string
+        enum:
+        - json
+        - html
+        - text
+      description: 保存格式列表，默认 ["json", "html", "text"]
+examples: []

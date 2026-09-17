@@ -39,9 +39,12 @@ _INDEX_PATH = os.path.join(_PROJECT_ROOT, "data", "tool_index.json")
 REQUIRED_FIELDS = ["name", "category", "description", "deprecated", "version", "schema"]
 
 # 已知分类键（与 tool_router 默认一致；uncategorized 为未路由工具的占位）
+# 注：software 已于 2026-09-17 退役（4 个 software_* 工具是空壳，见
+# docs/工具集评估与重分类报告.md §4.4a），故不在此列。
 KNOWN_CATEGORIES = {
     "core", "web", "file", "code", "system",
-    "extension", "pdf", "software", "async", "schedule", "v2",
+    "extension", "pdf", "async", "schedule", "v2",
+    "knowledge",
     "uncategorized",
 }
 
@@ -183,6 +186,12 @@ def _cross_check_categories(docs: list[dict]) -> list[str]:
 
     yaml_by_cat: dict[str, set[str]] = {}
     for d in docs:
+        # internal: true 的工具（如 process_distill_run）**有意**不进路由分类表：
+        # 它留在注册表里供内部按名调用，但不该被模型选中。若把它算进 yaml_by_cat，
+        # 会误报"YAML 多出工具"。与 agent/tool_router._load_tool_categories_from_yaml
+        # 的排除口径保持一致。
+        if d.get("internal") is True:
+            continue
         yaml_by_cat.setdefault(d["category"], set()).add(d["name"])
 
     # 仅对已知分类（非 uncategorized）做一致性比对
@@ -228,11 +237,18 @@ def _build_index(docs: list[dict]) -> dict:
     【变易】新增 parameter_names 字段(从 schema.properties 派生),
            供 tool_router_hybrid.BM25Index 索引工具参数名。
            旧 reader 忽略未知字段,向后兼容。
+    【不易】`internal: true` 的工具**不得入索引**。
+           为什么必须过滤：本索引是 hybrid 检索路由的**候选来源**（它不做分类过滤），
+           所以只要名字进了索引，BM25 就可能把它召回到 top-k ⇒ 模型看见它、并可通过
+           tool_defs 调用它。而 internal 的语义正是"保留注册供内部按名调用、
+           但绝不暴露给模型"（如 process_distill_run 由 AsyncExecutor 按名调用）。
+           不在这一层过滤 ⇒ `get_tool_defs` 的隐藏会被 hybrid 路径绕开。
     """
+    visible = [d for d in docs if d.get("internal") is not True]
     return {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
-        "tool_count": len(docs),
-        "categories": sorted({d["category"] for d in docs}),
+        "tool_count": len(visible),
+        "categories": sorted({d["category"] for d in visible}),
         "tools": [
             {
                 "name": d["name"],
@@ -242,7 +258,7 @@ def _build_index(docs: list[dict]) -> dict:
                 "deprecated": d["deprecated"],
                 "parameter_names": _extract_parameter_names(d),
             }
-            for d in sorted(docs, key=lambda x: (x["category"], x["name"]))
+            for d in sorted(visible, key=lambda x: (x["category"], x["name"]))
         ],
     }
 

@@ -1,0 +1,17 @@
+name: workspace_list
+category: file
+description: 列出受保护工作区内的文件与子目录；传入文件路径则返回该文件的前 5000 字符内容。路径越出工作区会被拒绝。List files in the
+  protected workspace
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [workspace]
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 工作区内的相对路径，留空表示工作区根目录
+examples: []

@@ -54,7 +54,13 @@ _PROBE_CACHE = os.path.join(_PROJECT_ROOT, "data", ".embedding_probe")
 _DEFAULT_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 
 _DEFAULT_ALPHA = 0.5      # BM25 与 Embedding 等权
-_DEFAULT_TOP_K = 10       # 默认返回 10 个候选
+_DEFAULT_TOP_K = 40       # 默认候选池大小（**不是**最终返回数）
+# 【不易】为什么从 10 提到 40：`top_k` 是**检索候选池**，最终返回数由
+#         `max_tools`（默认 25）+ 类别优先级排序 + PINNED_TOOLS 补回决定。
+#         原值 10 < max_tools 25 ⇒ 截断分支**永不触发**，返回的永远是检索器给的
+#         ≤10 个，`_apply_alias_merge_and_priority_sort` 的优先级排序等同虚设。
+#         实测后果：复合请求里除检索命中者外一个工具都补不进来。
+#         候选池必须 ≥ max_tools，排序与截断才有意义。
 _COSINE_CUTOFF = 0.2      # Embedding 余弦相似度剪枝阈值(低于此值不进入融合)
 _PROBE_TIMEOUT = 60       # 子进程探测超时(秒)
 _WORKER_READY_TIMEOUT = 30.0  # worker ready 信号读取超时(秒)
@@ -156,12 +162,20 @@ except ImportError:
 
 # 安全导入 helper(不可用时 hybrid 不可用)
 try:
-    from agent.tool_router import _apply_alias_merge_and_priority_sort, TOOL_CATEGORIES
+    from agent.tool_router import (
+        _apply_alias_merge_and_priority_sort,
+        TOOL_CATEGORIES,
+        classify_user_input as _classify_user_input,
+    )
     _HELPER_AVAILABLE = True
 except ImportError:
     _HELPER_AVAILABLE = False
     _apply_alias_merge_and_priority_sort = None  # type: ignore[assignment]
     TOOL_CATEGORIES = {}  # type: ignore[assignment]
+
+    def _classify_user_input(_text: str) -> set:  # type: ignore[misc]
+        """classify_user_input 不可用时的空实现（类别兜底降级为"无候选"）"""
+        return set()
 
 # 安全导入 numpy(EmbeddingIndex 必需)
 try:
@@ -1130,14 +1144,38 @@ def hybrid_select_tools(
             retriever._alpha = alpha
         effective_alpha = retriever._alpha
 
-        results = retriever.query(user_input, top_k=top_k)
+        # 【不易】候选池必须 ≥ max_tools：否则截断分支永不触发，返回的只是检索器
+        #         给的 top_k 个，下面的类别优先级排序与 PINNED_TOOLS 补回全部失效
+        #         （历史缺陷：top_k=10 < max_tools=25 ⇒ 复合请求里补不进任何工具）。
+        #         这里只放大**检索候选池**，不改变调用方返回的上限语义。
+        pool = int(top_k) if top_k and top_k > 0 else int(_DEFAULT_TOP_K)
+        if max_tools and max_tools > 0 and pool < max_tools:
+            logger.debug(
+                "[tool_router_hybrid] 候选池 %d < max_tools %d,自动放大到 %d（否则截断/补回失效）",
+                pool, max_tools, max_tools)
+            pool = int(max_tools)
+
+        results = retriever.query(user_input, top_k=pool)
         if results is None:
             return None
         if not results:
             return None  # 空结果让调用方回退
 
-        # 候选工具集合
+        # 候选工具集合：检索命中 ∪ 关键词分类命中的类别工具
+        # 【为什么必须取并集（2026-09-17 实测）】
+        #   只有检索命中：BM25 的中文弱点会漏（例：「帮我写代码并运行测试」召回不到
+        #     write_file/edit/grep ⇒ 命中却不给出，实测 5 个必需工具缺 3 个）。
+        #   只有类别命中：没有相关度，`shell_execute` 会被同类低相关工具挤掉。
+        #   两者并集 = 检索提供**精度与排序**，类别提供**召回兜底**。
         selected: set[str] = {tool_name for tool_name, _ in results}
+        try:
+            _cats = _classify_user_input(user_input)
+            for _c in _cats:
+                _info = TOOL_CATEGORIES.get(_c)
+                if _info:
+                    selected.update(_info["tools"])
+        except Exception as _ce:  # noqa: BLE001 类别兜底失败不影响检索主路径
+            logger.debug("[tool_router_hybrid] 类别兜底候选失败(忽略): %s", _ce)
 
         # 统计从 HybridRetriever._query_locked 写入的中间统计读取
         # Why: results 是融合后 top_k,无法反映 BM25/Embedding 各自召回数;
@@ -1154,10 +1192,17 @@ def hybrid_select_tools(
             if not selected:
                 return None  # 白名单过滤后无候选,让调用方回退
 
-        # 别名合并 + 优先级排序 + 数量截断(复用 tool_router helper)
+        # 相关度优先 + 类别优先级补位 + 数量截断(复用 tool_router helper)
         # 传入所有类别,确保每个工具取到正确 priority
+        # 【关键】preferred_order 传检索器的**相关度序**（融合后仍按分数降序）：
+        #   hybrid 有真实相关度，若一律按类别 priority 重排，会出现"相关度被优先级覆盖"
+        #   —— 例如「读取 PDF 的内容」里 pdf 类别 priority=6，web(1)/file(2) 会吃光名额，
+        #   read_pdf 被挤到 max_tools 之外，结果是"命中了却拿不到"。
+        #   传相关度序后：相关且命中的工具优先保留，类别序只用来**补位**。
         categories = retriever._all_categories or set(TOOL_CATEGORIES.keys())
-        result = _apply_alias_merge_and_priority_sort(selected, categories, max_tools)
+        relevance_order = [name for name, _ in results]
+        result = _apply_alias_merge_and_priority_sort(
+            selected, categories, max_tools, preferred_order=relevance_order)
 
         if not result:
             return None

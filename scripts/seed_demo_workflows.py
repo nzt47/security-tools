@@ -80,7 +80,7 @@ DEMO_RECORDS = [
              "success": True},
             {"name": "json_query", "params": {"query": "$"},
              "success": True},
-            {"name": "json_to_yaml", "params": {}, "success": True},
+            {"name": "data_convert", "params": {}, "success": True},
             {"name": "write_file", "params": {"path": "config.yaml"},
              "success": True},
         ],

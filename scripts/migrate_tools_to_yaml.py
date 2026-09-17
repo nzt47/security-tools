@@ -131,22 +131,82 @@ def _build_category_map() -> dict[str, str]:
     return mapping
 
 
-def _to_yaml_doc(tool: dict) -> dict:
-    """构造单个工具的 YAML 文档结构。"""
+#: 本脚本**不负责**、但已存在于 YAML 的治理字段。
+#: 【不易】必须原样保留：这些字段由 `scripts/backfill_tool_planes.py` 与人工维护，
+#:         是 `agent.lines.assembler` 的**准入依据**（未登记 plane/effect 的工具会被
+#:         fail-closed 拒绝）。本脚本重写 YAML 时若把它们丢掉，等于一次性删掉
+#:         全部工具的能力平面与风险等级——工具会静默地从主线上消失。
+#:         历史上真实发生过：`tests/unit/test_tool_definitions_yaml.py` 的幂等性测试
+#:         会调用本脚本，一次运行即抹掉 91 个 YAML 的 plane/effect/risk/tags。
+_PRESERVED_FIELDS = ("plane", "effect", "risk", "tags", "internal")
+
+
+def _load_existing_doc(path: str) -> dict:
+    """读取已存在的 YAML（不存在或损坏时返回空 dict）。"""
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            doc = yaml.safe_load(f)
+    except (OSError, yaml.YAMLError):
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def _to_yaml_doc(tool: dict, existing: dict | None = None) -> dict:
+    """构造单个工具的 YAML 文档结构。
+
+    Args:
+        tool: 从 Python 源码抽取的工具定义
+        existing: 已存在的 YAML 文档（用于保留治理字段）
+
+    Returns:
+        字段顺序固定为 name/category/description/deprecated/version/
+        plane/effect/risk/tags/internal/schema/examples 的文档
+    """
+    existing = existing or {}
     schema = tool.get("schema") or {
         "type": "object",
         "properties": {},
         "additionalProperties": True,
     }
-    return {
+    doc = {
         "name": tool["name"],
         "category": tool["category"],
         "description": tool["description"],
         "deprecated": False,
         "version": "1.0.0",
-        "schema": schema,
-        "examples": [],
     }
+    for field in _PRESERVED_FIELDS:
+        if field in existing and existing[field] is not None:
+            doc[field] = existing[field]
+    doc["schema"] = schema
+    doc["examples"] = []
+    return doc
+
+
+def _flow_style_tags(text: str) -> str:
+    """把 `tags:` 的块序列写回 `tags: [a, b]` 流式写法。
+
+    理由：这是仓内既有格式（`data/tool_definitions/grep.yaml`）。不做这一步，
+    本脚本每次运行都会把 tags 的排版改一遍 —— 幂等性测试（hash 比对）会因此失败。
+    """
+    lines = text.split("\n")
+    out: list[str] = []
+    idx = 0
+    while idx < len(lines):
+        if lines[idx].strip() == "tags:":
+            values: list[str] = []
+            j = idx + 1
+            while j < len(lines) and lines[j].startswith("- "):
+                values.append(lines[j][2:])
+                j += 1
+            out.append("tags: [" + ", ".join(values) + "]")
+            idx = j
+            continue
+        out.append(lines[idx])
+        idx += 1
+    return "\n".join(out)
 
 
 def main() -> int:
@@ -202,10 +262,14 @@ def main() -> int:
     os.makedirs(args.out, exist_ok=True)
     written = 0
     for name, tool in sorted(all_tools.items()):
-        doc = _to_yaml_doc(tool)
         out_path = os.path.join(args.out, f"{name}.yaml")
+        # 【不易】先读旧文件：治理字段（plane/effect/risk/tags/internal）由
+        # backfill_tool_planes.py 与人工维护，本脚本只补不删。
+        doc = _to_yaml_doc(tool, _load_existing_doc(out_path))
+        text = yaml.safe_dump(doc, allow_unicode=True, sort_keys=False,
+                              default_flow_style=False)
         with open(out_path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(doc, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
+            f.write(_flow_style_tags(text))
         written += 1
     logger.info("已写入 %d 个 YAML 文件到 %s", written, args.out)
     return 0

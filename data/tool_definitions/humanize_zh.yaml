@@ -4,6 +4,10 @@ description: 检测中文文本中的 AI 写作痕迹并给出优化建议。基
   启用更严格的检测模式
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [text]
 schema:
   type: object
   properties:

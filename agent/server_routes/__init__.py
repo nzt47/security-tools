@@ -2,6 +2,18 @@
 
 将所有按业务域拆分的路由模块集中注册到 Flask 应用。
 每个模块的 register_routes(app, state) 接受 Flask app 和 ServerState 实例。
+
+⚠️ 重要：**本函数当前没有调用方（死代码）**
+------------------------------------------------------------------
+真实的路由注册发生在 `app_server.py`，那里**逐个模块显式注册**（大量
+`from agent.server_routes.routes_x import register_routes as reg_x` + try/except 块）。
+
+历史教训：`routes_approval` 与 `routes_agent_lines` 都曾**只在本文件登记**，
+结果生产环境从未注册，前端表现为 HTTP 404。而单测里手工 `Flask(__name__)`
+再调 `register_routes` 会通过 ⇒ **测试绿、线上 404**，非常难查。
+
+⇒ 新增路由模块的正确做法：在 `app_server.py` 里照抄一个既有 try/except 块显式注册。
+   只改本文件不会生效。
 """
 
 
@@ -83,3 +95,7 @@ def register_all_routes(app, state):
     # 治理可观测六面板 HTTP 面（TASK-S6-01：§7 六面板 + 七动作；只读为主）
     from .routes_ui_panels import register_routes as reg_ui_panels
     reg_ui_panels(app, state)
+
+    # 主线管理（能力平面档案 CRUD + 装配预览；数据源 data/agent_lines/*.yaml）
+    from .routes_agent_lines import register_routes as reg_agent_lines
+    reg_agent_lines(app, state)

@@ -4,6 +4,10 @@ description: 获取 PDF 文件的元信息（页数、标题、作者、创建�
   info
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [document]
 schema:
   type: object
   properties:

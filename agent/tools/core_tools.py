@@ -5,6 +5,95 @@ from agent import tools as _tools
 
 logger = logging.getLogger(__name__)
 
+# ════════════════════════════════════════════════════════════
+#  search_memory 的两条腿（scope 分派）
+#
+#  背景：`expand_context`（原注册于本文件）与 `search_memory` 是**真部分重复**——
+#  `expand_context_from_memory` 内部的 `_vector_memory.search(query, top_k)` 正是
+#  `search_memory` 链路的第一段（`DigitalLifeStateMixin._combined_search` 的向量腿），
+#  差别只在于 search_memory 还多一条事件日志腿（`_memory.query_logs`）。
+#  故按第 0 档合并：expand_context 的能力收进 search_memory 的 `scope="vector"`，
+#  净减 1 个工具且**不丢任何一条腿**。
+# ════════════════════════════════════════════════════════════
+
+#: 合法 scope（默认 all = search_memory 原有行为：两条腿都走）
+_SEARCH_MEMORY_SCOPES = ("all", "vector", "logs")
+
+#: 各 scope 的默认条数上限。
+#: all/logs 沿用 search_memory 原口径（`_combined_search(limit=10)`）；
+#: vector 沿用 expand_context 的 `max_items=5`。
+_SEARCH_MEMORY_DEFAULT_LIMIT = {"all": 10, "vector": 5, "logs": 10}
+
+
+def _vector_leg(dl, query, limit):
+    """向量（语义）腿 —— 复用 `expand_context_from_memory`，即 `_vector_memory.search` 的既有封装。
+
+    Returns:
+        (hits, error)：hits 元素恒为 ``{"content", "score"}``，与 expand_context
+        原来返回的 ``items`` 逐项同形；error 为非 None 时表示该腿整体不可用
+        （向量记忆未启用 / 检索异常），对齐 expand_context 的失败语义。
+    """
+    from agent.system_tools import expand_context_from_memory
+
+    res = expand_context_from_memory(dl, query, limit)
+    hits = []
+    for item in (res.get("items") or []):
+        if isinstance(item, dict):
+            hits.append({"content": item.get("content", ""), "score": item.get("score", 0)})
+        else:
+            hits.append({
+                "content": getattr(item, "content", ""),
+                "score": getattr(item, "score", 0),
+            })
+    return hits, (None if res.get("ok") else res.get("error"))
+
+
+def _log_leg(dl, query, limit):
+    """事件日志腿 —— 黑匣子 ``_memory.query_logs(search=...)``（与 `_combined_search` 第二条腿同源）。
+
+    Returns:
+        (hits, error)：hits 元素为 ``{"event_type", "timestamp", "data"}``。
+    """
+    memory = getattr(dl, "_memory", None)
+    if not memory:
+        return [], "事件日志系统未启用"
+    try:
+        raw = memory.query_logs(search=query, limit=limit) or []
+    except Exception as e:
+        logger.error("事件日志检索失败: %s", e)
+        return [], str(e)
+    hits = []
+    for entry in raw:
+        if isinstance(entry, dict):
+            hits.append({
+                "event_type": entry.get("event_type", "?"),
+                "timestamp": entry.get("timestamp", ""),
+                "data": entry.get("data", {}),
+            })
+        else:
+            hits.append({"event_type": "?", "timestamp": "", "data": str(entry)})
+    return hits, None
+
+
+def _format_vector_hits(query, hits, limit):
+    """scope=vector 的文本形态（沿用 `_combined_search` 的排版口径：来源标签 + 200 字截断）"""
+    if not hits:
+        return f"没有找到与 '{query}' 相关的语义记忆。"
+    lines = [f"找到 {len(hits)} 条相关语义记忆："]
+    for h in hits[:limit]:
+        lines.append(f"  🧠 语义记忆 {str(h.get('content', ''))[:200]}")
+    return "\n".join(lines)
+
+
+def _format_log_hits(query, hits, limit):
+    """scope=logs 的文本形态（沿用 `_combined_search` 的 📋 事件日志 排版口径）"""
+    if not hits:
+        return f"没有找到与 '{query}' 相关的事件日志。"
+    lines = [f"找到 {len(hits)} 条相关事件日志："]
+    for h in hits[:limit]:
+        lines.append(f"  📋 事件日志 [{h.get('event_type', '?')}] {str(h.get('data', {}))[:200]}")
+    return "\n".join(lines)
+
 
 def register_planning_tools(dl):
     """注册规划工具到 dl._planning_tools
@@ -69,19 +158,92 @@ def register_all(dl):
     def _get_status(**kwargs):
         return dl.get_status()
 
-    @_tools.register("search_memory", "搜索我的记忆", schema={
-        "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "搜索关键词"},
-        },
-        "required": ["query"],
-    })
+    @_tools.register("search_memory",
+                     "搜索我的记忆。scope=all（默认）同时检索语义记忆与事件日志；"
+                     "scope=vector 只做语义（向量）检索；scope=logs 只查事件日志。",
+                     schema={
+                         "type": "object",
+                         "properties": {
+                             "query": {"type": "string", "description": "搜索关键词"},
+                             "scope": {
+                                 "type": "string",
+                                 "enum": ["all", "vector", "logs"],
+                                 "description": "检索范围：all=语义记忆+事件日志（默认），vector=仅语义记忆，logs=仅事件日志",
+                             },
+                             "max_items": {"type": "integer",
+                                           "description": "返回条数上限，默认 all/logs=10，vector=5"},
+                         },
+                         "required": ["query"],
+                     })
     def _search_memory(**kwargs):
         query = kwargs.get("query", "")
+        scope = kwargs.get("scope")
+        if scope is None:
+            scope = "all"
+        elif isinstance(scope, str):
+            scope = scope.strip().lower()
+        raw_max = kwargs.get("max_items")
+
         if not query:
-            return {"ok": False, "error": "请提供搜索关键词"}
-        result = dl._combined_search(query)
-        return {"ok": True, "data": result}
+            return {"ok": False, "error": "请提供搜索关键词", "query": query, "scope": scope}
+        if scope not in _SEARCH_MEMORY_SCOPES:
+            return {
+                "ok": False,
+                "error": f"非法的 scope: {scope!r}，可选值: {' / '.join(_SEARCH_MEMORY_SCOPES)}",
+                "query": query,
+                "scope": scope,
+                "allowed_scopes": list(_SEARCH_MEMORY_SCOPES),
+            }
+        if raw_max is None:
+            limit = _SEARCH_MEMORY_DEFAULT_LIMIT[scope]
+        else:
+            try:
+                limit = int(raw_max)
+            except (TypeError, ValueError):
+                return {"ok": False, "error": "max_items 必须是正整数",
+                        "query": query, "scope": scope}
+            if limit <= 0:
+                return {"ok": False, "error": "max_items 必须为正整数",
+                        "query": query, "scope": scope}
+
+        # ── 两条腿按 scope 独立取用（不丢任何一条腿）──
+        vector_hits, vector_error = [], None
+        if scope != "logs":
+            vector_hits, vector_error = _vector_leg(dl, query, limit)
+        log_hits, log_error = [], None
+        if scope != "vector":
+            log_hits, log_error = _log_leg(dl, query, limit)
+
+        # ── 兼容字段 data：scope=all 时逐字节沿用原「搜索我的记忆」输出 ──
+        if scope == "all":
+            data = dl._combined_search(query, limit)
+        elif scope == "vector":
+            data = _format_vector_hits(query, vector_hits, limit)
+        else:
+            data = _format_log_hits(query, log_hits, limit)
+
+        result = {
+            "ok": True,
+            "query": query,
+            "scope": scope,
+            # 两条腿条目数之和（不去重；data 内部按原文去重，口径见 YAML description）
+            "count": len(vector_hits) + len(log_hits),
+            "vector_hits": vector_hits,
+            "log_hits": log_hits,
+            "data": data,
+        }
+        if scope == "vector" and vector_error:
+            # 对齐 expand_context 的失败语义：向量记忆不可用时 ok=False + error
+            result.update({"ok": False, "error": vector_error, "count": 0})
+        elif scope == "logs" and log_error:
+            result.update({"ok": False, "error": log_error, "count": 0})
+        else:
+            # scope=all 保持原有 ok=True（另一条腿仍可能有结果），腿级故障单列字段披露
+            if vector_error:
+                result["vector_error"] = vector_error
+            if log_error:
+                result["log_error"] = log_error
+        return result
 
     @_tools.register("remember", "记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。", schema={
         "type": "object",
@@ -208,19 +370,3 @@ def register_all(dl):
             return {"ok": False, "error": "人格蒸馏功能未启用，此工具不可用", "available": False}
         dl._run_persona_distillation()
         return {"ok": True, "data": "人格蒸馏已触发！"}
-
-    @_tools.register("expand_context",
-                    "从记忆库中查找更多与当前话题相关的上下文信息。当你觉得当前对话缺少关键信息时调用此工具。",
-                    schema={
-                        "type": "object",
-                        "properties": {
-                            "query": {"type": "string", "description": "搜索关键词或问题描述"},
-                            "max_items": {"type": "integer", "description": "最多返回条目数，默认 5"},
-                        },
-                        "required": ["query"],
-                    })
-    def _expand_context(**kwargs):
-        from agent.system_tools import expand_context_from_memory
-        query = kwargs.get("query", "")
-        max_items = kwargs.get("max_items", 5)
-        return expand_context_from_memory(dl, query, max_items)

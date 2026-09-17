@@ -1,0 +1,14 @@
+name: list_mcp_connections
+category: extension
+description: 列出当前活跃的 MCP 服务连接（连接 ID、名称、传输方式、已注册工具数与工具名）。用于确认 MCP 服务是否接上、其工具是否已进入工具表。List
+  active MCP connections
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [mcp]
+schema:
+  type: object
+  properties: {}
+examples: []

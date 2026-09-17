@@ -120,7 +120,11 @@ class TestRecordToolRetrievalTrace:
             f"缺少字段: {required_fields - trace_data.keys()}"
 
         # 验证字段类型与值合理性
-        assert trace_data["top_k"] == 10  # 默认值
+        # 【2026-09-17】候选池默认值由 10 提升到 _DEFAULT_TOP_K=40：
+        #   10 < max_tools(25) 会让截断分支永不触发，返回的只是检索器给的 top_k 个，
+        #   类别优先级排序与 PINNED_TOOLS 补回全部失效。故此处引用常量而非字面量。
+        from agent.tool_router_hybrid import _DEFAULT_TOP_K
+        assert trace_data["top_k"] == _DEFAULT_TOP_K
         assert trace_data["latency_ms"] >= 0
         assert isinstance(trace_data["bm25_candidates"], int)
         assert isinstance(trace_data["embed_candidates"], int)

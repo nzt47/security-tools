@@ -1,0 +1,32 @@
+name: run_lint
+category: code
+description: 对代码跑静态检查 / 类型检查（代码检查、lint、静态检查、跑 lint、ruff、mypy、typecheck、类型检查）。tool=auto 时优先用 ruff（快），未安装则退回
+  mypy；两者都不可用时返回明确的错误信息而不是抛异常。解析输出给出 error_count / warning_count / summary，并且**总是**附带截断后的输出尾部 output_tail（即使计数解析失败也能看到原文）。ok=True
+  只表示检查**跑起来了**，代码是否干净看 clean 字段与 error_count —— 非零退出码意味着发现了问题，不算工具失败。Run a linter / static checker on
+  code, run ruff check or mypy, typecheck
+deprecated: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: low
+tags: [code]
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 要检查的文件或目录（相对项目根目录），默认 "." 检查整个仓库
+    tool:
+      type: string
+      enum:
+      - ruff
+      - mypy
+      - auto
+      description: 检查器：ruff 快（风格+常见错误）/ mypy 查类型 / auto 自动选择，默认 auto
+    timeout_sec:
+      type: integer
+      description: 超时秒数，默认 180，最大 600
+    max_output_chars:
+      type: integer
+      description: 输出尾部保留的字符数，默认 8000
+examples: []

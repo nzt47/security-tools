@@ -1,0 +1,60 @@
+id: knowledge
+name: 知识与过程蒸馏闭环
+description: 知识 → 可复现步骤 → workflow/skill 固化。记忆与工程工具作为支撑层。
+enabled: true
+plane_weights:
+  resident: 1.0
+  perceive: 0.9
+  act: 0.7
+  govern: 0.0
+plane_floors:
+  resident: 6
+  perceive: 3
+  act: 2
+boost:
+- kb_capture
+- kb_distill
+- kb_discuss
+- kb_card
+- kb_lint
+- kb_search
+- distill_process_from_knowledge
+- read_file
+- read_pdf
+- get_pdf_info
+- search_files
+- grep
+- write_file
+- edit
+- search_memory
+- remember
+- search_lifetrace
+- todo_write
+mute:
+- web_extract
+- web_batch
+- web_download
+- shell_execute
+- run_program
+- stop_process
+- list_processes
+tags:
+- memory
+- document
+- evolution
+- knowledge
+max_tools: 20
+effect_allow:
+- read
+- write
+requires_approval: []
+allow_govern: false
+skills:
+- global-core-principles
+prompt_note: '本线的产物是**可复现的步骤序列**，不是摘要：每条步骤要能被另一个 agent 照做。
+
+  固化产物分两类——workflow（0-Token 本地执行）与 skill（语义层召回），
+
+  来源与蒸馏依据必须写清，便于后续审计与退役。
+
+  '

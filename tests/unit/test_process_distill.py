@@ -510,25 +510,35 @@ class TestService:
 class TestTools:
     def test_register_and_call(self):
         n = register_distill_tools(clear_first=True)
-        assert n == 3
+        # 【2026-09-17 第 0 档合并】distill_process_async 已并入
+        # distill_process_from_knowledge(async_=true) ⇒ 注册数由 3 变 2。
+        # 保留 process_distill_run（internal: true，AsyncExecutor 按名调用它，
+        # 不能注销；只从模型可见集隐藏）。
+        assert n == 2
         from agent import tools as _tools
-        # 三个工具都可见
-        for tname in ("distill_process_from_knowledge",
-                      "distill_process_async", "process_distill_run"):
+        # 合并后只剩两个工具名（distill_process_async 已并入 async_ 参数）
+        # 注：process_distill_run 是 internal:true ⇒ get_tool_defs 会隐藏它，
+        #     故可见集断言只对 distill_process_from_knowledge 生效。
+        for tname in ("distill_process_from_knowledge",):
             defs = _tools.get_tool_defs(whitelist=[tname])
             assert len(defs) == 1, tname
             assert defs[0]["function"]["name"] == tname
+        # internal 工具：注册表里有、模型可见集里没有
+        assert "process_distill_run" in _tools._registry
+        assert _tools.get_tool_defs(whitelist=["process_distill_run"]) == [], \
+            "process_distill_run 是 internal，不应出现在模型可见集"
         # 同步工具：无入参 → ok False（提示需 query/paths）
         handler = _tools._registry["distill_process_from_knowledge"]["handler"]
         out = handler(query="")
         assert out["ok"] is False
-        # 异步工具：无入参 → ok False
-        ah = _tools._registry["distill_process_async"]["handler"]
+        # 异步路径：async_ 参数已并入同一工具（原 distill_process_async 的能力）
+        # 无入参 → ok False
+        ah = _tools._registry["distill_process_from_knowledge"]["handler"]
         assert ah(query="")["ok"] is False
         # 注销
         unregister_distill_tools()
         for tname in ("distill_process_from_knowledge",
-                      "distill_process_async", "process_distill_run"):
+                      "process_distill_run"):
             defs2 = _tools.get_tool_defs(whitelist=[tname])
             assert defs2 == [], tname
 

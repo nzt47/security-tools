@@ -3394,7 +3394,21 @@ class Orchestrator:
 
                 from agent import tools as _tools
                 _whitelist = self._get_enabled_tools_whitelist()
-                if self._is_smart_tool_selection_enabled():
+                # ── 主线装配（Agent 身份层的能力边界）──
+                # 有激活主线 ⇒ 用装配器算工具集（effect 上限 + 平面保底）；
+                # 无激活主线 ⇒ 完全回退旧行为。装配故障一律回退，绝不断对话。
+                _line_used = None
+                try:
+                    from agent.lines import line_whitelist as _line_wl
+                    _line_tools, _line_res = _line_wl(_whitelist)
+                    if _line_tools:
+                        _whitelist = _line_tools
+                        _line_used = _line_res
+                        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.line', 'message': '[主线装配] %s: %d 个工具（上限 %d），需确认 %d 个' % (
+                            _line_res.line_id, len(_line_tools), _line_res.max_tools, len(_line_res.needs_approval))}))
+                except Exception as _le:  # noqa: BLE001
+                    logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.line_failed', 'message': '主线装配失败，回退旧路径: %s' % (_le,)}))
+                if _line_used is None and self._is_smart_tool_selection_enabled():
                     try:
                         _smart_tools = hybrid_select_tools(user_input, _whitelist) or get_tools_for_input(user_input, _whitelist)
                         if _smart_tools:
@@ -3953,7 +3967,20 @@ class Orchestrator:
                 _round_steps: list = []
                 if self._tool_calling_service and allow_tools:
                     tools_whitelist = self._get_enabled_tools_whitelist()
-                    if self._is_smart_tool_selection_enabled():
+                    # ── 主线装配：身份层先做减法（effect 上限 / mute / 平面启用）──
+                    # 这是 V2 主路径；未装线时 _line_tools 为空，继续走下面的智能选择。
+                    _line_used = False
+                    try:
+                        from agent.lines import line_whitelist as _line_wl
+                        _line_tools, _line_res = _line_wl(tools_whitelist)
+                        if _line_tools:
+                            tools_whitelist = _line_tools
+                            _line_used = True
+                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.line', 'message': '[主线装配V2] %s: %d 个工具（上限 %d），需确认 %d 个' % (
+                                _line_res.line_id, len(_line_tools), _line_res.max_tools, len(_line_res.needs_approval))}))
+                    except Exception as _le:  # noqa: BLE001
+                        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.line_failed', 'message': '主线装配V2失败，回退旧路径: %s' % (_le,)}))
+                    if not _line_used and self._is_smart_tool_selection_enabled():
                         try:
                             _smart = hybrid_select_tools(user_input, tools_whitelist) or get_tools_for_input(user_input, tools_whitelist)
                             if _smart:

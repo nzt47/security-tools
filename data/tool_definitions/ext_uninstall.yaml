@@ -3,6 +3,10 @@ category: extension
 description: 卸载扩展。移除不再需要的技能、MCP服务、通道或插件。
 deprecated: false
 version: 1.0.0
+plane: govern
+effect: extend
+risk: high
+tags: [extension, self_modify]
 schema:
   type: object
   properties:

@@ -3,6 +3,10 @@ category: file
 description: 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
 deprecated: false
 version: 1.0.0
+plane: act
+effect: write
+risk: high
+tags: [code]
 schema:
   type: object
   properties:

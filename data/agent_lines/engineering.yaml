@@ -1,0 +1,59 @@
+id: engineering
+name: 自主编码与工程交付
+description: 云枢作为可自主干活的工程 agent。读写代码、搜索、执行、验证为核心链路，self-modification 与长任务降为支撑层。
+enabled: true
+plane_weights:
+  resident: 0.6
+  perceive: 1.0
+  act: 1.0
+  govern: 0.2
+plane_floors:
+  resident: 3
+  perceive: 4
+  act: 4
+  govern: 1
+boost:
+- read_file
+- grep
+- search_files
+- list_directory
+- get_file_info
+- write_file
+- edit
+- diff_files
+- shell_execute
+- code_review
+- delegate
+- submit_task
+- get_task_status
+- get_task_result
+- todo_write
+- search_memory
+- remember
+mute:
+- web_extract
+- web_batch
+- web_search
+tags:
+- code
+- orchestrate
+max_tools: 24
+effect_allow:
+- read
+- write
+- execute
+requires_approval:
+- execute
+allow_govern: false
+skills:
+- engineering-test-delivery
+- code-observability
+- testing-anti-patterns
+- global-core-principles
+prompt_note: '本线的交付标准是"改完并验证"：改动前先 read_file/grep 摸清现状，
+
+  改动用 edit 做最小替换，改完必须跑验证（测试/lint/复现脚本）并报告结果。
+
+  不可跳过的边界：不得为了通过而放宽测试，不得留下未验证的改动。
+
+  '

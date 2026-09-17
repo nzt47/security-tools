@@ -1,11 +1,14 @@
 name: todo_write
 category: core
-description: '把当前任务的计划清单写下来（todo list / plan / 计划、待办清单）。**整体替换式**：本次提交的 todos 就是完整清单（不是增量追加），空数组
-  [] 表示清空。每项 {"content": 做什么, "status": "pending"|"in_progress"|"completed"}；建议同时只保留一项
-  in_progress，完成一项就把它改成 completed 再整体提交一次。多步任务每推进一步更新一次，用它当自我纠偏的锚点（长任务缺一个模型可见的计划状态，会导致多步任务中途跑偏）。状态仅保存在当前会话内存中，不落盘。Write
+description: '把当前任务的计划清单写下来（todo list / plan / 计划、待办清单）。**整体替换式**：本次提交的 todos 就是完整清单（不是增量追加），空数组 [] 表示清空。每项
+  {"content": 做什么, "status": "pending"|"in_progress"|"completed"}；建议同时只保留一项 in_progress，完成一项就把它改成 completed
+  再整体提交一次。多步任务每推进一步更新一次，用它当自我纠偏的锚点（长任务缺一个模型可见的计划状态，会导致多步任务中途跑偏）。状态落盘到 data/todos.json（原子写、按会话键隔离），跨会话可恢复：会话恢复时宿主会回载上一次的清单。Write
   the todo list, plan steps, task checklist'
 deprecated: false
 version: 1.0.0
+plane: resident
+effect: write
+risk: low
 schema:
   type: object
   properties:

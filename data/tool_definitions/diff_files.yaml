@@ -4,6 +4,10 @@ description: 比较两个文本文件的差异，返回 unified diff 格式（�
   10MB
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [code]
 schema:
   type: object
   properties:

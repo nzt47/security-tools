@@ -47,8 +47,8 @@ _NEGATIVE_SAMPLES_PATH = _PROJECT_ROOT / "data" / "tool_negative_samples.json"
 # 12 个 xfail case(对齐 docs/reports/xfail_root_cause_analysis_20260720.md §1.1)
 # (group_id, query, expected_positive, negative_list, failure_type)
 _XFAIL_CASES = [
-    ("G1_q00", "在百度上搜索 Python 教程", "web_search", ["web_get", "fetch_news"], "召回缺失"),
-    ("G1_q01", "抓取 https://example.com 的 HTML 内容", "web_get", ["web_search", "fetch_news"], "负样本泄漏"),
+    ("G1_q00", "在百度上搜索 Python 教程", "web_search", ["web_get", "web_search"], "召回缺失"),
+    ("G1_q01", "抓取 https://example.com 的 HTML 内容", "web_get", ["web_search", "web_search"], "负样本泄漏"),
     ("G4_q07", "列出 /home/user 下的所有文件", "list_directory", ["list_processes", "list_async_tasks"], "召回缺失"),
     ("G4_q09", "查看提交的后台任务列表", "list_async_tasks", ["list_directory", "list_processes"], "召回缺失"),
     ("G6_q13", "提交一个后台数据处理任务", "submit_task", ["schedule_task", "cancel_task"], "负样本泄漏"),
@@ -56,8 +56,8 @@ _XFAIL_CASES = [
     ("G6_q15", "取消任务 ID 为 abc123 的后台任务", "cancel_task", ["submit_task", "schedule_task"], "负样本泄漏"),
     ("G7_q16", "把 logs 文件夹压缩成 zip", "compress", ["decompress"], "方向性混淆"),
     ("G7_q17", "解压 archive.tar.gz 到当前目录", "decompress", ["compress"], "负样本泄漏"),
-    ("G8_q18", "把 config.json 转换成 yaml 格式", "json_to_yaml", ["yaml_to_json"], "负样本泄漏"),
-    ("G8_q19", "读取 data.yaml 转成 JSON 对象", "yaml_to_json", ["json_to_yaml"], "负样本泄漏"),
+    ("G8_q18", "把 config.json 转换成 yaml 格式", "data_convert", ["data_convert"], "负样本泄漏"),
+    ("G8_q19", "读取 data.yaml 转成 JSON 对象", "data_convert", ["data_convert"], "负样本泄漏"),
     ("G9_q20", "在 Google 上搜索 Python 异步教程", "web_search", ["search_memory", "search_lifetrace"], "召回缺失"),
 ]
 

@@ -1,0 +1,14 @@
+name: workspace_init
+category: file
+description: 初始化云枢受保护工作区目录（workspace/），创建 .gitkeep 与 README。幂等：已存在时不会覆盖文件。Initialize
+  the protected workspace directory
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [workspace]
+schema:
+  type: object
+  properties: {}
+examples: []

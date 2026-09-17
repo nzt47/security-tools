@@ -3,6 +3,10 @@ category: system
 description: 终止指定 PID 的白名单程序
 deprecated: false
 version: 1.0.0
+plane: act
+effect: execute
+risk: medium
+tags: [process]
 schema:
   type: object
   properties:

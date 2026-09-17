@@ -5,6 +5,10 @@ description: 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac
   commands
 deprecated: false
 version: 1.0.0
+plane: act
+effect: execute
+risk: critical
+tags: [shell]
 schema:
   type: object
   properties:

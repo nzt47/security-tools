@@ -72,13 +72,13 @@ _LENGTH_VARIANTS: dict[str, dict[str, str]] = {
         "medium": "解压 archive.tar.gz 到当前目录",
         "long": "请把 archive.tar.gz 这个压缩包解压到当前目录下",
     },
-    # G8_q18 json_to_yaml
+    # G8_q18 data_convert(原 json_to_yaml，第 0 档合并)
     "把 config.json 转换成 yaml 格式": {
         "short": "config.json 转 yaml",
         "medium": "把 config.json 转换成 yaml 格式",
         "long": "请帮我把 config.json 这个 JSON 文件转换成 yaml 格式",
     },
-    # G8_q19 yaml_to_json
+    # G8_q19 data_convert(原 yaml_to_json，第 0 档合并)
     "读取 data.yaml 转成 JSON 对象": {
         "short": "data.yaml 转 JSON",
         "medium": "读取 data.yaml 转成 JSON 对象",
@@ -172,7 +172,7 @@ def _direction_inverse(group_id: str, queries: list[dict[str, Any]]) -> list[dic
         # JSON→YAML 额外变体
         extra.append({
             "query": "把 settings.json 改写成 yaml",
-            "expected_positive": ["json_to_yaml"],
+            "expected_positive": ["data_convert"],
             "negative": ["yaml_to_json"],
             "rationale": "JSON→YAML 方向变体",
         })

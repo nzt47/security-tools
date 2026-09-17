@@ -1,0 +1,26 @@
+name: run_tests
+category: code
+description: 运行项目测试（pytest）并返回结构化结果：通过数、失败数、错误数、耗时与输出摘要。可用 path 限定测试文件/目录，用 pattern
+  做 -k 关键字过滤。Run the project test suite, run pytest, execute unit tests
+deprecated: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: medium
+tags: [code, test]
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 测试文件或目录（相对项目根目录，如 tests/unit/test_x.py）；不传则跑全部
+    pattern:
+      type: string
+      description: pytest -k 过滤表达式，如 "login or logout"，只跑名称匹配的用例
+    timeout_sec:
+      type: integer
+      description: 超时秒数，默认 300，最大 900
+    max_output_chars:
+      type: integer
+      description: 输出尾部保留的字符数，默认 8000
+examples: []

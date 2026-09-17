@@ -380,7 +380,8 @@ class DigitalLifePersonaMixin:
         except Exception:
             pass
 
-        parts.append("💡 当你觉得当前上下文信息不足时，可以调用 expand_context 工具从记忆库检索更多相关内容。")
+        # expand_context 已并入 search_memory(scope="vector")（第 0 档合并，2026-09-17）
+        parts.append("💡 当你觉得当前上下文信息不足时，可以用 search_memory(scope=\"vector\") 从记忆库检索更多相关内容。")
         result = "\n".join(parts) if parts else "（暂无工具/技能配置）"
         self._cached_tool_status = result
         return result

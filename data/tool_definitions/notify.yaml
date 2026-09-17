@@ -1,0 +1,38 @@
+name: notify
+category: system
+description: 主动向用户发出通知/提醒并留痕（通知、提醒、告警、报警、notify、notification、alert、提醒我）。与 ext_send_channel 的分工：notify
+  是"本地告知/留痕"——把消息追加写入 logs/notifications.jsonl，用户与审计在本机即可看到自主运行的结果，默认只走 log 通道、不产生出网副作用；ext_send_channel
+  是"对外发消息"——经已安装的 Webhook/邮件等通道发给外部接收方。需要真正外发时用 ext_send_channel，只是想让用户知道结果时用 notify。参数：title 标题（必填）、message
+  内容（必填）、level 取 info/warn/error（默认 info）、channels 通道数组（默认 ["log"]，可点名已安装的扩展通道，投递失败只记 failed 不影响其余通道）。Send
+  a local notification, alert the user, notify
+deprecated: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: low
+tags: [channel]
+schema:
+  type: object
+  properties:
+    title:
+      type: string
+      description: 通知标题（必填）
+    message:
+      type: string
+      description: 通知内容（必填）
+    level:
+      type: string
+      enum:
+      - info
+      - warn
+      - error
+      description: 通知级别：info 普通 / warn 警告 / error 错误，默认 info
+    channels:
+      type: array
+      items:
+        type: string
+      description: 投递通道数组，默认 ["log"]（写 logs/notifications.jsonl）。可点名已安装的扩展通道（需宿主提供扩展管理器）
+  required:
+  - title
+  - message
+examples: []

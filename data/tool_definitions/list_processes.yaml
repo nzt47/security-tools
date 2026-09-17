@@ -3,6 +3,10 @@ category: system
 description: 列出当前正在运行的白名单程序列表
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [process]
 schema:
   type: object
   properties: {}

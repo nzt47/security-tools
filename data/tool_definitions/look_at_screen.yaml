@@ -1,0 +1,19 @@
+name: look_at_screen
+category: system
+description: 对当前屏幕（或指定区域）做 OCR，返回带坐标位置的文字。屏幕内容可能含敏感信息，请谨慎转述。需要 OCR 传感器已启用。Read the
+  screen with OCR, see what is on screen
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: medium
+tags: [vision, privacy]
+schema:
+  type: object
+  properties:
+    region:
+      type: array
+      items:
+        type: integer
+      description: 可选区域 [left, top, width, height]（4 个整数），不传则截取整个屏幕
+examples: []

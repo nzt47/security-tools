@@ -4,6 +4,10 @@ description: 读取本地文件的全部内容（文本），支持指定编码�
   file, open a file
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [code]
 schema:
   type: object
   properties:

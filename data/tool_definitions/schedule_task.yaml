@@ -4,6 +4,10 @@ description: 创建定时任务，按指定间隔或 cron 表达式周期性触�
   为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
 deprecated: false
 version: 1.0.0
+plane: act
+effect: execute
+risk: high
+tags: [schedule]
 schema:
   type: object
   properties:

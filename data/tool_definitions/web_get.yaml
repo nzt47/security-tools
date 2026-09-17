@@ -4,6 +4,10 @@ description: 发送 HTTP GET 请求获取网页内容。返回页面标题、文
   page content via HTTP GET
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: medium
+tags: [web]
 schema:
   type: object
   properties:

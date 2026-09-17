@@ -29,6 +29,11 @@ _get_tool_defs_cache: dict = {"version": -1, "data": None}
 # ── Task 3.4: 工具健康追踪 ──
 _tool_health: dict[str, dict] = {}
 
+# ── 内部工具缓存（`internal: true` 的工具：保留注册但不进模型可见集）──
+# 为什么不能注销它们：`call()` 要求名字在 `_registry` 中（见本文件 `call()`），
+# 而 AsyncExecutor 等内部链路按名调用它们（如 process_distill_run）。故只能"隐藏"。
+_internal_cache: dict = {"version": -1, "data": frozenset()}
+
 # 工具来源枚举
 SOURCE_BUILTIN = "builtin"    # 内置工具（8 个模块注册）
 SOURCE_PLUGIN = "plugin"      # 插件系统提供
@@ -362,8 +367,31 @@ def unregister_by_source(source: str, source_id: str | None = None) -> int:
     return len(to_remove)
 
 
+def _internal_tool_names() -> frozenset:
+    """取"内部工具"名单（`data/tool_definitions/*.yaml` 里 `internal: true` 的工具）
+
+    【不易】任何异常都降级为空集（即不隐藏任何工具）——宁可多暴露，不可因
+            YAML 读取失败而把工具静默藏掉，让问题隐形。
+    【变易】名单来自 YAML，是数据；随 `_registry_version` 失效重算。
+    """
+    global _internal_cache
+    if _internal_cache["version"] == _registry_version:
+        return _internal_cache["data"]
+    names: frozenset = frozenset()
+    try:
+        from agent.lines.models import load_tool_meta
+        names = frozenset(n for n, m in load_tool_meta().items() if m.internal)
+    except Exception as e:  # noqa: BLE001
+        logger.debug("[工具] 内部工具名单加载失败（不隐藏任何工具）: %s", e)
+    _internal_cache = {"version": _registry_version, "data": names}
+    return names
+
+
 def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:
     """获取工具定义的 OpenAI/Anthropic 格式列表（带缓存）
+
+    `internal: true` 的工具**不会**出现在返回结果里（模型看不见），
+    但它们仍在 `_registry` 中，`call()` 依旧可以按名调用。
 
     Args:
         whitelist: 允许返回的工具名称列表，None 表示全部
@@ -371,12 +399,15 @@ def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:
     Returns:
         OpenAI-compatible tool definitions list
     """
+    hidden = _internal_tool_names()
     # 无白名单时使用缓存
     if whitelist is None:
         global _get_tool_defs_cache
         if _get_tool_defs_cache["version"] != _registry_version:
             defs = []
             for name, tool in _registry.items():
+                if name in hidden:
+                    continue
                 schema = tool.get("schema", {
                     "type": "object",
                     "properties": {},
@@ -400,6 +431,8 @@ def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:
     defs = []
     for name, tool in _registry.items():
         if whitelist and name not in whitelist:
+            continue
+        if name in hidden:
             continue
         schema = tool.get("schema", {
             "type": "object",
@@ -548,3 +581,31 @@ def clear():
     _list_tools_cache = {"version": -1, "data": None}
     _get_tool_defs_cache = {"version": -1, "data": None}
     _tool_health.clear()
+
+
+# ════════════════════════════════════════════════════════════
+#  动态工具持久化入口（薄转发到 agent.tools.persistence）
+# ════════════════════════════════════════════════════════════
+# 【为什么转发而不实现在这里】
+#   lifecycle_manager.py:1005-1012 一直调用本模块的
+#   init_dynamic_tools_persistence / load_dynamic_tools，但这两个名字此前**不存在**，
+#   于是每次启动都 AttributeError → 被 except 吞成 warning ⇒ 自生成的工具重启即失。
+#   实现放在独立模块（persistence.py）便于单独测试与替换，这里只做转发保持调用口径。
+
+def init_dynamic_tools_persistence(index_path: str | None = None) -> str:
+    """初始化动态工具持久化（见 agent.tools.persistence 模块文档）"""
+    from agent.tools.persistence import init_dynamic_tools_persistence as _f
+    return _f(index_path)
+
+
+def load_dynamic_tools() -> int:
+    """加载全部持久化的动态工具，返回成功加载数"""
+    from agent.tools.persistence import load_dynamic_tools as _f
+    return _f()
+
+
+def persist_dynamic_tool(name: str, description: str = "",
+                         schema: dict | None = None, **kwargs) -> bool:
+    """登记动态工具并补写治理声明 YAML（见 persistence.ensure_yaml_definition）"""
+    from agent.tools.persistence import persist_dynamic_tool as _f
+    return _f(name, description, schema, **kwargs)

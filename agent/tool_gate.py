@@ -41,11 +41,44 @@
     2. 读 ``data/descriptors.json``，该工具的描述符 ``trust.requires_approval=true``
        → 拒绝（按工具原名与 canonical id ``cp.<source>.<name>`` 双向查找，任一命中
        即算命中）；
-    3. 其余情况 → 放行（返回 ``None``）；
-    4. **（可选，默认关闭）严格模式** —— 仅当 ``CP_TOOL_GATE_STRICT`` 取
-       ``1/true/yes/on`` 时才执行，且**只在第 1–2 步都未拒绝之后**追加一道
+    3. **治理平面审批边界（``data/tool_definitions/*.yaml``，唯一真相）**：该工具的
+       元数据 ``needs_approval`` 为真 ⇒ **默认只记 warning 不拦截**；仅当
+       ``CP_TOOL_GATE_APPROVAL_ENFORCE`` 取 ``1/true/yes/on`` 时才返回结构化拒绝
+       （``error_code="APPROVAL_REQUIRED"``）。详见下方"治理平面审批边界"一节；
+    4. 其余情况 → 放行（返回 ``None``）；
+    5. **（可选，默认关闭）严格模式** —— 仅当 ``CP_TOOL_GATE_STRICT`` 取
+       ``1/true/yes/on`` 时才执行，且**只在第 1–3 步都未拒绝之后**追加一道
        ``PermissionGateway.check()`` 的 RBAC + ABAC 判定；网关返回
        ``allowed=False`` → 拒绝。详见下方"严格模式"一节。
+
+治理平面审批边界（``CP_TOOL_GATE_APPROVAL_ENFORCE``，**默认关闭**）：
+    背景：``data/tool_definitions/*.yaml`` 是"哪个工具多危险"的唯一真相，其
+    ``ToolMeta.needs_approval``（``plane == "govern"`` 或 ``effect == "extend"`` 或
+    ``risk == "critical"``）在 ``agent/lines/models.py`` 里被声明为审批边界，但**改动前
+    没有任何代码真的按它拦过**——实测 ``generate_tool`` / ``ext_install`` /
+    ``connect_mcp`` / ``shell_execute`` / ``write_file`` / ``remember`` 全部返回
+    ``None``（放行），``denied_tools`` 并集为空、``requires_approval`` 索引为 0、
+    严格模式关闭 ⇒ **97 个工具零拦截**，治理框架齐全却一条规则都没生效。
+    本节把"治理平面 = 审批边界"接进必经路径，并**用开关控制它是否真的拦截**：
+        开关：``CP_TOOL_GATE_APPROVAL_ENFORCE`` ∈ ``1/true/yes/on``（大小写不敏感、
+            两侧空白忽略）⇒ 命中即拒绝（``{"ok": False, "blocked": True,
+            "error_code": "APPROVAL_REQUIRED", "error": ..., "tool": ..., "reason": ...}``）；
+            **未设置或其它任何取值 ⇒ 只 ``logger.warning`` 记一条、照常放行**（默认口径
+            里"零行为变化"这条不变量优先，且审批 UI 尚未接入 ⇒ 默认拦截等于把所有治理
+            类工具变成"永远失败"，那是"接入审批"变成"系统瘫痪"的另一种写法）。
+    为什么**不**复用 ``CP_TOOL_GATE_STRICT``：严格模式的语义是 **RBAC 白名单**，与"这个
+        工具要不要人工审批"是两件事（``owner`` 的 ``allowed_tools=["*"]`` 下
+        ``shell_execute`` 会通过 RBAC 却仍属审批边界）。更重要的是，严格模式的既有契约
+        是"开启后 ``owner`` 下常用工具**放行**"（``tests/unit/test_tool_gate_strict.py``
+        的 ``test_严格模式加_owner_下_shell_execute_不被拒`` 钉死了这一点）——把审批边界
+        挂到同一个变量上会当场打破那条契约。故**新增独立开关**，两者可自由组合。
+    为什么读不到元数据时**不** fail-closed（与 ``HITLManager.assess`` 刻意不对称）：
+        本闸门的既定纪律是 fail-open（"闸门出错绝不断工具执行"，见下方"健壮性纪律"），
+        未登记工具只记 ``warning``。真正的 fail-closed 在审批权威那里——
+        ``agent/human_in_the_loop/hitl.py::HITLManager.assess`` 对未登记工具返回 HIGH。
+        两处不对称是**刻意**的：安全判据从严，闸门自身从宽。
+    回滚方式：去掉 ``CP_TOOL_GATE_APPROVAL_ENFORCE``（或置 ``0``）⇒ 回到"只告警"口径。
+
 
 严格模式（``CP_TOOL_GATE_STRICT``，**默认关闭**）：
     开关：``CP_TOOL_GATE_STRICT`` ∈ ``1/true/yes/on``（大小写不敏感、两侧空白忽略）
@@ -164,6 +197,16 @@ _WILDCARD = "*"
 
 #: 拒绝结果的 error_code（结构对齐项目既有工具失败约定：``ok=False``）
 ERROR_CODE_PERMISSION_DENIED = "PERMISSION_DENIED"
+
+# ── 治理平面审批边界（YAML 派生；见模块 docstring 同名一节）──────────────────
+#: 显式审批边界开关（**默认关闭**；未设置/其它值 ⇒ 只告警不拦截）
+APPROVAL_ENFORCE_ENV = "CP_TOOL_GATE_APPROVAL_ENFORCE"
+#: 审批边界拒绝的 error_code（与 PERMISSION_DENIED 区分：这是"要先审批"，不是"不许用"）
+ERROR_CODE_APPROVAL_REQUIRED = "APPROVAL_REQUIRED"
+
+#: ``data/tool_definitions/*.yaml`` 元数据缓存（``None`` = 尚未加载；按需加载）
+_TOOL_META_CACHE: Any = None
+_META_LOCK = threading.Lock()
 
 #: canonical capability_id 的默认来源段（与 agent/descriptors/bridge.py 内置工具构式同构）
 _DEFAULT_SOURCE_ID = "builtin"
@@ -299,9 +342,12 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
     1. 总开关 ``CP_TOOL_GATE_ENABLED`` 为 0/false/no/off → 放行；
     2. ``roles[*].denied_tools`` 并集含 ``"*"`` → 拒绝一切；含本次工具名 → 拒绝；
     3. 描述符 ``trust.requires_approval=true``（工具原名或 canonical id 命中）→ 拒绝；
-    4. **（可选，默认关闭）** ``CP_TOOL_GATE_STRICT`` 取 1/true/yes/on 时，追加
+    4. **治理平面审批边界**：``data/tool_definitions/*.yaml`` 的 ``needs_approval``
+       为真 ⇒ **默认只记 warning 不拦截**；``CP_TOOL_GATE_APPROVAL_ENFORCE`` 取
+       1/true/yes/on 时 → 拒绝（``error_code="APPROVAL_REQUIRED"``）；
+    5. **（可选，默认关闭）** ``CP_TOOL_GATE_STRICT`` 取 1/true/yes/on 时，追加
        ``PermissionGateway.check()`` 的 RBAC+ABAC 判定；``allowed=False`` → 拒绝；
-    5. 其余 → 放行。
+    6. 其余 → 放行。
 
     **为什么默认不用 RBAC 白名单**：见模块 docstring——``default_role`` 是严格白名单
     语义的 ``guest``（只放行 74 个工具中的 2 个），直接套用会封杀 ≈97.3% 的工具。
@@ -345,14 +391,46 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
                               "roles[*].denied_tools，命中条目 %r）"
                          % (POLICY_POLICIES_PATH, hit))
 
+        # 2. 描述符审批边界（data/descriptors.json 的 trust.requires_approval）
+        #
+        # 【2026-09-17 行为统一】这一步原先是**硬拒绝**，其正确性依赖模块 docstring
+        #   里写明的一条前提：「descriptors.json 的 trust.requires_approval **全为
+        #   false** ⇒ 本闸门接入后对既有行为零影响」。
+        #   而 `scripts/backfill_tool_descriptors.py` 把描述符从 3/91 补到 91/91 后，
+        #   该前提失效：`shell_execute`（critical）首次变成 requires_approval=true，
+        #   于是这一步被激活，**默认配置下直接拒掉 shell 执行**——而第 3 步（YAML 的
+        #   同一语义）是刻意做成"默认只告警、开关才拦"的。
+        #   同一语义两种行为，是缺陷而非特性：会让"补齐元数据"这种纯数据修正
+        #   意外变成"关掉一项能力"。
+        #   现统一为：与第 3 步共用 APPROVAL_ENFORCE_ENV 开关，默认**只告警不拦截**。
+        #   要真正启用审批边界：设 CP_TOOL_GATE_APPROVAL_ENFORCE=1（一处开关管两个来源）。
         index = _cached_derived(DESCRIPTORS_PATH, _build_approval_index)
         cid = _approval_hit(name, index)
         if cid is not None:
-            return _deny(name, "该工具的描述符要求人工审批（trust.requires_approval=true，"
-                              "来源: %s 能力 %s）；请先走审批流程后再调用"
-                         % (DESCRIPTORS_PATH, cid))
+            reason = ("描述符要求人工审批（%s 能力 %s 的 trust.requires_approval=true）"
+                      % (DESCRIPTORS_PATH, cid))
+            if _approval_enforce_enabled():
+                return _deny(name, "该工具的%s；请先走审批流程后再调用" % reason)
+            _warn_once(
+                "approval_desc:" + name,
+                "工具 %s 的%s，但 %s 未开启 ⇒ 本次仅告警、不拦截（设 %s=1 即启用审批边界）",
+                name, reason, APPROVAL_ENFORCE_ENV, APPROVAL_ENFORCE_ENV,
+            )
 
-        # 4. 【可选，默认关闭】RBAC 严格模式：只在上面两步都未拒绝之后才追加。
+        # 3. 治理平面审批边界（**唯一真相：data/tool_definitions/*.yaml**）。
+        #    默认只告警不拦截（见模块 docstring）；显式开启后返回结构化拒绝。
+        approval_reason = _approval_boundary(name)
+        if approval_reason is not None:
+            if _approval_enforce_enabled():
+                return _deny_approval(name, approval_reason)
+            _warn_once(
+                "approval:" + name,
+                "工具 %s 按 data/tool_definitions/*.yaml 的元数据需要人工审批（%s），"
+                "但 %s 未开启 ⇒ 本次仅告警、不拦截（设 %s=1 即启用审批边界）",
+                name, approval_reason, APPROVAL_ENFORCE_ENV, APPROVAL_ENFORCE_ENV,
+            )
+
+        # 4. 【可选，默认关闭】RBAC 严格模式：只在上面几步都未拒绝之后才追加。
         #    本步自带 fail-open 边界（见 _strict_deny）：严格层内部的任何异常都放行，
         #    但网关**明确返回 allowed=False** 时必须真的拒绝。
         if _strict_enabled():
@@ -385,6 +463,107 @@ def _deny(func_name: str, reason: str) -> Dict[str, Any]:
         "error_code": ERROR_CODE_PERMISSION_DENIED,
         "error": message,
     }
+
+
+def _deny_approval(func_name: str, reason: str) -> Dict[str, Any]:
+    """构造"需要人工审批"的拒绝结果（治理平面审批边界专用）
+
+    与 :func:`_deny` 的区别只在 ``error_code`` 与额外两个结构化字段——
+    ``PERMISSION_DENIED`` 是"这个工具不许用"，``APPROVAL_REQUIRED`` 是"这个工具要先
+    走审批"。调用方（如审批 UI）据此区分"硬拒绝"与"待审批"，故**不能**复用前者。
+    """
+    message = ("工具 %s 被集中式工具闸门拒绝: 该工具按 data/tool_definitions/*.yaml 的"
+               "元数据需要人工审批（%s）；当前 %s 已开启，请先走审批流程后再调用"
+               % (func_name, reason, APPROVAL_ENFORCE_ENV))
+    logger.warning("[tool_gate] %s", message)
+    return {
+        "ok": False,
+        "blocked": True,
+        "error_code": ERROR_CODE_APPROVAL_REQUIRED,
+        "error": message,
+        "tool": func_name,
+        "reason": reason,
+    }
+
+
+# ─────────────────────────────────────────────────────────────
+# 治理平面审批边界（``data/tool_definitions/*.yaml`` 的 needs_approval）
+# ─────────────────────────────────────────────────────────────
+
+
+def _tool_meta() -> Dict[str, Any]:
+    """惰性加载并缓存 ``data/tool_definitions/*.yaml`` 的能力元数据
+
+    【为什么缓存】``check_tool_call()`` 在**每次工具调用**上执行，而加载要读 97 个
+        YAML ⇒ 不缓存等于把 97 次文件 IO 放进热路径。
+    【简易】加载失败（缺 ``yaml`` 依赖 / 目录不可读 / 任何异常）⇒ 空 dict，**不抛异常**：
+        闸门自身的故障绝不断工具执行（fail-open 纪律）；只记一条 ``_warn_once`` 告警
+        （同一原因不刷屏），随后按"无审批规则可依"放行。
+    """
+    global _TOOL_META_CACHE
+    if _TOOL_META_CACHE is None:
+        with _META_LOCK:
+            if _TOOL_META_CACHE is None:
+                try:
+                    from agent.lines import load_tool_meta
+                    _TOOL_META_CACHE = dict(load_tool_meta())
+                except Exception as e:  # noqa: BLE001  读不到元数据 ⇒ 无审批规则可依
+                    _warn_once("meta-load", "工具元数据加载失败（审批边界失效，"
+                                            "按无规则放行）: %s: %s", type(e).__name__, e)
+                    _TOOL_META_CACHE = {}
+    return _TOOL_META_CACHE
+
+
+def _approval_enforce_enabled() -> bool:
+    """审批边界开关：``CP_TOOL_GATE_APPROVAL_ENFORCE`` ∈ {1,true,yes,on} 才真的拦截
+
+    **未设置或其它任何取值一律返回 False**（＝回到"只记 warning、照常放行"的默认口径）。
+    读取异常按"未启用"处理——审批边界只在被显式要求时才收紧。
+    """
+    raw = _env_str(APPROVAL_ENFORCE_ENV)
+    if raw is None:
+        return False
+    return raw.lower() in _ENABLED_VALUES
+
+
+def _approval_boundary(func_name: str) -> Optional[str]:
+    """该工具是否落在"治理平面 = 审批边界"上；是则返回人类可读原因，否则 ``None``
+
+    判据来自 ``data/tool_definitions/<tool>.yaml`` 经 ``agent.lines.load_tool_meta()``
+    读出的 ``ToolMeta.needs_approval``：
+        ``plane == "govern"`` 或 ``effect == "extend"`` 或 ``risk == "critical"``。
+
+    Args:
+        func_name: 工具名（也接受 canonical id ``cp.<source>.<name>`` 形态）
+
+    Returns:
+        需要审批时返回形如 ``"plane=govern, effect=extend, risk=critical"`` 的原因串；
+        **不需要审批、或查不到该工具的元数据**时返回 ``None``。
+
+    【为什么查不到元数据时返回 None 而不是 fail-closed】本闸门是 fail-open 闸门
+        （"闸门自身的 bug 绝不能阻断工具执行"），未登记工具只告警不拦；安全侧的
+        fail-closed 由审批权威 ``agent/human_in_the_loop/hitl.py::HITLManager.assess``
+        承担（未登记工具 ⇒ HIGH）。这个不对称是刻意的。
+    """
+    metas = _tool_meta()
+    if not metas:
+        return None
+    raw = str(func_name or "").strip()
+    if not raw:
+        return None
+    candidates = [raw, raw.lower(), _last_segment(raw)]
+    meta = None
+    for key in candidates:
+        if key and key in metas:
+            meta = metas[key]
+            break
+    if meta is None:
+        return None
+    if not bool(getattr(meta, "needs_approval", False)):
+        return None
+    return ("plane=%s, effect=%s, risk=%s"
+            % (getattr(meta, "plane", "?"), getattr(meta, "effect", "?"),
+               getattr(meta, "risk", "?")))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -553,10 +732,17 @@ def _strict_deny_or_open(func_name: str, args: Optional[Dict[str, Any]],
 
 
 def _reset_cache() -> None:
-    """清空派生缓存与告警去重表（仅供测试在改写临时文件后调用）"""
+    """清空派生缓存与告警去重表（仅供测试在改写临时文件后调用）
+
+    一并清掉工具元数据缓存：测试若替换了 ``data/tool_definitions/``（或想验证
+    "读不到元数据"的分支），必须让下一次判读取到新值。
+    """
+    global _TOOL_META_CACHE
     with _CACHE_LOCK:
         _DERIVED_CACHE.clear()
         _WARNED.clear()
+    with _META_LOCK:
+        _TOOL_META_CACHE = None
 
 
 def _warn_once(key: str, message: str, *args: Any) -> None:

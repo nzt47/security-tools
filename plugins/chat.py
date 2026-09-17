@@ -1084,10 +1084,59 @@ def _workbench_real_stream(question, session_id=""):
                 "detail": "模型流式输出中…", "status": "running"})
 
     SYSTEM_PROMPT = "你是云枢（Yunshu），一个拥有完整感知-认知-行动闭环的数字生命体。请以简洁、自然的语言回答用户。需要时可以使用提供的工具获取实时信息或执行操作。"
+
+    # ── 工具选择（P5 统一入口，2026-09-17）─────────────────────────────
+    # 【原先的问题】这里直接 `get_tool_defs()`（**无白名单**）⇒ 把注册表里**全部**工具
+    #   schema 发给模型（实测 91 个 ≈ 13k token/轮，与用户说什么无关），并且
+    #   **完全绕过**编排器路径的路由、Schema 裁剪与工具闸门/审批 —— 同一次对话
+    #   "换个入口就换一套工具集与一套治理"。这也是评估报告 §4.2 的头号口径分裂。
+    #
+    # 【现在的做法】复用与编排器**同一条**选择链：
+    #   ① 有激活主线 → 主线装配器（身份层做 effect/mute/平面减法）；
+    #   ② 否则 → hybrid/关键词智能选择（若开启）；
+    #   ③ 都不可用 → 退回全量（保持向后兼容，不让本改动把工作台弄坏）。
+    #   再统一做 Schema 裁剪，最后交给 get_tool_defs(whitelist=...)。
+    #
+    # 【不易】整段失败必须**退回全量**而不是"零工具"：工作台是主 UI 路径，
+    #   选择链出故障时"多给工具"远比"用户发不出任何工具调用"可接受。
     tool_defs = None
+    _sel_note = "全量(回退)"
     try:
-        from agent.tools import get_tool_defs
-        tool_defs = get_tool_defs()  # OpenAI 格式工具定义（全量注册表）
+        from agent.tools import get_tool_defs as _get_defs
+        _whitelist = None
+        try:
+            from agent.lines import line_whitelist as _line_wl
+            _line_tools, _line_res = _line_wl(None)
+            if _line_tools:
+                _whitelist = _line_tools
+                _sel_note = f"主线:{_line_res.line_id}({len(_line_tools)})"
+        except Exception as _le:  # noqa: BLE001 主线不可用不影响后续选择
+            logger.debug("[workbench][SSE] 主线装配不可用: %s", _le)
+
+        if _whitelist is None:
+            try:
+                from agent.orchestrator.orchestrator import Orchestrator  # noqa: F401
+            except Exception:
+                pass
+            try:
+                from agent.tool_router_hybrid import hybrid_select_tools
+                from agent.tool_router import get_tools_for_input
+                _smart = hybrid_select_tools(question) or get_tools_for_input(question)
+                if _smart:
+                    _whitelist = _smart
+                    _sel_note = f"智能选择({len(_smart)})"
+            except Exception as _se:  # noqa: BLE001
+                logger.debug("[workbench][SSE] 智能工具选择不可用: %s", _se)
+
+        tool_defs = _get_defs(whitelist=_whitelist)
+        try:
+            from agent.tool_schema_pruner import prune_tool_defs
+            tool_defs = prune_tool_defs(tool_defs) or tool_defs
+        except Exception:  # noqa: BLE001 裁剪失败用未裁剪版
+            pass
+        _chars = sum(len(str(d)) for d in (tool_defs or []))
+        logger.info("[workbench][SSE] 工具集: %s -> %d 个, 约 %d 字符",
+                    _sel_note, len(tool_defs or []), _chars)
     except Exception as _e:
         logger.debug("[workbench][SSE] 工具定义加载失败（无工具可用）: %s", _e)
 

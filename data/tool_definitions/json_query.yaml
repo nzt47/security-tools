@@ -4,6 +4,10 @@ description: 使用 JSONPath 表达式从 JSON 数据中提取信息。支持：
   递归搜索。data 参数接受 JSON 字符串或 Python 对象
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [data]
 schema:
   type: object
   properties:

@@ -1,0 +1,21 @@
+name: kb_search
+category: knowledge
+description: 知识检索（语义融合检索知识卡片）
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [knowledge, memory]
+schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 检索问题/关键词
+    top_k:
+      type: integer
+      description: 返回条数（默认 5）
+  required:
+  - query
+examples: []

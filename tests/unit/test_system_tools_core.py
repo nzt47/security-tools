@@ -31,6 +31,38 @@ from agent.system_tools import (
 )
 import sys
 from unittest.mock import MagicMock, patch, call
+
+import pytest as _pytest
+
+
+@_pytest.fixture(autouse=True)
+def _isolate_scheduled_tasks_file(tmp_path, monkeypatch):
+    """把定时任务的持久化文件隔离到 tmp_path —— **本文件所有测试自动生效**
+
+    【为什么必须 autouse（真实事故）】
+      本文件多处直接调用 `create_scheduled_task(...)` / `toggle_scheduled_task(...)`
+      而**没有** patch `SCHEDULED_TASKS_FILE`（例如 `test_create_scheduled_task_python`、
+      `test_create_scheduled_task_whitelist`、`test_toggle_scheduled_task_enable` 等）。
+      它们于是写进了**生产运行态文件** `data/scheduled_tasks.json`，实测累积 47 条测试垃圾
+      （`test_task`×24 / `echo_task`×11 / `toggle_test`×12，命令全是 `echo hello`、
+      `python test.py`）。
+
+      危害不只是脏数据：`TaskScheduler` 会**真的按这些条目周期执行**，
+      日志里可见每几秒就 spawn 一次 `echo hello` / `python test.py` —— 一直在烧 CPU。
+
+      这类"测试写生产数据"在本仓已发生过多次（迁移脚本抹掉 91 个 YAML 的治理字段是另一起），
+      故此处用 autouse 从**默认值**上隔离，而不是指望每个用例记得加 fixture。
+      测试体内显式的 `with patch(...)` 仍会覆盖本 fixture，行为不受影响。
+    """
+    safe = tmp_path / "scheduled_tasks.json"
+    monkeypatch.setattr("agent.tools.task_tools.SCHEDULED_TASKS_FILE", str(safe))
+    try:
+        import agent.task_scheduler as _ts
+        monkeypatch.setattr(_ts, "SCHEDULED_TASKS_FILE", safe, raising=False)
+    except Exception:  # noqa: BLE001 模块不在时忽略（守主链路）
+        pass
+    yield safe
+
 from agent.system_tools import (
     is_protected_path,
     safe_resolve_path,

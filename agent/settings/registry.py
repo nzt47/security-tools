@@ -674,6 +674,9 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _c("CP_SUBAGENT_WORKSPACE", CAT_SELF_HEALING, None,
        "子智能体工作区路径（绝对路径，只读）",
        owner="agent/subagent/executor.py"),
+    _c("YUNSHU_AGENT_LINES_DIR", CAT_ORCHESTRATION, None,
+       "主线档案目录覆盖（绝对路径，只读；测试隔离用）",
+       owner="agent/lines/registry.py"),
     _secret("CP_SUBAGENT_AGENT_CLI", CAT_SELF_HEALING,
             "子智能体 agent CLI 可执行路径（只读脱敏）",
             owner="agent/subagent/channel.py"),
@@ -698,6 +701,12 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        CAT_SELF_HEALING, "read_file,search_files,list_directory,get_file_info,grep",
        "委派默认授予子代理的工具子集（逗号分隔；空串 = 不授予任何工具，退化为纯推理委派）",
        owner="agent/tools/subagent_tools.py"),
+    # 【B 级理由】它是"一次调用起 N 个真实子代理"的**爆炸半径上限**：调高即按倍数放大
+    #   成本与副作用（与 CP_REPAIR_MAX_ROUNDS / META_EDIT_MAX_* 同类，故取更严的 B）。
+    _b("CP_FAN_OUT_MAX_TASKS", CAT_SELF_HEALING, 16,
+       "单次 fan_out（并行多线委派）最多派发的任务数（越界/非法值回退默认 16）",
+       owner="agent/tools/fan_out_tools.py", validator=Validator("int"),
+       impact="影响面：并发子代理数量与成本放大倍数（单次调用的爆炸半径）"),
     _c("APPROVAL_RECORDS_PATH", CAT_SELF_HEALING, None,
        "审批记录落盘路径（只读）", owner="agent/skills_mgmt/approval.py"),
     _c("SKILLS_REVIEW_AUDIT_FILE", CAT_SELF_HEALING, None,

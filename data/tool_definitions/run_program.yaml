@@ -3,6 +3,10 @@ category: system
 description: 在本地运行白名单程序（如 notepad.exe, calc.exe, python.exe）。args 是参数列表，cwd 是工作目录
 deprecated: false
 version: 1.0.0
+plane: act
+effect: execute
+risk: high
+tags: [process]
 schema:
   type: object
   properties:

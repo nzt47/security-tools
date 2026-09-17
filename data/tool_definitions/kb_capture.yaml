@@ -1,0 +1,22 @@
+name: kb_capture
+category: knowledge
+description: 收集素材入库（text 或 file_path → inbox/，敏感自动标记）
+deprecated: false
+version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [knowledge, memory]
+schema:
+  type: object
+  properties:
+    text:
+      type: string
+      description: 素材文本（与 file_path 二选一）
+    file_path:
+      type: string
+      description: 素材文件路径（与 text 二选一）
+    source_type:
+      type: string
+      description: 来源类型（文章/播客/会议…）
+examples: []

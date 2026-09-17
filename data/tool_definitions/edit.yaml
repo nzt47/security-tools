@@ -1,10 +1,14 @@
 name: edit
-category: file
+category: code
 description: 对文件做精准局部替换（old_string → new_string），只改指定片段、不重写全文；old_string 必须在文件中唯一（除非
   replace_all=true）。必须先调用 read_file 读过该文件。Edit a file by replacing an exact string,
   replace text in a file
 deprecated: false
 version: 1.0.0
+plane: act
+effect: write
+risk: high
+tags: [code]
 schema:
   type: object
   properties:

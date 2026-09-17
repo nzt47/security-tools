@@ -3,6 +3,10 @@ category: file
 description: 解压 zip 或 tar.gz 压缩文件。内置 Zip Slip 攻击防护，安全可靠
 deprecated: false
 version: 1.0.0
+plane: act
+effect: write
+risk: high
+tags: [code]
 schema:
   type: object
   properties:

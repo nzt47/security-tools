@@ -103,8 +103,7 @@ def register_all(dl):
     # ════════════════════════════════════════════════════════════
 
     from agent.data_process_tools import (
-        json_query, json_to_yaml, yaml_to_json,
-        json_validate, data_format_detect,
+        json_query, data_convert, data_format_detect,
     )
 
     @_tools.register("json_query", "使用 JSONPath 表达式从 JSON 数据中提取信息。支持：$ 根节点、.key 属性、[n] 数组索引、[*] 通配、..key 递归搜索。data 参数接受 JSON 字符串或 Python 对象", schema={
@@ -122,46 +121,24 @@ def register_all(dl):
             return {"ok": False, "error": "请提供 JSONPath 查询表达式（path）"}
         return json_query(data, path)
 
-    @_tools.register("json_to_yaml", "将 JSON 字符串转换为 YAML 格式字符串", schema={
+    @_tools.register("data_convert", "将数据字符串在 JSON 与 YAML 格式之间双向转换：to 参数为 yaml 时把 JSON 转成 YAML，为 json 时把 YAML 转成 JSON（合并了原 json_to_yaml / yaml_to_json 两个方向的全部能力），返回转换结果字符串", schema={
         "type": "object",
         "properties": {
-            "json_data": {"type": "string", "description": "JSON 格式字符串"},
+            "data": {"type": "string", "description": "待转换的字符串：to=yaml 时为 JSON 文本，to=json 时为 YAML 文本"},
+            "to": {"type": "string", "enum": ["yaml", "json"], "description": "目标格式（必填）：yaml = JSON→YAML，json = YAML→JSON"},
+            "indent": {"type": "integer", "description": "JSON 输出缩进空格数，仅 to=json 生效，默认 2"},
         },
-        "required": ["json_data"],
+        "required": ["data", "to"],
     })
-    def _json_to_yaml(**kwargs):
-        json_data = kwargs.get("json_data", "")
-        if not json_data:
-            return {"ok": False, "error": "请提供 JSON 数据（json_data）"}
-        return json_to_yaml(json_data)
-
-    @_tools.register("yaml_to_json", "将 YAML 字符串转换为 JSON 格式字符串", schema={
-        "type": "object",
-        "properties": {
-            "yaml_data": {"type": "string", "description": "YAML 格式字符串"},
-        },
-        "required": ["yaml_data"],
-    })
-    def _yaml_to_json(**kwargs):
-        yaml_data = kwargs.get("yaml_data", "")
-        if not yaml_data:
-            return {"ok": False, "error": "请提供 YAML 数据（yaml_data）"}
-        return yaml_to_json(yaml_data)
-
-    @_tools.register("json_validate", "验证字符串是否为合法 JSON，返回验证结果和解析类型", schema={
-        "type": "object",
-        "properties": {
-            "data": {"type": "string", "description": "待验证的 JSON 字符串"},
-        },
-        "required": ["data"],
-    })
-    def _json_validate(**kwargs):
+    def _data_convert(**kwargs):
         data = kwargs.get("data", "")
+        to = kwargs.get("to", "")
+        indent = kwargs.get("indent", None)
         if not data:
-            return {"ok": True, "valid": False, "error": "数据为空"}
-        return json_validate(data)
+            return {"ok": False, "error": "请提供待转换的数据（data）"}
+        return data_convert(data, to, indent=indent)
 
-    @_tools.register("data_format_detect", "自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。用于识别未知数据来源的格式", schema={
+    @_tools.register("data_format_detect", "自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。同时返回 JSON 校验结果：valid（是否合法 JSON）、parsed_type、keys_count、data，失败原因见 json.error。用于识别未知数据来源的格式，以及校验/验证 JSON 字符串是否合法", schema={
         "type": "object",
         "properties": {
             "data": {"type": "string", "description": "待检测格式的字符串数据"},
@@ -216,15 +193,39 @@ def register_all(dl):
         except Exception as e:
             return {"ok": False, "error": f"创建任务失败: {e}"}
 
-    @_tools.register("list_scheduled_tasks", "列出所有已创建的定时任务", schema={
+    @_tools.register("list_scheduled_tasks", "列出所有已创建的定时任务。同时列出由系统命令调度器管理的任务（managed_by=system_command，只读）", schema={
         "type": "object",
         "properties": {},
     })
     def _list_scheduled_tasks(**kwargs):
+        """列出定时任务 —— **统一展示**两个调度引擎的任务
+
+        【P0③ 修复】原先只列本引擎（`agent/scheduling.py`）的任务，而系统命令任务由
+        `agent/task_scheduler.py` 存在同一文件的另一命名空间里 ⇒ 工具面看不到它们。
+        实测曾出现"工具说 0 个任务、实际存储里有 47 个"的分脑。
+        现在：本引擎任务 + 只读的命令任务一并返回，并用 `managed_by` 标注归属，
+        避免用户误以为所有列出的任务都能用本组工具管理。
+        """
         try:
-            from agent.scheduling import get_schedule_scheduler
+            from agent.scheduling import get_schedule_scheduler, list_command_tasks_readonly
             sched = get_schedule_scheduler()
-            return sched.get_tasks()
+            result = sched.get_tasks()
+            mine = list(result.get("tasks", [])) if isinstance(result, dict) else []
+            for t in mine:
+                if isinstance(t, dict):
+                    t.setdefault("managed_by", "scheduler")
+            try:
+                extra = list_command_tasks_readonly()
+            except Exception:  # noqa: BLE001 只读展示失败不影响本引擎结果
+                extra = []
+            if isinstance(result, dict):
+                result["tasks"] = mine + list(extra)
+                result["count"] = len(result["tasks"])
+                result["counts_by_engine"] = {
+                    "scheduler": len(mine),
+                    "system_command": len(extra),
+                }
+            return result
         except Exception as e:
             return {"ok": False, "error": f"列出任务失败: {e}"}
 

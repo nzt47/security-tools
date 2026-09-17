@@ -43,11 +43,101 @@ def _trace_id():
 
 # 数据文件路径
 DATA_DIR = Path(__file__).parent.parent / "data"
-SCHEDULES_FILE = DATA_DIR / "schedules.json"
+SCHEDULES_FILE = DATA_DIR / "schedules.json"          # 旧文件（迁移来源，不再写入）
 SCHEDULE_HISTORY_FILE = DATA_DIR / "schedule_history.jsonl"
+
+#: 【统一调度存储】与 `agent/task_scheduler.py` 共用同一个文件
+#: 命名空间约定（互不覆盖，避免两个写入方丢失更新）：
+#:   "tasks"            ← task_scheduler 的命令任务（command + interval 秒）
+#:   "scheduler_tasks"  ← 本引擎的任务（cron_expr + action/params + interval 分钟）
+SCHEDULED_STORE_FILE = DATA_DIR / "scheduled_tasks.json"
 
 # 数据目录确保存在
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _read_scheduler_store() -> dict | None:
+    """读统一调度存储；不存在时尝试从旧的 schedules.json 迁移一次
+
+    Returns:
+        解析后的 dict；两个来源都不可用时返回 None
+    """
+    try:
+        if SCHEDULED_STORE_FILE.exists():
+            with open(SCHEDULED_STORE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                data.setdefault("tasks", [])
+                data.setdefault("scheduler_tasks", [])
+                return data
+    except Exception as e:  # noqa: BLE001
+        logger.warning(log_dict({'module_name': 'scheduling', 'action': 'store.read_failed', 'msg': '[调度系统] 统一存储读取失败: %s' % e}))
+
+    # 迁移：旧 schedules.json 里的任务搬到统一存储的 scheduler_tasks 命名空间
+    try:
+        if SCHEDULES_FILE.exists():
+            with open(SCHEDULES_FILE, "r", encoding="utf-8") as f:
+                old = json.load(f)
+            legacy = old.get("tasks", []) if isinstance(old, dict) else []
+            if legacy:
+                logger.info(log_dict({'module_name': 'scheduling', 'action': 'store.migrate', 'msg': '[调度系统] 从旧 schedules.json 迁移 %d 个任务到统一存储' % len(legacy)}))
+                _write_scheduler_namespace(legacy)
+                return {"tasks": [], "scheduler_tasks": legacy}
+            return {"tasks": [], "scheduler_tasks": []}
+    except Exception as e:  # noqa: BLE001
+        logger.warning(log_dict({'module_name': 'scheduling', 'action': 'store.migrate_failed', 'msg': '[调度系统] 旧文件迁移失败: %s' % e}))
+    return None
+
+
+def _write_scheduler_namespace(mine: list) -> int:
+    """把本引擎的任务写入统一存储的 `scheduler_tasks` 键，**保留** `tasks` 与其余键
+
+    【不易】必须"读—改—写"整个文件而不是覆盖：`tasks` 属于 task_scheduler，
+            直接覆盖会丢掉另一个引擎的任务（这正是原来的分脑成因）。
+    Returns:
+        写入后文件内 `tasks` + `scheduler_tasks` 的总数
+    """
+    data: dict
+    try:
+        if SCHEDULED_STORE_FILE.exists():
+            with open(SCHEDULED_STORE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                data = {}
+        else:
+            data = {}
+    except Exception:  # noqa: BLE001 读坏则重建，但不丢自身数据
+        data = {}
+
+    data.setdefault("tasks", [])
+    data["scheduler_tasks"] = list(mine)
+    data["scheduler_updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    SCHEDULED_STORE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = str(SCHEDULED_STORE_FILE) + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, SCHEDULED_STORE_FILE)   # 原子替换，避免半写文件被另一个引擎读到
+    return len(data.get("tasks", [])) + len(data.get("scheduler_tasks", []))
+
+
+def list_command_tasks_readonly() -> list[dict]:
+    """只读列出 task_scheduler 命名空间里的命令任务（供工具面统一展示）"""
+    data = _read_scheduler_store() or {}
+    out = []
+    for t in data.get("tasks", []) or []:
+        if not isinstance(t, dict):
+            continue
+        out.append({
+            "id": t.get("task_id") or t.get("id") or "",
+            "name": t.get("name", ""),
+            "interval_seconds": t.get("interval") or t.get("interval_sec") or 0,
+            "enabled": bool(t.get("enabled", True)),
+            "last_run": t.get("last_run"),
+            "run_count": t.get("run_count", 0),
+            "managed_by": "system_command",   # 由 task_scheduler 执行，本工具只读展示
+        })
+    return out
 
 
 class Scheduler:
@@ -383,31 +473,45 @@ class Scheduler:
     # ════════════════════════════════════════════════════════
 
     def save_to_file(self):
-        """保存任务列表到 data/schedules.json"""
+        """把本引擎的任务持久化到**统一调度存储**（data/scheduled_tasks.json）
+
+        【P0③ 修复：定时任务存储分脑（2026-09-17）】
+          原先有两个调度引擎、两个互不相干的文件：
+            - 本引擎（`Scheduler`，schedule 库 + cron）：`data/schedules.json`
+              —— **工具面**（code_tools 的 5 个 schedule 工具）用这个
+            - `agent/task_scheduler.py`（cron/interval 命令任务）：`data/scheduled_tasks.json`
+              —— app_server / monitoring / health / learning_scheduler 等 31 处引用
+          实测后果：工具面 `list_scheduled_tasks` 看到 **0** 个任务，而真实存储里有 47 个
+          （`echo hello` 之类的测试条目）⇒ 两个调度器各跑各的任务集。
+
+          本次不合并两个引擎（它们语义确实不同：本引擎是 cron+action/params，
+          task_scheduler 是 command+interval，强行合并会改变执行语义），
+          而是**统一存储**：写进同一个文件的 `scheduler_tasks` 键，
+          与 task_scheduler 的 `tasks` 键**命名空间隔离、互不覆盖** ⇒ 消除丢失更新，
+          且把"两个引擎各写一个文件"收敛成"一个文件里两个命名空间"，后续合并在同一处可做。
+        """
         try:
             with self._lock:
-                tasks_data = {
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                    "tasks": list(self._tasks.values()),
-                }
-            SCHEDULES_FILE.parent.mkdir(parents=True, exist_ok=True)
-            with open(SCHEDULES_FILE, "w", encoding="utf-8") as f:
-                json.dump(tasks_data, f, ensure_ascii=False, indent=2)
-            logger.debug(log_dict({'module_name': 'scheduling', 'action': 'save_to_file', 'msg': '[调度系统] 任务已持久化: %d 个' % len(self._tasks)}))
+                mine = list(self._tasks.values())
+            merged = _write_scheduler_namespace(mine)
+            logger.debug(log_dict({'module_name': 'scheduling', 'action': 'save_to_file', 'msg': '[调度系统] 任务已持久化到统一存储: 本引擎 %d 个 / 文件内共 %d 个' % (len(mine), merged)}))
         except Exception as e:
             logger.error(log_dict({'module_name': 'scheduling', 'action': 'save_to_file', 'msg': '[调度系统] 持久化失败: %s' % e}))
 
     def load_from_file(self):
-        """从 data/schedules.json 加载任务并重新注册到 schedule"""
-        if not SCHEDULES_FILE.exists():
+        """从统一调度存储加载本引擎的任务并注册到 schedule；并合并展示命令任务
+
+        【不易】只加载 `scheduler_tasks` 命名空间里的条目（那是本引擎写的）；
+               `tasks` 命名空间属于 task_scheduler，只做**只读展示**，不接管执行——
+               否则会把别人的任务按本引擎的语义重跑一遍。
+        """
+        data = _read_scheduler_store()
+        if data is None:
             logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 无持久化数据，跳过加载'}))
             return
 
         try:
-            with open(SCHEDULES_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            tasks_list = data.get("tasks", [])
+            tasks_list = data.get("scheduler_tasks", [])
             loaded_count = 0
 
             with self._lock:

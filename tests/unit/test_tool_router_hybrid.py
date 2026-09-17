@@ -439,13 +439,23 @@ class TestHybridSelectTools:
         assert result is None
 
     def test_max_tools_limit(self, sample_index_file):
-        """max_tools 截断生效"""
+        """max_tools 截断生效（上界 = max_tools + PINNED_TOOLS 补回数）
+
+        【为何不是 <= 2】`_restore_pinned_tools` 会把被截断点丢掉的 `PINNED_TOOLS`
+        （当前仅 `delegate`）补回末尾，且**刻意允许总数略超 max_tools**
+        —— 见 tool_router.PINNED_TOOLS 处的理由（宁可多一个工具，也不让"委派"
+        这类跨步骤能力在复合请求里凭空消失）。同族用例
+        test_tool_router_pinned.py::test_不同上限下都只多出_pinned 用的就是这个上界。
+        2026-09-17 检索候选池由 10 提升到 ≥max_tools 后，`delegate` 开始进入检索命中，
+        于是补回被触发 —— 这是既有契约的体现，不是回归。
+        """
         from agent.tool_router_hybrid import hybrid_select_tools, HybridRetriever
+        from agent.tool_router import PINNED_TOOLS
         retriever = HybridRetriever(index_path=sample_index_file)
         with patch("agent.tool_router_hybrid.get_hybrid_retriever", return_value=retriever):
             result = hybrid_select_tools("搜索", max_tools=2)
         assert result is not None
-        assert len(result) <= 2
+        assert len(result) <= 2 + len(PINNED_TOOLS), result
 
     def test_empty_query_returns_none(self, sample_index_file):
         """空 query 返回 None"""

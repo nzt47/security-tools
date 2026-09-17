@@ -1,0 +1,45 @@
+id: digital_life
+name: 数字生命体
+description: 自我认知·记忆·人格·进化。常驻层收敛为状态/记忆/人格/传感器，工程类工具下沉为按需能力。
+enabled: true
+plane_weights:
+  resident: 1.0
+  perceive: 0.6
+  act: 0.4
+  govern: 0.3
+plane_floors:
+  resident: 8
+  perceive: 2
+  act: 1
+  govern: 1
+boost:
+- get_status
+- search_memory
+- remember
+- todo_write
+- get_persona_info
+- get_preferences
+- get_sensor_summary
+- search_lifetrace
+- trigger_distillation
+mute:
+- web_extract
+- web_batch
+- web_download
+tags:
+- memory
+- persona
+- sensor
+- evolution
+max_tools: 18
+effect_allow:
+- read
+- write
+- execute
+requires_approval:
+- execute
+- extend
+allow_govern: true
+skills:
+- global-core-principles
+prompt_note: 本线以"自我状态—记忆—人格"为重心；工程类能力仅在明确需要时按需调用。

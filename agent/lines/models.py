@@ -1,0 +1,287 @@
+"""能力平面与主线 —— 数据模型
+
+【为什么有这个包】
+    云枢的工具装配此前只有一个**全局开关**（`data/tools_config.json` 的扁平
+    `tool_states`），对"不同 Agent 各管一条线"这件事没有任何支持面
+    （见 docs/工具集评估与重分类报告.md §4.7）。
+
+    本包把它换成两层：
+        L1  工具原子 → 由 `data/tool_definitions/*.yaml` 声明
+                        plane / effect / risk / tags（唯一权威）
+        L2  主线档案 → 由 `data/agent_lines/*.yaml` 声明
+                        平面权重 + 核心工具 + 效果上限 + 技能包
+
+【四平面】
+    resident  常驻 —— 每轮必发（高频低 token）
+    perceive  感知 —— 只读取，不改变世界
+    act       行动 —— 改变世界
+    govern    治理 —— **改变云枢自身能力集** ⇒ 天然就是审批边界
+
+【三维正交】
+    plane   决定"放在装配阶梯的哪一层"（组装用）
+    effect  决定"最多能造成什么后果"（治理用：read<write<execute<extend）
+    risk    决定"要不要人工确认"（审批用）
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+import yaml
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TOOL_DEFS_DIR = os.path.join(_ROOT, "data", "tool_definitions")
+AGENT_LINES_DIR = os.path.join(_ROOT, "data", "agent_lines")
+
+PLANES = ("resident", "perceive", "act", "govern")
+EFFECTS = ("read", "write", "execute", "extend")
+RISKS = ("low", "medium", "high", "critical")
+
+#: effect 的偏序：用于 policy.effect_allow 的包含判定
+_EFFECT_ORDER = {"read": 0, "write": 1, "execute": 2, "extend": 3}
+
+#: 风险的推荐审批阈值：risk >= 此值则默认需要人工确认
+_APPROVAL_FROM_RISK = {"critical"}
+
+
+@dataclass(frozen=True)
+class ToolMeta:
+    """单个工具的能力元数据（来自 data/tool_definitions/<name>.yaml）"""
+
+    name: str
+    category: str = ""
+    plane: str = "act"
+    effect: str = "execute"
+    risk: str = "medium"
+    tags: tuple = ()
+    description: str = ""
+    #: 内部工具：保留注册（供 AsyncExecutor 等按名调用），但不进模型可见集。
+    #: 为什么需要它：`call()` 要求名字在 `_registry` 中，所以"内部执行体"不能注销，
+    #: 只能从 `get_tool_defs()` 里隐藏。
+    internal: bool = False
+
+    @property
+    def needs_approval(self) -> bool:
+        """治理平面 / 改变能力集 / 高危 ⇒ 需要人工确认"""
+        return (
+            self.plane == "govern"
+            or self.effect == "extend"
+            or self.risk in _APPROVAL_FROM_RISK
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "category": self.category,
+            "plane": self.plane,
+            "effect": self.effect,
+            "risk": self.risk,
+            "tags": list(self.tags),
+            "needs_approval": self.needs_approval,
+            "internal": bool(self.internal),
+        }
+
+
+def _norm(value: Any, allowed: tuple, default: str) -> str:
+    text = str(value or "").strip().lower()
+    return text if text in allowed else default
+
+
+def load_tool_meta(defs_dir: Optional[str] = None) -> Dict[str, ToolMeta]:
+    """读取全部工具 YAML 的能力元数据。
+
+    【不易】缺字段时**给保守默认**（act/execute/medium）而不是崩溃——
+            未登记的工具按"会改变世界"对待，安全侧从严。
+    【简易】单次读取，调用方自行缓存。
+    """
+    root = defs_dir or TOOL_DEFS_DIR
+    out: Dict[str, ToolMeta] = {}
+    if not os.path.isdir(root):
+        return out
+    for fname in sorted(os.listdir(root)):
+        if not fname.endswith(".yaml"):
+            continue
+        path = os.path.join(root, fname)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                doc = yaml.safe_load(f)
+        except (OSError, yaml.YAMLError):
+            continue
+        if not isinstance(doc, dict):
+            continue
+        name = str(doc.get("name") or os.path.splitext(fname)[0])
+        raw_tags = doc.get("tags") or ()
+        if isinstance(raw_tags, str):
+            raw_tags = [raw_tags]
+        tags = tuple(str(t) for t in raw_tags if str(t).strip())
+        out[name] = ToolMeta(
+            name=name,
+            category=str(doc.get("category") or ""),
+            plane=_norm(doc.get("plane"), PLANES, "act"),
+            effect=_norm(doc.get("effect"), EFFECTS, "execute"),
+            risk=_norm(doc.get("risk"), RISKS, "medium"),
+            tags=tags,
+            description=str(doc.get("description") or "")[:200],
+            internal=bool(doc.get("internal", False)),
+        )
+    return out
+
+
+@dataclass
+class LineProfile:
+    """一条主线（可组装的能力档案）
+
+    【主线是权重，不是分区】——同一条工具可以同时被多条主线使用；
+    主线只决定"在本次装配里它排多前、要不要被排除"，不决定归属。
+    """
+
+    id: str
+    name: str = ""
+    description: str = ""
+    enabled: bool = True
+
+    #: 平面权重（0 = 该平面不参与；越大越优先且召回越多）
+    plane_weights: Dict[str, float] = field(default_factory=dict)
+    #: 每个平面的**保底召回数**（解决"高优先级平面吃光名额"的饥饿问题）
+    plane_floors: Dict[str, int] = field(default_factory=dict)
+
+    #: 主线核心工具：权重加成（可跨平面）
+    boost: List[str] = field(default_factory=list)
+    #: 明确排除的工具
+    mute: List[str] = field(default_factory=list)
+    #: 关注的标签：命中的工具获得小幅加成
+    tags: List[str] = field(default_factory=list)
+
+    #: 单轮最多暴露给模型的工具数
+    max_tools: int = 20
+
+    #: 治理策略
+    effect_allow: List[str] = field(default_factory=lambda: ["read", "write", "execute"])
+    requires_approval: List[str] = field(default_factory=list)
+    #: 是否允许本主线调用 govern 平面（改变自身能力集）
+    allow_govern: bool = False
+
+    #: 绑定的技能（skills.json 的 id）
+    skills: List[str] = field(default_factory=list)
+    #: 绑定的系统提示词片段（可选）
+    prompt_note: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.plane_weights:
+            self.plane_weights = {"resident": 1.0, "perceive": 1.0, "act": 1.0}
+        # 归一化平面权重：未知平面丢弃，负值归零
+        self.plane_weights = {
+            _norm(k, PLANES, ""): float(v)
+            for k, v in self.plane_weights.items()
+            if _norm(k, PLANES, "")
+        }
+        self.plane_weights = {k: max(0.0, v) for k, v in self.plane_weights.items()}
+        if not self.allow_govern:
+            self.plane_weights.pop("govern", None)
+        else:
+            # 【自洽性】allow_govern=True 必须同时放行 extend 效果，否则治理平面会被
+            # effect_allow 过滤成空集 —— 那样"允许治理"就是个静默失效的开关。
+            # 注意：放行 ≠ 免确认；确认由 requires_approval 决定（风险仍由 ToolMeta 标注）。
+            if "extend" not in self.effect_allow:
+                self.effect_allow = list(self.effect_allow) + ["extend"]
+
+    # ── 校验 ──
+
+    def validate(self, known_tools: Optional[set] = None) -> List[str]:
+        """返回问题列表（空 = 通过）"""
+        issues: List[str] = []
+        if not self.id or not isinstance(self.id, str):
+            issues.append("id 不能为空")
+        if self.max_tools <= 0:
+            issues.append("max_tools 必须为正整数")
+        for eff in self.effect_allow:
+            if eff not in EFFECTS:
+                issues.append(f"effect_allow 含非法值: {eff}")
+        for plane, floor in self.plane_floors.items():
+            if plane not in PLANES:
+                issues.append(f"plane_floors 含非法平面: {plane}")
+            if floor < 0:
+                issues.append(f"plane_floors[{plane}] 不能为负")
+        for eff in self.requires_approval:
+            if eff not in EFFECTS:
+                issues.append(f"requires_approval 含非法值: {eff}")
+        if known_tools is not None:
+            unknown = [t for t in list(self.boost) + list(self.mute) if t not in known_tools]
+            if unknown:
+                issues.append(f"引用了未注册的工具: {sorted(unknown)}")
+        return issues
+
+    @property
+    def max_effect_rank(self) -> int:
+        """允许的最高 effect 等级（用于快速判定）"""
+        if not self.effect_allow:
+            return 0
+        return max(_EFFECT_ORDER.get(e, 0) for e in self.effect_allow)
+
+    def allows_effect(self, effect: str) -> bool:
+        return _EFFECT_ORDER.get(effect, 99) <= self.max_effect_rank
+
+    # ── 序列化 ──
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name or self.id,
+            "description": self.description,
+            "enabled": bool(self.enabled),
+            "plane_weights": dict(self.plane_weights),
+            "plane_floors": dict(self.plane_floors),
+            "boost": list(self.boost),
+            "mute": list(self.mute),
+            "tags": list(self.tags),
+            "max_tools": int(self.max_tools),
+            "effect_allow": list(self.effect_allow),
+            "requires_approval": list(self.requires_approval),
+            "allow_govern": bool(self.allow_govern),
+            "skills": list(self.skills),
+            "prompt_note": self.prompt_note,
+        }
+
+    def to_yaml(self) -> str:
+        return yaml.safe_dump(self.to_dict(), allow_unicode=True, sort_keys=False)
+
+    @classmethod
+    def from_dict(cls, raw: Dict[str, Any]) -> "LineProfile":
+        if not isinstance(raw, dict):
+            raise ValueError("主线档案必须是字典")
+        lid = str(raw.get("id") or "").strip()
+        if not lid:
+            raise ValueError("主线档案缺少 id")
+        # 【坑】不能用 `raw.get("max_tools") or 20`：`0` 是 falsy，会被静默归一成 20，
+        # 于是 validate() 的"max_tools 必须为正整数"从 REST 层永远不可达
+        # （实测 {"max_tools":0} 会通过校验并静默变成 20）。必须只对 None/空串兜底。
+        _mt = raw.get("max_tools")
+        try:
+            max_tools = 20 if _mt is None or _mt == "" else int(_mt)
+        except (TypeError, ValueError):
+            raise ValueError(f"max_tools 必须是整数，收到: {_mt!r}")
+        return cls(
+            id=lid,
+            name=str(raw.get("name") or lid),
+            description=str(raw.get("description") or ""),
+            enabled=bool(raw.get("enabled", True)),
+            plane_weights=dict(raw.get("plane_weights") or {}),
+            plane_floors={k: int(v) for k, v in (raw.get("plane_floors") or {}).items()},
+            boost=[str(t) for t in (raw.get("boost") or [])],
+            mute=[str(t) for t in (raw.get("mute") or [])],
+            tags=[str(t) for t in (raw.get("tags") or [])],
+            max_tools=max_tools,
+            effect_allow=[str(e) for e in (raw.get("effect_allow") or ["read", "write", "execute"])],
+            requires_approval=[str(e) for e in (raw.get("requires_approval") or [])],
+            allow_govern=bool(raw.get("allow_govern", False)),
+            skills=[str(s) for s in (raw.get("skills") or [])],
+            prompt_note=str(raw.get("prompt_note") or ""),
+        )
+
+
+__all__ = [
+    "PLANES", "EFFECTS", "RISKS", "ToolMeta", "LineProfile",
+    "load_tool_meta", "TOOL_DEFS_DIR", "AGENT_LINES_DIR",
+]

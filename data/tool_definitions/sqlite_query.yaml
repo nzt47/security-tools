@@ -1,0 +1,33 @@
+name: sqlite_query
+category: code
+description: 只读查询本地 SQLite 数据库（sqlite / sql / database query / 查询数据库 / 查一下 db）。安全约束：以 file:<db_path>?mode=ro&immutable=1
+  只读 URI 打开并设 PRAGMA query_only=1（双保险只读）；只允许**单条** SELECT / WITH ... SELECT / PRAGMA table_info / EXPLAIN
+  语句；禁止多语句（语句内出现分号即拒绝）；禁止一切写操作（INSERT/UPDATE/DELETE/DROP/ALTER/CREATE/ATTACH/PRAGMA 赋值等一律拒绝）；SQL 未写 LIMIT
+  时自动补 LIMIT（limit 默认 100，上限 1000）；db_path 必须落在项目根目录内，越界路径拒绝；结果以 dict 列表返回，单个字段值超过 2000 字符会截断。Read-only
+  SQLite database query, run a SELECT on a local sqlite file
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [data]
+schema:
+  type: object
+  properties:
+    db_path:
+      type: string
+      description: SQLite 数据库路径（相对项目根目录，如 data/tool_fewshot.db）
+    sql:
+      type: string
+      description: 单条只读 SQL，如 SELECT name FROM tools LIMIT 5；只允许 SELECT / WITH ... SELECT / PRAGMA table_info
+        / EXPLAIN
+    limit:
+      type: integer
+      description: 行数上限，默认 100，最大 1000；SQL 未写 LIMIT 时自动补上
+    params:
+      type: array
+      description: 绑定参数数组，按顺序对应 SQL 里的 ? 占位符（可选）
+  required:
+  - db_path
+  - sql
+examples: []

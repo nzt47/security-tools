@@ -1,14 +1,28 @@
 name: search_memory
 category: core
-description: 搜索我的记忆
+description: 搜索我的记忆。scope=all（默认）同时检索语义记忆与事件日志；scope=vector 只做语义（向量）检索；scope=logs 只查事件日志。
 deprecated: false
-version: 1.0.0
+version: 1.1.0
+plane: resident
+effect: read
+risk: low
+tags: [memory]
 schema:
   type: object
   properties:
     query:
       type: string
       description: 搜索关键词
+    scope:
+      type: string
+      enum:
+      - all
+      - vector
+      - logs
+      description: 检索范围：all=语义记忆+事件日志（默认），vector=仅语义记忆，logs=仅事件日志
+    max_items:
+      type: integer
+      description: 返回条数上限，默认 all/logs=10，vector=5
   required:
   - query
 examples: []

@@ -4,6 +4,10 @@ description: 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围�
   or files, divide PDF
 deprecated: false
 version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [document]
 schema:
   type: object
   properties:

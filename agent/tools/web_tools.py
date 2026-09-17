@@ -130,76 +130,97 @@ def register_all(dl):
         return dl._web_http.post(url, data=data, timeout=timeout)
 
     # ════════════════════════════════════════════════════════════
-    #  数据提取工具（XPath / CSS Selector）
+    #  数据提取工具（XPath / CSS Selector / 文本清洗）
+    #
+    #  合并说明（docs/工具集评估与重分类报告.md §6.2 第 0 档 1+2 组）：
+    #  web_xpath 与 web_css 的处理体逐行同构，web_clean_data 只是把
+    #  DataProcessor.clean_text / _web_processor.process 外露，故三者
+    #  合并为 web_extract(kind=...)。参数逐项保留，无能力损失：
+    #    web_xpath.expression → selector（兼容别名 expression 亦可）
+    #    web_xpath.url/html   → url/html
+    #    web_css.selector/url/html → selector/url/html
+    #    web_css.attr         → attr（仅 kind='css' 有效）
+    #    web_clean_data.text  → html（兼容别名 text 亦可）
+    #    web_clean_data.items → items
+    #  新增 max_items（截断）与 aggressive（kind='clean' 的加强清洗）。
     # ════════════════════════════════════════════════════════════
 
-    @_tools.register("web_xpath", "使用 XPath 表达式从网页中提取信息", schema={
+    @_tools.register("web_extract", "从网页或 HTML 源码中抽取结构化内容。kind='xpath' 用 XPath 表达式提取；kind='css' 用 CSS 选择器提取（可用 attr 取 href、src 等属性）；kind='clean' 清洗文本（去 HTML 标签、实体解码、压缩空白）。可传 url 抓取，也可直接传 html 或 text。Extract data from HTML by XPath or CSS selector, extract attributes, clean text", schema={
         "type": "object",
         "properties": {
-            "url": {"type": "string", "description": "网页 URL"},
-            "expression": {"type": "string", "description": "XPath 表达式"},
-            "html": {"type": "string", "description": "直接提供 HTML 源码（替代 url）"},
+            "kind": {"type": "string", "enum": ["xpath", "css", "clean"], "description": "提取方式（必填）。xpath=XPath 表达式提取；css=CSS 选择器提取；clean=文本清洗"},
+            "selector": {"type": "string", "description": "选择器：kind='xpath' 传 XPath 表达式，kind='css' 传 CSS 选择器"},
+            "html": {"type": "string", "description": "直接提供 HTML 源码（替代 url）；kind='clean' 时作为待清洗文本"},
+            "url": {"type": "string", "description": "网页 URL（未提供 html 时抓取该页面）"},
+            "max_items": {"type": "integer", "description": "返回结果条数上限，默认不限"},
+            "aggressive": {"type": "boolean", "description": "kind='clean' 时启用加强清洗：额外做单行化与重复行去除，默认 false"},
+            "attr": {"type": "string", "description": "kind='css' 时提取的属性名，如 href、src；不传则提取文本"},
+            "expression": {"type": "string", "description": "XPath 表达式（selector 的兼容别名）"},
+            "text": {"type": "string", "description": "待清洗文本（kind='clean' 下 html 的兼容别名）"},
+            "items": {"type": "array", "description": "kind='clean' 时的数据项列表，走去重、评分、清洗管线"},
         },
-        "required": ["expression"],
+        "required": ["kind"],
     })
-    def _web_xpath(**kwargs):
+    def _web_extract(**kwargs):
+        kind = (kwargs.get("kind") or "").strip().lower()
+        html = kwargs.get("html") or kwargs.get("text") or ""
         url = kwargs.get("url", "")
-        expression = kwargs.get("expression", "")
-        html = kwargs.get("html", "")
-        if not expression:
-            return {"ok": False, "error": "请提供 XPath 表达式"}
+        # selector 为主参数，expression 是 web_xpath 时代的兼容别名
+        selector = kwargs.get("selector") or kwargs.get("expression") or ""
+        attr = kwargs.get("attr", "")
+        max_items = kwargs.get("max_items")
+        aggressive = bool(kwargs.get("aggressive", False))
+        _items = kwargs.get("items") or []
+
+        if kind not in ("xpath", "css", "clean"):
+            return {"ok": False, "error": f"kind 必须为 'xpath'、'css' 或 'clean' 之一，收到: {kwargs.get('kind')!r}"}
+
+        # ── 文本清洗模式（原 web_clean_data） ──
+        if kind == "clean":
+            if _items:
+                processed = dl._web_processor.process(_items)
+                return {"ok": True, "results": processed, "count": len(processed),
+                        "original_count": len(_items), "processed_count": len(processed)}
+            if not html:
+                return {"ok": False, "error": "kind='clean' 需要 text、html 或 items 参数"}
+            cleaned = DataProcessor.clean_text(html)
+            if aggressive:
+                cleaned = _aggressive_clean(cleaned)
+            return {"ok": True, "results": [cleaned], "count": 1, "text": cleaned}
+
+        # ── 选择器提取模式（原 web_xpath / web_css） ──
+        if not selector:
+            lang = "XPath 表达式" if kind == "xpath" else "CSS 选择器"
+            return {"ok": False, "error": f"kind='{kind}' 需要 selector 参数（{lang}）"}
+
         if html:
-            results = dl._web_scraper.xpath(expression, html=html)
+            results = _limit_results(_extract_by_kind(dl, kind, selector, html, attr), max_items)
             return {"ok": True, "results": results, "count": len(results)}
+
         if not url:
-            return {"ok": False, "error": "请提供 URL 或 HTML 源码"}
+            return {"ok": False, "error": "请提供 url 或 html（text）"}
+
         # 先获取页面
         fetch_result = dl._web_http.get(url)
         if not fetch_result.get("ok"):
             return fetch_result
-        results = dl._web_scraper.xpath(expression, html=fetch_result.get("text", ""))
-        return {"ok": True, "url": url, "results": results, "count": len(results)}
-
-    @_tools.register("web_css", "使用 CSS 选择器从网页中提取信息", schema={
-        "type": "object",
-        "properties": {
-            "url": {"type": "string", "description": "网页 URL"},
-            "selector": {"type": "string", "description": "CSS 选择器"},
-            "attr": {"type": "string", "description": "提取的属性名，如 href、src"},
-            "html": {"type": "string", "description": "直接提供 HTML 源码（替代 url）"},
-        },
-        "required": ["selector"],
-    })
-    def _web_css(**kwargs):
-        url = kwargs.get("url", "")
-        selector = kwargs.get("selector", "")
-        attr = kwargs.get("attr", "")
-        html = kwargs.get("html", "")
-        if not selector:
-            return {"ok": False, "error": "请提供 CSS 选择器"}
-        if html:
-            results = dl._web_scraper.css(selector, html=html, attr=attr or None)
-            return {"ok": True, "results": results, "count": len(results)}
-        if not url:
-            return {"ok": False, "error": "请提供 URL 或 HTML 源码"}
-        fetch_result = dl._web_http.get(url)
-        if not fetch_result.get("ok"):
-            return fetch_result
-        results = dl._web_scraper.css(selector, html=fetch_result.get("text", ""), attr=attr or None)
+        results = _limit_results(
+            _extract_by_kind(dl, kind, selector, fetch_result.get("text", ""), attr), max_items)
         return {"ok": True, "url": url, "results": results, "count": len(results)}
 
     # ════════════════════════════════════════════════════════════
     #  搜索工具
     # ════════════════════════════════════════════════════════════
 
-    @_tools.register("web_search", "搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）。Search the web, find information online, internet search", schema={
+    @_tools.register("web_search", "搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）。preset='news' 进入新闻模式：用多条英文查询检索国际新闻，按来源（BBC、CNN、Reuters、AP 等）优先排序，query 作为新闻主题（留空取综合新闻），返回摘要式结果与发布时间。Search the web, find information online, internet search, latest news headlines", schema={
         "type": "object",
         "properties": {
             "query": {"type": "string", "description": "搜索关键词（必填）"},
             "engine": {"type": "string", "description": "指定搜索引擎名称（可选）。不指定按优先级自动选择。注意：aggregate=true 时此参数被忽略"},
-            "num_results": {"type": "integer", "description": "期望返回的结果数量，默认 10，最大 50"},
+            "num_results": {"type": "integer", "description": "期望返回的结果数量，默认 10，最大 50；preset='news' 时上限 15"},
             "page": {"type": "integer", "description": "页码（仅单引擎模式有效），默认 1"},
-            "aggregate": {"type": "boolean", "description": "启用多引擎聚合搜索模式。true=并发多引擎去重评分排序（质量更高），false=单引擎快速搜索（默认）"},
+            "aggregate": {"type": "boolean", "description": "启用多引擎聚合搜索模式。true=并发多引擎去重评分排序（质量更高），false=单引擎快速搜索（默认）。preset='news' 时忽略"},
+            "preset": {"type": "string", "enum": ["default", "news"], "description": "检索预设。default=常规网页搜索（默认）；news=新闻模式，用多条英文查询检索国际新闻并按来源（BBC、CNN、Reuters、AP 等）优先排序，query 作为新闻主题（留空取综合新闻）"},
         },
         "required": ["query"],
     })
@@ -209,6 +230,14 @@ def register_all(dl):
         num_results = kwargs.get("num_results", 10)
         page = kwargs.get("page", 1)
         aggregate = kwargs.get("aggregate", False)
+        preset = kwargs.get("preset") or "default"
+        if preset not in ("default", "news"):
+            return {"ok": False, "error": f"preset 必须为 'default' 或 'news'，收到: {preset!r}"}
+
+        # ── 新闻模式（原 fetch_news：多查询 + 来源优先排序） ──
+        if preset == "news":
+            return _news_search(dl, query, engine, num_results)
+
         if not query:
             return {"ok": False, "error": "请提供搜索关键词"}
 
@@ -267,25 +296,8 @@ def register_all(dl):
         return result
 
     # ════════════════════════════════════════════════════════════
-    #  数据清洗 / 下载 / 批量请求
+    #  下载 / 批量请求（文本清洗已并入 web_extract(kind='clean')）
     # ════════════════════════════════════════════════════════════
-
-    @_tools.register("web_clean_data", "清洗和结构化网页文本数据，去重、评分、去除跟踪参数", schema={
-        "type": "object",
-        "properties": {
-            "text": {"type": "string", "description": "待清洗的文本"},
-            "items": {"type": "array", "description": "待处理的数据项列表"},
-        },
-    })
-    def _web_clean_data(**kwargs):
-        text = kwargs.get("text", "")
-        _items = kwargs.get("items", [])
-        if text:
-            return {"ok": True, "cleaned": DataProcessor.clean_text(text)}
-        if _items:
-            processed = dl._web_processor.process(_items)
-            return {"ok": True, "original_count": len(_items), "processed_count": len(processed), "results": processed}
-        return {"ok": False, "error": "请提供 text 或 items 参数"}
 
     @_tools.register("web_download", "从 URL 下载文件到本地", schema={
         "type": "object",
@@ -321,101 +333,163 @@ def register_all(dl):
         return {"ok": True, "total": len(results), "results": results}
 
     # ════════════════════════════════════════════════════════════
-    #  新闻获取工具
+    #  新闻获取（已并入 web_search(preset="news")，见模块级 _news_search）
     # ════════════════════════════════════════════════════════════
 
-    @_tools.register("fetch_news", "获取过去24小时内国际新闻。从多源（BBC/CNN/Reuters/AP）搜索、抓取、翻译并格式化输出。用户要求新闻时调用此工具而非手动搜索。使用Tavily或Firecrawl进行检索。", schema={
-        "type": "object",
-        "properties": {
-            "topic": {"type": "string", "description": "新闻主题关键词（可选），如'中美关系'、'俄乌'，留空则获取综合新闻"},
-            "max_results": {"type": "integer", "description": "最大返回条数，默认8，最大15"},
-            "engine": {"type": "string", "description": "搜索引擎: tavily(默认) 或 firecrawl"},
-        },
-    })
-    def _fetch_news(**kwargs):
-        import time as _time
+
+def _extract_by_kind(dl, kind: str, selector: str, html: str, attr: str):
+    """按 kind 分派到 Scraper 的对应提取方法"""
+    if kind == "xpath":
+        return dl._web_scraper.xpath(selector, html=html)
+    return dl._web_scraper.css(selector, html=html, attr=attr or None)
+
+
+def _limit_results(results, max_items):
+    """截断结果列表（max_items 非法或为空时不截断）"""
+    if max_items is None:
+        return results
+    try:
+        limit = int(max_items)
+    except (TypeError, ValueError):
+        return results
+    if limit <= 0:
+        return results
+    return results[:limit]
+
+
+def _aggressive_clean(text: str) -> str:
+    """加强清洗：单行化（连续空白压成一个空格）并去掉重复行
+
+    用于把整页文本压成便于塞进上下文的一行/数行，
+    是 web_extract(aggressive=True) 相对 DataProcessor.clean_text 的增量。
+    """
+    import re
+    if not text:
+        return ""
+    text = re.sub(r"[\u200b-\u200f\u2028\u2029\ufeff]", "", text)
+    seen = set()
+    kept = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line in seen:
+            continue
+        seen.add(line)
+        kept.append(line)
+    return re.sub(r"\s+", " ", " ".join(kept)).strip()
+
+
+# 新闻来源优先级（索引越小越靠前）——原 fetch_news 的排序逻辑
+_NEWS_PREFERRED = ["bbc.com", "cnn.com", "reuters.com", "apnews.com",
+                   "theguardian.com", "nytimes.com", "wsj.com", "economist.com"]
+
+# 文章发布时间的候选字段（不同引擎命名不一）
+_NEWS_DATE_FIELDS = ("published_date", "published_at", "published",
+                     "pub_date", "date", "publishedTime", "timestamp", "time", "age")
+
+# 通用新闻查询（topic 留空时使用），与原 fetch_news 逐字一致
+_NEWS_DEFAULT_QUERIES = ["latest world news today",
+                         "international breaking news",
+                         "top global headlines"]
+
+
+def _news_published(item: dict) -> str:
+    """取文章发布时间；取不到返回空串
+
+    注意：没有发布时间时**不伪造**（原实现给每条结果盖了运行时刻 now，
+    那是"看起来有时间"的假信息）。调用方会把空值显示为 unknown。
+    """
+    for key in _NEWS_DATE_FIELDS:
+        value = item.get(key)
+        if value:
+            return str(value).strip()
+    return ""
+
+
+def _news_search(dl, topic: str, engine: str, max_results) -> dict:
+    """新闻模式（原 fetch_news 的逻辑，合并进 web_search(preset="news")）
+
+    - 查询组合与原实现一致：有 topic 用 3 条 topic 查询，无 topic 用 3 条通用查询
+    - 保留原来的"首个成功查询即采用"语义（原实现的 break 在成功分支内）
+    - 按来源优先级排序后截断，超时与逐查询容错行为保持不变
+    - 修复：不再给每条结果盖运行时刻，有发布时间用发布时间，没有则标注 unknown
+    """
+    import time as _time
+
+    try:
+        limit = min(int(max_results or 10), 15)  # 新闻模式上限与原 max_results 上限一致
+    except (TypeError, ValueError):
+        limit = 10
+
+    queries = _NEWS_DEFAULT_QUERIES
+    if topic:
+        queries = [f"latest {topic} news", f"{topic} breaking news", f"{topic} today"]
+
+    all_results = []
+    seen_urls = set()
+    for q in queries:
         try:
-            topic = kwargs.get("topic", "")
-            max_results = min(kwargs.get("max_results", 8), 15)
+            searcher = dl._get_web_search()
+            if searcher is None:
+                continue
+            # engine 留空即按优先级自动选择（与原实现相同）；显式传入时原样透传
+            res = searcher.search(q, engine=engine, num_results=limit, timeout=10)
+            if res and isinstance(res, dict) and res.get("ok") and res.get("results"):
+                for item in res["results"]:
+                    url = (item.get("url") or "").strip()
+                    if url and url not in seen_urls:
+                        seen_urls.add(url)
+                        all_results.append({
+                            "title": (item.get("title") or "").strip(),
+                            "url": url,
+                            "snippet": (item.get("snippet") or "").strip(),
+                            "source": _guess_source(url),
+                            "published": _news_published(item),
+                        })
+                break  # 当前查询成功，不再尝试后续查询（与原实现一致）
+        except Exception:
+            pass  # 单个查询失败不影响整体
 
-            # 构建搜索词
-            queries = ["latest world news today", "international breaking news", "top global headlines"]
-            if topic:
-                queries = [f"latest {topic} news", f"{topic} breaking news", f"{topic} today"]
+    def _score(item):
+        url = item["url"].lower()
+        for i, domain in enumerate(_NEWS_PREFERRED):
+            if domain in url:
+                return i
+        return len(_NEWS_PREFERRED)
 
-            all_results = []
-            seen_urls = set()
+    all_results.sort(key=_score)
+    all_results = all_results[:limit]
 
-            # 不传 engine 参数，让搜索系统按优先级自动选择可用引擎
-            for q in queries:
-                try:
-                    _searcher = dl._get_web_search()
-                    if _searcher is None:
-                        continue
-                    res = _searcher.search(q, num_results=max_results, timeout=10)
-                    if res and isinstance(res, dict) and res.get("ok") and res.get("results"):
-                        for item in res["results"]:
-                            url = (item.get("url") or "").strip()
-                            if url and url not in seen_urls:
-                                seen_urls.add(url)
-                                all_results.append({
-                                    "title": (item.get("title") or "").strip(),
-                                    "url": url,
-                                    "snippet": (item.get("snippet") or "").strip(),
-                                    "source": _guess_source(url),
-                                })
-                        break  # 当前查询成功，跳到下一个
-                except Exception:
-                    pass  # 单个查询失败不影响整体
-        except Exception as e:
-            logger.error("[新闻] fetch_news 整体异常: %s", e)
+    # 使用搜索结果摘要（跳过正文获取避免超时）
+    for item in all_results:
+        item["content"] = item.get("snippet", "")
 
-        # 按来源丰富度排序：BBC/CNN/Reuters/AP优先
-        _PREFERRED = ["bbc.com", "cnn.com", "reuters.com", "apnews.com",
-                       "theguardian.com", "nytimes.com", "wsj.com", "economist.com"]
-
-        def _score(item):
-            url = item["url"].lower()
-            for i, domain in enumerate(_PREFERRED):
-                if domain in url:
-                    return i
-            return len(_PREFERRED)
-
-        all_results.sort(key=_score)
-        all_results = all_results[:max_results]
-
-        # 使用搜索结果摘要（跳过正文获取避免超时）
-        if all_results:
-            for item in all_results:
-                item["content"] = item.get("snippet", "")
-
-        # 无结果时返回友好提示
-        if not all_results:
-            now = _time.strftime("%Y-%m-%d %H:%M UTC")
-            text = (
-                f"已获取到以下信息：\n"
-                f"  - 当前暂无搜索结果，搜索引擎暂时不可用。\n"
-                f"  - 时间: {now}\n"
-                f"  - 建议: 稍后重试或直接输入具体关键词"
-            )
-            return {"ok": True, "result": text, "count": 0}
-
-        # 格式化输出
+    # 无结果时返回友好提示（这里的时刻是"检索时刻"，不是文章发布时间）
+    if not all_results:
         now = _time.strftime("%Y-%m-%d %H:%M UTC")
-        lines = [f"已获取到以下信息：", f"  - 找到 {len(all_results)} 条结果:"]
-        for i, item in enumerate(all_results, 1):
-            title = item.get("title", "无标题")
-            source = item.get("source", "未知来源")
-            url = item.get("url", "")
-            snippet = item.get("content") or item.get("snippet", "")
-            lines.append(f"")
-            lines.append(f"...{i}. **{title}**")
-            lines.append(f"   - 来源: {source}")
-            lines.append(f"   - 时间: {now}")
-            lines.append(f"   - 摘要: {snippet[:300]}")
-            lines.append(f"   - 链接: {url}")
+        text = (
+            "已获取到以下信息：\n"
+            "  - 当前暂无搜索结果，搜索引擎暂时不可用。\n"
+            f"  - 检索时间: {now}\n"
+            "  - 建议: 稍后重试或直接输入具体关键词"
+        )
+        return {"ok": True, "result": text, "count": 0, "preset": "news"}
 
-        return {"ok": True, "result": "\n".join(lines), "count": len(all_results)}
+    # 格式化输出（时间取文章发布时间，缺失则 unknown —— 不伪造）
+    lines = ["已获取到以下信息：", f"  - 找到 {len(all_results)} 条结果:"]
+    for i, item in enumerate(all_results, 1):
+        title = item.get("title", "无标题")
+        source = item.get("source", "未知来源")
+        url = item.get("url", "")
+        snippet = item.get("content") or item.get("snippet", "")
+        published = item.get("published") or "unknown"
+        lines.append("")
+        lines.append(f"...{i}. **{title}**")
+        lines.append(f"   - 来源: {source}")
+        lines.append(f"   - 时间: {published}")
+        lines.append(f"   - 摘要: {snippet[:300]}")
+        lines.append(f"   - 链接: {url}")
+
+    return {"ok": True, "result": "\n".join(lines), "count": len(all_results), "preset": "news"}
 
 
 def _guess_source(url: str) -> str:

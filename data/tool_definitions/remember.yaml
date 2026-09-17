@@ -3,6 +3,10 @@ category: core
 description: 记住重要信息，存储到长期记忆。后续可通过 search_memory 搜索到。important 级别会额外备份到桌面文件。
 deprecated: false
 version: 1.0.0
+plane: resident
+effect: write
+risk: low
+tags: [memory]
 schema:
   type: object
   properties:

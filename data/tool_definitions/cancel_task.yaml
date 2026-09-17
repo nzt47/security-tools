@@ -3,6 +3,10 @@ category: async
 description: 取消正在等待或运行中的异步任务。已完成的无法取消
 deprecated: false
 version: 1.0.0
+plane: act
+effect: write
+risk: low
+tags: [async]
 schema:
   type: object
   properties:

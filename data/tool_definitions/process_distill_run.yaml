@@ -1,0 +1,35 @@
+name: process_distill_run
+category: knowledge
+description: 过程蒸馏内部执行体（供 AsyncExecutor 后台调用，通常不直接使用）。参数同
+  distill_process_from_knowledge，返回完整结果。
+deprecated: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: medium
+tags: [evolution, knowledge]
+internal: true
+schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 知识库 wiki 检索关键词（可空）
+    paths:
+      type: array
+      items:
+        type: string
+      description: 素材文件/目录路径列表（可空）
+    artifacts:
+      type: array
+      items:
+        type: string
+        enum: [workflow, skill]
+      description: 固化产物类型
+    top_k:
+      type: integer
+      description: wiki 检索召回数，默认 5
+    max_workers:
+      type: integer
+      description: 并行子代理数，默认 4
+examples: []

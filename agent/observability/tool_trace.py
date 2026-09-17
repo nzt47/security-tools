@@ -49,16 +49,42 @@ _DEFAULT_DB_PATH = os.path.join(_PROJECT_ROOT, "agent", "data", "tool_trace.db")
 _DANGEROUS_CMDS_PATH = os.path.join(_PROJECT_ROOT, "data", "dangerous_commands.json")
 
 # 高频工具 Top 20(按类别优先级 core > web > file,采样率 10%)
-# 来源: agent/tool_router.py 的 TOOL_CATEGORIES 平铺取前 20
-HIGH_FREQ_TOOLS = frozenset([
-    # core(5)
-    "get_status", "search_memory", "remember", "expand_context", "get_sensor_summary",
-    # web(9)
-    "web_search", "web_get", "web_post", "web_xpath", "web_css",
-    "web_clean_data", "web_download", "web_batch", "fetch_news",
-    # file(6)
+#
+# 【修复（2026-09-17）】此处原先是**硬编码**的一张清单，注释却写着
+#   "来源: agent/tool_router.py 的 TOOL_CATEGORIES 平铺取前 20" —— 说明本意就是派生。
+#   硬编码的后果：工具集一变它就过期。实测已残留 4 个不存在/已合并掉的工具名
+#   （web_xpath / web_css / web_clean_data / fetch_news / expand_context），
+#   于是这些名字永远匹配不到，采样判定静默失真。
+#   现改为**按注释所述派生**：从 TOOL_CATEGORIES 按 priority 平铺取前 20。
+#   【不易】派生失败必须回退到静态兜底，绝不能因为 import 问题让 tracing 崩掉。
+_FALLBACK_HIGH_FREQ_TOOLS = frozenset([
+    "get_status", "search_memory", "remember", "get_sensor_summary", "todo_write",
+    "web_search", "web_get", "web_post", "web_download", "web_batch",
     "read_file", "write_file", "list_directory", "get_file_info", "search_files", "compress",
 ])
+
+
+def _derive_high_freq_tools(limit: int = 20) -> frozenset:
+    """从 tool_router.TOOL_CATEGORIES 按类别优先级平铺取前 N 个工具名
+
+    【简易】纯读取；任何异常都回退到 _FALLBACK_HIGH_FREQ_TOOLS。
+    """
+    try:
+        from agent.tool_router import TOOL_CATEGORIES  # 延迟导入，避免可观测层反向依赖路由层
+        ordered: list[str] = []
+        for _cat, info in sorted(
+                TOOL_CATEGORIES.items(), key=lambda kv: kv[1].get("priority", 99)):
+            for tool in info.get("tools", []):
+                if tool not in ordered:
+                    ordered.append(str(tool))
+        if ordered:
+            return frozenset(ordered[:limit])
+    except Exception:  # noqa: BLE001 派生失败不得影响 tracing
+        pass
+    return _FALLBACK_HIGH_FREQ_TOOLS
+
+
+HIGH_FREQ_TOOLS = _derive_high_freq_tools()
 
 # 采样率配置
 HIGH_FREQ_SAMPLE_RATE = 0.1      # 高频工具 10% 采样

@@ -1,8 +1,12 @@
 name: disconnect_mcp
-category: uncategorized
+category: extension
 description: 断开一个 MCP 服务连接，注销其注册的工具。
 deprecated: false
 version: 1.0.0
+plane: govern
+effect: extend
+risk: medium
+tags: [mcp, self_modify]
 schema:
   type: object
   properties:

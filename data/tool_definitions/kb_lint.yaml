@@ -1,0 +1,13 @@
+name: kb_lint
+category: knowledge
+description: 健康巡检（断链 + 孤儿检测，返回知识库健康报告）
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [knowledge]
+schema:
+  type: object
+  properties: {}
+examples: []

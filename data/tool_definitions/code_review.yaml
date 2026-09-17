@@ -4,6 +4,10 @@ description: 执行结构化代码审查，检查代码在安全、性能、可�
   检查清单
 deprecated: false
 version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [code]
 schema:
   type: object
   properties:
