@@ -302,7 +302,8 @@ class TaskScheduler:
 
         return ""
 
-    def run_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    def run_task(self, task: Dict[str, Any], *,
+                 trigger: str = "schedule") -> Dict[str, Any]:
         """执行单个任务，返回执行结果
 
         **执行期会话来源上报（本次新增）**：任务体在 ``_run_task_body`` 里执行；本方法在
@@ -315,8 +316,17 @@ class TaskScheduler:
         ``write_file`` / ``edit`` 会命中 ``data/permission_policies.json`` 的
         ``scheduled-no-write`` / ``scheduled-no-edit`` 两条 ABAC 规则而被拒绝。
         ``_guard_scheduled_command``（正则层）的判定口径**不涉及**本来源，未被改动。
+
+        Args:
+            trigger: 本次执行的触发来源。``"schedule"``（默认）= 调度器按周期自动触发；
+                ``"manual"`` = 人工在 UI 上点"立即执行"（``execute_now``）。
+                **只有 ``"schedule"`` 才上报 ``scheduled``**——那两条 ABAC 规则防的是
+                **无人值守**任务乱改东西，而人工重跑时有人在场，不该被禁（否则手动重跑一个
+                生成报告的任务会写不出文件）。非 ``"schedule"`` 时不上报，来源落到 ``cli``。
         """
-        _source_handle = _enter_scheduled_session_source()
+        _source_handle = (
+            _enter_scheduled_session_source() if str(trigger) == "schedule" else None
+        )
         try:
             return self._run_task_body(task)
         finally:
@@ -561,7 +571,11 @@ class TaskScheduler:
         if not task:
             return None
         _record_rerun(task_id, str(task.get("name") or ""))
-        return self.run_task(task)
+        # 人工重跑 ⇒ trigger="manual"：**不**上报 scheduled 来源。
+        # Why：scheduled-no-write / scheduled-no-edit 两条 ABAC 规则防的是"无人值守"任务
+        # 乱改东西；而人工点"立即执行"时有人在场，若一并按 scheduled 处理，手动重跑一个
+        # 生成报告的任务反而写不出文件（误伤）。
+        return self.run_task(task, trigger="manual")
 
     def stop(self) -> None:
         """停止调度器"""

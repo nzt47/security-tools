@@ -469,3 +469,65 @@ class TestSchedulerReportsScheduled:
         assert ran.get("ok") is True, "上报失败不得阻断任务体"
         assert result["status"] == "success"
         assert G.current_session_source() == ""
+
+
+# ════════════════════════════════════════════════════════════
+#  五、人工重跑（execute_now）不得被当成"无人值守"来源
+# ════════════════════════════════════════════════════════════
+
+
+class TestManualTriggerNotReported:
+    """``scheduled-no-write`` / ``scheduled-no-edit`` 防的是**无人值守**任务乱改东西。
+
+    人工在 UI 上点"立即执行"（``execute_now``）时**有人在场**，若也按 ``scheduled`` 处理，
+    手动重跑一个生成报告的任务反而写不出文件——属误伤。故 ``execute_now`` 传
+    ``trigger="manual"``，不上报该来源（落到 ``cli``）。
+    """
+
+    def test_execute_now_不上报_scheduled(self, patch_history):
+        scheduler = TaskScheduler()
+        seen: Dict[str, Any] = {}
+
+        def _body():
+            seen["src"] = G.current_session_source()
+
+        task = _py_task(_body)
+        scheduler.tasks = [task]
+
+        result = scheduler.execute_now(task["task_id"])
+
+        assert result is not None and result["status"] == "success"
+        assert seen["src"] == "", "人工重跑不得上报 scheduled（否则被 ABAC 误当成无人值守）"
+        assert G.current_session_source() == "", "任务外必须已还原"
+
+    def test_run_task_显式_manual_不上报(self, patch_history):
+        """``run_task(..., trigger="manual")`` 直调也应不上报"""
+        scheduler = TaskScheduler()
+        seen: Dict[str, Any] = {}
+
+        def _body():
+            seen["src"] = G.current_session_source()
+
+        task = _py_task(_body)
+        scheduler.tasks = [task]
+
+        result = scheduler.run_task(task, trigger="manual")
+
+        assert result["status"] == "success"
+        assert seen["src"] == "", "manual 触发不得上报 scheduled"
+
+    def test_默认仍上报_调度路径行为不变(self, patch_history):
+        """不传 ``trigger`` 的既有调用点（``tick``）保持原行为：仍上报 ``scheduled``"""
+        scheduler = TaskScheduler()
+        seen: Dict[str, Any] = {}
+
+        def _body():
+            seen["src"] = G.current_session_source()
+
+        task = _py_task(_body)
+        scheduler.tasks = [task]
+
+        result = scheduler.run_task(task)
+
+        assert result["status"] == "success"
+        assert seen["src"] == "scheduled", "调度路径必须继续上报（默认值不能改变既有语义）"
