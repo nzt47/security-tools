@@ -16,11 +16,17 @@ import threading
 import time
 from dataclasses import replace
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, List, Optional, Sequence, Tuple
 
 from agent.subagent.container import SubagentConfig, SubagentContainer
 
 logger = logging.getLogger(__name__)
+
+#: 批量委派里「建分身失败」的证据码（容量上限 / 名称冲突 / 档案被销毁）
+E_SUBAGENT_UNAVAILABLE = "E_SUBAGENT_UNAVAILABLE"
+
+#: 该失败的机器可读分类（与 executor 既有 sub_reason 口径一致：backpressure/credentials/…）
+SUB_REASON_SUBAGENT_UNAVAILABLE = "subagent_unavailable"
 
 
 class SubagentLifecycleError(Exception):
@@ -245,7 +251,7 @@ class SubagentLifecycleManager:
         with self._lock:
             return list(self._subagents.values())
 
-    def list_by_tag(self, tag: str) -> list[SubagentContainer]:
+    def list_by_tag(self, tag: str) -> List[SubagentContainer]:
         """按标签列出分身
 
         Args:
@@ -257,7 +263,7 @@ class SubagentLifecycleManager:
         with self._lock:
             return [sa for sa in self._subagents.values() if tag in sa.config.tags]
 
-    def list_by_permission(self, permission: str) -> list[SubagentContainer]:
+    def list_by_permission(self, permission: str) -> List[SubagentContainer]:
         """按权限列出分身
 
         Args:
@@ -278,6 +284,43 @@ class SubagentLifecycleManager:
     #  真实委派（v7.2 §3.9 / §5.9）
     # ════════════════════════════════════════════════════════════════════
 
+    def _prepare_config(self, config: SubagentConfig, ctx: Any) -> SubagentConfig:
+        """把一份配置模板适配到**一次**委派：TTL 取契约⑦ + 名称冲突消歧
+
+        ``delegate`` 与 ``delegate_many`` 共用这一份实现（单一权威，不复制纪律）：
+
+        1. **分身 TTL 取契约⑦**：``config.ttl_seconds`` 为 0（永久）时改为
+           ``ceil(timeout_seconds)``——分身存活期不应超过委派契约声明的任务时长，
+           否则超时后的分身会长期残留。TTL **就地写回**传入的模板（既有行为不变）。
+        2. **名称冲突自动消歧**：并行委派常复用同一份配置模板，同名会撞
+           ``create()`` 的唯一性检查；此处按 ``delegation_id`` 追加后缀，**不改**
+           ``create()`` 自身的一致性行为。
+
+        Returns:
+            可直接交给 ``create()`` 的配置（冲突时是一个改名后的副本）。
+        """
+        if not config.ttl_seconds or config.ttl_seconds <= 0:
+            try:
+                config.ttl_seconds = max(1, int(math.ceil(float(ctx.timeout_seconds))))
+            except (TypeError, ValueError, AttributeError):
+                pass
+
+        name = config.name
+        with self._lock:
+            taken = name in self._subagents
+        if taken:
+            config = replace(config, name=f"{name}-{getattr(ctx, 'delegation_id', 'x')}")
+        return config
+
+    def _unavailable_outcome(self, ctx: Any, error: str) -> Any:
+        """建分身失败时的**就地失败结果**（批量语义：不拖垮同批其余任务）"""
+        from agent.subagent.executor import ExecutionOutcome
+
+        return ExecutionOutcome(
+            delegation_id=str(getattr(ctx, "delegation_id", "") or ""), ok=False,
+            error_code=E_SUBAGENT_UNAVAILABLE, error=error,
+            sub_reason=SUB_REASON_SUBAGENT_UNAVAILABLE)
+
     def delegate(
         self,
         config: SubagentConfig,
@@ -294,14 +337,8 @@ class SubagentLifecycleManager:
     ) -> Any:
         """创建分身 → 执行委派 → （默认）销毁：分身生命周期与委派契约对齐
 
-        两条与 §5.9 / §3.9 对齐的语义：
-
-        1. **分身 TTL 取契约⑦**：``config.ttl_seconds`` 为 0（永久）时改为
-           ``ceil(timeout_seconds)``——分身存活期不应超过委派契约声明的任务时长，
-           否则超时后的分身会长期残留。
-        2. **名称冲突自动消歧**：并行委派常复用同一份配置模板，同名会撞
-           ``create()`` 的唯一性检查。此处按 ``delegation_id`` 追加后缀，**不改**
-           ``create()`` 自身的既有一致性行为。
+        两条与 §5.9 / §3.9 对齐的语义（**分身 TTL 取契约⑦**、**名称冲突自动消歧**）
+        由 :meth:`_prepare_config` 统一实现，单发与批量走同一份纪律。
 
         Args:
             config: 分身配置模板。
@@ -313,17 +350,7 @@ class SubagentLifecycleManager:
         Returns:
             ``ExecutionOutcome``。
         """
-        if not config.ttl_seconds or config.ttl_seconds <= 0:
-            try:
-                config.ttl_seconds = max(1, int(math.ceil(float(ctx.timeout_seconds))))
-            except (TypeError, ValueError, AttributeError):
-                pass
-
-        name = config.name
-        with self._lock:
-            taken = name in self._subagents
-        if taken:
-            config = replace(config, name=f"{name}-{getattr(ctx, 'delegation_id', 'x')}")
+        config = self._prepare_config(config, ctx)
 
         container = self.create(config)
         try:
@@ -335,6 +362,101 @@ class SubagentLifecycleManager:
         finally:
             if destroy_after and not container.is_destroyed:
                 self.destroy(container)
+
+    def delegate_many(
+        self,
+        specs: "Sequence[Tuple[SubagentConfig, Any]]",
+        *,
+        executor: Any = None,
+        llm: Any = None,
+        destroy_after: bool = True,
+        max_concurrency: Optional[int] = None,
+        tools: Any = (),
+        authorized_capabilities: Any = None,
+        tools_for: Any = None,
+        authorized_for: Any = None,
+        credentials_for: Any = None,
+        parent_trace: Any = None,
+    ) -> List[Any]:
+        """**批量**委派：每个任务一个分身 → 并发执行 → 统一回收（``delegate`` 的批量版）
+
+        ``delegate()`` 是「一条上下文一个分身」的**串行**入口；本方法把同一套分身纪律
+        （TTL 取契约⑦、名称冲突消歧、执行后回收）推广到一批任务，而并发原语**直接复用**
+        ``DelegationExecutor.execute_many``（不自建线程池、不复制屏障/回压逻辑）。
+
+        与 ``delegate()`` 的三点差别：
+        1. 逐任务**复制**配置模板后再适配 —— 同一模板被多条任务复用时，各任务的 TTL
+           分别取自己的契约⑦，不会互相覆盖；
+        2. 建分身失败（容量上限/名称冲突）**就地收敛**为 ``ok=False`` 的结果
+           （``E_SUBAGENT_UNAVAILABLE``），不影响同批其余任务（单发入口是失败即抛）；
+        3. 逐任务工具集经 ``tools_for`` / ``authorized_for`` 工厂传入（同一批里各任务
+           可以各自持有不同的授权集，例如"各按自己的主线档案装配"）。
+
+        Args:
+            specs: ``[(SubagentConfig 模板, DelegationContext), …]``，顺序即结果顺序。
+            executor: 注入的执行器；缺省按 ``llm`` 新建 ``DelegationExecutor``。
+            llm: 缺省执行器所用的 LLM。
+            destroy_after: 执行后是否销毁全部分身（默认 True——批量结束即回收）。
+            max_concurrency / tools / authorized_capabilities / tools_for /
+                authorized_for / credentials_for / parent_trace: 透传 ``execute_many``。
+
+        Returns:
+            与 ``specs`` **等长同序**的 ``ExecutionOutcome`` 列表。
+        """
+        items: list = [(config, ctx) for config, ctx in specs]
+        if not items:
+            return []
+        if executor is None:
+            from agent.subagent.executor import DelegationExecutor
+
+            executor = DelegationExecutor(llm=llm)
+
+        results: list = [None] * len(items)
+        containers: dict = {}
+        runnable: list = []
+        contexts: list = []
+        for idx, (config, ctx) in enumerate(items):
+            # 逐任务复制模板：批量里 TTL 取各自契约⑦（不共享模板的可变字段）
+            prepared = self._prepare_config(replace(config), ctx)
+            try:
+                containers[idx] = self.create(prepared)
+            except SubagentLifecycleError as e:
+                logger.warning("[SubagentLifecycle] 批量委派建分身失败（第 %d 条）: %s",
+                               idx + 1, e)
+                results[idx] = self._unavailable_outcome(ctx, str(e))
+                continue
+            runnable.append(idx)
+            contexts.append(ctx)
+
+        try:
+            if contexts:
+                outcomes = list(executor.execute_many(
+                    contexts, max_concurrency=max_concurrency, tools=tools,
+                    authorized_capabilities=authorized_capabilities,
+                    tools_for=tools_for, authorized_for=authorized_for,
+                    credentials_for=credentials_for, parent_trace=parent_trace))
+                # execute_many 保证按输入顺序返回；仍优先按 delegation_id 归属，
+                # 命不中时回退到位置（与 executor 的顺序契约一致）
+                by_id = {str(getattr(o, "delegation_id", "") or ""): o for o in outcomes}
+                for pos, idx in enumerate(runnable):
+                    ctx = items[idx][1]
+                    outcome = by_id.get(str(getattr(ctx, "delegation_id", "") or ""))
+                    if outcome is None and pos < len(outcomes):
+                        outcome = outcomes[pos]
+                    if outcome is None:
+                        outcome = self._unavailable_outcome(
+                            ctx, "执行器未返回该任务的结果")
+                    results[idx] = outcome
+        finally:
+            if destroy_after:
+                for container in containers.values():
+                    if not container.is_destroyed:
+                        self.destroy(container)
+
+        filled = sum(1 for r in results if r is not None)
+        logger.info("[SubagentLifecycle] 批量委派完成: 任务=%d 已建分身=%d 已回填结果=%d",
+                    len(items), len(containers), filled)
+        return results
 
     # ════════════════════════════════════════════════════════════════════
     #  垃圾回收

@@ -831,6 +831,10 @@ class DelegationExecutor:
                      max_concurrency: Optional[int] = None,
                      tools: Iterable[str] = (),
                      authorized_capabilities: Optional[Iterable[str]] = None,
+                     tools_for: Optional[Callable[[DelegationContext],
+                                                 Iterable[str]]] = None,
+                     authorized_for: Optional[Callable[[DelegationContext],
+                                                       Iterable[str]]] = None,
                      credentials_for: Optional[Callable[[DelegationContext],
                                                         Sequence[Mapping[str, Any]]]] = None,
                      parent_trace: Any = None,
@@ -839,6 +843,11 @@ class DelegationExecutor:
 
         结果**按输入顺序**返回（``as_completed`` 的完成顺序不是调用方要的语义）。
         单个委派的异常不影响其余（就地收敛为 ``ok=False`` 的结果）。
+
+        **逐条委派参数（工厂）**：``tools`` / ``authorized_capabilities`` 是**整批共用**的
+        单值；当一批任务各自持有不同的工具集（例如"每个子代理按自己的主线档案装配"）时，
+        改传 ``tools_for`` / ``authorized_for``——它们是**按 ctx 现算**的工厂，语义与既有的
+        ``credentials_for`` 一致（缺省 None 时退回整批单值，故既有调用点行为不变）。
 
         **跨线程上下文**：``TraceContext`` 是 ContextVar 语义，**不跨线程自动继承**
         （上游已知坑 #4）。故父 Trace 以参数显式传入，子上下文在 **worker 内部**由
@@ -854,8 +863,12 @@ class DelegationExecutor:
         def _run(index: int, ctx: DelegationContext) -> Tuple[int, ExecutionOutcome]:
             creds = credentials_for(ctx) if credentials_for is not None else ()
             try:
+                # 工厂在 try 内求值：工厂自身抛异常同样只影响本条委派（与执行异常同口径）
+                task_tools = tools_for(ctx) if tools_for is not None else tools
+                task_authorized = (authorized_for(ctx) if authorized_for is not None
+                                   else authorized_capabilities)
                 return index, self.execute(
-                    ctx, tools=tools, authorized_capabilities=authorized_capabilities,
+                    ctx, tools=task_tools, authorized_capabilities=task_authorized,
                     credentials=creds, parent_trace=parent_trace)
             except Exception as e:  # noqa: BLE001  线程级兜底：单点异常不拖垮批次
                 logger.error("[Executor] 委派 %s 执行异常: %s", ctx.delegation_id, e)

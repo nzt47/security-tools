@@ -1,0 +1,77 @@
+name: fan_out
+category: async
+description: '并行派发多条主线（fan_out / parallel delegate / multi-agent）：一次调用把 N 个任务**同时**发给 N 个子代理，每个子代理按 task.line
+  指定的主线档案（data/agent_lines/*.yaml）装配自己的工具集。tasks 中每一项都必须写全八要素——①目标 ②约束 ③已有成果 ④禁止事项 ⑤产物格式 ⑥预算令牌 ⑦超时 ⑧回调地址：任一任务缺一项即**整体拒绝**（不会只跑通过的那部分）；③已有成果、④禁止事项确实没有时传空列表
+  []（「声明为空」与「未声明」是两件事），②约束不得为空列表。line 可选：缺省用全局激活主线，没有激活主线时只给只读默认集；主线不存在或已停用会让**该任务失败**（绝不回退成全量授权）。govern
+  平面工具（改云枢自身能力集的那些）默认不授予子代理，只有该主线显式 allow_govern: true 才放行并标注 needs_approval。单个子任务失败不会让整个 fan_out 失败：返回里
+  succeeded/failed 如实计数，逐任务结果在 results。Dispatch N tasks to N subagents concurrently, each with its own
+  line-assembled toolset.'
+deprecated: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: high
+tags:
+- orchestrate
+- parallel
+schema:
+  type: object
+  properties:
+    tasks:
+      type: array
+      description: '并发派发的任务清单：每项对应一个子代理，每项都必须写全八要素（可选 line 指定主线）。任一项不合格即整体拒绝，一个子代理都不会启动。示例：[{"line": "engineering",
+        "goal": "把 docs/zh 下 12 篇设计稿抽取为可复现步骤序列", "constraints": ["只读仓库"], "prior_artifacts": [], "prohibitions":
+        [], "artifact_format": "JSON Lines：每行 {name, steps[]}", "budget_tokens": 20000, "timeout_seconds":
+        600, "callback_url": "internal://fan_out"}]'
+      items:
+        type: object
+        properties:
+          line:
+            type: string
+            description: 主线 id（已有 7 条：assistant / dev / digital_life / engineering / harness / knowledge
+              / recon）。缺省用全局激活主线；无激活主线时只给只读默认集（读文件/检索类，写入与 Shell 不在内）。主线不存在或已停用 ⇒ 该任务失败，不会降级成全量授权
+          goal:
+            type: string
+            description: ①目标：子代理要达成的结果，必须具体可判定（至少 8 字符）。含糊目标会被拒绝——80% 的委派失败源于此
+          constraints:
+            type: array
+            items:
+              type: string
+            description: ②约束：必须遵守的边界条件，字符串列表且**不得为空列表**（无约束的委派等同于未声明边界）。示例：[只读仓库，不得修改任何文件, 不得访问网络]
+          prior_artifacts:
+            type: array
+            items:
+              type: string
+            description: ③已有成果：子代理可直接复用的既有产物引用（文件路径/URL/标识）。确实没有时传空列表 []，**不得省略该字段**
+          prohibitions:
+            type: array
+            items:
+              type: string
+            description: ④禁止事项：明确不许做的事项。确实没有时传空列表 []，**不得省略该字段**。示例：[不得删除任何文件, 不得对外发送数据]
+          artifact_format:
+            type: string
+            description: ⑤产物格式：子代理必须交付的形态，需可机器判定。示例：JSON Lines：每行 {name, steps[]}
+          budget_tokens:
+            type: integer
+            description: ⑥预算令牌：本任务允许消耗的令牌上限，正整数且大于 0（逐任务透传给该子代理的委派契约，并计入汇总预算）
+          timeout_seconds:
+            type: integer
+            description: ⑦超时：本任务的最长执行秒数，正整数且大于 0（执行器据此设执行超时并据此时长回收分身）
+          callback_url:
+            type: string
+            description: ⑧回调地址：结果投递目标，非空字符串（如 internal://fan_out 或 https://…）。空串/纯空白等同于未声明，会被拒绝
+        required:
+        - goal
+        - constraints
+        - prior_artifacts
+        - prohibitions
+        - artifact_format
+        - budget_tokens
+        - timeout_seconds
+        - callback_url
+    max_concurrency:
+      type: integer
+      description: 并发上限（§4.2）：合法区间 1..DEFAULT_MAX_CONCURRENCY（当前 4），缺省 4；越界会被 clamp 到区间内并在返回的 notes 里说明
+  required:
+  - tasks
+examples: []

@@ -244,3 +244,110 @@ class TestLifecycleDelegate:
         assert outcome.cost.counted is False
         assert outcome.cost.wasted is True
         assert executor.cost_ledger.totals()["counted_delegations"] == 0
+
+
+# ════════════════════════════════════════════════════════════
+#  批量委派（delegate 的批量版：建分身 → execute_many → 统一回收）
+# ════════════════════════════════════════════════════════════
+
+
+def make_batch_executor(tmp_path, n: int) -> DelegationExecutor:
+    """批量用执行器：桩通道预置 n 条成功输出（避免多线程争抢同一个输出列表）"""
+    channel = StubChannel([StubChannel._success() for _ in range(max(1, n))])
+    return DelegationExecutor(channel=channel, workspace=str(tmp_path / "ws"))
+
+
+def batch_specs(n: int, **ctx_overrides):
+    return [
+        (SubagentConfig(name=f"batch-{i}", model_id="stub-model"), 
+         make_ctx(delegation_id=f"dlg-{i}", **ctx_overrides))
+        for i in range(n)
+    ]
+
+
+class TestDelegateMany:
+    def test_批量建分身执行回收_结果等长同序(self, tmp_path):
+        manager = SubagentLifecycleManager()
+        specs = batch_specs(3)
+        outcomes = manager.delegate_many(
+            specs, executor=make_batch_executor(tmp_path, 3), max_concurrency=2,
+            tools=["read_file"], authorized_capabilities=["read_file"])
+
+        assert [o.delegation_id for o in outcomes] == ["dlg-0", "dlg-1", "dlg-2"]
+        assert all(o.ok for o in outcomes)
+        assert manager.count() == 0                      # 默认 destroy_after=True
+        assert manager.get_stats()["total_created"] == 3
+        assert manager.get_stats()["total_destroyed"] == 3
+
+    def test_同一模板复用_各任务TTL取自己的契约且模板不被改写(self, tmp_path, config):
+        """批量**复制**模板后逐任务适配：TTL 不互相覆盖，调用方模板保持原样"""
+        manager = SubagentLifecycleManager()
+        specs = [(config, make_ctx(delegation_id="d0", timeout_seconds=5.0)),
+                 (config, make_ctx(delegation_id="d1", timeout_seconds=9.0))]
+        outcomes = manager.delegate_many(
+            specs, executor=make_batch_executor(tmp_path, 2), destroy_after=False)
+
+        assert len(outcomes) == 2
+        names = {c.config.name for c in manager.list()}
+        assert names == {"code-helper", "code-helper-d1"}, "同名复制模板未自动消歧"
+        ttl_by_name = {c.config.name: c.config.ttl_seconds for c in manager.list()}
+        assert ttl_by_name["code-helper"] == 5
+        assert ttl_by_name["code-helper-d1"] == 9, "各任务 TTL 未取自己的契约⑦"
+        assert config.ttl_seconds == 0, "批量不得就地改写调用方传入的配置模板"
+
+    def test_容量上限_只让建不出分身的那条失败(self, tmp_path):
+        """``max_subagents`` 是硬上限：超限任务就地失败（``E_SUBAGENT_UNAVAILABLE``），
+        其余照跑——这是批量与单发的差别（单发 ``delegate`` 是失败即抛）。"""
+        from agent.subagent.lifecycle import SUB_REASON_SUBAGENT_UNAVAILABLE
+
+        manager = SubagentLifecycleManager(max_subagents=1)
+        outcomes = manager.delegate_many(
+            batch_specs(2), executor=make_batch_executor(tmp_path, 1), max_concurrency=2,
+            tools=["read_file"], authorized_capabilities=["read_file"])
+
+        assert len(outcomes) == 2
+        assert [o.ok for o in outcomes] == [True, False]
+        assert outcomes[1].error_code == "E_SUBAGENT_UNAVAILABLE"
+        assert outcomes[1].sub_reason == SUB_REASON_SUBAGENT_UNAVAILABLE
+        assert "上限" in outcomes[1].error
+        assert manager.count() == 0, "已建的分身必须照常回收"
+
+    def test_逐任务工具集经工厂下传(self, tmp_path):
+        """``tools_for`` / ``authorized_for`` 让一批任务各持自己的授权集
+
+        桩通道声称调用了 ``read_file``：授权含它的那条通过，只授权 ``grep`` 的那条
+        被工具裁剪闸门判失败（``E_TOOL_NOT_AUTHORIZED``）——若工厂未逐任务生效，
+        整批单值会让两条都放行。
+        """
+        from agent.subagent.toolset import E_TOOL_NOT_AUTHORIZED
+
+        manager = SubagentLifecycleManager()
+        granted = {"dlg-0": ("read_file",), "dlg-1": ("grep",)}
+
+        def _for(ctx):
+            return granted[ctx.delegation_id]
+
+        outcomes = manager.delegate_many(
+            batch_specs(2), executor=make_batch_executor(tmp_path, 2),
+            max_concurrency=2, tools=("read_file", "grep"),
+            tools_for=_for, authorized_for=_for)
+
+        by_id = {o.delegation_id: o for o in outcomes}
+        assert set(by_id["dlg-0"].toolset["tools"]) == {"read_file"}
+        assert by_id["dlg-0"].ok is True
+        assert set(by_id["dlg-1"].toolset["tools"]) == {"grep"}
+        assert by_id["dlg-1"].ok is False
+        assert by_id["dlg-1"].error_code == E_TOOL_NOT_AUTHORIZED
+
+    def test_空批次返回空列表(self, tmp_path):
+        manager = SubagentLifecycleManager()
+        assert manager.delegate_many([], executor=make_batch_executor(tmp_path, 1)) == []
+
+    def test_未配置执行通道时不假装成功且不留孤儿(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("CP_SUBAGENT_AGENT_CLI", raising=False)
+        manager = SubagentLifecycleManager()
+        outcomes = manager.delegate_many(batch_specs(1))
+
+        assert len(outcomes) == 1
+        assert outcomes[0].ok is False          # 通道未配置 ⇒ 显式失败
+        assert manager.count() == 0, "失败路径也把分身回收掉"

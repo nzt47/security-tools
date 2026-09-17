@@ -597,6 +597,69 @@ class TestParallelOrchestration:
         assert stats["cost"]["delegations"] == 1
         assert stats["isolation"]["policy_id"] == "third_party_mcp_default"
 
+    # ── 逐任务工具集（tools_for / authorized_for 工厂）──────────────────
+    # 背景：``tools`` / ``authorized_capabilities`` 是**整批共用**的单值，"每个子代理
+    # 各按自己的主线档案装配工具集"这类需求只能靠工厂参数（与既有 credentials_for 同款）。
+
+    @pytest.mark.timeout(120)
+    def test_tools_for_applies_per_delegation(self, tmp_path, facade):
+        """桩通道声称调用 ``read_file``：授权含它的那条通过，只授权 ``grep`` 的那条被闸门拒
+
+        若逐任务工厂没生效（退回整批单值 ``TOOLS``/``SUBSET``），两条都会放行。
+        """
+        channel = RecordingChannel([success_line(), success_line()])
+        executor = make_executor(tmp_path, channel=channel, facade=facade, max_concurrency=2)
+        granted = {"dlg-a": ("read_file",), "dlg-b": ("grep",)}
+
+        def _for(ctx):
+            return granted[ctx.delegation_id]
+
+        outcomes = executor.execute_many(
+            [make_ctx(delegation_id="dlg-a"), make_ctx(delegation_id="dlg-b")],
+            max_concurrency=2, tools=TOOLS, authorized_capabilities=SUBSET,
+            tools_for=_for, authorized_for=_for)
+
+        by_id = {o.delegation_id: o for o in outcomes}
+        assert set(by_id["dlg-a"].toolset["tools"]) == {"read_file"}
+        assert by_id["dlg-a"].ok is True
+        assert set(by_id["dlg-b"].toolset["tools"]) == {"grep"}
+        assert by_id["dlg-b"].ok is False
+        assert by_id["dlg-b"].error_code == E_TOOL_NOT_AUTHORIZED
+
+    @pytest.mark.timeout(120)
+    def test_factory_exception_only_fails_that_delegation(self, tmp_path, facade):
+        """工厂自身抛异常与执行异常同口径：只影响那一条，不拖垮整批"""
+        channel = RecordingChannel([success_line()])
+        executor = make_executor(tmp_path, channel=channel, facade=facade)
+
+        def _for(ctx):
+            if ctx.delegation_id == "dlg-boom":
+                raise RuntimeError("工厂炸了")
+            return ("read_file",)
+
+        outcomes = executor.execute_many(
+            [make_ctx(delegation_id="dlg-ok"), make_ctx(delegation_id="dlg-boom")],
+            max_concurrency=2, tools_for=_for, authorized_for=_for)
+
+        by_id = {o.delegation_id: o for o in outcomes}
+        assert len(outcomes) == 2
+        assert by_id["dlg-ok"].ok is True
+        assert by_id["dlg-boom"].ok is False
+        assert by_id["dlg-boom"].error_code == E_DELEGATION_FAILED
+        assert by_id["dlg-boom"].sub_reason == "executor_exception"
+
+    @pytest.mark.timeout(120)
+    def test_batch_wide_tools_still_used_when_no_factories(self, tmp_path, facade):
+        """回归护栏：不给工厂时行为与改动前逐项一致（整批单值仍然生效）"""
+        channel = RecordingChannel([success_line(), success_line()])
+        executor = make_executor(tmp_path, channel=channel, facade=facade)
+        outcomes = executor.execute_many(
+            [make_ctx(delegation_id="dlg-a"), make_ctx(delegation_id="dlg-b")],
+            max_concurrency=2, tools=TOOLS, authorized_capabilities=SUBSET)
+        assert all(o.ok for o in outcomes)
+        for outcome in outcomes:
+            assert set(outcome.toolset["tools"]) == set(SUBSET)
+
 
 # ════════════════════════════════════════════════════════════
 #  通道失败 / 降级 / 回调

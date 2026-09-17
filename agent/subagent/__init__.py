@@ -49,7 +49,11 @@
 """
 
 from agent.subagent.container import SubagentConfig, SubagentContainer
-from agent.subagent.lifecycle import SubagentLifecycleManager
+from agent.subagent.lifecycle import (
+    E_SUBAGENT_UNAVAILABLE,
+    SUB_REASON_SUBAGENT_UNAVAILABLE,
+    SubagentLifecycleManager,
+)
 from agent.subagent.sandbox import Sandbox, PermissionDenied
 
 # ── v7.2 新增：委派契约 / 通道 / 执行器 / 回收 / 凭据 / 工具裁剪 ──
@@ -110,6 +114,9 @@ __all__ = [
     "SubagentConfig",
     "SubagentContainer",
     "SubagentLifecycleManager",
+    # 批量委派：建分身失败的就地失败码（delegate_many）
+    "E_SUBAGENT_UNAVAILABLE",
+    "SUB_REASON_SUBAGENT_UNAVAILABLE",
     "Sandbox",
     "PermissionDenied",
     # 委派契约（§3.9 / §3.10）
