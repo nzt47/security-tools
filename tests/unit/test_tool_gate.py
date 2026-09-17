@@ -52,7 +52,17 @@ class _GateFiles:
 
 @pytest.fixture
 def gate(tmp_path, monkeypatch):
-    """把两个路径常量指向 tmp_path 的假文件；默认两份文件都是"空规则" """
+    """把两个路径常量指向 tmp_path 的假文件；默认两份文件都是"空规则"
+
+    【不易·审批边界开关】本夹具**显式开启** ``CP_TOOL_GATE_APPROVAL_ENFORCE``：
+    2026-09-17 起，``trust.requires_approval=true``（描述符）与治理平面 ``needs_approval``
+    的拦截**默认只告警不拦截**，只有该开关取 1/true/yes/on 才返回结构化拒绝
+    （见 ``agent/tool_gate.py`` 模块 docstring 与 ``agent/settings/registry.py`` 的
+    ``CP_TOOL_GATE_APPROVAL_ENFORCE`` 条目）。开关本身在代码里是**默认关闭**的，
+    故凡断言"要求审批即拒绝"的用例都必须显式打开它——这不是放宽断言，
+    而是把"审批边界生效"的前提写清楚；默认关闭态的用例见
+    ``TestApprovalEnforceSwitch``。
+    """
     import agent.tool_gate as G
 
     files = _GateFiles(G, tmp_path / "permission_policies.json",
@@ -60,6 +70,7 @@ def gate(tmp_path, monkeypatch):
     monkeypatch.setattr(G, "POLICY_POLICIES_PATH", str(files.policy_path))
     monkeypatch.setattr(G, "DESCRIPTORS_PATH", str(files.desc_path))
     monkeypatch.delenv(G.GATE_ENABLED_ENV, raising=False)
+    monkeypatch.setenv(G.APPROVAL_ENFORCE_ENV, "1")
     G._reset_cache()
     files.write_policy({"version": 1, "default_role": "guest", "roles": {}})
     files.write_descriptors({"schema_version": 1, "descriptors": {}})
@@ -221,6 +232,49 @@ class TestRequiresApproval:
         assert "requires_approval" in gate.check("write_file")["error"]
         assert "denied_tools" in gate.check("system_format")["error"]
         assert gate.check("read_file") is None
+
+
+class TestApprovalEnforceSwitch:
+    """审批边界开关的两态：默认只告警 / 显式打开才拦截（2026-09-17 起的口径）
+
+    【为什么单独钉住"默认口径"】``CP_TOOL_GATE_APPROVAL_ENFORCE`` 默认关闭 ⇒
+    ``requires_approval=true`` 的工具调用**只告警不拦截**（描述符回填后
+    ``shell_execute`` 首次变成 requires_approval=true，默认拦截会挡掉关键工具调用）。
+    这是**安全姿态**，必须显式可断言：若哪天默认改成拦截，本用例会失败，
+    提醒同步 ``agent/settings/registry.py`` 的条目与部署侧开关。
+    """
+
+    @staticmethod
+    def _write_approval_descriptor(gate):
+        gate.write_descriptors({"descriptors": {
+            "cp.builtin.write_file": _descriptor_entry(
+                "cp.builtin.write_file", "write_file", True)}})
+
+    def test_默认只告警不拦截(self, gate, monkeypatch):
+        import agent.tool_gate as G
+
+        monkeypatch.delenv(G.APPROVAL_ENFORCE_ENV, raising=False)
+        assert G._approval_enforce_enabled() is False
+        self._write_approval_descriptor(gate)
+        assert gate.check("write_file") is None          # 默认：告警但放行
+
+    @pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on", " on "])
+    def test_显式打开即拦截(self, gate, monkeypatch, value):
+        import agent.tool_gate as G
+
+        monkeypatch.setenv(G.APPROVAL_ENFORCE_ENV, value)
+        assert G._approval_enforce_enabled() is True
+        self._write_approval_descriptor(gate)
+        result = gate.check("write_file")
+        assert result is not None and result["blocked"] is True
+
+    @pytest.mark.parametrize("value", ["0", "false", "no", "off", ""])
+    def test_非使能值不拦截(self, gate, monkeypatch, value):
+        import agent.tool_gate as G
+
+        monkeypatch.setenv(G.APPROVAL_ENFORCE_ENV, value)
+        self._write_approval_descriptor(gate)
+        assert gate.check("write_file") is None
 
 
 # ════════════════════════════════════════════════════════════

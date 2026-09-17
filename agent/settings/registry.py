@@ -691,6 +691,15 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "工具闸门严格模式：把 PermissionGateway 的 RBAC/ABAC 接进工具主链路（默认关闭）",
        owner="agent/tool_gate.py",
        impact="影响面：开启后未在角色白名单内的工具会被拒；请先确认角色清单与作息相关的 ABAC 规则"),
+    # 【B 级理由】审批边界开关：它决定"requires_approval 的工具调用是被拒绝还是只告警"。
+    #   默认关闭=只告警（2026-09-17 描述符回填后 shell_execute 首次变成 requires_approval=true，
+    #   若默认拦截会直接挡掉关键工具调用，故取"只告警"并在部署侧显式开启）。
+    _b("CP_TOOL_GATE_APPROVAL_ENFORCE", CAT_SELF_HEALING, False,
+       "工具闸门审批边界开关：置 1/true/yes/on ⇒ 描述符 trust.requires_approval 与治理平面 "
+       "needs_approval 的工具调用返回结构化拒绝（APPROVAL_REQUIRED）；默认 False = 只告警不拦截",
+       owner="agent/tool_gate.py",
+       impact="影响面：开启=审批边界真正生效（critical 工具如 shell_execute 会被拒到人工审批）；"
+              "关闭=边界只告警不拦截"),
     _a("CP_PERMISSION_DEFAULT_ROLE", CAT_SELF_HEALING, "owner",
        "严格模式下使用的角色（owner/admin/developer/guest）；非法值回退 owner",
        owner="agent/tool_gate.py"),

@@ -9,10 +9,10 @@ PermissionGateway 三层权限架构端到端集成测试
                     | (仅查询)   | (受限)     | (全工具+ABAC约束)
 ─────────────────────┼───────────┼────────────┼──────────────────
 工作时间+CLI+内网IP  | 查询通过   | Shell通过  | 全工具通过
-                    |           |            | software_install通过
+                    |           |            | ext_install通过
 非工作时间+CLI       | N/A(RBAC拦)| ABAC拦Shell| N/A(ABAC不拦admin的shell)
 scheduled来源       | N/A       | ABAC拦写入  | N/A
-外网IP              | N/A       | N/A        | ABAC拦software_install/stop_process
+外网IP              | N/A       | N/A        | ABAC拦ext_install/stop_process
 rm -rf /            | RBAC先拦   | 正则拦     | 正则拦
 降级模式            | RBAC跳过   | RBAC跳过   | RBAC跳过,正则仍拦
 
@@ -56,7 +56,7 @@ E2E_POLICY = {
                 "web_search", "read_file", "write_file",
                 "shell_execute", "run_program",
             ],
-            "denied_tools": ["software_install", "stop_process"],
+            "denied_tools": ["ext_install", "stop_process"],
         },
         "guest": {
             "description": "访客,仅查询",
@@ -77,11 +77,11 @@ E2E_POLICY = {
         },
         # 规则名沿用真实策略(其 _inactive_rules)中的历史命名;目标工具原写
         # 未注册的 system_format / system_shutdown(规则永不触发),现改为真实
-        # 且危险的 software_install / stop_process,语义不变:
+        # 且危险的 ext_install / stop_process,语义不变:
         # 「危险系统操作仅限内网 IP」。
         {
             "name": "internal-only-format",
-            "tool": "software_install",
+            "tool": "ext_install",
             "deny_if": {
                 "ip_not_in_cidr": ["10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"]
             },
@@ -227,9 +227,9 @@ class TestDeveloperE2E:
     @pytest.mark.integration
     @pytest.mark.p0
     def test_developer_system_format_blocked_by_rbac(self, gateway):
-        """DEVELOPER 调 software_install → RBAC denied_tools 拦截"""
+        """DEVELOPER 调 ext_install → RBAC denied_tools 拦截"""
         ctx = ABACContext(role=Role.DEVELOPER, session_source="cli")
-        result = gateway.check("software_install", {}, ctx)
+        result = gateway.check("ext_install", {}, ctx)
         assert not result.allowed
         assert result.reason == "权限不足"
 
@@ -242,7 +242,7 @@ class TestAdminE2E:
     """ADMIN 用户端到端测试
 
     admin 的 allowed_tools=["*"] 使其通过所有 RBAC 检查,
-    但 ABAC 规则仍约束危险操作(software_install/stop_process 仅内网 IP)。
+    但 ABAC 规则仍约束危险操作(ext_install/stop_process 仅内网 IP)。
     """
 
     @pytest.mark.integration
@@ -258,17 +258,17 @@ class TestAdminE2E:
     @pytest.mark.integration
     @pytest.mark.p0
     def test_admin_format_internal_ip_allowed(self, gateway):
-        """ADMIN 内网 IP 调 software_install → 通过"""
+        """ADMIN 内网 IP 调 ext_install → 通过"""
         ctx = ABACContext(role=Role.ADMIN, ip="192.168.1.100")
-        result = gateway.check("software_install", {}, ctx)
+        result = gateway.check("ext_install", {}, ctx)
         assert result.allowed
 
     @pytest.mark.integration
     @pytest.mark.p0
     def test_admin_format_external_ip_blocked(self, gateway):
-        """ADMIN 外网 IP 调 software_install → ABAC 拦截"""
+        """ADMIN 外网 IP 调 ext_install → ABAC 拦截"""
         ctx = ABACContext(role=Role.ADMIN, ip="203.0.113.1")
-        result = gateway.check("software_install", {}, ctx)
+        result = gateway.check("ext_install", {}, ctx)
         assert not result.allowed
         assert result.reason == "权限不足"
 
@@ -302,9 +302,9 @@ class TestAdminE2E:
     @pytest.mark.integration
     @pytest.mark.p1
     def test_admin_no_ip_blocked_for_format(self, gateway):
-        """ADMIN 未提供 IP 调 software_install → ABAC 拦截(ip_not_in_cidr)"""
+        """ADMIN 未提供 IP 调 ext_install → ABAC 拦截(ip_not_in_cidr)"""
         ctx = ABACContext(role=Role.ADMIN, ip=None)
-        result = gateway.check("software_install", {}, ctx)
+        result = gateway.check("ext_install", {}, ctx)
         assert not result.allowed
 
 
@@ -373,14 +373,14 @@ class TestCrossRoleMatrix:
         (Role.ADMIN, True),
     ])
     def test_system_format_access_matrix(self, gateway, role, expected_allowed):
-        """software_install 在不同角色下的访问权限(函数名沿用历史命名)
+        """ext_install 在不同角色下的访问权限(函数名沿用历史命名)
 
         GUEST: RBAC 拦截(不在 allowed_tools)
         DEVELOPER: RBAC 拦截(在 denied_tools)
         ADMIN: RBAC 通过(*), ABAC 需内网 IP(此测试用内网 IP)
         """
         ctx = ABACContext(role=role, ip="10.0.0.1")
-        result = gateway.check("software_install", {}, ctx)
+        result = gateway.check("ext_install", {}, ctx)
         assert result.allowed == expected_allowed
 
     @pytest.mark.integration
@@ -394,9 +394,9 @@ class TestCrossRoleMatrix:
         ("invalid", False),       # 非法
     ])
     def test_admin_format_ip_matrix(self, gateway, ip, expected_allowed):
-        """ADMIN 调 software_install 在不同 IP 下的 ABAC 校验"""
+        """ADMIN 调 ext_install 在不同 IP 下的 ABAC 校验"""
         ctx = ABACContext(role=Role.ADMIN, ip=ip)
-        result = gateway.check("software_install", {}, ctx)
+        result = gateway.check("ext_install", {}, ctx)
         assert result.allowed == expected_allowed
 
 
@@ -436,7 +436,7 @@ class TestSessionSimulation:
         """模拟 ADMIN 一次危险会话: 内网装软件→外网停进程→rm -rf"""
         # 1. 内网 IP 装软件(原语义: 内网格式化) → 通过
         ctx_internal = ABACContext(role=Role.ADMIN, ip="10.0.0.1")
-        r = gateway.check("software_install", {}, ctx_internal)
+        r = gateway.check("ext_install", {}, ctx_internal)
         assert r.allowed
 
         # 2. 外网 IP 停进程(原语义: 外网关机) → ABAC 拦截

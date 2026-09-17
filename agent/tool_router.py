@@ -307,6 +307,21 @@ TOOL_CATEGORIES = _load_tool_categories_from_yaml() or _DEFAULT_TOOL_CATEGORIES
 # 平铺所有工具（用于校验完整性）
 ALL_TOOLS_SET = {tool for cat in TOOL_CATEGORIES.values() for tool in cat["tools"]}
 
+# ── 依赖倒置：把「类别 → priority/tools」表**注入**可观测层（不做反向 import）──
+# Why：`agent.observability.tool_trace` 需要按类别优先级派生高频工具采样集，
+#   但它**不得** import 本模块 —— 那会构成 `tool_router ↔ tool_trace` 环，
+#   被架构门禁 `no_circular_dependency` 判违规（2026-09-17 实测：1 条未豁免违规）。
+#   故由本模块（上游）在 TOOL_CATEGORIES 就绪后主动注入；注入失败不影响路由。
+if ToolTraceRecorder is not None:
+    try:
+        from agent.observability.tool_trace import (
+            register_tool_category_source as _register_category_source,
+        )
+
+        _register_category_source(lambda: TOOL_CATEGORIES)
+    except Exception:  # noqa: BLE001 注入失败不得影响工具路由
+        pass
+
 # 工具别名映射 —— **已废弃为空**（2026-09-17）
 # ══════════════════════════════════════════════════════════════════════════
 # 【为什么废弃：这套机制的设计意图是去重，实际效果是**删掉唯一可用的工具**】

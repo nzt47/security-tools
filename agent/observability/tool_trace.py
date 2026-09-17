@@ -55,8 +55,9 @@ _DANGEROUS_CMDS_PATH = os.path.join(_PROJECT_ROOT, "data", "dangerous_commands.j
 #   硬编码的后果：工具集一变它就过期。实测已残留 4 个不存在/已合并掉的工具名
 #   （web_xpath / web_css / web_clean_data / fetch_news / expand_context），
 #   于是这些名字永远匹配不到，采样判定静默失真。
-#   现改为**按注释所述派生**：从 TOOL_CATEGORIES 按 priority 平铺取前 20。
-#   【不易】派生失败必须回退到静态兜底，绝不能因为 import 问题让 tracing 崩掉。
+#   现改为**按注释所述派生**：类别表由路由层经 register_tool_category_source 注入
+#   （依赖倒置，避免可观测层反向依赖路由层 ⇒ 架构门禁 no_circular_dependency 无环）。
+#   【不易】来源未注入或派生失败必须回退到静态兜底，绝不能因为 import 问题让 tracing 崩掉。
 _FALLBACK_HIGH_FREQ_TOOLS = frozenset([
     "get_status", "search_memory", "remember", "get_sensor_summary", "todo_write",
     "web_search", "web_get", "web_post", "web_download", "web_batch",
@@ -64,21 +65,49 @@ _FALLBACK_HIGH_FREQ_TOOLS = frozenset([
 ])
 
 
-def _derive_high_freq_tools(limit: int = 20) -> frozenset:
-    """从 tool_router.TOOL_CATEGORIES 按类别优先级平铺取前 N 个工具名
+def _flatten_by_priority(table: Any, limit: int = 20) -> frozenset:
+    """把「类别 → {priority, tools}」表按 priority 平铺取前 N 个工具名（纯函数）"""
+    ordered: list[str] = []
+    for _cat, info in sorted(
+            dict(table or {}).items(), key=lambda kv: kv[1].get("priority", 99)):
+        for tool in info.get("tools", []):
+            if tool not in ordered:
+                ordered.append(str(tool))
+    return frozenset(ordered[:limit])
 
-    【简易】纯读取；任何异常都回退到 _FALLBACK_HIGH_FREQ_TOOLS。
+
+#: 类别表来源（由**上游**路由层注入；可观测层不得反向 import 路由层）
+_TOOL_CATEGORY_SOURCE = None
+
+
+def register_tool_category_source(source: Any) -> None:
+    """注入「类别 → {priority, tools}」表来源，并立即重算 ``HIGH_FREQ_TOOLS``
+
+    【不易·依赖倒置】本模块需要按类别优先级派生高频工具采样集，但**不得**自己
+    ``import agent.tool_router``——那会构成 ``tool_router → tool_trace → tool_router``
+    的环，被架构门禁 ``no_circular_dependency`` 判违规（2026-09-17 实测：
+    S11-10 刚把架构环清零，此处的延迟 import 又引入 1 条未豁免违规）。
+    故由路由层（上游）在 ``TOOL_CATEGORIES`` 就绪后主动调用本函数注入；
+    注入失败/未注入时回退 ``_FALLBACK_HIGH_FREQ_TOOLS``（绝不因 import 问题让 tracing 崩掉）。
+
+    Args:
+        source: 零参可调用对象，返回 ``{类别: {"priority": int, "tools": [...]}}``。
+    """
+    global _TOOL_CATEGORY_SOURCE, HIGH_FREQ_TOOLS
+    _TOOL_CATEGORY_SOURCE = source
+    HIGH_FREQ_TOOLS = _derive_high_freq_tools()
+
+
+def _derive_high_freq_tools(limit: int = 20) -> frozenset:
+    """按类别优先级平铺取前 N 个工具名（来源见 ``register_tool_category_source``）
+
+    【简易】纯读取；未注入来源或任何异常都回退到 _FALLBACK_HIGH_FREQ_TOOLS。
     """
     try:
-        from agent.tool_router import TOOL_CATEGORIES  # 延迟导入，避免可观测层反向依赖路由层
-        ordered: list[str] = []
-        for _cat, info in sorted(
-                TOOL_CATEGORIES.items(), key=lambda kv: kv[1].get("priority", 99)):
-            for tool in info.get("tools", []):
-                if tool not in ordered:
-                    ordered.append(str(tool))
-        if ordered:
-            return frozenset(ordered[:limit])
+        if _TOOL_CATEGORY_SOURCE is not None:
+            derived = _flatten_by_priority(_TOOL_CATEGORY_SOURCE(), limit)
+            if derived:
+                return derived
     except Exception:  # noqa: BLE001 派生失败不得影响 tracing
         pass
     return _FALLBACK_HIGH_FREQ_TOOLS

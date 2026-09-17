@@ -519,12 +519,29 @@ class TestRunSandbox:
         """Mock multiprocessing spawn 避免 CI Linux pickle 错误"""
         self._spawn = mock_sandbox_spawn
 
-    def test_run_sandbox_simple_print(self):
+    def test_run_sandbox_unsafe_builtin_raises_nameerror(self):
+        """非白名单内置名 ⇒ ``NameError``（白名单是"默认拒绝"）
+
+        【口径更新 2026-09-17】原用例拿 ``print`` 当探针（"print 不在安全内置函数中"），
+        但 ``print`` 现已补入 ``_SAFE_BUILTINS`` —— 沙盒靠 StringIO 捕获 stdout，
+        没有 ``print`` 则沙盒代码**无法产出任何输出**（只能观察是否抛异常），
+        属遗漏修复而非放宽边界（见 ``agent/system_tools.py`` 该表上方注释）。
+        探针因此改用同样被排除的 ``repr``；不用 ``open`` 是因为它先被
+        ``_SANDBOX_BLOCKED_PATTERNS`` 拦下（报"代码包含被禁止的模式"而非 NameError）。
+        """
         from agent.system_tools import run_sandbox, _SAFE_BUILTINS
-        # print 不在安全内置函数中，会触发 NameError
-        result = run_sandbox("print('hello')")
+        assert "repr" not in _SAFE_BUILTINS, "口径自检：repr 必须仍不在安全内置内"
+        result = run_sandbox("x = repr(1)")
         assert result["error"] is not None
         assert "NameError" in result["error"]
+
+    def test_run_sandbox_print_allowed_and_captured(self):
+        """``print`` 在安全内置内，且其输出确实被捕获（run_sandbox 的既有承诺）"""
+        from agent.system_tools import run_sandbox, _SAFE_BUILTINS
+        assert "print" in _SAFE_BUILTINS
+        result = run_sandbox("print('hello')")
+        assert result["error"] is None
+        assert "hello" in result["stdout"]
 
     def test_run_sandbox_safe_arithmetic(self):
         from agent.system_tools import run_sandbox

@@ -58,12 +58,23 @@ def reset_singleton():
 
 @pytest.fixture
 def patch_paths(tmp_path, monkeypatch):
-    """将模块级文件路径重定向到临时目录"""
+    """将模块级文件路径重定向到临时目录
+
+    【不易·统一存储（P0③ 修复，2026-09-17）】本引擎的任务现在写入**统一调度存储**
+    ``data/scheduled_tasks.json`` 的 ``scheduler_tasks`` 命名空间（与 task_scheduler 的
+    ``tasks`` 同文件不同键，见 ``agent/scheduling.py::save_to_file`` 的说明）；
+    ``schedules.json`` 降级为**迁移来源**。
+    故此处必须把 ``SCHEDULED_STORE_FILE`` 一并重定向：只重定向旧文件会让用例
+    写进真实 ``data/scheduled_tasks.json``（``test_save_to_file_empty`` 更会清空
+    真实命名空间），属于测试隔离红线。
+    """
     schedules_file = tmp_path / "schedules.json"
+    store_file = tmp_path / "scheduled_tasks.json"
     history_file = tmp_path / "schedule_history.jsonl"
     monkeypatch.setattr("agent.scheduling.SCHEDULES_FILE", schedules_file)
+    monkeypatch.setattr("agent.scheduling.SCHEDULED_STORE_FILE", store_file)
     monkeypatch.setattr("agent.scheduling.SCHEDULE_HISTORY_FILE", history_file)
-    return {"schedules": schedules_file, "history": history_file}
+    return {"schedules": schedules_file, "store": store_file, "history": history_file}
 
 
 # ============================================================================
@@ -116,7 +127,7 @@ class TestLifecycle:
 
     def test_stop_persists_tasks(self, scheduler, patch_paths):
         scheduler.stop()
-        assert patch_paths["schedules"].exists()
+        assert patch_paths["store"].exists()
 
     def test_run_loop_exits_on_stop(self, scheduler, patch_paths):
         scheduler._running = True
@@ -481,23 +492,37 @@ class TestExecuteTask:
 
 class TestPersistence:
     def test_save_to_file(self, scheduler, patch_paths):
+        """写入统一存储的 ``scheduler_tasks`` 命名空间（并保留另一引擎的 ``tasks``）"""
         scheduler.add_task("t1", interval_minutes=10)
         scheduler.save_to_file()
-        assert patch_paths["schedules"].exists()
-        data = json.loads(patch_paths["schedules"].read_text(encoding="utf-8"))
-        assert "tasks" in data
-        assert len(data["tasks"]) == 1
-        assert data["tasks"][0]["name"] == "t1"
+        assert patch_paths["store"].exists()
+        data = json.loads(patch_paths["store"].read_text(encoding="utf-8"))
+        assert data["tasks"] == []                      # 另一引擎的命名空间保留
+        assert len(data["scheduler_tasks"]) == 1
+        assert data["scheduler_tasks"][0]["name"] == "t1"
 
     def test_save_to_file_empty(self, scheduler, patch_paths):
         scheduler.save_to_file()
-        data = json.loads(patch_paths["schedules"].read_text(encoding="utf-8"))
-        assert data["tasks"] == []
+        data = json.loads(patch_paths["store"].read_text(encoding="utf-8"))
+        assert data["scheduler_tasks"] == []
+
+    def test_save_keeps_other_engine_namespace(self, scheduler, patch_paths):
+        """读—改—写：写入本引擎任务时**不得**丢掉 task_scheduler 的 ``tasks``"""
+        patch_paths["store"].write_text(json.dumps({
+            "tasks": [{"id": "cmd_1", "command": "echo hi"}],
+            "scheduler_tasks": [],
+        }), encoding="utf-8")
+        scheduler.add_task("t2", interval_minutes=5)
+        scheduler.save_to_file()
+        data = json.loads(patch_paths["store"].read_text(encoding="utf-8"))
+        assert [t["id"] for t in data["tasks"]] == ["cmd_1"]
+        assert [t["name"] for t in data["scheduler_tasks"]] == ["t2"]
 
     def test_load_from_file(self, scheduler, patch_paths):
+        """从统一存储的 ``scheduler_tasks`` 命名空间加载本引擎任务"""
         tasks_data = {
-            "updated_at": "2026-01-01T00:00:00+00:00",
-            "tasks": [
+            "tasks": [],
+            "scheduler_tasks": [
                 {
                     "id": "task_abc123",
                     "name": "loaded_task",
@@ -511,13 +536,39 @@ class TestPersistence:
                     "last_run": None,
                     "run_count": 0,
                 }
-            ]
+            ],
         }
-        patch_paths["schedules"].write_text(json.dumps(tasks_data), encoding="utf-8")
+        patch_paths["store"].write_text(json.dumps(tasks_data), encoding="utf-8")
         scheduler.load_from_file()
         task = scheduler.get_task("task_abc123")
         assert task is not None
         assert task["name"] == "loaded_task"
+
+    def test_load_migrates_legacy_schedules_json(self, scheduler, patch_paths):
+        """兼容路径：分脑时代的旧 ``schedules.json`` 仍会被迁移进统一存储并被加载"""
+        legacy = {
+            "updated_at": "2026-01-01T00:00:00+00:00",
+            "tasks": [
+                {
+                    "id": "task_legacy1",
+                    "name": "legacy_task",
+                    "interval_minutes": 30,
+                    "cron_expr": "",
+                    "action": "test",
+                    "params": {},
+                    "enabled": True,
+                    "paused": False,
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                    "last_run": None,
+                    "run_count": 0,
+                }
+            ],
+        }
+        patch_paths["schedules"].write_text(json.dumps(legacy), encoding="utf-8")
+        scheduler.load_from_file()
+        assert scheduler.get_task("task_legacy1") is not None
+        migrated = json.loads(patch_paths["store"].read_text(encoding="utf-8"))
+        assert [t["id"] for t in migrated["scheduler_tasks"]] == ["task_legacy1"]
 
     def test_load_from_file_no_file(self, scheduler, patch_paths):
         scheduler.load_from_file()

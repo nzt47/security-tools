@@ -349,10 +349,16 @@ class TestHITL:
         assert risk == RiskLevel.CRITICAL
     
     def test_assess_database_write(self):
-        """测试评估写库操作"""
+        """评估写库操作 ⇒ **HIGH**（口径更新 2026-09-17）
+
+        旧口径返回 MEDIUM（本模块自维护的风险表）。2026-09-17 起 ``hitl.assess``
+        改为以 ``data/tool_definitions/*.yaml`` 的 ``risk`` 为唯一权威派生等级，
+        写库类动作（insert / update / delete / drop）属"改变世界"的动作，
+        按新口径升为 HIGH —— 这是**收紧**（更严），不是为过测试而放宽。
+        """
         hitl = HITLManager()
         risk = hitl.assess("insert", {"table": "users"})
-        assert risk == RiskLevel.MEDIUM
+        assert risk == RiskLevel.HIGH
     
     def test_request_approval_low_risk_auto_approve(self):
         """测试低风险操作自动批准"""
