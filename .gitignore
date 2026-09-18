@@ -142,6 +142,11 @@ data/task_history.jsonl
 data/auto_tuning/
 data/resource_monitor_history.jsonl
 data/schedules.json
+# 计划工具（todo_write）的跨会话清单：启动时为空、运行期填充的**本地状态**，
+# 与 data/scheduled_tasks.json / data/skills.json 同类（写入方只有
+# agent/tools/plan_tools.py；其 docstring 说明"路径与结构是契约"，但**契约是结构**
+# 不是"要把本机内容入库"）。手册里演示用的 sess-A 样例不构成源码。
+data/todos.json
 # 动态工具运行时台账与自生成工具模块（云枢自生成能力的本地状态）
 # 与 data/scheduled_tasks.json / data/skills.json 同类：启动时为空、运行期填充，
 # 属环境本地状态而非源码。见 agent/tools/persistence.py 与 docs/工具能力补全路线.md。

@@ -20,6 +20,7 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+from typing import Any, Dict
 from unittest.mock import MagicMock
 
 import pytest
@@ -78,7 +79,9 @@ def _task(**overrides) -> dict:
 def _outcome(delegation_id: str = "", ok: bool = True,
              tokens: int = 0, **overrides) -> ExecutionOutcome:
     """假 ``ExecutionOutcome``（真实 dataclass：字段映射才是真校验）"""
-    data = {
+    # 显式标注 Dict[str, Any]：混合取值会被推成 dict[str, object]，
+    # 展开给 dataclass 时会报 10 处 arg-type（mypy 实测踩过）
+    data: Dict[str, Any] = {
         "delegation_id": delegation_id,
         "ok": ok,
         "tier": "jsonl",
@@ -892,6 +895,48 @@ class TestRealExecutorIntegration:
         for outcome in holder["executor"].outcomes:
             assert not set(outcome.toolset["tools"]) & govern
         assert manager.count() == 0
+
+
+class TestSharedConcurrencyBarrier:
+    """并发上限是**进程级**的：跨多次 fan_out 调用共用一个屏障
+
+    为什么必须锁住：每次调用都新建执行器，若屏障随执行器新建，§4.2 的"并发上限 N"
+    就退化成"每次调用 N"（全局 = 调用数 × N，无上界）。本类钉住"共享的是同一个屏障对象"。
+    """
+
+    def test_屏障是进程级单例且上限等于_DEFAULT_MAX_CONCURRENCY(self):
+        b1 = fan_out_tools._shared_barrier()
+        b2 = fan_out_tools._shared_barrier()
+        assert b1 is b2, "每次调用都新建屏障 ⇒ 并发上限只是每调用的，不是全局的"
+        assert b1.max_concurrency == DEFAULT_MAX_CONCURRENCY
+        assert b1.name == "fan_out"
+
+    def test_真构建路径把共享屏障注入执行器(self):
+        """`_build_executor` 走真 `build_executor` ⇒ executor.barrier 就是共享屏障"""
+        executor = fan_out_tools._build_executor(_StubLlm())
+        assert executor.barrier is fan_out_tools._shared_barrier()
+
+    def test_真实批量确实经过共享屏障计数(self, full_pool):
+        """跑一批（真执行器 + 桩 LLM），共享屏障的 admitted 计数必须增长
+
+        本用例**不**替换 `_build_executor`：必须走真 `build_executor`，才能证明
+        生产路径确实注入了共享屏障（替换成假执行器会绕过屏障，等于没测到）。
+        """
+        barrier = fan_out_tools._shared_barrier()
+        before = barrier.stats().total_admitted
+        dl = MagicMock()
+        dl._subagent_mgr = SubagentLifecycleManager()
+        dl._llm = _StubLlm()
+        fan_out_tools.register_all(dl)
+        handler = _tools._registry["fan_out"]["handler"]
+
+        result = handler(tasks=[_task(line="dev"), _task(line="assistant")],
+                         max_concurrency=2)
+        assert result["succeeded"] == 2, result
+        after = barrier.stats()
+        assert after.total_admitted - before == 2, (
+            "真实批量没有经过共享屏障 ⇒ 跨调用并发上限不成立")
+        assert after.in_flight == 0, "批次结束后必须归还全部槽位"
 
 
 # ════════════════════════════════════════════════════════════

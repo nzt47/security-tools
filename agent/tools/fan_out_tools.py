@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import uuid
 from typing import Any, Dict, List, Mapping, Tuple
 
@@ -163,11 +164,42 @@ def _available_tool_names() -> List[str]:
     return names
 
 
+#: 进程级共享并发屏障（懒建单例；见 :func:`_shared_barrier`）
+_SHARED_BARRIER: Any = None
+_SHARED_BARRIER_LOCK = threading.Lock()
+
+
+def _shared_barrier() -> Any:
+    """取**进程级共享**并发屏障（懒建单例；单测可 monkeypatch 本函数替换）
+
+    【为什么必须是进程级】每次 `fan_out` 调用都会 `build_executor()` 新建执行器，
+    而执行器缺省自建屏障 ⇒ 两个并发调用各自可跑 `DEFAULT_MAX_CONCURRENCY` 个，
+    §4.2 的"并发上限 N"就退化成"**每次调用** N"（全局并发= 调用数 × N，无上界）。
+    把屏障提到进程级并注入执行器后，全局在途子代理数受**同一个信号量**约束；
+    超出即在屏障上回压（纯回压：不设 `queue_timeout` ⇒ 排队等待而**不静默失败**）。
+
+    【不易】屏障只在**本模块内**共享：`delegate` 单发路径与其它执行器不共用它，
+    避免把"多线派发的并发预算"偷偷变成全仓调度器（那是 §4.2 调度层的职责）。
+    """
+    global _SHARED_BARRIER
+    with _SHARED_BARRIER_LOCK:
+        if _SHARED_BARRIER is None:
+            from agent.subagent.barrier import ConcurrencyBarrier
+            from agent.subagent.executor import DEFAULT_MAX_CONCURRENCY
+
+            _SHARED_BARRIER = ConcurrencyBarrier(
+                max_concurrency=int(DEFAULT_MAX_CONCURRENCY), name="fan_out")
+        return _SHARED_BARRIER
+
+
 def _build_executor(llm: Any) -> Any:
-    """构造批量执行器（**注入点**：单测据此替换为 mock，不启真实进程/LLM）"""
+    """构造批量执行器（**注入点**：单测据此替换为 mock，不启真实进程/LLM）
+
+    注入 `_shared_barrier()`：并发上限因此是**进程级**的，而不是"每调用一份"。
+    """
     from agent.subagent.executor import build_executor
 
-    return build_executor(llm=llm)
+    return build_executor(llm=llm, barrier=_shared_barrier())
 
 
 def _format_problems(problems: Mapping[str, str]) -> str:

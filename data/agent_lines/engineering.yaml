@@ -37,7 +37,7 @@ mute:
 tags:
 - code
 - orchestrate
-max_tools: 24
+max_tools: 26
 effect_allow:
 - read
 - write

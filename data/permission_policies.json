@@ -16,7 +16,9 @@
         "read_file",
         "write_file",
         "edit",
-        "shell_execute"
+        "shell_execute",
+        "delegate",
+        "fan_out"
       ],
       "denied_tools": []
     },
