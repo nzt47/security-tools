@@ -117,7 +117,7 @@
 | `data/agent_lines/_active.json`、`data/tools_config.json`、`data/system_prompt_config.json` 留在工作区未提交 | 运行时状态 | 这三处是**运行中的应用**写的状态（活动主线、工具开关、`_last_applied` 时间戳），非本次交付物；不混进交付提交，由 owner 决定是否入库 |
 | `gitee` 镜像未推送 | 发布动作 | 本次只推 `origin`（GitHub，CI 所在）。需要时 `git push gitee master` |
 | `scripts/scan_settings.py` 的助手识别按**名字**而非**模块作用域** | 扫描器域的根因（并行会话 `d17c08c0` 提出） | 本次用最小改法（我的助手改名 `_as_bool`）绕开；根治需让扫描器按模块作用域判定"这是不是 env 读取助手"，属扫描器域，**未改**（避免与其它会话对撞同一文件） |
-| `test_skill_merge` 在 CI 反复超时（>60s，本地 2.17s） | 分片争用（详见 §4 该行；三个 head 各命中一次、跨 shard 漂移） | 已用"本交付测试拆快慢两级"消除**自身**那一半成因（本文件 90s → 5s）；该用例自身的预算问题（2s 的测试给 60s 上限，`-n 2` 邻位一重就破）建议由 skills_mgmt 域收口 —— 二选一：给它显式 `@pytest.mark.timeout(N)`，或把该文件标 `slow` 移出并行分片。**本次未改他人测试**（避免跨域改动掩盖真实原因），证据与建议已写进本报告 |
+| `test_skill_merge` 在 CI 反复超时（>60s，本地 2.17s） | 分片争用：CI 分片参数是 `-n 2 --dist=loadscope --timeout=60 --timeout-method=signal`，同分片邻位一重（相邻模块在导入 torch/sentence-transformers）就把 2s 用例的**墙钟**顶爆。四个 head 各命中一次、跨 shard 5→1→2 漂移，同一份代码 `gh run rerun --failed` 后又全绿 | ① 消除**自身**那一半成因：本交付测试拆快慢两级（本文件 90s → 5s）；② 按本仓 `pytest.ini` 的既有纪律给该用例显式 `@pytest.mark.timeout(240)` 覆盖（"极慢/易受负载影响的用例不要依赖全局默认"）——真挂死仍在 240s 失败，不掩盖问题；行内写明证据与理由 |
 | 清单口径只覆盖**仓库实体**技能（23 个） | 可复现性约束 | 只在运行时存在的技能（内联指令型台账条目、`extension_store` 装入的技能）不在清单内 ⇒ 界面无徽章（静默退化）。它们登记在 `runtime_only_declarations` 里披露；要看运行时全貌用 `--runtime --summary`（产物不提交） |
 | "人眼确认徽章观感/位置" | 人工验收 | 属 owner 验收项（已重建产物 + 重启后端，刷新 `/chat` 即可） |
 | 技能清单在界面上只覆盖 `/api/skills` 的 31 个 id | 已知边界 | `extension_store` 后续装入的技能不在清单口径内 ⇒ 静默无徽章（退化为现状，不报错） |

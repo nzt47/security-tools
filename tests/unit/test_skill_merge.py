@@ -387,6 +387,15 @@ class TestServiceMerge:
         assert len(dups) == 1
         assert dups[0]["other_id"] == "match"
 
+    # 【不易·超时预算按实际耗时给足，勿改回 60s 默认】本用例实测 2.17s（本机）、
+    # 仓库台账（batch_test_report.md）记录该文件 2.81s；而 CI 分片是
+    # `-n 2 --dist=loadscope --timeout=60 --timeout-method=signal`，同分片邻位一重
+    # （如相邻模块在导入 torch/sentence-transformers）就会把它的**墙钟**顶爆：
+    # 2026-09-18 四个 head 各命中一次超时、且跨 shard 5→1→2 漂移，同一份代码
+    # `gh run rerun --failed` 后又全绿 —— 属负载型 flake，不是逻辑回归。
+    # 依 pytest.ini 的纪律（"极慢/易受负载影响的用例应显式 @pytest.mark.timeout(N)
+    # 覆盖，不要依赖全局默认"）给足预算；真挂死仍会在 240s 失败，不掩盖任何问题。
+    @pytest.mark.timeout(240)
     def test_service_auto_merge_duplicates(self, svc):
         # 创建 3 个完全相同的技能对
         for i in range(3):
