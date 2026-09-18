@@ -76,12 +76,6 @@ def register_config_change_hook(hook: Callable[[Dict[str, Any]], None]) -> None:
             _config_change_hooks.append(hook)
 
 
-def unregister_config_change_hook(hook: Callable[[Dict[str, Any]], None]) -> None:
-    """注销配置变更钩子（测试隔离用；按对象同一性精确移除）"""
-    with _config_change_hooks_lock:
-        _config_change_hooks[:] = [h for h in _config_change_hooks if h is not hook]
-
-
 def _notify_config_change(change_record: Dict[str, Any]) -> None:
     """向所有已注册钩子广播配置变更（单个钩子失败不影响其它钩子）"""
     with _config_change_hooks_lock:
@@ -1444,20 +1438,6 @@ def get_chaos_thread_join_timeout() -> int:
     """
     try:
         return int(get_observability_config().get("chaos.thread_join_timeout_sec", default=5))
-    except Exception:
-        return 5
-
-
-# ── 资源监控器线程清理便捷函数 ──
-
-def get_resource_monitor_thread_join_timeout() -> int:
-    """读取资源监控采样线程清理超时（便捷函数，支持热加载）
-
-    Returns:
-        超时秒数，默认 5
-    """
-    try:
-        return int(get_observability_config().get("resource_monitor.thread_join_timeout_sec", default=5))
     except Exception:
         return 5
 

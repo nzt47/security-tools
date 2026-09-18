@@ -405,16 +405,5 @@ def get_async_executor(max_workers: int | None = None,
     return _global_executor
 
 
-def reset_async_executor():
-    """重置全局异步执行器（主要用于测试）"""
-    if _SINGLETON_AVAILABLE:
-        reset_singleton("async_executor")
-        return
-    global _global_executor
-    if _global_executor is not None:
-        _global_executor.shutdown(wait=False)
-    _global_executor = None
-
-
 if _SINGLETON_AVAILABLE:
     register_singleton("async_executor", _create_async_executor, cleanup_fn=_cleanup_async_executor)

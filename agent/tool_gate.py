@@ -437,7 +437,22 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
                 name, approval_reason, APPROVAL_ENFORCE_ENV,
             )
 
-        # 4. 【可选，默认关闭】RBAC 严格模式：只在上面几步都未拒绝之后才追加。
+        # 4. HITL 兜底判据 + 伦理硬规则（**只补 YAML 覆盖不到的两块**，详见各自 docstring）：
+        #    - 未登记工具（YAML 无条目）⇒ HITL fail-closed 判 HIGH ⇒ 走审批（原为直接放行）；
+        #    - 伦理硬规则命中（execute/extend 类工具）⇒ 升级为需审批。
+        #    已登记工具在这一步不会被重复判定（元数据的唯一权威仍是 YAML）。
+        fallback_reason = (_hitl_boundary(name, args)
+                           or _ethics_boundary(name, args))
+        if fallback_reason is not None:
+            if _approval_enforce_enabled():
+                return _tool_approval_outcome(name, args, fallback_reason)
+            _warn_once(
+                "fallback:" + name,
+                "工具 %s 命中兜底判据（%s），但 %s=0 ⇒ 本次仅告警、不拦截",
+                name, fallback_reason, APPROVAL_ENFORCE_ENV,
+            )
+
+        # 5. 【可选，默认关闭】RBAC 严格模式：只在上面几步都未拒绝之后才追加。
         #    本步自带 fail-open 边界（见 _strict_deny）：严格层内部的任何异常都放行，
         #    但网关**明确返回 allowed=False** 时必须真的拒绝。
         if _strict_enabled():
@@ -688,6 +703,132 @@ def _approval_boundary(func_name: str) -> Optional[str]:
     return ("plane=%s, effect=%s, risk=%s"
             % (getattr(meta, "plane", "?"), getattr(meta, "effect", "?"),
                getattr(meta, "risk", "?")))
+
+
+# ─────────────────────────────────────────────────────────────
+# HITL 兜底判据 + 伦理硬规则（2026-09-18 接线）
+# ─────────────────────────────────────────────────────────────
+
+
+def _meta_for(func_name: str):
+    """按候选写法取该工具的元数据（``None`` = 未登记）"""
+    metas = _tool_meta()
+    raw = str(func_name or "").strip()
+    if not metas or not raw:
+        return None
+    for key in (raw, raw.lower(), _last_segment(raw)):
+        if key and key in metas:
+            return metas[key]
+    return None
+
+
+def _tool_exists(func_name: str) -> bool:
+    """该工具名是否**真的在注册表里**；问不到注册表时返回 ``False``（= 不进兜底审批）
+
+    为什么必须区分"已注册但无元数据"与"工具根本不存在"：模型把工具名**拼错**时，
+    正确反馈是 ``ToolError: 未知工具``（让它改名重试），而**不是**挂一张审批单让人去批一个
+    不存在的工具——那既浪费人的注意力，批准后重试还会再撞一次 ToolError。
+
+    为什么问不到注册表时返回 ``False``（而不是 fail-closed 的 True）：紧跟本闸门之后的
+    注册表查找**本来就会**对不存在的名字抛 ``ToolError``，语义无损；而在注册表为空
+    （未装配 / 单测环境）时把一切判成"存在"，会让**每一次**未知调用都去挂单 ——
+    那是把"兜底安全网"退化成"噪声源"。fail-closed 的方向在这里由"是否有元数据"承担
+    （见 :func:`_hitl_boundary`），不由"名字是否可验证"承担。
+    """
+    raw = str(func_name or "").strip()
+    if not raw:
+        return False
+    try:
+        # 惰性导入：agent.tools 会导入本模块 ⇒ 模块级导入会成环
+        from agent import tools as _tools  # noqa: PLC0415
+        names = {str(t.get("name") or "").strip()
+                 for t in (_tools.list_tools() or []) if isinstance(t, dict)}
+        names.discard("")                      # 空名不是名字（否则会误命中）
+        if not names:
+            return False                       # 注册表不可见 ⇒ 交回 ToolError 语义
+        last = _last_segment(raw)
+        return raw in names or bool(last and last in names)
+    except Exception as e:  # noqa: BLE001 问不到注册表 ⇒ 同上（不制造审批噪声）
+        logger.debug("[tool_gate] 工具存在性不可判定（按不存在处理）: %s: %s",
+                     type(e).__name__, e)
+        return False
+
+
+def _hitl_boundary(func_name: str, args: Optional[Dict[str, Any]]) -> Optional[str]:
+    """**只对"存在但未登记元数据"的工具**做 fail-closed 兜底；其余交回既有权威
+
+    为什么需要这一步：本模块第 2/3 步只认**已登记元数据**，对
+    ``data/tool_definitions/`` 里没有条目的工具（动态生成、外部接入）一律放行；而模块
+    docstring 一直写着"真正的 fail-closed 由 ``HITLManager.assess`` 承担（未登记工具
+    ⇒ HIGH）"—— 实测那一层**在生产里零调用方**（只有测试引用）。于是两处都不拦：
+    **文档承诺的兜底根本不存在**。
+
+    为什么**不**覆盖"工具不存在"的情形：那是拼错名字，正确反馈是 ``ToolError``
+    （见 :func:`_tool_exists` 的 docstring），挂单只会让人白批一张单。
+
+    为什么**不**把已登记工具的 HITL 结果也搬过来：``assess`` 对 ``risk: high`` 就返回
+    HIGH，而 YAML 里 ``write_file`` / ``edit`` / ``git`` / ``apply_patch`` 都是 high 且
+    ``needs_approval=False``（它们不该每次都要人确认）。元数据的**唯一权威是 YAML**，
+    这里只补 YAML 覆盖不到的那一块，绝不重复判定 —— 否则"接通审批"会退化成
+    "所有写操作都要点确认"，那是把治理做成骚扰。
+
+    失败语义：HITL 不可用 ⇒ 返回 ``None``（交回既有的 fail-open 口径），**不额外收紧**。
+    """
+    if _meta_for(func_name) is not None:
+        return None                      # 已登记 ⇒ YAML 说了算，不越权
+    if not _tool_exists(func_name):
+        return None                      # 名字不存在 ⇒ 交回 ToolError，不挂单
+    try:
+        from agent.human_in_the_loop.hitl import HITLManager  # noqa: PLC0415 惰性
+        risk = HITLManager().assess(str(func_name or "").strip(), args or {})
+    except Exception as e:  # noqa: BLE001 审批权威不可用 ⇒ 不改变既有行为
+        logger.debug("[tool_gate] HITL 判定不可用（按不拦处理）: %s: %s",
+                     type(e).__name__, e)
+        return None
+    level = getattr(risk, "value", risk)
+    level = str(level or "").strip().lower()
+    if level in ("high", "critical"):
+        return ("已注册但未登记元数据（data/tool_definitions/ 无条目）"
+                "⇒ HITL fail-closed 判 %s" % level)
+    return None
+
+
+#: 伦理检查只作用于**会造成后果**的工具（effect ∈ 此集合）
+_ETHICS_EFFECTS = ("execute", "extend")
+
+
+def _ethics_boundary(func_name: str, args: Optional[Dict[str, Any]]) -> Optional[str]:
+    """伦理硬规则命中 ⇒ 返回原因串（**升级为"需人工审批"，不直接判死**）
+
+    【为什么要接】``agent/human_in_the_loop/ethics.py::EthicsEngine`` 自称"不可突破的
+    硬约束"（禁 `rm -rf /`、禁格式化、禁关机、禁读 `/etc/passwd`、禁改 orchestrator、
+    禁违法内容），实测**生产零调用方**（只有 8 处测试引用）⇒ 6 条硬规则一条都没生效。
+
+    【为什么是"升级为审批"而不是"直接拒绝"】它的规则是**子串匹配**
+    （如 ``"shutdown" in str(p)``），误报面很大：`grep "shutdown" logs/app.log`
+    也会命中 E003。硬拒会把误报变成"工作直接卡死"，而升级为审批只是多一次点击 ⇒
+    规则真正生效、误报代价可控。若将来要把某几条做成**不可覆盖的硬拒**（例如含
+    ``rm -rf /`` 的），只需在这里按 rule id 分流，调用方无需改动。
+
+    【作用域】只查 ``effect ∈ {execute, extend}`` 的工具（**会造成后果**的调用），
+    读类工具（``grep``/``read_file`` 等）不查 —— 避免"读一个含 shutdown 字样的日志
+    也要审批"这类纯噪声。元数据缺失时同样检查（那正是最需要看住的场景）。
+    """
+    meta = _meta_for(func_name)
+    if meta is not None and str(getattr(meta, "effect", "")) not in _ETHICS_EFFECTS:
+        return None
+    try:
+        from agent.human_in_the_loop.ethics import EthicsEngine  # noqa: PLC0415 惰性
+        violations = EthicsEngine().check(str(func_name or "").strip(), args or {})
+    except Exception as e:  # noqa: BLE001 伦理引擎不可用 ⇒ 不改变既有行为
+        logger.debug("[tool_gate] 伦理检查不可用（按不拦处理）: %s: %s",
+                     type(e).__name__, e)
+        return None
+    if not violations:
+        return None
+    ids = ", ".join(f"{r.get('id')}（{r.get('desc')}）" for r in violations
+                    if isinstance(r, dict))
+    return "命中伦理硬规则：%s" % (ids or "（规则未提供 id）")
 
 
 # ─────────────────────────────────────────────────────────────

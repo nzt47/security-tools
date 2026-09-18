@@ -967,10 +967,19 @@ except Exception as e:
 
 # ════════════════════════════════════════════════════════════
 #  向量记忆路由
-#  /api/vector/search 由 plugins/memory.py 提供（任务 T1.3）。
-#  legacy 端点 /api/vector/stats|add、/api/knowledge/add 原由
-#  routes_memory.register_vector_routes 提供，该模块已随重构移除
-#  （旧版 templates/index.html 已归档，不再调用），此处不再接线。
+#  /api/vector/* 与 /api/knowledge/add 全部由 plugins/memory.py 提供
+#  （任务 T1.3 迁移 /api/vector/search；2026-09 补齐 legacy 8 条）。
+#
+#  【事实更正】此处原注释称"旧版 templates/index.html 已归档，不再调用"，
+#  该前提为假：app_server 的 legacy_ui 仍把 templates/index.html 挂在 /legacy
+#  （见本文件 legacy_ui 视图），该页面加载 static/js/sidebar/memory.js，其中
+#  确实在调用 /api/vector/stats|recent|add|batch_add|clear、/api/knowledge/add。
+#  于是这些端点在生产 404（前端调了不存在的后端），而 agent/server_routes/
+#  routes_memory.py 虽声明了它们却**从未被本文件注册**（整模块未接线）。
+#  现已在 plugins/memory.py 按插件既有风格补齐这 8 条（含 /api/memory/review），
+#  routes_memory.py 随之退役删除（其 22 条路径均已确认有活体，未重复注册）。
+#  守门测试：tests/unit/test_legacy_memory_routes.py（用真实入口 import app_server
+#  枚举 url_map + 校验 memory.js 每个 /api fetch 路径都能命中）。
 # ════════════════════════════════════════════════════════════
 
 # ════════════════════════════════════════════════════════════
@@ -1021,8 +1030,20 @@ try:
 except Exception as e:
     logger.error("加载主线管理路由失败: %s", e)
 
-# T6：orchestrator 语义层配置热更（原 routes_config.register_semantic_config_routes
-# 已随重构移除，路由由 agent/api_gateway.py 与 orchestrator 提供，此处不再接线）
+# T6：orchestrator 语义层配置热更（/api/orchestrator/semantic-config）
+#  【2026-09-18 接线】原注释写"路由由 agent/api_gateway.py 与 orchestrator 提供，
+#    此处不再接线"——**实测不成立**：`api_gateway.py` 里根本没有这个路径，
+#    `url_map` 里也没有（线上 404）。而 `agent/orchestrator/orchestrator.py` 明确在读
+#    这一层覆盖（`_SEM_API_OVERRIDE` 为最高优先级）⇒ 写入侧不存在 = 顶层永远读不到值。
+#    这两个 handler 原住在 `routes_config.py`（整模块**从未注册**，29 条路径里 27 条由
+#    别处提供）⇒ 只把缺失的这对摘到 `routes_semantic_config.py` 单独接线，
+#    避免整模块注册造成的同路径重复。
+try:
+    from agent.server_routes.routes_semantic_config import register_routes as reg_sem_cfg
+    reg_sem_cfg(app, lambda: None)
+    logger.info("语义层配置路由已注册 (/api/orchestrator/semantic-config)")
+except Exception as e:
+    logger.error("加载语义层配置路由失败: %s", e)
 
 # T7：会话交接（原 routes_sessions.register_handoff_routes 已移除，
 # 会话 API 由 plugins/chat.py 提供，此处不再接线）

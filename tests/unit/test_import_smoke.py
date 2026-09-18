@@ -36,7 +36,6 @@ _AGENT_MODULES = [
     "agent.scheduling",
     "agent.search_aggregator",
     "agent.server_auth",
-    "agent.server_ui",
     "agent.system_prompt_config",
     "agent.system_prompt_manager",
     "agent.system_tools",

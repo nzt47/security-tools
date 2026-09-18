@@ -261,14 +261,6 @@ DOMAINS: List[Domain] = [
 #  查询辅助（纯函数）
 # ════════════════════════════════════════════════════════════
 
-def get_domain(domain_id: str) -> Optional[Domain]:
-    """按 domain_id 取域"""
-    for d in DOMAINS:
-        if d.domain_id == domain_id:
-            return d
-    return None
-
-
 def get_node(module_id: str) -> Optional[ModuleNode]:
     """按 module_id 取节点（全树查找）"""
     for d in DOMAINS:
@@ -276,11 +268,6 @@ def get_node(module_id: str) -> Optional[ModuleNode]:
             if n.module_id == module_id:
                 return n
     return None
-
-
-def get_action(action: str) -> Optional[ActionRoute]:
-    """按动作 key 取映射"""
-    return ACTION_ROUTES.get(action)
 
 
 def node_actions(node: ModuleNode) -> List[Dict]:

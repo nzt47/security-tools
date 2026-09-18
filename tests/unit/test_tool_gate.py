@@ -512,7 +512,14 @@ class TestToolsCallIsEnforcementPoint:
         assert probe_tool["n"] == 0
 
     def test_放行时_call_行为不变(self, gate, monkeypatch, probe_tool):
-        """零行为回归：未被拦时限流、健康追踪与返回值与接线前一致"""
+        """零行为回归：未被拦时限流、健康追踪与返回值与接线前一致
+
+        【2026-09-18】本用例**显式关掉审批边界**：探针工具是"已注册但无 YAML 元数据"
+        的工具，而新的 HITL 兜底网（`agent/tool_gate.py::_hitl_boundary`）正对这类情形
+        fail-closed ⇒ 不关掉它，测到的是兜底网而不是"放行路径的机制"。
+        兜底网自身的行为由 `tests/unit/test_tool_gate_fallback.py` 专门覆盖。
+        """
+        monkeypatch.setenv(gate.mod.APPROVAL_ENFORCE_ENV, "0")
         from agent import tools as registry
 
         limiter = MagicMock()
@@ -597,6 +604,8 @@ class TestExecuteSafeRetrySemantics:
         assert result == real_check(PROBE_TOOL, {})  # 原样返回
 
     def test_经_execute_safe_放行时正常执行一次(self, gate, monkeypatch, probe_tool):
+        """同上：显式关掉审批边界，只验 `_execute_safe` 的"放行即执行一次"机制"""
+        monkeypatch.setenv(gate.mod.APPROVAL_ENFORCE_ENV, "0")
         service = _make_service(monkeypatch)
 
         result = service._execute_safe(PROBE_TOOL, {"x": 1})

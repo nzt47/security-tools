@@ -40,9 +40,7 @@ def register_all_routes(app, state):
     from .routes_config import register_routes as reg_config
     reg_config(app, state)
 
-    # 技能 & 工具
-    from .routes_skills import register_routes as reg_skills
-    reg_skills(app, state)
+    # 技能 & 工具：routes_skills.py 已于 2026-09-18 删除（未接线，端点由 plugins/skills.py 提供）
 
     # 人格配置
     from .routes_personality import register_routes as reg_personality

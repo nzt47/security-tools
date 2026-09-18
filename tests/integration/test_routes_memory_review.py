@@ -7,22 +7,75 @@
 - 500: 内部异常
 
 设计原则：
-- mock require_token/log_request/trace_route 为 passthrough，专注业务逻辑
+- mock require_token/log_request 为 passthrough，专注业务逻辑
 - mock Yunshu._memory_reviewer 和 _long_term_memory
 - 使用 Flask test client，不启动真实服务器
+
+【2026-09 迁移】`/api/memory/review` 的活体已从 `agent/server_routes/routes_memory.py`
+（整模块从未被 app_server 注册 ⇒ 该路由在生产 404）迁入 `plugins/memory.py`。
+故本测试改为**挂载插件 blueprint**（真实路由层不变），并把插件视图函数内部
+`from app_server import ...` 的解析目标换成本测试的替身模块：真实 app_server
+一旦导入会加载向量模型并起调度线程，而这里只需要 `require_token` / `log_request`
+两个装饰器与 `_Yunshu`。断言与用例名与原版逐条一致。
 """
 import asyncio
-import pytest
+import logging
+import sys
+import types
 from unittest.mock import MagicMock, patch
 from flask import Flask
 
+import pytest
+
 pytestmark = pytest.mark.integration
+
+
+def _fake_app_server():
+    """构造 app_server 替身（插件视图内 `from app_server import ...` 的解析目标）"""
+    fake = types.ModuleType("app_server")
+    fake.require_token = lambda f: f
+    fake.log_request = lambda f=None, **kw: (f if f is not None else (lambda x: x))
+    fake.tracing_disabled = True
+    fake.logger = logging.getLogger("test.routes_memory_review")
+    fake._Yunshu = None  # 由 _make_app_with_reviewer 按用例覆盖
+    return fake
+
+
+@pytest.fixture(scope="module")
+def plugin_harness():
+    """sys.modules 里的 app_server 替身 + 全新 reload 的插件蓝图。
+
+    Why reload：`plugins/memory.py::_view` 在**首次请求**时惰性 `from app_server import
+    require_token, log_request` 并缓存包装结果。若同进程内已有用例走过真实 app_server
+    （如 tests/unit/test_legacy_memory_routes.py 导入真实入口），缓存里就是真实装饰器
+    （会 401）。reload 生成全新 blueprint 与全新闭包，保证本模块拿到 passthrough 版。
+    （plugin_api.register_plugin 按 name 幂等，重复 reload 不会污染插件注册表。）
+    """
+    import importlib
+
+    import plugins.memory as plugin_memory
+
+    fake = _fake_app_server()
+    with patch.dict(sys.modules, {"app_server": fake}):
+        importlib.reload(plugin_memory)
+        yield fake, plugin_memory.bp
+
+
+_HARNESS = None
+
+
+@pytest.fixture(autouse=True)
+def _bind_harness(plugin_harness):
+    """把当前模块的 harness 暴露给下方工厂函数（保持原版调用签名不变）"""
+    global _HARNESS
+    _HARNESS = plugin_harness
+    yield
 
 
 def _make_app_with_reviewer(reviewer=None, ltm_stats=None, ltm=None,
                              review_quick_result=None,
                              raise_on_review=False):
-    """构造带 mock reviewer 的 Flask test app
+    """构造带 mock reviewer 的 Flask test app（挂载 plugins/memory.py 蓝图）
 
     Args:
         reviewer: mock reviewer 实例（None 表示未启用）
@@ -31,15 +84,7 @@ def _make_app_with_reviewer(reviewer=None, ltm_stats=None, ltm=None,
         review_quick_result: review_quick() 的返回值
         raise_on_review: True 时 review_quick 抛异常
     """
-    from agent.server_routes.routes_memory import register_routes
-
-    patches = [
-        patch("agent.server_routes.routes_memory.require_token", lambda f: f),
-        patch("agent.server_routes.routes_memory.log_request", lambda f=None, **kw: (f if f else lambda x: x)),
-        patch("agent.server_routes.routes_memory.trace_route", lambda name=None: lambda f: f),
-    ]
-    for p in patches:
-        p.start()
+    fake, bp = _HARNESS
 
     app = Flask(__name__)
     app.config.update(TESTING=True)
@@ -54,20 +99,19 @@ def _make_app_with_reviewer(reviewer=None, ltm_stats=None, ltm=None,
         mock_ltm.get_stats.return_value = ltm_stats or {"total_entries": 0}
         yunshu._long_term_memory = mock_ltm
 
-    # 构造 mock state
-    state = MagicMock()
-    state.Yunshu = yunshu
-    state.window_sensor = MagicMock()
+    fake._Yunshu = yunshu
 
-    register_routes(app, state)
+    app.register_blueprint(bp)
     client = app.test_client()
 
-    return client, patches
+    return client, fake
 
 
-def _cleanup_patches(patches):
-    for p in patches:
-        p.stop()
+def _cleanup_patches(fake):
+    """兼容原版签名与调用点：现在不再逐个 patch 模块属性（由 harness 统一处理），
+    这里只把替身里的 Yunshu 归还，避免用例间串味。"""
+    if isinstance(fake, types.ModuleType):
+        fake._Yunshu = None
 
 
 class TestGetMemoryReview:
@@ -92,7 +136,6 @@ class TestGetMemoryReview:
 
     def test_get_review_with_history(self):
         """有历史审查时返回 last_review"""
-        import types
         reviewer = MagicMock()
         # 用 SimpleNamespace 模拟 ReviewResult，vars() 可正常返回 __dict__
         fake_result = types.SimpleNamespace(
@@ -205,31 +248,20 @@ class TestMemoryReviewEdgeCases:
 
     def test_get_with_no_ltm(self):
         """LTM 为 None 时 GET 返回空 stats（不影响 reviewer 已初始化的场景）"""
-        from agent.server_routes.routes_memory import register_routes
-        patches = [
-            patch("agent.server_routes.routes_memory.require_token", lambda f: f),
-            patch("agent.server_routes.routes_memory.log_request", lambda f=None, **kw: (f if f else lambda x: x)),
-            patch("agent.server_routes.routes_memory.trace_route", lambda name=None: lambda f: f),
-        ]
-        for p in patches:
-            p.start()
-        try:
-            app = Flask(__name__)
-            app.config.update(TESTING=True)
-            reviewer = MagicMock()
-            reviewer.get_last_review.return_value = None
-            yunshu = MagicMock()
-            yunshu._memory_reviewer = reviewer
-            yunshu._long_term_memory = None  # 显式设为 None
-            state = MagicMock()
-            state.Yunshu = yunshu
-            state.window_sensor = MagicMock()
-            register_routes(app, state)
-            client = app.test_client()
+        fake, bp = _HARNESS
 
-            resp = client.get("/api/memory/review")
-            assert resp.status_code == 200
-            data = resp.get_json()
-            assert data["stats"] == {}
-        finally:
-            _cleanup_patches(patches)
+        app = Flask(__name__)
+        app.config.update(TESTING=True)
+        reviewer = MagicMock()
+        reviewer.get_last_review.return_value = None
+        yunshu = MagicMock()
+        yunshu._memory_reviewer = reviewer
+        yunshu._long_term_memory = None  # 显式设为 None
+        fake._Yunshu = yunshu
+        app.register_blueprint(bp)
+        client = app.test_client()
+
+        resp = client.get("/api/memory/review")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["stats"] == {}

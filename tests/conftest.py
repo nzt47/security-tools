@@ -73,10 +73,31 @@ def _isolate_approval_stores(tmp_path_factory):
         "AUDIT_DB_PATH": audit_dir / "audit_chain.db",
         "AUDIT_ROOTS_PATH": audit_dir / "daily_roots.jsonl",
         "AUDIT_SIGNING_KEY": audit_dir / "audit_signing_key.pem",
+        # 【测试基线：审批边界默认关闭】大量单测会注册"没有 YAML 元数据"的探针工具并
+        # 直接 `agent.tools.call()` 调它来验证**工具调用机制**（返回值、健康跟踪、
+        # 限流顺序…）。而 HITL 兜底网（`agent/tool_gate.py::_hitl_boundary`）对
+        # "已注册但无元数据"的工具 fail-closed ⇒ 这些调用会被挂单待审批、不执行 handler，
+        # 于是测到的是治理网而不是被测机制。
+        # 故测试**基线**取关闭，边界/兜底行为由专门的文件显式开启（它们都自带
+        # `monkeypatch.setenv(..., "1")` 的 fixture）：
+        #   tests/unit/test_tool_gate.py、test_tool_gate_fallback.py、
+        #   test_tool_approval_e2e.py、test_tool_approval.py
+        # 与生产默认值（开启）不同是**刻意**的：单测的对象是被测机制，不是治理姿态；
+        # 治理姿态本身有上述专项测试与 settings registry 守卫覆盖。
+        "CP_TOOL_GATE_APPROVAL_ENFORCE": "0",
     }
     saved = {k: os.environ.get(k) for k in keys}
     for k, v in keys.items():
         os.environ.setdefault(k, str(v))
+
+    # ── 兜底守卫：审批库绝不该出现在 agent/data/ 下 ──────────────────────────
+    # 实测过一次：某个（会话级组合下的）用例把审批记录写到了
+    # `agent/data/approval_records.jsonl` —— 那是**相对路径**撞上被 chdir 过的 cwd 的结果
+    # （`agent/data/` 是真实运行期目录，但审批库的正确位置是 `<repo>/data/`）。
+    # 单跑任一个涉事文件都不复现，故在这里做**窄而准**的守卫：会话结束时若这两个文件
+    # 出现在 agent/data/ 下，直接失败并点名，下一次跑就能二分定位。
+    _stray_targets = [PROJECT_ROOT / "agent" / "data" / "approval_records.jsonl",
+                      PROJECT_ROOT / "agent" / "data" / "tool_approval_uses.jsonl"]
 
     # 【必须改绑，不能只设环境变量】`agent/audit/facade.py:466` 是**模块级单例**
     # `audit = AuditFacade()`，它在 **import 期**按当时的环境变量定路径。若该模块先于本夹具
@@ -101,6 +122,11 @@ def _isolate_approval_stores(tmp_path_factory):
             os.environ.pop(k, None)
         else:
             os.environ[k] = v
+    stray = [str(p) for p in _stray_targets if p.exists()]
+    assert not stray, (
+        "审批库被写到了 agent/data/ 下（相对路径 + 被 chdir 的 cwd 的典型后果）："
+        f"{stray}\n→ 正确位置是 <repo>/data/ 或会话临时目录；请让写它的夹具改用绝对路径"
+        "（或见 tests/conftest.py 的会话级隔离）。")
 
 # ════════════════════════════════════════════════════════════
 # 原生扩展导入顺序固化（S11-01：从 tests/integration 提升到 tests 根）

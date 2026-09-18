@@ -40,22 +40,6 @@ def register_event_emitter(fn: EventEmitter) -> None:
         logger.debug("留痕出口已注册: %r", getattr(fn, "__qualname__", fn))
 
 
-def unregister_event_emitter(fn: EventEmitter) -> None:
-    """反注册（供测试清理，避免用例间串味）。"""
-    if fn in _EMITTERS:
-        _EMITTERS.remove(fn)
-
-
-def reset_event_emitters() -> None:
-    """清空注册表（测试隔离用）。"""
-    _EMITTERS.clear()
-
-
-def has_event_emitter() -> bool:
-    """当前是否已有留痕出口（供测试/自检断言）。"""
-    return bool(_EMITTERS)
-
-
 def emit_event(
     event_type: str,
     payload: Optional[Dict[str, Any]] = None,

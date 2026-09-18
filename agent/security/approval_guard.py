@@ -398,15 +398,6 @@ def report_denial(decision: PermissionDecision, *, actor_ctx: ActorContext,
                "requires_reason": bool(decision.requires_reason)})
 
 
-def with_second_factor(actor_ctx: ActorContext, ok: bool) -> ActorContext:
-    """派生一个「已通过/未通过二次认证」的上下文副本（不可变对象）
-
-    二次认证结果**不放进 actor_type**（那是身份事实），只作为判定入参传递；
-    本函数仅用于调用方在等待二次认证期间保留原上下文语义。
-    """
-    return replace(actor_ctx, actor_type=actor_ctx.resolved_type())
-
-
 __all__ = [
     "ActorContext", "context_from_identity", "context_from_request",
     "operation_for", "register_object_operation", "reset_object_operations",

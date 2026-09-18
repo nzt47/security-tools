@@ -289,19 +289,9 @@ class PerformanceTracker:
 _tracker = PerformanceTracker()
 
 
-def get_tracker() -> PerformanceTracker:
-    """获取全局追踪器"""
-    return _tracker
-
-
 def get_performance_report() -> Dict[str, Any]:
     """获取性能报告（快捷函数）"""
     return _tracker.get_report()
-
-
-def print_performance_report():
-    """打印性能报告（快捷函数）"""
-    _tracker.print_report()
 
 
 class PerformanceContext:
@@ -351,52 +341,3 @@ def profile(name: Optional[str] = None):
         return wrapper
     
     return decorator
-
-
-def log_module_load(module_name: str):
-    """
-    模块加载日志装饰器
-    
-    使用示例：
-    ```python
-    @log_module_load("BodySensor")
-    def load_body_sensor():
-        return BodySensor()
-    ```
-    """
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            _tracker.record_load_start(module_name)
-            
-            try:
-                start = time.perf_counter()
-                result = func(*args, **kwargs)
-                elapsed = (time.perf_counter() - start) * 1000
-                
-                _tracker.record_load_end(module_name, elapsed)
-                return result
-                
-            except Exception as e:
-                _tracker.record_load_error(module_name, e)
-                raise
-        
-        return wrapper
-    
-    return decorator
-
-
-class StageTimer:
-    """阶段计时器"""
-    
-    def __init__(self, stage_name: str, parent_stage: Optional[str] = None):
-        self.stage_name = stage_name
-        self.parent_stage = parent_stage
-    
-    def __enter__(self):
-        _tracker.start_stage(self.stage_name, self.parent_stage)
-        return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        _tracker.end_stage(self.stage_name)
-        return False

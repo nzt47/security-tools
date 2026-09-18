@@ -25,15 +25,6 @@ from .analyzer import LogAnalyzer
 from .introspection import IntrospectionEngine
 
 
-def init_log_system(db_path=None, raw_log_dir=None):
-    """初始化日志系统"""
-    from .storage import LogStorage, _set_storage
-    storage = LogStorage(db_path=db_path, raw_log_dir=raw_log_dir)
-    storage.initialize()
-    _set_storage(storage)
-    return storage
-
-
 __all__ = [
     'LogLevel', 'LogCategory', 'LogEntry',
     'PerformanceRecord', 'ErrorRecord', 'BehaviorRecord',
@@ -45,5 +36,5 @@ __all__ = [
     'log_operation',
     'LogAnalyzer',
     'IntrospectionEngine',
-    'init_log_system', 'get_storage',
+    'get_storage',
 ]

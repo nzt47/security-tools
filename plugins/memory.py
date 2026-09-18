@@ -4,8 +4,16 @@
 迁移自 app_server.py 的记忆/上下文域路由（路径与行为 100% 不变）：
   - 上下文监视器：/api/context/*
   - 记忆操作：/api/memory/*
-  - 向量检索：/api/vector/search
+  - 记忆审查：/api/memory/review（legacy，见下）
+  - 向量记忆：/api/vector/*（legacy 端点 stats/add/batch_add/item/recent/clear 见下）
+  - 知识库写入：/api/knowledge/add（legacy，见下）
   - 窗口监控：/api/memory/windows/*
+
+legacy 端点接线（2026 修复 404）：
+  `/legacy` 页面（app_server.py 把 templates/index.html 挂在 /legacy）仍在服务，
+  其 static/js/sidebar/memory.js 仍在调用上述 8 条端点。它们原先只声明在
+  未接线的 agent/server_routes/routes_memory.py 中（生产 404），现按本插件既有
+  风格原样搬入（handler 实现逐字保留，未改语义）；该旧模块随后退役。
 
 共享依赖约定（PLAN-1 §4）：
   - 插件模块顶层只 import flask / plugin_api，绝不顶层 import app_server（循环导入红线）。
@@ -280,6 +288,39 @@ def api_memory_update_summary():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@bp.route("/api/memory/review", methods=["GET", "POST"])
+@_view(auth=True, log=True)
+def api_memory_review():
+    """记忆库审查接口（legacy：原 agent/server_routes/routes_memory.py）
+
+    GET: 返回上次审查结果 + LTM 统计
+    POST: 触发快速审查 (review_quick)
+    """
+    from app_server import _Yunshu
+    try:
+        reviewer = _Yunshu._memory_reviewer
+        if reviewer is None:
+            return jsonify({"ok": False, "error": "记忆审查器未启用"}), 503
+
+        if request.method == "GET":
+            last_review = reviewer.get_last_review()
+            return jsonify({
+                "last_review": vars(last_review) if last_review else None,
+                "stats": _Yunshu._long_term_memory.get_stats() if _Yunshu._long_term_memory else {},
+            })
+        else:  # POST
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(reviewer.review_quick())
+            finally:
+                loop.close()
+            return jsonify({"ok": True, "result": result})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # ════════════════════════════════════════════════════════════
 #  向量记忆/语义搜索 API
 # ════════════════════════════════════════════════════════════
@@ -308,6 +349,151 @@ def api_vector_search():
         })
     except Exception as e:
         logger.error("向量搜索失败: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/api/vector/stats")
+@_view(log=False)
+def api_vector_stats():
+    """获取向量记忆统计（legacy：原 agent/server_routes/routes_memory.py）"""
+    from app_server import _Yunshu
+    vs = getattr(_Yunshu, '_vector_memory', None)
+    if not vs:
+        return jsonify({"available": False})
+    stats = vs.get_stats()
+    stats["available"] = True
+    stats["total_memories"] = vs.count
+    return jsonify(stats)
+
+
+@bp.route("/api/vector/add", methods=["POST"])
+@_view(auth=True, log=True)
+def api_vector_add():
+    """添加单条向量记忆（legacy：原 agent/server_routes/routes_memory.py）"""
+    from app_server import _Yunshu, logger
+    data = request.get_json() or {}
+    content = data.get("content", "").strip()
+    if not content:
+        return jsonify({"ok": False, "error": "内容不能为空"}), 400
+
+    metadata = data.get("metadata", {})
+    vs = getattr(_Yunshu, '_vector_memory', None)
+    if not vs:
+        return jsonify({"ok": False, "error": "向量系统未初始化"}), 503
+
+    try:
+        item_id = vs.add(content, metadata)
+        return jsonify({"ok": True, "item_id": item_id})
+    except Exception as e:
+        logger.error("添加向量记忆失败: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/api/vector/batch_add", methods=["POST"])
+@_view(auth=True, log=True)
+def api_vector_batch_add():
+    """批量添加向量记忆（legacy：原 agent/server_routes/routes_memory.py）"""
+    from app_server import _Yunshu, logger
+    data = request.get_json() or {}
+    items = data.get("items", [])
+    if not items:
+        return jsonify({"ok": False, "error": "items 不能为空"}), 400
+
+    vs = getattr(_Yunshu, '_vector_memory', None)
+    if not vs:
+        return jsonify({"ok": False, "error": "向量系统未初始化"}), 503
+
+    try:
+        item_ids = vs.batch_add(items)
+        return jsonify({"ok": True, "item_ids": item_ids, "count": len(item_ids)})
+    except Exception as e:
+        logger.error("批量添加向量记忆失败: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/api/vector/item/<item_id>")
+@_view(log=False)
+def api_vector_get_item(item_id):
+    """按 ID 获取记忆项（legacy：原 agent/server_routes/routes_memory.py）"""
+    from app_server import _Yunshu
+    vs = getattr(_Yunshu, '_vector_memory', None)
+    if not vs:
+        return jsonify({"available": False}), 503
+
+    item = vs.get_by_id(item_id)
+    if not item:
+        return jsonify({"error": "未找到该记忆项"}), 404
+    return jsonify(item.to_dict())
+
+
+@bp.route("/api/vector/recent")
+@_view(log=False)
+def api_vector_recent():
+    """获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）"""
+    from app_server import _Yunshu, logger
+    limit = min(int(request.args.get("limit", 20)), 100)
+    vs = getattr(_Yunshu, '_vector_memory', None)
+    if not vs:
+        return jsonify({"available": False, "items": []}), 503
+
+    try:
+        items = vs.get_recent(limit=limit)
+        return jsonify({
+            "items": [item.to_dict() for item in items],
+            "count": len(items),
+        })
+    except Exception as e:
+        logger.error("获取最近向量记忆失败: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@bp.route("/api/vector/clear", methods=["DELETE"])
+@_view(auth=True, log=True)
+def api_vector_clear():
+    """清空向量记忆（legacy：原 agent/server_routes/routes_memory.py）"""
+    from app_server import _Yunshu, logger
+    vs = getattr(_Yunshu, '_vector_memory', None)
+    if not vs:
+        return jsonify({"ok": False, "error": "向量系统未初始化"}), 503
+
+    try:
+        vs.clear()
+        return jsonify({"ok": True})
+    except Exception as e:
+        logger.error("清空向量记忆失败: %s", e)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ════════════════════════════════════════════════════════════
+#  知识库写入 API（legacy）
+#  【为什么不放别处】本仓无 plugins/knowledge.py；/api/knowledge/* 的活体是
+#  agent/server_routes/routes_knowledge.py（CardStore 卡片/图谱），与本端点语义
+#  不同（本端点写的是 Yunshu._knowledge_base 向量知识库），且该 server_routes
+#  模块在本任务禁改清单内。故与原实现一致，仍留在记忆/向量域插件。
+# ════════════════════════════════════════════════════════════
+
+@bp.route("/api/knowledge/add", methods=["POST"])
+@_view(auth=True, log=True)
+def api_knowledge_add():
+    """添加知识文档（legacy：原 agent/server_routes/routes_memory.py）"""
+    from app_server import _Yunshu, logger
+    data = request.get_json() or {}
+    content = data.get("content", "").strip()
+    source = data.get("source", "manual")
+    tags = data.get("tags", [])
+
+    if not content:
+        return jsonify({"ok": False, "error": "内容不能为空"}), 400
+
+    kb = getattr(_Yunshu, '_knowledge_base', None)
+    if not kb:
+        return jsonify({"ok": False, "error": "知识库未初始化"}), 503
+
+    try:
+        kb.add_document(content, source=source, tags=tags)
+        return jsonify({"ok": True})
+    except Exception as e:
+        logger.error("添加知识文档失败: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -425,7 +611,15 @@ PLUGIN = register_plugin(Plugin(
         "/api/memory/<int:index>",
         "/api/memory/clear-summary",
         "/api/memory/summary",
+        "/api/memory/review",
         "/api/vector/search",
+        "/api/vector/stats",
+        "/api/vector/add",
+        "/api/vector/batch_add",
+        "/api/vector/item/<item_id>",
+        "/api/vector/recent",
+        "/api/vector/clear",
+        "/api/knowledge/add",
         "/api/memory/windows/events",
         "/api/memory/windows/stats",
         "/api/memory/windows/current",

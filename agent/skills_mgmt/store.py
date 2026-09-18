@@ -4,7 +4,7 @@
     - 单文件 JSON 存储 (data/skills_mgmt.json)，原子写入 (临时文件 + os.replace)
     - 内存缓存 + 文件回写，避免高频读盘
     - 与现有 agent/extensions/store.py 互操作: 同步技能状态到 ExtensionStore，
-      使旧 routes_skills.py 仍能看到技能启用状态
+      使技能启用状态与工具开关文件保持同一份真相（旧 routes_skills.py 已于 2026-09-18 删除）
 """
 
 from __future__ import annotations

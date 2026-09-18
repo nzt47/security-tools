@@ -359,55 +359,6 @@ def health_check_resources(
     return status
 
 
-def generate_healthcheck_command(
-    cache_dir: str,
-    expected_resources: List[str],
-    python_path: str = "python",
-) -> str:
-    """生成 Docker HEALTHCHECK 指令
-
-    Args:
-        cache_dir: 容器内缓存目录
-        expected_resources: 预期资源列表
-        python_path: Python 可执行文件路径
-
-    Returns:
-        str: HEALTHCHECK 指令字符串
-    """
-    resources_str = ",".join(repr(r) for r in expected_resources)
-    return (
-        f"HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 "
-        f"CMD {python_path} -c \""
-        f"from agent.utils.docker_fault_tolerance import health_check_resources; "
-        f"status = health_check_resources('{cache_dir}', [{resources_str}]); "
-        f"import sys; sys.exit(0 if all(status.values()) else 1)"
-        f"\" || echo '[WARN] 模型缓存不完整'"
-    )
-
-
-# =====================================================================
-# Layer 2 辅助：生成 Dockerfile 容错指令
-# =====================================================================
-
-def generate_dockerfile_run_line(
-    command: str,
-    warn_message: str = "资源下载失败",
-) -> str:
-    """生成 Dockerfile RUN 指令（带 Layer 2 兜底）
-
-    【不易】`|| echo` 确保即使命令失败，RUN 指令也返回 0
-    【简易】单一职责：生成容错 RUN 行
-
-    Args:
-        command: 实际执行的命令
-        warn_message: 失败时的警告消息
-
-    Returns:
-        str: 带 `|| echo` 兜底的 RUN 指令
-    """
-    return f"RUN {command} || echo \"[WARN] {warn_message}\""
-
-
 # =====================================================================
 # 完整示例：HuggingFace 模型预下载
 # =====================================================================

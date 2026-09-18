@@ -333,19 +333,6 @@ class ContextBoundaryError(Exception):
     pass
 
 
-def enforce_isolation(func: Callable) -> Callable:
-    """装饰器：强制上下文隔离检查
-
-    用于标记不允许跨边界访问的方法。
-    """
-    def wrapper(*args, **kwargs):
-        raise ContextBoundaryError(
-            f"方法 {func.__name__} 不允许跨隔离边界调用。"
-            "请使用 SubagentBarrier 的消息传递机制。"
-        )
-    return wrapper
-
-
 # ════════════════════════════════════════════════════════════════════
 #  并发屏障（v7.2 §4.2 调度层：并发上限 N + 回压）
 # ════════════════════════════════════════════════════════════════════
