@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import importlib.util
+import ast
 import json
 from pathlib import Path
 
@@ -259,7 +260,7 @@ class TestManifest:
 
     def test_清单与权威数据一致(self, on_disk):
         """手改清单必须被拦住（清单是派生物）"""
-        fresh = C.build_manifest(include_runtime=False)
+        fresh = C.build_manifest()
         assert sync_manifest_mod._diff(on_disk, fresh) == [], (
             "清单与 data/tool_definitions/*.yaml + data/skill_callability.yaml 不一致；"
             "运行 python scripts/sync_capability_manifest.py 重新派生")
@@ -349,6 +350,33 @@ class TestManifest:
         assert len(execs) >= 80, f"静态扫描命中的注册点过少：{len(execs)}"
         assert execs.get("shell_execute", "").startswith("agent.tools.")
         assert execs.get("kb_capture", "").startswith("agent.knowledge.tools")
+
+    def test_不与_agent_tools_形成循环依赖(self):
+        """`agent.lines.callability` 不得导入 `agent.tools`（架构规则 no_circular_dependency）
+
+        静默回归的代价很具体：CI 的 architecture-check 会红灯（实测过一次），
+        而本地单测全绿 —— 故把这条不变量钉在单测里。
+        """
+        src = (_PROJECT_ROOT / "agent" / "lines" / "callability.py").read_text(encoding="utf-8")
+        tree = ast.parse(src)
+        offenders = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and str(node.module or "").startswith("agent.tools"):
+                offenders.append(f"line {node.lineno}: from {node.module}")
+            elif isinstance(node, ast.Import):
+                offenders += [f"line {node.lineno}: import {a.name}" for a in node.names
+                              if a.name.startswith("agent.tools")]
+        assert not offenders, (
+            f"callability.py 不得导入 agent.tools（循环依赖）：{offenders}\n"
+            "→ 运行时执行器事实由调用方注入（build_manifest(executor_facts=...)）")
+
+    def test_注入的运行时事实优先于静态扫描(self):
+        """依赖倒置后仍要能拿到运行时事实：调用方注入 ⇒ 覆盖静态扫描结果"""
+        docs = C.load_tool_docs()
+        name = sorted(docs)[0]
+        manifest = C.build_manifest(executor_facts={name: "runtime.module:handler"})
+        row = {e["tool_name"]: e for e in manifest["entries"]}[name]
+        assert row["host_executor"] == "runtime.module:handler"
 
 
 # ════════════════════════════════════════════════════════════

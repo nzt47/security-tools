@@ -162,6 +162,25 @@ def _print_summary(manifest: dict) -> None:
         print(f"   - {e['tool_name']}: {e.get('reason')}")
 
 
+def _runtime_executor_facts() -> dict:
+    """运行时注册表的执行器事实（**在脚本侧**导入 `agent.tools`）
+
+    【为什么在脚本里而不是 agent/lines/callability.py 里导入】
+        `agent.tools` 反向依赖 `agent.lines.callability`（隐藏判否工具），若后者也导入
+        `agent.tools` 就构成循环依赖，被架构规则 `no_circular_dependency` 判违规
+        （实测 architecture-check 红灯）。scripts/ 不在该规则的扫描根（`--root agent`）内，
+        故"运行时事实"在这里取、再注入给 `build_manifest(executor_facts=...)`。
+    """
+    try:
+        from agent.tools import registry_facts
+        facts = registry_facts() or {}
+    except Exception as e:  # noqa: BLE001 注册表不可用不得让清单生成失败
+        print(f"[WARN] 运行时注册表不可用，退回静态扫描口径: {e}")
+        return {}
+    return {str(n): str((info or {}).get("host_executor") or "")
+            for n, info in facts.items()}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="统一可调用性清单同步与校验")
     ap.add_argument("--check", action="store_true", help="只校验不写（CI/pre-commit 用）")
@@ -171,7 +190,8 @@ def main() -> int:
     ap.add_argument("--out", default=MANIFEST_PATH, help="清单输出路径")
     args = ap.parse_args()
 
-    manifest = build_manifest(include_runtime=args.runtime)
+    manifest = build_manifest(
+        executor_facts=_runtime_executor_facts() if args.runtime else None)
 
     errs = validate(manifest)
     if errs:

@@ -39,9 +39,14 @@
     事实层（可证的事实，不由人填）
         `schema_registered` ← YAML/注册表的 schema；技能 ← `config_schema`/`output_schema`
                               / 带脚本技能的参数契约
-        `host_executor`     ← 运行时注册表（`agent.tools.registry_facts()`）
-                              → 静态注册点扫描（AST，不执行工具代码）
+        `host_executor`     ← 静态注册点扫描（AST，不执行工具代码；默认口径）
                               → 技能侧声明的执行器
+                              →（可选）调用方注入的运行时注册表事实 `executor_facts`
+        【不易】本模块**不导入 `agent.tools`**：`agent.tools` 反向依赖本模块
+                （`get_tool_defs` 读 `non_callable_tool_names` 隐藏判否工具），
+                双向导入构成循环依赖，会被架构规则 `no_circular_dependency` 判违规
+                （实测 architecture-check 红灯：agent.lines.callability → agent.tools）。
+                故运行时事实一律由调用方注入，详见 `runtime_executors()`。
     派生层（本模块算出，写进 `data/capability_manifest.json`）
         `llm_callable`（生效值）、`permission_level`（校验声明与事实是否自洽）、`mark`
 
@@ -274,23 +279,20 @@ def _register_name_of(decorator: Any) -> str:
 
 
 def runtime_executors() -> Dict[str, str]:
-    """运行时注册表里的执行器（进程内可用时优先；不可用则返回空表）
+    """运行时注册表的执行器事实 —— **由调用方注入，不在本模块导入 `agent.tools`**
 
-    【不易】`agent.tools` 是重模块（导入即建限流器），且本模块被 REST/脚本导入，
-            故**惰性导入 + 任何异常降级为空表**，绝不让标注把主流程拖挂。
+    【为什么这里是个空实现（依赖倒置，勿"顺手补个 import"）】
+        本模块属于 `agent.lines`，而 `agent.tools` 会反向依赖本模块（`get_tool_defs`
+        读 `non_callable_tool_names` 隐藏判否工具）。若在这里 `from agent.tools import ...`，
+        就形成 `agent.lines.callability ↔ agent.tools` 的**循环依赖**，被架构规则
+        `no_circular_dependency` 判违规（实测：architecture-check 红灯，源模块
+        agent.lines.callability → 目标模块 agent.tools）。
+        ⇒ 事实由**调用方**提供：`build_manifest(executor_facts=...)`
+          （`scripts/sync_capability_manifest.py --runtime` 在脚本侧导入 `agent.tools`，
+           脚本不受该架构规则约束；REST 侧读的是已落盘的清单，也不需要导入）。
+    【不易】返回空表时不影响正确性：`static_executors()` 的 AST 注册点扫描是默认口径。
     """
-    try:
-        from agent.tools import registry_facts  # noqa: WPS433（惰性导入）
-        facts = registry_facts()
-    except Exception as e:  # noqa: BLE001
-        logger.debug("[callability] 运行时注册表不可用: %s", e)
-        return {}
-    out: Dict[str, str] = {}
-    for name, info in (facts or {}).items():
-        executor = str((info or {}).get("host_executor") or "").strip()
-        if executor:
-            out[str(name)] = executor
-    return out
+    return {}
 
 
 def denied_tool_names(policies_path: Optional[str] = None) -> Tuple[FrozenSet[str], bool]:
@@ -760,12 +762,18 @@ _FIELD_SPEC = (
 def build_manifest(*, defs_dir: Optional[str] = None,
                    skill_decl_path: Optional[str] = None,
                    policies_path: Optional[str] = None,
-                   include_runtime: bool = True) -> Dict[str, Any]:
-    """构建统一可调用性清单（工具 + 技能，八字段同构）"""
+                   executor_facts: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    """构建统一可调用性清单（工具 + 技能，八字段同构）
+
+    Args:
+        executor_facts: 运行时注册表的执行器事实 `{能力名: "模块:函数"}`（可选）。
+            由**调用方**注入（如 `scripts/sync_capability_manifest.py --runtime`），
+            本模块不导入 `agent.tools` —— 见 `runtime_executors()` 的依赖倒置说明。
+    """
     docs = load_tool_docs(defs_dir)
     executors: Dict[str, str] = static_executors()
-    if include_runtime:
-        executors.update(runtime_executors())
+    if executor_facts:
+        executors.update({str(k): str(v) for k, v in executor_facts.items() if v})
     denied, deny_all = denied_tool_names(policies_path)
 
     tools = [_tool_entry(n, docs[n], executors=executors, denied=denied, deny_all=deny_all)
