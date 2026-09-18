@@ -43,6 +43,13 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 
+#: 审批库**绝不该出现**的位置（`agent/data/` 是 tool_trace.db 等运行期库的家，
+#: 但审批库正确位置是 `<repo>/data/`）——两个守卫共用的同一份判据
+_STRAY_APPROVAL_TARGETS = [
+    PROJECT_ROOT / "agent" / "data" / "approval_records.jsonl",
+    PROJECT_ROOT / "agent" / "data" / "tool_approval_uses.jsonl",
+]
+
 # ════════════════════════════════════════════════════════════
 #  审批/事件/审计落盘隔离（2026-09-17）
 # ════════════════════════════════════════════════════════════
@@ -56,6 +63,28 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # 就会往生产事件流和链式审计台账里追加记录（实测：events.jsonl 41903→50835 字节、
 # audit_chain.db 14221312→14237696 字节）。这里在**会话级**把四个路径全部指向临时目录，
 # 用 `setdefault` 保证用例内的 `monkeypatch.setenv` 仍可覆盖（且回滚回本会话值）。
+
+@pytest.fixture(autouse=True)
+def _no_stray_approval_store(request):
+    """**逐用例**守卫：审批库若在某个用例执行期间出现在 agent/data/ 下，就地失败并点名
+
+    为什么要有逐用例版（会话版只能报"整轮跑完多了个文件"）：首次发现该产物时，
+    会话级守卫只知道"存在"，单跑任何涉事文件又都不复现（说明与执行序/随机种子有关）
+    ⇒ 只能靠逐用例快照把**具体是哪个用例**钉出来。
+    检测到即**删掉该产物再失败**，避免后续用例级联报错（一次只点名一个真凶）。
+    """
+    strays = [p for p in _STRAY_APPROVAL_TARGETS if p.exists()]
+    yield
+    for p in _STRAY_APPROVAL_TARGETS:
+        if p.exists() and p not in strays:
+            try:
+                p.unlink()
+            except OSError:
+                pass
+            pytest.fail(
+                f"用例 {request.node.nodeid} 执行期间，审批库被写到了 agent/data/：{p}\n"
+                "→ 正确位置是 <repo>/data/ 或会话临时目录（见本文件会话级隔离）。")
+
 
 @pytest.fixture(autouse=True, scope="session")
 def _isolate_approval_stores(tmp_path_factory):
@@ -96,8 +125,7 @@ def _isolate_approval_stores(tmp_path_factory):
     # （`agent/data/` 是真实运行期目录，但审批库的正确位置是 `<repo>/data/`）。
     # 单跑任一个涉事文件都不复现，故在这里做**窄而准**的守卫：会话结束时若这两个文件
     # 出现在 agent/data/ 下，直接失败并点名，下一次跑就能二分定位。
-    _stray_targets = [PROJECT_ROOT / "agent" / "data" / "approval_records.jsonl",
-                      PROJECT_ROOT / "agent" / "data" / "tool_approval_uses.jsonl"]
+    _stray_targets = _STRAY_APPROVAL_TARGETS
 
     # 【必须改绑，不能只设环境变量】`agent/audit/facade.py:466` 是**模块级单例**
     # `audit = AuditFacade()`，它在 **import 期**按当时的环境变量定路径。若该模块先于本夹具
