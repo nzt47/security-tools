@@ -294,6 +294,23 @@ class SkillClassRegistry:
             self._save(st)
         return cls_name
 
+    def unset_manual(self, key: str) -> bool:
+        """取消人工钉住（"恢复自动分类"）：只从 manual 集合移除，**保留**当前归类
+
+        【为什么保留归类而不清空】清空会让该技能在下次 `resolve` 时重新打分 —— 有可能又
+        回到人工纠正之前那个不合理的结果。保留归类 + 解除钉住 = "先维持现状，之后若内容域
+        变化（置信命中不同）再自动跟随"，这是"撤销人工干预"最不意外的语义。
+        """
+        with _REG_LOCK:
+            st = self._load()
+            manual = set(st.get("manual", []))
+            if key not in manual:
+                return False
+            manual.discard(key)
+            st["manual"] = sorted(manual)
+            self._save(st)
+        return True
+
     def mirror(self, src_key: str, dst_key: str) -> bool:
         """把 src 的分类同步到同技能的另一生态 key（asset↔rt 同名技能）。
 

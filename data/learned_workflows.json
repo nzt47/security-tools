@@ -423,5 +423,95 @@
     "updated_at": "2026-09-18T19:28:29.204185",
     "last_used_at": null,
     "converted_to_skill_id": ""
+  },
+  "wf-6f3626f5": {
+    "id": "wf-6f3626f5",
+    "name": "自动学习工作流 (sess_202)",
+    "description": "从会话 sess_20260918_190237_d039716f 中学习得到。原始任务: 我是根据你前面的说法接着说的，你忘了你前面说什么了吗？\n【准入未通过 NO_DISCRIMINATIVE_TRIGGER】无有区分度触发词（触发词列表为空（中文按字切分产生的单字触发词已在入库前丢弃；无任何有区分度的触发词））（草稿态：不进入匹配候选、不可自动转技能；可按 ID 人工执行）",
+    "task_signature": "什|前|忘|据|接|根|法|着|说|面",
+    "trigger_patterns": [],
+    "steps": [
+      {
+        "step_id": "step_1",
+        "tool_name": "search_memory",
+        "params_template": {
+          "query": "用户接着${input}的话 前面的${input}法",
+          "scope": "all",
+          "max_items": 15
+        },
+        "output_key": "step_1_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_2",
+        "tool_name": "search_memory",
+        "params_template": {
+          "query": "最近对话 会话 20260801",
+          "scope": "logs",
+          "max_items": 15
+        },
+        "output_key": "step_2_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_3",
+        "tool_name": "search_memory",
+        "params_template": {
+          "query": "我刚才${input}的最后一句 建议 要不要 帮你",
+          "scope": "vector",
+          "max_items": 8
+        },
+        "output_key": "step_3_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_4",
+        "tool_name": "search_memory",
+        "params_template": {
+          "query": "delegate 子任务 后台 新会话 推断 覆盖边界",
+          "scope": "vector",
+          "max_items": 5
+        },
+        "output_key": "step_4_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      }
+    ],
+    "expected_output_pattern": "",
+    "source_session_id": "sess_20260918_190237_d039716f",
+    "source_user_input": "我是根据你前面的说法接着说的，你忘了你前面说什么了吗？",
+    "success_count": 0,
+    "failure_count": 0,
+    "confidence": 0.4,
+    "priority": 50,
+    "status": "draft",
+    "enabled": true,
+    "tags": [
+      "learned"
+    ],
+    "workflow_type": "toolchain",
+    "created_at": "2026-09-19T07:36:02.013202",
+    "updated_at": "2026-09-19T07:36:02.013202",
+    "last_used_at": null,
+    "converted_to_skill_id": ""
   }
 }

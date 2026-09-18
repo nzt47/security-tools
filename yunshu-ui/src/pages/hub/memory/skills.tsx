@@ -22,6 +22,11 @@ import {
   type CallabilityInfo,
 } from '@/lib/callability'
 import { getApiToken } from '../../../lib/apiToken'
+
+/** 「恢复自动分类」的哨兵值（提交时转成 `auto: true`，不是真实分类名） */
+const AUTO_CLASS = '__auto__'
+/** 未分类的类名（与后端 `categorizer.UNCLASSIFIED` 同字面量；改类时可作为目标） */
+const UNCLASSIFIED = '未分类'
 import ApiTokenPrompt from './api-token-prompt'
 import SkillContentModal from './skill-content-modal'
 import ClassIcon from './class-icon'
@@ -68,6 +73,10 @@ export function MemorySkillsTable() {
   const [callabilityNote, setCallabilityNote] = useState('')
   /** 端点请求期补算的运行时技能条数（清单文件里没有它们：仓库里无 skill.md 实体） */
   const [runtimeSkillCount, setRuntimeSkillCount] = useState(0)
+  /** 可选分类名（种子类 + 已自动建类 + 未分类），供「改类」下拉；取不到则不显示入口 */
+  const [classNames, setClassNames] = useState<string[]>([])
+  /** 正在改类的技能 id（非空时该行展开下拉） */
+  const [movingId, setMovingId] = useState<string | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -85,6 +94,13 @@ export function MemorySkillsTable() {
       setRuntimeSkillCount((r?.runtime_skills ?? []).length)
       setCallabilityNote((r?.manifest?.vocabulary?.mark ?? []).join(' / '))
     }).catch(() => { setCallability({}); setRuntimeSkillCount(0); setCallabilityNote('') })
+
+    // 可选分类名——独立降级：拿不到就不显示「改类」入口（改类是人工兜底，非主路径）
+    // 复用既有端点 `/api/skills-mgmt/classes`（技能中心同款；hubGet 会自动附带本地令牌）
+    hubGet<{ ok?: boolean; groups?: { name?: string }[] }>('/api/skills-mgmt/classes').then((r) => {
+      const names = (r?.groups ?? []).map((g) => String(g?.name ?? '')).filter(Boolean)
+      setClassNames(names.includes(UNCLASSIFIED) ? names : [...names, UNCLASSIFIED])
+    }).catch(() => setClassNames([]))
   }
 
   useEffect(load, [])
@@ -92,6 +108,35 @@ export function MemorySkillsTable() {
   const toggle = async (id: string) => {
     try {
       await hubPost('/api/skills/toggle', { id }, getApiToken())
+      load()
+    } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
+  }
+
+  /**
+   * 人工改类：把技能钉在指定分类上（`manual` 语义 ⇒ 之后自动重判/内容更新都不再改动它）
+   *
+   * 规则分类是关键词打分，遇到"通用词夺域"或"多路并列按表序决胜"时会给出不合理结果
+   * （实证：易之三义 曾判成语音与多媒体），个案只能人工指定 —— 本入口就是那个兜底。
+   */
+  const moveClass = async (id: string, cls: string) => {
+    setMovingId(null)
+    // 复用既有端点 `/api/skills-mgmt/classes/move`（技能中心同款，单一权威；不新增第二份口径）
+    if (cls === AUTO_CLASS) {                       // 恢复自动：解除人工钉住
+      try {
+        const r = await hubPost<{ ok?: boolean; released?: string[]; error?: string }>(
+          '/api/skills-mgmt/classes/move', { skill_id: id, auto: true }, getApiToken())
+        if (r?.ok === false) { setInfo(`恢复自动失败：${r.error ?? ''}`); return }
+        setInfo(`已解除「${id}」的人工钉住（${(r?.released || []).join(' / ')}）：`
+          + '归类暂保持不变，内容域变化时按规则自动跟随')
+        load()
+      } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
+      return
+    }
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string; class_name?: string }>(
+        '/api/skills-mgmt/classes/move', { skill_id: id, class_name: cls }, getApiToken())
+      if (r?.ok === false) { setInfo(`改类失败：${r.error ?? ''}`); return }
+      setInfo(`已把「${id}」移动到「${r?.class_name || cls}」并钉住（自动重判不再改动它）`)
       load()
     } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
   }
@@ -175,6 +220,31 @@ export function MemorySkillsTable() {
         )}
         {/* 可调用性标识（来自 /api/capability-manifest 的 manifest.skills）：mark 缺失即不渲染 */}
         <CallabilityBadge info={callability[r.id]} name={r.name || r.id} />
+        {/* 人工改类：规则分类不合适时的兜底（钉住后自动重判不再改动） */}
+        {classNames.length > 0 && (
+          movingId === r.id ? (
+            <select
+              autoFocus
+              defaultValue={r.class_name || '未分类'}
+              onChange={(e) => moveClass(r.id, e.target.value)}
+              onBlur={() => setMovingId(null)}
+              className="rounded border border-cyan-700/60 bg-slate-900 px-1 py-0.5 text-[10px] text-cyan-200"
+              title="选择目标分类（人工移动后自动重判不再改动该技能）；选「恢复自动分类」可解除钉住"
+            >
+              {classNames.map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value={AUTO_CLASS}>恢复自动分类（解除钉住）</option>
+            </select>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setMovingId(r.id)}
+              className="rounded-full border border-slate-700 px-1.5 py-0.5 text-[9px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              title="人工改类：把该技能钉在指定分类上（关键词打分不合适时的兜底；钉住后自动重判不再改动）"
+            >
+              改类
+            </button>
+          )
+        )}
       </div>
       {r.description && <div className="text-xs text-slate-500">{r.description}</div>}
       {/* 触发方式：运行时按意图语义匹配命中后注入上下文 */}

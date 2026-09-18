@@ -500,12 +500,33 @@ def register_routes(app, state):
     @require_token
     @log_request()
     def api_skills_mgmt_classes_move():
-        """人工移动技能到指定分类（后续自动重判不再覆盖人工选择）。"""
+        """人工移动技能到指定分类（后续自动重判不再覆盖人工选择）。
+
+        Body: `{skill_id, class_name}` —— 移动到指定类（写入 manual，钉住）；
+              `{skill_id, auto: true}` —— **恢复自动分类**：解除钉住但保留当前归类
+              （之后仅在"内容域变化、置信命中不同"时才自动跟随；这是撤销人工干预
+               最不意外的语义，见 `SkillClassRegistry.unset_manual` 的说明）。
+        """
         try:
             data = request.get_json(silent=True) or {}
             skill_id = str(data.get("skill_id", "") or "")
             class_name = str(data.get("class_name", "") or "")
-            if not skill_id or not class_name:
+            if not skill_id:
+                return jsonify({"ok": False,
+                                "error": "缺少 skill_id"}), 400
+            if not class_name and bool(data.get("auto")):
+                from agent.skills_mgmt.categorizer import SkillClassRegistry
+                reg = SkillClassRegistry()
+                released = [k for k in (f"asset:{skill_id}", f"rt:{skill_id}")
+                            if reg.unset_manual(k)]
+                if not released:
+                    return jsonify({"ok": False,
+                                    "error": "该技能未被人工钉住，无需恢复自动分类"}), 400
+                return jsonify({"ok": True, "skill_id": skill_id, "scope": "auto",
+                                "released": released,
+                                "note": "已解除人工钉住；归类暂保持不变，"
+                                        "内容域变化时按规则自动跟随"})
+            if not class_name:
                 return jsonify({"ok": False,
                                 "error": "缺少 skill_id/class_name"}), 400
             result = _svc().move_class(skill_id, class_name)

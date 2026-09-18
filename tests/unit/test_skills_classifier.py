@@ -305,6 +305,79 @@ class TestServiceIntegration:
 
 
 # ═══════════════════════════════════════════════════════════════
+#  人工改类 REST 面（slow 车道：需真实 app）
+# ═══════════════════════════════════════════════════════════════
+
+@pytest.mark.slow
+class TestClassMoveRest:
+    """`/api/skills-mgmt/classes*`（人工改类 / 恢复自动）——**既有端点**上的界面支撑面
+
+    【不易·不要另开一套端点】技能分类的 REST 权威一直是
+    `agent/server_routes/routes_skills_mgmt.py`（技能中心页在用）。本次只做两件事：
+      ① 给既有 `classes/move` 增加 `{skill_id, auto: true}` 的「恢复自动分类」模式；
+      ② 在技能库页（`pages/hub/memory/skills.tsx`）补一个改类入口，**复用**这套端点。
+    早期误判"没有改类端点"而在 `plugins/skills.py` 另起了一套 `/api/skills/class*`，
+    已删除 —— 同一能力两份端点正是本仓最忌的"第二份口径"。
+
+    【为什么标 slow】需导入 `app_server`（连带 torch/sentence-transformers），
+    放进 `-n 2` 的单元测试分片会挤到邻居（见 tests/unit/test_tool_callability.py 同名说明）。
+    【为什么只测只读 + 校验路径】成功路径要写真实资产库/分类注册表（`data/skills_classes.json`
+    是运行时状态）会污染现场；`unset_manual` 与 `move_class` 的语义由注册表/服务测试覆盖。
+    """
+
+    @pytest.fixture(scope="class")
+    def client(self):
+        import app_server
+        rules = {str(r.rule) for r in app_server.app.url_map.iter_rules()}
+        for path in ("/api/skills-mgmt/classes", "/api/skills-mgmt/classes/move"):
+            assert path in rules, f"{path} 未注册（技能分类的 REST 权威）"
+        return app_server.app.test_client()
+
+    def _auth_bypass(self, monkeypatch):
+        """关闭共享令牌校验：`routes_skills_mgmt` 用 `agent.server_auth.require_token`
+
+        本机 `.env` 配了 `FLASK_API_TOKEN` ⇒ 不放行就一律 401（实测 `assert 401 == 400`）。
+        `app_server._API_TOKEN_ENABLED` 一并关掉，避免端点换装饰器时静默失效。
+        不反过来断言"未带令牌必须 401"：CI 可能没配令牌（那时无令牌即放行），会随环境翻转。
+        """
+        import app_server
+        import agent.server_auth as sa
+        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(app_server, "_API_TOKEN_ENABLED", False)
+
+    def test_classes_view_returns_groups(self, client, monkeypatch):
+        self._auth_bypass(monkeypatch)
+        resp = client.get("/api/skills-mgmt/classes")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["ok"] is True
+        assert isinstance(body["groups"], list) and body["groups"], "分类视图不应为空"
+        names = {g["name"] for g in body["groups"]}
+        assert "代码与工程" in names
+        assert isinstance(body["total"], int)
+
+    def test_move_requires_skill_id(self, client, monkeypatch):
+        self._auth_bypass(monkeypatch)
+        r = client.post("/api/skills-mgmt/classes/move", json={"class_name": "代码与工程"})
+        assert r.status_code == 400 and "skill_id" in r.get_json()["error"]
+
+    def test_move_rejects_unknown_class(self, client, monkeypatch):
+        self._auth_bypass(monkeypatch)
+        r = client.post("/api/skills-mgmt/classes/move",
+                        json={"skill_id": "whatever", "class_name": "不存在之分类"})
+        assert r.status_code == 400                          # move_class 校验未知分类
+
+    def test_auto_mode_on_unpinned_skill_is_rejected(self, client, monkeypatch):
+        """未钉住的技能调 auto=true ⇒ 400（幂等语义显式化，且这条路径不写盘）"""
+        self._auth_bypass(monkeypatch)
+        r = client.post("/api/skills-mgmt/classes/move",
+                        json={"skill_id": "__never_pinned__", "auto": True})
+        assert r.status_code == 400
+        assert "无需恢复" in r.get_json()["error"]
+
+
+
+# ═══════════════════════════════════════════════════════════════
 #  外部导入队列 / 安装预检（先存草稿逐个放行 + 自身重复预检明示）
 # ═══════════════════════════════════════════════════════════════
 
