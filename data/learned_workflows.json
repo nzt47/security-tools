@@ -365,5 +365,63 @@
     "updated_at": "2026-09-13T23:02:21.894575",
     "last_used_at": null,
     "converted_to_skill_id": ""
+  },
+  "wf-05b6c9f9": {
+    "id": "wf-05b6c9f9",
+    "name": "自动学习工作流 (sess_202)",
+    "description": "从会话 sess_20260918_190237_d039716f 中学习得到。原始任务: 子任务是在后台开新会话执行的吗？\n【准入未通过 NO_DISCRIMINATIVE_TRIGGER】无有区分度触发词（触发词列表为空（中文按字切分产生的单字触发词已在入库前丢弃；无任何有区分度的触发词））（草稿态：不进入匹配候选、不可自动转技能；可按 ID 人工执行）",
+    "task_signature": "任|会|务|台|后|子|开|执|新|话",
+    "trigger_patterns": [],
+    "steps": [
+      {
+        "step_id": "step_1",
+        "tool_name": "search_memory",
+        "params_template": {
+          "query": "${input}任务 后台 新会话 执行 delegate ${input}代理",
+          "scope": "all",
+          "max_items": 10
+        },
+        "output_key": "step_1_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_2",
+        "tool_name": "search_memory",
+        "params_template": {
+          "query": "委派 八要素 回调地址 ${input}代理机制",
+          "scope": "vector",
+          "max_items": 5
+        },
+        "output_key": "step_2_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      }
+    ],
+    "expected_output_pattern": "",
+    "source_session_id": "sess_20260918_190237_d039716f",
+    "source_user_input": "子任务是在后台开新会话执行的吗？",
+    "success_count": 0,
+    "failure_count": 0,
+    "confidence": 0.4,
+    "priority": 70,
+    "status": "draft",
+    "enabled": true,
+    "tags": [
+      "learned"
+    ],
+    "workflow_type": "toolchain",
+    "created_at": "2026-09-18T19:28:29.204185",
+    "updated_at": "2026-09-18T19:28:29.204185",
+    "last_used_at": null,
+    "converted_to_skill_id": ""
   }
 }

@@ -843,6 +843,29 @@ jobs:
             -o addopts="" \
             --timeout=120
 
+      - name: 运行墙面钟性能预算断言（时序敏感单测独立串行）
+        # Why: 这些断言量的是**墙面钟预算**（审计 append 延迟 / 面板聚合与分页耗时），
+        #   在并行分片（-n 2，12 个矩阵 job 共享 runner）下必然随调度抢占漂移：
+        #   2026-09-18 实测单条 append 均值 5.77ms / 预算 5ms、聚合中位数
+        #   2723.9ms / 预算 200ms、分页 3427.5ms / 预算 1s；而本地分别稳定在
+        #   ~0.4ms、~40ms、~55ms。判据是"抢占只可能让某次变慢、不会变快"。
+        # Why 与单例时序断言同款处理: 相关用例已标记 @pytest.mark.slow，
+        #   所有并行分片（含 coverage / full-regression / test.yml）的
+        #   `-m "not slow and ..."` 都会跳过它们；本 job 独立串行执行作为唯一运行点，
+        #   避免"移出分片 = 再也没跑过"。
+        # Why --runslow: tests/conftest.py 的 pytest_collection_modifyitems 会把
+        #   带 slow 标记的用例**自动 skip**（除非显式 --runslow），不加它这里只会看到 skip。
+        # Why -o addopts="": 清掉默认 addopts（含 -m/-p 等），保证显式 node id 一定能收集到。
+        run: |
+          echo "=== 运行墙面钟性能预算断言（串行）==="
+          pytest tests/unit/test_audit_chain.py::TestPerformance \
+                 tests/unit/test_s6_01_ui_panels.py::TestPerformanceBudget \
+            -v \
+            -o addopts="" \
+            --runslow \
+            -p no:randomly \
+            --timeout=120
+
       - name: 运行 L2 性能回归测试
         env:
           L2_SCHEME: sync-serial-path-cache
