@@ -338,10 +338,19 @@ class TestCountBound:
         assert len(result) <= MAX_TOOLS + len(restored)
         assert len(result) == len(_non_pinned(result)) + len(restored)
 
-    def test_复合输入下总数就是上限加一(self):
-        """实测口径：25 个截断结果 + 1 个补回的 delegate = 26"""
+    def test_复合输入下总数就是上限加二(self):
+        """实测口径：25 个截断结果 + 2 个补回的 pinned（delegate、fan_out）= 27
+
+        【口径变更 2026-09-18】原基线是「25 + 1（delegate）= 26」。`fan_out`
+        （并行多线委派，Owner 授权本会话裁定）加入 `PINNED_TOOLS` 后，复合输入下
+        两个 pinned 工具都会被补回 ⇒ 27。本断言仍是**硬编码**的实测口径：
+        若补回逻辑被放宽（例如整类补回、或补回未命中类别的工具），数字会立刻变化。
+        """
         result = get_tools_for_input(COMPOSITE_INPUT)
-        assert len(result) == MAX_TOOLS + 1, f"实际 {len(result)}: {result}"
+        assert len(result) == MAX_TOOLS + 2, f"实际 {len(result)}: {result}"
+        restored = [t for t in result if t in PINNED_TOOLS]
+        assert set(restored) == set(PINNED_TOOLS), (
+            f"复合输入命中了 async 类别，两个 pinned 工具都应被补回，实际补回: {restored}")
 
     @pytest.mark.parametrize("limit", [1, 5, 25, 40])
     def test_helper_层同样满足上限公式(self, limit):

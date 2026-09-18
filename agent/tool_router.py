@@ -371,7 +371,15 @@ TOOL_ALIASES: dict[str, list[str]] = {}
 #      500–800 token，且与输入是否真的需要委派无关。
 #   3. 两种做法都会改变**每一轮**请求的 schema 与 token 成本；而 pin list 是**定向**的：
 #      只影响"该工具本来就被类别命中、却又被数量上限挤掉"的那部分输入。
-PINNED_TOOLS: tuple = ("delegate",)
+#
+# 为什么 2026-09-18 把 fan_out 也放进名单（Owner 授权本会话裁定）：
+#   `fan_out`（并行多线委派）是"多 Agent 各管一条线"的入口能力，与 delegate 同属
+#   **跨步骤能力**；实测复合输入「读取文件、搜索内容、执行命令…然后委派子代理汇总」下
+#   25 件截断结果里 fan_out 被丢掉（delegate 因在名单内被补回）——恰是"最需要并行派发"
+#   的那类复合请求看不到它。代价与 delegate 同类：只在 async 类别**已被关键词命中**时生效，
+#   不改变其它任何一轮请求的 schema。基线随之从「25 + 1 = 26」变为「25 + 2 = 27」
+#   （tests/unit/test_tool_router_pinned.py 已同步）。
+PINNED_TOOLS: tuple = ("delegate", "fan_out")
 
 
 # ════════════════════════════════════════════════════════════
