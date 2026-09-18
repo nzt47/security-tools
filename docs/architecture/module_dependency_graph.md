@@ -95,10 +95,7 @@ flowchart LR
         agent_search_performance_monitor["agent.search_performance_monitor"]:::crosslayer
         agent_security_utils["agent.security_utils"]
         agent_server_auth["agent.server_auth"]:::crosslayer
-        agent_server_ui["agent.server_ui"]:::crosslayer
         agent_session_manager["agent.session_manager"]:::crosslayer
-        agent_software_backends["agent.software_backends"]
-        agent_software_manager["agent.software_manager"]
         agent_state_manager["agent.state_manager"]:::crosslayer
         agent_system_prompt_config["agent.system_prompt_config"]:::crosslayer
         agent_system_prompt_manager["agent.system_prompt_manager"]:::crosslayer
@@ -106,6 +103,7 @@ flowchart LR
         agent_task_scheduler["agent.task_scheduler"]:::crosslayer
         agent_test_permission_system["agent.test_permission_system"]
         agent_text_tools["agent.text_tools"]:::crosslayer
+        agent_tool_approval["agent.tool_approval"]
         agent_tool_calling["agent.tool_calling"]:::crosslayer
         agent_tool_fewshot_store["agent.tool_fewshot_store"]:::crosslayer
         agent_tool_gate["agent.tool_gate"]:::crosslayer
@@ -207,8 +205,8 @@ flowchart LR
     end
     subgraph human_in_the_loop [human_in_the_loop]
         agent_human_in_the_loop["agent.human_in_the_loop"]
-        agent_human_in_the_loop_ethics["agent.human_in_the_loop.ethics"]
-        agent_human_in_the_loop_hitl["agent.human_in_the_loop.hitl"]
+        agent_human_in_the_loop_ethics["agent.human_in_the_loop.ethics"]:::crosslayer
+        agent_human_in_the_loop_hitl["agent.human_in_the_loop.hitl"]:::crosslayer
         agent_human_in_the_loop_observability["agent.human_in_the_loop.observability"]
         agent_human_in_the_loop_takeover_queue["agent.human_in_the_loop.takeover_queue"]:::crosslayer
     end
@@ -406,7 +404,6 @@ flowchart LR
         agent_prompt_manager_version_control["agent.prompt_manager.version_control"]
     end
     subgraph quality [quality]
-        agent_quality_defect_tracker["agent.quality.defect_tracker"]
         agent_quality_observability["agent.quality.observability"]
     end
     subgraph repair [repair]
@@ -469,16 +466,15 @@ flowchart LR
         agent_server_routes_routes_knowledge["agent.server_routes.routes_knowledge"]
         agent_server_routes_routes_llm_monitor["agent.server_routes.routes_llm_monitor"]
         agent_server_routes_routes_logging["agent.server_routes.routes_logging"]
-        agent_server_routes_routes_memory["agent.server_routes.routes_memory"]
         agent_server_routes_routes_monitoring["agent.server_routes.routes_monitoring"]
         agent_server_routes_routes_panorama["agent.server_routes.routes_panorama"]
         agent_server_routes_routes_permission["agent.server_routes.routes_permission"]
         agent_server_routes_routes_personality["agent.server_routes.routes_personality"]
         agent_server_routes_routes_process_distill["agent.server_routes.routes_process_distill"]
         agent_server_routes_routes_replay["agent.server_routes.routes_replay"]
+        agent_server_routes_routes_semantic_config["agent.server_routes.routes_semantic_config"]
         agent_server_routes_routes_sessions["agent.server_routes.routes_sessions"]
         agent_server_routes_routes_settings["agent.server_routes.routes_settings"]
-        agent_server_routes_routes_skills["agent.server_routes.routes_skills"]
         agent_server_routes_routes_skills_mgmt["agent.server_routes.routes_skills_mgmt"]
         agent_server_routes_routes_subagent["agent.server_routes.routes_subagent"]
         agent_server_routes_routes_system_prompt["agent.server_routes.routes_system_prompt"]
@@ -1426,6 +1422,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
     agent_orchestrator_orchestrator --> agent_orchestrator_turn_state
     agent_orchestrator_orchestrator -.-> agent_digital_life
+    agent_orchestrator_orchestrator -.-> agent_tools_plan_tools
     agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
     agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
     agent_orchestrator_orchestrator -.-> agent_observability
@@ -1575,8 +1572,6 @@ flowchart LR
     agent_prompt_manager_storage -.-> agent_utils_singleton_manager
     agent_prompt_manager_version_control -.-> agent_logging_utils
     agent_prompt_manager_version_control -.-> agent_utils_singleton_manager
-    agent_quality_defect_tracker -.-> agent_monitoring_observability_config
-    agent_quality_defect_tracker -.-> agent_monitoring_observability_config
     agent_quality_observability -.-> agent_logging_utils
     agent_quality_observability -.-> agent_monitoring_business_metrics
     agent_rate_limiter --> agent_logging_utils
@@ -1746,11 +1741,7 @@ flowchart LR
     agent_server_routes_routes_config -.-> agent_logging_utils
     agent_server_routes_routes_config -.-> agent_config_validation
     agent_server_routes_routes_config -.-> agent_audit_ui_middleware
-    agent_server_routes_routes_config -.-> agent_orchestrator_orchestrator
-    agent_server_routes_routes_config -.-> agent_orchestrator_orchestrator
-    agent_server_routes_routes_config -.-> agent_monitoring_metrics
     agent_server_routes_routes_config -.-> agent_tools
-    agent_server_routes_routes_config -.-> agent_monitoring_metrics
     agent_server_routes_routes_dashboard -.-> agent_server_auth
     agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_dashboard -.-> agent_monitoring_metrics
@@ -1802,9 +1793,6 @@ flowchart LR
     agent_server_routes_routes_logging -.-> agent_monitoring_loki
     agent_server_routes_routes_logging -.-> agent_monitoring_tracing
     agent_server_routes_routes_logging -.-> agent_monitoring_tracing
-    agent_server_routes_routes_memory -.-> agent_server_auth
-    agent_server_routes_routes_memory --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_memory -.-> agent_logging_utils
     agent_server_routes_routes_monitoring -.-> agent_server_auth
     agent_server_routes_routes_monitoring -.-> agent_task_scheduler
     agent_server_routes_routes_monitoring -.-> agent_system_tools
@@ -1831,6 +1819,13 @@ flowchart LR
     agent_server_routes_routes_replay -.-> agent_server_auth
     agent_server_routes_routes_replay -.-> agent_monitoring_replay_storage
     agent_server_routes_routes_replay -.-> agent_logging_utils
+    agent_server_routes_routes_semantic_config -.-> agent_logging_utils
+    agent_server_routes_routes_semantic_config -.-> agent_server_auth
+    agent_server_routes_routes_semantic_config --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_semantic_config -.-> agent_orchestrator_orchestrator
+    agent_server_routes_routes_semantic_config -.-> agent_orchestrator_orchestrator
+    agent_server_routes_routes_semantic_config -.-> agent_monitoring_metrics
+    agent_server_routes_routes_semantic_config -.-> agent_monitoring_metrics
     agent_server_routes_routes_sessions -.-> agent_server_auth
     agent_server_routes_routes_sessions --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_sessions -.-> agent_logging_utils
@@ -1845,17 +1840,6 @@ flowchart LR
     agent_server_routes_routes_settings -.-> agent_ui_panels_schema
     agent_server_routes_routes_settings -.-> agent_security_approval_session
     agent_server_routes_routes_settings -.-> agent_settings_registry
-    agent_server_routes_routes_skills -.-> agent_server_auth
-    agent_server_routes_routes_skills -.-> agent_tools
-    agent_server_routes_routes_skills --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_skills -.-> agent_server_ui
-    agent_server_routes_routes_skills -.-> agent_server_ui
-    agent_server_routes_routes_skills -.-> agent_extensions_store
-    agent_server_routes_routes_skills -.-> agent_extensions_base
-    agent_server_routes_routes_skills -.-> agent_extensions_base
-    agent_server_routes_routes_skills -.-> agent_extensions_base
-    agent_server_routes_routes_skills -.-> agent_extensions_store
-    agent_server_routes_routes_skills -.-> agent_extensions_base
     agent_server_routes_routes_skills_mgmt -.-> agent_server_auth
     agent_server_routes_routes_skills_mgmt --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_skills_mgmt -.-> agent_state_manager
@@ -2024,8 +2008,6 @@ flowchart LR
     agent_skills_mgmt_skill_manager -.-> agent_logging_utils
     agent_skills_mgmt_store --> agent_skills_mgmt_registry
     agent_skills_mgmt_vector_adapter -.-> agent_logging_utils
-    agent_software_backends --> agent_logging_utils
-    agent_software_manager --> agent_logging_utils
     agent_state_manager --> agent_logging_utils
     agent_state_manager -.-> agent_utils_singleton_manager
     agent_state_manager -.-> agent_skills_mgmt
@@ -2068,6 +2050,7 @@ flowchart LR
     agent_subagent_sandbox -.-> agent_permission_system
     agent_subagent_summarizer -.-> agent_logging_utils
     agent_subagent_toolset -.-> agent_security_actor_matrix
+    agent_subagent_toolset -.-> agent_lines_models
     agent_system_prompt_config -.-> agent_utils_singleton_manager
     agent_system_tools -.-> agent_tools_file_tools
     agent_system_tools -.-> agent_tools_workspace_tools
@@ -2098,6 +2081,10 @@ flowchart LR
     agent_task_scheduler -.-> agent_monitoring_observability_config
     agent_test_permission_system --> agent_permission_system
     agent_text_tools --> agent_logging_utils
+    agent_tool_approval -.-> agent_skills_mgmt_approval
+    agent_tool_approval -.-> agent_skills_mgmt_approval
+    agent_tool_approval -.-> agent_skills_mgmt_approval
+    agent_tool_approval -.-> agent_lines_models
     agent_tool_calling --> agent_logging_utils
     agent_tool_calling --> agent
     agent_tool_calling --> agent_rate_limiter
@@ -2109,6 +2096,11 @@ flowchart LR
     agent_tool_calling --> agent_response_workflows
     agent_tool_fewshot_store -.-> agent_utils_sensitive_data_filter
     agent_tool_gate --> agent_permission_system
+    agent_tool_gate -.-> agent_observability_trace_v2
+    agent_tool_gate --> agent_tool_approval
+    agent_tool_gate --> agent
+    agent_tool_gate -.-> agent_human_in_the_loop_hitl
+    agent_tool_gate -.-> agent_human_in_the_loop_ethics
     agent_tool_gate --> agent_permission_system
     agent_tool_gate --> agent_permission_system
     agent_tool_gate -.-> agent_lines
@@ -2144,6 +2136,7 @@ flowchart LR
     agent_tools_db_tools --> agent
     agent_tools_discovery_service -.-> agent_extensions_base
     agent_tools_discovery_service --> agent_tools_mcp_connector
+    agent_tools_discovery_service -.-> agent_tool_gate
     agent_tools_discovery_service -.-> agent_extensions_market
     agent_tools_ext_tools --> agent
     agent_tools_ext_tools -.-> agent_extensions_market
@@ -2168,6 +2161,7 @@ flowchart LR
     agent_tools_fan_out_tools --> agent_tools_subagent_tools
     agent_tools_fan_out_tools -.-> agent_subagent_delegation
     agent_tools_fan_out_tools -.-> agent_lines
+    agent_tools_fan_out_tools -.-> agent_subagent_toolset
     agent_tools_fan_out_tools --> agent_tools_subagent_tools
     agent_tools_fan_out_tools -.-> agent_subagent_delegation
     agent_tools_fan_out_tools -.-> agent_subagent_toolset
@@ -2296,9 +2290,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 597
-- 模块节点数: 534
-- 依赖边数: 1646
-- 跨层调用数: 1026
+- 扫描文件数: 592
+- 模块节点数: 530
+- 依赖边数: 1644
+- 跨层调用数: 1025
 - 违规调用数: 0
 - 动态 import 数: 1
