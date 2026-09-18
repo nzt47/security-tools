@@ -589,7 +589,12 @@ def test_API热更_参数校验与生效():
     """
     from flask import Flask
     from unittest.mock import MagicMock
-    from agent.server_routes.routes_config import register_routes
+    # 【2026-09-18 迁址】这两个 handler 已从 routes_config 迁到 routes_semantic_config
+    # 并在 app_server.py 单独接线。为什么迁：routes_config **从未注册**（29 条路径里
+    # 27 条由别处提供），而 orchestrator 一直在读 _SEM_API_OVERRIDE 这层覆盖 ⇒ 端点
+    # 线上 404、热更形同虚设。本用例原先靠"自己注册 routes_config"才通过——正是
+    # "测试绿、线上 404"的同一坑，故改为导入迁址后的模块。
+    from agent.server_routes.routes_semantic_config import register_routes
 
     # 构造最小 Flask app + mock state
     app = Flask(__name__)
