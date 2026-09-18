@@ -536,7 +536,7 @@ flowchart LR
     end
     subgraph subagent [subagent]
         agent_subagent["agent.subagent"]
-        agent_subagent_barrier["agent.subagent.barrier"]
+        agent_subagent_barrier["agent.subagent.barrier"]:::crosslayer
         agent_subagent_channel["agent.subagent.channel"]:::crosslayer
         agent_subagent_collection["agent.subagent.collection"]
         agent_subagent_container["agent.subagent.container"]:::crosslayer
@@ -2171,6 +2171,8 @@ flowchart LR
     agent_tools_fan_out_tools -.-> agent_subagent_container
     agent_tools_fan_out_tools -.-> agent_subagent_lifecycle
     agent_tools_fan_out_tools -.-> agent_monitoring_tracing
+    agent_tools_fan_out_tools -.-> agent_subagent_barrier
+    agent_tools_fan_out_tools -.-> agent_subagent_executor
     agent_tools_file_tools -.-> agent_logging_utils
     agent_tools_file_tools_reg --> agent
     agent_tools_file_tools_reg --> agent_tools_search_tools
@@ -2292,7 +2294,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 592
 - 模块节点数: 530
-- 依赖边数: 1644
-- 跨层调用数: 1025
+- 依赖边数: 1646
+- 跨层调用数: 1027
 - 违规调用数: 0
 - 动态 import 数: 1
