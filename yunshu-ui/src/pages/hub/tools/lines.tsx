@@ -7,6 +7,13 @@
  *   - **预览由后端算**：`POST /api/agent-lines/preview` 直接回传 `assemble()` 的
  *     trace（保底入选 / 打分入选 / 被效果上限拒绝 / 被 mute / 被截断），
  *     本页不做二次计算 —— 否则会出现第二份装配口径。
+ *   - `/planes` 每行工具还带 `callability`（「可被 LLM 调用」统一标注）：
+ *     工具选择器直接显示三档标识（✅/⚠️/❌），悬浮给出 reason/条件/执行器。
+ *     `callability` 为 `{}` 时徽章整体不渲染，选择器与加标注之前完全一致。
+ *   - **预览同样带标注**：`tools_meta` 的每一行含 `callability`（后端与 `/planes`
+ *     读同一份派生清单 `data/capability_manifest.json`，见 `_callability_index`），
+ *     故预览面板的 chip 也显示标识（压缩为单字形，完整说明在 `title` 上）。
+ *     响应里的 `callability_source` 标明该标注的出处，便于排查"标注不一致"。
  *
  * 【为什么左列表 + 右编辑器 + 常驻预览】
  *     权重这种东西"填数字看不出后果"：把 `plane_floors` 从 2 调到 0，
@@ -17,7 +24,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Check, Copy, Info, Layers, Plus, Save, Search, ShieldAlert, Target, Trash2,
 } from 'lucide-react'
-import { Badge, Card, ErrorBox, Loading, PageHeader } from '../components/ui'
+import { Badge, CallabilityBadge, Card, ErrorBox, Loading, PageHeader } from '../components/ui'
+import { callabilityCounts, callabilityLegend, hasCallabilityMark } from '@/lib/callability'
 import {
   createLine,
   deleteLine,
@@ -217,6 +225,9 @@ function ToolChips({ names, meta, reasons, color = 'slate' }: {
           {meta?.[n] && (
             <span className="text-slate-500">{PLANE_LABELS[meta[n].plane] ?? meta[n].plane}</span>
           )}
+          {/* 可调用性标识（压缩为单字形，完整说明在 title 上）：'tools_meta' 由后端
+              与目录端点同源回传（data/capability_manifest.json） */}
+          <CallabilityBadge info={meta?.[n]?.callability} name={n} compact />
         </span>
       ))}
     </div>
@@ -302,6 +313,8 @@ function ToolPicker({ title, hint, tone, tools, selected, onToggle }: {
                 险 {RISK_LABELS[t.risk] ?? t.risk}
               </Badge>
               {t.needs_approval && <Badge color="amber">需确认</Badge>}
+              {/* 可调用性标识：mark 缺失时不渲染（退化为现状） */}
+              <CallabilityBadge info={t.callability} name={t.name} />
               <span className="truncate text-[11px] text-slate-500">{t.category}</span>
             </button>
           )
@@ -478,6 +491,10 @@ export default function ToolsAgentLines() {
   const [previewing, setPreviewing] = useState(false)
 
   const tools = catalog?.tools ?? []
+  /** 图例：后端给了 callability_note / 计数，或至少一个工具带标识时才显示（旧后端 ⇒ 不显示） */
+  const callabilityText = callabilityCounts(catalog?.callability_marks)
+  const showCallabilityLegend = tools.some((t) => hasCallabilityMark(t.callability))
+    || Boolean(catalog?.callability_note) || callabilityText !== ''
 
   /** 载入分类法 + 档案列表；`select` 决定是否动当前选中项 */
   const load = async (opts: { select?: string | null | 'auto'; silent?: boolean } = {}) => {
@@ -1011,6 +1028,13 @@ export default function ToolsAgentLines() {
                   </div>
 
                   {/* boost / mute */}
+                  {showCallabilityLegend && (
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+                      <span className="text-slate-400">可调用性标识</span>
+                      <span>{callabilityLegend(catalog?.callability_note)}</span>
+                      {callabilityText && <span className="ml-auto">{callabilityText}</span>}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                     <ToolPicker
                       title="boost（核心工具加成）"

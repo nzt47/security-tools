@@ -12,6 +12,7 @@
  */
 
 import { request } from './apiClient'
+import type { CallabilityInfo } from './callability'
 
 const PREFIX = '/api/agent-lines'
 
@@ -63,6 +64,8 @@ export interface ToolCatalogEntry {
   /** 内部工具：保留注册，但不进模型可见集 */
   internal: boolean
   description?: string
+  /** 该工具「可被 LLM 调用」的统一标注；清单不可用时为 `{}`（见 lib/callability.ts） */
+  callability?: CallabilityInfo
 }
 
 export interface LineListResponse {
@@ -90,6 +93,10 @@ export interface PlanesResponse {
   tools_without_declaration: string[]
   /** 候选工具名来源：registry=运行时注册表；declarations=退回已声明集合 */
   tool_source: 'registry' | 'declarations'
+  /** 三档标识的计数（形如 `{"⚠️ 条件可调用": 10, "✅ 可调用": 80}`；无标注时缺省/空表） */
+  callability_marks?: Record<string, number>
+  /** 三档标识的说明文案（图例直接用；取不到时前端有本地兜底） */
+  callability_note?: string
   defaults?: Partial<LineProfile>
 }
 
@@ -108,6 +115,8 @@ export interface AssemblyPreview {
   max_tools: number
   over_budget: boolean
   tools_meta?: Record<string, ToolCatalogEntry>
+  /** `tools_meta` 里 `callability` 的出处（派生清单路径，与 `/planes` 同源） */
+  callability_source?: string
 }
 
 export interface PreviewResponse {

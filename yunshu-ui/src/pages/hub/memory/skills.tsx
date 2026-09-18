@@ -1,13 +1,25 @@
 /**
  * LLM 技能库 —— 技能启停 / 参数配置（提示/行为/扩展类技能，由 LLM 执行）
  * 数据源：/api/skills、/api/skills/toggle、/api/skills/params
+ *         + /api/capability-manifest（技能侧「可被 LLM 调用」统一标注，只读、独立降级）
  *
  * 说明：本页面向「LLM 技能」（注入每次 LLM 调用的提示/行为/扩展技能）。
  * 确定性、本地执行的「工作流技能」不在此列（见技能中心 → 工作流技能 Tab）。
+ *
+ * 【为什么技能行上要标可调用性】
+ *   技能**不是**模型发起的工具调用：它们由 ContextInjector 按意图注入上下文、
+ *   或由 SkillExecutor 显式执行，故清单里一律是 ❌ 不可调用，`reason` 写明原因。
+ *   把这条如实显示出来，才能消除"技能库里有 = 模型能自己调"的误解。
+ *   数据取 `manifest.skills`（与工具同构的八字段 + `mark`）；清单取不到时徽章与图例
+ *   整体不渲染，本页功能不受影响。
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Eye, Layers, Loader2, Power } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
+import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
+import {
+  callabilityCounts, callabilityLegend, callabilityMark, fetchCapabilityManifest,
+  type CallabilityInfo,
+} from '@/lib/callability'
 import { getApiToken } from '../../../lib/apiToken'
 import ApiTokenPrompt from './api-token-prompt'
 import SkillContentModal from './skill-content-modal'
@@ -50,6 +62,9 @@ export function MemorySkillsTable() {
   const [grouped, setGrouped] = useState(true)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [clsBusy, setClsBusy] = useState(false)
+  /** 技能可调用性标注：{技能 id: 标注}（清单不可用 ⇒ 空表 ⇒ 不显示徽章/图例） */
+  const [callability, setCallability] = useState<Record<string, CallabilityInfo>>({})
+  const [callabilityNote, setCallabilityNote] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -59,6 +74,16 @@ export function MemorySkillsTable() {
       setSkills(installed.length > 0 ? installed : available)
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
+
+    // 可调用性清单——独立降级：拿不到就没有标识，绝不影响技能列表本身
+    fetchCapabilityManifest().then((r) => {
+      const map: Record<string, CallabilityInfo> = {}
+      for (const e of r?.manifest?.skills ?? []) {
+        if (e?.tool_name) map[e.tool_name] = e
+      }
+      setCallability(map)
+      setCallabilityNote((r?.manifest?.vocabulary?.mark ?? []).join(' / '))
+    }).catch(() => { setCallability({}); setCallabilityNote('') })
   }
 
   useEffect(load, [])
@@ -116,6 +141,17 @@ export function MemorySkillsTable() {
   }, [skills])
   const uncCount = groups.find((g) => g.name === '未分类')?.list.length ?? 0
 
+  /** 本页技能的三档标识计数（技能侧通常全为 ❌：由注入器/执行器触发，非模型发起的调用） */
+  const skillMarksText = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of skills) {
+      const mark = callabilityMark(callability[s.id])
+      if (mark) counts[mark] = (counts[mark] ?? 0) + 1
+    }
+    return callabilityCounts(counts)
+  }, [skills, callability])
+  const showCallability = skillMarksText !== '' || callabilityNote !== ''
+
   const allCollapsed = grouped && groups.every((g) => collapsed[g.name])
   const foldAll = (fold: boolean) => {
     const next: Record<string, boolean> = {}
@@ -137,6 +173,8 @@ export function MemorySkillsTable() {
         {r.class_auto && (
           <span className="inline-flex items-center gap-0.5 rounded-full border border-violet-800/60 bg-violet-500/10 px-1.5 py-0.5 text-[9px] text-violet-300">自动建类</span>
         )}
+        {/* 可调用性标识（来自 /api/capability-manifest 的 manifest.skills）：mark 缺失即不渲染 */}
+        <CallabilityBadge info={callability[r.id]} name={r.name || r.id} />
       </div>
       {r.description && <div className="text-xs text-slate-500">{r.description}</div>}
       {/* 触发方式：运行时按意图语义匹配命中后注入上下文 */}
@@ -223,6 +261,13 @@ export function MemorySkillsTable() {
         </div>
       </div>
       {needAuth && <ApiTokenPrompt onSaved={() => { setNeedAuth(false); setInfo('已保存令牌，重试成功。'); load() }} />}
+      {showCallability && (
+        <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+          <span className="text-slate-400">可调用性标识</span>
+          <span>{callabilityLegend(callabilityNote)}</span>
+          {skillMarksText && <span className="ml-auto">{skillMarksText}</span>}
+        </div>
+      )}
       {info && <div className="mb-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{info}</div>}
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {loading ? <Loading /> : skills.length === 0 ? (

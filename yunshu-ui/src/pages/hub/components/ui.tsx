@@ -4,6 +4,12 @@
 import type { ReactNode } from 'react'
 import { Loader2, AlertTriangle, Inbox } from 'lucide-react'
 import { getApiToken } from '../../../lib/apiToken'
+import {
+  callabilityColor,
+  callabilityMark,
+  callabilityTitle,
+  type CallabilityInfo,
+} from '../../../lib/callability'
 
 /** 面板卡片：标题 + 可选操作区 + 内容 */
 export function Card({
@@ -110,18 +116,49 @@ export function ErrorBox({ message }: { message: string }) {
   )
 }
 
+/** 徽章配色（Badge 与 CallabilityBadge 共用，避免两套色板漂移） */
+const BADGE_CLASS = {
+  green: 'bg-emerald-500/15 text-emerald-400 border-emerald-800',
+  red: 'bg-red-500/15 text-red-400 border-red-800',
+  amber: 'bg-amber-500/15 text-amber-400 border-amber-800',
+  cyan: 'bg-cyan-500/15 text-cyan-400 border-cyan-800',
+  slate: 'bg-slate-500/15 text-slate-400 border-slate-700',
+}
+
 /** 状态徽章 */
 export function Badge({ color = 'slate', children }: { color?: 'green' | 'red' | 'amber' | 'cyan' | 'slate'; children: ReactNode }) {
-  const map = {
-    green: 'bg-emerald-500/15 text-emerald-400 border-emerald-800',
-    red: 'bg-red-500/15 text-red-400 border-red-800',
-    amber: 'bg-amber-500/15 text-amber-400 border-amber-800',
-    cyan: 'bg-cyan-500/15 text-cyan-400 border-cyan-800',
-    slate: 'bg-slate-500/15 text-slate-400 border-slate-700',
-  }
   return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${map[color]}`}>
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${BADGE_CLASS[color]}`}>
       {children}
+    </span>
+  )
+}
+
+/**
+ * 可调用性标识徽章（工具 / 技能「可被 LLM 调用」三档 ✅/⚠️/❌）
+ *
+ * 【退化语义】`info` 为空、`mark` 缺失（旧后端 `callability: {}` 或清单不可用）时
+ * **不渲染任何东西**，也不占位 —— 界面与加标注之前完全一致。
+ * 【悬浮说明】由 `lib/callability.ts::callabilityTitle` 组装多行文案（缺项不留空行）。
+ * 【compact】装配预览的工具 chip 一行里已有 name + plane，再放整句标识会把 chip 撑得很长，
+ * 故 chip 场景只显示字形（✅/⚠️/❌），完整文案仍在同一个 `title` 上。
+ */
+export function CallabilityBadge({ info, name, className = '', compact = false }: {
+  info?: CallabilityInfo | null
+  name?: string
+  className?: string
+  compact?: boolean
+}) {
+  const mark = callabilityMark(info)
+  if (!mark) return null
+  const title = callabilityTitle(info, name)
+  const glyph = compact ? mark.split(/\s+/)[0] : mark
+  return (
+    <span
+      title={title}
+      className={`inline-flex shrink-0 cursor-help items-center whitespace-nowrap rounded-full border ${compact ? 'px-1 py-0 text-[10px]' : 'px-2 py-0.5 text-xs'} ${BADGE_CLASS[callabilityColor(mark)]} ${className}`}
+    >
+      {glyph}
     </span>
   )
 }

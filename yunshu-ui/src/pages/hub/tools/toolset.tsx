@@ -5,6 +5,15 @@
  *   - `/api/tools/config`        工具列表 + 启用状态 + 调用次数（plugins/skills.py）
  *   - `/api/tools/toggle`        启停
  *   - `/api/agent-lines/planes`  治理元数据（plane/effect/risk/needs_approval）+ 平面分类法
+ *                               + 每行 `callability`（「可被 LLM 调用」统一标注）与
+ *                                 `callability_marks` / `callability_note`（三档标识图例）
+ *
+ * 【为什么工具行上要标"可调用性"】
+ *   plane/effect/risk 回答的是"这工具能造成多大后果"，回答不了"模型到底能不能自己发起调用"：
+ *   后者由声明 llm_callable / callable_mode / schema / 执行器 / 权限策略**五条共同**决定。
+ *   三档标识（✅ 可调用 / ⚠️ 条件可调用 / ❌ 不可调用）与判定同源，直接取自后端，
+ *   本页不重算 —— 悬浮说明给出 reason / conditions / notes / 权限 / 执行器。
+ *   【退化】`callability` 为 `{}`（旧后端或清单不可用）时不显示徽章，界面与加标注之前一致。
  *
  * 【为什么要按平面分组】
  *   旧的"分类"是学科轴（web/file/code/system…），它回答了"这工具是干什么的"，
@@ -17,7 +26,8 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { Power, ShieldAlert } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
+import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
+import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
 
 interface ToolItem {
   name: string
@@ -37,6 +47,8 @@ interface MetaRow {
   category?: string
   needs_approval?: boolean
   internal?: boolean
+  /** 该工具「可被 LLM 调用」的统一标注（可能为 `{}` = 清单不可用） */
+  callability?: CallabilityInfo
 }
 
 interface PlaneDef {
@@ -69,6 +81,9 @@ export default function ToolsToolset() {
   const [planes, setPlanes] = useState<PlaneDef[]>([])
   const [undeclared, setUndeclared] = useState<string[]>([])
   const [metaOk, setMetaOk] = useState(true)
+  /** 三档标识的图例文案与计数（后端 callability_note / callability_marks；缺失即空） */
+  const [callabilityNote, setCallabilityNote] = useState('')
+  const [callabilityMarks, setCallabilityMarks] = useState<Record<string, number>>({})
   const [filter, setFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -83,7 +98,13 @@ export default function ToolsToolset() {
 
     // 治理元数据——独立降级：拿不到就不显示平面，不影响启停功能
     hubGet('/api/agent-lines/planes').then((r) => {
-      const resp = r as { tools?: MetaRow[]; planes?: PlaneDef[]; tools_without_declaration?: string[] }
+      const resp = r as {
+        tools?: MetaRow[]
+        planes?: PlaneDef[]
+        tools_without_declaration?: string[]
+        callability_marks?: Record<string, number>
+        callability_note?: string
+      }
       const map: Record<string, MetaRow> = {}
       for (const row of resp.tools ?? []) {
         if (row?.name) map[row.name] = row
@@ -91,8 +112,15 @@ export default function ToolsToolset() {
       setMeta(map)
       setPlanes(resp.planes ?? [])
       setUndeclared(resp.tools_without_declaration ?? [])
+      setCallabilityNote(resp.callability_note ?? '')
+      setCallabilityMarks(resp.callability_marks ?? {})
       setMetaOk(true)
-    }).catch(() => setMetaOk(false))
+    }).catch(() => {
+      // 拿不到治理元数据 ⇒ 连带清掉图例（不留上一次的陈旧标注）
+      setMetaOk(false)
+      setCallabilityNote('')
+      setCallabilityMarks({})
+    })
   }
 
   useEffect(load, [])
@@ -125,19 +153,32 @@ export default function ToolsToolset() {
 
   const shown = filter === 'all' ? groups : groups.filter((g) => g.plane === filter)
 
+  /**
+   * 图例：后端给了说明文案（新接口）或至少一个工具带标识时才显示。
+   * 旧后端（两个字段都没有）⇒ 整行不渲染，页面与本改动之前完全一致。
+   */
+  const marksText = callabilityCounts(callabilityMarks)
+  const anyMark = useMemo(
+    () => merged.some((t) => hasCallabilityMark(t.callability)),
+    [merged],
+  )
+  const showLegend = metaOk && (callabilityNote !== '' || marksText !== '' || anyMark)
+
   const columns = [
     {
       key: 'name', title: '工具', render: (r: Merged) => (
         <div>
-          <div className="font-medium text-slate-200">
-            {String(r.name)}
+          <div className="flex flex-wrap items-center gap-1.5 font-medium text-slate-200">
+            <span>{String(r.name)}</span>
+            {/* 可调用性标识：mark 缺失时该组件不渲染任何东西 */}
+            <CallabilityBadge info={r.callability} name={String(r.name)} />
             {r.needs_approval && (
-              <span className="ml-2 inline-flex items-center gap-1 rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-300">
+              <span className="inline-flex items-center gap-1 rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-300">
                 <ShieldAlert size={10} /> 需审批
               </span>
             )}
             {r.internal && (
-              <span className="ml-2 rounded bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">内部</span>
+              <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">内部</span>
             )}
           </div>
           {r.description && <div className="max-w-lg text-xs text-slate-500">{String(r.description)}</div>}
@@ -216,6 +257,15 @@ export default function ToolsToolset() {
           )
         })}
       </div>
+
+      {/* 可调用性图例：三档标识均为后端判定结果的直接映射，此处只做说明 */}
+      {showLegend && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+          <span className="text-slate-400">可调用性标识</span>
+          <span>{callabilityLegend(callabilityNote)}</span>
+          {marksText && <span className="ml-auto text-slate-500">{marksText}</span>}
+        </div>
+      )}
 
       {loading ? <Loading /> : (
         <div className="space-y-5">
