@@ -85,7 +85,10 @@
 
 ## 6. CI/CD 验证结论
 
-- **推送**：`origin/master`（GitHub，CI 所在）已更新到 `c1a72324`；`gitee` 镜像未推（见 §7）。
+- **推送**：`origin/master`（GitHub，CI 所在）已更新到 **`920a5670`**；`gitee` 镜像未推（见 §7）。
+- **最终结论（head `920a5670`）**：21 个 workflow run —— **19 success、2 进行中（扩展系统健康检查 / Daily Regression Tests，均为 workflow_run 串联触发，非本交付改动面）**，
+  其中 **「云枢系统测试流程」= success（21 个 job 全绿）**，含 6 个单元测试分片、4 个集成分片、
+  E2E、覆盖率、文档链接预检与锚点回归、代码质量、安全扫描、知识库审计 CLI 冒烟。
 - **发现并修掉四个真红灯**（全部由 CI 抓出，本地单测/pre-commit 都曾全绿）：
   1. `architecture-check`：`agent.lines.callability → agent.tools` 循环依赖 → 提交 `8457346e`（依赖倒置）；
   2. `单元测试 Shard 1`：清单不可复现（依赖 .gitignore 里的运行时技能文件，CI 报 23 处差异）→ 提交 `bc75e11d`（清单口径收紧为仓库可复现 + 两条守门单测）；
@@ -97,7 +100,7 @@
 
 | 工作流 | 结论 |
 |--------|------|
-| 云枢系统测试流程（6 shard × 3 Python） | `8457346e`/`c1a72324`/`9d3361c0` 三个 head 上各有一次 `failure`，**每次唯一的失败都是** `test_skill_merge.py::TestServiceMerge::test_service_auto_merge_duplicates` 超时（>60s），且**跨 shard 漂移**（Shard 5 → Shard 1 → Shard 2）；其中 `9d3361c0` 的 Shard 2 整片耗时 **1424s（23.7 分钟，其余 shard 4–15 分钟）** ⇒ 判定为**负载型既有 flake**（同一份代码 rerun 后全绿）。本交付自身的三条真红灯已消失（Shard 1 转为 `success`；本文件拆快慢两级后 90s → 5s）。已对失败 job 触发 `gh run rerun --failed` ⇒（回填见下） |
+| 云枢系统测试流程（6 shard × 3 Python） | 修复前：`8457346e`/`c1a72324`/`9d3361c0`/`22a91c0b` 四个 head 各命中一次 `failure`，**每次唯一失败都是** `test_skill_merge.py::TestServiceMerge::test_service_auto_merge_duplicates` 超时（>60s），跨 shard 漂移（5 → 1 → 2），且 `9d3361c0` 的 Shard 2 整片耗时 **1424s** ⇒ 负载型既有 flake。**修复后：最终 head `920a5670` 上「云枢系统测试流程」= success**（21 个 job 全绿：6 单元分片 + 4 集成分片 + E2E + 覆盖率 + 文档链接预检 + 代码质量 + 安全扫描…） |
 | 架构规则校验 | `success`（循环依赖已拆） |
 | 循环依赖校验 / 核心不变量 / 关键字参数 / lock-discipline / 硬编码密码扫描 / 环境健康 / 日期无关守卫等 | 全部 `success` |
 | yunshu-ui 前端测试 / 部署文档到 GitHub Pages / Daily Regression Tests / 扩展系统健康检查 | `success` |
