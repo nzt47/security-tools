@@ -7,6 +7,12 @@ version: 1.0.0
 plane: act
 effect: execute
 risk: medium
+tool_type: tool
+llm_callable: false
+callable_mode: manual
+permission_level: internal
+sandbox_allowed: false
+reason: 内部执行体：仅由 AsyncDistill 后台链路按名调用（保留注册、不进模型可见集）
 tags: [evolution, knowledge]
 internal: true
 schema:

@@ -165,16 +165,81 @@ def _meta_and_available() -> Tuple[Dict[str, Any], List[str], str]:
     return meta, sorted(meta.keys()), "declarations"
 
 
+#: 可调用性清单缓存（按 mtime+size 失效，避免每次请求读 100KB JSON）
+_CALLABILITY_CACHE: Dict[str, Any] = {"stamp": None, "data": {}}
+
+
+def _callability_index() -> Dict[str, Dict[str, Any]]:
+    """读 `data/capability_manifest.json` → {能力名: 标注}
+
+    【为什么读清单文件而不是现算】清单是**同源派生**的（`agent/lines/callability.py`），
+            由 `scripts/sync_capability_manifest.py` 生成并受 `--check` 守门；
+            请求线程里现算要重扫 91 个 YAML + AST，得不偿失。
+    【不易】文件缺失/损坏 ⇒ 返回空表（界面退化为"无标注"，绝不因标注不可用而 500）。
+    """
+    import json
+    import os as _os
+    try:
+        from agent.lines.callability import MANIFEST_PATH
+    except Exception as e:  # noqa: BLE001
+        logger.debug("[AgentLines] 可调用性模块不可用: %s", e)
+        return {}
+    try:
+        st = _os.stat(MANIFEST_PATH)
+    except OSError:
+        return {}
+    stamp = (st.st_mtime_ns, st.st_size)
+    if _CALLABILITY_CACHE["stamp"] == stamp:
+        return _CALLABILITY_CACHE["data"]
+    try:
+        with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, ValueError) as e:
+        logger.warning("[AgentLines] 可调用性清单不可读: %s", e)
+        return {}
+    index = {
+        str(e.get("tool_name")): e
+        for e in (doc.get("entries") or []) if e.get("tool_name")
+    }
+    _CALLABILITY_CACHE["stamp"] = stamp
+    _CALLABILITY_CACHE["data"] = index
+    return index
+
+
 def _preview_dict(profile: LineProfile, meta: Dict[str, Any],
                   available: List[str]) -> Dict[str, Any]:
-    """跑一次装配并给出可解释 trace（前端直接上屏，不做二次计算）"""
+    """跑一次装配并给出可解释 trace（前端直接上屏，不做二次计算）
+
+    【为什么 `tools_meta` 覆盖"payload 里出现的**全部**工具名"而不只是入选工具】
+        预览面板用同一份 meta 渲染各组 chip（入选 / 需人工确认 / 被效果上限拒绝 /
+        被 mute / 被截断 / 无声明 fail-closed 拒绝）。只给入选工具的话，其余 chip
+        既没有 plane 也没有可调用性标注 —— 而"被拒绝的那个工具是什么等级"恰恰是
+        这条 trace 最需要看清楚的部分。
+    【为什么 callability 必须与目录端点同源】标注的权威是 `data/capability_manifest.json`
+        （由 `agent/lines/callability.py` 派生的产物）。预览与目录各算一次就会出现两份
+        口径（这正是"十三处工具真相"的老毛病），故两处都读同一份缓存（`_callability_index`）。
+    【不易】清单缺失/损坏 ⇒ `callability` 为空对象，前端退化为"无徽章"，**不报错**。
+    """
     result = assemble(profile, available, meta=meta)
     payload = result.to_dict()
+    callability = _callability_index()
+
+    names: set = set(result.tools)
+    for key in ("by_plane", "denied_by_effect", "denied_unknown",
+                "muted", "truncated", "needs_approval"):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            for items in value.values():
+                names.update(items or [])
+        elif isinstance(value, list):
+            names.update(value)
+
     payload["tools_meta"] = {
-        name: meta[name].to_dict()
-        for name in result.tools
+        name: {**meta[name].to_dict(), "callability": callability.get(name, {})}
+        for name in sorted(names)
         if name in meta
     }
+    payload["callability_source"] = "data/capability_manifest.json"
     return payload
 
 
@@ -253,9 +318,16 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
     @trace_route("AgentLines")
     @log_request(show_response=False)
     def api_agent_lines_planes():
-        """分类法单一来源 + 全量工具目录 + 未登记（fail-closed）工具清单"""
+        """分类法单一来源 + 全量工具目录 + 未登记（fail-closed）工具清单
+
+        每行工具附带 `callability`：该工具的「可被 LLM 调用」统一标注
+        （`llm_callable` / `callable_mode` / `schema_registered` / `host_executor` /
+        `permission_level` / `sandbox_allowed` / `reason` / `mark`），口径与
+        `data/capability_manifest.json` 同源（见 agent/lines/callability.py）。
+        """
         try:
             meta, available, source = _meta_and_available()
+            callability = _callability_index()
             counts: Dict[str, int] = {p: 0 for p in PLANES}
             tools: List[Dict[str, Any]] = []
             for name in sorted(meta.keys()):
@@ -263,9 +335,15 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 counts[m.plane] = counts.get(m.plane, 0) + 1
                 row = m.to_dict()
                 row["description"] = m.description[:120]
+                row["callability"] = callability.get(name, {})
                 tools.append(row)
             # 运行时存在、但没有 plane/effect 声明 ⇒ 装配时 fail-closed 拒绝
             undeclared = sorted(n for n in available if n not in meta)
+            marks: Dict[str, int] = {}
+            for row in tools:
+                mark = str((row["callability"] or {}).get("mark") or "")
+                if mark:
+                    marks[mark] = marks.get(mark, 0) + 1
             return jsonify({
                 "ok": True,
                 "planes": [
@@ -289,10 +367,48 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 "tool_count": len(tools),
                 "tools_without_declaration": undeclared,
                 "tool_source": source,
+                "callability_marks": marks,
+                "callability_note": "✅ 可被模型发起 / ⚠️ 可执行但触发有条件"
+                                    "（需人工确认，或由系统·人工触发，如技能）"
+                                    " / ❌ 不可达（无执行器·已停用·被策略拒绝）",
                 "defaults": DEFAULT_PROFILE,
             })
         except Exception as e:  # noqa: BLE001
             return _error_response(e)
+
+    # ── 2b. 统一可调用性清单（工具 + 技能同构；派生自权威数据） ──
+
+    @app.route("/api/capability-manifest", methods=["GET"])
+    @trace_route("AgentLines")
+    @log_request(show_response=False)
+    def api_capability_manifest():
+        """工具 / 技能的「可被 LLM 调用」统一清单（`data/capability_manifest.json`）
+
+        只读投影：数据由 `scripts/sync_capability_manifest.py` 从
+        `data/tool_definitions/*.yaml` + `data/skill_callability.yaml` 等权威数据派生，
+        `--check` 守门防止手改。
+        """
+        try:
+            from agent.lines.callability import MANIFEST_PATH
+        except Exception as e:  # noqa: BLE001
+            return _fail(f"可调用性模块不可用: {e}", 500)
+        import json
+        import os as _os
+        if not _os.path.exists(MANIFEST_PATH):
+            return _fail("可调用性清单不存在，请运行 scripts/sync_capability_manifest.py", 404)
+        try:
+            with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
+                doc = json.load(f)
+        except (OSError, ValueError) as e:
+            return _fail(f"可调用性清单不可读: {e}", 500)
+        st = _os.stat(MANIFEST_PATH)
+        return jsonify({
+            "ok": True,
+            "manifest": doc,
+            "path": _os.path.relpath(MANIFEST_PATH, _os.path.dirname(_os.path.dirname(
+                _os.path.dirname(_os.path.abspath(__file__))))).replace("\\", "/"),
+            "updated_at": st.st_mtime,
+        })
 
     # ── 3. 单条主线 + 装配预览（"这条线现在会长什么样"） ──
 

@@ -5,6 +5,7 @@
 """
 
 import logging
+import os
 import time
 import uuid
 from typing import Callable, Any
@@ -33,6 +34,17 @@ _tool_health: dict[str, dict] = {}
 # 为什么不能注销它们：`call()` 要求名字在 `_registry` 中（见本文件 `call()`），
 # 而 AsyncExecutor 等内部链路按名调用它们（如 process_distill_run）。故只能"隐藏"。
 _internal_cache: dict = {"version": -1, "data": frozenset()}
+
+# ── 「可被 LLM 调用」过滤（`data/tool_definitions/*.yaml` 的可调用性声明）──
+# 【为什么要有这一层】`internal` 只覆盖"内部执行体"一种情形；显式声明
+# `llm_callable: false` / `callable_mode: manual` / 被权限策略拒绝的工具同样不该进
+# 模型可见集。口径集中在 `agent/lines/callability.py`，本文件只做隐藏。
+# 【默认开、可回滚】关掉只需 `CP_TOOL_CALLABILITY_ENFORCE=0`（回到"只隐藏 internal"）。
+# 【零行为变化】当前唯一被判否的 `process_distill_run` 本就是 internal ⇒ 打开前后
+# 模型可见集完全相同（tests/unit/test_tool_callability.py 锁住这条不变量）。
+_CALLABILITY_ENFORCE_ENV = "CP_TOOL_CALLABILITY_ENFORCE"
+_CALLABILITY_DISABLED_VALUES = frozenset({"0", "false", "no", "off"})
+_callability_cache: dict = {"version": -1, "data": frozenset()}
 
 # 工具来源枚举
 SOURCE_BUILTIN = "builtin"    # 内置工具（8 个模块注册）
@@ -387,11 +399,65 @@ def _internal_tool_names() -> frozenset:
     return names
 
 
+def _non_callable_names() -> frozenset:
+    """取"声明为不可被 LLM 调用"的工具名（`data/tool_definitions/*.yaml` 的可调用性声明）
+
+    【不易】任何异常都降级为空集（即不额外隐藏任何工具）——宁可多暴露，不可因 YAML
+            读取失败把工具静默藏掉（与 `_internal_tool_names` 同一纪律）。
+    【变易】`CP_TOOL_CALLABILITY_ENFORCE` 取 0/false/no/off ⇒ 退回"只隐藏 internal"。
+    """
+    global _callability_cache
+    if _callability_cache["version"] == _registry_version:
+        return _callability_cache["data"]
+    names: frozenset = frozenset()
+    if str(os.environ.get(_CALLABILITY_ENFORCE_ENV, "1")).strip().lower() \
+            not in _CALLABILITY_DISABLED_VALUES:
+        try:
+            from agent.lines.callability import non_callable_tool_names
+            names = non_callable_tool_names()
+        except Exception as e:  # noqa: BLE001
+            logger.debug("[工具] 可调用性声明加载失败（不额外隐藏工具）: %s", e)
+    _callability_cache = {"version": _registry_version, "data": names}
+    return names
+
+
+def _hidden_tool_names() -> frozenset:
+    """不给模型看的工具名 = 内部工具 ∪ 声明为不可被 LLM 调用的工具"""
+    return _internal_tool_names() | _non_callable_names()
+
+
+def registry_facts() -> dict[str, dict]:
+    """当前注册表里每个工具的**事实**（供可调用性清单与诊断读，不涉及策略）
+
+    返回 `{工具名: {"schema_registered": bool, "host_executor": str,
+                    "source": str, "module": str}}`：
+      - `schema_registered`：注册时**真的**给了 schema（而非 `get_tool_defs` 兜的
+        空壳 `{"type":"object","properties":{}}` —— 那种情况模型不知道参数名）；
+      - `host_executor`：`模块:函数` 形态的执行入口；
+      - `source`：内置 / 插件 / MCP / 生成 / 市场（见 SOURCE_* 常量）。
+    """
+    facts: dict[str, dict] = {}
+    for name, tool in _registry.items():
+        handler = tool.get("handler")
+        module = str(getattr(handler, "__module__", "") or "")
+        qual = str(getattr(handler, "__qualname__", "") or getattr(handler, "__name__", ""))
+        facts[name] = {
+            "schema_registered": bool(tool.get("schema")),
+            "host_executor": f"{module}:{qual}" if module and qual else "",
+            "module": module,
+            "source": str(tool.get("source") or SOURCE_BUILTIN),
+        }
+    return facts
+
+
 def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:
     """获取工具定义的 OpenAI/Anthropic 格式列表（带缓存）
 
-    `internal: true` 的工具**不会**出现在返回结果里（模型看不见），
-    但它们仍在 `_registry` 中，`call()` 依旧可以按名调用。
+    不给模型看的工具**不会**出现在返回结果里（模型看不见），但它们仍在 `_registry`
+    中，`call()` 依旧可以按名调用。有两类被隐藏：
+      1. `internal: true` 的内部工具（保留注册供后台链路按名调用）；
+      2. 声明为不可被 LLM 调用的工具（`llm_callable: false` / `callable_mode: manual`
+         / 被权限策略拒绝，见 `agent/lines/callability.py`）。
 
     Args:
         whitelist: 允许返回的工具名称列表，None 表示全部
@@ -399,7 +465,7 @@ def get_tool_defs(whitelist: list[str] | None = None) -> list[dict]:
     Returns:
         OpenAI-compatible tool definitions list
     """
-    hidden = _internal_tool_names()
+    hidden = _hidden_tool_names()
     # 无白名单时使用缓存
     if whitelist is None:
         global _get_tool_defs_cache
@@ -575,11 +641,12 @@ def get_health_status() -> dict:
 
 def clear():
     """清空工具注册表（主要用于测试）"""
-    global _registry_version, _list_tools_cache, _get_tool_defs_cache
+    global _registry_version, _list_tools_cache, _get_tool_defs_cache, _callability_cache
     _registry.clear()
     _registry_version += 1
     _list_tools_cache = {"version": -1, "data": None}
     _get_tool_defs_cache = {"version": -1, "data": None}
+    _callability_cache = {"version": -1, "data": frozenset()}
     _tool_health.clear()
 
 

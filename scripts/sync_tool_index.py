@@ -231,20 +231,36 @@ def _extract_parameter_names(doc: dict) -> list[str]:
     return [str(k) for k in props.keys()]
 
 
+def _is_hidden(doc: dict) -> bool:
+    """该工具是否**不该进检索索引**（与模型可见集同口径，见 agent/lines/callability.py）
+
+    两类：
+      1. `internal: true` —— 保留注册供后台链路按名调用，但不该被模型选中；
+      2. 可调用性声明判否 —— `llm_callable: false` 或 `callable_mode: manual`
+         （只看声明层，不看运行时事实，保持本脚本的确定性）。
+    """
+    if doc.get("internal") is True:
+        return True
+    if doc.get("llm_callable") is False:
+        return True
+    return str(doc.get("callable_mode") or "").strip().lower() == "manual"
+
+
 def _build_index(docs: list[dict]) -> dict:
     """生成索引结构。
 
     【变易】新增 parameter_names 字段(从 schema.properties 派生),
            供 tool_router_hybrid.BM25Index 索引工具参数名。
            旧 reader 忽略未知字段,向后兼容。
-    【不易】`internal: true` 的工具**不得入索引**。
+    【不易】`internal: true` 或**可调用性声明判否**（`llm_callable: false` /
+            `callable_mode: manual`）的工具**不得入索引**（口径见 `_is_hidden`）。
            为什么必须过滤：本索引是 hybrid 检索路由的**候选来源**（它不做分类过滤），
            所以只要名字进了索引，BM25 就可能把它召回到 top-k ⇒ 模型看见它、并可通过
            tool_defs 调用它。而 internal 的语义正是"保留注册供内部按名调用、
            但绝不暴露给模型"（如 process_distill_run 由 AsyncExecutor 按名调用）。
            不在这一层过滤 ⇒ `get_tool_defs` 的隐藏会被 hybrid 路径绕开。
     """
-    visible = [d for d in docs if d.get("internal") is not True]
+    visible = [d for d in docs if not _is_hidden(d)]
     return {
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
         "tool_count": len(visible),

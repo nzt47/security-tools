@@ -8,6 +8,11 @@ version: 1.0.0
 plane: act
 effect: execute
 risk: critical
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: restricted
+sandbox_allowed: false
 tags: [shell]
 schema:
   type: object

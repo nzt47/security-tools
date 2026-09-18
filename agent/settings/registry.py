@@ -703,6 +703,17 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        owner="agent/tool_gate.py",
        impact="影响面：开启=审批边界生效（critical 工具如 shell_execute 需人工确认一次）；"
               "关闭=边界只告警不拦截"),
+    # 【B 级理由】可调用性过滤开关：它决定"声明为不可被 LLM 调用的工具是否真的从模型
+    #   可见集里消失"。默认**开启**，且当前唯一被判否的 process_distill_run 本就是
+    #   internal ⇒ 打开前后模型可见集完全相同（零行为变化，见
+    #   tests/unit/test_tool_callability.py 的不变量断言）。回滚 = 置 0/false/no/off。
+    _b("CP_TOOL_CALLABILITY_ENFORCE", CAT_SELF_HEALING, True,
+       "工具可调用性过滤开关：默认开启 ⇒ data/tool_definitions/*.yaml 里 "
+       "llm_callable=false / callable_mode=manual / 被权限策略拒绝的工具不进模型可见集"
+       "（口径见 agent/lines/callability.py）；置 0/false/no/off = 退回「只隐藏 internal」",
+       owner="agent/tools/__init__.py",
+       impact="影响面：开启=按声明隐藏不可调用工具（当前与只隐藏 internal 等价）；"
+              "关闭=声明只进清单、不影响模型可见集"),
     _a("CP_TOOL_APPROVAL_TTL_SEC", CAT_SELF_HEALING, 900,
        "工具审批单的有效期（秒）：人工批准后须在该窗口内完成那次调用，超时即失效需重新审批；"
        "默认 900（与审批会话 ≤15min 口径一致）",

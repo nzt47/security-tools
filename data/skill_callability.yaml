@@ -1,0 +1,70 @@
+# 技能侧「可被 LLM 调用」声明（L1 权威；工具侧见 data/tool_definitions/*.yaml）
+#
+# 【为什么技能侧单独一个文件】
+#   工具的可调用性声明落在各自的 `data/tool_definitions/<name>.yaml` 里（与
+#   plane/effect/risk 同一处，那里已是工具治理的唯一权威）。技能没有等价的每技能治理文件：
+#   `skill.md` 的 front matter 由安装器与 `skills_mgmt` 的 meta_editor 管辖，未知键可能被
+#   重写，故技能侧用**单一覆盖表**——集中声明、集中审计、集中回滚。
+#
+# 【字段】（取值域与判定规则见 agent/lines/callability.py）
+#   tool_type         tool | skill | api | script
+#   llm_callable      是否允许 LLM 发起调用
+#   callable_mode     auto（模型自主判断）| required（必须调用）| manual（仅人工/系统）
+#   permission_level  public | internal | restricted（留空 ⇒ 由 is_sensitive / 启用状态派生）
+#   sandbox_allowed   是否允许在沙箱（受限会话，默认只读）中执行
+#   reason            不可调用原因（llm_callable=false 时必填；个别技能可写更具体的说法）
+#
+# 【默认口径为什么是 manual（关键判断，勿随手改）】
+#   云枢的技能**不是模型发起的工具调用**：提示词型技能由
+#   `agent/skills_mgmt/context_injector.py::ContextInjector` 按意图命中注入，
+#   带脚本技能由 `agent/skills_mgmt/executor.py::SkillExecutor` 被显式调用执行。
+#   模型手里没有"调用某个技能"的工具，故 `llm_callable=false` + `callable_mode=manual`
+#   是**如实**标注，而不是"把技能判成没用"：它们在清单里的价值在于
+#   `host_executor` 指出真实生效链路、`reason` 说清生效方式。
+#   若将来接上"技能调用工具"，把对应技能改成 `llm_callable: true` + `callable_mode: auto`
+#   即可（清单由 scripts/sync_capability_manifest.py 重新派生）。
+#
+# 【不易】本文件只声明**策略**；`schema_registered`/`host_executor` 是事实，由
+#   `agent/lines/callability.py` 从 skill.md / skills_mgmt.json / 脚本目录派生，勿在此重复。
+#   defaults 里**不写 reason**：技能不可调用的机制说明（无实体 / 状态非发布 / 带脚本 /
+#   纯提示词）按事实逐条生成，写死一句会把"状态 deprecated"这类具体事实盖掉。
+
+version: 1
+
+defaults:
+  tool_type: skill
+  llm_callable: false
+  callable_mode: manual
+  sandbox_allowed: true
+
+skills:
+  # ── 带脚本技能：有 L3 执行面，但由显式调用触发 ──
+  scripted-selftest:
+    sandbox_allowed: false
+    reason: "带脚本技能：由 SkillExecutor 按显式调用执行（脚本执行面不进只读沙箱），模型不发起调用"
+
+  # ── 工作流学习产物：状态 deprecated，不再注入 ──
+  wf-f19dc52c-skill:
+    reason: "工作流学习产出的技能且状态为 deprecated（非 approved/published）：不会被注入，模型也不发起调用"
+
+  # ── 指令型技能（内容内联在 data/skills_mgmt.json，无 skill.md 实体）──
+  # 注明"内容内联"是为了让清单读者知道它们的来源不是 data/skills_repo/<id>/skill.md
+  engineering-test-delivery:
+    reason: "指令型技能（内容内联在 data/skills_mgmt.json，无 skill.md 实体）：由 ContextInjector 按意图注入，模型不发起调用"
+  code-observability:
+    reason: "指令型技能（内容内联在 data/skills_mgmt.json，无 skill.md 实体）：由 ContextInjector 按意图注入，模型不发起调用"
+  frontend-state-sync:
+    reason: "指令型技能（内容内联在 data/skills_mgmt.json，无 skill.md 实体）：由 ContextInjector 按意图注入，模型不发起调用"
+  self-explanatory-ui:
+    reason: "指令型技能（内容内联在 data/skills_mgmt.json，无 skill.md 实体）：由 ContextInjector 按意图注入，模型不发起调用"
+  testing-anti-patterns:
+    reason: "指令型技能（内容内联在 data/skills_mgmt.json，无 skill.md 实体）：由 ContextInjector 按意图注入，模型不发起调用"
+  global-core-principles:
+    permission_level: restricted
+    reason: "指令型基础行为准则（is_sensitive=true，内容内联在 data/skills_mgmt.json）：对所有会话生效，但不属\"模型可发起调用\"的能力面"
+
+  # ── 以下技能沿用 defaults（列出身份只为让"清单里有哪些技能"在本文件里可读）──
+  # context_aware / emotion_expression / memory_summary / proactive_suggestion /
+  # safety_guard / self_reflection / voice_interaction：内置七技能（data/skills_repo）
+  # pd-*-skill × 14：由素材蒸馏生成的技能包（superpowers 系列）
+  # skill：id 为 skill 的指令型技能（name: 易之三义）

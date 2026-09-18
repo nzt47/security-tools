@@ -39,6 +39,13 @@ PLANES = ("resident", "perceive", "act", "govern")
 EFFECTS = ("read", "write", "execute", "extend")
 RISKS = ("low", "medium", "high", "critical")
 
+#: 「可被 LLM 调用」声明的取值域（唯一来源：agent/lines/callability.py，此处只做解析）
+#: 为什么在这里再列一次而不 import：`callability` 反过来要 import 本模块的目录常量，
+#: 互相 import 会形成环；两处取值域由 tests/unit/test_tool_callability.py 对拍锁死。
+TOOL_TYPES = ("tool", "skill", "api", "script")
+CALLABLE_MODES = ("auto", "required", "manual")
+PERMISSION_LEVELS = ("public", "internal", "restricted")
+
 #: effect 的偏序：用于 policy.effect_allow 的包含判定
 _EFFECT_ORDER = {"read": 0, "write": 1, "execute": 2, "extend": 3}
 
@@ -62,6 +69,20 @@ class ToolMeta:
     #: 只能从 `get_tool_defs()` 里隐藏。
     internal: bool = False
 
+    # ── 「可被 LLM 调用」声明（见 agent/lines/callability.py）──
+    #: 能力形态：tool | skill | api | script
+    tool_type: str = "tool"
+    #: 声明：是否允许 LLM 发起调用（**生效值**还要过 schema/执行器/权限三关）
+    llm_callable: bool = True
+    #: auto（模型自主判断）| required（必须调用）| manual（仅人工/系统）
+    callable_mode: str = "auto"
+    #: public | internal | restricted（与 plane/effect/risk 的派生值必须一致）
+    permission_level: str = ""
+    #: 是否允许在沙箱（受限会话，默认只读）中执行
+    sandbox_allowed: bool = True
+    #: 不可调用原因（llm_callable=false 时必填）
+    reason: str = ""
+
     @property
     def needs_approval(self) -> bool:
         """治理平面 / 改变能力集 / 高危 ⇒ 需要人工确认"""
@@ -81,12 +102,32 @@ class ToolMeta:
             "tags": list(self.tags),
             "needs_approval": self.needs_approval,
             "internal": bool(self.internal),
+            "tool_type": self.tool_type,
+            "llm_callable": bool(self.llm_callable),
+            "callable_mode": self.callable_mode,
+            "permission_level": self.permission_level,
+            "sandbox_allowed": bool(self.sandbox_allowed),
+            "reason": self.reason,
         }
 
 
 def _norm(value: Any, allowed: tuple, default: str) -> str:
     text = str(value or "").strip().lower()
     return text if text in allowed else default
+
+
+def _flag(value: Any, default: bool) -> bool:
+    """把 YAML 的布尔写法收敛成 bool（`true/false/1/0/yes/no/on/off`）"""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    text = str(value).strip().lower()
+    if text in ("1", "true", "yes", "on"):
+        return True
+    if text in ("0", "false", "no", "off"):
+        return False
+    return default
 
 
 def load_tool_meta(defs_dir: Optional[str] = None) -> Dict[str, ToolMeta]:
@@ -125,6 +166,12 @@ def load_tool_meta(defs_dir: Optional[str] = None) -> Dict[str, ToolMeta]:
             tags=tags,
             description=str(doc.get("description") or "")[:200],
             internal=bool(doc.get("internal", False)),
+            tool_type=_norm(doc.get("tool_type"), TOOL_TYPES, "tool"),
+            llm_callable=_flag(doc.get("llm_callable"), True),
+            callable_mode=_norm(doc.get("callable_mode"), CALLABLE_MODES, "auto"),
+            permission_level=_norm(doc.get("permission_level"), PERMISSION_LEVELS, ""),
+            sandbox_allowed=_flag(doc.get("sandbox_allowed"), True),
+            reason=str(doc.get("reason") or "").strip(),
         )
     return out
 
@@ -284,4 +331,5 @@ class LineProfile:
 __all__ = [
     "PLANES", "EFFECTS", "RISKS", "ToolMeta", "LineProfile",
     "load_tool_meta", "TOOL_DEFS_DIR", "AGENT_LINES_DIR",
+    "TOOL_TYPES", "CALLABLE_MODES", "PERMISSION_LEVELS",
 ]

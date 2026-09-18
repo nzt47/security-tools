@@ -7,6 +7,11 @@ version: 1.0.0
 plane: perceive
 effect: read
 risk: medium
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: internal
+sandbox_allowed: false
 tags: [vision, privacy]
 schema:
   type: object

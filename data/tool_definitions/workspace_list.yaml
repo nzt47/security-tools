@@ -7,6 +7,11 @@ version: 1.0.0
 plane: perceive
 effect: read
 risk: low
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: true
 tags: [workspace]
 schema:
   type: object

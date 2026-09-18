@@ -6,6 +6,11 @@ version: 1.0.0
 plane: govern
 effect: extend
 risk: medium
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: restricted
+sandbox_allowed: false
 tags: [mcp, self_modify]
 schema:
   type: object

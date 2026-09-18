@@ -6,6 +6,11 @@ version: 1.0.0
 plane: act
 effect: write
 risk: medium
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: internal
+sandbox_allowed: false
 tags: [knowledge, evolution]
 schema:
   type: object
