@@ -20,13 +20,15 @@
 【不易】
     - **不使用运行时注册表**（`--runtime` 才启用）：运行时装了什么取决于本进程导入过哪些
       模块，用它生成产物会让清单随进程而变，CI 无法守门。静态扫描是确定性的。
+    - **不并入运行时技能目录/台账**（`data/skills.json`、`data/skills_mgmt.json`，两者被
+      .gitignore 忽略）：干净 checkout / CI 里它们不存在 ⇒ 提交前若读了它们，CI 重算必然
+      与提交产物不一致（实测 CI 报 23 处差异）。清单口径 = 仓库可复现的能力面。
     - `--check` 只比结构不比 `generated_at`（时间戳必然不同）。
     - 校验不过 ⇒ 非零退出码（CI/pre-commit 守门）。
 【简易】
-    python scripts/sync_capability_manifest.py            # 校验 + 生成
+    python scripts/sync_capability_manifest.py            # 校验 + 生成（提交用口径）
     python scripts/sync_capability_manifest.py --check    # 只校验（CI 用）
-    python scripts/sync_capability_manifest.py --runtime   # 把运行时注册表并入执行器事实
-    python scripts/sync_capability_manifest.py --summary   # 打印统计表
+    python scripts/sync_capability_manifest.py --runtime --summary   # 本地看运行时全貌
 """
 from __future__ import annotations
 
@@ -140,6 +142,10 @@ def _print_summary(manifest: dict) -> None:
           f"(✅ {counts.get('callable')} / ⚠️ {counts.get('conditional')} "
           f"/ ❌ {counts.get('blocked')})；其中模型可发起 "
           f"{counts.get('model_callable')} 条")
+    print(f"口径: {manifest.get('scope')}")
+    only = manifest.get("runtime_only_declarations") or []
+    if only:
+        print(f"仅在运行时存在、不在清单口径内的技能（{len(only)}）: {only}")
     print(f"按触发者: {counts.get('by_trigger')}")
     print(f"按类型: {counts.get('by_type')}")
     print(f"按权限等级: {counts.get('by_permission_level')}")
@@ -185,13 +191,15 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="统一可调用性清单同步与校验")
     ap.add_argument("--check", action="store_true", help="只校验不写（CI/pre-commit 用）")
     ap.add_argument("--runtime", action="store_true",
-                    help="把运行时注册表并入执行器事实（产物随进程而变，勿用于 CI）")
+                    help="并入运行时事实（注册表执行器 + 运行时技能目录/台账）；"
+                         "产物随进程与运行时状态而变，**勿用于提交**（CI 口径见 --check）")
     ap.add_argument("--summary", action="store_true", help="打印统计表")
     ap.add_argument("--out", default=MANIFEST_PATH, help="清单输出路径")
     args = ap.parse_args()
 
     manifest = build_manifest(
-        executor_facts=_runtime_executor_facts() if args.runtime else None)
+        executor_facts=_runtime_executor_facts() if args.runtime else None,
+        include_runtime_catalog=args.runtime)
 
     errs = validate(manifest)
     if errs:

@@ -265,6 +265,33 @@ class TestManifest:
             "清单与 data/tool_definitions/*.yaml + data/skill_callability.yaml 不一致；"
             "运行 python scripts/sync_capability_manifest.py 重新派生")
 
+    def test_清单只依赖入库数据(self, on_disk, monkeypatch, tmp_path):
+        """清单必须能从"干净 checkout"复算出来（CI 口径）
+
+        【为什么单列一条（这条是 CI 教出来的）】清单早期读了 `data/skills.json` 与
+        `data/skills_mgmt.json` —— 两者都被 .gitignore 忽略，干净 checkout / CI 里不存在，
+        于是 CI 重算出的清单与提交产物**必然不一致**（实测 23 处差异），
+        `sync_capability_manifest.py --check` 直接红灯。故这里把两个运行时文件指到
+        不存在的路径，复算结果必须与磁盘上的清单逐字段相同。
+        """
+        monkeypatch.setattr(C, "SKILLS_JSON_PATH", str(tmp_path / "no" / "skills.json"))
+        monkeypatch.setattr(C, "SKILLS_MGMT_PATH", str(tmp_path / "no" / "skills_mgmt.json"))
+        fresh = C.build_manifest()
+        assert sync_manifest_mod._diff(on_disk, fresh) == [], (
+            "清单依赖了 .gitignore 里的运行时文件 ⇒ 干净 checkout 下复算不一致；"
+            "运行时技能目录/台账只能通过 include_runtime_catalog=True 显式并入（产物不提交）")
+
+    def test_运行时技能不进清单口径(self, on_disk):
+        """只在运行时目录/台账里的技能不在清单里，但必须被如实披露"""
+        listed = {e["tool_name"] for e in on_disk["skills"]}
+        only = set(on_disk.get("runtime_only_declarations") or [])
+        assert not (listed & only), f"运行时技能混进了清单：{listed & only}"
+        assert on_disk.get("runtime_only_note"), "缺少 runtime_only 说明"
+        # 仓库实体的技能必须都在清单里（漏了就是覆盖不全）
+        repo_entities = {p.parent.name for p in (_PROJECT_ROOT / "data" / "skills_repo")
+                         .glob("*/skill.md")}
+        assert repo_entities <= listed, f"仓库技能实体未进清单：{repo_entities - listed}"
+
     def test_每条都有八项统一字段(self, on_disk):
         for e in on_disk["entries"]:
             for f in UNIFIED_FIELDS:

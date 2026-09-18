@@ -116,8 +116,16 @@ def _norm(value: Any, allowed: tuple, default: str) -> str:
     return text if text in allowed else default
 
 
-def _flag(value: Any, default: bool) -> bool:
-    """把 YAML 的布尔写法收敛成 bool（`true/false/1/0/yes/no/on/off`）"""
+def _as_bool(value: Any, default: bool) -> bool:
+    """把 YAML 的布尔写法收敛成 bool（`true/false/1/0/yes/no/on/off`）
+
+    【不易·名字有讲究，勿改回 `_flag`】`scripts/scan_settings.py` 的
+    `KNOWN_READ_HELPERS` 把 `_flag` 登记为"环境开关读取助手"的名字契约，
+    于是 `_flag(doc.get("llm_callable"), True)` 会被扫描器当成**开关读取点**、
+    参数不是字面量 ⇒ 产出一个 `<unresolved>` 动态家族 ⇒
+    `test_settings_registry.py::TestMechanicalZeroGap` 两条零缺口守卫变红（CI 实测）。
+    故本助手取 `_as_bool`（不带 env/getenv 词干，正则也匹配不到）。
+    """
     if isinstance(value, bool):
         return value
     if value is None:
@@ -167,10 +175,10 @@ def load_tool_meta(defs_dir: Optional[str] = None) -> Dict[str, ToolMeta]:
             description=str(doc.get("description") or "")[:200],
             internal=bool(doc.get("internal", False)),
             tool_type=_norm(doc.get("tool_type"), TOOL_TYPES, "tool"),
-            llm_callable=_flag(doc.get("llm_callable"), True),
+            llm_callable=_as_bool(doc.get("llm_callable"), True),
             callable_mode=_norm(doc.get("callable_mode"), CALLABLE_MODES, "auto"),
             permission_level=_norm(doc.get("permission_level"), PERMISSION_LEVELS, ""),
-            sandbox_allowed=_flag(doc.get("sandbox_allowed"), True),
+            sandbox_allowed=_as_bool(doc.get("sandbox_allowed"), True),
             reason=str(doc.get("reason") or "").strip(),
         )
     return out

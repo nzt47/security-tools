@@ -578,14 +578,19 @@ def _tool_entry(name: str, doc: Dict[str, Any], *, executors: Dict[str, str],
     }
 
 
-def _skill_sources() -> Dict[str, Dict[str, Any]]:
-    """汇总技能的三处来源 → {技能 id: {…facts…}}
+def _skill_sources(include_runtime_catalog: bool = False) -> Dict[str, Dict[str, Any]]:
+    """汇总技能来源 → {技能 id: {…facts…}}
 
-        ① `data/skills_repo/<id>/skill.md`（实体 + front matter）
-        ② `data/skills.json`（运行时技能目录）
-        ③ `data/skills_mgmt.json`（管理台账：inline content / config_schema / is_sensitive）
-    【不易】三处**都可能缺**（实测：8 个技能只在目录/台账里、没有 skill.md 实体），
-            缺哪一处就在清单里如实写明，而不是当它不存在。
+        ① `data/skills_repo/<id>/skill.md`（实体 + front matter）—— **入库**，默认口径
+        ② `data/skills.json`（运行时技能目录）—— 被 .gitignore 忽略，仅 `include_runtime_catalog`
+        ③ `data/skills_mgmt.json`（管理台账）—— 同上
+    【不易·为什么默认只读 ①（这条是 CI 教出来的）】②③ 都在 .gitignore 里（应用运行时写的
+        状态），干净的 checkout / CI 里**根本不存在** ⇒ 若清单依赖它们，提交的
+        `data/capability_manifest.json` 在 CI 中重算就必然与权威"不一致"，
+        `--check` 直接红灯（实测 CI 报 23 处差异：8 个只在台账里的技能 + 15 个 reason/标识漂移）。
+        ⇒ 清单口径 = **仓库可复现的能力面**；运行时安装的技能（extension_store、
+        内联指令型台账条目）不在清单内（界面按"无徽章"静默退化）。
+        需要看在运行时多出来的那些技能时，用 `include_runtime_catalog=True`（不提交产物）。
     """
     out: Dict[str, Dict[str, Any]] = {}
 
@@ -597,7 +602,7 @@ def _skill_sources() -> Dict[str, Dict[str, Any]]:
             "is_sensitive": False, "declared_in": "",
         })
 
-    # ① 仓库实体
+    # ① 仓库实体（入库，唯一默认来源）
     if os.path.isdir(SKILLS_REPO_DIR):
         for sid in sorted(os.listdir(SKILLS_REPO_DIR)):
             sdir = os.path.join(SKILLS_REPO_DIR, sid)
@@ -615,7 +620,10 @@ def _skill_sources() -> Dict[str, Dict[str, Any]]:
             slot["has_scripts"] = os.path.isdir(scripts_dir) and any(
                 f.endswith(".py") for f in os.listdir(scripts_dir))
 
-    # ② 运行时目录
+    if not include_runtime_catalog:
+        return out
+
+    # ② 运行时目录（gitignore，仅显式要求时读）
     cat = _read_json(SKILLS_JSON_PATH) or {}
     for item in (cat.get("skills") if isinstance(cat, dict) else None) or []:
         if not isinstance(item, dict) or not item.get("id"):
@@ -625,7 +633,7 @@ def _skill_sources() -> Dict[str, Dict[str, Any]]:
         slot["enabled"] = slot["enabled"] and _as_bool(item.get("enabled"), True)
         slot["params"] = slot["params"] or (item.get("params") or {})
 
-    # ③ 管理台账
+    # ③ 管理台账（gitignore，仅显式要求时读）
     mgmt = _read_json(SKILLS_MGMT_PATH) or {}
     for sid, rec in (mgmt if isinstance(mgmt, dict) else {}).items():
         if not isinstance(rec, dict):
@@ -762,13 +770,18 @@ _FIELD_SPEC = (
 def build_manifest(*, defs_dir: Optional[str] = None,
                    skill_decl_path: Optional[str] = None,
                    policies_path: Optional[str] = None,
-                   executor_facts: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+                   executor_facts: Optional[Dict[str, str]] = None,
+                   include_runtime_catalog: bool = False) -> Dict[str, Any]:
     """构建统一可调用性清单（工具 + 技能，八字段同构）
 
     Args:
         executor_facts: 运行时注册表的执行器事实 `{能力名: "模块:函数"}`（可选）。
             由**调用方**注入（如 `scripts/sync_capability_manifest.py --runtime`），
             本模块不导入 `agent.tools` —— 见 `runtime_executors()` 的依赖倒置说明。
+        include_runtime_catalog: 是否并入运行时技能目录/台账（`data/skills.json`、
+            `data/skills_mgmt.json`，两者都被 .gitignore 忽略）。**默认 False**：
+            提交的清单必须只依赖入库数据，否则干净 checkout / CI 里重算必然"不一致"
+            （见 `_skill_sources` 的说明）。要提交产物就别开这个开关。
     """
     docs = load_tool_docs(defs_dir)
     executors: Dict[str, str] = static_executors()
@@ -780,10 +793,11 @@ def build_manifest(*, defs_dir: Optional[str] = None,
              for n in sorted(docs)]
 
     skill_defaults, skill_decls = load_skill_declarations(skill_decl_path)
-    facts = _skill_sources()
-    for sid in skill_decls:
-        if sid not in facts:
-            facts[sid] = {"id": sid, "declared_in": ""}
+    facts = _skill_sources(include_runtime_catalog=include_runtime_catalog)
+    # 【不易】覆盖表里声明了、但仓库里没有实体的技能（如只在运行时台账/目录里的
+    # 指令型技能）**不进清单**：清单口径是"仓库可复现的能力面"，把它们列成 ❌ 会
+    # 误读成"技能坏了"。它们改为登记在 runtime_only_declarations 里如实披露。
+    overlay_only = sorted(sid for sid in skill_decls if sid not in facts)
     skills = [_skill_entry(sid, facts[sid], skill_decls.get(sid, skill_defaults))
               for sid in sorted(facts)]
 
@@ -791,6 +805,13 @@ def build_manifest(*, defs_dir: Optional[str] = None,
     return {
         "schema_version": 1,
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        "scope": ("仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml "
+                  "+ data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描"
+                  "（不含 .gitignore 里的运行时技能目录/台账）"),
+        "runtime_only_declarations": overlay_only,
+        "runtime_only_note": ("以下技能在 data/skill_callability.yaml 里有声明，但仓库里没有 "
+                              "skill.md 实体（只在运行时目录/台账里）⇒ 不在本清单口径内，"
+                              "界面按「无徽章」静默退化"),
         "field_spec": list(_FIELD_SPEC),
         "vocabulary": {
             "tool_type": list(TOOL_TYPES),

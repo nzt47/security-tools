@@ -288,10 +288,14 @@ class TestRegistrationAndGovernance:
         assert doc["deprecated"] is False
         assert doc["version"] == "1.0.0"
         assert doc["examples"] == []
-        # 字段顺序照 grep.yaml
+        # 字段顺序照 grep.yaml；`tool_type`/`llm_callable`/`callable_mode`/
+        # `permission_level`/`sandbox_allowed` 是「可被 LLM 调用」统一标注字段
+        # （见 docs/工具与技能可调用性标注规范.md），插在治理三元组与 tags 之间
         assert list(doc.keys()) == [
             "name", "category", "description", "deprecated", "version",
-            "plane", "effect", "risk", "tags", "schema", "examples",
+            "plane", "effect", "risk", "tool_type", "llm_callable",
+            "callable_mode", "permission_level", "sandbox_allowed",
+            "tags", "schema", "examples",
         ]
 
     def test_yaml_与_python_字面量逐字段一致(self, make_tool):
