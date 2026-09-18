@@ -25,7 +25,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, FrozenSet, Mapping, Optional
 
 import agent.security.alerts as alerts_mod

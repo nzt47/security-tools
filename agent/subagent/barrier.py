@@ -15,7 +15,7 @@ import random
 import threading
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Optional, Callable
+from typing import Any, Optional
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -326,6 +326,7 @@ class SubagentBarrier:
         """获取消息日志（用于调试）"""
         with self._lock:
             return list(self._message_log[-limit:])
+
 
 
 class ContextBoundaryError(Exception):

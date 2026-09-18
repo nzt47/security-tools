@@ -8,7 +8,7 @@
 
 使用方法：
 ```python
-from agent.detailed_profiler import profile, log_module_load
+from agent.detailed_profiler import profile
 
 # 装饰器方式
 @profile("模块名")
@@ -213,57 +213,7 @@ class PerformanceTracker:
                 'failed_events': sum(1 for e in self.events if e.event_type == 'error')
             }
     
-    def print_report(self):
-        """打印性能报告"""
-        report = self.get_report()
-        
-        print("\n" + "=" * 70)
-        print("📊 性能分析报告")
-        print("=" * 70)
-        
-        # 摘要
-        summary = report['summary']
-        print(f"\n总耗时: {summary['total_load_time_ms']:.2f}ms")
-        print(f"加载模块数: {summary['total_modules']}")
-        print(f"失败模块数: {summary['failed_modules']}")
-        
-        if summary['slowest_module']:
-            print(f"\n最慢模块: {summary['slowest_module']} ({summary['slowest_time_ms']:.2f}ms)")
-        if summary['fastest_module'] and summary['fastest_time_ms'] < float('inf'):
-            print(f"最快模块: {summary['fastest_module']} ({summary['fastest_time_ms']:.2f}ms)")
-        
-        # 模块详情
-        if report['module_stats']:
-            print("\n📦 模块加载详情:")
-            sorted_modules = sorted(
-                report['module_stats'].items(),
-                key=lambda x: x[1]['total_ms'],
-                reverse=True
-            )
-            
-            for module, stats in sorted_modules[:10]:  # 只显示前10
-                print(
-                    f"  {module:30s}: "
-                    f"平均 {stats['avg_ms']:7.2f}ms, "
-                    f"总计 {stats['total_ms']:8.2f}ms, "
-                    f"次数 {stats['count']}"
-                )
-        
-        # 阶段详情
-        if report['stage_stats']:
-            print("\n🔄 阶段耗时详情:")
-            sorted_stages = sorted(
-                report['stage_stats'].items(),
-                key=lambda x: x[1]['elapsed_ms'],
-                reverse=True
-            )
-            
-            for stage, stats in sorted_stages[:10]:  # 只显示前10
-                parent = f" (子阶段)" if stats['parent'] else ""
-                print(f"  {stage:30s}: {stats['elapsed_ms']:8.2f}ms{parent}")
-        
-        print("\n" + "=" * 70)
-    
+
     def reset(self):
         """重置追踪器"""
         with self._lock:

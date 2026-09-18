@@ -346,13 +346,12 @@ class AsyncExecutor:
 _global_executor: AsyncExecutor | None = None
 
 try:
-    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    from agent.utils.singleton_manager import register_singleton, get_singleton
     _SINGLETON_AVAILABLE = True
 except ImportError:
     _SINGLETON_AVAILABLE = False
     register_singleton = None
     get_singleton = None
-    reset_singleton = None
 
 
 def _create_async_executor(config=None):
