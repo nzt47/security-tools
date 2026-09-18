@@ -32,7 +32,7 @@
 | [yunshu-ui/src/lib/callability.ts](../yunshu-ui/src/lib/callability.ts) | 契约类型 + 展示层纯函数 + 只读客户端（判定权威在后端，前端不重算） | ✅ 新增 |
 | [yunshu-ui/src/pages/hub/components/ui.tsx](../yunshu-ui/src/pages/hub/components/ui.tsx) | `CallabilityBadge`（含 compact 档，供装配预览 chip） | ✅ 扩展 |
 | 界面接线 | 工具集页 / 主线管理页（选择器 + 装配预览 chip）/ 技能库与技能中心：徽章 + 图例 | ✅ |
-| [tests/unit/test_tool_callability.py](../tests/unit/test_tool_callability.py) | 45 用例：声明层 / 判定层 / 派生层 / 接线层 / 两个 REST 端点在真实 app 中的存在性 | ✅ 新增 |
+| [tests/unit/test_tool_callability.py](../tests/unit/test_tool_callability.py) | 50 用例：声明层 / 判定层 / 派生层 / 接线层 / REST 面（真实 app 三类标 `slow`，另留一条源码级快速守门） | ✅ 新增 |
 | [scripts/dev/route_unify_smoke.mjs](../scripts/dev/route_unify_smoke.mjs) | 顺带修掉两处导航时序 flaky（本次交付中发现） | ✅ 修复 |
 | [docs/工具与技能可调用性标注规范.md](工具与技能可调用性标注规范.md) | 字段规范 / 判定规则 / 三层归属 / 用法 / 新增能力时的标注步骤 / 文件索引 | ✅ 新增 |
 
@@ -40,8 +40,8 @@
 
 | 验证项 | 结果 |
 |--------|------|
-| 单元测试（本次新增） | `tests/unit/test_tool_callability.py` **45 passed** |
-| 关联回归（4 个文件） | `test_tool_callability + test_agent_lines + test_tool_definitions_yaml + test_permission_policies_consistency` = **143 passed / 0 failed** |
+| 单元测试（本次新增） | `tests/unit/test_tool_callability.py`：**快车道 45 passed / 5.05s**（`-m "not slow"`）+ **慢车道 5 passed / 74s**（`-m slow --runslow`，真实 app 端点/标注/清单三验） |
+| 关联回归（4 个文件） | `test_tool_callability + test_agent_lines + test_tool_definitions_yaml + test_permission_policies_consistency` = **143 passed / 0 failed**（快车道口径） |
 | 守门脚本（CI 口径） | `backfill_tool_planes --check` / `backfill_tool_callability --check` / `sync_tool_index --check` / `sync_capability_manifest --check` **全部 exit 0** |
 | 清单自洽性 | 八字段齐全；❌ ⇔ 不可达；⚠️ 必须给出成因；✅ 必有执行器 + Schema；手改清单会被 `--check` 拦住 |
 | 前端 | `tsc -p tsconfig.json --noEmit` 0 错 · `eslint` 0 告警 · `vitest src/lib/callability.test.tsx` **16 passed** · `vitest src/pages/hub` **99 passed** · `npm run build:flask` 成功 |
@@ -60,7 +60,7 @@
 | **CI 红灯：清单不可复现（23 处差异）** | 清单读了 `data/skills.json` / `data/skills_mgmt.json` —— 两者都在 .gitignore 里，干净 checkout / CI 里不存在 ⇒ CI 重算的清单与提交产物必然不一致（8 个只在台账里的技能 + 15 个 reason/标识漂移） | 清单口径收紧为**仓库可复现**：默认只读入库数据（工具 YAML / 技能覆盖表 / `skills_repo/*/skill.md` / 策略文件 / 静态注册点扫描）；运行时技能目录与台账改为 `include_runtime_catalog=True` 显式并入（**产物不提交**），只声明而仓库无实体的技能登记进 `runtime_only_declarations` 如实披露。新增 `test_清单只依赖入库数据` 把"干净 checkout 可复算"钉死 |
 | **CI 红灯：`test_fan_out` 字段顺序断言** | 该用例按"字段顺序照 grep.yaml"逐字比对 key 列表，新增五个标注字段后必然不等 | 更新期望列表（把新字段按其真实插入位置列入），保留"顺序契约"这一原始意图 |
 | **CI 红灯：`test_settings_registry` 零缺口守卫出现 `<unresolved>`** | `scripts/scan_settings.py` 的 `KNOWN_READ_HELPERS` 把 **`_flag`** 登记为"环境开关读取助手"的名字契约；我把新的布尔归一助手命名成 `_flag`，于是 `_flag(doc.get(...), True)` 被当成开关读取点、参数非字面量 ⇒ 产出 `<unresolved>` 动态家族 | 助手改名 `_as_bool`（不带 env/getenv 词干，正则也匹配不到），并在 docstring 里写明"名字有讲究，勿改回 `_flag`" |
-| **`test_skill_merge` 在 CI 超时（>60s）** | 与本次改动无关的**环境/负载**问题，证据三条：① 本地同用例 2.17s（`--timeout=60` 同口径）；② 拆开计时：`import 0.39s / 构造 0.00s / 建 3 个技能 0.67s / auto_merge 0.05s`，全是 Jaccard 比较、**不碰嵌入模型**；③ 仓库自身历史台账（`batch_test_report.md`）记录该文件耗时 **2.81s**。另：本仓 `pytest.ini` 明确写着 `--timeout-method=thread` 下超时线程不被回收、会累积成极慢测试，`full-regression.yml` 也记录了 ubuntu-latest 上 `sentence_transformers` 的阻塞教训 | 触发 `gh run rerun --failed` 复核（结论见 §6）；本项不改代码 —— 若再次复现，按仓库既有纪律给它显式 `@pytest.mark.timeout(N)` 或纳入已知慢测清单 |
+| **`test_skill_merge` 在 CI 超时（>60s）；同代码 rerun 又通过** | 分片争用：ci.yml 的单元测试分片是 **`-n 2` 并行** + `scripts/split_unit_tests.py` 按用例数贪心均衡，同一 shard 内两个 worker 相邻跑；本次新增的 `test_tool_callability.py` 因导入 `app_server`（连带 torch/sentence-transformers）单文件耗时 ~90s，挤到邻居 ⇒ 2s 的用例在负载下被顶到 60s 超时。证据：① 本地单独跑 2.17s；② 拆分计时 `import 0.39s / 构造 0.00s / 建 3 个技能 0.67s / merge 0.05s`（纯 Jaccard，不碰嵌入模型）；③ 仓库台账记录 2.81s；④ **同一份代码 `c1a72324` 首跑失败、`gh run rerun --failed` 后 shard 1 全绿**；⑤ 仓库自身文档已记录同类现象（shard 被 runner 回收、`can't start new thread`、排队风暴） | 把本交付的测试拆成**快慢两级**：`TestRestSurface`（依赖真实 app）整体标 `@pytest.mark.slow`，由 ci.yml 的 `-m "not slow"` 跳过、交给 `full-regression.yml --runslow` 单独跑；快速车道保留一条**源码级**端点存在性守门（`TestRestSurfaceStatic`），零导入开销。实测本文件：**快车道 45 passed / 5.05s（原 ~90s）**，慢车道 5 passed / 74s |
 | 路由冒烟 flaky：两次失败用例不是同一批（15/4、17/2） | "hash 落地"与"导航重渲染"不在同一帧，断言落地即读 `innerText`；"展开栏目"一步更糟——读到未渲染就去点，反而把正在展开的组收起 | 两处即时取值改 `waitFor` 轮询（先等"已展开"，等不到再点，点完再等结果）；连跑两次 19/0 |
 | `sync_capability_manifest.py --summary` 在 Windows 崩（UnicodeEncodeError） | 中文 Windows 控制台默认 GBK，打印 ✅/⚠️/❌ 失败（清单其实已正确落盘） | 脚本顶部显式 `sys.stdout.reconfigure(encoding="utf-8")` |
 | 探针取 `/assets/index-*.js` 得 404，一度判为"产物没上线" | 页面用的是绝对 `/static/assets/...`，我的探针漏了前缀 | 按页面里真实的 `src` 取值复测 → 200（**是探针写错，不是产物问题**） |
@@ -117,7 +117,7 @@
 | `data/agent_lines/_active.json`、`data/tools_config.json`、`data/system_prompt_config.json` 留在工作区未提交 | 运行时状态 | 这三处是**运行中的应用**写的状态（活动主线、工具开关、`_last_applied` 时间戳），非本次交付物；不混进交付提交，由 owner 决定是否入库 |
 | `gitee` 镜像未推送 | 发布动作 | 本次只推 `origin`（GitHub，CI 所在）。需要时 `git push gitee master` |
 | `scripts/scan_settings.py` 的助手识别按**名字**而非**模块作用域** | 扫描器域的根因（并行会话 `d17c08c0` 提出） | 本次用最小改法（我的助手改名 `_as_bool`）绕开；根治需让扫描器按模块作用域判定"这是不是 env 读取助手"，属扫描器域，**未改**（避免与其它会话对撞同一文件） |
-| `test_skill_merge` 在 CI 反复超时（>60s，本地 2.17s） | 环境/负载类 | 已触发 rerun 复核；若仍复现，按仓库既有纪律显式 `@pytest.mark.timeout(N)` 或纳入已知慢清单（**未改代码**，避免掩盖真实原因） |
+| `test_skill_merge` 在 CI 反复超时（>60s，本地 2.17s） | 分片争用（详见 §4 该行） | 已用"本交付测试拆快慢两级"消除自身那一半成因（本文件 90s → 5s）；该用例自身的显式 `@pytest.mark.timeout(N)`/慢清单归属仍留给 skills_mgmt 域（避免跨域改动掩盖真实原因） |
 | 清单口径只覆盖**仓库实体**技能（23 个） | 可复现性约束 | 只在运行时存在的技能（内联指令型台账条目、`extension_store` 装入的技能）不在清单内 ⇒ 界面无徽章（静默退化）。它们登记在 `runtime_only_declarations` 里披露；要看运行时全貌用 `--runtime --summary`（产物不提交） |
 | "人眼确认徽章观感/位置" | 人工验收 | 属 owner 验收项（已重建产物 + 重启后端，刷新 `/chat` 即可） |
 | 技能清单在界面上只覆盖 `/api/skills` 的 31 个 id | 已知边界 | `extension_store` 后续装入的技能不在清单口径内 ⇒ 静默无徽章（退化为现状，不报错） |

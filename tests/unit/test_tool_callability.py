@@ -507,12 +507,42 @@ class TestIndexGate:
 
 @pytest.fixture(scope="module")
 def real_app():
-    """真实 Flask app（与生产同一份注册代码）—— 手搓 `Flask(__name__)` 会掩盖 404"""
+    """真实 Flask app（与生产同一份注册代码）—— 手搓 `Flask(__name__)` 会掩盖 404
+
+    【不易·本夹具很贵，只在 slow 车道用】导入 `app_server` 会连带初始化 torch /
+    sentence-transformers 等重依赖（实测让本文件从 ~10s 涨到 ~90s）。而 ci.yml 的单元测试
+    分片是 `-n 2` 并行 + 贪心按用例数均衡 ⇒ 这份重量会挤到同分片的邻居（实测
+    `test_skill_merge` 在负载下从 2.17s 涨到 >60s 超时）。故本类整体标 `slow`：
+    ci.yml 的 `-m "not slow"` 会跳过它，由 `full-regression.yml --runslow` 单独跑；
+    快速车道上保留 `TestRestSurface::test_端点已在路由模块里声明` 这条轻量守门。
+    """
     import app_server
     return app_server.app
 
 
+class TestRestSurfaceStatic:
+    """快速车道上的 REST 面守门（不导入 app_server，开销 ~0）
+
+    【为什么要有这一层】真实 app 的验证在 `TestRestSurface`（slow 车道）—— 它是权威，
+    但很贵（导入 app_server 连带 torch/sentence-transformers），不能塞进 `-n 2` 的单元测试
+    分片。这里用**源码声明**做一次廉价的存在性检查：端点装饰器不见了就立刻红，
+    不必等到 slow 车道。两条的判定口径不同（一条读源码、一条读真实 url_map），
+    故不构成"两份口径"，而是"快慢两级守门"。
+    """
+    _ROUTE_SRC = _PROJECT_ROOT / "agent" / "server_routes" / "routes_agent_lines.py"
+
+    def test_端点已在路由模块里声明(self):
+        src = self._ROUTE_SRC.read_text(encoding="utf-8")
+        assert '"/api/agent-lines/planes"' in src
+        assert '"/api/capability-manifest"' in src, (
+            "新端点从 routes_agent_lines.py 里消失了 —— 这正是 /api/agent-lines 曾 404 的原因；"
+            "真实 app 的复核见 TestRestSurface（slow 车道）")
+        assert "@app.route" in src
+
+
+@pytest.mark.slow
 class TestRestSurface:
+    """REST 面的**真实 app** 验证（slow 车道；见 `real_app` 夹具的代价说明）"""
 
     def test_两个端点在真实_app_里存在(self, real_app):
         rules = {str(r.rule) for r in real_app.url_map.iter_rules()}
