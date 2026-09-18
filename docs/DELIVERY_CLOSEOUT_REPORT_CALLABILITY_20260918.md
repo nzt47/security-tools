@@ -60,7 +60,7 @@
 | **CI 红灯：清单不可复现（23 处差异）** | 清单读了 `data/skills.json` / `data/skills_mgmt.json` —— 两者都在 .gitignore 里，干净 checkout / CI 里不存在 ⇒ CI 重算的清单与提交产物必然不一致（8 个只在台账里的技能 + 15 个 reason/标识漂移） | 清单口径收紧为**仓库可复现**：默认只读入库数据（工具 YAML / 技能覆盖表 / `skills_repo/*/skill.md` / 策略文件 / 静态注册点扫描）；运行时技能目录与台账改为 `include_runtime_catalog=True` 显式并入（**产物不提交**），只声明而仓库无实体的技能登记进 `runtime_only_declarations` 如实披露。新增 `test_清单只依赖入库数据` 把"干净 checkout 可复算"钉死 |
 | **CI 红灯：`test_fan_out` 字段顺序断言** | 该用例按"字段顺序照 grep.yaml"逐字比对 key 列表，新增五个标注字段后必然不等 | 更新期望列表（把新字段按其真实插入位置列入），保留"顺序契约"这一原始意图 |
 | **CI 红灯：`test_settings_registry` 零缺口守卫出现 `<unresolved>`** | `scripts/scan_settings.py` 的 `KNOWN_READ_HELPERS` 把 **`_flag`** 登记为"环境开关读取助手"的名字契约；我把新的布尔归一助手命名成 `_flag`，于是 `_flag(doc.get(...), True)` 被当成开关读取点、参数非字面量 ⇒ 产出 `<unresolved>` 动态家族 | 助手改名 `_as_bool`（不带 env/getenv 词干，正则也匹配不到），并在 docstring 里写明"名字有讲究，勿改回 `_flag`" |
-| **`test_skill_merge` 在 CI 超时（60s）** | 环境/负载问题：本地同用例 **2.17s** 通过（`--timeout=60` 同口径），且该 shard 整体耗时 868s（其余 shard 240–380s） | 先按环境因素记录；修复上述三条后重跑该 job 复核（结论见 §6） |
+| **`test_skill_merge` 在 CI 超时（>60s）** | 与本次改动无关的**环境/负载**问题，证据三条：① 本地同用例 2.17s（`--timeout=60` 同口径）；② 拆开计时：`import 0.39s / 构造 0.00s / 建 3 个技能 0.67s / auto_merge 0.05s`，全是 Jaccard 比较、**不碰嵌入模型**；③ 仓库自身历史台账（`batch_test_report.md`）记录该文件耗时 **2.81s**。另：本仓 `pytest.ini` 明确写着 `--timeout-method=thread` 下超时线程不被回收、会累积成极慢测试，`full-regression.yml` 也记录了 ubuntu-latest 上 `sentence_transformers` 的阻塞教训 | 触发 `gh run rerun --failed` 复核（结论见 §6）；本项不改代码 —— 若再次复现，按仓库既有纪律给它显式 `@pytest.mark.timeout(N)` 或纳入已知慢测清单 |
 | 路由冒烟 flaky：两次失败用例不是同一批（15/4、17/2） | "hash 落地"与"导航重渲染"不在同一帧，断言落地即读 `innerText`；"展开栏目"一步更糟——读到未渲染就去点，反而把正在展开的组收起 | 两处即时取值改 `waitFor` 轮询（先等"已展开"，等不到再点，点完再等结果）；连跑两次 19/0 |
 | `sync_capability_manifest.py --summary` 在 Windows 崩（UnicodeEncodeError） | 中文 Windows 控制台默认 GBK，打印 ✅/⚠️/❌ 失败（清单其实已正确落盘） | 脚本顶部显式 `sys.stdout.reconfigure(encoding="utf-8")` |
 | 探针取 `/assets/index-*.js` 得 404，一度判为"产物没上线" | 页面用的是绝对 `/static/assets/...`，我的探针漏了前缀 | 按页面里真实的 `src` 取值复测 → 200（**是探针写错，不是产物问题**） |
@@ -85,14 +85,28 @@
 
 ## 6. CI/CD 验证结论
 
-- **推送**：`origin/master`（GitHub，CI 所在）已更新到 `8457346e`；`gitee` 镜像未推（见 §7）。
-- **发现并修掉一个真红灯**：首批推送的 `architecture-check`（架构规则校验）失败 ——
-  `no_circular_dependency`：`agent.lines.callability → agent.tools`。修复见 §4，`8457346e`
-  重跑后 **architecture-check = success**。
-- **其余失败项均为 `cancelled`**：本仓 workflow 统一配了
-  `concurrency: cancel-in-progress`（同 workflow 同 ref 只留最新一批），密集推送时旧 run
-  被新 run 取代 ⇒ **`cancelled` 不等于失败**；判定看每个 head 上的 `success/failure`。
-- **结论以 `8457346e` 这个 head 为准**：该 head 上的 run 集合与逐项结论见下（推送后回填）。
+- **推送**：`origin/master`（GitHub，CI 所在）已更新到 `c1a72324`；`gitee` 镜像未推（见 §7）。
+- **发现并修掉四个真红灯**（全部由 CI 抓出，本地单测/pre-commit 都曾全绿）：
+  1. `architecture-check`：`agent.lines.callability → agent.tools` 循环依赖 → 提交 `8457346e`（依赖倒置）；
+  2. `单元测试 Shard 1`：清单不可复现（依赖 .gitignore 里的运行时技能文件，CI 报 23 处差异）→ 提交 `bc75e11d`（清单口径收紧为仓库可复现 + 两条守门单测）；
+  3. `单元测试 Shard 2`：`test_fan_out` 字段顺序断言过期 → 同 `bc75e11d`；
+  4. `单元测试 Shard 2`：`test_settings_registry` 零缺口守卫 `<unresolved>`（我的布尔归一助手名 `_flag` 撞上 `scripts/scan_settings.py` 的"环境开关读取助手"名字契约）→ 同 `bc75e11d`（改名 `_as_bool`）。
+- **其余失败项为 `cancelled`**：本仓 workflow 统一配了 `concurrency: cancel-in-progress`
+  （同 workflow 同 ref 只留最新一批），密集推送时旧 run 被新 run 取代 ⇒ **`cancelled` 不等于失败**。
+- **逐项结论（head = `c1a72324`，22 个 run）**：除下表外全部 `success`/`skipped`：
+
+| 工作流 | 结论 |
+|--------|------|
+| 云枢系统测试流程（6 shard × 3 Python） | 首次 `failure`：**仅** `test_skill_merge.py::test_service_auto_merge_duplicates` 超时（>60s）；此前三条真红灯已消失（1 failed / 3190 passed / 10 skipped）。已触发 `gh run rerun --failed` 复核 ⇒（回填见下） |
+| 架构规则校验 | `success`（循环依赖已拆） |
+| 循环依赖校验 / 核心不变量 / 关键字参数 / lock-discipline / 硬编码密码扫描 / 环境健康 / 日期无关守卫等 | 全部 `success` |
+| yunshu-ui 前端测试 / 部署文档到 GitHub Pages / Daily Regression Tests / 扩展系统健康检查 | `success` |
+| master commit 来源守卫 | `success`（未阻断） |
+
+> **并行会话交叉确认**：另一会话在 `d17c08c0` 里独立复现并定位了同两条 Shard 2 红灯
+> （`_flag` 名字契约、`test_fan_out` 键序），给出的最小修法与我实际采用的一致；
+> 它们另提了一条**更接近根因**的后续建议：让 `scripts/scan_settings.py` 的助手识别
+> **按模块作用域**而不是按名字（属扫描器域，登记为 §7 遗留）。
 
 ## 7. 遗留问题与后续建议
 
@@ -102,6 +116,8 @@
 | `internal: true` 仍判 ❌（硬阻断）而非 ⚠️ | 口径选择 | 理由：`internal` 是"设计上不对外开放"（既不进模型可见集、也不进检索索引），不只是"模型不发起"。若 owner 希望统一成"可达即 ⚠️"，改 `judge()` 一处 + 一条断言即可 —— **待拍板**（默认保持现状） |
 | `data/agent_lines/_active.json`、`data/tools_config.json`、`data/system_prompt_config.json` 留在工作区未提交 | 运行时状态 | 这三处是**运行中的应用**写的状态（活动主线、工具开关、`_last_applied` 时间戳），非本次交付物；不混进交付提交，由 owner 决定是否入库 |
 | `gitee` 镜像未推送 | 发布动作 | 本次只推 `origin`（GitHub，CI 所在）。需要时 `git push gitee master` |
+| `scripts/scan_settings.py` 的助手识别按**名字**而非**模块作用域** | 扫描器域的根因（并行会话 `d17c08c0` 提出） | 本次用最小改法（我的助手改名 `_as_bool`）绕开；根治需让扫描器按模块作用域判定"这是不是 env 读取助手"，属扫描器域，**未改**（避免与其它会话对撞同一文件） |
+| `test_skill_merge` 在 CI 反复超时（>60s，本地 2.17s） | 环境/负载类 | 已触发 rerun 复核；若仍复现，按仓库既有纪律显式 `@pytest.mark.timeout(N)` 或纳入已知慢清单（**未改代码**，避免掩盖真实原因） |
 | 清单口径只覆盖**仓库实体**技能（23 个） | 可复现性约束 | 只在运行时存在的技能（内联指令型台账条目、`extension_store` 装入的技能）不在清单内 ⇒ 界面无徽章（静默退化）。它们登记在 `runtime_only_declarations` 里披露；要看运行时全貌用 `--runtime --summary`（产物不提交） |
 | "人眼确认徽章观感/位置" | 人工验收 | 属 owner 验收项（已重建产物 + 重启后端，刷新 `/chat` 即可） |
 | 技能清单在界面上只覆盖 `/api/skills` 的 31 个 id | 已知边界 | `extension_store` 后续装入的技能不在清单口径内 ⇒ 静默无徽章（退化为现状，不报错） |
