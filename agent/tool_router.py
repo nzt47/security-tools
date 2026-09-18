@@ -179,6 +179,9 @@ _DEFAULT_TOOL_CATEGORIES = {
     # software_install 会返回成功却什么都没装（见 docs/工具集评估与重分类报告.md §4.4a）。
     # 实现模块 agent/tools/software_tools.py 与 4 个 YAML 均已删除，此处整个分类一并移除
     # ——留一个永远为空的分类会在前端渲染成空分组，也会污染路由推导。
+    # 【2026-09-18 收口】空壳本体（agent/software_manager.py、agent/software_backends.py）
+    # 与生成脚本（scripts/create_software_manager.py、scripts/create_module.py）已删除，
+    # 避免"无人引用却随时可被再次接线"的死灰复燃。
     # 恢复时需同时恢复：本分类、data/tool_definitions/software_*.yaml、
     # agent/tools/software_tools.py，并先补齐 software_manager 的真实实现。
     "async": {

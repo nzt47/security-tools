@@ -37,8 +37,6 @@ _AGENT_MODULES = [
     "agent.search_aggregator",
     "agent.server_auth",
     "agent.server_ui",
-    "agent.software_backends",
-    "agent.software_manager",
     "agent.system_prompt_config",
     "agent.system_prompt_manager",
     "agent.system_tools",
@@ -183,16 +181,3 @@ def test_system_prompt_config_module():
     from agent import system_prompt_config
     assert hasattr(system_prompt_config, "SectionConfig")
 
-
-def test_software_manager_module():
-    """验证 software_manager 模块结构"""
-    from agent import software_manager
-    assert hasattr(software_manager, "SoftwareManager")
-
-
-def test_software_backends_module():
-    """验证 software_backends 模块结构"""
-    from agent import software_backends
-    assert hasattr(software_backends, "ChocolateyBackend")
-    assert hasattr(software_backends, "PipBackend")
-    assert hasattr(software_backends, "NpmBackend")

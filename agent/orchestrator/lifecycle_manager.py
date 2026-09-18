@@ -1042,7 +1042,7 @@ class LifecycleManager:
         from agent.tools.pdf_tools import register_all as reg_pdf
         # ── software_* 4 个工具已注销（2026-09-17）──────────────────────
         # 原因：agent/software_manager.py 与 agent/software_backends.py 是机器生成的
-        #   空壳（见 scripts/create_software_manager.py）——SoftwareManager 没有
+        #   空壳（生成脚本 scripts/create_software_manager.py）——SoftwareManager 没有
         #   register_backend/search 等方法，而 install()/uninstall() 的实现就是
         #   `return True`、_installed_software 从不写入。结果 software_install
         #   **返回成功却什么都没装**、software_list 恒为空 ⇒ 对用户谎报成功，
@@ -1051,8 +1051,13 @@ class LifecycleManager:
         #   并从 tool_router 的 software 分类剔除 ⇒ 模型完全看不到这 4 个工具。
         #   同时修正了 system_prompt_manager 里"你拥有软件管理能力…必须调用
         #   software_search/install/list/uninstall"的旧提示词（否则模型会去调不存在的工具）。
-        # 恢复：`git log --diff-filter=D -- agent/tools/software_tools.py` 取回实现，
-        #   并先补齐 software_manager.py 的真实后端注册与安装/卸载实现再接线。
+        # 【2026-09-18 收口】连**空壳本体**与**生成脚本**一并删除：
+        #   agent/software_manager.py、agent/software_backends.py、
+        #   scripts/create_software_manager.py、scripts/create_module.py。
+        #   留着它们只有坏处：无人引用却随时可能被再次接线（恢复成"谎报成功"的工具），
+        #   且 `tests/unit/test_import_smoke.py` 曾把"模块可导入"当成覆盖。
+        # 恢复：`git log --diff-filter=D -- agent/software_manager.py` 取回，
+        #   但**必须先补齐真实的后端注册与安装/卸载实现**再接线。
         # from agent.tools.software_tools import register_all as reg_software
         from agent.tools.system_tools import register_all as reg_system
         from agent.tools.code_tools import register_all as reg_code

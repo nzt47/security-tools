@@ -391,6 +391,9 @@ _NEWS_DEFAULT_QUERIES = ["latest world news today",
                          "international breaking news",
                          "top global headlines"]
 
+#: 新闻模式多条查询的**总时间预算**（秒）——防止把 3 × 单查询超时叠成 30s 的等待
+_NEWS_TOTAL_BUDGET_SEC = 15.0
+
 
 def _news_published(item: dict) -> str:
     """取文章发布时间；取不到返回空串
@@ -408,12 +411,21 @@ def _news_published(item: dict) -> str:
 def _news_search(dl, topic: str, engine: str, max_results) -> dict:
     """新闻模式（原 fetch_news 的逻辑，合并进 web_search(preset="news")）
 
-    - 查询组合与原实现一致：有 topic 用 3 条 topic 查询，无 topic 用 3 条通用查询
-    - 保留原来的"首个成功查询即采用"语义（原实现的 break 在成功分支内）
-    - 按来源优先级排序后截断，超时与逐查询容错行为保持不变
-    - 修复：不再给每条结果盖运行时刻，有发布时间用发布时间，没有则标注 unknown
+    【2026-09-18 行为变更：多条查询**结果合并**】
+    原实现逐条尝试 3 条查询，但**第一条成功就 break**（"首个成功查询即采用"），
+    于是另外两条查询形同虚设：只要第一条返回哪怕 1 条结果，最终结果集就只有它那一条
+    （`seen_urls` 去重也因此毫无意义）。
+    现将 3 条查询的结果**合并成一个结果集**（按 url 去重 → 来源优先级排序 → 截断），
+    这样"某条查询召回偏少/偏旧"不再直接决定最终质量。保留的边界：
+      - 查询**按顺序**执行，累计到 `limit` 条即提前停止（够一页就不再打多余的请求）；
+      - 总耗时超过 `_NEWS_TOTAL_BUDGET_SEC` 即停止后续查询（避免 3×超时叠加）；
+      - 单条查询失败照旧被吞掉、不影响整体；
+      - 返回里如实披露 `queries_used`，让"这次到底用了几条查询"可查（不猜）。
+    排序、截断、发布时间口径（缺失标 unknown、不伪造）与既有实现一致。
     """
     import time as _time
+
+    start = _time.monotonic()
 
     try:
         limit = min(int(max_results or 10), 15)  # 新闻模式上限与原 max_results 上限一致
@@ -426,7 +438,16 @@ def _news_search(dl, topic: str, engine: str, max_results) -> dict:
 
     all_results = []
     seen_urls = set()
+    queries_used = []      # 本次**实际发起**的查询（含无结果/失败的，如实披露）
+    queries_failed = []    # 其中抛异常的（引擎不可用等），供排查"为什么结果少"
     for q in queries:
+        if len(all_results) >= limit:
+            break                                   # 已够一页，不再打多余请求
+        if _time.monotonic() - start > _NEWS_TOTAL_BUDGET_SEC:
+            logger.info("[web_search] 新闻查询达到总预算 %.0fs，剩余查询跳过: %s",
+                        _NEWS_TOTAL_BUDGET_SEC, q)
+            break
+        queries_used.append(q)
         try:
             searcher = dl._get_web_search()
             if searcher is None:
@@ -445,9 +466,11 @@ def _news_search(dl, topic: str, engine: str, max_results) -> dict:
                             "source": _guess_source(url),
                             "published": _news_published(item),
                         })
-                break  # 当前查询成功，不再尝试后续查询（与原实现一致）
-        except Exception:
-            pass  # 单个查询失败不影响整体
+            # 不再 break：继续下一条查询并合并（本次改动的核心）
+        except Exception as e:  # noqa: BLE001 单个查询失败不影响整体
+            queries_failed.append(q)
+            logger.debug("[web_search] 新闻查询失败（跳过并继续）q=%r: %s: %s",
+                         q, type(e).__name__, e)
 
     def _score(item):
         url = item["url"].lower()
@@ -472,7 +495,8 @@ def _news_search(dl, topic: str, engine: str, max_results) -> dict:
             f"  - 检索时间: {now}\n"
             "  - 建议: 稍后重试或直接输入具体关键词"
         )
-        return {"ok": True, "result": text, "count": 0, "preset": "news"}
+        return {"ok": True, "result": text, "count": 0, "preset": "news",
+                "queries_used": queries_used, "queries_failed": queries_failed}
 
     # 格式化输出（时间取文章发布时间，缺失则 unknown —— 不伪造）
     lines = ["已获取到以下信息：", f"  - 找到 {len(all_results)} 条结果:"]
@@ -489,7 +513,9 @@ def _news_search(dl, topic: str, engine: str, max_results) -> dict:
         lines.append(f"   - 摘要: {snippet[:300]}")
         lines.append(f"   - 链接: {url}")
 
-    return {"ok": True, "result": "\n".join(lines), "count": len(all_results), "preset": "news"}
+    return {"ok": True, "result": "\n".join(lines), "count": len(all_results),
+            "preset": "news", "queries_used": queries_used,
+            "queries_failed": queries_failed}
 
 
 def _guess_source(url: str) -> str:
