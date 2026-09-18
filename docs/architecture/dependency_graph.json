@@ -63,7 +63,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 13,
-      "out_degree": 6
+      "out_degree": 7
     },
     {
       "path": "agent.audit.chain",
@@ -3287,7 +3287,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_agent_lines.py",
       "in_degree": 0,
-      "out_degree": 4
+      "out_degree": 6
     },
     {
       "path": "agent.server_routes.tracing_decorator",
@@ -3296,6 +3296,14 @@
       "file_path": "",
       "in_degree": 22,
       "out_degree": 2
+    },
+    {
+      "path": "agent.lines.callability",
+      "name": "callability",
+      "layer": "lines",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 0
     },
     {
       "path": "agent.server_routes.routes_approval",
@@ -18154,6 +18162,32 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.server_routes.routes_agent_lines",
+      "target": "agent.lines.callability",
+      "source_layer": "server_routes",
+      "target_layer": "lines",
+      "import_type": "from_import",
+      "line": 183,
+      "source_file": "agent/server_routes/routes_agent_lines.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_agent_lines",
+      "target": "agent.lines.callability",
+      "source_layer": "server_routes",
+      "target_layer": "lines",
+      "import_type": "from_import",
+      "line": 392,
+      "source_file": "agent/server_routes/routes_agent_lines.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.server_routes.routes_approval",
       "target": "agent.security",
       "source_layer": "server_routes",
@@ -20681,7 +20715,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 1873,
+      "line": 1884,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -20694,7 +20728,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 1993,
+      "line": 2004,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -23424,7 +23458,7 @@
       "source_layer": "tools",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 21,
+      "line": 22,
       "source_file": "agent/tools/__init__.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -23437,7 +23471,7 @@
       "source_layer": "tools",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 597,
+      "line": 664,
       "source_file": "agent/tools/__init__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -23450,7 +23484,7 @@
       "source_layer": "tools",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 603,
+      "line": 670,
       "source_file": "agent/tools/__init__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -23463,7 +23497,7 @@
       "source_layer": "tools",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 610,
+      "line": 677,
       "source_file": "agent/tools/__init__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -23476,7 +23510,7 @@
       "source_layer": "tools",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 223,
+      "line": 235,
       "source_file": "agent/tools/__init__.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -23489,7 +23523,20 @@
       "source_layer": "tools",
       "target_layer": "lines",
       "import_type": "from_import",
-      "line": 382,
+      "line": 394,
+      "source_file": "agent/tools/__init__.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools",
+      "target": "agent.lines.callability",
+      "source_layer": "tools",
+      "target_layer": "lines",
+      "import_type": "from_import",
+      "line": 416,
       "source_file": "agent/tools/__init__.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -25643,10 +25690,10 @@
     }
   ],
   "stats": {
-    "total_files": 592,
-    "total_nodes": 530,
-    "total_edges": 1646,
-    "cross_layer_edges": 1027,
+    "total_files": 593,
+    "total_nodes": 531,
+    "total_edges": 1649,
+    "cross_layer_edges": 1030,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -25679,7 +25726,7 @@
       "handoff": 1,
       "health": 7,
       "human_in_the_loop": 5,
-      "lines": 3,
+      "lines": 4,
       "knowledge": 26,
       "lazy_loader": 3,
       "learning": 2,
