@@ -124,6 +124,7 @@
 | **运行时技能在界面上无徽章**（实测 id=`skill`＝易之三义） | **已修** | 根因两条：① 它没有 `data/skills_repo/skill/skill.md` 实体 ⇒ 收紧成"仓库可复现口径"后不在清单里；② 也不在 `data/skill_callability.yaml` 里 ⇒ 连 `runtime_only_declarations` 都无登记 ⇒ 清单里零痕迹。改法：REST 端点请求期补算 `runtime_skills`（`scope=runtime`，**不进提交产物**，CI 仍可复现），界面合并显示并在图例提示"其中 N 条由运行时补算"。现场实测 8 条：7 条 ⚠️ + 1 条 ❌（`wf-f19dc52c-skill`，状态 deprecated） |
 | `test_skill_merge` 在 CI 反复超时（>60s，本地 2.17s） | **已修**（详见 §4 该行） | 本交付测试拆快慢两级 + 该用例显式 `@pytest.mark.timeout(240)`；真挂死仍在 240s 失败，不掩盖问题 |
 | 动态生成工具（`generate_tool`）与清单的关系 | **按既有流程** | 生成工具的 YAML 写进 `data/tool_definitions/` ⇒ 属仓库口径，本地 `--check` 会提示差异，按既有纪律把 YAML 一并提交（与"新增工具必须建 YAML"同一路径） |
+| 交付后巡检顺带收口：技能自动分类把「易之三义」（id=`skill`）判成「语音与多媒体」 | **已修** | 根因（实测链路）：运行时行**没有正文**（`/api/skills` 的 `installed` 只给 `id/name/description/params`）⇒ 打分只用名称+描述；描述里通用词「约束**识别**」命中语音域、「`<san_yi_analysis>`」的 `analysis` 命中数据域，**各 2 分并列** ⇒ `classify_fields` 用严格 `>` 比较、**按词表顺序**判给「语音与多媒体」（表内第 4 早于第 9），随后 rt→asset 单向收敛把资产侧（有正文、正确算出 代码与工程 9 分）也覆盖成语音。修法（与当年移除 `markdown` 同一手法）：「语音与多媒体」移除裸「识别」（保留「语音识别」/`ocr`/`voice`…）＋「代码与工程」补中文动名词「编码」＋两条回归测试；重判后全库**只有 2 条 assignment 变化**（`rt:skill`/`asset:skill`：语音与多媒体 → 代码与工程）。附注：`writing-skills` 维持「文档与办公」——它是「文档×3 / writing×3 / refactor×3」三路并列由表序决胜，语义上"编写技能文档"归文档/办公说得通；且当前无"人工改类"端点，若将来要人工指定需补 REST+界面（登记为可选增强） |
 | 界面观感（徽章位置/密度） | 人工验收 | 已重建产物 + 重启后端（`/chat` 刷新即见）；无代码遗留 |
 
 ## 8. 验收清单（owner 复核用，处置已按上表定案）

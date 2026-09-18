@@ -77,6 +77,36 @@ class TestClassifyFields:
         assert v["score"] < 2  # 不足阈值
         assert v["class"] is None or v["auto_name"] != UNCLASSIFIED
 
+    def test_coding_skill_not_misclassified_by_generic_words(self):
+        """回归：编码方法论技能「易之三义」曾被判成「语音与多媒体」
+
+        【为什么只喂 名称+描述】技能页那行的数据来自 `/api/skills` 的 `installed`
+        （只有 `id/name/description/params`，**没有正文**）⇒ 运行时判定实际只用名称+描述。
+        该描述里只有两处命中：「约束**识别**」（旧表把它算作语音域关键词）与
+        `<san_yi_analysis>`（data 域的 `analysis`），各 2 分并列 ⇒ 旧表按表序把
+        「语音与多媒体」判给了一个编码技能。与
+        `test_ui_skill_not_misclassified_by_doc_noise` 同一类：**噪音/通用词不得独立决定域**。
+        """
+        verdict = classify_fields(
+            name="易之三义",
+            description="1. 编码前必输出 `<san_yi_analysis>`: [不易]约束识别 → "
+                        "[变易]扩展性评估 → [简易]最简方案确认。\n"
+                        "2. 原子推理，每步经三义校验。\n"
+                        "3. 三义冲突时显式说明权衡取舍。\n"
+                        "4. 生成后自检，违三义则修正再输出。")
+        assert verdict["class"] == "代码与工程"
+
+    def test_bare_identify_word_does_not_claim_voice_domain(self):
+        """裸「识别」不再单独决定语音域；真正的语音语义仍能命中
+
+        中文里"识别不变量/识别风险/识别需求"随处可见，把它当语音专属关键词会让
+        任何提到"识别"的技能都往语音域跑（实测命中即易之三义）。移除后改由
+        「语音识别」及 voice/audio/ocr 等复合词/英文词承担。
+        """
+        assert classify_fields("需求梳理", "识别用户真实需求并归类", "")["class"] != "语音与多媒体"
+        assert classify_fields("语音交互", "通过语音与用户交互", "")["class"] == "语音与多媒体"
+        assert classify_fields("语音识别", "把录音转成文字", "")["class"] == "语音与多媒体"
+
 
 # ═══════════════════════════════════════════════════════════════
 #  注册表（落盘/幂等/人工覆盖/不降级）

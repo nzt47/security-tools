@@ -99,9 +99,16 @@ SEED_CLASSES: List[Dict[str, Any]] = [
         "compliance", "danger", "block",
     ]},
     {"name": "语音与多媒体", "keywords": [
-        "语音", "声音", "音频", "视频", "图像", "图片", "识别", "朗读", "播放",
+        "语音", "声音", "音频", "视频", "图像", "图片", "朗读", "播放",
         "媒体", "画面", "语音识别", "voice", "audio", "video", "image",
         "ocr", "tts", "speech", "media", "photo",
+        # 【不易】裸「识别」已移除（2026-09-19）：它是个通用词（"识别不变量/识别风险/
+        #   识别需求"都命中），却单独决定语音域 ⇒ 实测把编码方法论技能「易之三义」
+        #   （描述里只有"约束识别"这一处命中）判成语音与多媒体。
+        #   与当年移除 `markdown`（见 test_ui_skill_not_misclassified_by_doc_noise）
+        #   同一手法：**噪音关键词不得独立决定一个域**。语音语义仍由「语音识别」
+        #   及 voice/audio/ocr 等复合词/英文词覆盖（回归见
+        #   test_bare_identify_word_does_not_claim_voice_domain）。
     ]},
     {"name": "邮件与通讯", "keywords": [
         "邮件", "通讯", "消息", "通知", "收件", "发件", "推送", "提醒", "短信",
@@ -117,6 +124,10 @@ SEED_CLASSES: List[Dict[str, Any]] = [
         "函数", "接口", "代码审查", "code", "coding", "program", "sdk",
         "python", "javascript", "typescript", "git", "compile", "debug",
         "refactor", "function", "api", "cli",
+        # 【变易】补中文动名词「编码」（2026-09-19）：中文技术文本里"编码前/编码时"
+        #   比"代码"更常出现在**描述**里（而描述正是运行时行唯二可用的字段）；
+        #   补上后「易之三义」（"编码前必输出…"）能凭 2 分与 analysis 并列并按时序归回本域。
+        "编码",
     ]},
     {"name": "网络与搜索", "keywords": [
         "网络", "搜索", "抓取", "网页", "爬虫", "查询", "联网", "浏览器",
