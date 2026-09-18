@@ -23,7 +23,7 @@
 | [agent/tools/__init__.py](../agent/tools/__init__.py) | `get_tool_defs` 隐藏声明判否工具；新增 `registry_facts()`（schema/执行器/source） | ✅ 扩展 |
 | [data/tool_definitions/*.yaml](../data/tool_definitions) | 91 个工具补齐可调用性声明（与 plane/effect/risk 相邻，字段顺序统一） | ✅ 全量 |
 | [data/skill_callability.yaml](../data/skill_callability.yaml) | 技能侧声明（defaults + 个别覆盖；含"为何不用 front matter"的理由） | ✅ 新增 |
-| [data/capability_manifest.json](../data/capability_manifest.json) | 统一清单 122 条（91 工具 + 31 技能），含八字段 + 标识 + 诊断字段 + 统计 | ✅ 派生 |
+| [data/capability_manifest.json](../data/capability_manifest.json) | 统一清单 114 条（91 工具 + 23 技能实体），含八字段 + 标识 + 诊断字段 + 统计 + 口径声明 | ✅ 派生 |
 | [scripts/backfill_tool_callability.py](../scripts/backfill_tool_callability.py) | 幂等回填；`--check` 查缺失 + 对拍 `permission_level` 与治理轴派生值 | ✅ 新增 |
 | [scripts/sync_capability_manifest.py](../scripts/sync_capability_manifest.py) | 派生清单 + 自洽性校验（三条不变量）+ `--check` 拦手改 + `--summary` | ✅ 新增 |
 | [scripts/sync_tool_index.py](../scripts/sync_tool_index.py) | 检索索引排除判否工具（否则 hybrid 召回会绕过隐藏） | ✅ 扩展 |
@@ -46,7 +46,8 @@
 | 清单自洽性 | 八字段齐全；❌ ⇔ 不可达；⚠️ 必须给出成因；✅ 必有执行器 + Schema；手改清单会被 `--check` 拦住 |
 | 前端 | `tsc -p tsconfig.json --noEmit` 0 错 · `eslint` 0 告警 · `vitest src/lib/callability.test.tsx` **16 passed** · `vitest src/pages/hub` **99 passed** · `npm run build:flask` 成功 |
 | 浏览器冒烟（真实 Edge 无头 + CDP，打运行实例 5678） | `npm run smoke:route` **19 PASS / 0 FAIL**（连跑两次一致） |
-| 线上实测（重启后） | `/api/capability-manifest` 200，`total=122 ✅80 ⚠️40 ❌2`，`by_trigger={model:90, system:30, none:2}`；`/api/agent-lines/planes` 91 行全带标注；装配预览 `tools_meta` 37 行带标注且 `callability_source` 正确；`/chat` 引用的新 chunk 200 且含标识文案 |
+| 线上实测（重启后） | `/api/capability-manifest` 200，`total=114 ✅80 ⚠️33 ❌1`，`by_trigger={model:90, system:23, none:1}`（清单文件按 mtime 重读，改数据后无需重启后端）；`/api/agent-lines/planes` 91 行全带标注；装配预览 `tools_meta` 37 行带标注且 `callability_source` 正确；`/chat` 引用的新 chunk 200 且含标识文案 |
+| 清单可复现（CI 口径） | 把两个 .gitignore 的运行时技能文件指到不存在路径后重算 ⇒ 与提交产物**逐字段一致**（`test_清单只依赖入库数据` 锁死） |
 | 零行为变化 | 判否集合 ⊆ `internal`（当前仅 `process_distill_run`）⇒ 模型可见集与改动前完全相同，由测试锁死 |
 | 本地其它门禁 | `verify_core_invariants` 12/12 PASS · `simulate_ci_guard_pipeline --assert-allowed` PASS · `check_ps1_encoding` PASS · `lint-imports` 2 contracts kept / 0 broken · 文档链接与锚点预检 PASS |
 | CI/CD | 见 §6（推送后回填） |
@@ -56,20 +57,27 @@
 | 问题 | 根因 | 解决方案 |
 |------|------|----------|
 | **31 个技能全被标成 ❌，看上去像"技能全坏了"** | 判定把"不可达"与"可达但不经模型发起"混为一谈 | 拆成**硬阻断**（无执行器/无内容实体/已停用/被策略拒绝/内部专用 ⇒ ❌）与**软阻断**（声明 false / manual / 缺 Schema ⇒ ⚠️）；新增 `reachable` / `trigger` / `reason_kind` 三个字段把成因说全。`llm_callable` 语义不动（manual 恒 false，权限/网关读它） |
+| **CI 红灯：清单不可复现（23 处差异）** | 清单读了 `data/skills.json` / `data/skills_mgmt.json` —— 两者都在 .gitignore 里，干净 checkout / CI 里不存在 ⇒ CI 重算的清单与提交产物必然不一致（8 个只在台账里的技能 + 15 个 reason/标识漂移） | 清单口径收紧为**仓库可复现**：默认只读入库数据（工具 YAML / 技能覆盖表 / `skills_repo/*/skill.md` / 策略文件 / 静态注册点扫描）；运行时技能目录与台账改为 `include_runtime_catalog=True` 显式并入（**产物不提交**），只声明而仓库无实体的技能登记进 `runtime_only_declarations` 如实披露。新增 `test_清单只依赖入库数据` 把"干净 checkout 可复算"钉死 |
+| **CI 红灯：`test_fan_out` 字段顺序断言** | 该用例按"字段顺序照 grep.yaml"逐字比对 key 列表，新增五个标注字段后必然不等 | 更新期望列表（把新字段按其真实插入位置列入），保留"顺序契约"这一原始意图 |
+| **CI 红灯：`test_settings_registry` 零缺口守卫出现 `<unresolved>`** | `scripts/scan_settings.py` 的 `KNOWN_READ_HELPERS` 把 **`_flag`** 登记为"环境开关读取助手"的名字契约；我把新的布尔归一助手命名成 `_flag`，于是 `_flag(doc.get(...), True)` 被当成开关读取点、参数非字面量 ⇒ 产出 `<unresolved>` 动态家族 | 助手改名 `_as_bool`（不带 env/getenv 词干，正则也匹配不到），并在 docstring 里写明"名字有讲究，勿改回 `_flag`" |
+| **`test_skill_merge` 在 CI 超时（60s）** | 环境/负载问题：本地同用例 **2.17s** 通过（`--timeout=60` 同口径），且该 shard 整体耗时 868s（其余 shard 240–380s） | 先按环境因素记录；修复上述三条后重跑该 job 复核（结论见 §6） |
 | 路由冒烟 flaky：两次失败用例不是同一批（15/4、17/2） | "hash 落地"与"导航重渲染"不在同一帧，断言落地即读 `innerText`；"展开栏目"一步更糟——读到未渲染就去点，反而把正在展开的组收起 | 两处即时取值改 `waitFor` 轮询（先等"已展开"，等不到再点，点完再等结果）；连跑两次 19/0 |
 | `sync_capability_manifest.py --summary` 在 Windows 崩（UnicodeEncodeError） | 中文 Windows 控制台默认 GBK，打印 ✅/⚠️/❌ 失败（清单其实已正确落盘） | 脚本顶部显式 `sys.stdout.reconfigure(encoding="utf-8")` |
 | 探针取 `/assets/index-*.js` 得 404，一度判为"产物没上线" | 页面用的是绝对 `/static/assets/...`，我的探针漏了前缀 | 按页面里真实的 `src` 取值复测 → 200（**是探针写错，不是产物问题**） |
 | 新端点 `/api/capability-manifest` 与 `callability` 字段在运行实例上 404 / 缺失 | 后端进程 18:03 启动，内存里是改动前的代码（Python 代码改动必须重启） | 按 `start_yunshu.bat` 口径重启（kill 旧 PID → `python app_server.py`）；本次两次重启，日志留在 `logs/app_server_restart_*.log` |
 | 派生清单可能被人手改而与权威漂移 | 派生文件天然有这个风险 | `--check` 逐字段对拍 + 装配预览与目录"同源"断言（`test_装配预览与目录的标注同源`） |
+| **CI 架构规则红灯：`agent.lines.callability ↔ agent.tools` 循环依赖** | 本模块为取"运行时执行器事实"惰性 `from agent.tools import registry_facts`，而 `agent.tools` 反向依赖本模块（`get_tool_defs` 读 `non_callable_tool_names` 隐藏判否工具）⇒ 双向依赖。架构规则按 AST 扫描，**不看调用时机**，惰性导入照样判违规；本地单测、import-linter、pre-commit 全部绿，**只有 CI 的 architecture-check 能发现** | 依赖倒置：`callability.py` 不再导入 `agent.tools`，运行时事实改由调用方注入（`build_manifest(executor_facts=...)`）；`scripts/sync_capability_manifest.py --runtime` 在**脚本侧**取 `registry_facts()`（scripts/ 不在扫描根内）；`runtime_executors()` 保留为显式空实现 + 依赖倒置说明，防后人"顺手补个 import"。新增两条单测钉住：AST 扫本模块 import + 注入事实优先于静态扫描。提交 `8457346e` |
 | `lint-imports` 本地报 `'gbk' codec can't decode byte 0x90` | 中文 Windows 默认编码，与改动无关 | `PYTHONUTF8=1` 复跑 → 2 contracts kept / 0 broken（CI 为 Linux UTF-8，不受影响） |
 | 迁移脚本曾把治理声明整段抹掉（历史事故） | `migrate_tools_to_yaml.py` 不带 `--out` 会重写生产目录，且它从 Python 源码反推、不认识治理字段 | 本次新增字段同样落在 YAML ⇒ 由 `backfill_tool_callability --check` 与 `test_tool_callability` 双向守门；文档中重申"不要不带 `--out` 跑迁移脚本" |
 
 ## 5. 最终状态确认
 
-- **代码**：3 个提交已推送到 `origin/master`（`18a9fa4c..584803a3`）：
+- **代码**：4 个提交已推送到 `origin/master`（`18a9fa4c..8457346e`）：
   - `be85f84f` feat(callability)：后端 + 数据 + 脚本 + 测试（103 files）
   - `192925fb` feat(ui)：前端标识 + 构建产物引用（8 files）
   - `584803a3` fix(smoke)：冒烟时序 flaky（1 file）
+  - `549060a9` docs(callability)：标注规范 + 装配指南 + 本报告（3 files）
+  - `8457346e` fix(callability,ci)：拆循环依赖（architecture-check 红灯收口，3 files）
 - **数据**：91 个工具 YAML 已具备可调用性声明；`data/capability_manifest.json` 为派生清单；`data/tool_index.json` 已按新口径重生成。
 - **运行态**：入站 static 前端产物已重建（`npm run build:flask`），后端已重启并 `/api/health` 就绪；页面刷新即可看到标识。
 - **回滚路径**：① 只回滚"模型可见集过滤" ⇒ `CP_TOOL_CALLABILITY_ENFORCE=0`；② 回滚声明 ⇒ 改 YAML/覆盖表后重跑 `sync_capability_manifest.py`；③ 整体回滚 ⇒ `git revert` 三个提交（无数据库/无迁移，纯数据 + 代码）。
@@ -77,7 +85,14 @@
 
 ## 6. CI/CD 验证结论
 
-（推送后回填）
+- **推送**：`origin/master`（GitHub，CI 所在）已更新到 `8457346e`；`gitee` 镜像未推（见 §7）。
+- **发现并修掉一个真红灯**：首批推送的 `architecture-check`（架构规则校验）失败 ——
+  `no_circular_dependency`：`agent.lines.callability → agent.tools`。修复见 §4，`8457346e`
+  重跑后 **architecture-check = success**。
+- **其余失败项均为 `cancelled`**：本仓 workflow 统一配了
+  `concurrency: cancel-in-progress`（同 workflow 同 ref 只留最新一批），密集推送时旧 run
+  被新 run 取代 ⇒ **`cancelled` 不等于失败**；判定看每个 head 上的 `success/failure`。
+- **结论以 `8457346e` 这个 head 为准**：该 head 上的 run 集合与逐项结论见下（推送后回填）。
 
 ## 7. 遗留问题与后续建议
 
@@ -87,6 +102,7 @@
 | `internal: true` 仍判 ❌（硬阻断）而非 ⚠️ | 口径选择 | 理由：`internal` 是"设计上不对外开放"（既不进模型可见集、也不进检索索引），不只是"模型不发起"。若 owner 希望统一成"可达即 ⚠️"，改 `judge()` 一处 + 一条断言即可 —— **待拍板**（默认保持现状） |
 | `data/agent_lines/_active.json`、`data/tools_config.json`、`data/system_prompt_config.json` 留在工作区未提交 | 运行时状态 | 这三处是**运行中的应用**写的状态（活动主线、工具开关、`_last_applied` 时间戳），非本次交付物；不混进交付提交，由 owner 决定是否入库 |
 | `gitee` 镜像未推送 | 发布动作 | 本次只推 `origin`（GitHub，CI 所在）。需要时 `git push gitee master` |
+| 清单口径只覆盖**仓库实体**技能（23 个） | 可复现性约束 | 只在运行时存在的技能（内联指令型台账条目、`extension_store` 装入的技能）不在清单内 ⇒ 界面无徽章（静默退化）。它们登记在 `runtime_only_declarations` 里披露；要看运行时全貌用 `--runtime --summary`（产物不提交） |
 | "人眼确认徽章观感/位置" | 人工验收 | 属 owner 验收项（已重建产物 + 重启后端，刷新 `/chat` 即可） |
 | 技能清单在界面上只覆盖 `/api/skills` 的 31 个 id | 已知边界 | `extension_store` 后续装入的技能不在清单口径内 ⇒ 静默无徽章（退化为现状，不报错） |
 
@@ -94,7 +110,7 @@
 
 - [ ] 字段设计与你给的规格一致（九项 + 诊断字段 + 三档标识）
 - [ ] 三档标识的语义认可：✅ 可被模型发起 / ⚠️ 可执行但触发有条件（含"由系统·人工触发"）/ ❌ 不可达
-- [ ] 技能侧 30 ⚠️ + 1 ❌ 的判定认可（技能不由模型发起，但照常生效）
+- [ ] 技能侧 23 ⚠️（仓库实体；运行时技能不在清单口径内）的判定认可（技能不由模型发起，但照常生效）
 - [ ] `internal: true` 保持 ❌ 的裁量认可（或要求改为 ⚠️）
 - [ ] 模型可见集过滤默认开启（开关 `CP_TOOL_CALLABILITY_ENFORCE`）认可
 - [ ] §7 遗留项的处理方式认可（尤其"api/script 不做"与"gitee 是否镜像"）
