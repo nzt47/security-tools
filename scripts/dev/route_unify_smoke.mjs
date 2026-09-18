@@ -201,11 +201,16 @@ async function main() {
       await waitFor(`document.body && document.body.innerText.includes('系统管理')`, 40_000));
 
     // ── 3. 旧管理后台路径 → 兜底重定向回统一工作台（非白屏）──
+    // 【不易】"hash 已落地"与"导航已重渲染"不是同一帧：落地后**立刻**读 innerText 会偶发
+    //   读到重渲染前的空壳。实测本脚本连跑两次，失败用例不是同一批
+    //   （第一次 /dashboard、/system/user、/knowledge；第二次 /system/log），
+    //   形态都是 `landed=true hash=/workbench hasNav=false` —— 典型的时序 flaky。
+    //   故导航判定一律用 `waitFor` 轮询，而不是一次性 `ev` 取值。
     for (const legacy of ['/dashboard', '/demo', '/export', '/system/user', '/system/log', '/knowledge']) {
       await ev(`location.hash = ${JSON.stringify('#' + legacy)}`);
       const landed = await waitWorkbench();
+      const hasNav = await waitFor(`document.body.innerText.includes('系统管理')`, 10_000);
       const hashNow = await ev(hashExpr);
-      const hasNav = await ev(`document.body.innerText.includes('系统管理')`);
       check(`旧路径 #${legacy} → 重定向 /workbench（非白屏）`,
         landed && hasNav,
         `landed=${landed} hash=${hashNow} hasNav=${hasNav}`);
@@ -227,9 +232,15 @@ async function main() {
     // ── 6. 工作台 admin 栏目：展开「系统管理」→ 点击「数据导出」→ 渲染导出页 ──
     check('回到 #/workbench', await setAndWaitHash('/workbench', 20_000));
     // 注意：NavPanel 的深度 0 分组默认展开；「系统管理」组若已展开则无需点击（点击会收起）
-    const adminGroupOpen = await ev(`document.body.innerText.includes('数据导出')`);
-    check('展开「系统管理」栏目（已展开则跳过）',
-      adminGroupOpen ? true : (await clickByExactText('系统管理')));
+    // 【不易】这里同样有过时序坑：`数据导出` 还没渲染出来时读到 false ⇒ 去点「系统管理」，
+    //   若此时该组其实正在展开，这一击就把它**收起**了，于是本项失败而下一项又通过
+    //   （实测过这个形态）。故：先轮询等"已展开"，等不到再点，点完**再等一次**结果。
+    const adminGroupOpen = await waitFor(`document.body.innerText.includes('数据导出')`, 8_000);
+    const expanded = adminGroupOpen
+      ? true
+      : ((await clickByExactText('系统管理'))
+         && (await waitFor(`document.body.innerText.includes('数据导出')`, 8_000)));
+    check('展开「系统管理」栏目（已展开则跳过）', expanded);
     check('子项「数据导出」出现', await waitFor(`document.body.innerText.includes('数据导出')`, 10_000));
     check('点击「数据导出」', await clickByExactText('数据导出'));
     check('导出页在主内容区渲染（导出格式 / CSV / JSON / 刷新）',
