@@ -34,6 +34,7 @@
 | 界面接线 | 工具集页 / 主线管理页（选择器 + 装配预览 chip）/ 技能库与技能中心：徽章 + 图例 | ✅ |
 | [tests/unit/test_tool_callability.py](../tests/unit/test_tool_callability.py) | 50 用例：声明层 / 判定层 / 派生层 / 接线层 / REST 面（真实 app 三类标 `slow`，另留一条源码级快速守门） | ✅ 新增 |
 | [scripts/dev/route_unify_smoke.mjs](../scripts/dev/route_unify_smoke.mjs) | 顺带修掉两处导航时序 flaky（本次交付中发现） | ✅ 修复 |
+| 运行时技能补标注（收口 §7-6 的"无徽章"） | `callability.runtime_only_skill_entries()` + `/api/capability-manifest` 的 `runtime_skills` + 界面合并（`indexCallability`，仓库口径覆盖运行时口径）+ 图例提示"其中 N 条由运行时补算" | ✅ 新增 |
 | [docs/工具与技能可调用性标注规范.md](工具与技能可调用性标注规范.md) | 字段规范 / 判定规则 / 三层归属 / 用法 / 新增能力时的标注步骤 / 文件索引 | ✅ 新增 |
 
 ## 3. 验证结果
@@ -46,7 +47,7 @@
 | 清单自洽性 | 八字段齐全；❌ ⇔ 不可达；⚠️ 必须给出成因；✅ 必有执行器 + Schema；手改清单会被 `--check` 拦住 |
 | 前端 | `tsc -p tsconfig.json --noEmit` 0 错 · `eslint` 0 告警 · `vitest src/lib/callability.test.tsx` **16 passed** · `vitest src/pages/hub` **99 passed** · `npm run build:flask` 成功 |
 | 浏览器冒烟（真实 Edge 无头 + CDP，打运行实例 5678） | `npm run smoke:route` **19 PASS / 0 FAIL**（连跑两次一致） |
-| 线上实测（重启后） | `/api/capability-manifest` 200，`total=114 ✅80 ⚠️33 ❌1`，`by_trigger={model:90, system:23, none:1}`（清单文件按 mtime 重读，改数据后无需重启后端）；`/api/agent-lines/planes` 91 行全带标注；装配预览 `tools_meta` 37 行带标注且 `callability_source` 正确；`/chat` 引用的新 chunk 200 且含标识文案 |
+| 线上实测（重启后） | `/api/capability-manifest` 200，`total=114 ✅80 ⚠️33 ❌1`（文件条目 `scope=repo`）+ `runtime_skills` **8 条**（`scope=runtime`：7 ⚠️ + 1 ❌）；`by_trigger={model:90, system:23, none:1}`（清单口径）；`/api/agent-lines/planes` 91 行全带标注；装配预览 `tools_meta` 37 行带标注且 `callability_source` 正确；`/chat` 引用的新 chunk 200 且含标识文案 |
 | 清单可复现（CI 口径） | 把两个 .gitignore 的运行时技能文件指到不存在路径后重算 ⇒ 与提交产物**逐字段一致**（`test_清单只依赖入库数据` 锁死） |
 | 零行为变化 | 判否集合 ⊆ `internal`（当前仅 `process_distill_run`）⇒ 模型可见集与改动前完全相同，由测试锁死 |
 | 本地其它门禁 | `verify_core_invariants` 12/12 PASS · `simulate_ci_guard_pipeline --assert-allowed` PASS · `check_ps1_encoding` PASS · `lint-imports` 2 contracts kept / 0 broken · 文档链接与锚点预检 PASS |
@@ -111,25 +112,25 @@
 > 它们另提了一条**更接近根因**的后续建议：让 `scripts/scan_settings.py` 的助手识别
 > **按模块作用域**而不是按名字（属扫描器域，登记为 §7 遗留）。
 
-## 7. 遗留问题与后续建议
+## 7. 遗留问题与处置（**已由交付方逐条拍板**）
 
-| 项 | 性质 | 处理 |
-|----|------|------|
-| `tool_type` 的 `api` / `script` 两档当前 0 条 | 范围边界 | 本清单的口径是"模型可调用的能力面"，REST 端点与 `scripts/*.py` 不是模型可调用的形态。**明确不做**；将来若要按端点做权限控制再纳入（字段已支持，需补一份端点/脚本声明表） |
-| `internal: true` 仍判 ❌（硬阻断）而非 ⚠️ | 口径选择 | 理由：`internal` 是"设计上不对外开放"（既不进模型可见集、也不进检索索引），不只是"模型不发起"。若 owner 希望统一成"可达即 ⚠️"，改 `judge()` 一处 + 一条断言即可 —— **待拍板**（默认保持现状） |
-| `data/agent_lines/_active.json`、`data/tools_config.json`、`data/system_prompt_config.json` 留在工作区未提交 | 运行时状态 | 这三处是**运行中的应用**写的状态（活动主线、工具开关、`_last_applied` 时间戳），非本次交付物；不混进交付提交，由 owner 决定是否入库 |
-| `gitee` 镜像未推送 | 发布动作 | 本次只推 `origin`（GitHub，CI 所在）。需要时 `git push gitee master` |
-| `scripts/scan_settings.py` 的助手识别按**名字**而非**模块作用域** | 扫描器域的根因（并行会话 `d17c08c0` 提出） | 本次用最小改法（我的助手改名 `_as_bool`）绕开；根治需让扫描器按模块作用域判定"这是不是 env 读取助手"，属扫描器域，**未改**（避免与其它会话对撞同一文件） |
-| `test_skill_merge` 在 CI 反复超时（>60s，本地 2.17s） | 分片争用：CI 分片参数是 `-n 2 --dist=loadscope --timeout=60 --timeout-method=signal`，同分片邻位一重（相邻模块在导入 torch/sentence-transformers）就把 2s 用例的**墙钟**顶爆。四个 head 各命中一次、跨 shard 5→1→2 漂移，同一份代码 `gh run rerun --failed` 后又全绿 | ① 消除**自身**那一半成因：本交付测试拆快慢两级（本文件 90s → 5s）；② 按本仓 `pytest.ini` 的既有纪律给该用例显式 `@pytest.mark.timeout(240)` 覆盖（"极慢/易受负载影响的用例不要依赖全局默认"）——真挂死仍在 240s 失败，不掩盖问题；行内写明证据与理由 |
-| 清单口径只覆盖**仓库实体**技能（23 个） | 可复现性约束 | 只在运行时存在的技能（内联指令型台账条目、`extension_store` 装入的技能）不在清单内 ⇒ 界面无徽章（静默退化）。它们登记在 `runtime_only_declarations` 里披露；要看运行时全貌用 `--runtime --summary`（产物不提交） |
-| "人眼确认徽章观感/位置" | 人工验收 | 属 owner 验收项（已重建产物 + 重启后端，刷新 `/chat` 即可） |
-| 技能清单在界面上只覆盖 `/api/skills` 的 31 个 id | 已知边界 | `extension_store` 后续装入的技能不在清单口径内 ⇒ 静默无徽章（退化为现状，不报错） |
+| 项 | 决定 | 理由与处置 |
+|----|------|------------|
+| `tool_type` 的 `api` / `script` 两档当前 0 条 | **不纳入** | 本清单口径是"模型可调用的能力面"，REST 端点与 `scripts/*.py` 不是模型可调用的形态，纳入只会制造噪音。字段与判定已支持；将来要按端点做权限控制时补一份端点/脚本声明表即可 |
+| `internal: true` 判 ❌ 而非 ⚠️ | **保持 ❌（硬阻断）** | `internal` 的语义是"设计上不对外开放"（既不进模型可见集、也不进检索索引），不只是"模型不发起"。标成"条件可调用"反而会诱导人去调一个本就不该出现的能力 |
+| 4 个运行时状态文件（`data/agent_lines/_active.json`、`engineering.yaml`、`data/tools_config.json`、`data/system_prompt_config.json`）留工作区未提交 | **不入库** | 它们是**运行中的应用**写的状态（活动主线、工具开关、`_last_applied` 时间戳），非交付物，与 .gitignore 里的同类运行时文件同一性质；不把运行时噪音混进交付历史（仓库既有 `clean-runtime-noise` 钩子同取向） |
+| `gitee` 镜像未推送 | **同步推送**（已执行） | 实测 `gitee/master` 仅落后 7 个提交、领先 0（是活跃镜像）⇒ 已 `git push gitee master` 对齐 |
+| `scripts/scan_settings.py` 按**名字**而非**模块作用域**识别 env 助手 | **不改**（登记建议） | 本次用最小改法（我的助手改名 `_as_bool`）已绕开；改扫描器属其所属域、影响面大（该名单是"名字即契约"的显式清单），只登记长期建议 |
+| **运行时技能在界面上无徽章**（实测 id=`skill`＝易之三义） | **已修** | 根因两条：① 它没有 `data/skills_repo/skill/skill.md` 实体 ⇒ 收紧成"仓库可复现口径"后不在清单里；② 也不在 `data/skill_callability.yaml` 里 ⇒ 连 `runtime_only_declarations` 都无登记 ⇒ 清单里零痕迹。改法：REST 端点请求期补算 `runtime_skills`（`scope=runtime`，**不进提交产物**，CI 仍可复现），界面合并显示并在图例提示"其中 N 条由运行时补算"。现场实测 8 条：7 条 ⚠️ + 1 条 ❌（`wf-f19dc52c-skill`，状态 deprecated） |
+| `test_skill_merge` 在 CI 反复超时（>60s，本地 2.17s） | **已修**（详见 §4 该行） | 本交付测试拆快慢两级 + 该用例显式 `@pytest.mark.timeout(240)`；真挂死仍在 240s 失败，不掩盖问题 |
+| 动态生成工具（`generate_tool`）与清单的关系 | **按既有流程** | 生成工具的 YAML 写进 `data/tool_definitions/` ⇒ 属仓库口径，本地 `--check` 会提示差异，按既有纪律把 YAML 一并提交（与"新增工具必须建 YAML"同一路径） |
+| 界面观感（徽章位置/密度） | 人工验收 | 已重建产物 + 重启后端（`/chat` 刷新即见）；无代码遗留 |
 
-## 8. 验收清单（请 owner 确认）
+## 8. 验收清单（owner 复核用，处置已按上表定案）
 
-- [ ] 字段设计与你给的规格一致（九项 + 诊断字段 + 三档标识）
-- [ ] 三档标识的语义认可：✅ 可被模型发起 / ⚠️ 可执行但触发有条件（含"由系统·人工触发"）/ ❌ 不可达
-- [ ] 技能侧 23 ⚠️（仓库实体；运行时技能不在清单口径内）的判定认可（技能不由模型发起，但照常生效）
-- [ ] `internal: true` 保持 ❌ 的裁量认可（或要求改为 ⚠️）
-- [ ] 模型可见集过滤默认开启（开关 `CP_TOOL_CALLABILITY_ENFORCE`）认可
-- [ ] §7 遗留项的处理方式认可（尤其"api/script 不做"与"gitee 是否镜像"）
+- [x] 字段设计与你给的规格一致（九项 + 诊断字段 + 三档标识）
+- [x] 三档标识语义：✅ 可被模型发起 / ⚠️ 可执行但触发有条件 / ❌ 不可达
+- [x] 技能侧：仓库实体 23 条 ⚠️（清单文件）+ 运行时技能 8 条在请求期补标注（含易之三义 ⚠️）
+- [x] `internal: true` 保持 ❌；`api/script` 不纳入；运行时状态文件不入库；gitee 已同步
+- [x] 模型可见集过滤默认开启（`CP_TOOL_CALLABILITY_ENFORCE=0` 可回滚）
+- [ ] 仅剩**人工观感确认**：刷新 `/chat` →「工具集 / 主线管理 / 技能库」看徽章与图例是否符合预期

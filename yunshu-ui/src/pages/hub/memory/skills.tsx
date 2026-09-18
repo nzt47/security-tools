@@ -18,6 +18,7 @@ import { ChevronDown, ChevronRight, Eye, Layers, Loader2, Power } from 'lucide-r
 import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
 import {
   callabilityCounts, callabilityLegend, callabilityMark, fetchCapabilityManifest,
+  indexCallability,
   type CallabilityInfo,
 } from '@/lib/callability'
 import { getApiToken } from '../../../lib/apiToken'
@@ -65,6 +66,8 @@ export function MemorySkillsTable() {
   /** 技能可调用性标注：{技能 id: 标注}（清单不可用 ⇒ 空表 ⇒ 不显示徽章/图例） */
   const [callability, setCallability] = useState<Record<string, CallabilityInfo>>({})
   const [callabilityNote, setCallabilityNote] = useState('')
+  /** 端点请求期补算的运行时技能条数（清单文件里没有它们：仓库里无 skill.md 实体） */
+  const [runtimeSkillCount, setRuntimeSkillCount] = useState(0)
 
   const load = () => {
     setLoading(true)
@@ -77,13 +80,11 @@ export function MemorySkillsTable() {
 
     // 可调用性清单——独立降级：拿不到就没有标识，绝不影响技能列表本身
     fetchCapabilityManifest().then((r) => {
-      const map: Record<string, CallabilityInfo> = {}
-      for (const e of r?.manifest?.skills ?? []) {
-        if (e?.tool_name) map[e.tool_name] = e
-      }
-      setCallability(map)
+      // 仓库口径（清单文件）覆盖运行时口径（端点请求期补算的运行时技能）
+      setCallability(indexCallability(r?.runtime_skills, r?.manifest?.skills))
+      setRuntimeSkillCount((r?.runtime_skills ?? []).length)
       setCallabilityNote((r?.manifest?.vocabulary?.mark ?? []).join(' / '))
-    }).catch(() => { setCallability({}); setCallabilityNote('') })
+    }).catch(() => { setCallability({}); setRuntimeSkillCount(0); setCallabilityNote('') })
   }
 
   useEffect(load, [])
@@ -151,7 +152,6 @@ export function MemorySkillsTable() {
     return callabilityCounts(counts)
   }, [skills, callability])
   const showCallability = skillMarksText !== '' || callabilityNote !== ''
-
   const allCollapsed = grouped && groups.every((g) => collapsed[g.name])
   const foldAll = (fold: boolean) => {
     const next: Record<string, boolean> = {}
@@ -265,6 +265,12 @@ export function MemorySkillsTable() {
         <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
           <span className="text-slate-400">可调用性标识</span>
           <span>{callabilityLegend(callabilityNote)}</span>
+          {/* 运行时技能（仓库无 skill.md 实体）：标注由端点请求期补算，如实提示口径 */}
+          {runtimeSkillCount > 0 && (
+            <span className="rounded border border-slate-700 px-1 text-slate-400">
+              其中 {runtimeSkillCount} 条由运行时目录/台账补算
+            </span>
+          )}
           {skillMarksText && <span className="ml-auto">{skillMarksText}</span>}
         </div>
       )}

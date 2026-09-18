@@ -292,6 +292,44 @@ class TestManifest:
                          .glob("*/skill.md")}
         assert repo_entities <= listed, f"仓库技能实体未进清单：{repo_entities - listed}"
 
+    def test_清单条目都标了_repo_口径(self, on_disk):
+        assert {e.get("scope") for e in on_disk["entries"]} == {"repo"}, (
+            "提交清单里的条目都应是仓库口径（runtime 条目只由 REST 端点请求期补算）")
+
+    def test_运行时补标注可覆盖只在台账里的技能(self, tmp_path, monkeypatch):
+        """`runtime_only_skill_entries`：仓库无实体、只在运行时目录/台账里的技能要有标注
+
+        实证案例：id=`skill`（易之三义）内容内联在 `data/skills_mgmt.json`、仓库里没有
+        `data/skills_repo/skill/skill.md` ⇒ 收紧口径后界面那行**没有徽章**。
+        本函数就是那条补位路径：标注如实（⚠️/由系统触发），并标 `scope=runtime`。
+        """
+        cat = tmp_path / "skills.json"
+        mgmt = tmp_path / "skills_mgmt.json"
+        cat.write_text(json.dumps({"skills": [
+            {"id": "runtime_only", "name": "运行时技能", "enabled": True,
+             "description": "只在运行时台账里的指令型技能", "params": {}},
+        ]}, ensure_ascii=False), encoding="utf-8")
+        mgmt.write_text(json.dumps({"runtime_only": {
+            "id": "runtime_only", "name": "运行时技能", "status": "approved",
+            "enabled": True, "content": "# 指令内容", "default_params": {},
+            "config_schema": {"type": "object", "properties": {}},
+        }}, ensure_ascii=False), encoding="utf-8")
+        monkeypatch.setattr(C, "SKILLS_JSON_PATH", str(cat))
+        monkeypatch.setattr(C, "SKILLS_MGMT_PATH", str(mgmt))
+
+        entries = C.runtime_only_skill_entries(existing_names=set())
+        assert [e["tool_name"] for e in entries] == ["runtime_only"]
+        e = entries[0]
+        for f in UNIFIED_FIELDS:
+            assert f in e, f"运行时补标注缺字段 {f}"
+        assert e["scope"] == "runtime"
+        assert e["mark"] == C.MARK_CONDITIONAL, "有内容实体+参数契约 ⇒ 可达，但非模型发起 ⇒ ⚠️"
+        assert e["trigger"] == "system"
+        assert e["llm_callable"] is False
+        assert str(e["reason"]).strip(), "⚠️ 必须写明触发方式"
+        # 已在仓库口径里的技能不得重复补
+        assert C.runtime_only_skill_entries(existing_names={"runtime_only"}) == []
+
     def test_每条都有八项统一字段(self, on_disk):
         for e in on_disk["entries"]:
             for f in UNIFIED_FIELDS:
@@ -566,11 +604,32 @@ class TestRestSurface:
     def test_清单端点回得出八字段与统计(self, real_app):
         resp = real_app.test_client().get("/api/capability-manifest")
         assert resp.status_code == 200
-        doc = resp.get_json()["manifest"]
+        body = resp.get_json()
+        doc = body["manifest"]
         assert doc["counts"]["total"] == len(doc["entries"]) > 100
         sample = doc["entries"][0]
         for f in UNIFIED_FIELDS:
             assert f in sample
+
+    def test_清单端点附运行时技能补标注(self, real_app):
+        """`runtime_skills`：运行时目录/台账里才有、仓库无实体的技能（如 id=skill 易之三义）
+
+        【CI 安全】CI 的干净 checkout 里 `data/skills.json` / `skills_mgmt.json` 不存在
+        （两者都被 .gitignore 忽略）⇒ 该字段为空数组，本断言仍成立；有内容时逐条校验字段。
+        """
+        resp = real_app.test_client().get("/api/capability-manifest")
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert "runtime_skills" in body and isinstance(body["runtime_skills"], list)
+        assert body.get("runtime_note")
+        for e in body["runtime_skills"]:
+            for f in UNIFIED_FIELDS:
+                assert f in e, f"运行时技能 {e.get('tool_name')} 缺字段 {f}"
+            assert e["scope"] == "runtime"
+            assert e["mark"] in MARKS
+        listed = {e["tool_name"] for e in body["manifest"]["skills"]}
+        assert not (listed & {e["tool_name"] for e in body["runtime_skills"]}), (
+            "同一技能不得同时出现在清单文件与运行时补标注里（重复会掩盖口径问题）")
 
     def test_装配预览与目录的标注同源(self, real_app):
         """预览面板与工具目录必须显示**同一份**标注（否则就是两份口径）

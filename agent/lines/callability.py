@@ -546,6 +546,7 @@ def _tool_entry(name: str, doc: Dict[str, Any], *, executors: Dict[str, str],
     return {
         "tool_name": name,
         "tool_type": declared["tool_type"],
+        "scope": "repo",
         "llm_callable": verdict["llm_callable"],
         "callable_mode": declared["callable_mode"],
         "schema_registered": schema_registered,
@@ -723,6 +724,7 @@ def _skill_entry(sid: str, facts: Dict[str, Any], decl: Dict[str, Any]) -> Dict[
     return {
         "tool_name": sid,
         "tool_type": "skill",
+        "scope": "repo",
         "llm_callable": verdict["llm_callable"],
         "callable_mode": declared["callable_mode"],
         "schema_registered": schema_registered,
@@ -758,6 +760,37 @@ def _skill_entry(sid: str, facts: Dict[str, Any], decl: Dict[str, Any]) -> Dict[
         "has_scripts": bool(facts.get("has_scripts")),
         "skill_status": str(facts.get("status") or ""),
     }
+
+
+def runtime_only_skill_entries(*, skill_decl_path: Optional[str] = None,
+                               existing_names: Optional[Iterable[str]] = None
+                               ) -> List[Dict[str, Any]]:
+    """**只在运行时**目录/台账里存在的技能标注（供 REST 层补进界面，不进提交产物）
+
+    【为什么需要它（实测的用户可见后果）】清单口径收紧为"仓库可复现"后，只在运行时存在的
+        技能（如 id=`skill`、name=易之三义：内容内联在 `data/skills_mgmt.json`、仓库里没有
+        `data/skills_repo/skill/skill.md` 实体）就不在清单里 ⇒ 界面那行**没有徽章**。
+        它们的可调用性事实上是可判定的（有 `config_schema`、由 `ContextInjector` 注入），
+        与其留白，不如在**运行时**把它们补上并如实标注 `scope=runtime`。
+    【不易·边界】本函数只读运行时文件，**不参与** `data/capability_manifest.json` 的生成：
+        提交产物必须能从干净 checkout 复算（见 `_skill_sources`），否则 CI `--check` 必红。
+        故它只在 REST 端点的请求期调用，`scope` 字段把两类条目的来源分开，界面也据此提示。
+    """
+    existing = {str(n) for n in (existing_names or ())}
+    defaults, decls = load_skill_declarations(skill_decl_path)
+    facts = _skill_sources(include_runtime_catalog=True)
+    out: List[Dict[str, Any]] = []
+    for sid in sorted(facts):
+        if sid in existing:
+            continue
+        fact = facts[sid]
+        # 只补"仓库里没有实体、但运行时目录/台账里确实有"的那些
+        if fact.get("in_repo") or not (fact.get("in_catalog") or fact.get("in_mgmt")):
+            continue
+        entry = _skill_entry(sid, fact, decls.get(sid, defaults))
+        entry["scope"] = "runtime"
+        out.append(entry)
+    return out
 
 
 #: 八项统一字段（清单顶部如实列出，供自动解析方按名取用）
@@ -903,11 +936,11 @@ def non_callable_tool_names(*, defs_dir: Optional[str] = None,
 __all__ = [
     "TOOL_TYPES", "CALLABLE_MODES", "PERMISSION_LEVELS", "REQUIRED_DECL_FIELDS",
     "TRIGGERS", "REASON_KINDS",
-    "MARK_CALLABLE", "MARK_CONDITIONAL", "MARK_BLOCKED",
-    "TOOL_DEFS_DIR", "SKILL_CALLABILITY_PATH", "MANIFEST_PATH",
+    "MARK_CALLABLE", "MARK_CONDITIONAL", "MARK_BLOCKED",    "TOOL_DEFS_DIR", "SKILL_CALLABILITY_PATH", "MANIFEST_PATH",
     "SKILLS_REPO_DIR", "SKILLS_JSON_PATH", "SKILLS_MGMT_PATH",
     "schema_is_registered", "static_executors", "runtime_executors",
     "denied_tool_names", "parse_declaration", "load_tool_docs",
     "load_skill_declarations", "effective_permission_level", "judge",
     "build_manifest", "summarize", "non_callable_tool_names",
+    "runtime_only_skill_entries",
 ]

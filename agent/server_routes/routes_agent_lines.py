@@ -387,9 +387,14 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
         只读投影：数据由 `scripts/sync_capability_manifest.py` 从
         `data/tool_definitions/*.yaml` + `data/skill_callability.yaml` 等权威数据派生，
         `--check` 守门防止手改。
+
+        另附 `runtime_skills`：**只在运行时**目录/台账里存在的技能标注（每条的
+        `scope` 为 `runtime`）。提交产物必须能从干净 checkout 复算，故这类技能不在清单文件里；
+        但界面需要给它们标识（否则那几行没有徽章，实测 id=`skill`（易之三义）就是如此），
+        于是在请求期就地补算并单独成字段 —— 两类来源靠 `scope` 区分，不混成一份口径。
         """
         try:
-            from agent.lines.callability import MANIFEST_PATH
+            from agent.lines.callability import MANIFEST_PATH, runtime_only_skill_entries
         except Exception as e:  # noqa: BLE001
             return _fail(f"可调用性模块不可用: {e}", 500)
         import json
@@ -401,10 +406,21 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 doc = json.load(f)
         except (OSError, ValueError) as e:
             return _fail(f"可调用性清单不可读: {e}", 500)
+
+        runtime_skills: List[Dict[str, Any]] = []
+        try:
+            existing = {str(e.get("tool_name")) for e in (doc.get("skills") or [])}
+            runtime_skills = runtime_only_skill_entries(existing_names=existing)
+        except Exception as e:  # noqa: BLE001 运行时补标注失败不得让清单端点挂掉
+            logger.warning("[AgentLines] 运行时技能标注补算失败（界面将缺这几行的徽章）: %s", e)
+
         st = _os.stat(MANIFEST_PATH)
         return jsonify({
             "ok": True,
             "manifest": doc,
+            "runtime_skills": runtime_skills,
+            "runtime_note": "运行时目录/台账里才有的技能（scope=runtime）：随进程可见性变化，"
+                            "不参与清单文件的 CI 守门；界面按同一套判定显示标识",
             "path": _os.path.relpath(MANIFEST_PATH, _os.path.dirname(_os.path.dirname(
                 _os.path.dirname(_os.path.abspath(__file__))))).replace("\\", "/"),
             "updated_at": st.st_mtime,

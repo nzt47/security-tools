@@ -22,6 +22,7 @@ import {
   callabilityMark,
   callabilityTitle,
   hasCallabilityMark,
+  indexCallability,
   type CallabilityInfo,
 } from './callability'
 import { CallabilityBadge } from '../pages/hub/components/ui'
@@ -143,6 +144,30 @@ describe('callabilityLegend / callabilityCounts', () => {
       .toBe(`${MARK_CALLABLE} 80 · ${MARK_CONDITIONAL} 10 · ${MARK_BLOCKED} 1`)
     expect(callabilityCounts({})).toBe('')
     expect(callabilityCounts(null)).toBe('')
+  })
+})
+
+describe('indexCallability（仓库口径 + 运行时口径合并）', () => {
+  it('多批合并，同名以后出现的为准（仓库口径覆盖运行时口径）', () => {
+    const runtime = [{ tool_name: 'skill', mark: '⚠️ 条件可调用', scope: 'runtime' }]
+    const repo = [{ tool_name: 'scripted-selftest', mark: '⚠️ 条件可调用', scope: 'repo' }]
+    const map = indexCallability(runtime, repo)
+    expect(Object.keys(map).sort()).toEqual(['scripted-selftest', 'skill'])
+    expect(map['skill'].scope).toBe('runtime')
+  })
+
+  it('同名冲突时后者胜（清单文件是权威）', () => {
+    const map = indexCallability(
+      [{ tool_name: 'x', mark: '❌ 不可调用', scope: 'runtime' }],
+      [{ tool_name: 'x', mark: '⚠️ 条件可调用', scope: 'repo' }],
+    )
+    expect(map['x'].mark).toBe('⚠️ 条件可调用')
+    expect(map['x'].scope).toBe('repo')
+  })
+
+  it('缺失/空批不报错，且跳过没有 tool_name 的条目', () => {
+    expect(indexCallability(undefined, null, [])).toEqual({})
+    expect(indexCallability([{ mark: '⚠️ 条件可调用' }])).toEqual({})
   })
 })
 

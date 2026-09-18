@@ -40,6 +40,12 @@ export interface CallabilityInfo {
   /** 能力名（工具名 / 技能 id）——两个清单共用同一主键名 */
   tool_name?: string
   tool_type?: string
+  /**
+   * 来源口径：`repo` = 提交清单里的仓库可复现条目；`runtime` = 只在运行时目录/台账里
+   * 才有的条目（REST 端点请求期补算，见 `CapabilityManifestResponse.runtime_skills`）。
+   * 界面按同一套判定显示标识，只在图例里提示运行时条目数。
+   */
+  scope?: string
   /** 生效值：是否允许 LLM 发起调用 */
   llm_callable?: boolean
   /** auto（模型自主）/ required（必须调用）/ manual（仅人工/系统） */
@@ -106,8 +112,38 @@ export interface CapabilityManifest {
 export interface CapabilityManifestResponse {
   ok: boolean
   manifest: CapabilityManifest
+  /**
+   * 只在运行时目录/台账里存在的技能标注（每条 `scope === 'runtime'`）。
+   * 清单文件必须能从干净 checkout 复算，故这些条目不在文件里，由端点请求期补算；
+   * 界面把它们并进同一张 id→标注 的表，否则那几行会没有徽章
+   * （实测 id=`skill`（易之三义）就曾如此）。
+   */
+  runtime_skills?: CallabilityInfo[]
+  runtime_note?: string
   path?: string
   updated_at?: number
+}
+
+// ═══════════════════════════════════════════════════════════
+//  合并（仓库口径 + 运行时口径）
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 把若干批标注合并成 `{能力名: 标注}`；**同名以后出现的为准**
+ *
+ * 用法：`indexCallability([...runtime, ...repo])` ⇒ 仓库口径覆盖运行时口径
+ * （清单文件是权威，运行时补算只在文件没覆盖到的地方补位）。
+ */
+export function indexCallability(
+  ...batches: (CallabilityInfo[] | undefined | null)[]
+): Record<string, CallabilityInfo> {
+  const out: Record<string, CallabilityInfo> = {}
+  for (const batch of batches) {
+    for (const e of batch ?? []) {
+      if (e?.tool_name) out[e.tool_name] = e
+    }
+  }
+  return out
 }
 
 // ═══════════════════════════════════════════════════════════
