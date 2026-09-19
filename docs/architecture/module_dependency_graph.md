@@ -500,6 +500,7 @@ flowchart LR
         agent_skills_mgmt_approval["agent.skills_mgmt.approval"]:::crosslayer
         agent_skills_mgmt_assessor["agent.skills_mgmt.assessor"]:::crosslayer
         agent_skills_mgmt_bm25_searcher["agent.skills_mgmt.bm25_searcher"]
+        agent_skills_mgmt_categorizer["agent.skills_mgmt.categorizer"]:::crosslayer
         agent_skills_mgmt_cleanup["agent.skills_mgmt.cleanup"]
         agent_skills_mgmt_cleanup_scheduler["agent.skills_mgmt.cleanup_scheduler"]
         agent_skills_mgmt_context_injector["agent.skills_mgmt.context_injector"]
@@ -1852,6 +1853,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_enhancer
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_models
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_memory_abstractor
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_categorizer
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_offline_evolver
     agent_server_routes_routes_subagent -.-> agent_server_auth
     agent_server_routes_routes_subagent --> agent_server_routes_tracing_decorator
@@ -2297,8 +2299,8 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 593
-- 模块节点数: 531
-- 依赖边数: 1649
-- 跨层调用数: 1030
+- 模块节点数: 532
+- 依赖边数: 1650
+- 跨层调用数: 1031
 - 违规调用数: 0
 - 动态 import 数: 1
