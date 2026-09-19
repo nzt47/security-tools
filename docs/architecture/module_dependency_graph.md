@@ -62,6 +62,7 @@ flowchart LR
         agent_digital_life_persona["agent.digital_life_persona"]
         agent_digital_life_state["agent.digital_life_state"]
         agent_disaster_recovery["agent.disaster_recovery"]:::crosslayer
+        agent_dsml_adapter["agent.dsml_adapter"]
         agent_env_config_manager["agent.env_config_manager"]:::crosslayer
         agent_error_handler["agent.error_handler"]:::crosslayer
         agent_error_reporting_config["agent.error_reporting_config"]:::crosslayer
@@ -71,6 +72,7 @@ flowchart LR
         agent_learning_budget["agent.learning_budget"]
         agent_learning_metrics["agent.learning_metrics"]:::crosslayer
         agent_learning_metrics_api["agent.learning_metrics_api"]
+        agent_llm_key["agent.llm_key"]:::crosslayer
         agent_llm_monitor["agent.llm_monitor"]
         agent_llm_response_cache["agent.llm_response_cache"]
         agent_logging_utils["agent.logging_utils"]:::crosslayer
@@ -111,6 +113,7 @@ flowchart LR
         agent_tool_router_hybrid["agent.tool_router_hybrid"]:::crosslayer
         agent_tool_router_reranker["agent.tool_router_reranker"]:::crosslayer
         agent_tool_schema_pruner["agent.tool_schema_pruner"]:::crosslayer
+        agent_tools_prompt_guard["agent.tools_prompt_guard"]:::crosslayer
         agent_v2_performance_patch["agent.v2_performance_patch"]
         agent_weekly_report_generator["agent.weekly_report_generator"]:::crosslayer
     end
@@ -458,6 +461,7 @@ flowchart LR
         agent_server_routes_routes_agent_lines["agent.server_routes.routes_agent_lines"]
         agent_server_routes_routes_approval["agent.server_routes.routes_approval"]:::crosslayer
         agent_server_routes_routes_assets["agent.server_routes.routes_assets"]
+        agent_server_routes_routes_background["agent.server_routes.routes_background"]
         agent_server_routes_routes_business_dashboard["agent.server_routes.routes_business_dashboard"]
         agent_server_routes_routes_chat["agent.server_routes.routes_chat"]
         agent_server_routes_routes_config["agent.server_routes.routes_config"]
@@ -489,6 +493,7 @@ flowchart LR
     subgraph settings [settings]
         agent_settings["agent.settings"]:::crosslayer
         agent_settings_bootstrap["agent.settings.bootstrap"]
+        agent_settings_feature_flags["agent.settings.feature_flags"]
         agent_settings_masking["agent.settings.masking"]
         agent_settings_overrides["agent.settings.overrides"]
         agent_settings_registry["agent.settings.registry"]:::crosslayer
@@ -818,6 +823,8 @@ flowchart LR
     agent_digital_life_state --> agent_p6_snapshot
     agent_digital_life_state --> agent_behavior_controller
     agent_disaster_recovery -.-> agent_utils_singleton_manager
+    agent_dsml_adapter -.-> agent_tools
+    agent_dsml_adapter -.-> agent_tools
     agent_env_config_manager --> agent_logging_utils
     agent_env_config_manager -.-> agent_utils_cross_process_lock
     agent_env_config_manager -.-> agent_monitoring_observability_config
@@ -1096,6 +1103,7 @@ flowchart LR
     agent_llm_monitor -.-> agent_observability_events
     agent_llm_monitor -.-> agent_observability
     agent_llm_monitor -.-> agent_observability
+    agent_llm_monitor -.-> agent_utils_singleton_manager
     agent_llm_monitor -.-> agent_monitoring_observability_config
     agent_llm_monitor -.-> agent_observability
     agent_llm_response_cache -.-> agent_caching_multi_level_cache
@@ -1457,7 +1465,10 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_tool_fewshot_store
     agent_orchestrator_orchestrator --> agent_orchestrator_prompt_builder
     agent_orchestrator_orchestrator -.-> agent_monitoring_llm_monitor
+    agent_orchestrator_orchestrator -.-> agent_tools_prompt_guard
+    agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_lines
+    agent_orchestrator_orchestrator --> agent
     agent_orchestrator_prompt_builder -.-> agent_logging_utils
     agent_orchestrator_prompt_builder -.-> agent_digital_life
     agent_orchestrator_response_builder -.-> agent_logging_utils
@@ -1721,6 +1732,8 @@ flowchart LR
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_assets --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_background --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_background -.-> agent_async_executor
     agent_server_routes_routes_business_dashboard -.-> agent_server_auth
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_business_dashboard --> agent_server_routes_tracing_decorator
@@ -1791,6 +1804,7 @@ flowchart LR
     agent_server_routes_routes_logging -.-> agent_utils_singleton_manager
     agent_server_routes_routes_logging -.-> agent_monitoring_replay_storage
     agent_server_routes_routes_logging -.-> agent_error_reporting_config
+    agent_server_routes_routes_logging -.-> agent_llm_key
     agent_server_routes_routes_logging -.-> agent_log_system_storage
     agent_server_routes_routes_logging -.-> agent_monitoring_loki
     agent_server_routes_routes_logging -.-> agent_monitoring_loki
@@ -1857,6 +1871,10 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_offline_evolver
     agent_server_routes_routes_subagent -.-> agent_server_auth
     agent_server_routes_routes_subagent --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_subagent -.-> agent_subagent_channel
+    agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
+    agent_server_routes_routes_subagent -.-> agent_subagent_delegation
+    agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
     agent_server_routes_routes_system_prompt --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_system_prompt -.-> agent_server_auth
     agent_server_routes_routes_system_prompt -.-> agent_system_prompt_config
@@ -1906,6 +1924,9 @@ flowchart LR
     agent_settings_bootstrap --> agent_settings_overrides
     agent_settings_bootstrap --> agent_settings_registry
     agent_settings_bootstrap --> agent_settings_resolver
+    agent_settings_feature_flags -.-> agent_audit_facade
+    agent_settings_feature_flags --> agent_settings_overrides
+    agent_settings_feature_flags --> agent_settings_resolver
     agent_settings_masking -.-> agent_utils_sensitive_data_filter
     agent_settings_registry -.-> agent_monitoring_observability_config
     agent_settings_registry -.-> agent_monitoring_observability_config
@@ -2094,8 +2115,10 @@ flowchart LR
     agent_tool_calling --> agent
     agent_tool_calling --> agent_rate_limiter
     agent_tool_calling --> agent_circuit_breaker
+    agent_tool_calling --> agent
     agent_tool_calling -.-> agent_descriptors_bridge
     agent_tool_calling --> agent_circuit_breaker
+    agent_tool_calling --> agent_tools_prompt_guard
     agent_tool_calling -.-> agent_observability_trace_v2
     agent_tool_calling -.-> agent_observability_tool_trace
     agent_tool_calling --> agent_response_workflows
@@ -2298,9 +2321,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 593
-- 模块节点数: 532
-- 依赖边数: 1650
-- 跨层调用数: 1031
+- 扫描文件数: 599
+- 模块节点数: 537
+- 依赖边数: 1668
+- 跨层调用数: 1042
 - 违规调用数: 0
 - 动态 import 数: 1
