@@ -152,6 +152,14 @@ def run_chunk(files: list[str], idx: int, out: str, marker: str | None,
     cmd = [
         sys.executable, "-m", "pytest", *files,
         "-q", "--no-header", "-p", "no:cacheprovider", "--tb=line",
+        # 【不易·2026-09-20】必须固定顺序：本仓装了 `pytest-randomly`，而它会把
+        # **文件内**用例顺序也打乱，进而改变全局单例/类级补丁的装配次序 ——
+        # 实测症状是同一份代码在两次运行里"忽红忽绿"（全局单例类用例为典型）。
+        # 本脚本的产物是与 `failures_baseline.txt` 对照的**门禁结论**，必须可复现，
+        # 故与 CI 全量入口（`ci.yml` / `coverage-ci.yml` 均已固定该开关）保持一致。
+        # 反过来说：随机序**不是**本脚本的职责 —— 想探测顺序污染请显式用
+        # `--randomly-seed=<N>` 单独跑（见 `pytest.ini` 第 96-114 行的用法登记）。
+        "-p", "no:randomly",
     ]
     if marker:
         cmd += ["-m", marker]
@@ -183,7 +191,10 @@ def resume_lost_files(files: list[str], logdir: Path, marker: str | None,
     for i, f in enumerate(files):
         out = str(rdir / f"resume_{i:03d}_{Path(f).stem}.log")
         cmd = [sys.executable, "-m", "pytest", f, "-q", "--no-header",
-               "-p", "no:cacheprovider", "--tb=short"]
+               "-p", "no:cacheprovider", "--tb=short",
+               # 同 run_chunk：补跑也必须固定顺序，否则"补跑结果"与"主跑结论"
+               # 不同口径（随机序会改变文件内装配次序）。见 run_chunk 的注释。
+               "-p", "no:randomly"]
         if marker:
             cmd += ["-m", marker]
         cmd += (extra or [])

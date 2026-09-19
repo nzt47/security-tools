@@ -207,26 +207,49 @@ class TestCircuitBreakerBoundaryConditions:
     @pytest.mark.unit
     @pytest.mark.p0
     def test_circuit_breaker_cooldown_just_before_timeout_stays_open(self, quick_breaker):
-        """验证冷却时间未到达时熔断器保持打开状态（边界条件测试）"""
+        """验证冷却时间未到达时熔断器保持打开状态（边界条件测试）
+
+        【不易·2026-09-20 改为注入时间，替掉 ``time.sleep(0.1)``】
+        原写法是「真熔断 → ``sleep(0.1)`` → 断言仍 OPEN」，而 fixture 的
+        ``reset_timeout=0.3`` ⇒ **判定余量只有 0.2s**。2026-09-20 全量分块回归中
+        本用例在并发负载下确实出现过一次 ``F``（隔离单跑 36 passed 全绿）。
+        余量不足是**固有问题**而非偶发：负载下 ``sleep(0.1)`` 的墙钟实际推进
+        完全可能超过 0.3s。
+
+        改法：先把熔断器真实推到 OPEN（记下当时 ``last_state_change``），
+        然后用 ``patch`` 把 ``agent.circuit_breaker.time.time`` 固定为
+        ``last_state_change + 0.1`` —— 即"冷却只过了 0.1s，尚未到 0.3s"。
+        判据从"墙钟凑巧没过线"变成**确定性的 0.1 < 0.3**，既不慢也不 flaky。
+        被测语义未变：仍是"冷却期未满 ⇒ 保持 OPEN"。
+        """
         for i in range(5):
             quick_breaker.record_failure()
 
         assert quick_breaker.state == CircuitBreakerState.OPEN
+        opened_at = quick_breaker._stats.last_state_change
 
-        time.sleep(0.1)
-        assert quick_breaker.state == CircuitBreakerState.OPEN
+        with patch("agent.circuit_breaker.time.time", return_value=opened_at + 0.1):
+            assert quick_breaker.state == CircuitBreakerState.OPEN, (
+                "冷却只过了 0.1s（阈值 0.3s），熔断器不应进入 HALF_OPEN")
 
     @pytest.mark.unit
     @pytest.mark.p0
     def test_circuit_breaker_cooldown_just_after_timeout_goes_half_open(self, quick_breaker):
-        """验证冷却时间到达后熔断器进入半开状态（边界条件测试）"""
+        """验证冷却时间到达后熔断器进入半开状态（边界条件测试）
+
+        【不易·2026-09-20】同上一用例：原写法 ``sleep(0.5)`` 靠墙钟越过
+        ``reset_timeout=0.3``；现改为注入 ``opened_at + 0.31``（刚好过线），
+        判据确定性成立，且比原写法快 0.5s。
+        """
         for i in range(5):
             quick_breaker.record_failure()
 
         assert quick_breaker.state == CircuitBreakerState.OPEN
+        opened_at = quick_breaker._stats.last_state_change
 
-        time.sleep(0.5)
-        assert quick_breaker.state == CircuitBreakerState.HALF_OPEN
+        with patch("agent.circuit_breaker.time.time", return_value=opened_at + 0.31):
+            assert quick_breaker.state == CircuitBreakerState.HALF_OPEN, (
+                "冷却已满 0.3s，熔断器应进入 HALF_OPEN")
 
     # ════════════════════════════════════════════════════════════════════════
     #  边界条件6：半开状态最大试探请求数边界
@@ -235,12 +258,19 @@ class TestCircuitBreakerBoundaryConditions:
     @pytest.mark.unit
     @pytest.mark.p0
     def test_circuit_breaker_half_open_max_attempts_exact(self, quick_breaker):
-        """验证半开状态下刚好达到最大试探次数的行为（边界条件测试）"""
+        """验证半开状态下刚好达到最大试探次数的行为（边界条件测试）
+
+        【不易·2026-09-20】原写法 ``sleep(0.4)`` 相对 ``reset_timeout=0.3``
+        **余量仅 0.1s**，并发下极易假红（同前两例）。改为注入
+        ``opened_at + 1.0``：本用例关心的是"进入 HALF_OPEN 之后的试探次数"，
+        推过冷却期这一步不该成为它的失败点。
+        """
         for i in range(5):
             quick_breaker.record_failure()
-        
-        time.sleep(0.4)
-        assert quick_breaker.state == CircuitBreakerState.HALF_OPEN
+        opened_at = quick_breaker._stats.last_state_change
+
+        with patch("agent.circuit_breaker.time.time", return_value=opened_at + 1.0):
+            assert quick_breaker.state == CircuitBreakerState.HALF_OPEN
 
         for i in range(2):
             assert quick_breaker.allow_request() is True
