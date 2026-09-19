@@ -553,7 +553,7 @@ E   AttributeError: 'str' object has no attribute 'tags'
 | P0-4 `sensor/change_detector.py` `_diff_*` | **未实施** | 同上 |
 | P0-5 `sensor_reading.py` + `tags.py` + `novelty.py` 补测 | **部分**（`tags.py` 顺带 +1） | 同上 |
 | P0-6 处置包内测试（426 行） | **未实施** | **硬约束禁改 `pytest.ini`** ⇒ 必须移交（L-4） |
-| P0-7 删除/标注 `core/local_llm.py` | **未实施** | 删除生产文件超出"补测计划"授权范围 ⇒ 移交（L-11） |
+| P0-7 | ✅ **已完成（2026-09-20，走"标注"）** | 见 §7.6 —— 核实后确认它是**未兑现的设计需求**（非垃圾代码），故不删除 |
 | P1 / P2 全部 | **未实施** | 本任务明确"仅做 P0 里价值最高的 1–2 个模块" |
 
 ### 7.5 L-2 结案：`translate()` 噪声的真实根因**不是**"缺规则"（**本节推翻上文归因**）
@@ -618,6 +618,37 @@ translate_all(同 652 条)          -> 652 条全部为"传感器读数未识别
   （`translate()` 总会先补 0）。已由 `test_missing_value_is_normalized_to_zero_only_for_rule_lookup` 钉死，
   避免日后"顺手统一默认值"时无从判断。
 
+### 7.6 L-11 / P0-7 结案：`core/local_llm.py` 是**未兑现的设计需求**，不是垃圾代码
+
+> **本节修正 §2.3 与 §6.1 对该文件的定性。** 原文写"🔴 完全死代码"，
+> `0 引用` 这一**事实**成立，但"死代码 ⇒ 删除"这一**推论不成立**。
+
+**重新核实（2026-09-20 实跑检索，未沿用旧快照）**
+
+| 项 | 结果 |
+|---|---|
+| 代码引用 | **0 处** —— 全部命中仅在本文件自身；`core/__init__.py` 只再导出 `registry` |
+| 文档引用 | **多处，且是需求描述**：`docs/superpowers/design/P1_核心调度与本地推理.md:24`、`原：主权AI多Agent系统 .txt:308`、`00_首条消息_全局规范与启动.md:206`、`设计多Agent系统架构方案-20260622094717.txt:705` |
+| 需求原文 | 「在 `core/local_llm.py` 中实现调用本地推理引擎（Ollama 或 vLLM）的接口，确保在**完全断网环境**下依然能加载本地模型权重进行推理。」 |
+| 既有审计也点过 | `docs/superpowers/specs/2026-06-22-架构合规性审计报告.md:13`：「`core/local_llm.py` 存在但无离线 E2E 验证」 |
+| 实现完整度 | **~25 条语句的可用实现**（引擎端点表 / `check_available()` 探活 / `generate()` 分派 / `_ollama_generate()` 真实 POST），**不是占位 stub** |
+| 实际行数 | **49 行**（非 §2.3 写的 34 行 —— 34 是**语句数**；两者不是一个口径，原文混用了） |
+
+**处置：加显式未接线标注，不删除。** 理由：
+1. 删掉后「原则5 本地可用性」这条设计承诺**不留任何可追溯痕迹**，下一个人会从零重新设计。
+2. 它是可用实现，**接线成本远低于重写**。
+3. 0% 覆盖的原因是"没人调用"，不是"分支复杂" ⇒ 显式标注后该数字不再被误读成"该补测"。
+
+标注内容写在 `core/local_llm.py` 文件头，含：
+- 状态与核实依据（代码 0 引用 + 需求文档出处）
+- **接线最短路径**（应挂在"上游 LLM 不可达"的降级链上；当前 `memory/llm_service.py` 无本地回退分支）
+- ⚠️ **一处声明与实现不一致**：`ENGINES` 声明了 `vllm`，但 `generate()` 只有 ollama 分支
+  （`:37-39` 非 ollama 直接返回 `None`）⇒ 接线时要么补实现、要么从 `ENGINES` 移除
+- 超时硬编码（探活 5s / 生成 60s）⇒ 若接线需按纪律 **D5** 登记到 `agent/settings/registry.py`
+- 维护提示：接线后请删除该标注并同步本文件
+
+**验证**：`python -c "from core.local_llm import LocalLLM, local_llm"` 仍正常（标注不改变可导入性）。
+
 ---
 
 ## 8. 遗留项（移交，本任务不擅自修）
@@ -634,7 +665,7 @@ translate_all(同 652 条)          -> 652 条全部为"传感器读数未识别
 | **L-8** | 三包 **`# pragma: no cover` 为 0 处** ⇒ 平台不可覆盖行没有豁免标注，会持续压制分母 | §5.2 PL-12 | 配合 §6.3 处置建议 1 |
 | **L-9** | `tests/unit/test_digital_life_comprehensive.py` 等**全部 patch 掉 `BodySensor`** ⇒ 感知层在测试里是"全 mock 真空"，任何真实回归都无法被捕获 | `tests/unit/test_digital_life_comprehensive.py:291,316,...`（实测 20+ 处） | 至少补 1 个 BodySensor 真构造的冒烟测试。**注**：本次 P0-2 已用"`__new__` + 手工 `_registry`"覆盖聚合语义，但**仍未**覆盖 `__init__` → `discover()` 的真构造路径 |
 | **L-10** | ✅ **已结案（2026-09-19，提交 `400b76f4`）** —— 原描述：`sensor/body_sensor.py:530` 的 `_apply_tags(results)` 在 `try` 之外、`:442` 的 `r.tags` 读取未包 try ⇒ 任一传感器返回非 `SensorReading` 时整次 `collect_all()` 抛 `AttributeError`、其余结果全部丢失。处置：新增 `_normalize_reading()` 在唯一收集点归一化 + `_apply_tags()` 兼容 dict/对象且单条失败只影响自己（详见 §7.5） | §7.3、**§7.5** | ✅ 已修 |
-| **L-11** | `core/local_llm.py`（34 行、0% 覆盖、0 引用）是**完全死代码**，但一直留在覆盖率分母里 | §2.3 | 删除，或加显式"未接线"注释并从分母排除。**本任务无删除生产文件的授权 ⇒ 移交** |
+| **L-11** | ✅ **已结案（2026-09-20，走"标注"而非"删除"）** —— 原描述：`core/local_llm.py`（34 行、0% 覆盖、0 引用）是**完全死代码**，但一直留在覆盖率分母里。**核实后结论需修正**：它**不是意外遗留的垃圾代码，而是一条未兑现的设计需求的物证** —— `docs/superpowers/design/*` 四处明文要求「在 `core/local_llm.py` 中实现调用本地推理引擎（Ollama/vLLM）的接口，确保在完全断网环境下依然能加载本地模型权重进行推理」。且它是 ~25 条语句的**可用完整实现**（非 stub）。处置：在文件头加**显式未接线标注**（含接线最短路径与"声明 vs 实现不一致"提醒：`ENGINES` 声明了 `vllm` 但 `generate()` 只有 ollama 分支），并在此登记 | §2.3、**§7.6** | ✅ 已标注（未删除） |
 | **L-12** | `build/lib/sensor/test_body_sensor.py` 与 `.tmp-s1109/*/sensor/test_body_sensor.py` 存在 `sensor/test_body_sensor.py` 的**陈旧副本** | 本次全盘检索实测 | 构建残留，建议清理（不属本次范围） |
 
 ---
