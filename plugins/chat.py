@@ -965,6 +965,73 @@ def api_history_delete(index):
 #       事件结构保持不变（契约即【不易】约束）。
 # ════════════════════════════════════════════════════════════════════════════
 
+#: 步骤明细长度上限 / 步骤条数上限：推理文本可能很长，落盘需有界
+_STEP_DETAIL_LIMIT = 4000
+_STEP_MAX = 40
+
+
+def merge_thinking_step(steps, evt):
+    """把一条 SSE thinking 事件合并进「步骤列表」（与前端 mergeStepDetail 同规则）
+
+    规则（前端 `useLayoutStore.mergeStepDetail` 的服务端镜像，两端口径必须一致）：
+      - 同一 id 的事件合并为一条：阶段事件是 `running`（带 detail）→ `done`（不带 detail）；
+      - **不带 detail 的后续事件不清空已累积内容** —— 这是"思考/工具先出现、
+        回复完成后凭空消失"的根因，落盘口径同样不能踩；
+      - 两次 `running` 视为流式增量，detail 拼接；
+      - `running → done`（如工具调用 参数 → 结果）用新 detail 覆盖。
+
+    Args:
+        steps: 就地修改的步骤列表（[{id,title,detail,status,at}]）
+        evt: SSE 事件字典（type=thinking）
+    """
+    sid = str(evt.get("id") or "")
+    if not sid:
+        return
+    detail = evt.get("detail")
+    detail = detail if isinstance(detail, str) else ""
+    status = str(evt.get("status") or "")
+    title = str(evt.get("title") or sid)
+
+    existing = next((s for s in steps if s.get("id") == sid), None)
+    if existing is None:
+        steps.append({
+            "id": sid,
+            "title": title,
+            "detail": detail[:_STEP_DETAIL_LIMIT],
+            "status": status or "done",
+            "at": time.time(),
+        })
+        return
+
+    if detail:
+        if str(existing.get("status") or "") == "running" and status == "running":
+            existing["detail"] = (
+                (existing.get("detail") or "") + detail
+            )[:_STEP_DETAIL_LIMIT]
+        else:
+            existing["detail"] = detail[:_STEP_DETAIL_LIMIT]
+    existing["status"] = status or existing.get("status") or "done"
+    existing["title"] = title
+    existing["at"] = time.time()
+
+
+def finalized_steps(steps):
+    """落盘前收尾：丢弃空步骤、只保留最近 _STEP_MAX 条（超长会话不无限增长）"""
+    kept = [s for s in (steps or []) if s.get("id")]
+    return kept[-_STEP_MAX:]
+
+
+def key_usable(k) -> bool:
+    """LLM key 是否"看起来可用"（工作台据此决定真实流式 vs 演示模式）
+
+    【单一来源】实现位于 `agent/llm_key.py`（下层模块，可被 agent 侧诊断端点与
+    plugins 侧对话流共用）。此处保留同名转发，避免历史调用点/测试漂移。
+    """
+    from agent.llm_key import key_usable as _key_usable
+
+    return _key_usable(k)
+
+
 def _workbench_real_stream(question, session_id=""):
     """真实 LLM 流式 SSE 生成器：thinking 事件 + 真实模型 chunk + done
 
@@ -1047,14 +1114,7 @@ def _workbench_real_stream(question, session_id=""):
     emitted = False
 
     # 校验 key 是否可用（sk-test / sk-old / 空 → 判定为测试/无效 key）
-    def _key_usable(k):
-        if not k:
-            return False
-        if len(k) < 15:
-            return False
-        if k.startswith(("sk-test", "sk-old", "test", "sk-invalid")):
-            return False
-        return True
+    _key_usable = key_usable
 
     if not _key_usable(api_key):
         logger.warning("[workbench][SSE] LLM_API_KEY 为测试/无效 key（%s...），降级为演示流", api_key[:8] if api_key else "空")
@@ -1392,7 +1452,11 @@ def api_chat_stream():
     def gen():
         # 累积流式 chunk 文本，流结束时落盘为 assistant 消息（会话持久化；
         # 客户端中途断开时 finally 仍会保存已生成的部分回复）。
+        # 同时累积 thinking 步骤（思考过程 / 工具调用）：随同一条 assistant 消息落盘，
+        # 使**刷新页面 / 切换会话后仍能恢复内联显示**（否则用户看到的是
+        # "思考与工具先出现、刷新或切会话后就没了"）。
         acc_parts: list = []
+        acc_steps: list = []
         try:
             for _evt in _workbench_real_stream(question, session_id):
                 _payload = _evt[len("data:"):].strip() if _evt.startswith("data:") else ""
@@ -1401,6 +1465,8 @@ def api_chat_stream():
                         _obj = json.loads(_payload)
                         if isinstance(_obj, dict) and _obj.get("type") == "chunk":
                             acc_parts.append(str(_obj.get("text") or ""))
+                        elif isinstance(_obj, dict) and _obj.get("type") == "thinking":
+                            merge_thinking_step(acc_steps, _obj)
                     except Exception:
                         pass
                 yield _evt
@@ -1410,10 +1476,13 @@ def api_chat_stream():
         except Exception as _e:
             logger.error("[workbench][SSE] 生成器异常: %s", _e)
         finally:
-            if session_id and acc_parts:
+            if session_id and (acc_parts or acc_steps):
                 try:
                     from app_server import _session_mgr as _sm_persist
-                    _sm_persist.add_message(session_id, "assistant", "".join(acc_parts))
+                    _sm_persist.add_message(
+                        session_id, "assistant", "".join(acc_parts),
+                        steps=finalized_steps(acc_steps),
+                    )
                 except Exception as _e2:
                     logger.warning("[workbench][SSE] 回复落盘失败: %s", _e2)
 

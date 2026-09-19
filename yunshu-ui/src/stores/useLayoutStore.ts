@@ -10,7 +10,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MosaicNode } from 'react-mosaic-component';
-import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY, sanitizeLayout, type PanelId } from '../lib/mosaic';
+import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY, sanitizeLayout, stripRetiredPanels, type PanelId } from '../lib/mosaic';
 import { createChatStream, type ThinkingStatus } from '../lib/sse';
 
 export interface ChatMessage {
@@ -21,7 +21,8 @@ export interface ChatMessage {
   status?: 'streaming' | 'done' | 'error';
   /**
    * 该条回复的执行步骤（思考过程 / 工具调用），由 SSE 的 thinking 事件按序累积。
-   * 用于「工具调用过程 + 思考过程」的**对话内联显示**（右侧思考面板是另一个视图）。
+   * 这是「思考过程 / 工具调用」的**唯一展示位**（原右侧「思考过程」面板已下线）：
+   * 步骤归属到具体那条回复，可折叠、受显示开关控制。
    * 历史消息（从后端加载）不含步骤，仅本次流式产生的回复带步骤。
    */
   steps?: ThinkingEvent[];
@@ -96,6 +97,31 @@ export function subscribeStreamLog(listener: StreamLogListener): () => void {
 
 function emitStreamLog(event: StreamLogEvent) {
   streamLogListeners.forEach((fn) => fn(event));
+}
+
+/**
+ * 把后端落盘的步骤恢复为可渲染的 ThinkingEvent[]（宽容解析：脏数据一律丢弃）。
+ * 后端形状见 agent/session_manager.py::add_message(steps=...)：
+ *   [{id, title, detail, status, at}]
+ */
+export function restoreSteps(raw: unknown): ThinkingEvent[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ThinkingEvent[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const s = item as Record<string, unknown>;
+    const id = typeof s.id === 'string' ? s.id : '';
+    if (!id) continue;
+    const status = s.status === 'running' || s.status === 'error' || s.status === 'pending' ? s.status : 'done';
+    out.push({
+      id,
+      title: typeof s.title === 'string' && s.title ? s.title : id,
+      detail: typeof s.detail === 'string' ? s.detail : undefined,
+      status,
+      at: typeof s.at === 'number' ? s.at : Date.now(),
+    });
+  }
+  return out;
 }
 
 /**
@@ -295,7 +321,13 @@ export const useLayoutStore = create<LayoutStore>()(
           // 竞态防护：加载期间用户已切到其他会话 → 丢弃过期响应
           const activeNow = get().activeSessionId;
           if (activeNow && activeNow !== sessionId) return;
-          const hist = (await res.json()) as { role?: string; content?: string; timestamp?: string }[];
+          const hist = (await res.json()) as {
+            role?: string;
+            content?: string;
+            timestamp?: string;
+            /** 落盘的「思考过程 / 工具调用」步骤（后端 plugins/chat.py 随 assistant 消息写入） */
+            steps?: unknown;
+          }[];
           if (activeNow && activeNow !== sessionId) return;
           if (!Array.isArray(hist) || hist.length === 0) {
             if (opts?.force) set({ messages: [] });
@@ -309,6 +341,8 @@ export const useLayoutStore = create<LayoutStore>()(
               content: String(m.content),
               createdAt: m.timestamp ? new Date(m.timestamp).getTime() : Date.now(),
               status: 'done' as const,
+              // 历史消息同样恢复步骤 → 刷新/切会话后思考与工具调用不会"消失"
+              ...(restoreSteps(m.steps).length > 0 ? { steps: restoreSteps(m.steps) } : {}),
             }));
           if (loaded.length > 0) set({ messages: loaded });
         } catch {
@@ -329,12 +363,15 @@ export const useLayoutStore = create<LayoutStore>()(
       version: 1,
       storage: createJSONStorage(() => localStorage),
       partialize: (state): PersistedState => ({ layout: state.layout }),
-      // 反序列化校验：非法布局回退默认，保证"刷新不丢布局"且不白屏
+      // 反序列化：先剔除已下线面板（迁移），再校验；非法布局回退默认，保证"刷新不丢布局"且不白屏
       merge: (persisted, current) => {
         const saved = persisted as Partial<PersistedState>;
+        // 布局迁移：原 `think`（右侧「思考过程」）面板已下线（并入对话内联显示），
+        // 从历史布局中剔除它并保留其余布局意图（比例/拆分），避免整份布局被判脏而重置。
+        const migrated = saved.layout ? stripRetiredPanels(saved.layout) : null;
         return {
           ...current,
-          layout: saved.layout ? sanitizeLayout(saved.layout) ?? null : null,
+          layout: migrated ? sanitizeLayout(migrated) ?? null : null,
         };
       },
     },

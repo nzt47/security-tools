@@ -318,8 +318,16 @@ class SessionManager:
     def add_message(self, session_id: str, role: str, content: str,
                     tool_calls: list | None = None,
                     tool_steps: list | None = None,
-                    reasoning: str | None = None) -> dict:
-        """添加消息到会话"""
+                    reasoning: str | None = None,
+                    steps: list | None = None) -> dict:
+        """添加消息到会话
+
+        Args:
+            steps: 该条消息的「思考过程 / 工具调用」步骤（工作台 SSE 的 thinking 事件序列，
+                形状 [{id,title,detail,status,at}]）。落盘后**刷新页面/切换会话仍能恢复
+                内联显示** —— 否则用户会看到"思考与工具先出现、刷新或切会话后就没了"。
+                与 legacy 的 ``tool_steps``（tool_call/tool_result 形状）无关，两者并存。
+        """
         session_dir = self._sessions_dir / session_id
         if not session_dir.exists():
             raise SessionNotFoundError(f"会话不存在: {session_id}")
@@ -335,6 +343,8 @@ class SessionManager:
             msg["tool_steps"] = tool_steps
         if reasoning:
             msg["reasoning"] = reasoning
+        if steps:
+            msg["steps"] = steps
 
         msg_file = session_dir / "messages.jsonl"
         # [2026-08-13 并发审计 B] 消息追加移出主锁 self._lock：慢磁盘不阻塞会话
