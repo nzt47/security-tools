@@ -33,6 +33,63 @@ except ImportError:
         return func
 
 
+def _normalize_reading(item):
+    """把各传感器 `collect()` 的原始返回值归一化成 `SensorReading`。
+
+    【为什么需要它】`collect_all()` 的 docstring 声称 `:returns: SensorReading 列表`
+    （见该方法 `:returns:` 一行），但实现里直接 extend/append 各传感器的原始返回值 ——
+    而**有传感器返回裸 dict**。
+
+    后果（2026-09-19 实测）：
+        ```
+        BodySensor().collect_all()
+        → AttributeError: 'dict' object has no attribute 'tags'
+        → 采集条数 0
+        ```
+    根因是下游 `_apply_tags()` 用 `r.tags` 属性访问，而它在 `collect_all` 的 try **之外**
+    ⇒ **一个 dict 条目让整次采集全丢**，与该方法刻意做的"单传感器失败隔离"相悖。
+
+    【归一化规则】
+        · 已是 `SensorReading` ⇒ 原样返回（不重建，保留原 timestamp）
+        · `dict` ⇒ 按 `SensorReading.__init__` 的签名重建（与 `to_dict()` 对称）
+          缺失字段取保守默认：`unit`/`description` 为空串，`category`/`severity` 为 None
+          （`SensorReading.__init__` 会把 severity 归一成 NORMAL）
+        · 其它类型 ⇒ 包成一条 `value=原值` 的读数，**不抛异常**
+          （理由同 `_apply_tags`：坏条目只应影响它自己）
+
+    Why 放在模块级而不是 BodySensor 的方法：它是**纯函数**（无 self 依赖），
+    这样测试可以直接验证它，不必构造整个 BodySensor。
+    """
+    if isinstance(item, SensorReading):
+        return item
+    if isinstance(item, dict):
+        try:
+            return SensorReading(
+                sensor_name=item.get("sensor_name", ""),
+                value=item.get("value", None),
+                unit=item.get("unit", ""),
+                description=item.get("description", ""),
+                category=item.get("category"),
+                severity=item.get("severity"),
+                metadata=item.get("metadata") or {},
+                tags=item.get("tags") or [],
+            )
+        except Exception:
+            # 连重建都失败 ⇒ 退化成"承载原值"的读数，绝不把异常抛给采集主流程
+            return SensorReading(
+                sensor_name=str(item.get("sensor_name", "unknown")),
+                value=item,
+                unit="",
+                description="",
+            )
+    return SensorReading(
+        sensor_name="unknown",
+        value=item,
+        unit="",
+        description="",
+    )
+
+
 class BodySensor:
     """云枢的身体——整合所有感知模块，每个传感器带独立开关。"""
 
@@ -434,16 +491,40 @@ class BodySensor:
     # ════════════════════════════════════════════════════════════
     #  标签辅助方法
     # ════════════════════════════════════════════════════════════
-
     def _apply_tags(self, readings):
-        """为读数列表标注多维度标签。"""
+        """为读数列表标注多维度标签。
+
+        【不易·2026-09-19 实测缺陷】本方法此前用 `r.tags` / `r.category` / `r.sensor_name`
+        **属性访问**，而 `collect_all()` 收到的是各传感器 `collect()` 的**原始返回值** ——
+        其中有传感器返回**裸 dict**（契约见 `sensor_reading.SensorReading.to_dict()` 的对称形态）。
+        于是 `r.tags` 抛 `AttributeError`，而本方法**在 `collect_all` 的 try 之外**被调用
+        （见 `:530`）⇒ **一个 dict 条目就让整次 `collect_all()` 抛异常、其余全部传感器结果丢失**，
+        与 `:510-517` 刻意做的"单传感器失败隔离"完全相悖。
+        实测复现：本机 `BodySensor().collect_all()` → `AttributeError: 'dict' object has no attribute 'tags'`，
+        采集条数 **0**。
+
+        Why 这里同时兼容 dict 与对象（而不是只靠上层归一化）：
+            归一化只覆盖 `collect_all()` 这一条路径；本方法是**公开可被直接调用**的，且
+            `_filter_by_tags` 同样假设对象形态。在方法内部再做一层"不抛"的防御，
+            才能保证"任何一个坏条目都只影响它自己"这一不变量在两个入口都成立。
+        """
         tags_mod = self._load_tags()
         for r in readings:
-            if not r.tags:
-                try:
-                    r.tags = tags_mod.get_tags(r.category, r.sensor_name)
-                except Exception:
-                    pass
+            try:
+                if isinstance(r, dict):
+                    # 裸 dict：用 dict 语义读写，避免属性访问抛错
+                    if r.get("tags"):
+                        continue
+                    r["tags"] = tags_mod.get_tags(r.get("category"), r.get("sensor_name"))
+                else:
+                    if getattr(r, "tags", None):
+                        continue
+                    r.tags = tags_mod.get_tags(
+                        getattr(r, "category", None), getattr(r, "sensor_name", None)
+                    )
+            except Exception:
+                # 单个读数标注失败必须**只影响它自己**（与 collect_all 的隔离意图一致）
+                continue
 
     @staticmethod
     def _filter_by_tags(readings, filter_spec):
@@ -525,6 +606,16 @@ class BodySensor:
                     results.extend(changes)
             except Exception as e:
                 logging.error(f"变更检测失败: {e}")
+
+        # ── 归一化：把裸 dict 转成 SensorReading ──
+        # 【不易·2026-09-19 实测缺陷】本方法的 docstring 声称 `:returns: SensorReading 列表`，
+        # 但 `:512-515` 直接 extend/append 各传感器 `collect()` 的原始返回值 ——
+        # 有传感器返回**裸 dict**，于是下游 `_apply_tags`（属性访问）抛 AttributeError，
+        # 且它在 try 之外 ⇒ **全部采集结果丢失**（实测：本机 collect_all() 采到 0 条）。
+        # Why 在收集处归一化（而不是让每个消费者各自兼容 dict）：
+        #   下游有 `_apply_tags` / `_filter_by_tags` / 以及外部消费者，全部按对象形态编写；
+        #   在**唯一收集点**归一化，才能让"本方法返回 SensorReading 列表"这条契约真正成立。
+        results = [_normalize_reading(r) for r in results]
 
         # 标注标签
         self._apply_tags(results)

@@ -81,11 +81,29 @@ class TestExceptionalInput:
         assert result == "传感器读数未识别"
 
     def test_nonexistent_sensor(self):
-        """测试不存在的传感器"""
+        """测试不存在的传感器
+
+        【2026-09-19 契约更新】原断言为 `== "传感器读数未识别"`。
+        `translate()` 修复后（见 `cognitive/translator.py` 的 `translate` docstring），
+        **有名字、有值、只是没有匹配规则**的读数会走 `_fallback()` 给出可读描述。
+
+        【归因校正 —— 不要写成"99.8% 因为无匹配规则"】
+        实测规模确实是 657 条里 656 条曾返回"未识别"，但**直接原因不是"缺规则"**：
+        真实读数以 `SensorReading` 对象形态进来，撞上 `translate()` 首行的
+        `isinstance(reading, dict)` 守卫，**根本没走到规则查找**。规则覆盖率低只是
+        第二层原因（真实 645 个不同 sensor_name，仅 `memory_usage` 等少数有规则）。
+        两者叠加才产生噪声；修复必须同时解决"类型不兼容"与"未调用 `_fallback`"。
+
+        ⇒ 本条断言更新为"**必须保留该传感器的名字与值**"。
+        「name/value 残缺」（空名、None 名、缺名、缺值、NaN、非数值串）的语义**未变**，
+        仍由本类其余用例锁定（`test_empty_sensor_name` / `test_none_value` /
+        `test_nan_value` / `test_invalid_string_value` 等）。
+        """
         config = PromptConfig()
         translator = Translator(config)
         result = translator.translate({"sensor_name": "nonexistent_sensor", "value": 50.0})
-        assert result == "传感器读数未识别"
+        assert "nonexistent_sensor" in result
+        assert "50.0" in result
 
     def test_missing_sensor_name(self):
         """测试缺少传感器名称"""

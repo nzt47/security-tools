@@ -98,9 +98,19 @@ class TestTranslator:
         assert "有点热" in r2
 
     def test_translate_missing_sensor_name(self):
-        """缺少 sensor_name 时应降级为通用描述"""
+        """缺少 sensor_name 时应返回"未识别"信号
+
+        【2026-09-19 契约更新】原断言为 `assert "42" in result`（期望降级描述里含值）。
+        但 `sensor_name` 缺失属**残缺输入** —— 它是有意义的**探测信号**（说明上游给的数据本身不完整），
+        且无名字时 `_fallback` 只能产出 `'未知: 42.0'` 这种无信息量的东西。
+
+        ⇒ 修复后的语义（见 `cognitive/translator.py::translate` 的 docstring）：
+        **「有名字、有值、只是没有匹配规则」才走 `_fallback`**；
+        **「name/value 残缺」一律返回未识别**。
+        本文件另一条 `test_translate_unknown_sensor_fallback`（有名字有值但无规则）锁定前一半。
+        """
         result = self.translator.translate({"value": 42.0})
-        assert "42" in result
+        assert result == "传感器读数未识别"
 
     def test_translate_all_empty(self):
         """空列表输入应返回空列表"""

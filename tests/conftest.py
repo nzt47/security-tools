@@ -64,6 +64,24 @@ _STRAY_APPROVAL_TARGETS = [
 # audit_chain.db 14221312→14237696 字节）。这里在**会话级**把四个路径全部指向临时目录，
 # 用 `setdefault` 保证用例内的 `monkeypatch.setenv` 仍可覆盖（且回滚回本会话值）。
 
+def _live_server_running(port: int = 5678, timeout: float = 0.2) -> bool:
+    """开发机上是否正跑着云枢后端（app_server 默认端口）。
+
+    Why：`.env` 里 `APPROVAL_RECORDS_PATH=agent/data/approval_records.jsonl` 是**服务的真实配置**，
+    服务进程会正常往那里写审批记录；此时若本地同时跑单测，逐用例守卫会把"服务写的"
+    误判成"用例写的"（实测：探针触发真实工具调用 → 审批落单 → 相邻用例 teardown 报 stray）。
+    跨进程写入无法归属，故检测到活跃后端时跳过归因（CI 环境没有服务，守卫照常生效）。
+    同时**不能删**该文件——那是服务正在用的真实数据。
+    """
+    import socket
+
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 @pytest.fixture(autouse=True)
 def _no_stray_approval_store(request):
     """**逐用例**守卫：审批库若在某个用例执行期间出现在 agent/data/ 下，就地失败并点名
@@ -77,6 +95,10 @@ def _no_stray_approval_store(request):
     yield
     for p in _STRAY_APPROVAL_TARGETS:
         if p.exists() and p not in strays:
+            # 跨进程干扰：后端在跑 ⇒ 该文件是服务的真实数据，跳过归因且不删除
+            if _live_server_running():
+                print(f"[conftest] 跳过 stray 归因：检测到运行中的后端，{p.name} 由其写入（服务真实数据，不删）")
+                continue
             try:
                 p.unlink()
             except OSError:
