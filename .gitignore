@@ -47,6 +47,14 @@ data/state/
 data/lifetrace/sources/
 data/reports/
 data/audit/
+# LLM 通信监控的「会话最后一条通信」快照：运行期状态（含对话内容），服务关闭时写入
+data/llm_monitor_last.json
+
+# 审批库运行期本体：正确位置由 .env 的 APPROVAL_RECORDS_PATH 指定（agent/data/ 下），
+# 属运行期状态而非源码，不入库（测试守卫另有专门判据，见 tests/conftest.py）
+agent/data/approval_records.jsonl
+agent/data/tool_approval_uses.jsonl
+data/llm_monitor_last.json.tmp
 
 # S2-02 链式审计运行时产物（链式台账 / 每日 Merkle 根 / 签名密钥 / 存量归档 / 演示摘要）
 # 性质同 data/trace_v2_demo.db：运行时留痕，不入库；键与根属本机资产
