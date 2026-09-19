@@ -609,7 +609,28 @@ class TestCallSitesSendConsistentRequest:
 #  ⑧ 性能（E8：不得引入 O(响应长度²)）
 # ══════════════════════════════════════════════════════════════════════
 
+@pytest.mark.serial
 class TestPerformance:
+    """**墙钟计时断言** ⇒ 必须标 `serial`（2026-09-20 补标，见下）。
+
+    Why：本类的两条用例都以 `time.perf_counter()` 的绝对耗时/比值为判据，
+    在并发执行下会被 CPU 争用放大到远超预算。实测（2026-09-20 全量分块回归）：
+        空载隔离单跑            6.9 ~ 7.1 ms
+        4 分块并行 + 另一全量进程 230.8 ms  ⇒ 约 **33×** 膨胀，直接把 50ms 预算打红
+    而 `align_system_prompt_with_tools`（对 ~128KB 字符串做纯文本中和）
+    本身**不是**性能缺陷对象，它没有回归 —— 红的是测量环境。
+
+    本仓对这类断言已有既定机制：`serial` marker + CI 把测试拆成
+    `-m "not serial"`（并行）与 `-m "serial"`（串行段）两条 lane
+    见 `.github/workflows/observability-ci.yml:957,996`；
+    `pytest.ini:88` 的 marker 说明里也点名了"并行时状态竞争导致偶发失败"这一类。
+    仓库内已有 19 处 `@pytest.mark.serial` 先例（如 `test_perf_monitor.py`），
+    本类此前**漏标** ⇒ 在 CI 并行 lane 与本地分块下都会假红。
+
+    【不易】不要改成"放宽阈值"来消除偶发红：阈值放宽会同时削弱这条性能守卫的
+    真实检测能力（它要抓的是"中和逻辑退化成超线性"）。**正确做法是隔离测量环境**。
+    """
+
     def test_100KB提示词对齐耗时小于50ms(self):
         advert = "\n".join([ADVERT_LINE] * 20)
         prompt = ("前缀\n" + advert + "\n" + ("填充文本 abcdefghij\n" * 8000))
