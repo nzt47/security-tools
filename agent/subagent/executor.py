@@ -270,12 +270,24 @@ class LlmChannelExecutor(ChannelExecutor):
              "content": ("task_file（八要素上下文包）：\n"
                          + json.dumps(task_file, ensure_ascii=False, indent=2))},
         ]
+        # 把**实际运行模型**告诉子代理：否则被问及"你由什么提供推理"时会臆测厂商
+        # （实测：跑在 deepseek 上却自称"由 Anthropic 的 Claude 提供"）。这属于对外
+        # 输出的可信度问题，而非人格设定，故在 system prompt 末尾如实声明。
+        system_prompt = self._system_prompt
+        _model = str(getattr(self._llm, "model", "") or "").strip()
+        if _model:
+            _provider = str(getattr(self._llm, "provider", "") or "").strip()
+            system_prompt = (
+                f"{self._system_prompt}\n"
+                f"你的实际运行模型：{_provider + '/' if _provider else ''}{_model}"
+                "（以此为准；不得臆测为其它厂商或模型）。"
+            )
         final_text = ""
         turns_used = 0
         for turn in range(max_turns):
             turns_used = turn + 1
             try:
-                raw = self._llm.chat(messages, system_prompt=self._system_prompt)
+                raw = self._llm.chat(messages, system_prompt=system_prompt)
             except Exception as e:  # noqa: BLE001  执行器异常 → 通道层按失败处理
                 return RawOutput(returncode=-7, error=f"LLM 调用异常: {e}",
                                  duration_ms=(time.time() - start) * 1000)
