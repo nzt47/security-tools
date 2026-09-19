@@ -23,10 +23,9 @@ export const IPC = {
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
 
-/** 可被分离为独立窗口的面板 */
+/** 可被分离为独立窗口的面板（`think` 已随右侧思考面板下线移除） */
 export const DETACHABLE_PANELS = {
   CHAT: 'chat',
-  THINK: 'think',
   NAV: 'nav',
   CODE: 'code',
 } as const;

@@ -69,7 +69,7 @@ if __name__ == "__main__":
   json: `{
   "agent": "云枢",
   "version": "0.1.0",
-  "panels": ["nav", "chat", "think", "code"],
+  "panels": ["nav", "chat", "code"],
   "features": {
     "stream": "sse",
     "multiWindow": true

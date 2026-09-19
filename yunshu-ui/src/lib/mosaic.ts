@@ -9,11 +9,17 @@
  */
 import type { MosaicNode } from 'react-mosaic-component';
 
-/** 四个固定面板：左侧导航 / 主对话流 / 右侧思考过程 / 代码编辑器 */
+/**
+ * 三个固定面板：左侧导航 / 主内容（对话） / 代码编辑器
+ *
+ * 【已下线】原 `think`（右侧「思考过程」）面板 —— 思考过程与工具调用步骤现已
+ * **内联显示在每条回复里**（MessageItem 的 💭 思考过程 / 🔧 工具调用块，数据同为
+ * SSE 的 thinking 事件，且归属到具体那条回复，可折叠、可开关），右侧面板是同一份
+ * 数据的重复视图，故面板下线（历史布局由 stripRetiredPanels 迁移清理）。
+ */
 export const PANEL = {
   NAV: 'nav',
   CHAT: 'chat',
-  THINK: 'think',
   CODE: 'code',
 } as const;
 
@@ -22,11 +28,15 @@ export type PanelId = (typeof PANEL)[keyof typeof PANEL];
 export const PANEL_TITLES: Record<PanelId, string> = {
   [PANEL.NAV]: '导航',
   [PANEL.CHAT]: '主内容',
-  [PANEL.THINK]: '思考过程',
   [PANEL.CODE]: '代码编辑器',
 };
 
-/** 默认布局：nav | chat | (think / code)，splitPercentages 各子区占比之和须为 100 */
+/**
+ * 默认布局：nav | (chat / code)，splitPercentages 各子区占比之和须为 100
+ *
+ * 比例沿用"思考面板下线前"的实际占位：闲聊区吃掉原思考面板的宽度（≈73%），
+ * 代码编辑器保持原有宽度（≈10.6%），避免下线一个面板把另一个面板撑大。
+ */
 export const DEFAULT_LAYOUT: MosaicNode<PanelId> = {
   type: 'split',
   direction: 'row',
@@ -35,16 +45,8 @@ export const DEFAULT_LAYOUT: MosaicNode<PanelId> = {
     {
       type: 'split',
       direction: 'row',
-      children: [
-        PANEL.CHAT,
-        {
-          type: 'split',
-          direction: 'column',
-          children: [PANEL.THINK, PANEL.CODE],
-          splitPercentages: [55, 45],
-        },
-      ],
-      splitPercentages: [72, 28],
+      children: [PANEL.CHAT, PANEL.CODE],
+      splitPercentages: [87, 13],
     },
   ],
   splitPercentages: [16, 84],
@@ -52,6 +54,52 @@ export const DEFAULT_LAYOUT: MosaicNode<PanelId> = {
 
 /** LocalStorage 键（带版本号，升级布局结构时变更） */
 export const LAYOUT_STORAGE_KEY = 'yunshu:mosaic:layout:v1';
+
+/**
+ * 已下线面板 ID：布局持久化迁移时从历史布局里剔除。
+ *
+ * 【Why 必须迁移，而不是等 sanitizeLayout 兜底】sanitizeLayout 对非法叶子返回 null，
+ * 整棵子树/整份布局会被判为脏数据 → 回退默认布局，用户此前的拖拽比例、面板拆分全丢。
+ * 这里先按"剔除下线面板 + 折叠单子节点"处理，其余布局意图原样保留。
+ */
+export const RETIRED_PANEL_IDS: readonly string[] = ['think'];
+
+/**
+ * 从**原始持久化数据**（未经 sanitize）中剔除已下线面板。
+ * 规则与 removePanelFromLayout 一致：split 删到剩 1 个子节点则上提、剩 0 则整支移除；
+ * tabs 删到剩 1 个则折叠为叶子；splitPercentages 只有在与 children 数量对齐时才保留。
+ */
+export function stripRetiredPanels(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return RETIRED_PANEL_IDS.includes(value) ? null : value;
+  }
+  if (value && typeof value === 'object') {
+    const node = value as Record<string, unknown>;
+    if (node.type === 'split' && Array.isArray(node.children)) {
+      const children = node.children
+        .map((c) => stripRetiredPanels(c))
+        .filter((c) => c !== null && c !== undefined);
+      if (children.length === 0) return null;
+      if (children.length === 1) return children[0];
+      const pcts = Array.isArray(node.splitPercentages) ? node.splitPercentages : undefined;
+      return {
+        type: 'split',
+        direction: node.direction,
+        children,
+        splitPercentages: pcts && pcts.length === children.length ? pcts : undefined,
+      };
+    }
+    if (node.type === 'tabs' && Array.isArray(node.tabs)) {
+      const tabs = node.tabs.filter(
+        (t): t is string => typeof t === 'string' && !RETIRED_PANEL_IDS.includes(t),
+      );
+      if (tabs.length === 0) return null;
+      if (tabs.length === 1) return tabs[0];
+      return { type: 'tabs', tabs, activeTabIndex: 0 };
+    }
+  }
+  return null;
+}
 
 /**
  * 校验从 LocalStorage 反序列化的布局树。

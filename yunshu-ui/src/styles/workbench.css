@@ -121,6 +121,20 @@ body,
   animation: wb-pulse 1.6s ease-in-out infinite;
 }
 
+/* 构建戳（顶栏）：分辨"页面跑的是哪次构建"——未刷新会一直跑旧 bundle */
+.wb-build-stamp {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--wb-border);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--wb-text-dim);
+  font-family: var(--wb-mono);
+  font-size: 10px;
+  white-space: nowrap;
+  cursor: help;
+}
+
 @keyframes wb-pulse {
   0%,
   100% {

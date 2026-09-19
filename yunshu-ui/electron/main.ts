@@ -159,7 +159,9 @@ function registerIpcHandlers() {
   // ── 面板分离：渲染层拖拽到边缘/停靠区后发起的 detach 请求 ──
   ipcMain.handle(IPC.DetachPanel, (event, req: DetachPanelRequest) => {
     // 请求参数校验（白名单面板 ID + 合法路由前缀），防渲染层注入非法值
-    const panelId = ['chat', 'think', 'nav', 'code'].includes(req?.panelId) ? req.panelId : null;
+    // 注：与 renderer 侧 electron/ipc.ts::DETACHABLE_PANELS 保持一致
+    // （`think` 已随右侧思考面板下线移除）
+    const panelId = ['chat', 'nav', 'code'].includes(req?.panelId) ? req.panelId : null;
     const route = typeof req?.route === 'string' && req.route.startsWith('/detached/')
       ? req.route
       : null;

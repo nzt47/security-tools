@@ -46,7 +46,8 @@ import { DETACHABLE_PANELS, type DetachablePanelId } from '@/electron/ipc'
 /**
  * Electron 独立窗口面板白名单。
  * 【单一来源】值取自 electron/ipc.ts 的 DETACHABLE_PANELS（缺陷 ③：此前本文件
- * 与 ipc.ts 双处硬编码 ['chat','think','nav','code']，改动易漂移），非法面板回退主界面。
+ * 与 ipc.ts 双处硬编码面板 ID 列表，改动易漂移），非法面板回退主界面。
+ * 注：`think`（右侧思考过程面板）已下线，白名单随之收敛为 chat/nav/code。
  */
 const DETACHABLE_PANEL_VALUES: readonly string[] = Object.values(DETACHABLE_PANELS)
 

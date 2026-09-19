@@ -5,8 +5,9 @@
  * 只渲染被分离的单个面板，冷启动资源最小化（配合 Vite 代码分割）。
  *
  * 面板渲染与主工作台统一（缺陷 ③）：CHAT→ContentPanel / NAV→NavPanel /
- * THINK→ThinkingPanel / CODE→CodeEditorPanel，统一走 renderPanel 单一映射，
+ * CODE→CodeEditorPanel，统一走 renderPanel 单一映射，
  * 独立窗口不再渲染与主工作台不一致的 ChatPanel / SidebarPanel 占位。
+ * 注：原 THINK（思考过程）面板已下线，思考/工具调用在回复内联显示。
  *
  * 数据一致性：
  *  - 启动时经 IPC 拉取分离瞬间的状态快照（getInitialState）
@@ -27,7 +28,6 @@ import './styles/workbench.css';
 
 const PANEL_LABEL: Record<PanelId, string> = {
   [PANEL.CHAT]: '对话',
-  [PANEL.THINK]: '思考过程',
   [PANEL.NAV]: '导航',
   [PANEL.CODE]: '代码编辑器',
 };

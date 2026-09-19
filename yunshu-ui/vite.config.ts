@@ -24,6 +24,12 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: isElectron ? './' : '/static/',
+    // 构建标记：注入构建时刻，供界面显示「当前页面跑的是哪一次构建」——
+    // 前端修复上线后用户若未刷新页面，会一直跑旧 bundle（表现为"改了没用/还是老问题"），
+    // 有构建戳即可一眼分辨（展示位置见 WorkbenchApp 顶栏 + window.__YUNSHU_BUILD__）。
+    define: {
+      __YUNSHU_BUILD__: JSON.stringify(new Date().toISOString()),
+    },
     build: {
       sourcemap: 'hidden',
       // Code Splitting：第三方大库抽独立 vendor chunk，利用浏览器长期缓存

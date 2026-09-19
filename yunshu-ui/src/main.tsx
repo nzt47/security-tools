@@ -38,6 +38,11 @@ if (import.meta.env.DEV && import.meta.env.VITE_MOCK_ELECTRON === '1') {
   installMockElectron()
 }
 
+// 构建标记外露：控制台与自动化探针可读（展示见 WorkbenchApp 顶栏 build 徽标）
+if (typeof __YUNSHU_BUILD__ === 'string') {
+  window.__YUNSHU_BUILD__ = __YUNSHU_BUILD__
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppRouter />

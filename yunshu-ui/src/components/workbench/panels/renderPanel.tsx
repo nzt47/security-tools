@@ -7,11 +7,11 @@
  * NAV→NavPanel 不一致，导致独立窗口内容偏离主工作台）。
  *
  * 变更面板映射时只改这里一处，两处入口同步生效。
+ * 注：原 THINK（右侧「思考过程」）面板已下线 —— 思考/工具调用改为在每条回复内联显示。
  */
 import type { ReactElement } from 'react'
 import { PANEL, type PanelId } from '../../../lib/mosaic'
 import { NavPanel } from './NavPanel'
-import { ThinkingPanel } from './ThinkingPanel'
 import { ContentPanel } from './ContentPanel'
 import { CodeEditorPanel } from './CodeEditorPanel'
 
@@ -20,8 +20,6 @@ export function renderPanel(id: PanelId): ReactElement {
   switch (id) {
     case PANEL.NAV:
       return <NavPanel />
-    case PANEL.THINK:
-      return <ThinkingPanel />
     case PANEL.CODE:
       return <CodeEditorPanel />
     case PANEL.CHAT:
