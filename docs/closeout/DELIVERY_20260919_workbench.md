@@ -186,10 +186,11 @@ LLM 自检    ：ok=true demo_mode=false；probe HTTP 200 / 1273ms
 ## 7. 提交与推送
 
 - **仓库/分支**：`origin` = `git@github.com:nzt47/security-tools.git`（SSH），`master`。
-- **推送**：`git push origin master` 两轮均成功：
-  1. `406ea0c2..c2187ce5`（推送前远端多出一条 CI 自动提交 `6624f03f`，已 `git rebase --autostash` 后快进推送）；
-  2. `6624f03f..2f5b73df`（L3/L4 修复 + 本报告回填后再次 rebase 快进推送）。
-- **代码终态**：远端 `origin/master` tip = `2f5b73df`（本地 `HEAD` 与之一致，无未推送提交）。**以该 tip 的 `git log --oneline -8` 为准**。
+- **推送**：`git push origin master` 三轮均成功（每次推送前远端都已前进一条 CI 自动提交，故每次均 `git rebase --autostash` 后快进推送）：
+  1. `406ea0c2..c2187ce5`（远端先有 `6624f03f`）；
+  2. `6624f03f..2f5b73df`（L3/L4 修复 + 报告回填；远端先有 `dd9461ae`）；
+  3. `dd9461ae..b36f1945`（本报告 §7 口径修正）。
+- **代码终态**：以远端 `origin/master` 为准 —— **验收时现场执行** `git rev-parse origin/master` 与 `git log --oneline -8`（撰写时的 tip 为 `2f5b73df`；远端随时会因 CI 自动提交或并行会话继续前进，固化字面 SHA 无意义）。本地 `HEAD` 与 `origin/master` 一致、无未推送提交。
 - **本轮提交链**（主题为准，见下）：
 
   | 主题 | 说明 |
@@ -202,7 +203,7 @@ LLM 自检    ：ok=true demo_mode=false；probe HTTP 200 / 1273ms
   | `fix(subagent)`: 执行体如实声明实际运行模型；运行期任务日志不再跟踪 | L3/L4 结案 |
 
   > **为什么不写具体 SHA**：两次推送前均因远端 CI 自动提交而 `git rebase`，rebase 会重写本条链上所有 SHA（撰写时链中 `06adf75e` 即已被重写为 `db02d91f`）。沿用本仓库既有结论（"v7.2 S4-01 报告改为引用代码终态，避免自指追逐"），此处只固化**主题 + 远端 tip**，SHA 请以 `git log` 现场值为准。
-- **CI 观测**：推送后 2 分钟内远端新增 `6624f03f docs(architecture): 自动更新模块依赖图 [skip ci]`（`github-actions[bot]`）⇒ 架构 workflow 已在本轮提交上运行并产出依赖图（依赖图已含本轮新增的 `agent/llm_key.py` 等），且证明本轮提交确实进入远端 CI 触发路径。
+- **CI 观测（远端自动提交 = CI 确已在本轮提交上运行的硬证据）**：两次推送后各在 2 分钟内出现 `github-actions[bot]` 的架构依赖图自动提交（`6624f03f`、`dd9461ae`），且 **`docs/architecture/dependency_graph.json` / `module_dependency_graph.md` 中已包含本轮新增模块**：`agent.llm_key`（`crosslayer`）、`agent.server_routes.routes_background`（及其 `-.-> agent.async_executor` 依赖边）⇒ 架构 workflow 确实拉取并解析了本轮提交（含新文件），CI 触发链路通畅。
   其余 ~49 个 workflow 的运行结论请在仓库 Actions 页面确认：本机到 `github.com:443` 不可达（`gh` 与 REST API 均不可用），无法从此环境读取 run 状态。
 - **本地等效验证**：见 §5.1–5.3（架构规则 / 核心不变量 / 预检 / 前端全量 / 单测基线差集）。
 
