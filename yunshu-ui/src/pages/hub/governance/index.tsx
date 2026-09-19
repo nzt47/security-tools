@@ -1037,7 +1037,7 @@ export function MemorySkillsPanel() {
         <>
           <PanelHeader
             title="记忆 / 技能库"
-            description="四层记忆（策略/事实/偏好/工作）· 现有技能中心仍在「记忆管理 → 技能中心」"
+            description="四层记忆（策略/事实/偏好/工作）· 技能中心已上提为顶层导航项（与「提示词实验室」并列）"
             priority={data.panel?.priority}
             datasources={data.panel?.datasources}
           />

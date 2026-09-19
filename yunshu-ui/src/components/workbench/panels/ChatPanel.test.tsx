@@ -13,7 +13,7 @@
  *    jsdom localStorage 不可用 → 先打桩 localStorage，再顶层 await 动态加载 store
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 // ── mock SSE 客户端（vi.hoisted 供提升的 mock 工厂引用） ──
 const { mockCreateStream } = vi.hoisted(() => ({ mockCreateStream: vi.fn() }));
@@ -108,5 +108,65 @@ describe('ChatPanel 流式日志（中断场景）', () => {
     expect(state.streaming).toBe(false);
     expect(state.messages.find((m) => m.status === 'streaming')).toBeUndefined();
     expect(state.messages.at(-1)?.content).toBe('第一片');
+  });
+});
+
+describe('ChatPanel 显示开关（思考 / 工具）', () => {
+  beforeEach(() => {
+    useLayoutStore.setState({ messages: [], thinking: [], streaming: false, activeStreamId: null });
+  });
+
+  afterEach(cleanup);
+
+  /** 造一条带步骤的助手消息：1 个思考步骤 + 1 次工具调用 */
+  function seedAssistantWithSteps() {
+    useLayoutStore.setState({
+      messages: [
+        {
+          id: 'asst-x',
+          role: 'assistant',
+          content: '好的',
+          createdAt: Date.now(),
+          status: 'done',
+          steps: [
+            { id: 'intent', title: '意图识别', detail: '解析输入', status: 'done', at: 1 },
+            { id: 'tool-real-search', title: '工具调用：search', detail: '结果: ok', status: 'done', at: 2 },
+          ],
+        },
+      ],
+    });
+  }
+
+  it('开关上显示本对话可显隐的步骤计数（思考 1 / 工具 1）', () => {
+    seedAssistantWithSteps();
+    const { container } = render(<ChatPanel />);
+    const toggles = container.querySelectorAll<HTMLButtonElement>('.wb-display-toggle');
+    expect(toggles).toHaveLength(2);
+    // [0]=思考 [1]=工具：计数徽标 = 本对话可显隐的步骤数
+    expect(toggles[0].textContent).toContain('思考');
+    expect(toggles[0].querySelector('.wb-display-count')?.textContent).toBe('1');
+    expect(toggles[1].textContent).toContain('工具');
+    expect(toggles[1].querySelector('.wb-display-count')?.textContent).toBe('1');
+    expect(toggles[0].getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('点击开关切换 aria-pressed 与提示文案（无可显隐内容时说明原因）', () => {
+    const { container } = render(<ChatPanel />);
+    const toggles = container.querySelectorAll<HTMLButtonElement>('.wb-display-toggle');
+    // 无步骤：不显示计数徽标，title 说明"暂无可显隐内容"（避免误以为开关坏了）
+    expect(toggles[0].querySelector('.wb-display-count')).toBeNull();
+    expect(toggles[0].getAttribute('title')).toContain('暂无可显隐的思考步骤');
+    expect(toggles[1].getAttribute('title')).toContain('未触发工具调用');
+    expect(toggles[0].getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('点击思考开关后 aria-pressed 变为 false（开关确实生效）', () => {
+    seedAssistantWithSteps();
+    const { container } = render(<ChatPanel />);
+    const toggles = container.querySelectorAll<HTMLButtonElement>('.wb-display-toggle');
+    fireEvent.click(toggles[0]);
+    expect(
+      container.querySelectorAll<HTMLButtonElement>('.wb-display-toggle')[0].getAttribute('aria-pressed'),
+    ).toBe('false');
   });
 });

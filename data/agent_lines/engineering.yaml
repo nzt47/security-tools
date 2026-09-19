@@ -3,15 +3,14 @@ name: 自主编码与工程交付
 description: 云枢作为可自主干活的工程 agent。读写代码、搜索、执行、验证为核心链路，self-modification 与长任务降为支撑层。
 enabled: true
 plane_weights:
-  resident: 0.6
-  perceive: 1.0
   act: 1.0
-  govern: 0.2
+  perceive: 1.0
+  resident: 0.6
 plane_floors:
-  resident: 3
-  perceive: 4
   act: 4
   govern: 1
+  perceive: 4
+  resident: 3
 boost:
 - read_file
 - grep

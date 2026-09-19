@@ -6,12 +6,14 @@
  * 停止：store.stopStreaming 通过 AbortController 中断 fetch 流。
  * 日志：订阅 store 流式事件，打印分片序号/间隔/乱序/断流告警（本文件下方 useEffect）。
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, Square } from 'lucide-react';
 import { subscribeStreamLog, useLayoutStore } from '../../../stores/useLayoutStore';
-import { MessageItem } from '../chat/MessageItem';
+import { CHAT_FORMATS, chatStyleVars, useChatPrefsStore, type ChatFormat } from '../../../stores/useChatPrefsStore';
+import { MessageItem, isToolStep } from '../chat/MessageItem';
 import { MessageInput } from '../chat/MessageInput';
+import { ChatStyleMenu } from '../chat/ChatStyleMenu';
 
 const SUGGESTIONS = [
   '用流式渲染实现一个聊天面板',
@@ -28,6 +30,31 @@ export function ChatPanel() {
   const highlightMsgId = useLayoutStore((s) => s.highlightMsgId);
   const sendMessage = useLayoutStore((s) => s.sendMessage);
   const stopStreaming = useLayoutStore((s) => s.stopStreaming);
+
+  // 对话显示与风格偏好（思考/工具开关 + 输出格式 + 主题/气泡/字号）
+  const showThinking = useChatPrefsStore((s) => s.showThinking);
+  const showToolCalls = useChatPrefsStore((s) => s.showToolCalls);
+  const toggleDisplay = useChatPrefsStore((s) => s.toggleDisplay);
+  const format = useChatPrefsStore((s) => s.format);
+  const setStyle = useChatPrefsStore((s) => s.setStyle);
+  const theme = useChatPrefsStore((s) => s.theme);
+  const bubbleStyle = useChatPrefsStore((s) => s.bubbleStyle);
+  const fontSize = useChatPrefsStore((s) => s.fontSize);
+  const styleVars = chatStyleVars({ theme, bubbleStyle, fontSize });
+
+  // 本对话可显隐的步骤数（思考链 / 工具调用）——用于在开关上给出可感知的状态：
+  // 计数为 0 时说明"当前没有可显隐的内容"，避免用户以为开关坏了。
+  const stepCounts = useMemo(() => {
+    let thoughts = 0;
+    let tools = 0;
+    for (const m of messages) {
+      for (const s of m.steps ?? []) {
+        if (isToolStep(s)) tools += 1;
+        else thoughts += 1;
+      }
+    }
+    return { thoughts, tools };
+  }, [messages]);
 
   const [input, setInput] = useState('');
   // 斜杠命令注册表（已发布技能 → /skill:<id>，输入 / 时提示）
@@ -191,8 +218,70 @@ export function ChatPanel() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* 对话工具条：思考/工具显示开关（legacy 💭 Thought / 🔧 工具）+ 输出格式切换 + 风格设置 */}
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-800/70 bg-slate-900/30 px-4 py-1.5">
+        <button
+          type="button"
+          onClick={() => toggleDisplay('thinking')}
+          aria-pressed={showThinking}
+          title={
+            stepCounts.thoughts > 0
+              ? `显示/隐藏对话内的思考过程（本对话 ${stepCounts.thoughts} 步）。右侧「思考过程」面板始终展示完整链路。`
+              : '显示/隐藏对话内的思考过程（当前对话暂无可显隐的思考步骤）'
+          }
+          className={`wb-display-toggle ${showThinking ? 'on' : 'off'} ${stepCounts.thoughts === 0 ? 'idle' : ''}`}
+        >
+          💭 思考
+          {stepCounts.thoughts > 0 && <span className="wb-display-count">{stepCounts.thoughts}</span>}
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleDisplay('toolcalls')}
+          aria-pressed={showToolCalls}
+          title={
+            stepCounts.tools > 0
+              ? `显示/隐藏对话内的工具调用步骤（本对话 ${stepCounts.tools} 次）。`
+              : '显示/隐藏对话内的工具调用步骤（本次对话未触发工具调用，故暂无可显隐内容）'
+          }
+          className={`wb-display-toggle ${showToolCalls ? 'on' : 'off'} ${stepCounts.tools === 0 ? 'idle' : ''}`}
+        >
+          🔧 工具
+          {stepCounts.tools > 0 && <span className="wb-display-count">{stepCounts.tools}</span>}
+        </button>
+
+        <span className="mx-1 h-3.5 w-px bg-slate-700/70" />
+
+        {/* 对话输出格式（多种展示样式切换） */}
+        <span className="text-[10px] uppercase tracking-wider text-slate-500">输出格式</span>
+        <div className="flex overflow-hidden rounded-md border border-slate-700">
+          {(Object.keys(CHAT_FORMATS) as ChatFormat[]).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setStyle({ format: f })}
+              aria-pressed={format === f}
+              title={CHAT_FORMATS[f].hint}
+              className={`px-2 py-0.5 text-[11px] transition-colors ${
+                format === f ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              {CHAT_FORMATS[f].label}
+            </button>
+          ))}
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <span className="hidden text-[10px] text-slate-600 sm:inline">风格设置可调主题 / 气泡 / 字号</span>
+          <ChatStyleMenu />
+        </div>
+      </div>
+
       {/* 消息区 */}
-      <div ref={scrollRef} className="wb-chat-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div
+        ref={scrollRef}
+        className="wb-chat-surface wb-chat-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4"
+        style={styleVars as React.CSSProperties}
+      >
         {messages.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 8 }}

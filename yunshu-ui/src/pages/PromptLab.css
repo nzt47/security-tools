@@ -57,6 +57,49 @@
   gap: 8px;
 }
 
+/* ── 主内容区模块 Tab 条（提示词影响因素实验室 / LLM 通信监控 并列） ── */
+.pl-tabs {
+  position: sticky;
+  top: 57px;
+  z-index: 18;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 8px 20px 0;
+  border-bottom: 1px solid var(--wb-border);
+  background: rgba(6, 10, 20, 0.92);
+  backdrop-filter: blur(10px);
+}
+.pl-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 9px 9px 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--wb-text-dim);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.pl-tab:hover {
+  color: var(--wb-text);
+  background: rgba(34, 211, 238, 0.07);
+}
+.pl-tab.active {
+  color: #06121a;
+  background: var(--wb-accent);
+  border-color: var(--wb-accent);
+  font-weight: 600;
+}
+/* Tab 内容容器（LLM 通信监控整屏） */
+.pl-tab-body {
+  padding: 20px;
+}
+
 /* ── 按钮 ── */
 .pl-btn {
   display: inline-flex;
@@ -117,7 +160,7 @@
 /* ── 分类筛选 ── */
 .pl-filter {
   position: sticky;
-  top: 57px;
+  top: 97px;
   z-index: 15;
   display: flex;
   gap: 8px;
@@ -162,8 +205,8 @@
 .pl-preview {
   flex: 0 0 380px;
   position: sticky;
-  top: 118px;
-  max-height: calc(100vh - 138px);
+  top: 158px;
+  max-height: calc(100vh - 178px);
   overflow-y: auto;
 }
 
@@ -697,17 +740,349 @@
   font-size: 10.5px;
 }
 
-/* ── LLM 通信监控区：并入原「LLM 通信」页（整宽置于主体之下） ── */
+/* ── 发出内容（启用状态 ↔ 内容显示联动） ── */
+.pl-emit-seq {
+  margin-right: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  background: rgba(34, 211, 238, 0.12);
+  color: #67e8f9;
+  font-family: var(--wb-mono);
+  font-size: 10px;
+  font-style: normal;
+}
+.pl-emit {
+  margin-top: 8px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(34, 211, 238, 0.06);
+}
+.pl-emit.muted {
+  border-color: var(--wb-border);
+  background: rgba(148, 163, 184, 0.05);
+}
+.pl-emit-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--wb-text-dim);
+}
+.pl-emit-text {
+  margin: 0;
+  max-height: 150px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--wb-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: #a5f3fc;
+}
+.pl-emit.muted .pl-emit-text {
+  color: var(--wb-text-dim);
+}
+/* 面板项聚焦：与右侧提示词区域的高亮片段呼应 */
+.pl-syspart.focused {
+  border-color: rgba(34, 211, 238, 0.6);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25);
+}
+/* 提示词区域中的高亮片段（PreviewPanel 按聚焦面板项定位） */
+.pl-hl {
+  padding: 1px 2px;
+  border-radius: 4px;
+  background: rgba(34, 211, 238, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.5);
+  color: #e0faff;
+}
+
+/* ── LLM 通信监控区：主内容区 Tab（对齐 legacy「📡 LLM 通信监控」） ── */
 .pl-llm-monitor {
-  margin: 4px 20px 28px;
-  padding-top: 8px;
-  border-top: 1px dashed rgba(148, 163, 184, 0.25);
+  margin: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.pl-monitor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pl-monitor-head .pl-category-title {
+  margin-bottom: 2px;
+}
+.pl-monitor-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--wb-text-dim);
+  cursor: pointer;
 }
 .pl-monitor-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 12px;
+}
+.lm-stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--wb-border);
+  background: rgba(6, 10, 20, 0.55);
+}
+.lm-stat-box b {
+  font-family: var(--wb-mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.lm-stat-box b.ok {
+  color: #6ee7b7;
+}
+.lm-stat-box b.warn {
+  color: #fbbf24;
+}
+.lm-stat-box span {
+  font-size: 10.5px;
+  color: var(--wb-text-dim);
+}
+.pl-monitor-filter {
+  width: 168px;
+}
+/* 工具栏新增筛选/搜索后需要换行（legacy 同款布局） */
+.pl-monitor-toolbar {
+  flex-wrap: wrap;
+}
+.pl-monitor-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--wb-text-dim);
+}
+.pl-monitor-search .pl-text {
+  width: 190px;
+}
+.pl-monitor-empty {
+  padding: 40px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--wb-text-dim);
+}
+.pl-monitor-more {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+/* 折叠记录行 */
+.lm-records {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lm-record {
+  border: 1px solid var(--wb-border);
+  border-radius: 8px;
+  background: rgba(6, 10, 20, 0.55);
+  overflow: hidden;
+}
+.lm-record.error {
+  border-color: rgba(248, 113, 113, 0.4);
+}
+.lm-record-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  color: var(--wb-text);
+  font-family: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.lm-record-head:hover {
+  background: rgba(34, 211, 238, 0.06);
+}
+.lm-ico {
+  flex-shrink: 0;
+}
+.lm-model {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--wb-accent);
+  font-family: var(--wb-mono);
+  font-size: 10.5px;
+}
+.lm-badge {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--wb-text-dim);
+}
+.lm-badge.chat {
+  background: rgba(34, 211, 238, 0.14);
+  color: #67e8f9;
+}
+.lm-badge.tool_calling {
+  background: rgba(168, 85, 247, 0.16);
+  color: #d8b4fe;
+}
+.lm-badge.summarize {
+  background: rgba(251, 191, 36, 0.16);
+  color: #fcd34d;
+}
+/* Token 数量（替代原时间显示） */
+.lm-tokens {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(34, 211, 238, 0.08);
+  color: #a5f3fc;
+  font-family: var(--wb-mono);
+  font-size: 10.5px;
+}
+.lm-tokens em {
+  margin-left: 3px;
+  font-style: normal;
+  opacity: 0.65;
+}
+.lm-flag {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--wb-text-dim);
+}
+.lm-flag.err {
+  color: #f87171;
+}
+.lm-flag.restored {
+  padding: 0 5px;
+  border-radius: 4px;
+  background: rgba(251, 191, 36, 0.14);
+  color: #fcd34d;
+  font-size: 10px;
+}
+.lm-duration {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--wb-mono);
+  font-size: 10.5px;
+  color: var(--wb-text-dim);
+}
+.lm-record-detail {
+  border-top: 1px solid var(--wb-border);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 1100px) {
+  .lm-record-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.lm-panel {
+  border: 1px solid var(--wb-border);
+  border-radius: 8px;
+  background: rgba(4, 8, 16, 0.5);
+  overflow: hidden;
+}
+.lm-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 9px;
+  border-bottom: 1px solid var(--wb-border);
+  font-size: 11px;
+  color: var(--wb-text);
+}
+.lm-panel-head .pl-btn {
+  padding: 2px 8px;
+  font-size: 10px;
+}
+.lm-panel-body {
+  max-height: 420px;
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lm-msg {
+  border-left: 2px solid var(--wb-border-strong);
+  padding: 5px 8px;
+  border-radius: 0 6px 6px 0;
+  background: rgba(148, 163, 184, 0.05);
+}
+.lm-msg .lm-role {
+  display: block;
+  margin-bottom: 3px;
+  font-family: var(--wb-mono);
+  font-size: 10px;
+  color: var(--wb-accent);
+}
+.lm-msg .lm-content {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--wb-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+.lm-msg.system {
+  border-left-color: rgba(34, 211, 238, 0.6);
+}
+.lm-msg.system .lm-content.tools {
+  color: #d8b4fe;
+}
+.lm-msg.reasoning {
+  border-left-color: rgba(251, 191, 36, 0.6);
+}
+.lm-msg.reasoning .lm-content {
+  color: #fcd34d;
+}
+.lm-msg.toolcall,
+.lm-msg.toolcall .lm-content.mono {
+  border-left-color: rgba(168, 85, 247, 0.6);
+  color: #d8b4fe;
+}
+.lm-msg.error {
+  border-left-color: rgba(248, 113, 113, 0.65);
+}
+.lm-msg.error .lm-content {
+  color: #fca5a5;
+}
+.lm-toolcall {
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(4, 8, 16, 0.6);
+  color: #d8b4fe;
+  font-family: var(--wb-mono);
+  font-size: 10.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.lm-empty {
+  padding: 10px;
+  font-size: 11px;
+  color: var(--wb-text-dim);
 }
 
 @media (max-width: 1100px) {

@@ -87,6 +87,55 @@ def _no_stray_approval_store(request):
 
 
 @pytest.fixture(autouse=True, scope="session")
+def _isolate_llm_monitor_snapshot(tmp_path_factory):
+    """把 LLM 监控的「会话最后一条通信」快照指向会话级临时目录（绝不写 data/）
+
+    Why（2026-09-19）：llm_monitor 现在会把每次通信（节流）与进程退出时的最后一条
+    落盘到 `<repo>/data/llm_monitor_last.json`，并在**新实例启动时回填**该快照。
+    若不隔离：单测写出的假记录会被后续用例（乃至真实服务重启）当成"上次会话遗留"读回，
+    典型症状是 `test_llm_monitor_singleton` 里 `total == 1` 变成 2。
+
+    注意 `LLMMonitor.__init__` 在构造时读取模块级常量，故必须**在用例内构造之前**改绑
+    （session 级 autouse 夹具先于用例执行，满足该时序）。
+    """
+    isolation_file = tmp_path_factory.mktemp("llm_monitor_isolation") / "llm_monitor_last.json"
+    try:
+        import agent.llm_monitor as _lm
+
+        _saved = getattr(_lm, "PERSIST_FILE", None)
+        _lm.PERSIST_FILE = str(isolation_file)
+    except Exception as e:  # noqa: BLE001 模块不可用不该影响测试运行
+        print(f"[conftest] LLM 监控快照隔离跳过: {type(e).__name__}: {e}")
+        yield None
+        return
+
+    yield isolation_file
+
+    if _saved is not None:
+        _lm.PERSIST_FILE = _saved
+
+
+@pytest.fixture(autouse=True)
+def _reset_llm_monitor_snapshot(_isolate_llm_monitor_snapshot):
+    """每个用例前清掉隔离的 LLM 快照
+
+    Why：监控器现在会在**构造时回填**上次会话的最后一条通信。用例之间若共用同一份
+    快照文件，上一个用例 record() 出来的记录会被下一个用例新建的监控器读回，
+    `get_records()` 的 total 随之 +1（test_llm_monitor_singleton 的 `total == 1` 实测失败）。
+    生产语义（跨进程重启保留快照）不受影响 —— 这里清的是**测试专用**的隔离文件。
+    """
+    try:
+        target = _isolate_llm_monitor_snapshot
+        if target and not isinstance(target, str):
+            target = str(target)
+        if target and os.path.exists(target):
+            os.remove(target)
+    except Exception:  # noqa: BLE001 清理失败不该影响用例
+        pass
+    yield
+
+
+@pytest.fixture(autouse=True, scope="session")
 def _isolate_approval_stores(tmp_path_factory):
     """把审批记录 / 消费台账 / 事件流 / 链式审计指向会话级临时目录（绝不写 data/**）"""
     isolation_dir = tmp_path_factory.mktemp("approval_isolation")

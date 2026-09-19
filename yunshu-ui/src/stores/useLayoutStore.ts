@@ -19,6 +19,12 @@ export interface ChatMessage {
   content: string;
   createdAt: number;
   status?: 'streaming' | 'done' | 'error';
+  /**
+   * 该条回复的执行步骤（思考过程 / 工具调用），由 SSE 的 thinking 事件按序累积。
+   * 用于「工具调用过程 + 思考过程」的**对话内联显示**（右侧思考面板是另一个视图）。
+   * 历史消息（从后端加载）不含步骤，仅本次流式产生的回复带步骤。
+   */
+  steps?: ThinkingEvent[];
 }
 
 export interface ThinkingEvent {
@@ -92,6 +98,32 @@ function emitStreamLog(event: StreamLogEvent) {
   streamLogListeners.forEach((fn) => fn(event));
 }
 
+/**
+ * 合并同一步骤的 detail（思考过程 / 工具调用共用）。
+ *
+ * 后端 SSE 的事件节奏（plugins/chat.py::_workbench_real_stream）：
+ *  - 阶段事件（intent/retrieve/plan/tool/generate）：先 `running` 且**带 detail**，
+ *    紧接着 `done` **不带 detail**；
+ *  - 推理事件（DeepSeek reasoning_content）：若干 `running` 增量，末尾一个 `done` 不带 detail；
+ *  - 工具调用：`running`（参数）→ `done`（结果），两个事件都带 detail。
+ *
+ * 规则：**没有新内容的事件绝不覆盖已有内容**。早期实现把「非 running→running」一律按
+ * 覆盖处理 ⇒ done 事件（detail 为空）把累积的推理文本与阶段说明清空，线上表现就是
+ * 「思考过程/工具调用先出现、回复完成后凭空消失，显示开关也随之失效」。
+ */
+export function mergeStepDetail(
+  prev: { detail?: string; status?: ThinkingStatus } | undefined,
+  evt: { detail?: string; status: ThinkingStatus },
+): string | undefined {
+  const incoming = typeof evt.detail === 'string' ? evt.detail : '';
+  if (!incoming) {
+    // done / 无内容事件：保留已累积文本（没有则保持 undefined）
+    return prev?.detail ?? undefined;
+  }
+  const accumulating = prev?.status === 'running' && evt.status === 'running';
+  return accumulating ? `${prev?.detail ?? ''}${incoming}` : incoming;
+}
+
 export const useLayoutStore = create<LayoutStore>()(
   persist(
     (set, get) => ({
@@ -152,12 +184,31 @@ export const useLayoutStore = create<LayoutStore>()(
             detail: evt.detail,
           });
           set((state) => {
-            const nextEvent: ThinkingEvent = { ...evt, at: Date.now() };
+            const at = Date.now();
             const exists = state.thinking.some((t) => t.id === evt.id);
+            const prev = state.thinking.find((t) => t.id === evt.id);
+            const mergedDetail = mergeStepDetail(prev, evt);
+            const nextEvent: ThinkingEvent = { ...evt, detail: mergedDetail, at };
             return {
               thinking: exists
                 ? state.thinking.map((t) => (t.id === evt.id ? nextEvent : t))
                 : [...state.thinking, nextEvent],
+              // 同一份步骤同步挂到当前流式回复上（对话内联显示用，见 ChatMessage.steps）
+              messages: state.messages.map((m) => {
+                if (m.id !== streamId) return m;
+                const steps = m.steps ?? [];
+                const has = steps.some((s) => s.id === evt.id);
+                const stepPrev = steps.find((s) => s.id === evt.id);
+                const step: ThinkingEvent = {
+                  ...evt,
+                  detail: mergeStepDetail(stepPrev, evt),
+                  at,
+                };
+                return {
+                  ...m,
+                  steps: has ? steps.map((s) => (s.id === evt.id ? step : s)) : [...steps, step],
+                };
+              }),
             };
           });
         };

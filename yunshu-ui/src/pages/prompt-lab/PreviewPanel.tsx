@@ -26,6 +26,8 @@ interface PreviewPanelProps {
   onModeChange: (m: PreviewMode) => void;
   /** 注入 system message：后端身份提示词配置生成的模板（可含运行时占位符） */
   systemPrompt: string;
+  /** 聚焦面板项的发出内容：命中则在该段高亮（启用状态 ↔ 内容显示联动） */
+  highlightSnippet?: string | null;
   prompt: string;
   sim: string;
   radar: { label: string; value: number }[];
@@ -37,10 +39,23 @@ interface PreviewPanelProps {
   onExport: (kind: 'json' | 'csv') => void;
 }
 
+/** 把模板按高亮片段切成 [前, 片段, 后]，未命中时返回 null（不做高亮） */
+export function splitHighlight(
+  text: string,
+  snippet?: string | null,
+): [string, string, string] | null {
+  const s = (snippet ?? '').trim();
+  if (!text || !s) return null;
+  const idx = text.indexOf(s);
+  if (idx < 0) return null;
+  return [text.slice(0, idx), s, text.slice(idx + s.length)];
+}
+
 export default function PreviewPanel({
   mode,
   onModeChange,
   systemPrompt,
+  highlightSnippet,
   prompt,
   sim,
   radar,
@@ -53,6 +68,7 @@ export default function PreviewPanel({
 }: PreviewPanelProps) {
   const llm = usePromptLabStore((s) => s.llm);
   const setLlm = usePromptLabStore((s) => s.setLlm);
+  const hl = splitHighlight(systemPrompt, highlightSnippet);
 
   return (
     <aside className="pl-preview">
@@ -103,9 +119,21 @@ export default function PreviewPanel({
       <div className="pl-preview-block">
         <h3>系统提示词（身份提示词 · 注入）</h3>
         <pre className="pl-sim-out">
-          {systemPrompt
-            ? systemPrompt
-            : '（线上身份提示词模板未加载——编辑/保存左侧「身份提示词」区后此处实时更新）'}
+          {systemPrompt ? (
+            hl ? (
+              <>
+                {hl[0]}
+                <mark className="pl-hl" title="左侧「身份提示词」当前聚焦的配置项发出的内容">
+                  {hl[1]}
+                </mark>
+                {hl[2]}
+              </>
+            ) : (
+              systemPrompt
+            )
+          ) : (
+            '（线上身份提示词模板未加载——编辑/保存左侧「身份提示词」区后此处实时更新）'
+          )}
         </pre>
       </div>
 

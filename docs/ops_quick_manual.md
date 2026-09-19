@@ -357,9 +357,95 @@ echo "=== 检查完成 ==="
 
 ---
 
+## 🧹 附录 A：根目录一次性运维脚本的引用关系（TASK-03 · 2026-09-18 实测）
+
+> **用途**：根目录有 25 个受控 `.ps1` / `.sh` 一次性脚本。TASK-03 曾建议把它们
+> `git mv` 到 `scripts/legacy/` 归类。**实测发现 23 个有引用（含 2 个 CI workflow），
+> 直接移动会打断 20+ 条文档链接与 CI 脚本路径** —— 因此本次**未移动**，
+> 而是把引用关系记录在此，供后续任务"先改引用、再移动"。
+>
+> 完整判定见 `docs/closeout/REPO_HYGIENE_20260918.md` §5.1。
+> 复现引用检查：`git grep -n --fixed-strings <文件名>`
+
+### A.1 ⛔ 被 CI / 其它脚本直接调用（**移动会直接打断自动化**）
+
+| 脚本 | 引用方 | 风险 |
+|---|---|---|
+| `check.ps1` | `.github/workflows/ci.yml`、`.github/workflows/skills-check.yml`、`Modules/AdminDependencyChecker/AdminDependencyChecker.psd1` | **CI 强依赖**，改动即红 |
+| `recover_docker.ps1` | `complete_verification.ps1` | 脚本间调用链断裂 |
+| `simple_verify.ps1` | `complete_rebuild.ps1`、`complete_rebuild_simple.ps1` | 同上 |
+| `setup-kubeconfig.ps1` | `demo-kubeconfig-fix.ps1`、`docs/archive/KUBECONFIG_*.md` | 同上 |
+| `test-kubeconfig.ps1` | `demo-kubeconfig-fix.ps1`、`docs/archive/KUBECONFIG_*.md` | 同上 |
+
+### A.2 📄 仅被文档引用（**移动前须同步改文档**）
+
+| 脚本 | 引用文档（部分） |
+|---|---|
+| `api_verification.ps1` | `docs/archive/VERIFICATION_REPORT.md` |
+| `complete_rebuild.ps1` | `docs/archive/FINAL_EXECUTION_REPORT_V2.md` |
+| `complete_rebuild_simple.ps1` | `docs/archive/FINAL_VERIFICATION_REPORT.md` |
+| `complete_verification.ps1` | `docs/archive/VERIFICATION_REPORT.md` |
+| `configure_alert_rules.ps1` | `docs/archive/EXECUTION_SUMMARY_REPORT.md` |
+| `configure_docker_mirror.ps1` | `docs/archive/QUICK_START_GUIDE.md`、`docs/archive/offline_image_import_guide.md` |
+| `copy_config_and_restart.ps1` | `docs/archive/FINAL_EXECUTION_REPORT_V2.md`、`docs/archive/FINAL_VERIFICATION_REPORT.md` |
+| `demo-kubeconfig-fix.ps1` | `docs/archive/KUBECONFIG_README.md`、`docs/archive/KUBECONFIG_SUMMARY.md` |
+| `deploy.ps1` | `docs/IO_TIMEOUT_TEST_HANG_ROOTCAUSE_20260802.md`、`docs/archive/DEPLOYMENT_VERIFICATION_REPORT.md`、`docs/reports/bom_fix_links_cleanup_summary_20260803.md` |
+| `fix_alert_rules.ps1` | `docs/archive/ALERT_RULES_TROUBLESHOOTING.md`、`docs/archive/FINAL_EXECUTION_REPORT.md` |
+| `fix_docker_crash.ps1` | `docs/archive/docker_crash_recovery.md` |
+| `fix_docker_mirror_simple.ps1` | `docs/archive/DEPLOYMENT_QUICK_CARD.md`、`docs/archive/QUICK_REFERENCE.md` |
+| `import_grafana_dashboard.ps1` | `docs/archive/EXECUTION_SUMMARY_REPORT.md` |
+| `manual_fix_alerts.ps1` | `docs/archive/FINAL_EXECUTION_REPORT_V3.md`、`docs/archive/ONE_CLICK_RESTART_GUIDE.md` |
+| `one_click_restart.ps1` | `docs/archive/ONE_CLICK_RESTART_GUIDE.md` |
+| `setup_alerts.ps1` | `docs/archive/EXECUTION_SUMMARY_REPORT.md` |
+| `start_monitoring.ps1` | `docs/OBSERVABILITY_OPERATION_MANUAL.md`（**现行手册**）、`docs/archive/QUICK_START_GUIDE.md`、`docs/archive/docker_startup_guide.md` |
+| `update-kubeconfig.ps1` | `docs/archive/QUICK_REAL_CLUSTER_GUIDE.md`、`docs/archive/REAL_KUBECONFIG_GUIDE.md` |
+| `fix_docker_mirror.ps1` | `docs/archive/`（多份） |
+| `fix_alert_rules.ps1`、`import_grafana_dashboard.ps1`、`manual_fix_alerts.ps1` | 见上 |
+
+### A.3 迁移正确顺序（后续任务用）
+
+1. `git grep -n --fixed-strings <脚本名>` 列出全部引用；
+2. 修改 CI workflow / 文档 / 脚本间调用里的路径；
+3. `git mv <脚本> scripts/ops/`（**不要用 `Remove-Item` 直删**）；
+4. 重跑 `python scripts/dev/check_docs_broken_links.ps1` 确认文档链接未断。
+
+---
+
+## 🔐 附录 B：`.env.backups/` 密钥副本减量（**移交 TASK-07**）
+
+实测（2026-09-18）：
+
+| 项 | 值 |
+|---|---|
+| 文件数 | **50** |
+| 总体积 | **7,038 KB**（均值 ~141 KB/份） |
+| 时间跨度 | 2026-09-11 00:04 → 2026-09-13 03:12 |
+| git 隔离 | ✅ `.gitignore:285` 已忽略 `.env.backups/` ⇒ 不会进 git 历史 |
+| ACL | 继承型，**未显式收紧**（`SYSTEM` / `Administrators` / `AdminWT` 均 FullControl） |
+
+**为什么本次未减量**：删除 47 份**生产密钥副本**是不可逆动作，且需要密钥轮换窗口；
+`TASK-00 D6` 要求不碰生产数据，密钥横向扩散的根治归属 **TASK-07**。
+
+**⚠️ 处置前必须先确认"最近 3 份密钥是否仍有效、其余是否有任何回滚用途"。**
+确认后的一键命令（**保留最近 3 份**，其余移入带 ACL 收紧的隔离目录）：
+
+```powershell
+cd C:\Users\Administrator\agent
+# ① 保留最近 3 份，其余移到隔离区（**先移动、不要直接删**）
+New-Item -ItemType Directory -Force -Path .env.backups\_quarantine | Out-Null
+Get-ChildItem .env.backups -File | Sort-Object LastWriteTime -Descending |
+    Select-Object -Skip 3 | Move-Item -Destination .env.backups\_quarantine
+# ② 收紧隔离区 ACL（去掉继承，只留 SYSTEM + Administrators）
+icacls .env.backups\_quarantine /inheritance:r /grant:r "SYSTEM:(OI)(CI)F" "Administrators:(OI)(CI)F"
+# ③ 观察一个密钥轮换周期后，再决定是否删除 _quarantine
+```
+
+---
+
 **文档位置**: `docs/ops_quick_manual.md`  
 **相关文档**: [应急预案](file:///c:/Users/Administrator/agent/docs/emergency_plan.md) | [部署确认书](file:///c:/Users/Administrator/agent/docs/deployment_confirmation.md)
 
 ---
 
 *手册生成时间: 2026-06-11*
+*附录 A/B 追加时间: 2026-09-18（TASK-03 地基加固）*

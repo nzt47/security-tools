@@ -137,7 +137,7 @@
     "tool_definitions": {
       "custom_content": "",
       "description": "通过 API 的 tools 参数注入 27 个工具的 JSON Schema，LLM 据此调用工具",
-      "enabled": false,
+      "enabled": true,
       "extra_params": {},
       "label": "工具定义（tools 参数）",
       "token_limit": 4000
@@ -145,7 +145,7 @@
     "tool_status": {
       "custom_content": "",
       "description": "文本形式列出已启用/禁用的工具和技能名称",
-      "enabled": false,
+      "enabled": true,
       "extra_params": {},
       "label": "工具与技能状态列表",
       "token_limit": 0
@@ -168,5 +168,5 @@
     }
   },
   "version": 2,
-  "_last_applied": 1788432056.220747
+  "_last_applied": 1789773504.6453602
 }

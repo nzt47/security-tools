@@ -160,6 +160,196 @@ class SystemPromptConfigData:
 #  新增组件只需在此注册一条记录 + 实现 render 函数
 # ════════════════════════════════════════════════════════════
 
+# ════════════════════════════════════════════════════════════
+#  发出内容 / 发出顺序（emit info）
+#  ------------------------------------------------------------
+#  「发出」= 该配置项真正进入请求的那一段内容与时机。前端「身份提示词
+#  （系统提示词 · 线上配置）」面板据此：
+#    1. 启用时直接显示该项的「发出内容」（例：技能指令启用 → {skill_instructions}）；
+#    2. 按配置项被拼进 system message 的先后顺序排列（发出顺序 = 面板顺序）。
+#  模板节（SECTION_REGISTRY）的发出内容取渲染结果原文；未参与模板的额外
+#  组件（tools 参数 / 用户消息前置 / 运行期注入）按下方声明给出事实描述。
+# ════════════════════════════════════════════════════════════
+
+# 额外组件的发出阶段 + 发出内容说明（key → (stage, 说明)）
+EXTRA_EMIT_INFO: dict[str, tuple[str, str]] = {
+    "tool_definitions": (
+        "tools",
+        "随请求 tools 字段发出的全部工具 JSON Schema（不占 system message 文本）",
+    ),
+    "smart_tool_selection": (
+        "tools",
+        "对 tools 字段按需筛选（只影响工具定义数量，不改变 system message 文本）",
+    ),
+    "tool_urge": (
+        "user_message",
+        "在用户消息前追加：⚡ 立即检查是否需要工具，直接发起函数调用",
+    ),
+    "working_memory": (
+        "runtime",
+        "运行期注入当前任务状态 / 交互计数（约 200 tokens）",
+    ),
+    "lifetrace": (
+        "runtime",
+        "运行期把长期记忆检索结果并入记忆线索（V2，需 lifetrace 模块）",
+    ),
+    "persona": (
+        "runtime",
+        "运行期由 persona 模块追加五层人格文本（V2，需 persona 模块）",
+    ),
+    "distillation": (
+        "runtime",
+        "由 persona 蒸馏流程写入人格参数，间接影响人格文本（V2）",
+    ),
+}
+
+# 发出阶段中文标签（供前端展示）
+EMIT_STAGE_LABEL: dict[str, str] = {
+    "system_prompt": "system message 注入",
+    "tools": "tools 参数",
+    "user_message": "用户消息前置",
+    "runtime": "运行期注入",
+}
+
+# 聚合节（如 current_status）下挂在子节的发出内容原文
+CHILD_EMIT_TEXT: dict[str, str] = {
+    "body_status": "{body_status}",
+    "mode_info": "当前处于「{mode_name}」——{mode_description}",
+}
+
+# 未发出（未启用 / 未参与组装）的节排在同组末尾，保持注册表声明顺序
+_EMIT_NONE_BASE = 10_000
+# 非模板节（额外组件）排在模板节之后，未发出的模板节排在其后
+_EMIT_EXTRA_BASE = 1_000
+
+
+def compute_emit_info(sections: dict, template: str = "") -> dict:
+    """计算每个配置节的「发出内容 / 发出顺序 / 发出阶段 / 是否发出」。
+
+    发出顺序的判定依据是**真实组装结果**：启用且渲染非空的模板节按其内容在
+    system message 模板中的出现位置排序（即真正被拼进提示词的先后顺序）；
+    未参与模板文本的额外组件按 EXTRA_EMIT_INFO 声明的阶段排在模板节之后；
+    未启用（不发出）的节排在最后，同组内保持注册表声明顺序。
+
+    Args:
+        sections: 配置节字典（config["sections"]）
+        template: 由 build_template 生成的当前模板；缺省时按注册表现场渲染
+
+    Returns:
+        {key: {"emit_text": str, "emit_order": int, "emit_stage": str, "emitted": bool}}
+    """
+    sections = sections or {}
+
+    if not template:
+        parts = []
+        for _k, _fn, _m in SECTION_REGISTRY:
+            try:
+                _r = _fn(sections)
+            except Exception:  # noqa: BLE001 渲染失败按未发出处理
+                _r = ""
+            if _r:
+                parts.append(_r)
+        template = "\n\n".join(parts)
+
+    info: dict = {}
+    next_fallback = 0
+
+    # ── 模板节：按内容在模板中的出现位置排序 ──
+    for key, render_func, meta in SECTION_REGISTRY:
+        try:
+            rendered = render_func(sections) or ""
+        except Exception as e:  # noqa: BLE001 渲染异常不阻断面板
+            logger.warning("渲染 section [%s] 失败（emit info）: %s", key, e)
+            rendered = ""
+        enabled = bool(sections.get(key, {}).get("enabled", True))
+        # 「若启用会发出的内容」：渲染函数自身会在 disabled 时返回空串，故强制
+        # 临时启用后再渲染一次 —— 前端据此在**刚点开开关、尚未保存**时就能显示
+        # 该项的发出内容（须与后端真实渲染同源，避免两套内容口径）。
+        potential = rendered
+        if not potential:
+            try:
+                probe = {k: (dict(v) if isinstance(v, dict) else v)
+                         for k, v in sections.items()}
+                probe[key] = dict(probe.get(key) or {})
+                probe[key]["enabled"] = True
+                potential = render_func(probe) or ""
+            except Exception:  # noqa: BLE001 探测失败按无内容处理
+                potential = ""
+        if not rendered or not enabled:
+            # 未发出（未启用 / 渲染为空）：排在最后，但保留「若启用会发出什么」
+            info.setdefault(key, {
+                "emit_text": potential,
+                "emit_order": _EMIT_NONE_BASE,
+                "emit_stage": "system_prompt",
+                "emitted": False,
+            })
+            continue
+        pos = template.find(rendered)
+        if pos < 0:
+            pos = _EMIT_EXTRA_BASE + next_fallback
+            next_fallback += 1
+        info[key] = {
+            "emit_text": rendered,
+            "emit_order": pos,
+            "emit_stage": "system_prompt",
+            "emitted": True,
+        }
+        # 聚合节的子节（body_status / mode_info）紧随父节发出
+        for offset, child in enumerate(meta.get("sub_keys", []) or []):
+            child_sec = sections.get(child, {})
+            if not child_sec.get("enabled", True):
+                continue
+            info[child] = {
+                "emit_text": CHILD_EMIT_TEXT.get(child, ""),
+                "emit_order": pos + (offset + 1) / 100.0,
+                "emit_stage": "system_prompt",
+                "emitted": True,
+            }
+
+    # ── 额外组件（非模板节）：按声明阶段排在模板节之后 ──
+    # 未启用也给出发出内容说明（前端「启用时显示发出内容」需要），emitted 标记真实状态
+    for idx, (key, meta) in enumerate(EXTRA_REGISTRY):
+        enabled = bool(sections.get(key, {}).get("enabled", True))
+        stage, hint = EXTRA_EMIT_INFO.get(key, ("runtime", ""))
+        info[key] = {
+            "emit_text": hint,
+            "emit_order": _EMIT_EXTRA_BASE + idx,
+            "emit_stage": stage,
+            "emitted": bool(enabled),
+        }
+
+    # ── 未发出的模板节（含未启用的子节）：排在最后 ──
+    for idx, (key, _fn, meta) in enumerate(SECTION_REGISTRY):
+        if key not in info:
+            info[key] = {
+                "emit_text": "",
+                "emit_order": _EMIT_NONE_BASE + idx,
+                "emit_stage": "system_prompt",
+                "emitted": False,
+            }
+        for child in meta.get("sub_keys", []) or []:
+            if child not in info:
+                info[child] = {
+                    # 子节未启用也给出发出内容（启用后可立即显示）
+                    "emit_text": CHILD_EMIT_TEXT.get(child, ""),
+                    "emit_order": _EMIT_NONE_BASE + idx + 0.5,
+                    "emit_stage": "system_prompt",
+                    "emitted": False,
+                }
+
+    # ── 配置里存在但注册表未覆盖的节：兜底排在末尾 ──
+    for extra_idx, key in enumerate(sorted(sections.keys())):
+        if key not in info:
+            info[key] = {
+                "emit_text": "",
+                "emit_order": _EMIT_NONE_BASE * 2 + extra_idx,
+                "emit_stage": "system_prompt",
+                "emitted": False,
+            }
+
+    return info
+
+
 def _render_identity(sections: dict) -> str:
     """渲染基础身份设定（稳定块，置于模板头部；不含日期——日期属易变内容见
     _render_current_status，前置会击穿其后全部 DeepSeek 前缀缓存）"""
@@ -455,6 +645,9 @@ class SystemPromptConfigManager:
         total_disabled = 0
         savings_when_off = 0
 
+        # 发出信息：发出内容（启用时显示在提示词区域）+ 发出顺序（面板排序依据）
+        emit_info = compute_emit_info(sections, self.build_template(config))
+
         for key in get_all_registry_keys():
             sec = sections.get(key, {})
             enabled = sec.get("enabled", True)
@@ -471,6 +664,7 @@ class SystemPromptConfigManager:
                     break
 
             tokens = estimate.get("tokens", 0)
+            _emit = emit_info.get(key, {})
             stats[key] = {
                 "enabled": enabled,
                 "tokens": tokens,
@@ -480,6 +674,13 @@ class SystemPromptConfigManager:
                 "has_custom": bool(sec.get("custom_content", "").strip()),
                 "configurable": estimate.get("configurable", False),
                 "token_limit": sec.get("token_limit", 0),
+                # ── 发出信息（前端：启用时显示发出内容 + 按发出顺序排列面板）──
+                "emit_text": _emit.get("emit_text", ""),
+                "emit_order": _emit.get("emit_order", 0),
+                "emit_stage": _emit.get("emit_stage", "system_prompt"),
+                "emit_stage_label": EMIT_STAGE_LABEL.get(
+                    _emit.get("emit_stage", "system_prompt"), ""),
+                "emitted": bool(_emit.get("emitted", enabled)),
             }
             if enabled:
                 total_enabled += tokens
@@ -494,6 +695,10 @@ class SystemPromptConfigManager:
             "custom_template": config.get("custom_template"),
             "registry": get_registry_meta(),
             "stats": stats,
+            # 全量发出信息（含聚合节的子节 body_status / mode_info —— 它们不在
+            # get_all_registry_keys() 里，故单独返回一份，供前端排序 + 显示发出内容）
+            "emit_info": emit_info,
+            "emit_stage_labels": EMIT_STAGE_LABEL,
             "summary": {
                 "total_enabled_tokens": total_enabled + base_template_tokens,
                 "total_disabled_count": total_disabled,

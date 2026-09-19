@@ -337,6 +337,259 @@ body,
   border-style: solid;
 }
 
+/* ─── 对话风格（主题 / 气泡 / 字号）：由 useChatPrefsStore 折算的 --chat-* 变量驱动 ───
+   变量挂在消息列表容器 .wb-chat-surface 上（ChatPanel），故这里只消费变量；
+   未设置变量时 fallback 到工作台主题，保证任何入口（独立窗口等）都有兜底观感。 */
+.wb-bubble-user {
+  background: var(--chat-user-bg, rgba(56, 189, 248, 0.1));
+  border-color: var(--chat-user-border, rgba(56, 189, 248, 0.2));
+  color: var(--chat-user-text, #e0f2fe);
+  border-radius: var(--chat-bubble-radius-user, 14px 14px 4px 14px);
+}
+.wb-bubble-bot {
+  background: var(--chat-bot-bg, rgba(15, 23, 42, 0.5));
+  border-color: var(--chat-bot-border, rgba(34, 211, 238, 0.15));
+  color: var(--chat-bot-text, #f1f5f9);
+  border-radius: var(--chat-bubble-radius-bot, 14px 14px 14px 4px);
+}
+.wb-chat-surface {
+  font-size: var(--chat-fs, 14px);
+}
+
+/* ─── 对话工具条：思考/工具显示开关（legacy 同款开关观感） ─── */
+.wb-display-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--wb-border);
+  background: transparent;
+  color: var(--wb-text-dim);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.wb-display-toggle:hover {
+  border-color: var(--wb-border-strong);
+  color: var(--wb-text);
+}
+.wb-display-toggle.on {
+  border-color: rgba(34, 211, 238, 0.55);
+  background: rgba(34, 211, 238, 0.12);
+  color: #67e8f9;
+}
+.wb-display-toggle.off {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+/* 当前对话没有可显隐的步骤（例如未触发工具调用）：弱化但不禁用，配合 title 说明原因 */
+.wb-display-toggle.idle {
+  opacity: 0.55;
+}
+.wb-display-count {
+  min-width: 14px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+  font-family: var(--wb-mono);
+  font-size: 9.5px;
+  line-height: 14px;
+  text-align: center;
+}
+.wb-display-toggle.on .wb-display-count {
+  background: rgba(34, 211, 238, 0.25);
+  color: #a5f3fc;
+}
+
+/* ─── 思考过程 / 工具调用步骤（对话内联显示） ─── */
+.wb-thought-block,
+.wb-tool-step {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.45);
+  overflow: hidden;
+}
+.wb-thought-block {
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.05);
+}
+.wb-tool-step {
+  border-color: rgba(168, 85, 247, 0.28);
+  background: rgba(168, 85, 247, 0.05);
+}
+.wb-step-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 9px;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-family: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.wb-step-head:hover {
+  background: rgba(148, 163, 184, 0.08);
+}
+.wb-step-emoji {
+  font-size: 11px;
+}
+.wb-step-title {
+  font-weight: 500;
+}
+.wb-step-meta {
+  margin-left: auto;
+  font-family: var(--wb-mono);
+  font-size: 10px;
+  color: var(--wb-text-dim);
+}
+.wb-step-body {
+  padding: 0 10px 8px;
+}
+.wb-step-text {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--wb-mono);
+  font-size: 11px;
+  line-height: 1.55;
+  color: #94a3b8;
+}
+.wb-tool-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+.wb-tool-steps-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #d8b4fe;
+}
+.wb-tool-steps-head em {
+  font-style: normal;
+  font-family: var(--wb-mono);
+  opacity: 0.8;
+}
+.wb-tool-running {
+  font-size: 10px;
+  color: #67e8f9;
+}
+
+/* 思考链路逐条列出（阶段事件 / 推理内容） */
+.wb-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wb-step-row {
+  padding: 4px 6px;
+  border-radius: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.35);
+}
+.wb-step-row.running {
+  border-color: rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.06);
+}
+.wb-step-row.error {
+  border-color: rgba(248, 113, 113, 0.4);
+}
+.wb-step-row-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #cbd5e1;
+}
+.wb-step-row-title {
+  font-weight: 500;
+}
+.wb-step-row-status {
+  margin-left: auto;
+  font-family: var(--wb-mono);
+  font-size: 10px;
+  color: var(--wb-text-dim);
+}
+.wb-step-row .wb-step-text {
+  margin-top: 3px;
+  padding-left: 17px;
+}
+
+/* 开关关闭时的提示条（让显示/隐藏开关的效果可见、可一键恢复） */
+.wb-hidden-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: transparent;
+  color: var(--wb-text-dim);
+  font-family: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.wb-hidden-chip:hover {
+  border-color: rgba(34, 211, 238, 0.5);
+  color: #67e8f9;
+}
+
+/* ─── 输出格式：紧凑 ─── */
+.wb-chat-format-compact {
+  gap: 8px;
+}
+.wb-chat-format-compact .wb-msg-avatar {
+  display: none;
+}
+.wb-chat-format-compact .wb-msg-time {
+  display: flex;
+  gap: 6px;
+}
+.wb-msg-role {
+  font-style: normal;
+  color: #67e8f9;
+}
+.wb-chat-format-compact .wb-bubble {
+  padding: 7px 10px;
+  border-radius: var(--chat-bubble-radius, 6px);
+}
+.wb-chat-format-compact .wb-msg-col {
+  max-width: 92%;
+}
+
+/* ─── 输出格式：终端 ─── */
+.wb-chat-format-terminal .wb-msg-avatar {
+  display: none;
+}
+.wb-chat-format-terminal .wb-msg-col {
+  max-width: 100%;
+  width: 100%;
+  align-items: stretch;
+}
+.wb-chat-format-terminal .wb-bubble {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-family: var(--wb-mono);
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.12);
+}
+.wb-chat-format-terminal :is(p, li, td, th, h1, h2, h3, h4, code, pre) {
+  font-family: var(--wb-mono);
+}
+
 /* 流式光标 */
 .wb-caret {
   display: inline-block;

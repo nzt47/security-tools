@@ -7,6 +7,13 @@
  *   - 保存（写入线上配置）/ 恢复默认 / 重新载入
  * 数据与状态全部由 useIdentityPrompt（identityPrompt.ts）管理，本组件仅渲染。
  * 卡片样式沿用实验室 .pl- 风格。
+ *
+ * 启用状态 ↔ 内容显示联动（按需实现）：
+ *   - 面板项**启用**时，其「发出内容」就地显示（例：技能指令启用 → {skill_instructions}）；
+ *     停用则不显示发出内容（该节不参与组装）。
+ *   - 鼠标悬停某面板项 → 右侧/预览区「系统提示词」按同一份发出内容高亮定位
+ *     （onFocusRow 上抛 key，由页面把 emitText 传给 PreviewPanel.highlightSnippet）。
+ * 排序：行序由 identityPrompt.buildRows 按「发出顺序」（模板中的注入位置）给出。
  */
 import { Loader2, RefreshCw, RotateCcw, Save, TriangleAlert, Zap } from 'lucide-react'
 import type { IdentityRow, IdentitySummary, UseIdentityPromptResult } from './identityPrompt'
@@ -27,10 +34,14 @@ export interface IdentityPromptPanelProps {
   onApply: () => void
   onReset: () => void
   onReload: () => void
+  /** 悬停/聚焦某面板项（null = 取消）；页面据此在提示词区域高亮该节的发出内容 */
+  onFocusRow?: (key: string | null) => void
+  /** 当前聚焦的面板项 key */
+  focusedKey?: string | null
 }
 
 /** 由 Hook 结果构造面板 props（组件不直接依赖 Hook 类型，便于测试/复用） */
-export function toIdentityPromptPanelProps(r: UseIdentityPromptResult): IdentityPromptPanelProps {
+export function toIdentityPromptPanelProps(r: UseIdentityPromptResult): Omit<IdentityPromptPanelProps, 'onFocusRow' | 'focusedKey'> {
   return {
     rows: r.rows,
     summary: r.summary,
@@ -50,9 +61,16 @@ export function toIdentityPromptPanelProps(r: UseIdentityPromptResult): Identity
 }
 
 export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
-  const { rows, summary, loading, saving, applying, dirty, error, msg, onToggle, onEditContent, onSave, onApply, onReset, onReload } = props
+  const {
+    rows, summary, loading, saving, applying, dirty, error, msg,
+    onToggle, onEditContent, onSave, onApply, onReset, onReload,
+    onFocusRow, focusedKey,
+  } = props
   const enabledCount = rows.filter((r) => r.enabled).length
   const busy = loading || saving || applying
+  // 发出序号：仅统计真正发出的节（面板项按发出顺序排列，序号即发出次序）
+  const emittedOrder = new Map<string, number>()
+  rows.filter((r) => r.emitted).forEach((r, i) => emittedOrder.set(r.key, i + 1))
 
   return (
     <section className="pl-category pl-identity">
@@ -60,13 +78,15 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
         <span className="pl-category-dot" style={{ background: '#22d3ee' }} />
         身份提示词（系统提示词 · 线上配置）
         <span className="pl-category-count">
-          {loading ? '载入中…' : `${rows.length} 节 · 启用 ${enabledCount} 节`}
+          {loading ? '载入中…' : `${rows.length} 节 · 启用 ${enabledCount} 节 · 已发出 ${emittedOrder.size} 节`}
         </span>
       </h2>
       <p className="pl-category-desc">
-        原工作台「人格与提示词 → 身份提示词」并入。段序 = 注入顺序 = DeepSeek 前缀缓存命中顺序
-        （稳定节前置、易变节后置）。<b>保存</b> 仅写配置库；<b>应用</b> 再按 registry 顺序组装并写入
-        运行时 <code>data/system_prompt.txt</code>，后续每次 LLM 调用立即生效。
+        原工作台「人格与提示词 → 身份提示词」并入。<b>面板顺序 = 发出顺序</b>（该节被拼进
+        system message 的先后）＝ DeepSeek 前缀缓存命中顺序（稳定节前置、易变节后置）。
+        某节<b>启用</b>后其「发出内容」会就地显示在卡片内，并在右侧「系统提示词」区域高亮定位。
+        <b>保存</b> 仅写配置库；<b>应用</b> 再按 registry 顺序组装并写入运行时
+        <code>data/system_prompt.txt</code>，后续每次 LLM 调用立即生效。
       </p>
 
       {!loading && summary && (
@@ -120,68 +140,95 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
         <p className="pl-error">未获取到任何提示词节（后端无配置或接口不可达）。</p>
       ) : (
         <div className="pl-card-grid">
-          {rows.map((row) => (
-            <div key={row.key} className="pl-factor-card pl-syspart">
-              <div className="pl-factor-head">
-                <span className="pl-factor-name">
-                  {row.label}
-                  {row.editable && <em className="pl-editable-tag">可编辑</em>}
-                </span>
-                <div className="flex items-center gap-2">
-                  {row.estimate > 0 && (
-                    <span className="pl-token-chip" title={row.range ? `估算范围 ${row.range} tok` : `估算 ~${row.estimate} tok`}>
-                      ~{row.estimate} tok{row.range ? ` · ${row.range}` : ''}
+          {rows.map((row) => {
+            const seq = emittedOrder.get(row.key)
+            return (
+              <div
+                key={row.key}
+                className={`pl-factor-card pl-syspart ${row.emitted ? 'emitted' : ''} ${focusedKey === row.key ? 'focused' : ''}`}
+                onMouseEnter={() => onFocusRow?.(row.key)}
+                onMouseLeave={() => onFocusRow?.(null)}
+                onFocus={() => onFocusRow?.(row.key)}
+                onBlur={() => onFocusRow?.(null)}
+              >
+                <div className="pl-factor-head">
+                  <span className="pl-factor-name">
+                    {row.emitted && seq != null && <em className="pl-emit-seq" title={`发出顺序 #${seq}`}>#{seq}</em>}
+                    {row.label}
+                    {row.editable && <em className="pl-editable-tag">可编辑</em>}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {row.estimate > 0 && (
+                      <span className="pl-token-chip" title={row.range ? `估算范围 ${row.range} tok` : `估算 ~${row.estimate} tok`}>
+                        ~{row.estimate} tok{row.range ? ` · ${row.range}` : ''}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className={`pl-toggle ${row.enabled ? 'on' : ''}`}
+                      aria-pressed={row.enabled}
+                      disabled={row.moduleBadge && !row.moduleAvailable}
+                      title={
+                        row.moduleBadge && !row.moduleAvailable
+                          ? '对应 V2 模块未安装，无法启用'
+                          : row.enabled
+                            ? '停用该节（不再注入）'
+                            : '启用该节'
+                      }
+                      onClick={() => onToggle(row.key)}
+                    >
+                      <span className="pl-toggle-dot" />
+                      {row.enabled ? '启用' : '停用'}
+                    </button>
+                  </div>
+                </div>
+                {row.description && <p className="pl-factor-desc">{row.description}</p>}
+
+                {row.editable ? (
+                  <textarea
+                    className={`pl-textarea pl-syspart-text ${row.enabled ? '' : 'disabled'}`}
+                    rows={3}
+                    value={row.customContent}
+                    spellCheck={false}
+                    placeholder="留空使用该节默认注入内容；填写后以自定义内容替代。"
+                    onChange={(e) => onEditContent(row.key, e.target.value)}
+                  />
+                ) : (
+                  <div className="pl-syspart-status">
+                    {row.enabled ? (
+                      <span>已启用（运行时自动注入）</span>
+                    ) : (
+                      <span>已停用（不参与组装）</span>
+                    )}
+                    {row.tokenLimit > 0 && <span className="pl-syspart-limit">token 上限 {row.tokenLimit.toLocaleString()}</span>}
+                    {row.note && <span className="pl-syspart-note">{row.note}</span>}
+                  </div>
+                )}
+
+                {/* 启用状态 ↔ 内容显示联动：启用后就地显示该节真正发出的内容 */}
+                {row.enabled && row.emitText && (
+                  <div className="pl-emit" title="该节启用后拼进请求的内容（与右侧提示词区域一致）">
+                    <span className="pl-emit-label">
+                      发出内容{row.emitStageLabel ? ` · ${row.emitStageLabel}` : ''}
                     </span>
-                  )}
-                  <button
-                    type="button"
-                    className={`pl-toggle ${row.enabled ? 'on' : ''}`}
-                    aria-pressed={row.enabled}
-                    disabled={row.moduleBadge && !row.moduleAvailable}
-                    title={
-                      row.moduleBadge && !row.moduleAvailable
-                        ? '对应 V2 模块未安装，无法启用'
-                        : row.enabled
-                          ? '停用该节（不再注入）'
-                          : '启用该节'
-                    }
-                    onClick={() => onToggle(row.key)}
-                  >
-                    <span className="pl-toggle-dot" />
-                    {row.enabled ? '启用' : '停用'}
-                  </button>
-                </div>
+                    <pre className="pl-emit-text">{row.emitText}</pre>
+                  </div>
+                )}
+                {!row.enabled && (row.emitText || row.editable) && (
+                  <div className="pl-emit muted" title="该节当前未启用，不参与请求组装">
+                    <span className="pl-emit-label">未发出</span>
+                    <pre className="pl-emit-text">{row.emitText || '（启用后在此显示该节发出的内容）'}</pre>
+                  </div>
+                )}
+
+                {row.moduleBadge && !row.moduleAvailable && (
+                  <p className="pl-id-warn">
+                    <TriangleAlert size={11} /> 对应 V2 模块未安装，服务端将保持停用
+                  </p>
+                )}
               </div>
-              {row.description && <p className="pl-factor-desc">{row.description}</p>}
-
-              {row.editable ? (
-                <textarea
-                  className={`pl-textarea pl-syspart-text ${row.enabled ? '' : 'disabled'}`}
-                  rows={3}
-                  value={row.customContent}
-                  spellCheck={false}
-                  placeholder="留空使用该节默认注入内容；填写后以自定义内容替代。"
-                  onChange={(e) => onEditContent(row.key, e.target.value)}
-                />
-              ) : (
-                <div className="pl-syspart-status">
-                  {row.enabled ? (
-                    <span>已启用（运行时自动注入）</span>
-                  ) : (
-                    <span>已停用（不参与组装）</span>
-                  )}
-                  {row.tokenLimit > 0 && <span className="pl-syspart-limit">token 上限 {row.tokenLimit.toLocaleString()}</span>}
-                  {row.note && <span className="pl-syspart-note">{row.note}</span>}
-                </div>
-              )}
-
-              {row.moduleBadge && !row.moduleAvailable && (
-                <p className="pl-id-warn">
-                  <TriangleAlert size={11} /> 对应 V2 模块未安装，服务端将保持停用
-                </p>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
       <div className="pl-syspart-actions">

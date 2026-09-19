@@ -7,5 +7,9 @@
 
 {skill_instructions}
 
+## 当前工具与技能状态
+以下是当前已启用/禁用的工具和技能，当被问及时请如实回答：
+{tool_status}
+
 ## 记忆线索
 {memory_context}

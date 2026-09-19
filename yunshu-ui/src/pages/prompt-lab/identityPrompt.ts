@@ -66,6 +66,22 @@ export interface IdentityConfigResponse {
   stats?: Record<string, IdentityStatsItem>
   summary?: IdentitySummary
   has_custom_template?: boolean
+  /** 全量发出信息（后端 compute_emit_info）：发出内容 / 发出顺序 / 发出阶段 */
+  emit_info?: Record<string, IdentityEmitInfo>
+  /** 发出阶段中文标签（system_prompt / tools / user_message / runtime） */
+  emit_stage_labels?: Record<string, string>
+}
+
+/** 单个配置项的「发出信息」：真正进入请求的内容与时机 */
+export interface IdentityEmitInfo {
+  /** 发出内容原文（启用时才有值；如 {skill_instructions}） */
+  emit_text?: string
+  /** 发出顺序（= 拼进 system message 的先后位置，面板排序依据） */
+  emit_order?: number
+  /** 发出阶段：system_prompt / tools / user_message / runtime */
+  emit_stage?: string
+  /** 是否真正发出（未启用 / 未参与组装 → false） */
+  emitted?: boolean
 }
 
 /** 渲染行：把 sections[key] + registry/stats 元信息合成为面板可直接消费的结构 */
@@ -83,6 +99,14 @@ export interface IdentityRow {
   hasCustom: boolean
   moduleAvailable: boolean
   moduleBadge: boolean
+  /** 发出内容（启用时显示在提示词区域；如 {skill_instructions}） */
+  emitText: string
+  /** 发出顺序（面板排序依据：拼进 system message 的先后顺序） */
+  emitOrder: number
+  /** 发出阶段标签（system message 注入 / tools 参数 / …） */
+  emitStageLabel: string
+  /** 是否真正发出 */
+  emitted: boolean
 }
 
 const unwrapObj = <T,>(r: unknown): T => {
@@ -129,31 +153,58 @@ export function buildRows(
   sections: Record<string, IdentityRawSection>,
   registry?: IdentityMeta[],
   stats?: Record<string, IdentityStatsItem>,
+  emitInfo?: Record<string, IdentityEmitInfo>,
+  emitStageLabels?: Record<string, string>,
+  /** 当前真实的注入模板（后端模板引擎产出）：用于按「实际发出位置」排序 */
+  template?: string,
 ): IdentityRow[] {
   const meta = buildMetaMap(registry)
   const statOf = (k: string) => stats?.[k]
-  return buildDisplayOrder(sections, registry).map((key) => {
+  const emitOf = (k: string) => emitInfo?.[k]
+  const rows = buildDisplayOrder(sections, registry).map((key) => {
     const sec = sections[key] ?? {}
     const m = meta.get(key)
     const s = statOf(key)
+    const em = emitOf(key)
     const extra = (sec.extra_params ?? {}) as Record<string, unknown>
     const moduleAvailable = extra.module_available !== false
+    const enabled = sec.enabled !== false
+    const stage = String(em?.emit_stage ?? 'system_prompt')
+    const custom = String(sec.custom_content ?? '')
+    // 发出内容：可编辑节有自定义内容时以自定义内容为准（渲染函数原样返回），
+    // 否则用后端给出的该节渲染原文（如技能指令 → {skill_instructions}）。
+    const emitText = custom.trim() ? custom : String(em?.emit_text ?? '')
+    // 真实发出位置：在当前模板中定位该节的发出内容 —— 排序即「拼进 system
+    // message 的先后顺序」，且与左侧开关状态实时联动（模板每次改动都会刷新）。
+    const pos = emitText ? (template ?? '').indexOf(emitText) : -1
+    const serverOrder = Number(em?.emit_order ?? Number.MAX_SAFE_INTEGER)
     return {
       key,
-      enabled: sec.enabled !== false,
+      enabled,
       label: String(sec.label ?? m?.label ?? key),
       description: String(m?.description ?? sec.description ?? ''),
-      customContent: String(sec.custom_content ?? ''),
+      customContent: custom,
       tokenLimit: Number(sec.token_limit ?? s?.token_limit ?? 0),
       editable: Boolean(s?.editable ?? m?.editable),
       estimate: Number(s?.tokens ?? m?.tokens ?? 0),
       range: String(s?.range ?? m?.range ?? ''),
       note: String(s?.note ?? m?.note ?? ''),
-      hasCustom: Boolean(s?.has_custom ?? String(sec.custom_content ?? '').trim()),
+      hasCustom: Boolean(s?.has_custom ?? custom.trim()),
       moduleAvailable,
       moduleBadge: Boolean(m?.badge_key),
+      // 启用时显示发出内容（联动「提示词区域」）；未启用不显示（未发出）
+      emitText: enabled ? emitText : '',
+      emitOrder: pos >= 0 ? pos : serverOrder,
+      emitStageLabel: String(emitStageLabels?.[stage] ?? ''),
+      emitted: enabled && (pos >= 0 || Boolean(em?.emitted ?? enabled)),
     }
   })
+  // 排序规则：按配置项被拼进 system message 的先后顺序（发出顺序）排列；
+  // 未发出的项排在同组末尾，同序内保持注册表原序（稳定排序）。
+  return rows
+    .map((row, idx) => ({ row, idx }))
+    .sort((a, b) => (a.row.emitOrder - b.row.emitOrder) || (a.idx - b.idx))
+    .map((x) => x.row)
 }
 
 // ─── 状态 Hook：载入 / 启停 / 编辑 / 防抖模板预览 / 保存 / 重置 ───────
@@ -185,6 +236,8 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
   const [sections, setSections] = useState<Record<string, IdentityRawSection>>({})
   const [registry, setRegistry] = useState<IdentityMeta[]>([])
   const [stats, setStats] = useState<Record<string, IdentityStatsItem>>({})
+  const [emitInfo, setEmitInfo] = useState<Record<string, IdentityEmitInfo>>({})
+  const [emitStageLabels, setEmitStageLabels] = useState<Record<string, string>>({})
   const [summary, setSummary] = useState<IdentitySummary | null>(null)
   const [template, setTemplate] = useState('')
   const [templateLoading, setTemplateLoading] = useState(false)
@@ -229,6 +282,8 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
       setSections(secs)
       setRegistry(Array.isArray(resp.registry) ? resp.registry : [])
       setStats((resp.stats ?? {}) as Record<string, IdentityStatsItem>)
+      setEmitInfo((resp.emit_info ?? {}) as Record<string, IdentityEmitInfo>)
+      setEmitStageLabels((resp.emit_stage_labels ?? {}) as Record<string, string>)
       setSummary((resp.summary ?? null) as IdentitySummary | null)
       setDirty(false)
       await refreshTemplate(secs)
@@ -340,7 +395,7 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
   }, [applying, reload])
 
   return {
-    rows: buildRows(sections, registry, stats),
+    rows: buildRows(sections, registry, stats, emitInfo, emitStageLabels, template),
     rawSections: sections,
     summary,
     template,

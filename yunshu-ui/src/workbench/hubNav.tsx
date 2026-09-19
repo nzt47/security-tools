@@ -9,10 +9,10 @@ import { lazy, type ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   MessageSquare, LayoutDashboard, Brain, Wrench, RefreshCw, Globe, Factory, Database,
-  Activity, FileText, Server, BookOpen, Search, Boxes, Terminal, Plug, Monitor,
+  Activity, FileText, Server, BookOpen, Search, Boxes, Monitor,
   HeartPulse, CalendarClock, Users, Copy, Hammer, FolderHeart, Lightbulb, Palette,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Smile, Puzzle,
-  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, Route,
+  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -28,13 +28,11 @@ const MemoryPage = lazy(() => import('@/pages/hub/memory'))
 const SkillCenter = lazy(() => import('@/pages/hub/memory/skill-center'))
 const MemoryKnowledge = lazy(() => import('@/pages/hub/memory/knowledge'))
 const MemorySearch = lazy(() => import('@/pages/hub/memory/search'))
-const ToolsToolset = lazy(() => import('@/pages/hub/tools/toolset'))
-const ToolsCli = lazy(() => import('@/pages/hub/tools/cli'))
-const ToolsMcp = lazy(() => import('@/pages/hub/tools/mcp'))
-const ToolsComputerUse = lazy(() => import('@/pages/hub/tools/computer-use'))
-// 主线管理：能力平面档案（四平面权重 + 保底 + 效果上限）+ 实时装配预览
+// 工具调用：子项（工具集 / CLI 软件 / MCP 系统 / Computer Use / 主线管理）已在页面内
+// 收敛为 Tab（见 @/pages/hub/tools/index.tsx），导航树只保留单一叶子项「工具调用」。
+// 其中「主线管理」= 能力平面档案（四平面权重 + 保底 + 效果上限）+ 实时装配预览，
 // 数据源 data/agent_lines/*.yaml；后端 agent/server_routes/routes_agent_lines.py
-const ToolsAgentLines = lazy(() => import('@/pages/hub/tools/lines'))
+const ToolsPage = lazy(() => import('@/pages/hub/tools'))
 const EngineHeartbeat = lazy(() => import('@/pages/hub/engine/heartbeat'))
 const EngineScheduler = lazy(() => import('@/pages/hub/engine/scheduler'))
 const NetworkPage = lazy(() => import('@/pages/hub/network'))
@@ -74,6 +72,15 @@ export interface HubNavItem {
 export const HUB_NAV: HubNavItem[] = [
   { key: 'session', label: '会话任务', icon: MessageSquare, component: WorkbenchChatPage },
   { key: 'prompt-lab', label: '提示词实验室', icon: FlaskConical, component: PromptLab },
+  // 技能中心：从「记忆管理」上提为顶层导航项，与「提示词实验室」并列
+  // （LLM 技能 = 模型执行，工作流技能 = 本地执行，分 Tab 管理）。
+  { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
+  // 工具调用：原 5 个子项（工具集 / CLI 软件 / MCP 系统 / Computer Use / 主线管理）
+  // 已收敛为主内容区 Tab（见 @/pages/hub/tools/index.tsx），导航树只留单一叶子项 ——
+  // 与「提示词实验室 / 技能中心」同款层级：导航列模块，模块内的子项用 Tab 并列。
+  // 位置：紧邻「提示词实验室 / 技能中心」之后、**全景看板之前**（配置类模块在前，
+  // 看板/管理类在后）。
+  { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
   {
     key: 'panorama', label: '全景看板', icon: LayoutDashboard,
     children: [
@@ -88,23 +95,9 @@ export const HUB_NAV: HubNavItem[] = [
     children: [
       { key: 'memory/manual', label: '手动记忆', icon: Brain, component: MemoryPage },
       { key: 'memory/auto', label: '自动记忆', icon: RefreshCw, component: MemoryPage },
-      // 技能中心：LLM 技能（模型执行）与工作流技能（本地执行）分 Tab 管理，
-      // 收拢原 技能库管理/工作流管理/可视化编辑 三个入口。
-      { key: 'memory/skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
+      // 注：技能中心已上提为顶层导航项（与「提示词实验室」并列），不再挂在记忆管理下。
       { key: 'memory/knowledge', label: '知识库系统', icon: BookOpen, component: MemoryKnowledge },
       { key: 'memory/search', label: '搜索', icon: Search, component: MemorySearch },
-    ],
-  },
-  {
-    key: 'tools', label: '工具调用', icon: Wrench,
-    children: [
-      { key: 'tools/toolset', label: '工具集', icon: Boxes, component: ToolsToolset },
-      { key: 'tools/cli', label: 'CLI 软件', icon: Terminal, component: ToolsCli },
-      { key: 'tools/mcp', label: 'MCP 系统', icon: Plug, component: ToolsMcp },
-      { key: 'tools/computer-use', label: 'Computer Use', icon: Monitor, component: ToolsComputerUse },
-      // 主线管理：一条主线 = 一份「平面权重 + 核心工具 + 效果上限 + 技能包」的档案，
-      // 决定本轮暴露给模型的工具集（改权重可即时看到装配结果）
-      { key: 'tools/lines', label: '主线管理', icon: Route, component: ToolsAgentLines },
     ],
   },
   {

@@ -801,9 +801,21 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
-#  技能管理系统 v1 路由（/api/skills-mgmt/*）
+#  后台任务（AsyncExecutor）HTTP 面（/api/background/tasks*）
+#  供「会话任务 → 后台任务」下拉查看/取消系统后台运行的任务
 # ════════════════════════════════════════════════════════════
 
+try:
+    from agent.server_routes.routes_background import register_routes as reg_background
+    reg_background(app, lambda: None)
+    logger.info("后台任务路由已注册 (/api/background/tasks*)")
+except Exception as e:
+    logger.error("加载后台任务路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
+#  技能管理系统 v1 路由（/api/skills-mgmt/*）
+# ════════════════════════════════════════════════════════════
 try:
     from agent.server_routes.routes_skills_mgmt import register_routes as reg_skills_mgmt
     reg_skills_mgmt(app, lambda: None)
@@ -1295,10 +1307,26 @@ def chat_page():
     修复 2026-08-31：原实现 redirect("/static/chat") 指向不存在的路径（404 死链），
     React SPA（templates/yunshu.html，引用 /static/assets/*）无任何路由可达。
     现改为直接渲染 SPA 入口；前端以 base=/static/ 构建，资源经 /static/<path> 路由服务。
+
+    修复 2026-09-19（**每次请求从磁盘读取**）：非 debug 模式下 Jinja 会**缓存**已编译
+    模板，`npm run build:flask` 重新构建后进程仍返回旧 HTML；而构建会先清空
+    static/assets，旧 HTML 引用的 chunk 已不存在 ⇒ 刷新页面白屏（实测
+    /static/assets/index-<旧hash>.js 404）。故这里直接读文件（dist HTML 无 Jinja
+    占位符，原文即可），并显式 no-store，保证重新构建后刷新即生效、无需重启服务。
     """
+    import os as _os
     from flask import Response
-    response = render_template("yunshu.html")
-    return Response(response, mimetype='text/html; charset=utf-8')
+    tpl_path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                             "templates", "yunshu.html")
+    try:
+        with open(tpl_path, "r", encoding="utf-8") as f:
+            html = f.read()
+    except OSError:
+        # 构建产物缺失（未跑过 build:flask）→ 回退 Jinja 渲染，保持既有行为
+        html = render_template("yunshu.html")
+    response = Response(html, mimetype='text/html; charset=utf-8')
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return response
 
 @app.route("/legacy")
 def legacy_ui():

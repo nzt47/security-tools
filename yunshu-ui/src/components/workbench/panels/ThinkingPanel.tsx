@@ -63,7 +63,9 @@ export function ThinkingPanel() {
                     <span className="ml-auto font-mono text-[10px] text-emerald-400/60">完成</span>
                   )}
                 </div>
-                {evt.detail && evt.status === 'running' && (
+                {/* 详情：任何状态都展示（done 也会保留 running 阶段给出的说明/推理文本 ——
+                    后端 done 事件本身不带 detail，store 合并时会保留已累积内容） */}
+                {evt.detail && (
                   <p className="mt-1.5 pl-[21px] text-[11.5px] leading-relaxed text-slate-400">
                     {evt.detail}
                   </p>

@@ -9,8 +9,10 @@ import threading
 import time
 import logging
 import json
+import os
+import atexit
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, fields
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,14 @@ except ImportError:
     register_singleton = get_singleton = reset_singleton = None
 
 MAX_RECORDS = 500  # 环形缓冲区大小（向后兼容别名，运行时从 Config 读取）
+
+# 会话最后一条通信的落盘位置：服务关闭后重开仍可在「LLM 通信监控」回看
+# （写盘时机：每记录一条即写 + 进程退出 atexit 兜底；见 LLMMonitor._persist_last）
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PERSIST_FILE = os.path.join(_PROJECT_ROOT, "data", "llm_monitor_last.json")
+
+# 写盘节流间隔（秒）：两次快照写盘的最小间隔，避免拖慢 LLM 主路径
+PERSIST_MIN_INTERVAL_S = 5.0
 
 
 @dataclass
@@ -68,14 +78,18 @@ class LLMInteraction:
     cache_hit: bool = False           # P7.1-18：命中缓存 → 不计 token 成本
     cost_normalized_cents: float = 0.0  # 归一成本（锚价 × 系数表）
 
+    # ── 会话持久化（重启后回填「上次会话最后一条通信」；additive，默认 False） ──
+    restored: bool = False            # True = 由磁盘回填的上次会话遗留记录
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["timestamp_str"] = time.strftime("%H:%M:%S", time.localtime(self.timestamp))
+        d["timestamp_full"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.timestamp))
         return d
 
 
 class LLMMonitor:
-    """LLM 通信监控器 — 环形缓冲区"""
+    """LLM 通信监控器 — 环形缓冲区（+ 会话最后一条通信落盘）"""
 
     def __init__(self, max_records: Optional[int] = None):
         # 配置化：未显式指定时从 Config 读取（支持热加载）
@@ -91,6 +105,84 @@ class LLMMonitor:
         self._lock = threading.Lock()
         self._hooks_installed = False
         self._enabled = True
+        # 会话持久化：启动即回填上次会话最后一条通信（服务关闭时已落盘）
+        self._persist_file = PERSIST_FILE
+        self._last_persist_ts = 0.0
+        self.restored_from_disk = False
+        self._restore_last()
+
+    # ── 会话持久化（关闭时保存最后一条通信；重启后回填） ──
+
+    def _restore_last(self) -> bool:
+        """启动时回填上次会话落盘的最后一条通信（幂等，失败静默）。"""
+        try:
+            if not os.path.exists(self._persist_file):
+                return False
+            with open(self._persist_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                return False
+            allowed = {fld.name for fld in fields(LLMInteraction)}
+            payload = {k: v for k, v in data.items() if k in allowed}
+            payload["restored"] = True
+            interaction = LLMInteraction(**payload)
+            if not interaction.id:
+                interaction.id = uuid.uuid4().hex[:12]
+            with self._lock:
+                self._records.append(interaction)
+            self.restored_from_disk = True
+            logger.info("LLM 监控：已回填上次会话最后一条通信记录（%s）",
+                        interaction.timestamp_str if hasattr(interaction, "timestamp_str")
+                        else interaction.id)
+            return True
+        except Exception as e:  # noqa: BLE001 回填失败不影响监控主流程
+            logger.debug("LLM 监控记录回填失败: %s", e)
+            return False
+
+    def persist_last(self, interaction: Optional[LLMInteraction] = None) -> bool:
+        """把最后一条通信内容落盘（供服务关闭 / 手动调用）。
+
+        Args:
+            interaction: 指定要落盘的记录；缺省取缓冲区最后一条
+
+        Returns:
+            是否成功写盘
+        """
+        try:
+            if interaction is None:
+                with self._lock:
+                    interaction = self._records[-1] if self._records else None
+            if interaction is None:
+                return False
+            payload = (interaction.to_dict() if hasattr(interaction, "to_dict")
+                       else dict(interaction))
+            payload["_persisted_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            os.makedirs(os.path.dirname(self._persist_file), exist_ok=True)
+            tmp = f"{self._persist_file}.tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, default=str)
+            os.replace(tmp, self._persist_file)
+            self._last_persist_ts = time.time()
+            return True
+        except Exception as e:  # noqa: BLE001 落盘失败不影响监控主流程
+            logger.debug("LLM 监控记录落盘失败: %s", e)
+            return False
+
+    def persisted_info(self) -> dict:
+        """已落盘的最后一条通信摘要（供前端标注「上次会话」来源）"""
+        try:
+            if not os.path.exists(self._persist_file):
+                return {}
+            with open(self._persist_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return {
+                "file": os.path.basename(self._persist_file),
+                "persisted_at": data.get("_persisted_at", ""),
+                "record_id": data.get("id", ""),
+                "timestamp_full": data.get("timestamp_full", ""),
+            }
+        except Exception:  # noqa: BLE001 读取失败返回空
+            return {}
 
     # ── 属性 ──
 
@@ -122,6 +214,13 @@ class LLMMonitor:
             self._records.append(interaction)
             if len(self._records) > self._max:
                 self._records.pop(0)
+
+        # 会话持久化：每条通信即写盘（服务被关闭/崩溃后重开仍能回看最后一条）
+        # 节流：两次写盘间隔不足 PERSIST_MIN_INTERVAL_S 时跳过（避免每次调用都
+        # 序列化整个请求体拖慢 LLM 主路径）；服务关闭时由 atexit 保证最终落盘。
+        _now = time.time()
+        if _now - self._last_persist_ts >= PERSIST_MIN_INTERVAL_S:
+            self.persist_last(interaction)
 
         # TASK-S2-03：UTC 成本埋点 + 模型降级事件（best-effort，绝不阻断监控主路径）
         self._emit_observability(interaction)
@@ -202,9 +301,14 @@ class LLMMonitor:
         return None
 
     def clear(self) -> None:
-        """清除所有记录"""
+        """清除所有记录（含已落盘的会话快照，避免重启后又回来）"""
         with self._lock:
             self._records.clear()
+        try:
+            if os.path.exists(self._persist_file):
+                os.remove(self._persist_file)
+        except Exception as e:  # noqa: BLE001 删除快照失败不影响清空内存
+            logger.debug("删除 LLM 监控快照失败: %s", e)
 
     def get_stats(self) -> dict:
         """获取汇总统计"""
@@ -624,3 +728,31 @@ def _wrap_get_client_for_tool_calling(monitor):
 if _SINGLETON_AVAILABLE:
     register_singleton("llm_monitor", _create_llm_monitor,
                        cleanup_fn=_cleanup_llm_monitor)
+
+
+def persist_session_last() -> bool:
+    """服务关闭时保存「会话最后一条 LLM 通信内容」（atexit / 显式关机调用）。
+
+    已初始化的监控器才落盘：进程退出路径不得为了持久化而**新建**监控器。
+    """
+    try:
+        if _SINGLETON_AVAILABLE:
+            from agent.utils.singleton_manager import is_initialized
+            if not is_initialized("llm_monitor"):
+                return False
+            monitor = get_singleton("llm_monitor")
+        else:
+            monitor = _monitor
+        if monitor is None:
+            return False
+        ok = monitor.persist_last()
+        if ok:
+            logger.info("LLM 监控：会话最后一条通信已保存（服务关闭）")
+        return ok
+    except Exception as e:  # noqa: BLE001 退出路径绝不抛异常
+        logger.debug("关闭时保存 LLM 会话快照失败: %s", e)
+        return False
+
+
+# 服务（进程）关闭时自动保存会话最后一条通信内容
+atexit.register(persist_session_last)

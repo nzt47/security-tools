@@ -73,7 +73,7 @@ def register_routes(app, state):
     @app.route("/api/llm-monitor/stats", methods=["GET"])
     @trace_route("LLMMonitor")
     def api_llm_monitor_stats():
-        """获取 LLM 通信统计概览"""
+        """获取 LLM 通信统计概览（含会话快照持久化信息）"""
         try:
             monitor = _get_monitor()
             stats = monitor.get_stats()
@@ -81,6 +81,9 @@ def register_routes(app, state):
                 "enabled": monitor.enabled,
                 "max_records": monitor._max,
                 "buffer_usage": f"{monitor.record_count}/{monitor._max}",
+                # 服务关闭时会话最后一条通信的落盘快照（重开后回填并展示）
+                "persisted": monitor.persisted_info(),
+                "restored_from_disk": bool(getattr(monitor, "restored_from_disk", False)),
             })
             return jsonify(stats)
         except Exception as e:

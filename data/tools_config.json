@@ -1,7 +1,9 @@
 {
   "tool_states": {
-    "get_status": false,
+    "get_status": true,
     "search_memory": true,
-    "get_sensor_summary": false
+    "get_sensor_summary": true,
+    "get_preferences": true,
+    "get_persona_info": true
   }
 }
