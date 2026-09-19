@@ -682,6 +682,22 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
         "并补两条断言（31 天前必删 / 29.99 天前必留，避开微秒漂移）。"
         "三臂（不平移/+400/−400）实测 1 passed ×3。",
 
+    ("tests/conftest.py",
+     "tests/conftest.py::_no_stray_approval_store@77"):
+        "**与日期语义完全无关，两套时钟不参与任何比较**（2026-09-20 裁定）。"
+        "该用例级守卫用 `st_mtime_ns`（文件系统时钟）作为**不透明的变更令牌**："
+        "它只比较『用例执行窗口前后该值是否相等』，从而判断审批库是否在本窗口内被写。"
+        "这与本盲区针对的缺陷形状（**把文件 mtime 与 Python 的『今天』放在一起比较**，"
+        "例如 `since = now - 1h` 去筛 `st_mtime`）**不同**：此处两个读数都取自"
+        "**同一套文件系统时钟**，且判定是纯等式比较，不涉及任何日期/时区/零点边界。"
+        "命中的 `now` 侧来自失败消息里的**诊断打印**（把前后数值原样报给开发者看），"
+        "**不被任何逻辑读取**，与 `st_mtime_ns` 无任何比较关系。"
+        "⇒ 日期平移（把『今天』改掉）不会改变本守卫的判定结果；"
+        "把它一起平移反而无意义（mtime 本就由 OS 时钟给定，见本文件"
+        "`test_mtime_is_not_derived_from_the_unshifted_posix_clock` 的同一口径）。"
+        "**背景**：该守卫的判据在 2026-09-20 由『后端是否在跑』升级为 `(size, mtime_ns)` 差集，"
+        "本次裁定即针对升级后的写法（提交主题：stray-approval 守卫改用 mtime 差集）。",
+
     # ── 盲区 #3：time.time() 换算成日期串 ──────────────────────────
     ("tests/integration/test_resource_monitor_integration.py",
      "tests/integration/test_resource_monitor_integration.py"
@@ -978,12 +994,33 @@ def test_import_time_detector_skips_function_locals():
     assert len(detect_import_time_clock("import datetime as dt\nNOW = dt.datetime.now()\n")) == 1
 
 
+@pytest.mark.slow
 def test_scan_surface_is_not_silently_empty():
     """**防自欺**：扫描面必须真的读到含时钟调用的文件（历史踩过"筛选条件写错 ⇒ 0 命中"）
 
     下界取自 2026-09-15 的**实测基线**（`--scan` 输出）：
     files=790 / files_with_clock_call=68 / time_time_calls=450 / iso_files=191。
     下界刻意留出余量（防止正常的用例增删把守卫逼成假红），但不允许量级坍塌。
+
+    【不易·2026-09-20 补标 `slow` —— 它此前是"首轮全量杀手"】
+    本用例会**全仓扫描**测试面（实测 790 文件 / 450 处 `time.time()`），
+    **隔离单跑耗时 46.37s**，而全局预算是 `--timeout=120`（`pytest.ini:47`）
+    ⇒ **余量仅 2.6×**。
+
+    后果（2026-09-20 实测，非推测）：当机器上还有其它 pytest 进程（分块/并行）时，
+    IO 与 WMI 慢路径叠加使它越过 120s ⇒ `pytest-timeout` 的 thread 法执行
+    **`os._exit(1)` 直接杀掉整个 pytest 进程**（机制见 `pytest.ini:33-45`），
+    导致**该文件之后的 580 个测试文件从未执行、且不输出结束摘要**，
+    退出码只有 1，与"真有测试失败"无法区分。
+
+    本仓对该类"环境性慢测试"已有既定分流机制：`@pytest.mark.slow`，
+    `scripts/run_full_pytest.py --mode fast`（默认）排除、`--mode slow` 单独跑
+    （**单块不分块** ⇒ 无 CPU 争用，46s 远在预算内）。故标注后：
+      · 默认 fast 回归**不再被它拖垮**（不再有"丢 580 个文件"的风险）
+      · 它仍在 slow lane 中**照常被监控**，守卫能力不减
+
+    【变易】不要改成"放宽下界"来省时间 —— 那会削弱本用例的核心价值
+    （防"筛选条件写错导致守卫空转"）。代价应通过**分流**支付，而不是削弱断言。
     """
     stats = surface_stats()
     assert stats["files"] >= 600, f"扫描到的测试文件仅 {stats['files']} 个，明显偏少"
