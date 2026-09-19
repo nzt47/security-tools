@@ -22,8 +22,6 @@
 
 from __future__ import annotations
 
-import importlib
-
 import pytest
 
 _ENV_KEYS = ("LLM_BASE_URL", "DEEPSEEK_BASE_URL")
@@ -120,11 +118,29 @@ def test_memory_manager_reads_env(clean_env):
 
     这一条是本缺陷的原始现场 —— `memory/memory_manager.py:251-256` 未传 ``base_url``，
     修复前它拿到的永远是硬编码默认值。
+
+    【不易·2026-09-20 修掉一处顺序污染 —— 我自己引入的】
+    本用例原先在这里调了 ``importlib.reload(memory.llm_service)``，**已删除**。
+    该 reload 会**重新执行模块体** ⇒ 用**新建的函数对象**重建 ``LLMService`` 类，
+    于是任何在"污染"之后才解析 ``LLMService`` 的测试都会拿到新类，而已把补丁
+    打在类上的测试（``test_llm_monitor_singleton.py::TestInstallHooks`` 正是如此）
+    会看到自己的补丁"消失"。
+
+    实测（确定性，非 flaky）：
+        python -m pytest tests/unit/test_llm_service_base_url.py \
+                         tests/unit/test_llm_monitor_singleton.py -q -p no:randomly
+        ⇒ 修复前：**5 failed / 27 passed**
+        ⇒ 单独跑 test_llm_monitor_singleton.py：**21 passed**（完全不复现）
+    失败断言形如 ``assert <function LLMService._do_chat at 0x…> is not <同一函数>`` ——
+    即身份比较失败，正是"类被换掉"的指纹。
+
+    Why 可以直接删（而不是改成"用完再 reload 回来"）：
+        ``LLMService.__init__`` 是在**实例化时**读 ``os.environ`` 的（不是 import 期读常量），
+        故根本不需要 reload —— ``clean_env.setenv(...)`` 之后再构造 ``MemoryManager`` 即可。
+        reload 在这里**只有副作用、没有作用**。
+        ⇒ 少一次 reload 也顺带避免了"用旧代码覆盖已 import 的新模块"这一**更危险**的远端后果。
     """
     clean_env.setenv("LLM_BASE_URL", "https://gw.internal/v1")
-    import memory.llm_service as M
-
-    importlib.reload(M)
     from memory.memory_manager import MemoryManager
 
     mm = MemoryManager(
