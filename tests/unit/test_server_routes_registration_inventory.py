@@ -31,6 +31,34 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SERVER_ROUTES_DIR = PROJECT_ROOT / "agent" / "server_routes"
 APP_SERVER = PROJECT_ROOT / "app_server.py"
 
+# ══ 【D2 · 2026-09-19 显式超时预算】══
+# 本模块的 `real_url_paths` fixture 会 `import app_server`（真实入口，见其 docstring），
+# 这条导入实测 **80–100 秒**，是模块级夹具，**计时落在 pytest-timeout 的单测试预算里**：
+#
+#   实测（本机，2026-09-19，并行任务在跑）：
+#     python -c "import app_server"                             ≈ 80.5s / 87.7s（两次）
+#     coverage run --source=agent -c "import app_server"        ≈ 96.5s
+#     其中 `import sentence_transformers`                        ≈ 19.9s
+#     其中 `import transformers`（含 transformers/models 递归扫描）≈ 8.2s
+#       —— `create_import_structure_from_path` 递归扫 993 个子目录 / 2256 个 .py
+#     其中 `agent/orchestrator/lifecycle_manager.py:118` 的
+#       `import sentence_transformers` 是**有意的**预导入（规避 Windows
+#       0xC0000005 ACCESS_VIOLATION，见该处注释），**不能删**。
+#
+# Why 必须显式给预算、而不是靠全局 --timeout=120/300：
+#   pytest.ini 的 `--timeout-method=thread` 在超时时走
+#   `pytest_timeout.py:505 timeout_timer()` → `finally: os._exit(1)`
+#   ⇒ **整个 pytest 进程被杀**，同批次排在后面的测试文件一个都不会执行
+#     （TASK-03 实测：第 8 块在 73% 处被杀，该块 63 个文件里 14 个从未执行），
+#     而且日志里没有结束摘要，调用方**不知道自己丢了文件**。
+#   本仓自己的规矩就是"极慢测试应显式 @pytest.mark.timeout(N) 覆盖，不要依赖全局默认"
+#   （pytest.ini 的 addtimeout 注释）。本模块正是这类测试。
+# Why 取 900s 而不是"放宽门禁"：这不是质量门禁，是**进程级资源边界**。
+#   900s = 实测 96s 的约 9 倍余量；断言语义一字未动，测试仍会因为路由没接线而失败。
+#   配套的结构性防线（分块 + 完整性校验 + 丢文件自动补跑）见
+#   scripts/run_full_pytest.py 与 docs/closeout/TEST_TIMEOUT_20260919.md。
+pytestmark = pytest.mark.timeout(900)
+
 #: 已确认**未注册**（端点由别处提供或已迁移）的路由模块 → 原因。
 #: 每条都必须能在 `app_server.py` 里找不到接线、且文件仍存在；否则本测试会失败。
 KNOWN_UNREGISTERED: dict[str, str] = {

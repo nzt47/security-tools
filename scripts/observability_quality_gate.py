@@ -46,6 +46,14 @@ class QualityGateChecker:
             "overall_status": "pending",
             "passed_checks": 0,
             "failed_checks": 0,
+            # 【TASK-03 · E5】skipped_checks：**必须单独计数**。
+            # Why：原实现只统计 passed/failed，`check_*` 在找不到报告时
+            #   `_record_check(name, "skipped")` 之后 **`return True`**，于是
+            #   `run_all_checks` 的 `all_passed` 保持 True ⇒ 报告写成
+            #   `"overall_status": "passed"` 而 `passed_checks: 0 / failed_checks: 0`、
+            #   6 项检查全是 skipped。这就是"**skip 却报 passed**"——
+            #   一个红灯不亮的门禁比没有门禁更危险，因为它会让人以为已经查过了。
+            "skipped_checks": 0,
             "checks": {},
             "collected_reports": {},
         }
@@ -62,6 +70,8 @@ class QualityGateChecker:
             self.results["passed_checks"] += 1
         elif status == "failed":
             self.results["failed_checks"] += 1
+        elif status == "skipped":
+            self.results["skipped_checks"] = self.results.get("skipped_checks", 0) + 1
 
     def collect_reports(self) -> Dict:
         """收集所有验证报告"""
@@ -357,7 +367,20 @@ class QualityGateChecker:
                 all_passed = False
 
         # 计算总体状态
-        self.results["overall_status"] = "passed" if all_passed else "failed"
+        # 【TASK-03 · E5 门禁诚实化】三态判定，**不再用布尔 all_passed**。
+        # Why：原写法 `passed if all_passed else failed` 无法表达"有检查没跑成"，
+        #   于是"全部 skipped"被写成 passed。合法状态只有三种：
+        #   * failed      —— 至少一项真的判失败（最严重）
+        #   * inconclusive—— 没有失败，但至少一项**没跑成**（缺报告/缺工具）
+        #   * passed      —— 每一项都真的跑了且都过了
+        #   `inconclusive` 不得被当成 `passed` 消费（消费方必须显式处理）。
+        statuses = [c.get("status") for c in self.results["checks"].values()]
+        if "failed" in statuses:
+            self.results["overall_status"] = "failed"
+        elif "skipped" in statuses or not statuses:
+            self.results["overall_status"] = "inconclusive"
+        else:
+            self.results["overall_status"] = "passed"
 
         # 保存报告
         self._save_report()
@@ -379,12 +402,20 @@ class QualityGateChecker:
         print("📊 质量门禁检查结果")
         print("=" * 70)
 
-        print(f"总检查项: {self.results['passed_checks'] + self.results['failed_checks']}")
+        print(f"总检查项: {len(self.results['checks'])}")
         print(f"✅ 通过: {self.results['passed_checks']}")
         print(f"❌ 失败: {self.results['failed_checks']}")
+        print(f"⏭️  跳过: {self.results.get('skipped_checks', 0)}")
 
         if self.results["overall_status"] == "passed":
             print(f"\n✅ 整体状态: 通过 - 允许部署")
+        elif self.results["overall_status"] == "inconclusive":
+            # 【TASK-03 · E5】跳过 ≠ 通过。此处必须**显式**告警，且禁止输出"允许部署"。
+            print(f"\n⚠️  整体状态: 不确定（inconclusive）- **不得视为通过**")
+            print("\n未跑成的检查项（缺报告/缺工具，不代表达标）:")
+            for name, check in self.results["checks"].items():
+                if check["status"] == "skipped":
+                    print(f"  - {name}: {check.get('error', '未说明原因')}")
         else:
             print(f"\n❌ 整体状态: 失败 - 禁止部署")
             print("\n失败的检查项:")
@@ -395,6 +426,9 @@ class QualityGateChecker:
         print("\n💡 建议:")
         if self.results["overall_status"] == "passed":
             print("  所有质量门禁检查项均已达标，可以进行部署。")
+        elif self.results["overall_status"] == "inconclusive":
+            print("  先把未跑成的检查项补齐（生成对应报告或安装缺失工具），再重新判定；")
+            print("  「跳过」不等于「通过」——不要在这里放宽门禁来让报告变绿。")
         else:
             print("  请修复上述失败项后，重新运行验证。")
             print("  如需调整门禁阈值，请修改相应的配置参数。")
@@ -431,6 +465,11 @@ def main():
 
         if checker.results["overall_status"] == "failed":
             sys.exit(1)
+        elif checker.results["overall_status"] == "inconclusive":
+            # 【TASK-03 · E5】不确定态**不得以 0 退出**：0 会被 CI/脚本读成"通过"。
+            # 退出码约定：0=通过、1=失败、2=不确定（未跑成）。三者互不混淆。
+            print("\n[quality_gate] 退出码 2：检查未能全部跑成（inconclusive），不得视为通过")
+            sys.exit(2)
         else:
             sys.exit(0)
 

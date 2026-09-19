@@ -1,13 +1,26 @@
 # 应用全局配置
+#
+# ⚠️ 【TASK-03 · 2026-09-18】本文件当前**没有任何消费方**，下面 server 段的
+#    port/workers 与**实际运行时不符**。不要按本文件判断服务端口或进程模型。
+#    实测（引用检查）：
+#        $ git grep -n "configs/app.yaml" -- "*.py" "*.bat" "*.ps1" "*.yml" "*.yaml" "*.md"
+#        （无输出）
+#    唯一真相源：`app_server.py:1618`
+#        serve(app, host="127.0.0.1", port=5678, threads=16)   # waitress 单进程 16 线程
+#    ⇒ 真实端口是 **5678**（不是本文件的 8123），真实模型是**单进程**（不是 workers: 4）。
+#    "workers: 4" 尤其危险：它会让人误判这是多进程部署，而熔断器 / 单例 / 多进程指标
+#    等一大类结论都依赖"是单进程还是多进程"这个前提。
+#    处置：保留文件（避免引用断裂）+ 本声明。
+#    详见 docs/closeout/DEAD_CONFIG_20260918.md §2。
 app:
   name: 云枢
   version: 2.0.0
   debug: false
 
 server:
-  host: 0.0.0.0
-  port: 8123
-  workers: 4
+  host: 0.0.0.0      # ← 未生效：实际绑定 127.0.0.1
+  port: 8123         # ← 未生效：实际是 5678
+  workers: 4         # ← 未生效：实际是单进程 waitress + 16 线程
 
 logging:
   level: INFO

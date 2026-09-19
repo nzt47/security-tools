@@ -88,6 +88,19 @@ jobs:
           echo "=== 运行风格检查 ==="
           flake8 agent/ --max-line-length=120 --extend-ignore=E203,W503 || true
 
+      - name: 敏感数据扫描（pre-commit 阻断级检查下沉 · TASK-03 E10）
+        # Why 下沉到 CI：本仓 `core.hooksPath = hooks` 指向自定义 `hooks/pre-commit`，
+        #   而该脚本**从不调用 `pre-commit run`** ⇒ `.pre-commit-config.yaml` 里的
+        #   `scan-sensitive-data` 从未随 git commit 触发（TASK-03 §2.7 实测）。
+        #   本地防线已在 hooks/pre-commit 内联（见该文件的 TASK-03 段），
+        #   此处作为 CI 兜底，防止 `git commit --no-verify` / 其它客户端绕过本地 hook。
+        #   本地 hook 只扫**暂存**文件；CI 扫**全部 tracked** 文件
+        #   （等价于"当前仓库不存在已知形态的泄漏"）。
+        run: python scripts/scan_sensitive_data.py
+
+      - name: 关键字参数冲突扫描 HIGH（pre-commit 阻断级检查下沉 · TASK-03 E10）
+        run: python scripts/scan_kwarg_conflicts.py --path agent/ --min-risk HIGH
+
       - name: workflow_run 守卫反模式检查
         # Why: 阻塞把"跳过"误标为"失败"的守卫(exit 1 on non-success),
         #   避免上游 cancelled 时发噪音失败邮件。详见 docs/ci_guidelines/workflow_run_guard.md
@@ -130,6 +143,106 @@ jobs:
           pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1
 
   # ============================================================================
+  # 依赖一致性（**阻塞** · TASK-03 第 2 步 / E1 + E2）
+  # ============================================================================
+  # Why 必须有这个 job：本仓有**两个**依赖真相源，而它们服务不同阶段——
+  #   * `pyproject.toml` 是 CI 唯一读到的声明（下面所有 job 的 `pip install -e .`）；
+  #   * `requirements.txt` 是生产锁定文件（ci-cd.yml / policy-change-gate.yml 等读它）。
+  # 两者一旦分叉，就出现"**CI 测的依赖 ≠ 生产跑的依赖**"——测试全绿、上线即炸，
+  # 而根因不在测试里。TASK-03 实测曾发现 13 个包版本**互斥**
+  # （chromadb `<0.5.0` vs `==1.5.9`、torch `<2.5.0` vs `==2.12.0` …），
+  # 且 pyproject 的区间**同时排除了生产实装版本**（11 项）。
+  # 本 job 把"声明层 + 实装层 + pip check"三件事都变成**非 `|| true`** 的阻断断言。
+  dependency-consistency:
+    name: 依赖一致性（pyproject ↔ requirements ↔ 实装）
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装项目声明依赖（与其它 job 同口径）
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: 声明层审计（pyproject ↔ requirements.txt）
+        # 断言：真冲突清单必须为空（两处约束不得互斥）
+        run: python scripts/audit_dependency_drift.py --fail-on-conflict
+
+      - name: 实装层审计（实装版本 ↔ pyproject 区间）
+        # 断言：pyproject 不得排除**实际装上的**版本（那就是 CI≠生产的直接证据）
+        run: |
+          python scripts/audit_dependency_drift.py --installed --check-installed \
+            --pip-check --pip-check-out _ci_logs/pip_check.txt \
+            --json-out _ci_logs/dependency_drift.json
+
+      - name: requirements.txt 可解析性（非 || true）
+        # 纯解析，不落盘安装；锁文件钉的版本必须真实存在且互相可解
+        run: python -m pip install --dry-run --quiet -r requirements.txt
+
+      - name: 上传依赖审计报告
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dependency-audit
+          path: _ci_logs/
+
+  # ============================================================================
+  # 失败基线回归（**阻塞** · TASK-03 第 3 步 / E3 + E6）
+  # ============================================================================
+  # Why：`failures_baseline.txt` 此前**没有任何消费方**——它只是一个记事本，
+  #   新引入一条失败时不会有任何东西变红，基线只会一天天变旧。
+  #   本 job 把它变成可执行契约：**只允许失败集合变小，出现新失败即失败**。
+  # 注意：必须与分片 job 用同一个入口（`tests/unit`），否则集合不可比。
+  baseline-regression:
+    name: 失败基线回归（只允许收缩）
+    runs-on: ubuntu-latest
+    needs: [dependency-consistency]
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-xdist pytest-mock pytest-timeout pytest-asyncio
+          pip install -e .
+
+      - name: 跑基线并比对（非 || true）
+        # `-p no:randomly`：基线是**集合**比较，随机序会让本地与 CI 的集合漂移；
+        #   仓库既有全量入口（ci.yml 分片 / coverage-ci.yml）同样固定该参数。
+        # ⚠️ 关于第一行的 `|| true`：它挂在 **pytest 自己**的退出码上——仓库当前
+        #   固化着 78 条已知失败，pytest 必然非零退出，那**不是**门禁信号。
+        #   真正的门禁是第二条命令：它解析失败集合、与基线做差集，
+        #   出现基线之外的**新**失败即非零退出。两者职责不同，不要混为一谈。
+        run: |
+          mkdir -p _ci_logs
+          python -m pytest tests/unit -q --no-header -p no:cacheprovider -p no:randomly \
+            --timeout=300 > _ci_logs/baseline_run.txt 2>&1 || true
+          python scripts/check_baseline_regression.py \
+            --pytest-log _ci_logs/baseline_run.txt \
+            --report _ci_logs/baseline_compare.json
+
+      - name: 上传基线产物
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: baseline-regression
+          path: _ci_logs/
+
+  # ============================================================================
   # 安全扫描
   # ============================================================================
   security-scan:
@@ -149,16 +262,41 @@ jobs:
         run: |
           pip install bandit safety pip-audit
 
-      - name: 运行Bandit安全扫描
+      - name: 运行Bandit安全扫描（归档，不阻断）
+        # 【TASK-03 · E5】原为 `bandit ... || true`（永远不阻断 = 只在日志里打一堆字）。
+        # 现在：bandit 只负责**产出报告**，判定交给下面的基线门禁。
         run: |
-          echo "=== 运行Bandit安全扫描 ==="
-          bandit -r agent/ -f json -o test_reports/bandit_report.json || true
+          echo "=== 运行Bandit安全扫描（产出报告）==="
+          mkdir -p _ci_logs/security
+          bandit -r agent/ -f json -o _ci_logs/security/bandit_report.json -q || true
           bandit -r agent/ -f screen || true
 
-      - name: 运行依赖安全检查
+      - name: 安全基线门禁（**非 || true**）
+        # 【TASK-03 · E5】手法与 failures_baseline.txt 一致：
+        #   **历史问题写基线；只有"新增"问题才阻断。**
+        # 为什么不是立刻全绿：TASK-03 要的是"状态诚实 + 回归可拦"，不是"今天全绿"。
+        #   bandit 的历史告警一次性写进 security_baseline.json 后，本步只对**增量**报警。
+        # 为什么阻断项用 pip-audit 而不是 safety：safety 3.x 起需要登录/API key，
+        #   无凭据时拿不到结论 —— 挂成阻断只会得到一条永远红的断言，最后必然
+        #   被改回 `|| true`。pip-audit 无凭据依赖且已在 pyproject dev 依赖里声明。
+        # 退出码：0=无新增 / 1=有新增问题 / 3=工具不可用（**同样不通过**）
         run: |
-          echo "=== 检查依赖安全 ==="
-          safety check --json --output test_reports/safety_report.json || true
+          echo "=== 安全基线门禁 ==="
+          python scripts/check_security_baseline.py
+
+      - name: 依赖漏洞扫描 baseline（safety，归档并标注未生效原因）
+        # Why 保留但**不阻断**：见上一步注释。此处只归档原始输出，
+        # 并在 step summary 里**显式写明它不构成结论**，避免"看起来扫过了"。
+        run: |
+          echo "=== safety 归档（不构成门禁结论）==="
+          mkdir -p _ci_logs/security
+          safety check --json --output _ci_logs/security/safety_report.json || true
+          {
+            echo "### ⚠️ safety 未生效（不构成门禁结论）"
+            echo ""
+            echo "safety 3.x 起要求登录/API key，CI 无凭据 ⇒ 本步输出**不可作为安全结论**。"
+            echo "阻断级依赖漏洞检查由 \`scripts/check_security_baseline.py\`（pip-audit）承担。"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 敏感数据正则静态扫描
         # [CI 日志增强] 多通道输出 (与 skills-check.yml / p0-security.yml 保持一致):
@@ -175,7 +313,9 @@ jobs:
         if: always()
         with:
           name: security-reports
-          path: test_reports/
+          path: |
+            test_reports/
+            _ci_logs/security/
 
   # ============================================================================
   # ChromaDB 导入降级预检
@@ -300,12 +440,36 @@ jobs:
           # 【不易】捕获 pytest 退出码而非 || true：INTERNALERROR 时监控报告
           #   正是关键归因数据，必须保证报告输出后再退出。
           set +e
+          # 【D1 · 2026-09-19 覆盖率口径统一】--cov 必须逐个列出 pyproject.toml
+          #   [tool.coverage.run].source 的 9 个包，不能只写 --cov=agent。
+          # Why（实测机制，见 docs/closeout/COVERAGE_SCOPE_20260919.md）：
+          #   coverage 的"未执行文件"是**采集期**由 tracer 的文件定位器扫描
+          #   `--cov=` 指定目录得到的；报告期 `coverage report` 只读 pyproject 的
+          #   source 但**不会再补扫**。最小复现：source=["pkg_a","pkg_b"] 时
+          #     `coverage run runner.py`（只 import pkg_a）→ report 里 pkg_b 0%
+          #     `coverage run --source=pkg_a runner.py` → report 里 pkg_b 完全消失
+          #   ⇒ 只写 --cov=agent 时，声明的 9 包口径会**退化成 1 包口径**
+          #     （本机实测：9 包分母 135,272 行 vs agent 单包 120,754 行）。
+          # Why 这次改动不会打破 40% 门禁（已核算，不是"放宽"）：
+          #   分片实测 agent 单包 = 77.20%（93,337/120,905）。加上外围 8 包后
+          #   分子只增不减、分母升到 135,272 ⇒ **最坏情况**（外围 8 包 0% 覆盖）
+          #   仍有 93,337/135,272 = 69.0% ≫ 40%。即该改动只会让门禁更严格、更真实。
+          # 反面参考：只改 pyproject 的 source 而不改这里，实测**毫无效果**
+          #   （报告期不补扫），这正是"改了配置却没效果"的典型陷阱。
           pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6) \
             -n 2 \
             --dist=loadscope \
             -v \
             --tb=short \
             --cov=agent \
+            --cov=sensor \
+            --cov=memory \
+            --cov=planning \
+            --cov=persona \
+            --cov=core \
+            --cov=cognitive \
+            --cov=lifetrace \
+            --cov=utils \
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing \
@@ -1061,6 +1225,17 @@ jobs:
           coverage report
 
           # 检查是否达标
+          # 【D1 · 2026-09-19】此处 40 与 pyproject.toml 的 `[tool.coverage.report]
+          #   fail_under = 0` **不一致**（已登记，见 docs/closeout/COVERAGE_SCOPE_20260919.md §5）。
+          # Why 本任务**没有**把它改成 fail_under=40：pytest-cov 会在没有显式
+          #   `--cov-fail-under` 时**继承** coverage 配置的 fail_under
+          #   （site-packages/pytest_cov/plugin.py:270-271 实测源码），
+          #   而仓库存量有多个只写 `--cov=`、不写 `--cov-fail-under=` 的 job
+          #   （如 tool-tests.yml:77、daily_regression.yml:444）⇒ 一并改成 40
+          #   会让这些子集 job 全部变红，属于"改一处、炸多处"的不可验证改动。
+          #   因此这里保留 CLI 显式阈值（CLI 覆盖 config，行为与今天完全一致），
+          #   并把"阈值必须与被门禁约束的整体口径一致"固化为守卫测试
+          #   tests/unit/test_coverage_scope_consistency.py。
           coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
 
       - name: 生成覆盖率报告

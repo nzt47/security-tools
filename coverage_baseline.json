@@ -1,0 +1,44 @@
+{
+  "packages": [
+    "agent",
+    "sensor",
+    "memory",
+    "planning",
+    "persona",
+    "core",
+    "cognitive",
+    "lifetrace",
+    "utils"
+  ],
+  "scope_label": "full-9-packages",
+  "chunks": 10,
+  "incomplete_chunks": [],
+  "lost_file_count": 0,
+  "seconds_total": 5573.3,
+  "xml_rc": 0,
+  "line_rate": 0.7413,
+  "lines_covered": 100637,
+  "lines_valid": 135752,
+  "branch_rate": 0.0,
+  "branches_valid": 0,
+  "sources": [
+    "C:\\Users\\Administrator\\agent\\agent",
+    "C:\\Users\\Administrator\\agent\\cognitive",
+    "C:\\Users\\Administrator\\agent\\core",
+    "C:\\Users\\Administrator\\agent\\lifetrace",
+    "C:\\Users\\Administrator\\agent\\memory",
+    "C:\\Users\\Administrator\\agent\\persona",
+    "C:\\Users\\Administrator\\agent\\planning",
+    "C:\\Users\\Administrator\\agent\\sensor",
+    "C:\\Users\\Administrator\\agent\\utils"
+  ],
+  "_provenance": {
+    "produced_by": "scripts/run_authoritative_coverage.py",
+    "produced_on": "2026-09-19",
+    "host": "Windows (本机部署机)",
+    "command": "python scripts/run_authoritative_coverage.py --out _ci_logs/coverage_auth",
+    "test_set": "tests/unit 全量（round-robin 10 块，--timeout=300 --timeout-method=thread）",
+    "artifact": "_ci_logs/coverage_auth/coverage.xml",
+    "note": "分母由**采集期**的 9 个 --cov= 决定（不是报告期的 pyproject source）。本项目实测：只写 --cov=agent 时分母会退化成 120,703（外围 8 包一行不进分母）。断言必须用 scripts/check_coverage_regression.py，它会拒绝跨口径比较。"
+  }
+}

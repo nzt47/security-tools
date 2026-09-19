@@ -38,4 +38,40 @@ if [ -n "$STAGED_POLICIES" ]; then
     fi
   fi
 fi
+
+# ── 【TASK-03 · E10】框架 hook 的两个阻断级检查本地化 ────────────────────────
+# 背景（实测）：`git config core.hooksPath` = `hooks`，所以 git commit 运行的是
+#   **本文件**；而本文件**从不调用 `pre-commit run`** ⇒ `.pre-commit-config.yaml`
+#   里 11 个 hook 中的阻断级检查（`scan-sensitive-data` 敏感数据扫描、
+#   `kwarg-conflict-scan` 关键字冲突扫描）**从未随 git commit 触发**。
+#   "配了但从不运行"比"降级为告警"更危险：前者会让人以为防线存在。
+# 处置选择：把这两个**防线型**检查直接内联到本文件，而不是改 `core.hooksPath`
+#   去切换到框架 hook —— 改 hooksPath 会同时改变运维对 `.git/hooks/` 的既有预期
+#   （该目录下另有 TLM 链接预检 hook，现已因 hooksPath 被遮蔽而失效），
+#   风险大于收益。内联只**增加**检查，不改变既有行为。
+# 实测耗时（本机）：kwarg-conflict-scan ~13s（全量扫 agent/）、
+#   scan-sensitive-data ~5s（只扫暂存文件；全量扫 tracked 约 18s）。
+# 为什么敏感数据扫描只扫**暂存**文件：与 `.pre-commit-config.yaml` 的
+#   `pass_filenames: true` 语义一致——只判"这次要进历史的东西"。
+# 逃生通道：`SKIP_PRECOMMIT_PARITY=1`（沿用本文件 `SKIP_POLICY_GATE` 的既有约定）。
+if [ "${SKIP_PRECOMMIT_PARITY:-0}" = "1" ]; then
+  echo "[pre-commit] SKIP_PRECOMMIT_PARITY=1：按显式声明跳过关键字冲突/敏感数据扫描（须在提交说明中交代）" >&2
+else
+  echo "[pre-commit] 关键字参数冲突扫描（HIGH 阻断）..." >&2
+  "$PY" scripts/scan_kwarg_conflicts.py --path agent/ --min-risk HIGH
+  RC=$?
+  if [ "$RC" -ne 0 ]; then
+    echo "[pre-commit] 关键字参数冲突扫描不通过（退出码 $RC），已中止提交" >&2
+    echo "[pre-commit] 确需跳过请设 SKIP_PRECOMMIT_PARITY=1 并在提交说明中交代" >&2
+    exit "$RC"
+  fi
+  # 用 `-z` + `xargs -0 -r` 传文件：中文/带空格路径不会被拆断，且无暂存文件时不调用
+  git diff --cached -z --name-only --diff-filter=ACMR 2>/dev/null | xargs -0 -r "$PY" scripts/scan_sensitive_data.py
+  RC=$?
+  if [ "$RC" -ne 0 ]; then
+    echo "[pre-commit] 敏感信息扫描不通过（退出码 $RC），已中止提交" >&2
+    echo "[pre-commit] 确需跳过请设 SKIP_PRECOMMIT_PARITY=1 并在提交说明中交代" >&2
+    exit "$RC"
+  fi
+fi
 exit 0

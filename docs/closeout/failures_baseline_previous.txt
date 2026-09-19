@@ -1,0 +1,78 @@
+ERROR tests/unit/test_evolution_loop.py
+ERROR tests/unit/test_evolver_real_eval.py
+ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_add_and_count - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_search_returns_memory_items - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_get_by_id - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_get_recent - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_clear - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_get_stats_contains_backend_field - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_batch_add - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_recall_at_1_with_mock_encoder - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_规则层命中_短路返回workflow - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
+FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_语义层命中_短路返回instruction - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
+FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_模板层命中_带trace_真正短路返回 - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
+FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_语义层未命中_降级LLM - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
+FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_语义层异常_降级LLM不抛错 - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
+FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_语义层关闭_直接降级LLM - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
+FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_输入过短且三层未命中_拒识 - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
+FAILED tests/integration/test_orchestrator三层路由_e2e.py::test_并发热更_配置热更不影响正在处理的请求 - AssertionError: 并发热更产生异常: [AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'")]
+FAILED tests/integration/test_orchestrator三层路由_e2e.py::test_高并发_频繁热更无线程竞争 - AssertionError: 线程竞争异常: [AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'")]
+FAILED tests/regression/test_precommit_hook_blocking.py::test_real_git_commit_blocked_by_hook - AssertionError: No .pre-commit-config.yaml file was found
+FAILED tests/unit/test_ci_guard_fix_regression.py::TestRenameConsistency::test_guard_pipeline_json可运行 - AssertionError: 模拟失败: 
+FAILED tests/unit/test_dialog_state.py::TestIsFollowUpDelegation::test_follow_up_normal_query_with_session - AssertionError: assert True is False
+FAILED tests/unit/test_few_shot_injector.py::TestSelectExamples::test_select_examples_by_intent - AssertionError: assert 1 == 2
+FAILED tests/unit/test_impact_analysis_cache.py::TestCollectTestFilesSymlinkP1::test_collect_test_files_symlink_resolution - AssertionError: 符号链接创建失败时应仅收集 1 个真实文件，实际 2
+FAILED tests/unit/test_knowledge_observability.py::test_emit_produces_parseable_json_line - json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAILED tests/unit/test_knowledge_observability.py::test_knowledge_trace_shares_id_in_chain - assert 0 == 3
+FAILED tests/unit/test_knowledge_observability.py::test_knowledge_trace_explicit_param_priority - IndexError: list index out of range
+FAILED tests/unit/test_knowledge_observability.py::test_knowledge_trace_concurrent_isolation - assert 0 == 10
+FAILED tests/unit/test_knowledge_search.py::TestLinkCachePerfRegression::test_link_stage_below_io_bound - AssertionError: 应采集到 search_stage_timing 日志
+FAILED tests/unit/test_log_dict_performance.py::TestCorrectness::test_file_output_json_parseable - json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+FAILED tests/unit/test_log_dict_refactor.py::TestIntegrationSetup::test_file_log_json_parseable - AssertionError: assert 'file json test' in ''
+FAILED tests/unit/test_mcp_executor.py::TestMcpClientLoggerGracefulDegradation::test_warning_logs_fall_back_to_last_resort - AssertionError: warning 日志未走 lastResort 兜底
+FAILED tests/unit/test_mcp_executor.py::TestDynamicLogLevel::test_level_change_affects_log_filtering - assert False
+FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_strategy_latest - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
+FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_strategy_best - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
+FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_strategy_random - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
+FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_strategy_score_prop - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
+FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_score_child_prop_decay_in_selection - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
+FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_candidates_exclude_rejected - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
+FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_archived_excluded_from_candidates - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
+FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_children_count_includes_archived - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
+FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_filters_actually_applied - AssertionError: 自定义 filter 应被调用
+FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_single_filter - assert 0 > 0
+FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_multiple_filters - assert 0 > 0
+FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_both_factories_injected_simultaneously - assert 0 > 0
+FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_raises_exception - AssertionError: filter 异常应被计入 error_count
+FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_custom_filter_invoked_per_record - AssertionError: filter 调用次数 0 应等于 total_ops 167622
+FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_thread_safety - AssertionError: 多线程 filter 调用 0 应等于 total_ops 439142
+FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_identity_intent - AssertionError: assert 'unknown' == 'identity'
+FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_time_query_intent - AssertionError: assert 'unknown' == 'time_query'
+FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_greeting_intent - AssertionError: assert 'unknown' == 'greeting'
+FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_capability_intent - AssertionError: assert 'unknown' == 'capability'
+FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_weather_intent - AssertionError: assert 'unknown' == 'weather'
+FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_dissatisfaction_intent - AssertionError: assert 'unknown' == 'dissatisfaction'
+FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_follow_up_intent - AssertionError: assert 'unknown' == 'follow_up'
+FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_simple_chat_intent - AssertionError: assert 'unknown' == 'simple_chat'
+FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_priority_ordering - AssertionError: assert 'unknown' == 'identity'
+FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_identity_template - assert None is not None
+FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_capability_template - assert None is not None
+FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_weather_template - assert None is not None
+FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_greeting_template - assert None is not None
+FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_time_greeting - TypeError: argument of type 'NoneType' is not iterable
+FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_none_confidence_uses_default_hour - assert None is not None
+FAILED tests/unit/test_response_workflows.py::TestRegisterIntent::test_register_new_intent - AssertionError: assert 'unknown' == 'test_intent'
+FAILED tests/unit/test_response_workflows.py::TestRegisterIntent::test_register_does_not_affect_default_rules - AssertionError: assert 'unknown' == 'identity'
+FAILED tests/unit/test_security_utils_comprehensive.py::TestCoverageSupplementary::test_data_sanitizer_init_logging - assert False
+FAILED tests/unit/test_skill_manager.py::TestBuildContext::test_build_context_scenario_budget_exceeded_skip_instruction - AssertionError: no logs of level INFO or higher triggered on agent.skills_mgmt
+FAILED tests/unit/test_skill_manager.py::TestBuildContext::test_build_context_scenario_no_match_logs_boundary_state - AssertionError: no logs of level INFO or higher triggered on agent.skills_mgmt
+FAILED tests/unit/test_skill_manager.py::TestBuildContext::test_build_context_scenario_skill_not_found - AssertionError: no logs of level INFO or higher triggered on agent.skills_mgmt
+FAILED tests/unit/test_skill_output_guard.py::test_call_llm_v2_integrates_guard - AssertionError: _call_llm_v2 未调用 _guard_llm_output (ast 检查)
+FAILED tests/unit/test_skill_output_guard.py::test_integration_check_detects_commented_call - AssertionError: 测试前提: 注释中仍含字符串
+FAILED tests/unit/test_skill_output_guard.py::test_call_llm_v2_integrates_guard_fails_when_call_commented - AssertionError: 测试前提失败: 篡改未生效
+FAILED tests/unit/test_system_tools_core.py::TestSystemToolsDirectoryOperations::test_get_file_info_symlink - FileNotFoundError: [WinError 2] 系统找不到指定的文件。: 'C:\\Users\\Administrator\\agent\\.pytest_tmp\\tmpnwug9ssk\\target.txt' -> 'C:\\Users\\Administrator\\agent\\.pytest_tmp\\tmpnwug9ssk\\link.txt'
+FAILED tests/unit/test_system_tools_core.py::TestSystemToolsEdgeCases::test_get_file_info_symlink_error - FileNotFoundError: [WinError 2] 系统找不到指定的文件。: 'C:\\Users\\Administrator\\agent\\.pytest_tmp\\tmpj_ikd4vl\\target.txt' -> 'C:\\Users\\Administrator\\agent\\.pytest_tmp\\tmpj_ikd4vl\\link.txt'
+FAILED tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreBackendImmutable::test_backend_is_sqlite_vec_when_available - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+FAILED tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreBackendImmutable::test_use_chroma_cannot_be_assigned_at_runtime - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+FAILED tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreBackendImmutable::test_backend_field_not_modified_by_add_failure - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+FAILED tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_persistence_across_vector_store_instances - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package

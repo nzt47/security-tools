@@ -1,78 +1,54 @@
-ERROR tests/unit/test_evolution_loop.py
-ERROR tests/unit/test_evolver_real_eval.py
-ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_add_and_count - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_search_returns_memory_items - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_get_by_id - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_get_recent - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_clear - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_get_stats_contains_backend_field - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_batch_add - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-ERROR tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_recall_at_1_with_mock_encoder - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_规则层命中_短路返回workflow - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
-FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_语义层命中_短路返回instruction - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
-FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_模板层命中_带trace_真正短路返回 - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
-FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_语义层未命中_降级LLM - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
-FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_语义层异常_降级LLM不抛错 - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
-FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_语义层关闭_直接降级LLM - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
-FAILED tests/integration/test_orchestrator三层路由_e2e.py::TestOrchestrator三层路由E2E::test_输入过短且三层未命中_拒识 - AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'. Did you mean: '_interaction_count'?
-FAILED tests/integration/test_orchestrator三层路由_e2e.py::test_并发热更_配置热更不影响正在处理的请求 - AssertionError: 并发热更产生异常: [AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'")]
-FAILED tests/integration/test_orchestrator三层路由_e2e.py::test_高并发_频繁热更无线程竞争 - AssertionError: 线程竞争异常: [AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'"), AttributeError("'Orchestrator' object has no attribute '_interaction_lock'")]
-FAILED tests/regression/test_precommit_hook_blocking.py::test_real_git_commit_blocked_by_hook - AssertionError: No .pre-commit-config.yaml file was found
-FAILED tests/unit/test_ci_guard_fix_regression.py::TestRenameConsistency::test_guard_pipeline_json可运行 - AssertionError: 模拟失败: 
-FAILED tests/unit/test_dialog_state.py::TestIsFollowUpDelegation::test_follow_up_normal_query_with_session - AssertionError: assert True is False
-FAILED tests/unit/test_few_shot_injector.py::TestSelectExamples::test_select_examples_by_intent - AssertionError: assert 1 == 2
-FAILED tests/unit/test_impact_analysis_cache.py::TestCollectTestFilesSymlinkP1::test_collect_test_files_symlink_resolution - AssertionError: 符号链接创建失败时应仅收集 1 个真实文件，实际 2
-FAILED tests/unit/test_knowledge_observability.py::test_emit_produces_parseable_json_line - json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-FAILED tests/unit/test_knowledge_observability.py::test_knowledge_trace_shares_id_in_chain - assert 0 == 3
-FAILED tests/unit/test_knowledge_observability.py::test_knowledge_trace_explicit_param_priority - IndexError: list index out of range
-FAILED tests/unit/test_knowledge_observability.py::test_knowledge_trace_concurrent_isolation - assert 0 == 10
-FAILED tests/unit/test_knowledge_search.py::TestLinkCachePerfRegression::test_link_stage_below_io_bound - AssertionError: 应采集到 search_stage_timing 日志
-FAILED tests/unit/test_log_dict_performance.py::TestCorrectness::test_file_output_json_parseable - json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-FAILED tests/unit/test_log_dict_refactor.py::TestIntegrationSetup::test_file_log_json_parseable - AssertionError: assert 'file json test' in ''
-FAILED tests/unit/test_mcp_executor.py::TestMcpClientLoggerGracefulDegradation::test_warning_logs_fall_back_to_last_resort - AssertionError: warning 日志未走 lastResort 兜底
-FAILED tests/unit/test_mcp_executor.py::TestDynamicLogLevel::test_level_change_affects_log_filtering - assert False
-FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_strategy_latest - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
-FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_strategy_best - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
-FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_strategy_random - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
-FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_strategy_score_prop - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
-FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_score_child_prop_decay_in_selection - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
-FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_candidates_exclude_rejected - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
-FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_archived_excluded_from_candidates - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
-FAILED tests/unit/test_parent_selection.py::TestParentSelector::test_children_count_includes_archived - TypeError: EvolutionRecord.__init__() got an unexpected keyword argument 'params'
-FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_filters_actually_applied - AssertionError: 自定义 filter 应被调用
-FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_single_filter - assert 0 > 0
-FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_multiple_filters - assert 0 > 0
-FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_both_factories_injected_simultaneously - assert 0 > 0
-FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_raises_exception - AssertionError: filter 异常应被计入 error_count
-FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_custom_filter_invoked_per_record - AssertionError: filter 调用次数 0 应等于 total_ops 167622
-FAILED tests/unit/test_perf_monitor.py::TestStressTestDependencyInjection::test_filter_chain_factory_thread_safety - AssertionError: 多线程 filter 调用 0 应等于 total_ops 439142
-FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_identity_intent - AssertionError: assert 'unknown' == 'identity'
-FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_time_query_intent - AssertionError: assert 'unknown' == 'time_query'
-FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_greeting_intent - AssertionError: assert 'unknown' == 'greeting'
-FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_capability_intent - AssertionError: assert 'unknown' == 'capability'
-FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_weather_intent - AssertionError: assert 'unknown' == 'weather'
-FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_dissatisfaction_intent - AssertionError: assert 'unknown' == 'dissatisfaction'
-FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_follow_up_intent - AssertionError: assert 'unknown' == 'follow_up'
-FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_simple_chat_intent - AssertionError: assert 'unknown' == 'simple_chat'
-FAILED tests/unit/test_response_workflows.py::TestIntentRouterClassify::test_priority_ordering - AssertionError: assert 'unknown' == 'identity'
-FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_identity_template - assert None is not None
-FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_capability_template - assert None is not None
-FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_weather_template - assert None is not None
-FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_greeting_template - assert None is not None
-FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_time_greeting - TypeError: argument of type 'NoneType' is not iterable
-FAILED tests/unit/test_response_workflows.py::TestResponseTemplates::test_none_confidence_uses_default_hour - assert None is not None
-FAILED tests/unit/test_response_workflows.py::TestRegisterIntent::test_register_new_intent - AssertionError: assert 'unknown' == 'test_intent'
-FAILED tests/unit/test_response_workflows.py::TestRegisterIntent::test_register_does_not_affect_default_rules - AssertionError: assert 'unknown' == 'identity'
-FAILED tests/unit/test_security_utils_comprehensive.py::TestCoverageSupplementary::test_data_sanitizer_init_logging - assert False
-FAILED tests/unit/test_skill_manager.py::TestBuildContext::test_build_context_scenario_budget_exceeded_skip_instruction - AssertionError: no logs of level INFO or higher triggered on agent.skills_mgmt
-FAILED tests/unit/test_skill_manager.py::TestBuildContext::test_build_context_scenario_no_match_logs_boundary_state - AssertionError: no logs of level INFO or higher triggered on agent.skills_mgmt
-FAILED tests/unit/test_skill_manager.py::TestBuildContext::test_build_context_scenario_skill_not_found - AssertionError: no logs of level INFO or higher triggered on agent.skills_mgmt
-FAILED tests/unit/test_skill_output_guard.py::test_call_llm_v2_integrates_guard - AssertionError: _call_llm_v2 未调用 _guard_llm_output (ast 检查)
-FAILED tests/unit/test_skill_output_guard.py::test_integration_check_detects_commented_call - AssertionError: 测试前提: 注释中仍含字符串
-FAILED tests/unit/test_skill_output_guard.py::test_call_llm_v2_integrates_guard_fails_when_call_commented - AssertionError: 测试前提失败: 篡改未生效
-FAILED tests/unit/test_system_tools_core.py::TestSystemToolsDirectoryOperations::test_get_file_info_symlink - FileNotFoundError: [WinError 2] 系统找不到指定的文件。: 'C:\\Users\\Administrator\\agent\\.pytest_tmp\\tmpnwug9ssk\\target.txt' -> 'C:\\Users\\Administrator\\agent\\.pytest_tmp\\tmpnwug9ssk\\link.txt'
-FAILED tests/unit/test_system_tools_core.py::TestSystemToolsEdgeCases::test_get_file_info_symlink_error - FileNotFoundError: [WinError 2] 系统找不到指定的文件。: 'C:\\Users\\Administrator\\agent\\.pytest_tmp\\tmpj_ikd4vl\\target.txt' -> 'C:\\Users\\Administrator\\agent\\.pytest_tmp\\tmpj_ikd4vl\\link.txt'
-FAILED tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreBackendImmutable::test_backend_is_sqlite_vec_when_available - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-FAILED tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreBackendImmutable::test_use_chroma_cannot_be_assigned_at_runtime - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-FAILED tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreBackendImmutable::test_backend_field_not_modified_by_add_failure - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
-FAILED tests/unit/test_vector_store_sqlite_vec.py::TestVectorStoreSqliteVecIntegration::test_persistence_across_vector_store_instances - ModuleNotFoundError: No module named 'transformers.configuration_utils'; 'transformers' is not a package
+# 失败基线（failures_baseline.txt）—— TASK-03 · 2026-09-18 重建
+#
+# 消费方：scripts/check_baseline_regression.py（出现基线之外的新失败即非零退出，已接入 .github/workflows/ci.yml 的 baseline-regression job）
+# 纪律：**只允许这个文件收缩**。新增条目必须人工确认为「已知债务」并写明归属，
+#       使用 --force-update 显式写入（--update 在没有新增失败时才会自动写入）。
+#
+# ── 本次重建的口径 ──────────────────────────────────────────────────
+# 命令：python -m pytest tests/unit -q --no-header -p no:cacheprovider -p no:randomly \
+#              --timeout=300 --cov=agent --cov-append    （分 10 块 + 14 文件补跑）
+# 驱动器：_ci_logs/task03/chunked_run.py（分块是为了在被杀/OOM 时可存活与可重跑）
+# 明细：docs/closeout/BASELINE_20260918.md §4、_ci_logs/task03/baseline_compare.json
+#
+# ── 与上一版（78 条，2026-08-27）的差异 ───────────────────────────
+# 本次实测 10 条；其中 **3 条是本任务自己引入、并已在本次修复**（见下），
+# 故新基线为 **7 条**。
+#
+# [已修复·本任务] 3 条 —— 不算入基线，修复证据：
+#   tests/unit/test_scripts_quality_gate.py 单独跑 = 31 passed / exit 0
+#     · TestRunAllChecks::test_all_pass
+#     · TestMainEntry::test_main_exit_zero_on_pass
+#     · TestMainEntry::test_require_e2e_flag_parsing
+#   原因：TASK-03 E5「门禁诚实化」把 scripts/observability_quality_gate.py 的
+#   聚合从布尔 all_passed 改为三态（passed/inconclusive/failed）。旧测试断言的是
+#   『6 项里 3 项从未跑成（skipped）也算 passed』——那正是要根除的行为。
+#   已把测试夹具补成真·全通过，并**新增 4 条用例专盯这个 bug 不得回归**。
+#
+# [已修复·非本任务] 旧基线 78 条中**没有一条复现**（集合交集 = 0）。
+#   抽样复核：test_parent_selection / test_perf_monitor / test_response_workflows /
+#   test_skill_manager 四个文件共 157 个用例**全部通过**（exit 0，24.5s）。
+#   主因：旧基线（2026-08-27）早于 tests/conftest.py 的污染治理（_force_reset_intent_rules /
+#   _force_restore_golden_methods / 定向单例重置等），那批顺序污染失败已被根治。
+#   ⇒ 该基线**已失效**，本次重建即为纠正。
+#
+# [已知债务·非本任务] 7 条 —— 全部归属并行任务/在飞切片，逐条归因如下：
+#   · 命中点在 tests/unit/test_load_tool_meta_cache.py:106（该文件为**其它任务的改动**，git status 显示 M）——它把 time.time() 派生值写进 mtime，触发既有的日期平移守卫。与 TASK-03 无关；归属：P0-1/load_tool_meta 缓存任务。
+#   · 根因在 agent/tool_calling.py（DSML/文本协议解析）——该文件 git status 显示 M，为**并行任务 TASK-01**的在飞改动；报错为 'dsml_parse_error'。测试文件本身是新增未跟踪文件（非本任务创建）。归属：TASK-01。
+#   · 同上，agent/tool_calling.py 在飞改动导致 XML 工具调用抽取返回空列表。归属：TASK-01。
+#   · 同上（assert 0 == 2）。归属：TASK-01。
+#   · 同上（assert 0 == 1）。归属：TASK-01。
+#   · 同上（assert 0 == 1）。归属：TASK-01。
+#   · 同上（IndexError: list index out of range）。归属：TASK-01。
+#
+# ⚠️ 这 7 条是**在飞改动造成的当前失败**，不是「接受为永久现状」。
+#   对应任务清零后，必须用 `--update` 把它们从基线删除（只许收缩）。
+#   若在此之前把它们留在基线里，是为了让**其它**回归仍然能被拦下来 ——
+#   而不是为了让门禁变绿。
+
+FAILED tests/unit/test_date_shift_blindspots_guard.py::test_mtime_is_not_derived_from_the_unshifted_posix_clock
+FAILED tests/unit/test_llm_response_parsing.py::test_6_plain_text_response_is_untouched
+FAILED tests/unit/test_tool_calling_comprehensive.py::TestChatWithSteps::test_xml_tool_call_detection
+FAILED tests/unit/test_tool_calling_comprehensive.py::TestExtractXmlToolCalls::test_multiple_xml_tool_calls
+FAILED tests/unit/test_tool_calling_comprehensive.py::TestExtractXmlToolCalls::test_namespaced_xml
+FAILED tests/unit/test_tool_calling_comprehensive.py::TestExtractXmlToolCalls::test_simple_xml_tool_call
+FAILED tests/unit/test_tool_calling_comprehensive.py::TestExtractXmlToolCalls::test_xml_id_format

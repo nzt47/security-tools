@@ -107,6 +107,19 @@ WHITELIST_PATHS = {
     # gitleaks 扫描配置本身（含 PEM 测试样例与正则示例，非真实密钥；
     # 注释已声明"测试样例由 allowlist 兜底放行"）
     'gitleaks-config.toml',
+    # 【TASK-03 2026-09-18】凭据**检测器自身的模式表**。agent/policy/taint.py 的
+    # SECRET_VALUE_PATTERNS 里写着"匹配 OpenSSH 私钥头"的正则字面量
+    # （PEM 头 + "OPENSSH PRIVATE KEY"）——那是**用来识别私钥的正则**，不是私钥
+    # 本身，但会被本脚本当成 [PRIVATE_KEY] 命中（实测 agent/policy/taint.py:84）。
+    # ⚠️ 注意：本文件自己的注释里也**不能**出现那段字面量，否则会自命中
+    # （实测写进去后 scripts/scan_sensitive_data.py:111 立刻被自己报出来）。
+    # Why 必须豁免：本扫描此前**从未随 git commit 触发**（core.hooksPath 指向
+    # hooks/pre-commit，见 TASK-03 §2.7），所以这个自命中一直没暴露；一旦把
+    # 本扫描接回提交路径，任何触碰该文件的提交都会被误拦。
+    # 残余风险（**已知债务**）：按路径豁免会让该文件内的真实泄漏不被扫到。
+    # 更细的做法是"仅豁免位于 re.compile(...) 实参内的匹配"，需要改扫描器逻辑，
+    # 登记在 docs/closeout/REPO_HYGIENE_20260918.md §6。
+    'agent/policy/taint.py',
     # 测试输出报告（含 mock key）
     'coverage_report/',
     'htmlcov/',

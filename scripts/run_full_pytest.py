@@ -13,17 +13,30 @@
             slow: 仅跑 @pytest.mark.slow（单块，容忍慢路径，作为 D 类监控）
             all:  不过滤（与旧行为一致）
 
+【D2 · 2026-09-19 批次完整性校验 + 丢文件自动补跑】
+    每块跑完后**检查日志里是否有 pytest 结束摘要**，而不是只看 rc：
+    被 `pytest-timeout` 的 thread 法强杀（`os._exit(1)`）与"有测试失败"都是 rc=1，
+    但前者会让该块排在挂起测试之后的文件**全部从未执行**（TASK-03 实测：第 8 块
+    63 个文件里 14 个从未执行），且日志无摘要 ⇒ 调用方不知道自己丢了文件。
+    检测到未跑完的块后，脚本会：
+      ① 落盘 `pytest_chunks/incomplete_files.txt`；② 逐个文件用独立进程**自动补跑**；
+      ③ 补跑后仍无摘要的文件 = 真正元凶，写 `pytest_chunks/still_lost_files.txt` 并点名报出。
+    设 `RUN_FULL_PYTEST_NO_RESUME=1` 可跳过自动补跑。
+
 【P1 A3】D 类 slow 分流背景（2026-08-14 实测）：
 - generate_weekly_report → pydantic_settings/importlib 慢扫描、task_scheduler 系列、e2e 热更
   t.join() 在分块进程中 >60s，thread 超时无法中断 → 进程被 pytest-timeout 强制终止（rc=1 无汇总）。
 - fast 模式排除后 chunk 可稳定完成；slow 模式单独运行容忍慢路径。
+  （注：正是本脚本 D2 要兜底的那种"无汇总"事故。）
 
-退出码：任一 chunk 失败则返回 1，全部通过返回 0（rc=5 no-tests-ran 视为通过）。
+退出码：任一 chunk 失败、或**有文件补跑后仍未正常收尾**则返回 1；全部通过返回 0
+        （rc=5 no-tests-ran 视为通过）。
 """
 
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -89,9 +102,53 @@ def collect() -> list[str]:
     return files
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# 【D2 · 2026-09-19 批次完整性校验 + 丢文件自动补跑】
+#
+# 问题（实测复现见 scripts/repro_timeout_batch_loss.py）：
+#   pytest.ini 用 `--timeout-method=thread`。该超时法在超时时走
+#   pytest_timeout.py:505 `timeout_timer()` → `finally: os._exit(1)`
+#   ⇒ 整个 pytest 进程被杀，同块里**排在挂起测试之后的测试文件一个都不执行**，
+#     并且 pytest 来不及写结束摘要 ⇒ 只看 rc 会把"丢了一批文件"误判成"有一批失败"。
+#   实测代价（TASK-03，2026-09-19）：第 8 块 63 个文件里 14 个从未执行。
+#
+# 为什么不能靠 `--timeout-method=signal` 解决：SIGALRM 在 Windows 上不存在，
+#   显式传入会 `AttributeError: module 'signal' has no attribute 'SIGALRM'`，
+#   pytest 直接 INTERNALERROR、**0 个测试运行**（比 thread 更糟）。
+#   本平台（Windows 单机部署）只能用 thread ⇒ 必须在**调用层**兜底。
+#
+# 处置：① 每块跑完检查日志里有没有 pytest 结束摘要；② 没有 ⇒ 该块文件标记为"从未执行"，
+#       落盘清单并**逐文件独立进程补跑**；③ 补跑后仍无摘要的文件 = 真正的元凶，点名报出。
+# ══════════════════════════════════════════════════════════════════════════════
+
+#: pytest 结束摘要行特征。例：`1 failed, 1695 passed, 7 skipped in 313.71s`
+_SUMMARY_RE = re.compile(r"\d+\s+(passed|failed|error|skipped|xfailed|xpassed|deselected)")
+_NO_TESTS_RE = re.compile(r"no tests ran")
+
+
+def chunk_log_status(log_path: str) -> tuple[bool, str]:
+    """判断某块的 pytest 会话是否**正常收尾**（而不是被 os._exit 强杀）。
+
+    Why 不看 rc：被强杀与"有测试失败"都会给出 rc=1，但前者会让该块剩余文件
+    全部丢失。只有"日志里有没有结束摘要"能区分这两者。
+    """
+    p = Path(log_path)
+    if not p.exists():
+        return False, "日志文件不存在"
+    text = p.read_text(encoding="utf-8", errors="replace")
+    if _NO_TESTS_RE.search(text):
+        return True, "no tests ran（收集为空，会话正常收尾）"
+    for line in reversed(text.splitlines()):
+        if _SUMMARY_RE.search(line):
+            return True, line.strip()
+    if "+++ Timeout +++" in text:
+        return False, "无结束摘要且含 Timeout 标记 ⇒ 被 pytest-timeout 强杀（os._exit）"
+    return False, "无 pytest 结束摘要 ⇒ 疑似被强杀/崩溃"
+
+
 def run_chunk(files: list[str], idx: int, out: str, marker: str | None,
-              extra: list[str] | None = None) -> tuple[int, int, str]:
-    """执行单块测试，输出到独立日志文件"""
+              extra: list[str] | None = None) -> tuple[int, int, str, bool, str]:
+    """执行单块测试，输出到独立日志文件；返回 (idx, rc, out, 是否跑完, 证据)"""
     cmd = [
         sys.executable, "-m", "pytest", *files,
         "-q", "--no-header", "-p", "no:cacheprovider", "--tb=line",
@@ -107,7 +164,42 @@ def run_chunk(files: list[str], idx: int, out: str, marker: str | None,
     # rc=5 = "no tests ran"（分块后该 chunk 恰好无匹配用例），不视为失败
     if rc == 5:
         rc = 0
-    return idx, rc, out
+    completed, detail = chunk_log_status(out)
+    return idx, rc, out, completed, detail
+
+
+def resume_lost_files(files: list[str], logdir: Path, marker: str | None,
+                      extra: list[str] | None) -> tuple[list[str], list[tuple[str, int]]]:
+    """把"从未执行"的文件逐个用**独立进程**补跑（有界）。
+
+    返回 (仍然跑不完的文件, [(文件, rc)])。逐文件而不是整块重跑的理由：
+      - 一个进程只装一个文件 ⇒ 单个文件爆预算只会影响它自己；
+      - 能精确定位元凶（否则永远只知道"这块丢了 14 个文件"）。
+    """
+    still_lost: list[str] = []
+    done: list[tuple[str, int]] = []
+    rdir = logdir / "resume"
+    rdir.mkdir(exist_ok=True)
+    for i, f in enumerate(files):
+        out = str(rdir / f"resume_{i:03d}_{Path(f).stem}.log")
+        cmd = [sys.executable, "-m", "pytest", f, "-q", "--no-header",
+               "-p", "no:cacheprovider", "--tb=short"]
+        if marker:
+            cmd += ["-m", marker]
+        cmd += (extra or [])
+        with open(out, "w", encoding="utf-8") as fh:
+            env = {**os.environ, **K9_OFFLINE_ENV}
+            rc = subprocess.call(cmd, stdout=fh, stderr=subprocess.STDOUT, env=env)
+        completed, detail = chunk_log_status(out)
+        print(f"    [补跑 {i + 1}/{len(files)}] {f} rc={rc} "
+              f"{'✔' if completed else '✗ ' + detail}")
+        # 文件跑不完，或文件本身有测试失败（rc!=0 且非 5）都保留在结果里；
+        # 但只有"跑不完"才进 still_lost —— 失败是正常结果，交给既有基线体系。
+        if not completed:
+            still_lost.append(f)
+        done.append((f, rc))
+    return still_lost, done
+
 
 
 def main() -> int:
@@ -154,7 +246,7 @@ def main() -> int:
     logdir = ROOT / "pytest_chunks"
     logdir.mkdir(exist_ok=True)
 
-    results: list[tuple[int, int, str]] = []
+    results: list[tuple[int, int, str, bool, str]] = []
     with ProcessPoolExecutor(max_workers=workers) as ex:
         futures = [
             ex.submit(run_chunk, chunk, i, str(logdir / f"chunk_{i}.log"), marker, extra)
@@ -164,7 +256,7 @@ def main() -> int:
             results.append(fu.result())
 
     overall_rc = 0
-    for idx, rc, out in sorted(results):
+    for idx, rc, out, completed, detail in sorted(results):
         tail = ""
         try:
             tail = "\n".join(
@@ -172,11 +264,46 @@ def main() -> int:
             )
         except OSError:
             pass
-        print(f"[chunk {idx}] rc={rc}")
+        print(f"[chunk {idx}] rc={rc} {'✔ 已跑完' if completed else '✗ **未跑完**'} :: {detail}")
         if tail:
             print(f"  {tail}")
         if rc != 0:
             overall_rc = 1
+
+    # ── D2：批次完整性校验 + 丢文件自动补跑 ──────────────────────────────────
+    incomplete = [r for r in sorted(results) if not r[3]]
+    if incomplete:
+        lost: list[str] = []
+        for idx, _rc, _out, _ok, _detail in incomplete:
+            lost.extend(chunks[idx])
+        print()
+        print("=" * 78)
+        print(f"⚠ 检测到 {len(incomplete)} 个分块**没有正常收尾**（缺 pytest 结束摘要）")
+        print("  这通常意味着 pytest-timeout 的 thread 法超时后 os._exit 掉了整个进程，")
+        print(f"  ⇒ 这些块里排在挂起测试之后的文件**从未执行**，共 {len(lost)} 个文件。")
+        print("=" * 78)
+        manifest = logdir / "incomplete_files.txt"
+        manifest.write_text("\n".join(lost) + "\n", encoding="utf-8")
+        print(f"清单已落盘: {manifest}")
+        if os.environ.get("RUN_FULL_PYTEST_NO_RESUME") == "1":
+            print("已按 RUN_FULL_PYTEST_NO_RESUME=1 跳过自动补跑。")
+            overall_rc = 1
+        else:
+            print(f"\n开始逐文件补跑 {len(lost)} 个文件（各自独立进程，有界）...")
+            still_lost, _done = resume_lost_files(lost, logdir, marker, extra)
+            if still_lost:
+                print("\n✗ 以下文件**补跑后仍未正常收尾**（即真正的元凶，需要单独处置）：")
+                for f in still_lost:
+                    print(f"    {f}")
+                (logdir / "still_lost_files.txt").write_text(
+                    "\n".join(still_lost) + "\n", encoding="utf-8"
+                )
+                overall_rc = 1
+            else:
+                print(f"\n✔ 已把 {len(lost)} 个从未执行的文件全部补跑完毕，**没有文件被丢弃**。")
+    else:
+        print("\n✔ 全部 %d 个分块均正常收尾，无文件丢失。" % len(results))
+
     print(f"== 总体结果: {'PASS' if overall_rc == 0 else 'FAIL'} ==")
     return overall_rc
 

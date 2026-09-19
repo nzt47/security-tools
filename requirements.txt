@@ -441,5 +441,36 @@ wsproto==1.3.2
 yarl==1.24.2
     # via aiohttp
 
+# ══ 【TASK-03 · 2026-09-18 人工补充：pyproject 已声明、本锁定文件漏掉的直接依赖】══
+# Why 补这一节：本文件由**旧版** pyproject.toml 经 pip-compile 生成，之后 pyproject
+#   新增的直接依赖没有回流。实测缺口 9 个（scripts/audit_dependency_drift.py 的 [2b] 类）。
+#   影响面：只读本文件的 CI job（ci-cd.yml、policy-change-gate.yml 等）此前装出的是
+#   **缺件环境**——.github/workflows/observability-ci.yml:548 已记载同一缺口
+#   （"requirements.txt 由旧版 pyproject.toml 生成，缺失 flask/lxml/waitress 等多个包"）。
+# 版本取值：本机生产实测版本（快照 _ci_logs/pip_freeze_20260918.txt）。
+# 【已知债务】本文件本应整体由 `pip-compile` 重新生成（那样会连同这 9 个包的传递
+#   依赖一起补齐）。手工补充只是**止损**，不覆盖传递闭包（例如 flask 的
+#   werkzeug/itsdangerous/blinker、pdfplumber 的 pdfminer.six 仍由 pip 自行解析）。
+#   登记见 docs/closeout/BASELINE_20260918.md §遗留债务。下次重新生成时整段删除。
+# ══════════════════════════════════════════════════════════════════════════════
+cssselect==1.4.0
+    # via Yunshu (pyproject.toml)
+flask==3.1.3
+    # via Yunshu (pyproject.toml)
+pandas==3.0.3
+    # via Yunshu (pyproject.toml)
+pdfplumber==0.11.10
+    # via Yunshu (pyproject.toml)
+prometheus-flask-exporter==0.23.2
+    # via Yunshu (pyproject.toml)
+pyarrow==24.0.0
+    # via Yunshu (pyproject.toml)
+pypdf==6.14.2
+    # via Yunshu (pyproject.toml)
+waitress==3.0.2
+    # via Yunshu (pyproject.toml)
+wmi==1.5.1; sys_platform == 'win32'
+    # via Yunshu (pyproject.toml)
+
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

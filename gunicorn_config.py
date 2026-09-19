@@ -2,7 +2,21 @@
 Gunicorn 启动配置文件
 用于生产环境多进程部署
 
-使用方法:
+⚠️ 【TASK-03 · 2026-09-18】本文件**不是当前生产运行时的配置**，且**无任何调用方**。
+    实测：
+      * `git grep -ln "gunicorn_config.py"` 在源码 / 脚本 / CI 中**零命中**
+        （只有 docs/、.gitignore 与本文提及）；
+      * 当前生产运行时是 **waitress 单进程 16 线程**：
+        `app_server.py:1618  serve(app, host="127.0.0.1", port=5678, threads=16)`
+      * 本文件的 `workers = min(cpu*2+1, 8)` 是**多进程**模型，与实际的单进程
+        语义相反。凡涉及"并发度 / 进程模型"的判断，**一律以 `app_server.py:1618` 为准**。
+    为什么保留而不是删除：`deploy/k8s/deployment.yaml` 仍引用 gunicorn
+    （注：TASK-00 §0.2 已核实 `deploy/k8s/` 只服务 `skill-retrieval-service`，
+    不是主平台部署路径）。删除会让该引用悬空 —— 属于"删文件没做引用检查"。
+    处置：保留 + 本声明；`gunicorn` 依赖在 pyproject 中补了上限 `<24.0.0`。
+    详见 docs/closeout/DEAD_CONFIG_20260918.md §3。
+
+使用方法（**当前生产并不这样启动**）:
     gunicorn -c gunicorn_config.py app_server:app
 
 参数说明:

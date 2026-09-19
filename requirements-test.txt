@@ -59,4 +59,8 @@ safety>=2.3.0,<4.0.0              # 依赖安全检查 - 检查已知漏洞
 
 # ===== 测试专用运行时依赖（CI 环境必需） =====
 cssselect>=1.2.0,<2.0.0           # CSS 选择器 - lxml 的 cssselect 扩展，web_scraper 测试需要
-pypdf>=4.0.0,<6.0.0              # PDF 处理 - pdf_tools 测试需要
+# 【TASK-03 · 2026-09-18】原为 `pypdf>=4.0.0,<6.0.0`，与 pyproject.toml 的
+#   `pypdf>=6.14.2,<7.0.0` **口径不相交**（audit_dependency_drift 的 [1] 类真冲突）：
+#   装本文件会把生产实装的 6.14.2 **降级**到 5.x ⇒ 测试环境的 pypdf 与生产不是同一个大版本。
+#   已对齐到生产实装版本。
+pypdf>=6.14.2,<7.0.0              # PDF 处理 - pdf_tools 测试需要

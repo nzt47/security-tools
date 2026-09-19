@@ -474,3 +474,49 @@ data/summary_version.txt
 data/personality.json
 agent/data/skills.json
 
+# ══════════════════════════════════════════════════════════════════════════
+# 【TASK-03 · 2026-09-18 根目录产物治理】
+# Why：`.gitignore` 对**未跟踪**残留一直有效，对**已跟踪**文件**完全无效**
+#   —— 那是 127 个根目录受控文件里混进 59 个产物的直接原因：它们早在
+#   `.gitignore` 有对应规则**之前**就被 `git add` 了，之后无论怎么加规则
+#   都不会自动脱离跟踪（必须先 `git rm --cached`）。
+# 本段把"已经清出去的那批"的**模式**固化，防止同型产物再次被 add 进来。
+# 逐个文件的可回滚清单与引用检查见 docs/closeout/REPO_HYGIENE_20260918.md。
+# ⚠️ 这些模式**只匹配根目录**（前缀 `/`）：业务目录下同名的东西不受影响。
+# ══════════════════════════════════════════════════════════════════════════
+
+# 覆盖率报告：CI 每次重新生成，入库只会留下"过期快照冒充权威数字"
+/coverage.xml
+/coverage_*.xml
+/.coverage*
+
+# 测试/失败基线的一次性导出（权威基线的唯一载体是 failures_baseline.txt）
+/pytest_baseline.txt
+/pytest_baseline_full.txt
+
+# 模块级覆盖率临时导出（"error_handler_cov_final.txt" 这一型）
+/*_cov.txt
+/*_cov_*.txt
+
+# 混沌/压测/性能报告：产物；且 TASK-00 §0.2b 已认定其中部分**不可引用**
+# （tracing_performance_report_* 的 p50/p90/p99 全是"每项 count: 1"的假分位数；
+#   chaos_test_report_* 的 7 轮中 6 轮因脚手架自身 bug 失败）
+/chaos_test_report_*.md
+/performance_benchmark_*.json
+/tracing_performance_report_*.json
+/stress-report.json
+
+# 一次性调试输出（文件名或内容就是产物本身）
+/ts_log*.txt
+/run_log.txt
+/test.log
+/migration_report.txt
+/test_cost.jsonl
+/vis_missing.json
+
+# ⚠️ 注意：`.commit_msg_*.md`、`conversation_log.json`、`auto_save_service.txt`、
+# `CI_VALIDATION_REPORT.txt` 四个文件**仍在跟踪**——它们分别被提交草稿流程、
+# tests/test_conversation_injection.py、启动自动保存.bat、scripts/validate_ci_config.py
+# 引用（引用检查见 docs/closeout/REPO_HYGIENE_20260918.md §4）。
+# **不要**按"看着像产物"把它们删掉。
+

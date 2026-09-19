@@ -227,19 +227,47 @@ class TestCheckPrometheusIntegration:
 # 7. run_all_checks 聚合
 # ──────────────────────────────────────────────────────────────────────────────
 class TestRunAllChecks:
-    """run_all_checks：全链路聚合与 overall_status"""
+    """run_all_checks：全链路聚合与 overall_status
+
+    【TASK-03 · E5 契约变更 2026-09-18】本类原先只铺 3 份报告（config/e2e/coverage），
+    却断言 `overall_status == "passed"` —— 而另外 3 项（unit_tests / integration_tests /
+    prometheus_integration）因找不到报告被记成 `skipped`。旧实现用布尔 `all_passed`
+    聚合，`skipped` 也 `return True`，于是"**3 项压根没跑**"被写成 `passed`。
+    这正是 TASK-03 §2.3 点名的"skip 却报 passed"。
+    契约已改为三态（passed / inconclusive / failed），故本类的夹具补全为**真·全通过**，
+    并新增专门盯住"全 skipped 不得等于 passed"的用例（见下方 TestHonestStatusContract）。
+    """
+
+    _PASSING_REPORTS = {
+        # 与各 check_* 的路径匹配规则一一对应（见 scripts/observability_quality_gate.py）：
+        #   config_validation ← "config" ；unit_tests ← "unit-test"；
+        #   test_coverage ← "coverage"；integration_tests ← "integration"；
+        #   e2e_tests ← "e2e"；prometheus_integration ← "prometheus"
+        "config_validation.json": {"overall_status": "passed"},
+        "unit-test_report.json": {"passed": 10, "failed": 0},
+        "coverage.json": {"totals": {"percent_covered": 80.0}},
+        "integration_report.json": {"overall_status": "passed"},
+        "e2e_report.json": {"overall_status": "passed"},
+        "prometheus_report.json": {"overall_status": "passed"},
+    }
+
+    def _write_passing_reports(self, tmp_path, **overrides):
+        payload = dict(self._PASSING_REPORTS)
+        payload.update(overrides)
+        for name, data in payload.items():
+            (tmp_path / name).write_text(json.dumps(data), encoding="utf-8")
 
     def test_all_pass(self, tmp_path):
-        """全部通过时 overall_status=passed"""
-        (tmp_path / "config.json").write_text(
-            json.dumps({"overall_status": "passed"}), encoding="utf-8")
-        (tmp_path / "e2e.json").write_text(
-            json.dumps({"overall_status": "passed"}), encoding="utf-8")
-        (tmp_path / "coverage.json").write_text(
-            json.dumps({"totals": {"percent_covered": 80.0}}), encoding="utf-8")
+        """六项全部真的跑过且都通过时，overall_status=passed
+
+        Why 夹具必须铺满 6 份：只要有一项找不到报告，诚实契约下就是
+        `inconclusive` 而不是 `passed`。
+        """
+        self._write_passing_reports(tmp_path)
 
         checker = QG.QualityGateChecker(str(tmp_path), output_file=str(tmp_path / "out.json"))
         result = checker.run_all_checks()
+        assert result["skipped_checks"] == 0, "本用例要求六项全部跑成，不允许有 skipped"
         assert result["overall_status"] == "passed"
 
     def test_e2e_failure_causes_failed(self, tmp_path):
@@ -264,18 +292,82 @@ class TestRunAllChecks:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# 7b. 【TASK-03 · E5】诚实状态契约（**防"skip 却 passed"回归**）
+# ──────────────────────────────────────────────────────────────────────────────
+class TestHonestStatusContract:
+    """三态契约：passed（全跑成全过）/ inconclusive（有没跑成的）/ failed（有真失败）
+
+    这组用例是本任务对 E5 的**回归防线**。旧实现在这里会全线变红：
+
+        # 旧实现（已删除）
+        self.results["overall_status"] = "passed" if all_passed else "failed"
+        # 而 check_* 在"找不到报告"时 `_record_check(..., "skipped")` 后 `return True`
+        # ⇒ all_passed 保持 True ⇒ 6 项全 skipped 也写成 passed
+
+    根目录曾存在的 `quality_gate_report.json` 正是这个 bug 的产物：
+    `overall_status: "passed"` + `passed_checks: 0` + `failed_checks: 0` + 6 项全 `skipped`。
+    """
+
+    def test_all_skipped_is_inconclusive_not_passed(self, tmp_path):
+        """★ 空目录（6 项全部 skipped）必须判 inconclusive，**绝不允许 passed**"""
+        checker = QG.QualityGateChecker(str(tmp_path), require_e2e_pass=False,
+                                        output_file=str(tmp_path / "out.json"))
+        result = checker.run_all_checks()
+        assert result["passed_checks"] == 0
+        assert result["failed_checks"] == 0
+        assert result["skipped_checks"] == 6
+        assert result["overall_status"] == "inconclusive", (
+            "6 项全 skipped 却报 passed —— 这就是 TASK-03 E5 要根除的『skip 却 passed』")
+
+    def test_partial_reports_is_inconclusive(self, tmp_path):
+        """部分跑成、部分没跑成 ⇒ inconclusive（不能因为"没有失败"就判通过）"""
+        (tmp_path / "config.json").write_text(
+            json.dumps({"overall_status": "passed"}), encoding="utf-8")
+        (tmp_path / "e2e.json").write_text(
+            json.dumps({"overall_status": "passed"}), encoding="utf-8")
+        checker = QG.QualityGateChecker(str(tmp_path), output_file=str(tmp_path / "out.json"))
+        result = checker.run_all_checks()
+        assert result["passed_checks"] == 2
+        assert result["skipped_checks"] == 4
+        assert result["overall_status"] == "inconclusive"
+
+    def test_failed_beats_inconclusive(self, tmp_path):
+        """有真失败时优先判 failed（不得被 inconclusive 掩盖）"""
+        (tmp_path / "e2e.json").write_text(
+            json.dumps({"overall_status": "failed"}), encoding="utf-8")
+        checker = QG.QualityGateChecker(str(tmp_path), require_e2e_pass=True,
+                                        output_file=str(tmp_path / "out.json"))
+        result = checker.run_all_checks()
+        assert result["overall_status"] == "failed"
+
+    def test_inconclusive_exit_code_is_two(self, tmp_path):
+        """inconclusive 的退出码必须是 2（**不能是 0**：0 会被读成"通过"）"""
+        with patch.object(sys, "argv", [
+            "observability_quality_gate.py",
+            "--results-dir", str(tmp_path),
+            "--require-e2e-pass", "false",
+            "--output", str(tmp_path / "out.json"),
+        ]):
+            with pytest.raises(SystemExit) as exc:
+                QG.main()
+        assert exc.value.code == 2, "不确定态以 0 退出 = 把『没查』伪装成『查过且通过』"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # 8. main() 入口
 # ──────────────────────────────────────────────────────────────────────────────
 class TestMainEntry:
     """main()：argparse 入口与 exit code"""
 
     def test_main_exit_zero_on_pass(self, tmp_path, capsys):
-        """全部通过时 main 返回 0"""
-        # 需 config + e2e 均 passed（coverage 缺失为 skipped 不阻断）
-        (tmp_path / "config.json").write_text(
-            json.dumps({"overall_status": "passed"}), encoding="utf-8")
-        (tmp_path / "e2e.json").write_text(
-            json.dumps({"overall_status": "passed"}), encoding="utf-8")
+        """全部通过时 main 返回 0
+
+        【TASK-03 · E5】契约变更：原注释写"coverage 缺失为 skipped 不阻断" ——
+        即"没跑成的不算问题"。新契约下 skipped 使状态变为 inconclusive（退出码 2），
+        故本用例的夹具补全为**六项全部真的跑成且通过**，才允许断言 0。
+        """
+        for name, data in TestRunAllChecks._PASSING_REPORTS.items():
+            (tmp_path / name).write_text(json.dumps(data), encoding="utf-8")
         with patch.object(sys, "argv", [
             "observability_quality_gate.py",
             "--results-dir", str(tmp_path),
@@ -298,16 +390,25 @@ class TestMainEntry:
         assert exc.value.code == 1
 
     def test_require_e2e_flag_parsing(self, tmp_path):
-        """--require-e2e-pass false 应解析为布尔 False"""
+        """`--require-e2e-pass false` 应解析为布尔 False
+
+        【TASK-03 · E5】契约变更：原断言是"空目录 + false → 其余也 skipped → passed → exit 0"，
+        那正是"skip 却 passed"的**明文编码**。现在 skipped ⇒ inconclusive ⇒ 退出码 2。
+        本用例的**验证意图不变且更强**：
+          * 若 flag 被错解析为 True ⇒ e2e 记 failed ⇒ 退出码 **1**；
+          * 若被正确解析为 False ⇒ e2e 记 skipped ⇒ 退出码 **2**。
+        两个可能值互不相同，故断言 2 依然精确锁定"flag 解析成了 False"。
+        """
         with patch.object(sys, "argv", [
             "observability_quality_gate.py",
             "--results-dir", str(tmp_path),
             "--require-e2e-pass", "false",
         ]):
-            # 空目录 + require_e2e_pass=False → E2E skipped → 其余也 skipped → passed → exit 0
             with pytest.raises(SystemExit) as exc:
                 QG.main()
-        assert exc.value.code == 0
+        assert exc.value.code == 2, (
+            "期望 2（flag=False ⇒ E2E skipped ⇒ inconclusive）；"
+            "得到 1 说明 flag 被解析成了 True")
 
 
 if __name__ == '__main__':

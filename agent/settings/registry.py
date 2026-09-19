@@ -1530,6 +1530,28 @@ _REGISTRY_ROWS: List[SettingSpec] = [
         owner_module="agent/skills_mgmt/cleanup_scheduler.py"),
 
     # ────────────────────────────────────────────────────────
+    #  特性开关族（TASK-03 第 6 步；阶段灰度开关，UI 只读展示）
+    # ────────────────────────────────────────────────────────
+    # Why 只登记**一个动态家族**、不为每个特性开关注册一条 env_name 行：
+    #   特性开关的 env 名是 `YUNSHU_FEATURE_` + 开关名**拼接**出来的
+    #   （agent/settings/feature_flags.py::_env_text），代码里不存在任何
+    #   `os.getenv("YUNSHU_FEATURE_XXX")` 字面量。若逐个登记字面量行，它们
+    #   会全部命中 `test_registry_has_no_phantom_switches`（"注册了但代码没读"）
+    #   而变红。一次登记家族 ⇒ 新增开关只需在 FEATURES 表加一行，
+    #   这也是 E13「新增开关成本量化」的结论，规范见 docs/rfc/特性开关规范.md。
+    # 具体开关清单、灰度默认比例、归属阶段由 FEATURES 表声明，并由
+    #   tests/unit/test_feature_flags.py 做双向守卫（表 ↔ 注册表 ↔ config.yaml）。
+    SettingSpec(
+        key="YUNSHU_FEATURE_<NAME>", category=CAT_ORCHESTRATION, type="bool",
+        default=None, description=(
+            "特性开关族（阶段灰度）：YUNSHU_FEATURE_<NAME> 覆盖 "
+            "config.yaml 的 features.<name>；YUNSHU_FEATURE_<NAME>_ROLLOUT 控制 "
+            "灰度比例 0-100。统一求值入口 "
+            "agent.settings.feature_flags.feature_enabled()；UI 只读展示"),
+        risk=RISK_A, env_name="", dynamic_prefix="YUNSHU_FEATURE_",
+        owner_module="agent/settings/feature_flags.py"),
+
+    # ────────────────────────────────────────────────────────
     #  SLO 周报调度 与 成本校准件（2026-09-13）
     # ────────────────────────────────────────────────────────
     _a("CP_SLO_SCHEDULE_ENABLED", CAT_OBSERVABILITY, False,

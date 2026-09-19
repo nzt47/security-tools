@@ -29,17 +29,50 @@ classifiers = [
 ]
 keywords = ["AI", "digital-life", "agent", "cognitive"]
 dependencies = [
-  "psutil>=5.9.0,<6.0.0",
+  "psutil>=7.2.2,<8.0.0",
   "openai>=2.0.0,<3.0.0",
   "anthropic>=0.40.0,<1.0.0",
   "tiktoken>=0.7.0,<1.0.0",
   "pyyaml>=6.0,<7.0",
-  "torch>=2.0.0,<2.5.0",
-  "torchvision>=0.15.0,<0.20.0",
-  "torchaudio>=2.0.0,<2.5.0",
+  # ══ 【TASK-03 · 2026-09-18 依赖真相源对齐】═════════════════════════════════
+  # Why 以下 11 项的上限被放宽（旧值见 docs/closeout/BASELINE_20260918.md 附录 A）：
+  #   scripts/audit_dependency_drift.py 实测发现 pyproject 的区间**同时排除**了
+  #   "requirements.txt 钉的版本"与"本机生产实装版本"。而 CI 只读本文件
+  #   （.github/workflows/ci.yml:56 `pip install -e .`），生产只跑实装环境
+  #   ⇒ CI 测的依赖 ≠ 生产跑的依赖，这是最贵的一类假绿。
+  # 取值口径（三方对齐）：
+  #   下限 = requirements.txt 钉的版本（本机实装若更高则以实装为准）
+  #   上限 = 下一大版本（沿用本仓既有 pin 风格）
+  # Why 以"本机实装"为生产实况证据：start_yunshu.bat:21 不做依赖安装，直接
+  #   `python app_server.py`，运行时就是这台机器的 Python 3.12 环境
+  #   （快照 _ci_logs/pip_freeze_20260918.txt，333 包）。而 requirements.txt
+  #   已实测**残缺**（缺 flask/waitress/lxml 等 9 个直接依赖；
+  #   .github/workflows/observability-ci.yml:548 也记载了同一缺口）
+  #   ⇒ 它不能单独充当"生产实况"的证据源。
+  # 为什么否决反向选择（以旧 pyproject 为准、让生产重装）：chromadb 0.4 → 1.5
+  #   与 sentence-transformers 2.x → 5.x 是跨大版本迁移，历史上已经咬过人
+  #   （仓库存有 chromadb_windows_compatibility_migration_guide.md 与
+  #   "chromadb 0.5.x downgrade" 文档），且重装 torch 需重新验证数 GB 权重加载。
+  # Why 这三个的上界只收到「下一**小**版本」而不是「下一大版本」（与本文件其余项不同）：
+  #   实测 `pip install --dry-run -e .` 的结果差异 ——
+  #     上界 <3.0.0 / <1.0.0 / <3.0.0 → 解析器选 **torch 2.14.0 + torchvision 0.29.0**，
+  #        即比生产锁定的 torch 2.12.0 与本机正在跑的 2.13.0+cpu **都新**；
+  #     上界 <2.14.0 / <0.29.0 / <2.13.0 → **torch 保持 2.13.0+cpu 不变**，
+  #        只新增 torchvision 0.28.0 + torchaudio 2.11.0。
+  #   这正是本任务要修的问题本身（"CI 测的依赖 ≠ 生产跑的依赖"）—— 用大版本上界
+  #   会把它原样搬回来。torchvision 0.29 会**钉住 torch==2.14**，是升级的传导源。
+  #   代价：torch 2.14 发布后 CI 不会自动用上，需要一次显式改版（可接受，且是好事）。
+  "torch>=2.12.0,<2.14.0",
+  "torchvision>=0.27.0,<0.29.0",
+  "torchaudio>=2.11.0,<2.13.0",
   "opencv-python-headless>=4.8.0,<5.0.0",
-  "chromadb>=0.4.0,<0.5.0",
-  "sentence-transformers>=2.2.0,<3.0.0",
+  "chromadb>=1.5.9,<2.0.0",
+  "sentence-transformers>=5.5.1,<6.0.0",
+  # transformers：此前**完全未声明**，只作为 sentence-transformers 的传递依赖
+  #   出现在 requirements.txt:383。Why 必须显式声明：agent/ 与 memory/ 直接
+  #   `import transformers`，把它交给传递闭包等于"上游改一次依赖树就静默失效"。
+  #   下限取 requirements.txt 钉的 5.9.0；本机实装 5.13.1 落在区间内。
+  "transformers>=5.9.0,<6.0.0",
   "numpy>=2.0.0,<3.0.0",
   # 【S11-10 · R9-e】原生栈四件套显式声明（此前是"未声明但被依赖"的隐式件）。
   # Why 必须声明：`agent/utils/native_preimport.py` 的原生栈固化顺序是
@@ -63,26 +96,36 @@ dependencies = [
   "pyarrow>=24.0.0,<26.0.0",
   "pandas>=2.2.0,<4.0.0",
   "scikit-learn>=1.3.0,<2.0.0",
-  "pyttsx3>=2.90,<2.92",
-  "SpeechRecognition>=3.10.0,<3.11.0",
+  "pyttsx3>=2.99,<3.0.0",
+  "SpeechRecognition>=3.16.1,<4.0.0",
   "pyautogui>=0.9.53,<0.9.60",
   "pygetwindow>=0.0.9,<0.0.10",
-  "pyperclip>=1.8.2,<1.9.0",
-  "selenium>=4.15.0,<4.20.0",
-  "lxml>=5.0.0,<6.0.0",
+  "pyperclip>=1.11.0,<2.0.0",
+  "selenium>=4.44.0,<5.0.0",
+  "lxml>=6.1.0,<7.0.0",
   "keyboard>=0.13.5,<0.14.0",
   "mouse>=0.7.1,<0.8.0",
   "pydub>=0.25.1,<0.26.0",
-  "watchdog>=3.0.0,<4.0.0",
+  "watchdog>=6.0.0,<7.0.0",
   "GPUtil>=1.4.0,<1.5.0",
-  "pynvml>=11.0.0,<12.0.0",
-  "flask>=3.0.0",
-  "prometheus-flask-exporter>=0.23.0",
-  "gunicorn>=21.2.0",
-  "waitress>=3.0.0",
+  "pynvml>=13.0.1,<14.0.0",
+  # 上限按 §2.6 的"无上限依赖"处置项补齐（flask / waitress / gunicorn 三项）。
+  # Why 加 <下一大版本：无上限依赖会让 CI 某天静默拉到不兼容的大版本，
+  #   而这类漂移在"门禁全绿"的假象下不会被任何现有检查拦住。
+  "flask>=3.0.0,<4.0.0",
+  "prometheus-flask-exporter>=0.23.0,<1.0.0",
+  # gunicorn：判定为**保留不删**。Why：它被 deploy/k8s/deployment.yaml 与
+  #   gunicorn_config.py 引用，直接删除会让这两处配置悬空（属于"删文件没做
+  #   引用检查"）；但当前 Windows 生产运行时确实是 waitress
+  #   （app_server.py 末尾），gunicorn 属"非当前运行时路径"——已在
+  #   docs/closeout/DEAD_CONFIG_20260918.md 登记为待判定债务。
+  "gunicorn>=21.2.0,<24.0.0",
+  "waitress>=3.0.0,<4.0.0",
   "cryptography>=42.0.0",
   "jsonschema>=4.0.0,<5.0.0",
-  "pypdf>=4.0.0,<6.0.0",
+  # pypdf 上限原为 <6.0.0，但本机生产实装 6.14.2（audit 的 [4] 类）
+  #   ⇒ 旧上限把正在跑的版本排除在外。下限抬到实装值。
+  "pypdf>=6.14.2,<7.0.0",
   "cssselect>=1.2.0,<2.0.0",
   "pdfplumber>=0.10.0,<0.12.0",
   # Windows-only 依赖（pyttsx3 的间接依赖）。
@@ -99,7 +142,14 @@ dependencies = [
   "requests>=2.31.0,<3.0.0",
   "scipy>=1.13.0,<2.0.0",
   # 技能 BM25 检索（TLM L1 确定性锚点匹配，纯 Python 无 native 依赖）
-  "rank-bm25==0.2.2"
+  "rank-bm25==0.2.2",
+  # sqlite-vec：**直接依赖漏声明**（audit_dependency_drift 的 [2a] 类）。
+  # Why 必须补：requirements.txt:330 已用 `# via Yunshu (TLM L3 向量存储后端)`
+  #   明确标注它是项目**直接**依赖，但 pyproject 里没有 ⇒ CI 的
+  #   `pip install -e .` 不装它，而 tests/unit/test_vector_store_sqlite_vec.py
+  #   依赖它决定 L3 向量后端选型（装不上就整组跳过 ⇒ 覆盖率假高）。
+  #   下限对齐 requirements.txt 的 >=0.1.9（本机实装 0.1.9）。
+  "sqlite-vec>=0.1.9"
 ]
 
 [project.optional-dependencies]
@@ -178,15 +228,44 @@ warn_no_return = true
 warn_return_any = true
 follow_imports = "silent"
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = ["-v", "--tb=short"]
-filterwarnings = [
-  "ignore::DeprecationWarning",
-  "ignore::PendingDeprecationWarning"
-]
+# ══ 【TASK-03 · 2026-09-18 死配置清理】══════════════════════════════════════
+# 此处原有 `[tool.pytest.ini_options]`（testpaths / addopts / filterwarnings）。
+# Why 删除：pytest 的配置发现顺序是 `pytest.ini` > `pyproject.toml`
+#   ([tool.pytest.ini_options]) > `tox.ini` > `setup.cfg`，根目录存在
+#   `pytest.ini` ⇒ pyproject 这一段**从未生效**。实测证据（本机 pytest 9.1.1）：
+#       $ python -m pytest tests/unit/test_settings_registry.py --collect-only -q
+#       rootdir: C:\Users\Administrator\agent
+#       configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+#   两条真相源最容易骗人的地方就在这里——改了 pyproject 却毫无效果，而人会以为
+#   自己改了配置。按"二选一、保留真正生效者"的纪律删除死配置，保留 `pytest.ini`
+#   （它含 11 条 `--ignore=`、`--timeout`、`--import-mode=importlib` 等真实生效项）。
+#   注：`pytest.ini` 里的 `[coverage:run]` / `[coverage:report]` 两节同样是死配置
+#   ——coverage.py 只读 `.coveragerc` / `setup.cfg` / `tox.ini` / `pyproject.toml`，
+#   不读 `pytest.ini`；实际生效的是本文件下方的 `[tool.coverage.*]`。登记为债务，
+#   见 docs/closeout/DEAD_CONFIG_20260918.md。
+# ═════════════════════════════════════════════════════════════════════════════
 
 [tool.coverage.run]
+# ══ 【D1 · 2026-09-19 覆盖率口径统一】权威口径 = 下面的 9 个包 + 行覆盖 ══
+# 本文件是覆盖率的**唯一真相源**：`pytest.ini` 里原有的 `[coverage:*]` 三节是
+# 死配置（coverage.py 不读 pytest.ini），已删除，详见该文件末尾的说明。
+#
+# ⚠️ 换口径不是改这里就够了（实测机制，务必先读）：
+#   coverage 的"未执行文件"是**采集期**由 tracer 的文件定位器扫描 `--cov=` 指定
+#   的目录得到的；报告期 `coverage report` 会读本文件的 `source`，但**不会再补扫**
+#   这些目录。最小复现（裸 coverage，2026-09-19）：
+#       # pyproject: source = ["pkg_a", "pkg_b"]
+#       coverage run runner.py               # 只 import pkg_a
+#       coverage report   →  pkg_a 100% / pkg_b 0%     ← pkg_b 进了分母
+#       coverage run --source=pkg_a runner.py
+#       coverage report   →  只有 pkg_a                 ← pkg_b 完全消失
+#   ⇒ **分母由采集期的 `--cov=` 决定，不由这里的 `source` 决定。**
+#   本仓实测后果：只写 `--cov=agent` 时，这里的 9 包声明会静默退化成 1 包
+#   （9 包分母 135,272 行 vs agent 单包 120,754 行）。
+#   ⇒ 采集时必须逐个展开成 `--cov=<pkg>`：
+#       · 权威命令：scripts/run_authoritative_coverage.py（自动读本文件，不会分叉）
+#       · CI：.github/workflows/ci.yml 的 unit-tests 分片步骤（已按 9 包展开）
+#       · 守卫测试：tests/unit/test_coverage_scope_consistency.py
 source = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace", "utils"]
 # 【不易·P3-1】omit 口径：排除非业务代码，保证全项目覆盖率门禁聚焦 agent 业务层。
 #   - */tests/*：测试代码自身不应计入分母。
@@ -210,4 +289,15 @@ show_missing = true
 # 整体覆盖率必然偏低（34%），若按 40% 门槛会误报失败。真正的覆盖率门禁
 # 由 .github/workflows/ci.yml 的 coverage-check job 对合并后的全量数据
 # 以 --fail-under=40（env.COVERAGE_THRESHOLD）统一断言，此处不再重复设门槛。
+# 【D1 · 2026-09-19 已确认这是"两处阈值"的口径分歧，本任务**故意未改**】：
+#   分歧：本文件写 0，ci.yml 写 40（另有 test.yml 写 70、web-module-tests 写 100、
+#         scripts/check_scripts_coverage.py 默认 50、observability-ci.yml:373 的
+#         注释还声称"pyproject 里的 fail_under=40"——该注释已过期失真）。
+#   为什么不能简单地把这里改成 40：pytest-cov 在没有显式 `--cov-fail-under` 时会
+#         **继承** coverage 配置的 fail_under（实测源码
+#         site-packages/pytest_cov/plugin.py:270-271），而仓库存量存在多个只写
+#         `--cov=`、不写 `--cov-fail-under=` 的 job（如 tool-tests.yml:77、
+#         daily_regression.yml:444）⇒ 改成 40 会让这些**子集** job 全部变红，
+#         属于"改一处、炸多处"且本机不可验证的改动。
+#   统一建议（含迁移步骤与守卫测试）见 docs/closeout/COVERAGE_SCOPE_20260919.md §5。
 fail_under = 0

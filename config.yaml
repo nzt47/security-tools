@@ -207,6 +207,22 @@ features:
   # 失败分析归档开关
   failure_analysis_enabled: false
 
+  # ── 【TASK-03 · 2026-09-18 阶段特性开关族】──────────────────────────────
+  # 本段是"能力层重构"各阶段的**灰度开关**：默认全部 false ⇒ 重构代码即使
+  # 已合并也不改变现网行为，可随时翻 true 做灰度、翻回 false 一键回退
+  # （读路径每次重新求值，**不需要重启**，见 agent/settings/feature_flags.py）。
+  # 统一求值入口：agent.settings.feature_flags.feature_enabled("<name>")；
+  # 环境变量覆盖：YUNSHU_FEATURE_<NAME> / YUNSHU_FEATURE_<NAME>_ROLLOUT。
+  # 规范：docs/rfc/特性开关规范.md；守卫：tests/unit/test_feature_flags.py。
+  # 注意：这些开关对应的功能**尚未实现**——它们先是"登记 + 守卫跑通"，
+  #   真正的接线由 TASK-04~08 各自完成（每个任务只允许开自己的那一个）。
+  capability_spec_v2: false            # TASK-04 能力规格 v2 字段集
+  capability_registry: false           # TASK-05 能力统一 Registry
+  capability_non_llm_entry: false      # TASK-05 非 LLM 入口（默认 10% 灰度）
+  tool_confirm_levels: false           # TASK-06 工具侧 L0-L3 确认分级
+  sandbox_unified: false               # TASK-07 安全接线统一收口
+  hot_path_load_tool_meta_cache: false # TASK-08 load_tool_meta 热路径缓存（P0-1）
+
 # ═══════════════════════════════════════════════════════════════
 #  验证工程配置 (Verification Engineering)
 # ═══════════════════════════════════════════════════════════════
