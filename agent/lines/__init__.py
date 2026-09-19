@@ -30,6 +30,7 @@ from .models import (
     TOOL_DEFS_DIR,
     LineProfile,
     ToolMeta,
+    invalidate_tool_meta_cache,
     load_tool_meta,
 )
 from .registry import (
@@ -42,7 +43,7 @@ from .registry import (
 __all__ = [
     # 模型
     "PLANES", "EFFECTS", "RISKS", "ToolMeta", "LineProfile",
-    "load_tool_meta", "TOOL_DEFS_DIR", "AGENT_LINES_DIR",
+    "load_tool_meta", "invalidate_tool_meta_cache", "TOOL_DEFS_DIR", "AGENT_LINES_DIR",
     # 注册表
     "LineRegistry", "LineRegistryError", "get_line_registry", "lines_dir",
     # 装配
