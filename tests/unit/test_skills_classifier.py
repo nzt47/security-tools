@@ -290,6 +290,32 @@ class TestServiceIntegration:
         with pytest.raises(SkillMgmtError):
             svc.move_class("m1", "不存在之分类")
 
+    def test_move_class_pins_runtime_view_too(self, svc):
+        """回归：人工移动必须**同时钉住 rt 键**，否则运行时视图会把类名静默回滚
+
+        【实测链路】`move_class` 原先只 `assign('asset:*')`（落 manual）+ `mirror` 到 rt
+        （只写值、不写 manual）；而 `resolve('rt:*')` 对**非 manual** 的既有归类允许
+        "置信命中即覆盖" ⇒ 人工移动后，下一次 `GET /api/skills`（技能库页的数据源）
+        按关键词重新打分，把 mirror 过去的值覆盖回旧类：
+        技能中心（asset 视图）显示新类，技能库页（rt 视图）仍显示旧类。
+        实证：把 writing-skills 移到「代码与工程」后两视图分叉。
+        """
+        svc.create_manual(_data("w1", "writing-skills",
+                                description="编写技能文档与规范", content="# 文档写作"))
+        svc.move_class("w1", "代码与工程")
+        assert svc._class_registry.assignment("asset:w1") == "代码与工程"
+        assert svc._class_registry.assignment("rt:w1") == "代码与工程"
+        assert "rt:w1" in svc._class_registry.snapshot().get("manual", [])
+        # 模拟 GET /api/skills 的解析路径：字段文本明显指向旧类，也不许回滚
+        again = svc._class_registry.resolve(
+            "rt:w1", name="writing-skills",
+            description="编写技能文档与规范", content="")
+        assert again == "代码与工程"
+        # 资产侧同样不许被回滚（双生态一致）
+        assert svc._class_registry.resolve(
+            "asset:w1", name="writing-skills",
+            description="编写技能文档与规范", content="# 文档写作") == "代码与工程"
+
     def test_run_auto_classify(self, svc):
         svc.create_manual(_data("a1", "语音助手", content="语音"))
         svc.create_manual(_data("a2", description="Mock", content="# mock"))

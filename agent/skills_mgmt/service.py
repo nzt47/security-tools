@@ -724,10 +724,16 @@ class SkillsMgmtService:
             raise SkillMgmtError(
                 f"未知分类: {target}（可用: {sorted(known)[:12]}…）")
         self._class_registry.assign(f"asset:{skill_id}", target)
-        try:  # 同名运行时技能自动跟随（人工移动过的运行时项不动）
-            self._class_registry.mirror(f"asset:{skill_id}",
-                                        f"rt:{skill_id}")
-        except Exception:  # noqa: BLE001
+        # 【不易】必须**同时钉住运行时键** `rt:<id>`，不能只 mirror 过去。
+        #   根因（2026-09-19 实测）：`SkillClassRegistry.resolve()` 对**非 manual** 的既有
+        #   归类允许"置信命中即覆盖"，而 `mirror` 只写值、不写 manual ⇒ 人工移动完，
+        #   下一次 `GET /api/skills`（技能库页的数据源）走 `resolve('rt:*')` 时按关键词
+        #   重新打分又把它覆盖回旧类：技能中心（读 asset 视图）显示新类，
+        #   技能库页（读 rt 视图）仍显示旧类 —— 实测「writing-skills → 代码与工程」即如此。
+        #   钉住 rt 后，`resolve` 第 353 行的 "key in manual ⇒ 原样返回" 才是真的生效。
+        try:
+            self._class_registry.assign(f"rt:{skill_id}", target)
+        except Exception:  # noqa: BLE001 运行时键写失败不阻断资产侧已生效的人工移动
             pass
         logger.info("[Service] 技能 %s 人工移动至分类 %s", skill_id, target)
         return {"ok": True, "skill_id": skill_id, "class_name": target}
