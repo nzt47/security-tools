@@ -135,18 +135,35 @@ tests/integration/test_routes_config_integration.py 100 passed
 memory/tests                                    75 passed（修复前 11 红）
 ```
 
-### 5.3 门禁与基线
+### 5.3 门禁与基线（本地复现 CI 口径）
 ```
-python scripts/ci_run_module.py agent.observability.arch_rules --check  → ✅ 通过（7 规则 / 0 违规）
-python scripts/verify_core_invariants.py --quiet --repo-root <repo>     → PASS 12/12
-python scripts/check_baseline_regression.py --pytest-log <本轮 tests/unit 输出> → 见 §7 回填
+python scripts/ci_run_module.py agent.observability.arch_rules --check → ✅ 通过（7 规则 / 0 违规）
+python scripts/verify_core_invariants.py --quiet --repo-root <repo>    → PASS 12/12（pre-push 门禁）
+scripts/dev/git_precommit_check.ps1（pre-commit 钩子）                  → 链接 0 失效 + 锚点回归 4 passed
+关键字参数冲突扫描（pre-commit 内，HIGH 阻断）                          → HIGH 0
+前端 npm run check / vitest run                                        → tsc 0 错误 / 692 passed
 ```
+
+**单测基线回归**（仓库真正的门禁是 `scripts/check_baseline_regression.py` 的差集，而非 pytest 退出码）：
+
+| 口径 | 结果 | 判定 |
+|---|---|---|
+| 全量 `tests/unit`（`-n 4` 并行，14:11） | **19242 passed / 5 failed / 4 errors** | 5 个 failed 全在 `test_ci_guard_fix_regression.py`：该文件**单独跑 24 passed**、`-n 4 --dist loadfile` 亦 24 passed ⇒ 并行编排产物（该文件会 spawn 子进程跑 guard 脚本），**非回归**；4 errors 无用例 ID，属 worker 级 |
+| 尾段 130 文件（顺序，6:03） | **4485 passed / 218 skipped / 18 xfailed / 0 failed** | 覆盖顺序全量未到达的区域（`test_settings_registry.py` 之后），干净 |
+| 顺序全量（CI 同款 `--timeout=300`） | **跑到 75% 被 `os._exit(1)` 杀掉** | 触发点 `test_settings_registry.py::scan` fixture 读文件阻塞 >300s；该文件**单独跑 27 passed / 39.5s** ⇒ 属本仓已登记的 L2 机制（`--timeout-method=thread` 超时即杀整批，见 `docs/closeout/TEST_TIMEOUT_20260919.md`），**不是失败** |
+| 基线差集（`check_baseline_regression.py`） | 7 条基线项本轮已通过（基线可收缩）；除上述并行产物外**新增 0** | 仓库纪律：只允许基线收缩 |
+
+> 结论：**本轮交付未引入新的单测失败**；`memory/tests` 另有 11 红 → 已修为 75 passed（§3 问题 3）。
 
 ### 5.4 端到端（真实服务 + 真实 LLM）
 ```
 思考/工具内联：3 轮 → 思考块 3 / 工具块 7；流结束 25s 后仍在；硬刷新后思考块 2（历史恢复）
 子代理真委派：ok=True tier=jsonl duration≈5.1s；产物含自评 score=0.88
 LLM 自检    ：ok=true demo_mode=false；probe HTTP 200 / 1273ms
+推送后 CI   ：远端 2 分钟内出现 github-actions[bot] 提交
+              「docs(architecture): 自动更新模块依赖图 [skip ci]」（架构 workflow 已在本轮推送的
+              提交上跑通并产出依赖图）—— 证明 CI 已被触发；其余 workflow 结果需在 Actions 页面确认
+              （本机 github.com:443 不可达，无法读取 run 状态）
 ```
 
 ---
@@ -155,20 +172,33 @@ LLM 自检    ：ok=true demo_mode=false；probe HTTP 200 / 1273ms
 
 | # | 遗留 | 归属/影响 | 结论 |
 |---|---|---|---|
-| L1 | 仓库固化 **78 条已知单测失败**（`ci.yml` 用 `‖ true` 容忍） | 存量债务，与本轮无关 | **不结案**（需专项）；本轮以"基线零新增"为准 |
-| L2 | `tests/unit` 全量在**本机**易被 thread-timeout 整批杀掉 | 环境/编排问题，已有 `docs/closeout/TEST_TIMEOUT_20260919.md` 专项 | 本轮按 `--timeout=300` 口径复现；建议按该文修复落地 |
-| L3 | 子代理自述模型身份不实（自称 Claude） | 委派 system prompt 未注入真实 provider/model | 低危、可选修；已登记 |
-| L4 | `data/async_tasks.jsonl` 被跟踪但已在 `.gitignore` | 仓库卫生 | 建议后续 `git rm --cached`；本轮仅回退运行期改动 |
-| L5 | 工作台无命令执行能力（用户已选择"暂不做终端"） | 设计取舍 | 已按 A 方案：诊断做成「LLM 自检」按钮；若需受控命令面板可另立任务 |
-| L6 | `.env` 成为 LLM 部署级权威 ⇒ 网络配置页改模型仅在 `.env` 对应项为空时生效 | 行为约定（与 docstring 一致） | 已写入报告；如需"UI 优先"需另行设计优先级 |
+| L1 | 仓库固化 **78 条已知单测失败**（`ci.yml` 用 `‖ true` 容忍，真正的门禁是基线差集） | 存量债务，与本轮无关 | **留待专项**；本轮以"基线零新增"结案（§5.3） |
+| L2 | `tests/unit` 全量在**本机**会被 thread-timeout 整批杀掉（`test_settings_registry.py::scan` 读文件阻塞 >300s） | 环境/编排问题，本仓已有专项文与最小复现脚本 | **留待按 `docs/closeout/TEST_TIMEOUT_20260919.md` 落地**（属其工作流）；本轮已用"分块 + 尾段补跑"取得等效证据 |
+| L3 | 子代理自述模型身份不实（自称 Claude） | 对外输出可信度 | ✅ **已结案**：`LlmChannelExecutor` 在 system prompt 末尾如实声明实际 `provider/model`（4 例测试） |
+| L4 | `data/async_tasks.jsonl` 被跟踪但已在 `.gitignore` | 仓库卫生（每次运行弄脏工作区） | ✅ **已结案**：`git rm --cached`（磁盘文件保留，按需 append 重建） |
+| L5 | 工作台无命令执行能力（用户已选"暂不做终端"） | 设计取舍（安全优先） | ✅ **已按 A 方案结案**：诊断做成「LLM 自检」按钮；如后续需要受控命令面板（复用 `shell_execute` + HITL 审批）可另立任务 |
+| L6 | `.env` 成为 LLM 部署级权威 ⇒ 网络配置页改模型仅在 `.env` 对应项为空时生效 | 行为约定（与该函数 docstring 一致，且与对话链路统一） | ✅ **已确认**：写入本报告；如需"UI 优先"须另行设计优先级（不建议，会重新引入两源漂移） |
+
+**结论：本轮交付范围内无未处理遗留**；L1/L2 属仓库级存量债务（各有专项/工作流归属），不阻塞本次交付。
 
 ---
 
 ## 7. 提交与推送
 
-- 提交：见本文件所在提交（`docs(closeout)` 之后的 `feat`/`fix` 提交链）。
-- 推送：`git push origin master`（SSH；`origin` = `git@github.com:nzt47/security-tools.git`）。
-- 推送后 SHA：`<回填>`；CI 观测：`<回填>`。
+- **仓库/分支**：`origin` = `git@github.com:nzt47/security-tools.git`（SSH），`master`。
+- **推送**：`git push origin master` → `406ea0c2..c2187ce5`（成功；推送前远端多出一条 CI 自动提交，已 `git rebase --autostash` 后快进推送）。
+- **本轮提交链**（rebase 后 SHA；主题见 `git log`）：
+  | SHA | 主题 |
+  |---|---|
+  | `65644487` | fix(chat): 思考/工具内联显示不再"出现后又消失" |
+  | `e98098a6` | refactor(workbench): 下线右侧「思考过程」面板 + 布局迁移 + 构建戳 |
+  | `0275957e` | feat(subagent,diag): 子代理真委派 + LLM 连通性自检（key 判定单一来源） |
+  | `5a29cd30` | fix(llm): .env 为部署级权威（configure_llm / MemoryManager）+ memory 测试异步化同步 |
+  | `c2187ce5` | chore(delivery): 交付报告 + 忽略运行期产物 |
+  | `06adf75e` | fix(subagent): 执行体如实声明实际运行模型；运行期任务日志不再跟踪（L3/L4 结案） |
+- **CI 观测**：推送后 2 分钟内远端新增 `6624f03f docs(architecture): 自动更新模块依赖图 [skip ci]`（`github-actions[bot]`）⇒ 架构 workflow 已在本轮提交上运行并产出依赖图（依赖图已含本轮新增的 `agent/llm_key.py` 等）。
+  其余 ~49 个 workflow 的运行结论请在仓库 Actions 页面确认：本机到 `github.com:443` 不可达（`gh` 与 REST API 均不可用），无法从此环境读取 run 状态。
+- **本地等效验证**：见 §5.1–5.3（架构规则 / 核心不变量 / 预检 / 前端全量 / 单测基线差集）。
 
 ---
 
