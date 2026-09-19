@@ -181,6 +181,14 @@ _ci_logs/
 ci_*.txt
 new_ci_*.txt
 
+# `scripts/run_full_pytest.py` 的自有产物目录（每块独立日志 chunk_i.log +
+# incomplete_files.txt / still_lost_files.txt，以及逐文件补跑日志 resume/）。
+# 【不易·2026-09-20 补】此前只忽略了 `_ci_logs/` 而漏了这一项：实测一次全量分块回归
+# 会在该目录留下 ~3.3 MB 日志，且**不会被忽略** ⇒ 每次跑完都让 `git status` 多一个
+# 未跟踪目录。这会实质妨碍"工作区是否干净"这一判据（`run_full_pytest.py` 自身在
+# 脏工作区时会阻断），也与 _ci_logs/ 的既有策略不一致。故按同类产物一并忽略。
+pytest_chunks/
+
 # 运行时缓存
 cache/
 
