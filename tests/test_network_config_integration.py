@@ -10,11 +10,43 @@
 import json
 import sys
 import os
+from pathlib import Path
 
 # 确保项目根目录在 sys.path 中（agent 是子包）
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from agent.network_config import NetworkConfigManager
+# ─────────────────────────────────────────────────────────────────────────────
+# 【2026-09-20 事故修复】本文件是**手动演示脚本**（无任何 test 函数），原实现在
+# **模块导入期**直接 `NetworkConfigManager().update(...)`，于是：
+#   1) 当前用例 key `sk-test-1234567890abcdef` 被写进**仓库根真实 `.env`**
+#      （NetworkConfigManager 的敏感数据单一数据源），把部署级真 key 覆盖成占位符
+#      ⇒ 服务重启后 LLMService 校验失败 / 请求 401（`data/health/guard_llm_api_key.log`
+#      2026-08-16 与 2026-09-20 两次记录同一事故）；
+#   2) `agent/data/network_config.json` 被改写成 `openai/gpt-4`（+ 空 endpoint），
+#      导致运行期 `configure_llm` 收到不支持的模型名而 400。
+# 因为 pytest 收集 `tests/` 时会 import 本模块，**任何一次全量测试都会重放以上破坏**。
+#
+# 修法（两处，均为最小改动）：
+#   a. 被 pytest 收集时整体跳过（无 test 函数，收集期禁止任何副作用）；
+#   b. 手动运行（`python tests/test_network_config_integration.py`）时把写入目标
+#      隔离到临时目录：`CP_ENV_FILE` 覆盖 EnvConfigManager 的 `.env`，
+#      `config_file` 覆盖 network_config.json。
+# ─────────────────────────────────────────────────────────────────────────────
+if __name__ != "__main__":
+    import pytest
+
+    pytest.skip(
+        "手动演示脚本（无 test 函数）：收集期禁止执行，避免改写真实 .env / network_config.json",
+        allow_module_level=True,
+    )
+
+import tempfile  # noqa: E402
+
+_DEMO_DIR = Path(tempfile.mkdtemp(prefix="yunshu_netcfg_demo_"))
+# 必须在任何 `get_env_config_manager()` 之前设置（ECM 单例在构造时才定死目标文件）
+os.environ["CP_ENV_FILE"] = str(_DEMO_DIR / ".env")
+
+from agent.network_config import NetworkConfigManager  # noqa: E402
 
 print("=" * 70)
 print("网络配置模块测试")
@@ -24,7 +56,7 @@ print("=" * 70)
 print("\n【测试 1】配置保存和即时生效")
 print("-" * 40)
 
-mgr = NetworkConfigManager()
+mgr = NetworkConfigManager(config_file=str(_DEMO_DIR / "network_config.json"))
 
 # 获取当前配置
 config = mgr.get_all()

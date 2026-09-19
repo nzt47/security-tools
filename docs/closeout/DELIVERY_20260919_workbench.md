@@ -178,8 +178,9 @@ LLM 自检    ：ok=true demo_mode=false；probe HTTP 200 / 1273ms
 | L4 | `data/async_tasks.jsonl` 被跟踪但已在 `.gitignore` | 仓库卫生（每次运行弄脏工作区） | ✅ **已结案**：`git rm --cached`（磁盘文件保留，按需 append 重建） |
 | L5 | 工作台无命令执行能力（用户已选"暂不做终端"） | 设计取舍（安全优先） | ✅ **已按 A 方案结案**：诊断做成「LLM 自检」按钮；如后续需要受控命令面板（复用 `shell_execute` + HITL 审批）可另立任务 |
 | L6 | `.env` 成为 LLM 部署级权威 ⇒ 网络配置页改模型仅在 `.env` 对应项为空时生效 | 行为约定（与该函数 docstring 一致，且与对话链路统一） | ✅ **已确认**：写入本报告；如需"UI 优先"须另行设计优先级（不建议，会重新引入两源漂移） |
+| L7 | **任何一次全量测试都会改写部署配置**：`tests/test_network_config_integration.py` 在模块导入期把 `.env` 的 `LLM_API_KEY` 覆盖为用例占位符、把 `network_config.json` 改成 `openai/gpt-4`（2026-08-16 已复发过） | **高**：服务重启即 401/400；属"测试污染真实部署" | ✅ **已结案**（2026-09-20 收尾发现并修复，详见 **§9**）：收集期 skip + 手动运行隔离 + 独立子进程回归守护；现场已 `--restore` 复位真 key |
 
-**结论：本轮交付范围内无未处理遗留**；L1/L2 属仓库级存量债务（各有专项/工作流归属），不阻塞本次交付。
+**结论：本轮交付范围内无未处理遗留**；L1/L2 属仓库级存量债务（各有专项/工作流归属），不阻塞本次交付。L7 为收尾复核时新发现并当场修复的高危项，证据与验证见 §9。
 
 ---
 
@@ -190,6 +191,7 @@ LLM 自检    ：ok=true demo_mode=false；probe HTTP 200 / 1273ms
   1. `406ea0c2..c2187ce5`（远端先有 `6624f03f`）；
   2. `6624f03f..2f5b73df`（L3/L4 修复 + 报告回填；远端先有 `dd9461ae`）；
   3. `dd9461ae..b36f1945`（本报告 §7 口径修正）。
+  4. 收尾复核发现并修复 L7（§9）后再次 rebase 快进推送（此轮不记具体 SHA，理由见下）。
 - **代码终态**：以远端 `origin/master` 为准 —— **验收时现场执行** `git rev-parse origin/master` 与 `git log --oneline -8`（撰写时的 tip 为 `2f5b73df`；远端随时会因 CI 自动提交或并行会话继续前进，固化字面 SHA 无意义）。本地 `HEAD` 与 `origin/master` 一致、无未推送提交。
 - **本轮提交链**（主题为准，见下）：
 
@@ -219,3 +221,59 @@ LLM 自检    ：ok=true demo_mode=false；probe HTTP 200 / 1273ms
 - [ ] 思考与工具：内联显示、默认展开、显隐开关有效、刷新/切会话后仍在
 - [ ] 右侧「思考过程」面板已下线；历史布局不丢（迁移只剔除该面板）
 - [ ] LLM 自检按钮结论与实际一致（含演示模式提示与修复建议）
+
+---
+
+## 9. 结案补充（2026-09-20 02:00）：测试导入期改写部署配置事故（L7，已修）
+
+**这是本轮收尾时新发现并已修复的遗留问题**，性质为"任何一次全量测试都会破坏本机部署"，此前自 2026-08-16 起已复发过一次。
+
+### 现象（怎么发现的）
+
+收尾复验"子代理真委派"时，子代理自述运行在 **Anthropic Claude** 上（实际路由为 DeepSeek）——顺线排查发现两处部署配置已被改写：
+
+| 被改写对象 | 现场值 | 期望值 |
+|---|---|---|
+| 仓库根 `.env` 的 `LLM_API_KEY` | `sk-test-1234567890abcdef`（24 字符，占位符） | 部署真 key（35 字符，`sk-2cc…`） |
+| `agent/data/network_config.json` 的 `llm` | `provider=openai, model=gpt-4, api_endpoint=空` | `deepseek / deepseek-v4-flash / https://api.deepseek.com/v1` |
+
+后果：`.env` 是敏感数据单一来源 ⇒ **服务一重启就拿到占位 key**（LLM 校验失败 / 401）；`network_config.json` 被显式传给 `configure_llm` ⇒ 400（`The supported API model names are deepseek-flash, deepseek-v4-pro, but you passed gpt-4`）。运行中的旧进程因为内存里还留着真 key 才"看起来正常"。
+
+### 根因（可复现的最小实验）
+
+`tests/test_network_config_integration.py` 是**手动演示脚本（0 个 test 函数）**，却在**模块顶层**执行 `NetworkConfigManager().update(...)`，写入的正是用例 key `sk-test-1234567890abcdef` 与 `gpt-4`。pytest 收集 `tests/` 时会 import 该模块 ⇒ **每次全量测试都重放这次改写**。
+
+```
+# 修复前证据（只 import，不跑 pytest）
+运行前: .env sha=7C10D9BC9B91 key_len=35
+导入后: .env sha=853B613D3676 key_len=24 key_head=sk-tes
+结论: 确认！导入该模块即改写真实 .env
+```
+
+旁证：`data/health/guard_llm_api_key.log` 记录 2026-08-16 同一事故（`sk-test-key` → 恢复）；`.env.backups/env.bak.*` 有 50 份备份（写前备份约定），最近合法 key 仍是 35 字符真 key。
+
+### 修复
+
+1. `tests/test_network_config_integration.py`：
+   - 非 `__main__` 导入（即 pytest 收集）时 `pytest.skip(..., allow_module_level=True)`，收集期零副作用（现状：`1 skipped`）；
+   - 手动 `python tests/...py` 运行时把写入目标隔离到临时目录：`CP_ENV_FILE` 覆盖 `.env` 目标、`config_file=` 覆盖 `network_config.json`。
+2. 新增回归守护 `tests/unit/test_network_config_demo_no_side_effect.py`：在**独立子进程**中导入该演示脚本，断言 `.env` 与 `network_config.json` 指纹逐字节不变（改回去立即变红）。
+3. 现场处置：`python scripts/guard_llm_api_key.py --restore` 把 `.env` 恢复为 35 字符真 key（`--check` 通过）；按备份复位 `network_config.json` 的 `llm` 段（备份 `.file_backups/network_config.json.20260920_020040.bak`）。
+
+### 验证
+
+| 项 | 命令 | 结果 |
+|---|---|---|
+| 收集期无副作用 | `pytest tests/test_network_config_integration.py -q` | `1 skipped`（不再执行写操作） |
+| 回归守护 | `pytest tests/unit/test_network_config_demo_no_side_effect.py -q` | `1 passed` |
+| 手动运行隔离 | `python tests/test_network_config_integration.py` | `.env` 未变=True、`network_config.json` 未变=True |
+| key 合法 | `python scripts/guard_llm_api_key.py --check` | 合法（len=35, `sk-2ccdab…`），exit=0 |
+| 重启后 LLM 可用 | 重启服务 → `/api/diagnostics/llm-check` | `ok=True` |
+| **L3 修复真实生效** | 重启后真委派并问"你实际运行在哪个模型" | 「DeepSeek 的 deepseek-v4-flash…自评 pass（score=1.0）」——重启前同一问法答的是"Anthropic Claude" |
+
+> 说明：L3（执行体如实声明运行模型）此前只做了代码修复，运行中的旧进程（PID 1792，23:55 启动）早于修复，故此前的"Claude"自述**不代表修复无效**；本次重启（PID 7792）后已实证生效。
+
+### 运维提醒（给部署方）
+
+- `.env` 与 `agent/data/network_config.json` 均**不在 git 中**（`.gitignore` 第 12 / 138 行），随机器存在；重装/换机需人工填入真 key。
+- 若再次发现 `LLM_API_KEY` 变短（<20）或变成 `sk-test*`：`python scripts/guard_llm_api_key.py --check` 诊断、`--restore` 从 `.env.backups` 自动恢复（该脚本自带审计日志 `data/health/guard_llm_api_key.log`）。
