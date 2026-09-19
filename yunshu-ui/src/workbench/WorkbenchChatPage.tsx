@@ -22,6 +22,7 @@ import { ContextManagerBar } from '../components/workbench/panels/ContextManager
 import { HistoryDrawer } from '../components/workbench/panels/HistoryDrawer'
 import { SubagentMenu } from '../components/workbench/chat/SubagentMenu'
 import { BackgroundTasksMenu } from '../components/workbench/chat/BackgroundTasksMenu'
+import { LlmHealthMenu } from '../components/workbench/chat/LlmHealthMenu'
 import { SessionRail } from '../components/workbench/sessions/SessionRail'
 import { WorkspaceDrawer } from '../components/workbench/sessions/WorkspaceDrawer'
 import {
@@ -437,6 +438,8 @@ export default function WorkbenchChatPage() {
             <SubagentMenu defaultTask={lastUserMsg} />
             {/* 后台任务：查看/管理系统后台运行的任务 */}
             <BackgroundTasksMenu />
+            {/* LLM 自检：key/模型名/地址一次性判明（无需命令行执行 curl） */}
+            <LlmHealthMenu />
             {sessionId && (
               <button
                 type="button"

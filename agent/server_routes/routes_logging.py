@@ -420,6 +420,137 @@ def _get_recent_logs(limit=50):
         return {"error": str(e), "timestamp": time.time()}
 
 
+def _mask_secret(value: str) -> str:
+    """密钥掩码：只留前 5 后 4（够辨认、不足以复用）"""
+    v = str(value or "")
+    if not v:
+        return ""
+    if len(v) <= 12:
+        return v[:2] + "***"
+    return f"{v[:5]}***{v[-4:]}"
+
+
+def _llm_env_config() -> dict:
+    """当前生效的 LLM 配置（取自环境变量，即 .env 经 dotenv 注入后的值）"""
+    api_key = os.environ.get("LLM_API_KEY", "") or os.environ.get("DEEPSEEK_API_KEY", "")
+    return {
+        "provider": os.environ.get("LLM_PROVIDER", "deepseek"),
+        "model": os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
+        "base_url": os.environ.get("LLM_BASE_URL", "") or os.environ.get("DEEPSEEK_BASE_URL", ""),
+        "api_key_masked": _mask_secret(api_key),
+        "api_key_length": len(api_key),
+    }
+
+
+def _llm_check_hints(status: int, body_text: str, cfg: dict) -> list:
+    """把上游失败翻译成"下一步该改什么"（面向用户，不堆原始 JSON）"""
+    low = (body_text or "").lower()
+    hints = []
+    if status in (401, 403):
+        hints.append("API Key 无效/过期（占位 key 常见形态：sk-test…）。请在 .env 更新 "
+                     "LLM_API_KEY 后重启服务。")
+    if status == 400 and ("model" in low or "not exist" in low):
+        hints.append(f"模型名不被该服务识别：LLM_MODEL={cfg.get('model')}。"
+                     "DeepSeek 官方模型名为 deepseek-chat / deepseek-reasoner。")
+    if status == 404:
+        hints.append("接口路径 404：请确认 LLM_BASE_URL 带 /v1（DeepSeek：https://api.deepseek.com/v1）。")
+    if status == 429:
+        hints.append("被限流（429）：稍后重试或检查账户额度。")
+    if status >= 500:
+        hints.append("上游 5xx：模型服务侧故障，非本地配置问题。")
+    if status == 0:
+        hints.append("请求未能建立（网络/DNS/超时）：确认本机能直连 LLM_BASE_URL，"
+                     "或需要代理时配置 HTTPS_PROXY。")
+    return hints
+
+
+def _run_llm_probe(timeout: float = 20.0) -> dict:
+    """对 LLM 端点做一次**最小真实调用**（max_tokens=5）自检
+
+    为什么不让用户去命令行手搓 curl/Invoke-WebRequest：同一条判据（key/模型名/地址）
+    在服务端跑一次即可结构化给出结论与修复建议，且**不回传密钥**。
+    """
+    cfg = _llm_env_config()
+    base = str(cfg.get("base_url") or "").rstrip("/")
+    api_key = os.environ.get("LLM_API_KEY", "") or os.environ.get("DEEPSEEK_API_KEY", "")
+    result = {
+        "ok": False,
+        "http_status": 0,
+        "latency_ms": 0.0,
+        "endpoint": f"{base}/chat/completions" if base else "",
+        "error": "",
+        "raw_message": "",
+        "hints": [],
+    }
+    if not base:
+        result["error"] = "未配置 LLM_BASE_URL"
+        result["hints"] = ["在 .env 设置 LLM_BASE_URL（DeepSeek：https://api.deepseek.com/v1）"]
+        return result
+    if not api_key:
+        result["error"] = "未配置 LLM_API_KEY"
+        result["hints"] = ["在 .env 设置 LLM_API_KEY 后重启服务"]
+        return result
+
+    import requests  # 延迟导入：诊断端点不该拖慢启动
+
+    started = time.time()
+    try:
+        resp = requests.post(
+            result["endpoint"],
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": cfg.get("model"), "messages": [{"role": "user", "content": "ping"}],
+                  "max_tokens": 5},
+            timeout=timeout,
+        )
+        result["latency_ms"] = round((time.time() - started) * 1000, 1)
+        result["http_status"] = int(resp.status_code)
+        text = (resp.text or "")[:800]
+        if resp.status_code == 200:
+            result["ok"] = True
+            try:
+                data = resp.json()
+                result["model"] = (data.get("model") or cfg.get("model"))
+                result["usage"] = data.get("usage") or {}
+            except Exception:  # noqa: BLE001 200 但非 JSON：仍算连通
+                result["model"] = cfg.get("model")
+        else:
+            result["raw_message"] = text
+            result["error"] = f"HTTP {resp.status_code}"
+            result["hints"] = _llm_check_hints(int(resp.status_code), text, cfg)
+    except Exception as e:  # noqa: BLE001 网络/超时/解析统一按"未能建立请求"处理
+        result["latency_ms"] = round((time.time() - started) * 1000, 1)
+        result["error"] = f"{type(e).__name__}: {e}"
+        result["hints"] = _llm_check_hints(0, str(e), cfg)
+    return result
+
+
+def _llm_self_check() -> dict:
+    """LLM 自检总览：配置摘要 + 工作台判定 + 真实探测结果"""
+    cfg = _llm_env_config()
+    demo_mode = True
+    try:
+        # 与对话流同一判据（agent/llm_key.py::key_usable，被 plugins/chat.py 复用）：
+        # 口径不一致会让用户看到"自检说没事、对话却在演示模式"的矛盾。
+        from agent.llm_key import key_usable
+        demo_mode = not key_usable(os.environ.get("LLM_API_KEY", "")
+                                   or os.environ.get("DEEPSEEK_API_KEY", ""))
+    except Exception:  # noqa: BLE001 判定不可用时按"可能进演示模式"提示
+        demo_mode = not bool(cfg.get("api_key_length"))
+    probe = _run_llm_probe()
+    return {
+        "config": cfg,
+        "workbench_demo_mode": demo_mode,
+        "workbench_note": (
+            "当前 key 会被工作台判为无效 ⇒ 对话走**演示模式**（固定文案，思考过程只有阶段事件）"
+            if demo_mode else
+            "当前 key 形态可用 ⇒ 对话会走真实 LLM"
+        ),
+        "probe": probe,
+        "ok": probe.get("ok") and not demo_mode,
+        "checked_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+
 def register_routes(app, state):
     """注册运行时诊断路由
     
@@ -461,6 +592,37 @@ def register_routes(app, state):
         result = _get_tool_summary()
         return jsonify(result)
     
+    # ═══════════════════════════════════════════════════
+    #  LLM 连通性自检端点
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/diagnostics/llm-check", methods=["POST"])
+    @require_token
+    @trace_route("Diagnostics")
+    @log_request(show_response=False)
+    def api_diagnostics_llm_check():
+        """LLM 连通性自检（POST：会向 LLM 端点发起一次最小真实调用）
+
+        用途：把"key 是否有效 / 模型名是否被识别 / 地址是否正确"一次性问清楚，
+        省去让用户去命令行手搓 curl。**不回传密钥**（只回掩码）。
+
+        Response:
+            {
+                "ok": bool,                     # 真实可用（且工作台不会进演示模式）
+                "config": {provider, model, base_url, api_key_masked, api_key_length},
+                "workbench_demo_mode": bool,    # 工作台是否因 key 形态判无效而走演示模式
+                "workbench_note": str,
+                "probe": {ok, http_status, latency_ms, endpoint, model, usage,
+                          error, raw_message, hints[]},
+                "checked_at": str
+            }
+        """
+        try:
+            return jsonify(_llm_self_check())
+        except Exception as e:  # noqa: BLE001 自检异常也要给出可读结论
+            logging.getLogger(__name__).error("LLM 自检失败: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     # ═══════════════════════════════════════════════════
     #  配置诊断端点
     # ═══════════════════════════════════════════════════
