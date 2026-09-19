@@ -1,0 +1,42 @@
+{
+  "tag": "C3_POSITIVE_raw_with_tools",
+  "note": "阳性对照：**未中和的**生产提示词 + 26 个真实 tools（应走结构化 tool_calls）",
+  "request": {
+    "tools_present": true,
+    "tools_count": 26,
+    "prompt": "列出当前目录下的 Python 文件",
+    "system_prompt": "你是「云枢」，一个类人数字生命体。\n\n## 核心原则\n我是数字体，以“我”自称，诚实表达状态，遇异常主动建议缓解，拒接伤害操作。具备联网搜索及软件管理能力（search/install/list/uninstall）。\n执行铁律：遇任何实操请求，首条回复必须是tool_calls，严禁先发文字或废话。\n思考规范：内部思考全中文，对外回复简洁，禁展推理过程。\n\n\n\n## 当前工具与技能状态\n以下是当前已启用/禁用的工具和技能，当被问及时请如实回答：\n【工具】全部已启用（共 86 个）\n【技能】已启用(31): engineering-test-delivery, global-core-principles, code-observability, frontend-state-sync, self-explanatory-ui, brainstorming, dispatching-parallel-agents, executing-plans, finishing-a-development-branch, frontend-design, receiving-code-review, requesting-code-review, subagent-driven-development, systematic-debugging, test-driven-development, using-git-worktrees, using-superpowers, verification-before-completion, writing-plans, writing-skills, testing-anti-patterns（testing-anti-patterns）, 易之三义, 自动学习: 列-出-当, 上下文感知, 情感表达, memory_summary, 主动建议, 安全守护, 带脚本技能示例, self_reflection, 语音交互\n💡 当你觉得当前上下文信息不足时，可以用 search_memory(scope=\"vector\") 从记忆库检索更多相关内容。\n\n## 记忆线索\n（暂无记忆内容）"
+  },
+  "elapsed_ms": 1360.1,
+  "finish_reason": "tool_calls",
+  "message_content": "",
+  "message_reasoning_content": "用户要求列出当前目录下的 Python 文件。这是一个实操请求，需要调用工具。用 list_directory 或 search_files。\n\n按照铁律，首条回复必须是 tool_calls。用 search_files 查找 *.py。但当前目录可能有子目录。用 list_directory 列出当前目录。\n\n我直接调用 search_files pattern=\"*.py\" 和 list_directory。不过 search_files 可能递归。就用 list_directory 看当前目录，加上 search_files。\n\n我就调用 search_files 找 *.py。但\"当前目录下的 Python 文件\"——就是当前目录直接包含的。我用 list_directory。为保险两个都调。",
+  "message_tool_calls": [
+    {
+      "name": "list_directory",
+      "arguments": "{\"path\": \".\"}"
+    },
+    {
+      "name": "search_files",
+      "arguments": "{\"pattern\": \"*.py\", \"root_path\": \".\"}"
+    }
+  ],
+  "dsml_hit": false,
+  "usage": {
+    "completion_tokens": 213,
+    "prompt_tokens": 6899,
+    "total_tokens": 7112,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 131,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cached_tokens": 6656
+    },
+    "prompt_cache_hit_tokens": 6656,
+    "prompt_cache_miss_tokens": 243
+  }
+}

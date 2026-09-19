@@ -322,8 +322,26 @@ class DigitalLifePersonaMixin:
         self._cached_tool_status = None
         self._cached_skill_instructions = None
 
-    def _build_tool_status_text(self) -> str:
-        """构建工具/技能启用状态文本，供系统提示词使用（带缓存）"""
+    def _build_tool_status_text(self, expose_tools: bool = True) -> str:
+        """构建工具/技能启用状态文本，供系统提示词使用（带缓存）。
+
+        Args:
+            expose_tools: 本回合是否会向模型**下发** `tools` 定义。
+                `False` 时不能宣传工具（详见 `agent/tools_prompt_guard.py` 的实测根因）：
+                提示词宣告"你有工具"而请求不带 `tools`，上游 DeepSeek 只能退回
+                DSML 文本协议表达调用意图，标记被当正文返回 ⇒ 用户可见泄漏
+                （对照实验：清空本段 ⇒ 上游改为纯文本推辞，不再吐标记）。
+
+        【不易】`False` 分支返回的文案刻意**不含** `【工具】` 子串：
+            `tools_prompt_guard.prompt_advertises_tools()` 以该子串为判定标记，
+            含了就会被误判成"仍在宣传"，导致重复中和 + 噪声告警。
+        【变易】缓存仍是单槽位：两个分支的产物不同，但本方法的调用点
+            （`orchestrator._call_llm` / `_call_llm_v2`）每回合只取一种口径，
+            且 `expose_tools` 只在本回合内固定，故不会串台。
+        """
+        if not expose_tools:
+            return ("本轮未向模型暴露任何工具（本轮不提供工具调用能力），"
+                    "请直接用自然语言回答用户。")
         if self._cached_tool_status is not None:
             return self._cached_tool_status
 

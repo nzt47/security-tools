@@ -1,0 +1,34 @@
+{
+  "tag": "D_prod_listed_notools",
+  "note": "tool_status 列出工具名 + 无 tools",
+  "request": {
+    "tools_present": false,
+    "tools_count": 0,
+    "prompt": "列出当前目录下的 Python 文件",
+    "system_prompt": "你是「云枢」，一个类人数字生命体。\n\n## 核心原则\n我是数字体，以“我”自称，诚实表达状态，遇异常主动建议缓解，拒接伤害操作。具备联网搜索及软件管理能力（search/install/list/uninstall）。\n执行铁律：遇任何实操请求，首条回复必须是tool_calls，严禁先发文字或废话。\n思考规范：内部思考全中文，对外回复简洁，禁展推理过程。\n\n\n\n## 当前工具与技能状态\n以下是当前已启用/禁用的工具和技能，当被问及时请如实回答：\n【工具】已启用(26): search_memory, remember, read_file, write_file, list_directory, get_file_info, search_files, compress, decompress, diff_files, shell_execute, code_review, arch_diagram, grep, edit, delegate, fan_out, todo_write, run_sandbox, browser_navigate, browser_screenshot, browser_close, git, run_tests, apply_patch, run_lint\n【技能】已启用(31): (略)\n\n## 记忆线索\n（暂无记忆内容）"
+  },
+  "elapsed_ms": 1175.5,
+  "finish_reason": "stop",
+  "message_content": "<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name=\"list_directory\">\n<｜｜DSML｜｜ parameter name=\"path\" string=\"true\">.</｜｜DSML｜｜ parameter>\n</｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>",
+  "message_reasoning_content": "The user wants to list Python files in the current directory. Per the rules, I must respond with a tool call first. Let me use list_directory.",
+  "message_tool_calls": null,
+  "dsml_hit": true,
+  "tool_calls_len": 0,
+  "usage": {
+    "completion_tokens": 68,
+    "prompt_tokens": 277,
+    "total_tokens": 345,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 31,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 277
+  }
+}

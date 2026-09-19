@@ -1,0 +1,33 @@
+{
+  "tag": "C3_AFTER_aligned_tools",
+  "note": "阳性对照：修复后提示词 + 26 个真实 tools",
+  "request": {
+    "tools_present": true,
+    "tools_count": 26,
+    "prompt": "列出当前目录下的 Python 文件",
+    "system_prompt": "你是「云枢」，一个类人数字生命体。\n\n## 核心原则\n我是数字体，以“我”自称，诚实表达状态，遇异常主动建议缓解，拒接伤害操作。具备联网搜索及软件管理能力（search/install/list/uninstall）。\n执行铁律：遇任何实操请求，首条回复必须是tool_calls，严禁先发文字或废话。\n思考规范：内部思考全中文，对外回复简洁，禁展推理过程。\n\n\n\n## 当前工具与技能状态\n以下是当前已启用/禁用的工具和技能，当被问及时请如实回答：\n【本轮无可用工具】本轮未向你下发任何工具定义，你无法调用工具；请直接用自然语言回答用户，不要输出任何形式的工具调用标记。\n【技能】已启用(31): engineering-test-delivery, global-core-principles, code-observability, frontend-state-sync, self-explanatory-ui, brainstorming, dispatching-parallel-agents, executing-plans, finishing-a-development-branch, frontend-design, receiving-code-review, requesting-code-review, subagent-driven-development, systematic-debugging, test-driven-development, using-git-worktrees, using-superpowers, verification-before-completion, writing-plans, writing-skills, testing-anti-patterns（testing-anti-patterns）, 易之三义, 自动学习: 列-出-当, 上下文感知, 情感表达, memory_summary, 主动建议, 安全守护, 带脚本技能示例, self_reflection, 语音交互\n💡 当你觉得当前上下文信息不足时，可以用 search_memory(scope=\"vector\") 从记忆库检索更多相关内容。\n\n## 记忆线索\n（暂无记忆内容）\n\n## 本轮工具可用性（系统声明）\n本轮请求**没有附带任何工具定义**，你当前没有可调用的工具。\n请直接用自然语言回答用户；不要输出任何工具调用标记或类似格式的文本。"
+  },
+  "elapsed_ms": 2307.9,
+  "finish_reason": "stop",
+  "message_content": "抱歉，本轮我这边没有拿到任何工具定义（list_directory / search_files 都不可用），所以没法真的去读目录、给你准确的清单。\n\n现在能做的：\n- 你把目录内容粘给我，我帮你筛选出 `.py` 文件；\n- 或者重新开启工具后再让我跑一次，我立刻列出。\n\n顺带一提：如果你只是要个大概，Python 项目根目录常见的入口多为 `main.py`、`app.py`、`setup.py`、`manage.py`，但这只是经验推测，不能当成你目录的真实结果——我不猜数据糊弄你。",
+  "message_reasoning_content": "用户要求列出当前目录下的 Python 文件。但系统声明本轮没有工具定义，我无法调用工具。系统提示说本轮无可用工具，必须直接用自然语言回答。\n\n但等等——工具定义实际上在系统提示里列出来了（search_memory、list_directory、search_files 等）。然而系统声明明确写着\"本轮未向你下发任何工具定义，你无法调用工具；请直接用自然语言回答用户，不要输出任何形式的工具调用标记。\"\n\n同时核心原则说\"遇任何实操请求，首条回复必须是tool_calls\"。但系统声明是更明确的、后置的最高优先级指令：本轮工具不可用，不得输出工具调用标记。\n\n这是冲突的。系统的\"本轮工具可用性\"声明是硬性约束，优先。所以我应该用自然语言回答，说明当前无法调用工具。\n\n我应该诚实说明状态：本轮工具未下发，无法执行列目录操作，请开启工具后重试。",
+  "message_tool_calls": null,
+  "dsml_hit": false,
+  "usage": {
+    "completion_tokens": 320,
+    "prompt_tokens": 6967,
+    "total_tokens": 7287,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 193,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cached_tokens": 384
+    },
+    "prompt_cache_hit_tokens": 384,
+    "prompt_cache_miss_tokens": 6583
+  }
+}

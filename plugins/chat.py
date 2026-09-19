@@ -1084,7 +1084,13 @@ def _workbench_real_stream(question, session_id=""):
                 "detail": "模型流式输出中…", "status": "running"})
 
     SYSTEM_PROMPT = "你是云枢（Yunshu），一个拥有完整感知-认知-行动闭环的数字生命体。请以简洁、自然的语言回答用户。需要时可以使用提供的工具获取实时信息或执行操作。"
-
+    # 🔴 DSML 根因防线（见 `agent/tools_prompt_guard.py` 模块 docstring 的实测对照）：
+    #   本函数上面那句 SYSTEM_PROMPT 里的「可以使用提供的工具」是**无条件的**工具宣传，
+    #   而下方的工具加载 `except` 分支（工具定义加载失败）会让 `tool_defs` 保持 None。
+    #   两者同时成立 ⇒ 提示词宣传了工具、请求却不带 tools ⇒ 上游退回 DSML 文本协议。
+    #   实测：清空提示词里的工具宣传段后，同一 prompt 上游改为纯文本推辞，不再吐标记。
+    #   ⇒ 提示词必须在**知道本轮是否有工具之后**再定稿；下方工具加载完会调用
+    #     `align_system_prompt_with_tools` 做这一次定稿。
     # ── 工具选择（P5 统一入口，2026-09-17）─────────────────────────────
     # 【原先的问题】这里直接 `get_tool_defs()`（**无白名单**）⇒ 把注册表里**全部**工具
     #   schema 发给模型（实测 91 个 ≈ 13k token/轮，与用户说什么无关），并且
@@ -1140,10 +1146,45 @@ def _workbench_real_stream(question, session_id=""):
     except Exception as _e:
         logger.debug("[workbench][SSE] 工具定义加载失败（无工具可用）: %s", _e)
 
+    # ── DSML 根因防线：提示词宣传 与 tools 下发 对齐（唯一收口）──
+    # 走到这里 `tool_defs` 才最终确定（可能是 None：加载失败 / 主线返回空白名单）。
+    # `tools_prompt_guard` 会把"宣传了工具但本轮不发 tools"就地中和，并记
+    # `event=tools_prompt_mismatch`；两侧口径从此由同一个函数保证。
+    try:
+        from agent.tools_prompt_guard import align_system_prompt_with_tools as _align_sp
+        SYSTEM_PROMPT, _ = _align_sp(
+            SYSTEM_PROMPT, bool(tool_defs),
+            site="plugins.chat.workbench_sse",
+            tools_count=len(tool_defs or []),
+        )
+    except Exception as _ge:  # noqa: BLE001 守卫异常不得弄坏工作台
+        logger.debug("[workbench][SSE] 工具一致性守卫异常（按原样继续）: %s", _ge)
+
     loop_messages = list(messages)
     max_tool_rounds = 4
     emitted = False
     seq = 0
+    # ── 异常 B 证据链（TASK-01 §3 修复 B）：本轮流式的可诊断状态 ──
+    # 修复前这些信息**一个都没留**，只有一句"（模型未返回内容）"文案。
+    _stream_started = time.time()
+    _last_finish_reason = ""
+    _saw_tool_calls = False
+    _saw_any_payload = ""
+
+    # on_reasoning 是 chat_stream 的**新增可选回调**（思考过程外发）。老实现 / 测试替身
+    # 可能没有该形参，直接传会 TypeError 打断对话主链路 → 先探测签名，不支持就退化为
+    # 「只发工具/阶段事件」（与本次改动前行为一致）。
+    def _supports_on_reasoning(fn) -> bool:
+        try:
+            import inspect
+            params = inspect.signature(fn).parameters
+            if "on_reasoning" in params:
+                return True
+            return any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+        except (TypeError, ValueError):
+            return False
+
+    _reasoning_supported = _supports_on_reasoning(getattr(llm, "chat_stream", None))
 
     try:
         for round_idx in range(max_tool_rounds + 1):
@@ -1154,24 +1195,76 @@ def _workbench_real_stream(question, session_id=""):
                 logger.info("[workbench][SSE] 模型工具调用: %s %s", tool_name, args_json[:120])
                 collected_tools.append((tool_name, args_json, reasoning_content))
 
-            # 流式请求 LLM（首轮带工具定义，后续轮次携带已回传的工具结果）
-            for text_piece in llm.chat_stream(
+            # 思考过程（DeepSeek reasoning_content）实时外发：累积增量按分片
+            # 推成 thinking 事件，前端「思考过程」开关打开时即可逐段看到推理。
+            reasoning_parts: list = []
+            reasoning_sent = 0
+
+            def _on_reasoning(piece):
+                if piece:
+                    reasoning_parts.append(piece)
+
+            # 流式请求 LLM（每轮都带工具定义，工具结果已回传到 loop_messages）
+            #
+            # 🔴 DSML 根因防线：原实现是 `tools=tool_defs if round_idx == 0 else None`
+            #   —— 第 1 轮起就不再下发 tools，但提示词（SYSTEM_PROMPT）从第 1 轮起
+            #   完全没变，仍然向模型宣告"有工具"。实测该不一致会让上游退回 DSML
+            #   文本协议（标记被当正文返回）。而且这在语义上也是缺陷：本循环声明
+            #   "上限 4 轮工具循环（防死循环）"，只首轮带 tools 会让第 2~4 轮
+            #   **永远不可能**发起工具调用，那个循环等于废掉。
+            #   现在每轮都带：既恢复多轮工具能力，也让"提示词宣传与 tools 下发"
+            #   在每个轮次都一致。轮数上限仍由 max_tool_rounds 兜住，不会死循环。
+            stream_kwargs = dict(
                 messages=loop_messages,
                 system_prompt=SYSTEM_PROMPT,
                 max_tokens=2048,
                 temperature=0.7,
                 on_tool_call=_on_tool_call,
-                tools=tool_defs if round_idx == 0 else None,
-            ):
+                tools=tool_defs,
+            )
+            if _reasoning_supported:
+                stream_kwargs["on_reasoning"] = _on_reasoning
+            for text_piece in llm.chat_stream(**stream_kwargs):
+                # 先把新增的推理增量作为 thinking 事件推给前端（思考过程可见）
+                if len(reasoning_parts) > reasoning_sent:
+                    delta_reasoning = "".join(reasoning_parts[reasoning_sent:])
+                    reasoning_sent = len(reasoning_parts)
+                    yield _sse({"type": "thinking", "id": "reasoning",
+                                "title": "思考过程", "detail": delta_reasoning,
+                                "status": "running"})
+                if not text_piece:
+                    continue
+                # ── 兜底消毒闸（防御性第二道防线，不是主要修法）──
+                # 主要修法在解析层（agent/dsml_adapter，把标记变成结构化 tool_calls）；
+                # 这里只保证"万一还有残留"，用户可见出口不留标记。
+                # 注意局限：本闸按 chunk 判定，**跨 chunk 被切开的标记**由
+                # memory/llm_service.py::chat_stream 里的 DSMLStreamGuard 负责。
+                if len(_saw_any_payload) < 200:
+                    _saw_any_payload += text_piece[: 200 - len(_saw_any_payload)]
+                try:
+                    from agent.dsml_adapter import sanitize_visible_text as _sanitize
+                    text_piece, _n_leak = _sanitize(text_piece)
+                    if _n_leak:
+                        logger.warning(
+                            "event=dsml_leak_blocked source=workbench_sse stripped=%d", _n_leak)
+                except Exception as _san_e:  # noqa: BLE001 消毒闸异常不得打断流
+                    logger.debug("[workbench][SSE] 兜底消毒闸异常: %s", _san_e)
                 if not text_piece:
                     continue
                 seq += 1
                 emitted = True
                 yield _sse({"type": "chunk", "text": text_piece, "seq": seq})
 
+            # 收尾：本轮推理已全部外发 → 标记思考过程完成
+            if reasoning_sent:
+                yield _sse({"type": "thinking", "id": "reasoning",
+                            "title": "思考过程", "detail": "", "status": "done"})
+                reasoning_parts, reasoning_sent = [], 0
+
             # 无工具调用 → 生成完成，退出循环
             if not collected_tools:
                 break
+            _saw_tool_calls = True
 
             # ── 执行工具并回传结果 ──
             from agent.tools import call as _tool_call
@@ -1228,9 +1321,32 @@ def _workbench_real_stream(question, session_id=""):
     yield _sse({"type": "thinking", "id": "generate", "title": "生成回复", "status": "done"})
 
     if not emitted:
-        # 空输出兜底（如模型返回空）
+        # 空输出兜底（异常 B）。
+        # 修复前这里只有文案、**没有任何结构化证据**，线上无法判断是上游空
+        # choices、finish_reason=tool_calls 却没带 tool_calls，还是超时降级。
+        # 现在：统一有效性判定口径 + event=llm_empty_response 结构化日志 + 明确降级文案。
+        try:
+            from agent.llm_response_guard import (
+                is_valid_response, log_empty_response, degraded_text)
+            if not is_valid_response(None, None, None):
+                log_empty_response(
+                    source="plugins/chat.py::_chat_stream_generator",
+                    provider=str(getattr(llm, "provider", "") or ""),
+                    model=str(getattr(llm, "model", "") or ""),
+                    finish_reason=str(
+                        getattr(llm, "_last_stream_finish_reason", "")
+                        or _last_finish_reason or ""),
+                    has_tool_calls=bool(_saw_tool_calls),
+                    elapsed_ms=(time.time() - _stream_started) * 1000.0,
+                    request_id=str(locals().get("session_id", "") or ""),
+                    raw_prefix=str(_saw_any_payload),
+                )
+            _empty_text = degraded_text(finish_reason=str(_last_finish_reason or ""))
+        except Exception as _guard_e:  # noqa: BLE001 守卫异常不得吞掉兜底文案
+            logger.warning("[workbench][SSE] 空返回判定失败（使用默认文案）: %s", _guard_e)
+            _empty_text = "（模型未返回内容）"
         seq += 1
-        yield _sse({"type": "chunk", "text": "（模型未返回内容）", "seq": seq})
+        yield _sse({"type": "chunk", "text": _empty_text, "seq": seq})
 
     yield _sse({"type": "done"})
 

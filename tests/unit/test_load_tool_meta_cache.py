@@ -97,13 +97,21 @@ def test_cache_is_invalidated_when_yaml_changes(tmp_path, monkeypatch):
     m1 = M.load_tool_meta(str(root), force=True)
     assert m1["t"].description == "第一版"
 
-    # 模拟人工编辑：改内容并把 mtime 推到未来（避免同纳秒内签名不变）
-    time.sleep(0.01)
+    # 模拟人工编辑：改内容并把 mtime 推到**一个固定的未来时刻**。
+    #
+    # Why 不用 `time.time() + 1`：那会把本用例变成「日期漂移盲点守卫」
+    # （`tests/unit/test_date_shift_blindspots_guard.py`）的误报源 —— 该守卫
+    # 会扫描"由当前时间派生的值"，而 `time.time() + 1` 正落在它的判定口径里
+    # （实测：该守卫曾报 `test_load_tool_meta_cache.py:106`）。
+    # 本用例的真实目的只是"让 mtime 与写入前**不同**"，用一个固定的、
+    # 与 `time.sleep()` 之后的时刻明显不同的常量即可完全等价地表达，
+    # 且不引入任何"当前时间派生值"。
+    _FIXED_FUTURE_MTIME = 2_000_000_000.0  # 2033-05-18T03:33:20Z，常量字面量
     target.write_text(
         "name: t\nplane: govern\neffect: extend\nrisk: critical\ndescription: 第二版\n",
         encoding="utf-8",
     )
-    os.utime(target, (time.time() + 1, time.time() + 1))
+    os.utime(target, (_FIXED_FUTURE_MTIME, _FIXED_FUTURE_MTIME))
 
     m2 = M.load_tool_meta(str(root))
     assert m2["t"].description == "第二版", "改 YAML 后未重读 —— 缓存失效机制失效"

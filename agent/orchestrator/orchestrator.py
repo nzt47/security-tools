@@ -3305,7 +3305,11 @@ class Orchestrator:
         except Exception:
             pass
 
-        tool_status = self._build_tool_status_text()
+        # ── DSML 根因防线（提示词侧·上游收口）──
+        # `allow_tools=False`（工作流层已执行过工具，见 `_tool_defs = []`）时
+        # 绝不能在提示词里宣传工具，否则模型会退回 DSML 文本协议。这里在**源头**
+        # 就不生成宣传文本；下面每轮出网前的 `tools_prompt_guard` 是第二道收口。
+        tool_status = self._build_tool_status_text(expose_tools=allow_tools)
         skill_instructions = self._build_skill_instructions()
 
         _sp_template = _get_template()
@@ -3507,23 +3511,49 @@ class Orchestrator:
                     _max_output = 8192
 
                 for _round_idx in range(_max_rounds):
-                    _api_msgs = [{"role": "system", "content": system_prompt}] + _working
+                    # ── DSML 根因防线：提示词宣传 与 tools 下发 必须一致 ──
+                    # 本循环有两处会让"提示词说有工具、请求却不带 tools"同时成立：
+                    #   ① `allow_tools=False` ⇒ 上面 `_tool_defs = []`（工作流层已执行过工具）
+                    #   ② 最后一轮 ⇒ 原实现 `_kwargs.pop("tools")`（强制收尾）
+                    # 实测（`_baseline/dsml-evidence/cond4_P1`）：该不一致会让上游
+                    # 退回 DSML 文本协议，标记被当正文返回 ⇒ 用户可见泄漏。
+                    # 这里按轮算出**本轮真正会下发的工具集**，不一致时就地中和提示词与
+                    # 催促消息，并记 `event=tools_prompt_mismatch`（使不一致可观测）。
+                    _is_final_round = (_round_idx == _max_rounds - 1)
+                    _tools_this_round = [] if _is_final_round else _tool_defs
+                    _sp_this_round = system_prompt
+                    _msgs_this_round = _working
+                    try:
+                        from agent.tools_prompt_guard import align_system_prompt_with_tools
+                        _sp_this_round, _msgs_this_round = align_system_prompt_with_tools(
+                            system_prompt, bool(_tools_this_round),
+                            site="orchestrator._call_llm.r%d" % _round_idx,
+                            messages=_working,
+                            tools_count=len(_tools_this_round),
+                        )
+                    except Exception as _g_e:  # noqa: BLE001 守卫异常不得击穿主链路
+                        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.tools_prompt_guard', 'message': '[_call_llm] 一致性守卫异常（按原样继续）: %s' % (_g_e,)}))
+
+                    if _is_final_round:
+                        # 保留原语义：催促消息进**持久**的 _working（供后续分支读取），
+                        # 请求体用"对齐后的副本 + 催促消息"（对齐副本不回写 _working，
+                        # 否则守卫剔除的条目会污染跨轮累积的历史）。
+                        _final_nudge = {"role": "system",
+                                        "content": "这是最后一轮，请根据之前获取到的信息给出完整总结。"}
+                        _working.append(_final_nudge)
+                        _msgs_this_round = list(_msgs_this_round) + [_final_nudge]
+
+                    _api_msgs = [{"role": "system", "content": _sp_this_round}] + _msgs_this_round
                     _kwargs = {
                         "model": _working_model,
                         "messages": _api_msgs,
                         "max_tokens": _max_output,
                         "temperature": 0.3,
                     }
-                    if _tool_defs:
-                        _kwargs["tools"] = _tool_defs
-                    if _round_idx == _max_rounds - 1:
-                        _kwargs.pop("tools", None)
-                        _working.append({
-                            "role": "system",
-                            "content": "这是最后一轮，请根据之前获取到的信息给出完整总结。",
-                        })
-                        _api_msgs = [{"role": "system", "content": system_prompt}] + _working
-                        _kwargs["messages"] = _api_msgs
+                    # `_tools_this_round` 为空 ⇒ 不写 tools 键（= 原 pop 的效果），
+                    # 且此时提示词已被上面的守卫中和，两侧口径一致。
+                    if _tools_this_round:
+                        _kwargs["tools"] = _tools_this_round
 
                     _resp = _client.chat.completions.create(**_kwargs)
                     _msg = _resp.choices[0].message
@@ -3533,14 +3563,22 @@ class Orchestrator:
                         # TASK-S9-01: 显式写入本会话本轮（禁止 or 回退旧值）
                         self._set_turn_state(_turn_key, reasoning=_reasoning)
 
+                    _msg_content_clean = _msg.content
                     if not (hasattr(_msg, 'tool_calls') and _msg.tool_calls):
-                        # 检测 XML 格式的工具调用
+                        # 文本协议工具调用检测（XML / **DSML**）。
+                        # 原门控 `<[^>]*tool_calls[^>]*>` 对实测 DSML **完全失配**
+                        # （分隔符是全角竖线 U+FF5C、外层标签是 `calls`），
+                        # 导致标记被当作正文原样返回给用户。
+                        # 改用解析层唯一入口，并同时拿到「剥离标记后的正文」。
                         _xml_tools = []
-                        if _msg.content and _re.search(r'<[^>]*tool_calls[^>]*>', _msg.content):
+                        _dsml_res = None
+                        if _msg.content:
                             try:
-                                _xml_tools = ToolCallingService._extract_xml_tool_calls(_msg.content)
+                                _msg_content_clean, _xml_tools, _dsml_res = \
+                                    ToolCallingService._prepare_text_and_tool_calls(_msg.content)
                             except Exception as _xml_e:
-                                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] XML 工具提取失败: %s' % (_xml_e,)}))
+                                _msg_content_clean, _xml_tools, _dsml_res = _msg.content, [], None
+                                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] XML/DSML 工具提取失败: %s' % (_xml_e,)}))
                         if _xml_tools:
                             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] 检测到 XML 格式工具调用: %d 个' % (len(_xml_tools),)}))
                             _assistant_tc = []
@@ -3577,12 +3615,28 @@ class Orchestrator:
                                 })
                             self._set_turn_state(_turn_key, tool_steps=_current_steps)
                             _working.append({
-                                "role": "assistant", "content": _msg.content,
+                                "role": "assistant", "content": _msg_content_clean,
                                 "tool_calls": _assistant_tc,
                             })
                             _working.extend(_tool_results)
                             continue
-                        response = _msg.content or _reasoning or ""
+                        # 识别到文本协议工具调用标记，但一个都没解析成功
+                        # （未知工具名 / 参数类型还原失败 / 标记未闭合 / 超限）。
+                        # 必须给明确降级文案：既不泄漏标记，也不静默执行。
+                        _dsml_degraded = ""
+                        if _dsml_res is not None and _dsml_res.found:
+                            try:
+                                from agent import dsml_adapter as _dsa_mod
+                                _dsml_degraded = _dsa_mod.degraded_message(_dsml_res)
+                            except Exception:  # noqa: BLE001
+                                _dsml_degraded = ""
+                            if _dsml_degraded:
+                                logger.warning(log_dict({
+                                    'module_name': 'orchestrator',
+                                    'action': 'orchestrator._call_llm._call_llm',
+                                    'message': '[_call_llm] 文本协议工具调用解析失败，已降级: %s'
+                                               % (json.dumps(_dsml_res.log_fields(), ensure_ascii=False),)}))
+                        response = _dsml_degraded or _msg_content_clean or _reasoning or ""
                         break
 
                     _assistant_tc = []
@@ -3635,15 +3689,28 @@ class Orchestrator:
                 if profile.response_prefix:
                     response = profile.response_prefix + "\n" + response
 
-                # 兜底：检测 XML 工具调用残留
-                if response and _re.search(r'<[^>]*tool_calls[^>]*>', response):
-                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] 响应中包含 XML 工具调用，使用工具结果摘要替换'}))
-                    _fb_summaries = [s.get("summary", "") for s in _current_steps
-                                     if s["type"] == "tool_result"][-5:]
-                    if _fb_summaries:
-                        response = "已获取到以下信息：\n" + "\n".join(f"  - {s}" for s in _fb_summaries)
-                    else:
-                        response = "（已处理完毕）"
+                # 兜底消毒闸（**第二道防线，不是主要修法**）：
+                # 上面的解析层已经剥离标记；这里再扫一次最终文本，防止任何分支
+                # （如 response_prefix 拼接、工具摘要回填）把标记带回用户可见出口。
+                # 原实现用的是同一失配正则 `<[^>]*tool_calls[^>]*>`，对 DSML 不生效。
+                if response:
+                    try:
+                        from agent import dsml_adapter as _dsa_gate
+                        _clean_resp, _n_stripped = _dsa_gate.sanitize_visible_text(response)
+                        if _n_stripped:
+                            logger.warning(log_dict({
+                                'module_name': 'orchestrator',
+                                'action': 'orchestrator._call_llm._call_llm',
+                                'event': 'dsml_leak_blocked',
+                                'message': '[_call_llm] 用户可见出口检测到文本协议工具调用残留，已剥离 %d 处'
+                                           % (_n_stripped,)}))
+                            _fb_summaries = [s.get("summary", "") for s in _current_steps
+                                             if s["type"] == "tool_result"][-5:]
+                            response = _clean_resp or (
+                                ("已获取到以下信息：\n" + "\n".join(f"  - {s}" for s in _fb_summaries))
+                                if _fb_summaries else "（已处理完毕）")
+                    except Exception as _gate_e:  # noqa: BLE001 消毒闸异常不得击穿主链路
+                        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] 兜底消毒闸异常: %s' % (_gate_e,)}))
 
                 return response
             except Exception as _e:
@@ -3935,7 +4002,7 @@ class Orchestrator:
 
         if self._v2_persona and self._persona_injector:
             memory_context = self._get_lifetrace_context(user_input)
-            tool_status_text = self._build_tool_status_text()
+            tool_status_text = self._build_tool_status_text(expose_tools=allow_tools)
             user_context = self._get_user_context(
                 session_id=session_id,
                 session_mgr=session_mgr,
@@ -3948,7 +4015,7 @@ class Orchestrator:
             )
         else:
             memory_context = self._get_lifetrace_context(user_input) if self._v2_lifetrace else ""
-            tool_status = self._build_tool_status_text()
+            tool_status = self._build_tool_status_text(expose_tools=allow_tools)
             skill_instructions = self._build_skill_instructions()
             _sp_template = _get_template()
             system_prompt = _sp_template.format(

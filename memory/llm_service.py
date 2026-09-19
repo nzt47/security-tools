@@ -1,6 +1,7 @@
 """LLM API 抽象层 — 专为对话摘要场景设计"""
 
 import logging
+import os
 import time
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,32 @@ class LLMService:
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
-        self._base_url = (base_url or self.OPENAI_COMPAT.get(self.provider, "")).rstrip("/")
+        # ── base_url 解析优先级：显式入参 > 环境变量 > provider 内置默认 ──
+        # 【不易·2026-09-19 实测缺陷】此前只有"显式入参 > 内置默认"，**环境变量被跳过**。
+        #   后果是**同一份 `.env` 在不同链路生效不同**：`plugins/chat.py:987` 与
+        #   `agent/orchestrator/lifecycle_manager.py:1193` 显式读了 env，而
+        #   `memory/memory_manager.py:251-256` 构造时**未传 base_url** ⇒ 静默回退到
+        #   硬编码的 `https://api.deepseek.com`（`OPENAI_COMPAT`）。
+        #   换网关 / 自建代理时，改 `.env` 对**流式链路生效、对编排器与记忆摘要不生效** ——
+        #   这是最容易被误判成"模型坏了"的一类排障陷阱（实测由端到端验证发现）。
+        #
+        # 为什么把回退放在**本构造函数**而不是逐个调用点补参数：
+        #   全仓有 10+ 个 `LLMService(...)` 构造点（`memory/memory_manager.py`、
+        #   `plugins/admin.py`、`agent/tool_calling.py`×3、
+        #   `agent/orchestrator/task_dispatcher.py`、`agent/process_distill/service.py` …），
+        #   逐个补是治标；本构造函数是**唯一收口**，在此统一回退才能根治。
+        #
+        # 为什么用这两个变量名：`agent/settings/registry.py:1420,1423` 已登记
+        #   `LLM_BASE_URL` 与 `DEEPSEEK_BASE_URL` ⇒ **不引入新环境变量**（不制造 D5 零缺口），
+        #   且与 `plugins/chat.py:987` 的既有读法逐字一致（`LLM_BASE_URL` 优先）。
+        #
+        # 为什么不在这里 import `agent.settings`：本模块位于 `memory/`，被大量低层模块导入；
+        #   引入 `agent.settings` 会拉进注册表依赖并可能形成环。`os.environ` 是本文件既有的、
+        #   唯一配置来源（模块顶部原本只有 logging/time，本次为读取它而显式引入 os）。
+        _env_base = (os.environ.get("LLM_BASE_URL", "")
+                     or os.environ.get("DEEPSEEK_BASE_URL", "")).strip()
+        self._base_url = (base_url or _env_base
+                          or self.OPENAI_COMPAT.get(self.provider, "")).rstrip("/")
         self._client = None
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -251,7 +277,22 @@ class LLMService:
     
     def _do_chat(self, messages: list[dict], system_prompt: str = "",
                  max_tokens: int = 1024, temperature: float = 0.7) -> str:
-        """实际的对话生成逻辑（不含重试）"""
+        """实际的对话生成逻辑（不含重试）
+
+        【DSML 根因防线】本方法**按定义永远不下发 `tools`**（没有该形参），
+        因此传入的 `system_prompt` 里任何"你有工具"的宣传都是**虚假宣传**。
+        实测（`_baseline/dsml-evidence/cond4_P1`）：提示词宣传工具 + 请求无 tools
+        ⇒ 上游 DeepSeek 退回 DSML 文本协议，标记被当正文返回给用户。
+        真实触发路径之一：`agent/tool_calling.py::chat_with_steps` 首轮 LLM 调用
+        连续失败后降级到 `_current_llm.chat(...)`（那里同样不带 tools）。
+        """
+        try:
+            from agent.tools_prompt_guard import align_system_prompt_with_tools
+            system_prompt, _ = align_system_prompt_with_tools(
+                system_prompt, False, site="llm_service._do_chat")
+        except Exception as _g_e:  # noqa: BLE001 守卫异常不得击穿对话主链路
+            logger.debug("[LLM][tools_prompt_guard] 一致性守卫异常（按原样继续）: %s", _g_e)
+
         client = self._get_client()
         
         if self._is_openai_compat():
@@ -332,7 +373,8 @@ class LLMService:
 
     def chat_stream(self, messages: list[dict], system_prompt: str = "",
                     max_tokens: int = 1024, temperature: float = 0.7,
-                    on_tool_call=None, tools: list | None = None):
+                    on_tool_call=None, tools: list | None = None,
+                    on_reasoning=None):
         """流式对话生成（生成器，逐 chunk 产出文本增量）
 
         用于 SSE 流式输出场景：前端逐块渲染。
@@ -348,6 +390,9 @@ class LLMService:
                 为 DeepSeek thinking 模式推理内容，回传消息时需附带）。
             tools: 可选 OpenAI 格式工具定义列表（[{type:function,function:{...}}]），
                 传入后模型可请求工具调用。
+            on_reasoning: 可选回调 fn(reasoning_delta)——DeepSeek thinking 模式下逐段
+                产出推理内容（思考过程）。**additive**：不传时行为与既有完全一致
+                （推理内容仍只用于工具调用回传）。
 
         Yields:
             str: 每次产出的文本增量（可为空串）
@@ -355,6 +400,19 @@ class LLMService:
         if not messages:
             return
         client = self._get_client()
+
+        # 【DSML 根因防线】流式路径的**最后一道收口**。
+        # 本条链路上游有多个调用方会各自决定是否传 `tools`
+        # （`plugins/chat.py` 的工具循环、编排器、`chat_with_steps`），
+        # 任何一处把 tools 丢掉而提示词仍宣传工具，都会在这里被中和并记
+        # `event=tools_prompt_mismatch`（实测根因见 agent/tools_prompt_guard.py）。
+        try:
+            from agent.tools_prompt_guard import align_system_prompt_with_tools
+            system_prompt, _ = align_system_prompt_with_tools(
+                system_prompt, bool(tools), site="llm_service.chat_stream",
+                tools_count=len(tools or []))
+        except Exception as _g_e:  # noqa: BLE001 守卫异常不得打断流
+            logger.debug("[Stream][tools_prompt_guard] 一致性守卫异常（按原样继续）: %s", _g_e)
 
         if self._is_openai_compat():
             full_messages = []
@@ -377,9 +435,29 @@ class LLMService:
             tool_accum: dict[int, dict] = {}
             # DeepSeek thinking 模式：reasoning_content 需在回传消息时附上
             reasoning_parts: list[str] = []
+            # ── 文本协议（DSML）流式守卫（TASK-01 修复 A） ──
+            # 实测流式响应有数百个 chunk，标记会被任意切断（例如切在标记前缀中间）。
+            # 逐 chunk 判正则既漏检、又会把正文切碎 ⇒ 必须在这里攒齐。
+            # 守卫本身**有界**（体积 + 时间上限），不会因上游吐半个标记就挂住整条流。
+            _dsml_guard = None
+            try:
+                from agent.dsml_adapter import DSMLStreamGuard
+                _dsml_guard = DSMLStreamGuard()
+            except Exception as _guard_e:  # noqa: BLE001
+                logger.debug("DSML 流式守卫不可用（退化为逐片直通）: %s", _guard_e)
+            _stream_started = time.time()
+            _last_finish = ""
+            _text_chars = 0
+            # 把上游 finish_reason 挂到实例上，供上层（plugins/chat.py 的 SSE 兜底）
+            # 记进 event=llm_empty_response —— 否则那一层的 finish_reason 只能是空串，
+            # 而它恰恰是判断"空 choices / tool_calls 却没带 tool_calls / 超时降级"的关键字段。
+            self._last_stream_finish_reason = ""
             for chunk in stream:
                 if not chunk.choices:
                     continue
+                _fr = getattr(chunk.choices[0], "finish_reason", None)
+                if _fr:
+                    _last_finish = _fr
                 delta = chunk.choices[0].delta
                 # 提取工具调用增量（函数名 + 参数 JSON 分片）
                 if delta and delta.tool_calls and on_tool_call is not None:
@@ -392,17 +470,67 @@ class LLMService:
                             if tc.function.arguments:
                                 acc["args"] += tc.function.arguments
                 if delta and delta.content:
-                    yield delta.content
+                    if _dsml_guard is None:
+                        _text_chars += len(delta.content)
+                        yield delta.content
+                    else:
+                        for _safe_piece in _dsml_guard.feed(delta.content):
+                            # 计数口径 = **真正外发给用户的字符数**（不含被守卫吞掉的标记），
+                            # 否则"只吐了一个解析失败的标记"会被误判成"有内容、非空返回"。
+                            _text_chars += len(_safe_piece)
+                            yield _safe_piece
                 # 收集 reasoning_content（DeepSeek 推理，回传时需带上）
                 rc = getattr(delta, "reasoning_content", None)
                 if rc:
                     reasoning_parts.append(rc)
+                    # 思考过程实时外发（additive：未传回调时这一支不生效）
+                    if on_reasoning is not None:
+                        try:
+                            on_reasoning(rc)
+                        except Exception as _re:  # noqa: BLE001 回调异常不影响主流程
+                            logger.debug("on_reasoning 回调异常: %s", _re)
+
+            # ── 守卫收尾：放行残留、上报攒到的文本协议工具调用 ──
+            if _dsml_guard is not None:
+                for _safe_piece in _dsml_guard.flush():
+                    _text_chars += len(_safe_piece)
+                    yield _safe_piece
+                _g_res = _dsml_guard.take_result()
+                if _g_res.errors or _g_res.tool_calls:
+                    logger.warning("[Stream] 文本协议(DSML)解析结果: %s", _g_res.log_fields())
+                if _g_res.tool_calls and on_tool_call is not None:
+                    for _tc in _g_res.tool_calls:
+                        _fn = _tc.get("function", {})
+                        on_tool_call(_fn.get("name", ""), _fn.get("arguments", ""),
+                                     "".join(reasoning_parts))
+
             # 流结束后上报已聚合的工具调用（只上报完整有名字的）
             if on_tool_call is not None:
                 for idx in sorted(tool_accum):
                     acc = tool_accum[idx]
                     if acc["name"]:
                         on_tool_call(acc["name"], acc["args"], "".join(reasoning_parts))
+
+            # ── 空返回的统一判定 + 结构化日志（TASK-01 修复 B） ──
+            # 修复前这里**什么都不记**：只有 plugins/chat.py 一句兜底文案，
+            # 线上无从判断是上游空 choices、finish_reason=tool_calls 却没带
+            # tool_calls、还是内容被吞。口径集中在 agent.llm_response_guard。
+            try:
+                from agent.llm_response_guard import is_valid_response, log_empty_response
+                if not is_valid_response(
+                        "x" * _text_chars, list(tool_accum.values()),
+                        "".join(reasoning_parts)):
+                    log_empty_response(
+                        source="memory/llm_service.py::chat_stream",
+                        provider=self.provider, model=self.model,
+                        finish_reason=_last_finish,
+                        has_tool_calls=bool(tool_accum),
+                        elapsed_ms=(time.time() - _stream_started) * 1000.0,
+                        raw_prefix="")
+            except Exception as _empty_e:  # noqa: BLE001 观测失败不得影响主链路
+                logger.debug("[Stream] 空返回判定失败: %s", _empty_e)
+            finally:
+                self._last_stream_finish_reason = _last_finish
 
         elif self.provider == "anthropic":
             kwargs = {}

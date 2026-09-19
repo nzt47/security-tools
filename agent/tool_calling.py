@@ -364,8 +364,10 @@ class ToolCallingService:
                 if not tool_calls:
                     logger.info(log_dict({'module_name': 'tool_calling', 'action': 'llm', 'msg': '[ToolCalling] LLM 返回纯文本'}))
 
-                    # ⬆ XML 格式工具调用检测（DeepSeek 模型有时输出 XML 格式而非 JSON tool_calls）
-                    _xml_tools = self._extract_xml_tool_calls(text_preview) if text_preview else []
+                    # ⬆ 文本协议工具调用检测（XML / DSML，DeepSeek 模型有时输出标记而非 JSON tool_calls）
+                    # 同一入口顺带返回「剥离标记后的正文」——若继续用未剥离的原文当正文，
+                    # 标记会随 final_text 一路泄漏给用户（这正是本次修复的漏点）。
+                    text_preview, _xml_tools, _dsml_res = self._prepare_text_and_tool_calls(text_preview)
                     if _xml_tools:
                         logger.info(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[ToolCalling] 检测到 XML 格式工具调用: %d 个' % len(_xml_tools)}))
                         # 执行 XML 工具，然后用结果摘要直接回复（不返回模型循环，防止死循环）
@@ -389,6 +391,24 @@ class ToolCallingService:
                             result["reasoning"] = reasoning
                         return result
                     else:
+                        # 识别到了文本协议工具调用标记，但**一个都没解析成功**
+                        # （典型：未知工具名 / 参数类型还原失败 / 标记未闭合）。
+                        # 此时必须给明确降级文案：既不能泄漏标记，也不能静默执行。
+                        if _dsml_res is not None and _dsml_res.found:
+                            try:
+                                _deg = dsml_adapter_module().degraded_message(_dsml_res)
+                            except Exception:  # noqa: BLE001
+                                _deg = ""
+                            if _deg:
+                                logger.warning(log_dict({
+                                    'module_name': 'tool_calling', 'action': 'dsml',
+                                    'msg': '文本协议工具调用全部解析失败，已降级: %s' % (
+                                        json.dumps(_dsml_res.log_fields(), ensure_ascii=False),)}))
+                                _deg_result = {"text": _deg, "steps": steps}
+                                if reasoning:
+                                    _deg_result["reasoning"] = reasoning
+                                return _deg_result
+
                         # ⬆ 模型升级检测
                         logger.info(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[UPGRADE] notool round=%d router=%s upgraded=%s' % (round_idx, self._model_router is not None, self._model_upgraded)}))
                         if not self._model_upgraded and self._model_router:
@@ -564,7 +584,31 @@ class ToolCallingService:
 
     def _call_llm_with_tools(self, messages, system_prompt,
                               max_tokens, temperature, tool_defs):
-        """调用 LLM（带工具定义）"""
+        """调用 LLM（带工具定义）
+
+        【DSML 根因防线】本方法是 `chat_with_steps` 工具循环里**唯一**出网口，
+        而 `tool_defs` 会在最后一轮被置空（`chat_with_steps` 里
+        `need_tools = tool_defs if round_idx < self._max_rounds else None`）。
+        提示词却是循环开始前渲染好的、不会跟着变 —— 于是"提示词宣告有工具、
+        请求却不带 tools"，上游只能退回 DSML 文本协议 ⇒ 用户可见泄漏。
+        实测对照见 `agent/tools_prompt_guard.py` 模块 docstring。
+
+        把一致性收在这一处（而不是每个丢弃 tools 的分支各修一次）：
+        无论哪条分支把 tool_defs 变成空，提示词都会被就地中和并记
+        `event=tools_prompt_mismatch`。
+        """
+        try:
+            from agent.tools_prompt_guard import align_system_prompt_with_tools
+            system_prompt, messages = align_system_prompt_with_tools(
+                system_prompt, bool(tool_defs),
+                site="tool_calling._call_llm_with_tools",
+                messages=messages,
+                tools_count=len(tool_defs or []),
+            )
+        except Exception as _g_e:  # noqa: BLE001 守卫异常不得击穿对话主链路
+            logger.debug(log_dict({'module_name': 'tool_calling', 'action': 'tools_prompt_guard',
+                                   'msg': '一致性守卫异常（按原样继续）: %s' % (_g_e,)}))
+
         client = self._current_llm._get_client()
 
         if self._current_llm._is_openai_compat():
@@ -943,47 +987,44 @@ class ToolCallingService:
 
     @staticmethod
     def _extract_xml_tool_calls(text: str) -> list[dict]:
-        """从文本中提取 XML 格式的工具调用（DeepSeek 模型有时输出此格式）
+        """从模型输出文本中提取 XML / DSML 格式的工具调用（解析层**唯一**入口）
 
-        解析格式（支持命名空间前缀）：
-          <tool_calls> 或 <dsml:tool_calls>
-          <invoke name="tool_name"> 或 <dsml:invoke name="tool_name">
-          <parameter name="param1">value1</parameter>
-          <parameter name="param2">value2</parameter>
-          </invoke>
-          </tool_calls>
+        为什么这里收敛到 ``agent/dsml_adapter``（而不是在本函数里再加一套正则）：
+        实测上游在「模型知道自己有工具、但请求未走结构化 tools 通路」时，会把
+        **DSML**（DeepSeek 原生 agent 标记）当纯文本塞进 ``content``，
+        同时 ``finish_reason="stop"`` / ``tool_calls=None``。而本函数原先的正则
+        对这一形态**完全失配**，三层原因叠加：
+
+        1. 分隔符是**全角竖线 U+FF5C**（实测全仓 393 处 / 4 文件；半角 0 处），
+           而原正则要求半角冒号的命名空间前缀；
+        2. 外层标签是 **``calls``**（实测含 ``calls``=True、含 ``tool_calls``=False），
+           而原正则只认 ``tool_calls``；
+        3. 全仓 ``git grep DSML -- "*.py"`` 零命中 ⇒ 平台从未实现过 DSML 适配器。
+
+        因此把适配器抽到 ``agent/dsml_adapter.py``（**纯函数、可单测、无重依赖**），
+        本函数与 ``orchestrator`` 的 XML 分支共用它 —— 避免"两处各写一套正则"
+        这种第二真相源。
+
+        兼容性：返回结构与 JSON ``tool_calls`` 同构，既有的
+        ``<tool_calls>`` / ``<dsml:tool_calls>`` 形态行为不变（id 前缀仍为 ``xml_``）。
+        新增能力：全角/半角分隔符、``calls``/``tool_calls`` 标签、按目标工具
+        JSON Schema 做参数类型还原、未闭合标记有界处理。
 
         Returns:
-            list[dict]: 与 JSON tool_calls 兼容的格式
-                        [{"id": "xml_0", "function": {"name": "...", "arguments": "{}"}}]
+            list[dict]: 与 JSON tool_calls 兼容的格式；解析失败或工具未知时返回 ``[]``
+                        （**不猜、不改名**，失败详情走 ``event=dsml_parse_error`` 日志）
         """
-        if not text:
-            return []
+        return _parse_text_tool_calls(text, id_prefix="xml")[1]
 
-        # 支持可选命名空间前缀: <prefix:tool_calls> 或 <tool_calls>
-        import re as _re
-        if not _re.search(r'<(?:\w+:)?tool_calls[\s>]', text):
-            return []
+    @staticmethod
+    def _prepare_text_and_tool_calls(text: str):
+        """解析层唯一入口的**完整**形态：``(剥离标记后的正文, 工具调用, 解析结果)``
 
-        results = []
-        # 匹配带可选命名空间的 <invoke name="xxx"> ... </invoke>
-        pattern = r'<(?:\w+:)?invoke\s+name=["\']([^"\']+)["\']>(.*?)</(?:\w+:)?invoke>'
-        for idx, (name, body) in enumerate(_re.findall(pattern, text, _re.DOTALL)):
-            params = {}
-            # 匹配带可选命名空间的 <parameter name="xxx" ...>value</parameter>
-            for pname, pvalue in _re.findall(
-                r'<(?:\w+:)?parameter\s+name=["\']([^"\']+)["\'][^>]*>(.*?)</(?:\w+:)?parameter>',
-                body, _re.DOTALL
-            ):
-                params[pname.strip()] = pvalue.strip()
-            results.append({
-                "id": f"xml_{idx}",
-                "function": {
-                    "name": name.strip(),
-                    "arguments": json.dumps(params, ensure_ascii=False),
-                }
-            })
-        return results
+        调用方需要"正文"（不只是工具调用）时必须用这个：
+        ``_extract_xml_tool_calls`` 只返回工具调用，若调用方继续拿**未剥离**的原文
+        当正文，标记照样会泄漏给用户。
+        """
+        return _parse_text_tool_calls(text, id_prefix="xml")
 
     @staticmethod
     def _truncate_tool_content(content: str, max_chars: int = 3000) -> str:
@@ -1050,3 +1091,62 @@ def summarize_tool_result(tool_name: str, result) -> str:
          需构造 SFT 五元组的 assistant_response,通过公共入口保持向后兼容。
     """
     return _summarize_tool_result(tool_name, result)
+
+
+def dsml_adapter_module():
+    """惰性取 ``agent.dsml_adapter`` 模块（导入失败时抛，由调用方兜）
+
+    做成函数是为了：解析层其它位置（如降级文案）不必在模块顶层 import，
+    避免"适配器本身出问题"时把整个 ``tool_calling`` 模块拖到导不进来。
+    """
+    from agent import dsml_adapter
+    return dsml_adapter
+
+
+def _parse_text_tool_calls(text, id_prefix: str = "xml"):
+    r"""解析层唯一入口：``(剥离标记后的正文, 工具调用列表, 解析结果)``
+
+    把 ``agent/dsml_adapter`` 的调用包一次，集中做三件事：
+
+    1. **门控**：用适配器的 ``has_marker`` 判否，替换原先只认 ``tool_calls``
+       的失配正则（``<(?:\w+:)?tool_calls[\s>]``）；
+    2. **结构化日志**：解析失败必须留证据，**不允许** ``except: pass`` 吞掉
+       —— 适配器本身不抛异常，这里只补日志；
+    3. **异常隔离**：解析层任何意外都不得击穿主链路（降级为"无工具调用 + 原文"），
+       但异常本身要记 error 日志。
+
+    Returns:
+        ``(content, tool_calls, result)``。``result`` 在"无标记"时为 ``None``。
+    """
+    if not text or not isinstance(text, str):
+        return text, [], None
+    try:
+        dsml_adapter = dsml_adapter_module()
+    except Exception as _imp_e:  # noqa: BLE001 适配器缺失不得击穿主链路
+        logger.error(log_dict({
+            'module_name': 'tool_calling', 'action': 'dsml',
+            'msg': 'DSML 适配器导入失败，本次跳过文本协议解析: %s' % (_imp_e,)}))
+        return text, [], None
+
+    try:
+        if not dsml_adapter.has_marker(text):
+            return text, [], None
+        res = dsml_adapter.extract(text, id_prefix=id_prefix)
+    except Exception as _e:  # noqa: BLE001
+        logger.error(log_dict({
+            'module_name': 'tool_calling', 'action': 'dsml',
+            'msg': 'DSML/XML 文本协议解析异常（已降级为无工具调用）: %s' % (_e,)}))
+        return text, [], None
+
+    if res.errors or res.unclosed or res.truncated:
+        fields = res.log_fields()
+        logger.warning(log_dict({
+            'module_name': 'tool_calling', 'action': 'dsml',
+            'msg': '文本协议工具调用解析未完全成功: %s' % (json.dumps(fields, ensure_ascii=False),)}))
+    elif res.tool_calls:
+        logger.info(log_dict({
+            'module_name': 'tool_calling', 'action': 'dsml',
+            'msg': '[ToolCalling] 检测到文本协议工具调用: %d 个 %s' % (
+                len(res.tool_calls),
+                [t["function"]["name"] for t in res.tool_calls])}))
+    return res.content, res.tool_calls, res
