@@ -8,7 +8,10 @@ from memory import MemoryManager
 def manager(tmp_path):
     config = {
         "data_dir": str(tmp_path / "memory_data"),
-        "llm": {"provider": "openai", "api_key": "sk-test", "model": "gpt-4"},
+        # 【Why 不是 "sk-test"（7 字符）】LLMService 有 key 形态校验（长度下限 10），
+        # 过短的占位 key 会在**构造期**抛 LLMServiceError ⇒ fixture 报错、依赖它的
+        # 4 个用例全部 ERROR（本次交付核对时实测）。与同目录测试文件统一用长占位 key。
+        "llm": {"provider": "openai", "api_key": "sk-test-key-valid-12345", "model": "gpt-4"},
         "async_compress": {"enabled": False}
     }
     m = MemoryManager(config=config)

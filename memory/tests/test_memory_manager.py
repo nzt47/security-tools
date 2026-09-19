@@ -1,4 +1,6 @@
 """MemoryManager 单元测试"""
+import asyncio
+import time
 from unittest.mock import MagicMock
 import pytest
 from memory.memory_manager import MemoryManager
@@ -215,39 +217,58 @@ def test_multi_message_compression_scenario(manager):
     assert version == 2
 
 
+def _wait_summary(manager, timeout: float = 5.0):
+    """等待后台压缩写出摘要（异步压缩改造后：压缩在后台线程完成）
+
+    【Why 需要等待】`get_context` 只做"标记压缩需求 + 确保后台压缩器已启动"，
+    真正的压缩由 `AsyncCompressor._run` 循环（`_do_compress`）在**另一个线程**完成。
+    早期测试直接断言 `load_summary()`，是在压缩完成前就读 —— 属于异步化改造后
+    未同步的陈旧断言，而非产品缺陷。
+    """
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        s = manager.load_summary()
+        if s is not None:
+            return s
+        time.sleep(0.05)
+    return manager.load_summary()
+
+
 def test_get_context_with_compression_triggered(manager):
-    """测试触发压缩后的上下文获取"""
+    """测试触发压缩后的上下文获取（压缩异步完成 → 有界等待摘要落盘）"""
     manager._summarizer._llm.summarize = MagicMock(return_value="对话摘要")
-    
+
     manager.add_message("user", "消息1")
     manager.add_message("assistant", "回复1")
     manager.add_message("user", "消息2")
     manager.add_message("assistant", "回复2")
-    
+
     manager._need_compress = True
     context = manager.get_context(token_limit=1000)
-    
+
     assert len(context) > 0
-    
-    summary = manager.load_summary()
+
+    summary = _wait_summary(manager)
     assert summary is not None
 
 
 def test_async_compressor_calls_execute_compression(manager, tmp_path):
-    """测试 AsyncCompressor 正确调用 _execute_compression"""
+    """测试 AsyncCompressor 正确调用 _execute_compression（`_do_compress` 是协程）"""
     from memory.memory_manager import AsyncCompressor
-    
+
     manager._summarizer._llm.summarize = MagicMock(return_value="后台压缩摘要")
-    
+
     compressor = AsyncCompressor(memory_manager=manager, interval=60)
     compressor._pending = True
-    
+
     for i in range(5):
         manager.add_message("user", f"消息{i}")
-    
-    compressor._do_compress()
-    
-    assert compressor._pending is False
+
+    # 【不易】_do_compress 已改为 async：必须 await（直接调用只得到协程对象，
+    # 既不会压缩也不会清除 pending —— 这正是本用例此前红灯的原因）
+    asyncio.run(compressor._do_compress())
+
+    assert compressor.has_pending() is False
     summary = manager.load_summary()
     assert summary is not None
     summary_text, version = summary

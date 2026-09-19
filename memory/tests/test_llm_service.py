@@ -14,7 +14,7 @@ def test_openai_summarize():
         instance = mock_client.return_value
         instance.chat.completions.create.return_value = mock_response
 
-        service = LLMService(provider="openai", api_key="sk-test", model="gpt-4")
+        service = LLMService(provider="openai", api_key="sk-test-key-valid-12345", model="gpt-4")
         result = service.summarize([{"role": "user", "content": "你好"}])
         assert result == "这是摘要内容"
 
@@ -36,7 +36,7 @@ def test_anthropic_summarize():
 
 def test_invalid_provider():
     """无效 provider 应抛出异常"""
-    service = LLMService(provider="invalid", api_key="test", model="test")
+    service = LLMService(provider="invalid", api_key="test-invalid-key-12345", model="test")
     with pytest.raises(LLMServiceError):
         service.summarize([{"role": "user", "content": "你好"}])
 
@@ -47,21 +47,21 @@ def test_openai_api_error():
         instance = mock_client.return_value
         instance.chat.completions.create.side_effect = Exception("API Error")
 
-        service = LLMService(provider="openai", api_key="sk-test", model="gpt-4")
+        service = LLMService(provider="openai", api_key="sk-test-key-valid-12345", model="gpt-4")
         with pytest.raises(LLMServiceError):
             service.summarize([{"role": "user", "content": "你好"}])
 
 
 def test_empty_messages():
     """空消息列表应返回空字符串"""
-    service = LLMService(provider="openai", api_key="sk-test", model="gpt-4")
+    service = LLMService(provider="openai", api_key="sk-test-key-valid-12345", model="gpt-4")
     result = service.summarize([])
     assert result == ""
 
 
 def test_count_tokens():
     """count_tokens 应返回正整数"""
-    service = LLMService(provider="openai", api_key="sk-test", model="gpt-4")
+    service = LLMService(provider="openai", api_key="sk-test-key-valid-12345", model="gpt-4")
     count = service.count_tokens("Hello world")
     assert count > 0
     assert isinstance(count, int)

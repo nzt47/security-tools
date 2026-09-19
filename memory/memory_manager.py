@@ -3,6 +3,7 @@
 import asyncio
 import collections
 import logging
+import os
 import threading
 import time
 from datetime import datetime, timezone
@@ -233,6 +234,45 @@ class AsyncCompressor:
             logger.warning("└═══════════════════════════════════════════════")
 
 
+def _resolve_llm_config(config: dict) -> dict:
+    """解析 LLM 连接配置：**.env 优先**（与工作台对话/过程蒸馏同源），config.yaml 兜底
+
+    【Why 必须 env 优先】本仓有两套 LLM 配置来源：
+      - `.env`：`LLM_PROVIDER / LLM_API_KEY / LLM_MODEL / LLM_BASE_URL` —— 工作台对话
+        （plugins/chat.py）与过程蒸馏（process_distill.build_default_llm）都读它；
+      - `config.yaml: llm`：模板遗留值（provider=openai、model=gpt-4、api_key=${OPENAI_API_KEY}）。
+    此前 MemoryManager **只读 config.yaml**，于是同一次部署里出现"两条链路两个模型"：
+    对话走 deepseek（.env），而 `Yunshu._llm`（记忆摘要 / 子代理委派 / 工具调用链 / 规划）
+    走 gpt-4 ⇒ 子代理真委派必然失败，上游原文是
+    `The supported API model names are deepseek-flash, deepseek-v4-pro, but you passed gpt-4`。
+    这种"模型名对不上"的报错最容易被误判成"模型服务坏了"，故在此收口为单一来源。
+
+    Returns:
+        ``{provider, api_key, model, base_url, timeout, source}``；``api_key`` 为空表示未配置。
+    """
+    llm_cfg = (config or {}).get("llm", {}) or {}
+    env_key = (os.environ.get("LLM_API_KEY", "")
+               or os.environ.get("DEEPSEEK_API_KEY", "")).strip()
+    if env_key:
+        return {
+            "provider": os.environ.get("LLM_PROVIDER", "deepseek").strip().lower(),
+            "api_key": env_key,
+            "model": os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
+            "base_url": (os.environ.get("LLM_BASE_URL", "")
+                         or os.environ.get("DEEPSEEK_BASE_URL", "")).strip(),
+            "timeout": llm_cfg.get("timeout", 30),
+            "source": ".env(LLM_*)",
+        }
+    return {
+        "provider": llm_cfg.get("provider", "openai"),
+        "api_key": llm_cfg.get("api_key", ""),
+        "model": llm_cfg.get("model", "gpt-4"),
+        "base_url": llm_cfg.get("base_url", ""),
+        "timeout": llm_cfg.get("timeout", 30),
+        "source": "config.yaml:llm",
+    }
+
+
 class MemoryManager:
     """记忆管理器 — 云枢的记忆系统入口
 
@@ -245,18 +285,21 @@ class MemoryManager:
         # Token 计数器
         self._token_counter = TokenCounter()
 
-        # LLM 服务
-        llm_cfg = config.get("llm", {})
-        if llm_cfg.get("api_key"):
+        # LLM 服务：`.env` 优先、config.yaml 兜底（见 _resolve_llm_config 的 Why）
+        _llm_conf = _resolve_llm_config(config)
+        if _llm_conf["api_key"]:
             self._llm_service = LLMService(
-                provider=llm_cfg.get("provider", "openai"),
-                api_key=llm_cfg["api_key"],
-                model=llm_cfg.get("model", "gpt-4"),
-                timeout=llm_cfg.get("timeout", 30)
+                provider=_llm_conf["provider"],
+                api_key=_llm_conf["api_key"],
+                model=_llm_conf["model"],
+                timeout=_llm_conf["timeout"],
+                base_url=_llm_conf["base_url"],
             )
+            logger.info("[MemoryManager] LLM 服务已创建（来源 %s，provider=%s，model=%s）",
+                        _llm_conf["source"], _llm_conf["provider"], _llm_conf["model"])
         else:
             self._llm_service = None
-            logger.warning("未配置 LLM API Key，摘要功能不可用")
+            logger.warning("未配置 LLM API Key（.env 的 LLM_API_KEY 与 config.yaml 的 llm.api_key 均为空），摘要功能不可用")
 
         # 摘要器
         self._summarizer = Summarizer(llm_service=self._llm_service)

@@ -1147,16 +1147,48 @@ class LifecycleManager:
         Args:
             model_router: 模型路由器（可选），提供多模型调度能力
         """
-        # 【分层配置】参数为空时从环境变量加载（.env 文件）
-        if not provider:
-            provider = os.getenv("LLM_PROVIDER", "")
-        if not api_key:
-            # 优先 LLM_API_KEY，回退 OPENAI_API_KEY（兼容 config.yaml ${OPENAI_API_KEY} 引用）
-            api_key = os.getenv("LLM_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
-        if not model:
-            model = os.getenv("LLM_MODEL", "")
-        if not base_url:
-            base_url = os.getenv("LLM_BASE_URL", "")
+        # 【分层配置】.env 是部署级权威：**有值即优先**（与本方法 docstring 的既定策略一致）
+        # 【不易·2026-09-19 实测缺陷】此前实现是"参数为空才读 env"，于是调用方传入的
+        #   模板遗留值会盖掉 .env：`agent/data/network_config.json` 里 llm.model 仍是
+        #   `gpt-4`（provider=openai），启动时 network_config.apply_to_app →
+        #   configure_llm(provider="openai", model="gpt-4") ⇒ `Yunshu._llm` 变成 gpt-4，
+        #   而工作台对话（plugins/chat.py）直接读 .env 用 deepseek。
+        #   同一次部署里两条链路两个模型，子代理真委派必然失败，上游原文：
+        #   `The supported API model names are deepseek-flash, deepseek-v4-pro, but you passed gpt-4`.
+        #   此类"模型名对不上"的报错极易被误判成模型服务故障，故按 docstring 收敛为 env 优先。
+        _env_provider = os.getenv("LLM_PROVIDER", "").strip()
+        _env_api_key = (os.getenv("LLM_API_KEY", "")
+                        or os.getenv("OPENAI_API_KEY", "")).strip()
+        _env_model = os.getenv("LLM_MODEL", "").strip()
+        _env_base_url = os.getenv("LLM_BASE_URL", "").strip()
+        _override_fields = []
+        _fill_fields = []
+        for _name, _caller, _env in (("provider", provider, _env_provider),
+                                     ("model", model, _env_model),
+                                     ("base_url", base_url, _env_base_url)):
+            _caller_s = str(_caller or "").strip()
+            _env_s = str(_env or "").strip()
+            if not _env_s or _env_s == _caller_s:
+                continue
+            # 双方都有值且不同 = 真冲突（warning 点名）；调用方为空 = .env 补缺（debug 即可）
+            if _caller_s:
+                _override_fields.append(f"{_name}:{_caller_s}→{_env_s}")
+            else:
+                _fill_fields.append(f"{_name}:(空)→{_env_s}")
+        provider = _env_provider or provider
+        api_key = _env_api_key or api_key
+        model = _env_model or model
+        base_url = _env_base_url or base_url
+        # provider 归一化（与 LLMService.__init__ 同一规则）：日志/返回值/schema 三处口径一致
+        provider = (provider or "").strip().lower()
+        if _fill_fields:
+            logger.debug("[配置] .env(LLM_*) 补齐调用方未配置项: %s", "; ".join(_fill_fields))
+        if _override_fields:
+            logger.warning(log_dict({
+                'module_name': 'lifecycle_manager',
+                'action': 'lifecycle_manager.configure_llm.env_override',
+                'message': '[配置] .env(LLM_*) 覆盖调用方传入的 LLM 配置（部署级权威）: %s'
+                           % "; ".join(_override_fields)}))
 
         if not api_key:
             return {"ok": False, "error": "缺少 API Key（请在 .env 文件中配置 LLM_API_KEY，或通过 UI 提交）"}
