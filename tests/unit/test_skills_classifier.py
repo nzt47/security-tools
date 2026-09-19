@@ -12,6 +12,7 @@ import pytest
 
 from agent.skills_mgmt import SkillsMgmtService
 from agent.skills_mgmt.categorizer import (
+    DOMAIN_ANCHORS, GENERIC_PROBE_WORDS, RETIRED_GENERIC_KEYWORDS, SEED_CLASSES,
     SEED_NAMES, UNCLASSIFIED, SkillClassRegistry, classify_fields,
 )
 from agent.skills_mgmt.exceptions import SkillMgmtError
@@ -106,6 +107,64 @@ class TestClassifyFields:
         assert classify_fields("需求梳理", "识别用户真实需求并归类", "")["class"] != "语音与多媒体"
         assert classify_fields("语音交互", "通过语音与用户交互", "")["class"] == "语音与多媒体"
         assert classify_fields("语音识别", "把录音转成文字", "")["class"] == "语音与多媒体"
+
+    def test_easy_three_meanings_beats_analysis_tag_noise(self):
+        """回归：`<san_yi_analysis>` 这个**标签名**不得再给「数据分析与可视化」送分
+
+        【为什么单列一条】上面那条测试只证明"没被判成语音域"，**不能**证明判得稳：
+        2026-09-19 的修复补了「编码」后，该技能运行时行一度是
+        「代码与工程 2 : 数据分析与可视化 2」的**平局**，靠 `SEED_CLASSES` 表序才判对
+        —— 即"修好了"其实是 0 分差，移除「编码」立刻翻回数据域（审计脚本把它标为单点依赖）。
+        根因：`_ASCII_TOKEN` 把 `<san_yi_analysis>` 切成 san/yi/analysis，
+        让 `analysis` 在**标识符内部**命中。`_token_count` 收紧后平局消失。
+        """
+        desc = ("1. 编码前必输出 `<san_yi_analysis>`: [不易]约束识别 → "
+                "[变易]扩展性评估 → [简易]最简方案确认。\n"
+                "2. 原子推理，每步经三义校验。\n"
+                "3. 三义冲突时显式说明权衡取舍。\n"
+                "4. 生成后自检，违三义则修正再输出。")
+        v = classify_fields(name="易之三义", description=desc)
+        assert v["class"] == "代码与工程"
+        # 必须是**严格**胜出，不是平局（平局=表序决定=随时可能翻案）
+        assert v["score"] >= 2
+        assert "数据分析与可视化" not in v["matched"], \
+            f"标签名 <san_yi_analysis> 不应贡献数据域分数：{v['matched']}"
+
+    def test_ascii_keyword_does_not_match_inside_identifier(self):
+        """【结构性】英文关键词不得在 snake_case 复合标识符内部命中
+
+        实测两处误报：`from_knowledge`（技能 provenance 标签）让多条技能白拿
+        「记忆与知识」2 分；`<san_yi_analysis>` 让「易之三义」白拿数据域 2 分。
+        """
+        # 独立成词 → 命中
+        assert classify_fields("x", "", "we need knowledge here")["matched"] \
+            == ["记忆与知识"]
+        # 作为更长标识符的一段 → 不命中
+        assert classify_fields("x", "", "tags: from_knowledge distilled")["matched"] == []
+        assert classify_fields("x", "", "输出 <san_yi_analysis> 标签")["matched"] == []
+
+    def test_writing_skills_not_dragged_into_office_domain(self):
+        """回归：`writing-skills` 不得被通用词「文档」拖进「文档与办公」
+
+        【用户在问的第二个"为什么"】该技能描述里"流程文档编写"+"SKILL.md 文档"两处命中
+        裸「文档」⇒ 3 分，与名称里的 `writing`(3 分) 打平，靠表序判给「文档与办公」。
+        裸「文档/报告/文件/整理」已移除（通用词）。
+        【定案】台账侧该技能是**人工钉住**的（`manual` 含 asset/rt 两键，指向「代码与工程」）：
+        它是把 TDD（RED-GREEN-REFACTOR）应用于 SKILL.md 编写的方法论，tags 全部是
+        「创建/编辑/验证技能」。本条断言的是**规则本身**不再把它判成「文档与办公」
+        —— 即根因已消除，而不是靠人工钉住遮住。
+        """
+        desc = ("适用于创建、编辑或验证 agent 技能（SKILL.md）之前或过程中，"
+                "核心是将 TDD 应用于流程文档编写。预期产出: 一份经 RED-GREEN-REFACTOR "
+                "验证、无已知漏洞且可被其他 agent 正确触发和使用的 SKILL.md 文档。"
+                "由 1 份素材蒸馏生成")
+        tags = ["创建技能", "external", "验证技能", "编辑技能", "from_knowledge", "distilled"]
+        v = classify_fields(name="writing-skills", description=desc,
+                            content="# writing-skills\n" + desc, tags=tags)
+        assert v["class"] != "文档与办公", \
+            f"写作方法论技能不得被通用词「文档」夺进办公域：{v}"
+        # 兜底再断言一次纯判定路径（asset 侧正文同样不带「文档」噪音）
+        assert classify_fields(name="writing-skills", description=desc)["class"] != "文档与办公"
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -247,6 +306,179 @@ class TestRegistry:
         reg.resolve("asset:z", name="冥想引导器", description="专注放松", content="")
         assert "冥想引导器" in reg.auto_class_names()
         assert "语音与多媒体" not in reg.auto_class_names()  # 种子类不算自动建类
+
+    # ── 人工指定一致性（TASK-02 修复 2）──────────────────────────────
+    def test_assign_pins_both_namespaces(self, reg):
+        """人工移动必须**同时钉住 asset: 与 rt:**，否则运行时视图会被静默回滚
+
+        【历史缺陷】`assign()` 原先只钉传入的那一个 key。只钉 asset 的话，
+        下一次 `GET /api/skills`（技能库页的数据源）走 `resolve('rt:*')` 会按关键词
+        重新打分把人工选择覆盖回旧类 —— 技能中心显示新类、技能库页显示旧类。
+        实证：`writing-skills` 曾被移到「代码与工程」，但只有 `asset:` 侧进了 `manual`。
+        """
+        reg.resolve("asset:x", name="语音助手", description="语音交互", content="")
+        reg.resolve("rt:x", name="语音助手", description="语音交互", content="")
+        assert reg.assignment("asset:x") == reg.assignment("rt:x") == "语音与多媒体"
+        reg.assign("asset:x", "代码与工程")
+        st = reg.snapshot()
+        assert st["assignments"]["asset:x"] == "代码与工程"
+        assert st["assignments"]["rt:x"] == "代码与工程"          # 对侧被一并钉住
+        assert {"asset:x", "rt:x"} <= set(st["manual"])            # 且都进了 manual
+        # 运行时行按旧语义重打分也不许回滚
+        again = reg.resolve("rt:x", name="语音助手", description="语音交互", content="")
+        assert again == "代码与工程"
+
+    def test_assign_does_not_invent_counterpart_record(self, reg):
+        """对侧没有记录时不凭空造一条（避免把"只有运行时"的技能塞进资产视图）"""
+        reg.resolve("rt:only-rt", name="语音助手", description="语音交互", content="")
+        reg.assign("rt:only-rt", "代码与工程")
+        st = reg.snapshot()
+        assert "asset:only-rt" not in st["assignments"]
+        assert "asset:only-rt" not in st["manual"]
+
+    def test_inconsistent_pairs_reports_but_does_not_write(self, reg):
+        """自愈检查只报告不一致，**不静默自动改**（避免掩盖自动分类的真实缺陷）"""
+        reg.resolve("asset:p", name="语音助手", description="语音交互", content="")
+        reg.resolve("rt:p", name="邮件工具", description="处理邮件", content="")
+        # resolve 的双生态收敛会把 asset 对齐到 rt，故此处构造"钉住后分叉"的现场
+        reg.assign("rt:p", "邮件与通讯")   # 双键钉住 → 两侧一致
+        assert reg.inconsistent_pairs() == []
+        reg.assign("asset:p", "代码与工程")  # 再次钉 asset → 两侧又一致（双键钉住）
+        assert reg.inconsistent_pairs() == []
+        # 直接改盘模拟"历史遗留分叉"：
+        st = reg.snapshot()
+        st["assignments"]["asset:p"] = "安全与合规"
+        st["manual"] = [k for k in st["manual"] if k != "asset:p"]
+        reg._save(st)
+        bad = reg.inconsistent_pairs()
+        assert len(bad) == 1 and bad[0]["skill_id"] == "p" and not bad[0]["pinned_both"]
+        # 只读：再读一次状态没变
+        assert reg.snapshot()["assignments"]["asset:p"] == "安全与合规"
+
+    def test_same_name_conflicts_reports_duplicate_hashes(self, reg):
+        """同名不同实例（pd-<语义名>-<哈希>-skill）分到不同类 ⇒ 报告出来
+
+        【为什么直接写盘构造】`resolve()` 的双生态收敛会把 asset 对齐到 rt，
+        正常路径下很难造出"同名不同哈希分到两类"的现场；而这正是**真实台账**里
+        `writing-skills`: 5da20e67→代码与工程 / 7da19002→翻译与写作 的形态。
+        """
+        reg._save({
+            "version": 1, "updated_at": "", "auto_classes": {}, "manual": [],
+            "assignments": {
+                "asset:pd-writing-skills-aaaaaaaa-skill": "代码与工程",
+                "rt:pd-writing-skills-aaaaaaaa-skill": "代码与工程",
+                "asset:pd-writing-skills-bbbbbbbb-skill": "翻译与写作",
+                "rt:pd-writing-skills-bbbbbbbb-skill": "翻译与写作",
+                "asset:unrelated-skill": "代码与工程",
+            },
+        })
+        out = {g["name"]: g["by_class"] for g in reg.same_name_conflicts()}
+        assert "writing-skills" in out, out
+        assert set(out["writing-skills"]) == {"代码与工程", "翻译与写作"}
+        # 不含同名冲突的技能不得出现
+        assert "unrelated-skill" not in out
+
+
+# ═══════════════════════════════════════════════════════════════
+#  结构性护栏：关键词角色不变量（TASK-02 §3 第 5 步 4 / §5 E5）
+# ═══════════════════════════════════════════════════════════════
+
+class TestKeywordGuardrails:
+    """「噪音/通用关键词不得独立决定一个域」的**结构性**不变量。
+
+    【为什么做成这一类断言，而不是"每加一个词就跑一遍台账"】
+    `_MIN_SCORE = 2` 恰好等于"一个中文关键词在 description 里出现一次"，
+    因此在现有口径下**任何一个关键词单独出现都足以判出一个类** —— 包括所有合法的域锚点词
+    （`语音`/`邮件`/`翻译`…）。所以"合成文本里单关键词不得夺域"**无法**表达成一条
+    对所有词都成立的可满足断言：要么词表被掏空，要么断言恒真。
+    可行的护栏是把它拆成三段（本类 ①②③④），并由审计脚本
+    `scripts/audit_skill_classification.py` 在**真实台账**上常驻测"单点依赖/独立夺域词"：
+
+      ① 声明不变量：`DOMAIN_ANCHORS` 覆盖**全部**关键词，且**只有**这些词能独立判回本域
+         ⇒ 往 `SEED_CLASSES` 加词的人无法绕过"这个词够不够格"的显式评审；
+      ② 退役不变量：已判定的通用词**一个都不能**再独立判出任何域；
+      ③ 无重叠不变量：任何关键词不得同时属于两个类（否则归属由表序决定）；
+      ④ 注入不变量：把通用词塞进**别的域**的典型文本，归类不得被夺走。
+    """
+
+    def _all_pairs(self):
+        return [(c["name"], kw) for c in SEED_CLASSES for kw in c["keywords"]]
+
+    def test_every_seed_keyword_is_a_declared_domain_anchor(self):
+        """① 声明不变量：`SEED_CLASSES` 的全部关键词 ⇔ `DOMAIN_ANCHORS` 的可独立夺域词"""
+        assert DOMAIN_ANCHORS, "DOMAIN_ANCHORS 不得为空"
+        declared = {(nm, kw) for nm, kws in DOMAIN_ANCHORS.items() for kw in kws}
+        actual = set(self._all_pairs())
+        assert actual == declared, (
+            f"未登记角色的关键词：{sorted(actual - declared)}；"
+            f"登记了但词表里没有：{sorted(declared - actual)}")
+        # 每个锚点词必须能"只凭自己"判回它所属的类
+        wrong = [(nm, kw, classify_fields("skill-x", kw, "")["class"])
+                 for nm, kw in sorted(actual)
+                 if classify_fields("skill-x", kw, "")["class"] != nm]
+        assert not wrong, f"这些关键词单独出现时判不回自己的类：{wrong}"
+
+    def test_retired_generic_keywords_cannot_claim_any_domain(self):
+        """② 退役不变量：被判为通用词的词，一个都不能再独立夺域"""
+        seed_kws = {kw for _nm, kw in self._all_pairs()}
+        still_in = sorted(set(RETIRED_GENERIC_KEYWORDS) & seed_kws)
+        assert not still_in, f"已退役的通用词又回到了词表里：{still_in}"
+        claiming = [(w, classify_fields("skill-x", w, "")["class"])
+                    for w in sorted(RETIRED_GENERIC_KEYWORDS)
+                    if classify_fields("skill-x", w, "")["class"] is not None]
+        assert not claiming, f"已退役的通用词仍能独立夺域：{claiming}"
+
+    def test_generic_probe_words_do_not_claim_any_domain(self):
+        """③ 通用词探针：TASK-02 §3 第 5 步 3 指定的通用词必须一个域都判不出"""
+        claiming = [(w, classify_fields("skill-x", w, "")["class"])
+                    for w in GENERIC_PROBE_WORDS
+                    if classify_fields("skill-x", w, "")["class"] is not None]
+        assert not claiming, f"通用词不应被分到任何具体域（应落「未分类」）：{claiming}"
+
+    def test_no_keyword_belongs_to_two_classes(self):
+        """④ 无重叠不变量：一个关键词同时属于两类 ⇒ 归属由 `SEED_CLASSES` 表序决定"""
+        seen = {}
+        dup = {}
+        for nm, kw in self._all_pairs():
+            if kw in seen and seen[kw] != nm:
+                dup.setdefault(kw, {seen[kw]}).add(nm)
+            seen[kw] = nm
+        assert not dup, f"同一关键词被多个类共用：{dup}"
+
+    def test_generic_probe_injection_does_not_steal_a_domain(self):
+        """④ 注入不变量：把通用词塞进**别的域**的典型文本，归类不得被夺走
+
+        这是对历史 bug 的直接泛化：当年裸「识别」就是"塞进编码技能文本后把域夺走"。
+        """
+        canon = {
+            "交流与人格": "在对话中表达情绪与共情，保持稳定的语气与人格风格",
+            "记忆与知识": "把长期记忆压缩成摘要并归档进知识库，便于回忆与检索",
+            "安全与合规": "对敏感内容做安全审查与拦截，防止危险与越狱",
+            "语音与多媒体": "把语音转成文字并合成音频，处理视频与图像素材",
+            "邮件与通讯": "起草邮件，通过消息推送与通知提醒收件人与发件人",
+            "文档与办公": "整理表格与起草会议纪要，输出 pdf 与 excel",
+            "代码与工程": "编写代码并调试函数与接口，用 git 提交并重构模块",
+            "网络与搜索": "从网页抓取内容，用搜索与浏览器联网查询 url",
+            "数据分析与可视化": "对数据做统计分析并画出图表与指标看板",
+            "工作流与自动化": "编排工作流，定时调度批处理任务与自动化流水线",
+            "翻译与写作": "翻译外文并润色文案，改写与校对语法措辞",
+        }
+        assert set(canon) == set(SEED_NAMES), "典型文本必须覆盖全部种子类"
+        for host, text in canon.items():
+            assert classify_fields("skill-x", text, "")["class"] == host, \
+                f"典型文本自身都判错了：{host}"
+        stolen = []
+        for host, text in canon.items():
+            for w in GENERIC_PROBE_WORDS:
+                got = classify_fields("skill-x", f"{text}（{w}）{w}", "")["class"]
+                if got != host:
+                    stolen.append((host, w, got))
+        assert not stolen, f"通用词注入后夺走了别的域：{stolen}"
+
+    def test_seed_names_have_no_duplicates(self):
+        """种子类名不得重复（重复会让 `DOMAIN_ANCHORS` 的键相互覆盖）"""
+        names = [c["name"] for c in SEED_CLASSES]
+        assert len(names) == len(set(names)) and names == SEED_NAMES
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -81,8 +81,13 @@ TOPIC_NAMES = {
 # ── 种子分类（关键词为小写；英文按整词匹配，中文按子串匹配）──────────
 SEED_CLASSES: List[Dict[str, Any]] = [
     {"name": "交流与人格", "keywords": [
-        "情感", "建议", "反思", "感知", "表达", "风格", "语气", "人格", "对话",
+        "情感", "反思", "感知", "表达", "风格", "语气", "人格", "对话",
         "共情", "情绪", "主动", "自省", "幽默", "亲和", "同理", "态度",
+        # 【简易】裸「建议」已移除（2026-09-19，TASK-02）：通用词 ——
+        #   "建议 / 给出建议 / 后续建议"在代码、文档、规划各域都出现，不属"交流与人格"专属。
+        #   覆盖来源：本域仍由 `情感/反思/感知/表达/风格/语气/人格/对话/共情/情绪/主动/
+        #   自省/幽默/亲和/同理/态度` 与 `emotion/reflect/personality/proactive/empathy` 等承担。
+        #   回归见 `test_generic_probe_words_do_not_claim_any_domain`。
         "emotion", "suggestion", "reflect", "context", "personality",
         "proactive", "expression", "empathy", "mood", "tone",
     ]},
@@ -115,7 +120,28 @@ SEED_CLASSES: List[Dict[str, Any]] = [
         "email", "mail", "message", "notify", "notification", "sms",
     ]},
     {"name": "文档与办公", "keywords": [
-        "文档", "表格", "报告", "笔记", "纪要", "起草", "整理", "文件",
+        "表格", "笔记", "纪要", "起草",
+        # 【简易】裸「文档」「报告」「文件」「整理」已移除（2026-09-19，TASK-02）。
+        #   判定依据（写进 `RETIRED_GENERIC_KEYWORDS` 的通用词客观标准）：
+        #   **一个词若在多个不同语义域的技能文本里都会出现，它不得单独决定域归属。**
+        #     - 「文档」："流程文档编写 / 输出文档 / 查阅外部文档 / SKILL.md 文档" —— 代码、
+        #       写作、验证、办公四域都会出现。实测把写作方法论技能 `writing-skills`
+        #       （描述里"流程文档编写"+"SKILL.md 文档"两次命中 ⇒ 3 分）从「翻译与写作」
+        #       拉到「文档与办公」，与 `writing`(3 分) 打平后靠表序胜出 —— 用户问的第二个
+        #       "为什么"。
+        #     - 「报告」："输出报告 / 报告缺陷 / 生成报告" —— 代码、安全、办公三域都会出现
+        #       （实测曾是「代码与工程」类技能的次高类）。
+        #     - 「文件」："读取文件 / 输出文件 / 列出目录下文件" —— 代码、系统、办公都会出现。
+        #     - 「整理」："整理输出 / 整理数据 / 整理会话记录" —— 各域都会出现。
+        #   覆盖来源：本域仍由 `表格/笔记/纪要/起草` 与
+        #   `office/excel/ppt/document/note/report/pdf/word/resume/letter` 承担；
+        #   英文走整词匹配、不误伤，`document`/`report` 完整保留了"文档/报告"的语义。
+        #   影响面（实测，勿凭印象）：对现存 113 条台账做**规则复算**，这四处移除只改 2 条
+        #   （`wf-f19dc52c-skill` 两个 key：文档与办公 → 未分类，该技能是退化的
+        #   工作流学习产物）；`writing-skills` 也受影响，但它两条都有人工钉住，可见结果不变。
+        #   回归见 `test_writing_skills_not_dragged_into_office_domain` 与
+        #   `test_generic_probe_words_do_not_claim_any_domain`（都在
+        #   `tests/unit/test_skills_classifier.py`）。
         "office", "excel", "ppt", "document", "note", "report",
         "pdf", "word", "resume", "letter",
     ]},
@@ -126,7 +152,14 @@ SEED_CLASSES: List[Dict[str, Any]] = [
         "refactor", "function", "api", "cli",
         # 【变易】补中文动名词「编码」（2026-09-19）：中文技术文本里"编码前/编码时"
         #   比"代码"更常出现在**描述**里（而描述正是运行时行唯二可用的字段）；
-        #   补上后「易之三义」（"编码前必输出…"）能凭 2 分与 analysis 并列并按时序归回本域。
+        #   补上后「易之三义」（"编码前必输出…"）能凭 2 分归入本域。
+        #   ⚠️ 注释修订（2026-09-19，TASK-02 复核时实测）：原文写的是"能凭 2 分与 analysis
+        #   **并列**并按时序归回本域"——"并列"意味着那是 **0 分差平局**：既靠 `SEED_CLASSES`
+        #   表序（「代码与工程」在「数据分析与可视化」之前）才判对，又属**单点依赖**
+        #   （移除 `编码` 即翻回「数据分析与可视化」）。真正的止血是 `_token_count` 的
+        #   标识符收紧（`<san_yi_analysis>` 不再贡献 `analysis`）：现在该技能的运行时行
+        #   是 2:0 而非 2:2。回归见 `test_easy_three_meanings_beats_analysis_tag_noise`
+        #   与 `test_bare_identify_word_does_not_claim_voice_domain`。
         "编码",
     ]},
     {"name": "网络与搜索", "keywords": [
@@ -135,7 +168,15 @@ SEED_CLASSES: List[Dict[str, Any]] = [
         "browser", "internet",
     ]},
     {"name": "数据分析与可视化", "keywords": [
-        "数据", "分析", "图表", "统计", "可视化", "报表", "建模", "指标",
+        "数据", "图表", "统计", "可视化", "报表", "建模", "指标",
+        # 【简易】裸「分析」已移除（2026-09-19，TASK-02）：通用词 ——
+        #   "分析需求 / 分析不变量 / 分析风险 / analysis 阶段"遍布各域（TASK-02 §4 明确把
+        #   「分析」列为通用词范例）。实测它在「易之三义」里凭标签名 `<san_yi_analysis>`
+        #   贡献 2 分、与「编码」打平，是那条归类 0 分差平局的直接成因。
+        #   覆盖来源：本域仍由 `数据/图表/统计/可视化/报表/建模/指标` 与
+        #   `data/analysis/chart/plot/statistics/visualization/pandas/numpy/metric/dashboard`
+        #   承担（英文 `analysis` 完整保留"分析"语义）。
+        #   回归见 `test_generic_probe_words_do_not_claim_any_domain`。
         "data", "analysis", "chart", "plot", "statistics", "visualization",
         "pandas", "numpy", "metric", "dashboard",
     ]},
@@ -152,6 +193,53 @@ SEED_CLASSES: List[Dict[str, Any]] = [
 ]
 for _c in SEED_CLASSES:
     SEED_NAMES.append(_c["name"])
+
+# ── 关键词角色声明（结构性护栏的数据源）─────────────────────────────────
+#
+# 【为什么需要这份声明】TASK-02 的教训：一次误判（裸「识别」把编码技能「易之三义」判成
+#   「语音与多媒体」）只能靠人肉复现才发现，因为**词表里没有任何东西标注"这个词够不够格
+#   单独决定一个域"**。声明把这件事显式化：
+#
+#   - `DOMAIN_ANCHORS`：当前词表中**允许单独决定域归属**的关键词（等价于"域锚点"）。
+#     判定标准（客观、可复核）：该词**单独出现**在一段技能文本里时，能把该技能判回本域，
+#     且它**不会**同时出现在多个语义域的常用表述中。
+#   - `RETIRED_GENERIC_KEYWORDS`：历史上曾在词表里、但被判定为**通用词**而移除的词。
+#     通用词的客观标准（写死在此，后续评审按它判）：
+#       **一个词若在多个不同语义域的技能文本里都会出现**
+#       （如「识别/分析/文件/报告/管理/生成/整理/处理/文档」），
+#       那么它不得单独决定域归属 —— 它顶多能作为加分项，不能当唯一依据。
+#
+# 结构性护栏测试（`tests/unit/test_skills_classifier.py::TestKeywordGuardrails`）断言：
+#   ① `DOMAIN_ANCHORS` 的**每一个**关键词，仅凭自己就能判回它所属的类；
+#   ② `RETIRED_GENERIC_KEYWORDS` 的**每一个**词，都不能单独判出任何类；
+#   ③ 任何关键词都不得同时属于两个类（否则归属由表序决定）。
+# ⇒ 往 `SEED_CLASSES` 里加词的人必然触到 ①②③，无法再"随手加一个通用词"。
+DOMAIN_ANCHORS: Dict[str, List[str]] = {
+    c["name"]: list(c["keywords"]) for c in SEED_CLASSES
+}
+
+# 已退役的通用词：移除时必须在 `SEED_CLASSES` 原位留注释（理由/覆盖来源/回归测试名）
+RETIRED_GENERIC_KEYWORDS = {
+    "识别": "通用词（识别不变量/识别风险/识别需求）；已移除，语义改由「语音识别」+ voice/audio/ocr 承担",
+    "markdown": "通用词（正文/标签里的文档格式名）；已移除，改由 document/pdf/word 等承担",
+    "文档": "通用词（流程文档/输出文档/查阅外部文档；代码、写作、验证、办公四域都会出现）；"
+            "已移除，改由 document/表格/笔记/纪要/起草/整理 承担",
+    "报告": "通用词（输出报告/报告缺陷/生成报告；代码、安全、办公三域都会出现）；"
+            "已移除，改由 report/表格/纪要 承担",
+    "文件": "通用词（读取文件/输出文件/列出目录下文件；代码、系统、办公三域都会出现）；"
+            "已移除，改由 document/pdf/word 承担",
+    "分析": "通用词（分析需求/分析不变量/分析风险）；已移除，改由 data/analysis/chart/统计/图表 承担",
+    "整理": "通用词（整理输出/整理数据/整理会话记录；各域都会出现）；"
+            "已移除，改由 document/表格/笔记/纪要/起草 承担",
+    "建议": "通用词（建议/给出建议/后续建议；代码、文档、规划各域都会出现）；"
+            "已移除，改由 suggestion/主动/态度 等承担",
+}
+
+# 通用词探针：结构性护栏用它做"注入攻击" —— 把通用词塞进**别的域**的典型文本，
+# 断言归类不被夺走。这些词大多不在词表里（正是目的：证明它们已被排除）。
+GENERIC_PROBE_WORDS: List[str] = [
+    "识别", "分析", "文件", "报告", "管理", "生成", "整理", "处理", "文档", "建议",
+]
 
 
 # ── 纯打分（无副作用，便于单测）────────────────────────────────────────
@@ -173,13 +261,34 @@ def _field_text(name: str, description: str, content: str, tags) -> str:
 
 
 def _token_count(text: str, kw: str) -> int:
-    """英文整词 / 中文子串 出现次数（每关键词至多计 3，防长正文重复刷分）。"""
+    """英文整词 / 中文子串 出现次数（每关键词至多计 3，防长正文重复刷分）。
+
+    【不易】英文关键词**不得在「下划线连写的复合标识符」内部命中**（2026-09-19 收紧）。
+    原因：`_ASCII_TOKEN` 把 `from_knowledge` 切成 `from`/`knowledge`、把 `<san_yi_analysis>`
+    切成 `san`/`yi`/`analysis` —— 于是**词表名与标签名被当成语义命中**。
+    实测两处误报（回归见 `test_ascii_keyword_does_not_match_inside_identifier`）：
+      1. `pd-*-skill` 系列技能的 provenance 标签 `from_knowledge` 让 5 条技能白拿
+         「记忆与知识」2 分（`asset:pd-executing-plans-95cbf64a-skill` 等）；
+      2. 编码方法论技能「易之三义」的描述里写了标签 `<san_yi_analysis>`，
+         让「数据分析与可视化」白拿 2 分，与「编码」打平后**靠 `SEED_CLASSES` 表序**才判回
+         「代码与工程」——即所谓"修好了"其实是 0 分差平局（见 :136-141 的注释修订）。
+    代价（已权衡）：`web_search`、`skill.md` 这类复合名里的词也不再命中，
+    但同一份文本的**散文部分**通常已含这些词；且本改动方向是**收紧而非放宽**。
+    """
     if not kw:
         return 0
-    if kw.isascii():
-        tokens = _ASCII_TOKEN.findall(text)
-        return min(sum(1 for t in tokens if t == kw), 3)
-    return min(text.count(kw), 3)
+    if not kw.isascii():
+        return min(text.count(kw), 3)
+    n = 0
+    for m in _ASCII_TOKEN.finditer(text):
+        if m.group(0) != kw:
+            continue
+        i, j = m.start(), m.end()
+        # 紧邻 `_` ⇒ 该词是更长标识符的一段（`from_knowledge` / `<san_yi_analysis>`），不算命中
+        if (i > 0 and text[i - 1] == "_") or (j < len(text) and text[j] == "_"):
+            continue
+        n += 1
+    return min(n, 3)
 
 
 def classify_fields(name: str = "", description: str = "",
@@ -283,16 +392,81 @@ class SkillClassRegistry:
             return st.get("assignments", {}).get(key)
 
     def assign(self, key: str, cls_name: str) -> str:
-        """人工移动：把技能归入指定类并标记 manual（后续自动重判不再覆盖）。"""
+        """人工移动：把技能归入指定类并标记 manual（后续自动重判不再覆盖）。
+
+        【不易】必须**同时钉住两个命名空间的 key**（2026-09-19，TASK-02 修复）。
+        根因：同一技能在「技能资产库(asset:)」与「运行时(rt:)」各有一条记录，
+        `resolve()` 对**非 manual** 的既有归类允许"置信命中即覆盖"。只钉 asset 的话，
+        下一次 `GET /api/skills`（技能库页的数据源）走 `resolve('rt:*')` 会按关键词重新打分，
+        把人工选择静默覆盖回旧类 —— 技能中心显示新类、技能库页显示旧类，两视图分叉。
+        历史实证：`writing-skills` 曾被移到「代码与工程」，但只有 `asset:` 侧被钉住，
+        `rt:` 侧随后被自动判定回滚（提交 `f8443cff` 的意图，但 `assign` 本身当时没落地）。
+        ⇒ 只要**对侧 key 已存在**（说明该技能确实有两套记录），本方法就一并钉住它。
+        """
         cls_name = str(cls_name or UNCLASSIFIED).strip()
         with _REG_LOCK:
             st = self._load()
-            st.setdefault("assignments", {})[key] = cls_name
+            assignments = st.setdefault("assignments", {})
+            assignments[key] = cls_name
             manual = set(st.setdefault("manual", []))
             manual.add(key)
+            # 对侧命名空间：仅当它已经有记录时才钉（不凭空造出第二条记录）
+            ns, _, sid = key.partition(":")
+            if sid:
+                other = f"{'rt' if ns == 'asset' else 'asset'}:{sid}"
+                if other in assignments and other != key:
+                    assignments[other] = cls_name
+                    manual.add(other)
             st["manual"] = sorted(manual)
             self._save(st)
         return cls_name
+
+    def inconsistent_pairs(self) -> List[Dict[str, Any]]:
+        """自愈检查（**只报告，不自动改**）：同一技能的 asset/rt 归类不一致且未人工钉住。
+
+        【为什么只告警不自动改】自动改会把"两条记录都错了"这种**自动分类的真实缺陷**
+        掩盖成"一致了"。报告出来交给人看，才会去修规则表 —— 这正是 TASK-02 的立场。
+        消费方：`agent/skills_mgmt/cleanup.py` 的治理巡检 / 启动自检（告警即可，勿阻断）。
+        """
+        with _REG_LOCK:
+            st = self._load()
+            assignments = st.get("assignments", {})
+            manual = set(st.get("manual", []))
+        by_sid: Dict[str, Dict[str, str]] = {}
+        for key, cls in assignments.items():
+            ns, _, sid = key.partition(":")
+            by_sid.setdefault(sid, {})[ns] = cls
+        out = []
+        for sid, byns in sorted(by_sid.items()):
+            if "asset" in byns and "rt" in byns and byns["asset"] != byns["rt"]:
+                keys = {f"asset:{sid}", f"rt:{sid}"}
+                out.append({
+                    "skill_id": sid, "asset": byns["asset"], "rt": byns["rt"],
+                    "pinned": sorted(k for k in keys if k in manual),
+                    "pinned_both": keys <= manual,
+                })
+        return out
+
+    def same_name_conflicts(self) -> List[Dict[str, Any]]:
+        """自愈检查（**只报告**）：同一个技能名、不同实例被分到了不同的类。
+
+        【为什么单列一条】`_reconcile_same_skill` 只覆盖**同名 skill id** 的双生态；
+        而素材蒸馏会给同一份素材生成 `pd-<语义名>-<哈希>-skill` 的多份实例，
+        用户看到的是"同一个名字出现在两个类下面"。这类不一致必须人工定案。
+        """
+        import re as _re
+        pd_id = _re.compile(r"^pd-(.+)-[0-9a-f]{8}-skill$")
+        with _REG_LOCK:
+            st = self._load()
+            assignments = st.get("assignments", {})
+        by_name: Dict[str, Dict[str, List[str]]] = {}
+        for key, cls in assignments.items():
+            sid = key.partition(":")[2].lower()
+            m = pd_id.match(sid)
+            nm = m.group(1) if m else sid
+            by_name.setdefault(nm, {}).setdefault(cls, []).append(key)
+        return [{"name": nm, "by_class": {c: sorted(k) for c, k in v.items()}}
+                for nm, v in sorted(by_name.items()) if len(v) > 1]
 
     def unset_manual(self, key: str) -> bool:
         """取消人工钉住（"恢复自动分类"）：只从 manual 集合移除，**保留**当前归类
