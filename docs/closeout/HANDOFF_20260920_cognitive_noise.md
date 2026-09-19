@@ -274,7 +274,7 @@ T1: agent/data/approval_records.jsonl  len=3673  mtime=2026-09-20 00:20:04   ←
 
 > **两处都刻意不"放宽阈值/加豁免"**：那会削弱守卫的真实检测能力。正确做法是**隔离测量环境**。
 
-### 7.5 待决策 / 未闭环
+### 7.5b 其余待决策 / 未闭环
 
 | # | 事项 | 状态 |
 |---|---|---|
@@ -376,6 +376,11 @@ ERROR at teardown of tests/integration/test_audit_trace.py::
 | `794fc852` | 扫描面守卫标 `slow` + 裁定 conftest 的 mtime 令牌命中（`fs_clock_vs_today`） |
 | `db9ac38f` | `llm_monitor_singleton` 收尾强制复原 `_do_chat`（**收尾不可靠 ⇒ 补丁永久泄漏**） |
 | `343d2bc2` | runner 固定顺序 + 熔断器边界用例改注入时间 |
+| `c5abd4df` | 修正 §7.8 那条**我自己制造的假观测** + 登记 21 条未对齐项 |
 
 **最终验证：11 个受影响测试文件 `342 passed / 0 failed`。**
 （时间线：修复前同一批为 `305 passed / 1 failed`）
+
+> ⚠️ 本文件里出现的 `400b76f4` / `86459fd3` / `edbff7c6` / `4a114f03` 是**当时的 SHA**；
+> 另一并行会话做过 rebase，它们在当前历史中的对应体见 §7.6 / §7.9。
+> **引用前请用 `git log --grep=<主题关键词>` 重新定位**，不要直接依赖本文件里的短 SHA。
