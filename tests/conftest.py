@@ -64,22 +64,13 @@ _STRAY_APPROVAL_TARGETS = [
 # audit_chain.db 14221312→14237696 字节）。这里在**会话级**把四个路径全部指向临时目录，
 # 用 `setdefault` 保证用例内的 `monkeypatch.setenv` 仍可覆盖（且回滚回本会话值）。
 
-def _live_server_running(port: int = 5678, timeout: float = 0.2) -> bool:
-    """开发机上是否正跑着云枢后端（app_server 默认端口）。
-
-    Why：`.env` 里 `APPROVAL_RECORDS_PATH=agent/data/approval_records.jsonl` 是**服务的真实配置**，
-    服务进程会正常往那里写审批记录；此时若本地同时跑单测，逐用例守卫会把"服务写的"
-    误判成"用例写的"（实测：探针触发真实工具调用 → 审批落单 → 相邻用例 teardown 报 stray）。
-    跨进程写入无法归属，故检测到活跃后端时跳过归因（CI 环境没有服务，守卫照常生效）。
-    同时**不能删**该文件——那是服务正在用的真实数据。
-    """
-    import socket
-
-    try:
-        with socket.create_connection(("127.0.0.1", port), timeout=timeout):
-            return True
-    except OSError:
-        return False
+# 【2026-09-20 已移除 `_live_server_running()` 探测】
+# `400b76f4` 曾加过一个 `socket.create_connection(("127.0.0.1", 5678))` 探测，
+# 意图是"后端在跑时跳过 stray 归因"。**实测证明该判据过度粗糙，已废弃并删除**：
+# negative probe 用例自己写出了 `tool_approval_uses.jsonl`，却因为后端在跑被归因成
+# "服务写的" ⇒ 真缺陷被甩锅、且文件不删（守卫完全失效）。
+# 现改用**窗口前后 (size, mtime_ns) 差集**归属（见下方两道守卫），
+# 它能在后端存活的情况下仍精确抓出"本窗口内被改动"，故不再需要该探测，也不留死代码。
 
 
 @pytest.fixture(autouse=True)
@@ -90,22 +81,51 @@ def _no_stray_approval_store(request):
     会话级守卫只知道"存在"，单跑任何涉事文件又都不复现（说明与执行序/随机种子有关）
     ⇒ 只能靠逐用例快照把**具体是哪个用例**钉出来。
     检测到即**删掉该产物再失败**，避免后续用例级联报错（一次只点名一个真凶）。
+
+    【不易·2026-09-20 判据升级为 mtime 差集 —— 取代"后端在跑就整体跳过"】
+      背景：本机开发时常驻后端 `python app_server.py`（`start_yunshu.bat` 的启动链），
+      而 `.env:1215` 的 `APPROVAL_RECORDS_PATH=agent/data/approval_records.jsonl` 是
+      **服务的真实配置** ⇒ 后端处理真实请求时会正常往那里写审批单。
+      最初的应对是"检测到后端就跑跳过归因"，但实测证明它**过度粗糙**：
+          negative probe 用例**自己**写出了 `tool_approval_uses.jsonl`，
+          却因为后端在跑而被归因成"服务写的"，**真缺陷被甩锅、且文件不删**。
+      实测依据（本机，后端 PID 1792 存活）：
+          12 秒内 `approval_records.jsonl` 的 length/mtime **完全不变**
+          ⇒ 后端**只在有审批动作时写，不是持续写**，故"该窗口内有没有被改动"
+            是一条可用的归属判据。
+
+      新判据：比较**用例执行窗口前后**的 (exists, size, mtime_ns) 三元组。
+        · 用例前不存在 → 用例后存在          ⇒ 本用例写的（真 stray）
+        · 用例前后都存在，但 size/mtime 变了 ⇒ 本用例改写的（真 stray）
+        · 前后完全一致                        ⇒ 与本用例无关（可能是后端窗口内写入后又被
+                                               本夹具判为"未变化"，或纯属会话前遗留）
+      这样即便后端在跑，**只要它没在这个窗口里写**，真 stray 依然会被抓到；
+      而它若确实在窗口里写了，此时 mtime 变化与我们无法区分归属 —— 那种极小概率的
+      窗口冲突会表现为一次假红，属于**宁可假红也不漏真缺陷**的取舍（原判据是反过来）。
     """
-    strays = [p for p in _STRAY_APPROVAL_TARGETS if p.exists()]
+    def _stat(p):
+        try:
+            st = p.stat()
+        except OSError:
+            return None
+        return (st.st_size, st.st_mtime_ns)
+
+    before = {p: _stat(p) for p in _STRAY_APPROVAL_TARGETS}
     yield
-    for p in _STRAY_APPROVAL_TARGETS:
-        if p.exists() and p not in strays:
-            # 跨进程干扰：后端在跑 ⇒ 该文件是服务的真实数据，跳过归因且不删除
-            if _live_server_running():
-                print(f"[conftest] 跳过 stray 归因：检测到运行中的后端，{p.name} 由其写入（服务真实数据，不删）")
-                continue
-            try:
-                p.unlink()
-            except OSError:
-                pass
-            pytest.fail(
-                f"用例 {request.node.nodeid} 执行期间，审批库被写到了 agent/data/：{p}\n"
-                "→ 正确位置是 <repo>/data/ 或会话临时目录（见本文件会话级隔离）。")
+    for p, prev in before.items():
+        now = _stat(p)
+        if now is None:
+            continue                      # 不存在 ⇒ 无 stray
+        if prev == now:
+            continue                      # 窗口内未被改动 ⇒ 与本用例无关
+        try:
+            p.unlink()
+        except OSError:
+            pass
+        pytest.fail(
+            f"用例 {request.node.nodeid} 执行期间，审批库被写到了 agent/data/：{p}\n"
+            f"（窗口前 {prev} → 窗口后 {now}）\n"
+            "→ 正确位置是 <repo>/data/ 或会话临时目录（见本文件会话级隔离）。")
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -197,6 +217,29 @@ def _isolate_approval_stores(tmp_path_factory):
     # 单跑任一个涉事文件都不复现，故在这里做**窄而准**的守卫：会话结束时若这两个文件
     # 出现在 agent/data/ 下，直接失败并点名，下一次跑就能二分定位。
     _stray_targets = _STRAY_APPROVAL_TARGETS
+    # 【不易·2026-09-20 判据升级为 (size, mtime_ns) 差集】与逐用例守卫 `_no_stray_approval_store` 用同一口径。
+    #
+    # 为什么必须区分"会话前就存在且未变"与"会话期间被改动"：
+    #   本机开发时常驻 `python app_server.py`（`start_yunshu.bat` 的启动链），
+    #   而 `.env:1215` 的 `APPROVAL_RECORDS_PATH=agent/data/approval_records.jsonl`
+    #   就是**服务的真实配置** ⇒ 后端处理真实请求时会正常往那里写审批单。
+    #   原判据是"文件存在即失败" ⇒ 后端在跑时**必然假失败**，表现为 session teardown ERROR，
+    #   与"真有 stray 产物"无法区分（实测：`400b76f4` 回归中该 assert 即被此类文件触发）。
+    #
+    # 实测依据（判据可行性）：后端存活时 12 秒内该文件 length/mtime **完全不变**
+    #   ⇒ 它只在有审批动作时写，故"会话窗口内有没有被改动"是可用的归属判据。
+    #
+    # 与"检测到后端就整体跳过 assert"的区别：那种做法会在最需要守卫的场景
+    #   （开发机常驻后端）**彻底丧失检测能力** —— 已实测踩到：negative probe 用例
+    #   自己写出的 stray 被甩锅给后端、且文件不删。差集口径既不漏真缺陷，也不误伤服务数据。
+    def _stat(p):
+        try:
+            st = p.stat()
+        except OSError:
+            return None
+        return (st.st_size, st.st_mtime_ns)
+
+    _strays_at_session_start = {p: _stat(p) for p in _stray_targets}
 
     # 【必须改绑，不能只设环境变量】`agent/audit/facade.py:466` 是**模块级单例**
     # `audit = AuditFacade()`，它在 **import 期**按当时的环境变量定路径。若该模块先于本夹具
@@ -221,11 +264,16 @@ def _isolate_approval_stores(tmp_path_factory):
             os.environ.pop(k, None)
         else:
             os.environ[k] = v
-    stray = [str(p) for p in _stray_targets if p.exists()]
+    stray = [f"{p}（{_strays_at_session_start[p]} → {_stat(p)}）"
+             for p in _stray_targets
+             if _stat(p) is not None and _stat(p) != _strays_at_session_start[p]]
     assert not stray, (
-        "审批库被写到了 agent/data/ 下（相对路径 + 被 chdir 的 cwd 的典型后果）："
+        "审批库在**本次会话期间**被写到了 agent/data/ 下（相对路径 + 被 chdir 的 cwd 的典型后果）："
         f"{stray}\n→ 正确位置是 <repo>/data/ 或会话临时目录；请让写它的夹具改用绝对路径"
-        "（或见 tests/conftest.py 的会话级隔离）。")
+        "（或见 tests/conftest.py 的会话级隔离）。\n"
+        "注：判据是**会话窗口内 (size, mtime_ns) 发生变化**，而非「文件存在」 —— "
+        "会话前就存在且未被改动的同名文件不计入（可能是本机常驻后端 `app_server.py` 写的"
+        "真实审批单，`.env:1215` 即为该配置）。")
 
 # ════════════════════════════════════════════════════════════
 # 原生扩展导入顺序固化（S11-01：从 tests/integration 提升到 tests 根）
