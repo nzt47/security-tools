@@ -186,17 +186,23 @@ LLM 自检    ：ok=true demo_mode=false；probe HTTP 200 / 1273ms
 ## 7. 提交与推送
 
 - **仓库/分支**：`origin` = `git@github.com:nzt47/security-tools.git`（SSH），`master`。
-- **推送**：`git push origin master` → `406ea0c2..c2187ce5`（成功；推送前远端多出一条 CI 自动提交，已 `git rebase --autostash` 后快进推送）。
-- **本轮提交链**（rebase 后 SHA；主题见 `git log`）：
-  | SHA | 主题 |
+- **推送**：`git push origin master` 两轮均成功：
+  1. `406ea0c2..c2187ce5`（推送前远端多出一条 CI 自动提交 `6624f03f`，已 `git rebase --autostash` 后快进推送）；
+  2. `6624f03f..2f5b73df`（L3/L4 修复 + 本报告回填后再次 rebase 快进推送）。
+- **代码终态**：远端 `origin/master` tip = `2f5b73df`（本地 `HEAD` 与之一致，无未推送提交）。**以该 tip 的 `git log --oneline -8` 为准**。
+- **本轮提交链**（主题为准，见下）：
+
+  | 主题 | 说明 |
   |---|---|
-  | `65644487` | fix(chat): 思考/工具内联显示不再"出现后又消失" |
-  | `e98098a6` | refactor(workbench): 下线右侧「思考过程」面板 + 布局迁移 + 构建戳 |
-  | `0275957e` | feat(subagent,diag): 子代理真委派 + LLM 连通性自检（key 判定单一来源） |
-  | `5a29cd30` | fix(llm): .env 为部署级权威（configure_llm / MemoryManager）+ memory 测试异步化同步 |
-  | `c2187ce5` | chore(delivery): 交付报告 + 忽略运行期产物 |
-  | `06adf75e` | fix(subagent): 执行体如实声明实际运行模型；运行期任务日志不再跟踪（L3/L4 结案） |
-- **CI 观测**：推送后 2 分钟内远端新增 `6624f03f docs(architecture): 自动更新模块依赖图 [skip ci]`（`github-actions[bot]`）⇒ 架构 workflow 已在本轮提交上运行并产出依赖图（依赖图已含本轮新增的 `agent/llm_key.py` 等）。
+  | `fix(chat)`: 思考/工具内联显示不再"出现后又消失" | 3 处根因（merge 规则/渲染条件/仅内存） |
+  | `refactor(workbench)`: 下线右侧「思考过程」面板 + 布局迁移 + 构建戳 | `stripRetiredPanels` 迁移、`__YUNSHU_BUILD__` |
+  | `feat(subagent,diag)`: 子代理真委派 + LLM 连通性自检 | key 判定单一来源 `agent/llm_key.py` |
+  | `fix(llm)`: .env 为部署级权威 | `configure_llm` / `MemoryManager` 环境优先 |
+  | `chore(delivery)`: 交付报告 + 忽略运行期产物 | 本文件 + `.gitignore` |
+  | `fix(subagent)`: 执行体如实声明实际运行模型；运行期任务日志不再跟踪 | L3/L4 结案 |
+
+  > **为什么不写具体 SHA**：两次推送前均因远端 CI 自动提交而 `git rebase`，rebase 会重写本条链上所有 SHA（撰写时链中 `06adf75e` 即已被重写为 `db02d91f`）。沿用本仓库既有结论（"v7.2 S4-01 报告改为引用代码终态，避免自指追逐"），此处只固化**主题 + 远端 tip**，SHA 请以 `git log` 现场值为准。
+- **CI 观测**：推送后 2 分钟内远端新增 `6624f03f docs(architecture): 自动更新模块依赖图 [skip ci]`（`github-actions[bot]`）⇒ 架构 workflow 已在本轮提交上运行并产出依赖图（依赖图已含本轮新增的 `agent/llm_key.py` 等），且证明本轮提交确实进入远端 CI 触发路径。
   其余 ~49 个 workflow 的运行结论请在仓库 Actions 页面确认：本机到 `github.com:443` 不可达（`gh` 与 REST API 均不可用），无法从此环境读取 run 状态。
 - **本地等效验证**：见 §5.1–5.3（架构规则 / 核心不变量 / 预检 / 前端全量 / 单测基线差集）。
 
