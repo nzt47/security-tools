@@ -729,6 +729,62 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _a("CP_PERMISSION_SESSION_SOURCE", CAT_SELF_HEALING, "cli",
        "严格模式下上报的会话来源（cli/web/api/scheduled），供 ABAC 的 session_source_in 规则判定",
        owner="agent/tool_gate.py"),
+    # ────────────────────────────────────────────────────────
+    #  能力层（TASK-05）：非 LLM 入口 + Loader + 知识库审计台账
+    # ────────────────────────────────────────────────────────
+    # 【B 级理由】它决定"整个 /capabilities/* 面（含 POST /capabilities/invoke）
+    #   是否可达"。开启＝多出一组能触发真实能力执行的 HTTP 端点；关闭＝完全回到
+    #   改动前（404）。默认**开启**是 E1 的要求（"关掉 LLM 后三条链路仍可用"
+    #   必须在默认配置下成立），回滚只需置 0/false/no/off。
+    _b("CP_CAPABILITY_API_ENABLED", CAT_SELF_HEALING, True,
+       "能力层非 LLM 入口开关：默认开启 ⇒ /capabilities/tools、/capabilities/invoke、"
+       "/capabilities/skills/search、/capabilities/<name>、/capabilities/health 可用；"
+       "置 0/false/no/off ⇒ 这些端点全部不存在（404），平台行为回到改动前",
+       owner="agent/server_routes/routes_capabilities.py",
+       impact="影响面：是否对外暴露可查询/可调用能力的 HTTP 面（POST /capabilities/invoke "
+              "会经 tools.call() 真实执行工具，闸门/审批/限流照常生效）"),
+    # 【B 级理由】它决定"哪些传输层 Loader 参与能力调用"。全部禁掉会让
+    #   location=remote 的能力一律 unhealthy（本地能力不受影响）。
+    _a("CP_CAPABILITY_LOADER_DISABLED", CAT_SELF_HEALING, "",
+       "禁用的 Loader 列表（逗号分隔，取值 local/stdio/sse/http）；空串=全部启用。"
+       "用于逐 Loader 独立熔断与定位问题（TASK-05 §6 的回滚方案）",
+       owner="agent/capregistry/loader.py",
+       impact="影响面：被禁的传输层承载的能力会标 unhealthy（不阻断平台启动）"),
+    _c("CP_CAPABILITY_STDIO_SERVER", CAT_SELF_HEALING,
+       "mcp_services/yunshu_mcp_server.py",
+       "stdio Loader 驱动 MCP 服务端的脚本路径（相对仓库根或绝对路径）",
+       owner="agent/capregistry/loader.py"),
+    _a("CP_CAPABILITY_STDIO_PREWARM", CAT_SELF_HEALING, 0,
+       "stdio Loader 的预热池大小（常驻子进程数，0=按需启动 1 个）",
+       owner="agent/capregistry/loader.py"),
+    _c("CP_CAPABILITY_ENDPOINTS", CAT_SELF_HEALING, "",
+       "远端 MCP 端点表：`kind:name=url` 逗号分隔（kind ∈ sse/http），"
+       "如 `http:weather=http://127.0.0.1:9000/mcp`；空串=无远端端点登记",
+       owner="agent/capregistry/loader.py"),
+    _a("CP_CAPABILITY_HTTP_TIMEOUT", CAT_SELF_HEALING, 20,
+       "远端 Loader（stdio/sse/http）的单次请求超时秒数",
+       owner="agent/capregistry/loader.py", validator=Validator("int")),
+    # 【A 级理由】它是**防护性上限**，不是能力开关：调大只会让单次响应更大更慢。
+    #   为什么需要它：10,000 条合成扩容压测实测无条件全量信封 p99 = 2244ms
+    #   （远超 v1.4 附录 C 的 100ms），而主键查询 p99 仅 0.001ms
+    #   ⇒ 退化的是"一次全量序列化"，不是"查询"。故默认分页 500 条。
+    _a("CP_CAPABILITY_DEFAULT_PAGE", CAT_SELF_HEALING, 500,
+       "/capabilities/tools 的默认分页大小（1..2000）：未显式传 limit 时按此截断，"
+       "响应里以 data.truncated=true 明示被截断（不静默）；调大即放大单次响应体与耗时",
+       owner="agent/server_routes/routes_capabilities.py",
+       validator=Validator("int")),
+    # 【B 级理由】它决定"非交互来源（cron/CI）遇审批边界时是明确失败还是悬挂等单"。
+    #   开启＝方案 A（返回明确错误码 denied，不产生永远等不到的单号）；
+    #   关闭＝回到既有行为（挂单后非交互调用永远拿不到结果，即 TASK-05 记录的确定缺陷）。
+    _b("CP_CAPABILITY_NONINTERACTIVE_APPROVAL", CAT_SELF_HEALING, True,
+       "非交互调用的审批处置开关（TASK-05 方案 A）：默认开启 ⇒ 身份为 "
+       "system/service_account 的调用遇到审批边界时返回明确错误码 denied + 可操作说明，"
+       "不产生悬挂审批单；置 0 = 回到既有的『挂单后非交互调用等不到结果』行为",
+       owner="agent/capregistry/invoke.py",
+       impact="影响面：cron/CI 调用高危工具时是明确失败还是静默悬空"),
+    _c("CP_KNOWLEDGE_AUDIT_LOG", CAT_SELF_HEALING, "data/audit/knowledge_audit.jsonl",
+       "知识库审计的结构化审计台账路径（append-only JSONL；CI 面与 Agent 面共用）",
+       owner="agent/knowledge/audit_entry.py"),
     _a("CP_SUBAGENT_DEFAULT_TOOLS",
        CAT_SELF_HEALING, "read_file,search_files,list_directory,get_file_info,grep",
        "委派默认授予子代理的工具子集（逗号分隔；空串 = 不授予任何工具，退化为纯推理委派）",

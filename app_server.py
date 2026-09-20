@@ -1057,6 +1057,25 @@ try:
 except Exception as e:
     logger.error("加载语义层配置路由失败: %s", e)
 
+# ════════════════════════════════════════════════════════════
+#  能力层非 LLM 入口（TASK-05 §3 第 4 步）
+#  /capabilities/tools · /capabilities/invoke · /capabilities/skills/search
+#  · /capabilities/<name> · /capabilities/health
+#
+#  【为什么必须在此显式注册】`agent/server_routes/__init__.py::register_all_routes`
+#    是**无调用方的死代码**（历史教训见本文件上方 routes_approval 的注释与
+#    `agent/server_routes/__init__.py` 的模块 docstring）——只把它加进那里不会生效，
+#    表现是前端/CI 拿到 HTTP 404。
+#  【D4】整段包在 try/except 里：能力层路由注册失败**不得**阻塞平台启动。
+#    开关 `CP_CAPABILITY_API_ENABLED=0` 时 `register_routes` 直接返回，
+#    `/capabilities/*` 全部不存在（回滚方式，见 TASK-05 §6）。
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_capabilities import register_routes as reg_capabilities
+    reg_capabilities(app, lambda: None)
+except Exception as e:
+    logger.error("加载能力层路由失败（/capabilities/* 将不可用，平台照常启动）: %s", e)
+
 # T7：会话交接（原 routes_sessions.register_handoff_routes 已移除，
 # 会话 API 由 plugins/chat.py 提供，此处不再接线）
 

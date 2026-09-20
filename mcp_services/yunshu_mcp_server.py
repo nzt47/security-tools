@@ -472,11 +472,31 @@ class YunshuMCPHandler:
         from agent import tools as _tools
 
         logger.info("[yunshu-mcp] tools/call: %s, 参数键=%s", tool_name, sorted(arguments))
+        # 【TASK-05 身份标注】把"调用来自外部 MCP 客户端"写进 tool_gate 的上下文变量。
+        # 【不易·为什么必须显式标注】闸门读不到上下文变量时会落到环境变量缺省值
+        #   "cli" ⇒ 一次**外部 MCP 客户端**的调用会被记成"人从 CLI 调的"，
+        #   在审计与 ABAC 上都是**错误归因**。MCP 协议本身不含认证，
+        #   协议层给不出的身份，至少要在**来源维度**上如实标注。
+        # 【D2】"mcp" 不在既有值域（cli/web/api/scheduled）内，但该值只被 ABAC 的
+        #   `session_source_in` 规则消费；新增取值只会"不匹配任何既有规则"，
+        #   与现有数据无冲突。这条登记在 agent/capregistry/call_sites.py 的例外表里。
+        _src_handle = None
+        try:
+            from agent.tool_gate import set_session_source as _set_src
+            _src_handle = _set_src("mcp")
+        except Exception:  # noqa: BLE001  闸门不可用 ⇒ 身份标注降级（不影响调用）
+            _src_handle = None
         try:
             payload = _tools.call(tool_name, **arguments)
         except Exception as e:  # noqa: BLE001 工具异常收口成错误结果，绝不崩服务
             logger.warning("[yunshu-mcp] 工具执行失败: %s — %s: %s", tool_name, type(e).__name__, e)
             return _tool_error(f"工具 '{tool_name}' 执行失败: {type(e).__name__}: {e}")
+        finally:
+            if _src_handle is not None:
+                try:
+                    _src_handle.reset()
+                except Exception:  # noqa: BLE001
+                    pass
         return _tool_success(payload)
 
 

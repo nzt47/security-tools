@@ -317,11 +317,27 @@ def register_all(dl):
             return {"ok": False, "error": "请提供要调用的工具名称（tool_name）"}
         if not isinstance(params, dict):
             return {"ok": False, "error": "params 必须是一个字典"}
+        # 【TASK-05 身份透传】把"发起者是谁"显式交给异步执行器。
+        # 为什么必须在这里做：`AsyncExecutor.submit()` 用的是
+        # `ThreadPoolExecutor`，**不继承 contextvars** ⇒ 在主线程里
+        # `set_session_source(...)` 设的值到不了工作线程，`tool_gate` 的
+        # `current_session_source()` 会是空串，最终落到环境变量缺省值 `"cli"`
+        # —— 一次**模型发起的后台调用**会被记成"人从 CLI 调的"。
+        # 取值优先级：显式参数（预留）→ 当前上下文（模型径 tools.call 进来时由
+        # `agent.tool_calling` 或上游设置）→ 兜底 `"api"`（本工具是模型面工具）。
+        _src = str(kwargs.get("session_source") or "").strip()
+        if not _src:
+            try:
+                from agent.tool_gate import current_session_source as _cur_src
+                _src = str(_cur_src() or "").strip()
+            except Exception:  # noqa: BLE001 闸门不可用 ⇒ 用兜底值
+                _src = ""
         return _async_exec.submit(
             name=name,
             tool_name=tool_name,
             params=params,
             timeout=timeout,
+            session_source=_src or "api",
         )
 
     @_tools.register("get_task_status", "查询异步任务的执行状态（pending/running/completed/failed/cancelled）", schema={

@@ -22,4 +22,24 @@ schema:
       description: 待检测格式的字符串数据
   required:
   - data
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    format:
+      type: string
+      enum: [json, xml, yaml, csv, unknown]
+    confidence:
+      type: number
+    valid:
+      type: boolean
+    parsed_type:
+      type: [string, "null"]
+    keys_count:
+      type: [integer, "null"]
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

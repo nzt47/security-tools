@@ -180,9 +180,34 @@ def kb_card(**kw) -> dict:
 
 @_trace_wrap
 def kb_lint(**kw) -> dict:
-    """健康巡检（Step5）：断链 + 孤儿检测，返回健康报告。"""
+    """健康巡检（Step5）：断链 + 孤儿检测，返回健康报告。
+
+    【TASK-05 §3 第 0 步第 4 项】本工具与 CI 面的
+    `python -m agent.knowledge audit`（`agent/knowledge/__main__.py::cmd_audit`）
+    **共用同一实现** `agent/knowledge/audit_entry.py::run_knowledge_audit_entry`：
+    两个入口只做参数适配，检测/打分/审计口径完全一致。
+
+    行为保持（D2）：仍然返回 `{"ok": True, "report": {...}}`，`report` 的既有键
+    （`total_cards/broken_links/orphans/index_drift/stale_cards/
+    unresolved_conflicts/health_score/score_breakdown/ok/audited_at/suggestions`）
+    **逐字保留**；只新增几个键（`persisted/actor/channel/duration_ms/wiki_root`）。
+    `persist_reports=False` 保持既有语义：**不落盘 md/html 报告、不登记 log.md**。
+
+    wiki_root / index_path 显式取自 `WorkflowRunner`（与改动前**同一个根**），
+    避免"换个入口就换了个知识库"这类静默行为漂移。
+    """
     try:
-        report = _get_runner().run_audit()
+        from agent.knowledge.audit_entry import run_knowledge_audit_entry
+
+        runner = _get_runner()
+        report = run_knowledge_audit_entry(
+            runner.root / "wiki",
+            index_path=runner.root / "index.md",
+            persist_reports=False,
+            actor="llm",
+            channel="agent_tool",
+            source="agent.tools.kb_lint",
+        )
         logger.info(log_dict({'module_name': 'tools', 'action': 'kb_lint.success', 'msg': "[kb_lint] 审计完成 卡片=%s 断链=%s 孤儿=%s ok=%s" % (report["total_cards"], len(report["broken_links"]),
                     report["orphans"], report["ok"])}))
         return {"ok": True, "report": report}

@@ -27,4 +27,17 @@ schema:
   required:
   - data
   - path
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    data:
+      type: array
+    count:
+      type: integer
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

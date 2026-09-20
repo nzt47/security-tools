@@ -22,4 +22,25 @@ schema:
       description: 文件或目录路径
   required:
   - path
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    path:
+      type: string
+    abs_path:
+      type: string
+    type:
+      type: string
+    size:
+      type: integer
+    modified:
+      type: string
+    created:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

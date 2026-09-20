@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -131,13 +132,27 @@ def cmd_audit(args: argparse.Namespace) -> int:
 
     `--open` 时用默认浏览器打开生成的 HTML 报告（渲染效果即查即见）；
     `--json` 时把结构化健康报告（含扣分明细/卡片矛盾标记）导出为 JSON。
+
+    【TASK-05 §3 第 0 步第 4 项】**CI 面与 Agent 面共用同一实现**：
+    本入口与 Agent 面的 `agent/knowledge/tools.py::kb_lint` 都调用
+    `agent/knowledge/audit_entry.py::run_knowledge_audit_entry`。
+    本入口额外做的是：**产生结构化审计记录**
+    （`data/audit/knowledge_audit.jsonl`，含 `actor=ci`、`channel=cli`、
+    CI job 名与结果摘要）—— 此前 CI 面是**治理盲区**：它确实在执行能力，
+    却不留任何可审计的痕迹。
+
+    【为什么保留 `run_knowledge_audit` 的直接对象用法】本函数需要 `HealthReport`
+    **对象**（`send_knowledge_report_email(report)` 与 `report_to_json(report, ...)`
+    都要对象，不是 dict）。故这里从统一入口返回的 dict 之外，**仍然**在同一份
+    `run_knowledge_audit()` 之上取对象 —— 实现是同一条（见 audit_entry 的
+    `persist_reports=True` 分支就是调它），不存在第二份检测逻辑。
     """
     # 函数内惰性导入（与 audit_job 内部一致，避免 __main__ 顶层依赖面扩张）
     import json
 
+    from agent.knowledge.audit_entry import run_knowledge_audit_entry
     from agent.knowledge.audit_job import (
         DEFAULT_REPORTS_DIR,
-        run_knowledge_audit,
         send_knowledge_report_email,
     )
     from agent.knowledge.lint import report_to_json
@@ -146,12 +161,27 @@ def cmd_audit(args: argparse.Namespace) -> int:
         "CLI audit: 手动巡检 wiki=%s reports_dir=%s send_email=%s open_html=%s json=%s",
         args.wiki, args.reports_dir, not args.no_email, args.open, args.json,
     )
-    report = run_knowledge_audit(
+    # 统一入口：检测/打分/落盘（md+html+log.md）/结构化审计记录，一次完成。
+    # Agent 面的 kb_lint 走**同一个函数**（`persist_reports=False`）。
+    _sink: dict = {}
+    unified = run_knowledge_audit_entry(
         args.wiki,
         index_path=args.index,
         reports_dir=args.reports_dir,
         now=_parse_now(args.now),
+        persist_reports=True,
+        actor="ci",
+        channel="cli",
+        source=os.environ.get("GITHUB_JOB", "") or "agent.knowledge.__main__",
+        report_sink=_sink,
     )
+    report = _sink.get("report")
+    if report is None:
+        # 统一入口失败（异常已被它吞并成 {"ok": False, "error": ...}）⇒ 如实失败。
+        # 【不易】不静默 return 0：那会让 CI 在巡检彻底没跑的情况下**报绿**。
+        print(f"巡检失败: {unified.get('error') or '未知原因'}", file=sys.stderr)
+        logger.error("CLI audit: 统一入口失败: %s", unified.get("error"))
+        return 1
     if not args.no_email:
         ok = send_knowledge_report_email(report)
         print(f"健康报告邮件: {'已发送 ✓' if ok else '未发送（SMTP 未配置或失败，详见日志）'}")
@@ -181,7 +211,8 @@ def cmd_audit(args: argparse.Namespace) -> int:
         opened = webbrowser.open(html_path.resolve().as_uri())
         print(f"HTML 报告: {'已在浏览器打开 ✓' if opened else '打开失败'} {html_path}")
         logger.info("CLI audit: --open 尝试打开 HTML=%s success=%s", html_path, opened)
-    logger.info("CLI audit: 完成 score=%.1f", report.health_score)
+    logger.info("CLI audit: 完成 score=%.1f（结构化审计已记录 actor=%s channel=%s）",
+                report.health_score, unified.get("actor"), unified.get("channel"))
     return 0
 
 

@@ -172,7 +172,10 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace", "utils"]
+# 【TASK-05 新增 "cloudshu"】`python -m cloudshu` 是能力层的**非 LLM CLI 入口**
+#   （v1.4 战略判据的"人"那一半）。**不登记在这里 ⇒ `pip install -e .` 之后
+#   `python -m cloudshu` 会 ModuleNotFoundError** —— "本地能跑、装完就没了"。
+where = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace", "utils", "cloudshu"]
 include = ["*"]
 
 [tool.black]
@@ -266,6 +269,8 @@ follow_imports = "silent"
 #       · 权威命令：scripts/run_authoritative_coverage.py（自动读本文件，不会分叉）
 #       · CI：.github/workflows/ci.yml 的 unit-tests 分片步骤（已按 9 包展开）
 #       · 守卫测试：tests/unit/test_coverage_scope_consistency.py
+#   【TASK-05】"cloudshu" 是能力层 CLI 包，**不是**被测业务包，故**不**加入
+#   coverage source（加进来会稀释分母且无测试价值）。此处刻意保持 9 包不变。
 source = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace", "utils"]
 # 【不易·P3-1】omit 口径：排除非业务代码，保证全项目覆盖率门禁聚焦 agent 业务层。
 #   - */tests/*：测试代码自身不应计入分母。

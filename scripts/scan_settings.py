@@ -163,6 +163,11 @@ PROCESS_ENV_DENYLIST: Dict[str, str] = {
     "TRANSFORMERS_CACHE": "第三方库（transformers）缓存目录，由外部环境注入，非云枢开关",
     "SENTENCE_TRANSFORMERS_HOME": "第三方库缓存目录，由外部环境注入，非云枢开关",
     "HF_HUB_DOWNLOAD_TIMEOUT": "第三方库（huggingface）下载超时，由外部环境注入，非云枢开关",
+    # 【TASK-05 新增】CI 运行时注入的作业名：`agent/knowledge/__main__.py::cmd_audit`
+    #   用它给结构化审计记录标注"这次巡检是哪个 CI job 触发的"（溯源用）。
+    #   它由 GitHub Actions 注入、**不是**云枢的可配置开关（改它没有任何行为开关语义）
+    #   ⇒ 归入"外部运行时注入"，而不是往注册表里塞一条假开关。
+    "GITHUB_JOB": "CI 运行时注入的作业名（GitHub Actions 提供），用于审计溯源，非云枢开关",
 }
 
 # ════════════════════════════════════════════════════════════

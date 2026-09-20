@@ -49,7 +49,8 @@ class AsyncExecutor:
         self._tasks_file = "data/async_tasks.jsonl"
 
     def submit(self, name: str, tool_name: str, params: dict,
-               timeout: int | None = None) -> dict:
+               timeout: int | None = None,
+               session_source: str | None = None) -> dict:
         """提交异步任务
 
         Args:
@@ -57,9 +58,18 @@ class AsyncExecutor:
             tool_name: 要调用的工具名称
             params: 工具参数字典
             timeout: 任务超时秒数，None 表示不超时
-
-        Returns:
-            {"ok": True, "task_id": "task_xxx", "status": "pending"}
+            session_source: **（TASK-05 新增，可选）** 本次调用的会话来源
+                （`cli` / `web` / `api` / `scheduled`）。
+                【为什么必须显式传，不能靠上下文】本类用
+                `concurrent.futures.ThreadPoolExecutor`，而它**不继承
+                `contextvars`** ⇒ `agent/tool_gate.py::set_session_source()`
+                在当前线程设的值到了工作线程里就是空的，`current_session_source()`
+                返回 `""`，闸门最终落到环境变量缺省值 `"cli"` ——
+                即**一次后台/定时调用会被当成"人从 CLI 调的"**。
+                这是 `TASK-05` §2.3c 记在 `async_executor.py:224` 的**真实缺口**
+                （注意：该处**并非**绕过 `tool_gate`，见
+                `agent/capregistry/call_sites.py` 的实测更正）。
+                【D2】缺省 `None` ⇒ 行为与改动前**完全一致**（不设上下文变量）。
         """
         task_id = f"task_{uuid4().hex[:12]}"
         task = {
@@ -75,13 +85,19 @@ class AsyncExecutor:
             "started_at": None,
             "completed_at": None,
             "timeout": timeout,
+            # 【TASK-05】把身份随任务一起落盘：既是"这次调用是谁发起的"的证据，
+            # 也让结果面（`/api/background/tasks*`）能显示来源（TASK-06 会消费它）。
+            "session_source": str(session_source or ""),
         }
         with self._lock:
             self._tasks[task_id] = task
         self._save_task(task)
 
         # 提交到线程池
-        future = self._pool.submit(self._run_task, task_id, tool_name, params, timeout)
+        # 【不易】用 `functools.partial` 把 session_source 绑进工作线程的实参，
+        # 而**不是**在主线程设 contextvar —— 后者根本到不了工作线程（见 docstring）。
+        future = self._pool.submit(self._run_task, task_id, tool_name, params,
+                                   timeout, session_source)
         future.add_done_callback(lambda f: self._on_complete(task_id, f))
 
         return {"ok": True, "task_id": task_id, "status": "pending"}
@@ -202,7 +218,7 @@ class AsyncExecutor:
         }
 
     def _run_task(self, task_id: str, tool_name: str, params: dict,
-                  timeout: int | None):
+                  timeout: int | None, session_source: str | None = None):
         """在线程池中执行任务
 
         Args:
@@ -210,6 +226,9 @@ class AsyncExecutor:
             tool_name: 工具名称
             params: 工具参数
             timeout: 超时秒数
+            session_source: **（TASK-05 新增，可选）** 会话来源；见 `submit()` 的注释。
+                本参数在工作线程内被写进 `tool_gate` 的上下文变量，
+                使闸门的来源判定反映**真实调用方**而不是默认的 `"cli"`。
         """
         # 标记为运行中
         with self._lock:
@@ -219,8 +238,19 @@ class AsyncExecutor:
                     "%Y-%m-%dT%H:%M:%S"
                 )
 
+        # 【TASK-05 身份透传】**必须在工作线程体内设置** ——
+        # `contextvars` 不跨线程继承（`ThreadPoolExecutor` 不做 context 拷贝），
+        # 在 `submit()` 里设置对这里无效。这正是 `agent/tool_gate.py:303-305`
+        # 那句"设置点必须在真正执行任务的线程内部"所指的情形。
+        _src_handle = None
+        if session_source:
+            try:
+                from agent.tool_gate import set_session_source as _set_src
+                _src_handle = _set_src(str(session_source))
+            except Exception:  # noqa: BLE001 闸门不可用时身份透传降级（不影响调用）
+                _src_handle = None
         try:
-            # 调用工具
+            # 调用工具（经 agent.tools.call ⇒ 过 tool_gate）
             result = call_tool(tool_name, **params)
             with self._lock:
                 if task_id in self._tasks:
@@ -238,6 +268,12 @@ class AsyncExecutor:
                         "%Y-%m-%dT%H:%M:%S"
                     )
             logger.error("异步任务 %s (%s) 执行失败: %s", task_id, tool_name, e)
+        finally:
+            if _src_handle is not None:
+                try:
+                    _src_handle.reset()
+                except Exception:  # noqa: BLE001
+                    pass
 
     def _on_complete(self, task_id: str, future):
         """任务完成回调
