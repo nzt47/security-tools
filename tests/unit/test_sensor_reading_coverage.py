@@ -484,12 +484,33 @@ class TestFactories:
     """4 个工厂必须与 `__init__` 的**位置参数顺序**一致，否则 metadata/tags 静默互换。"""
 
     def test_reading_matches_init_positional_order(self):
-        """`reading()` 的 8 个位置参数逐个映射到 `__init__` 的同名参数。"""
+        """`reading()` 的 8 个位置参数逐个映射到 `__init__` 的同名参数。
+
+        【为什么排除 `timestamp`】本用例的契约是**位置参数顺序**；而 `reading()`
+        与 `_r()` 是**两次独立构造**，各自在构造时取当前时间，两条读数的
+        `timestamp` 天然相差若干微秒（CI 实测 `.402190Z` vs `.402215Z`）。
+        旧实现逐字段比较整个 `to_dict()`，于是"顺带"把时间戳也比了 —— 本地连跑
+        恰好落在同一格式化窗口内（ISO-8601 带微秒，微秒不同就红）纯属偶然，
+        CI 上 25µs 的偏差就直接把这条**位置参数契约**用例判红（Shard 3）。
+        排除时间戳后本用例仍能抓住它真正要防的回归：工厂签名顺序错位
+        （metadata/tags 互换、severity 落到 category 位等）会让除 timestamp 外的
+        键值表不再相等。
+        """
         r = reading("n", 5, "u", "d", Category.NETWORK, Severity.WARNING, {"m": 1}, ["t"])
         expected = _r(sensor_name="n", value=5, unit="u", description="d",
                       category=Category.NETWORK, severity=Severity.WARNING,
                       metadata={"m": 1}, tags=["t"])
-        assert r.to_dict() == expected.to_dict()
+        got, want = r.to_dict(), expected.to_dict()
+        # 时间戳是"构造时刻"的产物，不是位置参数映射的产物 ⇒ 从比较中剔除
+        # （用字典推导另建对象，避免 `pop` 污染 `to_dict()` 的返回值语义）。
+        assert "timestamp" in got and "timestamp" in want
+        assert ({k: v for k, v in got.items() if k != "timestamp"}
+                == {k: v for k, v in want.items() if k != "timestamp"})
+        # 时间戳本身仍必须是合法的 ISO-8601 UTC（`Z` 结尾、可解析、带时区）
+        for rt in (r, expected):
+            assert rt.timestamp.endswith("Z") and "+00:00" not in rt.timestamp
+            assert datetime.fromisoformat(
+                rt.timestamp.replace("Z", "+00:00")).tzinfo == timezone.utc
         assert r.metadata == {"m": 1}
         assert r.tags == ["t"]
         assert r.severity == "warning"

@@ -72,12 +72,59 @@ class TestIpLiteralNormalization:
         ("0xA9FEA9FE", "169.254.169.254"),    # 元数据地址的十六进制形态
         ("::1", "::1"),
         ("[::1]", "::1"),
-        ("::ffff:127.0.0.1", "::ffff:7f00:1"),
     ])
     def test_nonstandard_forms_are_normalized(self, raw, expected):
+        """**非标准写法归一**：这些输入的 `str()` 结果在 CPython 3.12.x 各补丁级一致。
+
+        `::ffff:127.0.0.1` 这类 IPv4 映射 IPv6 **不在本表内** —— 它的 `str()` 渲染
+        随解释器补丁级变化（见下一条用例），放进本表会把实现细节钉死成平台相关断言。
+        """
         parsed = G.parse_ip_literal(raw)
         assert parsed is not None, f"{raw!r} 应被识别为 IP 字面量"
         assert str(parsed) == expected
+
+    @pytest.mark.parametrize("raw,embedded,keyword", [
+        ("::ffff:127.0.0.1", "127.0.0.1", "环回"),
+        ("::ffff:169.254.169.254", "169.254.169.254", "链路本地"),
+    ])
+    def test_ipv4_mapped_forms_match_their_embedded_ipv4(self, raw, embedded, keyword):
+        """IPv4 映射 IPv6（`::ffff:a.b.c.d`）只断**语义等价 + 安全属性**，不断言具体写法。
+
+        【为什么不能像上面那张表那样断言 `str(parsed) == ...`】`str()` 对 IPv4-mapped
+        的渲染在 CPython 3.12 的补丁级之间变过（实测）：
+            · 3.12.0（本地开发机）`str(ip_address('::ffff:127.0.0.1'))` → `'::ffff:7f00:1'`
+            · 3.12.14（CI Ubuntu）  同一调用                      → `'::ffff:127.0.0.1'`
+        两者**语义完全相同**（同一个 `IPv6Address`：`int()` 相等、`ipv4_mapped` 相等），
+        差别只是"压缩成十六进制组"还是"保留点分十进制"。旧断言把这条实现细节钉死，
+        于是本地全绿、CI 全红（run 35533584908，Shard 5）。
+
+        【为什么不去改生产代码】`parse_ip_literal` 对"已是合法 IP 字面量"的输入走
+        第 1 分支**原样返回** `ipaddress.ip_address(text)`；这在防 SSRF 上完全正确
+        —— 归一化与否都不改变判定结果。所以正确的修法是让断言只锁定**判定契约**。
+        """
+        parsed = G.parse_ip_literal(raw)
+        assert parsed is not None, f"{raw!r} 应被识别为 IP 字面量"
+        assert parsed.version == 6, f"{raw!r} 应解析为 IPv6（映射地址）"
+
+        # 1) 语义等价：映射地址必须指向与内嵌 IPv4 相同的地址对象
+        #    （`ipv4_mapped` 是协议语义，不随解释器的渲染规则变化）
+        assert parsed.ipv4_mapped == G.parse_ip_literal(embedded), \
+            f"{raw!r} 的 ipv4_mapped 不等于 {embedded!r}"
+
+        # 2) 安全属性：判定结果必须与内嵌 IPv4 **逐项一致**（同族 ⇒ 同样拒）
+        v = G.check_host(raw)
+        ref = G.check_host(embedded)
+        assert ref.allowed is False, f"前提失效：{embedded} 竟然被判为可出站"
+        assert v.allowed is False, \
+            f"{raw} 被判为可出站（category={v.category}）—— IPv4 映射写法绕过了内网判定"
+        assert (v.category, v.is_internal) == (ref.category, ref.is_internal), \
+            f"{raw} 的判定档位与 {embedded} 不一致"
+        assert v.is_internal is True
+        assert keyword in v.note and embedded in v.note, \
+            f"拒绝理由未说明真实原因（内嵌 IPv4 {embedded}）：{v.note!r}"
+
+        # 3) 回环/内网映射地址同时必须在 URL 层被拒（浏览器抓取路径同一口径）
+        assert G.check_url(f"http://[{raw}]/").allowed is False
 
     @pytest.mark.parametrize("raw", ["example.com", "localhost", "foo.local", "", "x" * 300])
     def test_non_literals_are_not_ips(self, raw):

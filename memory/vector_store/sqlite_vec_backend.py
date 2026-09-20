@@ -231,15 +231,29 @@ class SqliteVecBackend:
 
         conn = self._get_conn()
         try:
-            # sqlite-vec 要求 LIMIT 直接作用于 vec0 表的 KNN 查询，
-            # 因此用子查询先做 KNN 再 JOIN metadata 表。
+            # 【2026-09-21 跨平台修复】KNN 约束只用 `k = ?`，不用 `ORDER BY … LIMIT ?`。
+            #
+            #   sqlite-vec 对 vec0 表的 KNN 查询要求满足以下**之一**：外层 LIMIT 直接
+            #   作用于 vec0，或 vec0 的 WHERE 上带 `k = ?`。原实现写的是
+            #   `ORDER BY distance LIMIT ?` 的子查询，它**在 Windows 上能过、在 CI 的
+            #   Linux/Python 3.12.14 上必红**：
+            #       [SqliteVecBackend] search 失败:
+            #       A LIMIT or 'k = ?' constraint is required on vec0 knn queries.
+            #   两个平台的 SQLite 查询计划器会把该子查询以不同方式拉平/下推，导致
+            #   「LIMIT 属于 vec0」这一前提在 Linux 上不再成立（实测本机 0.1.9 /
+            #   0.1.10a2 / 0.1.10a4 三种扩展版本在 Windows 下都放行，故与扩展版本无关，
+            #   是平台/计划器差异）。
+            #
+            #   `k = ?` 是 sqlite-vec 文档给出的**规范 KNN 约束写法**，不依赖计划器是否
+            #   下推 LIMIT，因此在两个平台上等价且稳定；代价为零（仍走 KNN 索引路径，
+            #   返回行数与 top_k 一致）。写 `k = ?` 后 ORDER BY 不再必要 —— KNN 结果
+            #   本就按 distance 升序返回。
             rows = conn.execute(
                 f"""SELECT k.id, m.content, m.metadata, m.timestamp, k.distance
                 FROM (
                     SELECT id, distance FROM {self._vec_table}
                     WHERE embedding MATCH ?
-                    ORDER BY distance
-                    LIMIT ?
+                      AND k = ?
                 ) k
                 JOIN {self._meta_table} m ON k.id = m.id""",
                 (_encode_vec(query_vec), top_k),
@@ -256,7 +270,17 @@ class SqliteVecBackend:
                 })
             return results
         except Exception as e:
-            logger.error("[SqliteVecBackend] search 失败: %s", e)
+            # 【2026-09-21】这里**保持**既有"不向上抛"的契约（`VectorStore.search` 与
+            #   Chroma 分支都是 `except → []`，上层按降级处置），但把"降级"这件事
+            #   显式写进日志：返回空列表的语义是「查询失败」，**不是**「查无结果」。
+            #   两者在上层不可区分，所以必须在这里出声 —— 否则一次平台性的 SQL 失败
+            #   会表现为"记忆检索暂时没命中"，这正是本文件 2026-09-21 那次跨平台
+            #   静默失效的成因（CI 报错 5 次、单测全绿）。
+            logger.error(
+                "[SqliteVecBackend] search 失败（**返回空列表，语义=查询失败，非查无结果**）: "
+                "db=%s table=%s top_k=%s error=%s",
+                self.db_path, self._vec_table, top_k, e,
+            )
             return []
         finally:
             conn.close()

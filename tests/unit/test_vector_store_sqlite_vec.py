@@ -10,6 +10,7 @@ CI Linux 环境下 sentence_transformers 被 patch 为 None，仅 SqliteVecBacke
 直接测试可运行；集成测试在本地 Windows（sqlite-vec + sentence_transformers 均可用）下运行。
 """
 import os
+import re
 import sys
 import time
 import hashlib
@@ -602,3 +603,176 @@ class TestVectorStoreSqliteVecIntegration:
         assert len(results) == 1
         assert results[0].content == "persistent content"
         vs2.clear()
+
+
+# ════════════════════════════════════════════════════════════
+# KNN 查询形式回归（2026-09-21 跨平台静默失效）
+# ════════════════════════════════════════════════════════════
+
+#: vec0 KNN 的规范约束：`k = ?`（参数化）或 `k = 3`（trace 展开后）
+_KNN_K_CONSTRAINT = re.compile(r"\bk\s*=\s*(?:\?|\d+)", re.IGNORECASE)
+
+
+class TestKnnQueryFormIsPlatformStable:
+    """锁死「vec0 KNN 约束必须用 `k = ?`」这一条，而不是靠用例结果间接锁。
+
+    【为什么必须单独有这一组】
+    sqlite-vec 对 vec0 表的 KNN 查询要求：外层 LIMIT 直接作用于 vec0，**或**
+    vec0 的 WHERE 上带 `k = ?`。原实现用 `ORDER BY distance LIMIT ?` 的子查询
+    再 JOIN —— 该写法在 Windows 上放行，在 CI 的 Linux/Python 3.12.14 上必红：
+
+        [SqliteVecBackend] search 失败:
+        A LIMIT or 'k = ?' constraint is required on vec0 knn queries.
+
+    由于 `search()` 把异常吞成空列表，**上面 4 个既有用例在失效时依然全绿**
+    （`test_empty_search` 断言的 `results == []` 与"查询炸了"返回值完全相同）。
+    也就是说旧测试对这次真实失效**零覆盖**。本组用例直接断言"实际发下去的 SQL
+    含规范 KNN 约束"，任何人把它改回 LIMIT 子查询都会立刻变红。
+
+    实测依据：本机 sqlite-vec 0.1.9 / 0.1.10a2 / 0.1.10a4 三个版本下，Windows
+    对两种写法都放行 ⇒ 该缺陷与扩展版本无关，是平台/查询计划器差异，因此**必须**
+    选不依赖"计划器把 LIMIT 下推进 vec0"的规范写法。
+    """
+
+    def _capture_sql(self, monkeypatch, backend, query_vec, top_k):
+        """跑一次真实 search()，返回 (实际执行的 SQL 列表, 返回结果)
+
+        两个实现约束：
+        1. 不能用 monkeypatch 替换 `sqlite3.Connection.execute` —— 它在 CPython 3.12
+           上是 C 实现的只读属性（object attribute 'execute' is read-only）；
+           改用 SQLite 官方 `set_trace_callback` 抓真实下发的 SQL。
+        2. `search()` 内部 `finally: conn.close()` 会关掉连接，而测试还要读抓到的
+           轨迹 ⇒ 用一个把 `close()` 变成 no-op 的代理顶替（连接生命周期归测试所有）。
+        """
+        real_conn = backend._get_conn()
+        seen = []
+        real_conn.set_trace_callback(seen.append)
+
+        class _KeepOpenConn:
+            def __getattr__(self, item):
+                return getattr(real_conn, item)
+
+            def close(self):
+                return None  # 交给测试收尾，避免 backend 内部 close 影响抓取
+
+        monkeypatch.setattr(backend, "_get_conn", lambda: _KeepOpenConn())
+        try:
+            results = backend.search(query_vec, top_k=top_k)
+        finally:
+            real_conn.set_trace_callback(None)
+            real_conn.close()
+        return seen, results
+
+    @pytest.mark.skipif(not _HAS_SQLITE_VEC, reason="sqlite-vec not installed")
+    def test_knn_用规范_k_约束_而非_LIMIT_子查询(self, monkeypatch, sqlite_vec_backend):
+        """KNN 查询必须以 `k = ?` 约束 vec0，不得依赖 LIMIT 下推"""
+        backend = sqlite_vec_backend
+        for i in range(5):
+            backend.add(f"id{i}", f"content{i}", [float(i)] * 4)
+
+        seen, results = self._capture_sql(monkeypatch, backend, [1.0, 1.0, 1.0, 1.0], 3)
+
+        knn = [s for s in seen if "MATCH" in s]
+        assert len(knn) == 1, f"应恰好发出 1 条 KNN 查询，实际 {len(knn)} 条"
+        sql = knn[0]
+        # 注意：`set_trace_callback` 抓到的是**展开后**的 SQL（参数已内联为
+        # `x'…'` / 字面量），所以这里不能要求出现 `k = ?`，而应匹配 `k = ` 约束
+        # 本身；两种形态（参数化 / 展开）都满足该正则。
+        assert _KNN_K_CONSTRAINT.search(sql), (
+            "vec0 的 KNN 约束必须写成 `k = ?`（sqlite-vec 规范写法，展开后为 `AND k = <n>`）。"
+            "若改回 `ORDER BY … LIMIT ?` 的子查询，Linux 上会报 "
+            "\"A LIMIT or 'k = ?' constraint is required on vec0 knn queries\"，"
+            f"而 search() 会把它吞成空列表 ⇒ 检索静默失效。实际 SQL: {sql!r}"
+        )
+        assert "LIMIT" not in sql.upper(), (
+            f"KNN 查询里不应再出现 LIMIT（改用 k = ? 后 ORDER BY/LIMIT 均不必要）。实际 SQL: {sql!r}"
+        )
+        # 结果仍然正确（证明换写法没改变语义）
+        assert len(results) == 3
+        assert results[0]["id"] == "id1"
+        assert results[0]["distance"] == pytest.approx(0.0, abs=1e-6)
+
+    @pytest.mark.skipif(not _HAS_SQLITE_VEC, reason="sqlite-vec not installed")
+    def test_空表_search_是真的查无结果_而不是查询失败(self, monkeypatch, sqlite_vec_backend):
+        """对照组：空表上 `k = ?` 形式必须真的执行成功（而非被 except 吞掉）
+
+        只看返回值无法区分"查无结果"与"查询失败"（两者都是 `[]`），
+        所以这里同时断言"SQL 真的执行到了、且没有抛错"。
+        """
+        backend = sqlite_vec_backend
+        seen, results = self._capture_sql(monkeypatch, backend, [1.0, 2.0, 3.0, 4.0], 5)
+        assert results == [], "空表应返回空列表"
+        knn = [s for s in seen if "MATCH" in s]
+        assert len(knn) == 1 and _KNN_K_CONSTRAINT.search(knn[0]), (
+            "空表也必须走真实 KNN 路径；若被 except 吞掉，seen 里仍会有 SQL 但结果不可信"
+        )
+
+    @pytest.mark.skipif(not _HAS_SQLITE_VEC, reason="sqlite-vec not installed")
+    def test_search_失败时不得返回伪造的空结果(self, monkeypatch, sqlite_vec_backend):
+        """把"静默吞异常"这个行为钉死：编码失败必须**可见**（返回空 + 记 ERROR）
+
+        【本用例的价值】它锁的是可观测性契约：`search()` 失败时返回值同样是 `[]`
+        （上层 `VectorStore.search` / Chroma 分支都是 `except → []`，所以**不**改
+        返回语义），但**必须**留下 ERROR 级日志，否则一次平台性 SQL 失败会静默
+        退化成"记忆检索没命中"。若有人把 except 里的 logger.error 删掉或降级，
+        本用例变红。
+        """
+        from memory.vector_store.sqlite_vec_backend import _encode_vec
+
+        backend = sqlite_vec_backend
+        backend.add("id0", "content0", [0.0, 0.0, 0.0, 0.0])
+
+        real_search = backend._vec_table  # noqa: F841  （保持可读性：明确针对该表）
+        _orig_encode = _encode_vec
+        calls = {"n": 0}
+
+        def _broken_encode(vec):
+            """只在 search 阶段破坏参数（add 阶段仍用正常编码）"""
+            calls["n"] += 1
+            if calls["n"] > 0:
+                # 维度与 vec0 表不符 ⇒ vec0 的 MATCH 必然抛错
+                return _orig_encode([1.0] * 5)
+            return _orig_encode(vec)
+
+        import memory.vector_store.sqlite_vec_backend as _mod
+        monkeypatch.setattr(_mod, "_encode_vec", _broken_encode)
+        try:
+            with caplog_at_error() as records:
+                results = backend.search([1.0, 1.0, 1.0, 1.0], top_k=1)
+        finally:
+            pass
+
+        assert results == [], "契约：失败时不向上抛，返回空列表"
+        msgs = [r.getMessage() for r in records if r.levelno >= 40]
+        assert any("search 失败" in m for m in msgs), (
+            f"查询失败必须在 ERROR 级留痕（否则静默失效）。实际 ERROR 日志: {msgs}"
+        )
+        assert any("返回空列表" in m for m in msgs), (
+            "ERROR 日志必须写明『返回空列表=查询失败，非查无结果』，"
+            f"否则运维无法区分降级与正常空结果。实际: {msgs}"
+        )
+
+
+class caplog_at_error:
+    """极简 ERROR 级日志捕获器（避免依赖 caplog fixture 的传播细节）"""
+
+    def __enter__(self):
+        import logging as _logging
+
+        self._records = []
+
+        class _H(_logging.Handler):
+            def emit(inner, record):  # noqa: N805
+                self._records.append(record)
+
+        self._handler = _H(level=_logging.ERROR)
+        self._target = _logging.getLogger("memory.vector_store.sqlite_vec_backend")
+        self._old_level = self._target.level
+        self._target.addHandler(self._handler)
+        self._target.setLevel(_logging.ERROR)
+        return self._records
+
+    def __exit__(self, *exc):
+        self._target.removeHandler(self._handler)
+        self._target.setLevel(self._old_level)
+        return False
