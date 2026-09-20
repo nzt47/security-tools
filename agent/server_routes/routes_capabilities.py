@@ -128,6 +128,26 @@ def register_routes(app, state=None) -> None:  # noqa: ARG001  与既有签名�
 
     from agent.capregistry import (IDENTITY_HUMAN, get_loader_manager,
                                    get_registry, invoke_capability)
+    # 【TASK-06 §3 第 4 步】`tenant_id` **服务端派生**，不再接受客户端指定。
+    # 【不易·本模块第一版自己犯了它在本文件注释里点名批评的错】
+    #   下面的 `:220-224` 原本写着"仓库的活 tenant_id 可由客户端在 query/body 指定
+    #   （routes_ui_panels.py）—— 那是既有的、已知的信任边界问题（属 TASK-06）。
+    #   本模块**不复制**该模式" —— 但同一文件的三处调用点
+    #   （`:156` GET query、`:230` POST body、`:276` GET query）**恰恰复制了它**。
+    #   TASK-06 复核实测抓到（`git grep 'args.get("tenant_id"'` 三处命中本文件）。
+    #   ⇒ 现统一走 `agent/security/tenant.py`（唯一派生入口，D1），
+    #     客户端传值只登记为 `tenant_id_declared` 并留痕。
+    # 【🔴 2026-09-20 实测回归修复：必须用**能力平面**的租户，而不是 workspace-hash】
+    #   本模块第一版改用了 `server_tenant_id()`（= workspace-hash），实测让
+    #   `test_capregistry_callpaths_routes.py` 4 条变红：`/capabilities/tools` 返回 0 条、
+    #   `describe` 对任何名字 404 —— 因为注册表是按**声明期**的 `default` 建键的
+    #   （`data/tool_definitions/*.yaml` 不带 tenant ⇒ `ToolMeta.tenant_id="default"`），
+    #   而 workspace-hash 是**运行期**值（且随本机路径变化）。
+    #   ⇒ 改用 `capability_tenant_id()` / `capability_tenant_with_declaration()`
+    #     （同模块，语义与理由见其 docstring）。"客户端不可伪造"这一目标不变：
+    #     生效值仍来自**服务端**，客户端值仍只作待校验声明。
+    from agent.security.tenant import (capability_tenant_id,
+                                       capability_tenant_with_declaration)
 
     def _registry():
         """取 Registry（**健康态由 LoaderManager 提供**，Registry 自身保持只读）"""
@@ -152,8 +172,11 @@ def register_routes(app, state=None) -> None:  # noqa: ARG001  与既有签名�
             else:
                 limit = _int_arg("limit", 0, 0, 2000) or default_page_size()
                 limit_source = "explicit"
+            # 【TASK-06】tenant 由服务端派生；客户端值只作待校验声明（见顶部说明）
+            _tenant, _tenant_declared = capability_tenant_with_declaration(
+                request.args.get("tenant_id", ""))
             envelope = reg.list_envelope(
-                tenant_id=(request.args.get("tenant_id") or "").strip() or None,
+                tenant_id=_tenant,
                 namespace=(request.args.get("namespace") or "").strip() or None,
                 kind=(request.args.get("kind") or "").strip() or None,
                 location=(request.args.get("location") or "").strip() or None,
@@ -174,6 +197,10 @@ def register_routes(app, state=None) -> None:  # noqa: ARG001  与既有签名�
             data["limit"] = limit
             data["limit_source"] = limit_source
             data["page_size_env"] = DEFAULT_PAGE_ENV
+            # 【TASK-06】把"生效租户"与"客户端声明"都回传：前者是判定依据，
+            # 后者是留痕（客户端"以为在看租户 X"而实际 Y 这件事必须可见）
+            data["tenant_id"] = _tenant
+            data["tenant_id_declared"] = _tenant_declared
             envelope["data"] = data
             return jsonify(envelope), 200
         except Exception as exc:  # noqa: BLE001  任何内部错误都不得泄漏原文
@@ -218,16 +245,34 @@ def register_routes(app, state=None) -> None:  # noqa: ARG001  与既有签名�
                           "message": "args 必须是 JSON 对象", "retryable": False},
                 "meta": {}}), 400
         # 身份来源：**显式声明优先**，其次请求头，其次缺省 human。
-        # 【不易·为什么不从客户端 tenant 参数派生身份】`TASK-00` §0.4 已指出
-        #   仓库的活 tenant_id 可由客户端在 query/body 指定（`routes_ui_panels.py`）
-        #   —— 那是既有的、已知的信任边界问题（属 TASK-06）。本模块**不复制**该模式：
-        #   身份只接受显式字段，缺省落到最保守的 `human`。
+        # 【不易·为什么不从客户端 tenant 参数派生身份】身份与租户**是两件事**：
+        #   identity 回答"谁在调"，tenant_id 回答"在哪个租户的范围内调"。
+        #   用 tenant 推身份会把"租户标识"提升成"授权凭据"（那是越权的经典入口）。
+        #   ⇒ 身份只接受显式字段，缺省落到最保守的 `human`。
         identity = str(body.get("identity")
                        or request.headers.get("X-Yunshu-Identity")
                        or IDENTITY_HUMAN).strip().lower()
+        # 【TASK-06 §3 第 4 步】租户**服务端派生**。
+        # 【为什么这里用"拒绝式"而不是"纠正式"】本端点是**写路径**（会执行能力），
+        #   客户端在 body 里明确声称"我要在租户 X 上执行"；若静默改到派生租户，
+        #   调用方会以为写进了 X ⇒ 必须显式拒绝而不是纠正。
+        #   （读接口 `/tools` 用纠正式，见该处注释。）
+        _tenant = capability_tenant_id()
+        _declared = str(body.get("tenant_id") or "").strip()
+        if _declared and _declared != _tenant:
+            logger.warning("[capabilities] /invoke 拒绝跨租户声明: declared=%r "
+                           "effective=%r", _declared, _tenant)
+            return jsonify({
+                "status": "error", "code": "denied", "data": None,
+                "error": {"code": "denied",
+                          "message": "tenant_id 由服务端派生，不接受客户端指定；"
+                                     "传入值与派生值不符 ⇒ 拒绝",
+                          "retryable": False},
+                "meta": {"tenant_id": _tenant,
+                         "tenant_id_declared": _declared}}), 403
         result = invoke_capability(
             name, args, identity=identity,
-            tenant_id=str(body.get("tenant_id") or "default"),
+            tenant_id=_tenant,
             version=str(body.get("version") or "").strip(),
             registry=_registry(), loader_manager=get_loader_manager())
         return jsonify(result.to_dict()), result.http_status()
@@ -272,9 +317,15 @@ def register_routes(app, state=None) -> None:  # noqa: ARG001  与既有签名�
     @_require_token
     def api_capabilities_describe(name: str):
         reg = _registry()
-        envelope = reg.describe_envelope(
-            name, tenant_id=(request.args.get("tenant_id") or "default"))
+        # 【TASK-06 §3 第 4 步】租户服务端派生。单条详情**读取**语义 ⇒ 用纠正式
+        # （按派生值处理 + 留痕），与 `/tools` 一致；写路径 `/invoke` 用拒绝式。
+        _tenant, _declared = capability_tenant_with_declaration(
+            request.args.get("tenant_id", ""))
+        envelope = reg.describe_envelope(name, tenant_id=_tenant)
         code = 200 if envelope["status"] == "ok" else 404
+        if isinstance(envelope.get("data"), dict):
+            envelope["data"]["tenant_id"] = _tenant
+            envelope["data"]["tenant_id_declared"] = _declared
         return jsonify(envelope), code
 
     # ── ⑤ 状态（含降级标记；E5 的观测点）─────────────────────────────────

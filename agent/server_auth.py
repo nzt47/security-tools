@@ -145,6 +145,59 @@ def _bind_identity(actor: str, source: str) -> None:
         logger.debug("[Auth] 身份上下文绑定失败: %s", e)
 
 
+def auth_status() -> Dict[str, Any]:
+    """**当前鉴权配置状态**（只读；供 `/api/status` 与启动告警共用，TASK-06 §3 第 5 步）
+
+    【为什么要暴露它】本部署实测**未配置任何令牌**（`.env` 未设 `CP_UI_TOKENS`、
+    `FLASK_API_TOKEN` 亦为空）⇒ `authorize_token()` 走 `SRC_NO_TOKEN_CONFIGURED`
+    分支**直接放行**（fail-open）。这件事此前**只能靠读代码发现**：
+    没有任何端点或日志把它说出来 ⇒ 管理员会以为"端点已经鉴权了"。
+    TASK-06 §3 第 5 步第 2 项要求"启动时明确告警 + 健康面暴露状态（**不阻断**）"，
+    本函数是那两处的**唯一判据来源**（D1：不新建第二份口径 —— 判据复用
+    `authorize_token()` 的同一组常量与同一套取值规则）。
+
+    【为什么只读、不参与判定】迁移第 ① 步刻意**不改任何判定**：改成 fail-closed
+    会当场 401 掉本机 UI 与全部脚本（E12 明确禁止）。状态暴露让"当前是开放的"
+    变得可见，收口留到第 ④ 步（见 `docs/rfc/鉴权迁移.md`）。
+
+    Returns:
+        ``{"configured": bool, "source": str, "shared_token": bool, "token_map": bool,
+        "token_map_size": int, "require_authoritative": bool, "note": str}``
+        任何一步取不到值都**不抛异常**（降级为 ``configured=False`` 并写明原因）。
+    """
+    shared = False
+    token_map_size = 0
+    try:
+        shared = bool(current_api_token() if _API_TOKEN_ENABLED else "")
+    except Exception:  # noqa: BLE001 读环境变量失败 ⇒ 按"未配置"（更保守）
+        shared = False
+    try:
+        from agent.security.identity import current_token_map
+        tm = current_token_map()
+        token_map_size = 0 if tm.empty else len(tm)
+    except Exception:  # noqa: BLE001
+        token_map_size = 0
+    configured = bool(shared or token_map_size)
+    try:
+        require_auth = str(os.environ.get(
+            "CP_APPROVAL_REQUIRE_AUTHORITATIVE", "") or "").strip().lower() in (
+                "1", "true", "yes", "on")
+    except Exception:  # noqa: BLE001
+        require_auth = False
+    return {
+        "configured": configured,
+        "source": SRC_SHARED_TOKEN if shared else (
+            SRC_TOKEN_MAP if token_map_size else SRC_NO_TOKEN_CONFIGURED),
+        "shared_token": shared,
+        "token_map": bool(token_map_size),
+        "token_map_size": int(token_map_size),
+        "require_authoritative": require_auth,
+        "note": ("" if configured else
+                 "**未配置任何令牌 ⇒ 端点不做校验（fail-open）**；"
+                 "迁移路径见 docs/rfc/鉴权迁移.md"),
+    }
+
+
 def resolve_request_identity(*, session_id: str = "") -> ResolvedIdentity:
     """解析当前请求的执行体身份（**路由侧唯一入口**）
 

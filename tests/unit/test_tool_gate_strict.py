@@ -17,7 +17,8 @@
     3. 设 ``=1`` 且角色 ``guest`` ⇒ 不在 guest 白名单里的**真实**工具被**拒绝**，
        且拒绝结构含 ``blocked=True`` / ``error_code="PERMISSION_DENIED"``，文案注明严格模式；
     4. 设 ``=1`` 且网关抛异常（monkeypatch）⇒ **放行**（fail-open）且不抛异常；
-    5. 非法 ``CP_PERMISSION_DEFAULT_ROLE`` ⇒ 回退 ``owner`` 且不崩；
+    5. 非法 ``CP_PERMISSION_DEFAULT_ROLE`` ⇒ 回退**缺省角色**（现为 ``guest``，最小权限）
+       且不崩；【2026-09-20 TASK-06 E15 契约更新：原为回退 ``owner``】
     6. 与 ``agent/tools/__init__.py::call()`` 集成：严格模式下被拒工具 **handler 零执行**。
 
 口径纪律：本文件用**真实** ``data/permission_policies.json``（不造假夹具）——严格模式的
@@ -215,12 +216,25 @@ class TestStrictWithOwnerRole:
             f"owner 的 allowed_tools=[\"*\"] 必须让 {tool} 通过"
         )
 
-    def test_缺省角色就是owner(self, monkeypatch):
-        """只设开关、不设角色 ⇒ 走缺省 owner（而不是回落到 guest 那种"一开就全封"）"""
+    def test_缺省角色是最小权限_guest(self, monkeypatch):
+        """只设开关、不设角色 ⇒ 走缺省 **guest（最小权限）**
+
+        【2026-09-20 契约更新：因为 TASK-06 E15 落地】
+          本用例原名 `test_缺省角色就是owner`，断言"缺省 = owner，所以 edit 放行"。
+          TASK-06 §3 第 6 步第 6 项明确要求把严格模式的缺省角色从 `owner`（**特权**：
+          `allowed_tools=["*"]` ⇒ 开了等于没开）改为**最小权限**（拒绝或只读）。
+          故断言反转为：缺省走 `guest`，且一个不在 guest 白名单里的真实工具
+          （`edit`）**被拒** —— 这正是"缺省不留特权"的可判定形式。
+          需要宽松口径的场景（例如只想验证"白名单为通配时能放行"）请**显式**传
+          `role="owner"`，见 `TestStrictWithOwnerRole` 的其它用例。
+        """
         from agent.permission_system import Role
         monkeypatch.setenv(G.STRICT_ENABLED_ENV, "1")
-        assert G._strict_role() == Role.OWNER
-        assert G.check_tool_call("edit", {}) is None
+        assert G._strict_role() == Role.GUEST
+        blocked = G.check_tool_call("edit", {})
+        assert blocked is not None and blocked["blocked"] is True, \
+            "缺省角色必须是**最小权限**：edit 不在 guest 白名单里，必须被拒"
+        assert "'guest'" in blocked["error"]
 
     def test_缺省会话来源是cli(self, monkeypatch):
         monkeypatch.setenv(G.STRICT_ENABLED_ENV, "1")
@@ -330,19 +344,56 @@ class TestStrictFailOpen:
 
 
 class TestInvalidRoleFallback:
+    """非法角色值 ⇒ 回退**缺省角色**（现为 `guest` = 最小权限）且不崩
 
-    @pytest.mark.parametrize("bad", ["no_such_role", "GUEST2", "root", "管理员", "owner "])
-    def test_非法角色回退_owner(self, monkeypatch, bad):
+    【2026-09-20 契约更新：因为 TASK-06 E15 落地】
+      本类原名 `TestInvalidRoleFallback::test_非法角色回退_owner`，docstring 的理由是
+      "回退比因为拼错一个环境变量就变成全量拒绝安全得多"。TASK-06 把这条取舍**反过来**
+      了：安全开关的误配置必须落在**更严**的一侧（否则"把角色名拼错"就是一条把严格
+      模式静默降级为"全放行"的路径 —— `owner` 的 `allowed_tools=["*"]`）。
+      故回退值改为 `_DEFAULT_STRICT_ROLE`（`guest`），且**未设置**与**非法**共用同一条
+      规则（不为两者各留一套判据，D1）。
+    """
+
+    @pytest.mark.parametrize("bad", ["no_such_role", "GUEST2", "root", "管理员"])
+    def test_非法角色回退缺省角色(self, monkeypatch, bad):
         from agent.permission_system import Role
         monkeypatch.setenv(G.STRICT_ENABLED_ENV, "1")
         monkeypatch.setenv(G.STRICT_ROLE_ENV, bad)
+        assert G._strict_role() == Role(G._DEFAULT_STRICT_ROLE)
+        assert G._strict_role() == Role.GUEST, "缺省角色必须是**最小权限**"
+
+    def test_带空白的合法值不算非法(self, monkeypatch):
+        """`"owner "` **不是**非法值：`_env_str()` 先去空白 ⇒ 它是合法的 `owner`
+
+        【2026-09-20 实测更正】原参数化列表里含 `"owner "`，而它在旧断言
+        （`== Role.OWNER`）下"通过"的原因是**它是合法值**，不是回退 —— 即那条参数
+        一直在测另一件事（空白容忍），却挂在"回退"用例名下。现拆分为本用例。
+        """
+        from agent.permission_system import Role
+        monkeypatch.setenv(G.STRICT_ENABLED_ENV, "1")
+        monkeypatch.setenv(G.STRICT_ROLE_ENV, "owner ")
         assert G._strict_role() == Role.OWNER
 
-    def test_非法角色下放行行为与_owner_一致(self, monkeypatch):
-        """回退后按 owner 判定 ⇒ edit 放行（而不是因为角色不存在被全拒）"""
+    def test_非法角色下行为与缺省角色一致(self, monkeypatch):
+        """回退后按 `guest` 判定 ⇒ edit 被拒（与"只设开关不设角色"逐字同款）
+
+        【为什么不再断言"edit 放行"】那是 `owner` 时代的契约。现在"拼错角色名"的后果
+        是**拒绝**（更严），这与 TASK-06 E15 的方向一致；要验证"回退没崩"的正面证据是
+        拒绝结果的结构完整（`blocked=True` + `PERMISSION_DENIED` + 文案注明严格模式），
+        以及 `_strict_role()` 不抛异常。
+        """
         monkeypatch.setenv(G.STRICT_ENABLED_ENV, "1")
         monkeypatch.setenv(G.STRICT_ROLE_ENV, "no_such_role")
-        assert G.check_tool_call("edit", {}) is None
+        blocked = G.check_tool_call("edit", {})
+        assert blocked is not None and blocked["blocked"] is True
+        assert blocked["error_code"] == "PERMISSION_DENIED"
+        assert "严格模式" in blocked["error"]
+        # 与"不设角色"逐字一致（同一条回退规则，不是两套）
+        monkeypatch.delenv(G.STRICT_ROLE_ENV, raising=False)
+        default_blocked = G.check_tool_call("edit", {})
+        assert default_blocked is not None and default_blocked["blocked"] is True
+        assert "'guest'" in default_blocked["error"]
 
     def test_大小写与空白被容忍(self, monkeypatch):
         from agent.permission_system import Role

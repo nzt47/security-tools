@@ -291,8 +291,19 @@ class TestRegistrationAndGovernance:
         # 字段顺序照 grep.yaml；`tool_type`/`llm_callable`/`callable_mode`/
         # `permission_level`/`sandbox_allowed` 是「可被 LLM 调用」统一标注字段
         # （见 docs/工具与技能可调用性标注规范.md），插在治理三元组与 tags 之间
+        #
+        # 【2026-09-20 契约更新：TASK-04 新增两处字段（本用例因此变红，非 TASK-06 引起）】
+        #   `location` / `location_reason` 由 TASK-04（CapabilitySpec + location，提交
+        #   `807401ba`）加进 91 个 YAML，位置在 `version` 之后、治理三元组之前。
+        #   本用例断言的是**字段集合与顺序**这一契约（防"数据被悄悄改写"），
+        #   故随契约更新补上这两个键；顺序取自 `data/tool_definitions/fan_out.yaml` 实况。
+        #   注：`permission_level` 在本文件里的取值由 `internal` 变为 `restricted`
+        #   （TASK-06：`risk: high` 进确认流 ⇒ 派生权限等级为 restricted）——
+        #   本用例只钉**键名**，不钉取值；取值由
+        #   `tests/unit/test_tool_callability.py` 与 `test_confirm_level.py` 负责。
         assert list(doc.keys()) == [
             "name", "category", "description", "deprecated", "version",
+            "location", "location_reason",
             "plane", "effect", "risk", "tool_type", "llm_callable",
             "callable_mode", "permission_level", "sandbox_allowed",
             "tags", "schema", "examples",

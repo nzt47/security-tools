@@ -210,10 +210,37 @@ class TestRequiresApproval:
         assert gate.check("read_file") is None
 
     def test_requires_approval_为假时放行(self, gate):
+        """描述符 `requires_approval=false` ⇒ **该条规则本身**不拦截
+
+        【2026-09-20 契约更新：因为 L0–L3 落地（TASK-06）】
+          原用例断言的是 `gate.check("write_file") is None`。该断言在 L0–L3 之后不再
+          成立 —— 变的**不是描述符规则**，而是 `write_file` 的确认级别改由
+          `data/tool_definitions/write_file.yaml` 的治理三轴派生（`risk: high` ⇒ **L2**）
+          ⇒ 即便描述符写着"不需要审批"，它仍要进审批。
+          故本用例改用 **L0 工具（`read_file`）** 断言"描述符的 false 不拦"这一**原始
+          意图**；新契约（`write_file` 仍被拦，且拦它的不是描述符）由下一个用例单独钉住。
+        """
+        gate.write_descriptors({"descriptors": {
+            "cp.builtin.read_file": _descriptor_entry("cp.builtin.read_file",
+                                                      "read_file", False)}})
+        assert gate.check("read_file") is None
+
+    def test_描述符写_false_也拦不住_L2_工具(self, gate):
+        """【2026-09-20 新增契约】描述符的 false 不是高危工具的"免检证"
+
+        拦截必须发生在**描述符这一步之后**，且理由来自 YAML 派生而非描述符 ——
+        否则"把 descriptors.json 里的 requires_approval 改成 false"就成了
+        "关掉高危工具审批"的后门（数据文件可写 ⇒ 治理可被无声放宽）。
+        """
         gate.write_descriptors({"descriptors": {
             "cp.builtin.write_file": _descriptor_entry("cp.builtin.write_file",
                                                        "write_file", False)}})
-        assert gate.check("write_file") is None
+        result = gate.check("write_file")
+        assert result is not None and result["blocked"] is True
+        assert result["error_code"] == "APPROVAL_REQUIRED"
+        assert "confirm_level=L2" in result["reason"], result["reason"]
+        assert "requires_approval" not in result["error"], \
+            "理由不该来自描述符（它写的是 false）"
 
     def test_字符串_true_也算要求审批(self, gate):
         """宽松判定：数据侧写成 "true" 同样拦截（不认识的值才放行）"""
@@ -298,16 +325,53 @@ class TestApprovalEnforceSwitch:
 # ════════════════════════════════════════════════════════════
 
 class TestFailOpen:
+    """**运行期策略层**的 fail-open：文件缺失 / JSON 损坏 / 结构异常 / 自身异常
+
+    【2026-09-20 契约更新：因为 L0–L3 落地（TASK-06）——这是本次最大的一处改动】
+      本类原先所有用例都用 `write_file` 断言 `gate.check(...) is None`。那是**旧契约**
+      （`risk: high` 不触发任何确认）。L0–L3 之后 `write_file` 派生为 **L2**，
+      于是 9 条用例同时变红。逐条判断的结论是：**被测的意图没变、被测的对象变了** ——
+
+      · 本类的意图 = "**策略/描述符这两个运行期文件**读不到时，那两条规则不拦人"
+        （`check_tool_call` 的 fail-open 纪律）。它与 `confirm_level` **是两层东西**：
+        confirm_level 来自 `data/tool_definitions/*.yaml`（设计期声明，D1 的单一真相源），
+        **根本不读**那两个文件。
+      · 故断言改用 **L0 工具（`read_file`）**：它既不受 L2 影响，也仍然经过策略/描述符
+        两步 ⇒ 原意图被**原样保留**。
+      · 同时用 `_assert_l2_still_blocked()` **显式钉住**新契约：`write_file` 在该场景下
+        仍要确认。这是刻意的（见 `agent/tool_gate.py::_confirm_level_outcome` 的
+        "任务 B 裁决"一节）：让"删掉一个文件"成为"13 个高危工具免确认"的开关，
+        等于给治理面开一条无声旁路。
+    """
+
+    #: L0 工具（`effect: read` + `risk: low` ⇒ 免确认）：用来隔离"策略层 fail-open"这一件事
+    L0_TOOL = "read_file"
+    #: L2 工具（`risk: high` ⇒ 逐次确认）：用来钉住"conflict_level 不受文件缺失影响"
+    L2_TOOL = "write_file"
+
+    @staticmethod
+    def _assert_l2_still_blocked(gate):
+        """【任务 B 裁决的锁定】策略/描述符文件异常时，L2 工具**仍然**要求确认
+
+        判据的不对称是刻意的：**"依据读不到" ≠ "策略不存在"**。
+        """
+        result = gate.check(TestFailOpen.L2_TOOL)
+        assert result is not None and result["blocked"] is True, \
+            "confirm_level 是设计期声明（YAML），不该被运行期策略文件缺失削弱"
+        assert result["error_code"] == "APPROVAL_REQUIRED"
+        assert "confirm_level=L2" in result["reason"], result["reason"]
 
     def test_策略文件缺失放行(self, gate):
         gate.policy_path.unlink()
         gate.mod._reset_cache()
-        assert gate.check("write_file") is None
+        assert gate.check(self.L0_TOOL) is None
+        self._assert_l2_still_blocked(gate)
 
     def test_描述符文件缺失放行(self, gate):
         gate.desc_path.unlink()
         gate.mod._reset_cache()
-        assert gate.check("write_file") is None
+        assert gate.check(self.L0_TOOL) is None
+        self._assert_l2_still_blocked(gate)
 
     def test_两个文件都缺失且目录也不存在时放行(self, gate, monkeypatch, tmp_path):
         monkeypatch.setattr(gate.mod, "POLICY_POLICIES_PATH",
@@ -315,13 +379,15 @@ class TestFailOpen:
         monkeypatch.setattr(gate.mod, "DESCRIPTORS_PATH",
                             str(tmp_path / "nope" / "b.json"))
         gate.mod._reset_cache()
-        assert gate.check("write_file") is None
+        assert gate.check(self.L0_TOOL) is None
+        self._assert_l2_still_blocked(gate)
 
     def test_JSON_损坏放行(self, gate):
         gate.write_policy_raw("{这不是 JSON")
         gate.write_descriptors_raw("[1, 2,")
         gate.mod._reset_cache()
-        assert gate.check("write_file") is None
+        assert gate.check(self.L0_TOOL) is None
+        self._assert_l2_still_blocked(gate)
 
     def test_策略结构异常放行(self, gate):
         for bad in ([1, 2, 3], "text", 42, {"roles": ["not-a-dict"]},
@@ -329,7 +395,7 @@ class TestFailOpen:
                     {"roles": {"r": {"denied_tools": [None, 7, {"a": 1}]}}}):
             gate.write_policy(bad)
             gate.mod._reset_cache()
-            assert gate.check("write_file") is None, bad
+            assert gate.check(self.L0_TOOL) is None, bad
 
     def test_描述符结构异常放行(self, gate):
         for bad in ("text", 42, {"descriptors": "not-a-dict"},
@@ -338,16 +404,43 @@ class TestFailOpen:
                     {"descriptors": {"cp.x.y": {"trust": "not-a-dict"}}}):
             gate.write_descriptors(bad)
             gate.mod._reset_cache()
-            assert gate.check("write_file") is None, bad
+            assert gate.check(self.L0_TOOL) is None, bad
 
     def test_闸门自身异常时放行(self, gate, monkeypatch):
-        """双保险：判定内部抛异常也必须放行（本闸门的 bug 不得阻断工具执行）"""
+        """双保险：判定内部抛异常时，**只读/低危**工具仍放行
+
+        【2026-09-20 契约更新：因为 L0–L3 落地（TASK-06 §1 缺陷 4）】
+          原用例用 `write_file` 断言"异常必放行"。TASK-06 把异常路径改为**按工具性质
+          分流**：治理动作 fail-closed，其余 fail-open（理由见 `check_tool_call` 的
+          except 块：对写/删/改能力集的动作，"依据读不到就放行"的代价无上界）。
+          `write_file` 现在属治理动作 ⇒ 它的断言搬到下一个用例（并改判为拒绝）。
+          本用例保留原意图（闸门自身 bug 不得阻断日常读取），对象改为 `read_file`。
+        """
         def _boom(_data):
             raise RuntimeError("builder down")
 
         monkeypatch.setattr(gate.mod, "_build_denied_union", _boom)
         gate.mod._reset_cache()
-        assert gate.check("write_file") is None
+        assert gate.check(self.L0_TOOL) is None
+
+    def test_闸门自身异常时治理动作_fail_closed(self, gate, monkeypatch):
+        """【2026-09-20 新增契约】闸门内部抛异常时的**治理动作**必须被拒绝
+
+        TASK-06 §1 缺陷 4："工具闸门任何异常一律 fail-open 放行"⇒ 改为治理动作
+        fail-closed。否则"让一次判定抛异常"就是一条绕过治理的现成路径。
+        判据来自 YAML（`needs_approval` / L3），**且元数据读不到时也按拒绝处置**
+        （"证不出它无害"正是更该拒绝的情形）。
+        """
+        def _boom(_data):
+            raise RuntimeError("builder down")
+
+        monkeypatch.setattr(gate.mod, "_build_denied_union", _boom)
+        gate.mod._reset_cache()
+        result = gate.check(self.L2_TOOL)
+        assert result is not None and result["blocked"] is True, \
+            "治理动作在闸门自身异常时必须 fail-closed，不得放行"
+        assert result["error_code"] == "PERMISSION_DENIED"
+        assert "fail-closed" in result["error"], result["error"]
 
     def test_环境变量读取异常时不影响放行(self, gate, monkeypatch):
         """只替换闸门模块内的 ``os`` 名字绑定，不动进程级 ``os.environ``"""
@@ -381,11 +474,17 @@ class TestFailOpen:
         assert before == after
 
     def test_缓存按文件指纹失效(self, gate):
-        """改写策略文件后立即生效（缓存必须按指纹失效）"""
-        gate.write_policy({"roles": {"r": {"denied_tools": ["write_file"]}}})
-        assert gate.check("write_file")["blocked"] is True
+        """改写策略文件后立即生效（缓存必须按指纹失效）
+
+        【2026-09-20 契约更新：因为 L0–L3 落地】原用例用 `write_file`：清空黑名单后
+        再调它，期望 `None`。而 `write_file` 现在**另有一层** YAML 派生的 L2 确认
+        ⇒ "黑名单已清空"这件事被 L2 挡住，测不到缓存失效。
+        改用不受确认级别影响的 `grep`（L0），原意图不变。
+        """
+        gate.write_policy({"roles": {"r": {"denied_tools": ["grep"]}}})
+        assert gate.check("grep")["blocked"] is True
         gate.write_policy({"roles": {"r": {"denied_tools": []}}})
-        assert gate.check("write_file") is None
+        assert gate.check("grep") is None
 
 
 # ════════════════════════════════════════════════════════════

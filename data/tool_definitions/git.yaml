@@ -13,7 +13,7 @@ risk: high
 tool_type: tool
 llm_callable: true
 callable_mode: auto
-permission_level: internal
+permission_level: restricted
 sandbox_allowed: false
 tags: [code, git]
 schema:

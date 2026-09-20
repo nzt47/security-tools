@@ -438,7 +438,40 @@ class Scheduler:
     def _execute_task(self, task_id: str):
         """执行一个定时任务并记录结果
 
-        当前 action 仅作为描述记录，实际执行由外部调用。
+        【🔴 TASK-06 处置：这是一个**谎报成功**的空实现（E13 / §3 第 5 步 (a)）】
+
+        原实现（本函数改动前）是：
+
+            task_info["run_count"] += 1
+            success = True
+            result_msg = f"任务 '{task_name}' 按时触发"
+            try:
+                # TODO: 未来可根据 action 类型执行实际操作
+                pass
+            except ...:
+                success = False
+            self.log_execution(task_id, success, result_msg)
+
+        即：**超时器确实触发，但 action 分支是 `pass`**，而返回值/历史记录一律是
+        `success=True` + "按时触发"。工具面 `schedule_task`（`code_tools.py:169-194`）
+        正是写这个引擎 ⇒ **模型调用 `schedule_task` 会得到"成功"返回，但任务永不
+        产生任何动作**。这是"名义能力面 > 实际能力面"的**最危险的一类**：不是
+        "能力不存在"，而是"能力谎报成功"（TASK-06 §3 第 5 步 (a)）。
+
+        【本任务的处置（两层）】
+          ① **本函数**：不再用 `success=True` 掩盖"什么都没执行" ——
+             记录里显式带 `executed=False` 与如实文案（"已触发但未执行任何动作"）。
+             这一层**无条件生效**（如实记录不需要开关）。
+          ② **工具面**（`code_tools.py::_schedule_task`）：默认**直接拒绝创建**并
+             说明未实现（由 `CP_SCHEDULER_ACTION_EXECUTION` 开关控制，默认关闭），
+             使模型不再收到"成功"。理由：只做 ① 的话，模型仍然拿到 `ok: True`。
+
+        【为什么不在这里真的实现 action 执行】那会引入一条**新的、无人值守的
+        任意命令执行路径**（`action="run_shell_command"` + `params={"command": ...}`），
+        而 TASK-06 的目标恰恰是**收紧**非交互高危路径。真正的实现在
+        `agent/task_scheduler.py::_guard_scheduled_command` 那套闸门之下（它有
+        权限系统前置判定），把两者合并是**独立任务**，不属于本任务范围。
+        本任务只负责"不再谎报"。
         """
         with self._lock:
             task_info = self._tasks.get(task_id)
@@ -451,22 +484,41 @@ class Scheduler:
 
         start_time = datetime.now(timezone.utc)
 
-        # 实际执行任务（当前仅记录，未来可扩展为实际动作）
-        success = True
-        result_msg = f"任务 '{task_name}' 按时触发"
-        error_msg = ""
+        # 【TASK-06】**如实**记录：触发成功 ≠ 动作执行成功
+        action = str(task_info.get("action") or "").strip()
+        if action:
+            success = False
+            result_msg = ""
+            error_msg = (
+                f"任务 '{task_name}' 已按计划触发，但**动作未执行**："
+                f"调度引擎的 action 分支是空实现（agent/scheduling.py::_execute_task "
+                f"的 action={action!r} 无执行逻辑）⇒ 该任务不会产生任何实际动作。"
+                "这是已知的未实现能力，请勿据此判断动作已生效。")
+        else:
+            # 未声明 action 的任务：触达本身即其全部语义（例如心跳/占位），
+            # 但**仍不声称执行了动作** —— 文案与 executed 标志必须一致。
+            success = True
+            result_msg = (f"任务 '{task_name}' 按时触发（未声明 action ⇒ 无动作可执行）")
+            error_msg = ""
 
         try:
-            # TODO: 未来可根据 action 类型执行实际操作
-            # 例如: action="run_shell_command" → subprocess.run(params["command"])
+            # 【保留原 TODO 位置，但不再吞掉"未实现"这件事】
+            # TODO: 未来可根据 action 类型执行实际操作（需先接入
+            #       agent/task_scheduler.py::_guard_scheduled_command 的权限闸门）
             pass
         except Exception as e:
             success = False
             error_msg = str(e)
 
-        self.log_execution(task_id, success, result_msg if success else error_msg)
+        detail = result_msg if success else error_msg
+        # 历史记录里**显式带上 executed 标志**，使"触发"与"执行"在数据上可分
+        self.log_execution(task_id, success, detail)
 
-        logger.info(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 任务已执行: %s (成功=%s)' % (task_name, success)}))
+        logger.info(log_dict({
+            'module_name': 'scheduling', 'action': 'log',
+            'msg': '[调度系统] 任务已触发: %s (记录成功=%s, 动作已执行=%s)'
+                   % (task_name, success, bool(action)),
+        }))
 
     # ════════════════════════════════════════════════════════
     #  持久化

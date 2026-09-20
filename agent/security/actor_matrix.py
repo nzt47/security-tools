@@ -47,9 +47,25 @@ ACTOR_HUMAN = "human"
 ACTOR_AUTO = "auto"
 #: 子智能体（受委派的执行体）
 ACTOR_SUB_AGENT = "sub_agent"
+#: 服务账号（**第四类主体**，TASK-06 §3 第 1 步 / v1.4 §10.1）
+#:
+#: 【不易·为什么必须新建而不是复用 auto】`auto` 的语义是"云枢自己的技能/调度器"——
+#: 它是**平台内部**的执行体，身份边界由平台自身界定。而 `service_account` 是
+#: **外部**主体（cron / CI / Webhook / 别的系统）持有的长期凭据：它有独立的
+#: `jti`（可秒级吊销）、独立的 `scope`（可声明能力集合与最高 confirm_level），
+#: 且**不继承创建者权限**（v1.4 §10.1 铁律）。
+#: 把这两件事压进一个 `auto` 会让"谁在调"在审计里彻底不可分——
+#: 那正是 TASK-06 §2.1 记录的第一个身份缺陷。
+#:
+#: 【为什么放在 `actor_matrix.py` 而不是新建模块】本模块是全仓 actor 类型的**唯一收口**
+#: （`:74` 前缀约定、`:447` 规范化/推断、`_RULES` 判定表）；新建平行模块会造成
+#: 第二套身份真相源（D1）。SA 的**凭据/scope 机制**另在
+#: `agent/security/service_account.py`，本模块只管"这类主体的权限边界"。
+ACTOR_SERVICE_ACCOUNT = "service_account"
 
 #: 合法执行体类型（顺序即文档顺序）
-ACTOR_TYPES: Tuple[str, ...] = (ACTOR_HUMAN, ACTOR_AUTO, ACTOR_SUB_AGENT)
+ACTOR_TYPES: Tuple[str, ...] = (ACTOR_HUMAN, ACTOR_AUTO, ACTOR_SUB_AGENT,
+                               ACTOR_SERVICE_ACCOUNT)
 
 #: 同义写法 → 规范值（配置表/调用方可用 `skill` / `subagent` 等写法）
 ACTOR_TYPE_ALIASES: Dict[str, str] = {
@@ -68,6 +84,18 @@ ACTOR_TYPE_ALIASES: Dict[str, str] = {
     "subagent": ACTOR_SUB_AGENT,
     "sub-agent": ACTOR_SUB_AGENT,
     "sub agent": ACTOR_SUB_AGENT,
+    # ── 第四类主体（TASK-06）：服务账号 ──
+    # 【不易·`ci` / `cron` / `webhook` 也映射到 SA】它们是**场景名**，而 SA 正是
+    #   "cron / CI / Webhook"这三个场景的载体（TASK-06 §3 第 1 步的表）。若把它们
+    #   留在别名表外，`normalize_actor_type("ci")` 会抛 ValueError（fail-closed 拒绝）
+    #   ⇒ 既有脚本用 `actor_type="ci"` 的写法会当场失败。映射进来才算"接住"。
+    "service_account": ACTOR_SERVICE_ACCOUNT,
+    "service-account": ACTOR_SERVICE_ACCOUNT,
+    "serviceaccount": ACTOR_SERVICE_ACCOUNT,
+    "sa": ACTOR_SERVICE_ACCOUNT,
+    "ci": ACTOR_SERVICE_ACCOUNT,
+    "cron": ACTOR_SERVICE_ACCOUNT,
+    "webhook": ACTOR_SERVICE_ACCOUNT,
 }
 
 #: 非人类执行体的 **actor 名前缀约定**（用于从既有调用方的 actor 名推断类型）
@@ -75,6 +103,13 @@ ACTOR_TYPE_ALIASES: Dict[str, str] = {
 _AUTO_NAME_PREFIXES: Tuple[str, ...] = ("auto:", "auto/", "auto-", "skill:", "skill/")
 _SUB_AGENT_NAME_PREFIXES: Tuple[str, ...] = (
     "sub_agent:", "sub_agent/", "subagent:", "subagent/", "sub-agent:")
+#: 【TASK-06 新增】服务账号的 **actor 名前缀约定**（v1.4 §10.1 要求 `sub` 带前缀，
+#: 用以区分 `sa:` / `user:` / `system:` / `llm:`，避免与用户 id 混淆）。
+#: 【顺序敏感】必须在 `_AUTO_NAME_PREFIXES` **之前**判：`sa:` 不以 `auto:`/`skill:`
+#: 开头，两者不冲突，但把 SA 放前面能让"将来 SA 前缀扩展成 `auto-sa:`"时仍优先命中。
+_SERVICE_ACCOUNT_NAME_PREFIXES: Tuple[str, ...] = (
+    "sa:", "sa/", "service_account:", "service_account/", "service-account:",
+    "ci:", "cron:", "webhook:")
 
 
 # ════════════════════════════════════════════════════════════
@@ -384,6 +419,62 @@ _RULES: Dict[Tuple[str, str], PermissionRule] = {
         "§7.0 外扩展：改开关是治理动作，auto 一律拒绝"),
     (OP_SETTINGS_CHANGE, ACTOR_SUB_AGENT): _deny(
         "§7.0 外扩展：改开关是治理动作，sub_agent 一律拒绝"),
+
+    # ── 【TASK-06 第四类主体】`service_account`（cron / CI / Webhook / 外部系统）──
+    #
+    # 【为什么必须补满这 13 行（这是一个真实缺陷，不是补文档）】
+    #   TASK-06 把 `service_account` 加进 `ACTOR_TYPES` 之后，**本表没有它的任何一行**
+    #   ⇒ `rule_for(任意操作, "service_account")` 返回 `None` ⇒
+    #   `tests/unit/test_security_actor_matrix.py::TestVersionAlignment::
+    #   test_every_matrix_cell_registered` 立刻变红（39 行 vs 13×4=52）。
+    #   该不变量（每个 操作 × 主体 都要有一格）存在的理由正是本情形：
+    #   **一个类型出现在值域里、却没有权限边界** —— 那等于"边界未定义"，
+    #   而"未定义"在实现里会退化成"看调用点怎么写"（最坏的一种不确定性）。
+    #
+    # 【判定口径：SA 是**外部**主体，权限面必须比 auto 更窄】
+    #   与 `auto` 的区别：`auto` 是**平台内部**的执行体（云枢自己的技能/调度器），
+    #   `service_account` 是**外部系统**持有的长期凭据（有 jti、可秒级吊销、
+    #   有 scope、**不继承创建者权限**，v1.4 §10.1）。
+    #   三条硬纪律：
+    #     ① **不得拥有审批权**（`approval.approve` / `approval.deny` 一律拒）——
+    #        SA 若能批准审批单，就能给自己发授权，那与"预授权是闸门内的一条判定"
+    #        完全相反（TASK-06 §5 列为"不通过"）。
+    #     ② **不得有治理写权**（熔炉/策略/stage/来源/开关一律拒）——
+    #        否则 SA 能修改"它自己被允许做什么"，权限面自举。
+    #     ③ **不得读人的资产**（轨迹/记忆/面板一律拒）——SA 的存在意义是执行被授权
+    #        的能力，不是浏览会话内容。
+    #   唯一的放行是 `capability.execute`（`SCOPE_IN_SCOPE`）：这正是 SA 的用途，
+    #   且范围限定在**它自己的 scope 内**（与 auto 同口径，比 human 的是 `SCOPE_ALL` 窄）。
+    #   `approval.submit` 也放行（与 auto 一致）：SA 遇到需要人裁决的动作时
+    #   **只能提交提案**，不能自己裁决 —— 那是"非交互场景的正确出路"（不是挂空单）。
+    (OP_VIEW_TRACE, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：SA 是外部主体，不读会话轨迹（可能含隐私内容）"),
+    (OP_VIEW_MEMORY, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：SA 不读记忆（主人格资产，与它的执行职责无关）"),
+    (OP_VIEW_PANEL, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：SA 不使用人的界面（面板是交互面的东西，SA 无人在场）"),
+    (OP_APPROVE, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：SA **不得审批**（否则可给自己发授权；预授权必须走 scope 而非审批）"),
+    (OP_DENY, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：SA **不得驳回**（裁决权 human 专属，与 approve 同一理由）"),
+    (OP_SWITCH_FORGE, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：切换熔炉是治理动作，SA 一律拒绝"),
+    (OP_MODIFY_POLICY, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：SA 不得改策略（否则能修改「自己被允许做什么」，权限面自举）"),
+    (OP_FORCE_STAGE, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：强制推进 stage 是治理动作，SA 一律拒绝"),
+    (OP_REMOVE_SOURCE, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：摘除来源是治理动作，SA 一律拒绝"),
+    (OP_EXECUTE_CAPABILITY, ACTOR_SERVICE_ACCOUNT): _allow(
+        SCOPE_IN_SCOPE,
+        desc="TASK-06：SA **唯一放行**的操作 —— 执行其 scope 内被授权的能力"),
+    (OP_WRITE_MEMORY, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：SA 不写记忆（认知资产不由外部主体写入）"),
+    (OP_SUBMIT_APPROVAL, ACTOR_SERVICE_ACCOUNT): _allow(
+        desc="TASK-06：SA 可**提交**审批提案（与 auto 同口径：提案不生效，"
+             "裁决权仍在 human —— 这是非交互场景拿到人裁决的正路，不是挂空单）"),
+    (OP_SETTINGS_CHANGE, ACTOR_SERVICE_ACCOUNT): _deny(
+        "TASK-06：改开关是治理动作，SA 一律拒绝"),
 }
 
 # ════════════════════════════════════════════════════════════
@@ -391,36 +482,49 @@ _RULES: Dict[Tuple[str, str], PermissionRule] = {
 # ════════════════════════════════════════════════════════════
 
 #: §7.0 原始矩阵（人读 + 断言用）：{操作组: {执行体: "✅" / "❌" / 说明}}
+#:
+#: 【TASK-06 新增 `service_account` 列】§7.0 原文只有三类执行体；第四类是本任务按
+#: v1.4 §10.1 补的。**文档矩阵必须同步补齐**，否则
+#: `tests/unit/test_security_actor_matrix.py::TestVersionAlignment::
+#: test_every_matrix_cell_registered` 会在"文档说没有这一列、实现对它有判定"时变红 ——
+#: 那条不变量正是用来防"实现与文档各说一套"的，不该为了让测试变绿去放宽它。
+#: 取值口径见 `_RULES` 里 TASK-06 段落的三条硬纪律（不审批 / 不治理 / 不读人资产）。
 MATRIX_DOC: Dict[str, Dict[str, str]] = {
     "查看轨迹/记忆/面板": {
         ACTOR_HUMAN: "allow",
         ACTOR_AUTO: "own_scope",
         ACTOR_SUB_AGENT: "deny",
+        ACTOR_SERVICE_ACCOUNT: "deny",
     },
     "审批 Approve/Deny": {
         ACTOR_HUMAN: "allow",
         ACTOR_AUTO: "deny",
         ACTOR_SUB_AGENT: "deny",
+        ACTOR_SERVICE_ACCOUNT: "deny",
     },
     "切换熔炉/修改策略": {
         ACTOR_HUMAN: "allow_second_factor",
         ACTOR_AUTO: "deny",
         ACTOR_SUB_AGENT: "deny",
+        ACTOR_SERVICE_ACCOUNT: "deny",
     },
     "强制推进 stage/摘除来源": {
         ACTOR_HUMAN: "allow_reason",
         ACTOR_AUTO: "deny",
         ACTOR_SUB_AGENT: "deny",
+        ACTOR_SERVICE_ACCOUNT: "deny",
     },
     "执行 capability": {
         ACTOR_HUMAN: "allow",
         ACTOR_AUTO: "in_scope",
         ACTOR_SUB_AGENT: "authorized_subset",
+        ACTOR_SERVICE_ACCOUNT: "in_scope",
     },
     "写入记忆": {
         ACTOR_HUMAN: "allow",
         ACTOR_AUTO: "working_memory",
         ACTOR_SUB_AGENT: "deny",
+        ACTOR_SERVICE_ACCOUNT: "deny",
     },
 }
 
@@ -479,6 +583,10 @@ def infer_actor_type(actor: str, *, default: str = ACTOR_HUMAN) -> str:
         return default
     if name in ACTOR_TYPE_ALIASES:
         return ACTOR_TYPE_ALIASES[name]
+    # 【顺序】SA 前缀先判：`sa:` / `ci:` 等不与 auto/skill 前缀重叠，但显式优先
+    # 可保证将来前缀扩展时不出现"被 auto 抢走"的静默误判。
+    if name.startswith(_SERVICE_ACCOUNT_NAME_PREFIXES):
+        return ACTOR_SERVICE_ACCOUNT
     if name.startswith(_SUB_AGENT_NAME_PREFIXES):
         return ACTOR_SUB_AGENT
     if name.startswith(_AUTO_NAME_PREFIXES):

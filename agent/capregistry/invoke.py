@@ -61,6 +61,7 @@ __all__ = [
     "invoke_envelope",
     "set_preauthorization_hook",
     "preauthorization_hook",
+    "identity_propagating_executor",
 ]
 
 IDENTITY_LLM = "llm"
@@ -132,6 +133,80 @@ def set_preauthorization_hook(fn: Optional[Callable[..., Any]]) -> None:
 
 def preauthorization_hook() -> Optional[Callable[..., Any]]:
     return _HOOK["fn"]
+
+
+def identity_propagating_executor(identity: str = IDENTITY_LLM,
+                                  session_source: str = "",
+                                  *, tool_call: Optional[Callable[..., Any]] = None
+                                  ) -> Callable[..., Any]:
+    """构造一个**如实上报身份**的工具执行器（`(tool_name, params) -> result`）
+
+    ## 为什么需要它（这是 TASK-06 §3 第 5 步"4 条身份绕过面"里的面 3）
+
+    实测两处把 `agent.tools.call` 包成**裸 lambda** 注进工作流学习服务：
+
+      · `agent/orchestrator/orchestrator.py:1990`
+        `lambda tool_name, params: _tool_call(tool_name, **params)`
+      · `agent/server_routes/routes_workflow_learning.py:29`（同上写法）
+
+    裸 lambda **没有声明任何身份** ⇒ 工作流回放真的会执行工具（`@require_token` 只管
+    "能不能进这个端点"，不管"以谁的身份执行工具"），但工具侧看到的
+    `session_source` 会落到处环境变量缺省值 `"cli"`（= 一次 HTTP 触发的回放被记成
+    "人从 CLI 调的"），`execution_identity` 则是空串。
+
+    本函数把"调用时**当场**读出当前上下文身份 → 在执行器体内如实设置"这件事收口成
+    一个可复用工厂。**参数 `identity` 是缺省值而不是覆盖值**：优先用当前上下文的
+    身份，上下文没有才用参数，最后兜底 `llm`。理由是工作流回放的**真实**触发者可能
+    是人（在对话里触发）或 SA（CI 触发）；用参数覆盖上下文会把真实触发者抹成调用方
+    写死的那个 —— 那正是"身份归因错误"本身。
+
+    ## 与 `_NON_INTERACTIVE` 的关系
+
+    身份如实上报之后，`tool_gate` 的"非交互 ⇒ 直接拒绝（不挂单）"与
+    "无身份 ⇒ 拒绝"两条判定才**对这条链路生效**。裸 lambda 时代它两条都躲过了。
+
+    ## 线程语义（**关键**）
+
+    `set_session_source` / `set_execution_identity` 用 contextvars，**不跨线程继承**。
+    本执行器在**被调用的那个线程内**设置（而不是在构造时设置），
+    因此无论工作流引擎在哪个线程里回调它，设置点都正确。
+    """
+    def _exec(tool_name: str, params: Optional[Mapping[str, Any]] = None) -> Any:
+        call = tool_call
+        if call is None:
+            from agent.tools import call as call  # noqa: PLC0415 惰性：避免导入期成环
+        ident = str(identity or "").strip().lower() or None
+        src = str(session_source or "").strip()
+        id_handle = None
+        src_handle = None
+        try:
+            from agent.tool_gate import (  # noqa: PLC0415
+                current_execution_identity, current_session_source,
+                set_execution_identity, set_session_source)
+            # 【顺序：上下文优先，参数兜底】`identity` 是**缺省值**而不是覆盖值。
+            # 理由：工作流回放的真实触发者可能是 human（人在对话里触发）或
+            # service_account（CI 触发）；若参数覆盖上下文，就会把真实触发者
+            # 抹成调用方写死的那个 —— 那正是"身份归因错误"本身。
+            eff_ident = current_execution_identity() or ident or IDENTITY_LLM
+            eff_src = (current_session_source() or src
+                       or IDENTITY_SESSION_SOURCE.get(eff_ident, ""))
+            if eff_ident:
+                id_handle = set_execution_identity(eff_ident)
+            if eff_src:
+                src_handle = set_session_source(eff_src)
+        except Exception as exc:  # noqa: BLE001  闸门不可用 ⇒ 身份标注降级（不影响调用）
+            logger.warning("[capregistry] 执行器身份上报不可用（按未声明处理）: %s: %s",
+                           type(exc).__name__, exc)
+        try:
+            return call(tool_name, **dict(params or {}))
+        finally:
+            for h in (src_handle, id_handle):
+                if h is not None:
+                    try:
+                        h.reset()
+                    except Exception:  # noqa: BLE001
+                        pass
+    return _exec
 
 
 def _preauthorized(capability: str, identity: str,

@@ -150,39 +150,38 @@ _DEFAULT_TENANT_ID = "default"
 def _server_tenant_id() -> str:
     """服务端派生的 `tenant_id` —— **绝不从请求参数取**
 
-    【为什么必须改（这是一个真实缺陷，不是风格问题）】
-        本文件原先允许客户端在 query（GET `…/memory/skills`）与 body
-        （POST 整包回滚）里指定 `tenant_id`。单机单用户下它恒等于 `default`，
-        看起来无害；但**信任边界现在是错的**：一旦开启多租户，客户端只要传别人的
-        租户 id 就能读到/回滚别人的数据 —— 那是跨租户越权。
-    【为什么复用 workspace-hash 而不是新建一套租户系统】
-        本仓库**活的**租户语义就是 workspace-hash
-        （`agent/orchestrator/orchestrator.py:211-228`：workspace(repository) = 逻辑租户
-        ⇒ `tenant_id = workspace-hash`）；`agent/multi_tenant.py` 是零生产 import 的孤岛，
-        本任务**不接入**它（越界，见 TASK-04 §6.3）。
-    【不易·不新增环境变量】这里不引入任何新配置开关：新增开关要同步登记
-        `agent/settings/registry.py`（D5 的零缺口守卫），而本任务不需要可配置性。
+    【TASK-06 改为转出共用实现】本函数原先是**本文件私有**的一份派生（TASK-04 引入，
+    见下"为什么必须改"）。而 TASK-05 新写的 `routes_capabilities.py` **没有复用**它、
+    又各自从 query/body 取 `tenant_id`（实测三处）⇒ 修了一处、新代码又长出来。
+    根因不是漏了补丁，而是**没有一个共用的派生入口**：现下沉到
+    `agent/security/tenant.py`（唯一权威，D1），本函数保留为薄转出。
+
+    【不易·为什么保留私有名而不是删掉改调用方】`tests/unit/test_capability_spec.py`
+    的 `TestTenantId` 直接引用 `R._tenant_id_with_declaration` / `R._server_tenant_id`。
+    删名会让那条守卫测试变成 `AttributeError`，看起来像代码坏了。薄转出零成本（D2）。
+
+    仍在生效的原设计理由（保留以便后人理解取舍）：
+      · 本文件原先允许客户端在 query（GET `…/memory/skills`）与 body（POST 整包回滚）
+        里指定 `tenant_id`。单机单用户下恒等于 `default` 看起来无害，但**信任边界是错的**：
+        一旦开启多租户，客户端只要传别人的租户 id 就能读到/回滚别人的数据。
+      · 复用 workspace-hash 而不是新建一套租户系统：仓库**活的**租户语义就是
+        workspace-hash（`agent/orchestrator/orchestrator.py:211-228`）；
+        `agent/multi_tenant.py` 是零生产 import 的孤岛，**不接入**（TASK-06 §5 选 A）。
+      · 不新增环境变量：D5 要求新开关登记注册表，而本机制不需要可配置性。
     """
-    try:
-        from agent.observability.trace_v2 import derive_workspace_id
-        return str(derive_workspace_id(os.getcwd()) or "") or _DEFAULT_TENANT_ID
-    except Exception:  # noqa: BLE001 派生失败不得让面板 500（D4 同一取舍）
-        return _DEFAULT_TENANT_ID
+    from agent.security.tenant import server_tenant_id  # noqa: PLC0415 惰性：避免导入期依赖
+    return server_tenant_id()
 
 
 def _tenant_id_with_declaration(declared: Any = "") -> Tuple[str, str]:
-    """返回 `(生效值, 客户端声明值)`
+    """返回 `(生效值, 客户端声明值)`（转出 `agent/security/tenant.py` 的共用实现）
 
     生效值**永远**来自服务端派生；客户端传的值只被登记为"待校验声明"并留痕告警，
     不参与任何判定 —— 这样既堵住越权面，又不丢失"客户端想操作哪个租户"的意图。
     """
-    effective = _server_tenant_id()
-    text = str(declared or "").strip()
-    if text and text != effective:
-        logger.warning(
-            "[UIPanels] 客户端指定了 tenant_id=%r，已按**服务端派生值** %r 处理"
-            "（客户端值仅登记为待校验声明，不参与判定）", text, effective)
-    return effective, text
+    from agent.security.tenant import (  # noqa: PLC0415
+        tenant_id_with_declaration as _shared)
+    return _shared(declared)
 
 
 # ════════════════════════════════════════════════════════════

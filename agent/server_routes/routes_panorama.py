@@ -173,6 +173,28 @@ def register_routes(app, state):
         readings = Yunshu.body.collect_quick()
         return jsonify([r.to_dict() for r in readings])
 
+    @app.route("/api/health/auth")
+    @trace_route("Panorama")
+    @log_request(show_response=False)
+    def api_health_auth():
+        """鉴权配置状态（**只读**；TASK-06 §3 第 5 步第 2 项第 ① 步）
+
+        【为什么单开一个端点，而不塞进 `/api/health`】实测 `/api/health` 的响应体是
+        **数组**（传感器读数列表），且前端 `static/**/status-panel.js` 直接
+        `data.forEach(m => ...)` ⇒ 把它改成对象会**当场打挂状态面板**
+        （E12：鉴权改动不得一次性打挂本机 UI；这类"顺手改个形状"正是要避免的）。
+        故按"新增只读端点"落地，语义等价地满足"健康面暴露状态"这一要求，
+        并保留 `/api/health` 的既有契约。**改形状这件事本身需要独立评估**，
+        不在本任务范围。
+        """
+        try:
+            from agent.server_auth import auth_status
+            return jsonify({"status": "ok", "data": auth_status()})
+        except Exception as e:  # noqa: BLE001 状态不可得不得让端点 500
+            return jsonify({"status": "degraded", "data": {
+                "configured": False,
+                "note": f"鉴权状态不可得: {type(e).__name__}"}}), 200
+
     @app.route("/api/sensors")
     @trace_route("Panorama")
     @log_request(show_response=False)
@@ -184,6 +206,15 @@ def register_routes(app, state):
     @log_request(show_response=False)
     def api_status():
         status = Yunshu.get_status()
+        # 【TASK-06】把鉴权配置状态一并暴露（**增量字段**，不改既有键 ⇒ 不破坏消费者）。
+        # 为什么两处都暴露：`/api/status` 是运维最常看的聚合面，而 `/api/health/auth`
+        # 给自动化探针（二者共用同一份 `auth_status()`，不产生第二份口径）。
+        try:
+            from agent.server_auth import auth_status
+            status["auth"] = auth_status()
+        except Exception as e:  # noqa: BLE001 状态不可得不得让聚合端点失败
+            status["auth"] = {"configured": False,
+                              "note": f"鉴权状态不可得: {type(e).__name__}"}
         return jsonify(status)
 
     @app.route("/api/mode")

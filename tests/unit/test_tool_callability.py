@@ -91,11 +91,21 @@ class TestDeclarations:
         assert not bad, f"非法声明值：{bad[:10]}"
 
     def test_permission_level_与治理轴派生值一致(self):
-        """同一件事不许有两份口径：声明必须等于 plane/effect/risk 的派生结果"""
+        """同一件事不许有两份口径：声明必须等于 plane/effect/risk 的派生结果
+
+        【TASK-06 修改】原实现在这里**手写**了 `risk == "critical"` 这条规则，
+        与 `agent/lines/models.py::ToolMeta.needs_approval` 构成两份副本。
+        TASK-06 把审批阈值从 `critical` 提到 `high`（13 个 `risk: high` 工具首次
+        进入确认流）⇒ 若守卫测试继续用旧口径，它会用 `want=internal` 去比对新
+        声明 `restricted`，**报出一个与真实缺陷无关的失败**；反过来，若只改
+        生产代码不改这里，守卫就会变成"绿灯掩盖缺口"。
+        现统一转出 `models.needs_approval_for` —— 口径只有一份。
+        """
+        from agent.lines.models import needs_approval_for
         drifted = []
         for name, doc in _tool_docs().items():
-            needs = (doc.get("plane") == "govern" or doc.get("effect") == "extend"
-                     or doc.get("risk") == "critical")
+            needs = needs_approval_for(
+                str(doc.get("plane")), str(doc.get("effect")), str(doc.get("risk")))
             want = C.effective_permission_level(
                 str(doc.get("effect")), str(doc.get("risk")), needs, False)
             if doc.get("permission_level") != want:

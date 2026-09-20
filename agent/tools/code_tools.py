@@ -1,5 +1,7 @@
 """工具注册模块 — 代码工具（审查、架构图、文本优化、数据处理、调度、异步任务）"""
 import logging
+import os
+
 from agent import tools as _tools
 
 logger = logging.getLogger(__name__)
@@ -155,6 +157,23 @@ def register_all(dl):
     #  定时调度工具
     # ════════════════════════════════════════════════════════════
 
+    # ── 动作执行开关（TASK-06 E13；D5 已登记 agent/settings/registry.py）──
+    # 【为什么默认关闭】`agent/scheduling.py::_execute_task` 的 action 分支是 `pass`
+    #   ⇒ 创建出来的任务**永不产生任何动作**。默认关闭时本工具**直接拒绝创建**，
+    #   使模型不再收到"成功"（E13 的硬要求）。
+    # 【为什么保留开关而不是删掉工具】工具名是既有契约的一部分（91 个 YAML 之
+    #   一、`data/tool_index.json` 索引里也有它）；将来把 action 分支接到
+    #   `agent/task_scheduler.py::_guard_scheduled_command` 之下后，置 1 即恢复。
+    _ACTION_EXEC_ENV = "CP_SCHEDULER_ACTION_EXECUTION"
+
+    def _scheduler_action_execution_enabled() -> bool:
+        """定时任务 action 是否真的会被执行（读环境变量；无法识别 ⇒ 关）"""
+        try:
+            raw = os.environ.get(_ACTION_EXEC_ENV, "0")
+        except Exception:  # noqa: BLE001
+            return False
+        return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
     @_tools.register("schedule_task", "创建定时任务，按指定间隔或 cron 表达式周期性触发。必须提供 interval_minutes 或 cron_expr 之一（或两者）。cron 为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理", schema={
         "type": "object",
         "properties": {
@@ -182,6 +201,34 @@ def register_all(dl):
             if not _SchedValidate.validate_cron_expr(cron_expr):
                 return {"ok": False, "error": f"无效的 cron 表达式: {cron_expr}"}
 
+        # ── 【TASK-06 E13】不再谎报成功 ──
+        # 实测事实：`agent/scheduling.py::_execute_task` 的 action 分支是 `pass`
+        # ⇒ 任务会**按时触发**但**不执行任何动作**。原实现照常返回
+        # `{"ok": True, "task": {...}}`，模型据此认为"调度已生效"。
+        # 这是"名义能力面 > 实际能力面"里最危险的一类（能力谎报成功）。
+        if not _scheduler_action_execution_enabled():
+            return {
+                "ok": False,
+                # 【不易·错误码用 NOT_IMPLEMENTED 而不是 PERMISSION_DENIED】
+                # 两者对调用方的处置完全不同：前者是"这个能力没实现，别再试"，
+                # 后者是"你没权限"。混用会让模型反复重试或去找人授权。
+                "error_code": "NOT_IMPLEMENTED",
+                "error": (
+                    "schedule_task 当前**不可用**：调度引擎的动作执行部分是空实现"
+                    "（agent/scheduling.py::_execute_task 的 action 分支为 pass）"
+                    "⇒ 任务会按时触发但不会执行任何动作，因此本工具拒绝创建任务，"
+                    "以免你把'已创建'误认为'动作会生效'。"),
+                "implemented": False,
+                "action_execution_implemented": False,
+                "guidance": (
+                    "出路：① 需要周期性执行动作，请用系统命令调度器"
+                    "（agent/task_scheduler.py 的 system_command 任务类型，它带"
+                    "_guard_scheduled_command 权限闸门）；"
+                    "② 若你只是需要延迟/重复地跑一个工具，请在对话里直接调用该工具；"
+                    f"③ 运维若已另行实现 action 分支，可置 {_ACTION_EXEC_ENV}=1 恢复本工具"
+                    "（届时返回值会显式带上 action_execution_implemented=true）。"),
+            }
+
         try:
             from agent.scheduling import get_schedule_scheduler
             sched = get_schedule_scheduler()
@@ -189,6 +236,12 @@ def register_all(dl):
                 name=name, action=action, params=params,
                 interval_minutes=interval_minutes, cron_expr=cron_expr,
             )
+            # 【如实标注】即便开关打开，也要把"action 是否真会执行"写在返回值里
+            if isinstance(result, dict) and result.get("ok"):
+                result["action_execution_implemented"] = True
+                result["action_execution_note"] = (
+                    "action 执行开关已启用；若动作仍未生效，请核对该 action 类型"
+                    "是否已在 agent/scheduling.py 中实现。")
             return result
         except Exception as e:
             return {"ok": False, "error": f"创建任务失败: {e}"}
@@ -332,12 +385,24 @@ def register_all(dl):
                 _src = str(_cur_src() or "").strip()
             except Exception:  # noqa: BLE001 闸门不可用 ⇒ 用兜底值
                 _src = ""
+        # 【TASK-06 §3 第 5 步"4 条身份绕过面"之面 2】身份也要透传。
+        # 为什么不能只传来源：闸门的"无身份 ⇒ 拒绝"与"SA 预授权"两条判定读的是
+        # **identity**。本工具是**模型面工具**（`llm_callable=true`），故缺省身份取
+        # `llm`；若上游已声明身份则继承之（不覆盖真实触发者）。
+        _ident = str(kwargs.get("identity") or "").strip().lower()
+        if not _ident:
+            try:
+                from agent.tool_gate import current_execution_identity as _cur_ident
+                _ident = str(_cur_ident() or "").strip().lower()
+            except Exception:  # noqa: BLE001
+                _ident = ""
         return _async_exec.submit(
             name=name,
             tool_name=tool_name,
             params=params,
             timeout=timeout,
             session_source=_src or "api",
+            identity=_ident or "llm",
         )
 
     @_tools.register("get_task_status", "查询异步任务的执行状态（pending/running/completed/failed/cancelled）", schema={

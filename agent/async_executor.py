@@ -50,7 +50,8 @@ class AsyncExecutor:
 
     def submit(self, name: str, tool_name: str, params: dict,
                timeout: int | None = None,
-               session_source: str | None = None) -> dict:
+               session_source: str | None = None,
+               identity: str | None = None) -> dict:
         """提交异步任务
 
         Args:
@@ -70,6 +71,15 @@ class AsyncExecutor:
                 （注意：该处**并非**绕过 `tool_gate`，见
                 `agent/capregistry/call_sites.py` 的实测更正）。
                 【D2】缺省 `None` ⇒ 行为与改动前**完全一致**（不设上下文变量）。
+            identity: **（TASK-06 新增，可选）** 本次调用的**执行身份**
+                （`human` / `llm` / `system` / `service_account`）。
+                【为什么与 session_source 分开且都要传】两者语义不同：
+                `session_source` 是**来源**（cli/web/api/scheduled），
+                `identity` 是**主体**（谁）。TASK-06 §3 第 5 步"4 条身份绕过面"的面 2
+                正是"`submit_task` 开放给模型且**无身份**" ⇒ 只传来源不够：
+                闸门的"无身份 ⇒ 拒绝"与"SA 预授权"两条判定读的是 identity。
+                同样受 contextvars 不跨线程的约束，故与本参数一样显式传进工作线程。
+                【D2】缺省 `None` ⇒ 不设上下文变量（既有调用方行为不变）。
         """
         task_id = f"task_{uuid4().hex[:12]}"
         task = {
@@ -88,6 +98,9 @@ class AsyncExecutor:
             # 【TASK-05】把身份随任务一起落盘：既是"这次调用是谁发起的"的证据，
             # 也让结果面（`/api/background/tasks*`）能显示来源（TASK-06 会消费它）。
             "session_source": str(session_source or ""),
+            # 【TASK-06 面 2】身份同样落盘：使"模型发起的后台调用"在事后可查、
+            # 且与来源分开（来源可能是 api，而身份是 llm —— 两者不可互推）。
+            "identity": str(identity or ""),
         }
         with self._lock:
             self._tasks[task_id] = task
@@ -97,7 +110,7 @@ class AsyncExecutor:
         # 【不易】用 `functools.partial` 把 session_source 绑进工作线程的实参，
         # 而**不是**在主线程设 contextvar —— 后者根本到不了工作线程（见 docstring）。
         future = self._pool.submit(self._run_task, task_id, tool_name, params,
-                                   timeout, session_source)
+                                   timeout, session_source, identity)
         future.add_done_callback(lambda f: self._on_complete(task_id, f))
 
         return {"ok": True, "task_id": task_id, "status": "pending"}
@@ -218,7 +231,8 @@ class AsyncExecutor:
         }
 
     def _run_task(self, task_id: str, tool_name: str, params: dict,
-                  timeout: int | None, session_source: str | None = None):
+                  timeout: int | None, session_source: str | None = None,
+                  identity: str | None = None):
         """在线程池中执行任务
 
         Args:
@@ -229,6 +243,9 @@ class AsyncExecutor:
             session_source: **（TASK-05 新增，可选）** 会话来源；见 `submit()` 的注释。
                 本参数在工作线程内被写进 `tool_gate` 的上下文变量，
                 使闸门的来源判定反映**真实调用方**而不是默认的 `"cli"`。
+            identity: **（TASK-06 新增，可选）** 执行身份（human/llm/system/
+                service_account）；见 `submit()` 的注释。与 `session_source` 一样
+                必须**在工作线程内**设置。
         """
         # 标记为运行中
         with self._lock:
@@ -249,6 +266,16 @@ class AsyncExecutor:
                 _src_handle = _set_src(str(session_source))
             except Exception:  # noqa: BLE001 闸门不可用时身份透传降级（不影响调用）
                 _src_handle = None
+        # 【TASK-06 面 2】身份同样必须在工作线程体内设置（同一 contextvars 理由）。
+        # 为什么与来源分开设：闸门的"无身份 ⇒ 拒绝"与"SA 预授权"读的是 identity，
+        # 只设来源会让本路径在身份维度上仍然"不可知"。
+        _ident_handle = None
+        if identity:
+            try:
+                from agent.tool_gate import set_execution_identity as _set_ident
+                _ident_handle = _set_ident(str(identity))
+            except Exception:  # noqa: BLE001
+                _ident_handle = None
         try:
             # 调用工具（经 agent.tools.call ⇒ 过 tool_gate）
             result = call_tool(tool_name, **params)
@@ -272,6 +299,11 @@ class AsyncExecutor:
             if _src_handle is not None:
                 try:
                     _src_handle.reset()
+                except Exception:  # noqa: BLE001
+                    pass
+            if _ident_handle is not None:
+                try:
+                    _ident_handle.reset()
                 except Exception:  # noqa: BLE001
                     pass
 

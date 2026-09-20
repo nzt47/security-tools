@@ -131,6 +131,41 @@ def _exit_scheduled_session_source(handle) -> None:
         logger.warning(log_dict({'module_name': 'task_scheduler', 'action': 'log', 'msg': f'[TaskScheduler] 会话来源还原失败: {e}'}))
 
 
+# ── 【TASK-06】执行**身份**上报（与上面的"来源"上报配对）──────────────────────
+# 【为什么来源之外还要身份】两者答的是不同问题：
+#   来源 = "从哪条链路进来的"（cli/web/api/scheduled）；
+#   身份 = "**谁**在调"（human/llm/system/service_account）。
+# `tool_gate` 的两条判定读的是**身份**：
+#   ① "无身份 + 非交互 ⇒ 拒绝（不挂单）"；② "SA 预授权"。
+# 只报来源时，定时任务的 identity 仍是空串 ⇒ ①②都拿不到依据。
+# 【为什么标 `system` 而不是 `service_account`】`system` 的语义是"平台内部的
+#   签名执行体"（v1.4 §10.1：治理脚本、迁移、健康检查），而本调度器**正是**
+#   平台自身的后台线程，它没有外部凭据、也不该有 SA 的 scope 预授权能力。
+#   标成 SA 反而会**放宽**它对 L2 工具的访问面（SA 可凭 scope 通过），方向错了。
+_SCHEDULED_EXECUTION_IDENTITY = "system"
+
+
+def _enter_scheduled_execution_identity():
+    """把**当前执行线程**的身份标为 ``system``；返回还原句柄（失败 ⇒ ``None``）"""
+    try:
+        from agent.tool_gate import set_execution_identity
+        return set_execution_identity(_SCHEDULED_EXECUTION_IDENTITY)
+    except Exception as e:  # noqa: BLE001 上报失败不得影响任务执行
+        logger.warning(log_dict({'module_name': 'task_scheduler', 'action': 'log', 'msg': f'[TaskScheduler] 执行身份上报失败（不影响任务执行）: {e}'}))
+        return None
+
+
+def _exit_scheduled_execution_identity(handle) -> None:
+    """还原执行身份（**任何退出路径都必须调用**；失败只告警）"""
+    if handle is None:
+        return
+    try:
+        from agent.tool_gate import reset_execution_identity
+        reset_execution_identity(handle)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(log_dict({'module_name': 'task_scheduler', 'action': 'log', 'msg': f'[TaskScheduler] 执行身份还原失败: {e}'}))
+
+
 class TaskScheduler:
     """增强型定时任务调度器"""
 
@@ -327,10 +362,19 @@ class TaskScheduler:
         _source_handle = (
             _enter_scheduled_session_source() if str(trigger) == "schedule" else None
         )
+        # 【TASK-06 面 1】身份与来源**同时**上报：来源对上 ABAC 的 session_source_in，
+        # 身份对上闸门的"无身份 ⇒ 拒绝（不挂单）"与"SA 预授权"两条判定。
+        # 与来源同一条件（只有 `schedule` 触发才是无人值守）；人工 `manual` 触发时
+        # 人就在场，既不该被标成 system，也不该丢身份（保持"未声明"由上层决定）。
+        _ident_handle = (
+            _enter_scheduled_execution_identity()
+            if str(trigger) == "schedule" else None
+        )
         try:
             return self._run_task_body(task)
         finally:
             _exit_scheduled_session_source(_source_handle)
+            _exit_scheduled_execution_identity(_ident_handle)
 
     def _run_task_body(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """任务体（原 ``run_task`` 实现逐字未改；执行期的会话来源由 ``run_task`` 包裹）"""

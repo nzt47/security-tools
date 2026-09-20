@@ -158,6 +158,73 @@ def _isolate_llm_monitor_snapshot(tmp_path_factory):
 
 
 @pytest.fixture(autouse=True)
+def _reassert_approval_isolation(_isolate_approval_stores, monkeypatch):
+    """逐用例**重新施加**审批落盘隔离（防中途 `import app_server` 把它冲掉）
+
+    【为什么必须补这一道（2026-09-20 实测根因，TASK-06 分块全量跑时发现）】
+      `app_server.py:39-51` 在**导入期**调 `EnvConfigManager().reload()`，而它的语义是
+      "**覆盖**同名环境变量为 `.env` 值"。实测（同一进程内）：
+
+          os.environ["APPROVAL_RECORDS_PATH"] = "<隔离临时目录>/approval_records.jsonl"
+          import app_server
+          → os.environ["APPROVAL_RECORDS_PATH"] == "agent/data/approval_records.jsonl"
+
+      而 `.env:1215` 正是 `APPROVAL_RECORDS_PATH=agent/data/approval_records.jsonl`（**相对路径**）。
+      ⇒ 任何 `import app_server` 的用例（本仓有多个：`test_background_tasks_routes.py`、
+      能力面路由用例等）都会把上面 `_isolate_approval_stores` 的会话级隔离**冲掉**，
+      此后每一个触发审批的用例都会写进 `agent/data/approval_records.jsonl`
+      ⇒ 逐用例守卫 `_no_stray_approval_store` 在这些用例上报 teardown ERROR。
+
+      实测代价（`python scripts/run_full_pytest.py 4 4 fast`）：chunk_1 里 **8 条**用例
+      teardown 报 stray，而**单跑同一批文件全绿** —— 典型的"与执行序有关"，
+      与真缺陷的表现无法区分（第 5 次踩到"测试写生产数据"的同一族）。
+    【为什么只重设 `.env` 真正会覆盖的那一个】实测 `.env` 只设了
+      `APPROVAL_RECORDS_PATH`（其余五个隔离项不在 `.env` 里 ⇒ 不会被 reload 覆盖）。
+      只重设它会覆盖的那一个，能把影响面压到最小。
+    【为什么用 monkeypatch 而不是直改 os.environ】用例内仍可用
+      `monkeypatch.setenv("APPROVAL_RECORDS_PATH", ...)` 覆盖（monkeypatch 的还原栈是
+      后进先出，用例内设置的值优先），且随用例自动还原，不污染其它用例。
+    【为什么不改 `app_server.py` 的 .env 加载】那是**生产**语义（"配置走 .env 单一数据源"，
+      见该处注释），不该为了测试让步；隔离应由测试侧保证。
+    """
+    isolation_dir = Path(str(_isolate_approval_stores))
+    monkeypatch.setenv("APPROVAL_RECORDS_PATH",
+                       str(isolation_dir / "approval_records.jsonl"))
+
+
+@pytest.fixture(autouse=True)
+def _reset_env_derived_approval_flow(_reassert_approval_isolation):
+    """逐用例复位**按环境变量在首次访问时定型**的审批流单例
+
+    【为什么仅重设环境变量还不够（2026-09-20 实测）】
+      补上 `_reassert_approval_isolation` 后，整轮跑仍有 **2 条** teardown stray
+      （`test_capregistry_core`、`test_capregistry_callpaths_routes` 各 1 条），单跑却全绿。
+      根因：`agent/server_routes/routes_approval.py:65-80` 的 `get_approval_flow()`
+      把 `ApprovalFlow()` 缓存在**模块级** `_flow`，而 `ApprovalFlow.__init__` 只在
+      **构造那一刻**读 `APPROVAL_RECORDS_PATH`。若它的首次访问发生在"环境已被
+      `import app_server` 冲掉"之后，这个单例就把**错的路径**记到整轮结束 ——
+      之后无论怎么改环境变量，写盘都还是那条相对路径。
+    ⇒ 必须**同时把单例置空**，让它按新路径重建。
+    【与既有手法一致】这正是 `_isolate_llm_monitor_snapshot` + `_reset_llm_monitor_snapshot`
+      那一对的同一手法（会话级隔离开关 + 逐用例复位单例），故此处沿用同款命名与结构。
+    【为什么安全】`test_approval_routes.py` 的注入是**函数级夹具**（在用例 setup 内
+      `set_approval_flow(...)`、teardown 还原），发生在本夹具之后 ⇒ 不受影响。
+    """
+    try:
+        from agent.server_routes import routes_approval as _ra
+        _ra._flow = None
+    except Exception as e:  # noqa: BLE001 模块不可导入/无该属性 ⇒ 无需复位
+        logging.getLogger(__name__).debug(
+            "[conftest] 审批流单例复位跳过: %s: %s", type(e).__name__, e)
+    try:
+        from agent import tool_approval as _ta
+        _ta._READ_FLOW = None
+    except Exception as e:  # noqa: BLE001
+        logging.getLogger(__name__).debug(
+            "[conftest] tool_approval 只读流缓存复位跳过: %s: %s", type(e).__name__, e)
+
+
+@pytest.fixture(autouse=True)
 def _reset_llm_monitor_snapshot(_isolate_llm_monitor_snapshot):
     """每个用例前清掉隔离的 LLM 快照
 

@@ -1985,12 +1985,22 @@ class Orchestrator:
             # 懒注入 ToolExecutor（agent.tools.call 签名与 ToolExecutor 一致，仅注入一次）
             if not self._WFL_TOOL_EXECUTOR_INJECTED:
                 try:
-                    from agent.tools import call as _tool_call
+                    # 【TASK-06 §3 第 5 步"4 条身份绕过面"之面 3】原先是裸 lambda：
+                    #   `lambda tool_name, params: _tool_call(tool_name, **params)`
+                    #   —— 工作流回放**真的会执行工具**，但执行器不声明任何身份，
+                    #   于是 `tool_gate` 看到的 session_source 落到缺省 "cli"
+                    #   （一次编排触发的回放被记成"人从 CLI 调的"），identity 为空。
+                    #   现改用 `identity_propagating_executor`：它在**被调用的那一
+                    #   线程内**读出当前身份并如实上报（contextvars 不跨线程继承）。
+                    from agent.capregistry.invoke import (
+                        IDENTITY_LLM,
+                        identity_propagating_executor,
+                    )
                     svc.set_tool_executor(
-                        lambda tool_name, params: _tool_call(tool_name, **params)
+                        identity_propagating_executor(IDENTITY_LLM)
                     )
                     self._WFL_TOOL_EXECUTOR_INJECTED = True
-                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.tool_executor', 'trace_id_ctx': trace_id, 'message': '[工作流层] ToolExecutor 已注入（agent.tools.call）'}))
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.tool_executor', 'trace_id_ctx': trace_id, 'message': '[工作流层] ToolExecutor 已注入（agent.tools.call + 身份透传）'}))
                 except Exception as inj_e:
                     logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.tool_executor_failed', 'trace_id_ctx': trace_id, 'message': '[工作流层] ToolExecutor 注入失败，降级 LLM: %s' % (inj_e,)}))
                     return None

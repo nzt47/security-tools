@@ -95,7 +95,18 @@ class TestHitlFailClosedNet:
 
 
 class TestYamlStaysAuthoritative:
-    """兜底网**不得**越权：已登记工具一律由 YAML 决定要不要审批"""
+    """兜底网**不得**越权；`risk: high` 现在由 YAML 派生 **L2** 进入确认流
+
+    【2026-09-20 契约更新：因为 L0–L3 落地（TASK-06）】
+      本类原名 `test_risk_high_但无需审批的工具不被推去审批`，docstring 写着
+      "若把 HITL 的 HIGH 也搬进来，日常写文件都会要人点确认 —— 那是把治理做成骚扰"。
+      那个**顾虑仍然成立**，但 TASK-06 的解法换了：不再靠"完全不拦"，而是靠**分级** ——
+      这 4 个工具派生为 **L2（逐次确认）**，而 `effect: write` / `risk: medium` 那批是
+      **L1（摘要确认、可批量）**，L0 只读工具仍免确认（见下一个用例）。
+      故断言从"放行"改为"**确实进入了确认流，且级别是 L2**"。
+      不变的一条是：**已登记工具的判定只能来自 YAML**（兜底网不得越权）——
+      用理由串里的 `confirm_level=L2` 而不是"未登记元数据"来证明这一点。
+    """
 
     @pytest.mark.parametrize("tool,args", [
         ("write_file", {"path": "a.txt", "content": "x"}),
@@ -103,10 +114,23 @@ class TestYamlStaysAuthoritative:
         ("apply_patch", {"patch": "--- a\\n+++ b\\n"}),
         ("git", {"args": ["status"]}),
     ])
-    def test_risk_high_但无需审批的工具不被推去审批(self, tool, args):
-        """`write_file`/`edit`/`git` 等是 `risk: high` 但 `needs_approval=False`：
-        若把 HITL 的 HIGH 也搬进来，日常写文件都会要人点确认 —— 那是把治理做成骚扰。"""
-        assert G.check_tool_call(tool, args) is None
+    def test_risk_high_工具按_YAML_派生_L2_进入确认流(self, tool, args):
+        result = G.check_tool_call(tool, args)
+
+        assert result is not None and result["blocked"] is True, f"{tool} 未进确认流"
+        assert result["error_code"] == "APPROVAL_REQUIRED"
+        assert "confirm_level=L2" in result["reason"], result["reason"]
+        assert "未登记元数据" not in result["reason"], \
+            "理由必须来自 YAML 的派生级别，而不是兜底网（否则就是越权判定）"
+
+    def test_L0_只读工具仍免确认(self):
+        """E2 的正面判据：分级**不是**一刀切
+
+        若为提高安全性把所有工具都变成 L2，就是取消分级的意义（TASK-06 §5 明确列为
+        "不通过"），也会重演 `tool_gate.py:769-773` 当初降级的动机。
+        """
+        assert G.check_tool_call("read_file", {"path": "x.txt"}) is None
+        assert G.check_tool_call("list_dir", {"path": "."}) is None
 
 
 class TestEthicsRulesAreLive:
@@ -125,8 +149,19 @@ class TestEthicsRulesAreLive:
         assert G.check_tool_call("grep", {"pattern": "shutdown", "path": "logs"}) is None
 
     def test_写类工具不查伦理(self):
-        """`write_file`（effect=write）不查：伦理规则面向"造成后果的执行"，写类由 YAML 管"""
-        assert G.check_tool_call("write_file", {"path": "x", "content": "shutdown"}) is None
+        """`write_file`（effect=write）不查伦理：伦理规则面向"造成后果的执行"，写类由 YAML 管
+
+        【2026-09-20 契约更新：因为 L0–L3 落地（TASK-06）】原断言是 `is None`
+        （旧契约：high 不触发确认）。现在 `write_file` 是 L2 ⇒ 会被拦，但拦它的
+        **不是伦理规则**（`_ethics_boundary` 只作用于 `effect ∈ {execute, extend}`）。
+        故断言改为"被 L2 拦 + 理由里没有伦理" —— 原意图（写类不查伦理）因此被更精确地钉住。
+        """
+        result = G.check_tool_call("write_file", {"path": "x", "content": "shutdown"})
+
+        assert result is not None and result["blocked"] is True
+        assert "confirm_level=L2" in result["reason"], result["reason"]
+        assert "伦理" not in result["reason"], \
+            "写类工具不该走伦理硬规则（参数里出现 shutdown 不等于要执行关机）"
 
 
 class TestGhostToolSemantics:

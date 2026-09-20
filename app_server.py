@@ -627,6 +627,50 @@ _init_window_sensor()
 _safety_guard = SafetyGuard()
 logger.info("安全守护模块已加载")
 
+# ── 【TASK-06】把 SA 预授权钩子装进工具闸门（**预授权不是旁路**）──────────────
+# 为什么必须在这里显式调用：`agent/security/service_account.py::install_gate_hook()`
+#   刻意**不**在 import 期自动安装（导入期副作用会让"只想读个常量"的调用方也改全局
+#   状态）。而不装它的后果是**静默**的：SA 无法凭 scope 通过 L2/L3，非交互场景只能
+#   拿到拒绝 —— 方向更严，但"SA 预授权"这项交付物等于没接线（名义有、实际无）。
+# 为什么按 D4 只告警不抛：钩子装不上的后果是"更严"，不该阻断 5678 启动。
+def _install_service_account_hook():
+    try:
+        from agent.security.service_account import install_gate_hook
+        if install_gate_hook():
+            logger.info("SA 预授权钩子已装入工具闸门（TASK-06）")
+        else:
+            logger.warning("SA 预授权钩子安装失败（SA 将无法凭 scope 通过 L2/L3，属更严的一侧）")
+    except Exception as _e:  # noqa: BLE001 不阻断启动（D4）
+        logger.warning(f"SA 预授权钩子加载失败（不影响启动，SA 预授权不可用）: {_e}")
+
+
+_install_service_account_hook()
+
+
+# ── 【TASK-06】鉴权配置状态：启动告警（**不阻断**）────────────────────────────
+# TASK-06 §3 第 5 步第 2 项第 ① 步：本部署实测**未配置任何令牌**（只有"未配就不校验"
+# 的 fail-open）。一步改成 fail-closed 会当场 401 掉本机 UI 与全部脚本 ⇒ 先做
+# "让它可见"：启动时明确告警，并把状态暴露在健康/状态面（见 routes_panorama）。
+# 迁移的 ②③④ 步与回退路径见 `docs/rfc/鉴权迁移.md`。
+def _warn_if_auth_unconfigured():
+    try:
+        from agent.server_auth import auth_status
+        st = auth_status()
+        if not st.get("configured"):
+            logger.warning(
+                "【鉴权】未配置任何 API 令牌（FLASK_API_TOKEN / CP_UI_TOKENS 皆为空）"
+                "⇒ 所有端点**不做令牌校验**（fail-open）。这是刻意的迁移第 ① 步，"
+                "不是缺陷；收口路径与回退见 docs/rfc/鉴权迁移.md。"
+                "如需立即启用：生成令牌写入 .env（scripts/gen_api_token.py）。")
+        else:
+            logger.info("【鉴权】已配置令牌（source=%s，映射条目=%s）",
+                        st.get("source"), st.get("token_map_size"))
+    except Exception as _e:  # noqa: BLE001 状态探测失败不得影响启动（D4）
+        logger.warning(f"鉴权状态探测失败（不影响启动）: {_e}")
+
+
+_warn_if_auth_unconfigured()
+
 # ── 初始化 Web 工具模块 ──
 _web_http = HttpClient({"timeout": 30, "max_retries": 3, "backoff_factor": 0.5})
 _web_scraper = Scraper(_web_http)

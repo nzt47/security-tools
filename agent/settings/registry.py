@@ -703,6 +703,63 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        owner="agent/tool_gate.py",
        impact="影响面：开启=审批边界生效（critical 工具如 shell_execute 需人工确认一次）；"
               "关闭=边界只告警不拦截"),
+    # 【B 级理由】确认分级开关（TASK-06）：它决定 13 个 risk: high 工具是否真的逐次
+    #   确认。默认**开启** —— 默认关闭等于"13 个 high 完全不触发确认"这个缺陷仍在。
+    _b("CP_TOOL_CONFIRM_LEVEL_ENFORCE", CAT_SELF_HEALING, True,
+       "工具侧确认分级 L0–L3 强制开关（TASK-06 / v1.4 §10.2）：默认开启 ⇒ "
+       "data/tool_definitions/*.yaml 派生出的 confirm_level 生效（L0 免确认、"
+       "L1 摘要确认可批量、L2 逐次确认单次有效、L3 默认禁止须显式预授权；"
+       "13 个 risk: high 工具首次进入确认流）；置 0/false/no/off = 退回旧口径"
+       "（只有 plane=govern / effect=extend / risk=critical 挂单）",
+       owner="agent/tool_gate.py",
+       impact="影响面：开启=write_file/edit/git/apply_patch/run_program 等 13 个 "
+              "risk: high 工具的调用会要求人工确认（交互路径挂单，非交互路径直接拒绝）；"
+              "关闭=退回改动前的二值口径。**实测当前部署没有定时任务**（0 条），"
+              "故不存在「夜间任务集体失败」的既有风险",
+       rollback="回滚：置 CP_TOOL_CONFIRM_LEVEL_ENFORCE=0（立即回到旧口径，不写数据文件）；"
+                "或先置 CP_TOOL_CONFIRM_LEVEL_SHADOW=1 只告警不拦截"),
+    # 【A 级理由】影子模式是"更宽"而非"更严"的开关：打开它只会让拦截变少（只告警），
+    #   属于迁移期观测手段，不改变风险姿态，故不需要二次认证。
+    _a("CP_TOOL_CONFIRM_LEVEL_SHADOW", CAT_SELF_HEALING, False,
+       "工具侧确认分级**影子模式**（TASK-06 §6 迁移第一步）：置 1/true/yes/on ⇒ "
+       "只记录「若按新规则将会要求确认」（告警 + 审计 decision=shadow_alert），"
+       "**不实际拦截**。用于在真正开启拦截前先观察一个周期的命中面",
+       owner="agent/tool_gate.py",
+       impact="影响面：开启=分级判定只告警不拦截（不改变任何调用结果）；关闭=按 "
+              "confirm_level 实际拦截",
+       rollback="回滚：置 CP_TOOL_CONFIRM_LEVEL_SHADOW=0"),
+    # ── 服务账号（第四类主体；agent/security/service_account.py，TASK-06）──
+    _c("CP_SERVICE_ACCOUNTS_PATH", CAT_SELF_HEALING,
+       "data/service_accounts.json",
+       "service_account 凭据文件路径（**加密落盘**，Fernet；只记账号 scope、"
+       "已签发 jti 与吊销黑名单，**不存令牌原文**）。缺省在仓库 data/ 下；"
+       "测试应指向临时目录（D6 不碰生产数据）",
+       owner="agent/security/service_account.py"),
+    _secret("CP_SERVICE_ACCOUNT_KEY", CAT_SELF_HEALING,
+            "service_account 令牌的 HMAC-SHA256 签名密钥。未配置 ⇒ 本进程生成临时密钥，"
+            "该进程签发的 SA 令牌在重启后一律失效（**不放宽任何权限**，故按可用性优先"
+            "并留 WARNING）。生产使用必须显式配置",
+            owner="agent/security/service_account.py"),
+    _secret("CP_SERVICE_ACCOUNT_ENCRYPT_KEY", CAT_SELF_HEALING,
+            "service_account **凭据文件**的 Fernet 加密密钥（标准 Fernet key，"
+            "即 cryptography.fernet.Fernet.generate_key() 的产物）。未配置 ⇒ "
+            "凭据明文落盘并在日志告警（不放宽任何权限判定）。"
+            "【不易】未复用 Yunshu_ENCRYPT_KEY：该名含小写，"
+            "scripts/scan_settings.py 的常量模式 ^[A-Z][A-Z0-9_]*$ 解析不了它，"
+            "用作读取点会使零缺口守卫多出一个 <unresolved> 家族",
+            owner="agent/security/service_account.py"),
+    # 【A 级理由】这是"让一个谎报成功的工具恢复可用"的开关，方向是**更严**（默认 0
+    #   = 拒绝创建任务），打开它不会放宽任何权限，只会让一个已声明的能力真的生效。
+    _a("CP_SCHEDULER_ACTION_EXECUTION", CAT_SELF_HEALING, False,
+       "定时任务 action 是否真的会被执行（TASK-06 E13）。实测："
+       "agent/scheduling.py::_execute_task 的 action 分支是 pass ⇒ 工具面 "
+       "schedule_task 创建的任务会按时触发但**不执行任何动作**（谎报成功）。"
+       "默认 0 ⇒ schedule_task 直接返回 error_code=NOT_IMPLEMENTED 并拒绝创建，"
+       "使模型不再收到「成功」；置 1/true/yes/on ⇒ 恢复创建（返回值显式带 "
+       "action_execution_implemented=true），仅在运维已另行实现 action 分支后使用",
+       owner="agent/tools/code_tools.py",
+       impact="影响面：默认 0=schedule_task 不可用（拒绝创建，返回 NOT_IMPLEMENTED）；"
+              "置 1=恢复创建定时任务，但动作是否真的执行取决于 action 分支是否已实现"),
     # 【B 级理由】可调用性过滤开关：它决定"声明为不可被 LLM 调用的工具是否真的从模型
     #   可见集里消失"。默认**开启**，且当前唯一被判否的 process_distill_run 本就是
     #   internal ⇒ 打开前后模型可见集完全相同（零行为变化，见
@@ -723,8 +780,11 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "工具审批消费台账路径（append-only，记录哪张审批单已被哪次调用消费）；"
        "审批流记录本身是决策权威，本台账只解决「批准不可重放」",
        owner="agent/tool_approval.py"),
-    _a("CP_PERMISSION_DEFAULT_ROLE", CAT_SELF_HEALING, "owner",
-       "严格模式下使用的角色（owner/admin/developer/guest）；非法值回退 owner",
+    _a("CP_PERMISSION_DEFAULT_ROLE", CAT_SELF_HEALING, "guest",
+       "严格模式下使用的角色（owner/admin/developer/guest）；非法值回退缺省值。"
+       "【TASK-06（E15）】缺省值由 owner 改为 guest —— owner 的 allowed_tools 是 "
+       "[\"*\"]（放行一切），使严格模式在缺省配置下形同虚设；治理面缺省必须是最小权限。"
+       "需要旧行为请显式设为 owner",
        owner="agent/tool_gate.py"),
     _a("CP_PERMISSION_SESSION_SOURCE", CAT_SELF_HEALING, "cli",
        "严格模式下上报的会话来源（cli/web/api/scheduled），供 ABAC 的 session_source_in 规则判定",

@@ -25,11 +25,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TOOL_DEFS_DIR = os.path.join(_ROOT, "data", "tool_definitions")
@@ -45,6 +48,21 @@ RISKS = ("low", "medium", "high", "critical")
 TOOL_TYPES = ("tool", "skill", "api", "script")
 CALLABLE_MODES = ("auto", "required", "manual")
 PERMISSION_LEVELS = ("public", "internal", "restricted")
+
+#: 工具侧**确认分级**四级（v1.4 §10.2；TASK-06 新增）
+#: 【为什么新建而不是复用技能域的 L0/L1/L2】`agent/skills_mgmt/approval.py:71` 的
+#: `APPROVAL_LEVELS=("L0","L1","L2")` 是**技能/策略审批**域的口径（L2=manual_required），
+#: 与"一次工具调用要不要人点确认"不是同一件事（值域都少一级）。两域各自独立，
+#: 不互相 import —— 硬凑成一个常量会让某一域将来改级时被迫带上另一域的语义。
+CONFIRM_LEVELS = ("L0", "L1", "L2", "L3")
+
+#: 四级语义（人读；审计与盘点表引用同一份文案，避免两处措辞漂移）
+CONFIRM_LEVEL_SEMANTICS = {
+    "L0": "免确认（只读且低风险）",
+    "L1": "摘要确认（展示将执行什么 + 影响范围，**可批量确认**）",
+    "L2": "逐次确认（每次都要人点，且单次有效）",
+    "L3": "默认禁止（仅**显式预授权** —— SA + scope —— 才能执行）",
+}
 
 # ── CapabilitySpec 新增维度（v1.4 §5.1；TASK-04）─────────────────────────
 #: 能力形态归并（见 docs/rfc/CapabilitySpec规范.md §2）：
@@ -78,7 +96,101 @@ DEFAULT_NAMESPACE = "yunshu"
 _EFFECT_ORDER = {"read": 0, "write": 1, "execute": 2, "extend": 3}
 
 #: 风险的推荐审批阈值：risk >= 此值则默认需要人工确认
-_APPROVAL_FROM_RISK = {"critical"}
+#
+# 【🔴 TASK-06 核心一行改动（本任务最高风险的一行）】原值为 `{"critical"}`。
+#   实测后果：91 个 YAML 里 `risk: high` 有 **13 个**（apply_patch / connect_mcp /
+#   decompress / edit / ext_install / ext_send_channel / ext_uninstall / fan_out /
+#   git / run_program / schedule_task / workspace_delete / write_file），
+#   它们**完全不触发人工确认** —— 那是"写文件/改文件/删工作区/装扩展"这一类动作。
+#   `agent/tool_gate.py:769-773` 当初注明"不把已登记工具的 HITL 结果搬过来"的动机
+#   是"否则所有写操作都要点确认"。加 `high` 后那个顾虑由**分级**解决（见
+#   `derive_confirm_level`）：L0/L1 仍不逐次确认，只有 13 个 high 进 L2。
+#
+# 【回滚】本行 + `confirm_level` 派生由 `CP_TOOL_CONFIRM_LEVEL_ENFORCE` 门控
+#   （默认开启，置 0 退回"只有 critical 挂单"的旧行为）。见 `agent/tool_gate.py`。
+_APPROVAL_FROM_RISK = {"critical", "high"}
+
+
+def derive_confirm_level(plane: str, effect: str, risk: str) -> str:
+    """由治理三轴**派生** `confirm_level`（唯一派生口径；不是人工填的字段）
+
+    规则（TASK-06 §3 第 2 步的表；**顺序敏感，从严者先判**）：
+
+    | 条件 | 级别 | 语义 |
+    |---|---|---|
+    | `risk: critical` \\| `effect: extend` \\| `plane: govern` | **L3** | 默认禁止（须显式预授权） |
+    | `risk: high` | **L2** | 逐次确认（本任务要修的核心缺陷，13 个工具） |
+    | `effect: write` \\| `effect: execute` \\| `risk: medium` | **L1** | 摘要确认（可批量） |
+    | 其余（即 `effect: read` 且 `risk: low`） | **L0** | 免确认 |
+
+    【为什么 ① 必须排在 ② 之前】`shell_execute` 是 `risk: critical` + `plane: act`、
+    `generate_tool` 是 `critical` + `govern`。若先判 `risk`，两条都会落进 L2
+    （"点一下就行"）—— 而"改变云枢自身能力集"与"不可逆高危"要求的是**默认禁止**。
+    同理：13 个 `risk: high` 里有 3 个（`connect_mcp` / `ext_install` /
+    `ext_uninstall`）同时是 `plane: govern` ⇒ 它们按 **L3** 处置（更严），
+    而不是按 L2。**13 个一个都没漏**，只是其中 3 个被抬到 L3。
+
+    【🔴 实测补的一处口径空洞（TASK-06 原表没有这一行）】
+    TASK-06 §3 第 2 步的表只列了 `read+low` / `write 或 medium` / `high` / `critical…
+    extend…govern` 四行。而仓库里存在**第 5 种组合**：`effect: execute` + `risk: low`
+    —— 实测 **2 个工具**（`notify` / `run_lint`）正是这一组合。
+    若把它归入 L0（"免确认"），就等于**免确认地执行程序**，与仓库自己的
+    `effective_permission_level` 口径直接冲突：那条口径对它们给的是 `internal`
+    而不是 `public`（`execute` 不是只读）。故本实现把 `execute` 与 `write` 同等对待
+    → **L1**。修正后 `L0 ⟺ read ∧ low`，与 `public` 的判定逐条等价（见下）。
+
+    【与 `permission_level` 的一致性（D1：不允许两套并行口径）】
+    在 `_APPROVAL_FROM_RISK` 含 `high` 之后，两条派生**逐条等价**：
+
+        `confirm_level == "L0"`  ⟺  `permission_level == "public"`（且未被策略拒绝）
+
+    证明：L0 ⟺ (read ∧ low ∧ ¬govern ∧ ¬extend)；
+          public ⟺ (¬needs_approval ∧ ¬denied ∧ read ∧ low)，
+          而 `needs_approval` = govern ∨ extend ∨ risk∈{critical,high}
+    ⇒ 两者是**同一组条件**的两种写法。由 `tests/unit/test_confirm_level.py`
+      在**全量 114 条**上对拍锁死（E8）。唯一允许的例外是 `denied=True`
+      （策略拒绝 ⇒ permission_level 降为 restricted，而 confirm_level 反映的是
+      "本来该几级确认"）—— 该例外在测试里逐条列举理由，不静默放过。
+    """
+    p = str(plane or "").strip().lower()
+    e = str(effect or "").strip().lower()
+    r = str(risk or "").strip().lower()
+    if r == "critical" or e == "extend" or p == "govern":
+        return "L3"
+    if r == "high":
+        return "L2"
+    if e in ("write", "execute") or r == "medium":
+        return "L1"
+    return "L0"
+
+
+def needs_approval_for(plane: str, effect: str, risk: str) -> bool:
+    """`needs_approval` 的**唯一权威判定**（`ToolMeta` 与 `callability` 共用）
+
+    【为什么必须抽成函数】改 `_APPROVAL_FROM_RISK` 之前，这条规则在仓库里有**三份
+    手写副本**：`agent/lines/models.py::ToolMeta.needs_approval`、
+    `agent/lines/callability.py::_tool_entry`（第 751 行）、
+    `tests/unit/test_tool_callability.py`（第 97-98 行，`risk == "critical"`）。
+    TASK-06 要把阈值从 `critical` 提到 `high` ⇒ 三份副本必须**同时**改，
+    漏一处就是"改了却测不出来"（守卫测试用的还是旧口径，绿灯掩盖缺口）。
+    抽成函数后三处共用同一实现，D1 的"单一真相源"才真的成立。
+    """
+    return (str(plane or "").strip().lower() == "govern"
+            or str(effect or "").strip().lower() == "extend"
+            or str(risk or "").strip().lower() in _APPROVAL_FROM_RISK)
+
+
+def confirm_level_rank(level: str) -> int:
+    """确认级别 → 序号（`L0`=0 … `L3`=3）；未知值 → **-1**（调用方据此从严处置）
+
+    Why 未知返回 -1 而不是 0：`-1` 会让"未知级别 >= L2 吗"这类比较落到 False，
+    看起来像"放行"—— 所以调用方**不得**直接用它做放行判定，必须先判 `>= 0`。
+    本函数只服务"比较严宽"，放行判定一律用 `CONFIRM_LEVELS` 成员测试。
+    """
+    try:
+        return CONFIRM_LEVELS.index(str(level or "").strip().upper())
+    except ValueError:
+        return -1
 
 
 @dataclass(frozen=True)
@@ -154,6 +266,15 @@ class ToolMeta:
     #: 使"静默改名"变成**可见的别名**，见 TASK-04 §3 第 2 步第 5 项）
     aliases: tuple = ()
 
+    # ── 工具侧确认分级（v1.4 §10.2；TASK-06 新增）────────────────────────
+    # 【D2 向后兼容】YAML 里 `confirm_level` **一个都没写**（实测 91/91 均无），
+    # 空串 ⇒ 完全由 :func:`derive_confirm_level` 派生 ⇒ 既有 YAML 零改动即可工作。
+    #: 显式声明的确认级别（`L0`–`L3`）；空串 = 未声明 ⇒ 走派生
+    confirm_level: str = ""
+    #: 声明理由。**降级（比派生值更宽）时必须给**，否则该 override 被忽略
+    #: （见 :func:`_resolve_confirm_level`）。升级（比派生值更严）不需要理由。
+    confirm_level_reason: str = ""
+
     @property
     def kind(self) -> str:
         """能力形态（归并后）：`api`→`tool`、`script`→`skill`；`tool`/`skill` 为**恒等映射**。
@@ -202,12 +323,54 @@ class ToolMeta:
 
     @property
     def needs_approval(self) -> bool:
-        """治理平面 / 改变能力集 / 高危 ⇒ 需要人工确认"""
-        return (
-            self.plane == "govern"
-            or self.effect == "extend"
-            or self.risk in _APPROVAL_FROM_RISK
-        )
+        """治理平面 / 改变能力集 / 高危 ⇒ 需要人工确认
+
+        【TASK-06】本属性随 `_APPROVAL_FROM_RISK` 纳入 `high` 而**首次为真**地为
+        13 个写类工具（write_file / edit / git / apply_patch / run_program …）。
+        它与 `effective_confirm_level >= "L2"` 是同一事实的两种表达（见
+        `derive_confirm_level` 的一致性证明），由 `tests/unit/test_confirm_level.py`
+        在 114 条上对拍。
+        """
+        return needs_approval_for(self.plane, self.effect, self.risk)
+
+    @property
+    def derived_confirm_level(self) -> str:
+        """**纯派生**的确认级别（忽略 YAML override；对拍与守门测试用）"""
+        return derive_confirm_level(self.plane, self.effect, self.risk)
+
+    @property
+    def effective_confirm_level(self) -> str:
+        """**生效**的确认级别：YAML 显式声明优先，否则派生
+
+        为什么"声明优先"而不总是以派生为准：TASK-06 §3 第 2 步第 4 项允许业务上
+        确实高频的工具显式声明（例如某个 `high` 工具），但**必须记理由**
+        （`confirm_level_reason`）且**禁止静默降级** —— 理由缺失时的降级声明
+        在 `load_tool_meta()` 里就已被丢弃（回落派生值），故此处无须再判。
+        """
+        declared = str(self.confirm_level or "").strip().upper()
+        if declared in CONFIRM_LEVELS:
+            return declared
+        return self.derived_confirm_level
+
+    @property
+    def confirm_level_overridden(self) -> bool:
+        """是否被 YAML 显式覆盖（盘点表据此回答"这个级别是算出来的还是人填的"）"""
+        return str(self.confirm_level or "").strip().upper() in CONFIRM_LEVELS
+
+    @property
+    def confirm_level_semantics(self) -> str:
+        """该级别的中文语义（与 `CONFIRM_LEVEL_SEMANTICS` 同一份文案）"""
+        return CONFIRM_LEVEL_SEMANTICS.get(self.effective_confirm_level, "")
+
+    @property
+    def requires_preauthorization(self) -> bool:
+        """是否 L3 —— **默认禁止**，只有显式预授权（SA + scope）才能执行
+
+        Why 单列一个属性：`agent/tool_gate.py` 对 L3 的处置与 L2 **不同**
+        （L2 = 挂单等人工裁决；L3 = 直接拒绝，人工裁决也不行），
+        而调用点若自己写 `== "L3"` 就会与派生口径脱钩。
+        """
+        return self.effective_confirm_level == "L3"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -245,12 +408,66 @@ class ToolMeta:
             "health": self.health,
             "deprecated": bool(self.deprecated),
             "aliases": list(self.aliases),
+            # ── 工具侧确认分级（TASK-06 新增；只增不减，D2）──
+            # 同时输出"生效值"与"派生值"：盘点表要能回答"这条级别是人填的还是算出来的"
+            "confirm_level": self.effective_confirm_level,
+            "confirm_level_declared": self.confirm_level,
+            "confirm_level_derived": self.derived_confirm_level,
+            "confirm_level_reason": self.confirm_level_reason,
+            "confirm_level_overridden": self.confirm_level_overridden,
+            "confirm_level_semantics": self.confirm_level_semantics,
+            "requires_preauthorization": self.requires_preauthorization,
         }
 
 
 def _norm(value: Any, allowed: tuple, default: str) -> str:
     text = str(value or "").strip().lower()
     return text if text in allowed else default
+
+
+def _confirm_level_of(value: Any) -> str:
+    """解析 YAML 的 `confirm_level`（大小写不敏感：`L2` / `l2` 都接受）
+
+    Why 单独一个助手而不复用 `_norm`：`_norm` 会 `lower()` 后比对，而
+    `CONFIRM_LEVELS` 是**大写**字母 + 数字（`L0`…`L3`）。若为了让 `_norm` 能用
+    而把常量改成小写，盘点表与审计里就会出现 `l2` 这种与文档不一致的写法
+    （D1：口径只有一套）。
+    """
+    text = str(value or "").strip().upper()
+    return text if text in CONFIRM_LEVELS else ""
+
+
+def _resolve_confirm_level(declared: str, derived: str,
+                           reason: Any) -> tuple:
+    """裁定 YAML 的 `confirm_level` override —— 返回 `(生效声明值, 说明)`
+
+    【不对称规则，这是刻意的】
+      · 声明值 **更严**（级别序号 > 派生值）⇒ **直接接受**，不需要理由：
+        "把保护调高"永远安全；要求理由只会让人为了省事而不去调高。
+      · 声明值 **更宽**（级别序号 < 派生值）⇒ **必须有 `confirm_level_reason`**；
+        理由缺失 ⇒ **丢弃该 override**（回落派生值）并把原因写进说明。
+        这正是 TASK-06 §3 第 2 步第 4 项"**禁止静默降级**（v1.4 ADR-028 精神）"
+        的落地方式：降级要么写在明面上（有理由、可查询），要么不生效 ——
+        不存在"悄悄降了一级而盘点表看不出来"的第三种状态。
+      · 声明值 == 派生值 ⇒ 视为冗余声明、按未覆盖处理（避免盘点表虚报 override）。
+
+    Returns:
+        `(declared_or_empty, note)`；`declared_or_empty` 为空串表示"按派生"。
+    """
+    if not declared:
+        return "", ""
+    if declared == derived:
+        return "", f"YAML 声明 {declared} 与派生值相同 ⇒ 视为未覆盖（冗余声明）"
+    note = str(reason or "").strip()
+    d_rank, y_rank = confirm_level_rank(declared), confirm_level_rank(derived)
+    if y_rank >= 0 and d_rank > y_rank:
+        return declared, (f"YAML 显式**收紧**至 {declared}（派生值 {derived}）"
+                          + (f"；理由：{note}" if note else ""))
+    if not note:
+        # 降级且无理由 ⇒ 丢弃（fail-closed：宁可多确认一次，不可静默放宽）
+        return "", (f"YAML 声明 {declared} 比派生值 {derived} **更宽**且未给 "
+                    "confirm_level_reason ⇒ 该 override 被丢弃（禁止静默降级）")
+    return declared, f"YAML 显式**放宽**至 {declared}（派生值 {derived}）；理由：{note}"
 
 
 def _as_bool(value: Any, default: bool) -> bool:
@@ -369,12 +586,25 @@ def load_tool_meta(defs_dir: Optional[str] = None, force: bool = False) -> Dict[
         raw_aliases = doc.get("aliases") or ()
         if isinstance(raw_aliases, str):
             raw_aliases = [raw_aliases]
+        # ── 确认分级 override 裁定（TASK-06）──
+        # 【不易·为什么裁定放在读取层而不是 `ToolMeta` 的属性里】
+        #   `ToolMeta` 是 `frozen=True` 的纯数据容器，属性里做"丢弃无效 override"
+        #   会让 `to_dict()` 的 `confirm_level_declared` 与真实 YAML 不一致
+        #   （用户改的 YAML 与读到的值不符，排查时误导）。裁定必须在**唯一权威读取
+        #   入口**完成一次，此后 `confirm_level` 字段就是"已裁定的声明值"。
+        _plane = _norm(doc.get("plane"), PLANES, "act")
+        _effect = _norm(doc.get("effect"), EFFECTS, "execute")
+        _risk = _norm(doc.get("risk"), RISKS, "medium")
+        _declared_cl = _confirm_level_of(doc.get("confirm_level"))
+        _cl, _cl_note = _resolve_confirm_level(
+            _declared_cl, derive_confirm_level(_plane, _effect, _risk),
+            doc.get("confirm_level_reason"))
         out[name] = ToolMeta(
             name=name,
             category=str(doc.get("category") or ""),
-            plane=_norm(doc.get("plane"), PLANES, "act"),
-            effect=_norm(doc.get("effect"), EFFECTS, "execute"),
-            risk=_norm(doc.get("risk"), RISKS, "medium"),
+            plane=_plane,
+            effect=_effect,
+            risk=_risk,
             tags=tags,
             description=str(doc.get("description") or "")[:200],
             internal=bool(doc.get("internal", False)),
@@ -408,7 +638,16 @@ def load_tool_meta(defs_dir: Optional[str] = None, force: bool = False) -> Dict[
             health=str(doc.get("health") or "").strip(),
             deprecated=_as_bool(doc.get("deprecated"), False),
             aliases=tuple(str(t) for t in raw_aliases if str(t).strip()),
+            # ── 工具侧确认分级（TASK-06）──
+            # `_cl_note` 在下面 `logger.info` 里落诊断日志（不静默丢 override）。
+            confirm_level=_cl,
+            confirm_level_reason=str(doc.get("confirm_level_reason") or "").strip(),
         )
+        if _cl_note:
+            # 【为什么留日志而不是静默】`_resolve_confirm_level` 可能**丢弃**一个
+            # 无效的降级声明（无理由）。若不留痕，用户改了 YAML 却发现"没生效、
+            # 也没报错"。这是 D9「解释为什么」在运行时的对应物。
+            logger.info("[tool_meta] %s 的 confirm_level override：%s", name, _cl_note)
     if sig is not None:
         _META_CACHE[root] = out
         _META_CACHE_SIG[root] = sig
@@ -584,4 +823,7 @@ __all__ = [
     "load_tool_meta", "invalidate_tool_meta_cache", "TOOL_DEFS_DIR", "AGENT_LINES_DIR",
     "TOOL_TYPES", "CALLABLE_MODES", "PERMISSION_LEVELS",
     "KINDS", "LOCATIONS", "OWNERS", "DEFAULT_TENANT_ID", "DEFAULT_NAMESPACE",
+    # ── 工具侧确认分级（TASK-06）──
+    "CONFIRM_LEVELS", "CONFIRM_LEVEL_SEMANTICS",
+    "derive_confirm_level", "confirm_level_rank",
 ]

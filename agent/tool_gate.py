@@ -90,8 +90,13 @@
     开关：``CP_TOOL_GATE_STRICT`` ∈ ``1/true/yes/on``（大小写不敏感、两侧空白忽略）
     才启用；**未设置或其它任何取值一律保持上面的 fail-open 行为**。
     启用后追加的判定：
-        角色 = 环境变量 ``CP_PERMISSION_DEFAULT_ROLE``（缺省 ``owner``；取值不是
-        ``Role`` 枚举合法值 → 告警并回退 ``owner``）；
+        角色 = 环境变量 ``CP_PERMISSION_DEFAULT_ROLE``（缺省 ``guest``——**最小权限**；
+        取值不是 ``Role`` 枚举合法值 → 告警并回退同一个 ``guest``）；
+        【2026-09-20 TASK-06 E15 改动】缺省值原为 ``owner``（``allowed_tools=["*"]``
+        ⇒ 严格模式等于没开）。TASK-06 §3 第 6 步第 6 项要求"缺省角色改为**最小权限**
+        （拒绝或只读）"，理由是"缺省特权"这条设计一旦被别人依赖，
+        就会让"开了严格模式"这句话失去意义。要宽松口径请显式设
+        ``CP_PERMISSION_DEFAULT_ROLE=owner``（既有开关，无需新变量）。
         来源 = 环境变量 ``CP_PERMISSION_SESSION_SOURCE``（缺省 ``"cli"``）；
         ``PermissionGateway.check(tool_name, params, ABACContext(role=..., session_source=...))``
         返回 ``PermissionResult(allowed=False)`` ⇒ 拒绝（拒绝结构与既有规则一致，
@@ -193,8 +198,22 @@ STRICT_ROLE_ENV = "CP_PERMISSION_DEFAULT_ROLE"
 STRICT_SOURCE_ENV = "CP_PERMISSION_SESSION_SOURCE"
 #: 视为"启用"的取值（大小写不敏感、两侧空白忽略）
 _ENABLED_VALUES = frozenset({"1", "true", "yes", "on"})
-#: 严格模式缺省角色：`owner` 的白名单是 ``["*"]``，开了不会当场封杀 97.3% 的工具
-_DEFAULT_STRICT_ROLE = "owner"
+#: 严格模式缺省角色
+#
+# 【🔴 TASK-06（E15）改动：`owner` → `guest`】
+#   原值 `owner` 的理由是"`owner` 的白名单是 `["*"]`，开了不会当场封杀 97.3% 的工具"
+#   —— 那是一个**为了不破坏功能而选的缺省**，代价是"严格模式一旦开启，缺省即特权"：
+#   `owner` = `allowed_tools: ["*"]` = 放行一切，于是"开了严格模式"与"什么都没开"
+#   在缺省配置下**行为完全相同**（严格模式的 RBAC 层形同虚设）。
+#   治理面的缺省必须是**最小权限**而不是特权（本模块 docstring 的 fail-closed 纪律）。
+#   实测（`data/permission_policies.json`）：`guest.allowed_tools` 只有 **2** 条，
+#   是四个角色里最少的一个 ⇒ 缺省降到最小权限。
+#
+#   【影响评估（E16）】本改动**当前零行为影响**：`CP_TOOL_GATE_STRICT` 在 `.env` 与
+#   `config.yaml` 里实测**都不存在**（见 TASK-06 §2.2）⇒ 严格模式整段判定从不执行。
+#   它的作用是在**将来有人打开严格模式时**，缺省落在安全侧而不是特权侧。
+#   想恢复旧行为：显式设 `CP_PERMISSION_DEFAULT_ROLE=owner`（既有开关，无需新变量）。
+_DEFAULT_STRICT_ROLE = "guest"
 #: 严格模式缺省会话来源（报 "scheduled" 会命中 scheduled-no-write / scheduled-no-edit）
 _DEFAULT_STRICT_SOURCE = "cli"
 
@@ -336,6 +355,174 @@ def reset_session_source(handle: Any) -> None:
 
 
 # ─────────────────────────────────────────────────────────────
+# 工具侧确认分级 L0–L3（v1.4 §10.2 / TASK-06 §3 第 2 步）
+# ─────────────────────────────────────────────────────────────
+#
+# 【四级的可判定语义（本模块是**唯一执行点**）】
+#
+# | 级别 | 人（交互） | SA（有 scope 预授权） | 非交互且无 SA 预授权 | 身份不可知 |
+# |---|---|---|---|---|
+# | L0 | 免确认 | 放行 | 放行 | 放行 |
+# | L1 | 摘要确认（**会话内可复用**，可批量） | 放行（scope 覆盖即可） | **拒绝，且不挂单** | 拒绝 |
+# | L2 | 逐次确认（**单次有效**） | 放行（scope 须覆盖该能力） | **拒绝，且不挂单** | 拒绝 |
+# | L3 | 逐次确认（单次有效） | 放行（scope 必须显式允许 **L3**） | **拒绝，且不挂单** | 拒绝 |
+#
+# 【不易·L3 为什么不是"人也不能执行"】TASK-06 §3 第 2 步第 3 项把 L3 写作
+#   "禁止：默认拒绝，只有显式预授权（SA + scope）才能执行"。若按字面实现成
+#   "人类点批准也不行"，则 §1 的**完成判据**（"risk: critical 的工具在**人**调用时
+#   得到**逐次确认**"）自相矛盾，且会一次性打挂既有审批闭环对 10 个
+#   govern/extend/critical 工具的支持（`tests/unit/test_tool_gate.py` 与
+#   `test_tool_approval_e2e.py` 覆盖的正是这条链路）。
+#   ⇒ 故 **L3 的"默认禁止"落在"禁止非交互 / 无身份的自动执行"这一侧**，
+#     人对 L3 仍走逐次确认。这与 §1 完成判据逐字一致。
+#
+# 【L1 的"可批量确认"如何落地】L1 的批准**不消费**（会话内 + TTL 内可复用），
+#   L2/L3 的批准**消费**（单次有效，复用既有 `tool_approval_uses.jsonl` 台账）。
+#   这正是 `tool_gate.py:769-773` 当初把 high 降级不拦的动机（"否则所有写操作都要
+#   点确认"）—— 现在用**分级**满足它，而不是一刀切。
+
+#: 确认分级强制开关（**默认开启**；置 0 ⇒ 退回"只有旧的 needs_approval 集合挂单"）
+CONFIRM_LEVEL_ENFORCE_ENV = "CP_TOOL_CONFIRM_LEVEL_ENFORCE"
+#: 影子模式开关（**默认关闭**）：置 1 ⇒ 只记录"若按新规则将要求确认"，**不拦截**
+#: 这是 TASK-06 §6 回滚方案要求的"先跑一个周期影子告警"落地方式
+#: （v1.4 §14 执行纪律里就有"影子告警 → 白名单 → 拒绝"的先例）。
+CONFIRM_LEVEL_SHADOW_ENV = "CP_TOOL_CONFIRM_LEVEL_SHADOW"
+
+#: 执行身份（contextvar）。**空串 = 未声明**（与"声明了 human"是两件事，
+#: 理由同 `_SESSION_SOURCE_VAR` 的注释：未声明要走"无身份 ⇒ 拒绝"那一支）。
+_IDENTITY_VAR: contextvars.ContextVar = contextvars.ContextVar(
+    "cp_tool_gate_execution_identity", default="",
+)
+
+#: 合法身份取值（与 `agent/capregistry/invoke.py::IDENTITIES` 同值域）
+#: 【为什么在这里再列一次而不 import】`agent.capregistry` 会（直接或间接地）经
+#: `agent.tools` 回到本模块 ⇒ 反向 import 在导入期就可能成环。一致性由
+#: `tests/unit/test_confirm_level.py` 对拍锁死（与 TOOL_TYPES 的处置同一取舍）。
+EXECUTION_IDENTITIES: Tuple[str, ...] = ("human", "llm", "system", "service_account")
+
+#: 视为"非交互"的会话来源（工具面契约里 "cli" = 人在场；其余自动来源都不在场）
+#: 注意 `"api"` **不算**非交互：它同时承载"模型调用"（在场的人机对话）与
+#: "SA 调用"，只在**身份**维度上才能区分 ⇒ 非交互判定必须**同时**看身份与来源。
+NON_INTERACTIVE_SOURCES: FrozenSet[str] = frozenset({"scheduled", "cron", "ci", "webhook"})
+
+
+class _IdentityHandle:
+    """``set_execution_identity()`` 的返回值（可用于 ``with``，也可手动 ``reset()``）"""
+
+    __slots__ = ("_token",)
+
+    def __init__(self, token: Any) -> None:
+        self._token = token
+
+    def reset(self) -> None:
+        token = self._token
+        if token is None:
+            return
+        self._token = None
+        _IDENTITY_VAR.reset(token)
+
+    def __enter__(self) -> "_IdentityHandle":
+        return self
+
+    def __exit__(self, *_exc: Any) -> bool:
+        self.reset()
+        return False
+
+
+def set_execution_identity(identity: str) -> _IdentityHandle:
+    """把**当前执行上下文**的执行身份设为 ``identity``（返回可 ``with``/``reset`` 的句柄）
+
+    取值：``human`` / ``llm`` / ``system`` / ``service_account``（空串 = 未声明）。
+    与 :func:`set_session_source` 同一套线程语义：**设置点必须在真正执行的那个线程内**
+    （contextvars 不跨线程继承）。非法取值**不抛异常**，而是存原值 —— 判定侧对
+    "不在值域内"一律按 **未声明** 处理（fail-closed：无身份 ⇒ L1+ 拒绝）。
+    """
+    return _IdentityHandle(
+        _IDENTITY_VAR.set(str(identity or "").strip().lower()))
+
+
+def current_execution_identity() -> str:
+    """读当前执行上下文的执行身份；**未声明 ⇒ 空串**（不抛异常）"""
+    try:
+        raw = _IDENTITY_VAR.get()
+    except Exception:  # noqa: BLE001  上下文不可读 ⇒ 按"未声明身份"处理
+        return ""
+    return str(raw or "").strip().lower()
+
+
+def reset_execution_identity(handle: Any) -> None:
+    """还原执行身份（接受 :func:`set_execution_identity` 的句柄或裸 ``Token``）"""
+    if handle is None:
+        return
+    try:
+        reset = getattr(handle, "reset", None)
+        if callable(reset):
+            reset()
+            return
+        _IDENTITY_VAR.reset(handle)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[tool_gate] 执行身份还原失败: %s: %s", type(e).__name__, e)
+
+
+def is_non_interactive(session_source: Optional[str] = None,
+                       identity: Optional[str] = None) -> bool:
+    """本次调用是否**非交互**（cron / CI / Webhook / 后台任务）
+
+    【判据要**同时**看身份与来源，二者任一命中即算非交互】
+      · 身份 ∈ {``system``, ``service_account``} ⇒ 非交互（这两类主体本就不在人在场）；
+      · 来源 ∈ :data:`NON_INTERACTIVE_SOURCES` ⇒ 非交互（``scheduled`` 是定时任务上报的）。
+
+    【为什么不能只看来源】`"api"` 这一来源被**两条语义完全相反**的链路共用：
+    模型发起的人机对话（人在场）与 SA 的 CI 调用（无人在场）。只看来源会把前者
+    误判成非交互 ⇒ 人机对话里的高危工具第一次调用就被拒而非挂单。
+    【为什么不能只看身份】大量既有调用方**根本不报身份**（默认空串），
+    只看身份会让定时任务（它报了 source 但没报 identity）被当成交互式而挂空单。
+    """
+    ident = (str(identity).strip().lower() if identity is not None
+             else current_execution_identity())
+    if ident in ("system", "service_account"):
+        return True
+    src = (str(session_source).strip().lower() if session_source is not None
+           else current_session_source())
+    return src in NON_INTERACTIVE_SOURCES
+
+
+# ── SA 预授权钩子（**闸门内的判定，不是旁路**）────────────────────────────
+# 【D1】唯一实现在 `agent/security/service_account.py::preauthorize`，
+#   由它在本模块**注册**；本模块不 import 它（避免反向依赖与导入期成环）。
+#   钩子签名：fn(capability: str, identity: str, args: dict, level: str) -> bool
+_PREAUTH: Dict[str, Any] = {"fn": None}
+
+
+def set_preauthorization_hook(fn: Optional[Any]) -> None:
+    """注册 SA 预授权判定钩子（``None`` = 注销）
+
+    预授权**不绕过闸门**：它只是本模块在 L2/L3 分支上的一条判定
+    （TASK-06 §5 "✗ 让 SA 直接绕过 tool_gate" 的落地约束）。
+    """
+    _PREAUTH["fn"] = fn
+
+
+def preauthorization_hook() -> Optional[Any]:
+    """当前已注册的预授权钩子（``None`` = 未注册 ⇒ 一律视为未预授权）"""
+    return _PREAUTH["fn"]
+
+
+def _preauthorized(capability: str, identity: str,
+                   args: Optional[Dict[str, Any]], level: str) -> bool:
+    """查 SA 预授权；**无钩子 / 钩子异常 ⇒ 视为未预授权**（绝不静默放行）"""
+    fn = _PREAUTH["fn"]
+    if fn is None:
+        return False
+    try:
+        return bool(fn(capability, identity, dict(args or {}), level))
+    except Exception as e:  # noqa: BLE001  预授权查询失败 ⇒ fail-closed
+        logger.warning("[tool_gate] SA 预授权钩子异常（按未授权处理）: %s: %s",
+                       type(e).__name__, e)
+        return False
+
+
+# ─────────────────────────────────────────────────────────────
 # 对外入口
 # ─────────────────────────────────────────────────────────────
 
@@ -424,18 +611,15 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
                 name, reason, APPROVAL_ENFORCE_ENV,
             )
 
-        # 3. 治理平面审批边界（**唯一真相：data/tool_definitions/*.yaml**）。
-        #    默认拦截：挂单 → 人工裁决 → 原样重试即放行（单次有效）。
-        approval_reason = _approval_boundary(name)
-        if approval_reason is not None:
-            if _approval_enforce_enabled():
-                return _tool_approval_outcome(name, args, approval_reason)
-            _warn_once(
-                "approval:" + name,
-                "工具 %s 按 data/tool_definitions/*.yaml 的元数据需要人工审批（%s），"
-                "但 %s=0 ⇒ 本次仅告警、不拦截（删掉该环境变量即恢复审批边界）",
-                name, approval_reason, APPROVAL_ENFORCE_ENV,
-            )
+        # 3. **四级确认边界**（v1.4 §10.2 / TASK-06 §3 第 2 步；**唯一真相：YAML**）。
+        #    取代原先的二值 `needs_approval → 挂单`：
+        #      L0 免确认 / L1 摘要确认（可批量）/ L2 逐次确认（单次有效）/
+        #      L3 默认禁止（须显式预授权）。
+        #    `_confirm_level_outcome` 内部已处理：开关关闭（回滚）、影子模式、
+        #    无身份拒绝、SA 预授权、非交互不挂单 ⇒ 这里只负责短路。
+        confirm_outcome = _confirm_level_outcome(name, args, session_source)
+        if confirm_outcome is not None:
+            return confirm_outcome
 
         # 4. HITL 兜底判据 + 伦理硬规则（**只补 YAML 覆盖不到的两块**，详见各自 docstring）：
         #    - 未登记工具（YAML 无条目）⇒ HITL fail-closed 判 HIGH ⇒ 走审批（原为直接放行）；
@@ -445,7 +629,21 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
                            or _ethics_boundary(name, args))
         if fallback_reason is not None:
             if _approval_enforce_enabled():
-                return _tool_approval_outcome(name, args, fallback_reason)
+                # 【TASK-06】兜底路径同样要过身份/非交互判定 —— 否则它就成了
+                # "另一条能挂空单的路"（非交互来源在收件箱里永远等不到裁决）。
+                # 级别按 L2 处置（未登记工具，从严；`_hitl_boundary` 本就判 HIGH）。
+                _fb_src = str(session_source or "").strip() or current_session_source()
+                _fb_ident = current_execution_identity()
+                _fb_guard = _noninteractive_guard(
+                    name, args, fallback_reason, level="L2", identity=_fb_ident,
+                    source=_fb_src,
+                    non_interactive=is_non_interactive(_fb_src, _fb_ident))
+                if _fb_guard is GUARD_PASS:
+                    return None         # SA 预授权（同 `_confirm_level_outcome` 的三态）
+                if _fb_guard is not GUARD_CONTINUE:
+                    return _fb_guard
+                return _tool_approval_outcome(name, args, fallback_reason, level="L2",
+                                              identity=_fb_ident, source=_fb_src)
             _warn_once(
                 "fallback:" + name,
                 "工具 %s 命中兜底判据（%s），但 %s=0 ⇒ 本次仅告警、不拦截",
@@ -460,10 +658,51 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
             if strict_denied is not None:
                 return strict_denied
         return None
-    except Exception as e:  # noqa: BLE001  闸门自身故障绝不断工具执行（fail-open）
+    except Exception as e:  # noqa: BLE001
+        # 【TASK-06 §3 第 1 步第 4 项：治理动作 fail-closed】
+        #   原实现是"任何异常一律 fail-open 放行"。对**只读/低危**动作，fail-open 是
+        #   对的（闸门自身 bug 不该阻断日常读取）；但对**治理动作**（会改能力集、
+        #   会写/删数据）来说，"安全判据读不到依据时放行"的代价无上界。
+        #   故按工具性质**分流**：治理动作 ⇒ 拒绝（fail-closed），其余 ⇒ 放行。
+        #   判据用 YAML 元数据（唯一权威）：L3 / needs_approval / plane=govern。
+        #   元数据本身读不到时（`_meta_for` 返回 None）**仍按 fail-closed 处置** ——
+        #   "连这个工具是不是治理动作都证不出来"恰恰是更该拒绝的情形。
+        if _is_governance_action(name):
+            logger.error("[tool_gate] 闸门判定异常且该工具属**治理动作** ⇒ "
+                         "按 fail-closed 拒绝: %s: %s", type(e).__name__, e)
+            return _deny(
+                name,
+                "工具闸门判定过程中发生内部错误（%s），而该工具属**治理动作**"
+                "（会改变云枢自身能力集或造成不可逆后果）⇒ 按 fail-closed **拒绝**"
+                "本次调用。请查看服务端日志定位后重试。" % type(e).__name__)
         logger.warning("[tool_gate] 闸门判定异常（按 fail-open 放行）: %s: %s",
                        type(e).__name__, e)
         return None
+
+
+def _is_governance_action(func_name: str) -> bool:
+    """该工具是否属**治理动作**（异常时按 fail-closed 处置的判据）
+
+    判据（任一命中即是，全部来自 YAML 元数据这一唯一权威）：
+      · `effective_confirm_level == "L3"`（含 `plane=govern` / `effect=extend` /
+        `risk=critical` 三种来源）；
+      · `needs_approval` 为真（含 13 个 `risk: high`）；
+      · **元数据读不到** ⇒ 也返回 True。
+
+    【为什么"读不到元数据"要判成治理动作】这是本函数唯一反直觉的一条。理由：
+    异常发生时我们**证不出**这个工具是无害的读取操作。把"证不出"判成"放行"，
+    等于让"元数据加载失败"成为一条绕过治理的路径（攻击面：只要能让 YAML 读失败，
+    高危工具就免检）。判成治理动作只是让那次调用失败一次 —— 代价可控且有明确文案。
+    """
+    try:
+        level, meta = _confirm_level_of(func_name)
+    except Exception:  # noqa: BLE001  连判据都取不到 ⇒ fail-closed
+        return True
+    if meta is None:
+        return True
+    if level == "L3":
+        return True
+    return bool(getattr(meta, "needs_approval", False))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -549,7 +788,10 @@ def _current_session_key() -> str:
 
 
 def _tool_approval_outcome(func_name: str, args: Optional[Dict[str, Any]],
-                           reason: str) -> Optional[Dict[str, Any]]:
+                           reason: str, *, level: str = "",
+                           tenant_id: str = "", version: str = "",
+                           identity: str = "", source: str = ""
+                           ) -> Optional[Dict[str, Any]]:
     """审批边界**已开启**时的最终裁决：``None`` = 放行；dict = 拒绝结果
 
     判定顺序（与人工在审批收件箱里的动作一一对应）：
@@ -559,12 +801,20 @@ def _tool_approval_outcome(func_name: str, args: Optional[Dict[str, Any]],
        继续往下走（重新挂单），**绝不错放**；
     3. 其余 ⇒ 幂等挂单并返回 ``APPROVAL_REQUIRED``（带 ``approval_id`` 与恢复指引）。
 
+    【TASK-06 新增 `level`：L1 的批准**不消费**，L2/L3 的批准**消费**（单次有效）】
+      `level="L1"` ⇒ 命中批准后**直接放行且不消费** —— 于是同一次批准在
+      **会话 + TTL** 窗口内可反复覆盖同一工具的后续 L1 调用。这就是 §3 第 2 步第 3 项
+      要求的"L1 摘要确认、**可批量确认**"（避免 35 个写/中危工具每次都点），
+      也是 `tool_gate.py:769-773` 当初降级不拦的那个体验考量的正解。
+      `level in ("L2","L3")` 或未声明 ⇒ 沿用既有的**单次有效**语义（消费台账）。
+
     **fail-closed 边界**：本函数只在这一层收紧。桥接层不可用／挂单失败时**不放行**，
     而是照常返回"需要审批"（附失败原因）——审批边界一旦开启，"证不出已批准"就不能执行；
     这与本模块其余各步的 fail-open（闸门自身 bug 不阻断执行）是**刻意的不对称**，
     理由与 ``HITLManager.assess`` 一致：安全判据读不到依据时，放行的代价无上界。
     """
     session_key = _current_session_key()
+    reusable = str(level or "").strip().upper() == "L1"
     try:
         from agent.tool_approval import (  # noqa: PLC0415 惰性：审批桥接层较重
             consume, find_permission, is_rejected, request_approval,
@@ -572,10 +822,18 @@ def _tool_approval_outcome(func_name: str, args: Optional[Dict[str, Any]],
     except Exception as e:  # noqa: BLE001 桥接层不可用 ⇒ 仍按"需审批"处理（不放行）
         _warn_once("approval-bridge", "审批桥接层不可用（按需审批处理，不放行）: %s: %s",
                    type(e).__name__, e)
+        _audit_confirm_decision(tool=func_name, level=level, decision="denied_bridge_down",
+                                identity=identity, source=source,
+                                reason="%s；审批桥接层不可用: %s" % (reason, e),
+                                tenant_id=tenant_id, version=version)
         return _deny_approval(func_name, "%s；审批桥接层不可用: %s" % (reason, e))
 
     rejected = is_rejected(func_name, args, session_key=session_key)
     if rejected:
+        _audit_confirm_decision(tool=func_name, level=level, decision="rejected",
+                                identity=identity, source=source,
+                                reason="%s；人工已否决" % reason,
+                                tenant_id=tenant_id, version=version)
         return _deny_approval(
             func_name,
             "%s；人工已否决：%s" % (reason, rejected.get("reason") or "（未填原因）"),
@@ -585,15 +843,35 @@ def _tool_approval_outcome(func_name: str, args: Optional[Dict[str, Any]],
     permitted = find_permission(func_name, args, session_key=session_key)
     if permitted:
         approval_id = str(permitted.get("approval_id") or "")
+        if reusable:
+            # ── L1：摘要确认的"批量"语义（批准不消费，会话 + TTL 内复用）──
+            logger.info("[tool_gate] 工具 %s 命中 L1 会话级批准（审批单 %s，批准人 %s），"
+                        "本次放行（L1 批准可复用，不消费）",
+                        func_name, approval_id, permitted.get("decided_by") or "?")
+            _audit_confirm_decision(
+                tool=func_name, level=level, decision="approved",
+                identity=identity, source=source,
+                reason="%s；人工摘要确认（L1 会话级批准，可复用）" % reason,
+                tenant_id=tenant_id, version=version)
+            return None
         if consume(approval_id, func_name, args):
             logger.info("[tool_gate] 工具 %s 命中人工批准（审批单 %s，批准人 %s），本次放行",
                         func_name, approval_id, permitted.get("decided_by") or "?")
+            _audit_confirm_decision(
+                tool=func_name, level=level, decision="approved",
+                identity=identity, source=source,
+                reason="%s；人工逐次确认（单次有效，已消费）" % reason,
+                tenant_id=tenant_id, version=version)
             return None
         logger.warning("[tool_gate] 审批单 %s 已被消费过（单次有效），改为重新挂单", approval_id)
 
     requested = request_approval(func_name, args, reason=reason, session_key=session_key,
                                  source=str(_env_str("CP_PERMISSION_SESSION_SOURCE") or ""))
     if not requested.get("ok"):
+        _audit_confirm_decision(tool=func_name, level=level, decision="request_failed",
+                                identity=identity, source=source,
+                                reason="%s；挂单失败: %s" % (reason, requested.get("error")),
+                                tenant_id=tenant_id, version=version)
         return _deny_approval(func_name, "%s；挂单失败: %s"
                               % (reason, requested.get("error") or "未知原因"))
     approval_id = str(requested.get("approval_id") or "")
@@ -663,6 +941,363 @@ def _approval_enforce_enabled() -> bool:
     if raw is None or not raw.strip():
         return True
     return raw.strip().lower() in _ENABLED_VALUES
+
+
+def _confirm_level_enforce_enabled() -> bool:
+    """确认分级强制开关（**默认开启**；显式 0/false/no/off 才退回旧行为）
+
+    【为什么默认开启】TASK-06 的核心缺陷就是"13 个 `risk: high` 工具完全不触发确认"，
+    默认关闭等于缺陷仍在（只是多了一个没人打开的开关）。回滚 = 设该变量为 0。
+    读取异常按"启用"处理（与 `_approval_enforce_enabled` 同纪律：审批边界宁可多问
+    一次人工，不可因读环境变量失败而静默放行）。
+    """
+    try:
+        raw = _env_str(CONFIRM_LEVEL_ENFORCE_ENV)
+    except Exception:  # noqa: BLE001
+        return True
+    if raw is None or not raw.strip():
+        return True
+    return raw.strip().lower() in _ENABLED_VALUES
+
+
+def _confirm_level_shadow_enabled() -> bool:
+    """影子模式开关（**默认关闭**）：开启时只告警不拦截（TASK-06 §6 迁移第一步）"""
+    try:
+        raw = _env_str(CONFIRM_LEVEL_SHADOW_ENV)
+    except Exception:  # noqa: BLE001  读不到按"非影子"处理（默认口径）
+        return False
+    if raw is None or not raw.strip():
+        return False
+    return raw.strip().lower() in _ENABLED_VALUES
+
+
+def _confirm_level_of(func_name: str) -> Tuple[str, Any]:
+    """取该工具的**生效**确认级别与元数据 → ``(level, meta)``
+
+    ``level`` 为空串 = 未登记/无元数据（调用方按既有 fail-open 口径处置）。
+    """
+    meta = _meta_for(func_name)
+    if meta is None:
+        return "", None
+    level = str(getattr(meta, "effective_confirm_level", "") or "").strip().upper()
+    return (level, meta)
+
+
+def _audit_confirm_decision(*, tool: str, level: str, decision: str,
+                            identity: str, source: str, reason: str,
+                            tenant_id: str = "", version: str = "",
+                            actor: str = "") -> None:
+    """把一次确认决策落进**审计链**（v1.4 §12；TASK-06 §3 第 2 步第 5 项）
+
+    【为什么必须进 audit_chain 而不是留在 `approval_records.jsonl`】
+      TASK-00 已把 `data/approval_records.jsonl` 标为"自相矛盾"：它被**整文件重写**
+      （`agent/skills_mgmt/approval.py:1001-1004`），与 `tool_approval.py:30`
+      "绝不改写/删除任何记录"的声明冲突，且**不在哈希链上** ⇒ 可被无声篡改。
+      `agent/audit/chain.py` 是仓库质量最高的设施（真实哈希链 + Merkle + ed25519），
+      把确认决策并进去才满足"审计可区分"（E9）与"审批记录并入 audit_chain"。
+
+    【🔴 2026-09-20 实测修复：`source` 原为 `"tool_gate"`，而它不是合法值】
+      `agent/audit/chain.py:131` 的 `SOURCES = {agent, ui, system, migration}`，
+      `append(source="tool_gate")` 会抛 `AuditEntryError: 非法 source`。而本函数
+      **整个吞异常**（设计如此：留痕失败不该让已放行的调用变失败）⇒ 后果是
+      **每一条确认决策的审计都写不进去，只在 ERROR 日志里留痕**：
+      E9（"三种身份在审计记录里可明确区分"）与交付物 #6/#7（"审批记录并入
+      audit_chain"）表面上"已实现"，实际一条记录都没有。
+      这正是 D12 说的那类假绿 —— **单测全绿、生产 100% 失效**（本文件的假替身
+      形式是"测试 monkeypatch 掉了 `_audit_confirm_decision`，于是测的是替身不是它"）。
+      修法：用链上的合法来源 `SOURCE_SYSTEM`（网关是**平台内部**的治理执行体，
+      与 `system` 的语义一致；`agent` 表示智能体自身动作，`ui` 表示界面动作）。
+      并由 `tests/unit/test_confirm_level.py::TestAuditLandsOnTheChain` 用**真实**
+      审计链复测一次（不 monkeypatch 本函数）。
+
+    【🔴 2026-09-20 实测修复 ②：原来直接 `get_audit_chain()`，**忽略了 `AUDIT_DB_PATH`**】
+      `agent/audit/chain.py::get_audit_chain(db_path=None)` 会落到
+      `_resolve_path(None)` ⇒ **硬编码的默认路径** `data/audit/audit_chain.db`；
+      它**不读** `AUDIT_DB_PATH` 环境变量（读那个变量的是 `agent/audit/facade.py`）。
+      后果两条，均已实测：
+        ① **测试写生产审计链**：`tests/conftest.py` 把 `AUDIT_DB_PATH` 指向临时目录，
+           但对本函数无效 ⇒ 任何触发确认决策的用例都会往**生产的**
+           `data/audit/audit_chain.db` 追加记录（实测：`test_tool_approval_e2e.py`
+           留下了 `subject='probe_approval_e2e_tool'` / `'ext_install'` 的 4 条记录，
+           本任务的审计样本 3 条也在其中）⇒ 违反 D6「不碰生产数据」，
+           且调用方**无法通过配置把审计重定向**（多实例/多环境部署时会写到同一个库）。
+        ② 根路径同样不受控：`AuditChain.__init__` 的 `roots_path` 也只认参数不认环境变量
+           ⇒ 每日 Merkle 根会落到生产 `data/audit/daily_roots.jsonl`。
+      ⇒ 改为走仓库的**唯一写入入口** `agent/audit/facade.py::record()`：它按
+        `AUDIT_DB_PATH` / `AUDIT_ROOTS_PATH` / `AUDIT_SIGNING_KEY` 解析路径、做载荷脱敏、
+        并保证与 UI 面同表（P7.2-24 审计平权）。这样"测试隔离"与"部署可重定向"
+        两件事才真的成立。
+
+    【E9 可区分性】三条字段组合足以区分 Task-06 §1 的三种情形：
+      · 人逐次确认     → ``identity=human`` + ``decision=approved``
+      · SA 凭预授权    → ``identity=service_account`` + ``decision=preauthorized``
+      · 无身份被拒     → ``identity=""`` + ``decision=denied_no_identity``
+
+    【为什么整个函数吞异常】审计是**治理留痕**，不是执行前置条件；写审计失败
+    不该让一次已判定放行的调用变成失败（那是把可观测性做成可用性风险）。
+    但它**绝不静默**：失败一律 ``logger.error``（可被日志告警捕获）。
+    """
+    try:
+        # `SOURCE_SYSTEM` 是链上的来源常量（facade 不重导出它），
+        # 写入仍走 facade 的 `record()`（唯一入口，且按环境变量解析路径）
+        from agent.audit.chain import SOURCE_SYSTEM  # noqa: PLC0415
+        from agent.audit.facade import record  # noqa: PLC0415
+        record(
+            action="tool.confirm_decision",
+            actor=str(actor or identity or "unknown"),
+            subject=str(tool or ""),
+            # 【为什么用 `extra` 而不是 `payload`】facade 的 `payload=` 会**包一层信封**
+            # （实测落成 `{"schema":…, "actor_source":…, "payload":{…}}`）⇒ 确认字段会被嵌到
+            # 第二层，查询/盘点时要多剥一层。`extra` 的语义正是"追加到 payload 的**叶子**字段"
+            # ⇒ 四个必填字段（confirm_level/decision/identity/tenant_id）落在顶层，
+            # 与 v1.4 §12 的字段纪律一致，且经同一套脱敏。
+            extra={
+                "confirm_level": str(level or ""),
+                "decision": str(decision or ""),
+                "identity": str(identity or ""),
+                "session_source": str(source or ""),
+                "tenant_id": str(tenant_id or ""),
+                "tool_version": str(version or ""),
+                "reason": str(reason or "")[:500],
+            },
+            source=SOURCE_SYSTEM,
+        )
+    except Exception as e:  # noqa: BLE001  留痕失败不影响执行（但绝不静默）
+        logger.error("[tool_gate] 确认决策审计写入失败（决策=%s 工具=%s）: %s: %s",
+                     decision, tool, type(e).__name__, e)
+
+
+def _meta_field(meta: Any, name: str, default: Any = "") -> Any:
+    """安全取元数据字段（``meta`` 可能是 ``None`` 或非预期对象）"""
+    try:
+        return getattr(meta, name, default)
+    except Exception:  # noqa: BLE001
+        return default
+
+
+def _confirm_level_outcome(func_name: str, args: Optional[Dict[str, Any]],
+                           session_source: Optional[str] = None
+                           ) -> Optional[Dict[str, Any]]:
+    """**四级确认**的统一裁决：``None`` = 放行；dict = 拒绝结果
+
+    这是 TASK-06 §3 第 2 步的落点，取代原先的二值 `needs_approval → 挂单`。
+    判定分支（顺序即优先级）：
+
+    1. 未登记元数据 / 级别为空 / **L0** ⇒ 放行（L0 免确认，E2 的正面判据）；
+    2. **审批边界总开关关闭**（``CP_TOOL_GATE_APPROVAL_ENFORCE=0``）⇒ 告警一次后放行
+       —— 见下「两个开关的从属关系」（2026-09-20 修复的真实缺陷）；
+    3. 分级开关关闭（``CP_TOOL_CONFIRM_LEVEL_ENFORCE=0``）⇒ 告警一次后放行
+       （只回滚 TASK-06 **新加**的那部分：`risk: high` → L2）；
+    3. **影子模式** ⇒ 告警一次"若按新规则将要求确认"，**不拦截**（迁移第一步）；
+    4. **身份不可知**（既非交互来源、也无任何身份声明）⇒ **拒绝**，不挂单
+       （E14："无身份调用时被拒绝（而非放行）"）；
+    5. **SA 预授权命中** ⇒ 放行并落审计 ``decision=preauthorized``（E9/交付物 #8）；
+    6. **非交互且无预授权** ⇒ **拒绝**并给出可操作出路，**绝不挂单**
+       （E5："非交互不挂空单、收件箱无悬空待办"）；
+    8. 其余（交互路径）⇒ 交给 :func:`_tool_approval_outcome`，
+       L1 用**可复用**批准，L2/L3 用**单次有效**批准。
+
+    【🔴 两个开关的从属关系（2026-09-20 修复的**真实缺陷**，不是措辞问题）】
+      · CP_TOOL_GATE_APPROVAL_ENFORCE = **审批边界总开关**（既有，默认开启）。
+        它管的是"这个闸门还要不要拦人"这一件事本身 ⇒ **必须**同时管住
+        confirm_level 这一层。原实现漏了这一步，后果三条，全部实测：
+        ① **既有回滚开关失效**：tests/unit/test_tool_approval_e2e.py:229 钉着
+           "置 0 ⇒ 一处环境变量完成回滚"；而它对新加的 L1/L2/L3 层**无效果**
+           ⇒ 关掉它之后 13 个 high 工具**仍然**被拦，操作员会以为"已经回滚了"。
+        ② **测试基线被穿透**：tests/conftest.py:207 把本变量定为**会话基线**（置 0），
+           理由是"大量单测直接 agent.tools.call() 验证**调用机制**，不该测到治理网"。
+           漏掉这一层后，凡被测工具恰好是 high 的单测都会被新层拦下 ⇒ 一次改动打红
+           30+ 条与本任务无关的既有测试（test_tool_gate_strict.py 等）。
+        ③ **两套开关语义重叠**：总开关关着、分级开关开着时，"审批边界"到底是开还是关
+           **没有唯一答案**（D1 禁止的第二真相源）。
+      · CP_TOOL_CONFIRM_LEVEL_ENFORCE = **分级层的窄回滚**（TASK-06 新增，默认开启）。
+        置 0 ⇒ 退回改动前的口径：只有旧的 needs_approval 集合
+        （govern / extend / critical）挂单，13 个 high **不再**进确认流。
+      ⇒ 两者是**从属**关系（总开关 ⊃ 分级开关），而不是并列。单一结论：
+        "总开关为 0 ⇒ 审批边界整体不拦"；"总开关为 1 且分级开关为 0 ⇒ 只有新加的
+        high → L2 那一条被回滚"。由
+        tests/unit/test_confirm_level.py::TestTwoSwitchesAreNested 对拍锁死。
+
+    【🔴 confirm_level **不**受策略/描述符文件缺失影响（任务 B 的裁决）】
+      permission_policies.json / descriptors.json 是**运行期策略文件**，缺了它们
+      那条规则**读不到依据** ⇒ fail-open（放行）是对的。
+      而 confirm_level 是**设计期就声明在能力 YAML 里的策略**（D1 的单一真相源），
+      它**不依赖**那两个文件 ⇒ 不因它们缺失而失效。
+      判据的不对称是刻意的：**"依据读不到"≠"策略不存在"**；让"删掉一个文件"成为
+      "13 个高危工具免确认"的开关，等于给治理面开一条无声旁路（攻击面）。
+      要关闭这一层，必须由操作员**显式**写出总开关/分级开关为 0（可审计的动作），
+      而不是靠文件缺失（不可审计的意外）。由
+      tests/unit/test_confirm_level.py::TestFailOpenDoesNotWeakenConfirmLevel 锁定。
+    """
+    level, meta = _confirm_level_of(func_name)
+    if not level or level == "L0":
+        return None
+
+    source = (str(session_source).strip() if session_source else "") \
+        or current_session_source()
+    identity = current_execution_identity()
+    tenant_id = str(_meta_field(meta, "tenant_id", "") or "")
+    version = str(_meta_field(meta, "version", "") or "")
+    reason = ("confirm_level=%s（plane=%s, effect=%s, risk=%s）"
+              % (level, _meta_field(meta, "plane", "?"),
+                 _meta_field(meta, "effect", "?"), _meta_field(meta, "risk", "?")))
+    # 【2026-09-20 契约衔接：伦理硬规则**合并进**确认理由，而不是被新层短路掉】
+    #   顺序问题：本层（第 3 步）排在 HITL/伦理兜底（第 4 步）**之前**，而
+    #   `_ethics_boundary` 只作用于 `effect ∈ {execute, extend}` 的工具 ——
+    #   按 `derive_confirm_level`，这两类效果**至少是 L1**（execute 与 write 同等对待）
+    #   ⇒ 新层一旦先拦，第 4 步的伦理判定对**已登记工具**就再也不会被求值，
+    #   那 6 条自称"不可突破的硬约束"重新变成死代码（`test_tool_gate_fallback.py::
+    #   TestEthicsRulesAreLive` 的原始目的正是防这件事）。
+    #   合并而非短路：拦截结果不变（都是"要人确认"），但**人看到的理由**从
+    #   "L2 逐次确认"变成 "L2 逐次确认 + 命中伦理硬规则 E003" —— 后者才是他
+    #   真正需要看到的（否则会凭"常规写文件"的印象点批准）。
+    _ethics = _ethics_boundary(func_name, args)
+    if _ethics:
+        reason = "%s；并%s" % (reason, _ethics)
+
+    # ② 审批边界总开关（**必须先判**：它是"要不要拦"的总闸，从属关系见 docstring）
+    if not _approval_enforce_enabled():
+        _warn_once(
+            "confirm-level-master-off",
+            "工具 %s 的 %s 要求确认，但审批边界总开关 %s=0 ⇒ 本次仅告警、不拦截"
+            "（这是**显式**回滚；置 1 即恢复，与「策略文件缺失」无关）",
+            func_name, level, APPROVAL_ENFORCE_ENV)
+        return None
+
+    if not _confirm_level_enforce_enabled():
+        _warn_once(
+            "confirm-level-off",
+            "工具 %s 的 %s 要求确认，但分级开关 %s=0 ⇒ 退回旧口径"
+            "（仅旧的 needs_approval 集合挂单；审批边界总开关仍为开）",
+            func_name, level, CONFIRM_LEVEL_ENFORCE_ENV)
+        return None
+
+    if _confirm_level_shadow_enabled():
+        _warn_once(
+            "confirm-shadow:" + func_name,
+            "【影子模式】工具 %s 按新规则将要求 %s，但 %s=1 ⇒ 本次只告警、不拦截"
+            "（%s）", func_name, level, CONFIRM_LEVEL_SHADOW_ENV, reason)
+        _audit_confirm_decision(tool=func_name, level=level, decision="shadow_alert",
+                                identity=identity, source=source, reason=reason,
+                                tenant_id=tenant_id, version=version)
+        return None
+
+    non_interactive = is_non_interactive(source, identity)
+    guard = _noninteractive_guard(
+        func_name, args, reason, level=level, identity=identity, source=source,
+        non_interactive=non_interactive, tenant_id=tenant_id, version=version)
+    if guard is GUARD_PASS:
+        return None                     # ⑤ SA 预授权命中 ⇒ **放行**（不是"继续挂单"）
+    if guard is not GUARD_CONTINUE:
+        return guard                    # ④/⑥ 的拒绝结果
+
+    # ⑦ 交互路径：L1 可复用批准；L2/L3 单次有效
+    return _tool_approval_outcome(func_name, args, reason, level=level,
+                                 tenant_id=tenant_id, version=version,
+                                 identity=identity, source=source)
+
+
+def _noninteractive_guard(func_name: str, args: Optional[Dict[str, Any]],
+                          reason: str, *, level: str, identity: str, source: str,
+                          non_interactive: bool, tenant_id: str = "",
+                          version: str = "") -> Any:
+    """非交互 / 身份缺失 / SA 预授权三条判定的**共用实现**
+
+    Returns:
+        ``GUARD_CONTINUE`` = 本层未拦（继续走审批闭环）；
+        ``GUARD_PASS``     = 本层判定**放行**（SA 预授权命中）；
+        ``dict``           = 拒绝结果（且**不挂单**）。
+
+    【🔴 2026-09-20 实测修复：原来只用 `None` 表达，导致 SA 预授权形同虚设】
+      原实现的 SA 分支从 `_noninteractive_guard` 返回 `None`，而**同一个 `None`**
+      在调用方（`_confirm_level_outcome` 与 `check_tool_call` 的兜底分支）被解读成
+      "本层未拦 ⇒ 继续走 `_tool_approval_outcome`" ⇒ 于是 SA 的调用**照样挂单被拒**。
+      更坏的是它**先落了 `decision=preauthorized` 的审计** ⇒ 审计说"以预授权执行"、
+      实际结果却是 `APPROVAL_REQUIRED`（审计与事实相反，比没有审计更坏）。
+      实测复现：`scope` 覆盖 `write_file` 且 `max_confirm_level=L2` 的 SA，
+      `check_tool_call("write_file")` 返回 `APPROVAL_REQUIRED`。
+      ⇒ 三种结局必须有**三个可区分的返回值**，不能压进一个 `None`。
+      由 `tests/unit/test_confirm_level.py::TestServiceAccountPreauthorization` 锁定。
+
+    【为什么要抽出来共用】确认分级边界（第 3 步）与 HITL/伦理兜底边界（第 4 步，
+    针对**未登记**工具）都需要同一套身份判定。若只在第 3 步实现，第 4 步就成了
+    "另一条能挂空单的路"—— 那正是 TASK-06 §3 第 3 步第 1 项要消除的缺陷。
+    """
+    # ④ 身份不可知 + 非交互 ⇒ 拒绝（**不挂单**：没人能批准，挂单就是悬空待办）
+    if not identity and non_interactive:
+        _audit_confirm_decision(
+            tool=func_name, level=level, decision="denied_no_identity",
+            identity="", source=source, reason=reason,
+            tenant_id=tenant_id, version=version)
+        return _deny_confirm(
+            func_name,
+            "%s；本次调用的**身份不可知**且来源 %r 表明无人在场 ⇒ 无法完成人工确认，"
+            "已**直接拒绝**（未挂单，避免悬空待办）" % (reason, source or "?"),
+            level=level, guidance=_NON_INTERACTIVE_GUIDANCE)
+
+    # ⑤ SA 预授权（**闸门内的一条判定，不是旁路**）
+    if identity == "service_account" and _preauthorized(func_name, identity, args, level):
+        logger.info("[tool_gate] 工具 %s 以 **SA 预授权** 执行（%s，身份 %s）",
+                    func_name, level, identity)
+        _audit_confirm_decision(
+            tool=func_name, level=level, decision="preauthorized",
+            identity=identity, source=source,
+            reason="以 SA 预授权执行（scope 覆盖且允许的最高级别 >= %s）" % level,
+            tenant_id=tenant_id, version=version)
+        return GUARD_PASS
+
+    # ⑥ 非交互且无预授权 ⇒ 明确拒绝，不挂单（E5）
+    if non_interactive:
+        _audit_confirm_decision(
+            tool=func_name, level=level, decision="denied_non_interactive",
+            identity=identity, source=source, reason=reason,
+            tenant_id=tenant_id, version=version)
+        return _deny_confirm(
+            func_name,
+            "%s；本次调用的身份 %r / 来源 %r 属**非交互**（cron/CI/Webhook/后台），"
+            "审批边界要求人工确认 ⇒ 已**直接拒绝**（未挂单：非交互来源下收件箱"
+            "不会出现可裁决的待办，挂单只会得到一张永远等不到的单）"
+            % (reason, identity or _IDENTITY_UNKNOWN, source or "?"),
+            level=level, guidance=_NON_INTERACTIVE_GUIDANCE)
+    return GUARD_CONTINUE
+
+
+#: `_noninteractive_guard` 的三个可区分结局（**不能压进一个 `None`**，见其 docstring）
+GUARD_CONTINUE = "continue"    #: 本层未拦 ⇒ 调用方继续走审批闭环
+GUARD_PASS = "pass"            #: 本层判定**放行**（SA 预授权）⇒ 调用方直接 `return None`
+
+
+#: 身份未声明时的占位显示（审计与错误文案统一用同一串，避免两处措辞漂移）
+_IDENTITY_UNKNOWN = "<未声明>"
+
+#: 非交互场景的可操作出路（TASK-06 §3 第 3 步第 1 项要求"可操作说明"）
+_NON_INTERACTIVE_GUIDANCE = (
+    "出路（三选一）：① 改由**人工身份**（CLI 交互 / 审批收件箱）执行一次；"
+    "② 为该能力配置 **service_account 预授权**（SA token 的 scope 声明允许的能力集合"
+    "与最高 confirm_level，v1.4 §10.2），之后以 SA 身份重试；"
+    "③ 若该动作确实应长期免确认，请显式调低 `plane`/`effect`/`risk` 或声明"
+    "`confirm_level` + `confirm_level_reason`（禁止静默降级）。"
+)
+
+
+def _deny_confirm(func_name: str, reason: str, *, level: str,
+                  guidance: str = "") -> Dict[str, Any]:
+    """确认分级的**硬拒绝**结果（区别于"待审批"：这里没有单号，重试也不会变）"""
+    message = ("工具 %s 被集中式工具闸门拒绝（确认分级 %s）: %s"
+               % (func_name, level, reason))
+    logger.warning("[tool_gate] %s", message)
+    result = {
+        "ok": False,
+        "blocked": True,
+        "error_code": ERROR_CODE_PERMISSION_DENIED,
+        "error": message,
+        "tool": func_name,
+        "reason": reason,
+        "confirm_level": str(level or ""),
+    }
+    if guidance:
+        result["guidance"] = guidance
+    return result
 
 
 def _approval_boundary(func_name: str) -> Optional[str]:
@@ -767,10 +1402,15 @@ def _hitl_boundary(func_name: str, args: Optional[Dict[str, Any]]) -> Optional[s
     （见 :func:`_tool_exists` 的 docstring），挂单只会让人白批一张单。
 
     为什么**不**把已登记工具的 HITL 结果也搬过来：``assess`` 对 ``risk: high`` 就返回
-    HIGH，而 YAML 里 ``write_file`` / ``edit`` / ``git`` / ``apply_patch`` 都是 high 且
-    ``needs_approval=False``（它们不该每次都要人确认）。元数据的**唯一权威是 YAML**，
-    这里只补 YAML 覆盖不到的那一块，绝不重复判定 —— 否则"接通审批"会退化成
-    "所有写操作都要点确认"，那是把治理做成骚扰。
+    HIGH，而"已登记工具的确认级别"由 YAML 的治理三轴**派生**（``risk: high`` ⇒ L2，
+    见 :func:`agent.lines.models.derive_confirm_level`）。元数据的**唯一权威是 YAML**，
+    这里只补 YAML 覆盖不到的那一块，绝不重复判定 —— 否则同一个事实会有两份口径
+    （D1），且任何一处的阈值改动都会与另一处**静默打架**。
+    【2026-09-20 措辞更新（TASK-06）】本段原写作"``write_file`` / ``edit`` / ``git`` /
+    ``apply_patch`` 都是 high 且 ``needs_approval=False``（它们不该每次都要人确认）"。
+    那句里的两个事实都已改变：① ``needs_approval`` 现在**含** ``high``；
+    ② "不该每次都要人确认"的诉求改由**分级**满足（L1 可复用批准、L2 逐次确认），
+    而不是靠"完全不拦"。结论（不越权重复判定）不变。
 
     失败语义：HITL 不可用 ⇒ 返回 ``None``（交回既有的 fail-open 口径），**不额外收紧**。
     """
@@ -884,12 +1524,22 @@ def _strict_enabled() -> bool:
 
 
 def _strict_role() -> Any:
-    """严格模式使用的角色（``CP_PERMISSION_DEFAULT_ROLE``；缺省/非法 → ``owner``）
+    """严格模式使用的角色（``CP_PERMISSION_DEFAULT_ROLE``；缺省/非法 → ``guest``）
 
     返回 ``agent.permission_system.Role`` 枚举成员。只接受合法枚举值；**非法值告警并
-    回退 ``_DEFAULT_STRICT_ROLE``**（不抛异常——回退比"因为拼错一个环境变量就变成
-    全量拒绝"安全得多）。``Role`` 导入失败向上抛，由 :func:`_strict_deny_or_open`
-    的 fail-open 边界放行。
+    回退 ``_DEFAULT_STRICT_ROLE``**（不抛异常）。``Role`` 导入失败向上抛，由
+    :func:`_strict_deny_or_open` 的 fail-open 边界放行。
+
+    【🔴 2026-09-20 措辞更正（TASK-06 E15）】本 docstring 原写作"缺省/非法 → owner"，
+    并给了一条理由："回退比因为拼错一个环境变量就变成全量拒绝安全得多"。
+    那个理由**正是 TASK-06 要修的缺陷本身**：它把"拼错一个环境变量"的后果定为
+    **特权**（`owner` 的 `allowed_tools=["*"]` ⇒ 严格模式等于没开），而 TASK-06 §3
+    第 6 步第 6 项明确要求"严格模式的缺省角色改为**最小权限**（拒绝或只读）"。
+    安全开关的误配置必须落在**更严**的一侧，这与本模块其余各处的 fail-closed 取舍一致
+    （"依据读不到 ⇒ 不放行"）。
+    实现上**只有一条规则**：任何取不到合法值的情形都回退 `_DEFAULT_STRICT_ROLE`
+    （现为 `guest`）——不为"未设置"与"非法"各留一套判据（D1）。
+    要恢复旧的宽松口径：显式设 ``CP_PERMISSION_DEFAULT_ROLE=owner``（既有开关，无新变量）。
     """
     from agent.permission_system import Role
 

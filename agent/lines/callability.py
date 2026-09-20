@@ -142,6 +142,14 @@ OWNERS = ("builtin", "local-installed", "tenant-installed", "marketplace")
 #: 注册表来源：全局注册表 / 规划工具表（第二套并行注册表，见 §2.4）
 REGISTRY_SOURCES = ("global", "planning")
 
+#: 工具侧确认分级四级（v1.4 §10.2；TASK-06 新增）
+#: 【D1】派生实现**只有一份**，在 `agent/lines/models.py::derive_confirm_level`。
+#: 这里只做**惰性转出**（见 `derive_confirm_level()`），不复制任何判定分支 ——
+#: 本模块此前在 `_tool_entry` 里手写了 `risk == "critical"` 的 `needs_approval`，
+#: 那是 `models.ToolMeta.needs_approval` 的**第二份副本**；TASK-06 把
+#: 审批阈值从 critical 提到 high 时，这种副本正是"改了却测不出来"的成因。
+CONFIRM_LEVELS = ("L0", "L1", "L2", "L3")
+
 #: 展示标识（与判定同源）
 MARK_CALLABLE = "✅ 可调用"
 MARK_CONDITIONAL = "⚠️ 条件可调用"
@@ -598,12 +606,51 @@ def effective_permission_level(effect: str, risk: str, needs_approval: bool,
         审批边界（govern / extend / critical）或被策略拒绝 → restricted
         只读且低风险 → public
         其余（写/执行） → internal
+
+    【TASK-06 口径提示】`needs_approval` 必须由
+    `agent/lines/models.py::needs_approval_for` 算出（阈值含 `high`），
+    **不要**在调用点自己写 `risk == "critical"` —— 那是旧口径，会让 13 个
+    `risk: high` 工具在清单里显示成 `internal`，而闸门实际已按 L2 拦它们。
     """
     if needs_approval or denied:
         return "restricted"
     if effect == "read" and risk == "low":
         return "public"
     return "internal"
+
+
+def derive_confirm_level(plane: str, effect: str, risk: str) -> str:
+    """转出**唯一权威**的确认级别派生（`agent/lines/models.py`）
+
+    【为什么是转出而不是自己实现】D1 不允许两套并行口径。本模块与 `models` 之间
+    没有循环依赖（`models` 不 import 本模块），故可以直接用；但本模块的既有风格是
+    **惰性导入** `agent.lines.*`（见 `build_manifest` 里的 `assembler`、
+    `judge_executor_location`），故此处沿用惰性 + 模块级缓存，避免给导入期加活。
+    """
+    global _DERIVE_CONFIRM_LEVEL_FN
+    if _DERIVE_CONFIRM_LEVEL_FN is None:
+        from agent.lines.models import derive_confirm_level as _fn  # noqa: PLC0415
+        _DERIVE_CONFIRM_LEVEL_FN = _fn
+    return _DERIVE_CONFIRM_LEVEL_FN(plane, effect, risk)
+
+
+def needs_approval_for(plane: str, effect: str, risk: str) -> bool:
+    """转出**唯一权威**的 `needs_approval` 判定（`agent/lines/models.py`）
+
+    原实现是 `_tool_entry` 内联的 `plane == "govern" or effect == "extend"
+    or risk == "critical"` —— 与 `models` 的规则重复。TASK-06 改阈值时，
+    两份副本必须同时改才不出错，因此收敛成一次转出。
+    """
+    global _NEEDS_APPROVAL_FN
+    if _NEEDS_APPROVAL_FN is None:
+        from agent.lines.models import needs_approval_for as _fn  # noqa: PLC0415
+        _NEEDS_APPROVAL_FN = _fn
+    return _NEEDS_APPROVAL_FN(plane, effect, risk)
+
+
+#: 惰性导入缓存（`models` 的派生函数；见 `derive_confirm_level` / `needs_approval_for`）
+_DERIVE_CONFIRM_LEVEL_FN: Any = None
+_NEEDS_APPROVAL_FN: Any = None
 
 
 def judge(*, declared: Dict[str, Any], schema_registered: bool, host_executor: str,
@@ -748,7 +795,14 @@ def _tool_entry(name: str, doc: Dict[str, Any], *, executors: Dict[str, str],
     risk = _choice(doc.get("risk"), ("low", "medium", "high", "critical"), "medium")
     plane = _choice(doc.get("plane"), ("resident", "perceive", "act", "govern"), "act")
     is_internal = _as_bool(doc.get("internal"), False)
-    needs_approval = plane == "govern" or effect == "extend" or risk == "critical"
+    # 【D1】口径只有一份：`models.needs_approval_for`（阈值含 high，TASK-06）
+    needs_approval = needs_approval_for(plane, effect, risk)
+    # 确认分级（TASK-06 §3 第 2 步）：派生优先，YAML 显式声明优先于派生
+    # （裁定与"禁止静默降级"在 `models.load_tool_meta` 里完成；此处只读结果）
+    derived_cl = derive_confirm_level(plane, effect, risk)
+    declared_cl = str(doc.get("confirm_level") or "").strip().upper()
+    declared_cl = declared_cl if declared_cl in CONFIRM_LEVELS else ""
+    confirm_level = declared_cl or derived_cl
 
     executor = declared["host_executor"] or executors.get(name, "")
     schema_registered = schema_is_registered(doc.get("schema"))
@@ -848,6 +902,16 @@ def _tool_entry(name: str, doc: Dict[str, Any], *, executors: Dict[str, str],
         "effect": effect,
         "risk": risk,
         "needs_approval": needs_approval,
+        # ── 工具侧确认分级（TASK-06 §3 第 2 步；v1.4 §10.2）──
+        # 四个键同时输出，使盘点表能回答三件事：
+        #   ① 生效级别是几（`confirm_level`）
+        #   ② 它是算出来的还是人填的（`confirm_level_derived` / `_overridden`）
+        #   ③ 若是人填的，理由是什么（`confirm_level_reason`，§3 第 2 步第 4 项"必须能查询"）
+        "confirm_level": confirm_level,
+        "confirm_level_derived": derived_cl,
+        "confirm_level_declared": declared_cl,
+        "confirm_level_overridden": bool(declared_cl) and declared_cl != derived_cl,
+        "confirm_level_reason": str(doc.get("confirm_level_reason") or "").strip(),
         "internal": is_internal,
         "enabled": True,
     }

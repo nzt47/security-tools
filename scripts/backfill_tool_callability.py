@@ -45,6 +45,7 @@ from agent.lines.callability import (  # noqa: E402
     TOOL_TYPES,
     effective_permission_level,
 )
+from agent.lines.models import needs_approval_for  # noqa: E402
 
 _DEFS_DIR = os.path.join(_ROOT, "data", "tool_definitions")
 
@@ -91,7 +92,17 @@ def derive(name: str, plane: str, effect: str, risk: str, category: str,
            tags: list[str], internal: bool) -> dict[str, str]:
     """按治理轴派生声明值（单一来源；`--check` 用它与本文件对拍）"""
     manual = name in MANUAL_TOOLS
-    needs_approval = plane == "govern" or effect == "extend" or risk == "critical"
+    # 【TASK-06 / D1 修复（2026-09-20）】这里原先**手写**了一份审批规则副本：
+    #     needs_approval = plane == "govern" or effect == "extend" or risk == "critical"
+    #   它正是 `agent/lines/models.py::needs_approval_for` docstring 警告的"三份手写副本"
+    #   中**漏掉的那一份**（另外两份：`ToolMeta.needs_approval` 与
+    #   `callability._tool_entry` 已改为共用函数）。TASK-06 把阈值从 critical 提到
+    #   `{critical, high}` 后，本副本仍按旧口径 ⇒ `--check` 报"10 个 YAML 声明与治理轴
+    #   派生值不一致"（声明 restricted、派生 internal），而那 10 条恰是本次要收紧的
+    #   `risk: high` 工具。**这不是数据错了，是判据的第二真相源过期了** ——
+    #   若不修，唯一能"修好"它的动作是把 YAML 从 restricted 改回 internal，
+    #   即用一份过期副本把安全收紧回滚掉。故必须共用同一实现。
+    needs_approval = needs_approval_for(plane, effect, risk)
     sandbox_ok = (
         effect == "read"
         and category not in _SANDBOX_DENY_CATEGORIES

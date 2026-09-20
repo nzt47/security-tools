@@ -22,11 +22,20 @@ def _svc():
     svc = get_workflow_learning_service()
     # 【修复】HTTP 直调 execute 时 service 从未注入 tool_executor →
     # "未配置工具执行器" 执行失败。注入一次 agent.tools.call。
+    #
+    # 【TASK-06 §3 第 5 步"4 条身份绕过面"之面 3】原先是**裸 lambda**：
+    #   `lambda tool_name, params: _tool_call(tool_name, **params)`
+    #   本端点有 `@require_token`（管"能不能进来"），但工作流回放**真的会执行工具**，
+    #   而裸 lambda **不透传 actor/session** ⇒ 工具侧把一次 HTTP 触发的回放记成
+    #   "人从 CLI 调的"（session_source 落到缺省），identity 为空。
+    #   现改用 `identity_propagating_executor`：执行器在**被调用的那一线程内**
+    #   读出当前身份并如实上报；HTTP 面缺省身份是 `human`（本端点由人/CI 触发），
+    #   若上游已声明身份则**继承上游**（不覆盖，避免丢失真实触发者）。
     if svc is not None and not getattr(svc, "_http_tool_executor_injected", False):
         try:
-            from agent.tools import call as _tool_call
-            svc.set_tool_executor(
-                lambda tool_name, params: _tool_call(tool_name, **params))
+            from agent.capregistry.invoke import (IDENTITY_HUMAN,
+                                                  identity_propagating_executor)
+            svc.set_tool_executor(identity_propagating_executor(IDENTITY_HUMAN))
             svc._http_tool_executor_injected = True
         except Exception as e:  # noqa: BLE001
             logger.warning("工作流 HTTP tool_executor 注入失败: %s", e)

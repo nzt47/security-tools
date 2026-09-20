@@ -41,6 +41,8 @@ __all__ = [
     "EXEMPT_CALL_SITES",
     "DEAD_MODULES",
     "VIOLATION_SCOPE_PREFIXES",
+    "IDENTITY_BYPASS_FACES",
+    "identity_bypass_face",
     "anchor_key",
     "reachability_of",
 ]
@@ -310,3 +312,146 @@ EXEMPT_CALL_SITES: Dict[str, Dict[str, Any]] = {
         "callee": "client.call_tool",
     },
 }
+
+
+# ════════════════════════════════════════════════════════════
+#  TASK-06 §3 第 5 步 (b)：**4 条绕过会话身份的工具调用面**
+# ════════════════════════════════════════════════════════════
+#
+# ## 为什么单独一张表，而不是塞进 `EXEMPT_CALL_SITES`
+#
+# 两张表的**语义完全不同**：
+#   · `EXEMPT_CALL_SITES` = "AST 扫描器**看得见**的、绕过 `_registry`/`tool_gate`
+#     的直调，逐点给出为什么可以放行"。它的消费者是
+#     `scripts/audit_call_paths.py --check`（未登记即硬失败）。
+#   · 本表 = "扫描器**看不见**的、**身份维度**的缺口"。这四条不是"绕过闸门"，
+#     而是"**表达不出身份**"—— 实测：
+#       `python -c "...audit_call_paths.scan()..."` 的 38 个锚点里
+#       **没有** `agent/task_scheduler.py`、也**没有**工作流执行器那两个 lambda。
+#     把看不见的东西塞进"看得见清单"会制造两种坏结果：要么让腐化守卫误报，
+#     要么让人以为"清单已覆盖全部身份缺口"（**假绿**，D12 那一类）。
+#
+# ## 硬要求（TASK-06 E14）
+#
+#   ① 每条**显式声明身份来源**；
+#   ② 每条**进入审计**（`wired=True` 的经身份透传 ⇒ `tool_gate` 的
+#      `tool.confirm_decision` 审计记录里带真实 identity/source；
+#      `wired=False` 的必须写明"为什么现在没有审计"与风险）；
+#   ③ **至少**面 2 与面 3 接到本任务的身份层（已做到）；
+#   ④ 面 1、面 4 若未修 ⇒ **登记为待办并写明风险**（已做到，不得略过）。
+
+#: 面 1：定时命令的子进程 —— **已修**（TASK-06）
+#: 事实：`agent/task_scheduler.py::_run_task_body` 用
+#:   `subprocess.Popen(command, shell=True)` 执行 `system_command` 任务。
+#:   `_guard_scheduled_command`（`:252-303`）在 Popen **之前**做权限判定且 fail-closed，
+#:   但子进程**继承服务进程身份、无降权**。
+#: TASK-06 处置：**已修** —— `run_task()` 在执行线程内上报
+#:   `set_session_source("scheduled")` 与 `set_execution_identity("system")`，
+#:   使这条路径在**审计与闸门**两个维度上都有真实身份（原状是"来源只在严格模式下
+#:   被消费，且严格模式默认关闭 ⇒ 该上报等于失效"）。
+#: 【残留（如实登记）】**子进程仍未降权** —— 降权需要 Windows 专用令牌操作
+#:   （`CreateProcessAsUser` / `icacls`），属 TASK-07 沙箱统一收口范围。
+#:   风险：被批准执行的高危命令以服务进程同等权限运行；缓解 = 该路径本身受
+#:   `_guard_scheduled_command`（critical 拒绝 / warning 走权限系统）约束，
+#:   且 `system_command` 任务的创建面当前**无任何在跑的实例**（实测 0 条）。
+
+#: 面 4：MCP 服务端的 tools/call —— **协议层无身份，已登记为待办**
+#: 事实：`mcp_services/yunshu_mcp_server.py::_handle_tools_call` 经
+#:   `agent.tools.call()` ⇒ **过闸门**；但 MCP 协议本身**没有内建认证**，
+#:   服务端无法得知调用方是谁。
+#: TASK-06 处置：**不修**（修它等于自造一个 MCP 鉴权协议，超出范围且会破坏
+#:   与标准 MCP 客户端的互操作）+ **登记为待办**。
+#: 风险（如实写明）：任何能连上该 stdio 服务端的进程都可调用其暴露的工具集。
+#:   缓解：① 它是**本机 stdio** 服务（非网络监听）；② `exposed_tools` 默认白名单；
+#:   ③ 它经 `tools.call()` ⇒ 闸门/审批/限流/审计照常生效，且现在会带
+#:   `session_source="mcp"`（TASK-05 补），审计里可与其它来源区分。
+#: 待办归属：**TASK-07**（安全接线）或独立的"MCP 鉴权"任务。
+
+IDENTITY_BYPASS_FACES: Dict[str, Dict[str, Any]] = {
+    # ── 面 1 ──────────────────────────────────────────────────────────
+    "agent/task_scheduler.py::_run_task_body": {
+        "face": 1,
+        "title": "定时命令的 subprocess（子进程继承服务进程身份，无降权）",
+        "identity_source": (
+            "**已声明（TASK-06 接入）**：`run_task()` 在执行线程内上报 "
+            "`set_session_source(\"scheduled\")` + `set_execution_identity(\"system\")`；"
+            "子进程本身**仍**继承服务进程身份（未降权）"
+        ),
+        "wired": True,
+        "audit": (
+            "有：`run_task` 的上报使 `tool_gate` 的确认决策审计（action="
+            "`tool.confirm_decision`）带上 identity=system / source=scheduled；"
+            "任务执行结果另经 `_append_history` 落 `data/schedule_history.jsonl`"
+        ),
+        "risk": (
+            "**残留**：被批准执行的高危命令以服务进程同等权限运行（无降权）。"
+            "缓解：`_guard_scheduled_command` 在 Popen 之前做 fail-closed 权限判定；"
+            "且实测当前**没有任何在跑的定时任务**（`data/schedules.json` 0 条）"
+        ),
+        "todo": "子进程降权（Windows 令牌 / icacls）—— 归 TASK-07 沙箱统一收口",
+    },
+    # ── 面 2 ──────────────────────────────────────────────────────────
+    "agent/async_executor.py::_run_task": {
+        "face": 2,
+        "title": "AsyncExecutor.submit() 无身份参数，且经 submit_task 开放给模型",
+        "identity_source": (
+            "**已声明（TASK-06 接入）**：`submit()` 新增 `identity` 参数"
+            "（与 TASK-05 的 `session_source` 并列）；`code_tools.submit_task` "
+            "缺省上报 `llm`（本工具是模型面工具）并继承上游已声明的身份；"
+            "工作线程内 `set_execution_identity` 包夹（contextvars 不跨线程）"
+        ),
+        "wired": True,
+        "audit": (
+            "有：身份随任务落盘（task 记录的 `identity`/`session_source` 字段），"
+            "且 `tool_gate` 的 `tool.confirm_decision` 审计带真实 identity"
+        ),
+        "risk": "无残留（本条是 TASK-06 明令'至少接到身份层'的两条之一）",
+        "todo": "",
+    },
+    # ── 面 3 ──────────────────────────────────────────────────────────
+    "agent/server_routes/routes_workflow_learning.py::_svc": {
+        "face": 3,
+        "title": "工作流回放真执行工具，但执行器是裸 lambda（不透传 actor/session）",
+        "identity_source": (
+            "**已声明（TASK-06 接入）**：两处注入点"
+            "（`routes_workflow_learning.py::_svc` 与 "
+            "`orchestrator/orchestrator.py` 的懒注入）改用 "
+            "`agent/capregistry/invoke.py::identity_propagating_executor`，"
+            "在**被调用的那一线程内**读出当前身份并如实上报（上下文优先、参数兜底）；"
+            "HTTP 面缺省 `human`，编排面缺省 `llm`"
+        ),
+        "wired": True,
+        "audit": (
+            "有：`tools.call()` 的 trace/限流/审批审计 + `tool.confirm_decision` "
+            "带真实 identity（原状是 identity 为空、source 落到缺省 'cli'）"
+        ),
+        "risk": "无残留；`@require_token` 仍只管'能否进端点'，'以谁执行'由本层如实上报",
+        "todo": "",
+    },
+    # ── 面 4 ──────────────────────────────────────────────────────────
+    "mcp_services/yunshu_mcp_server.py::_handle_tools_call": {
+        "face": 4,
+        "title": "MCP 服务端 tools/call（协议层无内建认证）",
+        "identity_source": (
+            "**协议层不可知（有意保留）**：MCP 协议本身没有内建认证，"
+            "服务端无法得知调用方身份。已声明的最近似身份 = "
+            "`session_source=\"mcp\"`（TASK-05 补）+ 未具名外部身份"
+        ),
+        "wired": False,
+        "audit": (
+            "部分：经 `tools.call()` ⇒ 闸门/审批/限流/审计生效，且审计里"
+            "`session_source=mcp` 可区分；但**没有**调用方身份（协议给不出）"
+        ),
+        "risk": (
+            "**登记为待办**：任何能连上该 stdio 服务端的本机进程都可调用其暴露的工具集。"
+            "缓解：① 本机 stdio 服务（非网络监听）；② `exposed_tools` 默认白名单；"
+            "③ 闸门/审批对所有调用生效"
+        ),
+        "todo": "MCP 层鉴权（验签后换发短效内部 token）—— 归 TASK-07 或独立任务",
+    },
+}
+
+
+def identity_bypass_face(anchor: str) -> Dict[str, Any]:
+    """按锚点取一条身份绕过面的登记（不存在 ⇒ 空 dict，**不抛异常**）"""
+    return dict(IDENTITY_BYPASS_FACES.get(str(anchor or "").strip(), {}))
