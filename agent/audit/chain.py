@@ -89,6 +89,10 @@ DEFAULT_ROOTS_PATH = os.path.join(_PROJECT_ROOT, "data", "audit", "daily_roots.j
 #: ed25519 签名私钥（PKCS8 PEM；首次使用自动生成）
 DEFAULT_KEY_PATH = os.path.join(_PROJECT_ROOT, "data", "audit", "audit_signing_key.pem")
 
+#: 台账路径的环境变量覆盖点。**与 `agent/audit/facade.py:54` 的 `_ENV_DB_PATH`
+#: 取同一个名字**（L1-c：两处必须同语义，否则"设了环境变量却仍写生产库"）
+_ENV_DB_PATH = "AUDIT_DB_PATH"
+
 SCHEMA_VERSION = 1
 HASH_ALGO = "sha256"
 #: 创世前驱哈希（首条记录的 prev_hash）
@@ -122,6 +126,15 @@ DEFAULT_QUEUE_MAXSIZE = 20000
 DEFAULT_COMPACT_MIN_ROWS = 1024
 #: 预留日志压缩检查的最小时间间隔（秒）：避免每轮都去打 DB 的 ``MAX(seq)``
 COMPACT_CHECK_INTERVAL_S = 5.0
+#: 预留日志**单轮收敛窗口**（条）。窗口只是"一次读多少"，**不是**"只看哪一段"：
+#: 游标每轮前进，整份日志在一轮完整周期内必被覆盖（见 `_drain_journal` 的 L1-a 说明）。
+DRAIN_JOURNAL_WINDOW = 5000
+#: 同一条滞留记录被"交出写库"多少轮后仍不在库里 → 判定为**写不进 DB**
+#: （放弃的是"收敛重试"，记录本身仍在日志里；放弃必须 ERROR 留痕 + 计数，绝不静默）
+DRAIN_MAX_ATTEMPTS = 3
+#: 单次 `_recover_backlog`/每轮 writer 最多推进多少个窗口（防一条坏记录把单次调用拖成
+#: 无界循环；窗口数 × 窗口大小 ≥ 整份日志即可在一轮里覆盖全量）
+DRAIN_MAX_WINDOWS_PER_CALL = 64
 
 #: 审计来源（P7.2-24 审计平权：UI 与 Agent 同表）
 SOURCE_AGENT = "agent"
@@ -889,6 +902,12 @@ class RootsVerification:
     chains_ok: bool = True
     entries_verified: int = 0
     root_chain_checked: int = 0
+    #: 【L1-b 诊断，不参与 ok】封印 seq 区间 ``[first_seq, last_seq]`` 内的记录条数。
+    #: 与 ``entries_verified``（按日取叶数）不同即说明该日的 seq 区间里混有其它日的
+    #: 记录（回填/污染导致的 seq 与 ts 顺序不一致）——旧校验口径正是据此误判 FAIL。
+    interval_leaf_count: int = 0
+    #: 上述区间内**属于其它 UTC 日**的记录条数（0 = 两种口径恰好一致）
+    interval_foreign_count: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -912,7 +931,23 @@ _CHAIN_SINGLETONS: Dict[str, "AuditChain"] = {}
 
 
 def _resolve_path(db_path: Optional[str]) -> str:
-    return os.path.abspath(db_path or DEFAULT_DB_PATH)
+    """解析台账 DB 路径：``db_path``（显式实参） > ``AUDIT_DB_PATH``（环境变量） > 默认
+
+    【L1-c：为什么必须读 ``AUDIT_DB_PATH``（实测缺陷）】本函数原为
+    ``os.path.abspath(db_path or DEFAULT_DB_PATH)`` —— 完全不读环境变量，于是
+    ``get_audit_chain()`` 无参调用**恒落硬编码生产路径**：测试进程即便设了
+    ``AUDIT_DB_PATH``（`tests/conftest.py` 的会话级隔离就是这么做的），经无参
+    ``get_audit_chain()`` 写入的记录仍会进**生产审计链**（append-only 哈希链，
+    污染只能靠重建消除）。实测代价见 `docs/closeout/L1_审计链修复报告_20260921.md` §7.1。
+
+    【语义逐字照抄既有惯例，不发明新语义】``agent/audit/facade.py:198``
+    的路径优先级是 ``db_path or os.getenv("AUDIT_DB_PATH") or DEFAULT_DB_PATH``：
+    - 空串/未设置的变量与 ``None`` 等价（``or`` 短路），落默认路径；
+    - **不做** strip、**不做**存在性检查、**不做**目录创建（相对路径由末尾的
+      ``os.path.abspath`` 按 cwd 归一，与门面 → 本函数的调用链一致）。
+    """
+    return os.path.abspath(db_path or os.getenv(_ENV_DB_PATH) or DEFAULT_DB_PATH)
+
 
 
 def active_writers() -> Dict[str, str]:
@@ -1046,6 +1081,17 @@ class AuditChain:
         self._journal_replay_count = 0
         self._journal_compact_count = 0
         self._journal_write_failures = 0
+        #: 收敛**游标**：下一轮从日志里 ``seq > 该值`` 的记录开始（0 = 从头）。
+        #: 【为什么必须有（L1-a 机制性缺陷）】固定 ``after_seq=0`` 的升序截断会把
+        #: 窗口永久钉死在日志最老的 ``DRAIN_JOURNAL_WINDOW`` 条上，见 `_drain_journal`。
+        self._journal_drain_cursor = 0
+        #: 本轮完整周期内游标扫到过的 seq（用于周期末裁剪下面的计数表）
+        self._journal_drain_seen: set = set()
+        #: ``seq -> 已交出写库但仍不在库中的轮数``：判定"写不进 DB"的依据
+        self._journal_write_attempts: Dict[int, int] = {}
+        #: ``seq -> 放弃原因``：已判定写不进库、不再重试的 seq（**记录仍在日志里**）
+        self._journal_abandoned: Dict[int, str] = {}
+        self._journal_abandoned_count = 0
         #: 降级留痕节流（避免退避循环把审计链自己冲垮）
         self._degrade_notify_at = 0.0
         #: 本进程已确认入库的最大 seq（预留日志压缩的水位参考）
@@ -1826,8 +1872,24 @@ class AuditChain:
 
     def _seqs_in_db(self, seqs: List[int]) -> set:
         """查询给定 seq 中**已入库**的那些（一次 IN 查询）"""
-        if not seqs or not self._db_available:
-            return set()
+        return self._seqs_in_db_checked(seqs)[0]
+
+    def _seqs_in_db_checked(self, seqs: List[int]) -> Tuple[set, bool]:
+        """同 ``_seqs_in_db``，但**额外区分"查不到"与"查询失败"**
+
+        【为什么必须区分（L1-a 的放弃判定依赖它）】``_seqs_in_db`` 在异常时返回
+        空集（"按全缺处理"，保守防丢），语义上等价于"这些 seq 都不在库"。
+        但"库暂时不可用"是**瞬时**的：若放弃判定把它当成"写不进 DB"，就会在
+        一次 DB 抖动后把成批记录标成不可入库并停止重试——那是新的静默点。
+        故收敛侧只在 ``ok=True``（查询真的成功）时才累计重试次数。
+
+        Returns:
+            ``(present, ok)``：``ok=False`` 表示 DB 不可用或查询抛错（present 无意义）。
+        """
+        if not seqs:
+            return set(), bool(self._db_available)
+        if not self._db_available:
+            return set(), False
         present: set = set()
         chunk = 400
         try:
@@ -1841,8 +1903,39 @@ class AuditChain:
                     present.update(int(r["seq"]) for r in rows)
         except Exception as exc:  # noqa: BLE001 查不到按"全缺"处理（保守，宁重不丢）
             logger.debug("查询已入库 seq 失败（按全缺处理）: %s", exc)
-            return set()
-        return present
+            return set(), False
+        return present, True
+
+    def _abandon_journal_seq(self, seq: int, reason: str) -> None:
+        """放弃对某 seq 的**收敛重试**（不是放弃记录）——**必须 ERROR 留痕**
+
+        【记录并没有丢，三处证据】
+        1. 该行仍留在预留日志文件里，且压缩水位（DB 连续水位）**无法越过它**
+           ⇒ ``_maybe_compact_journal`` 永远不会把它裁掉；
+        2. 写库失败的那几轮里它已落到 ring buffer（``_buffer_failed``），
+           读路径（``_buffered_extra``）仍能读到；
+        3. 计数与 seq 都进了 ``stats()``（``journal_abandoned_count`` /
+           ``journal_abandoned_seqs``）。
+
+        【为什么必须"放弃"而不是"永远重试"】滞留窗口里只要有一条写不进库的记录，
+        writer 每轮都会把它再交出去一次：既永远无法判定收敛完成（
+        ``_journal_needs_drain`` 长期为 True ⇒ 队列一空就空转），又会把
+        ``_maybe_compact_journal`` 饿死（压缩只在队列 Empty 分支执行）
+        ⇒ 水位永不前进 ⇒ 日志无限膨胀。放弃重试是让系统**回到正常态 + 显式告警**
+        的唯一出路；**静默丢弃才是不可接受的**，所以这里是 logger.error 而非 debug。
+        """
+        seq = int(seq)
+        if seq in self._journal_abandoned:
+            return
+        self._journal_abandoned[seq] = reason
+        self._journal_abandoned_count += 1
+        logger.error(
+            "审计链预留日志收敛**放弃重试**：seq=%d 连续 %d 轮交出写库后仍不在库中"
+            "（原因：%s）。该记录**仍在**预留日志 %s 中（压缩水位无法越过它，不会被"
+            "丢弃），也已落 ring buffer 读路径；累计放弃 %d 条。请人工核查该 seq 的"
+            "载荷与约束冲突（例如单行超限/字段非法/DB 只读）。",
+            seq, int(DRAIN_MAX_ATTEMPTS), reason, self._journal.path,
+            self._journal_abandoned_count)
 
     def _drain_journal(self) -> List[AuditEntry]:
         """取回预留日志中**尚未入库、且不在途**的记录（**收敛，防丢**）
@@ -1858,19 +1951,52 @@ class AuditChain:
         正确口径是**精确判定"哪些 seq 不在库里"**：取日志里出现过的 seq 集合，
         一次 ``IN`` 查询问 DB 谁已存在，缺的才补。代价是一条查询，而收敛是
         **按需触发**（见 ``_journal_needs_drain``），不在写路径上。
+
+        【L1-a（本函数的机制性缺陷，已修）：窗口必须**随游标前进**，不能是
+        "日志最老的 N 条"】原实现每轮都调 ``read_since(0, limit=5000)``：
+        ``after_seq=0`` 使过滤恒真 ⇒ 退化为"升序取前 5000 条" ⇒ **每轮都是同一批
+        最老的记录**。于是只要最老的一段里存在"读得出、写不进库"的记录（约束冲突
+        行），或被长期占用的低 seq 在途记录，窗口就永久钉死：更高 seq 的滞留记录
+        永远进不了收敛窗口 ⇒ **永久滞留、可能静默丢失审计记录**；而压缩只在
+        "低 seq 已全部入库"时推进水位，所以**不会自愈**。
+
+        现在的驱动口径是三条同时成立的规则：
+        1. **游标分页**：``after_seq = self._journal_drain_cursor``，读完一段就把
+           游标推进到该段最大 seq；读到日志尾部（不满一窗）则回卷到 0。
+           ⇒ 一轮完整周期内整份日志必被覆盖，**滞留超过 limit 条也能继续推进**；
+        2. **游标推进先于"是否需要写"的判断**：本窗口即使全部无需写库（都已入库/
+           在途），游标也照样前进，下一轮看的是**更靠后的**一段；
+        3. **放弃判定 + ERROR 留痕**：某 seq 连续 ``DRAIN_MAX_ATTEMPTS`` 轮交出
+           写库仍不在库中 ⇒ 判定写不进 DB，停止对它重试并 ``logger.error``
+           （记录仍在日志里，见 ``_abandon_journal_seq``）。库查询失败时**不**计入
+           放弃（``_seqs_in_db_checked``），避免一次 DB 抖动造成成批误放弃。
+
+        【并发（flush 线程与 writer 线程可能同时收敛）】游标/计数用简单赋值更新，
+        返回集仍经 ``_inflight_seq``（``_count_lock`` 内）交接，与既有防重复插入
+        机制一致：两个收敛者最多**跳过**同一个窗口，而游标会回卷 ⇒ 窗口不会被
+        永久跳过（下一周期必然重扫）。
         """
         if not self._journal_enabled or self._closed:
             return []
         if not self._journal_needs_drain:
             return []
+        window = max(int(DRAIN_JOURNAL_WINDOW), 1)
         try:
-            rows = self._journal.read_since(0, limit=5000)
+            rows = self._journal.read_after(self._journal_drain_cursor, limit=window)
         except Exception as exc:  # noqa: BLE001
             logger.debug("预留日志收敛读取失败: %s", exc)
             return []
         if not rows:
+            # 游标已越过日志末尾（或日志为空/刚被压缩）⇒ 回卷，本轮收敛结束
+            self._journal_drain_cursor = 0
             self._journal_needs_drain = False
             return []
+        # ① 游标推进（**先于**一切"要不要写库"的判断，见上"规则 2"）
+        self._journal_drain_cursor = max(int(r.get("seq") or 0) for r in rows)
+        reached_end = len(rows) < window
+        if reached_end:
+            self._journal_drain_cursor = 0     # ② 满窗之内没到底；不满窗说明到底了
+        self._journal_drain_seen.update(int(r.get("seq") or 0) for r in rows)
 
         with self._count_lock:
             inflight = set(self._inflight_seq)
@@ -1881,17 +2007,40 @@ class AuditChain:
             except Exception as exc:  # noqa: BLE001 单行脏数据不拖垮整批
                 logger.warning("预留日志单行还原失败（跳过并计数）: %s", exc)
                 continue
-            if int(entry.seq) in inflight:
+            seq = int(entry.seq)
+            if seq in inflight:
                 continue            # 在途：交给队列路径，避免重复插入
+            if seq in self._journal_abandoned:
+                continue            # 已判定写不进库（已 ERROR 留痕，不再空转）
             candidates.append(entry)
+
         if not candidates:
-            self._journal_needs_drain = False
+            if reached_end:
+                self._finish_drain_cycle()
             return []
 
-        present = self._seqs_in_db([int(e.seq) for e in candidates])
-        out = [e for e in candidates if int(e.seq) not in present]
+        present, db_ok = self._seqs_in_db_checked([int(e.seq) for e in candidates])
+        out: List[AuditEntry] = []
+        for e in candidates:
+            seq = int(e.seq)
+            if seq in present:
+                self._journal_write_attempts.pop(seq, None)
+                continue
+            if not db_ok:
+                # 库查询失败（DB 不可用/查询抛错）：一律按"缺"重试，**不计放弃**
+                out.append(e)
+                continue
+            attempts = int(self._journal_write_attempts.get(seq, 0)) + 1
+            if attempts > int(DRAIN_MAX_ATTEMPTS):
+                self._journal_write_attempts.pop(seq, None)
+                self._abandon_journal_seq(seq, reason="write_not_effective")
+                continue
+            self._journal_write_attempts[seq] = attempts
+            out.append(e)
+
+        if reached_end:
+            self._finish_drain_cycle()
         if not out:
-            self._journal_needs_drain = False
             return []
         out.sort(key=lambda e: int(e.seq))
         self._journal_replay_count += len(out)
@@ -1900,6 +2049,23 @@ class AuditChain:
             self._inflight_seq.update(int(e.seq) for e in out)
         return out
 
+    def _finish_drain_cycle(self) -> None:
+        """一轮完整周期（游标扫到日志尾并回卷）结束时的收尾
+
+        - 裁剪重试计数表：只保留"本轮确实在日志里见过"的 seq（日志被压缩后
+          计数表不会无限增长）；
+        - 若本周期没有任何待重试记录，收敛标志归位（``_journal_needs_drain=False``），
+          让 writer 回到正常轮询，也让压缩/自动封存重新有机会执行。
+        """
+        seen = self._journal_drain_seen
+        self._journal_drain_seen = set()
+        if self._journal_write_attempts:
+            self._journal_write_attempts = {
+                s: n for s, n in self._journal_write_attempts.items() if s in seen}
+        if not self._journal_write_attempts:
+            self._journal_needs_drain = False
+
+
     def _recover_backlog(self) -> int:
         """把预留日志的滞留记录同步补写进 DB（**仅 writer 线程调用**）
 
@@ -1907,18 +2073,35 @@ class AuditChain:
         ``synchronous=FULL`` 提交放进跨进程临界区，4 进程争用时临界区可达数秒
         ⇒ 其它进程取锁超时 ⇒ 降级分配 ⇒ **重复 seq**。DB I/O 只属于 writer 线程；
         ``append()`` 的临界区必须保持"只有内存计算 + 一次日志写"。
+
+        【L1-a：为什么这里是**有界多窗口循环**，而不是一次 ``_drain_journal``】
+        游标分页后，一次 ``_drain_journal`` 只覆盖一个 ``DRAIN_JOURNAL_WINDOW``
+        窗口；而 ``flush()`` 的契约是**持久化屏障**（"调用方等到的必须是收敛完成"）。
+        若只推进一个窗口，"滞留 > 窗口"时就返回了，屏障形同虚设。故此处循环推进
+        直到：① 收敛标志归位（一轮完整周期结束，没有待重试记录）；或 ② 窗口读空；
+        或 ③ 达到 ``DRAIN_MAX_WINDOWS_PER_CALL``（防一条坏记录把单次调用拖成
+        无界循环；上界按"窗口数 × 窗口大小 ≥ 整份日志"取值）。
         """
         if not self._journal_needs_drain or self._closed:
             return 0
-        pending = self._drain_journal()
-        if not pending:
-            return 0
-        before = self._failed_len()
-        self._write_to_db(pending)
-        written = max(self._failed_len() - before, 0)
-        logger.info("审计链预留日志同步收敛：补写 %d 条（崩溃恢复/降级滞留）",
-                    len(pending))
-        return len(pending) - written
+        recovered = 0
+        for _ in range(max(int(DRAIN_MAX_WINDOWS_PER_CALL), 1)):
+            if not self._journal_needs_drain or self._closed:
+                break
+            pending = self._drain_journal()
+            if not pending:
+                # 【不能在这里 break】"本窗口没有可写记录"**不是**"收敛完成"：
+                # 游标可能只是刚越过一个"全部已入库"的窗口。收敛是否结束由
+                # ``_journal_needs_drain`` 表达（读到日志尾并回卷、且无待重试记录
+                # 时才归位），故这里继续推进下一个窗口，直到标志归位或预算耗尽。
+                continue
+            before = self._failed_len()
+            self._write_to_db(pending)
+            written = max(self._failed_len() - before, 0)
+            logger.info("审计链预留日志同步收敛：补写 %d 条（崩溃恢复/降级滞留）",
+                        len(pending))
+            recovered += len(pending) - written
+        return recovered
 
     def _maybe_compact_journal(self) -> bool:
         """预留日志全部入库后压缩它（释放磁盘；**保留最近 retain 条**）
@@ -1999,9 +2182,10 @@ class AuditChain:
             # ``duplicates=[80]``）。DB 工作只属于 writer 线程，锁内不做 DB I/O。
             if self._journal_needs_drain:
                 try:
-                    stranded = self._drain_journal()
-                    if stranded:
-                        self._write_to_db(stranded)
+                    # 【L1-a】收敛实现只有一处（`_recover_backlog`）：游标分页 +
+                    # 有界多窗口循环。原先是"内联一次 `_drain_journal`"，只覆盖
+                    # 一个窗口，且与 `flush()` 走的是两条不同代码路径。
+                    self._recover_backlog()
                 except Exception as e:  # noqa: BLE001 收敛失败不影响正常写入
                     logger.debug("审计 writer 收敛滞留失败: %s", e)
             batch: List[AuditEntry] = []
@@ -2212,6 +2396,13 @@ class AuditChain:
         self._committed_max_seq = 0
         self._journal_replay_count = 0
         self._buffer_dropped_count = 0
+        # 清库 = 这条链回到空：收敛游标/重试计数/放弃名单也必须一起归零，
+        # 否则旧 seq 的放弃记录会阻止新链上同号记录被收敛（测试专用路径）。
+        self._journal_drain_cursor = 0
+        self._journal_drain_seen = set()
+        self._journal_write_attempts = {}
+        self._journal_abandoned = {}
+        self._journal_abandoned_count = 0
 
     # ── 读取路径 ────────────────────────────────────────────
 
@@ -2557,9 +2748,37 @@ class AuditChain:
     def verify_daily_root(self, date: Any = None) -> RootsVerification:
         """重放校验：从当日 entries 重算 Merkle 根 + 校验签名 + 外层根链
 
-        - **封印区间语义**：根记录含 `first_seq`/`last_seq`，重放只覆盖该 seq 区间
-          （封印是对当时链头的前缀快照）；因此「封印后又追加当日新记录」不会造成
-          误报，而区间内被删/被改则必然检出；
+        【L1-b：叶子口径**统一为「该 UTC 日 且 seq ≤ last_seq」**——两个约束缺一不可】
+        重放叶子 = ``entries(day=day, end_seq=recorded.last_seq)``。两种历史口径各自
+        只取了一半，都出错：
+
+        - **只按 seq 区间**（旧校验口径，本函数的 bug）：叶子取
+          ``[first_seq, last_seq]`` 里的**全部**记录。它假定"seq 区间内全是该日的
+          记录"。生产中该假定不成立（测试污染/回填导致 seq 顺序与 ts 顺序不一致）：
+          2026-09-14 的区间 915..2782 里有 1868 条记录，其中只有 82 条 ts 属于
+          09-14 ⇒ 重算出一个与签名时**不同的叶子集合** ⇒ 该日**恒定 FAIL**。
+        - **只按日**（S2-02 之前的原始口径）：叶子取 ``entries(day=day)``。它没有
+          封印时刻的**上界**，"封印之后又有该日 ts 的记录入链"（封当日、或事后回填）
+          就会让叶子集合变化 ⇒ 误报为篡改（S2-02 的交付报告记录的正是这个假红）。
+
+        两个约束合起来才是完备的封印语义：**封印 = 该日、在封印点（``last_seq``）
+        之前已入链的记录集合**。
+        - 上界 ``seq ≤ last_seq`` 给出"不误报"：封印后新记录 seq 更大，天然落在
+          集合之外（S2-02 的回归保护被保留）；
+        - 按日过滤给出"不误判"：区间里其它日的记录不参与该日根（L1-b 的 09-14 FAIL 消失）。
+
+        【判定依据（实测，不是偏好）】6 个已签名日根的 ``root_hash`` **全部**等于
+        "按日取叶"的重算值（含 09-14）；且 09-14 记录里 ``leaf_count=82`` 恰是日叶子
+        数（区间叶子数是 1868）——``root_hash``/``leaf_count`` 同在签名消息内，
+        签名的对象只能是**该日叶子集合**。故按日过滤是签名语义的一部分；
+        ``first_seq``/``last_seq``/首尾 ``self_hash`` 则是同一份日叶子的**派生元数据**，
+        下面把它们变成**显式一致性断言**（改任何一个都必然 FAIL），因此本改动
+        **只增不减**篡改检出能力。
+
+        【空日根（``last_seq == 0``）走全量按日核对】空日根的含义是
+        "该日无新增"（见 ``EMPTY_MERKLE_ROOT``），是绝对断言，不给前缀上界；
+        若之后有人回填该日记录，叶子数变化 ⇒ FAIL，不静默放过。
+
         - 根哈希重算比对（可重放）；
         - 签名校验（ed25519 用记录中的公钥；sha256-self 降级路径标注为占位）；
         - 外层链（prev_entry_hash → entry_hash）连续性，检出整日根被删/被改。
@@ -2569,12 +2788,11 @@ class AuditChain:
         if recorded is None:
             return RootsVerification(ok=False, date=day, reason="root_not_found",
                                      detail=f"未找到 {day} 的每日根记录")
+        # ── 唯一口径：该 UTC 日 ∩ seq ≤ last_seq（封印点前缀上界）──
         if recorded.last_seq and recorded.last_seq >= recorded.first_seq:
-            sealed = self.entries(start_seq=recorded.first_seq,
-                                  end_seq=recorded.last_seq)
-        else:                       # 空日根（leaf_count=0）或无区间信息 → 回退按日取
-            sealed = self.entries(day=day)
-        day_entries = sealed
+            day_entries = self.entries(day=day, end_seq=recorded.last_seq)
+        else:                       # 空日根：按该日全部记录核对（"该日无新增"是绝对断言）
+            day_entries = self.entries(day=day)
         leaves = [e.self_hash for e in day_entries]
         recomputed = merkle_root(leaves)
         # 叶子自洽性：每日根封印的是 self_hash，若某条载荷/字段被改（self_hash 列未变，
@@ -2582,6 +2800,36 @@ class AuditChain:
         bad_leaf = next((e for e in day_entries
                          if e.recompute_payload_hash() != e.payload_hash
                          or e.recompute_self_hash() != e.self_hash), None)
+        # 派生元数据自洽（签名覆盖这些字段 ⇒ 改它们必然 FAIL）
+        if day_entries:
+            first_seq_ok = recorded.first_seq == day_entries[0].seq
+            last_seq_ok = recorded.last_seq == day_entries[-1].seq
+            first_hash_ok = (not recorded.first_self_hash
+                             or recorded.first_self_hash == day_entries[0].self_hash)
+            last_hash_ok = (not recorded.last_self_hash
+                            or recorded.last_self_hash == day_entries[-1].self_hash)
+        else:                       # 空日根：区间必须退化为 0/0 且首尾哈希为空
+            first_seq_ok = last_seq_ok = (recorded.first_seq == 0
+                                          and recorded.last_seq == 0)
+            first_hash_ok = last_hash_ok = not (recorded.first_self_hash
+                                                or recorded.last_self_hash)
+        # ── 诊断（不参与 ok）：封印 seq 区间内是否混有**其它日**的记录 ──
+        # 命中即说明"只按 seq 区间取叶"的旧口径会算出另一个叶子集合
+        # （09-14 就是这种形态）；这里只告警、不判 FAIL —— 那是数据形态，不是链损坏。
+        interval_entries: List[AuditEntry] = []
+        if recorded.last_seq and recorded.last_seq >= recorded.first_seq:
+            interval_entries = self.entries(start_seq=recorded.first_seq,
+                                            end_seq=recorded.last_seq)
+        interval_foreign = [e for e in interval_entries
+                            if day_of_ts(e.ts) != day]
+        if interval_foreign:
+            logger.warning(
+                "每日根 %s 的封印区间 seq %d..%d 内有 %d 条**其它日**记录"
+                "（本日叶子 %d 条）——这是旧校验口径（只按 seq 区间取叶）会误判 FAIL "
+                "的数据形态；成因是 seq 顺序与 ts 顺序不一致（回填/测试污染），"
+                "不是链损坏",
+                day, recorded.first_seq, recorded.last_seq,
+                len(interval_foreign), len(leaves))
         sig_ok = False
         if recorded.signature:
             sig_ok = RootsSigner.verify(
@@ -2590,8 +2838,9 @@ class AuditChain:
                 public_key_hex=recorded.signer_public_key)
         chain_ok, chain_checked, chain_detail = self._verify_root_chain()
         count_ok = (recorded.leaf_count == len(leaves))
+        meta_ok = (first_seq_ok and last_seq_ok and first_hash_ok and last_hash_ok)
         ok = (recomputed == recorded.root_hash and chain_ok and bad_leaf is None
-              and count_ok
+              and count_ok and meta_ok
               and (sig_ok or recorded.signature_scheme == _SIGN_SCHEME_SHA256_SELF
                    or not recorded.signature))
         reason = ""
@@ -2599,12 +2848,20 @@ class AuditChain:
         if recomputed != recorded.root_hash:
             reason = "root_hash_mismatch"
             detail = (f"重算={recomputed[:16]}… ≠ 记录={recorded.root_hash[:16]}…"
-                      f"（封印区间 seq {recorded.first_seq}..{recorded.last_seq}，"
-                      f"{len(leaves)} 条叶子）")
+                      f"（按 UTC 日取叶 {len(leaves)} 条，seq {recorded.first_seq}.."
+                      f"{recorded.last_seq}）")
         elif not count_ok:
             reason = "leaf_count_mismatch"
-            detail = (f"封印区间实际 {len(leaves)} 条 ≠ 记录 {recorded.leaf_count} 条"
-                      f"（区间内记录被删除或插入）")
+            detail = (f"封印点（seq ≤ {recorded.last_seq}）该日实际 {len(leaves)} 条 "
+                      f"≠ 记录 {recorded.leaf_count} 条"
+                      f"（该日记录被删除/插入）")
+        elif not meta_ok:
+            reason = "seal_metadata_mismatch"
+            detail = (f"封印元数据与实际不一致：first_seq={recorded.first_seq}"
+                      f"（实际 {day_entries[0].seq if day_entries else 0}）、"
+                      f"last_seq={recorded.last_seq}"
+                      f"（实际 {day_entries[-1].seq if day_entries else 0}）、"
+                      f"首/尾 self_hash 一致={first_hash_ok and last_hash_ok}")
         elif bad_leaf is not None:
             reason = "entry_hash_mismatch"
             detail = (f"当日记录 seq={bad_leaf.seq} 的两级哈希重算不一致"
@@ -2622,7 +2879,10 @@ class AuditChain:
                                  signing_degraded=recorded.degraded,
                                  chains_ok=chain_ok,
                                  entries_verified=len(leaves),
-                                 root_chain_checked=chain_checked)
+                                 root_chain_checked=chain_checked,
+                                 interval_leaf_count=len(interval_entries),
+                                 interval_foreign_count=len(interval_foreign))
+
 
     def _verify_root_chain(self) -> Tuple[bool, int, str]:
         """外层根链连续性校验（每日根文件自身不可被删改）"""
@@ -2693,6 +2953,11 @@ class AuditChain:
             "journal_replay_count": self._journal_replay_count,
             "journal_compact_count": self._journal_compact_count,
             "journal_write_failures": self._journal_write_failures,
+            # ── L1-a：收敛游标 / 写不进库的 seq（可观测；放弃必须看得见）──
+            "journal_drain_cursor": int(self._journal_drain_cursor),
+            "journal_drain_stuck": len(self._journal_write_attempts),
+            "journal_abandoned_count": int(self._journal_abandoned_count),
+            "journal_abandoned_seqs": sorted(self._journal_abandoned)[:16],
             "committed_max_seq": self._committed_max_seq,
         }
         if verify:

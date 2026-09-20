@@ -45,6 +45,7 @@
 
 from __future__ import annotations
 
+import heapq
 import json
 import logging
 import os
@@ -308,20 +309,47 @@ class SeqJournal:
             return seq, str(data.get("self_hash") or ""), max(base, 0)
         return 0, "", 0
 
-    def read_since(self, after_seq: int, *, limit: int = 1000) -> List[Dict[str, Any]]:
-        """读出 ``seq > after_seq`` 的记录（按 seq 升序，至多 limit 条）
+    def read_after(self, after_seq: int, *, limit: int = 1000) -> List[Dict[str, Any]]:
+        """**按游标**读出 ``seq > after_seq`` 的记录（按 seq 升序，至多 ``limit`` 条）
 
-        供两处使用：
+        供三处使用：
         - **启动重放**：把"进程被杀前已分配但未入库"的记录补进 DB（消除丢失）；
-        - **后台收敛**：writer 每轮确保日志里没有落后于 DB 水位的记录。
+        - **后台收敛**：writer 每轮确保日志里没有落后于 DB 水位的记录；
+        - **游标分页**：``after_seq`` 作为**游标**，调用方拿到结果后把它推进到
+          返回集的**最大 seq**，下一轮便覆盖"更靠后的一段"（见下）。
+
+        【与 ``read_since`` 的关系】过滤与截断语义**完全相同**（``read_since``
+        已是本方法的别名）。差别只在**调用方式**，而不是实现。
+
+        【为什么必须显式补出"游标"语义（实测缺陷 L1-a）】
+        ``chain._drain_journal`` 原来每轮都调 ``read_since(0, limit=5000)``。
+        ``after_seq=0`` 使过滤条件恒真，于是本方法退化为"**升序排序后取前 5000
+        条**" ⇒ **每轮都只看日志里最老的那 5000 条**。只要最老的一段里存在
+        "读得出、却写不进 DB"的记录（约束冲突行），或长期占着低 seq 的在途记录，
+        窗口就**永久钉死**在低 seq 区间：更高 seq 的滞留记录永远进不了收敛窗口
+        ⇒ 永久滞留、可能静默丢失审计记录。而压缩（``compact``）只在"低 seq 已
+        全部入库"时才推进水位，所以这种停滞**不会自愈**。
+        让 ``after_seq`` 真正成为可前进的游标，是修掉它的最小充分条件。
+
+        【为什么用"有界最大堆"而不是"全量收集后排序截断"】语义等价（都返回
+        seq 最小的 ``limit`` 条），但内存从"日志里全部命中行"（2 万条量级）降到
+        ``limit`` 条。收敛是一轮一次的全文件扫描，没必要同时建一份全量列表。
+
+        Args:
+            after_seq: 游标（返回 **严格大于** 它的记录）。
+            limit: 至多返回条数；``0``/``None`` = 不限（仅在需要全量时用）。
         """
         if not self.enabled:
             return []
-        out: List[Dict[str, Any]] = []
+        floor = int(after_seq)
+        cap = int(limit) if limit else 0
         seen: set = set()
+        #: 有界最大堆：堆顶是"当前保留集合里最大的 seq"（用 -seq 模拟最大堆）
+        heap: List[Tuple[int, int, Dict[str, Any]]] = []
+        unlimited: List[Dict[str, Any]] = []
         try:
             with open(self.path, "r", encoding="utf-8", errors="ignore") as fh:
-                for line in fh:
+                for idx, line in enumerate(fh):
                     line = line.strip()
                     if not line:
                         continue
@@ -332,17 +360,30 @@ class SeqJournal:
                     if not isinstance(data, dict):
                         continue
                     seq = int(data.get("seq") or 0)
-                    if seq <= int(after_seq) or seq in seen:
+                    if seq <= floor or seq in seen:
                         continue
                     seen.add(seq)
-                    out.append(data)
+                    if cap <= 0:
+                        unlimited.append(data)
+                    elif len(heap) < cap:
+                        heapq.heappush(heap, (-seq, idx, data))
+                    elif seq < -heap[0][0]:
+                        heapq.heapreplace(heap, (-seq, idx, data))
         except OSError as exc:
             logger.warning("预留日志重放读取失败: %s", exc)
             return []
+        out = unlimited if cap <= 0 else [item[2] for item in heap]
         out.sort(key=lambda d: int(d.get("seq") or 0))
-        if limit and len(out) > limit:
-            out = out[:int(limit)]
         return out
+
+    def read_since(self, after_seq: int, *, limit: int = 1000) -> List[Dict[str, Any]]:
+        """读出 ``seq > after_seq`` 的记录（按 seq 升序，至多 limit 条）
+
+        **保留为兼容别名**：语义与 ``read_after`` 逐字相同。历史调用点把它当
+        "从 0 起的固定窗口"用（见 ``read_after`` 的缺陷说明），那种用法的问题在
+        **调用侧**，故此处只做转发、不再保留第二份实现。
+        """
+        return self.read_after(after_seq, limit=limit)
 
     def max_seq(self) -> int:
         """日志中出现的最大 seq（0 = 无）"""

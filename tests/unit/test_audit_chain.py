@@ -811,7 +811,15 @@ class TestDailyRoot:
 
     def test_forged_root_record_with_recomputed_chain_caught_by_signature(self, chain,
                                                                          paths):
-        """攻击者重算外层根链（无密钥哈希链）仍无法伪造 ed25519 签名"""
+        """攻击者重算外层根链（无密钥哈希链）仍无法伪造 ed25519 签名
+
+        【2026-09-21 L1-b 口径统一后的两点变化（断言相应放宽，检测**只增不减**）】
+          ① 篡改的 ``last_self_hash`` 现在被**重放侧**交叉核对（封印元数据一致性断言）
+             ⇒ 先报 ``seal_metadata_mismatch``；旧口径只按 seq 区间取叶、从不核对
+             这个字段，所以只能由签名兜住；
+          ② 签名**依然**校验失败（``signature_ok is False``）——这是本用例的承重性质：
+             受签字段无法被无密钥的攻击者伪造。因此"重放 + 签名"两层都拒收该记录。
+        """
         chain.append("act", "a", ts="2026-09-09T00:00:00.000000+00:00")
         chain.flush()
         root = chain.daily_merkle_root("2026-09-09")
@@ -820,7 +828,7 @@ class TestDailyRoot:
         os.chmod(paths["roots"], 0o644)
         rec = json.loads(pathlib.Path(paths["roots"]).read_text(
             encoding="utf-8").strip())
-        # 篡改「受签但重放不交叉核对」的字段（末条 self_hash），并重算外层哈希链
+        # 篡改「受签」字段（末条 self_hash），并重算外层哈希链
         rec["last_self_hash"] = "f" * 64
         forged = DailyRoot.from_dict(rec)
         forged.entry_hash = forged.compute_entry_hash(forged.prev_entry_hash)
@@ -829,7 +837,9 @@ class TestDailyRoot:
         rep = chain.verify_daily_root("2026-09-09")
         assert rep.chains_ok is True           # 外层哈希链已被攻击者重算自洽
         assert rep.signature_ok is False       # 但签名无法伪造
-        assert not rep.ok and rep.reason == "signature_invalid"
+        assert not rep.ok and rep.reason in ("signature_invalid",
+                                             "seal_metadata_mismatch",
+                                             "root_hash_mismatch")
 
     def test_auto_seal_writes_root_for_past_day(self, paths):
         """auto_seal：后台自动为「已过完的日」封存 Merkle 根（无需人工触发）
