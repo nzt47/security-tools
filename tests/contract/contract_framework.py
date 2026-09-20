@@ -464,22 +464,74 @@ class ProviderVerifier:
 #  契约持久化
 # ═══════════════════════════════════════════════════════════════
 
+def _strip_generated_at(text: str):
+    """去掉 JSON 文本里的 ``generated_at`` 值，用于"只比实质内容"
+
+    该字段是每次导出时新取的 ``datetime.now()``，属于**易变字段**：
+    用它参与"内容是否变化"的判断，会让每次都判定为"变了"。
+    """
+    try:
+        data = json.loads(text)
+
+        def _drop(node):
+            if isinstance(node, dict):
+                return {k: _drop(v) for k, v in node.items() if k != "generated_at"}
+            if isinstance(node, list):
+                return [_drop(v) for v in node]
+            return node
+
+        return json.dumps(_drop(data), ensure_ascii=False, sort_keys=True)
+    except (ValueError, TypeError):
+        return text
+
+
+def _write_if_changed(path: Path, content: str) -> bool:
+    """仅在**实质内容**变化时写文件；返回是否真的写了
+
+    【为什么需要它】本框架的契约文件（``tests/contract/contracts/*.json``）是
+    **入库文件**，且「生成契约」是测试的一部分。原先 `save_contract()` 无条件
+    `write_text`，而导出结果里带每次新取的 ``generated_at`` ⇒ **每跑一次契约测试
+    就改写 6 个入库文件**，工作区恒为 dirty（实测：差异仅 `generated_at` 一行，
+    内容零变化）。这会让"工作区是否被污染"这一信号失去意义，也让开发者在
+    `git status` 里分不清"测试产物"和"真实改动"。
+
+    忽略 ``generated_at`` 后比较：实质内容一致 ⇒ 不写（保持 mtime 与工作区干净）；
+    实质内容变化 ⇒ 正常写入（包括首次生成、契约真的改了这两种必须落盘的情形）。
+    """
+    if path.exists():
+        try:
+            old = path.read_text(encoding="utf-8")
+        except OSError:
+            old = None
+        if old is not None and _strip_generated_at(old) == _strip_generated_at(content):
+            return False
+    path.write_text(content, encoding="utf-8")
+    return True
+
+
 def save_contract(contract: Contract, output_dir: Path) -> Tuple[Path, Path]:
-    """保存契约为 Pact JSON + 规格 JSON 两个文件"""
+    """保存契约为 Pact JSON + 规格 JSON 两个文件
+
+    内容无实质变化时不重写（见 :func:`_write_if_changed`），避免污染入库文件。
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
 
     pact_path = output_dir / f"{contract.name}_pact.json"
     spec_path = output_dir / f"{contract.name}_contract.json"
 
-    pact_path.write_text(
+    pact_written = _write_if_changed(
+        pact_path,
         json.dumps(contract.to_pact_dict(), ensure_ascii=False, indent=2),
-        encoding="utf-8",
     )
-    spec_path.write_text(
+    spec_written = _write_if_changed(
+        spec_path,
         json.dumps(contract.to_spec_dict(), ensure_ascii=False, indent=2),
-        encoding="utf-8",
     )
-    logger.info(f"契约已保存: {pact_path.name}, {spec_path.name}")
+    logger.info(
+        "契约已保存: %s(%s), %s(%s)",
+        pact_path.name, "写入" if pact_written else "无变化",
+        spec_path.name, "写入" if spec_written else "无变化",
+    )
     return pact_path, spec_path
 
 
