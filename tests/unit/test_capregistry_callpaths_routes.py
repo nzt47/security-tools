@@ -138,7 +138,7 @@ class TestCheckMode:
         """★★ E1b 的硬要求：**实测这个负例**
 
         做法：从 `EXEMPT_CALL_SITES` 里删掉**一条真实的直调登记**
-        （`agent/skills_mgmt/mcp_adapter.py::_call_tool` —— 它确实被 AST 扫描器
+        （`agent/skills_mgmt/mcp_adapter.py::_build` —— 它确实被 AST 扫描器
         以 `remote_primitive` 命中且在硬失败范围内），等价于"这条直调没登记"。
         `--check` 必须**非零退出**。
 
@@ -146,8 +146,17 @@ class TestCheckMode:
         （AST 启发式抓不到"经 CLI 间接触发"），删掉它只会让清单少一条、
         **不会**产生"未登记直调" ⇒ 那样测不到退出码逻辑。
         负例必须打在**真的会被扫出来的**直调上。
+
+        【2026-09-21 修一处锚点漂移 —— 本负例曾**静默失效**】
+        原受害条目是 `agent/skills_mgmt/mcp_adapter.py::_call_tool`。
+        TASK-08 给 MCP 调用加超时/重试预算时，把 SDK 调用路径重构成了
+        `_build()` 内层闭包（`mcp_adapter.py:372`）⇒ **`_call_tool` 这个符号不再存在**。
+        于是本用例变成"删掉一个**本就不存在的**条目" ⇒ 未登记数仍为 0 ⇒
+        **负例测不出非零退出，静默失效**（实测 `assert 0 == 1`）。
+        改用当前**真实存在且会被扫到**的 `_build` 作为受害条目。
+        ⇒ **教训：负例必须锚在"扫描器当前真能命中的符号"上；重构会让负例静默失效。**
         """
-        victim = "agent/skills_mgmt/mcp_adapter.py::_call_tool"
+        victim = "agent/skills_mgmt/mcp_adapter.py::_build"
         assert victim in EXEMPT_CALL_SITES, "测试前提：该例外必须存在"
         patched = {k: v for k, v in EXEMPT_CALL_SITES.items() if k != victim}
         monkeypatch.setattr(audit, "EXEMPT_CALL_SITES", patched)

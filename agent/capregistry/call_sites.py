@@ -311,6 +311,48 @@ EXEMPT_CALL_SITES: Dict[str, Dict[str, Any]] = {
         "via_gate": True,
         "callee": "client.call_tool",
     },
+    # 【2026-09-21 补登记】TASK-08 给 MCP 调用加了超时/重试预算时，把原来的 SDK 调用路径
+    # 重构成了 `_build()` 内层闭包（`agent/skills_mgmt/mcp_adapter.py:372`），
+    # 于是扫描器把它识别为**新的调用点** —— TASK-05 登记的是旧符号 `_call_tool`，已不存在。
+    # ⇒ 这是"重构导致登记锚点漂移"，不是新增了一条绕过。
+    "agent/skills_mgmt/mcp_adapter.py::_build": {
+        "reason": (
+            "**远程原语的 SDK 调用点**：`session.call_tool(...)` 走官方 `mcp` SDK 的 "
+            "`ClientSession`。它**不经** `_registry`、**不过** `tool_gate`，"
+            "因为它是**技能侧 MCP 适配层**的一部分（技能调远端 MCP 工具），"
+            "与 `agent.tools` 的能力注册面是两条不同的链路。"
+            "可达性由 `_check_mcp_sdk()`（`:59`）把闸 —— **实测 `import mcp` 抛 ImportError**"
+            "（`No module named 'mcp'`）⇒ **当前不可达**，属"
+            "「**潜在风险、当前不可达**」，与 TASK-05 §2.3c 第 4 条同一处置口径。"
+            "⚠️ **一旦装上官方 SDK 该路径即生效**，届时应把它接入熔断/身份/审计后再登记为可达"
+        ),
+        "identity": "无 —— 技能侧调用不经会话身份传播（装上 SDK 后需补）",
+        "audit": "无独立审计（当前不可达故未触发）；装上 SDK 后需接入",
+        "reachable": False,
+        "path_kind": "remote_primitive",
+    },
+    # 【2026-09-21 补登记】全量回归时 `--check` 报出这一处未登记直调。
+    # ⚠️ 诚实说明：该文件**自 2026-06-29 起未被改过**（`git log -1 -- mcp_services/test_mcp_windows.py`
+    #    = `936bfd7d`），故它**不是本次新增的直调**，而是扫描面/判定条件在后续任务中变化后
+    #    才被识别出来。原实现漏检的原因未逐行追查（超出本轮范围），此处按"事实发现"登记。
+    "mcp_services/test_mcp_windows.py::test_error_mode": {
+        "reason": (
+            "**独立的手工 MCP 客户端兼容性脚本**，不是能力、不是入口、不被任何链路 import。"
+            "它自己 `MCPClient(...)` 起一个进程内客户端并直接 `client.call_tool(...)`，"
+            "用途是人工验证 Windows 下的超时/重试/编码行为（文件 docstring 写明"
+            "`python test_mcp_windows.py` 手工运行）。"
+            "⇒ 它**不经** `tools.call()` 也不应经（否则就不是在测 MCP 传输层本身了）。"
+            "另：`pytest.ini` 的 `testpaths = tests` ⇒ 本文件**不被 pytest 收集**，"
+            "且 `mcp_services/` **不在** `VIOLATION_SCOPE_PREFIXES`（硬失败范围仅 "
+            "`agent/`、`plugins/`、`cloudshu/`）⇒ 它只被列出、不阻断门禁。"
+            "登记的目的是让 `--check` 的**未登记数归零**，使真正的生产缺口不被噪声掩盖"
+        ),
+        "identity": "手工运行者（人在终端执行脚本）；脚本内无身份传播",
+        "audit": "无独立审计 —— 但它是**离线的兼容性验证脚本**，其调用不进入生产可观测面；"
+                 "若要审计，应给它绑一个显式 session_source 后再登记（当前不需要）",
+        "reachable": True,
+        "path_kind": "direct",
+    },
 }
 
 
