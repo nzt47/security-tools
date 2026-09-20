@@ -1,0 +1,31 @@
+=== GENERATOR semantics = entries(day=DAY)  vs  VERIFIER semantics = entries(start_seq..end_seq) ===
+
+2026-09-13: recorded leaf_count=361 root=2497b8f4f98f1a1d2407
+   BY-DAY   : n=   361 seq 554..914  merkle=2497b8f4f98f1a1d2407  MATCHES_RECORD=True
+   BY-RANGE : n=   361 (range 554..914 = 361 slots)  merkle=2497b8f4f98f1a1d2407  MATCHES_RECORD=True
+   rows in the seq range whose ts is NOT 2026-09-13: 0  e.g. seqs []
+
+2026-09-14: recorded leaf_count=82 root=c8347a073287432b1737
+   BY-DAY   : n=    82 seq 915..2782  merkle=c8347a073287432b1737  MATCHES_RECORD=True
+   BY-RANGE : n=  1868 (range 915..2782 = 1868 slots)  merkle=ff9dbbbabd70ed53b2ed  MATCHES_RECORD=False
+   rows in the seq range whose ts is NOT 2026-09-14: 1786  e.g. seqs [928, 929, 930, 931, 932, 933, 934, 935]
+
+2026-09-16: recorded leaf_count=5253 root=30d158c1d2526b5232ad
+   BY-DAY   : n=  5253 seq 3184..8436  merkle=30d158c1d2526b5232ad  MATCHES_RECORD=True
+   BY-RANGE : n=  5253 (range 3184..8436 = 5253 slots)  merkle=30d158c1d2526b5232ad  MATCHES_RECORD=True
+   rows in the seq range whose ts is NOT 2026-09-16: 0  e.g. seqs []
+
+2026-09-17: recorded leaf_count=10791 root=81620d83ede7ad60ba40
+   BY-DAY   : n= 10791 seq 8437..19228  merkle=81620d83ede7ad60ba40  MATCHES_RECORD=True
+   BY-RANGE : n= 10791 (range 8437..19228 = 10792 slots)  merkle=81620d83ede7ad60ba40  MATCHES_RECORD=True
+   rows in the seq range whose ts is NOT 2026-09-17: 0  e.g. seqs []
+
+2026-09-18: recorded leaf_count=323 root=bd0039c8bb3be48c8928
+   BY-DAY   : n=   323 seq 19229..19551  merkle=bd0039c8bb3be48c8928  MATCHES_RECORD=True
+   BY-RANGE : n=   323 (range 19229..19551 = 323 slots)  merkle=bd0039c8bb3be48c8928  MATCHES_RECORD=True
+   rows in the seq range whose ts is NOT 2026-09-18: 0  e.g. seqs []
+
+2026-09-19: recorded leaf_count=192 root=408f174951f0a1b10e63
+   BY-DAY   : n=   192 seq 19552..19743  merkle=408f174951f0a1b10e63  MATCHES_RECORD=True
+   BY-RANGE : n=   192 (range 19552..19743 = 192 slots)  merkle=408f174951f0a1b10e63  MATCHES_RECORD=True
+   rows in the seq range whose ts is NOT 2026-09-19: 0  e.g. seqs []

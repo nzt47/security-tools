@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-09-21T04:02:54.4866874+08:00",
+  "backup_dir": "_ci_logs\\audit_backup_20260921_035434",
+  "rollback_cmd": "pwsh -File docs\\closeout\\L1_evidence\\ROLLBACK.ps1",
+  "pre_repair": [
+    {
+      "path": "_ci_logs\\audit_backup_20260921_035434\\audit_chain.db",
+      "sha256": "FDAC9BFA60874E6F065BBC533CB31A58922D9C5FE5FC3706B5BABD11F719E294",
+      "bytes": 17162240,
+      "mtime": "2026-09-21T03:51:41.4274633+08:00"
+    },
+    {
+      "path": "_ci_logs\\audit_backup_20260921_035434\\audit_chain.db.seqjournal",
+      "sha256": "4D2EA1C5496B6004165FBBDE474F30779CDE51DDEDB24AECD2A70F7FB560A52F",
+      "bytes": 15677449,
+      "mtime": "2026-09-21T03:51:41.419191+08:00"
+    },
+    {
+      "path": "_ci_logs\\audit_backup_20260921_035434\\audit_chain.db.lock",
+      "sha256": "4399B178ECB519554F528161F8AB097631320B06BB7176BAA487605D94D13807",
+      "bytes": 1025,
+      "mtime": "2026-09-21T03:51:41.419191+08:00"
+    },
+    {
+      "path": "_ci_logs\\audit_backup_20260921_035434\\daily_roots.jsonl",
+      "sha256": "3A776CB928D6875EBF64F7019345EEEB28F56CD7DB39AF92AE45F92BE5718181",
+      "bytes": 5398,
+      "mtime": "2026-09-20T08:00:00.7673725+08:00"
+    },
+    {
+      "path": "_ci_logs\\audit_backup_20260921_035434\\audit_signing_key.pem",
+      "sha256": "CA751F366BB3A8477E32409431D63FB57FCF794F31A8FCD9BFA3ED3F1E04F128",
+      "bytes": 119,
+      "mtime": "2026-09-14T08:00:01.582966+08:00"
+    }
+  ],
+  "post_repair": [
+    {
+      "path": "data\\audit\\audit_chain.db",
+      "sha256": "AE8ED62163321AE25DA99D43F20B1724FC8F66338B849B9CAE6E19D9FE844919",
+      "bytes": 17178624,
+      "mtime": "2026-09-21T03:59:39.4587123+08:00"
+    },
+    {
+      "path": "data\\audit\\audit_chain.db.seqjournal",
+      "sha256": "68477C95C0138B12C7C62ADB617B36A939524C8DC7B7BDB9BEEC5D5D873C64E5",
+      "bytes": 15677449,
+      "mtime": "2026-09-21T03:59:40.3315256+08:00"
+    },
+    {
+      "path": "data\\audit\\audit_chain.db.lock",
+      "sha256": "4399B178ECB519554F528161F8AB097631320B06BB7176BAA487605D94D13807",
+      "bytes": 1025,
+      "mtime": "2026-09-21T03:51:41.419191+08:00"
+    },
+    {
+      "path": "data\\audit\\daily_roots.jsonl",
+      "sha256": "9FCD4B3208869ABCD47D885BAEA2B867040A441E4C2F6329B0EC6DA74AB76226",
+      "bytes": 5392,
+      "mtime": "2026-09-21T03:59:40.1158318+08:00"
+    },
+    {
+      "path": "data\\audit\\audit_signing_key.pem",
+      "sha256": "CA751F366BB3A8477E32409431D63FB57FCF794F31A8FCD9BFA3ED3F1E04F128",
+      "bytes": 119,
+      "mtime": "2026-09-14T08:00:01.582966+08:00"
+    }
+  ],
+  "evidence_dir": "docs/closeout/L1_evidence",
+  "forensic_only_working_dir": "_ci_logs/l1_repair (gitignored)"
+}

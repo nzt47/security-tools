@@ -1,0 +1,54 @@
+{
+  "phase": "APPLY",
+  "db": "data\\audit\\audit_chain.db",
+  "journal": "data\\audit\\audit_chain.db.seqjournal",
+  "roots": "data\\audit\\daily_roots.jsonl",
+  "before": {
+    "rows": 20089,
+    "breaks": 6,
+    "holes": [
+      19220,
+      19768,
+      20077,
+      20078,
+      20079,
+      20080,
+      20081,
+      20082,
+      20083,
+      20084,
+      20085,
+      20092,
+      20093,
+      20094,
+      20095
+    ]
+  },
+  "recovered_seqs": [
+    19220,
+    19768,
+    20077,
+    20078,
+    20079,
+    20080,
+    20081,
+    20082,
+    20083,
+    20084,
+    20085,
+    20092,
+    20093,
+    20094,
+    20095
+  ],
+  "unrecoverable_seqs": [],
+  "relink_first_affected": 477,
+  "relink_rows": 19628,
+  "after": {
+    "rows": 20104,
+    "breaks": 0,
+    "holes": 0,
+    "self_consistency_failures": 0
+  },
+  "ts": "2026-09-21T03:59:40.680109"
+}

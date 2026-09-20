@@ -1,0 +1,54 @@
+=== identity / id-vs-seq forensics ===
+  rows=20089 id_range=1..20089 (span=20089) seq_range=1..20104
+  id span - rows = 0   <-- >0 means ids were burned (inserted then deleted, or rolled back)
+  sqlite_sequence = [('audit_chain', 20089)]
+
+  first 5 (id,seq): [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5)]
+  last 5 (id,seq): [(20085, 20100), (20086, 20101), (20087, 20102), (20088, 20103), (20089, 20104)]
+  rows where id != seq: 874  sample=[(6277, 6276), (6276, 6277), (9564, 9563), (9563, 9564), (19220, 19221), (19221, 19222), (19222, 19223), (19223, 19224), (19224, 19225), (19225, 19226)]
+  id gaps (prev_id -> next_id): 6 -> [(6275, 6277), (6277, 6276), (6276, 6278), (9562, 9564), (9564, 9563), (9563, 9565)]
+
+=== freelist / page forensics (deletes leave free pages) ===
+  PRAGMA freelist_count = 0
+  PRAGMA page_count = 4190
+  PRAGMA page_size = 4096
+  PRAGMA auto_vacuum = 0
+  PRAGMA journal_mode = wal
+
+=== holes vs id-gap correlation ===
+  seq=19220: id(seq-1)=19219 id(seq+1)=19220 -> id delta=1
+  seq=19768: id(seq-1)=19766 id(seq+1)=19767 -> id delta=1
+  seq=20077: id(seq-1)=20074 id(seq+1)=None -> id delta=None
+  seq=20078: id(seq-1)=None id(seq+1)=None -> id delta=None
+  seq=20079: id(seq-1)=None id(seq+1)=None -> id delta=None
+  seq=20080: id(seq-1)=None id(seq+1)=None -> id delta=None
+  seq=20081: id(seq-1)=None id(seq+1)=None -> id delta=None
+  seq=20082: id(seq-1)=None id(seq+1)=None -> id delta=None
+  seq=20083: id(seq-1)=None id(seq+1)=None -> id delta=None
+  seq=20084: id(seq-1)=None id(seq+1)=None -> id delta=None
+  seq=20085: id(seq-1)=None id(seq+1)=20075 -> id delta=None
+  seq=20092: id(seq-1)=20080 id(seq+1)=None -> id delta=None
+  seq=20093: id(seq-1)=None id(seq+1)=None -> id delta=None
+  seq=20094: id(seq-1)=None id(seq+1)=None -> id delta=None
+  seq=20095: id(seq-1)=None id(seq+1)=20081 -> id delta=None
+
+=== integrity / consistency ===
+  integrity_check = ok
+  quick_check     = ok
+
+=== the 15 journal-only rows: schema_version / payload sanity ===
+  seq=19220 schema_version=1 source=agent ws='' trace='' pl_bytes=544
+  seq=19768 schema_version=1 source=agent ws='' trace='' pl_bytes=540
+  seq=20077 schema_version=1 source=agent ws='' trace='' pl_bytes=334
+  seq=20078 schema_version=1 source=agent ws='' trace='' pl_bytes=301
+  seq=20079 schema_version=1 source=agent ws='' trace='' pl_bytes=298
+  seq=20080 schema_version=1 source=agent ws='' trace='' pl_bytes=298
+  seq=20081 schema_version=1 source=agent ws='' trace='' pl_bytes=305
+  seq=20082 schema_version=1 source=agent ws='' trace='' pl_bytes=311
+  seq=20083 schema_version=1 source=agent ws='' trace='' pl_bytes=281
+  seq=20084 schema_version=1 source=agent ws='' trace='' pl_bytes=71
+  seq=20085 schema_version=1 source=agent ws='' trace='' pl_bytes=542
+  seq=20092 schema_version=1 source=agent ws='' trace='' pl_bytes=260
+  seq=20093 schema_version=1 source=agent ws='' trace='' pl_bytes=252
+  seq=20094 schema_version=1 source=agent ws='' trace='' pl_bytes=248
+  seq=20095 schema_version=1 source=agent ws='' trace='' pl_bytes=304

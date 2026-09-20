@@ -1,0 +1,93 @@
+=== FULL PAYLOAD seq=477 ===
+{
+  "actor_ip_hash_status": "degraded_no_key",
+  "actor_ip_masked": "127.0.xxx.xxx",
+  "actor_ip_present": true,
+  "actor_source": "explicit",
+  "actor_type": "human",
+  "audit_scope": "ui_write_route",
+  "body_bytes": 0,
+  "body_hash": "",
+  "duration_ms": 17.823,
+  "endpoint": "admin.api_apply_network_config",
+  "identity_degraded": true,
+  "identity_source": "remote_addr",
+  "identity_tier": "degraded",
+  "method": "POST",
+  "path": "/api/apply-network-config",
+  "query_keys": [],
+  "schema": "audit.chain.v1",
+  "status": "ok",
+  "status_code": 200
+}
+
+=== FULL PAYLOAD seq=552 ===
+{
+  "actor_ip_hash_status": "degraded_no_key",
+  "actor_ip_masked": "127.0.xxx.xxx",
+  "actor_ip_present": true,
+  "actor_source": "explicit",
+  "actor_type": "human",
+  "audit_scope": "ui_write_route",
+  "body_bytes": 0,
+  "body_hash": "",
+  "duration_ms": 26.14,
+  "endpoint": "admin.api_apply_network_config",
+  "identity_degraded": true,
+  "identity_source": "remote_addr",
+  "identity_tier": "degraded",
+  "method": "POST",
+  "path": "/api/apply-network-config",
+  "query_keys": [],
+  "schema": "audit.chain.v1",
+  "status": "ok",
+  "status_code": 200
+}
+
+=== CONTEXT seq 470..485 ===
+  seq=470 ts=2026-09-12T19:13:59.908484+00:00 actor=system                       action=descriptor.register                           src=agent
+  seq=471 ts=2026-09-12T19:13:59.909492+00:00 actor=system                       action=descriptor.register                           src=agent
+  seq=472 ts=2026-09-12T19:13:59.909492+00:00 actor=system                       action=descriptor.register                           src=agent
+  seq=473 ts=2026-09-12T19:13:59.909492+00:00 actor=system                       action=descriptor.register                           src=agent
+  seq=474 ts=2026-09-12T19:13:59.910491+00:00 actor=system                       action=descriptor.register                           src=agent
+  seq=475 ts=2026-09-12T19:13:59.910491+00:00 actor=system                       action=descriptor.register                           src=agent
+  seq=476 ts=2026-09-12T19:14:03.158412+00:00 actor=system                       action=lock.conflict                                 src=system
+  seq=477 ts=2026-09-12T19:16:08.748117+00:00 actor=ui:127.0.0.1                 action=ui.admin.api_apply_network_config.post        src=ui
+  seq=478 ts=2026-09-12T19:17:54.238469+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=479 ts=2026-09-12T19:17:54.269724+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=480 ts=2026-09-12T19:17:54.317014+00:00 actor=auto                         action=trace.tool.error                              src=agent
+  seq=481 ts=2026-09-12T19:17:54.317014+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=482 ts=2026-09-12T19:17:54.349875+00:00 actor=auto                         action=trace.tool.error                              src=agent
+  seq=483 ts=2026-09-12T19:17:54.349875+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=484 ts=2026-09-12T19:17:54.388655+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=485 ts=2026-09-12T19:17:54.427955+00:00 actor=auto                         action=trace.closed                                  src=agent
+
+=== CONTEXT seq 545..560 ===
+  seq=545 ts=2026-09-12T19:18:02.130394+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=546 ts=2026-09-12T19:18:02.171237+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=547 ts=2026-09-12T19:18:02.217014+00:00 actor=system                       action=descriptor.register                           src=agent
+  seq=548 ts=2026-09-12T19:18:02.217014+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=549 ts=2026-09-12T19:18:02.247438+00:00 actor=auto                         action=trace.tool.error                              src=agent
+  seq=550 ts=2026-09-12T19:18:02.247438+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=551 ts=2026-09-12T19:18:21.932760+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=552 ts=2026-09-12T19:18:29.656457+00:00 actor=ui:127.0.0.1                 action=ui.admin.api_apply_network_config.post        src=ui
+  seq=553 ts=2026-09-12T19:18:34.680235+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=554 ts=2026-09-13T11:01:17.046530+00:00 actor=auto                         action=model.degraded                                src=agent
+  seq=555 ts=2026-09-13T11:09:05.574798+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=556 ts=2026-09-13T11:09:10.980936+00:00 actor=tok_ffd912584295             action=ui.chat.api_chat.post                         src=ui
+  seq=557 ts=2026-09-13T11:09:15.331292+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=558 ts=2026-09-13T11:09:20.331445+00:00 actor=tok_ffd912584295             action=ui.chat.api_chat.post                         src=ui
+  seq=559 ts=2026-09-13T11:09:24.325407+00:00 actor=auto                         action=trace.closed                                  src=agent
+  seq=560 ts=2026-09-13T11:09:31.948547+00:00 actor=tok_ffd912584295             action=ui.chat.api_chat.post                         src=ui
+  delta 476->477: 125.590s
+  delta 477->478: 105.490s
+  delta 551->552: 7.724s
+  delta 552->553: 5.024s
+
+=== rows whose prev_hash is a 'phantom' (not found as any self_hash) ===
+  count=6 seqs=[477, 552, 19221, 19769, 20086, 20096]
+
+=== ui-source rows: in-journal status ===
+  ui rows total=874  not_in_journal=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 477, 552]
+  system rows total=457 not_in_journal=[]
+  agent rows total=18758 not_in_journal=[]

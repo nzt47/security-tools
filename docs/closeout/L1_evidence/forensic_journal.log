@@ -1,0 +1,107 @@
+[journal] size=15677449 lines=20090 endswith_nl=True
+[journal] parsed_rows=20090 bad_lines=0
+[journal] seq min=13 max=20104 distinct=20090 dupes=0
+[journal] seqs appearing >1 time: 0  sample=[]
+
+=== DECISIVE: are the 15 missing seqs present in the journal? ===
+  seq=19220 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-17T17:38:48.104732+00:00 actor=auto action=approval.submit
+      subject='tool_call:ext_install' source=agent ws= trace=
+      prev_hash=f2167db2647635dc7068ff8d4d098cc396979e8690ec24e761f7ab8efabfbc2c self_hash=ea6d1acf9acd7a3f3ed0fa8460602c4a08c5da458746877358f19812596636cf payload_hash=8efc91af02f0ef34327ab85148181b3bdd1ec1a99cfc67956eda91a01fa43bcc
+      payload={"actor_source":"explicit","payload":{"compensating_action":"","description":"工具 ext_install 请求执行（风险 high）：共 2 个参数（参数摘要 826d9c…）","legacy":"approval_records.jsonl","level":"L1","manual_required":false,"object_id":"ext_install","object_type":"tool_call","state":"pending_review","trigger":"tool_gate","undo_hint":"本次批准不产生副作用：执行发生在模型原样重试时，且单次有效、超时自动失效。若要撤销：在该调用重试前驳回本单，或等 TTL（CP_TOOL_APPROVAL_TTL_SEC=1
+  seq=19768 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T09:26:18.018515+00:00 actor=auto action=approval.submit
+      subject='tool_call:write_file' source=agent ws= trace=
+      prev_hash=7cfe571e89229c01c05ef5d3d533a2de037fc6e66fa81cf1cd3529394fd47802 self_hash=1c00beea3da9977fc48bd196cdd1014dec2214571885952b45cb4972443a538a payload_hash=e951105c3bc86be9c484cbc0b25fec9bdc0dae33ce088f7203fd3cfef176d16b
+      payload={"actor_source":"explicit","payload":{"compensating_action":"","description":"工具 write_file 请求执行（风险 high）：x（参数摘要 e9aa98…）","legacy":"approval_records.jsonl","level":"L1","manual_required":false,"object_id":"write_file","object_type":"tool_call","state":"pending_review","trigger":"tool_gate","undo_hint":"本次批准不产生副作用：执行发生在模型原样重试时，且单次有效、批准后超时自动失效（CP_TOOL_APPROVAL_TTL_SEC=900 秒，自批准时刻起算）。若要阻止本次调用，请在模型重试
+  seq=20077 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T11:31:46.052984+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+      subject='egress:169.254.169.254' source=agent ws= trace=
+      prev_hash=a3dd4aceca218b5640f31371dd5fcd8d87502065ba2b1dcd12d7b397cca9f4ee self_hash=1580caed967f3cb7f5d50a1611cb93ce09c02538efdbf84d2c8e1b733e333820 payload_hash=fa96352d3ba018deed3c33f1cb3d451109ba9c494a0a33f31b0d15fe8db85b11
+      payload={"actor_source":"explicit","payload":{"capability":"","category":"ip_literal","enforced":true,"host":"169.254.xxx.xxx","network_action_taken":false,"note":"链路本地（**含云元数据 169.254.xxx.xxx**）","resolved_ips":["169.254.xxx.xxx"],"scheme":"http","surface":"web.http_client","url_recorded":false,"verdict":"block"},"schema":"audit.chain.v1"}
+  seq=20078 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T11:31:46.054983+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+      subject='egress:127.0.0.1' source=agent ws= trace=
+      prev_hash=1580caed967f3cb7f5d50a1611cb93ce09c02538efdbf84d2c8e1b733e333820 self_hash=aed95df18b3607b5a7d2d9e7f663b4cb93cf03e999239c2d04c036f8128b7f51 payload_hash=222796406d7809c9439aa27a0907f97472b9d893128f84d1bca23479073cf482
+      payload={"actor_source":"explicit","payload":{"capability":"","category":"ip_literal","enforced":true,"host":"127.0.xxx.xxx","network_action_taken":false,"note":"环回","resolved_ips":["127.0.xxx.xxx"],"scheme":"http","surface":"web.http_client","url_recorded":false,"verdict":"block"},"schema":"audit.chain.v1"}
+  seq=20079 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T11:31:46.054983+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+      subject='egress:2130706433' source=agent ws= trace=
+      prev_hash=aed95df18b3607b5a7d2d9e7f663b4cb93cf03e999239c2d04c036f8128b7f51 self_hash=f0bc45b7fc5658b1f6b54aa671bfd211fd0f65f79ef0b75b6445d0b756cdd73d payload_hash=2b7a7c5fe51c797a2cac5d4785f312772b52185628f351ed01c9fabdc481d8d6
+      payload={"actor_source":"explicit","payload":{"capability":"","category":"ip_literal","enforced":true,"host":"2130706433","network_action_taken":false,"note":"环回","resolved_ips":["127.0.xxx.xxx"],"scheme":"http","surface":"web.http_client","url_recorded":false,"verdict":"block"},"schema":"audit.chain.v1"}
+  seq=20080 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T11:31:46.054983+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+      subject='egress:0x7f000001' source=agent ws= trace=
+      prev_hash=f0bc45b7fc5658b1f6b54aa671bfd211fd0f65f79ef0b75b6445d0b756cdd73d self_hash=16900b72e73c028884c5f1a41af31ac03fff1b247de77d252e06a59a399847fa payload_hash=0df2fd0a0f7a3d904303a756493d764935cfb0ee27835ed7760e9106cf18972b
+      payload={"actor_source":"explicit","payload":{"capability":"","category":"ip_literal","enforced":true,"host":"0x7f000001","network_action_taken":false,"note":"环回","resolved_ips":["127.0.xxx.xxx"],"scheme":"http","surface":"web.http_client","url_recorded":false,"verdict":"block"},"schema":"audit.chain.v1"}
+  seq=20081 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T11:31:46.055986+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+      subject='egress:10.1.2.3' source=agent ws= trace=
+      prev_hash=16900b72e73c028884c5f1a41af31ac03fff1b247de77d252e06a59a399847fa self_hash=729fdee0bff760d44333899eb8d1471f53540e6ea3b33333e099c1a23ce1c942 payload_hash=909cdeb3ff82cad65efbef03a14b47d2693bda6ba1ad34e09c1951411518334c
+      payload={"actor_source":"explicit","payload":{"capability":"","category":"ip_literal","enforced":true,"host":"10.1.xxx.xxx","network_action_taken":false,"note":"私有网段 A 类","resolved_ips":["10.1.xxx.xxx"],"scheme":"http","surface":"web.http_client","url_recorded":false,"verdict":"block"},"schema":"audit.chain.v1"}
+  seq=20082 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T11:31:46.055986+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+      subject='egress:192.168.1.1' source=agent ws= trace=
+      prev_hash=729fdee0bff760d44333899eb8d1471f53540e6ea3b33333e099c1a23ce1c942 self_hash=73248e035608135ec286e8f33578a7fe205d28beddca65bbc5ebbfc6534b0732 payload_hash=f55d2bca4235bc66913378d80d35a90e04729e37a6bc9b223fab42b0810eacd3
+      payload={"actor_source":"explicit","payload":{"capability":"","category":"ip_literal","enforced":true,"host":"192.168.xxx.xxx","network_action_taken":false,"note":"私有网段 C 类","resolved_ips":["192.168.xxx.xxx"],"scheme":"http","surface":"web.http_client","url_recorded":false,"verdict":"block"},"schema":"audit.chain.v1"}
+  seq=20083 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T11:31:46.056985+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+      subject='egress:::1' source=agent ws= trace=
+      prev_hash=73248e035608135ec286e8f33578a7fe205d28beddca65bbc5ebbfc6534b0732 self_hash=aeb7cb8b3553d18a5a83f07d86b9abb4e444ab48452f5974bb39cd22bba91510 payload_hash=e7d7705fa5761a830d9426fbe10097025e07a84b76c663205c9acb5f4274b73e
+      payload={"actor_source":"explicit","payload":{"capability":"","category":"ip_literal","enforced":true,"host":"::1","network_action_taken":false,"note":"环回","resolved_ips":["::1"],"scheme":"http","surface":"web.http_client","url_recorded":false,"verdict":"block"},"schema":"audit.chain.v1"}
+  seq=20084 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T11:33:51.170321+00:00 actor=diag action=ssrf_probe_test
+      subject='diag:1' source=agent ws= trace=
+      prev_hash=aeb7cb8b3553d18a5a83f07d86b9abb4e444ab48452f5974bb39cd22bba91510 self_hash=b804973393ea018057e68c98a1158d44308183400460d35ff2c3bf42a5c667bf payload_hash=386521db534c109f02cfb0e91274fe1dbcba8549ccee3f55b6291f86cce5c430
+      payload={"actor_source":"explicit","payload":{"a":1},"schema":"audit.chain.v1"}
+  seq=20085 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T11:36:38.032734+00:00 actor=auto action=approval.submit
+      subject='tool_call:web_get' source=agent ws= trace=
+      prev_hash=b804973393ea018057e68c98a1158d44308183400460d35ff2c3bf42a5c667bf self_hash=487c9844bf9036280f3b74a449b4f119b828879d69ba30fcbf64f0add579652a payload_hash=0f87e133dd7f5aca19ff77811445ffa5c9e0d20d965c4d2d9e00f4a8a7f5960a
+      payload={"actor_source":"explicit","payload":{"compensating_action":"","description":"工具 web_get 请求执行（风险 medium）：共 0 个参数（参数摘要 2e8a00…）","legacy":"approval_records.jsonl","level":"L1","manual_required":false,"object_id":"web_get","object_type":"tool_call","state":"pending_review","trigger":"tool_gate","undo_hint":"本次批准不产生副作用：执行发生在模型原样重试时，且单次有效、批准后超时自动失效（CP_TOOL_APPROVAL_TTL_SEC=900 秒，自批准时刻起算）。若要阻止本次调用，请在模型
+  seq=20092 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T14:23:43.305156+00:00 actor=guardrails.foreign_taint action=guardrails.foreign_text_marked
+      subject='taint:external_http:tool:web_get' source=agent ws= trace=
+      prev_hash=861d856501e2450aeef4c8e17cf4759e51e26de9f54d8b745fa5b0ef237f2b60 self_hash=6c385e05b7867c4ab610f1e6743263d210ddb7861722f6059a32423ad3f8962e payload_hash=e1bc0caf115fd7a0054d65e209d31450eef48855ff196f3e4810416d0dff2873
+      payload={"actor_source":"explicit","payload":{"chars":55,"fragment_count":1,"mark_id":"ftm-b78f7d8e9e98","ref":"tool:web_get","source":"external_http","source_label":"外部 HTTP 响应","system_prompt_allowed":false,"trace_id":"","ttl_seconds":900},"schema":"audit.chain.v1"}
+  seq=20093 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T14:23:43.307157+00:00 actor=guardrails.foreign_taint action=guardrails.foreign_text_marked
+      subject='taint:retrieval:tool:kb_search' source=agent ws= trace=
+      prev_hash=6c385e05b7867c4ab610f1e6743263d210ddb7861722f6059a32423ad3f8962e self_hash=3414dad9df85962d99d28f952eb1aa6b5918942e76d5da17b00dd98ffa656549 payload_hash=f49415fd0835329de4158cf2964c59001dcb9826e93790c5fe334cbc6820d384
+      payload={"actor_source":"explicit","payload":{"chars":55,"fragment_count":1,"mark_id":"ftm-97d4b3fcd26b","ref":"tool:kb_search","source":"retrieval","source_label":"检索结果","system_prompt_allowed":false,"trace_id":"","ttl_seconds":900},"schema":"audit.chain.v1"}
+  seq=20094 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T14:23:43.307157+00:00 actor=guardrails.foreign_taint action=guardrails.foreign_text_marked
+      subject='taint:mcp:tool:probe_mcp' source=agent ws= trace=
+      prev_hash=3414dad9df85962d99d28f952eb1aa6b5918942e76d5da17b00dd98ffa656549 self_hash=9e7a40c808e0da6c004afa5c436d955ff8cecd087ab01a49ab72ec4deaed8cd7 payload_hash=d48e367532e871f51104b5475ee0c348eabdf78019d47b5a4633b41732219881
+      payload={"actor_source":"explicit","payload":{"chars":55,"fragment_count":1,"mark_id":"ftm-59315b906031","ref":"tool:probe_mcp","source":"mcp","source_label":"MCP 返回","system_prompt_allowed":false,"trace_id":"","ttl_seconds":900},"schema":"audit.chain.v1"}
+  seq=20095 *** PRESENT IN JOURNAL x1 ***
+      ts=2026-09-20T14:23:43.308157+00:00 actor=guardrails.foreign_taint action=guardrails.taint_blocked
+      subject='destination:system_prompt' source=agent ws= trace=
+      prev_hash=9e7a40c808e0da6c004afa5c436d955ff8cecd087ab01a49ab72ec4deaed8cd7 self_hash=83b98728b597f73d839075d420372a9b6b93fcf83eee6a16169c01488862808c payload_hash=0033c4a5e6572ed96ccc2bb68591c5ee831ff3bd039ae666902964693e7550df
+      payload={"actor_source":"explicit","payload":{"caller_action_required":true,"destination":"system_prompt","enforced":false,"mark_count":3,"mark_ids":["ftm-b78f7d8e9e98","ftm-97d4b3fcd26b","ftm-59315b906031"],"sources":["external_http","mcp","retrieval"],"surface":"","verdict":"block"},"schema":"audit.chain.v1"}
+[journal] MISSING-seq hit rate: 15/15
+
+=== journal vs db coverage ===
+  journal seqs not in db (uncommitted/removed): 15
+  sample of journal-only seqs: [19220, 19768, 20077, 20078, 20079, 20080, 20081, 20082, 20083, 20084, 20085, 20092, 20093, 20094, 20095] ... 
+  db seqs not in journal (compacted away): 14
+  overlap: 20075
+  journal seq range: 13..20104  contiguous=False
+  gaps inside journal range: 2 -> [477, 552]
+
+=== journal entries adjacent to each break ===
+  seq=476: IN-JOURNAL / in-db
+  seq=477: not-in-journal / in-db
+  seq=551: IN-JOURNAL / in-db
+  seq=552: not-in-journal / in-db
+  seq=19219: IN-JOURNAL / in-db
+  seq=19221: IN-JOURNAL / in-db
+  seq=19767: IN-JOURNAL / in-db
+  seq=19769: IN-JOURNAL / in-db
+  seq=20076: IN-JOURNAL / in-db
+  seq=20086: IN-JOURNAL / in-db
+  seq=20091: IN-JOURNAL / in-db
+  seq=20096: IN-JOURNAL / in-db
+
+[journal] first row ts=2026-09-12T18:40:06.143598+00:00 last row ts=2026-09-20T19:51:41.402613+00:00
+[journal] by source: [('agent', 18773), ('ui', 860), ('system', 457)]

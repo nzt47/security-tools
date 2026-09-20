@@ -1,0 +1,316 @@
+=== WINDOWS AROUND EACH HOLE ===
+
+--- hole 19220: seq 19205..19230 ---
+   19205 2026-09-17T17:35:13.053266+00:00 auto                     approval.submit                            tool_call:probe_approval_e2e_tool
+   19206 2026-09-17T17:35:13.057400+00:00 human                    approval.approved                          tool_call:probe_approval_e2e_tool
+   19207 2026-09-17T17:35:13.206467+00:00 auto                     approval.submit                            tool_call:probe_approval_e2e_tool
+   19208 2026-09-17T17:35:13.489937+00:00 auto                     approval.submit                            tool_call:ext_install
+   19209 2026-09-17T17:35:13.493907+00:00 human                    approval.approved                          tool_call:ext_install
+   19210 2026-09-17T17:35:13.782419+00:00 auto                     approval.submit                            tool_call:ext_install
+   19211 2026-09-17T17:35:13.934942+00:00 auto                     approval.submit                            tool_call:probe_approval_e2e_tool
+   19212 2026-09-17T17:35:13.944914+00:00 human                    approval.rejected                          tool_call:probe_approval_e2e_tool
+   19213 2026-09-17T17:35:14.094094+00:00 auto                     approval.submit                            tool_call:probe_approval_e2e_tool
+   19214 2026-09-17T17:35:14.102066+00:00 human                    approval.approved                          tool_call:probe_approval_e2e_tool
+   19215 2026-09-17T17:35:14.306943+00:00 auto                     approval.submit                            tool_call:probe_approval_e2e_tool
+   19216 2026-09-17T17:35:14.481447+00:00 auto                     approval.submit                            tool_call:probe_approval_e2e_tool
+   19217 2026-09-17T17:35:14.630739+00:00 auto                     approval.submit                            tool_call:probe_approval_e2e_tool
+   19218 2026-09-17T17:38:42.125341+00:00 auto                     approval.submit                            tool_call:shell_execute
+   19219 2026-09-17T17:38:47.961959+00:00 auto                     approval.submit                            tool_call:shell_execute
+   19220 <<< MISSING FROM DB >>>
+   19221 2026-09-17T23:38:13.141676+00:00 tok_ffd912584295         ui.chat.api_sessions_set_current.post      ui:/api/sessions/current
+   19222 2026-09-17T23:38:39.935170+00:00 tok_ffd912584295         ui.api_system_prompt_config_preview.post   ui:/api/system-prompt/config/preview
+   19223 2026-09-17T23:38:39.937170+00:00 tok_ffd912584295         ui.api_system_prompt_config_preview.post   ui:/api/system-prompt/config/preview
+   19224 2026-09-17T23:40:18.107049+00:00 auto                     approval.submit                            tool_call:shell_execute
+   19225 2026-09-17T23:48:57.948445+00:00 ui:127.0.0.1             ui.admin.api_apply_network_config.post     ui:/api/apply-network-config
+   19226 2026-09-17T23:54:18.914321+00:00 tok_ffd912584295         ui.chat.api_sessions_set_current.post      ui:/api/sessions/current
+   19227 2026-09-17T23:54:31.831804+00:00 tok_ffd912584295         ui.api_system_prompt_config_preview.post   ui:/api/system-prompt/config/preview
+   19228 2026-09-17T23:54:31.832805+00:00 tok_ffd912584295         ui.api_system_prompt_config_preview.post   ui:/api/system-prompt/config/preview
+   19229 2026-09-18T00:35:47.093096+00:00 system                   global_test_action                         global_test_action
+   19230 2026-09-18T00:55:51.183700+00:00 tok_ffd912584295         ui.chat.api_sessions_set_current.post      ui:/api/sessions/current
+
+--- hole 19768: seq 19750..19775 ---
+   19750 2026-09-20T02:55:36.867366+00:00 ui:127.0.0.1             ui.admin.api_apply_network_config.post     ui:/api/apply-network-config
+   19751 2026-09-20T09:26:09.350516+00:00 unknown                  tool.confirm_decision                      write_file
+   19752 2026-09-20T09:26:09.366611+00:00 unknown                  tool.confirm_decision                      write_file
+   19753 2026-09-20T09:26:09.382727+00:00 unknown                  tool.confirm_decision                      write_file
+   19754 2026-09-20T09:26:09.398820+00:00 unknown                  tool.confirm_decision                      write_file
+   19755 2026-09-20T09:26:09.412894+00:00 system                   tool.confirm_decision                      write_file
+   19756 2026-09-20T09:26:09.458129+00:00 unknown                  tool.confirm_decision                      write_file
+   19757 2026-09-20T09:26:09.472240+00:00 unknown                  tool.confirm_decision                      write_file
+   19758 2026-09-20T09:26:09.546247+00:00 service_account          tool.confirm_decision                      write_file
+   19759 2026-09-20T09:26:09.598813+00:00 service_account          tool.confirm_decision                      write_file
+   19760 2026-09-20T09:26:09.618953+00:00 service_account          tool.confirm_decision                      write_file
+   19761 2026-09-20T09:26:09.661282+00:00 service_account          tool.confirm_decision                      write_file
+   19762 2026-09-20T09:26:09.677444+00:00 unknown                  tool.confirm_decision                      write_file
+   19763 2026-09-20T09:26:09.757586+00:00 unknown                  tool.confirm_decision                      write_file
+   19764 2026-09-20T09:26:09.937278+00:00 service_account          tool.confirm_decision                      shell_execute
+   19765 2026-09-20T09:26:10.135240+00:00 unknown                  tool.confirm_decision                      write_file
+   19766 2026-09-20T09:26:17.825973+00:00 service_account          tool.confirm_decision                      write_file
+   19767 2026-09-20T09:26:18.002396+00:00 system                   approval.rejected                          tool_call:definitely_not_registered_tool
+   19768 <<< MISSING FROM DB >>>
+   19769 2026-09-20T09:26:59.607225+00:00 unknown                  tool.confirm_decision                      write_file
+   19770 2026-09-20T09:26:59.645728+00:00 unknown                  tool.confirm_decision                      write_file
+   19771 2026-09-20T09:26:59.671165+00:00 unknown                  tool.confirm_decision                      write_file
+   19772 2026-09-20T09:26:59.694797+00:00 unknown                  tool.confirm_decision                      write_file
+   19773 2026-09-20T09:26:59.718997+00:00 system                   tool.confirm_decision                      write_file
+   19774 2026-09-20T09:26:59.793409+00:00 unknown                  tool.confirm_decision                      write_file
+   19775 2026-09-20T09:26:59.816497+00:00 unknown                  tool.confirm_decision                      write_file
+
+--- holes 20077-85 / 20092-95: seq 20060..20096 ---
+   20060 2026-09-20T10:57:11.473005+00:00 unknown                  tool.confirm_decision                      write_file
+   20061 2026-09-20T10:57:11.556129+00:00 unknown                  tool.confirm_decision                      __selftest_confirm_level__
+   20062 2026-09-20T10:57:11.722666+00:00 service_account          tool.confirm_decision                      __selftest_confirm_level__
+   20063 2026-09-20T10:57:11.922940+00:00 unknown                  tool.confirm_decision                      write_file
+   20064 2026-09-20T10:57:16.723336+00:00 service_account          tool.confirm_decision                      write_file
+   20065 2026-09-20T10:57:52.840471+00:00 human                    tool.confirm_decision                      __selftest_tenant_isolation__
+   20066 2026-09-20T10:57:53.008220+00:00 service_account          tool.confirm_decision                      __selftest_tenant_isolation__
+   20067 2026-09-20T10:57:53.008220+00:00 service_account          tool.confirm_decision                      __selftest_tenant_isolation__
+   20068 2026-09-20T10:57:55.391693+00:00 unknown                  tool.confirm_decision                      probe_approval_e2e_tool
+   20069 2026-09-20T10:57:55.441608+00:00 unknown                  tool.confirm_decision                      probe_approval_e2e_tool
+   20070 2026-09-20T10:57:55.474371+00:00 unknown                  tool.confirm_decision                      probe_approval_e2e_tool
+   20071 2026-09-20T10:57:55.541666+00:00 unknown                  tool.confirm_decision                      ext_install
+   20072 2026-09-20T10:57:55.588439+00:00 unknown                  tool.confirm_decision                      probe_approval_e2e_tool
+   20073 2026-09-20T10:57:55.641653+00:00 unknown                  tool.confirm_decision                      probe_approval_e2e_tool
+   20074 2026-09-20T11:01:51.620221+00:00 human                    tool.confirm_decision                      __sample__
+   20075 2026-09-20T11:01:51.620221+00:00 service_account          tool.confirm_decision                      __sample__
+   20076 2026-09-20T11:01:51.620221+00:00 unknown                  tool.confirm_decision                      __sample__
+   20077 <<< MISSING FROM DB >>>
+   20078 <<< MISSING FROM DB >>>
+   20079 <<< MISSING FROM DB >>>
+   20080 <<< MISSING FROM DB >>>
+   20081 <<< MISSING FROM DB >>>
+   20082 <<< MISSING FROM DB >>>
+   20083 <<< MISSING FROM DB >>>
+   20084 <<< MISSING FROM DB >>>
+   20085 <<< MISSING FROM DB >>>
+   20086 2026-09-20T11:59:53.483508+00:00 system                   global_test_action                         global_test_action
+   20087 2026-09-20T12:23:16.309291+00:00 ui:127.0.0.1             ui.admin.api_apply_network_config.post     ui:/api/apply-network-config
+   20088 2026-09-20T12:23:22.066914+00:00 ui:127.0.0.1             ui.admin.api_apply_network_config.post     ui:/api/apply-network-config
+   20089 2026-09-20T13:09:34.608799+00:00 system                   global_test_action                         global_test_action
+   20090 2026-09-20T13:32:37.638120+00:00 ui:127.0.0.1             ui.admin.api_apply_network_config.post     ui:/api/apply-network-config
+   20091 2026-09-20T13:32:43.354624+00:00 ui:127.0.0.1             ui.admin.api_apply_network_config.post     ui:/api/apply-network-config
+   20092 <<< MISSING FROM DB >>>
+   20093 <<< MISSING FROM DB >>>
+   20094 <<< MISSING FROM DB >>>
+   20095 <<< MISSING FROM DB >>>
+   20096 2026-09-20T16:41:43.069668+00:00 tok_ffd912584295         ui.chat.api_sessions_set_current.post      ui:/api/sessions/current
+
+
+=== DEGRADATION / RESTART MARKERS in whole chain ===
+     373  healing.triggered
+     257  model.degraded
+     171  guardrails.taint_blocked
+     146  lock.degraded
+      93  healing.incident
+      92  guardrails.boundary_blocked
+      72  guardrails.egress_chain_blocked
+      52  cost.daily_breaker.recovered
+      10  lock.conflict
+       7  egress.blocked
+       5  ui.action.degrade
+
+=== lock.degraded / lock.conflict timestamps (process-restart proxy) ===
+  seq=    13 2026-09-12T18:40:06.143598+00:00 system               lock.degraded
+  seq=    14 2026-09-12T18:40:06.809707+00:00 system               lock.degraded
+  seq=    15 2026-09-12T18:40:06.830627+00:00 system               lock.degraded
+  seq=    16 2026-09-12T18:40:06.876582+00:00 system               lock.degraded
+  seq=    17 2026-09-12T18:40:07.480919+00:00 system               lock.degraded
+  seq=    18 2026-09-12T18:40:07.976272+00:00 system               lock.degraded
+  seq=    19 2026-09-12T18:40:08.692926+00:00 system               lock.degraded
+  seq=    20 2026-09-12T18:40:08.792600+00:00 system               lock.degraded
+  seq=    21 2026-09-12T18:40:16.010201+00:00 system               lock.conflict
+  seq=    22 2026-09-12T18:43:09.666815+00:00 system               lock.degraded
+  seq=    23 2026-09-12T18:43:10.231386+00:00 system               lock.degraded
+  seq=    24 2026-09-12T18:43:10.725760+00:00 system               lock.degraded
+  seq=    25 2026-09-12T18:43:11.495106+00:00 system               lock.degraded
+  seq=    26 2026-09-12T18:43:11.912232+00:00 system               lock.degraded
+  seq=    27 2026-09-12T18:43:12.248069+00:00 system               lock.degraded
+  seq=    28 2026-09-12T18:44:04.519162+00:00 system               lock.degraded
+  seq=    29 2026-09-12T18:44:05.721226+00:00 system               lock.degraded
+  seq=    30 2026-09-12T18:44:05.810557+00:00 system               lock.degraded
+  seq=    31 2026-09-12T18:44:06.421422+00:00 system               lock.degraded
+  seq=    32 2026-09-12T18:44:07.670883+00:00 system               lock.degraded
+  seq=    33 2026-09-12T18:44:46.359405+00:00 system               lock.degraded
+  seq=    34 2026-09-12T18:44:47.207475+00:00 system               lock.degraded
+  seq=    35 2026-09-12T18:44:47.243513+00:00 system               lock.degraded
+  seq=    36 2026-09-12T18:44:47.826321+00:00 system               lock.degraded
+  seq=    37 2026-09-12T18:44:48.741432+00:00 system               lock.degraded
+  seq=    38 2026-09-12T18:44:48.890347+00:00 system               lock.degraded
+  seq=    39 2026-09-12T18:44:48.991079+00:00 system               lock.degraded
+  seq=    40 2026-09-12T18:44:49.580326+00:00 system               lock.degraded
+  seq=    41 2026-09-12T18:44:50.790209+00:00 system               lock.degraded
+  seq=    42 2026-09-12T18:46:50.617890+00:00 system               lock.degraded
+  seq=    43 2026-09-12T18:46:50.677530+00:00 system               lock.degraded
+  seq=    44 2026-09-12T18:46:51.604759+00:00 system               lock.degraded
+  seq=    45 2026-09-12T18:46:52.840847+00:00 system               lock.degraded
+  seq=    46 2026-09-12T18:46:53.558339+00:00 system               lock.degraded
+  seq=    47 2026-09-12T18:46:53.646107+00:00 system               lock.degraded
+  seq=    48 2026-09-12T18:46:54.246126+00:00 system               lock.degraded
+  seq=    49 2026-09-12T18:46:55.512416+00:00 system               lock.degraded
+  seq=    50 2026-09-12T18:47:04.303038+00:00 system               lock.conflict
+  seq=   133 2026-09-12T18:52:55.363829+00:00 system               lock.conflict
+  seq=   339 2026-09-12T19:12:34.890164+00:00 system               lock.degraded
+  seq=   340 2026-09-12T19:12:35.210538+00:00 system               lock.degraded
+  seq=   341 2026-09-12T19:12:37.837808+00:00 system               lock.degraded
+  seq=   342 2026-09-12T19:12:37.987733+00:00 system               lock.degraded
+  seq=   343 2026-09-12T19:12:38.087849+00:00 system               lock.degraded
+  seq=   344 2026-09-12T19:12:38.637834+00:00 system               lock.degraded
+  seq=   345 2026-09-12T19:12:39.937387+00:00 system               lock.degraded
+  seq=   476 2026-09-12T19:14:03.158412+00:00 system               lock.conflict
+  seq=   893 2026-09-13T18:04:20.870310+00:00 system               lock.degraded
+  seq=   894 2026-09-13T18:04:21.526792+00:00 system               lock.degraded
+  seq=   895 2026-09-13T18:04:22.086151+00:00 system               lock.degraded
+  seq=   896 2026-09-13T18:04:22.127456+00:00 system               lock.degraded
+  seq=   897 2026-09-13T18:04:22.700314+00:00 system               lock.degraded
+  seq=   898 2026-09-13T18:04:23.694499+00:00 system               lock.degraded
+  seq=   899 2026-09-13T18:04:23.778775+00:00 system               lock.degraded
+  seq=   900 2026-09-13T18:04:24.345433+00:00 system               lock.degraded
+  seq=   901 2026-09-13T18:04:25.384661+00:00 system               lock.degraded
+  seq=   902 2026-09-13T18:04:30.895549+00:00 system               lock.degraded
+  seq=   903 2026-09-13T18:04:33.311588+00:00 system               lock.degraded
+  seq=   904 2026-09-13T18:04:33.411677+00:00 system               lock.degraded
+  seq=   905 2026-09-13T18:04:33.978362+00:00 system               lock.degraded
+  seq=   906 2026-09-13T18:04:35.044700+00:00 system               lock.degraded
+  seq=   907 2026-09-13T18:04:41.274412+00:00 system               lock.degraded
+  seq=   908 2026-09-13T18:04:41.353626+00:00 system               lock.degraded
+  seq=   909 2026-09-13T18:04:42.414093+00:00 system               lock.degraded
+  seq=   910 2026-09-13T18:04:43.395745+00:00 system               lock.degraded
+  seq=   911 2026-09-13T18:04:43.478671+00:00 system               lock.degraded
+  seq=   912 2026-09-13T18:04:44.096605+00:00 system               lock.degraded
+  seq=   913 2026-09-13T18:04:45.328897+00:00 system               lock.degraded
+  seq=  1066 2026-09-14T12:28:17.053185+00:00 system               lock.degraded
+  seq=  1067 2026-09-14T12:28:17.091077+00:00 system               lock.degraded
+  seq=  1068 2026-09-14T12:28:18.011436+00:00 system               lock.degraded
+  seq=  1069 2026-09-14T12:28:18.036237+00:00 system               lock.degraded
+  seq=  1070 2027-10-19T12:28:18.711124+00:00 system               lock.degraded
+  seq=  1071 2027-10-19T12:28:20.211180+00:00 system               lock.degraded
+  seq=  1072 2027-10-19T12:28:20.295035+00:00 system               lock.degraded
+  seq=  1073 2027-10-19T12:28:20.939463+00:00 system               lock.degraded
+  seq=  1074 2027-10-19T12:28:22.179472+00:00 system               lock.degraded
+  seq=  2698 2027-10-19T13:19:27.207626+00:00 system               lock.conflict
+  seq=  3512 2026-09-16T15:36:57.476258+00:00 system               lock.degraded
+  seq=  3513 2026-09-16T15:36:58.463319+00:00 system               lock.degraded
+  seq=  3514 2026-09-16T15:36:58.475996+00:00 system               lock.degraded
+  seq=  3515 2026-09-16T15:36:59.230979+00:00 system               lock.degraded
+  seq=  3516 2026-09-16T15:37:01.486402+00:00 system               lock.degraded
+  seq=  3517 2026-09-16T15:37:01.586289+00:00 system               lock.degraded
+  seq=  3518 2026-09-16T15:37:02.536406+00:00 system               lock.degraded
+  seq=  3519 2026-09-16T15:37:03.809548+00:00 system               lock.degraded
+  seq=  4415 2026-09-16T16:03:06.115115+00:00 system               lock.degraded
+  seq=  4416 2026-09-16T16:03:06.132184+00:00 system               lock.degraded
+  seq=  4417 2026-09-16T16:03:07.099040+00:00 system               lock.degraded
+  seq=  4418 2026-09-16T16:03:07.099040+00:00 system               lock.degraded
+  seq=  4419 2026-09-16T16:03:07.946521+00:00 system               lock.degraded
+  seq=  4420 2026-09-16T16:03:08.628364+00:00 system               lock.degraded
+  seq=  4421 2026-09-16T16:03:10.411950+00:00 system               lock.degraded
+  seq=  4422 2026-09-16T16:03:10.511750+00:00 system               lock.degraded
+  seq=  4423 2026-09-16T16:03:11.211755+00:00 system               lock.degraded
+  seq=  4424 2026-09-16T16:03:12.461789+00:00 system               lock.degraded
+  seq=  5320 2026-09-16T16:25:30.750119+00:00 system               lock.degraded
+  seq=  5321 2026-09-16T16:25:33.076056+00:00 system               lock.degraded
+  seq=  5322 2026-09-16T16:25:34.593159+00:00 system               lock.degraded
+  seq=  5323 2026-09-16T16:25:34.709418+00:00 system               lock.degraded
+  seq=  5324 2026-09-16T16:25:35.359512+00:00 system               lock.degraded
+  seq=  5325 2026-09-16T16:25:36.575185+00:00 system               lock.degraded
+  seq=  6362 2026-09-16T16:53:57.221935+00:00 system               lock.degraded
+  seq=  6363 2026-09-16T16:53:58.054445+00:00 system               lock.degraded
+  seq=  6364 2026-09-16T16:53:58.871361+00:00 system               lock.degraded
+  seq=  6365 2026-09-16T16:53:58.877897+00:00 system               lock.degraded
+  seq=  6367 2026-09-16T16:53:59.734817+00:00 system               lock.degraded
+  seq=  6374 2026-09-16T16:54:01.131852+00:00 system               lock.degraded
+  seq=  6375 2026-09-16T16:54:01.225602+00:00 system               lock.degraded
+  seq=  6378 2026-09-16T16:54:01.815029+00:00 system               lock.degraded
+  seq=  6381 2026-09-16T16:54:03.049868+00:00 system               lock.degraded
+  seq=  7350 2026-09-16T17:13:33.903100+00:00 system               lock.degraded
+  seq=  7351 2026-09-16T17:13:35.503403+00:00 system               lock.degraded
+  seq=  7352 2026-09-16T17:13:35.508931+00:00 system               lock.degraded
+  seq=  7353 2026-09-16T17:13:36.175883+00:00 system               lock.degraded
+  seq=  7354 2026-09-16T17:13:37.596597+00:00 system               lock.degraded
+  seq=  7355 2026-09-16T17:13:37.692890+00:00 system               lock.degraded
+  seq=  7356 2026-09-16T17:13:38.313875+00:00 system               lock.degraded
+  seq=  7357 2026-09-16T17:13:39.581280+00:00 system               lock.degraded
+  seq= 10136 2026-09-17T12:13:11.402616+00:00 system               lock.degraded
+  seq= 10137 2026-09-17T12:13:11.842345+00:00 system               lock.degraded
+  seq= 10138 2026-09-17T12:13:13.676700+00:00 system               lock.degraded
+  seq= 10139 2026-09-17T12:13:13.806959+00:00 system               lock.degraded
+  seq= 10140 2026-09-17T12:13:15.067501+00:00 system               lock.degraded
+  seq= 10141 2026-09-17T12:13:15.089151+00:00 system               lock.degraded
+  seq= 10142 2026-09-17T12:13:15.314742+00:00 system               lock.degraded
+  seq= 10501 2026-09-17T12:16:54.999923+00:00 system               lock.conflict
+  seq= 11648 2026-09-17T13:22:26.171511+00:00 system               lock.degraded
+  seq= 11649 2026-09-17T13:22:29.000994+00:00 system               lock.degraded
+  seq= 11650 2026-09-17T13:22:29.000994+00:00 system               lock.degraded
+  seq= 11651 2026-09-17T13:22:29.194567+00:00 system               lock.degraded
+  seq= 11652 2026-09-17T13:22:30.219307+00:00 system               lock.degraded
+  seq= 11653 2026-09-17T13:22:30.961652+00:00 system               lock.degraded
+  seq= 11654 2026-09-17T13:22:31.070411+00:00 system               lock.degraded
+  seq= 12271 2026-09-17T13:30:01.227195+00:00 system               lock.conflict
+  seq= 13969 2026-09-17T14:36:32.816568+00:00 system               lock.degraded
+  seq= 13970 2026-09-17T14:36:33.133212+00:00 system               lock.degraded
+  seq= 13971 2026-09-17T14:36:34.163346+00:00 system               lock.degraded
+  seq= 13972 2026-09-17T14:36:36.094386+00:00 system               lock.degraded
+  seq= 13973 2026-09-17T14:36:36.216438+00:00 system               lock.degraded
+  seq= 13974 2026-09-17T14:36:36.300032+00:00 system               lock.degraded
+  seq= 13975 2026-09-17T14:36:37.733408+00:00 system               lock.degraded
+  seq= 13976 2026-09-17T14:36:39.533185+00:00 system               lock.degraded
+  seq= 14049 2026-09-17T14:37:35.869375+00:00 system               lock.conflict
+  seq= 14810 2026-09-17T14:45:49.636752+00:00 system               lock.conflict
+  seq= 15997 2026-09-17T14:54:24.913840+00:00 system               lock.degraded
+  seq= 15998 2026-09-17T14:54:26.147365+00:00 system               lock.degraded
+  seq= 15999 2026-09-17T14:54:29.097559+00:00 system               lock.degraded
+  seq= 16000 2026-09-17T14:54:31.797465+00:00 system               lock.degraded
+  seq= 16001 2026-09-17T14:54:31.930834+00:00 system               lock.degraded
+  seq= 18362 2026-09-17T17:00:50.493838+00:00 system               lock.degraded
+  seq= 18363 2026-09-17T17:00:51.490341+00:00 system               lock.degraded
+  seq= 18364 2026-09-17T17:00:52.897193+00:00 system               lock.degraded
+  seq= 18365 2026-09-17T17:00:54.231808+00:00 system               lock.degraded
+  seq= 18366 2026-09-17T17:00:55.891103+00:00 system               lock.degraded
+  seq= 19052 2026-09-17T17:27:42.018868+00:00 system               lock.conflict
+
+
+=== TASK-04: POLLUTION vs REAL — reproducible criteria ===
+
+  class=other  n=16739
+    ts range: 2025-08-10T12:14:03.461232+00:00 .. 2027-10-20T11:52:06.143138+00:00
+    actors: [('system', 5186), ('owner', 2682), ('auto', 1752), ('agent', 1493), ('AdminWT', 1007)]
+    actions: [('trace.redact', 2754), ('lineage.append', 2426), ('descriptor.register', 1263), ('skill.assess.auto', 1227)]
+    example seqs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+  class=fixture:env-concurrency  n=2640
+    ts range: 2026-09-13T11:17:32.971485+00:00 .. 2027-10-19T12:30:04.716253+00:00
+    actors: [('AdminWT', 2640)]
+    actions: [('config.env_set', 2640)]
+    example seqs: [610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621]
+
+  class=suspect:testish-subject  n=326
+    ts range: 2026-09-16T15:34:59.021263+00:00 .. 2027-10-19T12:38:35.701260+00:00
+    actors: [('auto', 313), ('human', 12), ('system', 1)]
+    actions: [('repair.locate', 108), ('repair.delegate', 108), ('repair.verify', 84), ('policy.denied', 12)]
+    example seqs: [1050, 1889, 1890, 1891, 1894, 1895, 1896, 1899, 1900, 1901, 1903, 1904]
+
+  class=fixture:probe  n=311
+    ts range: 2026-09-17T16:20:03.538942+00:00 .. 2026-09-20T10:57:55.641653+00:00
+    actors: [('auto', 188), ('human', 82), ('unknown', 35), ('tok_ffd912584295', 6)]
+    actions: [('approval.submit', 188), ('approval.approved', 64), ('tool.confirm_decision', 35), ('approval.rejected', 18)]
+    example seqs: [16937, 16941, 16942, 16945, 16946, 16947, 16948, 16949, 16950, 16951, 16952, 16954]
+
+  class=fixture:global_test_action  n=50
+    ts range: 2026-09-12T19:12:26.639734+00:00 .. 2027-10-19T12:26:48.023980+00:00
+    actors: [('system', 50)]
+    actions: [('global_test_action', 50)]
+    example seqs: [335, 1062, 3508, 4411, 5316, 6323, 7346, 11423, 12575, 15983, 18335, 19229]
+
+  class=fixture:selftest/sample  n=23
+    ts range: 2026-09-20T10:53:35.095658+00:00 .. 2026-09-20T11:01:51.620221+00:00
+    actors: [('service_account', 13), ('unknown', 5), ('human', 5)]
+    actions: [('tool.confirm_decision', 23)]
+    example seqs: [20004, 20005, 20007, 20008, 20009, 20023, 20024, 20026, 20027, 20028, 20042, 20043]
+
+=== work-tree evidence: do these fixture names exist in the repo? ===
+  'probe_approval_e2e_tool': 4 tracked files -> ['agent/tool_gate.py', 'docs/closeout/HANDOFF_20260920_cognitive_noise.md', '"docs/closeout/\\351\\241\\271\\347\\233\\256\\344\\272\\244\\344\\273\\230\\346\\212\\245\\345\\221\\212_\\344\\272\\221\\346\\236\\242\\350\\203\\275\\345\\212\\233\\345\\261\\202\\351\\207\\215\\346\\236\\204_20260921.md"', 'tests/unit/test_tool_approval_e2e.py']
+  'SAME_KEY': 2 tracked files -> ['docs/closeout/HANDOFF_20260920_cognitive_noise.md', 'tests/unit/test_env_hot_reload.py']
+  'CONCURRENT_KEY_': 3 tracked files -> ['docs/closeout/HANDOFF_20260920_cognitive_noise.md', '"docs/closeout/\\351\\241\\271\\347\\233\\256\\344\\272\\244\\344\\273\\230\\346\\212\\245\\345\\221\\212_\\344\\272\\221\\346\\236\\242\\350\\203\\275\\345\\212\\233\\345\\261\\202\\351\\207\\215\\346\\236\\204_20260921.md"', 'tests/unit/test_env_hot_reload.py']
+  'my-skill': 9 tracked files -> ['agent/skills_mgmt/approval.py', 'agent/skills_mgmt/file_store.py', 'agent/skills_mgmt/offline_evolver.py', 'agent/skills_mgmt/rollback.py', 'docs/closeout/HANDOFF_20260920_cognitive_noise.md', 'tests/unit/test_agentskills_io_compat.py']
+  'skill-p': 9 tracked files -> ['agent/skills_mgmt/output_guard.py', 'docs/closeout/HANDOFF_20260920_cognitive_noise.md', 'docs/superpowers/plans/2026-05-28-agent-sidebar-plan.md', 'monitoring/alerts/skill_retrieval_alerts.yml', 'static/js/sidebar/skills.js', 'tests/unit/test_feedback_skill_binding.py']
+  '__sample__': 1 tracked files -> ['docs/closeout/HANDOFF_20260920_cognitive_noise.md']
+  'definitely_not_registered_tool_xyz': 2 tracked files -> ['tests/unit/test_tool_gate.py', 'tests/unit/test_tool_gate_fallback.py']

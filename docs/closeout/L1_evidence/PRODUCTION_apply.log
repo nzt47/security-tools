@@ -1,0 +1,62 @@
+===== L1 audit-chain repair [APPLY] =====
+db      = data\audit\audit_chain.db
+journal = data\audit\audit_chain.db.seqjournal
+roots   = data\audit\daily_roots.jsonl
+relink  = True   reseal = True
+
+[before] rows=20089 seq=1..20104
+[before] holes=15 [19220, 19768, 20077, 20078, 20079, 20080, 20081, 20082, 20083, 20084, 20085, 20092, 20093, 20094, 20095]
+[before] link_breaks=6
+    seq=477 prev_hash: got=5aab0bf00ebe4dd4 expected=5e66af08b2cb714c
+    seq=552 prev_hash: got=856ab3ec24066b7d expected=16f5c37fed4891b5
+    seq=19221 prev_hash: got=ea6d1acf9acd7a3f expected=f2167db2647635dc
+    seq=19769 prev_hash: got=1c00beea3da9977f expected=7cfe571e89229c01
+    seq=20086 prev_hash: got=487c9844bf903628 expected=a3dd4aceca218b56
+    seq=20096 prev_hash: got=83b98728b597f73d expected=861d856501e2450a
+
+[A] journal rows=20090 seq=13..20104
+[A] db holes=15 [19220, 19768, 20077, 20078, 20079, 20080, 20081, 20082, 20083, 20084, 20085, 20092, 20093, 20094, 20095]
+[A] recoverable from journal = 15 [19220, 19768, 20077, 20078, 20079, 20080, 20081, 20082, 20083, 20084, 20085, 20092, 20093, 20094, 20095]
+[A] NOT in journal (unrecoverable) = 0 []
+    seq=19220: journal prev_hash matches db seq 19219 self_hash = True | self_hash=ea6d1acf9acd7a3f ts=2026-09-17T17:38:48.104732+00:00 actor=auto action=approval.submit
+    seq=19768: journal prev_hash matches db seq 19767 self_hash = True | self_hash=1c00beea3da9977f ts=2026-09-20T09:26:18.018515+00:00 actor=auto action=approval.submit
+    seq=20077: journal prev_hash matches db seq 20076 self_hash = True | self_hash=1580caed967f3cb7 ts=2026-09-20T11:31:46.052984+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+    seq=20078: journal prev_hash matches db seq 20077 self_hash = False | self_hash=aed95df18b3607b5 ts=2026-09-20T11:31:46.054983+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+    seq=20079: journal prev_hash matches db seq 20078 self_hash = False | self_hash=f0bc45b7fc5658b1 ts=2026-09-20T11:31:46.054983+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+    seq=20080: journal prev_hash matches db seq 20079 self_hash = False | self_hash=16900b72e73c0288 ts=2026-09-20T11:31:46.054983+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+    seq=20081: journal prev_hash matches db seq 20080 self_hash = False | self_hash=729fdee0bff760d4 ts=2026-09-20T11:31:46.055986+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+    seq=20082: journal prev_hash matches db seq 20081 self_hash = False | self_hash=73248e035608135e ts=2026-09-20T11:31:46.055986+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+    seq=20083: journal prev_hash matches db seq 20082 self_hash = False | self_hash=aeb7cb8b3553d18a ts=2026-09-20T11:31:46.056985+00:00 actor=guardrails.ssrf_guard action=egress_blocked
+    seq=20084: journal prev_hash matches db seq 20083 self_hash = False | self_hash=b804973393ea0180 ts=2026-09-20T11:33:51.170321+00:00 actor=diag action=ssrf_probe_test
+    seq=20085: journal prev_hash matches db seq 20084 self_hash = False | self_hash=487c9844bf903628 ts=2026-09-20T11:36:38.032734+00:00 actor=auto action=approval.submit
+    seq=20092: journal prev_hash matches db seq 20091 self_hash = True | self_hash=6c385e05b7867c4a ts=2026-09-20T14:23:43.305156+00:00 actor=guardrails.foreign_taint action=guardrails.foreign_text_marked
+    seq=20093: journal prev_hash matches db seq 20092 self_hash = False | self_hash=3414dad9df85962d ts=2026-09-20T14:23:43.307157+00:00 actor=guardrails.foreign_taint action=guardrails.foreign_text_marked
+    seq=20094: journal prev_hash matches db seq 20093 self_hash = False | self_hash=9e7a40c808e0da6c ts=2026-09-20T14:23:43.307157+00:00 actor=guardrails.foreign_taint action=guardrails.foreign_text_marked
+    seq=20095: journal prev_hash matches db seq 20094 self_hash = False | self_hash=83b98728b597f73d ts=2026-09-20T14:23:43.308157+00:00 actor=guardrails.foreign_taint action=guardrails.taint_blocked
+[A] INSERTED 15 rows
+
+[after A] rows=20104 holes=0
+[B] link breaks after A = 2 -> [(477, 'prev_hash'), (552, 'prev_hash')]
+[B] relink first affected seq = 477  rows to update = 19628
+[B]   range 477..20104
+      seq=477 prev 5aab0bf00ebe->5e66af08b2cb  self 6d32ba69759d->4f1ed16c116d
+      seq=478 prev 6d32ba69759d->4f1ed16c116d  self edd3d4526b19->ed2b123f8554
+      seq=479 prev edd3d4526b19->ed2b123f8554  self 39e43e1e900a->8873a912a4f1
+      seq=480 prev 39e43e1e900a->8873a912a4f1  self 67d526ba8742->9706a555ac5d
+      ... (19624 more)
+[B] UPDATED 19628 rows
+[after B] holes=0 link_breaks=0
+[after B] self_hash self-consistency failures = 0
+
+[C] existing root entries = 6
+[C] signer scheme=ed25519 degraded=False pubkey=b73dd748ad340a2fa87a4646
+    2026-09-13: leaf 361->361  seq 554..914 -> 554..914  root 2497b8f4f98f->2e92520e69a8  changed=True
+    2026-09-14: leaf 82->82  seq 915..2782 -> 915..2782  root c8347a073287->1fb4fe20f5a3  changed=True
+    2026-09-16: leaf 5253->5253  seq 3184..8436 -> 3184..8436  root 30d158c1d252->212658137830  changed=True
+    2026-09-17: leaf 10791->10792  seq 8437..19228 -> 8437..19228  root 81620d83ede7->1be20aa10e94  changed=True
+    2026-09-18: leaf 323->323  seq 19229..19551 -> 19229..19551  root bd0039c8bb3b->26e7f8fac45e  changed=True
+    2026-09-19: leaf 192->192  seq 19552..19743 -> 19552..19743  root 408f174951f0->5522f3bdea35  changed=True
+[C] REWROTE data\audit\daily_roots.jsonl with 6 re-signed entries
+
+[D] journal hash fields rewrote: 19626 rows (of 20090)
+[D] journal head == db head ? True  (journal seq=20104, db seq=20104)

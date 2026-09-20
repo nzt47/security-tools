@@ -1,0 +1,29 @@
+[链式校验] TAMPERED — 首个异常 seq=477（prev_hash 与上一条 self_hash 不一致（链断裂））: prev_hash=5aab0bf00ebe4dd4… ≠ 上一条重算 self_hash=5e66af08b2cb714c…（链断裂）；异常共 10000 处（注入点之后因哈希前向传播全部失败）
+  注入点 seq=477（prev_hash_mismatch）——后续全部失败明细（前 20 条）：
+    - seq=477    prev_hash_mismatch     prev_hash=5aab0bf00ebe4dd4… ≠ 上一条重算 self_hash=5e66af08b2cb714c…（链断裂）
+    - seq=478    prev_hash_mismatch     prev_hash=6d32ba69759d146c… ≠ 上一条重算 self_hash=4f1ed16c116d0b7a…（链断裂）
+    - seq=479    prev_hash_mismatch     prev_hash=edd3d4526b19f3f8… ≠ 上一条重算 self_hash=ed2b123f85543b90…（链断裂）
+    - seq=480    prev_hash_mismatch     prev_hash=39e43e1e900a86d2… ≠ 上一条重算 self_hash=8873a912a4f1f4f2…（链断裂）
+    - seq=481    prev_hash_mismatch     prev_hash=67d526ba8742b001… ≠ 上一条重算 self_hash=9706a555ac5dc632…（链断裂）
+    - seq=482    prev_hash_mismatch     prev_hash=bbc8b84ece935c04… ≠ 上一条重算 self_hash=5720a2fcefecd90f…（链断裂）
+    - seq=483    prev_hash_mismatch     prev_hash=cd6f11209f24447a… ≠ 上一条重算 self_hash=8a82a4cbcf82b785…（链断裂）
+    - seq=484    prev_hash_mismatch     prev_hash=0b8d6ed3c3984e4e… ≠ 上一条重算 self_hash=a793691f404986f2…（链断裂）
+    - seq=485    prev_hash_mismatch     prev_hash=95894d0ee88b2416… ≠ 上一条重算 self_hash=412c065961e90b5b…（链断裂）
+    - seq=486    prev_hash_mismatch     prev_hash=cf9471c8951347c4… ≠ 上一条重算 self_hash=c7aaa5301be770e4…（链断裂）
+    - seq=487    prev_hash_mismatch     prev_hash=c0a1d907da0b9caa… ≠ 上一条重算 self_hash=7344868fb857c900…（链断裂）
+    - seq=488    prev_hash_mismatch     prev_hash=876ed2ed1cabf31a… ≠ 上一条重算 self_hash=6d41b7995797ac38…（链断裂）
+    - seq=489    prev_hash_mismatch     prev_hash=eb43ec8c42a14bf8… ≠ 上一条重算 self_hash=18045ef332f1a6e9…（链断裂）
+    - seq=490    prev_hash_mismatch     prev_hash=69e053b531ad05aa… ≠ 上一条重算 self_hash=04bd936489311683…（链断裂）
+    - seq=491    prev_hash_mismatch     prev_hash=2d9efdb56b100e88… ≠ 上一条重算 self_hash=9d453ef0640a7383…（链断裂）
+    - seq=492    prev_hash_mismatch     prev_hash=191b44fc8bdcd8ae… ≠ 上一条重算 self_hash=133355aa5cd9f4a4…（链断裂）
+    - seq=493    prev_hash_mismatch     prev_hash=e9e2d3c1cb46ce92… ≠ 上一条重算 self_hash=1ffe6b0f1efc06f6…（链断裂）
+    - seq=494    prev_hash_mismatch     prev_hash=4e48eeacef6aa20d… ≠ 上一条重算 self_hash=0d9ceb4fcdd51b99…（链断裂）
+    - seq=495    prev_hash_mismatch     prev_hash=cf55ad46de551faa… ≠ 上一条重算 self_hash=4f843b5658e5b70a…（链断裂）
+    - seq=496    prev_hash_mismatch     prev_hash=fe40a9b5c33689c0… ≠ 上一条重算 self_hash=e5be4610e9f7f56a…（链断裂）
+    … 其余 9980 条同类失败已省略
+[每日根] OK — 每日根可重放：date=2026-09-13 root=2497b8f4f98f1a1d…（361 条叶子，签名=ed25519，有效）
+[每日根] FAILED — date=2026-09-14 root_hash_mismatch: 重算=ff9dbbbabd70ed53… ≠ 记录=c8347a073287432b…（封印区间 seq 915..2782，1868 条叶子）
+[每日根] OK — 每日根可重放：date=2026-09-16 root=30d158c1d2526b52…（5253 条叶子，签名=ed25519，有效）
+[每日根] OK — 每日根可重放：date=2026-09-17 root=81620d83ede7ad60…（10791 条叶子，签名=ed25519，有效）
+[每日根] OK — 每日根可重放：date=2026-09-18 root=bd0039c8bb3be48c…（323 条叶子，签名=ed25519，有效）
+[每日根] OK — 每日根可重放：date=2026-09-19 root=408f174951f0a1b1…（192 条叶子，签名=ed25519，有效）

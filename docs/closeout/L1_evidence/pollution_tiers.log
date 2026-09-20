@@ -1,0 +1,52 @@
+total rows = 20104
+
+=== TIER A — high confidence: named fixture families / explicit test markers ===
+  A1 tool_call:probe_approval_e2e_tool       n=  288  ts 2026-09-17T16:20:55.447212+00:00 .. 2026-09-20T10:57:55.641653+00:00
+  A2 probe_* subject prefix                  n=   35  ts 2026-09-20T09:27:19.969287+00:00 .. 2026-09-20T10:57:55.641653+00:00
+  A3 env:SAME_KEY                            n=  240  ts 2026-09-13T11:17:39.805746+00:00 .. 2027-10-19T12:30:04.716253+00:00
+  A4 env:CONCURRENT_KEY_*                    n= 2400  ts 2026-09-13T11:17:32.971485+00:00 .. 2027-10-19T12:30:04.114140+00:00
+  A5 my-skill                                n=  240  ts 2026-09-16T15:44:29.207946+00:00 .. 2027-10-19T12:34:11.221207+00:00
+  A6 skill-p                                 n=  256  ts 2026-09-16T15:45:54.160214+00:00 .. 2027-10-19T13:15:38.767678+00:00
+  A7 __sample__ (disclosed by subagent)      n=    3  ts 2026-09-20T11:01:51.620221+00:00 .. 2026-09-20T11:01:51.620221+00:00
+  A8 __selftest_* (in-test selftest)         n=   20  ts 2026-09-20T10:53:35.095658+00:00 .. 2026-09-20T10:57:53.008220+00:00
+  A9 action=global_test_action               n=   50  ts 2026-09-12T19:12:26.639734+00:00 .. 2027-10-19T12:26:48.023980+00:00
+  A10 definitely_not_registered_tool_xyz     n=    2  ts 2026-09-18T05:01:24.039038+00:00 .. 2026-09-20T09:26:18.002396+00:00
+  --> TIER A union = 3499 rows  (17.40%)
+
+=== TIER B — synthetic clock: ts outside real operating window 2026-09-12..2026-09-21 ===
+  n = 1902  (9.46%)
+  ts span: 2025-08-10T12:14:03.461232+00:00 .. 2027-10-20T11:52:06.143138+00:00
+  of which actor='backfill:s1-02' (possibly legitimate historical backfill) = 65
+
+=== TIER C — strict token test-only match (UPPER BOUND, may over-count) ===
+
+  see pollution_strict.py -> 5699 rows (28.35%); includes production identifiers that are
+  built dynamically in prod code (e.g. cp.fs.read) so it OVER-counts. Use as ceiling only.
+
+=== TIER A ∪ TIER B (recommended working figure) ===
+  union = 5130  (25.52%)
+  clean = 14974  (74.48%)
+
+=== per-day ledger composition (ts date) ===
+  2025-08-10: total=    48  tierA=    0
+  2025-08-11: total=    58  tierA=    0
+  2026-09-12: total=   553  tierA=    1
+  2026-09-13: total=   361  tierA=  220
+  2026-09-14: total=    82  tierA=    0
+  2026-09-15: total=   285  tierA=    0
+  2026-09-16: total=  5253  tierA= 1347
+  2026-09-17: total= 10792  tierA= 1561
+  2026-09-18: total=   323  tierA=    6
+  2026-09-19: total=   192  tierA=   25
+  2026-09-20: total=   361  tierA=   68
+  2027-10-19: total=  1738  tierA=  271
+  2027-10-20: total=    58  tierA=    0
+
+=== the 3 __sample__ rows (subagent-disclosed E9 sample) ===
+  seq=20074 ts=2026-09-20T11:01:51.620221+00:00 actor=human action=tool.confirm_decision src=system
+  seq=20075 ts=2026-09-20T11:01:51.620221+00:00 actor=service_account action=tool.confirm_decision src=system
+  seq=20076 ts=2026-09-20T11:01:51.620221+00:00 actor=unknown action=tool.confirm_decision src=system
+
+=== the 2 definitely_not_registered_tool_xyz rows ===
+  seq=19233 ts=2026-09-18T05:01:24.039038+00:00 actor=auto action=approval.submit src=agent
+  seq=19767 ts=2026-09-20T09:26:18.002396+00:00 actor=system action=approval.rejected src=agent

@@ -1,0 +1,16 @@
+=== PER-ROW LINK SELF-CHECK (production data/audit/audit_chain.db) ===
+rows checked           : 20104
+seq span               : 1 .. 20104
+expected span size     : 20104
+seq holes              : 0
+first row prev_hash    : 0000000000000000000000000000000000000000000000000000000000000000  (genesis = 0000000000000000000000000000000000000000000000000000000000000000)
+genesis correct        : True
+LINK BREAKS            : 0   []
+CHAIN HEAD self_hash   : 44657748905c6fef4cc7929d61582a2735a1684c44410db83a09a5c1a4dd6e94
+VERDICT                : CONTIGUOUS / UNBROKEN
+
+=== DURABILITY TEST (sandbox copy of the repaired chain) ===
+sandbox head before append: seq=20105 self_hash=320362d083227e5e
+appended seq=20106 prev_hash=320362d083227e5e self_hash=dbb1382e6213b7d4
+chained onto repaired head: True
+sandbox after append: rows=20106 head_seq=20106 BREAKS=0 []

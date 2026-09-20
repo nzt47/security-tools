@@ -1,0 +1,213 @@
+[basic] total_rows=20089 first_seq=1 last_seq=20104
+[basic] seq range 1..20104, missing count = 15
+
+=== A. MISSING SEQ (15) ===
+  missing 19220..19220  (1 rows)
+  missing 19768..19768  (1 rows)
+  missing 20077..20085  (9 rows)
+  missing 20092..20095  (4 rows)
+
+=== B. LINK BREAKS (prev_hash != prev.self_hash) ===
+
+  --- BREAK at seq 476 -> 477 (gap=0) ---
+    PREV seq=476 ts=2026-09-12T19:14:03.158412+00:00 actor=system action=lock.conflict
+         subject='C:\\Users\\Administrator\\agent\\.pytest_tmp\\pytest-of-AdminWT\\pytest-1317\\test_os_lock_rejects_second_ha0\\watchdog.lock' source=system trace=
+         prev_hash=7e8548083144e97d559a3fa3965afa3023b0d0068b0397f970b45575054885b4 self_hash=5e66af08b2cb714c23b4c73f2f9c97b2cacb6bd22fce4bd4590bc64d9d7b606f
+    NEXT seq=477 ts=2026-09-12T19:16:08.748117+00:00 actor=ui:127.0.0.1 action=ui.admin.api_apply_network_config.post
+         subject='ui:/api/apply-network-config' source=ui trace=
+         prev_hash=5aab0bf00ebe4dd40c555b10b7698e208d125deaf8ff0f6cbdac7fe8fa228a4d self_hash=6d32ba69759d146cca95e85220e3bcdbc0597fe2a0fbc6d460451e767a2718b1
+    EXPECTED prev_hash for next = 5e66af08b2cb714c23b4c73f2f9c97b2cacb6bd22fce4bd4590bc64d9d7b606f
+    ACTUAL   prev_hash for next = 5aab0bf00ebe4dd40c555b10b7698e208d125deaf8ff0f6cbdac7fe8fa228a4d
+
+  --- BREAK at seq 551 -> 552 (gap=0) ---
+    PREV seq=551 ts=2026-09-12T19:18:21.932760+00:00 actor=auto action=trace.closed
+         subject='trace:abb0ce871ee94bc7' source=agent trace=abb0ce871ee94bc7
+         prev_hash=720db2fd7150368c6d6615953f50f95a625bf89931593b6a8eec50b7c13317f1 self_hash=16f5c37fed4891b5fd84b6929a252f932c5eccfd26616bdb3f1a292040ae80da
+    NEXT seq=552 ts=2026-09-12T19:18:29.656457+00:00 actor=ui:127.0.0.1 action=ui.admin.api_apply_network_config.post
+         subject='ui:/api/apply-network-config' source=ui trace=
+         prev_hash=856ab3ec24066b7de5e7ef8494a6a7cfb722599af319ffddfd3d835df54fb289 self_hash=b96904ae82fadccffc9bc2023a4e4be2bcb26fb794094e94d595f66b68148b68
+    EXPECTED prev_hash for next = 16f5c37fed4891b5fd84b6929a252f932c5eccfd26616bdb3f1a292040ae80da
+    ACTUAL   prev_hash for next = 856ab3ec24066b7de5e7ef8494a6a7cfb722599af319ffddfd3d835df54fb289
+
+  --- BREAK at seq 19219 -> 19221 (gap=1) ---
+    PREV seq=19219 ts=2026-09-17T17:38:47.961959+00:00 actor=auto action=approval.submit
+         subject='tool_call:shell_execute' source=agent trace=
+         prev_hash=4fd1d5c13fa59b28c45b2d50ca348730670431940ecfc72ba0dcc10854a241bf self_hash=f2167db2647635dc7068ff8d4d098cc396979e8690ec24e761f7ab8efabfbc2c
+    NEXT seq=19221 ts=2026-09-17T23:38:13.141676+00:00 actor=tok_ffd912584295 action=ui.chat.api_sessions_set_current.post
+         subject='ui:/api/sessions/current' source=ui trace=
+         prev_hash=ea6d1acf9acd7a3f3ed0fa8460602c4a08c5da458746877358f19812596636cf self_hash=e9d7d97d32945f7ac07708d1afdefa6414d2f92824ddfadbb52ad68e173cda33
+    EXPECTED prev_hash for next = f2167db2647635dc7068ff8d4d098cc396979e8690ec24e761f7ab8efabfbc2c
+    ACTUAL   prev_hash for next = ea6d1acf9acd7a3f3ed0fa8460602c4a08c5da458746877358f19812596636cf
+
+  --- BREAK at seq 19767 -> 19769 (gap=1) ---
+    PREV seq=19767 ts=2026-09-20T09:26:18.002396+00:00 actor=system action=approval.rejected
+         subject='tool_call:definitely_not_registered_tool_xyz' source=agent trace=
+         prev_hash=b9bf2006f285f549c1615fc6f6bd34d98a4ba283934e814ec383f78eae46dde8 self_hash=7cfe571e89229c01c05ef5d3d533a2de037fc6e66fa81cf1cd3529394fd47802
+    NEXT seq=19769 ts=2026-09-20T09:26:59.607225+00:00 actor=unknown action=tool.confirm_decision
+         subject='write_file' source=system trace=
+         prev_hash=1c00beea3da9977fc48bd196cdd1014dec2214571885952b45cb4972443a538a self_hash=a615f9c184823dbfe31d15f9dbb4e019ebbe060758f85a3c522b9e87a9a47e5c
+    EXPECTED prev_hash for next = 7cfe571e89229c01c05ef5d3d533a2de037fc6e66fa81cf1cd3529394fd47802
+    ACTUAL   prev_hash for next = 1c00beea3da9977fc48bd196cdd1014dec2214571885952b45cb4972443a538a
+
+  --- BREAK at seq 20076 -> 20086 (gap=9) ---
+    PREV seq=20076 ts=2026-09-20T11:01:51.620221+00:00 actor=unknown action=tool.confirm_decision
+         subject='__sample__' source=system trace=
+         prev_hash=75cb85b03e9170af5bc67d26ba4c20aa5bbbd1ea1ae289d6a6169ab59f13fda5 self_hash=a3dd4aceca218b5640f31371dd5fcd8d87502065ba2b1dcd12d7b397cca9f4ee
+    NEXT seq=20086 ts=2026-09-20T11:59:53.483508+00:00 actor=system action=global_test_action
+         subject='global_test_action' source=agent trace=
+         prev_hash=487c9844bf9036280f3b74a449b4f119b828879d69ba30fcbf64f0add579652a self_hash=09a70ae1486e0403e1d480bb84924354c081ca983778ce8f45fd104769af57c8
+    EXPECTED prev_hash for next = a3dd4aceca218b5640f31371dd5fcd8d87502065ba2b1dcd12d7b397cca9f4ee
+    ACTUAL   prev_hash for next = 487c9844bf9036280f3b74a449b4f119b828879d69ba30fcbf64f0add579652a
+
+  --- BREAK at seq 20091 -> 20096 (gap=4) ---
+    PREV seq=20091 ts=2026-09-20T13:32:43.354624+00:00 actor=ui:127.0.0.1 action=ui.admin.api_apply_network_config.post
+         subject='ui:/api/apply-network-config' source=ui trace=
+         prev_hash=4de58bd35163c14bd39f4b5d89b7a67318368a0b70988651d687b032f6b87de4 self_hash=861d856501e2450aeef4c8e17cf4759e51e26de9f54d8b745fa5b0ef237f2b60
+    NEXT seq=20096 ts=2026-09-20T16:41:43.069668+00:00 actor=tok_ffd912584295 action=ui.chat.api_sessions_set_current.post
+         subject='ui:/api/sessions/current' source=ui trace=
+         prev_hash=83b98728b597f73d839075d420372a9b6b93fcf83eee6a16169c01488862808c self_hash=5975dc39e39ae08613f5f2036871815b2bc21b6cb6ebfcff85bbd5d3a3a872f9
+    EXPECTED prev_hash for next = 861d856501e2450aeef4c8e17cf4759e51e26de9f54d8b745fa5b0ef237f2b60
+    ACTUAL   prev_hash for next = 83b98728b597f73d839075d420372a9b6b93fcf83eee6a16169c01488862808c
+
+=== C. SELF_HASH MISMATCH (row internally inconsistent) : 0 ===
+
+=== D. PAYLOAD_HASH check ===
+  seq=1 stored=b26bce412a9f1998062fba74 calc=1e1a791ded6f4c3ab4f32c3a
+  seq=2 stored=c9a1ee016db257304d5f864e calc=0ffc660a695e023d4c9c19e6
+  seq=3 stored=8ee469b75f43f7a218d6f971 calc=16171094a028a5cb28be2998
+  seq=4 stored=ff9551de25eb75329936331e calc=2b95b579f7df85cd949d7ee4
+  seq=5 stored=c2c9f4ecc732a7ed14f68ac4 calc=c0587d4f80bb012799d23b4f
+  seq=6 stored=0a5030753bf3131b44aba2e2 calc=6b89796ee996e44b0814ea9a
+  payload_hash mismatch count (canonical-json best-effort)=20089
+
+=== E. DAILY ROOTS vs ACTUAL COUNTS ===
+  roots entries=6
+  root entry keys: ['algorithm', 'created_at', 'date', 'degraded', 'degraded_reason', 'entry_hash', 'first_self_hash', 'first_seq', 'last_self_hash', 'last_seq', 'leaf_count', 'prev_entry_hash', 'protected', 'root_hash', 'schema_version', 'signature', 'signature_scheme', 'signer_public_key']
+  2026-09-13: leaf_count=361 actual=361 root=2497b8f4f98f1a1d2407774d
+  2026-09-14: leaf_count=82 actual=82 root=c8347a073287432b1737f6d3
+  2026-09-16: leaf_count=5253 actual=5253 root=30d158c1d2526b5232ada325
+  2026-09-17: leaf_count=10791 actual=10791 root=81620d83ede7ad60ba40fe1c
+  2026-09-18: leaf_count=323 actual=323 root=bd0039c8bb3be48c8928ffb3
+  2026-09-19: leaf_count=192 actual=192 root=408f174951f0a1b10e63be62
+  sum(leaf_count)=17002 total_rows=20089 delta=-3087
+  daily_roots mtime=2026-09-20 08:00:00.767373
+
+=== F. SIDE LEDGERS audit_*.jsonl ===
+  audit_20260913.jsonl: 1 lines
+  audit_20260916.jsonl: 2 lines
+  audit_20260917.jsonl: 6 lines
+  audit_20260918.jsonl: 6 lines
+  audit_20260919.jsonl: 18 lines
+  audit_20260920.jsonl: 11 lines
+  audit_20260921.jsonl: 5 lines
+  audit_20271019.jsonl: 1 lines
+  side ledger distinct seq values: 0 -> sorted[:30]=[]
+  side ledger seqs that are MISSING from db: []
+  side ledger actors: [('?', 50)]
+
+=== G. POLLUTION CLASSIFICATION ===
+  by_source: [('agent', 18758), ('ui', 874), ('system', 457)]
+  by_actor top30:
+      5237  system
+      3647  AdminWT
+      2682  owner
+      2253  auto
+      1493  agent
+       897  guardrails.foreign_taint
+       715  backfill:s1-02
+       602  tok_ffd912584295
+       383  sub_agent
+       352  guardrails.boundary_words
+       343  human
+       224  ui:127.0.0.1
+       161  unknown
+       156  reviewer
+       112  digestion_service
+       111  service_account
+       108  policy.taint
+       107  skill_install
+        93  self_healing.levels
+        87  guardrails.instruction_data
+        81  alice
+        74  policy.engine
+        72  guardrails.egress_chain
+        33  skill_sync
+        20  test_user
+         9  tester
+         9  ops
+         7  auto:evolver
+         7  evolver
+         7  auto:x
+  by_action top30:
+      3600  config.env_set
+      2754  trace.redact
+      2426  lineage.append
+      1263  descriptor.register
+      1227  skill.assess.auto
+       883  trace.closed
+       863  approval.submit
+       726  guardrails.foreign_text_marked
+       382  trace.tool.error
+       373  healing.triggered
+       352  descriptor.patch
+       339  policy.denied
+       338  descriptor.provenance
+       301  tool.confirm_decision
+       257  model.degraded
+       236  ui.api_system_prompt_config_preview.post
+       235  approval.approved
+       224  skill.assess.review
+       208  cost.daily_breaker.opened
+       185  ui.chat.api_sessions_set_current.post
+       171  guardrails.boundary_confirmation_issued
+       171  guardrails.taint_blocked
+       146  lock.degraded
+       132  repair.diagnose
+       129  escape
+       127  cost.legacy_track.write_attempt
+       108  policy.taint.marked
+       108  repair.locate
+       108  repair.delegate
+       104  cost.fasting.entered
+  by_workspace_id top10: [('', 15631), ('ws-s404', 2958), ('ws_3d2813e11e0d7acb', 346), ('ws_unit', 272), ('ws', 150), ('ws_1', 36), ('ws_73230d13651677df', 30), ('ws_repo', 24), ('ws_9656aa1032471fa0', 22), ('ws_x', 21)]
+  subject-prefix distribution top40:
+      4208  skill:...
+      3647  env:...
+      2754  trace
+      2105  capability:...
+      1265  trace:...
+       846  ui:...
+       835  (empty)
+       834  taint:...
+       491  cost:...
+       382  tool_call:...
+       352  boundary:...
+       300  tkt-c02fa80eb10b2dfb
+       240  tool_code:...
+       206  write_file
+       171  destination:...
+       167  prompt:...
+       156  C:...
+       120  tests/...
+       115  cp.governed.schedule
+        93  incident:...
+        87  tool:...
+        86  stage.promote:...
+        79  egress:...
+        67  policy:...
+        50  global_test_action
+        48  repair/...
+        40  config:...
+        35  probe_approval_e2e_t
+        30  cp.builtin.read_file
+        30  shell_execute
+        29  batch:...
+        18  subagent_config:...
+        14  cp.governed.x.write
+        12  task-9
+        12  appr-nope
+        12  x
+        12  __selftest_tenant_is
+        10  user:...
+        10  action:...
+         8  __selftest_confirm_l
