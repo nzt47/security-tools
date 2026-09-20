@@ -15,6 +15,30 @@ from typing import Any
 
 from agent import tools as _tools
 
+
+def _ssrf_block_reason(url: str, *, surface: str = "") -> str:
+    """MCP 出站目标判定：放行返回 None，拒绝返回原因（**fail-closed**）
+
+    【为什么 MCP 不能只靠"配置写入时校验过"】`agent/network_config.py:validate_mcp_service`
+    已在**写入配置**时判过一次（TASK-07 补），但配置可在运行期被 `connect_mcp` /
+    扩展安装流程改写，且 `_make_http_handler` 是**每次调用**都会真正发包的执行体。
+    "校验点"与"使用点"之间只要有可写窗口，就必须在使用点再判一次 ——
+    调用的是**同一个** `ssrf_guard.check_url`，不新增第二份判定口径（D1）。
+    """
+    try:
+        from agent.guardrails import ssrf_guard
+    except Exception as exc:  # noqa: BLE001  守卫不可用
+        if str(os.environ.get("CP_SSRF_GUARD", "1")).strip().lower() \
+                in ("0", "false", "no", "off"):
+            return None
+        return f"SSRF 守卫不可用（{type(exc).__name__}）⇒ 按 fail-closed 拒绝"
+    verdict = ssrf_guard.check_url(url)
+    if verdict.allowed:
+        return None
+    ssrf_guard.audit_block(verdict, url=url, surface=surface or "tools.mcp_connector")
+    return verdict.reason
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -140,6 +164,10 @@ class McpConnector:
 
     def _http_list_tools(self, base_url: str) -> list[dict] | None:
         """通过 HTTP JSON-RPC 获取工具列表"""
+        _blocked = _ssrf_block_reason(base_url, surface="mcp_connector.list_tools")
+        if _blocked is not None:
+            logger.warning("[MCP] 目标未通过出站判定，拒绝连接: %s（%s）", base_url, _blocked)
+            return None
         try:
             req_data = json.dumps({
                 "jsonrpc": "2.0", "id": 1,
@@ -162,8 +190,20 @@ class McpConnector:
             return None
 
     def _make_http_handler(self, base_url: str, tool_name: str):
-        """创建 HTTP 转发的工具处理函数"""
+        """创建 HTTP 转发的工具处理函数
+
+        【TASK-07 第 2 步第 7 项】本 handler **每次调用都复检目标地址**：
+        它是 `location=remote` 的 MCP 工具的执行体，参数由 LLM 给（`kwargs`），
+        是真实的出站路径。目标虽说来自配置，但"接入即裸出口"正是 TASK-07 §2.1
+        点名的 MCP 缺陷；且配置可在运行期被改写（`connect_mcp` 属治理动作），
+        故**不能只在写入配置时判一次**。
+        """
         def _handler(**kwargs):
+            _blocked = _ssrf_block_reason(base_url,
+                                          surface=f"mcp_connector.call:{tool_name}")
+            if _blocked is not None:
+                return {"ok": False, "blocked": True, "blocked_by": "guardrails.ssrf_guard",
+                        "error": f"MCP 目标未通过出站判定：{_blocked}"}
             try:
                 req_data = json.dumps({
                     "jsonrpc": "2.0", "id": 1,

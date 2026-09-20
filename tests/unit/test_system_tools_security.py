@@ -499,13 +499,31 @@ class TestBrowserNavigate:
 
     @pytest.mark.unit
     @pytest.mark.p0
-    def test_navigate_localhost_in_query_string_blocked(self):
-        """测试 URL 查询参数中包含 localhost 也被阻止"""
-        with patch('agent.tools.browser_tools.get_browser',return_value=None):
+    def test_navigate_localhost_in_query_string_allowed(self):
+        """【TASK-07 契约更新】查询串里出现 `localhost` **不再**被拦 —— 那是子串黑名单误伤
+
+        ## 为什么这条断言被反转（记录理由，不是"为了让测试过"）
+
+        原实现是一份**子串黑名单**：
+            blocked = ["localhost", "127.0.0.1", ..., "192.168.", "10.", "172.16."]
+        只要 URL 字符串里出现这些子串就拒。于是
+        `http://example.com/?redirect=localhost:8080` 被拒 ——
+        **而它请求的是 example.com（公网）**，`localhost` 只是查询串里的一个值。
+        这类误伤会让"打开一个带回调地址参数的正常页面"永远失败。
+
+        真正要防的是"**浏览器最终落到内网**"。TASK-07 第 2 步第 6 项要求浏览器侧
+        **复用同一套出站判定**（不得维护第二份黑名单，违反 D1），并补上
+        **落地后复检**（`browser_navigate` 在 `browser.get()` 之后用
+        `current_url` 再判一次）：重定向到内网才拦、且不把页面内容交出去。
+        两条新契约分别由
+        `tests/unit/test_ssrf_guard.py::TestE1SsrfNegativeCases` 与
+        `tests/unit/test_sandbox_wiring.py`（以及本文件下方的 IP 段用例）覆盖。
+        """
+        with patch('agent.tools.browser_tools.get_browser', return_value=None):
             result = browser_navigate("http://example.com/?redirect=localhost:8080")
-            # 'localhost' 在 URL 中应触发内网拦截
-            assert result["ok"] is False
-            assert "内网" in result["error"]
+            # 目标主机是公网 ⇒ 不被地址判定拦下；走到"浏览器不可用"这一层
+            assert result.get("blocked") is not True
+            assert "浏览器不可用" in result["error"]
 
     @pytest.mark.unit
     @pytest.mark.p0

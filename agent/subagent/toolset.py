@@ -610,9 +610,24 @@ class SubAgentToolset:
 
         刻意**不**接受「工具参数字符串」作为入参来源：参数由调用方（云枢决策层）
         显式传入，外来文本无处拼接（§5.7 机制 2）。
+
+        【TASK-07 新增：进入**受限会话**作用域】
+          子代理的执行体天然是"受限会话"（`Sandbox` 的缺省权限是只读）。
+          本方法在真正调用 `func` 的那一瞬把受限事实写进 contextvar，
+          于是 `agent.tool_gate` 的 `sandbox_allowed` 判定与任何下游守卫都能
+          读到"现在这次执行发生在分身沙箱里"。
+          **为什么设置点在这里而不是构造时**：`contextvars` 不跨线程继承，
+          子代理可能在任意线程里被驱动；只有在**执行的那一瞬**设置才准确
+          （与 `tool_gate.set_session_source` 在 `task_scheduler.run_task` 体内
+          设置是同一个理由）。
         """
         self.require(tool)
-        return func(*args, **kwargs)
+        try:
+            from agent.subagent.sandbox import restricted_session
+        except Exception:  # noqa: BLE001  沙箱模块不可用 ⇒ 退化（不影响调用）
+            return func(*args, **kwargs)
+        with restricted_session(name=f"subagent_toolset:{self.actor}"):
+            return func(*args, **kwargs)
 
 
 __all__ = [

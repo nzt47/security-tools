@@ -343,7 +343,14 @@ class _StubServer:
 
 
 @pytest.fixture
-def stub_mcp_http():
+def stub_mcp_http(monkeypatch):
+    # 【TASK-07 适配】本夹具的桩服务绑定在 127.0.0.1（回环），而 SSRF 守卫
+    # **默认拒绝**回环/私有网段（正是 TASK-07 第 2 步第 2 项的要求）。
+    # 该守卫对所有出站生效，包括 registry 的 `location=remote` HTTP/SSE Loader。
+    # 这里用守卫**自带的显式白名单**放行本夹具的地址 —— 生产侧确有"能力服务托管在
+    # 本机"的部署形态时，走的也是同一条白名单（`CP_SSRF_ALLOW_HOSTS`），
+    # 而不是把整个守卫关掉。**不削弱守卫本身**：其余用例仍走默认拒绝。
+    monkeypatch.setenv("CP_SSRF_ALLOW_HOSTS", "127.0.0.1")
     srv = _StubServer(sse=False)
     try:
         yield srv
@@ -352,7 +359,8 @@ def stub_mcp_http():
 
 
 @pytest.fixture
-def stub_mcp_sse():
+def stub_mcp_sse(monkeypatch):
+    monkeypatch.setenv("CP_SSRF_ALLOW_HOSTS", "127.0.0.1")   # 同上（TASK-07 适配）
     srv = _StubServer(sse=True)
     srv.install_sse_bridge()
     try:

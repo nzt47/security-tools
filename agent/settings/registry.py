@@ -493,6 +493,36 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _b("CP_GUARDRAILS_BOUNDARY_WORDS", CAT_SELF_HEALING, True,
        "边界词（五类永不自动化动作）检测开关",
        owner="agent/guardrails/boundary_words.py"),
+
+    # ── TASK-07 安全接线（SSRF / 注入隔离 / 沙箱收口）新增开关 ──
+    # 【为什么全部登记为 B 级】它们都是"关闭即降低防护姿态"的开关：关掉
+    # `CP_SSRF_GUARD` 等于出站可以打 `169.254.169.254`（云元数据）；
+    # 关掉 `CP_GUARDRAILS_MARK_TOOL_RESULTS` 等于让 `check_text` 退回"恒放行"
+    # （注入隔离变摆设）；把 `CP_SANDBOX_SHELL_MODE` 置 off 等于 shell 回到无沙箱。
+    _b("CP_SSRF_GUARD", CAT_SELF_HEALING, True,
+       "SSRF 守卫总开关（出站目标判定的唯一口径）；关闭即允许访问私有/元数据网段",
+       owner="agent/guardrails/ssrf_guard.py",
+       impact="影响面：全部出站的地址判定（含云元数据 169.254.169.254 / 环回 / 内网段）"),
+    _b("CP_SSRF_STRICT_DNS", CAT_SELF_HEALING, False,
+       "SSRF 严格 DNS 模式：**解析不出结论**时也拒绝出站（默认关：解析失败通常只是网络不通）",
+       owner="agent/guardrails/ssrf_guard.py"),
+    _b("CP_SSRF_ALLOW_HOSTS", CAT_SELF_HEALING, None,
+       "SSRF 白名单（逗号分隔的域名；支持 *.suffix）。用于确有必须访问的内网服务的部署",
+       owner="agent/guardrails/ssrf_guard.py"),
+    _b("CP_SSRF_DNS_TIMEOUT", CAT_SELF_HEALING, None,
+       "SSRF 守卫的 DNS 解析超时（秒）；过大即把出站请求的等待时间拉长",
+       owner="agent/guardrails/ssrf_guard.py",
+       validator=_range_validator(1, 30, kind="float")),
+    _b("CP_GUARDRAILS_MARK_TOOL_RESULTS", CAT_SELF_HEALING, True,
+       "工具结果强制写外来污点账；关闭后 check_text 会退回恒放行（注入隔离形同虚设）",
+       owner="agent/guardrails/untrusted_ingest.py",
+       impact="影响面：网页/MCP/检索三类外来内容是否进入污点账"),
+    _b("CP_SANDBOX_SHELL_MODE", CAT_SELF_HEALING, "shadow",
+       "shell_execute 的沙箱档位：off（不接线）/ shadow（只告警）/ enforce（命中即拒绝）",
+       owner="agent/tools/shell_tools.py"),
+    _b("CP_TOOL_SANDBOX_ALLOWED_ENFORCE", CAT_SELF_HEALING, True,
+       "受限会话内是否消费 YAML 的 sandbox_allowed=false（拒绝该能力）",
+       owner="agent/tool_gate.py"),
     _b("CP_ESCAPE_GUARD", CAT_SELF_HEALING, False,
        "逃逸（escape）拦截守卫开关",
        owner="agent/observability/escape.py"),

@@ -124,11 +124,36 @@ class TestHttpClientEgressExecutionPoint:
         assert "blocked" not in result
 
     @patch("requests.Session.request")
-    def test_内网出域不受污点影响(self, mock_request):
-        """污点只拦**对外**出域：本机/内网调用没有外泄面。"""
+    def test_内网出域不受污点影响(self, mock_request, monkeypatch):
+        """【TASK-07 契约更新】分开验证「污点层不拦内网」与「地址层拦内网」两件事
+
+        ## 为什么原来的断言被改（记录理由，不是为了让测试过）
+
+        原断言是「`http://127.0.0.1:8080/health` 应当正常发出（`ok is True`）」，
+        理由是「污点只拦**对外**出域：本机/内网调用没有外泄面」。
+        该理由对**污点/策略层**成立（`target.external == False` ⇒ 三条策略规则
+        全部不匹配），但对 TASK-07 新增的**地址层**（SSRF 守卫）**不成立**：
+        内网/环回地址本身就是 SSRF 的首要目标（`169.254.169.254` 也是"内网"），
+        故地址层**默认拒绝**它们 —— 这正是 TASK-07 §2.1 的核心整改点。
+
+        现拆成两条断言，**两条都保留原测试的意图**：
+          ① 带上污点后，内网出域**不是**被污点/策略层拦的（拦截方 = ssrf_guard）；
+          ② 显式关掉地址层（`CP_SSRF_GUARD=0`）后，同一个内网请求**照常发出**
+             ⇒ 证明污点层确实没有碰内网目标（原测试要证的就是这一条）。
+        """
         mock_request.return_value = _mock_response()
         from agent.policy.taint import mark_secret_read
         mark_secret_read("/x/id_rsa", content_kinds=["openssh_private_key"])
+
+        # ① 新行为：地址层拦下环回目标，且拦截方**不是**污点/策略层
+        blocked = self._client().get("http://127.0.0.1:8080/health")
+        assert blocked["ok"] is False
+        assert blocked["blocked"] is True
+        assert blocked["blocked_by"] == "guardrails.ssrf_guard"
+        mock_request.assert_not_called()
+
+        # ② 原意图（污点层不碰内网）：关掉地址层后请求照发
+        monkeypatch.setenv("CP_SSRF_GUARD", "0")
         assert self._client().get("http://127.0.0.1:8080/health")["ok"] is True
         mock_request.assert_called_once()
 

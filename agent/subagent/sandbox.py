@@ -17,16 +17,118 @@
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import re
 import subprocess
 import sys
 import time
 import os
+import threading
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Optional, Set, List, Dict, Callable
+from typing import Optional, Set, List, Dict, Callable, Iterator
 
 logger = logging.getLogger(__name__)
+
+
+# ════════════════════════════════════════════════════════════════════
+#  路径包含判定（TASK-07 第 4 步第 4 项）
+# ════════════════════════════════════════════════════════════════════
+#
+# 【为什么必须单独抽一个函数】改动前有两处**各自实现**的路径前缀判定，两处都错：
+#   ① `Sandbox.check_path()`：`normalized.startswith(allowed_normalized)` —— **裸前缀**，
+#      无分隔符边界 ⇒ 放行 `C:\work\a` 即放行 `C:\work\ab`；
+#   ② `Sandbox.run_sandboxed()` 的工作目录检查：同一个裸 `startswith` 写法。
+# 两处各写一遍还会让"修了一处漏另一处"变成常态，故收口到本函数。
+
+
+def normalize_path(path: Any) -> str:
+    """路径归一：**解 symlink/junction + 展开 8.3 短名**后再比
+
+    【为什么不能只用 `abspath+normpath`】两者都是**纯字符串**运算：
+      · 它们不解析符号链接 ⇒ `C:\\work\\link`（指向 `C:\\Windows`）在字符串上看仍在
+        `C:\\work` 之内，实际却写到系统目录；
+      · 它们不展开 Windows 8.3 短名 ⇒ `C:\\PROGRA~1` 与 `C:\\Program Files` 是两个
+        不同的字符串，前缀比较会把同一条路径判成"在范围内 / 不在范围内"两种结论。
+    故先 `os.path.realpath`（POSIX 与 Windows 上都解链接），再用
+    `GetLongPathNameW` 展开短名（`ctypes` 实现，**不引入新依赖**；非 Windows 或调用
+    失败时原样返回 —— 那一侧的路径本来就没有短名概念，见 D7）。
+    """
+    text = str(path or "")
+    if not text:
+        return ""
+    try:
+        absolute = os.path.abspath(text)
+        resolved = _resolve_existing_prefix(absolute)
+    except Exception:  # noqa: BLE001  归一失败 ⇒ 退回纯字符串（不抛）
+        resolved = os.path.abspath(text)
+    if os.name == "nt":
+        resolved = _windows_long_path(resolved)
+    return resolved
+
+
+def _resolve_existing_prefix(path: str) -> str:
+    """解析路径中**已存在的最长前缀**，再把剩余部分接回去
+
+    【为什么不能直接 `os.path.realpath(path)`】实测（Windows，Python 3.12）：
+    对**不存在**的路径，`realpath` 依赖 `nt._getfinalpathname`，该 API 要求路径存在，
+    于是它**原样返回未解析的路径** —— 换句话说 `root/link/secret.txt`（`link` 指向
+    `root` 之外，但 `secret.txt` 尚不存在）在 realpath 之后**仍然看起来在 root 内**，
+    路径逃逸守卫被一条"文件还不存在"绕开。而"读一个还不存在的文件"恰恰是
+    攻击者探测路径的常见第一步。
+    修法：逐级上溯到第一个**存在**的祖先，对它做 realpath，再把剩余尾部拼回。
+    这样 `link/secret.txt` 会先解析 `link` → `outside`，得到 `outside/secret.txt`。
+    """
+    head = path
+    tail_parts: list = []
+    while head and not os.path.exists(head):
+        parent, name = os.path.split(head)
+        if not name or parent == head:
+            return path
+        tail_parts.insert(0, name)
+        head = parent
+    if not head:
+        return path
+    resolved = os.path.realpath(head)
+    return os.path.join(resolved, *tail_parts) if tail_parts else resolved
+
+
+def _windows_long_path(path: str) -> str:
+    """Windows：把 8.3 短名展开为长名（失败原样返回）"""
+    try:
+        import ctypes
+        from ctypes import wintypes
+        get_long = ctypes.windll.kernel32.GetLongPathNameW
+        get_long.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
+        get_long.restype = wintypes.DWORD
+        buffer = ctypes.create_unicode_buffer(32768)
+        written = get_long(path, buffer, len(buffer))
+        if written and 0 < written < len(buffer):
+            return buffer.value
+    except Exception:  # noqa: BLE001  非 Windows / API 不可用 / 路径不存在
+        pass
+    return path
+
+
+def path_within(path: Any, root: Any) -> bool:
+    """`path` 是否等于 `root` 或位于 `root` **之下**（带分隔符边界 + 解链接）
+
+    【为什么用 `commonpath` 而不是"前缀 + os.sep"】`commonpath` 由标准库处理
+    大小写/分隔符/驱动器盘符的差异（Windows 上 `C:/a` 与 `C:\\a` 同一个路径），
+    自己拼 `os.sep` 又会在"root 以分隔符结尾"这类输入上出错。
+    """
+    target = normalize_path(path)
+    base = normalize_path(root)
+    if not target or not base:
+        return False
+    if target == base:
+        return True
+    try:
+        return os.path.commonpath([target, base]) == base
+    except ValueError:
+        # 不同驱动器 / 混合绝对相对路径 ⇒ 一定不在范围内
+        return False
 
 
 class PermissionDenied(Exception):
@@ -188,6 +290,11 @@ class Sandbox:
     def check_path(self, path: str) -> bool:
         """检查文件路径是否在允许范围内
 
+        【TASK-07 第 4 步第 4 项修复】原实现是 `normalized.startswith(allowed)`:
+          · **无分隔符边界** ⇒ 放行 `C:\\work\\a` 即放行 `C:\\work\\ab`；
+          · **不解析链接** ⇒ `C:\\work\\link`（→ `C:\\Windows`）被判在 `C:\\work` 内。
+        现统一走 `path_within()`（realpath + 8.3 展开 + `commonpath` 边界）。
+
         Args:
             path: 文件路径
 
@@ -200,11 +307,8 @@ class Sandbox:
         if not self._allowed_paths:
             return True  # 未设置路径限制，放行
 
-        import os
-        normalized = os.path.abspath(path)
         for allowed in self._allowed_paths:
-            allowed_normalized = os.path.abspath(allowed)
-            if normalized.startswith(allowed_normalized):
+            if path_within(path, allowed):
                 return True
 
         raise PermissionDenied("path", f"路径不在允许范围内: {path}")
@@ -414,6 +518,7 @@ class Sandbox:
         limits: Optional[SandboxResourceLimits] = None,
         allowed_paths: Optional[List[str]] = None,
         cwd: Optional[str] = None,
+        creationflags: int = 0,
     ) -> SandboxRunResult:
         """沙箱执行器：子进程 + 超时 kill + 输出截断（无容器依赖）
 
@@ -424,6 +529,9 @@ class Sandbox:
             limits: 资源限制（超时/内存/输出截断），默认 SandboxResourceLimits()
             allowed_paths: 允许的工作目录前缀（None 表示不限制）
             cwd: 子进程工作目录
+            creationflags: 透传给 `subprocess.Popen`（Windows 上用于
+                `CREATE_NO_WINDOW`，避免工具执行时弹出控制台窗口；缺省 0 =
+                与改动前行为一致，D2）
 
         Returns:
             SandboxRunResult
@@ -443,10 +551,11 @@ class Sandbox:
             )
 
         # 2. 工作目录路径白名单
+        # 【TASK-07 修复】原判据是裸 `startswith`（同 `check_path` 的缺陷），
+        # 现统一走 `path_within`（解链接 + 分隔符边界）。
         if cwd is not None:
             if allowed_paths:
-                norm_cwd = os.path.abspath(cwd)
-                if not any(norm_cwd.startswith(os.path.abspath(p)) for p in allowed_paths):
+                if not any(path_within(cwd, p) for p in allowed_paths):
                     return SandboxRunResult(
                         allowed=False,
                         reason=f"工作目录不在允许范围内: {cwd}",
@@ -481,6 +590,7 @@ class Sandbox:
                 encoding="utf-8",
                 errors="replace",
                 cwd=cwd,
+                creationflags=creationflags,
             )
             try:
                 stdout, stderr = proc.communicate(timeout=limits.timeout_s)
@@ -551,6 +661,142 @@ class Sandbox:
 
     def __repr__(self) -> str:
         return f"<Sandbox permissions={self._allowed_permissions}>"
+
+
+# ════════════════════════════════════════════════════════════════════
+#  受限会话（TASK-07 第 4 步第 2 项：`sandbox_allowed` 真正被消费）
+# ════════════════════════════════════════════════════════════════════
+#
+# 【为什么要引入"受限会话"这个概念】`data/tool_definitions/*.yaml` 的
+# `sandbox_allowed` 字段原本**没有任何运行时消费方**（只有声明/展示：`callability.py`、
+# `sync_capability_manifest.py`、`routes_agent_lines.py`）。91 个 YAML 里 59 个为 false。
+# 字段的语义（`callability.py:23` 原文）是"是否允许在沙箱（**受限会话/分身沙箱**，
+# 默认只读）中执行"——所以要消费它，就必须先有"当前是不是受限会话"这个事实。
+#
+# 【为什么用 contextvars 而不是环境变量】**环境变量是进程级的**：把进程标成"受限"
+# 会让**所有人**（含人机对话主链路）一起受限。`contextvars` 按执行上下文生效，
+# 于是同进程内"分身/沙箱会话"与"主对话会话"可以各有各的判定 ——
+# 这与 `tool_gate.py::set_session_source` 的理由完全相同（那里也踩过同一个坑）。
+# 注意：contextvars **不跨线程继承**，设置点必须在真正执行工具的那个线程内。
+_RESTRICTED: contextvars.ContextVar = contextvars.ContextVar(
+    "cp_restricted_session", default=None)
+
+
+@contextmanager
+def restricted_session(name: str = "sandbox", *,
+                       permissions: Optional[Set[str]] = None,
+                       allowed_paths: Optional[List[str]] = None,
+                       sandbox: Optional["Sandbox"] = None) -> Iterator["Sandbox"]:
+    """进入**受限会话**作用域（分身沙箱 / 只读会话）
+
+    在作用域内：
+      · `agent.tool_gate` 会拒绝 `sandbox_allowed: false` 的工具；
+      · `current_restriction()` 报告当前受限事实（供工具与审计读取）。
+
+    Yields:
+        本作用域生效的 `Sandbox` 实例（缺省用 `get_tool_sandbox()` 的只读实例）。
+    """
+    active = sandbox or Sandbox(allowed_permissions=permissions or {"read"},
+                                allowed_paths=allowed_paths)
+    token = _RESTRICTED.set({
+        "name": str(name or "sandbox"),
+        "sandbox": active,
+        "allowed_paths": list(allowed_paths or []),
+    })
+    try:
+        yield active
+    finally:
+        try:
+            _RESTRICTED.reset(token)
+        except Exception:  # noqa: BLE001  跨上下文重置失败 ⇒ 显式清空
+            _RESTRICTED.set(None)
+
+
+def current_restriction() -> Optional[Dict]:
+    """当前受限会话事实（不在受限会话内 ⇒ None）"""
+    return _RESTRICTED.get()
+
+
+def in_restricted_session() -> bool:
+    """当前是否处于受限会话（供 `tool_gate` 与诊断使用）"""
+    return _RESTRICTED.get() is not None
+
+
+def sandbox_allowed_for(tool_name: str) -> bool:
+    """工具的 YAML `sandbox_allowed` 声明（**唯一权威**；读不到时按 True 放行）
+
+    【为什么读不到时放行】与 `agent/tools/__init__.py::_internal_tool_names()` 同款
+    纪律：元数据加载失败**不得**让工具静默消失（那会让"YAML 读失败"变成一条
+    关停能力集的路径）。缺省值取 `True`（与 `ToolMeta.sandbox_allowed` 的默认一致）。
+    """
+    try:
+        from agent.lines.models import load_tool_meta
+        meta = (load_tool_meta() or {}).get(str(tool_name or ""))
+        if meta is None:
+            return True
+        return bool(getattr(meta, "sandbox_allowed", True))
+    except Exception as exc:  # noqa: BLE001  元数据不可用 ⇒ 不据此拒绝
+        logger.debug("[Sandbox] sandbox_allowed 元数据读取失败（按允许处理）: %s", exc)
+        return True
+
+
+def guard_tool_sandbox_allowed(tool_name: str) -> Optional[str]:
+    """受限会话内校验工具是否被允许；允许返回 None，否则返回拒绝原因
+
+    【判据的三段】① 不在受限会话内 ⇒ 不参与判定（**零影响**）；
+    ② 工具元数据 `sandbox_allowed` 为真 ⇒ 放行；
+    ③ 为假 ⇒ 拒绝并给出来源（哪个 YAML）。
+    """
+    if not in_restricted_session():
+        return None
+    if sandbox_allowed_for(tool_name):
+        return None
+    return (f"工具 {tool_name} 声明 sandbox_allowed=false —— 不允许在受限会话"
+            f"（沙箱/分身，默认只读）中执行（声明来源：data/tool_definitions/"
+            f"{tool_name}.yaml）")
+
+
+def isolation_level() -> str:
+    """本仓**当前**提供的进程隔离级别（诚实标注：**没有**容器/WASM 隔离）
+
+    TASK-07 §4 第 5 项与 E8 要求"不得声称已具备容器级隔离"。`get_docker_sandbox()`
+    与 `get_wasm_sandbox()` 都返回 `None`（适配位预留），故这里的返回值恒为
+    `"process"` —— 进程级（子进程 + 超时 kill + 输出截断 + 命令校验），
+    **不是** container，也**不是** none（我们确实有进程级约束）。
+    """
+    return ISOLATION_LEVEL
+
+
+#: 诚实标注的隔离级别（E8：`process` / `none`，本仓为进程级）
+ISOLATION_LEVEL = "process"
+
+#: 工具执行路径（`shell_execute` 等）使用的进程级沙箱
+_TOOL_SANDBOX_LOCK = threading.RLock()
+_TOOL_SANDBOX: Optional["Sandbox"] = None
+
+
+def get_tool_sandbox() -> "Sandbox":
+    """工具执行路径的进程级沙箱（进程内单例；**显式授予 read+execute**）
+
+    【为什么这里要显式给 `execute`】`Sandbox` 的缺省权限是 `{"read"}`（默认拒绝
+    语义），而 `validate_command()` 的第一步就是 `check_permission("execute")`
+    ⇒ 用缺省实例接 `shell_execute` 会让**所有** shell 命令被拒（那不是安全，是停摆）。
+    `shell_execute` 这个能力本身的存在意义就是执行命令，故此处**显式**授予 execute，
+    真正的约束由 `validate_command()` 的危险模式判定 + `run_sandboxed()` 的
+    子进程/超时/截断/路径白名单承担。
+    """
+    global _TOOL_SANDBOX
+    with _TOOL_SANDBOX_LOCK:
+        if _TOOL_SANDBOX is None:
+            _TOOL_SANDBOX = Sandbox(allowed_permissions={"read", "execute"})
+        return _TOOL_SANDBOX
+
+
+def reset_tool_sandbox() -> None:
+    """重建工具沙箱单例（测试隔离用）"""
+    global _TOOL_SANDBOX
+    with _TOOL_SANDBOX_LOCK:
+        _TOOL_SANDBOX = None
 
 
 # ════════════════════════════════════════════════════════════════════

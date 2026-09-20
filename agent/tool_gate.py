@@ -383,6 +383,11 @@ def reset_session_source(handle: Any) -> None:
 
 #: 确认分级强制开关（**默认开启**；置 0 ⇒ 退回"只有旧的 needs_approval 集合挂单"）
 CONFIRM_LEVEL_ENFORCE_ENV = "CP_TOOL_CONFIRM_LEVEL_ENFORCE"
+
+#: 受限会话 `sandbox_allowed` 判定开关（TASK-07 第 4 步第 2 项；**默认开**）
+#: 置 0 ⇒ 退回"该字段只有声明、没有运行时消费方"的改动前状态。
+SANDBOX_ALLOWED_ENFORCE_ENV = "CP_TOOL_SANDBOX_ALLOWED_ENFORCE"
+
 #: 影子模式开关（**默认关闭**）：置 1 ⇒ 只记录"若按新规则将要求确认"，**不拦截**
 #: 这是 TASK-06 §6 回滚方案要求的"先跑一个周期影子告警"落地方式
 #: （v1.4 §14 执行纪律里就有"影子告警 → 白名单 → 拒绝"的先例）。
@@ -576,6 +581,20 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
         if not name:
             return None
 
+        # 0. **受限会话的 sandbox_allowed 判定**（TASK-07 第 4 步第 2 项）
+        #    `data/tool_definitions/*.yaml` 的 `sandbox_allowed` 此前**没有任何运行时
+        #    消费方**（只有声明/展示）；91 个 YAML 里 59 个为 false。本步让它在
+        #    "受限会话"（分身沙箱/只读会话，见 `agent/subagent/sandbox.py::restricted_session`）
+        #    内真的生效：声明为 false 的能力在受限会话里被拒。
+        #    【为什么放在最前面】与注入防御闸门同一理由：避免为注定被拒的调用挂审批单
+        #    （悬空挂单）。本步**只出 deny、不出 allow**，不可能把下面的层短路。
+        #    【零影响保证】不在受限会话内时 `guard_tool_sandbox_allowed` 恒返回 None ⇒
+        #    对既有调用方逐字节无影响；`CP_TOOL_SANDBOX_ALLOWED_ENFORCE=0` 可整体关闭。
+        if _sandbox_allowed_enforce_enabled():
+            sandbox_deny = _sandbox_allowed_outcome(name)
+            if sandbox_deny is not None:
+                return sandbox_deny
+
         denied = _cached_derived(POLICY_POLICIES_PATH, _build_denied_union)
         if _WILDCARD in denied:
             return _deny(name, "权限策略把所有工具列入黑名单（来源: %s 的 "
@@ -678,6 +697,40 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
         logger.warning("[tool_gate] 闸门判定异常（按 fail-open 放行）: %s: %s",
                        type(e).__name__, e)
         return None
+
+
+def _sandbox_allowed_enforce_enabled() -> bool:
+    """受限会话 `sandbox_allowed` 判定开关（**默认开**；不在受限会话内时零影响）
+
+    【为什么默认开是安全的】本层的第一条判据是"当前是否处于受限会话"
+    （`agent/subagent/sandbox.py::in_restricted_session`，一个 contextvar）。
+    既有调用方**没有一个**进入受限会话 ⇒ 打开它对既有行为逐字无影响。
+    真正的影响面只在"分身/沙箱会话"里 —— 而那正是该字段的语义所指。
+    """
+    raw = os.environ.get(SANDBOX_ALLOWED_ENFORCE_ENV)
+    if raw is None:
+        return True
+    return str(raw).strip().lower() in _ENABLED_VALUES
+
+
+def _sandbox_allowed_outcome(func_name: str) -> Optional[Dict[str, Any]]:
+    """受限会话内 `sandbox_allowed=false` ⇒ 拒绝结果；否则 None（**不抛**）
+
+    【为什么不需要"未登记工具"的兜底】`sandbox_allowed_for` 读不到元数据时返回
+    True（不缺省拒绝）——那是刻意的：本层的职责是**消费一个已声明的字段**，
+    不是"对未登记工具做安全兜底"（后者由 `_hitl_boundary` 的 fail-closed 承担）。
+    两层各管一件事，避免"新层顺手把旧层的判据又抄一遍"。
+    """
+    try:
+        from agent.subagent.sandbox import guard_tool_sandbox_allowed
+    except Exception as exc:  # noqa: BLE001  沙箱模块不可用 ⇒ 本层不参与判定
+        logger.debug("[tool_gate] 沙箱受限会话判定不可用（跳过）: %s", exc)
+        return None
+    reason = guard_tool_sandbox_allowed(func_name)
+    if reason is None:
+        return None
+    logger.warning("[tool_gate] %s", reason)
+    return _deny(func_name, reason)
 
 
 def _is_governance_action(func_name: str) -> bool:

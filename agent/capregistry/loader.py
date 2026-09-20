@@ -597,6 +597,17 @@ class StdioLoader(Loader):
 # ════════════════════════════════════════════════════════════
 
 
+def _ssrf_disabled_in_loader() -> bool:
+    """`CP_SSRF_GUARD` 是否被显式关闭（Loader 侧 fail-closed 判据）
+
+    【为什么要这个 helper】SSE 流式分支自己复现出站检查（见 `SseLoader._raw_request`），
+    故它也需要与 `HttpClient._ssrf_block` **同款**的"守卫不可用 ⇒ 拒绝"语义。
+    单独抽出来是为了让"显式关闭"这个唯一放行口只有一处定义。
+    """
+    return str(os.environ.get("CP_SSRF_GUARD", "1")).strip().lower() \
+        in ("0", "false", "no", "off")
+
+
 class SseLoader(Loader):
     """MCP **SSE 传输**：`GET <url>` 得到事件流，首个 `endpoint` 事件给出 POST 地址
 
@@ -659,6 +670,28 @@ class SseLoader(Loader):
                                   data=text.encode("utf-8") if text else None,
                                   timeout=int(max(1, timeout)))
         # ① 出域检查（与 HttpClient 内的实现同源，不另立一套策略）
+        # 【TASK-07 补】原实现只复用了**策略层**（EgressGuard），而 TASK-07 新增的
+        # **地址层**（SSRF：私有/元数据网段、非标准 IP 写法）在流式分支上**缺席**
+        # ⇒ `location=remote` 的 SSE 能力成了 SSRF 守卫的旁路。
+        # 非流式分支走 `client.request(...)`，那里已经两层齐全；这里补齐同一个地址判定，
+        # 使两个分支的**出站判定完全一致**（调用的是同一个 `ssrf_guard.check_url`，
+        # 不新增第二份判定口径 —— D1）。
+        try:
+            from agent.guardrails import ssrf_guard as _ssrf  # noqa: PLC0415
+            _ssrf_guard_verdict = _ssrf.check_url(url)
+            if not _ssrf_guard_verdict.allowed:
+                _ssrf.audit_block(_ssrf_guard_verdict, url=url,
+                                  surface="capregistry.loader.SseLoader")
+                raise LoaderUnavailable(
+                    f"出站被 SSRF 守卫拒绝: {_ssrf_guard_verdict.reason}")
+        except LoaderUnavailable:
+            raise
+        except Exception as _ssrf_exc:  # noqa: BLE001
+            # 【fail-closed】守卫组件不可用 ⇒ 拒绝（与 `_ssrf_block` 同口径）；
+            # 显式置 `CP_SSRF_GUARD=0` 才是"运维选择放行"。
+            if not _ssrf_disabled_in_loader():
+                raise LoaderUnavailable(
+                    f"SSRF 守卫不可用，拒绝出站: {type(_ssrf_exc).__name__}") from _ssrf_exc
         try:
             from agent.guardrails.egress_guard import EgressGuard  # noqa: PLC0415
             decision = EgressGuard.precheck(method=method, url=url, headers=headers)

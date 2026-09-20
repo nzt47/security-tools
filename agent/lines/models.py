@@ -84,6 +84,19 @@ LOCATIONS = ("local", "remote")
 #:   marketplace       来自扩展市场（SOURCE_MARKET）
 OWNERS = ("builtin", "local-installed", "tenant-installed", "marketplace")
 
+#: 执行隔离级别（TASK-07 §4 第 5 项 / E8）：`none` | `process` | `container`
+#: 【本仓的诚实取值是 `process`】进程级隔离 = 子进程 + 超时 kill + 输出截断 +
+#: 命令校验 + 路径白名单（`agent/subagent/sandbox.py`）。**没有**容器/WASM：
+#: `Sandbox.get_docker_sandbox()` / `get_wasm_sandbox()` 都返回 `None`。
+#: 【为什么要有这个字段】没有它时，评审只能从 `sandbox_allowed` 猜"沙箱有多强"，
+#: 容易误以为存在容器隔离。本字段把"没有容器隔离"这件事**放进能力清单**。
+#: 【D1】运行期事实来源是 `agent/subagent/sandbox.py::ISOLATION_LEVEL`；
+#: 本常量与它的一致性由 `tests/unit/test_sandbox_wiring.py::TestIsolationHonesty` 锁死。
+ISOLATION_LEVELS = ("none", "process", "container")
+
+#: 本仓当前的隔离级别（改动此值前请先读 `agent/subagent/sandbox.py` 的适配位实现）
+DEFAULT_ISOLATION_LEVEL = "process"
+
 #: `tenant_id` 的占位默认。单机单用户下**恒为 default**，来源是**派生**（服务端），
 #: 不是请求参数 —— 见 `agent/routes_ui_panels.py` 的客户端传参矫正（TASK-04 §6.3）。
 DEFAULT_TENANT_ID = "default"
@@ -220,6 +233,12 @@ class ToolMeta:
     permission_level: str = ""
     #: 是否允许在沙箱（受限会话，默认只读）中执行
     sandbox_allowed: bool = True
+    #: 执行隔离级别：none | process | container（TASK-07 新增；默认取本仓**诚实**值）
+    #: 【与 `sandbox_allowed` 的区别】`sandbox_allowed` 回答"**允不允许**在受限会话里
+    #: 跑"；本字段回答"跑起来时**有多强的隔离**"。两者正交：一个能力可以
+    #: `sandbox_allowed=true`（允许在沙箱跑）而 `isolation_level=process`（只有进程级）。
+    #: 旧 YAML 没有这个字段 ⇒ 取默认值 `process`（D2：新增字段可选、有默认值）。
+    isolation_level: str = DEFAULT_ISOLATION_LEVEL
     #: 不可调用原因（llm_callable=false 时必填）
     reason: str = ""
 
@@ -387,6 +406,7 @@ class ToolMeta:
             "callable_mode": self.callable_mode,
             "permission_level": self.permission_level,
             "sandbox_allowed": bool(self.sandbox_allowed),
+            "isolation_level": str(self.isolation_level or DEFAULT_ISOLATION_LEVEL),
             "reason": self.reason,
             # ── CapabilitySpec 扩展（只增不减，D2）──
             "kind": self.kind,
@@ -613,6 +633,8 @@ def load_tool_meta(defs_dir: Optional[str] = None, force: bool = False) -> Dict[
             callable_mode=_norm(doc.get("callable_mode"), CALLABLE_MODES, "auto"),
             permission_level=_norm(doc.get("permission_level"), PERMISSION_LEVELS, ""),
             sandbox_allowed=_as_bool(doc.get("sandbox_allowed"), True),
+            isolation_level=_norm(doc.get("isolation_level"), ISOLATION_LEVELS,
+                                  DEFAULT_ISOLATION_LEVEL),
             reason=str(doc.get("reason") or "").strip(),
             # ── CapabilitySpec 扩展 ──
             # 【不易·缺 `location` 时给 remote 而不是 local】保守侧从严（见字段注释）。

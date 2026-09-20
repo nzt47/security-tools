@@ -116,6 +116,13 @@ _EXTRA_REGISTER_FILES = (
 TOOL_TYPES = ("tool", "skill", "api", "script")
 CALLABLE_MODES = ("auto", "required", "manual")
 PERMISSION_LEVELS = ("public", "internal", "restricted")
+#: 执行隔离级别（TASK-07 §4 第 5 项 / E8）：`none` | `process` | `container`
+#: 【为什么在这里再列一次而不 import `agent.lines.models`】与本文件上面
+#: `LOCATIONS` 的注释同一理由：避免新增依赖边（`callability` 全程惰性导入 models）。
+#: 一致性由 `tests/unit/test_sandbox_wiring.py::TestIsolationHonesty` 对拍锁死
+#: （三处：本文件 / `agent/lines/models.py` / `agent/subagent/sandbox.py`）。
+ISOLATION_LEVELS = ("none", "process", "container")
+DEFAULT_ISOLATION_LEVEL = "process"
 
 #: 谁真的会触发这项能力（`none` = 没有任何触发者 ⇒ 不可达）
 TRIGGERS = ("model", "system", "human", "none")
@@ -552,6 +559,9 @@ def parse_declaration(doc: Dict[str, Any]) -> Dict[str, Any]:
         "callable_mode": _choice(doc.get("callable_mode"), CALLABLE_MODES, "auto"),
         "permission_level": _choice(doc.get("permission_level"), PERMISSION_LEVELS, ""),
         "sandbox_allowed": _as_bool(doc.get("sandbox_allowed"), True),
+        # 执行隔离级别（TASK-07 §4 第 5 项）：none | process | container
+        "isolation_level": _choice(doc.get("isolation_level"),
+                                   ISOLATION_LEVELS, DEFAULT_ISOLATION_LEVEL),
         "host_executor": str(doc.get("host_executor") or "").strip(),
         "reason": str(doc.get("reason") or "").strip(),
         "missing_fields": [f for f in REQUIRED_DECL_FIELDS if f not in doc],
@@ -852,6 +862,7 @@ def _tool_entry(name: str, doc: Dict[str, Any], *, executors: Dict[str, str],
         "host_executor": executor,
         "permission_level": level,
         "sandbox_allowed": declared["sandbox_allowed"],
+        "isolation_level": declared.get("isolation_level", DEFAULT_ISOLATION_LEVEL),
         "reason": verdict["reason"],
         # ── CapabilitySpec（TASK-04 新增；v1.4 §5.1 对齐）──
         "capability_id": f"{tenant_id}:{namespace}:{name}@{version}",
@@ -1070,6 +1081,7 @@ def _skill_entry(sid: str, facts: Dict[str, Any], decl: Dict[str, Any],
         "host_executor": executor,
         "permission_level": level,
         "sandbox_allowed": declared["sandbox_allowed"],
+        "isolation_level": declared.get("isolation_level", DEFAULT_ISOLATION_LEVEL),
         "reason": verdict["reason"],
         # ── CapabilitySpec（TASK-04 新增）──
         "capability_id": f"default:yunshu:{sid}@1.0.0",
@@ -1482,6 +1494,10 @@ def summarize(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
                         for loc in LOCATIONS},
         "by_location_source": _by_key(entries, "location_source"),
         "by_location_derived_source": _by_key(entries, "location_derived_source"),
+        # 【TASK-07 / E8】隔离级别分布：`container` 恒为 0 —— 让"本仓没有容器隔离"
+        # 这件事在清单里**一眼可见**，而不是留给评审去猜。
+        "by_isolation_level": {lv: _count(lambda e, lv=lv: e.get("isolation_level") == lv)
+                               for lv in ISOLATION_LEVELS},
         "by_owner": {o: _count(lambda e, o=o: e.get("owner") == o) for o in OWNERS},
         "by_registry_source": {r: _count(lambda e, r=r: e.get("registry_source") == r)
                                for r in REGISTRY_SOURCES},

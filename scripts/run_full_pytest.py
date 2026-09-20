@@ -213,10 +213,64 @@ def resume_lost_files(files: list[str], logdir: Path, marker: str | None,
 
 
 
+def _parse_argv(argv: list[str]) -> tuple[int, int, str]:
+    """解析命令行，**同时支持位置参数与具名开关**。
+
+    【不易·2026-09-20 修一处真实的可用性缺陷】
+    本函数原先只读位置参数（`sys.argv[1..3]`），而 `TASK-00` / `TASK-07` 等任务书里
+    写的是 `python scripts/run_full_pytest.py --mode fast` —— 于是照抄任务书**直接崩**：
+
+        ValueError: invalid literal for int() with base 10: '--mode'
+
+    实测代价：一个子代理照抄后撞上该报错，浪费了一轮；且它会让人误以为脚本本身坏了。
+    ⇒ 现在两种写法都接受：
+
+        python scripts/run_full_pytest.py 4 4 fast        # 位置参数（原用法，保持兼容）
+        python scripts/run_full_pytest.py --mode fast     # 具名开关
+        python scripts/run_full_pytest.py --chunks 4 --workers 4 --mode fast
+
+    未提供的项沿用默认（4 块 / 4 worker / fast）。非法 mode 仍由调用方校验并报错。
+    """
+    chunks_n, workers, mode = 4, 4, "fast"
+    positional: list[str] = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("--chunks", "--workers", "--mode") and i + 1 < len(argv):
+            val = argv[i + 1]
+            if a == "--chunks":
+                chunks_n = int(val)
+            elif a == "--workers":
+                workers = int(val)
+            else:
+                mode = val
+            i += 2
+            continue
+        if a.startswith("--") and "=" in a:
+            k, _, val = a.partition("=")
+            if k == "--chunks":
+                chunks_n = int(val)
+            elif k == "--workers":
+                workers = int(val)
+            elif k == "--mode":
+                mode = val
+            i += 1
+            continue
+        positional.append(a)
+        i += 1
+
+    # 位置参数兜底（`[chunks] [workers] [mode]`），仅在对应具名开关未给出时生效
+    if positional and chunks_n == 4:
+        chunks_n = int(positional[0])
+    if len(positional) > 1 and workers == 4:
+        workers = int(positional[1])
+    if len(positional) > 2 and mode == "fast":
+        mode = positional[2]
+    return chunks_n, workers, mode
+
+
 def main() -> int:
-    chunks_n = int(sys.argv[1]) if len(sys.argv) > 1 else 4
-    workers = int(sys.argv[2]) if len(sys.argv) > 2 else 4
-    mode = sys.argv[3] if len(sys.argv) > 3 else "fast"
+    chunks_n, workers, mode = _parse_argv(sys.argv[1:])
     if mode not in MODE_MARKER:
         print(f"[run_full_pytest] 非法 mode={mode!r}，可选 fast/slow/all", file=sys.stderr)
         return 1

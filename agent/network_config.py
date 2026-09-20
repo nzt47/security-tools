@@ -1670,5 +1670,34 @@ class NetworkConfigManager:
         if service.get('max_retries'):
             if not isinstance(service["max_retries"], int) or service["max_retries"] < 0 or service["max_retries"] > 10:
                 errors.append('重试次数必须在 0-10 之间')
-        
+
+        # ── TASK-07 第 2 步第 7 项：MCP 地址补 allowlist（复用同一套出站判定）──
+        # 【改动前的问题】这里只查"非空 / 端口范围 / 协议枚举"，**没有任何 allowlist**：
+        # 任意能写网络配置（或经扩展安装流程写入）的主体都可以把 MCP 服务指向
+        # `169.254.169.254` 或内网地址，而 MCP 是**进程外**的信任边界 ⇒ 等于给
+        # "接入 MCP"开了一个未经地址判定的出站口。
+        # 【为什么复用 ssrf_guard】D1 要求出站判定只有一份口径；在 MCP 侧再写一份
+        # 黑名单就是第二真相源（浏览器侧刚因同一理由删掉了一份）。
+        # 【fail-closed】判定组件不可用 ⇒ 报错（配置校验期拒绝比运行期被绕过便宜得多）。
+        address = str(service.get('address') or '').strip()
+        if address:
+            protocol = str(service.get('protocol') or 'http').lower()
+            probe = address if "://" in address else f"{protocol}://{address}"
+            port = service.get('port')
+            if not isinstance(port, int):
+                port = None
+            if port is not None and "://" in probe:
+                head, _, rest = probe.partition("://")
+                host_part, slash, tail = rest.partition("/")
+                if ":" not in host_part:
+                    probe = f"{head}://{host_part}:{port}" + (f"/{tail}" if slash else "")
+            try:
+                from agent.guardrails.ssrf_guard import check_url
+                verdict = check_url(probe, resolve=True)
+                if not verdict.allowed:
+                    errors.append(
+                        f"MCP 服务地址未通过出站判定（{verdict.category}）：{verdict.reason}")
+            except Exception as exc:  # noqa: BLE001  守卫不可用 ⇒ fail-closed
+                errors.append(f"MCP 地址出站判定不可用，拒绝该地址: {exc}")
+
         return errors
