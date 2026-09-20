@@ -942,3 +942,79 @@ FileNotFoundError: [WinError 2] 系统找不到指定的文件。: 'C:\Users\Adm
 
 ⇒ **两次都是"执行方式"问题，不是代码问题**；两次都**在分块摘要里暴露**
 ⇒ 印证本会话反复出现的纪律：**必须逐块校验"是否正常收尾"，不能只看"命令返回了"**。
+
+---
+
+## 17. 全量回归发现的两个真问题（已修，提交 `e61634b3`）
+
+### 17.1 两处调用点未登记（**重构导致登记锚点漂移**）
+
+| 处 | 事实 | 处置 |
+|---|---|---|
+| `agent/skills_mgmt/mcp_adapter.py::_build` | **TASK-08** 给 MCP 加超时/重试预算时，把 SDK 调用路径重构成了 `_build()` 内层闭包（`:372`）⇒ 扫描器识别为新调用点（TASK-05 登记的旧符号 `_call_tool` 已不存在） | 登记为 `reachable=False` —— **实测 `import mcp` 抛 ImportError**（`No module named 'mcp'`）⇒「潜在风险、当前不可达」，并注明"一旦装上 SDK 即生效" |
+| `mcp_services/test_mcp_windows.py::test_error_mode` | 手工 MCP 客户端兼容脚本；**自 2026-06-29 起未被改过** ⇒ 不是新增直调，而是判定条件变化后才被识别 | 登记，并**如实说明"原漏检原因未逐行追查"**；`pytest.ini testpaths=tests` ⇒ 不被收集，且 `mcp_services/` 不在硬失败范围 |
+
+### 17.2 🔴 一个**静默失效的负例**（本次最值得记的一条）
+
+`test_capregistry_callpaths_routes.py::test_负例_未登记的直调_非零退出` 原以
+`agent/skills_mgmt/mcp_adapter.py::_call_tool` 为"受害条目"，**但该符号已被 TASK-08 的重构删除**
+⇒ 用例变成"删掉一个**本就不存在的**条目" ⇒ 未登记数仍为 0 ⇒
+**负例测不出非零退出、静默失效**（实测 `assert 0 == 1`）。
+
+**已改用当前真实存在且会被扫到的 `_build`。**
+
+> **教训**：**负例必须锚在"扫描器当前真能命中的符号"上。**
+> 重构会让负例**静默失效** —— 而"负例失效"恰恰是最危险的：它让人以为防护还在。
+> 这与本会话早前那批"假绿"（测试夹具冒充生产、探测分支不可达）是同一族：
+> **防护机制本身也需要有"它是否还在生效"的证据。**
+
+### 17.3 修复后的验证
+
+| 验证项 | 结果 |
+|---|---|
+| `audit_call_paths.py --check` | ✅ **✓ 无未登记直调**（扫 39 条路径、例外 12 条、无腐化）、**exit 0** |
+| `test_capregistry_callpaths_routes.py` | ✅ **23 passed / 0 failed** |
+| `test_retry_budget.py` | ✅ **17 passed**（全量里那条失败是负载下的瞬时，隔离跑全绿） |
+
+---
+
+## 18. ⚠️ 未修的性能项：AST 全仓扫描在 4 路争用下超时（**已量化并登记**）
+
+### 18.1 现象（两次全量复现）
+
+`run_full_pytest.py 4 4 fast` 两轮都在 **chunk_0 与 chunk_3** 出现
+`+++++++++ Timeout +++++++++`（`pytest-timeout` 的 `os._exit(1)`）：
+
+| chunk | 超时处 | 调用栈 |
+|---|---|---|
+| chunk_0 | `scripts/audit_call_paths.py:510 module_bindings` | `ast.walk` → `generic_visit` |
+| chunk_3 | `agent/lines/location.py:750 _walk_chain` → `:376 _module_boundary_primitives` | `ast.walk` |
+
+### 18.2 量化（**我的实测**，不是推测）
+
+| 度量 | 值 |
+|---|---|
+| `audit_call_paths.scan()` 单次（单进程、空载） | **14.9 s** |
+| 同一进程第二次 scan | **14.6 s** ⇒ **无缓存**（每次全仓 AST 解析） |
+| 全仓扫描文件数 | 按 `_SCAN_ROOTS`（`agent`/`mcp_services`/`plugins`/`scripts`/`cloudshu`）计 |
+| 4 路并行时的放大 | 实测超过 **120 s** 预算 ⇒ 被 `os._exit(1)` 杀进程 |
+
+### 18.3 为什么**未修**
+
+1. **不是正确性问题**：`--check` 单独跑正常（exit 0）、相关测试隔离跑 23 passed；
+   两次全量**均 0 条 FAILED**（chunk_1 `6099 passed`、chunk_2 `5516 passed`）。
+2. **改 `scan()` 加缓存是独立改动**：需要"按仓库状态（mtime 集）失效"的设计与验证，
+   属行为变更；**本轮已接近尾声，不宜在未充分验证的情况下改扫描器语义**。
+3. **runner 的"正常收尾"判定是误判**：它在 chunk_0/3 报"已跑完"，
+   实际是超时被杀、**没有摘要**。这是 runner 的**真缺陷**（`chunk_log_status` 未识别 `Timeout` 标记）。
+
+### 18.4 建议修法（登记为待办）
+
+1. **给 `scan()` 加进程级缓存**，按"被扫描文件的 (path, mtime, size) 集合"失效 ——
+   同一进程内重复 scan 可从 14.9s 降到接近 0（`:44` 的 module 级 fixture 与本文件的
+   多次 `main()` 调用都会受益）；
+2. **修 runner 的收尾判定**：`chunk_log_status()` 应把 `Timeout` 标记视为**未正常收尾**
+   ⇒ 触发逐文件补跑或至少如实报出"该块未跑完"；
+3. 可选：把 `audit_call_paths.scan` 与 `location.walk_chain_all_executors` 纳入
+   TASK-08 的性能门禁基线（当前 `baseline.json` 已有 `walk_chain_all_executors` 指标，
+   但默认未测；`--with-walk-chain` 才测）。
