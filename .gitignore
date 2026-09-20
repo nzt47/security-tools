@@ -536,3 +536,10 @@ agent/data/skills.json
 # 引用（引用检查见 docs/closeout/REPO_HYGIENE_20260918.md §4）。
 # **不要**按"看着像产物"把它们删掉。
 
+
+# 测试运行期产物（2026-09-20 补）：部分用例以相对路径写审批/生命周期数据，
+# 恰好落在 tests/ 下形成 tests/agent/data/ 与 tests/data/。
+# 它们与 _ci_logs/、pytest_chunks/ 同类（运行期产物，不入库），
+# 实测一次全量会生成若干 JSONL/JSON，且原未被忽略 ⇒ 每次跑完 git status 都变脏。
+tests/agent/
+tests/data/
