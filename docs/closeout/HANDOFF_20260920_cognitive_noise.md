@@ -671,9 +671,148 @@ stash（4 条均无关）、index、全盘同名搜索、回收站、`git fsck -
 
 | 任务 | 状态 |
 |---|---|
-| **TASK-06** | ✅ **已完成并提交 `61f53a96`**（46 文件 / +6660 −330），详见 §12 |
-| **TASK-07** 安全接线 | 未开始 —— 前提**已预检全部成立**：`guard_tool_execution` 生产 0 调用、`mark_foreign*` 生产 0 调用（污点账从未写入）、`run_sandboxed` 生产 0 调用 |
-| **TASK-08** 性能与可观测性 | 未开始 —— **P0-1 已完成**（`CSafeLoader` + 缓存 + 失效 + 测试，170.3ms → 0.6ms），已写入其提示词避免重做 |
+| **TASK-06** | ✅ 已完成并提交 `61f53a96`，详见 §12 |
+| **TASK-07** 安全接线 | ✅ **已完成并提交 `ecdcafe4`**（26 文件 / +4489 −141），详见 §13 |
+| **TASK-08** 性能与可观测性 | ✅ **已完成并提交 `ab42a6b4`**（43 文件 / +12319 −49），详见 §14 |
+
+---
+
+## 13. TASK-07 交付与独立验证（2026-09-21，提交 `ecdcafe4`）
+
+### 13.1 三件事（审计期生产调用方均为 0，现已接线）
+
+| 项 | 实现 | 接线位置 |
+|---|---|---|
+| **SSRF 默认拒绝** | 新增 `agent/guardrails/ssrf_guard.py`（809 行）：**两道防线** —— 发请求前（语法 + IP 字面量 + DNS 后全 A 记录校验）+ patch `urllib3` `create_connection`，在**地址已定、socket 未建**那一瞬校验实际要连的地址（只在 `guard_scope()` 内生效，不拦死进程内合法回环）；重定向逐跳复检 | `agent/web/http_client.py` |
+| **注入隔离 + 污点账** | 新增 `agent/guardrails/untrusted_ingest.py`；接线点在 `agent/tools/__init__.py::call()`（唯一汇聚点）⇒ 覆盖全部 91 工具 + 动态注册的 MCP 工具 | `tools/__init__.py::call()` |
+| **沙箱收口** | `validate_command()` → `run_sandboxed()`；三档 `CP_SANDBOX_SHELL_MODE`（`off`/`shadow`/**默认 shadow**/`enforce`） | `agent/tools/shell_tools.py::execute_shell()` |
+
+**两个关键设计论证**（子代理自己给的，我已核实合理）：
+1. **注入层放在 `tool_gate` 之前** —— 理由是"不给注定不执行的调用挂审批单"（避免 TASK-05 已证的悬空挂单）；
+   且**本层只出 deny、从不出 allow** ⇒ **不可能短路旧层**（这正是 TASK-06 踩过的坑）。
+2. **受既有总开关约束**：`injection_guard_enabled() = CP_GUARDRAILS_GUARD_TOOL ∧ CP_TOOL_GATE_ENABLED`
+   —— 直接吸取了 TASK-06 的 D-1 教训（新层不受总开关约束会导致**回滚失效**）。
+
+### 13.2 我的独立验证（**全部亲自复测**）
+
+| 验证项 | 我的结果 |
+|---|---|
+| **SSRF 12 类** | ✅ **12/12 符合预期** —— 拒绝 `169.254.169.254`（审计 Top1 原始场景）、环回、私网 A/C、十进制 `2130706433`、十六进制 `0x7f000001`、`::ffff:127.0.0.1`、`::1`、`0.0.0.0`、`file:`；放行 `example.com` / `api.tavily.com`（**无误伤**） |
+| **沙箱拦在 spawn 前** | ✅ `rm -rf /`（权限系统黑名单）、`drop table users`（`\bdrop\s+table\b`）被拦并报出匹配规则；`echo hello` 放行 |
+| **污点账** | ✅ `mark_tool_result` 入账后 `check_text(allowed)=False`；**对照组**普通文本 `=True`（证明不是恒拒） |
+| 测试 | ✅ **747 passed / 16 skipped / 0 failed** |
+
+**打红既有测试 13 处，全部为契约更新、无一条是实现真缺陷**；其中 9 处子代理**不改测试而是让代码保留稳定文案**（补精度不破契约，符合 D2）。
+
+### 13.3 我修的一处**我自己造成的**工具缺陷
+
+**任务书里写的 `python scripts/run_full_pytest.py --mode fast` 会直接崩** ——
+该脚本原只读位置参数（`sys.argv[1..3]`），照抄任务书得到
+`ValueError: invalid literal for int(): '--mode'`。**子代理照抄后撞上、浪费一轮。**
+
+⇒ 已修 `scripts/run_full_pytest.py::_parse_argv`：**两种写法都接受**（8 组解析用例实测通过），
+并更正 `TASK-00` 里的错误命令 + 写下教训「**任务书里的命令必须实跑一遍再写进去**」。
+
+### 13.4 TASK-07 的 5 处分歧裁定（已落盘 `docs/closeout/TASK-07_裁定记录_20260920.md`）
+
+| # | 分歧 | 裁定 |
+|---|---|---|
+| 1 | SSRF 用独立守卫 vs 改 `data/policies/policies.json` | **接受独立守卫** —— 更可靠（策略文件损坏时仍生效）、职责更清（IP 归一化是网络层事实不是配置） |
+| 2 | 保留 `bash -c` vs 改白名单 argv | **接受保留** —— 一换就废（管道/重定向是 LLM 主要用法），且已有 `validate_command` + `run_sandboxed` + 三档开关纵深防御；登记白名单未接 |
+| 3 | 边界词无 token 通路 ⇒ 硬拒绝 | **接受硬拒绝** —— "当前没有任何授权路径"就**应拒绝**，把缺失基础设施当默认许可是危险的；登记词面过宽需影子采集误报率 |
+| 4 | 每轮 2 条 401 的归属 | **判为后端请求，非测试** —— 涉及该路径的测试都不产生 401（反证成立），且 D13 明确警告不要误判后端写入 |
+| 5 | chunk_0 超时杀进程 | **接受（规模/争用）** —— 单跑该文件 43s / 冷进程全量走链 6.7s 远未到线；保留为未完全归因项，`_walk_chain` 规模退化登记给 TASK-08 观测 |
+
+### 13.5 子代理纠正了我**两处**（都成立，已更正记录）
+
+1. **TASK-07 文件里并没有我声称的「开工前必读」预检节** —— 我只把它写进了**派单消息**，
+   没写进文件。我先前报告里说"已写入 TASK-07"是**记错了**。
+2. **`run_full_pytest.py --mode fast` 会崩**（见 §13.3）。
+
+---
+
+## 14. TASK-08 交付与独立验证（2026-09-21，提交 `ab42a6b4`）
+
+### 14.1 交付
+
+| 项 | 内容 |
+|---|---|
+| 新增模块 | `agent/capregistry/toolset_hash.py`（能力集指纹）、`agent/capregistry/pruning.py`（工具定义裁剪保护）、`agent/startup_diagnostics.py`、`agent/timeout_budget.py` |
+| 新增脚本 | **`scripts/check_perf_regression.py`（性能回归门禁，可非零退出）**、`scripts/check_handler_timeouts.py`（handler 超时上界扫描器）、4 个 bench 脚本、`scripts/repro_race_lost_update.py` |
+| 文档 | `docs/perf/{既有性能数据盘点,可观测性实测,容量压测,toolset_hash_与裁剪保护}.md`（共约 187 KB）+ `baseline.json` |
+| 待办登记 | `docs/task-08-d-待办登记.md`（**7 项"判定不在本任务修"的量化理由与建议修法**） |
+| 测试 | 10 个新测试文件 |
+
+**性能门禁的方法论**（`baseline.json` 的 `threshold_basis`，四步校准，均为本机实测）：
+① 绝对 p50 跨 3 次运行波动 **1.3x~23x**（yaml 装载 22.94x、prune 14.04x）⇒ 无法定阈值；
+② 参照负载分段归一化无效（参照自身波动 2.61x）；③ best-of-N(min) 绝对值 1.42x~1.56x；
+④ **best-of-N(min) + 交错比值 1.16x~1.54x ⇒ 采用，比朴素 p50 稳 15 倍**。
+阈值取 **1.60**（高于并发负载下最差观测 1.54x），并注明"安静机器上应重采基线并收紧到 1.25"。
+
+### 14.2 我的独立验证
+
+| 验证项 | 结果 |
+|---|---|
+| TASK-08 新增测试（10 文件） | ✅ **210 passed / 0 failed** |
+| 设置注册表零缺口守卫（D5） | ✅ **27 passed** |
+| 门禁 `--selftest` | ✅ **PASS** —— 证明"注入 20% 退化 ⇒ 必判 REGRESSION"（场景 a）与"无退化 ⇒ PASS"（场景 b） |
+| 门禁默认跑 | ✅ `verdict: PASS`、`regressions: []` |
+| 语法 | ✅ 33 个改动 .py **零失败** |
+
+### 14.3 我修的一处真实缺陷
+
+**`scripts/check_perf_regression.py --help` 直接崩溃**：
+argparse 的 `_expand_help()` 对**每个** help 字符串做 `%` 格式化，而中文 help 含裸 `%`
+⇒ `ValueError: unsupported format character '?' (0x9000)`。
+已加 `_RawHelpFormatter` 关闭插值（本文件不需要 `%(default)s`）⇒ 修复后 `--help` 正常、
+功能不变，且**今后任何 help 写 `%` 也不会再崩**。
+
+### 14.4 未能独立验证的一项（如实标注）
+
+**E9 可观测性的线上 `/metrics` 复测未做** —— 用户后端当前**未运行**（`127.0.0.1:5678` 连接被拒）。
+我**不启动替代服务**（`app_server.py` 会 taskkill 抢占 5678，且这不是我该启的进程）。
+⇒ E9 以 TASK-08 的 `docs/perf/可观测性实测.md`（72 KB）为准，
+并保留审计期的既有结论：**`yunshu_http_request_duration_seconds` 确实存在且已填充**
+⇒ **不得写"没有任何延迟直方图"**。
+
+---
+
+## 15. 🏁 六个任务全部完成（2026-09-21）
+
+| 提交 | 任务 | 状态 |
+|---|---|---|
+| `807401ba` | TASK-04 能力规格正式化 + `location` | ✅ 我的 E2/E4 独立验证通过 |
+| `a53194ed` | TASK-05 Registry + Loader + 非 LLM 入口 | ✅ **战略判据达标**（关掉 LLM 三链路可用） |
+| `843db0d0` | TASK-09 P0 补测第二批（5 模块） | ✅ 覆盖率 99%/99%/100%/100%/100% |
+| `61f53a96` | TASK-06 身份体系 + 工具侧 L0–L3 | ✅ 原 56 条失败集转 362 passed |
+| `ecdcafe4` | TASK-07 SSRF + 注入隔离 + 沙箱 | ✅ 我的 SSRF 12/12、沙箱、污点账复测通过 |
+| `ab42a6b4` | TASK-08 性能容量 + Router + 可观测性 | ✅ 门禁 --selftest PASS |
+
+**全程纪律**：未 push；未运行 `app_server.py`；未用任何清理命令；
+每个任务提交前都由我**独立复测**（不是转述子代理自评）。
+
+### 15.1 累计产出的真缺陷（子代理抓到 + 我抓到）
+
+**子代理抓到 15 个**（其中 **5 个是它们自己新写测试发现的，任务书未列出**）：
+TASK-04 的 `kind` 归并缺陷（**我提交前修的**）、TASK-05 更正我两处审计结论、
+TASK-06 的 D-1~D-5、TASK-07 的路径逃逸"文件不存在即绕过"、TASK-08 的 7 项待办。
+
+**我抓到并修掉 6 个**：
+`models.py::kind`（TASK-04 遗留）、`importlib.reload` 顺序污染（**我自己引入的**）、
+`TestPerformance` 缺 `serial`、全仓扫描守卫缺 `slow`、`llm_monitor_singleton` 补丁泄漏、
+`run_full_pytest.py` 参数崩溃（**我的 bug**）、`check_perf_regression.py --help` 崩溃。
+
+### 15.2 遗留（已登记，未做）
+
+1. **生产审计链污染未清理** —— 20,074 条含 253 条 `probe_approval_e2e_tool` 等夹具数据；
+   根因已修（`get_audit_chain()` 不遵守 `AUDIT_DB_PATH`），但**清理需重建哈希链，超出授权**
+2. **TASK-08 的 7 项待办**（见 `docs/task-08-d-待办登记.md`）：`task_timeout` 语义缺口、
+   reranker `stderr.read()` 无上界、MCP 可重试异常集合过窄、`register_all_routes` 死代码引用已删模块、
+   检查器未接 CI、81 个 handler 仅靠全局上界、丢更新复现未纳例行
+3. **TASK-08 未覆盖项**：E9 线上 `/metrics` 未复测（后端未运行）
+4. **`CP_GUARDRAILS_FOREIGN_TAINT` 注册表默认值（False）与代码默认值（True）不一致**
+5. **`tests/unit/test_audit_logger_comprehensive.py:200`** 每跑一次全量就往生产审计链 +1 条
+6. **`stash@{0}`** 存有 TASK-06 历史 WIP 安全副本（可 `git stash list` 查看）
 
 ---
 
