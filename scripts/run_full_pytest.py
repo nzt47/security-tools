@@ -119,30 +119,107 @@ def collect() -> list[str]:
 #
 # 处置：① 每块跑完检查日志里有没有 pytest 结束摘要；② 没有 ⇒ 该块文件标记为"从未执行"，
 #       落盘清单并**逐文件独立进程补跑**；③ 补跑后仍无摘要的文件 = 真正的元凶，点名报出。
+#
+# 【不易·2026-09-21 补修：D2 的判据本身有缺陷，导致它从未生效】
+#   上面的 ① 用的"有没有结束摘要"曾经**恒为真**：旧正则
+#   `\d+\s+(passed|failed|error|skipped|...)` 会命中**收集表头**
+#   `collected 7144 items / 121 deselected / 1 skipped / 7023 selected`，
+#   而表头在会话最开始（任何用例执行之前）就写进了日志 ⇒ 被 `os._exit(1)` 强杀的块
+#   也被判"已跑完"，② 的补跑**永不触发**，最终报「✔ 全部 N 个分块均正常收尾」。
+#   实测代价：2026-09-21 的 `pytest_chunks/chunk_0.log` / `chunk_3.log` 末行都是
+#   `+++++++++ Timeout +++++++++`、无摘要，却被报成 ✔（据以做结论者被误导过一次）。
+#   ⇒ 现在改为「Timeout 标记优先 + 摘要必须有 `in <秒>s` 时长段且不是收集表头」，
+#     判别细节与负例见 `chunk_log_status()` 的 docstring 与
+#     `tests/unit/test_run_full_pytest_integrity.py`。
 # ══════════════════════════════════════════════════════════════════════════════
 
-#: pytest 结束摘要行特征。例：`1 failed, 1695 passed, 7 skipped in 313.71s`
-_SUMMARY_RE = re.compile(r"\d+\s+(passed|failed|error|skipped|xfailed|xpassed|deselected)")
+#: pytest「收集完成」表头。例：
+#:     collected 7144 items / 121 deselected / 1 skipped / 7023 selected
+#: 【不易·2026-09-21】它出现在**会话最开始**（任何用例执行之前）⇒ 被强杀的块**也有它**。
+_COLLECT_HEADER_RE = re.compile(r"^collected\s+\d+\s+items?\b")
+
+#: 「一条用例都没跑」但会话**正常收尾**（收集为空 / 全部 deselected）—— 不算丢文件。
 _NO_TESTS_RE = re.compile(r"no tests ran")
+
+#: 收集到 **0** 条（文件里的用例全被 `-m` 过滤掉）。例：
+#:     collected 0 items
+#: 此时 pytest 的结束摘要**不含 passed/failed 计数**，只有
+#:     ============================= 3 warnings in 0.28s =============================
+#: ⇒ 单看"有没有 passed/failed 计数"会把它误判成"被强杀、无摘要"，
+#: 进而在 `still_lost_files.txt` 里点名一个**根本没丢**的文件（实测：
+#: `tests/acceptance/test_observability_acceptance.py` 全部用例标了 slow，
+#: fast 模式下就该 0 条）。故对"0 条"单独判，但**必须同时**看到会话时长尾巴，
+#: 以免把"收集期刚过就被杀"误判成正常收尾。
+_ZERO_COLLECT_RE = re.compile(r"^collected 0 items?\b", re.M)
+_DURATION_RE = re.compile(r"\bin\s+\d+(?:\.\d+)?s\b")
+#: 判定"会话时长尾巴"时只看最后这么多行（自定义 footer 会额外加若干行）
+_TAIL_LINES = 15
+
+#: pytest-timeout 强杀标记。实测形态是**一长串 `+`** 包裹 " Timeout "：
+#:     +++++++++++++++++++++++++++++++++++ Timeout +++++++++++++++++++++++++++++++++++
+#: 旧代码用的是字面量 `"+++ Timeout +++" in text` —— 它**碰巧**也命中（前后那串 `+`
+#: 里天然包含三个加号），属"意外正确"。这里改成正则，避免 pytest-timeout 改形态后
+#: 静默失效（那时本判据会退回"只扫摘要"这条被证伪的路）。
+_TIMEOUT_RE = re.compile(r"\++\s*Timeout\s*\++")
+
+#: pytest **结束摘要**行特征。
+#:
+#: 【不易·2026-09-21 修一处"假成功"判定缺陷（遗留 L3 的一半）】
+#: 旧正则 `\d+\s+(passed|failed|error|skipped|...)` 会被**收集表头**命中：
+#:     collected 7144 items / 121 deselected / 1 skipped / 7023 selected
+#: 而表头在会话最开始就写进日志 ⇒ 被 `os._exit(1)` 强杀的块**也**"有摘要"
+#: ⇒ `chunk_log_status` 报 ✔ 已跑完，D2 的逐文件补跑机制**永不触发**。
+#:
+#: 实测代价（2026-09-21，`pytest_chunks/` 为证）：`chunk_0.log`（行 2 是收集表头、
+#: 末行是 Timeout 标记、**无任何结束摘要**）与 `chunk_3.log`（同形）被判"已跑完"，
+#: runner 输出「✔ 全部 4 个分块均正常收尾，无文件丢失」——一次"看着全量跑完、
+#: 实际上万条用例从未执行"的假成功（据以做结论的人被误导过一次）。
+#:
+#: 现在要求同时满足两条，缺一不可：
+#:   ① 有 passed/failed/errors/skipped/xfailed/xpassed/deselected 计数；
+#:   ② 有 `in <秒>s` 时长段 —— **收集表头没有时长段**，这是最关键的判别式。
+_SUMMARY_RE = re.compile(
+    r"\d+\s+(?:passed|failed|errors?|skipped|xfailed|xpassed|deselected)\b"
+    r"[^\n]*?\bin\s+\d+(?:\.\d+)?s\b"
+)
 
 
 def chunk_log_status(log_path: str) -> tuple[bool, str]:
     """判断某块的 pytest 会话是否**正常收尾**（而不是被 os._exit 强杀）。
 
     Why 不看 rc：被强杀与"有测试失败"都会给出 rc=1，但前者会让该块剩余文件
-    全部丢失。只有"日志里有没有结束摘要"能区分这两者。
+    全部丢失。只有"日志里有没有**真正的**结束摘要"能区分这两者。
+
+    【判定顺序不可调换：强杀标记必须**先**判】
+      pytest-timeout 的 thread 法在超时时打印标记后立刻 `os._exit(1)`，**来不及**
+      写结束摘要。此时若日志里恰好还有别处"像摘要的行"（收集表头、嵌套 pytest
+      的输出、某条用例自己打印的统计），先扫摘要就会误判成已跑完。
+      ⇒ 见到的 Timeout 标记一律视为未收尾（保守方向：宁可多补跑，也不许假报 ✔）。
     """
     p = Path(log_path)
     if not p.exists():
         return False, "日志文件不存在"
     text = p.read_text(encoding="utf-8", errors="replace")
+    # ① 强杀标记优先于一切"看起来像摘要"的行
+    if _TIMEOUT_RE.search(text):
+        return False, ("含 pytest-timeout 强杀标记 ⇒ 进程被 os._exit(1) 终止，"
+                       "本块排在挂起测试之后的文件从未执行")
     if _NO_TESTS_RE.search(text):
         return True, "no tests ran（收集为空，会话正常收尾）"
-    for line in reversed(text.splitlines()):
-        if _SUMMARY_RE.search(line):
-            return True, line.strip()
-    if "+++ Timeout +++" in text:
-        return False, "无结束摘要且含 Timeout 标记 ⇒ 被 pytest-timeout 强杀（os._exit）"
+    lines = text.splitlines()
+    # ② 「0 条 + 有会话时长尾巴」= 正常收尾（全部被 -m 过滤掉）
+    #    必须两个条件同时成立：只看"0 条"会把"收集期刚过就被杀"也放行。
+    if _ZERO_COLLECT_RE.search(text) and any(
+            _DURATION_RE.search(ln) for ln in lines[-_TAIL_LINES:]):
+        return True, "collected 0 items（全部被 -m 过滤/收集为空，会话正常收尾）"
+    for line in reversed(lines):
+        stripped = line.strip()
+        if _COLLECT_HEADER_RE.match(stripped):
+            # 【必须显式排除】收集表头里含 `121 deselected / 1 skipped`，
+            # 旧正则会把它当结束摘要 —— 这正是"假成功"的成因。
+            continue
+        if _SUMMARY_RE.search(stripped):
+            return True, stripped
     return False, "无 pytest 结束摘要 ⇒ 疑似被强杀/崩溃"
 
 

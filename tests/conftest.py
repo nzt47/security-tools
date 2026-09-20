@@ -325,7 +325,66 @@ def _isolate_approval_stores(tmp_path_factory):
     except Exception as e:  # noqa: BLE001 审计门面不可用不该影响测试运行
         print(f"[conftest] 审计门面隔离跳过（仅影响生产数据保护）: {type(e).__name__}: {e}")
 
+    # ── 【TASK-A / 遗留 L2】把**模块级审计单例**也改绑到临时目录 ──────────────
+    # 为什么上一段（AUDIT_DB_PATH + 重绑 `facade.audit`）**挡不住**它：
+    #   `agent/audit/logger.py:209` 的 `audit_logger = AuditLogger()` 是**模块级单例**，
+    #   其 `log_dir` 在 import 期固定为默认值 `"./data/audit/"`，并用
+    #   `chain_db_path = <log_dir>/audit_chain.db` **显式传参**构造自己的 `AuditFacade`；
+    #   而 `AuditFacade.__init__:198` 的路径优先级是
+    #       db_path（显式实参） > AUDIT_DB_PATH（环境变量） > DEFAULT_DB_PATH
+    #   ⇒ **显式实参压过环境变量** ⇒ 该单例既不读 `AUDIT_DB_PATH`，也完全不经过
+    #     `facade.audit`，故上两段隔离对它**恒为失效**。
+    #
+    # 实测代价（2026-09-21 复现，见 `_ci_logs/t10/`）：
+    #   `tests/unit/test_audit_logger_comprehensive.py:200` 调
+    #   `audit_logger.log("global_test_action")` ⇒ 每跑一次就
+    #     ① 往**生产链** `data/audit/audit_chain.db` +1 条；
+    #     ② 往**生产旧轨** `data/audit/audit_2026MMDD.jsonl` 追加一行。
+    #   （实测 count 20088→20089、max_seq 20103→20104，**主库 size 不变** ⇒
+    #     该库是 WAL/journal 模式，只比 size/mtime 会漏判，必须比 count(*) 与 max(seq)。）
+    #
+    # 分工：本段是**会话级兜底**（覆盖全仓任何文件对该单例的使用）；
+    #   `tests/unit/test_audit_logger_comprehensive.py` 另有 autouse 夹具把同一单例
+    #   重绑到该用例自己的 `tmp_path`（归属更精确，并能断言"写入只落 tmp_path"）。
+    _logger_mod = None
+    _logger_saved: dict = {}
+    try:
+        from agent.audit import logger as _logger_mod
+
+        _singleton = getattr(_logger_mod, "audit_logger", None)
+        if _singleton is not None:
+            # `_current_file` 沿用其原有日期分片名，只换目录（保持"按日分片"契约）
+            _orig_current = getattr(_singleton, "_current_file", None)
+            _redirects = [
+                ("_log_dir", audit_dir),
+                ("_current_file", audit_dir / (Path(_orig_current).name if _orig_current
+                                               else "audit_unknown.jsonl")),
+                ("_chain_db_path", str(audit_dir / "audit_chain.db")),
+                ("_roots_path", str(audit_dir / "daily_roots.jsonl")),
+            ]
+            for _attr, _value in _redirects:
+                _logger_saved[_attr] = getattr(_singleton, _attr, None)
+                setattr(_singleton, _attr, _value)
+    except Exception as e:  # noqa: BLE001 单例改绑失败不该影响测试运行
+        print(f"[conftest] 审计日志单例隔离跳过（仅影响生产数据保护）: {type(e).__name__}: {e}")
+
     yield isolation_dir
+
+    # 还原模块级审计单例（并关闭它可能已在临时目录上打开的台账，释放单写者登记）
+    try:
+        if _logger_mod is not None:
+            _singleton = getattr(_logger_mod, "audit_logger", None)
+            if _singleton is not None:
+                _facade_obj = getattr(_singleton, "_facade", None)
+                if _facade_obj is not None:
+                    _facade_obj.close()
+                _singleton._facade = None
+                _singleton._track = None
+                for _attr, _value in _logger_saved.items():
+                    setattr(_singleton, _attr, _value)
+    except Exception as e:  # noqa: BLE001 还原失败不该让会话 teardown 报 ERROR
+        print(f"[conftest] 审计日志单例还原跳过: {type(e).__name__}: {e}")
+
     for k, v in saved.items():
         if v is None:
             os.environ.pop(k, None)

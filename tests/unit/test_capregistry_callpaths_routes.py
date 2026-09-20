@@ -231,6 +231,139 @@ class TestExemptTableDiscipline:
 
 
 # ════════════════════════════════════════════════════════════
+#  进程级扫描缓存（【不易·2026-09-21】遗留 L3 的另一半）
+# ════════════════════════════════════════════════════════════
+#
+# 为什么要缓存：实测 `scan()` 单次 17.7s、**同进程第二次仍 18.7s**（无缓存），
+#   而本文件有 1 个 module 级 `scan()` 夹具 + 5 次 `main(["--check"])`
+#   ⇒ 单进程 6 次全仓 AST ≈ 108s，4 路并行争用下击穿 `--timeout=120`
+#   ⇒ 两次全量回归都在 chunk_0/chunk_3 出现 `Timeout`（`os._exit(1)`），
+#      该块其余文件**从未执行**。
+#
+# 本节锁定两件事，缺一不可：
+#   ① **命中**：同一仓库状态重复 scan 必须复用（否则加缓存等于没加）；
+#   ② **失效**：仓库内容/文件集合/例外表变化后必须重算 ——
+#      缓存给出**过期但看起来正常**的门禁结论，比超时更危险（超时至少报 error）。
+
+
+def _write_probe(root: Path, body: str) -> Path:
+    """在合成仓库根下写一个探针文件（路径固定，便于反复改写以触发指纹变化）"""
+    pkg = root / "agent"
+    pkg.mkdir(parents=True, exist_ok=True)
+    target = pkg / "probe_synthetic.py"
+    target.write_text(body, encoding="utf-8")
+    return target
+
+
+_PROBE_V1 = (
+    "from agent.tools import call\n"
+    "\n"
+    "\n"
+    "def handler_alpha():\n"
+    '    call("cap_alpha")\n'
+)
+_PROBE_V2 = _PROBE_V1 + (
+    "\n"
+    "\n"
+    "def handler_beta():\n"
+    '    call("cap_beta")\n'
+)
+
+
+class TestScanCache:
+    """`audit_call_paths.scan()` 的进程级缓存：命中 + 失效"""
+
+    @pytest.fixture
+    def synthetic(self, audit, tmp_path, monkeypatch):
+        """把受控文件列表指向合成根（避免用 monkeypatch 改仓库真实文件，见 D15）"""
+        monkeypatch.setattr(audit, "tracked_python_files",
+                            lambda root: ["agent/probe_synthetic.py"])
+        return tmp_path
+
+    def test_重复_scan_命中缓存且结论一致(self, audit, findings):
+        """同进程第二次 scan 必须复用（这正是 108s → ~22s 的来源）"""
+        audit.scan()                     # 先确保存在缓存条目（本用例内首次也无妨）
+        before = audit.scan_cache_info()
+        again = audit.scan()
+        after = audit.scan_cache_info()
+        assert after["hit"] == before["hit"] + 1, (
+            f"重复 scan 未命中缓存：{before} → {after}（缓存形同虚设）"
+        )
+        assert [f.to_dict() for f in again] == [f.to_dict() for f in findings], \
+            "命中缓存时返回的结论与首次扫描不一致"
+
+    def test_缓存可在同进程内显式清空(self, audit):
+        audit.scan()
+        audit.scan_cache_clear()
+        assert audit.scan_cache_info()["entries"] == 0
+
+    def test_文件内容变化后缓存失效(self, audit, synthetic):
+        """★ 核心不变量：仓库内容变了，缓存**必须**失效（否则 `--check` 给出过期结论）"""
+        _write_probe(synthetic, _PROBE_V1)
+        first = {f.capability for f in audit.scan(str(synthetic))}
+        assert first == {"cap_alpha"}, f"合成夹具未被扫到：{first}"
+
+        # 同状态再扫一次 ⇒ 应当命中缓存
+        before = audit.scan_cache_info()
+        assert {f.capability for f in audit.scan(str(synthetic))} == first
+        assert audit.scan_cache_info()["hit"] == before["hit"] + 1
+
+        # 改内容（size 与 mtime_ns 至少变一个）⇒ 必须重算
+        _write_probe(synthetic, _PROBE_V2)
+        second = {f.capability for f in audit.scan(str(synthetic))}
+        assert second == {"cap_alpha", "cap_beta"}, (
+            f"文件内容变化后仍返回旧结论 ⇒ 缓存未失效：{second}"
+        )
+
+    def test_文件集合变化后缓存失效(self, audit, synthetic, monkeypatch):
+        """新增/删除受控文件同样必须失效（指纹含文件集合，不只含单个文件的状态）"""
+        _write_probe(synthetic, _PROBE_V1)
+        assert {f.capability for f in audit.scan(str(synthetic))} == {"cap_alpha"}
+
+        (synthetic / "agent" / "probe_second.py").write_text(
+            "from agent.tools import call\n"
+            "\n"
+            "\n"
+            "def handler_gamma():\n"
+            '    call("cap_gamma")\n',
+            encoding="utf-8")
+        monkeypatch.setattr(
+            audit, "tracked_python_files",
+            lambda root: ["agent/probe_synthetic.py", "agent/probe_second.py"])
+        got = {f.capability for f in audit.scan(str(synthetic))}
+        assert got == {"cap_alpha", "cap_gamma"}, f"文件集合变化未失效缓存：{got}"
+
+    def test_例外表变化后不返回过期结论(self, audit, synthetic, monkeypatch):
+        """★ **最关键**：例外表（运行期可变的模块级全局）变了，缓存**不得**给出旧结论
+
+        测试正是用 monkeypatch 改 `EXEMPT_CALL_SITES` 来造负例；若缓存把
+        "是否豁免"一起缓存了，那些负例会**静默失效**（本仓已发生过一次，见
+        `TestCheckMode::test_负例_未登记的直调_非零退出` 的注释）。
+        实现上靠"前半段可缓存、配置相关的收尾每次都跑"来保证，本用例锁定该性质。
+        """
+        _write_probe(synthetic, _PROBE_V1)
+        anchor = "agent/probe_synthetic.py::handler_alpha"
+        assert not [f for f in audit.scan(str(synthetic)) if f.anchor == anchor and f.exempt]
+
+        patched = dict(EXEMPT_CALL_SITES)
+        patched[anchor] = {"reason": "测试用：显式登记探针直调", "identity": "llm",
+                           "audit": "有"}
+        monkeypatch.setattr(audit, "EXEMPT_CALL_SITES", patched)
+        # 注意：**不**清缓存 —— 正是要验证"配置变了也能立即生效"
+        hit = [f for f in audit.scan(str(synthetic)) if f.anchor == anchor and f.exempt]
+        assert hit, "改例外表后仍返回旧的豁免结论 ⇒ 缓存覆盖了配置相关判定（负例会静默失效）"
+
+    def test_返回副本_调用方改写不污染缓存(self, audit, synthetic):
+        """`_apply_policy` 会就地改写 Finding 字段 ⇒ 必须返回副本，否则缓存会被污染"""
+        _write_probe(synthetic, _PROBE_V1)
+        first = audit.scan(str(synthetic))
+        first[0].reachable = False
+        first[0].reachability = "被测试改坏"
+        again = audit.scan(str(synthetic))
+        assert again[0].reachability != "被测试改坏", "缓存被调用方改写污染了"
+
+
+# ════════════════════════════════════════════════════════════
 #  非 LLM 入口路由（E1 / E6 / E7 的 HTTP 侧）
 # ════════════════════════════════════════════════════════════
 

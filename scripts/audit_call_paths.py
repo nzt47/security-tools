@@ -58,11 +58,13 @@ from __future__ import annotations
 
 import argparse
 import ast
+import copy
 import json
 import os
 import re
 import subprocess
 import sys
+import threading
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
@@ -489,15 +491,94 @@ def _reachability(root: str, file: str, symbol: str, callee: str,
 
 
 # ════════════════════════════════════════════════════════════
-#  主扫描
+#  主扫描：进程级缓存 + 两阶段（昂贵且与配置无关 / 廉价但依赖配置）
+#
+#  【不易·2026-09-21】遗留 L3 的另一半
 # ════════════════════════════════════════════════════════════
+# 动机（**实测**，见 `_ci_logs/t10/scan_profile_before.txt`）：
+#   `scan()` 单次 **17.7s**，**同进程第二次仍 18.7s**（完全无缓存）；
+#   其中 `ast.parse` 6.9s、`module_bindings`(ast.walk) 2.1s、`_SymbolIndex.visit` 2.5s。
+#   而 `tests/unit/test_capregistry_callpaths_routes.py` 有 1 个 module 级 `scan()` 夹具
+#   + 5 次 `main(["--check"])` ⇒ **单进程要跑 6 次全仓 AST ≈ 108s**（实测 main 单次 17.6s）。
+#   `pytest.ini` 的 `--timeout=120`（thread 法，超时即 `os._exit(1)`）在 4 路并行争用下
+#   被击穿 ⇒ 两次全量回归都在 chunk_0 / chunk_3 出现 `Timeout` 标记（栈停在
+#   `module_bindings` → `ast.walk`），该块其余文件**从未执行**。
+#
+# 设计：把 `scan()` 拆成**昂贵但与配置无关**的前半段（`_collect_findings`，可缓存）与
+#   **廉价但依赖模块级配置**的后半段（`_apply_policy`，每次都跑）。
+#
+# 为什么不能简单地"整份 scan() 结果按文件指纹缓存"：
+#   `EXEMPT_CALL_SITES` / `DEAD_MODULES` / `VIOLATION_SCOPE_PREFIXES` 是在**运行期**
+#   读取的模块级全局，而测试用 `monkeypatch.setattr(audit, "EXEMPT_CALL_SITES", …)`
+#   造负例（"内存里改了配置、磁盘没变"）。若缓存键只含文件指纹，这些负例会**命中过期
+#   缓存**而静默失效 —— 本仓已经发生过一次"负例静默失效"（见
+#   `test_capregistry_callpaths_routes.py::test_负例_未登记的直调_非零退出` 的注释）。
+#   把配置相关的收尾放在缓存之外，就从结构上避免了这一类过期。
+#
+# 失效判据：被扫描文件的 **(rel, mtime_ns, size) 集合** + 启发式常量签名 + (root, include_scripts)。
+#   为什么不用 TTL/进程启动时间：`--check` 是**门禁结论**，必须与当前工作区内容一致；
+#   任何时间型缓存都会给出"过期但看起来正常"的结论，比超时更危险（超时至少报 error）。
+#   为什么不哈希文件内容：内容哈希要逐文件读全文，与"重新 parse 一遍"同阶，省不下时间；
+#   而 py 文件被编辑必然改变 mtime_ns 或 size 之一。文件**集合**也在判据内 ⇒ 新增/删除同样失效。
+_RAW_SCAN_CACHE: Dict[Tuple[str, bool], Tuple[Tuple[Any, ...], List["Finding"]]] = {}
+_RAW_SCAN_LOCK = threading.Lock()
+_RAW_SCAN_STATS: Dict[str, int] = {"hit": 0, "miss": 0}
 
 
-def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
-    """扫描全部能触发能力执行的路径"""
-    files = tracked_python_files(root)
-    if not include_scripts:
-        files = [f for f in files if not f.startswith("scripts/")]
+def _heuristic_signature() -> Tuple[Any, ...]:
+    """`_collect_findings` 读取的**模块级启发式常量**签名（缓存键的一部分）
+
+    这些常量只在模块加载时定义、正常不会被改；放进键是零成本的正确性保险 ——
+    若有人 monkeypatch 了 `_GENERIC_NAMES` / `_TOOLS_MODULES` 之类，缓存必须失效，
+    否则会沿用按旧常量算出的结论。
+    """
+    return (
+        tuple(sorted(_SCAN_ROOTS)),
+        tuple(sorted(_REGISTER_NAMES)),
+        tuple(sorted(_FUNNEL_ALIASES)),
+        tuple(sorted(_TOOLS_MODULES)),
+        tuple(sorted(_REMOTE_PRIMITIVES)),
+        tuple(sorted(_GENERIC_NAMES)),
+        int(_MIN_HANDLER_NAME_LEN),
+    )
+
+
+def _file_state(root: str, files: Sequence[str]) -> Tuple[Any, ...]:
+    """被扫描文件的 (rel, mtime_ns, size) 指纹（stat 失败 → None 占位，仍参与判据）
+
+    实测成本：1395 个文件全部 stat 仅 **88ms**（对比一次 scan 17.7s）⇒ 每次都重算无压力。
+    """
+    state: List[Any] = []
+    for rel in files:
+        try:
+            st = os.stat(os.path.join(root, rel))
+            state.append((rel, st.st_mtime_ns, st.st_size))
+        except OSError:
+            state.append((rel, None, None))
+    return tuple(state)
+
+
+def scan_cache_clear() -> None:
+    """清空扫描缓存（测试与长驻进程用；改完工作区想强制重扫也可先调它）"""
+    with _RAW_SCAN_LOCK:
+        _RAW_SCAN_CACHE.clear()
+
+
+def scan_cache_info() -> Dict[str, int]:
+    """缓存统计（hit / miss / entries）——供测试锁定"同进程重复 scan 真的命中缓存" """
+    with _RAW_SCAN_LOCK:
+        info = dict(_RAW_SCAN_STATS)
+        info["entries"] = len(_RAW_SCAN_CACHE)
+        return info
+
+
+def _collect_findings(root: str, files: Sequence[str]) -> List[Finding]:
+    """**昂贵且与例外表无关**的前半段：逐文件 AST 分析 ⇒ 原始 Findings
+
+    产物只取决于「被扫描文件的 (mtime_ns, size) 集合」与启发式常量，
+    **不读** `EXEMPT_CALL_SITES` / `DEAD_MODULES` / `VIOLATION_SCOPE_PREFIXES`
+    ⇒ 可安全缓存，并在配置变化时复用（配置相关的判定全在 `_apply_policy`）。
+    """
     handlers = collect_registered_handlers(root, files)
     handler_names = {n for n in handlers
                      if n not in _GENERIC_NAMES and len(n) >= _MIN_HANDLER_NAME_LEN}
@@ -528,8 +609,7 @@ def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
                     file=rel, lineno=node.lineno, symbol=leaf,
                     callee=_callee_dotted(node), capability=cap_arg,
                     path_kind="funnel", trigger=trigger,
-                    via_registry=True, via_gate=True, has_identity=has_id,
-                    in_scope=_in_scope(rel)))
+                    via_registry=True, via_gate=True, has_identity=has_id))
 
             # ── P2：已注册 handler 的跨模块直调 ──
             if _callee_name(node) in handler_names:
@@ -541,8 +621,7 @@ def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
                         file=rel, lineno=node.lineno, symbol=leaf,
                         callee=_callee_dotted(node), capability=d.capability,
                         path_kind="direct", trigger=trigger,
-                        via_registry=False, via_gate=False, has_identity=False,
-                        in_scope=_in_scope(rel)))
+                        via_registry=False, via_gate=False, has_identity=False))
                     break
 
             # ── P3：远程执行原语直调 ──
@@ -551,9 +630,20 @@ def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
                     file=rel, lineno=node.lineno, symbol=leaf,
                     callee=_callee_dotted(node), capability=cap_arg,
                     path_kind="remote_primitive", trigger=trigger,
-                    via_registry=False, via_gate=False, has_identity=False,
-                    in_scope=_in_scope(rel)))
+                    via_registry=False, via_gate=False, has_identity=False))
+    return findings
 
+
+def _apply_policy(root: str, findings: List[Finding]) -> List[Finding]:
+    """**廉价但依赖模块级配置**的后半段：例外锚点补登 + 可达性 + 豁免标记 + 排序
+
+    【关键：这一段**不进缓存**，每次 `scan()` 都重跑】
+      它读的全是**运行期可变**的模块级配置（`EXEMPT_CALL_SITES` / `DEAD_MODULES` /
+      `VIOLATION_SCOPE_PREFIXES`）。测试正是用 monkeypatch 改这些来造负例，
+      "磁盘没变但配置变了"必须立刻反映到结论里，否则负例会静默失效。
+      实测成本：39 条 findings 量级 ⇒ 亚毫秒级（重的 `git grep` 仅在
+      findings 命中 `DEAD_MODULES` 时才发生）。
+    """
     # ── 例外表里"按符号钉住"的条目：即使 AST 启发式没抓到，也要成立检查 ──
     # （否则 `ci.yml` 那种"经 CLI 间接触发"的缺口会因启发式抓不到而被误报腐化；
     #   反之若符号真的从代码里消失 ⇒ 腐化，必须报出来。）
@@ -578,8 +668,9 @@ def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
             has_identity=bool(meta.get("identity")),
             in_scope=_in_scope(rel)))
 
-    # ── 可达性 + 豁免登记 ──
+    # ── 可达性 + 豁免登记 + 硬失败范围 ──
     for f in findings:
+        f.in_scope = _in_scope(f.file)
         reach, why = _reachability(root, f.file, f.symbol, f.callee, f.path_kind)
         f.reachable = reach
         f.reachability = why
@@ -593,6 +684,37 @@ def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
             f.exempt_audit = str(ex.get("audit") or "")
     findings.sort(key=lambda x: (x.path_kind, x.file, x.lineno, x.symbol))
     return findings
+
+
+def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
+    """扫描全部能触发能力执行的路径（**进程级缓存**，按被扫描文件指纹失效）
+
+    见本文件「进程级扫描缓存」段的动机与失效判据。
+    缓存只覆盖"逐文件 AST 分析"这一昂贵前半段；配置相关的收尾每次都重算。
+
+    返回值是**独立副本**（`_apply_policy` 会就地改写 Finding 字段）⇒ 调用方
+    随意修改不会污染缓存，缓存也不会把上一次的判定泄漏给下一次。
+    """
+    files = tracked_python_files(root)
+    if not include_scripts:
+        files = [f for f in files if not f.startswith("scripts/")]
+
+    cache_key = (os.path.abspath(root), bool(include_scripts))
+    signature = (_heuristic_signature(), _file_state(root, files))
+    with _RAW_SCAN_LOCK:
+        cached = _RAW_SCAN_CACHE.get(cache_key)
+        if cached is not None and cached[0] == signature:
+            _RAW_SCAN_STATS["hit"] += 1
+            raw = copy.deepcopy(cached[1])
+        else:
+            _RAW_SCAN_STATS["miss"] += 1
+            raw = None
+    if raw is None:
+        raw = _collect_findings(root, files)
+        with _RAW_SCAN_LOCK:
+            # 存**副本**：随后 `_apply_policy` 会就地改写 raw 里的字段
+            _RAW_SCAN_CACHE[cache_key] = (signature, copy.deepcopy(raw))
+    return _apply_policy(root, raw)
 
 
 def _find_symbol_node(tree: ast.Module, symbol: str) -> Optional[ast.AST]:

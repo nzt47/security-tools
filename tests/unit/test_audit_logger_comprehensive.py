@@ -22,6 +22,54 @@ def audit(tmp_path):
     return AuditLogger(log_dir=str(tmp_path))
 
 
+@pytest.fixture(autouse=True)
+def _redirect_module_singleton(tmp_path, monkeypatch):
+    """把**模块级单例** `audit_logger` 重绑到本用例的 `tmp_path`（绝不写生产审计链）。
+
+    【TASK-A / 遗留 L2 的根因（2026-09-21 实测）】
+      `agent/audit/logger.py:209` 的 `audit_logger = AuditLogger()` 在 **import 期**就以默认
+      `log_dir="./data/audit/"` 定型，并用 `chain_db_path=<log_dir>/audit_chain.db`
+      **显式传参**构造自己的 `AuditFacade`；而 `AuditFacade.__init__:198` 的路径优先级是
+
+          db_path（显式实参） > AUDIT_DB_PATH（环境变量） > DEFAULT_DB_PATH
+
+      ⇒ **显式实参压过环境变量** ⇒ 该单例既不读 `AUDIT_DB_PATH`，也完全不经过
+        `facade.audit` ⇒ `tests/conftest.py` 的会话级隔离（设 `AUDIT_DB_PATH` +
+        重绑 `facade.audit`）对**这个对象**恒为失效。
+
+      实测代价：本文件 `TestGlobalInstance::test_audit_logger_can_log` 每跑一次就
+        ① 往生产链 `data/audit/audit_chain.db` +1 条（count 20088→20089、
+           max_seq 20103→20104；**主库 size 不变** ⇒ 该库是 WAL/journal 模式，
+           只比 size/mtime 会漏判，必须比 `count(*)` 与 `max(seq)`）；
+        ② 往生产旧轨 `data/audit/audit_2026MMDD.jsonl` 追加一行 `global_test_action`。
+
+    【为什么用 monkeypatch 改绑单例、而不是 importlib.reload】
+      改绑既有对象的绑定字段可在用例结束**精确复原**；reload 会重建模块级单例，
+      使其它模块已持有的旧引用与新单例分裂（本仓已多处踩到该陷阱）。
+      同时清空 `_facade`/`_track` 这两个懒加载缓存，迫使本次写入在 `tmp_path` 上重建，
+      避免复用按生产路径建好的旧台账。
+    """
+    from agent.audit.logger import audit_logger as _singleton
+
+    monkeypatch.setattr(_singleton, "_log_dir", tmp_path, raising=False)
+    # 先取原名（仍带日期分片后缀），再换目录 —— 保持"按日分片"契约不变
+    monkeypatch.setattr(_singleton, "_current_file",
+                        tmp_path / _singleton._current_file.name, raising=False)
+    monkeypatch.setattr(_singleton, "_chain_db_path",
+                        str(tmp_path / "audit_chain.db"), raising=False)
+    monkeypatch.setattr(_singleton, "_roots_path",
+                        str(tmp_path / "daily_roots.jsonl"), raising=False)
+    monkeypatch.setattr(_singleton, "_facade", None, raising=False)
+    monkeypatch.setattr(_singleton, "_track", None, raising=False)
+    yield
+    # 关闭本次在 tmp_path 上建起的链（释放单写者登记）；monkeypatch 随后自动复原字段
+    facade = getattr(_singleton, "_facade", None)
+    if facade is not None:
+        facade.close()
+    _singleton._facade = None
+    _singleton._track = None
+
+
 # ── 1. 初始化 ──────────────────────────────────────────
 
 
@@ -36,7 +84,11 @@ class TestInit:
         assert "audit_" in audit._current_file.name
         assert audit._current_file.name.endswith(".jsonl")
 
-    def test_default_log_dir(self):
+    def test_default_log_dir(self, monkeypatch, tmp_path):
+        # 【TASK-A】默认目录断言用 chdir 落在 tmp_path：`AuditLogger()` 的构造会
+        # `mkdir(parents=True, exist_ok=True)`，不 chdir 就会去碰仓库的生产
+        # `data/audit/`（虽是 no-op，但没必要让用例接触生产目录面）。
+        monkeypatch.chdir(tmp_path)
         al = AuditLogger()
         assert "audit" in str(al._log_dir).lower() or "data" in str(al._log_dir)
 
@@ -224,3 +276,73 @@ class TestIntegration:
         # 查询应跨文件
         results = AuditLogger(log_dir=str(tmp_path)).query()
         assert len(results) >= 2
+
+
+# ── 7. 生产隔离回归锁定（TASK-A / 遗留 L2） ──────────────────
+#
+# 这一节锁定的是**修复本身**，而不仅是 `log()` 的功能：本文件里的写入
+# **只允许**落到用例自己的 `tmp_path`，且**必须**真实落链（否则"隔离"会退化成
+# 静默不写，那是另一种假绿 —— 见 TASK-00 D12「夹具形状不得代替生产形状」）。
+
+
+def _production_audit_dir() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "audit"
+
+
+class TestProductionIsolation:
+    def test_singleton_is_redirected_to_tmp_path(self, tmp_path):
+        """autouse 夹具必须把模块级单例的四个路径绑定全部改到 tmp_path"""
+        for attr in ("_log_dir", "_chain_db_path", "_roots_path"):
+            got = Path(str(getattr(audit_logger, attr))).resolve()
+            assert got == tmp_path.resolve() or tmp_path.resolve() in got.parents, (
+                f"模块级单例的 {attr} 未指向 tmp_path：{got}"
+            )
+        assert Path(str(audit_logger._current_file)).parent.resolve() == tmp_path.resolve()
+
+    def test_log_writes_into_tmp_path_and_really_hits_chain(self, tmp_path):
+        """写入必须落在 tmp_path，且链式轨**真的被写到**（不是静默 no-op 的假隔离）
+
+        只断言"没写生产"是不够的：若隔离把链写也一起弄坏（例如改绑后 facade 建不起来、
+        best-effort 静默吞掉），那会是另一种假绿（TASK-00 D12）。故这里正向断言链里有
+        本次动作的条目。
+        """
+        marketing = "t10_isolation_probe_action"
+        audit_logger.log(marketing)
+        audit_logger.flush()
+
+        legacy = Path(str(audit_logger._current_file))
+        assert legacy.exists(), "旧轨 JSONL 未落到 tmp_path"
+        assert marketing in legacy.read_text(encoding="utf-8"), "旧轨未包含本次动作"
+        assert (tmp_path / "audit_chain.db").exists(), "链式台账未在 tmp_path 建起"
+
+        chain = audit_logger.chain
+        assert chain is not None, "链式轨不可用（隔离把链写一起弄坏了）"
+        actions = [e.action for e in audit_logger.query_chain(limit=20)]
+        assert actions == [marketing], f"tmp 链内容不符：{actions}"
+
+    def test_production_audit_dir_untouched_by_this_file(self, tmp_path):
+        """本文件写入的动作**不得**出现在仓库生产审计面上（旧轨 + 链）"""
+        marketing = "t10_isolation_probe_action_negative"
+        audit_logger.log(marketing)
+        audit_logger.flush()
+
+        prod = _production_audit_dir()
+        offenders = [
+            f.name for f in prod.glob("audit_*.jsonl")
+            if marketing in f.read_text(encoding="utf-8", errors="replace")
+        ]
+        assert not offenders, f"生产旧轨被测试写入：{offenders}"
+
+        db = prod / "audit_chain.db"
+        if not db.exists():  # 生产链不存在（干净环境）→ 无可污染
+            pytest.skip("生产审计链不存在，跳过链侧负例")
+        import sqlite3
+
+        con = sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True)
+        try:
+            hit = con.execute(
+                "select count(*) from audit_chain where action = ?", (marketing,)
+            ).fetchone()[0]
+        finally:
+            con.close()
+        assert hit == 0, f"生产链被测试写入 {hit} 条 action={marketing}"
