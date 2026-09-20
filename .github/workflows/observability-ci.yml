@@ -488,17 +488,73 @@ jobs:
       - name: 运行追踪集成测试
         run: |
           echo "=== 运行追踪集成测试 ==="
+          mkdir -p test-results
           python -m pytest \
             tests/integration/test_trace_integration.py \
             tests/integration/test_audit_trace.py \
             -v \
             --tb=short \
-            --timeout=300
+            --timeout=300 \
+            --junitxml=test-results/integration-junit.xml
 
       - name: 验证追踪上下文传播
         run: |
           echo "=== 验证追踪上下文传播 ==="
           python tests/trace_context_test.py || true
+
+      - name: 生成集成测试报告
+        # 【2026-09-21 修复】原先本 job 只上传 `test-results/`，却**从不创建该目录**：
+        #   pytest 命令没有任何 `--junitxml`，仓库也无 junitxml 配置 ⇒ 目录不存在
+        #   ⇒ upload-artifact 上传 0 个文件 ⇒ `可观测性质量门禁` 的
+        #   `check_integration_tests` 永远匹配不到含 "integration" 的报告 ⇒ 记为
+        #   `skipped` ⇒ 门禁按设计以 exit 2 报 inconclusive（"跳过不等于通过"），
+        #   于是**即使全部 shard 通过，工作流仍会失败**（实测：历史 3 次 success
+        #   的 run 中该检查项之所以通过，是因为当时另有其它含 integration 的报告，
+        #   本 job 的产物一直是空的）。
+        #   现在让本 job 产出真实报告；`overall_status` 只在 failures/errors 均为 0
+        #   且确实跑到了用例时才是 passed —— 不放松任何判定，只是把已有的真实结果
+        #   落成文件。
+        if: always()
+        run: |
+          echo "=== 生成集成测试报告 ==="
+          mkdir -p test-results
+          python - <<'PY'
+          import json
+          import os
+          import xml.etree.ElementTree as ET
+
+          path = "test-results/integration-junit.xml"
+          report = {
+              "suite": "observability-integration-tests",
+              "tests": ["tests/integration/test_trace_integration.py",
+                        "tests/integration/test_audit_trace.py"],
+              "total": 0, "failures": 0, "errors": 0, "skipped": 0,
+              "overall_status": "unknown", "status": "unknown",
+          }
+          if os.path.exists(path):
+              root = ET.parse(path).getroot()
+              suites = [root] if root.tag == "testsuite" else list(root)
+              for s in suites:
+                  report["total"] += int(s.get("tests") or 0)
+                  report["failures"] += int(s.get("failures") or 0)
+                  report["errors"] += int(s.get("errors") or 0)
+                  report["skipped"] += int(s.get("skipped") or 0)
+              ok = (report["failures"] == 0 and report["errors"] == 0
+                    and report["total"] > 0)
+              report["overall_status"] = "passed" if ok else "failed"
+          else:
+              # 报告缺失本身就是失败信号：不得写成 passed
+              report["error"] = f"未找到 {path}（pytest 未产出 junit 报告）"
+              report["overall_status"] = "failed"
+          report["status"] = report["overall_status"]
+
+          with open("test-results/integration-test-report.json", "w",
+                    encoding="utf-8") as fh:
+              json.dump(report, fh, ensure_ascii=False, indent=2)
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+          echo "--- test-results/ 内容 ---"
+          ls -la test-results/
 
       - name: 上传集成测试结果
         uses: actions/upload-artifact@v7
