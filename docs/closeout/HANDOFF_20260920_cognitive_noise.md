@@ -671,9 +671,66 @@ stash（4 条均无关）、index、全盘同名搜索、回收站、`git fsck -
 
 | 任务 | 状态 |
 |---|---|
-| **TASK-06** | 🔄 续做中（依赖 TASK-05 已满足） |
+| **TASK-06** | ✅ **已完成并提交 `61f53a96`**（46 文件 / +6660 −330），详见 §12 |
 | **TASK-07** 安全接线 | 未开始 —— 前提**已预检全部成立**：`guard_tool_execution` 生产 0 调用、`mark_foreign*` 生产 0 调用（污点账从未写入）、`run_sandboxed` 生产 0 调用 |
 | **TASK-08** 性能与可观测性 | 未开始 —— **P0-1 已完成**（`CSafeLoader` + 缓存 + 失效 + 测试，170.3ms → 0.6ms），已写入其提示词避免重做 |
+
+---
+
+## 12. TASK-06 交付与独立验证（2026-09-20，提交 `61f53a96`）
+
+### 12.1 核心设计（可回滚、可影子）
+
+| 项 | 内容 |
+|---|---|
+| **L0–L3 派生单一真相源** | `agent/lines/models.py::derive_confirm_level`；`tool_gate.py:361-362` 明写【D1】只做惰性转出、**不复制判定分支** |
+| **开关从属** | 总开关 `CP_TOOL_GATE_APPROVAL_ENFORCE` **⊃** 分级开关 `CP_TOOL_CONFIRM_LEVEL_ENFORCE`；另有影子模式 `CP_TOOL_CONFIRM_LEVEL_SHADOW` |
+| **派生规则**（从严者先判） | `risk:critical`\|`effect:extend`\|`plane:govern` ⇒ **L3**（10 个）；`risk:high` ⇒ **L2**（10）；`effect:write`\|`execute`\|`risk:medium` ⇒ **L1**（37）；其余 ⇒ **L0**（34） |
+| **91 个 YAML 零改动** | 裁决**派生**而非显式声明：`confirm_level` 是 `risk/effect/plane` 的函数，再写一份即第二口径；override 机制已就位且**禁止静默降级**（"更宽且无理由"的声明直接丢弃并留痕） |
+| **13 个 `risk:high` 归类** | 10 个 L2（write_file/edit/apply_patch/decompress/workspace_delete/git/run_program/fan_out/ext_send_channel/schedule_task）+ **3 个抬到 L3**（`connect_mcp`/`ext_install`/`ext_uninstall` —— 均为 `plane=govern` + `effect=extend`，改云枢自身能力集） |
+| **SA（第四类主体）** | `agent/security/service_account.py`（956 行）+ `actor_matrix.py` 补 `service_account` **整列**（此前缺 39/52 格）；`app_server.py` 显式安装预授权钩子 |
+
+### 12.2 修复的 5 个真缺陷（**其中 3 个是新写测试抓到的，任务书未列出**）
+
+| ID | 缺陷 | 严重性 |
+|---|---|---|
+| **D-1** | `CP_TOOL_GATE_APPROVAL_ENFORCE=0` **管不住**新分级层 ⇒ **既有回滚开关失效**、`tests/conftest.py` 会话基线被穿透（**30 条既有测试连锁变红**） | 高（回滚能力） |
+| **D-2** | **SA 预授权从未生效**：同一个 `None` 既表示"放行"又表示"继续挂单" ⇒ SA 命中 scope 后**照样被拒**，却**先落了 `decision=preauthorized` 的审计**（**审计与事实相反**，比没有审计更坏） | 高 |
+| **D-3** | **确认决策审计从未落链**：`append(source="tool_gate")` 非合法来源 ⇒ 每次抛错被宽 except 吞成一行 ERROR（E9 **表面已实现、实际 0 条记录**） | 高 |
+| D-4 | 能力面误用 workspace-hash ⇒ `/capabilities/tools` 返回 **0 条**、`describe` 全 404 | 中 |
+| D-5 | `scripts/backfill_tool_callability.py` 手写**第二份**审批规则（D1 违规）；而唯一能"修好" `--check` 的动作是**把 10 个 YAML 回滚成 `internal`** ⇒ **用过期副本撤销安全收紧** | 中 |
+
+**另修**：伦理硬规则被新层**短路成死代码**（分级层排在伦理兜底之前，而伦理只作用于 `execute`/`extend`，
+这两类至少 L1）⇒ 把伦理命中**合并进**确认理由：拦截结果不变，但人看到的理由从"常规写文件"
+变成"**这是关机命令**"。这正是 `TestEthicsRulesAreLive` 原本要防的事。
+
+### 12.3 我的独立验证
+
+| 验证项 | 方式 | 结果 |
+|---|---|---|
+| 原 56 条失败集 | 我自己跑 | **362 passed / 6 skipped / 0 failed** ✅ |
+| 广面（身份/权限/安全/注册/规格/设置） | 我自己跑 10 个文件 | **441 passed / 0 failed** ✅ |
+| **审计链隔离修复** | 跑 113 条审批/审计测试前后对比生产链 | **行数 20074 不变、mtime 不变** ✅（修复前每次测试都会写进生产链） |
+
+### 12.4 🔴 发现并登记的遗留：**生产审计链被测试数据污染**
+
+`data/audit/audit_chain.db` **20,074 条**记录中含大量**测试夹具数据**：
+
+| 类型 | 条数 |
+|---|---|
+| `tool_call:probe_approval_e2e_tool` | **253** |
+| `probe_*` | 35 |
+| `my-skill` / `skill-p` / `env:SAME_KEY` / `env:CONCURRENT_KEY_*` 等 | 各约 **240** |
+| `__sample__`（**本次子代理为生成 E9 样本追加**） | 3 |
+
+**根因**：`get_audit_chain()` 无参时落到**硬编码默认路径**，不遵守 `AUDIT_DB_PATH`
+⇒ 测试的审计隔离**一直是失效的**。子代理已修（改走唯一入口 `facade.record()`），
+我实测修复有效。
+
+**遗留**：链中**已积累**的污染记录**未清理** —— `audit_chain` 是 **append-only 哈希链**，
+删除中间记录会破坏 `prev_hash`/`self_hash` 链式完整性。**清理需重建链，超出本次授权**
+⇒ 登记为待办，交由仓库负责人决定。
+（子代理为此**主动披露**了它追加的 3 条记录，做法正确。）
 
 ### 11.4 本会话新增纪律（`TASK-00` 已扩到 D16）
 
