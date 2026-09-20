@@ -620,3 +620,80 @@ stash（4 条均无关）、index、全盘同名搜索、回收站、`git fsck -
 > （`agent/context/assembler.py:315`、`safe_render.py:571`、`instruction_data.py:264`）
 > ⇒ 准确说法是「**总闸门未接线** + **污点账从不写入 ⇒ `check_text` 恒放行**」，
 > **不是**「机制完全没有调用点」。
+
+---
+
+## 11. 进度快照（2026-09-20 17:20）
+
+### 11.1 已完成并提交（3 个任务）
+
+| 提交 | 任务 | 我的独立验证（非转述） |
+|---|---|---|
+| `807401ba` | **TASK-04** 能力规格正式化 + `location` | ✅ **E2**：我自己解析 manifest ⇒ 114 条全部合法（local 93 / remote 21）、`location_source` = declaration 91 / skill_chain 23、**0 兜底**。**E4**：我篡改一条 location ⇒ `--check` 精确报 `~ apply_patch: location: 'remote' → 'local'` 且**退出码 1**，恢复后 0。回归 **283 passed** |
+| `a53194ed` | **TASK-05** Registry + Loader + 非 LLM 入口（**战略判据**） | ✅ **E1**：`verify_llm_off_entrypoints.py` **rc=0**；三链路 HTTP 200 / total=114 / degraded=False、CLI rc=0、**HTTP↔CLI 逐字段对拍一致**；且脚本**自带自证「覆盖 10 个入口（全部必然失败）」** ⇒ 排除"打桩无效导致假通过"。**E1b**：`audit_call_paths.py --check` 0 违规（扫 39 路径 / 例外 10 / 无腐化），套件含 **2 条负例**。测试 **136 passed**；相关面 **348 passed / 6 skipped / 0 failed** |
+| `843db0d0` | **TASK-09** P0 补测第二批（5 模块） | ✅ **1484 passed / 0 failed**（主仓库与隔离 worktree 两处口径一致）。覆盖率：`change_detector` **99%**、`registry` **99%**、`novelty` **100%**、`sensor_reading` **100%**、`tags` **100%**（合计 690 stmts 仅 2 未覆盖）。审计期基线 71.6% / 74.4% / 72.3% |
+
+**TASK-05 实测更正了我审计的两处结论**（我已独立核实成立）：
+- `agent/async_executor.py:224` **不是**绕过 `tool_gate` —— `:253` 注释即写「经 `agent.tools.call` ⇒ 过 `tool_gate`」；
+  真缺口是**身份跨线程丢失**（`contextvars` 在当前线程设的值到工作线程为空）
+- `mcp_services/yunshu_mcp_server.py:476` 同样**过闸门**；"不做鉴权"指**协议层**（MCP 无内建认证）
+- 另新发现**第 5 条**直调 `mcp_connector.py:217`
+
+### 11.2 TASK-06：**半成品已归档 + 正在续做**
+
+上一个子代理实现大半后被中断。我核实其质量**高**（值得续做而非重做）：
+
+| 已实现 | 位置 |
+|---|---|
+| L0–L3 语义 + 派生函数 | `agent/lines/models.py:57` `CONFIRM_LEVELS`、`:61-64` 四级定义、`:114` `derive_confirm_level`（`:53-54` 说明**为何不复用技能域的 `APPROVAL_LEVELS`**） |
+| 闸门接线 | `agent/tool_gate.py:615` `_confirm_level_outcome`、`:691` `_confirm_level_of`；`:361-362` 明写【D1】派生实现**只有一份** |
+| **回滚开关 + 影子模式** | `:380` `CP_TOOL_CONFIRM_LEVEL_ENFORCE`、`:384` `CP_TOOL_CONFIRM_LEVEL_SHADOW` |
+| SA（第四类主体） | `agent/security/service_account.py`（**956 行**）+ `tenant.py`（107 行） |
+| 10 个高危工具 `permission_level: internal → restricted` | `data/tool_definitions/*.yaml` |
+
+**它打红了 56 条既有测试**（`test_tool_gate.py` 13 failed / 48 passed；更广面 56 failed / 303 passed）。
+**绝大多数是"断言旧契约"**（形如 `assert gate.check("write_file") is None`，即断言高危工具**不需要**审批）
+⇒ **该改测试，不是改实现**。
+
+**我的处置（原则：树永远保持绿）**：
+1. `git stash push -u` 归档为 **`stash@{0}`**（含未跟踪文件）⇒ 工作区干净，验证 **359 passed / 0 failed**
+2. `git stash apply`（**不用 `pop`**，保留安全副本）恢复工作区
+3. 派新子代理完成剩余（56 条测试的契约更新 + 任务 B 裁决 + 补齐 §3/§5 未完成项）
+
+**⚠️ 任务 B 是需要裁决的真实设计问题**（我已定位根因）：
+`test_tool_gate.py::TestFailOpen` 有 9 条失败 —— 测试模拟"策略文件缺失"期望 fail-open（放行），
+但 `write_file` 仍按 **YAML 元数据**（`risk: high`）命中 `confirm_level=L2` ⇒ 返回 `APPROVAL_REQUIRED`。
+⇒ **问题：`confirm_level` 判定是否应受"策略文件缺失"影响？**
+我的倾向是**不应**（它是 YAML 声明期策略，而 `tool_gate.py:463` 的 fail-open 针对"闸门自身故障"），
+但已要求子代理**自己裁决并留痕**（代码注释 + 报告 + 测试锁定），**不把我的倾向当定论**。
+
+### 11.3 剩余任务
+
+| 任务 | 状态 |
+|---|---|
+| **TASK-06** | 🔄 续做中（依赖 TASK-05 已满足） |
+| **TASK-07** 安全接线 | 未开始 —— 前提**已预检全部成立**：`guard_tool_execution` 生产 0 调用、`mark_foreign*` 生产 0 调用（污点账从未写入）、`run_sandboxed` 生产 0 调用 |
+| **TASK-08** 性能与可观测性 | 未开始 —— **P0-1 已完成**（`CSafeLoader` + 缓存 + 失效 + 测试，170.3ms → 0.6ms），已写入其提示词避免重做 |
+
+### 11.4 本会话新增纪律（`TASK-00` 已扩到 D16）
+
+| # | 内容 |
+|---|---|
+| **D11** | 禁止 `-o addopts=""`（会抹掉 `--import-mode=importlib` ⇒ 假 `import file mismatch`、跑 0 条用例） |
+| **D12** | 不得用夹具形状代替生产形状（"测试夹具冒充生产"：93 条补测全绿却漏检真实 100% 失效） |
+| **D13** | pytest 必须串行，且不得误伤用户运行数据（归属用 `(size, mtime_ns)` 窗口差集） |
+| **D14** | 不要用裸 `pytest` 单进程跑全量（实测退化到 **7.5 分钟/1%**、句柄 34,380、116 分钟无结果）⇒ 用分块 runner |
+| **D15** | 🔴 禁止 `git clean` / `checkout -- .` / `restore .` / `reset --hard` / 删他人文件 / 跑清理脚本（**工作丢失事故后新增**） |
+| **D16** | "串行"只约束全量/覆盖率，**不约束小集合**（有子代理因误用该纪律**空等 60 分钟**） |
+
+### 11.5 工具与流程改进（本轮落地）
+
+| 项 | 内容 |
+|---|---|
+| `.gitignore` | 补 `pytest_chunks/`（runner 产物，一次全量留 3.3MB 日志且原不被忽略） |
+| `scripts/run_full_pytest.py` | 两处 pytest 调用补 `-p no:randomly`（本仓装了 `pytest-randomly`，会打乱文件内顺序） |
+| `TestPerformance` | 补 `@pytest.mark.serial`（并行下 33× 膨胀假红） |
+| 全仓扫描守卫 | 标 `@pytest.mark.slow`（曾是"首轮全量杀手"：余量仅 2.6×，被杀则丢 580 文件） |
+| 熔断器边界用例 ×3 | 改注入时间（余量 0.1~0.2s ⇒ 并发假红） |
+| 独立 worktree | **TASK-09 在 `.worktrees/task09` 执行**，产出与主工作区物理隔离（事故后措施，已验证有效） |
+| 抢救备份 | `_ci_logs/_rescue_20260920_1010/`（TASK-04）、`_ci_logs/_rescue_task06/`（TASK-06） |
