@@ -417,3 +417,91 @@ ERROR at teardown of tests/integration/test_audit_trace.py::
 > ⚠️ 本文件里出现的 `400b76f4` / `86459fd3` / `edbff7c6` / `4a114f03` 是**当时的 SHA**；
 > 另一并行会话做过 rebase，它们在当前历史中的对应体见 §7.6 / §7.9。
 > **引用前请用 `git log --grep=<主题关键词>` 重新定位**，不要直接依赖本文件里的短 SHA。
+
+---
+
+## 8. 能力层重构剩余任务的**开工前预检**（2026-09-20，主会话执行）
+
+> **目的**：TASK-04~08 的提示词写于审计期，而仓库其后已推进约 18 个提交。
+> 本节逐条核实其**承重事实**是否仍然成立，避免子代理在过期前提上施工
+> （这正是本会话反复踩的"快照过期"坑）。**结论：六个任务的前提全部成立。**
+
+### 8.1 仓库就绪度（全部满足）
+
+| 核实项 | 结果 |
+|---|---|
+| 工作区 | **完全干净** |
+| 与远端 | `origin/master` = `4cc9a9da`；`ahead 9 / behind 0` ⇒ 有干净基线、无冲突 |
+| 并行会话 | **已停止**（用户确认）；无任何 pytest 在跑 |
+| 后端 | `python app_server.py`（PID 980）在跑 ⇒ **不要终止**；它写 `agent/data/approval_records.jsonl`（`.env:1215` 服务真实配置）⇒ **不要当残留删** |
+| 基线文件 | `failures_baseline.txt`（7 条）、`coverage_baseline.json`（9 包）均在位 |
+
+### 8.2 TASK-09（P0 补测第二批）—— 已派出，附口径校正
+
+- 目标 5 个模块：`sensor/registry.py`、`sensor/change_detector.py`、`sensor/sensor_reading.py`、
+  `sensor/tags.py`、`sensor/novelty.py`
+- ✅ **已向 `TASK-09` 写入一节口径校正**（关键）：原表"当前覆盖率"是审计期**全量**口径，
+  不可作基线。实测子集口径会严重失真：
+  `change_detector` 71.6% → **45%**（−26.6pp）；`registry.py` 74.4% → **0%**（子集跑从未 import 它）
+  ⇒ 要求子代理**自己用权威口径量基线**，报数**必须带完整路径**
+  （`sensor/registry.py` 与 `core/registry.py` 同名，多 `--cov=` 下会撞名）
+
+### 8.3 TASK-04（能力规格 + `location`）—— ✅ 前提成立，**已写入校正**
+
+| 前提 | 实测 |
+|---|---|
+| `ToolMeta` 与 `plane/effect/risk/callable_mode/permission_level` 常量 | ✅ 全在 `agent/lines/models.py` |
+| 91 个 `data/tool_definitions/*.yaml` 含 `location` | ✅ **0 次**（零起步） |
+| `capability_manifest.json` | ✅ 已 git 跟踪；`entries` **114 条**（`tool:91 / skill:23`）；**0 条含 `location`** |
+| `scripts/sync_capability_manifest.py` | ✅ 存在（`--check` 有落地位置） |
+
+> 🔴 **发现一处过期前提并已修正**：TASK-04 §2.3(a) 的论证建立在
+> 「4 个 MCP 管理工具不带 `source` ⇒ 兜底成 `builtin`」上，但**实测 manifest 里根本没有 `source` 键**。
+> 对应的事实字段是 **`host_executor`**（形如 `agent.tools.ext_tools:_connect_mcp`），
+> 而这 4 条的 `host_executor` **全部指向本进程内的实现函数**（`ext_tools.py` / `extra_tools.py`）。
+> ⇒ 已在 TASK-04 顶部加入"2026-09-20 实测校正"一节（含 114 条 counts、单条 entry 的 31 个字段名、
+> 与 4 条 MCP 工具的实测取值表），并明确要求：**判定依据换成 `host_executor` 及其可验证事实，
+> 不得再用"`source` 兜底"这条已不成立的论证**；保留 §2.3(a) 关心的不变量
+> （这 4 个是 MCP「管理面」，不是 MCP 客户端调用）。
+
+### 8.4 TASK-06 / TASK-07（身份与 L0–L3、安全接线）—— ✅ 前提全部成立
+
+逐条实测（**在生产代码范围内**检索，排除 tests/scripts/文档）：
+
+| TASK-07 的承重事实 | 实测结果 |
+|---|---|
+| `guard_tool_execution` 生产零调用方 | ✅ **成立** —— `agent/**` 仅 5 处：定义、2 处 docstring、1 处注释、`__all__` 导出 |
+| `mark_foreign` / `mark_foreign_file` / `mark_subagent_output` 生产零调用 | ✅ **成立** —— `agent/**` 仅定义 + `__all__` + 一处文档描述 ⇒ **污点账确实从未写入** |
+| `run_sandboxed` 零生产调用方 | ✅ **成立** —— 仅定义（`agent/subagent/sandbox.py:411`）+ 测试引用 |
+| SSRF 零基础 / 169.254 被判 private | 审计期结论，未复核（TASK-07 §2.1 已给 `文件:行号` 证据） |
+
+> ⚠️ **一处必须区分的表述**（否则子代理会误判）：`check_text` **有**生产调用方
+> （`agent/context/assembler.py:315`、`agent/guardrails/safe_render.py:571`、
+> `agent/guardrails/instruction_data.py:264`）。
+> 所以准确说法是「**总闸门未接线** + **污点账从不写入 ⇒ `check_text` 恒放行**」，
+> **不是**「机制完全没有调用点」。TASK-07 §2.2 的原表述已是对的（它写的是"总闸门零调用方"）。
+
+### 8.5 施工顺序与串行约束
+
+```
+TASK-09（进行中，独占 pytest）
+   ↓ 必须完成后才启下一个
+TASK-04（关键路径起点）
+   ↓
+TASK-05（战略判据：关掉 LLM 后 Registry/HTTP/CLI 仍可用）
+   ↓
+TASK-06 ─┬─ 文件面重叠（tools/__init__.py / tool_gate.py / lines/models.py）
+TASK-07 ─┘  ⇒ 06 与 07 **必须串行**，不可并行
+   ↓
+TASK-08（含已完成的 P0-1，需重核前提）
+```
+
+**为什么严格串行**：本轮实测证明并发 pytest 会（a）交叉污染测试结果、
+（b）让时间类断言 **33× 膨胀**假红、（c）让 `git status` 无法按任务归因、
+（d）曾导致首轮全量被 `os._exit(1)` 杀掉、580 个文件未执行。
+
+### 8.6 长跑目标
+
+已建立同会话目标 `goal-291c0b60-b535-4230-ab7d-d0ec796fd145`
+（`max_goal_rounds=60`），覆盖 `TASK-09 → 04 → 05 → 06 → 07 → 08` 全序列。
+用户已明确授权：**自主执行、遇问题即修、可代为决定、全部完成前不要停**。
