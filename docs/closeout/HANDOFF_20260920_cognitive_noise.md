@@ -1018,3 +1018,56 @@ FileNotFoundError: [WinError 2] 系统找不到指定的文件。: 'C:\Users\Adm
 3. 可选：把 `audit_call_paths.scan` 与 `location.walk_chain_all_executors` 纳入
    TASK-08 的性能门禁基线（当前 `baseline.json` 已有 `walk_chain_all_executors` 指标，
    但默认未测；`--with-walk-chain` 才测）。
+
+---
+
+## 19. 🚀 推送执行记录（2026-09-21）
+
+### 19.1 推送前检查（**全部通过**）
+
+| 检查 | 结果 |
+|---|---|
+| 远端关系 | `origin/master` = `4cc9a9da`；本地 **ahead 25 / behind 0** ⇒ 干净快进（且 `4cc9a9da` 正是 TASK-06 曾确认的上游 tip） |
+| 待推送规模 | **228 文件 / +54636 −716** |
+| 敏感文件扫描（`.env`/密钥/日志/DB） | ✅ 无。唯一命中项 `scripts/gen_api_token.py` 经查是**令牌生成器**（默认零副作用、不写 `.env`），**不含硬编码密钥** |
+| **提交来源校验**（`scripts/verify_commit_origin.py --base 4cc9a9da`） | ✅ **25 个提交全部 PASS、0 项被破坏、exit 0**（ORIGIN-04 因无 token 走降级路径，脚本自述"降级不阻断"） |
+
+> ⚠️ **一处如实说明**：该脚本用**默认 `--sha HEAD`** 调用时会崩
+> （`AttributeError: 'NoneType' object has no attribute 'split'`，`get_commit_meta` 收到空 stdout）。
+> 我改用 `--base <sha>` 与 `--sha <具体sha>` 均可正常通过。**崩溃是该脚本自身缺陷，与本次提交无关**，
+> 已登记为待办（未修，因它不在本任务范围）。
+
+### 19.2 推送结果
+
+```
+git push origin master
+  4cc9a9da..9d154292  master -> master        exit=0
+```
+
+- **`origin/master` 现 = `9d154292` = 本地 HEAD** ✅
+- 远端已确认：GitHub API 可查到该 commit（`repos/nzt47/security-tools/commits/9d154292`）
+- **`gitee/master` 未推送**（它落后 47 个提交，是**另一条线**，非本次目标；如需同步请明示）
+
+### 19.3 CI/CD 验证（GitHub Actions）
+
+推送后 CI **确实被触发**：仓库共 24,541 runs；最新 60 个 run 中 **20 个的 `head_sha` = `9d154292`**。
+
+| 状态 | 项 |
+|---|---|
+| ✅ **completed / success（8）** | **硬编码密码扫描（全分支）**、**master commit 来源守卫(verify_commit_origin)**、环境健康检查与工作区守卫、架构规则校验、循环依赖校验、`lock-discipline-scan`、Intent Layer Ratio Invariant、**核心不变量监控(verify_core_invariants)** |
+| 🔄 in_progress（6） | 部署文档到 GitHub Pages、关键字参数冲突扫描(Docker)、知识库重构任务检查、Error Reporting System CI/CD、kwarg 扫描→SonarQube、TASK-02 Learning Config Guard |
+| ⏳ queued / pending（6） | 工具检索质量 CI、可观测性质量保障、日志性能守护、**云枢系统测试流程**、CI 失败通知 ×2 |
+
+**截至记录时：0 个 failure。** 其中 `硬编码密码扫描` 与 `commit 来源守卫` 都**已 success**，
+这两项是推送安全性的直接证据。
+
+> ⚠️ **未完成项**：`云枢系统测试流程`（重量级）仍在排队，**本轮未取得其最终结论**
+> ⇒ 如需"CI 全绿"的完整证据，需等待其完成（约需数十分钟到数小时，取决于 runner 排队）。
+> **我不把"CI 通过"写成既成事实**，只报上述已实测的状态。
+
+### 19.4 与 upstream 的关系（供后续参考）
+
+- 本会话的 25 个提交**已在 origin/master**，可被任何协作者拉到
+- `stash@{0}`（TASK-06 历史 WIP 安全副本）**仅存在于本地**，不随推送走
+- 本地仍有若干**未跟踪的临时产物**（`pytest_chunks/`、`_ci_logs/`、`_t08_logs/`、`tmp_perf/`）
+  —— 它们的忽略规则已补齐，**不入库**
