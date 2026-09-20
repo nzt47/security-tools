@@ -25,8 +25,16 @@
 
 ## 纪律
 
-* 不 monkeypatch ``POLICY_POLICIES_PATH`` / ``DESCRIPTORS_PATH``：分级不读它们，
-  本文件要证明的正是这一点（对照：`test_tool_gate.py` 用临时假文件测那两条规则）。
+* 分级层（`confirm_level`）本身**不读** `POLICY_POLICIES_PATH` / `DESCRIPTORS_PATH`，
+  本文件的主要用例不 monkeypatch 它们 —— 要证明的正是这一点
+  （对照：`test_tool_gate.py` 用临时假文件测那两条规则）。
+* **例外**：`TestTwoSwitchesAreNested::test_分级开关关闭_只回滚新加的那部分` 与
+  `TestRollbackAndShadow::test_影子模式只告警不拦截` 需要"**旧的**描述符审批边界
+  确实存在"作为被测前提，故使用 `real_descriptor_boundary` fixture 提供一份
+  **测试自备**的最小台账（`tmp_path` 下，`monkeypatch` 到 `G.DESCRIPTORS_PATH`）。
+  2026-09-21 前这两条用例直接依赖仓库里的真实 `data/descriptors.json`，而该文件
+  被 gitignore（运行期台账，CI 上不存在）⇒ 它们在 CI 上必然失败、在开发者机上
+  必然通过。改成自备台账后前提在两端一致，被测语义一字未改。
 * 凡是改环境变量的用例一律 `monkeypatch`（自动还原），不写任何真实数据文件。
 * 审批库路径由 `tests/conftest.py` 隔离到临时目录（会话级），本文件不重复设置。
 """
@@ -66,6 +74,59 @@ def enforce_on(monkeypatch):
     monkeypatch.delenv(G.CONFIRM_LEVEL_SHADOW_ENV, raising=False)
     G._reset_cache()
     yield
+    G._reset_cache()
+
+
+#: "旧的描述符审批边界"里那个工具：`shell_execute` 原本就是 `risk: critical`，
+#: 它是**改动前**就存在的描述符审批条目（用来证明"关掉新层时旧边界仍在"）。
+_OLD_BOUNDARY_TOOL = "shell_execute"
+
+
+@pytest.fixture
+def real_descriptor_boundary(monkeypatch, tmp_path):
+    """给"旧的描述符审批边界"提供一份**测试自备**的最小台账
+
+    【为什么必须有这个 fixture（2026-09-21 修 CI 恒失败）】
+    `TestTwoSwitchesAreNested::test_分级开关关闭_只回滚新加的那部分` 与
+    `TestRollbackAndShadow::test_影子模式只告警不拦截` 的断言真意是：
+    「关掉**新的**分级层（或进入影子模式）时，**旧的**描述符审批边界必须仍然拦住」。
+    它们原先刻意**不** monkeypatch `G.DESCRIPTORS_PATH`，直接依赖仓库里那份
+    **真实的** `data/descriptors.json`（module docstring 的"纪律"一节记录了这个取舍）。
+
+    但该文件被 `.gitignore:223` 忽略（它是运行期台账，由
+    `scripts/backfill_tool_descriptors.py` 生成），**CI runner 上根本不存在**。
+    于是闸门第 2 步"描述符审批边界"读到空索引 ⇒ 走既有的 fail-open 口径
+    （策略/台账文件缺失即放行，这是本模块文档化的**既定语义**，不是缺陷）
+    ⇒ `check_tool_call("shell_execute")` 返回 `None` ⇒ 这两条用例在 CI 上
+    **必然失败**、在开发者机上必然通过。
+
+    【台账内容为什么只放 `shell_execute`】本 fixture 代表的是"**改动前**的旧边界"，
+    因此只列入改动前就已被要求审批的 critical 工具；`write_file` **故意不列入**
+    —— 它是 TASK-06 新纳入 `high → L2` 的那个工具，正是用例里"新加的那部分"，
+    若也列入就会被旧边界拦住，两条用例的语义立刻互相矛盾。
+    （注意：生产 `data/descriptors.json` 目前把 `write_file` 也标为
+    `requires_approval=true`；这里是有意与生产不同的**最小化前提**，只保留旧边界。
+    生产台账**不被读写**。）
+
+    写法与 `tests/unit/test_tool_gate.py` 的 `GateFiles` 同构。
+    """
+    path = tmp_path / "descriptors.json"
+    path.write_text(
+        json.dumps({
+            "schema_version": 1,
+            "descriptors": {
+                f"cp.builtin.{_OLD_BOUNDARY_TOOL}": {
+                    "meta": {"id": f"cp.builtin.{_OLD_BOUNDARY_TOOL}"},
+                    "trust": {"requires_approval": True},
+                },
+            },
+        }, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(G, "DESCRIPTORS_PATH", str(path))
+    # 台账内容变了必须让派生缓存失效（否则会沿用上一用例的索引）
+    G._reset_cache()
+    yield path
     G._reset_cache()
 
 
@@ -355,11 +416,15 @@ class TestTwoSwitchesAreNested:
         assert G.check_tool_call("write_file", {}) is None, \
             "总开关是「要不要拦」的总闸，从属关系不得倒挂"
 
-    def test_分级开关关闭_只回滚新加的那部分(self, monkeypatch, enforce_on):
+    def test_分级开关关闭_只回滚新加的那部分(self, monkeypatch, enforce_on,
+                                            real_descriptor_boundary):
         """总开关开 + 分级开关关 ⇒ 回到改动前的二值口径
 
         · `write_file`（新加的 high→L2）⇒ **不再**被分级层拦；
-        · `shell_execute`（原本就是 critical）⇒ **仍然**被拦（旧的 needs_approval 路径）。
+        · `shell_execute`（原本就是 critical）⇒ **仍然**被拦（旧的描述符审批路径）。
+
+        `real_descriptor_boundary` 准备好"旧的描述符审批边界"这一被测前提
+        （见该 fixture 的 docstring：CI 上没有入库的 descriptors.json）。
         """
         monkeypatch.setenv(G.CONFIRM_LEVEL_ENFORCE_ENV, "0")
         assert G.check_tool_call("write_file", {}) is None
@@ -867,13 +932,18 @@ class TestAuditLandsOnTheChain:
 class TestRollbackAndShadow:
     """TASK-06 §6：`high → L2` 是本任务最高风险一行 ⇒ 必须有**可即时生效**的开关"""
 
-    def test_影子模式只告警不拦截(self, enforce_on, monkeypatch):
+    def test_影子模式只告警不拦截(self, enforce_on, monkeypatch,
+                                real_descriptor_boundary):
         """影子模式只覆盖**新加的分级层**（`risk: high → L2`），不覆盖描述符层
 
-        【实测口径】`shell_execute` 在真实 `data/descriptors.json` 里有
-        `trust.requires_approval=true` ⇒ 它在**描述符那一步**（第 2 步，排在分级层
-        之前）就被拦，与影子模式无关 —— 影子模式不该把**既有**的审批边界也一起
-        静默关掉（那会让"先跑一个周期观测"变成"顺手把旧边界也关了"）。
+        【实测口径】`shell_execute` 在描述符台账里有 `trust.requires_approval=true`
+        ⇒ 它在**描述符那一步**（第 2 步，排在分级层之前）就被拦，与影子模式无关 ——
+        影子模式不该把**既有**的审批边界也一起静默关掉（那会让"先跑一个周期观测"
+        变成"顺手把旧边界也关了"）。
+
+        【2026-09-21】原先这里写的是"真实 `data/descriptors.json` 里"，但该文件
+        入库不含（gitignore）⇒ CI 上无此条目、这两条断言必然失败。现由
+        `real_descriptor_boundary` 提供同一前提（见其 docstring），被测语义不变。
         """
         monkeypatch.setenv(G.CONFIRM_LEVEL_SHADOW_ENV, "1")
         assert G.check_tool_call("write_file", {}) is None, \
