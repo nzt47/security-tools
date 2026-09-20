@@ -14,6 +14,8 @@ v1.4 的战略判据只有一条：**把 agent loop 关掉，这套东西还能�
 | `contract.py` | `input_schema`/`result_schema` 校验 + CI 可凭 `status` 阻断 |
 | `modelcaps.py` | 模型 tool-calling 能力探测（`/capabilities/tools?model=` 的裁剪依据） |
 | `call_sites.py` | 调用路径普查的**显式例外表**（`scripts/audit_call_paths.py` 消费） |
+| `toolset_hash.py` | `toolset_hash` 与「hash 变 ⇒ 重建会话；**health 变 ⇒ 只过滤**」（TASK-08 E7 / v1.4 §11） |
+| `pruning.py` | **裁剪保护**：`risk >= high` 或 `confirm_level >= L2` 的工具不参与裁剪（TASK-08 E8 / v1.4 §7） |
 
 ## 命名（**不撞名**）
 
@@ -41,7 +43,15 @@ from .invoke import (IDENTITIES, IDENTITY_HUMAN, IDENTITY_LLM,
 from .loader import (Handle, HttpLoader, Loader, LoaderManager, LoaderState,
                      LocalLoader, SseLoader, StdioLoader, get_loader_manager,
                      reset_loader_manager)
+from .modelcaps import model_capability, supports_tool_calling
+from .pruning import (PROTECTED_CONFIRM_LEVELS, PROTECTED_CONFIRM_RANK,
+                      PROTECTED_RISKS, BudgetPlan, ProtectionVerdict,
+                      is_prune_protected, lookup_protection, plan_token_budget,
+                      prune_tool_defs_for_budget)
 from .spec import CALLABLE_BY, IMPL_STATUS, CapabilityRecord, derive_callable_by
+from .toolset_hash import (EXCLUDED_FIELDS, HASHED_FIELDS, RebuildDecision,
+                           SessionToolset, ToolsetSnapshot,
+                           compute_toolset_hash, describe_hash_scope)
 from .view import (CapabilityRegistry, build_registry, get_registry,
                    reset_registry)
 
@@ -62,4 +72,13 @@ __all__ = [
     "IDENTITIES", "IDENTITY_LLM", "IDENTITY_HUMAN", "IDENTITY_SYSTEM",
     "IDENTITY_SERVICE_ACCOUNT", "invoke_capability", "invoke_envelope",
     "set_preauthorization_hook",
+    # modelcaps（TASK-05）
+    "model_capability", "supports_tool_calling",
+    # toolset_hash（TASK-08 E7）
+    "HASHED_FIELDS", "EXCLUDED_FIELDS", "SessionToolset", "ToolsetSnapshot",
+    "RebuildDecision", "compute_toolset_hash", "describe_hash_scope",
+    # pruning（TASK-08 E8）
+    "PROTECTED_RISKS", "PROTECTED_CONFIRM_LEVELS", "PROTECTED_CONFIRM_RANK",
+    "ProtectionVerdict", "BudgetPlan", "is_prune_protected",
+    "lookup_protection", "plan_token_budget", "prune_tool_defs_for_budget",
 ]

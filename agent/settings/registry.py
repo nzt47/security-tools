@@ -1198,6 +1198,28 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _a("LLM_CACHE_CONTROL_ENABLED", CAT_ORCHESTRATION, True,
        "LLM 响应缓存控制开关",
        owner="agent/tool_calling.py"),
+
+    # ── TASK-08 子工作流 D：超时上界与重试预算 ──
+    # 【为什么这几条归 B】把它们调到 0 就等于**关掉一道防护**
+    #   （上界/预算本身就是防「无限阻塞」与「重试放大」的防线），
+    #   与该分类既有的「关闭即降低防护的安全防线开关」口径一致。
+    _b("CP_TOOL_HANDLER_TIMEOUT_SEC", CAT_ORCHESTRATION, 1800.0,
+       "工具 handler 墙钟上界（秒）；0=不限。默认 1800 严格高于全部工具自述上限"
+       "（test_tools 900 / lint 600 / git·shell 120），只把「无限」变「有界」",
+       owner="agent/timeout_budget.py"),
+    _b("CP_RETRY_MAX_ATTEMPTS", CAT_ORCHESTRATION, 6,
+       "跨层总重试预算（次，只计重试不计首次尝试）；把工具/错误处理/MCP 三层"
+       "相乘的重试放大收敛为任务级单一预算，超出即 deadline_exceeded",
+       owner="agent/timeout_budget.py"),
+    _b("CP_RETRY_DEADLINE_SEC", CAT_ORCHESTRATION, 60.0,
+       "重试窗口总耗时上界（秒）；自第一次重试起算，0=不设耗时上界",
+       owner="agent/timeout_budget.py"),
+    _a("CP_RETRY_JITTER_FACTOR", CAT_ORCHESTRATION, 0.1,
+       "工具调用重试与 MCP 重试的抖动系数（与 LLM 主链路 jitter_factor 对齐）",
+       owner="agent/timeout_budget.py"),
+    _a("CP_MCP_CALL_TIMEOUT_SEC", CAT_ORCHESTRATION, 30.0,
+       "MCP adapter 调用上界兜底（秒）；仅在 McpServerConfig.timeout 缺省时生效",
+       owner="agent/timeout_budget.py"),
     _c("VISUAL_WORKFLOWS_STORE", CAT_ORCHESTRATION, None,
        "可视化工作流存储路径（只读）",
        owner="agent/server_routes/routes_visual_workflows.py"),
@@ -1356,6 +1378,29 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        validator=Validator("int")),
     _a("SCHEMA_PROP_DESC_MAX_LEN", CAT_SKILLS, None,
        "工具参数描述最大长度", owner="agent/tool_schema_pruner.py",
+       validator=Validator("int")),
+    # 【B 级理由】裁剪保护（TASK-08 E8 / v1.4 §7）：它决定**高危工具能不能被裁掉**。
+    #   默认**开启**；关闭即允许 token 预算裁剪 / 主线名额截断把 `risk >= high`
+    #   或 `confirm_level >= L2` 的工具（实测 20 个：write_file / edit / git /
+    #   shell_execute / workspace_delete …）静默从模型可见集里拿掉 —— 风险姿态变宽，
+    #   故按 B 级（需二次认证 + 双人确认）登记。回滚 = 置 0/false/no/off。
+    _b("CP_TOOLSET_PRUNE_PROTECT", CAT_SKILLS, True,
+       "工具裁剪保护（TASK-08 E8）：默认开启 ⇒ risk >= high **或** "
+       "confirm_level >= L2 的工具**不参与裁剪**（工具级 token 预算裁剪与主线名额"
+       "截断两处共用同一判据）；置 0/false/no/off = 退回无保护的旧裁剪行为",
+       owner="agent/capregistry/pruning.py",
+       impact="影响面：开启=实测 20 个受保护工具（13 个 risk: high + 3 个 critical "
+              "+ 其余 L2/L3）在预算或名额不足时一律保留，工具数可能略超 max_tools；"
+              "关闭=高危工具可能被静默裁掉（模型会改用可见的低危工具拼等价效果）",
+       rollback="回滚：置 CP_TOOLSET_PRUNE_PROTECT=0（立即退回旧口径，不写数据文件）"),
+    # 【A 级理由】默认 0 = **不按预算裁剪**（本仓库此前没有工具级 token 预算裁剪，
+    #   保持既有行为零变化）；设成非零只是显式启用一条已有路径，不改变权限与治理
+    #   姿态，且受上面那条保护开关约束 ⇒ A 级。
+    _a("CP_TOOLSET_SCHEMA_TOKEN_BUDGET", CAT_SKILLS, 0,
+       "工具 schema 的 token 预算上限（TASK-08 E8）：>0 ⇒ 超预算时从尾部裁掉"
+       "**可裁**工具；≤0（默认）= 不裁剪。受保护工具（risk >= high 或 "
+       "confirm_level >= L2）一律不裁，故实际占用可能略超预算",
+       owner="agent/capregistry/pruning.py",
        validator=Validator("int")),
     _c("MEMORY_IDENTITY_ROOT", CAT_SKILLS, None,
        "身份记忆根目录（只读）", owner="agent/memory/identity.py"),

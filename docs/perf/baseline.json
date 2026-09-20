@@ -1,0 +1,94 @@
+{
+  "written_at": "2026-09-20T22:52:39",
+  "python": "3.12.0",
+  "reps": 30,
+  "gate_quantity": "被测耗时 / 同刻参照负载耗时，取 best-of-N(min)；参照与被测**交错**采样",
+  "threshold": 1.6,
+  "quiet_machine_threshold": 1.25,
+  "threshold_basis": "四步校准（详见 docs/perf/门禁阈值校准.md，均为本机实测）：① 绝对值 p50 跨 3 次运行波动 1.3x~23x（yaml 装载 22.94x、prune 14.04x）⇒ 无法定阈值；② 参照负载分段归一化无效（参照自身波动 2.61x）；③ best-of-N(min) 绝对值 1.42x~1.56x；④ best-of-N(min) + 交错比值 1.16x~1.54x ⇒ 采用，比朴素 p50 稳 15 倍。阈值取 1.60（高于并发负载下最差观测 1.54x）。⚠️ 安静机器上应重采基线并收紧到 1.25 —— 届时 20% 退化（1.20）可被拦住。真实退化信号远大于阈值：P0-1 回退约 580x、P0-1 前 Router 组装约 3.2x。",
+  "reference_of": {
+    "load_tool_meta_hot": "cpu",
+    "assemble": "cpu",
+    "get_tool_defs": "cpu",
+    "prune_tool_defs": "cpu",
+    "yaml_category_load": "disk",
+    "repo_index": "disk",
+    "walk_chain_all_executors": "disk",
+    "cold_boot": "disk"
+  },
+  "metrics": {
+    "_registry_size": {
+      "value": 91,
+      "p50_ratio": 91,
+      "ref": "(n/a)",
+      "n": 1
+    },
+    "load_tool_meta_hot": {
+      "value": 0.417474,
+      "ref": "cpu",
+      "p50_ratio": 0.512671,
+      "max_ratio": 0.629878,
+      "raw_min_ms": 0.2643,
+      "raw_p50_ms": 0.2717,
+      "n": 30
+    },
+    "assemble": {
+      "value": 0.513015,
+      "ref": "cpu",
+      "p50_ratio": 0.726477,
+      "max_ratio": 0.998246,
+      "raw_min_ms": 0.3699,
+      "raw_p50_ms": 0.4064,
+      "n": 30,
+      "n_candidates": 91
+    },
+    "get_tool_defs": {
+      "value": 0.099593,
+      "ref": "cpu",
+      "p50_ratio": 0.119363,
+      "max_ratio": 0.188285,
+      "raw_min_ms": 0.0612,
+      "raw_p50_ms": 0.0672,
+      "n": 30,
+      "n_whitelist": 91
+    },
+    "prune_tool_defs": {
+      "value": 2.05347,
+      "ref": "cpu",
+      "p50_ratio": 2.756794,
+      "max_ratio": 4.122548,
+      "raw_min_ms": 1.4072,
+      "raw_p50_ms": 1.5154,
+      "n": 30
+    },
+    "yaml_category_load": {
+      "value": 60.74801,
+      "ref": "disk",
+      "p50_ratio": 74.611753,
+      "max_ratio": 76.852435,
+      "raw_min_ms": 167.2863,
+      "raw_p50_ms": 176.4221,
+      "n": 7
+    },
+    "repo_index": {
+      "value": 208.432742,
+      "ref": "disk",
+      "p50_ratio": 233.275929,
+      "max_ratio": 239.172766,
+      "raw_min_ms": 539.4031,
+      "raw_p50_ms": 562.7782,
+      "n": 3,
+      "n_executors": 93
+    },
+    "walk_chain_all_executors": {
+      "value": 2799.414345,
+      "ref": "disk",
+      "p50_ratio": 2810.551283,
+      "max_ratio": 3019.948798,
+      "raw_min_ms": 7303.1117,
+      "raw_p50_ms": 7663.8107,
+      "n": 3,
+      "n_executors": 93
+    }
+  }
+}

@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import queue
 import subprocess
 import sys
 import threading
@@ -51,7 +52,68 @@ _DEFAULT_RERANK_TOP_N = 20  # Stage 1 召回候选池大小
 _DEFAULT_RERANK_MIN_SCORE = 0.05
 
 # 子进程启动超时(秒):模型加载最多等待 60s
+# 【不易】bge-reranker-v2-m3 约 2.3GB,实测冷启动 18.97s(其中模型加载 2.47s,
+#        见 docs/perf/既有性能数据盘点.md)⇒ 60s 给足慢盘/冷页缓存余量。
+#        这个值以前**只出现在注释里**:读取 ready 信号用的是裸 readline(),
+#        子进程卡死时父进程会永久阻塞。现在它由 _readline_with_timeout 真正执行。
 _WORKER_STARTUP_TIMEOUT = 60
+
+# 单次 predict 响应读取超时(秒)
+# 【变易】此处模型**已加载完毕**,等待的只剩一次 batch 推理,故必须比启动超时短得多。
+#        取值依据(同一份性能盘点):单次 rerank P99 = 4.6s,首次(含预热)7s。
+#        30s ≈ 最差观测值的 4 倍 ⇒ 慢 CPU / 长尾不会误杀,而真死锁也能被限住。
+#        误杀的代价是 _init_failed=True(本进程内重排永久降级),故宁可取值偏保守。
+_PREDICT_READ_TIMEOUT = 30.0
+
+
+# ════════════════════════════════════════════════════════════
+#  带超时的管道读取
+# ════════════════════════════════════════════════════════════
+
+
+class _ReadlineTimedOut:
+    """readline 超时哨兵(不是字符串,不会与子进程输出混淆)"""
+
+
+_READLINE_TIMED_OUT = _ReadlineTimedOut()
+
+
+def _readline_with_timeout(stream, timeout: float):
+    """带超时的 stdout.readline();超时返回哨兵 _READLINE_TIMED_OUT
+
+    Why: subprocess.Popen 的 readline() **没有超时参数**。子进程若卡在模型加载或
+         推理中(既不输出也不退出),裸 readline() 会让父进程永久阻塞 ——
+         日志停在 worker 启动前一行、工具检索链路静默挂死,且没有任何异常可捕获。
+         限时是唯一可靠的自救手段。
+
+    为什么不用 select / Timer:Windows 的 select 只支持 socket、不支持普通管道,
+    也没有办法从外部中断一个阻塞在 readline 上的线程;故用 daemon 读线程把结果
+    交给 queue,调用方 queue.get(timeout=) 限时取(与
+    tool_router_hybrid._readline_with_timeout 同一套思路,此处自持一份以免让
+    reranker 在 import 期就依赖 numpy/tool_router)。
+
+    【不易】线程必须 daemon=True:即使它仍阻塞在 readline 上,也不能阻止解释器退出。
+    【不易】超时**不抛异常**、只返回哨兵:调用方按既有"失败降级"契约处理
+            (标记 _init_failed + 清理子进程 + 返回失败值),rerank 永不向上抛异常。
+    【变易】超时值由调用方给定:启动读 60s,单次 predict 读 30s。
+    """
+    # maxsize=1 + 读线程只 put 一次 ⇒ put 永不阻塞,不会拖住读线程
+    q: "queue.Queue[Any]" = queue.Queue(maxsize=1)
+
+    def _reader() -> None:
+        try:
+            q.put(stream.readline())
+        except BaseException as e:  # noqa: BLE001 读线程内的异常必须回传调用方,不能吞掉
+            q.put(e)
+
+    threading.Thread(target=_reader, daemon=True, name="reranker-stdout-reader").start()
+    try:
+        item = q.get(timeout=timeout)
+    except queue.Empty:
+        return _READLINE_TIMED_OUT
+    if isinstance(item, BaseException):
+        raise item
+    return item
 
 
 def _env_float(name: str, default: float) -> float:
@@ -247,8 +309,15 @@ class ToolReranker:
                     cwd=str(self._project_root),
                 )
                 # 等待就绪信号(最多 _WORKER_STARTUP_TIMEOUT 秒)
-                # 【变易】用进程退出判断超时,避免 readline 永久阻塞
-                ready_line = self._proc.stdout.readline()
+                # 【不易】必须走带超时的读取:子进程卡在模型加载里既不出输出也不退出时,
+                #        裸 readline() 会让父进程永久阻塞(这正是本常量此前"声明了却没人用"
+                #        所掩盖的缺陷)。超时按失败降级处理,不抛异常。
+                ready_line = _readline_with_timeout(self._proc.stdout, _WORKER_STARTUP_TIMEOUT)
+                if ready_line is _READLINE_TIMED_OUT:
+                    logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'worker.startup.timeout', 'model': self.model_name, 'timeout_sec': _WORKER_STARTUP_TIMEOUT}))
+                    self._init_failed = True
+                    self._cleanup_proc()
+                    return False
                 if not ready_line:
                     err = self._proc.stderr.read() if self._proc.stderr else ""
                     logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'worker.startup.no_output', 'error': err[:300]}))
@@ -315,7 +384,13 @@ class ToolReranker:
                 req = json.dumps({"type": "predict", "pairs": pairs}, ensure_ascii=False)
                 self._proc.stdin.write(req + "\n")
                 self._proc.stdin.flush()
-                resp_line = self._proc.stdout.readline()
+                # 带超时读取:模型已加载,这里的无限等待只可能是死锁/worker 卡死
+                resp_line = _readline_with_timeout(self._proc.stdout, _PREDICT_READ_TIMEOUT)
+                if resp_line is _READLINE_TIMED_OUT:
+                    logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'predict.read_timeout', 'model': self.model_name, 'timeout_sec': _PREDICT_READ_TIMEOUT, 'pair_count': len(pairs)}))
+                    self._init_failed = True
+                    self._cleanup_proc()
+                    return None
                 if not resp_line:
                     # 子进程已退出
                     logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'predict.no_response', 'reason': 'subprocess_exited'}))

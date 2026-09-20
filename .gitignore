@@ -543,3 +543,6 @@ agent/data/skills.json
 # 实测一次全量会生成若干 JSONL/JSON，且原未被忽略 ⇒ 每次跑完 git status 都变脏。
 tests/agent/
 tests/data/
+
+# 性能基准临时产物（TASK-08 新增门禁脚本的落盘目录）
+tmp_perf/

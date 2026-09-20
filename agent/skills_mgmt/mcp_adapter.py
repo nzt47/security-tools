@@ -14,10 +14,11 @@
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from .exceptions import SkillMcpError, SkillNotFoundError, ErrorCode
 from .models import Skill, SkillCategory, SkillStatus, ContentType
@@ -61,6 +62,62 @@ def _check_mcp_sdk() -> bool:
         return True
     except ImportError:
         return False
+
+
+# ════════════════════════════════════════════════════════════
+#  超时上界辅助（TASK-08 子工作流 D / E1j）
+# ════════════════════════════════════════════════════════════
+
+def _adapter_call_timeout(config: McpServerConfig) -> float:
+    """本次 MCP 调用的上界（秒）
+
+    优先 `config.timeout`（这正是 E1j 要修的那条：配置项必须真的生效）；
+    配置缺省/非正数时才用全局兜底开关。读取失败一律回 30s。
+    """
+    try:
+        from agent.timeout_budget import mcp_call_timeout
+        sec = float(mcp_call_timeout(config))
+        return sec if sec > 0 else 30.0
+    except Exception:  # noqa: BLE001  开关读不到 ⇒ 保守默认
+        try:
+            declared = float(getattr(config, "timeout", 0) or 0)
+        except (TypeError, ValueError):
+            declared = 0.0
+        return declared if declared > 0 else 30.0
+
+
+async def _maybe_await(value: Any) -> Any:
+    """兼容 SDK 的 async / sync 两种形态
+
+    Why：`mcp` SDK 的 `ClientSession.initialize()` / `list_tools()` /
+    `call_tool()` 都是协程函数 —— 改动前的裸调 `session.initialize()`
+    **根本没有 await**，返回的是一个从未被驱动的协程对象：既不会报错
+    （只有 RuntimeWarning），也永远不会真正握手。这里统一 await，
+    使"调用真的发生"，从而"超时"这件事才有意义可言。
+    """
+    if hasattr(value, "__await__"):
+        return await value
+    return value
+
+
+def _open_session(client_session_cls: Any, read: Any, write: Any,
+                  config: McpServerConfig) -> Any:
+    """构造 `ClientSession`，并在 SDK 支持时**把超时真正传进去**
+
+    `read_timeout_seconds` 需要 `datetime.timedelta`；老版本 SDK 不接受该
+    关键字，故按 `TypeError` 回退到不带它的构造 —— 回退路径仍有本文件的
+    线程上界保护，不会退回"无界"。
+    """
+    try:
+        from datetime import timedelta
+        return client_session_cls(
+            read, write,
+            read_timeout_seconds=timedelta(seconds=_adapter_call_timeout(config)),
+        )
+    except TypeError:
+        return client_session_cls(read, write)
+    except Exception:  # noqa: BLE001  任何构造异常都退回最朴素构造
+        return client_session_cls(read, write)
 
 
 class McpSkillAdapter:
@@ -192,6 +249,72 @@ class McpSkillAdapter:
 
     # ─── 内部: MCP 协议调用 ───
 
+    def _bounded_mcp_call(self, config: McpServerConfig, label: str,
+                          build_coro: Callable[[], Any]) -> Any:
+        """在**有限时间**内跑完一次完整 MCP 交互（连接→握手→调用→拆除）
+
+        【TASK-08 子工作流 D / E1j：为什么必须这样改】
+            改动前 `_list_tools` / `_call_tool` 是裸调：
+                session.initialize()
+                result = session.list_tools()
+            两个问题：
+              (a) **无超时上界** —— server 卡住则主进程无限阻塞；
+              (b) `McpServerConfig.timeout`（默认 30）**从未传给 SDK**，
+                  即"配置了等于没配"。本方法同时修掉这两条。
+
+        【为什么整段生命周期都放进同一个工作线程】
+            `mcp` SDK 基于 anyio：`stdio_client` 的任务组与 `ClientSession`
+            的取消作用域是**线程/任务亲和**的，必须"在同一处进出"。
+            若只把 `session.list_tools()` 搬到别的线程执行，而 `transport_ctx`
+            在调用线程进出，anyio 会因为 cancel scope 跨任务而直接报错。
+            因此这里把"建连 + 握手 + 调用 + 拆除"**整体**投到一个专用
+            daemon 线程里跑：亲和性完整保留，同时获得真正的墙钟上界。
+
+        【为什么用 asyncio.run 而不是依赖调用方的事件循环】
+            我们**总是在一个全新线程**里执行，该线程没有运行中的事件循环，
+            故 `asyncio.run` 永远合法 —— 即使调用方本身处在 async 上下文里
+            （这正是"直接 await"做不到的场景）。
+
+        【降级】`agent.timeout_budget` 不可用时退回无界执行（旧行为），
+            只为不让新模块的加载问题阻断 MCP 发现链路（D4/D2）。
+        """
+        timeout_sec = _adapter_call_timeout(config)
+
+        async def _driver() -> Any:
+            coro = build_coro()
+            try:
+                return await asyncio.wait_for(coro, timeout=timeout_sec)
+            except asyncio.TimeoutError as exc:              # 3.11+ 别名
+                raise SkillMcpError(
+                    f"MCP 调用超时（{label}，上界 {timeout_sec:.1f}s）",
+                    code=ErrorCode.MCP_SERVER_UNREACHABLE,
+                ) from exc
+
+        def _run() -> Any:
+            try:
+                return asyncio.run(_driver())
+            except RuntimeError as exc:
+                # 极端情形：工作线程里竟已有事件循环 ⇒ 退化为同步执行原调用
+                if "event loop" not in str(exc).lower():
+                    raise
+                return None
+
+        try:
+            from agent.timeout_budget import call_with_timeout
+        except Exception:  # noqa: BLE001  上界机制不可用 ⇒ 旧行为
+            return _run()
+
+        # 外层线程上界 = SDK 上界 + 宽限：内层 wait_for 负责精确取消，
+        # 外层只兜底"连取消都没生效"的彻底挂死。
+        _ok, _outcome = call_with_timeout(
+            _run, timeout_sec + 15.0, label=f"mcp:{label}")
+        if not _ok:
+            raise SkillMcpError(
+                f"MCP 调用超时（{label}，上界 {timeout_sec:.1f}s）",
+                code=ErrorCode.MCP_SERVER_UNREACHABLE,
+            )
+        return _outcome
+
     def _list_tools(self, config: McpServerConfig) -> List[Dict[str, Any]]:
         try:
             from mcp import ClientSession, StdioServerParameters
@@ -203,7 +326,7 @@ class McpSkillAdapter:
                 code=ErrorCode.MCP_SDK_UNAVAILABLE,
             ) from e
 
-        try:
+        async def _build() -> List[Dict[str, Any]]:
             if config.transport == "stdio":
                 params = StdioServerParameters(
                     command=config.command,
@@ -214,11 +337,20 @@ class McpSkillAdapter:
             else:
                 transport_ctx = sse_client(config.url)
 
-            with transport_ctx as (read, write):
-                with ClientSession(read, write) as session:
-                    session.initialize()
-                    result = session.list_tools()
+            async with transport_ctx as (read, write):
+                # 配置的 timeout **真正传下去**（E1j：不再"配置了等于没配"）。
+                # `read_timeout_seconds` 由 SDK 自己实现，故即使本层的线程上界
+                # 失效，SDK 仍会独立抛出读超时 —— 两道独立的界。
+                session = _open_session(ClientSession, read, write, config)
+                async with session:
+                    await _maybe_await(session.initialize())
+                    result = await _maybe_await(session.list_tools())
                     return [self._tool_to_dict(t) for t in result.tools]
+
+        try:
+            return self._bounded_mcp_call(config, f"{config.name}:tools/list", _build)
+        except SkillMcpError:
+            raise
         except Exception as e:
             raise SkillMcpError(
                 f"MCP tools/list 调用失败 (server={config.name}): {e}",
@@ -237,7 +369,7 @@ class McpSkillAdapter:
                 code=ErrorCode.MCP_SDK_UNAVAILABLE,
             ) from e
 
-        try:
+        async def _build() -> Dict[str, Any]:
             if config.transport == "stdio":
                 params_obj = StdioServerParameters(
                     command=config.command,
@@ -248,11 +380,18 @@ class McpSkillAdapter:
             else:
                 transport_ctx = sse_client(config.url)
 
-            with transport_ctx as (read, write):
-                with ClientSession(read, write) as session:
-                    session.initialize()
-                    result = session.call_tool(tool_name, params)
+            async with transport_ctx as (read, write):
+                session = _open_session(ClientSession, read, write, config)
+                async with session:
+                    await _maybe_await(session.initialize())
+                    result = await _maybe_await(session.call_tool(tool_name, params))
                     return self._extract_result(result)
+
+        try:
+            return self._bounded_mcp_call(
+                config, f"{config.name}:tools/call:{tool_name}", _build)
+        except SkillMcpError:
+            raise
         except Exception as e:
             raise SkillMcpError(
                 f"MCP tools/call 调用失败 (tool={tool_name}): {e}",

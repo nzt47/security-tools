@@ -287,6 +287,42 @@ class ToolCallingService:
         self._abort_event.clear()
         self._timeout_event.clear()
 
+        # ── 任务级重试预算（TASK-08 子工作流 D / E1e · E1e2）────────────────
+        # 【为什么需要它】改动前重试在**三层**各自为政地放大：
+        #     · 本文件每轮 LLM 调用重试 3 次（`range(3)`，无抖动）
+        #     · `error_handler.execute_with_retry` 又重试 `max_retries+1` 次
+        #       （本文件首轮失败后的降级分支经 `llm_service.chat()` 落到这里）
+        #     · `mcp_client.retry_on_failure` 再重试 N 次
+        #   每一层都以为自己是唯一重试者 ⇒ 相乘。本预算把「总重试次数」
+        #   提升为**任务级不变量**，与层数解耦。
+        #
+        # 【为什么预算是"重试"而不是"尝试"】只计重试 ⇒ 21 轮各成功一次的正常
+        #   路径消耗 0，不会被预算误伤（不改变既有多轮行为，D2）。
+        #
+        # 【降级】预算模块不可用 ⇒ 退回 `consume_retry` 恒 True（= 旧行为）。
+        # 【为什么不无条件新建预算】若调用方（任务入口/更外层编排）已经建立了
+        # 预算，这里再建一份就会把外层预算**顶掉** —— 层级之间又变回"各管各的"，
+        # 正是本任务要消灭的形态。故只在**当前无预算**时新建；已有则共用，
+        # 这样嵌套调用共享同一份额度，"总重试次数"才是任务级不变量。
+        _budget_token = None
+        try:
+            from agent.timeout_budget import RetryBudget, current_budget, use_budget
+            _budget = current_budget()
+            if _budget is None:
+                _budget = RetryBudget()
+                _budget_token = use_budget(_budget)
+                logger.info(log_dict({'module_name': 'tool_calling', 'action': 'retry_budget',
+                                      'msg': '[ToolCalling] 新建重试预算: max_retries=%d, deadline=%.1fs'
+                                             % (_budget.max_retries, _budget.deadline_sec)}))
+            else:
+                logger.info(log_dict({'module_name': 'tool_calling', 'action': 'retry_budget',
+                                      'msg': '[ToolCalling] 复用外层重试预算: max_retries=%d, used=%d'
+                                             % (_budget.max_retries, _budget.used)}))
+        except Exception as _be:  # noqa: BLE001  预算机制故障不得阻断对话主链路
+            _budget = None
+            logger.debug(log_dict({'module_name': 'tool_calling', 'action': 'retry_budget',
+                                   'msg': '重试预算不可用（按旧行为继续）: %s' % (_be,)}))
+
         # 启动任务级超时定时器（默认 600s = 10 分钟）
         _timeout_timer = None
         if self._task_timeout > 0:
@@ -333,7 +369,31 @@ class ToolCallingService:
                     except Exception as e:
                         llm_last_exc = e
                         if retry_attempt < 2:  # 前两次失败才重试
-                            delay = 2 ** retry_attempt  # 指数退避: 1s, 2s
+                            # 【TASK-08 D / E1e2】预算闸门：跨层共享的重试额度耗尽
+                            # 即**放弃本层剩余重试**，不再自行放大。
+                            # 注意：本文件**绕过** `LLMService._chat_with_retry`
+                            # 直打 SDK（`_call_llm_openai` → `client.chat.completions.create`），
+                            # 所以这条循环就是工具路径上唯一的 LLM 重试层 ——
+                            # 它必须接入预算，否则预算管不住真正的放大源。
+                            _allowed = True
+                            try:
+                                from agent.timeout_budget import consume_retry
+                                _allowed = bool(consume_retry("llm_http"))
+                            except Exception:  # noqa: BLE001  预算不可用 ⇒ 旧行为
+                                _allowed = True
+                            if not _allowed:
+                                logger.error(log_dict({'module_name': 'tool_calling', 'action': 'retry_budget',
+                                                       'msg': '[ToolCalling] 重试预算已耗尽（第 %d 轮）→ deadline_exceeded，放弃剩余重试' % round_idx}))
+                                break
+                            # 【抖动】原实现 `delay = 2 ** retry_attempt` 是确定性退避，
+                            # 多个失败调用会同相位重试。此处补去相关抖动，系数与
+                            # LLM 主链路（error_handler jitter_factor=0.1）一致。
+                            _base_delay = 2 ** retry_attempt  # 指数退避: 1s, 2s
+                            try:
+                                from agent.timeout_budget import jittered_delay
+                                delay = jittered_delay(_base_delay)
+                            except Exception:  # noqa: BLE001  抖动不可用 ⇒ 确定性退避
+                                delay = _base_delay
                             logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[ToolCalling] LLM 调用失败（第 %d 轮，尝试 %d/3）: %s，%.1fs 后重试' % (round_idx, retry_attempt + 1, e, delay)}))
                             time.sleep(delay)
                         else:
@@ -581,6 +641,18 @@ class ToolCallingService:
             # 取消超时定时器（防止定时器在任务完成后触发）
             if _timeout_timer:
                 _timeout_timer.cancel()
+            # 释放任务级重试预算（必须 reset，否则预算会沿线程继续泄漏到下一次任务）
+            if _budget_token is not None:
+                try:
+                    from agent.timeout_budget import reset_budget
+                    reset_budget(_budget_token)
+                except Exception:  # noqa: BLE001  释放失败不得影响返回结果
+                    pass
+                if _budget is not None:
+                    _snap = _budget.snapshot()
+                    logger.info(log_dict({'module_name': 'tool_calling', 'action': 'retry_budget',
+                                          'msg': '[ToolCalling] 重试预算结算: used=%d denied=%d elapsed=%.2fs'
+                                                 % (_snap['used'], _snap['denied'], _snap['elapsed_sec'])}))
 
     def _call_llm_with_tools(self, messages, system_prompt,
                               max_tokens, temperature, tool_defs):

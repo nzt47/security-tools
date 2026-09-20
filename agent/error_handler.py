@@ -644,7 +644,27 @@ class ErrorHandler:
                         exc_info=True,
                     )
                     raise self.record_error(e)
-                
+
+                # ── 跨层重试预算闸门（TASK-08 子工作流 D / E1e · E1e2）──────────
+                # 【为什么这里也必须接】本层是「三层重试」里的中间层：调用方
+                # （如 `tool_calling` 首轮失败后的降级分支 → `llm_service.chat()`
+                # → `_chat_with_retry`）已经在**外层**重试过一轮，本层再重试
+                # `max_retries+1` 次，两者相乘。若只在外层加预算而本层不认，
+                # 预算就管不住真正的放大源 —— 这正是"消除旁路"的要求。
+                #
+                # 【降级】无活动预算 / 预算模块不可用 ⇒ 允许重试
+                # （`consume_retry` 在没有活动预算时返回 True，与本层改动前一致，D2）。
+                _budget_ok = True
+                try:
+                    from agent.timeout_budget import consume_retry
+                    _budget_ok = bool(consume_retry("error_handler"))
+                except Exception:  # noqa: BLE001  预算判定异常不得阻断重试链路
+                    _budget_ok = True
+                if not _budget_ok:
+                    logger.error(log_dict({'module_name': 'error_handler', 'action': 'retry_budget',
+                                           'msg': f'[execute_with_retry] 跨层重试预算已耗尽 → deadline_exceeded，放弃剩余重试: func={func.__name__}, attempt={attempt + 1}/{policy.max_retries}'}))
+                    raise self.record_error(e)
+
                 if on_retry:
                     try:
                         on_retry(attempt + 1, e)

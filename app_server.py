@@ -1519,9 +1519,49 @@ try:
     reg_gateway(app)
     logger.info("API 网关适配层已挂载 (/api/open/*, /api/docs)")
 except ImportError:
-    logger.debug("API 网关适配层未安装（agent/api_gateway_flask.py 缺失，跳过）")
+    # 【TASK-08 子工作流 D / E1g】原为 `logger.debug` ⇒ 生产日志（INFO 及以上）
+    # **一行都没有**，缺网关的机器与正常机器从外部不可区分。降级本身是**对的**
+    # （可选组件不该阻断启动，D4 要求继续降级），缺的是「可见性」：
+    # 现改为结构化 ERROR 并登记进启动诊断表，由文件末尾的汇总一次性出报。
+    logger.error("API 网关适配层未安装（agent/api_gateway_flask.py 缺失）——"
+                 "/api/open/* 与 /api/docs 端点本次启动**不可用**")
+    try:
+        from agent.startup_diagnostics import record_degradation
+        record_degradation(
+            "agent.api_gateway_flask", kind="module_missing",
+            purpose="API 网关适配层：/api/open/* 开放端点 + 限流 + 配额 + /api/docs",
+            impact="开放 API 网关整体不可用：/api/open/* 与 /api/docs 线上 404；"
+                   "前端若依赖 /api/docs 则文档页不可用",
+            error="No module named 'agent.api_gateway_flask'")
+    except Exception:  # noqa: BLE001  诊断登记失败不得阻断启动
+        pass
 except Exception as e:
     logger.warning("加载 API 网关适配层失败: %s", e)
+    try:
+        from agent.startup_diagnostics import record_degradation
+        record_degradation(
+            "agent.api_gateway_flask", kind="register_error",
+            purpose="API 网关适配层：/api/open/* 开放端点 + /api/docs",
+            impact="开放 API 网关未挂载，相关端点 404",
+            error=str(e))
+    except Exception:  # noqa: BLE001
+        pass
+
+# ── 启动期降级汇总（TASK-08 D / E1g）──────────────────────────────
+# 位置：**所有路由/适配层注册之后**（本文件末尾），才能看到完整失败集合。
+# 结构：① AST 机械审计"本应可导入的模块"是否真的在（覆盖 30+ 处显式 try/except
+#        注册块——它们没有循环遍历，只有机械提取才不会漏）；
+#       ② 汇总成一条结构化告警。
+# D4：两层都包在 try/except 里，任何诊断故障都不得阻断启动。
+try:
+    from agent.startup_diagnostics import audit_and_record, emit_startup_report
+    _missing = audit_and_record(__file__)
+    if _missing:
+        logger.error("[启动诊断] AST 审计发现 %d 个 app_server.py 引用但不可导入的模块: %s",
+                     len(_missing), ", ".join(m["module"] for m in _missing))
+    emit_startup_report(logger)
+except Exception as _diag_err:  # noqa: BLE001  诊断层故障绝不阻断启动
+    logger.debug("启动诊断不可用（忽略）: %s", _diag_err)
 
 # 程序退出时停止窗口传感器
 import atexit

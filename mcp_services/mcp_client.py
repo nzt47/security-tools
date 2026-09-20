@@ -52,29 +52,120 @@ READ_TIMEOUT = 2.0  # 读取超时时间
 # 装饰器：重试机制
 # ════════════════════════════════════════════════════════════════════
 
-def retry_on_failure(max_retries: int = DEFAULT_MAX_RETRIES, delay: float = INITIAL_DELAY,
+def _budget_allows_retry(layer: str) -> bool:
+    """向**跨层共享预算**申请一次 MCP 重试额度
+
+    【TASK-08 子工作流 D / E1e：为什么 MCP 也要接进同一份预算】
+        MCP 重试与 `tool_calling` 的 LLM 重试、`error_handler` 的重试
+        是三层**相互独立**的循环，各自都以为自己是唯一重试者 ⇒ 相乘放大。
+        接进同一份预算后，「总重试次数」成为任务级不变量。
+
+    【降级】预算机制不可用或当前无活动预算 ⇒ 允许重试（与改动前一致，D2）。
+    """
+    try:
+        from agent.timeout_budget import consume_retry
+    except Exception:  # noqa: BLE001  预算模块不可用 ⇒ 旧行为
+        return True
+    try:
+        return bool(consume_retry(layer))
+    except Exception:  # noqa: BLE001  预算判定异常 ⇒ 不得阻断重试链路
+        return True
+
+
+def _jittered_delay(base_delay: float) -> float:
+    """给退避加去相关抖动
+
+    【分层纪律（不可笼统表述）】LLM 主链路**已有**抖动
+    （`memory/llm_service.py` 的 `jitter_factor=0.1` → `error_handler` 用
+    `random.uniform(1-j, 1+j)`）。缺口**只在** MCP 重试（原实现
+    `current_delay *= backoff_factor` 是纯确定性倍增）与工具调用重试
+    （`tool_calling.py`：`delay = 2 ** retry_attempt`）两处。此处补齐 MCP 这一处。
+    """
+    try:
+        from agent.timeout_budget import jittered_delay
+        return float(jittered_delay(base_delay))
+    except Exception:  # noqa: BLE001  抖动不可用 ⇒ 退回确定性退避
+        return float(base_delay)
+
+
+def _resolve_effective_max_retries(declared: Optional[int], args: tuple,
+                                   kwargs: dict) -> int:
+    """解析本次调用**真正生效**的重试次数
+
+    【TASK-08 子工作流 D / E1k：为什么需要这个函数】
+        原实现是 `@retry_on_failure(max_retries=DEFAULT_MAX_RETRIES, ...)` ——
+        装饰器参数在**函数定义期**求值，于是：
+            · `MCPConfig(max_retries=2)` / `self.config.max_retries` **从未被读**；
+            · `initialize(max_retries=2)` 这个形参只是被接收后**丢弃**。
+        实测后果：调用方传 `max_retries=2`，实际仍然重试 3 次 —— **静默忽略**。
+
+    为什么这样修（而不是"在函数体内自己写重试循环"）：
+        重试循环里含 `await asyncio.sleep` 与异常分类逻辑，抄一份到函数体内会
+        与该装饰器**双份维护**（正是本任务要消灭的"多份各自为政的重试"）。
+        正确做法是让**装饰器的参数在运行期解析**：`max_retries=None` 表示
+        「定义期不定值，调用时再决定」，同时保留传 int 的旧用法（D2 向后兼容）。
+
+    解析优先级（高 → 低）：
+        1. 装饰器显式传入的 int（旧行为，完全不变）；
+        2. 调用方显式 kwarg `max_retries=`（修好 `initialize(max_retries=2)` 的静默忽略）；
+        3. `self.config.max_retries`（修好 `MCPConfig(max_retries=N)` 的不生效）；
+        4. `DEFAULT_MAX_RETRIES`（兜底）。
+    """
+    if declared is not None:
+        try:
+            return max(0, int(declared))
+        except (TypeError, ValueError):
+            return DEFAULT_MAX_RETRIES
+
+    candidate = kwargs.get("max_retries")
+    if candidate is None:
+        target = args[0] if args else None
+        config = getattr(target, "config", None)
+        candidate = getattr(config, "max_retries", None)
+    if candidate is None:
+        candidate = DEFAULT_MAX_RETRIES
+    try:
+        return max(0, int(candidate))
+    except (TypeError, ValueError):
+        return DEFAULT_MAX_RETRIES
+
+
+def retry_on_failure(max_retries: Optional[int] = None, delay: float = INITIAL_DELAY,
                      backoff_factor: float = BACKOFF_FACTOR, retry_exceptions: tuple = (TimeoutError,)):
-    """重试装饰器 - 带指数退避"""
+    """重试装饰器 - 带指数退避 + 抖动 + 跨层预算
+
+    Args:
+        max_retries: 固定重试次数；**None（默认）表示运行期解析**
+            （见 `_resolve_effective_max_retries`），这样配置与显式传参才真正生效。
+    """
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
             last_exception = None
             current_delay = delay
+            effective = _resolve_effective_max_retries(max_retries, args, kwargs)
 
-            for attempt in range(max_retries):
+            for attempt in range(effective):
                 try:
                     return await func(*args, **kwargs)
                 except retry_exceptions as e:
                     last_exception = e
-                    logger.warning(f"[MCP客户端] 操作失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+                    logger.warning(f"[MCP客户端] 操作失败 (尝试 {attempt + 1}/{effective}): {e}")
 
-                    if attempt < max_retries - 1:
-                        logger.info(f"[MCP客户端] 等待 {current_delay:.2f} 秒后重试...")
-                        await asyncio.sleep(current_delay)
+                    if attempt < effective - 1:
+                        # 跨层预算：耗尽即**停止重试**并上抛，不再自行放大
+                        if not _budget_allows_retry("mcp"):
+                            logger.error(
+                                f"[MCP客户端] 重试预算已耗尽，放弃剩余 "
+                                f"{effective - attempt - 1} 次重试（deadline_exceeded）")
+                            break
+                        wait = _jittered_delay(current_delay)
+                        logger.info(f"[MCP客户端] 等待 {wait:.2f} 秒后重试...")
+                        await asyncio.sleep(wait)
                         current_delay *= backoff_factor
 
-            logger.error(f"[MCP客户端] 操作失败，已达到最大重试次数 ({max_retries})")
+            logger.error(f"[MCP客户端] 操作失败，已达到最大重试次数 ({effective})")
             raise last_exception
 
         return wrapper
@@ -273,7 +364,10 @@ class MCPClient:
         self._shutdown_event.clear()
         logger.info("[MCP客户端] 服务已停止")
 
-    @retry_on_failure(max_retries=DEFAULT_MAX_RETRIES, delay=INITIAL_DELAY)
+    # 【TASK-08 D / E1k】此处**故意不写 max_retries**：写死常量会让
+    # `self.config.max_retries` 与调用方传入的 `max_retries=` 全部失效
+    # （装饰器参数在定义期求值）。留空 ⇒ 运行期解析（见 _resolve_effective_max_retries）。
+    @retry_on_failure(delay=INITIAL_DELAY)
     async def initialize(self, max_retries: int = None) -> Dict[str, Any]:
         """初始化MCP连接（带重试机制）
 

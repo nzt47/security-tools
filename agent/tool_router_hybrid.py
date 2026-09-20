@@ -24,7 +24,9 @@
   - torch/SentenceTransformer 在部分环境(Windows 0xC0000005 / Linux SIGILL)
     加载模型时会触发原生访问违规,Python try/except 无法捕获。
   - 解决方案:子进程探测 + 结果缓存。探测在子进程运行,崩溃不影响主进程。
-  - 探测结果缓存到 data/.embedding_probe,后续启动直接读取,无需重复探测。
+  - 探测结果缓存到 data/.embedding_probe(含 probed_at 时间戳,**带 TTL**,
+    见 _PROBE_CACHE_TTL),未过期的后续启动直接读取,过期则重新探测 ——
+    缓存只代表"最近一次探测的结论",不代表永久结论。
 """
 
 from __future__ import annotations
@@ -63,7 +65,32 @@ _DEFAULT_TOP_K = 40       # 默认候选池大小（**不是**最终返回数）
 #         候选池必须 ≥ max_tools，排序与截断才有意义。
 _COSINE_CUTOFF = 0.2      # Embedding 余弦相似度剪枝阈值(低于此值不进入融合)
 _PROBE_TIMEOUT = 60       # 子进程探测超时(秒)
-_WORKER_READY_TIMEOUT = 30.0  # worker ready 信号读取超时(秒)
+# worker ready 信号读取超时(秒)
+# 【变易】它是启动等待的**唯一数值来源**:EmbeddingIndex._WORKER_STARTUP_TIMEOUT
+#         只是它的别名(历史上那处独立写着 60,从未被读取,与实际生效的 30 不一致)。
+#         MiniLM(约 470MB)冷启动远快于 reranker 的 2.3GB 模型,故 30s 足够。
+_WORKER_READY_TIMEOUT = 30.0
+# 单次 encode 响应读取超时(秒)
+# 【变易】此处模型已加载完毕,等待的只剩一次批量编码(索引重建时 ≤ 全部工具描述,
+#         实测 query 编码 10-20ms 量级)⇒ 30s ≈ 数十倍余量,慢机不误杀,
+#         而 encode 死锁(worker 卡住不再回包)不会再让检索链路永久挂起。
+_WORKER_ENCODE_TIMEOUT = 30.0
+
+# 探测结果缓存的有效期(秒)
+# 【变易】为什么需要 TTL:探测结果是**能力快照**,不是永久事实。原实现只读
+#         bool(data["available"])、完全忽略 probed_at ⇒ 一次负结果被永久固化
+#         (实测 data/.embedding_probe 里 available=false 写于 2026-07-23,之后
+#         再没被复核过),依赖装好了/探测当时瞬时失败,Embedding 都不会再启用 ——
+#         这是一次静默的能力损失,而且日志上看不出任何异常。
+# 【不易】正结果同样要过期:Env 会漂移(依赖被卸载/模型缓存被清/磁盘满),
+#         陈旧的正结果会让 _ensure_st_checked() 继续放行,真正的问题推迟到
+#         EmbeddingIndex 起 worker 时才暴露,反而更难定位。缓存应表达
+#         "最近一次探测如此",而不是"一直如此"。
+# 【简易】7 天:探测本身很贵(要起解释器并加载模型,上限 _PROBE_TIMEOUT=60s),
+#         TTL 太短会把冷启动成本摊到每次进程启动上;7 天把开销压到
+#         "每进程最多一次 / 每周一次",又保证能力最多滞后一周被复核。
+#         进程内 _PROBE_RESULT 仍会短路重复探测 ⇒ 不会出现重探风暴。
+_PROBE_CACHE_TTL = 7 * 24 * 3600.0
 
 
 def _resolve_alpha_from_env() -> float:
@@ -195,12 +222,42 @@ _PROBE_LOCK = threading.Lock()
 
 
 def _read_probe_cache() -> Optional[bool]:
-    """读取持久化的探测结果缓存"""
+    """读取持久化的探测结果缓存(带 TTL 校验,过期或无法判定新鲜度即视为未命中)
+
+    返回 None 表示"没有可信的缓存",调用方(_ensure_st_checked)会重新探测并
+    用 _write_probe_cache 覆盖为新鲜值。
+
+    Why(为什么必须校验 probed_at,而不是直接信任 available):
+        探测结果是能力快照。原实现忽略 probed_at ⇒ 一次负结果被永久固化,
+        依赖后来装好了也不会重新探测,Embedding 被**静默**永久禁用;
+        正结果同样会随环境漂移失效。故只信任"足够新、且时间戳可解释"的记录。
+
+    【不易】缺 probed_at / 非数字 / 时间戳在未来的旧格式文件一律判为过期:
+            既然无法证明它是"最近一次探测",就不能拿它当证据 —— 宁可贵一次
+            (进程内 _PROBE_RESULT 保证同进程只重探一次),不可错一辈子。
+    """
     try:
         if os.path.exists(_PROBE_CACHE):
             with open(_PROBE_CACHE, "r", encoding="utf-8") as f:
                 data = json.load(f)
             if isinstance(data, dict) and "available" in data:
+                probed_at = data.get("probed_at")
+                # bool 是 int 的子类,必须显式排除(probed_at: true/false 不是时间戳)
+                if (not isinstance(probed_at, (int, float))
+                        or isinstance(probed_at, bool)):
+                    logger.info(
+                        "[tool_router_hybrid] 探测缓存缺少可用的 probed_at(%r),"
+                        "视为过期并重新探测", probed_at,
+                    )
+                    return None
+                age_sec = time.time() - float(probed_at)
+                # 负 age = 时间戳在未来(时钟回拨或文件被手改)⇒ 不可信
+                if age_sec < 0 or age_sec > _PROBE_CACHE_TTL:
+                    logger.info(
+                        "[tool_router_hybrid] 探测缓存已过期(age=%.1fs, ttl=%.0fs),"
+                        "重新探测", age_sec, _PROBE_CACHE_TTL,
+                    )
+                    return None
                 return bool(data["available"])
     except Exception:
         pass
@@ -265,8 +322,8 @@ def _ensure_st_checked() -> bool:
     优先级:
       1. 环境变量 AGENT_HYBRID_EMBEDDING 强制覆盖(0=禁用, 1=启用)
       2. 内存缓存(_PROBE_RESULT)
-      3. 文件缓存(data/.embedding_probe)
-      4. 子进程探测(首次或缓存失效时)
+      3. 文件缓存(data/.embedding_probe,**仅在 _PROBE_CACHE_TTL 内有效**)
+      4. 子进程探测(首次或缓存过期/不可信时,结果写回文件缓存)
     """
     global _PROBE_RESULT
     if _PROBE_RESULT is not None:
@@ -345,6 +402,14 @@ class BM25Index:
         self._index: dict[str, list[tuple[str, int]]] = {}
         self._doc_lengths: dict[str, int] = {}  # doc_id -> token count
         self._total_docs = 0
+        # 【不易·TASK-08 E1p】所有文档的 token 总数,**增量维护**
+        # Why: 旧实现在 add_document / _remove_document_locked 里都执行
+        #      `sum(self._doc_lengths.values())` ⇒ 单次插入 O(n)、构建 n 篇 O(n²)。
+        #      实测 10,000 条时仅这一项就吃掉约 0.36s（见 scripts/bench_bm25_add_document.py）。
+        #      改成累加字段后单次插入 O(1),对外行为完全不变（_avg_doc_length 的取值逐位相同）。
+        # 【变易】它必须与 _doc_lengths 的增删**成对**更新；不变量由
+        #      tests/unit/test_bm25_incremental_total_len.py 逐操作序列断言。
+        self._total_doc_len = 0
         self._avg_doc_length = 0.0
         self._lock = threading.RLock()
 
@@ -365,10 +430,14 @@ class BM25Index:
                     self._index[term] = []
                 self._index[term].append((doc_id, freq))
 
-            self._doc_lengths[doc_id] = len(tokens)
+            doc_len = len(tokens)
+            self._doc_lengths[doc_id] = doc_len
             self._total_docs += 1
-            total_length = sum(self._doc_lengths.values())
-            self._avg_doc_length = total_length / self._total_docs if self._total_docs > 0 else 0.0
+            # 【TASK-08 E1p】增量累加,不再 sum 全表(见 __init__ 的 _total_doc_len 注释)
+            self._total_doc_len += doc_len
+            self._avg_doc_length = (
+                self._total_doc_len / self._total_docs if self._total_docs > 0 else 0.0
+            )
 
     def _remove_document_locked(self, doc_id: str) -> None:
         """从索引移除文档(调用方持锁)"""
@@ -378,12 +447,17 @@ class BM25Index:
             self._index[term] = [(did, freq) for did, freq in self._index[term] if did != doc_id]
             if not self._index[term]:
                 del self._index[term]
+        # 【TASK-08 E1p】先按被删文档的长度**减**掉,再删记录 —— 顺序不能反
+        # （反了就取不到长度,总长会永久偏大,而 _avg_doc_length 会静默算错）
+        self._total_doc_len -= self._doc_lengths[doc_id]
         del self._doc_lengths[doc_id]
         self._total_docs -= 1
         if self._total_docs > 0:
-            total_length = sum(self._doc_lengths.values())
-            self._avg_doc_length = total_length / self._total_docs
+            self._avg_doc_length = self._total_doc_len / self._total_docs
         else:
+            # 空索引时把总长也归零:否则"删光再加"的序列会让总长带着历史残留,
+            # 而 _total_docs=1 时的 _avg_doc_length 就会算成历史总和
+            self._total_doc_len = 0
             self._avg_doc_length = 0.0
 
     def search(self, query: str, top_k: int = 10) -> list[tuple[str, float]]:
@@ -426,7 +500,21 @@ class BM25Index:
             self._index.clear()
             self._doc_lengths.clear()
             self._total_docs = 0
+            # 【TASK-08 E1p】增量字段必须与 _doc_lengths 一起归零（漏掉这里，
+            # 下一次 rebuild 的 _avg_doc_length 会带上上一轮的历史总长）
+            self._total_doc_len = 0
             self._avg_doc_length = 0.0
+
+    @property
+    def total_doc_length(self) -> int:
+        """所有已索引文档的 token 总数（增量维护值）
+
+        【TASK-08 E1p 新增】只读观测口：修复前这个值由 `sum(_doc_lengths.values())`
+        现算现用、没有对外句柄；改成增量字段后必须留一个可读入口，否则"增量维护的
+        值是否始终等于重算值"这条不变量在运行时无法被检查（测试只能读私有字段）。
+        """
+        with self._lock:
+            return self._total_doc_len
 
     @property
     def size(self) -> int:
@@ -501,7 +589,12 @@ class EmbeddingIndex:
     【简易】Worker 只负责 encode,主进程存 numpy 数组 + 计算 cosine similarity
     """
 
-    _WORKER_STARTUP_TIMEOUT = 60
+    # worker 启动(ready 信号)读取上限。
+    # 【不易】此处历史上独立写死 60,而读取点用的是模块级 _WORKER_READY_TIMEOUT=30:
+    #        两个数不一致,且 60 从未被任何代码读取 —— 典型的"声明与行为不符"
+    #        (同一个缺陷在 reranker 里表现为常量完全没人用)。保留字段名(向后兼容),
+    #        数值改为与模块级常量同源,使"启动超时"只有一处真相。
+    _WORKER_STARTUP_TIMEOUT = _WORKER_READY_TIMEOUT
     _DEFAULT_QUERY_CACHE_SIZE = 128
 
     def __init__(self, model_name: str = _DEFAULT_MODEL,
@@ -512,6 +605,15 @@ class EmbeddingIndex:
         self._doc_ids: list[str] = []
         self._embeddings = None
         self._pending: list[tuple[str, str]] = []
+        # 【TASK-08 E1p·第二处 O(n²)】`_pending` 的 doc_id 集合(与 _pending 同步维护)
+        # Why: 旧实现每次都执行 `self._pending = [(d, c) for d, c in self._pending if d != doc_id]`
+        #      去重 ⇒ 单次 add_document O(pending)。`HybridRetriever.rebuild` 会为每个工具
+        #      调它一次 ⇒ 构建 n 个工具的索引是 O(n²)。实测 10,000 条时该项同样在数百毫秒
+        #      量级（见 scripts/bench_capacity_scaling.py 的 rebuild 列）。
+        #      有了这个集合就可以先判存在性：**不存在（绝大多数情况）直接 append**，
+        #      只有真出现重复 doc_id 时才走原来的过滤分支 ⇒ 语义逐字不变、复杂度降到 O(1)。
+        # 【变易】它必须与 `_pending` 的任何改动成对更新（append / filter / clear 三处）。
+        self._pending_ids: set[str] = set()
         self._init_failed = False
         self._load_time_sec: Optional[float] = None
         self._load_source: Optional[str] = None
@@ -539,8 +641,14 @@ class EmbeddingIndex:
                 self._doc_ids.pop(idx)
                 if self._embeddings is not None:
                     self._embeddings = np.delete(self._embeddings, idx, axis=0)
-            self._pending = [(d, c) for d, c in self._pending if d != doc_id]
+            # 【TASK-08 E1p】先判存在性：不存在 ⇒ 直接 append（O(1)）；
+            # 存在 ⇒ 才走原来的过滤分支（O(pending)）。语义与原实现逐字等价
+            # （原地过滤 + append 的净效果就是"删旧同名项再追加到末尾"）。
+            if doc_id in self._pending_ids:
+                self._pending = [(d, c) for d, c in self._pending if d != doc_id]
+                self._pending_ids.discard(doc_id)
             self._pending.append((doc_id, content))
+            self._pending_ids.add(doc_id)
 
     def _ensure_worker(self) -> bool:
         """启动子进程 worker + 等待 ready 信号 + 编码 pending 文档"""
@@ -567,7 +675,7 @@ class EmbeddingIndex:
         json_errors = 0
         while True:
             try:
-                line = _readline_with_timeout(self._proc.stdout, _WORKER_READY_TIMEOUT)
+                line = _readline_with_timeout(self._proc.stdout, self._WORKER_STARTUP_TIMEOUT)
             except OSError as e:
                 logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.stdout_read_failed', 'error': str(e)}))
                 self._init_failed = True
@@ -575,7 +683,7 @@ class EmbeddingIndex:
 
             if line is _READLINE_TIMED_OUT:
                 # worker 未在超时时间内输出 ready 信号:kill 并降级为纯 BM25
-                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.ready_timeout', 'timeout_sec': _WORKER_READY_TIMEOUT, 'model': self._model_name}))
+                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.ready_timeout', 'timeout_sec': self._WORKER_STARTUP_TIMEOUT, 'model': self._model_name}))
                 self._proc.kill()
                 try:
                     self._proc.wait(timeout=3)
@@ -648,10 +756,19 @@ class EmbeddingIndex:
             return None
 
         try:
-            line = self._proc.stdout.readline()
+            line = _readline_with_timeout(self._proc.stdout, _WORKER_ENCODE_TIMEOUT)
         except OSError as e:
             logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode.read_failed', 'error': str(e)}))
             self._init_failed = True
+            return None
+
+        if line is _READLINE_TIMED_OUT:
+            # 【不易】模型早已加载,这里超时只能是 worker 卡死/死锁。必须回收子进程:
+            #        否则超时后仍阻塞在 readline 上的孤儿读线程会抢走**下一次**请求的
+            #        响应行,造成请求-响应错位(比直接降级更隐蔽)。
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode.read_timeout', 'timeout_sec': _WORKER_ENCODE_TIMEOUT, 'n_texts': len(texts), 'model': self._model_name}))
+            self._init_failed = True
+            self._cleanup_proc()
             return None
 
         if not line:
@@ -703,6 +820,9 @@ class EmbeddingIndex:
             self._doc_ids.extend(d for d, _ in self._pending)
         logger.info(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode_pending.complete', 'n_pending': len(self._pending), 'total_docs': len(self._doc_ids), 'shape': list(new_embeddings.shape)}))
         self._pending.clear()
+        # 【TASK-08 E1p】pending 清空时 id 集合必须同步清空，否则后续同名 add 会走
+        # "已存在 ⇒ 过滤" 分支去删一个不存在的条目（结果虽相同，但会白白 O(n) 扫描）
+        self._pending_ids.clear()
 
     def _cleanup_proc(self) -> None:
         """清理子进程资源"""
@@ -787,6 +907,7 @@ class EmbeddingIndex:
             self._doc_ids.clear()
             self._embeddings = None
             self._pending.clear()
+            self._pending_ids.clear()
             self._query_cache.clear()
             self._cache_hits = 0
             self._cache_misses = 0

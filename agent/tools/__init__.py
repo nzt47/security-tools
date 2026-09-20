@@ -446,7 +446,44 @@ def call(*args, **params) -> Any:
 
     start = time.time()
     try:
-        result = tool["handler"](**params)
+        # ── 超时上界（TASK-08 子工作流 D / E1j · E15）────────────────────────
+        # 【为什么必须在这里】`call()` 是工具分发的**唯一汇聚点**（见本节上文），
+        # 因此把上界加在这一层，等于一次性覆盖所有调用方（tool_calling 的
+        # `_execute_safe`、orchestrator 直连、以及任何未来新增入口），
+        # 不必逐个业务工具去补 —— 逐个补必然漏，漏掉的那个就是永久阻塞点。
+        #
+        # 【为什么是"兜底"而不是"主判定"】各工具自己**已经有**更精细的内部超时
+        # （shell 120 / git 120 / lint 600 / test 900，见各模块 schema 自述）。
+        # 本层不替代它们，只封住它们**没有**覆盖的情形：handler 自身挂死、
+        # 或其内部超时机制失效（`code_tools` 的「不设置则不限时」即此类）。
+        # 默认上界（1800s）严格高于全部既有自述上限，故不裁掉任何既有契约。
+        #
+        # 【降级】开关读不到 / 模块导入失败 ⇒ 上界为 0（不限）＝ 旧行为，
+        # 保证新模块的任何问题都不会让工具调用链断掉（D4/D2）。
+        try:
+            from agent.timeout_budget import (
+                call_with_timeout, resolve_tool_handler_timeout,
+                timeout_error_payload,
+            )
+            _handler_timeout = resolve_tool_handler_timeout(tool, params)
+        except Exception:  # noqa: BLE001  上界机制自身故障 ⇒ 退化为旧行为
+            _handler_timeout = 0.0
+
+        _ok, _outcome = call_with_timeout(
+            tool["handler"], _handler_timeout, kwargs=params, label=name,
+        )
+        if not _ok:
+            duration = time.time() - start
+            _update_health(name, False, duration)
+            logger.error("[%s] 工具执行超时: %s — 上界 %.1fs",
+                         trace_id, name, _handler_timeout)
+            if _action_tracker:
+                _action_tracker.finish_action("timeout", f"上界 {_handler_timeout:.1f}s")
+            # 返回**结构化**错误而非抛异常：超时是"可预期的资源耗尽"，
+            # 上层（LLM 循环）应能读到它并换策略，而不是把整轮对话打断。
+            return timeout_error_payload(name, _handler_timeout)
+        result = _outcome
+
         duration = time.time() - start
         _update_health(name, True, duration)
 
