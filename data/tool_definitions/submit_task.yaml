@@ -4,6 +4,8 @@ description: 提交异步任务在后台执行，立即返回任务ID不阻塞�
   查状态，用 get_task_result 获取结果
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.code_tools:_submit_task）在 6 跳内未命中任何跨边界原语；另有 7 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: execute
 risk: medium

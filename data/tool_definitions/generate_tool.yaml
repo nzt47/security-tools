@@ -3,6 +3,8 @@ category: extension
 description: 生成一个自定义工具。当你需要的能力没有现成扩展时，可以自主编写代码生成工具。轻量工具不保存文件，复杂工具可持久化。
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.tools.tool_generator:_exec_with_timeout 命中跨边界原语 multiprocessing.get_context"
 plane: govern
 effect: extend
 risk: critical

@@ -3,6 +3,8 @@ category: code
 description: 自动检测字符串属于哪种数据格式，支持 JSON/XML/YAML/CSV，返回格式名称和置信度评分（0~1）。同时返回 JSON 校验结果：valid（是否合法 JSON）、parsed_type、keys_count、data，失败原因见 json.error。用于识别未知数据来源的格式，以及校验/验证 JSON 字符串是否合法
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.code_tools:_data_format_detect）在 6 跳内未命中任何跨边界原语；另有 28 个调用点静态无法解析（见 unresolved）"
 plane: perceive
 effect: read
 risk: low

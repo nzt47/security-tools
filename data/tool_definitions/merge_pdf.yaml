@@ -4,6 +4,8 @@ description: 合并多个 PDF 文件为一个。paths 是要合并的源文件�
   files into one, combine PDFs
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.pdf_tools:_merge_pdf）在 6 跳内未命中任何跨边界原语；另有 23 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: write
 risk: low

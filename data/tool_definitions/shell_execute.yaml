@@ -5,6 +5,8 @@ description: 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac
   commands
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.tools.shell_tools:execute_shell 命中跨边界原语 subprocess.run"
 plane: act
 effect: execute
 risk: critical

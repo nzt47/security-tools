@@ -376,7 +376,7 @@ def register_all(dl):
     @_tools.register("list_mcp_connections", "列出当前活跃的 MCP 服务连接（连接 ID、名称、传输方式、已注册工具数与工具名）。用于确认 MCP 服务是否接上、其工具是否已进入工具表。List active MCP connections", schema={
         "type": "object",
         "properties": {},
-    })
+    }, source=_tools.SOURCE_MCP_ADMIN)
     def _list_mcp_connections(**kwargs):
         try:
             discovery = getattr(dl, "_discovery_service", None)

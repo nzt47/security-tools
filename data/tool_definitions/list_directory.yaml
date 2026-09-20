@@ -3,6 +3,8 @@ category: file
 description: 列出目录中的文件和子目录，支持指定路径和显示隐藏文件
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.file_tools_reg:_list_directory）在 6 跳内未命中任何跨边界原语；另有 46 个调用点静态无法解析（见 unresolved）"
 plane: perceive
 effect: read
 risk: low

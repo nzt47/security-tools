@@ -4,6 +4,8 @@ description: 生成系统架构图。根据组件列表生成漂亮的 HTML+SVG 
   title（标题）、components（组件列表）和 output_path（输出路径）
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.code_tools:_arch_diagram）在 6 跳内未命中任何跨边界原语；另有 38 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: write
 risk: low

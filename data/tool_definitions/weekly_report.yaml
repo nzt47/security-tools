@@ -4,6 +4,8 @@ description: 生成本周工作总结报告（含统计、洞察与建议）并�
   a weekly work report
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.extra_tools:_weekly_report）在 6 跳内未命中任何跨边界原语；另有 24 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: write
 risk: low

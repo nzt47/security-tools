@@ -4,6 +4,8 @@ description: 获取异步任务的执行结果。已完成的结果保留 1 小�
   → get_task_result
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.code_tools:_get_task_result）在 6 跳内未命中任何跨边界原语；另有 6 个调用点静态无法解析（见 unresolved）"
 plane: perceive
 effect: read
 risk: low

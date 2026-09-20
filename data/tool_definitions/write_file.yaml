@@ -3,6 +3,8 @@ category: file
 description: 将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.file_tools_reg:_write_file）在 6 跳内未命中任何跨边界原语；另有 18 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: write
 risk: high

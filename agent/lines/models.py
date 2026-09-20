@@ -46,6 +46,34 @@ TOOL_TYPES = ("tool", "skill", "api", "script")
 CALLABLE_MODES = ("auto", "required", "manual")
 PERMISSION_LEVELS = ("public", "internal", "restricted")
 
+# ── CapabilitySpec 新增维度（v1.4 §5.1；TASK-04）─────────────────────────
+#: 能力形态归并（见 docs/rfc/CapabilitySpec规范.md §2）：
+#:   本文件是**工具侧**的模型，值域里保留 `skill` 只为让历史数据可解析；
+#:   `api` → `kind=tool` + `location=remote`（远端接口），`script` → `kind=skill`（脚本型技能）。
+#:   **技能侧的 kind 不来自 data/tool_definitions/*.yaml**，只来自
+#:   `data/skill_callability.yaml` 的 defaults + 覆盖（见 callability.load_skill_declarations）。
+KINDS = ("tool", "skill")
+
+#: 执行位置：`local` = 同进程内执行；`remote` = 跨进程/协议边界（含本机 stdio 子进程）
+#: 为什么在这里再列一次而不 import agent/lines/location.py：与上面 TOOL_TYPES 同一理由
+#: （避免新增依赖边），一致性由 tests/unit/test_capability_spec.py 对拍锁死。
+LOCATIONS = ("local", "remote")
+
+#: 能力归属：谁把它装进来的（仓库里此前**没有**这个概念）
+#:   builtin           随仓库发布（data/tool_definitions/*.yaml + 内置注册点）
+#:   local-installed   本机安装的扩展/MCP 服务（data/extensions、mcp 连接）
+#:   tenant-installed  租户安装（预留；当前恒为空 —— 单机单用户，见 §6）
+#:   marketplace       来自扩展市场（SOURCE_MARKET）
+OWNERS = ("builtin", "local-installed", "tenant-installed", "marketplace")
+
+#: `tenant_id` 的占位默认。单机单用户下**恒为 default**，来源是**派生**（服务端），
+#: 不是请求参数 —— 见 `agent/routes_ui_panels.py` 的客户端传参矫正（TASK-04 §6.3）。
+DEFAULT_TENANT_ID = "default"
+
+#: 命名空间（`capability_id` 的第二段）。当前全部工具都在同一命名空间下，
+#: 值取自 `namespace` 键，缺省用 `yunshu`（仓库名）。
+DEFAULT_NAMESPACE = "yunshu"
+
 #: effect 的偏序：用于 policy.effect_allow 的包含判定
 _EFFECT_ORDER = {"read": 0, "write": 1, "execute": 2, "extend": 3}
 
@@ -83,6 +111,95 @@ class ToolMeta:
     #: 不可调用原因（llm_callable=false 时必填）
     reason: str = ""
 
+    # ── CapabilitySpec 扩展（v1.4 §5.1；TASK-04 新增）────────────────────
+    # 【D2 向后兼容】以下字段**全部可选且有默认值**，`to_dict()` 只增不减；
+    # 既有消费者（agent/lines、agent/hitl、tool_gate、rate_limiter、subagent/toolset）
+    # 不受影响。字段语义与判定规则见 docs/rfc/CapabilitySpec规范.md。
+    #: 执行位置：local | remote。**默认 remote（保守侧）**：
+    #:   未登记/未识别的能力按"会跨出进程边界"对待 —— 那是更受约束的一侧
+    #:   （需要超时、熔断、SSRF 检查、网络审计）；漏判的代价是安全缺口，
+    #:   误判的代价只是一条多余的约束。与本文件 `load_tool_meta` 的
+    #:   "缺字段给保守默认（act/execute/medium）"同一取舍。
+    location: str = "remote"
+    #: 声明 `location` 的理由（作为**钉住值**时必须写明；缺省为空 ⇒ 判定器接管）
+    location_reason: str = ""
+    #: 归属：builtin | local-installed | tenant-installed | marketplace
+    owner: str = "builtin"
+    #: 能力版本（YAML 的 `version`；仓库现状 91/91 都有，但治理未启动）
+    version: str = "1.0.0"
+    #: 命名空间（`capability_id` 第二段）
+    namespace: str = DEFAULT_NAMESPACE
+    #: 租户占位（当前恒为 default；来源是服务端派生，不是请求参数）
+    tenant_id: str = DEFAULT_TENANT_ID
+    #: 注册表来源：global（`agent/tools/_registry`）| planning（`planning.ToolRegistry`）
+    #: 【为什么要有】`get_status` / `search_memory` / `get_sensor_summary` **同名两表**，
+    #:   不标出来就分不清"这个名字指的是哪一个"（见 §2.7 的静默改名机制）。
+    registry_source: str = "global"
+    #: 输入契约（**别名**：YAML 的 `schema:` 键就是它 —— 做别名，不改名）
+    input_schema: Optional[Dict[str, Any]] = None
+    #: 输出契约 / 结果契约（`output_schema` 与 `result_schema` 是同一件的两种叫法）
+    output_schema: Optional[Dict[str, Any]] = None
+    #: CapabilitySpec 自身版本（首期恒为 1；v1.4 §1.3 自述"首期不强制签名与 SBOM"）
+    manifest_version: int = 1
+    #: 预留（v1.4 §1.3：首期不强制，但预留接口）—— 当前**无任何消费者**
+    signature: str = ""
+    source_trust: str = ""
+    compatibility: str = ""
+    semver_policy: str = ""
+    #: 健康态（`agent/health/` 的产物；TASK-05 才接线，当前一律留空）
+    health: str = ""
+    #: 是否已废弃（证据：YAML 的 `deprecated`；当前 91/91 全 false ⇒ 淘汰机制未启动）
+    deprecated: bool = False
+    #: 显式别名（同名冲突时 `register_dynamic` 自动加的 `_2`/`_3` 名字登记在此，
+    #: 使"静默改名"变成**可见的别名**，见 TASK-04 §3 第 2 步第 5 项）
+    aliases: tuple = ()
+
+    @property
+    def kind(self) -> str:
+        """能力形态（归并后）：`api`→`tool`、`script`→`skill`；`tool`/`skill` 为**恒等映射**。
+
+        【不易·2026-09-20 修一处实现与文档/测试不一致】
+        原实现只判断 `tool_type == "script"`，其余**一律返回 `"tool"`** ——
+        于是 `tool_type="skill"` 被错判成 `kind="tool"`，与
+        `tests/unit/test_capability_spec.py::test_kind_归并规则` 的断言直接冲突
+        （那 4 条断言：`api`→`tool`、`script`→`skill`、`tool`→`tool`、`skill`→`skill`）。
+
+        Why 取"恒等映射"而不是"改测试"：
+          `kind` 的定义就是**把 4 值域归并成 2 值域**（见 `KINDS` 与
+          `docs/rfc/CapabilitySpec规范.md` §2）。归并规则只对 `api` / `script`
+          这两个"非形态"取值做映射；`tool` 与 `skill` **本身就是形态**
+          ⇒ 它们应当是恒等映射。若把 `skill` 也塌成 `tool`，则 `kind` 会丢失
+          "这条能力是技能形态"的信息，与 `KINDS` 里保留 `skill` 相矛盾。
+
+        影响面（实测确认无副作用）：91 个 `data/tool_definitions/*.yaml` 的
+        `tool_type` **全部是 `tool`** ⇒ 本属性对全部现存工具都返回 `"tool"`，行为不变；
+        技能侧的 23 条**不经过 `ToolMeta`**（走 `data/skill_callability.yaml`）。
+        生产代码里 `kind` 的唯一消费点是 `to_dict()`（`:210`），未做 `== "skill"` 比较。
+        """
+        if self.tool_type in ("script", "skill"):
+            return "skill"
+        return "tool"
+
+    @property
+    def capability_id(self) -> str:
+        """全局唯一能力标识：`tenant_id:namespace:name@version`
+
+        【为什么用这个顺序】v1.4 §5.1 要求 Registry/Router/缓存/审计/配额键**都带
+        `tenant_id`**（当前恒为 `default`，但键形状必须现在就正确，否则将来一开多租户
+        就是全量键重写）。`tool_name` **保留为别名/短键**（D2：agent/lines 与 UI 都在用它）。
+        """
+        return f"{self.tenant_id}:{self.namespace}:{self.name}@{self.version}"
+
+    @property
+    def schema(self) -> Optional[Dict[str, Any]]:
+        """`input_schema` 的**旧名别名**（YAML 用的是 `schema:`，勿改名）"""
+        return self.input_schema
+
+    @property
+    def result_schema(self) -> Optional[Dict[str, Any]]:
+        """`output_schema` 的别名（v1.4 §5.1 里两个名字都出现过，统一指向同一份契约）"""
+        return self.output_schema
+
     @property
     def needs_approval(self) -> bool:
         """治理平面 / 改变能力集 / 高危 ⇒ 需要人工确认"""
@@ -108,6 +225,26 @@ class ToolMeta:
             "permission_level": self.permission_level,
             "sandbox_allowed": bool(self.sandbox_allowed),
             "reason": self.reason,
+            # ── CapabilitySpec 扩展（只增不减，D2）──
+            "kind": self.kind,
+            "location": self.location,
+            "location_reason": self.location_reason,
+            "owner": self.owner,
+            "version": self.version,
+            "namespace": self.namespace,
+            "tenant_id": self.tenant_id,
+            "capability_id": self.capability_id,
+            "registry_source": self.registry_source,
+            "input_schema": self.input_schema,
+            "output_schema": self.output_schema,
+            "manifest_version": self.manifest_version,
+            "signature": self.signature,
+            "source_trust": self.source_trust,
+            "compatibility": self.compatibility,
+            "semver_policy": self.semver_policy,
+            "health": self.health,
+            "deprecated": bool(self.deprecated),
+            "aliases": list(self.aliases),
         }
 
 
@@ -229,6 +366,9 @@ def load_tool_meta(defs_dir: Optional[str] = None, force: bool = False) -> Dict[
         if isinstance(raw_tags, str):
             raw_tags = [raw_tags]
         tags = tuple(str(t) for t in raw_tags if str(t).strip())
+        raw_aliases = doc.get("aliases") or ()
+        if isinstance(raw_aliases, str):
+            raw_aliases = [raw_aliases]
         out[name] = ToolMeta(
             name=name,
             category=str(doc.get("category") or ""),
@@ -244,6 +384,30 @@ def load_tool_meta(defs_dir: Optional[str] = None, force: bool = False) -> Dict[
             permission_level=_norm(doc.get("permission_level"), PERMISSION_LEVELS, ""),
             sandbox_allowed=_as_bool(doc.get("sandbox_allowed"), True),
             reason=str(doc.get("reason") or "").strip(),
+            # ── CapabilitySpec 扩展 ──
+            # 【不易·缺 `location` 时给 remote 而不是 local】保守侧从严（见字段注释）。
+            # 【不易·`location` 不在这里做事实判定】事实判定在 agent/lines/location.py
+            # （要遍历调用链，属于治理脚本/清单的活）；本函数只做**解析**，
+            # 保持"唯一权威读取入口"的轻量与确定性。
+            location=_norm(doc.get("location"), LOCATIONS, "remote"),
+            location_reason=str(doc.get("location_reason") or "").strip(),
+            owner=_norm(doc.get("owner"), OWNERS, "builtin"),
+            version=str(doc.get("version") or "1.0.0").strip() or "1.0.0",
+            namespace=str(doc.get("namespace") or DEFAULT_NAMESPACE).strip() or DEFAULT_NAMESPACE,
+            tenant_id=str(doc.get("tenant_id") or DEFAULT_TENANT_ID).strip() or DEFAULT_TENANT_ID,
+            registry_source=str(doc.get("registry_source") or "global").strip() or "global",
+            input_schema=doc.get("schema") if isinstance(doc.get("schema"), dict)
+            else (doc.get("input_schema") if isinstance(doc.get("input_schema"), dict) else None),
+            output_schema=doc.get("output_schema") if isinstance(doc.get("output_schema"), dict)
+            else (doc.get("result_schema") if isinstance(doc.get("result_schema"), dict) else None),
+            manifest_version=int(doc.get("manifest_version") or 1),
+            signature=str(doc.get("signature") or "").strip(),
+            source_trust=str(doc.get("source_trust") or "").strip(),
+            compatibility=str(doc.get("compatibility") or "").strip(),
+            semver_policy=str(doc.get("semver_policy") or "").strip(),
+            health=str(doc.get("health") or "").strip(),
+            deprecated=_as_bool(doc.get("deprecated"), False),
+            aliases=tuple(str(t) for t in raw_aliases if str(t).strip()),
         )
     if sig is not None:
         _META_CACHE[root] = out
@@ -419,4 +583,5 @@ __all__ = [
     "PLANES", "EFFECTS", "RISKS", "ToolMeta", "LineProfile",
     "load_tool_meta", "invalidate_tool_meta_cache", "TOOL_DEFS_DIR", "AGENT_LINES_DIR",
     "TOOL_TYPES", "CALLABLE_MODES", "PERMISSION_LEVELS",
+    "KINDS", "LOCATIONS", "OWNERS", "DEFAULT_TENANT_ID", "DEFAULT_NAMESPACE",
 ]

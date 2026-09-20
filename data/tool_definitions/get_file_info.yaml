@@ -3,6 +3,8 @@ category: file
 description: 获取文件或目录的详细信息（大小、修改时间、权限等）
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.file_tools_reg:_get_file_info）在 6 跳内未命中任何跨边界原语；另有 32 个调用点静态无法解析（见 unresolved）"
 plane: perceive
 effect: read
 risk: low

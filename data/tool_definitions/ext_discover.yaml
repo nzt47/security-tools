@@ -3,6 +3,8 @@ category: extension
 description: 发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。type 为扩展类型（含 tool 与 claude_skill/channel）；命中市场时同时返回扁平 results（每项带 _market_source）与内置/社区/GitHub 嵌套字段。
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.extensions.market:search_github 命中跨边界原语 urllib.request.Request"
 plane: perceive
 effect: read
 risk: medium

@@ -4,6 +4,8 @@ description: 列出当前活跃的 MCP 服务连接（连接 ID、名称、传�
   active MCP connections
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.tools.mcp_connector:list_connections 命中跨边界原语 urllib.request.Request"
 plane: perceive
 effect: read
 risk: low

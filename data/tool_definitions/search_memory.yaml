@@ -3,6 +3,8 @@ category: core
 description: 搜索我的记忆。scope=all（默认）同时检索语义记忆与事件日志；scope=vector 只做语义（向量）检索；scope=logs 只查事件日志。
 deprecated: false
 version: 1.1.0
+location: remote
+location_reason: "调用链经 agent.monitoring.loki:query_logs 命中跨边界原语 requests.Session"
 plane: resident
 effect: read
 risk: low

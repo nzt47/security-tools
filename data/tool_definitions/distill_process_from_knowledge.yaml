@@ -3,6 +3,8 @@ category: knowledge
 description: 把知识库或素材路径中的其他 agent 编程过程/复盘/SOP 蒸馏为可复现步骤序列，并固化为云枢可复用的 workflow（0-Token 执行）与 skill（语义层召回）资产。参数 query 为知识库检索词，paths 为素材文件或目录列表（二选一或并用）；artifacts 指定固化产物。默认同步执行并返回结果；async_=true 时提交后台异步执行、立即返回 task_id（用 get_task_status 轮询、get_task_result 取结果），name 可指定任务名称。
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.process_distill.tools:_distill_handler）在 6 跳内未命中任何跨边界原语；另有 27 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: execute
 risk: medium

@@ -3,6 +3,8 @@ category: system
 description: 把文本放进系统剪贴板（clipboard），最多 50000 字符。会覆盖用户剪贴板里已有的内容，属有副作用的写操作，需通过权限与内容安全检查。Set clipboard text.
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.extra_tools:_set_clipboard）在 6 跳内未命中任何跨边界原语；另有 19 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: write
 risk: medium

@@ -3,6 +3,8 @@ category: web
 description: 批量请求多个 URL
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.web.http_client:request 命中跨边界原语 requests.Session"
 plane: perceive
 effect: read
 risk: medium

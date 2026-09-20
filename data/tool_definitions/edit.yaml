@@ -5,6 +5,8 @@ description: 对文件做精准局部替换（old_string → new_string），只
   replace text in a file
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.search_tools:_edit）在 6 跳内未命中任何跨边界原语；另有 32 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: write
 risk: high

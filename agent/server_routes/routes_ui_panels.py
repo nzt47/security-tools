@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from flask import jsonify, make_response, request
@@ -136,6 +137,52 @@ def _int_arg(name: str, default: int, *, low: int, high: int) -> int:
     except (TypeError, ValueError):
         return default
     return max(low, min(high, value))
+
+
+# ════════════════════════════════════════════════════════════
+#  租户标识：**服务端派生**，客户端值只作待校验声明（TASK-04 §6.3）
+# ════════════════════════════════════════════════════════════
+
+#: 单机单用户下的租户占位值（与 agent/lines/models.py::DEFAULT_TENANT_ID 同义）
+_DEFAULT_TENANT_ID = "default"
+
+
+def _server_tenant_id() -> str:
+    """服务端派生的 `tenant_id` —— **绝不从请求参数取**
+
+    【为什么必须改（这是一个真实缺陷，不是风格问题）】
+        本文件原先允许客户端在 query（GET `…/memory/skills`）与 body
+        （POST 整包回滚）里指定 `tenant_id`。单机单用户下它恒等于 `default`，
+        看起来无害；但**信任边界现在是错的**：一旦开启多租户，客户端只要传别人的
+        租户 id 就能读到/回滚别人的数据 —— 那是跨租户越权。
+    【为什么复用 workspace-hash 而不是新建一套租户系统】
+        本仓库**活的**租户语义就是 workspace-hash
+        （`agent/orchestrator/orchestrator.py:211-228`：workspace(repository) = 逻辑租户
+        ⇒ `tenant_id = workspace-hash`）；`agent/multi_tenant.py` 是零生产 import 的孤岛，
+        本任务**不接入**它（越界，见 TASK-04 §6.3）。
+    【不易·不新增环境变量】这里不引入任何新配置开关：新增开关要同步登记
+        `agent/settings/registry.py`（D5 的零缺口守卫），而本任务不需要可配置性。
+    """
+    try:
+        from agent.observability.trace_v2 import derive_workspace_id
+        return str(derive_workspace_id(os.getcwd()) or "") or _DEFAULT_TENANT_ID
+    except Exception:  # noqa: BLE001 派生失败不得让面板 500（D4 同一取舍）
+        return _DEFAULT_TENANT_ID
+
+
+def _tenant_id_with_declaration(declared: Any = "") -> Tuple[str, str]:
+    """返回 `(生效值, 客户端声明值)`
+
+    生效值**永远**来自服务端派生；客户端传的值只被登记为"待校验声明"并留痕告警，
+    不参与任何判定 —— 这样既堵住越权面，又不丢失"客户端想操作哪个租户"的意图。
+    """
+    effective = _server_tenant_id()
+    text = str(declared or "").strip()
+    if text and text != effective:
+        logger.warning(
+            "[UIPanels] 客户端指定了 tenant_id=%r，已按**服务端派生值** %r 处理"
+            "（客户端值仅登记为待校验声明，不参与判定）", text, effective)
+    return effective, text
 
 
 # ════════════════════════════════════════════════════════════
@@ -281,11 +328,18 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
         if err:
             return err
         layers = [x for x in (request.args.get("layers", "") or "").split(",") if x]
-        return jsonify(D.memory_skills_view(
+        # 【TASK-04】tenant_id 由**服务端派生**；客户端传值只作待校验声明（防跨租户越权）
+        tenant_id, declared_tenant = _tenant_id_with_declaration(
+            request.args.get("tenant_id", ""))
+        payload = D.memory_skills_view(
             layers=layers or None,
-            tenant_id=request.args.get("tenant_id", "") or "",
+            tenant_id=tenant_id,
             query=request.args.get("q", "") or "",
-            limit=_int_arg("limit", 50, low=1, high=200)))
+            limit=_int_arg("limit", 50, low=1, high=200))
+        if isinstance(payload, dict):
+            payload.setdefault("tenant_id", tenant_id)
+            payload["tenant_id_declared"] = declared_tenant
+        return jsonify(payload)
 
     # ── 8. 越权告警聚合（U3） ──
 
@@ -538,10 +592,12 @@ def _do_rollback(bundle_hash: str, body: Mapping[str, Any], *,
 
     incident_id = str(body.get("approval_record_id", "") or "")
     dry_run = bool(body.get("dry_run", True))
+    # 【TASK-04】tenant_id 由**服务端派生**；客户端传值只作待校验声明（防跨租户越权）
+    tenant_id, declared_tenant = _tenant_id_with_declaration(body.get("tenant_id", ""))
     try:
         plan = RB.rollback_bundle(
             bundle_hash, components=None, dry_run=True,
-            tenant_id=str(body.get("tenant_id", "default") or "default"),
+            tenant_id=tenant_id,
             context={"via": "ui_panels", "actor": decision.actor,
                      "approval_record_id": incident_id})
     except Exception as e:  # noqa: BLE001 原子性/自校验失败 → 如实回传（含 L4）
@@ -556,6 +612,8 @@ def _do_rollback(bundle_hash: str, body: Mapping[str, Any], *,
         "requires_approval": l5_requires_approval,   # L5 恒定 True（levels.LEVEL_SPECS）
         "automated": False,
         "dry_run": True,
+        "tenant_id": tenant_id,                      # 服务端派生值（生效值）
+        "tenant_id_declared": declared_tenant,       # 客户端声明（仅留痕，不参与判定）
         "requested_dry_run": dry_run,
         "plan": plan.to_dict(),
         "decision": _public_decision(decision),

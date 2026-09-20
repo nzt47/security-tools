@@ -132,6 +132,16 @@ REQUIRED_DECL_FIELDS = (
     "sandbox_allowed",
 )
 
+# ── CapabilitySpec 扩展的取值域（与 agent/lines/models.py 同源，守门测试对拍）──
+#: 能力形态（归并后）：工具 / 技能
+KINDS = ("tool", "skill")
+#: 执行位置：local（同进程）/ remote（跨进程、跨协议边界）
+LOCATIONS = ("local", "remote")
+#: 能力归属
+OWNERS = ("builtin", "local-installed", "tenant-installed", "marketplace")
+#: 注册表来源：全局注册表 / 规划工具表（第二套并行注册表，见 §2.4）
+REGISTRY_SOURCES = ("global", "planning")
+
 #: 展示标识（与判定同源）
 MARK_CALLABLE = "✅ 可调用"
 MARK_CONDITIONAL = "⚠️ 条件可调用"
@@ -293,6 +303,215 @@ def runtime_executors() -> Dict[str, str]:
     【不易】返回空表时不影响正确性：`static_executors()` 的 AST 注册点扫描是默认口径。
     """
     return {}
+
+
+#: 注册来源的 AST 取值映射（`source=_tools.SOURCE_MCP_ADMIN` → `mcp_admin`）
+def static_registration_sources() -> Dict[str, str]:
+    """静态扫描注册点的**来源标注** → `{能力名: 来源}`（AST，不执行任何工具代码）
+
+    【为什么需要它（TASK-04）】`registry_facts()` 只在**运行时**拿得到 `source`，而清单
+    的默认口径是"静态、可复现"。此前普通 `register()` 不记录来源 ⇒ 导出时被兜底成
+    `builtin`，MCP 管理面工具因此被误归因。现在注册点显式写 `source=...`，
+    本函数把它读成静态事实，供 `location` 判定作为**佐证**（不是唯一依据）。
+    """
+    out: Dict[str, str] = {}
+    if os.path.isdir(_TOOLS_PKG_DIR):
+        files = [os.path.join(_TOOLS_PKG_DIR, f)
+                 for f in sorted(os.listdir(_TOOLS_PKG_DIR)) if f.endswith(".py")]
+    else:
+        files = []
+    files += [p for p in _EXTRA_REGISTER_FILES if os.path.exists(p)]
+    for path in files:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                tree = ast.parse(f.read(), filename=path)
+        except (OSError, SyntaxError) as e:
+            logger.debug("[callability] 跳过 %s: %s", path, e)
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            fname = func.attr if isinstance(func, ast.Attribute) else (
+                func.id if isinstance(func, ast.Name) else "")
+            if fname not in ("register", "register_dynamic") or not node.args:
+                continue
+            first = node.args[0]
+            if not (isinstance(first, ast.Constant) and isinstance(first.value, str)):
+                continue
+            for kw in node.keywords or []:
+                if kw.arg != "source":
+                    continue
+                raw = kw.value
+                if isinstance(raw, ast.Constant) and isinstance(raw.value, str):
+                    out[str(first.value)] = str(raw.value)
+                elif isinstance(raw, ast.Attribute):
+                    # `_tools.SOURCE_MCP_ADMIN` → `mcp_admin`（常量名的尾段小写）
+                    out[str(first.value)] = raw.attr.replace("SOURCE_", "").lower()
+                elif isinstance(raw, ast.Name):
+                    out[str(first.value)] = raw.id.replace("SOURCE_", "").lower()
+    return out
+
+
+def static_registry_variants() -> List[Dict[str, Any]]:
+    """**第二套并行注册表**的工具清单（`planning.ToolRegistry`，见 §2.4 / §2.7）
+
+    事实来源：`agent/tools/core_tools.py::register_planning_tools()` 里的
+    `@dl._planning_tools.register("名字", "描述")`。这些工具与全局注册表**同名但契约不同**
+    （`get_status` / `search_memory` / `get_sensor_summary`），本节把它们**显式登记**，
+    使"同一个名字有两个来源"在清单里可见（不合并两张表 —— 那是 TASK-05 的范围）。
+    """
+    path = os.path.join(_TOOLS_PKG_DIR, "core_tools.py")
+    out: List[Dict[str, Any]] = []
+    if not os.path.exists(path):
+        return out
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            tree = ast.parse(f.read(), filename=path)
+    except (OSError, SyntaxError):
+        return out
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for dec in node.decorator_list:
+            if not isinstance(dec, ast.Call):
+                continue
+            func = dec.func
+            attr = func.attr if isinstance(func, ast.Attribute) else ""
+            if attr != "register" or not dec.args:
+                continue
+            first = dec.args[0]
+            if not (isinstance(first, ast.Constant) and isinstance(first.value, str)):
+                continue
+            # 只认规划表：装饰器形如 `@dl._planning_tools.register(...)`
+            root = func.value
+            dotted = ""
+            while isinstance(root, ast.Attribute):
+                dotted = "." + root.attr + dotted
+                root = root.value
+            if isinstance(root, ast.Name):
+                dotted = root.id + dotted
+            if "_planning_tools" not in dotted:
+                continue
+            out.append({
+                "tool_name": str(first.value),
+                "description": (str(dec.args[1].value)
+                                if len(dec.args) > 1
+                                and isinstance(dec.args[1], ast.Constant) else ""),
+                "registry_source": "planning",
+                "host_executor": f"agent.tools.core_tools:{node.name}",
+                "declared_in": "agent/tools/core_tools.py",
+            })
+    return sorted(out, key=lambda x: x["tool_name"])
+
+
+# ── 已知"假能力"（名义能力面 > 实际能力面）──────────────────────────────
+#: 【为什么要有这张表】v1.4 的方法论缺陷：若重构以"清单/声明"为输入推导 CapabilitySpec，
+#: 下列条目会被**如实但错误地**登记为可用能力。本表把它们**显式拦在可用能力面之外**，
+#: 并逐条写明证据与定案（TASK-04 §2.3(b) 的 8 个案例）。
+FAKE_CAPABILITIES: Tuple[Dict[str, Any], ...] = (
+    {
+        "name": "register_knowledge_audit_job",
+        "kind": "orphan_function",
+        "verdict": "not_a_capability",
+        "evidence": "定义在 agent/knowledge/audit_job.py:194，生产代码零调用方"
+                    "（git grep 仅命中 tests/unit/test_knowledge_lint.py 与 docs/backup）",
+        "disposition": "不登记为能力；若要保留需补生产调用方（TASK-05 处置）",
+    },
+    {
+        "name": "mcp_executor.McpClient._mock_call",
+        "kind": "dead_mock",
+        "verdict": "not_a_capability",
+        "evidence": "agent/mcp_executor.py:321-370 用 time.sleep + 硬编码数据冒充网络调用；"
+                    "agent/、plugins/、scripts/ 内零调用方 ⇒ 死代码",
+        "disposition": "不登记为远程能力；MCP 真实客户端只有 mcp_services/mcp_client.py",
+    },
+    {
+        "name": "yunshu_mcp_bridge",
+        "kind": "pure_mock",
+        "verdict": "not_a_capability",
+        "evidence": "mcp_services/yunshu_mcp_bridge.py：MCP_SERVICE_TEMPLATES 硬编码；"
+                    "call_tool 返回硬编码结构；无子进程、无网络、无 __main__",
+        "disposition": "不登记为 MCP 服务；不得表述为'已具备远程 MCP 能力'",
+    },
+    {
+        "name": "agent.skills_mgmt.mcp_adapter",
+        "kind": "unavailable_dependency",
+        "verdict": "not_available_now",
+        "evidence": "依赖官方 mcp SDK（_check_mcp_sdk() :58-63），SDK 实测未安装 ⇒ "
+                    "抛 SkillMcpError(MCP_SDK_UNAVAILABLE)（:101-104）",
+        "disposition": "「当前不可用」≠「不存在」：SDK 装上即生效 ⇒ 标注为不可用，"
+                       "计入 callable_by 的预留位，不删档（与 TASK-05 同口径）",
+    },
+    {
+        "name": "schedule_task",
+        "kind": "hollow_executor",
+        "verdict": "downgraded",
+        "evidence": "agent/scheduling.py:438-467 _execute_task 的 action 分支是 `pass`"
+                    "（注释自述'实际执行由外部调用'/TODO）⇒ 定时器会触发，但**不执行任何动作**",
+        "disposition": "由 ✅ 降级为 ⚠️ 条件可调用，reason 写明'触发但不执行动作'；"
+                       "**这条是清单内唯一的'假能力'**，其余 7 例都不在清单口径内",
+    },
+    {
+        "name": "data/tools_config.json 的 tool_states",
+        "kind": "dead_switch",
+        "verdict": "ineffective_config",
+        "evidence": "agent/digital_life_persona.py:423-439：5 条 tool_states 全 true ⇒ "
+                    ":432-434 的 disabled 恒为空 ⇒ 该开关**恒不生效**",
+        "disposition": "标注为无效配置（清单 config_switches），load_policy 不得继承它",
+    },
+    {
+        "name": "system_prompt_config.json 的 tool_definitions 节",
+        "kind": "decorative_switch",
+        "verdict": "ineffective_config",
+        "evidence": "agent/system_prompt_config.py:109-114 定义，但从未被任何代码读取"
+                    "（描述里仍写'27 个工具'）",
+        "disposition": "标注为装饰性开关（从不被读）",
+    },
+    {
+        "name": "config.yaml:175 tools.whitelist",
+        "kind": "stale_config",
+        "verdict": "ineffective_config",
+        "evidence": "config.yaml:175-182 声明 [web_search, calculator, file_read, code_execute]；"
+                    "后 3 个在 91 个 YAML 与注册表中均不存在，且全仓无消费者",
+        "disposition": "标注为陈旧遗留（引用 3 个不存在的工具）",
+    },
+)
+
+#: 已知**无效配置开关**（E13；必须显式标注，否则 load_policy 会继承不存在的语义）
+CONFIG_SWITCHES: Tuple[Dict[str, str], ...] = (
+    {"path": "data/tools_config.json", "key": "tool_states",
+     "status": "ineffective",
+     "why": "5 条状态全 true ⇒ 派生出的 disabled 恒为空 ⇒ 返回 None（恒不生效）"},
+    {"path": "data/system_prompt_config.json", "key": "tool_definitions",
+     "status": "decorative",
+     "why": "定义在 agent/system_prompt_config.py:109-114，但从未被任何代码读取"},
+    {"path": "config.yaml", "key": "tools.whitelist",
+     "status": "stale",
+     "why": "第 175-182 行引用 3 个不存在的工具（calculator / file_read / code_execute），"
+            "且全仓无消费者"},
+)
+
+#: 技能侧的实施约束（E14；必须如实暴露，不能默认技能实体可复现）
+SKILL_ENTITY_CONSTRAINTS: Tuple[Dict[str, str], ...] = (
+    {"key": "entity_versioned_skills_json",
+     "value": "false",
+     "why": ".gitignore:140 忽略 data/skills.json ⇒ 技能实体不可从版本控制重建"},
+    {"key": "entity_versioned_skills_mgmt",
+     "value": "false",
+     "why": ".gitignore:205 忽略 data/skills_mgmt.json ⇒ 台账不可复现"},
+    {"key": "strategy_declaration_versioned",
+     "value": "true",
+     "why": "data/skill_callability.yaml 已入库（git cat-file -e HEAD:… rc=0）"},
+    {"key": "unmigrated_reader",
+     "value": "agent/digital_life_persona.py:348-357",
+     "why": "拼'【技能】已启用(N)'时仍直接读 legacy data/skills.json ⇒ "
+            "同一文件内存在两套启用状态取值来源（:389-395 已改走 SkillRegistry），待迁移"},
+    {"key": "orphan_skill_ids",
+     "value": "email-helper / pdf-extractor / external-skill* / autofix-demo",
+     "why": "data/skills_classes.json 里有分类、skills.json / skills_mgmt.json / skills_repo "
+            "里无实体 ⇒ **断言来源未明**，不得默认它们代表真实能力（与 TASK-02 协同定案）"},
+)
 
 
 def denied_tool_names(policies_path: Optional[str] = None) -> Tuple[FrozenSet[str], bool]:
@@ -522,7 +741,8 @@ def _join(items: Iterable[str]) -> str:
 
 
 def _tool_entry(name: str, doc: Dict[str, Any], *, executors: Dict[str, str],
-                denied: FrozenSet[str], deny_all: bool) -> Dict[str, Any]:
+                denied: FrozenSet[str], deny_all: bool,
+                location_fact: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     declared = parse_declaration(doc)
     effect = _choice(doc.get("effect"), ("read", "write", "execute", "extend"), "execute")
     risk = _choice(doc.get("risk"), ("low", "medium", "high", "critical"), "medium")
@@ -538,11 +758,36 @@ def _tool_entry(name: str, doc: Dict[str, Any], *, executors: Dict[str, str],
     # 声明优先（人可以显式收紧），但派生值随行输出以便对拍
     level = declared_level or derived_level
 
+    reason_override = ""
+    # 【TASK-04 / E5】已知"假能力"降级：`schedule_task` 的引擎是空实现
+    # （agent/scheduling.py:438-467 的 action 分支是 pass）⇒ 定时器会触发但不执行动作。
+    # 不降级的话它会以 ✅ 出现在"可用能力"集合里 —— 那正是 v1.4 方法论要拦掉的假能力。
+    for fake in FAKE_CAPABILITIES:
+        if fake["kind"] == "hollow_executor" and fake["name"] == name:
+            reason_override = (
+                "空实现：agent/scheduling.py:438-467 的 _execute_task 只记录'已触发'，"
+                "action 分支是 pass ⇒ 任务会按时触发但**不执行任何动作**（假能力，见盘点表备注）")
+
     verdict = judge(
         declared=declared, schema_registered=schema_registered, host_executor=executor,
         permission_level=level, is_internal=is_internal,
         denied=denied_hit, deny_all=deny_all,
+        reason_override=reason_override,
     )
+    # 空实现不算"硬阻断"（它确实可达），故按**软阻断**补一条：可达、但不由模型发起有效调用
+    if reason_override and verdict["llm_callable"]:
+        verdict["llm_callable"] = False
+        verdict["soft_blockers"] = list(verdict["soft_blockers"]) + [reason_override]
+        verdict["soft_codes"] = list(verdict["soft_codes"]) + ["hollow_executor"]
+        verdict["reason"] = reason_override
+        verdict["mark"] = MARK_CONDITIONAL
+        verdict["reason_kind"] = "not_model_initiated"
+        verdict["trigger"] = "system"
+
+    loc = dict(location_fact or {})
+    version = str(doc.get("version") or "1.0.0").strip() or "1.0.0"
+    namespace = "yunshu"
+    tenant_id = "default"
     return {
         "tool_name": name,
         "tool_type": declared["tool_type"],
@@ -554,6 +799,35 @@ def _tool_entry(name: str, doc: Dict[str, Any], *, executors: Dict[str, str],
         "permission_level": level,
         "sandbox_allowed": declared["sandbox_allowed"],
         "reason": verdict["reason"],
+        # ── CapabilitySpec（TASK-04 新增；v1.4 §5.1 对齐）──
+        "capability_id": f"{tenant_id}:{namespace}:{name}@{version}",
+        "kind": "tool",
+        "location": loc.get("location", "remote"),
+        "location_source": loc.get("source", "default"),
+        # 【为什么还要 derived_source】回填后 YAML 里都有 `location` 钉住值，
+        # `location_source` 会全是 `declaration` —— 那就看不出"这条当初是**怎么判出来**的"了。
+        # 保留事实判定层的来源（executor_boundary / registry_source / skill_chain），
+        # 让盘点表能回答"这个 remote 是调用链证出来的，还是来源佐证推出来的"。
+        "location_derived_source": loc.get("derived_source", loc.get("source", "default")),
+        "location_evidence": loc.get("evidence", []),
+        "location_declared": loc.get("declared", ""),
+        "location_consistent": loc.get("consistent", True),
+        "location_confidence": (
+            # remote 是**正向证明**（链路上找到了跨边界原语）⇒ 置信度高；
+            # local 是"在 N 跳内没找到"⇒ 若链路上还有无法静态解析的调用点，
+            # 就必须标 low 并把那些调用点如实列出来（**不假装确定**）。
+            "high" if (loc.get("location") == "remote" or not loc.get("unresolved"))
+            else "low"),
+        "location_unresolved": loc.get("unresolved", []),
+        "location_ffi": loc.get("ffi", []),
+        "owner": _choice(doc.get("owner"), OWNERS, "builtin"),
+        "version": version,
+        "namespace": namespace,
+        "tenant_id": tenant_id,
+        "registry_source": "global",
+        "aliases": [str(a) for a in (doc.get("aliases") or [])],
+        "deprecated": _as_bool(doc.get("deprecated"), False),
+        "entity_versioned": True,   # 工具侧声明就在 data/tool_definitions/*.yaml（已入库）
         # ── 诊断/展示 ──
         "mark": verdict["mark"],
         "reachable": verdict["reachable"],
@@ -675,7 +949,8 @@ SKILL_INJECTOR = "agent.skills_mgmt.context_injector:ContextInjector"
 SKILL_EXECUTOR = "agent.skills_mgmt.executor:SkillExecutor"
 
 
-def _skill_entry(sid: str, facts: Dict[str, Any], decl: Dict[str, Any]) -> Dict[str, Any]:
+def _skill_entry(sid: str, facts: Dict[str, Any], decl: Dict[str, Any],
+                 location_fact: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     declared = parse_declaration({**decl, "tool_type": "skill"})
     has_entity = bool(facts.get("in_repo")) or bool(facts.get("inline_content"))
     if facts.get("has_scripts"):
@@ -732,6 +1007,28 @@ def _skill_entry(sid: str, facts: Dict[str, Any], decl: Dict[str, Any]) -> Dict[
         "permission_level": level,
         "sandbox_allowed": declared["sandbox_allowed"],
         "reason": verdict["reason"],
+        # ── CapabilitySpec（TASK-04 新增）──
+        "capability_id": f"default:yunshu:{sid}@1.0.0",
+        "kind": "skill",
+        "location": (location_fact or {}).get("location", "local"),
+        "location_source": (location_fact or {}).get("source", "skill_chain"),
+        "location_derived_source": (location_fact or {}).get("derived_source", "skill_chain"),
+        "location_evidence": (location_fact or {}).get("evidence", []),
+        "location_declared": (location_fact or {}).get("declared", ""),
+        "location_consistent": (location_fact or {}).get("consistent", True),
+        "location_confidence": "high",
+        "location_unresolved": [],
+        "location_ffi": [],
+        "owner": "builtin",
+        "version": "1.0.0",
+        "namespace": "yunshu",
+        "tenant_id": "default",
+        "registry_source": "global",
+        "aliases": [],
+        "deprecated": not status_ok,
+        # 【E14】技能实体是否受版本控制：**否** —— .gitignore 忽略了 skills.json /
+        # skills_mgmt.json；只有策略声明（data/skill_callability.yaml）可复现。
+        "entity_versioned": bool(facts.get("in_repo")),
         "mark": verdict["mark"],
         "reachable": verdict["reachable"],
         "trigger": verdict["trigger"],
@@ -793,10 +1090,110 @@ def runtime_only_skill_entries(*, skill_decl_path: Optional[str] = None,
     return out
 
 
+def main_line_facts(tool_names: Iterable[str]) -> Dict[str, Any]:
+    """当前**激活主线**下的工具可见性事实（E12）
+
+    【为什么要它】`web_search` 在 91 个 YAML 里存在、`llm_callable: true`，但在
+    `engineering` 主线的 `mute` 列表里 —— 该主线根本**不把它发给模型**。
+    只看 YAML 做可见性审计会得出"模型能用 web_search"这一**错误**结论
+    （TASK-00 §0.3 实跑：`muted: ['web_extract','web_search','web_batch']`）。
+    【事实来源】`data/agent_lines/_active.json` 给出激活主线 id，
+    `data/agent_lines/<id>.yaml` 给出档案，装配由 `agent.lines.assembler.assemble()`
+    按**确定性打分**算出（不涉及语义检索，故可离线复现）。
+    """
+    out: Dict[str, Any] = {"line_id": "", "visible": [], "muted": [],
+                           "denied_by_effect": [], "denied_unknown": [],
+                           "needs_approval": [], "max_tools": 0, "note": ""}
+    try:
+        active = _read_json(os.path.join(_REPO_ROOT, "data", "agent_lines", "_active.json")) or {}
+        lid = str((active or {}).get("active") or "").strip()
+        out["line_id"] = lid
+        if not lid:
+            out["note"] = "未找到 data/agent_lines/_active.json 的 active 字段 ⇒ 未计算主线可见集"
+            return out
+        path = os.path.join(_REPO_ROOT, "data", "agent_lines", f"{lid}.yaml")
+        doc = _read_yaml(path)
+        if not isinstance(doc, dict):
+            out["note"] = f"主线档案不可读: data/agent_lines/{lid}.yaml"
+            return out
+        from agent.lines.assembler import assemble  # 懒导入：避免给热路径加依赖
+        from agent.lines.models import LineProfile
+        profile = LineProfile.from_dict(doc)
+        res = assemble(profile, list(tool_names))
+        res_dict = res.to_dict()
+        out["visible"] = [str(t) for t in res_dict.get("tools") or []]
+        out["muted"] = [str(t) for t in res_dict.get("muted") or []]
+        out["denied_by_effect"] = [str(t) for t in res_dict.get("denied_by_effect") or []]
+        out["denied_unknown"] = [str(t) for t in res_dict.get("denied_unknown") or []]
+        out["needs_approval"] = [str(t) for t in res_dict.get("needs_approval") or []]
+        out["max_tools"] = int(getattr(profile, "max_tools", 0) or 0)
+    except Exception as e:  # noqa: BLE001 主线不可用不得让清单生成失败（D4 同一取舍）
+        out["note"] = f"主线装配事实不可用（降级为未计算）: {e}"
+    return out
+
+
+#: 生产代码扫描根（"有调用方"判定用；**不含 tests/**：测试调用不算生产调用方）
+_CALLER_ROOTS = ("agent", "plugins", "scripts")
+#: 排除文件：**审计登记表自身**。`FAKE_CAPABILITIES` 表里逐字写着这些名字
+#: （否则本函数会因为"表里有这个名字"而自证有调用方 —— 实测踩到：
+#: `register_knowledge_audit_job` 被误判成有调用方，命中文件正是本模块）。
+_CALLER_EXCLUDE_FILES = ("agent/lines/callability.py",)
+
+
+def has_caller(name: str) -> Dict[str, Any]:
+    """静态判定一项能力**是否有生产调用方**（`TASK-00` §2.3(b) 的口径）
+
+    【为什么需要它】`llm_invokable` 必须由「**有执行器 + 有调用方 + 有实体**」三项事实
+    共同判定，不能只读声明。`static_executors()` / `runtime_executors()` 只覆盖前两项。
+    【口径】"调用方"= 生产代码里以**字符串字面量**引用该名字（`call("x")`、
+    `"x" in tools`、`get_tool_defs(["x"])` 等），或它本身就是模型可见的工具
+    （模型就是调用方，见 `trigger=model`）。**测试文件不算调用方** ——
+    否则 `register_knowledge_audit_job` 这种"只有测试在调"的孤儿会被误判成有调用方。
+    """
+    token = f'"{name}"'
+    token2 = f"'{name}'"
+    hits: List[str] = []
+    roots = [_REPO_ROOT]
+    for sub in _CALLER_ROOTS:
+        p = os.path.join(_REPO_ROOT, sub)
+        if os.path.isdir(p):
+            roots.append(p)
+    for root in roots:
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames
+                           if d not in ("__pycache__", ".pytest_tmp", "node_modules",
+                                        "backup", ".worktrees", "tests")]
+            if os.path.basename(dirpath) == "tests":
+                continue
+            for fname in filenames:
+                if not fname.endswith(".py"):
+                    continue
+                path = os.path.join(dirpath, fname)
+                rel = os.path.relpath(path, _REPO_ROOT).replace(os.sep, "/")
+                if rel in _CALLER_EXCLUDE_FILES:
+                    continue
+                try:
+                    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                        text = f.read()
+                except OSError:
+                    continue
+                if token in text or token2 in text:
+                    hits.append(rel)
+            if root == _REPO_ROOT:
+                break   # 仓库根只扫顶层文件，不递归（递归由上面三个根覆盖）
+    return {"name": name, "has_caller": bool(hits), "callers": sorted(set(hits))}
+
+
 #: 八项统一字段（清单顶部如实列出，供自动解析方按名取用）
 _FIELD_SPEC = (
     "tool_name", "tool_type", "llm_callable", "callable_mode", "schema_registered",
     "host_executor", "permission_level", "sandbox_allowed", "reason",
+)
+
+#: CapabilitySpec **必填**字段（TASK-04 完成判据：每条都含 location/kind/owner/version/capability_id）
+_SPEC_REQUIRED_FIELDS = (
+    "capability_id", "kind", "location", "owner", "version", "tenant_id",
+    "namespace", "registry_source", "location_source", "entity_versioned",
 )
 
 
@@ -822,7 +1219,26 @@ def build_manifest(*, defs_dir: Optional[str] = None,
         executors.update({str(k): str(v) for k, v in executor_facts.items() if v})
     denied, deny_all = denied_tool_names(policies_path)
 
-    tools = [_tool_entry(n, docs[n], executors=executors, denied=denied, deny_all=deny_all)
+    # ── location 事实判定（TASK-04 核心新增维度）──
+    # 【不易·为什么在这里判而不是在 YAML 里填】判定必须来自**事实**（执行器调用链），
+    # 否则"新增一条能力就漏一条"。YAML 里的 `location` 只作**钉住值**，
+    # 与事实不一致会在 `--check` 里非零退出（见 scripts/sync_capability_manifest.py）。
+    from agent.lines.location import judge_executor_location, judge_skill_location
+    reg_sources = static_registration_sources()
+
+    tool_locations: Dict[str, Dict[str, Any]] = {}
+    for name in sorted(docs):
+        doc = docs[name]
+        declared = parse_declaration(doc)
+        executor = declared["host_executor"] or executors.get(name, "")
+        tool_locations[name] = judge_executor_location(
+            executor,
+            declared=str(doc.get("location") or ""),
+            registry_source=reg_sources.get(name, ""),
+        )
+
+    tools = [_tool_entry(n, docs[n], executors=executors, denied=denied, deny_all=deny_all,
+                         location_fact=tool_locations[n])
              for n in sorted(docs)]
 
     skill_defaults, skill_decls = load_skill_declarations(skill_decl_path)
@@ -831,12 +1247,42 @@ def build_manifest(*, defs_dir: Optional[str] = None,
     # 指令型技能）**不进清单**：清单口径是"仓库可复现的能力面"，把它们列成 ❌ 会
     # 误读成"技能坏了"。它们改为登记在 runtime_only_declarations 里如实披露。
     overlay_only = sorted(sid for sid in skill_decls if sid not in facts)
-    skills = [_skill_entry(sid, facts[sid], skill_decls.get(sid, skill_defaults))
-              for sid in sorted(facts)]
+    skills: List[Dict[str, Any]] = []
+    for sid in sorted(facts):
+        decl = skill_decls.get(sid, skill_defaults)
+        # 先按事实算出执行器，再判 location（带脚本技能 → SkillExecutor 起子进程 → remote）
+        fact = facts[sid]
+        if fact.get("has_scripts"):
+            sk_exec = str(decl.get("host_executor") or SKILL_EXECUTOR)
+        elif fact.get("in_repo") or fact.get("inline_content"):
+            sk_exec = str(decl.get("host_executor") or SKILL_INJECTOR)
+        else:
+            sk_exec = str(decl.get("host_executor") or "")
+        loc_fact = judge_skill_location(
+            sid, {**fact, "_executor": sk_exec}, declared=str(decl.get("location") or ""))
+        skills.append(_skill_entry(sid, fact, decl, location_fact=loc_fact))
 
     entries = tools + skills
+    line = main_line_facts([str(e["tool_name"]) for e in tools])
+    # 每条工具补上"当前主线下的可见性"（E12）——不能因为 YAML 里有就当作可见
+    for e in tools:
+        n = str(e["tool_name"])
+        if not line.get("line_id"):
+            e["main_line_status"] = "unknown"
+        elif n in line["muted"]:
+            e["main_line_status"] = "muted"
+        elif n in line["denied_by_effect"]:
+            e["main_line_status"] = "denied_by_effect"
+        elif n in line["visible"]:
+            e["main_line_status"] = "visible"
+        else:
+            e["main_line_status"] = "not_assembled"
+    for e in skills:
+        e["main_line_status"] = "n/a"
+
+    available = [e for e in entries if e.get("mark") == MARK_CALLABLE]
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
         "scope": ("仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml "
                   "+ data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描"
@@ -846,6 +1292,7 @@ def build_manifest(*, defs_dir: Optional[str] = None,
                               "skill.md 实体（只在运行时目录/台账里）⇒ 不在本清单口径内，"
                               "界面按「无徽章」静默退化"),
         "field_spec": list(_FIELD_SPEC),
+        "spec_required_fields": list(_SPEC_REQUIRED_FIELDS),
         "vocabulary": {
             "tool_type": list(TOOL_TYPES),
             "callable_mode": list(CALLABLE_MODES),
@@ -853,20 +1300,92 @@ def build_manifest(*, defs_dir: Optional[str] = None,
             "mark": [MARK_CALLABLE, MARK_CONDITIONAL, MARK_BLOCKED],
             "trigger": list(TRIGGERS),
             "reason_kind": list(REASON_KINDS),
+            "kind": list(KINDS),
+            "location": list(LOCATIONS),
+            "location_source": ["declaration", "executor_boundary", "registry_source",
+                                "skill_chain", "default"],
+            "owner": list(OWNERS),
+            "registry_source": list(REGISTRY_SOURCES),
         },
         "rule": ("✅ 可被模型发起：有执行器 + 有内容实体 + 未停用 + 权限未拒 + 非内部专用"
                  " + 声明 llm_callable≠false + callable_mode≠manual + 有 JSON Schema"
                  " + 不在审批边界；"
                  "⚠️ 可执行但触发有条件：可达，但需审批（restricted）或不由模型发起"
-                 "（manual / 声明 false：由系统或人工触发）/ 缺参数 Schema；"
+                 "（manual / 声明 false：由系统或人工触发）/ 缺参数 Schema / 执行体是空实现；"
                  "❌ 不可达：无执行器 / 无内容实体 / 已停用 / 被策略拒绝 / 内部专用。"
                  "注意 `llm_callable` 语义不变：它只回答'模型能不能发起调用'，"
                  "manual 恒为 false；可用性看 `mark`。"),
+        # ── TASK-04 新增的三层校验产物 ──
+        "location_rule": (
+            "location 由**事实**判定（agent/lines/location.py 的有界调用链 AST 分析）："
+            "链路命中 subprocess / asyncio.create_subprocess_* / socket / urllib.request / "
+            "selenium 等跨进程或跨协议原语 ⇒ remote；未命中 ⇒ local 并把无法静态解析的调用点"
+            "如实记在 location_unresolved（confidence=low）。YAML 的 location 是**钉住值**，"
+            "与事实不一致时 --check 非零退出。缺省且未判定时取保守值 remote。"),
+        "non_capabilities": [dict(x) for x in FAKE_CAPABILITIES],
+        "non_capability_note": ("「名义能力面 > 实际能力面」的 8 个已知案例。除 schedule_task 外，"
+                                "其余 7 例都不在 entries 口径内（它们不是工具/技能定义）。"
+                                "任何'重构后能力数'的口径都**不得**把它们算作可用能力。"),
+        "config_switches": [dict(x) for x in CONFIG_SWITCHES],
+        "skill_entity_constraints": [dict(x) for x in SKILL_ENTITY_CONSTRAINTS],
+        # 【E14】运行时技能实体**不在版本控制内**：它们只在 data/skills.json /
+        # data/skills_mgmt.json 里（两者被 .gitignore 忽略）⇒ 不进清单口径，
+        # 但必须**如实披露**，否则评审会以为"23 条技能全都可复现"。
+        "runtime_only_entities": [
+            {"name": sid, "entity_versioned": False,
+             "why": "只在运行时技能目录/台账里有声明，仓库里无 data/skills_repo/<id>/skill.md 实体"}
+            for sid in overlay_only
+        ],
+        "same_name_conflicts": _same_name_conflicts(),
+        "registry_variants": static_registry_variants(),
+        "main_line": line,
+        "performance_note": (
+            "性能列（avg_ms / p99_ms / dpm）**一律未采集**：仓库现有实测只有一次 HTTP 压测"
+            "（p50=15.84s），且进程内计时冒充压测的产物已确认不可引用（见 TASK-00 §0.2b）。"
+            "清单**不提供估算值**；采集方案与 TASK-08 对接。"),
         "counts": summarize(entries),
         "tools": tools,
         "skills": skills,
         "entries": entries,
+        "available_names": sorted(str(e["tool_name"]) for e in available),
     }
+
+
+def _same_name_conflicts() -> List[Dict[str, Any]]:
+    """**同名冲突逐组定案**（§2.7；禁止静默改名，D2 不删任何重名工具）
+
+    三组同名（`get_status` / `search_memory` / `get_sensor_summary`）在仓库里各有
+    两个定义：全局注册表（`@_tools.register`）与规划工具表（`@dl._planning_tools.register`）。
+    定案：**两个都保留**（删除是 D2 禁止的破坏性变更），在清单里以
+    `registry_source` 区分来源；两者的参数契约差异登记在 `note` 里，交由 TASK-05 收敛。
+    """
+    groups: List[Dict[str, Any]] = []
+    planning = {v["tool_name"]: v for v in static_registry_variants()}
+    docs = load_tool_docs()
+    for name in ("get_status", "search_memory", "get_sensor_summary"):
+        defs: List[Dict[str, Any]] = []
+        if name in docs:
+            defs.append({
+                "registry_source": "global",
+                "declared_in": docs[name].get("_declared_in", ""),
+                "description": str(docs[name].get("description") or "")[:80],
+                "has_schema": schema_is_registered(docs[name].get("schema")),
+            })
+        if name in planning:
+            defs.append({
+                "registry_source": "planning",
+                "declared_in": planning[name]["declared_in"],
+                "description": planning[name]["description"],
+                "has_schema": False,
+            })
+        groups.append({
+            "name": name,
+            "definitions": defs,
+            "resolved": "两处定义**都保留**：不删任何一处（D2），清单用 registry_source 区分；"
+                        "两者参数契约不同（planning 版更简），合并交由 TASK-05",
+            "silently_renamed": False,
+        })
+    return groups
 
 
 def summarize(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -893,7 +1412,29 @@ def summarize(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
         "blocked_reasons": _reason_histogram(entries, "blockers"),
         #: ⚠️ 的成因（可达但不由模型发起 / 缺参数契约）
         "conditional_reasons": _reason_histogram(entries, "soft_blockers"),
+        #: ── TASK-04 新增（v1.4 §5.1 的维度分布）──
+        "by_kind": {k: _count(lambda e, k=k: e.get("kind") == k) for k in KINDS},
+        "by_location": {loc: _count(lambda e, loc=loc: e.get("location") == loc)
+                        for loc in LOCATIONS},
+        "by_location_source": _by_key(entries, "location_source"),
+        "by_location_derived_source": _by_key(entries, "location_derived_source"),
+        "by_owner": {o: _count(lambda e, o=o: e.get("owner") == o) for o in OWNERS},
+        "by_registry_source": {r: _count(lambda e, r=r: e.get("registry_source") == r)
+                               for r in REGISTRY_SOURCES},
+        "by_main_line_status": _by_key(entries, "main_line_status"),
+        "location_confidence": _by_key(entries, "location_confidence"),
+        "declared_location_mismatch": _count(
+            lambda e: e.get("location_declared") and not e.get("location_consistent")),
     }
+
+
+def _by_key(entries: List[Dict[str, Any]], field: str) -> Dict[str, int]:
+    """按某个字符串字段做直方图（TASK-04 的分布统计）"""
+    hist: Dict[str, int] = {}
+    for e in entries:
+        key = str(e.get(field) or "")
+        hist[key] = hist.get(key, 0) + 1
+    return dict(sorted(hist.items(), key=lambda kv: (-kv[1], kv[0])))
 
 
 def _reason_histogram(entries: List[Dict[str, Any]], field: str) -> Dict[str, int]:
@@ -936,11 +1477,14 @@ def non_callable_tool_names(*, defs_dir: Optional[str] = None,
 __all__ = [
     "TOOL_TYPES", "CALLABLE_MODES", "PERMISSION_LEVELS", "REQUIRED_DECL_FIELDS",
     "TRIGGERS", "REASON_KINDS",
+    "KINDS", "LOCATIONS", "OWNERS", "REGISTRY_SOURCES",
+    "FAKE_CAPABILITIES", "CONFIG_SWITCHES", "SKILL_ENTITY_CONSTRAINTS",
     "MARK_CALLABLE", "MARK_CONDITIONAL", "MARK_BLOCKED",    "TOOL_DEFS_DIR", "SKILL_CALLABILITY_PATH", "MANIFEST_PATH",
     "SKILLS_REPO_DIR", "SKILLS_JSON_PATH", "SKILLS_MGMT_PATH",
     "schema_is_registered", "static_executors", "runtime_executors",
+    "static_registration_sources", "static_registry_variants",
     "denied_tool_names", "parse_declaration", "load_tool_docs",
     "load_skill_declarations", "effective_permission_level", "judge",
     "build_manifest", "summarize", "non_callable_tool_names",
-    "runtime_only_skill_entries",
+    "runtime_only_skill_entries", "has_caller", "main_line_facts",
 ]

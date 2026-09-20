@@ -3,6 +3,8 @@ category: web
 description: 关闭受控浏览器并释放驱动进程。浏览器不可用或已关闭时同样返回成功（幂等）。Close the browser
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.extra_tools:_browser_close）在 6 跳内未命中任何跨边界原语；另有 7 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: write
 risk: low

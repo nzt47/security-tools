@@ -52,6 +52,17 @@ SOURCE_PLUGIN = "plugin"      # 插件系统提供
 SOURCE_MCP = "mcp"           # MCP 服务提供
 SOURCE_GENERATED = "generated"  # LLM 自生成
 SOURCE_MARKET = "market"     # 从扩展市场安装
+# 【TASK-04 新增】MCP **管理面**（扫描/连接/断开/列出 MCP 服务）。
+# 【不易·为什么不用 SOURCE_MCP】管理面工具是随仓库发布的内置工具，
+# 若标成 SOURCE_MCP，`unregister_by_source("mcp")`（MCP 断连时的批量清理，
+# 见 agent/tools/mcp_connector.py:241 与 tests/test_dynamic_tools.py:143,488）
+# 会把它们一并注销 —— 那是"清理远端工具"误伤"管理远端的能力"。
+# 单独一个来源值让事实可分辨：**它们管理 MCP，但它们本身不是 MCP 提供的工具**。
+SOURCE_MCP_ADMIN = "mcp_admin"
+
+#: 注册期同名冲突记录（**禁止静默改名/静默覆盖**，见 `register` / `register_dynamic`）
+#: 结构：[{"name", "final_name", "kind", "module"}]；`kind` ∈ {"overwrite", "renamed"}
+_name_conflicts: list = []
 
 # 可选：工具发现服务实例（由 DigitalLife 通过 set_discovery_service 设置）
 _discovery_service = None
@@ -77,12 +88,24 @@ def register(name: str, description: str = "", schema: dict | None = None, **kwa
         name: 工具名称（唯一标识）
         description: 工具描述
         schema: 工具参数的 JSON Schema（可选，用于 tool calling）
-        **kwargs: 额外元数据或 handler=func 直接传入函数
+        **kwargs: 额外元数据或 handler=func 直接传入函数；
+            另有两个**显式来源**参数（TASK-04 新增，向后兼容：缺省行为不变）：
+              source:    来源标识（SOURCE_BUILTIN / SOURCE_MCP_ADMIN / …）。
+                         【为什么它重要】此前只有 `register_dynamic` 记录来源，
+                         普通 `register()` 注册的工具在 `registry_facts()` 里被
+                         **兜底成 builtin** ⇒ MCP 管理面工具被误归因为"内置"。
+                         现在事实在**注册点**就写清楚，派生层不必再猜。
+              source_id: 来源实例标识（如 MCP 服务 id）
     """
     def _do_register(handler: Callable) -> Callable:
         global _registry_version
         if name in _registry:
             logger.warning(f"工具 '{name}' 已存在，将被覆盖")
+            # 【TASK-04】同名覆盖改为**结构化记录 + 告警**，让"静默覆盖"变成可见事实
+            _name_conflicts.append({
+                "name": name, "final_name": name, "kind": "overwrite",
+                "module": str(getattr(handler, "__module__", "") or ""),
+            })
         entry = {
             "name": name,
             "description": description,
@@ -90,6 +113,12 @@ def register(name: str, description: str = "", schema: dict | None = None, **kwa
         }
         if schema:
             entry["schema"] = schema
+        # 【D2】只有调用方显式给了 source 才写入 —— 缺省时 `registry_facts()` 的
+        # `or SOURCE_BUILTIN` 兜底行为与改动前**完全一致**（零行为变化）。
+        source = kwargs.get("source")
+        if source:
+            entry["source"] = str(source)
+            entry["source_id"] = kwargs.get("source_id")
         _registry[name] = entry
         _registry_version += 1
         logger.info(f"工具注册: {name} — {description}")
@@ -103,6 +132,20 @@ def register(name: str, description: str = "", schema: dict | None = None, **kwa
 
     # 否则返回装饰器
     return _do_register
+
+
+def name_conflicts() -> list:
+    """注册期同名冲突记录（**只读快照**）
+
+    用途：TASK-04 要求"命名冲突显式可见（禁止静默改名）"。本函数把冲突一次性
+    暴露给清单生成器与测试；冲突**不改变**注册行为（仍覆盖/改名，D2 向后兼容）。
+    """
+    return [dict(c) for c in _name_conflicts]
+
+
+def reset_name_conflicts() -> None:
+    """清空冲突记录（测试用）"""
+    _name_conflicts.clear()
 
 
 def unregister(name: str):
@@ -145,6 +188,13 @@ def register_dynamic(name: str, description: str = "",
 
     if final_name != name:
         logger.warning(f"工具 '{name}' 已存在，以 '{final_name}' 注册")
+        # 【TASK-04】把"静默改名"变成**可见的别名事实**：名字与来源都记下来，
+        # 清单/盘点表据此登记显式 alias（不改变注册行为，D2 向后兼容）。
+        _name_conflicts.append({
+            "name": name, "final_name": final_name, "kind": "renamed",
+            "module": str(getattr(handler, "__module__", "") or ""),
+            "source": str(source or ""), "source_id": source_id,
+        })
 
     entry = {
         "name": final_name,

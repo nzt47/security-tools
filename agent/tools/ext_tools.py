@@ -377,7 +377,7 @@ def register_all(dl):
     @_tools.register("scan_mcp", "扫描并发现可用的 MCP 服务，自动注册其工具到工具列表。扫描已配置的服务和已安装的 MCP 扩展。", schema={
         "type": "object",
         "properties": {},
-    })
+    }, source=_tools.SOURCE_MCP_ADMIN)
     def _scan_mcp(**kw):
         try:
             discovery = getattr(dl, '_discovery_service', None)
@@ -406,7 +406,7 @@ def register_all(dl):
             "port": {"type": "integer", "description": "HTTP 模式：服务端口"},
         },
         "required": ["service_id", "transport"],
-    })
+    }, source=_tools.SOURCE_MCP_ADMIN)
     def _connect_mcp(**kw):
         service_id = kw.get("service_id", "")
         transport = kw.get("transport", "stdio")
@@ -432,7 +432,7 @@ def register_all(dl):
             "service_id": {"type": "string", "description": "要断开的服务标识"},
         },
         "required": ["service_id"],
-    })
+    }, source=_tools.SOURCE_MCP_ADMIN)
     def _disconnect_mcp(**kw):
         service_id = kw.get("service_id", "")
         try:

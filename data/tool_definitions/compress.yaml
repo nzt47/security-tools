@@ -3,6 +3,8 @@ category: file
 description: 将文件或目录压缩为 zip 或 tar.gz 格式。支持大文件分块流式处理，可监控进度。output_path 为空时自动在同目录生成 源文件名.zip
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.file_tools_reg:_compress）在 6 跳内未命中任何跨边界原语；另有 6 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: write
 risk: medium

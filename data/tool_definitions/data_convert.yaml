@@ -3,6 +3,8 @@ category: code
 description: 将数据字符串在 JSON 与 YAML 格式之间双向转换：to 参数为 yaml 时把 JSON 转成 YAML，为 json 时把 YAML 转成 JSON（合并了原 json_to_yaml / yaml_to_json 两个方向的全部能力），返回转换结果字符串
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.code_tools:_data_convert）在 6 跳内未命中任何跨边界原语；另有 27 个调用点静态无法解析（见 unresolved）"
 plane: perceive
 effect: read
 risk: low

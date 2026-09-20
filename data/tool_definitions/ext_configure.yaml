@@ -3,6 +3,8 @@ category: extension
 description: 配置扩展参数。调整技能、MCP服务或通道的设置项。
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.extensions.channels_installer:configure_channel 命中跨边界原语 smtplib.SMTP"
 plane: govern
 effect: extend
 risk: medium

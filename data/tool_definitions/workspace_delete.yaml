@@ -4,6 +4,8 @@ description: 删除受保护工作区内的文件或目录（目录递归删除�
   inside the protected workspace
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.extra_tools:_workspace_delete）在 6 跳内未命中任何跨边界原语；另有 18 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: write
 risk: high

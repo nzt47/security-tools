@@ -3,6 +3,8 @@ category: web
 description: 从网页或 HTML 源码中抽取结构化内容。kind='xpath' 用 XPath 表达式提取；kind='css' 用 CSS 选择器提取（可用 attr 取 href、src 等属性）；kind='clean' 清洗文本（去 HTML 标签、实体解码、压缩空白）。可传 url 抓取，也可直接传 html 或 text。Extract data from HTML by XPath or CSS selector, extract attributes, clean text
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.web.http_client:request 命中跨边界原语 requests.Session"
 plane: perceive
 effect: read
 risk: medium

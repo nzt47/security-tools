@@ -4,6 +4,8 @@ description: 创建定时任务，按指定间隔或 cron 表达式周期性触�
   为 5 字段格式：分 时 日 月 周。支持暂停/恢复/取消管理
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.code_tools:_schedule_task）在 6 跳内未命中任何跨边界原语；另有 20 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: execute
 risk: high

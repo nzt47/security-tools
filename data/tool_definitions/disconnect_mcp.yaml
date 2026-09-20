@@ -3,6 +3,8 @@ category: extension
 description: 断开一个 MCP 服务连接，注销其注册的工具。
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.tools.mcp_connector:_get_loop 命中跨边界原语 urllib.request.Request"
 plane: govern
 effect: extend
 risk: medium

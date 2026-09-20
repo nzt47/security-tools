@@ -4,6 +4,8 @@ description: 用受控浏览器打开网页并返回标题与正文文本（最�
   selenium，未安装时返回明确错误。Open a web page with a browser, browse URL
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.extra_tools:_browser_navigate）在 6 跳内未命中任何跨边界原语；另有 7 个调用点静态无法解析（见 unresolved）"
 plane: act
 effect: execute
 risk: medium

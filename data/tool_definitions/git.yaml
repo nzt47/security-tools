@@ -5,6 +5,8 @@ description: 执行 git 版本控制操作。action 取值：status（工作区�
   status diff log commit
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.tools.git_tools:_git 命中跨边界原语 subprocess.run"
 plane: act
 effect: execute
 risk: high

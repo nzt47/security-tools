@@ -3,6 +3,8 @@ category: extension
 description: 安装扩展（技能/MCP服务/通道/插件），或按ID自动判别类型后从扩展市场安装。让我能自主获取新能力。
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.tools.ext_tools:_ext_install）在 6 跳内未命中任何跨边界原语；另有 41 个调用点静态无法解析（见 unresolved）"
 plane: govern
 effect: extend
 risk: high

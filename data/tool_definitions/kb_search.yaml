@@ -3,6 +3,8 @@ category: knowledge
 description: 知识检索（语义融合检索知识卡片）
 deprecated: false
 version: 1.0.0
+location: local
+location_reason: "调用链（agent.knowledge.tools:kb_search）在 6 跳内未命中任何跨边界原语；另有 27 个调用点静态无法解析（见 unresolved）"
 plane: perceive
 effect: read
 risk: low

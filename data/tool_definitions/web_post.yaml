@@ -3,6 +3,8 @@ category: web
 description: 发送 HTTP POST 请求，支持表单数据和 JSON 数据
 deprecated: false
 version: 1.0.0
+location: remote
+location_reason: "调用链经 agent.web.http_client:request 命中跨边界原语 requests.Session"
 plane: act
 effect: execute
 risk: medium
