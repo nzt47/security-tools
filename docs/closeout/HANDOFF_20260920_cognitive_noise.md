@@ -555,6 +555,68 @@ stash（4 条均无关）、index、全盘同名搜索、回收站、`git fsck -
 
 ### 9.5 当前状态
 
-- `TASK-04`：产出完好（`agent/lines/location.py` 45.8KB、101 个文件改动、盘点表 63.5KB、
-  `backfill_capability_spec.py`），**已全部备份 + patch 存档**。等它报告以决定提交。
-- `TASK-09`：**首轮产出丢失，需从零重做**（提示词已更新，含事故通报与防复发要求）。
+- `TASK-04`：✅ **已完成并提交 `807401ba`**（104 文件 / +15195 −269），详见 §10
+- `TASK-09`：**首轮产出丢失，正在独立 worktree 重做**（`.worktrees/task09`，分支 `task09/p0-backtest`）
+
+---
+
+## 10. TASK-04 交付与独立验证（2026-09-20，提交 `807401ba`）
+
+### 10.1 产出
+
+| 项 | 内容 |
+|---|---|
+| `agent/lines/location.py`（新增 45.8 KB） | AST 驱动的 `location` 判定器：`_walk_chain` 调用链追踪 + 防环（`_MAX_DEPTH=6` / `_MAX_NODES=400`）、`DEFAULT_LOCATION="remote"`（保守安全侧）、`parse_executor` / `judge_executor_location` / `judge_skill_location` / `summarize_locations` |
+| `agent/lines/models.py` | `ToolMeta` 扩展为完整 `CapabilitySpec`：`kind` / `location` / `owner` / `version` / `capability_id` / `tenant_id` / `namespace`，全部新字段有默认值（D2） |
+| `data/tool_definitions/*.yaml`（91 个） | 补 `location` 声明 |
+| `data/capability_manifest.json` | 114 条全部带 `location` + `location_source` |
+| `scripts/sync_capability_manifest.py`（+275 行） | `--check` 模式：声明与事实不一致 ⇒ **非零退出** |
+| `scripts/backfill_capability_spec.py`（新增） | 存量回填 |
+| `agent/server_routes/routes_ui_panels.py` | **`tenant_id` 改为服务端派生**（原允许客户端指定 ⇒ 潜在跨租户越权，`TASK-04 §6.3`） |
+| `docs/rfc/CapabilitySpec规范.md`（262 行）+ `云枢能力清单盘点表.md`（236 行） | 规格 + 盘点表 |
+| `tests/unit/test_capability_spec.py`（523 行 / 49 用例） | |
+
+### 10.2 我做的独立验证（**不是转述子代理**）
+
+| 验证项 | 我的方式 | 结果 |
+|---|---|---|
+| **E2 全部能力有 location** | 我自己解析 manifest | **114 条**全部合法；**local 93 / remote 21**；`location_source` = `declaration: 91` / `skill_chain: 23`；**0 条缺失** |
+| **E4 `--check` 负例** | 我篡改 `apply_patch` 的 location | 精确报出 `~ apply_patch: location: 'remote' → 'local'` 且**退出码 1**；恢复后退出码 0、工作区 0 改动 ✅ |
+| 语法/导入 | 我自己 `ast.parse` + import | 6 个文件全 OK；`ToolMeta` 91 条且带 `location`；`apply_patch → local`（正确） |
+| 回归 | 8 个相关测试文件 | **283 passed / 6 skipped / 0 failed** |
+
+### 10.3 我在提交前修掉的**子代理遗留缺陷**
+
+`agent/lines/models.py::kind` 原实现只判断 `tool_type == "script"`，其余**一律返回 `"tool"`**
+⇒ `tool_type="skill"` 被错判成 `kind="tool"`，**与它自己的测试
+（`test_kind_归并规则` 的 4 条断言）直接冲突**（该文件当时是 `48 passed / 1 failed`）。
+
+修法：改为**恒等映射**（`tool`/`skill` 各自保持，只归并 `api→tool`、`script→skill`）。
+核实过的安全性：91 个 YAML 的 `tool_type` **全为 `tool`**；生产侧唯一消费点是 `to_dict()`（无 `=="skill"` 比较）
+⇒ **无行为变更**。修后 `49 passed`。
+
+> 该缺陷**子代理没报告**（它被打断前未跑绿）。这是我"提交前必须自己跑一遍"的价值所在。
+
+### 10.4 一处**看似不一致、实为有意设计**（已核实，勿误判）
+
+| 层面 | 实现 | 判定 |
+|---|---|---|
+| 能力规格键（`capability_id` = `tenant_id:namespace:name@version`） | `tenant_id` 恒为 `"default"` | ✅ 能力目录是**全局**的，不随工作区变 |
+| 数据操作租户（skills / memory / 回滚） | `derive_workspace_id(os.getcwd())` **服务端派生** | ✅ 数据按工作区隔离；客户端传的值只登记为"待校验声明"，不参与判定 |
+
+### 10.5 TASK-06 / TASK-07 开工前预检（**已完成，前提全部成立**）
+
+| 前提 | 实测 |
+|---|---|
+| **TASK-06** `tenant_id` / `namespace` 已在 `models.py`（默认 `default` / `yunshu`） | ✅ |
+| **TASK-06** `risk: high` 工具数 | ✅ **13 个**（apply_patch / connect_mcp / decompress / edit / ext_install / ext_send_channel / ext_uninstall / fan_out / git / run_program / schedule_task / workspace_delete / write_file） |
+| **TASK-06** 工具侧 `confirm_level`（L0–L3） | ✅ **在 91 个 YAML 里出现 0 次** ⇒ 确实不存在 |
+| **TASK-06/07** `_hitl_boundary` 与开关 | ✅ `agent/tool_gate.py:757`；`CP_TOOL_GATE_APPROVAL_ENFORCE`（**默认开启**） |
+| **TASK-07** `guard_tool_execution` 生产调用方 | ✅ **0 处**（仅有定义 / docstring / 注释 / `__all__`） |
+| **TASK-07** `mark_foreign` / `mark_foreign_file` / `mark_subagent_output` | ✅ **生产 0 调用** ⇒ 污点账确实从未写入 |
+| **TASK-07** `run_sandboxed` | ✅ **生产 0 调用**（仅定义 + 测试） |
+
+> **一处易误判的表述**（已写入 TASK-07）：`check_text` **有**生产调用方
+> （`agent/context/assembler.py:315`、`safe_render.py:571`、`instruction_data.py:264`）
+> ⇒ 准确说法是「**总闸门未接线** + **污点账从不写入 ⇒ `check_text` 恒放行**」，
+> **不是**「机制完全没有调用点」。
