@@ -19,6 +19,7 @@
 import pytest
 import json
 import sys
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -403,12 +404,74 @@ class TestMainEntry:
             "observability_quality_gate.py",
             "--results-dir", str(tmp_path),
             "--require-e2e-pass", "false",
+            # 【TASK-02 · W1】补上 --output：此前省略它，脚本默认把报告写成
+            # CWD 下的裸相对路径 ⇒ 在仓库根跑 pytest 时污染仓库根。
+            "--output", str(tmp_path / "out.json"),
         ]):
             with pytest.raises(SystemExit) as exc:
                 QG.main()
         assert exc.value.code == 2, (
             "期望 2（flag=False ⇒ E2E skipped ⇒ inconclusive）；"
             "得到 1 说明 flag 被解析成了 True")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 9. 【TASK-02 · W1】回归防线：报告**绝不**写进仓库根
+# ──────────────────────────────────────────────────────────────────────────────
+class TestNoRepoRootPollution:
+    """质量门禁报告不得落到仓库根（真实事故的回归防线）。
+
+    事故：`TestMainEntry::test_require_e2e_flag_parsing` 只传 `--results-dir`
+    而省略 `--output`；脚本原默认值是裸相对路径 `"quality_gate_report.json"`，
+    `open()` 按 **CWD** 解析 ⇒ pytest 在仓库根运行时，报告被写进仓库根。
+    实测遗留产物 `quality_gate_report.json` 的 `results_dir` 字段为
+    `C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-3977\\test_require_e2e_flag_parsing0`，
+    指向的正是那个用例（6 项全 skipped / overall_status=inconclusive）。
+
+    本类锁定两条不变量：
+      ① 默认输出路径必须在系统临时目录，不在仓库根；
+      ② 省略 `--output` 跑完 main() 后，仓库根不得新增或改动报告文件。
+    """
+
+    REPO_ROOT = Path(__file__).resolve().parents[2]
+
+    def test_default_output_path_is_tmpdir(self):
+        """默认输出路径 = 系统临时目录下的 quality_gate_report.json"""
+        out = Path(QG.default_output_path()).resolve()
+        assert out.name == "quality_gate_report.json"
+        assert out.parent != self.REPO_ROOT
+        assert out.parent == Path(tempfile.gettempdir()).resolve(), (
+            "默认输出必须落在系统临时目录；落回仓库根就是本次要根除的污染")
+
+    def test_default_constructed_checker_does_not_target_repo_root(self, tmp_path):
+        """不传 output_file 构造的 checker，其 output_file 也不得指向仓库根"""
+        checker = QG.QualityGateChecker(str(tmp_path))
+        assert Path(checker.output_file).resolve().parent != self.REPO_ROOT
+
+    def test_main_without_output_writes_nothing_to_repo_root(self, tmp_path):
+        """★ 省略 --output 跑 main()：仓库根零新增、零改写"""
+        repo_report = self.REPO_ROOT / "quality_gate_report.json"
+        existed_before = repo_report.exists()
+        mtime_before = repo_report.stat().st_mtime_ns if existed_before else None
+
+        with patch.object(QG.tempfile, "gettempdir", return_value=str(tmp_path)), \
+             patch.object(sys, "argv", [
+                 "observability_quality_gate.py",
+                 "--results-dir", str(tmp_path),
+                 "--require-e2e-pass", "false",
+             ]):
+            with pytest.raises(SystemExit) as exc:
+                QG.main()
+        assert exc.value.code == 2
+
+        assert repo_report.exists() == existed_before, (
+            "省略 --output 时不得在仓库根生成 quality_gate_report.json")
+        if existed_before:
+            assert repo_report.stat().st_mtime_ns == mtime_before, (
+                "仓库根既有的 quality_gate_report.json 被覆盖了")
+
+        # 且报告确实被写到了（临时目录里的）兜底位置，而不是"什么都没写"而误绿
+        assert (tmp_path / "quality_gate_report.json").exists()
 
 
 if __name__ == '__main__':

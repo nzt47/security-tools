@@ -18,10 +18,33 @@ import argparse
 import json
 import os
 import sys
+import tempfile
 import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+
+
+# 【TASK-02 · W1 仓库卫生】默认报告文件名。
+DEFAULT_OUTPUT_FILENAME = "quality_gate_report.json"
+
+
+def default_output_path() -> str:
+    """未显式指定输出路径时的兜底位置：**系统临时目录**。
+
+    Why：原默认值是裸相对路径 "quality_gate_report.json"，由 open() 按
+    **当前工作目录**解析。于是 "--results-dir <tmp>" 而省略 "--output" 时，
+    报告会被写进 CWD —— 在仓库根跑 pytest 就直接落到仓库根。
+
+    实测证据（修复前仓库根那份 quality_gate_report.json）：
+      "results_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-3977\\test_require_e2e_flag_parsing0"
+    即 tests/unit/test_scripts_quality_gate.py::TestMainEntry::test_require_e2e_flag_parsing
+    未传 --output 的那次调用。详见
+    docs/closeout/REPO_HYGIENE_W1_TASK02_20260921.md。
+
+    显式传 "--output" 的行为**不变**（CI 契约保持）。
+    """
+    return os.path.join(tempfile.gettempdir(), DEFAULT_OUTPUT_FILENAME)
 
 
 class QualityGateChecker:
@@ -34,7 +57,7 @@ class QualityGateChecker:
         self.min_unit_test_pass_rate = min_unit_test_pass_rate
         self.min_coverage = min_coverage
         self.require_e2e_pass = require_e2e_pass
-        self.output_file = output_file or "quality_gate_report.json"
+        self.output_file = output_file or default_output_path()
         self.results = {
             "check_time": datetime.now().isoformat(),
             "results_dir": str(self.results_dir),
@@ -447,8 +470,10 @@ def main():
     parser.add_argument("--require-e2e-pass", type=lambda x: x.lower() == 'true',
                        default=True,
                        help="是否要求 E2E 测试必须通过 (默认: true)")
-    parser.add_argument("--output", default="quality_gate_report.json",
-                       help="输出报告文件路径")
+    # 【TASK-02 · W1】默认**不再是**裸相对路径：None 交给 QualityGateChecker 兜底到
+    # 系统临时目录，避免省略 --output 时把报告写进 CWD（实测曾污染仓库根）。
+    parser.add_argument("--output", default=None,
+                       help="输出报告文件路径（省略时写入系统临时目录，不污染当前工作目录）")
     args = parser.parse_args()
 
     checker = QualityGateChecker(
