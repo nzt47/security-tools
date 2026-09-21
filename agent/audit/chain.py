@@ -1046,11 +1046,28 @@ class AuditChain:
         self._commit_count = 0
         #: 【持久化屏障的诚实性（实测缺陷修复）】写库**失败**的条数。
         #: `_commit_count` 计的是“这批已经离开队列通道”（成功与失败都计），
-        #: 因此它**单独不能**回答“是否真的落盘”。失败分支每记一次
-        #: `_mark_committed` 就同步记一次本计数，于是
+        #: 因此它**单独不能**回答“是否真的落盘”。**三个**未落盘分支
+        #: （DB 不可用 `_db_available=False` / IntegrityError / 通用写失败）
+        #: 每记一次 `_mark_committed` 就同步记一次本计数，于是
         #: `_commit_count - _write_failed_count` = **真的写进 DB 的条数**，
         #: `flush()` 用的就是这个差值（旧实现屏障是裸 `_commit_count`：整批
         #: 写失败、记录只落 ring buffer 时也会**对外谎报“已持久化”**）。
+        #:
+        #: 【L51：DB 不可用那条分支为什么**只补计数**、不置收敛标志】
+        #: 另两个失败分支是 DB 的**瞬时**故障，置 `_journal_needs_drain` 让收敛
+        #: 重试有意义；而 `_db_available=False` 是**本进程内的终态**：全模块只在
+        #: `__init__` 初始化失败时置位，**没有任何自愈/重连/复检**路径把它置回
+        #: True。于是置标志只会让 `_recover_backlog` 反复重灌整份预留日志：
+        #: 实测 50 行日志时单次 `_recover_backlog()` 跑满 64 个窗口预算
+        #: （recovered=1250、journal_replay_count=3200、ring buffer 反复重灌、
+        #: 返回后标志仍为 True ⇒ 每轮 writer 再来一遍）；只补计数时同一场景
+        #: 收敛一趟结束（replay=50、标志归位）。那才是**忙等/重试风暴**。
+        #: 降级记录的**恢复**由既有机制承担：`close()` 已承诺“留在预留日志、
+        #: 下次启动重放”，而 `_load_state` 发现日志链头超前于 DB 即置标志补写。
+        #: 【注意】上面的说明**不要**搬进 _write_to_db_inner 的函数体：既有契约
+        #: 用例 test_writer_insert_only 只在写入函数定义之后 1600 字符的源码窗口
+        #: 内查找 INSERT 语句，长注释会把该语句挤出窗口（也不得在本文件里写出该
+        #: 函数签名/该 SQL 的字面量，否则会把那条窗口用例锚到注释上而失效）。
         self._write_failed_count = 0
         self._count_lock = threading.Lock()
         self._next_seq = 1
@@ -1849,6 +1866,11 @@ class AuditChain:
         if not self._db_available:
             for r in records:
                 self._buffer_failed(r)
+            # 【L51】本分支同样**一条也没落盘**：必须与下面两个失败分支一样
+            # 扣减“真的落盘”计数，否则 flush() 的屏障直接成立 ⇒ 降级态谎报
+            # 已持久化。**不**置 `_journal_needs_drain`（DB 不可用是本进程
+            # 终态，置了只会空转）——理由见 __init__ 里 _write_failed_count 说明。
+            self._write_failed_count += len(records)
             self._mark_committed(len(records))
             return
         try:

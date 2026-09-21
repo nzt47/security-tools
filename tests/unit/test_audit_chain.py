@@ -1042,6 +1042,39 @@ class TestDegradation:
         assert v.ok and v.checked == 1
         assert chain.verify_chain().ok is True
 
+    def test_degraded_flush_does_not_claim_persisted(self, tmp_path):
+        """**降级态下 flush() 不得谎报“已持久化”**（L51：`_db_available=False` 分支）
+
+        【被测缺陷】`_write_to_db_inner` 开头这条分支把整批记录移入 ring buffer 后
+        照样 `_mark_committed(len(records))`，却不计入 `_write_failed_count`
+        ⇒ `flush()` 的屏障（`_commit_count >= _enqueue_count`）**直接成立**
+        ⇒ 返回 True，而记录一条也没进 DB（与 L47 已修的两个失败分支同形态；
+        既有 3 个降级用例都不断言 flush 的返回值，故这条路径此前无覆盖）。
+
+        【断言口径】屏障是“真的落盘才算数”：降级态必须返回 False；同时记录仍可读
+        （不丢）、链仍自洽 —— 降级不等于静默丢失。
+        """
+        reset_audit_chains()
+        bad = str(tmp_path / "as_dir")
+        os.makedirs(bad, exist_ok=True)          # 目录占位 → 打不开 DB
+        c = AuditChain(bad, roots_path=str(tmp_path / "r.jsonl"),
+                       signing_key_path=str(tmp_path / "k.pem"), auto_seal=False)
+        try:
+            assert c._db_available is False
+            e = c.append("act", "a")
+            assert e.seq == 1
+            # 【判红点】旧实现（只 _mark_committed、不计失败）此处为 True
+            assert c.flush(timeout=2.0) is False
+            with c._count_lock:
+                assert c._enqueue_count == 1
+                assert c._commit_count - c._write_failed_count == 0, \
+                    "降级态下把没有落盘的记录算成了已持久化"
+            assert [x.seq for x in c.entries()] == [1]     # 不丢：读路径可见
+            assert c.verify_chain().ok is True
+        finally:
+            c.close(timeout=1.0)
+            reset_audit_chains()
+
     def test_normalize_day_accepts_multiple_types(self):
         from datetime import date, datetime, timezone
         assert chain_mod._normalize_day("2026-09-09T05:00:00+00:00") == "2026-09-09"
