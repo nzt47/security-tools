@@ -46,6 +46,24 @@
     with_clock    = strict ∪ S6                   ← 与既有报告"5,130 条"同口径
     full          = strict ∪ M ∪ C
 
+【口径裁定（2026-09-21，L16 / D-20260921-04）：灰区计入】
+    **裁定：灰区计入污染。采用 `strict_gray` 作为对外引用的污染计数。**
+    - `strict_gray` = `strict ∪ S3 ∪ S4 ∪ S5` = **4,420 条**
+      —— 即把「TIER M：名字像测试」的 action/actor/workspace 一并计入。
+      （L16 登记册的算术即此口径：「S4/S5 若纳入则 strict 4127 → 4420」。）
+    - `strict_gray_x2` = `strict_gray ∪ X2` = **4,621 条**（**上界，未采纳**）：
+      X2 是**另一族**灰区「名字像测试、身份像生产」（如 `env:TEST_KEY_*`：
+      actor=本机 OS 用户 `AdminWT`、action=生产 `config.env_set`），
+      共 **201 条**，**不计入 4,420**，单列供合规方另判。
+    - **口径澄清（必须随数字一起引用）**：L16 的标题写「灰区 200 条」，
+      而其算术「4127 → 4420」对应的是 **S3/S4/S5（TIER M，净增 293 条）**，
+      **不是** X2 的 200/201 条。两个族都叫"灰区"，但**不是同一批记录**：
+      把 X2 也计入会得到 4,621（不等于 4,420）。本脚本两个数字都给，
+      引用时**必须写明是哪一族**。
+
+    **⚠️ 标注不是删除**：纳入口径只影响**计数与清单**，链上记录一条都不删——
+    删除会在 append-only 链上再造 seq 空洞与断链（重演 2026-09-21 事故）。
+
 用法：
     python scripts/annotate_audit_pollution.py                     # dry-run（只打印）
     python scripts/annotate_audit_pollution.py --write-report       # 落盘到 _ci_logs/audit_pollution
@@ -268,6 +286,11 @@ def collect(db_path: str, window: Tuple[str, str]) -> Dict[str, Any]:
     strict = sets["S1"] | sets["S2"]
     medium = sets["S3"] | sets["S4"] | sets["S5"]
     clock = sets["S6"]
+    #: 【L16 裁定 D-20260921-04】灰区计入：strict_gray = strict ∪ S3 ∪ S4 ∪ S5（= 4,420）。
+    #: X2「名字像测试、身份像生产」是**另一族**（201 条），单列为 x2_gray_only，
+    #: 二者合并 strict_gray_x2 仅作为**上界**备查，不是采纳口径。详见模块 docstring。
+    gray_medium = strict | medium
+    x2_gray = sets["X2"]
     return {
         "db_path": os.path.abspath(db_path),
         "db_sha256": _sha256_file(db_path),
@@ -279,6 +302,10 @@ def collect(db_path: str, window: Tuple[str, str]) -> Dict[str, Any]:
         "verdicts": {
             "strict": sorted(strict),
             "strict_medium": sorted(strict | medium),
+            # ── L16 裁定（2026-09-21）：灰区计入，采纳口径 ──
+            "strict_gray": sorted(gray_medium),
+            "x2_gray_only": sorted(x2_gray),
+            "strict_gray_x2": sorted(gray_medium | x2_gray),
             "with_clock": sorted(strict | clock),
             "full": sorted(strict | medium | clock),
         },
@@ -316,10 +343,15 @@ def render_markdown(data: Dict[str, Any], literal_evidence: Sequence[Dict[str, A
     out.append("## 结论（分层口径）\n")
     out.append("| 口径 | 条数 | 说明 |")
     out.append("|---|---|---|")
-    out.append(f"| **strict（S1∪S2，推荐对外引用）** | {_pct(len(v['strict']), total)} | "
+    out.append(f"| strict（S1∪S2，保守下界） | {_pct(len(v['strict']), total)} | "
                f"结构性强证据：pytest 临时目录 + 仅测试源码出现的字面量 |")
-    out.append(f"| strict_medium（∪S3∪S4∪S5） | {_pct(len(v['strict_medium']), total)} | "
-               f"并入「像测试」的 action/actor/workspace（可被生产误用，需人工确认） |")
+    out.append(f"| **strict_gray（∪S3∪S4∪S5，L16 裁定采纳）** | {_pct(len(v['strict_gray']), total)} | "
+               f"并入「名字像测试」的 action/actor/workspace（TIER M）——**对外引用的污染计数** |")
+    out.append(f"| 其中 X2「名字像测试、身份像生产」另计 | {_pct(len(v['x2_gray_only']), total)} | "
+               f"**另一族灰区**（如 env:TEST_KEY_*：actor=OS 用户、action=生产 config.env_set）；"
+               f"**不计入 strict_gray**，单列供合规方另判 |")
+    out.append(f"| strict_gray_x2（再并入 X2，**上界**） | {_pct(len(v['strict_gray_x2']), total)} | "
+               f"仅在「X2 也算污染」时才用；与 4,420 不等，**引用必须写明口径** |")
     out.append(f"| with_clock（∪S6） | {_pct(len(v['with_clock']), total)} | "
                f"再并入「合成时钟」（可能是合法历史回填）——既有报告的 5,130 口径 |")
     out.append(f"| full（S∪M∪C） | {_pct(len(v['full']), total)} | 上界，**会高估** |\n")
@@ -384,9 +416,13 @@ def render_markdown(data: Dict[str, Any], literal_evidence: Sequence[Dict[str, A
                "故不计入 strict 口径；这批是「要不要算污染」的人决策项。")
     out.append("")
     out.append("## 需人工裁决（脚本不替人决定）\n")
-    out.append(f"1. 上面 X2 的 {data['excluded_criteria_counts']['X2']} 条"
-               f"「名字像测试但身份是生产」的记录算不算污染？建议：按「是否由 pytest 进程产生」"
-               f"逐条查 trace/payload，而不是按名字判。")
+    out.append("1. ~~上面 X2 的 " + str(data['excluded_criteria_counts']['X2']) + " 条"
+               "「名字像测试但身份是生产」的记录算不算污染？~~ "
+              "→ **已于 2026-09-21 裁定（L16 / D-20260921-04）：灰区计入。**")
+    out.append("   - 采纳口径 = **strict_gray = strict ∪ S3 ∪ S4 ∪ S5 = "
+               + str(len(v['strict_gray'])) + " 条**（本报告的对外引用数字）。")
+    out.append("   - X2 那 " + str(len(v['x2_gray_only'])) + " 条是**另一族**灰区，**未计入**上述数字；"
+               "若一并计入则为 " + str(len(v['strict_gray_x2'])) + " 条（上界）。")
     out.append(f"2. TIER C 的 {data['criteria_counts']['S6']} 条合成时钟记录里，"
                f"`actor='backfill:s1-02'` 是否为**合法历史回填**（若是，应从污染口径中扣除）。")
     out.append("3. 是否需要把 strict 清单固化成 CI 门禁（例如「新增记录命中 S1/S2 即失败」），"
@@ -411,6 +447,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--write-report", action="store_true",
                    help="落盘 JSON+Markdown 报告（默认 dry-run：只打印摘要）")
     p.add_argument("--json", action="store_true", help="摘要以 JSON 输出到 stdout")
+    p.add_argument("--include-gray", action="store_true",
+                   help="额外打印 L16 裁定（D-20260921-04）的「灰区计入」口径：strict_gray 及 X2 单列")
     p.add_argument("--window", default=",".join(DEFAULT_WINDOW),
                    help="真实运行窗口 START,END（用于 S6 合成时钟判据）")
     p.add_argument("--no-verify-literals", action="store_true",
@@ -454,6 +492,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "total_records": total,
         "strict": len(v["strict"]),
         "strict_medium": len(v["strict_medium"]),
+        # ── L16 裁定（2026-09-21）：灰区计入，以下为对外引用口径 ──
+        "strict_gray": len(v["strict_gray"]),
+        "strict_gray_policy": "D-20260921-04 / L16：strict ∪ S3 ∪ S4 ∪ S5（灰区计入）",
+        "x2_gray_only": len(v["x2_gray_only"]),
+        "strict_gray_x2": len(v["strict_gray_x2"]),
         "with_clock": len(v["with_clock"]),
         "full": len(v["full"]),
         "criteria_counts": data["criteria_counts"],
@@ -469,6 +512,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
               f"strict+medium={_pct(len(v['strict_medium']), total)}  "
               f"with_clock={_pct(len(v['with_clock']), total)}  "
               f"full={_pct(len(v['full']), total)}")
+        if args.include_gray:
+            print(f"  [灰区计入 · 采纳口径] strict_gray(S1∪S2∪S3∪S4∪S5)="
+                  f"{_pct(len(v['strict_gray']), total)}   "
+                  f"（{len(v['strict'])} → {len(v['strict_gray'])}，增量 "
+                  f"{len(v['strict_gray']) - len(v['strict'])} 条，来自 S3∪S4∪S5）")
+            print(f"  [另一族灰区 · 单列] X2 名字像测试/身份像生产={_pct(len(v['x2_gray_only']), total)}"
+                  f"   上界 strict_gray_x2={_pct(len(v['strict_gray_x2']), total)}")
+            print("  注：L16 标题的「灰区 200 条」指 X2 族；而其算术 4127→"
+                  + str(len(v['strict_gray'])) + " 对应的是 S3/S4/S5 族——两族不同，引用须写明。")
         print(f"  判据命中: " + "  ".join(
             f"{k}={data['criteria_counts'][k]}" for k in ("S1", "S2", "S3", "S4", "S5", "S6")))
         print(f"  排除判据命中(不计入): X1={data['excluded_criteria_counts']['X1']} "
