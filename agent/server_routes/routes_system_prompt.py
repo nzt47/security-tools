@@ -147,13 +147,27 @@ def register_routes(app, state):
             config_data = data.get("config")
             # 本路由也会经 save() 落盘，故同样要回传被丢弃的键（见 POST
             # /api/system-prompt/config 的同名说明）。必须**紧跟这次 save 取值**：
-            # 后面第 154 行的 mgr.save(config) 会把 last_ignored_keys 重置。
+            # 下面标记 _last_applied 的那次 mgr.save(config) 会把 last_ignored_keys 重置。
             ignored_keys: list = []
             if config_data:
                 # 兼容两种结构
                 if "sections" not in config_data:
                     config_data = {"sections": config_data}
-                mgr.save(config_data)
+                # 【不易】必须检查 save() 的返回值：False = 调用方提交的配置一个字
+                # 都没落盘（save() 内部已 logger.error 出原因）。此时若继续走到
+                # 下面返回 ok:true，就是 TASK-01 的同型缺陷「接口报成功而实际失败」，
+                # 且 apply 的后续步骤（build_template/写运行时模板）全都基于**没保存
+                # 成功**的配置，等于把失败一路掩盖到运行时。故在此立刻失败返回，
+                # 500 与本文件其他失败分支一致。失败分支不带 ignored_keys
+                # （什么都没落盘，回传「被丢弃的键」会误导）。
+                if not mgr.save(config_data):
+                    logger.error("应用提示词配置失败：配置未保存（mgr.save 返回 False），"
+                                 "本次 apply 未生效")
+                    return jsonify({
+                        "ok": False,
+                        "error": "配置未保存（save 返回 False，通常是 data 目录写入失败），"
+                                 "本次应用未生效；请检查磁盘空间/目录权限后重试",
+                    }), 500
                 ignored_keys = list(getattr(mgr, "last_ignored_keys", []) or [])
 
             # 构建模板（使用已保存的最新配置）
