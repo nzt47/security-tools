@@ -1,0 +1,708 @@
+{
+  "schema": "routing.reliability.cases.v1",
+  "task": "TASK-10 · 既有路由的可验证化",
+  "generated_at": "2026-02-10",
+  "provenance_policy": [
+    "本文件不含任何由本次任务作者自行发明的用例：每条的 text/gold 都抄录自仓库内既有文件，并在 source 字段记录 来源文件 + 辨识锚点（anchor）。",
+    "anchor 必须是来源文件内可检索到的唯一子串；tests/unit/test_routing_reliability.py 会逐条断言 anchor 仍然存在（防止来源漂移）。",
+    "行号不写入（会漂移），只写文件 + 锚点文本。"
+  ],
+  "layers": {
+    "rule": {
+      "label_space": "agent/workflow_engine/builtin_rules.py 注册的 8 条规则名，未命中记为 null",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py"
+    },
+    "template": {
+      "label_space": "agent/response_workflows.py 的 9 个 INTENT_* 常量",
+      "source": "tests/unit/test_response_workflows.py"
+    },
+    "keyword_category": {
+      "label_space": "agent/tool_router.py:308 TOOL_CATEGORIES 的 11 个类别键（gold 为期望命中类别集合）",
+      "source": "scripts/test_smart_tool_selection.py"
+    },
+    "hybrid_tool": {
+      "label_space": "agent/tool_router_hybrid.py 检索出的工具名（gold 为期望 top-1 工具）",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py"
+    }
+  },
+  "known_stale_labels": [
+    {
+      "case_id": "CAT-004",
+      "reason": "gold 含 'software' 类别，该类别已于 2026-09-17 退役（agent/tool_router.py:177-186），当前 TOOL_CATEGORIES 无此键 ⇒ 该条 gold 不可达",
+      "handling": "保留原样记录 + 从所有指标中排除（标记 stale=true）"
+    }
+  ],
+  "cases": [
+    {
+      "id": "L1-001",
+      "layer": "rule",
+      "text": "现在几点",
+      "gold": "check_time",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "result = engine.try_match(\"现在几点\")"
+    },
+    {
+      "id": "L1-002",
+      "layer": "rule",
+      "text": "当前时间",
+      "gold": "check_time",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"当前时间\", \"几点了\", \"什么时间\", \"几点钟\"]:"
+    },
+    {
+      "id": "L1-003",
+      "layer": "rule",
+      "text": "几点了",
+      "gold": "check_time",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"当前时间\", \"几点了\", \"什么时间\", \"几点钟\"]:"
+    },
+    {
+      "id": "L1-004",
+      "layer": "rule",
+      "text": "什么时间",
+      "gold": "check_time",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"当前时间\", \"几点了\", \"什么时间\", \"几点钟\"]:"
+    },
+    {
+      "id": "L1-005",
+      "layer": "rule",
+      "text": "几点钟",
+      "gold": "check_time",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"当前时间\", \"几点了\", \"什么时间\", \"几点钟\"]:"
+    },
+    {
+      "id": "L1-006",
+      "layer": "rule",
+      "text": "今天几号",
+      "gold": "check_date",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "result = engine.try_match(\"今天几号\")"
+    },
+    {
+      "id": "L1-007",
+      "layer": "rule",
+      "text": "今天日期",
+      "gold": "check_date",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"今天日期\", \"今天周几\", \"今天星期几\", \"什么日子\"]:"
+    },
+    {
+      "id": "L1-008",
+      "layer": "rule",
+      "text": "今天周几",
+      "gold": "check_date",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"今天日期\", \"今天周几\", \"今天星期几\", \"什么日子\"]:"
+    },
+    {
+      "id": "L1-009",
+      "layer": "rule",
+      "text": "今天星期几",
+      "gold": "check_date",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"今天日期\", \"今天周几\", \"今天星期几\", \"什么日子\"]:"
+    },
+    {
+      "id": "L1-010",
+      "layer": "rule",
+      "text": "什么日子",
+      "gold": "check_date",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"今天日期\", \"今天周几\", \"今天星期几\", \"什么日子\"]:"
+    },
+    {
+      "id": "L1-011",
+      "layer": "rule",
+      "text": "你还好吗",
+      "gold": "check_health",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "result = engine.try_match(\"你还好吗\")"
+    },
+    {
+      "id": "L1-012",
+      "layer": "rule",
+      "text": "状态",
+      "gold": "check_health",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"状态\", \"在吗\", \"在不在\", \"hello\", \"hi\", \"你好\"]:"
+    },
+    {
+      "id": "L1-013",
+      "layer": "rule",
+      "text": "在吗",
+      "gold": "check_health",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"状态\", \"在吗\", \"在不在\", \"hello\", \"hi\", \"你好\"]:"
+    },
+    {
+      "id": "L1-014",
+      "layer": "rule",
+      "text": "在不在",
+      "gold": "check_health",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"状态\", \"在吗\", \"在不在\", \"hello\", \"hi\", \"你好\"]:"
+    },
+    {
+      "id": "L1-015",
+      "layer": "rule",
+      "text": "hello",
+      "gold": "check_health",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"状态\", \"在吗\", \"在不在\", \"hello\", \"hi\", \"你好\"]:"
+    },
+    {
+      "id": "L1-016",
+      "layer": "rule",
+      "text": "hi",
+      "gold": "check_health",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"状态\", \"在吗\", \"在不在\", \"hello\", \"hi\", \"你好\"]:"
+    },
+    {
+      "id": "L1-017",
+      "layer": "rule",
+      "text": "你好",
+      "gold": "check_health",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "# \"你好\" 同时在 check_health(priority=90) 和 greeting(priority=80) 中，匹配 check_health"
+    },
+    {
+      "id": "L1-018",
+      "layer": "rule",
+      "text": "早上好",
+      "gold": "greeting",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "result = engine.try_match(\"早上好\")"
+    },
+    {
+      "id": "L1-019",
+      "layer": "rule",
+      "text": "下午好",
+      "gold": "greeting",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"下午好\", \"晚上好\", \"大家好\"]:"
+    },
+    {
+      "id": "L1-020",
+      "layer": "rule",
+      "text": "晚上好",
+      "gold": "greeting",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"下午好\", \"晚上好\", \"大家好\"]:"
+    },
+    {
+      "id": "L1-021",
+      "layer": "rule",
+      "text": "大家好",
+      "gold": "greeting",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"下午好\", \"晚上好\", \"大家好\"]:"
+    },
+    {
+      "id": "L1-022",
+      "layer": "rule",
+      "text": "再见",
+      "gold": "farewell",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "result = engine.try_match(\"再见\")"
+    },
+    {
+      "id": "L1-023",
+      "layer": "rule",
+      "text": "拜拜",
+      "gold": "farewell",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"拜拜\", \"bye\", \"goodbye\", \"下次见\", \"明天见\"]:"
+    },
+    {
+      "id": "L1-024",
+      "layer": "rule",
+      "text": "bye",
+      "gold": "farewell",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"拜拜\", \"bye\", \"goodbye\", \"下次见\", \"明天见\"]:"
+    },
+    {
+      "id": "L1-025",
+      "layer": "rule",
+      "text": "goodbye",
+      "gold": "farewell",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"拜拜\", \"bye\", \"goodbye\", \"下次见\", \"明天见\"]:"
+    },
+    {
+      "id": "L1-026",
+      "layer": "rule",
+      "text": "下次见",
+      "gold": "farewell",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"拜拜\", \"bye\", \"goodbye\", \"下次见\", \"明天见\"]:"
+    },
+    {
+      "id": "L1-027",
+      "layer": "rule",
+      "text": "明天见",
+      "gold": "farewell",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"拜拜\", \"bye\", \"goodbye\", \"下次见\", \"明天见\"]:"
+    },
+    {
+      "id": "L1-028",
+      "layer": "rule",
+      "text": "谢谢",
+      "gold": "thanks",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "result = engine.try_match(\"谢谢\")"
+    },
+    {
+      "id": "L1-029",
+      "layer": "rule",
+      "text": "感谢",
+      "gold": "thanks",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"感谢\", \"多谢\", \"thank\", \"thanks\", \"thx\"]:"
+    },
+    {
+      "id": "L1-030",
+      "layer": "rule",
+      "text": "多谢",
+      "gold": "thanks",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"感谢\", \"多谢\", \"thank\", \"thanks\", \"thx\"]:"
+    },
+    {
+      "id": "L1-031",
+      "layer": "rule",
+      "text": "thank",
+      "gold": "thanks",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"感谢\", \"多谢\", \"thank\", \"thanks\", \"thx\"]:"
+    },
+    {
+      "id": "L1-032",
+      "layer": "rule",
+      "text": "thanks",
+      "gold": "thanks",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"感谢\", \"多谢\", \"thank\", \"thanks\", \"thx\"]:"
+    },
+    {
+      "id": "L1-033",
+      "layer": "rule",
+      "text": "thx",
+      "gold": "thanks",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"感谢\", \"多谢\", \"thank\", \"thanks\", \"thx\"]:"
+    },
+    {
+      "id": "L1-034",
+      "layer": "rule",
+      "text": "好的",
+      "gold": "confirmation",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "result = engine.try_match(\"好的\")"
+    },
+    {
+      "id": "L1-035",
+      "layer": "rule",
+      "text": "可以",
+      "gold": "confirmation",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"可以\", \"明白\", \"懂了\", \"知道了\", \"收到\"]:"
+    },
+    {
+      "id": "L1-036",
+      "layer": "rule",
+      "text": "明白",
+      "gold": "confirmation",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"可以\", \"明白\", \"懂了\", \"知道了\", \"收到\"]:"
+    },
+    {
+      "id": "L1-037",
+      "layer": "rule",
+      "text": "懂了",
+      "gold": "confirmation",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"可以\", \"明白\", \"懂了\", \"知道了\", \"收到\"]:"
+    },
+    {
+      "id": "L1-038",
+      "layer": "rule",
+      "text": "知道了",
+      "gold": "confirmation",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"可以\", \"明白\", \"懂了\", \"知道了\", \"收到\"]:"
+    },
+    {
+      "id": "L1-039",
+      "layer": "rule",
+      "text": "收到",
+      "gold": "confirmation",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "for text in [\"可以\", \"明白\", \"懂了\", \"知道了\", \"收到\"]:"
+    },
+    {
+      "id": "L1-040",
+      "layer": "rule",
+      "text": "没问题",
+      "gold": "confirmation",
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "result = engine.try_match(\"没问题\")"
+    },
+    {
+      "id": "L1-041",
+      "layer": "rule",
+      "text": "这是一段未知的话xyz123",
+      "gold": null,
+      "source": "tests/unit/test_workflow_engine_comprehensive.py",
+      "anchor": "result = engine.try_match(\"这是一段未知的话xyz123\")"
+    },
+    {
+      "id": "L2-001",
+      "layer": "template",
+      "text": "你是谁",
+      "gold": "identity",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"你是谁\")"
+    },
+    {
+      "id": "L2-002",
+      "layer": "template",
+      "text": "你叫什么名字",
+      "gold": "identity",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"你叫什么名字\")"
+    },
+    {
+      "id": "L2-003",
+      "layer": "template",
+      "text": "现在几点",
+      "gold": "time_query",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"现在几点\")"
+    },
+    {
+      "id": "L2-004",
+      "layer": "template",
+      "text": "几点了",
+      "gold": "time_query",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, _ = IntentRouter.classify(\"几点了\")"
+    },
+    {
+      "id": "L2-005",
+      "layer": "template",
+      "text": "当前时间",
+      "gold": "time_query",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, _ = IntentRouter.classify(\"当前时间\")"
+    },
+    {
+      "id": "L2-006",
+      "layer": "template",
+      "text": "你好",
+      "gold": "greeting",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"你好\")"
+    },
+    {
+      "id": "L2-007",
+      "layer": "template",
+      "text": "早上好",
+      "gold": "greeting",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, _ = IntentRouter.classify(\"早上好\")"
+    },
+    {
+      "id": "L2-008",
+      "layer": "template",
+      "text": "你能做什么",
+      "gold": "capability",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"你能做什么\")"
+    },
+    {
+      "id": "L2-009",
+      "layer": "template",
+      "text": "你有什么功能",
+      "gold": "capability",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"你有什么功能\")"
+    },
+    {
+      "id": "L2-010",
+      "layer": "template",
+      "text": "今天天气怎么样",
+      "gold": "weather",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"今天天气怎么样\")"
+    },
+    {
+      "id": "L2-011",
+      "layer": "template",
+      "text": "你怎么还不回答",
+      "gold": "dissatisfaction",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"你怎么还不回答\")"
+    },
+    {
+      "id": "L2-012",
+      "layer": "template",
+      "text": "然后呢",
+      "gold": "follow_up",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"然后呢\")"
+    },
+    {
+      "id": "L2-013",
+      "layer": "template",
+      "text": "好无聊啊",
+      "gold": "simple_chat",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"好无聊啊\")"
+    },
+    {
+      "id": "L2-014",
+      "layer": "template",
+      "text": "帮我把这份PDF转成Word然后压缩发邮件",
+      "gold": "unknown",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"帮我把这份PDF转成Word然后压缩发邮件\")"
+    },
+    {
+      "id": "L2-015",
+      "layer": "template",
+      "text": "",
+      "gold": "unknown",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"\")"
+    },
+    {
+      "id": "L2-016",
+      "layer": "template",
+      "text": "   ",
+      "gold": "unknown",
+      "source": "tests/unit/test_response_workflows.py",
+      "anchor": "intent, conf = IntentRouter.classify(\"   \")"
+    },
+    {
+      "id": "CAT-001",
+      "layer": "keyword_category",
+      "text": "搜索天气",
+      "gold": [
+        "core",
+        "web",
+        "system"
+      ],
+      "source": "scripts/test_smart_tool_selection.py",
+      "anchor": "(\"搜索天气\", [\"core\", \"web\", \"system\"]),"
+    },
+    {
+      "id": "CAT-002",
+      "layer": "keyword_category",
+      "text": "读取文件",
+      "gold": [
+        "core",
+        "file"
+      ],
+      "source": "scripts/test_smart_tool_selection.py",
+      "anchor": "(\"读取文件\", [\"core\", \"file\"]),"
+    },
+    {
+      "id": "CAT-003",
+      "layer": "keyword_category",
+      "text": "执行命令",
+      "gold": [
+        "core",
+        "code",
+        "system"
+      ],
+      "source": "scripts/test_smart_tool_selection.py",
+      "anchor": "(\"执行命令\", [\"core\", \"code\", \"system\"]),"
+    },
+    {
+      "id": "CAT-004",
+      "layer": "keyword_category",
+      "text": "安装软件包",
+      "gold": [
+        "core",
+        "software"
+      ],
+      "stale": true,
+      "source": "scripts/test_smart_tool_selection.py",
+      "anchor": "(\"安装软件包\", [\"core\", \"software\"]),"
+    },
+    {
+      "id": "CAT-005",
+      "layer": "keyword_category",
+      "text": "处理PDF文件",
+      "gold": [
+        "core",
+        "file",
+        "pdf"
+      ],
+      "source": "scripts/test_smart_tool_selection.py",
+      "anchor": "(\"处理PDF文件\", [\"core\", \"file\", \"pdf\"]),"
+    },
+    {
+      "id": "CAT-006",
+      "layer": "keyword_category",
+      "text": "创建定时任务",
+      "gold": [
+        "core",
+        "schedule"
+      ],
+      "source": "scripts/test_smart_tool_selection.py",
+      "anchor": "(\"创建定时任务\", [\"core\", \"schedule\"]),"
+    },
+    {
+      "id": "CAT-007",
+      "layer": "keyword_category",
+      "text": "后台运行任务",
+      "gold": [
+        "core",
+        "code",
+        "async"
+      ],
+      "source": "scripts/test_smart_tool_selection.py",
+      "anchor": "(\"后台运行任务\", [\"core\", \"code\", \"async\"]),"
+    },
+    {
+      "id": "CAT-008",
+      "layer": "keyword_category",
+      "text": "安装扩展插件",
+      "gold": [
+        "core",
+        "extension"
+      ],
+      "source": "scripts/test_smart_tool_selection.py",
+      "anchor": "(\"安装扩展插件\", [\"core\", \"extension\"]),"
+    },
+    {
+      "id": "CAT-009",
+      "layer": "keyword_category",
+      "text": "列出目录内容",
+      "gold": [
+        "core",
+        "file"
+      ],
+      "source": "scripts/test_smart_tool_selection.py",
+      "anchor": "(\"列出目录内容\", [\"core\", \"file\"]),"
+    },
+    {
+      "id": "TOOL-001",
+      "layer": "hybrid_tool",
+      "text": "extract text from pdf",
+      "gold": "read_pdf",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"extract text from pdf\", \"read_pdf\"),"
+    },
+    {
+      "id": "TOOL-002",
+      "layer": "hybrid_tool",
+      "text": "merge two pdf files",
+      "gold": "merge_pdf",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"merge two pdf files\", \"merge_pdf\"),"
+    },
+    {
+      "id": "TOOL-003",
+      "layer": "hybrid_tool",
+      "text": "split pdf into pages",
+      "gold": "split_pdf",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"split pdf into pages\", \"split_pdf\"),"
+    },
+    {
+      "id": "TOOL-004",
+      "layer": "hybrid_tool",
+      "text": "get weather in beijing",
+      "gold": "get_weather",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"get weather in beijing\", \"get_weather\"),"
+    },
+    {
+      "id": "TOOL-005",
+      "layer": "hybrid_tool",
+      "text": "search the web for news",
+      "gold": "web_search",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"search the web for news\", \"web_search\"),"
+    },
+    {
+      "id": "TOOL-006",
+      "layer": "hybrid_tool",
+      "text": "解析pdf",
+      "gold": "read_pdf",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"解析pdf\", \"read_pdf\"),"
+    },
+    {
+      "id": "TOOL-007",
+      "layer": "hybrid_tool",
+      "text": "合并pdf",
+      "gold": "merge_pdf",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"合并pdf\", \"merge_pdf\"),"
+    },
+    {
+      "id": "TOOL-008",
+      "layer": "hybrid_tool",
+      "text": "拆分pdf",
+      "gold": "split_pdf",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"拆分pdf\", \"split_pdf\"),"
+    },
+    {
+      "id": "TOOL-009",
+      "layer": "hybrid_tool",
+      "text": "查询天气",
+      "gold": "get_weather",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"查询天气\", \"get_weather\"),"
+    },
+    {
+      "id": "TOOL-010",
+      "layer": "hybrid_tool",
+      "text": "搜索网页",
+      "gold": "web_search",
+      "source": "tests/unit/test_tool_hybrid_lang_recall.py",
+      "anchor": "(\"搜索网页\", \"web_search\"),"
+    }
+  ],
+  "external_corpora": [
+    {
+      "id": "corpus_positive",
+      "path": "tests/eval/skill_retrieval_golden_set.json",
+      "json_key": "test_cases",
+      "text_key": "query",
+      "label": "expected_skill_ids 非空（45 条正样本）",
+      "expected_n": 45
+    },
+    {
+      "id": "corpus_negative",
+      "path": "tests/eval/negative_samples_extended.json",
+      "json_key": "test_cases",
+      "text_key": "query",
+      "label": "expected_skill_ids 为空（25 条负样本）",
+      "expected_n": 25
+    },
+    {
+      "id": "corpus_evaltasks",
+      "path": "data/evals",
+      "json_key": null,
+      "text_key": "task",
+      "label": "data/evals 三类真实任务样本（15 条）",
+      "expected_n": 15
+    }
+  ],
+  "split": {
+    "method": "分层随机（按 (layer, gold) 分组后组内洗牌）",
+    "seed": 20260210,
+    "calib_ratio": 0.5
+  }
+}

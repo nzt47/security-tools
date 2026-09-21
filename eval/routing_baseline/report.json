@@ -1,0 +1,1734 @@
+{
+  "task": "TASK-10 · 既有路由的可验证化",
+  "head_commit": "220417b010b957b1e25b953fabd8231e0efb636a",
+  "environment": {
+    "python": "3.12.0",
+    "new_dependencies": [],
+    "new_env_switches": []
+  },
+  "intent_category_table": {
+    "source": "agent/tool_router.py:308 TOOL_CATEGORIES（YAML 存在时由 _load_tool_categories_from_yaml() 于 :238 从 data/tool_definitions/*.yaml 派生）",
+    "n": 11,
+    "keys": [
+      "async",
+      "code",
+      "core",
+      "extension",
+      "file",
+      "knowledge",
+      "pdf",
+      "schedule",
+      "system",
+      "v2",
+      "web"
+    ],
+    "tools_per_category": {
+      "async": 7,
+      "code": 15,
+      "core": 5,
+      "extension": 12,
+      "file": 13,
+      "knowledge": 7,
+      "pdf": 5,
+      "schedule": 5,
+      "system": 8,
+      "v2": 4,
+      "web": 9
+    },
+    "total_tools": 90
+  },
+  "semantic_layer_status": {
+    "retriever_available": true,
+    "degraded_bm25_only": true,
+    "embedding_available": false,
+    "bm25_docs": 90,
+    "alpha": 0.5,
+    "index_path": "data/tool_index.json",
+    "embedding_health": {
+      "mode": "hybrid",
+      "init_failed": false,
+      "worker_alive": false,
+      "available": false,
+      "failure_total": 0,
+      "restart_attempts": 0,
+      "max_restart_attempts": 3,
+      "restarting": false,
+      "retry_exhausted": false,
+      "next_restart_in_sec": null,
+      "last_failure": {},
+      "retriever_degraded": true
+    }
+  },
+  "case_set": {
+    "path": "eval/routing_baseline/cases.json",
+    "n_total": 76,
+    "n_scored": 75,
+    "n_stale_excluded": 1,
+    "excluded": [
+      {
+        "id": "CAT-004",
+        "reason": "gold 含已退役类别 software（agent/tool_router.py:177-186）"
+      }
+    ],
+    "by_layer": {
+      "rule": 41,
+      "template": 16,
+      "keyword_category": 8,
+      "hybrid_tool": 10
+    },
+    "provenance": [
+      "本文件不含任何由本次任务作者自行发明的用例：每条的 text/gold 都抄录自仓库内既有文件，并在 source 字段记录 来源文件 + 辨识锚点（anchor）。",
+      "anchor 必须是来源文件内可检索到的唯一子串；tests/unit/test_routing_reliability.py 会逐条断言 anchor 仍然存在（防止来源漂移）。",
+      "行号不写入（会漂移），只写文件 + 锚点文本。"
+    ],
+    "split": {
+      "seed": 20260210,
+      "method": "分层随机（按 (layer, gold) 分组后组内洗牌）",
+      "n_calib": 33,
+      "n_test": 42,
+      "calib_ratio_realized": 0.44
+    }
+  },
+  "metrics": {
+    "per_layer": {
+      "rule": {
+        "n": 41,
+        "n_scored": 41,
+        "n_claimed": 40,
+        "coverage": 0.9756,
+        "reject_rate": 0.0244,
+        "accuracy": 1.0,
+        "accuracy_ci95": [
+          1.0,
+          1.0
+        ],
+        "n_correct": 41,
+        "precision_on_claimed": 1.0,
+        "claimed_and_wrong": 0,
+        "claimed_wrong_ids": []
+      },
+      "template": {
+        "n": 16,
+        "n_scored": 16,
+        "n_claimed": 13,
+        "coverage": 0.8125,
+        "reject_rate": 0.1875,
+        "accuracy": 1.0,
+        "accuracy_ci95": [
+          1.0,
+          1.0
+        ],
+        "n_correct": 16,
+        "precision_on_claimed": 1.0,
+        "claimed_and_wrong": 0,
+        "claimed_wrong_ids": []
+      },
+      "keyword_category": {
+        "n": 8,
+        "n_scored": 8,
+        "n_claimed": 8,
+        "coverage": 1.0,
+        "reject_rate": 0.0,
+        "accuracy": 0.875,
+        "accuracy_ci95": [
+          0.625,
+          1.0
+        ],
+        "n_correct": 7,
+        "precision_on_claimed": 0.875,
+        "claimed_and_wrong": 1,
+        "claimed_wrong_ids": [
+          "CAT-003"
+        ]
+      },
+      "hybrid_tool": {
+        "n": 10,
+        "n_scored": 10,
+        "n_claimed": 10,
+        "coverage": 1.0,
+        "reject_rate": 0.0,
+        "accuracy": 0.9,
+        "accuracy_ci95": [
+          0.7,
+          1.0
+        ],
+        "n_correct": 9,
+        "precision_on_claimed": 0.9,
+        "claimed_and_wrong": 1,
+        "claimed_wrong_ids": [
+          "TOOL-006"
+        ]
+      }
+    },
+    "funnel_aggregate": {
+      "n_texts": 62,
+      "coverage": 0.9355,
+      "reject_rate": 0.0645,
+      "note": "同一文本在三层各有独立用例时按文本去重；任一决策层声明即为覆盖"
+    }
+  },
+  "calibration": {
+    "method": "temperature scaling (Guo et al., ICML 2017)",
+    "formula": "p = sigmoid(logit / T)",
+    "layers": {
+      "template": {
+        "confidence_semantics": "IntentRouter 的 Confidence 枚举值（HIGH=0.9/MEDIUM=0.6/LOW=0.3），直接当作系统自报正确概率 p0",
+        "n_calib": 7,
+        "n_test": 9,
+        "temperature": {
+          "T": 1.035686,
+          "nll_before": 0.41925,
+          "nll_after": 0.419032
+        },
+        "ece_before": {
+          "ece": 0.2334,
+          "mce": 0.7,
+          "n": 9,
+          "bins": [
+            {
+              "bin": 0,
+              "range": [
+                0.0,
+                0.1
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 1,
+              "range": [
+                0.1,
+                0.2
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 2,
+              "range": [
+                0.2,
+                0.3
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 3,
+              "range": [
+                0.3,
+                0.4
+              ],
+              "n": 1,
+              "avg_confidence": 0.3,
+              "accuracy": 1.0,
+              "gap": 0.7,
+              "contribution": 0.0778
+            },
+            {
+              "bin": 4,
+              "range": [
+                0.4,
+                0.5
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 5,
+              "range": [
+                0.5,
+                0.6
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 6,
+              "range": [
+                0.6,
+                0.7
+              ],
+              "n": 2,
+              "avg_confidence": 0.6,
+              "accuracy": 1.0,
+              "gap": 0.4,
+              "contribution": 0.0889
+            },
+            {
+              "bin": 7,
+              "range": [
+                0.7,
+                0.8
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 8,
+              "range": [
+                0.8,
+                0.9
+              ],
+              "n": 6,
+              "avg_confidence": 0.9,
+              "accuracy": 1.0,
+              "gap": 0.1,
+              "contribution": 0.0667
+            },
+            {
+              "bin": 9,
+              "range": [
+                0.9,
+                1.0
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            }
+          ]
+        },
+        "ece_after": {
+          "ece": 0.238,
+          "mce": 0.6938,
+          "n": 9,
+          "bins": [
+            {
+              "bin": 0,
+              "range": [
+                0.0,
+                0.1
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 1,
+              "range": [
+                0.1,
+                0.2
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 2,
+              "range": [
+                0.2,
+                0.3
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 3,
+              "range": [
+                0.3,
+                0.4
+              ],
+              "n": 1,
+              "avg_confidence": 0.3062,
+              "accuracy": 1.0,
+              "gap": 0.6938,
+              "contribution": 0.0771
+            },
+            {
+              "bin": 4,
+              "range": [
+                0.4,
+                0.5
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 5,
+              "range": [
+                0.5,
+                0.6
+              ],
+              "n": 2,
+              "avg_confidence": 0.5966,
+              "accuracy": 1.0,
+              "gap": 0.4034,
+              "contribution": 0.0896
+            },
+            {
+              "bin": 6,
+              "range": [
+                0.6,
+                0.7
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 7,
+              "range": [
+                0.7,
+                0.8
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 8,
+              "range": [
+                0.8,
+                0.9
+              ],
+              "n": 6,
+              "avg_confidence": 0.893,
+              "accuracy": 1.0,
+              "gap": 0.107,
+              "contribution": 0.0713
+            },
+            {
+              "bin": 9,
+              "range": [
+                0.9,
+                1.0
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            }
+          ]
+        },
+        "ece_before_fullset_not_heldout": {
+          "ece": 0.25,
+          "mce": 0.7,
+          "n": 16,
+          "bins": [
+            {
+              "bin": 0,
+              "range": [
+                0.0,
+                0.1
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 1,
+              "range": [
+                0.1,
+                0.2
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 2,
+              "range": [
+                0.2,
+                0.3
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 3,
+              "range": [
+                0.3,
+                0.4
+              ],
+              "n": 3,
+              "avg_confidence": 0.3,
+              "accuracy": 1.0,
+              "gap": 0.7,
+              "contribution": 0.1312
+            },
+            {
+              "bin": 4,
+              "range": [
+                0.4,
+                0.5
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 5,
+              "range": [
+                0.5,
+                0.6
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 6,
+              "range": [
+                0.6,
+                0.7
+              ],
+              "n": 2,
+              "avg_confidence": 0.6,
+              "accuracy": 1.0,
+              "gap": 0.4,
+              "contribution": 0.05
+            },
+            {
+              "bin": 7,
+              "range": [
+                0.7,
+                0.8
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 8,
+              "range": [
+                0.8,
+                0.9
+              ],
+              "n": 11,
+              "avg_confidence": 0.9,
+              "accuracy": 1.0,
+              "gap": 0.1,
+              "contribution": 0.0688
+            },
+            {
+              "bin": 9,
+              "range": [
+                0.9,
+                1.0
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            }
+          ]
+        },
+        "ece_after_fullset_not_heldout": {
+          "ece": 0.2541,
+          "mce": 0.6938,
+          "n": 16,
+          "bins": [
+            {
+              "bin": 0,
+              "range": [
+                0.0,
+                0.1
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 1,
+              "range": [
+                0.1,
+                0.2
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 2,
+              "range": [
+                0.2,
+                0.3
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 3,
+              "range": [
+                0.3,
+                0.4
+              ],
+              "n": 3,
+              "avg_confidence": 0.3062,
+              "accuracy": 1.0,
+              "gap": 0.6938,
+              "contribution": 0.1301
+            },
+            {
+              "bin": 4,
+              "range": [
+                0.4,
+                0.5
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 5,
+              "range": [
+                0.5,
+                0.6
+              ],
+              "n": 2,
+              "avg_confidence": 0.5966,
+              "accuracy": 1.0,
+              "gap": 0.4034,
+              "contribution": 0.0504
+            },
+            {
+              "bin": 6,
+              "range": [
+                0.6,
+                0.7
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 7,
+              "range": [
+                0.7,
+                0.8
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 8,
+              "range": [
+                0.8,
+                0.9
+              ],
+              "n": 11,
+              "avg_confidence": 0.893,
+              "accuracy": 1.0,
+              "gap": 0.107,
+              "contribution": 0.0736
+            },
+            {
+              "bin": 9,
+              "range": [
+                0.9,
+                1.0
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            }
+          ]
+        }
+      },
+      "hybrid_tool": {
+        "confidence_semantics": "HybridRetriever.query 的融合分（_min_max_normalize 后 min-max 归一化）",
+        "n_scored": 10,
+        "fused_top_scores": [
+          1.0
+        ],
+        "degenerate": true,
+        "conclusion": "融合分经 min-max 归一化后 top1 恒为 1.0 ⇒ 该分数不携带置信度信息，在其上做温度缩放/ECE 无意义（改判定语义不在本任务范围，故只记录事实）"
+      },
+      "hybrid_raw_bm25": {
+        "confidence_semantics": "对原始（未 min-max 归一化）BM25 top-5 分做 softmax 后的 top1 概率",
+        "n_calib": 5,
+        "n_test": 5,
+        "temperature": {
+          "T": 9.965784,
+          "nll_before": 2.763103,
+          "nll_after": 0.500402
+        },
+        "ece_before": {
+          "ece": 0.0672,
+          "mce": 0.3361,
+          "n": 5,
+          "bins": [
+            {
+              "bin": 0,
+              "range": [
+                0.0,
+                0.1
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 1,
+              "range": [
+                0.1,
+                0.2
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 2,
+              "range": [
+                0.2,
+                0.3
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 3,
+              "range": [
+                0.3,
+                0.4
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 4,
+              "range": [
+                0.4,
+                0.5
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 5,
+              "range": [
+                0.5,
+                0.6
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 6,
+              "range": [
+                0.6,
+                0.7
+              ],
+              "n": 1,
+              "avg_confidence": 0.6639,
+              "accuracy": 1.0,
+              "gap": 0.3361,
+              "contribution": 0.0672
+            },
+            {
+              "bin": 7,
+              "range": [
+                0.7,
+                0.8
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 8,
+              "range": [
+                0.8,
+                0.9
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 9,
+              "range": [
+                0.9,
+                1.0
+              ],
+              "n": 4,
+              "avg_confidence": 1.0,
+              "accuracy": 1.0,
+              "gap": 0.0,
+              "contribution": 0.0
+            }
+          ]
+        },
+        "ece_after": {
+          "ece": 0.2566,
+          "mce": 0.4829,
+          "n": 5,
+          "bins": [
+            {
+              "bin": 0,
+              "range": [
+                0.0,
+                0.1
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 1,
+              "range": [
+                0.1,
+                0.2
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 2,
+              "range": [
+                0.2,
+                0.3
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 3,
+              "range": [
+                0.3,
+                0.4
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 4,
+              "range": [
+                0.4,
+                0.5
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 5,
+              "range": [
+                0.5,
+                0.6
+              ],
+              "n": 1,
+              "avg_confidence": 0.5171,
+              "accuracy": 1.0,
+              "gap": 0.4829,
+              "contribution": 0.0966
+            },
+            {
+              "bin": 6,
+              "range": [
+                0.6,
+                0.7
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 7,
+              "range": [
+                0.7,
+                0.8
+              ],
+              "n": 4,
+              "avg_confidence": 0.8,
+              "accuracy": 1.0,
+              "gap": 0.2,
+              "contribution": 0.16
+            },
+            {
+              "bin": 8,
+              "range": [
+                0.8,
+                0.9
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 9,
+              "range": [
+                0.9,
+                1.0
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            }
+          ]
+        },
+        "ece_before_fullset_not_heldout": {
+          "ece": 0.1336,
+          "mce": 0.3361,
+          "n": 10,
+          "bins": [
+            {
+              "bin": 0,
+              "range": [
+                0.0,
+                0.1
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 1,
+              "range": [
+                0.1,
+                0.2
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 2,
+              "range": [
+                0.2,
+                0.3
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 3,
+              "range": [
+                0.3,
+                0.4
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 4,
+              "range": [
+                0.4,
+                0.5
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 5,
+              "range": [
+                0.5,
+                0.6
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 6,
+              "range": [
+                0.6,
+                0.7
+              ],
+              "n": 1,
+              "avg_confidence": 0.6639,
+              "accuracy": 1.0,
+              "gap": 0.3361,
+              "contribution": 0.0336
+            },
+            {
+              "bin": 7,
+              "range": [
+                0.7,
+                0.8
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 8,
+              "range": [
+                0.8,
+                0.9
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 9,
+              "range": [
+                0.9,
+                1.0
+              ],
+              "n": 9,
+              "avg_confidence": 1.0,
+              "accuracy": 0.8889,
+              "gap": 0.1111,
+              "contribution": 0.1
+            }
+          ]
+        },
+        "ece_after_fullset_not_heldout": {
+          "ece": 0.1283,
+          "mce": 0.4829,
+          "n": 10,
+          "bins": [
+            {
+              "bin": 0,
+              "range": [
+                0.0,
+                0.1
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 1,
+              "range": [
+                0.1,
+                0.2
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 2,
+              "range": [
+                0.2,
+                0.3
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 3,
+              "range": [
+                0.3,
+                0.4
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 4,
+              "range": [
+                0.4,
+                0.5
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 5,
+              "range": [
+                0.5,
+                0.6
+              ],
+              "n": 1,
+              "avg_confidence": 0.5171,
+              "accuracy": 1.0,
+              "gap": 0.4829,
+              "contribution": 0.0483
+            },
+            {
+              "bin": 6,
+              "range": [
+                0.6,
+                0.7
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 7,
+              "range": [
+                0.7,
+                0.8
+              ],
+              "n": 9,
+              "avg_confidence": 0.8,
+              "accuracy": 0.8889,
+              "gap": 0.0889,
+              "contribution": 0.08
+            },
+            {
+              "bin": 8,
+              "range": [
+                0.8,
+                0.9
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            },
+            {
+              "bin": 9,
+              "range": [
+                0.9,
+                1.0
+              ],
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
+            }
+          ]
+        }
+      }
+    }
+  },
+  "reject_sweep": {
+    "source_signal": "hybrid_raw_bm25 softmax top1（经 T=9.965784 温度缩放）",
+    "note": "覆盖率 = 接受比例；risk = 被接受样本中的错误率。labeled 折给 risk，corpus 折只给覆盖/拒识。",
+    "labeled": {
+      "rows": [
+        {
+          "threshold": 0.0,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 10,
+          "rejected": 0,
+          "risk_error_rate": 0.1,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.05,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 10,
+          "rejected": 0,
+          "risk_error_rate": 0.1,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.1,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 10,
+          "rejected": 0,
+          "risk_error_rate": 0.1,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.15,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 10,
+          "rejected": 0,
+          "risk_error_rate": 0.1,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.2,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 10,
+          "rejected": 0,
+          "risk_error_rate": 0.1,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.3,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 10,
+          "rejected": 0,
+          "risk_error_rate": 0.1,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.4,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 10,
+          "rejected": 0,
+          "risk_error_rate": 0.1,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 10,
+          "rejected": 0,
+          "risk_error_rate": 0.1,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.6,
+          "coverage": 0.9,
+          "reject_rate": 0.1,
+          "accepted": 9,
+          "rejected": 1,
+          "risk_error_rate": 0.1111,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "coverage": 0.9,
+          "reject_rate": 0.1,
+          "accepted": 9,
+          "rejected": 1,
+          "risk_error_rate": 0.1111,
+          "accepted_wrong_ids": [
+            "TOOL-006"
+          ]
+        },
+        {
+          "threshold": 0.8,
+          "coverage": 0.0,
+          "reject_rate": 1.0,
+          "accepted": 0,
+          "rejected": 10,
+          "risk_error_rate": null,
+          "accepted_wrong_ids": []
+        },
+        {
+          "threshold": 0.9,
+          "coverage": 0.0,
+          "reject_rate": 1.0,
+          "accepted": 0,
+          "rejected": 10,
+          "risk_error_rate": null,
+          "accepted_wrong_ids": []
+        }
+      ],
+      "n": 10,
+      "per_case": [
+        {
+          "id": "TOOL-001",
+          "gold": "read_pdf",
+          "pred": "read_pdf",
+          "correct": true,
+          "p_calibrated": 0.8
+        },
+        {
+          "id": "TOOL-002",
+          "gold": "merge_pdf",
+          "pred": "merge_pdf",
+          "correct": true,
+          "p_calibrated": 0.8
+        },
+        {
+          "id": "TOOL-003",
+          "gold": "split_pdf",
+          "pred": "split_pdf",
+          "correct": true,
+          "p_calibrated": 0.8
+        },
+        {
+          "id": "TOOL-004",
+          "gold": "get_weather",
+          "pred": "get_weather",
+          "correct": true,
+          "p_calibrated": 0.8
+        },
+        {
+          "id": "TOOL-005",
+          "gold": "web_search",
+          "pred": "web_search",
+          "correct": true,
+          "p_calibrated": 0.8
+        },
+        {
+          "id": "TOOL-006",
+          "gold": "read_pdf",
+          "pred": "run_lint",
+          "correct": false,
+          "p_calibrated": 0.8
+        },
+        {
+          "id": "TOOL-007",
+          "gold": "merge_pdf",
+          "pred": "merge_pdf",
+          "correct": true,
+          "p_calibrated": 0.8
+        },
+        {
+          "id": "TOOL-008",
+          "gold": "split_pdf",
+          "pred": "split_pdf",
+          "correct": true,
+          "p_calibrated": 0.8
+        },
+        {
+          "id": "TOOL-009",
+          "gold": "get_weather",
+          "pred": "get_weather",
+          "correct": true,
+          "p_calibrated": 0.8
+        },
+        {
+          "id": "TOOL-010",
+          "gold": "web_search",
+          "pred": "web_search",
+          "correct": true,
+          "p_calibrated": 0.5171
+        }
+      ]
+    },
+    "corpus": {
+      "rows": [
+        {
+          "threshold": 0.0,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 78,
+          "rejected": 0,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 1.0,
+            "corpus_negative": 1.0,
+            "corpus_positive": 1.0
+          }
+        },
+        {
+          "threshold": 0.05,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 78,
+          "rejected": 0,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 1.0,
+            "corpus_negative": 1.0,
+            "corpus_positive": 1.0
+          }
+        },
+        {
+          "threshold": 0.1,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 78,
+          "rejected": 0,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 1.0,
+            "corpus_negative": 1.0,
+            "corpus_positive": 1.0
+          }
+        },
+        {
+          "threshold": 0.15,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 78,
+          "rejected": 0,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 1.0,
+            "corpus_negative": 1.0,
+            "corpus_positive": 1.0
+          }
+        },
+        {
+          "threshold": 0.2,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 78,
+          "rejected": 0,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 1.0,
+            "corpus_negative": 1.0,
+            "corpus_positive": 1.0
+          }
+        },
+        {
+          "threshold": 0.3,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 78,
+          "rejected": 0,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 1.0,
+            "corpus_negative": 1.0,
+            "corpus_positive": 1.0
+          }
+        },
+        {
+          "threshold": 0.4,
+          "coverage": 1.0,
+          "reject_rate": 0.0,
+          "accepted": 78,
+          "rejected": 0,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 1.0,
+            "corpus_negative": 1.0,
+            "corpus_positive": 1.0
+          }
+        },
+        {
+          "threshold": 0.5,
+          "coverage": 0.9615,
+          "reject_rate": 0.0385,
+          "accepted": 75,
+          "rejected": 3,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 1.0,
+            "corpus_negative": 0.9545,
+            "corpus_positive": 0.9512
+          }
+        },
+        {
+          "threshold": 0.6,
+          "coverage": 0.7308,
+          "reject_rate": 0.2692,
+          "accepted": 57,
+          "rejected": 21,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 0.8667,
+            "corpus_negative": 0.8636,
+            "corpus_positive": 0.6098
+          }
+        },
+        {
+          "threshold": 0.7,
+          "coverage": 0.5769,
+          "reject_rate": 0.4231,
+          "accepted": 45,
+          "rejected": 33,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 0.6667,
+            "corpus_negative": 0.7273,
+            "corpus_positive": 0.4634
+          }
+        },
+        {
+          "threshold": 0.8,
+          "coverage": 0.4487,
+          "reject_rate": 0.5513,
+          "accepted": 35,
+          "rejected": 43,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 0.6,
+            "corpus_negative": 0.5,
+            "corpus_positive": 0.3659
+          }
+        },
+        {
+          "threshold": 0.9,
+          "coverage": 0.0,
+          "reject_rate": 1.0,
+          "accepted": 0,
+          "rejected": 78,
+          "risk_error_rate": null,
+          "by_corpus": {
+            "corpus_evaltasks": 0.0,
+            "corpus_negative": 0.0,
+            "corpus_positive": 0.0
+          }
+        }
+      ],
+      "n": 78,
+      "p_calibrated_percentiles": {
+        "p10": 0.5243,
+        "p50": 0.7617,
+        "p90": 0.8,
+        "min": 0.4921,
+        "max": 0.8
+      }
+    }
+  },
+  "reject_recommendation": {
+    "verdict": "不建议在当前信号上启用该阈值（证据不足 + 信号无区分度）",
+    "reason_1_no_discrimination": "标注折上唯一的错误（见 F6）其校准后分数位于被接受样本的中位区间：任何能拒掉它的阈值（>=0.8）会把覆盖率打到 0（softmax 分数上限 0.8）。即该分数对本基线观测到的错误**无区分度**。",
+    "reason_2_sample": "标注折 n=10、校准折 n=5，均远低于 drift_trigger.min_samples=200。",
+    "conditional_value_if_forced": {
+      "rule": "若必须给一个数字：取'拒识率 <= 5% 前提下拒识最多（阈值最大）'的点（该准则等价于题目给的'拒识率 <= X% 时覆盖率最大'，只是把无信息量的 t=0 排除）",
+      "threshold": 0.5,
+      "coverage_on_real_corpus": 0.9615,
+      "reject_rate_on_real_corpus": 0.0385,
+      "basis": "真实语料折 n=78，该点是满足拒识率上限的最大覆盖率点",
+      "caveat": "它在标注折上不降低 risk（仍 0.1）⇒ 只是'少答一点'，不是'答得更准'"
+    },
+    "labeled_min_risk": 0.1
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "blocker",
+      "title": "规则层不产出置信度 ⇒ 该层不可校准",
+      "evidence": "agent/workflow_engine/engine.py:57 把 WorkflowResult.confidence 硬编码为 1.0；实测 rule 层 41 条用例的 confidence 全部为 1.0",
+      "impact": "温度缩放/ECE 在规则层无对象；规则层只能报告准确率与覆盖率"
+    },
+    {
+      "id": "F2",
+      "severity": "blocker",
+      "title": "语义层融合分被 min-max 归一化抹平 ⇒ 该分数不携带置信度",
+      "evidence": "agent/tool_router_hybrid.py:1154-1167 _min_max_normalize 把每路召回的 max 映射为 1.0；实测 fused_top_scores=[1.0]",
+      "impact": "直接在该分数上做拒识等价于'永不拒识'；本基线改用未归一化的原始 BM25 分作为可校准出口"
+    },
+    {
+      "id": "F3",
+      "severity": "high",
+      "title": "本环境 Embedding 路不可用，语义层实际运行在 BM25-only 降级路",
+      "evidence": "{\"retriever_available\": true, \"degraded_bm25_only\": true, \"embedding_available\": false, \"bm25_docs\": 90, \"alpha\": 0.5, \"index_path\": \"data/tool_index.json\", \"embedding_health\": {\"mode\": \"hybrid\", \"init_failed\": false, \"worker_alive\": false, \"available\": false, \"failure_total\": 0, \"restart_attempts\": 0, \"max_restart_attempts\": 3, \"restarting\": false, \"retry_exhausted\": false, \"next_restart_in_sec\": null, \"last_failure\": {}, \"retriever_degraded\": true}}",
+      "impact": "所有语义层读数描述降级路；AGENT_HYBRID_ALPHA=0.5 的融合路未被本次基线覆盖"
+    },
+    {
+      "id": "F4",
+      "severity": "medium",
+      "title": "原始 BM25 softmax 分数可校准：NLL 大幅下降，但 ECE 在 n=5 的测试折上不可解释",
+      "evidence": "T=9.965784，NLL 2.763103 -> 0.500402；测试折 ECE 0.0672 -> 0.2566，全标注集 ECE 0.1336 -> 0.1283",
+      "impact": "测试折 n=5，ECE 由'哪 5 条落到折里'决定；只能采信 NLL 的下降方向，不能采信 ECE 的绝对差"
+    },
+    {
+      "id": "F5",
+      "severity": "medium",
+      "title": "模板层的失配是枚举上限问题，不是温度问题 ⇒ 温度缩放修不动它",
+      "evidence": "T=1.035686（≈1，几乎未改），ECE 0.2334 -> 0.238",
+      "impact": "该折 accuracy=1.0 而最高自报置信度只有 0.9（Confidence.HIGH），先把上限抬到 1.0 才能谈温度；本任务不改判定语义，故只记录"
+    },
+    {
+      "id": "F6",
+      "severity": "high",
+      "title": "语义层在真实 90 工具索引上存在实际误召回",
+      "evidence": "[{\"id\": \"TOOL-006\", \"text\": \"解析pdf\", \"gold\": \"read_pdf\", \"pred\": \"run_lint\", \"raw_bm25_top5\": [[\"run_lint\", 72.4669], [\"decompress\", 32.8902], [\"split_pdf\", 24.4339], [\"read_pdf\", 24.3426], [\"read_pdf_tables\", 21.824]]}]",
+      "impact": "例：中文查询'解析pdf'在真实索引上 top1=run_lint（合成 5 工具索引下该单测是过的）⇒ 原单测的'召回正确'结论不覆盖真实索引"
+    },
+    {
+      "id": "F7",
+      "severity": "medium",
+      "title": "关键词类别层存在既定误分类（仓内自带用例即已失败）",
+      "evidence": "[{\"id\": \"CAT-003\", \"text\": \"执行命令\", \"gold\": [\"core\", \"code\", \"system\"], \"pred\": [\"code\", \"core\"]}]",
+      "impact": "该层 8 条可用用例中 1 条不满足其自身期望集合（见上）"
+    },
+    {
+      "id": "F8",
+      "severity": "high",
+      "title": "语义层在真实语料上几乎不做拒识（覆盖率 0.88–1.00）",
+      "evidence": "{\"corpus_evaltasks\": {\"n\": 15, \"source\": \"data\\\\evals\\\\chat\\\\dialog_flows.json\", \"label\": \"data/evals 三类真实任务样本（15 条）\", \"rule_claim_rate\": 0.1333, \"template_claim_rate\": 0.2, \"hybrid_claim_rate\": 1.0, \"both_rule_and_template\": 0.0667}, \"corpus_negative\": {\"n\": 25, \"source\": \"tests/eval/negative_samples_extended.json\", \"label\": \"expected_skill_ids 为空（25 条负样本）\", \"rule_claim_rate\": 0.16, \"template_claim_rate\": 0.2, \"hybrid_claim_rate\": 0.88, \"both_rule_and_template\": 0.08}, \"corpus_positive\": {\"n\": 45, \"source\": \"tests/eval/skill_retrieval_golden_set.json\", \"label\": \"expected_skill_ids 非空（45 条正样本）\", \"rule_claim_rate\": 0.0444, \"template_claim_rate\": 0.0222, \"hybrid_claim_rate\": 0.9111, \"both_rule_and_template\": 0.0}}",
+      "impact": "当前漏斗的拒识能力完全来自 L1/L2 两层；语义层对任何中文输入都会返回候选"
+    }
+  ],
+  "external_corpora": {
+    "corpus_evaltasks": {
+      "n": 15,
+      "source": "data\\evals\\chat\\dialog_flows.json",
+      "label": "data/evals 三类真实任务样本（15 条）",
+      "rule_claim_rate": 0.1333,
+      "template_claim_rate": 0.2,
+      "hybrid_claim_rate": 1.0,
+      "both_rule_and_template": 0.0667
+    },
+    "corpus_negative": {
+      "n": 25,
+      "source": "tests/eval/negative_samples_extended.json",
+      "label": "expected_skill_ids 为空（25 条负样本）",
+      "rule_claim_rate": 0.16,
+      "template_claim_rate": 0.2,
+      "hybrid_claim_rate": 0.88,
+      "both_rule_and_template": 0.08
+    },
+    "corpus_positive": {
+      "n": 45,
+      "source": "tests/eval/skill_retrieval_golden_set.json",
+      "label": "expected_skill_ids 非空（45 条正样本）",
+      "rule_claim_rate": 0.0444,
+      "template_claim_rate": 0.0222,
+      "hybrid_claim_rate": 0.9111,
+      "both_rule_and_template": 0.0
+    }
+  },
+  "drift_trigger": {
+    "principle": "校准只在分数分布未漂移时有效；一旦分布漂移，T 必须重估。",
+    "signals": [
+      {
+        "name": "PSI(分数分布)",
+        "definition": "把校准期分数按 10 等宽箱固化，窗口内新样本落箱占比对比，PSI = Σ (p_cur − p_ref)·ln(p_cur / p_ref)",
+        "trigger": "PSI >= 0.25",
+        "basis": "信用评分业界通行经验阈值（<0.1 无显著漂移；0.1–0.25 中度；>=0.25 显著，须重估）"
+      },
+      {
+        "name": "Delta_ECE(标注窗口)",
+        "definition": "滑动窗口内重算 ECE，与校准时 ECE 比较",
+        "trigger": "Delta_ECE >= 0.10 或 ECE_cur >= 2 x ECE_calib（先到者触发）",
+        "basis": "本基线 ECE 量级约 0.1，取半个量级为可感知漂移；倍数条件防小基数抖动"
+      },
+      {
+        "name": "KS 检验 p 值",
+        "definition": "窗口分数 vs 校准集分数的双样本 KS 检验",
+        "trigger": "p < 0.01",
+        "basis": "与 PSI 互为交叉验证（PSI 分箱敏感，KS 无分箱）"
+      }
+    ],
+    "action": "触发后用新窗口标注样本重跑 scripts/run_routing_reliability.py 重新拟合 T；T 的重估只影响观测与拒识阈值，不改动任何判定语义。",
+    "min_samples": 200,
+    "min_samples_basis": "温度缩放是单参数拟合，样本 <200 时 T 的置信区间极宽；本基线校准集样本量（见 calibration.layers.*.n_calib）远小于该门槛 ⇒ 当前 T 只能当占位值。"
+  },
+  "honesty_boundaries": [
+    "规则层/模板层用例抄自这两个模块自己的单测（关键词/正则即规则定义）⇒ 这些准确率是同分布上界，不是对真实流量的泛化估计；仓库内不存在留出的路由标注集（已勘察 eval/**、data/evals/**、tests/**）。",
+    "语义层用例（10 条）抄自 tests/unit/test_tool_hybrid_lang_recall.py，是为英文别名机制定制的查询；但该单测用 5 工具合成索引，本基线用真实 90 工具索引（data/tool_index.json）⇒ 比原单测更难。",
+    "Embedding 在本环境不可用（retriever_degraded=true）⇒ 语义层读数描述 BM25-only 降级路，不是 AGENT_HYBRID_ALPHA=0.5 的融合路。",
+    "标注样本量 <=80 ⇒ 温度参数 T 与 ECE 的置信区间很宽，当前数值只能当占位基线。",
+    "拒识阈值曲线的标注折（n=10）与真实语料折（n=78）口径不同：标注折可算 risk，语料折无标注只能算覆盖/拒识；两者不可混读。",
+    "真实语料折 n=78 而非 85：另 7 条查询在语义层无任何 BM25 候选（空召回），已被 4b 曲线排除（这本身也是覆盖率的一部分，见 external_corpora 的声明率）。",
+    "logs/ 下 grep 真实路由决策记录命中 0 条 ⇒ 无法给出线上覆盖率，只能用仓内语料替代。"
+  ]
+}
