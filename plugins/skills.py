@@ -678,7 +678,10 @@ def api_extensions_uninstall():
         if not ext_type or not ext_id:
             return jsonify({"ok": False, "error": "缺少 type 或 id"}), 400
 
-        result = _extension_mgr.uninstall(ext_type, ext_id)
+        # 【W2/L37】force 只认 JSON 布尔字面量 true（fail-closed）：
+        # 传字符串或其他真值不得静默授权「文件轨独占」技能的不可逆删除。
+        force = data.get("force") is True
+        result = _extension_mgr.uninstall(ext_type, ext_id, force=force)
         return jsonify(result)
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

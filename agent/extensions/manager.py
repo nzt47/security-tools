@@ -171,8 +171,15 @@ class ExtensionManager:
     # 统一管理接口
     # ════════════════════════════════════════════════════════════
 
-    def uninstall(self, ext_type: str, ext_id: str) -> Dict:
-        """卸载扩展"""
+    def uninstall(self, ext_type: str, ext_id: str, force: bool = False) -> Dict:
+        """卸载扩展
+
+        【W2/L37】`force` 透传给 SKILL 安装器：
+        `SkillsInstaller.remove_skill` 自 L20 起对「文件轨独占」技能**默认拒绝**
+        （避免 file_store.delete 的不可逆 rmtree）。若本条链路不透传 force，
+        则该拒绝**没有显式放行出口** —— 能力被移除而无补救手段。
+        故此处只做透传，默认 False 与既有行为一致；其余扩展类型不接受 force（各自语义不同）。
+        """
         try:
             etype = ExtensionType(ext_type)
         except ValueError:
@@ -182,7 +189,7 @@ class ExtensionManager:
 
         try:
             if etype == ExtensionType.SKILL:
-                success, msg = installer.remove_skill(ext_id)
+                success, msg = installer.remove_skill(ext_id, force=force)
             elif etype == ExtensionType.CLAUDE_SKILL:
                 success, msg = installer.uninstall_claude_skill(ext_id)
             elif etype == ExtensionType.MCP:
