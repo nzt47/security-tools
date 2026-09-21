@@ -940,11 +940,32 @@ jobs:
     # 在高峰时段回收长 job（exit 143 / shutdown signal）。ubuntu-22.04 避开高峰回收。
     # 历史：本 job 单 pytest 跑全 tests/ 21min，连续两次被 runner shutdown（59%/92% 处）
     runs-on: ubuntu-22.04
-    # 【不易】硬超时兜底：单 shard 预计 5-10min。Shard 1 因贪心按「测试数」
-    # 均分把 performance/chaos 类「测试数少、单测慢」文件集中在同一 shard，
-    # 实测 35min 才跑到 85%（2026-08-08 两轮均在 30min 超时被 cancel，exit 143），
-    # 缓冲调至 45min（其余 shard 4-6min 不受影响）。
-    timeout-minutes: 45
+    # 【不易】硬超时兜底。原值 45min，依据是"单 shard 预计 5-10min"。
+    #
+    # 【2026-09-21 上调 45 → 90】该前提**已被施工期测试量增长打破**，实测证据：
+    #   · 本 job 跑的是与 ci.yml 单元测试分片**同一批用例**（`split_unit_tests.py
+    #     --root tests`），而 ci.yml 的同类分片用的是 `timeout-minutes: 90`；
+    #   · 施工期（提交 406ea0c2 → HEAD）tests/ 净增 **+21,743 行 / 53 个新文件**，
+    #     分片工作量约涨 3 倍；
+    #   · 实测分片耗时对比（同一 shard）：
+    #       Shard 3:  9.3min → 45.3min（被 45min 超时 kill）
+    #       Shard 4: 11.7min → 36.7min（且其中"运行分片测试"步骤本身 34.1min）
+    #     Shard 4 的 4574 条用例累计耗时 28.5min，最慢的 20 余条各 17~42s，
+    #     全部是"全仓扫描"型技能测试（`TestUnusedCleanup` 129s、
+    #     `TestServiceIntegration` 128s、`TestMechanicalZeroGap` 85s、
+    #     `TestOrphanScanCleanup` 69s）。
+    #   · 后果不只是慢：Shard 4 被 kill ⇒ 该 run 整体 `cancelled` ⇒
+    #     **本工作流在 HEAD 上无法收尾成功**（连续 4 个 run 的 Shard 4 均如此，
+    #     与并发取消无关）。
+    #
+    # 调至 90min 是对齐 ci.yml 同类分片的既有取值（有实测依据，非凭空放宽），
+    # 只影响"超时上限"，不改变任何判定逻辑 —— 慢分片跑完即结束，不会白占 90min。
+    #
+    # 【未修的真问题，已登记为技术债】`split_unit_tests.py` 按**测试条数**均衡，
+    #   会把"条数少但单条极慢"的文件集中到同一 shard（本注释下方原文即记录过
+    #   同一现象）。正解是**按实测耗时分片**（或把上述全仓扫描型用例移入专属
+    #   serial job），但那会改变分片成员、影响面更大，故本轮**不做**。
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
