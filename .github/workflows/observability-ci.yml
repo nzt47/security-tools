@@ -1409,11 +1409,20 @@ jobs:
           #   非覆盖率真实退化——见 docs/LOG_SPEC_REFACTOR_DELIVERY_REPORT_20260827.md §七-3）。
           #   校准至 20 作为回归下限：健康合并（~31%）与不完整合并（~22%）均不再误报，
           #   覆盖率真实大幅回退（<20%）仍会阻断。覆盖率提升后应随行上调阈值。
+          # 【2026-09-21 W1 集成修复】必须**显式**传 --output：
+          #   W1/TASK-02 把脚本的 --output 默认值从"裸相对路径"改成系统临时目录
+          #   （防的是测试不传 --output 时把报告写进仓库根）。但本 job 下方
+          #   "上传质量门禁报告"按 path: quality_gate_report.json 从工作区取件，
+          #   默认值一改就会**上传 0 个文件** —— 本工作流已在 2026-09-21 因同类
+          #   "上传 0 个文件"踩过一次（见本文件"生成集成测试报告"步骤的注释），
+          #   那次的后果是门禁恒 exit 2、工作流永久失败。
+          #   ⇒ 此处显式指定工作区路径，既保住产物契约，又保留脚本的安全默认值。
           python scripts/observability_quality_gate.py \
             --results-dir all-observability-results/ \
             --min-unit-test-pass-rate 95 \
             --min-coverage 20 \
-            --require-e2e-pass true
+            --require-e2e-pass true \
+            --output quality_gate_report.json
 
       - name: 上传质量门禁报告
         uses: actions/upload-artifact@v7

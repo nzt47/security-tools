@@ -582,3 +582,13 @@ env_archive/
 #   的 calibration/sources 字段里，可追溯。
 _t06_logs/
 
+# 质量门禁报告（scripts/observability_quality_gate.py 的产物）。
+# Why 必须忽略：它曾**被误提交进仓库根**（W1/TASK-02 定位到的三段链条：
+#   测试不传 --output → 脚本默认裸相对路径 → open() 按 CWD 解析）。
+#   W1/TASK-02 已把脚本默认值改为系统临时目录，并新增回归类防再犯；
+#   W1 集成修复又让 CI 显式传 --output（保住 upload-artifact 契约）。
+#   本规则是第三道防线：即使将来又有调用方漏传 --output，产物也不会入库。
+#   ⚠️ CI 侧仍显式写工作区（observability-ci.yml 的 --output），本规则不影响 CI 取件。
+quality_gate_report.json
+
+
