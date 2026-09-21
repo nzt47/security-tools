@@ -12,6 +12,8 @@ import logging
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 
+from agent.logging_utils import log_dict
+
 logger = logging.getLogger(__name__)
 
 # SingletonManager 统一收口（保留 fallback 变量 _manager 向后兼容）
@@ -556,6 +558,22 @@ def _build_meta_map() -> dict:
     return meta
 
 
+def is_section_editable(section_key: str) -> bool:
+    """该节的 custom_content 是否会被渲染函数读取（= 可编辑节）
+
+    唯一定义源 = 注册表 meta["editable"]（当前仅 identity / principles 为 True）。
+    tests/unit/test_prompt_section_editable_invariant.py 用**行为断言**守护
+    「editable is True ⟺ 渲染函数读取 custom_content」，故此处直接复用同一标志：
+    将来某节的渲染实现开始读 custom_content 并同步标了 editable，写入校验
+    自动跟随，无需再改本函数；两处若漂移，该不变量测试会先变红。
+    未登记的 key（含任意未知节）一律视为不可编辑。
+    """
+    meta = _build_meta_map().get(section_key)
+    if meta is None:
+        return False
+    return meta.get("editable") is True
+
+
 # ── 管理类 ────────────────────────────────────────────────────
 
 class SystemPromptConfigManager:
@@ -563,6 +581,10 @@ class SystemPromptConfigManager:
 
     def __init__(self):
         self._cache: Optional[dict] = None
+        # 最近一次 save() 中被丢弃的键（格式 "<section>.custom_content"），
+        # 空列表 = 本次无丢弃。供 HTTP 层在 JSON 响应里回传 ignored_keys，
+        # 使「丢弃」不静默（详见 save() docstring）。
+        self.last_ignored_keys: list = []
 
     # ── 加载/保存 ──
 
@@ -604,10 +626,72 @@ class SystemPromptConfigManager:
         self.save(self._cache)
         return copy.deepcopy(self._cache)
 
+    def _drop_dead_custom_content(self, config: dict) -> list:
+        """落盘前丢弃非 editable 节的 custom_content，返回被丢弃的键
+
+        判据与 update_section 同源（is_section_editable），保证「收口」只有一条
+        定义。返回值形如 ["skill_instructions.custom_content"]（带节名前缀，
+        因为裸 custom_content 无法区分是哪一节）。
+
+        【为何只丢弃**非空**值】注册表默认配置给**每个**节都写了
+        custom_content: ""，且前端 GET→POST 是整包往返（必然把它带回来）。
+        丢弃空值既不减少死数据，又会让每一次保存都产生一堆噪声信号、并改写
+        配置文件的既有形态（破坏「合法写入行为不变」）。空值不含信息，原样保留。
+
+        边界：config["sections"] 非 dict、或某节非 dict 时跳过，不抛错（save 的
+        容错语义保持不变）。
+        """
+        dropped: list = []
+        sections = config.get("sections")
+        if not isinstance(sections, dict):
+            return dropped
+        for key, sec in sections.items():
+            if not isinstance(sec, dict):
+                continue
+            if is_section_editable(key):
+                continue
+            value = sec.get("custom_content")
+            if isinstance(value, str) and value.strip():
+                sec.pop("custom_content", None)
+                dropped.append(f"{key}.custom_content")
+        return dropped
+
     def save(self, config: dict) -> bool:
-        """保存配置"""
+        """保存配置
+
+        Returns:
+            bool: **返回类型未改**（True = 已落盘；False = 落盘失败）
+
+        【不易】非 editable 节的 custom_content 落盘前被丢弃，但**绝不静默**
+        ------------------------------------------------------------------
+        这类值是渲染层从不读取的死数据（判据 is_section_editable，同
+        update_section），落盘没有收益；但静默丢掉又会重演 TASK-01
+        「接口返回成功、数据却没落盘、且无任何痕迹」的缺陷形态（只是方向相反）。
+        故本方法保证**两件事同时发生**：
+          1) 结构化 warning 日志（action=save.dropped_ignored_keys，含 ignored_keys）；
+          2) 被丢弃的键记录到 self.last_ignored_keys —— 供 HTTP 层在 JSON 响应里
+             回传 ignored_keys 字段（响应加字段向后兼容，故不必改本方法返回类型）。
+
+        另：丢弃发生在**深拷贝**上，不改写调用方传入的 dict。
+        """
+        # 每次调用都重置，保证「本次是否有丢弃」不被上一次的结果污染
+        self.last_ignored_keys = []
         try:
+            config = copy.deepcopy(config)
             config["version"] = 2
+
+            self.last_ignored_keys = self._drop_dead_custom_content(config)
+            if self.last_ignored_keys:
+                logger.warning(log_dict({
+                    "module_name": "system_prompt_config",
+                    "action": "save.dropped_ignored_keys",
+                    "level": "WARNING",
+                    "msg": "非 editable 节的 custom_content 是渲染层从不读取的死数据，"
+                           "已丢弃后再落盘；被丢弃的键见 ignored_keys",
+                    "ignored_keys": list(self.last_ignored_keys),
+                    "count": len(self.last_ignored_keys),
+                }))
+
             os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
@@ -713,10 +797,49 @@ class SystemPromptConfigManager:
         }
 
     def update_section(self, section_key: str, updates: dict) -> bool:
-        """更新单个组件的配置"""
+        """更新单个组件的配置
+
+        Returns:
+            bool: True = 已写入并落盘；False = **一个字段都没写**。三种成因
+            （未知节 / 非法写入：非 editable 节带 custom_content / save 失败）
+            均各有日志，调用方不会拿到「返回成功但没落盘」的假信号。
+
+        【不易】非 editable 节不得写入 custom_content —— 显式拒绝，不静默丢弃
+        ------------------------------------------------------------------
+        注册表 meta["editable"] is True 是「该节的渲染函数会读 custom_content」
+        的唯一定义源（由 tests/unit/test_prompt_section_editable_invariant.py
+        守护）。identity / principles 之外的节从不读它，写进去就是**永远不被
+        读取的死数据**；前端 L21 已不再把它当「发出内容」显示，故在此后端单点收口。
+
+        收口形态 = 显式报错（返回 False + 结构化日志 action=update_section.rejected）。
+        为何不选「忽略该键、继续写其余字段」：本方法返回 bool，调用方在返回值里
+        看不到「哪个键被丢了」，忽略即等于**静默丢弃**（TASK-01 静默丢失 API Key
+        的同一缺陷形态）；要让调用方看到 ignored_keys 必须改返回类型或另设出口，
+        超出本次收口授权范围，故不改 API。
+
+        整包拒绝（fail-closed）：只要 updates 带 custom_content，本次调用一个字段
+        都不写，避免「一半写了一半被丢」的模糊状态；调用方拿到 False 即知需拆包重发。
+        """
         config = self.load()
         if section_key not in config.get("sections", {}):
             logger.warning("未知的配置组件: %s", section_key)
+            return False
+
+        # ── 收口：非 editable 节不接受 custom_content（整包拒绝，见 docstring）──
+        if "custom_content" in updates and not is_section_editable(section_key):
+            value = updates.get("custom_content")
+            logger.error(log_dict({
+                "module_name": "system_prompt_config",
+                "action": "update_section.rejected",
+                "level": "ERROR",
+                "msg": "非 editable 节不接受 custom_content：该节渲染函数从不读它，"
+                       "写入即死数据；本次调用未写入任何字段",
+                "section_key": section_key,
+                "rejected_keys": ["custom_content"],
+                "custom_content_length": len(value) if isinstance(value, str) else None,
+                "editable": False,
+                "written": False,
+            }))
             return False
 
         for k, v in updates.items():

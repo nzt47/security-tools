@@ -97,7 +97,16 @@ def register_routes(app, state):
             success = mgr.save(data)
             if not success:
                 return jsonify({"ok": False, "error": "保存失败"}), 500
-            return jsonify({"ok": True})
+            # 【不易】回传本次保存中被丢弃的键（空列表 = 无丢弃，字段不省略）
+            # 背景：非 editable 节的 custom_content 是渲染层从不读取的死数据，
+            # save() 已丢弃它并写了结构化 warning 日志；此处再把 ignored_keys
+            # 显式回传，调用方不必翻日志即可知道「提交的哪些键没被采纳」——
+            # 避免 TASK-01 那种「接口返回成功、数据却没落盘、且无任何痕迹」。
+            # 响应加字段向后兼容，save() 的返回类型（bool）保持不变。
+            return jsonify({
+                "ok": True,
+                "ignored_keys": list(getattr(mgr, "last_ignored_keys", []) or []),
+            })
         except Exception as e:
             logger.error("保存提示词配置失败: %s", e)
             return jsonify({"ok": False, "error": str(e)}), 500
@@ -136,11 +145,16 @@ def register_routes(app, state):
 
             # 如果有传入配置，先保存
             config_data = data.get("config")
+            # 本路由也会经 save() 落盘，故同样要回传被丢弃的键（见 POST
+            # /api/system-prompt/config 的同名说明）。必须**紧跟这次 save 取值**：
+            # 后面第 154 行的 mgr.save(config) 会把 last_ignored_keys 重置。
+            ignored_keys: list = []
             if config_data:
                 # 兼容两种结构
                 if "sections" not in config_data:
                     config_data = {"sections": config_data}
                 mgr.save(config_data)
+                ignored_keys = list(getattr(mgr, "last_ignored_keys", []) or [])
 
             # 构建模板（使用已保存的最新配置）
             template = mgr.build_template()
@@ -158,6 +172,7 @@ def register_routes(app, state):
                 "template": template,
                 "template_length": len(template),
                 "synced": sync_ok,
+                "ignored_keys": ignored_keys,
             })
         except Exception as e:
             logger.error("应用提示词配置失败: %s", e)
