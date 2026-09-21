@@ -1,10 +1,14 @@
 # 🚨 L1 生产审计链修复 — 一键回滚
-# 用法：在仓库根执行  pwsh -File _ci_logs\l1_repair\ROLLBACK.ps1
+# 用法：在仓库根执行  pwsh -File docs\closeout\L1_evidence\ROLLBACK.ps1
+# 【W5/TASK-09 修复 2026-09-21】本脚本原位于 _ci_logs\l1_repair\（那里 '..\..' = 仓库根）；
+#   归档到 docs\closeout\L1_evidence\ 后层级多了一层 ⇒ '..\..' 会解析成 <仓库>\docs（少一层），
+#   导致第 10~11 行读 <仓库>\docs\_ci_logs\LAST_AUDIT_BACKUP.txt ⇒ 不存在 ⇒ throw。
+#   已改为 '..\..\..'（三级）并同步本用法行。实测（只读求值）：repo 现正确解析为仓库根。
 # 作用：把 data\audit\ 下的审计文件恢复为修复前状态（来自独立备份目录）。
 # 风险：会丢弃修复后新写入的审计记录。回滚前请先确认没有进程正在写审计链。
 
 $ErrorActionPreference = 'Stop'
-$repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 Set-Location $repo
 
 $bk = (Get-Content (Join-Path $repo '_ci_logs\LAST_AUDIT_BACKUP.txt') -Raw).Trim()
