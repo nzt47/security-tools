@@ -242,7 +242,9 @@ class Funnel:
         raw_second = float(raw[1][1]) if len(raw) > 1 else 0.0
         return {
             "claimed": True, "pred": res[0][0], "confidence": float(res[0][1]),
-            "confidence_kind": "fused_minmax",
+            # 【L39 更正·随 L27 落地】融合分已不再走 min-max：改为查询无关的单调校准
+            # （p = s/(s+S0) 与余弦阈值锚定映射）。旧的 fused_minmax 标签在此已为假。
+            "confidence_kind": "fused_calibrated",
             "raw_bm25_top": raw_top, "raw_bm25_second": raw_second,
             "raw_margin": raw_top - raw_second,
             "top": [[d, _r(s)] for d, s in res[:5]],
@@ -455,12 +457,16 @@ def run() -> Dict[str, Any]:
     if hyb:
         fused = [r["result"]["confidence"] for r in hyb if r["result"]["claimed"]]
         calibration["layers"]["hybrid_tool"] = {
-            "confidence_semantics": "HybridRetriever.query 的融合分（_min_max_normalize 后 min-max 归一化）",
+            "confidence_semantics": "HybridRetriever.query 的融合分（查询无关的单调校准：BM25 走 p=s/(s+S0)，"
+                                    "余弦走以 _COSINE_CUTOFF 为下界的线性映射；见 agent/tool_router_hybrid.py 的 "
+                                    "_calibrate_bm25_scores / _calibrate_cosine_scores）",
             "n_scored": len(hyb),
             "fused_top_scores": sorted(set(_r(x) for x in fused)),
             "degenerate": len(set(round(x, 6) for x in fused)) <= 1,
-            "conclusion": "融合分经 min-max 归一化后 top1 恒为 1.0 ⇒ 该分数不携带置信度信息，"
-                          "在其上做温度缩放/ECE 无意义（改判定语义不在本任务范围，故只记录事实）",
+            "conclusion": "融合分已可校准（L27 起改用查询无关的单调校准，top1 不再恒为 1.0）。"
+                          "但**校准不等于可标定**：S0 由 n=11 条 calib 用例中位数导出，"
+                          "换个同样合理的口径得 10.0877（约 1.8 倍）⇒ 该分数可用于单调排序，"
+                          "在其上做温度缩放/ECE 时必须计入该不确定度，不得声称已得到可标定的概率。",
         }
 
         # 【A2/A7】原始 BM25 top1 的分位数 —— 供半饱和常量 S0 的**独立复算**。
