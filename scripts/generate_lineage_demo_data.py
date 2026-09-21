@@ -1,7 +1,7 @@
 """重新生成 demo 技能谱系数据（data/evolution_archive.jsonl 默认路径）
 
 背景:
-    run_evolution_demo.py 与 offline_evolver.py 被并行会话反复覆盖回旧版
+    run_evolution_demo.py (现位于 demos/run_evolution_demo.py) 与 offline_evolver.py 被并行会话反复覆盖回旧版
     （MockEnhancer 丢失 set_lineage_hook / 无条件调用），demo 不可依赖。
     本脚本自包含（内置 MockEnhancer），直接调用 OfflineEvolver 生成
     demo-cache-tuner / demo-search-optimize 的谱系记录。

@@ -36,7 +36,8 @@ from agent.skills_mgmt.models import (
     SkillStatus,
 )
 
-# 本脚本自包含：不 import run_evolution_demo（该文件为跟踪文件，可能被还原为
+# 本脚本自包含：不 import run_evolution_demo（现位于 demos/run_evolution_demo.py；
+# 该文件为跟踪文件，可能被还原为
 # 原始启发式版本导致 _make_skill 无 tags 参数），构造技能依赖评估协议即可。
 
 

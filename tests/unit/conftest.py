@@ -666,16 +666,16 @@ def guard_regression_assertions():
 def guard_result_example_data():
     """从 docs/guard_result_example.json 加载黄金参考数据 (跨进程传递格式示例)
 
-    来源: generate_guard_json_example.py 生成
+    来源: demos/generate_guard_json_example.py 生成 (脚本现位于 demos/ 目录)
     用途: 回归测试验证 guard 实际输出与示例数据一致 (findings/severity/sanitized)
-    若文件不存在则跳过 (需先运行 generate_guard_json_example.py)
+    若文件不存在则跳过 (需先运行 demos/generate_guard_json_example.py)
     """
     import json
     from pathlib import Path
     json_path = Path(__file__).parent.parent.parent / "docs" / "guard_result_example.json"
     if not json_path.exists():
         import pytest
-        pytest.skip("guard_result_example.json 不存在, 运行 generate_guard_json_example.py 生成")
+        pytest.skip("guard_result_example.json 不存在, 运行 demos/generate_guard_json_example.py 生成")
     with open(json_path, encoding="utf-8") as f:
         return json.load(f)
 

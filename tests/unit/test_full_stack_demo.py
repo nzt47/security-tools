@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-demo_full_stack.py 功能单元测试
+demos/demo_full_stack.py 功能单元测试 (脚本现位于 demos/ 目录)
 
 覆盖：
 1. 全链路回溯功能

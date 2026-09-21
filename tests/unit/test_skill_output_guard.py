@@ -871,7 +871,7 @@ def test_guard_matches_example_data(
     """回归测试: guard 实际输出与 docs/guard_result_example.json 黄金参考一致
 
     fixture 来源: guard_result_example_data 从 JSON 文件加载
-    若 guard 逻辑变化导致输出不一致, 需重新生成示例 (generate_guard_json_example.py)
+    若 guard 逻辑变化导致输出不一致, 需重新生成示例 (demos/generate_guard_json_example.py)
     """
     guard = SkillOutputGuard()
     gr = guard.validate_llm_output(
