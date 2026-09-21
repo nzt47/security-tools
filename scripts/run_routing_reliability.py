@@ -208,7 +208,12 @@ class Funnel:
         r = self.engine.try_match(text)
         # engine.py:57 把 WorkflowResult.confidence 硬编码为 1.0 ⇒ 规则层不产出可用置信度
         return {"claimed": bool(r.matched), "pred": r.rule_name if r.matched else None,
-                "confidence": float(r.confidence), "confidence_kind": "hardcoded_1.0"}
+                "confidence": float(r.confidence),
+            # 【L26 更正】engine.py 已**不再硬编码** 1.0：改为「规则声明值，缺省回落 1.0」
+            # （DEFAULT_RULE_CONFIDENCE / resolve_rule_confidence）。当前内置 8 条规则仍未
+            # 携带真实置信度，故**取值**仍为 1.0，但**机制**已变 ⇒ 标签须如实反映，
+            # 否则审计者会据旧标签误判为「代码写死」。
+            "confidence_kind": "rule_default_1.0"}
 
     # ── L2 模板层 ──────────────────────────────────────────────
     def probe_template(self, text: str) -> Dict[str, Any]:
@@ -241,6 +246,10 @@ class Funnel:
             "raw_bm25_top": raw_top, "raw_bm25_second": raw_second,
             "raw_margin": raw_top - raw_second,
             "top": [[d, _r(s)] for d, s in res[:5]],
+            # 【A7】完整排序 id（不含分数，体积可忽略）：使「某工具由第1掉到第5」这类
+            # **名次位移**可被独立复算 —— 基线原先只存 top1 的 pred，位移只体现为
+            # correct 翻转，第三方无法复核。
+            "top_ids": [d for d, _ in res],
             "raw_bm25_top5": [[d, _r(s)] for d, s in raw[:5]],
         }
 
@@ -248,6 +257,21 @@ class Funnel:
 # ════════════════════════════════════════════════════════════════
 #  评分
 # ════════════════════════════════════════════════════════════════
+
+def _rank_of_gold(gold: Any, res: Dict[str, Any]) -> Optional[int]:
+    """gold 在检索器返回排序中的名次（1-based）；不在返回列表内则为 None。
+
+    Why（A7）: 逐例只记 top1 的 pred 时，「某工具从第1掉到第5」这类**名次位移**
+        无法被独立复核（基线只体现为 correct 的翻转）。落盘名次后，位移可复算。
+    """
+    top_ids = res.get("top_ids")
+    if not isinstance(gold, str) or not isinstance(top_ids, (list, tuple)):
+        return None
+    for i, doc_id in enumerate(top_ids, start=1):
+        if doc_id == gold:
+            return i
+    return None
+
 
 def is_correct(layer: str, gold: Any, pred: Any) -> Optional[bool]:
     if gold is None or (isinstance(gold, list) and gold == []):
@@ -356,7 +380,8 @@ def run() -> Dict[str, Any]:
         rows.append({"id": case["id"], "layer": layer, "text": text, "gold": gold,
                      "source": case["source"], "anchor": case["anchor"],
                      "stale": bool(case.get("stale")), "result": res,
-                     "correct": is_correct(layer, gold, res["pred"])})
+                     "correct": is_correct(layer, gold, res["pred"]),
+                     "rank_of_gold": _rank_of_gold(gold, res)})
 
     scored_rows = [r for r in rows if not r["stale"]]
     stale_rows = [r for r in rows if r["stale"]]
@@ -437,6 +462,22 @@ def run() -> Dict[str, Any]:
             "conclusion": "融合分经 min-max 归一化后 top1 恒为 1.0 ⇒ 该分数不携带置信度信息，"
                           "在其上做温度缩放/ECE 无意义（改判定语义不在本任务范围，故只记录事实）",
         }
+
+        # 【A2/A7】原始 BM25 top1 的分位数 —— 供半饱和常量 S0 的**独立复算**。
+        # 逐条原始值见 eval/routing_baseline/bm25_raw_top1.json（受跟踪产物）。
+        # 【诚实边界】S0 对样本口径敏感（实测：仅 hybrid_tool 层 calib 与全层 calib
+        # 相差约 1.8×），故该分数可用于**单调排序**（保序，与 S0 取值无关），
+        # 但在其上做 ECE / 拒识阈值时**必须**计入该不确定度。
+        _rv = sorted(float(r["result"].get("raw_bm25_top") or 0.0)
+                     for r in hyb if r["result"].get("claimed"))
+        if _rv:
+            _q = lambda p: _rv[min(len(_rv) - 1, int(p * (len(_rv) - 1)))]
+            calibration["layers"]["hybrid_tool"]["raw_top1_percentiles"] = {
+                "n": len(_rv),
+                "p10": _r(_q(0.10)), "p50": _r(_q(0.50)),
+                "p90": _r(_q(0.90)), "max": _r(_rv[-1]),
+                "note": "原始 BM25 top1 分位数；S0 取 calib 划分的中位数。",
+            }
         c_rows = [r for r in hyb if r["id"] in calib_ids and r["result"]["claimed"]]
         t_rows = [r for r in hyb if r["id"] in test_ids and r["result"]["claimed"]]
         if c_rows and t_rows:
@@ -502,6 +543,7 @@ def run() -> Dict[str, Any]:
     sweep["labeled"]["n"] = len(lab_pairs)
     sweep["labeled"]["per_case"] = [
         {"id": r["id"], "gold": r["gold"], "pred": r["result"]["pred"], "correct": r["correct"],
+         "rank_of_gold": r.get("rank_of_gold"),
          "p_calibrated": _r(_p_cal(r))} for r in hyb]
 
     # ── 外部真实语料：层声明率（无标注，只看漏斗行为）────────
