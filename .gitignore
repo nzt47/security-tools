@@ -575,3 +575,10 @@ _scratch/
 # TASK-01 的 dotenv 归档目录（清理前的原始副本，供回滚）。
 # 注：其中已被 TASK-01 `git add` 的单个脚本不受本规则影响（ignore 不改已跟踪文件）。
 env_archive/
+
+# W1/TASK-06 的 CI 分片取证目录（耗时标定证据 + 并集对拍脚本与报告）。
+# Why 不入库：它是"某一次标定"的证据快照（含逐 shard 原始输出），
+#   体积会随每次重标定增长；标定结论已固化在 scripts/shard_time_weights.json
+#   的 calibration/sources 字段里，可追溯。
+_t06_logs/
+

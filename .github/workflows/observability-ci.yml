@@ -961,10 +961,22 @@ jobs:
     # 调至 90min 是对齐 ci.yml 同类分片的既有取值（有实测依据，非凭空放宽），
     # 只影响"超时上限"，不改变任何判定逻辑 —— 慢分片跑完即结束，不会白占 90min。
     #
-    # 【未修的真问题，已登记为技术债】`split_unit_tests.py` 按**测试条数**均衡，
-    #   会把"条数少但单条极慢"的文件集中到同一 shard（本注释下方原文即记录过
-    #   同一现象）。正解是**按实测耗时分片**（或把上述全仓扫描型用例移入专属
-    #   serial job），但那会改变分片成员、影响面更大，故本轮**不做**。
+    # 【已修·TASK-06 路线3 2026-09-21】原本按**测试条数**均衡，会把"条数少但单条
+    #   极慢"的文件集中到同一 shard（本注释上方即记录过该现象）。现改为**按实测
+    #   耗时均衡**：分片脚本接入权重表 scripts/shard_time_weights.json
+    #   （每文件实测秒数，来源即本 job 的 junit artifact），调用处显式传 --by=time。
+    #   · 量化依据（同一次 run 35533437590，2026-09-20）：
+    #       Shard 2  4502 条 / 277.21s      Shard 4  4574 条 / 1039.61s
+    #       Shard 5  3797 条 / 329.31s      Shard 6  4169 条 / 374.95s
+    #     条数相差 1.6% 的两个 shard，墙钟相差 3.75 倍 —— 条数不是耗时的好代理。
+    #   · 该 run 的 Shard 4 junit 里，前 10 个文件占该 shard 实测耗时的 54%，
+    #     test_skills_cleanup.py 仅 14 条用例却耗时 200.91s（14.35 s/条）。
+    #   · 回退：把调用处的 --by=time 改回 --by=count（旧行为逐字节一致，已验证）。
+    #   · 本次改的是**分片成员**，分片并集不变（文件级 + node id 级对拍见
+    #     _t06_logs/union_check_report.txt）；因成员变化，本轮之后需一次 CI 实测
+    #     确认各 shard 墙钟与失败面（清单见 TASK-06 报告"待下一轮 CI 确认"）。
+    #   · 权重表目前只有 132/801 个文件有 CI 实测值，其余按实测标定的单位耗时
+    #     定标；建议下一轮把 6 个 shard 的 junit 都归档后重标定一次。
     timeout-minutes: 90
     strategy:
       fail-fast: false
@@ -1014,6 +1026,9 @@ jobs:
           # 【不易】--shards 6 与 matrix.shard 元素数一致，调整需同步两处
           # 【不易】--ignore 与 split_unit_tests.py 的 EXCLUDED 必须一致
           #   （split 脚本会显式传文件给 pytest，--ignore 无法拦截显式传入路径）
+          # 【变易·TASK-06 路线3】--by=time：按实测耗时均衡（权重表
+          #   scripts/shard_time_weights.json，来源即本 job 的 junit artifact）。
+          #   回退 --by=count。
           # 【变易·P3】serial 日志断言测试拆为串行段：pytest-xdist 并行时全局 logging
           #   状态竞争导致 assertLogs 偶发失败（2026-08-09 Shard5/6 六例），故分两段执行。
           # 【变易·2026-08-29】并行段单次重试吸收轮转 flaky：确定性失败（log_dict 断言、
@@ -1021,7 +1036,7 @@ jobs:
           #   0a2917f9→S3/5、81a541de→S6、fef98343→S1/6），系共享 runner 负载/资源争用。
           #   重试不掩盖回归：确定性失败第二次仍失败并阻断。
           run_parallel() {
-            pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests) \
+            pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests --by=time) \
               -n 2 \
               --dist=loadscope \
               --cov=agent \
@@ -1061,7 +1076,9 @@ jobs:
           #   测试 → pytest exit code 5（no tests collected）→ run 块 set -e 提前中止
           #   → mv .coverage 不执行 → artifact 丢失（2026-08-09 run 31315288856 Shard 3）。
           #   exit 5 是"无测试收集"而非测试失败，应视为可接受状态；真实失败(exit 1)仍阻断。
-          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests) \
+          # 【不易·TASK-06】串行段必须与上面并行段用**同一个 --by**，否则两段的
+          #   文件集合不同 → serial 用例可能在本 shard 被漏跑（或重复跑）。
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests --by=time) \
             --cov=agent \
             --cov=scripts \
             --cov-append \

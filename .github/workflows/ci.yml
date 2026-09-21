@@ -456,7 +456,13 @@ jobs:
           #   仍有 93,337/135,272 = 69.0% ≫ 40%。即该改动只会让门禁更严格、更真实。
           # 反面参考：只改 pyproject 的 source 而不改这里，实测**毫无效果**
           #   （报告期不补扫），这正是"改了配置却没效果"的典型陷阱。
-          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6) \
+          # 【变易·TASK-06 路线3 2026-09-21】--by=time：分片依据由「条数」改为
+          #   「CI 实测耗时」（权重表 scripts/shard_time_weights.json）。实测依据：
+          #   observability-ci 全项目 6 分片中 Shard 2 的 4502 条用例跑 277s、
+          #   Shard 4 的 4574 条跑 1040s（条数差 1.6%，耗时差 3.75 倍）；
+          #   本轮改的是**分片成员**，并集不变（对拍见 _t06_logs/union_check_report.txt）。
+          #   回退：把 --by=time 改回 --by=count（旧行为逐字节一致，已验证）。
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --by=time) \
             -n 2 \
             --dist=loadscope \
             -v \
@@ -943,7 +949,11 @@ jobs:
         run: |
           mkdir -p test-results
           echo "=== 运行集成测试（Shard ${{ matrix.shard }}/4）==="
-          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 4 --root tests/integration) \
+          # 【变易·TASK-06 路线3 2026-09-21】--by=time：与单元测试分片同口径（按实测
+          #   耗时均衡）。集成测试只有 13/63 个文件在权重表内有 CI 实测值，其余按
+          #   实测标定的单位耗时定标；本 job 的耗时口径属"待下一轮 CI 确认"项。
+          #   回退：--by=count。
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 4 --root tests/integration --by=time) \
             -v \
             --tb=short \
             -m "not slow and not e2e and not requires_llm and not skip_ci" \

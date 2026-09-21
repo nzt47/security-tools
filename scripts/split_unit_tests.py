@@ -22,10 +22,32 @@ Shard3 job 全部被 runner 回收。贪心分配保证每个 shard 测试数均
 
 【简易】单文件零依赖，仅标准库；贪心分配 ~15 行实现。
 【变易】--shards 可调，便于未来增减并行度；--root 可切换 tests/unit 与 tests 全集。
+
+【变易·TASK-06 路线3 2026-09-21 —— 由「按条数均衡」改为「按实测耗时均衡」】
+  背景（实测，非推断）：observability-ci.yml 全项目测试 6 分片里，Shard 2 的
+  4502 条用例跑 277.21s，Shard 4 的 4574 条用例跑 1039.61s —— **条数几乎相同，
+  耗时相差 3.75 倍**；2026-09-21 那一轮 Shard 4 更是 4813 条 / 2239.18s（37.3min），
+  叠加工作流内建的「失败重试一次」即 75min，逼近 job 的 timeout-minutes: 90。
+  根因：按条数（或条数+行数）均衡的工具函数对「条数少但单条极慢」的文件完全
+  无感。Shard 4 的 131 个文件中，前 10 个文件占该 shard 实测总耗时的 54%，
+  其中 test_skills_cleanup.py 只有 14 条用例却耗时 200.91s（14.35 s/条）。
+
+  做法：引入**每文件实测耗时权重表** scripts/shard_time_weights.json
+  （数据来源见该文件内的 measurement_context / sources 字段），
+  贪心分配的目标函数由「条数」换成「秒数」。
+    · 表内有实测值的文件：直接用实测秒数；
+    · 表内没有的文件：按旧的条数启发式形状等比缩放，使该群体的总量等于
+      「条数 x 实测标定单位耗时（default_seconds_per_test）」——
+      即保留旧启发式的相对排序，只把量纲换成秒。
+  回退：--by=count 走旧路径（默认 --by=time）。两种模式的文件集合完全相同，
+  只有分片成员不同（并集不变，见 _t06_logs/union_*.txt 对拍）。
+  确定性：权重是 (文件, 表) 的纯函数，排序键显式写成 (-权重, 路径)，
+  不依赖随机数、时间或环境，同样输入必得同样分片。
 """
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -82,6 +104,72 @@ SERIAL_DIRS = (
     "tests/performance/",
     "tests/stress/",
 )
+
+# 【不变·TASK-06】实测耗时权重表（数据文件而非内嵌常量）：
+#   · 选文件而非内嵌常量的理由：表由 CI artifact（junit.xml）机械再生成
+#     （_t06_logs/gen_weights.py），132 个条目内嵌进本文件会让「零依赖单文件」
+#     变成 400+ 行常量，且每次重标定都会产生大块无意义 diff；
+#   · 表缺失/损坏时**不报错**，退回旧启发式并告警（CI 不能因缺数据而崩）。
+WEIGHTS_FILENAME = "shard_time_weights.json"
+# 表缺失时的兜底单位耗时（秒/条）：取表中标定值，避免两处不一致
+FALLBACK_SECONDS_PER_TEST = 0.129475
+
+
+def load_time_weights(root: Path) -> tuple[dict[str, float], float]:
+    """读取实测耗时权重表；失败时返回空表 + 兜底单位耗时（不抛异常）。"""
+    path = root / "scripts" / WEIGHTS_FILENAME
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        table = {str(k): float(v) for k, v in doc.get("files", {}).items()}
+        rate = float(doc.get("calibration", {}).get("default_seconds_per_test", FALLBACK_SECONDS_PER_TEST))
+    except (OSError, ValueError, TypeError, AttributeError) as exc:  # pragma: no cover - 环境异常
+        print(f"warning: 无法读取 {path.name}（{exc}），退回按条数均衡", file=sys.stderr)
+        return {}, FALLBACK_SECONDS_PER_TEST
+    if not table:  # pragma: no cover - 环境异常
+        print(f"warning: {path.name} 为空表，退回按条数均衡", file=sys.stderr)
+    return table, rate
+
+
+def time_weights(
+    files: list[str],
+    counts: dict[str, int],
+    raw_counts: dict[str, int],
+    table: dict[str, float],
+    rate: float,
+) -> dict[str, float]:
+    """把「条数权重」换算成「秒数权重」：实测优先，未实测按旧启发式形状定标。
+
+    【不易】未实测文件的定标不是随手取常数，分两步：
+      1. 该群体的**总秒数**锚定为 raw_counts 合计 x rate —— rate（秒/条）
+         由 CI 实测标定（见权重表 calibration.default_seconds_per_test）；
+      2. 群体**内部**按旧启发式 counts 的相对比例摊分。
+    这样既把量纲换成秒，又完整保留旧启发式（条数 + 行数/4）的相对排序。
+    直接写 counts[f] * rate 是错的：--root tests 下 counts 叠加了行数项，
+    系数比 raw_counts 大 4~5 倍，会把未实测文件整体高估，反噬均衡。
+    """
+    fallback = [f for f in files if f not in table]
+    raw_total = sum(raw_counts[f] for f in fallback)
+    shape_total = sum(counts[f] for f in fallback)
+    scale = (raw_total * rate / shape_total) if shape_total else rate
+    return {
+        f: (table[f] if f in table else counts[f] * scale)
+        for f in files
+    }
+
+
+def greedy_assign(files: list[str], weights: dict[str, float], shards: int) -> list[list[str]]:
+    """确定性贪心：重文件优先，每次放入当前总权重最小的 shard。
+
+    【不易】排序键显式带路径作为第二键 —— 保证同权重时按路径定序，
+    与旧实现（sorted(files) 后稳定排序）结果一致，不引入非确定性。
+    """
+    buckets: list[list[str]] = [[] for _ in range(shards)]
+    totals = [0.0] * shards
+    for f in sorted(files, key=lambda x: (-weights[x], x)):
+        idx = totals.index(min(totals))
+        buckets[idx].append(f)
+        totals[idx] += weights[f]
+    return buckets
 
 
 def _is_excluded(rel_path: str, excluded: set[str]) -> bool:
@@ -159,6 +247,10 @@ def main() -> int:
     # observability-ci.yml 传 tests 走全项目模式（rglob 递归）
     parser.add_argument("--root", type=str, default="tests/unit",
                         help="测试根目录（默认 tests/unit；传 tests 走全项目模式）")
+    # 【变易·TASK-06】--by：分片依据。time=按实测耗时（默认，路线3）；
+    #   count=旧的按条数/行数启发式（回退开关，行为与 2026-09-21 之前逐字节一致）
+    parser.add_argument("--by", type=str, choices=("time", "count"), default="time",
+                        help="分片依据：time=实测耗时（默认），count=旧版按条数（回退用）")
     args = parser.parse_args()
 
     if args.shard < 1 or args.shard > args.shards:
@@ -169,18 +261,21 @@ def main() -> int:
         parser.error(f"--root 仅支持 tests/unit、tests 或 tests/integration，当前 {args.root}")
 
     files = collect_test_files(ROOT, args.root)
-    # 贪心均衡: 按测试数降序, 每次放入当前测试总数最少的 shard
-    # （重文件优先分配，避免大文件扎堆导致单 shard 运行时间过长）
     # 【变易·B3】tests/integration 与全项目模式一致按行数加权：
     # 大 integration 文件（90KB+）测试数少但耗时长，纯测试数贪心会扎堆失衡。
-    counts = {f: count_tests(ROOT, f, use_lines=(args.root in ("tests", "tests/integration"))) for f in files}
-    buckets: list[list[str]] = [[] for _ in range(args.shards)]
-    totals = [0] * args.shards
-    for f in sorted(files, key=lambda x: -counts[x]):
-        idx = totals.index(min(totals))
-        buckets[idx].append(f)
-        totals[idx] += counts[f]
-    print(" ".join(buckets[args.shard - 1]))
+    use_lines = args.root in ("tests", "tests/integration")
+    counts = {f: count_tests(ROOT, f, use_lines=use_lines) for f in files}
+    if args.by == "count":
+        # 【不易·回退路径】旧行为：按测试数（+行数）贪心，重文件优先。
+        weights: dict[str, float] = {f: float(counts[f]) for f in files}
+    else:
+        # 【变易·TASK-06 路线3】新行为：按实测秒数贪心，未实测者按旧启发式
+        # 形状等比定标到同一量纲（详见 time_weights 的说明）。
+        table, rate = load_time_weights(ROOT)
+        raw_counts = ({f: count_tests(ROOT, f, use_lines=False) for f in files}
+                      if use_lines else counts)
+        weights = time_weights(files, counts, raw_counts, table, rate)
+    print(" ".join(greedy_assign(files, weights, args.shards)[args.shard - 1]))
     return 0
 
 
