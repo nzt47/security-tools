@@ -14,12 +14,13 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 # 【demos/ 迁移 2026-09-21】本脚本原在仓库根，`Path(__file__).parent` 恰为仓库根；
 # 迁入 demos/ 后须显式把**仓库根**（上一级）加入 sys.path，否则 `import agent.*` 失败。
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from agent.skills_mgmt.lineage import EvolutionArchive
 from agent.skills_mgmt.models import Skill, SkillMetrics, SkillCategory, SkillStatus, ContentType
 from agent.skills_mgmt.enhancer import VersionBump
 from agent.skills_mgmt.offline_evolver import (
@@ -118,23 +119,53 @@ class MockStore:
 
 
 class MockEnhancer:
-    """模拟 SkillEnhancer — 仅实现 bump_version"""
-    def __init__(self):
+    """模拟 SkillEnhancer — 实现 bump_version + 谱系钩子鸭子类型
+
+    【L30 修复】OfflineEvolver 要求增强器具备以下成员，本类曾丢失它们
+    （事故记录见 scripts/generate_lineage_demo_data.py:4、07_EVO_T4 验收报告 §五.3），
+    导致 run_evolution_demo.py 与 verify_budget_break.py 双双报错：
+      ① set_lineage_hook()          —— offline_evolver.py:348 无条件调用
+      ② lineage_archive 注入 + _get_lineage_archive() —— _resolve_archive 的兜底来源
+      ③ bump_version(eval_result=)  —— offline_evolver.py:1467 提交时传参
+      ④ bump_version 内触发钩子      —— 否则 committed 谱系记录不落库
+    签名对齐 tests/unit/test_evolution_loop.py::_StubEnhancer（同类鸭子类型）。
+    """
+    def __init__(self, *, lineage_archive: Optional[EvolutionArchive] = None):
         self._version_counter: Dict[str, int] = {}
+        self._lineage_archive = lineage_archive
+        self._lineage_hook: Optional[Callable[[dict], None]] = None
+
+    def _get_lineage_archive(self) -> Optional[EvolutionArchive]:
+        """返回注入的谱系档案库（None ⇒ OfflineEvolver 回退全局单例）"""
+        return self._lineage_archive
+
+    def set_lineage_hook(self, hook: Callable[[dict], None]) -> None:
+        """注入谱系钩子（提交时由 bump_version 触发）"""
+        self._lineage_hook = hook
 
     def bump_version(self, skill_id: str, kind: str, *,
                      changelog: str = "",
-                     content: Optional[str] = None) -> VersionBump:
+                     content: Optional[str] = None,
+                     eval_result: Optional[Any] = None) -> VersionBump:
         old_version = "1.0.0"
         # 简单递增 patch 版本
         count = self._version_counter.get(skill_id, 0) + 1
         self._version_counter[skill_id] = count
         new_version = f"1.0.{count}"
-        return VersionBump(
+        bump = VersionBump(
             old_version=old_version,
             new_version=new_version,
             changelog=changelog,
         )
+        if self._lineage_hook is not None:
+            self._lineage_hook({
+                "skill_id": skill_id,
+                "old_version": old_version,
+                "new_version": new_version,
+                "changelog": changelog,
+                "eval_result": eval_result,
+            })
+        return bump
 
 
 # ════════════════════════════════════════════════════════════

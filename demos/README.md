@@ -47,7 +47,18 @@ python demos/demo_production_deployment.py     # prompt 版本管理生产部署
 
 ## 已知问题（既有缺陷，非本次迁移引入）
 
-`python demos/verify_budget_break.py` 目前会以
+> ✅ **【L30 已修复·2026-09-21】** 下述 TypeError 已修：根因是 `run_evolution_demo.py` 的
+> `MockEnhancer` 丢失了 `OfflineEvolver` 要求的鸭子类型成员（`set_lineage_hook` /
+> `lineage_archive`+ `_get_lineage_archive` / `bump_version(eval_result=…)` / 钩子触发），
+> 已按 `tests/unit/test_evolution_loop.py::_StubEnhancer` 对齐补回（**非**迁移引入，见下文）。
+> 修复后实测：`python demos/verify_budget_break.py` **exit 0**（验证全绿）；
+> `python demos/run_evolution_demo.py` 在同一次修复后于 **UTF-8 控制台** exit 0，
+> 但在 **GBK(cp936) 控制台**仍会因 `print_report` 打印 "✓" 报
+> `UnicodeEncodeError: 'gbk' codec can't encode character '\u2713'` —— 这是**另一项**
+> 既存缺陷（该文件缺少 `verify_budget_break.py:124-128` 已有的
+> `sys.stdout.reconfigure(encoding="utf-8")` 兜底），本次未改动。下文保留原文记录。
+
+`python demos/verify_budget_break.py` 曾会以
 `TypeError: MockEnhancer.__init__() got an unexpected keyword argument 'lineage_archive'` 退出：
 `verify_budget_break.py` 传 `lineage_archive=`，而 `run_evolution_demo.py` 的 `MockEnhancer`
 签名是 `def __init__(self):`。`git show HEAD:run_evolution_demo.py` 签名相同，且已在
