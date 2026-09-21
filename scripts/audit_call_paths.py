@@ -227,10 +227,33 @@ def _walk_python(root: str) -> List[str]:  # pragma: no cover - 兜底
 # 【线程/进程安全】`ast.parse` 的返回值本模块只读不改（全部是 `ast.walk`/`visit`），
 #   故跨调用共享安全。pytest-xdist 是**多进程**，各进程独立缓存，无共享问题；
 #   进程内用独立锁与 `_RAW_SCAN_LOCK` 解耦，避免与 scan 的临界区互相等待。
+# 【不易·2026-09-21 L19：上限必须按**字节**而不是**条数**（这条是 CI 挂起的根因之一）】
+#   原上限 4096 条对"1399 个受控文件"等于**不设限** ⇒ 整个仓库的 AST 常驻进程内存。
+#   实测（本机，见 _ci_logs/l19/mem_probe.txt）：冷扫描峰值工作集 **707.5 MB**，
+#   而把解析结果即弃（`_PARSE_CACHE_MAX=1` 等价物）只要 **44.4 MB** —— **16 倍放大**，
+#   放大源就是这里；被缓存的是 **1,399 棵 AST / 2,505,191 个节点**，而受控源码合计仅 22.3 MB。
+#   代价：CI 上 `-n 2` 的每个 worker 都要再摊一份，而该 runner 本就有资源耗尽前科
+#   （`can't start new thread` INTERNALERROR，见 docs/observability/）。
+#   ⇒ 改成"**源码字节预算**"（AST 内存 ≈ 源码字节 × 30，由 707MB/22.3MB 实测标定）。
+#   预算取多少：本机交替 A/B（同一进程、每档 3 次、取 min，见 _ci_logs/l19/ab_budget2.py）
+#     预算        min 冷扫描   峰值工作集
+#     1 B（≈不缓存）  15.43 s     45.5 MB
+#     64 KB          15.65 s      ~   （差异在噪声内）
+#     256 KB         16.36 s      ~
+#     1 MB           18.00 s      ~
+#     2 MB           17.87 s    106.8 MB
+#     8 MB           19.60 s      ~
+#     4096 条（原行为） 18.31 s    707.5 MB
+#   ⇒ 越大越慢（AST 常驻把 GC 成本抬上去），且内存线性膨胀。取 256 KB：
+#     已覆盖"同一文件紧邻两次解析"（`_symbol_exists` → `_symbol_lineno`）这一唯一
+#     仍有收益的场景，又不再把整仓 AST 留在进程里。条数上限保留作第二道闸。
 _PARSE_CACHE_MAX = 4096
+_PARSE_CACHE_MAX_BYTES = 256 * 1024
 _PARSE_CACHE: "OrderedDict[Tuple[str, str, int, int], Optional[ast.Module]]" = OrderedDict()
 _PARSE_CACHE_LOCK = threading.Lock()
 _PARSE_CACHE_STATS: Dict[str, int] = {"hit": 0, "miss": 0, "evict": 0}
+#: 当前缓存里所有条目对应的**源码字节数**（用于字节预算淘汰）
+_PARSE_CACHE_BYTES: Dict[str, int] = {"n": 0}
 
 
 def _parse(root: str, rel: str) -> Optional[ast.Module]:
@@ -266,9 +289,14 @@ def _parse(root: str, rel: str) -> Optional[ast.Module]:
     with _PARSE_CACHE_LOCK:
         _PARSE_CACHE_STATS["miss"] += 1
         _PARSE_CACHE[key] = tree
+        _PARSE_CACHE_BYTES["n"] += key[3]
         _PARSE_CACHE.move_to_end(key)
-        while len(_PARSE_CACHE) > _PARSE_CACHE_MAX:
-            _PARSE_CACHE.popitem(last=False)
+        # 两道闸：字节预算（内存）与条数上限；`len(...) > 1` 保证"单文件也留得住"，
+        # 否则"同一文件第二次解析命中缓存"这条不变量会在大文件上被自己淘汰掉。
+        while (_PARSE_CACHE_BYTES["n"] > _PARSE_CACHE_MAX_BYTES
+               or len(_PARSE_CACHE) > _PARSE_CACHE_MAX) and len(_PARSE_CACHE) > 1:
+            old_key, _ = _PARSE_CACHE.popitem(last=False)
+            _PARSE_CACHE_BYTES["n"] -= old_key[3]
             _PARSE_CACHE_STATS["evict"] += 1
     return tree
 
@@ -277,6 +305,7 @@ def parse_cache_clear() -> None:
     """清空 AST 解析缓存（测试与长驻进程用；改完工作区想强制重扫也可先调它）"""
     with _PARSE_CACHE_LOCK:
         _PARSE_CACHE.clear()
+        _PARSE_CACHE_BYTES["n"] = 0
 
 
 def parse_cache_info() -> Dict[str, int]:
@@ -284,6 +313,7 @@ def parse_cache_info() -> Dict[str, int]:
     with _PARSE_CACHE_LOCK:
         info = dict(_PARSE_CACHE_STATS)
         info["entries"] = len(_PARSE_CACHE)
+        info["source_bytes"] = _PARSE_CACHE_BYTES["n"]
         return info
 
 
@@ -426,11 +456,32 @@ class RegisteredHandler:
     via: str
 
 
+#: 上表的名字在源码里**必然以字面量出现**（`_callee_name` 取的就是 Attribute.attr /
+#: Name.id）⇒ 用它做**廉价的字节级预筛**是**保语义**的：源码里没有 `register` 这四个字
+#: 的文件，不可能出现 `register(...)` / `register_tool(...)` 这类调用点。
+#: 【为什么必须预筛（2026-09-21 L19）】本函数对**全部**受控文件做一遍 `_parse` + `ast.walk`，
+#: 实测占冷扫描总成本的 **1/3 以上**（1400 文件里只有一小部分真的注册 handler）。
+_REGISTER_NAME_BYTES: Tuple[bytes, ...] = tuple(
+    sorted({n.encode() for n in _REGISTER_NAMES}))
+
+
+def _source_mentions_register(root: str, rel: str) -> bool:
+    """源码字节里是否出现任一注册函数名（预筛用；读盘成本 ≈ 30ms/1400 文件）"""
+    try:
+        with open(os.path.join(root, rel), "rb") as fh:
+            raw = fh.read()
+    except OSError:  # pragma: no cover - 读不到就当"没有"，与 `_parse` 返回 None 同效
+        return False
+    return any(hint in raw for hint in _REGISTER_NAME_BYTES)
+
+
 def collect_registered_handlers(root: str, files: Sequence[str]
                                 ) -> Dict[str, List[RegisteredHandler]]:
     """建**注册面**：handler 函数名 → 注册点（装饰器 + `handler=` 两种形态）"""
     table: Dict[str, List[RegisteredHandler]] = {}
     for rel in files:
+        if not _source_mentions_register(root, rel):
+            continue
         tree = _parse(root, rel)
         if tree is None:
             continue
@@ -454,6 +505,30 @@ def collect_registered_handlers(root: str, files: Sequence[str]
                         table.setdefault(kw.value.id, []).append(RegisteredHandler(
                             kw.value.id, rel, node.lineno, cap or kw.value.id, "kwarg"))
     return table
+
+
+def _identity_leaves(tree: ast.Module, sym: _SymbolIndex) -> Set[str]:
+    """**一次遍历**算出：本文件里哪些"符号名"的调用点带显式身份
+
+    【为什么要有这个函数（2026-09-21 L19）】原来 `_scope_has_identity(tree, sym, leaf)`
+    是**按收口调用点逐个调用**的，而它内部是**整棵树**的 `ast.walk` ⇒ 一个文件里有 N 个
+    收口调用点就要把整棵树走 N 遍（O(调用点数 × 节点数)）。实测这是冷扫描里**最大的
+    单点浪费**。本函数把"该文件哪些符号带身份"一次算完，调用点改成查表 ⇒ 语义完全等价
+    （判据仍是"该符号名下有任一调用点满足三选一"），复杂度降到**每文件一次遍历**。
+    """
+    out: Set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        key = sym.parent.get(id(node), "")
+        leaf = key.split("::")[-1] if key else ""
+        if not leaf:
+            continue
+        if _callee_name(node) == "set_session_source" or any(
+                kw.arg in ("session_source", "identity", "callable_by")
+                for kw in node.keywords):
+            out.add(leaf)
+    return out
 
 
 def _scope_has_identity(tree: ast.Module, sym: _SymbolIndex, leaf: str) -> bool:
@@ -674,6 +749,9 @@ def _collect_findings(root: str, files: Sequence[str]) -> List[Finding]:
         binds = module_bindings(tree)
         sym = _SymbolIndex()
         sym.visit(tree)
+        # 身份表**惰性**计算：全仓只有个位数文件含收口调用点（实测 39 条 findings 里
+        # 只有 10 条 funnel）⇒ 无条件每文件算一遍反而白走 1400 遍树（实测 +2.3s）。
+        identity_leaves: Optional[Set[str]] = None
         trigger = _trigger_of(rel)
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
@@ -685,7 +763,9 @@ def _collect_findings(root: str, files: Sequence[str]) -> List[Finding]:
 
             # ── P1：收口路径 ──
             if _is_funnel(node, binds):
-                has_id = _scope_has_identity(tree, sym, leaf) or any(
+                if identity_leaves is None:
+                    identity_leaves = _identity_leaves(tree, sym)
+                has_id = (leaf in identity_leaves) or any(
                     kw.arg in ("session_source", "identity", "callable_by")
                     for kw in node.keywords)
                 findings.append(Finding(

@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import sys
@@ -315,28 +316,37 @@ class TestParseCache:
             f"第二次解析仍读了盘（miss {base['miss']} → {after['miss']}）⇒ AST 缓存未生效"
         )
 
-    def test_文件集合扫描不产生轮内重复解析(self, audit, synthetic):
-        """同一次 `scan()` 内，同一文件**只应读盘一次**（其余解析走命中）
+    def test_文件集合扫描不产生轮内重复解析(self, audit, synthetic, monkeypatch):
+        """同一次 `scan()` 内，同一文件**只应读盘一次**
 
-        【口径说明】轮内确有**两个解析入口**（实测栈）：
-        `_collect_findings` → `collect_registered_handlers`(:651) 与主循环(:657)。
-        因此单文件合成根的 `miss` 是 **2**（两次 stat+读盘）而不是 1 ——
-        但有了 AST 缓存后**只有第一次读盘**，第二次是 `hit`。
-        所以判据是"**命中了**"，而不是"miss 等于 1"（首版按 miss==1 断言，
-        正常跑就失败 —— 那是断言口径错，不是代码错）。
+        【口径演进·L19（2026-09-21）】原来轮内有**两个解析入口**
+        （`collect_registered_handlers` 与主循环）⇒ 判据只能退而求其次地写
+        "**命中了**（`hit >= 1`）"。L19 给 `collect_registered_handlers` 加了
+        **源码字节预筛**（源码里没有 `register` 字面量的文件不可能注册 handler）
+        ⇒ 本探针（`_PROBE_V1` 里没有 `register`）**只剩主循环一个入口**，
+        于是旧的 `hit >= 1` **不再锁得住它想锁的东西**（命中可能来自仓库里别的文件，
+        实测就是如此）⇒ 改成**直接数该文件被 `_parse` 了几次**：恰好 1 次。
+        既不是 0（漏扫），也不是 ≥2（重复读盘）——口径比原来更强、也更直白。
         """
         _write_probe(synthetic, _PROBE_V1)
+        reads: List[str] = []
+        real_parse = audit._parse
 
+        def counting_parse(root: str, rel: str):
+            reads.append(rel)
+            return real_parse(root, rel)
+
+        monkeypatch.setattr(audit, "_parse", counting_parse)
         audit.parse_cache_clear()
         audit.scan_cache_clear()
         audit.scan(str(synthetic))
+        probe_reads = [r for r in reads if r.endswith("probe_synthetic.py")]
+        assert probe_reads == ["agent/probe_synthetic.py"], (
+            f"同一次 scan() 内探针文件被解析了 {len(probe_reads)} 次（应为 1 次）："
+            f"{probe_reads}"
+        )
         info = audit.parse_cache_info()
-        assert info["hit"] >= 1, (
-            f"轮内两个解析入口都读了盘（hit=0）⇒ AST 缓存未生效：{info}"
-        )
-        assert info["entries"] == 1, (
-            f"同一个文件不该有多个缓存条目（键含 mtime_ns/size，内容未变应复用）：{info}"
-        )
+        assert info["entries"] >= 1, f"解析结果未入缓存：{info}"
 
     def test_文件内容变化后_AST_缓存失效(self, audit, synthetic):
         """★ 缓存键含 mtime_ns+size ⇒ 改了文件必须重新解析（否则 `--check` 给出过期结论）"""
@@ -355,6 +365,37 @@ class TestParseCache:
         assert after > before, (
             f"文件已改动但未重新解析（miss 仍为 {before}）⇒ 缓存键未含文件指纹"
         )
+
+
+def test_身份判定快路径与旧口径等价(audit):
+    """L19：`_identity_leaves` 是 `_scope_has_identity` 的**等价**快路径
+
+    【为什么要锁】L19 把"每个收口调用点走一遍整棵树"改成"每个文件算一次身份表"
+    （见 `_identity_leaves` 的说明）。这类"性能改写"最容易悄悄改口径 ——
+    所以直接把两条路径在同一棵树上对拍：**逐个符号断言结论一致**。
+    """
+    tree = ast.parse(
+        "def handler_with_id():\n"
+        "    call('cap_a', session_source='cli')\n"
+        "\n"
+        "\n"
+        "def handler_without_id():\n"
+        "    call('cap_b')\n"
+        "\n"
+        "\n"
+        "def handler_calls_marker():\n"
+        "    set_session_source('cli')\n")
+    sym = audit._SymbolIndex()
+    sym.visit(tree)
+    fast = audit._identity_leaves(tree, sym)
+    for leaf in ("handler_with_id", "handler_without_id", "handler_calls_marker",
+                 "<module>"):
+        slow = audit._scope_has_identity(tree, sym, leaf)
+        assert (leaf in fast) == slow, (
+            f"{leaf}: 快路径判 {leaf in fast}，旧口径判 {slow} ⇒ 改写改变了口径"
+        )
+    assert "handler_with_id" in fast and "handler_without_id" not in fast, \
+        f"身份表本身不对：{fast}"
 
 
 class TestScanCache:
