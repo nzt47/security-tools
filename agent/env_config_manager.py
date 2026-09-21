@@ -76,6 +76,83 @@ DEFAULT_ENV_LOCK_TIMEOUT_SEC = 10.0
 #: 审计日志/权限等契约仍可验证），但**永不触碰仓库 `.env`**。
 ENV_FILE_OVERRIDE_VAR = "CP_ENV_FILE"
 
+#: --------------------------------------------------------------------------
+#: 【W1 / TASK-01】UUID 形态变量名检测：**CI / 测试期检查**，写入期不强制
+#:
+#: 事故形态（实测）：生产 .env 被写入 **1801** 行
+#:   LLM_<UUID>_API_KEY / SEARCH_<UUID>_API_KEY（LLM 923 / SEARCH 878），
+#:   每组只有 5 个不同取值（sk-test-key / sk-instance-key-12345 /
+#:   sk-real-key-12345 / sk-real-key-original / 空值）=> 测试占位符。
+#:
+#: 来源：agent/network_config.py 在**未提供实例 id** 时用 str(uuid.uuid4())
+#:   现造 id（第 347 / 352 / 706 / 745 / 1189 行），再经 _save_secure ->
+#:   _key_to_env_var（第 253-272 行）把 id 拼进环境变量名，最终落到 set()。
+#:
+#: 【为什么**不**在 set() 里硬拒绝（重要，含实测回归）】
+#:   初版守卫在 set() 抛 InvalidEnvVarName。但"实例 id 是 UUID"是**既有数据
+#:   模型**：agent/data/network_config.json 现存 3 个 search_instances 的 id
+#:   全为 UUID；validate_llm_instance 不要求 id（network_config.py:1616-1619）；
+#:   POST /api/llm/instances 也不注入 id（routes_config.py:263-267）。
+#:   而 _save_secure 把异常吞成一条 error 日志（network_config.py:405-409），
+#:   路由仍返回 {"ok": true}（routes_config.py:270）=> 硬拒绝的实际后果是
+#:   **静默丢失 API Key**。实测：初版守卫下
+#:   tests/unit/test_instance_key_persistence_ui_path.py 有 4 个用例变红
+#:   （UI 新建 LLM/搜索实例、存量 UUID 实例更新 Key、脱敏值不覆盖）。
+#:   故改为"修源头 + 测试期检查"，见下。
+#:
+#: 【本组函数的定位】纯函数、无副作用，供**测试与巡检脚本**调用；
+#:   **写入路径不调用它们**（set() 里没有任何校验调用）。
+#:   对应检查：tests/unit/test_dotenv_no_uuid_pollution.py（生产 .env 现状锁 +
+#:   生产者产出可读性）与 tests/unit/test_instance_key_persistence_ui_path.py
+#:   （"返回成功 ⇒ Key 必须落盘"契约）。
+#:
+#: 【为什么只识别"UUID 形态"而不是所有连字符】历史上存在合法的连字符变量名
+#:   （tests/unit/test_env_hot_reload.py:258 断言 LLM_TEST-MULTI-NEW_API_KEY），
+#:   禁全体连字符会误伤既有契约 => 只精准识别 8-4-4-4-12 的 UUID 段。
+#: --------------------------------------------------------------------------
+
+#: 允许的变量名字符集（沿用历史契约：字母/数字/下划线/连字符）
+ENV_VAR_NAME_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_-]*$')
+
+#: UUID 形态段（8-4-4-4-12 十六进制）——命中即判定为机器生成的实例 id 泄漏
+_UUID_SEGMENT_RE = re.compile(
+    r'[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}'
+    r'-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}'
+)
+
+
+class InvalidEnvVarName(ValueError):
+    """变量名未通过校验（空 / 非法字符 / 含 UUID 形态段）
+
+    仅供测试与巡检脚本使用；写入路径不会抛它（见模块顶部说明）。
+    """
+
+
+def is_uuid_shaped_var_name(name: str) -> bool:
+    """变量名是否含 UUID 形态段（PREFIX_UUID_SUFFIX 形态）"""
+    return bool(name) and bool(_UUID_SEGMENT_RE.search(str(name)))
+
+
+def validate_env_var_name(name) -> str:
+    """校验变量名；不合法抛 InvalidEnvVarName（**测试/巡检用，写入路径不调用**）
+
+    返回规范化后的名字（去除首尾空白）。
+
+    【为什么不接进 set()】见模块顶部"为什么不在 set() 里硬拒绝"一节：
+    硬拒绝 + _save_secure 吞异常 = 静默丢失 API Key。
+    """
+    if not isinstance(name, str) or not name.strip():
+        raise InvalidEnvVarName(f'环境变量名不能为空: {name!r}')
+    candidate = name.strip()
+    if not ENV_VAR_NAME_RE.match(candidate):
+        raise InvalidEnvVarName(
+            f'环境变量名含非法字符（仅允许 [A-Za-z0-9_-]，且不得以数字开头）: {candidate!r}')
+    if is_uuid_shaped_var_name(candidate):
+        raise InvalidEnvVarName(
+            f'拒绝 UUID 形态环境变量名（机器生成的实例 id 泄漏，'
+            f'来源见 agent/network_config.py:706/:745/:1183）: {candidate!r}')
+    return candidate
+
 
 class EnvConfigManager:
     """.env 文件配置管理器
@@ -152,6 +229,9 @@ class EnvConfigManager:
             key: 环境变量名（如 'LLM_API_KEY'）
             value: 配置值
         """
+        # 【W1 / TASK-01】此处**刻意不做** UUID 形态校验：硬拒绝会与"实例 id 本就是
+        # UUID"的既有数据模型冲突，且 _save_secure 会吞掉异常 ⇒ 变成静默丢 Key。
+        # 防御改为"修源头 + 测试期检查"，理由与实测回归见模块顶部说明。
         with self._file_lock:
             # 【P3 配置审计】记录修改前的值（用于审计追踪）
             old_value = os.environ.get(key)

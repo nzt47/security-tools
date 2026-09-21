@@ -430,6 +430,70 @@ def reset_conflict_cooldown() -> None:
 # ════════════════════════════════════════════════════════════
 
 
+# ════════════════════════════════════════════════════════════
+#  【W1 / TASK-01 新增】持有者 pid 存活性判定（陈旧锁的第二证据）
+# ════════════════════════════════════════════════════════════
+
+#: 进程存活时的退出码（Windows GetExitCodeProcess）
+_STILL_ACTIVE = 259
+#: Win32 错误码：pid 不存在 / 拒绝访问
+_ERROR_INVALID_PARAMETER = 87
+_ERROR_ACCESS_DENIED = 5
+
+
+def _pid_alive(pid: int) -> Optional[bool]:
+    """本机 pid 是否存活
+
+    Returns:
+        True  = 存活；False = 确定不存在；None = 无法判定（保守，不据此判陈旧）
+
+    【为什么不用 os.kill(pid, 0) 统一处理（不易）】POSIX 下它是"存在性探测"，
+    但 Windows 上 os.kill 的语义是 **TerminateProcess 系**——传入 0 会去**终止**
+    目标进程。故 Windows 分支必须走 OpenProcess + GetExitCodeProcess。
+
+    【为什么 pid 复用不构成误判风险（变易）】本函数只回答"这个 pid 此刻活没活"，
+    不用它做身份判定（身份判定继续用 PROCESS_TOKEN = pid + 启动时刻）。
+    """
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return None
+    if pid <= 0:
+        return None
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            handle = kernel32.OpenProcess(
+                PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if not handle:
+                err = ctypes.get_last_error()
+                if err == _ERROR_INVALID_PARAMETER:
+                    return False  # pid 不存在
+                if err == _ERROR_ACCESS_DENIED:
+                    return True   # 存在但非本用户可查
+                return None
+            try:
+                code = ctypes.c_ulong()
+                if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                    return None
+                return code.value == _STILL_ACTIVE
+            finally:
+                kernel32.CloseHandle(handle)
+        except Exception:  # noqa: BLE001 无法判定 => 保守返回 None
+            return None
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # 存在但不属于本用户
+    except OSError:
+        return None
+    return True
+
+
 def open_lockfile(path: Any, *, create: bool) -> Optional[Any]:
     """以**可定位覆写**的方式打开锁文件（返回二进制句柄；失败返回 None）
 
@@ -779,10 +843,42 @@ class CrossProcessLock:
         try:
             if not os.path.exists(self.path):
                 return False
-            return self._os_lock_acquirable()
+            if self._os_lock_acquirable():
+                return True
+            # 【W1 / TASK-01 新增】第二条证据：诊断槽里记的**持有者 pid 已不存在**
+            #  => 即便 OS 锁探测不可用/未获准，也可判定为失效锁。
+            # 只认"确定不存在"（False）；None（无法判定）一律不据此判陈旧。
+            return self.holder_pid_alive() is False
         except Exception as exc:  # noqa: BLE001 判定失败按"非陈旧"（保守）
             logger.warning("陈旧锁判定失败: %s", exc)
             return False
+
+    def holder_pid_alive(self) -> Optional[bool]:
+        """诊断槽记录的持有者 pid 在本机是否存活
+
+        Returns:
+            True/False，或 None（无持有者记录 / 记录不可解析 / 记录来自其它主机
+            / 无法判定）——None 时**不得**据此判定陈旧。
+
+        【为什么跨主机记录返回 None（不易）】锁文件可能位于共享盘，记录里的
+        pid 属于**另一台机器**，在本机查同号 pid 是**无意义**的（会误判陈旧）。
+        故先用 host 字段与本机 hostname 比对，不同即弃权。
+        """
+        holder = self.read_holder()
+        if not holder:
+            return None
+        pid = holder.get("pid")
+        if pid is None:
+            return None
+        host = holder.get("host")
+        if host:
+            try:
+                import socket
+                if str(host) != socket.gethostname():
+                    return None
+            except Exception:  # noqa: BLE001 取不到本机名 => 不判定
+                return None
+        return _pid_alive(pid)
 
     def _os_lock_acquirable(self) -> bool:
         """能否立刻拿到 OS 锁（**不创建文件**；探测后立即释放）"""
@@ -808,6 +904,8 @@ class CrossProcessLock:
             "os_lock_held": self._os_held,
             "holder": self.read_holder(),
             "stale": self.is_stale(),
+            # 【W1 / TASK-01】陈旧判定的第二证据（None = 无法判定）
+            "holder_pid_alive": self.holder_pid_alive(),
             "pid": os.getpid(),
         }
 
@@ -1288,4 +1386,5 @@ __all__ = [
     "open_lockfile", "os_try_lock", "os_unlock",
     "MAX_IDLE_HANDLES", "trim_idle_handles", "close_idle_handles",
     "CrossProcessLock", "cross_process_lock", "lock_path_for",
+    "_pid_alive",
 ]

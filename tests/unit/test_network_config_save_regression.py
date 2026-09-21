@@ -301,8 +301,10 @@ class TestUpdateSearchInstancesIgnoresMaskedKey:
         """脱敏值不应调用 _save_secure（更新已存在实例）"""
         manager, mock_secure, _ = _make_manager_with_secure(tmp_config_dir)
         # 先创建实例（新增场景，传入真实 key）
+        # 【W1/TASK-01】显式给可读 id：不让断言依赖现场 uuid4() 生成的随机名
+        # （污染形态的来源即 "uuid4 拼进环境变量名"，见 network_config.py:745）。
         manager._update_search_instances([
-            {"name": "Tavily", "api_key": "sk-real-key-original"},
+            {"id": "tavily-1", "name": "Tavily", "api_key": "sk-real-key-original"},
         ])
         mock_secure.reset_mock()
         inst_id = manager._cache["search_instances"][0]["id"]
@@ -317,8 +319,9 @@ class TestUpdateSearchInstancesIgnoresMaskedKey:
     def test_masked_api_key_not_written_to_config(self, tmp_config_dir):
         """脱敏值不应写入 search_instances 配置（更新已存在实例）"""
         manager, _, _ = _make_manager_with_secure(tmp_config_dir)
+        # 【W1/TASK-01】显式可读 id，理由同上
         manager._update_search_instances([
-            {"name": "Tavily", "api_key": "sk-real-key-original"},
+            {"id": "tavily-1", "name": "Tavily", "api_key": "sk-real-key-original"},
         ])
         inst_id = manager._cache["search_instances"][0]["id"]
 
@@ -336,8 +339,9 @@ class TestUpdateSearchInstancesIgnoresMaskedKey:
         """【纯 .env 架构】真实 api_key 应写入 os.environ（新增场景）"""
         manager, mock_secure, secure_store = _make_manager_with_secure(tmp_config_dir)
 
+        # 【W1/TASK-01】显式可读 id，理由同上
         manager._update_search_instances([
-            {"name": "Tavily", "api_key": "sk-real-key-12345"},
+            {"id": "tavily-1", "name": "Tavily", "api_key": "sk-real-key-12345"},
         ])
 
         inst_id = manager._cache["search_instances"][0]["id"]
@@ -462,8 +466,9 @@ class TestUpdateEndToEndNoPlaintextApiKey:
         """通过 _update_search_instances + _save 保存，文件应无明文 api_key"""
         manager, _, secure_store = _make_manager_with_secure(tmp_config_dir)
 
+        # 【W1/TASK-01】显式可读 id：避免 uuid4() 生成 SEARCH_<UUID>_API_KEY
         manager._update_search_instances([
-            {"name": "Tavily", "engine_type": "custom",
+            {"id": "tavily-1", "name": "Tavily", "engine_type": "custom",
              "api_key": "sk-real-key-12345", "enabled": True,
              "api_endpoint": "https://example.com/search", "http_method": "GET",
              "query_param": "q", "auth_header": "", "results_path": "data",
@@ -488,8 +493,9 @@ class TestUpdateEndToEndNoPlaintextApiKey:
         """传入脱敏值不应覆盖已存储的真实 key"""
         manager, _, secure_store = _make_manager_with_secure(tmp_config_dir)
         # 先新增实例并存储真实 key
+        # 【W1/TASK-01】显式可读 id，理由同上
         manager._update_search_instances([
-            {"name": "Tavily", "engine_type": "custom",
+            {"id": "tavily-1", "name": "Tavily", "engine_type": "custom",
              "api_key": "sk-real-key-original", "enabled": True,
              "api_endpoint": "https://example.com/search", "http_method": "GET",
              "query_param": "q", "auth_header": "", "results_path": "data",
@@ -515,8 +521,9 @@ class TestUpdateEndToEndNoPlaintextApiKey:
         """保存后 get_all() 返回的 api_key 应为脱敏值"""
         manager, _, secure_store = _make_manager_with_secure(tmp_config_dir)
 
+        # 【W1/TASK-01】显式可读 id，理由同上
         manager._update_search_instances([
-            {"name": "Tavily", "engine_type": "custom",
+            {"id": "tavily-1", "name": "Tavily", "engine_type": "custom",
              "api_key": "sk-real-key-12345", "enabled": True,
              "api_endpoint": "https://example.com/search", "http_method": "GET",
              "query_param": "q", "auth_header": "", "results_path": "data",

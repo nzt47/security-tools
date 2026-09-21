@@ -211,7 +211,11 @@ class TestNetworkConfigMasking:
         manager = NetworkConfigManager(config_file=self.config_path)
 
         # 添加 LLM 实例
+        # 【W1/TASK-01】显式可读 id：让环境变量名确定可读，不依赖机器生成的 uuid4
+        # （不传 id 仍是合法调用、仍生成 uuid4 且 Key 正常落盘，见
+        #  tests/unit/test_instance_key_persistence_ui_path.py）。
         manager.add_llm_instance({
+            'id': 'test-masking',
             'name': 'TestInstance',
             'provider': 'openai',
             'api_key': 'sk-instance-key-12345',

@@ -1180,7 +1180,14 @@ class NetworkConfigManager:
 
         new_instance: Dict[str, Any] = deepcopy(_DEFAULT_LLM_INSTANCE)
         new_instance.update(instance)
-        new_instance["id"] = str(uuid.uuid4())
+        # 【W1 / TASK-01】生产者侧：**尊重调用方显式给出的 id**，仅在缺省时才生成 uuid4。
+        # 改动前这里无条件覆盖 str(uuid.uuid4())：调用方给的可读 id 被丢弃，环境变量名
+        # 必然变成 LLM_<UUID>_API_KEY（_key_to_env_var 第 257 行）—— 这正是生产 .env
+        # 被测试占位符写脏 1801 行的形态，也让测试**无法**构造确定性环境变量名。
+        # 与 _update_llm_instances 第 706 行的既有口径 instance_id or str(uuid.uuid4())
+        # 保持一致；**未传 id 的真实用户流程（UI/API）行为不变**：仍生成 uuid4，
+        # 且 Key 照常落盘（回归锁见 tests/unit/test_instance_key_persistence_ui_path.py）。
+        new_instance["id"] = new_instance.get("id") or str(uuid.uuid4())
         new_instance["created_at"] = datetime.datetime.now().isoformat()
         new_instance["updated_at"] = new_instance["created_at"]
 
