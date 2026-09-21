@@ -1751,26 +1751,17 @@ if __name__ == "__main__":
         logger.error(f"[健康] 健康采集线程启动失败：{e}")
 
     # 启动前先清理 5678 端口的旧进程
+    # 【L23 留痕】kill **之前**先写一条结构化日志（谁 / 目标 PID / 为何 / 何时），
+    # 使"重启原因"可自证；并能区分"自杀式重启"（目标是本应用另一个实例）与
+    # "清理他进程"。**kill 行为未改**（仍是 taskkill /F /PID <pid>，timeout=3）。
+    # /F == TerminateProcess ⇒ 上面注册的 _install_graceful_shutdown_hooks
+    # 在这条路径上不可能执行，故该留痕是此路径唯一可自证的事实源
+    # （实现与受控桩测试见 agent/server_port_guard.py）。
     try:
-        import subprocess, signal
-        result = subprocess.run(
-            ['netstat', '-ano'], capture_output=True, text=True
-        )
-        for line in result.stdout.splitlines():
-            if ':5678' in line and 'LISTENING' in line:
-                parts = line.strip().split()
-                if parts:
-                    pid = parts[-1]
-                    try:
-                        if sys.platform == 'win32':
-                            subprocess.run(['taskkill', '/F', '/PID', pid],
-                                         capture_output=True, timeout=3)
-                        else:
-                            os.kill(int(pid), signal.SIGTERM)
-                    except Exception:
-                        pass
-    except Exception:
-        pass
+        from agent.server_port_guard import cleanup_port_listeners
+        cleanup_port_listeners(5678)
+    except Exception as e:  # noqa: BLE001 清理失败不阻断启动（与旧行为一致）
+        logger.debug("[端口清理] 启动期清理 5678 失败（忽略）: %s", e)
 
     # 启动增强型定时任务调度器
     try:
