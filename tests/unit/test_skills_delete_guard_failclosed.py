@@ -45,8 +45,9 @@ class _SpyMgr:
     def __init__(self):
         self.calls = []
 
-    def delete(self, skill_id):
-        self.calls.append(skill_id)
+    def delete(self, skill_id, force=False):
+        # force 由路由透传（文件轨独占须显式 force=True）：此处记录以断言默认值
+        self.calls.append((skill_id, force))
         return {"ok": True}
 
 
@@ -130,6 +131,6 @@ def test_normal_path_still_deletes_non_builtin_skill(monkeypatch):
     store_mod.ExtensionStore = _Store
     monkeypatch.setitem(sys.modules, "agent.extensions.store", store_mod)
     out = _call_delete({"id": "some_custom_skill"})
-    assert spy.calls == ["some_custom_skill"], (
-        "正常路径被改坏：可删除的非内置技能应放行到 delete")
+    assert spy.calls == [("some_custom_skill", False)], (
+        "正常路径被改坏：可删除的非内置技能应放行到 delete，且 force 默认 False")
     assert out.get("ok") is True

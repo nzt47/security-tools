@@ -544,6 +544,12 @@ def api_skills_delete():
     from app_server import _skills_mgr
     data = request.get_json(silent=True) or {}
     skill_id = data.get("id", "")
+    # 【加固 · force 透传】文件轨独占技能的删除必须显式 force=True
+    # （SkillsManager.delete 默认拒绝，见其 docstring）：本路由把请求体的 force
+    # 原样透传，前端日后只要多带一个 force 字段即可保留删除能力。
+    # 【不易】只认 JSON 布尔字面量 true（fail-closed）：字符串 "0"/"false" 等
+    # 若被 bool() 判真，会变成"意外的 authorize"——安全开关不得自行放宽。
+    force = data.get("force") is True
 
     # 内置技能不可删除
     # 【L34 加固 · fail-closed】原实现把整段守卫包在 `except Exception: pass` 里 ——
@@ -566,8 +572,19 @@ def api_skills_delete():
             return jsonify({"ok": False, "error": "内置技能不可删除"})
 
     # 从 skills.json 删除
-    result = _skills_mgr.delete(skill_id)
+    result = _skills_mgr.delete(skill_id, force=force)
     deleted = result.get("ok", False)
+
+    # 【加固 · 拒绝必须原样回传】文件轨独占且未显式 force ⇒ SkillsManager 已
+    # 拒绝（result["refused"]）：直接回传其可读原因，**且不再走下方扩展存储清理** ——
+    # 否则 ext_store.remove() 会把「目录仍在」的一次拒绝翻成 ok=True 的假成功，
+    # 调用方会以为技能已删除。注意只对**显式拒绝**短路：「未找到」等其它失败仍走
+    # 下方逻辑，以保留 Claude Code 技能卸载等既有行为。
+    if result.get("refused"):
+        return jsonify({
+            "ok": False,
+            "error": result.get("error") or f"已拒绝删除: {skill_id}",
+        })
 
     # 尝试从扩展存储删除（覆盖 Claude Code 技能等）
     try:
