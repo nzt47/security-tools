@@ -226,10 +226,16 @@ async function deleteSkill(id) {
   const confirmed = await app.showConfirm('确定要删除这个技能吗？');
   if (!confirmed) return;
   try {
+    // 【W2/L34】必须显式处理 r.ok === false：后端对「文件轨独占」技能会**默认拒绝**
+    //   （返回 ok:false + 可读原因）。原实现只在 r.ok 时提示、异常时提示，
+    //   拒绝既不进 if 也不进 catch ⇒ **点了删除什么也不发生**（静默失败）。
+    //   此处照抄同文件安装路径的写法（r.error || 兜底文案）。
     const r = await app.post('/api/skills/delete', { id });
     if (r.ok) {
       app.showToast('已删除');
       loadSkills();
+    } else {
+      app.showToast(r.error || '删除失败', 'error');
     }
   } catch(e) {
     app.showToast('删除失败', 'error');
