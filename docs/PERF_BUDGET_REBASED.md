@@ -58,7 +58,7 @@
 | 2 | 首屏（热） | 500ms | **FCP 500 ms / LCP 500 ms / DOMContentLoaded 266.1 ms / load 268.4 ms**（headless Chromium，二次导航） | 本次实测：`scripts/dev/cp_perf_probe.py`（`first_screen.warm`） | ✅ |
 | 3 | 路由 | <100ms | **avg 0.0018 ms / p99 0.0028 ms**（`ModelRouter.route()`，n=280）<br>`ModelSelector.analyze_task+select` avg 0.0022 / p99 0.0056 ms | 本次实测：`scripts/bench_s5_03_cost_brake.py` §[2] | ✅ |
 | 4 | 组装（L2 冷数据单层） | 300ms–1.5s | **P50 16.81 ms / P99 99.75 ms**（同步串行 + 路径缓存） | `docs/perf-async-io-analysis.md:39-40`（场景 C） | ✅ |
-| 5 | 组装（**中文输入端到端**） | 同上 | **p50 15.84 s / p95 20.59 s / max 22.54 s**（6 并发 12 请求） | `data/health/stress_report_concurrency_fix_20260815.md:12-16` | ❌ |
+| 5 | 组装（**中文输入端到端**） | 同上（**⚠️ 口径错配，见下方 注 4a**） | **p50 15.84 s / p95 20.59 s / max 22.54 s**（6 并发 12 请求） | `data/health/stress_report_concurrency_fix_20260815.md:12-16` | ❌（**含 LLM 链路，结构性不可达，非"组装慢"**） |
 | 6 | 轨迹（span 创建） | <5ms | **0.3048 ms/次（3280 spans/s）**；JSON 序列化 0.0058 ms、UUID 0.0021 ms、ContextVar 0.0001 ms | `tracing_performance_report_1782295077.json` `span_creation.per_call_ms` | ✅ |
 | 7 | 熔断（短路响应） | <3s | **avg 1.007 ms**（故障场景 SQLITE_BUSY，优化后）；正常场景 avg 5.374 / P99 15.139 ms | `docs/PERF_COMPARE_CIRCUIT_BREAKER.md:37-39,22-25` | ✅ |
 | 7b | 熔断（**达到阈值→生效**耗时） | <3s | **阈值达成 → `state=OPEN`：p50 0.0015 / p95 0.0035 ms**；**阈值达成 → 下一次 outbound 实际被阻断：p50 0.0176 / p95 0.0418 ms**（n=20，`wall_clock(perf_counter)`，受控抛错桩达阈值） | 本次实测：`scripts/measure_perf_budget.py`（`reports/s7_04/perf_budget_probe.json` `results.circuit-breaker`）；见 **§九** | ✅（余量 ≈7×10⁴） |
@@ -73,6 +73,36 @@
 | 16 | embedding encode | — | **avg 89.40 / p50 40.27 / p99 795.77 ms**（torch CPU；首推理 795.77 ms 为 JIT 冷启动，第 2 次起 30–40 ms） | 同上 `:74-82` | ⚠️ 冷启动尖峰 |
 | 17 | etcd P99 | — | **6.408 ms**（p50 3.251 / p95 5.048，n=5000，2026-09-07）<br>另有 **16.961 ms**（2026-08-01，走 mock）——见 §四 矛盾 | `scripts/perf_baseline.json`；`docs/PERF_REGRESSION_REPORT.md:39` | ⚠️ 两值不一致 |
 | 18 | SQLite 配置读取 P99 | — | **3.773 ms**（p50 0.04 / p95 1.744，n=5000） | `scripts/perf_baseline.json` | ✅ |
+
+> **注 4a（2026-09-21 补 · W2/TASK-04）—— 第 5 行的口径错配必须说清，否则会被误读成"组装慢"**
+>
+> 第 4 行与第 5 行**共用了同一个预算数值**（300ms–1.5s），但两者**不是同一件事**：
+>
+> - **第 4 行 = 层内组装**（L2 冷数据单层，同步串行 + 路径缓存）：实测 **P50 16.81 / P99 99.75 ms**
+>   ⇒ **已达标**（"原假设值"与"重定值"同量纲）。
+> - **第 5 行 = 中文输入端到端**（**含 LLM 外呼**）：实测 p50 15.84 s / p95 20.59 s。
+>   该链路**结构性不可达 1.5 s**：单次 LLM 外呼的实测下限为 **6.4 s**
+>   （`docs/zh/智能体学习机制重构计划/会话级上下文检查串行阻塞技术备忘录_20260815.md:17`，
+>   区间 **6.4–21.7 s**），**已是上限 1.5 s 的 4.3 倍**。
+>
+> **一次真实请求的最强拆段证据**：`route_decision 8713.33ms` /
+> `decision_basis.llm_duration_ms=7123.41` ⇒ **LLM 占 81.7%、非 LLM 仅 1589.92 ms（18.3%）**；
+> LLM 段内 **3 次外呼串行**、夹 2 次工具执行
+> （`.worktrees/e2e-verify/.e2e_verify/server.log:988-2577`，关键行 :2570 / :2576）。
+> 旁证：`min=10.08 s` 也远超 1.5 s ⇒ **不是并发排队造成的尾延迟**
+> （12 请求合计 191.8 s ÷ 墙钟 36.6 s = 并行度 5.24，为理想 6 的 87%）。
+>
+> ⇒ **不要把本行读成"组装慢"。** 它证明的是"**含 LLM 的端到端不能用层内组装的预算来衡量**"。
+>
+> **建议双口径**（已实施其一）：
+> - **P2 = 关 LLM 链路**：沿用本预算 300ms–1.5s，复用 `scripts/verify_llm_off_entrypoints.py`（三入口全部可测）；
+> - **P1 = 含 LLM 链路分位数**：按**比值**判定、**不设绝对阈值**（缺生产 LLM 遥测时不得硬编阈值）。
+>   P1 已登记在 `scripts/check_perf_regression.py` 的 `DEFERRED_METRICS`。
+>
+> **⚠️ 另更正两条易被误引的数字归属**（同一轮 TASK-04 实测）：
+> `_scratch/server_health.log:89` 的 `duration_ms=18113` 是 **`system_command` 任务**、
+> **不在 chat 链路**；同处 `elapsed_ms=14968` 是 sentence_transformers **预导入**。勿再当作 chat 慢任务证据。
+
 
 ---
 
