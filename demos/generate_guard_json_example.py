@@ -1,13 +1,18 @@
 """生成 GuardResult JSON 序列化示例 — 展示 orchestrator 跨进程传递格式
 
-运行: python generate_guard_json_example.py
+运行（须在**仓库根**执行：输出路径是 CWD 相对的 docs/）:
+    python demos/generate_guard_json_example.py
 输出: docs/guard_result_example.json + 控制台打印
 """
 import json
 import os
+import sys
 from datetime import datetime
 
-from agent.skills_mgmt.output_guard import SkillOutputGuard
+# 【demos/ 迁移 2026-09-21】原在仓库根时 sys.path[0] 即仓库根；迁入 demos/ 后须显式加入。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from agent.skills_mgmt.output_guard import SkillOutputGuard  # noqa: E402
 
 # ── 测试数据 (与 demo_llm_guard.py / conftest fixture 一致) ──
 LOADED_SKILLS = ["self_reflection", "memory_summary", "voice_interaction"]

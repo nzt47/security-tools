@@ -15,7 +15,7 @@
 设计思路强调"过程反馈驱动进化 + Skill 生命周期管理（压缩/聚类/淘汰）"。审计发现：
 
 1. `agent/feedback.py` 已实现完整反馈闭环：`submit_feedback` → `recommended_action`（promote_to_published / consider_deprecate_or_merge / improve_params / keep），但**这些建议没有自动执行体**，只停留在 API 返回值。
-2. `agent/skills_mgmt/offline_evolver.py`（帕累托前沿批量进化：候选筛选→变异→多目标评估→非支配排序→提交最优）管线完整但**无定时触发**（`run_evolution_demo.py` 用 mock 演示）。
+2. `agent/skills_mgmt/offline_evolver.py`（帕累托前沿批量进化：候选筛选→变异→多目标评估→非支配排序→提交最优）管线完整但**无定时触发**（`demos/run_evolution_demo.py` 用 mock 演示）。
 3. Skill 生命周期状态机齐全（DRAFT→…→PUBLISHED→DEPRECATED→ARCHIVED）但**无"长期零使用自动淘汰"判定器**。
 
 本任务把"反馈→进化→淘汰"接上**定时执行体**，全部动作默认 dry-run + 可回滚 + 审计，让"在线大飞轮"真正转起来。

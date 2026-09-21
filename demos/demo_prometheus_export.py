@@ -4,7 +4,15 @@
 运行此脚本可查看业务指标在 Prometheus 格式下的实际输出样子。
 """
 
-from agent.monitoring.business_metrics import BusinessMetricsCollector, BUSINESS_METRICS_DEFINITIONS
+import os
+import sys
+
+# 【demos/ 迁移 2026-09-21】原在仓库根时 sys.path[0] 即仓库根；迁入 demos/ 后须显式加入。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from agent.monitoring.business_metrics import (  # noqa: E402
+    BusinessMetricsCollector, BUSINESS_METRICS_DEFINITIONS,
+)
 
 
 def demo_prometheus_export():

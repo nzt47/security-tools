@@ -39,7 +39,7 @@
 
 ### Step 1：资料收集
 - 重读设计思路原文件（`docs/zh/设计思路/设计理想智能体学习机制-20260812112318.json`）与主文档评估结论。
-- 检索项目内既有素材：`run_evolution_demo.py`（offline_evolver 演示）、`docs/` 下相关研究报告（如 `docs/zh/项目任务分解总览.md`、`docs/zh/阶段四_整合与反身智能.md`——若存在反身智能/自进化相关内容必须纳入）。
+- 检索项目内既有素材：`demos/run_evolution_demo.py`（offline_evolver 演示）、`docs/` 下相关研究报告（如 `docs/zh/项目任务分解总览.md`、`docs/zh/阶段四_整合与反身智能.md`——若存在反身智能/自进化相关内容必须纳入）。
 - 可补充外部检索（设计文档提及的 MIA / MAE / Gödel Agent / 课程学习 / 世界模型），但外部证据必须标注来源与链接。
 
 ### Step 2：撰写研究报告

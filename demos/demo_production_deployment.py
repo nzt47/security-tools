@@ -14,6 +14,9 @@ import time
 import sys
 import os
 
+# 【demos/ 迁移 2026-09-21】`dirname(dirname(__file__))` = 仓库根：
+# 本脚本原在仓库根时该表达式指向的是**仓库的上一级**（冗余但无害，靠 sys.path[0]=仓库根 兜住）；
+# 迁入 demos/ 后它正好等于仓库根，无需改动。
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agent.prompt_manager.deployment import (

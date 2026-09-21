@@ -5,7 +5,9 @@
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 【demos/ 迁移 2026-09-21】本脚本原在仓库根：`__file__` 所在目录即仓库根，故
+# sys.path[0] 天然含 `agent` 包。迁入 demos/ 后须显式指向**仓库根**（上一级）。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 import tempfile

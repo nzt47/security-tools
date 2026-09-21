@@ -6,6 +6,12 @@
 > 即本任务落在一个**已前进一格**的基线上；`bf698931` 是 `a21f2ee9` 的父提交
 > （`git log --oneline -3`）。
 > 所有移动均为**归档（移动）**，无任何删除。
+>
+> ⚠️ **2026-09-21 晚复核更正**：§1 中把 6 个 demo 文件「`git mv` 进 `_scratch/`」的做法
+> **已被否决并还原**（`_scratch/` 被 `.gitignore` 忽略 ⇒ 文件脱离跟踪 + 22 处文档引用失效），
+> 根目录 `.py` 因此回到 17、门禁默认阈值 exit 1。
+> 它们的**最终归宿是受跟踪的 `demos/`**（本批 A 任务）——见 **§8**。
+> §1 正文与表格**保留原样**，用于记录当时状态；请以 §8 为现行结论。
 
 ---
 
@@ -31,6 +37,8 @@
 保留的 10 个根目录 `.py`：`app_server.py`、`config.py`、`feature.py`、
 `file_monitor.py`、`gunicorn_config.py`、`health_check.py`、`main.py`、
 `run_tests.py`、`sensor_server.py`、`setup.py`。
+> （该 10 个 `.py` 与 §8 复核后的现行根目录一致；但上表「移动后 = 10」的**达成路径已变**：
+> 现由 `demos/` 而非 `_scratch/` 承载那 7 个 demo 文件。）
 
 保留的 7 个根目录 `.txt`：`requirements.txt`、`requirements-dev.txt`、
 `requirements-test.txt`、`requirements-monitor.txt`、`auto_save_service.txt`、
@@ -199,3 +207,83 @@ python scripts/check_root_hygiene.py --json     # CI 消费
    对拍《06-基线台账.md》时请以 `a21f2ee9` 为准，或说明这一格差异。
 5. **`_scratch/` 的最终归宿**：现为 `.gitignore` 忽略的归档区。若团队希望它**入库**
    （保留可追溯证据），需由主会话决定并 `git add -f`；本任务默认不入库。
+
+---
+
+## 8. 更正与最终归宿：7 个 demo 文件迁入受跟踪的 `demos/`（2026-09-21 晚）
+
+### 8.1 为什么 §1 的做法被否决
+
+§1 把 6 个**已跟踪**的 demo 文件 `git mv` 进 `_scratch/`，而 `_scratch/` 被 `.gitignore:570` 忽略。
+**"移动已跟踪文件到 gitignored 目录"造成两个并发副作用**：
+
+1. 文件从仓库视图消失（`git ls-files` 不再列出，新克隆拿不到）；
+2. 文档引用失效——主会话实测这 6 个文件名在仓库内有**多处**出现在文档/注释/夹具说明中。
+
+⇒ 主会话复核后把它们**还原到根目录**，根目录 `.py` 由 10 回到 **17**，
+`python scripts/check_root_hygiene.py`（默认阈值）由此 **exit 1**（`17 > 10`）。
+
+### 8.2 本批处置（A 任务）
+
+**受跟踪的新目录 `demos/`**（`git check-ignore -v demos/...` ⇒ exit 1，未被忽略）+ `git mv`：
+
+| 迁移前 | 迁移后 | 方式 | git 形态 |
+|---|---|---|---|
+| `demo_full_stack.py` | `demos/demo_full_stack.py` | `git mv` | `R` |
+| `demo_production_deployment.py` | `demos/demo_production_deployment.py` | `git mv` | `R` |
+| `demo_prometheus_export.py` | `demos/demo_prometheus_export.py` | `git mv` | `R` |
+| `gen_mock_data.py` | `demos/gen_mock_data.py` | `git mv` | `R` |
+| `generate_guard_json_example.py` | `demos/generate_guard_json_example.py` | `git mv` | `R` |
+| `run_evolution_demo.py` | `demos/run_evolution_demo.py` | `git mv` | `R` |
+| `verify_budget_break.py` | `demos/verify_budget_break.py` | `Move-Item`（**`git mv` 不可用**：该文件在根目录时**未跟踪**且被 `.gitignore:120` 的 `/verify_*.py` 忽略 ⇒ `fatal: not under version control`） | `??`（未 `git add`，待主会话裁决） |
+
+**sys.path 最小适配**（原代码依赖"在仓库根运行"，`sys.path[0]` 恰为仓库根）：
+
+* `demos/run_evolution_demo.py`：`Path(__file__).parent` → `Path(__file__).resolve().parents[1]`；
+* `demos/verify_budget_break.py`：**两条都保留**——`Path(__file__).parent`（同目录配对 import `run_evolution_demo`）+ `parents[1]`（`import agent.*`）；
+* `demos/demo_full_stack.py`、`demos/generate_guard_json_example.py`、`demos/demo_prometheus_export.py`：补 `sys.path` 指向仓库根；
+* `demos/demo_production_deployment.py`：**无需改动**——其既有的 `dirname(dirname(__file__))` 在根目录时指向"仓库的上一级"，迁入 `demos/` 后恰好等于仓库根。
+
+### 8.3 实测（本批 A 任务，命令 + 结果）
+
+| 验证 | 命令 | 结果 |
+|---|---|---|
+| 门禁默认阈值 | `python scripts/check_root_hygiene.py` | **exit 0**（py=10、txt=7、log=0、oneshot=0） |
+| 受跟踪证明 | `git ls-files demos` | **7 条** = 迁移的 6 个（`git mv`）+ 本目录 `README.md`；`demos/verify_budget_break.py` 仍未跟踪（见 8.2） |
+| 重命名形态 | `git status --porcelain` | `R`（6 条 rename，非 delete+add） |
+| 语法 | `python -m py_compile demos/*.py`（7 文件） | exit 0 |
+| 导入（含配对 import） | 临时 CWD 下 `import verify_budget_break, run_evolution_demo`（`PYTHONPATH` 为空） | exit 0 —— 证明 §1 所称"唯一真实 import"仍在同目录有效 |
+| 端到端 | `python demos/verify_budget_break.py` | ❗ **exit 1**：`TypeError: MockEnhancer.__init__() got an unexpected keyword argument 'lineage_archive'`——**迁移前既有缺陷**（见 8.4），与本次移动无关 |
+| 端到端（其它） | 临时 CWD 下跑 `gen_mock_data.py` / `generate_guard_json_example.py` / `demo_prometheus_export.py` | 均 exit 0，产物落在临时目录（仓库零污染） |
+
+### 8.4 迁移无关的既有缺陷：`verify_budget_break.py` 运行期 TypeError
+
+`demos/verify_budget_break.py:147` 调 `MockEnhancer(lineage_archive=archive)`，而
+`demos/run_evolution_demo.py:122` 的签名是 `def __init__(self):`（**无 `lineage_archive`**）。
+`git show HEAD:run_evolution_demo.py` 的签名**同样是** `def __init__(self):` ⇒ 与迁移无关。
+
+已**在"迁移前布局"下复现**：取 `git show HEAD:run_evolution_demo.py` + 还原了本次 `sys.path` 适配的
+`verify_budget_break.py`，同置一临时目录、以 `PYTHONPATH=<repo>` 运行 ⇒ **同样的 TypeError、exit 1**。
+成因有既有记录：`scripts/generate_lineage_demo_data.py:4` 与
+`docs/zh/进化机制重构计划/07_EVO_T4_验收总结报告_20260814.md:48` 均记载
+"`run_evolution_demo.py` 被并行会话反复覆盖回旧版（`MockEnhancer` 丢失 `set_lineage_hook`）"
+——该缺陷属**demo 脚本 API 漂移**，按 D2 本任务不擅自改判定/语义。
+
+### 8.5 文档引用同步范围（34 处命中 → 10 处更新、其余按"历史记录"保留）
+
+* **已更新（10 处）**：3 处脚本 docstring 运行命令（`demos/run_evolution_demo.py:9`、
+  `demos/verify_budget_break.py:31`、`demos/generate_guard_json_example.py:3`）+
+  `docs/zh/进化机制重构计划/02_*.md:34,50`、`03_*.md:35,41,50`、
+  `docs/zh/智能体学习机制重构计划/TASK-05_*.md:18`、`TASK-08_*.md:42`。
+* **保留（历史记录，附理由）**：`docs/archive/merge_preview_phase2_to_develop.md:111,112,126`（该表是**根目录盘点**与字母序清单，改写会破坏表语义）；
+  `docs/zh/CloudPivot_v7.2重构计划/` 四篇中的 `verify_budget_break.py` 提及（属"该文件在某 commit 不存在"的**审计结论**，改写会制造新矛盾）；
+  `docs/zh/进化机制重构计划/07_EVO_T4_...:48`（事故记录）；
+  `docs/guard_result_example.json:5` 与 `demos/generate_guard_json_example.py:36` 的 `"source"` 溯源字段
+  （是**产物内容**而非路径引用；改动需重生成夹具并扰动 `generated_at`，风险大于收益）。
+* **非本任务文件（跨任务请求）**：`tests/unit/conftest.py:669,671,678`、
+  `tests/unit/test_full_stack_demo.py:3`、`tests/unit/test_skill_output_guard.py:874`、
+  `scripts/generate_lineage_demo_data.py:4`、`scripts/dev/verify_staged_eval.py:39`。
+  `.github/gitleaks-config.toml:54` 免扫描规则为 `generate_guard_json_example\.py$`（`$` 锚尾）
+  ⇒ `demos/` 下**仍匹配**，无需改动（已核对）。
+* `README.md`：**实测零命中**（`git grep` 与 `Select-String` 双向复核），本任务无可更新处。
+

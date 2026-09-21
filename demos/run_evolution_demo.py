@@ -5,8 +5,8 @@
     2. 日志埋点输出 (帕累托性能指标)
     3. 进化报告汇总
 
-运行方式:
-    python run_evolution_demo.py
+运行方式（须在**仓库根**执行，demos/ 不是包）:
+    python demos/run_evolution_demo.py
 """
 from __future__ import annotations
 
@@ -16,7 +16,9 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
-sys.path.insert(0, str(Path(__file__).parent))
+# 【demos/ 迁移 2026-09-21】本脚本原在仓库根，`Path(__file__).parent` 恰为仓库根；
+# 迁入 demos/ 后须显式把**仓库根**（上一级）加入 sys.path，否则 `import agent.*` 失败。
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agent.skills_mgmt.models import Skill, SkillMetrics, SkillCategory, SkillStatus, ContentType
 from agent.skills_mgmt.enhancer import VersionBump
