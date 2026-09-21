@@ -14,7 +14,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 205,
+      "in_degree": 206,
       "out_degree": 2
     },
     {
@@ -2647,7 +2647,7 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 4,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.workflow_engine.engine",
@@ -21232,7 +21232,7 @@
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 202,
+      "line": 231,
       "source_file": "agent/server_routes/routes_system_prompt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -23867,11 +23867,24 @@
     },
     {
       "source": "agent.system_prompt_config",
+      "target": "agent.logging_utils",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 15,
+      "source_file": "agent/system_prompt_config.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.system_prompt_config",
       "target": "agent.utils.singleton_manager",
       "source_layer": "core",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 19,
+      "line": 21,
       "source_file": "agent/system_prompt_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27262,7 +27275,7 @@
   "stats": {
     "total_files": 621,
     "total_nodes": 555,
-    "total_edges": 1755,
+    "total_edges": 1756,
     "cross_layer_edges": 1101,
     "violation_edges": 0,
     "dynamic_edges": 1,
