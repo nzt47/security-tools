@@ -416,12 +416,56 @@ jobs:
           mkdir -p test_reports
 
       - name: 运行性能测试
+        # 【增量·可观测性 2026-09-21】本步只增加"打印/上传"：不改测试选择、超时值、
+        #   分片算法、失败判定与 continue-on-error 语义 —— pytest 退出码经 PERF_RC
+        #   原样透传（末尾 exit $PERF_RC），失败/通过结论与改动前完全一致。
+        #   目的：把"内存/线程压力耗尽导致挂起"从推断变为观测（runner 2 vCPU 场景）。
         run: |
+          # —— 跑测前资源快照（全部容错：文件不存在 / 命令缺失 / 非 Linux → N/A）
+          echo "=== [资源快照 · before] 性能测试 ${{ matrix.os }} ==="
+          echo "nproc: $(nproc 2>/dev/null || echo N/A)"
+          echo "cgroup memory.max: $(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo N/A)"
+          echo "cgroup memory.current: $(cat /sys/fs/cgroup/memory.current 2>/dev/null || echo N/A)"
+          echo "cgroup pids.max: $(cat /sys/fs/cgroup/pids.max 2>/dev/null || echo N/A)"
+          # —— 后台采样：线程/进程数 + 每进程峰值 RSS（/proc VmHWM）。
+          #   仅 Linux 启用（Windows Git Bash 无 /proc，且 kill/wait 语义不同）→ 安全跳过。
+          #   --interval 10：压测作业降低采样开销（每次采样会 spawn ps，10s 一次避免干扰计时）。
+          MONITOR_PID=""
+          if [ -d /proc ] && command -v nproc >/dev/null 2>&1; then
+            python scripts/ci_thread_monitor.py \
+              --output test_reports/thread-monitor-perf-${{ matrix.os }}.log \
+              --interval 10 &
+            MONITOR_PID=$!
+          else
+            echo "[观测] 非 Linux 环境：跳过后台线程/内存采样（快照仍打印）"
+          fi
+          # —— pytest 退出码原样透传（set +e 仅为保证后面的观测打印一定执行）
+          set +e
           pytest tests/performance/ \
             -v \
             --timeout=300 \
             --benchmark-only \
             --benchmark-json=test_reports/benchmark.json
+          PERF_RC=$?
+          set -e
+          if [ -n "$MONITOR_PID" ]; then
+            kill $MONITOR_PID 2>/dev/null || true
+            wait $MONITOR_PID 2>/dev/null || true
+          fi
+          echo "=== 性能测试 pytest 退出码: $PERF_RC ==="
+          # —— 跑测后资源快照（同 before，容错打印）
+          echo "=== [资源快照 · after] 性能测试 ${{ matrix.os }} ==="
+          echo "nproc: $(nproc 2>/dev/null || echo N/A)"
+          echo "cgroup memory.max: $(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo N/A)"
+          echo "cgroup memory.current: $(cat /sys/fs/cgroup/memory.current 2>/dev/null || echo N/A)"
+          echo "cgroup pids.max: $(cat /sys/fs/cgroup/pids.max 2>/dev/null || echo N/A)"
+          # —— 每 worker 峰值 RSS / 峰值线程数报告（观测失败不影响测试结论）
+          if [ -n "$MONITOR_PID" ]; then
+            python scripts/ci_thread_monitor.py \
+              --report test_reports/thread-monitor-perf-${{ matrix.os }}.log \
+              || echo "[观测] 线程/内存报告不可用，已跳过（不影响测试结论）"
+          fi
+          exit $PERF_RC
 
       - name: 运行知识库 6000 卡性能回归测试
         # Why: 知识库 CardStore.list 与断链检测在 6000 卡量级下的性能回归护栏，
@@ -484,6 +528,7 @@ jobs:
             test_reports/bench_ci.log
             test_reports/l2_switch_perf_comparison.log
             test_reports/l2_switch_perf_comparison.md
+            test_reports/thread-monitor-perf-${{ matrix.os }}.log
           retention-days: 30
 
   coverage-check:

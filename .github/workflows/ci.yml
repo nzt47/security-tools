@@ -423,6 +423,15 @@ jobs:
           # （node down）→ pytest 挂起 48min → runner 回收，连续多轮 job 失败。
           mkdir -p test-results
           echo "=== 运行单元测试（Shard ${{ matrix.shard }}/6，-n 2 并行 + signal 超时法）==="
+          # 【增量·可观测性 2026-09-21】跑测前资源快照：nproc / cgroup memory.max /
+          #   pids.max。只加"打印"，不改测试选择、超时值、分片算法、失败判定与
+          #   continue-on-error 语义；命令全部容错（文件不存在 / 命令缺失 / 非 Linux
+          #   → N/A），观测失败绝不允许使作业变红。
+          echo "=== [资源快照 · before] Shard ${{ matrix.shard }}/6 ==="
+          echo "nproc: $(nproc 2>/dev/null || echo N/A)"
+          echo "cgroup memory.max: $(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo N/A)"
+          echo "cgroup memory.current: $(cat /sys/fs/cgroup/memory.current 2>/dev/null || echo N/A)"
+          echo "cgroup pids.max: $(cat /sys/fs/cgroup/pids.max 2>/dev/null || echo N/A)"
           # 【变易】--shards 6 与 scripts/split_unit_tests.py 的总分片数保持一致，
           # 若调整分片数需同步修改两处
           # 【不易】线程资源监控（2026-08-05 Shard 3 py3.12 "can't start new thread"）：
@@ -498,9 +507,19 @@ jobs:
           kill $MONITOR_PID 2>/dev/null || true
           wait $MONITOR_PID 2>/dev/null || true
           echo "=== 单元测试 pytest 退出码: $PYTEST_RC ==="
+          # 【增量·可观测性 2026-09-21】跑测后资源快照（同 before，容错打印）
+          echo "=== [资源快照 · after] Shard ${{ matrix.shard }}/6 ==="
+          echo "nproc: $(nproc 2>/dev/null || echo N/A)"
+          echo "cgroup memory.max: $(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo N/A)"
+          echo "cgroup memory.current: $(cat /sys/fs/cgroup/memory.current 2>/dev/null || echo N/A)"
+          echo "cgroup pids.max: $(cat /sys/fs/cgroup/pids.max 2>/dev/null || echo N/A)"
           # 【不易】报告必须输出：pytest 失败时该报告是判断"线程耗尽"与
           #   代码失败的关键证据，且 CI 日志可检索（threads= / pids.max=）。
-          python scripts/ci_thread_monitor.py --report test-results/thread-monitor-shard${{ matrix.shard }}.log
+          # 【增量·可观测性】报告现含"每 worker 峰值 RSS / 峰值线程数"（/proc VmHWM 采样）。
+          #   末尾加 || echo：观测本身失败（日志缺失/被杀）不得把作业判红 ——
+          #   本例此刻 set -e 已生效，原命令失败会掩盖 pytest 真实结论。
+          python scripts/ci_thread_monitor.py --report test-results/thread-monitor-shard${{ matrix.shard }}.log \
+            || echo "[观测] 线程/内存报告不可用，已跳过（不影响测试结论）"
           # 【不易】--cov-fail-under=0: 拆分后每个 shard 仅测 ~1/6 代码,
           # 单 shard 覆盖率 ~17% 必然低于 pyproject.toml 的 fail_under=40。
           # 覆盖率门槛由 coverage-check job 对合并后的完整数据统一断言
