@@ -1,0 +1,2984 @@
+{
+ "schema": "w5/l28-bm25-raw-top1/v2",
+ "task": "W5 批次1-B：L27/L28/A8 —— S0 可复算的证据落盘（双口径，供两次提交各用一份）",
+ "generated_at": "2026-09-21T21:28:35",
+ "generator": "scripts/gen_baseline_bm25_raw.py（已入库；python scripts/gen_baseline_bm25_raw.py 可重建本产物）",
+ "scoring_口径": {
+  "current": "CJK 相邻二元组 + log idf + idf 证据下限",
+  "tokenizer_commit2": "bigram（agent/tool_router_hybrid.py::_tokenize）",
+  "tokenizer_commit1": "unigram 单字（本文件 uni_log 一列，对应提交1 状态）",
+  "idf": "log(1 + (N-df+0.5)/(df+0.5))",
+  "min_idf_coverage": 0.2,
+  "k1": 1.5,
+  "b": 0.75,
+  "index_source": "data/tool_index.json",
+  "index_sha256_16": "42c24d1f09c6664b",
+  "n_docs": 90,
+  "avg_doc_length_bigram": 46.4556,
+  "avg_doc_length_unigram": 53.5444
+ },
+ "split": {
+  "source": "eval/routing_baseline/cases.json#split",
+  "seed": 20260210,
+  "method": "分层随机（按 (layer, gold) 分组后组内洗牌）",
+  "n_calib": 33,
+  "n_test": 42,
+  "calib_ids": [
+   "CAT-009",
+   "L1-001",
+   "L1-003",
+   "L1-007",
+   "L1-009",
+   "L1-011",
+   "L1-013",
+   "L1-014",
+   "L1-016",
+   "L1-018",
+   "L1-020",
+   "L1-023",
+   "L1-026",
+   "L1-027",
+   "L1-030",
+   "L1-031",
+   "L1-033",
+   "L1-034",
+   "L1-036",
+   "L1-038",
+   "L1-040",
+   "L2-002",
+   "L2-003",
+   "L2-004",
+   "L2-006",
+   "L2-008",
+   "L2-014",
+   "L2-016",
+   "TOOL-004",
+   "TOOL-005",
+   "TOOL-006",
+   "TOOL-007",
+   "TOOL-008"
+  ],
+  "test_ids": [
+   "CAT-001",
+   "CAT-002",
+   "CAT-003",
+   "CAT-005",
+   "CAT-006",
+   "CAT-007",
+   "CAT-008",
+   "L1-002",
+   "L1-004",
+   "L1-005",
+   "L1-006",
+   "L1-008",
+   "L1-010",
+   "L1-012",
+   "L1-015",
+   "L1-017",
+   "L1-019",
+   "L1-021",
+   "L1-022",
+   "L1-024",
+   "L1-025",
+   "L1-028",
+   "L1-029",
+   "L1-032",
+   "L1-035",
+   "L1-037",
+   "L1-039",
+   "L1-041",
+   "L2-001",
+   "L2-005",
+   "L2-007",
+   "L2-009",
+   "L2-010",
+   "L2-011",
+   "L2-012",
+   "L2-013",
+   "L2-015",
+   "TOOL-001",
+   "TOOL-002",
+   "TOOL-003",
+   "TOOL-009",
+   "TOOL-010"
+  ]
+ },
+ "stats": {
+  "bigram_log": {
+   "calib_all_layers": {
+    "n_with_hits": 11,
+    "min": 1.8939,
+    "p10": 3.0472,
+    "p50_median": 5.5375,
+    "p90": 10.9457,
+    "max": 11.408,
+    "mean": 6.8001
+   },
+   "calib_hybrid_tool_only": {
+    "n_with_hits": 5,
+    "min": 4.9128,
+    "p10": 4.9128,
+    "p50_median": 10.0877,
+    "p90": 10.4717,
+    "max": 10.9457,
+    "mean": 9.2326
+   },
+   "test_all_layers": {
+    "n_with_hits": 22,
+    "min": 1.377,
+    "p10": 3.1507,
+    "p50_median": 5.4379,
+    "p90": 13.5949,
+    "max": 16.3466,
+    "mean": 7.174
+   },
+   "all_all_layers": {
+    "n_with_hits": 34,
+    "min": 1.377,
+    "p10": 3.1445,
+    "p50_median": 5.2251,
+    "p90": 11.6316,
+    "max": 16.3466,
+    "mean": 6.9421
+   }
+  },
+  "uni_log": {
+   "calib_all_layers": {
+    "n_with_hits": 28,
+    "min": 2.6509,
+    "p10": 3.3293,
+    "p50_median": 6.3902,
+    "p90": 10.781,
+    "max": 15.3386,
+    "mean": 6.7124
+   },
+   "calib_hybrid_tool_only": {
+    "n_with_hits": 5,
+    "min": 6.3025,
+    "p10": 6.3025,
+    "p50_median": 10.2228,
+    "p90": 10.781,
+    "max": 15.3386,
+    "mean": 10.573
+   },
+   "test_all_layers": {
+    "n_with_hits": 36,
+    "min": 2.8435,
+    "p10": 3.9572,
+    "p50_median": 7.0633,
+    "p90": 12.9286,
+    "max": 16.921,
+    "mean": 8.0557
+   },
+   "all_all_layers": {
+    "n_with_hits": 65,
+    "min": 2.6509,
+    "p10": 3.3293,
+    "p50_median": 6.4,
+    "p90": 12.0455,
+    "max": 16.921,
+    "mean": 7.4571
+   }
+  }
+ },
+ "S0_derivation": {
+  "rule": "S0 = calib 划分中有 BM25 命中的用例 raw_bm25_top1 的中位数（真中位数）",
+  "commit2_bigram_log": 5.5375,
+  "commit1_uni_log": 6.3902,
+  "alt_caliber_hybrid_only_commit2": 10.0877,
+  "value_used": 5.5375,
+  "note": "两次提交各用同口径的 S0；value_used 即当前工作区常量口径（bigram_log）；换 hybrid_tool-only 口径时 S0 变为 alt 值（约 1.8x），该不确定度必须随分数交付"
+ },
+ "per_case": [
+  {
+   "id": "L1-001",
+   "layer": "rule",
+   "text": "现在几点",
+   "gold": "check_time",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 3.32929,
+   "raw_bm25_top5_uni_log": [
+    [
+     "json_query",
+     3.32929
+    ],
+    [
+     "scan_mcp",
+     2.978051
+    ],
+    [
+     "list_processes",
+     2.650866
+    ],
+    [
+     "generate_tool",
+     2.543803
+    ],
+    [
+     "cancel_task",
+     2.416388
+    ]
+   ]
+  },
+  {
+   "id": "L1-002",
+   "layer": "rule",
+   "text": "当前时间",
+   "gold": "check_time",
+   "split": "test",
+   "raw_bm25_top1": 4.43854,
+   "raw_bm25_second": 4.063206,
+   "raw_bm25_top5": [
+    [
+     "get_file_info",
+     4.43854
+    ],
+    [
+     "get_pdf_info",
+     4.063206
+    ],
+    [
+     "get_persona_info",
+     3.778196
+    ],
+    [
+     "list_processes",
+     3.36289
+    ],
+    [
+     "ext_list",
+     3.029844
+    ]
+   ],
+   "top1_tool": "get_file_info",
+   "raw_bm25_top1_uni_log": 7.063272,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_persona_info",
+     7.063272
+    ],
+    [
+     "list_processes",
+     6.377877
+    ],
+    [
+     "get_task_result",
+     5.633525
+    ],
+    [
+     "ext_list",
+     5.509167
+    ],
+    [
+     "get_file_info",
+     5.119654
+    ]
+   ]
+  },
+  {
+   "id": "L1-003",
+   "layer": "rule",
+   "text": "几点了",
+   "gold": "check_time",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 3.32929,
+   "raw_bm25_top5_uni_log": [
+    [
+     "json_query",
+     3.32929
+    ],
+    [
+     "data_convert",
+     3.278893
+    ],
+    [
+     "run_lint",
+     3.076622
+    ],
+    [
+     "todo_write",
+     1.535685
+    ],
+    [
+     "notify",
+     1.471563
+    ]
+   ]
+  },
+  {
+   "id": "L1-004",
+   "layer": "rule",
+   "text": "什么时间",
+   "gold": "check_time",
+   "split": "test",
+   "raw_bm25_top1": 4.43854,
+   "raw_bm25_second": 4.063206,
+   "raw_bm25_top5": [
+    [
+     "get_file_info",
+     4.43854
+    ],
+    [
+     "get_pdf_info",
+     4.063206
+    ],
+    [
+     "ext_discover",
+     3.150678
+    ],
+    [
+     "web_search",
+     1.92442
+    ],
+    [
+     "todo_write",
+     1.680793
+    ]
+   ],
+   "top1_tool": "get_file_info",
+   "raw_bm25_top1_uni_log": 7.5616,
+   "raw_bm25_top5_uni_log": [
+    [
+     "ext_discover",
+     7.5616
+    ],
+    [
+     "get_file_info",
+     5.119654
+    ],
+    [
+     "get_pdf_info",
+     4.599593
+    ],
+    [
+     "todo_write",
+     4.181164
+    ],
+    [
+     "schedule_task",
+     4.007088
+    ]
+   ]
+  },
+  {
+   "id": "L1-005",
+   "layer": "rule",
+   "text": "几点钟",
+   "gold": "check_time",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 3.32929,
+   "raw_bm25_top5_uni_log": [
+    [
+     "json_query",
+     3.32929
+    ],
+    [
+     "todo_write",
+     1.535685
+    ],
+    [
+     "notify",
+     1.471563
+    ]
+   ]
+  },
+  {
+   "id": "L1-006",
+   "layer": "rule",
+   "text": "今天几号",
+   "gold": "check_date",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 4.231442,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_weather",
+     4.231442
+    ],
+    [
+     "grep",
+     3.15785
+    ],
+    [
+     "sqlite_query",
+     1.80893
+    ]
+   ]
+  },
+  {
+   "id": "L1-007",
+   "layer": "rule",
+   "text": "今天日期",
+   "gold": "check_date",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.76524,
+   "raw_bm25_top5_uni_log": [
+    [
+     "schedule_task",
+     6.76524
+    ],
+    [
+     "search_memory",
+     5.412731
+    ],
+    [
+     "get_weather",
+     4.231442
+    ],
+    [
+     "remember",
+     4.095138
+    ]
+   ]
+  },
+  {
+   "id": "L1-008",
+   "layer": "rule",
+   "text": "今天周几",
+   "gold": "check_date",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 4.915118,
+   "raw_bm25_top5_uni_log": [
+    [
+     "schedule_task",
+     4.915118
+    ],
+    [
+     "get_weather",
+     4.231442
+    ],
+    [
+     "weekly_report",
+     3.737306
+    ]
+   ]
+  },
+  {
+   "id": "L1-009",
+   "layer": "rule",
+   "text": "今天星期几",
+   "gold": "check_date",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 4.231442,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_weather",
+     4.231442
+    ],
+    [
+     "remember",
+     4.095138
+    ],
+    [
+     "schedule_task",
+     3.38262
+    ]
+   ]
+  },
+  {
+   "id": "L1-010",
+   "layer": "rule",
+   "text": "什么日子",
+   "gold": "check_date",
+   "split": "test",
+   "raw_bm25_top1": 3.150678,
+   "raw_bm25_second": 1.680793,
+   "raw_bm25_top5": [
+    [
+     "ext_discover",
+     3.150678
+    ],
+    [
+     "todo_write",
+     1.680793
+    ]
+   ],
+   "top1_tool": "ext_discover",
+   "raw_bm25_top1_uni_log": 6.269411,
+   "raw_bm25_top5_uni_log": [
+    [
+     "ext_discover",
+     6.269411
+    ],
+    [
+     "search_memory",
+     5.412731
+    ],
+    [
+     "todo_write",
+     4.632463
+    ],
+    [
+     "schedule_task",
+     3.38262
+    ]
+   ]
+  },
+  {
+   "id": "L1-011",
+   "layer": "rule",
+   "text": "你还好吗",
+   "gold": "check_health",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.39025,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     6.39025
+    ],
+    [
+     "generate_tool",
+     3.957214
+    ]
+   ]
+  },
+  {
+   "id": "L1-012",
+   "layer": "rule",
+   "text": "状态",
+   "gold": "check_health",
+   "split": "test",
+   "raw_bm25_top1": 3.977662,
+   "raw_bm25_second": 3.917192,
+   "raw_bm25_top5": [
+    [
+     "get_status",
+     3.977662
+    ],
+    [
+     "get_sensor_summary",
+     3.917192
+    ],
+    [
+     "get_task_status",
+     3.492443
+    ],
+    [
+     "get_task_result",
+     2.582397
+    ],
+    [
+     "submit_task",
+     2.482862
+    ]
+   ],
+   "top1_tool": "get_status",
+   "raw_bm25_top1_uni_log": 7.601078,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_status",
+     7.601078
+    ],
+    [
+     "get_sensor_summary",
+     7.500326
+    ],
+    [
+     "get_task_status",
+     6.781243
+    ],
+    [
+     "get_task_result",
+     4.944362
+    ],
+    [
+     "submit_task",
+     4.737387
+    ]
+   ]
+  },
+  {
+   "id": "L1-013",
+   "layer": "rule",
+   "text": "在吗",
+   "gold": "check_health",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 2.650866,
+   "raw_bm25_top5_uni_log": [
+    [
+     "list_processes",
+     2.650866
+    ],
+    [
+     "cancel_task",
+     2.416388
+    ],
+    [
+     "run_program",
+     2.22002
+    ],
+    [
+     "workspace_init",
+     2.133337
+    ],
+    [
+     "compress",
+     1.860865
+    ]
+   ]
+  },
+  {
+   "id": "L1-014",
+   "layer": "rule",
+   "text": "在不在",
+   "gold": "check_health",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.400012,
+   "raw_bm25_top5_uni_log": [
+    [
+     "workspace_init",
+     6.400012
+    ],
+    [
+     "submit_task",
+     5.489117
+    ],
+    [
+     "list_processes",
+     5.301732
+    ],
+    [
+     "edit",
+     5.026231
+    ],
+    [
+     "cancel_task",
+     4.832777
+    ]
+   ]
+  },
+  {
+   "id": "L1-015",
+   "layer": "rule",
+   "text": "hello",
+   "gold": "check_health",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L1-016",
+   "layer": "rule",
+   "text": "hi",
+   "gold": "check_health",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L1-017",
+   "layer": "rule",
+   "text": "你好",
+   "gold": "check_health",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.39025,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     6.39025
+    ],
+    [
+     "generate_tool",
+     3.957214
+    ]
+   ]
+  },
+  {
+   "id": "L1-018",
+   "layer": "rule",
+   "text": "早上好",
+   "gold": "greeting",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.39025,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     6.39025
+    ],
+    [
+     "list_mcp_connections",
+     2.704828
+    ],
+    [
+     "ext_discover",
+     2.447118
+    ],
+    [
+     "apply_patch",
+     2.081064
+    ],
+    [
+     "sqlite_query",
+     1.412147
+    ]
+   ]
+  },
+  {
+   "id": "L1-019",
+   "layer": "rule",
+   "text": "下午好",
+   "gold": "greeting",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.39025,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     6.39025
+    ],
+    [
+     "web_download",
+     4.619772
+    ],
+    [
+     "apply_patch",
+     2.229885
+    ],
+    [
+     "sqlite_query",
+     1.513133
+    ],
+    [
+     "todo_write",
+     1.417229
+    ]
+   ]
+  },
+  {
+   "id": "L1-020",
+   "layer": "rule",
+   "text": "晚上好",
+   "gold": "greeting",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.39025,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     6.39025
+    ],
+    [
+     "list_mcp_connections",
+     2.704828
+    ],
+    [
+     "ext_discover",
+     2.447118
+    ],
+    [
+     "apply_patch",
+     2.081064
+    ],
+    [
+     "sqlite_query",
+     1.412147
+    ]
+   ]
+  },
+  {
+   "id": "L1-021",
+   "layer": "rule",
+   "text": "大家好",
+   "gold": "greeting",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.39025,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     6.39025
+    ],
+    [
+     "get_file_info",
+     3.550473
+    ],
+    [
+     "get_pdf_info",
+     3.189811
+    ],
+    [
+     "diff_files",
+     2.696724
+    ],
+    [
+     "compress",
+     2.673762
+    ]
+   ]
+  },
+  {
+   "id": "L1-022",
+   "layer": "rule",
+   "text": "再见",
+   "gold": "farewell",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 4.781909,
+   "raw_bm25_top5_uni_log": [
+    [
+     "ext_uninstall",
+     4.781909
+    ],
+    [
+     "todo_write",
+     3.388559
+    ],
+    [
+     "data_format_detect",
+     2.769363
+    ]
+   ]
+  },
+  {
+   "id": "L1-023",
+   "layer": "rule",
+   "text": "拜拜",
+   "gold": "farewell",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L1-024",
+   "layer": "rule",
+   "text": "bye",
+   "gold": "farewell",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L1-025",
+   "layer": "rule",
+   "text": "goodbye",
+   "gold": "farewell",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L1-026",
+   "layer": "rule",
+   "text": "下次见",
+   "gold": "farewell",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.490746,
+   "raw_bm25_top5_uni_log": [
+    [
+     "todo_write",
+     6.490746
+    ],
+    [
+     "web_download",
+     4.619772
+    ],
+    [
+     "trigger_distillation",
+     4.367852
+    ],
+    [
+     "data_format_detect",
+     2.769363
+    ],
+    [
+     "apply_patch",
+     2.229885
+    ]
+   ]
+  },
+  {
+   "id": "L1-027",
+   "layer": "rule",
+   "text": "明天见",
+   "gold": "farewell",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 4.231442,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_weather",
+     4.231442
+    ],
+    [
+     "read_pdf_tables",
+     2.843013
+    ],
+    [
+     "data_format_detect",
+     2.769363
+    ],
+    [
+     "browser_navigate",
+     2.599535
+    ],
+    [
+     "delegate",
+     2.240602
+    ]
+   ]
+  },
+  {
+   "id": "L1-028",
+   "layer": "rule",
+   "text": "谢谢",
+   "gold": "thanks",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L1-029",
+   "layer": "rule",
+   "text": "感谢",
+   "gold": "thanks",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 5.13861,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_sensor_summary",
+     5.13861
+    ],
+    [
+     "kb_capture",
+     4.537204
+    ],
+    [
+     "look_at_screen",
+     4.506826
+    ]
+   ]
+  },
+  {
+   "id": "L1-030",
+   "layer": "rule",
+   "text": "多谢",
+   "gold": "thanks",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 3.130912,
+   "raw_bm25_top5_uni_log": [
+    [
+     "web_batch",
+     3.130912
+    ],
+    [
+     "merge_pdf",
+     2.283437
+    ],
+    [
+     "browser_screenshot",
+     2.219081
+    ],
+    [
+     "split_pdf",
+     2.138711
+    ],
+    [
+     "get_clipboard",
+     1.97756
+    ]
+   ]
+  },
+  {
+   "id": "L1-031",
+   "layer": "rule",
+   "text": "thank",
+   "gold": "thanks",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L1-032",
+   "layer": "rule",
+   "text": "thanks",
+   "gold": "thanks",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L1-033",
+   "layer": "rule",
+   "text": "thx",
+   "gold": "thanks",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L1-034",
+   "layer": "rule",
+   "text": "好的",
+   "gold": "confirmation",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 7.276359,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     7.276359
+    ]
+   ]
+  },
+  {
+   "id": "L1-035",
+   "layer": "rule",
+   "text": "可以",
+   "gold": "confirmation",
+   "split": "test",
+   "raw_bm25_top1": 3.304691,
+   "raw_bm25_second": 3.063866,
+   "raw_bm25_top5": [
+    [
+     "read_file",
+     3.304691
+    ],
+    [
+     "generate_tool",
+     3.063866
+    ],
+    [
+     "ext_discover",
+     2.855757
+    ]
+   ],
+   "top1_tool": "read_file",
+   "raw_bm25_top1_uni_log": 4.778554,
+   "raw_bm25_top5_uni_log": [
+    [
+     "generate_tool",
+     4.778554
+    ],
+    [
+     "read_file",
+     4.467158
+    ],
+    [
+     "ext_discover",
+     4.374362
+    ],
+    [
+     "sqlite_query",
+     2.35104
+    ],
+    [
+     "data_format_detect",
+     2.161912
+    ]
+   ]
+  },
+  {
+   "id": "L1-036",
+   "layer": "rule",
+   "text": "明白",
+   "gold": "confirmation",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 4.560879,
+   "raw_bm25_top5_uni_log": [
+    [
+     "stop_process",
+     4.560879
+    ],
+    [
+     "list_processes",
+     4.339593
+    ],
+    [
+     "run_program",
+     3.634278
+    ],
+    [
+     "read_pdf_tables",
+     2.843013
+    ],
+    [
+     "browser_navigate",
+     2.599535
+    ]
+   ]
+  },
+  {
+   "id": "L1-037",
+   "layer": "rule",
+   "text": "懂了",
+   "gold": "confirmation",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 3.278893,
+   "raw_bm25_top5_uni_log": [
+    [
+     "data_convert",
+     3.278893
+    ],
+    [
+     "run_lint",
+     3.076622
+    ]
+   ]
+  },
+  {
+   "id": "L1-038",
+   "layer": "rule",
+   "text": "知道了",
+   "gold": "confirmation",
+   "split": "calib",
+   "raw_bm25_top1": 1.893916,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [
+    [
+     "notify",
+     1.893916
+    ]
+   ],
+   "top1_tool": "notify",
+   "raw_bm25_top1_uni_log": 6.663298,
+   "raw_bm25_top5_uni_log": [
+    [
+     "notify",
+     6.663298
+    ],
+    [
+     "kb_search",
+     5.135298
+    ],
+    [
+     "kb_lint",
+     3.907772
+    ],
+    [
+     "data_convert",
+     3.278893
+    ],
+    [
+     "ext_configure",
+     3.153902
+    ]
+   ]
+  },
+  {
+   "id": "L1-039",
+   "layer": "rule",
+   "text": "收到",
+   "gold": "confirmation",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 4.537204,
+   "raw_bm25_top5_uni_log": [
+    [
+     "kb_capture",
+     4.537204
+    ],
+    [
+     "remember",
+     4.040317
+    ],
+    [
+     "get_preferences",
+     3.517129
+    ],
+    [
+     "web_download",
+     3.471714
+    ],
+    [
+     "scan_mcp",
+     2.549815
+    ]
+   ]
+  },
+  {
+   "id": "L1-040",
+   "layer": "rule",
+   "text": "没问题",
+   "gold": "confirmation",
+   "split": "calib",
+   "raw_bm25_top1": 3.04719,
+   "raw_bm25_second": 1.829991,
+   "raw_bm25_top5": [
+    [
+     "humanize_zh",
+     3.04719
+    ],
+    [
+     "run_lint",
+     1.829991
+    ]
+   ],
+   "top1_tool": "humanize_zh",
+   "raw_bm25_top1_uni_log": 4.735246,
+   "raw_bm25_top5_uni_log": [
+    [
+     "humanize_zh",
+     4.735246
+    ],
+    [
+     "kb_discuss",
+     4.286372
+    ],
+    [
+     "generate_tool",
+     3.140499
+    ],
+    [
+     "run_lint",
+     2.906436
+    ],
+    [
+     "get_pdf_info",
+     2.865562
+    ]
+   ]
+  },
+  {
+   "id": "L1-041",
+   "layer": "rule",
+   "text": "这是一段未知的话xyz123",
+   "gold": null,
+   "split": "test",
+   "raw_bm25_top1": 3.144545,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [
+    [
+     "data_format_detect",
+     3.144545
+    ]
+   ],
+   "top1_tool": "data_format_detect",
+   "raw_bm25_top1_uni_log": 8.836725,
+   "raw_bm25_top5_uni_log": [
+    [
+     "todo_write",
+     8.836725
+    ],
+    [
+     "data_format_detect",
+     6.863474
+    ],
+    [
+     "notify",
+     6.013596
+    ],
+    [
+     "merge_pdf",
+     5.949964
+    ],
+    [
+     "delegate",
+     5.365047
+    ]
+   ]
+  },
+  {
+   "id": "L2-001",
+   "layer": "template",
+   "text": "你是谁",
+   "gold": "identity",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 3.957214,
+   "raw_bm25_top5_uni_log": [
+    [
+     "generate_tool",
+     3.957214
+    ],
+    [
+     "run_program",
+     3.370725
+    ],
+    [
+     "merge_pdf",
+     3.25914
+    ],
+    [
+     "list_mcp_connections",
+     2.878039
+    ],
+    [
+     "data_format_detect",
+     2.436444
+    ]
+   ]
+  },
+  {
+   "id": "L2-002",
+   "layer": "template",
+   "text": "你叫什么名字",
+   "gold": "identity",
+   "split": "calib",
+   "raw_bm25_top1": 3.150678,
+   "raw_bm25_second": 1.680793,
+   "raw_bm25_top5": [
+    [
+     "ext_discover",
+     3.150678
+    ],
+    [
+     "todo_write",
+     1.680793
+    ]
+   ],
+   "top1_tool": "ext_discover",
+   "raw_bm25_top1_uni_log": 7.871147,
+   "raw_bm25_top5_uni_log": [
+    [
+     "ext_discover",
+     7.871147
+    ],
+    [
+     "generate_tool",
+     3.957214
+    ],
+    [
+     "data_format_detect",
+     3.827142
+    ],
+    [
+     "todo_write",
+     3.388559
+    ]
+   ]
+  },
+  {
+   "id": "L2-003",
+   "layer": "template",
+   "text": "现在几点",
+   "gold": "time_query",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 3.32929,
+   "raw_bm25_top5_uni_log": [
+    [
+     "json_query",
+     3.32929
+    ],
+    [
+     "scan_mcp",
+     2.978051
+    ],
+    [
+     "list_processes",
+     2.650866
+    ],
+    [
+     "generate_tool",
+     2.543803
+    ],
+    [
+     "cancel_task",
+     2.416388
+    ]
+   ]
+  },
+  {
+   "id": "L2-004",
+   "layer": "template",
+   "text": "几点了",
+   "gold": "time_query",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 3.32929,
+   "raw_bm25_top5_uni_log": [
+    [
+     "json_query",
+     3.32929
+    ],
+    [
+     "data_convert",
+     3.278893
+    ],
+    [
+     "run_lint",
+     3.076622
+    ],
+    [
+     "todo_write",
+     1.535685
+    ],
+    [
+     "notify",
+     1.471563
+    ]
+   ]
+  },
+  {
+   "id": "L2-005",
+   "layer": "template",
+   "text": "当前时间",
+   "gold": "time_query",
+   "split": "test",
+   "raw_bm25_top1": 4.43854,
+   "raw_bm25_second": 4.063206,
+   "raw_bm25_top5": [
+    [
+     "get_file_info",
+     4.43854
+    ],
+    [
+     "get_pdf_info",
+     4.063206
+    ],
+    [
+     "get_persona_info",
+     3.778196
+    ],
+    [
+     "list_processes",
+     3.36289
+    ],
+    [
+     "ext_list",
+     3.029844
+    ]
+   ],
+   "top1_tool": "get_file_info",
+   "raw_bm25_top1_uni_log": 7.063272,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_persona_info",
+     7.063272
+    ],
+    [
+     "list_processes",
+     6.377877
+    ],
+    [
+     "get_task_result",
+     5.633525
+    ],
+    [
+     "ext_list",
+     5.509167
+    ],
+    [
+     "get_file_info",
+     5.119654
+    ]
+   ]
+  },
+  {
+   "id": "L2-006",
+   "layer": "template",
+   "text": "你好",
+   "gold": "greeting",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.39025,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     6.39025
+    ],
+    [
+     "generate_tool",
+     3.957214
+    ]
+   ]
+  },
+  {
+   "id": "L2-007",
+   "layer": "template",
+   "text": "早上好",
+   "gold": "greeting",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.39025,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     6.39025
+    ],
+    [
+     "list_mcp_connections",
+     2.704828
+    ],
+    [
+     "ext_discover",
+     2.447118
+    ],
+    [
+     "apply_patch",
+     2.081064
+    ],
+    [
+     "sqlite_query",
+     1.412147
+    ]
+   ]
+  },
+  {
+   "id": "L2-008",
+   "layer": "template",
+   "text": "你能做什么",
+   "gold": "capability",
+   "split": "calib",
+   "raw_bm25_top1": 3.600444,
+   "raw_bm25_second": 3.150678,
+   "raw_bm25_top5": [
+    [
+     "todo_write",
+     3.600444
+    ],
+    [
+     "ext_discover",
+     3.150678
+    ]
+   ],
+   "top1_tool": "todo_write",
+   "raw_bm25_top1_uni_log": 7.933464,
+   "raw_bm25_top5_uni_log": [
+    [
+     "ext_discover",
+     7.933464
+    ],
+    [
+     "generate_tool",
+     5.796511
+    ],
+    [
+     "todo_write",
+     4.711203
+    ],
+    [
+     "look_at_screen",
+     4.507608
+    ]
+   ]
+  },
+  {
+   "id": "L2-009",
+   "layer": "template",
+   "text": "你有什么功能",
+   "gold": "capability",
+   "split": "test",
+   "raw_bm25_top1": 6.7491,
+   "raw_bm25_second": 1.680793,
+   "raw_bm25_top5": [
+    [
+     "ext_discover",
+     6.7491
+    ],
+    [
+     "todo_write",
+     1.680793
+    ]
+   ],
+   "top1_tool": "ext_discover",
+   "raw_bm25_top1_uni_log": 9.664631,
+   "raw_bm25_top5_uni_log": [
+    [
+     "ext_discover",
+     9.664631
+    ],
+    [
+     "generate_tool",
+     7.70999
+    ],
+    [
+     "ext_list",
+     5.64949
+    ],
+    [
+     "browser_close",
+     4.76841
+    ],
+    [
+     "todo_write",
+     3.388559
+    ]
+   ]
+  },
+  {
+   "id": "L2-010",
+   "layer": "template",
+   "text": "今天天气怎么样",
+   "gold": "weather",
+   "split": "test",
+   "raw_bm25_top1": 4.334454,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [
+    [
+     "get_weather",
+     4.334454
+    ]
+   ],
+   "top1_tool": "get_weather",
+   "raw_bm25_top1_uni_log": 12.694326,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_weather",
+     12.694326
+    ],
+    [
+     "browser_close",
+     4.76841
+    ],
+    [
+     "ext_discover",
+     3.134706
+    ],
+    [
+     "todo_write",
+     1.694279
+    ]
+   ]
+  },
+  {
+   "id": "L2-011",
+   "layer": "template",
+   "text": "你怎么还不回答",
+   "gold": "dissatisfaction",
+   "split": "test",
+   "raw_bm25_top1": 1.377022,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [
+    [
+     "fan_out",
+     1.377022
+    ]
+   ],
+   "top1_tool": "fan_out",
+   "raw_bm25_top1_uni_log": 5.727631,
+   "raw_bm25_top5_uni_log": [
+    [
+     "generate_tool",
+     5.727631
+    ],
+    [
+     "ext_discover",
+     4.210588
+    ],
+    [
+     "browser_close",
+     3.566295
+    ],
+    [
+     "fan_out",
+     3.163574
+    ],
+    [
+     "todo_write",
+     3.141507
+    ]
+   ]
+  },
+  {
+   "id": "L2-012",
+   "layer": "template",
+   "text": "然后呢",
+   "gold": "follow_up",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 2.843536,
+   "raw_bm25_top5_uni_log": [
+    [
+     "remember",
+     2.843536
+    ],
+    [
+     "ext_install",
+     2.641227
+    ],
+    [
+     "get_task_result",
+     2.595069
+    ],
+    [
+     "submit_task",
+     2.486437
+    ],
+    [
+     "web_search",
+     1.496589
+    ]
+   ]
+  },
+  {
+   "id": "L2-013",
+   "layer": "template",
+   "text": "好无聊啊",
+   "gold": "simple_chat",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": 6.39025,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_preferences",
+     6.39025
+    ],
+    [
+     "cancel_task",
+     4.286372
+    ],
+    [
+     "get_weather",
+     3.35813
+    ],
+    [
+     "delegate",
+     2.6015
+    ]
+   ]
+  },
+  {
+   "id": "L2-014",
+   "layer": "template",
+   "text": "帮我把这份PDF转成Word然后压缩发邮件",
+   "gold": "unknown",
+   "split": "calib",
+   "raw_bm25_top1": 5.537476,
+   "raw_bm25_second": 4.651396,
+   "raw_bm25_top5": [
+    [
+     "data_convert",
+     5.537476
+    ],
+    [
+     "ext_send_channel",
+     4.651396
+    ],
+    [
+     "decompress",
+     4.380731
+    ],
+    [
+     "compress",
+     3.272538
+    ],
+    [
+     "web_extract",
+     2.389193
+    ]
+   ],
+   "top1_tool": "data_convert",
+   "raw_bm25_top1_uni_log": 11.801475,
+   "raw_bm25_top5_uni_log": [
+    [
+     "data_convert",
+     11.801475
+    ],
+    [
+     "decompress",
+     11.034954
+    ],
+    [
+     "compress",
+     10.057203
+    ],
+    [
+     "get_clipboard",
+     9.726897
+    ],
+    [
+     "remember",
+     8.500625
+    ]
+   ]
+  },
+  {
+   "id": "L2-015",
+   "layer": "template",
+   "text": "",
+   "gold": "unknown",
+   "split": "test",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "L2-016",
+   "layer": "template",
+   "text": "   ",
+   "gold": "unknown",
+   "split": "calib",
+   "raw_bm25_top1": null,
+   "raw_bm25_second": null,
+   "raw_bm25_top5": [],
+   "top1_tool": null,
+   "raw_bm25_top1_uni_log": null,
+   "raw_bm25_top5_uni_log": []
+  },
+  {
+   "id": "CAT-001",
+   "layer": "keyword_category",
+   "text": "搜索天气",
+   "gold": [
+    "core",
+    "web",
+    "system"
+   ],
+   "split": "test",
+   "raw_bm25_top1": 4.334454,
+   "raw_bm25_second": 3.917192,
+   "raw_bm25_top5": [
+    [
+     "get_weather",
+     4.334454
+    ],
+    [
+     "search_lifetrace",
+     3.917192
+    ],
+    [
+     "search_files",
+     3.075579
+    ],
+    [
+     "web_search",
+     3.003524
+    ],
+    [
+     "remember",
+     2.83842
+    ]
+   ],
+   "top1_tool": "get_weather",
+   "raw_bm25_top1_uni_log": 8.462884,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_weather",
+     8.462884
+    ],
+    [
+     "search_lifetrace",
+     7.104823
+    ],
+    [
+     "search_memory",
+     6.279828
+    ],
+    [
+     "web_search",
+     5.919467
+    ],
+    [
+     "search_files",
+     5.690457
+    ]
+   ]
+  },
+  {
+   "id": "CAT-002",
+   "layer": "keyword_category",
+   "text": "读取文件",
+   "gold": [
+    "core",
+    "file"
+   ],
+   "split": "test",
+   "raw_bm25_top1": 7.08201,
+   "raw_bm25_second": 5.776302,
+   "raw_bm25_top5": [
+    [
+     "get_file_info",
+     7.08201
+    ],
+    [
+     "read_pdf",
+     5.776302
+    ],
+    [
+     "read_file",
+     4.754741
+    ]
+   ],
+   "top1_tool": "get_file_info",
+   "raw_bm25_top1_uni_log": 7.371269,
+   "raw_bm25_top5_uni_log": [
+    [
+     "read_pdf",
+     7.371269
+    ],
+    [
+     "get_clipboard",
+     7.039127
+    ],
+    [
+     "read_file",
+     6.215191
+    ],
+    [
+     "edit",
+     5.091402
+    ],
+    [
+     "get_pdf_info",
+     4.505591
+    ]
+   ]
+  },
+  {
+   "id": "CAT-003",
+   "layer": "keyword_category",
+   "text": "执行命令",
+   "gold": [
+    "core",
+    "code",
+    "system"
+   ],
+   "split": "test",
+   "raw_bm25_top1": 6.787565,
+   "raw_bm25_second": 4.227477,
+   "raw_bm25_top5": [
+    [
+     "shell_execute",
+     6.787565
+    ],
+    [
+     "list_scheduled_tasks",
+     4.227477
+    ],
+    [
+     "get_task_status",
+     3.161678
+    ],
+    [
+     "distill_process_from_knowledge",
+     2.687735
+    ],
+    [
+     "git",
+     2.493847
+    ]
+   ],
+   "top1_tool": "shell_execute",
+   "raw_bm25_top1_uni_log": 11.271179,
+   "raw_bm25_top5_uni_log": [
+    [
+     "shell_execute",
+     11.271179
+    ],
+    [
+     "list_scheduled_tasks",
+     7.195463
+    ],
+    [
+     "get_task_status",
+     5.493779
+    ],
+    [
+     "delegate",
+     5.407491
+    ],
+    [
+     "grep",
+     4.712714
+    ]
+   ]
+  },
+  {
+   "id": "CAT-004",
+   "layer": "keyword_category",
+   "text": "安装软件包",
+   "gold": [
+    "core",
+    "software"
+   ],
+   "split": "stale",
+   "raw_bm25_top1": 3.403526,
+   "raw_bm25_second": 2.923896,
+   "raw_bm25_top5": [
+    [
+     "ext_install",
+     3.403526
+    ],
+    [
+     "ext_send_channel",
+     2.923896
+    ],
+    [
+     "ext_list",
+     2.887699
+    ],
+    [
+     "scan_mcp",
+     2.5416
+    ],
+    [
+     "read_pdf_tables",
+     2.247714
+    ]
+   ],
+   "top1_tool": "ext_install",
+   "raw_bm25_top1_uni_log": 6.7534,
+   "raw_bm25_top5_uni_log": [
+    [
+     "ext_install",
+     6.7534
+    ],
+    [
+     "ext_send_channel",
+     6.232456
+    ],
+    [
+     "ext_list",
+     5.971255
+    ],
+    [
+     "read_pdf_tables",
+     4.852692
+    ],
+    [
+     "scan_mcp",
+     4.434258
+    ]
+   ]
+  },
+  {
+   "id": "CAT-005",
+   "layer": "keyword_category",
+   "text": "处理PDF文件",
+   "gold": [
+    "core",
+    "file",
+    "pdf"
+   ],
+   "split": "test",
+   "raw_bm25_top1": 6.505594,
+   "raw_bm25_second": 6.259783,
+   "raw_bm25_top5": [
+    [
+     "split_pdf",
+     6.505594
+    ],
+    [
+     "read_pdf",
+     6.259783
+    ],
+    [
+     "get_pdf_info",
+     6.210723
+    ],
+    [
+     "merge_pdf",
+     5.834523
+    ],
+    [
+     "read_pdf_tables",
+     5.472978
+    ]
+   ],
+   "top1_tool": "split_pdf",
+   "raw_bm25_top1_uni_log": 8.674838,
+   "raw_bm25_top5_uni_log": [
+    [
+     "compress",
+     8.674838
+    ],
+    [
+     "split_pdf",
+     7.512174
+    ],
+    [
+     "submit_task",
+     7.420403
+    ],
+    [
+     "read_pdf",
+     7.402534
+    ],
+    [
+     "get_pdf_info",
+     7.062132
+    ]
+   ]
+  },
+  {
+   "id": "CAT-006",
+   "layer": "keyword_category",
+   "text": "创建定时任务",
+   "gold": [
+    "core",
+    "schedule"
+   ],
+   "split": "test",
+   "raw_bm25_top1": 13.594929,
+   "raw_bm25_second": 12.642174,
+   "raw_bm25_top5": [
+    [
+     "schedule_task",
+     13.594929
+    ],
+    [
+     "list_scheduled_tasks",
+     12.642174
+    ],
+    [
+     "cancel_scheduled_task",
+     11.515406
+    ],
+    [
+     "pause_scheduled_task",
+     11.515406
+    ],
+    [
+     "resume_scheduled_task",
+     11.34551
+    ]
+   ],
+   "top1_tool": "schedule_task",
+   "raw_bm25_top1_uni_log": 14.373357,
+   "raw_bm25_top5_uni_log": [
+    [
+     "list_scheduled_tasks",
+     14.373357
+    ],
+    [
+     "schedule_task",
+     11.055035
+    ],
+    [
+     "cancel_scheduled_task",
+     9.409531
+    ],
+    [
+     "pause_scheduled_task",
+     9.409531
+    ],
+    [
+     "resume_scheduled_task",
+     8.718755
+    ]
+   ]
+  },
+  {
+   "id": "CAT-007",
+   "layer": "keyword_category",
+   "text": "后台运行任务",
+   "gold": [
+    "core",
+    "code",
+    "async"
+   ],
+   "split": "test",
+   "raw_bm25_top1": 6.437174,
+   "raw_bm25_second": 6.189736,
+   "raw_bm25_top5": [
+    [
+     "list_async_tasks",
+     6.437174
+    ],
+    [
+     "submit_task",
+     6.189736
+    ],
+    [
+     "cancel_task",
+     5.791674
+    ],
+    [
+     "list_processes",
+     3.743414
+    ],
+    [
+     "distill_process_from_knowledge",
+     3.153892
+    ]
+   ],
+   "top1_tool": "list_async_tasks",
+   "raw_bm25_top1_uni_log": 12.045452,
+   "raw_bm25_top5_uni_log": [
+    [
+     "submit_task",
+     12.045452
+    ],
+    [
+     "list_async_tasks",
+     10.306543
+    ],
+    [
+     "cancel_task",
+     9.622807
+    ],
+    [
+     "get_task_result",
+     7.456016
+    ],
+    [
+     "distill_process_from_knowledge",
+     7.204206
+    ]
+   ]
+  },
+  {
+   "id": "CAT-008",
+   "layer": "keyword_category",
+   "text": "安装扩展插件",
+   "gold": [
+    "core",
+    "extension"
+   ],
+   "split": "test",
+   "raw_bm25_top1": 14.743726,
+   "raw_bm25_second": 9.939205,
+   "raw_bm25_top5": [
+    [
+     "ext_install",
+     14.743726
+    ],
+    [
+     "ext_list",
+     9.939205
+    ],
+    [
+     "ext_uninstall",
+     7.418872
+    ],
+    [
+     "scan_mcp",
+     5.083199
+    ],
+    [
+     "ext_discover",
+     4.913349
+    ]
+   ],
+   "top1_tool": "ext_install",
+   "raw_bm25_top1_uni_log": 16.921034,
+   "raw_bm25_top5_uni_log": [
+    [
+     "ext_install",
+     16.921034
+    ],
+    [
+     "ext_list",
+     15.667017
+    ],
+    [
+     "ext_uninstall",
+     11.490508
+    ],
+    [
+     "scan_mcp",
+     9.533888
+    ],
+    [
+     "ext_discover",
+     9.270373
+    ]
+   ]
+  },
+  {
+   "id": "CAT-009",
+   "layer": "keyword_category",
+   "text": "列出目录内容",
+   "gold": [
+    "core",
+    "file"
+   ],
+   "split": "calib",
+   "raw_bm25_top1": 11.407991,
+   "raw_bm25_second": 6.177171,
+   "raw_bm25_top5": [
+    [
+     "list_directory",
+     11.407991
+    ],
+    [
+     "workspace_list",
+     6.177171
+    ],
+    [
+     "workspace_write",
+     3.872876
+    ],
+    [
+     "grep",
+     3.41252
+    ],
+    [
+     "sqlite_query",
+     3.061499
+    ]
+   ],
+   "top1_tool": "list_directory",
+   "raw_bm25_top1_uni_log": 11.46282,
+   "raw_bm25_top5_uni_log": [
+    [
+     "workspace_list",
+     11.46282
+    ],
+    [
+     "list_directory",
+     9.970367
+    ],
+    [
+     "workspace_write",
+     9.401405
+    ],
+    [
+     "workspace_delete",
+     7.474555
+    ],
+    [
+     "run_program",
+     6.271544
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-001",
+   "layer": "hybrid_tool",
+   "text": "extract text from pdf",
+   "gold": "read_pdf",
+   "split": "test",
+   "raw_bm25_top1": 15.603182,
+   "raw_bm25_second": 10.867587,
+   "raw_bm25_top5": [
+    [
+     "read_pdf",
+     15.603182
+    ],
+    [
+     "read_pdf_tables",
+     10.867587
+    ],
+    [
+     "web_extract",
+     9.078029
+    ],
+    [
+     "get_clipboard",
+     4.915462
+    ],
+    [
+     "split_pdf",
+     4.894302
+    ]
+   ],
+   "top1_tool": "read_pdf",
+   "raw_bm25_top1_uni_log": 15.757503,
+   "raw_bm25_top5_uni_log": [
+    [
+     "read_pdf",
+     15.757503
+    ],
+    [
+     "read_pdf_tables",
+     11.032261
+    ],
+    [
+     "web_extract",
+     9.070035
+    ],
+    [
+     "split_pdf",
+     4.96019
+    ],
+    [
+     "get_clipboard",
+     4.78024
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-002",
+   "layer": "hybrid_tool",
+   "text": "merge two pdf files",
+   "gold": "merge_pdf",
+   "split": "test",
+   "raw_bm25_top1": 11.490401,
+   "raw_bm25_second": 7.834148,
+   "raw_bm25_top5": [
+    [
+     "merge_pdf",
+     11.490401
+    ],
+    [
+     "read_pdf",
+     7.834148
+    ],
+    [
+     "split_pdf",
+     7.372033
+    ],
+    [
+     "read_pdf_tables",
+     6.743935
+    ],
+    [
+     "get_pdf_info",
+     4.391645
+    ]
+   ],
+   "top1_tool": "merge_pdf",
+   "raw_bm25_top1_uni_log": 11.607455,
+   "raw_bm25_top5_uni_log": [
+    [
+     "merge_pdf",
+     11.607455
+    ],
+    [
+     "read_pdf",
+     7.897297
+    ],
+    [
+     "split_pdf",
+     7.5144
+    ],
+    [
+     "read_pdf_tables",
+     6.832347
+    ],
+    [
+     "get_pdf_info",
+     4.300451
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-003",
+   "layer": "hybrid_tool",
+   "text": "split pdf into pages",
+   "gold": "split_pdf",
+   "split": "test",
+   "raw_bm25_top1": 16.34664,
+   "raw_bm25_second": 8.927505,
+   "raw_bm25_top5": [
+    [
+     "split_pdf",
+     16.34664
+    ],
+    [
+     "read_pdf",
+     8.927505
+    ],
+    [
+     "merge_pdf",
+     8.213402
+    ],
+    [
+     "read_pdf_tables",
+     7.626583
+    ]
+   ],
+   "top1_tool": "split_pdf",
+   "raw_bm25_top1_uni_log": 16.766021,
+   "raw_bm25_top5_uni_log": [
+    [
+     "split_pdf",
+     16.766021
+    ],
+    [
+     "read_pdf",
+     9.003484
+    ],
+    [
+     "merge_pdf",
+     8.292814
+    ],
+    [
+     "read_pdf_tables",
+     7.731319
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-004",
+   "layer": "hybrid_tool",
+   "text": "get weather in beijing",
+   "gold": "get_weather",
+   "split": "calib",
+   "raw_bm25_top1": 10.471676,
+   "raw_bm25_second": 5.220771,
+   "raw_bm25_top5": [
+    [
+     "get_weather",
+     10.471676
+    ],
+    [
+     "web_get",
+     5.220771
+    ],
+    [
+     "get_pdf_info",
+     3.749789
+    ],
+    [
+     "get_clipboard",
+     3.080045
+    ],
+    [
+     "workspace_list",
+     2.712965
+    ]
+   ],
+   "top1_tool": "get_weather",
+   "raw_bm25_top1_uni_log": 10.222808,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_weather",
+     10.222808
+    ],
+    [
+     "web_get",
+     5.245039
+    ],
+    [
+     "get_pdf_info",
+     3.634278
+    ],
+    [
+     "get_clipboard",
+     2.995314
+    ],
+    [
+     "workspace_list",
+     2.795409
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-005",
+   "layer": "hybrid_tool",
+   "text": "search the web for news",
+   "gold": "web_search",
+   "split": "calib",
+   "raw_bm25_top1": 10.087704,
+   "raw_bm25_second": 4.334454,
+   "raw_bm25_top5": [
+    [
+     "web_search",
+     10.087704
+    ],
+    [
+     "get_weather",
+     4.334454
+    ]
+   ],
+   "top1_tool": "web_search",
+   "raw_bm25_top1_uni_log": 10.219903,
+   "raw_bm25_top5_uni_log": [
+    [
+     "web_search",
+     10.219903
+    ],
+    [
+     "get_weather",
+     4.231442
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-006",
+   "layer": "hybrid_tool",
+   "text": "解析pdf",
+   "gold": "read_pdf",
+   "split": "calib",
+   "raw_bm25_top1": 4.912798,
+   "raw_bm25_second": 4.894302,
+   "raw_bm25_top5": [
+    [
+     "read_pdf",
+     4.912798
+    ],
+    [
+     "split_pdf",
+     4.894302
+    ],
+    [
+     "get_pdf_info",
+     4.391645
+    ],
+    [
+     "read_pdf_tables",
+     4.385579
+    ],
+    [
+     "merge_pdf",
+     4.125632
+    ]
+   ],
+   "top1_tool": "read_pdf",
+   "raw_bm25_top1_uni_log": 6.302474,
+   "raw_bm25_top5_uni_log": [
+    [
+     "run_lint",
+     6.302474
+    ],
+    [
+     "split_pdf",
+     4.96019
+    ],
+    [
+     "read_pdf",
+     4.941663
+    ],
+    [
+     "read_pdf_tables",
+     4.430377
+    ],
+    [
+     "get_pdf_info",
+     4.300451
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-007",
+   "layer": "hybrid_tool",
+   "text": "合并pdf",
+   "gold": "merge_pdf",
+   "split": "calib",
+   "raw_bm25_top1": 9.745012,
+   "raw_bm25_second": 4.912798,
+   "raw_bm25_top5": [
+    [
+     "merge_pdf",
+     9.745012
+    ],
+    [
+     "read_pdf",
+     4.912798
+    ],
+    [
+     "split_pdf",
+     4.894302
+    ],
+    [
+     "get_pdf_info",
+     4.391645
+    ],
+    [
+     "read_pdf_tables",
+     4.385579
+    ]
+   ],
+   "top1_tool": "merge_pdf",
+   "raw_bm25_top1_uni_log": 10.781037,
+   "raw_bm25_top5_uni_log": [
+    [
+     "merge_pdf",
+     10.781037
+    ],
+    [
+     "split_pdf",
+     4.96019
+    ],
+    [
+     "read_pdf",
+     4.941663
+    ],
+    [
+     "read_pdf_tables",
+     4.430377
+    ],
+    [
+     "get_pdf_info",
+     4.300451
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-008",
+   "layer": "hybrid_tool",
+   "text": "拆分pdf",
+   "gold": "split_pdf",
+   "split": "calib",
+   "raw_bm25_top1": 10.945706,
+   "raw_bm25_second": 4.912798,
+   "raw_bm25_top5": [
+    [
+     "split_pdf",
+     10.945706
+    ],
+    [
+     "read_pdf",
+     4.912798
+    ],
+    [
+     "get_pdf_info",
+     4.391645
+    ],
+    [
+     "read_pdf_tables",
+     4.385579
+    ],
+    [
+     "merge_pdf",
+     4.125632
+    ]
+   ],
+   "top1_tool": "split_pdf",
+   "raw_bm25_top1_uni_log": 15.338594,
+   "raw_bm25_top5_uni_log": [
+    [
+     "split_pdf",
+     15.338594
+    ],
+    [
+     "read_pdf",
+     4.941663
+    ],
+    [
+     "read_pdf_tables",
+     4.430377
+    ],
+    [
+     "get_pdf_info",
+     4.300451
+    ],
+    [
+     "merge_pdf",
+     4.158088
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-009",
+   "layer": "hybrid_tool",
+   "text": "查询天气",
+   "gold": "get_weather",
+   "split": "test",
+   "raw_bm25_top1": 11.631585,
+   "raw_bm25_second": 3.926424,
+   "raw_bm25_top5": [
+    [
+     "get_weather",
+     11.631585
+    ],
+    [
+     "get_task_status",
+     3.926424
+    ],
+    [
+     "ext_list",
+     3.586175
+    ],
+    [
+     "sqlite_query",
+     2.373781
+    ],
+    [
+     "web_search",
+     1.657451
+    ]
+   ],
+   "top1_tool": "get_weather",
+   "raw_bm25_top1_uni_log": 12.928577,
+   "raw_bm25_top5_uni_log": [
+    [
+     "get_weather",
+     12.928577
+    ],
+    [
+     "get_task_status",
+     6.178261
+    ],
+    [
+     "ext_list",
+     5.401473
+    ],
+    [
+     "sqlite_query",
+     4.068179
+    ],
+    [
+     "web_search",
+     2.597891
+    ]
+   ]
+  },
+  {
+   "id": "TOOL-010",
+   "layer": "hybrid_tool",
+   "text": "搜索网页",
+   "gold": "web_search",
+   "split": "test",
+   "raw_bm25_top1": 3.917192,
+   "raw_bm25_second": 3.511711,
+   "raw_bm25_top5": [
+    [
+     "search_lifetrace",
+     3.917192
+    ],
+    [
+     "web_get",
+     3.511711
+    ],
+    [
+     "search_files",
+     3.075579
+    ],
+    [
+     "browser_navigate",
+     3.009046
+    ],
+    [
+     "web_search",
+     3.003524
+    ]
+   ],
+   "top1_tool": "search_lifetrace",
+   "raw_bm25_top1_uni_log": 7.602027,
+   "raw_bm25_top5_uni_log": [
+    [
+     "web_search",
+     7.602027
+    ],
+    [
+     "search_lifetrace",
+     7.104823
+    ],
+    [
+     "web_get",
+     6.643523
+    ],
+    [
+     "search_memory",
+     6.279828
+    ],
+    [
+     "browser_navigate",
+     5.989673
+    ]
+   ]
+  }
+ ]
+}

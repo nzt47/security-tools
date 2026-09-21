@@ -507,6 +507,13 @@ class ToolTraceRecorder:
         alpha: float,
         degraded: bool,
         tools_preview: list,
+        raw_bm25_top5: Optional[list] = None,
+        raw_embed_top5: Optional[list] = None,
+        bm25_half_saturation: Optional[float] = None,
+        cosine_floor: Optional[float] = None,
+        bm25_filtered_by_min_coverage: Optional[int] = None,
+        bm25_considered: Optional[int] = None,
+        min_idf_coverage: Optional[float] = None,
     ) -> None:
         """记录工具检索决策(结构化日志,不持久化到 SQLite)
 
@@ -524,8 +531,20 @@ class ToolTraceRecorder:
             alpha: BM25/Embedding 融合权重
             degraded: 是否降级到纯 BM25
             tools_preview: 选中工具预览(前 10 个)
+            raw_bm25_top5: 【L29】归一分量：BM25 原始 top-5 [(工具名, raw 分)]。
+                只含工具名与分数（无用户文本），故不引入新的内容泄漏面。
+            raw_embed_top5: 【L29】归一分量：Embedding 原始 top-5 [(工具名, 余弦)]
+            bm25_half_saturation: 【L29】校准参考尺度 S0（BM25 半饱和点）
+            cosine_floor: 【L29】余弦校准下界（_COSINE_CUTOFF）
+                这四个字段是"分数可校准/可复核"的原始证据：只有它们随事件落盘，
+                第三方才能从事件流反推一条融合分是怎么算出来的（L29：可用 ≠ 已记录）。
+            bm25_filtered_by_min_coverage: 【A8-G1】本轮被 idf 证据下限**滤掉的候选数**。
+                护栏改变的是召回集合，必须可观测：否则分数分布一旦漂移，它会静默吃掉
+                合法候选而没有任何信号。
+            bm25_considered: 参与下限判定的候选总数（分母，便于读出滤除比例）
+            min_idf_coverage: 当前生效的下限阈值（用于判断护栏是否被单点关闭为 0.0）
         """
-        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'user_input_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': int(bm25_candidates), 'embed_candidates': int(embed_candidates), 'fused_candidates': int(fused_candidates), 'alpha': alpha, 'degraded': bool(degraded), 'tools_preview': list(tools_preview)}))
+        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'user_input_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': int(bm25_candidates), 'embed_candidates': int(embed_candidates), 'fused_candidates': int(fused_candidates), 'alpha': alpha, 'degraded': bool(degraded), 'tools_preview': list(tools_preview), 'raw_bm25_top5': raw_bm25_top5, 'raw_embed_top5': raw_embed_top5, 'bm25_half_saturation': bm25_half_saturation, 'cosine_floor': cosine_floor, 'bm25_filtered_by_min_coverage': bm25_filtered_by_min_coverage, 'bm25_considered': bm25_considered, 'min_idf_coverage': min_idf_coverage}))
 
     def record_circuit_event(
         self,
@@ -563,13 +582,29 @@ class ToolTraceRecorder:
         alpha: float,
         degraded: bool,
         tools_preview: list,
+        raw_bm25_top5: Optional[list] = None,
+        raw_embed_top5: Optional[list] = None,
+        bm25_half_saturation: Optional[float] = None,
+        cosine_floor: Optional[float] = None,
+        bm25_filtered_by_min_coverage: Optional[int] = None,
+        bm25_considered: Optional[int] = None,
+        min_idf_coverage: Optional[float] = None,
     ) -> None:
         """记录工具检索决策(结构化日志,不持久化到 SQLite)
 
         Why: 检索决策是轻量事件,沿用 record_tool_selection/record_circuit_event 风格,
              SQLite 只持久化 ToolTraceRecord(执行 trace)。
+
+        Args:
+            raw_bm25_top5: 【L29】BM25 原始 top-5 [(工具名, raw 分)]（无用户文本）
+            raw_embed_top5: 【L29】Embedding 原始 top-5 [(工具名, 余弦)]
+            bm25_half_saturation: 【L29】BM25 校准参考尺度 S0
+            cosine_floor: 【L29】余弦校准下界
+            bm25_filtered_by_min_coverage: 【A8-G1】被 idf 证据下限滤掉的候选数（召回过滤必须可观测）
+            bm25_considered: 参与下限判定的候选总数
+            min_idf_coverage: 当前生效的下限阈值（0.0 = 护栏已单点关闭）
         """
-        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'query_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': bm25_candidates, 'embed_candidates': embed_candidates, 'fused_candidates': fused_candidates, 'alpha': alpha, 'degraded': degraded, 'tools_preview': tools_preview[:10]}))
+        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'query_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': bm25_candidates, 'embed_candidates': embed_candidates, 'fused_candidates': fused_candidates, 'alpha': alpha, 'degraded': degraded, 'tools_preview': tools_preview[:10], 'raw_bm25_top5': raw_bm25_top5, 'raw_embed_top5': raw_embed_top5, 'bm25_half_saturation': bm25_half_saturation, 'cosine_floor': cosine_floor, 'bm25_filtered_by_min_coverage': bm25_filtered_by_min_coverage, 'bm25_considered': bm25_considered, 'min_idf_coverage': min_idf_coverage}))
 
     # ── 脱敏与危险检测 ────────────────────────────────────────
 

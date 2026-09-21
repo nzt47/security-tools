@@ -27,6 +27,7 @@
 
 from __future__ import annotations
 
+import math
 import random
 import time
 from typing import Any, Dict, Iterator, List, Tuple
@@ -124,14 +125,16 @@ class TestIncrementalInvariant:
     def test_overwrite_same_id_keeps_consistency(self):
         """覆盖语义会走 `_remove_document_locked` —— 减错顺序会让总长永久偏大"""
         idx, _ = _fresh_index()
-        idx.add_document("a", "一二三四五")          # 5 token
-        idx.add_document("b", "一二三")              # 3 token
+        # 【W5/L28】中文按**相邻二元组**切分（不再是单字）：n 字串 → n-1 个 token。
+        # 本用例断言的是"覆盖路径的增量总长"，与切分粒度无关，故按 bigram 口径取值。
+        idx.add_document("a", "一二三四五")          # 5 字 → 4 bigram
+        idx.add_document("b", "一二三")              # 3 字 → 2 bigram
         _assert_invariant(idx, "初次写入")
-        assert idx.total_doc_length == 8
+        assert idx.total_doc_length == 6
 
-        idx.add_document("a", "一二")                # 覆盖：8 - 5 + 2 = 5
+        idx.add_document("a", "一二")                # 覆盖：6 - 4 + 1 = 3
         _assert_invariant(idx, "覆盖 a")
-        assert idx.total_doc_length == 5
+        assert idx.total_doc_length == 3
         assert idx._total_docs == 2
 
         # 反复覆盖同一 id：总长不得漂移
@@ -143,11 +146,12 @@ class TestIncrementalInvariant:
     def test_shrink_to_empty_then_readd(self):
         """删到空索引必须把总长归零（历史残留会让下一次 _avg_doc_length 算错）"""
         idx, _ = _fresh_index()
+        # 【W5/L28】中文按相邻二元组切分：4 字 → 3 token、2 字 → 1 token、单字 → 1 token
         idx.add_document("a", "一二三四")
         idx.add_document("b", "五六")
-        idx.add_document("a", "七")   # 4→1
+        idx.add_document("a", "七")   # 3→1
         _assert_invariant(idx, "缩容")
-        idx.add_document("b", "八")   # 2→1
+        idx.add_document("b", "八")   # 1→1
         _assert_invariant(idx, "再缩容")
         assert idx.total_doc_length == 2, "两条各 1 token"
 
@@ -155,9 +159,9 @@ class TestIncrementalInvariant:
         _assert_invariant(idx, "clear 后")
         assert idx._total_doc_len == 0
 
-        idx.add_document("c", "九十")
+        idx.add_document("c", "九十")   # 2 字 → 1 bigram
         _assert_invariant(idx, "clear 后重新写入")
-        assert idx.total_doc_length == 2, "clear 后不得带上 clear 之前的历史总长"
+        assert idx.total_doc_length == 1, "clear 后不得带上 clear 之前的历史总长"
 
     def test_randomized_operation_sequence(self):
         """固定种子随机序列（可复现）：每步都断言不变量"""
@@ -268,15 +272,20 @@ class TestNoFullTableScan:
 
 def _reference_bm25(idx: Any, term: str, term_freq: int, doc_length: int,
                     recomputed_total: int) -> float:
-    """用**重算口径**独立实现一遍 BM25 打分（修复前的算法），用于对照
+    """用**重算口径**独立实现一遍 BM25 打分，用于对照
 
     why 要独立实现而不是"再调一次被测函数"：只有独立实现才能证明"增量字段
     喂给 _compute_bm25 的值与重算值等价"，而不是证明函数与它自己一致。
+
+    【W5/L28 更新】idf 取对数（标准 Robertson-Sparck-Jones）。生产实现
+    agent/tool_router_hybrid.py::BM25Index._compute_bm25 原本直接返回未取对数的
+    比值，df=1 时权重无界（实测真实索引上让无关工具霸榜）；本对照实现随之同步。
+    本函数要证明的是"增量字段 == 重算口径"，与 idf 取什么形式无关。
     """
     if term not in idx._index:
         return 0.0
     doc_count = len(idx._index[term])
-    idf = (idx._total_docs - doc_count + 0.5) / (doc_count + 0.5)
+    idf = math.log(1.0 + (idx._total_docs - doc_count + 0.5) / (doc_count + 0.5))
     if idf <= 0:
         return 0.0
     avg = recomputed_total / idx._total_docs if idx._total_docs else 0.0

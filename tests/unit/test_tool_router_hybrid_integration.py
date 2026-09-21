@@ -115,6 +115,11 @@ class TestRecordToolRetrievalTrace:
             "top_k", "latency_ms",
             "bm25_candidates", "embed_candidates", "fused_candidates",
             "alpha", "degraded", "tools_preview",
+            # 【W5/L29】原始分量与校准量纲：字段清单必须与事件实际 payload 同步
+            "raw_bm25_top5", "raw_embed_top5",
+            "bm25_half_saturation", "cosine_floor",
+            # 【W5/L28-A8 G1】召回过滤读数：护栏滤掉多少候选必须可见
+            "bm25_filtered_by_min_coverage", "bm25_considered", "min_idf_coverage",
         }
         assert required_fields.issubset(trace_data.keys()), \
             f"缺少字段: {required_fields - trace_data.keys()}"
@@ -132,6 +137,52 @@ class TestRecordToolRetrievalTrace:
         assert trace_data["alpha"] == 0.5  # 默认值
         assert trace_data["degraded"] is True  # AGENT_HYBRID_EMBEDDING=0
         assert isinstance(trace_data["tools_preview"], list)
+
+    def test_trace_carries_raw_score_components(self, real_index_path, caplog):
+        """L29：原始 BM25/Embedding 分量必须真的进入路由事件（可用 ≠ 已记录）
+
+        判据不是"日志里多了一个 key"，而是**数值与 _last_query_stats 逐位一致** ——
+        否则把字段写成常量 None 也能让 key 存在，守护就变空转。
+        """
+        from agent.tool_router_hybrid import hybrid_select_tools, HybridRetriever
+
+        retriever = HybridRetriever(index_path=real_index_path)
+        with patch("agent.tool_router_hybrid.get_hybrid_retriever", return_value=retriever):
+            with caplog.at_level(logging.INFO, logger="agent.observability.tool_trace"):
+                hybrid_select_tools("搜索天气")
+
+        trace_logs = [
+            r for r in caplog.records
+            if "tool_retrieval" in getattr(r, "message", "") or "tool_retrieval" in str(getattr(r, "msg", ""))
+        ]
+        assert trace_logs, "应产生 tool_retrieval 事件"
+        trace_data = _parse_trace(trace_logs[-1].msg)
+        stats = retriever._last_query_stats
+        assert stats, "检索器应写入 _last_query_stats"
+
+        # ① 事件里必须出现原始分量（不是 None）
+        assert trace_data.get("raw_bm25_top5"), (
+            "原始 BM25 分量没进事件（L29 复发）：%r" % (trace_data.get("raw_bm25_top5"),))
+        # ② 且与检索器暂存的中间统计**逐位一致**
+        assert trace_data["raw_bm25_top5"] == stats["raw_bm25_top5"], (
+            "事件里的 raw_bm25_top5 与 _last_query_stats 不一致：%r vs %r"
+            % (trace_data["raw_bm25_top5"], stats["raw_bm25_top5"]))
+        assert trace_data["raw_embed_top5"] == stats["raw_embed_top5"]
+        assert trace_data["bm25_half_saturation"] == stats["bm25_half_saturation"]
+        assert trace_data["cosine_floor"] == stats["cosine_floor"]
+        # ③ 校准量纲必须与代码常量同源（防止事件里写了个手抄的数）
+        from agent.tool_router_hybrid import _BM25_HALF_SATURATION, _COSINE_CUTOFF
+        assert trace_data["bm25_half_saturation"] == _BM25_HALF_SATURATION
+        assert trace_data["cosine_floor"] == _COSINE_CUTOFF
+        # ④ 原始分量只含工具名与分数（无用户文本）—— 不引入新的内容泄漏面
+        assert all(len(pair) == 2 and isinstance(pair[0], str) and isinstance(pair[1], (int, float))
+                   for pair in trace_data["raw_bm25_top5"]), trace_data["raw_bm25_top5"]
+        # ⑤ 【A8-G1】召回过滤读数也必须真的落盘，且与暂存值一致（静默过滤不可接受）
+        assert trace_data["bm25_filtered_by_min_coverage"] == stats["bm25_filtered_by_min_coverage"]
+        assert trace_data["bm25_considered"] == stats["bm25_considered"]
+        assert trace_data["min_idf_coverage"] == stats["min_idf_coverage"]
+        assert isinstance(trace_data["bm25_filtered_by_min_coverage"], int), (
+            "召回过滤读数缺失（A8-G1 复发）：%r" % (trace_data["bm25_filtered_by_min_coverage"],))
 
     def test_trace_query_hash_desensitized(self, real_index_path, caplog):
         """trace 中的 query 应脱敏(只存 hash,不存原文)"""

@@ -35,6 +35,7 @@ import os
 import re
 import sys
 import json
+import math
 import time
 import logging
 import subprocess
@@ -63,7 +64,55 @@ _DEFAULT_TOP_K = 40       # 默认候选池大小（**不是**最终返回数）
 #         ≤10 个，`_apply_alias_merge_and_priority_sort` 的优先级排序等同虚设。
 #         实测后果：复合请求里除检索命中者外一个工具都补不进来。
 #         候选池必须 ≥ max_tools，排序与截断才有意义。
-_COSINE_CUTOFF = 0.2      # Embedding 余弦相似度剪枝阈值(低于此值不进入融合)
+_COSINE_CUTOFF = 0.2      # Embedding 余弦剪枝阈值(低于此值不进入融合)；**同时是余弦路的校准跨度参数**（见下）
+
+# ── 【W5/L27】融合分数的"校准参考尺度"（查询无关常量，不是 per-query 极值）──
+# 【不易】它必须是**查询无关**的。旧融合走 `_min_max_normalize`：每路的 max 被
+#         强映射为 1.0、min 被强映射为 0.0 ⇒ 只要某路给出了候选，该路 top1 恒为 1.0。
+#         实测（TASK-10，2026-09-21）`fused_top_scores=[1.0]`：这条分数上做 ECE /
+#         阈值拒识**等价于"永不拒识"**，语义层的"可验证可靠性"结构性不可实现。
+#         参考尺度一旦随查询漂移（min/max 就是），分数便不可跨查询比较，
+#         ECE 分箱与拒识阈值同时失去意义 ⇒ 必须换成常量。
+# 【适用域·W5 复核 A5】上述"恒为 1.0"的读数取自 **BM25-only 降级路**
+#         （`semantic_layer_status`：degraded_bm25_only=true /
+#         embedding_available=false / worker_alive=false）。**真混合（α 融合）路在
+#         本次改动前没有任何已提交证据**。故本改动只声明：降级路的融合分已可校准；
+#         α 路仅由受控 Embedding 桩验证了融合公式与权重语义（见新增单测），
+#         不声明其 ECE 已可用。
+# 【变易·W5 复核 A2/A3】取值可复算（口径 = **CJK 相邻二元组 + 对数 idf**，
+#         且**只用 calib 划分**、不含 test 划分 ⇒ 不构成 ECE 泄漏）：
+#           证据：eval/routing_baseline/bm25_raw_top1.json（受跟踪产物，逐条 raw BM25 top1）
+#                 stats.calib_all_layers = n=11 / p10=3.0472 / p50=5.5375 /
+#                 p90=10.9457 / max=11.408；calib 划分 33 条、test 42 条（与 report.json 一致）
+#           取中位数为"半饱和点"⇒ 典型查询的 BM25 校准分落在 0.5 附近，
+#           接近 1.0 只留给显著高于基线的证据。
+#           自检：tests/unit/test_tool_router_hybrid_fusion_calibration.py::TestS0Provenance
+#                 （每次运行重算 n/p10/p50/p90/max 并与产物比对；分词/idf/索引一变即红）
+# 【锚点不一致·W5 复核附注】两路的 0.5 锚点**来源不同**：BM25 路锚在"数据导出的
+#         中位数"，余弦路锚在人工阈值 `_COSINE_CUTOFF`（cos=0.6 时 p=0.5）。
+#         因此 `alpha=0.5` 是**融合权重**等权，**不等价于两路同等置信** ——
+#         不得把它表述为"原理性等权"。
+# 【简易】p = s / (s + S0) 单调、有界、保留 raw 量纲；比 min-max 多一个常量、零依赖。
+_BM25_HALF_SATURATION = 5.5375
+
+# ── 【W5/L28-A8】候选的"idf 证据下限"（查询相对，不是绝对分阈值）──
+# Why（对数 idf 的必要补充）: 取对数后，稀有词的权重优势被压缩（df=1 的 59.67 → 4.09），
+#     这正是修 L28 所需要的；但同一枚硬币的另一面是**常见词变得有竞争力**——
+#     只命中一个高 df 查询词的文档会挤进 top-5（实测负样本
+#     G9 q22「检索 lifetrace 中的历史对话」：search_memory 仅命中"检索"即列第 4，
+#     而它并非该查询的目标工具）。旧式未取对数的 idf 是靠"稀有词压倒一切"隐式挡住它的，
+#     取消该隐式先验后，必须**显式**补一条下限。
+# 【变易】判据 = 候选命中的查询词 idf 质量 / 全部命中索引的查询词 idf 质量。
+#     该比值与文档长度、绝对分尺度无关，只问"这条候选覆盖了查询的多少证据"。
+# 【C3 可回滚·单点关闭】`_MIN_IDF_COVERAGE = 0.0` **即等价于不启用本护栏**
+#     （代码里按 `> 0.0` 判定，0.0 时整段过滤被跳过，行为与"无护栏"逐位相同）。
+#     这是本波次第三处机制，必须能被单独撤销而不牵扯 idf/分词/校准任一处。
+# 【简易】0.2 的取值窗口（实测，2026-09-21）：
+#     泄漏项 search_memory 的覆盖 = 0.159，期望项 search_lifetrace = 0.233
+#     ⇒ 可用区间 (0.159, 0.233)，宽 1.47×。**窗口窄是已知脆弱点**：
+#     0.3 会把期望项本身滤掉（召回缺失，q22 反而失败），0.4/0.5 会连带滤掉
+#     q03/q04 的目标工具。因此它只作为"最低证据"护栏，不得当作排序主信号。
+_MIN_IDF_COVERAGE = 0.2
 _PROBE_TIMEOUT = 60       # 子进程探测超时(秒)
 # worker ready 信号读取超时(秒)
 # 【变易】它是启动等待的**唯一数值来源**:EmbeddingIndex._WORKER_STARTUP_TIMEOUT
@@ -381,16 +430,32 @@ def _ensure_st_checked() -> bool:
 #  分词器(借鉴 workflow_learning/matcher.py:27,CJK+英文混合)
 # ════════════════════════════════════════════════════════════
 
-_TOKEN_RE = re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]")
+# 【W5/L28】CJK 段按 `+` 整段取出（再切相邻二元组），不再按单字取出
+_TOKEN_RE = re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]+")
 
 
 def _tokenize(text: str) -> list[str]:
-    """CJK 单字 + 英文单词混合分词
+    """CJK 相邻二元组 + 英文单词混合分词（2026-09-21 起，见 L28）
 
-    Why: vector_store.InvertedIndex 的分词器只认 [a-zA-Z]{3,},不适合中文工具描述。
-         借鉴 workflow_learning/matcher.py 的 CJK+英文混合分词模式。
+    Why（单字切分的实测后果）: 旧实现按**单字**切中文 ⇒ 每个汉字都是一枚完整 term。
+         "解析pdf" 因此被切成 解 / 析 / pdf，而真实索引里 解 只出现在 run_lint
+         一条描述中（df=1），与 idf 未取对数叠加后，run_lint 在"解析pdf"上得
+         BM25=72.47 高居 top1，真正的 read_pdf 仅第 4（24.34）。
+         即：查询的**相邻两字**是同一意图的碎片，却各自独立计分并被无界 idf 放大。
+    【不易】用相邻二元组而不是引第三方分词器：零新依赖，且与仓库既有的同尺度实现
+         一致 —— agent/skills_mgmt/loader.py（其 _tokenize 于 2026-08-12 改 bigram）
+         与 agent/skills_mgmt/bm25_searcher.py:57-68 就是为修同一类
+         "中文单字激进命中" 缺陷（"费马小定理证明" 误命中元技能）而改成 bigram 的。
+    【变易】纯 ASCII 段仍按完整词切分（不切 bigram），故英文查询/英文描述行为不变；
+         单字成段（长度 1 的 CJK 串）仍保留该单字，避免短查询被切成空。
     """
-    return _TOKEN_RE.findall((text or "").lower())
+    tokens: list[str] = []
+    for seg in _TOKEN_RE.findall((text or "").lower()):
+        if len(seg) > 1 and not seg.isascii():
+            tokens.extend(seg[i:i + 2] for i in range(len(seg) - 1))
+        else:
+            tokens.append(seg)
+    return tokens
 
 
 # ════════════════════════════════════════════════════════════
@@ -423,6 +488,9 @@ class BM25Index:
         self._total_doc_len = 0
         self._avg_doc_length = 0.0
         self._lock = threading.RLock()
+        # 【W5/L28-A8 G1】最近一次 search 的召回过滤读数（供可观测性透出）
+        self._last_filtered_count = 0
+        self._last_considered_count = 0
 
     def add_document(self, doc_id: str, content: str) -> None:
         """添加文档到索引(doc_id 重复时覆盖旧文档)"""
@@ -472,13 +540,31 @@ class BM25Index:
             self._avg_doc_length = 0.0
 
     def search(self, query: str, top_k: int = 10) -> list[tuple[str, float]]:
-        """搜索查询,返回 [(doc_id, score)] 列表(按分数降序)"""
+        """搜索查询,返回 [(doc_id, score)] 列表(按分数降序)
+
+        【W5/L28-A8】候选先过"idf 证据下限"（`_MIN_IDF_COVERAGE`）：只命中查询里
+        一个常见词的文档不再进入结果。判据是**查询相对**的（覆盖了查询多少 idf 质量），
+        不是绝对分阈值，故与文档长度、分数量纲无关。
+        """
         query_tokens = _tokenize(query)
         if not query_tokens:
             return []
 
         scores: dict[str, float] = {}
+        covered: dict[str, float] = {}
+        idf_total = 0.0
+        filtered_count = 0
         with self._lock:
+            # 先按**唯一**查询词累计 idf 与每篇文档覆盖到的 idf 质量
+            for token in set(query_tokens):
+                if token not in self._index:
+                    continue
+                idf_of = self._term_idf(token)
+                idf_total += idf_of
+                for doc_id, _freq in self._index[token]:
+                    if self._doc_lengths.get(doc_id, 0) > 0:
+                        covered[doc_id] = covered.get(doc_id, 0.0) + idf_of
+            # 打分循环保持原样（重复查询词按原语义重复累加）
             for token in query_tokens:
                 if token not in self._index:
                     continue
@@ -489,14 +575,48 @@ class BM25Index:
                             token, freq, doc_length
                         )
 
+        # 【C3】_MIN_IDF_COVERAGE = 0.0 ⇒ 整段跳过（单点关闭，等价于不启用护栏）
+        if idf_total > 0.0 and _MIN_IDF_COVERAGE > 0.0:
+            # 至少覆盖查询 idf 质量的 _MIN_IDF_COVERAGE，否则不作为候选
+            kept = {
+                doc_id: score for doc_id, score in scores.items()
+                if covered.get(doc_id, 0.0) / idf_total >= _MIN_IDF_COVERAGE
+            }
+            filtered_count = len(scores) - len(kept)
+            scores = kept
+
+        # 【W5/L28-A8 G1】把"被下限滤掉的候选数"留在实例上，供
+        #     HybridRetriever._query_locked 透出到 _last_query_stats 与路由事件。
+        #     Why 必须可观测：护栏改变的是**召回集合**，窗口又只有 1.47×，
+        #     一旦分数分布漂移（新增工具/改写描述/再改分词）它可能开始吃掉合法候选
+        #     而完全没有信号 —— 静默的召回过滤正是本波次要根除的失效型。
+        self._last_filtered_count = filtered_count
+        self._last_considered_count = len(covered)
+
         return sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
 
+    def _term_idf(self, term: str) -> float:
+        """单查询词的 idf（对数形式，**唯一实现**：打分与证据下限共用同一口径）"""
+        doc_count = len(self._index.get(term, []))
+        if doc_count <= 0:
+            return 0.0
+        return math.log(1.0 + (self._total_docs - doc_count + 0.5) / (doc_count + 0.5))
+
     def _compute_bm25(self, term: str, term_freq: int, doc_length: int) -> float:
-        """计算 BM25 评分(与 vector_store.InvertedIndex._compute_bm25 一致)"""
+        """计算 BM25 评分
+
+        【W5/L28】idf 取对数。Robertson-Sparck-Jones 的标准形式是
+            idf = log(1 + (N - df + 0.5) / (df + 0.5))
+        本类原实现直接返回**未取对数的比值**，于是 df 很小时权重无界：
+        N=90、df=1 ⇒ idf=59.67，是一枚只偶然出现一次的中文单字碎片的权重，
+        足以压过整条真实证据链（实测 "解析pdf"：run_lint 72.47 vs read_pdf 24.34）。
+        取对数后同一例降到 6.30，稀有 term 仍有优势但不再具有支配量级。
+        【不易】本改动改变分数尺度 ⇒ knowledge/search.py:176 那句"与本函数一致"
+        自本次起不再成立（该文件不在本任务所有权内，已在报告中登记为跨任务请求）。
+        """
         if term not in self._index:
             return 0.0
-        doc_count = len(self._index[term])
-        idf = (self._total_docs - doc_count + 0.5) / (doc_count + 0.5)
+        idf = self._term_idf(term)
         if idf <= 0:
             return 0.0
         numerator = term_freq * (self._k1 + 1)
@@ -1151,11 +1271,61 @@ class EmbeddingIndex:
 # ════════════════════════════════════════════════════════════
 
 
+def _calibrate_bm25_scores(scores: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    """BM25 raw 分 → 校准分 [0,1)（查询无关、单调、**不把 max 钉在 1.0**）
+
+    Why（W5/L27）: 旧融合用 min-max 归一化，每路 top1 恒为 1.0 ⇒ 融合分对任何查询
+        都取同一个值（实测 [1.0]），在其上做 ECE/拒识等价于"永不拒识"。
+        改用 `p = s / (s + _BM25_HALF_SATURATION)`：单调（**保序**⇒不改变 BM25 路
+        的排序）、有界（上确界 1.0 但不可达）、查询无关（可跨查询比较）。
+    【不易】单调性是本改动"不扰动既有排序"的**证明**：任何严格单调映射都保持
+        raw 分的顺序，故 Embedding 不可用的降级路上，融合结果的顺序与改前逐位相同。
+    """
+    if not scores:
+        return []
+    out: list[tuple[str, float]] = []
+    for doc_id, raw in scores:
+        if raw <= 0.0:
+            # 非正分不是"证据"：映射为 0 而不是被 min/max 拉成 0.5 之类的中间值
+            out.append((doc_id, 0.0))
+        else:
+            out.append((doc_id, raw / (raw + _BM25_HALF_SATURATION)))
+    return out
+
+
+def _calibrate_cosine_scores(scores: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    """Embedding 余弦 [-1,1] → 校准分 [0,1]（查询无关、单调、保留余弦量纲）
+
+    Why（W5/L27）: 与 BM25 路同理，min-max 会把该路 top1 钉成 1.0。
+        余弦本身已有可解释量纲，故直接用"剪枝阈值 → 1.0"的线性映射：
+        低于 _COSINE_CUTOFF 的候选本就不进入融合（在 _query_locked 已剪枝），
+        映射后在 [0,1] 内可比，且随查询变化（不恒为 1.0）。
+    【W5 复核附注】`_COSINE_CUTOFF` 因此从"纯剪枝阈值"**升格为尺度参数**：
+        它决定本路映射跨度（cos=0.6 ⇒ p=0.5）。调它会整体改变融合分的尺度，
+        不只是改变谁能进融合。它与 BM25 路的锚点来源不同（人工阈值 vs 数据中位数），
+        故两路的 0.5 不代表同等置信。
+    """
+    if not scores:
+        return []
+    span = 1.0 - _COSINE_CUTOFF
+    out: list[tuple[str, float]] = []
+    for doc_id, cos in scores:
+        v = (cos - _COSINE_CUTOFF) / span if span > 1e-9 else 0.0
+        # 截断到 [0,1]：余弦可 >1（浮点误差）或 <cutoff（调用方未剪枝时）
+        out.append((doc_id, min(1.0, max(0.0, v))))
+    return out
+
+
 def _min_max_normalize(scores: list[tuple[str, float]]) -> list[tuple[str, float]]:
     """min-max 归一化到 [0,1]
 
     Why: BM25 分数无界,Embedding 余弦在 [-1,1],需归一化才能融合。
          min-max 保留"最高分=1,最低分=0"语义,多候选时能拉开差距。
+
+    【W5/L27 起不再用于融合】它把每路 max 强映射为 1.0 ⇒ 融合 top1 恒为 1.0，
+        分数不可校准（这正是 L27）。融合改走 _calibrate_bm25_scores /
+        _calibrate_cosine_scores。本函数与其单元测试保留（对外符号不删，
+        避免破坏仍 import 它的调用方），但**不得**再用于分数融合。
     """
     if not scores:
         return []
@@ -1317,7 +1487,9 @@ class HybridRetriever:
 
         # BM25 检索
         bm25_results = self._bm25.search(text, top_k=candidate_k)
-        bm25_norm = _min_max_normalize(bm25_results)
+        # 【W5/L27】校准（**不是** min-max）：查询无关 ⇒ 分数可跨查询比较，
+        # top1 不再被钉在 1.0。单调 ⇒ 本路排序与改前逐位一致。
+        bm25_norm = _calibrate_bm25_scores(bm25_results)
 
         # [logger] BM25 召回结果 top-5(排查召回缺失型退化)
         logger.info(
@@ -1333,7 +1505,8 @@ class HybridRetriever:
             embed_results = self._embedding.search(text, top_k=candidate_k)
             # cosine 剪枝:低于阈值的候选不进入融合
             embed_results = [(d, s) for d, s in embed_results if s >= _COSINE_CUTOFF]
-            embed_norm = _min_max_normalize(embed_results)
+            # 【W5/L27】同 BM25 路：查询无关的单调校准，保留余弦量纲
+            embed_norm = _calibrate_cosine_scores(embed_results)
 
             # [logger] Embedding 召回结果 top-5(排查 Embedding 路径退化)
             logger.info(
@@ -1352,6 +1525,19 @@ class HybridRetriever:
             "bm25_candidates": len(bm25_results),
             "embed_candidates": len(embed_results),
             "fused_candidates": len(all_candidates),
+            # 【W5/L27】把**归一化前**的 raw 分与其量纲一并透出：
+            #   校准分必须可回溯到原始证据，否则"可校准"只是换了个 0~1 的数
+            #   （BM25 无界正数；余弦 ∈ [-1,1]，融合前已按 _COSINE_CUTOFF 剪枝）。
+            "raw_bm25_top5": [[d, round(s, 4)] for d, s in bm25_results[:5]],
+            "raw_embed_top5": [[d, round(s, 4)] for d, s in embed_results[:5]],
+            "bm25_half_saturation": _BM25_HALF_SATURATION,
+            "cosine_floor": _COSINE_CUTOFF,
+            "alpha": self._alpha,
+            # 【W5/L28-A8 G1】召回过滤读数：护栏滤掉多少候选、共考虑多少候选。
+            #   取值来自 BM25Index.search 的实例读数（同一次检索，无二次计算）。
+            "bm25_filtered_by_min_coverage": int(getattr(self._bm25, "_last_filtered_count", 0)),
+            "bm25_considered": int(getattr(self._bm25, "_last_considered_count", 0)),
+            "min_idf_coverage": _MIN_IDF_COVERAGE,
         }
 
         bm25_map = dict(bm25_norm)
@@ -1469,6 +1655,15 @@ def hybrid_select_tools(
     bm25_count = 0
     embed_count = 0
     fused_count = 0
+    # 【W5/L29】原始分量必须在 try 之前初始化：finally 里无条件引用它们，
+    # 否则"try 中提前抛异常"时事件记录会 NameError（被 except 吞掉 ⇒ 静默丢事件）。
+    raw_bm25_top5 = None
+    raw_embed_top5 = None
+    bm25_half_saturation = None
+    cosine_floor = None
+    filtered_by_min_coverage = None
+    bm25_considered = None
+    min_idf_coverage = None
     degraded = retriever.degraded
     tools_preview: list[str] = []
 
@@ -1518,6 +1713,16 @@ def hybrid_select_tools(
         bm25_count = int(stats.get("bm25_candidates", 0))
         embed_count = int(stats.get("embed_candidates", 0))
         fused_count = int(stats.get("fused_candidates", 0))
+        # 【W5/L29】原始分量随事件落盘：只有它们在事件流里，第三方才能反推
+        # 一条融合分是怎么算出来的（此前只走到"暂存"，消费方只读三个计数 ⇒ 可用 ≠ 已记录）。
+        raw_bm25_top5 = stats.get("raw_bm25_top5")
+        raw_embed_top5 = stats.get("raw_embed_top5")
+        bm25_half_saturation = stats.get("bm25_half_saturation")
+        cosine_floor = stats.get("cosine_floor")
+        # 【A8-G1】召回过滤读数（被下限滤掉的候选数 / 参与判定的候选数 / 生效阈值）
+        filtered_by_min_coverage = stats.get("bm25_filtered_by_min_coverage")
+        bm25_considered = stats.get("bm25_considered")
+        min_idf_coverage = stats.get("min_idf_coverage")
 
         # 白名单交集
         if enabled_whitelist is not None:
@@ -1561,6 +1766,15 @@ def hybrid_select_tools(
                     alpha=effective_alpha,
                     degraded=degraded,
                     tools_preview=tools_preview,
+                    # 【W5/L29】原始 BM25/Embedding 分量与校准量纲（可选参数，默认 None）
+                    raw_bm25_top5=raw_bm25_top5,
+                    raw_embed_top5=raw_embed_top5,
+                    bm25_half_saturation=bm25_half_saturation,
+                    cosine_floor=cosine_floor,
+                    # 【A8-G1】护栏的召回过滤读数同样随事件落盘（静默过滤不可接受）
+                    bm25_filtered_by_min_coverage=filtered_by_min_coverage,
+                    bm25_considered=bm25_considered,
+                    min_idf_coverage=min_idf_coverage,
                 )
             except Exception:
                 pass

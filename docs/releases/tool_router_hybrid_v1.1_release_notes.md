@@ -60,6 +60,17 @@
 
 - 新增 `record_tool_retrieval()` 方法:记录 query / top_k / latency / bm25_candidates / embed_candidates / fused_candidates / alpha / degraded
 - 结构化日志,不持久化到 SQLite(与 record_tool_selection 一致)
+- 【2026-09-21 · W5/L29 追加】**字段清单扩展**：事件 payload 再增
+  `raw_bm25_top5` / `raw_embed_top5` / `bm25_half_saturation` / `cosine_floor`
+  （均为**可选参数、默认 None**，既有调用方不受影响；内容只含工具名与分数，**无用户文本**）。
+  由 `hybrid_select_tools` 从 `HybridRetriever._last_query_stats` 透传 ——
+  修正前这四个原始分量只写到"暂存"就断了（消费方只读三个计数），
+  即 **可用 ≠ 已记录**：没有它们，第三方无法从事件流反推一条融合分是怎么算出来的。
+- 【2026-09-21 · W5/L28-A8 G1 追加】**召回过滤读数**：事件再增
+  `bm25_filtered_by_min_coverage`（本轮被 idf 证据下限滤掉的候选数）/
+  `bm25_considered`（参与判定的候选总数）/ `min_idf_coverage`（生效阈值，0.0 = 护栏已关闭）。
+  `idf 证据下限`护栏改变的是**召回集合**而窗口仅 1.47× ⇒ 静默过滤不可接受，
+  必须随事件可见（与 `raw_bm25_top5` 同一条落盘通道）。
 
 ---
 

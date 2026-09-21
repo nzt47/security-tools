@@ -2,8 +2,9 @@
 
 召回管道（组合接线，不改存量模块）：
     1. 关键词路：BM25 倒排索引对卡片文本检索（知识包内实现，算法参数
-       k1=1.5 / b=0.75 / CJK+英文混合分词 与 tool_router_hybrid.BM25Index 一致；
-       同算法在知识包内落地，守【不易】"知识包不得反向依赖工具层"）。
+       k1=1.5 / b=0.75；**分词与 idf 与 tool_router_hybrid.BM25Index 已分叉**，
+       见下方 _tokenize / _compute_bm25 的说明；同算法在知识包内落地，
+       守【不易】"知识包不得反向依赖工具层"）。
     2. 向量路：注入的 VectorStore.search（ChromaDB 语义，缺失/异常自动降级）。
     3. 双链一跳扩展：命中卡片 links 字段对应卡片并入候选。
     → RRF 融合（rrf_fuse）→ ToolReranker.rerank 重排（sigmoid 概率）→ 阈值过滤。
@@ -106,7 +107,13 @@ _TOKEN_RE = re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]")
 
 
 def _tokenize(text: str) -> list[str]:
-    """CJK 单字 + 英文单词混合分词（与 tool_router_hybrid._tokenize 一致）。"""
+    """CJK 单字 + 英文单词混合分词
+
+    【W5/L28 起与 tool_router_hybrid._tokenize **有意分叉**】工具层已改为
+    CJK 相邻二元组切分（修"中文单字碎片霸榜"，见 agent/tool_router_hybrid.py:403），
+    本模块**未同步**：它不在该改动的所有权范围内，且知识卡片与工具描述的文本分布
+    不同，是否同步需单独对拍（不得顺手改）。在同步之前，这句"与 ... 一致"不成立。
+    """
     return _TOKEN_RE.findall((text or "").lower())
 
 
@@ -173,7 +180,13 @@ class BM25Index:
         return sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
 
     def _compute_bm25(self, term: str, term_freq: int, doc_length: int) -> float:
-        """BM25 评分（与 tool_router_hybrid.BM25Index._compute_bm25 一致）。"""
+        """BM25 评分
+
+        【W5/L28 起与 tool_router_hybrid.BM25Index._compute_bm25 **有意分叉**】
+        工具层已把 idf 改为对数形式 log(1 + (N-df+0.5)/(df+0.5))（修 df 很小时
+        权重无界）；本模块仍是未取对数的比值，且**未同步**（不在该改动所有权内，
+        同步需自带前后对拍）。在同步之前，这句"与 ... 一致"不成立。
+        """
         # Why 不加锁：调用方 search 已持锁（tool_router_hybrid 同约定）
         doc_count = len(self._index.get(term, []))
         idf = (self._total_docs - doc_count + 0.5) / (doc_count + 0.5)
