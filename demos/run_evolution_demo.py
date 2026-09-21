@@ -230,6 +230,14 @@ def print_report(report: BatchEvolutionReport) -> None:
 
 def main():
     setup_logging()
+    # 【L41】GBK/cp936 控制台下 print 装饰字符（✓ ⊘ ✗）抛 UnicodeEncodeError ⇒ 假红。
+    # 同 demos/verify_budget_break.py:124-128 的受控 stdout 重配置：不替换 sys.stdout 对象，
+    # 仅就地改编码，终端不支持 reconfigure 时静默保持默认。
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:  # noqa: BLE001 终端不支持时保持默认
+            pass
 
     print("=" * 70)
     print("  OfflineEvolver 批量进化流程演示")
