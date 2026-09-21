@@ -183,7 +183,13 @@ def build_document() -> Dict[str, Any]:
             "k1": bm_bi._k1,
             "b": bm_bi._b,
             "index_source": "data/tool_index.json",
-            "index_sha256_16": hashlib.sha256(INDEX.read_bytes()).hexdigest()[:16],
+            # 【跨平台·2026-09-21 CI 实测修复】必须按 **LF 归一化**后哈希：
+            #   git 存储与 Linux CI 检出的都是 LF，而 Windows 工作区是 CRLF ⇒
+            #   直接对 read_bytes() 求哈希会让该值**平台相关**，CI 上必然与产物不符。
+            #   实测：本机 CRLF 得 42c24d1f…，CI（LF）得 b918dd26…，而 git blob 也是 b918dd26…。
+            #   ⇒ 口径改为「与 git 存储一致的规范化字节」。
+            "index_sha256_16": hashlib.sha256(
+                INDEX.read_bytes().replace(b"\r\n", b"\n")).hexdigest()[:16],
             "n_docs": bm_bi.size,
             "avg_doc_length_bigram": round(bm_bi._avg_doc_length, 4),
             "avg_doc_length_unigram": round(bm_uni._avg_doc_length, 4),

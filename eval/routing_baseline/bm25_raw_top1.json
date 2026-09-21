@@ -1,7 +1,7 @@
 {
  "schema": "w5/l28-bm25-raw-top1/v2",
  "task": "W5 批次1-B：L27/L28/A8 —— S0 可复算的证据落盘（双口径，供两次提交各用一份）",
- "generated_at": "2026-09-21T23:14:46",
+ "generated_at": "2026-09-22T00:38:43",
  "generator": "scripts/gen_baseline_bm25_raw.py（已入库；python scripts/gen_baseline_bm25_raw.py 可重建本产物）",
  "scoring_口径": {
   "current": "CJK 相邻二元组 + log idf + idf 证据下限",
@@ -12,7 +12,7 @@
   "k1": 1.5,
   "b": 0.75,
   "index_source": "data/tool_index.json",
-  "index_sha256_16": "42c24d1f09c6664b",
+  "index_sha256_16": "b918dd260331b5bb",
   "n_docs": 90,
   "avg_doc_length_bigram": 46.4556,
   "avg_doc_length_unigram": 53.5444

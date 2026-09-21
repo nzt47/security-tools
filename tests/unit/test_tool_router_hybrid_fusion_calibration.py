@@ -286,7 +286,9 @@ class TestS0Provenance:
         from agent.tool_router_hybrid import BM25Index
 
         index_path = ROOT / "data" / "tool_index.json"
-        sha = hashlib.sha256(index_path.read_bytes()).hexdigest()[:16]
+        # 【跨平台】与生成器同口径：按 LF 归一化后哈希（理由见 gen_baseline_bm25_raw.py 的说明）
+        sha = hashlib.sha256(
+            index_path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()[:16]
         assert sha == artifact["scoring_口径"]["index_sha256_16"], (
             "data/tool_index.json 已变化 ⇒ 产物过期，须重新导出")
 
