@@ -56,9 +56,12 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "MANIFEST_PATH",
+    "CAPACITY_SOFT_LIMIT_TENANT",
+    "CAPACITY_SOFT_LIMIT_GLOBAL",
     "CapabilityRegistry",
     "CapabilitySpecBuildError",
     "build_registry",
+    "capacity_warnings",
     "get_registry",
     "reset_registry",
 ]
@@ -74,6 +77,68 @@ MANIFEST_PATH = os.path.join("data", "capability_manifest.json")
 
 class CapabilitySpecBuildError(RuntimeError):
     """主源构建失败（**会被捕获并降级**，不会向上抛到启动链路）"""
+
+
+# ════════════════════════════════════════════════════════════
+#  容量软告警（TASK-04 · W2）
+# ════════════════════════════════════════════════════════════
+
+#: 单租户容量软阈值
+#:
+#: 【这两个常量为什么是**模块常量**而不是环境变量开关】
+#: ① agent/settings/registry.py + scripts/scan_settings.py 的 AST 守卫要求每个
+#:    开关"声明 ↔ 读取"**双向零缺口**；新增一个开关就要去 settings/registry.py
+#:    补登记、并让 5 条守卫重新对齐 —— 那是**为一条只读提示**付出的不成比例的成本。
+#: ② 这里没有"关掉它"的正当场景：关掉只会让超限**不可见**，不会让任何东西变快。
+#: ③ 它**不改变判定语义**：不拒绝、不截断、不置 degraded，只往 build_warnings
+#:    追加一条人类可读字符串并打一条 WARN 日志。
+CAPACITY_SOFT_LIMIT_TENANT = 500
+#: 全局容量软阈值（对齐 v1.4 §6 的 10,000 条容量目标）
+CAPACITY_SOFT_LIMIT_GLOBAL = 10000
+
+
+def capacity_warnings(specs: Sequence[CapabilityRecord]) -> List[str]:
+    """容量软告警：**只报告，不拒绝、不截断、不改 degraded**
+
+    【为什么要加这一段】docs/perf/容量压测.md §2.6 实测：容量目标此前
+    **零强制点** —— 合成 10,001 条时 degraded=False、build_warnings=[]，
+    超限**完全不可见**。本函数把"超限"变成一条**可 grep、可断言**的产物。
+
+    【不易·为什么载荷放在 build_warnings 而不是新增字段】build_warnings
+    已经是 stats() / /capabilities/health 的既有出口，且**语义就是"构建期的
+    非致命提示"**；新增字段会让所有已对拍 stats() 输出的测试与面板同时失效，
+    而收益只是"更好看的字段名"。
+
+    【变易·为什么按 tenant_id 分别计数】v1.4 §6 的容量口径是**单租户**容量，
+    不是全局容量；只报全局数会让"某个租户独自膨胀"这种最危险的情形漏报。
+    """
+    out: List[str] = []
+    total = len(specs)
+    if total > CAPACITY_SOFT_LIMIT_GLOBAL:
+        out.append(
+            "容量软告警：全局能力数 %d 超过软阈值 %d"
+            "（仅告警——不拒绝、不截断、degraded 不变）"
+            % (total, CAPACITY_SOFT_LIMIT_GLOBAL))
+    by_tenant: Dict[str, int] = {}
+    for s in specs:
+        by_tenant[s.tenant_id] = by_tenant.get(s.tenant_id, 0) + 1
+    for tenant, n in sorted(by_tenant.items()):
+        if n > CAPACITY_SOFT_LIMIT_TENANT:
+            out.append(
+                "容量软告警：租户 %r 能力数 %d 超过软阈值 %d"
+                "（仅告警——不拒绝、不截断、degraded 不变）"
+                % (tenant, n, CAPACITY_SOFT_LIMIT_TENANT))
+    return out
+
+
+def _with_capacity_warnings(specs: Sequence[CapabilityRecord],
+                            warnings: Sequence[str]) -> List[str]:
+    """把容量软告警追加到构建告警后面（**顺序稳定**，便于对拍）"""
+    merged = list(warnings)
+    for msg in capacity_warnings(specs):
+        logger.warning("[capregistry] %s", msg)
+        merged.append(msg)
+    return merged
 
 
 # ════════════════════════════════════════════════════════════
@@ -591,6 +656,7 @@ def build_registry(*, root: Optional[str] = None,
         specs, warnings = _build_from_authority(base, manifest)
         if not specs:
             raise CapabilitySpecBuildError("主源构建出 0 条能力")
+        warnings = _with_capacity_warnings(specs, warnings)
         logger.info("[capregistry] 主源构建完成：%d 条（warnings=%d）",
                     len(specs), len(warnings))
         return CapabilityRegistry(specs, degraded=False, build_warnings=warnings,
@@ -601,7 +667,8 @@ def build_registry(*, root: Optional[str] = None,
         logger.warning("[capregistry] %s", msg)
         specs, warnings = _build_from_snapshot(manifest)
         return CapabilityRegistry(specs, degraded=True,
-                                  build_warnings=[msg] + list(warnings),
+                                  build_warnings=_with_capacity_warnings(
+                                      specs, [msg] + list(warnings)),
                                   manifest_meta=manifest,
                                   health_provider=health_provider)
 
