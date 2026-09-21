@@ -129,17 +129,37 @@ def _measure(bm: BM25Index, cases: List[Dict[str, Any]], calib_ids) -> List[Dict
     return rows
 
 
-def _run_caliber(tok, tools, cases, calib_ids):
-    """建索引 + 检索**全程**同一分词口径（否则产物与口径不符）"""
-    old = mod._tokenize
+def _ratio_idf(self, term: str, term_freq: int, doc_length: int) -> float:
+    """改前的 idf 形态：**未取对数的比值**（提交2 之前的生产实现）
+
+    Why 需要它：commit1（L27 单独）不改 idf，其 S0 必须按"单字 + 比值 idf"口径导出，
+    否则 commit1 的常数又会变成"无出处的字面量"（正是 §1.2 打的那一点）。
+    """
+    if term not in self._index:
+        return 0.0
+    doc_count = len(self._index[term])
+    idf = (self._total_docs - doc_count + 0.5) / (doc_count + 0.5)
+    if idf <= 0:
+        return 0.0
+    return idf * term_freq * (self._k1 + 1) / (
+        term_freq + self._k1 * (1 - self._b + self._b * doc_length / (self._avg_doc_length or 1)))
+
+
+def _run_caliber(tok, idf_mode, tools, cases, calib_ids):
+    """建索引 + 检索**全程**同一口径（分词 + idf 同时锁定，否则产物与口径不符）"""
+    old_tok = mod._tokenize
+    old_idf = BM25Index._compute_bm25
     mod._tokenize = tok
+    if idf_mode == "ratio":
+        BM25Index._compute_bm25 = _ratio_idf
     try:
         bm = BM25Index()
         for name, content in tools:
             bm.add_document(name, content)
         return bm, _measure(bm, cases, calib_ids)
     finally:
-        mod._tokenize = old
+        mod._tokenize = old_tok
+        BM25Index._compute_bm25 = old_idf
 
 
 def _split_stats(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -153,8 +173,14 @@ def _split_stats(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     return out
 
 
-def build_document() -> Dict[str, Any]:
-    """产出产物 dict（不落盘）：测试直接调它即可验证"产物可重建" """
+def build_document(caliber: str = "bigram_log") -> Dict[str, Any]:
+    """产出产物 dict（不落盘）：测试直接调它即可验证"产物可重建"
+
+    Args:
+        caliber: 决定 `S0_derivation.value_used` 取哪一列 —— 必须与**当前生产代码的
+            分词口径**一致，否则产物会与代码常量分岔（复核 A2/A3 的那类自相矛盾）。
+            "bigram"（提交2 起，默认）/ "uni"（提交1 态）。
+    """
     spec = json.loads(CASES.read_text(encoding="utf-8"))
     calib_ids, test_ids = split_ids(spec)
     index_data = json.loads(INDEX.read_text(encoding="utf-8"))
@@ -163,11 +189,17 @@ def build_document() -> Dict[str, Any]:
          t["name"] + " " + " ".join(t.get("parameter_names") or []) + " " + t.get("description", ""))
         for t in index_data["tools"]
     ]
-    bm_bi, rows_bi = _run_caliber(tokenize_bigram, tools, spec["cases"], calib_ids)
-    bm_uni, rows_uni = _run_caliber(tokenize_unigram, tools, spec["cases"], calib_ids)
-    st_bi, st_uni = _split_stats(rows_bi), _split_stats(rows_uni)
+    # 三个口径：提交2 起的生产态(bigram+log)、提交1 的分词态(uni+log)、
+    # 以及**改前基线**(uni+ratio) —— 后者是 commit1(L27 单独) 的 S0 出处。
+    bm_bi, rows_bi = _run_caliber(tokenize_bigram, "log", tools, spec["cases"], calib_ids)
+    bm_uni, rows_uni = _run_caliber(tokenize_unigram, "log", tools, spec["cases"], calib_ids)
+    _bm_ur, rows_ur = _run_caliber(tokenize_unigram, "ratio", tools, spec["cases"], calib_ids)
+    st_bi, st_uni, st_ur = _split_stats(rows_bi), _split_stats(rows_uni), _split_stats(rows_ur)
     s0_bi = st_bi["calib_all_layers"]["p50_median"]
     s0_uni = st_uni["calib_all_layers"]["p50_median"]
+    s0_ur = st_ur["calib_all_layers"]["p50_median"]
+    s0_by_caliber = {"bigram_log": s0_bi, "uni_log": s0_uni, "uni_ratio": s0_ur}
+    used = s0_by_caliber[caliber]
 
     return {
         "schema": "w5/l28-bm25-raw-top1/v2",
@@ -177,7 +209,9 @@ def build_document() -> Dict[str, Any]:
         "scoring_口径": {
             "current": "CJK 相邻二元组 + log idf + idf 证据下限",
             "tokenizer_commit2": "bigram（agent/tool_router_hybrid.py::_tokenize）",
-            "tokenizer_commit1": "unigram 单字（本文件 uni_log 一列，对应提交1 状态）",
+            "tokenizer_commit1": "unigram 单字（本文件 uni_log / uni_ratio 两列）",
+            "idf_commit1": "未取对数的比值 idf（uni_ratio 列 = commit1/L27 单独 的 S0 出处）",
+            "idf": "log(1 + (N-df+0.5)/(df+0.5))（bigram_log / uni_log 列）",
             "idf": "log(1 + (N-df+0.5)/(df+0.5))",
             "min_idf_coverage": _MIN_IDF_COVERAGE,
             "k1": bm_bi._k1,
@@ -194,22 +228,29 @@ def build_document() -> Dict[str, Any]:
             "n_calib": len(calib_ids), "n_test": len(test_ids),
             "calib_ids": sorted(calib_ids), "test_ids": sorted(test_ids),
         },
-        "stats": {"bigram_log": st_bi, "uni_log": st_uni},
+        "stats": {"bigram_log": st_bi, "uni_log": st_uni, "uni_ratio": st_ur},
         "S0_derivation": {
             "rule": "S0 = calib 划分中有 BM25 命中的用例 raw_bm25_top1 的中位数（真中位数）",
             "commit2_bigram_log": s0_bi,
             "commit1_uni_log": s0_uni,
+            "commit1_uni_ratio": s0_ur,
             "alt_caliber_hybrid_only_commit2": st_bi["calib_hybrid_tool_only"]["p50_median"],
-            # 【复核修正】value_used 必须是**算出来的**：原先写死 61.5（改前单字/比值 idf 时代
-            # 的旧值），于是这份"为可复算而生"的产物自己写反了自己的核心主张。
-            "value_used": s0_bi,
-            "note": ("两次提交各用同口径的 S0；value_used 即当前工作区常量口径（bigram_log）；"
+            # 【复核修正】value_used 必须是**算出来的**（原先写死 61.5 —— 改前单字/比值 idf 时代
+            # 的旧值，于是这份"为可复算而生"的产物自己写反了自己的核心主张）。
+            # 【分阶段提交】它取 **--caliber 指定列**：提交1（单字口径）用 uni，提交2 用 bigram，
+            # 这样产物在任何提交点上都与代码常量同源、不会分岔。
+            "value_used": used,
+            "value_used_caliber": caliber,
+            "note": ("两次提交各用同口径的 S0；value_used 取 --caliber 指定列，须与代码常量一致；"
                      "换 hybrid_tool-only 口径时 S0 变为 alt 值（约 1.8x），该不确定度必须随分数交付"),
         },
         "per_case": [
-            dict(r, raw_bm25_top1_uni_log=u["raw_bm25_top1"],
-                 raw_bm25_top5_uni_log=u["raw_bm25_top5"])
-            for r, u in zip(rows_bi, rows_uni)
+            dict(r,
+                 raw_bm25_top1_uni_log=u["raw_bm25_top1"],
+                 raw_bm25_top5_uni_log=u["raw_bm25_top5"],
+                 raw_bm25_top1_uni_ratio=z["raw_bm25_top1"],
+                 raw_bm25_top5_uni_ratio=z["raw_bm25_top5"])
+            for r, u, z in zip(rows_bi, rows_uni, rows_ur)
         ],
     }
 
@@ -217,13 +258,18 @@ def build_document() -> Dict[str, Any]:
 def main() -> int:
     ap = argparse.ArgumentParser(description="重建 bm25_raw_top1.json（S0 的可复算证据）")
     ap.add_argument("--out", default=str(DEFAULT_OUT), help="输出路径（默认仓库内受跟踪产物）")
+    ap.add_argument("--caliber", choices=("bigram_log", "uni_log", "uni_ratio"),
+                    default="bigram_log",
+                    help="value_used 取哪一列：bigram_log（提交2 起，默认）/ "
+                         "uni_log（L28 中途态）/ uni_ratio（commit1 = L27 单独）")
     args = ap.parse_args()
-    doc = build_document()
+    doc = build_document(caliber=args.caliber)
     Path(args.out).write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
-    st = doc["stats"]["bigram_log"]["calib_all_layers"]
+    st = doc["stats"][args.caliber]["calib_all_layers"]
     print("[gen_baseline_bm25_raw] written: %s" % args.out)
     print("  calib n=%d p10=%s p50=%s p90=%s max=%s"
           % (st["n_with_hits"], st["p10"], st["p50_median"], st["p90"], st["max"]))
+    print("  caliber=%s" % args.caliber)
     print("  S0(bigram_log)=%s  S0(uni_log)=%s  value_used=%s  (常量 _BM25_HALF_SATURATION=%s)"
           % (doc["S0_derivation"]["commit2_bigram_log"], doc["S0_derivation"]["commit1_uni_log"],
              doc["S0_derivation"]["value_used"], _BM25_HALF_SATURATION))

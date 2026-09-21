@@ -514,6 +514,7 @@ class ToolTraceRecorder:
         bm25_filtered_by_min_coverage: Optional[int] = None,
         bm25_considered: Optional[int] = None,
         min_idf_coverage: Optional[float] = None,
+        bm25_filtered_preview: Optional[list] = None,
     ) -> None:
         """记录工具检索决策(结构化日志,不持久化到 SQLite)
 
@@ -543,8 +544,10 @@ class ToolTraceRecorder:
                 合法候选而没有任何信号。
             bm25_considered: 参与下限判定的候选总数（分母，便于读出滤除比例）
             min_idf_coverage: 当前生效的下限阈值（用于判断护栏是否被单点关闭为 0.0）
+            bm25_filtered_preview: 【A8-G1】被滤候选的 id 预览（按分降序前 5 个）。
+                只有计数看不出"被吃掉的**是谁**"，而护栏吃掉的往往正是高分长尾。
         """
-        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'user_input_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': int(bm25_candidates), 'embed_candidates': int(embed_candidates), 'fused_candidates': int(fused_candidates), 'alpha': alpha, 'degraded': bool(degraded), 'tools_preview': list(tools_preview), 'raw_bm25_top5': raw_bm25_top5, 'raw_embed_top5': raw_embed_top5, 'bm25_half_saturation': bm25_half_saturation, 'cosine_floor': cosine_floor, 'bm25_filtered_by_min_coverage': bm25_filtered_by_min_coverage, 'bm25_considered': bm25_considered, 'min_idf_coverage': min_idf_coverage}))
+        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'user_input_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': int(bm25_candidates), 'embed_candidates': int(embed_candidates), 'fused_candidates': int(fused_candidates), 'alpha': alpha, 'degraded': bool(degraded), 'tools_preview': list(tools_preview), 'raw_bm25_top5': raw_bm25_top5, 'raw_embed_top5': raw_embed_top5, 'bm25_half_saturation': bm25_half_saturation, 'cosine_floor': cosine_floor, 'bm25_filtered_by_min_coverage': bm25_filtered_by_min_coverage, 'bm25_considered': bm25_considered, 'min_idf_coverage': min_idf_coverage, 'bm25_filtered_preview': bm25_filtered_preview}))
 
     def record_circuit_event(
         self,
@@ -589,6 +592,7 @@ class ToolTraceRecorder:
         bm25_filtered_by_min_coverage: Optional[int] = None,
         bm25_considered: Optional[int] = None,
         min_idf_coverage: Optional[float] = None,
+        bm25_filtered_preview: Optional[list] = None,
     ) -> None:
         """记录工具检索决策(结构化日志,不持久化到 SQLite)
 
@@ -603,8 +607,9 @@ class ToolTraceRecorder:
             bm25_filtered_by_min_coverage: 【A8-G1】被 idf 证据下限滤掉的候选数（召回过滤必须可观测）
             bm25_considered: 参与下限判定的候选总数
             min_idf_coverage: 当前生效的下限阈值（0.0 = 护栏已单点关闭）
+            bm25_filtered_preview: 【A8-G1】被滤候选的 id 预览（按分降序前 5 个 id）
         """
-        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'query_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': bm25_candidates, 'embed_candidates': embed_candidates, 'fused_candidates': fused_candidates, 'alpha': alpha, 'degraded': degraded, 'tools_preview': tools_preview[:10], 'raw_bm25_top5': raw_bm25_top5, 'raw_embed_top5': raw_embed_top5, 'bm25_half_saturation': bm25_half_saturation, 'cosine_floor': cosine_floor, 'bm25_filtered_by_min_coverage': bm25_filtered_by_min_coverage, 'bm25_considered': bm25_considered, 'min_idf_coverage': min_idf_coverage}))
+        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'query_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': bm25_candidates, 'embed_candidates': embed_candidates, 'fused_candidates': fused_candidates, 'alpha': alpha, 'degraded': degraded, 'tools_preview': tools_preview[:10], 'raw_bm25_top5': raw_bm25_top5, 'raw_embed_top5': raw_embed_top5, 'bm25_half_saturation': bm25_half_saturation, 'cosine_floor': cosine_floor, 'bm25_filtered_by_min_coverage': bm25_filtered_by_min_coverage, 'bm25_considered': bm25_considered, 'min_idf_coverage': min_idf_coverage, 'bm25_filtered_preview': bm25_filtered_preview}))
 
     # ── 脱敏与危险检测 ────────────────────────────────────────
 

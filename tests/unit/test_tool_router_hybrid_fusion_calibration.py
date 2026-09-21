@@ -280,15 +280,52 @@ class TestS0Provenance:
         assert sorted(test) == artifact["split"]["test_ids"], "test 划分已漂移"
         assert len(calib) == 33 and len(test) == 42, "划分规模应与 report.json 声明一致"
 
-    def test_artifact_scores_match_recomputed_bm25(self, artifact):
+    def test_artifact_scores_match_recomputed_bm25(self, artifact, monkeypatch):
+        """按**产物声明的口径**独立重算逐条 raw top1（分词 + idf 都随口径锁定）"""
         import hashlib
+        import re as _re
 
+        import agent.tool_router_hybrid as mod
         from agent.tool_router_hybrid import BM25Index
 
         index_path = ROOT / "data" / "tool_index.json"
         sha = hashlib.sha256(index_path.read_bytes()).hexdigest()[:16]
         assert sha == artifact["scoring_口径"]["index_sha256_16"], (
             "data/tool_index.json 已变化 ⇒ 产物过期，须重新导出")
+
+        caliber = artifact["S0_derivation"].get("value_used_caliber", "bigram_log")
+        col = "raw_bm25_top1" if caliber == "bigram_log" else "raw_bm25_top1_" + caliber
+        bigram = caliber == "bigram_log"
+
+        # 独立实现（不复用生成器）：分词与 idf 形态按口径显式给出
+        if bigram:
+            word = _re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]+")
+
+            def tok(text):
+                out = []
+                for seg in word.findall((text or "").lower()):
+                    if len(seg) > 1 and not seg.isascii():
+                        out.extend(seg[i:i + 2] for i in range(len(seg) - 1))
+                    else:
+                        out.append(seg)
+                return out
+        else:
+            single = _re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]")
+            tok = lambda text: single.findall((text or "").lower())
+
+        monkeypatch.setattr(mod, "_tokenize", tok)
+        if caliber == "uni_ratio":
+            def ratio_idf(self, term, term_freq, doc_length):
+                if term not in self._index:
+                    return 0.0
+                dc = len(self._index[term])
+                idf = (self._total_docs - dc + 0.5) / (dc + 0.5)
+                if idf <= 0:
+                    return 0.0
+                return idf * term_freq * (self._k1 + 1) / (
+                    term_freq + self._k1 * (1 - self._b + self._b * doc_length
+                                            / (self._avg_doc_length or 1)))
+            monkeypatch.setattr(BM25Index, "_compute_bm25", ratio_idf)
 
         tools = json.loads(index_path.read_text(encoding="utf-8"))["tools"]
         bm = BM25Index()
@@ -298,25 +335,38 @@ class TestS0Provenance:
         for row in artifact["per_case"]:
             got = bm.search(row["text"], top_k=5)
             got_top1 = round(got[0][1], 6) if got else None
-            assert got_top1 == row["raw_bm25_top1"], (
-                f"{row['id']} 的 raw BM25 top1 与产物不一致：{got_top1} vs {row['raw_bm25_top1']}")
+            assert got_top1 == row[col], (
+                f"{row['id']} 的 {caliber} 口径 raw top1 与产物不一致：{got_top1} vs {row[col]}")
 
     def test_s0_equals_calib_median_from_artifact(self, artifact):
         from agent.tool_router_hybrid import _BM25_HALF_SATURATION
 
         calib_ids = set(artifact["split"]["calib_ids"])
-        vals = sorted(r["raw_bm25_top1"] for r in artifact["per_case"]
-                      if r["id"] in calib_ids and r["raw_bm25_top1"] is not None)
-        assert len(vals) == artifact["stats"]["bigram_log"]["calib_all_layers"]["n_with_hits"]
+        caliber = artifact["S0_derivation"].get("value_used_caliber", "bigram_log")
+        # 列名随口径：生产列是 raw_bm25_top1，其余口径是 raw_bm25_top1_<caliber>
+        col = "raw_bm25_top1" if caliber == "bigram_log" else "raw_bm25_top1_" + caliber
+        vals = sorted(r[col] for r in artifact["per_case"]
+                      if r["id"] in calib_ids and r[col] is not None)
+        assert len(vals) == artifact["stats"][caliber]["calib_all_layers"]["n_with_hits"]
         median = round(statistics.median(vals), 4)
         assert _BM25_HALF_SATURATION == median, (
             f"S0({_BM25_HALF_SATURATION}) != calib 划分 raw BM25 top1 中位数({median})")
 
     def test_artifact_reports_the_percentiles_cited_in_source(self, artifact):
         """代码注释引用的 n/p10/p50/p90/max 必须与产物逐项相同（防假注释）"""
-        st = artifact["stats"]["bigram_log"]["calib_all_layers"]
-        assert (st["n_with_hits"], st["p10"], st["p50_median"], st["p90"], st["max"]) == (
-            11, 3.0472, 5.5375, 10.9457, 11.408), f"注释引用的分位数与产物不符：{st}"
+        caliber = artifact["S0_derivation"].get("value_used_caliber", "bigram_log")
+        st = artifact["stats"][caliber]["calib_all_layers"]
+        # 三套口径的期望值都是实测落盘的，改一处即红：
+        #   bigram_log = 提交2 起（bigram + 对数 idf + 护栏）
+        #   uni_log    = L28 中途态（单字 + 对数 idf + 护栏）
+        #   uni_ratio  = commit1（L27 单独，单字 + 比值 idf，无护栏）
+        expected = {
+            "bigram_log": (11, 3.0472, 5.5375, 10.9457, 11.408),
+            "uni_log": (28, 3.3293, 6.3902, 10.781, 15.3386),
+            "uni_ratio": (28, 18.3837, 61.4986, 94.068, 139.555),
+        }[caliber]
+        assert (st["n_with_hits"], st["p10"], st["p50_median"], st["p90"], st["max"]) == expected, (
+            f"注释引用的分位数与产物不符（口径 {caliber}）：{st}")
 
     def test_uni_log_caliber_is_also_reproducible(self, artifact, monkeypatch):
         """提交1（仅对数 idf、单字分词）口径同样可复算（A1-b-prime 需要该口径的 S0）"""
@@ -350,11 +400,12 @@ class TestS0Provenance:
         from agent.tool_router_hybrid import _BM25_HALF_SATURATION
 
         used = artifact["S0_derivation"]["value_used"]
+        caliber = artifact["S0_derivation"].get("value_used_caliber", "bigram_log")
         assert used == _BM25_HALF_SATURATION, (
             "产物 S0_derivation.value_used=%s 与代码常量 %s 不一致 —— 产物把核心主张写反了"
             % (used, _BM25_HALF_SATURATION))
-        assert used == artifact["stats"]["bigram_log"]["calib_all_layers"]["p50_median"], (
-            "产物自相矛盾：value_used=%s 与其自身算出的 calib 中位数不符" % (used,))
+        assert used == artifact["stats"][caliber]["calib_all_layers"]["p50_median"], (
+            "产物自相矛盾：value_used=%s 与其自身算出的 %s 口径 calib 中位数不符" % (used, caliber))
 
     def test_artifact_is_rebuildable_from_tracked_generator(self, artifact):
         """产物**可重建**（而不只是数值可复算）：生成器已入库，重跑须逐位一致
@@ -369,7 +420,8 @@ class TestS0Provenance:
         spec = importlib.util.spec_from_file_location("gen_baseline_bm25_raw", str(gen))
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        rebuilt = module.build_document()
+        rebuilt = module.build_document(
+            caliber=artifact["S0_derivation"].get("value_used_caliber", "bigram_log"))
         a = dict(artifact)
         rebuilt.pop("generated_at", None)
         a.pop("generated_at", None)
@@ -381,8 +433,11 @@ class TestS0Provenance:
         """A3 的泄漏判据：S0 **不得**取自含 test 划分的口径"""
         from agent.tool_router_hybrid import _BM25_HALF_SATURATION
 
-        st = artifact["stats"]["bigram_log"]
-        assert _BM25_HALF_SATURATION == st["calib_all_layers"]["p50_median"]
+        caliber = artifact["S0_derivation"].get("value_used_caliber", "bigram_log")
+        st = artifact["stats"][caliber]
+        assert _BM25_HALF_SATURATION == st["calib_all_layers"]["p50_median"], (
+            "常量 %s 与产物 %s 口径的 calib 中位数 %s 不一致"
+            % (_BM25_HALF_SATURATION, caliber, st["calib_all_layers"]["p50_median"]))
         assert _BM25_HALF_SATURATION != st["test_all_layers"]["p50_median"], "S0 不得取自 test 划分"
         assert _BM25_HALF_SATURATION != st["all_all_layers"]["p50_median"], (
             "S0 取自全集（含 test）⇒ 后续 ECE 存在泄漏")

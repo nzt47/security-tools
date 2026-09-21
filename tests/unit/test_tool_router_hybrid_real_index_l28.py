@@ -354,6 +354,13 @@ class TestMinIdfCoverageDoesNotEatGold:
                 % (q, reported, real_filtered))
             assert gold in with_floor, "gold 被护栏滤除：%r" % (q,)
             assert gold in res, "gold 未进入生产返回结果：%r" % (q,)
+            # 【A8-G1】被滤候选预览必须与"实际被滤集合"一致（不只是个非空列表）
+            preview = stats.get("bm25_filtered_preview")
+            assert isinstance(preview, list), "被滤候选预览缺失：%r" % (preview,)
+            assert set(preview) <= (without - with_floor), (
+                "预览里有并未被滤掉的 id：%r" % (sorted(set(preview) - (without - with_floor)),))
+            if real_filtered:
+                assert preview, "确实滤掉了候选，预演却为空（A8-G1 读数失真）：%r" % (q,)
             observed.append((q, reported))
         # 至少有一条用例真的发生了过滤，否则本判据是空转（无法变红）
         assert any(n > 0 for _q, n in observed), (

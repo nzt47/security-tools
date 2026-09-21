@@ -120,6 +120,7 @@ class TestRecordToolRetrievalTrace:
             "bm25_half_saturation", "cosine_floor",
             # 【W5/L28-A8 G1】召回过滤读数：护栏滤掉多少候选必须可见
             "bm25_filtered_by_min_coverage", "bm25_considered", "min_idf_coverage",
+            "bm25_filtered_preview",
         }
         assert required_fields.issubset(trace_data.keys()), \
             f"缺少字段: {required_fields - trace_data.keys()}"
@@ -183,6 +184,9 @@ class TestRecordToolRetrievalTrace:
         assert trace_data["min_idf_coverage"] == stats["min_idf_coverage"]
         assert isinstance(trace_data["bm25_filtered_by_min_coverage"], int), (
             "召回过滤读数缺失（A8-G1 复发）：%r" % (trace_data["bm25_filtered_by_min_coverage"],))
+        assert trace_data["bm25_filtered_preview"] == stats["bm25_filtered_preview"], (
+            "被滤候选预览与暂存值不一致（A8-G1）：%r vs %r"
+            % (trace_data["bm25_filtered_preview"], stats["bm25_filtered_preview"]))
 
     def test_trace_query_hash_desensitized(self, real_index_path, caplog):
         """trace 中的 query 应脱敏(只存 hash,不存原文)"""

@@ -491,6 +491,7 @@ class BM25Index:
         # 【W5/L28-A8 G1】最近一次 search 的召回过滤读数（供可观测性透出）
         self._last_filtered_count = 0
         self._last_considered_count = 0
+        self._last_filtered_preview: list = []
 
     def add_document(self, doc_id: str, content: str) -> None:
         """添加文档到索引(doc_id 重复时覆盖旧文档)"""
@@ -583,7 +584,14 @@ class BM25Index:
                 if covered.get(doc_id, 0.0) / idf_total >= _MIN_IDF_COVERAGE
             }
             filtered_count = len(scores) - len(kept)
+            # 被滤候选的**预览**（按分降序取前 5 个 id）：只有计数看不出"被吃掉的
+            # 是谁"，而护栏吃掉的很可能正是高分长尾（R4 实测里 read_pdf 就是这样被吃的）。
+            dropped = sorted(((d, s) for d, s in scores.items() if d not in kept),
+                             key=lambda x: x[1], reverse=True)
+            self._last_filtered_preview = [d for d, _ in dropped[:5]]
             scores = kept
+        else:
+            self._last_filtered_preview = []
 
         # 【W5/L28-A8 G1】把"被下限滤掉的候选数"留在实例上，供
         #     HybridRetriever._query_locked 透出到 _last_query_stats 与路由事件。
@@ -1537,6 +1545,7 @@ class HybridRetriever:
             #   取值来自 BM25Index.search 的实例读数（同一次检索，无二次计算）。
             "bm25_filtered_by_min_coverage": int(getattr(self._bm25, "_last_filtered_count", 0)),
             "bm25_considered": int(getattr(self._bm25, "_last_considered_count", 0)),
+            "bm25_filtered_preview": list(getattr(self._bm25, "_last_filtered_preview", [])),
             "min_idf_coverage": _MIN_IDF_COVERAGE,
         }
 
@@ -1664,6 +1673,7 @@ def hybrid_select_tools(
     filtered_by_min_coverage = None
     bm25_considered = None
     min_idf_coverage = None
+    filtered_preview = None
     degraded = retriever.degraded
     tools_preview: list[str] = []
 
@@ -1723,6 +1733,7 @@ def hybrid_select_tools(
         filtered_by_min_coverage = stats.get("bm25_filtered_by_min_coverage")
         bm25_considered = stats.get("bm25_considered")
         min_idf_coverage = stats.get("min_idf_coverage")
+        filtered_preview = stats.get("bm25_filtered_preview")
 
         # 白名单交集
         if enabled_whitelist is not None:
@@ -1775,6 +1786,7 @@ def hybrid_select_tools(
                     bm25_filtered_by_min_coverage=filtered_by_min_coverage,
                     bm25_considered=bm25_considered,
                     min_idf_coverage=min_idf_coverage,
+                    bm25_filtered_preview=filtered_preview,
                 )
             except Exception:
                 pass
