@@ -1044,6 +1044,14 @@ class AuditChain:
 
         self._enqueue_count = 0
         self._commit_count = 0
+        #: 【持久化屏障的诚实性（实测缺陷修复）】写库**失败**的条数。
+        #: `_commit_count` 计的是“这批已经离开队列通道”（成功与失败都计），
+        #: 因此它**单独不能**回答“是否真的落盘”。失败分支每记一次
+        #: `_mark_committed` 就同步记一次本计数，于是
+        #: `_commit_count - _write_failed_count` = **真的写进 DB 的条数**，
+        #: `flush()` 用的就是这个差值（旧实现屏障是裸 `_commit_count`：整批
+        #: 写失败、记录只落 ring buffer 时也会**对外谎报“已持久化”**）。
+        self._write_failed_count = 0
         self._count_lock = threading.Lock()
         self._next_seq = 1
         self._last_hash = GENESIS_PREV_HASH
@@ -1862,12 +1870,21 @@ class AuditChain:
             self._resync_seq()
             for r in records:
                 self._buffer_failed(r)
+            # 失败 ⇒ 记降级 + 置收敛标志（本批必须由预留日志收敛**重试**），
+            # 且这批**不算已落盘**（见 `_write_failed_count`）。
+            # 【保留 `_mark_committed` 的理由】它解的是“队列通道”：本批已离开
+            # 队列，不该再阻塞通道；诚实性由 `_write_failed_count` 扣回来。
+            self._write_failed_count += len(records)
+            self._journal_needs_drain = True
             self._mark_committed(len(records))
         except Exception as e:  # noqa: BLE001 写失败 → ring buffer（审计绝不静默丢弃）
             logger.warning("审计链 SQLite 批量写入失败，降级 ring buffer: %s", e)
             self._note_degraded(f"db_write_failed: {e}")
             for r in records:
                 self._buffer_failed(r)
+            # 同 IntegrityError 分支：写失败必须**留痕 + 触发收敛重试 + 不计已落盘**
+            self._write_failed_count += len(records)
+            self._journal_needs_drain = True
             self._mark_committed(len(records))
 
     def _seqs_in_db(self, seqs: List[int]) -> set:
@@ -2295,11 +2312,15 @@ class AuditChain:
         deadline = time.time() + max(0.0, timeout)
         while time.time() < deadline:
             with self._count_lock:
-                if self._commit_count >= target:
+                if self._commit_count - self._write_failed_count >= target:
                     return True
             time.sleep(0.005)
         with self._count_lock:
-            return self._commit_count >= target
+            # 【判据：真的落盘才算数】`_commit_count` 只说明“离开队列通道”
+            # （见其失败分支同样 `_mark_committed`），所以必须扣掉写失败的
+            # 条数：否则整批写失败、记录只落在 ring buffer 时这里会返回
+            # True —— 对外谎报“已持久化”，而丢失的记录可能随进程消亡。
+            return self._commit_count - self._write_failed_count >= target
 
     def _in_writer_thread(self) -> bool:
         """当前线程是否就是本实例的 writer 线程"""
@@ -2393,6 +2414,9 @@ class AuditChain:
         with self._count_lock:
             self._enqueue_count = 0
             self._commit_count = 0
+            # 清库 = 这条链回到空：失败计数也必须归零，否则残留的扣减量会
+            # 让新链的 flush 屏障永远差一截（假失败）。
+            self._write_failed_count = 0
         self._committed_max_seq = 0
         self._journal_replay_count = 0
         self._buffer_dropped_count = 0
