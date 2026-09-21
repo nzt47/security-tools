@@ -2159,6 +2159,7 @@ flowchart LR
     agent_subagent_toolset -.-> agent_security_actor_matrix
     agent_subagent_toolset -.-> agent_lines_models
     agent_subagent_toolset --> agent_subagent_sandbox
+    agent_system_prompt_config --> agent_logging_utils
     agent_system_prompt_config -.-> agent_utils_singleton_manager
     agent_system_tools -.-> agent_tools_file_tools
     agent_system_tools -.-> agent_tools_workspace_tools
@@ -2430,7 +2431,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 621
 - 模块节点数: 555
-- 依赖边数: 1755
+- 依赖边数: 1756
 - 跨层调用数: 1101
 - 违规调用数: 0
 - 动态 import 数: 1
