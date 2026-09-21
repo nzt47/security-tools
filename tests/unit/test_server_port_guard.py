@@ -7,10 +7,13 @@
 对占用 5678 的 PID 直接 taskkill /F 且零日志（整段包在 except Exception: pass）。
 
 本文件用**受控桩**（注入 runner / cmdline_getter / audit）验证留痕与顺序，
-**绝不真的 kill 任何进程**。
+**绝不真的 kill 任何进程**（非 win32 分支走 os.kill，不经 runner，故另行 monkeypatch 拦截，
+见 test_audit_written_before_kill_and_argv_unchanged）。
 """
 
 import logging
+import os
+import signal
 import sys
 
 from agent.server_port_guard import (
@@ -71,8 +74,8 @@ def test_classify_self_restart_vs_foreign():
     assert classify_target(None) == KIND_UNKNOWN
 
 
-def test_audit_written_before_kill_and_argv_unchanged():
-    """留痕在 kill **之前**；kill 命令与旧实现逐字一致"""
+def test_audit_written_before_kill_and_argv_unchanged(monkeypatch):
+    """留痕在 kill **之前**；kill 命令与旧实现逐字一致（两平台各自可观测）"""
     events = []
     runner = _StubRunner()
 
@@ -84,18 +87,31 @@ def test_audit_written_before_kill_and_argv_unchanged():
             events.append(("kill", argv[-1], " ".join(argv)))
         return runner(argv, **kwargs)
 
+    # 【D3 · 2026-09-22 平台修正】非 win32 分支的 kill 是 os.kill(pid, SIGTERM)，
+    # **不经过 subprocess.run**（模块 docstring 明示"不改 kill 行为"）⇒ 受控桩 runner
+    # 天生看不到它：Linux CI 上 events 只剩 ("log", ...)，断言 ['log'] == ['log','kill']
+    # 必失败（Windows 本地走 taskkill ⇒ 经 runner ⇒ 绿）。故按平台各接各的探针：
+    # win32 由 _runner 记录，其余平台由被 monkeypatch 的 os.kill 记录。
+    # 顺带消除一个真实副作用：修正前非 win32 会**真的**对 PID 4321 发 SIGTERM。
+    if sys.platform != "win32":
+        def _fake_kill(pid, sig):
+            events.append(("kill", str(pid),
+                           "os.kill(%s, %s)" % (pid, signal.Signals(sig).name)))
+        monkeypatch.setattr(os, "kill", _fake_kill)
+
     records = cleanup_port_listeners(
         5678, runner=_runner, cmdline_getter=lambda pid: "python app_server.py",
         self_pid=777, audit=_audit)
 
     assert [r["target_pid"] for r in records] == ["4321"]
-    # 顺序：先 log 后 kill（kill 之前留痕，不可颠倒）
+    # 顺序：先 log 后 kill（kill 之前留痕，不可颠倒）—— 两平台都必须成立
     assert [e[0] for e in events] == ["log", "kill"], events
     # kill 命令未改：仍是 taskkill /F /PID <pid>（win32）/ os.kill SIGTERM
     if sys.platform == "win32":
         assert events[1][2] == "taskkill /F /PID 4321"
     else:
-        assert records[0]["kill_cmd"] == "os.kill(4321, SIGTERM)"
+        assert events[1][2] == "os.kill(4321, SIGTERM)"            # 实际执行的 kill
+        assert records[0]["kill_cmd"] == "os.kill(4321, SIGTERM)"  # 留痕里记的 kill
     assert records[0]["actor_pid"] == 777
 
 
