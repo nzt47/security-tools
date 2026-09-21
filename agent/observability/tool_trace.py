@@ -496,59 +496,6 @@ class ToolTraceRecorder:
         """
         logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_selection', 'user_input_hash': self.hash_content(user_input), 'categories': sorted(list(categories)), 'tools_count': len(tools), 'tools_preview': tools[:10]}))
 
-    def record_tool_retrieval(
-        self,
-        query: str,
-        top_k: int,
-        latency_ms: float,
-        bm25_candidates: int,
-        embed_candidates: int,
-        fused_candidates: int,
-        alpha: float,
-        degraded: bool,
-        tools_preview: list,
-        raw_bm25_top5: Optional[list] = None,
-        raw_embed_top5: Optional[list] = None,
-        bm25_half_saturation: Optional[float] = None,
-        cosine_floor: Optional[float] = None,
-        bm25_filtered_by_min_coverage: Optional[int] = None,
-        bm25_considered: Optional[int] = None,
-        min_idf_coverage: Optional[float] = None,
-        bm25_filtered_preview: Optional[list] = None,
-    ) -> None:
-        """记录工具检索决策(结构化日志,不持久化到 SQLite)
-
-        Why: 检索事件是轻量决策事件,频率高(每次 LLM 调用 1 次),
-             SQLite 仅持久化工具执行 trace(ToolTraceRecord),保持单一职责。
-             与 record_tool_selection / record_circuit_event 一致。
-
-        Args:
-            query: 用户原始输入(脱敏哈希后记录)
-            top_k: 检索候选数
-            latency_ms: 检索耗时(毫秒)
-            bm25_candidates: BM25 召回数(融合前)
-            embed_candidates: Embedding 召回数(融合前,降级时为 0)
-            fused_candidates: 融合后候选数(去重前)
-            alpha: BM25/Embedding 融合权重
-            degraded: 是否降级到纯 BM25
-            tools_preview: 选中工具预览(前 10 个)
-            raw_bm25_top5: 【L29】归一分量：BM25 原始 top-5 [(工具名, raw 分)]。
-                只含工具名与分数（无用户文本），故不引入新的内容泄漏面。
-            raw_embed_top5: 【L29】归一分量：Embedding 原始 top-5 [(工具名, 余弦)]
-            bm25_half_saturation: 【L29】校准参考尺度 S0（BM25 半饱和点）
-            cosine_floor: 【L29】余弦校准下界（_COSINE_CUTOFF）
-                这四个字段是"分数可校准/可复核"的原始证据：只有它们随事件落盘，
-                第三方才能从事件流反推一条融合分是怎么算出来的（L29：可用 ≠ 已记录）。
-            bm25_filtered_by_min_coverage: 【A8-G1】本轮被 idf 证据下限**滤掉的候选数**。
-                护栏改变的是召回集合，必须可观测：否则分数分布一旦漂移，它会静默吃掉
-                合法候选而没有任何信号。
-            bm25_considered: 参与下限判定的候选总数（分母，便于读出滤除比例）
-            min_idf_coverage: 当前生效的下限阈值（用于判断护栏是否被单点关闭为 0.0）
-            bm25_filtered_preview: 【A8-G1】被滤候选的 id 预览（按分降序前 5 个）。
-                只有计数看不出"被吃掉的**是谁**"，而护栏吃掉的往往正是高分长尾。
-        """
-        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'user_input_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': int(bm25_candidates), 'embed_candidates': int(embed_candidates), 'fused_candidates': int(fused_candidates), 'alpha': alpha, 'degraded': bool(degraded), 'tools_preview': list(tools_preview), 'raw_bm25_top5': raw_bm25_top5, 'raw_embed_top5': raw_embed_top5, 'bm25_half_saturation': bm25_half_saturation, 'cosine_floor': cosine_floor, 'bm25_filtered_by_min_coverage': bm25_filtered_by_min_coverage, 'bm25_considered': bm25_considered, 'min_idf_coverage': min_idf_coverage, 'bm25_filtered_preview': bm25_filtered_preview}))
-
     def record_circuit_event(
         self,
         scope: Any,

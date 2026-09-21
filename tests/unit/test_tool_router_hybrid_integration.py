@@ -280,6 +280,38 @@ class TestToolTraceRecorderMethod:
         assert hasattr(ToolTraceRecorder, "record_tool_retrieval")
         assert callable(ToolTraceRecorder.record_tool_retrieval)
 
+    def test_no_duplicate_method_definition(self):
+        """回归断言(L40): ToolTraceRecorder 内只能有一处 record_tool_retrieval 定义
+
+        为什么数源码里的定义条数: 该类曾同时存在两处 record_tool_retrieval,
+        Python 后者静默覆盖前者 => 前一处是死代码,且它自带的 docstring/Args
+        描述的是**另一套行为**(记录 user_input_hash、tools_preview 不截断),
+        属"文档与实现相反"类缺陷。这里钉住定义条数: 一旦有人再补一份同名定义,
+        计数立即变 2 并失败,而不是被静默覆盖。
+        """
+        import ast
+        from pathlib import Path
+
+        import agent.observability.tool_trace as tool_trace_module
+
+        tree = ast.parse(Path(tool_trace_module.__file__).read_text(encoding="utf-8"))
+        recorder_classes = [
+            node for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "ToolTraceRecorder"
+        ]
+        assert len(recorder_classes) == 1, "ToolTraceRecorder 类应恰好定义一次"
+
+        definitions = [
+            node for node in recorder_classes[0].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == "record_tool_retrieval"
+        ]
+        assert len(definitions) == 1, (
+            "ToolTraceRecorder 内 record_tool_retrieval 应只有 1 处定义,"
+            f"实际 {len(definitions)} 处(行号 {[n.lineno for n in definitions]});"
+            "后一处会静默覆盖前一处,前一处成为死代码"
+        )
+
     def test_method_emits_structured_log(self, caplog, tmp_path):
         """直接调用方法应产生结构化日志"""
         from agent.observability.tool_trace import ToolTraceRecorder
