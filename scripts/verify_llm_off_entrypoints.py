@@ -52,6 +52,20 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
+
+# ── 控制台编码加固（2026-09-21 · P1「假红」修复）─────────────────────────────
+# Why: 中文 Windows 的 GBK 控制台无法编码本脚本**成功路径**上的 ✓ / ✅ 等字符，
+#      print() 抛 UnicodeEncodeError ⇒ 进程以退出码 1 结束 ⇒ 门禁产生"假红"
+#      （检查本身通过，但按退出码判定会误判为失败，进而可能让真实失败被忽略）。
+# How: 只放宽错误处理策略（errors="replace"），**不改编码**，保证中文仍正常显示；
+#      在 UTF-8 环境（CI / Linux）下等价于无操作。
+# 依据: docs/closeout 之外的实测记录见《06-基线台账.md》§七（四门禁退出码对照表）。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(errors="replace")  # type: ignore[attr-defined]
+    except Exception:
+        pass
+
 # ── ① 环境级关闭：把所有已知的模型密钥置成无效值 ──
 _INVALID_KEYS = (
     "DEEPSEEK_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "CLAUDE_API_KEY",
