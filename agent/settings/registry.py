@@ -477,6 +477,13 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _b("CP_GUARDRAILS_INSTRUCTION_DATA", CAT_SELF_HEALING, True,
        "指令/数据分离防护开关",
        owner="agent/guardrails/instruction_data.py"),
+    # 【裁定 D-20260921-09（2026-09-21）】本项默认值**以代码为准** ⇒ True。
+    # 依据：agent/guardrails/foreign_taint.py:267-269 _env_flag(name, default="1")
+    # 在 :290 以 _env_flag(ENV_ENABLED) 取值 ⇒ 开关未设置时 enabled=True；
+    # 且注册表默认值**从不写入 os.environ**（bootstrap.py:52-56 未发现覆盖层
+    # 即直接返回；resolver.py:381-385 仅当覆盖层存在条目才写 env）。
+    # 旧值 False 会让设置面板显示"污点账已关"而它实际是开的 —— 声明与事实相反，
+    # 故按代码对齐（只改默认值，不动描述文案与 owner）。
     _b("CP_GUARDRAILS_FOREIGN_TAINT", CAT_SELF_HEALING, True,
        "外部来源污点标记总开关",
        owner="agent/guardrails/foreign_taint.py"),

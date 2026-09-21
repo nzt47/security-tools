@@ -3,12 +3,17 @@
 import time
 import json
 import threading
+from pathlib import Path
 from typing import Dict, Any, List, Callable
 from datetime import datetime
 
 import pytest
 
+from agent.extensions import manager as _ext_manager
 from agent.extensions.manager import ExtensionManager
+from agent.extensions.store import ExtensionStore
+from agent.skills_mgmt.registry import SkillRegistry
+from agent.skills_mgmt.service import SkillsMgmtService
 from agent.extensions.sandbox import SandboxManager, PluginSandbox, SandboxPermission, ResourceLimits
 from agent.api_gateway import ApiGateway, ApiKeyManager, QuotaManager
 from agent.multi_tenant import TenantManager, BillingManager
@@ -45,13 +50,78 @@ class PerformanceTestResult:
         self.throughput = n / (duration_ms / 1000) if duration_ms > 0 else 0
 
 
+# ════════════════════════════════════════════════════════════
+#  【L14-b 回归】扩展用例的隔离夹具
+# ════════════════════════════════════════════════════════════
+
+#: 真实技能仓库中的目标目录 —— **只用于断言"未被触碰"**，用例绝不写它
+_REAL_SKILL_DIR = (Path(__file__).resolve().parents[2]
+                   / "data" / "skills_repo" / "memory_summary")
+
+
+def _snapshot(path: Path):
+    """目录快照（不存在 ⇒ None）。用于证明用例没碰真实数据。"""
+    if not path.exists():
+        return None
+    return sorted(
+        (str(p.relative_to(path)), p.stat().st_size, int(p.stat().st_mtime_ns))
+        for p in path.rglob("*"))
+
+
+@pytest.fixture
+def isolated_extensions(tmp_path, monkeypatch):
+    """把 ExtensionManager 的**技能面**整体隔离到 tmp_path。
+
+    【为什么必须（L14-b 实测缺陷）】原用例直接构造 ExtensionManager，而
+    SkillsInstaller.add_builtin_skill / remove_skill 内部构造的是
+    SkillRegistry 再取 _svc()（agent/skills_mgmt/registry.py:43-47）——
+    它会新建**默认路径**的 SkillsMgmtService ⇒ repo_path = 真实
+    data/skills_repo；当主轨没有该 id 时，remove_skill 走 else 分支
+    （agent/extensions/skills_installer.py:190）直接调 file_store.delete()
+    → shutil.rmtree（agent/skills_mgmt/file_store.py:702）
+    ⇒ **真实技能目录被整棵删除**：data/skills_repo/memory_summary/ 就是这样消失的。
+    扩展元数据同样会写进真实 agent/data/extensions.json。
+
+    【隔离手段：最小侵入，不改任何产品代码】
+      ① SkillRegistry._svc → 注入 store_path / repo_path 都在 tmp 下的服务；
+      ② ExtensionManager 构造用的 ExtensionStore → tmp 下的 JSON 文件。
+    用例语义**不变**：仍然真跑 install（内置技能分支）与 uninstall
+    （多轨删除 → file_store.delete 分支），只是把落点从生产数据换成 tmp。
+    """
+    svc = SkillsMgmtService(store_path=str(tmp_path / "skills_mgmt.json"),
+                            repo_path=str(tmp_path / "skills_repo"))
+    # 预置一个内置技能（等价于真实仓库里的 memory_summary/skill.md），
+    # 保证 uninstall 真的走到 file_store.delete 分支而不是"技能不存在"
+    svc.file_store.create(
+        "memory_summary",
+        meta={"id": "memory_summary", "name": "记忆摘要",
+              "enabled": True, "status": "approved"},
+        instruction="# 记忆摘要")
+
+    monkeypatch.setattr(SkillRegistry, "_svc", lambda self: svc)
+    monkeypatch.setattr(
+        _ext_manager, "ExtensionStore",
+        lambda *a, **k: ExtensionStore(data_file=str(tmp_path / "extensions.json")))
+
+    return svc
+
+
 class TestExtensionPerformance:
     """扩展模块性能测试"""
     
     @pytest.mark.performance
-    def test_extension_manager_install_uninstall(self):
-        """测试扩展安装卸载性能"""
+    def test_extension_manager_install_uninstall(self, isolated_extensions):
+        """测试扩展安装卸载性能（**全程在隔离 repo 上**，见 isolated_extensions）
+
+        【L14-b 回归】原实现直接落在生产数据上：install/uninstall 会把
+        `data/skills_repo/<id>/` 整棵删掉、并写真实 agent/data/extensions.json。
+        现在既隔离又**证明**没碰真实目录（见本用例末尾的 _snapshot 断言）。
+        """
+        real_before = _snapshot(_REAL_SKILL_DIR)
         manager = ExtensionManager()
+        # 隔离落点在 CI 日志里可见（便于复核"没写生产数据"）
+        print(f"\n[隔离] 技能 repo = {isolated_extensions.file_store.repo_path}")
+        print(f"[隔离] 真实目标  = {_REAL_SKILL_DIR}")
         result = PerformanceTestResult("Extension Install/Uninstall")
         
         iterations = 100
@@ -75,10 +145,23 @@ class TestExtensionPerformance:
         print(f"   Throughput: {result.throughput:.2f} ops/s")
         
         assert result.avg_latency < 50, f"扩展安装卸载平均延迟过高: {result.avg_latency}ms"
+
+        # ── 【L14-b 隔离回归】两道断言，缺一不可 ──────────────────────
+        # ① 真实技能目录必须**一字未动**（隔离失效即红）
+        assert _snapshot(_REAL_SKILL_DIR) == real_before, (
+            "本用例触碰了真实 data/skills_repo（隔离失效）："
+            f"{_REAL_SKILL_DIR}")
+        # ② 覆盖性证明：隔离 repo 上 install/uninstall 确实真跑过 ——
+        #    uninstall 走 file_store.delete / 多轨删除后，隔离仓库不留残留
+        assert isolated_extensions.store.get("memory_summary") is None, (
+            "uninstall 未走到主轨删除分支（用例被弱化）")
+        assert not (Path(isolated_extensions.file_store.repo_path)
+                    / "memory_summary").exists(), (
+            "uninstall 未走到 file_store.delete 分支（用例被弱化）")
     
     @pytest.mark.performance
-    def test_extension_manager_list(self):
-        """测试扩展列表查询性能"""
+    def test_extension_manager_list(self, isolated_extensions):
+        """测试扩展列表查询性能（同样隔离，避免读真实扩展存储/技能轨）"""
         manager = ExtensionManager()
         result = PerformanceTestResult("Extension List Query")
         
