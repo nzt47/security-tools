@@ -23,6 +23,7 @@ import secrets
 import concurrent.futures
 import time
 import sys
+import signal  # 优雅关闭：SIGTERM/SIGINT/SIGBREAK 处理器（见 _install_graceful_shutdown_hooks）
 import urllib.request as _ur
 import urllib.parse as _up
 import json as _js
@@ -1067,6 +1068,56 @@ try:
 except Exception as e:
     logger.error("加载健康评分路由失败: %s", e)
 
+# ── W5/TASK-08 ⑤：检索降级可见化（embedding_health → 健康面）──────────────
+# 【契约（已冻结，不改签名）】agent/tool_router_hybrid.py:1387 `embedding_health()`
+#   经 agent/tool_router_hybrid.py:1407 `get_hybrid_retriever()` 取单例；
+#   字段：mode / init_failed / worker_alive / available / failure_total /
+#   restart_attempts / max_restart_attempts / restarting / retry_exhausted /
+#   next_restart_in_sec / last_failure（+ retriever_degraded）。
+# 【为什么单开 /api/health/retrieval，而不塞进 /api/health 的响应体】
+#   实测 `GET /api/health` 的响应体是**数组**（传感器读数列表），前端
+#   `static/js/sidebar/status-panel.js:30` 直接 `data.forEach(m => ...)`；
+#   且 tests/unit/test_auth_migration_step1.py:114-123（"不改 /api/health 的响应形状"）
+#   与 tests/contract/contract_definitions.py:200-221（_root=array）都把该形状**钉死为契约**。
+#   ⇒ 按"新增只读端点"落地，与 TASK-06 的 /api/health/auth 同一先例
+#   （见 agent/server_routes/routes_panorama.py:182-188 的同类论证）：
+#   **降级可见（不静默）+ 零破坏既有消费者**。
+# 【回滚开关】常量 `_WORKER_MAX_RESTARTS`（tool_router_hybrid.py:86）置 0 即退回旧行为
+#   ⇒ 本接线**不新增任何 env 开关**（D5）。
+# 【同族要求】06-基线台账 §3.5 D1「ChromaDB 静默降级可见化」：降级必须可见，不得静默。
+@app.route("/api/health/retrieval", methods=["GET"])
+def api_health_retrieval():
+    """混合检索器（embedding worker）健康状态（**只读**；永不 500）。"""
+    try:
+        from agent.tool_router_hybrid import get_hybrid_retriever
+        retriever = get_hybrid_retriever()
+    except Exception as e:  # noqa: BLE001 探针故障不得让端点 500
+        return jsonify({"status": "error", "degraded": None, "mode": "unknown",
+                        "note": f"检索器不可得: {type(e).__name__}"}), 200
+
+    if retriever is None:
+        # 未启用/初始化失败：**明确"不可观测"**，而不是静默当成健康
+        return jsonify({"status": "unknown", "degraded": None, "mode": "unknown",
+                        "retriever": None,
+                        "note": "HybridRetriever 不可用（未初始化或初始化失败）"}), 200
+
+    try:
+        health = dict(retriever.embedding_health() or {})
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"status": "error", "degraded": None, "mode": "unknown",
+                        "note": f"embedding_health() 失败: {type(e).__name__}"}), 200
+
+    mode = str(health.get("mode") or "unknown")
+    # 降级口径取值域并集：mode==bm25_only（worker 起不来）或 retriever_degraded（融合层判降级）
+    degraded = bool(mode == "bm25_only" or health.get("retriever_degraded")
+                    or health.get("retry_exhausted"))
+    body = dict(health)                     # 冻结契约字段逐字透传（不改名、不丢字段）
+    body["status"] = "degraded" if degraded else "ok"
+    body["degraded"] = degraded
+    body["degrade_to"] = "bm25_only" if degraded else None
+    return jsonify(body), 200
+
+
 # T5：监控仪表盘（质量/链路追踪，契约测试已定义）
 try:
     from agent.server_routes.routes_dashboard import register_routes as reg_dashboard
@@ -1572,6 +1623,79 @@ def _cleanup_window_sensor():
     if _window_sensor:
         _window_sensor.stop()
 
+
+# ── 优雅关闭：收到信号即显式落盘「会话最后一条 LLM 通信」（W5/TASK-08 · R2）──
+# 【为什么必须补这一条】事实依据：
+#   ① `atexit` 对 **SIGTERM/SIGKILL 不触发**（Python 官方语义：被信号杀死不进退出钩子）；
+#   ② 因此"关闭时必存最后一条"此前实际只由 agent/llm_monitor.py:218-223 的
+#      「每条即写 + 5s 节流」（PERSIST_MIN_INTERVAL_S=5.0）保证
+#      ⇒ **最坏暴露窗口 ≤5s**：节流跳过的最后 N 条若恰在此窗口内进程被 SIGTERM，
+#      则该条不落盘（虽有 llm_monitor 的 atexit 兜底，但 atexit 同样不触发）。
+# 【本钩子只补这一条】"收到信号 ⇒ 立即调用 persist_session_last()"。
+#   **不改** llm_monitor 既有的 5s 节流逻辑，也**不改**其「每条即写 / atexit 兜底 /
+#   启动回填」三重机制（只做一次显式调用，不新增开关）。
+# 【Windows 事实】`os.kill(pid, SIGTERM)` 在本平台走 TerminateProcess **不跑处理器**
+#   （见 scripts/dev/graceful_shutdown_persist_probe.py 的 --win-term-demo 探针）；
+#   本平台真正可投递的终止信号是 CTRL_C_EVENT / CTRL_BREAK_EVENT（SIGINT/SIGBREAK）。
+#   故三个信号都注册：SIGTERM（POSIX 语义正确）+ SIGINT/SIGBREAK（Windows 可投递）。
+_GRACEFUL_SHUTDOWN_DONE = False
+
+
+def _graceful_shutdown_persist(signum=None, _frame=None):
+    """信号处理器：先把「会话最后一条 LLM 通信」显式落盘，再按原信号语义退出。
+
+    幂等（重入直接返回）；退出路径绝不抛异常、绝不阻塞。
+    """
+    global _GRACEFUL_SHUTDOWN_DONE
+    if _GRACEFUL_SHUTDOWN_DONE:
+        return
+    _GRACEFUL_SHUTDOWN_DONE = True
+
+    ok = False
+    try:
+        # 延迟导入：退出路径不得为持久化而新建监控器（persist_session_last 自身已守卫）
+        from agent.llm_monitor import persist_session_last
+        ok = bool(persist_session_last())
+    except Exception as e:  # noqa: BLE001 退出路径故障绝不阻断退出
+        logger.debug("[关闭] LLM 会话快照落盘失败（忽略）: %s", e)
+
+    try:
+        logger.info("[关闭] 收到信号 %s：会话最后一条 LLM 通信显式落盘=%s", signum, ok)
+    except Exception:  # noqa: BLE001
+        pass
+
+    # 保持"以该信号退出"的既有语义：恢复默认处理后重新投递（不吞信号）
+    try:
+        if signum is not None and hasattr(signal, "SIG_DFL"):
+            signal.signal(signum, signal.SIG_DFL)
+            os.kill(os.getpid(), signum)
+    except Exception:  # noqa: BLE001 平台不支持重投递时走下面的硬退出
+        pass
+    os._exit(0 if signum == getattr(signal, "SIGINT", None) else 128 + int(signum or 0))
+
+
+def _install_graceful_shutdown_hooks():
+    """在服务进程内注册优雅关闭信号处理器（SIGTERM / SIGINT / SIGBREAK）。
+
+    Returns:
+        已成功注册的信号名列表（供启动日志与探针断言；无可用信号时为空列表）
+    """
+    installed = []
+    for name in ("SIGTERM", "SIGINT", "SIGBREAK"):
+        sig = getattr(signal, name, None)
+        if sig is None:
+            continue
+        try:
+            signal.signal(sig, _graceful_shutdown_persist)
+            installed.append(name)
+        except (ValueError, OSError, RuntimeError) as e:
+            # 非主线程 / 平台不支持：跳过该信号，不影响其余信号
+            logger.debug("[关闭] 信号 %s 注册失败（忽略）: %s", name, e)
+    logger.info("[关闭] 优雅关闭钩子已注册: %s（收到信号即落盘会话最后一条 LLM 通信）",
+                ", ".join(installed) or "无")
+    return installed
+
+
 if __name__ == "__main__":
     # 脚本直跑（python app_server.py）时本模块名为 __main__；插件视图函数内的
     # 延迟导入 `from app_server import _Yunshu`（PLAN-1 §4）会把 app_server.py
@@ -1712,6 +1836,13 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"[启动] 搜索引擎性能监控启动失败: {e}")
     
+    # 优雅关闭：注册信号处理器 ⇒ 收到 SIGTERM/SIGINT/SIGBREAK 立即显式落盘
+    # 「会话最后一条 LLM 通信」（atexit 对信号退出不触发，见上方 R2 注释）
+    try:
+        _install_graceful_shutdown_hooks()
+    except Exception as e:  # noqa: BLE001 钩子注册失败不得阻断启动
+        print(f"⚠️ 优雅关闭钩子注册失败（不阻断主流程）: {e}")
+
     webbrowser.open("http://127.0.0.1:5678")
     # 使用 Waitress 生产级 WSGI 服务器（替代 Flask 内置开发服务器）
     # 多线程 + 纯 Python，Windows 原生兼容
