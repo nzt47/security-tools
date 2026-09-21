@@ -143,6 +143,10 @@ class SelfHealer:
         # 后台健康检查线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
         self._healer_trace_id = f"self-healer-{uuid.uuid4().hex[:16]}"
 
+        # 熔断器扫描日志去噪状态（L22b）：上一轮扫描的 (name, state) 快照。
+        # None = 尚未扫描过（首次必报 WARN，见 _recover_circuit_breaker）。
+        self._last_cb_scan_sig: Optional[Tuple[Tuple[str, Any], ...]] = None
+
         # 配置化超时（支持热加载，每次初始化时读取最新值）
         try:
             from agent.monitoring.observability_config import (
@@ -782,7 +786,27 @@ class SelfHealer:
 
             cb_name = context.get("circuit_breaker_name", "*") if context else "*"
             cb_status = get_all_circuit_breaker_status()
-            logger.info(log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker.scan', 'heal_action': 'recover_circuit_breaker', 'target': cb_name, 'breaker_count': len(cb_status), 'status_snapshot': {k: v.get("state") for k, v in cb_status.items()}}))
+
+            # ── L22b：扫描日志去噪 ─────────────────────────────────────────
+            # 【为什么】健康检查循环每轮（默认 30s）**无条件**执行本动作
+            # （_health_check_loop:1220）。实测 _scratch/server_health.log：
+            # recover_circuit_breaker.scan 与 no_open WARN 各 750 次，
+            # breaker_count=0 750/750（100%），circuit_breaker_recovered=0 ——
+            # 即「注册表为空且状态从未变化」被逐轮重复播报，纯噪声。
+            # 【怎么去噪而不静音】仅在「注册表非空」或「状态快照发生变化
+            # （含首次：None → ()）」时保留原 WARNING/INFO，其余降级 DEBUG。
+            # 故有效告警**一律不丢**：首次必报；一经变化必报；只要有熔断器
+            # 注册（无论开合）就每轮仍报，避免掩盖真实熔断活动。
+            _scan_sig: Tuple[Tuple[str, Any], ...] = tuple(
+                sorted((k, v.get("state")) for k, v in cb_status.items())
+            )
+            _prev_sig = self._last_cb_scan_sig
+            _state_changed = _scan_sig != _prev_sig
+            self._last_cb_scan_sig = _scan_sig
+            _scan_log_level_is_warn = bool(_scan_sig) or _state_changed
+
+            _scan_record = log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker.scan', 'heal_action': 'recover_circuit_breaker', 'target': cb_name, 'breaker_count': len(cb_status), 'status_snapshot': {k: v.get("state") for k, v in cb_status.items()}, 'state_changed': _state_changed})
+            (logger.info if _scan_log_level_is_warn else logger.debug)(_scan_record)
 
             recovered = []
             for name, status in cb_status.items():
@@ -810,7 +834,10 @@ class SelfHealer:
                     0,
                     verified=True
                 )
-            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker.no_open', 'heal_action': 'recover_circuit_breaker', 'target': cb_name, 'reason': '没有 OPEN 状态的熔断器需要恢复'}))
+            # L22b：空注册表且状态未变 → DEBUG（去噪）；注册表非空或状态变化
+            # （含首次）→ 维持原 WARNING，有效告警不被静音。
+            _no_open_record = log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker.no_open', 'heal_action': 'recover_circuit_breaker', 'target': cb_name, 'reason': '没有 OPEN 状态的熔断器需要恢复', 'breaker_count': len(cb_status), 'state_changed': _state_changed})
+            (logger.warning if _scan_log_level_is_warn else logger.debug)(_no_open_record)
             return HealResult(
                 "recover_circuit_breaker",
                 HealStatus.SKIPPED,

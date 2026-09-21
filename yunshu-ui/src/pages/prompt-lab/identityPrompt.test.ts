@@ -141,6 +141,67 @@ describe('buildRows · 启用状态 ↔ 内容显示联动', () => {
   })
 })
 
+describe('buildRows · 发出内容口径与后端渲染一致（L21）', () => {
+  // 后端只有 identity（system_prompt_config.py:353/359）与 principles（:398/403）
+  // 两个渲染函数读 custom_content；skill_instructions(:413) / tool_status(:421) /
+  // memory_context(:390) 忽略它。若前端无条件优先 custom_content，经 API 写入的
+  // 非可编辑节 custom_content 会被当成"发出内容"显示 —— 与事实相反。
+  const polluted: Record<string, IdentityRawSection> = {
+    ...sections,
+    skill_instructions: {
+      ...sections.skill_instructions,
+      custom_content: '这段文本后端根本不会发出',
+    },
+    memory_context: {
+      ...sections.memory_context,
+      custom_content: '这段文本后端根本不会发出',
+    },
+  }
+
+  it('非可编辑节注入 custom_content 后，仍显示后端实际发出内容', () => {
+    const rows = buildRows(polluted, registry as never, {}, emitInfo, stageLabels, TEMPLATE)
+    const skill = rows.find((r) => r.key === 'skill_instructions')
+    expect(skill?.editable).toBe(false)
+    // 关键断言：不被 custom_content 顶替
+    expect(skill?.emitText).toBe('{skill_instructions}')
+    expect(skill?.emitText).not.toBe('这段文本后端根本不会发出')
+
+    const mem = rows.find((r) => r.key === 'memory_context')
+    expect(mem?.editable).toBe(false)
+    expect(mem?.emitText).toBe('## 记忆线索\n{memory_context}')
+  })
+
+  it('非可编辑节的发出位置仍按后端原文定位（不被注入文本伪造）', () => {
+    const rows = buildRows(polluted, registry as never, {}, emitInfo, stageLabels, TEMPLATE)
+    const skill = rows.find((r) => r.key === 'skill_instructions')
+    // 注入文本不在真实模板中 ⇒ 不得据此伪造排序位置
+    expect(skill?.emitOrder).toBe(TEMPLATE.indexOf('{skill_instructions}'))
+    expect(skill?.emitted).toBe(true)
+  })
+
+  it('可编辑节（identity/principles）行为不变：自定义内容仍优先', () => {
+    const rows = buildRows(polluted, registry as never, {}, emitInfo, stageLabels, TEMPLATE)
+    const identity = rows.find((r) => r.key === 'identity')
+    expect(identity?.editable).toBe(true)
+    expect(identity?.emitText).toBe('你是云枢。')
+
+    const principles = rows.find((r) => r.key === 'principles')
+    expect(principles?.editable).toBe(true)
+    expect(principles?.emitText).toBe('## 核心原则\n先调工具。')
+  })
+
+  it('可编辑节自定义内容变更后仍以自定义为准（回归保护）', () => {
+    const edited = {
+      ...sections,
+      identity: { ...sections.identity, custom_content: '你是云枢 v2。' },
+    }
+    const rows = buildRows(edited, registry as never, {}, emitInfo, stageLabels, TEMPLATE)
+    const identity = rows.find((r) => r.key === 'identity')
+    expect(identity?.emitText).toBe('你是云枢 v2。')
+    expect(identity?.customContent).toBe('你是云枢 v2。')
+  })
+})
+
 describe('buildDisplayOrder', () => {
   it('registry 顺序优先，配置里多余/未覆盖的节补在后面', () => {
     const order = buildDisplayOrder(

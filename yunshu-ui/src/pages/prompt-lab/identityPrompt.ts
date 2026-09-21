@@ -171,9 +171,16 @@ export function buildRows(
     const enabled = sec.enabled !== false
     const stage = String(em?.emit_stage ?? 'system_prompt')
     const custom = String(sec.custom_content ?? '')
-    // 发出内容：可编辑节有自定义内容时以自定义内容为准（渲染函数原样返回），
+    const editable = Boolean(s?.editable ?? m?.editable)
+    // 发出内容：**仅可编辑节**有自定义内容时以自定义内容为准（渲染函数原样返回），
     // 否则用后端给出的该节渲染原文（如技能指令 → {skill_instructions}）。
-    const emitText = custom.trim() ? custom : String(em?.emit_text ?? '')
+    // 【不易】L21：后端只有两个渲染函数读 custom_content —— identity
+    // （agent/system_prompt_config.py:353/359）与 principles（:398/403）；
+    // 其余节（skill_instructions:413、tool_status:421、memory_context:390）
+    // **忽略** custom_content。若无条件优先 custom，经 API 给非可编辑节写入的
+    // custom_content 会被面板当成"发出内容"显示 —— 与事实相反。
+    // 故此处的判断口径与后端渲染保持一致：按 editable 收口。
+    const emitText = (editable && custom.trim()) ? custom : String(em?.emit_text ?? '')
     // 真实发出位置：在当前模板中定位该节的发出内容 —— 排序即「拼进 system
     // message 的先后顺序」，且与左侧开关状态实时联动（模板每次改动都会刷新）。
     const pos = emitText ? (template ?? '').indexOf(emitText) : -1
@@ -185,7 +192,7 @@ export function buildRows(
       description: String(m?.description ?? sec.description ?? ''),
       customContent: custom,
       tokenLimit: Number(sec.token_limit ?? s?.token_limit ?? 0),
-      editable: Boolean(s?.editable ?? m?.editable),
+      editable,
       estimate: Number(s?.tokens ?? m?.tokens ?? 0),
       range: String(s?.range ?? m?.range ?? ''),
       note: String(s?.note ?? m?.note ?? ''),
