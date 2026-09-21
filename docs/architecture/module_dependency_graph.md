@@ -106,6 +106,7 @@ flowchart LR
         agent_search_performance_monitor["agent.search_performance_monitor"]:::crosslayer
         agent_security_utils["agent.security_utils"]
         agent_server_auth["agent.server_auth"]:::crosslayer
+        agent_server_port_guard["agent.server_port_guard"]
         agent_session_manager["agent.session_manager"]:::crosslayer
         agent_state_manager["agent.state_manager"]:::crosslayer
         agent_system_prompt_config["agent.system_prompt_config"]:::crosslayer
@@ -1782,6 +1783,7 @@ flowchart LR
     agent_server_auth -.-> agent_security_identity
     agent_server_auth -.-> agent_security_identity
     agent_server_auth -.-> agent_security_identity
+    agent_server_port_guard --> agent_logging_utils
     agent_server_routes_extensions -.-> agent_server_auth
     agent_server_routes_observability -.-> agent_logging_utils
     agent_server_routes_observability -.-> agent_monitoring_business_metrics
@@ -2426,9 +2428,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 620
-- 模块节点数: 554
-- 依赖边数: 1754
+- 扫描文件数: 621
+- 模块节点数: 555
+- 依赖边数: 1755
 - 跨层调用数: 1101
 - 违规调用数: 0
 - 动态 import 数: 1
