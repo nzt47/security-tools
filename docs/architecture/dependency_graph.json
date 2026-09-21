@@ -4592,7 +4592,7 @@
       "source_layer": "audit",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 1505,
+      "line": 1522,
       "source_file": "agent/audit/chain.py",
       "is_cross_layer": true,
       "is_violation": false,
