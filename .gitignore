@@ -592,3 +592,18 @@ _t06_logs/
 quality_gate_report.json
 
 
+
+# ==========================================================================
+# [W5/TASK-09 · 2026-09-21] 审计链前置备份中的「大二进制」不入库
+# Why 只忽略这两个：TASK-09 的 PRE_TASK09_backup_* 备份目录含
+#   audit_chain.db（16.8 MB）与 audit_chain.db.seqjournal（15.3 MB），共约 32 MB 二进制。
+#   备份「必须做」（动手前强制前置），但「不必入库」：
+#   1) 与既有先例一致 —— 上次审计链修复的 31.36 MB 备份整体放在 gitignored 的
+#      _ci_logs/audit_backup_20260921_035434/；L1_evidence/ 只放证据件
+#      （脚本 / 回执 / sha256 清单 / 原始日根）；
+#   2) 完整性由 SHA256SUMS.txt 保证，备份本体留在本地即可复核；
+#   3) 把 32 MB 二进制写进 git 历史是不可逆的仓库体积代价。
+# 注：目录内的小证据件（每日 audit_*.jsonl、daily_roots.jsonl、SHA256SUMS.txt）照常入库，
+#   故此处按文件名精确忽略，不使用整目录规则。
+docs/closeout/L1_evidence/PRE_TASK09_backup_*/audit_chain.db
+docs/closeout/L1_evidence/PRE_TASK09_backup_*/audit_chain.db.seqjournal
