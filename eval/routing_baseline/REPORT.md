@@ -1,6 +1,6 @@
 # TASK-10 · 既有路由可验证化基线报告（机器生成）
 
-- HEAD: 220417b010b957b1e25b953fabd8231e0efb636a
+- HEAD: 3a37e7a71d52e4aaec28c07b0676396d6b7cffb6
 - 语义层状态: {"retriever_available": true, "degraded_bm25_only": true, "embedding_available": false, "bm25_docs": 90, "alpha": 0.5, "index_path": "data/tool_index.json", "embedding_health": {"mode": "hybrid", "init_failed": false, "worker_alive": false, "available": false, "failure_total": 0, "restart_attempts": 0, "max_restart_attempts": 3, "restarting": false, "retry_exhausted": false, "next_restart_in_sec": null, "last_failure": {}, "retriever_degraded": true}}
 
 ## 1. 意图类目表（机器派生）
@@ -45,77 +45,77 @@
 
 ### hybrid_tool
 
-- 语义：HybridRetriever.query 的融合分（_min_max_normalize 后 min-max 归一化）
-- 融合分经 min-max 归一化后 top1 恒为 1.0 ⇒ 该分数不携带置信度信息，在其上做温度缩放/ECE 无意义（改判定语义不在本任务范围，故只记录事实）
+- 语义：HybridRetriever.query 的融合分（查询无关的单调校准：BM25 走 p=s/(s+S0)，余弦走以 _COSINE_CUTOFF 为下界的线性映射；见 agent/tool_router_hybrid.py 的 _calibrate_bm25_scores / _calibrate_cosine_scores）
+- 融合分已可校准（L27 起改用查询无关的单调校准，top1 不再恒为 1.0）。但**校准不等于可标定**：S0 由 n=11 条 calib 用例中位数导出，换个同样合理的口径得 10.0877（约 1.8 倍）⇒ 该分数可用于单调排序，在其上做温度缩放/ECE 时必须计入该不确定度，不得声称已得到可标定的概率。
 
 ### hybrid_raw_bm25
 
 - 语义：对原始（未 min-max 归一化）BM25 top-5 分做 softmax 后的 top1 概率
 - 校准集 n=5 / 测试集 n=5
-- T = 9.965784（NLL 2.763103 -> 0.500402）
-- ECE 改前 = 0.0672 -> 改后 = 0.2566；MCE 0.3361 -> 0.4829
-- 补充（**非留出**，全标注集）ECE 改前 = 0.1336 -> 改后 = 0.1283
+- T = 1.41601（NLL 0.265713 -> 0.247525）
+- ECE 改前 = 0.0811 -> 改后 = 0.1103；MCE 0.3446 -> 0.3884
+- 补充（**非留出**，全标注集）ECE 改前 = 0.1172 -> 改后 = 0.0582
 
 | 箱 | 区间 | n | 平均置信 | 实际准确 | 差 |
 |---|---|---|---|---|---|
 | 0 | [0.0, 0.1] | 0 | None | None | None |
 | 1 | [0.1, 0.2] | 0 | None | None | None |
 | 2 | [0.2, 0.3] | 0 | None | None | None |
-| 3 | [0.3, 0.4] | 0 | None | None | None |
+| 3 | [0.3, 0.4] | 1 | 0.3884 | 0.0 | 0.3884 |
 | 4 | [0.4, 0.5] | 0 | None | None | None |
-| 5 | [0.5, 0.6] | 1 | 0.5171 | 1.0 | 0.4829 |
+| 5 | [0.5, 0.6] | 0 | None | None | None |
 | 6 | [0.6, 0.7] | 0 | None | None | None |
-| 7 | [0.7, 0.8] | 4 | 0.8 | 1.0 | 0.2 |
-| 8 | [0.8, 0.9] | 0 | None | None | None |
-| 9 | [0.9, 1.0] | 0 | None | None | None |
+| 7 | [0.7, 0.8] | 0 | None | None | None |
+| 8 | [0.8, 0.9] | 1 | 0.8902 | 1.0 | 0.1098 |
+| 9 | [0.9, 1.0] | 3 | 0.9824 | 1.0 | 0.0176 |
 
 ## 4. 拒识阈值取舍曲线
 
-- 信号：hybrid_raw_bm25 softmax top1（经 T=9.965784 温度缩放）
+- 信号：hybrid_raw_bm25 softmax top1（经 T=1.41601 温度缩放）
 
 ### 4a 标注折（n=10）—— 可给 risk
 
 | 阈值 | 覆盖率 | 拒识率 | 接受数 | 拒绝数 | 接受子集错误率 | 被接受但错的用例 |
 |---|---|---|---|---|---|---|
-| 0.0 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-006 |
-| 0.05 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-006 |
-| 0.1 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-006 |
-| 0.15 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-006 |
-| 0.2 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-006 |
-| 0.3 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-006 |
-| 0.4 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-006 |
-| 0.5 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-006 |
-| 0.6 | 0.9 | 0.1 | 9 | 1 | 0.1111 | TOOL-006 |
-| 0.7 | 0.9 | 0.1 | 9 | 1 | 0.1111 | TOOL-006 |
-| 0.8 | 0.0 | 1.0 | 0 | 10 | None |  |
-| 0.9 | 0.0 | 1.0 | 0 | 10 | None |  |
+| 0.0 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-010 |
+| 0.05 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-010 |
+| 0.1 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-010 |
+| 0.15 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-010 |
+| 0.2 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-010 |
+| 0.3 | 1.0 | 0.0 | 10 | 0 | 0.1 | TOOL-010 |
+| 0.4 | 0.8 | 0.2 | 8 | 2 | 0.0 |  |
+| 0.5 | 0.8 | 0.2 | 8 | 2 | 0.0 |  |
+| 0.6 | 0.8 | 0.2 | 8 | 2 | 0.0 |  |
+| 0.7 | 0.8 | 0.2 | 8 | 2 | 0.0 |  |
+| 0.8 | 0.8 | 0.2 | 8 | 2 | 0.0 |  |
+| 0.9 | 0.7 | 0.3 | 7 | 3 | 0.0 |  |
 
-### 4b 仓内真实语料折（n=78，无标注）—— 只给覆盖/拒识
+### 4b 仓内真实语料折（n=56，无标注）—— 只给覆盖/拒识
 
 | 阈值 | 覆盖率 | 拒识率 | 接受数 | 拒绝数 | 分词料覆盖 |
 |---|---|---|---|---|---|
-| 0.0 | 1.0 | 0.0 | 78 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
-| 0.05 | 1.0 | 0.0 | 78 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
-| 0.1 | 1.0 | 0.0 | 78 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
-| 0.15 | 1.0 | 0.0 | 78 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
-| 0.2 | 1.0 | 0.0 | 78 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
-| 0.3 | 1.0 | 0.0 | 78 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
-| 0.4 | 1.0 | 0.0 | 78 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
-| 0.5 | 0.9615 | 0.0385 | 75 | 3 | {"corpus_evaltasks": 1.0, "corpus_negative": 0.9545, "corpus_positive": 0.9512} |
-| 0.6 | 0.7308 | 0.2692 | 57 | 21 | {"corpus_evaltasks": 0.8667, "corpus_negative": 0.8636, "corpus_positive": 0.6098} |
-| 0.7 | 0.5769 | 0.4231 | 45 | 33 | {"corpus_evaltasks": 0.6667, "corpus_negative": 0.7273, "corpus_positive": 0.4634} |
-| 0.8 | 0.4487 | 0.5513 | 35 | 43 | {"corpus_evaltasks": 0.6, "corpus_negative": 0.5, "corpus_positive": 0.3659} |
-| 0.9 | 0.0 | 1.0 | 0 | 78 | {"corpus_evaltasks": 0.0, "corpus_negative": 0.0, "corpus_positive": 0.0} |
+| 0.0 | 1.0 | 0.0 | 56 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
+| 0.05 | 1.0 | 0.0 | 56 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
+| 0.1 | 1.0 | 0.0 | 56 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
+| 0.15 | 1.0 | 0.0 | 56 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
+| 0.2 | 1.0 | 0.0 | 56 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
+| 0.3 | 1.0 | 0.0 | 56 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
+| 0.4 | 0.9286 | 0.0714 | 52 | 4 | {"corpus_evaltasks": 0.9333, "corpus_negative": 0.8889, "corpus_positive": 0.9375} |
+| 0.5 | 0.6964 | 0.3036 | 39 | 17 | {"corpus_evaltasks": 0.6667, "corpus_negative": 0.7778, "corpus_positive": 0.6875} |
+| 0.6 | 0.4821 | 0.5179 | 27 | 29 | {"corpus_evaltasks": 0.4667, "corpus_negative": 0.3333, "corpus_positive": 0.5312} |
+| 0.7 | 0.4286 | 0.5714 | 24 | 32 | {"corpus_evaltasks": 0.3333, "corpus_negative": 0.3333, "corpus_positive": 0.5} |
+| 0.8 | 0.3214 | 0.6786 | 18 | 38 | {"corpus_evaltasks": 0.3333, "corpus_negative": 0.1111, "corpus_positive": 0.375} |
+| 0.9 | 0.2679 | 0.7321 | 15 | 41 | {"corpus_evaltasks": 0.2, "corpus_negative": 0.1111, "corpus_positive": 0.3438} |
 
-- 真实语料校准后分数分位：{"p10": 0.5243, "p50": 0.7617, "p90": 0.8, "min": 0.4921, "max": 0.8}
+- 真实语料校准后分数分位：{"p10": 0.4032, "p50": 0.5864, "p90": 0.9999, "min": 0.3091, "max": 0.9999}
 
 ## 5. 外部真实语料的层声明率（无标注，只看漏斗行为）
 
 | 语料 | n | 来源 | 规则层声明率 | 模板层声明率 | 语义层声明率 | 规则∩模板 |
 |---|---|---|---|---|---|---|
 | corpus_evaltasks | 15 | data\evals\chat\dialog_flows.json | 0.1333 | 0.2 | 1.0 | 0.0667 |
-| corpus_negative | 25 | tests/eval/negative_samples_extended.json | 0.16 | 0.2 | 0.88 | 0.08 |
-| corpus_positive | 45 | tests/eval/skill_retrieval_golden_set.json | 0.0444 | 0.0222 | 0.9111 | 0.0 |
+| corpus_negative | 25 | tests/eval/negative_samples_extended.json | 0.16 | 0.2 | 0.36 | 0.08 |
+| corpus_positive | 45 | tests/eval/skill_retrieval_golden_set.json | 0.0444 | 0.0222 | 0.7111 | 0.0 |
 
 
 ## 5b 建议阈值
@@ -123,7 +123,7 @@
 - 结论：不建议在当前信号上启用该阈值（证据不足 + 信号无区分度）
 - 依据1：标注折上唯一的错误（见 F6）其校准后分数位于被接受样本的中位区间：任何能拒掉它的阈值（>=0.8）会把覆盖率打到 0（softmax 分数上限 0.8）。即该分数对本基线观测到的错误**无区分度**。
 - 依据2：标注折 n=10、校准折 n=5，均远低于 drift_trigger.min_samples=200。
-- 条件取值（若上级强制要一个数）：阈值 0.5，真实语料覆盖率 0.9615，拒识率 0.0385（真实语料折 n=78，该点是满足拒识率上限的最大覆盖率点）
+- 条件取值（若上级强制要一个数）：阈值 0.3，真实语料覆盖率 1.0，拒识率 0.0（真实语料折 n=56，该点是满足拒识率上限的最大覆盖率点）
 - 条件取值的警示：它在标注折上不降低 risk（仍 0.1）⇒ 只是'少答一点'，不是'答得更准'
 
 ## 6. 结构化结论（由读数机械导出）
@@ -132,25 +132,25 @@
   - 证据：agent/workflow_engine/engine.py:57 把 WorkflowResult.confidence 硬编码为 1.0；实测 rule 层 41 条用例的 confidence 全部为 1.0
   - 影响：温度缩放/ECE 在规则层无对象；规则层只能报告准确率与覆盖率
 - **F2 [blocker] 语义层融合分被 min-max 归一化抹平 ⇒ 该分数不携带置信度**
-  - 证据：agent/tool_router_hybrid.py:1154-1167 _min_max_normalize 把每路召回的 max 映射为 1.0；实测 fused_top_scores=[1.0]
+  - 证据：agent/tool_router_hybrid.py:1154-1167 _min_max_normalize 把每路召回的 max 映射为 1.0；实测 fused_top_scores=[0.4143, 0.4701, 0.6377, 0.6456, 0.6541, 0.6641, 0.6748, 0.6775, 0.7381, 0.747]
   - 影响：直接在该分数上做拒识等价于'永不拒识'；本基线改用未归一化的原始 BM25 分作为可校准出口
 - **F3 [high] 本环境 Embedding 路不可用，语义层实际运行在 BM25-only 降级路**
   - 证据：{"retriever_available": true, "degraded_bm25_only": true, "embedding_available": false, "bm25_docs": 90, "alpha": 0.5, "index_path": "data/tool_index.json", "embedding_health": {"mode": "hybrid", "init_failed": false, "worker_alive": false, "available": false, "failure_total": 0, "restart_attempts": 0, "max_restart_attempts": 3, "restarting": false, "retry_exhausted": false, "next_restart_in_sec": null, "last_failure": {}, "retriever_degraded": true}}
   - 影响：所有语义层读数描述降级路；AGENT_HYBRID_ALPHA=0.5 的融合路未被本次基线覆盖
 - **F4 [medium] 原始 BM25 softmax 分数可校准：NLL 大幅下降，但 ECE 在 n=5 的测试折上不可解释**
-  - 证据：T=9.965784，NLL 2.763103 -> 0.500402；测试折 ECE 0.0672 -> 0.2566，全标注集 ECE 0.1336 -> 0.1283
+  - 证据：T=1.41601，NLL 0.265713 -> 0.247525；测试折 ECE 0.0811 -> 0.1103，全标注集 ECE 0.1172 -> 0.0582
   - 影响：测试折 n=5，ECE 由'哪 5 条落到折里'决定；只能采信 NLL 的下降方向，不能采信 ECE 的绝对差
 - **F5 [medium] 模板层的失配是枚举上限问题，不是温度问题 ⇒ 温度缩放修不动它**
   - 证据：T=1.035686（≈1，几乎未改），ECE 0.2334 -> 0.238
   - 影响：该折 accuracy=1.0 而最高自报置信度只有 0.9（Confidence.HIGH），先把上限抬到 1.0 才能谈温度；本任务不改判定语义，故只记录
 - **F6 [high] 语义层在真实 90 工具索引上存在实际误召回**
-  - 证据：[{"id": "TOOL-006", "text": "解析pdf", "gold": "read_pdf", "pred": "run_lint", "raw_bm25_top5": [["run_lint", 72.4669], ["decompress", 32.8902], ["split_pdf", 24.4339], ["read_pdf", 24.3426], ["read_pdf_tables", 21.824]]}]
+  - 证据：[{"id": "TOOL-010", "text": "搜索网页", "gold": "web_search", "pred": "search_lifetrace", "raw_bm25_top5": [["search_lifetrace", 3.9172], ["web_get", 3.5117], ["search_files", 3.0756], ["browser_navigate", 3.009], ["web_search", 3.0035]]}]
   - 影响：例：中文查询'解析pdf'在真实索引上 top1=run_lint（合成 5 工具索引下该单测是过的）⇒ 原单测的'召回正确'结论不覆盖真实索引
 - **F7 [medium] 关键词类别层存在既定误分类（仓内自带用例即已失败）**
   - 证据：[{"id": "CAT-003", "text": "执行命令", "gold": ["core", "code", "system"], "pred": ["code", "core"]}]
   - 影响：该层 8 条可用用例中 1 条不满足其自身期望集合（见上）
 - **F8 [high] 语义层在真实语料上几乎不做拒识（覆盖率 0.88–1.00）**
-  - 证据：{"corpus_evaltasks": {"n": 15, "source": "data\\evals\\chat\\dialog_flows.json", "label": "data/evals 三类真实任务样本（15 条）", "rule_claim_rate": 0.1333, "template_claim_rate": 0.2, "hybrid_claim_rate": 1.0, "both_rule_and_template": 0.0667}, "corpus_negative": {"n": 25, "source": "tests/eval/negative_samples_extended.json", "label": "expected_skill_ids 为空（25 条负样本）", "rule_claim_rate": 0.16, "template_claim_rate": 0.2, "hybrid_claim_rate": 0.88, "both_rule_and_template": 0.08}, "corpus_positive": {"n": 45, "source": "tests/eval/skill_retrieval_golden_set.json", "label": "expected_skill_ids 非空（45 条正样本）", "rule_claim_rate": 0.0444, "template_claim_rate": 0.0222, "hybrid_claim_rate": 0.9111, "both_rule_and_template": 0.0}}
+  - 证据：{"corpus_evaltasks": {"n": 15, "source": "data\\evals\\chat\\dialog_flows.json", "label": "data/evals 三类真实任务样本（15 条）", "rule_claim_rate": 0.1333, "template_claim_rate": 0.2, "hybrid_claim_rate": 1.0, "both_rule_and_template": 0.0667}, "corpus_negative": {"n": 25, "source": "tests/eval/negative_samples_extended.json", "label": "expected_skill_ids 为空（25 条负样本）", "rule_claim_rate": 0.16, "template_claim_rate": 0.2, "hybrid_claim_rate": 0.36, "both_rule_and_template": 0.08}, "corpus_positive": {"n": 45, "source": "tests/eval/skill_retrieval_golden_set.json", "label": "expected_skill_ids 非空（45 条正样本）", "rule_claim_rate": 0.0444, "template_claim_rate": 0.0222, "hybrid_claim_rate": 0.7111, "both_rule_and_template": 0.0}}
   - 影响：当前漏斗的拒识能力完全来自 L1/L2 两层；语义层对任何中文输入都会返回候选
 
 ## 7. ECE 漂移触发条件

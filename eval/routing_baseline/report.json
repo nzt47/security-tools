@@ -1,6 +1,6 @@
 {
   "task": "TASK-10 · 既有路由的可验证化",
-  "head_commit": "220417b010b957b1e25b953fabd8231e0efb636a",
+  "head_commit": "3a37e7a71d52e4aaec28c07b0676396d6b7cffb6",
   "environment": {
     "python": "3.12.0",
     "new_dependencies": [],
@@ -156,7 +156,7 @@
         "precision_on_claimed": 0.9,
         "claimed_and_wrong": 1,
         "claimed_wrong_ids": [
-          "TOOL-006"
+          "TOOL-010"
         ]
       }
     },
@@ -690,26 +690,43 @@
         }
       },
       "hybrid_tool": {
-        "confidence_semantics": "HybridRetriever.query 的融合分（_min_max_normalize 后 min-max 归一化）",
+        "confidence_semantics": "HybridRetriever.query 的融合分（查询无关的单调校准：BM25 走 p=s/(s+S0)，余弦走以 _COSINE_CUTOFF 为下界的线性映射；见 agent/tool_router_hybrid.py 的 _calibrate_bm25_scores / _calibrate_cosine_scores）",
         "n_scored": 10,
         "fused_top_scores": [
-          1.0
+          0.4143,
+          0.4701,
+          0.6377,
+          0.6456,
+          0.6541,
+          0.6641,
+          0.6748,
+          0.6775,
+          0.7381,
+          0.747
         ],
-        "degenerate": true,
-        "conclusion": "融合分经 min-max 归一化后 top1 恒为 1.0 ⇒ 该分数不携带置信度信息，在其上做温度缩放/ECE 无意义（改判定语义不在本任务范围，故只记录事实）"
+        "degenerate": false,
+        "conclusion": "融合分已可校准（L27 起改用查询无关的单调校准，top1 不再恒为 1.0）。但**校准不等于可标定**：S0 由 n=11 条 calib 用例中位数导出，换个同样合理的口径得 10.0877（约 1.8 倍）⇒ 该分数可用于单调排序，在其上做温度缩放/ECE 时必须计入该不确定度，不得声称已得到可标定的概率。",
+        "raw_top1_percentiles": {
+          "n": 10,
+          "p10": 3.9172,
+          "p50": 10.4717,
+          "p90": 15.6032,
+          "max": 16.3466,
+          "note": "原始 BM25 top1 分位数；S0 取 calib 划分的中位数。"
+        }
       },
       "hybrid_raw_bm25": {
         "confidence_semantics": "对原始（未 min-max 归一化）BM25 top-5 分做 softmax 后的 top1 概率",
         "n_calib": 5,
         "n_test": 5,
         "temperature": {
-          "T": 9.965784,
-          "nll_before": 2.763103,
-          "nll_after": 0.500402
+          "T": 1.41601,
+          "nll_before": 0.265713,
+          "nll_after": 0.247525
         },
         "ece_before": {
-          "ece": 0.0672,
-          "mce": 0.3361,
+          "ece": 0.0811,
+          "mce": 0.3446,
           "n": 5,
           "bins": [
             {
@@ -754,11 +771,11 @@
                 0.3,
                 0.4
               ],
-              "n": 0,
-              "avg_confidence": null,
-              "accuracy": null,
-              "gap": null,
-              "contribution": 0.0
+              "n": 1,
+              "avg_confidence": 0.3446,
+              "accuracy": 0.0,
+              "gap": 0.3446,
+              "contribution": 0.0689
             },
             {
               "bin": 4,
@@ -790,11 +807,11 @@
                 0.6,
                 0.7
               ],
-              "n": 1,
-              "avg_confidence": 0.6639,
-              "accuracy": 1.0,
-              "gap": 0.3361,
-              "contribution": 0.0672
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
             },
             {
               "bin": 7,
@@ -827,16 +844,16 @@
                 1.0
               ],
               "n": 4,
-              "avg_confidence": 1.0,
+              "avg_confidence": 0.9847,
               "accuracy": 1.0,
-              "gap": 0.0,
-              "contribution": 0.0
+              "gap": 0.0153,
+              "contribution": 0.0122
             }
           ]
         },
         "ece_after": {
-          "ece": 0.2566,
-          "mce": 0.4829,
+          "ece": 0.1103,
+          "mce": 0.3884,
           "n": 5,
           "bins": [
             {
@@ -881,11 +898,11 @@
                 0.3,
                 0.4
               ],
-              "n": 0,
-              "avg_confidence": null,
-              "accuracy": null,
-              "gap": null,
-              "contribution": 0.0
+              "n": 1,
+              "avg_confidence": 0.3884,
+              "accuracy": 0.0,
+              "gap": 0.3884,
+              "contribution": 0.0777
             },
             {
               "bin": 4,
@@ -905,11 +922,11 @@
                 0.5,
                 0.6
               ],
-              "n": 1,
-              "avg_confidence": 0.5171,
-              "accuracy": 1.0,
-              "gap": 0.4829,
-              "contribution": 0.0966
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
             },
             {
               "bin": 6,
@@ -929,11 +946,11 @@
                 0.7,
                 0.8
               ],
-              "n": 4,
-              "avg_confidence": 0.8,
-              "accuracy": 1.0,
-              "gap": 0.2,
-              "contribution": 0.16
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
             },
             {
               "bin": 8,
@@ -941,11 +958,11 @@
                 0.8,
                 0.9
               ],
-              "n": 0,
-              "avg_confidence": null,
-              "accuracy": null,
-              "gap": null,
-              "contribution": 0.0
+              "n": 1,
+              "avg_confidence": 0.8902,
+              "accuracy": 1.0,
+              "gap": 0.1098,
+              "contribution": 0.022
             },
             {
               "bin": 9,
@@ -953,17 +970,17 @@
                 0.9,
                 1.0
               ],
-              "n": 0,
-              "avg_confidence": null,
-              "accuracy": null,
-              "gap": null,
-              "contribution": 0.0
+              "n": 3,
+              "avg_confidence": 0.9824,
+              "accuracy": 1.0,
+              "gap": 0.0176,
+              "contribution": 0.0106
             }
           ]
         },
         "ece_before_fullset_not_heldout": {
-          "ece": 0.1336,
-          "mce": 0.3361,
+          "ece": 0.1172,
+          "mce": 0.7238,
           "n": 10,
           "bins": [
             {
@@ -996,11 +1013,11 @@
                 0.2,
                 0.3
               ],
-              "n": 0,
-              "avg_confidence": null,
-              "accuracy": null,
-              "gap": null,
-              "contribution": 0.0
+              "n": 1,
+              "avg_confidence": 0.2762,
+              "accuracy": 1.0,
+              "gap": 0.7238,
+              "contribution": 0.0724
             },
             {
               "bin": 3,
@@ -1008,11 +1025,11 @@
                 0.3,
                 0.4
               ],
-              "n": 0,
-              "avg_confidence": null,
-              "accuracy": null,
-              "gap": null,
-              "contribution": 0.0
+              "n": 1,
+              "avg_confidence": 0.3446,
+              "accuracy": 0.0,
+              "gap": 0.3446,
+              "contribution": 0.0345
             },
             {
               "bin": 4,
@@ -1044,11 +1061,11 @@
                 0.6,
                 0.7
               ],
-              "n": 1,
-              "avg_confidence": 0.6639,
-              "accuracy": 1.0,
-              "gap": 0.3361,
-              "contribution": 0.0336
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
             },
             {
               "bin": 7,
@@ -1080,17 +1097,17 @@
                 0.9,
                 1.0
               ],
-              "n": 9,
-              "avg_confidence": 1.0,
-              "accuracy": 0.8889,
-              "gap": 0.1111,
-              "contribution": 0.1
+              "n": 8,
+              "avg_confidence": 0.9872,
+              "accuracy": 1.0,
+              "gap": 0.0128,
+              "contribution": 0.0103
             }
           ]
         },
         "ece_after_fullset_not_heldout": {
-          "ece": 0.1283,
-          "mce": 0.4829,
+          "ece": 0.0582,
+          "mce": 0.1377,
           "n": 10,
           "bins": [
             {
@@ -1135,11 +1152,11 @@
                 0.3,
                 0.4
               ],
-              "n": 0,
-              "avg_confidence": null,
-              "accuracy": null,
-              "gap": null,
-              "contribution": 0.0
+              "n": 2,
+              "avg_confidence": 0.3623,
+              "accuracy": 0.5,
+              "gap": 0.1377,
+              "contribution": 0.0275
             },
             {
               "bin": 4,
@@ -1159,11 +1176,11 @@
                 0.5,
                 0.6
               ],
-              "n": 1,
-              "avg_confidence": 0.5171,
-              "accuracy": 1.0,
-              "gap": 0.4829,
-              "contribution": 0.0483
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
             },
             {
               "bin": 6,
@@ -1183,11 +1200,11 @@
                 0.7,
                 0.8
               ],
-              "n": 9,
-              "avg_confidence": 0.8,
-              "accuracy": 0.8889,
-              "gap": 0.0889,
-              "contribution": 0.08
+              "n": 0,
+              "avg_confidence": null,
+              "accuracy": null,
+              "gap": null,
+              "contribution": 0.0
             },
             {
               "bin": 8,
@@ -1195,11 +1212,11 @@
                 0.8,
                 0.9
               ],
-              "n": 0,
-              "avg_confidence": null,
-              "accuracy": null,
-              "gap": null,
-              "contribution": 0.0
+              "n": 1,
+              "avg_confidence": 0.8902,
+              "accuracy": 1.0,
+              "gap": 0.1098,
+              "contribution": 0.011
             },
             {
               "bin": 9,
@@ -1207,11 +1224,11 @@
                 0.9,
                 1.0
               ],
-              "n": 0,
-              "avg_confidence": null,
-              "accuracy": null,
-              "gap": null,
-              "contribution": 0.0
+              "n": 7,
+              "avg_confidence": 0.9719,
+              "accuracy": 1.0,
+              "gap": 0.0281,
+              "contribution": 0.0197
             }
           ]
         }
@@ -1219,7 +1236,7 @@
     }
   },
   "reject_sweep": {
-    "source_signal": "hybrid_raw_bm25 softmax top1（经 T=9.965784 温度缩放）",
+    "source_signal": "hybrid_raw_bm25 softmax top1（经 T=1.41601 温度缩放）",
     "note": "覆盖率 = 接受比例；risk = 被接受样本中的错误率。labeled 折给 risk，corpus 折只给覆盖/拒识。",
     "labeled": {
       "rows": [
@@ -1231,7 +1248,7 @@
           "rejected": 0,
           "risk_error_rate": 0.1,
           "accepted_wrong_ids": [
-            "TOOL-006"
+            "TOOL-010"
           ]
         },
         {
@@ -1242,7 +1259,7 @@
           "rejected": 0,
           "risk_error_rate": 0.1,
           "accepted_wrong_ids": [
-            "TOOL-006"
+            "TOOL-010"
           ]
         },
         {
@@ -1253,7 +1270,7 @@
           "rejected": 0,
           "risk_error_rate": 0.1,
           "accepted_wrong_ids": [
-            "TOOL-006"
+            "TOOL-010"
           ]
         },
         {
@@ -1264,7 +1281,7 @@
           "rejected": 0,
           "risk_error_rate": 0.1,
           "accepted_wrong_ids": [
-            "TOOL-006"
+            "TOOL-010"
           ]
         },
         {
@@ -1275,7 +1292,7 @@
           "rejected": 0,
           "risk_error_rate": 0.1,
           "accepted_wrong_ids": [
-            "TOOL-006"
+            "TOOL-010"
           ]
         },
         {
@@ -1286,69 +1303,61 @@
           "rejected": 0,
           "risk_error_rate": 0.1,
           "accepted_wrong_ids": [
-            "TOOL-006"
+            "TOOL-010"
           ]
         },
         {
           "threshold": 0.4,
-          "coverage": 1.0,
-          "reject_rate": 0.0,
-          "accepted": 10,
-          "rejected": 0,
-          "risk_error_rate": 0.1,
-          "accepted_wrong_ids": [
-            "TOOL-006"
-          ]
+          "coverage": 0.8,
+          "reject_rate": 0.2,
+          "accepted": 8,
+          "rejected": 2,
+          "risk_error_rate": 0.0,
+          "accepted_wrong_ids": []
         },
         {
           "threshold": 0.5,
-          "coverage": 1.0,
-          "reject_rate": 0.0,
-          "accepted": 10,
-          "rejected": 0,
-          "risk_error_rate": 0.1,
-          "accepted_wrong_ids": [
-            "TOOL-006"
-          ]
+          "coverage": 0.8,
+          "reject_rate": 0.2,
+          "accepted": 8,
+          "rejected": 2,
+          "risk_error_rate": 0.0,
+          "accepted_wrong_ids": []
         },
         {
           "threshold": 0.6,
-          "coverage": 0.9,
-          "reject_rate": 0.1,
-          "accepted": 9,
-          "rejected": 1,
-          "risk_error_rate": 0.1111,
-          "accepted_wrong_ids": [
-            "TOOL-006"
-          ]
+          "coverage": 0.8,
+          "reject_rate": 0.2,
+          "accepted": 8,
+          "rejected": 2,
+          "risk_error_rate": 0.0,
+          "accepted_wrong_ids": []
         },
         {
           "threshold": 0.7,
-          "coverage": 0.9,
-          "reject_rate": 0.1,
-          "accepted": 9,
-          "rejected": 1,
-          "risk_error_rate": 0.1111,
-          "accepted_wrong_ids": [
-            "TOOL-006"
-          ]
+          "coverage": 0.8,
+          "reject_rate": 0.2,
+          "accepted": 8,
+          "rejected": 2,
+          "risk_error_rate": 0.0,
+          "accepted_wrong_ids": []
         },
         {
           "threshold": 0.8,
-          "coverage": 0.0,
-          "reject_rate": 1.0,
-          "accepted": 0,
-          "rejected": 10,
-          "risk_error_rate": null,
+          "coverage": 0.8,
+          "reject_rate": 0.2,
+          "accepted": 8,
+          "rejected": 2,
+          "risk_error_rate": 0.0,
           "accepted_wrong_ids": []
         },
         {
           "threshold": 0.9,
-          "coverage": 0.0,
-          "reject_rate": 1.0,
-          "accepted": 0,
-          "rejected": 10,
-          "risk_error_rate": null,
+          "coverage": 0.7,
+          "reject_rate": 0.3,
+          "accepted": 7,
+          "rejected": 3,
+          "risk_error_rate": 0.0,
           "accepted_wrong_ids": []
         }
       ],
@@ -1359,70 +1368,80 @@
           "gold": "read_pdf",
           "pred": "read_pdf",
           "correct": true,
-          "p_calibrated": 0.8
+          "rank_of_gold": 1,
+          "p_calibrated": 0.962
         },
         {
           "id": "TOOL-002",
           "gold": "merge_pdf",
           "pred": "merge_pdf",
           "correct": true,
-          "p_calibrated": 0.8
+          "rank_of_gold": 1,
+          "p_calibrated": 0.8902
         },
         {
           "id": "TOOL-003",
           "gold": "split_pdf",
           "pred": "split_pdf",
           "correct": true,
-          "p_calibrated": 0.8
+          "rank_of_gold": 1,
+          "p_calibrated": 0.9922
         },
         {
           "id": "TOOL-004",
           "gold": "get_weather",
           "pred": "get_weather",
           "correct": true,
-          "p_calibrated": 0.8
+          "rank_of_gold": 1,
+          "p_calibrated": 0.9694
         },
         {
           "id": "TOOL-005",
           "gold": "web_search",
           "pred": "web_search",
           "correct": true,
-          "p_calibrated": 0.8
+          "rank_of_gold": 1,
+          "p_calibrated": 0.9831
         },
         {
           "id": "TOOL-006",
           "gold": "read_pdf",
-          "pred": "run_lint",
-          "correct": false,
-          "p_calibrated": 0.8
+          "pred": "read_pdf",
+          "correct": true,
+          "rank_of_gold": 1,
+          "p_calibrated": 0.3362
         },
         {
           "id": "TOOL-007",
           "gold": "merge_pdf",
           "pred": "merge_pdf",
           "correct": true,
-          "p_calibrated": 0.8
+          "rank_of_gold": 1,
+          "p_calibrated": 0.9308
         },
         {
           "id": "TOOL-008",
           "gold": "split_pdf",
           "pred": "split_pdf",
           "correct": true,
-          "p_calibrated": 0.8
+          "rank_of_gold": 1,
+          "p_calibrated": 0.9728
         },
         {
           "id": "TOOL-009",
           "gold": "get_weather",
           "pred": "get_weather",
           "correct": true,
-          "p_calibrated": 0.8
+          "rank_of_gold": 1,
+          "p_calibrated": 0.9929
         },
         {
           "id": "TOOL-010",
           "gold": "web_search",
-          "pred": "web_search",
-          "correct": true,
-          "p_calibrated": 0.5171
+          "pred": "search_lifetrace",
+          "correct": false,
+          "rank_of_gold": 5,
+          "p_calibrated": 0.3884
         }
       ]
     },
@@ -1432,7 +1451,7 @@
           "threshold": 0.0,
           "coverage": 1.0,
           "reject_rate": 0.0,
-          "accepted": 78,
+          "accepted": 56,
           "rejected": 0,
           "risk_error_rate": null,
           "by_corpus": {
@@ -1445,7 +1464,7 @@
           "threshold": 0.05,
           "coverage": 1.0,
           "reject_rate": 0.0,
-          "accepted": 78,
+          "accepted": 56,
           "rejected": 0,
           "risk_error_rate": null,
           "by_corpus": {
@@ -1458,7 +1477,7 @@
           "threshold": 0.1,
           "coverage": 1.0,
           "reject_rate": 0.0,
-          "accepted": 78,
+          "accepted": 56,
           "rejected": 0,
           "risk_error_rate": null,
           "by_corpus": {
@@ -1471,7 +1490,7 @@
           "threshold": 0.15,
           "coverage": 1.0,
           "reject_rate": 0.0,
-          "accepted": 78,
+          "accepted": 56,
           "rejected": 0,
           "risk_error_rate": null,
           "by_corpus": {
@@ -1484,7 +1503,7 @@
           "threshold": 0.2,
           "coverage": 1.0,
           "reject_rate": 0.0,
-          "accepted": 78,
+          "accepted": 56,
           "rejected": 0,
           "risk_error_rate": null,
           "by_corpus": {
@@ -1497,7 +1516,7 @@
           "threshold": 0.3,
           "coverage": 1.0,
           "reject_rate": 0.0,
-          "accepted": 78,
+          "accepted": 56,
           "rejected": 0,
           "risk_error_rate": null,
           "by_corpus": {
@@ -1508,90 +1527,90 @@
         },
         {
           "threshold": 0.4,
-          "coverage": 1.0,
-          "reject_rate": 0.0,
-          "accepted": 78,
-          "rejected": 0,
+          "coverage": 0.9286,
+          "reject_rate": 0.0714,
+          "accepted": 52,
+          "rejected": 4,
           "risk_error_rate": null,
           "by_corpus": {
-            "corpus_evaltasks": 1.0,
-            "corpus_negative": 1.0,
-            "corpus_positive": 1.0
+            "corpus_evaltasks": 0.9333,
+            "corpus_negative": 0.8889,
+            "corpus_positive": 0.9375
           }
         },
         {
           "threshold": 0.5,
-          "coverage": 0.9615,
-          "reject_rate": 0.0385,
-          "accepted": 75,
-          "rejected": 3,
+          "coverage": 0.6964,
+          "reject_rate": 0.3036,
+          "accepted": 39,
+          "rejected": 17,
           "risk_error_rate": null,
           "by_corpus": {
-            "corpus_evaltasks": 1.0,
-            "corpus_negative": 0.9545,
-            "corpus_positive": 0.9512
+            "corpus_evaltasks": 0.6667,
+            "corpus_negative": 0.7778,
+            "corpus_positive": 0.6875
           }
         },
         {
           "threshold": 0.6,
-          "coverage": 0.7308,
-          "reject_rate": 0.2692,
-          "accepted": 57,
-          "rejected": 21,
+          "coverage": 0.4821,
+          "reject_rate": 0.5179,
+          "accepted": 27,
+          "rejected": 29,
           "risk_error_rate": null,
           "by_corpus": {
-            "corpus_evaltasks": 0.8667,
-            "corpus_negative": 0.8636,
-            "corpus_positive": 0.6098
+            "corpus_evaltasks": 0.4667,
+            "corpus_negative": 0.3333,
+            "corpus_positive": 0.5312
           }
         },
         {
           "threshold": 0.7,
-          "coverage": 0.5769,
-          "reject_rate": 0.4231,
-          "accepted": 45,
-          "rejected": 33,
+          "coverage": 0.4286,
+          "reject_rate": 0.5714,
+          "accepted": 24,
+          "rejected": 32,
           "risk_error_rate": null,
           "by_corpus": {
-            "corpus_evaltasks": 0.6667,
-            "corpus_negative": 0.7273,
-            "corpus_positive": 0.4634
+            "corpus_evaltasks": 0.3333,
+            "corpus_negative": 0.3333,
+            "corpus_positive": 0.5
           }
         },
         {
           "threshold": 0.8,
-          "coverage": 0.4487,
-          "reject_rate": 0.5513,
-          "accepted": 35,
-          "rejected": 43,
+          "coverage": 0.3214,
+          "reject_rate": 0.6786,
+          "accepted": 18,
+          "rejected": 38,
           "risk_error_rate": null,
           "by_corpus": {
-            "corpus_evaltasks": 0.6,
-            "corpus_negative": 0.5,
-            "corpus_positive": 0.3659
+            "corpus_evaltasks": 0.3333,
+            "corpus_negative": 0.1111,
+            "corpus_positive": 0.375
           }
         },
         {
           "threshold": 0.9,
-          "coverage": 0.0,
-          "reject_rate": 1.0,
-          "accepted": 0,
-          "rejected": 78,
+          "coverage": 0.2679,
+          "reject_rate": 0.7321,
+          "accepted": 15,
+          "rejected": 41,
           "risk_error_rate": null,
           "by_corpus": {
-            "corpus_evaltasks": 0.0,
-            "corpus_negative": 0.0,
-            "corpus_positive": 0.0
+            "corpus_evaltasks": 0.2,
+            "corpus_negative": 0.1111,
+            "corpus_positive": 0.3438
           }
         }
       ],
-      "n": 78,
+      "n": 56,
       "p_calibrated_percentiles": {
-        "p10": 0.5243,
-        "p50": 0.7617,
-        "p90": 0.8,
-        "min": 0.4921,
-        "max": 0.8
+        "p10": 0.4032,
+        "p50": 0.5864,
+        "p90": 0.9999,
+        "min": 0.3091,
+        "max": 0.9999
       }
     }
   },
@@ -1601,13 +1620,13 @@
     "reason_2_sample": "标注折 n=10、校准折 n=5，均远低于 drift_trigger.min_samples=200。",
     "conditional_value_if_forced": {
       "rule": "若必须给一个数字：取'拒识率 <= 5% 前提下拒识最多（阈值最大）'的点（该准则等价于题目给的'拒识率 <= X% 时覆盖率最大'，只是把无信息量的 t=0 排除）",
-      "threshold": 0.5,
-      "coverage_on_real_corpus": 0.9615,
-      "reject_rate_on_real_corpus": 0.0385,
-      "basis": "真实语料折 n=78，该点是满足拒识率上限的最大覆盖率点",
+      "threshold": 0.3,
+      "coverage_on_real_corpus": 1.0,
+      "reject_rate_on_real_corpus": 0.0,
+      "basis": "真实语料折 n=56，该点是满足拒识率上限的最大覆盖率点",
       "caveat": "它在标注折上不降低 risk（仍 0.1）⇒ 只是'少答一点'，不是'答得更准'"
     },
-    "labeled_min_risk": 0.1
+    "labeled_min_risk": 0.0
   },
   "findings": [
     {
@@ -1621,7 +1640,7 @@
       "id": "F2",
       "severity": "blocker",
       "title": "语义层融合分被 min-max 归一化抹平 ⇒ 该分数不携带置信度",
-      "evidence": "agent/tool_router_hybrid.py:1154-1167 _min_max_normalize 把每路召回的 max 映射为 1.0；实测 fused_top_scores=[1.0]",
+      "evidence": "agent/tool_router_hybrid.py:1154-1167 _min_max_normalize 把每路召回的 max 映射为 1.0；实测 fused_top_scores=[0.4143, 0.4701, 0.6377, 0.6456, 0.6541, 0.6641, 0.6748, 0.6775, 0.7381, 0.747]",
       "impact": "直接在该分数上做拒识等价于'永不拒识'；本基线改用未归一化的原始 BM25 分作为可校准出口"
     },
     {
@@ -1635,7 +1654,7 @@
       "id": "F4",
       "severity": "medium",
       "title": "原始 BM25 softmax 分数可校准：NLL 大幅下降，但 ECE 在 n=5 的测试折上不可解释",
-      "evidence": "T=9.965784，NLL 2.763103 -> 0.500402；测试折 ECE 0.0672 -> 0.2566，全标注集 ECE 0.1336 -> 0.1283",
+      "evidence": "T=1.41601，NLL 0.265713 -> 0.247525；测试折 ECE 0.0811 -> 0.1103，全标注集 ECE 0.1172 -> 0.0582",
       "impact": "测试折 n=5，ECE 由'哪 5 条落到折里'决定；只能采信 NLL 的下降方向，不能采信 ECE 的绝对差"
     },
     {
@@ -1649,7 +1668,7 @@
       "id": "F6",
       "severity": "high",
       "title": "语义层在真实 90 工具索引上存在实际误召回",
-      "evidence": "[{\"id\": \"TOOL-006\", \"text\": \"解析pdf\", \"gold\": \"read_pdf\", \"pred\": \"run_lint\", \"raw_bm25_top5\": [[\"run_lint\", 72.4669], [\"decompress\", 32.8902], [\"split_pdf\", 24.4339], [\"read_pdf\", 24.3426], [\"read_pdf_tables\", 21.824]]}]",
+      "evidence": "[{\"id\": \"TOOL-010\", \"text\": \"搜索网页\", \"gold\": \"web_search\", \"pred\": \"search_lifetrace\", \"raw_bm25_top5\": [[\"search_lifetrace\", 3.9172], [\"web_get\", 3.5117], [\"search_files\", 3.0756], [\"browser_navigate\", 3.009], [\"web_search\", 3.0035]]}]",
       "impact": "例：中文查询'解析pdf'在真实索引上 top1=run_lint（合成 5 工具索引下该单测是过的）⇒ 原单测的'召回正确'结论不覆盖真实索引"
     },
     {
@@ -1663,7 +1682,7 @@
       "id": "F8",
       "severity": "high",
       "title": "语义层在真实语料上几乎不做拒识（覆盖率 0.88–1.00）",
-      "evidence": "{\"corpus_evaltasks\": {\"n\": 15, \"source\": \"data\\\\evals\\\\chat\\\\dialog_flows.json\", \"label\": \"data/evals 三类真实任务样本（15 条）\", \"rule_claim_rate\": 0.1333, \"template_claim_rate\": 0.2, \"hybrid_claim_rate\": 1.0, \"both_rule_and_template\": 0.0667}, \"corpus_negative\": {\"n\": 25, \"source\": \"tests/eval/negative_samples_extended.json\", \"label\": \"expected_skill_ids 为空（25 条负样本）\", \"rule_claim_rate\": 0.16, \"template_claim_rate\": 0.2, \"hybrid_claim_rate\": 0.88, \"both_rule_and_template\": 0.08}, \"corpus_positive\": {\"n\": 45, \"source\": \"tests/eval/skill_retrieval_golden_set.json\", \"label\": \"expected_skill_ids 非空（45 条正样本）\", \"rule_claim_rate\": 0.0444, \"template_claim_rate\": 0.0222, \"hybrid_claim_rate\": 0.9111, \"both_rule_and_template\": 0.0}}",
+      "evidence": "{\"corpus_evaltasks\": {\"n\": 15, \"source\": \"data\\\\evals\\\\chat\\\\dialog_flows.json\", \"label\": \"data/evals 三类真实任务样本（15 条）\", \"rule_claim_rate\": 0.1333, \"template_claim_rate\": 0.2, \"hybrid_claim_rate\": 1.0, \"both_rule_and_template\": 0.0667}, \"corpus_negative\": {\"n\": 25, \"source\": \"tests/eval/negative_samples_extended.json\", \"label\": \"expected_skill_ids 为空（25 条负样本）\", \"rule_claim_rate\": 0.16, \"template_claim_rate\": 0.2, \"hybrid_claim_rate\": 0.36, \"both_rule_and_template\": 0.08}, \"corpus_positive\": {\"n\": 45, \"source\": \"tests/eval/skill_retrieval_golden_set.json\", \"label\": \"expected_skill_ids 非空（45 条正样本）\", \"rule_claim_rate\": 0.0444, \"template_claim_rate\": 0.0222, \"hybrid_claim_rate\": 0.7111, \"both_rule_and_template\": 0.0}}",
       "impact": "当前漏斗的拒识能力完全来自 L1/L2 两层；语义层对任何中文输入都会返回候选"
     }
   ],
@@ -1683,7 +1702,7 @@
       "label": "expected_skill_ids 为空（25 条负样本）",
       "rule_claim_rate": 0.16,
       "template_claim_rate": 0.2,
-      "hybrid_claim_rate": 0.88,
+      "hybrid_claim_rate": 0.36,
       "both_rule_and_template": 0.08
     },
     "corpus_positive": {
@@ -1692,7 +1711,7 @@
       "label": "expected_skill_ids 非空（45 条正样本）",
       "rule_claim_rate": 0.0444,
       "template_claim_rate": 0.0222,
-      "hybrid_claim_rate": 0.9111,
+      "hybrid_claim_rate": 0.7111,
       "both_rule_and_template": 0.0
     }
   },
