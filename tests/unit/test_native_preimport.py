@@ -25,6 +25,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import os
 import subprocess
 import sys
@@ -420,3 +421,127 @@ class TestRegistryRegistration:
         assert spec is not None
         assert spec.risk == R.RISK_B, f"风险级应为 B（保守），实际 {spec.risk}"
         assert spec.needs_restart is True, "该开关在进程入口读取，必须标记需重启生效"
+
+# ════════════════════════════════════════════════════════════
+#  五、【TASK-03 加强】固化顺序 == **真实执行顺序**
+# ════════════════════════════════════════════════════════════
+#
+#  Why 要在既有 `TestSharedImplementationIsUnique::test_shared_module_is_the_canonical_order`
+#  之外再补一层：那一条断言的是**常量**（`NATIVE_IMPORT_ORDER`）和**调用点**，
+#  它证明不了"预导入真的按这个次序发生"。常量对而执行顺序错，是完全可能的
+#  （例如 pending 列表被排序、被 set 化、或 extra 被插到前面），而这类改动
+#  恰恰会让 pyarrow 失去"干净窗口"——正是本防线要防的那件事。
+#
+#  既有 `TestTestsRootConftestSharesProtection::test_protection_already_applied_in_this_process`
+#  只断言"四个模块都被导入过"，**不校验相对次序**（`sys.modules` 是集合语义，
+#  本就无法反映先后）。故本类用 meta_path finder 在**干净子进程**里录制真实
+#  的首次解析次序，把次序本身钉死。
+
+#: 在干净子进程里录制"原生栈**首次**被解析"的顺序并执行预导入。
+#: 用 meta_path finder 而不是 sys.addaudithook：实测本机 CPython 3.12 下
+#: `import` 审计事件未触达（探针返回空列表），而 finder 稳定可观测。
+_ORDER_RECORDER = """
+import json, sys
+
+STACK = ("numpy", "pyarrow", "pandas", "sklearn")
+recorded = []
+
+
+class _Recorder:
+    # 只记录**首次**解析（已在 sys.modules 的模块不会再走 find_spec）
+    def find_spec(self, name, path=None, target=None):
+        if name in STACK and name not in recorded:
+            recorded.append(name)
+        return None
+
+
+sys.meta_path.insert(0, _Recorder())
+
+mode = sys.argv[1]
+control = None
+if mode == "preload_then_pin":
+    # 负对照：故意让 pandas 抢在预导入**之前**被解析
+    import pandas  # noqa: F401
+    control = list(recorded)
+    recorded.clear()
+
+from agent.utils.native_preimport import pin_native_import_order
+
+results = pin_native_import_order()
+print(json.dumps({
+    "recorded": recorded,
+    "control": control,
+    "results": {k: v for k, v in results.items()},
+}))
+"""
+
+
+def _run_order_recorder(mode: str) -> dict:
+    """在干净子进程里跑录制探针（父进程的 sys.modules 已被污染）。"""
+    env = {k: v for k, v in os.environ.items() if k != "CP_NATIVE_PREIMPORT_ENABLED"}
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    proc = subprocess.run(
+        [sys.executable, "-c", _ORDER_RECORDER, mode],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+        timeout=300,
+    )
+    assert proc.returncode == 0, f"录制探针失败 rc={proc.returncode}\n{proc.stderr}"
+    last = [ln for ln in proc.stdout.splitlines() if ln.strip().startswith("{")]
+    assert last, f"录制探针无输出\nstdout={proc.stdout!r}\nstderr={proc.stderr!r}"
+    return json.loads(last[-1])
+
+
+class TestRealExecutionOrderMatchesTheDeclaredOrder:
+    def test_stack_is_imported_in_exactly_the_declared_order(self):
+        """固化顺序常量正确**且**它就是真实发生过的解析次序。"""
+        got = _run_order_recorder("clean")
+        # 反"空报告"守卫：录制器没观测到任何东西时，下面的断言会**空过**
+        assert len(got["recorded"]) == len(npi.NATIVE_IMPORT_ORDER), (
+            f"录制到 {got['recorded']}，期望覆盖完整固化栈；"
+            "录制器可能已失效（判定将变成假绿灯）"
+        )
+        assert got["recorded"] == list(npi.NATIVE_IMPORT_ORDER), (
+            f"真实解析顺序 {got['recorded']} != 固化顺序 {list(npi.NATIVE_IMPORT_ORDER)}"
+        )
+        # pyarrow 必须紧跟 numpy —— 这是"干净窗口"的核心，不是可调项
+        assert got["recorded"].index("pyarrow") == 1
+
+    def test_recorder_actually_observes_imports(self):
+        """负对照：让 pandas 先被解析 ⇒ 录制结果**必须**随之改变。
+
+        没有这条，"录制器恒返回固化顺序"这种假绿灯无法被区分出来。
+        """
+        got = _run_order_recorder("preload_then_pin")
+        # 实测：`import pandas` 自身会连带解析 numpy 与 pyarrow
+        # （control 实测 = ['pandas', 'numpy', 'pyarrow']）—— **这正是本防线
+        #   存在的理由**：pandas 的导入链里有 pyarrow，谁先谁后就决定了
+        #   arrow.dll 的原生初始化发生在什么时刻。
+        # 故负对照的判据取"pandas 排在 numpy 之前"，而不是"control 恰为一项"。
+        assert got["control"], "负对照未录制到任何项，说明录制器已失效"
+        assert got["control"][0] == "pandas", (
+            f"负对照失败：抢先导入 pandas 后录制到 {got['control']}，"
+            "首个不是 pandas，说明录制器并未真的按发生顺序观测 import"
+        )
+        assert got["control"].index("pandas") < got["control"].index("numpy"), (
+            f"负对照失败：pandas 未排在 numpy 之前（实际 {got['control']}）"
+        )
+        # 【本防线生效的机理，逐字可验】负对照阶段已解析的成员进了 sys.modules
+        # ⇒ 预导入只需补齐**剩下**的，且补齐时仍严格遵循固化顺序。
+        # 断言不写死"剩下哪些"（各机 pandas 的导入链可能略有差异），
+        # 而是用**同一次运行观测到的 control** 反推期望值：
+        already = set(got["control"])
+        expected = [m for m in npi.NATIVE_IMPORT_ORDER if m not in already]
+        assert got["recorded"] == expected, (
+            f"补齐阶段的解析顺序 {got['recorded']} != 固化顺序扣掉已解析成员 "
+            f"{expected}（已解析 {sorted(already)}）"
+        )
+        # 已被解析的成员**不得**再被记为"首次解析" —— 这正是"崩溃路径不可达"
+        # 的机械表达：pyarrow 一旦先完成原生初始化，后续 import 命中 sys.modules。
+        assert already.isdisjoint(got["recorded"])
+

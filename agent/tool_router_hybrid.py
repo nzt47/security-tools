@@ -76,6 +76,17 @@ _WORKER_READY_TIMEOUT = 30.0
 #         而 encode 死锁(worker 卡住不再回包)不会再让检索链路永久挂起。
 _WORKER_ENCODE_TIMEOUT = 30.0
 
+# ── 【W2/TASK-03 新增】embedding worker 崩溃后的退避重启 ────────────────
+# 【不易】为什么**必须**有上限:worker 的原生崩溃(0xC0000005 / SIGILL)源于进程内
+#         的原生 DLL 加载/地址空间冲突,重启**不一定**能修好。无上限重启 =
+#         崩溃-重启风暴(2026-09-19 实测一轮 9 次服务重启)。故以三次为限,
+#         退避按 5s→10s→20s 递增;用尽后**明确放弃**并保持 BM25-only。
+# 【变易】三个数值均可调;当前退避与剩余次数会如实出现在
+#         embedding.worker.* 日志与 EmbeddingIndex.worker_health() 出口里。
+_WORKER_MAX_RESTARTS = 3
+_WORKER_RESTART_BACKOFF_BASE_SEC = 5.0
+_WORKER_RESTART_BACKOFF_MAX_SEC = 300.0
+
 # 探测结果缓存的有效期(秒)
 # 【变易】为什么需要 TTL:探测结果是**能力快照**,不是永久事实。原实现只读
 #         bool(data["available"])、完全忽略 probed_at ⇒ 一次负结果被永久固化
@@ -602,6 +613,18 @@ class EmbeddingIndex:
         self._model_name = model_name
         self._proc: Optional[subprocess.Popen] = None
         self._lock = threading.RLock()
+        # 【W2/TASK-03 新增】崩溃可观测性 + 退避重启状态
+        # Why(不可省):原实现里 `_init_failed` 一旦置 True 就**终身粘住**
+        #   (_ensure_worker 的首行守卫),被 0xC0000005 打死的 worker 此后永不
+        #   再被拉起,进程余生只能 BM25-only —— 而"语义检索能力已丢失"这条事实
+        #   既无计数、也无只读出口,日志里只剩一串互相独立的 warn。
+        self._worker_failure_total = 0
+        self._worker_restart_attempts = 0
+        self._next_restart_at = 0.0
+        self._retry_exhausted = False
+        self._restarting = False
+        self._restart_lock = threading.RLock()
+        self._last_worker_failure: dict = {}
         self._doc_ids: list[str] = []
         self._embeddings = None
         self._pending: list[tuple[str, str]] = []
@@ -614,7 +637,9 @@ class EmbeddingIndex:
         #      只有真出现重复 doc_id 时才走原来的过滤分支 ⇒ 语义逐字不变、复杂度降到 O(1)。
         # 【变易】它必须与 `_pending` 的任何改动成对更新（append / filter / clear 三处）。
         self._pending_ids: set[str] = set()
-        self._init_failed = False
+        # 直写私有名:绕过下面的 property setter(此时 _restart_lock 尚未用到,
+        # 但保持"初值不触发留痕"这一语义更清晰 —— 初始 False 本就不是上升沿)。
+        self.__init_failed = False
         self._load_time_sec: Optional[float] = None
         self._load_source: Optional[str] = None
         self._project_root = _PROJECT_ROOT
@@ -623,6 +648,171 @@ class EmbeddingIndex:
         self._query_cache: dict = {}
         self._cache_hits = 0
         self._cache_misses = 0
+
+    # ════════════════════════════════════════════════════════════
+    #  【W2/TASK-03】worker 不可用态的唯一入口 + 退避重启 + 只读健康出口
+    # ════════════════════════════════════════════════════════════
+
+    @property
+    def _init_failed(self) -> bool:
+        """worker 是否已判定不可用(粘滞标志)。"""
+        return self.__init_failed
+
+    @_init_failed.setter
+    def _init_failed(self, value: bool) -> None:
+        """把"置位不可用"收敛成**唯一入口**(计数 + 留痕 + 退避排期)。
+
+        Why 用属性而不是逐个调用点插桩:本类共有 12 处 `self._init_failed = True`
+        (Popen 失败 / ready 超时 / stdout 读失败 / 启动 EOF / 非法 JSON /
+        init_failed 消息 / 未知消息 / encode 时进程已死 / 写失败 / 读失败 /
+        读超时 / encode EOF)。逐点插桩**必然漏一处**,而漏掉的那处正是
+        "崩溃不留痕"重现的地方;属性 setter 使任何新增置位点自动获得留痕。
+
+        判据取 False→True 的**上升沿**:只有首次进入不可用态才计数,否则重复
+        置位会把同一次崩溃数成多次(退避也会被无谓推后)。
+        """
+        rising = bool(value) and not self.__init_failed
+        self.__init_failed = bool(value)
+        if rising:
+            self._on_worker_unusable()
+
+    def _on_worker_unusable(self) -> None:
+        """worker 进入不可用态:计数 + 排下次退避 + **显式声明降级为 BM25-only**。
+
+        【不易】为什么必须显式写"降级为 BM25-only":原先只有一句
+        embedding.worker.crash/encode.eof 说明**原因**,没有任何一行说明
+        **后果**。运维要从"有一个 warn"推断出"语义检索已整条失效、
+        直到进程重启都不会回来",这一步推断不该由人来做。
+        """
+        now = time.monotonic()
+        with self._restart_lock:
+            self._worker_failure_total += 1
+            failure_no = self._worker_failure_total
+            if self._worker_restart_attempts >= _WORKER_MAX_RESTARTS:
+                self._retry_exhausted = True
+                delay = None
+            else:
+                delay = min(
+                    _WORKER_RESTART_BACKOFF_BASE_SEC
+                    * (2 ** self._worker_restart_attempts),
+                    _WORKER_RESTART_BACKOFF_MAX_SEC,
+                )
+                self._next_restart_at = now + delay
+            self._last_worker_failure = {
+                "failure_no": failure_no,
+                "at_monotonic": round(now, 3),
+                "restart_attempts": self._worker_restart_attempts,
+                "next_restart_in_sec": delay,
+                "retry_exhausted": self._retry_exhausted,
+            }
+        logger.warning(log_dict({
+            'module_name': 'tool_router_hybrid',
+            'action': 'embedding.worker.unusable',
+            'degrade_to': 'bm25_only',
+            'failure_no': failure_no,
+            'restart_attempts': self._worker_restart_attempts,
+            'max_restart_attempts': _WORKER_MAX_RESTARTS,
+            'next_restart_in_sec': delay,
+            'retry_exhausted': self._retry_exhausted,
+            'model': self._model_name,
+        }))
+
+    def _maybe_restart_in_background(self) -> None:
+        """退避到期则在**后台**重试拉起 worker(不阻塞调用方)。
+
+        【不易】为什么不就地同步重试:_ensure_worker 位于 search() 的请求路径上
+        (见 search 首段),同步重试会让一次普通检索阻塞整个模型加载、上限
+        `_WORKER_READY_TIMEOUT`=30s。后台重试把这份代价移出请求路径 ——
+        本次请求照旧立刻 BM25-only 降级,恢复成功后**后续**请求自然重新用上
+        语义检索。这同时是对"崩溃-重启风暴"的第二道约束:同一时刻至多一个
+        重启线程,且必须等退避窗口。
+        """
+        with self._restart_lock:
+            if self._restarting:
+                return
+            if self._worker_restart_attempts >= _WORKER_MAX_RESTARTS:
+                return
+            if time.monotonic() < self._next_restart_at:
+                return
+            self._restarting = True
+            self._worker_restart_attempts += 1
+            attempt = self._worker_restart_attempts
+        logger.warning(log_dict({
+            'module_name': 'tool_router_hybrid',
+            'action': 'embedding.worker.restart.scheduled',
+            'attempt': attempt,
+            'max_attempts': _WORKER_MAX_RESTARTS,
+            'model': self._model_name,
+        }))
+        threading.Thread(
+            target=self._restart_worker,
+            args=(attempt,),
+            name="embedding-worker-restart",
+            daemon=True,
+        ).start()
+
+    def _restart_worker(self, attempt: int) -> None:
+        """后台重试拉起 worker(唯一调用方是 _maybe_restart_in_background)。"""
+        t0 = time.perf_counter()
+        ok = False
+        try:
+            # 先清粘滞标志,_ensure_worker 才会真的去 Popen
+            self._init_failed = False
+            ok = self._ensure_worker(_from_restart=True)
+        except Exception as e:  # pragma: no cover - 仅异常环境走到
+            logger.warning(log_dict({
+                'module_name': 'tool_router_hybrid',
+                'action': 'embedding.worker.restart.error',
+                'attempt': attempt,
+                'error': str(e),
+            }))
+            self._init_failed = True
+        finally:
+            with self._restart_lock:
+                self._restarting = False
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        logger.warning(log_dict({
+            'module_name': 'tool_router_hybrid',
+            'action': 'embedding.worker.restart.success' if ok
+                      else 'embedding.worker.restart.failed',
+            'attempt': attempt,
+            'max_attempts': _WORKER_MAX_RESTARTS,
+            'elapsed_ms': elapsed_ms,
+            'recovered_from_bm25_only': bool(ok),
+            'model': self._model_name,
+        }))
+
+    def worker_health(self) -> dict:
+        """【W2/TASK-03】worker 崩溃/降级的**只读**可观测出口。
+
+        Why:降级状态此前只能靠 private 字段与日志措辞间接判断。
+        本出口是给 /api/health 之类上层探针用的稳定契约(见交付报告的
+        「跨任务请求」:接线 app_server.py 归 TASK-04,本任务不改该文件)。
+        """
+        with self._restart_lock:
+            failures = self._worker_failure_total
+            attempts = self._worker_restart_attempts
+            restarting = self._restarting
+            exhausted = self._retry_exhausted
+            last = dict(self._last_worker_failure)
+            if self._init_failed and not exhausted:
+                remaining = max(0.0, round(self._next_restart_at - time.monotonic(), 3))
+            else:
+                remaining = None
+        alive = self._proc is not None and self._proc.poll() is None
+        return {
+            "mode": "bm25_only" if self._init_failed else "hybrid",
+            "init_failed": self._init_failed,
+            "worker_alive": alive,
+            "available": self.available,
+            "failure_total": failures,
+            "restart_attempts": attempts,
+            "max_restart_attempts": _WORKER_MAX_RESTARTS,
+            "restarting": restarting,
+            "retry_exhausted": exhausted,
+            "next_restart_in_sec": remaining,
+            "last_failure": last,
+        }
 
     @property
     def available(self) -> bool:
@@ -650,9 +840,21 @@ class EmbeddingIndex:
             self._pending.append((doc_id, content))
             self._pending_ids.add(doc_id)
 
-    def _ensure_worker(self) -> bool:
-        """启动子进程 worker + 等待 ready 信号 + 编码 pending 文档"""
+    def _ensure_worker(self, _from_restart: bool = False) -> bool:
+        """启动子进程 worker + 等待 ready 信号 + 编码 pending 文档
+
+        【W2/TASK-03 变更】不可用态不再"终身粘住":退避到期后由后台线程
+        (_restart_worker)重试拉起。`_from_restart` 仅供该线程使用 ——
+        否则重启线程自己会被下面的 `_restarting` 守卫挡掉。
+        """
         if self._init_failed:
+            # 保持本次调用**立即**降级(不动请求路径的时延),只在退避到期时
+            # 排一个后台重试。
+            self._maybe_restart_in_background()
+            return False
+        if self._restarting and not _from_restart:
+            # 后台重启进行中:本次调用保持降级,避免与重启线程**重复拉起**子进程
+            # (双 Popen 会让两个 worker 抢同一根 stdout,响应必然错位)。
             return False
         if self._proc is not None and self._proc.poll() is None:
             return True
@@ -1181,6 +1383,17 @@ class HybridRetriever:
     def degraded(self) -> bool:
         """是否降级到纯 BM25(Embedding 不可用)"""
         return self._tools_loaded and not self._embedding.available
+
+    def embedding_health(self) -> dict:
+        """【W2/TASK-03】把 embedding worker 的崩溃/降级状态透出到检索器层。
+
+        Why:上层健康探针拿到的句柄是 HybridRetriever(见 get_hybrid_retriever),
+        不是内部的 EmbeddingIndex;没有这层透传,`worker_health()` 就无法被
+        /api/health 之类的探针读取(接线动作归 TASK-04,本任务只提供出口)。
+        """
+        health = self._embedding.worker_health()
+        health["retriever_degraded"] = self.degraded
+        return health
 
 
 # ════════════════════════════════════════════════════════════
