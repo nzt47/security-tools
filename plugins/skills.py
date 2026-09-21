@@ -546,14 +546,24 @@ def api_skills_delete():
     skill_id = data.get("id", "")
 
     # 内置技能不可删除
+    # 【L34 加固 · fail-closed】原实现把整段守卫包在 `except Exception: pass` 里 ——
+    # 即一旦 BUILTIN_EXTENSIONS 导入失败（该 import 由于函数内延迟、规避循环导入，
+    # 确有可能失败），守卫就**静默失效**、删除照常往下走；而下方的
+    # _skills_mgr.delete → svc.file_store.delete → file_store.py:694-712 shutil.rmtree
+    # 是**不可逆**的整树删除。
+    # 【不易】安全守卫不得自行静默关闭：加载不了清单时**宁可拒绝删除**，
+    # 也不能把「保护消失」与「允许删除」等同起来。故改为**失败即拒绝**并给出可读原因。
     try:
         from agent.extensions.base import BUILTIN_EXTENSIONS
-        for s in BUILTIN_EXTENSIONS.get("skill", []):
-            s_id = s.get("id", "")
-            if s_id == skill_id and s.get("builtin", False):
-                return jsonify({"ok": False, "error": "内置技能不可删除"})
-    except Exception:
-        pass
+    except Exception as e:  # noqa: BLE001
+        return jsonify({
+            "ok": False,
+            "error": f"内置技能清单加载失败，已拒绝删除以保护不可逆数据: {e}",
+        })
+    for s in BUILTIN_EXTENSIONS.get("skill", []):
+        s_id = s.get("id", "")
+        if s_id == skill_id and s.get("builtin", False):
+            return jsonify({"ok": False, "error": "内置技能不可删除"})
 
     # 从 skills.json 删除
     result = _skills_mgr.delete(skill_id)
