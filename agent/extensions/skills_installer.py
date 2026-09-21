@@ -176,20 +176,69 @@ class SkillsInstaller:
         logger.info(log_dict({'module_name': 'skills_installer', 'action': 'skill_id', 'msg': f'[技能安装器] 已添加自定义技能: {skill_id}'}))
         return True, f"已添加技能: {name}"
 
-    def remove_skill(self, skill_id: str) -> Tuple[bool, str]:
-        """移除应用层技能（registry 主轨/文件轨删除，同步 ExtensionStore）"""
+    def remove_skill(self, skill_id: str, force: bool = False) -> Tuple[bool, str]:
+        """移除应用层技能（registry 主轨/文件轨删除，同步 ExtensionStore）
+
+        【L20 加固 · 文件轨独占技能不再被整棵删目录】
+        可达条件（实测）：主轨 svc.store.get(skill_id) 为 None（该技能没有主轨行）
+        **且**文件轨 svc.file_store.get_metadata(skill_id) 非 None ⇒ 原实现直接走
+        svc.file_store.delete() → shutil.rmtree(skill_dir)
+        （agent/skills_mgmt/file_store.py:694-712），把 data/skills_repo/<id>/ 整棵树
+        （含 scripts/ 与 temp/ 业务模板）不可逆删除。
+
+        这类"文件轨独占"技能是**技能仓库/内置 persona 技能**（front matter 提供），
+        并非扩展安装产物：扩展安装（add_builtin_skill / add_custom_skill）要么经
+        create_manual 落主轨，要么只登记一条 extension 记录（实测
+        agent/data/extensions.json:29-39 中 memory_summary 为 source="builtin"、
+        install_path=""），磁盘目录从来不是扩展装出来的。
+        ⇒ 本方法作为**扩展卸载**入口，对"文件轨独占"技能默认**拒绝删除**；
+        确需删除必须显式 force=True（并写结构化留痕）。
+
+        Args:
+            skill_id: 技能 ID
+            force: True 时允许删除"文件轨独占"技能（默认 False；
+                主轨存在的既有卸载路径与 force 无关，完全不变）
+
+        Returns:
+            (成功标志, 消息)
+        """
         try:
             from agent.skills_mgmt.registry import SkillRegistry
             reg = SkillRegistry()
             svc = reg._svc()
             if svc.store.get(skill_id) is not None:
+                # ── 既有合法卸载路径（主轨存在 → registry 多轨删除）：一字未改 ──
                 svc.delete(skill_id)
             else:
                 meta = svc.file_store.get_metadata(skill_id)
-                if meta is not None:
-                    svc.file_store.delete(skill_id)
-                else:
+                if meta is None:
                     return False, f"技能不存在: {skill_id}"
+                # ── L20 加固：文件轨独占 ⇒ 拒绝（除非显式 force）──
+                ext_meta = self._store.get(ExtensionType.SKILL, skill_id)
+                if not force:
+                    logger.warning(log_dict({
+                        'module_name': 'skills_installer',
+                        'action': 'remove_skill.refused_file_track_only',
+                        'skill_id': skill_id,
+                        'has_extension_record': ext_meta is not None,
+                        'extension_source': (ext_meta or {}).get('source'),
+                        'msg': ('[技能安装器] 拒绝删除文件轨独占技能 %s：'
+                                '主轨无记录 ⇒ 该目录不是扩展安装产物'
+                                '（确认删除请显式 force=True）' % skill_id),
+                    }))
+                    return False, (
+                        f"拒绝删除: 技能 {skill_id} 仅存在于文件轨（主轨无记录），"
+                        f"其目录由技能仓库/内置技能提供，删除不可逆；"
+                        f"如确需删除请显式 force=True"
+                    )
+                logger.warning(log_dict({
+                    'module_name': 'skills_installer',
+                    'action': 'remove_skill.force_file_track_only',
+                    'skill_id': skill_id,
+                    'has_extension_record': ext_meta is not None,
+                    'msg': '[技能安装器] 显式 force=True 删除文件轨独占技能: %s' % skill_id,
+                }))
+                svc.file_store.delete(skill_id)
             self._store.remove(ExtensionType.SKILL, skill_id)
             logger.info(log_dict({'module_name': 'skills_installer', 'action': 'skill_id', 'msg': f'[技能安装器] 已移除技能: {skill_id}'}))
             return True, f"已移除技能: {skill_id}"

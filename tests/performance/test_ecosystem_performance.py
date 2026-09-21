@@ -151,13 +151,21 @@ class TestExtensionPerformance:
         assert _snapshot(_REAL_SKILL_DIR) == real_before, (
             "本用例触碰了真实 data/skills_repo（隔离失效）："
             f"{_REAL_SKILL_DIR}")
-        # ② 覆盖性证明：隔离 repo 上 install/uninstall 确实真跑过 ——
-        #    uninstall 走 file_store.delete / 多轨删除后，隔离仓库不留残留
+        # ② 覆盖性证明（**L20 起口径已变**）：memory_summary 属**文件轨独占**技能
+        #    （主轨无记录，目录由技能仓库/内置技能提供），扩展 uninstall 必须
+        #    **拒绝**删除；旧实现会经 file_store.delete → shutil.rmtree 把整棵
+        #    技能目录（含 scripts/ 与 temp/）不可逆删掉。
+        #    故此处断言「拒绝生效 + 目录仍在」——**与 L20 之前的断言方向相反**。
+        res = manager.uninstall("skill", "memory_summary")
+        assert isinstance(res, dict) and res.get("ok") is False, (
+            f"L20 门禁失效：文件轨独占技能的 uninstall 未被拒绝，实际返回 {res!r}")
+        assert "拒绝删除" in str(res.get("message", "")), (
+            f"L20 拒绝原因不可读：{res!r}")
+        assert (Path(isolated_extensions.file_store.repo_path)
+                / "memory_summary").exists(), (
+            "L20 门禁失效：文件轨独占技能目录被删除（不可逆）")
         assert isolated_extensions.store.get("memory_summary") is None, (
-            "uninstall 未走到主轨删除分支（用例被弱化）")
-        assert not (Path(isolated_extensions.file_store.repo_path)
-                    / "memory_summary").exists(), (
-            "uninstall 未走到 file_store.delete 分支（用例被弱化）")
+            "uninstall 意外写入了主轨（用例被弱化）")
     
     @pytest.mark.performance
     def test_extension_manager_list(self, isolated_extensions):
