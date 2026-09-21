@@ -2403,6 +2403,17 @@ class AuditChain:
         self._journal_write_attempts = {}
         self._journal_abandoned = {}
         self._journal_abandoned_count = 0
+        # 【L14-a】"在途"集合也必须一起清空（**测试专用路径**）：
+        # `_drain_journal` 在 chain.py:2002 取 `_inflight_seq` 快照，并在
+        # chain.py:2011 把命中的 seq 当"还在队列里等着被 writer 处理"而跳过。
+        # 但 `clear()` 已把队列抽干 —— 残留的 in-flight seq 于是既不上队、
+        # 又不被收敛，**永久滞留**（与 2399-2404 行归零的那些残留同一性质）。
+        # 【为什么安全】清空只让 `inflight` 变**小** ⇒ `candidates` 只增不减，
+        # 最坏是让某个 seq 被重放一次（本就由 `_seqs_in_db_checked` 去重）；
+        # 且本函数随后已 `compact(upto_seq=10**18)`、库也已 DELETE，
+        # 生产链路上不产生任何新行为。
+        with self._count_lock:
+            self._inflight_seq.clear()
 
     # ── 读取路径 ────────────────────────────────────────────
 

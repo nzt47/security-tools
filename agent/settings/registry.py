@@ -477,7 +477,7 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _b("CP_GUARDRAILS_INSTRUCTION_DATA", CAT_SELF_HEALING, True,
        "指令/数据分离防护开关",
        owner="agent/guardrails/instruction_data.py"),
-    _b("CP_GUARDRAILS_FOREIGN_TAINT", CAT_SELF_HEALING, False,
+    _b("CP_GUARDRAILS_FOREIGN_TAINT", CAT_SELF_HEALING, True,
        "外部来源污点标记总开关",
        owner="agent/guardrails/foreign_taint.py"),
     _b("CP_GUARDRAILS_FOREIGN_TAINT_MAX_MARKS", CAT_SELF_HEALING, None,

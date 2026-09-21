@@ -163,9 +163,23 @@ def _git(args: list[str], repo_root: Path, timeout: int = 15) -> str:
     result = subprocess.run(
         ["git", "-C", str(repo_root)] + args,
         capture_output=True, text=True, timeout=timeout, check=False,
+        # 【不易·Windows 实测缺陷】不显式指定编码时, Python 用**系统区域编码**
+        # 解码子进程输出: 简中 Windows 为 cp936/gbk, 而 git 输出 UTF-8
+        # (提交信息含非 GBK 字节时必崩)。捕获线程抛 UnicodeDecodeError 后
+        # 异常被吞, result.stdout 变成 None 且 returncode 仍为 0
+        # ⇒ 调用方 show.split(NUL) 报 AttributeError: 'NoneType' object has
+        # no attribute 'split' (2026-09-21 实测: 默认 --sha HEAD 必现)。
+        # CI(Linux, UTF-8 区域)不复现 ⇒ 门禁长期"绿着带病"。
+        encoding="utf-8", errors="replace",
     )
     if result.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} 失败: {result.stderr.strip()}")
+    if result.stdout is None:
+        # 兜底: 解码/捕获异常被吞时 stdout 会是 None, 在此显式失败,
+        # 而不是把 None 交给调用方在下游炸 AttributeError
+        raise RuntimeError(
+            f"git {' '.join(args)} 未产出可解码输出 (编码/捕获异常), "
+            f"stderr={(result.stderr or '')[:200]!r}")
     return result.stdout
 
 
@@ -246,6 +260,11 @@ def query_associated_prs_gh(full_sha: str, repo: str) -> list[dict] | None:
             ["gh", "api", f"repos/{repo}/commits/{full_sha}/pulls",
              "--jq", "[.[] | {number, state, head_ref: .head.ref}]"],
             capture_output=True, text=True, timeout=15, check=False,
+            # 同一编码缺陷的同类加固（见 _git 的说明）：不指定编码时 Windows
+            # 用 gbk 解码 gh 的 UTF-8 输出; 一旦解码失败 result.stdout 会是
+            # None, 而下面的 stdout-or-[] 兜底会把它当成"查询成功但无关联 PR"
+            # ⇒ enforce 模式下**误 BLOCK**（判定逻辑本身未改）。
+            encoding="utf-8", errors="replace",
         )
         if result.returncode != 0:
             return None
@@ -275,6 +294,7 @@ def query_associated_prs_graphql(full_sha: str, repo: str) -> list[dict] | None:
         result = subprocess.run(
             ["gh", "api", "graphql", "-f", f"query={query}"],
             capture_output=True, text=True, timeout=15, check=False,
+            encoding="utf-8", errors="replace",   # 同上: 统一 UTF-8 解码
         )
         if result.returncode != 0:
             return None
