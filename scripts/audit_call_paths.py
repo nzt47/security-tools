@@ -65,6 +65,7 @@ import re
 import subprocess
 import sys
 import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
@@ -196,12 +197,80 @@ def _walk_python(root: str) -> List[str]:  # pragma: no cover - 兜底
     return sorted(out)
 
 
+#: AST 解析缓存：`(root, rel, mtime_ns, size) -> Optional[ast.Module]`
+#
+# 【为什么需要（2026-09-21 实测）】`_parse` 有 4 个调用点（`_collect_findings` 主循环、
+#   `module_bindings` 侧、`_symbol_exists`、`_symbol_lineno`），后两者是**按 finding
+#   调用**的 ⇒ 同一次冷扫描里同一文件被反复解析。实测：1396 个受控文件触发
+#   **2802 次 `_parse`（2.01× 重复，其中 5 个文件被解析 4 次）**，
+#   `_collect_findings` 冷跑 16.3s。
+#
+# 【为什么键里放 mtime_ns + size，而不是只放 rel】只按路径缓存会让"改了文件却沿用旧
+#   AST"成为可能 —— 而 `--check` 是**门禁结论**，陈旧结论比超时更危险（与上方
+#   `_RAW_SCAN_CACHE` 的失效判据同一条理由，此处复用同一套指纹语义）。
+#   文件在两次 stat 之间被改写（mtime_ns 与 size 双双不变）的概率可忽略。
+#
+# 【线程/进程安全】`ast.parse` 的返回值本模块只读不改（全部是 `ast.walk`/`visit`），
+#   故跨调用共享安全。pytest-xdist 是**多进程**，各进程独立缓存，无共享问题；
+#   进程内用独立锁与 `_RAW_SCAN_LOCK` 解耦，避免与 scan 的临界区互相等待。
+_PARSE_CACHE_MAX = 4096
+_PARSE_CACHE: "OrderedDict[Tuple[str, str, int, int], Optional[ast.Module]]" = OrderedDict()
+_PARSE_CACHE_LOCK = threading.Lock()
+_PARSE_CACHE_STATS: Dict[str, int] = {"hit": 0, "miss": 0, "evict": 0}
+
+
 def _parse(root: str, rel: str) -> Optional[ast.Module]:
+    """解析一个受控文件为 AST（**带进程级缓存**，见 `_PARSE_CACHE` 的说明）
+
+    返回的 AST 由调用方**只读**使用；缓存会跨调用共享同一对象，
+    因此任何调用点都**不得就地修改**返回的 AST。
+    """
+    path = os.path.join(root, rel)
     try:
-        with open(os.path.join(root, rel), "r", encoding="utf-8") as f:
-            return ast.parse(f.read(), rel)
+        st = os.stat(path)
+        key: Tuple[str, str, int, int] = (root, rel, st.st_mtime_ns, st.st_size)
+    except OSError:
+        # stat 失败：不缓存（文件可能刚被删除），直接走一次解析尝试
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return ast.parse(f.read(), rel)
+        except (OSError, SyntaxError, UnicodeDecodeError):
+            return None
+
+    with _PARSE_CACHE_LOCK:
+        if key in _PARSE_CACHE:
+            _PARSE_CACHE_STATS["hit"] += 1
+            _PARSE_CACHE.move_to_end(key)
+            return _PARSE_CACHE[key]
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            tree: Optional[ast.Module] = ast.parse(f.read(), rel)
     except (OSError, SyntaxError, UnicodeDecodeError):
-        return None
+        tree = None
+
+    with _PARSE_CACHE_LOCK:
+        _PARSE_CACHE_STATS["miss"] += 1
+        _PARSE_CACHE[key] = tree
+        _PARSE_CACHE.move_to_end(key)
+        while len(_PARSE_CACHE) > _PARSE_CACHE_MAX:
+            _PARSE_CACHE.popitem(last=False)
+            _PARSE_CACHE_STATS["evict"] += 1
+    return tree
+
+
+def parse_cache_clear() -> None:
+    """清空 AST 解析缓存（测试与长驻进程用；改完工作区想强制重扫也可先调它）"""
+    with _PARSE_CACHE_LOCK:
+        _PARSE_CACHE.clear()
+
+
+def parse_cache_info() -> Dict[str, int]:
+    """AST 解析缓存统计（hit / miss / evict / entries）—— 供测试锁定"重复解析被消除" """
+    with _PARSE_CACHE_LOCK:
+        info = dict(_PARSE_CACHE_STATS)
+        info["entries"] = len(_PARSE_CACHE)
+        return info
 
 
 def module_of(rel: str) -> str:

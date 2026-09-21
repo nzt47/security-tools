@@ -270,6 +270,93 @@ _PROBE_V2 = _PROBE_V1 + (
 )
 
 
+class TestParseCache:
+    """`_parse` 的 AST 缓存：消除同一文件的重复解析 + 内容变化必须失效
+
+    【为什么单独立一组（2026-09-21）】实测一次冷扫描对 1396 个受控文件触发
+    **2802 次 `_parse`（2.01× 重复，其中 5 个文件被解析 4 次）** —— 调用点是
+    `_collect_findings` 主循环 + `_symbol_exists` / `_symbol_lineno`（按 finding 调用）。
+    `scan()` 的进程级缓存只覆盖"整轮扫描"这一层，**管不到轮内的重复解析**。
+    """
+
+    @pytest.fixture
+    def synthetic(self, audit, tmp_path, monkeypatch):
+        """把受控文件列表指向合成根（不碰仓库真实文件）"""
+        monkeypatch.setattr(audit, "tracked_python_files",
+                            lambda root: ["agent/probe_synthetic.py"])
+        return tmp_path
+
+    def test_同一文件重复解析被缓存消除(self, audit, tmp_path):
+        """★ 核心不变量：同一文件（内容未变）第二次解析必须命中缓存
+
+        【为什么直接测 `_parse` 而不只测 `scan()`】合成探针不产生 finding ⇒
+        `_symbol_lineno`（按 finding 调用 `_parse`）根本不会被执行，**轮内重复解析
+        在合成夹具上复现不出来**。首版用例只断言"第二次 scan 的 miss 不增"，
+        结果**禁用缓存后依然全绿**（变异探针实测）—— 即它锁不住目标。
+        真实现象（1396 文件 → 2802 次 `_parse`）必须在 `_parse` 这一层锁：
+        直接对同一个未缓存文件解析两次，断言第二次不读盘。
+        """
+        target = tmp_path / "probe_same.py"
+        target.write_text("x = 1\n", encoding="utf-8")
+
+        audit.parse_cache_clear()
+        first = audit._parse(str(tmp_path), "probe_same.py")
+        assert first is not None, "首次解析失败，夹具有问题"
+        base = audit.parse_cache_info()
+        assert base["miss"] >= 1 and base["entries"] >= 1, f"首次未入缓存：{base}"
+
+        second = audit._parse(str(tmp_path), "probe_same.py")
+        after = audit.parse_cache_info()
+        assert second is first, (
+            "同一文件第二次解析返回了不同对象 ⇒ 走了重新解析（缓存未生效）；"
+            f"统计 {base} → {after}"
+        )
+        assert after["miss"] == base["miss"], (
+            f"第二次解析仍读了盘（miss {base['miss']} → {after['miss']}）⇒ AST 缓存未生效"
+        )
+
+    def test_文件集合扫描不产生轮内重复解析(self, audit, synthetic):
+        """同一次 `scan()` 内，同一文件**只应读盘一次**（其余解析走命中）
+
+        【口径说明】轮内确有**两个解析入口**（实测栈）：
+        `_collect_findings` → `collect_registered_handlers`(:651) 与主循环(:657)。
+        因此单文件合成根的 `miss` 是 **2**（两次 stat+读盘）而不是 1 ——
+        但有了 AST 缓存后**只有第一次读盘**，第二次是 `hit`。
+        所以判据是"**命中了**"，而不是"miss 等于 1"（首版按 miss==1 断言，
+        正常跑就失败 —— 那是断言口径错，不是代码错）。
+        """
+        _write_probe(synthetic, _PROBE_V1)
+
+        audit.parse_cache_clear()
+        audit.scan_cache_clear()
+        audit.scan(str(synthetic))
+        info = audit.parse_cache_info()
+        assert info["hit"] >= 1, (
+            f"轮内两个解析入口都读了盘（hit=0）⇒ AST 缓存未生效：{info}"
+        )
+        assert info["entries"] == 1, (
+            f"同一个文件不该有多个缓存条目（键含 mtime_ns/size，内容未变应复用）：{info}"
+        )
+
+    def test_文件内容变化后_AST_缓存失效(self, audit, synthetic):
+        """★ 缓存键含 mtime_ns+size ⇒ 改了文件必须重新解析（否则 `--check` 给出过期结论）"""
+        _write_probe(synthetic, _PROBE_V1)
+        audit.parse_cache_clear()
+        audit.scan(str(synthetic))
+        before = audit.parse_cache_info()["miss"]
+
+        # 改内容（size 与 mtime_ns 至少变一个）⇒ 必须重新解析该文件
+        _write_probe(synthetic, _PROBE_V2)
+        got = {f.capability for f in audit.scan(str(synthetic))}
+        after = audit.parse_cache_info()["miss"]
+        assert got == {"cap_alpha", "cap_beta"}, (
+            f"文件内容变化后结论未更新 ⇒ AST 缓存未失效：{got}"
+        )
+        assert after > before, (
+            f"文件已改动但未重新解析（miss 仍为 {before}）⇒ 缓存键未含文件指纹"
+        )
+
+
 class TestScanCache:
     """`audit_call_paths.scan()` 的进程级缓存：命中 + 失效"""
 
