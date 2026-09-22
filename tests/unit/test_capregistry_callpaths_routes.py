@@ -30,6 +30,21 @@ from agent.capregistry.call_sites import (  # noqa: E402
     DEAD_MODULES, EXEMPT_CALL_SITES, VIOLATION_SCOPE_PREFIXES, anchor_key,
     reachability_of)
 
+# ════════════════════════════════════════════════════════════
+#  超时预算：显式给出，不依赖全局默认（pytest.ini 的明文要求）
+# ════════════════════════════════════════════════════════════
+# 【为什么本文件要显式给 300s】本文件的成本是**全仓 AST 扫描**：
+#   - 本文件自己的 docstring 记载：`scan()` 单次 **17.7s**、同进程第二次仍 18.7s（无缓存时），
+#     而本文件有 1 个 module 级 scan 夹具 + 5 次 `main(["--check"])` ⇒ **单进程 6 次全仓 AST ≈ 108s**；
+#   - pytest.ini 的 addopts 早已把全局默认从 60s 提到 120s，并**明文要求**：
+#     "极慢测试应显式 @pytest.mark.timeout(N) 覆盖，不要依赖全局默认"；
+#   - 而 CI 的分片命令又用命令行 `--timeout=60` 覆盖了 ini（命令行优先于 ini），
+#     2 核 runner + `-n 2 --dist=loadscope` 下本文件必然击穿 60s ⇒ 实测 CI 连续三轮
+#     出现 `Failed: Timeout (>60.0s) from pytest-timeout`（同一文件 9 条用例）。
+# 【这不改任何断言】：只把**预算**按实测成本显式化，与 test_concurrency_multi_writer.py
+#   既有的 `@pytest.mark.timeout(300)` 同款做法。
+pytestmark = pytest.mark.timeout(300)
+
 
 def _load_audit_module():
     """按路径加载 `scripts/audit_call_paths.py`（它不在包内，不能直接 import）"""

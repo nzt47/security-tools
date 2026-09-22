@@ -74,12 +74,22 @@ def test_warm_call_is_cached_and_under_budget():
     first = M.load_tool_meta(force=True)
     cold_ms = (time.perf_counter() - t0) * 1000
 
-    t0 = time.perf_counter()
-    second = M.load_tool_meta()
-    warm_ms = (time.perf_counter() - t0) * 1000
+    # 【取多次中的最小值·2026-09-22】命中路径是纯内存返回，本应亚毫秒级；实测 CI 上出现过
+    #   6.83ms / 6.96ms —— 那不是"命中变慢"，而是用例所在进程被**调度挂起**（2 核 runner、
+    #   `-n 2 --dist=loadscope`、同 shard 还有全仓 AST 扫描类用例）。
+    #   上界**不放宽**（仍是 5ms，仍能抓住"签名计算写成全量哈希"这类真回归——那会让命中稳定在
+    #   毫秒级而非偶发一次），只是把"一次采样"换成"三次取最小"以剔除调度噪声。
+    #   （同文件对冷读已有"给 3 倍余量容忍 CI 抖动"的先例。）
+    warm_samples = []
+    for _ in range(3):
+        t0 = time.perf_counter()
+        second = M.load_tool_meta()
+        warm_samples.append((time.perf_counter() - t0) * 1000)
+    warm_ms = min(warm_samples)
 
     assert second is first, "缓存命中应返回同一对象（不重复构造）"
-    assert warm_ms < 5.0, f"缓存命中耗时 {warm_ms:.2f}ms 超过 5ms 上界（签名计算可能写成了全量哈希）"
+    assert warm_ms < 5.0, (f"缓存命中耗时 {warm_ms:.2f}ms 超过 5ms 上界"
+                         f"（三次采样 {[round(s, 2) for s in warm_samples]}；签名计算可能写成了全量哈希）")
     # 冷读用 C loader 后应有明确上界（实测 ~33ms；给 3 倍余量容忍 CI 抖动）
     assert cold_ms < 110.0, f"冷读耗时 {cold_ms:.1f}ms 偏高，CSafeLoader 未生效？"
 

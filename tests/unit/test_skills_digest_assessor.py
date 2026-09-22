@@ -343,6 +343,10 @@ class TestAssessKnobsAndScriptScan:
             "tags": ["assess", "test", "demo"], "author": "tester",
         }
 
+    # 【超时预算显式化】本用例会走 skills 的**脚本扫描**（第三层 scripts/）；CI 的 2 核 runner
+    #   在 `-n 2 --dist=loadscope` 下实测击穿命令行的 `--timeout=60`（pytest.ini 的全局默认本是
+    #   120s，且明文要求极慢测试显式覆盖）。只放宽**等待预算**，断言一字未改。
+    @pytest.mark.timeout(180)
     def test_script_files_review_merged_and_blocks(self, tmp_path, monkeypatch):
         """repo/<id>/scripts/*.py 含高风险代码 → 评估合并 SEC_FILE_SCRIPT 且阻断"""
         repo = tmp_path / "repo"
