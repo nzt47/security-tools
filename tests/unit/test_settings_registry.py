@@ -335,3 +335,85 @@ class TestRegistryIntegrity:
         with pytest.raises(ValueError):
             R.SettingSpec(key="X_Y", category=R.CAT_OBSERVABILITY, type="bool",
                           default=False, description="", env_name="X_Y")
+
+
+# ════════════════════════════════════════════════════════════
+#  四、登记默认值 ↔ 代码事实（回归守护；裁定 D-20260922-01）
+# ════════════════════════════════════════════════════════════
+
+
+class TestRegisteredDefaultsMatchCodeFacts:
+    """★ 登记默认值不得与代码事实**相反**（「声明与事实不符」是谎报，不是展示瑕疵）
+
+    背景（2026-09-22 实测）：`SCHEMA_PRUNE_DEPRECATED` / `SCHEMA_PRUNE_ADDITIONAL_PROPS`
+    / `FEWSHOT_ENABLED` / `EVOLUTION_ENABLED` / `EVOLUTION_LLM_GENERATE` 五项曾在注册表里
+    登记 `False`，而代码真实默认是 `True` ⇒ 开关中心把「已开启」的功能显示成「关闭」。
+
+    为什么改登记值是安全的（不是绕过）：注册表的 `default` **从不写入 os.environ** ——
+    实测 `resolve_all()` 之后这几个键都不在 `os.environ` 里；`bootstrap.py` 只遍历
+    **覆盖层已存在的键**；全仓唯一把 `spec.default` 落到运行态的是
+    `resolver.py::restore_runtime` 的 ObservabilityConfig 回写，它受
+    `_is_observability_path(spec)` 把关，而这五项都没有 `config_path` ⇒ 永不触发。
+    因此该 `default` 只影响**展示与来源判定**（`resolve()` 的 value/display_value），
+    必须与代码事实一致。
+
+    判据取**源码里真实的默认表达式**（正则机械提取），而不是再抄一份字面量：
+    抄字面量等于把「我以为的默认」断言成「代码的默认」，正是本次缺陷的成因。
+    """
+
+    #: key → (归属文件, 提取「该键在代码里的默认值字面量」的正则)
+    _CODE_DEFAULT_PATTERNS = {
+        "SCHEMA_PRUNE_DEPRECATED": (
+            "agent/tool_schema_pruner.py",
+            r'SCHEMA_PRUNE_DEPRECATED\s*=\s*_env_bool\(\s*"SCHEMA_PRUNE_DEPRECATED"\s*,\s*(True|False)',
+        ),
+        "SCHEMA_PRUNE_ADDITIONAL_PROPS": (
+            "agent/tool_schema_pruner.py",
+            r'SCHEMA_PRUNE_ADDITIONAL_PROPS\s*=\s*_env_bool\(\s*"SCHEMA_PRUNE_ADDITIONAL_PROPS"\s*,\s*(True|False)',
+        ),
+        "FEWSHOT_ENABLED": (
+            "agent/tool_fewshot_store.py",
+            r'FEWSHOT_ENABLED\s*=\s*_env_bool\(\s*"FEWSHOT_ENABLED"\s*,\s*(True|False)',
+        ),
+        "EVOLUTION_ENABLED": (
+            "agent/evolution/injector.py",
+            r'"enabled":\s*_env_bool\(\s*"EVOLUTION_ENABLED"\s*,\s*'
+            r'_yaml_bool\(\s*cfg\s*,\s*"enabled"\s*,\s*(True|False)\s*\)\s*\)',
+        ),
+        "EVOLUTION_LLM_GENERATE": (
+            "agent/evolution/injector.py",
+            r'"llm_generate"\s*:\s*_env_bool\(\s*"EVOLUTION_LLM_GENERATE"\s*,\s*'
+            r'_yaml_bool\(\s*cfg\s*,\s*"llm_generate"\s*,\s*(True|False)\s*\)\s*\)',
+        ),
+    }
+
+    def _code_default(self, key):
+        """从归属模块源码里机械提取该键的默认值（找不到 → 直接失败，不许空转）"""
+        import re
+
+        rel, pattern = self._CODE_DEFAULT_PATTERNS[key]
+        source = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        found = re.search(pattern, source)
+        assert found is not None, (
+            f"{key} 的默认值表达式未能在 {rel} 中提取到（正则已过期或代码已改）："
+            "本守护会空转，必须同步修正则，而不是删断言")
+        return found.group(1) == "True"
+
+    def test_registered_defaults_are_not_contradicted_by_code(self):
+        """★ 五项曾「声明与事实相反」的开关：登记默认值必须等于代码默认值"""
+        for key in self._CODE_DEFAULT_PATTERNS:
+            spec = R.get_spec(key)
+            assert spec is not None, f"注册表缺少 {key}"
+            assert spec.default is self._code_default(key), (
+                f"{key} 登记默认值 {spec.default!r} 与代码事实 "
+                f"{self._code_default(key)!r} 相反（@ {self._CODE_DEFAULT_PATTERNS[key][0]}）")
+
+    def test_probe_table_covers_every_known_offender(self):
+        """守护范围必须覆盖裁定 D-20260922-01 列出的全部五项（防「漏一个就绿」）"""
+        assert set(self._CODE_DEFAULT_PATTERNS) == {
+            "SCHEMA_PRUNE_DEPRECATED", "SCHEMA_PRUNE_ADDITIONAL_PROPS",
+            "FEWSHOT_ENABLED", "EVOLUTION_ENABLED", "EVOLUTION_LLM_GENERATE",
+        }
+        for key, (rel, _pattern) in self._CODE_DEFAULT_PATTERNS.items():
+            assert (REPO_ROOT / rel).exists(), (key, rel)
+
