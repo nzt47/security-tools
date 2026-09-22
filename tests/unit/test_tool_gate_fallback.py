@@ -175,3 +175,56 @@ class TestGhostToolSemantics:
 
         assert _pending_count() == before, \
             "为不存在的工具挂单 ⇒ 人工会看到一张批了也没用的单"
+
+
+# ════════════════════════════════════════════════════════════
+#  回归：伦理误报不得污染理由、也不得独自拦下本应放行的调用
+#  （待办台账 #2 —— 根因是"键名参与子串匹配"）
+# ════════════════════════════════════════════════════════════
+
+#: delegate 的八要素（必填八项全给；``artifact_format`` 是**参数名**，
+#: 修复前它让每一次委派都被报成「E002 禁止格式化磁盘」）
+DELEGATE_EIGHT_ELEMENTS = {
+    "goal": "计算 1..100 之和",
+    "constraints": ["只读"],
+    "prior_artifacts": [],
+    "prohibitions": ["不得修改或删除任何文件"],
+    "artifact_format": "纯文本一行",
+    "budget_tokens": 1000,
+    "timeout_seconds": 60,
+    "callback_url": "internal://x",
+}
+
+
+class TestEthicsFalsePositiveDoesNotLeak:
+    """台账 #2：``delegate`` 的拦截理由必须与**任务内容**有关，而不是参数名"""
+
+    def test_委派理由里不再出现_E002(self):
+        result = G.check_tool_call("delegate", DELEGATE_EIGHT_ELEMENTS)
+
+        assert result is not None and result["blocked"] is True
+        assert "confirm_level=L1" in result["reason"], result["reason"]
+        assert "E002" not in result["reason"], \
+            "参数名 artifact_format 又被当成『禁止格式化磁盘』: %s" % result["reason"]
+        assert "伦理" not in result["reason"], result["reason"]
+
+    def test_影子态下委派不再被误报拦下(self, monkeypatch):
+        """``CP_TOOL_CONFIRM_LEVEL_SHADOW=1`` 的书面承诺是「只告警、不拦截」"""
+        monkeypatch.setenv(G.CONFIRM_LEVEL_SHADOW_ENV, "1")
+
+        assert G.check_tool_call("delegate", DELEGATE_EIGHT_ELEMENTS) is None
+
+    def test_分级回滚态下委派不再被误报拦下(self, monkeypatch):
+        """``CP_TOOL_CONFIRM_LEVEL_ENFORCE=0``（窄回滚）下，误报不得**独自**把调用拦下"""
+        monkeypatch.setenv(G.CONFIRM_LEVEL_ENFORCE_ENV, "0")
+
+        assert G.check_tool_call("delegate", DELEGATE_EIGHT_ELEMENTS) is None
+
+    def test_真命中在影子态下仍被拦(self, monkeypatch):
+        """收窄的是**误报**，不是硬规则本身：影子态只回滚分级层，伦理硬规则照旧"""
+        monkeypatch.setenv(G.CONFIRM_LEVEL_SHADOW_ENV, "1")
+
+        result = G.check_tool_call("run_program", {"program": "shutdown -h now"})
+
+        assert result is not None and result["blocked"] is True, result
+        assert "E003" in result["reason"], result["reason"]
