@@ -40,6 +40,18 @@ REAL_USES = _PROJECT_ROOT / "data" / "tool_approval_uses.jsonl"
 _ARGS = {"command": "echo hi"}
 _TOOL = "shell_execute"
 
+#: 本用例隔离出来的落点（``isolated_env`` 在 setup 时写入、teardown 清空）
+#:
+#: Why 要**钉一次**而不是每次重读环境变量：``APPROVAL_RECORDS_PATH`` /
+#: ``CP_TOOL_APPROVAL_USES_PATH`` 是**进程级**的，而本仓确有在运行期改写它们的
+#: **非 monkeypatch 写者**（``agent/settings/resolver.py`` 的 ``os.environ[...] = ...``、
+#: ``import app_server`` 触发的 ``.env`` 重载 —— 见 ``tests/conftest.py`` 的原文记载）。
+#: 若用例"挂单写 A 库、改记录时却读 B 库"，断言就会拿**另一只库**的视角去判本库的事：
+#: 实测形态是"批次跑偶发红、单跑全绿"（2026-09-22 定位到的那次即此形态；复现与机理见
+#: 本文件 ``test_入口解析库路径_运行期改道不会把一次操作劈成两只库``）。
+#: 故：落点在夹具里钉一次，用例全程只认它 —— "用例自带隔离"。
+_ISOLATED: dict = {}
+
 
 # ════════════════════════════════════════════════════════════
 #  fixtures：全部落 tmp，绝不污染运行时目录
@@ -54,8 +66,10 @@ def isolated_env(tmp_path, monkeypatch):
     另外两个（``CP_EVENTS_DIR`` / 链式审计）是**既有审批流自身的副作用**落点
     （``ApprovalFlow.submit`` 会写事件与链式审计），不隔离等于测试照样写生产数据。
     """
-    monkeypatch.setenv("APPROVAL_RECORDS_PATH", str(tmp_path / "records.jsonl"))
-    monkeypatch.setenv("CP_TOOL_APPROVAL_USES_PATH", str(tmp_path / "uses.jsonl"))
+    records = tmp_path / "records.jsonl"
+    uses = tmp_path / "uses.jsonl"
+    monkeypatch.setenv("APPROVAL_RECORDS_PATH", str(records))
+    monkeypatch.setenv("CP_TOOL_APPROVAL_USES_PATH", str(uses))
     monkeypatch.setenv("APPROVAL_ENABLED", "1")
     monkeypatch.delenv("CP_TOOL_APPROVAL_TTL_SEC", raising=False)
     monkeypatch.setenv("CP_EVENTS_DIR", str(tmp_path / "events"))
@@ -69,7 +83,11 @@ def isolated_env(tmp_path, monkeypatch):
     import agent.observability.events as events_mod
     events_mod.reset_event_stores()
     TA.reset_cache()
+    # 落点在此钉住：用例内的 _verdict / _screen / _records_path() 只认它（不再重读环境）
+    _ISOLATED["records"] = records
+    _ISOLATED["uses"] = uses
     yield tmp_path
+    _ISOLATED.clear()
     TA.reset_cache()
     events_mod.reset_event_stores()
     facade_mod.audit.bind(previous)
@@ -92,11 +110,20 @@ class _Boom:
 
 
 def _records_path() -> Path:
-    return Path(os.environ["APPROVAL_RECORDS_PATH"])
+    """本用例的审批记录文件：**夹具钉住的那一个**（不是"此刻环境变量指向的那一个"）
+
+    两者在正常情况下是同一个；一旦某个运行期改写者把环境改道，钉住的这个才是本用例
+    真正在隔离目录里操作的那只库 —— 用环境值去判它，得到的是**另一只库的结论**
+    （挂单在 A 库、结论取自 B 库 = 随机失败）。夹具未生效时退回环境值，与改动前一致。
+    """
+    pinned = _ISOLATED.get("records")
+    return pinned if pinned is not None else Path(os.environ["APPROVAL_RECORDS_PATH"])
 
 
 def _uses_path() -> Path:
-    return Path(os.environ["CP_TOOL_APPROVAL_USES_PATH"])
+    """本用例的消费台账：同 :func:`_records_path`（夹具钉住的那一个）"""
+    pinned = _ISOLATED.get("uses")
+    return pinned if pinned is not None else Path(os.environ["CP_TOOL_APPROVAL_USES_PATH"])
 
 
 def _flow():
@@ -201,6 +228,35 @@ def test_换审批库后立即生效_不会读到旧库(tmp_path, monkeypatch):
     second = TA.request_approval(_TOOL, _ARGS)
     assert second["approval_id"] != first["approval_id"]
     assert other.exists() and "pending_review" in other.read_text(encoding="utf-8")
+
+
+def test_入口解析库路径_运行期改道不会把一次操作劈成两只库(tmp_path, monkeypatch):
+    """**一次操作只认入口解析的那只库**：运行期改道不得把它劈到两只库上
+
+    Why 要有这条：``APPROVAL_RECORDS_PATH`` 是**进程级**变量，而本仓有非 monkeypatch 的
+    改写者（``agent/settings/resolver.py`` 的 ``os.environ[...] = ...``、``import app_server``
+    触发的 ``.env`` 重载 —— 见 ``tests/conftest.py``）。若 ``request_approval`` 的每一步
+    各自在调用点重读环境，"挂单"会落到改道后的另一只库，而本次操作的其余步骤仍按原库
+    判定 ⇒ "单次有效"与"最新裁决为准"同时失效（实测形态：人的"重新挂单并批准"被静默吃掉，
+    用例表现为"批次跑偶发红、单跑全绿"）。
+
+    本用例把改道插在**入口解析之后**（``_expire_stale_pending`` 内），断言它对本次操作不可见。
+    """
+    other = tmp_path / "other_records.jsonl"
+    original = TA._expire_stale_pending
+
+    def _flip(store: str = "") -> None:
+        original(store)                                     # 先按入口解析到的库做清理
+        monkeypatch.setenv("APPROVAL_RECORDS_PATH", str(other))   # 再模拟运行期改道
+
+    monkeypatch.setattr(TA, "_expire_stale_pending", _flip)
+
+    res = TA.request_approval(_TOOL, _ARGS, session_key="s1")
+
+    assert res["ok"] is True
+    assert not other.exists(), "运行期改道后本次挂单被写进了另一只库（一次操作被劈开）"
+    lines = [ln for ln in _records_path().read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert [json.loads(ln)["record_id"] for ln in lines] == [res["approval_id"]]
 
 
 def test_真实数据文件在测试前后字节不变():

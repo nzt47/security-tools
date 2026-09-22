@@ -547,3 +547,56 @@ class TestConsole:
         assert "approval_console.js" in html
         assert "cp-approval-console-host" in html
         assert "Shadow DOM" in html
+
+    def test_人工入口页面不挂令牌也能打开(self, app):
+        """``GET /approval-console``：人在浏览器里点得到的入口
+
+        【为什么这条必须有】浏览器**地址栏导航无法携带** Authorization 头，而
+        ``/api/approval/console`` 挂了 ``@require_token`` ⇒ 这个独立控制台页在浏览器里
+        **根本打不开**（实测 401）。它是"不经过 React 工作台"的那条人工路径，
+        断了就只剩工作台一条路（而工作台还要求浏览器里已存好令牌）。
+        """
+        response = _client(app).get("/approval-console")
+
+        assert response.status_code == 200, "人工入口必须能被浏览器直接打开"
+        html = response.get_data(as_text=True)
+        assert "approval_console.js" in html
+        assert "cp-approval-console-host" in html
+
+    def test_人工入口只返回外壳不含数据(self, app, flow):
+        """放开的是**静态外壳**，不是数据：外壳里不得出现任何审批记录"""
+        flow.submit("tool_call", "shell_execute", action="tool_call",
+                    description="探针：外壳里不该出现我", payload={"args_digest": "deadbeef"})
+
+        html = _client(app).get("/approval-console").get_data(as_text=True)
+
+        assert "shell_execute" not in html
+        assert "deadbeef" not in html
+        assert "appr-" not in html
+
+
+class TestConsoleTokenInjection:
+    """前端必须把 API 令牌带上：否则控制台每个请求都 401（本缺陷的成因之一）"""
+
+    @staticmethod
+    def _repo_root():
+        return Path(__file__).resolve().parents[2]
+
+    def test_控制台脚本会注入令牌(self):
+        js = (self._repo_root() / "static" / "js" / "approval_console.js").read_text(encoding="utf-8")
+
+        assert "Authorization" in js, "控制台不发 Authorization 头 ⇒ 配了令牌就全 401"
+        assert "yunshu_api_token" in js
+
+    def test_令牌键与_React_侧同键(self):
+        """D1：同一个浏览器里只该有一份令牌，两边**必须同键**
+
+        两处各写一个键名，就会出现"主界面登录过了、审批控制台还说没令牌"这种
+        最难排查的不一致（本仓库把这类问题称为第二真相源）。
+        """
+        root = self._repo_root()
+        js = (root / "static" / "js" / "approval_console.js").read_text(encoding="utf-8")
+        ts = (root / "yunshu-ui" / "src" / "lib" / "apiToken.ts").read_text(encoding="utf-8")
+
+        assert "const STORAGE_KEY = 'yunshu_api_token'" in ts
+        assert "'yunshu_api_token'" in js
