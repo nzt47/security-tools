@@ -51,6 +51,28 @@ python main.py --chat "你好，云枢！"
 python main.py --status
 ```
 
+### 启动 Web 工作台（`/chat`）—— 新克隆**必须先构建前端**
+
+`python app_server.py` 后访问 `http://127.0.0.1:5678/chat` 之前，**必须先**跑一次前端构建：
+
+```bash
+cd yunshu-ui
+npm ci
+npm run build:flask   # 构建并同步到 static/assets/ 与 templates/yunshu.html
+cd ..
+python app_server.py
+```
+
+**原因**：`templates/yunshu.html`（被 git 跟踪）引用的哈希 chunk 位于 `static/assets/`，
+而该目录被 `.gitignore` 的 `static/assets/` 条目忽略、**不被版本控制**。新克隆只有 HTML、没有它引用的 chunk，
+`/chat` 会返回 200 的 HTML + 404 的入口脚本 ⇒ **白屏**（`app_server.py:1535-1543` 对未命中的
+`/static/*` 直接 404，且刻意不回退）。
+
+> 用 `start_yunshu.bat` 一键启动**不受影响**：它起的是 Vite dev server（5173）并打开
+> `http://localhost:5173/static/#/workbench`，前端走源码而非构建产物 —— 这也意味着**它发现不了**
+> 「从未构建过」这个问题。
+> 详见 [Web 工作台启动前置](docs/handover/WEB_UI_BUILD_PREREQUISITE.md)。
+
 ### 配置 LLM（可选）
 
 设置环境变量以获得完整对话能力：

@@ -31,7 +31,10 @@
     （不制造第二真相，也不给"旁路改状态"留一个入口）。而"不可重放"不是决策，
     只是**消费事实**——它天然是追加型的（一次消费一行），且必须能被本进程之外
     看到（否则重启即可重放）。故单独一张 append-only 台账按 ``approval_id``
-    记消费，进程内再加 ``threading.Lock`` + 集合缓存兜住并发。
+    记消费，进程内再加 ``threading.Lock`` + 集合缓存兜住并发；而缓存**必须按文件
+    指纹失效**（``_consumed_ids``）——消费发生在**另一个进程**（UI/CLI）里，
+    本进程只读文件的既成事实，缓存不失效就等于"B 用过、A 还能再用一次"
+    （2026-09-22 修，复现与边界见 ``_consumed_ids`` 的 docstring）。
     审批状态为真、但台账说"已用过"⇒ 不生效（台账只做减法，不做加法）。
 
 【唯一的例外：**系统超时清理**（2026-09-18 补）】
@@ -182,14 +185,19 @@ _SNAPSHOT_LIMIT_DEFAULT = 50
 
 #: 消费台账锁：保证并发下"同一 approval_id 只有一个 True"
 _USES_LOCK = threading.RLock()
-#: path → 已消费 approval_id 集合（按路径分开，避免测试换路径后串味）
-_USES_CACHE: Dict[str, Set[str]] = {}
+#: path → `(台账文件指纹, 已消费 approval_id 集合)`（按路径分开，避免测试换路径后串味）
+#:
+#: 【为什么缓存值里带指纹（2026-09-22 修）】原先只按**路径**缓存集合快照，而消费/审批
+#: 发生在**另一个进程**（UI/CLI）里 ⇒ B 进程追写的消费行在本进程里永远不可见，
+#: `consume()` 会在陈旧快照上把**同一张批准放行第二次**。做法与 `_read_flow` 同源：
+#: `(mtime_ns, size)` 指纹一变就重读（覆盖/不覆盖的边界见 `_consumed_ids` 的说明）。
+_USES_CACHE: Dict[str, Tuple[Optional[Tuple[int, int]], Set[str]]] = {}
 
 #: 工具元数据缓存（``load_tool_meta()`` 要读全部工具 YAML，不能放进每次调用的热路径）
 _META_LOCK = threading.Lock()
 _META_CACHE: Optional[Dict[str, Any]] = None
 
-#: 只读审批流实例缓存：(APPROVAL_RECORDS_PATH 取值, 记录文件路径, 文件指纹, flow)
+#: 只读审批流实例缓存：(本次操作解析到的库路径取值, 记录文件路径, 文件指纹, flow)
 _FLOW_LOCK = threading.Lock()
 _READ_FLOW: Optional[Tuple[str, str, Tuple[int, int], Any]] = None
 
@@ -389,56 +397,83 @@ def _stamp(path: str) -> Optional[Tuple[int, int]]:
         return None
 
 
-def _read_flow() -> Any:
-    """只读用的 ``ApprovalFlow``（按 ``(APPROVAL_RECORDS_PATH 取值, 文件指纹)`` 缓存）
+def _records_path_hint() -> str:
+    """本次操作要用的审批库路径（``APPROVAL_RECORDS_PATH`` 取值；空串 ⇒ 交给 ApprovalFlow 的默认口径）
+
+    【为什么在操作入口解析一次并**显式传下去**】
+        ``APPROVAL_RECORDS_PATH`` 是**进程级**环境变量，而本仓确有在运行期改写它的
+        非 monkeypatch 写者（``agent/settings/resolver.py`` 的 ``os.environ[...] = ...``、
+        ``import app_server`` 触发的 ``.env`` 重载 —— 见 ``tests/conftest.py`` 的记载）。
+        若一次操作里的每一步都各自在调用点重读环境，同一个 ``request_approval`` 就可能
+        "在 A 库挂单、去 B 库判幂等"，``consume`` 就可能"在 A 库查台账、往 B 库记一笔"。
+        而"单次有效"与"最新裁决为准"这两条语义**都建立在同一个库这个前提上**：
+        跨库的那一刻，台账不再能证明那张单用没用过，裁决也不再落在同一处。
+        实测（2026-09-22）：瞬时改道后，"重新挂单并批准"那一步写进了另一只库，本库那张单
+        仍停在 ``pending_review`` ⇒ "最新裁决"退化成更早那条驳回 = 人的操作被静默吃掉。
+        故：**入口解析一次、全程显式传参**，让"一次操作对库的选择"是原子的。
+    """
+    try:
+        raw = os.environ.get("APPROVAL_RECORDS_PATH")
+    except Exception as e:  # noqa: BLE001 环境变量不可读 ⇒ 交给 ApprovalFlow 的默认口径
+        logger.debug("[tool_approval] 审批记录路径环境变量不可读: %s", e)
+        return ""
+    return str(raw).strip() if raw is not None else ""
+
+
+def _new_flow(path_hint: str = "") -> Any:
+    """按**显式路径**构造审批流（``path_hint`` 为空 ⇒ 由 ``ApprovalFlow`` 自己读环境）"""
+    from agent.skills_mgmt.approval import ApprovalFlow
+
+    return ApprovalFlow(records_path=path_hint or None)
+
+
+def _read_flow(path_hint: str = "") -> Any:
+    """只读用的 ``ApprovalFlow``（按 ``(库路径, 文件指纹)`` 缓存）
 
     Why 每次都要能看见"外部刚批的那一条"：人是在**另一个进程**（UI/CLI）里审批的，
     而 ``ApprovalFlow`` 把记录 load 进内存后就不再回读文件。故实例只在**文件指纹
     未变**时复用；指纹一变（外部批准/新增记录）立即重建 ⇒ 读到最新状态。
     Why 缓存：审批记录文件是**只增**的，重建要整文件解析；不缓存等于把全量解析放进
     每次工具调用的热路径。
-    Why 缓存键里还带环境变量取值：``ApprovalFlow()`` 的路径来自
+    Why 缓存键里带库路径取值：``ApprovalFlow()`` 的路径来自
     ``APPROVAL_RECORDS_PATH``。若只看文件指纹，换了库（测试隔离 / 多实例）却"指纹恰好
-    相同"时会跨库返回旧实例——那是会读到**别的库的记录**的错误。带上环境值即可保证
+    相同"时会跨库返回旧实例——那是会读到**别的库的记录**的错误。带上库路径即可保证
     "换库立刻换实例"，同时命中缓存时**不必再构造** ``ApprovalFlow``
     （构造期在审批关闭时会打印醒目告警，热路径上不能按调用次数刷屏）。
-    """
-    from agent.skills_mgmt.approval import ApprovalFlow
 
+    Args:
+        path_hint: 本次操作在**入口**解析一次得到的库路径（见 :func:`_records_path_hint`）；
+            空串 ＝ "环境未设置"，由 ``ApprovalFlow`` 走默认口径。
+    """
     global _READ_FLOW
 
-    try:
-        raw_env = os.environ.get("APPROVAL_RECORDS_PATH")
-    except Exception as e:  # noqa: BLE001 环境变量不可读 ⇒ 按"未设置"处理
-        logger.debug("[tool_approval] 审批记录路径环境变量不可读: %s", e)
-        raw_env = None
-    env_key = str(raw_env) if raw_env is not None else ""
+    key = str(path_hint or "")
 
     with _FLOW_LOCK:
         cached = _READ_FLOW
-        if cached is not None and cached[0] == env_key and _stamp(cached[1]) == cached[2]:
+        if cached is not None and cached[0] == key and _stamp(cached[1]) == cached[2]:
             return cached[3]
 
-    flow = ApprovalFlow()  # 构造不读文件（惰性 load），故可先建后取指纹
+    flow = _new_flow(path_hint)  # 构造不读文件（惰性 load），故可先建后取指纹
     path = str(getattr(flow, "_records_path", "") or "")
     stamp = _stamp(path)
     if stamp is None:
         # 文件还不存在/不可读：不做正缓存（下次仍重新探测，文件一出现即生效）
         return flow
     with _FLOW_LOCK:
-        _READ_FLOW = (env_key, path, stamp, flow)
+        _READ_FLOW = (key, path, stamp, flow)
     return flow
 
 
-def _write_flow() -> Any:
-    """写（提交审批单）用的 ``ApprovalFlow``：**每次新建**
+def _write_flow(path_hint: str = "") -> Any:
+    """写（提交审批单）用的 ``ApprovalFlow``：**每次新建**，并钉住本次操作解析到的库
 
     Why 不复用缓存实例：``submit()`` 是"读全文件 → 改内存 → 整文件重写"，复用一个
     陈旧实例会把外部刚写入的记录一起覆盖掉。新建实例把"读→写"的窗口压到最小。
+    Why 传 ``path_hint``：见 :func:`_records_path_hint` —— 一次操作只认入口解析的那只库，
+    不在调用点重读环境变量（否则运行期改道会把一次操作劈成两只库）。
     """
-    from agent.skills_mgmt.approval import ApprovalFlow
-
-    return ApprovalFlow()
+    return _new_flow(path_hint)
 
 
 # ════════════════════════════════════════════════════════════
@@ -503,9 +538,12 @@ def _within_ttl(record: Any) -> bool:
     return age < ttl
 
 
-def _candidates(tool: str, digest: str, *, state: str) -> List[Any]:
-    """取该工具下 ``state`` 的记录，按 created_at 降序（审批流已排好序）"""
-    flow = _read_flow()
+def _candidates(tool: str, digest: str, *, state: str, store: str = "") -> List[Any]:
+    """取该工具下 ``state`` 的记录，按 created_at 降序（审批流已排好序）
+
+    ``store`` ＝ 本次操作入口解析一次的库路径（见 :func:`_records_path_hint`）。
+    """
+    flow = _read_flow(store)
     records = flow.list({"object_type": OBJECT_TYPE, "object_id": tool,
                          "state": state})
     return [r for r in records if _payload_of(r).get("args_digest") == digest]
@@ -527,7 +565,7 @@ def _is_system_expiry(record: Any) -> bool:
         return False
 
 
-def _expire_stale_pending() -> None:
+def _expire_stale_pending(store: str = "") -> None:
     """把 ``tool_call`` 名下**已过 TTL** 的待办判为系统超时（清出收件箱）
 
     【为什么是惰性清理而不是定时器】清理的自然时机就是"模型又发起一次需要审批的调用"：
@@ -543,7 +581,7 @@ def _expire_stale_pending() -> None:
     被 :func:`_is_system_expiry` 识别 ⇒ 既不构成批准也不构成驳回，调用方会重新挂单。
     """
     try:
-        flow = _write_flow()   # 状态迁移属于写操作，用写路径实例（每次新建，避免陈旧覆盖）
+        flow = _write_flow(store)   # 状态迁移属于写操作，用写路径实例（每次新建，避免陈旧覆盖）
         expired = flow.expire_pending(
             older_than_seconds=_ttl_seconds(), object_type=OBJECT_TYPE,
             note="工具审批 TTL 到期，等待调用方重新发起（系统超时，非人工否决）")
@@ -587,16 +625,63 @@ def _load_uses(path: Path) -> Set[str]:
     return consumed
 
 
-def _consumed_ids() -> Set[str]:
-    """当前路径的已消费集合（按路径缓存；**不落盘、不删文件**）"""
-    path = _uses_path()
+def _consumed_ids(path: Path) -> Set[str]:
+    """**给定**台账路径的已消费集合（按 ``(路径, 文件指纹)`` 缓存；**不落盘、不删文件**）
+
+    【为什么由调用方把路径传进来】``consume()`` 必须"查台账"与"记台账"用**同一个**路径：
+    台账路径同样是进程级环境变量（可被运行期改写），两次各自去读环境就可能"在 A 台账判重、
+    往 B 台账记一笔" ⇒ 单次有效被绕过。故路径在 ``consume`` 入口解析一次，显式传进来。
+
+    【为什么缓存必须按**文件指纹**失效（2026-09-22 修）】
+        人是在**另一个进程**（UI/CLI）里审批并消费的，而本函数原先只按**路径**缓存集合
+        快照：本进程一旦读过一次台账，B 进程此后追写的消费行就**永远不会**被本进程看到
+        ⇒ :func:`consume` 会在陈旧快照上判"这张单没用过"，把**同一张批准放行第二次**
+        （"单次有效"在多进程下失效，且台账里同一个 approval_id 出现两行）。
+        修前实测形态::
+
+            先读一次空台账 -> set()          # 连"文件不存在"都被缓存成空集
+            外部进程追写一行 approval_id=X
+            本进程再问     -> set()          # 看不到（缺口）
+            _is_consumed(X) -> False         # 判"没用过"（缺口）
+            consume(X, ...) -> True          # 放行第二次（缺口成立）
+
+        故与 :func:`_read_flow` **同源**：用 :func:`_stamp` 的 ``(mtime_ns, size)`` 指纹
+        判"外部是否改过文件"，**只在指纹变了才重读**。原缓存的唯一动机（"不把全量解析放进
+        每次工具调用的热路径"——``_is_consumed`` 挂在 ``find_permission`` 上）因此不变：
+        指纹未变时只多一次 ``os.stat``，一次解析都不多做。
+
+    【本修复覆盖什么 / 不覆盖什么（如实说明，不宣称"彻底解决"）】
+        - **覆盖**：外部进程**追加**。台账是 append-only 的，追加必然改变字节数，而
+          ``size`` 是指纹的一半 ⇒ 即便文件系统的 mtime 精度很粗（同一个 mtime 刻度内
+          追加），也一定被察觉（回归用例：
+          ``test_消费_即使mtime被拨回原值_外部追加照样被看到``）。
+        - **覆盖**：文件不存在/不可读时**不缓存**该状态（"按未消费处理"这条既有语义
+          **不变**），下一次调用重新探测 ⇒ 外部进程**首次**消费（它会把台账文件创建
+          出来）立刻生效。运行期绝大多数时间台账并不存在，这是最容易踩中的一种形态。
+        - **不覆盖**：外部进程把台账**重写成与旧内容等长**（``size`` 不变）**且**落在
+          同一个 mtime 刻度内的改写——指纹两半都没动，本进程仍会拿旧快照。本层台账
+          只增不改，正常路径不会出现"等长重写"；真出现（人工手改 / 外部工具重排台账）
+          时本进程看不到，须重启进程或调用 :func:`reset_cache`。
+        - **不覆盖**：**跨进程并发**消费同一张单。指纹缓存只保证"下一次问能看见**已经
+          落盘**的事实"；两个进程在同一窗口里各自"查台账 → 追加"仍可能都判"没用过"
+          （本层不提供跨进程锁）。这是与"单次有效"相邻的另一条边界，不计入本修复。
+    """
     key = str(path)
     with _USES_LOCK:
         cached = _USES_CACHE.get(key)
-        if cached is None:
-            cached = _load_uses(path)
-            _USES_CACHE[key] = cached
-        return cached
+        # 先取指纹、后读内容：反过来（先读内容再取指纹）会把**更晚的**指纹配到**更早的**
+        # 内容上，正好掩盖"读与取指纹之间外部刚追加过"这件事；当前顺序下最坏只是多读一次。
+        stamp = _stamp(key)
+        if cached is not None and stamp is not None and cached[0] == stamp:
+            return cached[1]
+        if stamp is None:
+            # 文件不存在/不可读：按"未消费"处理（**既有语义，不改**），但**不缓存**该状态
+            # —— 缓存了它，"文件一出现即生效"就永远兑现不了（见上面"覆盖什么"第 2 条）。
+            _USES_CACHE.pop(key, None)
+            return _load_uses(path)
+        fresh = _load_uses(path)
+        _USES_CACHE[key] = (stamp, fresh)
+        return fresh
 
 
 def _append_use(path: Path, entry: Dict[str, Any]) -> bool:
@@ -623,7 +708,7 @@ def _is_consumed(approval_id: str) -> bool:
     if not aid:
         return False
     try:
-        return aid in _consumed_ids()
+        return aid in _consumed_ids(_uses_path())
     except Exception as e:  # noqa: BLE001 台账不可读 ⇒ 保守按"已消费"处理
         logger.warning("[tool_approval] 消费状态不可判定（按已消费处理）: %s: %s",
                        type(e).__name__, e)
@@ -684,8 +769,9 @@ def request_approval(tool: str, args: Optional[Mapping[str, Any]], *,
         # 先把**已过 TTL** 的 tool_call 待办判为系统超时清出收件箱（见 _expire_stale_pending：
         # 惰性清理，只动本对象类型，且不算"人工否决"），再判幂等复用。
         # 顺序有讲究：先清理 ⇒ 陈旧待办不会既留在收件箱里、又拦住下面新挂的单。
-        _expire_stale_pending()
-        flow = _read_flow()
+        store = _records_path_hint()   # 一次操作只解析一次（见 _records_path_hint）
+        _expire_stale_pending(store)
+        flow = _read_flow(store)
         existing = _find_reusable(flow, name, digest, skey)
         if existing is not None:
             logger.debug("[tool_approval] 复用既有审批单 record=%s tool=%s state=%s",
@@ -709,7 +795,7 @@ def request_approval(tool: str, args: Optional[Mapping[str, Any]], *,
             "undo_hint": _build_undo_hint(),
             "compensating_action": _COMPENSATING_ACTION,
         }
-        record = _write_flow().submit(
+        record = _write_flow(store).submit(
             OBJECT_TYPE, name, action=ACTION, description=description,
             payload=payload, actor=ACTOR, trigger=TRIGGER)
         logger.info("[tool_approval] 工具调用待审批 record=%s tool=%s risk=%s "
@@ -785,7 +871,7 @@ def find_permission(tool: str, args: Optional[Mapping[str, Any]], *,
         digest = _digest_of(name, args)
         if not name or not digest:
             return None
-        record = _latest_decision(name, digest, session_key)
+        record = _latest_decision(name, digest, session_key, _records_path_hint())
         if record is None:
             return None
         if str(getattr(record, "state", "") or "") != "approved":
@@ -829,17 +915,20 @@ def consume(approval_id: str, tool: str,
             logger.warning("[tool_approval] 消费请求无法派生摘要（不消费）aid=%s tool=%s",
                            aid, name)
             return False
-        path = _uses_path()
+        path = _uses_path()   # 入口解析一次：查重与记账必须落在同一本台账
         entry = {"approval_id": aid, "tool": name, "args_digest": digest,
                  "consumed_at": _iso_now()}
         with _USES_LOCK:
-            consumed = _consumed_ids()
+            consumed = _consumed_ids(path)
             if aid in consumed:
                 logger.warning("[tool_approval] ⛔ 批准已被消费过（不可重复放行）"
                                "approval_id=%s tool=%s", aid, name)
                 return False
             if not _append_use(path, entry):
                 return False
+            # 写成功后再更新进程内集合。台账文件此刻已变（追加必然改变字节数）⇒ 这条
+            # 缓存记录的指纹即刻作废，下一次 ``_consumed_ids`` 会重读文件（而不是把
+            # 陈旧快照当权威）——见 ``_consumed_ids`` 的"先取指纹、后读内容"说明。
             consumed.add(aid)
         logger.info("[tool_approval] 批准已消费（单次有效）approval_id=%s tool=%s digest=%s",
                     aid, name, digest)
@@ -872,7 +961,7 @@ def _decision_key(record: Any) -> Tuple[str, str]:
 
 
 def _latest_decision(tool: str, digest: str,
-                     session_key: str) -> Optional[Any]:
+                     session_key: str, store: str = "") -> Optional[Any]:
     """同一"待决事项"上**最新的一次裁决**（``approved`` / ``rejected`` 里最新的那条）
 
     【单一权威口径】"最新裁决为准"这条规则**只在这里实现一次**：
@@ -904,7 +993,7 @@ def _latest_decision(tool: str, digest: str,
     latest: Optional[Any] = None
     latest_key: Optional[Tuple[str, str]] = None
     for state in _DECIDED_STATES:
-        for record in _candidates(tool, digest, state=state):
+        for record in _candidates(tool, digest, state=state, store=store):
             if _is_system_expiry(record):
                 continue
             if not _session_matches(record, session_key):
@@ -942,7 +1031,7 @@ def is_rejected(tool: str, args: Optional[Mapping[str, Any]], *,
         digest = _digest_of(name, args)
         if not name or not digest:
             return None
-        record = _latest_decision(name, digest, session_key)
+        record = _latest_decision(name, digest, session_key, _records_path_hint())
         if record is None:
             return None
         if str(getattr(record, "state", "") or "") != "rejected":
@@ -980,7 +1069,8 @@ def pending_snapshot(limit: int = _SNAPSHOT_LIMIT_DEFAULT) -> Dict[str, Any]:
                            limit, _SNAPSHOT_LIMIT_DEFAULT)
             size = _SNAPSHOT_LIMIT_DEFAULT
         size = max(0, min(size, _SNAPSHOT_LIMIT_MAX))
-        records = _read_flow().list({"object_type": OBJECT_TYPE}, limit=size)
+        records = _read_flow(_records_path_hint()).list(
+            {"object_type": OBJECT_TYPE}, limit=size)
         items: List[Dict[str, Any]] = []
         for record in records:
             payload = _payload_of(record)

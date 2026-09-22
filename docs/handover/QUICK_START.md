@@ -64,6 +64,25 @@ tracing:
   sampler: ALWAYS_ON
 ```
 
+### 1.4 前端构建（**新克隆必做**，否则 `/chat` 白屏）
+
+`templates/yunshu.html` 被 git 跟踪，但它引用的 Vite 哈希 chunk 在 `static/assets/` 下、
+**被 `.gitignore` 忽略且不入库**。新克隆只有 HTML、没有 chunk ⇒ `python app_server.py` 后访问
+`http://127.0.0.1:5678/chat` 会是**白屏**（HTML 200 + 入口脚本 404）。
+
+```bash
+cd yunshu-ui
+npm ci
+npm run build:flask   # 构建 + 同步到 static/assets/ 与 templates/yunshu.html
+cd ..
+```
+
+改了前端后需**重跑** `build:flask`（但**不必重启后端**：`/chat` 每请求读盘 + `no-store`）。
+
+> `start_yunshu.bat` 一键启动走的是 Vite dev server（5173），**不受影响**，
+> 因此也**发现不了**「从未构建过」这个问题。
+> 完整机制、实测证据与自检命令见 [Web 工作台启动前置](WEB_UI_BUILD_PREREQUISITE.md)。
+
 ---
 
 ## 2. 依赖安装

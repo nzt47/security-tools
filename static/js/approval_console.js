@@ -21,6 +21,16 @@
   var CSRF_COOKIE = 'cp_approval_csrf';
   var CSRF_HEADER = 'X-CSRF-Token';
   var SESSION_COOKIE = 'cp_approval_session';
+  // 【API 令牌（2026-09-22 修复）】后端 `/api/approval/*` 全部挂 `require_token`；
+  // 而浏览器地址栏导航**无法携带** Authorization 头，令牌只能由本脚本注入。
+  // 修复前这里一个令牌都不发 ⇒ 一旦 .env 配了 FLASK_API_TOKEN，控制台每个请求都 401，
+  // "审批收件箱"在人这一侧彻底不可达（闸门能挂单、人却点不到）。
+  // 键名与 React 侧 `yunshu-ui/src/lib/apiToken.ts` 的 STORAGE_KEY **同键**：
+  // 同一浏览器里主界面登录过一次，这里就自动可用，无需二次粘贴。
+  var TOKEN_KEY = 'yunshu_api_token';
+  var memoryToken = '';      // localStorage 不可用（隐私模式）时的内存兜底
+  var tokenDraft = '';       // 输入框里的未保存内容
+  var lastAuthError = '';    // 最近一次 401 的可读原因（渲染时展示，不静默）
 
   var state = {
     identity: null,
@@ -58,20 +68,49 @@
     return node;
   }
 
+  function readToken() {
+    try { return (localStorage.getItem(TOKEN_KEY) || '').trim(); } catch (e) { return ''; }
+  }
+
+  function writeToken(value) {
+    var next = (value || '').trim();
+    try {
+      if (next) { localStorage.setItem(TOKEN_KEY, next); }
+      else { localStorage.removeItem(TOKEN_KEY); }
+    } catch (e) { /* localStorage 不可用：退回内存值，本次仍然能用 */ }
+    return next;
+  }
+
+  function currentToken() { return readToken() || memoryToken; }
+
   function request(method, path, body) {
     var headers = { 'Accept': 'application/json' };
     if (body) { headers['Content-Type'] = 'application/json'; }
     // CSRF 双重提交：Cookie 里的令牌必须出现在请求头
     var csrf = readCookie(CSRF_COOKIE);
     if (csrf) { headers[CSRF_HEADER] = csrf; }
+    // API 令牌：与后端 require_token 对应。缺它时后端一律 401，
+    // 而 401 与 403（身份/CSRF/矩阵拒绝）是两件事 —— 分开提示，避免误导排查方向。
+    var token = currentToken();
+    if (token) { headers['Authorization'] = 'Bearer ' + token; }
     return fetch(API + path, {
       method: method,
       headers: headers,
       credentials: 'same-origin',
       body: body ? JSON.stringify(body) : undefined
     }).then(function (res) {
+      if (res.status === 401) {
+        lastAuthError = token
+          ? '令牌被后端拒绝（401）：.env 里的 FLASK_API_TOKEN 可能已更换，请重新粘贴。'
+          : '缺少 API 令牌（401）：后端已启用 FLASK_API_TOKEN，请在下方粘贴令牌后重试。';
+      } else if (res.ok || res.status === 403) {
+        lastAuthError = '';
+      }
       return res.json().catch(function () { return {}; })
         .then(function (data) { return { status: res.status, data: data }; });
+    }).then(function (out) {
+      if (lastAuthError) { render(); }
+      return out;
     });
   }
 
@@ -282,6 +321,48 @@
     return el('div', { class: 'item' }, children);
   }
 
+  function renderTokenRow() {
+    // 【为什么不放在页头输入框里让用户自己找】令牌缺失是本控制台**唯一**会让
+    // 所有请求同时 401 的原因，必须把"缺令牌"和"没有权限"在视觉上分开，
+    // 否则操作者会像台账 #1 那样以为"闸门坏了"。
+    var token = currentToken();
+    var row = el('div', { class: 'identity' });
+    row.appendChild(el('div', {
+      text: 'API 令牌：' + (token ? '已注入（localStorage ' + TOKEN_KEY + '）' : '未设置')
+    }));
+    if (lastAuthError) {
+      row.appendChild(el('div', { class: 'meta', style: 'color:#cf222e;font-weight:600', text: lastAuthError }));
+    }
+    var actions = el('div', { class: 'actions' });
+    if (token) {
+      actions.appendChild(el('button', {
+        text: '清除令牌',
+        onclick: function () { writeToken(''); memoryToken = ''; setMessage('令牌已清除'); loadIdentity(); }
+      }));
+    } else {
+      var input = el('input', {
+        type: 'password',
+        placeholder: '粘贴 .env 里的 FLASK_API_TOKEN',
+        style: 'font-size:12px;padding:3px 6px;border:1px solid #d0d7de;border-radius:6px;min-width:220px'
+      });
+      input.value = tokenDraft;
+      input.addEventListener('input', function () { tokenDraft = input.value; });
+      actions.appendChild(input);
+      actions.appendChild(el('button', {
+        class: 'primary', text: '保存令牌',
+        onclick: function () {
+          memoryToken = writeToken(tokenDraft);
+          tokenDraft = '';
+          setMessage(memoryToken ? '令牌已保存（仅存本机浏览器 localStorage）' : '令牌为空，未保存');
+          render();
+          loadIdentity();
+        }
+      }));
+    }
+    row.appendChild(actions);
+    return row;
+  }
+
   function render() {
     var root = buildRoot();
     var panel = root.getElementById('cp-panel');
@@ -289,6 +370,7 @@
 
     var body = [];
     if (!state.collapsed) {
+      body.push(renderTokenRow());
       var actorLine = el('div', {}, [
         document.createTextNode('操作者：' + ((state.identity && state.identity.actor) || '未识别'))
       ]);

@@ -146,6 +146,21 @@ def _public_decision(decision: Any) -> Dict[str, Any]:
         "denied_by_matrix": bool(getattr(decision, "denied_by_matrix", False)),
     }
 
+def _render_console_shell():
+    """渲染审批控制台外壳（两条路由**共用**，避免同一份回退文案写两遍）
+
+    返回的是**静态外壳**：模板里只有一个 Shadow DOM 挂载点，不含任何审批数据 ——
+    数据一律由 `static/js/approval_console.js` 带上 API 令牌去 `/api/approval/*` 取。
+    因此"放开外壳"与"放开数据"是两件事，前者不降低判定强度。
+    """
+    from flask import render_template
+    try:
+        return render_template("approval_console.html")
+    except Exception as e:  # noqa: BLE001 模板缺失不阻断（返回可读的说明页）
+        logger.warning("[ApprovalRoutes] 审批控制台模板渲染失败: %s", e)
+        return ("<h1>审批控制台不可用</h1>"
+                "<p>templates/approval_console.html 缺失</p>", 500)
+
 
 # ════════════════════════════════════════════════════════════
 #  路由注册
@@ -357,15 +372,31 @@ def register_routes(app, state=None) -> None:
     @app.route("/api/approval/console", methods=["GET"])
     @require_token
     def approval_console():
-        """审批控制台（前端审批按钮区；DOM 隔离见模板/样式）"""
-        from flask import render_template
-        try:
-            return render_template("approval_console.html")
-        except Exception as e:  # noqa: BLE001 模板缺失不阻断（返回说明页）
-            logger.warning("[ApprovalRoutes] 审批控制台模板渲染失败: %s", e)
-            return ("<h1>审批控制台不可用</h1>"
-                    "<p>templates/approval_console.html 缺失</p>", 500)
+        """审批控制台（程序化/嵌入式调用方；**仍受 require_token 约束**）"""
+        return _render_console_shell()
 
+    # ── 审批控制台·人工入口（**只返回静态外壳，不含任何数据**） ──
+
+    @app.route("/approval-console", methods=["GET"])
+    def approval_console_page():
+        """人工在浏览器里打开审批收件箱的入口（**不经 require_token**）
+
+        【为什么必须另开一条，而不是把上面那条的 require_token 摘掉】
+          浏览器**地址栏导航无法携带** Authorization / X-API-Token 头，而
+          `/api/**` 的既有纪律是"一律 require_token"（见 `agent/server_auth.py`）。
+          两条各守一件事：带令牌的那条留给程序化调用方；这条只返回**静态外壳**
+          （模板里仅一个挂载点，数据全靠 `static/js/approval_console.js` 带令牌去取）。
+
+        【放开外壳不降低任何判定强度】所有读/写仍走 `/api/approval/*`，逐条
+          require_token + 会话 + CSRF 双重提交 + 一次性链接 + §7.0 Actor 矩阵。
+
+        【修复的缺陷】修复前 `/api/approval/console` 是**唯一**的页面路由，而它挂着
+          `@require_token`：浏览器地址栏导航带不了 Authorization 头 ⇒ 页面**打不开**
+          （实测 401）；而 React 工作台里的「治理面板 → 审批收件箱」是另一条独立链路，
+          不经过这里。故本次给"想直接用这个独立控制台"的人补一条可打开的入口，
+          它只返回静态外壳 —— 数据仍逐条走 /api/approval/*，判定强度**一点没降**。
+        """
+        return _render_console_shell()
 
 # ════════════════════════════════════════════════════════════
 #  审批动作实现

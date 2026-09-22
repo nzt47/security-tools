@@ -168,6 +168,9 @@ data/todos.json
 # 见 agent/tool_approval.py。
 data/tool_approval_uses.jsonl
 
+# 开关中心**覆盖层**（UI 改的开关值落这里；agent/settings/overrides.py 的 docstring
+# 一直称它是"gitignore 的运行时留痕"，但此前并未真的忽略 ⇒ 补上，避免运行期改动被误提交）
+data/ui_settings.json
 # 测试产物（覆盖率/成本日志/报告，不入库）
 .coverage
 .coverage.*

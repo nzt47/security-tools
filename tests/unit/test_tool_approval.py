@@ -9,6 +9,8 @@
     4. 批准判定：pending ⇒ ``None``；``approved`` ⇒ 命中；换参数 / 会话不匹配 / 超时 ⇒ ``None``；
        记录侧 ``session_key`` 为空串时**通配**；
     5. 消费：单次有效，且**换进程（``reset_cache()``）后仍不可重复消费**（台账落盘）；
+       更硬的一条：**外部进程（UI/CLI）追加台账后，本进程下一次问就必须看到**——
+       缓存按文件指纹失效，而不是"本进程读过一次就一直算数"；
     6. 驳回：``rejected`` ⇒ 带 reason 的 dict；pending ⇒ ``None``；
     7. 边界：空工具名、非法参数、记录文件损坏/不存在 ⇒ 结构化失败或 ``None``，**不抛异常**；
     8. 端到端：挂单 → 人工批准（改写记录模拟 UI）→ 命中 → 消费 → 再判定为空。
@@ -40,6 +42,18 @@ REAL_USES = _PROJECT_ROOT / "data" / "tool_approval_uses.jsonl"
 _ARGS = {"command": "echo hi"}
 _TOOL = "shell_execute"
 
+#: 本用例隔离出来的落点（``isolated_env`` 在 setup 时写入、teardown 清空）
+#:
+#: Why 要**钉一次**而不是每次重读环境变量：``APPROVAL_RECORDS_PATH`` /
+#: ``CP_TOOL_APPROVAL_USES_PATH`` 是**进程级**的，而本仓确有在运行期改写它们的
+#: **非 monkeypatch 写者**（``agent/settings/resolver.py`` 的 ``os.environ[...] = ...``、
+#: ``import app_server`` 触发的 ``.env`` 重载 —— 见 ``tests/conftest.py`` 的原文记载）。
+#: 若用例"挂单写 A 库、改记录时却读 B 库"，断言就会拿**另一只库**的视角去判本库的事：
+#: 实测形态是"批次跑偶发红、单跑全绿"（2026-09-22 定位到的那次即此形态；复现与机理见
+#: 本文件 ``test_入口解析库路径_运行期改道不会把一次操作劈成两只库``）。
+#: 故：落点在夹具里钉一次，用例全程只认它 —— "用例自带隔离"。
+_ISOLATED: dict = {}
+
 
 # ════════════════════════════════════════════════════════════
 #  fixtures：全部落 tmp，绝不污染运行时目录
@@ -54,8 +68,10 @@ def isolated_env(tmp_path, monkeypatch):
     另外两个（``CP_EVENTS_DIR`` / 链式审计）是**既有审批流自身的副作用**落点
     （``ApprovalFlow.submit`` 会写事件与链式审计），不隔离等于测试照样写生产数据。
     """
-    monkeypatch.setenv("APPROVAL_RECORDS_PATH", str(tmp_path / "records.jsonl"))
-    monkeypatch.setenv("CP_TOOL_APPROVAL_USES_PATH", str(tmp_path / "uses.jsonl"))
+    records = tmp_path / "records.jsonl"
+    uses = tmp_path / "uses.jsonl"
+    monkeypatch.setenv("APPROVAL_RECORDS_PATH", str(records))
+    monkeypatch.setenv("CP_TOOL_APPROVAL_USES_PATH", str(uses))
     monkeypatch.setenv("APPROVAL_ENABLED", "1")
     monkeypatch.delenv("CP_TOOL_APPROVAL_TTL_SEC", raising=False)
     monkeypatch.setenv("CP_EVENTS_DIR", str(tmp_path / "events"))
@@ -69,7 +85,11 @@ def isolated_env(tmp_path, monkeypatch):
     import agent.observability.events as events_mod
     events_mod.reset_event_stores()
     TA.reset_cache()
+    # 落点在此钉住：用例内的 _verdict / _screen / _records_path() 只认它（不再重读环境）
+    _ISOLATED["records"] = records
+    _ISOLATED["uses"] = uses
     yield tmp_path
+    _ISOLATED.clear()
     TA.reset_cache()
     events_mod.reset_event_stores()
     facade_mod.audit.bind(previous)
@@ -92,11 +112,20 @@ class _Boom:
 
 
 def _records_path() -> Path:
-    return Path(os.environ["APPROVAL_RECORDS_PATH"])
+    """本用例的审批记录文件：**夹具钉住的那一个**（不是"此刻环境变量指向的那一个"）
+
+    两者在正常情况下是同一个；一旦某个运行期改写者把环境改道，钉住的这个才是本用例
+    真正在隔离目录里操作的那只库 —— 用环境值去判它，得到的是**另一只库的结论**
+    （挂单在 A 库、结论取自 B 库 = 随机失败）。夹具未生效时退回环境值，与改动前一致。
+    """
+    pinned = _ISOLATED.get("records")
+    return pinned if pinned is not None else Path(os.environ["APPROVAL_RECORDS_PATH"])
 
 
 def _uses_path() -> Path:
-    return Path(os.environ["CP_TOOL_APPROVAL_USES_PATH"])
+    """本用例的消费台账：同 :func:`_records_path`（夹具钉住的那一个）"""
+    pinned = _ISOLATED.get("uses")
+    return pinned if pinned is not None else Path(os.environ["CP_TOOL_APPROVAL_USES_PATH"])
 
 
 def _flow():
@@ -144,6 +173,22 @@ def _verdict(record_id: str, *, state: str, reason: str = "", actor: str = "revi
 def _fingerprint(path: Path):
     """文件字节指纹；不存在 → ``None``（用于"原本不存在则断言仍不存在"）"""
     return path.read_bytes() if path.exists() else None
+
+
+def _append_external_use(approval_id: str, tool: str = _TOOL,
+                         args: dict = None) -> None:
+    """模拟**另一个进程**（UI/CLI）消费台账：直接追写隔离台账文件
+
+    Why 不经过本进程的 ``consume()``/``_append_use()``：真实链路里"消费"发生在
+    **审批人那一侧**（另一个进程），本进程只能从文件读到既成事实。测试若借道本进程的
+    写入函数，就会把"本进程内存里的集合"一并更新掉，于是**永远测不到**"缓存快照过期"
+    这条路径（这正是原用例 ``reset_cache()`` 覆盖不到的情形）。
+    """
+    entry = {"approval_id": approval_id, "tool": tool,
+             "args_digest": TA.tool_call_digest(tool, _ARGS if args is None else args),
+             "consumed_at": datetime.now().isoformat(timespec="seconds")}
+    with open(_uses_path(), "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 # ════════════════════════════════════════════════════════════
@@ -201,6 +246,35 @@ def test_换审批库后立即生效_不会读到旧库(tmp_path, monkeypatch):
     second = TA.request_approval(_TOOL, _ARGS)
     assert second["approval_id"] != first["approval_id"]
     assert other.exists() and "pending_review" in other.read_text(encoding="utf-8")
+
+
+def test_入口解析库路径_运行期改道不会把一次操作劈成两只库(tmp_path, monkeypatch):
+    """**一次操作只认入口解析的那只库**：运行期改道不得把它劈到两只库上
+
+    Why 要有这条：``APPROVAL_RECORDS_PATH`` 是**进程级**变量，而本仓有非 monkeypatch 的
+    改写者（``agent/settings/resolver.py`` 的 ``os.environ[...] = ...``、``import app_server``
+    触发的 ``.env`` 重载 —— 见 ``tests/conftest.py``）。若 ``request_approval`` 的每一步
+    各自在调用点重读环境，"挂单"会落到改道后的另一只库，而本次操作的其余步骤仍按原库
+    判定 ⇒ "单次有效"与"最新裁决为准"同时失效（实测形态：人的"重新挂单并批准"被静默吃掉，
+    用例表现为"批次跑偶发红、单跑全绿"）。
+
+    本用例把改道插在**入口解析之后**（``_expire_stale_pending`` 内），断言它对本次操作不可见。
+    """
+    other = tmp_path / "other_records.jsonl"
+    original = TA._expire_stale_pending
+
+    def _flip(store: str = "") -> None:
+        original(store)                                     # 先按入口解析到的库做清理
+        monkeypatch.setenv("APPROVAL_RECORDS_PATH", str(other))   # 再模拟运行期改道
+
+    monkeypatch.setattr(TA, "_expire_stale_pending", _flip)
+
+    res = TA.request_approval(_TOOL, _ARGS, session_key="s1")
+
+    assert res["ok"] is True
+    assert not other.exists(), "运行期改道后本次挂单被写进了另一只库（一次操作被劈开）"
+    lines = [ln for ln in _records_path().read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert [json.loads(ln)["record_id"] for ln in lines] == [res["approval_id"]]
 
 
 def test_真实数据文件在测试前后字节不变():
@@ -563,6 +637,129 @@ def test_消费_第一次True第二次False_换进程后仍False():
     assert entry["tool"] == _TOOL
     assert entry["args_digest"] == TA.tool_call_digest(_TOOL, _ARGS)
     assert datetime.fromisoformat(entry["consumed_at"])
+
+
+def test_消费_外部进程追加台账后本进程立刻可见_单次有效不被绕过():
+    """**回归**：外部进程消费过的单，本进程下一次问就必须知道（缓存按文件指纹失效）
+
+    缺口形态（2026-09-22 定位、本用例钉死）：``_consumed_ids`` 原先只按**路径**缓存
+    进程内快照，**不会**因外部进程追写台账而失效。而人是在**另一个进程**（UI/CLI）里
+    消费/审批的，``consume()`` 又在本进程里查这张台账来判"这张单是不是已经用过了"
+    ⇒ B 进程消费之后，A 进程仍拿旧快照判"没用过"，**同一张批准被放行第二次**
+    （"单次有效"在多进程下失效，且台账里同一 approval_id 出现两行）。
+
+    修前实测（本用例原样即为红）：
+        [A] first _consumed_ids -> []            # 空台账被缓存
+        [B] external process appended one line for approval_id=appr-...
+        [A] after append, _consumed_ids -> []    # ← 看不到（缺口）
+        [A] after append, _is_consumed -> False  # ← 判"没用过"（缺口）
+        [A] after append, consume -> True        # ← 放行第二次（缺口成立）
+        ledger line count -> 2
+
+    Why 这条不能靠 ``reset_cache()``：那只覆盖"同进程重读"，而真实链路里 **A 进程
+    不会自己清缓存**——它只是"上一次调用时读过台账"，随后 B 进程才动的手。
+    """
+    res = TA.request_approval(_TOOL, _ARGS, session_key="s1")
+    _verdict(res["approval_id"], state="approved", actor="alice")
+    aid = res["approval_id"]
+
+    # A 进程先读一次台账：缓存快照在此形成（此后没有 reset_cache）
+    assert TA._consumed_ids(_uses_path()) == set()
+    assert TA._is_consumed(aid) is False
+
+    # B 进程（另一个进程里的审批人/CLI）消费了同一张单
+    _append_external_use(aid)
+
+    # A 进程下一次问：必须已经看到
+    assert aid in TA._consumed_ids(_uses_path()), \
+        "外部进程的消费没被本进程看到（集合缓存未按文件指纹失效）"
+    assert TA._is_consumed(aid) is True, "台账说已消费，本进程却仍判'没用过'"
+    assert TA.consume(aid, _TOOL, _ARGS) is False, \
+        "同一张批准被放行第二次（'单次有效'被绕过）"
+
+    lines = [ln for ln in _uses_path().read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == 1, f"同一张批准被记了 {len(lines)} 条消费记录"
+
+
+def test_消费_外部进程消费后find_permission立刻为空():
+    """同一条缺口的**放行侧**：闸门问 ``find_permission`` 时也必须看到外部消费
+
+    ``consume`` 只是记账，真正决定"放不放行"的是 ``find_permission``
+    （它经 ``_is_consumed`` 查同一张台账）。若只有 ``consume`` 看得到而它看不到，
+    缺口的形态就变成"记账拒了、放行照旧"，同样是单次有效失效。
+    """
+    res = TA.request_approval(_TOOL, _ARGS, session_key="s1")
+    _verdict(res["approval_id"], state="approved", actor="alice")
+
+    hit = TA.find_permission(_TOOL, _ARGS, session_key="s1")
+    assert hit is not None                      # 这一步已把台账读进缓存
+
+    _append_external_use(hit["approval_id"])    # 另一个进程用掉了这张批准
+
+    assert TA.find_permission(_TOOL, _ARGS, session_key="s1") is None, \
+        "已被外部进程消费的批准仍被判为有效（会放行第二次）"
+
+
+def test_消费_台账原先不存在时不缓存空态_外部一创建即生效():
+    """台账**不存在**时不得把"空集"缓存住（否则外部进程首次消费后照样读不到）
+
+    这是同一条缺口的第二种形态，且是最容易漏掉的一种：运行期绝大多数时间里
+    ``data/tool_approval_uses.jsonl`` **不存在**（没人用过工具审批），本进程第一次查
+    台账拿到的就是"文件不存在 ⇒ 空集"；若把这个空集缓存下来，此后**外部进程的第一次
+    消费**（它会把文件创建出来）在本进程里永远不可见。
+    """
+    assert not _uses_path().exists()
+    assert TA._consumed_ids(_uses_path()) == set()      # 缓存"未消费"
+
+    _append_external_use("appr-first-ever")             # 外部进程首次消费：文件出现
+
+    assert "appr-first-ever" in TA._consumed_ids(_uses_path()), \
+        "台账文件一出现就该生效（'文件不存在 ⇒ 空集'这个状态不得被缓存）"
+
+
+def test_消费_指纹未变时不重复解析台账_热路径只做一次stat(monkeypatch):
+    """缓存的存在理由必须保持：指纹未变 ⇒ 直接返回进程内集合，**不重读文件**
+
+    台账是**只增**的，重建要整文件解析；``_is_consumed`` 挂在 ``find_permission``
+    上（每次受管工具调用都会走），不缓存等于把全量解析放进每次调用的热路径。
+    本用例防的是"为修缺口而把缓存整段删掉"这种退化解法。
+    """
+    path = _uses_path()
+    _append_external_use("appr-warm")
+
+    calls: list = []
+    real_load = TA._load_uses
+
+    def _counting(p):
+        calls.append(str(p))
+        return real_load(p)
+
+    monkeypatch.setattr(TA, "_load_uses", _counting)
+
+    assert "appr-warm" in TA._consumed_ids(path)      # 第一次：解析
+    assert "appr-warm" in TA._consumed_ids(path)      # 第二次：文件没变 ⇒ 命中缓存
+    assert "appr-warm" in TA._consumed_ids(path)
+    assert len(calls) == 1, f"指纹未变却重复解析了台账 {len(calls)} 次（缓存形同虚设）"
+
+
+def test_消费_即使mtime被拨回原值_外部追加照样被看到():
+    """``size`` 也参与指纹：追加必然改变字节数 ⇒ **同 tick 的追加也漏不掉**
+
+    这条钉的是"覆盖什么"：台账是 append-only 的，外部**追加**一定增大文件；
+    指纹是 ``(mtime_ns, size)`` 两半，故即便文件系统的 mtime 精度很粗（同 tick 内
+    多次写入 mtime 不变），追加也一定被察觉。**不覆盖**的情形见
+    ``_consumed_ids`` 的说明（等长重写 + 同 tick，两半指纹都没动）。
+    """
+    path = _uses_path()
+    _append_external_use("appr-tick-1")
+    assert "appr-tick-1" in TA._consumed_ids(path)
+
+    before = path.stat()
+    _append_external_use("appr-tick-2")
+    os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))  # mtime 拨回原值（模拟同 tick）
+
+    assert "appr-tick-2" in TA._consumed_ids(path), \
+        "只靠 mtime 判失效的话，同 tick 的追加会被漏掉（size 这一半是必需的）"
 
 
 def test_消费_并发下只有一个True():
