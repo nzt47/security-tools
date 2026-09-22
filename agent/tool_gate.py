@@ -957,7 +957,13 @@ def _tool_approval_outcome(func_name: str, args: Optional[Dict[str, Any]],
                 reason="%s；人工逐次确认（单次有效，已消费）" % reason,
                 tenant_id=tenant_id, version=version)
             return None
-        logger.warning("[tool_gate] 审批单 %s 已被消费过（单次有效），改为重新挂单", approval_id)
+        # consume() 返回 False 有三种情形（见 tool_approval.consume 的 docstring）：
+        # ① 已被消费过；② 台账写入失败；③ 拿不到台账锁/等锁超时。三者一律 fail-closed，
+        # 真实原因（含锁超时的持有者 pid）已由 tool_approval 侧的 WARNING 先打出，
+        # 这里不再断言"已被消费过"——那是把归因写死，会掩盖锁超时这条新分支。
+        logger.warning("[tool_gate] 审批单 %s 未能消费（单次有效；原因见上方 tool_approval "
+                       "的 WARNING：已消费过 / 台账写入失败 / 台账锁超时），改为重新挂单",
+                       approval_id)
 
     requested = request_approval(func_name, args, reason=reason, session_key=session_key,
                                  source=str(_env_str("CP_PERMISSION_SESSION_SOURCE") or ""))

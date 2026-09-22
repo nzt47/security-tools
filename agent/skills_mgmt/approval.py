@@ -55,7 +55,7 @@ import threading
 import time
 import uuid
 from dataclasses import asdict, dataclass, field, fields
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -113,6 +113,25 @@ _DEFAULT_RECORDS_PATH = Path(__file__).parent.parent.parent / "data" / "approval
 
 _ENV_ENABLED = "APPROVAL_ENABLED"
 _ENV_RECORDS_PATH = "APPROVAL_RECORDS_PATH"
+
+# record_id 的**进程内单调**时间段（见 ApprovalRecord._generate_id 的说明）：
+#   _LAST_ID_TS 是上一次发出的 20 位 "YYYYmmddHHMMSSffffff"；_ID_TS_LOCK 保证并发生成
+#   （Flask 多线程 / 后台线程）下"读-改-写"不撕裂。
+_ID_TS_LOCK = threading.Lock()
+_LAST_ID_TS = ""
+
+
+def _bump_id_ts(ts: str) -> str:
+    """把 20 位 "YYYYmmddHHMMSSffffff" 时间段加 1 微秒（解析失败原样返回，绝不抛异常）
+
+    只服务 ApprovalRecord._generate_id 的单调性兜底：同一时钟刻度内连发两个 id 时，
+    后一个被抬到"前一个 + 1µs"，使定宽时间段的**字典序 = 生成先后序**。
+    """
+    try:
+        bumped = datetime.strptime(ts, "%Y%m%d%H%M%S%f") + timedelta(microseconds=1)
+        return bumped.strftime("%Y%m%d%H%M%S%f")
+    except Exception:  # noqa: BLE001 解析失败 ⇒ 原样返回（退化成改动前行为）
+        return ts
 
 
 def _env_enabled() -> bool:
@@ -201,8 +220,32 @@ class ApprovalRecord:
 
     @staticmethod
     def _generate_id() -> str:
-        ts = datetime.now().strftime("%Y%m%d%H%M%S%f")
-        return f"appr-{ts}-{uuid.uuid4().hex[:8]}"
+        """生成 ``appr-<20位时间段>-<8位随机hex>``（时间段**进程内严格单调**）
+
+        【为什么时间段必须单调（2026-09-22 修）】
+        ``agent/tool_approval.py::_decision_key`` 在"审批记录时间戳只到秒"的同一秒内，
+        用 ``record_id`` 的**字典序**兜底裁决先后。那条兜底成立的前提是
+        "``strftime('%f')`` 的微秒段确实能区分先后"——**在 Windows 上不成立**：
+        ``datetime.now()`` 的时钟粒度约 15.6ms，同一刻度内的两次调用会取到**逐字相同**
+        的 20 位时间段，于是两张单的先后交给随机 hex 段决定 ⇒ 可能"老裁决压过新裁决"
+        （实测：同一测试文件整文件连跑约 8% 概率红，两次失败样本的 20 位前缀完全相同；
+        证据与立项见 docs/closeout/遗留问题立项_20260922.md 的 L3 条目）。
+        故本函数在**同一进程内**保证后发的 id 时间段不小于先发的（撞上同一刻度就 +1µs）。
+        **格式一字未变**（仍是定宽 20 位 + 8 位 hex）⇒ 既有解析/掩码/日志链路不受影响；
+        时间段最多比真实时钟**超前几微秒**（它只用于排序，真实时刻另有 created_at）。
+
+        【仍不覆盖】**跨进程**同一刻度：两个进程在同一刻度各自生成时时间段可能相同，
+        先后仍由随机 hex 段决定。要为此引入全局序号必须改 id 格式（会让既有按 id 解析的
+        链路失效），而"人对同一事项的两次相反裁决落进同一 15.6ms 刻度"本就不现实 ⇒
+        本层不承担该语义，如实标注而不宣称彻底解决。
+        """
+        global _LAST_ID_TS
+        with _ID_TS_LOCK:
+            now = datetime.now().strftime("%Y%m%d%H%M%S%f")
+            if now <= _LAST_ID_TS:          # 同一刻度（或时钟回拨）⇒ 抬到上一个 + 1µs
+                now = _bump_id_ts(_LAST_ID_TS)
+            _LAST_ID_TS = now
+        return f"appr-{now}-{uuid.uuid4().hex[:8]}"
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ApprovalRecord":
