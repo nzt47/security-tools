@@ -831,6 +831,15 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "工具审批单的有效期（秒）：人工批准后须在该窗口内完成那次调用，超时即失效需重新审批；"
        "默认 900（与审批会话 ≤15min 口径一致）",
        owner="agent/tool_approval.py"),
+# 【2026-09-22 集成补登记：L2 跨进程消费互斥引入的新读取点】
+# 该键由 `agent/tool_approval.py::_lock_timeout_seconds()` 读取（默认 5.0；负数/非法回落默认）。
+# 必须登记的原因是可机械核验的：`tests/unit/test_settings_registry.py::TestMechanicalZeroGap`
+# 要求"每个 os.environ 读取点都在登记表里"，否则开关中心与登记表之间会出现**无声缺口**
+# （本次集成实测：L2 引入该键后那两条零缺口用例立刻变红，正是这个机制在起作用）。
+_a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
+   "审批消费台账**跨进程锁**的等锁上限（秒）：超过该时长仍拿不到锁即按 fail-closed 处理"
+   "（**不得静默放行**）；默认 5.0，置 0 = 不等待（立即失败）",
+   owner="agent/tool_approval.py"),
     _c("CP_TOOL_APPROVAL_USES_PATH", CAT_SELF_HEALING,
        "data/tool_approval_uses.jsonl",
        "工具审批消费台账路径（append-only，记录哪张审批单已被哪次调用消费）；"
@@ -969,18 +978,32 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     # **从不写入 os.environ**——bootstrap.py:58-76 只遍历**覆盖层里已存在的键**，
     # resolver.py:376-385 只把 resolved.value（覆盖层值）写 env；
     # 全仓唯一会用 spec.default 作运行态落点的是 resolver.py:426（reset 时回写
-    # ObservabilityConfig），它受 _is_observability_path(spec) 把关，而本两项
-    # 无 config_path ⇒ 永不触发。故本表 default 只影响**展示与来源判定**
+    # ObservabilityConfig），它受 _is_observability_path(spec) 把关 —— 即
+    # config_path 必须命中 observability_rule_paths() 的 48 条之一。
+    # 【L1 更正】本两项在 L1 之后**已有** config_path（见下），故"无 config_path"
+    # 不再是豁免理由；真正的豁免理由是：evolution.enabled / evolution.llm_generate
+    # **不在** observability_rule_paths() 里 ⇒ _is_observability_path 仍为 False，
+    # resolve() 只经 _config_lookup 读 config.yaml，**绝不写**任何运行态。
+    # 故本表 default 只影响**展示与来源判定**
     # （resolve() 的 value/display_value、「当前值」来源标注）。
+    # 【L1（2026-09-22）】补登记 config_path：get_evolution_config() 真实读
+    #   config.yaml **顶层** evolution: 段（injector.py:106 data.get("evolution")），
+    #   故 evolution.enabled / evolution.llm_generate / evolution.storage_path
+    #   三条是真实读取路径，登记它们之后 resolve() 的 source 才能如实显示 config。
+    #   注意：现网 config.yaml 并**没有**顶层 evolution:（只有 learning.evolution，
+    #   而它无读取方）⇒ 今天这三项的取值与来源**不变**（仍是 default）；
+    #   一旦有人在 config.yaml 补上该段，UI 会立刻如实跟随（这正是本项修复的目的）。
     _b("EVOLUTION_ENABLED", CAT_LEARNING, True,
        "技能进化总开关（自动产出候选技能）；"
        "真实默认 True，出处 agent/evolution/injector.py:112（config.yaml 无 evolution.enabled 时）",
-       owner="agent/evolution/injector.py"),
+       owner="agent/evolution/injector.py",
+       config_path="evolution.enabled"),
     _b("EVOLUTION_LLM_GENERATE", CAT_LEARNING, True,
        "进化候选是否用 LLM 生成（关闭则只做启发式变异）；"
        "真实默认 True，出处 agent/evolution/injector.py:113-114"
        "（config.yaml 无 evolution.llm_generate 时）",
-       owner="agent/evolution/injector.py"),
+       owner="agent/evolution/injector.py",
+       config_path="evolution.llm_generate"),
     _b("EVOLUTION_SCHEDULE_ENABLED", CAT_LEARNING, False,
        "离线进化调度器开关（按 cron 自动跑进化轮）",
        owner="agent/skills_mgmt/offline_evolver.py"),
@@ -1023,7 +1046,8 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "进化谱系旧归档路径（迁移兼容，只读）",
        owner="agent/skills_mgmt/lineage.py"),
     _c("EVOLUTION_STORAGE_PATH", CAT_LEARNING, None,
-       "进化存储根路径（只读）", owner="agent/evolution/injector.py"),
+       "进化存储根路径（只读）", owner="agent/evolution/injector.py",
+       config_path="evolution.storage_path"),
 
     _b("LEARNING_EVOLVER_ENABLED", CAT_LEARNING, False,
        "在线进化调度器开关（自动跑进化轮）",
@@ -1100,13 +1124,29 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        owner="agent/learning_budget.py"),
 
     # 学习观测 / 阈值（A）
+    # 【L1（2026-09-22）】补登记 config_path：本族 6 项在 `novelty_hooks.py` 里都是
+    #   三层取值（env > config.yaml > 硬编码默认），config 段为
+    #   `learning.sensor_learning.<key>`（novelty_hooks.py:74-81 _cfg_value() 逐条读取）。
+    #   此前 config_path 为空 ⇒ UI 只显示 default，**与模块真实取值相反**：
+    #   例 `SENSOR_LEARNING_ENABLED` 登记默认 False 而 config.yaml:145 显式 false、
+    #   `SENSOR_LEARNING_DRIFT_THRESHOLD` 登记默认 None 而 config.yaml:148 显式 0.3。
+    #   补登记只改 resolve() 的取值/来源标注（真实生效值由 novelty_hooks 自己算，不变）。
     _a("SENSOR_LEARNING_ENABLED", CAT_LEARNING, False,
-       "传感器学习（新颖度探测）总开关",
-       owner="agent/learning/novelty_hooks.py"),
+       "传感器学习（新颖度探测）总开关；config.yaml 路径 learning.sensor_learning.enabled"
+       "（agent/learning/novelty_hooks.py:84-89）",
+       owner="agent/learning/novelty_hooks.py",
+       config_path="learning.sensor_learning.enabled"),
     _a("SENSOR_LEARNING_DRIFT_THRESHOLD", CAT_LEARNING, None,
-       "新颖度漂移阈值", owner="agent/learning/novelty_hooks.py"),
+       "新颖度漂移阈值；config.yaml 路径 learning.sensor_learning.drift_threshold"
+       "（agent/learning/novelty_hooks.py:92-104）",
+       owner="agent/learning/novelty_hooks.py",
+       config_path="learning.sensor_learning.drift_threshold"),
     _a("SENSOR_LEARNING_BASELINE_RETENTION_WEEKS", CAT_LEARNING, None,
-       "新颖度基线保留周数", owner="agent/learning/novelty_hooks.py"),
+       "新颖度基线保留周数；config.yaml 路径 "
+       "learning.sensor_learning.baseline_retention_weeks"
+       "（agent/learning/novelty_hooks.py:107-118）",
+       owner="agent/learning/novelty_hooks.py",
+       config_path="learning.sensor_learning.baseline_retention_weeks"),
     _a("LEARNING_REFLECTION_PERSIST", CAT_LEARNING, True,
        "反思产物是否写入检索面（持久化）",
        owner="agent/orchestrator/orchestrator.py"),
@@ -1139,12 +1179,26 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "general,analyze,query",
        "反思教训可验证类型白名单（逗号分隔）",
        owner="agent/cognitive/prompt_optimizer.py"),
+    # 【L1】同上：三项在 novelty_hooks.py 里也是 env > config.yaml learning.sensor_learning.*
+    #   三层取值（_audit_path/_draft_dir/_memory_dir），故登记真实 config 路径。
     _c("SENSOR_LEARNING_AUDIT_FILE", CAT_LEARNING, None,
-       "新颖度审计文件路径（只读）", owner="agent/learning/novelty_hooks.py"),
+       "新颖度审计文件路径（只读）；config.yaml 路径 "
+       "learning.sensor_learning.audit_file"
+       "（agent/learning/novelty_hooks.py:129-134）",
+       owner="agent/learning/novelty_hooks.py",
+       config_path="learning.sensor_learning.audit_file"),
     _c("SENSOR_LEARNING_DRAFT_DIR", CAT_LEARNING, None,
-       "新颖度草稿目录（只读）", owner="agent/learning/novelty_hooks.py"),
+       "新颖度草稿目录（只读）；config.yaml 路径 "
+       "learning.sensor_learning.draft_dir"
+       "（agent/learning/novelty_hooks.py:121-126）",
+       owner="agent/learning/novelty_hooks.py",
+       config_path="learning.sensor_learning.draft_dir"),
     _c("SENSOR_LEARNING_MEMORY_DIR", CAT_LEARNING, None,
-       "新颖度记忆目录（只读）", owner="agent/learning/novelty_hooks.py"),
+       "新颖度记忆目录（只读）；config.yaml 路径 "
+       "learning.sensor_learning.memory_dir"
+       "（agent/learning/novelty_hooks.py:137-142）",
+       owner="agent/learning/novelty_hooks.py",
+       config_path="learning.sensor_learning.memory_dir"),
 
     # ────────────────────────────────────────────────────────
     #  三、编排与规划
@@ -1399,40 +1453,59 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     # 依据：agent/tool_fewshot_store.py:44
     #   FEWSHOT_ENABLED = _env_bool("FEWSHOT_ENABLED", True)
     # ⇒ env 未设置时模块常量即为 True。详情见本文件「学习与进化」段的裁定注释。
+    #
+    # 【L1（2026-09-22）核实结论：本族**不读** config.yaml，故 config_path 必须留空】
+    #   逐条证据：agent/tool_fewshot_store.py:31-48 只有 _env_int/_env_bool 两个读取器，
+    #   全部取值来自 os.environ，模块内**没有**任何 yaml 解析或 config.yaml 打开；
+    #   模块 docstring（同文件:11-13）也自述【变易】"配置走 .env: FEWSHOT_*"。
+    #   ⇒ 补 config_path 会让 UI 声称该值来自 config.yaml 而实际无人读它（新的假来源）。
+    #   → 此处按纪律改**说明**（如实标注"仅环境变量"），不改路径。
     _a("FEWSHOT_ENABLED", CAT_SKILLS, True,
-       "工具少样本（few-shot）示例注入开关；"
+       "工具少样本（few-shot）示例注入开关；仅环境变量（该模块不读 config.yaml）；"
        "真实默认 True，出处 agent/tool_fewshot_store.py:44",
        owner="agent/tool_fewshot_store.py"),
     _a("FEWSHOT_PER_TOOL", CAT_SKILLS, None,
-       "每个工具注入的示例条数", owner="agent/tool_fewshot_store.py",
+       "每个工具注入的示例条数；仅环境变量（该模块不读 config.yaml）",
+       owner="agent/tool_fewshot_store.py",
        validator=Validator("int")),
     _a("FEWSHOT_WINDOW_DAYS", CAT_SKILLS, None,
-       "少样本统计窗口（天）", owner="agent/tool_fewshot_store.py",
+       "少样本统计窗口（天）；仅环境变量（该模块不读 config.yaml）",
+       owner="agent/tool_fewshot_store.py",
        validator=Validator("int")),
     _a("FEWSHOT_MAX_INPUT_LEN", CAT_SKILLS, None,
-       "少样本输入最大长度", owner="agent/tool_fewshot_store.py",
+       "少样本输入最大长度；仅环境变量（该模块不读 config.yaml）",
+       owner="agent/tool_fewshot_store.py",
        validator=Validator("int")),
     _a("FEWSHOT_MAX_OUTPUT_LEN", CAT_SKILLS, None,
-       "少样本输出最大长度", owner="agent/tool_fewshot_store.py",
+       "少样本输出最大长度；仅环境变量（该模块不读 config.yaml）",
+       owner="agent/tool_fewshot_store.py",
        validator=Validator("int")),
     # 【裁定 D-20260922-01】登记 False / 代码 True ⇒ 按代码对齐（同 D-20260921-09 口径）。
     # 依据：agent/tool_schema_pruner.py:78-79
     #   SCHEMA_PRUNE_ADDITIONAL_PROPS = _env_bool("SCHEMA_PRUNE_ADDITIONAL_PROPS", True)
     #   SCHEMA_PRUNE_DEPRECATED       = _env_bool("SCHEMA_PRUNE_DEPRECATED", True)
     # ⇒ env 未设置时两项裁剪均**开启**（与旧登记值所暗示的"关闭"相反）。
+    #
+    # 【L1（2026-09-22）核实结论：本族**不读** config.yaml，故 config_path 必须留空】
+    #   逐条证据：agent/tool_schema_pruner.py:63-79 只有 _env_int/_env_bool 两个读取器，
+    #   全部取值来自 os.environ，模块内**没有**任何 yaml 解析或 config.yaml 打开；
+    #   模块 docstring（同文件:12-14）也自述【变易】"裁剪规则 4 个旋钮可配(.env)"。
+    #   ⇒ 同 FEWSHOT 族：改**说明**（如实标注"仅环境变量"），不改路径。
     _a("SCHEMA_PRUNE_DEPRECATED", CAT_SKILLS, True,
-       "工具 schema 裁剪：移除废弃字段；"
+       "工具 schema 裁剪：移除废弃字段；仅环境变量（该模块不读 config.yaml）；"
        "真实默认 True，出处 agent/tool_schema_pruner.py:79",
        owner="agent/tool_schema_pruner.py"),
     _a("SCHEMA_PRUNE_ADDITIONAL_PROPS", CAT_SKILLS, True,
-       "工具 schema 裁剪：移除 additionalProperties；"
+       "工具 schema 裁剪：移除 additionalProperties；仅环境变量（该模块不读 config.yaml）；"
        "真实默认 True，出处 agent/tool_schema_pruner.py:78",
        owner="agent/tool_schema_pruner.py"),
     _a("SCHEMA_DESC_MAX_LEN", CAT_SKILLS, None,
-       "工具描述最大长度", owner="agent/tool_schema_pruner.py",
+       "工具描述最大长度；仅环境变量（该模块不读 config.yaml）",
+       owner="agent/tool_schema_pruner.py",
        validator=Validator("int")),
     _a("SCHEMA_PROP_DESC_MAX_LEN", CAT_SKILLS, None,
-       "工具参数描述最大长度", owner="agent/tool_schema_pruner.py",
+       "工具参数描述最大长度；仅环境变量（该模块不读 config.yaml）",
+       owner="agent/tool_schema_pruner.py",
        validator=Validator("int")),
     # 【B 级理由】裁剪保护（TASK-08 E8 / v1.4 §7）：它决定**高危工具能不能被裁掉**。
     #   默认**开启**；关闭即允许 token 预算裁剪 / 主线名额截断把 `risk >= high`
