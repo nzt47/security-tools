@@ -33,6 +33,7 @@ import {
 import type {
   ApprovalInboxView,
   ApprovalItem,
+  BatchDecisionResult,
   AuditExportView,
   AuthzAlertsView,
   CapabilityMapView,
@@ -485,9 +486,54 @@ function DistBox({ title, dist }: { title: string; dist: Record<string, number> 
 //  3. 审批收件箱（P0）— 批量裁决 + 气泡规则
 // ═══════════════════════════════════════════════════════════
 
+/**
+ * 审批动作失败的上屏文本（硬纪律：后端错误必须如实显示，不得静默失败）
+ *
+ * Why 不直接上 `e.message`：`lib/apiClient.request()` 把 HTTP 状态放在 `status`、
+ * 把后端业务码放在 `code`（`csrf_failed` / `session_mismatch` / `panel_denied` …），
+ * `message` 只是后端 `error` 字段（或 `HTTP <n>`）的兜底。审批被拒时这几类指向
+ * **完全不同**的排查方向：401 = 没配令牌（localStorage `yunshu_api_token`）；
+ * 403+csrf = 会话/CSRF 过期，重开页面；403+session_mismatch = 审批链绑定的会话与
+ * 当前会话不是同一个；403+panel_denied = 矩阵不放行。糊成一句 `HTTP 4xx`
+ * 等于让运维自己猜——本仓库不接受这种失败。
+ */
+function describeApiError(e: unknown): string {
+  const err = e as { code?: string; status?: number; message?: string }
+  const status = err?.status ? `HTTP ${err.status}` : ''
+  // `API_HTTP_ERROR` 是 apiClient 无业务码时的兜底值，上屏只是噪音
+  const code = err?.code && err.code !== 'API_HTTP_ERROR' ? err.code : ''
+  const head = [status, code].filter(Boolean).join(' · ')
+  const detail = err?.message || String(e)
+  return head ? `${head}：${detail}` : detail
+}
+
+/** 单条裁决结果行的失败原因（后端 `results[]` 行形状不保证，逐字段兜底） */
+function describeDecisionRow(
+  row: (Record<string, unknown> & { record_id: string; ok: boolean }) | undefined,
+): string {
+  if (!row) return '后端未返回该记录的裁决结果'
+  const reason = row.error ?? row.reason ?? row.message ?? row.code
+  return `${row.record_id}：${reason ? String(reason) : JSON.stringify(row)}`
+}
+
+/** 批量裁决的逐条失败明细（`failed > 0` 时必须能看到是哪几条、为什么） */
+function describeBatchFailures(out: BatchDecisionResult): string {
+  const bad = (out.results || []).filter((r) => !r.ok)
+  if (!bad.length) return `失败 ${out.failed} 条（后端未给出逐条原因）`
+  return bad.map((r) => describeDecisionRow(r)).join('；')
+}
+
 export function ApprovalInboxPanel() {
   const { data, loading, error, reload } = usePanel<ApprovalInboxView>(
-    () => fetchApprovalInbox({ limit: 100 }),
+    // 读取失败也带上 HTTP 状态 / 后端业务码：401（无令牌）与 403 panel_denied
+    // 的处置方式不同，只显示 message 会糊成一句 "HTTP 4xx"（同上）。
+    async () => {
+      try {
+        return await fetchApprovalInbox({ limit: 100 })
+      } catch (e) {
+        throw new Error(describeApiError(e))
+      }
+    },
     [],
   )
   const { state: sec } = useSecurityState()
@@ -495,6 +541,8 @@ export function ApprovalInboxPanel() {
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState('')
   const [msg, setMsg] = useState('')
+  // 与 msg 分开：错误必须与"成功/提示"在视觉上不可能混淆（红 vs 青）
+  const [errMsg, setErrMsg] = useState('')
   const [batchId, setBatchId] = useState('')
 
   const items = useMemo(() => data?.items || [], [data])
@@ -506,8 +554,8 @@ export function ApprovalInboxPanel() {
   const selectedGroup = groups.find((g) => g.record_ids.some((id) => selected[id]))
 
   async function approveBatch() {
-    if (!sec) { setMsg('安全常量未就绪（U1：未拿到常量不得执行审批）'); return }
-    setBusy('approve'); setMsg('')
+    if (!sec) { setErrMsg('安全常量未就绪（U1：未拿到常量不得执行审批）'); return }
+    setBusy('approve'); setMsg(''); setErrMsg('')
     try {
       // 两段式：先为所选记录签发逐条绑定的一次性链接（后端逐条单表校验）
       const link = batchId ? { batch_id: batchId } : await batchLink(selectedIds)
@@ -516,24 +564,27 @@ export function ApprovalInboxPanel() {
         batch_id: link.batch_id, decision: 'approve', reason: reason || '一键批（同策略同风险）',
       })
       setMsg(`批量批准：成功 ${out.succeeded} / ${out.requested}（失败 ${out.failed}）`)
+      // 部分失败**不能**被"成功 N/M"盖过去：逐条原因要留在屏上（否则等于静默失败）
+      if (out.failed) setErrMsg(`批量批准部分失败：${describeBatchFailures(out)}`)
       setSelected({}); setBatchId(''); reload()
     } catch (e) {
-      setMsg(`批量裁决被拒：${e instanceof Error ? e.message : String(e)}`)
+      setErrMsg(`批量裁决被拒：${describeApiError(e)}`)
     } finally { setBusy('') }
   }
 
   async function rejectBatch() {
-    if (!sec) { setMsg('安全常量未就绪（U1：未拿到常量不得执行审批）'); return }
-    if (!reason.trim()) { setMsg('驳回必须填写理由（审计要求）'); return }
-    setBusy('reject'); setMsg('')
+    if (!sec) { setErrMsg('安全常量未就绪（U1：未拿到常量不得执行审批）'); return }
+    if (!reason.trim()) { setErrMsg('驳回必须填写理由（后端要求，无理由一律 400）'); return }
+    setBusy('reject'); setMsg(''); setErrMsg('')
     try {
       const link = batchId ? { batch_id: batchId } : await batchLink(selectedIds)
       setBatchId(link.batch_id)
       const out = await batchDecide({ batch_id: link.batch_id, decision: 'reject', reason })
-      setMsg(`批量驳回：成功 ${out.succeeded} / ${out.requested}`)
+      setMsg(`批量驳回：成功 ${out.succeeded} / ${out.requested}（失败 ${out.failed}）`)
+      if (out.failed) setErrMsg(`批量驳回部分失败：${describeBatchFailures(out)}`)
       setSelected({}); setBatchId(''); reload()
     } catch (e) {
-      setMsg(`批量裁决被拒：${e instanceof Error ? e.message : String(e)}`)
+      setErrMsg(`批量裁决被拒：${describeApiError(e)}`)
     } finally { setBusy('') }
   }
 
@@ -603,24 +654,48 @@ export function ApprovalInboxPanel() {
               )}
             </div>
             {msg && <div className="mt-2 text-[11px] text-cyan-300">{msg}</div>}
+            {errMsg && (
+              <div
+                data-cp-approval-error="true"
+                className="mt-2 break-all rounded border border-red-900/60 bg-red-950/40 px-2 py-1 text-[11px] text-red-300"
+              >
+                {errMsg}
+              </div>
+            )}
           </div>
 
-          <VirtualList
-            items={items}
-            itemHeight={92}
-            height={560}
-            className="rounded-lg border border-slate-800"
-            keyOf={(i) => i.record_id}
-            renderItem={(i) => (
-              <ApprovalRow
-                item={i}
-                checked={!!selected[i.record_id]}
-                onToggle={() => { setSelected((s) => ({ ...s, [i.record_id]: !s[i.record_id] })); setBatchId('') }}
-                onRefresh={reload}
-                sec={sec}
-              />
-            )}
-          />
+          {/* 空列表要有明确状态：空白的列表框会让人误判成"没渲染 / 加载失败"。
+              这里**刻意不用 AbsentBox**：收件箱为空 = 待审 0 条（数据源正常），
+              而 AbsentBox 的文案是"数据源缺位 / 记 None"——两者口径不同，
+              混用会把"确实没有待审"误报成"读不到数据"（§0.3：0 与缺位不得互相冒充）。 */}
+          {items.length === 0 ? (
+            <div
+              data-cp-approval-empty="true"
+              className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-6 text-center text-xs text-slate-500"
+            >
+              暂无待审记录（pending_review = 0）
+              <div className="mt-1 text-[10px] text-slate-600">
+                若预期有记录，请核对令牌与 panel.approvals 查看权——读取失败会以红条如实显示（401 / 403）
+              </div>
+            </div>
+          ) : (
+            <VirtualList
+              items={items}
+              itemHeight={118}
+              height={560}
+              className="rounded-lg border border-slate-800"
+              keyOf={(i) => i.record_id}
+              renderItem={(i) => (
+                <ApprovalRow
+                  item={i}
+                  checked={!!selected[i.record_id]}
+                  onToggle={() => { setSelected((s) => ({ ...s, [i.record_id]: !s[i.record_id] })); setBatchId('') }}
+                  onRefresh={reload}
+                  sec={sec}
+                />
+              )}
+            />
+          )}
 
           {/* 七动作（审批/熔断/回滚…）：写动作走后端审批，前端不得旁路（U4） */}
           <div className="mt-3">
@@ -652,22 +727,33 @@ function ApprovalRow({
   sec: SecurityRenderState | null
 }) {
   const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
 
   async function single(decision: 'approve' | 'reject') {
-    if (!sec) { setMsg('安全常量未就绪'); return }
-    setBusy(true); setMsg('')
+    if (!sec) { setErr('安全常量未就绪（U1：未拿到常量不得执行审批）'); return }
+    // 驳回理由**先收齐再发请求**：后端无理由一律 400。先弹框既省一次往返，也消除
+    // 「点了驳回其实没提交」的歧义（取消 = 明确的"未提交"，而不是发一条空理由被拒）。
+    let reasonText = '单条确认'
+    if (decision === 'reject') {
+      const input = window.prompt('驳回理由（必填）')
+      if (input === null) { setErr('已取消：驳回未提交'); return }
+      if (!input.trim()) { setErr('驳回必须填写理由（后端要求，否则 400）'); return }
+      reasonText = input.trim()
+    }
+    setBusy(true); setMsg(''); setErr('')
     try {
-      const link = await (await import('@/lib/cpPanelsApi')).batchLink([item.record_id])
+      // 与批量同一条链：先签发逐条绑定的一次性链接，再提交裁决（不新增旁路）
+      const link = await batchLink([item.record_id])
       const out = await batchDecide({
-        batch_id: link.batch_id, decision,
-        reason: decision === 'reject' ? (window.prompt('驳回理由（必填）') || '') : '单条确认',
+        batch_id: link.batch_id, decision, reason: reasonText,
       })
       const row = out.results?.[0]
-      setMsg(row && row.ok ? `${decision === 'approve' ? '已批准' : '已驳回'}` : `被拒：${JSON.stringify(row)}`)
+      if (row && row.ok) setMsg(decision === 'approve' ? '已批准' : '已驳回')
+      else setErr(`被拒：${describeDecisionRow(row)}`)
       onRefresh()
     } catch (e) {
-      setMsg(`被拒：${e instanceof Error ? e.message : String(e)}`)
+      setErr(`被拒：${describeApiError(e)}`)
     } finally { setBusy(false) }
   }
 
@@ -676,23 +762,45 @@ function ApprovalRow({
       <input type="checkbox" checked={checked} onChange={onToggle} className="mt-1" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
+          {/* 记录 id：批量裁决与审计追溯的唯一句柄——裁决被拒时要能把它原样报出去 */}
+          <span className="font-mono text-[10px] text-amber-300/90" title="record_id">
+            {item.record_id}
+          </span>
           <span className="font-mono text-[11px] text-cyan-300">{item.object_type}</span>
           <span className="truncate text-slate-300">{item.object_id}</span>
           <StatusBadge tone="blue">{item.level}</StatusBadge>
           <StatusBadge tone={toneForRisk(item.risk)}>风险 {item.risk || '未标注'}</StatusBadge>
+          {item.manual_required && (
+            <StatusBadge tone="yellow" title="§7.0：审批 Approve/Deny 仅 human">人工</StatusBadge>
+          )}
           {/* §5.7⑦：外来内容恒带 TaintBadge（class 名来自后端常量） */}
           {item.taint?.taint && <TaintBadge source={item.taint.taint_reason} />}
-          {/* ★ 缺 undo_hint 不出现审批气泡（后端判定，前端不放宽） */}
-          {!item.bubble.visible && (
-            <StatusBadge tone="gray" title={item.bubble.rule}>不出气泡</StatusBadge>
-          )}
+          {/* ★ 气泡可见性由后端判定（缺 undo_hint 且无补偿动作 ⇒ 不出），前端不放宽；
+              两态都上屏——只标"不出气泡"会让人以为"有气泡"是默认值 */}
+          <StatusBadge tone={item.bubble.visible ? 'green' : 'gray'} title={item.bubble.rule}>
+            {item.bubble.visible ? '有审批气泡' : '不出气泡'}
+          </StatusBadge>
         </div>
         <div className="mt-1 line-clamp-2 text-slate-400">{item.description || '(无说明)'}</div>
+        {/* 参数摘要：后端收件箱**不下发原始 payload**（防跨租户/防泄露），所以预览只用
+            后端已给的 action + 治理退路 + 污染标记，前端不自行拼装、不猜测 */}
+        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-slate-500">
+          <span>动作 <span className="font-mono text-slate-400">{item.action || '—'}</span></span>
+          <span>
+            退路{' '}
+            <span className="font-mono text-slate-400">
+              {item.bubble.undo_hint || item.bubble.compensating_action || '无（缺 undo_hint）'}
+            </span>
+          </span>
+          {item.taint?.taint_reason && (
+            <span>污染标记 <span className="text-amber-400/80">{item.taint.taint_reason}</span></span>
+          )}
+        </div>
         <div className="mt-0.5 text-[10px] text-slate-600">
-          {item.actor} / {item.actor_type || '—'} · {formatTime(item.created_at)} ·
-          {item.bubble.undo_hint ? ` undo_hint: ${item.bubble.undo_hint}` : ' 无 undo_hint'}
+          {item.actor} / {item.actor_type || '—'} · 创建于 {formatTime(item.created_at)}
         </div>
         {msg && <div className="mt-1 text-[10px] text-cyan-300">{msg}</div>}
+        {err && <div className="mt-1 break-all text-[10px] text-red-300">{err}</div>}
       </div>
       {/* ★ U2：审批按钮区挂在工作台内的 Shadow DOM 自治单元里 */}
       <ApprovalZone inline>

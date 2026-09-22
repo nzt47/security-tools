@@ -38,13 +38,19 @@ export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   signal?: AbortSignal;
+  /**
+   * 额外请求头（审批链的 `X-CSRF-Token` 走这里）。
+   * `Authorization` 在下面**后合并** ⇒ 调用方无法用这个口子覆盖令牌。
+   */
+  headers?: Record<string, string>;
 }
 
 export async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, signal } = opts;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...(opts.headers || {}) };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   // 遗留修复：FLASK_API_TOKEN 启用时受保护端点需要 Bearer 令牌（见 lib/apiToken.ts）
+  // 【顺序】放在调用方 headers **之后**合并 ⇒ 令牌永远由客户端注入，调用方覆盖不掉。
   Object.assign(headers, authHeader());
 
   let res: Response;

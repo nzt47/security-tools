@@ -13,6 +13,7 @@
  */
 
 import { request, buildQuery } from './apiClient'
+import { approvalCsrfHeaders, withApprovalSession } from './approvalChain'
 import type {
   ActionName,
   ActionResponse,
@@ -195,7 +196,13 @@ export function runAction(
   )
 }
 
-/** 批量裁决第一段：为所选记录签发逐条绑定的一次性审批链接 */
+/** 批量裁决第一段：为所选记录签发逐条绑定的一次性审批链接
+ *
+ * 【2026-09-22 修复】本调用与 batchDecide 都必须**先有审批会话**并携带 CSRF 头，
+ * 否则后端一律 401 `unknown_session`（收件箱因此结构性批不了单）。
+ * 会话的开启/重开与重试统一交给 `withApprovalSession`；CSRF 头在回调内取，
+ * 保证拿到的是**本次**会话的令牌。详见 lib/approvalChain.ts。
+ */
 export function batchLink(recordIds: string[]): Promise<{
   ok: boolean
   batch_id: string
@@ -205,23 +212,29 @@ export function batchLink(recordIds: string[]): Promise<{
   one_time_per_record: boolean
   note: string
 }> {
-  return request(`${PREFIX}/approvals/batch/link`, {
-    method: 'POST',
-    body: { record_ids: recordIds },
-  })
+  return withApprovalSession(() =>
+    request(`${PREFIX}/approvals/batch/link`, {
+      method: 'POST',
+      body: { record_ids: recordIds },
+      headers: approvalCsrfHeaders(),
+    }),
+  )
 }
 
-/** 批量裁决第二段：提交裁决（逐条走同一审批链） */
+/** 批量裁决第二段：提交裁决（逐条走同一审批链；会话/CSRF 同上） */
 export function batchDecide(body: {
   batch_id: string
   decision: 'approve' | 'reject'
   reason?: string
   second_factor?: Record<string, string>
 }): Promise<BatchDecisionResult> {
-  return request<BatchDecisionResult>(`${PREFIX}/approvals/batch`, {
-    method: 'POST',
-    body,
-  })
+  return withApprovalSession(() =>
+    request<BatchDecisionResult>(`${PREFIX}/approvals/batch`, {
+      method: 'POST',
+      body,
+      headers: approvalCsrfHeaders(),
+    }),
+  )
 }
 
 // ═══════════════════════════════════════════════════════════

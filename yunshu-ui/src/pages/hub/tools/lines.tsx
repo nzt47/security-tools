@@ -40,6 +40,12 @@ import {
   type PlanesResponse,
   type ToolCatalogEntry,
 } from '@/lib/agentLinesApi'
+import {
+  ExemptionStatusBar,
+  ExemptionToggle,
+  useToolExemptions,
+  type ToolExemptionState,
+} from './exemption'
 
 // ═══════════════════════════════════════════════════════════
 //  文案与常量（中文名与后端 PLANE_LABELS / EFFECT_LABELS 同源；
@@ -235,13 +241,16 @@ function ToolChips({ names, meta, reasons, color = 'slate' }: {
 }
 
 /** 可搜索的工具多选（boost / mute 共用；两者只是语义不同，交互同款） */
-function ToolPicker({ title, hint, tone, tools, selected, onToggle }: {
+function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, onToggleExemption }: {
   title: string
   hint: string
   tone: 'cyan' | 'red'
   tools: ToolCatalogEntry[]
   selected: string[]
+  /** 工具豁免（「需确认」开关）的全局状态：徽章真值与锁定原因都取自此 */
+  exemptions: ToolExemptionState
   onToggle: (name: string) => void
+  onToggleExemption: (name: string, next: boolean) => void
 }) {
   const [q, setQ] = useState('')
   const chosen = useMemo(() => new Set(selected), [selected])
@@ -291,32 +300,49 @@ function ToolPicker({ title, hint, tone, tools, selected, onToggle }: {
         {rows.map((t) => {
           const on = chosen.has(t.name)
           return (
-            <button
+            // 【结构】行 = 「选中工具的大按钮」+「豁免开关」并列，而不是把开关塞进按钮里：
+            //   HTML 不允许按钮嵌套按钮；开关又必须是真按钮（可键盘触发、可禁用、可挂原因 title）。
+            //   底色/文字色因此上移到这层容器（原来挂在按钮上）。
+            <div
               key={t.name}
-              onClick={() => onToggle(t.name)}
-              title={t.description || t.name}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs ${
+              className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${
                 on
                   ? (tone === 'cyan' ? 'bg-cyan-950/40 text-cyan-200' : 'bg-red-950/40 text-red-200')
                   : 'text-slate-300 hover:bg-slate-800/60'
               }`}
             >
-              <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
-                on ? 'border-current' : 'border-slate-600'
-              }`}>
-                {on && <Check size={10} />}
-              </span>
-              <span className="w-40 shrink-0 truncate font-mono">{t.name}</span>
-              <Badge color="slate">{PLANE_LABELS[t.plane] ?? t.plane}</Badge>
-              <Badge color="cyan">{EFFECT_LABELS[t.effect] ?? t.effect}</Badge>
-              <Badge color={RISK_BADGE[t.risk] ?? 'slate'}>
-                险 {RISK_LABELS[t.risk] ?? t.risk}
-              </Badge>
-              {t.needs_approval && <Badge color="amber">需确认</Badge>}
-              {/* 可调用性标识：mark 缺失时不渲染（退化为现状） */}
-              <CallabilityBadge info={t.callability} name={t.name} />
-              <span className="truncate text-[11px] text-slate-500">{t.category}</span>
-            </button>
+              <button
+                onClick={() => onToggle(t.name)}
+                title={t.description || t.name}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              >
+                <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border ${
+                  on ? 'border-current' : 'border-slate-600'
+                }`}>
+                  {on && <Check size={10} />}
+                </span>
+                <span className="w-40 shrink-0 truncate font-mono">{t.name}</span>
+                <Badge color="slate">{PLANE_LABELS[t.plane] ?? t.plane}</Badge>
+                <Badge color="cyan">{EFFECT_LABELS[t.effect] ?? t.effect}</Badge>
+                <Badge color={RISK_BADGE[t.risk] ?? 'slate'}>
+                  险 {RISK_LABELS[t.risk] ?? t.risk}
+                </Badge>
+                {/* 可调用性标识：mark 缺失时不渲染（退化为现状） */}
+                <CallabilityBadge info={t.callability} name={t.name} />
+                <span className="truncate text-[11px] text-slate-500">{t.category}</span>
+              </button>
+              {/* 「需确认」徽章 = 豁免开关（豁免清单没读到时它自己退回静态徽章） */}
+              {t.needs_approval && (
+                <ExemptionToggle
+                  name={t.name}
+                  item={exemptions.lookup(t.name)}
+                  exempt={exemptions.isExempt(t.name)}
+                  pending={exemptions.pendingTool === t.name}
+                  disabled={exemptions.pendingTool !== ''}
+                  onToggle={onToggleExemption}
+                />
+              )}
+            </div>
           )
         })}
       </div>
@@ -489,6 +515,11 @@ export default function ToolsAgentLines() {
   const [previewNotes, setPreviewNotes] = useState<string[]>([])
   const [previewError, setPreviewError] = useState('')
   const [previewing, setPreviewing] = useState(false)
+  /** 豁免变更后强制重算预览：预览里的「需人工确认 N」必须跟着豁免走，否则那张卡会说谎 */
+  const [previewNonce, setPreviewNonce] = useState(0)
+
+  /** 工具豁免（「需确认」徽章背后的开关）；它自己管状态，读不到也不拖垮本页 */
+  const exemptions = useToolExemptions()
 
   const tools = catalog?.tools ?? []
   /** 图例：后端给了 callability_note / 计数，或至少一个工具带标识时才显示（旧后端 ⇒ 不显示） */
@@ -568,7 +599,7 @@ export default function ToolsAgentLines() {
         })
     }, 350)
     return () => { clearTimeout(timer); controller.abort() }
-  }, [draft])
+  }, [draft, previewNonce])
 
   // ── 编辑动作 ──
 
@@ -662,6 +693,25 @@ export default function ToolsAgentLines() {
     }
   }
 
+  // ── 工具豁免：放宽先问理由，收紧不问（放宽才是需要留痕的方向） ──
+  const doToggleExemption = async (tool: string, next: boolean) => {
+    let reason = ''
+    if (next) {
+      // window.prompt 的默认值当占位用：用户直接回车＝不写理由（后端 reason 可选），
+      // 取消（null）＝放弃本次提交，绝不静默替用户点下去
+      const input = window.prompt(
+        `放宽「${tool}」的人工确认要求\n\n这会全局生效（不止当前主线），并记入审计。\n请填写放宽原因：`,
+        '（可选）例：受控环境内的批量迁移，已另行审批',
+      )
+      if (input === null) return
+      reason = input.trim()
+    }
+    await exemptions.setExemption(tool, next, reason)
+    // 切换后重算一次预览：预览里的 needs_approval 清单来自后端装配结果，
+    // 不重算就会与刚到手的豁免真值互相矛盾
+    setPreviewNonce((n) => n + 1)
+  }
+
   const doValidate = async () => {
     if (!draft) return
     setBusy(true)
@@ -735,6 +785,8 @@ export default function ToolsAgentLines() {
           {notice}
         </div>
       )}
+      {/* 豁免接口是独立端点：它失败只影响开关，本页其余部分照常（故不并进上面的 error） */}
+      <ExemptionStatusBar state={exemptions} onReload={() => void exemptions.reload()} />
       {broken.length > 0 && (
         <div className="mb-4 rounded-lg border border-amber-900/60 bg-amber-950/30 px-4 py-2.5 text-xs text-amber-300">
           以下档案文件读取失败（已在列表中略过）：{broken.join('、')}
@@ -1042,7 +1094,9 @@ export default function ToolsAgentLines() {
                       tone="cyan"
                       tools={tools}
                       selected={draft.boost ?? []}
+                      exemptions={exemptions}
                       onToggle={(name) => toggleIn('boost', name)}
+                      onToggleExemption={(name, next) => void doToggleExemption(name, next)}
                     />
                     <ToolPicker
                       title="mute（明确排除）"
@@ -1050,7 +1104,9 @@ export default function ToolsAgentLines() {
                       tone="red"
                       tools={tools}
                       selected={draft.mute ?? []}
+                      exemptions={exemptions}
                       onToggle={(name) => toggleIn('mute', name)}
+                      onToggleExemption={(name, next) => void doToggleExemption(name, next)}
                     />
                   </div>
 

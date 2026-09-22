@@ -91,6 +91,26 @@ export const HUB_NAV: HubNavItem[] = [
     ],
   },
   {
+    // v7.2 §7 六面板（P0 展开 / P1·P2 折叠；自愈事故有事故时自动展开）
+    // 全部挂在本工作台内，不另起 Web App（UI 五坑④）
+    // 【2026-09-22 上移】原排在「系统组件」之后（14 项里的第 13 项）⇒ 侧栏要滚到底
+    // 才看得见，而侧栏滚动条只有 6px / 25% 透明度，操作者实测"找不到治理面板"
+    // （连带找不到审批收件箱 ⇒ 审批单据挂单后没人能批）。现上移到「全景看板」之后：
+    // 治理面板是 P0 操作面（审批/开关/自愈），应当一屏可见。
+    key: 'governance', label: '治理面板', icon: Shield,
+    children: [
+      { key: 'governance/pipeline', label: '消化流水线', icon: GitBranch, component: GovernancePanels },
+      { key: 'governance/approvals', label: '审批收件箱', icon: ListChecks, component: GovernancePanels },
+      { key: 'governance/capabilities', label: '能力地图', icon: Layers, component: GovernancePanels },
+      { key: 'governance/roi', label: '成本 ROI', icon: TrendingUp, component: GovernancePanels },
+      { key: 'governance/incidents', label: '自愈事故', icon: HeartPulse, component: GovernancePanels },
+      { key: 'governance/memory', label: '记忆技能库', icon: Brain, component: GovernancePanels },
+      { key: 'governance/audit', label: '审计导出', icon: ScrollText, component: GovernancePanels },
+      // TASK-S7-01「开关中心」：登记表全量（分类分组 + 搜索 + 风险分级 + 生效来源）
+      { key: 'governance/settings', label: '开关中心', icon: SlidersHorizontal, component: GovernancePanels },
+    ],
+  },
+  {
     key: 'memory', label: '记忆管理', icon: Brain,
     children: [
       { key: 'memory/manual', label: '手动记忆', icon: Brain, component: MemoryPage },
@@ -142,22 +162,6 @@ export const HUB_NAV: HubNavItem[] = [
     children: [
       { key: 'components/modules', label: '模块列表', icon: Boxes, component: ModuleListPage },
       { key: 'components/plugins', label: '插件管理', icon: Puzzle, component: PluginManagePage },
-    ],
-  },
-  {
-    // v7.2 §7 六面板（P0 展开 / P1·P2 折叠；自愈事故有事故时自动展开）
-    // 全部挂在本工作台内，不另起 Web App（UI 五坑④）
-    key: 'governance', label: '治理面板', icon: Shield,
-    children: [
-      { key: 'governance/pipeline', label: '消化流水线', icon: GitBranch, component: GovernancePanels },
-      { key: 'governance/approvals', label: '审批收件箱', icon: ListChecks, component: GovernancePanels },
-      { key: 'governance/capabilities', label: '能力地图', icon: Layers, component: GovernancePanels },
-      { key: 'governance/roi', label: '成本 ROI', icon: TrendingUp, component: GovernancePanels },
-      { key: 'governance/incidents', label: '自愈事故', icon: HeartPulse, component: GovernancePanels },
-      { key: 'governance/memory', label: '记忆技能库', icon: Brain, component: GovernancePanels },
-      { key: 'governance/audit', label: '审计导出', icon: ScrollText, component: GovernancePanels },
-      // TASK-S7-01「开关中心」：登记表全量（分类分组 + 搜索 + 风险分级 + 生效来源）
-      { key: 'governance/settings', label: '开关中心', icon: SlidersHorizontal, component: GovernancePanels },
     ],
   },
   {
@@ -217,3 +221,73 @@ export function findNavItem(key: string): HubNavItem | undefined {
 
 /** 默认选中项：第一个叶子（会话任务） */
 export const DEFAULT_NAV_KEY = HUB_NAV[0]?.key ?? 'session'
+
+// ════════════════════════════════════════════════════════════
+//  导航检索 + 深链（2026-09-22）
+// ════════════════════════════════════════════════════════════
+
+/**
+ * 按关键词过滤导航树（侧栏搜索框的唯一实现）
+ *
+ * 【为什么分组自身命中就整组保留】用户输入「治理」时想要的是**整个治理面板**
+ * （他可能还不知道里面叫「审批收件箱」），只回一个子项等于把路又堵一半。
+ * 反之只命中某个子项（如输入「审批」）时，只保留该子项——分组标题不参与展开噪音。
+ *
+ * 【为什么返回新树而不是就地改】HUB_NAV 是模块级单一数据源；就地过滤会让"搜索一次
+ * 之后导航永久变短"，这是最难排查的一类状态污染。
+ */
+export function filterNav(items: HubNavItem[], query: string): HubNavItem[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return items
+  const hit = (text: string) => text.toLowerCase().includes(q)
+  const walk = (nodes: HubNavItem[]): HubNavItem[] => {
+    const out: HubNavItem[] = []
+    for (const node of nodes) {
+      if (hit(node.label) || hit(node.key)) {
+        out.push(node)
+        continue
+      }
+      if (node.children) {
+        const kids = walk(node.children)
+        if (kids.length) out.push({ ...node, children: kids })
+      }
+    }
+    return out
+  }
+  return walk(items)
+}
+
+/** 深链参数名：`#/workbench?panel=governance/approvals` */
+export const NAV_PANEL_PARAM = 'panel'
+
+/**
+ * 从 URL search 取导航 key；**不合法（不在导航树里）一律返回空串**
+ *
+ * 【为什么必须校验】地址栏是可以手改的。若不校验，一个拼错的 `?panel=` 会把
+ * activeKey 设成一个不存在的 key ⇒ ContentPanel 渲染兜底空白页，人看到的是
+ * "工作台坏了"，而不是"链接写错了"。
+ */
+export function navKeyFromSearch(search: string): string {
+  try {
+    const key = new URLSearchParams(search).get(NAV_PANEL_PARAM) ?? ''
+    return key && findNavItem(key) ? key : ''
+  } catch {
+    return ''
+  }
+}
+
+/** 把导航 key 写进 URL search（保留其它参数；key 为空则删除该参数） */
+export function searchForNavKey(search: string, key: string): string {
+  try {
+    const params = new URLSearchParams(search)
+    if (key) {
+      params.set(NAV_PANEL_PARAM, key)
+    } else {
+      params.delete(NAV_PANEL_PARAM)
+    }
+    const next = params.toString()
+    return next ? `?${next}` : ''
+  } catch {
+    return ''
+  }
+}

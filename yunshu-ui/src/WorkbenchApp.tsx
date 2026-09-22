@@ -31,6 +31,7 @@ import type { PanelId } from './lib/mosaic';
 import { useLayoutStore } from './stores/useLayoutStore';
 import { useWorkbenchNav } from './workbench/navStore';
 import { findNavItem } from './workbench/hubNav';
+import { useNavUrlSync } from './workbench/useNavUrlSync';
 import Toaster from './components/Toaster';
 import { renderPanel } from './components/workbench/panels/renderPanel';
 import { startCrossWindowSync } from './electron/sync';
@@ -86,6 +87,9 @@ export default function WorkbenchApp() {
   const layout = useLayoutStore((s) => s.layout);
   const setLayout = useLayoutStore((s) => s.setLayout);
   const resetLayout = useLayoutStore((s) => s.resetLayout);
+
+  // 导航状态 ⇄ 地址栏（可深链 #/workbench?panel=governance/approvals；见 useNavUrlSync）
+  useNavUrlSync();
 
   // 边缘停靠区高亮（拖拽面板到窗口边缘时显示）
   const [detachEdge, setDetachEdge] = useState<'top' | 'bottom' | 'left' | 'right' | null>(null);
