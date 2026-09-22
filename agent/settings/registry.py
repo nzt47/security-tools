@@ -766,6 +766,25 @@ _REGISTRY_ROWS: List[SettingSpec] = [
               "confirm_level 实际拦截",
        rollback="回滚：置 CP_TOOL_CONFIRM_LEVEL_SHADOW=0"),
     # ── 服务账号（第四类主体；agent/security/service_account.py，TASK-06）──
+    # 【A 级理由（2026-09-22 新增）】这是"逐工具名单"，不是"整层关掉"：
+    #   · 每个工具一行，**单次改动的爆炸半径就是一个工具**；一次点错不会放掉别的能力；
+    #   · 真正"整层放宽"的两个入口仍是 **B 级**（CP_TOOL_GATE_APPROVAL_ENFORCE /
+    #     CP_TOOL_CONFIRM_LEVEL_ENFORCE）—— 最粗那根杠杆没有被降级；
+    #   · B 级要求**两位不同的人工**（`second_approver_must_differ`）。本机是单操作者
+    #     部署，登记成 B 只会得到一个"永远批不过"的死按钮 —— 那比 A 级更坏：
+    #     人会以为功能坏了，转而直接改 .env（绕过全部留痕）。
+    #   · 变更仍受 `settings.change` 矩阵约束：**只有 human 放行**（auto / sub_agent /
+    #     service_account 一律拒）⇒ 云枢无法给自己松绑；每次改动进审计链。
+    _a("CP_TOOL_CONFIRM_LEVEL_EXEMPT", CAT_SELF_HEALING, "",
+       "确认分级**豁免名单**（逗号分隔的工具名 / 能力 id）：列出的能力免「摘要确认」，"
+       "不再进审批收件箱。界面入口：治理面板的「能力地图」与主线管理里的逐工具徽章开关",
+       env_name="CP_TOOL_CONFIRM_LEVEL_EXEMPT", owner="agent/tool_gate.py",
+       impact="影响面：只放大分级层里的「摘要确认」——权限策略黑名单 / 描述符 "
+              "requires_approval（shell_execute、run_sandbox、ext_* 等仍要人工确认）/ "
+              "伦理硬规则（禁 rm -rf /、格式化、关机…）/ RBAC 严格模式**全部不受影响**；"
+              "子代理自己发出的工具调用仍各自过闸门",
+       rollback="回滚：POST /api/cp/settings/CP_TOOL_CONFIRM_LEVEL_EXEMPT/reset 清除覆盖层，"
+                "或把值置空（= 一个都不豁免）"),
     _c("CP_SERVICE_ACCOUNTS_PATH", CAT_SELF_HEALING,
        "data/service_accounts.json",
        "service_account 凭据文件路径（**加密落盘**，Fernet；只记账号 scope、"
@@ -940,11 +959,27 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     #  二、学习与进化
     # ────────────────────────────────────────────────────────
 
-    _b("EVOLUTION_ENABLED", CAT_LEARNING, False,
-       "技能进化总开关（自动产出候选技能）",
+    # 【裁定 D-20260922-01（2026-09-22）】本两项登记默认值与代码事实**相反**
+    # （声明 False / 代码 True）⇒ 按代码对齐为 True，只改登记值，不动业务默认。
+    # 依据：agent/evolution/injector.py:112-114 —— get_evolution_config() 取值
+    #   "enabled": _env_bool("EVOLUTION_ENABLED", _yaml_bool(cfg, "enabled", True))
+    #   "llm_generate": _env_bool("EVOLUTION_LLM_GENERATE", _yaml_bool(cfg, "llm_generate", True))
+    # ⇒ config.yaml 的 evolution 节缺项时两者均为 True。
+    # 为何改登记值是安全的（与裁定 D-20260921-09 同口径）：注册表的 default
+    # **从不写入 os.environ**——bootstrap.py:58-76 只遍历**覆盖层里已存在的键**，
+    # resolver.py:376-385 只把 resolved.value（覆盖层值）写 env；
+    # 全仓唯一会用 spec.default 作运行态落点的是 resolver.py:426（reset 时回写
+    # ObservabilityConfig），它受 _is_observability_path(spec) 把关，而本两项
+    # 无 config_path ⇒ 永不触发。故本表 default 只影响**展示与来源判定**
+    # （resolve() 的 value/display_value、「当前值」来源标注）。
+    _b("EVOLUTION_ENABLED", CAT_LEARNING, True,
+       "技能进化总开关（自动产出候选技能）；"
+       "真实默认 True，出处 agent/evolution/injector.py:112（config.yaml 无 evolution.enabled 时）",
        owner="agent/evolution/injector.py"),
-    _b("EVOLUTION_LLM_GENERATE", CAT_LEARNING, False,
-       "进化候选是否用 LLM 生成（关闭则只做启发式变异）",
+    _b("EVOLUTION_LLM_GENERATE", CAT_LEARNING, True,
+       "进化候选是否用 LLM 生成（关闭则只做启发式变异）；"
+       "真实默认 True，出处 agent/evolution/injector.py:113-114"
+       "（config.yaml 无 evolution.llm_generate 时）",
        owner="agent/evolution/injector.py"),
     _b("EVOLUTION_SCHEDULE_ENABLED", CAT_LEARNING, False,
        "离线进化调度器开关（按 cron 自动跑进化轮）",
@@ -1360,8 +1395,13 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        validator=_range_validator(0.0, 1.0)),
     _c("KNOWLEDGE_ROOT", CAT_SKILLS, None,
        "知识库根目录（只读）", owner="agent/knowledge/ingest.py"),
-    _a("FEWSHOT_ENABLED", CAT_SKILLS, False,
-       "工具少样本（few-shot）示例注入开关",
+    # 【裁定 D-20260922-01】登记 False / 代码 True ⇒ 按代码对齐（同 D-20260921-09 口径）。
+    # 依据：agent/tool_fewshot_store.py:44
+    #   FEWSHOT_ENABLED = _env_bool("FEWSHOT_ENABLED", True)
+    # ⇒ env 未设置时模块常量即为 True。详情见本文件「学习与进化」段的裁定注释。
+    _a("FEWSHOT_ENABLED", CAT_SKILLS, True,
+       "工具少样本（few-shot）示例注入开关；"
+       "真实默认 True，出处 agent/tool_fewshot_store.py:44",
        owner="agent/tool_fewshot_store.py"),
     _a("FEWSHOT_PER_TOOL", CAT_SKILLS, None,
        "每个工具注入的示例条数", owner="agent/tool_fewshot_store.py",
@@ -1375,10 +1415,18 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _a("FEWSHOT_MAX_OUTPUT_LEN", CAT_SKILLS, None,
        "少样本输出最大长度", owner="agent/tool_fewshot_store.py",
        validator=Validator("int")),
-    _a("SCHEMA_PRUNE_DEPRECATED", CAT_SKILLS, False,
-       "工具 schema 裁剪：移除废弃字段", owner="agent/tool_schema_pruner.py"),
-    _a("SCHEMA_PRUNE_ADDITIONAL_PROPS", CAT_SKILLS, False,
-       "工具 schema 裁剪：移除 additionalProperties",
+    # 【裁定 D-20260922-01】登记 False / 代码 True ⇒ 按代码对齐（同 D-20260921-09 口径）。
+    # 依据：agent/tool_schema_pruner.py:78-79
+    #   SCHEMA_PRUNE_ADDITIONAL_PROPS = _env_bool("SCHEMA_PRUNE_ADDITIONAL_PROPS", True)
+    #   SCHEMA_PRUNE_DEPRECATED       = _env_bool("SCHEMA_PRUNE_DEPRECATED", True)
+    # ⇒ env 未设置时两项裁剪均**开启**（与旧登记值所暗示的"关闭"相反）。
+    _a("SCHEMA_PRUNE_DEPRECATED", CAT_SKILLS, True,
+       "工具 schema 裁剪：移除废弃字段；"
+       "真实默认 True，出处 agent/tool_schema_pruner.py:79",
+       owner="agent/tool_schema_pruner.py"),
+    _a("SCHEMA_PRUNE_ADDITIONAL_PROPS", CAT_SKILLS, True,
+       "工具 schema 裁剪：移除 additionalProperties；"
+       "真实默认 True，出处 agent/tool_schema_pruner.py:78",
        owner="agent/tool_schema_pruner.py"),
     _a("SCHEMA_DESC_MAX_LEN", CAT_SKILLS, None,
        "工具描述最大长度", owner="agent/tool_schema_pruner.py",

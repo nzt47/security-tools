@@ -29,9 +29,16 @@
     因此本闸门的**默认**语义被刻意定为 **fail-open + 显式拒绝**：只有策略文件或描述符
     **显式**声明拒绝/需要审批时才拦，其余一律放行；RBAC 白名单留在它原有的、由各工具
     自行调用 ``check_action`` 的位置上，**不在此处收口**。
-    （现状核对：``data/permission_policies.json`` 各角色 ``denied_tools`` 里没有真实
-    注册工具名，``data/descriptors.json`` 描述符的 ``trust.requires_approval`` 全为
-    false ⇒ 本闸门接入后对既有行为**零影响**；日后由数据侧显式收紧。）
+    （现状核对【2026-09-22 更正】：``data/permission_policies.json`` 各角色
+    ``denied_tools`` 里仍没有真实注册工具名；但 ``data/descriptors.json`` 已有 **10 条**
+    描述符 ``trust.requires_approval=true``（``shell_execute`` / ``run_sandbox`` /
+    ``generate_tool`` / ``ext_*`` / ``*_mcp`` 等，见
+    ``scripts/backfill_tool_descriptors.py`` 的批量回填）。此处原写作"全为 false ⇒
+    零影响"，那句话在回填之后**已失效**，留着会误导排查。
+    这 10 条与 YAML 的 ``needs_approval`` **逐条一致**（都是 ``risk: critical`` 或
+    ``plane=govern/effect=extend`` ⇒ 派生 L3），即两个来源不冲突；
+    但它们走的是**先于分级层**的同一条 ``_tool_approval_outcome``，
+    故"描述符侧命中"时不会经过分级层的身份/非交互判定与分级开关。）
 
 判定顺序（除显式拒绝外一律放行）：
     0. 总开关 ``CP_TOOL_GATE_ENABLED`` 取值为 ``0/false/no/off``（大小写不敏感）
@@ -65,7 +72,9 @@
         - 命中审批边界 ⇒ 经 ``agent/tool_approval.py`` 向既有审批流（``ApprovalFlow``，
             收件箱 UI 同源）**挂单**，返回 ``APPROVAL_REQUIRED`` + ``approval_id`` +
             ``guidance``（告诉模型：人工确认后原样重试）；
-        - 人工在「治理 → 审批收件箱」批准后，**同一次调用**（同一工具 + 同一参数摘要 +
+        - 人工在审批控制台（``GET /approval-console``，或 CLI ``scripts/approve_tool_call.ps1``）
+            批准后，**同一次调用**（同一工具 + 同一参数摘要 + 同一会话）再进来 ⇒ 消费该批准
+            （**单次有效**）并放行；
             同一会话）再进来 ⇒ 消费该批准（**单次有效**）并放行；
         - 人工驳回 ⇒ 返回 ``APPROVAL_REJECTED`` 并带上否决理由，模型不应重试；
         - 重启后仍然有效：批准记录落在 ``data/approval_records.jsonl``，消费台账落在
@@ -222,6 +231,17 @@ _WILDCARD = "*"
 
 #: 拒绝结果的 error_code（结构对齐项目既有工具失败约定：``ok=False``）
 ERROR_CODE_PERMISSION_DENIED = "PERMISSION_DENIED"
+
+# ── 治理平面审批边界（YAML 派生；见模块 docstring 同名一节）──────────────────
+#: 审批控制台的**人工入口**（页面壳，不含数据；数据端点仍走 /api/approval/* 的令牌链）。
+#: 为什么把具体入口写进拦截回执：原回执只说"请人工在「治理 → 审批收件箱」确认"——
+#: 那句话本身没错（React 工作台确有该侧栏项：`workbench/hubNav.tsx` 的
+#: 治理面板 → 审批收件箱），但它**没有告诉人不在这里时怎么办**。实测（2026-09-22）
+#: 这条独立控制台页在浏览器里**打不开**：`/api/approval/console` 挂 `@require_token`，
+#: 而地址栏导航带不了 Authorization 头（且它自己的 JS 当时也不注入令牌）⇒ 403/401。
+#: 故回执改为点名**两处可直接照做**的入口（本页与 CLI），并说清"参数要逐字相同"。
+#: 端口是 app_server.py 的固定绑定；换端口部署时改这一行即可（只是一句文案）。
+APPROVAL_CONSOLE_URL = "http://127.0.0.1:5678/approval-console"
 
 # ── 治理平面审批边界（YAML 派生；见模块 docstring 同名一节）──────────────────
 #: 审批边界开关（**默认开启**；显式置 0/false/no/off 才退回"只告警不拦截"）
@@ -384,7 +404,28 @@ def reset_session_source(handle: Any) -> None:
 #: 确认分级强制开关（**默认开启**；置 0 ⇒ 退回"只有旧的 needs_approval 集合挂单"）
 CONFIRM_LEVEL_ENFORCE_ENV = "CP_TOOL_CONFIRM_LEVEL_ENFORCE"
 
-#: 受限会话 `sandbox_allowed` 判定开关（TASK-07 第 4 步第 2 项；**默认开**）
+#: 确认分级的**操作员豁免名单**（逗号分隔的工具名 / 能力 id；**默认空 = 一个都不豁免**）
+#:
+#: 【为什么放宽只能走这里，而不是写进 YAML】
+#:   有些能力是**持续高频的编排动作**（最典型的是 `delegate`：每派一个子代理都要
+#:   人去收件箱点一次摘要确认），逐次确认的收益极低、摩擦极高 —— 实测体感就是
+#:   "子代理不可用"，而子代理**自己发出的工具调用仍会各自过闸门**（`agent/tools/__init__.py::call`
+#:   是唯一汇聚点）⇒ 放宽的只是"委派这个动作本身"，不是子代理能干什么。
+#:   而仓库**不允许**用 YAML 里的 `confirm_level` 来放宽：
+#:   `tests/unit/test_confirm_level.py::Test为什么YAML零声明` 已裁定那是同一事实的
+#:   第二份口径（D1 禁止），并且"调 risk 却忘了调 confirm_level"会变成新的漂移源。
+#:   ⇒ 放宽必须由**操作员显式声明的运行期开关**承担，与既有两个开关同款：
+#:   默认关、可一处回滚、逐次留痕。
+#:
+#: 【它**不**放宽什么（这条比上面的理由更重要）】只跳过分级层里的"摘要确认"：
+#:   · 权限策略 `denied_tools` 黑名单、描述符 `trust.requires_approval`、
+#:     受限会话 `sandbox_allowed` ⇒ 都判在本层**之前**，照旧生效；
+#:   · **伦理硬规则**与"未登记工具的 HITL 兜底" ⇒ 在 `check_tool_call` 第 4 步
+#:     **重新**判定一次，不因本开关失效（由 `TestConfirmLevelExemption` 钉住）；
+#:   · RBAC/ABAC 严格模式 ⇒ 判在本层**之后**，照旧。
+CONFIRM_LEVEL_EXEMPT_ENV = "CP_TOOL_CONFIRM_LEVEL_EXEMPT"
+
+#: 受限会话 sandbox_allowed 判定开关（TASK-07 第 4 步第 2 项；**默认开**）
 #: 置 0 ⇒ 退回"该字段只有声明、没有运行时消费方"的改动前状态。
 SANDBOX_ALLOWED_ENFORCE_ENV = "CP_TOOL_SANDBOX_ALLOWED_ENFORCE"
 
@@ -945,9 +986,12 @@ def _tool_approval_outcome(func_name: str, args: Optional[Dict[str, Any]],
     reused = bool(requested.get("reused"))
     return _deny_approval(
         func_name, reason, approval_id=approval_id,
-        guidance=("该次调用已在审批收件箱挂单%s。请人工在「治理 → 审批收件箱」确认后，"
-                  "**原样重试这一次调用**（同一工具 + 同一参数）；批准为单次有效。"
-                  % ("（复用先前挂单）" if reused else "")))
+        guidance=("该次调用已在审批收件箱挂单%s。人工裁决入口（二选一）："
+                  "① 浏览器打开 %s ；② 命令行 \"pwsh -File scripts/approve_tool_call.ps1 "
+                  "-Approve <审批单号>\"。裁决后**原样重试这一次调用**"
+                  "（同一工具 + **逐字相同**的参数；参数差一个字就算另一次调用、需另挂一单）；"
+                  "批准为单次有效，L1 摘要确认在会话+时效内可复用。"
+                  % ("（复用先前挂单）" if reused else "", APPROVAL_CONSOLE_URL)))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1022,6 +1066,35 @@ def _confirm_level_shadow_enabled() -> bool:
     if raw is None or not raw.strip():
         return False
     return raw.strip().lower() in _ENABLED_VALUES
+
+
+def _exempt_tools() -> FrozenSet[str]:
+    """``CP_TOOL_CONFIRM_LEVEL_EXEMPT`` 解析 ⇒ 归一化查找键集合（读不到/为空 ⇒ 空集）
+
+    每一项都经 ``_query_keys`` 展开 ⇒ ``delegate`` 与 ``cp.builtin.delegate`` 两种写法
+    都能命中（写名单的人不必知道闸门内部用哪个键比对）。
+    """
+    try:
+        raw = _env_str(CONFIRM_LEVEL_EXEMPT_ENV)
+    except Exception:  # noqa: BLE001  读不到 ⇒ 不豁免（从严的一侧）
+        return frozenset()
+    if not raw:
+        return frozenset()
+    keys: Set[str] = set()
+    for part in str(raw).split(","):
+        text = part.strip()
+        if text:
+            keys |= _query_keys(text)
+    keys.discard("")
+    return frozenset(keys)
+
+
+def _is_confirm_level_exempt(func_name: str) -> bool:
+    """本次工具是否在操作员豁免名单里（名单为空时**逐字零影响**）"""
+    exempt = _exempt_tools()
+    if not exempt:
+        return False
+    return bool(exempt & _query_keys(func_name))
 
 
 def _confirm_level_of(func_name: str) -> Tuple[str, Any]:
@@ -1225,6 +1298,26 @@ def _confirm_level_outcome(func_name: str, args: Optional[Dict[str, Any]],
             func_name, level, CONFIRM_LEVEL_ENFORCE_ENV)
         return None
 
+    # ①-b **操作员豁免名单**（``CP_TOOL_CONFIRM_LEVEL_EXEMPT``，默认空 ⇒ 零影响）
+    #   位置刻意排在"分级开关"之后、"影子模式/身份判定"之前：
+    #     · 总开关（要不要拦）仍然最优先 —— 豁免不能把"根本不拦"变成"换个理由拦"；
+    #     · 排在身份判定之前是有意的：豁免的对象是**工具**（这个动作不再要人确认），
+    #       与"谁在调用"无关；否则同一工具在有身份时放行、无身份时被拒，语义就飘了。
+    #   留痕：写一条 decision=exempted 的确认决策（谁在什么时候豁免了什么）——
+    #   放宽本身必须是**可审计的动作**，不是静默旁路。
+    if _is_confirm_level_exempt(func_name):
+        _warn_once(
+            "confirm-level-exempt:" + func_name,
+            "工具 %s 命中豁免名单 %s ⇒ 免摘要确认直接放行（本应 %s）。"
+            "黑名单 / 描述符 requires_approval / 伦理硬规则 / 严格模式均不受影响。",
+            func_name, CONFIRM_LEVEL_EXEMPT_ENV, level)
+        _audit_confirm_decision(
+            tool=func_name, level=level, decision="exempted",
+            identity=identity, source=source,
+            reason="%s；操作员豁免名单命中（%s）" % (reason, CONFIRM_LEVEL_EXEMPT_ENV),
+            tenant_id=tenant_id, version=version)
+        return None
+
     if _confirm_level_shadow_enabled():
         _warn_once(
             "confirm-shadow:" + func_name,
@@ -1322,10 +1415,9 @@ GUARD_PASS = "pass"            #: 本层判定**放行**（SA 预授权）⇒ �
 
 #: 身份未声明时的占位显示（审计与错误文案统一用同一串，避免两处措辞漂移）
 _IDENTITY_UNKNOWN = "<未声明>"
-
-#: 非交互场景的可操作出路（TASK-06 §3 第 3 步第 1 项要求"可操作说明"）
 _NON_INTERACTIVE_GUIDANCE = (
-    "出路（三选一）：① 改由**人工身份**（CLI 交互 / 审批收件箱）执行一次；"
+    "出路（三选一）：① 改由**人工身份**执行一次（审批控制台 " + APPROVAL_CONSOLE_URL +
+    " ，或 CLI \"pwsh -File scripts/approve_tool_call.ps1\"）；"
     "② 为该能力配置 **service_account 预授权**（SA token 的 scope 声明允许的能力集合"
     "与最高 confirm_level，v1.4 §10.2），之后以 SA 身份重试；"
     "③ 若该动作确实应长期免确认，请显式调低 `plane`/`effect`/`risk` 或声明"
@@ -1497,15 +1589,22 @@ def _ethics_boundary(func_name: str, args: Optional[Dict[str, Any]]) -> Optional
     硬约束"（禁 `rm -rf /`、禁格式化、禁关机、禁读 `/etc/passwd`、禁改 orchestrator、
     禁违法内容），实测**生产零调用方**（只有 8 处测试引用）⇒ 6 条硬规则一条都没生效。
 
-    【为什么是"升级为审批"而不是"直接拒绝"】它的规则是**子串匹配**
-    （如 ``"shutdown" in str(p)``），误报面很大：`grep "shutdown" logs/app.log`
-    也会命中 E003。硬拒会把误报变成"工作直接卡死"，而升级为审批只是多一次点击 ⇒
+    【为什么是"升级为审批"而不是"直接拒绝"】伦理规则天生带近似性（E002/E003 判的是
+    "命令动词有没有出现在命令位上"），仍可能有误报：``echo "format C:"`` 这类
+    字符串常量也会命中。硬拒会把误报变成"工作直接卡死"，而升级为审批只是多一次点击 ⇒
     规则真正生效、误报代价可控。若将来要把某几条做成**不可覆盖的硬拒**（例如含
     ``rm -rf /`` 的），只需在这里按 rule id 分流，调用方无需改动。
 
     【作用域】只查 ``effect ∈ {execute, extend}`` 的工具（**会造成后果**的调用），
     读类工具（``grep``/``read_file`` 等）不查 —— 避免"读一个含 shutdown 字样的日志
     也要审批"这类纯噪声。元数据缺失时同样检查（那正是最需要看住的场景）。
+
+    【2026-09-22 匹配口径修复（待办台账 #2）】原实现把**整个参数字典**（含键名）
+    交给 ``EthicsEngine`` 做裸子串匹配，于是 ``delegate`` 的必填参数
+    ``artifact_format`` 让**每一次**委派都报 E002「禁止格式化磁盘」，理由与任务内容
+    无关；``git log --format=%H`` / ``grep shutdown`` 同样误报。本层不再改动，
+    修复落在 ``EthicsEngine`` 自身：**只看参数值**（键名不参与）+ 命令动词必须落在
+    "命令位"。理由因此重新可信，误报也不再"独自"把回滚态/影子态下本应放行的调用拦下。
     """
     meta = _meta_for(func_name)
     if meta is not None and str(getattr(meta, "effect", "")) not in _ETHICS_EFFECTS:

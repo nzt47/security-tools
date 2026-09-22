@@ -7,6 +7,8 @@
     | POST | `/api/cp/settings/<key>` | 改值（A 直接 / B 二次认证 + 双人确认 / C 403） |
     | POST | `/api/cp/settings/<key>/reset` | 清除覆盖层（回落 config/default） |
     | POST | `/api/cp/settings/<key>/confirm` | B 级第二位人工确认（双人确认的落地口） |
+    | GET  | `/api/cp/tool-exemptions` | 逐工具「需确认」豁免清单（候选 + 当前豁免 + 来源 + 哪些放不了） |
+    | POST | `/api/cp/tool-exemptions` | 增/删名单中的一项（改的就是上面那个键；**不是**新开关） |
 
 【安全口径（与既有 `routes_ui_panels` 同款，不新增旁路）】
     - 全部路由 `@require_token`；
@@ -348,6 +350,52 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
             session_id=ident["session_id"],
             identity_source=ident["identity_source"])
         response = make_response(jsonify(outcome.to_dict()), outcome.status)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    # ── 逐工具「需确认」豁免开关（2026-09-22）──────────────────────────────
+    #
+    # 【为什么放在本模块】它改的就是登记表里的一个键（CP_TOOL_CONFIRM_LEVEL_EXEMPT）：
+    # 授权（settings.change）、落值（ui_settings.json 覆盖层）、审计、热生效都必须与
+    # 开关中心**同源** —— 另写一套就是 D1 禁止的第二份口径。
+    # 【写路径不做视图预筛】与 /settings/<key> 同理：由服务层的
+    # `(OP_SETTINGS_CHANGE, ACTOR_*)` 四行统一裁决（只有 human 放行）。
+
+    @app.route(f"{PREFIX}/tool-exemptions", methods=["GET"])
+    @require_token
+    def cp_tool_exemptions():
+        err = _authorize_view()
+        if err:
+            return err
+        from agent import tool_exemptions as TE          # noqa: PLC0415 惰性
+        response = make_response(jsonify({"ok": True, **TE.view()}))
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.route(f"{PREFIX}/tool-exemptions", methods=["POST"])
+    @require_token
+    def cp_tool_exemptions_change():
+        batch = _reject_batch()
+        if batch:
+            return batch
+        body = request.get_json(silent=True) or {}
+        if not isinstance(body.get("exempt"), bool):
+            return _error("invalid_exempt",
+                          "exempt 必须是布尔值（true=加入豁免 / false=移出）", 400)
+        ident = _identity_fields()
+        from agent import tool_exemptions as TE          # noqa: PLC0415 惰性
+        result = TE.set_exempt(
+            str(body.get("tool", "") or ""), bool(body["exempt"]),
+            reason=str(body.get("reason", "") or ""),
+            actor=ident["actor"], actor_type=ident["actor_type"],
+            session_id=ident["session_id"],
+            identity_source=ident["identity_source"])
+        if not result.get("ok"):
+            return _error(str(result.get("code", "exempt_failed")),
+                          str(result.get("message", "") or "豁免变更未通过"),
+                          int(result.get("status", 403) or 403))
+        response = make_response(jsonify({"ok": True, "key": TE.EXEMPT_SETTING_KEY,
+                                          **result, **TE.view()}))
         response.headers["Cache-Control"] = "no-store"
         return response
 

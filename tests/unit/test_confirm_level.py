@@ -443,6 +443,87 @@ class TestTwoSwitchesAreNested:
     def test_总开关默认开启(self, monkeypatch, enforce_on):
         monkeypatch.delenv(G.APPROVAL_ENFORCE_ENV, raising=False)
         assert G._approval_enforce_enabled() is True
+# ════════════════════════════════════════════════════════════
+#  五之二、操作员豁免名单（`CP_TOOL_CONFIRM_LEVEL_EXEMPT`）
+# ════════════════════════════════════════════════════════════
+
+
+class TestConfirmLevelExemption:
+    """豁免名单：让**持续高频的编排动作**（典型是 `delegate`）不再逐次摘要确认
+
+    【为什么放宽只能是运行期开关，不能写进 YAML】`TestNoYamlWritesNeeded` 已裁定：
+    把 `confirm_level` 写进 YAML 是同一事实的第二份口径（D1 禁止）。故本类钉住的是
+    运行期开关的**边界**——它只放大分级层里的"摘要确认"，不放宽其它任何一层。
+    """
+
+    #: delegate 的八要素（必填八项全给；其中 `artifact_format` 曾是 E002 误报的来源）
+    DELEGATE_ARGS = {
+        "goal": "计算 1..100 之和",
+        "constraints": ["只读"],
+        "prior_artifacts": [],
+        "prohibitions": ["不得修改或删除任何文件"],
+        "artifact_format": "纯文本一行",
+        "budget_tokens": 1000,
+        "timeout_seconds": 60,
+        "callback_url": "internal://x",
+    }
+
+    def test_名单为空时委派照旧要确认(self, enforce_on):
+        """默认口径（不设名单）逐字不变 —— 这是"零影响"的正面判据"""
+        blocked = G.check_tool_call("delegate", self.DELEGATE_ARGS)
+
+        assert blocked is not None and blocked["blocked"] is True
+        assert "confirm_level=L1" in blocked["reason"], blocked["reason"]
+
+    def test_豁免后委派免确认直接放行(self, monkeypatch, enforce_on):
+        monkeypatch.setenv(G.CONFIRM_LEVEL_EXEMPT_ENV, "delegate")
+
+        assert G.check_tool_call("delegate", self.DELEGATE_ARGS) is None
+
+    def test_用_canonical_id_写法同样命中(self, monkeypatch, enforce_on):
+        """名单里写 `cp.builtin.delegate` 与写 `delegate` 等价（不必知道内部用哪个键）"""
+        monkeypatch.setenv(G.CONFIRM_LEVEL_EXEMPT_ENV, "cp.builtin.delegate")
+
+        assert G.check_tool_call("delegate", self.DELEGATE_ARGS) is None
+
+    def test_名单只影响被列出的工具(self, monkeypatch, enforce_on):
+        """豁免是逐工具列名单，不是"关掉分级层"—— 其它工具必须照旧"""
+        monkeypatch.setenv(G.CONFIRM_LEVEL_EXEMPT_ENV, "delegate")
+
+        still_blocked = G.check_tool_call("write_file", {"path": "a.txt", "content": "x"})
+        assert still_blocked is not None and still_blocked["blocked"] is True
+        assert "confirm_level=L2" in still_blocked["reason"], still_blocked["reason"]
+
+    def test_豁免不放宽伦理硬规则(self, monkeypatch, enforce_on):
+        """豁免的是"摘要确认"这一层；伦理硬规则在 `check_tool_call` 第 4 步**重新**判定
+
+        若这条红，说明豁免被写成了"整条链路短路"——那是把放宽做成了旁路。
+        """
+        monkeypatch.setenv(G.CONFIRM_LEVEL_EXEMPT_ENV, "delegate")
+        risky = dict(self.DELEGATE_ARGS, prohibitions=["shutdown -h now"])
+
+        blocked = G.check_tool_call("delegate", risky)
+
+        assert blocked is not None and blocked["blocked"] is True
+        assert "E003" in blocked["reason"], blocked["reason"]
+
+    def test_豁免不放宽描述符硬要求(self, monkeypatch, enforce_on,
+                                    real_descriptor_boundary):
+        """描述符 `trust.requires_approval` 判在分级层**之前** ⇒ 列进豁免名单也拦得住"""
+        monkeypatch.setenv(G.CONFIRM_LEVEL_EXEMPT_ENV, "shell_execute")
+
+        blocked = G.check_tool_call("shell_execute", {"command": "echo hi"})
+
+        assert blocked is not None and blocked["blocked"] is True
+
+    def test_总开关仍然更优先(self, monkeypatch, enforce_on):
+        """总开关=0 ⇒ 整体不拦；豁免只是"更窄的一层"，不得倒挂从属关系"""
+        monkeypatch.setenv(G.APPROVAL_ENFORCE_ENV, "0")
+        monkeypatch.setenv(G.CONFIRM_LEVEL_EXEMPT_ENV, "delegate")
+
+        assert G.check_tool_call("delegate", self.DELEGATE_ARGS) is None
+
+
 
 
 # ════════════════════════════════════════════════════════════
