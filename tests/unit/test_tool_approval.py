@@ -9,6 +9,8 @@
     4. 批准判定：pending ⇒ ``None``；``approved`` ⇒ 命中；换参数 / 会话不匹配 / 超时 ⇒ ``None``；
        记录侧 ``session_key`` 为空串时**通配**；
     5. 消费：单次有效，且**换进程（``reset_cache()``）后仍不可重复消费**（台账落盘）；
+       更硬的一条：**外部进程（UI/CLI）追加台账后，本进程下一次问就必须看到**——
+       缓存按文件指纹失效，而不是"本进程读过一次就一直算数"；
     6. 驳回：``rejected`` ⇒ 带 reason 的 dict；pending ⇒ ``None``；
     7. 边界：空工具名、非法参数、记录文件损坏/不存在 ⇒ 结构化失败或 ``None``，**不抛异常**；
     8. 端到端：挂单 → 人工批准（改写记录模拟 UI）→ 命中 → 消费 → 再判定为空。
@@ -171,6 +173,22 @@ def _verdict(record_id: str, *, state: str, reason: str = "", actor: str = "revi
 def _fingerprint(path: Path):
     """文件字节指纹；不存在 → ``None``（用于"原本不存在则断言仍不存在"）"""
     return path.read_bytes() if path.exists() else None
+
+
+def _append_external_use(approval_id: str, tool: str = _TOOL,
+                         args: dict = None) -> None:
+    """模拟**另一个进程**（UI/CLI）消费台账：直接追写隔离台账文件
+
+    Why 不经过本进程的 ``consume()``/``_append_use()``：真实链路里"消费"发生在
+    **审批人那一侧**（另一个进程），本进程只能从文件读到既成事实。测试若借道本进程的
+    写入函数，就会把"本进程内存里的集合"一并更新掉，于是**永远测不到**"缓存快照过期"
+    这条路径（这正是原用例 ``reset_cache()`` 覆盖不到的情形）。
+    """
+    entry = {"approval_id": approval_id, "tool": tool,
+             "args_digest": TA.tool_call_digest(tool, _ARGS if args is None else args),
+             "consumed_at": datetime.now().isoformat(timespec="seconds")}
+    with open(_uses_path(), "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 # ════════════════════════════════════════════════════════════
@@ -619,6 +637,129 @@ def test_消费_第一次True第二次False_换进程后仍False():
     assert entry["tool"] == _TOOL
     assert entry["args_digest"] == TA.tool_call_digest(_TOOL, _ARGS)
     assert datetime.fromisoformat(entry["consumed_at"])
+
+
+def test_消费_外部进程追加台账后本进程立刻可见_单次有效不被绕过():
+    """**回归**：外部进程消费过的单，本进程下一次问就必须知道（缓存按文件指纹失效）
+
+    缺口形态（2026-09-22 定位、本用例钉死）：``_consumed_ids`` 原先只按**路径**缓存
+    进程内快照，**不会**因外部进程追写台账而失效。而人是在**另一个进程**（UI/CLI）里
+    消费/审批的，``consume()`` 又在本进程里查这张台账来判"这张单是不是已经用过了"
+    ⇒ B 进程消费之后，A 进程仍拿旧快照判"没用过"，**同一张批准被放行第二次**
+    （"单次有效"在多进程下失效，且台账里同一 approval_id 出现两行）。
+
+    修前实测（本用例原样即为红）：
+        [A] first _consumed_ids -> []            # 空台账被缓存
+        [B] external process appended one line for approval_id=appr-...
+        [A] after append, _consumed_ids -> []    # ← 看不到（缺口）
+        [A] after append, _is_consumed -> False  # ← 判"没用过"（缺口）
+        [A] after append, consume -> True        # ← 放行第二次（缺口成立）
+        ledger line count -> 2
+
+    Why 这条不能靠 ``reset_cache()``：那只覆盖"同进程重读"，而真实链路里 **A 进程
+    不会自己清缓存**——它只是"上一次调用时读过台账"，随后 B 进程才动的手。
+    """
+    res = TA.request_approval(_TOOL, _ARGS, session_key="s1")
+    _verdict(res["approval_id"], state="approved", actor="alice")
+    aid = res["approval_id"]
+
+    # A 进程先读一次台账：缓存快照在此形成（此后没有 reset_cache）
+    assert TA._consumed_ids(_uses_path()) == set()
+    assert TA._is_consumed(aid) is False
+
+    # B 进程（另一个进程里的审批人/CLI）消费了同一张单
+    _append_external_use(aid)
+
+    # A 进程下一次问：必须已经看到
+    assert aid in TA._consumed_ids(_uses_path()), \
+        "外部进程的消费没被本进程看到（集合缓存未按文件指纹失效）"
+    assert TA._is_consumed(aid) is True, "台账说已消费，本进程却仍判'没用过'"
+    assert TA.consume(aid, _TOOL, _ARGS) is False, \
+        "同一张批准被放行第二次（'单次有效'被绕过）"
+
+    lines = [ln for ln in _uses_path().read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == 1, f"同一张批准被记了 {len(lines)} 条消费记录"
+
+
+def test_消费_外部进程消费后find_permission立刻为空():
+    """同一条缺口的**放行侧**：闸门问 ``find_permission`` 时也必须看到外部消费
+
+    ``consume`` 只是记账，真正决定"放不放行"的是 ``find_permission``
+    （它经 ``_is_consumed`` 查同一张台账）。若只有 ``consume`` 看得到而它看不到，
+    缺口的形态就变成"记账拒了、放行照旧"，同样是单次有效失效。
+    """
+    res = TA.request_approval(_TOOL, _ARGS, session_key="s1")
+    _verdict(res["approval_id"], state="approved", actor="alice")
+
+    hit = TA.find_permission(_TOOL, _ARGS, session_key="s1")
+    assert hit is not None                      # 这一步已把台账读进缓存
+
+    _append_external_use(hit["approval_id"])    # 另一个进程用掉了这张批准
+
+    assert TA.find_permission(_TOOL, _ARGS, session_key="s1") is None, \
+        "已被外部进程消费的批准仍被判为有效（会放行第二次）"
+
+
+def test_消费_台账原先不存在时不缓存空态_外部一创建即生效():
+    """台账**不存在**时不得把"空集"缓存住（否则外部进程首次消费后照样读不到）
+
+    这是同一条缺口的第二种形态，且是最容易漏掉的一种：运行期绝大多数时间里
+    ``data/tool_approval_uses.jsonl`` **不存在**（没人用过工具审批），本进程第一次查
+    台账拿到的就是"文件不存在 ⇒ 空集"；若把这个空集缓存下来，此后**外部进程的第一次
+    消费**（它会把文件创建出来）在本进程里永远不可见。
+    """
+    assert not _uses_path().exists()
+    assert TA._consumed_ids(_uses_path()) == set()      # 缓存"未消费"
+
+    _append_external_use("appr-first-ever")             # 外部进程首次消费：文件出现
+
+    assert "appr-first-ever" in TA._consumed_ids(_uses_path()), \
+        "台账文件一出现就该生效（'文件不存在 ⇒ 空集'这个状态不得被缓存）"
+
+
+def test_消费_指纹未变时不重复解析台账_热路径只做一次stat(monkeypatch):
+    """缓存的存在理由必须保持：指纹未变 ⇒ 直接返回进程内集合，**不重读文件**
+
+    台账是**只增**的，重建要整文件解析；``_is_consumed`` 挂在 ``find_permission``
+    上（每次受管工具调用都会走），不缓存等于把全量解析放进每次调用的热路径。
+    本用例防的是"为修缺口而把缓存整段删掉"这种退化解法。
+    """
+    path = _uses_path()
+    _append_external_use("appr-warm")
+
+    calls: list = []
+    real_load = TA._load_uses
+
+    def _counting(p):
+        calls.append(str(p))
+        return real_load(p)
+
+    monkeypatch.setattr(TA, "_load_uses", _counting)
+
+    assert "appr-warm" in TA._consumed_ids(path)      # 第一次：解析
+    assert "appr-warm" in TA._consumed_ids(path)      # 第二次：文件没变 ⇒ 命中缓存
+    assert "appr-warm" in TA._consumed_ids(path)
+    assert len(calls) == 1, f"指纹未变却重复解析了台账 {len(calls)} 次（缓存形同虚设）"
+
+
+def test_消费_即使mtime被拨回原值_外部追加照样被看到():
+    """``size`` 也参与指纹：追加必然改变字节数 ⇒ **同 tick 的追加也漏不掉**
+
+    这条钉的是"覆盖什么"：台账是 append-only 的，外部**追加**一定增大文件；
+    指纹是 ``(mtime_ns, size)`` 两半，故即便文件系统的 mtime 精度很粗（同 tick 内
+    多次写入 mtime 不变），追加也一定被察觉。**不覆盖**的情形见
+    ``_consumed_ids`` 的说明（等长重写 + 同 tick，两半指纹都没动）。
+    """
+    path = _uses_path()
+    _append_external_use("appr-tick-1")
+    assert "appr-tick-1" in TA._consumed_ids(path)
+
+    before = path.stat()
+    _append_external_use("appr-tick-2")
+    os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))  # mtime 拨回原值（模拟同 tick）
+
+    assert "appr-tick-2" in TA._consumed_ids(path), \
+        "只靠 mtime 判失效的话，同 tick 的追加会被漏掉（size 这一半是必需的）"
 
 
 def test_消费_并发下只有一个True():
