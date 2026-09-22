@@ -260,6 +260,15 @@ def _isolate_approval_stores(tmp_path_factory):
         "AUDIT_DB_PATH": audit_dir / "audit_chain.db",
         "AUDIT_ROOTS_PATH": audit_dir / "daily_roots.jsonl",
         "AUDIT_SIGNING_KEY": audit_dir / "audit_signing_key.pem",
+        # 【为什么不隔离它会有真实后果（2026-09-22）】`app_server.py` 在 **import 期**就调用
+        # `settings.bootstrap.apply_overrides()`（app_server.py:1031-1032），而相当多的单测会
+        # import app_server（路由清单、在线 E2E 等）⇒ **操作员在开关中心/界面上改过的开关**
+        # 会被灌进测试进程的 `os.environ`。实测：某台机器把 `git` 加进"确认分级豁免名单"
+        # 之后，`test_tool_gate_fallback.py::TestYamlStaysAuthoritative` 开始变红，
+        # 而**单跑该文件恒绿** —— 典型的跨用例污染。
+        # 这不是"某条用例脆弱"，而是**测试读到了生产运行态**（D6：测试不碰生产数据/状态）。
+        # 故与审批库、事件流、审计链同样处置：把覆盖层指向会话级临时目录。
+        "CP_UI_SETTINGS_PATH": isolation_dir / "ui_settings.json",
         # 【测试基线：审批边界默认关闭】大量单测会注册"没有 YAML 元数据"的探针工具并
         # 直接 `agent.tools.call()` 调它来验证**工具调用机制**（返回值、健康跟踪、
         # 限流顺序…）。而 HITL 兜底网（`agent/tool_gate.py::_hitl_boundary`）对
@@ -276,6 +285,16 @@ def _isolate_approval_stores(tmp_path_factory):
     saved = {k: os.environ.get(k) for k in keys}
     for k, v in keys.items():
         os.environ.setdefault(k, str(v))
+
+    # 覆盖层是**惰性单例**：若在本夹具之前已被构造过（那样它读的是真实
+    # `data/ui_settings.json`），复位一次让它按上面的临时路径重建。
+    try:
+        from agent.settings.overrides import reset_override_store
+        from agent.settings.service import reset_settings_service
+        reset_override_store()
+        reset_settings_service()
+    except Exception:  # noqa: BLE001 复位失败不影响其它隔离项
+        pass
 
     # ── 兜底守卫：审批库绝不该出现在 agent/data/ 下 ──────────────────────────
     # 实测过一次：某个（会话级组合下的）用例把审批记录写到了
