@@ -16,7 +16,7 @@
  *   对象：后者每次渲染都是新引用，会让 effect 空转。
  */
 import { useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useInRouterContext, useLocation, useNavigate } from 'react-router-dom'
 import { useWorkbenchNav } from './navStore'
 import { navKeyFromSearch, searchForNavKey } from './hubNav'
 
@@ -42,4 +42,22 @@ export function useNavUrlSync(): void {
     if (next === search) return
     navigate({ search: next }, { replace: true })
   }, [activeKey, search, navigate])
+}
+
+
+/**
+ * **只在 Router 上下文里挂载**的包装组件（WorkbenchApp 用）
+ *
+ * 【为什么必须有它，而不是让 WorkbenchApp 直接调 useNavUrlSync】
+ *   既有的「src/components/Toaster.mount.test.tsx」会在**没有 Router** 的情况下直接渲染
+ *   「<WorkbenchApp/>」（那是它测 Toaster 挂载点的最小宿主）。而 useLocation() 在 Router
+ *   之外会**抛异常**（不是返回空值）⇒ 直接调用会让"工作台根能不能挂 Toaster"这条既有
+ *   用例变红，且错误发生在渲染期（整棵子树都渲染不出来）。
+ *   修法不是去改那条用例（它测的东西与路由无关），而是让"导航同步"这一能力**如实声明
+ *   自己的前提**：只在 Router 内生效。React 的 hook 规则不允许在同一组件里条件调用
+ *   useLocation，故用 useInRouterContext() 在**父组件**判断、在**子组件**内调用 hooks。
+ */
+export function NavUrlSync(): null {
+  useNavUrlSync()
+  return null
 }

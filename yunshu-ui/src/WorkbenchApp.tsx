@@ -31,7 +31,8 @@ import type { PanelId } from './lib/mosaic';
 import { useLayoutStore } from './stores/useLayoutStore';
 import { useWorkbenchNav } from './workbench/navStore';
 import { findNavItem } from './workbench/hubNav';
-import { useNavUrlSync } from './workbench/useNavUrlSync';
+import { NavUrlSync } from './workbench/useNavUrlSync';
+import { useInRouterContext } from 'react-router-dom';
 import Toaster from './components/Toaster';
 import { renderPanel } from './components/workbench/panels/renderPanel';
 import { startCrossWindowSync } from './electron/sync';
@@ -82,14 +83,17 @@ const createNode = (viewId: PanelId): MosaicNode<PanelId> => ({
   children: [viewId, viewId],
   splitPercentages: [50, 50],
 });
-
 export default function WorkbenchApp() {
   const layout = useLayoutStore((s) => s.layout);
   const setLayout = useLayoutStore((s) => s.setLayout);
   const resetLayout = useLayoutStore((s) => s.resetLayout);
 
-  // 导航状态 ⇄ 地址栏（可深链 #/workbench?panel=governance/approvals；见 useNavUrlSync）
-  useNavUrlSync();
+  // 导航状态 ⇄ 地址栏（可深链 #/workbench?panel=governance/approvals；见 useNavUrlSync）。
+  // 【为什么用 useInRouterContext 而不是直接调 hook】本组件的既有挂载用例
+  // （src/components/Toaster.mount.test.tsx）在**没有 Router** 的裸环境里渲染它，
+  // 而 useLocation() 在 Router 之外会**抛异常**（渲染期整棵子树失败）。
+  // React 的 hook 规则不允许条件调用 useLocation，故在父组件判上下文、在子组件里调 hooks。
+  const inRouter = useInRouterContext();
 
   // 边缘停靠区高亮（拖拽面板到窗口边缘时显示）
   const [detachEdge, setDetachEdge] = useState<'top' | 'bottom' | 'left' | 'right' | null>(null);
@@ -229,9 +233,11 @@ export default function WorkbenchApp() {
           </button>
         </div>
       </header>
-
       {/* Mosaic 工作区 */}
       <div className="wb-mosaic-body">
+        {/* 导航 ⇄ 地址栏同步：只在 Router 上下文里挂载（裸渲染本组件时静默跳过） */}
+        {inRouter && <NavUrlSync />}
+
         {/* 边缘停靠高亮 */}
         {detachEdge && (
           <div className={`wb-detach-zone wb-detach-zone-${detachEdge}`}>
