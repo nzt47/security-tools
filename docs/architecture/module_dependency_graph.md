@@ -118,6 +118,7 @@ flowchart LR
         agent_timeout_budget["agent.timeout_budget"]:::crosslayer
         agent_tool_approval["agent.tool_approval"]
         agent_tool_calling["agent.tool_calling"]:::crosslayer
+        agent_tool_exemptions["agent.tool_exemptions"]
         agent_tool_fewshot_store["agent.tool_fewshot_store"]:::crosslayer
         agent_tool_gate["agent.tool_gate"]:::crosslayer
         agent_tool_router["agent.tool_router"]:::crosslayer
@@ -1934,6 +1935,8 @@ flowchart LR
     agent_server_routes_routes_settings -.-> agent_ui_panels_schema
     agent_server_routes_routes_settings -.-> agent_security_approval_session
     agent_server_routes_routes_settings -.-> agent_settings_registry
+    agent_server_routes_routes_settings --> agent
+    agent_server_routes_routes_settings --> agent
     agent_server_routes_routes_skills_mgmt -.-> agent_server_auth
     agent_server_routes_routes_skills_mgmt --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_skills_mgmt -.-> agent_state_manager
@@ -2194,7 +2197,6 @@ flowchart LR
     agent_text_tools --> agent_logging_utils
     agent_tool_approval -.-> agent_skills_mgmt_approval
     agent_tool_approval -.-> agent_skills_mgmt_approval
-    agent_tool_approval -.-> agent_skills_mgmt_approval
     agent_tool_approval -.-> agent_lines_models
     agent_tool_calling --> agent_logging_utils
     agent_tool_calling --> agent
@@ -2211,6 +2213,11 @@ flowchart LR
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
+    agent_tool_exemptions -.-> agent_lines
+    agent_tool_exemptions --> agent
+    agent_tool_exemptions --> agent
+    agent_tool_exemptions -.-> agent_settings_service
+    agent_tool_exemptions -.-> agent_settings_resolver
     agent_tool_fewshot_store -.-> agent_utils_sensitive_data_filter
     agent_tool_gate --> agent_permission_system
     agent_tool_gate -.-> agent_subagent_sandbox
@@ -2429,9 +2436,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 621
-- 模块节点数: 555
-- 依赖边数: 1756
-- 跨层调用数: 1101
+- 扫描文件数: 622
+- 模块节点数: 556
+- 依赖边数: 1762
+- 跨层调用数: 1103
 - 违规调用数: 0
 - 动态 import 数: 1
