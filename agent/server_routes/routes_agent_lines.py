@@ -492,7 +492,14 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
     @trace_route("AgentLines")
     @log_request(show_response=False)
     def api_agent_lines_detail(line_id: str):
-        """单条档案 + 现场装配预览（不保存、不改状态）"""
+        """单条档案 + 现场装配预览（不保存、不改状态）
+
+        【为什么也带 skills / prompt_fragments】本端点已经在回 `preview`（现场装配），
+        却独独缺这两项 —— 于是"已保存的线会注入什么"在三个读端点里只有两个能答，
+        将来谁用详情页渲染那两块，就会自己再算一遍（本模块 docstring 明令避免的第二份口径）。
+        这里复用同一对判定（`resolve_skill_pack` / `_prompt_fragments_payload`），
+        与 `/preview`、`/validate` **同源**；纯计算、零副作用、不挂令牌的既有口径不变。
+        """
         try:
             reg = get_line_registry()
             profile = reg.load(line_id)
@@ -503,8 +510,10 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 "ok": True,
                 "line": profile.to_dict(),
                 "preview": _preview_dict(profile, meta, available),
+                "skills": resolve_skill_pack(profile).to_dict(),
                 "issues": _issues_of(profile, meta),
                 "tool_source": source,
+                **_prompt_fragments_payload(profile),
             })
         except Exception as e:  # noqa: BLE001
             return _error_response(e)

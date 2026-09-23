@@ -62,6 +62,18 @@
 【零副作用】
     纯数据 + 只读探测：不读 config.yaml、不写盘、不改全局状态（唯一的模块级状态
     是 `_KNOWN_CACHE` 这一份 memo，见 `invalidate_known_skills_cache()`）。
+
+【known 的 memo 为什么会自己失效（L6：跨用例污染）】
+    该 memo 此前只认「算过一次」这一个事实：**输入变了它不知道**。测试用
+    monkeypatch 把技能目录指向 tmp_path 之后，那个"临时目录里的 known"会一直
+    留在进程里，后面基于**真实目录**的断言就拿到旧值 —— 表现为「单独跑绿、连跑红」，
+    两条并行工作流不得不在各自的测试文件里加 autouse 的
+    `invalidate_known_skills_cache()` 来规避。缺陷不在缓存本身（单次全量解析中位
+    ~13.4ms，见 `_known_fingerprint` 顶部实测），而在**缓存没有跟着输入走**。
+    故 memo 现在带一份**输入快照指纹**（`_known_fingerprint()`，亚毫秒级：~0.5ms），
+    指纹变了就自动重算：显式 invalidate 仍在（契约不变），但不再是正确性的前提 ——
+    上面那两处 autouse 规避夹具因此已经删掉（守门用例见
+    `tests/unit/test_line_skillpack.py::TestKnownCacheFollowsInputs`）。
 """
 
 from __future__ import annotations
@@ -245,6 +257,85 @@ def unrestricted_pack(source: str = "no-line",
 
 #: 已知技能 id 的 memo；None = 尚未计算。**失败不缓存**（见 known_skill_ids）
 _KNOWN_CACHE: Optional[FrozenSet[str]] = None
+#: 与 `_KNOWN_CACHE` 配套的**输入快照指纹**；两者必须同时更新（见 known_skill_ids）
+_KNOWN_FP: Optional[Tuple[Any, ...]] = None
+
+
+def _path_sig(path: str) -> Tuple[Any, ...]:
+    """一个技能来源路径的**廉价**指纹（stat/listdir 级，绝不解析内容）
+
+    Why 目录用「清单」而不是 mtime：技能 id 来自**目录名**，所以"清单变了"正是
+    "已知集合可能变了"的充分信号；而目录 mtime 在部分文件系统上粒度粗（且改
+    `skill.md` 内容会动 mtime 却**不动 id 集合**，那属于不必要的失效）。
+    文件用 (size, mtime_ns)：`skills_mgmt.json` / `skill_callability.yaml` 的
+    **键集合**就是它们的全部贡献，重建这两份文件必然改变 size 或 mtime。
+    任何 OSError 都不抛，退化成"读不到"这一种同样可比较的状态。
+    """
+    try:
+        st = os.stat(path)
+    except OSError:
+        return (path, "missing")
+    if os.path.isdir(path):
+        try:
+            names = tuple(sorted(
+                n for n in os.listdir(path) if not n.startswith((".", "_"))))
+        except OSError:
+            return (path, "dir-unreadable")
+        return (path, "dir", names)
+    return (path, "file", st.st_size, st.st_mtime_ns)
+
+
+def _registry_entry() -> Any:
+    """运行时目录入口（`SkillRegistry.list_skill_ids`）的身份，取不到给 None"""
+    try:
+        from agent.skills_mgmt.registry import SkillRegistry
+        return getattr(SkillRegistry, "list_skill_ids", None)
+    except Exception:  # noqa: BLE001 入口取不到不影响其余指纹分量
+        return None
+
+
+def _known_fingerprint() -> Tuple[Any, ...]:
+    """known 的**输入快照指纹**：输入变了 ⇒ 指纹变 ⇒ memo 自动失效
+
+    【为什么要指纹，而不是去掉 memo（方案 B 用数据否掉了）】
+        本机实测（timeit，20 次取中位，先预热）：
+            - 全量重算 `known_skill_ids()`：**13.4ms**（冷启动首次 ~0.5s：要 import
+              `agent.skills_mgmt`、扫 skills_repo、读三份 JSON/YAML）
+            - 指纹命中：**0.51ms**（其中指纹本身 0.50ms：四次 stat 各 ~0.07–0.11ms、
+              skills_repo 的 listdir+sort ~0.21ms —— Windows 上 stat 偏贵）
+        即"去掉 memo"要给**每一次**调用加 13.4ms 的磁盘/import 税（远超 10ms 的
+        可接受线），而指纹只花 0.5ms 就买到"跟着输入走"。故取 A（指纹）。
+
+    【指纹里放什么，为什么这四类刚好够】
+        1. **来源路径本身**（4 个常量）：monkeypatch 换目录**不动磁盘一个字节**，
+            任何基于 stat 的指纹都看不见它 —— 路径串进指纹才能覆盖这一手；
+        2. **每个路径的廉价指纹**（见 `_path_sig`）：真实增删技能目录 / 改台账；
+        3. **三个真值来源函数的身份**（`_registry_skill_ids` / `_disk_skill_ids` /
+            `_declared_skill_ids`）：测试里对它们的 `monkeypatch.setattr`（"换数据
+            源"）同样不留磁盘痕迹，身份比较零成本地覆盖它；
+        4. **注册表入口类方法的身份**：`SkillRegistry.list_skill_ids` 被替换
+            （`test_技能目录抛异常时退回磁盘事实` 就是这么做的）时同样要失效。
+
+    【边界（如实写明，不假装全覆盖）】
+        只覆盖"**技能 id 集合**的输入"：改 `skill.md` 正文/front matter 的非 id
+        字段不会失效（本来也不影响 id 集合）；绕过本模块的路径常量直接改
+        `file_store._DEFAULT_REPO_PATH` 之类的**模块内部常量**不在覆盖范围内 ——
+        那种情况下调用方应显式 `invalidate_known_skills_cache()`（契约保留）。
+    """
+    try:
+        return (
+            _path_sig(SKILLS_REPO_DIR),
+            _path_sig(SKILLS_MGMT_JSON),
+            _path_sig(SKILLS_LEGACY_JSON),
+            _path_sig(SKILL_CALLABILITY_YAML),
+            _registry_skill_ids,
+            _disk_skill_ids,
+            _declared_skill_ids,
+            _registry_entry(),
+        )
+    except Exception as e:  # noqa: BLE001 指纹只服务于缓存，绝不向上抛
+        logger.debug("[skillpack] 计算 known 指纹失败: %s", e)
+        return ()
 
 
 def _registry_skill_ids() -> FrozenSet[str]:
@@ -335,11 +426,18 @@ def known_skill_ids() -> FrozenSet[str]:
 
     口径 = 运行时技能目录（主） ∪ 磁盘事实（主来源不可用时的退路）
          ∪ 技能侧声明表 data/skill_callability.yaml（补 id 存在性，见 _declared_skill_ids）。
+
+    **缓存跟着输入走**：memo 命中要同时满足「算过」与「输入指纹没变」
+    （`_known_fingerprint()`，见其 docstring）。跨用例污染就是"只判前者"来的：
+    上一用例把目录指向 tmp_path 算出的集合会一直留在进程里。
     **空结果不缓存**：目录暂时不可用时不能把它钉死成「没有技能」，
     下一次调用必须还有机会恢复（这正是 fail-soft 与「缓存一次失败」的区别）。
+    指纹算不出来（理论上不可能，已 fail-soft）时**退化为不缓存**：宁可多算一次，
+    也不能拿一份来路不明的旧值。
     """
-    global _KNOWN_CACHE
-    if _KNOWN_CACHE is not None:
+    global _KNOWN_CACHE, _KNOWN_FP
+    fp = _known_fingerprint()
+    if _KNOWN_CACHE is not None and fp and fp == _KNOWN_FP:
         return _KNOWN_CACHE
     ids = set(_registry_skill_ids())
     if not ids:
@@ -349,7 +447,10 @@ def known_skill_ids() -> FrozenSet[str]:
     out = frozenset(ids)
     if out:
         _KNOWN_CACHE = out
+        _KNOWN_FP = fp      # 与缓存**同时**落盘，否则下一轮会拿旧指纹比新缓存
     else:
+        _KNOWN_CACHE = None
+        _KNOWN_FP = None
         logger.warning("[skillpack] 技能目录、磁盘事实与声明表都读不到内容（known 为空）")
     return out
 
@@ -357,11 +458,15 @@ def known_skill_ids() -> FrozenSet[str]:
 def invalidate_known_skills_cache() -> None:
     """清空 known 的 memo（测试与治理脚本用）
 
-    Why 需要它：与 `models.invalidate_tool_meta_cache()` 同款 ——
-    测试替换技能目录后必须能显式失效，否则会拿到上一用例的 memo。
+    Why 仍然需要它：与 `models.invalidate_tool_meta_cache()` 同款 —— 指纹覆盖的是
+    「本模块看得见的输入」（来源路径 / 目录清单 / 三个来源函数与注册表入口的身份，
+    见 _known_fingerprint）；若测试绕过这些去改**别人的模块级常量**
+    （如 `file_store._DEFAULT_REPO_PATH`），仍应显式失效。
+    **它不再是正确性的前提**：常规的"换目录 ⇒ known 跟着变"已由指纹自动覆盖。
     """
-    global _KNOWN_CACHE
+    global _KNOWN_CACHE, _KNOWN_FP
     _KNOWN_CACHE = None
+    _KNOWN_FP = None
 
 
 __all__ = [

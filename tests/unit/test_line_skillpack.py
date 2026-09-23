@@ -45,16 +45,15 @@ from agent.lines import skillpack as SP  # noqa: E402
 #  夹具 / 助手
 # ════════════════════════════════════════════════════════════
 
-@pytest.fixture(autouse=True)
-def _clear_known_cache():
-    """每个用例前后清空 known 的 memo
-
-    Why 必须显式清：known_skill_ids() 会把**非空**结果缓存下来（失败不缓存）。
-    用例改动数据源后若不清，会拿到上一用例的 memo，出现「单独跑绿、连跑红」。
-    """
-    invalidate_known_skills_cache()
-    yield
-    invalidate_known_skills_cache()
+# 【曾经的 autouse 规避夹具已删除（L6 修在源头，不再需要在测试侧打补丁）】
+# 这里原本有一个 `_clear_known_cache`：每个用例前后显式
+# `invalidate_known_skills_cache()`，用来绕开「known 的 memo 不跟着输入走」——
+# 先跑的用例把技能目录指向 tmp_path 后，那份集合会留在进程里，后面基于真实目录的
+# 断言就拿到旧值（单独跑绿、连跑红）。现在 memo 自带**输入快照指纹**
+# （`agent/lines/skillpack.py::_known_fingerprint`），换目录/换数据源会自动失效，
+# 规避夹具成了多余的一层（留着一个"不安 invalida 就红"的夹具，反而会把那条已经
+# 修好的缺陷描述成仍然存在）。守门用例见 `TestKnownCacheFollowsInputs`。
+# 契约 `invalidate_known_skills_cache()` 仍然保留，且仍在下面被用例验证。
 
 
 def _profile(**kw) -> LineProfile:
@@ -277,6 +276,91 @@ class TestKnownSkillIds:
         monkeypatch.setattr(SP, "_registry_skill_ids", lambda: frozenset({"recovered"}))
         assert known_skill_ids() == frozenset({"recovered"}), (
             "空结果被缓存了 ⇒ 目录短暂不可用会把「没有技能」钉死到进程结束")
+
+
+# ════════════════════════════════════════════════════════════
+#  3b. memo 跟着输入走（L6：跨用例污染）
+# ════════════════════════════════════════════════════════════
+
+class TestKnownCacheFollowsInputs:
+    """known 的 memo 必须**跟着输入走**，而不是只认「算过一次」
+
+    【为什么这一组必须存在】此前 memo 只判「算过没有」，于是先跑的用例用
+    monkeypatch 把技能目录指向 tmp_path 之后，那份"临时目录里的 known"会一直留在
+    进程里；后面基于**真实目录**断言的用例就拿到旧值 —— 表现为「单独跑绿、连跑红」。
+    两条并行工作流都不得不在自己的测试文件里加 autouse 的
+    `invalidate_known_skills_cache()` 来规避，这本身就是缺陷的可见面。
+
+    【为什么这组用例刻意不调用 invalidate】
+        要证明的正是「不需要它」：只改**输入**（目录内容 / 来源路径 / 数据源函数），
+        然后断言 known 跟着变。若哪天有人把指纹退回成"只判算过没有"，本组立刻红。
+    """
+
+    def test_技能目录内容变了_known跟着变_无需手工失效(self, tmp_path, monkeypatch):
+        """同一个数据源函数、同一个路径，只往技能目录里**新增一个技能目录**
+
+        这是最贴近实操的一种"输入变了"：夹具技能是在临时目录里**造出来**的，
+        造之前与造之后路径完全一样，只有目录清单不同 —— 指纹必须看得见它。
+        """
+        repo = tmp_path / "repo"
+        (repo / "fixture-a").mkdir(parents=True)
+        monkeypatch.setattr(SP, "SKILLS_REPO_DIR", str(repo))
+        monkeypatch.setattr(SP, "SKILLS_MGMT_JSON", str(tmp_path / "none.json"))
+        monkeypatch.setattr(SP, "SKILLS_LEGACY_JSON", str(tmp_path / "none2.json"))
+        monkeypatch.setattr(SP, "_registry_skill_ids", lambda: frozenset())
+
+        first = known_skill_ids()
+        assert "fixture-a" in first and "fixture-b" not in first
+
+        (repo / "fixture-b").mkdir()            # ← 输入变了（路径与函数都没动）
+        second = known_skill_ids()
+        assert "fixture-b" in second, (
+            "技能目录里新增了技能，known 却还是旧值 ⇒ memo 没跟着输入走（L6 的根因）")
+        assert second is not first
+
+    def test_来源路径被换掉后known不串到上一个目录(self, tmp_path):
+        """把技能目录"挂到临时目录"再**摘下来**，known 必须回到真实目录
+
+        这正是并行工作流踩到的场景（先跑的用例挂了 tmp 目录，后跑的用例基于真实目录
+        断言）。用 `monkeypatch.context()` 进出一次即可复现"上一个用例"与"下一个用例"。
+        """
+        repo = tmp_path / "repo"
+        (repo / "fixture-only").mkdir(parents=True)
+        with pytest.MonkeyPatch.context() as m:
+            m.setattr(SP, "SKILLS_REPO_DIR", str(repo))
+            m.setattr(SP, "SKILLS_MGMT_JSON", str(tmp_path / "none.json"))
+            m.setattr(SP, "SKILLS_LEGACY_JSON", str(tmp_path / "none2.json"))
+            m.setattr(SP, "_registry_skill_ids", lambda: frozenset())
+            during = known_skill_ids()
+            assert "fixture-only" in during
+            assert "self_reflection" not in during, "临时目录生效期间不该看见真实目录的技能"
+
+        after = known_skill_ids()                # ← 相当于"下一个用例"的第一次调用
+        assert "fixture-only" not in after, (
+            "上一个用例的临时技能目录留在了 memo 里 ⇒ 后面所有基于真实目录的断言都会错")
+        assert "self_reflection" in after, "patch 撤销后 known 没回到真实目录"
+
+    def test_输入没变时仍然命中_memo(self):
+        """修法必须**保住缓存**（否则等于把 memo 去掉）：输入不变时返回同一个对象
+
+        观测手段用对象身份：命中 memo 时返回的就是那份 frozenset 本身，重算必然
+        产生新对象。这条同时守住"缓存更新了但指纹没跟着更新"（那会让缓存永不命中，
+        单次全量解析 ~13.4ms 的代价被摊到每一次调用上）。
+        """
+        first = known_skill_ids()
+        assert known_skill_ids() is first, "输入没变却重算 ⇒ memo 退化成了没有缓存"
+
+    def test_显式_invalidate_仍然可用(self):
+        """公开面契约不变：显式失效后即使输入没变也必须重算（值当然不变）
+
+        保留它的理由：指纹只覆盖本模块**看得见**的输入；绕过这些输入去改别人的
+        模块级常量（如 `file_store._DEFAULT_REPO_PATH`）时，显式失效仍是逃生口。
+        """
+        first = known_skill_ids()
+        invalidate_known_skills_cache()
+        again = known_skill_ids()
+        assert again == first
+        assert again is not first, "显式 invalidate 之后没有重算 ⇒ 契约被破坏了"
 
 
 # ════════════════════════════════════════════════════════════

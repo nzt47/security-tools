@@ -593,6 +593,31 @@ class TestRestSurfacePromptFragments:
         assert f["chars"] == len(f["content"])
         assert f["croppable"] is False, "role=line 是硬片段，前端不该显示成可裁"
 
+    def test_详情端点与_preview_同源(self, lines_client):
+        """GET 详情也必须给出同样两块（否则"已保存的线会注入什么"就有第二个答案）
+
+        用**真实档案**（engineering，仓库激活线）对拍：同一份档案经三条读端点得到的
+        技能面与提示词片段必须逐字段相等 —— 这钉的是"一份判定、三处投影"，不是三份实现。
+        """
+        det = lines_client.get("/api/agent-lines/engineering")
+        assert det.status_code == 200
+        detail = det.get_json()
+        assert detail["skills"]["mode"] == "whitelist"
+        assert detail["prompt_fragments"], "真实档案 engineering 有 prompt_note，片段不该为空"
+
+        # 对拍口径：/preview 算的是**请求体里的档案**，/detail 读的是**已保存档案**
+        # ⇒ 把详情返回的档案原样回灌给 /preview，两者才可比（否则是在比两份不同的输入）
+        prev = lines_client.post("/api/agent-lines/preview",
+                                 json=detail["line"]).get_json()
+        assert detail["skills"] == prev["skills"], "详情端点的技能面必须与 /preview 同源"
+        assert detail["prompt_fragments"] == prev["prompt_fragments"]
+        assert detail["prompt_fragments_note"] == prev["prompt_fragments_note"]
+
+        # 反向锁一条语义：不带 prompt_note 的请求体本来就该没有片段（别把两者混为一谈）
+        empty = lines_client.post("/api/agent-lines/preview",
+                                  json={"id": "engineering"}).get_json()
+        assert empty["prompt_fragments"] == [], "/preview 只按请求体算，不偷偷读盘"
+
     def test_validate_与_preview_同源(self, lines_client):
         payload = {"id": "engineering", "prompt_note": "同一段"}
         prev = lines_client.post("/api/agent-lines/preview", json=payload).get_json()

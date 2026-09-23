@@ -189,20 +189,12 @@ def _isolate_registration():
     _tools.unregister("fan_out")
 
 
-@pytest.fixture(autouse=True)
-def _fresh_known_skills():
-    """每个用例前后清空技能目录的 memo（跨用例存活的 known 缓存）
-
-    为什么必须清：skillpack.known_skill_ids() 会把**非空**结果缓存下来，而
-    tests/unit 里有用例挂载过临时技能目录（挂载期算出的缓存会在会话余下时间一直
-    生效）。本文件的断言要基于**当下真实目录**，否则会出现"单独跑绿、连跑红"。
-    （做法与 tests/unit/test_line_skillpack.py 的同名夹具一致。）
-    """
-    from agent.lines import invalidate_known_skills_cache
-
-    invalidate_known_skills_cache()
-    yield
-    invalidate_known_skills_cache()
+# 【曾经的 autouse 规避夹具 `_fresh_known_skills` 已删除（L6 修在源头）】
+# 它每个用例前后显式清空 skillpack 的 known memo，用来绕开「别的用例挂载过临时
+# 技能目录 ⇒ 本文件的断言拿到旧值」。现在该 memo 自带**输入快照指纹**
+# （agent/lines/skillpack.py::_known_fingerprint），换目录/换数据源会自动失效，
+# 本文件的断言天然基于**当下真实目录**，不需要在测试侧再补一层。
+# 守门用例见 tests/unit/test_line_skillpack.py::TestKnownCacheFollowsInputs。
 
 
 @pytest.fixture(autouse=True)

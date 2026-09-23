@@ -44,6 +44,14 @@
   与 186 名快照逐名比对只少那 5 个有意删除的 `safe_file_reader` 名字（181 = 186 − 5）
 - 业主自决项：C-1 Alertmanager **暂不启用**（脚手架就绪，待真实接收方）；月度容量外推**不做**；D-2 归另一条工作线
 
+### 收尾（同日，遗留清零）
+
+- **L6 known_skill_ids memo 跨用例污染 —— 修复**：改为**目录快照指纹**失效（0.50ms vs 全量重算中位 13.4ms）；
+  控制实验（指纹钉成常量 = 旧语义）令 5 条用例变红、其中 3 条是**原有**用例 ⇒ 证明污染真实存在且此前被 autouse 夹具遮住；两处规避夹具已删
+- **L10 真实服务验证 —— 部分闭环**：新增 `tests/integration/test_agent_lines_http_real_server.py`（真 socket + 真服务，8 条，含 404/400 与优雅关停）；真浏览器点验未做（需起 `app_server` 并触及 `data/`，留待授权）
+- **新发现并修复 P9**：`GET /api/agent-lines/<id>` 详情端点此前缺少 `skills` / `prompt_fragments`（与 `/preview`、`/validate` 不对称）⇒ 已复用同一对判定补齐，并加"一份判定、三处投影"对拍用例
+- 最终合跑：**455 passed / 0 failed / 6 skipped**（11 个文件，含真实 HTTP 用例）
+
 ---
 
 ## [CHG] - 2026-10-03: 死代码与过期运维指引收口（只删零引用者，其余就地标注）✅
