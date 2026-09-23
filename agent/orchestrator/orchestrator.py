@@ -3896,6 +3896,23 @@ class Orchestrator:
                 if not text:
                     text = m.description
                 skills.append({"skill_id": m.skill_id, "name": m.name, "instruction": text})
+            # ── 技能侧身份减法（**第二条注入通道**）──
+            # 只堵系统提示词的技能段，会让"按意图命中注入"变成绕开本线 skills:
+            # 白名单的旁路。此处过滤失败一律原样保留（技能侧 fail-open 纪律）。
+            # 未装线 / 本线未声明技能 ⇒ 不限制，行为与接线前逐字一致。
+            try:
+                from agent.lines import filter_skill_entries
+
+                skills, dropped = filter_skill_entries(skills)
+                if dropped:
+                    logger.info(
+                        log_dict({'module_name': 'orchestrator',
+                                  'action': 'context_assembler_procedural.line_skillpack',
+                                  'message': '[主线] 本线技能白名单剔除 %d 条按意图命中的技能: %s'
+                                             % (len(dropped),
+                                                [s.get("skill_id") for s in dropped])}))
+            except Exception as e:  # noqa: BLE001 过滤故障不得让注入链路挂掉
+                logger.warning("[context_assembler] 技能白名单过滤降级（按不限制处理）: %s", e)
             return skills, None
         except Exception:
             return [], None
