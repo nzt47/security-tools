@@ -2196,6 +2196,7 @@ flowchart LR
     agent_test_permission_system --> agent_permission_system
     agent_text_tools --> agent_logging_utils
     agent_tool_approval -.-> agent_skills_mgmt_approval
+    agent_tool_approval -.-> agent_utils_cross_process_lock
     agent_tool_approval -.-> agent_skills_mgmt_approval
     agent_tool_approval -.-> agent_lines_models
     agent_tool_calling --> agent_logging_utils
@@ -2438,7 +2439,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 622
 - 模块节点数: 556
-- 依赖边数: 1762
-- 跨层调用数: 1103
+- 依赖边数: 1763
+- 跨层调用数: 1104
 - 违规调用数: 0
 - 动态 import 数: 1
