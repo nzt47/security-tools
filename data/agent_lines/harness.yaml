@@ -51,6 +51,13 @@ skills:
   - code-observability
   - engineering-test-delivery
   - global-core-principles
+  - context_aware
+  - emotion_expression
+  - memory_summary
+  - proactive_suggestion
+  - safety_guard
+  - self_reflection
+  - voice_interaction
 
 prompt_note: |
   本线服务"改云枢自己的运行框架"：优先用 file/grep 自省组合与 preset 现状，

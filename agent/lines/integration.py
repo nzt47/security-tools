@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .assembler import AssemblyResult, assemble
 from .models import LineProfile, load_tool_meta
 from .registry import LineRegistryError, get_line_registry
+from .skillpack import SkillPack, resolve_skill_pack, unrestricted_pack
 
 logger = logging.getLogger(__name__)
 
@@ -97,17 +98,59 @@ def line_whitelist(
     return list(result.tools), result
 
 
-def describe_line(line_id: Optional[str] = None) -> Dict[str, Any]:
-    """给 UI / 状态面板用的主线摘要（含 token 粗估）"""
-    lid = resolve_line_id(line_id)
+def line_skill_pack(line_id: Optional[str] = None) -> SkillPack:
+    """按生效主线算「本线允许注入哪些技能」（**永不抛**）
+
+    【为什么与 `assemble_for_line` 同纪律】技能段的异常会直接进系统提示词，
+    「装配故障绝不阻断对话」在这里的具体含义是：解析不出技能包 ⇒ 回退**不限制**
+    （= 未装线的旧行为），而不是回退成「一个技能都不给」。后者是静默的能力剥夺，
+    且用户看到的只是「提示词少了一段」，排查成本极高。
+
+    Returns:
+        `SkillPack`。未装线 / 主线不存在 / 主线停用 / 任何异常 ⇒
+        `mode="unrestricted"`（技能侧没有「身份」可减，见 agent/lines/skillpack.py）。
+    """
+    try:
+        lid = resolve_line_id(line_id)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[lines] 读取激活主线失败（技能按不限制处理）: %s", e)
+        return unrestricted_pack("resolve-error")
     if not lid:
-        return {"active": None, "line": None, "tool_count": None}
+        # 未装线 == 等于没改过（技能侧同样如此）
+        return resolve_skill_pack(None)
     try:
         profile = get_line_registry().load(lid)
     except LineRegistryError as e:
-        return {"active": lid, "line": None, "error": str(e)}
+        logger.warning("[lines] 主线档案不可读（技能按不限制处理）: %s", e)
+        return unrestricted_pack("profile-error", line_id=lid)
     if profile is None:
-        return {"active": lid, "line": None, "error": "主线不存在"}
+        logger.info("[lines] 主线 %s 不存在（技能按不限制处理）", lid)
+        return unrestricted_pack("profile-missing", line_id=lid)
+    if not profile.enabled:
+        # 停用 = 本轮不装线（与 assemble_for_line 同口径：回退旧路径）
+        logger.info("[lines] 主线 %s 已停用（技能按不限制处理）", lid)
+        return unrestricted_pack("line-disabled", line_id=lid)
+    try:
+        return resolve_skill_pack(profile)
+    except Exception as e:  # noqa: BLE001 技能包解析故障绝不断对话
+        logger.warning("[lines] 技能包解析异常（按不限制处理）: %s", e)
+        return unrestricted_pack("resolve-error", line_id=lid)
+
+
+def describe_line(line_id: Optional[str] = None) -> Dict[str, Any]:
+    """给 UI / 状态面板用的主线摘要（含 token 粗估 + 技能段判定）"""
+    lid = resolve_line_id(line_id)
+    # 技能段与工具段同源同算：面板拿到的必须是**后端判定结果**，前端不再重算
+    # （重算 = 第二份口径，两份迟早分叉）。
+    skills = line_skill_pack(lid).to_dict()
+    if not lid:
+        return {"active": None, "line": None, "tool_count": None, "skills": skills}
+    try:
+        profile = get_line_registry().load(lid)
+    except LineRegistryError as e:
+        return {"active": lid, "line": None, "error": str(e), "skills": skills}
+    if profile is None:
+        return {"active": lid, "line": None, "error": "主线不存在", "skills": skills}
     result = assemble_for_line(line_id=lid)
     return {
         "active": lid,
@@ -116,7 +159,9 @@ def describe_line(line_id: Optional[str] = None) -> Dict[str, Any]:
         "by_plane": {k: len(v) for k, v in (result.by_plane.items() if result else [])},
         "needs_approval": list(result.needs_approval) if result else [],
         "over_budget": bool(result.over_budget) if result else False,
+        "skills": skills,
     }
 
 
-__all__ = ["resolve_line_id", "assemble_for_line", "line_whitelist", "describe_line"]
+__all__ = ["resolve_line_id", "assemble_for_line", "line_whitelist", "line_skill_pack",
+           "describe_line"]

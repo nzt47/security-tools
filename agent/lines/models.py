@@ -748,8 +748,21 @@ class LineProfile:
 
     # ── 校验 ──
 
-    def validate(self, known_tools: Optional[set] = None) -> List[str]:
-        """返回问题列表（空 = 通过）"""
+    def validate(self, known_tools: Optional[set] = None,
+                 known_skills: Optional[set] = None) -> List[str]:
+        """返回问题列表（空 = 通过）
+
+        Args:
+            known_tools: 已知工具名；None ⇒ 只做结构校验（不判「是否已注册」）
+            known_skills: 已知技能 id；None ⇒ 同上。签名是**追加形参**，
+                旧调用 `validate(known_tools)` 逐字兼容。
+
+        【为什么 skills 也要校验】`skills:` 此前只有存储与 UI、运行时消费方
+        在本任务才接上（见 `agent/lines/skillpack.py`）。写错一个技能 id 的下场
+        与写错 boost/mute 一样是**静默失效** —— 但技能侧失效更隐蔽：工具少了
+        会在装配预览里少一个 chip，技能少了只是系统提示词少一段。故必须在
+        保存路径就拦住 typo，而不是等使用者觉得「怎么没生效」。
+        """
         issues: List[str] = []
         if not self.id or not isinstance(self.id, str):
             issues.append("id 不能为空")
@@ -770,6 +783,32 @@ class LineProfile:
             unknown = [t for t in list(self.boost) + list(self.mute) if t not in known_tools]
             if unknown:
                 issues.append(f"引用了未注册的工具: {sorted(unknown)}")
+        # ── skills（技能包）──
+        # 【不易·逐项报错而不是只报个数】消息必须能指出是哪个 id：
+        # 「保存失败」但不说哪个键错了，等于让人对着几十行 YAML 猜。
+        seen_skills: set = set()
+        dup_skills: List[str] = []
+        clean_skills: List[str] = []
+        for raw in self.skills:
+            # 非字符串也转成字符串再判：不能因为一个字段类型错就抛异常
+            # （validate 的契约是「返回问题列表」，不是「可能炸」）。
+            sid = raw if isinstance(raw, str) else str(raw)
+            if not sid.strip():
+                issues.append("skills 含空技能 id（技能 id 必须是非空字符串）")
+                continue
+            if sid != sid.strip():
+                issues.append(f"skills 含首尾空白的技能 id: {sid!r}（请去掉空白）")
+            if sid in seen_skills:
+                dup_skills.append(sid)
+            else:
+                clean_skills.append(sid)
+            seen_skills.add(sid)
+        if dup_skills:
+            issues.append(f"skills 含重复的技能 id: {sorted(set(dup_skills))}")
+        if known_skills is not None:
+            unknown_skills = [s for s in clean_skills if s not in known_skills]
+            if unknown_skills:
+                issues.append(f"引用了未注册的技能: {unknown_skills}")
         return issues
 
     @property

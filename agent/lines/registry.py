@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from .models import AGENT_LINES_DIR, LineProfile, load_tool_meta
+from .skillpack import known_skill_ids
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +102,14 @@ class LineRegistry:
         if not _ID_RE.match(profile.id or ""):
             raise LineRegistryError(
                 f"主线 id 非法: {profile.id!r}（需小写字母开头，含小写字母/数字/_/-，2-41 字符）")
+        # 与 known_tools 同款口径：把**真实**的工具名与技能 id 传进校验，
+        # 让 typo 在保存时就失败，而不是等运行时静默失效。
+        # 【不易】技能目录为空 ⇒ 传 None（只做结构校验）：环境读不到目录时
+        # 不能把所有技能声明一律判成「未注册」——那是把环境故障说成数据错误。
         known = set(load_tool_meta().keys())
-        issues = profile.validate(known_tools=known or None)
+        known_skills = set(known_skill_ids())
+        issues = profile.validate(known_tools=known or None,
+                                  known_skills=known_skills or None)
         if issues:
             raise LineRegistryError("主线档案校验失败: " + "; ".join(issues))
 

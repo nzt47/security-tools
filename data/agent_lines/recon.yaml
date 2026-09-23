@@ -56,6 +56,13 @@ requires_approval:
 allow_govern: false
 skills:
 - global-core-principles
+- context_aware
+- emotion_expression
+- memory_summary
+- proactive_suggestion
+- safety_guard
+- self_reflection
+- voice_interaction
 prompt_note: '本线以"采到—判真—入库—可复跑"为闭环：每条结论要带来源；周期任务要能被暂停与复盘。
 
   编码执行不是本线的手段——需要改代码时委派给 engineering 线，不要自己动手。
