@@ -100,6 +100,26 @@ export interface PlanesResponse {
   defaults?: Partial<LineProfile>
 }
 
+/** 本线的技能包判定（后端 `agent/lines/skillpack.py::SkillPack`；前端只呈现不重算） */
+export interface SkillPackInfo {
+  /** 生效主线 id；null = 未装线 */
+  line_id: string | null
+  /** 'unrestricted' | 'whitelist' */
+  mode: string
+  /** true = 本线对技能注入不设边界（未装线 / skills 为空） */
+  unrestricted: boolean
+  /** YAML 里声明的技能 id（去重保序） */
+  requested: string[]
+  /** 本线允许注入的技能 id（白名单模式下 = requested ∩ 运行时目录） */
+  allowed: string[]
+  /** 声明了但运行时目录里不存在的 id（如实回报，不静默吞掉） */
+  unknown: string[]
+  /** 判定来源（机器可读） */
+  source: string
+  /** 判定来源的人读文案（中文，单一来源在后端） */
+  source_label: string
+}
+
 /** 一次装配的结果（含可解释 trace） */
 export interface AssemblyPreview {
   line_id: string
@@ -124,6 +144,8 @@ export interface PreviewResponse {
   line_id: string
   line: LineProfile
   preview: AssemblyPreview
+  /** 技能包判定；旧后端不返回该字段（⇒ 面板不渲染技能区块） */
+  skills?: SkillPackInfo
   issues: string[]
   /** 后端自动规范化说明（如 allow_govern 自动放行 extend） */
   notes: string[]
@@ -136,6 +158,8 @@ export interface ValidateResponse {
   valid: boolean
   issues: string[]
   line: LineProfile
+  /** 技能包判定（与 /preview 同源同算） */
+  skills?: SkillPackInfo
   notes: string[]
   saved: boolean
 }

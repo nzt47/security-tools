@@ -54,6 +54,19 @@
     它会随 task_file 物化给子代理（子代理因此知道自己被允许调用什么），
     也是旧版执行器的兜底路径；**权威来源始终是工厂参数**。
 
+【后半程：技能面与提示词片段怎么用装配单（本模块只做"使用"，不做"判定"）】
+    装配单（``agent/subagent/assembly.py``）除工具集外还给两样，本模块各按契约落位：
+
+      | 装配单字段 | 落点 | 为什么是这里 |
+      |---|---|---|
+      | ``skills`` / ``skills_mode`` | ``ctx.metadata``（溯源三件）+ 逐任务信封 | 技能是**授权面**：只下发"允许哪些 id"，**不注入技能正文** |
+      | ``prompt_note`` / ``prompt_source`` | ②约束 ``constraints``（追加一条带来源标注的文本）+ ``metadata.prompt_source`` | 子代理 system prompt 是云枢自有固定文本（§5.7 机制 1/2 不得拼接外来内容）；constraints 是父体自撰文本、随 task_file 物化，子代理真能读到 |
+
+    **未装线 / 字段为空 ⇒ 行为与今天逐字一致**：不追加任何约束、metadata 里给空串
+    （键始终在，便于消费方不写 ``.get`` 分支）、信封里 ``prompt_note_applied=False``。
+    ``prompt_source`` 是"这段文本出自哪份档案"的唯一凭据，故必须来自装配单
+    （提示词角色层合成），本模块不自己拼一个形似的来源串。
+
 【为什么经由 ``SubagentLifecycleManager.delegate_many`` 而不是直接调 execute_many】
     分身纪律（``max_subagents`` 容量上限、TTL 取契约⑦、名称唯一性、执行后回收）
     属于生命周期管理器；直接调 ``execute_many`` 会绕过它（分身不可见、容量不受控）。
@@ -93,8 +106,9 @@ E_FAN_OUT_BATCH_FAILED = "E_FAN_OUT_BATCH_FAILED"
 E_FAN_OUT_NO_RESULT = "E_FAN_OUT_NO_RESULT"
 
 
-class _LineUnavailable(Exception):
-    """主线不可用（不存在 / 已停用 / 档案损坏）⇒ 该任务失败，**不回退成全量授权**"""
+# 【为什么这里没有异常类】"点名的主线不可用 ⇒ 该任务失败、不回退成全量授权"这条语义
+# 与**装配单**同源：`agent/subagent/assembly.py::LineUnavailable`。本模块不再自带一份
+# ——同一语义两处定义，迟早会在两条路径上分叉。
 
 
 # ════════════════════════════════════════════════════════════
@@ -249,88 +263,27 @@ def _resolve_line(line_id: str, registry: Any) -> str:
         return ""
 
 
-def _drop_hard_denied(toolset_cls: Any, granted: List[str]) -> List[str]:
-    """剔除被 §5.7 机制 3 硬禁的工具（记忆读写等），保持原顺序
 
-    为什么在**授权前**就要剔：``SubAgentToolset`` 是「申请 ∩ 授权 − 矩阵拒绝」，
-    硬禁项若留在 ``authorized_capabilities`` 里，子代理会拿到一份永远调不动的
-    空头授权；而一旦它真去调用，``DelegationExecutor`` 会判**整次委派失败**
-    （``E_TOOL_NOT_AUTHORIZED``）。故在装配授权集时就如实剔除。
-    口径与执行层同源（同一个 ``SubAgentToolset.hard_denied``），不另立标准。
+
+def _prompt_constraint(prompt_source: str, prompt_note: str) -> str:
+    """把本线 prompt_note 包成**一条约束文本**（带来源标注）；无片段 ⇒ 空串
+
+    【为什么进 constraints 而不是子代理的 system prompt】
+      1. 子代理的 system prompt 是云枢自有固定文本
+         （agent/subagent/executor.py::DELEGATE_SYSTEM_PROMPT），§5.7 机制 1/2
+         明令不得把外来内容拼进去——主线档案是**配置**，不是云枢本体；
+      2. constraints 是**父体自撰的内部文本**，本来就随 task_file 物化给子代理
+         （DelegationContext.to_dict → task_file），子代理真能读到；
+      3. "应该怎么交付"在本工具里正是 ②约束（ELEMENT_CONSTRAINTS）的位置，
+         放进别的要素会与八要素契约的语义打架。
+    来源标注形如 [主线 engineering]，取自装配单的 prompt_source（line:<id>，
+    由提示词角色层合成，不是本模块自己拼的形似字符串）。
     """
-    denied = set(toolset_cls.hard_denied(granted))
-    return [t for t in granted if t not in denied]
-
-
-def _granted_tools_for_line(
-    line_id: str,
-    registry: Any,
-    meta: Mapping[str, Any],
-    available: List[str],
-) -> Tuple[List[str], List[str], str]:
-    """按主线装配该子代理的授权集（fail-closed）
-
-    Args:
-        line_id: 生效主线 id；空串 = 未装线 ⇒ 只读默认集。
-        registry: ``LineRegistry``。
-        meta: ``load_tool_meta()`` 的产物（plane/effect/risk 判定的唯一数据源）。
-        available: 宿主真实注册的工具名（候选池）。
-
-    Returns:
-        ``(granted, needs_approval, note)``。
-
-    Raises:
-        _LineUnavailable: 主线不存在/已停用/档案损坏（该任务失败；**绝不**回退成全量授权）。
-    """
-    from agent.lines import assemble
-    from agent.subagent.toolset import SubAgentToolset
-    from agent.tools.subagent_tools import _default_subagent_tools
-
-    if not line_id:
-        base = [t for t in _default_subagent_tools() if t in meta]
-        granted = [t for t in base if meta[t].plane != "govern"]
-        granted = _drop_hard_denied(SubAgentToolset, granted)
-        return (granted, [t for t in granted if meta[t].needs_approval],
-                "未指定 line 且无全局激活主线 ⇒ 使用只读默认集（写文件/Shell 不在内）")
-
-    try:
-        profile = registry.load(line_id)
-    except Exception as e:  # noqa: BLE001  档案损坏同样按「不可用」处理，不回退
-        raise _LineUnavailable(f"主线档案不可用: {line_id}（{e}）") from e
-    if profile is None:
-        raise _LineUnavailable(f"主线不存在: {line_id}（未回退成全量授权）")
-    if not profile.enabled:
-        raise _LineUnavailable(f"主线已停用: {line_id}（未回退成全量授权）")
-
-    result = assemble(profile, available, meta=dict(meta))
-    granted = list(result.tools)
-
-    dropped_govern: List[str] = []
-    if not profile.allow_govern:
-        # 双保险：装配器在 allow_govern=False 时已剔除 govern 权重，此处再按
-        # YAML 声明（唯一权威）过滤一次，防「权重表被改」把治理工具漏进来。
-        dropped_govern = [t for t in granted if meta[t].plane == "govern"]
-        granted = [t for t in granted if meta[t].plane != "govern"]
-
-    # §5.7 机制 3：子代理工具集不含记忆读写——主线档案可以给**主智能体**装配
-    # 记忆工具，但派给子代理时必须剔除（矩阵 view.memory / memory.write
-    # 对 sub_agent 是 ❌，留在授权集里只会变成"授予了却永远调不动"）。
-    _hard = set(SubAgentToolset.hard_denied(granted))
-    dropped_protected = [t for t in granted if t in _hard]
-    granted = [t for t in granted if t not in _hard]
-
-    needs = [t for t in granted if meta[t].needs_approval]
-    protected_note = (f"；另剔除 {len(dropped_protected)} 个 §5.7 机制 3 硬禁工具"
-                      f"（子代理不含记忆读写）：{dropped_protected}") if dropped_protected else ""
-    if dropped_govern:
-        note = (f"沿主线 {profile.id} 装配：已剔除 {len(dropped_govern)} 个 govern 平面工具"
-                f"（{profile.id} 未开启 allow_govern）：{dropped_govern}")
-    elif profile.allow_govern and needs:
-        note = (f"沿主线 {profile.id} 装配：该线显式 allow_govern=true，"
-                f"{len(needs)} 个工具需人工确认：{needs}")
-    else:
-        note = f"沿主线 {profile.id} 装配（{len(granted)} 个工具）"
-    return granted, needs, note + protected_note
+    if not prompt_note:
+        return ""
+    source = str(prompt_source or "")
+    label = source.split(":", 1)[1] if ":" in source else source
+    return f"[主线 {label}] {prompt_note}"
 
 
 def _tokens_used(outcome: Any) -> int:
@@ -358,8 +311,18 @@ def _task_result(
     budget_tokens: int = 0,
     timeout_seconds: float = 0.0,
     tokens_used: int = 0,
+    skills_granted: Any = (),
+    skills_mode: str = "",
+    prompt_source: str = "",
+    prompt_note_applied: bool = False,
 ) -> Dict[str, Any]:
-    """逐任务结果条目（字段名与任务书约定一致；额外字段只加叶子标量）"""
+    """逐任务结果条目（字段名与任务书约定一致；额外字段只加叶子标量）
+
+    后半程四个字段（skills_granted / skills_mode / prompt_source /
+    prompt_note_applied）与逐任务授权集**同源**：都来自该任务的装配单
+    （agent/subagent/assembly.py）。主线不可用（该任务失败）时保持"空/False"
+    ——**如实汇报**"它没拿到任何东西"，而不是留白让人误以为"没查"。
+    """
     item: Dict[str, Any] = {
         "index": int(index),
         "line": str(line_id or ""),
@@ -373,6 +336,10 @@ def _task_result(
         "budget_tokens": int(budget_tokens),
         "timeout_seconds": float(timeout_seconds),
         "tokens_used": int(tokens_used),
+        "skills_granted": list(skills_granted),
+        "skills_mode": str(skills_mode or ""),
+        "prompt_source": str(prompt_source or ""),
+        "prompt_note_applied": bool(prompt_note_applied),
     }
     if error:
         item["error"] = str(error)
@@ -488,7 +455,10 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
     concurrency, concurrency_note = _clamp_concurrency(kwargs.get("max_concurrency"))
 
     # ── 步骤 4：逐任务按主线装配工具集（只读；失败的任务不执行、不回退）──
+    # 装配算法已收敛到 agent/subagent/assembly.py（唯二出口：只读默认集 / LineUnavailable），
+    # 本模块只负责"取候选池 → 逐任务取装配单 → 交给执行器"。
     from agent.lines import get_line_registry, load_tool_meta
+    from agent.subagent.assembly import LineUnavailable, resolve_subagent_assembly
 
     registry = get_line_registry()
     meta = load_tool_meta()
@@ -515,11 +485,12 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
         entry = line_cache.get(line_id)
         if entry is None:
             try:
-                granted, needs, note = _granted_tools_for_line(
-                    line_id, registry, meta, available)
-                entry = {"ok": True, "granted": granted,
-                         "needs_approval": needs, "note": note}
-            except _LineUnavailable as e:
+                # 装配单的唯一入口（agent/subagent/assembly.py）：本模块不再自己算,
+                # 免得"容器委派/单发 delegate"等其它分身入口各抄一份装配算法。
+                entry = {"ok": True,
+                         "assembly": resolve_subagent_assembly(
+                             line_id, registry, meta, available)}
+            except LineUnavailable as e:
                 entry = {"ok": False, "error": str(e)}
             line_cache[line_id] = entry
 
@@ -541,13 +512,23 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
                 timeout_seconds=base["timeout_seconds"])
             continue
 
+        assembly = entry["assembly"]
         # 三重交集：申请 ∩ 授权 − §7.0 矩阵拒绝（两者都用**同一份**真实工具名）
         toolset = SubAgentToolset.build(
-            entry["granted"], entry["granted"], actor=f"sub_agent:fan_out-{idx + 1}")
+            assembly.tools, assembly.tools, actor=f"sub_agent:fan_out-{idx + 1}")
         visible = list(toolset.visible_tools())
         base["tools_granted"] = visible
-        base["needs_approval"] = entry["needs_approval"]
-        base["note"] = entry["note"]
+        base["needs_approval"] = list(assembly.needs_approval)
+        base["note"] = assembly.note
+        # 后半程：技能面（授权面，随契约下发）+ 提示词片段（进 ②约束，见 _prompt_constraint）。
+        # 都取自**同一个装配单对象**（line_cache 复用），逐任务只是读它的字段——
+        # 因此同一主线被多个任务复用时不会各算一份、也不会互相串。
+        base["skills_granted"] = list(assembly.skills)
+        base["skills_mode"] = assembly.skills_mode
+        base["prompt_source"] = assembly.prompt_source
+        base["prompt_note"] = assembly.prompt_note
+        base["prompt_constraint"] = _prompt_constraint(
+            assembly.prompt_source, assembly.prompt_note)
         prepared.append(base)
 
     # ── 步骤 5：构造委派上下文 + 分身配置（预算/超时逐任务透传给 ctx）──
@@ -560,9 +541,15 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
     for item in prepared:
         idx = item["index"]
         elements = elements_by_index[idx]
+        # ②约束：**先复制再追加**（elements 里的列表是调用方入参透传来的同一对象，
+        # 就地 append 会改写调用方的 tasks 参数；而且同一装配单被两个任务复用时，
+        # 就地改也会让第 2 个任务看到第 1 个任务追加过的内容——"重复追加 + 串线"）。
+        constraints = list(elements["constraints"])
+        if item["prompt_constraint"]:
+            constraints.append(item["prompt_constraint"])
         ctx = DelegationContext(
             goal=elements["goal"],
-            constraints=elements["constraints"],
+            constraints=constraints,
             prior_artifacts=elements["prior_artifacts"],
             prohibitions=elements["prohibitions"],
             artifact_format=elements["artifact_format"],
@@ -577,6 +564,14 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
                 "authorized_capabilities": list(item["tools_granted"]),
                 "line": item["line"],
                 "fan_out_index": idx,
+                # 溯源三件（**只放标识不放原文**，与 metadata 的既有约定一致）：
+                # 子代理拿到 skills 集合就知道自己"被允许用哪些技能"（授权面），
+                # skills_mode 说明本线有没有收紧，prompt_source 说明②约束里那条
+                # [主线 x] 文本出自哪份档案。原文（prompt_note）只在 constraints 里，
+                # 因为它就是父体自撰的约束文本本体。
+                "skills": list(item["skills_granted"]),
+                "skills_mode": item["skills_mode"],
+                "prompt_source": item["prompt_source"],
             },
         )
         specs.append((SubagentConfig(name=f"fan-out-{short}-{idx + 1}",
@@ -618,7 +613,12 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
                     needs_approval=item["needs_approval"],
                     toolset_note=item["note"],
                     budget_tokens=item["budget_tokens"],
-                    timeout_seconds=item["timeout_seconds"])
+                    timeout_seconds=item["timeout_seconds"],
+                    # 失败也如实带回"它本来被授权了什么"（与 tools_granted 同款口径）
+                    skills_granted=item["skills_granted"],
+                    skills_mode=item["skills_mode"],
+                    prompt_source=item["prompt_source"],
+                    prompt_note_applied=bool(item["prompt_constraint"]))
 
         for item, outcome in zip(prepared, outcomes):
             idx = item["index"]
@@ -638,7 +638,11 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
                 executed=sub_reason != SUB_REASON_SUBAGENT_UNAVAILABLE,
                 budget_tokens=item["budget_tokens"],
                 timeout_seconds=item["timeout_seconds"],
-                tokens_used=_tokens_used(outcome))
+                tokens_used=_tokens_used(outcome),
+                skills_granted=item["skills_granted"],
+                skills_mode=item["skills_mode"],
+                prompt_source=item["prompt_source"],
+                prompt_note_applied=bool(item["prompt_constraint"]))
 
     # ── 步骤 7：汇总（部分成功如实报告；单个失败不让整体失败）──
     final: List[Dict[str, Any]] = []

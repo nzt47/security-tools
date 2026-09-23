@@ -56,4 +56,11 @@ requires_approval:
 allow_govern: false
 skills:
 - global-core-principles
+- context_aware
+- emotion_expression
+- memory_summary
+- proactive_suggestion
+- safety_guard
+- self_reflection
+- voice_interaction
 prompt_note: 轻量助手线：能查、能读、能写产物；不做命令执行、不改自身能力集。需要动手改代码时委派。

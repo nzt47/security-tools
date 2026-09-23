@@ -11,6 +11,7 @@ Prompt 与 Skill 版本化管理模块
 from .storage import PromptStorage, PromptRecord, VersionRecord
 from .version_control import VersionManager, VersionStatus
 from .registry import PromptRegistry, PromptMetadata
+from .roles import PROMPT_ROLES, PromptFragment, ComposedPrompt, compose_fragments
 
 __all__ = [
     'PromptStorage',
@@ -20,4 +21,9 @@ __all__ = [
     'VersionStatus',
     'PromptRegistry',
     'PromptMetadata',
+    # 角色（片段"拥有者"）维度 —— 与 prompt_type 正交，见 roles.py 模块 docstring
+    'PROMPT_ROLES',
+    'PromptFragment',
+    'ComposedPrompt',
+    'compose_fragments',
 ]

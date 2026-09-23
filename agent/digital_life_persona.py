@@ -30,12 +30,30 @@ def _trace_id():
     return uuid.uuid4().hex[:16]
 
 
+def _skill_pack_cache_key(pack) -> tuple:
+    """技能段的缓存键：`(line_id, mode, allowed)`
+
+    【为什么"不限制"统一收敛成一个键】不限制时注入集完全由**全局** enabled_ids
+    决定，与是哪条线无关（未装线 / 本线没声明技能 / 主线停用，产物必然相同），
+    故合并成同一键，避免无意义地多存几份。
+    【为什么 pack 为 None 也走同一键】None = 技能包不可用 = 不限制（fail-soft），
+    与"未装线"是可互换的口径。
+    """
+    if pack is None or getattr(pack, "unrestricted", True):
+        return ("*", "unrestricted")
+    return (pack.line_id, pack.mode, tuple(pack.allowed))
+
+
 
 class DigitalLifePersonaMixin:
     """DigitalLife 人格/辅助方法 (Mix-in)"""
 
     # ── 工具/技能状态文本缓存 ──
     _cached_tool_status = None
+    #: 技能段缓存：`{(line_id, mode, allowed): (文本, 实际注入的 id)}`。
+    #: 【变易·2026 技能包】它不再是"一个字符串"——技能段是身份相关的，必须按本线
+    #: 技能包分键，否则切线的第一次调用会拿到上一条线的缓存（见 `_build_skill_instructions`）。
+    #: **置 None 依旧表示"清空"**（`_invalidate_status_cache` 与既有测试的用法不变）。
     _cached_skill_instructions = None
 
     # ── 技能提示词模板 ──
@@ -318,7 +336,11 @@ class DigitalLifePersonaMixin:
         return result
 
     def _invalidate_status_cache(self):
-        """工具/技能状态变化时调用此方法清除缓存"""
+        """工具/技能状态变化时调用此方法清除缓存
+
+        技能段缓存是"按线分键"的字典（见 `_build_skill_instructions`），这里整体置
+        None 即等价于清空全部键 —— 语义与旧的单槽位缓存一致，调用方无需改。
+        """
         self._cached_tool_status = None
         self._cached_skill_instructions = None
 
@@ -412,14 +434,53 @@ class DigitalLifePersonaMixin:
         except Exception:
             return True
 
+    def _current_skill_pack(self):
+        """本线技能包（未装线 / 任何异常 ⇒ None = 不限制）
+
+        【为什么这里还要兜一层】`agent.lines.integration.line_skill_pack()` 自身
+        永不抛；这一层兜的是"连 import 都失败"的极端情况 —— 技能段进的是系统
+        提示词，绝不能让"装线"这件事打断对话（与装配侧同纪律）。
+        """
+        try:
+            from agent.lines.integration import line_skill_pack
+            return line_skill_pack()
+        except Exception as e:  # noqa: BLE001 技能包不可用不得阻断对话
+            logger.warning("[persona] 技能包不可用（按不限制处理）: %s", e)
+            return None
+
     def _build_skill_instructions(self) -> str:
-        """根据已启用的技能构建对应的系统提示词片段（带缓存）。
+        """根据已启用的技能 + **本线技能包**构建系统提示词的技能段（按线分键缓存）。
 
         启用源统一走 SkillRegistry（主轨 + 文件轨 front matter），不再直接
-        读 legacy data/skills.json。
+        读 legacy data/skills.json；**本线允许的范围**走 `line_skill_pack()`
+        （L2 档案的 `skills:` 声明，判定见 `agent/lines/skillpack.py`）。
+        未装线 / 本线未声明技能 ⇒ 不限制，行为与接上本判定之前**逐字一致**。
+
+        【不易·缓存必须按技能包签名分键】技能段是**身份相关**的：同一条线上
+        "本线允许哪些技能"不同，产出的文本就不同。单槽位缓存会让"切换主线后的
+        第一次调用"直接命中上一条线的缓存并原样返回（命中即 return，连 enabled
+        都不再查）—— 那正是本任务最容易漏的幽灵缺陷。故缓存是
+        `{(line_id, mode, allowed): (文本, 实际注入的 id)}` 的字典；
+        置 None 仍是"清空"（`_invalidate_status_cache` 与既有测试的用法不变）。
+
+        【不易·`_loaded_skill_ids` 必须等于**实际注入**的 id】`orchestrator` 拿它
+        做幻觉校验（宣称用了某技能、但它没进提示词 ⇒ 判幻觉）。故：只报告真正
+        拼进去的 id（被本线过滤掉的不算），且缓存命中路径也要回填 —— 否则会
+        留下上一次调用写入的列表，与本次返回的文本不一致。
         """
-        if self._cached_skill_instructions is not None:
-            return self._cached_skill_instructions
+        pack = self._current_skill_pack()
+        key = _skill_pack_cache_key(pack)
+        cache = self._cached_skill_instructions
+        if not isinstance(cache, dict):
+            # 兼容旧语义：类默认值 None（以及测试里的 self._cached_skill_instructions
+            # = None）都表示"无缓存"，就地重建一份。
+            cache = {}
+            self._cached_skill_instructions = cache
+        hit = cache.get(key)
+        if hit is not None:
+            text, ids = hit
+            self._loaded_skill_ids = list(ids)   # 命中也要回填，否则与文本不一致
+            return text
 
         try:
             from agent.skills_mgmt.registry import SkillRegistry
@@ -430,12 +491,16 @@ class DigitalLifePersonaMixin:
         parts = []
         loaded_ids: list = []
         for sid, prompt in self._SKILL_PROMPTS.items():
-            if sid in enabled_ids:
-                parts.append(prompt)
-                loaded_ids.append(sid)
+            if sid not in enabled_ids:
+                continue
+            if pack is not None and not pack.allows(sid):
+                # 本线没声明它 ⇒ 不注入（技能侧的身份减法落在注入这一步）
+                continue
+            parts.append(prompt)
+            loaded_ids.append(sid)
         self._loaded_skill_ids = loaded_ids  # [护栏集成] 供 orchestrator 校验幻觉
         result = "\n\n".join(parts)
-        self._cached_skill_instructions = result
+        cache[key] = (result, tuple(loaded_ids))
         return result
 
     def _get_enabled_tools_whitelist(self) -> list | None:

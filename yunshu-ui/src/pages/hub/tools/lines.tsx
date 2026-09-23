@@ -22,7 +22,8 @@
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  Check, Copy, Info, Layers, Plus, Save, Search, ShieldAlert, Target, Trash2,
+  Check, Copy, Info, Layers, MessageSquare, Plus, Save, Search, ShieldAlert, Sparkles,
+  Target, Trash2,
 } from 'lucide-react'
 import { Badge, CallabilityBadge, Card, ErrorBox, Loading, PageHeader } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark } from '@/lib/callability'
@@ -38,6 +39,7 @@ import {
   type AssemblyPreview,
   type LineProfile,
   type PlanesResponse,
+  type SkillPackInfo,
   type ToolCatalogEntry,
 } from '@/lib/agentLinesApi'
 import {
@@ -162,12 +164,74 @@ function canonical(p: LineProfile): string {
   })
 }
 
+// ═══════════════════════════════════════════════════════════
+//  提示词片段（后端算，前端只呈现）
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 本线会注入系统提示词的片段。
+ *
+ * 数据来自 `POST /api/agent-lines/preview|validate` 的 `prompt_fragments`
+ * （判定实现在 `agent/orchestrator/prompt_builder.py::line_fragment_for_profile`，
+ * 与运行时装配共用同一个函数）。
+ *
+ * 【为什么前端一个字都不算】再判一遍就是第二份"什么会被注入提示词"的口径，
+ * 与系统提示词的真实组装结果迟早分叉 —— 与本页技能区块同一条纪律
+ * （见 `agentLinesApi.SkillPackInfo` 的注释）。
+ */
+export type PromptFragmentInfo = {
+  /** 片段拥有者角色（当前只有 'line'，见 agent/prompt_manager/roles.py::PROMPT_ROLES） */
+  role: string
+  /** 审计来源，形如 line:engineering */
+  source: string
+  /** 片段原文（后端已 strip） */
+  content: string
+  chars: number
+  priority: number
+  /** true = 预算超限时可裁剪；role=line 为 false（硬片段） */
+  croppable: boolean
+}
+
+/**
+ * 读后端给的片段字段（**只做形状规范化，不做任何判定**）。
+ *
+ * `available=false` 表示后端根本没返回该字段（旧后端 / 未部署）⇒ 面板整块不渲染，
+ * 行为与本页接上片段之前一致；形状不对的条目直接忽略，绝不因此让预览崩掉。
+ */
+export function readPromptFragments(resp: unknown): {
+  available: boolean
+  fragments: PromptFragmentInfo[]
+  note: string
+} {
+  const src = (resp ?? {}) as { prompt_fragments?: unknown; prompt_fragments_note?: unknown }
+  const note = typeof src.prompt_fragments_note === 'string' ? src.prompt_fragments_note : ''
+  if (!Array.isArray(src.prompt_fragments)) {
+    return { available: false, fragments: [], note }
+  }
+  const fragments: PromptFragmentInfo[] = []
+  for (const it of src.prompt_fragments) {
+    if (!it || typeof it !== 'object') continue
+    const o = it as Record<string, unknown>
+    if (typeof o.role !== 'string' || typeof o.content !== 'string') continue
+    fragments.push({
+      role: o.role,
+      source: typeof o.source === 'string' ? o.source : '',
+      content: o.content,
+      chars: num(o.chars, o.content.length),
+      priority: num(o.priority),
+      croppable: o.croppable === true,
+    })
+  }
+  return { available: true, fragments, note }
+}
+
 function planeSummary(p: LineProfile): string {
   const parts = PLANE_ORDER
     .filter((k) => num(p.plane_weights?.[k]) > 0 || num(p.plane_floors?.[k]) > 0)
     .map((k) => `${PLANE_LABELS[k]} ${num(p.plane_weights?.[k])}`)
   return parts.length ? parts.join(' · ') : '无启用平面（装配结果为空）'
 }
+
 
 // ═══════════════════════════════════════════════════════════
 //  小组件
@@ -372,12 +436,83 @@ function FoldList({ title, names, meta, reasons, color, defaultOpen = false }: {
   )
 }
 
+/**
+ * 技能包区块（装配预览内）—— 只呈现**后端判定结果**，前端不重算
+ * ------------------------------------------------------------------
+ * 数据来自 `POST /api/agent-lines/preview` 的 `skills`（`agent/lines/skillpack.py`
+ * 的 `SkillPack.to_dict()`）。为什么前端一个字都不算：算第二遍就等于出现第二份
+ * 「本线允许哪些技能」的口径，两份迟早分叉（本仓的「十三处工具真相」都是这么长出来的）。
+ *
+ * 三档呈现（与后端 mode/source 一一对应）：
+ *   - `unrestricted` ⇒ 「不限制」：本线没限定技能范围（未装线 / skills 为空都是这一档）；
+ *   - `whitelist`    ⇒ 列出 allowed；declared-but-missing 单独用红色列出（unknown）；
+ *   - 字段缺失（旧后端）⇒ 整块不渲染，行为与本页接上技能判定之前完全一致。
+ */
+export function SkillPackBlock({ skills }: { skills?: SkillPackInfo | null }) {
+  if (!skills) return null
+  const allowed = skills.allowed ?? []
+  const unknown = skills.unknown ?? []
+  const requested = skills.requested ?? []
+  return (
+    <div
+      className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2"
+      data-skill-pack={skills.mode}
+    >
+      <div className="mb-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+        <Sparkles size={12} className="text-cyan-400" />
+        <span>技能</span>
+        <Badge color={skills.unrestricted ? 'slate' : 'cyan'}>
+          {skills.unrestricted ? '不限制' : `白名单（声明 ${requested.length}）`}
+        </Badge>
+        <span className="text-[11px] text-slate-500">{skills.source_label}</span>
+      </div>
+
+      {skills.unrestricted ? (
+        <div className="text-[11px] text-slate-500" data-skill-unrestricted="1">
+          本线未限定技能范围：全局启用的技能都可注入。
+          （未装线、或本线 `skills` 为空，都是这一档 —— 空 = 未表态，不等于「一个都不给」。）
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {allowed.length > 0 ? (
+            <div data-skill-allowed={String(allowed.length)}>
+              <div className="mb-1 text-[11px] text-slate-500">本线允许注入的技能</div>
+              <ToolChips names={allowed} color="cyan" />
+            </div>
+          ) : (
+            <div className="text-[11px] text-amber-300" data-skill-allowed="0">
+              本线声明的技能在技能目录里一条都查不到 ⇒ 本轮不注入任何技能段。
+            </div>
+          )}
+          {unknown.length > 0 && (
+            <div data-skill-unknown={String(unknown.length)}>
+              <div className="mb-1 text-[11px] text-red-300">
+                声明了但技能目录里查不到（{unknown.length}）：既无实体、也无声明，保存时会被校验拦下
+              </div>
+              <ToolChips names={unknown} color="red" />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════
 //  装配预览面板
 // ═══════════════════════════════════════════════════════════
 
-function PreviewPanel({ preview, issues, notes, error, pending }: {
+function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
+                       promptInjectionState, issues, notes, error, pending }: {
   preview: AssemblyPreview | null
+  /** 本线技能包判定（后端算）；旧后端不返回 ⇒ 技能区块整体不渲染 */
+  skills?: SkillPackInfo | null
+  /** 本线会注入的提示词片段（后端算）；null = 后端没返回该字段 ⇒ 整块不渲染 */
+  promptFragments?: PromptFragmentInfo[] | null
+  /** 后端给的人读说明（片段为空时为什么为空） */
+  promptFragmentsNote?: string
+  /** 这些片段本轮是否真的会进提示词：未激活 / 已激活但未保存 / 已生效 */
+  promptInjectionState: 'not_active' | 'unsaved' | 'injected'
   issues: string[]
   notes: string[]
   error: string
@@ -389,6 +524,59 @@ function PreviewPanel({ preview, issues, notes, error, pending }: {
     <div className="space-y-3">
       {error && <ErrorBox message={error} />}
       {pending && <div className="text-[11px] text-cyan-400">正在重算装配…</div>}
+
+      {/* ── 本线会注入的提示词片段（role=line）───────────────────────────
+          prompt_note 此前是**死字段**（UI 写着"随本线注入"，运行时无人消费）。
+          接到系统提示词后，这里是它唯一的可视化口径，数据全部来自后端
+          （`/api/agent-lines/preview` 的 `prompt_fragments` /
+          `prompt_fragments_note`），前端不重算判定。三种状态如实呈现：
+            ① 后端给了片段 ⇒ 列出 role/source/priority/原文（role=line 不可裁剪）；
+            ② 后端给了空列表 ⇒ 显示后端给的原因（字段为空 / 本线停用）；
+            ③ 后端没这个字段（旧后端）⇒ 整块不渲染，与本页接上它之前一致。
+          后端权威实现：agent/orchestrator/prompt_builder.py::line_fragment_for_profile。 */}
+      {promptFragments && (
+        <div data-testid="line-prompt-fragment"
+          className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+            <MessageSquare size={12} className="text-cyan-400" />
+            <span>本线会注入的提示词片段</span>
+            <span className="font-mono text-[11px] text-slate-500">role=line</span>
+            {promptFragments.length > 0 && (
+              <Badge color="cyan">{promptFragments.length} 段</Badge>
+            )}
+          </div>
+          {promptFragments.length > 0 ? (
+            <div className="space-y-2">
+              {promptFragments.map((f) => (
+                <div key={f.source + ':' + f.role} data-testid="line-fragment-item">
+                  <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                    <span className="font-mono text-cyan-300" data-testid="line-fragment-source">
+                      {f.source}
+                    </span>
+                    <span className="font-mono">role={f.role}</span>
+                    <span>priority={f.priority}</span>
+                    <span>{f.croppable ? '可裁剪' : '不可裁剪（硬片段）'}</span>
+                    <span>{f.chars} 字符</span>
+                    <span data-testid="line-fragment-state"
+                      className={promptInjectionState === 'injected' ? 'text-emerald-400' : 'text-amber-400'}>
+                      {promptInjectionState === 'injected'
+                        ? '本线已激活且已保存：本轮对话会注入'
+                        : (promptInjectionState === 'unsaved'
+                            ? '本线已激活，但当前改动未保存：保存后才会注入'
+                            : '本线未激活：激活并保存后才会注入')}
+                    </span>
+                  </div>
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-300">{f.content}</pre>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[11px] text-slate-500" data-testid="line-fragment-empty">
+              {promptFragmentsNote || '本线不注入任何提示词片段。'}
+            </div>
+          )}
+        </div>
+      )}
 
       {preview && (
         <>
@@ -466,6 +654,9 @@ function PreviewPanel({ preview, issues, notes, error, pending }: {
             ))}
           </div>
 
+          {/* 技能段：与工具段同一份「后端判定」，前端只上屏 */}
+          <SkillPackBlock skills={skills} />
+
           <div className="space-y-2">
             <FoldList title="被效果上限 / 平面未启用拦下" names={preview.denied_by_effect}
               meta={meta} color="slate" />
@@ -511,6 +702,13 @@ export default function ToolsAgentLines() {
   const [busy, setBusy] = useState(false)
 
   const [preview, setPreview] = useState<AssemblyPreview | null>(null)
+  /** 技能包判定（后端 /preview 回传）：本线允许注入哪些技能、有没有写错的 id */
+  const [previewSkills, setPreviewSkills] = useState<SkillPackInfo | null>(null)
+  /** 本线会注入系统提示词的片段（后端 /preview 回传；null = 后端没给该字段 ⇒ 不渲染） */
+  const [previewPromptFragments, setPreviewPromptFragments] =
+    useState<PromptFragmentInfo[] | null>(null)
+  /** 片段为空时后端给的人读原因 */
+  const [previewPromptFragmentsNote, setPreviewPromptFragmentsNote] = useState('')
   const [previewIssues, setPreviewIssues] = useState<string[]>([])
   const [previewNotes, setPreviewNotes] = useState<string[]>([])
   const [previewError, setPreviewError] = useState('')
@@ -571,12 +769,15 @@ export default function ToolsAgentLines() {
   // ── 预览：随 draft 防抖重算（"改权重即时看效果"的动力来源） ──
   useEffect(() => {
     if (!draft) {
-      setPreview(null); setPreviewIssues([]); setPreviewNotes([])
+      setPreview(null); setPreviewSkills(null); setPreviewIssues([]); setPreviewNotes([])
+      setPreviewPromptFragments(null); setPreviewPromptFragmentsNote('')
       setPreviewError(''); setPreviewing(false)
       return
     }
     if (!(draft.id || '').trim()) {
-      setPreview(null); setPreviewIssues([]); setPreviewNotes([]); setPreviewing(false)
+      setPreview(null); setPreviewSkills(null)
+      setPreviewPromptFragments(null); setPreviewPromptFragmentsNote('')
+      setPreviewIssues([]); setPreviewNotes([]); setPreviewing(false)
       setPreviewError('填写「主线 id」后自动计算装配预览')
       return
     }
@@ -586,6 +787,12 @@ export default function ToolsAgentLines() {
       previewLine(draft, controller.signal)
         .then((r) => {
           setPreview(r.preview)
+          // 旧后端没有 skills 字段 ⇒ null ⇒ 技能区块不渲染（退化为现状）
+          setPreviewSkills(r.skills ?? null)
+          // 旧后端没有 prompt_fragments 字段 ⇒ available=false ⇒ 整块不渲染（退化为现状）
+          const pf = readPromptFragments(r)
+          setPreviewPromptFragments(pf.available ? pf.fragments : null)
+          setPreviewPromptFragmentsNote(pf.note)
           setPreviewIssues(r.issues ?? [])
           setPreviewNotes(r.notes ?? [])
           setPreviewError('')
@@ -738,6 +945,13 @@ export default function ToolsAgentLines() {
     if (isNew || !stored) return true
     return canonical(stored) !== canonical(draft)
   }, [draft, stored, isNew])
+
+  /**
+   * 后端给的片段**本轮是否真的会进提示词**：片段判定由后端给，但"这条线有没有生效"
+   * 是前端手里的两个事实（激活指针 + 草案是否已保存），故在页面这一层组合。
+   */
+  const promptInjectionState: 'not_active' | 'unsaved' | 'injected' =
+    draft && active === draft.id ? (dirty ? 'unsaved' : 'injected') : 'not_active'
 
   if (loading) {
     return (
@@ -1120,7 +1334,7 @@ export default function ToolsAgentLines() {
                         className={INPUT_CLASS}
                       />
                     </Field>
-                    <Field label="skills" hint="绑定的技能 id（逗号分隔）">
+                    <Field label="skills" hint="本线允许注入的技能 id（逗号分隔）；留空 = 不限制">
                       <input
                         value={listToText(draft.skills)}
                         onChange={(e) => patch({ skills: textToList(e.target.value) })}
@@ -1154,6 +1368,10 @@ export default function ToolsAgentLines() {
               >
                 <PreviewPanel
                   preview={preview}
+                  skills={previewSkills}
+                  promptFragments={previewPromptFragments}
+                  promptFragmentsNote={previewPromptFragmentsNote}
+                  promptInjectionState={promptInjectionState}
                   issues={previewIssues}
                   notes={previewNotes}
                   error={previewError}
