@@ -22,6 +22,7 @@ from .assembler import AssemblyResult, assemble, estimate_tokens
 from .integration import (
     assemble_for_line,
     describe_line,
+    filter_skill_entries,
     line_skill_pack,
     line_whitelist,
     resolve_line_id,
@@ -63,7 +64,7 @@ __all__ = [
     "assemble", "AssemblyResult", "estimate_tokens",
     # 接线层
     "assemble_for_line", "line_whitelist", "resolve_line_id", "describe_line",
-    "line_skill_pack",
+    "line_skill_pack", "filter_skill_entries",
     # 技能包（L2 的 skills 声明 → 注入侧身份减法）
     "SkillPack", "resolve_skill_pack", "known_skill_ids",
     "invalidate_known_skills_cache", "MODE_UNRESTRICTED", "MODE_WHITELIST",
