@@ -11,6 +11,9 @@
     5. 消费：单次有效，且**换进程（``reset_cache()``）后仍不可重复消费**（台账落盘）；
        更硬的一条：**外部进程（UI/CLI）追加台账后，本进程下一次问就必须看到**——
        缓存按文件指纹失效，而不是"本进程读过一次就一直算数"；
+       **L2（2026-09-22）：跨进程并发消费同一张批准恰好放行一次**——"查台账 + 追加"
+       进跨进程临界区；拿不到锁/超时一律 fail-closed（不放行，且原因可读）；
+       ``find_permission`` 只读、**不进**临界区（它在每次工具调用上被问一次）；
     6. 驳回：``rejected`` ⇒ 带 reason 的 dict；pending ⇒ ``None``；
     7. 边界：空工具名、非法参数、记录文件损坏/不存在 ⇒ 结构化失败或 ``None``，**不抛异常**；
     8. 端到端：挂单 → 人工批准（改写记录模拟 UI）→ 命中 → 消费 → 再判定为空。
@@ -22,6 +25,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import multiprocessing
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
@@ -818,6 +823,341 @@ def test_驳回判定_rejected带原因_pending为None():
     assert TA.is_rejected(_TOOL, {"command": "echo other"}) is None
 
 
+# ════════════════════════════════════════════════════════════
+#  7. 跨进程并发消费（L2：把「查台账 + 追加」变成一个临界区）
+# ════════════════════════════════════════════════════════════
+
+#: 子进程「窗口对齐」的等待上限（秒）：两边各在**查过台账之后、追加之前**汇合。
+#: 【为什么有上限】**修好后对方根本到不了这个对齐点**（它正卡在临界区外等锁），
+#: 无限等待会把「绿」变成「挂死」；上限之内没等到就继续走，由父进程的断言说话。
+_RENDEZVOUS_TIMEOUT_S = 5.0
+
+#: 跨进程用例的等待上限（秒）：远低于 pytest 全局 --timeout=120 的杀进程阈值。
+_MP_TIMEOUT_S = 45.0
+
+#: 子进程里给台账锁的等待上限（秒）：必须**大于** _RENDEZVOUS_TIMEOUT_S，
+#: 否则会落进「锁超时 ⇒ fail-closed」那一支，把并发用例变成超时用例。
+_CHILD_LOCK_TIMEOUT_S = "30"
+
+#: 台账锁等待上限的环境变量名。
+#: 【为什么写死字符串而不取 TA.ENV_LOCK_TIMEOUT_SEC】让「修前」表现为**断言失败**
+#: （真的两次放行），而不是 AttributeError 式的伪红（伪红证明不了任何事）。
+_LOCK_TIMEOUT_ENV = "CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC"
+
+
+def _uses_rows() -> list:
+    """消费台账里的行（JSON 解码；文件不存在 → 空表）"""
+    path = _uses_path()
+    if not path.exists():
+        return []
+    return [json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines()
+            if ln.strip()]
+
+
+def _rows_of(approval_id: str) -> list:
+    """台账里某个 approval_id 的消费行（「单次有效」的直接物证）"""
+    return [row for row in _uses_rows() if row.get("approval_id") == approval_id]
+
+
+def _uses_lock_path() -> Path:
+    """台账的跨进程锁文件路径（必须与被保护文件**分离**，见 lock_path_for）"""
+    return Path(str(_uses_path()) + ".lock")
+
+
+def _peer_holds_uses_lock(uses_path) -> bool:
+    """另一个**进程**此刻是否持着台账锁（对齐失败时的归因证据，**无副作用**）
+
+    为什么需要它：并发用例里的「窗口对齐」有等待上限，若对方迟迟不到，本次就**不是**
+    同一窗口、结论无效。此时必须区分两种情形：
+      - 对方**持着台账锁**（= 临界区真的存在，它被挡在门外）⇒ 正是修复后的预期形态；
+      - 对方既没来、也没持锁（= 只是启动慢了）⇒ 本次无结论，用例必须**响亮地失败**，
+        绝不允许「因为没对上窗口」而变成一次假绿。
+    """
+    from agent.utils.cross_process_lock import CrossProcessLock, lock_path_for
+    probe = CrossProcessLock(lock_path_for(uses_path), name="probe")
+    holder = probe.read_holder()
+    pid = str(holder.get("pid") or "")
+    if pid and pid != str(os.getpid()):
+        return True
+    # 兜底证据：锁文件在，且**本进程能立刻拿到它的 OS 锁** ⇒ 无活跃持有者
+    if os.path.exists(probe.path):
+        return not probe.is_stale()
+    return False
+
+
+# ── 子进程入口（spawn 下必须模块级可 pickle）──
+
+def _child_consume_in_window(uses_path, records_path, approval_id, tool, args,
+                             session_key, arrived, go, out):  # pragma: no cover - 子进程
+    """子进程：find_permission → consume，并在 consume 的「查台账」那一步与另一进程对齐
+
+    【为什么要在这个点对齐】缺口就是「两个进程各自查台账 → 各自追加」这个窗口。
+    要让复现**确定性**（不是靠调度碰运气），必须让两边**都查完**再让任一边追加：
+    _load_uses 正是 consume 里「查台账」那一步（修前经 _consumed_ids 进入，
+    修后由临界区直接调用），故在对齐点包一层：先各自读台账 → 等对方也读完 → 才去追加。
+
+    【为什么要 reset_cache()】find_permission 会先把台账读进进程内缓存，此后 consume
+    的查重可能**直接命中缓存**而根本不读文件（对齐点就落不到那个窗口上）。清一次缓存，
+    让 consume 的判重**必然**落到「读台账」这一步 —— 修好后这一步在临界区内，修前它就
+    在临界区本该在的位置上（这正是要钉住的位置）。
+
+    【为什么要 armed 开关】只对齐 **consume 这一次**读：find_permission 自己那次读若也
+    对齐，两边会在**进临界区之前**就汇合（修前修后都一样），窗口就错位了。
+    """
+    os.environ["CP_TOOL_APPROVAL_USES_PATH"] = str(uses_path)
+    os.environ["APPROVAL_RECORDS_PATH"] = str(records_path)
+    os.environ[_LOCK_TIMEOUT_ENV] = _CHILD_LOCK_TIMEOUT_S
+    import agent.tool_approval as TA
+
+    TA.reset_cache()
+    report = {"pid": os.getpid(), "found": False, "approved": "", "consumed": False,
+              "paired": False, "peer_on_lock": False}
+    real_load = TA._load_uses
+    armed = {"on": False}
+
+    def _load_and_pair(p):
+        got = real_load(p)                         # ① 各自「查台账」（缺口的左端点）
+        if armed["on"]:
+            with arrived.get_lock():
+                arrived.value += 1
+                if arrived.value >= 2:
+                    go.set()
+            report["paired"] = bool(go.wait(timeout=_RENDEZVOUS_TIMEOUT_S))
+            if not report["paired"]:
+                report["peer_on_lock"] = _peer_holds_uses_lock(uses_path)
+        return got
+
+    TA._load_uses = _load_and_pair
+    try:
+        hit = TA.find_permission(tool, args, session_key=session_key)
+        report["found"] = hit is not None
+        report["approved"] = str((hit or {}).get("approval_id") or "")
+        TA.reset_cache()                           # 让 consume 的判重重新落到读台账
+        armed["on"] = True
+        report["consumed"] = bool(TA.consume(approval_id, tool, args))
+    finally:
+        out.put(report)
+
+
+def _child_consume_only(uses_path, records_path, approval_id, tool, args,
+                        session_key, out):  # pragma: no cover - 子进程
+    """子进程：只做一次「问批准 → 消费」（**顺序**跨进程场景的对照）"""
+    os.environ["CP_TOOL_APPROVAL_USES_PATH"] = str(uses_path)
+    os.environ["APPROVAL_RECORDS_PATH"] = str(records_path)
+    import agent.tool_approval as TA
+
+    TA.reset_cache()
+    hit = TA.find_permission(tool, args, session_key=session_key)
+    out.put({"pid": os.getpid(), "found": hit is not None,
+             "consumed": bool(TA.consume(approval_id, tool, args))})
+
+
+def _child_hold_uses_lock(uses_path, ready, release_evt, done):  # pragma: no cover - 子进程
+    """子进程：占住台账的跨进程锁，直到父进程发话（**不用 sleep 猜时间**）"""
+    from agent.utils.cross_process_lock import CrossProcessLock, lock_path_for
+    lock = CrossProcessLock(lock_path_for(uses_path), name="test-holder")
+    ok = bool(lock.try_lock())
+    ready.put(ok)
+    if ok:
+        release_evt.wait(timeout=_MP_TIMEOUT_S)
+        lock.release()
+    done.put(True)
+
+
+def _run_children(ctx, target, args_list, out):
+    """启一批子进程并收回它们各自的报告（兜底 terminate，绝不留孤儿进程）"""
+    procs = [ctx.Process(target=target, args=args) for args in args_list]
+    for proc in procs:
+        proc.start()
+    reports = []
+    try:
+        for _ in procs:
+            reports.append(out.get(timeout=_MP_TIMEOUT_S))
+    finally:
+        for proc in procs:
+            proc.join(timeout=30.0)
+            if proc.is_alive():            # pragma: no cover - 兜底
+                proc.terminate()
+                proc.join(timeout=10.0)
+    return reports
+
+
+def _approved(tool=_TOOL, args=_ARGS, session_key="s1"):
+    """挂一张单并模拟「人在 UI 里批准」；返回 approval_id"""
+    res = TA.request_approval(tool, args, session_key=session_key)
+    assert res["ok"] is True
+    _verdict(res["approval_id"], state="approved", actor="alice")
+    return res["approval_id"]
+
+
+# ── L2 主用例：跨进程并发消费同一张批准 ⇒ 恰好放行一次 ──
+
+@pytest.mark.timeout(90)
+def test_跨进程并发消费同一张批准_恰好放行一次(monkeypatch):
+    """**L2（2026-09-22）**：两个进程在同一窗口消费同一 approval_id ⇒ 恰好放行一次
+
+    【缺口（修前必红）】consume 是「查台账 → 判 → 追加」两步，**不原子**：两个进程
+    各自查到「这张没用过」，于是各自追加 ⇒ 台账里同一个 approval_id 出现两行、两个
+    进程都放行。真实触发场景：人在 UI/CLI 进程裁决、模型在服务进程消费。
+
+    【怎么做到确定性】两个子进程用 arrived/go 在「查完台账、尚未追加」处对齐
+    （见 _child_consume_in_window），因此**不是**靠调度碰运气；对齐失败会被
+    peer_on_lock 归因拦下，绝不允许「没对上窗口」变成假绿。
+
+    修前实测形态::
+
+        [A] find_permission -> 命中        [B] find_permission -> 命中
+        [A] consume: 查台账 ∅ + 对齐        [B] consume: 查台账 ∅ + 对齐
+        [A] 追加一行 -> True               [B] 追加一行 -> True     # ← 两次放行
+        ledger rows for aid -> 2
+
+    修后：两边的「查 + 追加」进同一个跨进程临界区 ⇒ 一个 True、一个 False，台账一行；
+    被挡在门外的那个进程**确实**是在等锁（peer_on_lock 为真）。
+    """
+    monkeypatch.setenv(_LOCK_TIMEOUT_ENV, _CHILD_LOCK_TIMEOUT_S)
+    aid = _approved()
+
+    ctx = multiprocessing.get_context("spawn")
+    arrived, go, out = ctx.Value("i", 0), ctx.Event(), ctx.Queue()
+    args = (str(_uses_path()), str(_records_path()), aid, _TOOL, dict(_ARGS), "s1",
+            arrived, go, out)
+    reports = _run_children(ctx, _child_consume_in_window, [args, args], out)
+
+    released = [r for r in reports if r["found"] and r["consumed"]]
+    rows = _rows_of(aid)
+    assert len(released) == 1, (
+        f"同一张批准被放行 {len(released)} 次（必须恰好 1 次）: {reports}")
+    assert len(rows) == 1, f"台账里同一 approval_id 记了 {len(rows)} 行: {rows}"
+    # 防「无结论的假绿」：没对上窗口的那个进程，必须是被台账锁挡在门外（而不是启动慢）
+    unpaired = [r for r in reports if not r["paired"]]
+    assert any(r["paired"] for r in reports),         f"两个进程从未落进同一窗口（本次无结论）: {reports}"
+    assert all(r["peer_on_lock"] for r in unpaired), (
+        f"对齐失败，且对方当时并没有持着台账锁 ⇒ 本次不是同一窗口（用例无结论）: {reports}")
+    assert arrived.value == 2, f"有一个进程根本没走到「查台账」那一步: {reports}"
+    assert all(r["approved"] == aid for r in reports if r["found"]),         f"子进程命中的批准不是本用例这一张: {reports}"
+
+
+@pytest.mark.timeout(90)
+def test_跨进程顺序消费_第二个进程仍然False():
+    """**既有语义不变**：跨进程但**顺序**消费（不重叠），第二次必须 False
+
+    两种顺序都钉：① 父进程先消费、子进程后消费；② 子进程先消费、父进程后消费。
+    """
+    ctx = multiprocessing.get_context("spawn")
+
+    # ① 父进程先
+    first = _approved()
+    assert TA.consume(first, _TOOL, _ARGS) is True
+    out = ctx.Queue()
+    rep_first = _run_children(
+        ctx, _child_consume_only,
+        [(str(_uses_path()), str(_records_path()), first, _TOOL, dict(_ARGS), "s1", out)],
+        out)[0]
+    assert rep_first["found"] is False, "已被父进程消费的批准，子进程仍判为有效"
+    assert rep_first["consumed"] is False, "同一张批准被第二个进程放行"
+    assert len(_rows_of(first)) == 1
+
+    # ② 子进程先
+    second = _approved()
+    out2 = ctx.Queue()
+    rep_second = _run_children(
+        ctx, _child_consume_only,
+        [(str(_uses_path()), str(_records_path()), second, _TOOL, dict(_ARGS), "s1", out2)],
+        out2)[0]
+    assert rep_second["found"] is True and rep_second["consumed"] is True
+    assert TA.find_permission(_TOOL, _ARGS, session_key="s1") is None,         "子进程消费后父进程仍判为有效"
+    assert TA.consume(second, _TOOL, _ARGS) is False
+    assert len(_rows_of(second)) == 1
+
+
+@pytest.mark.timeout(90)
+def test_拿不到台账锁时_fail_closed不放行_且原因可读(monkeypatch, caplog):
+    """锁拿不到/等超时 ⇒ **不放行**（fail-closed），原因可读，且**不写台账**
+
+    审批边界口径是「证不出已批准就不能执行」，本层同理：「证不出这张批准没用过，
+    就不放行」。故超时**绝不**退化成「当作没消费过」这条放行路径。
+    """
+    aid = _approved()
+
+    ctx = multiprocessing.get_context("spawn")
+    ready, release_evt, done = ctx.Queue(), ctx.Event(), ctx.Queue()
+    proc = ctx.Process(target=_child_hold_uses_lock,
+                       args=(str(_uses_path()), ready, release_evt, done))
+    proc.start()
+    try:
+        assert ready.get(timeout=_MP_TIMEOUT_S) is True, "子进程没能占住台账锁"
+        monkeypatch.setenv(_LOCK_TIMEOUT_ENV, "0.5")
+        with caplog.at_level(logging.WARNING, logger="agent.tool_approval"):
+            got = TA.consume(aid, _TOOL, _ARGS)
+
+        assert got is False, "拿不到台账锁却放行了（审批边界被绕过）"
+        assert not _uses_path().exists(), "没拿到锁却写了台账"
+        assert TA._consumed_ids(_uses_path()) == set()
+        reasons = " | ".join(r.getMessage() for r in caplog.records
+                             if r.levelno >= logging.WARNING)
+        assert "锁" in reasons and "放行" in reasons, f"失败原因不可读: {reasons!r}"
+    finally:
+        release_evt.set()
+        proc.join(timeout=30.0)
+        if proc.is_alive():            # pragma: no cover - 兜底
+            proc.terminate()
+            proc.join(timeout=10.0)
+
+    # 锁释放后同一张批准仍可正常消费（超时**不**作废批准，只是这一次不放行）
+    assert TA.consume(aid, _TOOL, _ARGS) is True
+    assert len(_rows_of(aid)) == 1
+
+
+def test_消费_临界区读台账真值_不被进程内陈旧快照糊弄():
+    """临界区里的判重读**台账真值**，不信任任何进程内快照
+
+    指纹缓存（mtime_ns, size）覆盖的是「外部**追加**」；它**不覆盖**等长重写 +
+    同一 mtime 刻度。而 consume 的判重是**授权决定**，不该建立在启发式快照上 ⇒
+    修后临界区直接读文件。本用例把缓存做成「指纹与当前文件一致、内容却是空集」
+    （等长重写 + 同 tick 的等价形态），断言消费仍然被拒。
+    """
+    aid = _approved()
+    _append_external_use(aid)               # 另一个进程已经用掉了这张批准
+
+    path = _uses_path()
+    with TA._USES_LOCK:
+        TA._USES_CACHE[str(path)] = (TA._stamp(str(path)), set())
+    assert TA._consumed_ids(path) == set(), "前置：缓存快照确实被做成了陈旧"
+
+    assert TA.consume(aid, _TOOL, _ARGS) is False,         "临界区读的是进程内快照：同一张批准被放行第二次"
+    assert len(_rows_of(aid)) == 1
+
+
+def test_热路径_find_permission不进临界区也不建锁文件(monkeypatch):
+    """锁**只**包住 consume 的「查 + 写」：find_permission 每次工具调用都问一次，必须无锁"""
+    import agent.utils.cross_process_lock as cpl
+
+    aid = _approved()
+
+    def _boom(*_a, **_k):                   # pragma: no cover - 只在违反时触发
+        raise AssertionError("热路径取锁了：find_permission 不得进临界区")
+
+    monkeypatch.setattr(cpl.CrossProcessLock, "acquire", _boom, raising=True)
+    monkeypatch.setattr(cpl.CrossProcessLock, "try_lock", _boom, raising=True)
+
+    hit = TA.find_permission(_TOOL, _ARGS, session_key="s1")
+    assert hit is not None and hit["approval_id"] == aid
+    assert TA._is_consumed(aid) is False
+    TA.pending_snapshot()
+    assert not _uses_lock_path().exists(), "只读路径创建了锁文件（热路径被拖进临界区）"
+
+
+def test_锁文件与台账分离_且消费后锁文件保留():
+    """锁文件独立于被保护文件，且**永不删除**（删除会引入 inode 替换 ⇒ 互斥静默失效）"""
+    aid = _approved()
+    assert TA.consume(aid, _TOOL, _ARGS) is True
+    assert _uses_lock_path().exists(), "消费后台账锁文件不见了"
+    assert _uses_lock_path() != _uses_path()
+    assert len(_rows_of(aid)) == 1
+    # 台账本体不受锁文件影响：仍是逐行 JSONL
+    assert all(isinstance(row.get("approval_id"), str) for row in _uses_rows())
+
+
 def test_驳回_新的批准不被老驳回压制_链路可恢复():
     """最新裁决优先：人工误驳后重新挂单并批准，链路必须恢复
 
@@ -872,6 +1212,75 @@ def test_驳回_更新的驳回压过老批准_反向也必须成立():
     got = TA.is_rejected(_TOOL, _ARGS, session_key="s1")
     assert got is not None and got["approval_id"] == new["approval_id"]
     assert got["reason"] == "后来否决"
+
+
+def _freeze_approval_clock(monkeypatch, frozen: datetime) -> None:
+    """把 Agent 审批流的时钟冻在 frozen（approval 模块内的 datetime.now 全部返回它）
+
+    用途：确定性构造"两次裁决落在同一刻度/同一秒"这一最坏时序。Windows 上
+    datetime.now() 的时钟粒度约 15.6ms，真实时钟下同一刻度内连发两条记录是**偶发**的
+    （实测整文件跑约 8% 概率红）——冻结时钟把偶发变成必然，用例不再靠概率。
+    """
+    import agent.skills_mgmt.approval as approval_mod
+
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):   # noqa: ARG003 与 datetime.now 同签名（本用例不用 tz）
+            return cls(frozen.year, frozen.month, frozen.day, frozen.hour,
+                       frozen.minute, frozen.second, frozen.microsecond)
+
+    monkeypatch.setattr(approval_mod, "datetime", _FrozenDatetime)
+
+
+def test_record_id时间段_同一时钟刻度内仍严格单调(monkeypatch):
+    """同一刻度内连发两个 id，20 位时间段必须**递增**（`_decision_key` 的兜底全靠它）
+
+    【为什么钉这条】``_decision_key`` 在"审批记录时间戳只到秒"的并列上用 record_id
+    **字典序**兜底先后，前提是时间段真能区分先后；而 Windows 上同一刻度内两次调用会取到
+    逐字相同的 20 位时间段，先后就交给随机 hex 段决定（实测失败样本的前缀完全相同）。
+    时钟被冻结成"永远同一刻度"（比真实最坏情况更严），故本用例对"单调性被改回去"是
+    **确定性**哨兵：时间段不递增就必定红，不靠概率。
+    """
+    from agent.skills_mgmt.approval import ApprovalRecord
+
+    _freeze_approval_clock(monkeypatch, datetime(2026, 9, 22, 12, 0, 0, 123456))
+
+    ids = [ApprovalRecord._generate_id() for _ in range(3)]
+    stamps = [rid.split('-')[1] for rid in ids]
+    for rid, stamp in zip(ids, stamps):
+        assert rid.startswith("appr-") and len(rid) == len("appr-") + 20 + 1 + 8
+        assert len(stamp) == 20 and stamp.isdigit(), "时间段必须仍是定宽 20 位数字"
+    assert stamps == sorted(stamps), "同一刻度内 id 时间段不单调（先后不可判）"
+    assert len(set(stamps)) == 3, "同一刻度内发出了重复时间段（先后不可判）"
+    # 秒级前缀必须仍然相同 —— 正是 `_decision_key` 需要兜底的那种并列
+    assert len({s[:14] for s in stamps}) == 1
+
+
+def test_同一秒内的两次相反裁决_新裁决必胜(monkeypatch):
+    """先批准、后驳回且两次裁决落在**同一秒**：新驳回必须压过老批准（确定性版）
+
+    这是 ``test_驳回_更新的驳回压过老批准_反向也必须成立`` 的确定性版本：真实时钟下
+    "两次裁决同秒"偶发出现（实测整文件跑约 8% 概率红），冻结时钟后必然出现。
+    "老批准压过新驳回"是**安全性**方向的错（被否决的调用照旧放行），不能留给概率。
+    """
+    frozen = datetime.now()          # 必须是**当下**附近：裁决时刻还要过 TTL 这一关
+    _freeze_approval_clock(monkeypatch, frozen)
+    same_second = frozen.isoformat(timespec="seconds")   # 两次裁决都写这一秒
+
+    old = TA.request_approval(_TOOL, _ARGS, session_key="s1")
+    _verdict(old["approval_id"], state="approved", actor="alice", decided_at=same_second)
+    new = TA.request_approval(_TOOL, _ARGS, session_key="s1")
+    assert new["approval_id"] != old["approval_id"]
+    _verdict(new["approval_id"], state="rejected", reason="后来否决", actor="alice",
+            decided_at=same_second)
+
+    # 两条记录的裁决时刻逐字相同 ⇒ 先后**只能**由 record_id 兜底，故先钉住 id 的先后可判
+    assert new["approval_id"] > old["approval_id"], \
+        "同一秒内两张单的 id 先后不可判（`_decision_key` 的兜底前提不成立）"
+    assert TA.find_permission(_TOOL, _ARGS, session_key="s1") is None, \
+        "新驳回之下老批准不得再放行（安全性方向的错，不能靠概率）"
+    got = TA.is_rejected(_TOOL, _ARGS, session_key="s1")
+    assert got is not None and got["approval_id"] == new["approval_id"]
 
 
 def test_最新裁决以决定时刻为准_后决定的旧单胜出():

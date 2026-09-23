@@ -31,11 +31,33 @@
     （不制造第二真相，也不给"旁路改状态"留一个入口）。而"不可重放"不是决策，
     只是**消费事实**——它天然是追加型的（一次消费一行），且必须能被本进程之外
     看到（否则重启即可重放）。故单独一张 append-only 台账按 ``approval_id``
-    记消费，进程内再加 ``threading.Lock`` + 集合缓存兜住并发；而缓存**必须按文件
+    记消费，**跨进程再加一把 OS 文件锁**（``<台账>.lock``，复用仓内唯一锁实现
+    ``agent/utils/cross_process_lock.py``）把"查台账 + 追加"关进同一个临界区，
+    进程内再用集合缓存兜住**只读**侧；而缓存**必须按文件
     指纹失效**（``_consumed_ids``）——消费发生在**另一个进程**（UI/CLI）里，
     本进程只读文件的既成事实，缓存不失效就等于"B 用过、A 还能再用一次"
     （2026-09-22 修，复现与边界见 ``_consumed_ids`` 的 docstring）。
     审批状态为真、但台账说"已用过"⇒ 不生效（台账只做减法，不做加法）。
+
+【为什么"查 + 追加"必须是跨进程临界区（2026-09-22 补 / L2）】
+    上面的指纹缓存只保证"下一次问能看见**已经落盘**的事实"，**不保证并发互斥**：
+    ``consume()`` 的语义原本是"查已消费集合 → 判断 → 追加"，**分两步、不原子** ⇒
+    两个进程在同一窗口各自"查→追加"时可能都判"没用过"，**同一张批准被执行两次**。
+    触发场景真实：人在 UI/CLI 进程裁决、模型在服务进程消费。
+    故 :func:`consume` 的"查 + 判 + 追加"整段进入以 ``<台账>.lock`` 为名的 OS 文件锁
+    （Windows ``msvcrt`` 字节区间锁 / POSIX ``flock`` 的平台分支在锁模块内部，本层
+    **不自己写平台判断、也不新建第二套锁**）。三条边界与取舍：
+      - **有限等待**：等锁上限 ``CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC``（默认 5s），
+        不是无限阻塞；
+      - **fail-closed**：拿不到锁/等锁超时 ⇒ ``consume`` 返回 ``False``（不放行）并
+        给出可读原因。这与审批边界"证不出已批准就不能执行"同源——"证不出这张批准
+        没用过"同样不能放行；**绝不**把超时静默降级成"当作没消费过"；
+      - **热路径不进临界区**：``find_permission``（每次受管工具调用都会问一次）只读
+        台账、不取锁；锁只包住 ``consume`` 里"查 + 追加"那一小段。
+    【覆盖 / 不覆盖】见 :func:`_consume_in_critical_section` 与 :func:`_consumed_ids`
+    的 docstring：**不覆盖** NFS/网络盘上的锁语义、锁文件被外部删除或替换后的竞态、
+    以及 ``find_permission`` 与 ``consume`` 之间的 TOCTOU —— 本层保证的是"恰好一次
+    消费"，不是"判定与消费原子"（调用方的纪律是：**consume 成功之后才执行**）。
 
 【唯一的例外：**系统超时清理**（2026-09-18 补）】
     本层的写操作有两个，且都**不替人做决定**：
@@ -87,6 +109,8 @@
 【配置（全部带默认值，环境变量口径与仓库既有模块一致）】
     CP_TOOL_APPROVAL_TTL_SEC      批准时效秒，默认 900（对齐 approval_session 的 ≤15min）
     CP_TOOL_APPROVAL_USES_PATH    消费台账 JSONL 路径，默认 data/tool_approval_uses.jsonl
+    CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC
+                                  消费临界区等锁上限秒，默认 5（0 合法＝不等，撞上即 fail-closed）
     （审批记录路径与总开关沿用既有 ``APPROVAL_RECORDS_PATH`` / ``APPROVAL_ENABLED``，
       本模块**只读**这两个环境变量，不新增、不覆盖）
 """
@@ -127,6 +151,13 @@ _DEFAULT_TTL_SEC = 900.0
 ENV_USES_PATH = "CP_TOOL_APPROVAL_USES_PATH"
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_USES_PATH = _REPO_ROOT / "data" / "tool_approval_uses.jsonl"
+
+#: 消费临界区**等锁上限**环境变量（秒，默认 5；见模块 docstring"跨进程临界区"）
+ENV_LOCK_TIMEOUT_SEC = "CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC"
+_DEFAULT_LOCK_TIMEOUT_SEC = 5.0
+
+#: 台账锁的诊断名（写进锁文件的诊断槽与锁留痕，便于在审计链里定位是哪把锁）
+_USES_LOCK_NAME = "tool_approval.uses"
 
 #: 幂等复用只认这一种状态：**未决**（收件箱里真的还挂着这张待办，人点得到）
 #: 【不改】已裁决的状态（approved / rejected / archived / merged）一律不复用——
@@ -183,7 +214,14 @@ _SNAPSHOT_LIMIT_DEFAULT = 50
 #  进程内缓存（消费集合 / 工具元数据 / 只读审批流实例）
 # ════════════════════════════════════════════════════════════
 
-#: 消费台账锁：保证并发下"同一 approval_id 只有一个 True"
+#: 消费台账的**进程内缓存锁**：只保护 ``_USES_CACHE`` 这一个字典
+#:
+#: 【为什么它不再是"防重复消费"的那道闸（2026-09-22 修 / L2）】它只在**本进程**内有效，
+#: 而重复消费的风险恰恰来自**另一个进程**（人在 UI/CLI 裁决、模型在服务进程消费）。
+#: 现在真正把关的是 ``consume`` 的跨进程临界区（``<台账>.lock``，见
+#: :func:`_consume_in_critical_section`）；这把 RLock 只保证"进程内读写 _USES_CACHE 不撕裂"。
+#: 【加锁顺序】临界区里**先**持跨进程锁、**后**短暂持它（只为作废一条缓存），而只读路径
+#: 只持它自己 ⇒ 不构成环，不会死锁。
 _USES_LOCK = threading.RLock()
 #: path → `(台账文件指纹, 已消费 approval_id 集合)`（按路径分开，避免测试换路径后串味）
 #:
@@ -246,6 +284,34 @@ def _uses_path() -> Path:
         raw = None
     text = str(raw).strip() if raw is not None else ""
     return Path(text) if text else _DEFAULT_USES_PATH
+
+
+def _lock_timeout_seconds() -> float:
+    """台账锁等锁上限（秒）：``CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC`` ≥0 生效；非法 → 默认 5
+
+    显式给 ``0`` 是**合法**取值（等价"一秒都不等，撞上就 fail-closed"）；负值/不可解析
+    → 回退默认并告警（负的超时没有意义，静默当成 0 会让并发下的正常竞争变成拒绝）。
+    """
+    try:
+        raw = os.environ.get(ENV_LOCK_TIMEOUT_SEC)
+    except Exception as e:  # noqa: BLE001 环境变量不可读 → 默认口径
+        logger.debug("[tool_approval] 等锁上限环境变量不可读（用默认 %ss）: %s",
+                     _DEFAULT_LOCK_TIMEOUT_SEC, e)
+        return _DEFAULT_LOCK_TIMEOUT_SEC
+    text = str(raw).strip() if raw is not None else ""
+    if not text:
+        return _DEFAULT_LOCK_TIMEOUT_SEC
+    try:
+        value = float(text)
+    except (TypeError, ValueError):
+        logger.warning("[tool_approval] %s=%r 不是数字（回退默认 %ss）",
+                       ENV_LOCK_TIMEOUT_SEC, text, _DEFAULT_LOCK_TIMEOUT_SEC)
+        return _DEFAULT_LOCK_TIMEOUT_SEC
+    if value < 0:
+        logger.warning("[tool_approval] %s=%r 为负（回退默认 %ss）",
+                       ENV_LOCK_TIMEOUT_SEC, text, _DEFAULT_LOCK_TIMEOUT_SEC)
+        return _DEFAULT_LOCK_TIMEOUT_SEC
+    return value
 
 
 def _ttl_seconds() -> float:
@@ -662,9 +728,14 @@ def _consumed_ids(path: Path) -> Set[str]:
           同一个 mtime 刻度内的改写——指纹两半都没动，本进程仍会拿旧快照。本层台账
           只增不改，正常路径不会出现"等长重写"；真出现（人工手改 / 外部工具重排台账）
           时本进程看不到，须重启进程或调用 :func:`reset_cache`。
-        - **不覆盖**：**跨进程并发**消费同一张单。指纹缓存只保证"下一次问能看见**已经
-          落盘**的事实"；两个进程在同一窗口里各自"查台账 → 追加"仍可能都判"没用过"
-          （本层不提供跨进程锁）。这是与"单次有效"相邻的另一条边界，不计入本修复。
+        - **已由临界区兜住**：**跨进程并发**消费同一张单（2026-09-22 / L2）。指纹缓存
+          只保证"下一次问能看见**已经落盘**的事实"，**不保证互斥**；真正把关的是
+          :func:`consume` 的跨进程临界区（``<台账>.lock``，见
+          :func:`_consume_in_critical_section`）。因此本缓存的职责被收敛为"让**只读**的
+          ``find_permission`` 不必每次全量解析台账"——它**不再承担任何授权判定**：
+          ``consume`` 的判重在临界区内**直接读文件**（不信任进程内快照）。故上面那条
+          "等长重写 + 同 tick"的边界**不影响**"同一张批准会不会被放行两次"，只影响只读
+          判定的新鲜度（此时用 :func:`reset_cache` 或重启进程即可立刻纠正）。
     """
     key = str(path)
     with _USES_LOCK:
@@ -701,6 +772,109 @@ def _append_use(path: Path, entry: Dict[str, Any]) -> bool:
         logger.warning("[tool_approval] 消费台账写入失败（本次不消费）: %s: %s",
                        type(e).__name__, e)
         return False
+
+
+def _uses_guard(path: Path) -> Any:
+    """台账的跨进程锁（**复用仓内唯一锁实现**：``agent/utils/cross_process_lock.py``）
+
+    - 锁文件**独立于台账本体**（``lock_path_for`` ⇒ ``<台账>.lock``）：对文件本体加锁时，
+      任何"重命名替换"式写入都会让锁落到被淘汰的 inode 上，互斥**静默失效**；
+    - 锁文件**永不删除**：删除同样会引入 inode 替换竞态（删除方与持锁方各自持有不同
+      inode 的锁，双方都以为互斥成立）；
+    - **平台分支不在本层**：Windows 字节区间锁 / POSIX 文件锁的具体原语与分支判定都在锁
+      模块内部（那份平台分支是仓内**唯一**一份，另有守护用例钉住不许再抄第 N 份）。
+      【为什么这里只作语义描述、不写出那两个 OS 原语的名字】那条守护用例是**文本级**扫描：
+      只要那两个原语的字面量出现在 ``agent/`` 下**非锁模块**的文件里（不区分注释与文档字符串），
+      就判为"第二套锁实现"。本模块只是**调用方**，一句说明性文字就足以让它变红
+      （实测：CI「全项目测试覆盖率 (Shard 1/6)」与「单元测试 Shard 3」曾因此红）；
+    - 惰性导入：本模块的模块级导入保持"纯标准库"，也让"锁实现不可用"能收口成
+      fail-closed 的结构化失败，而不是 import 期炸掉整条审批链路。
+    """
+    from agent.utils.cross_process_lock import CrossProcessLock, lock_path_for
+
+    return CrossProcessLock(lock_path_for(path), name=_USES_LOCK_NAME,
+                            holder_info={"uses_path": str(path)})
+
+
+def _consume_in_critical_section(path: Path, aid: str,
+                                 entry: Dict[str, Any]) -> Tuple[bool, str]:
+    """临界区：**查台账 → 判重 → 追加一行**（跨进程互斥；拿不到锁一律 fail-closed）
+
+    【为什么"查 + 写"必须在同一把锁里】``consume`` 的语义是"查已消费集合 → 判断 →
+    追加"，原本**分两步、不原子**：两个进程在同一窗口各自"查→追加"时会都判"没用过"
+    ⇒ 同一张批准被执行两次（人在 UI/CLI 裁决、模型在服务进程消费，是真实场景）。
+    把这两步关进同一把锁后，后进入者一定看得到先进入者**已经落盘**的那一行。
+
+    【判重为什么**直接读文件**而不走 ``_consumed_ids`` 缓存】缓存存在的理由是"别把
+    全量解析放进 ``find_permission`` 的热路径"，它靠 ``(mtime_ns, size)`` 指纹失效，
+    覆盖"外部追加"但**不覆盖**"等长重写 + 同一 mtime 刻度"。而本函数做的是**授权判定**
+    （放行还是不放行），不该建立在任何启发式快照上 ⇒ 临界区内直接读台账真值。
+    ``consume`` 是低频事件（一次人工批准才一次），多解析一次台账可以承受。
+
+    【为什么写完作废缓存而不是就地 add】就地 add 要求"缓存条目的指纹与此刻文件一致"，
+    而追加之后指纹必然已变；就地 add 等于把**陈旧指纹**配上**新内容**，正是
+    ``_consumed_ids`` 特意避免的那种错配。作废最简单也最安全：下一次只读路径重新
+    「先取指纹、后读内容」。代价是消费后紧接着的一次 ``find_permission`` 要重解析，
+    而消费是低频事件，可以承受。
+
+    【覆盖什么】
+        - 同一本台账路径上的**跨进程**互斥：两个进程同时 ``consume`` 同一张批准时，
+          只有一个能进入临界区并追加，另一个随后读到那一行 ⇒ **恰好放行一次**；
+        - **跨线程**同样兜住：锁模块在路径级叠加了进程内 RLock（其 docstring 有实测
+          依据），同进程两个线程不会同时进临界区；
+        - **平台一致**：Windows（``msvcrt`` 字节区间锁）/ POSIX（``flock``）语义由锁
+          模块统一，本层不写平台判断；
+        - **持锁进程被杀**：OS 随进程消亡释放文件锁（锁模块的既有结论），等待者会在
+          超时内拿到锁，不留需要人工清理的残留状态。
+
+    【不覆盖什么（如实说明，**不宣称彻底解决**）】
+        - **不覆盖 NFS / 网络盘（SMB 等）上的锁语义**：``flock`` 与 Windows 字节区间锁
+          在这类共享文件系统上的行为依实现与挂载参数而变（可能退化成"各自有效"）。
+          台账落在共享盘上时，本层的互斥**不保证**成立；
+        - **不覆盖"锁文件被外部删除/替换"**：锁文件被删除（或删除后重建）会让锁落到
+          新的 inode 上，可能出现两个持有者。本层锁文件**永不删除**；若外部删除，互斥
+          在该窗口内退化 —— 台账仍是 append-only 的事实来源，但并发窗口会重新打开；
+        - **不覆盖与 ``find_permission`` 的 TOCTOU**：``find_permission`` **不进**临界区
+          （它在每次工具调用上被问一次），因此两个进程完全可能都得到"有有效批准"。
+          本层保证的是"**恰好一次消费**"，**不是**"判定与消费原子"；调用方的纪律必须
+          是"**consume 成功之后才执行**"（闸门那侧如此接线）；
+        - **不覆盖外部直接改写台账**（人工手改 / 外部工具重排 / 等长重写）绕过本层；
+        - **不覆盖超时后的自动重试**：等锁超时即 fail-closed 返回 ``False``，不重试、
+          不降级；要不要重试是**调用方**的决定，且必须重新走一次判定。
+
+    Returns:
+        ``(是否消费成功, 失败原因)``；成功时原因为空串。**绝不抛异常**。
+    """
+    try:
+        guard = _uses_guard(path)
+    except Exception as e:  # noqa: BLE001 锁实现不可用 ⇒ fail-closed
+        return False, f"台账跨进程锁不可用（本次不放行）: {type(e).__name__}: {e}"
+
+    timeout = _lock_timeout_seconds()
+    try:
+        # on_timeout="degrade"：超时**不抛**，由这里显式转成 fail-closed 的返回值
+        # （锁模块内部已按"超时"留痕：审计 + 事件，见其 notify_degraded）。
+        with guard.locked(timeout=timeout, on_timeout="degrade") as held:
+            if not held.acquired:
+                holder = guard.read_holder()
+                return False, (
+                    f"台账锁等待超时（{_ttl_text(timeout)}s，本次不放行）: "
+                    f"证不出这张批准没用过，按保守处理"
+                    f"（lock={guard.path} 持有者 pid={holder.get('pid', '未知')}）")
+            # ── 临界区开始：查台账 + 判重 + 追加 ──
+            consumed = _load_uses(path)
+            if aid in consumed:
+                return False, "批准已被消费过（不可重复放行）"
+            if not _append_use(path, entry):
+                return False, "消费台账写入失败（本次不消费）"
+            # 作废本进程缓存（见上面"为什么写完作废缓存"）。加锁顺序：跨进程锁 → 这把
+            # 进程内缓存锁，且只在这一瞬；只读路径只持后者 ⇒ 无环、不死锁。
+            with _USES_LOCK:
+                _USES_CACHE.pop(str(path), None)
+            return True, ""
+            # ── 临界区结束（退出 with 即释放跨进程锁）──
+    except Exception as e:  # noqa: BLE001 临界区异常 ⇒ 不放行
+        return False, f"台账临界区失败（本次不放行）: {type(e).__name__}: {e}"
 
 
 def _is_consumed(approval_id: str) -> bool:
@@ -896,12 +1070,23 @@ def find_permission(tool: str, args: Optional[Mapping[str, Any]], *,
 
 def consume(approval_id: str, tool: str,
             args: Optional[Mapping[str, Any]]) -> bool:
-    """把这**一张**批准标记为已用（单次有效）
+    """把这**一张**批准标记为已用（单次有效）——"查台账 + 追加"是一个**跨进程临界区**
+
+    【L2（2026-09-22）】判重与记账必须在**同一把锁**里完成：否则两个进程在同一窗口
+    各自"查→追加"会都判"没用过"，同一张批准被执行两次（见模块 docstring 与
+    :func:`_consume_in_critical_section`）。锁只包住"查 + 追加"这一小段；
+    :func:`find_permission`（每次工具调用都问一次）**不进**临界区。
 
     Returns:
         ``True`` ＝本次成功消费（调用方可放行）；
-        ``False`` ＝此前已被消费过（**不得再次放行**）或台账写入失败
-        （写不进去就不认账——宁可拒绝一次工具调用，也不放行一次无法留痕的执行）。
+        ``False`` ＝**本次不放行**，三种情形都**不静默**：
+          ① 此前已被消费过（台账里已有这个 approval_id）；
+          ② 台账写入失败（写不进去就不认账——宁可拒绝一次工具调用，也不放行一次
+             无法留痕的执行）；
+          ③ **拿不到台账锁 / 等锁超时**（fail-closed）。与审批边界"证不出已批准就不能
+             执行"同源——"证不出这张批准没用过"同样不能放行；**绝不**把超时静默降级
+             成"当作没消费过"。失败原因写 ``logger.warning``，并由锁模块按"超时"
+             留痕（审计 + 事件），取证见 ``agent/utils/cross_process_lock.py``。
     """
     try:
         aid = str(approval_id or "").strip()
@@ -918,18 +1103,12 @@ def consume(approval_id: str, tool: str,
         path = _uses_path()   # 入口解析一次：查重与记账必须落在同一本台账
         entry = {"approval_id": aid, "tool": name, "args_digest": digest,
                  "consumed_at": _iso_now()}
-        with _USES_LOCK:
-            consumed = _consumed_ids(path)
-            if aid in consumed:
-                logger.warning("[tool_approval] ⛔ 批准已被消费过（不可重复放行）"
-                               "approval_id=%s tool=%s", aid, name)
-                return False
-            if not _append_use(path, entry):
-                return False
-            # 写成功后再更新进程内集合。台账文件此刻已变（追加必然改变字节数）⇒ 这条
-            # 缓存记录的指纹即刻作废，下一次 ``_consumed_ids`` 会重读文件（而不是把
-            # 陈旧快照当权威）——见 ``_consumed_ids`` 的"先取指纹、后读内容"说明。
-            consumed.add(aid)
+        # "查 + 判 + 追加"整段进跨进程临界区（L2）；拿不到锁一律 fail-closed。
+        ok, why = _consume_in_critical_section(path, aid, entry)
+        if not ok:
+            logger.warning("[tool_approval] ⛔ %s approval_id=%s tool=%s",
+                           why, aid, name)
+            return False
         logger.info("[tool_approval] 批准已消费（单次有效）approval_id=%s tool=%s digest=%s",
                     aid, name, digest)
         return True
@@ -1108,7 +1287,7 @@ def reset_cache() -> None:
 
 __all__ = [
     "OBJECT_TYPE", "ACTION", "TRIGGER", "ACTOR",
-    "ENV_TTL_SEC", "ENV_USES_PATH",
+    "ENV_TTL_SEC", "ENV_USES_PATH", "ENV_LOCK_TIMEOUT_SEC",
     "tool_call_digest", "request_approval", "find_permission", "consume",
     "is_rejected", "pending_snapshot", "reset_cache",
 ]

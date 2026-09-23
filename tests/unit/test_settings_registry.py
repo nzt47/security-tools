@@ -353,7 +353,10 @@ class TestRegisteredDefaultsMatchCodeFacts:
     实测 `resolve_all()` 之后这几个键都不在 `os.environ` 里；`bootstrap.py` 只遍历
     **覆盖层已存在的键**；全仓唯一把 `spec.default` 落到运行态的是
     `resolver.py::restore_runtime` 的 ObservabilityConfig 回写，它受
-    `_is_observability_path(spec)` 把关，而这五项都没有 `config_path` ⇒ 永不触发。
+    `_is_observability_path(spec)`（config_path 必须命中 `observability_rule_paths()`）
+    把关 —— 【L1 更正】`EVOLUTION_ENABLED` / `EVOLUTION_LLM_GENERATE` 此后**已有**
+    `config_path`，但两条路径都不在那 48 条里 ⇒ `_is_observability_path` 仍为 False，
+    仍不触发（"无 config_path" 不再是这两项的豁免理由）。
     因此该 `default` 只影响**展示与来源判定**（`resolve()` 的 value/display_value），
     必须与代码事实一致。
 
@@ -416,4 +419,251 @@ class TestRegisteredDefaultsMatchCodeFacts:
         }
         for key, (rel, _pattern) in self._CODE_DEFAULT_PATTERNS.items():
             assert (REPO_ROOT / rel).exists(), (key, rel)
+
+
+# ════════════════════════════════════════════════════════════
+#  五、登记 config_path ↔ 源码真实读取点（L1 守护，2026-09-22）
+# ════════════════════════════════════════════════════════════
+
+
+class TestConfigPathMatchesSourceReadSite:
+    """★ L1：登记 config_path 必须等于**源码里那个真实的 config.yaml 读取点**
+
+    背景（立项见 docs/closeout/遗留问题立项_20260922.md 的 L1）：resolver.resolve()
+    只在 spec.config_path 非空时才去 config.yaml 取值；登记项漏了路径，开关中心的
+    source 就永远只显示 default / env —— config.yaml 里显式写了值也照样显示代码
+    默认值。这是**谎报**（面板显示的不是真实生效值），不是展示瑕疵。
+
+    反向同样是谎报：给一个**不读** config.yaml 的键补上 config_path，UI 会声称该值
+    来自 config.yaml，而代码里没有任何人读它。故本守护**两个方向都钉**：
+
+      1. **正向**：_CODE_CONFIG_PATH_PATTERNS 里的键，登记路径必须等于从其归属模块
+         源码里机械提取的「段 + 叶子」；
+      2. **反向**：_NO_CONFIG_READER_KEYS 里的键必须保持 config_path == ""，且其归属
+         模块源码里**没有任何** config.yaml 读取。
+
+    判据全部来自源码（正则机械提取），**不另抄一份字面量** —— 抄字面量等于把
+    「我以为的路径」断言成「代码的路径」，正是 L1 缺陷的成因（同
+    TestRegisteredDefaultsMatchCodeFacts 的纪律）。
+    """
+
+    #: novelty_hooks._cfg_value() 里 `learning.sensor_learning` 段的表达式
+    #: （sec1=learning、sec2=sensor_learning，由源码提取而非手写）
+    _SENSOR_SECTION = (
+        r'\(\(cfg\.get\("(?P<sec1>[a-z_]+)",\s*\{\}\)\s*or\s*\{\}\)'
+        r'\.get\("(?P<sec2>[a-z_]+)",\s*\{\}\)'
+    )
+
+    #: key → (归属文件, 提取式)。正则里的**具名组按出现顺序以 . 连接**即为点分路径。
+    #: 每组都同时锚定「该 env 名」与「它落的 config.yaml 键」，故路径被改到别处即红。
+    _CODE_CONFIG_PATH_PATTERNS = {
+        # ── 进化：injector.get_evolution_config() 读 config.yaml 顶层 evolution: 段 ──
+        "EVOLUTION_ENABLED": (
+            "agent/evolution/injector.py",
+            r'data\.get\("(?P<sec>[a-z_]+)"\)[\s\S]*?'
+            r'"enabled":\s*_env_bool\(\s*"EVOLUTION_ENABLED"\s*,\s*'
+            r'_yaml_bool\(\s*cfg\s*,\s*"(?P<leaf>[a-z_]+)"',
+        ),
+        "EVOLUTION_LLM_GENERATE": (
+            "agent/evolution/injector.py",
+            r'data\.get\("(?P<sec>[a-z_]+)"\)[\s\S]*?'
+            r'"llm_generate":\s*_env_bool\(\s*"EVOLUTION_LLM_GENERATE"\s*,\s*'
+            r'_yaml_bool\(\s*cfg\s*,\s*"(?P<leaf>[a-z_]+)"',
+        ),
+        "EVOLUTION_STORAGE_PATH": (
+            "agent/evolution/injector.py",
+            r'data\.get\("(?P<sec>[a-z_]+)"\)[\s\S]*?'
+            r'"storage_path":\s*os\.environ\.get\(\s*"EVOLUTION_STORAGE_PATH"\s*,\s*'
+            r'str\(cfg\.get\("(?P<leaf>[a-z_]+)"',
+        ),
+        # ── 感知侧学习：novelty_hooks._cfg_value() 读 learning.sensor_learning.<key> ──
+        "SENSOR_LEARNING_ENABLED": (
+            "agent/learning/novelty_hooks.py",
+            _SENSOR_SECTION
+            + r'[\s\S]*?os\.environ\.get\("SENSOR_LEARNING_ENABLED"\)[\s\S]*?'
+            r'_cfg_value\("(?P<leaf>[a-z_]+)"',
+        ),
+        "SENSOR_LEARNING_DRIFT_THRESHOLD": (
+            "agent/learning/novelty_hooks.py",
+            _SENSOR_SECTION
+            + r'[\s\S]*?os\.environ\.get\("SENSOR_LEARNING_DRIFT_THRESHOLD"\)[\s\S]*?'
+            r'float\(_cfg_value\("(?P<leaf>[a-z_]+)"',
+        ),
+        "SENSOR_LEARNING_BASELINE_RETENTION_WEEKS": (
+            "agent/learning/novelty_hooks.py",
+            _SENSOR_SECTION
+            + r'[\s\S]*?os\.environ\.get\("SENSOR_LEARNING_BASELINE_RETENTION_WEEKS"\)[\s\S]*?'
+            r'int\(_cfg_value\("(?P<leaf>[a-z_]+)"',
+        ),
+        "SENSOR_LEARNING_DRAFT_DIR": (
+            "agent/learning/novelty_hooks.py",
+            _SENSOR_SECTION
+            + r'[\s\S]*?os\.environ\.get\("SENSOR_LEARNING_DRAFT_DIR"\)[\s\S]*?'
+            r'_cfg_value\("(?P<leaf>[a-z_]+)"',
+        ),
+        "SENSOR_LEARNING_AUDIT_FILE": (
+            "agent/learning/novelty_hooks.py",
+            _SENSOR_SECTION
+            + r'[\s\S]*?os\.environ\.get\("SENSOR_LEARNING_AUDIT_FILE"\)[\s\S]*?'
+            r'_cfg_value\("(?P<leaf>[a-z_]+)"',
+        ),
+        "SENSOR_LEARNING_MEMORY_DIR": (
+            "agent/learning/novelty_hooks.py",
+            _SENSOR_SECTION
+            + r'[\s\S]*?os\.environ\.get\("SENSOR_LEARNING_MEMORY_DIR"\)[\s\S]*?'
+            r'_cfg_value\("(?P<leaf>[a-z_]+)"',
+        ),
+    }
+
+    #: 反向守护：这些键的归属模块**不读** config.yaml（FEWSHOT_* 见
+    #: agent/tool_fewshot_store.py:31-48 的纯 _env_bool/_env_int；SCHEMA_* 见
+    #: agent/tool_schema_pruner.py:63-79 的纯 _env_bool/_env_int），
+    #: 故必须保持"仅 env / 默认"，**不得**补 config_path（补了就是制造新的假来源）。
+    _NO_CONFIG_READER_KEYS = (
+        "FEWSHOT_ENABLED", "FEWSHOT_PER_TOOL", "FEWSHOT_WINDOW_DAYS",
+        "FEWSHOT_MAX_INPUT_LEN", "FEWSHOT_MAX_OUTPUT_LEN",
+        "SCHEMA_PRUNE_DEPRECATED", "SCHEMA_PRUNE_ADDITIONAL_PROPS",
+        "SCHEMA_DESC_MAX_LEN", "SCHEMA_PROP_DESC_MAX_LEN",
+    )
+
+    #: 反向判据：归属模块源码里出现下列任一，即视为"该模块会读 config.yaml"
+    _CONFIG_READER_MARKERS = (
+        r"config\.yaml", r"yaml\.safe_load", r"yaml\.load",
+    )
+
+    #: 「声明了 config.yaml 文件路径」的完整清单（= 全部非 ObservabilityConfig
+    #: 运行态路径的 config_path）。其中 12 项在 L1 之前就登记了，L1 只保证它们不被
+    #: **悄悄**增删；另外 9 项是 L1 依据读取点补上的。
+    #: 新增 / 删除一个"受 config.yaml 驱动"的开关时必须同步本清单，
+    #: 并为其在 _CODE_CONFIG_PATH_PATTERNS 里加一条源码提取式。
+    _DECLARED_FILE_CONFIG_PATH_KEYS = frozenset({
+        # L1 之前既有（12）
+        "AUTONOMY_DEFAULT_LEVEL",
+        "CP_RETENTION_CLASSES", "CP_RETENTION_DAY_OF_WEEK",
+        "CP_RETENTION_DELETE_SOURCE", "CP_RETENTION_DRY_RUN",
+        "CP_RETENTION_ENABLED", "CP_RETENTION_HOUR", "CP_RETENTION_MINUTE",
+        "CP_SLO_SCHEDULE_ENABLED",
+        "PLANNING_WIRE_ENABLED", "PLANNING_WIRE_MIN_COMPLEXITY",
+        "PLANNING_WIRE_TIMEOUT_SECONDS",
+        # L1 依据读取点补登记（9）
+        "EVOLUTION_ENABLED", "EVOLUTION_LLM_GENERATE", "EVOLUTION_STORAGE_PATH",
+        "SENSOR_LEARNING_ENABLED", "SENSOR_LEARNING_DRIFT_THRESHOLD",
+        "SENSOR_LEARNING_BASELINE_RETENTION_WEEKS", "SENSOR_LEARNING_DRAFT_DIR",
+        "SENSOR_LEARNING_AUDIT_FILE", "SENSOR_LEARNING_MEMORY_DIR",
+    })
+
+    # ── 机械提取 ──
+
+    def _source_config_path(self, key):
+        """从归属模块源码里提取该键真实读的 config.yaml 点分路径
+
+        找不到匹配 → **直接失败**（正则过期 / 代码已改），不许静默放行：
+        一个会空转的守护比没有守护更危险。
+        """
+        import re
+
+        rel, pattern = self._CODE_CONFIG_PATH_PATTERNS[key]
+        source = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        compiled = re.compile(pattern)
+        found = compiled.search(source)
+        assert found is not None, (
+            f"{key} 的 config.yaml 读取点未能在 {rel} 中提取到"
+            "（正则已过期或读取代码已改）：本守护会空转，"
+            "必须同步正则/路径，而不是删断言")
+        order = [name for name, _idx in
+                 sorted(compiled.groupindex.items(), key=lambda kv: kv[1])]
+        parts = [found.group(name) for name in order]
+        assert all(parts), (key, parts)
+        return ".".join(parts)
+
+    def _reads_config_yaml(self, rel):
+        """归属模块源码里是否存在 config.yaml 读取"""
+        import re
+
+        source = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        return any(re.search(marker, source)
+                   for marker in self._CONFIG_READER_MARKERS)
+
+    # ── 正向：登记路径 == 源码读取点 ──
+
+    def test_registered_config_path_matches_source_read_site(self):
+        """★ L1 核心：登记路径必须与源码读取点逐字一致（漂移即红）"""
+        for key in self._CODE_CONFIG_PATH_PATTERNS:
+            spec = R.get_spec(key)
+            assert spec is not None, f"注册表缺少 {key}"
+            expected = self._source_config_path(key)
+            assert spec.config_path == expected, (
+                f"{key} 登记 config_path={spec.config_path!r} 与源码读取点 "
+                f"{expected!r} 不一致（@ {self._CODE_CONFIG_PATH_PATTERNS[key][0]}）："
+                "路径漂移会让开关中心谎报来源")
+
+    def test_probe_table_covers_every_l1_key(self):
+        """守护范围必须覆盖 L1 认定的全部 9 项（防「漏一个就绿」）"""
+        assert set(self._CODE_CONFIG_PATH_PATTERNS) == {
+            "EVOLUTION_ENABLED", "EVOLUTION_LLM_GENERATE",
+            "EVOLUTION_STORAGE_PATH",
+            "SENSOR_LEARNING_ENABLED", "SENSOR_LEARNING_DRIFT_THRESHOLD",
+            "SENSOR_LEARNING_BASELINE_RETENTION_WEEKS",
+            "SENSOR_LEARNING_DRAFT_DIR", "SENSOR_LEARNING_AUDIT_FILE",
+            "SENSOR_LEARNING_MEMORY_DIR",
+        }
+        for key, (rel, _pattern) in self._CODE_CONFIG_PATH_PATTERNS.items():
+            assert (REPO_ROOT / rel).exists(), (key, rel)
+
+    # ── 反向：不读 config.yaml 的键不得被"补"出假来源 ──
+
+    def test_keys_without_config_reader_keep_empty_config_path(self):
+        """★ 不读 config.yaml 的键必须保持 config_path == ""（两个方向都钉）"""
+        for key in self._NO_CONFIG_READER_KEYS:
+            spec = R.get_spec(key)
+            assert spec is not None, f"注册表缺少 {key}"
+            assert not self._reads_config_yaml(spec.owner_module), (
+                f"{key} 的归属模块 {spec.owner_module} 现在**会**读 config.yaml："
+                "本反向表已过期，须重新核实该键的 config_path，"
+                "而不是让它继续留在「不读 config」表里")
+            assert spec.config_path == "", (
+                f"{key} 被补上了 config_path={spec.config_path!r}，但其归属模块 "
+                f"{spec.owner_module} 里没有任何 config.yaml 读取 —— "
+                "这是新的假来源（UI 会声称值来自 config.yaml）")
+
+    # ── 读取点唯一性：env 名只能有一个读取模块 ──
+
+    def test_config_backed_env_names_have_one_reading_module(self):
+        """★ 登记路径的前提是"该值只有这一个读取模块"，否则单一路径仍是谎报"""
+        import re
+
+        keys = set(self._CODE_CONFIG_PATH_PATTERNS)
+        hits = {key: set() for key in keys}
+        pattern = re.compile(r'"(' + "|".join(sorted(keys)) + r')"')
+        for path in sorted((REPO_ROOT / "agent").rglob("*.py")):
+            rel = path.relative_to(REPO_ROOT).as_posix()
+            if rel.startswith("agent/settings/"):
+                continue          # 注册表/解析器自身，不是读取点
+            found = set(pattern.findall(path.read_text(encoding="utf-8",
+                                                        errors="ignore")))
+            for key in found:
+                hits[key].add(rel)
+        for key in sorted(keys):
+            owner = self._CODE_CONFIG_PATH_PATTERNS[key][0]
+            assert hits[key] == {owner}, (
+                f"{key} 的读取点不止 {owner}：实测 {sorted(hits[key])}；"
+                "登记的单一 config_path 无法代表全部读取点，须重新核实")
+
+    # ── 文件型 config_path 的完整清单（防悄悄增删）──
+
+    def test_declared_file_config_paths_are_exactly_this_inventory(self):
+        """声明了 config.yaml 文件路径的键集合必须与本清单**逐字**相等
+
+        注意：ObservabilityConfig 的运行态路径（observability_rule_paths() 的 48 条）
+        由 TestObservabilityRuleMerge 守护，不在本清单里。
+        """
+        actual = {spec.key for spec in R.all_specs()
+                  if spec.config_path
+                  and spec.config_path not in R.observability_rule_paths()}
+        assert actual == set(self._DECLARED_FILE_CONFIG_PATH_KEYS), (
+            "声明 config.yaml 文件路径的开关集合变了："
+            f"新增={sorted(actual - set(self._DECLARED_FILE_CONFIG_PATH_KEYS))} "
+            f"消失={sorted(set(self._DECLARED_FILE_CONFIG_PATH_KEYS) - actual)}；"
+            "新增一项必须在 _CODE_CONFIG_PATH_PATTERNS 里补一条**源码提取式**"
+            "（不许只手写路径），消失一项须说明原因")
 

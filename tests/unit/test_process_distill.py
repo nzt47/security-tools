@@ -542,6 +542,11 @@ class TestTools:
             defs2 = _tools.get_tool_defs(whitelist=[tname])
             assert defs2 == [], tname
 
+    # 【超时预算显式化·2026-09-22】本用例要等**后台线程**跑完，而它自己也要能在等待期内活到断言：
+    #   CI 的 2 核 runner 在 `-n 2 --dist=loadscope` 下实测把后台蒸馏线程饿死超过 30s（status 仍 running），
+    #   而命令行 `--timeout=60` 又在 60s 处杀掉用例 ⇒ 等待上界必须与用例预算一起给足。
+    #   pytest.ini 明文要求极慢测试显式覆盖超时，不改任何断言。
+    @pytest.mark.timeout(180)
     def test_async_submit_runs_distill(self, tmp_path, monkeypatch):
         """异步提交应调起 process_distill_run 并在后台跑完（规则降级）。"""
         import time
@@ -592,7 +597,12 @@ class TestTools:
         #   后台蒸馏线程被调度饿死超 6s，status 仍 running（与 TASK-S1-01
         #   新增测试引起的分片重排同现，非产品回归）。放宽至 150×0.2s(30s)
         #   仅扩大等待上界，不改变语义；健康路径仍 ~1s 内退出。
-        for _ in range(150):
+        # 【变易·2026-09-22】30s 同样被证伪：本 PR 的 CI 上（2 核 runner / `-n 2`）
+        #   后台线程被饿死超过 30s，status 仍 running（与代码改动无关，同 shard 内
+        #   test_capregistry_callpaths_routes 的分片负载同现）。再放宽到 250×0.2s(50s)，
+        #   并给本用例显式 @pytest.mark.timeout(180)（见上）——同样只扩大等待上界，语义不变；
+        #   健康路径仍在 ~1s 内退出（首次 completed 即 break）。
+        for _ in range(250):
             st = executor.get_status(tid)
             if st.get("status") in ("completed", "failed"):
                 break
