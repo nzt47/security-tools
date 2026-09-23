@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import re
 import threading
+import weakref
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
@@ -108,8 +109,16 @@ def ledger_trace_policy(*, source: str, capability_id: str,
 # 运行时工具名 → capability_id（TASK-S3-01 / 消费 S2-01 遗留 #1）
 # ═════════════════════════════════════════════════════════════
 
-#: 名字扫描索引缓存（键 = (registry 实例 id, registry.count())）
-_NAME_INDEX_CACHE: Dict[Any, Dict[str, str]] = {}
+#: 名字扫描索引缓存：registry 实例**弱键** → (count, 名字→capability_id)
+#:
+#: 键必须是**对象身份（弱引用）**而非 ``id(registry)``：``id()`` 在对象被 GC 后会
+#: 被复用，``(id(registry), count())`` 旧键会让新 registry 命中**另一个已回收对象**
+#: 留下的陈旧索引（CI 上 `test_name_index_cache_invalidated_by_count` 偶发
+#: ``assert False is True`` 的根因：地址与 count 都撞上的那张陈旧表里，没有本次
+#: 要查的名字）。弱键以对象为键，registry 回收即自动失效（不存在地址复用误命中）；
+#: count 变化仍按原语义失效。
+_NAME_INDEX_CACHE: "weakref.WeakKeyDictionary[Any, Tuple[int, Dict[str, str]]]" = \
+    weakref.WeakKeyDictionary()
 _NAME_INDEX_CACHE_MAX = 16
 _NAME_INDEX_LOCK = threading.Lock()
 
@@ -144,20 +153,8 @@ def canonical_capability_id(tool_name: str, *, source_type: str = "builtin",
     return f"cp.{safe_src}.{safe_name}"
 
 
-def _name_index(registry: Any) -> Dict[str, str]:
-    """`capability.name`（原样 + 小写）→ capability_id 的映射（带缓存）
-
-    仅用于**派生候选与 alias 都未命中**时的兜底解析（如名字与 id 段不一致的
-    外来登记项）。缓存键含 ``registry.count()``，登记数量变化即自动失效。
-    """
-    try:
-        stamp = (id(registry), int(registry.count()))
-    except Exception:  # noqa: BLE001
-        stamp = (id(registry), -1)
-    with _NAME_INDEX_LOCK:
-        cached = _NAME_INDEX_CACHE.get(stamp)
-    if cached is not None:
-        return cached
+def _scan_name_index(registry: Any) -> Dict[str, str]:
+    """现扫一遍 registry 建名字索引（advisory：任何异常都降级空表，绝不外抛）"""
     index: Dict[str, str] = {}
     try:
         for desc in registry.list():
@@ -169,10 +166,39 @@ def _name_index(registry: Any) -> Dict[str, str]:
             index.setdefault(name.lower(), cid)
     except Exception:  # noqa: BLE001  名字索引为 advisory 兜底，失败即空表
         index = {}
-    with _NAME_INDEX_LOCK:
-        if len(_NAME_INDEX_CACHE) >= _NAME_INDEX_CACHE_MAX:
-            _NAME_INDEX_CACHE.clear()
-        _NAME_INDEX_CACHE[stamp] = index
+    return index
+
+
+def _name_index(registry: Any) -> Dict[str, str]:
+    """`capability.name`（原样 + 小写）→ capability_id 的映射（带缓存）
+
+    仅用于**派生候选与 alias 都未命中**时的兜底解析（如名字与 id 段不一致的
+    外来登记项）。缓存以 registry **对象身份**（弱键）为键、``count()`` 为版本：
+    登记数量变化即失效，registry 被回收时条目自动消失——因为**不复用 ``id()``**，
+    也就不存在「地址被后来的对象复用 ⇒ 命中别人的陈旧索引」这一缺陷。
+
+    registry 不可弱引用（如 ``__slots__`` 缺 ``__weakref__``）时不缓存、每次现扫：
+    宁可多扫一遍，也不按 ``id()`` 冒陈旧命中的风险。
+    """
+    try:
+        count = int(registry.count())
+    except Exception:  # noqa: BLE001  版本号不可得 ⇒ 不缓存（避免永久陈旧表）
+        return _scan_name_index(registry)
+    try:
+        with _NAME_INDEX_LOCK:
+            cached = _NAME_INDEX_CACHE.get(registry)
+    except TypeError:  # 不可弱引用/不可哈希 ⇒ 退化为不缓存
+        return _scan_name_index(registry)
+    if cached is not None and cached[0] == count:
+        return cached[1]
+    index = _scan_name_index(registry)
+    try:
+        with _NAME_INDEX_LOCK:
+            if len(_NAME_INDEX_CACHE) >= _NAME_INDEX_CACHE_MAX:
+                _NAME_INDEX_CACHE.clear()
+            _NAME_INDEX_CACHE[registry] = (count, index)
+    except TypeError:  # noqa: BLE001  同上：不可弱引用 ⇒ 放弃缓存，本次结果照用
+        pass
     return index
 
 
