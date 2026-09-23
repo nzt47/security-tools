@@ -36,6 +36,14 @@
 - 本仓激活线为 `engineering` ⇒ **每次对话的 system prompt 末尾多出该线 `prompt_note`（116 字符）**
 - 旁路"按意图命中注入"现受本线 `skills:` 约束 ⇒ 7 条线当前均未声明文件轨技能，**旁路不再注入它们**；需要哪条线保留，把 id 写进该线 `skills:` 即生效
 
+### 收尾（同日，遗留清零）
+
+- **L6 known_skill_ids memo 跨用例污染 —— 修复**：改为**目录快照指纹**失效（0.50ms vs 全量重算中位 13.4ms）；
+  控制实验（指纹钉成常量 = 旧语义）令 5 条用例变红、其中 3 条是**原有**用例 ⇒ 证明污染真实存在且此前被 autouse 夹具遮住；两处规避夹具已删
+- **L10 真实服务验证 —— 部分闭环**：新增 `tests/integration/test_agent_lines_http_real_server.py`（真 socket + 真服务，8 条，含 404/400 与优雅关停）；真浏览器点验未做（需起 `app_server` 并触及 `data/`，留待授权）
+- **新发现并修复 P9**：`GET /api/agent-lines/<id>` 详情端点此前缺少 `skills` / `prompt_fragments`（与 `/preview`、`/validate` 不对称）⇒ 已复用同一对判定补齐，并加"一份判定、三处投影"对拍用例
+- 最终合跑：**455 passed / 0 failed / 6 skipped**（11 个文件，含真实 HTTP 用例）
+
 ---
 
 ## [CHG] - 2026-08-16: L3 镜像模型缓存修复 + context 一致性预检（CI fail fast）✅
