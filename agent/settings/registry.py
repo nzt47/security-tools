@@ -1974,6 +1974,88 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        owner="agent/error_reporting_config.py", secret=True),
 
     # ────────────────────────────────────────────────────────
+    #  【L5】扫描根扩容后补登记的「表外」开关（2026-09-23）
+    # ────────────────────────────────────────────────────────
+    # 背景：scripts/scan_settings.py 的扫描根原为 ("agent",)，于是 agent/ 之外的
+    # 真实生产读取点**从未进过任何候选清单**（审计
+    # docs/closeout/开关登记表_config口径审计_20260922.md §5.2 把这条列为已知假阴形态，
+    # §七.1 已核实 planning/core.py 真的读 config.yaml 的 learning.experience_persist）。
+    # 本轮把扫描根扩到「全仓生产代码」后，机械提取一次性暴露下列键；按零缺口纪律
+    # **逐条核实读取点**后补登记（不是为了让扫描变绿而放水：每条都带读取点行号）。
+    # 标「只有 env 一层」的键，其归属模块里**没有** config.yaml 读取
+    # ⇒ config_path 必须留空（补了就是新的假来源）。
+    _a("LEARNING_EXPERIENCE_PERSIST", CAT_LEARNING, False,
+       "学习经验是否落盘（reflector 经验/教训写入 data/reflection/）；"
+       "config.yaml 路径 learning.experience_persist"
+       "（planning/core.py:462-464 读 config、:468 读 env）"
+       "—— ★ 它此前**根本不在登记表里**：扫描根只有 agent/，看不到 planning/",
+       owner="planning/core.py",
+       config_path="learning.experience_persist"),
+    _a("SENSOR_LEARNING_CHANGE_LOG_MAX_ENTRIES", CAT_LEARNING, 10000,
+       "感知侧 change_log.json 的容量上限（超出即滚动裁剪最旧条目）；"
+       "config.yaml 路径 learning.sensor_learning.change_log_max_entries"
+       "（sensor/novelty.py:111 读 env、:118 读 config，默认 10000）",
+       owner="sensor/novelty.py",
+       config_path="learning.sensor_learning.change_log_max_entries",
+       validator=Validator("int")),
+    _a("YUNSHU_DISABLE_WINDOW_SENSOR", CAT_LEARNING, False,
+       "开发/沙箱环境屏蔽窗口传感器（win32gui 依赖链在受限环境会产生访问噪音）；"
+       "**只有 env 一层**（sensor/registry.py:122 与 app_server.py:605 两处同口径读取，"
+       "全仓无对应 config.yaml 路径 ⇒ config_path 留空）",
+       owner="sensor/registry.py"),
+    _a("BM25_K1", CAT_SKILLS, 1.5,
+       "BM25 词频饱和参数 k1（记忆向量库检索用；模块导入时一次性读取）；"
+       "**只有 env 一层**（memory/vector_store/vector_store.py:49）",
+       owner="memory/vector_store/vector_store.py", validator=Validator("float")),
+    _a("BM25_B", CAT_SKILLS, 0.5,
+       "BM25 文档长度归一参数 b（0.75 对短文档虚高，项目实测降到 0.5；"
+       "设 BM25_B=0.75 可回滚原行为）；**只有 env 一层**"
+       "（memory/vector_store/vector_store.py:50）",
+       owner="memory/vector_store/vector_store.py", validator=Validator("float")),
+    _c("CP_CAPABILITY_ENDPOINT", CAT_EXTERNAL, "http://127.0.0.1:5678",
+       "能力服务地址（cloudshu CLI 客户端用；未设则用内置默认）；"
+       "**只有 env 一层**（cloudshu/cli.py:354-356）",
+       owner="cloudshu/cli.py"),
+    _secret("CP_API_TOKEN", CAT_EXTERNAL,
+            "能力服务访问令牌（cloudshu CLI；只读脱敏，永不返回明文）；"
+            "**只有 env 一层**（cloudshu/cli.py:357）",
+            owner="cloudshu/cli.py"),
+    _secret("API_TOKEN", CAT_EXTERNAL,
+            "能力服务访问令牌的**兼容别名**（CP_API_TOKEN 未设时兜底；只读脱敏）；"
+            "**只有 env 一层**（cloudshu/cli.py:358）",
+            owner="cloudshu/cli.py"),
+    _b("CP_MCP_SERVER_TOOLS", CAT_EXTERNAL, "",
+       "MCP 服务对外暴露的工具白名单（逗号分隔；未设则用内置默认集）；"
+       "放宽即扩大对外暴露面（与「关闭即降低防护」同性质，故取 B）；"
+       "**只有 env 一层**（mcp_services/yunshu_mcp_server.py:223）",
+       owner="mcp_services/yunshu_mcp_server.py"),
+    _a("CP_MCP_SERVER_LOG_LEVEL", CAT_OBSERVABILITY, "INFO",
+       "MCP 服务进程日志级别；**只有 env 一层**"
+       "（mcp_services/yunshu_mcp_server.py:539）",
+       owner="mcp_services/yunshu_mcp_server.py",
+       validator=_enum("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")),
+    _a("ENV", CAT_OBSERVABILITY, "development",
+       "运行环境标识（development / production）：production 时 MCP 服务日志只留 ERROR，"
+       "否则 DEBUG；**只有 env 一层**（mcp_services/log_config.py:44/92/119）",
+       owner="mcp_services/log_config.py"),
+    _a("LOG_LEVEL", CAT_OBSERVABILITY, "INFO",
+       "启动入口日志级别（main.py 的调试分支与 file_monitor 服务启动时读取）；"
+       "**只有 env 一层**（main.py:94、file_monitor.py:24，两处同口径）",
+       owner="main.py"),
+    _a("LOG_REQUEST_PRINT", CAT_OBSERVABILITY, True,
+       "Flask 接口日志是否打印请求/响应详情（设 0/false/no 降噪，退回 logger.debug）；"
+       "**只有 env 一层**（app_server.py:371）",
+       owner="app_server.py"),
+    _a("MONITOR_ROOT", CAT_OBSERVABILITY, "",
+       "文件监控服务的监控根目录（Docker 部署用；未设则取该文件所在目录）；"
+       "**只有 env 一层**（file_monitor.py:35）",
+       owner="file_monitor.py", validator=Validator("path")),
+    _c("COVERAGE_XML", CAT_OBSERVABILITY, "",
+       "文件监控服务读取的覆盖率报告路径（未设则为 MONITOR_ROOT/coverage.xml）；"
+       "**只有 env 一层**（file_monitor.py:44）",
+       owner="file_monitor.py", validator=Validator("path")),
+
+    # ────────────────────────────────────────────────────────
     #  开关中心自身（元开关：覆盖层路径）
     # ────────────────────────────────────────────────────────
     _c("CP_UI_SETTINGS_PATH", CAT_OBSERVABILITY, "data/ui_settings.json",

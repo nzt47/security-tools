@@ -132,9 +132,16 @@ def _load_scanner():
 
 @pytest.fixture(scope="module")
 def scan():
-    """整仓扫描一次（模块级复用；扫描本身只读，无副作用）"""
+    """整仓扫描一次（模块级复用；扫描本身只读，无副作用）
+
+    【L5（2026-09-23）】扫描根由硬编码的 `agent` 改为 **`scanner.DEFAULT_ROOTS`**：
+    本文件此前只扫 `agent/`，于是 planning/ memory/ sensor/ 等目录里的真实读取点
+    （例如 planning/core.py:468 的 LEARNING_EXPERIENCE_PERSIST）**永远进不了判据** ——
+    守卫与被守卫的对象一起漏掉了同一片区域。
+    """
     scanner = _load_scanner()
-    report = scanner.scan_paths([REPO_ROOT / "agent"], REPO_ROOT)
+    report = scanner.scan_paths(
+        [REPO_ROOT / p for p in scanner.DEFAULT_ROOTS], REPO_ROOT)
     return scanner, report
 
 
@@ -254,7 +261,8 @@ class TestMechanicalZeroGap:
     def test_scan_report_is_reproducible(self, scan):
         """两次扫描结果一致（机械提取必须确定，不能靠字典序偶然）"""
         scanner, report = scan
-        second = scanner.scan_paths([REPO_ROOT / "agent"], REPO_ROOT)
+        second = scanner.scan_paths(
+            [REPO_ROOT / p for p in scanner.DEFAULT_ROOTS], REPO_ROOT)
         assert sorted(second.managed_names()) == sorted(report.managed_names())
 
     def test_two_level_family_chain_is_resolved(self, scan):
@@ -635,6 +643,9 @@ class TestConfigPathMatchesSourceReadSite:
         "SENSOR_LEARNING_BASELINE_RETENTION_WEEKS", "SENSOR_LEARNING_DRAFT_DIR",
         "SENSOR_LEARNING_AUDIT_FILE", "SENSOR_LEARNING_MEMORY_DIR",
         # L5 依据读取点补登记（50）—— 逐键取证见本文件顶部的 _L5_READ_SITES
+        # L5 扫描根扩容后补登记的「表外」键（2）—— 取证见 TestScanRootGapsAreRegistered
+        "LEARNING_EXPERIENCE_PERSIST",
+        "SENSOR_LEARNING_CHANGE_LOG_MAX_ENTRIES",
     } | frozenset(_L5_READ_SITES))
 
     # ── 机械提取 ──
@@ -939,8 +950,9 @@ class TestConfigPathDrivesDisplayNotRuntime:
                 if s.config_path and s.config_path not in obs}
 
     def test_declared_paths_are_not_empty(self):
+        # 21（L1 之前 + L1）+ 50（L5 定值路径）+ 2（L5 扫描根扩容后补登记）
         declared = self._declared()
-        assert len(declared) >= 71, (
+        assert len(declared) >= 73, (
             f"声明了 config.yaml 文件路径的键只有 {len(declared)} 个")
 
     def test_no_declared_key_is_env_pinned_here(self):
@@ -1002,5 +1014,121 @@ class TestConfigPathDrivesDisplayNotRuntime:
         self._with_synthetic_config({})
         RS.resolve_all(store=self._store(tmp_path))
         assert dict(os.environ) == before, "resolve_all() 改动了进程环境变量"
+
+# ════════════════════════════════════════════════════════════
+#  七、L5：扫描根扩容 + 表外缺口守护（2026-09-23）
+# ════════════════════════════════════════════════════════════
+
+
+class TestScanRootsCoverProductionCode:
+    """★ L5：扫描根必须覆盖**全仓生产代码**（否则表外缺口永远看不见）
+
+    审计（docs/closeout/开关登记表_config口径审计_20260922.md §5.2）把
+    「扫描根只有 agent/」列为**已知假阴形态**：`planning/core.py:468` 读的
+    LEARNING_EXPERIENCE_PERSIST 因此从未进过任何候选清单（§七.1 已核实它真的读
+    config.yaml 的 learning.experience_persist）。
+
+    本类钉三件事：
+      1. **必须被覆盖的根**（agent / planning / memory / sensor / mcp_services）在列；
+      2. 仓库根下的散装 .py 清单与 DEFAULT_ROOTS 里列出的**逐字相等**
+         （新增一个入口脚本而不登记 ⇒ 该脚本里的开关又变成表外缺口）；
+      3. 扫描结果里**不得**出现被显式排除的目录（scripts/ tests/ security-tools/ 等）。
+    """
+
+    #: 必须被扫描的生产根（L5 扩容的动因；少一个这条守卫就失去意义）
+    _REQUIRED_ROOTS = (
+        "agent", "planning", "memory", "sensor", "mcp_services",
+    )
+
+    #: 显式排除的目录（其 env 读取不是"随部署运行的开关"）
+    _EXCLUDED_PREFIXES = (
+        "scripts/", "tests/", "security-tools/", "docs/", "data/",
+        "packages/", "demos/", "deploy/", "reports/",
+    )
+
+    def test_required_production_roots_are_scanned(self, scan):
+        scanner, _report = scan
+        roots = set(scanner.DEFAULT_ROOTS)
+        for root in self._REQUIRED_ROOTS:
+            assert root in roots, (
+                f"扫描根缺少 {root}：{sorted(roots)} —— "
+                "agent/ 之外的真实读取点会重新变成表外缺口")
+
+    def test_root_level_entry_scripts_are_exactly_declared(self, scan):
+        """仓库根下的散装 .py 必须**逐字**列进 DEFAULT_ROOTS
+
+        口径：只对**不以 _ 开头**的根目录脚本生效（`_tmp_*.py` 一类本地产物
+        按约定属临时文件，既不是入口也不该被要求登记；它们同样不在扫描范围内）。
+        本用例刻意严格 —— 新增一个入口脚本却不登记，就等于把该脚本里的开关
+        重新变成"表外缺口"，而这正是 L5 要根治的形态。
+        """
+        scanner, _report = scan
+        declared = {r for r in scanner.DEFAULT_ROOTS if r.endswith(".py")}
+        actual = {p.name for p in REPO_ROOT.glob("*.py")
+                  if not p.name.startswith("_")}
+        assert declared == actual, (
+            f"根目录入口脚本与扫描根不一致：未登记={sorted(actual - declared)} "
+            f"已失效={sorted(declared - actual)}")
+
+    def test_scanned_modules_stay_inside_declared_roots(self, scan):
+        _scanner, report = scan
+        modules = {rp.module for rp in report.managed}
+        leaked = sorted(m for m in modules
+                        if m.startswith(self._EXCLUDED_PREFIXES))
+        assert leaked == [], (
+            f"扫描结果里出现了被显式排除的目录：{leaked}")
+
+
+class TestScanRootGapsAreRegistered:
+    """★ L5 表外缺口：扫描根扩容后暴露的键必须**真的**在登记表里
+
+    这两个键是「扫描根只有 agent/」的直接受害者：
+      - LEARNING_EXPERIENCE_PERSIST：planning/core.py 读 config.yaml 的
+        learning.experience_persist，却**根本不在 REGISTRY 里**；
+      - SENSOR_LEARNING_CHANGE_LOG_MAX_ENTRIES：sensor/novelty.py 读
+        learning.sensor_learning.change_log_max_entries。
+    同一族三兄弟（LEARNING_REFLECTION_PERSIST / CRITIC_EVALUATION_ENABLED /
+    LEARNING_EXPERIENCE_PERSIST）此前只有前两个在表里 —— 第三个在 UI 上"不存在"。
+    """
+
+    #: key -> (归属模块, 声明的点分路径, env 名)
+    _READ_SITES = {
+        "LEARNING_EXPERIENCE_PERSIST": (
+            "planning/core.py", "learning.experience_persist",
+            "LEARNING_EXPERIENCE_PERSIST"),
+        "SENSOR_LEARNING_CHANGE_LOG_MAX_ENTRIES": (
+            "sensor/novelty.py", "learning.sensor_learning.change_log_max_entries",
+            "SENSOR_LEARNING_CHANGE_LOG_MAX_ENTRIES"),
+    }
+
+    def test_keys_are_registered_with_expected_paths(self):
+        for key, (module, path, _env) in sorted(self._READ_SITES.items()):
+            spec = R.get_spec(key)
+            assert spec is not None, f"登记表缺少 {key}（表外缺口）"
+            assert spec.owner_module == module, (key, spec.owner_module, module)
+            assert spec.config_path == path, (key, spec.config_path, path)
+
+    def test_env_read_points_exist_in_owner_modules(self):
+        for key, (module, path, env) in sorted(self._READ_SITES.items()):
+            source = (REPO_ROOT / module).read_text(encoding="utf-8")
+            assert env in source, (key, module)
+            assert "config.yaml" in source, (key, module)
+            for part in path.split("."):
+                assert (f'"{part}"' in source) or (f"'{part}'" in source), (
+                    key, part, module)
+
+    def test_owner_modules_are_inside_the_scan_roots(self, scan):
+        scanner, _report = scan
+        for key, (module, _path, _env) in sorted(self._READ_SITES.items()):
+            top = module.split("/")[0]
+            assert (top in scanner.DEFAULT_ROOTS) or (module in scanner.DEFAULT_ROOTS), (
+                f"{key} 的归属模块 {module} 不在扫描根里："
+                "表外缺口会再次出现（这正是它的成因）")
+
+    def test_no_declared_key_is_env_pinned_here(self):
+        pinned = sorted(k for k, (_m, _p, env) in self._READ_SITES.items()
+                        if env in os.environ)
+        assert pinned == [], f"本进程环境已设置 {pinned}，对拍会失真"
+
 
 

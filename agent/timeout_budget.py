@@ -37,9 +37,10 @@ import time
 from typing import Any, Callable, Dict, Optional, Tuple
 
 # ════════════════════════════════════════════════════════════
-#  开关（env 读取点必须落在 agent/ 内：`scripts/scan_settings.py` 的
-#  零缺口守卫只扫 `agent/`，读点放在别处会让注册表条目变成
-#  「没人读的开关」而被 test_settings_registry 反向判红）
+#  开关（env 读取点必须落在**扫描根内**：`scripts/scan_settings.py` 的零缺口守卫
+#  自 L5（2026-09-23）起扫描**全仓生产代码**（顶层包 + mcp_services + 仓库根入口脚本，
+#  见该文件 DEFAULT_ROOTS）——但 scripts/ tests/ 等仍不在范围内；
+#  读点放在范围外会让注册表条目变成「没人读的开关」而被 test_settings_registry 反向判红）
 # ════════════════════════════════════════════════════════════
 
 #: 工具 handler 的墙钟上界（秒）。**0 表示不限**（保留旧行为，用于紧急回滚）。

@@ -53,8 +53,39 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 #: 仓库根（scripts/ 的上一级）
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-#: 默认扫描根（相对仓库根）
-DEFAULT_ROOTS: Tuple[str, ...] = ("agent",)
+#: 默认扫描根（相对仓库根；目录用 rglob 递归，文件则只扫该文件）
+#:
+#: 【L5（2026-09-23）扩容：`agent` → 全仓生产代码】
+#:   原值是 ("agent",)，而审计
+#:   （docs/closeout/开关登记表_config口径审计_20260922.md §5.2）把"扫描根只有
+#:   agent/"列为**已知假阴形态**——顶层包 planning/ memory/ sensor/ 根本不在范围内，
+#:   于是 `planning/core.py:468` 读的 LEARNING_EXPERIENCE_PERSIST **连候选清单都进不去**
+#:   （该审计 §七.1 已核实它是真的读 config.yaml 的 learning.experience_persist）。
+#:
+#:   现在的口径：**随部署运行的 Python 代码全部在扫描范围内** =
+#:     ① 仓库根下全部顶层 Python 包（含 __init__.py，实测 11 个）；
+#:     ② 独立服务入口目录 mcp_services/（不是包，但随部署运行）；
+#:     ③ 仓库根下的全部散装 .py（app_server.py 是 Flask 应用本体 / main.py 是启动入口）。
+#:
+#:   **显式排除**（新增/删除一条都要改这里；由
+#:   tests/unit/test_settings_registry.py::TestMechanicalZeroGap::
+#:   test_scan_roots_cover_every_production_package 钉住）：
+#:     - scripts/  工具与审计脚本（其中的 env 读取是"跑脚本时的参数"，不改运行时行为）
+#:     - tests/    测试代码（memory/tests 由 scan_paths 的 skip_parts 跳过）
+#:     - docs/ data/ templates/ 等非 Python 目录
+#:     - security-tools/ 疑似历史副本（审计 §六.3 声明"未核实是否为活代码"，故不计入）
+#:     - venv/ .venv/ .worktrees/ node_modules/ 等环境与工作树（skip_parts 兜底）
+DEFAULT_ROOTS: Tuple[str, ...] = (
+    # ① 顶层 Python 包（仓库根下含 __init__.py 的目录）
+    "agent", "planning", "memory", "sensor", "core", "utils",
+    "cognitive", "cloudshu", "lifetrace", "persona", "plugins",
+    # ② 独立服务入口目录
+    "mcp_services",
+    # ③ 仓库根下的散装 .py（本清单必须与 REPO_ROOT/*.py 逐字相等，由守护用例钉住）
+    "app_server.py", "config.py", "feature.py", "file_monitor.py",
+    "gunicorn_config.py", "health_check.py", "main.py", "run_tests.py",
+    "sensor_server.py", "setup.py",
+)
 
 # ════════════════════════════════════════════════════════════
 #  读取助手识别
@@ -130,6 +161,34 @@ RUNTIME_NAME_READS: Dict[str, str] = {
         "开关中心按注册表遍历，名字由表决定而非硬编码",
 }
 
+#: **站点级**运行时名字读取声明（比 RUNTIME_NAME_READS 更精确：限定到具体模块）
+#:
+#: 形状：`"<模块相对路径>::<运行时名字表达式>"` → 理由。
+#:
+#: Why 需要站点级（L5，2026-09-23 把扫描根扩到 sensor/ 后暴露）：
+#:   `sensor/file_blueprint.py:195` 与 `sensor/software_blueprint.py:582` 是**蓝图探测**
+#:   在读 OS 环境变量（USERPROFILE / JAVA_HOME 一类），名字来自同函数内的**字面量映射**，
+#:   提取器解析不出具体名字 ⇒ 落进 `<unresolved>` 动态家族（零缺口守卫因此变红）。
+#:   它们**不是**云枢开关，但也不该塞进 RUNTIME_NAME_READS —— 那里的键是**裸表达式名**
+#:   （`env_var` / `var` 太泛），按名字放行会顺带放行任何同名表达式的真实读取点。
+#:   故引入站点级表：**只有这两个模块里的这两个表达式**被声明；
+#:   其余任何 <unresolved> 读取点照样进 unregistered_dynamic（红灯）。
+RUNTIME_NAME_SITES: Dict[str, str] = {
+    "sensor/file_blueprint.py::env_var":
+        "文件蓝图探测：名字取自同函数内的字面量映射 env_map（USERPROFILE 等 OS 环境"
+        "变量），读取只为**报告本机目录**，不是可切换的云枢开关",
+    "sensor/software_blueprint.py::var":
+        "软件蓝图探测：名字取自同函数内的字面量映射 env_map（JAVA_HOME 等），"
+        "读取只为**报告本机装了哪个运行时**，不是可切换的云枢开关",
+}
+
+
+def _is_declared_runtime_name(rp: "ReadPoint") -> bool:
+    """该读取点是否已被**显式声明**（表达式级 RUNTIME_NAME_READS / 站点级 RUNTIME_NAME_SITES）"""
+    if rp.runtime_expr in RUNTIME_NAME_READS:
+        return True
+    return f"{rp.module}::{rp.runtime_expr}" in RUNTIME_NAME_SITES
+
 #: 仅在「外层函数无同名参数」时才算进程环境的裸访问（WSGI `environ` 同名）
 _BARE_ENV_CALLS: frozenset = frozenset({"environ.get", "env.get", "getenv"})
 
@@ -168,6 +227,26 @@ PROCESS_ENV_DENYLIST: Dict[str, str] = {
     #   它由 GitHub Actions 注入、**不是**云枢的可配置开关（改它没有任何行为开关语义）
     #   ⇒ 归入"外部运行时注入"，而不是往注册表里塞一条假开关。
     "GITHUB_JOB": "CI 运行时注入的作业名（GitHub Actions 提供），用于审计溯源，非云枢开关",
+    # ── 【L5（2026-09-23）扫描根扩到 sensor/ 与根目录入口脚本后新增】──
+    # 这一组是 **Windows / 操作系统提供的环境变量**：sensor/ 的蓝图探测、
+    # sensor_server.py 与 system_sensor.py 读它们只为**报告本机状态**
+    # （装了哪些软件、崩溃转储目录在哪、有几核），没有任何「运维可切换行为」的语义
+    # —— 改了它们也不会改变云枢的行为，只会让探测结果变错。
+    # ⇒ 按本表口径（"读它不是为了让运维切换行为"）逐条显式声明；
+    #   **不是**把可疑项塞进白名单了事（未声明的来源照样进 undeclared_process_env）。
+    "PATH": "OS 可执行搜索路径（sensor 蓝图探测读取，用于报告），非开关",
+    "TEMP": "OS 临时目录（sensor 环境探测读取，用于报告），非开关",
+    "TMP": "OS 临时目录（同上；Windows 上的兜底变量），非开关",
+    "APPDATA": "OS 用户配置目录（sensor_server 读取，用于报告），非开关",
+    "LOCALAPPDATA": "OS 用户本地配置目录（sensor 蓝图探测读取，用于报告），非开关",
+    "ProgramData": "OS 公共数据目录（sensor 文件蓝图读取，用于报告），非开关",
+    "CommonAppData": "OS 公共数据目录（Windows 上的别名，同上），非开关",
+    "PUBLIC": "OS 公共用户目录（sensor 文件蓝图读取，用于报告），非开关",
+    "ProgramFiles": "OS 程序安装目录（sensor 硬件探测读取，用于报告），非开关",
+    "ProgramFiles(x86)": "OS 32 位程序目录（同上），非开关",
+    "SystemDrive": "OS 系统盘符（sensor 文件蓝图读取，用于报告），非开关",
+    "SystemRoot": "OS 系统目录（崩溃转储/系统蓝图探测读取，用于报告），非开关",
+    "NUMBER_OF_PROCESSORS": "OS 处理器核数（sensor 环境探测读取，用于报告），非开关",
 }
 
 # ════════════════════════════════════════════════════════════
@@ -511,6 +590,13 @@ class _Extractor(ast.NodeVisitor):
                     best, best_span = names, span
         return best
 
+    def _is_runtime_name_site(self, arg0: ast.expr) -> bool:
+        """实参是**已显式声明**的运行时名字（见 RUNTIME_NAME_READS / RUNTIME_NAME_SITES）"""
+        expr = _expr_source(self._source, arg0)
+        if expr in RUNTIME_NAME_READS:
+            return True
+        return f"{self.module}::{expr}" in RUNTIME_NAME_SITES
+
     def _is_pass_through(self, node: ast.expr, arg: ast.expr) -> bool:
         """实参是本函数形参 → 该访问只是转发（真正的名字在调用方）"""
         if not isinstance(arg, ast.Name) or arg.id in self.consts:
@@ -699,8 +785,7 @@ class _Extractor(ast.NodeVisitor):
                                      value_type=self._type_hint(base, node))
                     self.generic_visit(node)
                     return
-                elif not resolved and _expr_source(self._source, arg0) in (
-                        RUNTIME_NAME_READS):
+                elif not resolved and self._is_runtime_name_site(arg0):
                     # 「运行时名字」读取（如 spec.env_name）→ 显式声明口径，不入缺口
                     self._record(node, name="", resolved=False,
                                  kind="runtime_name",
@@ -950,6 +1035,49 @@ def _common_prefix(values: Sequence[str]) -> str:
     return prefix
 
 
+#: 扫描时跳过的目录名（**按「相对扫描根」的目录名判断**）
+#:
+#: Why 用相对扫描根的路径而不是绝对路径：本仓库的 worktree 位于
+#: `<repo>/.worktrees/<id>/`，按绝对路径过滤会把整棵 worktree 跳过（S7-01 实测踩坑）。
+#: `tests` 于 L5（2026-09-23）加入：扫描根扩到 memory/ 后命中 `memory/tests/`，
+#: 测试代码里的 env 读取不是"随部署运行的开关"。
+_SKIP_PARTS: frozenset = frozenset({
+    "__pycache__", ".worktrees", ".venv", "venv", "node_modules",
+    ".git", "site-packages", "migrations", "tests",
+})
+
+
+def _iter_py_files(roots: Iterable[Path]) -> Iterable[Path]:
+    """遍历扫描根下的 .py（根是目录则递归，根是文件则只取该文件）
+
+    统一三件事，避免 `_build_global_consts` 与 `scan_paths` 各写一遍而漂移：
+
+      1. **目录 / 文件两种根**：L5（2026-09-23）起支持把仓库根下的散装入口脚本
+         （app_server.py / main.py 等）直接列为扫描根——它们是随部署运行的生产代码；
+      2. **跳过项**：见 _SKIP_PARTS；
+      3. **读不到就跳过**：文件被并发删除、坏符号链接等一律 `OSError` 容忍。
+         2026-09-23 实测：把扫描根扩到仓库根后，`.pytest_tmp` 下的坏符号链接会让
+         `_build_global_consts` 抛 FileNotFoundError ⇒ 整条零缺口守卫不可用。
+         这里只对**遍历**容错；`scan_file` 的解析失败仍如实计入 parse_errors（不静默）。
+    """
+    for root in roots:
+        if root.is_file():
+            candidates: List[Path] = [root] if root.suffix == ".py" else []
+        else:
+            try:
+                candidates = sorted(root.rglob("*.py"))
+            except OSError:                                # pragma: no cover 坏符号链接
+                continue
+        for path in candidates:
+            try:
+                rel_to_root = path.relative_to(root)
+            except ValueError:
+                rel_to_root = path
+            if any(part in _SKIP_PARTS for part in rel_to_root.parts[:-1]):
+                continue
+            yield path
+
+
 def _build_global_consts(repo_root: Path,
                          roots: Iterable[Path]) -> Dict[str, Optional[str]]:
     """全仓常量索引（名 → 唯一字面量）
@@ -959,38 +1087,30 @@ def _build_global_consts(repo_root: Path,
     纪律：**同名多值即视为不明确**（置 None），宁可少解析也不误报。
     """
     index: Dict[str, Optional[str]] = {}
-    skip_parts = {"__pycache__", ".worktrees", ".venv", "venv", "node_modules"}
-    for root in roots:
-        for path in sorted(root.rglob("*.py")):
-            try:
-                rel_to_root = path.relative_to(root)
-            except ValueError:
-                rel_to_root = path
-            if any(p in skip_parts for p in rel_to_root.parts[:-1]):
+    for path in _iter_py_files(roots):
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+        except (SyntaxError, OSError, UnicodeError):
+            continue
+        local: Dict[str, Optional[str]] = {}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign):
                 continue
-            try:
-                tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
-            except SyntaxError:
+            literal = _literal_str(node.value)
+            if literal is None or not _DYNAMIC_NAME_PATTERN.match(literal):
                 continue
-            local: Dict[str, Optional[str]] = {}
-            for node in ast.walk(tree):
-                if not isinstance(node, ast.Assign):
+            for tgt in node.targets:
+                if not isinstance(tgt, ast.Name):
                     continue
-                literal = _literal_str(node.value)
-                if literal is None or not _DYNAMIC_NAME_PATTERN.match(literal):
-                    continue
-                for tgt in node.targets:
-                    if not isinstance(tgt, ast.Name):
-                        continue
-                    if tgt.id in local and local[tgt.id] != literal:
-                        local[tgt.id] = None
-                    else:
-                        local.setdefault(tgt.id, literal)
-            for name, value in local.items():
-                if name in index and index[name] != value:
-                    index[name] = None
+                if tgt.id in local and local[tgt.id] != literal:
+                    local[tgt.id] = None
                 else:
-                    index.setdefault(name, value)
+                    local.setdefault(tgt.id, literal)
+        for name, value in local.items():
+            if name in index and index[name] != value:
+                index[name] = None
+            else:
+                index.setdefault(name, value)
     return index
 
 
@@ -1008,6 +1128,8 @@ def scan_file(path: Path, rel: str,
         tree = ast.parse(text, filename=str(path))
     except SyntaxError as e:
         return [], {"module": rel, "error": f"SyntaxError: {e}"}
+    except (OSError, UnicodeError) as e:                    # 坏符号链接/并发删除
+        return [], {"module": rel, "error": f"{type(e).__name__}: {e}"}
     extractor = _Extractor(rel, text.splitlines(), global_consts, text)
     extractor._assign_targets(tree)
     extractor.collect_constants(tree)
@@ -1020,57 +1142,45 @@ def scan_file(path: Path, rel: str,
 
 
 def scan_paths(roots: Iterable[Path], repo_root: Path = REPO_ROOT) -> ScanReport:
-    """扫描若干根目录下的全部 .py（跳过 __pycache__ / .worktrees 等）
+    """扫描若干扫描根下的全部 .py（跳过项与文件根支持见 _iter_py_files）
 
     两趟：先建全仓常量索引，再逐文件提取（跨模块 import 的常量名要能解析）。
     """
     report = ScanReport()
     root_list = list(roots)
     global_consts = _build_global_consts(repo_root, root_list)
-    skip_parts = {"__pycache__", ".worktrees", ".venv", "venv", "node_modules",
-                  ".git", "site-packages", "migrations"}
-    for root in root_list:
-        for path in sorted(root.rglob("*.py")):
-            # 只按「相对扫描根」的目录名过滤：本仓库的 worktree 位于
-            # `<repo>/.worktrees/<id>/`，若按绝对路径过滤会把整棵 worktree 跳过
-            # （S7-01 实测踩坑）。故用 rel_to_root 判断。
-            try:
-                rel_to_root = path.relative_to(root)
-            except ValueError:
-                rel_to_root = path
-            if any(part in skip_parts for part in rel_to_root.parts[:-1]):
-                continue
-            try:
-                rel = str(path.relative_to(repo_root)).replace("\\", "/")
-            except ValueError:
-                rel = str(path).replace("\\", "/")
-            report.files_scanned += 1
-            reads, err = scan_file(path, rel, global_consts)
-            if err:
-                report.parse_errors.append(err)
-            for rp in reads:
-                if rp.kind in ("wsgi_environ", "pass_through"):
-                    continue          # WSGI 请求上下文 / 助手形参转发：都不是开关读取点
-                if rp.kind == "loop_collection":
-                    if rp.loop_source in PASS_THROUGH_SITES:
-                        report.passthrough.append(rp)
-                    else:
-                        rp.dynamic_prefix = f"loop:{rp.loop_source}"
-                        report.dynamic.append(rp)
-                    continue
-                if rp.kind == "runtime_name":
-                    if rp.runtime_expr in RUNTIME_NAME_READS:
-                        report.runtime_reads.append(rp)
-                    else:
-                        rp.dynamic_prefix = f"runtime:{rp.runtime_expr}"
-                        report.dynamic.append(rp)
-                    continue
-                if rp.name in PROCESS_ENV_DENYLIST:
-                    report.process_env.append(rp)
-                elif rp.name:
-                    report.managed.append(rp)
+    for path in _iter_py_files(root_list):
+        try:
+            rel = str(path.relative_to(repo_root)).replace("\\", "/")
+        except ValueError:
+            rel = str(path).replace("\\", "/")
+        report.files_scanned += 1
+        reads, err = scan_file(path, rel, global_consts)
+        if err:
+            report.parse_errors.append(err)
+        for rp in reads:
+            if rp.kind in ("wsgi_environ", "pass_through"):
+                continue          # WSGI 请求上下文 / 助手形参转发：都不是开关读取点
+            if rp.kind == "loop_collection":
+                if rp.loop_source in PASS_THROUGH_SITES:
+                    report.passthrough.append(rp)
                 else:
+                    rp.dynamic_prefix = f"loop:{rp.loop_source}"
                     report.dynamic.append(rp)
+                continue
+            if rp.kind == "runtime_name":
+                if _is_declared_runtime_name(rp):
+                    report.runtime_reads.append(rp)
+                else:
+                    rp.dynamic_prefix = f"runtime:{rp.runtime_expr}"
+                    report.dynamic.append(rp)
+                continue
+            if rp.name in PROCESS_ENV_DENYLIST:
+                report.process_env.append(rp)
+            elif rp.name:
+                report.managed.append(rp)
+            else:
+                report.dynamic.append(rp)
     return report
 
 
@@ -1152,10 +1262,13 @@ def check_gaps(report: ScanReport) -> GapReport:
     gap.passthrough_sites = sorted({rp.loop_source for rp in report.passthrough})
     gap.undeclared_passthrough = [s for s in gap.passthrough_sites
                                   if s not in PASS_THROUGH_SITES]
+    # 声明的判据是**站点级**的（见 RUNTIME_NAME_SITES）：此处按读取点逐条判定，
+    # 而不是只看表达式名 —— 否则一个宽泛的表达式名会把别处的真实读取点一起放行。
     gap.runtime_name_reads = sorted({rp.runtime_expr
                                      for rp in report.runtime_reads})
-    gap.undeclared_runtime_reads = [e for e in gap.runtime_name_reads
-                                    if e not in RUNTIME_NAME_READS]
+    gap.undeclared_runtime_reads = sorted(
+        {rp.runtime_expr for rp in report.runtime_reads
+         if not _is_declared_runtime_name(rp)})
     return gap
 
 
