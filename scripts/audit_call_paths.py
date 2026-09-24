@@ -59,13 +59,15 @@ from __future__ import annotations
 import argparse
 import ast
 import copy
+import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
+import tempfile
 import threading
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
@@ -323,26 +325,86 @@ def module_of(rel: str) -> str:
     return m[:-9] if m.endswith(".__init__") else m
 
 
-class _SymbolIndex(ast.NodeVisitor):
-    """记录每个 `ast.Call` 所在的**符号名**（生成稳定锚点）"""
+# ════════════════════════════════════════════════════════════
+#  单次遍历的树索引（2026-09-24 · L6 根治 CI 负载敏感）
+# ════════════════════════════════════════════════════════════
+# 【为什么要有它（实测，证据见 docs/closeout/遗留问题立项_20260922.md 的 L6）】
+#   改造前每解析一个文件要做 **3 次整树遍历**：
+#     ① `module_bindings(tree)` 的 `ast.walk`（找 import 绑定）；
+#     ② `_SymbolIndex.visit(tree)` 的递归 NodeVisitor（维护符号栈）；
+#     ③ `_collect_findings` 主循环里**再一次** `ast.walk`。
+#   `ast.walk` 的代价在 `iter_child_nodes` → `iter_fields` → 逐字段 `getattr`：
+#   本机 1406 个受控文件，一次全仓遍历就是 **2,214.9 万次 `iter_fields`**；
+#   cProfile 下 `ast.walk` 24.3s + `_SymbolIndex` 11.0s ≈ 冷扫描的 60%。
+#   本类把这三次合成**一次 BFS 遍历**（与 `ast.walk` **同序**：同样的 deque 弹出顺序，
+#   于是"同名重复 import 后者覆盖"的绑定表语义逐字节不变），同时记录父子关系
+#   ⇒ 符号锚点由父链上溯算出，不再需要第二次递归遍历。
+# 【口径等价（逐条论证）】旧 `_SymbolIndex.parent[id(call)]` 的取值是"该 call 被访问时
+#   符号栈的内容"，即**所有**外层 `def`/`async def`/`class` 的名字自外向内 `::` 连接
+#   （`lambda` 不入栈）；父链上溯后反转，结果逐字符相同。
+#   既有守护用例 `test_身份判定快路径与旧口径等价` 仍然对拍两条路径。
+class _TreeIndex:
+    """一次 BFS 遍历得到的：节点表（与 `ast.walk` 同序）+ 父表 + 惰性符号锚点"""
 
-    def __init__(self) -> None:
-        self.stack: List[str] = []
+    __slots__ = ("nodes", "_parents", "_symbols")
+
+    def __init__(self, tree: ast.AST) -> None:
+        nodes: List[ast.AST] = []
+        parents: Dict[int, ast.AST] = {}
+        queue: "deque[ast.AST]" = deque([tree])
+        while queue:
+            node = queue.popleft()
+            nodes.append(node)
+            for child in ast.iter_child_nodes(node):
+                parents[id(child)] = node
+                queue.append(child)
+        self.nodes = nodes
+        self._parents = parents
+        self._symbols: Dict[int, str] = {}
+
+    def symbol_of(self, node: ast.AST) -> str:
+        """节点所在的**符号锚点**（`Outer::inner`；无外层定义时 `<module>`）"""
+        key = self._symbols.get(id(node))
+        if key is not None:
+            return key
+        parts: List[str] = []
+        cur = self._parents.get(id(node))
+        while cur is not None:
+            if isinstance(cur, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                parts.append(cur.name)
+            cur = self._parents.get(id(cur))
+        key = "::".join(reversed(parts)) or "<module>"
+        self._symbols[id(node)] = key
+        return key
+
+
+class _SymbolIndex(_TreeIndex):
+    """（兼容层）`{id(ast.Call) → 符号锚点}` 表
+
+    【2026-09-24 · L6】实现改为复用 `_TreeIndex`：原先这里有一份**独立的**递归遍历，
+    与主扫描各算各的，存在口径漂移风险；现在两条路径共用 `symbol_of()`。
+    保留 `visit()` / `.parent` 的名字，供既有守护用例
+    （`test_身份判定快路径与旧口径等价`）与 `_identity_leaves()` 继续使用。
+    """
+
+    def __init__(self, tree: Optional[ast.AST] = None) -> None:
         self.parent: Dict[int, str] = {}
+        if tree is not None:
+            self.visit(tree)
 
-    def _visit_def(self, node: Any) -> None:
-        self.stack.append(node.name)
-        for child in ast.iter_child_nodes(node):
-            self.visit(child)
-        self.stack.pop()
+    def visit(self, tree: ast.AST) -> Dict[int, str]:
+        _TreeIndex.__init__(self, tree)
+        self.parent = {id(n): self.symbol_of(n)
+                       for n in self.nodes if isinstance(n, ast.Call)}
+        return self.parent
 
-    visit_FunctionDef = _visit_def
-    visit_AsyncFunctionDef = _visit_def
-    visit_ClassDef = _visit_def
 
-    def visit_Call(self, node: ast.Call) -> None:
-        self.parent[id(node)] = "::".join(self.stack) or "<module>"
-        self.generic_visit(node)
+def _symbol_key_of(sym: Any, node: ast.AST) -> str:
+    """取节点的符号锚点：新索引走 `symbol_of()`，兼容对象走 `.parent` 表"""
+    symbol_of = getattr(sym, "symbol_of", None)
+    if callable(symbol_of):
+        return symbol_of(node)
+    return sym.parent.get(id(node), "")
 
 
 def _callee_name(node: ast.Call) -> str:
@@ -376,16 +438,19 @@ def _base_name(node: ast.Call) -> str:
 # ════════════════════════════════════════════════════════════
 
 
-def module_bindings(tree: ast.Module) -> Dict[str, Tuple[str, str]]:
-    """`本模块里的名字 → (来源模块, 原始名)`
+def module_bindings_from_nodes(nodes: Iterable[ast.AST]
+                              ) -> Dict[str, Tuple[str, str]]:
+    """从**已遍历好的节点序列**建绑定表（顺序敏感：同名重复 import 后者覆盖）
 
-    覆盖三种形态：
-        `from agent.tools import call as call_tool`  → {"call_tool": ("agent.tools","call")}
-        `from agent.tools.git_tools import _git`     → {"_git": ("agent.tools.git_tools","_git")}
-        `import agent.tools.file_tools_reg as ftr`   → {"ftr": ("agent.tools.file_tools_reg","")}
+    【为什么要拆出来（2026-09-24 · L6）】主扫描为了"符号锚点 + 调用点"已经遍历过一次，
+    再 `ast.walk` 一遍只为找 import 是纯浪费（一次全仓遍历 ≈ 2,214.9 万次 `iter_fields`）。
+    判据不变：`ast.walk` 与 `_TreeIndex.nodes` **都是 BFS 同序**，
+    故"后者覆盖前者"的结果逐字节一致（对拍见本仓守护用例
+    `test_capregistry_callpaths_routes.py::TestPrefilterAndTraversalEquivalence`
+    的 `test_绑定表与_ast_walk_同序等价`）。
     """
     binds: Dict[str, Tuple[str, str]] = {}
-    for node in ast.walk(tree):
+    for node in nodes:
         if isinstance(node, ast.ImportFrom) and node.module:
             for a in node.names:
                 if a.name == "*":
@@ -395,6 +460,19 @@ def module_bindings(tree: ast.Module) -> Dict[str, Tuple[str, str]]:
             for a in node.names:
                 binds[a.asname or a.name.split(".")[0]] = (a.name, "")
     return binds
+
+
+def module_bindings(tree: ast.Module) -> Dict[str, Tuple[str, str]]:
+    """`本模块里的名字 → (来源模块, 原始名)`
+
+    覆盖三种形态：
+        `from agent.tools import call as call_tool`  → {"call_tool": ("agent.tools","call")}
+        `from agent.tools.git_tools import _git`     → {"_git": ("agent.tools.git_tools","_git")}
+        `import agent.tools.file_tools_reg as ftr`   → {"ftr": ("agent.tools.file_tools_reg","")}
+
+    兼容入口：内部与主扫描共用 `module_bindings_from_nodes`（判据只有一处实现）。
+    """
+    return module_bindings_from_nodes(ast.walk(tree))
 
 
 def _is_funnel(node: ast.Call, binds: Dict[str, Tuple[str, str]]) -> bool:
@@ -517,10 +595,12 @@ def _identity_leaves(tree: ast.Module, sym: _SymbolIndex) -> Set[str]:
     （判据仍是"该符号名下有任一调用点满足三选一"），复杂度降到**每文件一次遍历**。
     """
     out: Set[str] = set()
-    for node in ast.walk(tree):
+    # 【2026-09-24 · L6】优先复用主扫描已建好的节点表（`_TreeIndex.nodes`），
+    #   避免再来一次 `ast.walk`；传入旧式对象/裸树时回退到 ast.walk。
+    for node in getattr(sym, "nodes", None) or ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        key = sym.parent.get(id(node), "")
+        key = _symbol_key_of(sym, node)
         leaf = key.split("::")[-1] if key else ""
         if not leaf:
             continue
@@ -584,8 +664,20 @@ def _sdk_available() -> bool:
         return False
 
 
-def _module_importers(root: str, module: str) -> List[str]:
+#: `_module_importers` 的进程内 memo：`(root, module, 仓库状态 digest) → importer 列表`
+#: 【为什么要 memo（2026-09-24 · L6）】它每次都要起一个 `git grep` 子进程，而
+#:   `_apply_policy` **每次 `scan()` 都重跑**（它读运行期可变的例外表，故意不进缓存）
+#:   ⇒ 一个测试文件里 5 次 `main(["--check"])` 就是 5 轮 `git grep`。本机实测（2 核）：
+#:   单次 `scan()` 的热路径仍有 ~2.2s，几乎全在子进程启动上；CI 的 2 核 runner 更贵。
+#:   键里带**仓库状态 digest**（与扫描缓存同一套指纹：文件集合 + 逐文件 mtime/size）
+#:   ⇒ 仓库内容变了必不命中，与不缓存时的判定语义完全一致。
+_IMPORTER_CACHE: Dict[Tuple[str, str, str], List[str]] = {}
+
+
+def _module_importers(root: str, module: str, state_key: str = "") -> List[str]:
     """生产代码里 **import 该模块**的位置（排除 tests/docs/非受控副本）
+
+    `state_key` 非空时启用进程内 memo（键含仓库状态 ⇒ 不会给出过期结论）。
 
     【不易·必须匹配"import 语句"而不是"出现该字符串"】本脚本第一版用
     `git grep -F <模块名>`，结果把**本文件自己写下的模块名字符串**（例外表里那句
@@ -594,6 +686,11 @@ def _module_importers(root: str, module: str) -> List[str]:
     实测踩到：`TestCallPathInventory::test_死模块被标为不可达` 变红。
     ⇒ 判据收紧成"**真的有一条 import 语句**"，这样文档/注释/例外表里的提及不会污染结论。
     """
+    memo_key = (os.path.abspath(root), module, state_key)
+    if state_key:
+        memo_hit = _IMPORTER_CACHE.get(memo_key)
+        if memo_hit is not None:
+            return list(memo_hit)
     pattern = (r"(^|[[:space:]])(from|import)[[:space:]]+"
                + re.escape(module) + r"([[:space:].]|$)")
     try:
@@ -610,12 +707,19 @@ def _module_importers(root: str, module: str) -> List[str]:
         if rel.split("/", 1)[0] not in _SCAN_ROOTS:
             continue
         res.append(rel)
+    if state_key:
+        if len(_IMPORTER_CACHE) > 256:      # 长驻进程的兜底上限（正常只有个位数条目）
+            _IMPORTER_CACHE.clear()
+        _IMPORTER_CACHE[memo_key] = list(res)
     return res
 
 
 def _reachability(root: str, file: str, symbol: str, callee: str,
-                  path_kind: str) -> Tuple[bool, str]:
+                  path_kind: str, state_key: str = "") -> Tuple[bool, str]:
     """静态判定该路径**当前是否可达**（不执行任何代码）
+
+    `state_key` 只用作"死模块 importer 查询"的 memo 键（见 `_module_importers`），
+    不参与任何判定。
 
     判据优先级：
       1. **死模块**（`DEAD_MODULES`）⇒ **没有生产调用方** ⇒ 不可达。
@@ -633,7 +737,8 @@ def _reachability(root: str, file: str, symbol: str, callee: str,
     """
     if file in DEAD_MODULES:
         mod = module_of(file)
-        importers = [p for p in _module_importers(root, mod) if p != file]
+        importers = [p for p in _module_importers(root, mod, state_key)
+                     if p != file]
         prod = [p for p in importers if _in_scope(p)]
         if not prod:
             others = ("；非生产引用：" + "、".join(importers)) if importers else ""
@@ -717,17 +822,241 @@ def _file_state(root: str, files: Sequence[str]) -> Tuple[Any, ...]:
 
 
 def scan_cache_clear() -> None:
-    """清空扫描缓存（测试与长驻进程用；改完工作区想强制重扫也可先调它）"""
+    """清空**进程内**扫描缓存（测试与长驻进程用；改完工作区想强制重扫也可先调它）
+
+    【边界】只清进程内缓存与 importer memo，**不动**磁盘产物：磁盘产物按仓库状态
+    指纹命名，状态变了自然换键；显式删除反而会让"跨进程复用"这一性质测不出来。
+    要连磁盘一起清：删掉 `_disk_cache_dir()` 目录即可，或设 `CP_AUDIT_SCAN_DISK_CACHE=0`。
+    """
     with _RAW_SCAN_LOCK:
         _RAW_SCAN_CACHE.clear()
+        _IMPORTER_CACHE.clear()
 
 
-def scan_cache_info() -> Dict[str, int]:
-    """缓存统计（hit / miss / entries）——供测试锁定"同进程重复 scan 真的命中缓存" """
+def scan_cache_info() -> Dict[str, Any]:
+    """缓存统计（进程内 hit/miss/entries + 磁盘产物 disk_*）——供测试锁定缓存真在生效"""
     with _RAW_SCAN_LOCK:
-        info = dict(_RAW_SCAN_STATS)
+        info: Dict[str, Any] = dict(_RAW_SCAN_STATS)
         info["entries"] = len(_RAW_SCAN_CACHE)
+        info.update(_DISK_CACHE_STATS)
+        info["disk_dir"] = _disk_cache_dir() or ""
         return info
+
+
+# ════════════════════════════════════════════════════════════
+#  跨进程扫描产物（2026-09-24 · L6 根治 CI 负载敏感）
+# ════════════════════════════════════════════════════════════
+# 【为什么需要第二层：进程内缓存**管不到跨进程**（实测证据）】
+#   CI 的命令是 `-n 2 --dist=loadscope`，而 xdist 的 loadscope 对**带类的测试模块**
+#   是**按类分组**的 ⇒ 同一个测试文件的各个类会落到**不同 worker 进程**，
+#   每个进程各付一次全仓扫描。2026-09-22 的那轮 CI（job 106915652550）日志可直接读到：
+#     · gw1 在 `TestScanCache` 的 `findings` 夹具（= `audit.scan()`）里被
+#       `Timeout (>300.0s)` 打断，**gw0 同时**也在 `TestCallPathInventory` 的同一夹具里
+#       被同一超时打断（两处栈都停在 `_collect_findings`）；
+#     · 被中断的扫描**不会留下任何缓存** ⇒ 随后 gw0 的 `TestCheckMode` 四条用例
+#       **各自又从零冷扫一次**（每条 300s）⇒ 单文件 6 次全仓 AST、约 20 分钟。
+#   ⇒ 把"逐文件 AST 分析"的产物落成**按仓库状态指纹命名的磁盘文件**：
+#     同一次 job 内其它进程（以及本机重跑）直接复用，把 6 次收敛成 1 次。
+#
+# 【失效判据（与进程内缓存同一套语义，逐字节相同）】
+#   键 = `_state_digest(root, signature, include_scripts)`，其中 `signature` 就是进程内
+#   缓存用的那个：`_heuristic_signature()` + 被扫描文件的 `(rel, mtime_ns, size)`；
+#   再叠加 `root` / `include_scripts` / **扫描器自身源码指纹** / 产物格式版本。
+#   ⇒ 改任一受控文件、新增或删除文件、改启发式常量、改扫描器本身，都会换键。
+#   **不读过期结论**是硬要求：`--check` 是门禁结论，过期但"看起来正常"比超时更危险。
+#
+# 【为什么产物里不落"配置相关判定"】
+#   只存 `_collect_findings` 的输出（原始 Findings）。`EXEMPT_CALL_SITES` /
+#   `DEAD_MODULES` / `VIOLATION_SCOPE_PREFIXES` 一律在 `_apply_policy` 里**每次重算**
+#   —— 与进程内缓存同一条理由：守护用例用 monkeypatch 改内存里的例外表造负例，
+#   缓存绝不能把这类判定冻住（本仓发生过"负例静默失效"）。
+#
+# 【边界与开关】
+#   · 写盘失败 / 产物损坏 / 目录不可写 ⇒ **一律按未命中处理**，绝不抛给调用方
+#     （门禁既不能因缓存而红，更不能因缓存而静默放行）；
+#   · 默认目录 = 系统临时目录下的 `cp_audit_call_paths/`（**绝不写仓库目录、绝不碰
+#     data/**）；`CP_AUDIT_SCAN_CACHE_DIR=/path` 可改；`CP_AUDIT_SCAN_DISK_CACHE=0` 关闭；
+#   · 只保留最近 `_DISK_CACHE_MAX_FILES` 份产物，缓存目录不是无底洞。
+_DISK_CACHE_FORMAT = 1
+_DISK_CACHE_DIRNAME = "cp_audit_call_paths"
+_DISK_CACHE_DIR_ENV = "CP_AUDIT_SCAN_CACHE_DIR"
+_DISK_CACHE_OFF_ENV = "CP_AUDIT_SCAN_DISK_CACHE"
+_DISK_CACHE_MAX_FILES = 32
+_DISK_CACHE_STATS: Dict[str, int] = {
+    "disk_hit": 0, "disk_miss": 0, "disk_write": 0, "disk_error": 0}
+
+#: 产物里保存的字段：**只包含 `_collect_findings` 会写的那些**。
+#: `reachable` / `reachability` / `exempt*` / `in_scope` 一律由 `_apply_policy` 重算，
+#: 落盘就等于把配置相关判定一起冻住（见上）。
+_RAW_FIELDS: Tuple[str, ...] = (
+    "file", "lineno", "symbol", "callee", "capability", "path_kind",
+    "trigger", "via_registry", "via_gate", "has_identity")
+
+
+def _scanner_source_state() -> Tuple[int, int]:
+    """扫描器自身源码的 `(mtime_ns, size)`：产物键的一部分（改了判据就必须重扫）"""
+    try:
+        st = os.stat(os.path.abspath(__file__))
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:  # pragma: no cover - 取不到就当"没变"
+        return (0, 0)
+
+
+def _disk_cache_dir() -> Optional[str]:
+    """跨进程产物目录；返回 `None` 表示本轮**关闭**（环境变量或取不到临时目录）"""
+    raw = str(os.environ.get(_DISK_CACHE_OFF_ENV, "")).strip().lower()
+    if raw in ("0", "false", "no", "off"):
+        return None
+    override = str(os.environ.get(_DISK_CACHE_DIR_ENV, "")).strip()
+    if override:
+        return override
+    try:
+        return os.path.join(tempfile.gettempdir(), _DISK_CACHE_DIRNAME)
+    except Exception:  # pragma: no cover - 极端环境（无临时目录）
+        return None
+
+
+def _state_digest(root: str, signature: Tuple[Any, ...], include_scripts: bool) -> str:
+    """仓库状态指纹（磁盘产物文件名 + importer memo 键）
+
+    实测成本：`repr(signature)` + sha256 ≈ 10ms（对比一次冷扫描 14.3s），可忽略。
+    """
+    head = "fmt=%d|root=%s|scripts=%d|scanner=%r|" % (
+        _DISK_CACHE_FORMAT, os.path.abspath(root), int(bool(include_scripts)),
+        _scanner_source_state())
+    digest = hashlib.sha256(head.encode("utf-8"))
+    digest.update(repr(signature).encode("utf-8"))
+    return digest.hexdigest()
+
+
+def _disk_cache_path(state_key: str) -> Optional[str]:
+    directory = _disk_cache_dir()
+    if not directory:
+        return None
+    return os.path.join(directory, "scan-%s.json" % state_key[:32])
+
+
+def _load_raw_from_disk(state_key: str) -> Optional[List["Finding"]]:
+    """读磁盘产物；未命中/损坏/不可读一律返回 `None`（调用方重新扫描）"""
+    path = _disk_cache_path(state_key)
+    if path is None:
+        return None
+    if not os.path.exists(path):
+        _DISK_CACHE_STATS["disk_miss"] += 1
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            blob = json.load(fh)
+        if int(blob.get("format", -1)) != _DISK_CACHE_FORMAT:
+            raise ValueError("产物格式版本不匹配")
+        rows = blob.get("findings")
+        if not isinstance(rows, list):
+            raise ValueError("产物缺少 findings 列表")
+        out = [Finding(**{k: row[k] for k in _RAW_FIELDS}) for row in rows]
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+        _DISK_CACHE_STATS["disk_error"] += 1
+        return None
+    _DISK_CACHE_STATS["disk_hit"] += 1
+    return out
+
+
+def _store_raw_to_disk(state_key: str, raw: Sequence["Finding"], *,
+                       root: str, include_scripts: bool) -> None:
+    """原子写磁盘产物（先写 `<path>.<pid>.tmp` 再 `os.replace`）
+
+    Why 原子：并发的 xdist worker 会同时写同一个键；`os.replace` 保证读者看到的
+    要么是旧产物、要么是完整新产物，**绝不会读到半截 JSON**。
+    """
+    path = _disk_cache_path(state_key)
+    if path is None:
+        return
+    tmp = "%s.%d.tmp" % (path, os.getpid())
+    payload = {
+        "format": _DISK_CACHE_FORMAT,
+        "root": os.path.abspath(root),
+        "include_scripts": bool(include_scripts),
+        "state": state_key,
+        "findings": [{k: getattr(f, k) for k in _RAW_FIELDS} for f in raw],
+    }
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False)
+        os.replace(tmp, path)
+        _DISK_CACHE_STATS["disk_write"] += 1
+    except OSError:
+        _DISK_CACHE_STATS["disk_error"] += 1
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+    _prune_disk_cache(os.path.dirname(path))
+
+
+def _prune_disk_cache(directory: str) -> None:
+    """只保留最近 `_DISK_CACHE_MAX_FILES` 份产物（失败一律忽略，不影响门禁）"""
+    try:
+        names = [n for n in os.listdir(directory)
+                 if n.startswith("scan-") and n.endswith(".json")]
+    except OSError:  # pragma: no cover
+        return
+    if len(names) <= _DISK_CACHE_MAX_FILES:
+        return
+    entries: List[Tuple[float, str]] = []
+    for name in names:
+        full = os.path.join(directory, name)
+        try:
+            entries.append((os.path.getmtime(full), full))
+        except OSError:  # pragma: no cover
+            continue
+    entries.sort()
+    for _, full in entries[:len(entries) - _DISK_CACHE_MAX_FILES]:
+        try:
+            os.remove(full)
+        except OSError:  # pragma: no cover
+            pass
+
+
+#: 参与判据、且**与 handler 表无关**的调用点标识符（`_collect_findings` 的三个分支）
+#: 【不易】这里是**派生**而不是手抄：`_is_funnel` 认 `call` 与 `_FUNNEL_ALIASES`，
+#:   `_is_remote_primitive` 认 `_REMOTE_PRIMITIVES` —— 这三处将来加名字，预筛集合
+#:   自动跟上；守护用例 `test_预筛标识集必须覆盖全部判据名字` 再钉一道。
+_CALL_SITE_NAME_EXTRA: frozenset = (
+    frozenset({"call"}) | _FUNNEL_ALIASES | _REMOTE_PRIMITIVES
+)
+
+
+def _call_site_pattern(handler_names: Iterable[str]) -> "re.Pattern[bytes]":
+    r"""`\b(?:名字1|名字2|…)\b` 的**字节级**预筛正则（见 `_source_may_contain_call_site`）"""
+    names = sorted({n for n in handler_names if n} | set(_CALL_SITE_NAME_EXTRA),
+                   key=len, reverse=True)
+    return re.compile((r"\b(?:%s)\b" % "|".join(re.escape(n) for n in names))
+                      .encode("utf-8"))
+
+
+def _source_may_contain_call_site(root: str, rel: str,
+                                  pattern: "re.Pattern[bytes]") -> bool:
+    r"""源码字节里是否**可能出现**参与判据的调用点标识符（保语义的保守预筛）
+
+    【判据论证（为什么不丢结论）】`_collect_findings` 只可能为满足下列之一的
+    `ast.Call` 生成 Finding：
+      · `_is_funnel`：`func` 是 `Name(id="call")` / `Name(id ∈ _FUNNEL_ALIASES)`
+        / `Attribute(attr="call")`；
+      · `_is_remote_primitive`：`Attribute(attr ∈ _REMOTE_PRIMITIVES)`；
+      · `_callee_name(node) ∈ handler_names`：即 `Name.id` 或 `Attribute.attr`。
+    这些名字**都是标识符**，在源码里必然**逐字出现**、且两侧（若存在）不是标识符字符
+    ⇒ 上面的 `\b名\b` 字节正则**必定命中**。⇒ 未命中的文件**不可能**产生 Finding，
+    跳过它只省成本、不改结论（与既有 `_source_mentions_register` 同一手法）。
+    【只做上界】命中 ≠ 有调用点（注释/字符串里出现也叫命中）⇒ 多扫不漏扫。
+    【实测选择性】本机 1406 个受控文件命中 500 个（35.6%）、命中字节 11.9MB/22.6MB。
+    """
+    try:
+        with open(os.path.join(root, rel), "rb") as fh:
+            raw = fh.read()
+    except OSError:
+        # 读不到就**保守地当作"可能"**：交给 `_parse` 去失败（与直接扫该文件同效）
+        return True
+    return pattern.search(raw) is not None
 
 
 def _collect_findings(root: str, files: Sequence[str]) -> List[Finding]:
@@ -736,27 +1065,35 @@ def _collect_findings(root: str, files: Sequence[str]) -> List[Finding]:
     产物只取决于「被扫描文件的 (mtime_ns, size) 集合」与启发式常量，
     **不读** `EXEMPT_CALL_SITES` / `DEAD_MODULES` / `VIOLATION_SCOPE_PREFIXES`
     ⇒ 可安全缓存，并在配置变化时复用（配置相关的判定全在 `_apply_policy`）。
+
+    【2026-09-24 · L6 的两处成本改造（判据一字不改，逐条对拍见守护用例）】
+      ① **字节预筛**：不可能出现调用点标识符的文件连 `ast.parse` 都不做
+         （本机 1406 → 500 个文件，判据论证见 `_source_may_contain_call_site`）；
+      ② **单次遍历**：import 绑定表 / 符号锚点 / 主循环共用 `_TreeIndex`
+         （原本是 3 次整树遍历，见 `_TreeIndex` 的说明）。
     """
     handlers = collect_registered_handlers(root, files)
     handler_names = {n for n in handlers
                      if n not in _GENERIC_NAMES and len(n) >= _MIN_HANDLER_NAME_LEN}
+    pattern = _call_site_pattern(handler_names)
 
     findings: List[Finding] = []
     for rel in files:
+        if not _source_may_contain_call_site(root, rel, pattern):
+            continue
         tree = _parse(root, rel)
         if tree is None:
             continue
-        binds = module_bindings(tree)
-        sym = _SymbolIndex()
-        sym.visit(tree)
+        index = _TreeIndex(tree)
+        binds = module_bindings_from_nodes(index.nodes)
         # 身份表**惰性**计算：全仓只有个位数文件含收口调用点（实测 39 条 findings 里
         # 只有 10 条 funnel）⇒ 无条件每文件算一遍反而白走 1400 遍树（实测 +2.3s）。
         identity_leaves: Optional[Set[str]] = None
         trigger = _trigger_of(rel)
-        for node in ast.walk(tree):
+        for node in index.nodes:
             if not isinstance(node, ast.Call):
                 continue
-            key = sym.parent.get(id(node), "<module>")
+            key = index.symbol_of(node)
             leaf = key.split("::")[-1] if key else "<module>"
             cap_arg = (str(node.args[0].value)
                        if node.args and isinstance(node.args[0], ast.Constant) else "")
@@ -764,7 +1101,7 @@ def _collect_findings(root: str, files: Sequence[str]) -> List[Finding]:
             # ── P1：收口路径 ──
             if _is_funnel(node, binds):
                 if identity_leaves is None:
-                    identity_leaves = _identity_leaves(tree, sym)
+                    identity_leaves = _identity_leaves(tree, index)
                 has_id = (leaf in identity_leaves) or any(
                     kw.arg in ("session_source", "identity", "callable_by")
                     for kw in node.keywords)
@@ -797,8 +1134,12 @@ def _collect_findings(root: str, files: Sequence[str]) -> List[Finding]:
     return findings
 
 
-def _apply_policy(root: str, findings: List[Finding]) -> List[Finding]:
+def _apply_policy(root: str, findings: List[Finding], *,
+                  state_key: str = "") -> List[Finding]:
     """**廉价但依赖模块级配置**的后半段：例外锚点补登 + 可达性 + 豁免标记 + 排序
+
+    `state_key` 只透传给"死模块 importer 查询"当 memo 键（见 `_module_importers`），
+    **不参与任何判定**：本段照旧每次 `scan()` 重跑。
 
     【关键：这一段**不进缓存**，每次 `scan()` 都重跑】
       它读的全是**运行期可变**的模块级配置（`EXEMPT_CALL_SITES` / `DEAD_MODULES` /
@@ -834,7 +1175,8 @@ def _apply_policy(root: str, findings: List[Finding]) -> List[Finding]:
     # ── 可达性 + 豁免登记 + 硬失败范围 ──
     for f in findings:
         f.in_scope = _in_scope(f.file)
-        reach, why = _reachability(root, f.file, f.symbol, f.callee, f.path_kind)
+        reach, why = _reachability(root, f.file, f.symbol, f.callee, f.path_kind,
+                                   state_key)
         f.reachable = reach
         f.reachability = why
         ex = EXEMPT_CALL_SITES.get(f.anchor)
@@ -850,10 +1192,13 @@ def _apply_policy(root: str, findings: List[Finding]) -> List[Finding]:
 
 
 def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
-    """扫描全部能触发能力执行的路径（**进程级缓存**，按被扫描文件指纹失效）
+    """扫描全部能触发能力执行的路径（**进程级缓存 + 跨进程磁盘产物**，按仓库指纹失效）
 
-    见本文件「进程级扫描缓存」段的动机与失效判据。
-    缓存只覆盖"逐文件 AST 分析"这一昂贵前半段；配置相关的收尾每次都重算。
+    见本文件「进程级扫描缓存」与「跨进程扫描产物」两段的动机与失效判据：
+      ① 进程内缓存（`_RAW_SCAN_CACHE`）：同一进程重复 `scan()` 只算一次；
+      ② 跨进程产物（`_load_raw_from_disk` / `_store_raw_to_disk`）：指纹相同就复用，
+         xdist 的另一个 worker、以及本机下一次运行都不必再扫一遍。
+    两层都只覆盖"逐文件 AST 分析"这一昂贵前半段；配置相关的收尾每次都重算。
 
     返回值是**独立副本**（`_apply_policy` 会就地改写 Finding 字段）⇒ 调用方
     随意修改不会污染缓存，缓存也不会把上一次的判定泄漏给下一次。
@@ -864,6 +1209,7 @@ def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
 
     cache_key = (os.path.abspath(root), bool(include_scripts))
     signature = (_heuristic_signature(), _file_state(root, files))
+    state_key = _state_digest(root, signature, include_scripts)
     with _RAW_SCAN_LOCK:
         cached = _RAW_SCAN_CACHE.get(cache_key)
         if cached is not None and cached[0] == signature:
@@ -873,11 +1219,15 @@ def scan(root: str = _ROOT, *, include_scripts: bool = True) -> List[Finding]:
             _RAW_SCAN_STATS["miss"] += 1
             raw = None
     if raw is None:
-        raw = _collect_findings(root, files)
+        raw = _load_raw_from_disk(state_key)
+        if raw is None:
+            raw = _collect_findings(root, files)
+            _store_raw_to_disk(state_key, raw, root=root,
+                               include_scripts=include_scripts)
         with _RAW_SCAN_LOCK:
             # 存**副本**：随后 `_apply_policy` 会就地改写 raw 里的字段
             _RAW_SCAN_CACHE[cache_key] = (signature, copy.deepcopy(raw))
-    return _apply_policy(root, raw)
+    return _apply_policy(root, raw, state_key=state_key)
 
 
 def _find_symbol_node(tree: ast.Module, symbol: str) -> Optional[ast.AST]:
