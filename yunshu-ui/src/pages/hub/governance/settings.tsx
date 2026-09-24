@@ -367,7 +367,6 @@ function SourceLine({ item }: { item: SettingsItem }) {
         <span
           className="rounded border border-slate-800 bg-slate-900/60 px-1.5 py-0.5 text-[10px] text-slate-400"
           data-cp-setting-config-state={item.config_state || 'unknown'}
-          data-cp-setting-key={item.key}
         >
           {item.config_state_label}
         </span>
