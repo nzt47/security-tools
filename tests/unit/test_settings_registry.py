@@ -829,6 +829,28 @@ class TestL5ReadSitesAreMechanicallyVerified:
                     "补登记的路径失去依据，必须重新核实而不是留着")
 
     def test_declared_path_segments_are_source_literals(self):
+        """声明路径的每一段都必须是归属模块里的字面量，且该模块确实读 config.yaml
+
+        ★ **已知边界（如实声明，勿误读为"已完备"）**：本判据只验「每一段都在模块里」，
+        **拦不住兄弟叶写错** —— 例如把 learning.lifecycle.archive_days 误登记成
+        learning.lifecycle.unused_days：两个叶子都在 lifecycle.py 里、模块确实读
+        config.yaml、读取模块也确实唯一，本判据照样全绿。
+
+        为什么**没有**补一条机械判据（2026-09-23 实测过三种写法，都被读取形态否掉）：
+        这 50 个键的读取形态至少三种 ——
+          ① env 与 config 在同一函数（多数调度器族）⇒ "同函数共现"可判；
+          ② env 与 config **分处两个函数**（agent/observability/model_degrade.py：
+             resolve_fallback_chain 读 env、_config_fallback_chain 读 config）⇒ 共现判据**误伤**；
+          ③ 叶子字面量只在**默认值表**里（agent/orchestrator/orchestrator.py 的
+             _REJECT_DEFAULTS / _SEM_DEFAULTS）⇒ 同函数内根本没有叶子 ⇒ 同样误伤；
+        ④ 形如 x = pick(ENV_ENABLED, "enabled", False) 的读取，提取器只记到"另一处真正
+           读 env 的行"，按读取点定位函数也会误伤。
+        要真正判别"这个 env 名对应的是哪个叶子"需要**数据流分析**（属另一层工具），
+        写一条"看起来在守护、实际会误伤/空转"的判据比不写更危险。
+        故本项的补偿控制是**逐键人读复核**（含独立子代理对抗性复核 12/12 抽样 +
+        全量手核，见 docs/closeout/开关登记表_config口径收口_L4L5_20260923.md §十一），
+        并在本文件与报告里**显式登记该边界**。
+        """
         for key, (module, path, _env) in sorted(_L5_READ_SITES.items()):
             source = (REPO_ROOT / module).read_text(encoding="utf-8")
             assert "config.yaml" in source, (
@@ -837,6 +859,7 @@ class TestL5ReadSitesAreMechanicallyVerified:
                 assert (f'"{part}"' in source) or (f"'{part}'" in source), (
                     f"{key} 的路径段 {part!r} 不在 {module} 里："
                     f"声明的 {path!r} 无法在源码里复核")
+
 
     def test_single_production_module_reads_each_env_name(self):
         _scanner, report = _production_scan()

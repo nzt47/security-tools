@@ -772,9 +772,15 @@ export interface SettingsItem {
   env_name: string;
   env_present: boolean;
   config_path: string;
-  /** 配置层是否提供了该键（L4：值等于默认值也算"提供了"） */
+  /** 配置层是否提供了该键（L4：file 层 = config.yaml 里确有这一行） */
   config_present: boolean;
-  config_provided: boolean;
+  /**
+   * 配置层来源（L4：决定 config_state_label 的文案用哪一层）：
+   *   file    config.yaml 文件层（提供 = 路径存在，可区分显式 false/空串）；
+   *   runtime ObservabilityConfig 运行态层（提供 = 取值与登记默认值不同）；
+   *   ''      无 config 口径。
+   */
+  config_layer?: 'file' | 'runtime' | '' | string;
   /**
    * 配置层提供状态三态（L4 显示口径）：
    *   provided 配置层提供了该键（含显式 false / 空串）；

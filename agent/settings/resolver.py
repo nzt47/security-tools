@@ -78,11 +78,42 @@ CONFIG_STATE_PROVIDED = "provided"   # 配置层提供了该键（值与默认�
 CONFIG_STATE_ABSENT = "absent"       # 该键有 config 口径，但配置层没有提供
 CONFIG_STATE_NO_PATH = "no_path"     # 登记表未声明 config_path ⇒ 该键无 config 口径
 
+#: 配置层**来源**（两层的"提供"能力不同，文案必须跟着层走，见下面的 ★ 注）
+CONFIG_LAYER_FILE = "file"           # config.yaml 文件层
+CONFIG_LAYER_RUNTIME = "runtime"     # ObservabilityConfig 运行态层
+CONFIG_LAYER_NONE = ""               # 无 config 口径
+
+#: 文件层文案（"提供了" = config.yaml 里**确有**这一行，含显式 false / 空串）
 CONFIG_STATE_LABELS: Dict[str, str] = {
     CONFIG_STATE_PROVIDED: "config.yaml 已提供该键",
     CONFIG_STATE_ABSENT: "config.yaml 未提供该键（当前取代码默认值）",
     CONFIG_STATE_NO_PATH: "该键无 config.yaml 口径（仅 env / 代码默认值）",
 }
+
+#: 运行态层文案。
+#:
+#: ★ 为什么必须与文件层分开（**独立复核实测发现的缺陷**，2026-09-23 修）：
+#:   `observability_config` 初始化时用**登记默认值把运行态配置铺满**
+#:   （agent/monitoring/observability_config.py:624），因此"运行态对象里有这个键"
+#:   **恒为真**，与"运维真的提供了值"无关。若照搬文件层文案，48 个 observability
+#:   口径的键会全部显示"config.yaml 已提供该键"——而 config.yaml 里根本没有这些行：
+#:   那正是本次要消灭的**谎报**。故作两层区分：
+#:     · 文件层：提供 = 路径存在（可区分"写了 false"与"没写"）；
+#:     · 运行态层：提供 = **运行态取值与登记默认值不同**（= 真有人设过它）。
+#:   运行态层的已知局限（如实声明）：**"显式设成默认值"与"从未设置"不可辨** ——
+#:   因为该对象的初值就是默认值；文件层没有这个盲区。这是两层能力的差异，不是权宜之计。
+CONFIG_STATE_LABELS_RUNTIME: Dict[str, str] = {
+    CONFIG_STATE_PROVIDED: "运行态配置已提供该键（与代码默认值不同）",
+    CONFIG_STATE_ABSENT: "运行态配置未覆盖该键（当前取代码默认值）",
+    CONFIG_STATE_NO_PATH: "该键无 config 口径（仅 env / 代码默认值）",
+}
+
+
+def config_state_label(state: str, layer: str) -> str:
+    """按**层**取三态文案（未知取值原样回显，不漏文案）"""
+    table = (CONFIG_STATE_LABELS_RUNTIME if layer == CONFIG_LAYER_RUNTIME
+             else CONFIG_STATE_LABELS)
+    return table.get(state, state)
 
 _SENTINEL = object()
 
@@ -168,9 +199,9 @@ class ResolvedSetting:
     env_locked: bool = False
     override_present: bool = False
     config_present: bool = False
-    #: 配置层是否**提供**了该键（L4：值等于默认值也算"提供了"）
-    config_provided: bool = False
-    #: 配置层提供状态（CONFIG_STATE_* 之一；只影响展示口径）
+    #: 配置层来源（CONFIG_LAYER_*；L4：决定文案用哪一层）
+    config_layer: str = CONFIG_LAYER_NONE
+    #: 配置层提供状态（CONFIG_STATE_* 之一；只影响展示口径，由 config_present 派生）
     config_state: str = CONFIG_STATE_NO_PATH
     editable: bool = False
     locked_reason: str = ""
@@ -194,10 +225,10 @@ class ResolvedSetting:
             "env_locked": bool(self.env_locked),
             "override_present": bool(self.override_present),
             "config_present": bool(self.config_present),
-            "config_provided": bool(self.config_provided),
+            "config_layer": self.config_layer,
             "config_state": self.config_state,
-            "config_state_label": CONFIG_STATE_LABELS.get(self.config_state,
-                                                           self.config_state),
+            "config_state_label": config_state_label(self.config_state,
+                                                     self.config_layer),
             "editable": bool(self.editable),
             "locked": not bool(self.editable),
             "locked_reason": self.locked_reason,
@@ -309,12 +340,23 @@ def resolve(key: str, *, store: Optional[OverrideStore] = None) -> Optional[Reso
     # 运行态与声明默认值不同 → 才算"config 提供了值"（否则就是默认值本身）
     config_present = config_source_is_file or (
         obs_value is not _SENTINEL and obs_value != spec.default)
-    # 【L4】配置层**是否提供**：与上面的 config_present 不同 —— 这里不看值是否等于
-    # 默认值，只看"配置层有没有这一项"。★ 不参与任何取值分支，只用于展示口径。
-    config_provided = config_source_is_file or obs_value is not _SENTINEL
+    # 【L4】配置层三态（**纯展示口径，不参与任何取值分支**）：
+    #   · 有 config 口径且配置层提供了 ⇒ provided；没提供 ⇒ absent；没有 config_path ⇒ no_path。
+    #   "提供了"直接取既有的 config_present 语义 —— 它已正确地**按层**区分：
+    #     file 层 = 路径存在（因此可区分"写了 false"与"没写"）；
+    #     runtime 层 = 取值与默认值不同。
+    #   ★ 不能把 runtime 层写成"运行态对象里有这个键"：observability_config 初始化时
+    #     用默认值把运行态铺满（agent/monitoring/observability_config.py:624），那样恒为真
+    #     ⇒ 48 个 observability 口径的键会全部谎报"已提供"（独立复核实测发现，已修）。
+    if obs_path:
+        config_layer = CONFIG_LAYER_RUNTIME
+    elif spec.config_path:
+        config_layer = CONFIG_LAYER_FILE
+    else:
+        config_layer = CONFIG_LAYER_NONE
     if not spec.config_path:
         config_state = CONFIG_STATE_NO_PATH
-    elif config_provided:
+    elif config_present:
         config_state = CONFIG_STATE_PROVIDED
     else:
         config_state = CONFIG_STATE_ABSENT
@@ -323,7 +365,7 @@ def resolve(key: str, *, store: Optional[OverrideStore] = None) -> Optional[Reso
     res.env_present = env_present
     res.override_present = override is not None
     res.config_present = bool(config_present)
-    res.config_provided = bool(config_provided)
+    res.config_layer = config_layer
     res.config_state = config_state
 
     # ── 取值 + 来源（严格按优先级）──
@@ -499,7 +541,9 @@ __all__ = [
     "SOURCE_ENV", "SOURCE_OVERRIDE", "SOURCE_CONFIG", "SOURCE_DEFAULT",
     "SOURCE_PRIORITY", "SOURCE_LABELS",
     "CONFIG_STATE_PROVIDED", "CONFIG_STATE_ABSENT", "CONFIG_STATE_NO_PATH",
-    "CONFIG_STATE_LABELS", "ResolvedSetting", "resolve",
+    "CONFIG_STATE_LABELS", "CONFIG_STATE_LABELS_RUNTIME", "config_state_label",
+    "CONFIG_LAYER_FILE", "CONFIG_LAYER_RUNTIME", "CONFIG_LAYER_NONE",
+    "ResolvedSetting", "resolve",
     "resolve_all", "read_config_yaml", "config_yaml_path",
     "apply_override_to_runtime", "restore_runtime", "CATEGORY_LABELS",
 ]

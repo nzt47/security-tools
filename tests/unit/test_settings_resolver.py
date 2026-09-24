@@ -201,7 +201,7 @@ class TestConfigLayerStateIsDisclosed:
         assert spec is not None and spec.config_path == ""
         pub = RS.resolve("LOCK_PROFILE", store=store).to_public_dict()
         assert pub["config_state"] == RS.CONFIG_STATE_NO_PATH
-        assert pub["config_provided"] is False
+        assert pub["config_layer"] == RS.CONFIG_LAYER_NONE
         assert pub["config_state_label"] == \
             RS.CONFIG_STATE_LABELS[RS.CONFIG_STATE_NO_PATH]
 
@@ -212,8 +212,10 @@ class TestConfigLayerStateIsDisclosed:
         assert spec is not None and spec.config_path == "budget.enabled"
         res = RS.resolve(spec.key, store=store)
         assert res.source == RS.SOURCE_DEFAULT and res.value == spec.default
-        assert res.config_provided is False
+        assert res.config_layer == RS.CONFIG_LAYER_FILE
         assert res.config_state == RS.CONFIG_STATE_ABSENT
+        assert res.to_public_dict()["config_state_label"] == \
+            RS.CONFIG_STATE_LABELS[RS.CONFIG_STATE_ABSENT]
 
     def test_explicit_false_in_config_is_provided_not_absent(self, store):
         """config.yaml 显式写 false ⇒ provided（这正是 L4 要区分的那一种）"""
@@ -221,7 +223,6 @@ class TestConfigLayerStateIsDisclosed:
         res = RS.resolve("CP_BUDGET_BRAKE_ENABLED", store=store)
         assert res.source == RS.SOURCE_CONFIG
         assert res.value is False
-        assert res.config_provided is True
         assert res.config_state == RS.CONFIG_STATE_PROVIDED
 
     def test_explicit_empty_string_is_provided(self, store):
@@ -230,7 +231,6 @@ class TestConfigLayerStateIsDisclosed:
         res = RS.resolve("CP_RETENTION_CLASSES", store=store)
         assert res.source == RS.SOURCE_CONFIG
         assert res.value == ""
-        assert res.config_provided is True
         assert res.config_state == RS.CONFIG_STATE_PROVIDED
 
     def test_c_level_empty_value_is_still_provided(self, store):
@@ -240,12 +240,19 @@ class TestConfigLayerStateIsDisclosed:
         assert res.value is None                      # C 级按设计不出明文
         assert res.configured is False                # 空串 ⇒ 未配置
         assert res.source == RS.SOURCE_CONFIG
-        assert res.config_provided is True
         assert res.config_state == RS.CONFIG_STATE_PROVIDED
 
-    def test_runtime_value_equal_to_default_still_counts_as_provided(self, store):
-        """ObservabilityConfig 运行态：值恰好等于默认值时旧口径判 config_present=False，
-        新口径必须仍如实说明「配置层提供了该键」，而 source / value 一字不变。"""
+    # ── 运行态层（ObservabilityConfig）：**文案必须跟着层走**（独立复核发现的缺陷）──
+
+    def test_runtime_default_value_is_not_reported_as_provided(self, store):
+        """★ 运行态对象里"有这个键"≠"运维提供了值"
+
+        根因：observability_config 初始化时用**登记默认值把运行态铺满**
+        （agent/monitoring/observability_config.py:624）。若照搬文件层的判据
+        （"对象里有这个键即已提供"），48 个 observability 口径的键会**全部**显示
+        "config.yaml 已提供该键"，而 config.yaml 里根本没有这些行 —— 那正是本次要消灭的谎报。
+        故运行态层的判据是"取值与登记默认值不同"，且文案明确说是**运行态**而非 config.yaml。
+        """
         from agent.monitoring.observability_config import (
             get_observability_config, reset_observability_config,
         )
@@ -255,15 +262,58 @@ class TestConfigLayerStateIsDisclosed:
         spec = R.spec_for_config(path)
         assert spec is not None
         try:
-            cfg.set(path, spec.default)
+            cfg.set(path, spec.default)             # 与默认值相同 = 没人真正提供
             res = RS.resolve(spec.key, store=store)
-            assert res.source == RS.SOURCE_DEFAULT      # 既有口径不变
-            assert res.config_present is False          # 既有口径不变
+            assert res.source == RS.SOURCE_DEFAULT  # 既有口径不变
+            assert res.config_present is False      # 既有口径不变
             assert res.value == spec.default
-            assert res.config_provided is True          # ★ 新口径：提供了
-            assert res.config_state == RS.CONFIG_STATE_PROVIDED
+            assert res.config_layer == RS.CONFIG_LAYER_RUNTIME
+            assert res.config_state == RS.CONFIG_STATE_ABSENT
+            label = res.to_public_dict()["config_state_label"]
+            assert label == RS.CONFIG_STATE_LABELS_RUNTIME[RS.CONFIG_STATE_ABSENT]
+            assert "config.yaml" not in label, label
         finally:
             reset_observability_config()
+
+    def test_runtime_non_default_value_is_provided_with_runtime_wording(self, store):
+        """运行态取值与默认值不同 ⇒ provided，且文案说的是「运行态配置」"""
+        from agent.monitoring.observability_config import (
+            get_observability_config, reset_observability_config,
+        )
+        reset_observability_config()
+        cfg = get_observability_config()
+        path = "resource_monitor.history_size"
+        spec = R.spec_for_config(path)
+        assert spec is not None
+        try:
+            cfg.set(path, int(spec.default) + 5)
+            res = RS.resolve(spec.key, store=store)
+            assert res.source == RS.SOURCE_CONFIG
+            assert res.config_layer == RS.CONFIG_LAYER_RUNTIME
+            assert res.config_state == RS.CONFIG_STATE_PROVIDED
+            label = res.to_public_dict()["config_state_label"]
+            assert label == RS.CONFIG_STATE_LABELS_RUNTIME[RS.CONFIG_STATE_PROVIDED]
+            assert "运行态" in label
+        finally:
+            reset_observability_config()
+
+    def test_no_observability_key_ever_claims_config_yaml_provided(self, store):
+        """★ 全量回归：48 个 observability 口径键**一个都不得**声称 "config.yaml 已提供"
+
+        （上一条是单点用例，这一条把所有 observability 键都扫一遍，防"只修了样板那一键"。）
+        """
+        offender = []
+        for path in sorted(R.observability_rule_paths()):
+            spec = R.spec_for_config(path)
+            if spec is None:                            # pragma: no cover 规则表与登记表应一致
+                continue
+            pub = RS.resolve(spec.key, store=store).to_public_dict()
+            if pub.get("config_layer") != RS.CONFIG_LAYER_RUNTIME:
+                offender.append((spec.key, "层标错", pub.get("config_layer")))
+            if "config.yaml" in str(pub.get("config_state_label", "")):
+                offender.append((spec.key, "文案谎报 config.yaml",
+                                 pub.get("config_state_label")))
+        assert offender == [], offender
 
     @pytest.mark.parametrize("key,path,probe", [
         ("CP_BUDGET_BRAKE_ENABLED", "budget.enabled", True),
