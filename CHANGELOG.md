@@ -6,13 +6,17 @@
 
 ---
 
-## [CHG] - 2026-09-23: 主线档案成为唯一装配单（技能包 / 提示词角色 / 分身装配 / 按意图注入收口）✅
+## [CHG] - 2026-09-23: 主线档案成为唯一装配单（工具/技能/提示词/分身**四个面**共用同一份档案）✅
 
 **影响模块**: `agent/lines/`（skillpack.py 新增、models/registry/integration/__init__ 扩展）, `agent/digital_life_persona.py`, `agent/prompt_manager/`（roles.py 新增、registry/storage 拥有者维度）, `agent/orchestrator/`（prompt_builder 片段合并、orchestrator 两条 LLM 路径 + 旁路闸门）, `agent/subagent/assembly.py`（新增）, `agent/tools/fan_out_tools.py`, `agent/server_routes/routes_agent_lines.py`, `data/agent_lines/*.yaml`（7 条）, `data/capability_manifest.json`（重新派生）, `yunshu-ui/src/pages/hub/tools/lines.tsx`
 **关联提交**: `90f8c32a`（feat: 主线档案成为唯一装配单）, `1994c8e2`（feat: 按意图注入也受本线 skills 约束 —— L1 闭环）, `e74016fc`（docs: 收口后性能用例归因）
 **关联文档**: `docs/closeout/主线统一装配_交付结案报告_20260923.md`（含 L1–L10 决定与理由）, `docs/主线装配指南.md §6`, `docs/提示词角色管理.md`, `docs/分身装配单.md`
 
-### Added — 三层装配面
+### Added — 三个**新增**装配面（工具面是原有能力，改动前就在跑）
+
+> 一份档案、四个消费面：**工具面（原有）** 读 `plane_weights/plane_floors/boost/mute/tags/max_tools/effect_allow/requires_approval/allow_govern`
+> → `integration.py::assemble_for_line` → 编排器两条 LLM 路径 `line_whitelist`；本次接上的三个面见下。
+> 其中**分身面本身又是三合一复用**：`subagent/assembly.py` 直接调 `assemble(profile, …)` 取 `result.tools`，同一份档案、同一个装配器。
 
 - **技能面**：`agent/lines/skillpack.py`（`SkillPack` / `resolve_skill_pack` / `known_skill_ids`）把 `skills:` 从**死字段**接到注入侧：空=不限制、非空=白名单、unknown 如实报告；`LineProfile.validate` 补技能 id 校验（写错不再静默失效）
 - **提示词面**：`agent/prompt_manager/roles.py`（角色词表 + 确定性合并 + 预算裁剪 + 丢弃可审计）；`prompt_note` 以 `role=line` 片段并入系统提示词；`PromptRegistry` 增加拥有者维度（`metadata["owner"]`，零 schema 迁移）
