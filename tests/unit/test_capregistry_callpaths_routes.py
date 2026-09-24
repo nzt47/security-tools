@@ -973,3 +973,111 @@ class TestPrefilterAndTraversalEquivalence:
             == audit.module_bindings(tree), "单次遍历改写了 import 绑定表的语义"
 
 
+# ════════════════════════════════════════════════════════════
+#  全仓**真实语料**上的预筛等价性（**只在 Nightly 跑**）
+# ════════════════════════════════════════════════════════════
+# 【为什么还要这一条（2026-09-24，承接字节预筛那一次改动）】字节预筛
+#   （`_source_may_contain_call_site`）的正当性论证是"参与判据的调用点标识符必然
+#   **逐字出现**在源码字节里"⇒ 跳过未命中的文件**不丢结论**。这份论证目前有**两道
+#   便宜且每次 CI 都跑**的守护（都在上面 `TestPrefilterAndTraversalEquivalence` 里）：
+#     ① 合成语料上"开/关预筛"逐字段对拍（覆盖三类判据分支）；
+#     ② 预筛标识集**必须由判据常量派生**（防"加了新原语忘同步预筛"）。
+#   但**真实全仓语料**上的等价性只做过**一次性**对拍（改前/改后完整 payload 的
+#   sha256 逐字节相同），**没有常驻用例**。将来有人给判据加分支（例如再添一类
+#   `Attribute` 判定）却忘了同步预筛 ⇒ **静默漏扫**：门禁照绿、清单却少条目。
+#   本用例把那份"全仓等价"钉成常驻断言。
+#
+# 【为什么标 `slow` 且只登记进 Nightly】它要跑**两次**全仓 `_collect_findings`
+#   （本机实测约 18s：预筛开 5.9s + 预筛关 12.4s，见用例 docstring 实测记录）——
+#   塞进 PR 期 6 分片单元 CI 属于**重扫描**；而 PR 期已有上面那两道更便宜的守护。
+#   真实语料的价值在**覆盖面**（1400+ 受控文件、真实 import 图），这份覆盖欠一次就够，
+#   故只在 `.github/workflows/full-regression.yml` 的 `slow-full` 逐文件矩阵里跑。
+#
+# 【断言一律不放水】本用例**只**断言"两边逐字段一致 + 非空转"，**不给任何上界/容差**：
+#   等价一旦被破坏就必须红——这正是它的全部意义。
+
+
+def _prefilter_diff(with_filter: List[Dict[str, Any]],
+                    without_filter: List[Dict[str, Any]]) -> str:
+    """把"开/关预筛不一致"压成**可读的**差异摘要（整份 payload 直接打印会淹掉失败信息）"""
+    if len(with_filter) != len(without_filter):
+        return (f"开预筛 {len(with_filter)} 条 vs 关预筛 {len(without_filter)} 条 ⇒ "
+                "预筛漏扫（或凭空多扫）了 Finding")
+    for i, (a, b) in enumerate(zip(with_filter, without_filter)):
+        if a != b:
+            diff = {k: (a.get(k), b.get(k)) for k in set(a) | set(b)
+                    if a.get(k) != b.get(k)}
+            return (f"第 {i} 条 Finding 逐字段不一致（开预筛 vs 关预筛）：{diff}\n"
+                    f"锚点：{a.get('anchor')}")
+    return "开/关预筛的 Findings 逐字段一致"
+
+
+@pytest.mark.slow
+def test_全仓真实语料上开预筛与关预筛结论逐字段一致(audit, monkeypatch):
+    """★★★ 把"一次性全仓对拍"变成**常驻**断言：预筛只许少读文件，**不许少任何 Finding**
+
+    做法：拿**同一份** `tracked_python_files(root)` 清单，跑两遍
+    `_collect_findings(root, files)`：
+      · 第一遍**预筛开启**（同时用 spy 包一层，记录它到底跳过了哪些文件）；
+      · 第二遍把 `_source_may_contain_call_site` monkeypatch 成**恒真**（= 关掉预筛，
+        每个文件都 `ast.parse`）⇒ 这正是"预筛前的旧行为"。
+    两遍的 `to_dict()` 列表必须**逐字段完全一致**（`to_dict` 覆盖 `Finding` 的全部 17 个字段）。
+
+    【为什么必须再钉"非空转"两道保险】只看"两边相等"是不够的：
+      · 若预筛因为某种原因**一个文件都没跳过**，那两遍其实是同一件事，用例永远绿而毫无价值；
+      · 若两边 Findings 都为空（例如 `files` 取空了），"相等"同样毫无价值。
+    ⇒ 显式断言 ① 预筛**确实跳过了文件**（`0 < 跳过数 < 总数`）、② 两侧条数**都 > 0**。
+
+    【为什么不走 `scan()` 而直接调 `_collect_findings`】`scan()` 外面还包了两层缓存
+    （进程内 `_RAW_SCAN_CACHE` + 跨进程磁盘产物），会把第二遍直接喂成缓存命中 ⇒
+    两遍根本没各扫一次，用例变成"测缓存"而不是"测预筛"。直接调 `_collect_findings`
+    才是**真的各扫一遍**（`_parse` 的 AST 缓存只省重复解析，不改"哪些文件被解析"）。
+
+    【实测成本（本机 2026-09-24）】本用例 ≈ 18s，其中预筛开 5.9s、预筛关 12.4s；
+    全仓 1403 个受控文件里预筛跳过 1289 个。见模块顶部本段的说明与 workflow 里的登记注释。
+    """
+    root = str(_ROOT)
+    files = audit.tracked_python_files(root)
+    assert len(files) > 100, (
+        f"受控文件清单只有 {len(files)} 个，不像「全仓」⇒ 等价性测不实（夹具/环境有问题）"
+    )
+
+    # ── 第一遍：预筛**开启**（用 spy 记录被跳过的文件，供下面的非空转断言用）──
+    skipped: List[str] = []
+    real_prefilter = audit._source_may_contain_call_site
+
+    def spying_prefilter(root_: str, rel: str, pattern: Any) -> bool:
+        ok = real_prefilter(root_, rel, pattern)
+        if not ok:
+            skipped.append(rel)
+        return ok
+
+    monkeypatch.setattr(audit, "_source_may_contain_call_site", spying_prefilter)
+    with_filter = [f.to_dict() for f in audit._collect_findings(root, files)]
+
+    # ── 第二遍：预筛**恒真**（= 关掉预筛，即预筛之前的旧口径）──
+    monkeypatch.setattr(audit, "_source_may_contain_call_site",
+                        lambda _root, _rel, _pattern: True)
+    without_filter = [f.to_dict() for f in audit._collect_findings(root, files)]
+
+    # ── 非空转的两道保险（缺了它们，"相等"可以是废话）──
+    assert skipped, (
+        "预筛在全仓语料上**一个文件都没跳过** ⇒ 两遍其实是同一件事，本用例空转"
+        "（要么预筛没生效，要么根本没走到预筛分支）"
+    )
+    assert len(skipped) < len(files), (
+        f"预筛把全部 {len(files)} 个文件都跳过了 ⇒ 结论必然为空，等价性无从谈起"
+    )
+    assert with_filter and without_filter, (
+        f"两侧 Findings 有一侧为空（开预筛 {len(with_filter)} 条 / 关预筛 "
+        f"{len(without_filter)} 条）⇒ 空转"
+    )
+
+    # ── 核心断言：逐字段完全一致（不放水、无容差）──
+    assert with_filter == without_filter, (
+        "全仓真实语料上开/关预筛的 Findings 不一致 ⇒ 预筛改动了判据（这正是"
+        "它最危险的失效形态：**静默漏扫**、门禁假绿）：\n"
+        + _prefilter_diff(with_filter, without_filter)
+    )
+
+
