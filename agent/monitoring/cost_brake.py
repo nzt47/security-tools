@@ -341,20 +341,54 @@ def _positive(value: float, default: float, *, name: str, allow_zero: bool = Fal
     return number
 
 
+#: ``config.yaml:budget`` 解析缓存：``(绝对路径, mtime_ns, size) → budget 段``
+#
+# 【为什么（2026-09-24 · 与 L6「配置被反复重解析」同族，实测）】
+#   ``load_config()`` 原先**每次调用都重新读盘 + 完整解析一遍 config.yaml**
+#   （40KB，纯 Python SafeLoader 本机实测 ≈ 28ms）。它不是"只跑一次"的装配函数：
+#   ``theta_limit()`` / ``shadow_overhead_audit()`` / ``daily_cost_view()`` 的
+#   ``config is None`` 分支就是**现读现解析**，测试里的 ``make_brake()`` 亦每次装配
+#   调用一次。实测 ``tests/unit/test_s5_03_cost_brake.py`` **一个文件触发 81 次**解析
+#   （≈2.3s 纯解析开销；该文件全程 9s 量级）。
+#
+# 【失效判据】按 ``(绝对路径, mtime_ns, size)`` 缓存 —— config.yaml 被改写必然改变
+#   mtime_ns 或 size 之一 ⇒ 不会读到过期配置。刻意**不用 TTL**：配置是判据输入，
+#   宁可不命中重算，也不能给出"过期但看起来正常"的结论。
+# 【不缓存什么】只缓存 **yaml 解析结果的 budget 段**；``CP_BUDGET_*`` 环境变量优先级
+#   高于 config.yaml，且它在 ``load_config()`` 里**独立于本函数**解析
+#   ⇒ 优先级判定每次照跑，不被缓存盖住。
+# 【为什么只留一份】config.yaml 只有一个；命中即返回，未命中时换掉旧条目，
+#   长驻进程里不会无界增长。
+_budget_yaml_cache: Dict[Tuple[str, int, int], Dict[str, Any]] = {}
+
+
 def _config_yaml_budget() -> Dict[str, Any]:
     """``config.yaml:budget`` 段（可选；不可读/缺段 → ``{}``）
 
     只读叶子字段，不搬运 live 对象。用于让阈值走配置文件而非仅环境变量。
+
+    ``(绝对路径, mtime_ns, size)`` 指纹相同的**连续调用复用同一份解析结果**
+    （见 ``_budget_yaml_cache``）；返回值是缓存条目的**浅拷贝**，
+    调用方改动不会回写缓存，与"每次现解析"时的隔离语义一致。
     """
     try:
         import yaml
         path = os.path.join(_PROJECT_ROOT, "config.yaml")
-        if not os.path.exists(path):
-            return {}
+        try:
+            stat = os.stat(path)
+        except OSError:
+            return {}          # 文件缺失 → 无覆盖（原语义）
+        key = (os.path.abspath(path), stat.st_mtime_ns, stat.st_size)
+        cached = _budget_yaml_cache.get(key)
+        if cached is not None:
+            return dict(cached)
         with open(path, "r", encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
         section = data.get("budget") if isinstance(data, dict) else None
-        return dict(section) if isinstance(section, dict) else {}
+        budget = dict(section) if isinstance(section, dict) else {}
+        _budget_yaml_cache.clear()
+        _budget_yaml_cache[key] = budget
+        return dict(budget)
     except Exception as e:  # noqa: BLE001 配置不可读 → 无覆盖
         logger.debug("config.yaml:budget 读取失败（按无覆盖处理）: %s", e)
         return {}

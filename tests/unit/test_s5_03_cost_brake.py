@@ -212,6 +212,94 @@ class TestConfig:
         assert isinstance(CB._config_yaml_budget(), dict)
 
 
+class TestConfigYamlParseCache:
+    """`config.yaml:budget` **解析结果指纹缓存**的四条守护（L6 同族）
+
+    【为什么单独守一组】`load_config()` 原先**每次调用都重新读盘 + 完整解析一遍**
+    config.yaml（40KB，SafeLoader 本机实测 ≈ 28ms）。它不是"只跑一次"的装配函数：
+    `theta_limit()` / `shadow_overhead_audit()` / `daily_cost_view()` 的
+    `config is None` 分支就是现读现解析，本文件里的 `make_brake()` 亦每次装配调一次。
+    实测本文件**单文件触发 81 次**解析。
+
+    缓存不能白拿：它必须"便宜"且"不改变判据"。故四条一起守 ——
+    ① 同一指纹只解析一次；② 内容变化必须失效；③ 文件缺失仍按原语义降级；
+    ④ env > config.yaml 的优先级不被缓存冻住。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _clear_budget_cache(self):
+        """用例前后清空指纹缓存，避免条目跨用例串味（缓存本身只留一份条目）"""
+        CB._budget_yaml_cache.clear()
+        yield
+        CB._budget_yaml_cache.clear()
+
+    def test_same_file_parsed_once(self, monkeypatch):
+        """① 同一份配置（指纹不变）连读 5 次只解析 1 次"""
+        # 局部导入：模块顶层加行会挪动 BASE 的行号锚（date-shift 守护按行号登记）
+        import yaml
+        calls = {"n": 0}
+        real_safe_load = yaml.safe_load
+
+        def counting_safe_load(stream, *args, **kwargs):
+            calls["n"] += 1
+            return real_safe_load(stream, *args, **kwargs)
+
+        monkeypatch.setattr(yaml, "safe_load", counting_safe_load)
+        CB._budget_yaml_cache.clear()
+        for _ in range(5):
+            CB.load_config({})
+        assert calls["n"] == 1, f"同一指纹应只解析 1 次，实测 {calls['n']} 次"
+
+    def test_content_change_invalidates(self, monkeypatch, tmp_path):
+        """② 内容变化（size 或 mtime 变）必须失效 —— 绝不读过期配置"""
+        cfg_file = tmp_path / "config.yaml"
+        cfg_file.write_text("budget:\n  daily_cents: 111\n", encoding="utf-8")
+        monkeypatch.setattr(CB, "_PROJECT_ROOT", str(tmp_path))
+        assert CB.load_config({}).daily_cents == 111.0
+
+        # 2a) 改长度 ⇒ size 变 ⇒ 失效
+        cfg_file.write_text("budget:\n  daily_cents: 22222\n", encoding="utf-8")
+        assert CB.load_config({}).daily_cents == 22222.0
+
+        # 2b) 同长度改写（size 不变）⇒ 只能靠 mtime 失效（显式后移 mtime_ns）
+        before = cfg_file.stat()
+        cfg_file.write_text("budget:\n  daily_cents: 33333\n", encoding="utf-8")
+        after = cfg_file.stat()
+        assert after.st_size == before.st_size, "本步要**只变 mtime**，长度必须一致"
+        os.utime(cfg_file, ns=(after.st_atime_ns, after.st_mtime_ns + 10 ** 9))
+        assert CB.load_config({}).daily_cents == 33333.0
+
+    def test_missing_file_still_degrades(self, monkeypatch, tmp_path):
+        """③ 文件缺失 → 空覆盖（不抛、不误开刹车）"""
+        monkeypatch.setattr(CB, "_PROJECT_ROOT", str(tmp_path))  # 该目录下没有 config.yaml
+        assert CB._config_yaml_budget() == {}
+        cfg = CB.load_config({})
+        assert cfg.enabled is False
+        assert cfg.daily_cents == 0.0
+
+    def test_env_priority_not_frozen_by_cache(self, monkeypatch):
+        """④ 缓存命中时 env 仍必须**每次照判**（优先于 config.yaml，不被冻住）
+
+        `load_config()`（不传 env）走 `os.environ`；本用例刻意在**缓存命中之后**
+        才 `setenv`，若缓存把优先级判定一并冻住，这里就会读回 config.yaml 的值。
+        """
+        import yaml   # 同上：局部导入，保持模块行号稳定
+        CB.load_config()   # 预热：首次解析并写入指纹缓存
+        calls = {"n": 0}
+        real_safe_load = yaml.safe_load
+
+        def counting_safe_load(stream, *args, **kwargs):
+            calls["n"] += 1
+            return real_safe_load(stream, *args, **kwargs)
+
+        monkeypatch.setattr(yaml, "safe_load", counting_safe_load)
+        monkeypatch.setenv(CB.ENV_ENABLED, "true")
+        cfg = CB.load_config()
+        assert calls["n"] == 0, "命中缓存后不应再解析 config.yaml"
+        assert cfg.enabled is True
+        assert cfg.sources[CB.ENV_ENABLED] == "env"
+
+
 # ════════════════════════════════════════════════════════════
 #  2. 阶段推断与 θ 分阶段阈值（§6.3）
 # ════════════════════════════════════════════════════════════
