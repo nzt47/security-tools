@@ -68,8 +68,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 #:     ③ 仓库根下的全部散装 .py（app_server.py 是 Flask 应用本体 / main.py 是启动入口）。
 #:
 #:   **显式排除**（新增/删除一条都要改这里；由
-#:   tests/unit/test_settings_registry.py::TestMechanicalZeroGap::
-#:   test_scan_roots_cover_every_production_package 钉住）：
+#:   tests/unit/test_settings_registry.py::TestScanRootsCoverProductionCode
+#:   （test_required_production_roots_are_scanned / test_root_level_entry_scripts_
+#:   are_exactly_declared / test_scanned_modules_stay_inside_declared_roots）钉住）：
 #:     - scripts/  工具与审计脚本（其中的 env 读取是"跑脚本时的参数"，不改运行时行为）
 #:     - tests/    测试代码（memory/tests 由 scan_paths 的 skip_parts 跳过）
 #:     - docs/ data/ templates/ 等非 Python 目录
@@ -188,6 +189,7 @@ def _is_declared_runtime_name(rp: "ReadPoint") -> bool:
     if rp.runtime_expr in RUNTIME_NAME_READS:
         return True
     return f"{rp.module}::{rp.runtime_expr}" in RUNTIME_NAME_SITES
+
 
 #: 仅在「外层函数无同名参数」时才算进程环境的裸访问（WSGI `environ` 同名）
 _BARE_ENV_CALLS: frozenset = frozenset({"environ.get", "env.get", "getenv"})
