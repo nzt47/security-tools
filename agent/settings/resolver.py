@@ -63,6 +63,27 @@ SOURCE_LABELS: Dict[str, str] = {
     SOURCE_DEFAULT: "代码默认值",
 }
 
+# ── 配置层**提供状态**（L4 显示口径；**只影响展示，不影响任何取值**）──
+#
+# 【为什么必须单独透出】源只有四个 token（env / ui_override / config / default），
+# 于是下面两种处境在 UI 上都显示「代码默认值」，但它们对操作员的意义完全不同：
+#   · 该键**根本没有** config.yaml 口径（登记表 config_path 为空）⇒ 代码默认值就是唯一口径；
+#   · 该键**有** config 口径，但 config.yaml 里**没写**这一行
+#     ⇒ 当前取代码默认值，运维写一行就能改。
+# 反过来，「config.yaml 写了 false / 空串」是 source=config，与上面两种本就分得开 ——
+# 但没有 config_state 时，"写了 false" 与 "写了但恰好等于默认值" 也无从区分
+# （尤其 ObservabilityConfig 运行态：值等于默认值时旧口径会把 config_present 判成 False）。
+# 故本组常量的作用是让 UI 如实说明"配置层到底给没给这个键"。
+CONFIG_STATE_PROVIDED = "provided"   # 配置层提供了该键（值与默认相同也算提供）
+CONFIG_STATE_ABSENT = "absent"       # 该键有 config 口径，但配置层没有提供
+CONFIG_STATE_NO_PATH = "no_path"     # 登记表未声明 config_path ⇒ 该键无 config 口径
+
+CONFIG_STATE_LABELS: Dict[str, str] = {
+    CONFIG_STATE_PROVIDED: "config.yaml 已提供该键",
+    CONFIG_STATE_ABSENT: "config.yaml 未提供该键（当前取代码默认值）",
+    CONFIG_STATE_NO_PATH: "该键无 config.yaml 口径（仅 env / 代码默认值）",
+}
+
 _SENTINEL = object()
 
 
@@ -147,6 +168,10 @@ class ResolvedSetting:
     env_locked: bool = False
     override_present: bool = False
     config_present: bool = False
+    #: 配置层是否**提供**了该键（L4：值等于默认值也算"提供了"）
+    config_provided: bool = False
+    #: 配置层提供状态（CONFIG_STATE_* 之一；只影响展示口径）
+    config_state: str = CONFIG_STATE_NO_PATH
     editable: bool = False
     locked_reason: str = ""
     hot_applied: bool = False
@@ -169,6 +194,10 @@ class ResolvedSetting:
             "env_locked": bool(self.env_locked),
             "override_present": bool(self.override_present),
             "config_present": bool(self.config_present),
+            "config_provided": bool(self.config_provided),
+            "config_state": self.config_state,
+            "config_state_label": CONFIG_STATE_LABELS.get(self.config_state,
+                                                           self.config_state),
             "editable": bool(self.editable),
             "locked": not bool(self.editable),
             "locked_reason": self.locked_reason,
@@ -280,11 +309,22 @@ def resolve(key: str, *, store: Optional[OverrideStore] = None) -> Optional[Reso
     # 运行态与声明默认值不同 → 才算"config 提供了值"（否则就是默认值本身）
     config_present = config_source_is_file or (
         obs_value is not _SENTINEL and obs_value != spec.default)
+    # 【L4】配置层**是否提供**：与上面的 config_present 不同 —— 这里不看值是否等于
+    # 默认值，只看"配置层有没有这一项"。★ 不参与任何取值分支，只用于展示口径。
+    config_provided = config_source_is_file or obs_value is not _SENTINEL
+    if not spec.config_path:
+        config_state = CONFIG_STATE_NO_PATH
+    elif config_provided:
+        config_state = CONFIG_STATE_PROVIDED
+    else:
+        config_state = CONFIG_STATE_ABSENT
 
     res = ResolvedSetting(spec=spec)
     res.env_present = env_present
     res.override_present = override is not None
     res.config_present = bool(config_present)
+    res.config_provided = bool(config_provided)
+    res.config_state = config_state
 
     # ── 取值 + 来源（严格按优先级）──
     if env_present:
@@ -457,7 +497,9 @@ def _json_scalar(value: Any) -> Any:
 
 __all__ = [
     "SOURCE_ENV", "SOURCE_OVERRIDE", "SOURCE_CONFIG", "SOURCE_DEFAULT",
-    "SOURCE_PRIORITY", "SOURCE_LABELS", "ResolvedSetting", "resolve",
+    "SOURCE_PRIORITY", "SOURCE_LABELS",
+    "CONFIG_STATE_PROVIDED", "CONFIG_STATE_ABSENT", "CONFIG_STATE_NO_PATH",
+    "CONFIG_STATE_LABELS", "ResolvedSetting", "resolve",
     "resolve_all", "read_config_yaml", "config_yaml_path",
     "apply_override_to_runtime", "restore_runtime", "CATEGORY_LABELS",
 ]

@@ -152,6 +152,142 @@ class TestSourcePriority:
 
 
 # ════════════════════════════════════════════════════════════
+#  一·五、配置层三态（L4 显示口径，2026-09-23）
+# ════════════════════════════════════════════════════════════
+
+
+class TestConfigLayerStateIsDisclosed:
+    """★ L4：UI 必须能区分「config 层未提供」与「config 显式给了值（含 false/空）」
+
+    源只有四个 token（env / ui_override / config / default），于是这两种处境在 UI 上
+    都显示「代码默认值」：
+      · 该键**没有** config.yaml 口径（登记表 config_path 为空）；
+      · 该键**有** config 口径，但 config.yaml 里**没写**这一行。
+    操作员的动作完全不同（后者写一行就能改）⇒ resolver 透出 config_state 三态。
+
+    本类只钉**展示口径**，并逐条断言 source / value 不受影响（补一个字段不得改生效值）。
+    不写 data/：合成配置走 resolver._CONFIG_CACHE，覆盖层走 tmp_path 的空 store。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _restore_config_cache(self):
+        saved = dict(RS._CONFIG_CACHE)
+        yield
+        RS._CONFIG_CACHE.clear()
+        RS._CONFIG_CACHE.update(saved)
+
+    @staticmethod
+    def _with_synthetic_config(pairs):
+        """把合成配置塞进 resolver 的 mtime 缓存（**不碰磁盘上的 config.yaml**）"""
+        data = {}
+        for dotted, value in pairs.items():
+            node = data
+            parts = dotted.split(".")
+            for part in parts[:-1]:
+                node = node.setdefault(part, {})
+            node[parts[-1]] = value
+        path = RS.config_yaml_path()
+        try:
+            mtime = path.stat().st_mtime if path.exists() else -1.0
+        except OSError:
+            mtime = -1.0
+        RS._CONFIG_CACHE["mtime"] = mtime
+        RS._CONFIG_CACHE["data"] = data
+
+    def test_key_without_config_path_reports_no_path(self, store):
+        """登记表没有 config_path ⇒ no_path（与 absent 必须分得开）"""
+        self._with_synthetic_config({})
+        spec = R.get_spec("LOCK_PROFILE")
+        assert spec is not None and spec.config_path == ""
+        pub = RS.resolve("LOCK_PROFILE", store=store).to_public_dict()
+        assert pub["config_state"] == RS.CONFIG_STATE_NO_PATH
+        assert pub["config_provided"] is False
+        assert pub["config_state_label"] == \
+            RS.CONFIG_STATE_LABELS[RS.CONFIG_STATE_NO_PATH]
+
+    def test_declared_path_absent_from_config_reports_absent(self, store):
+        """有 config 口径但 config.yaml 没写 ⇒ absent"""
+        self._with_synthetic_config({})
+        spec = R.get_spec("CP_BUDGET_BRAKE_ENABLED")
+        assert spec is not None and spec.config_path == "budget.enabled"
+        res = RS.resolve(spec.key, store=store)
+        assert res.source == RS.SOURCE_DEFAULT and res.value == spec.default
+        assert res.config_provided is False
+        assert res.config_state == RS.CONFIG_STATE_ABSENT
+
+    def test_explicit_false_in_config_is_provided_not_absent(self, store):
+        """config.yaml 显式写 false ⇒ provided（这正是 L4 要区分的那一种）"""
+        self._with_synthetic_config({"budget.enabled": False})
+        res = RS.resolve("CP_BUDGET_BRAKE_ENABLED", store=store)
+        assert res.source == RS.SOURCE_CONFIG
+        assert res.value is False
+        assert res.config_provided is True
+        assert res.config_state == RS.CONFIG_STATE_PROVIDED
+
+    def test_explicit_empty_string_is_provided(self, store):
+        """config.yaml 显式写空串 ⇒ 同样是"提供了"，不是"没提供" """
+        self._with_synthetic_config({"retention.classes": ""})
+        res = RS.resolve("CP_RETENTION_CLASSES", store=store)
+        assert res.source == RS.SOURCE_CONFIG
+        assert res.value == ""
+        assert res.config_provided is True
+        assert res.config_state == RS.CONFIG_STATE_PROVIDED
+
+    def test_c_level_empty_value_is_still_provided(self, store):
+        """C 级不回明文（value 被抹成 None），但"配置层给没给"这一态照样如实透出"""
+        self._with_synthetic_config({"slo_report.audit_file": ""})
+        res = RS.resolve("CP_SLO_SCHEDULE_AUDIT_FILE", store=store)
+        assert res.value is None                      # C 级按设计不出明文
+        assert res.configured is False                # 空串 ⇒ 未配置
+        assert res.source == RS.SOURCE_CONFIG
+        assert res.config_provided is True
+        assert res.config_state == RS.CONFIG_STATE_PROVIDED
+
+    def test_runtime_value_equal_to_default_still_counts_as_provided(self, store):
+        """ObservabilityConfig 运行态：值恰好等于默认值时旧口径判 config_present=False，
+        新口径必须仍如实说明「配置层提供了该键」，而 source / value 一字不变。"""
+        from agent.monitoring.observability_config import (
+            get_observability_config, reset_observability_config,
+        )
+        reset_observability_config()
+        cfg = get_observability_config()
+        path = "resource_monitor.sample_interval_sec"
+        spec = R.spec_for_config(path)
+        assert spec is not None
+        try:
+            cfg.set(path, spec.default)
+            res = RS.resolve(spec.key, store=store)
+            assert res.source == RS.SOURCE_DEFAULT      # 既有口径不变
+            assert res.config_present is False          # 既有口径不变
+            assert res.value == spec.default
+            assert res.config_provided is True          # ★ 新口径：提供了
+            assert res.config_state == RS.CONFIG_STATE_PROVIDED
+        finally:
+            reset_observability_config()
+
+    @pytest.mark.parametrize("key,path,probe", [
+        ("CP_BUDGET_BRAKE_ENABLED", "budget.enabled", True),
+        ("LEARNING_LIFECYCLE_ENABLED", "learning.lifecycle.enabled", True),
+        ("SKILL_CLEANUP_UNUSED_DAYS", "skills_mgmt.cleanup.unused_days", 7),
+    ])
+    def test_config_state_tracks_config_layer_without_touching_value(
+            self, key, path, probe, store):
+        """★ 三态只跟着「配置层给没给」走；同一键的 source/value 仍由既有优先级决定"""
+        spec = R.get_spec(key)
+        assert spec is not None and spec.config_path == path
+        self._with_synthetic_config({})
+        absent = RS.resolve(key, store=store)
+        assert absent.config_state == RS.CONFIG_STATE_ABSENT
+        assert absent.source == RS.SOURCE_DEFAULT
+        assert absent.value == spec.default
+        self._with_synthetic_config({path: probe})
+        provided = RS.resolve(key, store=store)
+        assert provided.config_state == RS.CONFIG_STATE_PROVIDED
+        assert provided.source == RS.SOURCE_CONFIG
+        assert provided.value == probe
+
+
+# ════════════════════════════════════════════════════════════
 #  二、可改性与置灰说明
 # ════════════════════════════════════════════════════════════
 

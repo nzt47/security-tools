@@ -772,6 +772,18 @@ export interface SettingsItem {
   env_name: string;
   env_present: boolean;
   config_path: string;
+  /** 配置层是否提供了该键（L4：值等于默认值也算"提供了"） */
+  config_present: boolean;
+  config_provided: boolean;
+  /**
+   * 配置层提供状态三态（L4 显示口径）：
+   *   provided 配置层提供了该键（含显式 false / 空串）；
+   *   absent   该键有 config 口径，但 config.yaml 没写这一行；
+   *   no_path  登记表未声明 config_path ⇒ 该键无 config 口径。
+   */
+  config_state?: 'provided' | 'absent' | 'no_path' | string;
+  /** 三态的中文说明（**逐字用后端给的**，前端不另造说法） */
+  config_state_label?: string;
   /** 仅支持环境变量（无 config.yaml 项） */
   env_only: boolean;
   secret: boolean;
