@@ -105,6 +105,16 @@ jobs:
           - tests/unit/test_planning_stage5_e2e.py
           - tests/unit/test_skill_index_cache.py
           - tests/unit/test_optimized_storage.py
+          # 全仓**真实语料**上的字节预筛等价性（用例级 slow：本文件仅此一条 slow，
+          # `-m "slow"` 自动只选它）——**为什么只在这里跑**：
+          #   它是**重扫描**（同一条用例要把全仓 `_collect_findings` 跑两遍：
+          #   预筛开 5.9s + 预筛关 12.4s ≈ 18s，受控文件 1403 个），塞进 PR 期
+          #   6 分片单元 CI（`-m "not slow and not skip_ci"`）属于纯负担；而 PR 期
+          #   已有两道**更便宜**的守护在跑——合成语料上"开/关预筛"逐字段对拍
+          #   （覆盖三类判据分支）+ 预筛标识集**必须由判据常量派生**（防加名字忘同步）。
+          #   真实语料的价值在**覆盖面**（1400+ 文件、真实 import 图），欠一次就够；
+          #   缺了它，"改了判据分支却忘同步预筛"会变成**静默漏扫**、门禁假绿。
+          - tests/unit/test_capregistry_callpaths_routes.py
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
