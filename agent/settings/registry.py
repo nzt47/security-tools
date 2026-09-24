@@ -568,8 +568,11 @@ _REGISTRY_ROWS: List[SettingSpec] = [
 
     # 自动合入 / 自改写（B：自动合入类）
     _b("SKILLS_REVIEW_ENFORCE_PUBLISH", CAT_SELF_HEALING, None,
-       "技能发布强制走评审门（关闭即允许未经评审发布）",
-       owner="agent/skills_mgmt/review_gate.py"),
+       "技能发布强制走评审门（关闭即允许未经评审发布）；config.yaml 路径 "
+       "skills_mgmt.review.enforce_before_publish"
+       "（agent/skills_mgmt/review_gate.py:158-161）",
+       owner="agent/skills_mgmt/review_gate.py",
+       config_path="skills_mgmt.review.enforce_before_publish"),
     _b("WF_SKILL_AUTO_UPGRADE_ENABLED", CAT_SELF_HEALING, None,
        "工作流技能自动升级（自动合入）开关",
        owner="agent/orchestrator/lifecycle_manager.py"),
@@ -577,8 +580,10 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "价值守卫（技能价值闸门）开关；关闭即不再拦截低价值技能",
        owner="agent/skills_mgmt/value_guard.py"),
     _b("SKILL_CLEANUP_ENABLED", CAT_SELF_HEALING, False,
-       "技能清理调度器总开关（自动归档/删除不再使用的技能）",
-       owner="agent/skills_mgmt/cleanup_scheduler.py"),
+       "技能清理调度器总开关（自动归档/删除不再使用的技能）；config.yaml 路径 "
+       "skills_mgmt.cleanup.enabled（agent/skills_mgmt/cleanup_scheduler.py:69/80）",
+       owner="agent/skills_mgmt/cleanup_scheduler.py",
+       config_path="skills_mgmt.cleanup.enabled"),
     _b("META_EDIT_MAX_FILES_PER_ROUND", CAT_SELF_HEALING, 1,
        "元编辑（核心自改写）每轮最大改动文件数",
        owner="agent/skills_mgmt/edit_policy.py", validator=Validator("int")),
@@ -923,8 +928,10 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("APPROVAL_RECORDS_PATH", CAT_SELF_HEALING, None,
        "审批记录落盘路径（只读）", owner="agent/skills_mgmt/approval.py"),
     _c("SKILLS_REVIEW_AUDIT_FILE", CAT_SELF_HEALING, None,
-       "技能评审审计文件路径（只读）",
-       owner="agent/skills_mgmt/review_gate.py"),
+       "技能评审审计文件路径（只读）；config.yaml 路径 "
+       "skills_mgmt.review.audit_file（agent/skills_mgmt/review_gate.py:175-178）",
+       owner="agent/skills_mgmt/review_gate.py",
+       config_path="skills_mgmt.review.audit_file"),
     _c("VALUE_GUARD_RULES_PATH", CAT_SELF_HEALING, None,
        "价值守卫规则文件路径（只读）",
        owner="agent/skills_mgmt/value_guard.py"),
@@ -1049,79 +1056,150 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "进化存储根路径（只读）", owner="agent/evolution/injector.py",
        config_path="evolution.storage_path"),
 
+    # 【L5（2026-09-23）】补登记 config_path：四个调度器（evolution_scheduler /
+    #   feedback_agent / lifecycle / precipitate）都是**同型三层读取**
+    #   （env > config.yaml <段>.<key> > 硬编码默认），此前 config_path 为空
+    #   ⇒ UI 只显示 default，与模块真实取值相反。逐键读取点见各条描述里的
+    #   「文件:行号」；对拍见 scripts/audit_settings_config_path_parity.py。
     _b("LEARNING_EVOLVER_ENABLED", CAT_LEARNING, False,
-       "在线进化调度器开关（自动跑进化轮）",
-       owner="agent/skills_mgmt/evolution_scheduler.py"),
-    _b("LEARNING_FEEDBACK_AGENT_ENABLED", CAT_LEARNING, False,
-       "反馈智能体调度器开关（自动消化用户反馈）",
-       owner="agent/skills_mgmt/feedback_agent.py"),
-    _b("LEARNING_LIFECYCLE_ENABLED", CAT_LEARNING, False,
-       "技能生命周期调度器开关（自动归档/升级）",
-       owner="agent/skills_mgmt/lifecycle.py"),
-    _b("LEARNING_PRECIPITATE_ENABLED", CAT_LEARNING, False,
-       "经验沉淀调度器开关（自动把经验沉淀为技能）",
-       owner="agent/skills_mgmt/precipitate.py"),
-    _a("LEARNING_EVOLVER_DRY_RUN", CAT_LEARNING, True,
-       "在线进化演练模式（true=只演练不落地）",
-       owner="agent/skills_mgmt/evolution_scheduler.py"),
-    _a("LEARNING_FEEDBACK_AGENT_DRY_RUN", CAT_LEARNING, True,
-       "反馈智能体演练模式（true=只演练不落地）",
-       owner="agent/skills_mgmt/feedback_agent.py"),
-    _a("LEARNING_LIFECYCLE_DRY_RUN", CAT_LEARNING, True,
-       "技能生命周期演练模式（true=只演练不落地）",
-       owner="agent/skills_mgmt/lifecycle.py"),
-    _a("LEARNING_EVOLVER_INTERVAL_DAYS", CAT_LEARNING, None,
-       "在线进化调度间隔（天）",
+       "在线进化调度器开关（自动跑进化轮）；config.yaml 路径 "
+       "learning.evolver.enabled"
+       "（agent/skills_mgmt/evolution_scheduler.py:63-66）",
        owner="agent/skills_mgmt/evolution_scheduler.py",
+       config_path="learning.evolver.enabled"),
+    _b("LEARNING_FEEDBACK_AGENT_ENABLED", CAT_LEARNING, False,
+       "反馈智能体调度器开关（自动消化用户反馈）；config.yaml 路径 "
+       "learning.feedback_agent.enabled"
+       "（agent/skills_mgmt/feedback_agent.py:73-76）",
+       owner="agent/skills_mgmt/feedback_agent.py",
+       config_path="learning.feedback_agent.enabled"),
+    _b("LEARNING_LIFECYCLE_ENABLED", CAT_LEARNING, False,
+       "技能生命周期调度器开关（自动归档/升级）；config.yaml 路径 "
+       "learning.lifecycle.enabled（agent/skills_mgmt/lifecycle.py:75-78）",
+       owner="agent/skills_mgmt/lifecycle.py",
+       config_path="learning.lifecycle.enabled"),
+    _b("LEARNING_PRECIPITATE_ENABLED", CAT_LEARNING, False,
+       "经验沉淀调度器开关（自动把经验沉淀为技能）；config.yaml 路径 "
+       "learning.precipitate_enabled"
+       "（agent/skills_mgmt/precipitate.py:49-51，★直接挂在 learning 下，"
+       "不是 learning.precipitate.enabled）",
+       owner="agent/skills_mgmt/precipitate.py",
+       config_path="learning.precipitate_enabled"),
+    _a("LEARNING_EVOLVER_DRY_RUN", CAT_LEARNING, True,
+       "在线进化演练模式（true=只演练不落地）；config.yaml 路径 "
+       "learning.evolver.dry_run"
+       "（agent/skills_mgmt/evolution_scheduler.py:104-107）",
+       owner="agent/skills_mgmt/evolution_scheduler.py",
+       config_path="learning.evolver.dry_run"),
+    _a("LEARNING_FEEDBACK_AGENT_DRY_RUN", CAT_LEARNING, True,
+       "反馈智能体演练模式（true=只演练不落地）；config.yaml 路径 "
+       "learning.feedback_agent.dry_run"
+       "（agent/skills_mgmt/feedback_agent.py:114-117）",
+       owner="agent/skills_mgmt/feedback_agent.py",
+       config_path="learning.feedback_agent.dry_run"),
+    _a("LEARNING_LIFECYCLE_DRY_RUN", CAT_LEARNING, True,
+       "技能生命周期演练模式（true=只演练不落地）；config.yaml 路径 "
+       "learning.lifecycle.dry_run（agent/skills_mgmt/lifecycle.py:187-190）",
+       owner="agent/skills_mgmt/lifecycle.py",
+       config_path="learning.lifecycle.dry_run"),
+    _a("LEARNING_EVOLVER_INTERVAL_DAYS", CAT_LEARNING, None,
+       "在线进化调度间隔（天）；config.yaml 路径 learning.evolver.interval_days"
+       "（agent/skills_mgmt/evolution_scheduler.py:84-88）",
+       owner="agent/skills_mgmt/evolution_scheduler.py",
+       config_path="learning.evolver.interval_days",
        apply_mode=EFFECT_NEXT_TASK),
     _a("LEARNING_FEEDBACK_AGENT_INTERVAL_HOURS", CAT_LEARNING, None,
-       "反馈智能体调度间隔（小时）",
+       "反馈智能体调度间隔（小时）；config.yaml 路径 "
+       "learning.feedback_agent.interval_hours"
+       "（agent/skills_mgmt/feedback_agent.py:94-98）",
        owner="agent/skills_mgmt/feedback_agent.py",
+       config_path="learning.feedback_agent.interval_hours",
        apply_mode=EFFECT_NEXT_TASK),
     _a("LEARNING_LIFECYCLE_INTERVAL_HOURS", CAT_LEARNING, None,
-       "技能生命周期调度间隔（小时）",
+       "技能生命周期调度间隔（小时）；config.yaml 路径 "
+       "learning.lifecycle.interval_hours"
+       "（agent/skills_mgmt/lifecycle.py:95-99）",
        owner="agent/skills_mgmt/lifecycle.py",
+       config_path="learning.lifecycle.interval_hours",
        apply_mode=EFFECT_NEXT_TASK),
     _a("LEARNING_PRECIPITATE_INTERVAL_HOURS", CAT_LEARNING, None,
-       "经验沉淀调度间隔（小时）",
+       "经验沉淀调度间隔（小时）；config.yaml 路径 "
+       "learning.precipitate.interval_hours"
+       "（agent/skills_mgmt/precipitate.py:68-72）",
        owner="agent/skills_mgmt/precipitate.py",
+       config_path="learning.precipitate.interval_hours",
        apply_mode=EFFECT_NEXT_TASK),
     _a("LEARNING_LIFECYCLE_UNUSED_DAYS", CAT_LEARNING, None,
-       "技能多久未使用才进入归档候选（天）",
-       owner="agent/skills_mgmt/lifecycle.py"),
+       "技能多久未使用才进入归档候选（天）；config.yaml 路径 "
+       "learning.lifecycle.unused_days（agent/skills_mgmt/lifecycle.py:118-122）",
+       owner="agent/skills_mgmt/lifecycle.py",
+       config_path="learning.lifecycle.unused_days"),
     _a("LEARNING_LIFECYCLE_ARCHIVE_DAYS", CAT_LEARNING, None,
-       "技能归档保留天数", owner="agent/skills_mgmt/lifecycle.py"),
+       "技能归档保留天数；config.yaml 路径 learning.lifecycle.archive_days"
+       "（agent/skills_mgmt/lifecycle.py:141-145）",
+       owner="agent/skills_mgmt/lifecycle.py",
+       config_path="learning.lifecycle.archive_days"),
     _a("LEARNING_LIFECYCLE_UPGRADE_THRESHOLD", CAT_LEARNING, None,
-       "技能升级判定阈值", owner="agent/skills_mgmt/lifecycle.py"),
+       "技能升级判定阈值；config.yaml 路径 skills_mgmt.scale.upgrade_threshold"
+       "（**兜底** learning.lifecycle.upgrade_threshold，见 "
+       "agent/skills_mgmt/lifecycle.py:164-168：前者为 None 才读后者）",
+       owner="agent/skills_mgmt/lifecycle.py",
+       config_path="skills_mgmt.scale.upgrade_threshold"),
     _c("LEARNING_EVOLVER_AUDIT_FILE", CAT_LEARNING, None,
-       "在线进化审计文件路径（只读）",
-       owner="agent/skills_mgmt/evolution_scheduler.py"),
+       "在线进化审计文件路径（只读）；config.yaml 路径 "
+       "learning.evolver.audit_file"
+       "（agent/skills_mgmt/evolution_scheduler.py:121-124）",
+       owner="agent/skills_mgmt/evolution_scheduler.py",
+       config_path="learning.evolver.audit_file"),
     _c("LEARNING_FEEDBACK_AGENT_AUDIT_FILE", CAT_LEARNING, None,
-       "反馈智能体审计文件路径（只读）",
-       owner="agent/skills_mgmt/feedback_agent.py"),
+       "反馈智能体审计文件路径（只读）；config.yaml 路径 "
+       "learning.feedback_agent.audit_file"
+       "（agent/skills_mgmt/feedback_agent.py:131-134）",
+       owner="agent/skills_mgmt/feedback_agent.py",
+       config_path="learning.feedback_agent.audit_file"),
     _c("LEARNING_LIFECYCLE_AUDIT_FILE", CAT_LEARNING, None,
-       "技能生命周期审计文件路径（只读）",
-       owner="agent/skills_mgmt/lifecycle.py"),
+       "技能生命周期审计文件路径（只读）；config.yaml 路径 "
+       "learning.lifecycle.audit_file（agent/skills_mgmt/lifecycle.py:204-207）",
+       owner="agent/skills_mgmt/lifecycle.py",
+       config_path="learning.lifecycle.audit_file"),
     _c("LEARNING_PRECIPITATE_AUDIT_FILE", CAT_LEARNING, None,
-       "经验沉淀审计文件路径（只读）",
-       owner="agent/skills_mgmt/precipitate.py"),
+       "经验沉淀审计文件路径（只读）；config.yaml 路径 "
+       "learning.precipitate.audit_file（agent/skills_mgmt/precipitate.py:88-91）",
+       owner="agent/skills_mgmt/precipitate.py",
+       config_path="learning.precipitate.audit_file"),
 
     # 成本刹车阈值（B：成本刹车阈值）
+    # 【L5（2026-09-23）】补登记 config_path。注意两者层级不同：
+    #   CP_BUDGET_BRAKE_ENABLED 读 config.yaml **顶层** budget.enabled；
+    #   LEARNING_BUDGET_* 读 learning.budget.<key>，且其优先级是
+    #   env > config.yaml learning.budget > models.yaml cost_limits > 硬编码默认
+    #   （agent/learning_budget.py:90-125 的三段式），config.yaml 只是其中一层。
     _b("CP_BUDGET_BRAKE_ENABLED", CAT_LEARNING, False,
-       "成本刹车（预算制动）总开关",
-       owner="agent/monitoring/cost_brake.py"),
+       "成本刹车（预算制动）总开关；config.yaml 路径 budget.enabled"
+       "（agent/monitoring/cost_brake.py:351/356/508）",
+       owner="agent/monitoring/cost_brake.py",
+       config_path="budget.enabled"),
     _b("LEARNING_BUDGET_MODE", CAT_LEARNING, None,
-       "学习预算模式（如 normal / strict / off）",
-       owner="agent/learning_budget.py"),
+       "学习预算模式（如 normal / strict / off）；config.yaml 路径 "
+       "learning.budget.mode（agent/learning_budget.py:107-110）",
+       owner="agent/learning_budget.py",
+       config_path="learning.budget.mode"),
     _b("LEARNING_BUDGET_MAX_DAILY_TOKENS", CAT_LEARNING, None,
-       "学习预算每日 token 上限（成本刹车阈值）",
-       owner="agent/learning_budget.py"),
+       "学习预算每日 token 上限（成本刹车阈值）；config.yaml 路径 "
+       "learning.budget.max_daily_tokens（agent/learning_budget.py:107-110）",
+       owner="agent/learning_budget.py",
+       config_path="learning.budget.max_daily_tokens"),
     _b("LEARNING_BUDGET_MAX_SINGLE_ACTION_TOKENS", CAT_LEARNING, None,
-       "学习预算单动作 token 上限（成本刹车阈值）",
-       owner="agent/learning_budget.py"),
+       "学习预算单动作 token 上限（成本刹车阈值）；config.yaml 路径 "
+       "learning.budget.max_single_action_tokens"
+       "（agent/learning_budget.py:107-110）",
+       owner="agent/learning_budget.py",
+       config_path="learning.budget.max_single_action_tokens"),
     _b("LEARNING_BUDGET_RECOVERY_SECONDS", CAT_LEARNING, None,
-       "预算耗尽后的恢复等待时长（秒）",
-       owner="agent/learning_budget.py"),
+       "预算耗尽后的恢复等待时长（秒）；config.yaml 路径 "
+       "learning.budget.recovery_seconds（agent/learning_budget.py:107-110）",
+       owner="agent/learning_budget.py",
+       config_path="learning.budget.recovery_seconds"),
 
     # 学习观测 / 阈值（A）
     # 【L1（2026-09-22）】补登记 config_path：本族 6 项在 `novelty_hooks.py` 里都是
@@ -1147,15 +1225,25 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "（agent/learning/novelty_hooks.py:107-118）",
        owner="agent/learning/novelty_hooks.py",
        config_path="learning.sensor_learning.baseline_retention_weeks"),
+    # 【L5（2026-09-23）】补登记 config_path：三项都在 orchestrator.py 里读
+    #   config.yaml（config 段见各条描述），此前留空 ⇒ UI 只显示 default。
     _a("LEARNING_REFLECTION_PERSIST", CAT_LEARNING, True,
-       "反思产物是否写入检索面（持久化）",
-       owner="agent/orchestrator/orchestrator.py"),
+       "反思产物是否写入检索面（持久化）；config.yaml 路径 "
+       "learning.reflection_persist（agent/orchestrator/orchestrator.py:2810-2811）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="learning.reflection_persist"),
     _a("LEARNING_CONTEXT_ASSEMBLER_ENABLED", CAT_LEARNING, True,
-       "ContextAssembler 旁路注入开关（三层记忆组装）",
-       owner="agent/orchestrator/orchestrator.py"),
+       "ContextAssembler 旁路注入开关（三层记忆组装）；config.yaml 路径 "
+       "learning.context_assembler.enabled"
+       "（agent/orchestrator/orchestrator.py:3796-3798）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="learning.context_assembler.enabled"),
     _a("CRITIC_EVALUATION_ENABLED", CAT_LEARNING, None,
-       "批评者（Critic）评测开关",
-       owner="agent/orchestrator/orchestrator.py"),
+       "批评者（Critic）评测开关；config.yaml 路径 "
+       "features.critic_evaluation_enabled"
+       "（agent/orchestrator/orchestrator.py:2812-2813）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="features.critic_evaluation_enabled"),
     _a("PROMPT_OPT_THRESHOLD", CAT_LEARNING, None,
        "提示词优化触发阈值", owner="agent/cognitive/prompt_optimizer.py",
        validator=Validator("float")),
@@ -1220,30 +1308,61 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "规划调用超时（秒）；超时回退 LLM",
        owner="agent/orchestrator/orchestrator.py",
        config_path="planning.wire_timeout_seconds", validator=Validator("int")),
+    # 【L5（2026-09-23）】补登记 config_path：本族 8 项在 orchestrator.py 里都是
+    #   三层取值（env > config.yaml > 硬编码默认），config 段逐条如下。
+    #   此前 config_path 为空 ⇒ resolver 永不去读 config.yaml ⇒ UI 只显示 default，
+    #   与模块真实取值相反（谎报）。补登记只改 resolve() 的来源/取值标注，
+    #   模块自己的生效值由 orchestrator 自己算，**不变**（逐键对拍见
+    #   scripts/audit_settings_config_path_parity.py 的 --json 结果）。
     _a("ORCHESTRATOR_REJECT_ENABLED", CAT_ORCHESTRATION, None,
-       "意图拒答（reject）机制开关",
-       owner="agent/orchestrator/orchestrator.py"),
+       "意图拒答（reject）机制开关；config.yaml 路径 "
+       "orchestrator.reject.enabled（agent/orchestrator/orchestrator.py:2690-2694）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="orchestrator.reject.enabled"),
     _a("ORCHESTRATOR_REJECT_THRESHOLD", CAT_ORCHESTRATION, None,
-       "拒答判定阈值", owner="agent/orchestrator/orchestrator.py",
+       "拒答判定阈值；config.yaml 路径 orchestrator.reject.threshold"
+       "（agent/orchestrator/orchestrator.py:2690-2694）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="orchestrator.reject.threshold",
        validator=Validator("float")),
     _a("ORCHESTRATOR_LLM_MIN_CONFIDENCE", CAT_ORCHESTRATION, None,
-       "LLM 意图判定最低置信度（低于则走规则层）",
-       owner="agent/orchestrator/orchestrator.py", validator=Validator("float")),
+       "LLM 意图判定最低置信度（低于则走规则层）；config.yaml 路径 "
+       "orchestrator.reject.llm_min_confidence"
+       "（agent/orchestrator/orchestrator.py:2690-2694）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="orchestrator.reject.llm_min_confidence",
+       validator=Validator("float")),
     _a("ORCHESTRATOR_SEMANTIC_LAYER_ENABLED", CAT_ORCHESTRATION, None,
-       "语义层（相似度路由）开关",
-       owner="agent/orchestrator/orchestrator.py"),
+       "语义层（相似度路由）开关；config.yaml 路径 "
+       "orchestrator.semantic_layer.enabled"
+       "（agent/orchestrator/orchestrator.py:1879-1887）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="orchestrator.semantic_layer.enabled"),
     _a("ORCHESTRATOR_SEMANTIC_MIN_SCORE", CAT_ORCHESTRATION, None,
-       "语义层最低命中分",
-       owner="agent/orchestrator/orchestrator.py", validator=Validator("float")),
+       "语义层最低命中分；config.yaml 路径 orchestrator.semantic_layer.min_score"
+       "（agent/orchestrator/orchestrator.py:1879-1887）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="orchestrator.semantic_layer.min_score",
+       validator=Validator("float")),
     _a("ORCHESTRATOR_WF_LEARN_ENABLED", CAT_ORCHESTRATION, None,
-       "工作流学习层开关",
-       owner="agent/orchestrator/orchestrator.py"),
+       "工作流学习层开关；config.yaml 路径 "
+       "workflow_learning.learn_from_interaction.enabled"
+       "（agent/orchestrator/orchestrator.py:2132-2134）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="workflow_learning.learn_from_interaction.enabled"),
     _a("ORCHESTRATOR_WORKFLOW_LEARNING_LAYER_ENABLED", CAT_ORCHESTRATION, None,
-       "工作流学习层（新版接线）开关",
-       owner="agent/orchestrator/orchestrator.py"),
+       "工作流学习层（新版接线）开关；config.yaml 路径 "
+       "orchestrator.workflow_learning_layer.enabled"
+       "（agent/orchestrator/orchestrator.py:1938-1946）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="orchestrator.workflow_learning_layer.enabled"),
     _a("ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE", CAT_ORCHESTRATION, None,
-       "工作流学习命中最低分",
-       owner="agent/orchestrator/orchestrator.py", validator=Validator("float")),
+       "工作流学习命中最低分；config.yaml 路径 "
+       "orchestrator.workflow_learning_layer.min_score"
+       "（agent/orchestrator/orchestrator.py:1938-1946）",
+       owner="agent/orchestrator/orchestrator.py",
+       config_path="orchestrator.workflow_learning_layer.min_score",
+       validator=Validator("float")),
     _a("ORCHESTRATOR_TRAFFIC_REPORT_INTERVAL", CAT_ORCHESTRATION, 50,
        "路由流量报告输出间隔（次）",
        owner="agent/orchestrator/routing_observability.py"),
@@ -1283,14 +1402,20 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_UTC_PRICES", CAT_ORCHESTRATION, None,
        "UTC 价格表路径（只读）", owner="agent/observability/utc.py"),
     _c("CP_UTC_ANCHOR_MODEL", CAT_ORCHESTRATION, None,
-       "UTC 锚模型（成本口径基准，只读）",
-       owner="agent/observability/utc.py"),
+       "UTC 锚模型（成本口径基准，只读）；config.yaml 路径 llm.model"
+       "（agent/observability/utc.py:356，docstring :325 自述三层优先级）",
+       owner="agent/observability/utc.py",
+       config_path="llm.model"),
     _a("CP_MODEL_FALLBACK_ENABLED", CAT_ORCHESTRATION, False,
-       "模型降级链开关（主力模型不可用时回退）",
+       "模型降级链开关（主力模型不可用时回退）；本键**只有 env 一层**，"
+       "config.yaml 无对应路径（agent/observability/model_degrade.py:57）",
        owner="agent/observability/model_degrade.py"),
     _a("CP_MODEL_FALLBACK_CHAIN", CAT_ORCHESTRATION, "",
-       "模型降级链（逗号分隔的模型名）",
-       owner="agent/observability/model_degrade.py"),
+       "模型降级链（逗号分隔的模型名，config 层可为列表或逗号串）；"
+       "config.yaml 路径 llm.fallback_chain"
+       "（agent/observability/model_degrade.py:84/89）",
+       owner="agent/observability/model_degrade.py",
+       config_path="llm.fallback_chain"),
     _a("LLM_CACHE_CONTROL_ENABLED", CAT_ORCHESTRATION, True,
        "LLM 响应缓存控制开关",
        owner="agent/tool_calling.py"),
@@ -1397,20 +1522,39 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _a("SKILL_INSTALL_RETRY_BACKOFF", CAT_SKILLS, 0.5,
        "技能安装重试退避基数（秒）",
        owner="agent/skills_mgmt/creator.py", validator=Validator("float")),
+    # 【L5（2026-09-23）】补登记 config_path：六项都取自同一段
+    #   config.yaml skills_mgmt.cleanup（cleanup_scheduler.py:69，逐个叶子见描述）。
     _a("SKILL_CLEANUP_UNUSED_DAYS", CAT_SKILLS, 90,
-       "技能多久未使用进入清理候选（天）",
-       owner="agent/skills_mgmt/cleanup_scheduler.py", validator=Validator("int")),
+       "技能多久未使用进入清理候选（天）；config.yaml 路径 "
+       "skills_mgmt.cleanup.unused_days"
+       "（agent/skills_mgmt/cleanup_scheduler.py:69/87-88）",
+       owner="agent/skills_mgmt/cleanup_scheduler.py",
+       config_path="skills_mgmt.cleanup.unused_days", validator=Validator("int")),
     _a("SKILL_CLEANUP_ARCHIVED_DAYS", CAT_SKILLS, 180,
-       "已归档技能保留天数", owner="agent/skills_mgmt/cleanup_scheduler.py",
-       validator=Validator("int")),
+       "已归档技能保留天数；config.yaml 路径 "
+       "skills_mgmt.cleanup.archived_days"
+       "（agent/skills_mgmt/cleanup_scheduler.py:69/89-90）",
+       owner="agent/skills_mgmt/cleanup_scheduler.py",
+       config_path="skills_mgmt.cleanup.archived_days", validator=Validator("int")),
     _a("SKILL_CLEANUP_INTERVAL_HOURS", CAT_SKILLS, 24,
-       "技能清理调度间隔（小时）；下一次调度轮生效",
-       owner="agent/skills_mgmt/cleanup_scheduler.py", validator=Validator("int"),
+       "技能清理调度间隔（小时）；下一次调度轮生效；config.yaml 路径 "
+       "skills_mgmt.cleanup.interval_hours"
+       "（agent/skills_mgmt/cleanup_scheduler.py:69/81-82）",
+       owner="agent/skills_mgmt/cleanup_scheduler.py",
+       config_path="skills_mgmt.cleanup.interval_hours", validator=Validator("int"),
        apply_mode=EFFECT_NEXT_TASK),
     _a("SKILL_CLEANUP_UNUSED_DRY_RUN", CAT_SKILLS, True,
-       "未使用技能清理演练模式", owner="agent/skills_mgmt/cleanup_scheduler.py"),
+       "未使用技能清理演练模式；config.yaml 路径 "
+       "skills_mgmt.cleanup.unused_dry_run"
+       "（agent/skills_mgmt/cleanup_scheduler.py:69/85-86）",
+       owner="agent/skills_mgmt/cleanup_scheduler.py",
+       config_path="skills_mgmt.cleanup.unused_dry_run"),
     _a("SKILL_CLEANUP_ORPHANS_DRY_RUN", CAT_SKILLS, True,
-       "孤儿技能清理演练模式", owner="agent/skills_mgmt/cleanup_scheduler.py"),
+       "孤儿技能清理演练模式；config.yaml 路径 "
+       "skills_mgmt.cleanup.orphans_dry_run"
+       "（agent/skills_mgmt/cleanup_scheduler.py:69/83-84）",
+       owner="agent/skills_mgmt/cleanup_scheduler.py",
+       config_path="skills_mgmt.cleanup.orphans_dry_run"),
 
     # 工具路由 / 检索阈值
     _a("AGENT_HYBRID_RERANKER", CAT_SKILLS, False,
@@ -1538,13 +1682,25 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "记忆快照保留天数（遗忘机制的保留期）",
        owner="agent/memory/forgetting.py", validator=Validator("int")),
     _a("SKILLS_FUSION_WEIGHT_TFIDF", CAT_SKILLS, None,
-       "技能检索融合权重：TF-IDF 分支（三权重之和归一）",
-       owner="agent/skills_mgmt/loader.py", validator=Validator("float")),
+       "技能检索融合权重：TF-IDF 分支（三权重之和归一）；config.yaml 路径 "
+       "skills_mgmt.retrieval.fusion.weights.tfidf"
+       "（agent/skills_mgmt/loader.py:1024-1034）",
+       owner="agent/skills_mgmt/loader.py",
+       config_path="skills_mgmt.retrieval.fusion.weights.tfidf",
+       validator=Validator("float")),
     _a("SKILLS_FUSION_WEIGHT_VECTOR", CAT_SKILLS, None,
-       "技能检索融合权重：向量分支", owner="agent/skills_mgmt/loader.py",
+       "技能检索融合权重：向量分支；config.yaml 路径 "
+       "skills_mgmt.retrieval.fusion.weights.vector"
+       "（agent/skills_mgmt/loader.py:1024-1034）",
+       owner="agent/skills_mgmt/loader.py",
+       config_path="skills_mgmt.retrieval.fusion.weights.vector",
        validator=Validator("float")),
     _a("SKILLS_FUSION_WEIGHT_BM25", CAT_SKILLS, None,
-       "技能检索融合权重：BM25 分支", owner="agent/skills_mgmt/loader.py",
+       "技能检索融合权重：BM25 分支；config.yaml 路径 "
+       "skills_mgmt.retrieval.fusion.weights.bm25"
+       "（agent/skills_mgmt/loader.py:1024-1034）",
+       owner="agent/skills_mgmt/loader.py",
+       config_path="skills_mgmt.retrieval.fusion.weights.bm25",
        validator=Validator("float")),
     _c("MEMORY_LAYERS_ROOT", CAT_SKILLS, None,
        "分层记忆根目录（只读）", owner="agent/memory/layered_store.py"),
@@ -1827,24 +1983,43 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     # ────────────────────────────────────────────────────────
     #  动态家族（前缀 + 运行时后缀；UI 只读展示）
     # ────────────────────────────────────────────────────────
+    # 【L5（2026-09-23）】动态族的 config.yaml 路径**带运行时后缀**
+    #   （skills_mgmt.assess.<key> 之类），而 SettingSpec.config_path 是**单值字段**：
+    #   填任何固定路径都是**伪造来源**（UI 会声称值来自那个路径，而代码从不读它）。
+    #   故这 5 族一律**只改 description**（如实写明路径模板 + 读取点 + 为什么留空），
+    #   config_path 保持空字符串，并由 tests/unit/test_settings_registry.py::
+    #   TestDynamicFamiliesDeclarePathsInDescription 钉住
+    #   「描述里有路径模板 + config_path 必须为空」这两个方向。
     SettingSpec(
         key="SKILLS_ASSESS_<KEY>", category=CAT_SKILLS, type="bool",
         default=None, description=(
             "技能评估项动态开关族：SKILLS_ASSESS_<KEY> 覆盖 "
-            "config.yaml skills_mgmt.assess.<key>（逐项开关，UI 只读展示）"),
+            "config.yaml skills_mgmt.assess.<key>（逐项开关，UI 只读展示）；"
+            "路径模板 skills_mgmt.assess.<key>，后缀 <key> 由运行期变量拼出"
+            "（agent/skills_mgmt/assessor.py:90 的 os.environ.get("
+            "\"SKILLS_ASSESS_\" + key.upper())，取值见 :103-106），"
+            "**故 config_path 为空**：单值字段表达不了动态后缀，填固定路径即伪造来源"),
         risk=RISK_A, env_name="", dynamic_prefix="SKILLS_ASSESS_",
         owner_module="agent/skills_mgmt/assessor.py"),
     SettingSpec(
         key="SKILLS_DIGEST_<KEY>", category=CAT_SKILLS, type="bool",
         default=None, description=(
-            "技能摘要项动态开关族：SKILLS_DIGEST_<KEY>（历史键兼容，UI 只读展示）"),
+            "技能摘要项动态开关族：SKILLS_DIGEST_<KEY>（历史键兼容，UI 只读展示）；"
+            "它是一个**兜底层**：仅在 SKILLS_ASSESS_<KEY> 未设置时才读"
+            "（agent/skills_mgmt/assessor.py:94），config.yaml 侧对应 "
+            "skills_mgmt.digest.<旧key>（assessor.py:104-106，"
+            "旧 key 映射见 _ASSESS_LEGACY_KEYS）；后缀由运行期变量拼出，"
+            "**故 config_path 为空**（填固定路径即伪造来源）"),
         risk=RISK_A, env_name="", dynamic_prefix="SKILLS_DIGEST_",
         owner_module="agent/skills_mgmt/assessor.py"),
     SettingSpec(
         key="SKILL_CLEANUP_<NAME>", category=CAT_SKILLS, type="bool",
         default=None, description=(
             "技能清理动态开关族：SKILL_CLEANUP_<NAME>（由 _ENV_PREFIX + 后缀拼接，"
-            "常见实例已逐条登记，UI 只读展示）"),
+            "常见实例已逐条登记，UI 只读展示）；路径模板 "
+            "skills_mgmt.cleanup.<小写后缀>（agent/skills_mgmt/cleanup_scheduler.py:69 "
+            "取段、:74-77 按后缀取叶子），后缀由运行期变量拼出，"
+            "**故 config_path 为空**（填固定路径即伪造来源）"),
         risk=RISK_A, env_name="", dynamic_prefix="SKILL_CLEANUP_",
         owner_module="agent/skills_mgmt/cleanup_scheduler.py"),
 
@@ -1866,7 +2041,10 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
             "特性开关族（阶段灰度）：YUNSHU_FEATURE_<NAME> 覆盖 "
             "config.yaml 的 features.<name>；YUNSHU_FEATURE_<NAME>_ROLLOUT 控制 "
             "灰度比例 0-100。统一求值入口 "
-            "agent.settings.feature_flags.feature_enabled()；UI 只读展示"),
+            "agent.settings.feature_flags.feature_enabled()；UI 只读展示；"
+            "路径模板 features.<name>（agent/settings/feature_flags.py:87-88 的 "
+            "config_path 属性、:253/273 的 _config_lookup），<name> 由运行期变量拼出，"
+            "**故 config_path 为空**（填固定路径即伪造来源）"),
         risk=RISK_A, env_name="", dynamic_prefix="YUNSHU_FEATURE_",
         owner_module="agent/settings/feature_flags.py"),
 
@@ -1878,13 +2056,17 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        owner="agent/monitoring/slo_report_scheduler.py",
        config_path="slo_report.enabled", needs_restart=True),
     _c("CP_SLO_SCHEDULE_OUT_DIR", CAT_OBSERVABILITY, "docs/zh/周报存档",
-       "SLO 周报存档目录（只读展示）",
+       "SLO 周报存档目录（只读展示）；config.yaml 路径 slo_report.out_dir"
+       "（agent/monitoring/slo_report_scheduler.py:117）",
        owner="agent/monitoring/slo_report_scheduler.py",
+       config_path="slo_report.out_dir",
        validator=Validator("path")),
     _c("CP_SLO_SCHEDULE_AUDIT_FILE", CAT_OBSERVABILITY,
        "data/slo_report_audit.jsonl",
-       "SLO 周报运行审计文件（只读展示）",
+       "SLO 周报运行审计文件（只读展示）；config.yaml 路径 slo_report.audit_file"
+       "（agent/monitoring/slo_report_scheduler.py:122）",
        owner="agent/monitoring/slo_report_scheduler.py",
+       config_path="slo_report.audit_file",
        validator=Validator("path")),
     # S7-03 成本校准引入的 env 读取点（此前未登记，2026-09-13 零缺口门抓出）
     _c("CP_UTC_CALIBRATION_FILE", CAT_OBSERVABILITY, None,
@@ -1895,7 +2077,10 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
         key="CP_SLO_SCHEDULE_<KEY>", category=CAT_OBSERVABILITY, type="int",
         default=None, description=(
             "SLO 周报调度参数族：CP_SLO_SCHEDULE_<KEY>（DAYS / DAY_OF_WEEK / "
-            "HOUR / MINUTE；由 _ENV_PREFIX + 后缀拼接，UI 只读展示）"),
+            "HOUR / MINUTE；由 _ENV_PREFIX + 后缀拼接，UI 只读展示）；"
+            "路径模板 slo_report.<小写后缀>"
+            "（agent/monitoring/slo_report_scheduler.py:64 取段、:72/:83 按后缀取叶子），"
+            "后缀由运行期变量拼出，**故 config_path 为空**（填固定路径即伪造来源）"),
         risk=RISK_A, env_name="", dynamic_prefix="CP_SLO_SCHEDULE_",
         owner_module="agent/monitoring/slo_report_scheduler.py"),
 
@@ -1916,9 +2101,14 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "开启后仍需过 PurgeGuard：红线类/记忆类/未标可删/有指标依赖一律拒绝）",
        owner="agent/retention/guard.py",
        config_path="retention.delete_source", needs_restart=True),
+    # 【L5（2026-09-23）】retention 段 8 个叶子此前只登记 7 个，本条是漏掉的那个
+    #   （同族漏一个的典型形态）：policy.py 同一次读取里读了 section.get("archive_dir")，
+    #   而本条 config_path 为空 ⇒ UI 只显示 default。
     _c("CP_RETENTION_ARCHIVE_DIR", CAT_OBSERVABILITY, "data/archive",
-       "冷归档根目录（默认 data/archive；只读展示）",
+       "冷归档根目录（默认 data/archive；只读展示）；config.yaml 路径 "
+       "retention.archive_dir（agent/retention/policy.py:637-638）",
        owner="agent/retention/policy.py",
+       config_path="retention.archive_dir",
        validator=Validator("path")),
     _a("CP_RETENTION_CLASSES", CAT_OBSERVABILITY, "",
        "保留策略限定数据类（逗号分隔；空＝全部 12 类）",

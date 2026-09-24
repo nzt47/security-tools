@@ -14,7 +14,9 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import pathlib
+import re
 
 import pytest
 
@@ -22,6 +24,88 @@ from agent.monitoring.observability_config import OBSERVABILITY_VALIDATION_RULES
 from agent.settings import registry as R
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+# ════════════════════════════════════════════════════════════
+#  〇、L5 补登记清单（2026-09-23）—— 本文件多处守护共用，故定义在最前
+# ════════════════════════════════════════════════════════════
+#
+# 来源：docs/closeout/开关登记表_config口径审计_20260922.md（只读审计）
+#   (a) 组 398 个 config_path 为空的键中，**55 个**确实读 config.yaml；
+#   其中 **50 个是定值路径**（下表逐键取证），**5 个是动态族**（只能写 description）。
+#
+# 口径纪律（L1 原文）：补 config_path 会让本来「只读 default」的键**开始受
+# config.yaml 影响**，故**禁止批量补** —— 每个键都必须能在归属模块源码里
+# 复核到「env 读取点 + config.yaml 点分路径」，见 TestL5ReadSitesAreMechanicallyVerified。
+
+#: L5 的 50 个「定值路径」键：key -> (归属模块, 声明的点分路径, env 名形态)
+#:
+#: env 名形态有两种（两种都由**源码**机械核对，不是手抄）：
+#:   - 字面量字符串：模块源码里直接出现该 env 名（如 "CP_BUDGET_BRAKE_ENABLED"）；
+#:   - ("compose", 前缀, 后缀) 三元组：模块源码里出现前缀常量与后缀字面量
+#:     （如 _ENV_PREFIX = "SKILL_CLEANUP" 与 f"{_ENV_PREFIX}_ENABLED"）。
+#:     ★ 这类 env 名**不存在**于代码字面量里，若按字面量断言，守护会永远失败/或被迫空转。
+_L5_READ_SITES: dict = {
+        "CP_BUDGET_BRAKE_ENABLED": ("agent/monitoring/cost_brake.py", "budget.enabled", "CP_BUDGET_BRAKE_ENABLED"),
+        "CP_MODEL_FALLBACK_CHAIN": ("agent/observability/model_degrade.py", "llm.fallback_chain", "CP_MODEL_FALLBACK_CHAIN"),
+        "CP_RETENTION_ARCHIVE_DIR": ("agent/retention/policy.py", "retention.archive_dir", "CP_RETENTION_ARCHIVE_DIR"),
+        "CP_SLO_SCHEDULE_AUDIT_FILE": ("agent/monitoring/slo_report_scheduler.py", "slo_report.audit_file", ("compose", "CP_SLO_SCHEDULE", "_AUDIT_FILE")),
+        "CP_SLO_SCHEDULE_OUT_DIR": ("agent/monitoring/slo_report_scheduler.py", "slo_report.out_dir", ("compose", "CP_SLO_SCHEDULE", "_OUT_DIR")),
+        "CP_UTC_ANCHOR_MODEL": ("agent/observability/utc.py", "llm.model", "CP_UTC_ANCHOR_MODEL"),
+        "CRITIC_EVALUATION_ENABLED": ("agent/orchestrator/orchestrator.py", "features.critic_evaluation_enabled", "CRITIC_EVALUATION_ENABLED"),
+        "LEARNING_BUDGET_MAX_DAILY_TOKENS": ("agent/learning_budget.py", "learning.budget.max_daily_tokens", "LEARNING_BUDGET_MAX_DAILY_TOKENS"),
+        "LEARNING_BUDGET_MAX_SINGLE_ACTION_TOKENS": ("agent/learning_budget.py", "learning.budget.max_single_action_tokens", "LEARNING_BUDGET_MAX_SINGLE_ACTION_TOKENS"),
+        "LEARNING_BUDGET_MODE": ("agent/learning_budget.py", "learning.budget.mode", "LEARNING_BUDGET_MODE"),
+        "LEARNING_BUDGET_RECOVERY_SECONDS": ("agent/learning_budget.py", "learning.budget.recovery_seconds", "LEARNING_BUDGET_RECOVERY_SECONDS"),
+        "LEARNING_CONTEXT_ASSEMBLER_ENABLED": ("agent/orchestrator/orchestrator.py", "learning.context_assembler.enabled", "LEARNING_CONTEXT_ASSEMBLER_ENABLED"),
+        "LEARNING_EVOLVER_AUDIT_FILE": ("agent/skills_mgmt/evolution_scheduler.py", "learning.evolver.audit_file", ("compose", "LEARNING_EVOLVER", "_AUDIT_FILE")),
+        "LEARNING_EVOLVER_DRY_RUN": ("agent/skills_mgmt/evolution_scheduler.py", "learning.evolver.dry_run", ("compose", "LEARNING_EVOLVER", "_DRY_RUN")),
+        "LEARNING_EVOLVER_ENABLED": ("agent/skills_mgmt/evolution_scheduler.py", "learning.evolver.enabled", ("compose", "LEARNING_EVOLVER", "_ENABLED")),
+        "LEARNING_EVOLVER_INTERVAL_DAYS": ("agent/skills_mgmt/evolution_scheduler.py", "learning.evolver.interval_days", ("compose", "LEARNING_EVOLVER", "_INTERVAL_DAYS")),
+        "LEARNING_FEEDBACK_AGENT_AUDIT_FILE": ("agent/skills_mgmt/feedback_agent.py", "learning.feedback_agent.audit_file", ("compose", "LEARNING_FEEDBACK_AGENT", "_AUDIT_FILE")),
+        "LEARNING_FEEDBACK_AGENT_DRY_RUN": ("agent/skills_mgmt/feedback_agent.py", "learning.feedback_agent.dry_run", ("compose", "LEARNING_FEEDBACK_AGENT", "_DRY_RUN")),
+        "LEARNING_FEEDBACK_AGENT_ENABLED": ("agent/skills_mgmt/feedback_agent.py", "learning.feedback_agent.enabled", ("compose", "LEARNING_FEEDBACK_AGENT", "_ENABLED")),
+        "LEARNING_FEEDBACK_AGENT_INTERVAL_HOURS": ("agent/skills_mgmt/feedback_agent.py", "learning.feedback_agent.interval_hours", ("compose", "LEARNING_FEEDBACK_AGENT", "_INTERVAL_HOURS")),
+        "LEARNING_LIFECYCLE_ARCHIVE_DAYS": ("agent/skills_mgmt/lifecycle.py", "learning.lifecycle.archive_days", ("compose", "LEARNING_LIFECYCLE", "_ARCHIVE_DAYS")),
+        "LEARNING_LIFECYCLE_AUDIT_FILE": ("agent/skills_mgmt/lifecycle.py", "learning.lifecycle.audit_file", ("compose", "LEARNING_LIFECYCLE", "_AUDIT_FILE")),
+        "LEARNING_LIFECYCLE_DRY_RUN": ("agent/skills_mgmt/lifecycle.py", "learning.lifecycle.dry_run", ("compose", "LEARNING_LIFECYCLE", "_DRY_RUN")),
+        "LEARNING_LIFECYCLE_ENABLED": ("agent/skills_mgmt/lifecycle.py", "learning.lifecycle.enabled", ("compose", "LEARNING_LIFECYCLE", "_ENABLED")),
+        "LEARNING_LIFECYCLE_INTERVAL_HOURS": ("agent/skills_mgmt/lifecycle.py", "learning.lifecycle.interval_hours", ("compose", "LEARNING_LIFECYCLE", "_INTERVAL_HOURS")),
+        "LEARNING_LIFECYCLE_UNUSED_DAYS": ("agent/skills_mgmt/lifecycle.py", "learning.lifecycle.unused_days", ("compose", "LEARNING_LIFECYCLE", "_UNUSED_DAYS")),
+        "LEARNING_LIFECYCLE_UPGRADE_THRESHOLD": ("agent/skills_mgmt/lifecycle.py", "skills_mgmt.scale.upgrade_threshold", ("compose", "LEARNING_LIFECYCLE", "_UPGRADE_THRESHOLD")),
+        "LEARNING_PRECIPITATE_AUDIT_FILE": ("agent/skills_mgmt/precipitate.py", "learning.precipitate.audit_file", ("compose", "LEARNING_PRECIPITATE", "_AUDIT_FILE")),
+        "LEARNING_PRECIPITATE_ENABLED": ("agent/skills_mgmt/precipitate.py", "learning.precipitate_enabled", ("compose", "LEARNING_PRECIPITATE", "_ENABLED")),
+        "LEARNING_PRECIPITATE_INTERVAL_HOURS": ("agent/skills_mgmt/precipitate.py", "learning.precipitate.interval_hours", ("compose", "LEARNING_PRECIPITATE", "_INTERVAL_HOURS")),
+        "LEARNING_REFLECTION_PERSIST": ("agent/orchestrator/orchestrator.py", "learning.reflection_persist", "LEARNING_REFLECTION_PERSIST"),
+        "ORCHESTRATOR_LLM_MIN_CONFIDENCE": ("agent/orchestrator/orchestrator.py", "orchestrator.reject.llm_min_confidence", "ORCHESTRATOR_LLM_MIN_CONFIDENCE"),
+        "ORCHESTRATOR_REJECT_ENABLED": ("agent/orchestrator/orchestrator.py", "orchestrator.reject.enabled", "ORCHESTRATOR_REJECT_ENABLED"),
+        "ORCHESTRATOR_REJECT_THRESHOLD": ("agent/orchestrator/orchestrator.py", "orchestrator.reject.threshold", "ORCHESTRATOR_REJECT_THRESHOLD"),
+        "ORCHESTRATOR_SEMANTIC_LAYER_ENABLED": ("agent/orchestrator/orchestrator.py", "orchestrator.semantic_layer.enabled", "ORCHESTRATOR_SEMANTIC_LAYER_ENABLED"),
+        "ORCHESTRATOR_SEMANTIC_MIN_SCORE": ("agent/orchestrator/orchestrator.py", "orchestrator.semantic_layer.min_score", "ORCHESTRATOR_SEMANTIC_MIN_SCORE"),
+        "ORCHESTRATOR_WF_LEARN_ENABLED": ("agent/orchestrator/orchestrator.py", "workflow_learning.learn_from_interaction.enabled", "ORCHESTRATOR_WF_LEARN_ENABLED"),
+        "ORCHESTRATOR_WORKFLOW_LEARNING_LAYER_ENABLED": ("agent/orchestrator/orchestrator.py", "orchestrator.workflow_learning_layer.enabled", "ORCHESTRATOR_WORKFLOW_LEARNING_LAYER_ENABLED"),
+        "ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE": ("agent/orchestrator/orchestrator.py", "orchestrator.workflow_learning_layer.min_score", "ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE"),
+        "SKILLS_FUSION_WEIGHT_BM25": ("agent/skills_mgmt/loader.py", "skills_mgmt.retrieval.fusion.weights.bm25", "SKILLS_FUSION_WEIGHT_BM25"),
+        "SKILLS_FUSION_WEIGHT_TFIDF": ("agent/skills_mgmt/loader.py", "skills_mgmt.retrieval.fusion.weights.tfidf", "SKILLS_FUSION_WEIGHT_TFIDF"),
+        "SKILLS_FUSION_WEIGHT_VECTOR": ("agent/skills_mgmt/loader.py", "skills_mgmt.retrieval.fusion.weights.vector", "SKILLS_FUSION_WEIGHT_VECTOR"),
+        "SKILLS_REVIEW_AUDIT_FILE": ("agent/skills_mgmt/review_gate.py", "skills_mgmt.review.audit_file", "SKILLS_REVIEW_AUDIT_FILE"),
+        "SKILLS_REVIEW_ENFORCE_PUBLISH": ("agent/skills_mgmt/review_gate.py", "skills_mgmt.review.enforce_before_publish", "SKILLS_REVIEW_ENFORCE_PUBLISH"),
+        "SKILL_CLEANUP_ARCHIVED_DAYS": ("agent/skills_mgmt/cleanup_scheduler.py", "skills_mgmt.cleanup.archived_days", ("compose", "SKILL_CLEANUP", "_ARCHIVED_DAYS")),
+        "SKILL_CLEANUP_ENABLED": ("agent/skills_mgmt/cleanup_scheduler.py", "skills_mgmt.cleanup.enabled", ("compose", "SKILL_CLEANUP", "_ENABLED")),
+        "SKILL_CLEANUP_INTERVAL_HOURS": ("agent/skills_mgmt/cleanup_scheduler.py", "skills_mgmt.cleanup.interval_hours", ("compose", "SKILL_CLEANUP", "_INTERVAL_HOURS")),
+        "SKILL_CLEANUP_ORPHANS_DRY_RUN": ("agent/skills_mgmt/cleanup_scheduler.py", "skills_mgmt.cleanup.orphans_dry_run", ("compose", "SKILL_CLEANUP", "_ORPHANS_DRY_RUN")),
+        "SKILL_CLEANUP_UNUSED_DAYS": ("agent/skills_mgmt/cleanup_scheduler.py", "skills_mgmt.cleanup.unused_days", ("compose", "SKILL_CLEANUP", "_UNUSED_DAYS")),
+        "SKILL_CLEANUP_UNUSED_DRY_RUN": ("agent/skills_mgmt/cleanup_scheduler.py", "skills_mgmt.cleanup.unused_dry_run", ("compose", "SKILL_CLEANUP", "_UNUSED_DRY_RUN")),
+}
+
+#: L5 的 5 个动态开关族（路径带**运行时后缀** ⇒ 只能写进 description，
+#: 不得填 config_path —— 单值字段填了就是伪造来源）
+_L5_DYNAMIC_FAMILIES: tuple = (
+    "SKILLS_ASSESS_<KEY>", "SKILLS_DIGEST_<KEY>", "SKILL_CLEANUP_<NAME>",
+    "CP_SLO_SCHEDULE_<KEY>", "YUNSHU_FEATURE_<NAME>",
+)
+
+
 
 
 def _load_scanner():
@@ -550,7 +634,8 @@ class TestConfigPathMatchesSourceReadSite:
         "SENSOR_LEARNING_ENABLED", "SENSOR_LEARNING_DRIFT_THRESHOLD",
         "SENSOR_LEARNING_BASELINE_RETENTION_WEEKS", "SENSOR_LEARNING_DRAFT_DIR",
         "SENSOR_LEARNING_AUDIT_FILE", "SENSOR_LEARNING_MEMORY_DIR",
-    })
+        # L5 依据读取点补登记（50）—— 逐键取证见本文件顶部的 _L5_READ_SITES
+    } | frozenset(_L5_READ_SITES))
 
     # ── 机械提取 ──
 
@@ -664,6 +749,258 @@ class TestConfigPathMatchesSourceReadSite:
             "声明 config.yaml 文件路径的开关集合变了："
             f"新增={sorted(actual - set(self._DECLARED_FILE_CONFIG_PATH_KEYS))} "
             f"消失={sorted(set(self._DECLARED_FILE_CONFIG_PATH_KEYS) - actual)}；"
-            "新增一项必须在 _CODE_CONFIG_PATH_PATTERNS 里补一条**源码提取式**"
-            "（不许只手写路径），消失一项须说明原因")
+            "新增一项必须在 _CODE_CONFIG_PATH_PATTERNS（或 L5 的 _L5_READ_SITES）"
+            "里补一条**源码提取式**（不许只手写路径），消失一项须说明原因")
+
+# ════════════════════════════════════════════════════════════
+#  六、L5：50 个定值路径键的逐键机械核对 + 登记只影响显示（2026-09-23）
+# ════════════════════════════════════════════════════════════
+
+
+def _production_scan():
+    """整仓**生产根**扫一次（模块级缓存；只读，无副作用）
+
+    扫描根取自 scripts/scan_settings.py::DEFAULT_ROOTS（与本文件的零缺口守卫同源），
+    因此「这些键只有一个读取模块」的判据与机械提取器的口径**永远一致**。
+    """
+    cached = getattr(_production_scan, "_cache", None)
+    if cached is None:
+        scanner = _load_scanner()
+        report = scanner.scan_paths(
+            [REPO_ROOT / p for p in scanner.DEFAULT_ROOTS], REPO_ROOT)
+        cached = (scanner, report)
+        _production_scan._cache = cached
+    return cached
+
+
+class TestL5ReadSitesAreMechanicallyVerified:
+    """★ L5：补登记的 config_path 必须能在**归属模块源码**里机械复核
+
+    审计（docs/closeout/开关登记表_config口径审计_20260922.md）认定 55 个键
+    「模块确实读 config.yaml，而登记表 config_path 为空」。L1 的口径纪律是
+    「逐键核实读取点，**禁止批量补**」—— 本类把这句纪律变成可执行判据：
+
+      1. 登记路径 / 归属模块与取证表逐字一致（防手滑、防事后漂移）；
+      2. 归属模块源码里**真的读到**该 env 名（字面量，或前缀常量 + 后缀字面量）；
+      3. 点分路径的**每一段**都以字面量出现在归属模块里，且该模块确实读 config.yaml
+         （否则这个路径是编的 —— 那是**新的假来源**，比漏登记更坏）；
+      4. 该 env 名在生产根里**只有一个读取模块**（多模块 ⇒ 单一路径表达不了全部
+         读取点，登记即部分谎报）。
+    """
+
+    def test_table_covers_every_l5_key(self):
+        assert len(_L5_READ_SITES) == 50, (
+            "L5 的 50 个定值路径键必须逐个取证（漏一个 = 守护空转）："
+            f"实测 {len(_L5_READ_SITES)}")
+        for key in _L5_READ_SITES:
+            assert R.get_spec(key) is not None, f"注册表缺少 {key}"
+
+    def test_registered_path_and_owner_match_the_table(self):
+        for key, (module, path, _env) in sorted(_L5_READ_SITES.items()):
+            spec = R.get_spec(key)
+            assert spec.owner_module == module, (key, spec.owner_module, module)
+            assert spec.config_path == path, (
+                f"{key} 登记 config_path={spec.config_path!r} 与取证表 {path!r} 不一致")
+
+    def test_owner_module_reads_its_env_name(self):
+        for key, (module, _path, env) in sorted(_L5_READ_SITES.items()):
+            source = (REPO_ROOT / module).read_text(encoding="utf-8")
+            if isinstance(env, tuple):
+                _tag, prefix, suffix = env
+                assert prefix in source, (
+                    f"{key} 的 env 名前缀常量 {prefix!r} 不在 {module} 里")
+                assert suffix.lstrip("_") in source, (
+                    f"{key} 的 env 名后缀 {suffix!r} 不在 {module} 里："
+                    "前缀拼接形态已改，须同步取证表")
+            else:
+                assert env in source, (
+                    f"{key} 的读取点已不在 {module}（env 名字面量消失）："
+                    "补登记的路径失去依据，必须重新核实而不是留着")
+
+    def test_declared_path_segments_are_source_literals(self):
+        for key, (module, path, _env) in sorted(_L5_READ_SITES.items()):
+            source = (REPO_ROOT / module).read_text(encoding="utf-8")
+            assert "config.yaml" in source, (
+                f"{key} 的归属模块 {module} 不读 config.yaml ⇒ 登记路径即假来源")
+            for part in path.split("."):
+                assert (f'"{part}"' in source) or (f"'{part}'" in source), (
+                    f"{key} 的路径段 {part!r} 不在 {module} 里："
+                    f"声明的 {path!r} 无法在源码里复核")
+
+    def test_single_production_module_reads_each_env_name(self):
+        _scanner, report = _production_scan()
+        names = report.managed_names()
+        for key, (module, _path, _env) in sorted(_L5_READ_SITES.items()):
+            points = names.get(key) or []
+            modules = sorted({p.module for p in points})
+            assert modules == [module], (
+                f"{key} 的生产读取模块不止 {module}：实测 {modules}；"
+                "单一 config_path 表达不了多个读取点，须重新核实")
+
+
+class TestDynamicFamiliesDeclarePathsInDescription:
+    """★ L5 的动态族：路径模板只能写进 description，config_path 必须为空
+
+    动态族的 config 路径带**运行时后缀**（如 skills_mgmt.assess.<key>），
+    而 SettingSpec.config_path 是**单值字段**：填任何固定路径都是**伪造来源**
+    （UI 会声称值来自那个路径，而代码从不读它）。故这 5 条双向钉死。
+    """
+
+    def test_registry_declares_exactly_five_families(self):
+        declared = {s.key for s in R.all_specs() if s.dynamic_prefix}
+        assert declared == set(_L5_DYNAMIC_FAMILIES), (
+            f"动态族清单变了：{sorted(declared)}")
+
+    def test_each_family_keeps_config_path_empty(self):
+        for key in _L5_DYNAMIC_FAMILIES:
+            spec = R.get_spec(key)
+            assert spec is not None and spec.dynamic_prefix, key
+            assert spec.config_path == "", (
+                f"{key} 的路径带运行时后缀，config_path 是单值字段："
+                "填固定路径即伪造来源")
+
+    def test_each_family_documents_path_template_and_reason(self):
+        for key in _L5_DYNAMIC_FAMILIES:
+            spec = R.get_spec(key)
+            text = spec.description or ""
+            assert "config_path 为空" in text, (
+                f"{key} 的 description 必须写明「路径模板 + 为什么留空」：{text!r}")
+            assert re.search(r"[a-z_]+[.][a-z_]+", text), (
+                f"{key} 的 description 里看不到点分路径模板：{text!r}")
+
+
+class TestConfigPathDrivesDisplayNotRuntime:
+    """★ L5 的**逐键对拍**：补登记只改「显示来源」，不改任何模块的生效值
+
+    对拍两条（逐键，不是抽样）：
+      ① 配置层**不提供**该路径时，resolve() 的来源必须是 default
+         —— 与补登记**前**的行为完全一致（补登记不凭空改变生效值）；
+      ② 配置层**提供**该路径时，来源变为 config，且取值逐字等于配置里的值
+         —— 与模块自己读 config.yaml 的结果一致（修好之后不再谎报）。
+
+    生效值不变的结构性证据（第 3 条用例）：这些键的归属模块**从不 import
+    agent.settings**（也不引用 spec.config_path / SettingSpec），因此登记表里
+    多一个 config_path 在物理上无法影响模块的取值路径。
+
+    本用例组**不写 data/**：覆盖层指向 tmp_path 里的空 store；
+    config.yaml 只取 mtime，取值来自内存合成的 dict（见 _with_synthetic_config）。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _restore_resolver_cache(self):
+        from agent.settings import resolver as RS
+
+        saved = dict(RS._CONFIG_CACHE)
+        yield
+        RS._CONFIG_CACHE.clear()
+        RS._CONFIG_CACHE.update(saved)
+
+    @staticmethod
+    def _store(tmp_path):
+        from agent.settings.overrides import OverrideStore
+
+        return OverrideStore(tmp_path / "ui_settings.json")
+
+    @staticmethod
+    def _with_synthetic_config(pairs):
+        """把合成配置塞进 resolver 的 mtime 缓存（**不碰磁盘上的 config.yaml**）"""
+        from agent.settings import resolver as RS
+
+        data = {}
+        for dotted, value in pairs.items():
+            node = data
+            parts = dotted.split(".")
+            for part in parts[:-1]:
+                node = node.setdefault(part, {})
+            node[parts[-1]] = value
+        path = RS.config_yaml_path()
+        try:
+            mtime = path.stat().st_mtime if path.exists() else -1.0
+        except OSError:
+            mtime = -1.0
+        RS._CONFIG_CACHE["mtime"] = mtime
+        RS._CONFIG_CACHE["data"] = data
+        return RS
+
+    @staticmethod
+    def _probe(spec):
+        if spec.type == "bool":
+            return (not spec.default) if isinstance(spec.default, bool) else True
+        if spec.type == "int":
+            return 4242
+        if spec.type == "float":
+            return 42.5
+        return f"parity-probe:{spec.key}"
+
+    @classmethod
+    def _declared(cls):
+        obs = R.observability_rule_paths()
+        return {s.key: s for s in R.all_specs()
+                if s.config_path and s.config_path not in obs}
+
+    def test_declared_paths_are_not_empty(self):
+        declared = self._declared()
+        assert len(declared) >= 71, (
+            f"声明了 config.yaml 文件路径的键只有 {len(declared)} 个")
+
+    def test_no_declared_key_is_env_pinned_here(self):
+        """★ 对拍用例的 SKIP 分支必须**真的没被走到**（否则逐键对拍等于空转）"""
+        pinned = sorted(k for k, s in self._declared().items()
+                        if s.env_name and s.env_name in os.environ)
+        assert pinned == [], (
+            f"本进程环境里已设置这些开关的 env：{pinned} —— "
+            "此时 env 层遮蔽 config 层，逐键对拍无意义（须在干净环境跑）")
+
+    def test_every_declared_path_flips_default_to_config(self, tmp_path):
+        from agent.settings import masking
+
+        store = self._store(tmp_path)
+        for key, spec in sorted(self._declared().items()):
+            probe = self._probe(spec)
+            RS = self._with_synthetic_config({})
+            before = RS.resolve(key, store=store)
+            assert before is not None and before.source == RS.SOURCE_DEFAULT, (
+                f"{key} 在配置层缺位时来源不是 default：{before and before.source}")
+            if spec.risk == R.RISK_C:
+                # C 级不回明文（value 被抹成 None）⇒ 用**指纹**证明取值等于默认值。
+                # 注意用 mask_display(...) 而不是 fingerprint(...)：default 为 None 时
+                # 前者的指纹是空串（未配置），后者会给 None 算出一个假指纹。
+                expected_fp = masking.mask_display(spec.default)["fingerprint"]
+                assert before.fingerprint == expected_fp, (key, before.fingerprint)
+            else:
+                assert before.value == spec.default, (key, before.value, spec.default)
+            RS = self._with_synthetic_config({spec.config_path: probe})
+            after = RS.resolve(key, store=store)
+            assert after.source == RS.SOURCE_CONFIG, (
+                f"{key} 在配置层提供 {spec.config_path} 时来源不是 config：{after.source}")
+            if spec.risk == R.RISK_C:
+                # C 级按设计不回明文（resolver 把 value 抹成 None）⇒ 用指纹比对
+                assert after.fingerprint == masking.fingerprint(probe), key
+            else:
+                assert after.value == probe, (key, after.value, probe)
+
+    def test_owner_modules_do_not_consume_the_registry(self):
+        """★ 生效值不变的结构性证据：归属模块与开关注册表**零耦合**"""
+        markers = ("agent.settings", "settings.registry", "spec.config_path",
+                   "SettingSpec")
+        owners = {}
+        for key, spec in self._declared().items():
+            owners.setdefault(spec.owner_module, []).append(key)
+        assert owners, "没有任何键声明 config.yaml 文件路径？"
+        for module, keys in sorted(owners.items()):
+            source = (REPO_ROOT / module).read_text(encoding="utf-8")
+            hits = [m for m in markers if m in source]
+            assert hits == [], (
+                f"{module}（{len(keys)} 个键的归属模块）现在引用了开关注册表 {hits}："
+                "「补登记只影响显示」的前提不再成立，必须重新做逐键对拍")
+
+    def test_resolve_all_does_not_write_environment(self, tmp_path):
+        """resolve_all() 不得把登记值写进 os.environ（否则登记值会**真的**生效）"""
+        from agent.settings import resolver as RS
+
+        before = dict(os.environ)
+        self._with_synthetic_config({})
+        RS.resolve_all(store=self._store(tmp_path))
+        assert dict(os.environ) == before, "resolve_all() 改动了进程环境变量"
+
 
