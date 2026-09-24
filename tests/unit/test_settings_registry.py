@@ -25,6 +25,23 @@ from agent.settings import registry as R
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
+# ════════════════════════════════════════════════════════════
+#  超时预算：显式给出，不依赖全局默认（pytest.ini 的明文要求）
+# ════════════════════════════════════════════════════════════
+# 【为什么本文件要显式给 300s】本文件的成本是**全仓 AST 扫描**（本文件的 `scan` 夹具与
+#   `_production_scan()` 各扫一次，已合并为**共享一次扫描**，见下）：
+#   - L5（2026-09-23）把 `scan_settings.DEFAULT_ROOTS` 从 `agent/` 扩到全仓生产代码后，
+#     单次扫描文件数 625 → **754**，本机单次实测 ~20-40s；
+#   - CI 的分片命令用命令行 `--timeout=60` 覆盖了 pytest.ini 的 120s，而 pytest-timeout
+#     的默认 `func_only=False` ⇒ **夹具 setup 的耗时也计入那条用例**：本机绿、CI 上却实测
+#     `Failed: Timeout (>60.0s) from pytest-timeout`（setup 阶段、栈落在
+#     `scan_settings._build_global_consts → ast.walk`）——这正是仓库既有处置所指的形态；
+#   - pytest.ini 的 addopts 明文要求："极慢测试应显式 @pytest.mark.timeout(N) 覆盖，
+#     不要依赖全局默认"；本行与 `test_capregistry_callpaths_routes.py` 的 `pytestmark`、
+#     `test_concurrency_multi_writer.py` 的 `@pytest.mark.timeout(300)` 同款。
+# 【这不改任何断言】：只把**预算**按实测成本显式化。
+pytestmark = pytest.mark.timeout(300)
+
 
 # ════════════════════════════════════════════════════════════
 #  〇、L5 补登记清单（2026-09-23）—— 本文件多处守护共用，故定义在最前
@@ -139,10 +156,7 @@ def scan():
     （例如 planning/core.py:468 的 LEARNING_EXPERIENCE_PERSIST）**永远进不了判据** ——
     守卫与被守卫的对象一起漏掉了同一片区域。
     """
-    scanner = _load_scanner()
-    report = scanner.scan_paths(
-        [REPO_ROOT / p for p in scanner.DEFAULT_ROOTS], REPO_ROOT)
-    return scanner, report
+    return _production_scan()
 
 
 # ════════════════════════════════════════════════════════════
