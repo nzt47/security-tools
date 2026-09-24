@@ -787,7 +787,7 @@ export interface SettingsItem {
    *   absent   该键有 config 口径，但 config.yaml 没写这一行；
    *   no_path  登记表未声明 config_path ⇒ 该键无 config 口径。
    */
-  config_state?: 'provided' | 'absent' | 'no_path' | string;
+  config_state?: 'provided' | 'absent' | 'no_path';
   /** 三态的中文说明（**逐字用后端给的**，前端不另造说法） */
   config_state_label?: string;
   /** 仅支持环境变量（无 config.yaml 项） */

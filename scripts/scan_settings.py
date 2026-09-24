@@ -1328,6 +1328,26 @@ def _print_summary(report: ScanReport, gap: Optional[GapReport]) -> None:
     print("结论：" + ("零缺口 ✅" if gap.ok else "存在缺口 ❌"))
 
 
+def _make_stdout_encoding_safe() -> None:
+    """让摘要里的 ✅/❌ 在**非 UTF-8 控制台**（Windows GBK）上不再把工具打崩
+
+    背景（2026-09-23 实测，独立复核亦复现）：本机中文 Windows 控制台默认 GBK，
+    `python scripts/scan_settings.py --check` 在**缺口为 0** 的情况下打印 "结论：零缺口 ✅"
+    时抛 `UnicodeEncodeError: 'gbk' codec can't encode character '\u2705'`，
+    进程以 **exit 1** 结束 —— 于是"零缺口"看起来像"检查失败"，配合 CI/脚本调用会误导。
+    （CI 走进程内调用 + UTF-8 环境，故 CI 无症状；这是**本地复核体验**的缺陷，预存在。）
+
+    修法取最小面：把 stdout 的错误处理改成 `replace`（无法编码的字符降级为 `?`），
+    **不改任何判定与退出码**（退出码仍只由 gap.ok 决定）。拿不到 reconfigure 的环境静默跳过。
+    """
+    try:
+        reconfigure = getattr(sys.stdout, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(errors="replace")
+    except Exception:                                      # noqa: BLE001 尽力而为
+        pass
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description="开关读取点机械提取与注册表缺口检查（TASK-S7-01）")
@@ -1338,6 +1358,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         help="执行注册表缺口检查（有缺口 → 退出码 1）")
     parser.add_argument("--quiet", action="store_true", help="只输出结论行")
     args = parser.parse_args(argv)
+    _make_stdout_encoding_safe()
 
     roots = [REPO_ROOT / p for p in (args.path or DEFAULT_ROOTS)]
     report = scan_paths(roots)
