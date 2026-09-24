@@ -1083,23 +1083,31 @@ class TestScanRootsCoverProductionCode:
         "packages/", "demos/", "deploy/", "reports/",
     )
 
-    def test_required_production_roots_are_scanned(self, scan):
-        scanner, _report = scan
+    def test_required_production_roots_are_scanned(self):
+        """★ 本类**只查扫描根清单本身，不做全仓扫描**（成本纪律，见下）
+
+        L5 扩根后本文件的成本显著上升：实测 CI 上**每次全仓扫描 35-50s**，
+        而 xdist 的 loadscope 会把同一个模块的不同**类**分给不同 worker ⇒
+        扫描次数一度达到 5 次/分片（实测 junit：52.6 / 50.0 / 49.7 / 52.3 / 50.9s），
+        在 2 核争用下击穿超时。故把**不需要扫描结果**的判据一律改为"读 DEFAULT_ROOTS"
+        （exec 该脚本即可，不做扫描），整文件只保留 2 次扫描（共享 1 次 + 复现性验证 1 次）。
+        """
+        scanner = _load_scanner()
         roots = set(scanner.DEFAULT_ROOTS)
         for root in self._REQUIRED_ROOTS:
             assert root in roots, (
                 f"扫描根缺少 {root}：{sorted(roots)} —— "
                 "agent/ 之外的真实读取点会重新变成表外缺口")
 
-    def test_root_level_entry_scripts_are_exactly_declared(self, scan):
-        """仓库根下的散装 .py 必须**逐字**列进 DEFAULT_ROOTS
+    def test_root_level_entry_scripts_are_exactly_declared(self):
+        """仓库根下的散装 .py 必须**逐字**列进 DEFAULT_ROOTS（不做扫描）
 
         口径：只对**不以 _ 开头**的根目录脚本生效（`_tmp_*.py` 一类本地产物
         按约定属临时文件，既不是入口也不该被要求登记；它们同样不在扫描范围内）。
         本用例刻意严格 —— 新增一个入口脚本却不登记，就等于把该脚本里的开关
         重新变成"表外缺口"，而这正是 L5 要根治的形态。
         """
-        scanner, _report = scan
+        scanner = _load_scanner()
         declared = {r for r in scanner.DEFAULT_ROOTS if r.endswith(".py")}
         actual = {p.name for p in REPO_ROOT.glob("*.py")
                   if not p.name.startswith("_")}
@@ -1107,13 +1115,18 @@ class TestScanRootsCoverProductionCode:
             f"根目录入口脚本与扫描根不一致：未登记={sorted(actual - declared)} "
             f"已失效={sorted(declared - actual)}")
 
-    def test_scanned_modules_stay_inside_declared_roots(self, scan):
-        _scanner, report = scan
-        modules = {rp.module for rp in report.managed}
-        leaked = sorted(m for m in modules
-                        if m.startswith(self._EXCLUDED_PREFIXES))
+    def test_declared_roots_contain_no_excluded_directory(self):
+        """声明的扫描根**本身**不得落在被排除的目录里（不做扫描）
+
+        原版是"扫完之后看结果里有没有漏进排除目录"（需一次全仓扫描）。等价且更省的
+        写法：直接查清单 —— 只要清单里没有排除目录，扫描结果就不可能来自那里
+        （扫描只遍历清单内的根）。
+        """
+        scanner = _load_scanner()
+        leaked = sorted(r for r in scanner.DEFAULT_ROOTS
+                        if r.startswith(self._EXCLUDED_PREFIXES))
         assert leaked == [], (
-            f"扫描结果里出现了被显式排除的目录：{leaked}")
+            f"扫描根清单里出现了被显式排除的目录：{leaked}")
 
 
 class TestScanRootGapsAreRegistered:
@@ -1154,8 +1167,13 @@ class TestScanRootGapsAreRegistered:
                 assert (f'"{part}"' in source) or (f"'{part}'" in source), (
                     key, part, module)
 
-    def test_owner_modules_are_inside_the_scan_roots(self, scan):
-        scanner, _report = scan
+    def test_owner_modules_are_inside_the_scan_roots(self):
+        """归属模块必须落在扫描根内（查清单即可，**不做全仓扫描**）
+
+        这一条正是表外缺口的成因判据：当初 planning/core.py 不在 ("agent",) 之内。
+        查清单与"跑一次扫描再看结果"对这条判据等价，但便宜得多。
+        """
+        scanner = _load_scanner()
         for key, (module, _path, _env) in sorted(self._READ_SITES.items()):
             top = module.split("/")[0]
             assert (top in scanner.DEFAULT_ROOTS) or (module in scanner.DEFAULT_ROOTS), (
