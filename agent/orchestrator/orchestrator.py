@@ -3787,11 +3787,27 @@ class Orchestrator:
     # ── ContextAssembler 集成（D2D3 替代方案 · CEL 框架；learning.context_assembler.enabled 默认 false）──
 
     def _load_context_assembler_config(self) -> Dict[str, Any]:
-        """读取 learning.context_assembler 配置（config.yaml + 环境变量覆盖，默认关闭）"""
+        """读取 learning.context_assembler 配置（config.yaml + 环境变量覆盖，默认关闭）
+
+        【L8 · 2026-09-25 修】原实现用 **相对 CWD** 的 "config.yaml" 打开文件：
+        进程 CWD 不是仓库根时该层**静默失效**（except 吞掉 FileNotFoundError → 回退 enabled=False），
+        而开关中心（按登记表 learning.context_assembler.enabled 读 config.yaml）会显示配置里的值
+        ⇒ 两者在非仓库根 CWD 下**互相矛盾**。现改为与同文件其它配置读取同款的
+        **仓库根锚定路径**（Path(__file__).resolve().parent.parent.parent / "config.yaml"）。
+
+        ★ **行为变更声明**：在「CWD 不是仓库根」的进程里，该层此前等于不存在，现在会真正生效
+        （当前 config.yaml 的 learning.context_assembler.enabled 为 true ⇒ 这类进程里
+        ContextAssembler 旁路注入会**由关变开**）。仓库根 CWD 的常规启动方式（start_yunshu.bat /
+        main.py）此前就一直读到该文件，行为不变。
+        """
         cfg = {"enabled": False, "token_budget": 3000}
         try:
             import yaml
-            with open("config.yaml", "r", encoding="utf-8") as _f:
+            from pathlib import Path
+
+            # 锚定仓库根（agent/orchestrator/orchestrator.py → <repo>/config.yaml）
+            _path = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+            with open(_path, "r", encoding="utf-8") as _f:
                 raw = yaml.safe_load(_f) or {}
             lc = (raw.get("learning") or {}).get("context_assembler") or {}
             cfg["enabled"] = bool(lc.get("enabled", False))
