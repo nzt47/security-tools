@@ -17,6 +17,7 @@ import ast
 import importlib.util
 import json
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -300,6 +301,10 @@ class TestParseCache:
         """把受控文件列表指向合成根（不碰仓库真实文件）"""
         monkeypatch.setattr(audit, "tracked_python_files",
                             lambda root: ["agent/probe_synthetic.py"])
+        # 【2026-09-24 · L6】跨进程产物目录钉到本用例的 tmp_path：
+        #   合成根的指纹本来就每次运行都不同，但显式隔离后
+        #   ① 测试产物不会落进共享临时目录，②"冷扫 / 热扫"两个断言确定可复现。
+        monkeypatch.setenv(audit._DISK_CACHE_DIR_ENV, str(tmp_path / "scan_cache"))
         return tmp_path
 
     def test_同一文件重复解析被缓存消除(self, audit, tmp_path):
@@ -421,6 +426,8 @@ class TestScanCache:
         """把受控文件列表指向合成根（避免用 monkeypatch 改仓库真实文件，见 D15）"""
         monkeypatch.setattr(audit, "tracked_python_files",
                             lambda root: ["agent/probe_synthetic.py"])
+        # 【2026-09-24 · L6】同上：合成根用例把跨进程产物目录钉到 tmp_path
+        monkeypatch.setenv(audit._DISK_CACHE_DIR_ENV, str(tmp_path / "scan_cache"))
         return tmp_path
 
     def test_重复_scan_命中缓存且结论一致(self, audit, findings):
@@ -612,3 +619,357 @@ class TestCapabilityRoutes:
         assert body["code"] == "internal_error"
         assert body["error"]["message"] == \
             "内部错误，已脱敏；请查看服务端日志定位"
+
+
+# ════════════════════════════════════════════════════════════
+#  跨进程扫描产物（2026-09-24 · L6 根治 CI 负载敏感）
+# ════════════════════════════════════════════════════════════
+# 【为什么要有这一组】CI 跑的是 `-n 2 --dist=loadscope`，而 xdist 的 loadscope 对
+#   **带类的测试模块**是**按类分组**的 ⇒ 同一个测试文件的各个类会落到**不同 worker 进程**，
+#   每个进程各付一次全仓扫描。2026-09-22 那轮 CI（job 106915652550）的日志里：
+#   gw0 与 gw1 **同时**卡在 `_collect_findings` 里被 `Timeout (>300.0s)` 打断，
+#   而**被中断的扫描不会留下任何缓存** ⇒ gw0 的 `TestCheckMode` 四条用例各自又从零冷扫
+#   ⇒ 单文件 6 次全仓 AST、约 20 分钟。
+#   本组锁定四件事：① 另一个进程（= 清空进程内缓存）能直接复用产物；
+#   ② 文件内容 / 文件集合变化必须失效；③ 例外表变化**不得**被产物冻住；
+#   ④ 产物损坏或关开关 ⇒ 退回重扫，绝不给出过期结论。
+
+
+class TestCrossProcessScanArtifact:
+    """`scan()` 的**跨进程磁盘产物**：命中 + 失效 + 不冻结配置相关判定"""
+
+    @staticmethod
+    def _require_disk_cache(audit):
+        """产物层被关掉时跳过本用例（`CP_AUDIT_SCAN_DISK_CACHE=0` 是合法的回退开关）
+
+        【为什么要显式跳过】关掉产物后"跨进程复用"这件事**本来就不存在**，
+        断言必然失败 —— 那是把"开关生效"误报成"功能坏了"。回退开关的有效性由
+        `test_关闭开关时不写产物` 单独锁定。
+        """
+        if not audit._disk_cache_dir():
+            pytest.skip("跨进程产物已关闭（CP_AUDIT_SCAN_DISK_CACHE=0）")
+
+    @pytest.fixture
+    def repo_like(self, audit, tmp_path, monkeypatch):
+        """合成仓库根 + 隔离的产物目录（产物目录钉在 tmp_path，不污染共享临时目录）"""
+        monkeypatch.setenv(audit._DISK_CACHE_DIR_ENV, str(tmp_path / "scan_cache"))
+        monkeypatch.setattr(audit, "tracked_python_files",
+                            lambda root: ["agent/probe_synthetic.py"])
+        audit.scan_cache_clear()
+        audit.parse_cache_clear()
+        return tmp_path
+
+    def test_另一个进程直接复用产物_不再冷扫(self, audit, repo_like, monkeypatch):
+        """★ 核心不变量：清空进程内缓存（= 换一个 worker 进程）后必须命中磁盘产物
+
+        这就是"6 次全仓 AST → 1 次"的机制本身。没有它，CI 上每个 worker、以及每次
+        被超时打断后的重试都要从零扫一遍（实测那轮 CI 因此多花约 20 分钟）。
+        """
+        self._require_disk_cache(audit)
+        _write_probe(repo_like, _PROBE_V1)
+        first = {f.capability for f in audit.scan(str(repo_like))}
+        assert first == {"cap_alpha"}, f"合成夹具未被扫到：{first}"
+
+        audit.scan_cache_clear()            # 模拟"另一个 worker 进程"的空缓存
+        calls: List[str] = []
+        real_collect = audit._collect_findings
+
+        def counting_collect(root, files):
+            calls.append(root)
+            return real_collect(root, files)
+
+        monkeypatch.setattr(audit, "_collect_findings", counting_collect)
+        again = {f.capability for f in audit.scan(str(repo_like))}
+        assert again == first, "跨进程复用拿到的结论与首次不一致"
+        assert calls == [], (
+            "换了进程仍然重新冷扫 ⇒ 磁盘产物没生效（CI 上这正是 6 次全仓 AST 的来源）"
+        )
+        assert audit.scan_cache_info()["disk_hit"] >= 1
+
+    def test_文件内容变化后产物必须失效(self, audit, repo_like):
+        """改了文件还复用产物 = 过期门禁结论（比超时更危险），必须重扫"""
+        _write_probe(repo_like, _PROBE_V1)
+        assert {f.capability for f in audit.scan(str(repo_like))} == {"cap_alpha"}
+        audit.scan_cache_clear()
+        assert {f.capability for f in audit.scan(str(repo_like))} == {"cap_alpha"}
+
+        _write_probe(repo_like, _PROBE_V2)   # 内容变了（mtime_ns/size 至少变一个）
+        got = {f.capability for f in audit.scan(str(repo_like))}
+        assert got == {"cap_alpha", "cap_beta"}, f"改了文件仍返回旧结论：{got}"
+
+    def test_新增文件后产物必须失效(self, audit, repo_like, monkeypatch):
+        """文件**集合**也是指纹的一部分：新增受控文件必须让产物作废"""
+        _write_probe(repo_like, _PROBE_V1)
+        assert {f.capability for f in audit.scan(str(repo_like))} == {"cap_alpha"}
+
+        (repo_like / "agent" / "probe_second.py").write_text(
+            "from agent.tools import call\n"
+            "\n"
+            "\n"
+            "def handler_gamma():\n"
+            '    call("cap_gamma")\n',
+            encoding="utf-8")
+        monkeypatch.setattr(
+            audit, "tracked_python_files",
+            lambda root: ["agent/probe_synthetic.py", "agent/probe_second.py"])
+        got = {f.capability for f in audit.scan(str(repo_like))}
+        assert got == {"cap_alpha", "cap_gamma"}, f"新增文件后仍返回旧结论：{got}"
+
+    def test_例外表变化不被产物冻住(self, audit, repo_like, monkeypatch):
+        """★★ 最关键：产物里**只有** `_collect_findings` 的输出，配置相关判定每次重算
+
+        测试正是用 monkeypatch 改 `EXEMPT_CALL_SITES` 造负例；若产物把"是否豁免"
+        一起冻住，那些负例会**静默失效**（本仓已发生过一次）。
+        这里刻意先让产物命中（清掉进程内缓存），再改例外表 —— 结论必须立刻变。
+        """
+        _write_probe(repo_like, _PROBE_V1)
+        anchor = "agent/probe_synthetic.py::handler_alpha"
+        assert not [f for f in audit.scan(str(repo_like))
+                    if f.anchor == anchor and f.exempt]
+
+        audit.scan_cache_clear()             # 下一次访问只可能命中磁盘产物
+        patched = dict(EXEMPT_CALL_SITES)
+        patched[anchor] = {"reason": "测试用：显式登记探针直调条目", "identity": "llm",
+                           "audit": "有"}
+        monkeypatch.setattr(audit, "EXEMPT_CALL_SITES", patched)
+        hit = [f for f in audit.scan(str(repo_like))
+               if f.anchor == anchor and f.exempt]
+        assert hit, "改例外表后仍返回旧的豁免结论 ⇒ 产物把配置相关判定也冻住了"
+
+    def test_产物损坏按未命中处理(self, audit, repo_like):
+        """坏产物（半截 JSON / 版本不符）必须**退回重扫**：不抛异常、不给空结论"""
+        self._require_disk_cache(audit)
+        _write_probe(repo_like, _PROBE_V1)
+        assert {f.capability for f in audit.scan(str(repo_like))} == {"cap_alpha"}
+
+        cache_dir = Path(audit.scan_cache_info()["disk_dir"])
+        artifacts = sorted(cache_dir.glob("scan-*.json"))
+        assert artifacts, "没有写出磁盘产物，则「损坏按未命中」这条不变量无从谈起"
+        artifacts[0].write_text('{"format": 1, "findings": [{"trunc', encoding="utf-8")
+
+        audit.scan_cache_clear()
+        got = {f.capability for f in audit.scan(str(repo_like))}
+        assert got == {"cap_alpha"}, f"坏产物没有退回重扫：{got}"
+        assert audit.scan_cache_info()["disk_error"] >= 1
+
+    def test_关闭开关时不写产物(self, audit, repo_like, monkeypatch):
+        """`CP_AUDIT_SCAN_DISK_CACHE=0` 必须彻底关闭（回退开关）"""
+        monkeypatch.setenv(audit._DISK_CACHE_OFF_ENV, "0")
+        before = audit.scan_cache_info()["disk_write"]
+        _write_probe(repo_like, _PROBE_V1)
+        assert {f.capability for f in audit.scan(str(repo_like))} == {"cap_alpha"}
+        assert audit.scan_cache_info()["disk_write"] == before, "关掉开关后仍在写产物"
+        assert not list((repo_like / "scan_cache").glob("scan-*.json"))
+
+    def test_默认产物目录走系统临时目录(self, audit, monkeypatch):
+        """产物只落**系统临时目录**：绝不碰 data/、绝不写仓库里被跟踪的路径
+
+        【注意口径】测试期 `tests/conftest.py` 的 `_safe_tmp_directory` 会把
+        `tempfile.tempdir` 重定向到仓库内的 `.pytest_tmp/`（pytest 的临时区、
+        已在 .gitignore 第 40 行，且 `git ls-files` 看不见）—— 所以"在仓库目录下"
+        这件事在 pytest 里是**临时区**的正常表现，不是污染工作区。
+        真正要钉住的是：① 默认目录 = `<tempfile.gettempdir()>/cp_audit_call_paths`；
+        ② 路径里不出现 `data` 段（操作员实时状态目录绝不能被写）。
+        """
+        monkeypatch.delenv(audit._DISK_CACHE_DIR_ENV, raising=False)
+        monkeypatch.delenv(audit._DISK_CACHE_OFF_ENV, raising=False)
+        directory = audit._disk_cache_dir()
+        assert directory, "默认应当给出产物目录"
+        assert Path(directory) == Path(tempfile.gettempdir()) / audit._DISK_CACHE_DIRNAME, \
+            f"默认产物目录必须走系统临时目录，实际：{directory}"
+        assert "data" not in Path(directory).parts, f"产物目录含 data 段：{directory}"
+
+
+# ════════════════════════════════════════════════════════════
+#  字节预筛 / 单次遍历的**等价性**（2026-09-24 · L6 的成本改造）
+# ════════════════════════════════════════════════════════════
+# 这两项都是"**只降成本、不改判据**"的性能改写 —— 恰恰是最容易悄悄改口径的一类。
+# 本组用三个 oracle 钉住它：
+#   ① 预筛标识集**必须由判据常量派生**（将来加原语不会漏扫）；
+#   ② 合成语料上"开预筛 vs 关预筛"逐字段对拍；
+#   ③ 符号锚点与**旧递归口径**（内联 oracle）对拍。
+
+
+def _legacy_symbol_anchors(tree: ast.Module) -> Dict[int, str]:
+    """改造前 `_SymbolIndex` 的算法（递归符号栈）—— 仅作对拍 oracle 使用"""
+    stack: List[str] = []
+    out: Dict[int, str] = {}
+
+    def walk(node: Any) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                stack.append(child.name)
+                walk(child)
+                stack.pop()
+            else:
+                if isinstance(child, ast.Call):
+                    out[id(child)] = "::".join(stack) or "<module>"
+                walk(child)
+
+    walk(tree)
+    return out
+
+
+#: 预筛等价性合成语料：逐条覆盖三类判据分支 + 两种"应当被跳过"的形态
+_PREFILTER_CORPUS = {
+    # ① P1 收口路径：import 别名
+    "agent/p_import.py": (
+        "from agent.tools import call\n"
+        "\n"
+        "\n"
+        "def f_import():\n"
+        '    call("cap_import")\n'
+    ),
+    # ② P1 收口路径：属性链（含跨行写法）
+    "agent/p_attr.py": (
+        "import agent.tools as tools\n"
+        "\n"
+        "\n"
+        "def f_attr():\n"
+        '    tools.\n'
+        '        call("cap_attr")\n'
+    ),
+    # ③ P1 收口路径：裸别名（无 import 可解析时的兜底分支）
+    "agent/p_alias.py": (
+        "def f_alias():\n"
+        '    call_tool("cap_alias")\n'
+    ),
+    # ④ P3 远程原语
+    "agent/p_remote.py": (
+        "def f_remote(session):\n"
+        "    session.call_tool(name='x')\n"
+    ),
+    # ⑤ P2 直调：注册面在本文件，调用点在 p_direct.py（跨模块）
+    "agent/p_reg.py": (
+        "from agent.tools import register\n"
+        "\n"
+        "\n"
+        '@register("cap_registered")\n'
+        "def handler_registered():\n"
+        "    pass\n"
+    ),
+    "agent/p_direct.py": (
+        "from agent.p_reg import handler_registered\n"
+        "\n"
+        "\n"
+        "def f_direct():\n"
+        "    handler_registered()\n"
+    ),
+    # ⑥ 只在注释/字符串里出现 ⇒ 预筛**必须保守命中**（多扫不漏扫）
+    "agent/p_comment.py": (
+        "# 这里提到 call( 但不是调用点\n"
+        "TEXT = '字符串里的 call( 同样不是调用点'\n"
+        "\n"
+        "\n"
+        "def f_comment():\n"
+        "    return TEXT\n"
+    ),
+    # ⑦ 不含任何参与判据的标识符 ⇒ 预筛应当跳过（这正是省下来的成本）
+    "agent/p_quiet.py": (
+        "def f_quiet():\n"
+        "    return 1 + 1\n"
+    ),
+}
+
+
+class TestPrefilterAndTraversalEquivalence:
+    """字节预筛 + 单次遍历：**成本降了、判据没变**"""
+
+    @pytest.fixture
+    def corpus(self, tmp_path):
+        for rel, body in _PREFILTER_CORPUS.items():
+            path = tmp_path / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body, encoding="utf-8")
+        return tmp_path, sorted(_PREFILTER_CORPUS)
+
+    def test_预筛标识集必须覆盖全部判据名字(self, audit):
+        """★ 防"加了新原语却忘了加进预筛" —— 那会变成**静默漏扫**（门禁假绿）"""
+        assert audit._CALL_SITE_NAME_EXTRA == (
+            frozenset({"call"}) | audit._FUNNEL_ALIASES | audit._REMOTE_PRIMITIVES), \
+            "预筛标识集必须由判据常量派生（手抄的话，将来加名字就会漏扫）"
+        names = sorted(set(audit._CALL_SITE_NAME_EXTRA) | {"some_registered_handler"})
+        pattern = audit._call_site_pattern(names)
+        for name in names:
+            assert pattern.search(("x = %s(" % name).encode("utf-8")), \
+                f"预筛正则漏掉判据名字：{name}"
+        for negative in (b"callback(", b"mycall(", b"call_toolbox(", b"invoke_toolz("):
+            assert not pattern.search(negative), f"预筛正则边界不对：{negative}"
+
+    def test_预筛命中应当命中的形态(self, audit):
+        pattern = audit._call_site_pattern([])
+        # 注意：`register(...)` **不**由本预筛负责（注册面有自己的
+        # `_source_mentions_register` 预筛），这里只覆盖**调用点**标识符。
+        for src in (b"tools.call('x')", b"tools\n    .call('x')", b"call_tool('x')",
+                    b"session.call_tool(name='x')", b"# call(  ",
+                    b'TEXT = "call_tool"', b"x = obj.callTool()"):
+            assert pattern.search(src), f"预筛漏掉应当命中的形态：{src}"
+        assert not pattern.search(b"def f():\n    return 1 + 1\n"), \
+            "不含调用点标识符的文件不该命中（否则预筛等于没生效）"
+
+    def test_开预筛与关预筛结论逐字段一致(self, audit, corpus, monkeypatch):
+        """★ 核心等价性：预筛只应**少读文件**，不能少任何 Finding"""
+        root, files = corpus
+        pattern = audit._call_site_pattern([])
+        skipped = [rel for rel in files
+                   if not audit._source_may_contain_call_site(str(root), rel, pattern)]
+        assert "agent/p_quiet.py" in skipped, \
+            "预筛没有跳过不可能含调用点的文件（等于没生效，用例也测不实）"
+        assert "agent/p_comment.py" not in skipped, \
+            "只出现在注释/字符串里的文件必须保守命中（否则就是真漏扫）"
+
+        with_filter = [f.to_dict() for f in audit._collect_findings(str(root), files)]
+
+        monkeypatch.setattr(audit, "_source_may_contain_call_site",
+                            lambda _root, _rel, _pattern: True)   # 关掉预筛
+        without_filter = [f.to_dict() for f in audit._collect_findings(str(root), files)]
+
+        assert with_filter == without_filter, (
+            "开/关预筛的 Findings 不一致 ⇒ 预筛改变了判据：\n"
+            f"开：{with_filter}\n关：{without_filter}"
+        )
+        kinds = {f["path_kind"] for f in with_filter}
+        assert {"funnel", "direct", "remote_primitive"} <= kinds, \
+            f"合成语料没覆盖到三类判据分支，等价性就测不实：{kinds}"
+
+    def test_符号锚点与旧递归口径等价(self, audit):
+        """内联旧口径（递归符号栈）当 oracle，对拍**每一个** `ast.Call` 的锚点
+
+        单次遍历改写最容易出的错就是"作用域算错一格"；嵌套类 / 装饰器 / 默认参数 /
+        lambda 都在语料里覆盖到。
+        """
+        tree = ast.parse(
+            "def outer():\n"
+            "    class Inner:\n"
+            "        @decorator(call('cap_deco'))\n"
+            "        def method(self, cb=call('cap_default')):\n"
+            "            return lambda: call('cap_lambda')\n"
+            "\n"
+            "\n"
+            "call('cap_module')\n"
+        )
+        expected = _legacy_symbol_anchors(tree)
+        assert expected, "oracle 没算出任何锚点，用例失效"
+        index = audit._TreeIndex(tree)
+        got = {id(n): index.symbol_of(n)
+               for n in index.nodes if isinstance(n, ast.Call)}
+        assert got == expected, f"符号锚点口径漂移：\n新={got}\n旧={expected}"
+
+    def test_绑定表与_ast_walk_同序等价(self, audit):
+        """`module_bindings_from_nodes` 与 `module_bindings` 必须等价
+
+        "同名重复 import 后者覆盖"依赖遍历顺序（两次 import 同名时以**后遍历到**者为准）
+        ⇒ 顺序等价必须显式钉住，否则单次遍历改写会悄悄改绑定表。
+        """
+        tree = ast.parse(
+            "import os\n"
+            "from a import dup\n"
+            "def f():\n"
+            "    from b import dup\n"
+            "    return dup\n"
+            "from c import dup\n"
+        )
+        assert audit.module_bindings_from_nodes(audit._TreeIndex(tree).nodes) \
+            == audit.module_bindings(tree), "单次遍历改写了 import 绑定表的语义"
+
+

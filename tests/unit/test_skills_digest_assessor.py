@@ -944,3 +944,92 @@ class TestRenameCompat:
         ):
             assert new in rules, new
             assert old in rules, old
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  config.yaml 解析缓存（2026-09-24 · L6：消除"每读一个开关就重解析全文件"）
+# ═══════════════════════════════════════════════════════════════════
+# 【为什么要有这一组】`_cfg_value()` 原先每次调用都重新读盘并完整解析 config.yaml
+#   （40KB ≈ 26ms），而开关读取是**按 finding、按技能**反复调的：实测
+#   `tests/integration/test_skills_workflow_flow.py` 一个文件触发 160 次解析，
+#   其中 `test_search_after_multiple_creates` 一条 2.50s 里约 2.2s 花在这上面，
+#   CI 上该条曾 `Timeout (>300.0s)`（栈停在 `_config_yaml → yaml.safe_load`）。
+#   缓存**只覆盖 yaml 解析**，键含文件指纹 ⇒ 既不会读到过期配置，也不会让
+#   `SKILLS_ASSESS_*` 环境变量优先级失效。
+
+
+def _fake_repo_config(tmp_path, monkeypatch, body: str = ""):
+    """把 assesor 指向一个合成仓库根（`<tmp>/agent/skills_mgmt/assessor.py`）"""
+    from agent.skills_mgmt import assessor
+    root = tmp_path / "fake_repo"
+    (root / "agent" / "skills_mgmt").mkdir(parents=True, exist_ok=True)
+    cfg = root / "config.yaml"
+    cfg.write_text(body, encoding="utf-8")
+    monkeypatch.setattr(assessor, "__file__",
+                        str(root / "agent" / "skills_mgmt" / "assessor.py"))
+    monkeypatch.setattr(assessor, "_config_cache", {}, raising=False)
+    return assessor, cfg
+
+
+_CONFIG_V1 = "skills_mgmt:\n  assess:\n    blocking_severities: [critical]\n"
+_CONFIG_V2 = ("skills_mgmt:\n  assess:\n    blocking_severities: [critical, error]\n"
+              "    max_code_findings: 7\n")
+
+
+class TestConfigYamlCache:
+    """`_config_yaml()` 的指纹缓存：命中 + 失效 + 不冻结 env 优先级"""
+
+    def test_同一份_config_只解析一次(self, tmp_path, monkeypatch):
+        """★ 核心不变量：内容未变时必须复用解析结果（这正是 CI 超时的来源）"""
+        import yaml
+        assessor, _cfg = _fake_repo_config(tmp_path, monkeypatch, _CONFIG_V1)
+        real = yaml.safe_load
+        parsed = []
+
+        def counting(stream):
+            parsed.append(1)
+            return real(stream)
+
+        monkeypatch.setattr(yaml, "safe_load", counting)
+        first = assessor._config_yaml()
+        second = assessor._config_yaml()
+        assert first == second == {"skills_mgmt": {"assess": {"blocking_severities": ["critical"]}}}
+        assert len(parsed) == 1, f"同一份 config.yaml 被解析了 {len(parsed)} 次 ⇒ 缓存未生效"
+
+    def test_内容变化后必须失效(self, tmp_path, monkeypatch):
+        """★ config.yaml 改了必须立刻反映（否则是"过期但看起来正常"的判据输入）"""
+        import yaml
+        assessor, cfg = _fake_repo_config(tmp_path, monkeypatch, _CONFIG_V1)
+        real = yaml.safe_load
+        parsed = []
+
+        def counting(stream):
+            parsed.append(1)
+            return real(stream)
+
+        monkeypatch.setattr(yaml, "safe_load", counting)
+        assert assessor._cfg_value("blocking_severities") == ["critical"]
+        assert len(parsed) == 1
+
+        cfg.write_text(_CONFIG_V2, encoding="utf-8")     # size 与 mtime_ns 至少变一个
+        assert assessor._cfg_value("blocking_severities") == ["critical", "error"]
+        assert assessor._cfg_value("max_code_findings") == 7
+        assert len(parsed) == 2, f"文件已改动但未重新解析（解析次数 {len(parsed)}）"
+
+    def test_文件缺失返回None(self, tmp_path, monkeypatch):
+        """config.yaml 不存在时仍按"无配置"降级（不得抛异常、不得缓存脏值）"""
+        assessor, cfg = _fake_repo_config(tmp_path, monkeypatch, _CONFIG_V1)
+        import os as _os
+        _os.remove(cfg)
+        assert assessor._config_yaml() is None
+        assert assessor._cfg_value("blocking_severities") is None
+
+    def test_env_优先级不被解析缓存冻住(self, tmp_path, monkeypatch):
+        """`SKILLS_ASSESS_*` 优先级高于 config.yaml：缓存不得让它失效"""
+        assessor, _cfg = _fake_repo_config(tmp_path, monkeypatch, _CONFIG_V1)
+        assert assessor.blocking_severities() == {"critical"}      # 先让 yaml 进缓存
+        monkeypatch.setenv("SKILLS_ASSESS_BLOCKING_SEVERITIES", "critical,error")
+        assert assessor.blocking_severities() == {"critical", "error"}, \
+            "env 优先级被 yaml 解析缓存盖住了"
+        monkeypatch.delenv("SKILLS_ASSESS_BLOCKING_SEVERITIES")
+        assert assessor.blocking_severities() == {"critical"}

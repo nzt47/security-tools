@@ -72,15 +72,46 @@ _ASSESS_LEGACY_KEYS = {
 }
 
 
+#: `config.yaml` 解析缓存：`(绝对路径, mtime_ns, size) → 解析结果`
+#
+# 【为什么（2026-09-24 · L6 实测，与"全仓扫描被反复重做"同族）】
+#   `_cfg_value()` 原先**每次调用都重新读盘 + 完整解析一遍 config.yaml**
+#   （40KB，纯 Python SafeLoader 实测 ≈ 26ms），而 `blocking_severities()` /
+#   `assess_flag/int/list()` 是**按 finding、按技能**反复调的：
+#   实测 `tests/integration/test_skills_workflow_flow.py` 一个文件触发 **160 次**解析
+#   （其中 `TestSkillsEndToEnd::test_search_after_multiple_creates` 一条就 **85 次**，
+#   该条 2.50s 的用例耗时里约 2.2s 花在这上面）；CI 上该条曾
+#   `Failed: Timeout (>300.0s)`，超时栈正是 `_config_yaml → yaml.safe_load`
+#   （job 107488274312 / run 35953984262）。
+#
+# 【失效判据】按 `(绝对路径, mtime_ns, size)` 缓存 —— config.yaml 被改写必然改变
+#   mtime_ns 或 size 之一 ⇒ 不会读到过期配置。刻意**不用 TTL**：配置是判据输入，
+#   宁可不命中重算，也不能给出"过期但看起来正常"的结论。
+# 【不缓存什么】只缓存 **yaml 解析结果**；`SKILLS_ASSESS_*` 环境变量优先级高于
+#   config.yaml，`monkeypatch.setenv` 造的正例必须立刻生效 ⇒ 优先级判定每次照跑。
+# 【为什么只留一份】config.yaml 只有一个；命中即返回，未命中时换掉旧条目，
+#   长驻进程里不会无界增长。
+_config_cache: Dict[Tuple[str, int, int], dict] = {}
+
+
 def _config_yaml() -> Optional[dict]:
+    """读取并解析仓库根 `config.yaml`（**按文件指纹缓存解析结果**，见上）"""
     try:
         import yaml as _yaml
         path = os.path.join(os.path.dirname(os.path.dirname(
             os.path.dirname(os.path.abspath(__file__)))), "config.yaml")
-        if not os.path.exists(path):
+        try:
+            st = os.stat(path)
+        except OSError:
             return None
+        key = (path, st.st_mtime_ns, st.st_size)
+        if key in _config_cache:
+            return _config_cache[key]
         with open(path, "r", encoding="utf-8") as f:
-            return _yaml.safe_load(f) or {}
+            data = _yaml.safe_load(f) or {}
+        _config_cache.clear()
+        _config_cache[key] = data
+        return data
     except Exception:
         return None
 
