@@ -25,7 +25,10 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
-# 项目规范：环境变量 > config.yaml > 硬编码默认值。
+# 本模块的日志级别**只读环境变量**（CONTEXT_ASSEMBLER_LOG_LEVEL），没有 config.yaml 读取点
+#   （登记表里该键也未声明 config_path）。
+# 【L7 · 2026-09-25 更正】原注释写「项目规范：环境变量 > config.yaml > 硬编码默认值」，
+#   但本模块从未读 config.yaml —— 注释与实现不符，现按实现更正（仅改注释，行为不变）。
 # CONTEXT_ASSEMBLER_LOG_LEVEL=DEBUG 时输出各层拉取/组装明细，便于观察模式实时排查
 _LEVEL = os.environ.get("CONTEXT_ASSEMBLER_LOG_LEVEL", "").strip().upper()
 if _LEVEL in ("DEBUG", "INFO", "WARNING", "ERROR"):
