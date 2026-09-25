@@ -772,6 +772,10 @@ export interface SettingsItem {
   env_name: string;
   env_present: boolean;
   config_path: string;
+  /** 备用 config 路径（L4：双路径开关的兜底口径；空数组 = 无备用路径） */
+  config_path_aliases?: string[];
+  /** **实际命中**的 config 路径（备用路径命中时 != config_path；空 = 未命中） */
+  config_path_used?: string;
   /** 配置层是否提供了该键（L4：file 层 = config.yaml 里确有这一行） */
   config_present: boolean;
   /**

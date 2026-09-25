@@ -875,6 +875,43 @@ class TestL5ReadSitesAreMechanicallyVerified:
                     f"声明的 {path!r} 无法在源码里复核")
 
 
+
+    def test_alias_paths_are_declared_and_documented(self):
+        """★ 备用路径（config_path_aliases）：**只在真读到时才填**，且必须写进 description
+
+        背景（L4 残余偏差，2026-09-23 拍板「扩展登记模型」）：双路径开关
+        （如 LEARNING_LIFECYCLE_UPGRADE_THRESHOLD：先 skills_mgmt.scale.upgrade_threshold、
+        为 None 才读 learning.lifecycle.upgrade_threshold）在单值 config_path 下，
+        「运维只写了备用路径」会让开关中心显示 default 而模块用备用值 —— 残余谎报。
+        现在的判据：① 备用路径非空、且不等于主路径；② 备用路径**必须出现在 description 里**
+        （人读可见，不许偷偷加一条路径）；③ 主路径必须非空（备用不能替代主路径）。
+        """
+        aliased = [s for s in R.all_specs() if s.config_path_aliases]
+        assert aliased, (
+            "当前没有任何键登记备用路径？L4 残余偏差收口后应至少有一条"
+            "（LEARNING_LIFECYCLE_UPGRADE_THRESHOLD）—— 若确实全部消失，请同步修正用例而不是删断言")
+        for spec in aliased:
+            assert spec.config_path, (
+                f"{spec.key} 有备用路径却没有主路径：config_path 才是必填项")
+            for alias in spec.config_path_aliases:
+                assert alias.strip(), (spec.key, alias)
+                assert alias != spec.config_path, (spec.key, alias)
+                assert alias in spec.description, (
+                    f"{spec.key} 的备用路径 {alias!r} 未写进 description："
+                    "备用路径必须人读可见（不许偷偷加一条路径）")
+
+    def test_dual_path_key_is_declared_with_alias(self):
+        """★ L4 残余偏差的**定点**判据：那个双路径键必须主+备用都登记"""
+        spec = R.get_spec("LEARNING_LIFECYCLE_UPGRADE_THRESHOLD")
+        assert spec is not None
+        assert spec.config_path == "skills_mgmt.scale.upgrade_threshold"
+        assert spec.config_path_aliases == ("learning.lifecycle.upgrade_threshold",)
+        source = (REPO_ROOT / "agent/skills_mgmt/lifecycle.py").read_text(encoding="utf-8")
+        for path in (spec.config_path, *spec.config_path_aliases):
+            leaf = path.split(".")[-1]
+            assert f'"{leaf}"' in source, (path, "读取点里找不到该叶子")
+        assert "前者为 None 才读后者" in spec.description, (
+            "必须写明取值的**次序**（主为 None 才读备用），否则读者会误以为两条并列")
     def test_single_production_module_reads_each_env_name(self):
         _scanner, report = _production_scan()
         names = report.managed_names()

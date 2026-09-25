@@ -181,6 +181,17 @@ class SettingSpec:
     risk: str = RISK_A
     env_name: str = ""
     config_path: str = ""
+    #: **备用路径**（同一开关被模块按"主路径为 None 才读备用"的次序读取时使用）。
+    #:
+    #: 为什么需要（L4 残余偏差收口，2026-09-23）：个别开关的读取链是**双路径**，
+    #: 例如 agent/skills_mgmt/lifecycle.py:164-168 先读
+    #: skills_mgmt.scale.upgrade_threshold，为 None 时才读
+    #: learning.lifecycle.upgrade_threshold。config_path 是单值字段，
+    #: 若只登主路径，则"运维只写了备用路径"时开关中心会显示 default，
+    #: 而模块实际用备用值 —— 那是**残余谎报**。
+    #: 纪律：只在**确实读到**备用路径时才填（与 config_path 同一条取证标准），
+    #: 且备用路径必须写进 description（由用例守护）。
+    config_path_aliases: Tuple[str, ...] = ()
     needs_restart: bool = False
     owner_module: str = ""
     validator: Validator = field(default_factory=lambda: BOOL_V)
@@ -210,6 +221,12 @@ class SettingSpec:
         if not (self.env_name or self.config_path or self.dynamic_prefix):
             raise ValueError(
                 f"开关 {self.key} 既无 env_name 也无 config_path / dynamic_prefix")
+        for alias in self.config_path_aliases:
+            if not str(alias or "").strip():
+                raise ValueError(f"开关 {self.key} 的备用 config 路径不得为空")
+            if alias == self.config_path:
+                raise ValueError(
+                    f"开关 {self.key} 的备用 config 路径与主路径相同：{alias}")
         if self.apply_mode and self.apply_mode not in EFFECT_LABELS:
             raise ValueError(f"开关 {self.key} 生效方式非法：{self.apply_mode}")
 
@@ -272,6 +289,7 @@ class SettingSpec:
             "description": self.description,
             "env_name": self.env_name,
             "config_path": self.config_path or "",
+            "config_path_aliases": list(self.config_path_aliases),
             "env_only": self.env_only,
             "needs_restart": bool(self.needs_restart),
             "effect": self.effect,
@@ -358,7 +376,8 @@ def _infer_validator(key: str, type_: str, default: Any) -> Validator:
 
 def _mk(key: str, category: str, default: Any, description: str, *,
         risk: str = RISK_A, env_name: Optional[str] = None,
-        config_path: str = "", needs_restart: bool = False,
+        config_path: str = "", config_path_aliases: Tuple[str, ...] = (),
+        needs_restart: bool = False,
         owner: str = "", secret: bool = False, impact: str = "",
         rollback: str = "", validator: Optional[Validator] = None,
         type_: str = "", apply_mode: str = "",
@@ -371,7 +390,8 @@ def _mk(key: str, category: str, default: Any, description: str, *,
     return SettingSpec(
         key=key, category=category, type=resolved_type, default=default,
         description=description, risk=risk, env_name=name,
-        config_path=config_path, needs_restart=needs_restart,
+        config_path=config_path, config_path_aliases=tuple(config_path_aliases),
+        needs_restart=needs_restart,
         owner_module=owner, validator=validator or _infer_validator(
             key, resolved_type, default),
         secret=secret, impact=impact, rollback=rollback,
@@ -1141,10 +1161,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        config_path="learning.lifecycle.archive_days"),
     _a("LEARNING_LIFECYCLE_UPGRADE_THRESHOLD", CAT_LEARNING, None,
        "技能升级判定阈值；config.yaml 路径 skills_mgmt.scale.upgrade_threshold"
-       "（**兜底** learning.lifecycle.upgrade_threshold，见 "
-       "agent/skills_mgmt/lifecycle.py:164-168：前者为 None 才读后者）",
+       "（**备用路径** learning.lifecycle.upgrade_threshold，见 "
+       "agent/skills_mgmt/lifecycle.py:164-168：前者为 None 才读后者；"
+       "两条路径都登记，取值次序与模块一致）",
        owner="agent/skills_mgmt/lifecycle.py",
-       config_path="skills_mgmt.scale.upgrade_threshold"),
+       config_path="skills_mgmt.scale.upgrade_threshold",
+       config_path_aliases=("learning.lifecycle.upgrade_threshold",)),
     _c("LEARNING_EVOLVER_AUDIT_FILE", CAT_LEARNING, None,
        "在线进化审计文件路径（只读）；config.yaml 路径 "
        "learning.evolver.audit_file"

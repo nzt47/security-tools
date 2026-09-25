@@ -101,9 +101,25 @@ def run() -> List[Dict[str, Any]]:
         # ① 配置层不提供
         _install_config({})
         before = RS.resolve(spec.key, store=store)
-        # ② 配置层提供该路径
+        # ② 配置层提供该路径（主路径）
         _install_config(_synthetic({spec.config_path: probe}))
         after = RS.resolve(spec.key, store=store)
+        # ③ 只提供**备用路径**（config_path_aliases）—— L4 残余偏差的定点对拍：
+        #    修前这里会显示 default（而模块实际用备用值）；修后必须 source=config
+        #    且 config_path_used 落在备用路径上。
+        alias_row = {}
+        if spec.config_path_aliases:
+            alias = spec.config_path_aliases[0]
+            _install_config(_synthetic({alias: probe}))
+            only_alias = RS.resolve(spec.key, store=store)
+            alias_row = {
+                "alias_path": alias,
+                "alias_source": only_alias.source if only_alias else None,
+                "alias_path_used": only_alias.config_path_used if only_alias else None,
+                "alias_ok": bool(only_alias
+                                 and only_alias.source == RS.SOURCE_CONFIG
+                                 and only_alias.config_path_used == alias),
+            }
         rows.append({
             "key": spec.key,
             "config_path": spec.config_path,
@@ -124,6 +140,8 @@ def run() -> List[Dict[str, Any]]:
                 after.fingerprint == masking.fingerprint(probe)
                 if spec.risk == RISK_C else after.value == probe)),
             "masked_compare": spec.risk == RISK_C,
+            "config_path_aliases": list(spec.config_path_aliases),
+            **alias_row,
         })
     _install_config({})                    # 恢复，不给后续调用留下合成配置
     return rows
@@ -154,13 +172,22 @@ def main(argv: Optional[List[str]] = None) -> int:
         elif r["no_config_source"] != RS.SOURCE_DEFAULT:
             verdict = f"SKIP(空配置来源={r['no_config_source']})"
             skipped.append(r["key"])
-        elif r["source_ok"] and r["value_ok"]:
+        elif r["source_ok"] and r["value_ok"] and r.get("alias_ok", True) is not False:
             verdict = "OK"
         else:
             verdict = "FAIL"
             bad.append(r["key"])
         print(f"{r['key']:44s} {r['config_path']:46s} "
               f"{str(r['no_config_source']):10s} {str(r['with_config_source']):10s} {verdict}")
+    aliased = [r for r in rows if r.get("alias_path")]
+    if aliased:
+        print("-" * 118)
+        print(f"备用路径（config_path_aliases）对拍：{len(aliased)} 键"
+              "（只写备用路径时 source 必须为 config 且命中该备用路径）")
+        for r in aliased:
+            print(f"  {r['key']}: 主={r['config_path']} 备用={r['alias_path']} -> "
+                  f"source={r['alias_source']} used={r['alias_path_used']} "
+                  f"{'OK' if r['alias_ok'] else 'FAIL'}")
     print("-" * 118)
     print(f"合计 {len(rows)} 键：OK {len(rows) - len(bad) - len(skipped)}，"
           f"FAIL {len(bad)}，SKIP {len(skipped)}")

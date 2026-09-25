@@ -315,6 +315,41 @@ class TestConfigLayerStateIsDisclosed:
                                  pub.get("config_state_label")))
         assert offender == [], offender
 
+
+    # ── 备用路径（config_path_aliases）：L4 残余偏差收口（2026-09-23 拍板「扩展」）──
+
+    def test_alias_only_in_config_yields_config_source(self, store):
+        """★ 只写了**备用路径**时，来源必须是 config 且取值来自备用路径
+
+        （修前：会显示 default —— 而模块 agent/skills_mgmt/lifecycle.py:164-168 实际用备用值，
+        即开关中心在谎报。这是 L4 「残余偏差」的定点回归。）
+        """
+        self._with_synthetic_config({"learning.lifecycle.upgrade_threshold": 77})
+        res = RS.resolve("LEARNING_LIFECYCLE_UPGRADE_THRESHOLD", store=store)
+        assert res.source == RS.SOURCE_CONFIG
+        assert res.value == 77
+        assert res.config_path_used == "learning.lifecycle.upgrade_threshold"
+        assert res.config_state == RS.CONFIG_STATE_PROVIDED
+        pub = res.to_public_dict()
+        assert pub["config_path_used"] == "learning.lifecycle.upgrade_threshold"
+        assert pub["config_path"] == "skills_mgmt.scale.upgrade_threshold", (
+            "对外仍报主路径（读者要知道登记的主口径），实际命中路径另由 config_path_used 说明")
+
+    def test_primary_path_wins_over_alias(self, store):
+        """两条都写了 ⇒ 按模块真实次序取**主路径**（不得让备用路径反客为主）"""
+        self._with_synthetic_config({"skills_mgmt.scale.upgrade_threshold": 30,
+                                     "learning.lifecycle.upgrade_threshold": 77})
+        res = RS.resolve("LEARNING_LIFECYCLE_UPGRADE_THRESHOLD", store=store)
+        assert res.source == RS.SOURCE_CONFIG and res.value == 30
+        assert res.config_path_used == "skills_mgmt.scale.upgrade_threshold"
+
+    def test_neither_path_present_is_absent(self, store):
+        """两条都没写 ⇒ default / absent（不得凭空造出一个来源）"""
+        self._with_synthetic_config({})
+        res = RS.resolve("LEARNING_LIFECYCLE_UPGRADE_THRESHOLD", store=store)
+        assert res.source == RS.SOURCE_DEFAULT
+        assert res.config_path_used == ""
+        assert res.config_state == RS.CONFIG_STATE_ABSENT
     @pytest.mark.parametrize("key,path,probe", [
         ("CP_BUDGET_BRAKE_ENABLED", "budget.enabled", True),
         ("LEARNING_LIFECYCLE_ENABLED", "learning.lifecycle.enabled", True),

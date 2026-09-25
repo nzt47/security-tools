@@ -201,6 +201,8 @@ class ResolvedSetting:
     config_present: bool = False
     #: 配置层来源（CONFIG_LAYER_*；L4：决定文案用哪一层）
     config_layer: str = CONFIG_LAYER_NONE
+    #: **实际命中**的 config 路径（备用路径命中时 != spec.config_path；空 = 未命中）
+    config_path_used: str = ""
     #: 配置层提供状态（CONFIG_STATE_* 之一；只影响展示口径，由 config_present 派生）
     config_state: str = CONFIG_STATE_NO_PATH
     editable: bool = False
@@ -226,6 +228,7 @@ class ResolvedSetting:
             "override_present": bool(self.override_present),
             "config_present": bool(self.config_present),
             "config_layer": self.config_layer,
+            "config_path_used": self.config_path_used,
             "config_state": self.config_state,
             "config_state_label": config_state_label(self.config_state,
                                                      self.config_layer),
@@ -333,9 +336,18 @@ def resolve(key: str, *, store: Optional[OverrideStore] = None) -> Optional[Reso
     obs_path = _is_observability_path(spec)
     config_value = _SENTINEL
     config_source_is_file = False
+    config_path_used = ""
     if spec.config_path and not obs_path:
-        config_value = _config_lookup(spec.config_path)
-        config_source_is_file = config_value is not _SENTINEL
+        # 【L4 残余偏差收口】按「主路径 → 备用路径」的**模块真实读取次序**取值：
+        #   主路径 None/缺位时才看备用（与 lifecycle.py:164-168 同序）。
+        #   若只登主路径，运维仅写备用路径时开关中心会显示 default 而模块用备用值 —— 谎报。
+        for candidate in (spec.config_path, *spec.config_path_aliases):
+            found = _config_lookup(candidate)
+            if found is not _SENTINEL:
+                config_value = found
+                config_source_is_file = True
+                config_path_used = candidate
+                break
     obs_value = _observability_lookup(spec.config_path) if obs_path else _SENTINEL
     # 运行态与声明默认值不同 → 才算"config 提供了值"（否则就是默认值本身）
     config_present = config_source_is_file or (
@@ -366,6 +378,7 @@ def resolve(key: str, *, store: Optional[OverrideStore] = None) -> Optional[Reso
     res.override_present = override is not None
     res.config_present = bool(config_present)
     res.config_layer = config_layer
+    res.config_path_used = config_path_used
     res.config_state = config_state
 
     # ── 取值 + 来源（严格按优先级）──
