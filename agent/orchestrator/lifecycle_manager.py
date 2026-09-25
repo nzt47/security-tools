@@ -484,8 +484,14 @@ class LifecycleManager:
         # ── 工作流技能自动升格（自动闭环 v1）──
         # 达标工作流（success_count>=5 / confidence>=0.7 / ACTIVE / 未转换过）
         # 定时自动 convert_to_skill 注册为 Agent Skill
-        # 配置: config.yaml workflow_learning.auto_upgrade.{enabled,interval_seconds}
-        # env: WF_SKILL_AUTO_UPGRADE_ENABLED / WF_SKILL_AUTO_UPGRADE_INTERVAL 覆盖
+        # 配置来源: self._config（agent/config.py::Config 的 DEFAULT + 环境变量覆盖），
+        #   **不是** config.yaml —— Config.DEFAULT 里没有 workflow_learning 键，
+        #   故下面的 _au_cfg 恒为 {}，enabled / interval_seconds 只能取代码默认值（True / 300）。
+        # env: WF_SKILL_AUTO_UPGRADE_ENABLED 覆盖 enabled
+        # 【L7 · 2026-09-25 更正】原注释写「配置: config.yaml workflow_learning.auto_upgrade.{enabled,interval_seconds}」，
+        #   与实现不符（该层从未接上 config.yaml ⇒ 那一层是死代码）。
+        #   若要真的接上 config.yaml，属**行为变更**（WF_SKILL_AUTO_UPGRADE_ENABLED 的生效值会被配置改写），
+        #   须按开关纪律逐键取证后另立项 —— 见 docs/closeout/遗留问题立项_20260922.md 的 L7。
         _au_cfg = self._config.get("workflow_learning", {}).get("auto_upgrade", {}) or {}
         self._maint_interval_wf_upgrade = int(_au_cfg.get("interval_seconds", 300))
         self._last_wf_upgrade_time = 0.0
