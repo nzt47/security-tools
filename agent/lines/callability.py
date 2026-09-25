@@ -80,6 +80,7 @@
 from __future__ import annotations
 
 import ast
+import copy
 import datetime
 import json
 import logging
@@ -568,15 +569,47 @@ def parse_declaration(doc: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+#: 工具定义 YAML 的解析缓存：键 = `(目录, 逐文件指纹)`。失效口径与
+#: `agent/lines/location.py::_TREE_CACHE`、`agent/monitoring/cost_brake.py` 的
+#: config.yaml 缓存一致（同一 PR 族）；未命中时整表替换，长驻进程只留最近一份。
+_TOOL_DOCS_CACHE: Dict[Tuple[str, Tuple[Tuple[str, int, int], ...]],
+                          Dict[str, Dict[str, Any]]] = {}
+
+
+def _defs_fingerprint(root: str, names: List[str]) -> Tuple[Tuple[str, int, int], ...]:
+    """`*.yaml` 的文件指纹 `(文件名, mtime_ns, 字节数)`（stat 失败 ⇒ 记 0/0，仍参与键）"""
+    out: List[Tuple[str, int, int]] = []
+    for fname in names:
+        try:
+            st = os.stat(os.path.join(root, fname))
+            out.append((fname, st.st_mtime_ns, st.st_size))
+        except OSError:
+            out.append((fname, 0, 0))
+    return tuple(out)
+
+
 def load_tool_docs(defs_dir: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
-    """读取全部工具定义 YAML → {工具名: 文档}"""
+    """读取全部工具定义 YAML → {工具名: 文档}
+
+    【不易·按"目录 + 逐文件指纹"缓存】原实现每次调用都重新 `yaml.safe_load` 91 次
+    ——cProfile 实测（热调用、含插桩开销）单次 1.15s、**未插桩实测单次 0.178s**，而
+    `build_manifest()` 在同一进程里会被反复调用（清单生成 / 漂移对拍 / 扫描夹具）
+    ⇒ 即使其它缓存都热了，每次仍要重付这 1.15s。
+    缓存键 = 目录绝对路径 + 每个 `*.yaml` 的 `(文件名, st_mtime_ns, st_size)`：
+    任一文件被改写 / 新增 / 删除，键就变，缓存自然失效（与 `_TREE_CACHE` 同一口径）。
+    【不易·命中时返回"一次性"对象】命中返回 `deepcopy`：调用方拿到的仍是**私有**文档
+    对象（与"每次重新 safe_load"完全一致），避免有人就地改 doc 污染后续调用。
+    """
     root = defs_dir or TOOL_DEFS_DIR
     out: Dict[str, Dict[str, Any]] = {}
     if not os.path.isdir(root):
         return out
-    for fname in sorted(os.listdir(root)):
-        if not fname.endswith(".yaml"):
-            continue
+    names = [fname for fname in sorted(os.listdir(root)) if fname.endswith(".yaml")]
+    key = (os.path.abspath(root), _defs_fingerprint(root, names))
+    hit = _TOOL_DOCS_CACHE.get(key)
+    if hit is not None:
+        return copy.deepcopy(hit)
+    for fname in names:
         doc = _read_yaml(os.path.join(root, fname))
         if isinstance(doc, dict):
             name = str(doc.get("name") or os.path.splitext(fname)[0])
@@ -584,7 +617,9 @@ def load_tool_docs(defs_dir: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
             doc["_declared_in"] = os.path.relpath(
                 os.path.join(root, fname), _REPO_ROOT).replace(os.sep, "/")
             out[name] = doc
-    return out
+    _TOOL_DOCS_CACHE.clear()          # 长驻进程只留最近一份（同 cost_brake 取舍）
+    _TOOL_DOCS_CACHE[key] = out
+    return copy.deepcopy(out)
 
 
 def load_skill_declarations(path: Optional[str] = None) -> Tuple[Dict[str, Any], Dict[str, Dict[str, Any]]]:

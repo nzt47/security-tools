@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import ast
 import os
+from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -211,10 +212,84 @@ def _load_tree(module: str) -> Optional[ast.Module]:
     return tree
 
 
+# ════════════════════════════════════════════════════════════
+#  每模块节点索引（键 = 模块；与 _TREE_CACHE 同步失效）
+# ════════════════════════════════════════════════════════════
+#
+# 【不易·为什么必须有它】`_TREE_CACHE` 只缓存了"**解析**结果"：热调用不再读盘、不再
+# `ast.parse`，但 `_class_boundary` / `_enclosing_class` / `_module_boundary_primitives`
+# 这几处**每次调用仍对同一棵树 `ast.walk` 整树**。cProfile 实测（热调用、含插桩开销）
+# 总 25.2s：`_class_boundary` 251 次 → 14.9s（每次内部都整树遍历）、
+# `_module_boundary_primitives` 3024 次 → 6.2s、`_is_boundary` 55.5k 次 → 3.5s——
+# 也就是说"缓存是热的"依然慢，成本全在**反复遍历已缓存的树**上。
+# 索引把"类名 → 类节点""函数名 → 所在类名"一次算好（子树原语惰性记忆化），
+# 之后每次查询是 dict 查找。
+#
+# 【不易·只加索引，不改判定】索引只回答"**节点在哪**"，判定仍逐字走原来的函数体：
+#   · 同名类在模块里可能有**多个定义**，原实现在"第一个同名类无边界原语"时会**继续
+#     往后找下一个同名类** ⇒ 索引按 `ast.walk` 顺序保留**全部**同名类节点，调用点逐字照旧；
+#   · `_body_boundary_primitives(node.body)` 与原来"合成一个
+#     `ast.Module(body=list(node.body))` 再遍历"**等价**：`ast.walk` 对合成 Module 的可达
+#     节点集合 = 各语句子树之并（Module 自身不是 `ast.Call`，`type_ignores=[]` 无子节点），
+#     且返回值是 `sorted(set)` ⇒ 与遍历顺序无关，逐字相同。
+_NODE_INDEX_CACHE: Dict[str, Tuple[Optional[ast.Module], "_NodeIndex"]] = {}
+
+
+class _NodeIndex:
+    """一个模块语法树的节点索引（**一次** `ast.walk` 建成，之后 O(1) 查询）
+
+    失效口径与 `_TREE_CACHE` 一致：缓存记录"由哪一棵树建成"，
+    只有传到**同一个树对象**时才复用（文件 mtime 变了 → `_load_tree` 换新树 → 自动重建）；
+    `invalidate_cache()` 同时清掉它。
+    """
+
+    __slots__ = ("_classes", "_enclosing", "_body_prims")
+
+    def __init__(self, tree: ast.Module) -> None:
+        self._classes: Dict[str, List[ast.ClassDef]] = {}
+        self._enclosing: Dict[str, str] = {}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            self._classes.setdefault(node.name, []).append(node)
+            # 函数 → 所在类（只认**直接子节点**，与原 `_enclosing_class` 逐字一致）
+            for sub in node.body:
+                if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    self._enclosing.setdefault(sub.name, node.name)
+        self._body_prims: Dict[ast.AST, List[str]] = {}
+
+    def class_nodes(self, cls: str) -> Sequence[ast.ClassDef]:
+        """同名类定义节点（**按 `ast.walk` 顺序全部保留**；无则空）"""
+        return self._classes.get(cls, ())
+
+    def enclosing_class(self, func: str) -> str:
+        """函数所在的类名（不在类里 ⇒ 空串）"""
+        return self._enclosing.get(func, "")
+
+    def body_prims_of(self, node: ast.AST) -> List[str]:
+        """`node.body` 这组语句（含各语句子树）里的跨边界原语（结果按节点记忆化）"""
+        hit = self._body_prims.get(node)
+        if hit is None:
+            hit = _body_boundary_primitives(node.body)
+            self._body_prims[node] = hit
+        return hit
+
+
+def _node_index(module: str, tree: ast.Module) -> _NodeIndex:
+    """取模块的节点索引（键 = 模块；与传进来的树对象绑定 ⇒ 随 `_TREE_CACHE` 同步失效）"""
+    hit = _NODE_INDEX_CACHE.get(module)
+    if hit is not None and hit[0] is tree:
+        return hit[1]
+    index = _NodeIndex(tree)
+    _NODE_INDEX_CACHE[module] = (tree, index)
+    return index
+
+
 def invalidate_cache() -> None:
     """清空模块树与仓库索引缓存（测试与治理脚本用）"""
     global _REPO_INDEX
     _TREE_CACHE.clear()
+    _NODE_INDEX_CACHE.clear()
     _MISS_CACHE.clear()
     _ALIAS_CACHE.clear()
     _SYMBOL_CACHE.clear()
@@ -322,6 +397,7 @@ def _dotted(node: Any) -> str:
     return ".".join(reversed(parts))
 
 
+@lru_cache(maxsize=None)
 def _is_boundary(dotted: str) -> Optional[str]:
     """点分调用路径是否命中跨边界原语（返回命中的原语，未命中返回 None）
 
@@ -329,6 +405,10 @@ def _is_boundary(dotted: str) -> Optional[str]:
       · 完全相同           `subprocess.run`
       · 后缀（模块别名）   `_sp.run`（`import subprocess as _sp`）
       · **前缀（成员调用）** `requests.Session.request` —— 前缀 `requests.Session`
+
+    【不易·结果按调用字符串记忆化】本函数是**纯函数**（只读模块级原语表常量，
+    不清点文件、不带状态），cProfile 实测一次清单判定里被调 55.5k 次、占 3.5s，
+    而点分字符串的去重度极高 ⇒ 记忆化后同一字符串只算一次。
     """
     if not dotted:
         return None
@@ -360,6 +440,24 @@ def _local_ffi_hits(tree: ast.Module) -> List[str]:
     return sorted(hits)
 
 
+def _body_boundary_primitives(body: Sequence[ast.stmt]) -> List[str]:
+    """一组语句（及其子树）里直接出现的跨边界原语（按调用点判定，不按 import 判定）
+
+    【不易·与"合成 Module"等价】原实现对 `ast.Module(body=list(body), type_ignores=[])`
+    做 `ast.walk`；`ast.walk` 对该合成 Module 的可达节点集合 = 各语句子树之并
+    （Module 自身不是 `ast.Call`，`type_ignores=[]` 无子节点），且本函数返回
+    `sorted(set)` ⇒ 与遍历顺序无关，结果**逐字相同**。
+    """
+    hits: Set[str] = set()
+    for stmt in body:
+        for node in ast.walk(stmt):
+            if isinstance(node, ast.Call):
+                prim = _is_boundary(_dotted(node.func))
+                if prim:
+                    hits.add(prim)
+    return sorted(hits)
+
+
 def _module_boundary_primitives(tree: ast.Module) -> List[str]:
     """一个模块**自身**直接包含的跨边界原语（按调用点判定，不按 import 判定）
 
@@ -367,13 +465,7 @@ def _module_boundary_primitives(tree: ast.Module) -> List[str]:
     纯字符串处理也算成网络边界。实测：`agent/tools/pdf_tools.py` 等模块
     import 了 `subprocess` 只为拿 `TimeoutExpired` 异常类，并无调用点。
     """
-    hits: Set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call):
-            prim = _is_boundary(_dotted(node.func))
-            if prim:
-                hits.add(prim)
-    return sorted(hits)
+    return _body_boundary_primitives(tree.body)
 
 
 def _import_aliases(module: str) -> Dict[str, str]:
@@ -451,15 +543,10 @@ def _enclosing_class(module: str, func: str) -> str:
     name = ""
     tree = _load_tree(module)
     if tree is not None:
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ClassDef):
-                continue
-            for sub in node.body:
-                if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)) and sub.name == func:
-                    name = node.name
-                    break
-            if name:
-                break
+        # 【不易·索引查表，判定逐字不变】原实现每次整树 ast.walk 找"直接子节点里
+        # 有同名函数的类"，索引在建索引的那一趟里用**同一条判据、同一遍历顺序**
+        # （ast.walk、setdefault ⇒ 取第一个命中的类）算好了。
+        name = _node_index(module, tree).enclosing_class(func)
     _ENCLOSING_CACHE[key] = name
     return name
 
@@ -517,9 +604,10 @@ def _class_attr_boundary(module: str, cls: str, attr: str) -> Optional[str]:
     tree = _load_tree(module)
     if tree is None:
         return None
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.ClassDef) or node.name != cls:
-            continue
+    # 【不易·索引只换"找类"这一步】原来每次调用整树 ast.walk 找同名 ClassDef；
+    # 索引里按 ast.walk 顺序保留了**全部**同名类节点 ⇒ "第一个无原语就继续找下一个
+    # 同名类"的语义逐字不变，被替换掉的只有"找类"的遍历。
+    for node in _node_index(module, tree).class_nodes(cls):
         for sub in ast.walk(node):
             if not isinstance(sub, (ast.Assign, ast.AnnAssign)):
                 continue
@@ -662,16 +750,19 @@ def _class_boundary(module: str, cls: str) -> Optional[str]:
     tree = _load_tree(module)
     if tree is None:
         return None
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.ClassDef) or node.name != cls:
-            continue
-        prims = _module_boundary_primitives(ast.Module(body=list(node.body), type_ignores=[]))
+    # 【不易·本函数是 L6 的第一热点】cProfile 实测 251 次调用 → 14.9s，成本全在
+    # "每次调用都整树 ast.walk 找同名类 + 对类体/方法体各再遍历一遍"。
+    # 现在：类节点来自索引（按 ast.walk 顺序保留的**全部**同名类），类体/方法体的
+    # 原语由索引按节点记忆化（`_body_boundary_primitives` 与"合成 Module 再遍历"
+    # 等价，见该函数说明）⇒ 判定分支与返回值**逐字不变**，只是不再重复遍历。
+    index = _node_index(module, tree)
+    for node in index.class_nodes(cls):
+        prims = index.body_prims_of(node)
         if prims:
             return prims[0]
         for sub in node.body:
             if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                prims = _module_boundary_primitives(
-                    ast.Module(body=list(sub.body), type_ignores=[]))
+                prims = index.body_prims_of(sub)
                 if prims:
                     return prims[0]
     return None
