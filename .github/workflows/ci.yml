@@ -490,19 +490,46 @@ jobs:
             --cov-report=term-missing \
             --cov-fail-under=0 \
             -p no:randomly \
-            -m "not slow and not skip_ci" \
+            -m "not slow and not skip_ci and not serial" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
             --timeout=60 \
             --timeout-method=signal \
             --junitxml=test-results/junit-shard${{ matrix.shard }}.xml \
             -rA
+          PAR_RC=$?
+          # 【L9 · 2026-09-25】serial 段：**墙钟计时断言**类用例必须在「无 xdist」下跑
+          #   背景（判据来自用例文件自身）：tests/unit/test_tools_prompt_alignment.py:612-640
+          #   的 100KB 对齐预算类断言已按仓库既定机制标 @pytest.mark.serial，且自述实测
+          #   「4 分块并行 + 另一全量进程 ⇒ 230.8ms / 约 33× 膨胀，直接把 50ms 预算打红」。
+          #   但 serial marker 此前**只在 observability-ci.yml 生效**（那里拆了
+          #   `not serial` 并行段 + `serial` 串行段），ci.yml 的 6-shard 单元测试没有
+          #   `not serial` 过滤 ⇒ 这类用例在 -n 2 下照跑 ⇒ **同一 commit 时而 pass 时而 fail**
+          #   （本 PR 实测：同一 commit 的「单元测试 Shard 6」fail（313.4ms > 150ms 预算）
+          #   而「全项目测试覆盖率 Shard 6/6」同一文件 pass —— 后者本来就带 not serial）。
+          #   口径：**断言与预算一字未改**，只把这类用例放回它们自己声明的那条 lane。
+          #   exit 5 = 本分片没有 serial 用例（pytest 的「未收集到测试」语义）⇒ 视为通过
+          #   （与 observability-ci.yml 的 `|| [ $? -eq 5 ]` 同款处理）。
+          SERIAL_RC=0
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --by=time) \
+            -v \
+            --tb=short \
+            -p no:randomly \
+            -m "serial" \
+            --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
+            --timeout=300 \
+            --timeout-method=signal \
+            --junitxml=test-results/junit-shard${{ matrix.shard }}-serial.xml \
+            -rA || SERIAL_RC=$?
+          if [ "$SERIAL_RC" -eq 5 ]; then SERIAL_RC=0; fi
+          echo "=== serial 段退出码: $SERIAL_RC（并行段: $PAR_RC）==="
           # 【确定性】-p no:randomly = 固定收集顺序（确定性可复现），CI 全量入口
           #   （本 job 与 coverage-ci.yml）均不随机漂移，顺序依赖类 flaky
           #   （test_optimized_storage 模块重复导入、test_skill_index_cache 性能断言）
           #   在固定顺序下可复现不漂移。本地随机探测（pytest-randomly 默认 seed 漂移）
           #   若暴露顺序污染，用固定 seed 入口复现：pytest --randomly-seed=20260813
           #   （2026-08-14 已验证该 seed 下 test_optimized_storage/test_skill_index_cache 67 用例通过）
-          PYTEST_RC=$?
+          PYTEST_RC=$PAR_RC
+          if [ "$PAR_RC" -eq 0 ] && [ "$SERIAL_RC" -ne 0 ]; then PYTEST_RC=$SERIAL_RC; fi
           set -e
           kill $MONITOR_PID 2>/dev/null || true
           wait $MONITOR_PID 2>/dev/null || true
