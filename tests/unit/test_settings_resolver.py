@@ -152,6 +152,227 @@ class TestSourcePriority:
 
 
 # ════════════════════════════════════════════════════════════
+#  一·五、配置层三态（L4 显示口径，2026-09-23）
+# ════════════════════════════════════════════════════════════
+
+
+class TestConfigLayerStateIsDisclosed:
+    """★ L4：UI 必须能区分「config 层未提供」与「config 显式给了值（含 false/空）」
+
+    源只有四个 token（env / ui_override / config / default），于是这两种处境在 UI 上
+    都显示「代码默认值」：
+      · 该键**没有** config.yaml 口径（登记表 config_path 为空）；
+      · 该键**有** config 口径，但 config.yaml 里**没写**这一行。
+    操作员的动作完全不同（后者写一行就能改）⇒ resolver 透出 config_state 三态。
+
+    本类只钉**展示口径**，并逐条断言 source / value 不受影响（补一个字段不得改生效值）。
+    不写 data/：合成配置走 resolver._CONFIG_CACHE，覆盖层走 tmp_path 的空 store。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _restore_config_cache(self):
+        saved = dict(RS._CONFIG_CACHE)
+        yield
+        RS._CONFIG_CACHE.clear()
+        RS._CONFIG_CACHE.update(saved)
+
+    @staticmethod
+    def _with_synthetic_config(pairs):
+        """把合成配置塞进 resolver 的 mtime 缓存（**不碰磁盘上的 config.yaml**）"""
+        data = {}
+        for dotted, value in pairs.items():
+            node = data
+            parts = dotted.split(".")
+            for part in parts[:-1]:
+                node = node.setdefault(part, {})
+            node[parts[-1]] = value
+        path = RS.config_yaml_path()
+        try:
+            mtime = path.stat().st_mtime if path.exists() else -1.0
+        except OSError:
+            mtime = -1.0
+        RS._CONFIG_CACHE["mtime"] = mtime
+        RS._CONFIG_CACHE["data"] = data
+
+    def test_key_without_config_path_reports_no_path(self, store):
+        """登记表没有 config_path ⇒ no_path（与 absent 必须分得开）"""
+        self._with_synthetic_config({})
+        spec = R.get_spec("LOCK_PROFILE")
+        assert spec is not None and spec.config_path == ""
+        pub = RS.resolve("LOCK_PROFILE", store=store).to_public_dict()
+        assert pub["config_state"] == RS.CONFIG_STATE_NO_PATH
+        assert pub["config_layer"] == RS.CONFIG_LAYER_NONE
+        assert pub["config_state_label"] == \
+            RS.CONFIG_STATE_LABELS[RS.CONFIG_STATE_NO_PATH]
+
+    def test_declared_path_absent_from_config_reports_absent(self, store):
+        """有 config 口径但 config.yaml 没写 ⇒ absent"""
+        self._with_synthetic_config({})
+        spec = R.get_spec("CP_BUDGET_BRAKE_ENABLED")
+        assert spec is not None and spec.config_path == "budget.enabled"
+        res = RS.resolve(spec.key, store=store)
+        assert res.source == RS.SOURCE_DEFAULT and res.value == spec.default
+        assert res.config_layer == RS.CONFIG_LAYER_FILE
+        assert res.config_state == RS.CONFIG_STATE_ABSENT
+        assert res.to_public_dict()["config_state_label"] == \
+            RS.CONFIG_STATE_LABELS[RS.CONFIG_STATE_ABSENT]
+
+    def test_explicit_false_in_config_is_provided_not_absent(self, store):
+        """config.yaml 显式写 false ⇒ provided（这正是 L4 要区分的那一种）"""
+        self._with_synthetic_config({"budget.enabled": False})
+        res = RS.resolve("CP_BUDGET_BRAKE_ENABLED", store=store)
+        assert res.source == RS.SOURCE_CONFIG
+        assert res.value is False
+        assert res.config_state == RS.CONFIG_STATE_PROVIDED
+
+    def test_explicit_empty_string_is_provided(self, store):
+        """config.yaml 显式写空串 ⇒ 同样是"提供了"，不是"没提供" """
+        self._with_synthetic_config({"retention.classes": ""})
+        res = RS.resolve("CP_RETENTION_CLASSES", store=store)
+        assert res.source == RS.SOURCE_CONFIG
+        assert res.value == ""
+        assert res.config_state == RS.CONFIG_STATE_PROVIDED
+
+    def test_c_level_empty_value_is_still_provided(self, store):
+        """C 级不回明文（value 被抹成 None），但"配置层给没给"这一态照样如实透出"""
+        self._with_synthetic_config({"slo_report.audit_file": ""})
+        res = RS.resolve("CP_SLO_SCHEDULE_AUDIT_FILE", store=store)
+        assert res.value is None                      # C 级按设计不出明文
+        assert res.configured is False                # 空串 ⇒ 未配置
+        assert res.source == RS.SOURCE_CONFIG
+        assert res.config_state == RS.CONFIG_STATE_PROVIDED
+
+    # ── 运行态层（ObservabilityConfig）：**文案必须跟着层走**（独立复核发现的缺陷）──
+
+    def test_runtime_default_value_is_not_reported_as_provided(self, store):
+        """★ 运行态对象里"有这个键"≠"运维提供了值"
+
+        根因：observability_config 初始化时用**登记默认值把运行态铺满**
+        （agent/monitoring/observability_config.py:624）。若照搬文件层的判据
+        （"对象里有这个键即已提供"），48 个 observability 口径的键会**全部**显示
+        "config.yaml 已提供该键"，而 config.yaml 里根本没有这些行 —— 那正是本次要消灭的谎报。
+        故运行态层的判据是"取值与登记默认值不同"，且文案明确说是**运行态**而非 config.yaml。
+        """
+        from agent.monitoring.observability_config import (
+            get_observability_config, reset_observability_config,
+        )
+        reset_observability_config()
+        cfg = get_observability_config()
+        path = "resource_monitor.sample_interval_sec"
+        spec = R.spec_for_config(path)
+        assert spec is not None
+        try:
+            cfg.set(path, spec.default)             # 与默认值相同 = 没人真正提供
+            res = RS.resolve(spec.key, store=store)
+            assert res.source == RS.SOURCE_DEFAULT  # 既有口径不变
+            assert res.config_present is False      # 既有口径不变
+            assert res.value == spec.default
+            assert res.config_layer == RS.CONFIG_LAYER_RUNTIME
+            assert res.config_state == RS.CONFIG_STATE_ABSENT
+            label = res.to_public_dict()["config_state_label"]
+            assert label == RS.CONFIG_STATE_LABELS_RUNTIME[RS.CONFIG_STATE_ABSENT]
+            assert "config.yaml" not in label, label
+        finally:
+            reset_observability_config()
+
+    def test_runtime_non_default_value_is_provided_with_runtime_wording(self, store):
+        """运行态取值与默认值不同 ⇒ provided，且文案说的是「运行态配置」"""
+        from agent.monitoring.observability_config import (
+            get_observability_config, reset_observability_config,
+        )
+        reset_observability_config()
+        cfg = get_observability_config()
+        path = "resource_monitor.history_size"
+        spec = R.spec_for_config(path)
+        assert spec is not None
+        try:
+            cfg.set(path, int(spec.default) + 5)
+            res = RS.resolve(spec.key, store=store)
+            assert res.source == RS.SOURCE_CONFIG
+            assert res.config_layer == RS.CONFIG_LAYER_RUNTIME
+            assert res.config_state == RS.CONFIG_STATE_PROVIDED
+            label = res.to_public_dict()["config_state_label"]
+            assert label == RS.CONFIG_STATE_LABELS_RUNTIME[RS.CONFIG_STATE_PROVIDED]
+            assert "运行态" in label
+        finally:
+            reset_observability_config()
+
+    def test_no_observability_key_ever_claims_config_yaml_provided(self, store):
+        """★ 全量回归：48 个 observability 口径键**一个都不得**声称 "config.yaml 已提供"
+
+        （上一条是单点用例，这一条把所有 observability 键都扫一遍，防"只修了样板那一键"。）
+        """
+        offender = []
+        for path in sorted(R.observability_rule_paths()):
+            spec = R.spec_for_config(path)
+            if spec is None:                            # pragma: no cover 规则表与登记表应一致
+                continue
+            pub = RS.resolve(spec.key, store=store).to_public_dict()
+            if pub.get("config_layer") != RS.CONFIG_LAYER_RUNTIME:
+                offender.append((spec.key, "层标错", pub.get("config_layer")))
+            if "config.yaml" in str(pub.get("config_state_label", "")):
+                offender.append((spec.key, "文案谎报 config.yaml",
+                                 pub.get("config_state_label")))
+        assert offender == [], offender
+
+
+    # ── 备用路径（config_path_aliases）：L4 残余偏差收口（2026-09-23 拍板「扩展」）──
+
+    def test_alias_only_in_config_yields_config_source(self, store):
+        """★ 只写了**备用路径**时，来源必须是 config 且取值来自备用路径
+
+        （修前：会显示 default —— 而模块 agent/skills_mgmt/lifecycle.py:164-168 实际用备用值，
+        即开关中心在谎报。这是 L4 「残余偏差」的定点回归。）
+        """
+        self._with_synthetic_config({"learning.lifecycle.upgrade_threshold": 77})
+        res = RS.resolve("LEARNING_LIFECYCLE_UPGRADE_THRESHOLD", store=store)
+        assert res.source == RS.SOURCE_CONFIG
+        assert res.value == 77
+        assert res.config_path_used == "learning.lifecycle.upgrade_threshold"
+        assert res.config_state == RS.CONFIG_STATE_PROVIDED
+        pub = res.to_public_dict()
+        assert pub["config_path_used"] == "learning.lifecycle.upgrade_threshold"
+        assert pub["config_path"] == "skills_mgmt.scale.upgrade_threshold", (
+            "对外仍报主路径（读者要知道登记的主口径），实际命中路径另由 config_path_used 说明")
+
+    def test_primary_path_wins_over_alias(self, store):
+        """两条都写了 ⇒ 按模块真实次序取**主路径**（不得让备用路径反客为主）"""
+        self._with_synthetic_config({"skills_mgmt.scale.upgrade_threshold": 30,
+                                     "learning.lifecycle.upgrade_threshold": 77})
+        res = RS.resolve("LEARNING_LIFECYCLE_UPGRADE_THRESHOLD", store=store)
+        assert res.source == RS.SOURCE_CONFIG and res.value == 30
+        assert res.config_path_used == "skills_mgmt.scale.upgrade_threshold"
+
+    def test_neither_path_present_is_absent(self, store):
+        """两条都没写 ⇒ default / absent（不得凭空造出一个来源）"""
+        self._with_synthetic_config({})
+        res = RS.resolve("LEARNING_LIFECYCLE_UPGRADE_THRESHOLD", store=store)
+        assert res.source == RS.SOURCE_DEFAULT
+        assert res.config_path_used == ""
+        assert res.config_state == RS.CONFIG_STATE_ABSENT
+    @pytest.mark.parametrize("key,path,probe", [
+        ("CP_BUDGET_BRAKE_ENABLED", "budget.enabled", True),
+        ("LEARNING_LIFECYCLE_ENABLED", "learning.lifecycle.enabled", True),
+        ("SKILL_CLEANUP_UNUSED_DAYS", "skills_mgmt.cleanup.unused_days", 7),
+    ])
+    def test_config_state_tracks_config_layer_without_touching_value(
+            self, key, path, probe, store):
+        """★ 三态只跟着「配置层给没给」走；同一键的 source/value 仍由既有优先级决定"""
+        spec = R.get_spec(key)
+        assert spec is not None and spec.config_path == path
+        self._with_synthetic_config({})
+        absent = RS.resolve(key, store=store)
+        assert absent.config_state == RS.CONFIG_STATE_ABSENT
+        assert absent.source == RS.SOURCE_DEFAULT
+        assert absent.value == spec.default
+        self._with_synthetic_config({path: probe})
+        provided = RS.resolve(key, store=store)
+        assert provided.config_state == RS.CONFIG_STATE_PROVIDED
+        assert provided.source == RS.SOURCE_CONFIG
+        assert provided.value == probe
+
+
+# ════════════════════════════════════════════════════════════
 #  二、可改性与置灰说明
 # ════════════════════════════════════════════════════════════
 

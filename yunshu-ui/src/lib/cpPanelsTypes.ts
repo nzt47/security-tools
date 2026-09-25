@@ -772,6 +772,28 @@ export interface SettingsItem {
   env_name: string;
   env_present: boolean;
   config_path: string;
+  /** 备用 config 路径（L4：双路径开关的兜底口径；空数组 = 无备用路径） */
+  config_path_aliases?: string[];
+  /** **实际命中**的 config 路径（备用路径命中时 != config_path；空 = 未命中） */
+  config_path_used?: string;
+  /** 配置层是否提供了该键（L4：file 层 = config.yaml 里确有这一行） */
+  config_present: boolean;
+  /**
+   * 配置层来源（L4：决定 config_state_label 的文案用哪一层）：
+   *   file    config.yaml 文件层（提供 = 路径存在，可区分显式 false/空串）；
+   *   runtime ObservabilityConfig 运行态层（提供 = 取值与登记默认值不同）；
+   *   ''      无 config 口径。
+   */
+  config_layer?: 'file' | 'runtime' | '' | string;
+  /**
+   * 配置层提供状态三态（L4 显示口径）：
+   *   provided 配置层提供了该键（含显式 false / 空串）；
+   *   absent   该键有 config 口径，但 config.yaml 没写这一行；
+   *   no_path  登记表未声明 config_path ⇒ 该键无 config 口径。
+   */
+  config_state?: 'provided' | 'absent' | 'no_path';
+  /** 三态的中文说明（**逐字用后端给的**，前端不另造说法） */
+  config_state_label?: string;
   /** 仅支持环境变量（无 config.yaml 项） */
   env_only: boolean;
   secret: boolean;

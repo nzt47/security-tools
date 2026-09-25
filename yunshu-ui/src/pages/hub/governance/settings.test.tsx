@@ -244,6 +244,78 @@ describe('1. 分组 / 风险徽章 / 生效来源', () => {
   })
 })
 
+describe('1b. 配置层三态（L4：未提供 vs 显式给了值）', () => {
+  /** 生效来源是代码默认值、且 config.yaml 没写这一行 */
+  const ABSENT_ITEM = base({
+    key: 'CP_BUDGET_BRAKE_ENABLED',
+    source: 'default',
+    source_label: '代码默认值',
+    config_path: 'budget.enabled',
+    config_state: 'absent',
+    config_state_label: 'config.yaml 未提供该键（当前取代码默认值）',
+  })
+
+  /** 生效来源是代码默认值、且该键根本没有 config.yaml 口径 */
+  const NO_PATH_ITEM = base({
+    key: 'LOCK_PROFILE',
+    source: 'default',
+    source_label: '代码默认值',
+    config_path: '',
+    env_only: true,
+    config_state: 'no_path',
+    config_state_label: '该键无 config.yaml 口径（仅 env / 代码默认值）',
+  })
+
+  it('source=default 时如实说明配置层给没给该键（文案来自后端，不另造）', async () => {
+    api.fetchSettings.mockResolvedValue({ ...VIEW, items: [ABSENT_ITEM, NO_PATH_ITEM] })
+    renderPanel()
+    await screen.findByText('开关中心')
+
+    const absent = document.querySelector('[data-cp-setting-config-state="absent"]')
+    expect(absent).not.toBeNull()
+    expect(absent?.textContent).toBe(ABSENT_ITEM.config_state_label)
+
+    const noPath = document.querySelector('[data-cp-setting-config-state="no_path"]')
+    expect(noPath).not.toBeNull()
+    expect(noPath?.textContent).toBe(NO_PATH_ITEM.config_state_label)
+
+    // 两种处境必须分得开：一个是"写一行就能改"，一个是"没有这个口径"
+    expect(absent?.textContent).not.toBe(noPath?.textContent)
+  })
+
+  it('source=config 时不重复上屏三态（来源本身已说明配置层提供了）', async () => {
+    api.fetchSettings.mockResolvedValue({
+      ...VIEW,
+      items: [base({ key: 'K1', source: 'config', source_label: 'config.yaml' })],
+    })
+    renderPanel()
+    await screen.findByText('开关中心')
+    expect(document.querySelector('[data-cp-setting-config-state]')).toBeNull()
+  })
+
+  it('source=env 时不上屏三态（被覆盖由 shadowed_by 说明）', async () => {
+    api.fetchSettings.mockResolvedValue({
+      ...VIEW,
+      items: [
+        base({
+          key: 'K2',
+          source: 'env',
+          source_label: '环境变量（运维注入）',
+          env_present: true,
+          locked: true,
+          editable: false,
+          locked_reason: '被环境变量 K2 锁定',
+          config_state: 'provided',
+          config_state_label: 'config.yaml 已提供该键',
+        }),
+      ],
+    })
+    renderPanel()
+    await screen.findByText('开关中心')
+    expect(document.querySelector('[data-cp-setting-config-state]')).toBeNull()
+  })
+})
+
 describe('2. 锁定项（env 锁定）', () => {
   it('控件禁用，且 locked_reason 以文本显示在行内（不藏在 tooltip）', async () => {
     renderPanel()

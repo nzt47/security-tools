@@ -10,6 +10,12 @@
  * 【本页面的四条纪律】
  *   ① **生效来源必须显式上屏**：每行都给出 `source` + `source_label`；
  *      `shadowed_by` 非空时说明"谁存在但没生效"（契约语义：低优先级来源被更高优先级覆盖）。
+ *      【L4，2026-09-23】生效来源是代码默认值时，还要说明**配置层给没给这个键**：
+ *      契约新增 `config_state` / `config_state_label` 三态
+ *      （provided / absent / no_path）。原因：源只有四个 token，于是
+ *      「该键没有 config.yaml 口径」与「有口径但 config.yaml 没写这一行」在界面上
+ *      都是"代码默认值"，而运维的动作完全不同（后者写一行就能改）。
+ *      文案**逐字用后端给的 `config_state_label`**，前端不另造说法。
  *   ② **锁定就要说清原因**：`locked=true` ⇒ 控件禁用 + `locked_reason` **以文本形式**
  *      直接显示在行内（不是只塞进 tooltip）。
  *   ③ **机密只读**：`secret=true` 的行只渲染后端给的**已脱敏** `display_value` 与
@@ -99,6 +105,15 @@ const SOURCE_ZH: Record<string, string> = {
   config: 'config.yaml / 运行时配置',
   default: '代码默认值',
 }
+
+/**
+ * 配置层三态提示只在**生效来源是代码默认值**时上屏。
+ *
+ * 为什么限定这一种来源：source=config 时"配置层提供了"已由来源本身说明；
+ * source=env / ui_override 时配置层即便提供了也被覆盖（那由 shadowed_by 说明）。
+ * 只有 source=default 时，"配置层没提供"与"没有 config 口径"才是必须分辨的两种处境。
+ */
+const CONFIG_STATE_HINT_SOURCE = 'default'
 
 /** SwitchField 引用的 `--mascot-*` 变量只在未挂载的 theme.css 里定义 ⇒ 在此给回退值 */
 const SWITCH_VARS = {
@@ -347,6 +362,15 @@ function SourceLine({ item }: { item: SettingsItem }) {
       </span>
       {/* 契约的四个来源 token 也直接可见，避免只有中文别名时无法对账 */}
       <span className="font-mono text-[10px] text-slate-500">{item.source}</span>
+      {/* L4：生效来源是代码默认值时，如实说明配置层给没给这个键（文案来自后端） */}
+      {item.source === CONFIG_STATE_HINT_SOURCE && item.config_state_label && (
+        <span
+          className="rounded border border-slate-800 bg-slate-900/60 px-1.5 py-0.5 text-[10px] text-slate-400"
+          data-cp-setting-config-state={item.config_state || 'unknown'}
+        >
+          {item.config_state_label}
+        </span>
+      )}
       {shadowed.length > 0 && (
         <span
           className="rounded border border-amber-900 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
