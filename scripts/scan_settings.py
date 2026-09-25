@@ -70,9 +70,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 #:   **显式排除**（新增/删除一条都要改这里；由
 #:   tests/unit/test_settings_registry.py::TestScanRootsCoverProductionCode
 #:   （test_required_production_roots_are_scanned / test_root_level_entry_scripts_
-#:   are_exactly_declared / test_scanned_modules_stay_inside_declared_roots）钉住）：
+#:   are_exactly_declared / test_declared_roots_contain_no_excluded_directory）钉住）：
 #:     - scripts/  工具与审计脚本（其中的 env 读取是"跑脚本时的参数"，不改运行时行为）
-#:     - tests/    测试代码（memory/tests 由 scan_paths 的 skip_parts 跳过）
+#:     - tests/    测试代码（memory/tests 由 _iter_py_files 的 skip_parts 跳过）
 #:     - docs/ data/ templates/ 等非 Python 目录
 #:     - security-tools/ 疑似历史副本（审计 §六.3 声明"未核实是否为活代码"，故不计入）
 #:     - venv/ .venv/ .worktrees/ node_modules/ 等环境与工作树（skip_parts 兜底）
@@ -162,6 +162,7 @@ RUNTIME_NAME_READS: Dict[str, str] = {
         "开关中心按注册表遍历，名字由表决定而非硬编码",
 }
 
+
 #: **站点级**运行时名字读取声明（比 RUNTIME_NAME_READS 更精确：限定到具体模块）
 #:
 #: 形状：`"<模块相对路径>::<运行时名字表达式>"` → 理由。
@@ -189,7 +190,6 @@ def _is_declared_runtime_name(rp: "ReadPoint") -> bool:
     if rp.runtime_expr in RUNTIME_NAME_READS:
         return True
     return f"{rp.module}::{rp.runtime_expr}" in RUNTIME_NAME_SITES
-
 
 #: 仅在「外层函数无同名参数」时才算进程环境的裸访问（WSGI `environ` 同名）
 _BARE_ENV_CALLS: frozenset = frozenset({"environ.get", "env.get", "getenv"})
@@ -1037,30 +1037,25 @@ def _common_prefix(values: Sequence[str]) -> str:
     return prefix
 
 
-#: 扫描时跳过的目录名（**按「相对扫描根」的目录名判断**）
+#: 常量索引趟的目录过滤（**逐字保留**原 `_build_global_consts` 的集合）
+_CONST_SKIP_PARTS: Set[str] = {"__pycache__", ".worktrees", ".venv", "venv", "node_modules",
+                     "tests"}
+#: 提取趟的目录过滤（比常量趟多排除 .git / site-packages / migrations，**逐字保留**原集合）
 #:
-#: Why 用相对扫描根的路径而不是绝对路径：本仓库的 worktree 位于
-#: `<repo>/.worktrees/<id>/`，按绝对路径过滤会把整棵 worktree 跳过（S7-01 实测踩坑）。
-#: `tests` 于 L5（2026-09-23）加入：扫描根扩到 memory/ 后命中 `memory/tests/`，
-#: 测试代码里的 env 读取不是"随部署运行的开关"。
-_SKIP_PARTS: frozenset = frozenset({
-    "__pycache__", ".worktrees", ".venv", "venv", "node_modules",
-    ".git", "site-packages", "migrations", "tests",
-})
+#: `tests` 于 L5（2026-09-23）加入**两张表**：扫描根扩到 memory/ 后命中 `memory/tests/`，
+#: 测试代码里的 env 读取不是「随部署运行的开关」（两张表必须一致，否则常量索引与提取趟
+#: 看到的文件集合不同 —— 那会让「同名多值 ⇒ None」的判定凭空变化）。
+_SCAN_SKIP_PARTS: Set[str] = {"__pycache__", ".worktrees", ".venv", "venv", "node_modules",
+                              ".git", "site-packages", "migrations", "tests"}
 
 
-def _iter_py_files(roots: Iterable[Path]) -> Iterable[Path]:
-    """遍历扫描根下的 .py（根是目录则递归，根是文件则只取该文件）
+def _iter_py_files(roots: Iterable[Path], skip_parts: Set[str]
+                   ) -> Iterable[Tuple[Path, Path]]:
+    """按 `sorted(root.rglob("*.py"))` 的顺序产出 `(文件, 相对扫描根的路径)`
 
-    统一三件事，避免 `_build_global_consts` 与 `scan_paths` 各写一遍而漂移：
-
-      1. **目录 / 文件两种根**：L5（2026-09-23）起支持把仓库根下的散装入口脚本
-         （app_server.py / main.py 等）直接列为扫描根——它们是随部署运行的生产代码；
-      2. **跳过项**：见 _SKIP_PARTS；
-      3. **读不到就跳过**：文件被并发删除、坏符号链接等一律 `OSError` 容忍。
-         2026-09-23 实测：把扫描根扩到仓库根后，`.pytest_tmp` 下的坏符号链接会让
-         `_build_global_consts` 抛 FileNotFoundError ⇒ 整条零缺口守卫不可用。
-         这里只对**遍历**容错；`scan_file` 的解析失败仍如实计入 parse_errors（不静默）。
+    【不易·只按「相对扫描根」的目录名过滤】本仓库的 worktree 位于
+    `<repo>/.worktrees/<id>/`，若按绝对路径过滤会把整棵 worktree 跳过
+    （S7-01 实测踩坑）。故用 rel_to_root 判断。
     """
     for root in roots:
         if root.is_file():
@@ -1075,9 +1070,47 @@ def _iter_py_files(roots: Iterable[Path]) -> Iterable[Path]:
                 rel_to_root = path.relative_to(root)
             except ValueError:
                 rel_to_root = path
-            if any(part in _SKIP_PARTS for part in rel_to_root.parts[:-1]):
+            if any(part in skip_parts for part in rel_to_root.parts[:-1]):
                 continue
-            yield path
+            yield path, rel_to_root
+
+
+def _local_consts(tree: ast.AST) -> Dict[str, Optional[str]]:
+    """单文件常量表（名 → 唯一字面量；**同名多值 ⇒ None**）
+
+    【不易·与原来逐字同源】本函数就是原 `_build_global_consts` 里那段 `ast.walk` 循环，
+    原样搬出来供"提取趟"复用 —— 单次扫描只解析一次树，常量贡献就地取，不再为此重扫全仓。
+    """
+    local: Dict[str, Optional[str]] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        literal = _literal_str(node.value)
+        if literal is None or not _DYNAMIC_NAME_PATTERN.match(literal):
+            continue
+        for tgt in node.targets:
+            if not isinstance(tgt, ast.Name):
+                continue
+            if tgt.id in local and local[tgt.id] != literal:
+                local[tgt.id] = None
+            else:
+                local.setdefault(tgt.id, literal)
+    return local
+
+
+def _merge_consts(index: Dict[str, Optional[str]],
+                  local: Dict[str, Optional[str]]) -> None:
+    """把一个文件的常量表并入全仓索引（**同名多值 ⇒ 不明确**）
+
+    【不易·与文件顺序无关】这段合并就是"取值全部一致则取该值，否则 None"的格上运算
+    （交换律/结合律都成立）⇒ `scan_paths` 可以"解析完一个文件就地合并"，
+    最终索引与"先扫完所有文件再合并"**逐键相同**。
+    """
+    for name, value in local.items():
+        if name in index and index[name] != value:
+            index[name] = None
+        else:
+            index.setdefault(name, value)
 
 
 def _build_global_consts(repo_root: Path,
@@ -1087,51 +1120,58 @@ def _build_global_consts(repo_root: Path,
     用途：`ui_panels/data.py` 从 `digestion/internalize.py` **import** 常量后使用
     （`os.environ.get(PROMOTE_DIR_ENV)`），单文件常量表解析不出真实开关名。
     纪律：**同名多值即视为不明确**（置 None），宁可少解析也不误报。
+
+    【不易·保留为"参考实现"】`scan_paths` 现在**不再调用它**（它自己解析一次树、
+    就地用 `_merge_consts` 合并，见 `scan_paths` 的说明）；本函数保留下来是因为它是
+    "两趟"口径的**独立参考**，`tests/unit/test_l6_ast_cost_regression.py`
+    用它对新口径做端到端差分对拍。
     """
     index: Dict[str, Optional[str]] = {}
-    for path in _iter_py_files(roots):
+    for path, _rel_to_root in _iter_py_files(roots, _CONST_SKIP_PARTS):
         try:
             tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
-        except (SyntaxError, OSError, UnicodeError):
+        except SyntaxError:
             continue
-        local: Dict[str, Optional[str]] = {}
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Assign):
-                continue
-            literal = _literal_str(node.value)
-            if literal is None or not _DYNAMIC_NAME_PATTERN.match(literal):
-                continue
-            for tgt in node.targets:
-                if not isinstance(tgt, ast.Name):
-                    continue
-                if tgt.id in local and local[tgt.id] != literal:
-                    local[tgt.id] = None
-                else:
-                    local.setdefault(tgt.id, literal)
-        for name, value in local.items():
-            if name in index and index[name] != value:
-                index[name] = None
-            else:
-                index.setdefault(name, value)
+        _merge_consts(index, _local_consts(tree))
     return index
 
 
-def scan_file(path: Path, rel: str,
-              global_consts: Optional[Dict[str, Optional[str]]] = None
-              ) -> Tuple[List[ReadPoint], Optional[Dict[str, str]]]:
-    """扫描单个 Python 文件，返回 (读取点, 解析错误)
+class _ConstQuery(dict):
+    """常量索引**探针**（空索引 + 记录本文件到底查过哪些名字）
+
+    【为什么需要它】全仓常量索引**只在**"本文件真的查过索引里存在的名字"时才会
+    影响本文件的提取结果 ⇒ 单次扫描可以先用空索引跑提取，最后只把**真正命中的
+    那几个文件**用完整索引重扫一次（实测当前语料 622 个文件里只有 25 个命中）。
+    这比"把 622 棵树全留在内存里"（实测峰值 363MB）省得多 —— 本条的立项理由就是
+    **降 runner 负载**，不能拿内存换时间。
+    【不易·必须恒为真】`_Extractor.__init__` 里写的是 `global_consts or {}`：
+    空 dict 会被换成普通 `{}`、探针直接失效（第一版实现实测踩到过）。故显式 `__bool__`。
+    """
+
+    __slots__ = ("queried",)
+
+    def __init__(self, base: Optional[Dict[str, Optional[str]]] = None) -> None:
+        super().__init__(base or {})
+        #: 本文件查询过的常量名（供 scan_paths 判断是否需要拿完整索引重扫）
+        self.queried: Set[str] = set()
+
+    def __bool__(self) -> bool:
+        return True
+
+    def get(self, key, default=None):
+        self.queried.add(key)
+        return super().get(key, default)
+
+
+def _extract(tree: ast.AST, text: str, rel: str,
+             global_consts: Optional[Dict[str, Optional[str]]] = None
+             ) -> List[ReadPoint]:
+    """**已解析好的**语法树 → 读取点（`scan_file` 的"树已就绪"版本）
 
     顺序即正确性（缺一步就会误报/漏报）：
         1. 赋值左值标记 → 2. 常量折叠表 → 3. 函数作用域（直通助手判定）
         → 4. 本文件助手分类 → 5. 循环集合映射 → 6. 访问点收集
     """
-    try:
-        text = path.read_text(encoding="utf-8", errors="replace")
-        tree = ast.parse(text, filename=str(path))
-    except SyntaxError as e:
-        return [], {"module": rel, "error": f"SyntaxError: {e}"}
-    except (OSError, UnicodeError) as e:                    # 坏符号链接/并发删除
-        return [], {"module": rel, "error": f"{type(e).__name__}: {e}"}
     extractor = _Extractor(rel, text.splitlines(), global_consts, text)
     extractor._assign_targets(tree)
     extractor.collect_constants(tree)
@@ -1140,49 +1180,120 @@ def scan_file(path: Path, rel: str,
     extractor.classify_local_helpers(tree)
     extractor.collect_loop_literals(tree)
     extractor.visit(tree)
-    return extractor.reads, None
+    return extractor.reads
+
+
+def _parse_source(path: Path) -> Tuple[str, Optional[ast.Module], Optional[str]]:
+    """读 + **解析一次**：`(源码文本, 语法树, 错误说明)`
+
+    【不易·错误文案与原来逐字相同】原实现是"常量趟 `ast.parse(text)` 吞掉语法错误、
+    提取趟 `ast.parse(text, filename=path)` 报错"；合并成一次解析后统一在这里带上
+    `filename`，所以 `report.parse_errors` 里的文案（含文件名）与改前一致。
+    """
+    text = path.read_text(encoding="utf-8", errors="replace")
+    try:
+        tree = ast.parse(text, filename=str(path))
+    except SyntaxError as e:
+        return text, None, f"SyntaxError: {e}"
+    return text, tree, None
+
+
+def scan_file(path: Path, rel: str,
+              global_consts: Optional[Dict[str, Optional[str]]] = None
+              ) -> Tuple[List[ReadPoint], Optional[Dict[str, str]]]:
+    """扫描单个 Python 文件，返回 (读取点, 解析错误)
+
+    顺序即正确性（缺一步就会误报/漏报）：见 `_extract`。
+    """
+    text, tree, err = _parse_source(path)
+    if tree is None:
+        return [], {"module": rel, "error": err}
+    return _extract(tree, text, rel, global_consts), None
+
+
+def _collect(report: ScanReport, reads: Iterable[ReadPoint]) -> None:
+    """把一批读取点归入报告
+
+    【不易·逐字保留】本函数就是原 `scan_paths` 循环体的分类分支，原样搬出来只是为了让
+    "先提取（一趟）→ 再按文件顺序分类"的新结构与之**逐字节一致**，不引入任何新判据。
+    """
+    for rp in reads:
+        if rp.kind in ("wsgi_environ", "pass_through"):
+            continue          # WSGI 请求上下文 / 助手形参转发：都不是开关读取点
+        if rp.kind == "loop_collection":
+            if rp.loop_source in PASS_THROUGH_SITES:
+                report.passthrough.append(rp)
+            else:
+                rp.dynamic_prefix = f"loop:{rp.loop_source}"
+                report.dynamic.append(rp)
+            continue
+        if rp.kind == "runtime_name":
+            if _is_declared_runtime_name(rp):
+                report.runtime_reads.append(rp)
+            else:
+                rp.dynamic_prefix = f"runtime:{rp.runtime_expr}"
+                report.dynamic.append(rp)
+            continue
+        if rp.name in PROCESS_ENV_DENYLIST:
+            report.process_env.append(rp)
+        elif rp.name:
+            report.managed.append(rp)
+        else:
+            report.dynamic.append(rp)
 
 
 def scan_paths(roots: Iterable[Path], repo_root: Path = REPO_ROOT) -> ScanReport:
-    """扫描若干扫描根下的全部 .py（跳过项与文件根支持见 _iter_py_files）
+    """扫描若干根目录下的全部 .py（跳过 __pycache__ / .worktrees 等）
 
-    两趟：先建全仓常量索引，再逐文件提取（跨模块 import 的常量名要能解析）。
+    【不易·每个文件只 ast.parse 一次】原实现分"常量索引趟 + 提取趟"两趟，对**同一批文件
+    各解析一次**。本机实测（622 个文件 / 12.7MB 源码，同进程交错 min-of-3）：
+    整趟 **16.18s → 14.28s**，省下的 1.89s 正好等于"读盘 + ast.parse"这一趟的成本
+    （单独实测 1.90s）。**别把它读成"快了一倍"**：本脚本的成本大头仍是提取本身
+    （每文件 6 次 ast.walk + visit ≈ 12.5s），重复解析只占 ~12%。
+    现在改为：
+      ① 逐文件解析**一次**：就地取本文件的常量贡献并入全仓索引，同时用**探针**
+         （空索引 + 记录查询名）跑提取 —— 树用完即弃，不留在内存里；
+      ② 循环结束时全仓常量索引已完整（`_merge_consts` 与文件顺序无关，见其说明）；
+      ③ 只有"查过索引里**存在**的名字"的文件才用完整索引重扫一次 —— 当前语料 622 个
+         文件里只有 25 个（其余文件的提取结果与索引内容无关，见 `_ConstQuery`）。
+    【为什么不留树】把 622 棵树同时留在内存里实测峰值 363MB（源码才 12.7MB）——本条
+    立项的理由就是降 runner 负载，用内存换时间与目标相悖。
+    【不易·输出一字不变】过滤规则、文件顺序、分类分支全部照旧（见 `_collect`）。
     """
     report = ScanReport()
     root_list = list(roots)
-    global_consts = _build_global_consts(repo_root, root_list)
-    for path in _iter_py_files(root_list):
+    global_consts: Dict[str, Optional[str]] = {}
+    pending: List[List[Any]] = []          # [path, rel, reads, queried]（保持文件顺序）
+    # ── ① 一趟：每个文件解析一次（常量贡献 + 提取）──────────────────────────
+    for path, rel_to_root in _iter_py_files(root_list, _CONST_SKIP_PARTS):
+        text, tree, err = _parse_source(path)
+        if tree is not None:
+            _merge_consts(global_consts, _local_consts(tree))
+        if any(part in _SCAN_SKIP_PARTS for part in rel_to_root.parts[:-1]):
+            continue
         try:
             rel = str(path.relative_to(repo_root)).replace("\\", "/")
         except ValueError:
             rel = str(path).replace("\\", "/")
         report.files_scanned += 1
-        reads, err = scan_file(path, rel, global_consts)
-        if err:
-            report.parse_errors.append(err)
-        for rp in reads:
-            if rp.kind in ("wsgi_environ", "pass_through"):
-                continue          # WSGI 请求上下文 / 助手形参转发：都不是开关读取点
-            if rp.kind == "loop_collection":
-                if rp.loop_source in PASS_THROUGH_SITES:
-                    report.passthrough.append(rp)
-                else:
-                    rp.dynamic_prefix = f"loop:{rp.loop_source}"
-                    report.dynamic.append(rp)
+        if tree is None:
+            report.parse_errors.append({"module": rel, "error": err})
+            continue
+        probe = _ConstQuery()
+        pending.append([path, rel, _extract(tree, text, rel, probe), probe.queried])
+    # ── ②③ 索引已完整；只重扫"真正命中索引"的文件 ──────────────────────────
+    hit_names = set(global_consts)
+    if hit_names:
+        for row in pending:
+            if not (row[3] & hit_names):
                 continue
-            if rp.kind == "runtime_name":
-                if _is_declared_runtime_name(rp):
-                    report.runtime_reads.append(rp)
-                else:
-                    rp.dynamic_prefix = f"runtime:{rp.runtime_expr}"
-                    report.dynamic.append(rp)
+            text, tree, _err = _parse_source(row[0])
+            if tree is None:      # 解析失败的文件不可能有查询命中，防御性分支
                 continue
-            if rp.name in PROCESS_ENV_DENYLIST:
-                report.process_env.append(rp)
-            elif rp.name:
-                report.managed.append(rp)
-            else:
-                report.dynamic.append(rp)
+            row[2] = _extract(tree, text, row[1], global_consts)
+    # ── ④ 按文件顺序分类（分支逐字照旧）────────────────────────────────────
+    for _path, _rel, reads, _queried in pending:
+        _collect(report, reads)
     return report
 
 
@@ -1333,11 +1444,8 @@ def _make_stdout_encoding_safe() -> None:
 
     背景（2026-09-23 实测，独立复核亦复现）：本机中文 Windows 控制台默认 GBK，
     `python scripts/scan_settings.py --check` 在**缺口为 0** 的情况下打印 "结论：零缺口 ✅"
-    时抛 `UnicodeEncodeError: 'gbk' codec can't encode character '\u2705'`，
-    进程以 **exit 1** 结束 —— 于是"零缺口"看起来像"检查失败"，配合 CI/脚本调用会误导。
-    （CI 走进程内调用 + UTF-8 环境，故 CI 无症状；这是**本地复核体验**的缺陷，预存在。）
-
-    修法取最小面：把 stdout 的错误处理改成 `replace`（无法编码的字符降级为 `?`），
+    时抛 `UnicodeEncodeError`，进程以 **exit 1** 结束 —— 于是"零缺口"看起来像"检查失败"。
+    修法取最小面：把 stdout 的错误处理改成 `replace`（无法编码的字符降级为 ?），
     **不改任何判定与退出码**（退出码仍只由 gap.ok 决定）。拿不到 reconfigure 的环境静默跳过。
     """
     try:
@@ -1358,7 +1466,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         help="执行注册表缺口检查（有缺口 → 退出码 1）")
     parser.add_argument("--quiet", action="store_true", help="只输出结论行")
     args = parser.parse_args(argv)
-    _make_stdout_encoding_safe()
 
     roots = [REPO_ROOT / p for p in (args.path or DEFAULT_ROOTS)]
     report = scan_paths(roots)
