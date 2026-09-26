@@ -36,6 +36,10 @@ from agent.descriptors.backfill import (  # noqa: E402
     run_backfill,
     survey_markdown,
 )
+# 【RUNBOOK-1 / 架构规则】组合根显式注入 S3-01 入轨实现：descriptors 层不得反向
+# import digestion（否则 CI 架构校验成环变红），由本脚本（scripts/ 不在扫描根内）
+# 把两边接起来，并保证不依赖导入顺序。
+from agent.digestion.stage import backfill_stages  # noqa: E402
 
 DEFAULT_RESOLUTION_PATH = str(Path("data/descriptors/resolutions.jsonl"))
 DEFAULT_MAIN_PATH = str(Path("data/skills_mgmt.json"))
@@ -120,7 +124,8 @@ def main() -> int:
         # 步骤 3：实跑（逐条审计 + 分批回滚防护）+ 步骤 4 全量重校验
         run = run_backfill(planned, batch_size=args.batch_size,
                            registry_path=registry_path,
-                           ingest_stages=not args.no_ingest_stages)
+                           ingest_stages=not args.no_ingest_stages,
+                           stage_runner=backfill_stages)
         (out / "run_latest.json").write_text(
             json.dumps(run, ensure_ascii=False, indent=1, default=str),
             encoding="utf-8")

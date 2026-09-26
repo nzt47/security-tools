@@ -112,6 +112,30 @@ def _default_cmdline_getter(pid: str) -> str:
         return ""
 
 
+def _kill_pid(pid: str, run: Callable[..., Any]) -> None:
+    """强杀单个 PID：win32 用 `taskkill /F`（与旧实现逐字一致），其余平台 SIGTERM。
+
+    `run` 必须由调用方传入**已注入的** runner（`cleanup_port_listeners` 里的
+    `run = runner or subprocess.run`），否则测试受控桩看不见这次 kill ——
+    本批第一版就踩过这个坑（helper 用了模块级名字 ⇒ 受控桩收不到 taskkill，
+    `test_server_port_guard` / `test_startup_no_gap` 共 7 条用例变红）。
+
+    【为什么必须只有一处】「清掉占用端口的旧实例」与【A1】补杀「被孤儿化的后代」
+    是**同一种 kill**。两处各写一份时，同一个 `timeout=3` 被
+    `scripts/check_hardcoded_boundaries.py` 记成**两处硬编码**，把 master 的
+    166 基线顶到 167 ⇒ CI「硬编码边界值扫描」变红（实测：Boundary Guard
+    run 36256963786「检测到 167 个…（基线 166），新增 1 个」）。抽成单一实现后
+    硬编码只剩一处，且命令与超时**逐字未改**（回归锁
+    `tests/unit/test_server_port_guard.py` 对 argv 的断言）。
+    """
+    if sys.platform == "win32":
+        run(["taskkill", "/F", "/PID", pid],
+            capture_output=True, timeout=3)
+    else:
+        import signal
+        os.kill(int(pid), signal.SIGTERM)
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # 【A1】残留子进程：Windows 下强杀父进程**不会**收走它的子进程
 # ════════════════════════════════════════════════════════════════════════════
@@ -305,12 +329,7 @@ def cleanup_port_listeners(
         records.append(record)
         # ② 再 kill（命令与旧实现逐字一致）
         try:
-            if sys.platform == "win32":
-                run(["taskkill", "/F", "/PID", pid],
-                    capture_output=True, timeout=3)
-            else:
-                import signal
-                os.kill(int(pid), signal.SIGTERM)
+            _kill_pid(pid, run)
         except Exception:  # noqa: BLE001 与旧实现一致：清理失败不阻断启动
             pass
 
@@ -349,12 +368,7 @@ def cleanup_port_listeners(
                 logger.debug("[端口清理] 后代留痕失败（忽略）: %s", e)
             records.append(child_record)
             try:
-                if sys.platform == "win32":
-                    run(["taskkill", "/F", "/PID", dpid],
-                        capture_output=True, timeout=3)
-                else:
-                    import signal
-                    os.kill(int(dpid), signal.SIGTERM)
+                _kill_pid(dpid, run)
             except Exception:  # noqa: BLE001 清理失败不阻断启动
                 pass
 

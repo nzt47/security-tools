@@ -39,7 +39,7 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from .bridge import sanitize_id_part, skill_to_descriptor
 from .models import (
@@ -47,6 +47,7 @@ from .models import (
     ProvenanceLevel,
     RiskLevel,
 )
+from .stage_contract import get_stage_runner
 from .validator import validate_descriptor
 
 logger = logging.getLogger(__name__)
@@ -1124,7 +1125,8 @@ INGEST_FOLLOWUP_ACTOR = "digestion_pipeline"
 def s3_01_followup(reg: Any, wired: Optional[List[Dict[str, Any]]] = None, *,
                    auto: bool = False, dry_run: bool = False,
                    actor: str = INGEST_FOLLOWUP_ACTOR,
-                   emit_events: bool = True) -> Dict[str, Any]:
+                   emit_events: bool = True,
+                   stage_runner: Optional[Callable[..., Any]] = None) -> Dict[str, Any]:
     """【RUNBOOK-1】S1-02 回填后的 S3-01 收口衔接报告（只读 + 可选幂等收口）
 
     为什么需要它：S1-02（`run_backfill`）对「台账里没有的资产」只做 `register`
@@ -1143,6 +1145,10 @@ def s3_01_followup(reg: Any, wired: Optional[List[Dict[str, Any]]] = None, *,
         dry_run: 干跑标记 —— register 未落库，故本次「将 wire」的资产也要计入
             待收口清单（否则干跑报告会漏报即将制造的 `stage=None`）。
         actor / emit_events: 透传给 `backfill_stages`（审计 actor / `digest.stage` 事件）
+        stage_runner: **显式注入**的 S3-01 入轨实现（缺省取叶子契约注册表
+            `agent/descriptors/stage_contract.py`）。descriptors 层**不得**反向
+            import `agent.digestion`（架构规则 no_circular_dependency，实测会把
+            0 违规顶成 2 违规），故实现由 digestion 侧注册、或由调用方注入。
 
     Returns:
         `{"required", "newly_wired", "stage_empty", "auto_executed", "ingested",
@@ -1162,11 +1168,20 @@ def s3_01_followup(reg: Any, wired: Optional[List[Dict[str, Any]]] = None, *,
     }
     if auto:
         try:
-            # 函数内懒加载：descriptors 是纯依赖叶子，不得在导入期反向依赖 digestion
-            # （与 `_resolution_helpers` 同一纪律）。
-            from agent.digestion.stage import backfill_stages
-            rep = backfill_stages(reg, execute=True, emit_events=emit_events,
-                                  actor=actor)
+            # 【架构规则 no_circular_dependency】descriptors 是依赖叶子，**不得**反向
+            # import agent.digestion：「挪进函数体」对本规则无效（`ast.walk` 连函数体
+            # 与字面量动态 import 都计边），实测会让 CI 架构校验从 0 违规变 2 违规。
+            # 故走**叶子契约**：实现方 `agent/digestion/stage.py` 在导入期注册，
+            # 调用方亦可显式注入 `stage_runner=`（显式优先）。
+            runner = stage_runner or get_stage_runner()
+            if runner is None:
+                raise RuntimeError(
+                    "S3-01 入轨实现未注册：descriptors 层不得反向依赖 digestion"
+                    "（架构规则 no_circular_dependency）。请先 `import "
+                    "agent.digestion.stage`（导入即注册），或显式传 "
+                    "stage_runner=agent.digestion.stage.backfill_stages。")
+            rep = runner(reg, execute=True, emit_events=emit_events,
+                         actor=actor)
             out["auto_executed"] = True
             out["ingested"] = [
                 {"capability_id": r.get("capability_id"), "to": r.get("to"),
@@ -1217,6 +1232,7 @@ def run_backfill(
     batch_size: int = DEFAULT_BATCH_SIZE,
     registry_path: Optional[Path] = None,
     ingest_stages: bool = False,
+    stage_runner: Optional[Callable[..., Any]] = None,
 ) -> Dict[str, Any]:
     """分批回填：经写 API 逐条落库 + 审计；批失败整批回滚（reg.load()）。
 
@@ -1329,7 +1345,7 @@ def run_backfill(
     result["s3_01_followup"] = s3_01_followup(
         reg, wired,
         auto=bool(ingest_stages) and not dry_run and not result["stopped"],
-        dry_run=bool(dry_run))
+        dry_run=bool(dry_run), stage_runner=stage_runner)
     result["validation"] = validate_registry(reg)  # 回填后全量重校验（步骤 4）
     return result
 

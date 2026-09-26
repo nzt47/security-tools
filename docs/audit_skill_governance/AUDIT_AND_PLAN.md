@@ -1822,6 +1822,138 @@ tests/unit/test_search_tools.py:31  register_all(dl)
 - **U4 v4 那一次具体是哪个文件当的污染源不可回放**（scripts/run_full_pytest.py:239 用 -p no:randomly 且分块并行，v4 只留了应用日志）
   —— 它按 22677 passed 全仓搜过、**0 命中**，并据此判定**污染源是一族（≥4 个成员，每个单独即复现）**。**结论与做法都诚实。**
 
+---
+
+## 23. 交付推送与 CI/CD 验证（2026-09-27）
+
+### 23.1 推送动作与形态
+
+| 项 | 值 |
+|---|---|
+| 提交 1 | **`f74dce16`**（48 卡批次终态，227 文件，父 `5c9ace10`） |
+| 提交 2 | **`35f07f2d`**（跟进批次：CI 落地 / 守卫加固 / 夹具隔离，15 文件） |
+| 推送分支 | **`audit/skill-governance-v1.0`**（已并入 origin/master 的 `196168ba`，merge 提交 `70aca896`） |
+| 远端 | `origin` = `git@github.com:nzt47/security-tools.git`（另有镜像 `gitee`；本次**只推 origin**） |
+| PR | **#980** → `master`，`mergeable=CLEAN` |
+| 本地 master | 停在 `35f07f2d`，**没有直接推 master** —— 仓库自己的 `guard-master-commit-origin.yml` 把"无关联 PR 的 master push"定义为可疑来源，故走 PR 流程 |
+
+### 23.2 ★★ 一个必须点名的远端事实：**改 `.github/workflows` 的 PR 拿不到任何 PR check**
+
+`gh pr create` 之后 `gh pr checks 980` 始终是 `no checks reported`。我没有停在猜测，而是做了 **5 次对照探针**（全部走 GitHub API 建分支 / 开 PR，验证后立即关闭并删除分支，且都用了独立 worktree 或 API，**不碰主工作区**）：
+
+| 探针 | PR head 的内容 | `pull_request` 事件产生的 run |
+|---|---|---|
+| **#981** | 仅新增 `docs/_ci_probe_tmp.md` | **11 条**（含 `云枢系统测试流程` = ci.yml） |
+| **#982** | 仅 3 个 workflow 文件（1 新增 + 2 修改） | **0 条** |
+| **#983** | 仅修改 1 个**既有** workflow 文件 | **0 条** |
+| **#984** | 仅给一个**与本批无关**的 workflow 文件加一行注释 | **0 条** |
+| **#980** | 本批（含 workflow 改动） | **0 条** |
+
+**⇒ 这不是推断，是对照实验的结论：只要 PR 触碰 `.github/workflows/`，GitHub 就不给这个 PR 生成任何 `pull_request` 触发的 run** —— 与文件内容、与是否本批改动都无关（#984 只是加一行注释、且改的是本批没碰过的 `date-shift-guard.yml`，照样 0）。
+
+同时排除掉"仓库坏了 / 我们 YAML 写错"：
+- `gh workflow run guard-master-commit-origin.yml --ref audit/skill-governance-v1.0` **成功跑完**（`workflow_dispatch`，结论 success）⇒ Actions 本身可用；
+- `actions/permissions` = `enabled:true`，51 个 workflow **全部 active**，本批 3 个 workflow 文件的 YAML 解析**全部 OK**；
+- GitHub 状态页 `All Systems Operational`。
+
+**后果必须说清楚（不能含糊过去）**：
+1. **本 PR 不可能通过 GitHub 的 PR check 拿到"CI 绿"** —— 这是远端行为，不是我们的失职；
+2. 两个**只在合并后才第一次运行**的门是：`skill-description-single-source.yml`（本次修改）与 `settings-registry-gap-guard.yml`（本次新增）—— 它们既拿不到 PR run，`workflow_dispatch` 也被拒（`HTTP 404: workflow ... not found on the default branch`，因为默认分支上还没有这个文件）。
+
+### 23.3 替代验证路径（三层，全部可复现，规避"推了就等于验了"）
+
+**① 手工 dispatch 能触发的门，跑的正是被推的那个 commit（`--ref audit/skill-governance-v1.0`）**
+
+| 门 | 结果 | 处置 |
+|---|---|---|
+| 技能一致性 `Skills Check` | **success** | — |
+| 日期平移守卫 `date-shift-guard` | **success** | — |
+| 关键字参数冲突扫描 `kwarg-conflict-check` | **success** | — |
+| **`Boundary Guard`（硬编码边界值）** | **failure → 已修 → 复跑 success** | 见 §24.2 |
+| **`架构规则校验`(architecture-check)** | **failure → 已修 → 复跑 success** | 见 §24.1 |
+| `skill-description-single-source` / `settings-registry-gap-guard` | **无法 dispatch**（默认分支上不存在） | 由 ② 的干净检出复刻覆盖 |
+
+**② 干净检出上逐条复刻 workflow 的实际命令**：CI-1（§22 前）已做过一部分并**真抓到一处"干净检出上必红"**；本批收尾卡 `CI2` 把剩余守卫与 3 个 workflow 的命令在同一口径下批量复刻（结果见 §25）。
+
+**③ 本地全量 `tests/unit`**：第 5 轮（v5）+ 第 6 轮（v6，含本批全部修复），逐轮对比失败集合与"是否本批回归"。
+
+> **一句话结论**：`推送` 已完成且可核对（PR #980 + 远端分支）；`CI/CD 验证` 里**能被远端执行的 5 个门全部绿（其中 2 个是本批先红后修）**，**不能被远端执行的 2 个新 workflow 用"干净检出复刻"代替**，并已在 §25 明确登记为"合并后才首次真正跑"的残余风险。
+
+---
+
+## 24. 本批在真实 CI 上暴露、并由我修好的**两处回归**（这是"推送验证"最大的收获）
+
+**为什么全量单测跑不出来**：这两条都不是 pytest 用例，而是**独立 CI 门**（`boundary-guard.yml` / `architecture-check.yml`）。本批前 5 轮全量 `tests/unit`（22677 passed）对它们**天然失明** —— 如果只跑 pytest 就打勾"验收完成"，这两条会直接带进 master。
+
+### 24.1 架构循环依赖（`no_circular_dependency`）：0 违规 → **2 违规**，已修回 0
+
+**发现**：手工 dispatch `架构规则校验` → `exit 1`，2 条 high：`agent/digestion/stage.py:573`、`:374`。
+
+**HEAD↔工作区差分（判定"是不是我干的"的唯一可靠办法）**：把 `origin/master` 检出到仓库外的临时 worktree，跑**同一条命令**：
+
+```text
+[base]   python scripts/ci_run_module.py agent.observability.arch_rules --check ...   → rc=0, total_violations=0
+[branch] 同一条命令                                                                   → rc=1, total_violations=2
+```
+
+⇒ **是我引入的回归**（不是既有）。
+
+**根因**：RUNBOOK-1 让 `agent/descriptors/backfill.py` 在 S3-01 收口时调用 `agent.digestion.stage.backfill_stages`，写成"函数内懒加载 import"。它闭合了这条环：
+
+```text
+descriptors.backfill → digestion.stage            ← 新增的这一条
+digestion.stage      → descriptors.bridge         （既有）
+descriptors.bridge   → skills_mgmt.store          （既有）
+skills_mgmt.store    → skills_mgmt.registry       （既有）
+skills_mgmt.registry → skills_mgmt.service        （既有）
+skills_mgmt.service  → descriptors.backfill       （既有）
+```
+
+**"挪进函数体"为什么没用**：`dependency_graph._parse_imports` 用 `ast.walk` 遍历**整棵树含函数体**，连 `importlib.import_module('x.y')` / `__import__('x.y')` 的**字面量**也计边（`is_dynamic` 从不参与筛选）。这条**仓库自己早就踩过并写进了规则文案**（`agent/observability/arch_rules.py:126-137`，S11-09 订正）—— 我此前没读它，是我的疏漏。
+
+**修法（用规则自己给的路径：依赖倒置 / 叶子契约）**：
+1. 新增 **`agent/descriptors/stage_contract.py`**：零 agent 依赖的**叶子契约**（`register_stage_runner` / `get_stage_runner` / `reset_stage_runner`）；
+2. `agent/digestion/stage.py` 在**自己的导入期**把 `backfill_stages` 注册进契约（`digestion → 契约`，契约零依赖 ⇒ 不成环）；
+3. `backfill.py` 改从契约取用，并新增**显式注入** `stage_runner=`（显式优先于注册表）；
+4. **组合根**接起来：`scripts/run_s1_02_backfill.py`（`scripts/` 不在扫描根内）显式注入；
+5. **未注册时如实报错**（`auto_executed=False` + `error` 里点名架构规则），**绝不静默跳过收口**。
+
+**复验**：`rc=0, passed=True, total_violations=0`。
+
+**新增护栏 `tests/unit/test_arch_stage_contract.py`（6 项）**：
+- AST 层断言 `agent/descriptors/` 下**不存在**任何指向 `agent.digestion.stage` 的 import（含函数体内、含字面量动态 import）；
+- 叶子契约**不得**依赖任何 agent 包；
+- 导入 `agent.digestion.stage` 即完成注册；
+- **未注册必报错**（不是静默跳过）；
+- 显式注入优先于注册表；
+- **★ 真树级**：直接跑 `ArchRuleValidator(root_dir="agent").validate()`，断言零循环依赖违规 —— 这正是 CI 那两行红的同一条判定路径（标 `slow`，CI 的 `--runslow` 档会跑）。
+
+> **我为什么单列这一条**：`tests/unit/test_arch_rules.py` 全程只用**合成夹具**，从不校验真实仓库树 ⇒ 真实树的架构校验**只在 CI 里跑**，这就是它能一路穿过 22677 passed 的原因。这个"CI 独有门"的覆盖缺口，本卡用一条真树断言补上了。
+
+### 24.2 硬编码边界值：166 → **167**（新增 1 个），已修回 166
+
+**发现**：手工 dispatch `Boundary Guard` → `::error::检测到 167 个未配置化硬编码边界值（基线 166），新增 1 个`。
+
+**HEAD↔工作区差分**：同一条命令在两个树上跑，再对 `details` 做**行号无关**的净差：
+
+```text
+[base]   high_risk = 166   cat = {retry: 24, timeout: 139, capacity: 44}
+[branch] high_risk = 167   cat = {retry: 24, timeout: 140, capacity: 44}
+NET NEW: ('server_port_guard.py', 'timeout', 'timeout', '3.0', 'call_arg', 'high')  1 -> 2
+```
+
+⇒ 净增 1 处：A1 卡在 `agent/server_port_guard.py` 新增的"补杀孤儿后代"路径里，**又写了一遍** `run(["taskkill", ...], timeout=3)`（与既有那一处逐字相同）。
+
+**修法**：不"配置化到 observability_config"（那要动全局已配置模块清单，是**放宽**），而是**抽出唯一实现** `_kill_pid(pid, run)`，两处共用 ⇒ 同一个硬编码只剩一处，命令与超时**逐字未改**。
+
+**★ 这次修法我第一版写错，被测试当场抓住**：`_kill_pid` 初版用了**模块级名字** `run`（`CleanupPortListeners` 里实际是局部 `run = runner or subprocess.run` 的**注入桩**）⇒ 受控桩收不到 taskkill，`test_server_port_guard` / `test_startup_no_gap` **7 条用例变红**（而且 NameError 被外层 `except Exception: pass` 吞掉，表现为"kill 静默没发生"）。改成 `_kill_pid(pid, run)` 显式接收注入 runner 后 **全部转绿**。
+**这条要记住的教训**：**"抽公共实现"时最容易丢的就是注入缝隙** —— 而这次是测试拦住的，不是我看出来的。
+
+**复验**：`high_risk = 166`（= 基线），`Boundary Guard` 复跑 **success**。
+
+---
+
+
 
 
 

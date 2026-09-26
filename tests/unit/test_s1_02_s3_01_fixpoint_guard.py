@@ -36,6 +36,13 @@ import pytest
 
 from agent.descriptors.backfill import plan_backfill, run_backfill
 from agent.descriptors.registry import DescriptorRegistry
+# 【架构规则 no_circular_dependency】descriptors 层不得反向 import digestion
+# （本批实测：反向 import 会把 CI 架构校验从 0 违规顶到 2 违规）。生产接法是
+# **叶子契约**：`agent.digestion.stage` 在自己的导入期把 `backfill_stages`
+# 注册进 `agent.descriptors.stage_contract`，本模块的 import 即完成注册
+# —— 于是这里跑的就是**生产同一条解析路径**，而不是测试自造的替身。
+# 契约与"未注册必报错"的守卫见 tests/unit/test_arch_stage_contract.py。
+import agent.digestion.stage  # noqa: F401  # 导入即注册（副作用是契约本身）
 
 INGEST_CMD = "python scripts/run_s3_01_ingest.py --execute"
 
@@ -103,7 +110,13 @@ def _make_inputs(tmp_path: Path):
 
 
 def _rebuild(main: Path, repo: Path, ledger: Path, **kw):
-    """一次「重建」= plan_backfill + run_backfill（M8 重跑 S1-02 的同一条路径）"""
+    """一次「重建」= plan_backfill + run_backfill（M8 重跑 S1-02 的同一条路径）
+
+    这里**不注入** `stage_runner`：`ingest_stages=True` 走的是叶子契约注册表，
+    即「CLI 之外任何调用方」的真实路径（CLI 会显式注入同一函数，见
+    `scripts/run_s1_02_backfill.py`）。注册由本模块顶部的
+    `import agent.digestion.stage` 完成。
+    """
     return run_backfill(plan_backfill(main_path=main, repo_path=repo),
                         registry_path=ledger, batch_size=1, **kw)
 
@@ -200,7 +213,7 @@ class TestPipelineFixpoint:
         本身有牙** —— 只要流水线不再真正收口，`_stage_empty(ledger) == []` 就会
         失败，而它正是 LEDGER-1 那条红在 tmp 台账上的等价形态。
         """
-        import agent.digestion.stage as stage_mod
+        import agent.descriptors.stage_contract as contract
 
         def _never_closes(reg, **kw):
             return {"ingested": [], "failed": [],
@@ -208,7 +221,9 @@ class TestPipelineFixpoint:
                                  if not d.evolution.stage],
                     "policies": {}}
 
-        monkeypatch.setattr(stage_mod, "backfill_stages", _never_closes)
+        # 变异点 = 叶子契约里那个被解析的实现（而不是模块属性）：
+        # 生产解析路径就是 get_stage_runner()，故这里是**同一处**。
+        monkeypatch.setattr(contract, "_STAGE_RUNNER", _never_closes)
         main, repo = _make_inputs(tmp_path)
         ledger = tmp_path / "descriptors.json"
 
