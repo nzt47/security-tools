@@ -22,10 +22,13 @@ Push-Location $root
 function Step([string]$name) { Write-Host "`n=== $name ===" -ForegroundColor Cyan }
 
 # ─── Step 1: 一致性验证 (对应 job 的"一致性验证"步骤) ─────────
+# [G1-B / H-5] compare 脚本改为**双口径**：裸调用 = 迁移校验口径（legacy 缺失 ⇒ FAIL），
+#  CI 口径必须显式加 --ci（legacy 缺失 ⇒ 打印 PASS-SKIP 并返回 0）。本脚本模拟的是
+#  CI 的 nightly job ⇒ 必须用 --ci，否则在没有 data/skills.json 的机器上会误报失败。
 Step "1/4 一致性验证 (compare + verify)"
-python scripts/compare_skills_legacy_vs_repo.py
+python scripts/compare_skills_legacy_vs_repo.py --ci
 python scripts/verify_migrated_skills.py
-Write-Host "  一致性验证完成 (legacy 缺失时自动 SKIP)" -ForegroundColor Green
+Write-Host "  一致性验证完成 (CI 口径: legacy 缺失为显式 PASS-SKIP，不是静默通过)" -ForegroundColor Green
 
 # ─── Step 2: detect --json (对应"动态加载风险扫描"步骤) ───────
 # [变易] 与 workflow 的 continue-on-error: true 一致: detect 退出码非 0

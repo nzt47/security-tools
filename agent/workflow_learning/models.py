@@ -68,6 +68,20 @@ class LearnedWorkflow(BaseModel):
     # 统计
     success_count: int = 0
     failure_count: int = 0
+    # 【F11】同一任务的**观察次数**（去重后仍可读的"复现了多少次"）
+    #   语义：本条目被学习链路观察到几次（每次自动学习 +1），
+    #   **不是**执行次数（执行次数是 success_count/failure_count）。
+    #   默认 1：每条落库的条目都至少来自一次学习（存量条目无此字段，
+    #   补默认 1；存量重复条目 8 条 -> 3 次的情况无法回溯，属已知低估）。
+    observed_count: int = Field(1, ge=1,
+                                description="同一任务被学习到的次数(去重计数)")
+    # 【F11】观察到的来源会话集合（去重后 cross-session 支持数仍可计算）
+    #   `source_session_id` 仍是**首次**来源（provenance 不改写）；
+    #   本字段累积后续会话，供 `repository.count_distinct_sessions` 统计样本数。
+    #   去重合并时上限保留最近 `repository.SOURCE_SESSIONS_MAX` 个。
+    source_sessions: List[str] = Field(
+        default_factory=list,
+        description="同一任务出现过的来源会话(去重，含首次 source_session_id)")
     confidence: float = Field(0.5, ge=0.0, le=1.0,
                               description="置信度 (基于成功率与次数)")
     priority: int = Field(50, ge=0, le=100,

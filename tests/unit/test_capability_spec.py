@@ -4,7 +4,9 @@
     TASK-04 把能力从"隐式约定"变成"显式规格"，它守的每一条不变量都是**回归风险点**：
 
       1. `CapabilitySpec` 只在 `agent/lines/models.py` 单点定义（E1）——多一个类就是第二真相源；
-      2. 114 条能力全部有 `location`/`kind`/`owner`/`version`/`capability_id`（E2）；
+      2. 119 条能力全部有 `location`/`kind`/`owner`/`version`/`capability_id`（E2）；
+         【G1-C 2026-09-26】114 → 119：H-3 把 5 条主轨独有技能迁移成 skill.md 实体
+         ⇒ 它们从「runtime_only 声明」进入清单（能力面 +5）。断言强度不变，只是基线数刷新。
       3. 4 个 MCP 管理面工具的 `location` 判定依据是**事实**（E3）；
       4. `location` 声明与事实不一致时 `--check` 必须非零退出（E4）；
       5. 已知假能力不得出现在"可用能力"集合里（E5）；
@@ -157,8 +159,8 @@ class TestCapabilitySpecFields:
 
 class TestLocationCoverage:
 
-    def test_114_条全部有_location(self, manifest):
-        assert len(manifest["entries"]) == 114
+    def test_119_条全部有_location(self, manifest):
+        assert len(manifest["entries"]) == 119
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"
@@ -181,7 +183,7 @@ class TestLocationCoverage:
         for loc in ("local", "remote"):
             assert by_loc[loc] == sum(1 for e in manifest["entries"]
                                       if e["location"] == loc)
-        assert by_loc["local"] + by_loc["remote"] == 114
+        assert by_loc["local"] + by_loc["remote"] == 119
 
     def test_每条都有证据(self, manifest):
         """判定不接受黑箱结论：每条都必须有可核的 `location_evidence`"""
@@ -443,7 +445,7 @@ class TestDisclosures:
     def test_技能条目带实体受版本控制列(self, manifest):
         """E14：每一条都必须有「实体是否受版本控制」，且**如实**
 
-        【口径（勿简化成"技能全是 false"）】清单里的 23 条技能实体是
+        【口径（勿简化成"技能全是 false"）】清单里的 28 条技能实体是
         `data/skills_repo/<id>/skill.md`，它**确实入库** ⇒ 这些条目为 true；
         真正不可复现的是**运行时技能目录/台账**（`data/skills.json`、
         `data/skills_mgmt.json`，被 .gitignore 忽略）——它们被登记在

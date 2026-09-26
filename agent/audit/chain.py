@@ -39,6 +39,22 @@
     签名优先 ed25519（`cryptography` 可用且有/可生成密钥）；无密钥或库缺失时降级为
     sha256 自签占位并**显式记录降级**（对齐 P4 分级实施：外部只追加存储入 P5 Backlog）。
 
+【每日根的取用语义（D5 修复：封印解析）】
+    `daily_roots.jsonl` 是**只追加**的封印日志，同一 UTC 日可以有多条记录（历史缺陷
+    重封、当日后补封都会产生第二条）。**哪一条是"有效日根"必须显式定义**——
+    D5 之前的实现按日期取**第一条**，于是"追加一条修正根"对 `verify_daily_root`
+    完全无效（新根自洽，但验签读到的仍是旧根）。
+    现定义（`resolve_daily_root` / `get_daily_root` / `verify_daily_root` 共用）：
+      - **默认取该日最后一条记录**（最新封存生效）——与"只追加日志 + 后写覆盖前写"的
+        常规语义一致，且使重封真正生效；
+      - `seal=k` 取该日第 k 条（1 起，按文件行序）供取证/历史回放；
+      - 全部记录仍完整保留在文件里，外层根链（prev_entry_hash → entry_hash）
+        继续保证**任何一条都不被删改**；被取代的记录用 `seal=1` 即可取回。
+    兼容性：既有 9 个有效日根里，只有 2026-09-14 有两份记录，且两份的
+    root_hash/leaf_count/first_seq/last_seq/首尾 self_hash **逐字相同**
+    （仅 created_at/prev_entry_hash/entry_hash 不同）⇒ 取用语义变更**不改变**
+    任何既有日根的验签结果（回归用例锁定，报告 D5 §6）。
+
 【验签】
     `verify_chain()`（模块函数 / `AuditChain.verify_chain()`）：从任一锚点重算全部
     self_hash + payload_hash + prev_hash 链接 + seq 连续性，报告**首个**篡改位置，
@@ -908,6 +924,10 @@ class RootsVerification:
     interval_leaf_count: int = 0
     #: 上述区间内**属于其它 UTC 日**的记录条数（0 = 两种口径恰好一致）
     interval_foreign_count: int = 0
+    #: 【D5 封印解析】本次校验实际使用的记录在该日记录中的序号（1 起；无记录 = 0）
+    seal_index: int = 0
+    #: 【D5 封印解析】该日**全部**日根记录的条数（>1 说明存在被取代的历史封印）
+    seal_total: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -919,6 +939,49 @@ class RootsVerification:
                     f"{self.signature_scheme or 'n/a'}"
                     f"{'（降级占位）' if self.signing_degraded else '，有效'}）")
         return f"FAILED — date={self.date} {self.reason}: {self.detail}"
+
+
+@dataclass
+class RootReseal:
+    """日根重封结果（`AuditChain.reseal_daily_root` 的返回值）
+
+    【不变量】重封 = **只追加**一条新根记录。历史行一字节不动、不删、不改：
+    `applied=False` 表示"无需重封"（已有有效根）或"拒绝重封"（见 `reason`），
+    此时文件零写入。
+    """
+
+    date: str
+    #: 本次是否真的追加了一条新记录
+    applied: bool
+    #: applied=False 的原因：already_ok（当前有效根已可验签，幂等返回）
+    #: 或 day_not_found（该 UTC 日在链上没有任何记录，拒绝凭空封空根）；applied=True 时为 ""
+    reason: str = ""
+    #: 追加前的有效根（该日此前无根 → None）
+    previous: Optional[DailyRoot] = None
+    #: 追加后的有效根（未追加 → 等于 previous）
+    current: Optional[DailyRoot] = None
+    #: 追加后立即自验的结果（verify=False 时 None）
+    verification: Optional[RootsVerification] = None
+
+    @property
+    def resealed(self) -> bool:
+        """是否发生了"取代既有根"（区别于"补齐缺失的根"）"""
+        return bool(self.applied and self.previous is not None)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """结构化摘要（脚本/报告用；不展开整条根记录的签名字段）"""
+        def _brief(r: Optional[DailyRoot]) -> Optional[Dict[str, Any]]:
+            if r is None:
+                return None
+            return {"root_hash": r.root_hash, "leaf_count": r.leaf_count,
+                    "first_seq": r.first_seq, "last_seq": r.last_seq,
+                    "created_at": r.created_at,
+                    "signature_scheme": r.signature_scheme,
+                    "degraded": r.degraded}
+        return {"date": self.date, "applied": self.applied, "reason": self.reason,
+                "previous": _brief(self.previous), "current": _brief(self.current),
+                "verification": (self.verification.to_dict()
+                                 if self.verification is not None else None)}
 
 
 # ════════════════════════════════════════════════════════════
@@ -995,6 +1058,73 @@ def get_audit_chain(db_path: Optional[str] = None, **kwargs: Any) -> "AuditChain
 # ════════════════════════════════════════════════════════════
 
 
+def _filter_extra(entries: List[AuditEntry], *, start_seq: Optional[int] = None,
+                  end_seq: Optional[int] = None, source: Optional[str] = None,
+                  action: Optional[str] = None, actor: Optional[str] = None,
+                  day: Optional[str] = None, trace_id: Optional[str] = None,
+                  **ignored: Any) -> List[AuditEntry]:
+    """把 ``entries()`` 的过滤条件施加到**未落库的额外记录**上（口径唯一）
+
+    【为什么必须与 SQL 侧同口径】额外记录（降级 ring buffer / 预留日志）不走 SQL，
+    只能由 Python 逐条过滤；而 DB 行由 ``_where_sql`` 过滤。两处只要有一处漂移，
+    "最近 n 条"就会一半过滤一半不过滤。故 ``entries()`` 与 ``tail_entries()``
+    共用本函数。
+
+    【为什么忽略 trace_id（显式记录，不是遗漏）】修复前 ``entries()`` 对额外记录
+    **不施加** trace_id 过滤（DB 行施加）。本卡只做性能修复，不顺手改过滤语义，
+    因此这里保持原样；待专门卡再统一。
+    """
+    if start_seq is not None:
+        entries = [e for e in entries if e.seq >= start_seq]
+    if end_seq is not None:
+        entries = [e for e in entries if e.seq <= end_seq]
+    if source:
+        entries = [e for e in entries if e.source == source]
+    if action:
+        entries = [e for e in entries if e.action == action]
+    if actor:
+        entries = [e for e in entries if e.actor == actor]
+    if day:
+        entries = [e for e in entries if day_of_ts(e.ts) == day]
+    return entries
+
+
+def _where_sql(*, start_seq: Optional[int] = None, end_seq: Optional[int] = None,
+               source: Optional[str] = None, action: Optional[str] = None,
+               actor: Optional[str] = None, day: Optional[str] = None,
+               trace_id: Optional[str] = None) -> Tuple[str, List[Any]]:
+    """读路径过滤条件的 **唯一** SQL 片段构造器（`_query_rows` / 计数快路径共用）
+
+    【为什么抽成模块级函数】`_query_rows`（取行）与 `_count_rows`（计数）必须用
+    **同一套** WHERE 语义，否则"计数"与"取行"会在过滤口径上悄悄分叉。抽出来之后
+    两处共用一份实现，过滤语义只有一处可改。
+    """
+    where: List[str] = []
+    params: List[Any] = []
+    if start_seq is not None:
+        where.append("seq >= ?")
+        params.append(int(start_seq))
+    if end_seq is not None:
+        where.append("seq <= ?")
+        params.append(int(end_seq))
+    if source:
+        where.append("source = ?")
+        params.append(str(source))
+    if action:
+        where.append("action = ?")
+        params.append(str(action))
+    if actor:
+        where.append("actor = ?")
+        params.append(str(actor))
+    if day:
+        where.append("ts LIKE ?")
+        params.append(f"{day}%")
+    if trace_id:
+        where.append("trace_id = ?")
+        params.append(str(trace_id))
+    return ((" WHERE " + " AND ".join(where)) if where else ""), params
+
+
 class AuditChain:
     """链式审计台账（§3.5）
 
@@ -1019,7 +1149,21 @@ class AuditChain:
         if role not in ("writer", "reader"):
             raise AuditChainError(f"非法 role: {role}（允许 writer / reader）")
         self._db_path = _resolve_path(db_path)
-        self._roots_path = os.path.abspath(roots_path or DEFAULT_ROOTS_PATH)
+        # 【★ 主审计 2026-09-26 实测缺陷修复：直接构造必须与门面同口径地尊重 AUDIT_ROOTS_PATH】
+        # 原实现只认显式 `roots_path=` 形参，**不读环境变量**，而门面 `facade.py:199` 读
+        # （`roots_path or os.getenv(_ENV_ROOTS_PATH) or DEFAULT_ROOTS_PATH`）——
+        # **同一个语义在两个构造入口上不一致**。后果是实测出来的、不是推演：
+        #   `tests/conftest.py:260-261` 把 `AUDIT_DB_PATH` 与 `AUDIT_ROOTS_PATH` 都隔离到
+        #   会话临时目录，但**直接 `AuditChain(tmp_db)` 的测试根本不读 env** ⇒ 它们的
+        #   `auto_seal`（默认开）会把**测试小链的日根**（实测 `leaf_count=2/4`、`first_seq=1`）
+        #   **追加进生产 `data/audit/daily_roots.jsonl`**，并带上测试链的 `prev_entry_hash`
+        #   ⇒ 生产日根链被写坏，`audit_governance_check.py` 由 PASS(FAIL=0) 变成
+        #   **FAIL=9（含"篡改类"判定）**，实测 2026-09-25 一天出现 **3 条互相竞争的根**。
+        #   `agent/tool_gate.py:1400` 早已把这条通路记为已知风险（"每日 Merkle 根会落到生产"）。
+        # 【为什么这个改动是零风险的】生产环境**不设** `AUDIT_ROOTS_PATH` ⇒ 取值仍是
+        #   `DEFAULT_ROOTS_PATH`，**行为逐字不变**；只有在测试/多环境显式设了该 env 时才生效。
+        self._roots_path = os.path.abspath(
+            roots_path or os.getenv("AUDIT_ROOTS_PATH") or DEFAULT_ROOTS_PATH)
         self._role = role
         self._daily_root_protect = bool(daily_root_protect)
         self._auto_seal = bool(auto_seal) and role == "writer"
@@ -2474,32 +2618,10 @@ class AuditChain:
             return []
         if refresh and self._role == "writer":
             self.flush(timeout=FLUSH_TIMEOUT)
-        where: List[str] = []
-        params: List[Any] = []
-        if start_seq is not None:
-            where.append("seq >= ?")
-            params.append(int(start_seq))
-        if end_seq is not None:
-            where.append("seq <= ?")
-            params.append(int(end_seq))
-        if source:
-            where.append("source = ?")
-            params.append(str(source))
-        if action:
-            where.append("action = ?")
-            params.append(str(action))
-        if actor:
-            where.append("actor = ?")
-            params.append(str(actor))
-        if day:
-            where.append("ts LIKE ?")
-            params.append(f"{day}%")
-        if trace_id:
-            where.append("trace_id = ?")
-            params.append(str(trace_id))
-        sql = "SELECT * FROM audit_chain"
-        if where:
-            sql += " WHERE " + " AND ".join(where)
+        clause, params = _where_sql(
+            start_seq=start_seq, end_seq=end_seq, source=source, action=action,
+            actor=actor, day=day, trace_id=trace_id)
+        sql = "SELECT * FROM audit_chain" + clause
         sql += " ORDER BY seq DESC" if order_desc else " ORDER BY seq ASC"
         if limit is not None:
             sql += " LIMIT ?"
@@ -2512,6 +2634,69 @@ class AuditChain:
         if order_desc:
             rows.reverse()
         return rows
+
+
+    def _count_rows(self, **filters: Any) -> int:
+        """DB 内满足条件的行数（SQL 聚合；不构造 AuditEntry 对象）"""
+        if not self._db_available:
+            return 0
+        clause, params = _where_sql(**filters)
+        with self._connect() as conn:
+            row = conn.execute("SELECT COUNT(*) AS n FROM audit_chain" + clause,
+                               params).fetchone()
+        return int(row["n"] or 0)
+
+    def _minmax_seq(self) -> Optional[Tuple[int, int]]:
+        """DB 内 ``(MIN(seq), MAX(seq))``；空库返回 None（走 seq UNIQUE 索引）"""
+        if not self._db_available:
+            return None
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT MIN(seq) AS lo, MAX(seq) AS hi FROM audit_chain").fetchone()
+        if row is None or row["lo"] is None:
+            return None
+        return int(row["lo"]), int(row["hi"])
+
+    def _group_counts(self) -> Tuple[Dict[str, int], Dict[str, int]]:
+        """来源 / 操作者分布（SQL GROUP BY + 未入库额外记录）
+
+        【D1 读路径修复】原实现在 `stats()` 里 `for e in self.entries()` 把全表
+        读成对象再在 Python 里数——72,289 行实测 1,751 ms（`stats(verify=False)`）。
+        改成两条 `GROUP BY` 聚合（实测 9.6 ms + 7.1 ms）后**不再物化任何
+        AuditEntry**；未落库的额外记录仍按同一口径合并进来，计数不缩水。
+        """
+        by_source: Dict[str, int] = {}
+        by_actor: Dict[str, int] = {}
+        if self._db_available:
+            try:
+                with self._connect() as conn:
+                    for row in conn.execute(
+                            "SELECT source, COUNT(*) AS n FROM audit_chain GROUP BY source"):
+                        by_source[str(row["source"] or "")] = int(row["n"])
+                    for row in conn.execute(
+                            "SELECT actor, COUNT(*) AS n FROM audit_chain GROUP BY actor"):
+                        by_actor[str(row["actor"] or "")] = int(row["n"])
+            except Exception as exc:  # noqa: BLE001 聚合不可用 → 空分布（不阻断）
+                logger.debug("来源/操作者聚合失败: %s", exc)
+                by_source, by_actor = {}, {}
+        for e in self.extra_entries():
+            by_source[e.source] = by_source.get(e.source, 0) + 1
+            by_actor[e.actor] = by_actor.get(e.actor, 0) + 1
+        return by_source, by_actor
+
+    def extra_entries(self) -> List[AuditEntry]:
+        """**尚未落库**的额外记录（降级 ring buffer + 预留日志），按 seq 升序
+
+        【与 `_buffered_extra` 的区别】后者要求调用方先给出"已读到的 DB seq 集合"
+        用于去重——那是"已经全表读过一遍"的产物。本方法自己用一次
+        `seq IN (...)` 索引查询把已入库的剔除，因此**不需要先把全表物化**，
+        这正是 `count()` / `stats()` 能摆脱 O(N) 的关键。
+        """
+        raw = self._buffered_extra(set())
+        if not raw:
+            return []
+        present = self._seqs_in_db([int(e.seq) for e in raw])
+        return [e for e in raw if int(e.seq) not in present]
 
     def _buffered_extra(self, seen: set) -> List[AuditEntry]:
         """降级 ring buffer + 预留日志中尚未落库的记录（按 seq 升序，去重）
@@ -2559,22 +2744,50 @@ class AuditChain:
         # 故只要**日志可用**就必须走合并路径。
         if self._failed_len() or self._journal_enabled:
             extra = self._buffered_extra(seen)
-            if start_seq is not None:
-                extra = [e for e in extra if e.seq >= start_seq]
-            if end_seq is not None:
-                extra = [e for e in extra if e.seq <= end_seq]
-            if source:
-                extra = [e for e in extra if e.source == source]
-            if action:
-                extra = [e for e in extra if e.action == action]
-            if actor:
-                extra = [e for e in extra if e.actor == actor]
-            if day:
-                extra = [e for e in extra if day_of_ts(e.ts) == day]
+            extra = _filter_extra(extra, start_seq=start_seq, end_seq=end_seq,
+                                  source=source, action=action, actor=actor, day=day,
+                                  trace_id=trace_id)
             out.extend(extra)
             out.sort(key=lambda e: e.seq)
             if limit is not None:
                 out = out[:limit]
+        return out
+
+    def tail_entries(self, limit: int = 50, **filters: Any) -> List[AuditEntry]:
+        """最近 ``limit`` 条（**seq 升序**，即最新的一条在末尾）
+
+        【D1 读路径修复】`entries(limit=n)` 取的是**最老**的 n 条（SQL 侧
+        ``ORDER BY seq ASC LIMIT n``），所以"最近 n 条"以前只能"全表读出再切片"。
+        本方法把序倒过来：``ORDER BY seq DESC LIMIT n`` 走 seq UNIQUE 索引，
+        只读 n 行（实测 72,289 行的库上 1.4 ms，而全表读出再切片 1,320 ms）。
+        返回前反转回 seq 升序，与 `facade.recent()` 既有语义**逐字一致**。
+
+        【为什么仍要合并额外来源（不能只查 DB）】读路径承诺"读得到刚写的"：
+        ``entries()`` 会合并降级 ring buffer 与预留日志中尚未落库的记录
+        （见 ``_buffered_extra``）。`tail_entries` 必须给同样的承诺，否则刚
+        ``append()`` 但还没被 writer 线程批量入库的记录会在 `recent()` 里消失。
+        合并口径：DB 取"最新 n 条" + **全部**额外记录，按 seq 排序后再取尾部 n 条；
+        由于额外记录（未入库者）的 seq 恒大于 DB 里的行，被截掉的只可能是更旧的
+        DB 行 ⇒ 与"合并全集的最新 n 条"等价。
+
+        Args:
+            limit: 条数上限（<=0 返回空列表）。
+            **filters: 与 ``entries()`` 相同的过滤条件（source/action/actor/day/...）。
+        """
+        n = int(limit)
+        if n <= 0:
+            return []
+        rows = self._query_rows(limit=n, order_desc=True, **filters)
+        out = [AuditEntry.from_row(r) for r in rows]
+        if not (self._failed_len() or self._journal_enabled):
+            return out
+        extra = _filter_extra(self._buffered_extra({e.seq for e in out}), **filters)
+        if not extra:
+            return out
+        out.extend(extra)
+        out.sort(key=lambda e: e.seq)
+        if len(out) > n:
+            del out[:len(out) - n]
         return out
 
     def iter_entries(self, *, batch: int = 500, **kwargs: Any) -> Iterator[AuditEntry]:
@@ -2612,7 +2825,20 @@ class AuditChain:
         return None
 
     def count(self, **kwargs: Any) -> int:
-        """记录数（默认全表；支持与 entries 相同的过滤条件）"""
+        """记录数（默认全表；支持与 entries 相同的过滤条件）
+
+        【D1 读路径修复】无过滤条件时走 ``SELECT COUNT(*)`` + 未入库的额外记录，
+        不再把全表读成 AuditEntry 对象（实测 72,289 行 374 ms → 约 4 ms）。
+        带过滤条件时保留原实现（换 `_count_rows` 需要重新推导"哪些 seq 已入库"，
+        收益小、风险大，本卡不动）。
+        """
+        if not kwargs:
+            # 【屏障不能丢】原实现走 `_query_rows(refresh=True)`，对 writer 角色会先
+            # `flush()`（"读得到刚写的"依赖它）。快路径绕开了 `_query_rows`，故此处
+            # 显式补同一道屏障：队列空时立即返回，不引入新的等待。
+            if self._role == "writer":
+                self.flush(timeout=FLUSH_TIMEOUT)
+            return self._count_rows() + len(self.extra_entries())
         rows = self._query_rows(limit=None, **kwargs)
         seen = {int(r["seq"]) for r in rows}
         extra = self._buffered_extra(seen)
@@ -2623,15 +2849,23 @@ class AuditChain:
         return self.entries(day=day)
 
     def seq_range(self) -> Tuple[int, int]:
-        """(最小 seq, 最大 seq)；空链返回 (0, 0)"""
+        """(最小 seq, 最大 seq)；空链返回 (0, 0)
+
+        【D1 读路径修复】原来是"全表读出行再取首尾"（72,289 行实测 370 ms），
+        改成 ``SELECT MIN(seq), MAX(seq)``（走 seq UNIQUE 索引）后不再物化任何行。
+        口径**不变**：仍然只并入 ``_failed_snapshot()``（ring buffer），
+        不含预留日志——与修复前的行为逐字一致。
+        """
+        if self._role == "writer":     # 同 count()：补回 _query_rows(refresh=True) 的屏障
+            self.flush(timeout=FLUSH_TIMEOUT)
         buffered = self._failed_snapshot()
-        rows = self._query_rows(limit=None)
-        if not rows:
+        mm = self._minmax_seq()
+        if mm is None:
             buffered_seqs = [e.seq for e in buffered]
             if buffered_seqs:
                 return (min(buffered_seqs), max(buffered_seqs))
             return (0, 0)
-        lo, hi = int(rows[0]["seq"]), int(rows[-1]["seq"])
+        lo, hi = mm
         for e in buffered:
             lo, hi = min(lo, e.seq), max(hi, e.seq)
         return (lo, hi)
@@ -2795,15 +3029,74 @@ class AuditChain:
                 continue
         return out
 
-    def get_daily_root(self, date: Any) -> Optional[DailyRoot]:
-        day = _normalize_day(date)
-        for r in self.read_daily_roots():
-            if r.date == day:
-                return r
-        return None
+    def daily_root_records(self, date: Any) -> List[Tuple[int, DailyRoot]]:
+        """某 UTC 日的**全部**日根记录 → ``[(文件行号, DailyRoot), ...]``（1 起、按行序）
 
-    def verify_daily_root(self, date: Any = None) -> RootsVerification:
+        供取证与"同日多条根"的显式枚举：``get_daily_root(date, seal=k)`` 的 k 就是这里
+        的第 k 项（**该日**的序号，不是全文件行号）。
+        """
+        day = _normalize_day(date)
+        out: List[Tuple[int, DailyRoot]] = []
+        for line_no, rec in enumerate(self._read_root_records(), 1):
+            if "_corrupt" in rec:
+                continue
+            try:
+                obj = DailyRoot.from_dict(rec)
+            except Exception:  # noqa: BLE001 字段异常行跳过（与 read_daily_roots 同口径）
+                continue
+            if obj.date == day:
+                out.append((line_no, obj))
+        return out
+
+    def resolve_daily_root(self, date: Any, *,
+                           seal: Optional[int] = None) -> Optional[DailyRoot]:
+        """解析某 UTC 日的「有效日根」（**只追加封印日志的取用语义**，D5 定义）
+
+        - ``seal is None``（默认）：该日**最后一条**记录 —— 最新封存生效。封印日志只追加，
+          "后写的修正根"必须能取代旧根，否则重封对验签无效（D5 修复的核心缺陷）；
+        - ``seal=k``：该日第 k 条（1 起、按文件行序）—— 取证 / 历史回放用，``k=1`` 即
+          "该日最早的那次封存"；
+        - k 越界或该日无任何记录 → ``None``（与 ``get_daily_root`` 的 Optional 契约一致）。
+
+        本函数**只定义取用**：不校验、不写盘。"这条记录可不可信"由
+        ``verify_daily_root``（重放 + 签名 + 外层根链）回答；被取代的历史记录仍完整
+        留在文件里，随时可用 ``seal=1`` 取回比对。
+        """
+        recs = self.daily_root_records(date)
+        if not recs:
+            return None
+        if seal is None:
+            return recs[-1][1]
+        try:
+            n = int(seal)
+        except (TypeError, ValueError):
+            return None
+        if n < 1 or n > len(recs):
+            return None
+        return recs[n - 1][1]
+
+    def get_daily_root(self, date: Any, *,
+                       seal: Optional[int] = None) -> Optional[DailyRoot]:
+        """取某 UTC 日的**有效**日根（默认：该日最后一条封存记录）
+
+        【D5 封印解析修复（实测缺陷）】原实现是 ``for r in self.read_daily_roots():
+        if r.date == day: return r`` —— 取**第一条**。于是
+        ``daily_merkle_root(day, force=True)`` 追加的修正根虽然进了文件，
+        ``verify_daily_root`` 却永远读回旧根。实测（真实生产数据副本）：
+        2026-09-21 重封后新根**自洽**（leaf_count=245 与重算一致），验签仍报
+        ``root_hash_mismatch``（读到的还是 leaf_count=235 那条）。
+        取用语义现统一由 ``resolve_daily_root`` 给出（默认取最后一条）。
+        """
+        return self.resolve_daily_root(date, seal=seal)
+
+    def verify_daily_root(self, date: Any = None, *,
+                         seal: Optional[int] = None) -> RootsVerification:
         """重放校验：从当日 entries 重算 Merkle 根 + 校验签名 + 外层根链
+
+        【D5：校验**哪一条**日根由 seal 决定（默认=该日最后一条）】同一天可以有多条根
+        记录（历史缺陷重封 / 当日后补封）。默认取最后一条，使"追加一条修正根"真正生效；
+        ``seal=k`` 可指定校验该日第 k 条（取证 / 回归比对用）。结果里回填
+        ``seal_index`` / ``seal_total``，让"验的是第几条、一共有几条"可被脚本直接断言。
 
         【L1-b：叶子口径**统一为「该 UTC 日 且 seq ≤ last_seq」**——两个约束缺一不可】
         重放叶子 = ``entries(day=day, end_seq=recorded.last_seq)``。两种历史口径各自
@@ -2841,10 +3134,17 @@ class AuditChain:
         - 外层链（prev_entry_hash → entry_hash）连续性，检出整日根被删/被改。
         """
         day = _normalize_day(date)
-        recorded = self.get_daily_root(day)
+        records = self.daily_root_records(day)
+        recorded = self.resolve_daily_root(day, seal=seal)
         if recorded is None:
+            extra = ""
+            if seal is not None:
+                extra = f"（seal={seal}，该日共 {len(records)} 条记录）"
             return RootsVerification(ok=False, date=day, reason="root_not_found",
-                                     detail=f"未找到 {day} 的每日根记录")
+                                     detail=f"未找到 {day} 的每日根记录{extra}",
+                                     seal_total=len(records))
+        #: 本次实际使用的记录在该日记录中的序号（1 起）：默认 = 最后一条
+        seal_index = len(records) if seal is None else int(seal)
         # ── 唯一口径：该 UTC 日 ∩ seq ≤ last_seq（封印点前缀上界）──
         if recorded.last_seq and recorded.last_seq >= recorded.first_seq:
             day_entries = self.entries(day=day, end_seq=recorded.last_seq)
@@ -2938,8 +3238,62 @@ class AuditChain:
                                  entries_verified=len(leaves),
                                  root_chain_checked=chain_checked,
                                  interval_leaf_count=len(interval_entries),
-                                 interval_foreign_count=len(interval_foreign))
+                                 interval_foreign_count=len(interval_foreign),
+                                 seal_index=seal_index,
+                                 seal_total=len(records))
 
+
+    def reseal_daily_root(self, date: Any = None, *, sign: bool = True,
+                          protect: Optional[bool] = None,
+                          force: bool = False,
+                          verify: bool = True) -> RootReseal:
+        """重封某 UTC 日的 Merkle 根（**只追加**，绝不删改历史行）
+
+        【本方法的唯一副作用】向 ``daily_roots.jsonl`` 追加**一条**新根记录
+        （走既有的 ``_append_daily_root``：临时恢复写权限 → 追加 → 置回只读）。
+        它**不写审计链台账**：整条路径只有 ``entries()/count()`` 这样的读查询，
+        不调用 ``append()``，也不执行任何 SQL 写入。
+
+        Args:
+            date: "YYYY-MM-DD" / date / datetime；None → 今日 UTC。
+            sign: 是否签名（False → 无签名字段；生产重封应保持 True）。
+            protect: 覆盖实例默认的只读保护开关。
+            force: True → 即使当前有效根验签通过也再追加一条（默认 False =
+                **幂等**：当前有效根已通过验签就直接返回，不产生重复记录）。
+            verify: 追加后是否立即重放自验（返回 ``RootReseal.verification``）。
+
+        Returns:
+            ``RootReseal``：``applied`` 表示是否真的追加了新记录；
+            ``reason`` == "already_ok" ⇒ 当前有效根已可验签（幂等返回）；
+            ``reason`` == "day_not_found" ⇒ 该 UTC 日在链上**没有任何记录**，
+            故不封存（避免凭空造出"该日无新增"的空日根断言）。
+
+        【为什么"无记录的日"拒绝封存】空日根（``EMPTY_MERKLE_ROOT``）是一条**绝对断言**
+        "该日无新增"（见 ``verify_daily_root`` 的空日根分支）。对"链上从来没有过记录的
+        日期"补一条空根，等于替历史下一个无凭据的结论；补齐覆盖只应针对**有记录**的日。
+        """
+        day = _normalize_day(date)
+        records = self.daily_root_records(day)
+        previous = records[-1][1] if records else None
+        if not self.count(day=day):
+            return RootReseal(
+                date=day, applied=False, reason="day_not_found", previous=previous,
+                current=previous,
+                verification=(self.verify_daily_root(day)
+                              if (verify and previous is not None) else None))
+        if not force and previous is not None:
+            current = self.verify_daily_root(day)
+            if current.ok:
+                return RootReseal(date=day, applied=False, reason="already_ok",
+                                  previous=previous, current=previous,
+                                  verification=current)
+        # ── 唯一写动作：重算 + 追加一条（write=False 只算不写，真正的写只有下面一行）──
+        obj = self.daily_merkle_root(day, write=False, sign=sign)
+        obj = self._append_daily_root(obj, protect=protect)
+        self._sealed_days.add(day)
+        return RootReseal(date=day, applied=True, reason="", previous=previous,
+                          current=obj,
+                          verification=(self.verify_daily_root(day) if verify else None))
 
     def _verify_root_chain(self) -> Tuple[bool, int, str]:
         """外层根链连续性校验（每日根文件自身不可被删改）"""
@@ -2971,12 +3325,24 @@ class AuditChain:
     # ── 统计（面板/报告） ───────────────────────────────────
 
     def stats(self, *, verify: bool = True) -> Dict[str, Any]:
-        """台账摘要：条数/来源分布/seq 区间/链头/校验结论/降级信息"""
-        by_source: Dict[str, int] = {}
-        by_actor: Dict[str, int] = {}
-        for e in self.entries():
-            by_source[e.source] = by_source.get(e.source, 0) + 1
-            by_actor[e.actor] = by_actor.get(e.actor, 0) + 1
+        """台账摘要：条数/来源分布/seq 区间/链头/校验结论/降级信息
+
+        【D1 读路径修复：为什么不做缓存、也不改成增量维护计数器】
+        1) **不选缓存**：本进程不是唯一读者，``reader`` 实例与其它进程随时可能
+           写入（单写者只保证"每个进程一个写者"，不保证"同一时刻只有一个读者"）。
+           给 `snapshot()` 加 TTL 缓存会让**合规面板显示已过期的条数**，而
+           "面板数字与链头不一致"正是审计最不能接受的失败模式；
+        2) **不选增量计数器表**：需要新增 DDL（写 live 库）并处理崩溃恢复后的
+           重算，成本与风险都远高于收益；
+        3) **选 SQL 聚合**：`COUNT(*)` + 两条 `GROUP BY` 由 SQLite 在库内完成，
+           不再把 72,289 行物化成 AuditEntry（实测 1,751 ms → 约 20 ms），
+           结果与"逐行数"逐字一致，且天然跨进程正确。
+        """
+        if self._role == "writer":
+            # 原实现的第一步 `for e in self.entries()` 会先 flush（writer 角色）；
+            # SQL 聚合绕开了那次查询，故在聚合**之前**显式补同一道屏障。
+            self.flush(timeout=FLUSH_TIMEOUT)
+        by_source, by_actor = self._group_counts()
         last = self.last_entry()
         first = self.entries(limit=1)
         out: Dict[str, Any] = {
@@ -3050,8 +3416,8 @@ def _normalize_day(date: Any) -> str:
 
 __all__ = [
     "AuditChain", "AuditChainError", "AuditEntry", "AuditEntryError",
-    "ChainVerification", "DailyRoot", "ReadOnlyChainError", "RootsSigner",
-    "RootsVerification", "SingleWriterViolationError",
+    "ChainVerification", "DailyRoot", "ReadOnlyChainError", "RootReseal",
+    "RootsSigner", "RootsVerification", "SingleWriterViolationError",
     "DEFAULT_DB_PATH", "DEFAULT_KEY_PATH", "DEFAULT_ROOTS_PATH",
     "EMPTY_MERKLE_ROOT", "GENESIS_PREV_HASH", "MERKLE_ALGO", "SCHEMA_VERSION",
     "SOURCE_AGENT", "SOURCE_MIGRATION", "SOURCE_SYSTEM", "SOURCE_UI", "SOURCES",

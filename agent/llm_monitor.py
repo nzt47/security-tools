@@ -17,6 +17,23 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# B3/F2（P0）：usage 真值 → 六指标（定义见 agent/monitoring/prometheus.py）
+# 【不易】prometheus 不可用（未装 prometheus_client / 导入链异常）不得阻断 LLM 监控：
+# 取不到就退化为 None，记录与主链路照常。
+try:
+    from agent.monitoring.prometheus import (
+        record_llm_usage as _record_llm_usage,
+        record_tool_selected as _record_tool_selected,
+    )
+except Exception:  # noqa: BLE001
+    _record_llm_usage = None
+    _record_tool_selected = None
+
+try:
+    from agent.logging_utils import log_dict as _log_dict
+except Exception:  # noqa: BLE001
+    _log_dict = None
+
 # SingletonManager 统一收口（保留 fallback 变量 _monitor 向后兼容）
 try:
     from agent.utils.singleton_manager import (
@@ -77,6 +94,17 @@ class LLMInteraction:
     shadow_overhead_ms: float = 0.0   # 影子/附加开销（§6.6 shadow_overhead）
     cache_hit: bool = False           # P7.1-18：命中缓存 → 不计 token 成本
     cost_normalized_cents: float = 0.0  # 归一成本（锚价 × 系数表）
+
+    # ── B3/F2：usage 真值（**additive**：API 未上报时 available=False，既有估算字段不受影响） ──
+    usage_available: bool = False        # 响应里是否真的带 usage
+    usage_prompt_tokens: int = 0         # 输入 token 真值（含命中缓存的部分）
+    usage_completion_tokens: int = 0     # 输出 token 真值
+    prompt_cache_hit_tokens: int = 0     # 其中命中服务端前缀缓存的部分
+    prompt_cache_miss_tokens: int = 0    # 其中未命中的部分
+    cache_reported: bool = False         # API 是否上报缓存字段（决定是否计入命中率分母）
+    reasoning_tokens: int = 0            # 思维链 token（DeepSeek reasoner / o 系列）
+    usage_cost_usd: float = 0.0          # usage 真值 × 价目表（USD）
+    call_cache_hit_ratio: float = 0.0    # 本次调用的前缀缓存命中率（未上报 → 0）
 
     # ── 会话持久化（重启后回填「上次会话最后一条通信」；additive，默认 False） ──
     restored: bool = False            # True = 由磁盘回填的上次会话遗留记录
@@ -375,6 +403,109 @@ class LLMMonitor:
                 total += 4
         return total + 2  # 整体 overhead
 
+    # ── B3/F2：usage 真值解析（只读；缺失 → available=False） ──
+
+    @staticmethod
+    def extract_usage(response_obj) -> dict:
+        """从 LLM 响应对象解析 usage 真值
+
+        兼容三种形态:
+        - OpenAI / DeepSeek 兼容: usage.prompt_tokens / completion_tokens /
+          prompt_cache_hit_tokens / prompt_cache_miss_tokens（DeepSeek 前缀缓存字段）/
+          prompt_tokens_details.cached_tokens / completion_tokens_details.reasoning_tokens
+        - Anthropic Messages API: usage.input_tokens / output_tokens / cache_read_input_tokens
+        - 流式响应对象（Stream）或被包装层转成字符串的响应: 无 usage → available=False
+
+        Returns:
+            dict(available, prompt_tokens, completion_tokens, total_tokens,
+                 prompt_cache_hit_tokens, prompt_cache_miss_tokens,
+                 cache_reported, reasoning_tokens)
+
+        【不易】只读: 不修改响应对象; 任何异常都退化为 available=False, 绝不上抛。
+        【关键】cache_reported 只在 API **明确给出**缓存字段时为 True ——
+            否则无法区分「本次 0 命中」与「该 provider 压根不报缓存」,
+            会把"没上报"错算成"未命中"而污染 cache_hit_ratio 的分母。
+        """
+        out = {
+            "available": False, "prompt_tokens": 0, "completion_tokens": 0,
+            "total_tokens": 0, "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0, "cache_reported": False,
+            "reasoning_tokens": 0,
+        }
+
+        def _raw(container, key):
+            """同时支持 pydantic 对象与 dict 两种 usage 载体"""
+            if container is None:
+                return None
+            if isinstance(container, dict):
+                return container.get(key)
+            return getattr(container, key, None)
+
+        def _int(value):
+            try:
+                return max(int(value), 0)
+            except Exception:
+                return 0
+
+        try:
+            usage = _raw(response_obj, "usage")
+            if usage is None:
+                return out
+
+            prompt = _int(_raw(usage, "prompt_tokens"))
+            completion = _int(_raw(usage, "completion_tokens"))
+            if prompt == 0 and completion == 0:
+                # Anthropic Messages API 形态
+                prompt = _int(_raw(usage, "input_tokens"))
+                completion = _int(_raw(usage, "output_tokens"))
+            total = _int(_raw(usage, "total_tokens")) or (prompt + completion)
+            if prompt == 0 and completion == 0 and total == 0:
+                # usage 字段存在但全 0 ⇒ 视为未上报（不猜、不编）
+                return out
+
+            hit = miss = 0
+            cache_reported = False
+            raw_hit = _raw(usage, "prompt_cache_hit_tokens")
+            raw_miss = _raw(usage, "prompt_cache_miss_tokens")
+            if raw_hit is not None or raw_miss is not None:
+                hit = _int(raw_hit)
+                miss = _int(raw_miss)
+                if raw_miss is None:
+                    miss = max(prompt - hit, 0)
+                if raw_hit is None:
+                    hit = max(prompt - miss, 0)
+                cache_reported = True
+            else:
+                details = _raw(usage, "prompt_tokens_details")
+                cached_tokens = (_raw(details, "cached_tokens")
+                                 if details is not None else None)
+                if cached_tokens is None:
+                    cached_tokens = _raw(usage, "cache_read_input_tokens")
+                if cached_tokens is not None:
+                    hit = _int(cached_tokens)
+                    miss = max(prompt - hit, 0)
+                    cache_reported = True
+
+            c_details = _raw(usage, "completion_tokens_details")
+            reasoning = _int(_raw(c_details, "reasoning_tokens")) if c_details is not None else 0
+            if not reasoning:
+                reasoning = _int(_raw(usage, "reasoning_tokens"))
+
+            out.update({
+                "available": True,
+                "prompt_tokens": prompt,
+                "completion_tokens": completion,
+                "total_tokens": total,
+                "prompt_cache_hit_tokens": hit,
+                "prompt_cache_miss_tokens": miss,
+                "cache_reported": cache_reported,
+                "reasoning_tokens": reasoning,
+            })
+            return out
+        except Exception as e:  # noqa: BLE001 usage 解析失败不得影响记录
+            logger.debug("解析 LLM usage 失败: %s", e)
+            return out
+
     @staticmethod
     def create_from_api_call(
         system_prompt: str = "",
@@ -459,6 +590,45 @@ class LLMMonitor:
         if reasoning:
             res_tokens += LLMMonitor.estimate_tokens(reasoning)
 
+        # ── B3/F2：usage 真值 → 六指标 ──────────────────────────────────
+        # 修复的历史缺陷：成本此前只用本地 tiktoken 估算（见本文件 get_stats），
+        # 而本函数的调用方（_wrapped_create）**已拿到 response_obj 却不读 usage**。
+        # 【不易】计量失败绝不影响记录与主链路。
+        usage = LLMMonitor.extract_usage(response_obj)
+        usage_metrics = {}
+        if usage.get("available") and _record_llm_usage is not None:
+            try:
+                usage_metrics = _record_llm_usage(usage, model=model, source=source) or {}
+                if _log_dict is not None:
+                    logger.info(_log_dict({
+                        "module_name": "llm_monitor",
+                        "action": "llm.usage.parsed",
+                        "message": "LLM usage 真值: prompt=%d completion=%d cached=%d miss=%d" % (
+                            usage["prompt_tokens"], usage["completion_tokens"],
+                            usage["prompt_cache_hit_tokens"],
+                            usage["prompt_cache_miss_tokens"]),
+                        "model": model,
+                        "source": source,
+                        "prompt_tokens": usage["prompt_tokens"],
+                        "completion_tokens": usage["completion_tokens"],
+                        "prompt_cache_hit_tokens": usage["prompt_cache_hit_tokens"],
+                        "prompt_cache_miss_tokens": usage["prompt_cache_miss_tokens"],
+                        "reasoning_tokens": usage["reasoning_tokens"],
+                        "cache_reported": usage["cache_reported"],
+                        "call_cache_hit_ratio": usage_metrics.get("call_cache_hit_ratio"),
+                        "cumulative_cache_hit_ratio": usage_metrics.get("cumulative_cache_hit_ratio"),
+                        "cost_usd": usage_metrics.get("cost_usd"),
+                    }))
+            except Exception as e:  # noqa: BLE001 指标记录失败不得影响 LLM 监控记录
+                logger.debug("记录 LLM usage 指标失败: %s", e)
+
+        # 工具选中计数：tools 即**本轮路由选中的工具集**（下发给模型的 tools 字段）
+        if tools and _record_tool_selected is not None:
+            try:
+                _record_tool_selected(tools)
+            except Exception as e:  # noqa: BLE001
+                logger.debug("记录 tool_selected 指标失败: %s", e)
+
         return LLMInteraction(
             session_id=session_id,
             source=source,
@@ -481,6 +651,16 @@ class LLMMonitor:
             shadow_overhead_ms=round(float(shadow_overhead_ms or 0.0), 3),
             cache_hit=bool(cache_hit),
             task_id=task_id or _current_task_id(),
+            # B3/F2：usage 真值（API 未上报时保持默认值，既有估算字段不变）
+            usage_available=bool(usage.get("available")),
+            usage_prompt_tokens=usage.get("prompt_tokens", 0),
+            usage_completion_tokens=usage.get("completion_tokens", 0),
+            prompt_cache_hit_tokens=usage.get("prompt_cache_hit_tokens", 0),
+            prompt_cache_miss_tokens=usage.get("prompt_cache_miss_tokens", 0),
+            cache_reported=bool(usage.get("cache_reported")),
+            reasoning_tokens=usage.get("reasoning_tokens", 0),
+            usage_cost_usd=float(usage_metrics.get("cost_usd") or 0.0),
+            call_cache_hit_ratio=float(usage_metrics.get("call_cache_hit_ratio") or 0.0),
             workspace_id=_current_trace_field("workspace_id"),
             subject_id=_current_trace_field("subject_id"),
         )
@@ -651,6 +831,167 @@ def install_hooks():
         logger.warning("安装 LLM 监控钩子失败: %s", e)
 
 
+# ── F3-2：流式响应的计量代理 ──────────────────────────────────────────────
+# 病灶（实测见 docs/audit_skill_governance/F3-2.md §1）：client.chat.completions
+# .create(stream=True) 返回的是**惰性** Stream 对象；_wrapped_create 在它被消费
+# **之前**就 return 了 ⇒ 那一刻 extract_usage(stream) 必然是 available=False。
+# 于是工作台（plugins/chat.py 的 SSE 链路）每条记录都是 prompt=0/hit=0/miss=0，
+# 成本与**前缀缓存命中率**在两条链路里一半可见、一半不可见。
+#
+# 做法：把 Stream 包一层**透明**代理，惰性转发 chunk，在流结束时（正常迭代完 /
+# 显式 close / 迭代被中断）才落**一条**记录，并把沿途看到的最后一个 chunk.usage
+# 交给既有的 LLMMonitor.create_from_api_call ⇒ 记录仍然落在**同一个**监控环形
+# 缓冲区、同一张表、同一个 source，只是这次带上了 usage 真值。
+
+
+def _usage_payload(usage):
+    """把 chunk.usage 规整成 extract_usage 能吃的形态（pydantic / dict 都兼容）
+
+    为什么先 model_dump()：OpenAI SDK 的 CompletionUsage 用 extra="allow" 承载
+    DeepSeek 的 prompt_cache_hit_tokens / prompt_cache_miss_tokens；转成 dict
+    后既保留这些额外字段，也让落库的 response_full 是人可读的原始计量。
+    """
+    if usage is None:
+        return None
+    for attr in ("model_dump", "to_dict", "dict"):
+        fn = getattr(usage, attr, None)
+        if callable(fn):
+            try:
+                dumped = fn()
+                if isinstance(dumped, dict):
+                    return dumped
+            except Exception:  # noqa: BLE001 取不到就退回原对象
+                pass
+    return usage
+
+
+class _MonitoredStream:
+    """流式响应代理：透明转发 chunk，并在流结束时补一条带 usage 的监控记录
+
+    【不易】三条硬约束：
+      1. **不改变用户可见内容与事件顺序** —— 本类只做透传，不增删改任何 chunk；
+      2. **服务端不报 usage 时安全降级** —— usage 保持 None ⇒ 记录照落，
+         usage_available=False（既有语义），不抛异常、不丢内容；
+      3. **客户端中断（关页面）不丢记录** —— 上游只在生成完成后才发 usage，
+         中断时 usage 客观上不存在；此时仍落一条记录（usage 未上报），
+         并记一条日志，绝不因计量失败反过来打断/污染主链路。
+    """
+
+    def __init__(self, stream, monitor, meta, start_ts=None):
+        self._ys_stream = stream
+        self._ys_monitor = monitor
+        self._ys_meta = meta or {}
+        self._ys_start = start_ts if start_ts is not None else time.time()
+        self._ys_usage = None
+        self._ys_finish_reason = ""
+        self._ys_chunks = 0
+        self._ys_recorded = False
+        self._ys_aborted = False
+        self._ys_error = ""
+
+    # ── 透明转发：任何本类没定义的属性都交回真正的 Stream ──
+    def __getattr__(self, name):
+        try:
+            stream = self.__dict__["_ys_stream"]
+        except KeyError:  # 初始化中途的属性探测
+            raise AttributeError(name)
+        return getattr(stream, name)
+
+    def __iter__(self):
+        try:
+            for chunk in self._ys_stream:
+                self._ys_chunks += 1
+                # usage 在**最后一个 chunk** 上；OpenAI 规范里该 chunk 的
+                # choices 可能是空数组（本端点实测非空，见 F3-2.md §4），
+                # 所以这里必须先取 usage、再由消费端决定怎么处理 choices。
+                _u = getattr(chunk, "usage", None)
+                if _u is not None:
+                    self._ys_usage = _u
+                _choices = getattr(chunk, "choices", None)
+                if _choices:
+                    _fr = getattr(_choices[0], "finish_reason", None)
+                    if _fr:
+                        self._ys_finish_reason = _fr
+                yield chunk
+        except GeneratorExit:
+            # 消费端被关闭（典型：用户关页面 → SSE 生成器关闭 → 本迭代器关闭）
+            self._ys_aborted = True
+            raise
+        except BaseException as e:  # noqa: BLE001 记录后原样抛出，不吞异常
+            self._ys_error = "%s: %s" % (type(e).__name__, e)
+            raise
+        finally:
+            self._finalize()
+
+    def close(self):
+        try:
+            _c = getattr(self._ys_stream, "close", None)
+            if _c is not None:
+                _c()
+        except Exception as e:  # noqa: BLE001 关闭失败不影响计量
+            logger.debug("关闭流式响应失败: %s", e)
+        finally:
+            self._finalize()
+
+    def __enter__(self):
+        _e = getattr(self._ys_stream, "__enter__", None)
+        if _e is not None:
+            _e()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            _x = getattr(self._ys_stream, "__exit__", None)
+            if _x is not None:
+                return _x(exc_type, exc, tb)
+        finally:
+            self._finalize()
+        return False
+
+    def __del__(self):
+        # 兜底：消费方既没迭代完也没 close（被丢弃）时仍尽量落一条记录
+        try:
+            self._finalize()
+        except Exception:  # noqa: BLE001 析构期绝不抛
+            pass
+
+    def _finalize(self):
+        if self._ys_recorded:
+            return
+        self._ys_recorded = True
+        _usage = _usage_payload(self._ys_usage)
+        if self._ys_aborted:
+            logger.warning(
+                "event=llm_stream_aborted source=%s chunks=%d usage_reported=%s "
+                "note=客户端中断，上游不会补 usage；记录仍落库（usage_available=False）",
+                self._ys_meta.get("source", "tool_calling"), self._ys_chunks,
+                _usage is not None)
+            # 中断时主动放掉底层 HTTP 连接（否则要等 GC 才回收）；失败不影响计量。
+            try:
+                _c = getattr(self._ys_stream, "close", None)
+                if _c is not None:
+                    _c()
+            except Exception as e:  # noqa: BLE001
+                logger.debug("中断后关闭流式响应失败: %s", e)
+        try:
+            record = LLMMonitor.create_from_api_call(
+                system_prompt=self._ys_meta.get("system_prompt", ""),
+                messages=self._ys_meta.get("messages", []),
+                tools=self._ys_meta.get("tools", []),
+                # 只把 usage 当"响应载荷"传进去：extract_usage 同时支持 dict 载体，
+                # 于是流式记录与主线的记录**走同一套解析/同一张表**。
+                response_obj=({"usage": _usage} if _usage is not None else None),
+                model=self._ys_meta.get("model", ""),
+                provider=self._ys_meta.get("provider", ""),
+                source=self._ys_meta.get("source", "tool_calling"),
+                duration_ms=(time.time() - self._ys_start) * 1000.0,
+                error=self._ys_error,
+            )
+            self._ys_monitor.record(record)
+        except Exception as e:  # noqa: BLE001 计量失败绝不影响主链路
+            logger.debug("记录流式 LLM 调用失败: %s", e)
+
+
 def _wrap_get_client_for_tool_calling(monitor):
     """修补 LLMService._get_client，确保任何通过它创建的 client 的 create 方法被包装"""
     global _orig_get_client
@@ -677,40 +1018,61 @@ def _wrap_get_client_for_tool_calling(monitor):
             if hasattr(client, 'chat') and hasattr(client.chat, 'completions') and hasattr(client.chat.completions, 'create'):
                 orig_create = client.chat.completions.create
 
+                def _request_meta(kwargs):
+                    """从 create() 入参提取建记录所需的**请求侧**字段（流式/非流式共用）"""
+                    messages = kwargs.get("messages", [])
+                    tools = kwargs.get("tools", [])
+                    sys_prompt = ""
+                    if messages and len(messages) > 0 and isinstance(messages[0], dict) and messages[0].get("role") == "system":
+                        sys_prompt = messages[0].get("content", "")
+                        messages = messages[1:]
+                    return {
+                        "system_prompt": sys_prompt,
+                        "messages": messages,
+                        "tools": tools,
+                        "model": kwargs.get("model", model),
+                        "provider": provider,
+                        "source": "tool_calling",
+                    }
+
+                def _record_call(meta, response_obj, error, duration_ms):
+                    """把一次 create 调用落进监控环形缓冲区（非流式/失败路径用）"""
+                    try:
+                        record = LLMMonitor.create_from_api_call(
+                            system_prompt=meta.get("system_prompt", ""),
+                            messages=meta.get("messages", []),
+                            tools=meta.get("tools", []),
+                            response_obj=response_obj,
+                            model=meta.get("model", ""),
+                            provider=meta.get("provider", ""),
+                            source=meta.get("source", "tool_calling"),
+                            duration_ms=duration_ms,
+                            error=error,
+                        )
+                        monitor.record(record)
+                    except Exception as e:
+                        logger.debug("记录 LLM 工具调用失败: %s", e)
+
                 def _wrapped_create(*args, **kwargs):
                     start = time.time()
-                    error = ""
-                    response_obj = None
                     try:
                         response_obj = orig_create(*args, **kwargs)
-                        return response_obj
                     except Exception as e:
-                        error = str(e)
+                        _record_call(_request_meta(kwargs), None, str(e),
+                                     (time.time() - start) * 1000)
                         raise
-                    finally:
-                        duration = (time.time() - start) * 1000
-                        try:
-                            messages = kwargs.get("messages", [])
-                            tools = kwargs.get("tools", [])
-                            sys_prompt = ""
-                            if messages and len(messages) > 0 and isinstance(messages[0], dict) and messages[0].get("role") == "system":
-                                sys_prompt = messages[0].get("content", "")
-                                messages = messages[1:]
-
-                            record = LLMMonitor.create_from_api_call(
-                                system_prompt=sys_prompt,
-                                messages=messages,
-                                tools=tools,
-                                response_obj=response_obj,
-                                model=kwargs.get("model", model),
-                                provider=provider,
-                                source="tool_calling",
-                                duration_ms=duration,
-                                error=error,
-                            )
-                            monitor.record(record)
-                        except Exception as e:
-                            logger.debug("记录 LLM 工具调用失败: %s", e)
+                    # ── F3-2：流式分支的 usage 只能等流结束才拿得到 ──
+                    # create(stream=True) 返回的是**惰性** Stream，此刻一个 chunk 都还
+                    # 没到；在这里直接建记录 ⇒ 永远是一条 usage 未上报的空记录
+                    # （这正是工作台缓存命中率测不到的根因）。改成交给
+                    # _MonitoredStream：流消费完（或中断/关闭）时落**一条**记录，
+                    # usage 取沿途最后一个 chunk。非流式分支逐字保持原行为。
+                    if kwargs.get("stream"):
+                        return _MonitoredStream(response_obj, monitor,
+                                                _request_meta(kwargs), start)
+                    _record_call(_request_meta(kwargs), response_obj, "",
+                                 (time.time() - start) * 1000)
+                    return response_obj
 
                 client.chat.completions.create = _wrapped_create
                 client.__llm_monitored = True

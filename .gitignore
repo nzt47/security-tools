@@ -504,6 +504,7 @@ data/summary.txt
 data/summary_version.txt
 data/personality.json
 agent/data/skills.json
+data/learned_workflows.json
 
 # ══════════════════════════════════════════════════════════════════════════
 # 【TASK-03 · 2026-09-18 根目录产物治理】

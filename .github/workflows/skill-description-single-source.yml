@@ -1,0 +1,118 @@
+# 技能描述「唯一事实源」守卫（G1-B / M9）
+#
+# 为什么单开一个 workflow 而不是塞进 skills-check.yml：
+#   ① skills-check.yml 里已有 4 个 job、还有 PowerShell / Branch-Protection 检查，
+#      把描述守卫混进去会让"红灯时到底哪条门坏了"变得难读；
+#   ② 本 workflow 的三条门都是**描述治理专有**的，且与 data/skills_repo/** 强相关，
+#      独立后可以单独设 required check。
+#
+# 三条门：
+#   1. tests/unit/test_skill_description_single_source.py（G-1 … G-7 + M2/M3/V-guard
+#      + H-5 双口径 + .index/cache.json 同源）
+#   2. compare_skills_legacy_vs_repo.py 的**双口径**：--ci 允许 PASS-SKIP（显式结论），
+#      --verify 在 legacy 缺失时必须非零退出；两条都不许"静默通过"
+#   3. sync_capability_manifest.py --check（清单是派生物，漂移必须红）
+#
+# 【超时声明】每个 job 都显式设了 timeout-minutes（避免默认 360 分钟挂死）。
+name: Skill Description Single Source
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches: [master, main]
+    paths:
+      - "data/skills_repo/**"
+      - "data/capability_manifest.json"
+      - "data/skills_descriptions_overlay.json"
+      - "agent/skills_mgmt/**"
+      - "agent/lines/callability.py"
+      - "agent/descriptors/**"
+      - "agent/digital_life_persona.py"
+      - "agent/extensions/base.py"
+      - "plugins/skills.py"
+      - "scripts/compare_skills_legacy_vs_repo.py"
+      - "scripts/sync_capability_manifest.py"
+      - "tests/unit/test_skill_description_single_source.py"
+      - ".github/workflows/skill-description-single-source.yml"
+  push:
+    branches: [master, main]
+    paths:
+      - "data/skills_repo/**"
+      - "agent/skills_mgmt/**"
+      - "tests/unit/test_skill_description_single_source.py"
+      - ".github/workflows/skill-description-single-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    name: 描述唯一源守卫（G-1…G-7）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml pytest pytest-timeout pytest-asyncio
+      - name: 守卫测试
+        run: |
+          python -m pytest tests/unit/test_skill_description_single_source.py \
+            -v --timeout=120 --no-header -p no:cacheprovider
+
+  compare-dual-caliber:
+    name: legacy 对比双口径（H-5）
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+      - name: CI 口径（legacy 缺失 = 显式 PASS-SKIP，不是"通过"）
+        run: |
+          set -euo pipefail
+          python scripts/compare_skills_legacy_vs_repo.py --ci | tee /tmp/compare_ci.txt
+          grep -qE "PASS-SKIP|ALL_MATCH" /tmp/compare_ci.txt
+          echo "✅ CI 口径给出了显式结论（PASS-SKIP / ALL_MATCH），不是静默通过"
+      - name: 迁移校验口径（legacy 缺失 = FAIL）
+        run: |
+          set +e
+          python scripts/compare_skills_legacy_vs_repo.py --verify \
+            --legacy /tmp/__absent__.json > /tmp/cmp_verify.txt 2>&1
+          rc=$?
+          set -e
+          cat /tmp/cmp_verify.txt
+          if [ "$rc" -eq 0 ]; then
+            echo "::error::--verify 在 legacy 缺失时返回 0 ⇒ 又变成假绿（H-5 回归）"
+            exit 1
+          fi
+          echo "✅ --verify 在 legacy 缺失时正确返回非零（$rc）"
+
+  manifest-is-derived:
+    name: capability_manifest 与权威数据一致
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+      - name: 清单漂移检查（--check：只校验不写）
+        run: python scripts/sync_capability_manifest.py --check

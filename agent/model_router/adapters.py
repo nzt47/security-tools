@@ -7,6 +7,7 @@
 """
 
 import json
+import os
 import uuid
 import logging
 import time
@@ -36,6 +37,52 @@ def _trace_id():
 OPENAI_COMPATIBLE_BASE_URLS: Dict[str, str] = {
     "deepseek": "https://api.deepseek.com/v1",
 }
+
+#: 【C1 修(2)】LLM 客户端显式超时与重试上限。
+#:
+#: 旧行为（审计 Q8 §5 实测）：`OpenAI(**kwargs)` 只传 api_key/base_url，于是生效的是
+#: openai 2.24.0 的出厂默认 `DEFAULT_TIMEOUT = Timeout(connect=5.0, read=600, write=600,
+#: pool=600)` × `DEFAULT_MAX_RETRIES = 2` ⇒ **单个僵尸外呼线程最长约 1800s 不回收**；
+#: 而 waitress 只有 16 个工作线程（app_server.py threads=16），16 个慢请求即可钉死
+#: 全部线程 10~30 分钟。
+#:
+#: 取值理由（初值来自审计 F5）：
+#:   connect=5s  —— 建连失败必须快（DNS/端口不可达等），5s 已是宽裕值；
+#:   read=45s    —— 远小于 600s；本系统单工具端到端实测 p90 约 3.2s、最慢路径 8.17s
+#:                  ⇒ 45s 有 5~10 倍余量，足以容纳长回答而不至于把线程钉死；
+#:   max_retries=1 —— 原为 2；SDK 只对连接错误/超时/5xx/429 重试，1 次已覆盖瞬时抖动。
+#:                 最坏占用 (5 + 45) × 2 ≈ 100s，相比 1800s 收敛约 18 倍。
+#: 部署级调参（不必改代码）：LLM_ADAPTER_CONNECT_TIMEOUT / LLM_ADAPTER_READ_TIMEOUT /
+#: LLM_ADAPTER_MAX_RETRIES。
+_DEFAULT_CONNECT_TIMEOUT = 5.0
+_DEFAULT_READ_TIMEOUT = 45.0
+_DEFAULT_MAX_RETRIES = 1
+
+
+def _env_float(name: str, default: float) -> float:
+    """读取浮点环境变量（非法值回退默认值，不抛异常）"""
+    raw = os.environ.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        logger.warning(log_dict({'module_name': 'adapters', 'action': 'llm_client.env_invalid', 'env': name, 'value': str(raw)[:40], 'fallback': default}))
+        return default
+    return value if value > 0 else default
+
+
+def _env_int(name: str, default: int) -> int:
+    """读取整数环境变量（非法值回退默认值；允许 0 = 不重试）"""
+    raw = os.environ.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        logger.warning(log_dict({'module_name': 'adapters', 'action': 'llm_client.env_invalid', 'env': name, 'value': str(raw)[:40], 'fallback': default}))
+        return default
+    return value if value >= 0 else default
 
 
 class ModelAdapter(ABC):
@@ -76,14 +123,55 @@ class OpenAIAdapter(ModelAdapter):
     """OpenAI 模型适配器（**也承载 OpenAI 兼容端点**，见 `OPENAI_COMPATIBLE_BASE_URLS`）"""
 
     def __init__(self, model_name: str, api_key: Optional[str] = None,
-                 base_url: Optional[str] = None):
+                 base_url: Optional[str] = None, *,
+                 timeout: Optional[Any] = None,
+                 max_retries: Optional[int] = None):
+        """初始化 OpenAI（兼容）适配器
+
+        Args:
+            timeout: 客户端级超时（openai.Timeout 或秒数）。None（默认）= 用本模块
+                     常量/环境变量解析出的 Timeout(connect=5s, read=45s)。
+            max_retries: 客户端级重试上限。None（默认）= 常量/环境变量（1）。
+        """
         self._model_name = model_name
         self._api_key = api_key
         self._base_url = base_url
+        # 【C1 修(2)】显式超时/重试；None 表示走 _client_options() 的默认解析
+        self._timeout = timeout
+        self._max_retries = max_retries
         self._client = None
         # [2026-08-13 并发审计 #3] 懒加载双检锁：并发首次调用只创建一个 client
         self._client_lock = threading.Lock()
-    
+
+    def _client_options(self) -> Dict[str, Any]:
+        """构造 OpenAI **客户端级**选项（timeout / max_retries）
+
+        【C1 修(2)】旧实现不传这两个参数 ⇒ 吃 SDK 默认 read=600s × retries=2。
+        【不易】不改变"调用方显式传 timeout"的语义：openai 2.24.0 里请求级参数优先，
+                源码实测（openai/_base_client.py）：
+                    timeout = self.timeout if isinstance(options.timeout, NotGiven)
+                              else options.timeout
+                    max_retries = options.get_max_retries(self.max_retries)
+                ⇒ generate()/chat() 的 **kwargs 里显式传入的 timeout / max_retries
+                仍然按调用方的值生效（它们经 safe_kwargs 透传给 chat.completions.create）。
+        """
+        options: Dict[str, Any] = {}
+        timeout = self._timeout
+        if timeout is None:
+            connect = _env_float("LLM_ADAPTER_CONNECT_TIMEOUT", _DEFAULT_CONNECT_TIMEOUT)
+            read = _env_float("LLM_ADAPTER_READ_TIMEOUT", _DEFAULT_READ_TIMEOUT)
+            try:
+                from openai import Timeout as OpenAITimeout
+                timeout = OpenAITimeout(connect=connect, read=read, write=read, pool=connect)
+            except Exception:  # noqa: BLE001  旧版 SDK 无 Timeout 导出 → 退回读超时单值
+                timeout = read
+        options["timeout"] = timeout
+        if self._max_retries is None:
+            options["max_retries"] = _env_int("LLM_ADAPTER_MAX_RETRIES", _DEFAULT_MAX_RETRIES)
+        else:
+            options["max_retries"] = int(self._max_retries)
+        return options
+
     def _get_client(self):
         """获取客户端"""
         if self._client is None:
@@ -96,6 +184,8 @@ class OpenAIAdapter(ModelAdapter):
                             kwargs["api_key"] = self._api_key
                         if self._base_url:
                             kwargs["base_url"] = self._base_url
+                        # 【C1 修(2)】显式传超时与重试上限，杜绝 SDK 默认 600s×3 的僵尸线程
+                        kwargs.update(self._client_options())
                         self._client = OpenAI(**kwargs)
                     except ImportError:
                         logger.warning(log_dict({'module_name': 'adapters', 'action': 'openai', 'msg': 'openai 库未安装'}))
@@ -582,12 +672,18 @@ class ModelAdapterFactory:
         provider = provider.lower()
         
         if provider == "openai":
-            return OpenAIAdapter(model_name, kwargs.get("api_key"), kwargs.get("base_url"))
+            return OpenAIAdapter(model_name, kwargs.get("api_key"), kwargs.get("base_url"),
+                                 timeout=kwargs.get("timeout"),
+                                 max_retries=kwargs.get("max_retries"))
         elif provider in OPENAI_COMPATIBLE_BASE_URLS:
             # S9-02：OpenAI 兼容端点（DeepSeek 等）——同协议，只是端点与模型名不同
             base_url = str(kwargs.get("base_url")
                            or OPENAI_COMPATIBLE_BASE_URLS[provider])
-            return OpenAIAdapter(model_name, kwargs.get("api_key"), base_url)
+            # 【C1 修(2)】把调用方显式给的 timeout / max_retries 透传到客户端；
+            # 其余未知 kwargs 的忽略行为不变（保持向后兼容）
+            return OpenAIAdapter(model_name, kwargs.get("api_key"), base_url,
+                                 timeout=kwargs.get("timeout"),
+                                 max_retries=kwargs.get("max_retries"))
         elif provider == "claude":
             return ClaudeAdapter(model_name, kwargs.get("api_key"))
         elif provider == "gemini":

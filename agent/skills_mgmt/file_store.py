@@ -47,6 +47,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import shutil
 import threading
 import time
@@ -78,11 +79,31 @@ _META_FIELDS = {
     "config_schema", "output_schema",
     # [变易] 敏感技能隔离字段（须持久化，否则 skill.md 往返丢失标记）
     "is_sensitive", "isolation_strategy",
+    # [G1-B0/S0 前置 2026-09-25] 中文展示文案（UI 用；`description` 保留英文供检索+模型）。
+    # 【为什么必须在白名单里】不在 ⇒ `update_meta` 写它被**静默忽略**、`parse()` 也看不见，
+    # 于是 G1 的「回填 description_zh」这一步在数据层根本落不了地（G1-B0 实测：文件 0 字节变化）。
+    # 【与 F1b 的关系】F1b 之前 `update_meta` 会连白名单外字段一起静默删除 ⇒ 写了也会被下次启停抹掉；
+    # F1b 之后 `patch_front_matter` 原样保留，故本行为该步骤的唯一前置（实测 monkeypatch 打通三件事：
+    # parse 可见 / load_metadata_index 带出 / update_meta 可写）。
+    # 【为什么 description 不改成中文】G1-B0 实测：技能侧「含典型触发句式」覆盖会从 17/23 掉到 13/23，
+    # 因为 `Use when ...` 正是这批**英文**描述的触发句式载体 ⇒ 中文只能另存一列。
+    "description_zh",
 }
 
 
 def _trace_id() -> str:
     return uuid.uuid4().hex[:16]
+
+
+def _meta_value_equal(a: Any, b: Any) -> bool:
+    """元数据值的宽松相等判定（供「值未变则不改写该行」使用）
+
+    异构类型的 __eq__ 可能抛错，此时按「不相等」处理（宁可多写一行，不静默跳过）。
+    """
+    try:
+        return bool(a == b)
+    except Exception:  # noqa: BLE001
+        return False
 
 
 # ════════════════════════════════════════════════════════════
@@ -150,10 +171,21 @@ class SkillMDParser:
             )
 
     @staticmethod
-    def serialize(meta: Dict[str, Any], body: str = "") -> str:
-        """序列化为 skill.md 文本"""
-        # 只写白名单字段
-        filtered = {k: v for k, v in meta.items() if k in _META_FIELDS}
+    def serialize(meta: Dict[str, Any], body: str = "",
+                  *, only_meta_fields: bool = True) -> str:
+        """序列化为 skill.md 文本
+
+        Args:
+            only_meta_fields: 【F1b-C】是否只写 `_META_FIELDS` 白名单内的键。
+                - True（默认，历史契约）：白名单外的键**不写进文件**。适用于
+                  "把既有 front matter 重新序列化"的场景（此时白名单是"允许保留什么"）。
+                - False：原样写出 `meta` 的**全部**键。适用于 `create()` 的初始内容
+                  —— 新建技能时不存在"文件现状"可裁剪，白名单外的键若也丢弃就是
+                  **静默数据丢失**（F1b 修的是 update 侧，本参数修的是 create 侧）。
+        """
+        # 只写白名单字段（only_meta_fields=False 时按调用方给的原样写）
+        filtered = ({k: v for k, v in meta.items() if k in _META_FIELDS}
+                    if only_meta_fields else dict(meta))
         yaml_block = yaml.safe_dump(
             filtered, allow_unicode=True, default_flow_style=False,
             sort_keys=False,
@@ -163,6 +195,158 @@ class SkillMDParser:
             parts.append("")
             parts.append(body)
         return "\n".join(parts)
+
+    # ──────────────────────────────────────────────
+    #  最小侵入改写（update_meta 专用）
+    # ──────────────────────────────────────────────
+
+    # front matter 顶层键行：列 0 起的 `key:`。
+    # 缩进行（块值/嵌套结构）与注释行不以 [A-Za-z0-9_] 开头 ⇒ 不会被误判为顶层键。
+    _FM_KEY_RE = re.compile(r"^([A-Za-z0-9_][A-Za-z0-9_\-.]*)[ \t]*:")
+
+    @classmethod
+    def _find_fm_key(cls, fm_lines: List[str],
+                     key: str) -> Optional[Tuple[int, int]]:
+        """定位 front matter 中顶层键 key 占用的 [start, end) 行范围
+
+        块值（嵌套 dict/list、块标量）的续行以空白缩进开头 ⇒ 一并纳入替换范围，
+        否则替换后会残留孤儿续行（实测：多行标量的折行形如
+        `description: 'a` + 空行 + `  b'`，空行也属于块内）。
+        列 0 的下一键与注释行视为块外，因此它们不会被误删。
+
+        Returns: (start, end)；键不存在时返回 None
+        """
+        for i, line in enumerate(fm_lines):
+            m = cls._FM_KEY_RE.match(line)
+            if not m or m.group(1) != key:
+                continue
+            j = i + 1
+            while j < len(fm_lines):
+                if fm_lines[j][:1] in (" ", "\t"):
+                    j += 1
+                    continue
+                if not fm_lines[j].strip():
+                    # 空行：仅当其后的第一个非空行是缩进续行时才算块内
+                    k = j
+                    while k < len(fm_lines) and not fm_lines[k].strip():
+                        k += 1
+                    if k < len(fm_lines) and fm_lines[k][:1] in (" ", "\t"):
+                        j = k
+                        continue
+                break
+            return i, j
+        return None
+
+    @classmethod
+    def patch_front_matter(cls, content: str, patch: Dict[str, Any],
+                           new_body: Optional[str] = None) -> str:
+        """最小侵入式改写 skill.md —— 只重写被 patch 的顶层键所在行
+
+        与 serialize() 的「整文件重排」不同，本方法逐字节保留未被 patch 的内容：
+            - 白名单外的既有字段（如人工维护的 unknown_custom_field）：原样保留
+            - YAML 注释：原样保留
+            - 未被 patch 的键：行内容、键顺序、引号风格、`tags: [a, b, c]` 行内列表、
+              缩进、行尾终止符（LF / CRLF）全部不变
+            - 值语义未变的键（含 patch 里显式给出的同值）：整行不动 ⇒ 重复启停不产生噪声 diff
+
+        白名单 _META_FIELDS 的语义在这里被明确拆成两件事：
+            - 【允许改什么】只作用于 patch：patch 里白名单外的键一律忽略（与修复前一致）；
+            - 【保留什么】以文件现状为准：不再按白名单裁剪既有内容。
+        修复前 update_meta 走 serialize()，白名单同时被当成「保留什么」，
+        于是白名单外的字段与全部注释被静默删除（审计 F1b）。
+
+        Args:
+            content: skill.md 原文
+            patch: 待更新字段（仅 _META_FIELDS 内的键生效）
+            new_body: 非 None 时替换 Markdown body
+
+        Returns:
+            改写后的 skill.md 文本；只要有实际改动，末尾保证以换行结尾（POSIX 文本约定）
+
+        Raises:
+            SkillFileError: front matter 未闭合 / YAML 非法（与 parse 一致）
+        """
+        lines = content.splitlines(keepends=True)
+        eol = "\r\n" if lines[:1] and lines[0].endswith("\r\n") else "\n"
+
+        has_fm = bool(lines) and lines[0].strip() == _FRONT_MATTER_SEP
+        if has_fm:
+            end_idx = None
+            for i in range(1, len(lines)):
+                if lines[i].strip() == _FRONT_MATTER_SEP:
+                    end_idx = i
+                    break
+            if end_idx is None:
+                from .exceptions import SkillFileError, ErrorCode
+                raise SkillFileError(
+                    "skill.md front matter 未闭合（缺少结束的 ---）",
+                    code=ErrorCode.MD_NO_FRONTMATTER,
+                )
+            open_line: str = lines[0]
+            fm: List[str] = lines[1:end_idx]
+            close_line: str = lines[end_idx]
+            tail: List[str] = lines[end_idx + 1:]
+        else:
+            # 无 front matter：正文整体保留，元数据部分新建（不 strip 正文，避免吞掉人工格式）
+            open_line, fm, close_line, tail = "", [], "", list(lines)
+
+        current = cls.parse(content)[0]  # 白名单过滤后的现值，用于「值未变则不动」
+
+        chunks: List[Tuple[str, str]] = []
+        for key, value in patch.items():
+            if key not in _META_FIELDS:
+                # 【允许改什么】的边界：白名单外的 patch 键不写进文件。
+                # 注意这不等于删除：文件里既有的同名字段仍按现状保留。
+                logger.debug(log_dict({'module_name': 'file_store', 'action': 'update_meta.ignored_key', 'key': str(key)[:64]}))
+                continue
+            if key in current and _meta_value_equal(current[key], value):
+                continue  # 值语义未变 ⇒ 一个字节都不动
+            yaml_text = yaml.safe_dump(
+                {key: value}, allow_unicode=True, default_flow_style=False,
+                sort_keys=False,
+            ).strip()
+            chunk = "".join(
+                ln if ln.endswith(("\n", "\r")) else ln + eol
+                for ln in yaml_text.splitlines(keepends=True)
+            )
+            if chunk:
+                chunks.append((key, chunk))
+
+        if not chunks and new_body is None:
+            return content  # 无事可做：原样返回，不触碰文件
+
+        for key, chunk in chunks:
+            chunk_lines = chunk.splitlines(keepends=True)
+            span = cls._find_fm_key(fm, key)
+            if span is None:
+                fm.extend(chunk_lines)  # 新键追加到 front matter 末尾（与 serialize 的键序一致）
+            else:
+                fm[span[0]:span[1]] = chunk_lines
+
+        if new_body is not None:
+            # 保留原 body 前的空行分隔，然后写入新正文
+            leading: List[str] = []
+            for ln in tail:
+                if ln.strip():
+                    break
+                leading.append(ln)
+            if not leading and has_fm:
+                leading = [eol]
+            text = new_body.rstrip("\r\n")
+            tail = leading + ([text + eol] if text else [])
+
+        if has_fm:
+            result = "".join([open_line] + fm + [close_line] + tail)
+        else:
+            gap = [eol] if tail and tail[0].strip() else []
+            result = "".join(
+                [_FRONT_MATTER_SEP + eol] + fm + [_FRONT_MATTER_SEP + eol] + gap + tail
+            )
+
+        # 末尾换行：有实际改动时保证以换行结尾，避免 No newline at end of file 噪声
+        if result and not result.endswith(("\n", "\r")):
+            result += eol
+        return result
 
     # ════════════════════════════════════════════════════════════
     #  agentskills.io 标准兼容(双向适配)
@@ -599,8 +783,25 @@ class SkillFileStore:
 
             # 写 skill.md
             meta = {**meta, "id": skill_id}
-            md_content = SkillMDParser.serialize(meta, instruction)
-            (skill_dir / _SKILL_MD).write_text(md_content, encoding="utf-8")
+            # [变易] F1b-C①：初始内容**以调用方给出的 meta 为准**，不再按 _META_FIELDS 裁剪。
+            # 修复前 serialize() 把白名单外的键静默丢弃，而 create() 是新文件**唯一**的
+            # 内容来源（不像 update_meta 还有"文件现状"可回退）⇒ 传进来的字段直接消失。
+            # 白名单在 create 侧不再兼任"保留什么"，只剩"允许改什么"（update 侧语义）。
+            md_content = SkillMDParser.serialize(meta, instruction,
+                                                 only_meta_fields=False)
+            # [不易] F1b-C②：newline="" ⇒ 不做换行翻译，落盘字节 == serialize() 的文本。
+            # 修复前 write_text 默认 newline=None，Windows 会把 \n 翻成 \r\n ⇒ 同一个
+            # create() 在 Windows / Linux 产出**不同字节**（.index/cache.json 存的是原始
+            # 字节 md5 ⇒ 平台间 hash 不通用）。现统一为 LF —— 与 git 仓库里 skill.md 的
+            # blob 形态一致（core.autocrlf=true 下工作区的 CRLF 只是 checkout 产物）。
+            with (skill_dir / _SKILL_MD).open("w", encoding="utf-8",
+                                              newline="") as _fp:
+                _fp.write(md_content)
+            _outside = sorted(k for k in meta if k not in _META_FIELDS)
+            if _outside:
+                logger.info(log_dict({'module_name': 'file_store',
+                                      'action': 'create.meta_outside_whitelist',
+                                      'skill_id': skill_id, 'keys': _outside}))
 
             # 写脚本
             if scripts:
@@ -651,15 +852,33 @@ class SkillFileStore:
 
     def update_meta(self, skill_id: str, patch: Dict[str, Any],
                     new_instruction: Optional[str] = None) -> None:
-        """更新技能元数据和使用说明"""
+        """更新技能元数据和使用说明
+
+        签名与返回语义不变（返回 None；技能不存在 → SkillNotFoundError；
+        front matter 非法 → SkillFileError，异常语义与修复前一致）。
+
+        [变易] 修复 F1b 的静默数据丢失：改写走 SkillMDParser.patch_front_matter()
+        的**最小侵入**路径 —— 只重写被 patch 的顶层键所在行，文件其余部分
+        （白名单外的既有字段、YAML 注释、引号风格、`tags: [...]` 行内列表、键顺序、
+        行尾终止符、末尾换行）逐字节保留。
+        修复前这里是 parse → serialize 的整文件重排：_META_FIELDS 白名单被同时
+        当成「保留什么」，导致白名单外字段与全部注释被静默删除，
+        且每次技能启停都产生格式噪声 diff（审计 F1b）。
+
+        说明：文件按原文的行尾终止符（LF/CRLF）写回，不做换行翻译
+        （Path.write_text 在 Windows 上会把 \n 翻成 \r\n）。
+        """
         with self._lock:
-            meta, body = self._read_md(skill_id)
-            meta.update({k: v for k, v in patch.items() if k in _META_FIELDS})
-            if new_instruction is not None:
-                body = new_instruction
-            md_content = SkillMDParser.serialize(meta, body)
-            skill_dir = self._skill_dir(skill_id)
-            (skill_dir / _SKILL_MD).write_text(md_content, encoding="utf-8")
+            # 技能存在性 + front matter 可解析性校验（异常语义与修复前一致）
+            self._read_md(skill_id)
+            md_path = self._skill_dir(skill_id) / _SKILL_MD
+            # newline="" ⇒ 不做换行翻译：CRLF 原样读入，才能在写回时逐字节保留
+            with md_path.open("r", encoding="utf-8", newline="") as fp:
+                original = fp.read()
+            md_content = SkillMDParser.patch_front_matter(
+                original, patch, new_instruction)
+            with md_path.open("w", encoding="utf-8", newline="") as fp:
+                fp.write(md_content)
             self._meta_index = None
 
         # [变易] 锁外触发写入钩子 — 守 project_memory 硬约束（锁内禁外部回调）

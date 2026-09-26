@@ -699,9 +699,91 @@ def _restore_pinned_tools(
     return kept
 
 
+# ════════════════════════════════════════════════════════════
+#  【DET-2】候选 / 类别的**迭代序**确定化（本族的**唯一收敛点**）
+# ════════════════════════════════════════════════════════════
+# 【缺陷族】把 set 交给**稳定排序** ⇒ 分数/优先级**并列**项的先后 = set 迭代序
+#   = 字符串哈希随机化 ⇒ 同一个查询在**不同进程**里可能得到不同的结果；
+#   当截断点落在并列块内部时，连下发集的**成员**都会变（不只是顺序）。
+#   本族已被独立发现 3 次：
+#     · agent/tool_router_hybrid.py 融合入口 + 下发阶（E1-D 已修）；
+#     · agent/tool_router.py get_tools_for_input（DET-2 修，走本函数）；
+#     · agent/skills_mgmt/loader.py _tfidf_scan（DET-2 修，同族不同子系统）。
+# 【收敛点】本函数是关键词路由与 hybrid 路由**共用**的"排序 + 截断"唯一入口，
+#   故把"set ⇒ 确定次序"收敛在**这一处**，而不是每个调用方各修一遍：
+#     · 调用方递进来的若已是**有序序列**，原样保留它的次序
+#       —— 那是它自己的"候选汇合序"（例如 hybrid 的相关度序），helper 无权也不该改；
+#     · 若是 set/frozenset（**次序信息在传参前就已丢失**），
+#       则按「类别声明序 → 名字」确定化。
+#   两个调用方因此都变确定：hybrid 侧由调用方给语义序（E1-D），
+#   关键词侧由本处兜底（DET-2），且**再无第三个入口**能绕过。
+# 【为什么兜底取「类别声明序」而不是直接取名字字典序】
+#   ① 与 E1-D 的 hybrid 口径同源（相关度序 → 类别声明序 → 字典序）：声明序是人工
+#      编排的顺序（同类别内相邻工具语义相近），比字典序更贴合"优先级/相关度"的意图；
+#   ② 名字字典序在 hybrid 路会在**分数并列处重排 BM25 本路**，而"降级路上融合顺序
+#      必须与 raw BM25 顺序**逐位一致**"是既有明文契约
+#      （tests/unit/test_tool_router_hybrid_fusion_calibration.py::
+#       test_degraded_path_order_matches_raw_bm25）—— 那等于把"修非确定性"做成
+#       "改本路排序"。声明序兜底**只在 set 输入时生效**：hybrid 传的是有序序列
+#      ⇒ 该契约逐位不受影响（回归已验证）。
+#   名字只作**最后兜底**（候选/类别不在 TOOL_CATEGORIES 里时），保证任何输入都完全确定。
+_DECL_MISSING = 1 << 30
+
+
+def _declaration_positions() -> tuple[dict, dict]:
+    """(工具声明位置, 类别声明位置) —— TOOL_CATEGORIES 的人工编排顺序。
+
+    【不易】只读 TOOL_CATEGORIES，不改写任何模块状态。
+    【变易】每次调用现算：TOOL_CATEGORIES 可由 YAML 派生、也可能被测试替换，
+            缓存会与"当时的表"脱钩。代价 ≈ 工具总数 次字典写入，
+            且只在输入是 set/frozenset 时才会走到。
+    【简易】未在表中的键由调用方用 _DECL_MISSING 兜底 + 名字排序。
+    """
+    cat_pos = {c: i for i, c in enumerate(TOOL_CATEGORIES)}
+    tool_pos: dict = {}
+    for cat_info in TOOL_CATEGORIES.values():
+        for tool in (cat_info or {}).get("tools", []):
+            tool_pos.setdefault(tool, len(tool_pos))
+    return tool_pos, cat_pos
+
+
+def _ordered_candidates(selected) -> tuple[list, set]:
+    """把候选规范成「**确定次序**的序列 + 成员集合」。
+
+    有序序列（list/tuple）⇒ 原样保留（去掉重复，保持首次出现的位置）；
+    其余（set/frozenset/任何无内禀次序的可迭代）⇒ 类别声明序 → 名字。
+    """
+    if isinstance(selected, (list, tuple)):
+        seq = list(dict.fromkeys(selected))
+        return seq, set(seq)
+    members = set(selected)
+    tool_pos, _ = _declaration_positions()
+    seq = sorted(members, key=lambda t: (tool_pos.get(t, _DECL_MISSING), str(t)))
+    return seq, members
+
+
+def _ordered_categories(categories) -> list:
+    """把类别集合规范成「**确定次序**的序列」。
+
+    有序序列 ⇒ 原样保留；其余 ⇒ (priority, 声明位置, 名字)。
+    为什么这里也要确定：helper 里 matched_cats 按 priority **稳定排序**，
+    本表存在**同优先级**的两个类别（extension=5 / knowledge=5 等）
+    ⇒ 传 set 时这两类的先后随哈希变，而它们决定 floors（类别保底）的先后，
+    进而影响截断点上的**成员**。
+    """
+    if isinstance(categories, (list, tuple)):
+        return list(dict.fromkeys(categories))
+    _, cat_pos = _declaration_positions()
+    return sorted(
+        set(categories),
+        key=lambda c: (TOOL_CATEGORIES.get(c, {}).get("priority", 99),
+                       cat_pos.get(c, _DECL_MISSING), str(c)),
+    )
+
+
 def _apply_alias_merge_and_priority_sort(
-    selected: set,
-    categories: set,
+    selected,
+    categories,
     max_tools: int,
     preferred_order: list[str] | None = None,
 ) -> list[str]:
@@ -725,16 +807,28 @@ def _apply_alias_merge_and_priority_sort(
     二进制返回 binary=True 读不了 PDF，read_pdf 才是唯一能读的工具，于是别名机制
     把唯一可用的那个删掉了。详见 TOOL_ALIASES 处的长注释。
     正确做法是合并**实现**（一个工具 + mode 参数），不是对候选集做减法。
+
+    【DET-2 · 入参次序契约】`selected` 可以是 set 或**有序序列**；`categories` 同理。
+      · 有序序列 ⇒ 原样保留其次序（那是调用方的"候选汇合序"）；
+      · set ⇒ 由本函数按「类别声明序 → 名字」确定化。
+      **两种输入的输出都与进程无关**（不再依赖字符串哈希随机化）。
+      本函数是两条路由路径唯一的"排序 + 截断"入口 ⇒ 确定化收敛在**这一处**。
     """
+    # 【DET-2】先把两个入参规范成**确定次序**（见本函数上方"迭代序确定化"一段）：
+    #   · selected_seq / categories_seq = 有序序列（调用方给了有序序列就原样保留）
+    #   · selected_set = 成员集合（成员判定一律走它，语义与改前逐位一致）
+    selected_seq, selected_set = _ordered_candidates(selected)
+    categories_seq = _ordered_categories(categories)
+
     # 【功能 1】优先级排序:工具 → 其所属类别中最小的 priority
     tool_to_priority: dict[str, int] = {}
-    for cat in categories:
+    for cat in categories_seq:
         cat_info = TOOL_CATEGORIES.get(cat)
         if not cat_info:
             continue
         pri = cat_info.get("priority", 99)
         for tool in cat_info["tools"]:
-            if tool in selected:
+            if tool in selected_set:
                 if tool not in tool_to_priority or pri < tool_to_priority[tool]:
                     tool_to_priority[tool] = pri
 
@@ -753,9 +847,9 @@ def _apply_alias_merge_and_priority_sort(
     #   故按预算**缩放**保底数：floor_n ≤ max_tools / 命中类别数 ⇒ Σ保底 ≤ max_tools。
     #   预算太小就保不住（上限说了算），但预算够时任何命中类别都不会归零。
     matched_cats = [
-        c for c in categories
+        c for c in categories_seq
         if TOOL_CATEGORIES.get(c, {}).get("tools")
-        and any(t in selected for t in TOOL_CATEGORIES[c]["tools"])
+        and any(t in selected_set for t in TOOL_CATEGORIES[c]["tools"])
     ]
     floor_n = _FLOOR_PER_CATEGORY
     if max_tools and max_tools > 0 and matched_cats:
@@ -773,7 +867,7 @@ def _apply_alias_merge_and_priority_sort(
     _pref_index = {t: i for i, t in enumerate(preferred_order or [])}
     for cat in sorted(matched_cats,
                       key=lambda c: TOOL_CATEGORIES.get(c, {}).get("priority", 99)):
-        cat_tools = [t for t in TOOL_CATEGORIES.get(cat, {}).get("tools", []) if t in selected]
+        cat_tools = [t for t in TOOL_CATEGORIES.get(cat, {}).get("tools", []) if t in selected_set]
         if not cat_tools:
             continue
         # 类别内排序：相关度优先（有则用），否则保持类别内既定顺序
@@ -788,11 +882,12 @@ def _apply_alias_merge_and_priority_sort(
         head_all: list[str] = []
         seen: set[str] = set()
         for t in preferred_order:
-            if t in selected and t not in seen:
+            if t in selected_set and t not in seen:
                 seen.add(t)
                 head_all.append(t)
         head_set = set(head_all)
-        tail = [t for t in sorted(selected, key=lambda x: tool_to_priority.get(x, 99))
+        # 【DET-2】迭代 selected_seq（确定次序）而非 selected：并列项的先后由它决定
+        tail = [t for t in sorted(selected_seq, key=lambda x: tool_to_priority.get(x, 99))
                 if t not in head_set]
         if max_tools and max_tools > 0:
             head_cap = max(1, max_tools // 2)
@@ -800,7 +895,8 @@ def _apply_alias_merge_and_priority_sort(
         else:
             result = head_all + tail
     else:
-        result = sorted(selected, key=lambda t: tool_to_priority.get(t, 99))
+        # 【DET-2】同上：关键词路由（无 preferred_order）走这条；迭代确定次序
+        result = sorted(selected_seq, key=lambda t: tool_to_priority.get(t, 99))
 
     # 保底工具前置（它们已在 selected 内，不会引入未命中类别的工具）
     result = floors + [t for t in result if t not in floor_set]
@@ -809,7 +905,7 @@ def _apply_alias_merge_and_priority_sort(
     #         最后补回 PINNED_TOOLS 中被挤掉的工具(见 _restore_pinned_tools;
     #         补回后允许总数略超 max_tools)
     if max_tools is not None and max_tools > 0 and len(result) > max_tools:
-        result = _restore_pinned_tools(result, selected, max_tools, keep=floor_set)
+        result = _restore_pinned_tools(result, selected_set, max_tools, keep=floor_set)
     return result
 
 

@@ -430,7 +430,32 @@ class LLMService:
             )
             if tools:
                 create_kwargs["tools"] = tools
-            stream = client.chat.completions.create(**create_kwargs)
+            # ── F3-2：流式请求也要 usage（成本/缓存可观测性） ──────────────────
+            # 【实测·本端点 https://api.deepseek.com/v1（原始 chunk 见 F3-2.md §1）】
+            #   ① 不带本参数时，**最后一个 chunk 也已经带 usage**（choices 非空、
+            #      finish_reason=stop、含 prompt_cache_hit_tokens/prompt_cache_miss_tokens）；
+            #   ② 带上本参数后 usage 字段完全相同（本端点把它挂在 finish_reason 那一块，
+            #      **不额外补一个 choices=[] 的尾块**）。
+            #   ⇒ 真正丢数据的地方不在"请求没要"，而在**消费端从不读 chunk.usage**；
+            #     但显式开启仍是必要的：这是 OpenAI 兼容规范里的正式开关，
+            #     避免上游默认行为一变就静默失去计量（对端不支持时下面有无参重试兜底）。
+            create_kwargs["stream_options"] = {"include_usage": True}
+            try:
+                stream = client.chat.completions.create(**create_kwargs)
+            except Exception as _so_err:
+                # 【不易】stream_options 是**加料**，不是主链路能力：网关/旧版服务端
+                #   不认这个参数时会直接 4xx。此时必须退回「不带该参数」的请求，
+                #   内容能力不受损，而不是把整条流打断（流式仍能拿到正文，
+                #   只是 usage 回到"未上报"的既有降级态）。
+                _so_text = str(_so_err)
+                _so_markers = ("stream_options", "include_usage", "unknown parameter",
+                               "unrecognized", "extra inputs", "extra_forbidden")
+                if not any(_m in _so_text for _m in _so_markers):
+                    raise
+                logger.warning("[Stream] 上游不接受 stream_options（%s）→ 退回不带 usage 回传的流式请求",
+                               _so_err)
+                create_kwargs.pop("stream_options", None)
+                stream = client.chat.completions.create(**create_kwargs)
             # 工具调用增量聚合：流式 tool_calls 按 index 分片，需跨 chunk 拼接
             tool_accum: dict[int, dict] = {}
             # DeepSeek thinking 模式：reasoning_content 需在回传消息时附上

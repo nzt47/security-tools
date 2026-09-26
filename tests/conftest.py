@@ -14,6 +14,8 @@ import sys
 import json
 import copy
 import time
+import atexit
+import shutil
 import tempfile
 import pytest
 from unittest.mock import Mock
@@ -37,6 +39,68 @@ os.environ.setdefault("PYTHONUTF8", "1")
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 os.environ.setdefault("OMP_NUM_THREADS", "4")
 os.environ.setdefault("MKL_NUM_THREADS", "4")
+
+# ════════════════════════════════════════════════════════════
+#  【TESTHYG-1 · 2026-09-26】`.env` 重定向的**会话级地板**（必须早于任何夹具）
+# ════════════════════════════════════════════════════════════
+# 现象：全量 22637 条里 5 条红、**单跑全绿** ——
+#   test_settings_registry.py::TestConfigPathDrivesDisplayNotRuntime 的
+#     test_no_declared_key_is_env_pinned_here / test_every_declared_path_flips_default_to_config、
+#   test_error_reporting_config.py::TestErrorReportingConfig::test_get_config_default、
+#   test_evolver_real_eval.py::TestRealEvalDistinguishable（×2）。
+#
+# 根因（**脏写钩子实测调用栈**，不是推断）：
+#   module 级夹具 `import app_server`
+#     → `app_server.py:50`  `get_env_config_manager().reload()`
+#     → `agent/env_config_manager.py:387`  `os.environ[k] = v`   ← **整份 .env**（实测 140 键）
+#
+# 为什么原有的重定向挡不住：`CP_ENV_FILE` 此前**只在函数级**夹具
+#   `_isolate_dotenv_target` 里设置；而 pytest 的**高 scope 夹具先于低 scope 夹具**
+#   setup ⇒ 任何 `scope="module"/"session"` 的夹具里 `import app_server` 时，
+#   重定向尚未生效，manager 指向**仓库真实 `.env`**。
+#   实测触发点（同一形状共 5 处，全部是 module 级夹具）：
+#     test_server_routes_registration_inventory.py:153（real_url_paths）
+#     test_graceful_shutdown_persist.py:28（app_server_mod）
+#     test_health_retrieval_endpoint.py:31（flask_app）
+#     test_legacy_memory_routes.py:94（real_app）
+#     test_tool_callability.py:567（real_app）
+#   灌进来的键里有 `EVOLUTION_DEFAULT_EVALUATOR=real`、
+#   `ERROR_REPORTING_WEBHOOK_URL=https://hooks.slack.com/test`、
+#   `ORCHESTRATOR_REJECT_ENABLED=false`、`SKILLS_FUSION_WEIGHT_BM25=0.2` —— 正是上述
+#   用例"断言默认值/启发式路径"的判据 ⇒ **判据被换掉，与被测代码无关**。
+#
+# 修法（治本，不是掩盖）：把重定向**提前到 conftest 导入期**（早于收集、早于一切夹具），
+#   于是 `reload()` 读到的是**空的隔离 .env** ⇒ **污染源自己不再写 os.environ**。
+#   这与本文件既有的 `_isolate_dotenv_target`（"重定向真实 I/O，而不是 mock 掉写入"）
+#   是同一口径，只是把生效时机从"逐用例"提前到"会话开始前"。
+#   与函数级夹具的关系：本处是**地板**（保证任何时刻都不指向仓库 `.env`）；
+#   函数级仍是**逐用例隔离**（用例之间互不串味），其还原目标即本值。
+#
+# 【为什么是无条件覆盖而不是 setdefault】不变量是"测试进程任何时刻都不得把仓库
+#   `.env` 读进 os.environ"。继承来的 `CP_ENV_FILE` 完全可能就是仓库 `.env` 本身
+#   （那正是本缺陷的形态），setdefault 会把缺陷原样留下。函数级 `_isolate_dotenv_target`
+#   本来就是无条件覆盖，故这里不引入新的语义。
+_DOTENV_FLOOR_DIR = tempfile.mkdtemp(prefix="pytest_dotenv_floor_")
+_DOTENV_FLOOR_FILE = os.path.join(_DOTENV_FLOOR_DIR, "isolated.env")
+os.environ["CP_ENV_FILE"] = _DOTENV_FLOOR_FILE
+atexit.register(shutil.rmtree, _DOTENV_FLOOR_DIR, ignore_errors=True)
+
+# ── 【TESTHYG-1 · 离线基线】测试进程**不加载** .env（见上方地板）──
+# import app_server 会真的实例化 sentence-transformers 编码器，而"只读本地缓存、
+# 不出网"的前提是 HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE（.env:153-154 提供的
+# 正是这两个键）。地板生效后 .env 不再进 os.environ ⇒ 必须在这里**显式补齐**，
+# 否则实测后果（2026-09-26）：去 huggingface.co 拉 paraphrase-multilingual-MiniLM-L12-v2，
+# WinError 10060 五次重试 × 多个文件，import app_server 从 ~90s 拖到 >13min，
+# 直接撞穿 pytest-timeout 的 120s 并对整个进程硬退出（整轮无 summary、exit 1）。
+# 【为什么这不是"为了让测试变绿而放宽"】这两条**本来就在 CI 上如此**：CI 的干净
+# checkout 里没有 .env（.gitignore:12），故三份 workflow 都显式设了它们
+# （.github/workflows/test.yml:301-302、daily_regression.yml:57-58、
+# observability-ci.yml）—— 这里只是把本地基线**对齐 CI**。
+# 它们不在开关注册表（agent/settings/registry.py）里，也没有任何用例断言其默认值，
+# 故不改变任何用例的判据语义。
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -778,9 +842,48 @@ def test_data_manager():
 #  故如上一节所述把那个 mock 整体删除（`SKILLS_OFFLINE` 分支随之消失）。
 # ════════════════════════════════════════════════════════════
 
+@pytest.fixture(scope="session", autouse=True)
+def _assert_dotenv_redirect_floor():
+    """会话级**自证**：`.env` 重定向地板已生效（TESTHYG-1）
+
+    本夹具按 scope 规则**先于任何 module/session 级夹具** setup ⇒ 它在
+    `import app_server`（module 级夹具）**之前**就把不变量钉住：
+    `EnvConfigManager` 的目标**不是**仓库根 `.env`。
+
+    这不是"断言测试自己写的东西"：`EnvConfigManager` 的目标由
+    `CP_ENV_FILE`（第 83-86 行的地板）与 `EnvConfigManager.__init__` 共同决定，
+    正是污染源 `app_server.py:50 → env_config_manager.py:387` 读取的那一个值。
+    故本断言 = "**污染源读不到真实 .env**" 的机器可校验形式；一旦有人把地板删掉
+    （或让 CP_ENV_FILE 指回仓库 .env），它会在**第一个用例**上直接失败并点名，
+    而不是等到全量跑里以 5 条"单跑全绿"的红灯形式浮现。
+    """
+    from agent.env_config_manager import ENV_FILE_OVERRIDE_VAR, EnvConfigManager
+
+    repo_env = (Path(__file__).resolve().parents[1] / ".env").resolve()
+    override = str(os.environ.get(ENV_FILE_OVERRIDE_VAR) or "").strip()
+    assert override, (
+        ENV_FILE_OVERRIDE_VAR + " 未设置 —— tests/conftest.py 的 .env 重定向地板失效，"
+        "此时 module 级夹具 `import app_server` 会把**整份仓库 .env** 灌进 os.environ")
+    assert Path(override).resolve() != repo_env, (
+        ENV_FILE_OVERRIDE_VAR + " 指向仓库根 .env（" + str(repo_env) + "）—— 地板失效")
+    target = Path(EnvConfigManager()._env_file).resolve()
+    assert target != repo_env, (
+        "EnvConfigManager 的目标是仓库根 .env（" + str(target)
+        + "）—— 污染源会读到真实 .env")
+    yield
+    # 收尾：摘掉地板目录（`atexit` 已注册同一动作；这里再钉一次是为了"会话正常结束必清"，
+    # 不依赖解释器退出路径）。硬杀（pytest-timeout 的 os._exit）跳过二者 ⇒ 见 TESTHYG1.md 残留物一节。
+    shutil.rmtree(_DOTENV_FLOOR_DIR, ignore_errors=True)
+
+
 @pytest.fixture(scope="function", autouse=True)
 def _isolate_dotenv_target(tmp_path):
-    """每个用例把 `EnvConfigManager` 的目标 `.env` 指向本用例的 tmp 目录"""
+    """每个用例把 `EnvConfigManager` 的目标 `.env` 指向本用例的 tmp 目录
+
+    【与 TESTHYG-1 地板的关系】会话级地板（本文件第 43-86 行，conftest 导入期设置）
+    保证**任何时刻**都不指向仓库 `.env`；本夹具在此之上做**逐用例**隔离
+    （用例之间不共享同一个 .env），其 teardown 还原到的 `prev` 正是那个地板值。
+    """
     from agent import env_config_manager as _ecm
 
     prev = os.environ.get(_ecm.ENV_FILE_OVERRIDE_VAR)

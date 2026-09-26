@@ -115,7 +115,10 @@ def solidify_to_workflow(proc: DistilledProcess, *,
         source_session_id=session_id,
         source_user_input=f"[知识蒸馏] {proc.name}"[:200],
         confidence=0.5,
-        tags=list({*proc.tags, "distilled", "from_knowledge", "pd"})[:8],
+        # 【DET-4】先无序再 [:8] 截断 ⇒ 截断点上的**成员**也随进程变（实测 5 种子 5 种成员集；
+        # 固定标签 pd 与业务标签 git/ci 都会互相挤掉）。dict.fromkeys 保留 proc.tags 的声明序
+        # （= 候选汇合序），截断点从此有定义。
+        tags=list(dict.fromkeys([*proc.tags, "distilled", "from_knowledge", "pd"]))[:8],
     )
 
     try:
@@ -254,7 +257,8 @@ def solidify_to_skill(proc: DistilledProcess, *, skills_svc=None,
         "description": proc.description[:300] or f"由知识蒸馏生成: {proc.name}",
         "content_type": "markdown",
         "category": "custom",
-        "tags": list({*proc.tags, "distilled", "from_knowledge", "external"})[:8],
+        # 【DET-4】同上：skill 轨的 tags 同样先无序再截断（见 solidify_to_workflow 的说明）。
+        "tags": list(dict.fromkeys([*proc.tags, "distilled", "from_knowledge", "external"]))[:8],
         "author": "process_distill",
         "source": "knowledge_distill",
         # A. 双轨一致：文件轨显式声明状态与启停（与 JSON 轨 draft/enabled 对齐），

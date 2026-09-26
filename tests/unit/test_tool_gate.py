@@ -656,16 +656,29 @@ class TestToolsCallIsEnforcementPoint:
         assert result["ok"] is True
         assert probe_tool["n"] == 1
 
-    def test_闸门模块导入失败时_call_照常执行(self, probe_tool):
-        """闸门不可用（导入异常）→ 放行；sys.modules 里的 None 会让 import 抛 ImportError"""
+    def test_闸门模块导入失败时未登记工具被拒_fail_closed(self, probe_tool):
+        """闸门不可用（导入异常）→ **fail-closed**：判不出级别的工具按最严拒绝。
+
+        [A2/R3 契约变更 2026-09-25] 本用例原为 `test_闸门模块导入失败时_call_照常执行`，
+        断言 `result["ok"] is True` —— 那是在钉住**旧的 fail-open 行为**（审计 S2：
+        `tools/__init__.py` 把闸门 import 写在 try 内，异常即全量放行，含 L3）。
+        该行为已被 A2 明确改为 fail-closed（见 `docs/audit_skill_governance/A2.md`），
+        故本用例随之更新为断言新契约。
+
+        `PROBE_TOOL` 经 `registry.register(...)` 登记且**无 YAML 元数据** ⇒
+        `_confirm_level_without_gate()` 判不出级别 ⇒ 按 `L3` 处置 ⇒ 拒绝。
+        放行面（L0/L1 在闸门不可用时仍放行）由 `test_confirm_gate_no_bypass.py`
+        的 `TestS2GateImportFailureIsFailClosed` 覆盖，本用例只钉住拒绝侧。
+        """
         import sys
         from agent import tools as registry
 
         with patch.dict(sys.modules, {"agent.tool_gate": None}):
             result = registry.call(PROBE_TOOL)
 
-        assert result["ok"] is True
-        assert probe_tool["n"] == 1
+        assert result["ok"] is False, result
+        assert result.get("blocked") is True, result
+        assert probe_tool["n"] == 0, "被拒的工具**不得**执行 handler"
 
 
 class TestExecuteSafeRetrySemantics:

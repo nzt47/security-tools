@@ -112,13 +112,21 @@ _DESC_OVERLAY_FILE = os.path.normpath(
     os.path.join(os.path.dirname(__file__), '..', 'data', 'skills_descriptions_overlay.json')
 )
 
-# 已知内置技能的中文说明（供“自动补全中文说明”使用）
-_CURATED_DESCRIPTIONS = {
-    "self_reflection": "自省反思：复盘自身行为与决策，沉淀经验与改进方向",
-    "email-helper": "邮件处理助手：起草、整理与管理邮件（处理收件与回复）",
-    "memory_summary": "记忆摘要：压缩与归纳对话历史与长期记忆，控制上下文占用",
-    "scripted-selftest": "三层架构示例技能：演示 skill.md 元数据 + 脚本执行 + 参数注入契约",
-}
+# [G1-B/M6 已删除] 原 `_CURATED_DESCRIPTIONS`（4 条内置技能的中文说明字面量）
+#
+# 删除理由（G1-A §8.2 与 §12.1）：
+#  ① 它是 `data/skills_descriptions_overlay.json` 的**唯一写源**，留着就等于留着一个
+#     「随时重建 overlay」的开关 —— 只清空 overlay 而不删它会立刻被写回来（R11）；
+#  ② 4 条里 3 条（self_reflection / memory_summary / scripted-selftest）
+#     **结构性永不生效**：`_apply_desc_overlay` 要求“原描述为空”才覆盖，而这 3 条在
+#     合并视图里恒有非空描述（实测 61 / 65 / 89 字）；
+#  ③ 第 4 条 `email-helper` 是**死键**（skills_repo / skills_mgmt / skills.json 三处
+#     均无此实体）；
+#  ④ 它承载的是「主轨 description」的中文副本 —— 而本卡已把描述的唯一事实源收敛为
+#     `data/skills_repo/<id>/skill.md` 的 front matter（`description` 英文 /
+#     `description_zh` 中文）。
+#
+# 写路径冻结见同文件 `POST /api/skills/describe` 与 `/api/skills/describe/auto`（M0）。
 
 
 def _load_desc_overlay() -> dict:
@@ -444,40 +452,62 @@ def api_skills_toggle():
 @_require_token
 @_log_request()
 def api_skills_describe():
-    """手工补写某个运行时技能的中文说明（持久化到覆盖层）"""
+    """【G1-B / M0 已冻结】原「手工补写某个运行时技能的中文说明到覆盖层」
+
+    [不易] **本路由自 2026-09-26 起不再写任何数据**（G1-B 的 M0「先冻写路径再删
+    数据」，依据 G1-B0 §2.7 E-2 / §4.5 H-4）。
+
+    为什么必须冻：它是**可写任意 id** 的第二条 overlay 写路径
+    （overlay[skill_id] = {...}，无 id 存在性校验）。只删
+    data/skills_descriptions_overlay.json 而不冻它 ⇒ **下次调用就把键写回来**
+    （G1-A 风险 R11 的同族问题）。
+
+    为什么不是「直接删路由」：删除会让前端 skills.tsx 的调用点收到 404/405，
+    与「能力面变更」无法区分；保留路由 + 显式拒绝，运维可见原因。
+
+    替代路径（唯一事实源）：技能描述写在 data/skills_repo/<id>/skill.md 的
+    front matter —— description = 英文（检索 + 模型可见），
+    description_zh = 中文（UI 展示）。
+    """
     data = request.get_json(silent=True) or {}
     skill_id = str(data.get("id", "") or "")
-    description = str(data.get("description", "") or "").strip()
-    if not skill_id:
-        return jsonify({"ok": False, "error": "缺少 id"}), 400
-    overlay = _load_desc_overlay()
-    overlay[skill_id] = {"description": description}
-    ok = _save_desc_overlay(overlay)
-    return jsonify({"ok": ok, "id": skill_id, "description": description})
+    return jsonify({
+        "ok": False,
+        "frozen": True,
+        "id": skill_id,
+        "error": "描述写路径已冻结（G1-B/M0）：技能描述唯一事实源为 "
+                 "data/skills_repo/<id>/skill.md 的 front matter —— 请改 "
+                 "description / description_zh，不要再写 "
+                 "data/skills_descriptions_overlay.json",
+    }), 409
 
 
 @bp.route("/api/skills/describe/auto", methods=["POST"])
 @_require_token
 @_log_request()
 def api_skills_describe_auto():
-    """为缺描述的已知内置技能自动补中文说明（自省/邮件/记忆摘要等）"""
-    data = request.get_json(silent=True) or {}
-    ids = data.get("ids") or list(_CURATED_DESCRIPTIONS.keys())
-    overlay = _load_desc_overlay()
-    applied = []
-    for sid in ids:
-        sid = str(sid)
-        cur = _CURATED_DESCRIPTIONS.get(sid)
-        if not cur:
-            continue
-        # 目标描述为空才覆盖（不覆盖用户已填写的）
-        existing = str((overlay.get(sid) or {}).get("description", "") or "")
-        if existing:
-            continue
-        overlay[sid] = {"description": cur}
-        applied.append({"id": sid, "description": cur})
-    ok = _save_desc_overlay(overlay)
-    return jsonify({"ok": ok, "applied": applied, "count": len(applied)})
+    """【G1-B / M0 已冻结】原「为缺描述的已知内置技能自动补中文说明」
+
+    [不易] **本路由自 2026-09-26 起是 no-op**：永远返回 applied=[] / count=0，
+    不再读写任何 overlay（G1-B0 §4.1 M0 与 §4.5 H-4 的顺序要求：
+    **先冻写路径，再删数据**）。
+
+    为什么必须冻：它是 data/skills_descriptions_overlay.json 的第一条写路径，
+    写源是代码字面量 _CURATED_DESCRIPTIONS。只清空 overlay 而不冻它 ⇒
+    「删了等于没删」（G1-A 风险 R11：email-helper 死键会被自动重建）。
+
+    [不易] 响应形状**保持不变**（ok / applied / count 三键）：前端
+    skills.tsx 读的是 r.count，改形状会让调用点报错而不是静默无操作。
+    新增 frozen=True 供运维区分「没有可补的」与「入口已冻结」。
+    """
+    return jsonify({
+        "ok": True,
+        "frozen": True,
+        "applied": [],
+        "count": 0,
+        "note": "描述自动补全入口已冻结（G1-B/M0）：中文说明请写 "
+                "data/skills_repo/<id>/skill.md 的 description_zh",
+    })
 
 
 @bp.route("/api/skills/classify/run-auto", methods=["POST"])

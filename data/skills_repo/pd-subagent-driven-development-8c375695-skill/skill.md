@@ -16,6 +16,7 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 在当前会话中执行包含独立任务的实施计划时，请使用。由 1 份素材蒸馏生成
 ---
 
 # subagent-driven-development

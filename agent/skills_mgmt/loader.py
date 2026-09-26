@@ -66,14 +66,93 @@ def estimate_tokens(text: str) -> int:
     return tokens
 
 
-def _meta_to_meta_text(meta: Dict[str, Any]) -> str:
-    """将元数据字典转为用于匹配的文本（第一层）"""
+#: 【G1C-U1 逃生开关】索引侧元数据文本是否并入 `description_zh`（中文展示文案）。
+#:
+#: 为什么需要它：`description` 自 G1-B 起是**英文**（检索 + 模型可见），中文只另存
+#: `description_zh`（UI 展示）。而真实用户输入绝大多数是中文 ⇒ 只拼英文 description 的
+#: `meta_text` 里几乎没有中文，中文 query 的 bigram 无处可中（实测 28 条里 20 条带
+#: `description_zh`，却全都不进索引）。
+#:
+#: 默认 **True = 新行为**（中文并进索引）；置 0/false/no/off ⇒ 逐字回到旧行为
+#: （只拼 name/description/tags/category）。这是「恢复旧行为」而非拆除防护 ⇒ **A 级**。
+#: 登记于 `agent/settings/registry.py`（CAT_SKILLS）。
+_ENV_META_INCLUDE_ZH = "CP_SKILL_META_INCLUDE_ZH"
+
+#: 【DET-2】候选/类别排序时"不在索引序表里"的兜底位置（排在所有已知项之后）。
+#: 正常路径取不到它（候选集来自同一份 index）；它只保证任何输入都**完全确定**。
+_ORDER_MISSING = 1 << 30
+
+
+def _include_description_zh() -> bool:
+    """索引侧是否并入 `description_zh`（默认 True；置 0/false/no/off 回旧行为）
+
+    【口径】与 `index_cache._env_flag` / `searcher._desc_from_file_track` 同款：
+    未设置或全空白 ⇒ 默认；否则 0/false/no/off 视为 False，其余非空值视为 True。
+    """
+    raw = os.environ.get(_ENV_META_INCLUDE_ZH)
+    if raw is None or str(raw).strip() == "":
+        return True
+    return str(raw).strip().lower() not in ("0", "false", "no", "off")
+
+
+def _meta_to_meta_text(meta: Dict[str, Any], *, name_fallback: str = "") -> str:
+    """将元数据字典转为用于匹配的文本（第一层）
+
+    【G1C-UA · 本函数是**三条检索腿**唯一的 front-matter 文本来源】
+
+    Layer-1 有 3 条腿，各自独立实现过一份"拼哪些字段"的代码（同形实现）：
+      · TF-IDF 腿 —— 本函数（`_get_inverted_index` / `match` / `_match_score`）；
+      · BM25 腿   —— `bm25_searcher._skill_to_doc`；
+      · 向量腿    —— `vector_adapter._build_vector_text`（front matter 部分）。
+    G1C-U1 只修了第一条 ⇒ 后两条看不到中文收益。G1C-UA 把后两条**改为调用本函数**
+    （不再各留一份字段列表），使 `description_zh` 的并入与否**只由本函数里的
+    同一个开关 `_include_description_zh()` 决定**，三腿在结构上不可能再各走各的。
+    护栏见 `tests/unit/test_three_legs_meta_zh_parity.py`。
+
+    【参数 `name_fallback`】向量腿原有的口径是 `meta.get("name", skill_id)`
+    —— name 缺失时用 skill_id 兜底（保住 skill_id 里的英文 token）。默认空串 ⇒
+    name 存在时**逐字**与旧行为相同（本函数原调用方零影响）。
+
+    【G1C-U1 · 为什么并入 `description_zh`】
+
+    修复前只拼 `name / description / tags / category`。而 G1-B 之后 `description` 的
+    **唯一权威**是英文（H-1：改中文会掉 `Use when …` 触发句式覆盖），中文只另存一列
+    `description_zh`（UI 展示用）⇒ **索引文本里没有中文**，中文 query 的 bigram 一个
+    都中不了。实测（`SkillLoader()` 默认形态、28 条）：8 条中文 query 只中 2 条，
+    同语义的 8 条英文 query 全中。
+
+    【为什么修索引侧，而不是"让中文 query 走对的分词"】
+
+    索引侧与查询侧**本来就是同一个 `_tokenize`**（建索引 `_get_inverted_index`、
+    查询 `match`、打分 `_match_score` 三处同源）—— 不存在 G1-A/F11-C 那种"两侧口径
+    不一致"的死特征。缺的是**被索引的字段**：query 侧再怎么分词，也切不出索引里根本
+    不存在的 token ⇒ 唯一有效的修法是索引侧并字段。
+
+    【为什么取 `description_zh` 而不是主轨 description】
+
+    中文的**唯一源**是 skill.md front matter（G1-B 口径），主轨那份是历史副本；
+    G1-C 已实测"双轨 20 条满足 主轨 description == 文件轨 description_zh"。
+    `meta` 正是文件轨 front matter 的解析结果 ⇒ 直接取它，不引入第二个 Reader。
+
+    【与谁对齐】`searcher._match_score`（管理页搜索）早就是同一做法："英文描述 +
+    中文 `description_zh` 无条件并入"。本条把**生产 Layer-1** 拉到同一口径。
+
+    【影响面（不许只说好话）】本函数是**全部 28 条**技能的索引文本来源 ⇒ 本改动会给
+    全部 28 条改打分（G1-C §7.2/U1 的警告）。英文 token 一个不少、命中集合只增不减
+    ⇒ 英文召回**不会降**；但中文 token 进索引后，同一条技能的中文命中数上升，
+    可能压过原本的英文 top1 —— 排序扰动的实测见 `docs/audit_skill_governance/G1C-U1.md`。
+    """
     parts = [
-        meta.get("name", ""),
+        meta.get("name") or name_fallback or "",
         meta.get("description", ""),
         " ".join(meta.get("tags", []) or []),
         meta.get("category", ""),
     ]
+    if _include_description_zh():
+        # 中文展示文案（唯一源 = skill.md front matter）。追加在末尾：
+        # `_match_score` 是 token 集合的命中率、`_get_inverted_index` 用 set 去重，
+        # 位置不影响得分，只影响可读性。
+        parts.append(meta.get("description_zh", ""))
     return " ".join(p for p in parts if p)
 
 
@@ -206,7 +285,15 @@ class MatchResult:
                  # [变易] 全链路可观测性扩展：检索召回分块详情
                  # 每项结构: {skill_id, score, layer, tokens}
                  # 缺省 None 保证旧调用方不受影响（守不易）
-                 retrieved_chunks: Optional[List[Dict[str, Any]]] = None):
+                 retrieved_chunks: Optional[List[Dict[str, Any]]] = None,
+                 # 【C1 裁决1】向量腿降级标记 — **纯新增字段**（默认值保持旧行为）
+                 # 背景（审计 P11）：RRF 路以前恒报 retrieval_method="rrf" /
+                 # fallback_used=False，上层无法感知"向量腿是空的"（adapter 内部的
+                 # 降级 WARN 没有人消费）。这三个字段把 adapter 的降级事实透到上层。
+                 # 【不易】不参与任何打分/排序/过滤，只做观测透出。
+                 vector_leg_empty: bool = False,
+                 vector_leg_degraded: bool = False,
+                 vector_degrade_reason: Optional[str] = None):
         self.matches = matches
         self.total_scanned = total_scanned
         self.elapsed_ms = round(elapsed_ms, 2)
@@ -219,6 +306,10 @@ class MatchResult:
         self.reranked = reranked
         # 预留扩展：是否降级（向量检索失败回退 TF-IDF 时为 True）
         self.fallback_used = fallback_used
+        # 【C1 裁决1】向量腿观测字段（默认 False/None ⇒ 未接线时为旧语义）
+        self.vector_leg_empty = vector_leg_empty
+        self.vector_leg_degraded = vector_leg_degraded
+        self.vector_degrade_reason = vector_degrade_reason
         # 可观测性：检索召回分块详情，供 Precision@K 监控与幻觉率分析
         # 未提供时按 matches 自动生成（保持向后兼容）
         if retrieved_chunks is None:
@@ -247,6 +338,10 @@ class MatchResult:
             "fallback_used": self.fallback_used,
             # [变易] 可观测性扩展字段：retrieved_chunks（默认按 matches 自动生成）
             "retrieved_chunks": self.retrieved_chunks,
+            # 【C1 裁决1】向量腿降级标记（新增键，旧读者忽略即可）
+            "vector_leg_empty": self.vector_leg_empty,
+            "vector_leg_degraded": self.vector_leg_degraded,
+            "vector_degrade_reason": self.vector_degrade_reason,
         }
 
 
@@ -285,6 +380,16 @@ class SkillLoader:
         # _inverted_index_meta_id 记录构建时的 index 对象 id，用于检测失效
         self._inverted_index: Optional[Dict[str, set]] = None
         self._inverted_index_meta_id: Optional[int] = None
+        # 【DET-2】与倒排索引同生共死的**索引序**表：{skill_id: 它在 index 里的位置}。
+        # 用途见 _tfidf_scan 的"候选迭代序"一段 —— 倒排候选集是 set，而调用方
+        # （match / _try_rrf_match）用的是**稳定排序**，并列项的先后 = set 迭代序
+        # = 字符串哈希随机化 ⇒ 同一查询跨进程可能得到不同结果（MRR 会跳）。
+        self._inverted_index_order: Optional[Dict[str, int]] = None
+        # 【G1C-U1】构建倒排索引时的 CP_SKILL_META_INCLUDE_ZH 取值。
+        # 【为什么必须进缓存键】索引文本随该开关变化（_meta_to_meta_text 会读它），
+        # 若只看 id(index)，开关在进程内翻转后仍会命中旧倒排 ⇒ 逃生开关"看起来生效、
+        # 实际不生效"。把取值纳入键 ⇒ 翻转即重建（与 searcher 每次调用读 env 同效）。
+        self._inverted_index_zh_flag: Optional[bool] = None
 
     # ──────────────────────────────────────────────
     #  TF-IDF 倒排索引（O(n)→O(k) 加速）
@@ -296,6 +401,8 @@ class SkillLoader:
 
         【不易】复用 _tokenize / _meta_to_meta_text，保证分词与匹配一致
         【变易】与 _meta_index 引用绑定（id 检测），refresh 后自动重建
+              【G1C-U1】缓存键再加入 `CP_SKILL_META_INCLUDE_ZH` 的取值 ——
+              该开关改变索引文本，不看它会让"应急关掉后仍命中旧倒排"。
         【简易】首次调用 O(n) 构建，后续 O(1) 返回缓存
 
         Args:
@@ -304,21 +411,30 @@ class SkillLoader:
             {token: {skill_id, ...}} 倒排索引
         """
         # 检查缓存有效性：id(index) 变化说明 _meta_index 已 refresh
+        include_zh = _include_description_zh()
         if self._inverted_index is not None and \
-           self._inverted_index_meta_id == id(index):
+           self._inverted_index_meta_id == id(index) and \
+           self._inverted_index_zh_flag == include_zh:
             return self._inverted_index
 
         # 重建倒排索引：遍历所有技能，对 meta_text 分词建倒排
         inverted: Dict[str, set] = {}
+        # 【DET-2】顺手记下**索引序**（= 全量遍历路径 list(index.items()) 的文档序）。
+        # 它是本模块里唯一"本来就存在的确定次序"，候选按它汇合 ⇒ 倒排路径与
+        # 全量遍历路径的并列先后**完全一致**，且不重排任何既有腿的次序。
+        skill_order: Dict[str, int] = {}
         for skill_id, meta in index.items():
+            skill_order[skill_id] = len(skill_order)
             meta_text = _meta_to_meta_text(meta)
             # set 去重：同一技能同一 token 只计一次（与 _match_score 的 in 判断一致）
             for token in set(_tokenize(meta_text)):
                 inverted.setdefault(token, set()).add(skill_id)
 
         self._inverted_index = inverted
+        self._inverted_index_order = skill_order
         self._inverted_index_meta_id = id(index)
-        logger.info(log_dict({'module_name': 'loader', 'action': 'inverted_index.built', 'skill_count': len(index), 'token_count': len(inverted)}))
+        self._inverted_index_zh_flag = include_zh
+        logger.info(log_dict({'module_name': 'loader', 'action': 'inverted_index.built', 'skill_count': len(index), 'token_count': len(inverted), 'include_description_zh': include_zh}))
         return inverted
 
     def _tfidf_scan(self, index: Dict[str, Dict[str, Any]],
@@ -346,7 +462,18 @@ class SkillLoader:
             candidate_limit: 候选集上限（0=不限制）。>0 时按 token 命中数降序截断，
                              适用于 5000+ 技能规模降级（推荐值 200）
         Returns:
-            匹配的 SkillMatch 列表（未排序）
+            匹配的 SkillMatch 列表（**按候选汇合序排列**，未按分数排序）
+
+        【DET-2 · 返回序契约】本函数的返回序**必须是确定的**：
+            调用方（match / _try_rrf_match）随后用 sorted(..., key=score, reverse=True)
+            这个**稳定排序**取 top_k ⇒ 分数并列项的先后**完全等于本函数的返回序**。
+            改前候选集是 set，迭代序 = 字符串哈希随机化 ⇒ 并列块先后随进程变；
+            当 top_k 截断点落在并列块内部时，**成员**也会变。
+            实测（本卡报告 DET2.md §1.3）：scripts/eval_skill_retrieval.py 的 MRR
+            在 6 次运行里取到 {0.9333, 0.9519, 0.9556, 0.9630, 0.9778} 5 个不同值，
+            45 条用例里 **22 条**的 top-3 列表不稳定。
+            现固定为**索引序**（= 全量遍历路径的文档序）：既确定，又与
+            use_inverted_index=False 路径**逐位一致**，不重排任何既有次序。
         """
         matches: List[SkillMatch] = []
 
@@ -359,21 +486,33 @@ class SkillLoader:
                 for sid in inverted.get(token, set()):
                     candidate_hits[sid] = candidate_hits.get(sid, 0) + 1
 
+            # 【DET-2】候选汇合序 = **索引序**（与 _get_inverted_index 同步缓存）。
+            # 为什么需要它：候选集是 set，直接迭代就是哈希序；而并列项的先后
+            # 会被调用方的稳定排序原样保留到结果里 ⇒ 跨进程结果不同。
+            # 为什么取索引序而不是名字字典序：索引序就是 use_inverted_index=False
+            # 那条全量遍历路径**本来就在用**的文档序 ⇒ 两条路径的并列先后逐位一致，
+            # 且不重排任何既有腿的次序（只把"未定义"变成"已定义"）。
+            # 名字仅作最后兜底（候选不在 index 里时），保证任何输入都完全确定。
+            _skill_pos = self._inverted_index_order or {}
+            _pos = lambda sid: (_skill_pos.get(sid, _ORDER_MISSING), sid)
+
             # 【变易】candidate_limit 截断：按命中数降序取前 N 个（降级方案）
             # 命中数越多 → _match_score 越高 → 保留高分候选，精度损失最小
             if candidate_limit > 0 and len(candidate_hits) > candidate_limit:
+                # 【DET-2】次级键同样是索引序：命中数并列时，改前由 set 迭代序决定
+                # 谁被截掉 ⇒ 截断结果跨进程不同（成员差异，不只顺序）。
                 sorted_ids = sorted(
                     candidate_hits.keys(),
-                    key=lambda sid: candidate_hits[sid],
-                    reverse=True,
+                    key=lambda sid: (-candidate_hits[sid], _pos(sid)),
                 )[:candidate_limit]
                 candidate_ids = set(sorted_ids)
                 logger.info(log_dict({'module_name': 'loader', 'action': 'tfidf_scan.candidate_limit_applied', 'total_candidates': len(candidate_hits), 'limit': candidate_limit, 'truncated': len(candidate_hits) - candidate_limit}))
             else:
                 candidate_ids = set(candidate_hits.keys())
 
-            # 对候选集遍历（通常 << n）
-            scan_items = [(sid, index[sid]) for sid in candidate_ids if sid in index]
+            # 对候选集遍历（通常 << n）——【DET-2】迭代序固定为索引序
+            scan_items = [(sid, index[sid]) for sid in
+                          sorted((s for s in candidate_ids if s in index), key=_pos)]
         else:
             # fallback：全量遍历（query_tokens 为空或显式关闭倒排索引）
             scan_items = list(index.items())
@@ -829,6 +968,31 @@ class SkillLoader:
     #   修复前把无界 BM25 原始分一起 max() ⇒ 噪声级候选（tfidf=0.1 + bm25=3.5184）过闸。
     _RRF_QUALITY_MIN = 0.3
 
+    # 【RET-1R · R-1】质量闸的**第二条判据**：BM25 腿的"判决裕度"下限（无量纲比值）。
+    #
+    # 现象（RET-1R 复现，见 docs/audit_skill_governance/RET1.md §2）：
+    #   `match(..., use_bm25=True)` 中文命中 **4/8**，而**只用 TF-IDF 是 8/8**
+    #   —— 打开 BM25 这条腿反而更差。根因：闸只拿"有界相似度"（tfidf_score =
+    #   `_match_score` 的 query-token 命中率）与 0.3 比；BM25 把正解顶到 bm25_rank=1
+    #   （rrf_normalized 0.9866）也**不参与**判定 ⇒ 整单 reject、返回 []。
+    #
+    # 为什么不是"把 _RRF_QUALITY_MIN 调小"：那是把假阴换成假阳 —— 同一批负样本的
+    #   有界相似度（0.4/0.5）比被误拒的正样本（0.09~0.29）**还高**，调小阈值会先
+    #   放走负样本。改判据的方向必须是"换一个**与有界相似度并列**的独立证据"。
+    #
+    # 为什么是"裕度"（top1/top2 比值）：BM25 原始分**无上界**（同库实测 1.2~21.0），
+    #   与有界阈值比大小就是 TASK-S10-03 记录过的量纲混用；但 top1 与 top2 是**同量纲
+    #   两数之比** ⇒ 无量纲、与语料规模无关，衡量"这条腿的判决有多果断"。
+    #
+    # 标定（RET-1R 实测：28 条技能语料、8 中文 + 8 英文正样本、18 条负样本）：
+    #   · 被闸误拒的 4 条中文正样本裕度 = 1.336 / 3.247 / 2.426 / 8.088
+    #   · 被闸正确拒绝的 3 条负样本裕度 = 1.028 / 1.030 / 1.028（"腿是平的"）
+    #   · 裕度 ∈ [1.05, 1.30] ⇒ 中文 4/8→**8/8**、英文 8/8、负样本非空**不变**（4/18）
+    #     1.2 取该安全带中点（几何中值 ≈ 1.17）
+    #   · 裕度 ≥ 1.4 ⇒ 中文只到 7/8；≥ 2.5 ⇒ 6/8（等价于把新判据收紧回原样）
+    # 语料/分词变化后该常量需重新标定（残留风险见 RET1.md §6）。
+    _RRF_QUALITY_BM25_DECISION_RATIO = 1.2
+
     @staticmethod
     def _bounded_quality_score(breakdown: Optional[Dict[str, Any]]) -> Optional[float]:
         """从 ``score_breakdown`` 取「有界到 [0,1] 的相关度」，取不到返回 ``None``。
@@ -862,6 +1026,36 @@ class SkillLoader:
             if isinstance(value, (int, float)):
                 bounded.append(float(value))
         return max(bounded) if bounded else None
+
+    @staticmethod
+    def _bm25_decision_ratio(matches: Optional[List["SkillMatch"]]) -> Optional[float]:
+        """BM25 腿 top1/top2 的**无量纲比值**（"判决裕度"）；候选 < 2 条时返回 None。
+
+        【RET-1R · R-1】这是让"BM25 的证据"进入质量闸的**唯一**入口，
+        与 `_bounded_quality_score`（有界相似度）并列，而不是替换它：
+
+            · 有界相似度：`max(tfidf_score, vector_score, rerank_score) >= 0.3`
+              —— 原判据，**本次未改**（阈值、键集合、取值口径全部逐字不变）；
+            · BM25 判决裕度：top1 是 BM25 腿 rank1 **且** top1/top2 >= 1.2
+              —— 新增判据，常量与标定数据见 `_RRF_QUALITY_BM25_DECISION_RATIO`。
+
+        为什么不直接用 `bm25_score`：BM25Okapi 原始分**无上界**（同库实测 1.2~21.0），
+        与有界阈值 0.3 比大小 = 量纲混用（无界分恒赢 ⇒ 噪声级候选过闸，TASK-S10-03）。
+        比值是同量纲两数之比 ⇒ 无量纲，可与"相似度阈值"并列而不混量纲。
+
+        Returns:
+            float >= 1.0，或 None（该路候选不足 2 条 / 分数非正 ⇒ 不构成证据）
+        """
+        if not matches or len(matches) < 2:
+            return None
+        try:
+            top1_score = float(matches[0].score)
+            top2_score = float(matches[1].score)
+        except (TypeError, ValueError):
+            return None
+        if top2_score <= 0:
+            return None
+        return top1_score / top2_score
 
     def _rrf_fuse(
         self,
@@ -1436,6 +1630,25 @@ class SkillLoader:
             # 【变易】有 BM25 兜底：向量路置空，继续走 tfidf+bm25 两路加权融合
             logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.vector_unavailable_bm25_fallback', 'intent': intent[:100], 'fallback': 'tfidf+bm25'}))
 
+        # ── 【C1 裁决1】向量腿降级标记（**唯一计算点，纯观测**）──
+        # 只读 adapter 的既有状态字段，不参与任何打分/排序/过滤/RRF 公式。
+        # 目的：把"向量腿为空/已降级"透到 MatchResult，让上层（编排器、ContextInjector、
+        # 运维）无需读日志就能区分"向量腿故障空召回"与"真的没有语义匹配"（审计 P11）。
+        _vector_leg_reason: Optional[str] = None
+        if adapter is None:
+            _vector_leg_reason = "vector_adapter_unavailable_or_skipped"
+        else:
+            try:
+                _vstate = adapter.last_search_state()
+            except Exception:  # noqa: BLE001  状态读取失败不影响检索主流程
+                _vstate = {}
+            _vector_leg_reason = (
+                getattr(adapter, "_active_degrade_reason", None)
+                or _vstate.get("reason")
+            )
+        vector_leg_degraded = _vector_leg_reason is not None
+        vector_leg_empty = not vector_matches
+
         # ── BM25 路（use_bm25=True 时启用）──
         # 【变易】BM25 擅长精确字面匹配，补充向量对专有名词/确定性锚点的召回不足
         # 失败返回空列表（_try_bm25_match 内部已 try/except），不阻塞融合
@@ -1544,7 +1757,14 @@ class SkillLoader:
 
         # 融合后不再二次过滤 min_score：各路已应用阈值，避免归一化分数压缩导致阈值失效
 
-        # ── 负样本质量门禁（阈值只与**有界相似度**比较）──
+        # ── 【RET-1R · R-1】BM25 腿的"判决裕度"（无量纲）—— 门禁的第二条判据 ──
+        # 只在 use_bm25=True 时计算；它进的是"闸的判据集合"，不是打分/排序：
+        # 融合顺序、RRF 公式、各路权重、返回条数全部不受影响。
+        bm25_decision_ratio = (
+            self._bm25_decision_ratio(bm25_matches) if use_bm25 else None
+        )
+
+        # ── 负样本质量门禁（阈值只与**有界相似度**比较；【RET-1R】新增 BM25 裕度判据）──
         # 【不易】RRF 只看排名，归一化分数（top1 恒为 1.0）无法反映绝对匹配质量。
         #         负样本两路都低分召回时（如 TF-IDF 0.14 + 向量 0.14），RRF 归一化后
         #         score=0.5 误判为高质量，需用各路**有界**相似度兜底拦截。
@@ -1576,13 +1796,37 @@ class SkillLoader:
                 ]
                 effective_score = max(_legacy) if _legacy else 0.0
                 reject_reason = "legacy_breakdown_no_bounded_key"
-            # 记录详细日志：有界相似度 + 无界原始分 + 归一化排名分（三者分开，便于复核）
-            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.check', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'top1_rrf_normalized': bd.get('rrf_normalized'), 'bounded_similarity': bounded_score, 'bounded_keys_declared': bounded_key_declared, 'bm25_raw_unbounded': bd.get('bm25_score'), 'effective_score': round(effective_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'use_bm25': use_bm25, 'decision': 'reject' if effective_score < self._RRF_QUALITY_MIN else 'pass', 'note': 'threshold applies to bounded similarity only; bm25_score is unbounded and never compared here'}))
-            if effective_score < self._RRF_QUALITY_MIN:
+            # 【RET-1R · R-1】第二条（并列）判据：BM25 腿判得"果断" ⇒ 不因有界相似度低而整单拒绝。
+            # 触发条件四条同时成立，缺一不可：
+            #   ① use_bm25=True（这条路本来就不在双路 RRF 里）；
+            #   ② **至少有一条有界腿真的给出了相似度**（bounded_score is not None）；
+            #   ③ 融合后的 top1 **就是** BM25 腿的 rank1（不是别的候选）；
+            #   ④ 裕度 >= _RRF_QUALITY_BM25_DECISION_RATIO（该腿自身判决果断）。
+            #
+            # 【为什么必须有 ②】BM25 原始分无界，"果断"只能作为**佐证**，不能单独成立：
+            #   若所有有界腿都没命中（bounded_score is None），剩下的证据就只有无界 BM25 分
+            #   ⇒ 退化成 TASK-S10-03 修掉的量纲混用陷阱。真机反例（现成的护栏测试
+            #   tests/unit/test_s10_03_retrieval_quality_gate.py::Test真库同输入对照::
+            #   test_噪声查询_不得有候选）：噪声查询 "2 加 3 等于多少？只回答数字"
+            #   在真库上 tfidf/vector 全空、BM25 只有 self_reflection(4.6614) 与
+            #   pd-dispatching(3.0204)，裕度 1.543 >= 1.2 —— 没有条件 ② 就会把它放行。
+            bm25_rank1_evidence = bool(
+                use_bm25
+                and bounded_score is not None
+                and bd.get("bm25_rank") == 1
+                and bm25_decision_ratio is not None
+                and bm25_decision_ratio >= self._RRF_QUALITY_BM25_DECISION_RATIO
+            )
+            gate_passed = (
+                effective_score >= self._RRF_QUALITY_MIN or bm25_rank1_evidence
+            )
+            # 记录详细日志：有界相似度 + 无界原始分 + 归一化排名分 + BM25 裕度（分开，便于复核）
+            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.check', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'top1_rrf_normalized': bd.get('rrf_normalized'), 'bounded_similarity': bounded_score, 'bounded_keys_declared': bounded_key_declared, 'bm25_raw_unbounded': bd.get('bm25_score'), 'effective_score': round(effective_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'use_bm25': use_bm25, 'bm25_decision_ratio': round(bm25_decision_ratio, 4) if bm25_decision_ratio is not None else None, 'bm25_decision_ratio_min': self._RRF_QUALITY_BM25_DECISION_RATIO, 'bm25_rank1_evidence': bm25_rank1_evidence, 'decision': 'pass' if gate_passed else 'reject', 'note': 'judged by bounded similarity >= threshold OR (bm25 rank1 with top1/top2 ratio >= bm25_decision_ratio_min); bm25 raw score is unbounded and is never compared with the threshold'}))
+            if not gate_passed:
                 # 【变易】返回空 MatchResult（retrieval_method="rrf"），不触发 TF-IDF fallback
                 # 原因：负样本 query 在 TF-IDF 路本身就是低分召回，fallback 会引入新误召回
                 elapsed = (time.time() - t0) * 1000
-                logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.rejected', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'effective_score': round(effective_score, 6), 'bounded_similarity': bounded_score, 'bm25_raw_unbounded': bd.get('bm25_score'), 'threshold': self._RRF_QUALITY_MIN, 'fused_count': len(fused), 'reason': reject_reason}))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.rejected', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'effective_score': round(effective_score, 6), 'bounded_similarity': bounded_score, 'bm25_raw_unbounded': bd.get('bm25_score'), 'bm25_decision_ratio': round(bm25_decision_ratio, 4) if bm25_decision_ratio is not None else None, 'threshold': self._RRF_QUALITY_MIN, 'fused_count': len(fused), 'reason': reject_reason}))
                 emit_metric("yunshu_skill_rrf_quality_gate_rejected",
                             value=1, kind="counter",
                             labels={"layer": "1", "method": "rrf"})
@@ -1593,6 +1837,10 @@ class SkillLoader:
                     estimated_total_tokens=0,
                     retrieval_method="rrf",
                     fallback_used=False,
+                    # 【C1 裁决1】空结果短路返回同样透出向量腿标记（新增字段）
+                    vector_leg_empty=vector_leg_empty,
+                    vector_leg_degraded=vector_leg_degraded,
+                    vector_degrade_reason=_vector_leg_reason,
                 )
 
         # ── 可选：Cross-Encoder 精排 ──
@@ -1686,6 +1934,10 @@ class SkillLoader:
                     estimated_total_tokens=0,
                     retrieval_method="rrf_rerank",
                     fallback_used=False,
+                    # 【C1 裁决1】空结果短路返回同样透出向量腿标记（新增字段）
+                    vector_leg_empty=vector_leg_empty,
+                    vector_leg_degraded=vector_leg_degraded,
+                    vector_degrade_reason=_vector_leg_reason,
                 )
             # RRF 召回本身为空，触发外层 fallback
             return None
@@ -1693,7 +1945,7 @@ class SkillLoader:
         elapsed = (time.time() - t0) * 1000
         total_tokens = sum(m.estimated_tokens for m in top)
 
-        logger.info(log_dict({'module_name': 'loader', 'action': 'match.layer1.rrf.ok', 'layer': 1, 'intent': intent[:100], 'total_scanned': len(index), 'tfidf_candidates': len(tfidf_matches), 'vector_candidates': len(vector_matches), 'bm25_candidates': len(bm25_matches), 'fused_count': len(fused), 'match_count': len(top), 'estimated_tokens': total_tokens, 'retrieval_method': retrieval_method, 'fallback_used': False, 'retrieved_chunks_count': len(top), 'rrf_k': self._RRF_K, 'use_reranker': use_reranker, 'use_bm25': use_bm25, 'final_top_skill_ids': [{'rank': i + 1, 'skill_id': m.skill_id, 'score': round(m.score, 4)} for i, m in enumerate(top)]}))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'match.layer1.rrf.ok', 'layer': 1, 'intent': intent[:100], 'total_scanned': len(index), 'tfidf_candidates': len(tfidf_matches), 'vector_candidates': len(vector_matches), 'bm25_candidates': len(bm25_matches), 'fused_count': len(fused), 'match_count': len(top), 'estimated_tokens': total_tokens, 'retrieval_method': retrieval_method, 'fallback_used': False, 'retrieved_chunks_count': len(top), 'rrf_k': self._RRF_K, 'use_reranker': use_reranker, 'use_bm25': use_bm25, 'vector_leg_empty': vector_leg_empty, 'vector_leg_degraded': vector_leg_degraded, 'vector_degrade_reason': _vector_leg_reason, 'final_top_skill_ids': [{'rank': i + 1, 'skill_id': m.skill_id, 'score': round(m.score, 4)} for i, m in enumerate(top)]}))
 
         emit_metric("yunshu_skill_match_latency_ms",
                     value=elapsed, kind="histogram",
@@ -1717,6 +1969,10 @@ class SkillLoader:
             # reranked 字段应与之同步（守评估契约一致性）。
             reranked=(retrieval_method == "rrf_rerank"),
             fallback_used=False,
+            # 【C1 裁决1】向量腿降级标记（新增字段；唯一计算点在向量路解析之后）
+            vector_leg_empty=vector_leg_empty,
+            vector_leg_degraded=vector_leg_degraded,
+            vector_degrade_reason=_vector_leg_reason,
         )
 
         from .observability import report_retrieval_observability

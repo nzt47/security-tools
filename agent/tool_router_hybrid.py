@@ -37,7 +37,9 @@ import sys
 import json
 import math
 import time
+import atexit
 import logging
+import weakref
 import subprocess
 import threading
 from typing import Optional
@@ -114,11 +116,55 @@ _BM25_HALF_SATURATION = 5.5375
 #     q03/q04 的目标工具。因此它只作为"最低证据"护栏，不得当作排序主信号。
 _MIN_IDF_COVERAGE = 0.2
 _PROBE_TIMEOUT = 60       # 子进程探测超时(秒)
-# worker ready 信号读取超时(秒)
+
+# worker ready 信号读取超时(秒) —— **可配置**，代码级默认 120.0
+#
+# 【E1-F1-A/优先级 3：30 → 120 的取值理由（不是拍脑袋）】
+#   E1-F1 实测（docs/audit_skill_governance/E1-F1.md）：走生产函数 `_ensure_worker()`、
+#   生产默认超时、未抬任何常量的前提下，向量腿起来耗时 **23.2 s**（其中模型加载 4.0 s）。
+#   也就是说旧默认 30 s 的余量只有 23.2/30 = **1.29×** —— 任何一次冷页缓存、磁盘抖动
+#   或并发争抢都可能把这次启动推过线，而**过线的后果是静默降级为 BM25-only**（不是报错）。
+#   1.29× 的余量，对一个「过线即静默失去能力」的判定来说太薄。
+#   120 s 的选法：① ≥ E1-F1 实测就绪时间的 5×；② 仍远小于「在线重试整条链」的量级
+#   （E1-F1 实测在线路径 >300 s~>600 s 重尾）—— 即它**不是**用来兜住在线路径的
+#   （抬超时已被 E1 三次实验证伪为无效修法，那是优先级 2「缓存优先」的职责）；
+#   ③ 它只在**预热线程**里生效，不在请求路径上 ⇒ 拉长它不增加任何一次查询的时延。
+#
 # 【变易】它是启动等待的**唯一数值来源**:EmbeddingIndex._WORKER_STARTUP_TIMEOUT
-#         只是它的别名(历史上那处独立写着 60,从未被读取,与实际生效的 30 不一致)。
-#         MiniLM(约 470MB)冷启动远快于 reranker 的 2.3GB 模型,故 30s 足够。
-_WORKER_READY_TIMEOUT = 30.0
+#         只是它的别名(历史上那处独立写着 60,从未被读取,与实际生效的值不一致)。
+#         环境变量 AGENT_HYBRID_WORKER_READY_TIMEOUT 可覆盖（已在
+#         agent/settings/registry.py 登记为 A 级；**导入时读取一次** ⇒ needs_restart）。
+def _resolve_worker_ready_timeout_from_env() -> float:
+    """解析 worker 就绪超时:环境变量 AGENT_HYBRID_WORKER_READY_TIMEOUT 覆盖,非法值回退默认
+
+    Why: E1-F1-A 实测余量仅 1.29×(23.2 s / 30 s),而慢机/冷缓存下这个余量会被吃掉;
+        把判定上限收敛成一个**可配置数值**,让运维能在不改代码的前提下放宽,
+        而不是让「降级为 BM25-only」这条静默路径由硬编码常数单方面决定。
+    口径:非法/非正数一律回退代码级默认并留 WARNING(不静默接受垃圾值)。
+    """
+    raw = os.environ.get("AGENT_HYBRID_WORKER_READY_TIMEOUT", "").strip()
+    if not raw:
+        return _WORKER_READY_TIMEOUT_DEFAULT
+    try:
+        val = float(raw)
+    except ValueError:
+        logger.warning(
+            "[tool_router_hybrid] AGENT_HYBRID_WORKER_READY_TIMEOUT=%r 非数字,回退 %.1f",
+            raw, _WORKER_READY_TIMEOUT_DEFAULT,
+        )
+        return _WORKER_READY_TIMEOUT_DEFAULT
+    if val <= 0:
+        logger.warning(
+            "[tool_router_hybrid] AGENT_HYBRID_WORKER_READY_TIMEOUT=%r 非正数,回退 %.1f",
+            raw, _WORKER_READY_TIMEOUT_DEFAULT,
+        )
+        return _WORKER_READY_TIMEOUT_DEFAULT
+    return val
+
+
+#: 代码级默认值（env 未设/非法时生效）。注册表登记的就是这个值。
+_WORKER_READY_TIMEOUT_DEFAULT = 120.0
+_WORKER_READY_TIMEOUT = _resolve_worker_ready_timeout_from_env()
 # 单次 encode 响应读取超时(秒)
 # 【变易】此处模型已加载完毕,等待的只剩一次批量编码(索引重建时 ≤ 全部工具描述,
 #         实测 query 编码 10-20ms 量级)⇒ 30s ≈ 数十倍余量,慢机不误杀,
@@ -376,6 +422,38 @@ def _run_embedding_probe(model_name: str) -> bool:
         return False
 
 
+def _resolve_embedding_env_override() -> Optional[bool]:
+    """AGENT_HYBRID_EMBEDDING 的**唯一**解析口 ⇒ True(强制启用) / False(关闭) / None(未表态)
+
+    【E1-D：为什么必须收成一个函数】
+      这个 env 原先有**两处各判一次**的读点：
+        · `_ensure_st_checked()` 里的"0=禁用 / 1=强制启用"分支 —— 而该函数
+          **全仓无任何生产调用点**（Q3 §11 / E1-F1 已证），于是"能关掉向量腿"这条
+          声明是一条**没有调用点的假通路**：登记表据此把它写成"向量模型"、默认 ""，
+          而代码事实是布尔开关 —— 一个看着权威、语义却说反了的旋钮；
+        · `HybridRetriever.__init__` 里的预热 gate —— 这才是真正生效的那一处。
+      两处各写一份判断，就是"同一语义两份实现"的温床（改一处漏一处 ⇒ 声明与事实漂移）。
+      收成一个函数后：**生产路径调它**（下方 HybridRetriever.__init__），
+      `_ensure_st_checked()` 也调它 ⇒ 「0 = 关」这条语义不再是无调用点的死分支，
+      而是生产路径上唯一实现的一份事实（由 tests/unit/test_settings_registry_e1d.py
+      与 tests/unit/test_tool_router_hybrid_e1d_determinism.py 双向钉住）。
+
+    【关到什么程度（写给运维，与注册表描述同源）】
+      False ⇒ HybridRetriever 构造时**不启动 preheat 子进程** ⇒ 本进程里向量 worker
+      从不被拉起，retriever.degraded=True、检索退化为纯 BM25（下发集相应变小）；
+      但这**不是硬禁用**：`EmbeddingIndex.search/preheat` 内部会 `_ensure_worker()`，
+      任何直接调用它们的路径仍会把向量腿拉起来。
+      认下的写法：0/false/no/off ⇒ False；1/true/yes/on ⇒ True；
+      其余（未设置 / 空串 / 历史上被误填成的模型名）⇒ None（交回探针与默认路径）。
+    """
+    env_val = os.environ.get("AGENT_HYBRID_EMBEDDING", "").strip().lower()
+    if env_val in ("0", "false", "no", "off"):
+        return False
+    if env_val in ("1", "true", "yes", "on"):
+        return True
+    return None
+
+
 def _ensure_st_checked() -> bool:
     """检测 sentence_transformers + 模型加载是否安全可用(子进程探测 + 缓存)
 
@@ -384,6 +462,13 @@ def _ensure_st_checked() -> bool:
       2. 内存缓存(_PROBE_RESULT)
       3. 文件缓存(data/.embedding_probe,**仅在 _PROBE_CACHE_TTL 内有效**)
       4. 子进程探测(首次或缓存过期/不可信时,结果写回文件缓存)
+
+    【E1-D · 本函数在生产路径上仍然没有调用点 —— 这是**有意保留**的，不是遗漏】
+      下面的探针链（文件缓存 + 子进程探测）**不得**接进生产：`data/.embedding_probe`
+      里躺着一条 2026-07-23 的陈旧 `available=false`，把它接上等于让一条过期读数
+      决定向量腿生死（E1-F1 的根因形态）。生产真正的开关是
+      `_resolve_embedding_env_override()`（`HybridRetriever.__init__` 调用）——
+      本函数**只**复用同一个解析口，不另立一份判断。
     """
     global _PROBE_RESULT
     if _PROBE_RESULT is not None:
@@ -393,13 +478,14 @@ def _ensure_st_checked() -> bool:
         if _PROBE_RESULT is not None:
             return _PROBE_RESULT
 
-        # 1. 环境变量强制覆盖
-        env_val = os.environ.get("AGENT_HYBRID_EMBEDDING", "").strip().lower()
-        if env_val in ("0", "false", "no", "off"):
+        # 1. 环境变量强制覆盖（**唯一实现** _resolve_embedding_env_override：
+        #    生产路径 HybridRetriever.__init__ 调的就是它 ⇒ 这条分支的语义在生产上真实生效）
+        _override = _resolve_embedding_env_override()
+        if _override is False:
             _PROBE_RESULT = False
             logger.info("[tool_router_hybrid] AGENT_HYBRID_EMBEDDING=0,禁用 Embedding(纯 BM25)")
             return False
-        if env_val in ("1", "true", "yes", "on"):
+        if _override is True:
             _PROBE_RESULT = True
             logger.info("[tool_router_hybrid] AGENT_HYBRID_EMBEDDING=1,强制启用 Embedding")
             return True
@@ -670,20 +756,152 @@ class BM25Index:
 # 【不易】JSON Lines 通信协议,encode 请求 → embeddings 响应
 # 【变易】二进制序列化:base64(numpy.tobytes()) 替代 JSON float 列表(省 ~2ms/次)
 _WORKER_SCRIPT_EMBEDDING = """
-import json, os, sys, base64
+import json, os, sys, base64, threading
 os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 
+# ── 【E1-F1-A/优先级 4】父进程存活看门狗：父进程一消失就自杀，不给系统留孤儿 ──
+# 【不易·为什么必须由子进程自己做】父进程被强杀（或本进程的 daemon 预热线程随解释器
+#   退出而止）时，没有任何一方会去 wait() 这个子进程；此时子进程唯一的死亡信号就是
+#   "父进程没了"。而原实现把这件事交给 stdin 的 EOF —— 可 stdin 的读取在**模型加载
+#   之后**，加载期间（在线 HF 重试链里可 >300 s）EOF 根本轮不到被读到 ⇒ 父进程早已
+#   消失、子进程还占着 450 MB 活着。E1-F1 实测抓到 2 个这样的孤儿 EMBED worker。
+# 【不易·为什么不用"后台线程读 stdin"】本卡实测（X3/X4/W1/W2）：在 `import
+#   sentence_transformers`（= torch 栈）**期间**，只要有另一个线程阻塞在 stdin 管道的
+#   读上，整个解释器会被卡死（>45 s 无任何输出、无任何 stderr）；而同一条读放在导入
+#   完成之后则完全正常。故：
+#     · 不用后台线程碰 stdin（协议行继续由主线程读，**stdin 只有一个读者**）；
+#     · 看门狗改成**监视父进程句柄**（Windows: OpenProcess(SYNCHRONIZE) +
+#       WaitForSingleObject(INFINITE)，父进程一死立即返回；POSIX 与兜底：轮询 ppid
+#       变化），并且**在导入之后、加载之前**才启动 —— 既避开导入期死锁，又覆盖了
+#       真正长的那个窗口（模型加载）。
+def _start_orphan_guard():
+    '''父进程消失 ⇒ os._exit(0)（在**导入之后、加载之前**调用，见上方实测说明）'''
+    ppid = os.getppid()
+
+    def _watch():
+        if os.name == 'nt':
+            try:
+                import ctypes
+                k32 = ctypes.windll.kernel32
+                k32.OpenProcess.restype = ctypes.c_void_p
+                k32.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+                k32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+                k32.CloseHandle.argtypes = [ctypes.c_void_p]
+                SYNCHRONIZE = 0x00100000
+                INFINITE = 0xFFFFFFFF
+                h = k32.OpenProcess(SYNCHRONIZE, 0, int(ppid))
+                if h:
+                    try:
+                        k32.WaitForSingleObject(h, INFINITE)
+                        os._exit(0)          # 父进程句柄已 signal ⇒ 父进程没了
+                    finally:
+                        k32.CloseHandle(h)
+            except Exception:
+                pass                             # 回退到下面的 ppid 轮询
+        while True:
+            try:
+                if os.getppid() != ppid:
+                    os._exit(0)
+            except Exception:
+                os._exit(0)
+            import time as _t
+            _t.sleep(1.0)
+
+    threading.Thread(target=_watch, name='embedding-orphan-guard', daemon=True).start()
+
+
+def _cache_candidates(model_name):
+    '''模型名 → 「可能命中本地 HF 缓存的 repo id」候选表（**有序**，先命中先用）
+
+    【不易·本函数存在的唯一理由（返工 ①，主审计实测）】
+      `snapshot_download` **不会**像 `SentenceTransformer` 那样替你补命名空间：
+        snapshot_download('paraphrase-multilingual-MiniLM-L12-v2', local_files_only=True)
+            -> FAILED 0.00s  LocalEntryNotFoundError
+        snapshot_download('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', ...)
+            -> OK     0.00s  <hub>/models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2/snapshots/<sha>
+      而生产默认模型名正是**裸名**（agent/tool_router_hybrid.py 的 _DEFAULT_MODEL）
+      ⇒ 只查一次裸名会让缓存分支**永远抛异常**、每次都静默回退在线 ——
+      即「缓存优先」写成了一句不生效的注释（返工前的实测：worker 仍 120 s 超时降级）。
+    【变易】判据：
+            · 名字里**带** '/' ⇒ 它本身已是 repo id，只试它自己；
+            · 名字里**不带** '/' ⇒ 先试 sentence-transformers/<name>（HF 官方组织的惯例），
+              再试裸名（自建/本地注册的仓库可能就是裸名）。
+      两条都未命中 ⇒ 才回退在线（回退在 _load_model 里，**永远不取消**）。
+    '''
+    name = str(model_name or '').strip()
+    if not name:
+        return []
+    if '/' in name:
+        return [(name, 'hit_namespaced')]
+    return [('sentence-transformers/' + name, 'hit_namespaced'),
+            (name, 'hit_bare')]
+
+
+def _load_model(model_name):
+    '''加载模型（**缓存优先**）→ 返回 (model, load_source, cache_probe)
+
+    【E1-F1-A/优先级 2】为什么必须缓存优先（根因链，E1-F1 已实测逐条成立）：
+      `SentenceTransformer(model_name)` 传的是 **repo id**，huggingface_hub 会走
+      **在线**解析：本机 hf-mirror.com 与 huggingface.co 两个端点 TCP 握手各 21 s
+      超时（WinError 10060），且**每个文件**重试 5 次并退避 ⇒ 就绪时间进入
+      >300 s~>600 s 的重尾，生产超时必然降级 ⇒ 向量腿恒为 bm25_only。
+      而本机缓存**完整且瞬时可用** —— 代码却从不走缓存。
+    【不易】**必须有 except 回退在线**：缓存优先一旦失败（新模型 / 缓存被清 / 首次
+      部署）就永久 bm25_only，那等于把「换模型」变成「静默关掉向量腿」。
+      故：本地命中 ⇒ 用本地路径；每个候选都未命中或本地加载失败 ⇒ 回退 repo id（在线）。
+    【变易】cache_probe 四态，随 ready 消息一起回给父进程（父进程再透出到
+      worker_health()）：
+        hit_namespaced / hit_bare —— 缓存命中（并如实记录是哪条候选命中的）；
+        load_failed             —— 快照目录在、但 SentenceTransformer 加载失败 ⇒ 已回退在线；
+        miss                    —— 全部候选未命中（或未装 huggingface_hub）⇒ 已回退在线。
+      这样「快是因为缓存命中，还是因为网络恰好通」**永远可区分**（返工要求）。
+    '''
+    try:
+        from huggingface_hub import snapshot_download
+    except Exception:
+        snapshot_download = None          # 未装 huggingface_hub ⇒ 直接走在线，不算错
+
+    cache_probe = 'miss'
+    if snapshot_download is not None:
+        for repo_id, probe in _cache_candidates(model_name):
+            try:
+                local_path = snapshot_download(repo_id=repo_id, local_files_only=True)
+            except Exception:
+                continue                  # 该候选未命中缓存 → 试下一个候选
+            try:
+                from sentence_transformers import SentenceTransformer
+                return (SentenceTransformer(local_path),
+                        'local_cache:' + str(local_path), probe)
+            except Exception:
+                # 快照目录在、但加载失败（半截缓存 / 文件损坏）⇒ 记下并继续试下一个候选，
+                # 最终仍会回退在线 —— **不因为一次坏缓存就永久失去向量腿**。
+                cache_probe = 'load_failed'
+                continue
+
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer(model_name), 'online:' + str(model_name), cache_probe
+
+
 def main():
     model_name = sys.argv[1] if len(sys.argv) > 1 else "paraphrase-multilingual-MiniLM-L12-v2"
+    # 【不易·顺序是实测出来的，不是随手写的（本卡四次对照实验）】
+    #   ① 看门狗**最先**启动（X6：进程句柄等待与 torch 导入**不冲突**，导入耗时
+    #      与无看门狗对照完全一致 15.0 s）；
+    #   ② 然后才导入 sentence_transformers —— 这期间**绝不能**有别的线程阻塞在
+    #      stdin 的读上（X3/W1/W2：那样会把整个解释器卡死 >45 s，连 stderr 都没有）；
+    #   ③ 最后加载模型（尤其回退在线时）—— 真正的长窗口，已被看门狗完全盖住。
+    #   即：孤儿窗口从「整个导入 + 加载」缩到 **0**。
+    _start_orphan_guard()
     try:
-        from sentence_transformers import SentenceTransformer
         import time
         t0 = time.time()
-        model = SentenceTransformer(model_name)
+        from sentence_transformers import SentenceTransformer  # noqa: F401（随后 _load_model 复用）
+        model, load_source, cache_probe = _load_model(model_name)
         load_time = time.time() - t0
         print(json.dumps({"type": "ready", "load_time_sec": round(load_time, 2),
-                          "load_source": model_name}), flush=True)
+                          "load_source": load_source,
+                          "cache_probe": cache_probe}), flush=True)
     except Exception as e:
         print(json.dumps({"type": "init_failed", "error": str(e)}), flush=True)
         sys.exit(1)
@@ -718,6 +936,42 @@ if __name__ == "__main__":
 """
 
 
+# ── 【E1-F1-A/优先级 4】活着的 EmbeddingIndex 登记表（弱引用，不阻止 GC）──────
+# 【不易】为什么要一条**代码里的**清理路径，而不是靠解释器退出：worker 是
+#   `subprocess.Popen` 起的**独立进程**，父进程退出（正常或被杀）都不会替它收尸。
+#   E1-F1 实测抓到 2 个孤儿 EMBED worker（父进程已消失，各 451~454 MB）——
+#   根因是子进程当时卡在模型加载里，还没轮到读 stdin，EOF 也唤不醒它。
+#   这里两处一起补（纵深防御，缺一不可）：
+#     ① **子进程侧**：worker 在加载模型**之前**起 stdin 抽水线程，EOF 即 os._exit(0)
+#        ⇒ 父进程被强杀（任务管理器结束进程 / SIGKILL）时也能自灭；
+#     ② **父进程侧**：本表 + atexit ⇒ 正常退出时主动 `close()`（比等操作系统关
+#        句柄更快、更确定，且能在日志里留痕）。
+# 【变易】用 WeakSet：登记不延长任何实例的寿命，测试里成千上万个临时实例不会
+#   被这条钩子「钉」在内存里。
+_LIVE_INDEXES: "weakref.WeakSet" = weakref.WeakSet()
+
+
+def _shutdown_all_workers() -> None:
+    """进程退出钩子：回收所有仍活着的 embedding worker 子进程。
+
+    Why: 不回收 ⇒ 每跑一次进程就多一个 450 MB 的常驻僵尸（E1-F1 实测 2 个）。
+    安全降级：任何单个实例清理失败都不得影响其余实例，也不得抛（atexit 里抛异常
+    会被解释器打印成噪声，却依然无法阻止退出）。
+    """
+    try:
+        live = list(_LIVE_INDEXES)
+    except Exception:  # pragma: no cover - WeakSet 迭代在解释器收尾期可能失败
+        return
+    for idx in live:
+        try:
+            idx.close()
+        except Exception:
+            pass
+
+
+atexit.register(_shutdown_all_workers)
+
+
 class EmbeddingIndex:
     """子进程隔离的 SentenceTransformer 语义索引
 
@@ -741,6 +995,25 @@ class EmbeddingIndex:
         self._model_name = model_name
         self._proc: Optional[subprocess.Popen] = None
         self._lock = threading.RLock()
+        # ── 【E1-F1-A/优先级 1】「就绪」的**唯一判据** = 真的读到过 ready 信号 ──
+        # 【不易】为什么不能用 `self._proc.poll() is None` 代替：poll() 只回答
+        #   「进程还活着吗」，而**存活 ≠ 就绪**。模型加载要 4~300 s，在这段窗口里
+        #   worker 进程一直是活的、却一行 ready 都还没打印。旧实现在这个窗口里
+        #   返回 True ⇒ 调用方（search）以为可以往管道写 encode ⇒ 读到的第一行是
+        #   `{"type": "ready"...}` ⇒ ① 本次查询静默退回 BM25（不是报错，是静默）；
+        #   ② 真正的 embeddings 响应留在管道里，会被**下一次**查询误当成自己的答复。
+        #   本标志由握手循环在解析到 ready 的那一行时置位，任何失败路径清位。
+        self._worker_ready = threading.Event()
+        # 【不易】握手（Popen + 等 ready + 编码 pending）必须**串行**：
+        #   两个线程同时握手 = 两个 worker 抢同一根 stdout（响应必然错位），
+        #   或一个线程在另一个线程刚 Popen、还没 ready 时抢先去写管道。
+        #   请求路径用非阻塞 acquire（拿不到就本次降级），后台重启线程可以等。
+        self._startup_lock = threading.Lock()
+        # 【优先级 4】登记进「进程退出要回收」的弱引用表（见 _shutdown_all_workers）
+        try:
+            _LIVE_INDEXES.add(self)
+        except TypeError:  # pragma: no cover - 不可弱引用时降级（不阻断构造）
+            pass
         # 【W2/TASK-03 新增】崩溃可观测性 + 退避重启状态
         # Why(不可省):原实现里 `_init_failed` 一旦置 True 就**终身粘住**
         #   (_ensure_worker 的首行守卫),被 0xC0000005 打死的 worker 此后永不
@@ -770,6 +1043,10 @@ class EmbeddingIndex:
         self.__init_failed = False
         self._load_time_sec: Optional[float] = None
         self._load_source: Optional[str] = None
+        # 【返工 ①】worker 自报的缓存判定（hit_namespaced / hit_bare / miss /
+        # load_failed）。它回答的是"就绪快是因为缓存命中，还是因为网络恰好通"——
+        # E1-F1 的整条根因链都建立在这个区分上，故必须一路透出到 worker_health()。
+        self._load_cache_probe: Optional[str] = None
         self._project_root = _PROJECT_ROOT
         # query embedding LRU 缓存
         self._query_cache_size = max(query_cache_size, 1)
@@ -801,6 +1078,12 @@ class EmbeddingIndex:
         """
         rising = bool(value) and not self.__init_failed
         self.__init_failed = bool(value)
+        if value:
+            # 【E1-F1-A/优先级 1】进入不可用态 ⇒ 就绪标志必须同时熄灭。
+            #   Why: 两者是**两个独立事实**（进程是否被判死 / 是否真的 ready 过），
+            #   漏掉这一处就会出现「已判死但仍显示就绪」的组合态，任何读 _worker_ready
+            #   的调用点都会踩到它。
+            self._worker_ready.clear()
         if rising:
             self._on_worker_unusable()
 
@@ -928,10 +1211,24 @@ class EmbeddingIndex:
             else:
                 remaining = None
         alive = self._proc is not None and self._proc.poll() is None
+        # 【E1-F1-A/优先级 5】mode 不再撒谎。
+        #   旧口径 "bm25_only" if _init_failed else "hybrid"：只要没被判死就报
+        #   hybrid —— 于是 spawn 后 6 s 的采样会得到 mode="hybrid" 而
+        #   available=false（worker 还在加载、一条向量都没有）。裸读该字段的
+        #   消费者（app_server 用并集兜住了，但那是"靠另一个字段补救"）会得出
+        #   「向量腿正常」这个**与事实相反**的结论。
+        #   新口径：mode = 向量腿**此刻能不能真的供数**（= available：进程活着
+        #   + 真的 ready + 已有向量 + 未判死）。保持**二值**（不新增 "starting"
+        #   之类的第三态），因为任何按 == 比较的既有消费者都会自动得到诚实答案；
+        #   启动中的事实由新增的 worker_ready / available 两个布尔字段如实表达。
+        ready = bool(self._worker_ready.is_set() and alive
+                     and not self._init_failed)
         return {
-            "mode": "bm25_only" if self._init_failed else "hybrid",
+            "mode": "hybrid" if self.available else "bm25_only",
             "init_failed": self._init_failed,
             "worker_alive": alive,
+            "worker_ready": ready,
+            "load_cache_probe": self._load_cache_probe,
             "available": self.available,
             "failure_total": failures,
             "restart_attempts": attempts,
@@ -944,8 +1241,23 @@ class EmbeddingIndex:
 
     @property
     def available(self) -> bool:
-        """子进程存活 + embeddings 已计算 + doc_ids 非空 + 未失败"""
+        """**真的能供数**才叫 available：进程存活 + 已收到 ready + 向量已算好 + 未判死
+
+        【E1-F1-A/优先级 5 补强】旧口径只要求"进程活着 + _embeddings 非空"，漏掉了
+        「**当前的** worker 是否真的 ready」这一个事实。后果有两处：
+          · 首次启动窗口（_embeddings 还是 None）它恰好是对的；
+          · 但**重启窗口**是错的：老 worker 留下的 _embeddings 还在，新 worker 还在
+            加载 ⇒ available=True、degraded=False、mode="hybrid"，而此刻向量腿**一条
+            查询都供不了**（查询编码必须经过新 worker）。那就是谎报。
+        故把 _worker_ready 纳入判据：available 的语义收敛为「向量腿此刻能不能供数」。
+        对使用方是**更严**的方向：degraded 在启动/重启窗口里变为 True（如实），
+        _query_locked 会跳过 embed 路（与 search() 的既有行为一致）。
+        """
         if self._init_failed:
+            return False
+        # 【不易】就绪判据必须与 _ensure_worker 完全同源（同一个 Event），
+        #   否则"能不能供数"与"能不能写管道"会变成两套事实。
+        if not self._worker_ready.is_set():
             return False
         if self._proc is None or self._proc.poll() is not None:
             return False
@@ -984,9 +1296,65 @@ class EmbeddingIndex:
             # 后台重启进行中:本次调用保持降级,避免与重启线程**重复拉起**子进程
             # (双 Popen 会让两个 worker 抢同一根 stdout,响应必然错位)。
             return False
-        if self._proc is not None and self._proc.poll() is None:
+
+        # ── 快路径：**真的读到过 ready** 且进程仍活 ⇒ 才算就绪 ──────────────
+        # 【E1-F1-A/优先级 1】旧实现这里写的是 `self._proc.poll() is None`：
+        #   那回答的是「进程还活着吗」，而不是「它准备好了吗」。模型加载要几秒到
+        #   几百秒，这段时间里 worker 活着、却一行 ready 都没打印 —— 旧实现照样
+        #   返回 True，调用方于是往管道写 encode，读到的第一行必然是 ready 那一行：
+        #   ① 本次查询静默退回 BM25（无异常、无告警，只是没有向量腿）；
+        #   ② 真正的 embeddings 响应留在管道里，被**下一次**查询当成自己的答复
+        #      （查询↔向量错位）。
+        if (self._worker_ready.is_set()
+                and self._proc is not None and self._proc.poll() is None):
             return True
 
+        # ── 握手权：同一时刻只允许**一个**线程 Popen / 读 stdout ────────────
+        # 【不易】为什么必须是排他锁而不是"双检 + 各拉各的"：
+        #   两个线程同时 Popen 会让两个 worker 抢同一根 stdout（响应必然错位）；
+        #   一个线程 Popen、另一个线程在它 ready 之前就去写管道，同样错位。
+        # 【变易】请求路径用非阻塞 acquire：拿不到锁说明**别人正在握手**，
+        #   本次立即降级（不排队、不碰管道、不增加请求时延）；
+        #   后台重启线程（_from_restart）可以等，它不在请求路径上。
+        if _from_restart:
+            acquired = self._startup_lock.acquire(timeout=self._WORKER_STARTUP_TIMEOUT)
+        else:
+            acquired = self._startup_lock.acquire(blocking=False)
+        if not acquired:
+            logger.info(log_dict({
+                'module_name': 'tool_router_hybrid',
+                'action': 'embedding.worker.startup_in_progress',
+                'degrade_to': 'bm25_only',
+                'note': '另一线程正在拉起/等待 worker：本次查询不碰管道，直接走 BM25',
+            }))
+            return False
+        try:
+            # 双检：等锁期间可能已被握手线程拉起来并置为就绪
+            if (self._worker_ready.is_set()
+                    and self._proc is not None and self._proc.poll() is None):
+                return True
+            if self._init_failed:
+                self._maybe_restart_in_background()
+                return False
+            if self._proc is not None and self._proc.poll() is None:
+                # 进程活着、却从未 ready（上一次握手被中断/没收干净）⇒ 状态未知。
+                # 【不易】这里**不能**乐观地返回 True（那正是本卡要根除的失效型），
+                #   也不能留着它继续跑：先回收再重新拉起，让"就绪"重新变成可证事实。
+                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.unready_reclaim', 'pid': getattr(self._proc, 'pid', None), 'model': self._model_name}))
+                self._cleanup_proc()
+            self._worker_ready.clear()
+            return self._handshake_locked()
+        finally:
+            self._startup_lock.release()
+
+    def _handshake_locked(self) -> bool:
+        """Popen worker + 等 ready + 编码 pending（**调用方必须持 _startup_lock**）
+
+        【不易】本方法是唯一允许"读 worker stdout 直到 ready"的地方：在此之前
+        stdout 上出现的任何一行都只可能是 ready（协议里 worker 在模型加载完成前
+        不打印别的东西）⇒ 把这段收进一个持锁函数，"读到第一行"与"置就绪"
+        之间就不可能再插进另一个线程的 encode 请求。
+        """
         try:
             self._proc = subprocess.Popen(
                 [sys.executable, "-c", _WORKER_SCRIPT_EMBEDDING, self._model_name],
@@ -1020,6 +1388,7 @@ class EmbeddingIndex:
                 except Exception:
                     pass
                 self._proc = None
+                self._worker_ready.clear()
                 self._init_failed = True
                 return False
 
@@ -1049,7 +1418,14 @@ class EmbeddingIndex:
             if msg_type == "ready":
                 self._load_time_sec = msg.get("load_time_sec")
                 self._load_source = msg.get("load_source")
-                logger.info(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.ready', 'model': self._model_name, 'load_time_sec': self._load_time_sec, 'load_source': self._load_source}))
+                # 【返工 ①】cache_probe 必须**透出到父进程**：
+                #   "就绪只用了 5 s"这件事有两种完全不同的解释 —— 缓存命中，
+                #   或者网络恰好通。不记录它就分不清，而 E1-F1 的整个根因就是
+                #   "快/慢由在线与否决定"。四态见 worker 脚本 _load_model 。
+                self._load_cache_probe = msg.get("cache_probe")
+                # ★ 就绪的**置位点**：只有真的读到 ready 这一行，才认为就绪。
+                self._worker_ready.set()
+                logger.info(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.ready', 'model': self._model_name, 'load_time_sec': self._load_time_sec, 'load_source': self._load_source, 'cache_probe': self._load_cache_probe}))
                 # 编码 pending 文档
                 if self._pending:
                     self._encode_pending_locked()
@@ -1133,7 +1509,20 @@ class EmbeddingIndex:
         return msg.get("vectors")
 
     def _encode_pending_locked(self) -> None:
-        """编码所有 pending 文档(调用方持锁)"""
+        """编码所有 pending 文档
+
+        【E1-F1-A/优先级 1】原 docstring 写"调用方持锁"，但**握手线程其实没有持
+        _lock**（_ensure_worker 在 search() 里是在取 _lock **之前**被调用的）。
+        也就是说：握手线程的 pending 编码与某个请求线程的 query 编码会**同时**
+        写同一根 stdin、同时读同一根 stdout —— 两个读者抢响应行 ⇒ 错位。
+        本方法自己取 _lock（RLock，可重入），把"一次 encode 请求=一次写+一次读"
+        变成原子的：管道在同一时刻只有一个编码者。
+        """
+        with self._lock:
+            self._encode_pending_holding_lock()
+
+    def _encode_pending_holding_lock(self) -> None:
+        """_encode_pending_locked 的实现体（**必须已持 _lock**）"""
         if not self._pending:
             return
         contents = [c for _, c in self._pending]
@@ -1156,6 +1545,10 @@ class EmbeddingIndex:
 
     def _cleanup_proc(self) -> None:
         """清理子进程资源"""
+        # 【E1-F1-A/优先级 1】回收子进程 ⇒ 必须同时熄灭「已就绪」标志：
+        #   否则一个进程已死（或已被回收）的 worker 仍被判定为就绪，
+        #   后续请求会继续往一根死管道写 encode。
+        self._worker_ready.clear()
         if self._proc is None:
             return
         try:
@@ -1172,6 +1565,22 @@ class EmbeddingIndex:
         finally:
             self._proc = None
 
+    def close(self) -> None:
+        """关闭子进程 worker（**公开清理口**；E1-F1-A/优先级 4）。
+
+        Why 需要它：原实现**没有任何对外的关闭入口** —— 唯一的回收路径
+        `_cleanup_proc` 是私有方法、且只在「worker 自己出错」时才被调用，于是
+        「进程正常退出」这条最常见的路径**一条回收语句都没有**：每跑一次进程
+        就留一个 450 MB 的常驻 worker（E1-F1 实测抓到 2 个孤儿，各 451~454 MB）。
+        本方法 + `_shutdown_all_workers`（atexit 钩子）把这条路径补齐。
+
+        【不易】不在这里置 `_init_failed`：正常关机**不是故障**，置位会污染
+        `failure_total` 并触发一次假的「降级为 BM25-only」告警，使运维无法区分
+        「我们主动关机」与「worker 崩了」。再次查询会重新拉起 worker（冷启动）。
+        """
+        with self._lock:
+            self._cleanup_proc()
+
     def search(self, query: str, top_k: int = 10) -> list[tuple[str, float]]:
         """搜索查询,返回 [(doc_id, cosine_similarity)] 列表(按相似度降序)
 
@@ -1182,6 +1591,13 @@ class EmbeddingIndex:
         if not self._ensure_worker():
             return []
         with self._lock:
+            # 【E1-F1-A/优先级 1 防御纵深】取锁后**再判一次就绪**：
+            #   _ensure_worker() 返回到这里之间存在窗口（worker 可能在窗口里
+            #   崩溃/被回收）。判据与 _ensure_worker 完全同源 —— 只有真的读到过
+            #   ready 才允许写管道，避免任何路径把 encode 发进一个"还没 ready"
+            #   的 worker（那会让 ready 行被当成 embeddings，错位）。
+            if not self._worker_ready.is_set():
+                return []
             if self._embeddings is None or len(self._doc_ids) == 0:
                 return []
 
@@ -1375,9 +1791,16 @@ class HybridRetriever:
         # 启动后台 daemon thread 预热 EmbeddingIndex
         # 【不易】AGENT_HYBRID_EMBEDDING=0/false/no/off 时禁用预热:CI 无 HF 网络时
         # 子进程加载模型 30s×N 超时,拖累采样性能断言误报(2026-08-07 三次复现)。
-        # 注意:tool_router_hybrid._ensure_st_checked 无调用点,此处为实际 env gate。
-        _embed_env = os.environ.get("AGENT_HYBRID_EMBEDDING", "").strip().lower()
-        _embed_disabled = _embed_env in ("0", "false", "no", "off")
+        # 【E1-D】判据收归 _resolve_embedding_env_override()（**唯一实现**）：
+        #   原先这里有自己的一份 env 解析，而 _ensure_st_checked 里另有一份
+        #   ——"能关向量腿"这条声明落在了一个**无生产调用点**的函数里，
+        #   登记表据此把它写成"向量模型/默认空串"（语义说反）。
+        #   现在两处共用同一个解析口：此处是**生产调用点**，_ensure_st_checked
+        #   复用它 ⇒ 那条"0=禁用"分支不再是假通路。
+        #   关到什么程度：只抑制预热（本进程不拉 worker）；不是硬禁用
+        #   （EmbeddingIndex.search/preheat 内部仍会 _ensure_worker）。
+        _embed_override = _resolve_embedding_env_override()
+        _embed_disabled = _embed_override is False
         if self._tools_loaded and self._embedding is not None and not _embed_disabled:
             t = threading.Thread(
                 target=self._embedding.preheat,
@@ -1524,9 +1947,29 @@ class HybridRetriever:
             )
 
         # 分数融合
-        all_candidates: set[str] = set()
-        all_candidates.update(d for d, _ in bm25_norm)
-        all_candidates.update(d for d, _ in embed_norm)
+        # 【E1-D · 生产非确定性修复 ①/②】候选汇合**必须是有确定次序的序列**。
+        #   原来是 set：字符串哈希随机化 ⇒ set 的迭代序随进程变，而
+        #   fused.sort 是**稳定排序** ⇒ 分数并列的候选，其先后直接等于哈希序
+        #   ⇒ 候选池截断(fused[:top_k])落在并列块内部时，**成员**随进程变。
+        #   实测（合成并列索引，AGENT_HYBRID_EMBEDDING=0 纯 BM25，5 个种子）：
+        #   融合 top1 = tieprobe06 / tieprobe30 / tieprobe22 / tieprobe02 / tieprobe23，
+        #   下发集对称差最多 24/25 —— 同一查询、同一索引、同一份代码。
+        #   归并次序取「BM25 路序 → Embedding 路序」：两路各自都是确定的
+        #   （BM25Index.search 是稳定排序 + 索引插入序；EmbeddingIndex.search 是
+        #   np.argsort），故汇合序确定；且该次序与降级路既有契约"融合顺序必须与
+        #   raw BM25 顺序逐位一致"相容（见 _cand_pos 处的说明）。
+        candidate_order: list[str] = []
+        _seen_candidates: set[str] = set()
+        for _doc_id, _score in bm25_norm:
+            if _doc_id not in _seen_candidates:
+                _seen_candidates.add(_doc_id)
+                candidate_order.append(_doc_id)
+        for _doc_id, _score in embed_norm:
+            if _doc_id not in _seen_candidates:
+                _seen_candidates.add(_doc_id)
+                candidate_order.append(_doc_id)
+        # 成员判定/计数仍用集合（语义与改前一致）；**迭代**一律走 candidate_order
+        all_candidates: set[str] = _seen_candidates
 
         # 记录中间统计(供 hybrid_select_tools 写入 trace)
         self._last_query_stats = {
@@ -1553,7 +1996,7 @@ class HybridRetriever:
         embed_map = dict(embed_norm)
 
         fused: list[tuple[str, float]] = []
-        for doc_id in all_candidates:
+        for doc_id in candidate_order:          # 【E1-D】确定次序（原来是 set 迭代序）
             bm25_score = bm25_map.get(doc_id, 0.0)
             embed_score = embed_map.get(doc_id, 0.0)
             # 若 Embedding 不可用,只用 BM25(alpha=1.0 等效)
@@ -1563,7 +2006,18 @@ class HybridRetriever:
                 final = self._alpha * bm25_score + (1 - self._alpha) * embed_score
             fused.append((doc_id, final))
 
-        fused.sort(key=lambda x: x[1], reverse=True)
+        # 【E1-D · 修复 ②/②】主键**不变**（分数降序），只补一个**确定的次级键**。
+        #   为什么次级键取"候选汇合序"而不是工具名字典序：
+        #     · 字典序会在**分数并列处重排 BM25 本路**，而"降级路上融合顺序必须与
+        #       raw BM25 顺序逐位一致"是既有回归的明文契约
+        #       （tests/unit/test_tool_router_hybrid_fusion_calibration.py::
+        #        test_degraded_path_order_matches_raw_bm25）—— 那等于把"修非确定性"
+        #       做成"改本路排序"；
+        #     · 汇合序（BM25 路序 → Embedding 路序）本身**确定**（两路各自稳定），
+        #       且与上述契约**逐位相容**：并列时谁在 BM25 路里靠前，谁就靠前。
+        #   效果：给定输入（同一索引 + 同一查询 + 同一向量腿状态）⇒ 同一序列。
+        _cand_pos = {doc_id: i for i, doc_id in enumerate(candidate_order)}
+        fused.sort(key=lambda x: (-x[1], _cand_pos[x[0]]))
 
         # [logger] 融合结果 top-5(最终返回,排查整体退化)
         logger.info(
@@ -1589,6 +2043,16 @@ class HybridRetriever:
         health = self._embedding.worker_health()
         health["retriever_degraded"] = self.degraded
         return health
+
+    def close(self) -> None:
+        """关闭向量腿 worker 子进程（**公开清理口**；E1-F1-A/优先级 4）。
+
+        Why: HybridRetriever 是上层持有的句柄（get_hybrid_retriever 单例），
+        而 worker 的回收口原本只在 EmbeddingIndex 内部、且没有对外暴露。
+        这里补一条从"上层句柄"直达"子进程回收"的路，使调用方（应用关闭、测试收尾）
+        能确定性地收干净，而不是把回收交给操作系统或 atexit 兜底。
+        """
+        self._embedding.close()
 
 
 # ════════════════════════════════════════════════════════════
@@ -1629,6 +2093,102 @@ def reset_hybrid_retriever() -> None:
         _hybrid_instance = None
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# 【B3-W】早退分支可观测接线（trace_id 关联 + 零召回计数）
+#
+# 背景：hybrid_select_tools 有 7 条 `return None` 早退分支，此前**全部静默**
+#   —— 既无计数也无事件，无法回答"混合检索到底多久没给出工具、为什么"。
+#
+# 【不易·语义铁律】zero_recall_total 只记「**本来该召回却没召回**」。
+#   能力未就绪（helper/索引没起来）、调用方白名单约束、异常路径
+#   **一律不计入** —— 否则该指标会被永久污染成噪声，失去验收价值。
+#
+# 逐分支归类（理由见 docs/audit_skill_governance/B3W_REPORT.md §1）：
+#   :1656 helper_unavailable     能力未就绪 -> 只留痕，不计数
+#   :1660 retriever_unavailable  能力未就绪 -> 只留痕，不计数
+#   :1698 results_none           异常降级   -> 只留痕，不计数
+#   :1700 results_empty          零召回     -> 计数 + 事件
+#   :1742 whitelist_empty        正常回退   -> 只留痕，不计数
+#   :1757 sort_empty             零召回     -> 计数 + 事件
+#   :1764 except 异常路径         异常降级   -> 不计数（已有 WARNING 留痕）
+# ════════════════════════════════════════════════════════════════════════════
+
+# 归入 zero_recall_total 的 reason —— **稳定短标签，禁止拼动态字符串**
+# （动态串会让标签/事件爆炸且无法枚举告警）
+ZERO_RECALL_REASONS = ("results_empty", "sort_empty")
+
+# 【不易】惰性取依赖：埋点是旁路，绝不让 prometheus / orchestrator 成为本模块
+#   的**导入期硬依赖**（沿用 routing_observability._record_route_fn 的负结果缓存写法）。
+_ZERO_RECALL_FN = None
+_ZERO_RECALL_PROBED = False
+_TRACE_ID_FN = None
+_TRACE_ID_PROBED = False
+
+
+def _zero_recall_fn():
+    """惰性取 agent.monitoring.prometheus.record_zero_recall（不可用 -> None）"""
+    global _ZERO_RECALL_FN, _ZERO_RECALL_PROBED
+    if not _ZERO_RECALL_PROBED:
+        _ZERO_RECALL_PROBED = True
+        try:
+            from agent.monitoring.prometheus import record_zero_recall as _fn
+            _ZERO_RECALL_FN = _fn
+        except Exception:
+            _ZERO_RECALL_FN = None
+    return _ZERO_RECALL_FN
+
+
+def _retrieval_trace_id() -> str:
+    """当前请求的路由 trace_id（无请求上下文 -> ""）
+
+    Why 必须取 routing_observability.current_trace_id()：只有与
+        emit_route_decision 用**同源同名**的值（trace_id_ctx），"检索决策"
+        与"路由决策"两条日志才能被同一个 trace 串起来；在工具侧另生成 id
+        等于没接。
+    """
+    global _TRACE_ID_FN, _TRACE_ID_PROBED
+    if not _TRACE_ID_PROBED:
+        _TRACE_ID_PROBED = True
+        try:
+            from agent.orchestrator.routing_observability import current_trace_id as _fn
+            _TRACE_ID_FN = _fn
+        except Exception:
+            _TRACE_ID_FN = None
+    if _TRACE_ID_FN is None:
+        return ""
+    try:
+        return _TRACE_ID_FN() or ""
+    except Exception:
+        return ""
+
+
+def _note_retrieval_early_exit(reason: str) -> None:
+    """早退分支的**唯一出口**：所有分支留痕；仅"零召回"分支计入 zero_recall_total。
+
+    Args:
+        reason: 稳定短标签（见 ZERO_RECALL_REASONS 与 B3W_REPORT.md §1 分类表）
+
+    【不易】埋点失败静默：绝不影响"返回 None 让调用方回退"这条主路径。
+    """
+    try:
+        if reason in ZERO_RECALL_REASONS:
+            _fn = _zero_recall_fn()
+            if _fn is not None:
+                # record_zero_recall 自己完成 counter +1 与 action=tool.zero_recall 事件
+                _fn(reason, trace_id=_retrieval_trace_id())
+                return
+        logger.debug(log_dict({
+            'module_name': 'tool_router_hybrid',
+            'action': 'tool.retrieval.early_exit',
+            'message': '混合检索早退: reason=%s（未计入 zero_recall_total）' % reason,
+            'reason': reason,
+            'zero_recall': reason in ZERO_RECALL_REASONS,
+            'trace_id_ctx': _retrieval_trace_id(),
+        }))
+    except Exception:
+        logger.debug("[tool_router_hybrid] 早退埋点失败(忽略)", exc_info=True)
+
+
 def hybrid_select_tools(
     user_input: str,
     enabled_whitelist: Optional[list[str]] = None,
@@ -1654,10 +2214,14 @@ def hybrid_select_tools(
     """
     # helper 不可用 → 直接返回 None
     if not _HELPER_AVAILABLE:
+        # 【B3-W】能力未就绪：检索helper没导入起来，**不是**零召回（不计数）
+        _note_retrieval_early_exit("helper_unavailable")
         return None
 
     retriever = get_hybrid_retriever()
     if retriever is None or not retriever.available:
+        # 【B3-W】能力未就绪：索引未加载/检索器初始化失败，**不是**零召回（不计数）
+        _note_retrieval_early_exit("retriever_unavailable")
         return None
 
     start_time = time.perf_counter()
@@ -1696,8 +2260,13 @@ def hybrid_select_tools(
 
         results = retriever.query(user_input, top_k=pool)
         if results is None:
+            # 【B3-W】异常降级：query() 的 None 语义是"检索失败"（索引重建期
+            # 抢锁失败 / 内部异常），不是"搜了但没有" ⇒ 不计零召回。
+            _note_retrieval_early_exit("results_none")
             return None
         if not results:
+            # 【B3-W】零召回：检索**已执行成功**且候选为 0 ⇒ 该召回却没召回。
+            _note_retrieval_early_exit("results_empty")
             return None  # 空结果让调用方回退
 
         # 候选工具集合：检索命中 ∪ 关键词分类命中的类别工具
@@ -1740,7 +2309,35 @@ def hybrid_select_tools(
             whitelist_set = set(enabled_whitelist)
             selected &= whitelist_set
             if not selected:
+                # 【B3-W】正常回退：检索**已召回**，是调用方白名单把它们全过滤掉
+                # ⇒ 属调用方约束导致的空集，不计零召回（否则白名单调用会污染指标）。
+                _note_retrieval_early_exit("whitelist_empty")
                 return None  # 白名单过滤后无候选,让调用方回退
+
+        # 【E1-D · 生产非确定性修复】下发阶的候选必须按**确定次序**交给 helper。
+        #   为什么：helper 内部是 sorted(selected, key=priority)（**稳定排序**），
+        #   同优先级并列项的先后 = 输入迭代序；原来传的是 set ⇒ 迭代序随
+        #   字符串哈希随机化变 ⇒ 当 max_tools 截断点落在并列块内部时，
+        #   下发的**成员**随进程变。实测（真实索引、AGENT_HYBRID_EMBEDDING=0、
+        #   种子 0/1/2）：rc-007 下发集对称差 2（run_tests / git / data_format_detect
+        #   之间换位）、rc-046 同样差 2（cancel_task / list_async_tasks），
+        #   而**决策层**（融合 top10、n_ranked）三种子逐位相同 —— 即 E1-C 观察到的
+        #   "决策层全同、下发层差 1~3 条"。
+        #   次序取：相关度序（融合序，已确定）在前 → 类别兜底按 TOOL_CATEGORIES 声明序。
+        ordered_candidates: list[str] = []
+        _ordered_seen: set[str] = set()
+        for _name, _score in results:
+            if _name in selected and _name not in _ordered_seen:
+                _ordered_seen.add(_name)
+                ordered_candidates.append(_name)
+        for _cat_key in TOOL_CATEGORIES:
+            for _t in (TOOL_CATEGORIES.get(_cat_key) or {}).get("tools", []):
+                if _t in selected and _t not in _ordered_seen:
+                    _ordered_seen.add(_t)
+                    ordered_candidates.append(_t)
+        # 兜底：白名单/其它来源引入、且不在上述两处的候选（排序只为可复现，不为取序）
+        for _t in sorted(selected - _ordered_seen):
+            ordered_candidates.append(_t)
 
         # 相关度优先 + 类别优先级补位 + 数量截断(复用 tool_router helper)
         # 传入所有类别,确保每个工具取到正确 priority
@@ -1749,12 +2346,23 @@ def hybrid_select_tools(
         #   —— 例如「读取 PDF 的内容」里 pdf 类别 priority=6，web(1)/file(2) 会吃光名额，
         #   read_pdf 被挤到 max_tools 之外，结果是"命中了却拿不到"。
         #   传相关度序后：相关且命中的工具优先保留，类别序只用来**补位**。
-        categories = retriever._all_categories or set(TOOL_CATEGORIES.keys())
+        # 【E1-D】类别集合也改为**确定次序**（TOOL_CATEGORIES 声明序）：
+        #   helper 里 matched_cats 按 priority 稳定排序，而本表存在**同优先级**
+        #   的两个类别（code=5 / knowledge=5）⇒ 传 set 时这两类的先后随哈希变，
+        #   而它们决定 floors（类别保底）的先后，进而影响截断点上的成员。
+        _cat_set = retriever._all_categories or set(TOOL_CATEGORIES.keys())
+        categories = [c for c in TOOL_CATEGORIES if c in _cat_set]
         relevance_order = [name for name, _ in results]
+        # 【E1-D】第一个实参传**有序候选序列**（不是 set）：helper 只对它做成员判定
+        #   （t in selected 成员判定）与 sorted(...)，故序列完全兼容其契约，而并列项的
+        #   次序从此确定。**未改 helper 一行**（agent/tool_router.py 不在本卡范围）。
         result = _apply_alias_merge_and_priority_sort(
-            selected, categories, max_tools, preferred_order=relevance_order)
+            ordered_candidates, categories, max_tools, preferred_order=relevance_order)
 
         if not result:
+            # 【B3-W】零召回：候选集合非空，但合并/别名/优先级排序把候选全丢了
+            # ⇒ 该召回却没召回（漏斗末端故障）。
+            _note_retrieval_early_exit("sort_empty")
             return None
 
         tools_preview = result[:10]
@@ -1787,6 +2395,10 @@ def hybrid_select_tools(
                     bm25_considered=bm25_considered,
                     min_idf_coverage=min_idf_coverage,
                     bm25_filtered_preview=filtered_preview,
+                    # 【B3-W】trace 关联：与 routing_observability 的 route decision
+                    # 同源（current_trace_id），使"检索决策"与"本次请求路由决策"
+                    # 能用同一个 trace_id_ctx 串起来。
+                    trace_id=_retrieval_trace_id(),
                 )
             except Exception:
                 pass

@@ -322,8 +322,12 @@ class DigitalLifePersonaMixin:
         self._cached_tool_status = None
         self._cached_skill_instructions = None
 
-    def _build_tool_status_text(self, expose_tools: bool = True) -> str:
-        """构建工具/技能启用状态文本，供系统提示词使用（带缓存）。
+    def _build_tool_status_text(self, expose_tools: bool = True,
+                                tool_defs: list | None = None) -> str:
+        """构建工具/技能状态文本，供系统提示词使用（带缓存）。
+
+        【口径】工具侧渲染的是**本轮要下发的工具集**（名字 + 个数，见 B1）；技能侧仍是
+            启用/禁用清单（技能不参与 `tools=` 下发，两者口径本来就不同，不合并计数）。
 
         Args:
             expose_tools: 本回合是否会向模型**下发** `tools` 定义。
@@ -332,34 +336,39 @@ class DigitalLifePersonaMixin:
                 DSML 文本协议表达调用意图，标记被当正文返回 ⇒ 用户可见泄漏
                 （对照实验：清空本段 ⇒ 上游改为纯文本推辞，不再吐标记）。
 
+            tool_defs: 本回合**真正要下发**的那一份 tool_defs（`get_tool_defs()` 的
+                返回值）。给了就按它渲染宣告行（宣告值 = 下发值，同源）；不给
+                （`orchestrator._call_llm` / `_call_llm_v2` 的现状）则自行按
+                `resolve_dispatch_tool_defs()` 走与出网口同一套白名单步骤解析。
+
         【不易】`False` 分支返回的文案刻意**不含** `【工具】` 子串：
             `tools_prompt_guard.prompt_advertises_tools()` 以该子串为判定标记，
             含了就会被误判成"仍在宣传"，导致重复中和 + 噪声告警。
-        【变易】缓存仍是单槽位：两个分支的产物不同，但本方法的调用点
-            （`orchestrator._call_llm` / `_call_llm_v2`）每回合只取一种口径，
+        【不易·B1】工具数**只**由当轮下发集渲染（`tools_prompt_guard.render_tool_advert_line`）：
+            修复前这里写的是注册表全量（`list_tools()` 的条数，生产上 86），而模型
+            真正拿到的是主线白名单（生产上 26）—— 宣告 86、下发 26 正是审计 E6 的口径分裂。
+            任何"另外数一遍工具"的写法（注册表条数 / yaml 文件数 / 路由日志计数）都不再使用。
+        【变易】缓存仍是单槽位：两个分支的产物不同，但本方法的调用点每回合只取一种口径，
             且 `expose_tools` 只在本回合内固定，故不会串台。
+            显式传入 `tool_defs` 时**既不读也不写缓存**：那是调用方专属口径，
+            塞进单槽位会污染默认分支的下一次渲染。
         """
         if not expose_tools:
             return ("本轮未向模型暴露任何工具（本轮不提供工具调用能力），"
                     "请直接用自然语言回答用户。")
-        if self._cached_tool_status is not None:
+        _explicit_defs = tool_defs is not None
+        if not _explicit_defs and self._cached_tool_status is not None:
             return self._cached_tool_status
 
         parts = []
         try:
-            from agent.tools import list_tools
-            tools = list_tools()
-            enabled_tools = self._get_enabled_tools_whitelist()
-            if enabled_tools is None:
-                parts.append("【工具】全部已启用（共 %d 个）" % len(tools))
-            else:
-                all_names = {t["name"] for t in tools}
-                disabled_set = all_names - set(enabled_tools)
-                enabled_names = [t["name"] for t in tools if t["name"] not in disabled_set]
-                disabled_names = [t["name"] for t in tools if t["name"] in disabled_set]
-                parts.append("【工具】已启用(%d): %s" % (len(enabled_names), ", ".join(enabled_names)))
-                if disabled_names:
-                    parts.append("【工具】已禁用(%d): %s" % (len(disabled_names), ", ".join(disabled_names)))
+            from agent.tools_prompt_guard import (
+                render_tool_advert_line as _render_advert,
+                resolve_dispatch_tool_defs as _resolve_defs,
+            )
+            if tool_defs is None:
+                tool_defs = _resolve_defs(self._get_enabled_tools_whitelist())
+            parts.append(_render_advert(tool_defs))
         except Exception:
             parts.append("【工具】状态未知")
 
@@ -401,7 +410,8 @@ class DigitalLifePersonaMixin:
         # expand_context 已并入 search_memory(scope="vector")（第 0 档合并，2026-09-17）
         parts.append("💡 当你觉得当前上下文信息不足时，可以用 search_memory(scope=\"vector\") 从记忆库检索更多相关内容。")
         result = "\n".join(parts) if parts else "（暂无工具/技能配置）"
-        self._cached_tool_status = result
+        if not _explicit_defs:
+            self._cached_tool_status = result
         return result
 
     def _is_skill_enabled(self, skill_id: str) -> bool:

@@ -260,6 +260,11 @@ class TestOrchestratorV1MessagesOrder:
         assert api_messages[3]["content"] == "BUDGET_MARKER_2"
 
         # api_messages[-1] 为 user_input（动态）
+        # 【F3-1 契约细化】本用例的模板（第 233-236 行）**不含易变尾簇标记**
+        # （"## 当前状态" / "## 记忆线索"）⇒ 不触发搬移，user_input 仍是最后一条。
+        # 真实模板含该标记时，最后一条是**易变尾簇**（见下方
+        # test_v1_易变尾簇搬到请求尾部_稳定块在前_尾簇在后）：新契约 =
+        # 「易变尾簇是最后一条消息，user_input 紧随其前」，其余意图不变。
         assert api_messages[-1]["role"] == "user"
         assert api_messages[-1]["content"] == "USER_INPUT_MARKER"
 
@@ -268,6 +273,47 @@ class TestOrchestratorV1MessagesOrder:
         budget_idx = 2
         user_idx = len(api_messages) - 1
         assert tool_urge_idx < budget_idx < user_idx, "固定区应在动态区之前"
+
+    @patch("agent.orchestrator.orchestrator._get_template")
+    @patch("agent.tools.get_tool_defs")
+    def test_v1_易变尾簇搬到请求尾部_稳定块在前_尾簇在后(
+            self, mock_get_tool_defs, mock_get_template, monkeypatch):
+        """【F3-1 新契约】真实模板（含 ## 记忆线索）下，出网 messages 的最后一条
+        必须是**易变尾簇**，system message 里只剩稳定块（宣告行仍在其中）。
+
+        Why: 易变内容若留在 system message 内，其后的 tools 段与全部历史消息
+        （本部署 6k+ token）都会因前缀在易变块处分叉而 miss（F3 §5.2）。
+        """
+        monkeypatch.delenv("YUNSHU_PROMPT_VOLATILE_TAIL", raising=False)
+        mock_get_template.return_value = (
+            "你是「云枢」。\n\n## 核心原则\n先调工具再说话。\n\n{tool_status}\n\n"
+            "## 记忆线索\n{memory_context}"
+        )
+        mock_get_tool_defs.return_value = []
+
+        orch, mock_client = self._build_orchestrator_with_mocks()
+
+        orch._call_llm("USER_INPUT_MARKER", "CPU: 正常")
+
+        call_kwargs = mock_client.chat.completions.create.call_args
+        api_messages = call_kwargs[1].get("messages") or call_kwargs[1]["messages"]
+
+        # 1) system message 只剩稳定块：宣告行在、记忆线索不在
+        assert api_messages[0]["role"] == "system"
+        assert "TOOL_STATUS_MARKER" in api_messages[0]["content"]
+        assert "记忆线索" not in api_messages[0]["content"]
+
+        # 2) 最后一条 = 易变尾簇（system 角色）
+        assert api_messages[-1]["role"] == "system"
+        assert "## 记忆线索" in api_messages[-1]["content"]
+
+        # 3) user_input 紧随其前（其余意图不变：动态区仍在固定区之后）
+        assert api_messages[-2]["role"] == "user"
+        assert api_messages[-2]["content"] == "USER_INPUT_MARKER"
+
+        # 4) 逐字保内容（stable + tail == 原渲染结果）由
+        #    tests/unit/test_prompt_volatile_tail_order.py::test_内容零丢失_拼接后等于原始渲染结果
+        #    用**真实模板**锁死，此处不重复。
 
     @patch("agent.orchestrator.orchestrator._get_template")
     @patch("agent.tools.get_tool_defs")
