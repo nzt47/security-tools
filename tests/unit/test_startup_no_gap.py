@@ -311,16 +311,29 @@ def test_no_preflight_configured_keeps_legacy_behaviour():
 # 子进程不遗留：reap_children（默认关闭，默认路径零变化）
 # ════════════════════════════════════════════════════════════════════════════
 
-def test_reap_children_is_off_by_default():
-    """默认 reap_children=False ⇒ 不取后代、不补杀（保证默认路径逐字不变）。"""
-    runner, _events, stub = _make_events_runner(NETSTAT_OLD_INSTANCE)
+def test_reap_children_is_off_by_default(monkeypatch):
+    """默认 reap_children=False ⇒ 不取后代、不补杀（保证默认路径逐字不变）。
+
+    【平台适配修正（2026-09-27，master CI 实测）】原实现写的是
+    `assert len(stub.taskkill_argv) == 1` —— **未按平台分流**：非 win32 下 kill 走
+    `os.kill(pid, SIGTERM)`**不经 runner** ⇒ 受控桩恒空 ⇒ Linux CI 上 `assert 0 == 1`
+    恒红（实测：master `单元测试 Shard 6` 因此失败）。本文件其余同族断言都带了
+    `if sys.platform == "win32"` 或用了 `_install_os_kill_probe` / `_kills`，只有这一处漏了。
+    现改为**两平台都成立**的判据：「恰好 kill 一次」（平台中性，且比原来更严 ——
+    Linux 上此前实际上什么都没断言），argv 逐字锁仍在 win32 保留。
+    """
+    runner, events, stub = _make_events_runner(NETSTAT_OLD_INSTANCE)
+    _install_os_kill_probe(monkeypatch, events)
     called = []
     records = spg.cleanup_port_listeners(
         5678, runner=runner, cmdline_getter=lambda pid: "python app_server.py",
         self_pid=777, audit=lambda r: None,
         children_getter=lambda pid: called.append(pid) or ["5001"])
     assert called == [], "默认不应调用 children_getter"
-    assert len(stub.taskkill_argv) == 1
+    assert len(_kills(events)) == 1, "只应强杀父进程一次：%s" % events
+    if sys.platform == "win32":
+        assert stub.taskkill_argv == [["taskkill", "/F", "/PID", "4321"]], \
+            "kill argv 必须与旧实现逐字一致：%s" % stub.taskkill_argv
     assert [r["target_pid"] for r in records] == ["4321"]
 
 

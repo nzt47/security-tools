@@ -291,8 +291,19 @@ def run_concurrent_rebuild(
 
 _FIXED_TS = "2026-01-02T03:04:05+00:00"
 
-#: 改前基线（本卡在未修改 registry.py 时实测填入）
-_PAYLOAD_SHA256_BASELINE = "fff74de9257d3484a01233a0dd48547161602ca2abe98e6a0887fcad62a791d1"
+#: 改前基线（本卡在未修改 registry.py 时实测填入）—— **行尾归一化后**的摘要。
+#:
+#: 【为什么必须是归一化后的值（master CI 实测，2026-09-27）】
+#:   `save()` 以**文本模式**写文件 ⇒ Windows 落 CRLF、POSIX 落 LF；
+#:   同一份**语义完全相同**的载荷因此得到不同 sha256：
+#:     · 本机（Windows）原始摘要 = fff74de9257d3484a01233a0dd48547161602ca2abe98e6a0887fcad62a791d1
+#:     · 该摘要**把 CRLF 换成 LF** 后 = 8474224f9340ad3334ce99399c7ed5c9ae0cfe9a6b684bf8d7067ee8f5b43b55
+#:     · 而 Linux CI 的原始摘要**恰好就是** 8474224f…（master `单元测试 Shard 4` 实测的报文）
+#:   ⇒ 两平台之差 **100% 来自行尾翻译**，与「改 load() 是否动了序列化」无关。
+#:   本守卫的判据是**语义**不变量，不该被行尾翻译判红；故改为「先把行尾归一化为 LF
+#:   再哈希」，基线取平台无关的 8474224f…。归一化**不会**削弱判别力：
+#:   任何字段增删/改值/改序仍会改变该摘要。
+_PAYLOAD_SHA256_BASELINE = "8474224f9340ad3334ce99399c7ed5c9ae0cfe9a6b684bf8d7067ee8f5b43b55"
 
 
 def _freeze(reg: DescriptorRegistry) -> None:
@@ -305,7 +316,10 @@ def _freeze(reg: DescriptorRegistry) -> None:
 
 
 def frozen_payload_sha256(tmp_path: Path) -> str:
-    """构造固定描述符集 → save() → 返回文件 sha256（时间戳锁定，跨运行确定）"""
+    """构造固定描述符集 → save() → 返回文件 sha256（时间戳锁定、行尾归一化 ⇒ 跨平台确定）
+
+    归一化理由见 `_PAYLOAD_SHA256_BASELINE` 上方注释（CRLF/LF 是平台差异，不是语义差异）。
+    """
     path = Path(tmp_path) / "frozen.json"
     reg = DescriptorRegistry(path, autosave=False)
     reg.register(make_descriptor(
@@ -325,7 +339,10 @@ def frozen_payload_sha256(tmp_path: Path) -> str:
         scope="org", description="冻结样本 C"))
     _freeze(reg)                              # 锁死时间戳 → 序列化确定
     reg.save()
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    raw = path.read_bytes()
+    # 非空自证：摘要不能靠"空文件"蒙过去
+    assert b"cp.frozen.read" in raw and b"cp.frozen.write" in raw, raw[:200]
+    return hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
 
 
 # ════════════════════════════════════════════════════════════
