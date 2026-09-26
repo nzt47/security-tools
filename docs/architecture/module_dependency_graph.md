@@ -83,7 +83,7 @@ flowchart LR
         agent_learning_metrics_api["agent.learning_metrics_api"]
         agent_llm_key["agent.llm_key"]:::crosslayer
         agent_llm_monitor["agent.llm_monitor"]
-        agent_llm_response_cache["agent.llm_response_cache"]
+        agent_llm_response_cache["agent.llm_response_cache"]:::crosslayer
         agent_logging_utils["agent.logging_utils"]:::crosslayer
         agent_mcp_executor["agent.mcp_executor"]
         agent_memory_optimized["agent.memory_optimized"]
@@ -136,6 +136,7 @@ flowchart LR
         agent_descriptors_backfill["agent.descriptors.backfill"]:::crosslayer
         agent_descriptors_bridge["agent.descriptors.bridge"]:::crosslayer
         agent_descriptors_registry["agent.descriptors.registry"]:::crosslayer
+        agent_descriptors_stage_contract["agent.descriptors.stage_contract"]:::crosslayer
     end
     subgraph digestion [digestion]
         agent_digestion["agent.digestion"]:::crosslayer
@@ -375,7 +376,7 @@ flowchart LR
         agent_orchestrator_orchestrator["agent.orchestrator.orchestrator"]:::crosslayer
         agent_orchestrator_prompt_builder["agent.orchestrator.prompt_builder"]
         agent_orchestrator_response_builder["agent.orchestrator.response_builder"]
-        agent_orchestrator_routing_observability["agent.orchestrator.routing_observability"]
+        agent_orchestrator_routing_observability["agent.orchestrator.routing_observability"]:::crosslayer
         agent_orchestrator_status_reporter["agent.orchestrator.status_reporter"]
         agent_orchestrator_subagent_manager["agent.orchestrator.subagent_manager"]
         agent_orchestrator_task_dispatcher["agent.orchestrator.task_dispatcher"]
@@ -515,7 +516,7 @@ flowchart LR
         agent_settings_bootstrap["agent.settings.bootstrap"]
         agent_settings_feature_flags["agent.settings.feature_flags"]
         agent_settings_masking["agent.settings.masking"]
-        agent_settings_overrides["agent.settings.overrides"]
+        agent_settings_overrides["agent.settings.overrides"]:::crosslayer
         agent_settings_registry["agent.settings.registry"]:::crosslayer
         agent_settings_resolver["agent.settings.resolver"]:::crosslayer
         agent_settings_service["agent.settings.service"]:::crosslayer
@@ -836,6 +837,7 @@ flowchart LR
     agent_digestion_shadow -.-> agent_observability_events
     agent_digestion_shadow -.-> agent_audit_facade
     agent_digestion_shadow -.-> agent_model_router_adapters
+    agent_digestion_stage -.-> agent_descriptors_stage_contract
     agent_digestion_stage -.-> agent_descriptors_registry
     agent_digestion_stage -.-> agent_descriptors_bridge
     agent_digestion_stage -.-> agent_observability_events
@@ -852,7 +854,7 @@ flowchart LR
     agent_digital_life --> agent_system_prompt_manager
     agent_digital_life_persona --> agent_logging_utils
     agent_digital_life_persona --> agent_behavior_controller
-    agent_digital_life_persona -.-> agent_tools
+    agent_digital_life_persona --> agent_tools_prompt_guard
     agent_digital_life_persona -.-> agent_skills_mgmt_registry
     agent_digital_life_persona -.-> agent_skills_mgmt_registry
     agent_digital_life_persona -.-> agent_tools
@@ -1162,6 +1164,8 @@ flowchart LR
     agent_lines_callability --> agent_lines_assembler
     agent_lines_callability --> agent_lines_models
     agent_lines_integration --> agent
+    agent_llm_monitor -.-> agent_monitoring_prometheus
+    agent_llm_monitor --> agent_logging_utils
     agent_llm_monitor -.-> agent_utils_singleton_manager
     agent_llm_monitor -.-> agent_observability_events
     agent_llm_monitor -.-> agent_observability
@@ -1348,6 +1352,7 @@ flowchart LR
     agent_monitoring_prometheus --> agent_monitoring_observability_config
     agent_monitoring_prometheus -.-> agent_error_handler
     agent_monitoring_prometheus -.-> agent_error_handler
+    agent_monitoring_prometheus -.-> agent_llm_response_cache
     agent_monitoring_prometheus -.-> agent_error_handler
     agent_monitoring_prometheus -.-> agent_error_handler
     agent_monitoring_prometheus --> agent_monitoring_observability_config
@@ -1513,6 +1518,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_guardrails_injection_defense
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator -.-> agent_context_assembler
+    agent_orchestrator_orchestrator -.-> agent_system_prompt_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_cognitive_reflection
     agent_orchestrator_orchestrator -.-> agent_autonomy
@@ -1523,20 +1529,23 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_skills_mgmt_loader
+    agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_capregistry_invoke
     agent_orchestrator_orchestrator -.-> agent_lines
     agent_orchestrator_orchestrator -.-> agent_tool_schema_pruner
     agent_orchestrator_orchestrator -.-> agent_tool_fewshot_store
     agent_orchestrator_orchestrator --> agent_orchestrator_prompt_builder
+    agent_orchestrator_orchestrator -.-> agent_lines
     agent_orchestrator_orchestrator -.-> agent_monitoring_llm_monitor
     agent_orchestrator_orchestrator -.-> agent_tools_prompt_guard
+    agent_orchestrator_orchestrator -.-> agent_system_prompt_manager
     agent_orchestrator_orchestrator --> agent
-    agent_orchestrator_orchestrator -.-> agent_lines
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_prompt_builder -.-> agent_logging_utils
     agent_orchestrator_prompt_builder -.-> agent_digital_life
     agent_orchestrator_response_builder -.-> agent_logging_utils
     agent_orchestrator_routing_observability -.-> agent_logging_utils
+    agent_orchestrator_routing_observability -.-> agent_monitoring_prometheus
     agent_orchestrator_status_reporter --> agent
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
@@ -2046,6 +2055,7 @@ flowchart LR
     agent_skills_mgmt_context_injector -.-> agent_logging_utils
     agent_skills_mgmt_creator -.-> agent_error_handler
     agent_skills_mgmt_creator -.-> agent_extensions_market
+    agent_skills_mgmt_enhancer -.-> agent_audit
     agent_skills_mgmt_enhancer -.-> agent_feedback
     agent_skills_mgmt_evaluator -.-> agent_feedback
     agent_skills_mgmt_evolution_scheduler -.-> agent_learning_metrics
@@ -2054,6 +2064,9 @@ flowchart LR
     agent_skills_mgmt_evolution_scheduler -.-> agent_task_scheduler
     agent_skills_mgmt_exceptions -.-> agent_logging_utils
     agent_skills_mgmt_executor -.-> agent_logging_utils
+    agent_skills_mgmt_executor -.-> agent_audit_chain
+    agent_skills_mgmt_executor -.-> agent_audit_facade
+    agent_skills_mgmt_executor -.-> agent_tool_gate
     agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_service
     agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_reviewer
     agent_skills_mgmt_feedback_agent -.-> agent_task_scheduler
@@ -2097,6 +2110,7 @@ flowchart LR
     agent_skills_mgmt_precipitate -.-> agent_task_scheduler
     agent_skills_mgmt_precipitate -.-> agent_task_scheduler
     agent_skills_mgmt_registry -.-> agent_logging_utils
+    agent_skills_mgmt_registry --> agent_skills_mgmt_enhancer
     agent_skills_mgmt_registry --> agent_skills_mgmt_service
     agent_skills_mgmt_reranker -.-> agent_logging_utils
     agent_skills_mgmt_review_gate -.-> agent_audit
@@ -2110,6 +2124,7 @@ flowchart LR
     agent_skills_mgmt_service -.-> agent_descriptors_backfill
     agent_skills_mgmt_service -.-> agent_code_review
     agent_skills_mgmt_service -.-> agent_extensions_security_checker
+    agent_skills_mgmt_service -.-> agent_audit
     agent_skills_mgmt_service -.-> agent_feedback
     agent_skills_mgmt_service -.-> agent_audit
     agent_skills_mgmt_service -.-> agent_state_manager
@@ -2224,8 +2239,15 @@ flowchart LR
     agent_tool_gate -.-> agent_subagent_sandbox
     agent_tool_gate -.-> agent_observability_trace_v2
     agent_tool_gate --> agent_tool_approval
+    agent_tool_gate -.-> agent_audit_facade
+    agent_tool_gate -.-> agent_audit_facade
+    agent_tool_gate -.-> agent_settings_overrides
+    agent_tool_gate -.-> agent_settings_resolver
     agent_tool_gate -.-> agent_audit_chain
     agent_tool_gate -.-> agent_audit_facade
+    agent_tool_gate -.-> agent_audit_chain
+    agent_tool_gate -.-> agent_audit_facade
+    agent_tool_gate -.-> agent_lines_models
     agent_tool_gate --> agent
     agent_tool_gate -.-> agent_human_in_the_loop_hitl
     agent_tool_gate -.-> agent_human_in_the_loop_ethics
@@ -2239,6 +2261,8 @@ flowchart LR
     agent_tool_router_hybrid --> agent_logging_utils
     agent_tool_router_hybrid -.-> agent_observability_tool_trace
     agent_tool_router_hybrid --> agent_tool_router
+    agent_tool_router_hybrid -.-> agent_monitoring_prometheus
+    agent_tool_router_hybrid -.-> agent_orchestrator_routing_observability
     agent_tool_router_reranker --> agent_logging_utils
     agent_tool_router_reranker -.-> agent_utils_singleton_manager
     agent_tool_schema_pruner -.-> agent_capregistry
@@ -2248,10 +2272,14 @@ flowchart LR
     agent_tools --> agent_tools_persistence
     agent_tools -.-> agent_guardrails_injection_defense
     agent_tools -.-> agent_guardrails_untrusted_ingest
+    agent_tools -.-> agent_lines
+    agent_tools -.-> agent_logging_utils
+    agent_tools -.-> agent_audit_chain
+    agent_tools -.-> agent_audit_facade
     agent_tools -.-> agent_tool_gate
     agent_tools -.-> agent_lines_models
-    agent_tools -.-> agent_timeout_budget
     agent_tools -.-> agent_lines_callability
+    agent_tools -.-> agent_timeout_budget
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
     agent_tools_code_tools --> agent
@@ -2355,6 +2383,8 @@ flowchart LR
     agent_tools_web_tools -.-> agent_web
     agent_tools_web_tools -.-> agent_network_config
     agent_tools_web_tools -.-> agent_search_aggregator
+    agent_tools_prompt_guard --> agent
+    agent_tools_prompt_guard -.-> agent_lines
     agent_ui_panels_data --> agent_ui_panels_schema
     agent_ui_panels_data -.-> agent_security
     agent_ui_panels_data -.-> agent_observability_events
@@ -2437,9 +2467,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 622
-- 模块节点数: 556
-- 依赖边数: 1763
-- 跨层调用数: 1104
+- 扫描文件数: 623
+- 模块节点数: 557
+- 依赖边数: 1792
+- 跨层调用数: 1128
 - 违规调用数: 0
 - 动态 import 数: 1
