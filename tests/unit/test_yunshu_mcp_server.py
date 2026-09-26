@@ -57,6 +57,48 @@ def _clean_env(monkeypatch):
     yield
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _restore_tool_registry():
+    """**本模块跑完**把进程级工具注册表逐条还原（快照在手）
+
+    【不易·为什么必须有】`srv.YunshuMCPHandler()` 构造时会 `_register_exposed_tools`，
+    把暴露的**真实工具**登记进 `agent/tools/__init__.py:_registry`；本文件在夹具
+    （`handler`）与**多个用例体**里都会构造它 ⇒ 用例体那几处没有 teardown 可言。
+    实测本文件单独跑会留下 10 个真实工具（grep/edit/read_file/write_file/
+    list_directory/get_file_info/search_files/compress/decompress/diff_files）；
+    留着就污染同进程后续测试（本文件排在 `tests/unit/test_tool_count_consistency.py`
+    之前时，后者"下发集 == 我登记的 3 个工具"的前置条件当场失配 ⇒ 2 failed）。
+
+    【口径不降】断言一条未改：只做"快照 → 用例跑 → 逐条放回"（含 source / schema /
+    handler / source_id），并推进 `_registry_version` 让各级缓存失效。
+    【为什么不在用例开始时清空】**只还原**作用面最小：本文件不要求空注册表，
+    清空会改变用例看到的世界（`test_exposed_dl_dependent_tool_fails_closed`
+    本来就靠自己先注销同名工具来保证确定性）。
+    【为什么不用 `tools.clear()`】它会连 `_tool_health` 一起清。
+
+    【不易·为什么是 module 而不是 function 作用域（实测踩过）】改成逐用例还原会**打红**
+    `TestExposedToolsEnvOverride::test_override_can_narrow_to_one_tool`：
+      · 该用例要求 `get_file_info` 已是**已注册**工具（`_register_exposed_tools()` 只在
+        `"read_file" not in known` 时才整体注册文件工具五件套）；
+      · 逐用例还原后，残留只有 `read_file`（来自 `test_tool_exception_is_wrapped_not_raised`
+        的 `monkeypatch.setitem(agent_tools._registry, "read_file", …)`）⇒ 五件套不再注册
+        ⇒ 构造即抛 `ToolConfigError: 含未注册的工具名: ['get_file_info']`。
+      · 根因是**夹具 teardown 顺序**：autouse 夹具在 fixture 闭包里排最后 ⇒ **最先**被 teardown，
+        `monkeypatch` 的 undo 在它之后执行，于是把 read_file 又写回注册表。
+    模块级夹具在该模块**所有**用例的函数级夹具都收尾之后才 teardown ⇒ 既真正清干净，
+    又保留本文件内部原有的"先注册后暴露"用例间可见性（不改变任何用例看到的世界）。
+    """
+    from agent import tools as _tools
+
+    saved = dict(_tools._registry)
+    try:
+        yield
+    finally:
+        _tools._registry.clear()
+        _tools._registry.update(saved)
+        _tools._registry_version += 1
+
+
 @pytest.fixture()
 def handler(_clean_env):
     """默认配置的处理器（只读五件套）"""

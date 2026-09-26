@@ -193,15 +193,29 @@ class TestToolReadToEgressChain:
 
     @pytest.fixture
     def read_tool(self):
-        """注册文件工具并取出 read_file 的**真实包装实现**"""
+        """注册文件工具并取出 read_file 的**真实包装实现**；用完**整表还原**注册表
+
+        【不易·为什么是整表快照】`file_tools_reg.register_all` 一次登记**五个**真实文件工具
+        （read_file / write_file / list_directory / get_file_info / search_files），而旧写法
+        一个都不还原 ⇒ 它们留在**进程级**注册表（`agent/tools/__init__.py:_registry`）里，
+        污染同进程后续测试（实测：本文件与 `tests/unit/test_tool_count_consistency.py`
+        合跑必红 2 条）。还原形状同 `test_tool_count_consistency.py` 的
+        `isolated_tool_registry`：只换 `_registry` 内容并推进版本，不动 `_tool_health`。
+        """
         from agent import tools as tools_mod
         from agent.tools import file_tools_reg
 
         class _DummyDl:
             _permission = None
 
+        saved = dict(tools_mod._registry)
         file_tools_reg.register_all(_DummyDl())
-        return tools_mod._registry["read_file"]["handler"]
+        try:
+            yield tools_mod._registry["read_file"]["handler"]
+        finally:
+            tools_mod._registry.clear()
+            tools_mod._registry.update(saved)
+            tools_mod._registry_version += 1
 
     def test_读密钥之后外发被拒(self, read_tool, tmp_path):
         secret = tmp_path / ".env"
