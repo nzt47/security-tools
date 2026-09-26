@@ -1881,6 +1881,78 @@ tests/unit/test_search_tools.py:31  register_all(dl)
 
 ---
 
+## 24. 本批在真实 CI 上暴露、并由我修好的**两处回归**（这是"推送验证"最大的收获）
+
+**为什么全量单测跑不出来**：这两条都不是 pytest 用例，而是**独立 CI 门**（`boundary-guard.yml` / `architecture-check.yml`）。本批前 5 轮全量 `tests/unit`（22677 passed）对它们**天然失明** —— 如果只跑 pytest 就打勾"验收完成"，这两条会直接带进 master。
+
+### 24.1 架构循环依赖（`no_circular_dependency`）：0 违规 → **2 违规**，已修回 0
+
+**发现**：手工 dispatch `架构规则校验` → `exit 1`，2 条 high：`agent/digestion/stage.py:573`、`:374`。
+
+**HEAD↔工作区差分（判定"是不是我干的"的唯一可靠办法）**：把 `origin/master` 检出到仓库外的临时 worktree，跑**同一条命令**：
+
+```text
+[base]   python scripts/ci_run_module.py agent.observability.arch_rules --check ...   → rc=0, total_violations=0
+[branch] 同一条命令                                                                   → rc=1, total_violations=2
+```
+
+⇒ **是我引入的回归**（不是既有）。
+
+**根因**：RUNBOOK-1 让 `agent/descriptors/backfill.py` 在 S3-01 收口时调用 `agent.digestion.stage.backfill_stages`，写成"函数内懒加载 import"。它闭合了这条环：
+
+```text
+descriptors.backfill → digestion.stage            ← 新增的这一条
+digestion.stage      → descriptors.bridge         （既有）
+descriptors.bridge   → skills_mgmt.store          （既有）
+skills_mgmt.store    → skills_mgmt.registry       （既有）
+skills_mgmt.registry → skills_mgmt.service        （既有）
+skills_mgmt.service  → descriptors.backfill       （既有）
+```
+
+**"挪进函数体"为什么没用**：`dependency_graph._parse_imports` 用 `ast.walk` 遍历**整棵树含函数体**，连 `importlib.import_module('x.y')` / `__import__('x.y')` 的**字面量**也计边（`is_dynamic` 从不参与筛选）。这条**仓库自己早就踩过并写进了规则文案**（`agent/observability/arch_rules.py:126-137`，S11-09 订正）—— 我此前没读它，是我的疏漏。
+
+**修法（用规则自己给的路径：依赖倒置 / 叶子契约）**：
+1. 新增 **`agent/descriptors/stage_contract.py`**：零 agent 依赖的**叶子契约**（`register_stage_runner` / `get_stage_runner` / `reset_stage_runner`）；
+2. `agent/digestion/stage.py` 在**自己的导入期**把 `backfill_stages` 注册进契约（`digestion → 契约`，契约零依赖 ⇒ 不成环）；
+3. `backfill.py` 改从契约取用，并新增**显式注入** `stage_runner=`（显式优先于注册表）；
+4. **组合根**接起来：`scripts/run_s1_02_backfill.py`（`scripts/` 不在扫描根内）显式注入；
+5. **未注册时如实报错**（`auto_executed=False` + `error` 里点名架构规则），**绝不静默跳过收口**。
+
+**复验**：`rc=0, passed=True, total_violations=0`。
+
+**新增护栏 `tests/unit/test_arch_stage_contract.py`（6 项）**：
+- AST 层断言 `agent/descriptors/` 下**不存在**任何指向 `agent.digestion.stage` 的 import（含函数体内、含字面量动态 import）；
+- 叶子契约**不得**依赖任何 agent 包；
+- 导入 `agent.digestion.stage` 即完成注册；
+- **未注册必报错**（不是静默跳过）；
+- 显式注入优先于注册表；
+- **★ 真树级**：直接跑 `ArchRuleValidator(root_dir="agent").validate()`，断言零循环依赖违规 —— 这正是 CI 那两行红的同一条判定路径（标 `slow`，CI 的 `--runslow` 档会跑）。
+
+> **我为什么单列这一条**：`tests/unit/test_arch_rules.py` 全程只用**合成夹具**，从不校验真实仓库树 ⇒ 真实树的架构校验**只在 CI 里跑**，这就是它能一路穿过 22677 passed 的原因。这个"CI 独有门"的覆盖缺口，本卡用一条真树断言补上了。
+
+### 24.2 硬编码边界值：166 → **167**（新增 1 个），已修回 166
+
+**发现**：手工 dispatch `Boundary Guard` → `::error::检测到 167 个未配置化硬编码边界值（基线 166），新增 1 个`。
+
+**HEAD↔工作区差分**：同一条命令在两个树上跑，再对 `details` 做**行号无关**的净差：
+
+```text
+[base]   high_risk = 166   cat = {retry: 24, timeout: 139, capacity: 44}
+[branch] high_risk = 167   cat = {retry: 24, timeout: 140, capacity: 44}
+NET NEW: ('server_port_guard.py', 'timeout', 'timeout', '3.0', 'call_arg', 'high')  1 -> 2
+```
+
+⇒ 净增 1 处：A1 卡在 `agent/server_port_guard.py` 新增的"补杀孤儿后代"路径里，**又写了一遍** `run(["taskkill", ...], timeout=3)`（与既有那一处逐字相同）。
+
+**修法**：不"配置化到 observability_config"（那要动全局已配置模块清单，是**放宽**），而是**抽出唯一实现** `_kill_pid(pid, run)`，两处共用 ⇒ 同一个硬编码只剩一处，命令与超时**逐字未改**。
+
+**★ 这次修法我第一版写错，被测试当场抓住**：`_kill_pid` 初版用了**模块级名字** `run`（`CleanupPortListeners` 里实际是局部 `run = runner or subprocess.run` 的**注入桩**）⇒ 受控桩收不到 taskkill，`test_server_port_guard` / `test_startup_no_gap` **7 条用例变红**（而且 NameError 被外层 `except Exception: pass` 吞掉，表现为"kill 静默没发生"）。改成 `_kill_pid(pid, run)` 显式接收注入 runner 后 **全部转绿**。
+**这条要记住的教训**：**"抽公共实现"时最容易丢的就是注入缝隙** —— 而这次是测试拦住的，不是我看出来的。
+
+**复验**：`high_risk = 166`（= 基线），`Boundary Guard` 复跑 **success**。
+
+---
+
 ## 25. 收尾批次（A–F 六张卡）与**遗留清单**
 
 ### 25.1 六张收尾卡：结论 + 我对每张卡的独立复核
@@ -1993,79 +2065,6 @@ tests/unit/test_search_tools.py:31  register_all(dl)
 
 
 
----
-
-## 24. 本批在真实 CI 上暴露、并由我修好的**两处回归**（这是"推送验证"最大的收获）
-
-**为什么全量单测跑不出来**：这两条都不是 pytest 用例，而是**独立 CI 门**（`boundary-guard.yml` / `architecture-check.yml`）。本批前 5 轮全量 `tests/unit`（22677 passed）对它们**天然失明** —— 如果只跑 pytest 就打勾"验收完成"，这两条会直接带进 master。
-
-### 24.1 架构循环依赖（`no_circular_dependency`）：0 违规 → **2 违规**，已修回 0
-
-**发现**：手工 dispatch `架构规则校验` → `exit 1`，2 条 high：`agent/digestion/stage.py:573`、`:374`。
-
-**HEAD↔工作区差分（判定"是不是我干的"的唯一可靠办法）**：把 `origin/master` 检出到仓库外的临时 worktree，跑**同一条命令**：
-
-```text
-[base]   python scripts/ci_run_module.py agent.observability.arch_rules --check ...   → rc=0, total_violations=0
-[branch] 同一条命令                                                                   → rc=1, total_violations=2
-```
-
-⇒ **是我引入的回归**（不是既有）。
-
-**根因**：RUNBOOK-1 让 `agent/descriptors/backfill.py` 在 S3-01 收口时调用 `agent.digestion.stage.backfill_stages`，写成"函数内懒加载 import"。它闭合了这条环：
-
-```text
-descriptors.backfill → digestion.stage            ← 新增的这一条
-digestion.stage      → descriptors.bridge         （既有）
-descriptors.bridge   → skills_mgmt.store          （既有）
-skills_mgmt.store    → skills_mgmt.registry       （既有）
-skills_mgmt.registry → skills_mgmt.service        （既有）
-skills_mgmt.service  → descriptors.backfill       （既有）
-```
-
-**"挪进函数体"为什么没用**：`dependency_graph._parse_imports` 用 `ast.walk` 遍历**整棵树含函数体**，连 `importlib.import_module('x.y')` / `__import__('x.y')` 的**字面量**也计边（`is_dynamic` 从不参与筛选）。这条**仓库自己早就踩过并写进了规则文案**（`agent/observability/arch_rules.py:126-137`，S11-09 订正）—— 我此前没读它，是我的疏漏。
-
-**修法（用规则自己给的路径：依赖倒置 / 叶子契约）**：
-1. 新增 **`agent/descriptors/stage_contract.py`**：零 agent 依赖的**叶子契约**（`register_stage_runner` / `get_stage_runner` / `reset_stage_runner`）；
-2. `agent/digestion/stage.py` 在**自己的导入期**把 `backfill_stages` 注册进契约（`digestion → 契约`，契约零依赖 ⇒ 不成环）；
-3. `backfill.py` 改从契约取用，并新增**显式注入** `stage_runner=`（显式优先于注册表）；
-4. **组合根**接起来：`scripts/run_s1_02_backfill.py`（`scripts/` 不在扫描根内）显式注入；
-5. **未注册时如实报错**（`auto_executed=False` + `error` 里点名架构规则），**绝不静默跳过收口**。
-
-**复验**：`rc=0, passed=True, total_violations=0`。
-
-**新增护栏 `tests/unit/test_arch_stage_contract.py`（6 项）**：
-- AST 层断言 `agent/descriptors/` 下**不存在**任何指向 `agent.digestion.stage` 的 import（含函数体内、含字面量动态 import）；
-- 叶子契约**不得**依赖任何 agent 包；
-- 导入 `agent.digestion.stage` 即完成注册；
-- **未注册必报错**（不是静默跳过）；
-- 显式注入优先于注册表；
-- **★ 真树级**：直接跑 `ArchRuleValidator(root_dir="agent").validate()`，断言零循环依赖违规 —— 这正是 CI 那两行红的同一条判定路径（标 `slow`，CI 的 `--runslow` 档会跑）。
-
-> **我为什么单列这一条**：`tests/unit/test_arch_rules.py` 全程只用**合成夹具**，从不校验真实仓库树 ⇒ 真实树的架构校验**只在 CI 里跑**，这就是它能一路穿过 22677 passed 的原因。这个"CI 独有门"的覆盖缺口，本卡用一条真树断言补上了。
-
-### 24.2 硬编码边界值：166 → **167**（新增 1 个），已修回 166
-
-**发现**：手工 dispatch `Boundary Guard` → `::error::检测到 167 个未配置化硬编码边界值（基线 166），新增 1 个`。
-
-**HEAD↔工作区差分**：同一条命令在两个树上跑，再对 `details` 做**行号无关**的净差：
-
-```text
-[base]   high_risk = 166   cat = {retry: 24, timeout: 139, capacity: 44}
-[branch] high_risk = 167   cat = {retry: 24, timeout: 140, capacity: 44}
-NET NEW: ('server_port_guard.py', 'timeout', 'timeout', '3.0', 'call_arg', 'high')  1 -> 2
-```
-
-⇒ 净增 1 处：A1 卡在 `agent/server_port_guard.py` 新增的"补杀孤儿后代"路径里，**又写了一遍** `run(["taskkill", ...], timeout=3)`（与既有那一处逐字相同）。
-
-**修法**：不"配置化到 observability_config"（那要动全局已配置模块清单，是**放宽**），而是**抽出唯一实现** `_kill_pid(pid, run)`，两处共用 ⇒ 同一个硬编码只剩一处，命令与超时**逐字未改**。
-
-**★ 这次修法我第一版写错，被测试当场抓住**：`_kill_pid` 初版用了**模块级名字** `run`（`CleanupPortListeners` 里实际是局部 `run = runner or subprocess.run` 的**注入桩**）⇒ 受控桩收不到 taskkill，`test_server_port_guard` / `test_startup_no_gap` **7 条用例变红**（而且 NameError 被外层 `except Exception: pass` 吞掉，表现为"kill 静默没发生"）。改成 `_kill_pid(pid, run)` 显式接收注入 runner 后 **全部转绿**。
-**这条要记住的教训**：**"抽公共实现"时最容易丢的就是注入缝隙** —— 而这次是测试拦住的，不是我看出来的。
-
-**复验**：`high_risk = 166`（= 基线），`Boundary Guard` 复跑 **success**。
-
----
 
 
 
