@@ -145,3 +145,4 @@ jobs:
             tests/unit/test_task_scheduler_comprehensive.py \
             tests/integration/test_task_scheduler_integration.py \
             --runslow -q -p no:randomly ${{ matrix.arm.plugin }}
+# probe5: harmless comment added by bisect (temporary)
