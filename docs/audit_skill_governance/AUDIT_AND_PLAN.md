@@ -1964,7 +1964,7 @@ NET NEW: ('server_port_guard.py', 'timeout', 'timeout', '3.0', 'call_arg', 'high
 | **LEDGER2**（并发重建台账损坏） | 根因确认：`registry.load()` 把并发 `Errno 13` 当"存储损坏"**把台账改名搬走**再从空注册表续写；修后同一实验 **0 损坏 / 0 丢失更新 / 终态 32/32**；`descriptor` 相关 **225 passed** | **HEAD 差分复现**：在一个 `35f07f2d` 的独立 worktree 里跑它的新测试（即**没有**修复的 `registry.py`）⇒ **3 failed / 5 passed**，与它自报的"改前"逐字一致 ⇒ **修复确实有牙** ✓ |
 | **TESTHYG2**（污染源夹具） | 污染源从"一族 ≥4"扩到**9 个文件**（新增 5 个，其中 `test_digital_life_comprehensive.py` ~30 处 `DigitalLife()` 全新）；全部在 `finally` 整表快照→逐条还原；**断言/跳过 0 改动**；复位探针 **27/27 CLEAN**；34 文件回归改前=改后 `1275 passed, 11 skipped` | 我**未**独立重跑它的 9 组探针；改由其变更**全部经过 v6 全量**（见 §26）与"diff 里 0 条 assert/skip"核对。它自报：`_active.json`/`skills_mgmt.json`/`audit_chain.db`/`daily_roots.jsonl` **全程未变**，`knowledge_audit.jsonl` 因既有用例行为 +7 条（已登记） |
 | **CI2**（干净检出批量复刻） | ★ 抓到 **3 个守卫在干净检出上必红**（= master CI 会红）+ 假绿与覆盖缺口；并**修正了 CI-1 的一条过期结论**（`test_route_conflict_cases.py` 已因用例集入仓而不再是"必红"） | **我逐文件复现**，且**发现它低估了其中一条**：`test_skill_h3_migration.py` 它记 `1 failed / 9 passed / 6 skipped`，我实测 **7 failed / 9 passed / 0 skipped**（`:118/:125/:167/:176/:266/:278/:284` 七条），已把更正发回该卡并写进 §25.2 |
-| **CI3**（消掉干净检出必红 + 假绿） | 3 个必红全部消掉（**断言数增加**：15→18、9→17、3→4）；机制类断言**改成夹具真跑**（h3 参数化双来源 `[fixture]`/`[real]`；`search`/`s2` **完全不 skip**）；真实台账类 8 条按**仓库既有约定**显式 skip 且**每条都有夹具孪生**；tiktoken 假绿改为**响亮失败**并在 `ci.yml` 钉住依赖 | **我在全新干净 worktree 上独立复验**：四文件（CI 同口径）**61 passed / 8 skipped / rc=0**，仓库内 **69 passed** ✓。它的"牙齿验证"（清空夹具 dict ⇒ 恰 6 红；**只清空被注入的那个文件** ⇒ 恰 2 红）正是"生产路径读的是注入文件"的证明 |
+| **CI3**（消掉干净检出必红 + 假绿） | 3 个必红全部消掉（**断言数增加**：15→18、9→17、3→4）；机制类断言**改成夹具真跑**（h3 参数化双来源 `[fixture]`/`[real]`；`search`/`s2` **完全不 skip**）；真实台账类 8 条按**仓库既有约定**显式 skip 且**每条都有夹具孪生**；tiktoken 假绿改为**响亮失败**并在 `ci.yml` 钉住依赖 | **我在全新干净 worktree 上独立复验**：四文件（CI 同口径）**61 passed / 8 skipped / rc=0**，仓库内 **69 passed** ✓（在 HEAD=`9f248f8d` 上复测同值）。它的"牙齿验证"（清空夹具 dict ⇒ 恰 6 红；**只清空被注入的那个文件** ⇒ 恰 2 红）正是"生产路径读的是注入文件"的证明。<br>★ **它事后的补充报告把「仓库内」写成 `61 passed / 0 skipped`，与实测不符**：仓库内恒为 **69 passed**（多出的 8 条正是「真实台账存在时才跑」的那组）；`61 passed / 8 skipped` 是**干净检出**的数。以本行实测为准 |
 
 ### 25.2 本轮**修正**汇总（谁纠正了谁）
 
@@ -1999,7 +1999,13 @@ NET NEW: ('server_port_guard.py', 'timeout', 'timeout', '3.0', 'call_arg', 'high
     `test_knowledge_workflow` 一族 **+7 条（50048 → 53112 B）**；**我复测时它已到 57105 B / 129 行**（mtime 02:41:48，
     最后两条来自 v6 全量的 `pytest-of-AdminWT\pytest-6203\test_main_audit_*`，source=`agent.knowledge.__main__`、actor=ci）。
     ⇒ 与第 5 条同族（文件级追加、无哈希链影响），**属既有行为**，非本批引入；本轮真实增量以 57105 B 为准（卡 D 的 +7 条只是它的观测窗口）。
-13. **测试会把 `data/skills_mgmt.json`、`data/audit/` 写进任意检出目录**（我在干净 worktree 上实测到它们被创建）—— 卫生项，未处理。
+13. **测试会把 `data/skills_mgmt.json`、`data/audit/` 写进任意检出目录** —— 卫生项，未处理。
+    **我已定位到具体来源**（卡 CI3 报「未定位到创建点」，其实可定位）：在干净检出里逐文件跑，
+    `test_skill_search_description_source.py` 与 `test_skill_h3_migration.py` **各自会创建一个 2 字节的
+    `data/skills_mgmt.json`（内容就是 `{}`）**，四个文件都会创建 `data/audit/`。
+    ⇒ **不造成不稳定性**：正因 CI3 把判据改成「**有内容**才算有台账」（空对象与不存在同类），
+    所以「先跑过的分片留下空台账」不会改变后续分片的行为（干净检出恒 61 passed / 8 skipped）。
+    影响面：仅在检出目录里多出一个 gitignored 的空文件。
 14. 我的第 5 轮全量（v5）**卡死被终止**（30 分钟无日志、pytest-timeout 打印后线程未返回；当时有 3 张卡并发跑 pytest）。它不作为证据，由 §26 的 v6（冻结树、无并发编辑）取代。
 
 ---
