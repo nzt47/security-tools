@@ -1881,6 +1881,120 @@ tests/unit/test_search_tools.py:31  register_all(dl)
 
 ---
 
+## 25. 收尾批次（A–F 六张卡）与**遗留清单**
+
+### 25.1 六张收尾卡：结论 + 我对每张卡的独立复核
+
+| 卡 | 结论 | 我的独立复核 |
+|---|---|---|
+| **MINSCORE1**（生产 `min_score=0.3`） | **不改代码**，只交数据与设计：`_match_score = H/N`（命中 token 数 / query token 数，**不是相似度**、与文档长度无关）；0.3 是无标定魔数（`47e7f6be` 引入，commit message 无理由）；候选 C3 可到 **7/8** 但跨卡护栏红；★ **编排层用同一个 0.3 比同一个 H/N ⇒ 只修 loader 零收益** | **完全复现**：我自己用生产入口 `SkillLoader.match()` 跑它的 8 中文 + 8 英文：`0.3 → zh 4/8（miss zh01/zh02/zh06/zh08）、en 8/8；0.01 → zh 8/8、en 8/8`，且 `use_bm25` 开/关**两档完全相同** ⇒ §21.2 的结论与它一致 ✓ |
+| **DYNGATE1**（`detect_dynamic_loads` HIGH） | 2 处 HIGH 是**真阳性但有界**（目标目录为模块常量、无外部输入可达）；改 scanner 为「file+qualname+pattern 三元组全等 + 命中配额」豁免，命中后**降级为 MEDIUM 而非删除**，并报 stale exemption | **干净检出复跑**：`high=0 exempt=2 → exit=0` ✓（改前 HEAD 为 `high=2 → exit=1`）。★ **它同时推翻了我一个说法**：我说过「文本模式 rc=0 / `--json` rc=1」；我在 HEAD 版扫描器上重测两模式**都是 rc=1** —— 我先前那句是在**脏工作树**（含 `qwen-agent/` 等未跟踪目录，默认根扫到 20844 个文件 / 111 HIGH）上读错的，**我的说法作废** |
+| **LEDGER2**（并发重建台账损坏） | 根因确认：`registry.load()` 把并发 `Errno 13` 当"存储损坏"**把台账改名搬走**再从空注册表续写；修后同一实验 **0 损坏 / 0 丢失更新 / 终态 32/32**；`descriptor` 相关 **225 passed** | **HEAD 差分复现**：在一个 `35f07f2d` 的独立 worktree 里跑它的新测试（即**没有**修复的 `registry.py`）⇒ **3 failed / 5 passed**，与它自报的"改前"逐字一致 ⇒ **修复确实有牙** ✓ |
+| **TESTHYG2**（污染源夹具） | 污染源从"一族 ≥4"扩到**9 个文件**（新增 5 个，其中 `test_digital_life_comprehensive.py` ~30 处 `DigitalLife()` 全新）；全部在 `finally` 整表快照→逐条还原；**断言/跳过 0 改动**；复位探针 **27/27 CLEAN**；34 文件回归改前=改后 `1275 passed, 11 skipped` | 我**未**独立重跑它的 9 组探针；改由其变更**全部经过 v6 全量**（见 §26）与"diff 里 0 条 assert/skip"核对。它自报：`_active.json`/`skills_mgmt.json`/`audit_chain.db`/`daily_roots.jsonl` **全程未变**，`knowledge_audit.jsonl` 因既有用例行为 +7 条（已登记） |
+| **CI2**（干净检出批量复刻） | ★ 抓到 **3 个守卫在干净检出上必红**（= master CI 会红）+ 假绿与覆盖缺口；并**修正了 CI-1 的一条过期结论**（`test_route_conflict_cases.py` 已因用例集入仓而不再是"必红"） | **我逐文件复现**，且**发现它低估了其中一条**：`test_skill_h3_migration.py` 它记 `1 failed / 9 passed / 6 skipped`，我实测 **7 failed / 9 passed / 0 skipped**（`:118/:125/:167/:176/:266/:278/:284` 七条），已把更正发回该卡并写进 §25.2 |
+| **CI3**（消掉干净检出必红 + 假绿） | 3 个必红全部消掉（**断言数增加**：15→18、9→17、3→4）；机制类断言**改成夹具真跑**（h3 参数化双来源 `[fixture]`/`[real]`；`search`/`s2` **完全不 skip**）；真实台账类 8 条按**仓库既有约定**显式 skip 且**每条都有夹具孪生**；tiktoken 假绿改为**响亮失败**并在 `ci.yml` 钉住依赖 | **我在全新干净 worktree 上独立复验**：四文件（CI 同口径）**61 passed / 8 skipped / rc=0**，仓库内 **69 passed** ✓。它的"牙齿验证"（清空夹具 dict ⇒ 恰 6 红；**只清空被注入的那个文件** ⇒ 恰 2 红）正是"生产路径读的是注入文件"的证明 |
+
+### 25.2 本轮**修正**汇总（谁纠正了谁）
+
+1. **卡 B 纠正我**：「文本/--json 退出码不一致」**不成立**（我重测两模式都是 rc=1）；
+2. **我纠正卡 E**：`test_skill_h3_migration.py` 的干净检出失败数 **1 → 7**；
+3. **卡 E 纠正 CI-1**：`test_route_conflict_cases.py` 的"必红"已失效（用例集已在 `35f07f2d` 入仓）；
+4. **卡 A 纠正 RET-1R/GATE-1 的前提**（与 §21.2 同向）：BM25 既不更好也不更差，约束是 `min_score` 本身；
+5. **卡 C 自曝**一次误写生产审计链（25 条 `cp.frozen`）—— **我用只读方式核验：生产链未受影响**（72701 行、seq 1..72701、0 断链、`cp.frozen` **0 条**；文本只留在 `audit_chain.db.seqjournal` 这个 SQLite 回滚日志里，说明那次写入被回滚了）；
+6. **我自己的两次 CI 回归**（§24.1 架构环 / §24.2 硬编码）+ **一次抽公共实现丢掉注入缝隙**（§24.2），全部由 CI 门或测试当场抓住。
+
+### 25.3 遗留清单（**未修**，按优先级；本节即"结案时的未完成项"）
+
+**P0（唯一一条功能级）**
+1. **生产 `min_score=0.3` 让技能检索中文命中 8/8 → 4/8**（英文不受影响；与 BM25 无关）。
+   证据：本报告 §21.2 + 卡 A（我已独立复现）。**没有有界标量能分离正负样本**（ratio 区间重叠），
+   且 **编排层用同一个 0.3 比同一个 H/N** ⇒ 需要**判据重新设计**（不是补丁），**本批不修**。
+
+**P1（合并后才第一次真正跑 / 只在 CI 才跑的门）**
+2. `skill-description-single-source.yml`（改）与 `settings-registry-gap-guard.yml`（新增）**只会在合并进 master 后第一次运行**（§23.2）；它们的**命令级**复刻已做过（CI-1 / CI2），但**真 GHA runner 上未跑过**。
+3. `tool-retrieval-ci.yml` 的 `skill-retrieval-quality-gate` **无 `workflow_dispatch`** ⇒ 既拿不到 PR run 也无法手工触发，**只能合并后验证**。
+4. **11 条断言在 CI 上永不执行**（CI2 统计；其中 h3 的 8 条已由 CI3 逐条登记并配夹具孪生）。
+
+**P2（已登记、不影响交付）**
+5. 动态加载豁免锚定在**函数**上：将来若有调用方给 `load_dynamic_tools` 传外部路径，扫描器**不会**报警（已有 AST 锚点测试，但依赖有人跑）。
+6. `agent/tools/tool_generator.py:218/223` 用**未净化**的 `name/category` 拼落盘路径（静态推断、未被利用；不属卡 B 文件归属）。
+7. 卡 C 残留：NFS/SMB 未实测；`load()` 重试耗尽后改抛 `OSError`（约 30 个调用点、含 UI 读路径）**影响面未穷举**；`save()` 侧 WinError 5 在 6 次重试里仍可能失败 1 次。
+8. 卡 D 残留：**破坏型污染**（`T.clear()` / 无条件 `unregister`）未修；`--runslow` 车道的污染源未修。
+9. `test_route_conflict_cases.py` 进 CI 的是"精确相等"棘轮，而 CLI 的 `>=48` 下限门**没有任何 workflow 跑**。
+10. `index_manager.py` 死代码、`auto_upgrade` 死键（均为既存）。
+11. `data/audit/daily_roots.jsonl` 里 **2026-09-14 有一条重复**（与第一条同 seq 区间/同哈希，是先前授权切除后重建哈希链时的补链产物）——**无害**（11/11 封印与链上 `self_hash` 逐条对得上、`prev_entry_hash` 无断点），仅"不整齐"。
+12. `data/knowledge_audit.jsonl` 因卡 D 的多轮回归里既有用例行为 **+7 条**。
+13. **测试会把 `data/skills_mgmt.json`、`data/audit/` 写进任意检出目录**（我在干净 worktree 上实测到它们被创建）—— 卫生项，未处理。
+14. 我的第 5 轮全量（v5）**卡死被终止**（30 分钟无日志、pytest-timeout 打印后线程未返回；当时有 3 张卡并发跑 pytest）。它不作为证据，由 §26 的 v6（冻结树、无并发编辑）取代。
+
+---
+
+## 26. 第 6 轮全量（v6，冻结树）与最终交付状态
+
+### 26.1 v6：`--mode fast`，0 失败
+
+**命令**：`python scripts/run_full_pytest.py --chunks 4 --workers 4 --mode fast`
+**树**：**冻结在 `0b665615`**（工作区干净、无任何卡在写）；**无并发 pytest**。
+
+| chunk | 结果 | 耗时 |
+|---|---|---|
+| chunk_0 | **6218 passed, 8 skipped**, 28 deselected | 2331 s |
+| chunk_1 | **6498 passed, 6 skipped**, 119 deselected, 13 xfailed, 4 xpassed | 724 s |
+| chunk_2 | **7420 passed, 13 skipped**, 269 deselected, 5 xfailed | 751 s |
+| chunk_3 | **5754 passed, 29 skipped**, 76 deselected, 1 xfailed | 873 s |
+| **合计** | **25,890 passed / 56 skipped / 0 failed**（**四个 chunk 日志里 `FAILED` 行数 = 0**） | 2344 s |
+
+**逐轮收敛**：14 → 10 → 7 → 6（v4）→ **0（v6）**。
+
+**两条必须写清的限定**：
+1. `--mode fast` = `-m "not slow"` ⇒ **492 条被 deselect（含整个慢档）未覆盖**。
+   `RUNNER_EXIT=1` **不是**用例失败：是 runner 自己在打印 chunk 状态时
+   `UnicodeEncodeError: 'gbk' codec can't encode character '\u2714'`（PowerShell 重定向下 GBK 控制台）——
+   **runner 工具 bug，已登记**（用例侧 0 失败）。
+2. **§15 那 4 条"预先存在"的红（`test_preflight_runner` ×3 + `test_ci_l3_context_preflight` ×1）
+   在 v6 里是绿的**（chunk_1 该文件 13 dots、chunk_2 该文件 15 dots 全过），
+   但我**单独跑这两个文件仍 `4 failed, 24 passed`** ⇒ 它们是**顺序/环境相关**的，不是"已修好"。
+   HEAD 差分早已证明**不是我引入**；本轮只是补充了"在全量分块顺序下它们是绿的"这一事实。
+
+### 26.2 五条生产数据不变性（v6 前后哈希对比）
+
+| 文件 | 结果 |
+|---|---|
+| `data/audit/audit_chain.db` | **未变** ✓（另经只读核验：72701 行、seq 1..72701、**0 断链**、head `3f3a3cba…`） |
+| `data/audit/daily_roots.jsonl` | **未变** ✓（另经核验：**11/11 封印的 `first/last_self_hash` 与链上对应 seq 逐条相等**、`prev_entry_hash` 无断点） |
+| `data/descriptors.json` | **未变** ✓ |
+| `data/skills_mgmt.json` | **未变** ✓ |
+| `data/skills_assessment_events.jsonl` | **变了** —— **预先存在且被仓库自己记录在案**的测试卫生缺口 |
+
+**关于第 5 条（要说准确，不能含混）**：该文件被 `.gitignore:458` 忽略；`tests/unit/conftest.py:883-921` 的
+`_iso_assessment_events_to_tmp`（本批 ISO-EVENTS 的产物）**就是为它写的**隔离夹具，注释里已写明
+"实测有未隔离的单测在往 data/skills_assessment_events.jsonl 追加记录"，并记录了 2026-09-25 时它已 **1115 行**。
+本次实测 **1248 行**，按 `ts` 统计其中 **2026-09-27（今天）28 行**；写入者指纹是 `evil-inject` / `evil-fork`
+（来自 `test_cmd_injection_blocked_in_*` 一族的夹具 id）。
+⇒ **性质**：文件级追加、**不触碰哈希链/日根/台账**，**不是本批引入**（该文件在 09-25 就已 965 行同日堆积），
+但**隔离仍有漏口**。已并入 §25.3 的 P2 遗留（与 TESTHYG-1 U2 同族）。
+
+### 26.3 最终交付状态（可核对）
+
+| 项 | 值 |
+|---|---|
+| 远端分支 | `origin/audit/skill-governance-v1.0` = **`0b665615`** |
+| 提交链 | `5c9ace10` → **`f74dce16`**（48 卡）→ **`35f07f2d`**（跟进批次）→ `196168ba`(merge) → **`71ed2af5`**（CI 两处回归修复 + 卡 A/B/C）→ **`d1c2b05d`**（TESTHYG2）→ **`0b665615`**（CI3） |
+| PR | **#980** → `master`（`mergeable=CLEAN`）；**本地 master 未直接推** |
+| 工作区 | **干净**（`git status --porcelain` 0 条） |
+| 远端可真跑的门 | **6/6 全绿**：Skills Check、日期平移守卫、关键字参数冲突扫描、**Boundary Guard（先红后修）**、**架构规则校验（先红后修）**、master commit 来源守卫 |
+| 干净检出上手工复刻的三条 | `detect_dynamic_loads` `high=0 → exit 0`；硬编码 `166`（=基线）；架构 `rc=0 / 0 违规` |
+| 全量单测 | v6 **25,890 passed / 0 failed**（fast 档） |
+| 隔离副本 | 5 个验证用 worktree 已全部移除（`git worktree list` 只剩主工作区） |
+
+> **一句话交付结论**：**代码已推、PR 已开、能跑的 CI 门全绿（其中 2 个是本批先红后修）、全量单测 0 失败、
+> 生产数据 4/5 不变性成立（第 5 条是仓库既有的、已登记的测试卫生缺口）**；
+> 唯一的**功能级未完成项**仍是生产 `min_score=0.3` 的中文召回（需判据重设计）。
+
+
+
+---
+
 ## 24. 本批在真实 CI 上暴露、并由我修好的**两处回归**（这是"推送验证"最大的收获）
 
 **为什么全量单测跑不出来**：这两条都不是 pytest 用例，而是**独立 CI 门**（`boundary-guard.yml` / `architecture-check.yml`）。本批前 5 轮全量 `tests/unit`（22677 passed）对它们**天然失明** —— 如果只跑 pytest 就打勾"验收完成"，这两条会直接带进 master。
