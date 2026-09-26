@@ -850,6 +850,21 @@ class SkillLoader:
             logger.info(log_dict({'module_name': 'loader', 'action': 'vector_search.all_filtered_by_min_score', 'min_score': min_score, 'raw_result_count': len(results)}))
             return None
 
+        # ── 【GATE-1】单路质量闸：本路径上向量腿是**唯一**的腿 ──
+        # 与 _try_rrf_match 的「单路兜底阈值检查」**同一个常量、同一比较口径、
+        # 同一种处置**（低于阈值 ⇒ return None ⇒ 调用方降级 TF-IDF）。
+        # 为什么必须有这条闸（RET-1R 残留 R2-1，本卡复现的原话）：
+        #   RET-1R 把负样本启发式的**作用域**收敛到"字面匹配兜底后端"之后，
+        #   垃圾 query（best pizza recipe / asdfghjkl / def print_hello_world function）
+        #   第一次真正走进语义腿，而这条路径上**没有任何质量闸** ⇒
+        #   负样本 22/23 被召回（改前 19/23）。这是**既有缺陷被放大**，不是 RET-1R 引入。
+        # 为什么可以只看 matches[0]：adapter.search 已按相似度降序返回，
+        #   下方的 min_score 过滤是保序过滤 ⇒ matches[0] 就是这条腿的 top1
+        #   （与 _try_rrf_match 里取 vector_matches[0].score 同一取数口径）。
+        if matches[0].score < self._SINGLE_PATH_MIN_TOP1:
+            logger.info(log_dict({'module_name': 'loader', 'action': 'vector.single_path_low_score_rejected', 'intent': intent[:100], 'vector_top1_score': round(matches[0].score, 4), 'threshold': self._SINGLE_PATH_MIN_TOP1, 'reason': 'single vector path top1 below single-path threshold'}))
+            return None
+
         total_tokens = sum(m.estimated_tokens for m in matches)
         logger.info(log_dict({'module_name': 'loader', 'action': 'vector_match.done', 'intent': intent[:100], 'matches_count': len(matches), 'top1_skill_id': matches[0].skill_id if matches else None, 'top1_score': round(matches[0].score, 4) if matches else None, 'retrieval_method': 'vector'}))
         return MatchResult(
@@ -992,6 +1007,37 @@ class SkillLoader:
     #   · 裕度 ≥ 1.4 ⇒ 中文只到 7/8；≥ 2.5 ⇒ 6/8（等价于把新判据收紧回原样）
     # 语料/分词变化后该常量需重新标定（残留风险见 RET1.md §6）。
     _RRF_QUALITY_BM25_DECISION_RATIO = 1.2
+
+    # 【GATE-1】「单路兜底阈值」= **向量腿是唯一证据**时的有界相似度下限（余弦，[0,1]）。
+    #
+    # 这一条闸**本来就是既有的**（原先只在 _try_rrf_match 里、且是就地定义的局部变量
+    # SINGLE_PATH_MIN_TOP1 = 0.45）。GATE-1 只做了两件事：
+    #   ① 把它**上提为类常量**（就地变量 ⇒ 唯一真相源）；
+    #   ② 让**单向量路** _try_vector_match（fusion_mode="none" + use_vector=True）
+    #      用**同一个常量、同一比较口径、同一种处置**（低于阈值 ⇒ return None，
+    #      由调用方降级 TF-IDF）。
+    # 除这两点外，阈值语义、触发条件、数值**一字未改**（口径一致，不另发明一套）。
+    #
+    # 【触发条件为什么在两条路径上等价】
+    #   _try_rrf_match: not tfidf_matches and vector_matches and not bm25_matches
+    #   ——「TF-IDF 路没有候选、只有向量路有」。而 fusion_mode="none" + use_vector=True
+    #   的单向量路**根本不跑 TF-IDF 腿与 BM25 腿**（use_bm25=True 会在 match() 里
+    #   把 fusion_mode 自动升为 "rrf"，故二者不可能共存）⇒ 结构上恒满足该条件。
+    #
+    # 数据支撑（BGE-m3；原注释给出的真机 case，GATE-1 未改）:
+    #   - case_038 "今天天气真好" 向量 top1 = 0.3612 → 误召回，应拒绝
+    #   - case_042 "帮我订一张机票" 向量 top1 = 0.4414 → 误召回，应拒绝
+    #   - case_043 "请帮我反思" 向量 top1 = 0.6030 → 真匹配，应保留
+    #   - case_007 "帮我梳理历史记忆并压缩" 向量 top1 = 0.6346 → 真匹配，应保留
+    #   - case_006 "请总结一下之前的对话历史" 向量 top1 = 0.5102 → 真匹配，应保留
+    # GATE-1 在单向量路上的实测（真库 28 条技能，见 docs/audit_skill_governance/GATE1.md）:
+    #   - 23 条负样本 query 的向量 top1 ∈ [0.3186, 0.5042]（最大 = "跑步前要做什么热身"）
+    #   - 16 条正样本 query 的向量 top1 ∈ [0.5195, 0.6876]（最小 = "optimistic update ..."）
+    #   ⇒ 0.45 落在负样本簇内、正样本簇之下 ⇒ 中英召回 8/8 + 8/8 **不变**（四格数据见报告）。
+    #   ⚠️ 0.45 **不能**把负样本全部挡住：5/23 仍高于该阈值（残留，见报告 §⑥）。
+    #   ⚠️ 这是**既有常量**，本卡没有为了好看而调它 —— 更贴合的 0.51 需要重新标定，
+    #      属于"另发明一套"，GATE-1 明确不做（见报告 §A 的方案论证）。
+    _SINGLE_PATH_MIN_TOP1 = 0.45
 
     @staticmethod
     def _bounded_quality_score(breakdown: Optional[Dict[str, Any]]) -> Optional[float]:
@@ -1674,21 +1720,15 @@ class SkillLoader:
         # 【不易】防御 embedding 模型对中文负样本的误召回
         # 场景：TF-IDF 路过滤为空（字面无匹配），但向量路召回了相似度较低的技能
         # 策略：单路召回时要求向量路 top1 分数 >= 单路阈值，否则认为误召回
-        # 阈值经验值：0.45
-        # 数据支撑（BGE-m3，all-MiniLM-L6-v2 已被 BGE-m3 替换）:
-        #   - case_038 "今天天气真好" 向量 top1 = 0.3612 → 误召回，应拒绝
-        #   - case_042 "帮我订一张机票" 向量 top1 = 0.4414 → 误召回，应拒绝
-        #   - case_043 "请帮我反思" 向量 top1 = 0.6030 → 真匹配，应保留
-        #   - case_007 "帮我梳理历史记忆并压缩" 向量 top1 = 0.6346 → 真匹配，应保留
-        #   - case_006 "请总结一下之前的对话历史" 向量 top1 = 0.5102 → 真匹配，应保留
-        SINGLE_PATH_MIN_TOP1 = 0.45
-        # 【不易】use_bm25=False 时 bm25_matches 恒为空，条件等价旧版 `not tfidf and vector`
+        # 【GATE-1】阈值与数据支撑已上提为类常量 `_SINGLE_PATH_MIN_TOP1`（唯一真相源），
+        #          数值与语义**一字未改**；单向量路 _try_vector_match 共用同一个常量。
+        # 【不易】use_bm25=False 时 bm25_matches 恒为空，条件等价旧版 "not tfidf and vector"
         # 【变易】use_bm25=True 且 bm25 有结果时跳过此阈值（BM25 提供独立专有名词信号，
         #         不属于"向量单路误召回"场景）
         if not tfidf_matches and vector_matches and not bm25_matches:
             vec_top1_score = vector_matches[0].score
-            if vec_top1_score < SINGLE_PATH_MIN_TOP1:
-                logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.single_path_low_score_rejected', 'intent': intent[:100], 'vector_top1_score': round(vec_top1_score, 4), 'threshold': SINGLE_PATH_MIN_TOP1, 'reason': 'tfidf empty + vector top1 below single-path threshold'}))
+            if vec_top1_score < self._SINGLE_PATH_MIN_TOP1:
+                logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.single_path_low_score_rejected', 'intent': intent[:100], 'vector_top1_score': round(vec_top1_score, 4), 'threshold': self._SINGLE_PATH_MIN_TOP1, 'reason': 'tfidf empty + vector top1 below single-path threshold'}))
                 return None
 
         # ── RRF 融合 ──

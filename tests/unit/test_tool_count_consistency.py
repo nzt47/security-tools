@@ -138,6 +138,50 @@ def registered_tools():
         _tools.unregister_by_source(_TEST_SOURCE)
 
 
+@pytest.fixture(autouse=True)
+def isolated_tool_registry():
+    """本文件的每个用例都在**干净的工具注册表**上跑；用例结束**逐条还原**
+
+    ────────────────────────────────────────────────────────────────────
+    为什么必须有这条隔离（TESTINFRA-2 实测，不是预防性洁癖）
+    ────────────────────────────────────────────────────────────────────
+    `resolve_dispatch_tool_defs(None)` 读的是 `agent.tools` 的**进程级**注册表
+    （`agent/tools/__init__.py:16 _registry`）。而"登记真实工具"这件事在本仓的
+    测试里**是泄漏的**——实测三个最小组合（两文件、`-p no:randomly`）：
+
+        tests/unit/test_search_tools.py            → 留下 7 个真实工具
+        tests/unit/test_policy_integration.py      → 留下 8 个
+        tests/unit/test_background_tasks_routes.py → 留下 91 个（整套内建工具）
+
+    只要其中任何一个排在本文件之前，`TestAdvertEqualsDispatched` 的
+    **前置条件**（下发集 == 本文件登记的 3 个工具）就失配
+    → 恰好这 2 条红（实测 `2 failed, 19 passed`，与全量里那 2 条**逐字同形**）。
+    这正是 v3/v4 两次全量里"仅全量复现"的那 2 条：单跑 21 passed、两个"显而易见的"
+    双文件组合也全绿，因为真正的污染源在**别处**、且随分块/顺序而变。
+
+    【口径不降】断言**逐字未改**（一条都没放宽）：本夹具只做"隔离"——
+    用例开始时把注册表清空（快照在手），结束时把**原来的每一条**原样放回
+    （含 source / schema / handler / source_id），并推进 `_registry_version`
+    让各级缓存失效。别的测试文件看到的状态与用例前完全一致。
+    【为什么不用 `tools.clear()`】它会**连 `_tool_health` 一起清**（别处用例的健康
+    计数会被抹掉）；这里只换 `_registry` 的内容，作用面最小。
+    """
+    from agent import tools as _tools
+
+    saved = dict(_tools._registry)
+
+    def _install(entries: dict) -> None:
+        _tools._registry.clear()
+        _tools._registry.update(entries)
+        _tools._registry_version += 1
+
+    _install({})
+    try:
+        yield
+    finally:
+        _install(saved)
+
+
 # ══════════════════════════════════════════════════════════════════════
 #  ① 渲染侧：数量与名字只能来自入参 tool_defs
 # ══════════════════════════════════════════════════════════════════════
@@ -175,6 +219,34 @@ class TestRenderIsSameSource:
         """提示词渲染在对话主链路上，异常会击穿整轮对话。"""
         for bad in (None, [], [None], [{}], [{"function": None}], ["not-a-dict"]):
             assert render_tool_advert_line(bad) == TOOL_ADVERT_EMPTY_LINE
+
+
+def test_隔离夹具挡住外来登记_否则前置条件必失配():
+    """**非空转自证**：证明隔离夹具是"有牙齿"的（不是"加了夹具，问题自己好了"）
+
+    做法：在本用例内**故意**模拟一次外来登记（正是别处文件泄漏的形状），
+    观察它是否真的会改变下发集：
+      · 隔离生效时（用例开始）注册表为空 ⇒ 下发集为空；
+      · 一旦多出一个外来工具 ⇒ 它**自己**就进了下发集
+        ⇒ 上面那两条"前置条件"（下发集 == 本文件登记的 3 个工具）必然失配。
+    用例结束由 `isolated_tool_registry` 把这个外来条目**逐条还原**掉。
+    """
+    from agent import tools as _tools
+
+    assert dict(_tools._registry) == {}, "隔离夹具没生效：注册表里还有外来条目"
+    assert tool_names_of(resolve_dispatch_tool_defs(None)) == []
+
+    _tools.register(
+        "foreign_leaked_tool", "模拟别处泄漏进来的真实工具",
+        schema={"type": "object", "properties": {}, "additionalProperties": True},
+        handler=(lambda **kw: None), source="some_other_test_file")
+
+    leaked = resolve_dispatch_tool_defs(None)
+    assert tool_names_of(leaked) == ["foreign_leaked_tool"], (
+        "外来登记没有进入下发集 ⇒ 本用例没测到东西（也无法解释那 2 条红）")
+    assert tool_names_of(leaked) != [] and not set(tool_names_of(leaked)) & set(
+        ["b1_alpha", "b1_beta", "b1_gamma"]), (
+        "外来工具没有把本文件的工具挤出/或前置条件仍成立 ⇒ 隔离并非必要")
 
 
 # ══════════════════════════════════════════════════════════════════════

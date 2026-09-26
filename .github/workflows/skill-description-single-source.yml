@@ -14,6 +14,30 @@
 #   3. sync_capability_manifest.py --check（清单是派生物，漂移必须红）
 #
 # 【超时声明】每个 job 都显式设了 timeout-minutes（避免默认 360 分钟挂死）。
+#
+# ══════════════════════════════════════════════════════════════════════════
+# 【CI-1 · 2026-09-27】干净 checkout 实测后的处置（**这份文件改过什么**）
+# ══════════════════════════════════════════════════════════════════════════
+# 1) 依赖清单按**实测导入链**给全（原清单会让 guards job 在干净 runner 上直接红）：
+#    实测（临时目录里按"干净 checkout"重建 = 只放会被提交的文件，不含 .env /
+#    data/skills_mgmt.json / data/descriptors.json 等 gitignored 产物）后 dump
+#    site-packages 模块，本门模块级需要：
+#      pyyaml（agent/skills_mgmt/file_store.py 解析 front matter）、
+#      pydantic（agent/descriptors/models.py ← backfill 链）、
+#      prometheus-client（agent/capregistry → monitoring 观测链）。
+#
+# 2) 测试文件里**一条写死的行数**已按数据推算（见该文件 CI-1 注释）：
+#    「合并视图行数 == 30」在 CI 干净 checkout 上是 28（主轨 data/skills_mgmt.json
+#    被 .gitignore:148 排除）⇒ 改成本地 28+2=30 / CI 28 都要求**恰好相等**，
+#    断言强度未放宽。另有一条「主轨独有集合」在 CI 无适用域，改成**显式 skip**
+#    （skip 理由会打印在日志里，不会静默变绿）。
+#
+# 3) 本 workflow 的 5 条 skip 全部是"依赖 gitignored 派生文件"的显式 skip
+#    （legacy 快照 / descriptor 台账 / 主轨），**在 CI 恒不执行** —— 这是本门的
+#    已知覆盖缺口，不是通过。逐条理由见下方 job 日志与 docs/audit_skill_governance/CI1.md。
+#
+# 4) 三个 job 都不需要 .env、不出网：脚本 job 显式给 HF_HUB_OFFLINE/TRANSFORMERS_OFFLINE
+#    （测试 job 由 tests/conftest.py 的 setdefault 兜底，此处再显式给一次，口径一致）。
 name: Skill Description Single Source
 
 concurrency:
@@ -35,6 +59,11 @@ on:
       - "plugins/skills.py"
       - "scripts/compare_skills_legacy_vs_repo.py"
       - "scripts/sync_capability_manifest.py"
+      # 【CI-1】依赖面补齐（自证：本门的输入变了就一定要触发）
+      - "agent/capregistry/**"          # 测试 import build_registry（信封描述非空）
+      - "tests/conftest.py"             # .env 地板 / HF 离线基线 / 落盘隔离
+      - "tests/unit/conftest.py"        # CI Linux 原生扩展封禁（决定向量腿可用性）
+      - "pytest.ini"                    # --timeout / asyncio_mode 契约
       - "tests/unit/test_skill_description_single_source.py"
       - ".github/workflows/skill-description-single-source.yml"
   push:
@@ -42,12 +71,37 @@ on:
     paths:
       - "data/skills_repo/**"
       - "agent/skills_mgmt/**"
+      # 【CI-1】与 pull_request 的依赖面保持同一份（原来 push 面更窄 ⇒ 同一份改动
+      #   走 PR 会触发、直接 push 到 master 反而不触发，"门只在 PR 上成立"）。
+      - "data/capability_manifest.json"
+      - "data/skills_descriptions_overlay.json"
+      - "agent/capregistry/**"
+      - "agent/descriptors/**"
+      - "plugins/skills.py"
+      - "scripts/compare_skills_legacy_vs_repo.py"
+      - "scripts/sync_capability_manifest.py"
+      - "tests/conftest.py"
+      - "tests/unit/conftest.py"
+      - "pytest.ini"
       - "tests/unit/test_skill_description_single_source.py"
       - ".github/workflows/skill-description-single-source.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+# 【CI-1】离线基线：与 .github/workflows/test.yml / daily_regression.yml 同口径。
+#   Why 必须显式给（不能只靠 conftest 的 setdefault）：本 workflow 的两个 job 跑的是
+#   **脚本**（compare / sync_capability_manifest），根本不加载 tests/conftest.py；
+#   而它们 import 的 agent 链在缺这两个键时可能去 huggingface.co 取模型
+#   （本批 TESTHYG-1 已实测过该形态：WinError 10060 五次重试把 import 拖到 >13min）。
+#   注：设成离线**不会**让任何断言的判据发生变化 —— 干净 checkout 里本来就没有 .env，
+#   CI 上这两个键一直由各 workflow 显式提供。
+env:
+  PYTHONIOENCODING: 'utf-8'
+  PYTHONPATH: '.'
+  HF_HUB_OFFLINE: '1'
+  TRANSFORMERS_OFFLINE: '1'
 
 jobs:
   guards:
@@ -60,9 +114,27 @@ jobs:
         with:
           python-version: "3.12"
       - name: 安装依赖
+        # 【CI-1】清单按**实测导入链**给全（不是"能跑 pytest 就行"）：
+        #   pyyaml            ← agent/skills_mgmt/file_store.py（解析 skill.md front matter）
+        #   pydantic          ← agent/descriptors/models.py（本门经 backfill → models 进入）
+        #   prometheus-client ← agent/capregistry → monitoring 观测链
+        #   pytest*           ← pytest.ini 要求 --timeout / asyncio_mode
+        # 实测依据：干净 checkout 副本里 import 本测试文件后 dump site-packages，得到
+        #   {yaml, pydantic, prometheus_client, pytest, ...}；原清单缺 pydantic 与
+        #   prometheus-client ⇒ 干净 runner 上会在 import 期直接 ImportError（假红）。
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml pytest pytest-timeout pytest-asyncio
+          pip install pyyaml pydantic prometheus-client pytest pytest-timeout pytest-asyncio
+      - name: 前置：断言依赖就位（缺依赖要点名，别让它变成 20 条看不懂的 ERROR）
+        run: |
+          python - <<'PY'
+          import importlib.util as u, sys
+          need = ["yaml", "pydantic", "prometheus_client", "pytest", "pytest_asyncio", "pytest_timeout"]
+          missing = [m for m in need if u.find_spec(m) is None]
+          if missing:
+              sys.exit("::error::本门依赖缺失: %s" % missing)
+          print("依赖就位:", need)
+          PY
       - name: 守卫测试
         run: |
           python -m pytest tests/unit/test_skill_description_single_source.py \
@@ -78,9 +150,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: 安装依赖
+        # 【CI-1】实测（干净 checkout 副本里 import 该脚本后 dump site-packages）：
+        #   本脚本的导入链需要 pyyaml 与 prometheus-client 两项，原清单只给了 pyyaml。
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml
+          pip install pyyaml prometheus-client
       - name: CI 口径（legacy 缺失 = 显式 PASS-SKIP，不是"通过"）
         run: |
           set -euo pipefail
@@ -111,6 +185,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: 安装依赖
+        # 【CI-1】实测：本脚本的导入链只需要 pyyaml（原清单正确，未改）。
         run: |
           python -m pip install --upgrade pip
           pip install pyyaml

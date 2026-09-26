@@ -71,6 +71,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import os
 import re
 import subprocess
@@ -640,6 +641,69 @@ def surface_stats(root: Path = _TESTS_ROOT) -> Dict[str, int]:
 
 
 # ════════════════════════════════════════════════════════════════════
+#  稳定键（2026-09-26 TESTINFRA-2）：位置**不含行号** + 证据指纹
+# ════════════════════════════════════════════════════════════════════
+# 【不易·本节的由来】原键是 `文件::函数@行号`，**行号硬钉**：
+#   TESTHYG-1 在 `tests/conftest.py` 顶部插入 60 行（会话级 .env 地板）后，
+#   `_no_stray_approval_store` 由 77 → 141 ⇒ 一条 **2026-09-20 已裁定无害** 的登记失配
+#   ⇒ 守 **假红**（代码一字未改，纯粹是行号漂移）。
+# 【变易】新键 = `文件` + `检测器:作用域#同作用域出现序号@证据指纹`：
+#   · 去掉行号 ⇒ **在上面插入多少行都不漂移**；
+#   · 保留作用域（函数名/类名/`<module>`/`<whole-file>`）+ 检测器 + 出现序号
+#     ⇒ 精度不降（同一函数里第二处同形盲点仍是**另一个键**）；
+#   · **加上证据指纹** ⇒ 同一函数里**新增**一处盲点（证据变了）必然换键 ⇒ 仍被检出。
+#     【为什么证据非带不可】`detect_fs_clock_vs_today` / `detect_mtime_from_time_time`
+#     这类检测器**每个函数只出一条命中**；若键里只有「文件::函数」，那么在同一函数里
+#     再添一处盲点（例如原来只碰 `st_mtime`、现在又碰 `utime`）时键不变
+#     ⇒ 整个函数被登记豁免 ⇒ **门被削弱**。有专门用例钉住这一点
+#     （`test_same_function_new_blindspot_is_still_detected`）。
+
+_LINENO_TAIL = re.compile(r"@\d+$")
+_DIGITS = re.compile(r"\d+")
+
+
+def evidence_digest(why: str) -> str:
+    """命中的「证据指纹」：说明文本里的**数字归一**后取 sha1 前 8 位
+
+    【变易】数字归一是必须的：说明文本里含行号（`第141行`）与处数（`共3处`），
+        它们本身就是"随插入漂移"的位置信息 —— 不归一就等于把行号又钉回键里，
+        本节要解决的问题会原样复发。
+    """
+    norm = _DIGITS.sub("N", why)
+    norm = re.sub(r"\s+", "", norm)
+    return hashlib.sha1(norm.encode("utf-8")).hexdigest()[:8]
+
+
+def hit_key(det: str, loc: str, why: str, ordinal: int) -> Tuple[str, str]:
+    """命中的**稳定键**：`(相对路径, "<检测器>:<作用域无行号>#<序号>@<证据指纹>")`
+
+    Args:
+        det: 检测器名（`_DETECTORS` 里的键）；
+        loc: 命中位置串（形如 `tests/unit/x.py::f@12` / `...::<whole-file>`）；
+        why: 命中说明（其归一化结果即证据指纹）；
+        ordinal: 该 `(检测器, 文件, 作用域)` 内的出现序号（1 起，按扫描顺序）。
+    """
+    rel, _, pos = loc.partition("::")
+    pos = _LINENO_TAIL.sub("", pos)
+    return (rel, f"{det}:{pos}#{ordinal}@{evidence_digest(why)}")
+
+
+def keyed_hits(name: str, root: Path = _TESTS_ROOT
+               ) -> List[Tuple[Tuple[str, str], str, str]]:
+    """某检测器的全部命中 → `[(稳定键, loc, why)]`（序号按扫描顺序确定性赋予）"""
+    seen: Dict[str, int] = {}
+    out: List[Tuple[Tuple[str, str], str, str]] = []
+    for _n, loc, why in scan_all(root).get(name, []):
+        rel, _, pos = loc.partition("::")
+        # 序号的作用域是 **(检测器, 文件, 位置无行号)** —— 必须含文件：
+        # 否则「别的文件新增一处同形命中」会把本文件的序号整体挪位 ⇒ 又变成脆弱键。
+        base = f"{rel}|{name}:{_LINENO_TAIL.sub('', pos)}"
+        seen[base] = seen.get(base, 0) + 1
+        out.append((hit_key(name, loc, why, seen[base]), loc, why))
+    return out
+
+
+# ════════════════════════════════════════════════════════════════════
 #  已裁定登记表（每条必须写明"为什么不会随日期变化 / 为什么已中和"）
 # ════════════════════════════════════════════════════════════════════
 
@@ -648,12 +712,12 @@ def surface_stats(root: Path = _TESTS_ROOT) -> Dict[str, int]:
 ALLOWLIST: Dict[Tuple[str, str], str] = {
     # ── 盲区 #2：模块级取时钟（静态臂）──────────────────────────────
     ("tests/integration/quick_recovery_check.py",
-     "tests/integration/quick_recovery_check.py::<module>:now@21"):
+     "import_time_clock:<module>:now#1@ca53140a"):
         "独立运维脚本，**不被 pytest 收集**（文件名不匹配 `python_files = test_*.py`）；"
         "模块级 `now` 只是脚本启动时打印当前时间（L22），脚本自身就是运行期，"
         "不存在'被测代码 vs 夹具'的口径分叉。",
     ("tests/unit/test_s5_03_cost_brake.py",
-     "tests/unit/test_s5_03_cost_brake.py::<module>:BASE@42"):
+     "import_time_clock:<module>:BASE#1@ca53140a"):
         "S11-07 已中和：`_refresh_base`（autouse，L61-64）在每个用例开始前把它重算为"
         "**调用期**的 `_base_now()`（`monkeypatch.setattr(sys.modules[__name__], "
         "\"BASE\", _base_now())`）。模块级初值仅为兼容导入期引用，测试运行期间"
@@ -662,16 +726,16 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
 
     # ── 盲区 #1：文件系统时钟 vs Python 的"今天" ────────────────────
     ("tests/unit/test_knowledge_card.py",
-     "tests/unit/test_knowledge_card.py::test_list_since_returns_only_new_files@905"):
+     "fs_clock_vs_today:test_list_since_returns_only_new_files#1@77a9b68e"):
         "**已按统一时钟口径修正（S11-07 §2.4）**：mtime 与 since 同源自**同一个** "
         "`now`（旧卡 now-2h、新卡 now、since now-1min），不再依赖"
         "'create 出来的 mtime 恰好等于 Python now'的隐含假设。本轮复查无需再改。",
     ("tests/unit/test_knowledge_skill_bridge.py",
-     "tests/unit/test_knowledge_skill_bridge.py::test_convert_cards_since_only_new@224"):
+     "fs_clock_vs_today:test_convert_cards_since_only_new#1@77a9b68e"):
         "同上一类（S11-07 §2.4 同款修正）：两个 mtime 与 since 全部由同一个 `now` "
         "派生 ⇒ 不存在'两个时钟来源'的比较。",
     ("tests/unit/test_task_scheduler.py",
-     "tests/unit/test_task_scheduler.py::test_cleanup_old_logs@351"):
+     "fs_clock_vs_today:test_cleanup_old_logs#1@77a9b68e"):
         "两侧同源：`old_time`（now-31 天）与产品侧的比较基准都由同一个 "
         "`datetime.now()` 派生，平移/回溯下**同步**移动 ⇒ 不构成盲区实例"
         "（31 > 阈值 30，相对关系恒成立）。"
@@ -689,7 +753,7 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
     #   ⚠️ 这也是本表的设计代价：**任何在该文件上方插入行都会再次制造同样的假红**。
     #      （候选改进：把键改成 `文件::函数`（不含行号）—— 同样精确、且不随插入漂移；未在本轮实施。）
     ("tests/conftest.py",
-     "tests/conftest.py::_no_stray_approval_store@141"):
+     "fs_clock_vs_today:_no_stray_approval_store#1@baf5d810"):
         "**与日期语义完全无关，两套时钟不参与任何比较**（2026-09-20 裁定）。"
         "该用例级守卫用 `st_mtime_ns`（文件系统时钟）作为**不透明的变更令牌**："
         "它只比较『用例执行窗口前后该值是否相等』，从而判断审批库是否在本窗口内被写。"
@@ -706,8 +770,7 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
 
     # ── 盲区 #3：time.time() 换算成日期串 ──────────────────────────
     ("tests/integration/test_resource_monitor_integration.py",
-     "tests/integration/test_resource_monitor_integration.py"
-     "::test_post_init_generates_iso_time@125"):
+     "time_time_derived_day:test_post_init_generates_iso_time#1@2ab0fb15"):
         "自洽性断言：`expected`（L125）与被测 `snap.iso_time` 都由**同一个** "
         "`ts = time.time()`（L122）换算而来 ⇒ 与'今天是哪天'无关。"
         "且工具**刻意不平移** `fromtimestamp`（S11-07 §六#5：显式 epoch 属"
@@ -715,7 +778,7 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
 
     # ── 盲区 #5：跨进程（本轮新查出）──────────────────────────────
     ("tests/integration/test_knowledge_audit_ci_edge.py",
-     "tests/integration/test_knowledge_audit_ci_edge.py::<whole-file>"):
+     "cross_process_clock:<whole-file>#1@7a749d0f"):
         "**【真实实例，已修复（S11-08 遗留 #1 收口，2026-09-15）】**原状：父进程用被平移的 "
         "`date.today()`（L142/L180）造卡，子进程 `python -m agent.knowledge audit`（L72）"
         "读**真实**时钟 ⇒ 四臂实跑 不平移 4 passed｜CONTROL 4 passed｜+400 **2 failed**｜"
@@ -727,16 +790,16 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
         "父进程 `date.today()` ⇒ 两侧口径一致。**修后四臂 4 passed ×4**。"
         "本形状（子进程 + 时钟）仍保留在检测器视野内，故登记而非移除。",
     ("tests/unit/test_knowledge_cli.py",
-     "tests/unit/test_knowledge_cli.py::<whole-file>"):
+     "cross_process_clock:<whole-file>#1@7a749d0f"):
         "同样跨进程（`_run_cli` L65 跑 `python -m agent.knowledge`）+ `make_card` 用"
         "`date.today()`（L52，S11-06 已改相对）。四臂实跑**全绿**：不平移/CONTROL/"
         "+400/−400 各 **49 passed**（含本文件与 skill_bridge）⇒ 其断言不落在"
         "'夹具日 vs 子进程今日'的边界上（卡面无过期声明）⇒ 无实例。",
     ("tests/unit/test_knowledge_skill_bridge.py",
-     "tests/unit/test_knowledge_skill_bridge.py::<whole-file>"):
+     "cross_process_clock:<whole-file>#1@7a749d0f"):
         "同 `test_knowledge_cli.py`：四臂实跑各 **49 passed**（两次同批命令），无实例。",
     ("tests/unit/test_task_scheduler.py",
-     "tests/unit/test_task_scheduler.py::<whole-file>"):
+     "cross_process_clock:<whole-file>#1@7a749d0f"):
         "该文件 `pytestmark = pytest.mark.slow`（L8）⇒ 默认 fast 模式下 **80 项全部 skip**"
         "（四臂实跑一致：`80 skipped in 0.74s`）⇒ 其中的子进程/时钟代码本轮未被执行，"
         "无实例。**残留已于 S11-08 遗留收口消除**：慢档（本文件 + comprehensive + "
@@ -750,24 +813,24 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
     # `datetime.now()` 派生即同源、平移下同步移动；原实现用 `time.time()`（工具
     # **刻意不平移**的时钟源）才是真分叉。
     ("tests/unit/test_task_scheduler.py",
-     "tests/unit/test_task_scheduler.py::test_cleanup_old_logs_with_files@843"):
+     "fs_clock_vs_today:test_cleanup_old_logs_with_files#1@fd895916"):
         "**已按统一时钟口径修正（S11-08 遗留 #3 收口）**：mtime 由 "
         "`datetime.now().timestamp() - 40/5 天` 派生，与产品 `cleanup_old_logs` 的 "
         "cutoff（`datetime.now()` 派生）**同源** ⇒ 平移/回溯下同步移动。"
         "原用 `time.time()`（工具只挪 datetime、不挪 time.time）⇒ ±400 实跑曾红："
         "−400 下旧文件落不到截止线内。修后慢档三件套四臂 **259 passed ×4**。",
     ("tests/unit/test_task_scheduler.py",
-     "tests/unit/test_task_scheduler.py::test_cleanup_old_logs_deletes_old_file@1238"):
+     "fs_clock_vs_today:test_cleanup_old_logs_deletes_old_file#1@77a9b68e"):
         "同上（S11-08 遗留 #3 收口）：`old_time` 改由 "
         "`datetime.now().timestamp() - 40 天` 派生，与产品 cutoff 同源；"
         "原 `time.time()` 在 −400 下使旧文件判不到「过期」"
         "（`assert not old_file.exists()` 失败）。",
     ("tests/unit/test_task_scheduler_comprehensive.py",
-     "tests/unit/test_task_scheduler_comprehensive.py::test_cleanup_old_logs_no_exception@830"):
+     "fs_clock_vs_today:test_cleanup_old_logs_no_exception#1@77a9b68e"):
         "同上（S11-08 遗留 #3 收口）：本用例只验「不抛异常」、无断言，原 `time.time()` "
         "不会致红；对齐为 `datetime.now()` 是为避免将来补断言时踩同一口径分叉。",
     ("tests/integration/test_task_scheduler_integration.py",
-     "tests/integration/test_task_scheduler_integration.py::test_cleanup_old_logs_with_files@818"):
+     "fs_clock_vs_today:test_cleanup_old_logs_with_files#1@fd895916"):
         "同上（S11-08 遗留 #3 收口）：旧卡 mtime 与**新卡** mtime 都显式设为 "
         "`datetime.now()` 派生。关键在后者——原实现新卡**不设** mtime ⇒ 取真实 FS 时间，"
         "+400 下会被平移后的 cutoff（真实今天+370 天）判为过期而误删 ⇒ "
@@ -778,7 +841,7 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
     #   而"修复前的形状"在 detect_fs_clock_vs_today 下抓不到 —— 同函数内没有时钟调用。
     #   新规则按"值流入 mtime"判定，把修复前的形状也钉住。）
     ("tests/unit/test_task_scheduler.py",
-     "tests/unit/test_task_scheduler.py::test_cleanup_old_logs_exception@1281"):
+     "mtime_from_time_time:test_cleanup_old_logs_exception#1@aa58fcaa"):
         "**惰性、无实例**：该用例只验证「`datetime.now()` 抛异常时错误被记录」"
         "（`assert mock_logger.error.called`）—— 它把 `agent.task_scheduler.datetime` "
         "整体换成会抛异常的 MagicMock，产品在算 cutoff 时**即抛错**，"
@@ -794,17 +857,25 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
 # ════════════════════════════════════════════════════════════════════
 
 
-def _unexpected(name: str, root: Path = _TESTS_ROOT) -> List[Hit]:
-    """未登记（= 守卫要报红）的命中；位置串形如 `tests/unit/x.py::f@12`"""
-    return [h for h in scan_all(root)[name]
-            if (h[1].split("::")[0], h[1]) not in ALLOWLIST]
+def _unexpected(name: str, root: Path = _TESTS_ROOT
+                ) -> List[Tuple[Tuple[str, str], str, str]]:
+    """未登记（= 守卫要报红）的命中，逐条带**稳定键**：`(稳定键, loc, why)`
+
+    【不易】比对用的是**稳定键**（`hit_key`），不是 `loc` 字面量：
+        键里没有行号 ⇒ 在文件上方插入行不会制造假红；键里有**证据指纹** ⇒
+        同一函数里新增盲点仍会被判为未登记（见本文件 §稳定键 与
+        `test_same_function_new_blindspot_is_still_detected`）。
+    """
+    return [h for h in keyed_hits(name, root) if h[0] not in ALLOWLIST]
 
 
-def _fail(name: str, hits: List[Hit], advice: str) -> None:
+def _fail(name: str, hits: List[Tuple[Tuple[str, str], str, str]],
+          advice: str) -> None:
     if hits:
-        lines = [f"  · {loc}  {why}" for _n, loc, why in hits[:40]]
+        lines = [f"  · {loc}  {why}\n      稳定键: {key!r}" for key, loc, why in hits[:40]]
         pytest.fail(f"日期平移法盲区「{name}」发现未裁定命中：\n" + "\n".join(lines)
-                    + f"\n\n{advice}\n（若确认无害，请登记到本文件 ALLOWLIST 并写明理由）")
+                    + f"\n\n{advice}\n（若确认无害，请把上面的**稳定键**登记到本文件 "
+                      f"ALLOWLIST 并写明理由；可用 `--keys` 打印可直接粘贴的条目）")
 
 
 def test_no_import_time_clock_constants():
@@ -1125,6 +1196,199 @@ def test_early_probe_is_blind_to_import_time_constant(tmp_path):
         + proc.stdout[-2000:])
 
 
+
+
+# ── 稳定键（2026-09-26 TESTINFRA-2）：行号漂移不再假红；同函数新增盲点仍被检出 ──
+# 【这一节为什么必须存在】改键之前，"行号硬钉"制造过一次**假红**：
+#   TESTHYG-1 在 tests/conftest.py 顶部插入 60 行 ⇒ _no_stray_approval_store 由 77 → 141
+#   ⇒ 一条已裁定无害的登记失配 ⇒ 报成"未登记"（代码一字未改）。
+#   反过来，"把行号从键里去掉"又有一个**真风险**：键若退化成"文件::函数"，
+#   那么在同一函数里**新增**一处盲点就不会换键 ⇒ 整个函数被登记豁免 ⇒ **门被削弱**。
+#   下面四条用例把这两侧同时钉住：**不许漂移**、**也不许豁免**。
+
+_SYNTH_STABLE_FS_CLOCK = (
+    "import datetime as dt, os\n"
+    "def f(path):\n"
+    "    since = dt.datetime.now().timestamp()\n"
+    "    return os.stat(path).st_mtime < since\n"
+)
+
+
+def _legacy_key(loc: str) -> Tuple[str, str]:
+    """**旧键口径**（2026-09-26 之前的 `文件::函数@行号`）：`(相对路径, loc 字面量)`
+
+    只用于**对照**：证明"行号硬钉 ⇒ 插入行必然失配"这件事真的发生在真实文件上。
+    """
+    return (loc.split("::")[0], loc)
+
+
+def _synthetic_hits(monkeypatch, src: str, *, tag: str,
+                    rel: str = "tests/unit/_synth_stable_key.py",
+                    det: str = "fs_clock_vs_today"
+                    ) -> List[Tuple[Tuple[str, str], str, str]]:
+    """把合成源码当作**扫描面**跑一遍**真实守卫路径**（scan_all → keyed_hits）
+
+    【不易】不绕过任何一层：只是把"文件来源"换成合成串，键的计算、判定与
+        `_unexpected` 全是生产口径 —— 否则本节的结论只是"我自己的函数自洽"。
+    【变易】root 用**唯一**的假路径：`scan_all` 按 root 缓存，复用会拿到上一轮的旧结果。
+    """
+    root = Path(f"<synth:{tag}>")
+    monkeypatch.setattr(
+        sys.modules[__name__], "_iter_sources",
+        lambda _root=None, _s=src, _rel=rel: iter([(_rel, _s)]))
+    return keyed_hits(det, root)
+
+
+def test_stable_key_does_not_drift_when_unrelated_lines_are_inserted(monkeypatch):
+    """**本卡要修的性质**：在文件上方插入无关行 ⇒ 稳定键**逐字不变**
+
+    同时自证非空转：`loc`（人读的位置串）在同一插入下**确实**漂了，
+    而旧键口径 `(相对路径, loc)` 因此必然失配 —— 假红的机制被完整复刻。
+    """
+    before = _synthetic_hits(monkeypatch, _SYNTH_STABLE_FS_CLOCK, tag="drift-before")
+    shifted = "\n".join("# 无关插入 %d" % i for i in range(60)) + "\n" + _SYNTH_STABLE_FS_CLOCK
+    after = _synthetic_hits(monkeypatch, shifted, tag="drift-after")
+
+    assert len(before) == len(after) == 1, (before, after)
+    assert before[0][0] == after[0][0], (
+        "插入 60 行后稳定键变了 ⇒ 行号又漏进键里了：%r → %r" % (before[0][0], after[0][0]))
+    assert not re.search(r"@\d+$", before[0][0][1]), before[0][0][1]
+    # ── 非空转：loc 确实漂了 60 行，旧键口径确实会失配 ──
+    assert before[0][1] != after[0][1], "合成样本没有真的漂移 ⇒ 本用例没有测到东西"
+    assert _legacy_key(before[0][1]) != _legacy_key(after[0][1])
+    assert before[0][1].split("@")[-1] != after[0][1].split("@")[-1]
+
+
+def test_same_function_new_blindspot_is_still_detected(monkeypatch):
+    """★ **不削弱**的证明：同一函数里**新增**一处盲点 ⇒ 仍然报未登记（红）
+
+    形状：同一函数内先"碰 st_mtime + 比 now"（已登记），再补一处
+    "os.utime 写 mtime + 比 today"。两版**函数名相同、检测器相同、命中条数都是 1**
+    —— 唯一变的是**证据**（文件系统时钟集合与今天侧都变了）。
+    若键只看"文件::函数"，这一处新盲点会被整条函数豁免；本用例要求它必须被检出。
+    """
+    base = _synthetic_hits(monkeypatch, _SYNTH_STABLE_FS_CLOCK, tag="samefn-base")
+    key, loc, why = base[0]
+    monkeypatch.setitem(ALLOWLIST, key, "合成样本：本用例专用登记（改后必须仍然精确到'这一处'）")
+
+    # ① 已登记的形状 ⇒ 绿（否则下面的"红"可能只是别的噪声）
+    assert _unexpected("fs_clock_vs_today", Path("<synth:samefn-base>")) == []
+
+    # ② 同一函数里新增一处盲点
+    new_src = _SYNTH_STABLE_FS_CLOCK.replace(
+        "    return os.stat(path).st_mtime < since\n",
+        "    os.utime(path, (since, since))\n"
+        "    return os.stat(path).st_mtime < dt.date.today().timestamp()\n")
+    new_hits = _synthetic_hits(monkeypatch, new_src, tag="samefn-new")
+
+    assert new_hits, "合成样本 ② 没命中 ⇒ 本用例没有测到东西"
+    assert new_hits[0][0][1].split("#")[1].split("@")[0] == \
+        key[1].split("#")[1].split("@")[0], "位置部分应当相同（同文件同函数）"
+    assert new_hits[0][0] != key, (
+        "同一函数里新增盲点却没换键 ⇒ 整个函数被登记豁免（门被削弱）：%r" % (new_hits[0][0],))
+    unexp = _unexpected("fs_clock_vs_today", Path("<synth:samefn-new>"))
+    assert unexp, "同一函数里新增盲点**必须**报未登记（红），实际放行了"
+    assert unexp[0][0] == new_hits[0][0]
+
+
+def test_same_function_new_detector_kind_is_still_detected(monkeypatch):
+    """同函数里新增**另一类**盲点 ⇒ 也必须红（键里带检测器名，跨类不互相顶替）
+
+    形状：同一函数里再补"time.time() 派生的值写进 mtime"（另一条检测器的判据）。
+    若键里没有检测器名，这条新命中会与已登记的那条**撞同一个键** ⇒ 静默放行。
+    【如实登记】这条新代码必然同时改动**同一函数**的 fs 侧证据（多了 utime）
+    ⇒ `fs_clock_vs_today` 那条也会换键、也报红；两处报红都是"该报的"（都不是豁免），
+    本用例把两件事分别钉住。
+    """
+    base = _synthetic_hits(monkeypatch, _SYNTH_STABLE_FS_CLOCK, tag="xkind-base")
+    monkeypatch.setitem(ALLOWLIST, base[0][0], "合成样本：本用例专用登记")
+    assert _unexpected("fs_clock_vs_today", Path("<synth:xkind-base>")) == []
+
+    new_src = _SYNTH_STABLE_FS_CLOCK.replace(
+        "    return os.stat(path).st_mtime < since\n",
+        "    ts = time.time() - 40 * 86400\n"
+        "    os.utime(path, (ts, ts))\n"
+        "    return os.stat(path).st_mtime < since\n")
+    mtime_hits = _synthetic_hits(monkeypatch, new_src, tag="xkind-new",
+                                 det="mtime_from_time_time")
+    assert mtime_hits, "新增的『另一类』盲点没命中 ⇒ 本用例没有测到东西"
+    assert mtime_hits[0][0][1].startswith("mtime_from_time_time:"), mtime_hits[0][0]
+    # 位置（文件+函数+序号）相同、只有检测器名与证据不同 ⇒ 键必须不同
+    #（否则跨类命中会与已登记的那条**撞同一个键**、被静默放行）
+    assert (mtime_hits[0][0][1].split(":")[1].split("@")[0]
+            == base[0][0][1].split(":")[1].split("@")[0])
+    assert mtime_hits[0][0][1].split(":")[0] != base[0][0][1].split(":")[0]
+    assert mtime_hits[0][0] != base[0][0]
+    assert _unexpected("mtime_from_time_time", Path("<synth:xkind-new>")), \
+        "同函数里新增的另一类盲点被放行了"
+    # 同一函数里"另一类新盲点"同时改动了 fs 侧证据 ⇒ 那条也必须重新登记（同样不许豁免）
+    fs_unexp = _unexpected("fs_clock_vs_today", Path("<synth:xkind-new>"))
+    assert fs_unexp, "同函数证据变了却没报 ⇒ 整条函数被登记豁免"
+    assert fs_unexp[0][0] != base[0][0]
+
+
+def test_real_conftest_registration_carries_no_line_number(monkeypatch):
+    """真实事故面：**真实** tests/conftest.py 的那条登记，键里不含行号
+
+    合成逼近：直接读**真实文件内容**，模拟 TESTHYG-1 那次"顶部插入 60 行"
+    （只改内存里的字符串，不写仓库、不动别的卡正在跑的工作区）：
+      · 稳定键：插入前后**逐字相同** ⇒ 不再假红（这就是 §19.3 那次假红的修法）；
+      · 旧键口径：插入前后**必然不同** ⇒ 复刻出当时的失配。
+    """
+    src = (_REPO_ROOT / "tests" / "conftest.py").read_text(encoding="utf-8")
+    shifted = "\n".join("# 合成插入 %d" % i for i in range(60)) + "\n" + src
+    before = [h for h in _synthetic_hits(monkeypatch, src, tag="conftest-before",
+                                         rel="tests/conftest.py")
+              if "_no_stray_approval_store" in h[0][1]]
+    after = [h for h in _synthetic_hits(monkeypatch, shifted, tag="conftest-after",
+                                        rel="tests/conftest.py")
+             if "_no_stray_approval_store" in h[0][1]]
+
+    assert len(before) == 1 and len(after) == 1, (before, after)
+    assert before[0][0] in ALLOWLIST, (
+        "真实文件里的这条命中没登记 ⇒ 守卫当前应当是红的：%r" % (before[0][0],))
+    assert not re.search(r"@\d+$", before[0][0][1]), before[0][0][1]
+    assert re.search(r"@\d+$", before[0][1]), (
+        "loc 仍应保留行号（人读位置用）：%r" % (before[0][1],))
+    assert before[0][0] == after[0][0], (
+        "插入 60 行后真实文件的稳定键变了 ⇒ 假红会复发：%r → %r"
+        % (before[0][0], after[0][0]))
+    # ── 非空转：旧键口径在同样插入下**确实**失配（当时就是这么红的）──
+    assert _legacy_key(before[0][1]) != _legacy_key(after[0][1])
+
+
+
+def test_legacy_line_number_keys_would_have_gone_red(monkeypatch):
+    """**对照臂（改前红）**：把键换回**旧口径**（`文件::函数@行号`）⇒ 同一插入立刻假红
+
+    这不是"我们推断旧键会红"，而是**把旧口径原样装回去再跑一遍真实判定链**
+    （`hit_key` 换回 `(相对路径, loc 字面量)`，就是 2026-09-26 之前 `_unexpected` 的判据）
+    ⇒ 复刻出 §19.3 那条假红，报文与当时**逐字同形**。
+    """
+    src = (_REPO_ROOT / "tests" / "conftest.py").read_text(encoding="utf-8")
+    shifted = "\n".join("# 合成插入 %d" % i for i in range(60)) + "\n" + src
+
+    # 旧口径：位置串**原样**（含 @行号），不含检测器/证据
+    monkeypatch.setattr(sys.modules[__name__], "hit_key",
+                        lambda _det, loc, _why, _ordinal: _legacy_key(loc))
+    before = [h for h in _synthetic_hits(monkeypatch, src, tag="legacy-before",
+                                         rel="tests/conftest.py")
+              if "_no_stray_approval_store" in h[0][1]]
+    assert len(before) == 1, before
+    # 按"插入前"的行号登记（这正是主审计在 §19.3 手工做的那次更新）
+    monkeypatch.setitem(ALLOWLIST, before[0][0], "旧口径登记（本用例对照用）")
+    assert _unexpected("fs_clock_vs_today", Path("<synth:legacy-before>")) == []
+
+    after = [h for h in _synthetic_hits(monkeypatch, shifted, tag="legacy-after",
+                                        rel="tests/conftest.py")
+             if "_no_stray_approval_store" in h[0][1]]
+    assert len(after) == 1, after
+    unexp = _unexpected("fs_clock_vs_today", Path("<synth:legacy-after>"))
+    assert unexp, "旧口径下同一插入竟然没红？那本卡修的就不是这个脆弱点了"
+    assert unexp[0][0] == after[0][0]
+    assert unexp[0][1] == after[0][1]
+    assert not unexp[0][0][0].endswith("@0")  # 键就是那条带行号的旧键
+
 # ════════════════════════════════════════════════════════════════════
 #  收集期预热（S11-10 · R9：修 Shard 4 的"超时级联"）
 # ════════════════════════════════════════════════════════════════════
@@ -1154,26 +1418,39 @@ scan_all()
 # ════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":  # pragma: no cover
+    if "--keys" in sys.argv:
+        # 打印**可直接粘贴**的 ALLOWLIST 条目（未裁定命中）—— 稳定键是机械生成的，
+        # 不该让人手工推导（手工推导正是旧键"行号硬钉"时代的维护负担）。
+        _n_unreg = 0
+        for _name, _ in _DETECTORS:
+            for _key, _loc, _why in keyed_hits(_name):
+                if _key in ALLOWLIST:
+                    continue
+                _n_unreg += 1
+                print(f"    ({_key[0]!r},\n     {_key[1]!r}):")
+                print(f'        "<理由：为什么它不会随日期变化 / 为什么已中和>  # {_loc} {_why}"')
+        print(f"── 未登记条目: {_n_unreg} ─────────────────────────")
+        sys.exit(1 if _n_unreg else 0)
     if "--scan" not in sys.argv:
-        print("用法: python tests/unit/test_date_shift_blindspots_guard.py --scan")
+        print("用法: python tests/unit/test_date_shift_blindspots_guard.py "
+              "--scan | --keys")
         sys.exit(2)
     _stats = surface_stats()
     print("── 扫描面 ────────────────────────────────────────────────")
     for _k, _v in _stats.items():
         print(f"  {_k:26s}: {_v}")
     print("── 盲区命中 ──────────────────────────────────────────────")
-    _all = scan_all()
     _total_unexpected = 0
     for _name, _ in _DETECTORS:
-        _hits = _all[_name]
-        _unexp = _unexpected(_name)
+        _hits = keyed_hits(_name)
+        _unexp = [h for h in _hits if h[0] not in ALLOWLIST]
         _total_unexpected += len(_unexp)
         print(f"  [{_name}] 命中={len(_hits)} 已裁定={len(_hits) - len(_unexp)} "
               f"未裁定={len(_unexp)}")
-        for _n, _loc, _why in _unexp:
-            print(f"      ✗ {_loc}  {_why}")
-        for _n, _loc, _why in _hits:
-            if (_loc.split("::")[0], _loc) in ALLOWLIST:
-                print(f"      √ {_loc}  {ALLOWLIST[(_loc.split('::')[0], _loc)]}")
+        for _key, _loc, _why in _unexp:
+            print(f"      ✗ {_loc}  稳定键={_key!r}  {_why}")
+        for _key, _loc, _why in _hits:
+            if _key in ALLOWLIST:
+                print(f"      √ {_loc}  {ALLOWLIST[_key]}")
     print(f"── 未裁定合计: {_total_unexpected} ─────────────────────────")
     sys.exit(1 if _total_unexpected else 0)

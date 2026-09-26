@@ -90,6 +90,33 @@ KNOWN_MAIN_TRACK_ONLY = frozenset({
     "skill",
 })
 
+# ────────────────────────────────────────────────────────────
+#  【CI-1 · 2026-09-27】主轨（data/skills_mgmt.json）可用性判据
+# ────────────────────────────────────────────────────────────
+# 为什么需要它（**干净 checkout 实测**，不是推断）：
+#   data/skills_mgmt.json 被 .gitignore 排除 ⇒ CI 的干净 checkout 里**不存在**。
+#   而本仓的读路径会在**第一次构造 SkillStore/SkillRegistry** 时把它创建成空对象
+#   （CI-1 在干净 checkout 上实跑本文件：51s 后 data/skills_mgmt.json == {}，
+#    data/skills_repo/.index/cache.json 同时被生成）。
+#   后果：同一轮里「先跑了构造注册表的用例 → 再跑主轨断言」会读到一个**空**文件，
+#   而不是"文件不存在" ⇒ 只看 exists() 的判据会误判形态（实测干净 checkout 上 2 条红）。
+#   因此把「文件不存在」与「文件存在但没有任何主轨条目」并成同一类：**主轨无数据**。
+# 注意：这不是放宽断言 —— 两种状态下"主轨独有集合"都无定义；有数据时下方断言
+#   仍是「实际集合 **恰好等于** KNOWN_MAIN_TRACK_ONLY」，一个字没改。
+MGMT_PATH = ROOT / "data" / "skills_mgmt.json"
+
+
+def _main_track_ids() -> frozenset:
+    """主轨 id 集合；主轨无数据（不存在 / 空对象 / 坏 JSON）时返回空集"""
+    if not MGMT_PATH.exists():
+        return frozenset()
+    try:
+        data = json.loads(MGMT_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return frozenset()
+    return frozenset(data) if isinstance(data, dict) else frozenset()
+
+
 
 # ────────────────────────────────────────────────────────────
 #  夹具（全部经**生产路径**取数，不自己写 YAML 解析器）
@@ -533,7 +560,17 @@ class TestSingleSourcePayload:
         """M3 验收：15/15 的合并视图 description == skill.md；description_zh == 基线"""
         from agent.skills_mgmt.registry import SkillRegistry
         rows = {r["id"]: r for r in SkillRegistry().as_legacy_rows()}
-        assert len(rows) == 30, f"合并视图行数应为 30，实得 {len(rows)}"
+        # 【CI-1 · 2026-09-27】期望行数由**数据**算出，不写死 30：
+        #   本地（主轨可用）= 文件轨 28 + 主轨独有 2 = 30 —— 与改前的 30 逐字同强度；
+        #   CI 干净 checkout（主轨被 .gitignore 排除）= 文件轨 28。
+        # 两种口径都要求**恰好相等**（不是 >=，也不是"至少包含"）。
+        main_only = _main_track_ids() - set(meta_index)
+        expected_rows = len(meta_index) + len(main_only)
+        assert len(rows) == expected_rows, (
+            f"合并视图行数应为 {expected_rows}"
+            f"（文件轨 {len(meta_index)} + 主轨独有 {len(main_only)}），实得 {len(rows)}")
+        missing = sorted(set(meta_index) - set(rows))
+        assert missing == [], f"文件轨技能未进合并视图: {missing}"
         bad_en = [sid for sid in M2_TARGET_IDS
                   if str(rows[sid]["description"])
                   != str(meta_index[sid]["description"])]
@@ -545,11 +582,13 @@ class TestSingleSourcePayload:
 
     def test_main_track_only_allowlist_is_exact(self, repo_ids):
         """H-3 裁定：主轨独有集合必须**恰好**等于已知 7 条（多了少了都红）"""
-        mgmt_path = ROOT / "data" / "skills_mgmt.json"
-        if not mgmt_path.exists():
-            pytest.skip("主轨文件不存在（CI 环境被 gitignore）")
-        main_ids = set(json.loads(mgmt_path.read_text(encoding="utf-8")))
-        actual = main_ids - set(repo_ids)
+        main_ids = _main_track_ids()
+        if not main_ids:
+            pytest.skip(
+                "主轨无数据（CI 干净 checkout：data/skills_mgmt.json 被 .gitignore 排除，"
+                "且读路径会在同一轮里把它创建为空对象）⇒ 「主轨独有集合」无定义，"
+                "本断言在 CI **不适用**（不是通过；本地/生产口径仍按下方『恰好相等』执行）")
+        actual = set(main_ids) - set(repo_ids)
         assert actual == set(KNOWN_MAIN_TRACK_ONLY), (
             "主轨独有集合已变化：新增 " + str(sorted(actual - KNOWN_MAIN_TRACK_ONLY))
             + " / 消失 " + str(sorted(KNOWN_MAIN_TRACK_ONLY - actual))

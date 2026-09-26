@@ -474,6 +474,13 @@ data/*.lock
 
 # S5-02 评测运行期产物（基线快照/难度拟合件）：与 L0 锚（eval/）分离，避免产物漂移
 data/eval/
+# 【主审计 2026-09-27】★例外：用例集是**人工编写的源**，不是运行期产物 —— 必须入库。
+#   否则 scripts/eval_route_conflict.py 在干净 checkout 上直接 FileNotFoundError（CI-1 实测：61 条 ERROR）。
+#   上面那行的本意是忽略「基线快照 / 难度拟合件」（见其注释），不是忽略用例集。
+#   git 的规则：父目录被排除时无法再包含其下的文件 ⇒ 必须先 !目录，再选择性排除其余、再包含 jsonl。
+!data/eval/
+data/eval/*
+!data/eval/*.jsonl
 
 # TASK-S4-02：全量 pytest 原始输出（-q 下混有各模块结构化日志，单文件 ~19MB）
 # 不入库；只提交 *_pytest_summary.txt 摘要。
