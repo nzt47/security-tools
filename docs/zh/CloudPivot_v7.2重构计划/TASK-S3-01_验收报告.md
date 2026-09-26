@@ -81,7 +81,7 @@ CI 冷启动模拟（移除运行时台账 data/descriptors.json）：524 passed
 | 项 | 内容 |
 |---|---|
 | **来源** | S2-01 遗留 #1（Owner 裁定归 S3-01） |
-| **落点（文件）** | `agent/descriptors/bridge.py`：`canonical_capability_id()` / `resolve_capability_id()` / `_name_index()`（带 `(registry, count)` 失效键的缓存）；`agent/tool_calling.py`：`resolve_tool_capability_id()` + `_record_unified_tool_trace()` 落账键替换；`agent/digestion/capability.py`：入口侧 `merge_keys()` / `collect_rows()` / `normalize_trace_capability()` |
+| **落点（文件）** | `agent/descriptors/bridge.py`：`canonical_capability_id()` / `resolve_capability_id()` / `_name_index()`（缓存键为 **`WeakKeyDictionary[registry 对象 → (count, index)]`**：键是对象身份、registry 回收即条目自动失效，**count 变化仍即失效**）；`agent/tool_calling.py`：`resolve_tool_capability_id()` + `_record_unified_tool_trace()` 落账键替换；`agent/digestion/capability.py`：入口侧 `merge_keys()` / `collect_rows()` / `normalize_trace_capability()` |
 | **解决问题** | S2-01 期工具级统一 Trace 以**工具名**落账 `capability_id`，join 依赖 registry 侧事后匹配 ⇒ `list_by_capability("cp.builtin.read_file")` 取不到数。改写后**同键可 join**；且入口会把**改写前**已落账的历史工具名行一并取回（否则 S2-01 台账到消化流水线这条链在"改写之后才开始有新数据"处断裂） |
 | **用例** | `test_s3_01_handover.py::TestL1CapabilityRewrite`（9 例：确定性/台账命中/未登记诚实标注/已是 canonical/name 兜底/台账不可用回退/缓存失效/空名）<br>`TestL1ToolChainLedgerPoint`（5 例，含 `test_trace_joins_real_ledger` 用**真实** `DescriptorRegistry()` join）<br>`test_trace_v2_integration.py`（既有 5 处断言按其语义更新为 canonical 键，并保留"既有 tool_trace 轨仍按工具名落账"的对照断言）<br>`test_digestion_pipeline.py::TestCapabilityKeyNormalization`（10 例，含历史键收集、整任务链展开、步骤顺序） |
 | **演示** | `scripts/demo_s3_01_digestion.py` 步骤 2：<br>`resolve_tool_capability_id('read_file') = cp.builtin.read_file`<br>`与 descriptor 台账 join: True` |

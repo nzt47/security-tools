@@ -59,6 +59,14 @@ from agent.tool_calling import (
 from agent.tool_router import get_tools_for_input
 from agent.tool_router_hybrid import hybrid_select_tools
 
+# 提示词片段（"谁拥有这段提示词"维度的单一合并入口）。
+# 未装线 / 未开旁路 / 无工作流素材 ⇒ 合并结果为 ""，system prompt 与改动前逐字一致。
+from agent.orchestrator.prompt_builder import (
+    line_prompt_fragment,
+    system_tail_text,
+    task_fragment,
+)
+
 # TASK-S9-01: 「本轮 tool_steps / reasoning」按会话隔离存储（修复跨轮串台）
 from agent.orchestrator.turn_state import (
     TurnStateStore,
@@ -3339,15 +3347,28 @@ class Orchestrator:
         # 标准路径（_call_llm）与 V2 路径（_call_llm_v2）双覆盖，
         # 保证无论 lifetrace/persona 开关状态，主链路均注入组装产物
         _ctx_extra = self._context_assembler_extra(user_input)
-        if _ctx_extra:
-            system_prompt = system_prompt + "\n\n" + _ctx_extra
 
-        # ── TASK-S9-01 工作流层工具执行素材注入（坏形态①修复）──
-        # 工作流层已执行的工具结果只是**素材**，注入 system prompt 由 LLM 转述成答案，
-        # 而不是把它（原始 JSON/repr）当作最终答案直接回吐。
+        # ── 提示词片段：一次合并（顺序由片段声明，不再由代码位置决定）──
+        #   role=line  ← 生效主线的 prompt_note（未装线 ⇒ None）
+        #   role=task  ← ContextAssembler 旁路注入（CEL，观察模式）
+        #   role=task  ← TASK-S9-01 工作流层工具执行素材（只是**素材**，由 LLM 转述成答案，
+        #                而不是把它（原始 JSON/repr）当作最终答案直接回吐）
+        # 三者都没有时 _tail 为空串 ⇒ 与改动前逐字一致。
+        _line_fragment = line_prompt_fragment()
+        _fragments = [
+            f for f in (
+                _line_fragment,
+                task_fragment(_ctx_extra, "context_assembler"),
+                task_fragment(extra_material, "workflow_material"),
+            ) if f is not None
+        ]
+        _tail = system_tail_text(_fragments)
+        if _line_fragment is not None:
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.line_prompt_note', 'message': '[主线] 已注入 prompt_note 片段: %s（%d 字符）' % (_line_fragment.source, len(_line_fragment.content))}))
         if extra_material:
-            system_prompt = system_prompt + "\n\n" + extra_material
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.wf_material', 'message': '[工作流层] 已注入工具执行素材: %d 字符（allow_tools=%s）' % (len(extra_material), allow_tools)}))
+        if _tail:
+            system_prompt = system_prompt + "\n\n" + _tail
 
         # ── System prompt Token 预算检查 ──
         try:
@@ -3367,6 +3388,13 @@ class Orchestrator:
                 )
                 if wm_text:
                     system_prompt += wm_text
+                # 截断口径与改动前一致：可裁剪的尾部素材（task）丢弃、tool 段截到
+                # 300 字符、skill 段置空；但**不可裁剪的硬片段**（role=line）必须
+                # 活下来 —— 丢掉它会让"本线自称的身份边界"与真实能力边界不一致。
+                # 无 line 片段时 _hard_tail 为 "" ⇒ 与改动前逐字一致。
+                _hard_tail = system_tail_text(_fragments, hard_only=True)
+                if _hard_tail:
+                    system_prompt = system_prompt + "\n\n" + _hard_tail
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.token', 'message': '[Token] system prompt: %d tokens (预算 %d)' % (_sp_tokens, _sp_budget)}))
         except Exception:
             pass
@@ -3884,6 +3912,23 @@ class Orchestrator:
                 if not text:
                     text = m.description
                 skills.append({"skill_id": m.skill_id, "name": m.name, "instruction": text})
+            # ── 技能侧身份减法（**第二条注入通道**）──
+            # 只堵系统提示词的技能段，会让"按意图命中注入"变成绕开本线 skills:
+            # 白名单的旁路。此处过滤失败一律原样保留（技能侧 fail-open 纪律）。
+            # 未装线 / 本线未声明技能 ⇒ 不限制，行为与接线前逐字一致。
+            try:
+                from agent.lines import filter_skill_entries
+
+                skills, dropped = filter_skill_entries(skills)
+                if dropped:
+                    logger.info(
+                        log_dict({'module_name': 'orchestrator',
+                                  'action': 'context_assembler_procedural.line_skillpack',
+                                  'message': '[主线] 本线技能白名单剔除 %d 条按意图命中的技能: %s'
+                                             % (len(dropped),
+                                                [s.get("skill_id") for s in dropped])}))
+            except Exception as e:  # noqa: BLE001 过滤故障不得让注入链路挂掉
+                logger.warning("[context_assembler] 技能白名单过滤降级（按不限制处理）: %s", e)
             return skills, None
         except Exception:
             return [], None
@@ -4054,18 +4099,31 @@ class Orchestrator:
                 skill_instructions=skill_instructions,
             )
 
-        # ContextAssembler 旁路注入（learning.context_assembler.enabled 默认 false，观察模式；
-        # 任何异常静默降级，主链路零影响）
+        # ── 提示词片段：一次合并（与 _call_llm 同一套声明顺序）──
+        #   role=line  ← 生效主线的 prompt_note（未装线 ⇒ None）
+        #   role=task  ← ContextAssembler 旁路注入
+        #                 （learning.context_assembler.enabled 默认 false，观察模式；
+        #                   任何异常静默降级，主链路零影响）
+        #   role=task  ← TASK-S9-01 工作流层工具执行素材（只是**素材**，由 LLM 转述成答案，
+        #                而不是把它（原始 JSON/repr）当作最终答案直接回吐）
+        # 三者都没有时 _tail 为空串 ⇒ 与改动前逐字一致。
+        # 注：本路径今天**没有** system prompt 的 token 预算检查，故不新增（保持原样）。
         _ctx_extra = self._context_assembler_extra(user_input)
-        if _ctx_extra:
-            system_prompt = system_prompt + "\n\n" + _ctx_extra
-
-        # ── TASK-S9-01 工作流层工具执行素材注入（坏形态①修复）──
-        # 工作流层已执行的工具结果只是**素材**，注入 system prompt 由 LLM 转述成答案，
-        # 而不是把它（原始 JSON/repr）当作最终答案直接回吐。
+        _line_fragment = line_prompt_fragment()
+        _fragments = [
+            f for f in (
+                _line_fragment,
+                task_fragment(_ctx_extra, "context_assembler"),
+                task_fragment(extra_material, "workflow_material"),
+            ) if f is not None
+        ]
+        _tail = system_tail_text(_fragments)
+        if _line_fragment is not None:
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.line_prompt_note', 'message': '[主线] 已注入 prompt_note 片段: %s（%d 字符）' % (_line_fragment.source, len(_line_fragment.content))}))
         if extra_material:
-            system_prompt = system_prompt + "\n\n" + extra_material
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.wf_material', 'message': '[工作流层] 已注入工具执行素材: %d 字符（allow_tools=%s）' % (len(extra_material), allow_tools)}))
+        if _tail:
+            system_prompt = system_prompt + "\n\n" + _tail
 
         messages = []
         try:

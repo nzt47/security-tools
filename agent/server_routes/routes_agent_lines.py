@@ -46,7 +46,9 @@ from agent.lines import (
     LineRegistryError,
     assemble,
     get_line_registry,
+    known_skill_ids,
     load_tool_meta,
+    resolve_skill_pack,
 )
 from agent.server_auth import log_request, require_token
 from agent.server_routes.tracing_decorator import trace_route
@@ -244,9 +246,67 @@ def _preview_dict(profile: LineProfile, meta: Dict[str, Any],
 
 
 def _issues_of(profile: LineProfile, meta: Dict[str, Any]) -> List[str]:
-    """档案校验问题（空 = 通过）；已知工具集为空时只做结构校验"""
+    """档案校验问题（空 = 通过）；已知工具集/技能目录为空时只做结构校验
+
+    【为什么技能也要传真实目录】与工具同款口径：写错的技能 id 必须在这里被
+    指出（`引用了未注册的技能: [...]`），否则它只会在运行时静默不生效。
+    目录读不到（空集）⇒ 传 None，退回结构校验 —— 环境故障不该被说成数据错误。
+    """
     known = set(meta.keys()) or None
-    return list(profile.validate(known_tools=known))
+    known_skills = set(known_skill_ids()) or None
+    return list(profile.validate(known_tools=known, known_skills=known_skills))
+
+
+def _prompt_fragments_payload(profile: LineProfile) -> Dict[str, Any]:
+    """这条档案会注入系统提示词的**片段**（当前只有 role=line）——HTTP 投影。
+
+    为什么由后端投影而不是前端自己判断：前端再判一遍就等于出现第二份"什么会被
+    注入提示词"的口径，与系统提示词的真实组装结果迟早分叉（和 /preview 之所以
+    由后端算装配结果完全同理）。判定本身的唯一实现在
+    `agent/orchestrator/prompt_builder.py::line_fragment_for_profile`
+    —— 与运行时装配（`line_prompt_fragment`）共用同一个函数，不另立口径。
+
+    Returns:
+        {"prompt_fragments": [...], "prompt_fragments_note": str}
+        - 有片段：列表一项（role / source / content / chars / priority / croppable），
+          note 为空串；
+        - 无片段：列表为空，note 给人读原因（未启用 / prompt_note 为空 / 取用降级）。
+
+    注：本函数只描述"这条档案自己会产生什么片段"；**是否真的生效**还取决于
+    这条线是不是当前激活线、且保存内容与预览的草案一致 —— 前者由
+    `GET /api/agent-lines` 的 `active` 给出，后者是前端自己手里的 draft 状态。
+    """
+    try:
+        from agent.orchestrator.prompt_builder import line_fragment_for_profile
+        from agent.prompt_manager.roles import is_croppable_role
+
+        frag = line_fragment_for_profile(profile)
+    except Exception as e:  # noqa: BLE001 片段信息不得影响预览本身
+        logger.warning("[agent-lines] prompt 片段信息降级（预览照常）: %s", e)
+        return {
+            "prompt_fragments": [],
+            "prompt_fragments_note": "片段信息不可用（已降级）：%s" % (e,),
+        }
+    if frag is None:
+        if not getattr(profile, "enabled", False):
+            note = "本线已停用（enabled=false）⇒ 按未装线处理，不注入任何 role=line 片段"
+        elif not (getattr(profile, "prompt_note", "") or "").strip():
+            note = ("prompt_note 为空 ⇒ 不注入 role=line 片段；"
+                    "系统提示词与未装线时逐字一致")
+        else:
+            note = "本档案不产生 role=line 片段"
+        return {"prompt_fragments": [], "prompt_fragments_note": note}
+    return {
+        "prompt_fragments": [{
+            "role": frag.role,
+            "source": frag.source,
+            "content": frag.content,
+            "chars": len(frag.content),
+            "priority": frag.priority,
+            "croppable": is_croppable_role(frag.role),
+        }],
+        "prompt_fragments_note": "",
+    }
 
 
 def _num(value: Any, default: float = 0.0) -> float:
@@ -432,7 +492,14 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
     @trace_route("AgentLines")
     @log_request(show_response=False)
     def api_agent_lines_detail(line_id: str):
-        """单条档案 + 现场装配预览（不保存、不改状态）"""
+        """单条档案 + 现场装配预览（不保存、不改状态）
+
+        【为什么也带 skills / prompt_fragments】本端点已经在回 `preview`（现场装配），
+        却独独缺这两项 —— 于是"已保存的线会注入什么"在三个读端点里只有两个能答，
+        将来谁用详情页渲染那两块，就会自己再算一遍（本模块 docstring 明令避免的第二份口径）。
+        这里复用同一对判定（`resolve_skill_pack` / `_prompt_fragments_payload`），
+        与 `/preview`、`/validate` **同源**；纯计算、零副作用、不挂令牌的既有口径不变。
+        """
         try:
             reg = get_line_registry()
             profile = reg.load(line_id)
@@ -443,8 +510,10 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 "ok": True,
                 "line": profile.to_dict(),
                 "preview": _preview_dict(profile, meta, available),
+                "skills": resolve_skill_pack(profile).to_dict(),
                 "issues": _issues_of(profile, meta),
                 "tool_source": source,
+                **_prompt_fragments_payload(profile),
             })
         except Exception as e:  # noqa: BLE001
             return _error_response(e)
@@ -455,7 +524,12 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
     @trace_route("AgentLines")
     @log_request(show_response=False)
     def api_agent_lines_preview():
-        """按请求体里的档案跑一次装配（**零副作用**：不落盘、不动激活指针）"""
+        """按请求体里的档案跑一次装配（**零副作用**：不落盘、不动激活指针）
+
+        响应除工具段外还带 `skills`：这条线的技能包判定（白名单/不限制 +
+        allowed + unknown + 人读原因）。**纯计算、不挂令牌**：与工具预览同级，
+        否则"调权重看效果"会退化成 401（口径见模块 docstring）。
+        """
         try:
             body = _json_body()
             profile = LineProfile.from_dict(body)
@@ -467,10 +541,14 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 "line_id": profile.id,
                 "line": profile.to_dict(),
                 "preview": preview,
+                "skills": resolve_skill_pack(profile).to_dict(),
                 "issues": issues,
                 "notes": _normalize_notes(body, profile),
                 "tool_source": source,
                 "saved": False,
+                # 会注入系统提示词的片段（role=line 的内容与来源），与运行时同源；
+                # 前端据此渲染，不再自行判断"会不会注入"
+                **_prompt_fragments_payload(profile),
             })
         except Exception as e:  # noqa: BLE001
             return _error_response(e)
@@ -579,7 +657,11 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
     @trace_route("AgentLines")
     @log_request(show_response=False)
     def api_agent_lines_validate():
-        """跑 `LineProfile.validate(known_tools)` 并返回问题列表（**不保存**）"""
+        """跑 `LineProfile.validate(known_tools, known_skills)` 并返回问题列表（**不保存**）
+
+        技能段与 `/preview` 同源：`skills` 给出该档案的技能包判定，`issues` 里
+        会逐条指出未注册的技能 id（写错 id 不再静默失效）。
+        """
         try:
             body = _json_body()
             profile = LineProfile.from_dict(body)
@@ -590,9 +672,12 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 "valid": not issues,
                 "issues": issues,
                 "line": profile.to_dict(),
+                "skills": resolve_skill_pack(profile).to_dict(),
                 "notes": _normalize_notes(body, profile),
                 "tool_source": source,
                 "saved": False,
+                # 与 /preview 同源：两个端点给同一份"片段"判定
+                **_prompt_fragments_payload(profile),
             })
         except Exception as e:  # noqa: BLE001
             return _error_response(e)

@@ -36,6 +36,26 @@ class PromptType(Enum):
     CHAT = "chat"               # 对话提示词
 
 
+#: metadata 里"拥有者（角色）"的键。
+#:
+#: 【为什么用 metadata 而不是加一列】metadata 列已是 TEXT DEFAULT '{}' 的 JSON 袋，
+#: 加一个键 = **零 schema 迁移**：老库老行读出来 metadata 里没有 owner ⇒ 就是空拥有者，
+#: 不需要 ALTER TABLE，也不需要回滚脚本（回滚 = 不再读这个键，数据原样保留）。
+#: 角色词表见 agent/prompt_manager/roles.py::PROMPT_ROLES。
+OWNER_METADATA_KEY = "owner"
+
+
+def record_owner(record: "PromptRecord") -> str:
+    """读一条提示词记录的拥有者（metadata["owner"]）；没有或非法则返回空串。
+
+    空串语义 = "未声明拥有者"，**不等于**任何角色（不要默认成 system）。
+    """
+    if record is None or not isinstance(getattr(record, "metadata", None), dict):
+        return ""
+    value = record.metadata.get(OWNER_METADATA_KEY) or ""
+    return str(value).strip()
+
+
 @dataclass
 class PromptRecord:
     """提示词记录"""
@@ -223,10 +243,28 @@ class PromptStorage:
                 tags=json.loads(row['tags'])
             )
     
-    def list_prompts(self, prompt_type: PromptType = None, limit: int = 100, offset: int = 0) -> List[PromptRecord]:
-        """列出提示词"""
+    def list_prompts(self, prompt_type: Optional[PromptType] = None, limit: int = 100,
+                     offset: int = 0, *, owner: Optional[str] = None) -> List[PromptRecord]:
+        """列出提示词（可按 prompt_type / owner 过滤）。
+
+        Args:
+            prompt_type: 内容类型过滤（None = 全部）。
+            limit / offset: SQL 分页窗口（ORDER BY created_at DESC）。
+            owner: **拥有者角色**过滤（keyword-only，见 :data:`OWNER_METADATA_KEY`）。
+                None = 不过滤；空串 = 只要"未声明拥有者"的记录。
+
+        Returns:
+            List[PromptRecord]
+
+        注意（诚实说明，勿当成精确分页）：
+            owner 存在 metadata JSON 袋里，无法在 SQL 侧索引，因此过滤发生在
+            **LIMIT 之后**（与 registry.list_prompts 的 tags 过滤同一口径）——
+            窗口外的记录不会被看到。提示词是小基数数据（本仓 < 100 条），
+            实践上等于全量过滤；条数真的涨上去时应把 limit 调大或改走
+            json_extract 索引列（那是另一件事，需要迁移）。
+        """
         self.initialize()
-        
+
         sql = "SELECT * FROM prompts WHERE 1=1"
         params = []
         
@@ -253,7 +291,10 @@ class PromptStorage:
                     updated_at=row['updated_at'],
                     tags=json.loads(row['tags'])
                 ))
-        
+
+        if owner is not None:
+            results = [r for r in results if record_owner(r) == owner]
+
         return results
     
     def delete_prompt(self, prompt_id: str) -> bool:

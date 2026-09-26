@@ -6,6 +6,50 @@
 
 ---
 
+## [CHG] - 2026-09-23: 主线档案成为唯一装配单（工具/技能/提示词/分身**四个面**共用同一份档案）✅
+
+**影响模块**: `agent/lines/`（skillpack.py 新增、models/registry/integration/__init__ 扩展）, `agent/digital_life_persona.py`, `agent/prompt_manager/`（roles.py 新增、registry/storage 拥有者维度）, `agent/orchestrator/`（prompt_builder 片段合并、orchestrator 两条 LLM 路径 + 旁路闸门）, `agent/subagent/assembly.py`（新增）, `agent/tools/fan_out_tools.py`, `agent/server_routes/routes_agent_lines.py`, `data/agent_lines/*.yaml`（7 条）, `data/capability_manifest.json`（重新派生）, `yunshu-ui/src/pages/hub/tools/lines.tsx`
+**关联提交**: `90f8c32a`（feat: 主线档案成为唯一装配单）, `1994c8e2`（feat: 按意图注入也受本线 skills 约束 —— L1 闭环）, `e74016fc`（docs: 收口后性能用例归因）
+**关联文档**: `docs/closeout/主线统一装配_交付结案报告_20260923.md`（含 L1–L10 决定与理由）, `docs/主线装配指南.md §6`, `docs/提示词角色管理.md`, `docs/分身装配单.md`
+
+### Added — 三个**新增**装配面（工具面是原有能力，改动前就在跑）
+
+> 一份档案、四个消费面：**工具面（原有）** 读 `plane_weights/plane_floors/boost/mute/tags/max_tools/effect_allow/requires_approval/allow_govern`
+> → `integration.py::assemble_for_line` → 编排器两条 LLM 路径 `line_whitelist`；本次接上的三个面见下。
+> 其中**分身面本身又是三合一复用**：`subagent/assembly.py` 直接调 `assemble(profile, …)` 取 `result.tools`，同一份档案、同一个装配器。
+
+- **技能面**：`agent/lines/skillpack.py`（`SkillPack` / `resolve_skill_pack` / `known_skill_ids`）把 `skills:` 从**死字段**接到注入侧：空=不限制、非空=白名单、unknown 如实报告；`LineProfile.validate` 补技能 id 校验（写错不再静默失效）
+- **提示词面**：`agent/prompt_manager/roles.py`（角色词表 + 确定性合并 + 预算裁剪 + 丢弃可审计）；`prompt_note` 以 `role=line` 片段并入系统提示词；`PromptRegistry` 增加拥有者维度（`metadata["owner"]`，零 schema 迁移）
+- **分身面**：`agent/subagent/assembly.py`（`resolve_subagent_assembly`，唯二出口：只读默认集 / `LineUnavailable` 绝不回退全量）；`fan_out` 改为消费装配单；技能只作**授权面**、本线 `prompt_note` 进八要素契约的 constraints
+- **第二条注入通道收口**：`filter_skill_entries()` 接进 `Orchestrator._context_assembler_procedural`（旁路开关自 2026-08-12 起为 true）⇒ 两条进模型提示词的路径都受本线约束
+
+### Fixed — 两处会被"测试全绿"掩盖的问题
+
+- **persona 段能力回退**：7 个 persona 技能接线前**全部 known 且 enabled**、每轮都在注入，而 7 条主线原先无一声明 ⇒ 只接线不补数据会让 7 段提示词**静默消失**。裁定为"数据补齐、行为逐字不变"，并补数据级守门用例（`set(_SKILL_PROMPTS) ⊆ set(profile.skills)`）让静默收窄在结构上不可能
+- **生成物漂移**（两次）：新增模块改变静态调用点统计 ⇒ `data/capability_manifest.json` 与同源盘点表需重新派生（已派生并复跑守门用例）
+
+### 验证结果
+
+- 用例：收口合跑 10 文件 **442 passed / 0 failed**；新增 `test_line_skillpack` / `test_prompt_roles` / `test_subagent_assembly` / `test_line_skill_injection`（13 条闸门用例）；前端 **33 passed / 4 files** + `tsc -b` exit 0
+- 合并端到端：真实 Flask app + 真实档案，同一份 `/preview` 响应同时带 `skills`（whitelist/11/allowed/unknown=[]）与 `prompt_fragments`（role:line、116 字符原文、croppable=false）
+- 门禁：架构违规 0 / 循环依赖 0 / import-linter 0 broken / 工具索引 91-0-0 / 文档 1791 链接 0 失效 / BOM 0 / 敏感信息 0 / 策略自检通过
+- 归因：长跑门禁 21917 passed / 15 failed 逐组归因后**本次真实回归为 0**（假失败 / 过期读数 / 生成物漂移 / 4 条在纯 HEAD 上同样失败的既存环境用例）
+
+### Changed — 运行时行为（如实登记）
+
+- 本仓激活线为 `engineering` ⇒ **每次对话的 system prompt 末尾多出该线 `prompt_note`（116 字符）**
+- 旁路"按意图命中注入"现受本线 `skills:` 约束 ⇒ 7 条线当前均未声明文件轨技能，**旁路不再注入它们**；需要哪条线保留，把 id 写进该线 `skills:` 即生效
+
+### 收尾（同日，遗留清零）
+
+- **L6 known_skill_ids memo 跨用例污染 —— 修复**：改为**目录快照指纹**失效（0.50ms vs 全量重算中位 13.4ms）；
+  控制实验（指纹钉成常量 = 旧语义）令 5 条用例变红、其中 3 条是**原有**用例 ⇒ 证明污染真实存在且此前被 autouse 夹具遮住；两处规避夹具已删
+- **L10 真实服务验证 —— 部分闭环**：新增 `tests/integration/test_agent_lines_http_real_server.py`（真 socket + 真服务，8 条，含 404/400 与优雅关停）；真浏览器点验未做（需起 `app_server` 并触及 `data/`，留待授权）
+- **新发现并修复 P9**：`GET /api/agent-lines/<id>` 详情端点此前缺少 `skills` / `prompt_fragments`（与 `/preview`、`/validate` 不对称）⇒ 已复用同一对判定补齐，并加"一份判定、三处投影"对拍用例
+- 最终合跑：**455 passed / 0 failed / 6 skipped**（11 个文件，含真实 HTTP 用例）
+
+---
+
 ## [CHG] - 2026-08-16: L3 镜像模型缓存修复 + context 一致性预检（CI fail fast）✅
 
 **影响模块**: `docker-compose.linux-test.yml`, `scripts/predownload_l3_hf_cache.ps1`（新增）, `scripts/ci_l3_context_preflight.py`（新增）, `.github/workflows/l3-docker-tests.yml`, `README.md`

@@ -88,3 +88,12 @@
 - 结案报告更新：`docs/DELIVERY_CLOSEOUT_REPORT_PHASE4_20260831.md` 补充 §6 任务验收核对、§7 CI/CD 验证、§8 遗留问题（401 鉴权约束 / demo 插件保留 / lint 存量 warnings / static 构建产物部署流程）、§9 验收记录（stakeholders 确认）
 - 遗留问题：均非阻塞（环境鉴权约束、演示插件保留、存量技术债、部署流程产物），无需本次修复
 - 结论：阶段 1–4 四阶段插件化改造路线全部交付收官
+
+## 2026-09-23: 主线统一装配交付（工具/技能/提示词/分身四个面共用同一份档案；工具面原有，本次接上后三个面）
+- 起点问题：L2 主线档案的两个字段是**死接线** —— `LineProfile.skills`（7 条线都声明、零消费方、写错技能 id 静默失效）与 `LineProfile.prompt_note`（UI 承诺"随本线注入"、运行时零消费）；分身侧只有工具一半按线装配（`SubagentConfig` 无 line/技能/提示词维度）
+- 交付：新增 `agent/lines/skillpack.py`、`agent/prompt_manager/roles.py`、`agent/subagent/assembly.py`；`fan_out` 改为消费装配单；技能两条进模型提示词的路径都受本线 `skills:` 约束
+- **主会话两次介入（最值得记的经验）**：① 7 个 persona 技能接线前每轮都在注入而 7 条线都没声明 ⇒ 只接线会让 7 段提示词静默消失，裁定"数据补齐 + 行为逐字不变"并补数据级守门用例；② 子代理产出两处硬伤（assert 内嵌引号导致整文件 SyntaxError / 0 条用例执行；技能集写死）与一处前端**假绿**（用另一字段提示的子串当就绪信号）
+- 验证：合跑 442 passed / 0 failed；前端 33 passed + `tsc -b` exit 0；架构 0 违规 / 循环依赖 0 / import-linter 0 broken；长跑门禁 21917 passed、15 条新增失败逐组归因后**真实回归 0**
+- 收尾（同日）：**L6 已修**（`known_skill_ids` 改目录快照指纹失效；0.50ms vs 全量 13.4ms；控制实验证明原用例此前被 autouse 夹具遮住）；**L10 部分闭环**（新增真实 HTTP 栈集成用例 8 条，真 socket + 优雅关停；真浏览器点验需授权）；并**新发现修复 P9**（详情端点缺 `skills`/`prompt_fragments`，已补齐 + 三端点同源对拍）
+- 遗留（均已在结案报告 §5 给出决定）：L2 分身收紧面窄（按标签，数据驱动）、L3 逐线 persona 收窄（产品决策）、L7 提示词拥有者维度无调用入口、L8 ruff 口径、L9 每轮读 YAML 无缓存、L10 真浏览器点验（需授权起服务）
+- 最终合跑：**455 passed / 0 failed / 6 skipped**（11 个文件）；架构违规 0 / 循环依赖 0 / import-linter 0 broken / 工具索引 91-0-0 / 文档 1791 链接 0 失效
