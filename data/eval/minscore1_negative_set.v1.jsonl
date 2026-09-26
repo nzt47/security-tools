@@ -1,0 +1,31 @@
+{"case_id":"case_101","query":"今天天气怎么样","category":"negative_weather","expected_skill_ids":[]}
+{"case_id":"case_102","query":"明天会下雨吗","category":"negative_weather","expected_skill_ids":[]}
+{"case_id":"case_103","query":"帮我订一张机票","category":"negative_booking","expected_skill_ids":[]}
+{"case_id":"case_104","query":"我想订酒店","category":"negative_booking","expected_skill_ids":[]}
+{"case_id":"case_105","query":"帮我点外卖","category":"negative_booking","expected_skill_ids":[]}
+{"case_id":"case_106","query":"def print_hello_world function","category":"negative_programming","expected_skill_ids":[]}
+{"case_id":"case_107","query":"java python c++ programming","category":"negative_programming","expected_skill_ids":[]}
+{"case_id":"case_108","query":"how to implement quick sort","category":"negative_programming","expected_skill_ids":[]}
+{"case_id":"case_109","query":"12345","category":"negative_noise","expected_skill_ids":[]}
+{"case_id":"case_110","query":"asdfghjkl","category":"negative_noise","expected_skill_ids":[]}
+{"case_id":"case_111","query":"帮我写一首诗","category":"negative_creative","expected_skill_ids":[]}
+{"case_id":"case_112","query":"推荐一首好听的歌","category":"negative_entertainment","expected_skill_ids":[]}
+{"case_id":"case_113","query":"今天股票涨了吗","category":"negative_finance","expected_skill_ids":[]}
+{"case_id":"case_114","query":"比特币现在多少钱","category":"negative_finance","expected_skill_ids":[]}
+{"case_id":"case_115","query":"教我怎么做红烧肉","category":"negative_cooking","expected_skill_ids":[]}
+{"case_id":"case_116","query":"跑步前要做什么热身","category":"negative_sports","expected_skill_ids":[]}
+{"case_id":"case_117","query":"感冒了吃什么药","category":"negative_medical","expected_skill_ids":[]}
+{"case_id":"case_118","query":"帮我删除文件","category":"negative_similar","expected_skill_ids":[]}
+{"case_id":"case_119","query":"重启服务器","category":"negative_similar","expected_skill_ids":[]}
+{"case_id":"case_120","query":"safety 是什么意思","category":"negative_keyword_trap","expected_skill_ids":[]}
+{"case_id":"case_121","query":"memory 概念解释","category":"negative_keyword_trap","expected_skill_ids":[]}
+{"case_id":"case_122","query":"请帮我翻译这段话","category":"negative_translation","expected_skill_ids":[]}
+{"case_id":"case_123","query":"现在几点了","category":"negative_daily","expected_skill_ids":[]}
+{"case_id":"case_124","query":"帮我算一下 1+1 等于几","category":"negative_math","expected_skill_ids":[]}
+{"case_id":"case_125","query":"你好，你是谁","category":"negative_greeting","expected_skill_ids":[]}
+{"case_id":"ext_01","query":"best pizza recipe","category":"negative_daily","expected_skill_ids":[]}
+{"case_id":"ext_02","query":"testing","category":"negative_programming_word","expected_skill_ids":[]}
+{"case_id":"ext_03","query":"observability","category":"negative_programming_word","expected_skill_ids":[]}
+{"case_id":"ext_04","query":"reflection","category":"negative_programming_word","expected_skill_ids":[]}
+{"case_id":"ext_05","query":"systematic debugging","category":"negative_programming_word","expected_skill_ids":[]}
+{"case_id":"ext_06","query":"2 加 3 等于多少？只回答数字","category":"negative_s10_03_anchor","expected_skill_ids":[]}

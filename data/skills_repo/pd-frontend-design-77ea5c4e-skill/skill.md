@@ -16,6 +16,8 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 打造独具特色、达到生产级标准且设计感拉满的前端界面。当用户需要构建 Web 组件、页面或应用时，请调用这项技能。生成的代码要有创意、够精致，坚决避开那种千篇一律的‘AI
+  味儿’。由 1 份素材蒸馏生成
 ---
 
 # frontend-design

@@ -39,7 +39,7 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from .bridge import sanitize_id_part, skill_to_descriptor
 from .models import (
@@ -47,6 +47,7 @@ from .models import (
     ProvenanceLevel,
     RiskLevel,
 )
+from .stage_contract import get_stage_runner
 from .validator import validate_descriptor
 
 logger = logging.getLogger(__name__)
@@ -340,8 +341,9 @@ def load_skill_assets(*, main_path: Optional[Path] = None,
                       repo_path: Optional[Path] = None) -> List[Dict[str, Any]]:
     """装载全部存量技能资产（主轨权威 ∪ 文件轨独有），返回归一化资产列表。
 
-    排序确定性：按 id 升序。文件轨目录与主轨同 id 时以主轨记录为准
-    （与 skills_mgmt/registry.py 双源合并口径一致）。
+    排序确定性：按 id 升序。文件轨目录与主轨同 id 时，**记录的其余字段**以主轨为准，
+    但 `description` 一律取**文件轨**（skill.md front matter；G1-B/M8 起，口径与
+    `skills_mgmt/registry.py::as_legacy_rows` 一致 —— 描述只有一个源）。
     """
     main_store = _read_main_store(main_path)
     file_track = _read_file_track(repo_path)
@@ -349,7 +351,21 @@ def load_skill_assets(*, main_path: Optional[Path] = None,
     seen: set = set()
 
     for sid in sorted(main_store):
-        assets.append(_normalize_asset(dict(main_store[sid]), track="main"))
+        rec = dict(main_store[sid])
+        # 【G1-B/M8 · 描述唯一事实源】description 改取**文件轨**（skill.md front matter）。
+        # 为什么：skill.md 是 G1-A §7.1 裁定的唯一事实源；主轨 description 是中文历史
+        # 副本。本函数原口径是「主轨优先」（见 docstring 与 skills_mgmt/registry.py 的
+        # 同名规则），于是 15 条 pd-* 的 descriptor.description 记录的是**主轨中文**，
+        # 与 skill.md 的英文原文不一致 —— 这正是 M8 要回填掉的漂移。
+        # [不易] **只覆盖 description**，不动 `track`：`track` 会驱动
+        #   `classify_install_provenance` / `_derive_data_class` / `_derive_risk` 的判定
+        #   （file_track ⇒ "产品内置 persona 行为技能"），把 8 条 persona 技能的 track
+        #   翻过来会连带改写它们的 provenance/risk 分级 —— 那是**能力面变更**，
+        #   不是描述治理。本卡只收敛描述。
+        fm = file_track.get(sid)
+        if fm is not None:
+            rec["description"] = str(fm.get("description") or rec.get("description") or "")
+        assets.append(_normalize_asset(rec, track="main"))
         seen.add(sid)
     for sid in sorted(file_track):
         if sid in seen:
@@ -1004,11 +1020,16 @@ def _planned_patch(item: Dict[str, Any], current: Dict[str, Any]) -> List[str]:
 
 def _apply_item(reg: Any, asset: Dict[str, Any], item: Dict[str, Any], *,
                 actor: str, dry_run: bool,
-                counters: Dict[str, int]) -> List[str]:
+                counters: Dict[str, int],
+                wired: Optional[List[Dict[str, Any]]] = None) -> List[str]:
     """单资产回填：新资产先 register 桥接视图；随后经写 API 保守补丁（逐条审计）。
 
     dry_run=True：只计算计划动作，**绝不调用 registry 变更方法**（防污染真实
     实例内存态）；register 仅当资产无既有登记时列入计划。
+
+    `wired`（RUNBOOK-1 追加，缺省 None 时行为**逐字不变**）：本次 register 桥接
+    的资产明细收集器（asset_id / capability_id / register_action / is_new）。
+    干跑时 register_action="planned"、is_new=None（未落库，无从得知 created/updated）。
     """
     cid = item["capability_id"]
     existing = reg.get(cid)
@@ -1022,6 +1043,9 @@ def _apply_item(reg: Any, asset: Dict[str, Any], item: Dict[str, Any], *,
         counters["no_op"] = counters.get("no_op", 0) + 1
         return ["no-op"]
     if dry_run:
+        if wired is not None and "register" in planned:
+            wired.append({"asset_id": item["asset_id"], "capability_id": cid,
+                          "register_action": "planned", "is_new": None})
         return planned + patch
 
     actions: List[str] = []
@@ -1035,6 +1059,10 @@ def _apply_item(reg: Any, asset: Dict[str, Any], item: Dict[str, Any], *,
         if res.action in ("created", "updated", "merged"):
             counters["register"] = counters.get("register", 0) + 1
         actions.append("register")
+        if wired is not None:
+            _ract = str(getattr(res, "action", "") or "")
+            wired.append({"asset_id": item["asset_id"], "capability_id": cid,
+                          "register_action": _ract, "is_new": _ract == "created"})
         # register 后现状变化 → 重算补丁（避免重复写回桥接已含的值）
         patch = _planned_patch(item, _current_fields(reg, cid))
         if not patch:
@@ -1084,6 +1112,117 @@ def _item_rules(item: Dict[str, Any]) -> str:
                      item["governance"].get("rule") or "-"])
 
 
+# ═════════════════════════════════════════════════════════════
+# S3-01 收口衔接（RUNBOOK-1）：wire 与首次入轨不得分处两次「靠人记得」的调用
+# ═════════════════════════════════════════════════════════════
+
+#: 待收口时人工应执行的**官方**入口（与 S3-01 结案报告/S3-01 入轨报告口径一致）
+INGEST_FOLLOWUP_COMMAND = "python scripts/run_s3_01_ingest.py --execute"
+#: 收口 actor（与 `scripts/run_s3_01_ingest.py` 调 `backfill_stages` 的默认 actor 一致）
+INGEST_FOLLOWUP_ACTOR = "digestion_pipeline"
+
+
+def s3_01_followup(reg: Any, wired: Optional[List[Dict[str, Any]]] = None, *,
+                   auto: bool = False, dry_run: bool = False,
+                   actor: str = INGEST_FOLLOWUP_ACTOR,
+                   emit_events: bool = True,
+                   stage_runner: Optional[Callable[..., Any]] = None) -> Dict[str, Any]:
+    """【RUNBOOK-1】S1-02 回填后的 S3-01 收口衔接报告（只读 + 可选幂等收口）
+
+    为什么需要它：S1-02（`run_backfill`）对「台账里没有的资产」只做 `register`
+    桥接，**stage 归 S3-01 管**（`agent/digestion/stage.py::first_entry_stage`）。
+    于是「主轨新增技能 + 重跑 S1-02」会新 wire 出 `stage=None` 的条目，若无人
+    随后跑 S3-01 首次入轨，L4 不变量即被打破（LEDGER-1 实证：`cp.skill.skill`）。
+    本函数把「待收口清单」变成**返回值的一部分**，并在 `auto=True` 时把收口
+    动作**在同一次调用里**做掉 —— 收口不再依赖人记得跑 runbook。
+
+    Args:
+        reg: 已加载的 `DescriptorRegistry`（本次回填用的那一个实例）
+        wired: `run_backfill` 收集的本次 register 明细（`asset_id` /
+            `capability_id` / `register_action` / `is_new`）
+        auto: 是否顺带执行 S3-01 首次入轨（`backfill_stages(reg, execute=True)`）。
+            **调用方须自行保证**：干跑与批失败时不得置 True（`run_backfill` 已把关）。
+        dry_run: 干跑标记 —— register 未落库，故本次「将 wire」的资产也要计入
+            待收口清单（否则干跑报告会漏报即将制造的 `stage=None`）。
+        actor / emit_events: 透传给 `backfill_stages`（审计 actor / `digest.stage` 事件）
+        stage_runner: **显式注入**的 S3-01 入轨实现（缺省取叶子契约注册表
+            `agent/descriptors/stage_contract.py`）。descriptors 层**不得**反向
+            import `agent.digestion`（架构规则 no_circular_dependency，实测会把
+            0 违规顶成 2 违规），故实现由 digestion 侧注册、或由调用方注入。
+
+    Returns:
+        `{"required", "newly_wired", "stage_empty", "auto_executed", "ingested",
+        "failed", "command", "reason"}`；`auto` 出错时额外带 `"error"` 字段
+        （**异常不外抛**：收口衔接失败不得吞掉回填结果）。
+    """
+    out: Dict[str, Any] = {
+        "required": False,
+        "newly_wired": sorted({str(w.get("capability_id") or "") for w in (wired or [])}
+                              - {""}),
+        "stage_empty": [],
+        "auto_executed": False,
+        "ingested": [],
+        "failed": [],
+        "command": INGEST_FOLLOWUP_COMMAND,
+        "reason": "",
+    }
+    if auto:
+        try:
+            # 【架构规则 no_circular_dependency】descriptors 是依赖叶子，**不得**反向
+            # import agent.digestion：「挪进函数体」对本规则无效（`ast.walk` 连函数体
+            # 与字面量动态 import 都计边），实测会让 CI 架构校验从 0 违规变 2 违规。
+            # 故走**叶子契约**：实现方 `agent/digestion/stage.py` 在导入期注册，
+            # 调用方亦可显式注入 `stage_runner=`（显式优先）。
+            runner = stage_runner or get_stage_runner()
+            if runner is None:
+                raise RuntimeError(
+                    "S3-01 入轨实现未注册：descriptors 层不得反向依赖 digestion"
+                    "（架构规则 no_circular_dependency）。请先 `import "
+                    "agent.digestion.stage`（导入即注册），或显式传 "
+                    "stage_runner=agent.digestion.stage.backfill_stages。")
+            rep = runner(reg, execute=True, emit_events=emit_events,
+                         actor=actor)
+            out["auto_executed"] = True
+            out["ingested"] = [
+                {"capability_id": r.get("capability_id"), "to": r.get("to"),
+                 "verdict": r.get("verdict"), "audit_seq": r.get("audit_seq")}
+                for r in (rep.get("ingested") or [])
+            ]
+            out["failed"] = list(rep.get("failed") or [])
+            refreshed = (rep.get("policies") or {}).get("refreshed") or []
+            res = list(rep.get("residual") or [])
+            # 仅在确有写入时提交：对已是不动点的台账保持**逐字节 no-op**
+            if out["ingested"] or refreshed:
+                reg.save()
+            if res:
+                out["stage_empty"] = sorted(str(c) for c in res)
+        except Exception as e:  # noqa: BLE001 收口衔接失败不得让回填结果丢失
+            out["error"] = f"{type(e).__name__}: {e}"
+            logger.warning("[backfill] S3-01 自动收口失败（回填结果仍有效）: %s", e)
+
+    if not out["stage_empty"]:
+        try:
+            out["stage_empty"] = sorted(
+                d.capability_id for d in reg.list() if not d.evolution.stage)
+        except Exception as e:  # noqa: BLE001 台账读取异常不得阻断回填结果交付
+            out["error"] = out.get("error") or f"{type(e).__name__}: {e}"
+    if dry_run:
+        out["stage_empty"] = sorted(set(out["stage_empty"])
+                                    | set(out["newly_wired"]))
+    out["required"] = bool(out["stage_empty"])
+    if out["required"]:
+        head = ("本次回填新 wire 了 " + ", ".join(out["newly_wired"]) + "；"
+                if out["newly_wired"] else "")
+        out["reason"] = (
+            f"{head}台账中 {len(out['stage_empty'])} 条资产 stage 未入轨 "
+            f"（S1-02 只 wire 视图，stage 归 S3-01 首次入轨管）。不跑收口则 "
+            f"tests/unit/test_s3_01_handover.py::TestL4StageIngestion::"
+            f"test_real_ledger_has_no_unstaged_asset 会变红。"
+            f"处置：执行 {INGEST_FOLLOWUP_COMMAND}，"
+            f"或调用 run_backfill(..., ingest_stages=True) 一次做完。")
+    return out
+
+
 def run_backfill(
     planned: Dict[str, Any],
     registry: Optional[Any] = None,
@@ -1092,11 +1231,28 @@ def run_backfill(
     actor: str = BACKFILL_ACTOR_PREFIX,
     batch_size: int = DEFAULT_BATCH_SIZE,
     registry_path: Optional[Path] = None,
+    ingest_stages: bool = False,
+    stage_runner: Optional[Callable[..., Any]] = None,
 ) -> Dict[str, Any]:
     """分批回填：经写 API 逐条落库 + 审计；批失败整批回滚（reg.load()）。
 
     dry_run=True 时在一次性内存 registry 上模拟，不触碰真实台账，
     计划结果与实跑一致（审计/计数除外）。
+
+    RUNBOOK-1（**纯加法**，既有字段的类型/语义逐字不变）：
+
+    - 返回值新增 `newly_wired` 与 `s3_01_followup` 两个字段：如实报出「本次
+      wire 了哪些能力」以及「还有哪些能力 stage 未入轨、需要 S3-01 首次入轨
+      收口」。LEDGER-1 的复发风险正是「wire 与入轨分处两次调用、靠人记得补跑」，
+      本字段让**任何调用方**（CLI / 报告 / 后续卡）都能在不改代码的情况下看到
+      待收口清单，而不是只在台账里留下一个沉默的 stage=None。
+    - `ingest_stages=True`：在同一次调用里顺带跑 S3-01 首次入轨收口
+      （`agent.digestion.stage.backfill_stages(reg, execute=True)`，与官方入口
+      `scripts/run_s3_01_ingest.py --execute` 同一函数、同一 actor），使
+      「重建 → 入轨」一次调用即达不动点。**缺省 False** ⇒ 既有调用方零行为变化；
+      干跑（`dry_run=True`）与批失败（`stopped=True`）时**永不**自动收口。
+      仅当确有写入（入轨或占位 trace_policy 切换）时才 `reg.save()`，故对已是
+      不动点的台账是**逐字节 no-op**（不重写文件）。
     """
     from .registry import DescriptorRegistry  # 延迟（避免模块级加载开销）
 
@@ -1128,7 +1284,9 @@ def run_backfill(
                     "undo_hint": 0, "compensating_action": 0, "no_op": 0},
         "rollback_events": [],
         "stopped": False,
+        "newly_wired": [],          # RUNBOOK-1 追加（既有字段未动）
     }
+    wired: List[Dict[str, Any]] = result["newly_wired"]
 
     for bi in range(0, len(plan), bs):
         batch = plan[bi:bi + bs]
@@ -1141,7 +1299,8 @@ def run_backfill(
                 if asset is None:
                     raise RuntimeError(f"资产 {item['asset_id']} 未在计划 assets 中")
                 acts = _apply_item(reg, asset, item, actor=actor,
-                                   dry_run=dry_run, counters=result["applied"])
+                                   dry_run=dry_run, counters=result["applied"],
+                                   wired=wired)
                 batch_rec["item_actions"].append({
                     "asset_id": item["asset_id"],
                     "capability_id": item["capability_id"],
@@ -1179,6 +1338,14 @@ def run_backfill(
 
     result["pending"] = planned["needs"]
     result["coverage"] = planned["coverage"]
+    # RUNBOOK-1：S1-02 只 wire 视图，stage 归 S3-01 管（LEDGER-1 复发风险）。
+    # 先收口再重校验：[不易] 顺序有意为之 —— 自动收口会清掉 stage 未入轨 warning，
+    # 若先校验，validation 就会报出「收口前」的旧 warning 数（实测 5 vs 4），
+    # 与调用结束时的台账状态不符。缺省（ingest_stages=False）无写入 ⇒ 与从前逐字一致。
+    result["s3_01_followup"] = s3_01_followup(
+        reg, wired,
+        auto=bool(ingest_stages) and not dry_run and not result["stopped"],
+        dry_run=bool(dry_run), stage_runner=stage_runner)
     result["validation"] = validate_registry(reg)  # 回填后全量重校验（步骤 4）
     return result
 

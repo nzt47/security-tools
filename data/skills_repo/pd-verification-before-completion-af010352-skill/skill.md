@@ -17,6 +17,8 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 在准备宣布工作已完成、问题已修复或测试已通过之前（比如在提交代码或创建 PR 之前），必须先运行验证命令并确认输出结果，绝不能凭空宣称成功。记住：先拿证据，再做断言。由
+  1 份素材蒸馏生成
 ---
 
 # verification-before-completion

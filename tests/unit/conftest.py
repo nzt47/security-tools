@@ -802,3 +802,180 @@ def run_logger(tmp_path):
     yield logger
     close_run_logger(logger, facade)
 
+
+# ════════════════════════════════════════════════════════════
+#  T-ISO（2026-09-25）：确认闸门 agent.tool_gate 的**模块级状态**逐用例复位
+# ════════════════════════════════════════════════════════════
+# Why 必须收敛到**一处机制**：`monkeypatch` 只还原**环境变量**与它自己
+# setattr/setitem 过的属性，**不还原**被测模块内部的模块级可变状态。
+# `agent/tool_gate.py` 有四处这类状态，且已经存在三份「各自记得复位」的重复实现：
+#   · `_EXEMPT_WATCH`（:1107）—— 豁免名单的「进程内已对拍值」哨兵缓存。
+#     复位点散落在 tests/unit/test_confirm_gate_no_bypass.py 的 5 条同族用例里
+#     （3 条写了、2 条漏了 ⇒ 正说明「靠每个用例自觉复位」不可靠）；
+#   · `_TOOL_META_CACHE`（:255）、`_DERIVED_CACHE`（:266）、`_WARNED`（:268）
+#     —— 三者由 `_reset_cache()`（:2178）一并清；tests/unit/test_tool_gate.py:70、
+#     test_tool_gate_strict.py:77、test_scheduled_session_source.py:76 各写了一遍；
+#   · `_STRICT_GATEWAY`（:271）—— 严格模式网关的**惰性单例**，`_reset_cache()`
+#     **不**清它（test_tool_gate_strict.py:76 与 test_scheduled_session_source.py:75
+#     各自 setattr(G, "_STRICT_GATEWAY", None)）。
+#
+# 【本 fixture **不**解决什么（如实声明，别指望它）】它复位的是**进程内**状态；
+#  审计链上「豁免名单上一次被记录过的生效值」是**落盘**状态
+#  （`_chain_baseline_exempt()` 读 `tool.confirm.exempt_changed` 的最近一条记录），
+#  tests/conftest.py 只把 `AUDIT_DB_PATH` 隔离到**会话级**临时目录（:260，不逐用例清），
+#  且链是**追加写、无删除 API**（删记录会打断 hash 链）⇒ 这一项**不该也做不到**由
+#  fixture 复位：依赖该基线的断言必须由**用例自己先建立基线**
+#  （见 test_confirm_gate_no_bypass.py::TestS1ExemptChangeIsAudited）。
+#
+# 【实测证据（T-ISO.md §2，仓库外探针）】在
+#  test_confirm_gate_no_bypass.py + test_tool_gate.py + test_tool_approval.py
+#  的同进程运行里逐用例 dump 到：`_EXEMPT_WATCH` 依次留下 'delegate' / ''
+#  / 'write_file,compress' / 'shell_execute'；`_WARNED` 0→1→2→3→4；
+#  `_TOOL_META_CACHE` 在 None 与 dict(91) 之间反复；链基线
+#  None→''→'delegate'→'write_file,compress'→'write_file'→'shell_execute'→''。
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _tiso_reset_tool_gate_module_state():
+    """每个用例前后把 `agent.tool_gate` 的模块级状态复位到干净值（幂等、绝不抛错）
+
+    【为什么「幂等 + 吞异常」是硬要求】本 fixture 是 autouse：`agent.tool_gate`
+    可能尚未导入，也可能正处于「导入被**故意**打断」的状态
+    （test_confirm_gate_no_bypass.py::_break_tool_gate 把
+    `sys.modules["agent.tool_gate"]` 置 None，而 monkeypatch 的还原发生在本 fixture
+    的 teardown **之后**）⇒ 任何一步失败都只能 no-op，不能把用例打红。
+    这里刻意**只用 `sys.modules` 查找、不 import**：既不触发导入副作用
+    （导入期会按当时的环境变量绑定审计路径），也不会造出「第二个模块对象」
+    而复位到错误的那个对象上。
+
+    【不改变既有 fixture 语义】只动 `agent.tool_gate` 的进程内缓存；不碰环境变量、
+    不碰 tests/conftest.py 的会话基线（`CP_TOOL_GATE_APPROVAL_ENFORCE=0` 等）。
+    """
+    def _reset() -> None:
+        mod = sys.modules.get("agent.tool_gate")
+        if mod is None:                      # 未导入 / 导入被置 None ⇒ 无状态可复位
+            return
+        try:
+            watch = getattr(mod, "_EXEMPT_WATCH", None)
+            if isinstance(watch, dict):
+                # 哨兵必须是「与任何归一化后的名单字符串都不相等」的对象：
+                # 取模块自己的 `_UNSET`（属性缺失时退化为全新 object()，语义一致）
+                watch["raw"] = getattr(mod, "_UNSET", object())
+        except Exception:  # noqa: BLE001 结构变化 ⇒ 下次再适配，绝不干扰用例
+            pass
+        try:
+            reset_cache = getattr(mod, "_reset_cache", None)
+            if callable(reset_cache):
+                reset_cache()                # _DERIVED_CACHE + _WARNED + _TOOL_META_CACHE
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            if getattr(mod, "_STRICT_GATEWAY", None) is not None:
+                mod._STRICT_GATEWAY = None   # 惰性单例：下次按当时的策略文件重建
+        except Exception:  # noqa: BLE001
+            pass
+
+    _reset()
+    yield
+    _reset()
+
+
+# ════════════════════════════════════════════════════════════
+#  ISO-EVENTS（主审计 2026-09-25）：评估事件文件逐用例隔离到 tmp_path
+# ════════════════════════════════════════════════════════════
+# 【为什么需要它 —— 实测证据，不是预防性洁癖】
+#  F10 卡交卡时报告：跑既有回归（test_undo_merge_governance_state / test_skill_update_audit
+#  / test_skill_registry）时 data/skills_assessment_events.jsonl **被写入**，
+#  且新增行的 skill_id 全是 d4-* / f9-*（未隔离单测写的）。我复核时该文件已达 **1115 行**。
+#  该文件被 .gitignore:458 忽略 ⇒ 不污染仓库，但仍是**真实的数据污染面**。
+#
+# 【F10 的做法与为什么不够】F10 在自己测试里手工把 log_archiver.__file__ 重定向到 tmp
+#  ——**方向对**；但那是「每个用例自觉隔离」，而 T-ISO 已证明**靠自觉不可靠**
+#  （tool_gate 的 5 条同族用例里 3 条写了复位、2 条漏了）。故收敛到**一处机制**。
+#
+# 【两条路径都要隔离 —— 实测存在两个独立解析器】
+#   1) agent/skills_mgmt/log_archiver.py:322 repo_data_dir()
+#      -> Path(__file__).resolve().parent.parent.parent / 'data'（从模块文件反推）
+#   2) agent/observability/events.py:528 default_events_dir()
+#      -> os.getenv(ENV_DIR) or _DEFAULT_DIR（从环境变量）
+#  只补一个会漏掉另一条链路。
+#
+# 【幂等 + 吞异常】同 T-ISO 的理由：autouse 且相关模块可能尚未导入；
+#  用 sys.modules.get 查找而不 import（避免导入期副作用与第二个模块对象）。
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _iso_assessment_events_to_tmp(tmp_path, monkeypatch):
+    """把「技能评估事件」的落盘位置逐用例重定向到 tmp_path
+
+    Why：见上文——实测有未隔离的单测在往 data/skills_assessment_events.jsonl 追加记录。
+    本 fixture 只改**路径解析**，不改任何业务语义。
+    """
+    # 【ISO-EVENTS-2 根因 —— 主审计 2026-09-26 实测定位】
+    # 原实现用 `sys.modules.get` 查找模块。但**第一个用到它的用例**在 fixture setup 时，
+    # 该模块**尚未被导入** ⇒ 拿到 `None` ⇒ fixture 静默不做任何事 ⇒ 这一条**必然逃逸**到生产文件。
+    # 实测指纹：连跑 3 次 `test_skill_registry.py` 每次都恰好 **+1 行**（而不是「每个用例 1 行」）
+    # —— 正是「只有首次逃逸、之后都被补上」的形状。单进程探针（显式 import 后替换）
+    # 实测**完全有效**（tmp 落 187 B、生产文件 sha256 不变），故问题**只在查找方式**，不在机制。
+    # ⇒ 改为**显式导入**。这两个模块都只是路径解析器（`repo_data_dir` / `active_events_file`），
+    #   导入无副作用；且被测代码本来就会导入它们，所以这里导入不会改变测试语义。
+    import importlib as _importlib
+    try:
+        la = _importlib.import_module("agent.skills_mgmt.log_archiver")
+    except Exception:  # noqa: BLE001 结构变化 ⇒ 下次再适配
+        la = None
+    if la is not None:
+        try:
+            from pathlib import Path as _Path
+            _tmpdir = tmp_path / "data"
+            # 【★ 不要在这里 mkdir（主审计 2026-09-26 实测的回归）】
+            # 本夹具是 autouse ⇒ 一旦**急切建目录**，每个用例的 tmp_path 里都会凭空多出
+            # 一个 `data/`。实测后果：`test_route_log_sink.py::test_switch_off_writes_nothing`
+            # 断言「开关关掉后 tmp_path 里什么都没写」⇒ 被这个空目录判成红
+            # （该用例**从不 import registry**，与它无关）。
+            # ⇒ 改为**惰性建目录**：只有代码真的来取路径时（`_lazy_tmpdir()`）才 mkdir。
+            #   对隔离效果零影响（要写的路径照样存在），对「没写就不该有东西」的断言则完全中立。
+            def _lazy_tmpdir():
+                _tmpdir.mkdir(parents=True, exist_ok=True)
+                return _tmpdir
+            # 【为什么改 `active_events_file` 本身而不是 `repo_data_dir`】
+            # 实测（主审计 2026-09-25）：只改 `repo_data_dir` **无效** ——
+            # `test_skill_registry.py` / `test_undo_merge_governance_state.py` /
+            # `test_skill_update_audit.py` 三个文件仍会写生产文件（每个 +1 行）。
+            # 原因是 `active_events_file()` 内部把 `repo_data_dir` 当**模块全局**读，
+            # 而调用链上存在**包装层**（另有模块在其内部重新绑定了原函数），
+            # monkeypatch 模块属性传不到真正被调用的那个绑定上。
+            # ⇒ 直接替换**唯一出口** `active_events_file`：它是 `service.py:811`
+            #   `from .log_archiver import active_events_file` 导入的那一个，
+            #   替换后 `from ... import` 拿到的新绑定即指向 tmp。
+            # 【★ 主审计 2026-09-26 二次修正：**不再替换 `active_events_file` 本身**】
+            # 上一次我把 `active_events_file` 整个换成 lambda，导致它**影子化**了真实现，
+            # 于是任何「先 `monkeypatch.setattr(la, "repo_data_dir", tmp)` 再期待
+            # `active_events_file()` **走真实现并做 legacy→新名 迁移**」的用例都会被破坏 ——
+            # 实测 `test_skills_digest_assessor.py::TestRenameCompat::test_events_file_legacy_migration`
+            # 就是这种：它自己把 `repo_data_dir` 指到它的 `tmp_path`，而我的 lambda 无视该 patch、
+            # 返回**夹具自己的** `tmp_path/data/...` ⇒ `active.exists()` 为假 ⇒ 断言失败。
+            # 【为什么现在只改 `repo_data_dir` 就够了】我最初记的「只改 repo_data_dir 无效」是**误诊**：
+            # 真正的根因是 `sys.modules.get(...)` 在首次用例上返回 None（已改成显式 import）。
+            # `active_events_file()` **在调用时**读模块全局 `repo_data_dir` ⇒ 只改它就足以把落点移出生产；
+            # 而且这样**真实现完整保留**（迁移逻辑、名字、返回值都不变），
+            # 测试若自己再 patch `repo_data_dir`，monkeypatch 的**后写者胜**，语义自然正确。
+            monkeypatch.setattr(la, "repo_data_dir", _lazy_tmpdir, raising=False)
+        except Exception:  # noqa: BLE001 结构变化 ⇒ 下次再适配
+            pass
+
+    # 同上：必须**显式导入**才能保证拿到模块对象（`sys.modules.get` 在首次用例上返回 None）
+    try:
+        ev = _importlib.import_module("agent.observability.events")
+    except Exception:  # noqa: BLE001
+        ev = None
+    if ev is not None:
+        try:
+            env_dir_name = getattr(ev, "ENV_DIR", None)
+            if env_dir_name:
+                monkeypatch.setenv(str(env_dir_name), str(tmp_path / "events"))
+        except Exception:  # noqa: BLE001
+            pass
+
+    yield
+

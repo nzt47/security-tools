@@ -472,9 +472,19 @@ class TestDailyArchiveAndCurate:
         plan = svc.curate_skills(dry_run=True, auto_clean=False)
         ids = [e["id"] for e in plan["plan"]]
         assert "old-nodesc" in ids
-        # 自动模式：补全说明
-        svc.curate_skills(dry_run=False, auto_clean=True)
-        assert svc.get("old-nodesc").description != ""
+        # 自动模式：【G1-B/M0 新契约，主审计 2026-09-26 更新断言】
+        #   旧行为：`curate_skills(auto_clean=True)` 把「正文首行」截 120 字**写回主轨 description**。
+        #   G1-B 的 M0（「先冻写路径再删数据」）把主轨 description 移出可写白名单，
+        #   并把这个动作**改为显式登记为人工项**（见 `service.py` 的 curate 分支）。
+        #   ⇒ 旧断言 `description != ""` 编码的是**已被有意废止**的行为，必然为假。
+        #   **本用例按新契约更新，且强度是增加的**：既钉住「不得再自动写主轨」，
+        #   又钉住「不得静默什么都不做」——必须留下人工项。
+        res = svc.curate_skills(dry_run=False, auto_clean=True)
+        assert svc.get("old-nodesc").description == "", \
+            "主轨 description 写路径已冻结（G1-B/M0），自动清洗不得再补写它"
+        applied = res.get("applied") or []
+        assert any("人工" in str(a.get("action", "")) for a in applied), \
+            "冻结写路径后必须**显式登记为人工项**，不能静默跳过（否则就是把「不生效」藏起来）: %r" % (applied,)
 
     def test_redraft_rules_and_llm_fallback(self, svc):
         svc.create_manual({

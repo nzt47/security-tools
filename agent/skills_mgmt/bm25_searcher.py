@@ -13,7 +13,8 @@
     rank_bm25.BM25Okapi (纯 Python，无 native 依赖)
 
 核心策略:
-    - 文档 = 技能名称 + 描述 + tags + category（与 TF-IDF/向量路同源）
+    - 文档 = `loader._meta_to_meta_text()` 的输出（**唯一实现**，见 _skill_to_doc）
+      ⇒ 与 TF-IDF 腿同字段、同开关（`CP_SKILL_META_INCLUDE_ZH`）
     - 混合分词：英文按词、中文按字（与 loader._tokenize 一致，保证三路同尺度）
     - 延迟构建：首次 search() 时构建索引
     - 失败降级：rank_bm25 未安装 → is_available=False，search 返回空列表
@@ -72,7 +73,23 @@ def _skill_to_doc(skill: Union[Dict[str, Any], Any]) -> str:
     """将技能对象/元数据字典转为 BM25 文档文本
 
     支持 duck-typing：既能接收 Skill pydantic 模型，也能接收 file_store 的 meta dict。
-    字段与 _meta_to_meta_text (loader.py) 同源，保证三路检索同尺度。
+
+    【G1C-UA · 为什么不再自己拼字段】
+
+    本函数原先是 loader.`_meta_to_meta_text` 的**同形独立实现**（各自一份
+    `name/description/tags/category` 字段列表）。G1C-U1 给 loader 那份并入了
+    `description_zh`（中文展示文案），本函数没有 ⇒ `use_bm25=True` 时中文 query
+    实测仍是 **2/8**（= TF-IDF 改前的量级），即"改了一处、另一处照旧"的**定时炸弹**。
+
+    ⇒ 现在**委托给 loader 的那一份**，字段列表与开关都只有一处：
+
+        · 字段：由 `loader._meta_to_meta_text` 决定；
+        · 开关：`CP_SKILL_META_INCLUDE_ZH`（`loader._include_description_zh()`），
+          **不新造第二个开关** —— 否则会出现"关了一个、另一个还开着"的假生效。
+
+    导入放在函数内（而非模块顶层）：与本模块顶部的 `_tokenize` 本地副本同一个理由
+    —— 避免 loader ↔ bm25_searcher 的**导入期**循环依赖（loader 是在
+    `_get_bm25_searcher()` 里延迟导入本模块的）。
 
     【变易】字段缺失时容忍降级，不抛异常
     """
@@ -85,16 +102,15 @@ def _skill_to_doc(skill: Union[Dict[str, Any], Any]) -> str:
         meta = {
             "name": getattr(skill, "name", ""),
             "description": getattr(skill, "description", ""),
+            # 【G1C-UA】对象形态也带上中文展示文案；模型没有该属性时取空串
+            # （pydantic Skill 模型无 description_zh ⇒ 与旧行为逐字相同）
+            "description_zh": getattr(skill, "description_zh", ""),
             "tags": getattr(skill, "tags", []) or [],
             "category": getattr(skill, "category", ""),
         }
-    parts = [
-        meta.get("name", "") or "",
-        meta.get("description", "") or "",
-        " ".join(meta.get("tags", []) or []),
-        meta.get("category", "") or "",
-    ]
-    return " ".join(p for p in parts if p)
+
+    from .loader import _meta_to_meta_text  # 延迟导入：见上「为什么不再自己拼字段」
+    return _meta_to_meta_text(meta)
 
 
 # ════════════════════════════════════════════════════════════

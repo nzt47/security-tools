@@ -779,6 +779,17 @@ def backfill_stages(
     return result
 
 
+# 【RUNBOOK-1 / 架构规则 no_circular_dependency 修正】把本模块的首次入轨实现
+# 注册进**叶子契约** `agent/descriptors/stage_contract.py`，供 descriptors 层
+# 在不反向 import digestion 的前提下调用（descriptors → 契约 ← digestion 注册）。
+# 契约模块零 agent 依赖，故本行不会引入新的环；实现在此注册后，
+# `run_backfill(..., ingest_stages=True)` 的「一次调用即达不动点」语义不变。
+from agent.descriptors.stage_contract import (  # noqa: E402
+    register_stage_runner as _register_stage_runner,
+)
+_register_stage_runner(backfill_stages)
+
+
 __all__ = [
     "SEVEN_STATES", "MAIN_CHAIN", "SIDE_STATES", "DRIVEN_EDGES",
     "DOWNSTREAM_EDGES", "ACCEPTANCE_PASSPORT_KEY", "INTERNALIZE_DECISION_KEY",

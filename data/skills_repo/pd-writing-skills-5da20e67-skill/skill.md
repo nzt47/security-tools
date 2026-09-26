@@ -16,6 +16,8 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: '适用于创建、编辑或验证 agent 技能（SKILL.md）之前或过程中，核心是将 TDD 应用于流程文档编写。预期产出: 一份经
+  RED-GREEN-REFACTOR 验证、无已知漏洞且可被其他 agent 正确触发和使用的 SKILL.md 文档。由 1 份素材蒸馏生成'
 ---
 
 # writing-skills

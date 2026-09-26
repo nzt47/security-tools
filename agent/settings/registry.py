@@ -1582,8 +1582,20 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _a("AGENT_HYBRID_RERANKER", CAT_SKILLS, False,
        "工具路由是否启用混合重排",
        owner="agent/tool_router_reranker.py"),
-    _a("AGENT_HYBRID_EMBEDDING", CAT_SKILLS, "",
-       "工具路由混合检索的向量模型",
+    # 【E1-D】原登记：「工具路由混合检索的向量模型」/ 默认 `""` —— **与代码事实相反**。
+    #   代码把它当**布尔开关**读（唯一判据 _resolve_embedding_env_override：
+    #   0/false/no/off ⇒ 关，1/true/yes/on ⇒ 开，其余 ⇒ 未表态），
+    #   向量模型名另有固定常量（_DEFAULT_MODEL），本 env **不参与选型**。
+    #   默认值取代码事实：env 缺席时 HybridRetriever.__init__ 照常预热 ⇒ 启用；
+    #   风险级保持 A（它降级的是**能力**——退化为纯 BM25 这条既有、被测试覆盖的
+    #   路径——不是拆除任何防护闸门，与同族 AGENT_HYBRID_RERANKER 同级）。
+    _a("AGENT_HYBRID_EMBEDDING", CAT_SKILLS, True,
+       "混合检索**向量腿开关**（不是模型名；向量模型是固定常量，本环境变量不选型）。"
+       "默认启用。关法：置 0/false/no/off —— 关到「抑制预热」这一层："
+       "HybridRetriever 构造时不再启动 EmbeddingIndex.preheat 子进程，本次进程不拉模型"
+       "（省约 18s/450MB），检索退化为纯 BM25（degraded=True，下发集相应变小）；"
+       "但**不是硬禁用**：若另有调用方直接触发 EmbeddingIndex.search/preheat"
+       "（内部会 _ensure_worker），向量腿仍会被拉起。置 1/true/yes/on 与默认同为启用。",
        owner="agent/tool_router_hybrid.py"),
     _a("AGENT_HYBRID_ALPHA", CAT_SKILLS, None,
        "混合检索权重系数（RRF/线性融合）",
@@ -2401,6 +2413,182 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_DIGESTION_JUDGE_DOTENV", CAT_SKILLS, "",
        "judge 读取的 .env 路径覆盖（空=默认；路径项，UI 只读展示）",
        owner="agent/digestion/judge_runtime.py", validator=Validator("path")),
+
+    # ── SET-REG：本轮实施批新增 env 的横切补登记（17 条；零缺口守卫收口）──────
+    #
+    # 【成因】本轮 20+ 张卡各自新增 env 开关（读取点随卡进了生产代码），但没有一张卡
+    #   把它们登记进本表 ⇒ `tests/unit/test_settings_registry.py::TestMechanicalZeroGap`
+    #   实测 `2 failed, 54 passed`，缺口恰好下列 17 个名字（`432 registered` vs
+    #   `449 extracted`）。这是**横切债**，不属任何单张卡，故在此统一收口。
+    #
+    # 【取证口径】每条 `default` 都从**读取点的第二个实参 / 回退分支**逐字读出，
+    #   文件:行号写在各条 description 里 —— **不猜**（猜错会让 UI 显示一个错误的默认值，
+    #   比不登记更坏）。`None` = "默认由代码逻辑决定"，不以 0/""/False 冒充。
+    #   `owner` = 该 env 的**读取点所在模块**（不是消费方）。
+    #   `needs_restart` 取"读取时机"：进程/实例构造时读一次 ⇒ True；每次调用都读 ⇒ False。
+    #
+    # 【风险分级】这 17 条分属**限流 / 日志落盘 / 检索轨 / 提示词装配**四域，均不触碰
+    #   安全边界（C2.md §2.2 原文："限流是性能判据不是安全判据"）⇒ 除路径项按 C 级
+    #   （只读脱敏）外一律 A 级；**无 B 级**（没有一条"关闭即降低防护"）。
+
+    # · C2 卡：HTTP 入口并发闸门（读取点 agent/rate_limiter.py:1264-1287；
+    #   装配点 app_server.py:414-419 于进程启动构造一次）
+    # 【主审计 2026-09-26 升降级裁定：A → **B**（SET-REG 原定 A，我改判）】
+    #   理由：本表自己的 B 级判据（:19）是「**关闭即降低防护**的安全防线开关」，
+    #   且本表已有一条**同形先例** —— CP_ARCHIVE_LOCK_ENABLED 是 B，理由正是
+    #   「并发保护总开关，关闭后不再互斥」。本键**关掉即完全拆除背压**（不装中间件、
+    #   行为回到无闸门现状），与那条是同一形态。
+    #   SET-REG 引的是 C2.md §2.2「限流是性能判据不是安全判据」—— 那句话说的是
+    #   **怎么判断限流器有没有生效**，不是**关掉它的风险有多大**。
+    #   本审计把「服务存活」列为最高优先项（§1.4 / P-1 / A1）⇒ 拆除背压属该风险类。
+    #   本表口径写明「风险级裁定口径（**保守优先**）」⇒ 取 B。
+    #   数值上限（MAX_CONCURRENT / MAX_QUEUE / QUEUE_TIMEOUT）**仍为 A**，
+    #   依据本表 :2267「其余纯数值上限 / 超时 / 非安全开关保持 A」。
+    #   【单机单人部署的副作用（如实登记）】本部署只有一名操作者 ⇒ B 级的
+    #   「二次认证 + 双人确认」在 UI 路径上**实际不可完成**；应急仍可直接改 .env /
+    #   主机环境变量（与 CP_ARCHIVE_LOCK_ENABLED 同）。这是**有意的摩擦**，不是缺陷；
+    #   若复核认为不值当，把本行 _b 改回 _a 即可（只此一行）。
+    _b("CP_HTTP_CONCURRENCY_GATE", CAT_ORCHESTRATION, True,
+       "HTTP 入口并发闸门总开关（默认开）；置 0/false/no/off ⇒ build_http_gate_from_env() "
+       "返回 None、不装 WSGI 中间件，行为回到无闸门现状 [C2；agent/rate_limiter.py:1275]"
+       "【主审计改判 B：关闭即拆除背压】",
+       owner="agent/rate_limiter.py", needs_restart=True),
+    _a("CP_HTTP_MAX_CONCURRENT", CAT_ORCHESTRATION, 8,
+       "HTTP 入口**同时执行**的请求上限（默认 8 = waitress threads=16 的一半，给健康采集/"
+       "后台留余量）；非法值回退默认并告警 [C2；agent/rate_limiter.py:1279]",
+       owner="agent/rate_limiter.py", needs_restart=True),
+    _a("CP_HTTP_QUEUE_TIMEOUT", CAT_ORCHESTRATION, 20.0,
+       "HTTP 闸门处最大等待秒数（默认 20.0，对齐 15s 前端预算 + 余量）；等满仍拿不到额度 ⇒ "
+       "429 SERVER_BUSY_TIMEOUT；0 ⇒ 不排队立即拒 [C2；agent/rate_limiter.py:1280]",
+       owner="agent/rate_limiter.py", needs_restart=True),
+    _a("CP_HTTP_MAX_QUEUE", CAT_ORCHESTRATION, 0,
+       "HTTP 闸门等待队列上限（默认 0 = 不限，只靠 queue_timeout 兜底）；>0 ⇒ 队列满即 "
+       "429 SERVER_BUSY [C2；agent/rate_limiter.py:1281]",
+       owner="agent/rate_limiter.py", needs_restart=True),
+
+    # · C2 卡：工具层并发闸门（读取点 agent/rate_limiter.py:1290-1310；
+    #   装配点 agent/tools/__init__.py:30 于模块导入构造一次）
+    # 【主审计 2026-09-26 升降级裁定：A → **B**】与上面 CP_HTTP_CONCURRENCY_GATE 同一条
+    #   依据（关闭即拆除背压、同形先例 CP_ARCHIVE_LOCK_ENABLED 为 B、本表「保守优先」口径）。
+    #   注意置 0 后 max_concurrent **逐字回到改动前的 100** ⇒ 实际并发面比 16 宽松 6 倍，
+    #   这不是「只判速率」，而是**把工具层并发保护整体还原到未加固状态**。
+    _b("CP_TOOL_CONCURRENCY_GATE", CAT_ORCHESTRATION, True,
+       "工具层并发闸门总开关（默认开）；置 0 ⇒ 只判速率、不占并发额度，max_concurrent "
+       "逐字回到构造默认 100（= 改动前）[C2；agent/rate_limiter.py:1305]"
+       "【主审计改判 B：关闭即拆除背压】",
+       owner="agent/rate_limiter.py", needs_restart=True),
+    _a("CP_TOOL_MAX_CONCURRENT", CAT_ORCHESTRATION, 16,
+       "同时**执行**的工具调用上限（默认 16，与 LLM 池/线程数同量级，非主约束；闸门关闭时"
+       "该字段无实际作用）[C2；agent/rate_limiter.py:1307]",
+       owner="agent/rate_limiter.py", needs_restart=True),
+    _a("CP_TOOL_LEVEL_BUCKET", CAT_ORCHESTRATION, True,
+       "L2/L3 确认级低容量桶（默认开）；置 0 ⇒ 只留分类桶（分类桶键与数值一字未改）"
+       " [C2；agent/rate_limiter.py:1309]",
+       owner="agent/rate_limiter.py", needs_restart=True),
+
+    # · B2 卡：路由事件 jsonl sink（读取点 app_server.py:287-297 / 344-346；
+    #   装配点 app_server.py:2159 __main__ 启动块，B2.md §6「后重启服务」）
+    _a("CP_ROUTE_EVENT_SINK_ENABLED", CAT_OBSERVABILITY, True,
+       "路由事件 sink 开关（默认开）；置 0/false/no/off ⇒ 不装配 handler（并摘掉已装的），"
+       "路由日志只进 stderr、data/logs/<date>.jsonl 逐字节不变 [B2；app_server.py:294-297]",
+       owner="app_server.py", needs_restart=True),
+    _c("CP_ROUTE_EVENT_SINK_DIR", CAT_OBSERVABILITY, None,
+       "路由事件 sink 落盘目录覆盖（缺省 None ⇒ 用 LokiClient 自带的 <repo>/data/logs；"
+       "空串同样视为未覆盖；路径项，UI 只读展示）[B2；app_server.py:346]",
+       owner="app_server.py", needs_restart=True),
+
+    # · G1-B 卡：技能描述单源治理（每次调用都读 ⇒ 热生效）
+    _a("CP_SKILL_DESC_FROM_FILE_TRACK", CAT_SKILLS, True,
+       "技能 description 是否**文件轨优先**（默认开）；置 0/false/no/off ⇒ as_legacy_rows() "
+       "回退主轨文案（description_zh 仍读文件轨）[G1-B；agent/skills_mgmt/registry.py:44-47]",
+       owner="agent/skills_mgmt/registry.py"),
+
+    # · G1C-U1 卡：生产 Layer-1 的索引文本并入中文 description_zh（每次调用都读 ⇒ 热生效）
+    #   读取点 loader.py:88 由 _meta_to_meta_text()（:132）与倒排索引缓存键（:383）共用。
+    #   【为什么是 A 级】置 0 = **逐字恢复改动前的旧行为**（只拼 name/description/tags/
+    #   category），不是拆掉某道防护；但代价要写明：中文 query 的生产 Layer-1 召回会
+    #   回落到 2/8（实测），即回到"迁移技能只对英文 query 可召回"的状态。
+    _a("CP_SKILL_META_INCLUDE_ZH", CAT_SKILLS, True,
+       "生产 Layer-1（SkillLoader 的 _meta_to_meta_text）索引文本是否并入**中文** "
+       "description_zh（默认开 = 新行为）；置 0/false/no/off ⇒ 逐字回到只拼 "
+       "name/description/tags/category 的旧行为（中文 query 召回回落、打分与倒排索引"
+       "回到改动前）[G1C-U1；agent/skills_mgmt/loader.py:88,132,383]",
+       owner="agent/skills_mgmt/loader.py"),
+
+    # · C1 卡：LLM 客户端显式超时与重试（读取点 adapters.py:158-173；客户端懒加载，
+    #   新建实例即取新值 ⇒ 不标重启，但已建实例仍持旧值）
+    _a("LLM_ADAPTER_CONNECT_TIMEOUT", CAT_ORCHESTRATION, 5.0,
+       "LLM 客户端**建连**超时秒数（默认 5.0 = adapters.py:57 _DEFAULT_CONNECT_TIMEOUT）；"
+       "非法/非正值回退默认并告警 [C1；agent/model_router/adapters.py:161]",
+       owner="agent/model_router/adapters.py"),
+    _a("LLM_ADAPTER_READ_TIMEOUT", CAT_ORCHESTRATION, 45.0,
+       "LLM 客户端**读**超时秒数（默认 45.0 = adapters.py:58 _DEFAULT_READ_TIMEOUT，同时用作 "
+       "write/pool 值）；旧行为吃 SDK 默认 600s [C1；agent/model_router/adapters.py:162]",
+       owner="agent/model_router/adapters.py"),
+    _a("LLM_ADAPTER_MAX_RETRIES", CAT_ORCHESTRATION, 1,
+       "LLM 客户端重试上限（默认 1 = adapters.py:59 _DEFAULT_MAX_RETRIES；可设 0 = 不重试）"
+       " [C1；agent/model_router/adapters.py:170]",
+       owner="agent/model_router/adapters.py"),
+
+    # · C1 卡：技能索引主轨补位（SkillIndexCache.__init__ 读一次 ⇒ 需重启）
+    _a("SKILLS_INDEX_MAIN_TRACK", CAT_SKILLS, True,
+       "技能索引主轨（data/skills_mgmt.json）补位总开关（默认开）；置 0 ⇒ 只服务文件轨"
+       "（回滚开关）[C1；agent/skills_mgmt/index_cache.py:98]",
+       owner="agent/skills_mgmt/index_cache.py", needs_restart=True),
+    _c("SKILLS_INDEX_MAIN_TRACK_PATH", CAT_SKILLS, None,
+       "主轨文件路径显式覆盖（缺省 None ⇒ 由代码算 repo_path 的父目录/skills_mgmt.json；"
+       "路径项，UI 只读展示）[C1；agent/skills_mgmt/index_cache.py:115-119]",
+       owner="agent/skills_mgmt/index_cache.py", needs_restart=True),
+
+    # · C1 卡：降级落盘向量库的覆盖率阈值（每次调用都读 ⇒ 热生效）
+    _a("SKILL_VECTOR_FALLBACK_MIN_COVERAGE", CAT_SKILLS, 0.5,
+       "降级落盘向量库的覆盖率阈值（默认 0.5；低于阈值必须显式标 degraded）。非法值回退默认"
+       "并告警、取值夹到 [0,1]；只影响标记/告警，不改变返回内容"
+       " [C1；agent/skills_mgmt/vector_adapter.py:88,93-101]",
+       owner="agent/skills_mgmt/vector_adapter.py",
+       validator=_range_validator(0.0, 1.0, note="代码把取值夹到 [0,1]")),
+
+    # · F3-1 卡：前缀缓存的易变尾簇搬家（每次调用都读 ⇒ 热生效）
+    _a("YUNSHU_PROMPT_VOLATILE_TAIL", CAT_ORCHESTRATION, True,
+       "是否把易变尾簇从 system message 搬到请求最后一条消息（默认开 = 新顺序，把可缓存"
+       "前缀从易变块入口延长到整条请求）；置 0/false/no/off/disable ⇒ 回到旧顺序（逃生开关）"
+       " [F3-1；agent/system_prompt_manager.py:79-82]",
+       owner="agent/system_prompt_manager.py"),
+
+    # · E1-F1-A 卡：工具检索 embedding worker 的**就绪等待上限**
+    # 【风险级裁定：A（纯数值超时）】依据本轮主审计的口径：
+    #   · 「关闭即拆除防护」的总开关 = B（本表 :19 的定义 + 同形先例 CP_ARCHIVE_LOCK_ENABLED）；
+    #   · **纯数值上限/超时 = A**。本项是超时数值：调大只让「等待更久」、调小只让
+    #     降级来得更早 —— 两个方向都不放宽任何防护面（既不放行调用、也不关闭判定）。
+    # 【needs_restart=True 的依据】读取点在 agent/tool_router_hybrid.py 的模块级
+    #   _WORKER_READY_TIMEOUT = _resolve_worker_ready_timeout_from_env()：**导入时读取一次**，
+    #   与同表 BM25_K1（「模块导入时一次性读取」）同口径。
+    # 【默认值 120.0 的来源】代码里的 _WORKER_READY_TIMEOUT_DEFAULT = 120.0（同一常量，
+    #   不另抄一份数值）；E1-F1 实测生产默认 30 s 只剩 23.2/30 = **1.29×** 余量，
+    #   而超时的后果是**静默降级为 BM25-only**（向量腿整条失效、无异常无告警），
+    #   故取 ≥ 实测值的 5× 作为纵深防御；它只在预热线程里生效、不在请求路径上，
+    #   所以拉长它不增加任何一次查询的时延。
+    _a("AGENT_HYBRID_WORKER_READY_TIMEOUT", CAT_SKILLS, 120.0,
+       "工具检索 embedding worker 的**就绪等待上限**（秒；代码级默认 120.0）。"
+       "非法值/非正数一律回退 120.0 并留 WARNING（不静默接受垃圾值）。"
+       "超时即降级为纯 BM25（向量腿整条失效）—— 故本值是「静默降级」这条路径的唯一旋钮"
+       " [E1-F1-A；agent/tool_router_hybrid.py:_WORKER_READY_TIMEOUT]",
+       owner="agent/tool_router_hybrid.py", needs_restart=True,
+       validator=_range_validator(1.0, 3600.0, note="秒；≤0/非数字回退代码级默认 120.0")),
+
+    # · F11-C-2 卡：工作流自动执行的「证据/偏好」两分（每次调用都读 ⇒ 热生效）
+    # 【A 级理由】本开关置 0 是**恢复更严的旧行为**（门槛从 evidence=sim×confidence
+    #   回到乘性的 combined=sim×confidence×priority_factor ≤ evidence，见
+    #   matcher.score_candidate）⇒ 方向是**收紧**（更少工作流被自动执行），
+    #   不是"关闭即拆除防护"；按本表 A 级口径（:18「可直接切」）登记，
+    #   不适用 B 级（:19「关闭即降低防护」）。
+    #   回滚 = 置 0/false/no/off/disable，不改代码。
+    _a("WORKFLOW_LEARNING_GATE_ON_EVIDENCE", CAT_LEARNING, True,
+       "工作流自动执行门槛是否按**证据分**(sim × confidence)比较（默认开 = 新口径，"
+       "priority 只用于排序）；置 0/false/no/off/disable ⇒ 回到旧的乘性门槛 "
+       "(sim × confidence × priority_factor)，即改前行为（逃生开关）"
+       " [F11-C-2；agent/workflow_learning/matcher.py:gate_on_evidence]",
+       owner="agent/workflow_learning/matcher.py"),
 ]
 # ════════════════════════════════════════════════════════════
 #  与 observability_config 既有校验表合并（**勿重复造**）

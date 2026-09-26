@@ -273,20 +273,42 @@ class TestLearnerAdmission:
         assert wf.status == WorkflowStatus.DRAFT.value
         assert "准入未通过" in wf.description
         assert admission.CODE_STEPS_TOO_FEW in wf.description
-        assert admission.CODE_NO_DISCRIMINATIVE_TRIGGER in wf.description
+        # 【F11-B 口径变更】中文触发词改取 2 字滑窗后，本条**只因步骤数**被拒；
+        # 改前它还同时命中 NO_DISCRIMINATIVE_TRIGGER（中文按字切分 → 全单字 →
+        # 被过滤 → 触发词为空）。"单步必须落草稿"的意图由上面的 status 断言继续
+        # 保证，故此处改为断言"拒绝原因里不再含无触发词"。
+        # 该行不在任务卡点名的 :286/:289 之内，属**同一口径变更导致的第 3 处过时
+        # 断言**（实测证据与判定见 docs/audit_skill_governance/F11-B.md §3）。
+        assert admission.CODE_NO_DISCRIMINATIVE_TRIGGER not in wf.description
+        assert wf.trigger_patterns, "中文现在应拿到 2 字滑窗触发词"
 
     def test_two_step_chinese_interaction_drops_single_char_triggers(
             self, tmp_path):
-        """中文按字切分得到的单字触发词不得入库为 trigger_patterns"""
+        """单字触发词不得入库为 trigger_patterns（政策未变，切分口径已变）
+
+        【F11-B 口径变更】中文的**切分单位**从"字"改为"2 字滑窗"：
+        改前按字切分 ⇒ 全是单字 ⇒ 被 `MIN_TRIGGER_CHARS = 2` 全量过滤 ⇒
+        `trigger_patterns == []` ⇒ 恒判 `NO_DISCRIMINATIVE_TRIGGER`、恒落草稿
+        （该子系统因此产不出可被消费的工作流）。改后每个 token 都是 bigram。
+        **政策本身未被放宽**：单字仍然不得成为触发词（下面的断言即此）。
+        """
         svc = self._svc(tmp_path)
         wf = svc.learn_from_interaction(self._record(
             [{"name": "read_file", "params": {}, "success": True},
              {"name": "write_file", "params": {}, "success": True}],
             "统计文件行数并保存"))
-        assert wf.trigger_patterns == []
+        # 政策守住了：中文任务拿到的触发词**一个单字都没有**
+        assert wf.trigger_patterns == ["统计", "计文", "文件", "件行", "行数"], (
+            "中文触发词 = 2 字滑窗（复用 learner.signature_tokens）")
+        assert single_char_triggers(wf.trigger_patterns) == []
+        assert all(len(t) >= MIN_TRIGGER_CHARS for t in wf.trigger_patterns)
         assert single_char_triggers(["统", "计", "文", "件", "行"]) == \
-            ["统", "计", "文", "件", "行"]
-        assert wf.status == WorkflowStatus.DRAFT.value  # 无有区分度触发词
+            ["统", "计", "文", "件", "行"], "单字列表本身仍被判无区分度"
+        # **预期行为变更**（任务卡 §3 要求写明，不是"为了让测试变绿"）：
+        # 中文 2 步交互不再"无有区分度触发词" ⇒ 结构性准入通过 ⇒ 由 draft 变为
+        # active（可进匹配候选池）。这是 F11-B 的目标本身：让中文任务也能产出
+        # 可被消费的工作流。步骤门槛（MIN_STEPS=2）与单字政策都未动。
+        assert wf.status == WorkflowStatus.ACTIVE.value
 
     def test_draft_workflow_still_executable_by_id(self, tmp_path):
         """草稿态 ≠ 失效：人工按 ID 触发仍可执行（退役/隔离不删能力）"""

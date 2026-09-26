@@ -16,6 +16,7 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 在完成任务、实现核心功能时，或者在合并代码前，用它来确认工作是否符合要求。由 1 份素材蒸馏生成
 ---
 
 # requesting-code-review

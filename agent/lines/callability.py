@@ -899,6 +899,13 @@ def _tool_entry(name: str, doc: Dict[str, Any], *, executors: Dict[str, str],
         "sandbox_allowed": declared["sandbox_allowed"],
         "isolation_level": declared.get("isolation_level", DEFAULT_ISOLATION_LEVEL),
         "reason": verdict["reason"],
+        # 【G1-B/M5】工具描述（= data/tool_definitions/*.yaml 的 description，逐字）。
+        # 为什么必须补：`_FIELD_SPEC` 里加了 "description" 后 `validate()` 会对
+        # **缺该键**的条目报错 —— 技能侧补了、工具侧不补，91 条工具会全部失败
+        # （实测第一轮 sync 即 91 条「缺少统一字段 description」）。
+        # 该键不是新造数据：`load_tool_docs()` 的 91/91 条本来就有非空 description，
+        # 只是此前从未进过清单条目 ⇒ 信封里工具描述一直可见、清单里却查不到。
+        "description": str(doc.get("description") or ""),
         # ── CapabilitySpec（TASK-04 新增；v1.4 §5.1 对齐）──
         "capability_id": f"{tenant_id}:{namespace}:{name}@{version}",
         "kind": "tool",
@@ -985,6 +992,11 @@ def _skill_sources(include_runtime_catalog: bool = False) -> Dict[str, Dict[str,
             "enabled": True, "status": "", "has_scripts": False, "inline_content": False,
             "params": {}, "config_schema": None, "output_schema": None,
             "is_sensitive": False, "declared_in": "",
+            # 【G1-B/M5】技能描述进清单：skill 条目的 description 在改造前恒为空串
+            # （实测 23/23 空）—— 因为 _skill_entry 的返回字典根本没有该键，
+            # 而 CapabilitySpec.from_manifest_entry 读 `e.get("description")`。
+            # 默认空串让"无实体技能"与"有实体但描述为空"可区分（后者由下方回填）。
+            "description": "",
         })
 
     # ① 仓库实体（入库，唯一默认来源）
@@ -1001,6 +1013,9 @@ def _skill_sources(include_runtime_catalog: bool = False) -> Dict[str, Dict[str,
             slot["enabled"] = _as_bool(fm.get("enabled"), True)
             slot["status"] = str(fm.get("status") or "")
             slot["params"] = fm.get("default_params") or {}
+            # 【G1-B/M5】描述取自**唯一事实源** skill.md front matter（英文原文；
+            # 中文展示文案 description_zh 不进清单 —— 清单是治理/评估面，不是 UI）。
+            slot["description"] = str(fm.get("description") or "")
             scripts_dir = os.path.join(sdir, "scripts")
             slot["has_scripts"] = os.path.isdir(scripts_dir) and any(
                 f.endswith(".py") for f in os.listdir(scripts_dir))
@@ -1167,6 +1182,11 @@ def _skill_entry(sid: str, facts: Dict[str, Any], decl: Dict[str, Any],
         "skill_in_mgmt": bool(facts.get("in_mgmt")),
         "has_scripts": bool(facts.get("has_scripts")),
         "skill_status": str(facts.get("status") or ""),
+        # 【G1-B/M5】技能描述（= skill.md front matter 的 description，逐字）。
+        # 不加这行，facts 里的 description 到不了清单条目 ⇒ `CapabilitySpec.
+        # from_manifest_entry` 的 `str(e.get("description") or "")` 恒得空串
+        # （实测改造前 23/23 为空），信封与清单都看不到技能描述。
+        "description": str(facts.get("description") or ""),
     }
 
 

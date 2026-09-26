@@ -16,6 +16,7 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 适用于同时处理两个或更多独立任务的场景，这些任务无需共享状态，也没有先后顺序的依赖。由 1 份素材蒸馏生成
 ---
 
 # dispatching-parallel-agents

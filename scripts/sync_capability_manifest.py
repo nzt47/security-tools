@@ -58,7 +58,12 @@ from agent.lines.callability import (  # noqa: E402
 
 _FIELD_SPEC = ("tool_name", "tool_type", "llm_callable", "callable_mode",
                "schema_registered", "host_executor", "permission_level",
-               "sandbox_allowed", "reason")
+               "sandbox_allowed", "reason",
+               # 【G1-B/M5】description 进统一字段表：
+               # ① `validate()` 会对缺键条目报错（缺了就红，不再静默）；
+               # ② `_diff()` 会把它纳入 --check 比对 ⇒ 技能描述漂移可被 CI 抓住
+               #    （不补这行，G1-A §9.6 G-6 说的"唯一防线"就只剩单测）。
+               "description")
 
 #: CapabilitySpec 必填字段（TASK-04 完成判据：每条都含 location/kind/owner/version/capability_id）
 _SPEC_REQUIRED_FIELDS = ("capability_id", "kind", "location", "owner", "version",

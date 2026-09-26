@@ -87,8 +87,14 @@ def real_app(tmp_path_factory):
     注：tests/conftest.py 的会话级隔离已覆盖审批/事件/审计四个路径；本夹具补的是
     app_server 自身（memory/planning/vector/session）的落盘。
     """
+    from agent import tools as _tools
+
     workdir = tmp_path_factory.mktemp("legacy_routes_real_entry")
     prev_cwd = os.getcwd()
+    # `import app_server` 会登记整套内建工具（实测 91 个）到**进程级**注册表；
+    # 本夹具在模块结束时**整表还原**，别让导入副作用漏给同进程的其它测试文件
+    # （实测：本文件排在 tests/unit/test_tool_count_consistency.py 之前时后者必红 2 条）。
+    saved_registry = dict(_tools._registry)
     os.chdir(workdir)
     try:
         import app_server  # noqa: PLC0415  真实入口，绝不用 Flask(__name__) 手搓
@@ -96,6 +102,9 @@ def real_app(tmp_path_factory):
         yield app_server.app
     finally:
         os.chdir(prev_cwd)
+        _tools._registry.clear()
+        _tools._registry.update(saved_registry)
+        _tools._registry_version += 1
 
 
 def test_legacy_endpoints_exist_in_real_entry(real_app):

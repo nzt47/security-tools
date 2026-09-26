@@ -135,11 +135,32 @@ class TestCancel:
         assert client.post("/api/background/tasks/nope/cancel").get_json()["ok"] is False
 
 
-def test_端点已在真实入口注册():
-    """真实 url_map 守门：手搓 Flask 全绿而线上 404 的坑（见文件头说明）"""
-    import app_server  # noqa: PLC0415 真实入口
+@pytest.fixture
+def real_entry():
+    """真实入口 `import app_server`；用完**整表还原**工具注册表
 
-    paths = {str(r.rule) for r in app_server.app.url_map.iter_rules()}
+    【不易·为什么必须还原】`import app_server` 会执行整套模块级装配，把**内建工具全量**
+    （实测 91 个）登记进**进程级** `agent/tools/__init__.py:_registry`。注册是导入副作用，
+    本文件用完若不还原，同进程后续测试看到的注册表就不是它自己登记的那一份
+    （实测：本文件排在 `tests/unit/test_tool_count_consistency.py` 之前时，后者
+    "注册表 == 我登记的 N 个"的前置条件当场失配 ⇒ 2 failed）。
+    还原形状同 `test_tool_count_consistency.py` 的 `isolated_tool_registry`。
+    """
+    from agent import tools as _tools
+
+    saved = dict(_tools._registry)
+    try:
+        import app_server  # noqa: PLC0415 真实入口
+        yield app_server
+    finally:
+        _tools._registry.clear()
+        _tools._registry.update(saved)
+        _tools._registry_version += 1
+
+
+def test_端点已在真实入口注册(real_entry):
+    """真实 url_map 守门：手搓 Flask 全绿而线上 404 的坑（见文件头说明）"""
+    paths = {str(r.rule) for r in real_entry.app.url_map.iter_rules()}
     assert "/api/background/tasks" in paths
     assert "/api/background/tasks/<task_id>" in paths
     assert "/api/background/tasks/<task_id>/result" in paths

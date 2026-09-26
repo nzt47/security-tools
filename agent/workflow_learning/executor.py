@@ -1,8 +1,17 @@
 """工作流执行器 — 优先执行本地工作流，避免冗余 LLM 调用
 
 执行流程:
-    1. matcher.match(task) → 候选列表
-    2. 取最高分候选，若分数 >= 阈值，执行
+    1. matcher.match_scored(task) → 候选列表（每条带 evidence / combined 两个分数）
+    2. 取最高分候选，若**证据分** >= 阈值，执行
+
+【F11-C-2】门槛看证据、排序看偏好（与 matcher.score_candidate 同源）:
+    - **门槛**：`evidence = sim × confidence` 与 min_score 比较（env
+      `WORKFLOW_LEARNING_GATE_ON_EVIDENCE=0` ⇒ 回到旧的乘性门槛 combined）；
+    - **排序**：`combined = sim × confidence × (0.5 + priority/200)` 决定候选顺序，
+      `priority` 是偏好/排序权重，**不是证据**，不再压低候选的门槛分数；
+    - **语义**：自动执行只在「**高相似 + 有一定信心**的**重复**场景」成立；
+      改写场景（换词/换句式 ⇒ 相似度中等）**默认交给 LLM**，
+      只有近乎逐字重放或已养熟的条目才短路。
     3. 逐步执行 WorkflowStep:
         a. 解析参数模板 ($input / $prev_output / $step.<n>.output / $param.<k>)
         b. 检查 condition (若存在)
@@ -41,7 +50,7 @@ from .mode_classifier import (
 )
 from .agent_executor import AgentExecutor, AgentRunner
 from .repository import WorkflowRepository
-from .matcher import WorkflowMatcher
+from .matcher import WorkflowMatcher, gate_on_evidence
 from agent.observability.tool_trace import traced_tool_call
 
 
@@ -184,6 +193,7 @@ class WorkflowExecutor:
 
     def __init__(self, repo: WorkflowRepository, matcher: WorkflowMatcher,
                  *, min_score: float = 0.3,
+                 top_k: int = 3,
                  tool_executor: Optional[ToolExecutor] = None,
                  agent_executor: Optional[AgentExecutor] = None,
                  llm_step_runner: Optional[Callable[[str, Dict[str, Any]],
@@ -191,6 +201,14 @@ class WorkflowExecutor:
         self._repo = repo
         self._matcher = matcher
         self.min_score = min_score
+        # 【F11-C-1】候选池深度（相似度 Top-K）：改前 try_execute 里**硬编码**
+        #   `self._matcher.match(task_text, top_k=3)`，而 config.yaml 的
+        #   `workflow_learning.matcher.top_k`（5）**从无读取点**（死键）。
+        #   现由构造参数下发（service 从 config.yaml 读取），默认 3 = 改前硬编码值，
+        #   故直接构造 WorkflowExecutor 的调用方行为不变。
+        #   注：try_execute 只消费候选池的 top1 ⇒ 本键只影响池深与
+        #   `ctx["candidates"]` 候选计数（观测），不改变命中/不命中判定。
+        self.top_k = max(1, int(top_k))
         self._tool_executor = tool_executor
         # [TLM-L1] Agent 执行器 — classify_workflow_mode 返回 "agent" 时启用
         # None 时降级走 DAG (带 warning), 不中断主流程 (【不易】边界显性化)
@@ -222,6 +240,17 @@ class WorkflowExecutor:
                     min_score: Optional[float] = None) -> WorkflowExecutionResult:
         """尝试匹配并执行本地工作流
 
+        【F11-C-2】门槛口径：默认比较**证据分** evidence = sim × confidence；
+        priority 只参与排序（combined），不再压缩候选的门槛分数。
+        把 env `WORKFLOW_LEARNING_GATE_ON_EVIDENCE` 置 0/false/no/off/disable
+        ⇒ 回到旧的乘性门槛（比较 combined，reason 文案也逐字回到 "score x < y"）。
+
+        【语义（F11-C-2 ④）】自动执行**只在「高相似 + 有一定信心」的重复场景成立**；
+        改写场景（换词/换句式 ⇒ 相似度中等）**默认交给 LLM**，本方法返回
+        matched=False 即"降级给 LLM"的显式信号。门槛数字不猜：一次执行的
+        `ctx`（traced_action 上下文）里含 sim / confidence / confidence_factor /
+        priority / priority_factor / evidence / combined / 实际比较值与阈值。
+
         Args:
             task_text: 任务文本（建议使用 DST 补全后的输入）
             params: 附加参数（注入上下文 param）
@@ -235,17 +264,35 @@ class WorkflowExecutor:
         # 默认值保持兼容（不影响既有测试与调用方）
         score_threshold = self.min_score if min_score is None else min_score
         with traced_action("wf_try_execute", task_text=task_text[:80]) as ctx:
-            candidates = self._matcher.match(task_text, top_k=3)
+            candidates = self._match_candidates(task_text)
             if not candidates:
                 ctx["matched"] = False
+                ctx["min_score"] = score_threshold
                 return WorkflowExecutionResult(
                     matched=False, execution_time_ms=round((time.time() - t0) * 1000, 2),
                 )
 
-            wf, score = candidates[0]
-            if score < score_threshold:
+            wf, score, audit = candidates[0]
+            gate_value = audit["gate_value"]
+            # 【F11-C-2】门槛决策可审计：数值与 id 入 ctx（**不含用户原文**）
+            ctx["min_score"] = score_threshold
+            ctx["gate_field"] = audit["gate_field"]
+            ctx["gate_on_evidence"] = audit["gate_on_evidence"]
+            ctx["gate_value"] = round(float(gate_value), 6)
+            for k in ("similarity", "confidence", "confidence_factor",
+                      "priority", "priority_factor", "evidence", "combined",
+                      "cold_start"):
+                if k in audit:
+                    ctx[k] = audit[k]
+            if gate_value < score_threshold:
                 ctx["matched"] = False
-                ctx["reason"] = f"score {score:.3f} < {score_threshold}"
+                # 旧口径的 reason 文案逐字保留（逃生开关下日志与改前一致）
+                if audit["gate_field"] == "combined":
+                    ctx["reason"] = f"score {gate_value:.3f} < {score_threshold}"
+                else:
+                    ctx["reason"] = (f"evidence {gate_value:.3f} < "
+                                     f"{score_threshold}（sim={audit.get('similarity')},"
+                                     f" confidence={audit.get('confidence')}）")
                 return WorkflowExecutionResult(
                     matched=False, execution_time_ms=round((time.time() - t0) * 1000, 2),
                 )
@@ -263,6 +310,44 @@ class WorkflowExecutor:
                 if self._agent_executor is None:
                     ctx["agent_degraded"] = True
             return self._dispatch_by_mode(wf, task_text, params or {}, score, t0)
+
+    # ─── 候选池（F11-C-2：两个分数各自显式取出） ───
+
+    def _match_candidates(self, task_text: str):
+        """取候选池 → [(wf, combined, audit_dict)]（F11-C-2）
+
+        - 首选 `matcher.match_scored()`：MatchScore 里 evidence / combined
+          **各自显式给出**（matcher.score_candidate 是唯一算式出处），
+          此处**不做任何除法还原**（不用 combined / priority_factor 反推 evidence）；
+        - 注入的 matcher 若是桩/旧实现（无 match_scored）→ 降级用 `match()`，
+          audit 里标 `gate_source="combined_only"`（此时门槛只能按 combined 比较，
+          行为 = 改前），**不抛异常**（边界显性化：降级要看得见）。
+        """
+        on_evidence = gate_on_evidence()
+        fn = getattr(self._matcher, "match_scored", None)
+        if fn is None:
+            logger.warning("[Executor] matcher 无 match_scored()，"
+                           "门槛降级为 combined-only（等价改前口径）")
+            out = []
+            for wf, combined in self._matcher.match(task_text, top_k=self.top_k):
+                out.append((wf, combined, {
+                    "gate_source": "combined_only",
+                    "gate_on_evidence": on_evidence,
+                    "gate_field": "combined",
+                    "gate_value": float(combined),
+                    "combined": round(float(combined), 6),
+                }))
+            return out
+        out = []
+        for wf, ms in fn(task_text, top_k=self.top_k):
+            audit = ms.as_dict()
+            audit["gate_source"] = "match_scored"
+            audit["gate_on_evidence"] = on_evidence
+            # 两个分数各自来自 MatchScore（显式字段），按开关选定比较对象
+            audit["gate_field"] = "evidence" if on_evidence else "combined"
+            audit["gate_value"] = ms.evidence if on_evidence else ms.combined
+            out.append((wf, ms.combined, audit))
+        return out
 
     # ─── 直接执行指定工作流 ───
 
