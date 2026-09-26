@@ -1995,7 +1995,10 @@ NET NEW: ('server_port_guard.py', 'timeout', 'timeout', '3.0', 'call_arg', 'high
 9. `test_route_conflict_cases.py` 进 CI 的是"精确相等"棘轮，而 CLI 的 `>=48` 下限门**没有任何 workflow 跑**。
 10. `index_manager.py` 死代码、`auto_upgrade` 死键（均为既存）。
 11. `data/audit/daily_roots.jsonl` 里 **2026-09-14 有一条重复**（与第一条同 seq 区间/同哈希，是先前授权切除后重建哈希链时的补链产物）——**无害**（11/11 封印与链上 `self_hash` 逐条对得上、`prev_entry_hash` 无断点），仅"不整齐"。
-12. `data/knowledge_audit.jsonl` 因卡 D 的多轮回归里既有用例行为 **+7 条**。
+12. `data/audit/knowledge_audit.jsonl`（`.gitignore:49` 忽略）被**既有用例行为**持续追加：卡 D 报其多轮回归里
+    `test_knowledge_workflow` 一族 **+7 条（50048 → 53112 B）**；**我复测时它已到 57105 B / 129 行**（mtime 02:41:48，
+    最后两条来自 v6 全量的 `pytest-of-AdminWT\pytest-6203\test_main_audit_*`，source=`agent.knowledge.__main__`、actor=ci）。
+    ⇒ 与第 5 条同族（文件级追加、无哈希链影响），**属既有行为**，非本批引入；本轮真实增量以 57105 B 为准（卡 D 的 +7 条只是它的观测窗口）。
 13. **测试会把 `data/skills_mgmt.json`、`data/audit/` 写进任意检出目录**（我在干净 worktree 上实测到它们被创建）—— 卫生项，未处理。
 14. 我的第 5 轮全量（v5）**卡死被终止**（30 分钟无日志、pytest-timeout 打印后线程未返回；当时有 3 张卡并发跑 pytest）。它不作为证据，由 §26 的 v6（冻结树、无并发编辑）取代。
 
