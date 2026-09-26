@@ -35,7 +35,18 @@ G1-B 登记的 R-d：「展示读文件轨、搜索没跟上 ⇒ **看到的是�
 
 本文件全部断言走**生产入口**（`SkillsMgmtService.search` / `SkillSearcher.search`），
 隔离服务的 store/repo 都在 tmp 下，绝不触碰生产 data/。
+
+## 【2026-09-27 CI-3】R-d-3 的主轨夹具
+
+`TestRealRepoSearchMatchesDisplay` 原来用 `SkillsMgmtService()`（**生产默认主轨**）。
+而 `data/skills_mgmt.json` 被 `.gitignore:224` 排除 ⇒ 干净检出上不存在、主轨为空 ⇒
+`store.list_all()` 为空 ⇒ 搜索无候选：干净检出实测 **2 failed / 15 passed**。
+现改为文件轨取**真仓副本**（迁移产物，断言对象不变）、主轨用夹具迷你台账
+（`real_repo_svc`），并加一条"主轨确实读的是夹具台账"的非空转自证。**断言一字未改。**
 """
+
+import shutil
+from pathlib import Path
 
 import pytest
 
@@ -50,6 +61,60 @@ def iso_svc(tmp_path):
         store_path=str(tmp_path / "skills_mgmt.json"),
         repo_path=str(tmp_path / "skills_repo"),
     )
+
+
+# ════════════════════════════════════════════════════════════════════
+#  【2026-09-27 CI-3】R-d-3 的取数：文件轨 = 真仓，主轨 = 夹具
+# ════════════════════════════════════════════════════════════════════
+# 【为什么必须夹具化（干净检出实测，不是推断）】
+#   `data/skills_mgmt.json`（技能主轨）被 `.gitignore:224` 排除 ⇒ **不在 HEAD**，
+#   用 `git archive HEAD` 得到的干净检出上不存在（CI 的 6 个 shard 跑的就是它）。
+#   而 `SkillsMgmtService()` 默认主轨路径 = `<repo>/data/skills_mgmt.json` ⇒
+#   `store.list_all()` 为空 ⇒ 搜索**无候选**：干净检出实测本类 **2 failed / 15 passed**。
+#   ⚠️ 更隐蔽的是：读路径会**顺手把该文件建成空对象**，于是"文件不存在"变成
+#   "文件存在但没有任何条目" —— 只看 exists() 的判据会误判形态。
+# 【夹具怎么造】文件轨仍是**真仓产物**（`data/skills_repo` 的 tmp 副本 ⇒ 迁移结果
+#   是被测对象）；主轨在 tmp 写成迷你台账，**只放这 5 条迁移技能**的历史副本
+#   （= 真仓迁移前的形态：主轨 description == 文件轨 description_zh）。
+# 【为什么这仍是真断言】本类要证的是"搜索按**文件轨文案**打分、不按主轨副本"，
+#   断言的两端分别是"真仓 skill.md"与"夹具台账" ⇒ 不是拿文件轨自证。
+# 【非空转自证】`test_主轨确实读的是夹具台账` 直接断言 store 里只有这 5 条
+#   （真仓那份台账有 22 条：15 条 pd-* + 5 条迁移 + 2 条主轨独有）⇒ 若被测代码
+#   读的是仓库那份（或压根没读到），本条立刻红。
+ROOT = Path(__file__).resolve().parents[2]
+REAL_REPO_SKILLS = ROOT / "data" / "skills_repo"
+
+#: G1-C/H-3 裁定「纳入」的 5 条（双轨：主轨留历史副本、文件轨是唯一事实源）
+MIGRATED = (
+    "code-observability",
+    "engineering-test-delivery",
+    "frontend-state-sync",
+    "self-explanatory-ui",
+    "testing-anti-patterns",
+)
+
+
+@pytest.fixture
+def real_repo_svc(tmp_path):
+    """**文件轨 = 真仓副本**（迁移产物）、**主轨 = 夹具迷你台账**（tmp，不碰仓库 data/）"""
+    repo = tmp_path / "skills_repo"
+    shutil.copytree(REAL_REPO_SKILLS, repo)
+    svc = SkillsMgmtService(
+        store_path=str(tmp_path / "skills_mgmt.json"),
+        repo_path=str(repo),
+    )
+    meta = svc.file_store.load_metadata_index(refresh=True) or {}
+    for sid in MIGRATED:
+        assert sid in meta, "真仓文件轨里没有 %s ⇒ 夹具不成立" % sid
+        svc.store.upsert(svc.creator.create_manual({
+            "id": sid,
+            "name": str(meta[sid].get("name") or sid),
+            # 迁移前的主轨文案 = 文件轨的 description_zh（H-3 判定的口径）
+            "description": str(meta[sid].get("description_zh") or ""),
+            "content": "# x",
+            "content_type": "markdown",
+        }))
+    return svc
 
 
 def _seed(svc, sid, *, main_desc, file_desc="", file_zh="", name=None):
@@ -168,13 +233,22 @@ class TestSearchUsesDisplayedDescription:
 # ════════════════════════════════════════════════════════════════════
 
 class TestRealRepoSearchMatchesDisplay:
+    """R-d-3：**文件轨 = 真仓**、**主轨 = 夹具台账**（见上方 CI-3 说明）"""
 
-    def _svc(self):
-        return SkillsMgmtService()
+    def test_主轨确实读的是夹具台账(self, real_repo_svc):
+        """**非空转自证**：被测 store 读的是**注入的那份**主轨，而不是仓库里那份。
 
-    def test_migrated_skills_are_searchable_by_file_track_text(self):
+        真仓 `data/skills_mgmt.json` 有 22 条（15 条 pd-* + 5 条迁移 + 2 条主轨独有）；
+        夹具只有这 5 条 ⇒ 这条断言能区分"读到夹具"与"读到仓库/没读到"。
+        """
+        got = {s.id for s in real_repo_svc.store.list_all()}
+        assert got == set(MIGRATED), (
+            "被测主轨不是注入的夹具台账（实得 %r）⇒ 下面的搜索断言是空转的"
+            % sorted(got))
+
+    def test_migrated_skills_are_searchable_by_file_track_text(self, real_repo_svc):
         """G1-C 迁移的 5 条：文件轨英文描述里的词必须能搜到"""
-        svc = self._svc()
+        svc = real_repo_svc
         cases = {
             "testing-anti-patterns": "mock",
             "code-observability": "observable",
@@ -185,13 +259,17 @@ class TestRealRepoSearchMatchesDisplay:
         miss = {sid: q for sid, q in cases.items() if sid not in _ids(svc, q)}
         assert miss == {}, f"迁移后的技能按文件轨文案搜不到: {miss}"
 
-    def test_search_and_display_report_the_same_text(self):
-        """同一 id：搜索打分用的文案 == 展示用的文案（逐条比对，不抽样）"""
-        svc = self._svc()
-        from agent.skills_mgmt.file_store import SkillFileStore
+    def test_search_and_display_report_the_same_text(self, real_repo_svc):
+        """同一 id：搜索打分用的文案 == 展示用的文案（逐条比对，不抽样）
+
+        【CI-3】展示侧与取数侧都改用**同一个隔离服务**（`SkillRegistry(service=…)`
+        / `svc.file_store`）：既不再依赖仓库里那份被 gitignore 的主轨台账，
+        也保证"展示"与"搜索"读的是**同一份**文件轨。
+        """
+        svc = real_repo_svc
         from agent.skills_mgmt.registry import SkillRegistry
-        meta = SkillFileStore().load_metadata_index(refresh=False)
-        rows = {r["id"]: r for r in SkillRegistry().as_legacy_rows()}
+        meta = svc.file_store.load_metadata_index(refresh=False)
+        rows = {r["id"]: r for r in SkillRegistry(service=svc).as_legacy_rows()}
         dual = [sid for sid in meta if sid in rows]
         assert dual, "没有双轨技能，断言退化"
         bad = [sid for sid in dual

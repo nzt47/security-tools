@@ -432,9 +432,35 @@ class TestNoIndependentToolCount:
 #  ⑤ token 计量：实测，不是"字符÷3"
 # ══════════════════════════════════════════════════════════════════════
 
+# 【2026-09-27 CI-3：把「静默跳过」改成「响亮失败」】
+#   原实现是 `pytest.importorskip("tiktoken")`。缺依赖时实测 **20 passed, 2 skipped,
+#   退出码 0** —— 报告写「所有测试通过」，而本组守的正是"token 计量是实测 BPE、
+#   不是字符÷3 换算"这条口径，**一次都没跑**（假绿：护栏不在，却看不出不在）。
+#   为什么这里**不该**用 importorskip：本仓把 tiktoken 声明为**必装依赖**
+#   （`pyproject.toml` `[project].dependencies`：`tiktoken>=0.7.0,<1.0.0`，CI 由
+#   `pip install -e .` 安装；`requirements.txt:361` 亦钉 0.13.0）—— 它不是 chromadb /
+#   GPU 那一类"环境可能没有"的可选件 ⇒ 缺它就说明**环境装坏了**，应当红并给出安装指引，
+#   而不是让两条最硬的断言消失。`importorskip` 只适合"缺了就无意义"的可选依赖。
+def _require_tiktoken():
+    """取 tiktoken；**缺失即失败**（并打印安装指引），绝不静默降级为 skip"""
+    try:
+        import tiktoken
+    except ImportError as exc:  # pragma: no cover - 只在环境缺依赖时走到
+        pytest.fail(
+            "缺少 tiktoken：本文件 ⑤ 组的两条守卫（token 计量 == tiktoken cl100k_base "
+            "实测）无法执行。tiktoken 是 pyproject.toml 声明的**必装依赖**，缺它属于"
+            "环境缺陷，按「响亮失败」处理 —— 静默 skip 会让「字符÷3」回归重新变成假绿。"
+            "\n  安装：python -m pip install tiktoken"
+            "\n  （CI：pip install -e . 会带入；本地最少环境请显式安装）"
+            "\n  原始错误：%s" % exc,
+            pytrace=False,
+        )
+    return tiktoken
+
+
 class TestTokenCountIsMeasured:
     def test_实测口径等于tiktoken_cl100k(self):
-        tiktoken = pytest.importorskip("tiktoken")
+        tiktoken = _require_tiktoken()
         defs = _mk_defs(5)
         enc = tiktoken.get_encoding("cl100k_base")
         expected = len(enc.encode(json.dumps(defs, ensure_ascii=False)))
@@ -442,7 +468,7 @@ class TestTokenCountIsMeasured:
 
     def test_中文描述下不等于字符除三(self):
         """钉住"为什么不能再用字符换算"：中文上真实 BPE 远高于 字符÷3。"""
-        tiktoken = pytest.importorskip("tiktoken")
+        tiktoken = _require_tiktoken()
         defs = [{"type": "function", "function": {
             "name": "b1_zh",
             "description": "把当前任务的计划清单写下来，遇到异常时主动建议缓解方案并记录审计留痕",
