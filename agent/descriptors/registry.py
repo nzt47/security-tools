@@ -58,6 +58,49 @@ logger = logging.getLogger(__name__)
 MERGE_THRESHOLD = 0.9        # schema/三路投票阈值（§3.2 ≥0.9）
 NAME_FLOOR = 0.55            # 同名/近名前提（低于此不判合并/分裂，独立登记）
 SCHEMA_VERSION = 1
+
+# ── LEDGER2：瞬态占用错误 vs 真损坏 ─────────────────────────────
+# 【变易】改前 load() 用 except (json.JSONDecodeError, ValueError, OSError)
+# 把"并发共享冲突"与"存储损坏"合并处理 ⇒ Windows 上多进程重建台账时，
+# 一次 Errno 13 就会把**完好的台账改名搬走**并以空注册表继续写（实测见
+# docs/audit_skill_governance/LEDGER2.md：8 进程 × 30 轮 → 11 次误判损坏 +
+# 台账被搬走 + 一轮 32→12 截断）。
+# 【不易】分类口径：只有"解析/结构/编码"失败才算损坏；"占用/共享冲突"必须重试。
+# 【实测口径】本机探针里 Windows 并发冲突的实际形态是
+#   PermissionError(errno=13, winerror=None)  —— 读侧 open() 撞 os.replace（114/2000）
+#   PermissionError(errno=13, winerror=5)     —— 写侧 os.replace 撞读句柄
+# 故 PermissionError 一律按瞬态处理（CPython 把 ERROR_ACCESS_DENIED /
+# ERROR_SHARING_VIOLATION 都映射到 EACCES=13），errno 集合只作 POSIX 侧兜底；
+# winerror 集合用于 errno 缺失时仍能识别 Windows 原始码。
+_TRANSIENT_ERRNOS = frozenset({
+    11,   # EAGAIN / EWOULDBLOCK —— 资源暂不可用
+    13,   # EACCES / Permission denied —— 占用/共享冲突（实测主形态）
+    16,   # EBUSY —— 文件被占用
+    26,   # ETXTBSY —— 可执行文件正被运行（POSIX 瞬态）
+    35,   # EDEADLK —— 锁冲突
+})
+# Windows GetLastError：5=拒绝访问, 32=共享冲突, 33=区域被锁定, 1224=文件被占用
+_TRANSIENT_WINERRORS = frozenset({5, 32, 33, 1224})
+_LOAD_RETRY_ATTEMPTS = 6           # 有界退避次数（预算 ≈ 0.05+0.1+0.2+0.4+0.8 ≈ 1.55s）
+_LOAD_RETRY_BASE_DELAY = 0.05      # 秒（load/save 共用同一退避基数）
+_SAVE_RETRY_ATTEMPTS = 6           # os.replace 瞬态占用（WinError 5）同款退避
+
+
+def _is_transient_os_error(exc: BaseException) -> bool:
+    """是否"瞬态占用"类 OS 错误（并发改名 / 杀软扫描 / 句柄未释放）
+
+    【为什么不能按"是不是 OSError"一刀切】真损坏是**内容**问题（JSON 解析失败、
+    根节点非对象、编码错误），瞬态占用是**访问时序**问题；前者可以改名备份重置，
+    后者改名就是把好数据搬走。两者必须先分类再处置。
+    """
+    if isinstance(exc, PermissionError):       # Windows 并发共享冲突的主形态
+        return True
+    if isinstance(exc, OSError):
+        winerror = getattr(exc, "winerror", None)
+        if winerror is not None and winerror in _TRANSIENT_WINERRORS:
+            return True
+        return exc.errno in _TRANSIENT_ERRNOS
+    return False
 _DEFAULT_STORE_PATH = Path(__file__).parent.parent.parent / "data" / "descriptors.json"
 _AUDIT_CAP = 2000
 
@@ -345,57 +388,107 @@ class DescriptorRegistry:
 
     # ── 持久化 ──────────────────────────────────────────────
 
-    def load(self) -> None:
-        """从磁盘加载（缺失→空；损坏→备份重置；非法条目 advisory 跳过）"""
-        with self._lock:
-            self._descriptors = {}
-            self._aliases = {}
-            self._variants = {}
-            self._audit_log = []
-            self._invalid_entries = {}
-            self._load_warnings = []
-            if not self._path.exists():
-                self._loaded = True
-                return
+    def _reset_state(self) -> None:
+        self._descriptors = {}
+        self._aliases = {}
+        self._variants = {}
+        self._audit_log = []
+        self._invalid_entries = {}
+        self._load_warnings = []
+
+    def _read_raw_with_retry(self) -> Optional[str]:
+        """读台账原文：瞬态占用有界退避重试；耗尽则抛 OSError 让调用方重试
+
+        【为什么必须与"损坏"分开】Windows 上 os.replace 与并发读互相排斥：
+        实测 4 写者 4 读者反复读写同一文件时，open(path) 有 5.7%（114/2000）
+        概率抛 PermissionError [Errno 13]（探针原始输出见
+        docs/audit_skill_governance/LEDGER2.md）。改前把这种错误当"存储损坏"
+        ⇒ 把**内容完好**的台账改名搬走，再以空注册表 save() 覆盖并发写者的成果。
+        【不易】宁可抛异常也不返回"空台账"：静默空注册表会被调用方的 save()
+        写成半成品（这正是改前 30/32 的来源），必须让调用方知道"这次没读到"。
+        """
+        delay = _LOAD_RETRY_BASE_DELAY
+        last_exc: Optional[BaseException] = None
+        for attempt in range(_LOAD_RETRY_ATTEMPTS):
             try:
                 with open(self._path, "r", encoding="utf-8") as f:
-                    raw = json.load(f)
-                if not isinstance(raw, dict):
+                    return f.read()
+            except FileNotFoundError:
+                return None                    # 台账不存在 ⇒ 空注册表（既有语义）
+            except OSError as e:
+                if not _is_transient_os_error(e):
+                    raise                      # 非瞬态（如 IsADirectoryError）⇒ 不吞不搬
+                last_exc = e
+                if attempt < _LOAD_RETRY_ATTEMPTS - 1:
+                    time.sleep(delay)
+                    delay *= 2
+        warn = ("台账被持续占用（瞬态 OS 错误 %s: %s）；已重试 %d 次仍未读到，"
+                "磁盘台账保持原样，请调用方稍后重试"
+                % (type(last_exc).__name__, last_exc, _LOAD_RETRY_ATTEMPTS))
+        self._load_warnings.append(warn)
+        logger.warning("[DescriptorRegistry] %s", warn)
+        raise last_exc                          # type: ignore[misc]
+
+    def load(self) -> None:
+        """从磁盘加载（缺失→空；真损坏→备份重置；瞬态占用→重试，绝不改名搬走）
+
+        【LEDGER2 修复】三类失败分开处置：
+          - 台账不存在（FileNotFoundError）      → 空注册表（既有语义）；
+          - **瞬态占用**（PermissionError / errno 13·32·33 / WinError 5·32·33）
+            → 有界退避重试；成功即返回当前磁盘内容；耗尽则抛 OSError，磁盘不动；
+          - **真损坏**（JSON 解析失败 / 根节点非对象 / 编码错误）
+            → 既有改名备份路径（.corrupted.json）行为保持。
+        非瞬态的其它 OSError 也不再被当成损坏（改名 = 搬走好数据）。
+        """
+        with self._lock:
+            raw = self._read_raw_with_retry()   # 可能抛 OSError（瞬态重试耗尽）
+            if raw is None:
+                self._reset_state()
+                self._loaded = True
+                return
+            corrupt: Optional[BaseException] = None
+            data: Any = None
+            try:
+                data = json.loads(raw)
+                if not isinstance(data, dict):
                     raise ValueError("存储根节点必须是对象")
-            except (json.JSONDecodeError, ValueError, OSError) as e:
+            except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as e:
+                corrupt = e
+            self._reset_state()
+            if corrupt is not None:
                 backup = self._path.with_suffix(".corrupted.json")
                 try:
                     self._path.rename(backup)
                     self._load_warnings.append(
-                        f"存储损坏已备份到 {backup}: {e}")
+                        f"存储损坏已备份到 {backup}: {corrupt}")
                     logger.warning("[DescriptorRegistry] %s", self._load_warnings[-1])
                 except OSError:
-                    self._load_warnings.append(f"存储损坏且备份失败: {e}")
+                    self._load_warnings.append(f"存储损坏且备份失败: {corrupt}")
                 self._loaded = True
                 return
 
-            for cid, data in (raw.get("descriptors") or {}).items():
+            for cid, entry in (data.get("descriptors") or {}).items():
                 try:
-                    desc = ToolDescriptor.from_storage_dict(data)
+                    desc = ToolDescriptor.from_storage_dict(entry)
                     result = validate_descriptor(desc)
                     if result.valid:
                         self._descriptors[cid] = desc
                     else:
                         self._invalid_entries[cid] = {
-                            "raw": data,
+                            "raw": entry,
                             "errors": result.errors,
                             "warnings": result.warnings,
                         }
                 except Exception as e:  # noqa: BLE001
                     self._invalid_entries[cid] = {
-                        "raw": data, "errors": [f"解析失败: {e}"],
+                        "raw": entry, "errors": [f"解析失败: {e}"],
                     }
             self._aliases = {
-                k: v for k, v in (raw.get("aliases") or {}).items()
+                k: v for k, v in (data.get("aliases") or {}).items()
                 if isinstance(v, dict) and v.get("canonical_id")
             }
-            self._variants = raw.get("variants") or {}
-            self._audit_log = list(raw.get("audit") or [])[-_AUDIT_CAP:]
+            self._variants = data.get("variants") or {}
+            self._audit_log = list(data.get("audit") or [])[-_AUDIT_CAP:]
             if self._invalid_entries:
                 self._load_warnings.append(
                     f"跳过 {len(self._invalid_entries)} 条非法 descriptor "
@@ -406,7 +499,16 @@ class DescriptorRegistry:
                         len(self._descriptors), len(self._aliases), len(self._variants))
 
     def save(self) -> None:
-        """原子写（临时文件 + os.replace，Windows Defender 竞争重试）"""
+        """原子写（同目录临时文件 + os.replace，瞬态占用有界退避重试）
+
+        【LEDGER2】os.replace 在 Windows 上要求目标没有被"不共享 delete"的句柄
+        打开：并发读者（另一进程正在 load）会让它抛 WinError 5。原实现退避
+        3×0.1s=0.3s；实测 8 进程 × 40 轮 × 3 cycle ≈ 3000 次 save 里仍有 1 次
+        耗尽（见 LEDGER2.md）。改为 6 次指数退避（总预算 ≈ 1.55s，与 load 侧一致），
+        仅影响**失败重试**路径：序列化内容与单进程产物逐字节不变。
+        """
+        attempts = _SAVE_RETRY_ATTEMPTS
+        delay = _LOAD_RETRY_BASE_DELAY
         with self._lock:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             payload = {
@@ -425,14 +527,15 @@ class DescriptorRegistry:
             ) as tmp:
                 json.dump(payload, tmp, ensure_ascii=False, indent=2)
                 tmp_path = tmp.name
-            for attempt in range(3):
+            for attempt in range(attempts):
                 try:
                     os.replace(tmp_path, self._path)
                     return
                 except OSError:
-                    if attempt == 2:
+                    if attempt == attempts - 1:
                         raise
-                    time.sleep(0.1)
+                    time.sleep(delay)
+                    delay *= 2
 
     def _ensure_loaded(self) -> None:
         if not self._loaded:

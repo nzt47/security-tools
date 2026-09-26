@@ -140,7 +140,10 @@ class SafetyGuard:
             "text": text[:200],
             "level": result["level"],
             "match_count": len(result["matches"]),
-            "categories": list(set(m["category"] for m in result["matches"])),
+            # [DET-4] categories 经 register_alert_callback -> app_server._alert_queue ->
+            # GET /api/safety/alerts -> 前端告警列表。list(set(...)) 的次序随进程变；
+            # dict.fromkeys 取 matches 的发现序（= 候选汇合序），不是字典序。
+            "categories": list(dict.fromkeys(m["category"] for m in result["matches"])),
         }
         with self._lock:
             self._alert_history.append(alert)

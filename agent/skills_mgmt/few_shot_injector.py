@@ -116,7 +116,17 @@ def _cosine_tfidf(query_tokens: List[str], doc_tokens: List[str],
     dot = 0.0
     q_norm = 0.0
     d_norm = 0.0
-    for term in set(q_count) | set(d_count):
+    # 【DET-3】求和次序必须确定：set 的迭代序随进程（PYTHONHASHSEED）变，
+    # 而浮点加法不满足结合律 ⇒ 同一份输入、同一份代码，同一个示例的余弦分
+    # 会差最后 1~2 个比特（实测 0.7724872793364284 / …285 / …286 / …287）。
+    # 该分参与两处判定：score >= min_score（inject 走默认 0.3）与 scored.sort
+    # （稳定排序）⇒ 只要某个分与阈值、或与另一个分相差在 1 ulp 内，
+    # **被选中的示例**（进而拼进 prompt 的文本）就会随进程变 —— 而这段文本
+    # 会进 LLM 上下文（F3-1 的前缀缓存稳定性依赖「同输入 ⇒ 同前缀」）。
+    # 次序取「查询词序 → 文档词序」：q_count / d_count 都是按 token **出现序**
+    # 插入的 dict，而 token 序由 _tokenize 的文档序决定（跨进程确定）。
+    # 与 DET-2「保留主键、只补确定的次级键，次级键取该子系统本来就有的次序」同口径。
+    for term in dict.fromkeys(list(q_count) + list(d_count)):
         w = idf.get(term, 0.0)
         qw = q_count.get(term, 0.0) * w
         dw = d_count.get(term, 0.0) * w

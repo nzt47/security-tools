@@ -10,8 +10,10 @@
 from __future__ import annotations
 import hashlib
 import os
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from .lineage import EvolutionArchive, EvolutionRecord, get_default_archive
 from .models import Skill, SkillVersion, SkillStatus, SkillMetrics
@@ -64,6 +66,81 @@ class IntegrationHook:
     event: str  # on_enabled / on_disabled / on_executed / on_updated
     callback: Callable[[Skill], None]
     description: str = ""
+
+
+# ──────────────────────────────────────────────
+# 技能启停审计（启停状态变更入链）
+# ──────────────────────────────────────────────
+
+#: 技能启停的审计动作名。两条轨（主轨 JSON / 文件轨 front matter）共用
+#: `skill.registry.*` 命名空间，便于按 action 检索同一治理动作。
+AUDIT_ACTION_ENABLED_SET = "skill.registry.set_enabled"
+AUDIT_ACTION_ENABLED_TOGGLE = "skill.registry.toggle"
+
+#: 主轨启停的动作名/调用来源透传通道（ContextVar，默认空 = 未经 SkillRegistry）。
+#: 用法：`SkillRegistry.set_enabled/toggle` 走主轨分支时用 `enabled_audit_origin`
+#: 包住 `SkillsMgmtService.set_enabled` 调用，由主轨唯一落库点
+#: `SkillEnhancer.set_enabled` 读出去入链 ⇒ **同一次启停只产生一条审计记录**。
+#: 未置入时（如 `/api/skills-mgmt/<id>/toggle` 直调 service、内部直调 enhancer）
+#: 取默认空值，本模块按默认动作名 `skill.registry.set_enabled` 补链，避免漏留痕。
+_enabled_audit_origin: ContextVar[Tuple[str, str]] = ContextVar(
+    "yunshu_skill_enabled_audit_origin", default=("", ""))
+
+
+@contextmanager
+def enabled_audit_origin(action: str, origin: str) -> Iterator[None]:
+    """在 `SkillEnhancer.set_enabled` 入链时指定动作名与调用来源
+
+    Args:
+        action: 入链动作名（`skill.registry.set_enabled` / `skill.registry.toggle`）。
+        origin: 调用来源标识（`skill_registry.set_enabled` / `skill_registry.toggle`）。
+    """
+    token = _enabled_audit_origin.set((str(action), str(origin)))
+    try:
+        yield
+    finally:
+        _enabled_audit_origin.reset(token)
+
+
+def record_enabled_audit(action: str, skill_id: str, *, previous_enabled: bool,
+                         enabled: bool, track: str, origin: str) -> None:
+    """技能启停状态变更写入审计链（best-effort：绝不影响启停本身）
+
+    载荷只含技能 id、旧值、新值、轨标识与调用来源 —— **不含指令正文/描述等用户原文**。
+
+    Args:
+        action: `skill.registry.set_enabled` / `skill.registry.toggle`。
+        skill_id: 技能 id。
+        previous_enabled: 变更前的启用状态。
+        enabled: 变更后的启用状态。
+        track: "main"（主轨 skills_mgmt.json）或 "file_track"（skill.md front matter）。
+        origin: 调用来源（`skill_registry.set_enabled` / `skill_registry.toggle` /
+            `skills_mgmt.enhancer`）。
+
+    Note:
+        失败（门面抛异常或返回 None）只写 WARNING 日志并返回，不向上抛。
+    """
+    payload = {
+        "skill_id": str(skill_id),
+        "previous_enabled": bool(previous_enabled),
+        "enabled": bool(enabled),
+        "track": str(track),
+        "origin": str(origin),
+    }
+    try:
+        from agent.audit import audit as _audit_facade
+        entry = _audit_facade.record(
+            str(action), subject=f"skill:{skill_id}", payload=payload,
+            source="agent", status="ok")
+    except Exception as e:  # noqa: BLE001 审计失败不得影响启停
+        logger.warning("[Enhancer] 技能启停审计留痕失败（启停已生效）"
+                       " action=%s skill=%s track=%s: %s",
+                       action, skill_id, track, e)
+        return
+    if entry is None:
+        logger.warning("[Enhancer] 技能启停审计未落链（门面返回 None：审计被关闭"
+                       "或静默失败）action=%s skill=%s track=%s",
+                       action, skill_id, track)
 
 
 # ──────────────────────────────────────────────
@@ -677,11 +754,22 @@ class SkillEnhancer:
     # ─── 启用/禁用 ───
 
     def set_enabled(self, skill_id: str, enabled: bool) -> Skill:
-        """启用/禁用技能"""
+        """启用/禁用技能（主轨唯一落库点；状态变更同步写入审计链）
+
+        审计动作名与调用来源由 `SkillRegistry.set_enabled/toggle` 经
+        `enabled_audit_origin` 透传（默认 `skill.registry.set_enabled` +
+        `skills_mgmt.enhancer`，用于覆盖绕过 Registry 的调用方）。
+        """
         skill = self._require(skill_id)
+        previous = bool(getattr(skill, "enabled", True))
         skill.enabled = enabled
         skill.touch()
         self._store.upsert(skill)
+        action, origin = _enabled_audit_origin.get()
+        record_enabled_audit(action or AUDIT_ACTION_ENABLED_SET, skill_id,
+                             previous_enabled=previous, enabled=bool(enabled),
+                             track="main",
+                             origin=origin or "skills_mgmt.enhancer")
         self._fire_hooks("on_enabled" if enabled else "on_disabled", skill)
         emit_metric(
             "yunshu_skill_toggle_total",

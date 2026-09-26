@@ -269,14 +269,48 @@ class TestRestartStormIsGated:
 # ════════════════════════════════════════════════════════════
 
 class TestWorkerHealthContract:
-    def test_healthy_state_reports_hybrid(self):
+    def test_healthy_state_reports_mode_truthfully(self):
+        """E1-F1-A/优先级 5：mode 必须如实描述「此刻向量腿能不能供数」。
+
+        【为什么这条断言被改写（改写者是 E1-F1-A 卡）】
+          原断言是 `mod.EmbeddingIndex().worker_health()["mode"] == "hybrid"` ——
+          即拿一个**从未启动过 worker、一条向量都没有**的实例要求 mode 报 hybrid。
+          它编码的正是本卡要根除的那条谎报：旧口径 mode 只反映「没被判死」，
+          不反映「是否真的 ready」，于是 spawn 后 6 s 采样会得到
+          mode="hybrid" 而 available=false（E1-F1 实测）。
+        【这不是放宽断言】新断言把三件事一起钉死，比原来更严：
+          ① 未启动 ⇒ bm25_only + worker_ready=False + available=False（三者必须一致）；
+          ② 就绪 + 有向量 ⇒ hybrid + worker_ready=True + available=True；
+          ③ 就绪标志一熄 ⇒ mode 必须同步回到 bm25_only（不变量：mode == available 的投影）。
+        """
         import agent.tool_router_hybrid as mod
 
-        health = mod.EmbeddingIndex().worker_health()
-        assert health["mode"] == "hybrid"
-        assert health["init_failed"] is False
-        assert health["failure_total"] == 0
-        assert health["max_restart_attempts"] == mod._WORKER_MAX_RESTARTS
+        fresh = mod.EmbeddingIndex().worker_health()
+        assert fresh["mode"] == "bm25_only", "未启动 worker 就报 hybrid = 谎报"
+        assert fresh["worker_ready"] is False
+        assert fresh["available"] is False
+        assert fresh["init_failed"] is False
+        assert fresh["failure_total"] == 0
+        assert fresh["max_restart_attempts"] == mod._WORKER_MAX_RESTARTS
+        assert fresh["mode"] == ("hybrid" if fresh["available"] else "bm25_only")
+
+        # ② 受控桩：进程活着 + 真的读到过 ready + 已有向量 ⇒ 才允许报 hybrid
+        import numpy as np
+
+        idx = mod.EmbeddingIndex()
+        idx._proc = _FakeProc(returncode=None)      # poll() is None ⇒ 进程活着
+        idx._worker_ready.set()                     # 握手真的读到过 ready
+        idx._embeddings = np.zeros((2, 4), dtype=np.float32)
+        idx._doc_ids = ["a", "b"]
+        ready_health = idx.worker_health()
+        assert ready_health["mode"] == "hybrid"
+        assert ready_health["worker_ready"] is True
+        assert ready_health["available"] is True
+
+        # ③ 就绪一熄（例如 worker 被回收）⇒ mode 必须同步回落
+        idx._worker_ready.clear()
+        assert idx.worker_health()["mode"] == "bm25_only"
+        assert idx.worker_health()["available"] is False
 
     def test_health_matches_the_logged_consequence(self):
         """出口与日志必须说同一件事（否则探针与运维看到两个世界）。"""

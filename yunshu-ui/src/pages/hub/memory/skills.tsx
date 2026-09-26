@@ -35,7 +35,12 @@ interface Skill {
   id: string
   name: string
   enabled: boolean
+  /** 英文描述（唯一事实源 = skill.md front matter；检索 + 模型可见用） */
   description?: string
+  /** 中文展示文案（skill.md front matter 的 description_zh；UI 优先读它）。
+   *  【G1-B/M4】合并视图 as_legacy_rows() 自本卡起 description 取**文件轨优先**，
+   *  UI 必须同批改读 description_zh，否则 15 条 pd-* 的文案会从中文变英文。 */
+  description_zh?: string
   params?: Record<string, unknown>
   /** 自动分类（/api/skills 由分类引擎实时给出：种子类/自动新建类/未分类） */
   class_name?: string
@@ -141,16 +146,16 @@ export function MemorySkillsTable() {
     } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
   }
 
-  /** 手工补中文说明（写入覆盖层 data/skills_descriptions_overlay.json） */
+  /** 手工补中文说明 —— 【G1-B/M0 已冻结】
+   *  写入目标是 data/skills_descriptions_overlay.json（覆盖层），该写路径已随
+   *  POST /api/skills/describe 一起冻结（409）。描述唯一事实源是 skill.md 的
+   *  front matter，故这里不再发起写入，只把正确入口告诉使用者。 */
   const describe = async (s: Skill) => {
     const text = window.prompt(`为「${s.name || s.id}」补中文说明（覆盖层持久化，缺描述时才显示）：`, '')
     if (text == null) return
-    if (!text.trim()) { setInfo('已取消（说明为空不保存）。'); return }
-    try {
-      await hubPost('/api/skills/describe', { id: s.id, description: text.trim() }, getApiToken())
-      setInfo(`已为「${s.name || s.id}」补写中文说明。`)
-      load()
-    } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
+    // 无论是否填了内容都不再发请求：后端该入口已冻结（写路径先冻、再删数据）
+    setInfo(`描述写入入口已冻结：请在 data/skills_repo/${s.id}/skill.md 的 `
+      + `front matter 写 description（英文，检索用）与 description_zh（中文，界面用）。`)
   }
 
   /** 自动补全已知内置技能的缺省中文说明（自省反思/邮件/记忆摘要等） */
@@ -246,7 +251,12 @@ export function MemorySkillsTable() {
           )
         )}
       </div>
-      {r.description && <div className="text-xs text-slate-500">{r.description}</div>}
+      {/* 【G1-B/M4】优先读 description_zh（中文），回落 description（英文）：
+          合并视图的 description 已改为文件轨优先（= 英文原文），若这里不改读 zh，
+          15 条 pd-* 的中文说明会在切换瞬间变成英文（G1-A 风险 R1 的唯一用户可见破坏）。 */}
+      {(r.description_zh || r.description) && (
+        <div className="text-xs text-slate-500">{r.description_zh || r.description}</div>
+      )}
       {/* 触发方式：运行时按意图语义匹配命中后注入上下文 */}
       <div className="mt-1 flex flex-wrap items-center gap-1">
         <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${r.enabled ? 'border-emerald-800/70 bg-emerald-500/10 text-emerald-400' : 'border-slate-700 bg-slate-500/10 text-slate-400'}`}>
@@ -261,11 +271,11 @@ export function MemorySkillsTable() {
           </span>
         )}
       </div>
-      {!r.description && (
+      {!(r.description_zh || r.description) && (
         <button type="button" onClick={() => describe(r)}
           className="mt-1 rounded-md border border-dashed border-amber-700/70 px-2 py-0.5 text-[10px] text-amber-300 hover:bg-amber-950/40"
-          title="给该技能补写中文说明（覆盖层持久化）">
-          + 补中文说明
+          title="该技能缺描述。描述唯一事实源是 data/skills_repo/&lt;id&gt;/skill.md 的 front matter（description 英文 / description_zh 中文）；写入入口已冻结">
+          + 补中文说明（入口已冻结）
         </button>
       )}
     </div>

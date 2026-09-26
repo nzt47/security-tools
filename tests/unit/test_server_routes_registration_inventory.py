@@ -149,9 +149,23 @@ def test_近期接线过的模块仍在真实注册位置(module):
 
 @pytest.fixture(scope="module")
 def real_url_paths() -> set:
-    """真实路由表（`import app_server` 后枚举；同进程内只付一次导入代价）"""
-    import app_server  # noqa: PLC0415 真实入口，与生产同一份注册代码
-    return {str(r.rule) for r in app_server.app.url_map.iter_rules()}
+    """真实路由表（`import app_server` 后枚举；同进程内只付一次导入代价）
+
+    【不易·为什么用完要**整表还原**】`import app_server` 会登记整套内建工具
+    （实测 91 个）到**进程级** `agent/tools/__init__.py:_registry`。这是导入副作用，
+    不是本测试要断言的东西；留着就会污染同进程后续测试文件（实测：本文件排在
+    `tests/unit/test_tool_count_consistency.py` 之前时后者必红 2 条）。
+    """
+    from agent import tools as _tools
+
+    saved = dict(_tools._registry)
+    try:
+        import app_server  # noqa: PLC0415 真实入口，与生产同一份注册代码
+        yield {str(r.rule) for r in app_server.app.url_map.iter_rules()}
+    finally:
+        _tools._registry.clear()
+        _tools._registry.update(saved)
+        _tools._registry_version += 1
 
 
 #: 本轮修过的"曾经 404"端点 —— 它们都栽在同一个坑上：

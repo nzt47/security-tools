@@ -15,6 +15,7 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 当你有一份书面实施计划，准备在单独的会话中执行，并且需要设置审查节点时，就可以使用它。由 1 份素材蒸馏生成
 ---
 
 # executing-plans

@@ -587,7 +587,11 @@ class EnhancedTaskPlanner:
                         "rollback_action": task.rollback_action,
                     })
 
-        rollback_path = list(set(rollback_path))  # 去重
+        # 【DET-4】去重必须保序：回退任务的 id 是 rollback_{i}（位置即身份），而
+        # list(set(...)) 的次序随进程（PYTHONHASHSEED）变 ⇒ 同一个 rollback_0 在不同进程里
+        # 指向**不同任务**（实测 5 个种子 5 种任务-位置映射）；顺序比较器/人工确认看到的就是它。
+        # dict.fromkeys 保留「失败任务序 → 各自回滚路径序」这条候选汇合序。
+        rollback_path = list(dict.fromkeys(rollback_path))  # 去重（保序）
 
         logger.info(log_dict({'module_name': 'task_planner', 'action': 'rollback_path_calculated', 'original_plan_id': failed_plan.plan_id, 'rollback_task_count': len(rollback_path), 'rollback_tasks': rollback_path, 'timestamp': time.time()}))
 

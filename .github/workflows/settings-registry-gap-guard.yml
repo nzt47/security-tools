@@ -1,0 +1,147 @@
+# 开关零缺口守卫（「开关中心唯一事实源」门）
+#
+# ══════════════════════════════════════════════════════════════════════════
+# 【这张门守什么】
+# ══════════════════════════════════════════════════════════════════════════
+#   `agent/settings/registry.py` 的 SettingSpec 表是「开关中心」的**唯一事实源**。
+#   代码里新增一个 `os.getenv("FOO_ENABLED")` / `_env_flag(...)` 而注册表没跟上时，
+#   UI 会**悄悄少一个开关**，且没有任何现有检查会红。
+#   `scripts/scan_settings.py` 用 AST（不是正则）把「代码里到底读了哪些开关」机械
+#   提取出来，与注册表比对，缺口即失败；`tests/unit/test_settings_registry.py`
+#   再补一层契约断言（登记值不得写进 os.environ、扫描根必须覆盖生产代码、等等）。
+#
+# ══════════════════════════════════════════════════════════════════════════
+# 【CI 安全性（CI-1 在"干净 checkout 副本"上实测，不是推断）】
+# ══════════════════════════════════════════════════════════════════════════
+#   · 只读**会入库的**源码：DEFAULT_ROOTS = 11 个顶层包（agent/planning/memory/
+#     sensor/core/utils/cognitive/cloudshu/lifetrace/persona/plugins）
+#     + mcp_services/ + 仓库根 10 个散装 .py；不读 data/ 下任何 gitignored 运行期文件；
+#   · 不需要 .env（CP_ENV_FILE 指向不存在的路径实测同样绿）；
+#   · 不加载模型、不出网（无 HF / 无向量腿）；
+#   · **没有 CI 专属分支**：断言与本地逐字相同。
+#
+# ══════════════════════════════════════════════════════════════════════════
+# 【判定语义】exit code，不是"看日志里有没有 ✅"
+# ══════════════════════════════════════════════════════════════════════════
+#   ① `scripts/scan_settings.py --check`：退出码 0 = 零缺口；非 0 = 有缺口
+#      （未注册开关 / 已注册但从未读到 / 未声明的动态家族 / 未声明的排除项）。
+#   ② `tests/unit/test_settings_registry.py` 全过（pytest 退出码 0）。
+#   两段都跑：脚本给机械判据，测试给契约判据；任一段红即 job 红。
+name: Settings Registry Gap Guard
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches: [master, main]
+    # 【自证】paths 必须覆盖"谁能新增一个开关"的全部来源：扫描根里的**任何一个**
+    #   包都可能新读一个 env 名，所以这里按 DEFAULT_ROOTS 列全，而不是只盯
+    #   agent/settings/**（只盯注册表自己 ⇒ 新开关从别处溜进来时门不会触发）。
+    paths:
+      - 'agent/**'
+      - 'planning/**'
+      - 'memory/**'
+      - 'sensor/**'
+      - 'core/**'
+      - 'utils/**'
+      - 'cognitive/**'
+      - 'cloudshu/**'
+      - 'lifetrace/**'
+      - 'persona/**'
+      - 'plugins/**'
+      - 'mcp_services/**'
+      # 仓库根散装 .py（DEFAULT_ROOTS 里逐字声明的那 10 个）
+      - 'app_server.py'
+      - 'config.py'
+      - 'feature.py'
+      - 'file_monitor.py'
+      - 'gunicorn_config.py'
+      - 'health_check.py'
+      - 'main.py'
+      - 'run_tests.py'
+      - 'sensor_server.py'
+      - 'setup.py'
+      # 门自身与它的判据来源
+      - 'scripts/scan_settings.py'
+      - 'tests/unit/test_settings_registry.py'
+      - 'tests/conftest.py'
+      - 'tests/unit/conftest.py'
+      - 'pytest.ini'
+      - '.github/workflows/settings-registry-gap-guard.yml'
+  push:
+    branches: [master, main]
+    paths:
+      - 'agent/**'
+      - 'planning/**'
+      - 'memory/**'
+      - 'sensor/**'
+      - 'core/**'
+      - 'utils/**'
+      - 'cognitive/**'
+      - 'cloudshu/**'
+      - 'lifetrace/**'
+      - 'persona/**'
+      - 'plugins/**'
+      - 'mcp_services/**'
+      - 'scripts/scan_settings.py'
+      - 'tests/unit/test_settings_registry.py'
+      - 'pytest.ini'
+      - '.github/workflows/settings-registry-gap-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONIOENCODING: 'utf-8'
+  PYTHONPATH: '.'
+  # 本门不碰向量腿，但 agent 的 import 链可能拉起 huggingface 客户端；
+  # 显式离线，杜绝"跑一次门禁偷偷出网"（本批 TESTHYG-1 实测过该形态）。
+  HF_HUB_OFFLINE: '1'
+  TRANSFORMERS_OFFLINE: '1'
+
+jobs:
+  settings-gap:
+    name: 开关零缺口（AST 提取 vs 注册表）
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置 Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 安装依赖
+        # 【CI-1】清单按实测导入链给全：本测试模块级 dump site-packages 只得到
+        #   pytest 系；pydantic/prometheus-client 是 agent 链（models / monitoring）
+        #   的常规依赖，一并装上以免不同代码路径上出现"假红"。
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml pydantic prometheus-client psutil pytest pytest-timeout pytest-asyncio
+
+      - name: 前置：断言依赖就位
+        run: |
+          python - <<'PY'
+          import importlib.util as u, sys
+          need = ["yaml", "pydantic", "prometheus_client", "pytest", "pytest_asyncio", "pytest_timeout"]
+          missing = [m for m in need if u.find_spec(m) is None]
+          if missing:
+              sys.exit("::error::本门依赖缺失: %s" % missing)
+          print("依赖就位:", need)
+          PY
+
+      - name: 开关登记零缺口（机械提取）
+        run: |
+          python scripts/scan_settings.py --check
+          # 退出码非 0 = 有缺口；脚本自己会把四类计数打进日志
+
+      - name: 注册表契约守卫
+        run: |
+          python -m pytest tests/unit/test_settings_registry.py \
+            -v --timeout=120 --no-header -p no:cacheprovider

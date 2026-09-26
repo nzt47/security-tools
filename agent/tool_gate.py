@@ -404,6 +404,22 @@ def reset_session_source(handle: Any) -> None:
 #: 确认分级强制开关（**默认开启**；置 0 ⇒ 退回"只有旧的 needs_approval 集合挂单"）
 CONFIRM_LEVEL_ENFORCE_ENV = "CP_TOOL_CONFIRM_LEVEL_ENFORCE"
 
+#: 豁免名单**消费侧**的变更留痕动作名（A2/R2 护栏）
+#:
+#: 【为什么消费侧也要记一条】名单有两个观察者，覆盖的**通路不同**：
+#:   · 写入侧 `settings.change`（subject=`setting:<KEY>`）—— 只覆盖「经开关中心/UI 改」
+#:     的通路，payload 里有 old/new/applied（实测链上 9 条，见 A2.md §S1）；
+#:   · 消费侧（本动作）—— 在闸门**真正要执行这份名单**的那一刻对拍
+#:     「链上已知值 vs 当前生效值」，覆盖**不经过开关中心**的通路：直接改
+#:     `data/ui_settings.json`、改 `.env`/`config.yaml` 后重启、进程环境变量被注入。
+#:   两条记录**不重复**：消费侧只在「当前值 ≠ 链上已知值」时写（见
+#:   :func:`_record_exempt_change_if_needed`），而链上已知值本身已包含写入侧那条。
+EXEMPT_CHANGE_ACTION = "tool.confirm.exempt_changed"
+
+#: 写入侧动作名 / 主题前缀（**只做字符串比对**，不 import settings 包 —— 避免依赖边）
+_SETTINGS_CHANGE_ACTION = "settings.change"
+_SETTINGS_SUBJECT_PREFIX = "setting:"
+
 #: 确认分级的**操作员豁免名单**（逗号分隔的工具名 / 能力 id；**默认空 = 一个都不豁免**）
 #:
 #: 【为什么放宽只能走这里，而不是写进 YAML】
@@ -1074,6 +1090,218 @@ def _confirm_level_shadow_enabled() -> bool:
     return raw.strip().lower() in _ENABLED_VALUES
 
 
+# ── 豁免名单变更留痕（A2/R2 护栏）────────────────────────────────────────────
+#
+# 【为什么放在消费侧】写入侧（`agent/tool_exemptions.py` → 开关中心的
+# `settings.change`）只覆盖「经界面/服务改」的通路。A2 实测（见 A2.md §S1）：名单的
+# **生效值**还可以由「直改 `data/ui_settings.json`」「改 `.env`/`config.yaml` 后重启」
+# 「进程环境变量被注入」改变 —— 这三条通路**一条记录都没有**。本模块是名单的
+# **唯一消费者**，在消费点对拍「链上已知值 vs 当前生效值」即可把三条通路一并补上。
+#
+# 【成本】热路径只多一次字符串比较：同一个生效值只在**首次**对拍（进程内缓存），
+# 对拍本身是两次索引查询（`ORDER BY seq DESC LIMIT n`；D1 已把读路径从全表扫改为
+# 索引读，实测 72,289 行 1.4 ms）。
+_UNSET: Any = object()
+_EXEMPT_WATCH_LOCK = threading.Lock()
+#: 进程内「上一次已对拍过的生效值」（哨兵 `_UNSET` = 本进程尚未对拍过）
+_EXEMPT_WATCH: Dict[str, Any] = {"raw": _UNSET}
+
+
+def _normalize_exempt_value(raw: Any) -> str:
+    """归一化名单字符串：去空白、丢空项、**保留书写顺序**
+
+    （``" fan_out ,, delegate "`` → ``"fan_out,delegate"``）
+
+    【为什么不用集合比较】本函数的产出要写进审计记录的 `old_value`/`new_value`，
+    必须**逐字**可复核 —— 顺序变了也是一次真实变更。这里只做「去空白/丢空项」，
+    与 :func:`_exempt_tools` 解析名单时的宽容度对齐。
+    """
+    parts = [p.strip() for p in str(raw or "").split(",")]
+    return ",".join(p for p in parts if p)
+
+
+def _chain_baseline_exempt() -> Tuple[Optional[str], bool]:
+    """链上「名单上一次被记录过的生效值」→ ``(值, 是否读得到链)``
+
+    无记录 ⇒ ``(None, True)``；读链失败 ⇒ ``(None, False)``（调用方据此如实标注
+    `baseline_readable=false`，而不是假装基线是空名单）。
+
+    两个来源（**优先消费侧自己那条**）：
+      · `tool.confirm.exempt_changed` 的叶子 `new_value`（本模块写的，永远是最新的）；
+      · 回落到写入侧 `settings.change`（subject=``setting:<KEY>``，值在嵌套的
+        ``payload.new`` 里）—— **只在链上还没有消费侧记录时**才会走到，作用是
+        「开关中心已经记过的那次变更不要再记第二遍」（避免同一事实两条记录）。
+    """
+    try:
+        from agent.audit.facade import get_audit  # noqa: PLC0415 惰性：读路径不进导入期
+        entries = get_audit().recent(5, action=EXEMPT_CHANGE_ACTION)
+    except Exception as e:  # noqa: BLE001  读判定不出来 ⇒ 如实报告不可读
+        logger.debug("[tool_gate] 豁免名单基线读取失败: %s: %s", type(e).__name__, e)
+        return None, False
+    for entry in reversed(entries):
+        payload = entry.payload if isinstance(entry.payload, dict) else {}
+        if "new_value" in payload:
+            return str(payload.get("new_value") or ""), True
+    try:
+        from agent.audit.facade import get_audit  # noqa: PLC0415
+        subject = _SETTINGS_SUBJECT_PREFIX + CONFIRM_LEVEL_EXEMPT_ENV
+        for entry in reversed(get_audit().recent(50, action=_SETTINGS_CHANGE_ACTION)):
+            if str(getattr(entry, "subject", "") or "") != subject:
+                continue
+            body = entry.payload if isinstance(entry.payload, dict) else {}
+            nested = body.get("payload") if isinstance(body.get("payload"), dict) else {}
+            return str(nested.get("new") or ""), True
+    except Exception as e:  # noqa: BLE001
+        logger.debug("[tool_gate] 豁免名单写入侧基线读取失败: %s: %s",
+                     type(e).__name__, e)
+        return None, False
+    return None, True
+
+
+def _exempt_override_actor() -> Tuple[str, str]:
+    """覆盖层里该键的写入者与时间 → ``(actor, updated_at)``；读不到 ⇒ ``("", "")``
+
+    读的是**开关中心自己的 store**（`agent/settings/overrides.py`，认 `CP_UI_SETTINGS_PATH`）
+    —— 本模块不自己拼路径，避免出现「第二份覆盖层解析口径」。
+    """
+    try:
+        from agent.settings.overrides import get_override_store  # noqa: PLC0415
+        rec = get_override_store().get(CONFIRM_LEVEL_EXEMPT_ENV)
+    except Exception as e:  # noqa: BLE001  读不到 ⇒ 如实留空（不猜操作者）
+        logger.debug("[tool_gate] 覆盖层记录读取失败: %s: %s", type(e).__name__, e)
+        return "", ""
+    if rec is None:
+        return "", ""
+    return (str(getattr(rec, "actor", "") or ""),
+            str(getattr(rec, "updated_at", "") or ""))
+
+
+def _exempt_levels(names: Any) -> Dict[str, str]:
+    """名单里每个工具的**生效确认级**（写进变更记录："豁免了一个 L2/L3"必须一眼可见）
+
+    【为什么把级别一起记】S1 事故的审计难点不是「名单变了」，而是「变的是哪一级的
+    能力」—— `fan_out`（L2/effect=execute/risk=high）被列进名单这件事，只有在
+    变更记录里点名级别，才不需要事后翻 323 条决策记录去反推。
+    """
+    out: Dict[str, str] = {}
+    for name in names:
+        key = str(name or "").strip()
+        if not key:
+            continue
+        try:
+            level, _meta = _confirm_level_of(key)
+        except Exception:  # noqa: BLE001  查不到级别 ⇒ 如实记 "?"（不猜）
+            level = ""
+        out[key] = str(level or "?")
+    return out
+
+
+def _resolver_effective_value() -> Optional[Tuple[str, str]]:
+    """开关中心口径的**生效值** → ``(值, 来源)``；解析器不可用 ⇒ ``None``
+
+    【为什么不能只看 ``os.environ``（A2 实施期实测到的一次误报）】进程环境变量只是
+    「覆盖层被**应用之后**」的结果：一个没有调用
+    ``agent/settings/bootstrap.py::apply_overrides()`` 的进程（CLI 脚本、子进程、单测）
+    读到的是空值，而 ``data/ui_settings.json`` 里其实写着 ``fan_out,delegate`` ⇒ 只看 env
+    会把「本进程没应用覆盖层」误报成「名单被清空了」。故本函数用**开关中心自己的解析器**
+    （env > 覆盖层 > config > 默认，见 ``agent/settings/resolver.py:55``）取操作员侧的生效值，
+    与链上已知值比对；不一致才记。**只在 env 值与链上不一致时才调用**（热路径零额外开销）。
+    """
+    try:
+        from agent.settings.resolver import resolve  # noqa: PLC0415 惰性：解析器较重
+        res = resolve(CONFIRM_LEVEL_EXEMPT_ENV)
+    except Exception as e:  # noqa: BLE001  解析器不可用 ⇒ 交调用方退回 env 值
+        logger.debug("[tool_gate] 豁免名单生效值解析失败: %s: %s", type(e).__name__, e)
+        return None
+    if res is None:
+        return None
+    return (str(getattr(res, "value", "") or ""),
+            str(getattr(res, "source", "") or ""))
+
+
+def _record_exempt_change_if_needed(raw_effective: str) -> None:
+    """生效值变了就往审计链写一条 ``old → new``（**消费侧留痕**，A2/R2）
+
+    【判据】操作员侧生效值 ≠ 链上已知值 ⇒ 记一条。相等、或链上从无记录且当前为空 ⇒
+    直接返回（默认态不刷噪声）。于是「经开关中心改」的那次只留 `settings.change` 一条，
+    「绕过开关中心改」的那次才由本函数补记 —— 同一变更不会出现两条记录。
+
+    【两道防误报】
+      ① 进程环境变量 ≠ 链上已知值时，**先问开关中心的解析器**要生效值（见
+         :func:`_resolver_effective_value`）—— 只有操作员侧生效值也真的变了才记；
+      ② 记的是**解析器口径**的生效值（`new_value`），进程环境变量另存
+         `process_env_value` 便于分辨「名单变了」与「这个进程没应用覆盖层」。
+
+    【绝不静默】写失败一律 `logger.error`（与 :func:`_audit_confirm_decision` 同纪律：
+    留痕失败不该让调用变失败，但必须可被日志告警捕获）。
+
+    【为什么先入缓存再落审计】并发下同一变更只会有一条记录；代价是「写失败不重试」
+    （避免每次调用都去查一遍链）。这一取舍与「宁可少记也不能刷屏」一致。
+    """
+    env_value = _normalize_exempt_value(raw_effective)
+    with _EXEMPT_WATCH_LOCK:
+        if _EXEMPT_WATCH["raw"] == env_value:
+            return
+        _EXEMPT_WATCH["raw"] = env_value
+
+    baseline, readable = _chain_baseline_exempt()
+    if readable:
+        old_value = _normalize_exempt_value(baseline)
+        if baseline is None and not env_value:
+            return                                  # 名单为空且链上无记录 ⇒ 无事实
+        if old_value == env_value:
+            return                                  # 与链上已知值一致 ⇒ 无变更
+    else:
+        old_value = "<unknown>"                     # 读不到基线：如实标注，不假装是空名单
+
+    resolved = _resolver_effective_value()
+    if resolved is not None:
+        new_value, value_source = _normalize_exempt_value(resolved[0]), resolved[1]
+    else:
+        new_value, value_source = env_value, "process_env"
+    if readable and new_value == old_value:
+        # 操作员侧生效值没变 ⇒ 本次差异只是「本进程没应用覆盖层」⇒ **不记**（防误报 ①）
+        logger.debug("[tool_gate] 豁免名单：本进程 env=%r 而生效值=%r（未变）⇒ 不记变更",
+                     env_value, new_value)
+        return
+
+    if readable:
+        old_items = set(old_value.split(",")) if old_value else set()
+        new_items = set(new_value.split(",")) if new_value else set()
+        added = sorted(new_items - old_items)
+        removed = sorted(old_items - new_items)
+    else:
+        added, removed = [], []
+
+    override_actor, override_at = _exempt_override_actor()
+    try:
+        from agent.audit.chain import SOURCE_SYSTEM  # noqa: PLC0415
+        from agent.audit.facade import record as _audit_record  # noqa: PLC0415
+        _audit_record(
+            action=EXEMPT_CHANGE_ACTION,
+            actor=override_actor or None,          # 无覆盖层记录 ⇒ 交 facade 解析（UI 上下文/系统）
+            subject=_SETTINGS_SUBJECT_PREFIX + CONFIRM_LEVEL_EXEMPT_ENV,
+            extra={
+                "setting_key": CONFIRM_LEVEL_EXEMPT_ENV,
+                "old_value": old_value,
+                "new_value": new_value,
+                "process_env_value": env_value,
+                "value_source": value_source,
+                "actor": override_actor or "",
+                "actor_from": "override_layer" if override_actor else "unresolved",
+                "override_updated_at": override_at,
+                "added": added,
+                "removed": removed,
+                "levels": _exempt_levels(new_value.split(",")),
+                "baseline_readable": bool(readable),
+                "observed_by": "agent.tool_gate",
+            },
+            source=SOURCE_SYSTEM)
+    except Exception as e:  # noqa: BLE001  留痕失败不影响执行，但绝不静默
+        logger.error("[tool_gate] 豁免名单变更审计写入失败（old=%r new=%r）: %s: %s",
+                     old_value, new_value, type(e).__name__, e)
+
+
 def _exempt_tools() -> FrozenSet[str]:
     """``CP_TOOL_CONFIRM_LEVEL_EXEMPT`` 解析 ⇒ 归一化查找键集合（读不到/为空 ⇒ 空集）
 
@@ -1096,7 +1324,22 @@ def _exempt_tools() -> FrozenSet[str]:
 
 
 def _is_confirm_level_exempt(func_name: str) -> bool:
-    """本次工具是否在操作员豁免名单里（名单为空时**逐字零影响**）"""
+    """本次工具是否在操作员豁免名单里（名单为空时**逐字零影响**）
+
+    【顺带的副作用（A2/R2）】本函数是名单的**唯一消费点**，故在此对拍"当前生效值 vs
+    链上已知值"并补记变更留痕（见 :func:`_record_exempt_change_if_needed`）。
+    观察点选在这里而不是模块导入期：只有闸门**真的要用这份名单**时它才是"生效"的，
+    「装了个开关但从没被消费过」不该产生治理记录。
+    """
+    raw = ""
+    try:
+        raw = _env_str(CONFIRM_LEVEL_EXEMPT_ENV) or ""
+    except Exception as e:  # noqa: BLE001  读不到 ⇒ 按空名单（与 _exempt_tools 同向）
+        logger.debug("[tool_gate] 豁免名单读取失败: %s: %s", type(e).__name__, e)
+    try:
+        _record_exempt_change_if_needed(raw)
+    except Exception as e:  # noqa: BLE001  留痕绝不阻断判定的主路径（但其内部已会记日志）
+        logger.debug("[tool_gate] 豁免名单变更留痕失败: %s: %s", type(e).__name__, e)
     exempt = _exempt_tools()
     if not exempt:
         return False
@@ -1208,7 +1451,8 @@ def _meta_field(meta: Any, name: str, default: Any = "") -> Any:
 
 
 def _confirm_level_outcome(func_name: str, args: Optional[Dict[str, Any]],
-                           session_source: Optional[str] = None
+                           session_source: Optional[str] = None,
+                           meta_override: Any = None
                            ) -> Optional[Dict[str, Any]]:
     """**四级确认**的统一裁决：``None`` = 放行；dict = 拒绝结果
 
@@ -1261,7 +1505,16 @@ def _confirm_level_outcome(func_name: str, args: Optional[Dict[str, Any]],
       而不是靠文件缺失（不可审计的意外）。由
       tests/unit/test_confirm_level.py::TestFailOpenDoesNotWeakenConfirmLevel 锁定。
     """
-    level, meta = _confirm_level_of(func_name)
+    if meta_override is not None:
+        # 【A2/S3：**声明式能力**的口子】`data/tool_definitions/*.yaml` 里没有条目的能力
+        #   （技能脚本执行面）走 `check_declared_capability` 进来：级别由调用方**声明**的
+        #   三轴（plane/effect/risk）派生，而不是查 YAML。级别**不是**调用方传进来的 ——
+        #   派生仍由 `check_declared_capability` 用 `derive_confirm_level` 的唯一口径做。
+        level = str(_meta_field(meta_override, "effective_confirm_level", "")
+                    or "").strip().upper()
+        meta = meta_override
+    else:
+        level, meta = _confirm_level_of(func_name)
     if not level or level == "L0":
         return None
 
@@ -1312,17 +1565,39 @@ def _confirm_level_outcome(func_name: str, args: Optional[Dict[str, Any]],
     #   留痕：写一条 decision=exempted 的确认决策（谁在什么时候豁免了什么）——
     #   放宽本身必须是**可审计的动作**，不是静默旁路。
     if _is_confirm_level_exempt(func_name):
-        _warn_once(
-            "confirm-level-exempt:" + func_name,
-            "工具 %s 命中豁免名单 %s ⇒ 免摘要确认直接放行（本应 %s）。"
-            "黑名单 / 描述符 requires_approval / 伦理硬规则 / 严格模式均不受影响。",
-            func_name, CONFIRM_LEVEL_EXEMPT_ENV, level)
-        _audit_confirm_decision(
-            tool=func_name, level=level, decision="exempted",
-            identity=identity, source=source,
-            reason="%s；操作员豁免名单命中（%s）" % (reason, CONFIRM_LEVEL_EXEMPT_ENV),
-            tenant_id=tenant_id, version=version)
-        return None
+        # 【A2/R2：**L3 不可被豁免**（本轮新增的硬规则）】理由三条，逐条可核：
+        #   ① 语义自相矛盾：L3 的定义是「默认禁止，仅**显式预授权**（SA + scope）才能」
+        #      「执行」；一份「免确认名单」能把它变成「人来点一下也不用」，那是把禁止改写成
+        #      允许，不是「放宽摘要确认」。L2（逐次确认）与之不同：豁免它仍是「本次不问了」，
+        #      语义自洽 ⇒ **L2 保持可豁免**（论证见 docs/audit_skill_governance/A2.md §S1）。
+        #   ② 覆盖面为 0：实测 10 个 L3 工具**全部**被 data/descriptors.json 的
+        #      trust.requires_approval 描述符门控，而描述符判定在本层**之前** ⇒ 今天把 L3
+        #      写进名单也够不着它。本规则因此**当前零行为影响**；它防的是「描述符条目被删/
+        #      被改」之后那份名单突然生效（攻击面：改一个数据文件即可放开一个 L3）。
+        #   ③ 界面不会因此说谎：agent/tool_exemptions.py::candidates() 对这 10 个 L3 工具
+        #      本就返回 exemptable=false + blocked_reason（描述符门控）⇒ 闸门忽略 L3 豁免
+        #      与界面显示**逐条一致**，不制造「点了没反应」的假绿灯。
+        #   【为什么不能照搬到 L2】10 个 L2 工具**都不**被描述符门控，界面把它们标成可豁免
+        #      ⇒ 闸门单方面忽略 L2 豁免会制造 10 处假绿灯。要禁止 L2 被豁免，必须同时改
+        #      agent/tool_exemptions.py（本卡文件范围之外），故本轮不做。
+        if level == "L3":
+            _warn_once(
+                "confirm-level-exempt-L3:" + func_name,
+                "工具 %s 命中豁免名单 %s，但它是 **L3（默认禁止，仅显式预授权可执行）**"
+                " ⇒ **忽略该条豁免**，照常走确认流程。L3 的放宽只能走 SA 预授权（SA + scope）。",
+                func_name, CONFIRM_LEVEL_EXEMPT_ENV)
+        else:
+            _warn_once(
+                "confirm-level-exempt:" + func_name,
+                "工具 %s 命中豁免名单 %s ⇒ 免摘要确认直接放行（本应 %s）。"
+                "黑名单 / 描述符 requires_approval / 伦理硬规则 / 严格模式均不受影响。",
+                func_name, CONFIRM_LEVEL_EXEMPT_ENV, level)
+            _audit_confirm_decision(
+                tool=func_name, level=level, decision="exempted",
+                identity=identity, source=source,
+                reason="%s；操作员豁免名单命中（%s）" % (reason, CONFIRM_LEVEL_EXEMPT_ENV),
+                tenant_id=tenant_id, version=version)
+            return None
 
     if _confirm_level_shadow_enabled():
         _warn_once(
@@ -1347,6 +1622,102 @@ def _confirm_level_outcome(func_name: str, args: Optional[Dict[str, Any]],
     return _tool_approval_outcome(func_name, args, reason, level=level,
                                  tenant_id=tenant_id, version=version,
                                  identity=identity, source=source)
+
+
+class _DeclaredCapabilityMeta:
+    """**声明式能力**的最小元数据视图（字段名与 `agent.lines.models.ToolMeta` 对齐）
+
+    仅供 :func:`check_declared_capability` 使用：让"没有 YAML 条目的能力"也能走**同一套**
+    确认裁决（:func:`_confirm_level_outcome` 只通过 `getattr` 读这几个字段，见 `_meta_field`）。
+    刻意做成极小的对象：不需要 `ToolMeta` 的全部字段，也不去伪造一个 `ToolMeta`
+    （伪造就等于假装这个能力有 YAML 声明，那是把"未登记"洗成"已登记"）。
+    """
+
+    __slots__ = ("name", "plane", "effect", "risk",
+                 "effective_confirm_level", "tenant_id", "version")
+
+    def __init__(self, *, name: str, plane: str, effect: str, risk: str,
+                 effective_confirm_level: str, tenant_id: str = "default",
+                 version: str = "") -> None:
+        self.name = str(name or "")
+        self.plane = str(plane or "")
+        self.effect = str(effect or "")
+        self.risk = str(risk or "")
+        self.effective_confirm_level = str(effective_confirm_level or "")
+        self.tenant_id = str(tenant_id or "")
+        self.version = str(version or "")
+
+
+def check_declared_capability(capability: str, *, plane: str, effect: str, risk: str,
+                              args: Optional[Dict[str, Any]] = None,
+                              session_source: Optional[str] = None,
+                              tenant_id: str = "default", version: str = ""
+                              ) -> Optional[Dict[str, Any]]:
+    """**声明式能力**的确认裁决入口：``None`` = 放行；dict = 拒绝 / 待审批（A2/S3）
+
+    【为什么需要第二个入口】:func:`check_tool_call` 的确认级只能来自
+    `data/tool_definitions/*.yaml`（工具面的单一真相源）。而**技能脚本执行面**
+    （`agent/skills_mgmt/executor.py` 的 `subprocess.run`）是 `effect=execute` 的能力，
+    在那个目录里**没有条目** ⇒ 走 `check_tool_call` 会被第 3 步判成"未登记 ⇒ 放行"
+    （`_confirm_level_of` 返回空级别），等于把一个执行面留在治理网之外（审计 S3 / Q1 §5.3）。
+    本函数让调用方**声明**三轴（plane/effect/risk），级别仍由本模块按
+    `agent.lines.models.derive_confirm_level` 的**唯一派生口径**算出来 —— 调用方
+    **不能**自己指定级别（否则就是"调用方给自己定级"，与 D1 的单一真相源冲突）。
+
+    【fail-closed 的边界（三处，都朝"从严"一侧）】
+      · 三轴任一为空 / `effect` 不在值域内 ⇒ 按最严处置（见下）；
+      · 派生口径本身不可用（`agent.lines.models` 导入失败）⇒ 按 **L3**；
+      · 总开关 `CP_TOOL_GATE_ENABLED=0` ⇒ 整体放行（**与** :func:`check_tool_call` 一致：
+        一个总开关必须同时管住两个入口，否则第二个入口就是总开关的后门）。
+
+    Args:
+        capability: 能力标识（约定 `skill.<skill_id>`，也可用任何稳定 id）
+        plane / effect / risk: 该能力的治理三轴（**必须是派生出来的事实，不是猜的**）
+        args: 本次调用的参数（进审批单，供人工核对"这次要执行什么"）
+        session_source: 同 :func:`check_tool_call`（None ⇒ 上下文/环境/``cli``）
+
+    Returns:
+        同 :func:`check_tool_call`：``None`` 或 ``{"ok": False, "blocked": True, ...}``
+    """
+    if _disabled_by_env():
+        return None
+    name = str(capability or "").strip()
+    if not name:
+        return None                                  # 无名调用：交回调用方报错
+
+    plane_v = str(plane or "").strip().lower()
+    effect_v = str(effect or "").strip().lower()
+    risk_v = str(risk or "").strip().lower()
+    try:
+        from agent.lines.models import EFFECTS, derive_confirm_level  # noqa: PLC0415 惰性
+        if effect_v not in EFFECTS:                  # 声明不合法 ⇒ 按最严（extend ⇒ L3）
+            _warn_once("declared-effect:" + name,
+                       "声明式能力 %s 的 effect=%r 不在值域 %s 内 ⇒ 按最严（extend）处置",
+                       name, effect, tuple(EFFECTS))
+            effect_v = "extend"
+        if not plane_v:                              # plane 缺失 ⇒ 按治理平面（最严）
+            _warn_once("declared-plane:" + name,
+                       "声明式能力 %s 未声明 plane ⇒ 按最严（govern）处置", name)
+            plane_v = "govern"
+        level = derive_confirm_level(plane_v, effect_v, risk_v)
+    except Exception as e:  # noqa: BLE001  派生口径不可用 ⇒ 证不出级别 ⇒ 拒（L3）
+        logger.error("[tool_gate] 声明式能力 %s 的级别派生失败 ⇒ 按 L3 处置: %s: %s",
+                     name, type(e).__name__, e)
+        plane_v = plane_v or "govern"
+        effect_v = effect_v or "extend"
+        level = "L3"
+
+    meta = _DeclaredCapabilityMeta(
+        name=name, plane=plane_v, effect=effect_v, risk=risk_v,
+        effective_confirm_level=level, tenant_id=tenant_id, version=version)
+    outcome = _confirm_level_outcome(name, args, session_source, meta_override=meta)
+    if isinstance(outcome, dict) and "confirm_level" not in outcome:
+        # 【为什么补这个键】待审批路径（`_deny_approval`）的结果里**没有**确认级字段，
+        #   而本入口的调用方（技能脚本执行面）需要把「拦在哪一级」机器可读地带回去
+        #   （日志/审计/UI 提示都靠它）。这不是第二份口径：值就是上面刚派生出的那个 level。
+        outcome = dict(outcome)
+        outcome["confirm_level"] = level
+    return outcome
 
 
 def _noninteractive_guard(func_name: str, args: Optional[Dict[str, Any]],

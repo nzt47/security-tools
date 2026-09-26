@@ -400,6 +400,11 @@ def _count_matches(pattern: re.Pattern, text: str) -> int:
     return len(pattern.findall(text))
 
 
+# 【DET-4】去重必须保留**发现序**：list(set(mN)) 的次序取自字符串哈希（随进程变），
+# 而模式 1 / 模式 7 的候选紧接着还有 matches[:10] 截断 ⇒ 不只是顺序，**成员**也会跨进程不同
+# （实测 5 个种子 5 种成员集）。该返回值是工具 humanize_zh 的结果，直接进模型上下文。
+# 改法：dict.fromkeys 去重且保留 findall 的文本发现序（= 该子系统本来就有的确定次序），
+# 与 DET-2/DET-3「保留主键不变、只补一个确定的次级键」同口径。
 def humanize_zh(text: str, aggressive: bool = False) -> dict:
     """检测中文文本中的 AI 写作痕迹，返回检测结果和优化建议
 
@@ -434,7 +439,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
     # ── 模式 1: 过度强调意义 ──
     m1 = PATTERN_1_RE.findall(text)
     if m1:
-        matched_texts = list(set(m1))
+        matched_texts = list(dict.fromkeys(m1))
         detected.append({
             "pattern_id": 1,
             "name": "过度强调意义、遗产和更广泛的趋势",
@@ -450,7 +455,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 2,
             "name": "过度强调知名度和媒体报道",
             "count": len(m2),
-            "matches": list(set(m2)),
+            "matches": list(dict.fromkeys(m2)),
         })
         total_issues += len(m2)
 
@@ -472,7 +477,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 4,
             "name": "宣传和广告式语言",
             "count": len(m4),
-            "matches": list(set(m4)),
+            "matches": list(dict.fromkeys(m4)),
         })
         total_issues += len(m4)
 
@@ -483,7 +488,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 5,
             "name": "模糊归因和含糊措辞",
             "count": len(m5),
-            "matches": list(set(m5)),
+            "matches": list(dict.fromkeys(m5)),
         })
         total_issues += len(m5)
 
@@ -494,14 +499,14 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 6,
             "name": "提纲式的「挑战与未来展望」部分",
             "count": len(m6),
-            "matches": list(set(m6)),
+            "matches": list(dict.fromkeys(m6)),
         })
         total_issues += len(m6)
 
     # ── 模式 7: AI 词汇 ──
     m7 = PATTERN_7_RE.findall(text)
     if m7:
-        matched_texts = list(set(m7))
+        matched_texts = list(dict.fromkeys(m7))
         detected.append({
             "pattern_id": 7,
             "name": "过度使用的 AI 高频词汇",
@@ -517,7 +522,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 8,
             "name": "避免使用「是」（系动词回避）",
             "count": len(m8),
-            "matches": list(set(m8)),
+            "matches": list(dict.fromkeys(m8)),
         })
         total_issues += len(m8)
 
@@ -632,7 +637,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 19,
             "name": "协作交流痕迹",
             "count": len(m19),
-            "matches": list(set(m19)),
+            "matches": list(dict.fromkeys(m19)),
         })
         total_issues += len(m19)
 
@@ -643,7 +648,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 20,
             "name": "知识截止日期免责声明",
             "count": len(m20),
-            "matches": list(set(m20)),
+            "matches": list(dict.fromkeys(m20)),
         })
         total_issues += len(m20)
 
@@ -654,7 +659,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 21,
             "name": "谄媚/卑躬屈膝的语气",
             "count": len(m21),
-            "matches": list(set(m21)),
+            "matches": list(dict.fromkeys(m21)),
         })
         total_issues += len(m21)
 
@@ -665,7 +670,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 22,
             "name": "填充短语（「值得注意的是」「总的来说」等）",
             "count": len(m22),
-            "matches": list(set(m22)),
+            "matches": list(dict.fromkeys(m22)),
         })
         total_issues += len(m22)
 
@@ -687,7 +692,7 @@ def humanize_zh(text: str, aggressive: bool = False) -> dict:
             "pattern_id": 24,
             "name": "通用积极结论",
             "count": len(m24),
-            "matches": list(set(m24)),
+            "matches": list(dict.fromkeys(m24)),
         })
         total_issues += len(m24)
 

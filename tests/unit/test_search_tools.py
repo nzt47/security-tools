@@ -13,13 +13,39 @@ import pytest
 from unittest.mock import MagicMock
 
 
+def _snapshot_registry() -> dict:
+    """进程级工具注册表的快照（`agent/tools/__init__.py` 的 `_registry`）"""
+    from agent import tools as _tools
+
+    return dict(_tools._registry)
+
+
+def _restore_registry(saved: dict) -> None:
+    """把注册表**逐条**还原成快照，并推进 `_registry_version` 让各级缓存失效
+
+    与 `tests/unit/test_tool_count_consistency.py` 的 `isolated_tool_registry` 同一形状：
+    不用 `tools.clear()`（它会连 `_tool_health` 一起清），只换 `_registry` 的内容。
+    """
+    from agent import tools as _tools
+
+    _tools._registry.clear()
+    _tools._registry.update(saved)
+    _tools._registry_version += 1
+
+
 # ════════════════════════════════════════════════════════════
 #  fixtures
 # ════════════════════════════════════════════════════════════
 
 @pytest.fixture
 def registered():
-    """把 grep/edit 注册到"放行"的 mock dl 上，产出 (handlers, dl)；用完还原注册表"""
+    """把 grep/edit 注册到"放行"的 mock dl 上，产出 (handlers, dl)；用完**整表还原**注册表
+
+    【不易·为什么不是只还原 grep/edit】`search_tools.register_all` 除 grep/edit 外还登记
+    `compress` / `decompress` / `diff_files` 三个**真实工具**；旧写法只存还 grep、edit
+    ⇒ 那 3 个留在**进程级**注册表（`agent/tools/__init__.py:_registry`）里，污染同进程
+    后续测试（实测：本文件与 `tests/unit/test_tool_count_consistency.py` 合跑必红 2 条）。
+    """
     from agent import tools as registry
     from agent.tools.search_tools import register_all
 
@@ -27,17 +53,13 @@ def registered():
     dl._permission.check_action.return_value = MagicMock(allowed=True, reason="")
     dl._permission.check_text.return_value = {"level": "safe", "matches": []}
 
-    saved = {name: registry._registry.get(name) for name in ("grep", "edit")}
+    saved = _snapshot_registry()
     register_all(dl)
     handlers = {name: registry._registry[name]["handler"] for name in ("grep", "edit")}
     try:
         yield handlers, dl
     finally:
-        for name, entry in saved.items():
-            if entry is None:
-                registry.unregister(name)
-            else:
-                registry._registry[name] = entry
+        _restore_registry(saved)
 
 
 @pytest.fixture
@@ -370,7 +392,12 @@ class TestReadRegistry:
         assert has_been_read(b) is False
 
     def test_read_file_registers_read_state(self, tmp_path):
-        """接线回归：read_file 读成功后登记已读，edit 的读前置校验随即放行"""
+        """接线回归：read_file 读成功后登记已读，edit 的读前置校验随即放行
+
+        【不易·为什么用整表快照】`file_tools_reg.register_all` 一次登记**五个**文件工具
+        （read_file / write_file / list_directory / get_file_info / search_files）；
+        旧写法只还原 read_file ⇒ 另外 4 个真实工具留在进程级注册表里。
+        """
         from agent import tools as registry
         from agent.tools.file_tools_reg import register_all as register_file_tools
         from agent.tools.search_tools import has_been_read
@@ -381,17 +408,14 @@ class TestReadRegistry:
 
         target = tmp_path / "a.txt"
         target.write_text("alpha\n", encoding="utf-8")
-        saved = registry._registry.get("read_file")
+        saved = _snapshot_registry()
         register_file_tools(dl)
         try:
             result = registry._registry["read_file"]["handler"](path=str(target))
             assert result["ok"] is True
             assert has_been_read(target) is True
         finally:
-            if saved is None:
-                registry.unregister("read_file")
-            else:
-                registry._registry["read_file"] = saved
+            _restore_registry(saved)
 
 
 # ════════════════════════════════════════════════════════════

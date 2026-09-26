@@ -19,6 +19,17 @@
 
 说明:
     本脚本只读不写, 不修改任何源代码。
+
+退出码 (两种输出模式共用同一行代码, 口径一致, 见 main()):
+    0 = 无 HIGH;  1 = 存在 HIGH。MEDIUM/LOW 不参与退出码。
+
+审计豁免 (AUDITED_DYNAMIC_LOAD_EXEMPTIONS):
+    对"已人工审计、边界已证明"的个别调用点, 把 HIGH 降为 MEDIUM(发现仍照常出现在
+    报告/JSON 中, 带 exempted_by 标记), 使其不再阻断 push-master 门禁。
+    匹配键为 (文件, 所在函数, 动态加载函数名) 三元组全等 + 每组合命中配额,
+    **不是**文件级/目录级放宽。未命中的豁免条目会在 stderr 告警(防腐)。
+    依据与守护测试: docs/audit_skill_governance/DYNGATE1.md,
+    tests/unit/test_dynamic_loads_high_exemption.py
 """
 from __future__ import annotations
 import os
@@ -29,7 +40,7 @@ import logging
 import argparse
 from pathlib import Path
 from dataclasses import dataclass, field, asdict
-from typing import List, Set, Optional
+from typing import Dict, List, Set, Optional, Tuple
 
 # [变易] 诊断日志: 输出到 stderr, 保证 --json 模式 stdout 纯净 (报告即 stdout).
 # 级别由环境变量 DETECT_LOG_LEVEL 控制 (DEBUG 时输出受控降级判定全过程):
@@ -54,6 +65,64 @@ DYNAMIC_LOAD_PATTERNS = {
 }
 
 
+@dataclass(frozen=True)
+class AuditedDynamicLoadExemption:
+    """人工审计过的动态加载豁免（**窄口径，逐调用点**）
+
+    [不易] 豁免的匹配键是三元组 (file, qualname, pattern) **全等**，
+      再叠加人工审计的命中配额 max_matches：
+        - file     : 仓库相对路径（POSIX 分隔符），必须是具体文件，**不得**是目录前缀
+        - qualname : 该调用所在的函数限定名（点号连接），**不是**整个文件
+        - pattern  : DYNAMIC_LOAD_PATTERNS 里的函数名（spec_from_file_location 等）
+        - max_matches: 该三元组最多豁免几次。超出配额的那一次**保持 HIGH**
+          ⇒ 有人在同一函数里再塞一个动态加载，不会顺带被豁免。
+      任一维度不同 ⇒ 不豁免。因此本机制**不可能**表现为"整个文件/整个目录豁免"。
+
+    [为什么保留这种机制而不是删规则] 删规则或把 gate 改成 continue-on-error
+      会让**所有**动态加载消失于门禁之外；这里只是把**已经人工看过、且证明了边界**
+      的调用点从 HIGH 降为 MEDIUM —— 发现仍然照常出现在报告与 --json 里
+      （见 DynamicLoadFinding.exempted_by），只是不再阻断。
+    """
+    file: str
+    qualname: str
+    pattern: str
+    reason: str
+    max_matches: int = 1
+    evidence: str = ""
+
+
+#: 全仓库仅此一条（两个 pattern 同属一个调用点），见 docs/audit_skill_governance/DYNGATE1.md
+AUDITED_DYNAMIC_LOAD_EXEMPTIONS: Tuple[AuditedDynamicLoadExemption, ...] = (
+    AuditedDynamicLoadExemption(
+        file="agent/tools/persistence.py",
+        qualname="_import_module_from_path",
+        pattern="spec_from_file_location",
+        max_matches=1,
+        reason=(
+            "受控目录遍历加载（设计内的有界加载，非外部输入注入）："
+            "persistence.py:410 是该函数的唯一调用点，实参 path 来自 "
+            "_iter_custom_modules() 对固定常量 CUSTOM_TOOLS_DIR(<repo>/agent/tools/custom) "
+            "的 os.walk 结果；调用方不接收任何用户/网络输入，因此不构成"
+            "'路径可控 ⇒ 任意文件加载'。模块内容本身是云枢自生成(LLM)代码，"
+            "其治理边界不在 importlib 调用，而在 register_all + 默认 "
+            "risk=critical 的 YAML 治理声明（调用前仍需审批）。"
+        ),
+        evidence="tests/unit/test_dynamic_loads_high_exemption.py",
+    ),
+    AuditedDynamicLoadExemption(
+        file="agent/tools/persistence.py",
+        qualname="_import_module_from_path",
+        pattern="module_from_spec",
+        max_matches=1,
+        reason=(
+            "同上：module_from_spec 接收的是上一行 spec_from_file_location 返回的 "
+            "spec 对象，自身没有独立路径实参可供外部控制，随该受控调用点一并降级。"
+        ),
+        evidence="tests/unit/test_dynamic_loads_high_exemption.py",
+    ),
+)
+
+
 @dataclass
 class DynamicLoadFinding:
     """单条动态加载发现"""
@@ -65,6 +134,7 @@ class DynamicLoadFinding:
     code_snippet: str       # 代码片段 (单行)
     in_test: bool           # 是否在测试代码中
     suggestion: str = ""   # 建议 (HIGH/MEDIUM 才有)
+    exempted_by: str = ""  # 非空 = 该条曾被人工审计豁免 (记录 file:qualname, 供审计追溯)
 
 
 @dataclass
@@ -149,6 +219,13 @@ class DynamicLoadVisitor(ast.NodeVisitor):
         self._module_consts: dict[str, ast.AST] = {}
         # [变易] 常量解析递归栈 (防止 A = B; B = A 循环引用死循环)
         self._eval_stack: set[str] = set()
+        # [DYNGATE1] 当前所在函数的嵌套栈 (用于审计豁免的 qualname 匹配: 豁免锚定在
+        # "具体文件 + 具体函数", 而不是整个文件)
+        self._func_stack: List[str] = []
+        # [DYNGATE1] 本文件内各 (file, qualname, pattern) 已被豁免的次数 (配额扣减)
+        self._exemption_used: Dict[Tuple[str, str, str], int] = {}
+        # [DYNGATE1] 本文件实际命中的豁免键集合 (供 scan_directory 做"陈旧豁免"自检)
+        self.exemptions_used: Set[Tuple[str, str, str]] = set()
 
     def _collect_module_consts(self, tree: ast.Module):
         """预扫描模块级常量赋值 (仅顶层 Assign/AnnAssign, 忽略函数/类体内赋值)"""
@@ -216,10 +293,59 @@ class DynamicLoadVisitor(ast.NodeVisitor):
                     _logger.info("degrade HIGH->MEDIUM %s:%d (module_from_spec follows controlled spec)",
                                  self._rel_path(), node.lineno)
                     risk = "MEDIUM"
-                self._add_finding(node, pattern, risk, resolved)
+                # [DYNGATE1] 人工审计豁免: 仅对已在 AuditedDynamicLoadExemptions 中
+                # 逐调用点登记过的 (文件, 函数, 加载函数名) 降级, 且受配额约束.
+                # 未登记的调用点 (含同文件其它函数) 一律保持 HIGH.
+                exempted_by = ""
+                if risk == "HIGH":
+                    _ex, _key = self._lookup_audited_exemption(node, pattern)
+                    if _ex is not None:
+                        self._exemption_used[_key] = self._exemption_used.get(_key, 0) + 1
+                        self.exemptions_used.add(_key)
+                        exempted_by = f"{_ex.file}:{_ex.qualname}"
+                        _logger.info(
+                            "exempt HIGH->MEDIUM %s:%d (%s in %s: audited, see %s)",
+                            self._rel_path(), node.lineno, pattern,
+                            _ex.qualname, _ex.evidence or "AUDITED_DYNAMIC_LOAD_EXEMPTIONS")
+                        risk = "MEDIUM"
+                self._add_finding(node, pattern, risk, resolved, exempted_by=exempted_by)
                 break
 
         self.generic_visit(node)
+
+    def visit_FunctionDef(self, node):
+        """跟踪函数嵌套栈 (审计豁免的 qualname 锚点)"""
+        self._func_stack.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self._func_stack.pop()
+
+    def visit_AsyncFunctionDef(self, node):
+        self.visit_FunctionDef(node)
+
+    def _qualname(self) -> str:
+        """当前调用点所在函数的限定名 (点号连接; 模块级代码为空串)"""
+        return ".".join(self._func_stack)
+
+    def _lookup_audited_exemption(self, node: ast.Call, pattern: str):
+        """窄口径豁免查表: (file, qualname, pattern) 三元组全等 + 未超配额
+
+        返回 (exemption, key) 或 (None, key)。任何一维不匹配、或该组合的命中次数
+        已达 max_matches ⇒ 返回 None (保持 HIGH)。
+        """
+        file_rel = self._exemption_rel_path()
+        key = (file_rel, self._qualname(), pattern)
+        for ex in AUDITED_DYNAMIC_LOAD_EXEMPTIONS:
+            if (ex.file, ex.qualname, ex.pattern) != key:
+                continue
+            if self._exemption_used.get(key, 0) >= ex.max_matches:
+                _logger.warning(
+                    "exempt quota exhausted %s:%d (%s in %s: max_matches=%d) -> keep HIGH",
+                    file_rel, node.lineno, pattern, ex.qualname, ex.max_matches)
+                return None, key
+            return ex, key
+        return None, key
 
     def _rel_path(self) -> str:
         """返回当前扫描文件的仓库相对路径 (用于受控文件集合匹配)"""
@@ -227,6 +353,21 @@ class DynamicLoadVisitor(ast.NodeVisitor):
             return str(self.filepath.relative_to(self.root))
         except ValueError:
             return str(self.filepath)
+
+    def _exemption_rel_path(self) -> str:
+        """审计豁免的匹配路径 —— **恒以仓库根 ROOT 为基准**, 统一为 POSIX 分隔符。
+
+        [不易] 与 _is_controlled_spec_load 同口径: 豁免条目按仓库相对路径登记,
+          若用 self.root (扫描根) 计算, `--root agent` 会得到 "tools/persistence.py"
+          而默认全仓扫描得到 "agent/tools/persistence.py" —— 同一份代码在两种
+          扫描方式下结论不一致(实测踩过)。只有扫描根之外的临时文件才退回 self.root。
+        """
+        for base in (ROOT, self.root):
+            try:
+                return str(self.filepath.relative_to(base)).replace("\\", "/")
+            except ValueError:
+                continue
+        return str(self.filepath).replace("\\", "/")
 
     def _is_controlled_spec_load(self, node: ast.Call, pattern: str) -> bool:
         """判断动态加载的目标是否指向仓库内已有文件 (受控加载)
@@ -360,8 +501,9 @@ class DynamicLoadVisitor(ast.NodeVisitor):
             return node.attr
         return ""
 
-    def _add_finding(self, node: ast.Call, pattern: str, risk: str, resolved: str):
-        """添加一条发现"""
+    def _add_finding(self, node: ast.Call, pattern: str, risk: str, resolved: str,
+                     exempted_by: str = ""):
+        """添加一条发现 (exempted_by 非空表示该条来自人工审计豁免)"""
         try:
             rel_path = str(self.filepath.relative_to(self.root))
         except ValueError:
@@ -391,12 +533,18 @@ class DynamicLoadVisitor(ast.NodeVisitor):
             code_snippet=snippet[:120],  # 截断长行
             in_test=in_test,
             suggestion=get_suggestion(pattern, in_test),
+            exempted_by=exempted_by,
         )
         self.findings.append(finding)
 
 
-def scan_file(filepath: Path, root: Path) -> List[DynamicLoadFinding]:
-    """扫描单个 Python 文件"""
+def scan_file(filepath: Path, root: Path,
+              exemptions_used: Optional[Set[Tuple[str, str, str]]] = None) -> List[DynamicLoadFinding]:
+    """扫描单个 Python 文件
+
+    exemptions_used: 可选的跨文件累计集合, 用于统计本次扫描实际命中了哪些审计豁免
+                     (未命中的豁免会被 _warn_stale_exemptions 报警).
+    """
     if is_excluded(filepath, root):
         return []
     if filepath.suffix != ".py":
@@ -417,21 +565,48 @@ def scan_file(filepath: Path, root: Path) -> List[DynamicLoadFinding]:
     visitor = DynamicLoadVisitor(filepath, root)
     visitor._collect_module_consts(tree)
     visitor.visit(tree)
+    if exemptions_used is not None:
+        exemptions_used |= visitor.exemptions_used
     return visitor.findings
+
+
+def _warn_stale_exemptions(root: Path, used: Set[Tuple[str, str, str]]) -> None:
+    """陈旧豁免自检：登记了的豁免若在本次扫描范围内一次都没命中，就告警。
+
+    [不易] 这是豁免机制的"防腐"约束：重构把被豁免的调用点挪走/改名后，
+      豁免条目会变成一条**看似仍在生效、实际已失效**的死条目；更糟的情况是
+      它悄悄掩盖了后来新写入同函数的动态加载。告警走 stderr，不污染 --json stdout。
+      仅当被豁免的文件确实落在本次扫描范围内时才告警（--root 指向子目录时不误报）。
+    """
+    for ex in AUDITED_DYNAMIC_LOAD_EXEMPTIONS:
+        if (ex.file, ex.qualname, ex.pattern) in used:
+            continue
+        try:
+            # 豁免条目按仓库相对路径登记 ⇒ 以 ROOT 解析, 再判定是否落在本次扫描范围内
+            target = (ROOT / ex.file).resolve()
+            in_scope = target.is_file() and target.is_relative_to(root.resolve())
+        except (OSError, ValueError):
+            in_scope = False
+        if in_scope:
+            _logger.warning(
+                "stale exemption (registered but never matched in this scan): %s %s %s",
+                ex.file, ex.qualname, ex.pattern)
 
 
 def scan_directory(root: Path) -> ScanReport:
     """扫描整个目录"""
     report = ScanReport(root=str(root), scanned_files=0)
+    exemptions_used: Set[Tuple[str, str, str]] = set()
     for pyfile in root.rglob("*.py"):
         if is_excluded(pyfile, root):
             continue
         report.scanned_files += 1
-        findings = scan_file(pyfile, root)
+        findings = scan_file(pyfile, root, exemptions_used=exemptions_used)
         report.findings.extend(findings)
 
     # 按文件名 + 行号排序
     report.findings.sort(key=lambda f: (f.file, f.line))
+    _warn_stale_exemptions(root, exemptions_used)
     return report
 
 
@@ -463,7 +638,8 @@ def print_report(report: ScanReport):
         print(f"{'─'*70}")
         for f in findings:
             test_tag = " [test]" if f.in_test else ""
-            print(f"  {f.file}:{f.line}{test_tag}")
+            exempt_tag = f" [exempt: {f.exempted_by}]" if f.exempted_by else ""
+            print(f"  {f.file}:{f.line}{test_tag}{exempt_tag}")
             print(f"    函数: {f.function}")
             print(f"    代码: {f.code_snippet}")
             if f.suggestion:
@@ -505,9 +681,14 @@ def main() -> int:
         print_report(report)
 
     # 退出码: 有 HIGH 风险返回 1
-    _logger.info("scan done files=%d findings=%d high=%d -> exit=%d",
+    # [不易] 退出码只取决于 report.high_risk (= risk_level=="HIGH" 的条数),
+    # 文本模式与 --json 模式**共用这一行**, 不存在两种裁决口径;
+    # MEDIUM/LOW/INFO 以及被审计豁免降级后的条目都不影响退出码.
+    _logger.info("scan done files=%d findings=%d high=%d exempt=%d -> exit=%d",
                  report.scanned_files, len(report.findings),
-                 len(report.high_risk), 1 if report.high_risk else 0)
+                 len(report.high_risk),
+                 sum(1 for f in report.findings if f.exempted_by),
+                 1 if report.high_risk else 0)
     return 1 if report.high_risk else 0
 
 

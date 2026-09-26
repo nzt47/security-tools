@@ -155,5 +155,11 @@ def merge_results(results: List[Dict[str, Any]],
         expected_output=expected_outputs[0][:500] if expected_outputs else "",
         sources=sources,
         method=best_method,
-        tags=list({*triggers[:3], "distilled", "from_knowledge"}),
+        # 【主审计 2026-09-26 一致性修复（DET-4 点名、跨出它的文件范围，由我落地）】
+        # 原为 `list({*triggers[:3], "distilled", "from_knowledge"})` —— **从 set 字面量建列**，
+        # 于是 tags 的顺序 = **set 迭代序 = 字符串哈希随机化** ⇒ 同一输入在不同进程里 tags 顺序不同；
+        # 而下游 `solidify` 会对 tags 取 `[:8]` 截断（DET-3/DET-4 已修其入口），**顺序不同可能连带改变成员**。
+        # DET-4 把它列为「给下一张卡的最高价值一行」——本行即是。
+        # 用 dict.fromkeys 去重且**保序**（插入序 = triggers 发现序，后接两个常量）⇒ 跨进程确定。
+        tags=list(dict.fromkeys([*triggers[:3], "distilled", "from_knowledge"])),
     )

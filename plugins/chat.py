@@ -1153,9 +1153,20 @@ def _workbench_real_stream(question, session_id=""):
     #     `align_system_prompt_with_tools` 做这一次定稿。
     # ── 工具选择（P5 统一入口，2026-09-17）─────────────────────────────
     # 【原先的问题】这里直接 `get_tool_defs()`（**无白名单**）⇒ 把注册表里**全部**工具
-    #   schema 发给模型（实测 91 个 ≈ 13k token/轮，与用户说什么无关），并且
-    #   **完全绕过**编排器路径的路由、Schema 裁剪与工具闸门/审批 —— 同一次对话
-    #   "换个入口就换一套工具集与一套治理"。这也是评估报告 §4.2 的头号口径分裂。
+    #   schema 发给模型（与用户说什么无关），并且**完全绕过**编排器路径的路由、
+    #   Schema 裁剪与工具闸门/审批 —— 同一次对话"换个入口就换一套工具集与一套治理"。
+    #   这也是评估报告 §4.2 的头号口径分裂。
+    #
+    # 【口径更正 · B1】本段注释原先写"实测 91 个 ≈ 13k token/轮"，两个数都不成立，
+    #   已按实测改写（复算脚本见 docs/audit_skill_governance/Q2_tool_skill_pool.md §7.1）：
+    #     · "91"= `data/tool_definitions/*.yaml` 的**文件数**，不是下发数。运行实例上
+    #       主线 `engineering` 白名单实际下发 **26** 个（本文件下方日志逐轮打印）。
+    #     · "13k" 只对「字符÷3」粗口径成立（13,416）；对真实 BPE 是低估：
+    #       全量 91 个未裁剪 = 43,997 字符 / **18,311** token(cl100k)，
+    #       按 .env 的 SCHEMA_DESC_MAX_LEN=100 / SCHEMA_PROP_DESC_MAX_LEN=80 裁剪后
+    #       = 40,250 字符 / **16,261** token（低估 20%；未裁剪低估 29%）。
+    #   ⇒ 工具集的 token 数一律以 `count_tool_defs_tokens()`（tiktoken cl100k_base）
+    #     实测值打印，不再用字符数换算。
     #
     # 【现在的做法】复用与编排器**同一条**选择链：
     #   ① 有激活主线 → 主线装配器（身份层做 effect/mute/平面减法）；
@@ -1201,8 +1212,20 @@ def _workbench_real_stream(question, session_id=""):
         except Exception:  # noqa: BLE001 裁剪失败用未裁剪版
             pass
         _chars = sum(len(str(d)) for d in (tool_defs or []))
-        logger.info("[workbench][SSE] 工具集: %s -> %d 个, 约 %d 字符",
-                    _sel_note, len(tool_defs or []), _chars)
+        # token 数**实测**（tiktoken cl100k_base，与 `LLMMonitor.estimate_tokens`、
+        # 与审计报告同一口径）：不再用「字符÷3」估算 —— 那个口径会把主线 26 个工具
+        # 的真实 6,757 token 说成 ~5.2k。测不了（缺 tiktoken）就明说"未测"，
+        # 绝不退回另一种口径冒充同一个数字。
+        _tokens = None
+        try:
+            from agent.tools_prompt_guard import count_tool_defs_tokens as _count_tok
+            _tokens = _count_tok(tool_defs)
+        except Exception as _te:  # noqa: BLE001 计量失败不影响工具集本身
+            logger.debug("[workbench][SSE] 工具集 token 实测不可用: %s", _te)
+        logger.info("[workbench][SSE] 工具集: %s -> %d 个, %d 字符, %s",
+                    _sel_note, len(tool_defs or []), _chars,
+                    ("%d token(cl100k)" % _tokens) if _tokens is not None
+                    else "token 未实测（缺 tiktoken）")
     except Exception as _e:
         logger.debug("[workbench][SSE] 工具定义加载失败（无工具可用）: %s", _e)
 

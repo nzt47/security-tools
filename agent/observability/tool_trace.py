@@ -540,6 +540,7 @@ class ToolTraceRecorder:
         bm25_considered: Optional[int] = None,
         min_idf_coverage: Optional[float] = None,
         bm25_filtered_preview: Optional[list] = None,
+        trace_id: Optional[str] = None,
     ) -> None:
         """记录工具检索决策(结构化日志,不持久化到 SQLite)
 
@@ -555,8 +556,17 @@ class ToolTraceRecorder:
             bm25_considered: 参与下限判定的候选总数
             min_idf_coverage: 当前生效的下限阈值（0.0 = 护栏已单点关闭）
             bm25_filtered_preview: 【A8-G1】被滤候选的 id 预览（按分降序前 5 个 id）
+            trace_id: 【B3-W】本次请求的路由 trace_id，取值必须是
+                agent.orchestrator.routing_observability.current_trace_id()
+                —— 与 emit_route_decision 输出的是**同一个** id 与**同一个**
+                字段名（trace_id_ctx），这样"检索决策"与"路由决策"两条日志
+                才能被同一个 trace 串起来。缺省 None ⇒ 记成空串。
+
+        【B3-W】日志字段说明：log_dict 会自动补一个 `trace_id` 键，但那是
+            agent.logging_utils._trace_id() **每次调用现生成**的 uuid（每行都不同，
+            不串联任何东西）；可串联的键是这里显式写入的 `trace_id_ctx`。
         """
-        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'query_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': bm25_candidates, 'embed_candidates': embed_candidates, 'fused_candidates': fused_candidates, 'alpha': alpha, 'degraded': degraded, 'tools_preview': tools_preview[:10], 'raw_bm25_top5': raw_bm25_top5, 'raw_embed_top5': raw_embed_top5, 'bm25_half_saturation': bm25_half_saturation, 'cosine_floor': cosine_floor, 'bm25_filtered_by_min_coverage': bm25_filtered_by_min_coverage, 'bm25_considered': bm25_considered, 'min_idf_coverage': min_idf_coverage, 'bm25_filtered_preview': bm25_filtered_preview}))
+        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'query_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': bm25_candidates, 'embed_candidates': embed_candidates, 'fused_candidates': fused_candidates, 'alpha': alpha, 'degraded': degraded, 'tools_preview': tools_preview[:10], 'raw_bm25_top5': raw_bm25_top5, 'raw_embed_top5': raw_embed_top5, 'bm25_half_saturation': bm25_half_saturation, 'cosine_floor': cosine_floor, 'bm25_filtered_by_min_coverage': bm25_filtered_by_min_coverage, 'bm25_considered': bm25_considered, 'min_idf_coverage': min_idf_coverage, 'bm25_filtered_preview': bm25_filtered_preview, 'trace_id_ctx': trace_id or ''}))
 
     # ── 脱敏与危险检测 ────────────────────────────────────────
 

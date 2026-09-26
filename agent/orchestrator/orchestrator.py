@@ -3315,11 +3315,78 @@ class Orchestrator:
         except Exception:
             pass
 
+        # ── 当轮下发集定稿（**必须早于提示词渲染**：宣告数 = 下发数）──
+        # 【B1 不变量】提示词里的「【工具】本轮向模型下发(N 个): …」必须等于本轮
+        # 请求体 `tools=` 里的那一份。而这一份要经 ① 启用白名单 → ② 主线装配 →
+        # ③ 智能选择 → ④ schema 裁剪 四步才定稿，所以定稿必须先于渲染。
+        # 【本卡修的缺陷】修复前渲染在本块之前（早约 136 行）：③ 只在「无激活主线
+        # + 开启智能选择」时触发（`hybrid_select_tools` 按 user_input 再收窄一次），
+        # 那条路径上宣告值取自**收窄前**的白名单 ⇒ 宣告≠下发（B1 §6.2 B1-TODO-1）。
+        # 生产默认路径有激活主线（engineering），不含该步，故线上两侧本就一致。
+        # 【为什么可以上移】本块只依赖 `user_input`、`allow_tools` 与
+        # `_get_enabled_tools_whitelist` / `line_whitelist` / `hybrid_select_tools` /
+        # `get_tool_defs` / `prune_tool_defs`：既不读 `system_prompt`，也不改任何
+        # 被后续步骤读取的状态 ⇒ 上移不改变其它步骤的顺序与语义。
+        # 【不易】`_tool_defs is None` 表示**未定稿**：无 LLM（下方走离线兜底，
+        # 提示词不出网）或定稿失败时保持修复前的默认渲染口径，绝不因此抛穿主链路。
+        _tool_defs = None
+        if self._llm:
+            try:
+                from agent import tools as _tools
+                _whitelist = self._get_enabled_tools_whitelist()
+                # ── 主线装配（Agent 身份层的能力边界）──
+                # 有激活主线 ⇒ 用装配器算工具集（effect 上限 + 平面保底）；
+                # 无激活主线 ⇒ 完全回退旧行为。装配故障一律回退，绝不断对话。
+                _line_used = None
+                try:
+                    from agent.lines import line_whitelist as _line_wl
+                    _line_tools, _line_res = _line_wl(_whitelist)
+                    if _line_tools:
+                        _whitelist = _line_tools
+                        _line_used = _line_res
+                        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.line', 'message': '[主线装配] %s: %d 个工具（上限 %d），需确认 %d 个' % (
+                            _line_res.line_id, len(_line_tools), _line_res.max_tools, len(_line_res.needs_approval))}))
+                except Exception as _le:  # noqa: BLE001
+                    logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.line_failed', 'message': '主线装配失败，回退旧路径: %s' % (_le,)}))
+                if _line_used is None and self._is_smart_tool_selection_enabled():
+                    try:
+                        _smart_tools = hybrid_select_tools(user_input, _whitelist) or get_tools_for_input(user_input, _whitelist)
+                        if _smart_tools:
+                            _whitelist = _smart_tools
+                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.log', 'message': '[工具路由] 智能选择: %d/%d 个工具' % (len(_smart_tools), len(_tools.list_tools()))}))
+                    except Exception as _e:
+                        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.log', 'message': '工具路由失败: %s' % (_e,)}))
+                _tool_defs = _tools.get_tool_defs(whitelist=_whitelist)
+                # TASK-S9-01: 工作流层已执行过工具 ⇒ 本轮不向模型暴露工具（防重复副作用）
+                if not allow_tools:
+                    _tool_defs = []
+                # 【Schema 裁剪】tool_router 选定后裁剪,守 [不易] required 不动、deprecated 移除
+                try:
+                    from agent.tool_schema_pruner import prune_tool_defs
+                    _orig_tool_count = len(_tool_defs)
+                    _tool_defs = prune_tool_defs(
+                        _tool_defs,
+                        intent_context={"selected_tools": list(_whitelist or [])},
+                    ) or _tool_defs
+                    _pruned_count = _orig_tool_count - len(_tool_defs)
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.schema_prune', 'message': '[SchemaPruner] 工具数 %d → %d (移除 %d 个工具级 deprecated)' % (_orig_tool_count, len(_tool_defs), _pruned_count)}))
+                except Exception as _spe:
+                    logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.schema_prune_failed', 'message': '[SchemaPruner] 裁剪失败降级原 tool_defs: %s' % (_spe,)}))
+            except Exception as _defs_e:  # noqa: BLE001 定稿失败不得击穿对话主链路
+                _tool_defs = None
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.dispatch_defs_failed', 'message': '[工具下发集] 定稿失败，提示词回退默认解析口径: %s' % (_defs_e,)}))
+
         # ── DSML 根因防线（提示词侧·上游收口）──
         # `allow_tools=False`（工作流层已执行过工具，见 `_tool_defs = []`）时
         # 绝不能在提示词里宣传工具，否则模型会退回 DSML 文本协议。这里在**源头**
         # 就不生成宣传文本；下面每轮出网前的 `tools_prompt_guard` 是第二道收口。
-        tool_status = self._build_tool_status_text(expose_tools=allow_tools)
+        # 【B1-T2】`tool_defs=_tool_defs` ⇒ 渲染的就是上面**定稿的那一份**（同源）；
+        # 未定稿时退回默认解析口径（与修复前逐字一致）。
+        if _tool_defs is None:
+            tool_status = self._build_tool_status_text(expose_tools=allow_tools)
+        else:
+            tool_status = self._build_tool_status_text(
+                expose_tools=allow_tools, tool_defs=_tool_defs)
         skill_instructions = self._build_skill_instructions()
 
         _sp_template = _get_template()
@@ -3431,46 +3498,8 @@ class Orchestrator:
                 if allow_tools:
                     self._set_turn_state(_turn_key, tool_steps=[])
 
-                from agent import tools as _tools
-                _whitelist = self._get_enabled_tools_whitelist()
-                # ── 主线装配（Agent 身份层的能力边界）──
-                # 有激活主线 ⇒ 用装配器算工具集（effect 上限 + 平面保底）；
-                # 无激活主线 ⇒ 完全回退旧行为。装配故障一律回退，绝不断对话。
-                _line_used = None
-                try:
-                    from agent.lines import line_whitelist as _line_wl
-                    _line_tools, _line_res = _line_wl(_whitelist)
-                    if _line_tools:
-                        _whitelist = _line_tools
-                        _line_used = _line_res
-                        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.line', 'message': '[主线装配] %s: %d 个工具（上限 %d），需确认 %d 个' % (
-                            _line_res.line_id, len(_line_tools), _line_res.max_tools, len(_line_res.needs_approval))}))
-                except Exception as _le:  # noqa: BLE001
-                    logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.line_failed', 'message': '主线装配失败，回退旧路径: %s' % (_le,)}))
-                if _line_used is None and self._is_smart_tool_selection_enabled():
-                    try:
-                        _smart_tools = hybrid_select_tools(user_input, _whitelist) or get_tools_for_input(user_input, _whitelist)
-                        if _smart_tools:
-                            _whitelist = _smart_tools
-                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.log', 'message': '[工具路由] 智能选择: %d/%d 个工具' % (len(_smart_tools), len(_tools.list_tools()))}))
-                    except Exception as _e:
-                        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.log', 'message': '工具路由失败: %s' % (_e,)}))
-                _tool_defs = _tools.get_tool_defs(whitelist=_whitelist)
-                # TASK-S9-01: 工作流层已执行过工具 ⇒ 本轮不向模型暴露工具（防重复副作用）
-                if not allow_tools:
-                    _tool_defs = []
-                # 【Schema 裁剪】tool_router 选定后裁剪,守 [不易] required 不动、deprecated 移除
-                try:
-                    from agent.tool_schema_pruner import prune_tool_defs
-                    _orig_tool_count = len(_tool_defs)
-                    _tool_defs = prune_tool_defs(
-                        _tool_defs,
-                        intent_context={"selected_tools": list(_whitelist or [])},
-                    ) or _tool_defs
-                    _pruned_count = _orig_tool_count - len(_tool_defs)
-                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.schema_prune', 'message': '[SchemaPruner] 工具数 %d → %d (移除 %d 个工具级 deprecated)' % (_orig_tool_count, len(_tool_defs), _pruned_count)}))
-                except Exception as _spe:
-                    logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.schema_prune_failed', 'message': '[SchemaPruner] 裁剪失败降级原 tool_defs: %s' % (_spe,)}))
+                # （工具下发集定稿块已上移到 system prompt 渲染之前，见本方法开头
+                #   「当轮下发集定稿」：提示词宣告数必须等于当轮下发数，B1-T2）
                 _client = self._llm._get_client()
 
                 # 智能调度：选择最合适的模型
@@ -3553,7 +3582,20 @@ class Orchestrator:
                         _working.append(_final_nudge)
                         _msgs_this_round = list(_msgs_this_round) + [_final_nudge]
 
-                    _api_msgs = [{"role": "system", "content": _sp_this_round}] + _msgs_this_round
+                    # ── [F3-1] 易变尾簇搬到请求尾部（让稳定前缀尽量长）──
+                    # 见 agent/system_prompt_manager.split_volatile_tail 的段落说明。
+                    # 【不变】稳定块（身份/原则/技能指令/工具状态）顺序与内容一字不动；
+                    # 【回滚】YUNSHU_PROMPT_VOLATILE_TAIL=0 时 split 原样返回 ⇒ 旧顺序。
+                    try:
+                        from agent.system_prompt_manager import split_volatile_tail as _split_vt
+                        _sp_stable, _sp_volatile = _split_vt(_sp_this_round)
+                    except Exception:  # noqa: BLE001 搬运失败=旧顺序，绝不影响出网
+                        _sp_stable, _sp_volatile = _sp_this_round, ""
+                    _api_msgs = [{"role": "system", "content": _sp_stable}] + _msgs_this_round
+                    if _sp_volatile:
+                        # 【不易】易变块必须是**最后一条消息**：只有它之前的一切
+                        # （稳定 system + tools 段 + 历史消息）能整段命中前缀缓存。
+                        _api_msgs.append({"role": "system", "content": _sp_volatile})
                     _kwargs = {
                         "model": _working_model,
                         "messages": _api_msgs,
@@ -4026,9 +4068,57 @@ class Orchestrator:
         profile = self._behavior.profile
         self._set_thinking_mode()
 
+        # ── 当轮下发集定稿（**必须早于提示词渲染**：宣告数 = 下发数）──
+        # 【B1-T2】与 `_call_llm` 同一条不变量：提示词的「【工具】…(N 个)」必须等于
+        # 本轮真正下发给模型的工具集。V2 的收窄链（主线装配 → 智能选择）原本写在
+        # 出网块内（晚于渲染约 60 行），于是「无激活主线 + 开启智能选择」时宣告值
+        # 取自**收窄前**的白名单 ⇒ 宣告≠下发。这里把收窄提前到渲染之前，出网块只复用结果。
+        # 【为什么可以上移】本块只依赖 `user_input` / `allow_tools` /
+        # `self._tool_calling_service` 与 `_get_enabled_tools_whitelist` /
+        # `line_whitelist` / `hybrid_select_tools` / `get_tool_defs`：不读
+        # `system_prompt`，也不改任何被后续步骤读取的状态。
+        # 【不易】`_v2_dispatch_defs is None` = 本轮**不下发** tools（无
+        # tool_calling_service / allow_tools=False / 定稿失败）⇒ 渲染退回默认解析口径。
+        tools_whitelist = None
+        _v2_dispatch_defs = None
+        if self._tool_calling_service and allow_tools:
+            try:
+                tools_whitelist = self._get_enabled_tools_whitelist()
+                # ── 主线装配：身份层先做减法（effect 上限 / mute / 平面启用）──
+                # 这是 V2 主路径；未装线时 _line_tools 为空，继续走下面的智能选择。
+                _line_used = False
+                try:
+                    from agent.lines import line_whitelist as _line_wl
+                    _line_tools, _line_res = _line_wl(tools_whitelist)
+                    if _line_tools:
+                        tools_whitelist = _line_tools
+                        _line_used = True
+                        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.line', 'message': '[主线装配V2] %s: %d 个工具（上限 %d），需确认 %d 个' % (
+                            _line_res.line_id, len(_line_tools), _line_res.max_tools, len(_line_res.needs_approval))}))
+                except Exception as _le:  # noqa: BLE001
+                    logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.line_failed', 'message': '主线装配V2失败，回退旧路径: %s' % (_le,)}))
+                if not _line_used and self._is_smart_tool_selection_enabled():
+                    try:
+                        _smart = hybrid_select_tools(user_input, tools_whitelist) or get_tools_for_input(user_input, tools_whitelist)
+                        if _smart:
+                            tools_whitelist = _smart
+                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '[工具路由V2] 智能选择: %d 个工具' % (len(_smart),)}))
+                    except Exception as _e:
+                        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '工具路由V2失败: %s' % (_e,)}))
+                # 与出网口**同源**：`chat_with_steps` 内部就是这一行
+                # （`agent/tool_calling.py:277 tools.get_tool_defs(whitelist=…)`），
+                # 中间不再有第二次收窄 ⇒ 本值即本轮真正下发的工具集。
+                from agent import tools as _tools
+                _v2_dispatch_defs = _tools.get_tool_defs(whitelist=tools_whitelist)
+            except Exception as _defs_e:  # noqa: BLE001 定稿失败不得击穿对话主链路
+                _v2_dispatch_defs = None
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.dispatch_defs_failed', 'message': '[工具下发集V2] 定稿失败，提示词回退默认解析口径: %s' % (_defs_e,)}))
+
         if self._v2_persona and self._persona_injector:
             memory_context = self._get_lifetrace_context(user_input)
-            tool_status_text = self._build_tool_status_text(expose_tools=allow_tools)
+            # 【B1-T2】`tool_defs=` ⇒ 渲染的就是上面定稿的当轮下发集（同源）
+            tool_status_text = self._build_tool_status_text(
+                expose_tools=allow_tools, tool_defs=_v2_dispatch_defs)
             user_context = self._get_user_context(
                 session_id=session_id,
                 session_mgr=session_mgr,
@@ -4041,7 +4131,9 @@ class Orchestrator:
             )
         else:
             memory_context = self._get_lifetrace_context(user_input) if self._v2_lifetrace else ""
-            tool_status = self._build_tool_status_text(expose_tools=allow_tools)
+            # 【B1-T2】`tool_defs=` ⇒ 渲染的就是上面定稿的当轮下发集（同源）
+            tool_status = self._build_tool_status_text(
+                expose_tools=allow_tools, tool_defs=_v2_dispatch_defs)
             skill_instructions = self._build_skill_instructions()
             _sp_template = _get_template()
             system_prompt = _sp_template.format(
@@ -4077,6 +4169,23 @@ class Orchestrator:
 
         messages.append({"role": "user", "content": user_input})
 
+        # ── [F3-1] 易变尾簇搬到请求尾部（让稳定前缀尽量长）──
+        # 见 agent/system_prompt_manager.split_volatile_tail 的段落说明。
+        # 【为什么搬在这里】本方法的出网口不止一个（chat_with_steps 的工具循环 /
+        #   无工具时的 self._llm.chat / 首轮失败的纯文本降级），它们吃的是同一对
+        #   (messages, system_prompt) ⇒ 在这一处搬一次即全覆盖，且不碰 tools 段。
+        # 【不变】稳定块（身份/原则/技能指令/工具状态）顺序与内容一字不动。
+        # 【回滚】YUNSHU_PROMPT_VOLATILE_TAIL=0 时 split 原样返回 ⇒ 旧顺序。
+        try:
+            from agent.system_prompt_manager import split_volatile_tail as _split_vt
+            _sp_stable, _sp_volatile = _split_vt(system_prompt)
+        except Exception:  # noqa: BLE001 搬运失败=旧顺序，绝不影响出网
+            _sp_stable, _sp_volatile = system_prompt, ""
+        if _sp_volatile:
+            system_prompt = _sp_stable
+            messages = list(messages) + [{"role": "system", "content": _sp_volatile}]
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.volatile_tail', 'message': '[F3-1] 易变尾簇已搬到请求尾部: 稳定 system %d 字符 / 尾簇 %d 字符' % (len(_sp_stable), len(_sp_volatile))}))
+
         if self._llm:
             try:
                 # TASK-S9-01: 本轮工具步骤用局部列表（原为实例属性 _current_tool_steps，
@@ -4084,28 +4193,9 @@ class Orchestrator:
                 _current_steps: list = []
                 _round_steps: list = []
                 if self._tool_calling_service and allow_tools:
-                    tools_whitelist = self._get_enabled_tools_whitelist()
-                    # ── 主线装配：身份层先做减法（effect 上限 / mute / 平面启用）──
-                    # 这是 V2 主路径；未装线时 _line_tools 为空，继续走下面的智能选择。
-                    _line_used = False
-                    try:
-                        from agent.lines import line_whitelist as _line_wl
-                        _line_tools, _line_res = _line_wl(tools_whitelist)
-                        if _line_tools:
-                            tools_whitelist = _line_tools
-                            _line_used = True
-                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.line', 'message': '[主线装配V2] %s: %d 个工具（上限 %d），需确认 %d 个' % (
-                                _line_res.line_id, len(_line_tools), _line_res.max_tools, len(_line_res.needs_approval))}))
-                    except Exception as _le:  # noqa: BLE001
-                        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.line_failed', 'message': '主线装配V2失败，回退旧路径: %s' % (_le,)}))
-                    if not _line_used and self._is_smart_tool_selection_enabled():
-                        try:
-                            _smart = hybrid_select_tools(user_input, tools_whitelist) or get_tools_for_input(user_input, tools_whitelist)
-                            if _smart:
-                                tools_whitelist = _smart
-                                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '[工具路由V2] 智能选择: %d 个工具' % (len(_smart),)}))
-                        except Exception as _e:
-                            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.log', 'message': '工具路由V2失败: %s' % (_e,)}))
+                    # `tools_whitelist` 已在本方法开头（提示词渲染之前）定稿，
+                    # 「提示词宣告数 == 出网 tools 数」由那一份保证（B1-T2）；
+                    # 此处不再重算，否则又会把口径覆盖回**收窄前**的白名单。
 
                     _selected_llm, _selected_model = self._select_model_for_request(user_input)
                     _use_pro = _selected_model != self._llm.model

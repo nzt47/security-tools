@@ -122,6 +122,26 @@ def _tokenize(text: str) -> set:
     return tokens
 
 
+def _ordered_tokens(text: str) -> List[str]:
+    """_tokenize 的有序版：同一批 token，按文本发现序排列。
+
+    [DET-4] _tokenize 返回 set；调用方若对它取前 N 个（本文件 :688 / :803 / :934），
+    被选中的 N 个 token 会随进程（PYTHONHASHSEED）漂移 —— 不只是顺序，成员也变，
+    而它们逐字进生成技能的正文（root_cause / 触发条件 / 反例）。
+    次序取「正则 token 的文本序 -> 中文字的文本序」，与 _tokenize 完全同源
+    （同一个元素集合），只是把未定义的次序定义掉（DET-2/DET-3 同口径）。
+    """
+    if not text:
+        return []
+    ordered = list(dict.fromkeys(_TOKEN_RE.findall(text.lower())))
+    seen = set(ordered)
+    for ch in text:
+        if "\u4e00" <= ch <= "\u9fff" and ch not in seen:
+            seen.add(ch)
+            ordered.append(ch)
+    return ordered
+
+
 def _jaccard(a: set, b: set) -> float:
     if not a or not b:
         return 0.0
@@ -658,7 +678,11 @@ class MemorySkillAbstractor:
             return {}
         # 对每个公共键取众数值
         result: Dict[str, Any] = {}
-        for key in common_keys:
+        # [DET-4] 键序必须确定：common_keys 是 set，而 result 的插入序会原样进
+        # default_params（生成技能草稿 -> create_manual 落 data/skills_mgmt.json ->
+        # 面板/检索）。次序取 entries[0].params 的键声明序（= 候选汇合序），
+        # 不是字典序（DET-2/DET-3 同口径）。
+        for key in [k for k in entries[0].params if k in common_keys]:
             values = [e.params[key] for e in entries]
             counter = Counter(values)
             result[key] = counter.most_common(1)[0][0]
@@ -684,8 +708,10 @@ class MemorySkillAbstractor:
         failure_entries = [e for e in entries if not e.success]
         tools_str = ", ".join(common_tools) if common_tools else "无特定工具"
         # 从 representative_text 提取前 5 个关键词作为任务摘要
-        keywords = _tokenize(representative_text)
-        keyword_str = " ".join(list(keywords)[:5]) if keywords else "该任务"
+        # [DET-4] _tokenize 返回 set，而这里取前 5 个 => 成员也会跨进程漂移
+        # （实测 5 个种子 5 种关键词集），而 keyword_str 逐字进 root_cause 正文。
+        keywords = _ordered_tokens(representative_text)
+        keyword_str = " ".join(keywords[:5]) if keywords else "该任务"
 
         logger.info(
             "[MemAbstract] _extract_root_cause: entries=%d | success=%d | "
@@ -798,7 +824,8 @@ class MemorySkillAbstractor:
         for k, v in list(common_params.items())[:2]:
             conditions.append(f"参数 {k}={v}")
         # 3. 从 representative_text 提取前 3 个关键词
-        keywords = list(_tokenize(representative_text))
+        # [DET-4] 同上：有序化后取前 3 个（成员不再漂移）。
+        keywords = _ordered_tokens(representative_text)
         if keywords:
             top_kw = ", ".join(keywords[:3])
             conditions.append(f"任务描述包含: {top_kw}")
@@ -929,9 +956,10 @@ class MemorySkillAbstractor:
                 patterns.append(f"不适用: 当出现参数 {sorted(failure_only_keys)} 时")
                 failure_only_keys_count = len(failure_only_keys)
         # 2. 从 representative_text 推导域外场景
-        keywords = _tokenize(representative_text)
+        # [DET-4] 同上：有序化后取前 3 个（成员不再漂移）。
+        keywords = _ordered_tokens(representative_text)
         if keywords:
-            top_kw = list(keywords)[:3]
+            top_kw = keywords[:3]
             patterns.append(f"不涉及: 与 {', '.join(top_kw)} 无关的任务")
         # 3. 通用反例
         if not failure_entries:
@@ -1065,7 +1093,10 @@ class MemorySkillAbstractor:
             "content": content,
             "content_type": "markdown",
             "category": "ai_generated",
-            "tags": list(set(cluster.common_tags + ["memory-abstracted"])),
+            # [DET-4] list(set(...)) 的次序随进程（PYTHONHASHSEED）变，而这是生成技能
+            # 草稿的 tags（create_manual 落 data/skills_mgmt.json -> 面板/检索）。
+            # dict.fromkeys 保留 cluster.common_tags 的声明序（= 候选汇合序）。
+            "tags": list(dict.fromkeys(cluster.common_tags + ["memory-abstracted"])),
             "default_params": dict(cluster.common_params),
             "config_schema": config_schema,
             "dependencies": [],

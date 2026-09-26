@@ -1,6 +1,7 @@
 """工作流学习总服务 — 组合 learner/generator/repository/matcher/executor"""
 
 from __future__ import annotations
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from .models import (
@@ -13,27 +14,133 @@ from .exceptions import (
     WorkflowNotFoundError,
     WorkflowLearningError,
 )
-from .observability import logger, traced_action
-from .repository import WorkflowRepository
+from .observability import logger, traced_action, track_event
+from .repository import WorkflowRepository, SOURCE_SESSIONS_MAX
 from .matcher import WorkflowMatcher
-from .learner import WorkflowLearner
+from .learner import (
+    WorkflowLearner,
+    SIGNATURE_FALLBACK,
+    canonical_signature,
+)
 from .generator import WorkflowGenerator
 from .executor import WorkflowExecutor, ToolExecutor
 from . import admission
 from . import retirement
 
 
+# ═══════════════════════════════════════════════════════════════
+#  【F11-C-1】config.yaml 接线（消灭「死键」治理陷阱）
+# ───────────────────────────────────────────────────────────────
+#  改前实测（docs/audit_skill_governance/F11C1.md §1）：`config.yaml` 的
+#  `workflow_learning.matcher|executor|learner` 三块**全仓无任何读取点**；
+#  以 instrumentation 拦截 `open` 实测 `WorkflowLearningService()`
+#  （state_manager.py:748 无参构造 = 生产路径）构造期间**从未打开 config.yaml**，
+#  阈值只来自 `WorkflowMatcher.__init__` / `WorkflowExecutor.__init__` 的形参默认值。
+#
+#  本卡接线范围（其余按键逐个裁定，见审计文档 §2）：
+#      matcher.min_similarity / matcher.min_confidence / matcher.top_k
+#  【不易】config.yaml 缺失 / 非法 YAML / 单键类型非法 / 越界 → 逐键回落
+#  `_CONFIG_DEFAULTS`（= 改前的真实生效值），**绝不抛异常中断构造**。
+#  【变易】显式传参 > config.yaml > `_CONFIG_DEFAULTS`（优先级与 orchestrator
+#  各层配置一致；既有调用方显式传的值不受影响）。
+#  【简易】不读 `workflow_learning.executor.min_score`：该键全仓无读取点且与代码
+#  构造默认（0.3）漂移，已按本卡裁定删除；真实生效的执行门槛是
+#  `orchestrator.workflow_learning_layer.min_score`（orchestrator.py:2030 每次
+#  显式传给 `svc.try_execute`，env `ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE`
+#  可覆盖）。服务级构造默认 `min_score` **保持 0.3 不变** —— 若改读配置的 0.25，
+#  服务级执行门槛会 0.3→0.25（更多工作流被自动执行），属行为变更，本卡不改。
+# ═══════════════════════════════════════════════════════════════
+
+#: config.yaml 的**绝对**路径（L8：不得相对 CWD —— 见
+#: tests/unit/test_config_yaml_anchor.py 的结构守卫）
+_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+
+#: 接线键的兜底默认值 —— **必须**等于改前的真实生效值：
+#:   min_similarity/min_confidence = `WorkflowMatcher.__init__` 形参默认
+#:   top_k = `WorkflowMatcher.match` 的默认（executor 侧等价口径见下）
+_CONFIG_DEFAULTS: Dict[str, Any] = {
+    "min_similarity": 0.3,
+    "min_confidence": 0.4,
+    "top_k": 5,
+}
+
+#: key -> (config.yaml 子节, 类型转换, 合法区间)。越界即回落默认并告警。
+_CONFIG_SPEC: Dict[str, Any] = {
+    "min_similarity": ("matcher", float, (0.0, 1.0)),
+    "min_confidence": ("matcher", float, (0.0, 1.0)),
+    "top_k": ("matcher", int, (1, 50)),
+}
+
+
+def _load_workflow_learning_config() -> Dict[str, Any]:
+    """读取 config.yaml `workflow_learning.matcher`（F11-C-1 接线）
+
+    Returns:
+        {"min_similarity": float, "min_confidence": float, "top_k": int}
+        任何异常 / 键缺失 → 该键回落 `_CONFIG_DEFAULTS`（= 改前真实生效值）。
+
+    【不易】本函数**不抛异常**：配置文件损坏不得让工作流服务初始化失败
+    （它挂在主链路的拦截层上）。
+    """
+    cfg = dict(_CONFIG_DEFAULTS)
+    try:
+        if not _CONFIG_PATH.exists():
+            return cfg
+        import yaml as _yaml
+        with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
+            data = _yaml.safe_load(f) or {}
+        section = data.get("workflow_learning") or {}
+        for key, (sub, cast, (lo, hi)) in _CONFIG_SPEC.items():
+            raw = (section.get(sub) or {}).get(key)
+            if raw is None:
+                continue
+            try:
+                value = cast(raw)
+            except (TypeError, ValueError):
+                logger.warning(
+                    "[Service] workflow_learning.%s.%s 非法值已忽略"
+                    "（回落默认 %r）: %r", sub, key, _CONFIG_DEFAULTS[key], raw)
+                continue
+            if not (lo <= value <= hi):
+                logger.warning(
+                    "[Service] workflow_learning.%s.%s 越界 [%s, %s] 已忽略"
+                    "（回落默认 %r）: %r", sub, key, lo, hi,
+                    _CONFIG_DEFAULTS[key], raw)
+                continue
+            cfg[key] = value
+    except Exception as e:  # noqa: BLE001 — 配置读取失败只降级，不影响主链路
+        logger.warning("[Service] workflow_learning 配置读取失败，"
+                       "回落构造默认值: %s", e)
+    return cfg
+
+
 class WorkflowLearningService:
     """工作流学习总服务"""
 
     def __init__(self, *, repo_path: Optional[str] = None,
-                 min_similarity: float = 0.3,
-                 min_confidence: float = 0.4,
-                 min_score: float = 0.3,
+                 min_similarity: Optional[float] = None,
+                 min_confidence: Optional[float] = None,
+                 min_score: Optional[float] = None,
+                 top_k: Optional[int] = None,
                  tool_validator: Optional[Callable[[str], bool]] = None,
                  tool_executor: Optional[ToolExecutor] = None,
                  llm_step_runner=None,
                  agent_executor=None):
+        # 【F11-C-1】阈值优先级: 显式传参 > config.yaml > 兜底默认（改前生效值）
+        # 传 None = "未指定" ⇒ 读配置。既有调用方（显式传值的脚本/测试/路由）
+        # 行为不变；无参构造的生产单例从"硬编码默认"变为"真读 config.yaml"。
+        _cfg = _load_workflow_learning_config()
+        if min_similarity is None:
+            min_similarity = _cfg["min_similarity"]
+        if min_confidence is None:
+            min_confidence = _cfg["min_confidence"]
+        if top_k is None:
+            top_k = _cfg["top_k"]
+        # 【F11-C-1】服务级执行门槛**不读配置**（见模块顶部【简易】）：
+        # 构造默认 0.3 维持不变；真实生效的执行门槛在 orchestrator 拦截层
+        # （workflow_learning_layer.min_score，env 可覆盖）。
+        if min_score is None:
+            min_score = 0.3
         self.repo = WorkflowRepository(path=repo_path)
         self.matcher = WorkflowMatcher(
             min_similarity=min_similarity,
@@ -45,7 +152,7 @@ class WorkflowLearningService:
         )
         self.executor = WorkflowExecutor(
             self.repo, self.matcher,
-            min_score=min_score, tool_executor=tool_executor,
+            min_score=min_score, top_k=top_k, tool_executor=tool_executor,
             agent_executor=agent_executor,
             llm_step_runner=llm_step_runner,
         )
@@ -63,10 +170,92 @@ class WorkflowLearningService:
     # ─── 学习入口 ───
 
     def learn_from_interaction(self, record: LearningRecord) -> LearnedWorkflow:
-        """从一次成功的 LLM 交互中学习方法并保存"""
+        """从一次成功的 LLM 交互中学习方法并保存
+
+        【F11】同任务**去重**：规范签名（`learner.canonical_signature`）相同的
+        重复观察**不再新建条目**，而是并入既有条目并累加 `observed_count`。
+        去重键是**从 `entry.source_user_input` 重算**的规范签名，而不是库里
+        存的字符串 —— 存量条目的 `task_signature` 是旧"字符清单"口径，
+        直接比字符串永远不相等。
+
+        Returns: 本次学习对应的条目（新建的，或并入后的既有条目）。
+        Raises: WorkflowLearningError（仅成功交互可学 / 无工具步骤 / 无实词签名）
+        """
         with traced_action("svc_learn", session_id=record.session_id):
             wf = self.learner.learn(record)
+            existing = self._find_same_task(wf.task_signature)
+            if existing is not None:
+                return self._merge_observation(existing, record, wf)
             return self.generator.generate_and_store(wf)
+
+    # ─── 同任务去重（F11）───
+
+    @staticmethod
+    def _dedup_rank(wf: LearnedWorkflow):
+        """同签名多条目时的"取哪一条"(确定性)：active > draft > archived，
+        其次执行次数多者优先，再按 created_at / id 升序。"""
+        status = str(getattr(wf.status, "value", wf.status))
+        status_rank = {"active": 0, "draft": 1}.get(status, 2)
+        return (status_rank, -int(wf.success_count or 0),
+                str(wf.created_at or ""), str(wf.id))
+
+    def _find_same_task(self, signature: str) -> Optional[LearnedWorkflow]:
+        """按**规范签名**查找既有同任务条目（无则 None）
+
+        - 跳过 `source_user_input` 为空的条目（无来源输入 ⇒ 无法重算签名，
+          不参与去重，避免把不相关条目误并到一起）；
+        - 跳过退化签名（`SIGNATURE_FALLBACK`）：它是"无实词"的占位值，
+          不代表任何任务，不该成为公共去重桶。
+        """
+        if not signature or signature == SIGNATURE_FALLBACK:
+            return None
+        same = [
+            w for w in self.repo.list_all()
+            if str(w.source_user_input or "")
+            and canonical_signature(w.source_user_input) == signature
+        ]
+        if not same:
+            return None
+        return min(same, key=self._dedup_rank)
+
+    def _merge_observation(self, existing: LearnedWorkflow,
+                           record: LearningRecord,
+                           fresh: LearnedWorkflow) -> LearnedWorkflow:
+        """把一次重复观察并入既有条目（**不新建**、不覆盖既有 steps）
+
+        - `observed_count` 累加（这就是"同任务重复出现累加计数"的载体）；
+        - 来源会话并入 `source_sessions`（去重、保留最近
+          `repository.SOURCE_SESSIONS_MAX` 个），使跨会话样本数仍可统计；
+        - `task_signature` 对齐到规范签名（去重键就是它）：存量"字符清单"
+          签名在被重新观察到之后自然收敛，否则 `count_distinct_sessions`
+          永远看不到这条；
+        - 既有 steps / name / status / 统计字段一律不动（新观察不覆盖旧资产，
+          状态由治理侧决定，合并不得把 archived 复活为 active）。
+        """
+        existing.observed_count = int(existing.observed_count or 0) + 1
+        sessions = list(existing.source_sessions or [])
+        for sid in (existing.source_session_id, record.session_id):
+            sid = str(sid or "")
+            if sid and sid not in sessions:
+                sessions.append(sid)
+        existing.source_sessions = sessions[-SOURCE_SESSIONS_MAX:]
+        existing.task_signature = fresh.task_signature
+        existing.touch()
+        self.repo.upsert(existing)
+        # 只有结构+状态达标者才在索引里。不达标者（草稿/归档）从未进索引，
+        # 调 register 只会白增一次"准入否决"计数（matcher.admission_rejected_counts）。
+        if admission.check_match_eligibility(existing).admitted:
+            self.matcher.register(existing)
+        track_event("wf_learn_dedup", {
+            "workflow_id": existing.id,
+            "signature": existing.task_signature,
+            "observed_count": existing.observed_count,
+            "support_sessions": len(existing.source_sessions),
+        })
+        logger.info(
+            "[Service] 同任务重复观察并入 %s（observed_count=%d, 会话 %d 个）",
+            existing.id, existing.observed_count, len(existing.source_sessions))
+        return existing
 
     # ─── 匹配执行入口 (主接口) ───
 
@@ -77,6 +266,12 @@ class WorkflowLearningService:
 
         min_score: 覆盖本次执行的匹配阈值（如 orchestrator 拦截层按层配置），
                    None 时使用构造时默认值
+
+        【F11-C-2】本方法只透传给 `WorkflowExecutor.try_execute`：门槛默认比较
+        **证据分** `evidence = sim × confidence`（priority 只用于排序）；语义上
+        自动执行只在「**高相似 + 有一定信心的重复场景**」成立，**改写场景默认
+        交给 LLM**（返回 matched=False 即降级信号）。逃生开关
+        `WORKFLOW_LEARNING_GATE_ON_EVIDENCE`（置 0 ⇒ 回到改前的乘性门槛）。
         """
         return self.executor.try_execute(task_text, params=params, min_score=min_score)
 
@@ -96,7 +291,13 @@ class WorkflowLearningService:
         return wf
 
     def search(self, task_text: str, *, top_k: int = 5) -> List[Dict[str, Any]]:
-        """模拟匹配，返回候选列表 (不执行)"""
+        """模拟匹配，返回候选列表 (不执行)
+
+        【F11-C-2】这里返回的 `score` 是**排序分** combined（sim × confidence ×
+        priority_factor），不是门槛用的证据分 —— 门槛口径见
+        `WorkflowExecutor.try_execute`；需要两个分数请用
+        `matcher.match(with_evidence=True)` / `matcher.match_scored()`。
+        """
         candidates = self.matcher.match(task_text, top_k=top_k)
         return [{
             "workflow_id": wf.id,
@@ -175,6 +376,9 @@ class WorkflowLearningService:
             },
             "executor": {
                 "min_score": self.executor.min_score,
+                # 【F11-C-1】候选池深度（config.yaml workflow_learning.matcher.top_k
+                # 接线后可见；改前为硬编码 3，配置里的 5 从未生效）
+                "top_k": self.executor.top_k,
                 "tool_executor_set": self.executor._tool_executor is not None,
             },
         }

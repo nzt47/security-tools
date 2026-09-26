@@ -607,7 +607,11 @@ orchestrator:
     # 总开关 - 关闭后拦截层跳过
     # 环境变量 ORCHESTRATOR_WORKFLOW_LEARNING_LAYER_ENABLED 覆盖此值
     enabled: true
-    # top1 综合分阈值（相似度*置信度*优先级权重，与 workflow_learning.executor.min_score 对齐）
+    # top1 综合分阈值（相似度*置信度*优先级权重）
+    # 【F11-C-1 更正】原文写「与 workflow_learning.executor.min_score 对齐」——
+    #   该键**全仓无读取点**（死键），把一个不生效的键说成了对齐源；该键已删除。
+    #   本键是**唯一真相源**：orchestrator.py:1935 读取、:2030 每次显式传给
+    #   svc.try_execute(min_score=...)，即工作流自动执行的真实门槛。
     # 环境变量 ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE 覆盖此值
     min_score: 0.25
 
@@ -727,37 +731,59 @@ skills_mgmt:
 #  模块入口：agent/workflow_learning/service.py
 # ═══════════════════════════════════════════════════════════════
 workflow_learning:
-  # 全局开关
-  enabled: true
-  # 工作流持久化存储路径
-  repo_path: ./data/learned_workflows.json
+  # ── 【F11-C-1 · 2026 死键清理】逐键取证见 docs/audit_skill_governance/F11C1.md ──
+  # 原 `enabled` / `repo_path` 两键**全仓无任何读取点**，已删除；真实开关/路径：
+  #   · 拦截层执行开关 → orchestrator.workflow_learning_layer.enabled
+  #     （env ORCHESTRATOR_WORKFLOW_LEARNING_LAYER_ENABLED 覆盖）
+  #   · 自动学习开关   → 本段 learn_from_interaction.enabled（下方，**已接线**）
+  #   · 持久化路径     → 代码常量 agent/workflow_learning/repository.py:16
+  #     （模块相对的绝对路径 <仓库根>/data/learned_workflows.json）。此处若写相对
+  #     路径会把存储位置绑到进程 CWD（换个目录启动就等于换一份空仓库），故不再提供
+  #     该键；确需改路径请用 WorkflowLearningService(repo_path=...)。
 
-  # 匹配器配置
+  # 匹配器配置（【F11-C-1】三键**已接线**：agent/workflow_learning/service.py
+  #   _load_workflow_learning_config 读取并下发；缺失/非法 → 逐键回落改前生效值）
   matcher:
     # TF-IDF 相似度下限（0-1），低于此值不进入候选
+    # 改前：死键（真实生效值 = WorkflowMatcher.__init__ 构造默认 0.3）
     min_similarity: 0.3
     # 置信度下限（0-1），低于此值的候选被丢弃
+    # 改前：死键（真实生效值 = 构造默认 0.4）
+    # ⚠️ 与 learner 的初始置信度常量 0.4（learner.py 的 LearnedWorkflow(confidence=0.4)）
+    #    耦合：本键若 > 0.4，新学到的条目将无法进入候选（冷启动死锁会复现）。
     min_confidence: 0.4
-    # 返回 Top-K 候选
+    # 候选池深度（相似度 Top-K）
+    # 改前：死键 —— WorkflowExecutor.try_execute 里**硬编码 top_k=3**，本键写 5
+    #       却从未被读。现由 WorkflowExecutor(top_k=...) 读取。
+    # 注：try_execute 只消费候选池的 top1 ⇒ 本键只影响池深与候选计数观测，
+    #     不改变"命中/不命中"判定（F11C1.md §6 有 3 vs 5 的差分实测）。
     top_k: 5
 
   # 执行器配置
-  executor:
-    # 综合得分下限（相似度 * 置信度 * 优先级权重），低于此值不自动执行
-    min_score: 0.25
-    # 单步执行超时（毫秒）
-    step_timeout_ms: 30000
-    # 工作流最大步数（防止过长链路）
-    max_steps: 12
+  # 【F11-C-1 · 整块三键已删除】原 min_score/step_timeout_ms/max_steps 全仓无读取点：
+  #   · `min_score: 0.25` —— 死键，且与代码构造默认 **0.3 漂移**。真实生效的执行
+  #     门槛是上面 orchestrator.workflow_learning_layer.min_score（唯一真相源）。
+  #     接线本键 = 把服务级默认门槛 0.3 降到 0.25 ⇒ **更多工作流被自动执行**
+  #     （HTTP /api/.../try-execute 与不带 min_score 的调用方），属行为变更，
+  #     故本卡删除而不接线；确需改门槛请改 orchestrator.workflow_learning_layer.min_score
+  #     （env ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE 可热覆盖）。
+  #   · `step_timeout_ms: 30000` —— 执行器**没有**单步超时机制（无实现），接线 =
+  #     新增能力（会改变执行语义：长步骤被中断），另立项。
+  #   · `max_steps: 12` —— 执行器**没有**步数上限（准入侧只有 admission.MIN_STEPS=2
+  #     下限；分支>3/步骤>10 只是转 Agent 模式，不是截断）。新增上限会**减少**可执行
+  #     工作流（行为变更），另立项。
 
   # 学习器配置
-  learner:
-    # 触发学习的最小工具调用次数
-    min_tool_calls: 2
-    # 关键词提取最大数量
-    max_keywords: 8
-    # 同任务签名去重窗口（天）
-    dedup_window_days: 7
+  # 【F11-C-1 · 整块三键已删除】learner.{min_tool_calls,max_keywords,dedup_window_days}
+  # 全仓无读取点，且**没有可注入的实现口**：
+  #   · WorkflowLearner **无 __init__**（构造无参），无法从构造函数下发；
+  #   · 触发学习的真实闸门在 orchestrator._learn_workflow_from_interaction（工具调用
+  #     序列**非空**即可，无次数下限）+ 准入 admission.MIN_STEPS=2（<2 步落草稿态）；
+  #   · 关键词/触发词的真实截断常量在 learner.py（SIGNATURE_MAX_TOKENS=32 /
+  #     TRIGGER_TOKENS_MAX=5），本卡禁改该文件；
+  #   · F11 的同任务去重是**同签名无限期去重**（canonical_signature，与时间无关），
+  #     加"7 天窗口"会改变去重语义（老条目会重新变成重复项）⇒ 行为变更。
+  # 如需"最小工具调用数"闸门（会**减少**学习产出）或去重时间窗，属行为变更，另立项。
 
   # 自动学习钩子（自动闭环 v1）— LLM 成功交互后自动 learn_from_interaction
   # 环境变量 ORCHESTRATOR_WF_LEARN_ENABLED 覆盖此值

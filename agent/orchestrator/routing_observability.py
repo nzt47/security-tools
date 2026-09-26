@@ -216,6 +216,63 @@ class RouteContext:
 
 
 # ════════════════════════════════════════════════════════════════
+#  B3 六指标接线（route_depth / route_duration_ms）+ trace 关联辅助
+# ════════════════════════════════════════════════════════════════
+
+# 【B3】惰性取 prometheus.record_route：本模块在 orchestrator 导入期就被加载，
+# 而 prometheus 模块会拉 prometheus_client。埋点是旁路，不该成为导入期硬依赖
+# （与「埋点失败静默降级」不变量一致）；失败只探测一次，负结果缓存。
+_RECORD_ROUTE_FN = None
+_RECORD_ROUTE_PROBED = False
+
+
+def _record_route_fn():
+    """惰性取 agent.monitoring.prometheus.record_route（不可用 → None）"""
+    global _RECORD_ROUTE_FN, _RECORD_ROUTE_PROBED
+    if not _RECORD_ROUTE_PROBED:
+        _RECORD_ROUTE_PROBED = True
+        try:
+            from agent.monitoring.prometheus import record_route as _fn
+            _RECORD_ROUTE_FN = _fn
+        except Exception:
+            _RECORD_ROUTE_FN = None
+    return _RECORD_ROUTE_FN
+
+
+def _emit_route_metrics(ctx: Optional["RouteContext"]) -> None:
+    """把本次请求的路由深度与端到端耗时写入 Prometheus（B3 六指标之 route_depth）
+
+    - route_depth / route_depth_histogram: ctx.layers 条数（一次请求走了几层路由）
+    - route_duration_ms:                   ctx.duration_ms（E1 三指标先手：P95 端到端）
+
+    【不易】指标不可用或写失败一律静默：埋点是旁路，绝不影响请求结果。
+    """
+    try:
+        _fn = _record_route_fn()
+        if _fn is None:
+            return
+        depth = len(ctx.layers) if ctx is not None else 0
+        duration = ctx.duration_ms if ctx is not None else None
+        _fn(depth, duration)
+    except Exception:
+        logger.debug("routing_observability._emit_route_metrics 失败", exc_info=True)
+
+
+def current_trace_id() -> str:
+    """当前请求的路由 trace_id（无请求上下文 → ""）
+
+    【B3】给「tool_retrieval 补 trace_id」用（该埋点在 agent/tool_router_hybrid.py，
+    不在 B3 允许修改的文件集内，见 B3.md §4.2）：补 key 时必须取**本函数**，
+    而不是在工具侧另生成 id —— 否则 route_decision 与 tool_retrieval 仍然对不上。
+    """
+    try:
+        ctx = RouteContext.get()
+        return ctx.trace_id if ctx is not None else ""
+    except Exception:
+        return ""
+
+
+# ════════════════════════════════════════════════════════════════
 #  统一层日志入口 + 最终路由决策
 # ════════════════════════════════════════════════════════════════
 
@@ -293,6 +350,8 @@ def emit_route_decision(final_layer: str, decision: str, trace_id: str, *,
             "duration_ms": round(ctx.duration_ms, 2) if ctx is not None else None,
         }
         logger.info(log_dict(payload))
+        # 【B3】落指标：路由深度（route_depth）+ 端到端耗时（route_duration_ms）
+        _emit_route_metrics(ctx)
     except Exception:
         # 【不易】埋点失败静默降级，绝不影响主链路
         logger.debug("routing_observability.emit_route_decision 失败: final_layer=%s decision=%s",

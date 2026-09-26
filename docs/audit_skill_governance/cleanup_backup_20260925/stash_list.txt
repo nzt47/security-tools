@@ -1,0 +1,5 @@
+stash@{0}: On master: TASK-06 WIP: identity + confirm_level (partial, 56 tests red)
+stash@{1}: On master: S2-01 wrapup: agent/data/skills.json 旧兼容镜像测试漂移
+stash@{2}: On develop: data/state 备份文件清理 (强制切换前, 2026-08-15)
+stash@{3}: On develop: pre-sync-20260815 parallel-session tracked changes
+stash@{4}: On develop: data/ 运行时文件暂存 (2026-08-15)

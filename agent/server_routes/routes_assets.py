@@ -19,7 +19,13 @@ logger = logging.getLogger(__name__)
 ASSETS_DIR = Path("data/assets")
 BACKUPS_DIR = Path("data/backups")
 
-FILE_BASED_CATEGORIES = {"habits", "inspires", "hobbies", "interactions"}
+# [DET-4] 迭代序必须有定义：:173（备份）与 :265（导出）直接迭代它生成 JSON 的键序
+# （HTTP 响应体 + data/backups/*.json 落盘）。set 字面量的迭代序随进程（PYTHONHASHSEED）
+# 变 => 同一份备份/导出文件的键序跨进程不同。
+# 口径：先声明**有序枚举**（类别的自然声明序），再从它派生成员集合 —— 单一事实来源；
+# 其余 6 处 in FILE_BASED_CATEGORIES 的成员判定语义逐位不变（既有测试据此写成集合比较）。
+FILE_BASED_CATEGORY_ORDER = ("habits", "inspires", "hobbies", "interactions")
+FILE_BASED_CATEGORIES = set(FILE_BASED_CATEGORY_ORDER)
 ALL_CATEGORIES = ["memory", "prompts", "tools", "skills", "habits", "inspires", "hobbies", "interactions"]
 
 
@@ -165,7 +171,8 @@ def register_routes(app, state):
             backup_id = f"assets_backup_{timestamp}"
             backup_data = {}
 
-            cats = categories if categories else FILE_BASED_CATEGORIES
+            # [DET-4] 兜底默认必须是**有序**枚举（见文件头的声明）
+            cats = categories if categories else FILE_BASED_CATEGORY_ORDER
             for cat in cats:
                 if cat in FILE_BASED_CATEGORIES:
                     backup_data[cat] = _read_json_file(ASSETS_DIR / f"{cat}.json")
@@ -258,7 +265,7 @@ def register_routes(app, state):
         """导出所有资产为 JSON 文件"""
         try:
             export_data = {}
-            for cat in FILE_BASED_CATEGORIES:
+            for cat in FILE_BASED_CATEGORY_ORDER:   # [DET-4] 导出键序 = 声明序
                 export_data[cat] = _read_json_file(ASSETS_DIR / f"{cat}.json")
 
             export_file = BACKUPS_DIR / f"assets_export_{int(time.time())}.json"

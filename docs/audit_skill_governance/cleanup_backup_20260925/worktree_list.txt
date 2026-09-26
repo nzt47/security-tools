@@ -1,0 +1,13 @@
+C:/Users/Administrator/agent                            5c9ace10 [master]
+C:/Users/Administrator/agent/.worktrees/e2e-verify      82bbe6fd [verify/e2e-dsml]
+C:/Users/Administrator/agent/.worktrees/p0-loadtoolmeta 82bbe6fd [fix/p0-loadtoolmeta]
+C:/Users/Administrator/agent/.worktrees/s1003           717d530e [s1003/main]
+C:/Users/Administrator/agent/.worktrees/s1107           4130c846 [s1107/main]
+C:/Users/Administrator/agent/.worktrees/s1108           894f10b9 [s1108/main]
+C:/Users/Administrator/agent/.worktrees/s1109           a08f92e9 [s1109/main]
+C:/Users/Administrator/agent/.worktrees/s1110           1d50363a [s1110/main]
+C:/Users/Administrator/agent/.worktrees/task09          1d7c7b59 [task09/p0-backtest]
+C:/Users/Administrator/cfg-wt                           3afa020b [fix/config-yaml-reparse]
+C:/Users/Administrator/l6-wt                            5db52d7c [fix/ci-load-sensitivity-l6]
+C:/Users/Administrator/slowwt                           7aa73b7b [test/prefilter-equivalence-nightly]
+C:/Windows/Temp/master_wt                               3995ba9d (detached HEAD)

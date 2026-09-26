@@ -17,6 +17,8 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 在开始需要与当前工作区隔离的功能开发，或者在执行实施计划之前使用。它会自动通过原生工具（或回退到 git worktree）来确保存在一个隔离的工作区。由
+  1 份素材蒸馏生成
 ---
 
 # using-git-worktrees

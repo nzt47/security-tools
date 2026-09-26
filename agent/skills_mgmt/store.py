@@ -192,7 +192,10 @@ class SkillStore:
             merged_fields: List[str] = []
 
             # 1) 合并 tags
-            new_tags = list(set(actual_dst.tags) | set(actual_src.tags))
+            # [DET-4] 合并后的 tags 落 data/skills_mgmt.json 并上屏（标签 chips）。
+            # list(set(...)) 的次序随进程变；dict.fromkeys 取保留方声明序 -> 被合并方声明序。
+            new_tags = list(dict.fromkeys(
+                list(actual_dst.tags) + list(actual_src.tags)))
             if len(new_tags) > len(actual_dst.tags):
                 actual_dst.tags = new_tags
                 merged_fields.append("tags")
@@ -571,20 +574,45 @@ class SkillStore:
             return 0
 
     def _collect_legacy_rows(self) -> list:
-        """收集兼容快照行：主轨技能 + 文件轨内置技能（合并去重）。"""
+        """收集兼容快照行：主轨技能 + 文件轨内置技能（合并去重）。
+
+        【G1-B/M8 · 描述唯一事实源】`description` / `description_zh` 两列取自
+        **文件轨**（`data/skills_repo/<id>/skill.md` 的 front matter），与
+        `SkillRegistry.as_legacy_rows()` 同口径；主轨仍是权威的 name/enabled/params。
+
+        为什么必须在这里对齐：本方法原来是「主轨先占位、文件轨只补缺失」，于是
+        15 条 `pd-*` 的 legacy 快照写的是**主轨中文**，而同一时刻 `as_legacy_rows()`
+        写的是**skill.md 英文** ⇒ 同一份描述在快照与合并视图里各一份，
+        `scripts/compare_skills_legacy_vs_repo.py` 的 15 处 DIFF 就是这么来的。
+        `description_zh` 更是**从未进过快照**（旧读方只有 5 列）。
+        """
         rows = []
         seen = set()
+        # 文件轨元数据（description / description_zh 的唯一来源）
+        meta_idx: Dict[str, Any] = {}
+        try:
+            from .file_store import SkillFileStore
+            # 与主轨同目录的 skills_repo（store 与 file_store 同属 skills_mgmt 包，
+            # 默认路径一致；显式传入是为了跟随自定义 path 的隔离测试）
+            meta_idx = SkillFileStore(
+                repo_path=str(self._path.parent / "skills_repo")
+            ).load_metadata_index(refresh=False) or {}
+        except Exception:  # noqa: BLE001  文件轨读失败 ⇒ 退化为旧行为（主轨文案）
+            meta_idx = {}
         # 主轨技能（权威）
         for skill_dict in self._load().values():
             sid = skill_dict.get("id", "")
             if not sid or sid in seen:
                 continue
             seen.add(sid)
+            fm = meta_idx.get(sid) or {}
             rows.append({
                 "id": sid,
                 "name": skill_dict.get("name", sid),
                 "enabled": bool(skill_dict.get("enabled", True)),
-                "description": skill_dict.get("description", ""),
+                "description": str(fm.get("description")
+                                   or skill_dict.get("description", "") or ""),
+                "description_zh": str(fm.get("description_zh") or ""),
                 "params": skill_dict.get("default_params", {}),
             })
         # 文件轨内置 persona 技能（主轨未注册，旧读方/资产概览依赖）

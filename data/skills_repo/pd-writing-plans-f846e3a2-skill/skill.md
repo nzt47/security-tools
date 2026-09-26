@@ -15,6 +15,7 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 在动手写代码之前，如果你手头有规格说明或多步骤任务的需求，就可以用它。由 1 份素材蒸馏生成
 ---
 
 # writing-plans

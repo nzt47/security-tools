@@ -94,9 +94,12 @@ jobs:
           pip install watchdog psutil pyyaml
 
       - name: 新旧格式元数据对比
+        # [G1-B / H-5] 显式 --ci：CI 里 data/skills.json 被 .gitignore 排除 ⇒
+        # 该断言在 CI **不适用**（打印 PASS-SKIP + 结论行），而不是"静默视为 ALL_MATCH"。
+        # 裸调用（= 迁移校验口径）在 legacy 缺失时会非零退出，本地/迁移校验用。
         run: |
           echo "::group::compare_skills_legacy_vs_repo"
-          python scripts/compare_skills_legacy_vs_repo.py
+          python scripts/compare_skills_legacy_vs_repo.py --ci
           echo "::endgroup::"
 
       - name: 三层架构加载+执行验证
@@ -175,8 +178,9 @@ jobs:
           pip install watchdog psutil pyyaml pytest pytest-timeout pytest-asyncio
 
       - name: 一致性验证
+        # [G1-B / H-5] 同上：nightly 也是 CI 环境，必须显式 --ci。
         run: |
-          python scripts/compare_skills_legacy_vs_repo.py
+          python scripts/compare_skills_legacy_vs_repo.py --ci
           python scripts/verify_migrated_skills.py
 
       - name: 动态加载风险扫描 (JSON 报告)

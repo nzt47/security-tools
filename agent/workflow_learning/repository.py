@@ -15,6 +15,20 @@ logger = logging.getLogger("agent.workflow_learning")
 
 _DEFAULT_REPO_PATH = Path(__file__).parent.parent.parent / "data" / "learned_workflows.json"
 
+#: 【F11】`LearnedWorkflow.source_sessions` 保留的会话数上限：
+#: 跨会话样本数只需判定 ">= admission.MIN_CROSS_SESSION_SUPPORT(2)"，
+#: 无上限累积会让 json 随运行时长线性膨胀，故保留**最近** N 个（去重）。
+SOURCE_SESSIONS_MAX = 20
+
+
+def _sessions_of(entry: dict) -> set:
+    """条目记录的来源会话集合（首次来源 + 后续观察到的会话，去空值）"""
+    sessions = {str(entry.get("source_session_id") or "")}
+    for s in (entry.get("source_sessions") or []):
+        sessions.add(str(s or ""))
+    sessions.discard("")
+    return sessions
+
 
 class WorkflowRepository:
     """工作流仓库 (线程安全)"""
@@ -100,32 +114,37 @@ class WorkflowRepository:
         ⇒ 只有 1 个样本。自动升格为 Skill 要求 ≥
         `admission.MIN_CROSS_SESSION_SUPPORT`（见 admission 模块 §3）。
         注意：`learner._derive_id` 把 session_id 计入哈希，同一任务在不同会话
-        会生成**不同 id**（这正是存量 `wf-f19dc52c` / `wf-c7499f27` 成对出现的
+        会自动生成**不同 id**（这正是存量 `wf-f19dc52c` / `wf-c7499f27` 成对出现的
         原因），故支持数只能按 `task_signature` 聚合，不能按 id 去重。
+
+        【F11】同签名**去重合并**后，一条条目会代表多次观察 ⇒ 样本数还要并入
+        `source_sessions`（首次来源仍是 `source_session_id`，见 learner/service
+        的合并逻辑）；否则去重会把跨会话门槛永久焊死在 1，自动升格再无可能。
         """
         if not task_signature:
             return 0
         data = self._load()
-        sessions = {
-            str(v.get("source_session_id") or "")
-            for v in data.values()
-            if str(v.get("task_signature") or "") == str(task_signature)
-        }
+        sessions = set()
+        for v in data.values():
+            if str(v.get("task_signature") or "") != str(task_signature):
+                continue
+            sessions |= _sessions_of(v)
         sessions.discard("")
         return len(sessions)
 
     def signatures(self) -> Dict[str, int]:
-        """{task_signature: 跨会话样本数}（可复算读数的唯一来源）"""
+        """{task_signature: 跨会话样本数}（可复算读数的唯一来源）
+
+        【F11】与 `count_distinct_sessions` 同口径：样本数 = 该签名下所有条目的
+        `source_session_id` ∪ `source_sessions` 去重计数。
+        """
         data = self._load()
         buckets: Dict[str, set] = {}
         for v in data.values():
             sig = str(v.get("task_signature") or "")
             if not sig:
                 continue
-            bucket = buckets.setdefault(sig, set())
-            sid = str(v.get("source_session_id") or "")
-            if sid:
-                bucket.add(sid)
+            buckets.setdefault(sig, set()).update(_sessions_of(v))
         return {sig: len(s) for sig, s in buckets.items()}
 
     def health(self) -> Dict[str, Any]:

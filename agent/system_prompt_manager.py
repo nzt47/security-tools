@@ -54,6 +54,73 @@ DEFAULT_TEMPLATE = """你是「云枢」，一个生活在电脑里的数字生�
 #   易变块（后置）：身体状态/行为模式/日期/记忆线索 —— 逐轮/逐日变化，
 #                 排在末尾使任何变化只损失其后（最小）的缓存前缀。
 # 任何"中间插一段易变内容"都会击穿其后全部缓存，故日期不得放在身份/原则区。
+#
+# 【F3-1】上面的"后置"只做到了"排在 system message 末尾" —— 但 system message
+# 之后还有 tools 段与全部历史消息（本部署实测 6k+ token）。前缀在易变块处一断，
+# 它们**全部** miss（F3 §5.2：跨请求的稳定前缀只到易变块入口）。
+# 故把易变块从 system message **整块搬出**，作为整条请求的**最后一条消息**：
+# 稳定前缀从"易变块入口"延长到"整条请求减去易变块"。
+# 稳定块（身份/核心原则/技能指令/工具状态）的相对顺序与内容**一个字符都不改**。
+
+#: 易变尾簇在模板里的分隔标记（按出现位置取**最靠前**的一个）。
+#: "\n\n## 当前状态" = SECTION_REGISTRY 路径（body_status/mode_info/日期）；
+#: "\n\n## 记忆线索" = data/system_prompt.txt 现行模板路径（记忆线索最易变）。
+VOLATILE_TAIL_MARKERS: tuple = ("\n\n## 当前状态", "\n\n## 记忆线索")
+
+#: 逃生开关：置 0/false/no/off/disable 即恢复「易变块留在 system message 内」的旧顺序。
+#: 默认（未设置）= 开启新顺序 —— 不改代码即可回滚，见 docs/audit_skill_governance/F3-1.md。
+PROMPT_VOLATILE_TAIL_ENV = "YUNSHU_PROMPT_VOLATILE_TAIL"
+
+_FALSY_ENV_VALUES = ("0", "false", "no", "off", "disable", "disabled")
+
+
+def volatile_tail_move_enabled() -> bool:
+    """是否启用「易变尾簇搬到请求尾部」的新顺序（默认启用）"""
+    raw = os.environ.get(PROMPT_VOLATILE_TAIL_ENV)
+    if raw is None:
+        return True
+    return raw.strip().lower() not in _FALSY_ENV_VALUES
+
+
+def split_volatile_tail(system_prompt: str) -> tuple:
+    """把渲染好的 system prompt 切成 (稳定前缀, 易变尾簇)。
+
+    【为什么在**渲染结果**上切，而不是改模板】模板是用户可编辑的
+    （data/system_prompt.txt / data/system_prompt_config.json），且「段序 = 缓存
+    命中顺序」已被多条契约锁住（tests/unit/test_prompt_cache_order.py、
+    test_system_prompt_emit_info.py、UI 侧 emit_order）。在**渲染结果**上做
+    搬运，模板一字不动 ⇒ 稳定块的相对顺序与内容逐字保持，契约不受影响；
+    本函数只改「同一段文本用哪条消息发出」。
+
+    【为什么按标记切】标记（"## 当前状态" / "## 记忆线索"）在模板里是字面量，
+    渲染后必然出现在易变块入口；找不到标记（自定义模板 / 用户改了标题）
+    一律**原样返回** (system_prompt, "") = 旧顺序，绝不猜、绝不抛。
+
+    Args:
+        system_prompt: 渲染并填充占位符后的 system message 文本。
+
+    Returns:
+        (稳定前缀, 易变尾簇)。未启用开关 / 无标记 / 切出空段时返回
+        (system_prompt, "")（调用方据此保持旧顺序）。
+    """
+    if not system_prompt:
+        return system_prompt or "", ""
+    if not volatile_tail_move_enabled():
+        return system_prompt, ""
+    pos = -1
+    for marker in VOLATILE_TAIL_MARKERS:
+        i = system_prompt.find(marker)
+        if i >= 0 and (pos < 0 or i < pos):
+            pos = i
+    # pos <= 0：无标记，或标记就在开头（切出来没有稳定块 ⇒ 搬了等于把 system
+    # message 清空，绝不这么做）
+    if pos <= 0:
+        return system_prompt, ""
+    stable = system_prompt[:pos]
+    tail = system_prompt[pos:].lstrip("\n")
+    if not stable.strip() or not tail.strip():
+        return system_prompt, ""
+    return stable, tail
 
 
 def get_template() -> str:

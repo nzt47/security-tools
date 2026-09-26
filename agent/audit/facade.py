@@ -400,12 +400,29 @@ class AuditFacade:
     # ── 读/验 ───────────────────────────────────────────────
 
     def recent(self, limit: int = 50, **filters: Any) -> List[AuditEntry]:
-        """最近记录（seq 升序取尾部 limit 条；支持 source/action/actor/day 过滤）"""
+        """最近记录（seq 升序取尾部 limit 条；支持 source/action/actor/day 过滤）
+
+        【D1 读路径修复】原实现把 ``limit`` 丢掉、调 ``chain.entries(**filters)``
+        读出**全表**再切片（实测 72,289 行 1,239 ms/次），而真正带 LIMIT 的
+        索引查询只要约 1.4 ms。现在 limit 下推到 SQL（``chain.tail_entries``，
+        内部 ``ORDER BY seq DESC LIMIT n``），并按同一过滤口径合并"尚未落库"
+        的额外记录（读得到刚写的）。返回值语义**不变**：仍是 seq 升序、
+        最新的一条在**末尾**（与 `tests/unit/test_audit_facade.py`
+        ``test_recent_returns_tail_in_seq_order`` 的既有断言一致）。
+
+        【边界语义（与修复前的差异，只有这两处）】
+        - ``limit <= 0`` → 返回 ``[]``。修复前 ``limit=0`` 走的是 ``if limit``
+          假分支 ⇒ **返回全表**（签名写 0 却读出 72,289 条，是 O(N) 陷阱）；
+          负数在修复前是 ``rows[-(-5):]``（丢掉最旧的 5 条），属无意义行为。
+        - ``limit=None`` → 不限制条数，回落到 ``entries()``（**全量读出，O(N)**，
+          仅供诊断；保留此行为是为了不改动既有调用契约）。
+        """
         chain = self.chain
         if chain is None:
             return []
-        rows = chain.entries(**filters)
-        return rows[-int(limit):] if limit else rows
+        if limit is None:  # 显式"不限条数"：保留旧行为（全量读出，O(N)）
+            return chain.entries(**filters)
+        return chain.tail_entries(int(limit), **filters)
 
     def verify(self, **kwargs: Any) -> ChainVerification:
         """链式验签（委托 AuditChain.verify_chain）"""
@@ -418,6 +435,21 @@ class AuditFacade:
     def daily_merkle_root(self, date: Any = None, **kwargs: Any) -> Any:
         chain = self.chain
         return None if chain is None else chain.daily_merkle_root(date, **kwargs)
+
+    def reseal_daily_root(self, date: Any = None, **kwargs: Any) -> Any:
+        """重封某 UTC 日的 Merkle 根（**只追加**根记录；不写审计链台账）
+
+        D5 新增入口：委托 ``AuditChain.reseal_daily_root``（返回 ``RootReseal``：
+        applied / reason / previous / current / verification）。"当前有效根已通过验签"
+        时幂等返回（``reason="already_ok"``），不产生重复记录。
+
+        D5 的运维工具 ``scripts/audit_reseal_daily_root.py`` 刻意**不**走本入口：
+        门面的 ``self.chain`` 是 ``get_audit_chain()``（role="writer"：占单写者登记、
+        启 writer 线程、开预留日志与跨进程锁），而重封只需要"读台账 + 追加一条根记录"。
+        本入口供**进程内已有 writer 台账**的调用方使用（如运维接口在同一进程内触发重封）。
+        """
+        chain = self.chain
+        return None if chain is None else chain.reseal_daily_root(date, **kwargs)
 
     def snapshot(self) -> Dict[str, Any]:
         """门面自身状态（写入计数/失败/开关/链摘要），供面板与验收报告引用"""
@@ -489,8 +521,17 @@ _LOGGING_SINK_INSTALLED = _install_logging_audit_sink()
 
 def record(action: str, actor: Optional[str] = None, subject: str = "",
            payload: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Optional[AuditEntry]:
-    """模块级便捷入口：`from agent.audit import audit; audit.record(...)` 的等价形式"""
+    """模块级便捷入口：``from agent.audit import audit; audit.record(...)`` 的等价形式"""
     return audit.record(action, actor, subject, payload, **kwargs)
+
+
+def reseal_daily_root(date: Any = None, **kwargs: Any) -> Any:
+    """模块级便捷入口（D5）：重封某 UTC 日的 Merkle 根 —— **只追加**一条根记录
+
+    等价于 ``get_audit().reseal_daily_root(date, **kwargs)``；台账未启用时返回 None
+    （与 ``daily_merkle_root`` 同契约）。不写审计链台账、不删改任何历史行。
+    """
+    return audit.reseal_daily_root(date, **kwargs)
 
 
 def get_audit() -> AuditFacade:
@@ -507,6 +548,6 @@ def reset_audit_facade() -> None:
 
 __all__ = [
     "AuditFacade", "audit", "get_audit", "get_ui_context", "record", "redact_payload",
-    "reset_audit_facade", "reset_ui_actor", "set_payload_sanitizer",
+    "reseal_daily_root", "reset_audit_facade", "reset_ui_actor", "set_payload_sanitizer",
     "set_trace_context_provider", "set_ui_actor",
 ]

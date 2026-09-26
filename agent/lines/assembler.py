@@ -45,6 +45,34 @@ _W_RESIDENT = 40.0   # 常驻平面固定加成（保证永远排最前）
 
 _DEFAULT_FLOOR = 2
 
+#: 平面**声明序**（models.PLANES）—— 本模块把它当作「权重并列时的次级键」。
+#: 为什么是它而不是字典序：第 ② 步的 pools 本来就是按 PLANES 建的，
+#: 即「这个子系统本来就存在的那条确定次序」（与 DET-2 的次级键口径一致）。
+_PLANE_DECL_ORDER = {p: i for i, p in enumerate(PLANES)}
+_PLANE_ORDER_MISSING = 1 << 30
+
+
+def _plane_order(planes: Iterable[str], weights: Dict[str, float]) -> List[str]:
+    """平面迭代序：主键 = 平面权重降序（**未变**），次级键 = 声明序 → 名字
+
+    【DET-3】为什么必须补次级键：active_planes 是 set（第 ① 步的集合推导式），
+    权重**并列**时 sorted(..., key=-weight) 的先后就落到 set 迭代序上 ⇒ 同一份
+    代码、同一份档案，res.by_plane 的键序、res.reasons 的插入序、进而
+    AssemblyResult.to_dict() 载荷的**字节**都随 PYTHONHASHSEED 变。
+    实测（5 种子 × 7 条真实档案）：dev / engineering / harness 三条档案的
+    perceive 与 act 权重并列（=1.0），载荷指纹各取 2 种；其余 4 条档案权重互异 ⇒ 1 种。
+
+    【它到不到达用户可见输出】res.tools（喂给模型的工具表）**不受影响** ——
+    第 ⑥ 步 out_key 末位是工具名字，是全序；实测 7/7 档案跨种子逐位相同。
+    受影响的是 API/UI 载荷：routes_agent_lines._preview_dict（前端
+    yunshu-ui/src/pages/hub/tools/lines.tsx 按 Object.entries(by_plane) 渲染分组）
+    与 integration.describe_line（状态面板）—— 键序即上屏的分组先后。
+    """
+    return sorted(planes,
+                  key=lambda p: (-weights.get(p, 0.0),
+                                 _PLANE_DECL_ORDER.get(p, _PLANE_ORDER_MISSING),
+                                 str(p)))
+
 
 @dataclass
 class AssemblyResult:
@@ -220,6 +248,9 @@ def assemble(
     tag_set = set(profile.tags)
     mute_set = set(profile.mute)
     active_planes = {p for p, w in profile.plane_weights.items() if w > 0}
+    #: 【DET-3】迭代序与成员判定分开：成员判定继续用 set（O(1) 且与次序无关），
+    #: 「按什么次序迭代」一律走 _plane_order（见其 docstring 的实测证据）。
+    active_plane_order = _plane_order(active_planes, profile.plane_weights)
 
     res = AssemblyResult(line_id=profile.id, max_tools=cap)
 
@@ -265,7 +296,7 @@ def assemble(
     # ── ③ 平面保底：每个启用平面先各取 plane_floors 个 ──
     kept: List[str] = []
     kept_set: set = set()
-    for p in sorted(active_planes, key=lambda x: -profile.plane_weights.get(x, 0.0)):
+    for p in active_plane_order:
         floor = int(profile.plane_floors.get(p, _DEFAULT_FLOOR))
         if floor <= 0:
             continue
@@ -363,7 +394,7 @@ def assemble(
     res.tools = kept
     res.by_plane = {
         p: [n for n in kept if meta[n].plane == p]
-        for p in sorted(active_planes, key=lambda x: -profile.plane_weights.get(x, 0.0))
+        for p in active_plane_order
     }
     res.needs_approval = [n for n in kept if meta[n].needs_approval]
     return res

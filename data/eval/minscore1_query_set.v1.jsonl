@@ -1,0 +1,16 @@
+{"id":"zh01","lang":"zh","query":"写测试时要避免哪些反模式","expected_skill":"testing-anti-patterns","en_counterpart":"what anti-patterns to avoid when writing tests"}
+{"id":"en01","lang":"en","query":"what anti-patterns to avoid when writing tests","expected_skill":"testing-anti-patterns","zh_counterpart":"写测试时要避免哪些反模式"}
+{"id":"zh02","lang":"zh","query":"给测试加 Mock 有什么坑","expected_skill":"testing-anti-patterns","en_counterpart":"pitfalls of adding mocks in tests"}
+{"id":"en02","lang":"en","query":"pitfalls of adding mocks in tests","expected_skill":"testing-anti-patterns","zh_counterpart":"给测试加 Mock 有什么坑"}
+{"id":"zh03","lang":"zh","query":"生成后端接口时怎么加结构化日志和健康检查","expected_skill":"code-observability","en_counterpart":"structured logs and health check for backend api"}
+{"id":"en03","lang":"en","query":"structured logs and health check for backend api","expected_skill":"code-observability","zh_counterpart":"生成后端接口时怎么加结构化日志和健康检查"}
+{"id":"zh04","lang":"zh","query":"前后端状态不同步、有竞态该怎么防","expected_skill":"frontend-state-sync","en_counterpart":"frontend backend state out of sync race condition"}
+{"id":"en04","lang":"en","query":"frontend backend state out of sync race condition","expected_skill":"frontend-state-sync","zh_counterpart":"前后端状态不同步、有竞态该怎么防"}
+{"id":"zh05","lang":"zh","query":"乐观更新回滚和请求取消怎么写","expected_skill":"frontend-state-sync","en_counterpart":"optimistic update rollback and request cancellation"}
+{"id":"en05","lang":"en","query":"optimistic update rollback and request cancellation","expected_skill":"frontend-state-sync","zh_counterpart":"乐观更新回滚和请求取消怎么写"}
+{"id":"zh06","lang":"zh","query":"做一个不用查文档就能看懂的自解释界面","expected_skill":"self-explanatory-ui","en_counterpart":"self explanatory interface without documentation"}
+{"id":"en06","lang":"en","query":"self explanatory interface without documentation","expected_skill":"self-explanatory-ui","zh_counterpart":"做一个不用查文档就能看懂的自解释界面"}
+{"id":"zh07","lang":"zh","query":"界面设计时怎么把帮助信息集成进去","expected_skill":"self-explanatory-ui","en_counterpart":"integrate help information into interface design"}
+{"id":"en07","lang":"en","query":"integrate help information into interface design","expected_skill":"self-explanatory-ui","zh_counterpart":"界面设计时怎么把帮助信息集成进去"}
+{"id":"zh08","lang":"zh","query":"代码交付前怎么做自测和审计报告","expected_skill":"engineering-test-delivery","en_counterpart":"self testing and audit report before code delivery"}
+{"id":"en08","lang":"en","query":"self testing and audit report before code delivery","expected_skill":"engineering-test-delivery","zh_counterpart":"代码交付前怎么做自测和审计报告"}

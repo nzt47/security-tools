@@ -19,8 +19,15 @@ _registry: dict[str, dict] = {}
 _action_tracker = None
 
 # 全局限流器（在 call() 中检查调用频率）
-from agent.rate_limiter import RateLimiter as _RateLimiter
-_rate_limiter = _RateLimiter()
+# 【C2 背压】生产实例改由 `tool_limiter_from_env()` 构造：**分类桶的键与数值一字未改**，
+#   仅按 env 追加两层——①确认级 L2/L3 低容量桶 ②工具层并发额度（acquire/release 成对，
+#   见 `call()` 里的 try/finally）。两个开关都置 0 ⇒ 与改动前逐字同行为。
+#   `_RateLimiter` 仍以同一名字导入：既有测试/调用方按该名字引用本模块符号。
+from agent.rate_limiter import (
+    RateLimiter as _RateLimiter,
+    tool_limiter_from_env as _tool_limiter_from_env,
+)
+_rate_limiter = _tool_limiter_from_env()
 
 # ── Task 3.3: 注册表缓存 ──
 _registry_version = 0
@@ -361,6 +368,111 @@ def _update_health(name: str, ok: bool, duration: float):
         h["error_count"] += 1
 
 
+# ════════════════════════════════════════════════════════════
+#  闸门不可用时的分流（A2/R3：确认门 fail-closed）
+# ════════════════════════════════════════════════════════════
+# 【这一层为什么必须存在】`call()` 是本仓工具分发的唯一汇聚点，而它对 `tool_gate`
+#   的调用原本写在 `try` 内、异常一律当成「放行」⇒ `agent.tool_gate` 因任何原因
+#   导入失败（依赖缺失 / 语法错误 / 循环导入 / 被改名）都会让**全部能力（含 L3）**
+#   免确认放行，且**没有任何告警**（审计 S2 / Q1 §5.2）。闸门**内部**的 fail-closed
+#   （治理动作异常即拒）救不了这一层：它只在 `check_tool_call` 被成功调用之后才生效。
+# 【分流口径】L2/L3 ⇒ 拒；L0/L1 ⇒ 放行（与计划 R3 的验收判据逐字一致）。
+#   为什么 L0/L1 仍放行：闸门不可用不该把日常读写全部封死（可用性代价），而 L2/L3 是
+#   「逐次确认 / 默认禁止」的能力 —— 在**证不出它无害**时放行，才是代价无上界的那一侧。
+# 【为什么不去读 `CP_TOOL_GATE_APPROVAL_ENFORCE`】那等于把开关的解析口径在本文件里
+#   再抄一遍（D1：单一真相源）。本层对 L2/L3 一律拒，方向是「只会更严」：闸门可用且
+#   总开关=0 时它们本就放行 ⇒ 本层不会比那种配置更宽。
+GATE_UNAVAILABLE_EVENT = "tool_gate_import_failed"
+_GATE_CALL_FAILED_EVENT = "tool_gate_call_failed"
+_GATE_UNAVAILABLE_ALLOWED_LEVELS = frozenset({"L0", "L1"})
+
+
+def _confirm_level_without_gate(name: str) -> str:
+    """闸门不可用时**独立**取该工具的确认级；判不出 ⇒ ``L3``（最严）
+
+    数据来源与闸门**同一个真相源**（``data/tool_definitions/*.yaml`` 经
+    ``agent.lines.load_tool_meta`` 读出的 ``effective_confirm_level``），只是换了一个
+    入口 —— 而不是另抄一份级别表。``agent.lines`` 与 ``agent.tool_gate`` 是两个独立
+    模块（前者只依赖 yaml），后者不可用不代表前者不可用。
+    """
+    try:
+        from agent.lines import load_tool_meta  # noqa: PLC0415 惰性：本层只在降级时走
+        metas = load_tool_meta()
+    except Exception as e:  # noqa: BLE001  元数据读不到 ⇒ 证不出级别 ⇒ 从严（L3）
+        logger.error("[工具闸门] 降级路径下工具元数据不可用（按 L3 处置）: %s: %s",
+                     type(e).__name__, e)
+        return "L3"
+    raw = str(name or "").strip()
+    meta = None
+    for key in (raw, raw.lower(), raw.rsplit(".", 1)[-1].lower() if "." in raw else ""):
+        if key and key in metas:
+            meta = metas[key]
+            break
+    level = str(getattr(meta, "effective_confirm_level", "") or "").strip().upper()
+    return level if level in ("L0", "L1", "L2", "L3") else "L3"
+
+
+def _record_gate_unavailable(name: str, params: Any, exc: BaseException,
+                             level: str, decision: str, event: str) -> None:
+    """降级事件留两条痕：结构化日志（``event=<event>``）+ 审计链
+
+    【为什么两条都要】日志是运维第一时间能看到的；审计链是不可否认的治理记录
+    （「某段时间闸门不可用、期间哪些调用被降级处理」必须可复盘）。两处各自
+    best-effort —— 留痕失败绝不改变已经做出的判定。
+    【为什么不记参数值】只记**参数名**。参数里可能带密钥/口令（审计 S6 同类问题）。
+    """
+    payload = {
+        "event": str(event),
+        "module_name": "agent.tools",
+        "action": "tool.gate_unavailable",
+        "tool": str(name or ""),
+        "confirm_level": str(level or ""),
+        "decision": str(decision or ""),
+        "error": "%s: %s" % (type(exc).__name__, exc),
+        "param_keys": sorted(str(k) for k in (params or {}).keys()),
+        "degraded": True,
+    }
+    try:
+        from agent.logging_utils import log_dict  # noqa: PLC0415
+        logger.error(log_dict(payload))
+    except Exception:  # noqa: BLE001  结构化日志不可用 ⇒ 退回普通日志（仍不静默）
+        logger.error("[工具闸门] %s tool=%s level=%s decision=%s error=%s",
+                     event, name, level, decision, payload["error"])
+    try:
+        from agent.audit.chain import SOURCE_SYSTEM  # noqa: PLC0415
+        from agent.audit.facade import record as _audit_record  # noqa: PLC0415
+        _audit_record(action=str(event), subject="tool:" + str(name or ""),
+                      extra=payload, source=SOURCE_SYSTEM)
+    except Exception as e:  # noqa: BLE001  留痕失败不得影响执行（但绝不静默）
+        logger.error("[工具闸门] 降级事件审计写入失败: %s: %s", type(e).__name__, e)
+
+
+def _gate_unavailable_outcome(name: str, params: Any, exc: BaseException, *,
+                              event: str = GATE_UNAVAILABLE_EVENT) -> Any:
+    """闸门不可用的分流：``None`` = 放行（L0/L1）；dict = 拒绝结果（L2/L3 或级别判不出）"""
+    level = _confirm_level_without_gate(name)
+    allowed = level in _GATE_UNAVAILABLE_ALLOWED_LEVELS
+    _record_gate_unavailable(name, params, exc, level,
+                             "allowed_degraded" if allowed else "denied", event)
+    if allowed:
+        return None
+    return {
+        "ok": False,
+        "blocked": True,
+        # error_code 沿用本仓既有的拒绝契约（客户端不必为新降级态加分支），
+        # 具体原因放在 error_code_detail，便于日志/巡检按「降级拒绝」单独统计。
+        "error_code": "PERMISSION_DENIED",
+        "error_code_detail": str(event),
+        "error": ("工具闸门当前不可用（%s），而工具 %s 的确认级为 %s"
+                  "（逐次确认 / 默认禁止）⇒ 按 fail-closed **拒绝**本次调用。"
+                  "闸门可用时该调用会走确认流程；请先修复 agent.tool_gate 的"
+                  "导入/加载错误后重试。" % (type(exc).__name__, name, level)),
+        "tool": str(name or ""),
+        "confirm_level": level,
+        "degraded": True,
+    }
+
+
 def call(*args, **params) -> Any:
     """调用指定工具
 
@@ -398,12 +510,26 @@ def call(*args, **params) -> Any:
     params.pop(BOUNDARY_TOKEN_PARAM, None)
 
     # 集中式工具闸门（**唯一汇聚点**：所有调用方——含 orchestrator 直连——
-    # 都必经此处；fail-open，闸门异常视为放行；被拒直接 return，不抛异常）
+    # 都必经此处；被拒直接 return，不抛异常）
+    #
+    # 【A2/R3：本层**不再**无条件 fail-open】原实现把 `from agent.tool_gate import ...`
+    #   写在 try 内、**任何**异常都置 `_denied = None` ⇒ 导入失败即全部能力（含 L3）
+    #   免确认放行，而且是一条单点、静默、无告警的全局致盲开关（审计 S2 / Q1 §5.2）。
+    #   现在按确认级分流：**L2/L3 一律拒、L0/L1 放行**，并留结构化事件
+    #   `tool_gate_import_failed`（结构化日志 + 审计链；实现在上面的同名小节）。
+    #   闸门**可用**时的判据一字未改：仍由 `check_tool_call` 全权裁决。
     try:
         from agent.tool_gate import check_tool_call as _gate_check
-        _denied = _gate_check(name, params)
-    except Exception:  # noqa: BLE001  闸门故障/不可用 ⇒ 放行
-        _denied = None
+    except Exception as _gate_import_err:  # noqa: BLE001  导入失败 ⇒ 按级 fail-closed
+        _denied = _gate_unavailable_outcome(name, params, _gate_import_err)
+    else:
+        try:
+            _denied = _gate_check(name, params)
+        except Exception as _gate_call_err:  # noqa: BLE001  闸门自身抛异常（其内部已吞异常，
+            # 走到这里说明模块在**调用期**也坏了）⇒ 与导入失败同一处置口径，但事件名区分开，
+            # 便于定位是「装不上」还是「跑起来炸」。
+            _denied = _gate_unavailable_outcome(name, params, _gate_call_err,
+                                                event=_GATE_CALL_FAILED_EVENT)
     if _denied is not None:
         return _denied
 
@@ -412,126 +538,146 @@ def call(*args, **params) -> Any:
         wait = _rate_limiter.wait_time(name)
         return {"ok": False, "error": f"调用频率过高，请稍后重试", "retry_after": round(wait, 1)}
 
-    tool = _registry.get(name)
-    if not tool:
-        # 尝试通过发现服务自动获取
-        if _discovery_service:
-            try:
-                logger.info(f"[工具] '{name}' 未找到，尝试自动发现...")
-                result = _discovery_service.on_tool_not_found(name, params)
-                if result.get("acquired"):
-                    logger.info(f"[工具] 自动获取成功: '{name}'")
-                    tool = _registry.get(name)
-            except Exception as de:
-                logger.debug(f"[工具] 自动发现失败: {de}")
-
-        if not tool:
-            raise ToolError(f"未知工具: '{name}'，可用工具: {list_tools()}")
-
-    # 操作追踪（可选）
-    if _action_tracker:
-        target = str(params.get("path", params.get("url", params.get("target", ""))))
-        _action_tracker.start_action(name, params, target)
-
-    # 关键工具：额外追踪信息
-    if name == "web_search":
-        query_preview = str(params.get("query", ""))[:100]
-        engine = params.get("engine", "auto")
-        logger.info(f"[{trace_id}] 调用工具: {name}, 查询: {query_preview}, 引擎: {engine}")
-    elif name == "shell_execute":
-        cmd_preview = str(params.get("command", ""))[:100]
-        logger.info(f"[{trace_id}] 调用工具: {name}, 命令: {cmd_preview}")
-    else:
-        logger.info(f"[{trace_id}] 调用工具: {name}, 参数: {params}")
-
-    start = time.time()
+    # ── 工具层并发额度（C2 背压第二道）──────────────────────────────────
+    # 【为什么在这里】本函数是工具分发的**唯一汇聚点**（见上文），把额度加在这一层
+    #   就一次覆盖所有调用方（tool_calling 的 _execute_safe、orchestrator 直连、
+    #   以及未来新增入口），不必逐个业务工具去补。
+    # 【与 check() 的分工】`check(name)` 走 `_check_old` 只判**速率**（分类桶 + 确认级
+    #   桶），不占并发额度（Q8 第 4 节实测：`_acquire_concurrent()` 在生产无调用者）；
+    #   这里显式 acquire，并在 try/finally 里 release ⇒ **未知工具（下方 raise）、
+    #   handler 抛异常、执行超时**三条路径都必然归还，额度不泄漏。
+    # 【失败姿态】拿不到额度即**拒绝**（strategy=REJECT，不排队）：工具调用是同步调用，
+    #   静默排队会把 waitress 线程一起钉住（Q8 P3）。
+    # 【可回滚】`CP_TOOL_CONCURRENCY_GATE=0` ⇒ `concurrency_gate=False` ⇒ 本段整支跳过。
+    _concurrency_gate_on = bool(getattr(_rate_limiter, "concurrency_gate", False))
+    if _concurrency_gate_on and not _rate_limiter.acquire_concurrent():
+        logger.warning("[%s] 工具并发额度已满（上限 %s）⇒ 拒绝本次调用: %s",
+                       trace_id, getattr(_rate_limiter, "max_concurrent", "?"), name)
+        return {"ok": False, "error": "工具并发调用过多，请稍后重试", "retry_after": 1.0}
     try:
-        # ── 超时上界（TASK-08 子工作流 D / E1j · E15）────────────────────────
-        # 【为什么必须在这里】`call()` 是工具分发的**唯一汇聚点**（见本节上文），
-        # 因此把上界加在这一层，等于一次性覆盖所有调用方（tool_calling 的
-        # `_execute_safe`、orchestrator 直连、以及任何未来新增入口），
-        # 不必逐个业务工具去补 —— 逐个补必然漏，漏掉的那个就是永久阻塞点。
-        #
-        # 【为什么是"兜底"而不是"主判定"】各工具自己**已经有**更精细的内部超时
-        # （shell 120 / git 120 / lint 600 / test 900，见各模块 schema 自述）。
-        # 本层不替代它们，只封住它们**没有**覆盖的情形：handler 自身挂死、
-        # 或其内部超时机制失效（`code_tools` 的「不设置则不限时」即此类）。
-        # 默认上界（1800s）严格高于全部既有自述上限，故不裁掉任何既有契约。
-        #
-        # 【降级】开关读不到 / 模块导入失败 ⇒ 上界为 0（不限）＝ 旧行为，
-        # 保证新模块的任何问题都不会让工具调用链断掉（D4/D2）。
-        try:
-            from agent.timeout_budget import (
-                call_with_timeout, resolve_tool_handler_timeout,
-                timeout_error_payload,
-            )
-            _handler_timeout = resolve_tool_handler_timeout(tool, params)
-        except Exception:  # noqa: BLE001  上界机制自身故障 ⇒ 退化为旧行为
-            _handler_timeout = 0.0
+        tool = _registry.get(name)
+        if not tool:
+            # 尝试通过发现服务自动获取
+            if _discovery_service:
+                try:
+                    logger.info(f"[工具] '{name}' 未找到，尝试自动发现...")
+                    result = _discovery_service.on_tool_not_found(name, params)
+                    if result.get("acquired"):
+                        logger.info(f"[工具] 自动获取成功: '{name}'")
+                        tool = _registry.get(name)
+                except Exception as de:
+                    logger.debug(f"[工具] 自动发现失败: {de}")
 
-        _ok, _outcome = call_with_timeout(
-            tool["handler"], _handler_timeout, kwargs=params, label=name,
-        )
-        if not _ok:
+            if not tool:
+                raise ToolError(f"未知工具: '{name}'，可用工具: {list_tools()}")
+
+        # 操作追踪（可选）
+        if _action_tracker:
+            target = str(params.get("path", params.get("url", params.get("target", ""))))
+            _action_tracker.start_action(name, params, target)
+
+        # 关键工具：额外追踪信息
+        if name == "web_search":
+            query_preview = str(params.get("query", ""))[:100]
+            engine = params.get("engine", "auto")
+            logger.info(f"[{trace_id}] 调用工具: {name}, 查询: {query_preview}, 引擎: {engine}")
+        elif name == "shell_execute":
+            cmd_preview = str(params.get("command", ""))[:100]
+            logger.info(f"[{trace_id}] 调用工具: {name}, 命令: {cmd_preview}")
+        else:
+            logger.info(f"[{trace_id}] 调用工具: {name}, 参数: {params}")
+
+        start = time.time()
+        try:
+            # ── 超时上界（TASK-08 子工作流 D / E1j · E15）────────────────────────
+            # 【为什么必须在这里】`call()` 是工具分发的**唯一汇聚点**（见本节上文），
+            # 因此把上界加在这一层，等于一次性覆盖所有调用方（tool_calling 的
+            # `_execute_safe`、orchestrator 直连、以及任何未来新增入口），
+            # 不必逐个业务工具去补 —— 逐个补必然漏，漏掉的那个就是永久阻塞点。
+            #
+            # 【为什么是"兜底"而不是"主判定"】各工具自己**已经有**更精细的内部超时
+            # （shell 120 / git 120 / lint 600 / test 900，见各模块 schema 自述）。
+            # 本层不替代它们，只封住它们**没有**覆盖的情形：handler 自身挂死、
+            # 或其内部超时机制失效（`code_tools` 的「不设置则不限时」即此类）。
+            # 默认上界（1800s）严格高于全部既有自述上限，故不裁掉任何既有契约。
+            #
+            # 【降级】开关读不到 / 模块导入失败 ⇒ 上界为 0（不限）＝ 旧行为，
+            # 保证新模块的任何问题都不会让工具调用链断掉（D4/D2）。
+            try:
+                from agent.timeout_budget import (
+                    call_with_timeout, resolve_tool_handler_timeout,
+                    timeout_error_payload,
+                )
+                _handler_timeout = resolve_tool_handler_timeout(tool, params)
+            except Exception:  # noqa: BLE001  上界机制自身故障 ⇒ 退化为旧行为
+                _handler_timeout = 0.0
+
+            _ok, _outcome = call_with_timeout(
+                tool["handler"], _handler_timeout, kwargs=params, label=name,
+            )
+            if not _ok:
+                duration = time.time() - start
+                _update_health(name, False, duration)
+                logger.error("[%s] 工具执行超时: %s — 上界 %.1fs",
+                             trace_id, name, _handler_timeout)
+                if _action_tracker:
+                    _action_tracker.finish_action("timeout", f"上界 {_handler_timeout:.1f}s")
+                # 返回**结构化**错误而非抛异常：超时是"可预期的资源耗尽"，
+                # 上层（LLM 循环）应能读到它并换策略，而不是把整轮对话打断。
+                return timeout_error_payload(name, _handler_timeout)
+            result = _outcome
+
+            duration = time.time() - start
+            _update_health(name, True, duration)
+
+            # 关键工具：记录返回信息
+            if name == "web_search":
+                if isinstance(result, dict):
+                    result_count = len(result.get("results", []))
+                    logger.info(f"[{trace_id}] 工具返回: {name} → 结果数: {result_count}")
+                else:
+                    logger.info(f"[{trace_id}] 工具返回: {name} → {str(result)[:200]}")
+            elif name == "shell_execute":
+                if isinstance(result, dict):
+                    exit_code = result.get("returncode", result.get("code", "?"))
+                    output_size = len(str(result.get("stdout", result.get("output", ""))))
+                    logger.info(f"[{trace_id}] 工具返回: {name} → 退出码: {exit_code}, 输出大小: {output_size}")
+                else:
+                    logger.info(f"[{trace_id}] 工具返回: {name} → {str(result)[:200]}")
+            else:
+                logger.info(f"[{trace_id}] 工具返回: {name} → {str(result)[:200]}")
+
+            # 完成操作追踪
+            if _action_tracker:
+                _action_tracker.finish_action("completed", str(result)[:200])
+                if any(k in name for k in ["http", "fetch", "search", "api", "browse"]):
+                    access_type = "network"
+                elif any(k in name for k in ["read", "write", "list", "delete", "rename", "copy"]):
+                    access_type = "file"
+                else:
+                    access_type = "sensor"
+                _action_tracker.log_access(access_type, target or name, name, "allowed")
+
+            # ── 外来文本污点标记（TASK-07 机制 1 的结果侧接线）────────────────
+            # 位置：**handler 返回之后、结果交给调用方之前** —— 这是"数据进入上下文
+            # 之前"的唯一可靠时点（调用方拿到结果后会立刻拼进消息）。
+            # 详见 `agent/guardrails/untrusted_ingest.py`。
+            mark_result_foreign(name, result)
+
+            return result
+        except Exception as e:
             duration = time.time() - start
             _update_health(name, False, duration)
-            logger.error("[%s] 工具执行超时: %s — 上界 %.1fs",
-                         trace_id, name, _handler_timeout)
+            logger.error(f"[{trace_id}] 工具执行失败: {name} — {e}")
+
+            # 操作追踪失败
             if _action_tracker:
-                _action_tracker.finish_action("timeout", f"上界 {_handler_timeout:.1f}s")
-            # 返回**结构化**错误而非抛异常：超时是"可预期的资源耗尽"，
-            # 上层（LLM 循环）应能读到它并换策略，而不是把整轮对话打断。
-            return timeout_error_payload(name, _handler_timeout)
-        result = _outcome
+                _action_tracker.finish_action("failed", str(e)[:200])
 
-        duration = time.time() - start
-        _update_health(name, True, duration)
-
-        # 关键工具：记录返回信息
-        if name == "web_search":
-            if isinstance(result, dict):
-                result_count = len(result.get("results", []))
-                logger.info(f"[{trace_id}] 工具返回: {name} → 结果数: {result_count}")
-            else:
-                logger.info(f"[{trace_id}] 工具返回: {name} → {str(result)[:200]}")
-        elif name == "shell_execute":
-            if isinstance(result, dict):
-                exit_code = result.get("returncode", result.get("code", "?"))
-                output_size = len(str(result.get("stdout", result.get("output", ""))))
-                logger.info(f"[{trace_id}] 工具返回: {name} → 退出码: {exit_code}, 输出大小: {output_size}")
-            else:
-                logger.info(f"[{trace_id}] 工具返回: {name} → {str(result)[:200]}")
-        else:
-            logger.info(f"[{trace_id}] 工具返回: {name} → {str(result)[:200]}")
-
-        # 完成操作追踪
-        if _action_tracker:
-            _action_tracker.finish_action("completed", str(result)[:200])
-            if any(k in name for k in ["http", "fetch", "search", "api", "browse"]):
-                access_type = "network"
-            elif any(k in name for k in ["read", "write", "list", "delete", "rename", "copy"]):
-                access_type = "file"
-            else:
-                access_type = "sensor"
-            _action_tracker.log_access(access_type, target or name, name, "allowed")
-
-        # ── 外来文本污点标记（TASK-07 机制 1 的结果侧接线）────────────────
-        # 位置：**handler 返回之后、结果交给调用方之前** —— 这是"数据进入上下文
-        # 之前"的唯一可靠时点（调用方拿到结果后会立刻拼进消息）。
-        # 详见 `agent/guardrails/untrusted_ingest.py`。
-        mark_result_foreign(name, result)
-
-        return result
-    except Exception as e:
-        duration = time.time() - start
-        _update_health(name, False, duration)
-        logger.error(f"[{trace_id}] 工具执行失败: {name} — {e}")
-
-        # 操作追踪失败
-        if _action_tracker:
-            _action_tracker.finish_action("failed", str(e)[:200])
-
-        raise ToolError(f"工具 '{name}' 执行失败: {e}") from e
+            raise ToolError(f"工具 '{name}' 执行失败: {e}") from e
+    finally:
+        if _concurrency_gate_on:
+            _rate_limiter.release()
 
 
 def list_tools() -> list[dict]:

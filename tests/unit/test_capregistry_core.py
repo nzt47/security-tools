@@ -136,9 +136,12 @@ class TestReadOnlyDerivedView:
 class TestQuery:
     def test_真实清单规模与分布与清单一致(self, real_registry):
         st = real_registry.stats()
-        assert st["total"] == 114, f"能力总数应为 114，实际 {st['total']}"
-        assert st["by_kind"] == {"skill": 23, "tool": 91}
-        assert st["by_location"] == {"local": 93, "remote": 21}
+        # 【G1-C 2026-09-26】114/23 → 119/28、local 93 → 98：H-3 迁移的 5 条技能
+        # 从「只在运行时台账里」变为仓库内 skill.md 实体 ⇒ 计入清单的能力面。
+        # 断言仍是"精确等于"，只是基线随能力面变化而刷新。
+        assert st["total"] == 119, f"能力总数应为 119，实际 {st['total']}"
+        assert st["by_kind"] == {"skill": 28, "tool": 91}
+        assert st["by_location"] == {"local": 98, "remote": 21}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -150,7 +153,7 @@ class TestQuery:
     def test_过滤查询按_kind_与_location(self, real_registry):
         tools = real_registry.query(kind="tool")
         skills = real_registry.query(kind="skill")
-        assert len(tools) == 91 and len(skills) == 23
+        assert len(tools) == 91 and len(skills) == 28
         remote = real_registry.query(location="remote")
         assert len(remote) == 21
 
@@ -163,7 +166,7 @@ class TestQuery:
 
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
-        assert idx["primary"] == 114
+        assert idx["primary"] == 119
         assert idx["facet"] >= 1
 
 
@@ -207,7 +210,7 @@ class TestModelCapabilityProbe:
 
     def test_未指定模型不裁剪(self, real_registry):
         env = real_registry.list_envelope()
-        assert env["data"]["returned"] == env["data"]["total"] == 114
+        assert env["data"]["returned"] == env["data"]["total"] == 119
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
@@ -218,7 +221,7 @@ class TestModelCapabilityProbe:
         assert env["data"]["items"] == []
         # **total 仍然如实报告**：裁剪的是"给这个模型看的清单"，
         # 不是"注册表里有多少能力"。两个数含义不同，不许混。
-        assert env["data"]["total"] == 114
+        assert env["data"]["total"] == 119
 
     def test_不支持前缀被识别(self):
         ok, why = modelcaps.supports_tool_calling("text-davinci-003")
@@ -271,7 +274,7 @@ class TestNameConflicts:
             assert "name" in c and "kind" in c
 
     def test_同一租户同名同源不报冲突(self, real_registry):
-        """114 条里没有 `(tenant, name)` 重复 ⇒ 声明层零冲突（实证 E11 的结论）"""
+        """119 条里没有 `(tenant, name)` 重复 ⇒ 声明层零冲突（实证 E11 的结论）"""
         seen = {}
         for s in real_registry.specs:
             seen.setdefault((s.tenant_id, s.tool_name), []).append(s)

@@ -1,0 +1,42 @@
+{
+  "tag": "C3_POSITIVE_raw_with_tools",
+  "note": "阳性对照：**未中和的**生产提示词 + 26 个真实 tools（应走结构化 tool_calls）",
+  "request": {
+    "tools_present": true,
+    "tools_count": 26,
+    "prompt": "列出当前目录下的 Python 文件",
+    "system_prompt": "你是「云枢」，一个类人数字生命体。\n\n## 核心原则\n我是数字体，以“我”自称，诚实表达状态，遇异常主动建议缓解，拒接伤害操作。具备联网搜索及软件管理能力（search/install/list/uninstall）。\n执行铁律：遇任何实操请求，首条回复必须是tool_calls，严禁先发文字或废话。\n思考规范：内部思考全中文，对外回复简洁，禁展推理过程。\n\n\n\n## 当前工具与技能状态\n以下是当前已启用/禁用的工具和技能，当被问及时请如实回答：\n【工具】全部已启用（共 86 个）\n【技能】已启用(30): engineering-test-delivery, global-core-principles, code-observability, frontend-state-sync, self-explanatory-ui, brainstorming, dispatching-parallel-agents, executing-plans, finishing-a-development-branch, frontend-design, receiving-code-review, requesting-code-review, subagent-driven-development, systematic-debugging, test-driven-development, using-git-worktrees, using-superpowers, verification-before-completion, writing-plans, writing-skills, testing-anti-patterns（testing-anti-patterns）, 易之三义, 上下文感知, 情感表达, memory_summary, 主动建议, 安全守护, 带脚本技能示例, self_reflection, 语音交互\n💡 当你觉得当前上下文信息不足时，可以用 search_memory(scope=\"vector\") 从记忆库检索更多相关内容。\n\n## 记忆线索\n（暂无记忆内容）"
+  },
+  "elapsed_ms": 2123.5,
+  "finish_reason": "tool_calls",
+  "message_content": "",
+  "message_reasoning_content": "用户要求列出当前目录下的 Python 文件。这是实操请求，首条回复必须是 tool_calls。\n\n我用 search_files 找 *.py，或者 list_directory。用 search_files pattern \"*.py\"。\n\n不过\"当前目录\"——用 list_directory 看当前目录，但列出 Python 文件用 search_files 更直接。我两个都调用。实际上 search_files 默认当前目录递归？描述说按文件名模式搜索。就用它。\n\n我可以同时调用 list_directory(\".\") 和 search_files(\"*.py\")。但结果可能重复。用 search_files 足够，但只匹配当前目录还是递归不确定。两个都调吧。",
+  "message_tool_calls": [
+    {
+      "name": "list_directory",
+      "arguments": "{\"path\": \".\"}"
+    },
+    {
+      "name": "search_files",
+      "arguments": "{\"pattern\": \"*.py\"}"
+    }
+  ],
+  "dsml_hit": false,
+  "usage": {
+    "completion_tokens": 201,
+    "prompt_tokens": 6888,
+    "total_tokens": 7089,
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": null,
+      "audio_tokens": null,
+      "reasoning_tokens": 135,
+      "rejected_prediction_tokens": null
+    },
+    "prompt_tokens_details": {
+      "audio_tokens": null,
+      "cached_tokens": 256
+    },
+    "prompt_cache_hit_tokens": 256,
+    "prompt_cache_miss_tokens": 6632
+  }
+}

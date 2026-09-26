@@ -22,6 +22,35 @@ from agent.digital_life import (
     _OCR_AVAILABLE, _P6_SNAPSHOT_AVAILABLE,
 )
 
+
+@pytest.fixture(autouse=True)
+def _restore_tool_registry():
+    """用例结束把**进程级**工具注册表逐条还原（快照在手）
+
+    【不易·为什么必须有】本文件大量**直接构造真实** `DigitalLife(...)`，其装配会
+    `_register_builtin_tools()` ⇒ 把**整套内建工具**（实测 91 个）登记进
+    `agent/tools/__init__.py:_registry`。这些构造发生在**用例体**里，没有 teardown
+    可言 ⇒ 泄漏会留给同进程后续测试文件（本文件排在
+    `tests/unit/test_tool_count_consistency.py` 之前时，后者"下发集 == 我登记的 3 个
+    工具"的前置条件当场失配 ⇒ 2 failed）。
+
+    【口径不降】断言一条未改：只做"快照 → 用例跑 → 逐条放回"（含 source / schema /
+    handler / source_id），并推进 `_registry_version` 让各级缓存失效。
+    【为什么不在用例开始时清空】**只还原**作用面最小：本文件不要求空注册表，
+    清空会改变用例看到的世界（例如内建工具与 data/tool_definitions 的对账）。
+    【为什么不用 `tools.clear()`】它会连 `_tool_health` 一起清。
+    """
+    from agent import tools as _tools
+
+    saved = dict(_tools._registry)
+    try:
+        yield
+    finally:
+        _tools._registry.clear()
+        _tools._registry.update(saved)
+        _tools._registry_version += 1
+
+
 class MockLLM:
     def __init__(self, response="Hello, how can I help you?"):
         self.response = response

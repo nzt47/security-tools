@@ -13,7 +13,7 @@
 | `TestDerivation` | 派生规则表本身（顺序敏感、14 组边界） |
 | `TestThirteenHighTools` | **E1**：13 个 `risk: high` 工具逐个进确认流 |
 | `TestL0StaysFree` | **E2**：L0 确实免确认（分级**不是**一刀切） |
-| `TestConsistencyWithPermissionLevel` | **E8**：全量 114 条的派生一致性对拍 |
+| `TestConsistencyWithPermissionLevel` | **E8**：全量 119 条的派生一致性对拍 |
 | `TestTwoSwitchesAreNested` | 两个开关的**从属**关系（总开关 ⊃ 分级开关） |
 | `TestFailOpenDoesNotWeakenConfirmLevel` | 任务 B 裁决的锁定（策略文件缺失 ≠ 免确认） |
 | `TestNonInteractiveNeverDangles` | **E5**：非交互不挂空单 |
@@ -290,7 +290,7 @@ class TestL0StaysFree:
 
 
 # ════════════════════════════════════════════════════════════
-#  四、E8：与 permission_level 的派生一致性（全量 114 条）
+#  四、E8：与 permission_level 的派生一致性（全量 119 条）
 # ════════════════════════════════════════════════════════════
 
 
@@ -337,8 +337,8 @@ class TestConsistencyWithPermissionLevel:
 
         assert mismatch == [], f"派生口径矛盾（D1 违规）：{mismatch[:5]}"
 
-    def test_技能侧_23_条_不适用该等价关系_逐条有理由(self):
-        """E8 的"矛盾项逐条有理由"：23 条技能**全部**是例外，且理由是同一条事实
+    def test_技能侧_28_条_不适用该等价关系_逐条有理由(self):
+        """E8 的"矛盾项逐条有理由"：28 条技能**全部**是例外，且理由是同一条事实
 
         实测（本用例就是证据）：技能侧的 `permission_level` **不是**由
         `effect/risk` 派生的，而是
@@ -356,9 +356,12 @@ class TestConsistencyWithPermissionLevel:
 
         故断言：技能条目**不携带** `confirm_level` 字段（工具侧概念不外溢），
         且差异条目可被逐条枚举出来（只有 `scripted-selftest` 一个 body 层面不同）。
+
+        【G1-C 2026-09-26】23 → 28：H-3 迁移的 5 条技能进入清单（技能侧）。断言语义
+        （"技能条目不携带 confirm_level""permission_level 恒为 public/restricted"）不变。
         """
         skills = [e for e in _manifest_entries() if e.get("kind") == "skill"]
-        assert len(skills) == 23, len(skills)
+        assert len(skills) == 28, len(skills)
         for e in skills:
             assert "confirm_level" not in e, (
                 f"技能 {e.get('tool_name')} 不该有工具侧的 confirm_level 字段")
@@ -376,7 +379,7 @@ class TestConsistencyWithPermissionLevel:
         for name, got, base in diff:
             assert got in ("public", "restricted"), (name, got)
         assert all(got == "public" for _n, got, _b in diff), \
-            "本部署 23 条技能全部启用且不敏感 ⇒ 全是 public（与声明一致）"
+            "本部署 28 条技能全部启用且不敏感 ⇒ 全是 public（与声明一致）"
         # 至少有一条在"工具侧口径"下会得出 internal ⇒ 证明两组口径确实不同
         assert any(base == "internal" for _n, _got, base in diff), \
             "若两组口径完全一致，本例外说明就站不住，需重新核验"

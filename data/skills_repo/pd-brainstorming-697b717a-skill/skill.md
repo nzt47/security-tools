@@ -15,6 +15,8 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 在进行任何创造性工作（比如开发新功能、构建组件、添加功能或修改现有行为）之前，你【必须】先使用此流程。务必在动手写代码实现之前，先充分探索并明确用户的真实意图、具体需求和设计方案。由
+  1 份素材蒸馏生成
 ---
 
 # brainstorming

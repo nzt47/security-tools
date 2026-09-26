@@ -28,10 +28,23 @@ PATH = "/api/health/retrieval"
 
 @pytest.fixture(scope="module")
 def flask_app():
-    import app_server  # noqa: PLC0415 真实入口
+    """真实入口 app；用完**整表还原**工具注册表
 
-    app_server.app.config.update(TESTING=True)
-    return app_server.app
+    【不易·为什么必须还原】`import app_server` 会登记整套内建工具（实测 91 个）到
+    **进程级** `agent/tools/__init__.py:_registry`；不还原就会污染同进程后续测试
+    （实测：本文件排在 `tests/unit/test_tool_count_consistency.py` 之前时后者必红 2 条）。
+    """
+    from agent import tools as _tools
+
+    saved = dict(_tools._registry)
+    try:
+        import app_server  # noqa: PLC0415 真实入口
+        app_server.app.config.update(TESTING=True)
+        yield app_server.app
+    finally:
+        _tools._registry.clear()
+        _tools._registry.update(saved)
+        _tools._registry_version += 1
 
 
 @pytest.fixture

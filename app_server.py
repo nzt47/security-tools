@@ -136,9 +136,293 @@ except Exception as _e:
     logger.debug(f"结构化日志格式化器加载失败（不影响功能）: {_e}")
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# [B2] 路由决策事件持久化 sink —— agent.orchestrator → data/logs/<date>.jsonl
+# ════════════════════════════════════════════════════════════════════════════
+# [B2-ROUTE-SINK-BEGIN]
+#   ↑ tests/unit/test_route_log_sink.py 按此标记从本文件源码抽取本段做单测。
+#   为什么不直接 import app_server：模块级会真的构造 DigitalLife 并 start()
+#   （下方 _Yunshu = DigitalLife(...)），实测 80–100s 且启动 embedding/reranker
+#   子进程（GB 级内存）—— 一个 sink 单测不得付出这个代价。
+#
+# 【为什么要它（Q5_funnel_baseline.md §3 / §8.2 实测）】
+#   路由打点本身齐全：routing_observability.py:222-266 log_layer_result、
+#   :269-299 emit_route_decision、orchestrator.py:368 _record_intent_layer
+#   （→ prometheus.py:718/724）。但 web 服务**没有持久化 sink**：
+#   本文件第 128 行的 logging.basicConfig 只写 stderr；带轮转文件的
+#   setup_agent_logging(enable_file=True) 只被 CLI main.py:28,95 调用，
+#   且默认 enable_file=False（agent/logging_utils.py:441,500-513）。
+#   实测 data/logs/*.jsonl 中 route_decision=0 / intent_layer=0 ⇒ 服务一重启，
+#   路由决策永久丢失，「路由准确率/误召率/平均路由深度/P95 延迟」一个都算不出。
+#
+# 【复用而不是另造（不易）】data/logs/<date>.jsonl 这个 sink 早就存在：
+#   agent/monitoring/loki.py:66-76 LokiClient._save_local_log 以
+#   {"timestamp":..,"labels":{..},"message":"<json 字符串>"} 逐行追加到同一目录的
+#   <date>.jsonl（配置变更事件走的就是它，见 config_observability.py:230-234）。
+#   本段**只把路由类事件接进这个既有通道**：不新增文件格式、不新增 writer、
+#   不改写 logging.basicConfig、不建第二套日志框架；读侧的
+#   LokiClient.query_logs/_get_local_labels 无需任何改动即可检索这些行。
+#
+# 【范围界定：只放行路由类事件，不无脑开 DEBUG（不易）】双重门 + 一个级别约束：
+#   ① logger 门：handler 只挂在 _ROUTE_EVENT_SINK_LOGGERS 这两个 logger 上（不挂
+#      root）。agent.orchestrator 覆盖 routing_observability.py:33 与
+#      orchestrator.py:70（其 "agent.orchestrator.orchestrator" 向上传播到这里）；
+#      agent.observability.tool_trace（tool_trace.py:41）覆盖工具漏斗检索事件。
+#      其它模块的记录根本不进入本 handler ⇒ 连过滤开销都不付。
+#   ② action 门：记录 msg 是 log_dict 产出的 dict，只有 action 命中
+#      _ROUTE_EVENT_SINK_ACTIONS / _ROUTE_EVENT_SINK_ACTION_PREFIXES 才落盘；
+#      同一 logger 上的非路由日志（如 "[LLM] 正常完成"）被丢弃。
+#   ③ 级别：handler 级别固定 INFO，全程不调 setLevel(DEBUG)。层未命中
+#      （log_layer_result level=DEBUG，orchestrator.py:758 等）因此**不落盘** ——
+#      这是有意的：漏斗的「尝试/命中」分母已由 route_decision 整包携带
+#      （routing_observability.py:261 ctx.add_layer 不区分级别，:291 全量写出
+#      layer_results），1 条 route_decision 即可还原该请求的完整漏斗，
+#      无需为分母开 DEBUG 洪泛。
+#
+# 【可关闭 / 可回滚】CP_ROUTE_EVENT_SINK_ENABLED=0（亦接受 false/no/off）⇒ 不装配
+#   handler，且会摘掉已装的 handler，行为回到改动前（路由日志只进 stderr）。
+#   回滚方式见 docs/audit_skill_governance/B2.md。
+#
+# 【失败姿态】装配失败（loki 模块缺失等）只 warning，绝不阻断启动；单条写盘失败
+#   只计数，绝不向业务线程抛出（与埋点「不阻断主链路」同一姿态）。
+#
+# 【不拖慢请求路径】同步追加写，不用 QueueHandler/后台线程：端到端实测每请求只写
+#   2 行（2 次真实对话 → 4 行，见 docs/audit_skill_governance/B2.md §4），而进程被
+#   taskkill /F 时（本仓常见退出方式）异步队列里未刷盘的事件会丢 ——「重启即丢」正是
+#   本卡要消灭的问题。单次写盘 mean 241–267us / p95 289–340us（同一份生产代码的
+#   微基准，2000 次写盘 ×2 轮），相对实测请求耗时（0.5s 起）可忽略。
+
+_ROUTE_EVENT_SINK_ENV = "CP_ROUTE_EVENT_SINK_ENABLED"
+_ROUTE_EVENT_SINK_DIR_ENV = "CP_ROUTE_EVENT_SINK_DIR"
+_ROUTE_EVENT_SINK_LOGGERS = ("agent.orchestrator", "agent.observability.tool_trace")
+_ROUTE_EVENT_SINK_ACTIONS = frozenset({
+    "orchestrator.process.route_decision",  # routing_observability.py:286（每请求 1 条）
+    "orchestrator.traffic.summary",         # routing_observability.py:124（每 N 次请求 1 条）
+    "tool_retrieval",                       # tool_trace.py:559（工具漏斗检索事件）
+})
+_ROUTE_EVENT_SINK_ACTION_PREFIXES = (
+    "orchestrator.layer.",                  # routing_observability.py:240 log_layer_result
+    "orchestrator.intent_layer.",           # orchestrator.py:385/395 埋点诊断
+)
+_ROUTE_EVENT_SINK_HANDLERS = []  # [(logger_name, handler)]，供幂等摘除
+_ROUTE_EVENT_SINK_STATE = {}
+
+
+def _route_event_payload(record):
+    """把一条 LogRecord 还原成路由事件 dict；非白名单事件返回 None
+
+    两种形态都吃：log_dict 产出的 dict（当前实现），以及历史调用点可能传的
+    JSON 字符串 —— 判据始终是 action 门，不因形态不同而放行。
+    """
+    msg = getattr(record, "msg", None)
+    if isinstance(msg, dict):
+        payload = msg
+    elif isinstance(msg, str):
+        try:
+            payload = json.loads(msg)
+        except Exception:
+            return None
+        if not isinstance(payload, dict):
+            return None
+    else:
+        return None
+
+    action = payload.get("action")
+    if not isinstance(action, str) or not action:
+        return None
+    if action in _ROUTE_EVENT_SINK_ACTIONS:
+        return payload
+    if action.startswith(_ROUTE_EVENT_SINK_ACTION_PREFIXES):
+        return payload
+    return None
+
+
+class RouteEventJsonlHandler(logging.Handler):
+    """把路由类日志记录追加写入既有 JSONL sink（data/logs/<date>.jsonl）
+
+    写盘通道 = LokiClient(enabled=False).push_log()，即 loki.py:66-76 的本地回退
+    写文件逻辑（enabled=False ⇒ 直接落盘，不做任何网络请求，也不会等连接超时）。
+    """
+
+    def __init__(self, client, level=logging.INFO):
+        super().__init__(level=level)
+        self._client = client
+        self.written = 0
+        self.skipped = 0
+        self.failed = 0
+        self.last_error = ""
+
+    def emit(self, record):
+        """同步写一条（本 handler 自己 json.dumps 载荷，不依赖 formatter）"""
+        try:
+            payload = _route_event_payload(record)
+            if payload is None:
+                self.skipped += 1
+                return
+            self._client.push_log(
+                labels={
+                    "app": "yunshu-route",
+                    "event": payload["action"],
+                    "level": record.levelname,
+                    "logger": record.name,
+                },
+                message=json.dumps(payload, ensure_ascii=False, default=str),
+                timestamp=record.created,
+            )
+            self.written += 1
+        except Exception as exc:  # noqa: BLE001 写盘失败绝不冒泡到业务线程
+            self.failed += 1
+            self.last_error = "%s: %s" % (type(exc).__name__, exc)
+
+    def stats(self):
+        """写盘计数（诊断/测试用）"""
+        return {
+            "written": self.written,
+            "skipped": self.skipped,
+            "failed": self.failed,
+            "last_error": self.last_error,
+        }
+
+
+def route_event_sink_enabled(explicit=None):
+    """开关解析：显式入参优先，其次 CP_ROUTE_EVENT_SINK_ENABLED（缺省开启）
+
+    关闭值：0 / false / no / off（大小写与空白不敏感）。
+    """
+    if explicit is not None:
+        return bool(explicit)
+    raw = os.environ.get(_ROUTE_EVENT_SINK_ENV)
+    if raw is None:
+        return True
+    return raw.strip().lower() not in ("0", "false", "no", "off")
+
+
+def _detach_route_event_sink():
+    """摘掉已装配的 handler（幂等安装 + 关闭开关时清理），返回摘除条数"""
+    global _ROUTE_EVENT_SINK_HANDLERS
+    removed = 0
+    for name, handler in _ROUTE_EVENT_SINK_HANDLERS:
+        try:
+            logging.getLogger(name).removeHandler(handler)
+            removed += 1
+        except Exception:
+            pass
+    _ROUTE_EVENT_SINK_HANDLERS = []
+    return removed
+
+
+def install_route_event_sink(enabled=None, log_dir=None):
+    """装配路由事件 sink（幂等；返回状态 dict 供启动日志与测试断言）
+
+    Args:
+        enabled: 显式开关；None ⇒ 读 CP_ROUTE_EVENT_SINK_ENABLED
+        log_dir: 落盘目录覆盖；None ⇒ 读 CP_ROUTE_EVENT_SINK_DIR，仍为空则用
+                 LokiClient 自带的 <repo>/data/logs（测试借它指向 tmp_path）
+
+    Returns:
+        {"installed": bool, "reason": str, "log_dir": str, "target_file": str,
+         "loggers": [...], "actions": [...], "handler": RouteEventJsonlHandler|None}
+    """
+    global _ROUTE_EVENT_SINK_HANDLERS, _ROUTE_EVENT_SINK_STATE
+    _detach_route_event_sink()  # 重复调用不叠加 handler（叠加 ⇒ 同一事件写多行）
+
+    status = {
+        "installed": False,
+        "reason": "",
+        "log_dir": "",
+        "target_file": "",
+        "loggers": list(_ROUTE_EVENT_SINK_LOGGERS),
+        "actions": sorted(_ROUTE_EVENT_SINK_ACTIONS),
+        "handler": None,
+    }
+
+    if not route_event_sink_enabled(enabled):
+        status["reason"] = "disabled_by_switch:%s" % _ROUTE_EVENT_SINK_ENV
+        _ROUTE_EVENT_SINK_STATE = status
+        return status
+
+    override_dir = log_dir
+    if override_dir is None:
+        override_dir = (os.environ.get(_ROUTE_EVENT_SINK_DIR_ENV) or "").strip() or None
+
+    try:
+        from agent.monitoring.loki import LokiClient
+
+        # enabled=False ⇒ 复用 loki.py 的本地 JSONL 通道，不做网络推送/超时等待
+        client = LokiClient(enabled=False)
+        if override_dir:
+            os.makedirs(override_dir, exist_ok=True)
+            client._local_log_dir = str(override_dir)  # 仅测试/运维覆盖目录时使用
+
+        handler = RouteEventJsonlHandler(client)
+        attached = []
+        for name in _ROUTE_EVENT_SINK_LOGGERS:
+            target = logging.getLogger(name)
+            target.addHandler(handler)
+            # 【不改既有语义】propagate 保持原值（默认 True）：
+            # logging.basicConfig 的控制台输出、LOG_REQUEST_PRINT 等语义均不受影响。
+            attached.append(name)
+        _ROUTE_EVENT_SINK_HANDLERS = [(name, handler) for name in attached]
+
+        sink_dir = os.path.abspath(str(client._local_log_dir))
+        status.update({
+            "installed": True,
+            "reason": "ok",
+            "log_dir": sink_dir,
+            "target_file": os.path.join(
+                sink_dir, datetime.datetime.now().strftime("%Y-%m-%d") + ".jsonl"),
+            "handler": handler,
+        })
+    except Exception as exc:  # noqa: BLE001 装配失败降级，不阻断启动
+        status["reason"] = "install_failed:%s: %s" % (type(exc).__name__, exc)
+
+    _ROUTE_EVENT_SINK_STATE = status
+    return status
+
+
+def route_event_sink_stats():
+    """当前 sink 的写盘计数（诊断用；未装配返回 None）"""
+    handler = (_ROUTE_EVENT_SINK_STATE or {}).get("handler")
+    return handler.stats() if handler is not None else None
+
+
+# [B2-ROUTE-SINK-END]
+
+
 app = Flask(__name__, static_url_path='/static-assets')
 app.static_folder = os.path.join(os.path.dirname(__file__), 'static')
 app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
+
+# ════════════════════════════════════════════════════════════════════════════
+# [C2] 请求入口并发闸门（背压：并发硬上限 + 有界排队超时）
+# ════════════════════════════════════════════════════════════════════════════
+# 【解决什么】waitress threads=16 之上没有任何**准入**控制，而 waitress 的
+#   channel_timeout=120 **不是排队超时**：请求解析完成就已进 channel.requests，
+#   maintenance() 只回收空闲通道（server.py:342-351）⇒ 第 17~100 个请求在服务端
+#   无限期排队，只能靠客户端自己超时（Q8 第 1/3.4 节、主报告 P3/P4）。
+# 【怎么做】WSGI 中间件包住 app（**请求入口**，不碰 Flask 内部钩子、不碰 serve()）：
+#   acquire → 执行 → 响应迭代结束或 close 时 release，严格成对（异常路径也归还，
+#   否则额度泄漏会把闸门永久堵死）。超过并发上限的请求在闸门处**有界等待**，
+#   等满 CP_HTTP_QUEUE_TIMEOUT（默认 20s）仍拿不到额度 ⇒ 429 +
+#   error_code=SERVER_BUSY_TIMEOUT（**可识别拒绝，不是静默排队**）。
+# 【豁免】/api/health、/api/heartbeat、/metrics、/static、/favicon.ico 不进闸门 ——
+#   否则 A1 的就绪门自证、看门狗与前端状态栏高频探针会被并发抖动假性打红。
+# 【正交】threads=16 决定"能同时跑多少"，本闸门决定"允许多少个开始跑"；
+#   上限 8 = 线程数的一半，给健康采集/后台定时任务留余量（实测见 C2.md 压测节）。
+# 【回滚】CP_HTTP_CONCURRENCY_GATE=0 ⇒ 不装中间件，行为回到现状。
+# 【失败姿态】装配失败只 warning：规避逻辑不得引入新的启动硬依赖。
+try:
+    from agent.rate_limiter import (
+        ConcurrencyGateMiddleware as _ConcurrencyGateMiddleware,
+        build_http_gate_from_env as _build_http_gate_from_env,
+    )
+    _http_gate = _build_http_gate_from_env()
+    if _http_gate is not None:
+        app.wsgi_app = _ConcurrencyGateMiddleware(app.wsgi_app, _http_gate)
+except Exception as _http_gate_err:  # noqa: BLE001 闸门装不上不得阻断启动（降级=现状）
+    _http_gate = None
+    logger.warning("[背压] HTTP 并发闸门装载失败（降级为无闸门，不阻断启动）: %s",
+                   _http_gate_err)
 
 # ── S2-02 审计平权（P7.2-24）：UI 写路由统一入链 ──
 # 位置：紧跟 app 构造之后注册 before/after/teardown 钩子，凡 POST/PUT/PATCH/DELETE
@@ -1833,18 +2117,59 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"[健康] 健康采集线程启动失败：{e}")
 
-    # 启动前先清理 5678 端口的旧进程
-    # 【L23 留痕】kill **之前**先写一条结构化日志（谁 / 目标 PID / 为何 / 何时），
-    # 使"重启原因"可自证；并能区分"自杀式重启"（目标是本应用另一个实例）与
-    # "清理他进程"。**kill 行为未改**（仍是 taskkill /F /PID <pid>，timeout=3）。
-    # /F == TerminateProcess ⇒ 上面注册的 _install_graceful_shutdown_hooks
-    # 在这条路径上不可能执行，故该留痕是此路径唯一可自证的事实源
-    # （实现与受控桩测试见 agent/server_port_guard.py）。
+    # ── [A1] 子进程预防：把本进程放进 KILL_ON_JOB_CLOSE 的 Job Object ──
+    # 旧问题：embedding worker（agent/tool_router_hybrid.py:991 subprocess.Popen）
+    # 与 reranker（agent/skills_mgmt/reranker.py）是**独立 python 进程**，实测各占
+    # 0.5–0.9 GB。而本进程的退出路径（含 taskkill /F == TerminateProcess）既不投递
+    # 信号也不跑 atexit ⇒ 父进程一死子进程即被孤儿化，继续占内存、继续读盘。
+    # 加入本 Job 后，父进程以**任何**方式消失（/F、崩溃、正常退出）都由内核连带
+    # 终止整条进程树，无需逐个登记 PID。
+    # 【时序】必须早于任何可能 spawn 子进程的初始化：本行以上只有模块导入与本
+    #   函数之上的横幅打印，不 spawn 任何子进程。
+    # 【失败姿态】装载失败只降级告警，绝不阻断启动（守"规避逻辑不引入新硬依赖"）。
     try:
-        from agent.server_port_guard import cleanup_port_listeners
-        cleanup_port_listeners(5678)
-    except Exception as e:  # noqa: BLE001 清理失败不阻断启动（与旧行为一致）
-        logger.debug("[端口清理] 启动期清理 5678 失败（忽略）: %s", e)
+        from agent.server_port_guard import install_child_process_reaper
+        _reaper_status = install_child_process_reaper()
+        if _reaper_status.get("installed"):
+            logger.info("[启动] 子进程回收 Job Object 已装载：%s", _reaper_status)
+        else:
+            logger.warning(
+                "[启动] 子进程回收 Job Object 未装载（降级：强杀父进程仍可能遗留"
+                " embedding/reranker 子进程）：%s", _reaper_status)
+    except Exception as e:  # noqa: BLE001 降级不得阻断启动
+        logger.warning("[启动] 子进程回收 Job Object 装载异常（降级，不阻断启动）: %s", e)
+
+    # 【A1 时序变更】改动前紧接此处（旧第 1843-1847 行）的
+    # `cleanup_port_listeners(5678)` **已移走**：它在"引擎还没起来"的启动早期就
+    # taskkill /F 掉旧实例，旧实例一死而新实例若在后续任何一步失败 ⇒ 完全无服务
+    # （审计 §1.4）。现在该动作只作为受"就绪门"保护的下游步骤执行，
+    # 见下方 guarded_startup 的调用处。
+
+    # ── [B2] 路由决策事件落盘：装配位置有意放在 Job Object 装载之后 ──
+    # ① 时序下界：必须在 serve() 之前 —— 路由事件只在请求期产生，装在这里即为
+    #    "任何请求可到达之前"。
+    # ② 时序上界：必须在上方 install_child_process_reaper（A1 的 Job Object）之后 ——
+    #    那一段写明了"本行以上只有模块导入与横幅打印"的不变量；本段会
+    #    os.makedirs + 打开文件（全程不 spawn 任何子进程），放到其后可让该不变量
+    #    逐字仍然成立。
+    # ③ 与 A1 的就绪门/看门狗零耦合：本段不调用 guarded_startup，也不调用
+    #    cleanup_port_listeners，更不改动二者的先后与调用关系
+    #    （静态核对见 docs/audit_skill_governance/B2.md）。
+    try:
+        _route_sink = install_route_event_sink()
+        if _route_sink.get("installed"):
+            logger.info(
+                "[启动] 路由事件 sink 已装配：logger=%s → %s（%s=0 可关闭）",
+                ",".join(_route_sink["loggers"]),
+                _route_sink["target_file"],
+                _ROUTE_EVENT_SINK_ENV,
+            )
+        else:
+            logger.warning(
+                "[启动] 路由事件 sink 未装配（%s）：路由事件仍只进 stderr",
+                _route_sink.get("reason"))
+    except Exception as _sink_e:  # noqa: BLE001 装配失败不得阻断启动
+        logger.warning("[启动] 路由事件 sink 装配异常（不阻断启动）: %s", _sink_e)
 
     # 启动增强型定时任务调度器
     try:
@@ -1917,10 +2242,50 @@ if __name__ == "__main__":
     except Exception as e:  # noqa: BLE001 钩子注册失败不得阻断启动
         print(f"⚠️ 优雅关闭钩子注册失败（不阻断主流程）: {e}")
 
+    # 打开工作台。**位置有意不变**：若下面的就绪门判定新实例未就绪而放弃启动，
+    # 旧实例仍在服务，此时打开浏览器指向的正是仍然健康的旧实例。
     webbrowser.open("http://127.0.0.1:5678")
+
     # 使用 Waitress 生产级 WSGI 服务器（替代 Flask 内置开发服务器）
     # 多线程 + 纯 Python，Windows 原生兼容
+    # 【A1】waitress 的导入放在就绪门**之前**：它是最容易失败的一步，必须归入
+    # "清理旧实例之前的可失败初始化"，否则就变成"先杀旧实例、再发现连 waitress
+    # 都导入不了"。
     from waitress import serve
+
+    def _startup_preflight():
+        """新实例可服务性自证 —— 只有它为真才会去杀旧实例。
+
+        做法：用 Flask 自带的 test_client 在**进程内**打一次 /api/health。
+        它覆盖 WSGI 应用装配、路由注册、插件装配等真实链路，但不 bind 端口
+        （端口此刻还被旧实例占着，无法 bind）。实测 /api/health 冷态 0.05 s。
+        """
+        try:
+            resp = app.test_client().get("/api/health")
+        except Exception as e:  # noqa: BLE001 探针自身出错 = 未就绪（失败关闭）
+            return False, "self_health_probe_exception:%s: %s" % (type(e).__name__, e)
+        code = getattr(resp, "status_code", 0)
+        if code != 200:
+            return False, "self_health_probe_status=%s" % code
+        return True, "self_health_probe_status=200"
+
+    # ── [A1 就绪门] 清理旧实例 → bind，顺序不可调换 ──
+    # 旧行为：启动早期无条件 taskkill /F 掉 5678 旧实例，然后才开始构造引擎；
+    #         新实例后续任何一步失败 ⇒ 旧实例已死、新实例没起来 = 完全无服务。
+    # 新行为：只在此处、且仅在 ①端口上确实有旧实例 ②新实例进程内自证 /api/health=200
+    #         两个条件同时满足时才清理旧实例；任一条不满足 ⇒ 一个进程都不杀，
+    #         旧实例继续服务，本进程以退出码 3 退出（不会悄悄退化成"无服务"）。
     # threads 8→16: 高并发压测发现 LLM 长耗时请求占满线程导致排队（Task queue 高发），
     # 提升线程容量缓解排队；LLM 外呼另有 60s 看门狗兜底（orchestrator._run_llm_bounded）
-    serve(app, host="127.0.0.1", port=5678, threads=16)
+    from agent.server_port_guard import guarded_startup
+    _startup = guarded_startup(
+        lambda: serve(app, host="127.0.0.1", port=5678, threads=16),
+        5678,
+        preflight=_startup_preflight,
+    )
+    if not _startup.get("served"):
+        logger.error(
+            "[启动] 未进入服务状态（exit_code=%s）：%s",
+            _startup.get("exit_code"),
+            _startup.get("preflight") or _startup.get("serve_error"))
+        sys.exit(int(_startup.get("exit_code") or 1))

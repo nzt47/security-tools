@@ -950,7 +950,15 @@ class SkillsMgmtService:
         """「安全合并」：合并前把两侧完整快照写入 sidecar，便于一键撤销。
 
         - 若 dst 存在版本链，先追加一个 pre-merge 版本标记（尽力而为，失败不阻断）；
-        - sidecar: data/skill_merge_backups.jsonl（merge_id → src_snapshot + dst_before）。
+        - sidecar: data/skill_merge_backups.jsonl
+          （merge_id → src_snapshot + dst_snapshot + dst_before）。
+
+        [F10] 记录里同时写两种 dst 快照，各有各的用处，**不是冗余**：
+          - `dst_snapshot` = `dst.model_dump()`（**完整实体**）—— 供 `undo_merge` 在
+            「保留方后来也被删除」时**整条重建**（判据 `dst_snapshot["id"] == dst_id`）；
+          - `dst_before` = 下面那 8 个字段 —— 供「保留方仍存在」时**逐字段回滚内容**。
+        只有 `dst_before` 时无法重建：它**不含 id / status / category / version /
+        时间戳**，凭它造出的技能只能靠猜补齐主键与元数据。
         """
         import os as _os
         import json as _json
@@ -965,6 +973,10 @@ class SkillsMgmtService:
             "ts": _dt.now().isoformat(timespec="seconds"),
             "src_id": src_id, "dst_id": dst_id,
             "src_snapshot": src.model_dump(),
+            # [F10] 保留方的**完整实体**快照：undo_merge 在「dst 也被删除」时靠它整条重建。
+            # 旧记录没有这个字段（本卡之前写的 sidecar），undo_merge 对此**向前兼容**
+            # ——读不到就退回「不重建」，绝不抛异常（见 undo_merge 的 dst 重建分支）。
+            "dst_snapshot": dst.model_dump(),
             "dst_before": {
                 k: getattr(dst, k) for k in (
                     "name", "description", "content", "content_type",
@@ -1082,8 +1094,48 @@ class SkillsMgmtService:
         commands.sort(key=lambda c: c["token"])
         return {"total": len(commands), "commands": commands}
 
+    #: [F9] `undo_merge` 在「dst 仍存在」情形下**必须保留现值**的治理类字段。
+    #:
+    #: 撤销合并是**内容回滚**，不得把合并前快照里的治理状态静默写回，否则会重现
+    #: 「操作员停用 B → 撤销该次合并 → B 被静默重新启用」，而链上只有
+    #: `skill.assess.merge-undo` 一条评估事件、没有 `skill.registry.set_enabled`
+    #: 启停痕（这就是 F9）。
+    #:
+    #: 取舍口径（依据 `merge_with_backup` 的快照字段清单与 `update()` 白名单）：
+    #:   - `enabled` —— 必列。它是 `dst_before` 的 8 个字段
+    #:     （name/description/content/content_type/enabled/default_params/
+    #:     config_schema/tags）里唯一的治理类字段，也是本仓唯一有启停审计动作族
+    #:     （`skill.registry.set_enabled`）的字段；
+    #:   - `is_sensitive` / `isolation_strategy` —— `update()` 白名单里单独标注的
+    #:     「[变易] 敏感技能隔离」字段（决定技能**如何运行/注入**，不是正文内容），
+    #:     与 `enabled` 同属「决定技能是否/如何运行」的治理决策 ⇒ 一并列入。
+    #:     注意：它们**当前不在** `dst_before` 的字段清单内，故对本仓今天的快照
+    #:     无可观测影响，属**零副作用的前瞻性防护**（快照将来若扩到全字段，
+    #:     不会退化出同一类静默治理变更）；
+    #:   - 未列入 `status` / `category` / `tags` / `version`：它们不是启用/隔离
+    #:     治理决策（`status` 是评审工作流状态），且除 `tags` 外均不在快照字段
+    #:     清单内；凭感觉扩大口径会掩盖将来「确实该恢复」的字段。
+    #:
+    #: 生效范围仅限「dst 仍存在」的分支：技能已被删除、要靠快照重建时没有「现有
+    #: 治理状态」可保护，快照里的 `enabled` 等照常恢复（见 `undo_merge` 两个分支）。
+    _UNDO_MERGE_KEEP_FIELDS = frozenset(
+        {"enabled", "is_sensitive", "isolation_strategy"})
+
     def undo_merge(self, merge_id: str) -> Dict[str, Any]:
-        """按 merge_id 撤销「安全合并」：恢复被删除技能 + 恢复保留方快照。"""
+        """按 merge_id 撤销「安全合并」：恢复被删除技能 + 恢复保留方快照。
+
+        [F9] 语义边界——本方法是**内容回滚**，不是治理状态回滚：
+            - 情形一（dst 仍存在）：只把快照的内容字段套回现值，治理类字段
+              `_UNDO_MERGE_KEEP_FIELDS`（至少含 `enabled`）保持操作员现值；
+            - 情形二（src/dst 已被删除，只能用快照重建）：没有「现有治理状态」
+              可保护，快照里的 `enabled` 等**照常恢复**，重建结果与合并前一致。
+
+        [F10] 情形二的 **dst 侧**此前不可达（判据取错了快照，见下方注释），
+        现读 `merge_with_backup` 同批写入的 `dst_snapshot` 重建；旧格式记录
+        （无 `dst_snapshot`）退回本卡之前的行为且**不抛异常**。
+
+        签名与返回结构不变：`{"ok", "merge_id", "restored", "note"}`。
+        """
         import os as _os
         import json as _json
 
@@ -1110,6 +1162,8 @@ class SkillsMgmtService:
         src_id = str(rec.get("src_id", ""))
         dst_id = str(rec.get("dst_id", ""))
         restored = []
+        # [F10] 保留方已不存在、且记录里没有可用快照 ⇒ 无法自动重建（见下方 dst 分支）
+        dst_rebuild_skipped = False
         # 1) 恢复被删除的 src（若已存在则跳过）
         if src_id:
             try:
@@ -1121,13 +1175,19 @@ class SkillsMgmtService:
                     self.store.upsert(skill)
                     self._advisory_assess(src_id)
                     restored.append(src_id)
-        # 2) 恢复 dst 到合并前快照
+        # 2) 恢复 dst 到合并前快照（只回滚**内容**，不回滚**治理状态**）
         if dst_id:
             before = rec.get("dst_before") or {}
             try:
                 cur = self._require(dst_id)
                 data = cur.model_dump()
+                # [F9] dst 仍存在 ⇒ 存在「现有治理状态」需要保护：快照里的治理类
+                # 字段（_UNDO_MERGE_KEEP_FIELDS，至少含 enabled）一律跳过、保持现值。
+                # 内容回滚不得顺带改启停/隔离状态 —— 这种连带变更既无声（链上不会
+                # 出现 skill.registry.set_enabled 记录）也违背本方法的语义。
                 for k, v in before.items():
+                    if k in self._UNDO_MERGE_KEEP_FIELDS:
+                        continue
                     data[k] = v
                 skill = Skill.from_storage_dict(data)
                 skill.touch()
@@ -1135,17 +1195,64 @@ class SkillsMgmtService:
                 self._advisory_assess(dst_id)
                 restored.append(dst_id)
             except SkillNotFoundError:
-                # 保留方也不存在（后续又被删除）→ 用快照完整重建
-                snap = rec.get("src_snapshot")
+                # 保留方也不存在（后续又被删除）→ 用快照完整重建。
+                # 此时**没有「现有治理状态」可保护** ⇒ 快照里的 enabled 等一并恢复
+                # （与上面的情形一相反，这里刻意不做保留字段过滤）；
+                # `_UNDO_MERGE_KEEP_FIELDS` 的注释已写明它的生效范围**仅限「dst 仍存在」
+                # 的分支，故这里不受它约束。
+                #
+                # [F10] 判据必须是**保留方自己的**快照：
+                #   `merge_with_backup` 写的 `src_snapshot` 是 `src.model_dump()`，
+                #   其 `id` **恒等于 `src_id`**；而 `merge_duplicate_skills` 明确禁止
+                #   `src_id == dst_id` ⇒ 旧判据 `src_snapshot["id"] == dst_id` **恒为假**，
+                #   本分支在真实合并记录下**不可达**，dst 被静默少恢复且不报错。
+                #   故改读 `dst_snapshot`（保留方完整实体，`merge_with_backup` 同批写入）。
+                snap = rec.get("dst_snapshot")
                 if isinstance(snap, dict) and snap.get("id") == dst_id:
                     self.store.upsert(Skill.from_storage_dict(snap))
                     restored.append(dst_id)
+                else:
+                    # [F10] 向前兼容：本卡之前写入的 sidecar 记录**没有** `dst_snapshot`，
+                    # 此时**原样退回本卡之前的行为**（判据 `src_snapshot["id"] == dst_id`）。
+                    # 为什么不是「直接放弃重建」：退回旧行为对**真实**旧记录与本卡之前
+                    # 逐字等价（旧判据在真实记录下恒为假 ⇒ 同样不重建），却保留了
+                    # 「按旧语义刻意构造的记录」的既有行为面（F9 单测用例 6 就是这种记录），
+                    # 改动面因此收窄为「只让新记录的那一半从不可达变为可达」。
+                    legacy = rec.get("src_snapshot")
+                    if isinstance(legacy, dict) and legacy.get("id") == dst_id:
+                        self.store.upsert(Skill.from_storage_dict(legacy))
+                        restored.append(dst_id)
+                    else:
+                        # 两条路都走不通 ⇒ 「不重建 + 明确留痕」，**不抛异常**。
+                        # 为什么不拿 `dst_before` 的 8 个残字段拼一个技能：它不含
+                        # id/status/category/version/时间戳，只能靠默认值猜补 ⇒ 会凭空
+                        # 造出一个**看起来真实**的技能（status=draft、version=0.1.0、
+                        # category=custom），比「少恢复一个」更糟 —— 与审计口径
+                        # 「宁可少记，不可记假」同源：宁可少恢复，不可造假技能。
+                        # 操作员仍可用 `dst_before` 的正文手工新建，且本方法把
+                        # 「无法自动重建」同时写进日志与评估事件，不至于静默。
+                        # 文案避开非 GBK 字符（如 U+21D2）：Windows 控制台日志流是 GBK，
+                        # 实测 `⇒` 会让 logging 抛 UnicodeEncodeError 并把这条告警吞掉。
+                        logger.warning(
+                            "[Service] 撤销合并 %s：保留方 %s 已不存在，且该 sidecar 记录"
+                            "没有 dst_snapshot（旧格式），其 src_snapshot.id 也不是该 dst"
+                            " => 无法自动重建，需人工恢复（记录里 dst_before 有合并前正文）",
+                            merge_id, dst_id)
+                        dst_rebuild_skipped = True
+        # [F10] 未能重建保留方时必须在事件里说清（否则就是「静默少恢复一个技能」）
+        skip_note = (
+            f"；⚠ 保留方 {dst_id} 已不存在，且该备份记录无可用快照"
+            "（本卡之前的旧格式记录）⇒ 未能自动重建，需人工用记录里的 "
+            "dst_before 正文恢复" if dst_rebuild_skipped else "")
         self._emit_assessment_event(
             dst_id, "merge-undo", "ok",
-            f"撤销合并 {merge_id}：恢复 {'、'.join(restored) or '-'}（快照回滚）")
+            f"撤销合并 {merge_id}：恢复 {'、'.join(restored) or '-'}"
+            "（内容快照回滚，不回滚已有技能的治理状态）" + skip_note)
         return {"ok": True, "merge_id": merge_id,
                 "restored": restored,
-                "note": "已恢复 src 并回滚 dst 到合并前；建议重新评审-评估后决定去向。"}
+                "note": "已恢复 src 并回滚 dst 到合并前；治理状态（enabled 等）"
+                        "不随内容回滚，如需恢复启用态请重新启停（该次启停会写入"
+                        "启停审计）；建议重新评审-评估后决定去向。"}
 
     # ─── 自动修复建议（评审发现 → 对策 / AI patch 入口）───
 
@@ -1260,16 +1367,19 @@ class SkillsMgmtService:
             if auto_clean:
                 did = False
                 if not (s.description or "").strip():
-                    desc = (s.content or "").strip().splitlines()
-                    first = next((l.strip() for l in desc if l.strip() and not l.startswith(("#", "-", "```"))), "")
-                    fallback = f"自动补全说明：{name}（{s.content_type.value if hasattr(s.content_type, 'value') else s.content_type}）"
-                    new_desc = (first or fallback)[:120]
-                    try:
-                        self.update(s.id, {"description": new_desc})
-                        applied.append({"id": s.id, "action": "补全中文说明", "detail": new_desc})
-                        did = True
-                    except Exception:
-                        pass
+                    # [不易] **本动作自 2026-09-26 起不再写库**（G1-B / M0）。
+                    # 原实现把「正文首行或占位串」截 120 字后经
+                    # `self.update(s.id, {"description": ...})` 写回**主轨**，是 M0 要冻的
+                    # 第三条写路径（G1-B0 §2.7 E-2）。主轨 description 已不是事实源，
+                    # 用它给 skill.md 补文案只会制造新的双描述冲突；且 update() 的白名单
+                    # 已移除 "description" ⇒ 该调用现在必然被静默忽略（写不进去还可能
+                    # 误报 applied）。故改为**显式登记为人工项**，不再自动补。
+                    # 正确路径：在 data/skills_repo/<id>/skill.md 写 description_zh。
+                    applied.append({
+                        "id": s.id, "action": "补全中文说明(已改为人工)",
+                        "detail": "主轨 description 写路径已冻结（G1-B/M0）；请在 "
+                                  "data/skills_repo/%s/skill.md 写 description_zh" % s.id,
+                    })
                 if (not s.enabled and (s.metrics.usage_count or 0) == 0
                         and not did):
                     try:
@@ -1492,7 +1602,29 @@ class SkillsMgmtService:
     # ─── 搜索 ───
 
     def search(self, params: SkillSearchParams) -> SkillSearchResult:
-        return self.searcher.search(self.store.list_all(), params)
+        """管理页搜索（`GET /api/skills-mgmt/search`）
+
+        【G1-C/R-d · 描述与展示同源】修复前这里是
+        `self.searcher.search(self.store.list_all(), params)` —— 只喂**主轨**
+        `Skill` 模型：它既没有 `description_zh`，`description` 又是主轨的历史副本。
+        而 G1-B 之后管理页展示的是文件轨（`registry.as_legacy_rows()` 文件轨优先，
+        UI 读 `description_zh || description`）⇒ 同一字段两个消费者看到两份文案
+        （"**看到的**是文件轨文案、**搜到的**按主轨文案"）。
+
+        修法（全部落在 `agent/skills_mgmt/` 内）：一次取好文件轨元数据索引交给
+        搜索器，由 `SkillSearcher._match_score` 按"文件轨优先 + `description_zh`
+        并入"计分 —— 与展示侧同一套口径，含同一个逃生开关。
+
+        文件轨不可读时静默退化为旧行为（fail-soft）：搜索本身不该因元数据索引故障
+        而不可用。
+        """
+        try:
+            meta_index = self.file_store.load_metadata_index(refresh=False) or {}
+        except Exception as e:  # noqa: BLE001 文件轨读失败不得让搜索不可用
+            logger.warning("[Service] 搜索取文件轨描述失败，退化为仅主轨: %s", e)
+            meta_index = {}
+        return self.searcher.search(self.store.list_all(), params,
+                                    meta_index=meta_index)
 
     def list_all(self) -> List[Skill]:
         return self.store.list_all()
@@ -1502,14 +1634,96 @@ class SkillsMgmtService:
 
     # ─── 增删改 ───
 
+    def _record_update_audit(self, skill: Skill, updated: Skill,
+                             changed: List[str]) -> None:
+        """PATCH 字段变更写审计链（best-effort：绝不影响 update 本身）
+
+        载荷**只记字段名，不记字段值**：description/content 等字段是用户原文，
+        记值会把审计台账变成内容仓库（同 `agent/audit/facade.py:392-398` 的
+        `record_redact_event` 只记 field_count/kinds 的先例），
+        故此处只落字段名列表。
+
+        - 一般字段变更 → 动作名 `skill.update`，payload 含 skill_id /
+          changed（实际变更字段名列表，不含 enabled）/ origin；
+        - 变更含 enabled → 复用启停动作族 `skill.registry.set_enabled`
+          （`enhancer.record_enabled_audit`，与 SkillRegistry / SkillEnhancer
+          同族），payload 含 origin=skills_mgmt.update、previous_enabled、
+          enabled、track="main"（本通路写的是主轨 JSON），
+          使按技能启停动作名检索时不会漏掉 PATCH 这条通路。
+
+        Args:
+            skill: 变更前的技能（`_require` 取出的旧值）。
+            updated: 预备落库的新技能值。
+            changed: 白名单内且实际发生变化的字段名（可含 enabled）。
+
+        Note:
+            审计失败（门面抛异常或返回 None）只写 WARNING 日志并返回，不向上抛
+            —— 与 `enhancer.record_enabled_audit` 的既有 best-effort 约定一致，
+            但**不完全静默**（门面返回 None 时同样留 WARNING）。
+        """
+        if "enabled" in changed:
+            try:
+                from .enhancer import (AUDIT_ACTION_ENABLED_SET,
+                                       record_enabled_audit)
+                record_enabled_audit(
+                    AUDIT_ACTION_ENABLED_SET, str(updated.id),
+                    previous_enabled=bool(getattr(skill, "enabled", True)),
+                    enabled=bool(getattr(updated, "enabled", True)),
+                    track="main", origin="skills_mgmt.update")
+            except Exception as e:  # noqa: BLE001 审计失败不得影响更新
+                logger.warning("[Service] 启停变更审计留痕失败（更新已生效）"
+                               " skill=%s: %s", updated.id, e)
+
+        plain = [f for f in changed if f != "enabled"]
+        if not plain:
+            return
+        try:
+            from agent.audit import audit as _audit_facade
+            entry = _audit_facade.record(
+                "skill.update", subject=f"skill:{updated.id}",
+                payload={"skill_id": str(updated.id), "changed": plain,
+                         "origin": "skills_mgmt.update"},
+                source="agent", status="ok")
+        except Exception as e:  # noqa: BLE001 审计失败不得影响更新
+            logger.warning("[Service] 技能字段变更审计留痕失败（更新已生效）"
+                           " skill=%s changed=%s: %s", updated.id, plain, e)
+            return
+        if entry is None:
+            logger.warning("[Service] 技能字段变更审计未落链（门面返回 None："
+                           "审计被关闭或静默失败）skill=%s changed=%s",
+                           updated.id, plain)
+
     def update(self, skill_id: str, patch: Dict[str, Any]) -> Skill:
-        """部分更新技能字段"""
+        """部分更新技能字段
+
+        白名单字段实际发生变化时写审计链（见 `_record_update_audit`）：
+        一般字段记动作名 `skill.update`（**只记字段名，不记字段值**）；
+        `enabled` 变化复用启停动作族 `skill.registry.set_enabled`
+        （origin=`skills_mgmt.update`、track=`main`）。
+        同值不改（patch 值与现值相等）不算变更，不写记录。
+        审计为 best-effort：失败只留 WARNING 日志，不影响更新与返回值。
+        """
         skill = self._require(skill_id)
         data = skill.model_dump()
         # 白名单字段
-        allowed = {"name", "description", "tags", "content", "content_type",
+        # [不易] **`description` 自 2026-09-26 起被移出白名单**（G1-B / M0：
+        # 「先冻写路径再删数据」）。原因：技能的**唯一事实源**已收敛为
+        # `data/skills_repo/<id>/skill.md` 的 front matter（G1-A §7.1 裁定），
+        # 主轨 description 只是历史副本。若仍允许经本方法改它 ⇒
+        # ① UI 编辑（PATCH /api/skills-mgmt/<id>）会重新制造出与 skill.md 冲突的
+        #    第二份文案（G1-A C2 的 15/15 冲突就是这样来的）；
+        # ② 主轨写入会经 `store.sync_to_legacy_skills_json()` 传染到 legacy 快照；
+        # ③ `curate_skills(auto_clean=True)` 的「自动补全说明」会把它再写回来。
+        # 改描述的正确入口：写 skill.md 的 `description`（英文，检索+模型用）
+        # 与 `description_zh`（中文，UI 用）—— 由 `file_store.update_meta()` 落地。
+        # 本键移出白名单后，patch 里的 "description" 被**静默忽略**（与其它白名单外
+        # 键同语义，见 `test_skill_update_audit.py` 的 non-whitelisted 断言）。
+        allowed = {"name", "tags", "content", "content_type",
                    "config_schema", "default_params", "dependencies",
                    "author", "enabled",
+                   # [不易] `description_zh` **同样不放进来**：它是"中文展示文案"的
+                   # 唯一副本，主轨若也能写它，就又会分裂成两份中文（正是本卡要消灭的
+                   # 形态）。中文入口同样是 skill.md 的 `description_zh`。
                    # [变易] 敏感技能隔离字段透传（create/update 双向闭环）
                    "is_sensitive", "isolation_strategy"}
         for k, v in patch.items():
@@ -1517,7 +1731,12 @@ class SkillsMgmtService:
                 data[k] = v
         updated = Skill.from_storage_dict(data)
         updated.touch()
+        # 白名单内的实际变更字段（含 enabled；同值不算变更 → 不写审计）
+        changed = sorted(k for k in patch if k in allowed
+                         and getattr(skill, k, None) != getattr(updated, k, None))
         self.store.upsert(updated)
+        if changed:
+            self._record_update_audit(skill, updated, changed)
         self._advisory_assess(updated.id)  # 修改后自动重新评估（尚无正式审核时）
         self._auto_classify(updated.id)    # 内容变化后自动重判分类（人工移动过的保留）
         return updated

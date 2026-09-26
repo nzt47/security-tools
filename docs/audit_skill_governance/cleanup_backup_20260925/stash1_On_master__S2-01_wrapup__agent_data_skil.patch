@@ -1,0 +1,139 @@
+diff --git a/agent/data/skills.json b/agent/data/skills.json
+index a312c852..1548f4db 100644
+--- a/agent/data/skills.json
++++ b/agent/data/skills.json
+@@ -39,105 +39,119 @@
+       "id": "pd-brainstorming-697b717a-skill",
+       "name": "brainstorming",
+       "enabled": true,
+-      "description": "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.。由 1 份素材蒸馏生成",
++      "description": "在进行任何创造性工作（比如开发新功能、构建组件、添加功能或修改现有行为）之前，你【必须】先使用此流程。务必在动手写代码实现之前，先充分探索并明确用户的真实意图、具体需求和设计方案。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-dispatching-parallel-agents-b8065ccd-skill",
+       "name": "dispatching-parallel-agents",
+       "enabled": true,
+-      "description": "Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies。由 1 份素材蒸馏生成",
++      "description": "适用于同时处理两个或更多独立任务的场景，这些任务无需共享状态，也没有先后顺序的依赖。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-executing-plans-95cbf64a-skill",
+       "name": "executing-plans",
+       "enabled": true,
+-      "description": "Use when you have a written implementation plan to execute in a separate session with review checkpoints。由 1 份素材蒸馏生成",
++      "description": "当你有一份书面实施计划，准备在单独的会话中执行，并且需要设置审查节点时，就可以使用它。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-finishing-a-development-branch-e085de5a-skill",
+       "name": "finishing-a-development-branch",
+       "enabled": true,
+-      "description": "Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup。由 1 份素材蒸馏生成",
++      "description": "当代码实现完毕、所有测试都通过，且你需要决定如何集成这些工作时，就可以使用它。它会为你提供合并（merge）、提交拉取请求（PR）或清理代码等结构化的选项，帮你顺利完成开发收尾。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-frontend-design-77ea5c4e-skill",
+       "name": "frontend-design",
+       "enabled": true,
+-      "description": "Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, or applications. Generates creative, polished code that avoids generic AI aesthetics.。由 1 份素材蒸馏生成",
++      "description": "打造独具特色、达到生产级标准且设计感拉满的前端界面。当用户需要构建 Web 组件、页面或应用时，请调用这项技能。生成的代码要有创意、够精致，坚决避开那种千篇一律的‘AI 味儿’。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-receiving-code-review-8934157e-skill",
+       "name": "receiving-code-review",
+       "enabled": true,
+-      "description": "Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation。由 1 份素材蒸馏生成",
++      "description": "在收到代码审查（Code Review）的反馈时，在着手修改代码之前使用此方法。尤其是当反馈看起来不太清晰，或者在技术上存疑时——此时需要的是严谨的技术推敲和验证，而不是做做样子的附和或盲目照做。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-requesting-code-review-ca5ae995-skill",
+       "name": "requesting-code-review",
+       "enabled": true,
+-      "description": "Use when completing tasks, implementing major features, or before merging to verify work meets requirements。由 1 份素材蒸馏生成",
++      "description": "在完成任务、实现核心功能时，或者在合并代码前，用它来确认工作是否符合要求。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-subagent-driven-development-8c375695-skill",
+       "name": "subagent-driven-development",
+       "enabled": true,
+-      "description": "Use when executing implementation plans with independent tasks in the current session。由 1 份素材蒸馏生成",
++      "description": "在当前会话中执行包含独立任务的实施计划时，请使用。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-systematic-debugging-556faa20-skill",
+       "name": "systematic-debugging",
+       "enabled": true,
+-      "description": "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes。由 1 份素材蒸馏生成",
++      "description": "在提出修复方案之前，如果遇到任何 Bug、测试失败或异常行为，请先使用（该工具/方法）。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-test-driven-development-8562c8ad-skill",
+       "name": "test-driven-development",
+       "enabled": true,
+-      "description": "Use when implementing any feature or bugfix, before writing implementation code。由 1 份素材蒸馏生成",
++      "description": "在实现任何新功能或修复 Bug 时，请在编写具体实现代码之前使用。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-using-git-worktrees-d516703a-skill",
+       "name": "using-git-worktrees",
+       "enabled": true,
+-      "description": "Use when starting feature work that needs isolation from current workspace or before executing implementation plans - ensures an isolated workspace exists via native tools or git worktree fallback。由 1 份素材蒸馏生成",
++      "description": "在开始需要与当前工作区隔离的功能开发，或者在执行实施计划之前使用。它会自动通过原生工具（或回退到 git worktree）来确保存在一个隔离的工作区。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-using-superpowers-3aea3fc9-skill",
+       "name": "using-superpowers",
+       "enabled": true,
+-      "description": "Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions。由 1 份素材蒸馏生成",
++      "description": "在每次开启对话时使用——用于确立查找和使用技能的方式，要求在做出任何回应（包括澄清性问题）之前，都必须先调用技能工具（Skill tool）。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-verification-before-completion-af010352-skill",
+       "name": "verification-before-completion",
+       "enabled": true,
+-      "description": "Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always。由 1 份素材蒸馏生成",
++      "description": "在准备宣布工作已完成、问题已修复或测试已通过之前（比如在提交代码或创建 PR 之前），必须先运行验证命令并确认输出结果，绝不能凭空宣称成功。记住：先拿证据，再做断言。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-writing-plans-f846e3a2-skill",
+       "name": "writing-plans",
+       "enabled": true,
+-      "description": "Use when you have a spec or requirements for a multi-step task, before touching code。由 1 份素材蒸馏生成",
++      "description": "在动手写代码之前，如果你手头有规格说明或多步骤任务的需求，就可以用它。由 1 份素材蒸馏生成",
+       "params": {}
+     },
+     {
+       "id": "pd-writing-skills-5da20e67-skill",
+       "name": "writing-skills",
+       "enabled": true,
+-      "description": "适用于创建、编辑或验证 agent 技能（SKILL.md）之前或过程中，核心是将 TDD 应用于流程文档编写。。由 1 份素材蒸馏生成。预期产出: 一份经 RED-GREEN-REFACTOR 验证、无已知漏洞且可被其他 agent 正确触发和使用的 SKILL.md 文档。",
++      "description": "适用于创建、编辑或验证 agent 技能（SKILL.md）之前或过程中，核心是将 TDD 应用于流程文档编写。。由 1 份素材蒸馏生成。预期产出: 一份经 RED-GREEN-REFACTOR 验证、无已知漏洞且可被其他 agent 正确触发和使用的 SKILL.md 文档。由 1 份素材蒸馏生成",
++      "params": {}
++    },
++    {
++      "id": "testing-anti-patterns",
++      "name": "testing-anti-patterns（testing-anti-patterns）",
++      "enabled": true,
++      "description": "在以下情况请查阅这份参考指南：编写或修改测试、添加 Mock（测试替身），或者忍不住想往生产代码里加‘仅供测试使用’的方法时。由 1 份素材蒸馏生成",
++      "params": {}
++    },
++    {
++      "id": "skill",
++      "name": "易之三义",
++      "enabled": true,
++      "description": "",
+       "params": {}
+     },
+     {

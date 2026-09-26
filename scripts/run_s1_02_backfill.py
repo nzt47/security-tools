@@ -5,6 +5,17 @@
     python scripts/run_s1_02_backfill.py --dry-run   # 摸底 + 干跑（不落库）
     python scripts/run_s1_02_backfill.py --json      # 输出 JSON（供 CI/验收对账）
 
+S3-01 收口（RUNBOOK-1 起**默认自动**）:
+    S1-02 对「台账里没有的资产」只做 ``register`` 桥接，**stage 归 S3-01 管**
+    （`agent/digestion/stage.py::first_entry_stage`）。故「主轨新增技能 + 重跑本
+    脚本」会新 wire 出 `stage=None` 的条目，若不随后跑 S3-01 首次入轨，L4 不变量
+    （`tests/unit/test_s3_01_handover.py::…::test_real_ledger_has_no_unstaged_asset`）
+    即被打破（LEDGER-1 实证：`cp.skill.skill`）。本脚本实跑时**默认在同一次调用里
+    顺带收口**（`run_backfill(..., ingest_stages=True)`，内部即 `backfill_stages`
+    —— 与 `scripts/run_s3_01_ingest.py --execute` 同一函数）；
+    `--no-ingest-stages` 可关掉（回到「只提示不执行」，行为与本卡之前一致）。
+    关掉时脚本仍会打印待收口清单与处置命令。
+
 产出:
     data/descriptors_s1_02/摸底表_<ts>.md / survey_<ts>.json   （步骤 1 摸底表）
     data/descriptors_s1_02/plan_<ts>.json                      （步骤 2 dry-run 计划）
@@ -25,6 +36,10 @@ from agent.descriptors.backfill import (  # noqa: E402
     run_backfill,
     survey_markdown,
 )
+# 【RUNBOOK-1 / 架构规则】组合根显式注入 S3-01 入轨实现：descriptors 层不得反向
+# import digestion（否则 CI 架构校验成环变红），由本脚本（scripts/ 不在扫描根内）
+# 把两边接起来，并保证不依赖导入顺序。
+from agent.digestion.stage import backfill_stages  # noqa: E402
 
 DEFAULT_RESOLUTION_PATH = str(Path("data/descriptors/resolutions.jsonl"))
 DEFAULT_MAIN_PATH = str(Path("data/skills_mgmt.json"))
@@ -64,6 +79,9 @@ def main() -> int:
                     help=f"技能主轨路径（默认 {DEFAULT_MAIN_PATH}）")
     ap.add_argument("--registry-path", default="",
                     help=f"descriptor 台账路径（默认 {DEFAULT_REGISTRY_PATH}）")
+    ap.add_argument("--no-ingest-stages", action="store_true",
+                    help="实跑时不顺带跑 S3-01 首次入轨收口（默认会自动收口；"
+                         "关掉后只打印待收口清单与处置命令）")
     args = ap.parse_args()
 
     store = _resolution_store(args.resolutions, enabled=not args.no_resolutions)
@@ -100,11 +118,14 @@ def main() -> int:
         result = {"dry_run": True, "deterministic": deterministic,
                   "summary": survey["summary"],
                   "coverage": planned["coverage"],
-                  "needs": planned["needs"]}
+                  "needs": planned["needs"],
+                  "s3_01_followup": d1.get("s3_01_followup")}
     else:
         # 步骤 3：实跑（逐条审计 + 分批回滚防护）+ 步骤 4 全量重校验
         run = run_backfill(planned, batch_size=args.batch_size,
-                           registry_path=registry_path)
+                           registry_path=registry_path,
+                           ingest_stages=not args.no_ingest_stages,
+                           stage_runner=backfill_stages)
         (out / "run_latest.json").write_text(
             json.dumps(run, ensure_ascii=False, indent=1, default=str),
             encoding="utf-8")
@@ -126,6 +147,8 @@ def main() -> int:
                           if k not in ("pending", "coverage", "validation")},
                   "validation": run["validation"]}
 
+    followup = (result.get("run") or {}).get("s3_01_followup") \
+        or result.get("s3_01_followup") or {}
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=1, default=str))
     else:
@@ -145,6 +168,25 @@ def main() -> int:
             print(f"全量重校验: {v['total']} 条, valid={v['valid']}, "
                   f"errors={v['with_errors']}, warnings={v['with_warnings']}")
             print(f"写入计数: {run['applied']}")
+        # ── S3-01 收口衔接（RUNBOOK-1）：新 wire 了什么、还要不要收口 ──
+        if not args.dry_run:
+            wired_ids = [w["capability_id"] for w in (run.get("newly_wired") or [])]
+            print(f"新 wire 资产: {len(wired_ids)} 条"
+                  + ("（" + ", ".join(wired_ids) + "）" if wired_ids else ""))
+        if followup.get("auto_executed"):
+            print(f"S3-01 首次入轨收口: 本次调用内已自动执行，"
+                  f"入轨 {len(followup.get('ingested') or [])} 条，"
+                  f"残留未入轨 {len(followup.get('stage_empty') or [])} 条")
+        if followup.get("required"):
+            empty = followup.get("stage_empty") or []
+            print(f"[!] 仍需 S3-01 收口: {len(empty)} 条未入轨 "
+                  f"({', '.join(empty[:5])}{'…' if len(empty) > 5 else ''})")
+            print(f"    处置: {followup.get('command')}"
+                  f"  或 重跑本脚本（默认已自动收口）")
+            if followup.get("error"):
+                print(f"    [warn] 自动收口未完成: {followup['error']}")
+        else:
+            print("S3-01 收口: 台账无未入轨资产（不动点）")
         print(f"报告目录: {out}")
     return 0
 

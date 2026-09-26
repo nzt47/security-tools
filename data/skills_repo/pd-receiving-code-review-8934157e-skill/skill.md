@@ -17,6 +17,8 @@ author: process_distill
 source: knowledge_distill
 status: approved
 enabled: true
+description_zh: 在收到代码审查（Code Review）的反馈时，在着手修改代码之前使用此方法。尤其是当反馈看起来不太清晰，或者在技术上存疑时——此时需要的是严谨的技术推敲和验证，而不是做做样子的附和或盲目照做。由
+  1 份素材蒸馏生成
 ---
 
 # receiving-code-review

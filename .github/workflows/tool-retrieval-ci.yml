@@ -37,6 +37,10 @@ on:
       # 检索器实现(BM25SkillSearcher 变更影响专有名词匹配)
       - 'agent/skills_mgmt/bm25_searcher.py'
       - 'agent/skills_mgmt/loader.py'
+      # 【CI-1】技能检索质量闸(有界相似度)的输入面
+      - 'tests/unit/test_s10_03_retrieval_quality_gate.py'
+      - 'tests/conftest.py'
+      - 'tests/unit/conftest.py'
   pull_request:
     branches: [main, master, develop]
     paths:
@@ -52,6 +56,10 @@ on:
       - 'scripts/verify_bm25_proper_noun.py'
       - 'agent/skills_mgmt/bm25_searcher.py'
       - 'agent/skills_mgmt/loader.py'
+      # 【CI-1】技能检索质量闸(有界相似度)的输入面(与 push 面保持一致)
+      - 'tests/unit/test_s10_03_retrieval_quality_gate.py'
+      - 'tests/conftest.py'
+      - 'tests/unit/conftest.py'
   schedule:
     # 每天凌晨 3 点运行(防止 tool_index.json 漂移未被察觉)
     - cron: '0 3 * * *'
@@ -61,6 +69,13 @@ env:
   AGENT_HYBRID_EMBEDDING: '0'
   PYTHONIOENCODING: 'utf-8'
   PYTHONPATH: '.'
+  # 【CI-1】显式离线:干净 checkout 里没有 .env(.gitignore:12),而 .env:153-154
+  #   正是这两个键的提供者;缺了它们,import 链会去 huggingface.co 取模型
+  #   (TESTHYG-1 实测:WinError 10060 五次重试,import 从 ~90s 拖到 >13min)。
+  #   tests/conftest.py 的 setdefault 是兜底,这里按 test.yml / daily_regression.yml
+  #   同一口径显式给出,不依赖兜底。
+  HF_HUB_OFFLINE: '1'
+  TRANSFORMERS_OFFLINE: '1'
 
 jobs:
   # ============================================================================
@@ -201,3 +216,58 @@ jobs:
           echo ""
           echo "若本 CI 失败,说明 BM25 或检索融合权重变更削弱了专有名词匹配,"
           echo "请检查对 agent/skills_mgmt/bm25_searcher.py 或检索权重的修改。"
+
+  # ============================================================================
+  # 【CI-1 · 2026-09-27】技能检索质量闸（有界相似度）
+  # ----------------------------------------------------------------------------
+  # 守什么：agent/skills_mgmt/loader.py 的**质量门只认有界相似度**
+  #   （tfidf/vector/rerank ∈ [0,1]），不得让 BM25 的无界原始分把噪声级候选
+  #   撑过闸（真机现象：tfidf=0.1 + bm25=3.5184 的候选曾过闸，见
+  #   tests/unit/test_s10_03_retrieval_quality_gate.py 模块 docstring）。
+  #
+  # 【CI 安全性（CI-1 在"干净 checkout 副本"上实测）】
+  #   · 13 条断言 0 skip 0 失败（含"真技能库 + 真 BM25"对照那一组）；
+  #   · 不依赖任何 gitignored 运行期文件；真库锚只用 data/skills_repo/**（入库）；
+  #   · CI Linux 下 tests/unit/conftest.py 会把 sentence_transformers 封禁成
+  #     ImportError ⇒ 向量腿自然降级，与生产降级态同形，不会出网。
+  #
+  # 【判定语义 / 为什么必须有"前置断言"这一步】
+  #   本门里最难的两条（真库同输入对照）用的是 pytest.importorskip("rank_bm25")
+  #   —— rank_bm25 **不在** pyproject 依赖里 ⇒ 一旦 runner 没装它，那两条会
+  #   **静默 skip**，job 仍然绿。这正是"静默 skip 成假绿"，所以这里：
+  #   ① 显式安装 rank-bm25；② 装完再断言它真的可导入（不可导入就点名失败）。
+  # ============================================================================
+  skill-retrieval-quality-gate:
+    name: 技能检索质量闸（有界相似度）
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置 Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 安装依赖
+        # rank-bm25 是 pytest.importorskip 的目标（见上），必须显式装；
+        # 其余按实测导入链：pyyaml(file_store) / pydantic(skills_mgmt.models) /
+        # prometheus_client(观测链) / pytest 系（pytest.ini 的 --timeout + asyncio_mode）。
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml pydantic prometheus-client psutil rank-bm25 pytest pytest-timeout pytest-asyncio
+
+      - name: 前置：断言 rank_bm25 可用（否则真库对照会静默 skip 成假绿）
+        run: |
+          python -c "import rank_bm25; print('rank_bm25 OK:', rank_bm25.__file__)"
+
+      - name: 有界相似度质量门
+        run: |
+          echo "::group::test_s10_03_retrieval_quality_gate"
+          python -m pytest tests/unit/test_s10_03_retrieval_quality_gate.py \
+            -v --timeout=120 --no-header -p no:cacheprovider
+          echo "::endgroup::"
+
