@@ -1,0 +1,141 @@
+# 下次要修 —— 结转台账（云枢技能治理与路由 · 审计批次结项 2026-09-27）
+
+> 本文件是**自包含**的：每条都给了「现象 / 证据锚点 / 复现命令 / 建议修法 / 验收标准」。
+> 上一批的完整审计与实施证据在 `AUDIT_AND_PLAN.md` §0–§27（同目录），本文件只放**未闭环项**。
+> 结项状态：PR #980 / #985 / #988 均已合并；`master` = `0fe830ad`（合并后 CI：6 个单元分片全绿，
+> 仅 Docker/ghcr 基础设施抖动导致 4 个 job 红 —— 见 P2-9）。
+
+---
+
+## 0. 先读这段：下次接手时的环境事实（省得重新踩）
+
+| 事实 | 值 / 说明 |
+|---|---|
+| 仓库 | `C:\Users\Administrator\agent`（Windows 单机，分支 `master`） |
+| Python | **系统解释器 `python`（3.12.0）**。`venv/` 是**空壳、没有 python.exe**，不要用 |
+| 跑测试 | `python -m pytest <路径> -q -p no:randomly --timeout=120 --no-header -p no:cacheprovider`（`pytest.ini` 要求 `--timeout` 与 `asyncio_mode=auto`） |
+| 全量单测 | `python scripts/run_full_pytest.py --chunks 4 --workers 4 --mode fast`（**fast = `-m "not slow"`**，慢档要 `--mode slow`；耗时 ~40 分钟） |
+| 线上 CI 的坑 | **PR 只要触碰 `.github/workflows/` 就拿不到任何 PR check**（5 次对照探针实证，见 `AUDIT_AND_PLAN.md` §23.2）；不触碰则正常。想跑某个门可用 `gh workflow run <file> --ref <branch>`（该门必须在默认分支上已存在） |
+| 生产数据 | `data/audit/**`、`data/*.jsonl`、`data/skills_mgmt.json`、`data/descriptors.json` 都是**运行期真实数据**（多数 gitignore）；改动前先记 sha256，别在它们身上做实验 |
+| 数据不变性自检 | 审计链：行数 72701 / seq 1..72701 无断链 / 日根封印与链上 `self_hash` 逐条相等（本次结项时的值，可直接比对） |
+
+---
+
+## P0 —— 唯一的功能级未完成项（需要「判据重设计」，不是补丁）
+
+### P0-1 生产 `min_score=0.3` 让技能检索中文命中从 8/8 掉到 4/8
+
+- **现象**：向量腿不可用的降级模式下，8 条中文 query 只有 4 条召回（`zh01/zh02/zh06/zh08` 全失）；英文不受影响（8/8）。
+- **根因（已实测钉死）**：腿级过滤比较的「有界相似度」**不是相似度**，而是 `_match_score = H / N`
+  （H = 命中的 query token 数，N = query token 数）——与文档长度无关、与 query 长度严格反比；
+  `0.3` ≡ 「H ≥ 0.3·N」，中文 bigram 下长 query 必被拒。**与 BM25 无关**（开/关两档都是 4/8）。
+- **为什么不能只改 loader**：编排层 `Orchestrator._bounded_relevance` 用**同一个 0.3** 比**同一个 H/N**，
+  被 loader 救回的候选照样被判 `low_bounded_relevance` 降级 ⇒ **只在 `agent/skills_mgmt/loader.py` 里修 = 端到端零收益**。
+  真修必须同时动 `agent/orchestrator/orchestrator.py`（`_SEM_DEFAULTS` / 语义层配置读取）与 `config.yaml`。
+- **为什么"再调一个阈值"无解**：`zh01` 被 S10-03 噪声 **Pareto 支配**（cov 0.0909 vs 0.1000、H 1 vs 1、
+  bm25_t1 2.5441 vs 4.6614、ratio 1.3359 vs 1.5433、idf_cov 0.0594 vs 0.0869 —— 噪声**每一项都不劣**）
+  ⇒ 任何对这组特征单调非降的判据要么同时收下、要么同时拒绝。**必须换判据形态**（例如：按"是否只命中停用/泛词"分类、
+  用 query 侧覆盖率 + 文档侧 IDF 权重联合、或引入长度归一化后的真相似度）。
+- **`0.3` 是无标定魔数**：`git log -S ORCHESTRATOR_SEMANTIC_MIN_SCORE` → 最早 `47e7f6be`(2026-07-31)，
+  commit message 全文不含 `min_score`，无标定集/负样本对照；与 `loader._RRF_QUALITY_MIN=0.3`（那个**有**标定）谱系无关。
+- **复现命令**（生产入口，别用内部函数自造口径）：
+  ```
+  python - <<PY  (或写成脚本)
+  from agent.skills_mgmt.file_store import SkillFileStore
+  from agent.skills_mgmt.loader import SkillLoader
+  ld = SkillLoader(file_store=SkillFileStore())
+  # 用 data/eval/minscore1_query_set.v1.jsonl 的 8 中 + 8 英，逐条 print(m.skill_id)
+  # min_score=0.3 -> zh 4/8 ; min_score=0.01 -> zh 8/8 ; use_bm25 开/关同值
+  ```
+  （完整脚本与期望值见 `MINSCORE1.md`；用例锁见 `tests/unit/test_minscore2_chinese_recall.py`，**11 passed**）
+- **候选修法与各自的拦路石**（详见 `MINSCORE1.md`）：
+  | 候选 | 中文@0.3 | 拦路石 |
+  |---|---|---|
+  | C1 调用方降到 0.01 | 8/8 | **重开 S10-03 假阳**（0.01 下返回 2 条噪声） |
+  | C2 腿级地板解耦 `_RRF_LEG_MIN_SCORE=0.01` | 8/8 | **S10-03 锚红**（`self_reflection` / `pd-dispatching`）+ 跨卡护栏 `test_ret1r_bm25_quality_gate.py` 1 failed |
+  | C3 = C2 + 裕度阈值 1.2→2.0 | 7/8 | 跨卡护栏仍 1 failed；7/8 差最后一条 |
+- **跨卡契约需要一起改**：`tests/unit/test_ret1r_bm25_quality_gate.py::TestBm25AloneIsNotEnough::test_bm25_only_evidence_is_not_enough`
+  把「`min_score` 与腿级过滤的耦联」写成了**前置契约**（`assert 0.1818 is None`）。要改判据就必须**一并**改这条契约，
+  并在改时说明为什么不是"放宽守卫"。
+- **验收标准**：中文 8/8、英文 8/8、S10-03 锚绿、单向量路误召数**不上升**（当前 GATE-1 已把它从 22/23 降到 12/23）、
+  且**编排层端到端**（不是只 loader）有数字证明。
+
+---
+
+## P1 —— 影响"门禁可信度"，建议下一批优先
+
+### P1-1 `ci.yml` 之外的门在 PR 上跑不到
+- `tool-retrieval-ci.yml` **没有 `workflow_dispatch`** ⇒ 既拿不到 PR check（它按 `push`/`pull_request` + paths 过滤），
+  也无法手工触发。建议：给它加 `workflow_dispatch:`（**只加触发入口，不改判定**），下次可以直接 `gh workflow run`。
+- **已闭环的对照**：`Settings Registry Gap Guard`（新增）与 `Skill Description Single Source`（修改）在 #980 合并后**第一次真跑并 success**，
+  见 `AUDIT_AND_PLAN.md` §27.1 —— 所以"加 workflow 必须合并后才首次验证"这条已经用证据关闭。
+
+### P1-2 CI 上「永不执行」的断言仍有存量
+- `tests/unit/test_skill_description_single_source.py` **5 条** skip；
+- `tests/unit/test_s10_03_retrieval_quality_gate.py:227` 的 `pytest.importorskip("rank_bm25")`（**只在部分入口**是假绿）：
+  `tool-retrieval-ci.yml:256/261/263` 已**显式安装并断言可导入**，但 `pyproject.toml:145` 其实也声明了 `rank-bm25==0.2.2`
+  ⇒ 该 workflow 的注释"不在 pyproject 依赖里"是**过时口径**，建议订正注释并统一为"硬前置"写法；
+- `tests/unit/test_skill_h3_migration.py` 的 8 条 `[real]`（真实台账内容类）**已逐条登记并配夹具孪生**（`CI3.md` §3.4）——
+  它们不再校验真实数据，这是**有意的取舍**，不需要再修，但别再误以为是漏配。
+
+### P1-3 `test_route_conflict_cases.py` 的棘轮口径不一致
+- 进 CI 的是**精确相等**棘轮，而 CLI 的 `>=48` 下限门**没有任何 workflow 跑**。
+  要么统一口径（都改成"下限 + 变化需显式更新"），要么给 CLI 门补一个 workflow。
+
+---
+
+## P2 —— 卫生与健壮性（不影响本次交付）
+
+1. **动态加载豁免锚定在函数上**：`scripts/detect_dynamic_loads.py` 的豁免是 `(file, qualname, pattern)` 三元组；
+   将来若给 `load_dynamic_tools()` 新增调用方并传**外部路径**，扫描器**不会**报警。已有 AST 锚点测试钉住，但依赖有人跑。
+   建议：把"参数必须来自 `CUSTOM_TOOLS_DIR` 常量"写成断言式检查。
+2. **`agent/tools/tool_generator.py:218/223`** 用未净化的 `name/category` 拼落盘路径（静态推断，未利用、未复现）。
+3. **`DescriptorRegistry.load()` 重试耗尽后改抛 `OSError`**：影响面（约 30 个调用点、含 UI 读路径）**未穷举**；
+   `save()` 侧 WinError 5 未根治（6 次退避里仍可能失败 1 次）；NFS/SMB 未实测。见 `LEDGER2.md`。
+4. **测试卫生两个方向都还没收敛**：
+   - 泄漏侧：`--runslow` 车道的 `test_skills_classifier` / `test_tool_callability` 未修（默认车道实测 CLEAN）；
+   - 破坏侧：`test_tool_callability` 六处 `T.clear()`、`test_fan_out` 无条件 `unregister`；
+   - 空台账侧：`test_skill_search_description_source.py` 与 `test_skill_h3_migration.py` 会创建 **2 字节的 `data/skills_mgmt.json`（`{}`）**。
+   见 `TESTHYG2.md`、`CI3.md`。
+5. **测试会往检出目录写运行期数据**：`data/skills_mgmt.json` / `data/audit/` / `data/learned_workflows.json`；
+   后者**未入库**，而 `test_workflow_learning_admission.py` 的存量仓库判据已按「**有内容才算**」订正（与 `skills_mgmt.json` 同族）。
+   建议把"运行期落点"统一走一个 autouse 重定向（参照 `tests/unit/conftest.py` 的 ISO-EVENTS 做法）。
+6. **两条负载敏感用例已按 L9 机制标 `serial`**（`test_llm_error_path_recorded`、`test_handler_timeout_scanner::TestCurrentRepoInvariants`），
+   **断言未改**。根治方向：把 `TestCurrentRepoInvariants` 的"全仓扫描"改成对**固定快照目录**扫描，使其与仓库规模/机器负载解耦。
+7. **`data/audit/daily_roots.jsonl` 有一条 2026-09-14 重复**（与首条同 seq 区间/同哈希，是先前授权切除后重建哈希链的补链产物）。
+   **无害**（封印与链上 `self_hash` 逐条对得上、`prev_entry_hash` 无断点），仅"不整齐"；要清理得同时保证补链不断。
+8. **`data/audit/knowledge_audit.jsonl`（gitignore）被既有用例行为持续追加**（结项时 57105 B / 129 行）。
+   属既有行为、文件级、无完整性影响；若要根治，把 knowledge CLI 的审计落点也纳入 ISO-EVENTS 重定向。
+9. **CI 基础设施抖动（非代码）**：`准备扫描器镜像` / `关键字参数冲突扫描 (Docker)` / `kwarg 扫描 → SonarQube`
+   偶发 `Error response from daemon: Get "https://ghcr.io/v2/": denied: denied`。
+   实证：同一 job 在多个运行里成功过（如 #980 合并后那次），而 01:46 / 01:54 两次连续失败且**只失败这一类**。
+   处置建议：不要改代码；是真·基础设施/配额问题，重跑即可；如反复出现应向仓库 owner 确认 ghcr 凭据/配额。
+10. **`_t06_logs/` 等未跟踪目录会污染本地扫描**：`python scripts/detect_dynamic_loads.py`（默认根）在本机报 `high=46`，
+    其中 `_t06_logs/` 12 处、`qwen-agent/` 等未跟踪目录占绝大多数；**干净检出上是 `high=0 → exit 0`**。
+    建议本地排查统一用 `--root agent`，或以干净检出为准。
+11. **既存死代码/死键**：`index_manager.py` 死代码、`auto_upgrade` 死键（均为既存，未处理）。
+
+---
+
+## 附：本次结项时**新装上的守卫**（下次改这些面时会被它们挡住，属预期）
+
+| 守卫 | 守什么 |
+|---|---|
+| `tests/unit/test_arch_stage_contract.py` | descriptors 层不得反向 import `agent.digestion.stage`；叶子契约纯度；未注册必报错；**真树级**零循环依赖（`slow`，CI `--runslow` 档） |
+| `tests/unit/test_descriptor_registry_concurrent_load.py` | 并发重建 0 损坏 / 0 丢失更新；瞬态 `PermissionError` 不被当"存储损坏"；单进程序列化摘要（**行尾归一化后**）不变 |
+| `tests/unit/test_dynamic_loads_high_exemption.py` | 豁免是三元组全等 + 配额、命中降级 MEDIUM 不删除；**放宽即红** |
+| `tests/unit/test_gate1_single_vector_quality_gate.py` | 单向量路质量闸（复用 `SINGLE_PATH_MIN_TOP1=0.45`） |
+| `tests/unit/test_minscore2_chinese_recall.py` | **特征化锁**：把"0.3 下中文 4/8、0.01 下 8/8"钉住；谁修好 P0-1 这条会变红 —— 那是**预期**，请同步更新数字与 `MINSCORE1.md` |
+| `tests/unit/test_date_shift_blindspots_guard.py` | 盲点登记键改为「文件 + 检测器:作用域#序号@证据指纹」（不再随行号漂移） |
+| `tests/unit/test_tool_count_consistency.py` | 宣告=下发；新增 autouse 隔离夹具（受害侧） |
+| `.github/workflows/settings-registry-gap-guard.yml` | 开关中心唯一事实源零缺口（AST 提取 vs 注册表） |
+| `tool-retrieval-ci.yml` 的 `skill-retrieval-quality-gate` | 技能检索质量闸（含"真技能库 + 真 BM25"对照） |
+
+---
+
+## 附：本批的两个"教训"（下次别再犯）
+
+1. **"抽公共实现"时最容易丢的是注入缝隙**：把两处 `run(["taskkill", ...])` 抽成 `_kill_pid()` 时，第一版用了模块级名字，
+   丢掉了 `runner=` 注入桩 ⇒ 受控桩收不到 kill、7 条用例变红（且 NameError 被外层 `except` 吞掉，表现为"kill 静默没发生"）。
+2. **"挪进函数体"不能消除架构环**：`dependency_graph._parse_imports` 用 `ast.walk` 遍历整棵树含函数体，
+   连字面量 `importlib.import_module(...)` 也计边 ⇒ 只能靠**依赖倒置 / 叶子契约**。规则文案里早就写明了（`arch_rules.py:126-137`），我此前没读它。
