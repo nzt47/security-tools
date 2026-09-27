@@ -668,17 +668,49 @@ def _api_auth_allow_path(path: str) -> bool:
     return path_is_allowlisted(path, _API_AUTH_ALLOW)
 
 
+_AUTH_GATE_INERT_WARNED = False
+
+
+def _warn_if_gate_inert_once() -> None:
+    """未配置任何令牌时告警一次 —— 此时闸门**恒放行**，观察期零信号。
+
+    【为什么必须显式告警】authorize_token 在「未配置任何令牌」时返回 True
+    （agent/server_auth.py:96-98，与升级前行为一致）。首版闸门在该状态下**一行日志
+    都不打** ⇒ 运维切到 shadow 想"观察会被拦下的写请求"，实际得到的是**完全静默**，
+    会误判为"没有风险"。此处把静默失效变为一次性 ERROR。
+    """
+    global _AUTH_GATE_INERT_WARNED
+    if _AUTH_GATE_INERT_WARNED:
+        return
+    _AUTH_GATE_INERT_WARNED = True
+    try:
+        from agent.server_auth import current_api_token, current_token_map
+        if not current_api_token() and current_token_map().empty:
+            logger.error(
+                "[AuthGate] 未配置任何令牌（FLASK_API_TOKEN 与 CP_UI_TOKENS 均为空）⇒ "
+                "闸门恒放行，当前档位 %s 形同虚设、且不会产生任何影子日志。"
+                "请先配置令牌再依赖本闸门。", _API_AUTH_MODE)
+    except Exception as _e:  # noqa: BLE001
+        logger.debug("[AuthGate] 令牌配置自检跳过: %s", _e)
+
+
 @app.before_request
 def _api_auth_gate():
     """全局 API 鉴权兜底闸门。任何异常都放行并记 ERROR（可用性优先），不阻断业务。"""
     if _API_AUTH_MODE == "off":
         return None
+    _warn_if_gate_inert_once()
     try:
         if request.method not in _MUTATING:
             return None
         path = request.path or ""
-        if not path.startswith("/api/"):
-            return None
+        # 【为什么不再限定 /api/ 前缀】首版只兜底 /api/，于是
+        #   POST /capabilities/invoke 与 POST /capabilities/skills/search
+        #   这两条**绝对路径**的写接口完全落在闸门之外（安全审计实测发现）。
+        #   它们本身带 @require_token 故非裸奔，但"全局兜底"名不副实。
+        #   改为对**全部变更型请求**兜底：实测非 /api/ 的已接线变更型路由仅上述 2 条
+        #   （其余如 /api/cp、/api/modules 均由 url_prefix 落在 /api/ 之下），
+        #   故扩面为零破坏；静态端点只受 GET/HEAD，不受影响。
         if _api_auth_allow_path(path):
             return None
         from agent.server_auth import authorize_token, _bearer_or_header_token
