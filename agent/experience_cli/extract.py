@@ -52,6 +52,59 @@ FRAMEWORK_HINTS = [("react", ("react", ".tsx", ".jsx")), ("vue", ("vue",)), ("fl
 _REAL_USER_KIND = "user"
 
 
+#: 同任务去重键的长度（截断后比较，避免末尾时间戳/序号差异造成假不同）。
+_TASK_FP_LEN = 400
+_TASK_UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f-]{20,}")
+
+
+def task_fingerprint(text: str) -> str:
+    """任务文本指纹：抹掉 UUID、去掉所有空白后截断。
+
+    【为什么要抹 UUID】会话/子代理 id 会出现在消息正文里（"Background subagent <uuid> ..."），
+    不抹掉则同一句指令在不同会话里指纹不同，去重失效。
+    """
+    t = _TASK_UUID_RE.sub("<UUID>", text or "")
+    return re.sub(r"\s+", "", t)[:_TASK_FP_LEN]
+
+
+def dedup_samples(samples: List[Dict[str, Any]], stat: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """同（任务指纹 + 改动文件集）合并为一条，保留信息量最大者。
+
+    【为什么键里必须带文件集】**实测（505 条语料）**：仅按任务指纹去重会把 505 条压到 309 条，
+    但其中 **91 组"同一句指令、改了不同文件"** —— 那是同一句宽泛指令下的**多件不同工作**
+    （"到时肯定要重构，你按你的思路直接执行下去"这类），压掉就是丢真样本。
+    加上文件集后只剩 21 条是**真重复**（同指令 + 同改动），去重率 4.2%。
+
+    【为何不去重"任务文本相同"的条目】它们在生产检索里是**有效答案**：
+    用户再说一次同样的话时，召回上一次同样说法的执行记录正是期望行为。
+    真正要清的是"一字不差且改了同一批文件"的重复落盘。
+
+    【保留谁】踩坑数多者优先，其次改动文件多者，再次 seq 靠前者（先发生）。
+    被合并条的引用数记在保留条的 signal.dup_samples（可观测，不静默丢数据）。
+    """
+    kept: Dict[Any, Dict[str, Any]] = {}
+    out: List[Dict[str, Any]] = []
+    for s in samples:
+        paths = tuple(sorted({d.get("path", "") for d in (s.get("diffs") or []) if d.get("path")}))
+        key = (task_fingerprint(s.get("task") or ""), paths)
+        prev = kept.get(key)
+        if prev is None:
+            s.setdefault("signal", {})["dup_samples"] = 1
+            kept[key] = s
+            out.append(s)
+            continue
+        stat["merged_dup_samples"] = stat.get("merged_dup_samples", 0) + 1
+        prev["signal"]["dup_samples"] = prev["signal"].get("dup_samples", 1) + 1
+        rank_new = (len(s.get("pitfalls") or []), len(s.get("diffs") or []), -s["source"]["seq_from"])
+        rank_old = (len(prev.get("pitfalls") or []), len(prev.get("diffs") or []), -prev["source"]["seq_from"])
+        if rank_new > rank_old:
+            refs = prev["signal"]["dup_samples"]
+            s["signal"]["dup_samples"] = refs
+            out[out.index(prev)] = s
+            kept[key] = s
+    return out
+
+
 def clean_path(path: str, cwd: Optional[str]) -> str:
     """绝对路径 -> 项目相对路径（去 PII 用户名，保留「改了哪个文件」的信息）。"""
     if not path:
@@ -321,6 +374,12 @@ def extract(root: str, snapshot: Optional[str] = None, verbose: bool = False):
             stat["samples"] += 1
         if verbose and fi % 100 == 0:
             print("  ...%d/%d sessions, %d samples" % (fi, len(files), stat["samples"]), file=sys.stderr)
+
+    # 同（任务指纹 + 改动文件集）去重 —— 实测 505 条中 21 条为真重复
+    before = len(samples)
+    samples = dedup_samples(samples, stat)
+    stat["samples_before_dedup"] = before
+    stat["samples"] = len(samples)
 
     return samples, rejected, stat, diff_registry
 

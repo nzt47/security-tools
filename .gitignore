@@ -200,6 +200,11 @@ pytest_chunks/
 # 运行时缓存
 cache/
 
+# 【易错】上面的 cache/ 只匹配名为 cache 的目录，**不匹配 .cache/**。
+# 而 ExperienceIndex 等模块的 persist_dir 可以落在 .cache/ 下（向量缓存 vectors.npz 可达数百 MB），
+# 一旦被 git add -A 收进来，仓库会瞬间膨胀且无法通过常规 review 发现。
+.cache/
+
 # 自动生成的文档报告
 docs/observability/boundary_coverage_report.md
 

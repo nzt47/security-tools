@@ -153,3 +153,43 @@ def test_desensitize_hard_block_and_replace():
     assert blk == "private_key_block"
     out, blk2, n = desensitize(r"看 C:\Users\somebody\agent\a.py 这个文件")
     assert blk2 is None and n >= 1 and "<PATH>" in out and "somebody" not in out
+
+# ── 同任务去重（实测 505 条语料中 21 条为真重复）──
+
+def _s(sid, task, paths, n_pitfalls=0, seq=1):
+    return {"id": sid, "task": task, "source": {"seq_from": seq},
+            "diffs": [{"path": p} for p in paths],
+            "pitfalls": [{"symptom": "x"}] * n_pitfalls,
+            "signal": {}, "verified": "pass"}
+
+
+def test_task_fingerprint_erases_uuid_and_whitespace():
+    from agent.experience_cli.extract import task_fingerprint
+    a = task_fingerprint("Background subagent c0ab7562-04be-4aee-9af2-c16cb6f7ef27 finished\n\n  hi")
+    b = task_fingerprint("Background subagent 11111111-2222-3333-4444-555555555555 finished hi")
+    assert a == b, "UUID 与空白必须被抹平，否则同一句指令在不同会话里指纹不同"
+
+
+def test_dedup_merges_only_same_task_and_same_files():
+    from agent.experience_cli.extract import dedup_samples
+    stat = {}
+    rows = [
+        _s("a", "重构检索层", ["x.py"]),               # 与 b 同任务同文件 ⇒ 合并
+        _s("b", "重构检索层", ["x.py"], n_pitfalls=2),  # 信息量更大 ⇒ 保留
+        _s("c", "重构检索层", ["y.py"]),               # 同任务**不同文件** ⇒ 必须保留
+    ]
+    out = dedup_samples(rows, stat)
+    ids = [r["id"] for r in out]
+    assert ids == ["b", "c"], "同任务不同文件是两件不同的工作，不能压掉"
+    assert out[0]["signal"]["dup_samples"] == 2, "合并条数必须可观测，不静默丢数据"
+    assert stat["merged_dup_samples"] == 1
+
+
+def test_dedup_keeps_first_when_equally_informative():
+    from agent.experience_cli.extract import dedup_samples
+    stat = {}
+    rows = [_s("a", "同一件事", ["x.py"], seq=1), _s("b", "同一件事", ["x.py"], seq=2)]
+    out = dedup_samples(rows, stat)
+    assert [r["id"] for r in out] == ["a"]
+    assert out[0]["signal"]["dup_samples"] == 2
+
