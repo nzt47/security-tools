@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-09-26T15:17:09",
+  "generated_at": "2026-09-27T23:05:05",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -4451,7 +4451,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.knowledge.tools:kb_capture）在 6 跳内未命中任何跨边界原语；另有 71 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.knowledge.tools:kb_capture）在 6 跳内未命中任何跨边界原语；另有 70 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -4490,7 +4490,6 @@
         "fh.flush",
         "fh.read",
         "fh.seek",
-        "fh.truncate",
         "fh.write",
         "filepath.parent.mkdir",
         "gzip.open",
@@ -15545,7 +15544,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.knowledge.tools:kb_capture）在 6 跳内未命中任何跨边界原语；另有 71 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.knowledge.tools:kb_capture）在 6 跳内未命中任何跨边界原语；另有 70 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -15584,7 +15583,6 @@
         "fh.flush",
         "fh.read",
         "fh.seek",
-        "fh.truncate",
         "fh.write",
         "filepath.parent.mkdir",
         "gzip.open",
