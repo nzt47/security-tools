@@ -152,6 +152,15 @@ dependencies = [
   "sqlite-vec>=0.1.9"
 ]
 
+[project.scripts]
+# 【方案交付物 A】yunshu learn probe|extract|ingest|eval —— DSH 会话 -> 经验库本地流水线。
+# 实现放在 agent/experience_cli/（**agent 已在下方 packages.find 的 where 中**
+# ⇒ 子包自动包含，无需新增登记；若另建顶层包则必须加进 where，否则
+# pip install -e . 后会 ModuleNotFoundError，见下方注释）。
+# main() 会自动跳过 argv 首位的 "learn" token，故 console 入口与
+# `python -m agent.experience_cli` 两种写法共用同一实现。
+yunshu = "agent.experience_cli:main"
+
 [project.optional-dependencies]
 dev = [
   "pytest>=7.0.0",
