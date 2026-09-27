@@ -2620,9 +2620,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        owner="agent/orchestrator/orchestrator.py"),
     _a("CP_EXPERIENCE_MIN_SCORE", CAT_SKILLS, 30.0,
        "经验检索相关性下限（BM25 原始分）。**置 0 即关闭判定**，"
-       "此时任何查询都会返回 top-K，「命中率」指标将失去意义"
-       " [agent/skills_mgmt/experience_index.py:_DEFAULT_MIN_BM25_SCORE；"
-       "取值依据 eval/sweep_threshold.py 实测可分间隔 24.9~36.4]",
+       "此时任何查询都会返回 top-K，「命中率」指标将失去意义。"
+       "⚠️ 该阈值的原标定依据已被独立复核证伪：所谓「可分间隔 24.9~36.4」"
+       "实为**查询长度差异**而非相关性（BM25 原始分不做长度归一）；"
+       "自然提问实测 7.4~19.3 落在离题提问 8.9~24.9 的内部 ⇒ 当前值会拒掉"
+       "几乎全部自然提问。详见 agent/skills_mgmt/experience_index.py 中"
+       "_DEFAULT_MIN_BM25_SCORE 的注释。",
        owner="agent/skills_mgmt/experience_index.py",
        validator=_range_validator(0, 1000)),
     _b("CP_EXPERIENCE_INJECT_ENABLED", CAT_SKILLS, False,

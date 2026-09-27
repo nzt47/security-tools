@@ -3925,8 +3925,15 @@ class Orchestrator:
 
         【必须带相关性下限】经验检索的 RRF 分数是排名派生量、无绝对意义，
         不加下限时**任何查询都会返回 top-K**，注入将退化为"每轮硬塞几条"，
-        并在前缀缓存尾部造成无谓波动。故固定传 _DEFAULT_MIN_BM25_SCORE
-        （实测可分间隔 [24.9, 36.4] 的中位；见 eval/sweep_threshold.py）。
+        并在前缀缓存尾部造成无谓波动。故传相关性下限（默认
+        _DEFAULT_MIN_BM25_SCORE，可由 CP_EXPERIENCE_MIN_SCORE 覆盖）。
+
+        ⚠️ **该下限的标定依据已被独立复核证伪，开启注入前务必先读**：
+        原标定的"可分间隔 [24.9, 36.4]"实为**查询长度差异**而非相关性
+        （BM25 原始分是查询词上的求和、不做长度归一）；自然提问实测落在
+        7.4~19.3，而离题提问是 8.9~24.9 —— 前者在后者内部，**无单一阈值可解**。
+        故本路径当前对真实短提问会判"未命中"、注入恒空。
+        详见 agent/skills_mgmt/experience_index.py:_DEFAULT_MIN_BM25_SCORE。
 
         【只取 verified=pass】由 ExperienceIndex.search 默认保证（方案硬约束⑤）。
 
@@ -3949,8 +3956,17 @@ class Orchestrator:
                 )
                 self._ctx_experience_index.load()
             idx = self._ctx_experience_index
+            # 【必须读环境变量】agent/settings/registry.py 已登记
+            # CP_EXPERIENCE_MIN_SCORE 并声明"置 0 即关闭判定"，但本路径此前
+            # **硬编码常量** ⇒ 运维在开关中心改它不会影响注入（登记表在说谎，
+            # 属本仓最忌讳的"残余谎报"）。此处对齐：env > 常量默认。
+            _ms = os.environ.get("CP_EXPERIENCE_MIN_SCORE", "").strip()
+            try:
+                _min_score = float(_ms) if _ms else _DEFAULT_MIN_BM25_SCORE
+            except ValueError:
+                _min_score = _DEFAULT_MIN_BM25_SCORE
             hits = idx.search(task, top_k=int(cfg.get("experience_top_k", 3)),
-                              min_bm25_score=_DEFAULT_MIN_BM25_SCORE)
+                              min_bm25_score=_min_score)
             out = []
             for h in hits:
                 m = h.get("meta") or {}

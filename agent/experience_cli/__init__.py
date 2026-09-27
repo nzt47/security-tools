@@ -109,6 +109,26 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _resolve_default_min_score() -> float:
+    """相关性下限的默认取值：环境变量 CP_EXPERIENCE_MIN_SCORE > 常量默认。
+
+    ⚠️ 该常量的标定依据已被独立复核证伪（详见 experience_index 中
+    _DEFAULT_MIN_BM25_SCORE 的注释）—— 它衡量的是查询长度而非相关性。
+    """
+    import os
+    env = os.environ.get("CP_EXPERIENCE_MIN_SCORE", "").strip()
+    if env:
+        try:
+            return float(env)
+        except ValueError:
+            pass
+    try:
+        from agent.skills_mgmt.experience_index import _DEFAULT_MIN_BM25_SCORE
+        return float(_DEFAULT_MIN_BM25_SCORE)
+    except Exception:
+        return 0.0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     # 「yunshu learn probe ...」经由 console_scripts 进来时首个 token 是 "learn"
@@ -117,11 +137,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = build_parser()
     ns = parser.parse_args(args)
     if getattr(ns, "min_score", None) is None:
-        try:
-            from agent.skills_mgmt.experience_index import _DEFAULT_MIN_BM25_SCORE
-            ns.min_score = _DEFAULT_MIN_BM25_SCORE
-        except Exception:
-            ns.min_score = 0.0
+        # 优先级：显式 --min-score > 环境变量 CP_EXPERIENCE_MIN_SCORE > 常量默认。
+        # 【为什么读环境变量】该键已在 agent/settings/registry.py 登记并声明"置 0 即关闭判定"，
+        # 若 CLI 与注入路径都只读硬编码常量，运维改开关中心不会生效（登记表在说谎）。
+        ns.min_score = _resolve_default_min_score()
     return int(ns.func(ns) or 0)
 
 
