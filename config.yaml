@@ -68,6 +68,22 @@ learning:
   context_assembler:
     enabled: true
     token_budget: 3000
+    # ── 经验库注入（方案「把 DSH 的历史会话提炼成经验库」P4）──
+    # 【安全底线 · 默认关】开启会**改变 system prompt 组成**（尾部追加【相关经验】段），
+    # 属通用硬约束"既有公开行为不变"的例外，故必须由部署侧显式打开。
+    # 环境变量 CP_EXPERIENCE_INJECT_ENABLED=1/0 覆盖此值。
+    #
+    # 开启前请确认：
+    #   1) 语料已就位：data/experience/samples.ndjson（由 yunshu learn extract 产出）；
+    #   2) 已跑过 yunshu learn eval 确认命中质量（负题命中率应为 0）；
+    #   3) 命中判定带相关性下限 _DEFAULT_MIN_BM25_SCORE（无下限时任何查询都会返回
+    #      top-K，注入会退化为"每轮硬塞几条"并扰动前缀缓存尾部）。
+    experience_enabled: false
+    # 注入条数上限（方案要求 top-3~5）
+    experience_top_k: 3
+    # 是否启用向量腿。**默认 false**：BM25 腿实测 recall@5 已达 100%，
+    # 而启用向量需加载 BGE-m3（冷启动约 16s，模型 4.25GB），不适合放在编排热路径。
+    experience_use_vector: false
   # TASK-02：反思产物写入检索面开关（观察模式）
   # 默认 false（观察）：self_reflect 保持现状仅写内存/日志；true 时才额外写入向量检索面
   # 环境变量 LEARNING_REFLECTION_PERSIST 覆盖此值

@@ -3842,7 +3842,9 @@ class Orchestrator:
         ContextAssembler 旁路注入会**由关变开**）。仓库根 CWD 的常规启动方式（start_yunshu.bat /
         main.py）此前就一直读到该文件，行为不变。
         """
-        cfg = {"enabled": False, "token_budget": 3000}
+        cfg = {"enabled": False, "token_budget": 3000,
+               "experience_enabled": False, "experience_top_k": 3,
+               "experience_use_vector": False}
         try:
             import yaml
             from pathlib import Path
@@ -3854,11 +3856,21 @@ class Orchestrator:
             lc = (raw.get("learning") or {}).get("context_assembler") or {}
             cfg["enabled"] = bool(lc.get("enabled", False))
             cfg["token_budget"] = int(lc.get("token_budget", 3000))
+            # ── 经验库注入（方案 P4）——**默认关**，与 experience_persist /
+            #    precipitate_enabled 同款"安全底线"姿态：开启会改变 system prompt 组成。
+            cfg["experience_enabled"] = bool(lc.get("experience_enabled", False))
+            cfg["experience_top_k"] = int(lc.get("experience_top_k", 3))
+            cfg["experience_use_vector"] = bool(lc.get("experience_use_vector", False))
         except Exception:
             pass
         env = os.environ.get("LEARNING_CONTEXT_ASSEMBLER_ENABLED", "").strip().lower()
         if env in ("1", "true", "yes"):
             cfg["enabled"] = True
+        _e = os.environ.get("CP_EXPERIENCE_INJECT_ENABLED", "").strip().lower()
+        if _e in ("1", "true", "yes"):
+            cfg["experience_enabled"] = True
+        elif _e in ("0", "false", "no"):
+            cfg["experience_enabled"] = False
         return cfg
 
     def _injection_defense_guard_context(self) -> bool:
@@ -3907,6 +3919,67 @@ class Orchestrator:
         except Exception:
             pass
         return chunks
+
+    def _context_assembler_experience(self, task: str) -> list:
+        """经验库提供者（方案 P4）— 命中 DSH 历史会话提炼的经验条目。
+
+        【必须带相关性下限】经验检索的 RRF 分数是排名派生量、无绝对意义，
+        不加下限时**任何查询都会返回 top-K**，注入将退化为"每轮硬塞几条"，
+        并在前缀缓存尾部造成无谓波动。故固定传 _DEFAULT_MIN_BM25_SCORE
+        （实测可分间隔 [24.9, 36.4] 的中位；见 eval/sweep_threshold.py）。
+
+        【只取 verified=pass】由 ExperienceIndex.search 默认保证（方案硬约束⑤）。
+
+        【渲染模板】本地拼装、0 token：任务摘要 + 改动规模 + 踩坑 + 来源日期。
+        方案要求「强制附带来源与日期」，故二者必出现在片段里。
+
+        任何异常返回空列表（上层 _pull_experience 亦有 try），主链路零影响。
+        """
+        try:
+            cfg = self._load_context_assembler_config()
+            if not cfg.get("experience_enabled"):
+                return []
+            from agent.skills_mgmt.experience_index import (ExperienceIndex,
+                                                            _DEFAULT_MIN_BM25_SCORE)
+            if getattr(self, "_ctx_experience_index", None) is None:
+                self._ctx_experience_index = ExperienceIndex(
+                    os.environ.get("CP_EXPERIENCE_CORPUS",
+                                   os.path.join("data", "experience", "samples.ndjson")),
+                    use_vector=bool(cfg.get("experience_use_vector")),
+                )
+                self._ctx_experience_index.load()
+            idx = self._ctx_experience_index
+            hits = idx.search(task, top_k=int(cfg.get("experience_top_k", 3)),
+                              min_bm25_score=_DEFAULT_MIN_BM25_SCORE)
+            out = []
+            for h in hits:
+                m = h.get("meta") or {}
+                tf = (m.get("description") or "").strip().replace("\n", " ")[:120]
+                if not tf:
+                    continue
+                bits = ["[经验] " + tf]
+                nf = m.get("_files_changed") or 0
+                if nf:
+                    bits.append("  改动 %d 个文件(%s)" % (nf, m.get("_lang") or "?"))
+                npit = m.get("_n_pitfalls") or 0
+                if npit:
+                    bits.append("  含 %d 条踩坑记录" % npit)
+                bits.append("  来源 %s · %s" % (m.get("_task_type") or "?",
+                                                (m.get("_created_at") or "")[:10]))
+                out.append({"id": h.get("id"), "content": "\n".join(bits),
+                            "source": (m.get("_created_at") or "")[:10],
+                            "title": tf[:40]})
+            if out:
+                logger.info(log_dict({
+                    "module_name": "orchestrator",
+                    "action": "orchestrator.context_assembler.experience.pulled",
+                    "trace_id_ctx": _trace_id(),
+                    "hits": [o["id"] for o in out],
+                    "message": "[ContextAssembler] 经验库命中 %d 条" % len(out)}))
+            return out
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("[context_assembler] 经验库提供者异常: %s", exc)
+            return []
 
     def _context_assembler_procedural(self, task: str) -> Tuple[list, Optional[dict]]:
         """程序性记忆提供者 — SkillLoader 真实数据（懒初始化单例）"""
@@ -3979,6 +4052,8 @@ class Orchestrator:
                 ),
                 long_term_fn=self._context_assembler_long_term,
                 procedural_fn=self._context_assembler_procedural,
+                # 经验库（P4）：未启用时该 fn 返回空列表 ⇒ 该层恒空，行为零变化
+                experience_fn=self._context_assembler_experience,
             )
             ctx = assembler.assemble(user_input, mode=mode)
             # ── TASK-S4-03 注入防御机制 1 接线（**默认关**：开启会改变 system prompt 组成）──

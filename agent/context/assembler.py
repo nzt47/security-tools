@@ -64,6 +64,9 @@ class PromptContext:
     skill_instructions: List[Dict[str, Any]] = field(default_factory=list)  # 技能指令
     workflow_hint: Optional[Dict[str, Any]] = None  # 工作流命中
     reflection_notes: List[Dict[str, Any]] = field(default_factory=list)  # 反思经验
+    #: 经验库命中（方案「把 DSH 的历史会话提炼成经验库」P4）。
+    #: 仅当构造时传入 experience_fn 才可能非空；未配置时恒为空 ⇒ 既有行为零变化。
+    experience_notes: List[Dict[str, Any]] = field(default_factory=list)
     tools: List[str] = field(default_factory=list)   # 工具白名单
     layer_tokens: Dict[str, int] = field(default_factory=dict)  # 各层 token 贡献
     total_tokens: int = 0
@@ -83,6 +86,7 @@ class PromptContext:
             "skills_hit": [s.get("skill_id") for s in self.skill_instructions],
             "workflow_hit": self.workflow_hint.get("wf_id") if self.workflow_hint else None,
             "reflections_hit": len(self.reflection_notes),
+            "experience_hit": [e.get("id") for e in self.experience_notes],
             "tools": self.tools,
             "sandbox_blocks": len(self.sandbox_blocks),
         }
@@ -109,11 +113,14 @@ class ContextAssembler:
         working_memory_fn: Optional[Callable[[], list]] = None,
         long_term_fn: Optional[Callable[[str], list]] = None,
         procedural_fn: Optional[Callable[[str], Tuple[list, Optional[dict]]]] = None,
+        experience_fn: Optional[Callable[[str], list]] = None,
     ) -> None:
         self._budget = max(64, int(token_budget))
         self._working_memory_fn = working_memory_fn
         self._long_term_fn = long_term_fn
         self._procedural_fn = procedural_fn
+        #: 经验库检索（P4）。None ⇒ 该层恒空，与未接入时逐字一致。
+        self._experience_fn = experience_fn
 
     # ── 各层拉取（对应设计文档 §3.3 实例化管线；异常/缺失 → 空层降级）──
 
@@ -175,6 +182,39 @@ class ContextAssembler:
             logger.debug("[context_assembler] 程序性记忆降级为空: %s", exc)
             return [], None
 
+    def _pull_experience(self, task: str) -> List[Dict[str, Any]]:
+        """拉取经验库命中（P4）。
+
+        【严格要求由调用方保证】experience_fn 必须：
+          - **自带相关性下限**：无下限时检索对任何查询都会返回 top-K，
+            注入将退化为"每轮硬塞几条"（见 experience_index._DEFAULT_MIN_BM25_SCORE）；
+          - 只返回 verified=pass 的条目（方案硬约束⑤：未验证的不入库）；
+          - 单条含 id / content / tokens，可选 title。
+
+        异常一律降级为空层（与 _pull_long_term 同策略），主链路零影响。
+        """
+        if not self._experience_fn:
+            return []
+        try:
+            hits = self._experience_fn(task) or []
+            out = []
+            for h in hits:
+                content = h.get("content", "")
+                if not content:
+                    continue
+                out.append({
+                    "id": h.get("id"),
+                    "title": h.get("title", ""),
+                    "content": content,
+                    "source": h.get("source", ""),
+                    "tokens": estimate_tokens(content),
+                })
+            logger.debug("[context_assembler] 经验库拉取: 命中 %d 条", len(out))
+            return out
+        except Exception as exc:
+            logger.debug("[context_assembler] 经验库降级为空: %s", exc)
+            return []
+
     # ── 组装 ──
 
     def assemble(self, task: str, mode: str = "default") -> PromptContext:
@@ -183,6 +223,7 @@ class ContextAssembler:
 
         mem_sections = self._pull_working_memory() + self._pull_long_term(task)
         skills, wf_hint = self._pull_procedural(task)
+        experience = self._pull_experience(task)
         reflections = [s for s in mem_sections if s["layer"] == "反思经验"]
 
         parts = ["你是云枢数字生命体。", "【工作记忆】"]
@@ -196,6 +237,12 @@ class ContextAssembler:
         if wf_hint:
             parts.append("【工作流提示】工具序列: " + " → ".join(wf_hint.get("tool_sequence", [])))
         parts.append("【可用工具】" + ", ".join(tools))
+        # 【前缀缓存契约】经验段置于**最末**：它逐轮变化，是最易变的内容。
+        # system_prompt_config.py:436-439 要求"稳定节前置、易变节后置"，
+        # 前置会击穿其后全部 DeepSeek 前缀缓存（与日期节同理）。
+        if experience:
+            parts.append("【相关经验（来自历史会话，仅供参考）】")
+            parts += ["- " + e["content"] for e in experience]
         system_text = "\n".join(parts)
 
         layer_tokens = {
@@ -204,6 +251,7 @@ class ContextAssembler:
             "reflections": sum(s["tokens"] for s in reflections),
             "skills": sum(s["tokens"] for s in skills),
             "workflow": estimate_tokens(str(wf_hint)) if wf_hint else 0,
+            "experience": sum(e["tokens"] for e in experience),
         }
         total = estimate_tokens(system_text)
         truncated = total > self._budget
@@ -223,6 +271,7 @@ class ContextAssembler:
             skill_instructions=skills,
             workflow_hint=wf_hint,
             reflection_notes=reflections,
+            experience_notes=experience,
             tools=tools,
             layer_tokens=layer_tokens,
             total_tokens=total,
@@ -241,6 +290,10 @@ class ContextAssembler:
             lines.append(f"[技能指令·{s.get('name') or s.get('skill_id')}]\n{s['instruction']}")
         if ctx.workflow_hint:
             lines.append("[工作流提示] " + " → ".join(ctx.workflow_hint.get("tool_sequence", [])))
+        # 经验段放在统计行**之前**、其余内容之后（易变内容后置，守前缀缓存契约）
+        for e in ctx.experience_notes:
+            src = (" · 来源 " + e["source"]) if e.get("source") else ""
+            lines.append(f"[相关经验{src}] {e['content']}")
         lines.append(f"[上下文统计] token={ctx.total_tokens}/budget={ctx.budget} truncated={ctx.truncated}")
         return "\n".join(lines)
 

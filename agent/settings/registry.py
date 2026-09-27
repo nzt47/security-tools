@@ -2589,6 +2589,48 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "(sim × confidence × priority_factor)，即改前行为（逃生开关）"
        " [F11-C-2；agent/workflow_learning/matcher.py:gate_on_evidence]",
        owner="agent/workflow_learning/matcher.py"),
+
+    # ────────────────────────────────────────────────────────
+    #  经验库（方案「把 DSH 的历史会话提炼成经验库」P1~P4）
+    #  说明：本组较新，登记是仓库机械守卫 test_settings_registry.py 的硬要求
+    #  （"扫描与登记表零缺口"）；缺登记会导致该用例失败。
+    # ────────────────────────────────────────────────────────
+
+    # API 鉴权闸门（P-1 安全加固）。B 级：放宽即降低防护。
+    _b("CP_API_AUTH_MODE", CAT_SELF_HEALING, "shadow",
+       "全局 API 鉴权闸门档位：shadow=只记不拦 / enforce=强制 401 / off=停用。"
+       "默认 shadow（界面尚有原生 fetch 未走 apiClient，直接 enforce 会打断功能）"
+       " [app_server.py:_api_auth_gate]",
+       owner="app_server.py",
+       validator=_enum("shadow", "enforce", "off"),
+       impact="影响面：置 off 后 /api/ 下未加装饰器的变更型路由将完全无鉴权"),
+    _b("CP_API_AUTH_ALLOW", CAT_SELF_HEALING, "/api/health",
+       "闸门豁免的路径前缀（逗号分隔）。放宽即扩大免鉴权面"
+       " [app_server.py:_api_auth_gate]",
+       owner="app_server.py",
+       impact="影响面：每增加一个前缀，其下全部变更型接口即免鉴权"),
+
+    # 经验库检索与注入
+    _c("CP_EXPERIENCE_DIR", CAT_SKILLS, None,
+       "经验库运行期目录（samples/reviews/batches 落于此）；缺位时由代码默认 data/experience",
+       owner="plugins/experience.py"),
+    _c("CP_EXPERIENCE_CORPUS", CAT_SKILLS, None,
+       "经验库语料路径（samples.ndjson）；由 yunshu learn extract 产出。"
+       "缺位时由代码默认 data/experience/samples.ndjson",
+       owner="agent/orchestrator/orchestrator.py"),
+    _a("CP_EXPERIENCE_MIN_SCORE", CAT_SKILLS, 30.0,
+       "经验检索相关性下限（BM25 原始分）。**置 0 即关闭判定**，"
+       "此时任何查询都会返回 top-K，「命中率」指标将失去意义"
+       " [agent/skills_mgmt/experience_index.py:_DEFAULT_MIN_BM25_SCORE；"
+       "取值依据 eval/sweep_threshold.py 实测可分间隔 24.9~36.4]",
+       owner="agent/skills_mgmt/experience_index.py",
+       validator=_range_validator(0, 1000)),
+    _b("CP_EXPERIENCE_INJECT_ENABLED", CAT_SKILLS, False,
+       "是否把经验库命中注入 system prompt 尾部（方案 P4）。"
+       "**默认关**：开启会改变 system prompt 组成，属「既有公开行为不变」的例外"
+       " [agent/orchestrator/orchestrator.py:_context_assembler_experience]",
+       owner="agent/orchestrator/orchestrator.py",
+       impact="影响面：开启后每轮按相关性下限命中经验条目并追加到 system prompt 尾部"),
 ]
 # ════════════════════════════════════════════════════════════
 #  与 observability_config 既有校验表合并（**勿重复造**）
