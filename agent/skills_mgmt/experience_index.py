@@ -45,6 +45,14 @@ _DEFAULT_WEIGHTS = {"vector": 0.6, "bm25": 0.4}
 
 _DEFAULT_PERSIST_DIR = os.path.join("data", "skill_vectors", "experience")
 _DEFAULT_COLLECTION = "experience"
+#: 相关性下限（BM25 原始分）。低于此分判定"未命中"，返回空列表。
+#: 【取值依据】eval/sweep_threshold.py 实测（505 条语料 / 12 正题 / 8 负题）：
+#:   正题 top1 原始分区间 36.4 ~ 363.0；负题 8.9 ~ 24.9 —— 两者**完全可分**，
+#:   间隔为 [24.9, 36.4]。取 30.0 落于间隔中位。
+#: 【注意】该阈值由**自动生成的 20 题**标定，样本量小；上线前应以人工题集复核，
+#:   并按方案硬约束⑤「宁可少，不要脏」偏向提高拒绝率。
+_DEFAULT_MIN_BM25_SCORE = 30.0
+
 #: 向量缓存文件名（纯内存后端的自救：避免每次重启重编码整个语料）
 _VEC_CACHE = "vectors.npz"
 _HASH_CACHE = "content_hashes.json"
@@ -293,10 +301,17 @@ class ExperienceIndex:
         lang: Optional[str] = None,
         task_type: Optional[str] = None,
         include_unverified: bool = False,
+        min_bm25_score: float = _DEFAULT_MIN_BM25_SCORE,
     ) -> List[Dict[str, Any]]:
         """RRF 融合检索。返回 [{id, score, meta, legs}]。
 
         默认只返回 verified=pass 的条目（方案硬约束 ⑤：未验证的不入库）。
+
+        【相关性下限 min_bm25_score】RRF 分数是**排名派生量**（rank1 恒为 w/(k+1)），
+        没有绝对意义 ⇒ 不加下限时系统对任何查询都会返回 top-K，
+        「命中率」这一方案核心 KPI 因此无法计算（实测：8/8 负题全部"有命中"）。
+        故以 BM25 **原始分**作为相关性度量，低于下限即判定未命中、返回空。
+        默认值取自 eval/sweep_threshold.py 的实测可分间隔，见常量注释。
         """
         if not query or not self._docs:
             return []
@@ -314,7 +329,17 @@ class ExperienceIndex:
         ranks: Dict[str, Dict[str, int]] = {}
         if self._bm25 is not None:
             try:
-                for r, hit in enumerate(self._bm25.search(query, top_k=top_k * 4), 1):
+                bm25_hits = self._bm25.search(query, top_k=top_k * 4)
+                # 相关性下限：原始分不足即判定"未命中"，不返回任何结果。
+                # 注意判定用的是**未经 lang/task_type/verified 过滤**的 top1 原始分 ——
+                # 下限衡量的是"这条查询是否与本库相关"，与被过滤掉的条目无关。
+                if min_bm25_score > 0 and bm25_hits and float(bm25_hits[0].score) < min_bm25_score:
+                    logger.info(log_dict({"module_name": "experience_index",
+                                          "action": "search.below_threshold",
+                                          "top_score": round(float(bm25_hits[0].score), 3),
+                                          "threshold": min_bm25_score}))
+                    return []
+                for r, hit in enumerate(bm25_hits, 1):
                     sid = getattr(hit, "skill_id", None) or (hit.get("skill_id") if isinstance(hit, dict) else None)
                     if sid and _ok(sid):
                         ranks.setdefault(sid, {})["bm25"] = r

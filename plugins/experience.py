@@ -39,6 +39,9 @@ bp = Blueprint("experience", __name__)
 
 # ── 存储路径（可用环境变量覆盖；默认与 P1 extract.py 产出对齐）──
 _BASE = os.environ.get("CP_EXPERIENCE_DIR", os.path.join("data", "experience"))
+#: 检索相关性下限（BM25 原始分）。默认取自 eval/sweep_threshold.py 实测的可分间隔中位。
+#: 设 0 表示关闭判定（任何查询都返回 top-K）—— 仅调试用，见 experience_index 的常量注释。
+_MIN_SCORE = float(os.environ.get("CP_EXPERIENCE_MIN_SCORE", "30") or 30)
 _CORPUS = os.path.join(_BASE, "samples.ndjson")
 _REVIEWS = os.path.join(_BASE, "reviews.jsonl")
 _BATCHES = os.path.join(_BASE, "batches.jsonl")
@@ -293,7 +296,7 @@ def experience_search():
         from agent.skills_mgmt.experience_index import ExperienceIndex
         idx = ExperienceIndex(_CORPUS, use_vector=False)   # UI 预览用 BM25，避免加载模型
         idx.load(); idx.build()
-        hits = idx.search(q, top_k=top_k, lang=lang)
+        hits = idx.search(q, top_k=top_k, lang=lang, min_bm25_score=_MIN_SCORE)
         return jsonify({"ok": True, "hits": [
             {"id": h["id"], "score": h["score"], "legs": sorted(h["legs"].keys()),
              "task": (h["meta"].get("description") or "")[:200],

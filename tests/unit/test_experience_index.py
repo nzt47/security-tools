@@ -73,7 +73,8 @@ def test_search_returns_scored_hits(corpus):
     idx = ExperienceIndex(corpus, use_vector=False)
     idx.load()
     idx.build()
-    hits = idx.search("pytest 失败", top_k=3)
+    # 小语料下 BM25 原始分远低于生产阈值 30，故显式关闭下限以测排序本身
+    hits = idx.search("pytest 失败", top_k=3, min_bm25_score=0.0)
     assert hits, "应有命中"
     for h in hits:
         assert set(h) >= {"id", "score", "meta", "legs"}
@@ -89,9 +90,9 @@ def test_unverified_excluded_by_default(corpus):
     idx = ExperienceIndex(corpus, use_vector=False)
     idx.load()
     idx.build()
-    plain = idx.search("未验证", top_k=10)
+    plain = idx.search("未验证", top_k=10, min_bm25_score=0.0)
     assert all(h["id"] != "s4" for h in plain)
-    wide = idx.search("未验证", top_k=10, include_unverified=True)
+    wide = idx.search("未验证", top_k=10, include_unverified=True, min_bm25_score=0.0)
     assert any(h["id"] == "s4" for h in wide)
 
 
@@ -99,9 +100,9 @@ def test_lang_and_task_type_filter(corpus):
     idx = ExperienceIndex(corpus, use_vector=False)
     idx.load()
     idx.build()
-    for h in idx.search("组件", top_k=10, lang="typescript"):
+    for h in idx.search("组件", top_k=10, lang="typescript", min_bm25_score=0.0):
         assert h["meta"]["_lang"] == "typescript"
-    for h in idx.search("重构", top_k=10, task_type="refactor"):
+    for h in idx.search("重构", top_k=10, task_type="refactor", min_bm25_score=0.0):
         assert h["meta"]["_task_type"] == "refactor"
 
 
@@ -111,6 +112,24 @@ def test_missing_file_degrades(tmp_path):
     st = idx.build()
     assert st["docs"] == 0
     assert idx.search("任意") == []
+
+
+def test_relevance_floor_returns_empty(corpus):
+    """相关性下限：原始分不足时判定"未命中"，返回空（而非永远返回 top-K）。
+
+    这是「命中率」可测的前提 —— 否则任何查询都有命中，指标恒为 100%。
+    """
+    idx = ExperienceIndex(corpus, use_vector=False)
+    idx.load()
+    idx.build()
+    assert idx.search("完全无关的查询词", top_k=5, min_bm25_score=1e9) == []
+    assert idx.search("pytest", top_k=5, min_bm25_score=0.0)
+
+
+def test_default_threshold_is_measured_value():
+    """默认阈值必须来自实测标定，不能随手改动。"""
+    from agent.skills_mgmt.experience_index import _DEFAULT_MIN_BM25_SCORE
+    assert _DEFAULT_MIN_BM25_SCORE == 30.0
 
 
 def test_empty_query_returns_empty(corpus):

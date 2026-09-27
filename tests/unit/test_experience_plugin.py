@@ -34,6 +34,8 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(ex, "_CORPUS", str(tmp_path / "samples.ndjson"))
     monkeypatch.setattr(ex, "_REVIEWS", str(tmp_path / "reviews.jsonl"))
     monkeypatch.setattr(ex, "_BATCHES", str(tmp_path / "batches.jsonl"))
+    # 测试语料仅数条，BM25 原始分远低于生产阈值 30 —— 关闭下限以测接口行为本身
+    monkeypatch.setattr(ex, "_MIN_SCORE", 0.0)
     # 让 require_token 进入"已配置令牌"分支
     monkeypatch.setenv("FLASK_API_TOKEN", "test-token")
     monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", True)

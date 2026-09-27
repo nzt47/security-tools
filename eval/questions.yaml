@@ -1,0 +1,129 @@
+# 经验库评测题（方案 P5）
+#
+# 【状态】由 gen_questions.py 生成的**候选集**，未经人工过目。
+#   方案要求「从历史会话手工挑 20 题（12 成功 + 8 失败）」——
+#   正题的 expect 可按人工判断替换为更贴切的条目；负题可直接增删。
+#
+# 【字段】
+#   query       检索词（由 task 特征词构造，非全文 —— 避免把答案抄进查询）
+#   query_full  task 全文前 200 字（对照用）
+#   expect      期望命中的样本 id；null 表示负题（不该命中）
+#
+# 【评测】python eval_experience.py --questions <本文件> --samples <语料>
+
+questions:
+  - id: pos-01
+    query: "你是 Windows 上的一名 Python 工程师 任务是在一个名为 云枢 Yunshu"
+    query_full: "你是 Windows 上的一名 Python 工程师，任务是在一个名为「云枢 / Yunshu」的既有智能体系统代码库中**新增两个工具原语**。仓库根目录：`<PATH>\\agent`。\n\n请用 `read` / `grep` / `glob` / `write` / `edit` 工具工作（不要用 shell 的 cat/find/grep）。可以运行 `pwsh` 执行测试。\n\n# 背景（自"
+    expect: 1fd582a6749280c3f97d3d2b276e727d
+    task_type: bugfix
+    lang: json
+
+  - id: pos-02
+    query: "任务 学习 KPI 数据源补齐与触发条件监控 任务标识 字段 任务编号 自进化机制重构计划"
+    query_full: "# 任务2：学习KPI数据源补齐与触发条件监控\n\n## 0. 任务标识\n\n| 字段 | 值 |\n|---|---|\n| 任务编号 | 任务2（自进化机制重构计划 · 阶段一） |\n| 所属计划 | `docs/zh/进化机制重构计划/自进化机制重构计划/进化机制理想设计.md` |\n| 前置依赖 | 无（建议早于任务3 上线，供放行判据使用） |\n| 并行建议 | 与任务1 并行 |\n| 下游依赖"
+    expect: 0afa883050587e821ad6e5ab85e2043e
+    task_type: bugfix
+    lang: markdown
+
+  - id: pos-03
+    query: "你是云枢 Yunshu 平台的执行代理 仓库根目录 PATH agent Windows PowerShell"
+    query_full: "你是云枢（Yunshu）平台的执行代理。仓库根目录：`<PATH>\\agent`（Windows / PowerShell）。\n\n# 背景：前一位代理做完了侦察取证，但没做实现就耗尽了预算\n\n**你的任务是接手并把修复真正实现出来。** 侦察结论已经落盘，**你不需要重新侦办根因**，直接进入实现。\n\n## 第一步（必须按序读，共 3 份）\n1. `<PATH>\\Desktop\\设计思路\\云枢能力"
+    expect: 01e4bb6ae156ce327a559d866d7068f3
+    task_type: bugfix
+    lang: python
+
+  - id: pos-04
+    query: "任务 T2.1 前端插槽注册表核心 slotRegistry SlotHost profile 单测 目标"
+    query_full: "# 任务 T2.1：前端插槽注册表核心（slotRegistry + SlotHost + profile + 单测）\n\n## 目标\n\n为云枢前端建立插槽体系核心：`slotRegistry`（注册表）、`SlotHost`（渲染组件）、`profile`（配置驱动）、`SlotProvider`（注入）。**本任务不改造 App.tsx**，只建核心 + 单测。\n\n## 背景\n\n- 项目：云枢前"
+    expect: 07437c5e018bb72447283489106cfc55
+    task_type: bugfix
+    lang: typescript
+
+  - id: pos-05
+    query: "PATH agent 中文 AI-agent 项目 云枢 执行 档工具合并"
+    query_full: "在 `<PATH>\\agent`（中文 AI-agent 项目\"云枢\"）执行**第 0 档工具合并**的 web 组。直接写文件，沙箱允许。\n\n# 背景\n工具集经评估发现有真重复（依据：`docs/工具集评估与重分类报告.md` §6.2 第 0 档，该档 10 组逐项读过 handler 确认零能力损失）。你负责 web 组 3 组。\n\n# 你的任务（web 组，净减 3 个工具）\n\n## 合并"
+    expect: 9e32c2279e7d5f0218704e048a4f763e
+    task_type: bugfix
+    lang: yaml
+
+  - id: pos-06
+    query: "请转告 START-S11-10 会话的三条 都是运行环境提示 会省它时间 推送前必须先合并 origin 门禁转绿后"
+    query_full: "请转告 START-S11-10 会话的三条（都是运行环境提示，会省它时间）\r\n⚠️ 推送前必须先合并 origin：门禁转绿后，architecture-check 的\"提交依赖图文档\"步骤首次真正执行并会自动 push 到 origin/master（我这次就被拒了一次，最终靠 git fetch origin && git merge origin/master 解决）。所以该会话每次 pu"
+    expect: 1273f305b679dc5ec4ab6a1bdf7c6eff
+    task_type: config
+    lang: markdown
+
+  - id: pos-07
+    query: "做为一个全方位的 agent 还需要什么工具 云枢会自己自动依据经验和知识根据实际需要生成新工具吗 我的设想是多 不同的 各管一条线 因此我需要的全方面能力"
+    query_full: "做为一个全方位的agent还需要什么工具？云枢会自己自动依据经验和知识根据实际需要生成新工具吗？\r\n\r\n我的设想是多agent，不同的agent各管一条线，因此我需要的全方面能力，并且是可以单独给agent组装。\r\n不预设单一主线，按“能力平面”分层，不做主线取舍，改按 常驻/感知/行动/治理 四平面重排，主线作为可配置权重。\r\n\r\n先帮我建下面几条线，然后在UI做一个入口，以后我如果有建新线的需"
+    expect: 057b4294b61bbfcb30bba860c57d069b
+    task_type: config
+    lang: python
+
+  - id: pos-08
+    query: "任务 P1-2 可视化工作流编辑器接入 工作量大 含前后端 目标 src components"
+    query_full: "任务 3（P1-2 · 可视化工作流编辑器接入）【工作量大 L，含前后端】\r\n目标：把 src/components/VisualEditor/**（全仓唯一 @xyflow/react v12 消费者：5 类节点画布、NodeValidator、CodeGenerator 图→YAML 拓扑排序、undo/redo zustand store、7 组压测）接入工作台，并补\"保存到后端\"闭环。 背"
+    expect: 3a42124032f29670d0f4e83fa9ab195d
+    task_type: config
+    lang: typescript
+
+  - id: pos-09
+    query: "做为一个全方位的 agent 还需要什么工具 云枢会自己自动依据经验和知识根据实际需要生成新工具吗 我的设想是多 不同的 各管一条线 因此我需要的全方面能力"
+    query_full: "做为一个全方位的agent还需要什么工具？云枢会自己自动依据经验和知识根据实际需要生成新工具吗？\r\n\r\n我的设想是多agent，不同的agent各管一条线，因此我需要的全方面能力，并且是可以单独给agent组装。\r\n不预设单一主线，按“能力平面”分层，不做主线取舍，改按 常驻/感知/行动/治理 四平面重排，主线作为可配置权重。\r\n\r\n先帮我建下面几条线，然后在UI做一个入口，以后我如果有建新线的需"
+    expect: 28375ed292324ca386aa20023e2944ab
+    task_type: config
+    lang: unknown
+
+  - id: pos-10
+    query: "PATH agent 中文 AI-agent 项目 云枢 执行 档工具合并"
+    query_full: "在 `<PATH>\\agent`（中文 AI-agent 项目\"云枢\"）执行**第 0 档工具合并**的扩展组与蒸馏组。直接写文件，沙箱允许。\n\n# 背景\n依据 `docs/工具集评估与重分类报告.md` §6.2 第 0 档。你负责 3 组，净减 3 个工具。\n\n# 你的任务\n\n## 合并 1：`install_tool` → **`ext_install(type=\"auto\")`**\n依据："
+    expect: 0a3365b347f8d7f9bfc94f9e45b87260
+    task_type: config
+    lang: yaml
+
+  - id: pos-11
+    query: "现在上下文是否太长 是否需压缩 以后长一点的任务就放到子代理去做 这一点比贯彻始终不用我以后再说"
+    query_full: "现在上下文是否太长？是否需压缩？以后长一点的任务就放到子代理去做，这一点比贯彻始终不用我以后再说。"
+    expect: 02b47c7b53e252ddc48b45feb52a02c4
+    task_type: feature
+    lang: markdown
+
+  - id: pos-12
+    query: "本次蒸馏的技能是否通过 LLM 技能的评审 消化 为什么出现很多没内容的技能"
+    query_full: "本次蒸馏的技能是否通过LLM技能的评审-消化？为什么出现很多没内容的技能？"
+    expect: 063b75134332889ad5ece13dde9d939f
+    task_type: feature
+    lang: python
+
+  - id: neg-01
+    query: "如何配置 Kubernetes Ingress 的 TLS 证书自动续期"
+    expect: null
+
+  - id: neg-02
+    query: "Rust 生命周期标注与 borrow checker 报错处理"
+    expect: null
+
+  - id: neg-03
+    query: "PostgreSQL 分区表 pg_partman 的安装与保留策略"
+    expect: null
+
+  - id: neg-04
+    query: "SwiftUI 动画过渡与 GeometryReader 布局"
+    expect: null
+
+  - id: neg-05
+    query: "Terraform 远程 state 在 S3 的锁定配置"
+    expect: null
+
+  - id: neg-06
+    query: "Salesforce Apex 触发器批量化的最佳实践"
+    expect: null
+
+  - id: neg-07
+    query: "Blender 几何节点程序化建模入门"
+    expect: null
+
+  - id: neg-08
+    query: "Elixir GenServer 监督树的重启策略设计"
+    expect: null
