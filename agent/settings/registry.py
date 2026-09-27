@@ -2088,6 +2088,16 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "文件监控服务读取的覆盖率报告路径（未设则为 MONITOR_ROOT/coverage.xml）；"
        "**只有 env 一层**（file_monitor.py:44）",
        owner="file_monitor.py", validator=Validator("path")),
+    # B 级：放宽即扩大暴露面 —— 该服务 5 条路由（/、/api/dashboard、/api/config、
+    # /api/health、/api/mock-dashboard）**全部无鉴权**，dashboard 会吐出仓库文件清单、
+    # git 作者与提交日期、覆盖率与阶段分布。
+    _b("CP_FILE_MONITOR_HOST", CAT_OBSERVABILITY, "127.0.0.1",
+       "文件监控服务的监听地址。**默认回环**；设为 0.0.0.0 即向同网段暴露无鉴权 dashboard"
+       "（file_monitor.py:51 / main()）",
+       owner="file_monitor.py",
+       validator=_enum("127.0.0.1", "0.0.0.0", "localhost", "::1"),
+       impact="影响面：置 0.0.0.0 后，同网段任意设备可无凭据读取仓库文件清单、"
+              "git 作者与提交日期、覆盖率分布；确需跨机访问请置于反向代理+鉴权之后"),
 
     # ────────────────────────────────────────────────────────
     #  开关中心自身（元开关：覆盖层路径）
