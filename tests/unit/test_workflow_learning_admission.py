@@ -521,10 +521,20 @@ class TestStockRetirement:
         的结果对齐 —— 断言仍有牙齿，且不会因"全被拒"而失去意义。
         """
         from agent.workflow_learning.retirement import WORKFLOW_REPO_PATH
-        if not WORKFLOW_REPO_PATH.exists():
-            pytest.skip("存量仓库不存在（非仓库运行环境）")
-        data = json.loads(WORKFLOW_REPO_PATH.read_text(encoding="utf-8"))
-        assert data, "存量仓库不应为空"
+        # 【判据订正 2026-09-27：`exists()` → 「**有内容**才算」】
+        #   `data/learned_workflows.json` **未入库**（gitignore）⇒ CI 冷启动本就不存在，
+        #   原 `exists()` 分支会正确地 skip；但只要**更早的用例**把它创建成空对象，
+        #   `exists()` 即为真 ⇒ `assert data` 立刻变红 —— 那是**顺序相关的假红**
+        #   （实测：PR #985 的 `可观测性质量保障 / 全项目测试覆盖率 (Shard 5/6)`，
+        #    报文 `AssertionError: 存量仓库不应为空`）。
+        #   与 `data/skills_mgmt.json` 同族，故采用**同一口径**：没有内容 == 没有存量仓库。
+        #   **判据未放宽**：真有存量数据时，下面所有断言一字未改（正向对照仍在）。
+        try:
+            data = json.loads(WORKFLOW_REPO_PATH.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = None
+        if not data:
+            pytest.skip("存量仓库不存在或为空（CI 冷启动 / 被更早用例写成空对象）")
         m = WorkflowMatcher()
 
         # 正向对照（先做，避免下面"被拒"断言在空池上失义）

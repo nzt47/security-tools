@@ -161,6 +161,17 @@ class TestRegisterDecoratorDiscovery:
 #  真实仓库判定与退出码语义
 # ════════════════════════════════════════════════════════════
 
+# 【CI 负载敏感 · 按仓库既有机制标 serial（L9，2026-09-27 实测）】
+#   本类要**全仓扫描 + 真跑 CLI 子进程**（`scan_handlers` / `main` 全仓遍历），
+#   在 `单元测试 / Shard 3` 的 **-n 2 并行段 + `--timeout=60`** 下**连续两轮**四条用例
+#   全部 pytest-timeout：
+#     test_scan_finds_real_handlers / test_main_exit_code_zero_on_healthy_repo /
+#     test_main_strict_exit_code_one / test_main_json_mode_is_serializable
+#   而同一 commit 的覆盖率 job（其 serial 段本来就是 `not xdist` + `--timeout=300`）同一文件通过
+#   ⇒ 属**负载敏感**，不是断言语义问题。
+#   修法沿用仓库既定机制（ci.yml:507-539 的 serial 段）：**断言一字未改、也不跳过**，
+#   只把这类"跑全仓"的用例放回无 xdist 且宽限 300s 的那条 lane。
+@pytest.mark.serial
 class TestCurrentRepoInvariants:
     def test_dispatch_invariant_holds_now(self, scanner):
         """当前仓库：分发层有界、无裸调、默认上界已启用"""
