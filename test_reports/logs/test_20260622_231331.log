@@ -1,3 +1,0 @@
-2026-06-22 23:13:31,346 [    INFO] memory.black_box: [BlackBox] Мгдижа...
-2026-06-22 23:13:31,349 [ WARNING] memory.vector_store.vector_store: [WARN] ChromaDB not installed, using JSON fallback
-2026-06-22 23:13:31,350 [ WARNING] memory.vector_store.vector_store: [WARN] Sentence Transformers not installed, using keyword search
