@@ -7831,7 +7831,7 @@
       "source_layer": "experience_cli",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 42,
+      "line": 47,
       "source_file": "agent/experience_cli/inspect.py",
       "is_cross_layer": true,
       "is_violation": false,
