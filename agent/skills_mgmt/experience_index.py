@@ -26,6 +26,16 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from agent.logging_utils import log_dict
 
+# ── 模型加载离线化（关键性能修复）──
+# 【实测】SentenceTransformer("BAAI/bge-m3") 在联网检查下会对 hf-mirror.com 发起
+# 多次 HEAD 请求（每个 config 文件 5 次重试 + 指数退避），实测模型加载耗时
+# **约 25 分钟且最终以 Traceback 崩溃**；置 HF_HUB_OFFLINE=1 后为 **2.3 秒**。
+# 本地模型权重已存在，网络探测纯属浪费，故默认离线；确需拉取新模型时可显式
+# 设 HF_HUB_OFFLINE=0 覆盖。
+# 【影响面】技能链（vector_adapter）走同一模型加载路径，存在同样问题 ——
+# 建议在部署层 .env 统一设置 HF_HUB_OFFLINE=1。
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+
 logger = logging.getLogger(__name__)
 
 #: RRF 常数，与 agent/skills_mgmt/loader.py:970 _RRF_K 保持一致
@@ -194,6 +204,12 @@ class ExperienceIndex:
             adapter._st_backend = (model, list(ids), vectors, metas)
             adapter._indexed_skill_ids = set(ids)
             adapter._indexed_content_hash = dict(saved.get("content_hashes") or {})
+            # 【必需】ensure_indexed 的短路条件是
+            #   "not dirty_ids and self._index_built"（vector_adapter.py:872），
+            # 且 full_rebuild = force or (not _index_built)（:858）。
+            # 漏设 _index_built 会导致 full_rebuild=True ⇒ 每次全量重编码、缓存形同虚设；
+            # 而两条路径返回值相同（均为 len(_indexed_skill_ids)），无法从返回值察觉。
+            adapter._index_built = True
             n = int(adapter.ensure_indexed() or 0)   # 内容未变 ⇒ 短路
             logger.info(log_dict({"module_name": "experience_index",
                                   "action": "cache.restored", "count": n}))
