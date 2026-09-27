@@ -137,9 +137,31 @@ def _truncate_output(text: str, max_bytes: int = 102400) -> str:
     return truncated + f"\n...（输出已截断，共 {len(encoded)} 字节）"
 
 
+_SHADOW_WARNED = False
+
+
+def _warn_shadow_once(mode: str) -> None:
+    """影子模式首次生效时告警一次。
+
+    【为什么】默认档位是 shadow（只记不拦）。此前该状态**完全静默**，运维侧无从得知
+    "沙箱拦得住"其实并未生效——实测 SANDBOX_DANGEROUS_PATTERNS 命中后仍会回落到
+    _legacy_execute 真实执行。此处把静默宽松变为一次性显式告警，不改默认行为
+    （翻转默认值会误伤大量含 eval(/exec(/delete from 的合法 Python/测试命令）。
+    """
+    global _SHADOW_WARNED
+    if _SHADOW_WARNED or mode != "shadow":
+        return
+    _SHADOW_WARNED = True
+    logger.warning(
+        "[shell] 命令沙箱处于【shadow 影子模式】：危险命令仅记审计、不会拦截。"
+        "如需强制拦截请设 %s=enforce（注意 eval(/exec(/delete from 等模式可能误伤合法命令）。",
+        SANDBOX_MODE_ENV)
+
+
 def sandbox_mode() -> str:
     """当前 Shell 沙箱化档位（off / shadow / enforce；非法值回落 shadow 并告警）"""
     raw = str(os.environ.get(SANDBOX_MODE_ENV, "shadow")).strip().lower()
+    _warn_shadow_once(raw if raw in _SANDBOX_MODES else "shadow")
     if raw in _SANDBOX_MODES:
         return raw
     if raw in ("1", "true", "yes", "on"):

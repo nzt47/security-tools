@@ -642,6 +642,54 @@ def require_token(f):
         return f(*args, **kwargs)
     return decorated
 
+# ── 全局 API 鉴权闸门（fail-closed；影子模式可先观察）──
+# 【解决什么】鉴权原为逐路由 @require_token 装饰器，无全局兜底。实测静态扫描：
+#   608 条路由中 74 条变更型（POST/PUT/DELETE/PATCH）无任何令牌校验；
+#   plugins/ 的蓝图由 loader 目录扫描自动挂载（loader.py:56），新插件漏加装饰器即裸奔。
+# 【怎么做】before_request 统一兜底：对本应用 /api/ 前缀的变更型请求校验令牌。
+#   与逐路由装饰器**共存不冲突**（装饰器先拦，本闸门是第二道）。
+# 【默认档位】shadow —— 只记录不拦截，避免一次性打断既有界面；
+#   观察影子日志确认无误后，设 CP_API_AUTH_MODE=enforce 转为强制。
+# 【豁免】CP_API_AUTH_ALLOW 逗号分隔的路径前缀（默认 /api/health 供探活）。
+_API_AUTH_MODE = str(os.environ.get("CP_API_AUTH_MODE", "shadow")).strip().lower()
+if _API_AUTH_MODE not in ("shadow", "enforce", "off"):
+    logger.warning("[AuthGate] CP_API_AUTH_MODE=%r 非法，回落 shadow", _API_AUTH_MODE)
+    _API_AUTH_MODE = "shadow"
+_API_AUTH_ALLOW = tuple(
+    p.strip() for p in str(os.environ.get("CP_API_AUTH_ALLOW", "/api/health")).split(",") if p.strip()
+)
+_MUTATING = frozenset({"POST", "PUT", "DELETE", "PATCH"})
+
+
+@app.before_request
+def _api_auth_gate():
+    """全局 API 鉴权兜底闸门。任何异常都放行并记 ERROR（可用性优先），不阻断业务。"""
+    if _API_AUTH_MODE == "off":
+        return None
+    try:
+        if request.method not in _MUTATING:
+            return None
+        path = request.path or ""
+        if not path.startswith("/api/"):
+            return None
+        if any(path.startswith(p) for p in _API_AUTH_ALLOW):
+            return None
+        from agent.server_auth import authorize_token, _bearer_or_header_token
+        ok, _actor, source = authorize_token(_bearer_or_header_token())
+        if ok:
+            return None
+        if _API_AUTH_MODE == "enforce":
+            logger.warning("[AuthGate] 拒绝未授权写请求 method=%s path=%s", request.method, path)
+            return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
+        # 影子模式：只记不拦，用于盘点实际会被拦下的调用
+        logger.warning("[AuthGate][shadow] 将拦截未授权写请求 method=%s path=%s source=%s",
+                       request.method, path, source)
+        return None
+    except Exception as _e:  # noqa: BLE001 - 闸门自身故障不得阻断业务
+        logger.error("[AuthGate] 校验异常（放行）: %s", _e)
+        return None
+
+
 def log_request(show_body=True, show_response=True):
     """接口日志装饰器 - 记录请求和响应的详细信息
     
