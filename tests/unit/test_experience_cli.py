@@ -79,7 +79,7 @@ def test_parser_has_all_subcommands():
     p = build_parser()
     acts = [a for a in p._actions if a.dest == "command"]
     assert acts, "应有子命令"
-    assert set(acts[0].choices) == {"probe", "extract", "ingest", "eval"}
+    assert set(acts[0].choices) == {"probe", "extract", "ingest", "eval", "inspect"}
 
 
 def test_main_skips_leading_learn_token(monkeypatch, fake_lib, tmp_path):
