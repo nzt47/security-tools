@@ -50,6 +50,11 @@ data/audit/
 # LLM 通信监控的「会话最后一条通信」快照：运行期状态（含对话内容），服务关闭时写入
 data/llm_monitor_last.json
 
+# 经验库运行期语料（方案「把 DSH 的历史会话提炼成经验库」P1）。
+# 【为什么必须忽略】samples.ndjson 由 DSH 历史会话蒸馏而来，即便已按规则 5 脱敏，
+# 仍属本机私有工作留痕，不入库。向量索引落 data/skill_vectors/，已有规则覆盖。
+data/experience/
+
 # 审批库运行期本体：正确位置由 .env 的 APPROVAL_RECORDS_PATH 指定（agent/data/ 下），
 # 属运行期状态而非源码，不入库（测试守卫另有专门判据，见 tests/conftest.py）
 agent/data/approval_records.jsonl
