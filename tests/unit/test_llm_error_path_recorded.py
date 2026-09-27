@@ -194,6 +194,14 @@ class TestLlmErrorWiring:
         assert _intent_layer_counts["llm"] == 1
         assert abs(_ratio_sum() - 1.0) < 1e-9
 
+    # 【CI 负载敏感 · 按仓库既有机制标 serial（L9，2026-09-27 实测）】
+    #   本用例在 `单元测试 / Shard 1` 的 **-n 2 并行段**下连续两轮 pytest-timeout >60s
+    #   （`Failed: Timeout (>60.0s) from pytest-timeout.`），同一 commit 的 master push 那次
+    #   Shard 1 却通过 ⇒ 属**负载/顺序敏感**，不是断言失败、也不是死锁。
+    #   修法沿用仓库既定机制（ci.yml:507-539 的 serial 段：`-m "serial"` 且**不带 xdist**），
+    #   **不改任何断言、也不跳过**：它仍会跑，只是从并行段挪到串行段。
+    #   本文件不在本批改动范围内，此处仅按 CI 实证做稳定性归位。
+    @pytest.mark.serial
     @patch("agent.orchestrator.orchestrator._MONITORING_AVAILABLE", False)
     def test_llm异常与正常交替_ratio_仍_1_0(self):
         """失败与成功交替请求：llm_error 只在失败路径出现，ratio 仍 = 1.0"""
