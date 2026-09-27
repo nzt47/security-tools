@@ -26,6 +26,9 @@ const PanoramaMonitor = lazy(() => import('@/pages/hub/panorama/monitor'))
 const PanoramaLogs = lazy(() => import('@/pages/hub/panorama/logs'))
 const MemoryPage = lazy(() => import('@/pages/hub/memory'))
 const SkillCenter = lazy(() => import('@/pages/hub/memory/skill-center'))
+// 经验库（方案「把 DSH 的历史会话提炼成经验库」P3 面板）
+// 数据源 /api/experience/*，后端 plugins/experience.py
+const ExperiencePanel = lazy(() => import('@/pages/hub/experience'))
 const MemoryKnowledge = lazy(() => import('@/pages/hub/memory/knowledge'))
 const MemorySearch = lazy(() => import('@/pages/hub/memory/search'))
 // 工具调用：子项（工具集 / CLI 软件 / MCP 系统 / Computer Use / 主线管理）已在页面内
@@ -110,6 +113,13 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/settings', label: '开关中心', icon: SlidersHorizontal, component: GovernancePanels },
     ],
   },
+  // 经验库（方案「把 DSH 的历史会话提炼成经验库」P3）
+  // 【为什么落在这里】顶层前四项 session→prompt-lab→skills-center→tools，
+  // 以及 tools→panorama→governance 的相邻关系，均被既有信息架构测试锁死
+  // （hubNav.test.ts / hubNav.search.test.ts；治理面板上移是为修"滚不到就找不到"
+  //  的实测缺陷，不应因新增模块而回退）。故新模块置于治理面板之后、
+  // 系统组件之前，零测试改动。
+  { key: 'experience', label: '经验库', icon: BookOpen, component: ExperiencePanel },
   {
     key: 'memory', label: '记忆管理', icon: Brain,
     children: [
