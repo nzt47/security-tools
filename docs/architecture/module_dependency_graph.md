@@ -172,6 +172,14 @@ flowchart LR
     subgraph evolution [evolution]
         agent_evolution_injector["agent.evolution.injector"]:::crosslayer
     end
+    subgraph experience_cli [experience_cli]
+        agent_experience_cli["agent.experience_cli"]
+        agent_experience_cli__common["agent.experience_cli._common"]:::crosslayer
+        agent_experience_cli_evaluate["agent.experience_cli.evaluate"]
+        agent_experience_cli_extract["agent.experience_cli.extract"]:::crosslayer
+        agent_experience_cli_ingest["agent.experience_cli.ingest"]
+        agent_experience_cli_inspect["agent.experience_cli.inspect"]
+    end
     subgraph extensions [extensions]
         agent_extensions["agent.extensions"]
         agent_extensions_base["agent.extensions.base"]:::crosslayer
@@ -235,6 +243,7 @@ flowchart LR
         agent_knowledge_audit_job["agent.knowledge.audit_job"]
         agent_knowledge_card["agent.knowledge.card"]:::crosslayer
         agent_knowledge_conflict["agent.knowledge.conflict"]
+        agent_knowledge_convert["agent.knowledge.convert"]
         agent_knowledge_discuss["agent.knowledge.discuss"]
         agent_knowledge_distill["agent.knowledge.distill"]
         agent_knowledge_distill_feedback["agent.knowledge.distill_feedback"]
@@ -536,6 +545,7 @@ flowchart LR
         agent_skills_mgmt_evolution_scheduler["agent.skills_mgmt.evolution_scheduler"]
         agent_skills_mgmt_exceptions["agent.skills_mgmt.exceptions"]:::crosslayer
         agent_skills_mgmt_executor["agent.skills_mgmt.executor"]
+        agent_skills_mgmt_experience_index["agent.skills_mgmt.experience_index"]:::crosslayer
         agent_skills_mgmt_feedback_agent["agent.skills_mgmt.feedback_agent"]
         agent_skills_mgmt_few_shot_injector["agent.skills_mgmt.few_shot_injector"]
         agent_skills_mgmt_file_store["agent.skills_mgmt.file_store"]:::crosslayer
@@ -917,6 +927,11 @@ flowchart LR
     agent_eval_solvers --> agent_eval_checkers
     agent_eval_solvers --> agent_eval_cases
     agent_evolution_injector -.-> agent_utils_singleton_manager
+    agent_experience_cli -.-> agent_skills_mgmt_experience_index
+    agent_experience_cli_evaluate -.-> agent_skills_mgmt_experience_index
+    agent_experience_cli_ingest -.-> agent_skills_mgmt_experience_index
+    agent_experience_cli_ingest -.-> agent_audit_facade
+    agent_experience_cli_inspect -.-> agent_skills_mgmt_experience_index
     agent_extensions --> agent_extensions_base
     agent_extensions --> agent_extensions_manager
     agent_extensions --> agent_extensions_store
@@ -1078,6 +1093,10 @@ flowchart LR
     agent_knowledge_card -.-> agent_logging_utils
     agent_knowledge_conflict --> agent_knowledge_card
     agent_knowledge_conflict --> agent_knowledge_logbook
+    agent_knowledge_convert --> agent_knowledge_schema
+    agent_knowledge_convert -.-> agent_experience_cli_extract
+    agent_knowledge_convert -.-> agent_experience_cli__common
+    agent_knowledge_convert -.-> agent_experience_cli__common
     agent_knowledge_discuss --> agent_knowledge_ingest
     agent_knowledge_discuss --> agent_knowledge_logbook
     agent_knowledge_discuss --> agent_knowledge_observability
@@ -1516,6 +1535,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_workflow_learning_models
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_guardrails_injection_defense
+    agent_orchestrator_orchestrator -.-> agent_skills_mgmt_experience_index
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator -.-> agent_context_assembler
     agent_orchestrator_orchestrator -.-> agent_system_prompt_manager
@@ -2067,6 +2087,9 @@ flowchart LR
     agent_skills_mgmt_executor -.-> agent_audit_chain
     agent_skills_mgmt_executor -.-> agent_audit_facade
     agent_skills_mgmt_executor -.-> agent_tool_gate
+    agent_skills_mgmt_experience_index -.-> agent_logging_utils
+    agent_skills_mgmt_experience_index --> agent_skills_mgmt_bm25_searcher
+    agent_skills_mgmt_experience_index --> agent_skills_mgmt_vector_adapter
     agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_service
     agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_reviewer
     agent_skills_mgmt_feedback_agent -.-> agent_task_scheduler
@@ -2467,9 +2490,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 623
-- 模块节点数: 557
-- 依赖边数: 1792
-- 跨层调用数: 1128
+- 扫描文件数: 633
+- 模块节点数: 565
+- 依赖边数: 1805
+- 跨层调用数: 1138
 - 违规调用数: 0
 - 动态 import 数: 1
