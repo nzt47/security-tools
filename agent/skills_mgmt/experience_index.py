@@ -327,6 +327,7 @@ class ExperienceIndex:
             return True
 
         ranks: Dict[str, Dict[str, int]] = {}
+        raw_bm25: Dict[str, float] = {}
         if self._bm25 is not None:
             try:
                 bm25_hits = self._bm25.search(query, top_k=top_k * 4)
@@ -343,15 +344,18 @@ class ExperienceIndex:
                     sid = getattr(hit, "skill_id", None) or (hit.get("skill_id") if isinstance(hit, dict) else None)
                     if sid and _ok(sid):
                         ranks.setdefault(sid, {})["bm25"] = r
+                        raw_bm25[sid] = float(getattr(hit, "score", 0.0) or 0.0)
             except Exception as exc:  # noqa: BLE001
                 logger.warning(log_dict({"module_name": "experience_index",
                                          "action": "search.bm25_failed", "error": str(exc)}))
+        raw_vector: Dict[str, float] = {}
         if self._vector is not None:
             try:
                 for r, hit in enumerate(self._vector.search(query, top_k=top_k * 4, enabled_only=False), 1):
                     sid = hit.get("skill_id") if isinstance(hit, dict) else None
                     if sid and _ok(sid):
                         ranks.setdefault(sid, {})["vector"] = r
+                        raw_vector[sid] = float(hit.get("score", 0.0) or 0.0)
             except Exception as exc:  # noqa: BLE001
                 logger.warning(log_dict({"module_name": "experience_index",
                                          "action": "search.vector_failed", "error": str(exc)}))
@@ -362,7 +366,11 @@ class ExperienceIndex:
             for leg, rank in legs.items():
                 score += self.weights.get(leg, 0.0) / (_RRF_K + rank)
             scored.append({"id": sid, "score": round(score, 8),
-                           "meta": self._docs[sid], "legs": legs})
+                           "meta": self._docs[sid], "legs": legs,
+                           # 原始 BM25 分（非 RRF 排名派生量）—— 供人工抽检/阈值调试判读
+                           "raw_bm25": round(raw_bm25.get(sid, 0.0), 3),
+                           # 原始余弦相似度（向量腿）—— 与 BM25 分数量纲不同，勿混用
+                           "raw_vector": round(raw_vector.get(sid, 0.0), 4)})
         scored.sort(key=lambda x: (-x["score"], x["id"]))
         return scored[:top_k]
 

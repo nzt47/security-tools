@@ -72,6 +72,25 @@ def build_parser() -> argparse.ArgumentParser:
     from .ingest import cmd_ingest
     sp.set_defaults(func=cmd_ingest)
 
+    # inspect
+    sp = sub.add_parser("inspect", help="人工抽检辅助：把检索结果摊成待打勾的表（P5）")
+    sp.add_argument("--question", action="append",
+                    help="单个问题（可重复传多次）")
+    sp.add_argument("--questions-file", dest="questions_file",
+                    help="问题清单文件，每行一问（# 开头为注释）")
+    sp.add_argument("--samples", required=True, help="samples.ndjson 路径")
+    sp.add_argument("--persist-dir", dest="persist_dir",
+                    default=__import__("os").path.join("data", "skill_vectors", "experience"))
+    sp.add_argument("--top-k", dest="top_k", type=int, default=5)
+    sp.add_argument("--min-score", dest="min_score", type=float, default=None,
+                    help="相关性下限（BM25 原始分）；默认取实测标定值")
+    sp.add_argument("--mark-out", dest="mark_out",
+                    help="输出 TSV 标注表（含 relevant 空列，填 y/n）")
+    sp.add_argument("--no-vector", dest="no_vector", action="store_true")
+    _common(sp)
+    from .inspect import cmd_inspect
+    sp.set_defaults(func=cmd_inspect)
+
     # eval
     sp = sub.add_parser("eval", help="检索质量评测（P5）")
     sp.add_argument("questions", help="questions.yaml 路径")
