@@ -40,6 +40,16 @@ SCAN_INTERVAL = 8
 # 服务端口
 PORT = 5679
 
+# 监听地址。**默认必须回环**（原实现硬编码 "0.0.0.0"，已修）。
+# 【为什么】本服务 5 条路由（/、/api/dashboard、/api/config、/api/health、
+#   /api/mock-dashboard）**全部没有鉴权**，而 dashboard 会吐出仓库文件清单、
+#   git 作者与提交日期、覆盖率与阶段分布。绑 0.0.0.0 等于把这些推给同网段
+#   任何一台设备（咖啡馆/办公网/虚拟机桥接网段皆然），且无任何访问日志告警。
+#   主服务 app_server 一直是 127.0.0.1，此处与之一致。
+# 确需跨机访问时显式覆盖，并自行加访问控制（反向代理 + 鉴权）：
+#   set CP_FILE_MONITOR_HOST=0.0.0.0
+HOST = os.environ.get("CP_FILE_MONITOR_HOST", "127.0.0.1")
+
 # 覆盖率文件 (coverage.py 输出的 Cobertura XML)
 COVERAGE_XML = os.environ.get("COVERAGE_XML") or os.path.join(MONITOR_ROOT, "coverage.xml")
 
@@ -771,8 +781,9 @@ def api_mock_dashboard():
 def main():
     t = threading.Thread(target=background_scanner, daemon=True, name="file-scanner")
     t.start()
-    logger.info("文件监控服务启动: root=%s port=%d log=%s", MONITOR_ROOT, PORT, LOG_LEVEL)
-    app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
+    logger.info("文件监控服务启动: root=%s host=%s port=%d log=%s",
+                MONITOR_ROOT, HOST, PORT, LOG_LEVEL)
+    app.run(host=HOST, port=PORT, debug=False, use_reloader=False)
 
 
 if __name__ == "__main__":
