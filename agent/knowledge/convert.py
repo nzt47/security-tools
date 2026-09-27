@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import itertools
 import os
 import re
 import sys
@@ -48,6 +49,10 @@ def _slugify(title: str) -> str:
     return slugify(title)
 
 
+#: 去重后缀的单调计数器（见 _unique_slug 的两条硬约束）
+_SLUG_SEQ = itertools.count(1)
+
+
 def _unique_slug(title: str, used: set) -> str:
     """slug 必须 == slugify(title)（card.py 的一致性校验），故冲突时改**标题**。
 
@@ -59,9 +64,15 @@ def _unique_slug(title: str, used: set) -> str:
     if slug and slug not in used:
         used.add(slug)
         return base_title
-    for _ in range(200):
-        cand = "%s-%s" % (base_title, hashlib.sha256(
-            ("%s|%s" % (base_title, time.time_ns())).encode()).hexdigest()[:4])
+    # 【两条硬约束，均踩过坑】
+    #  1) 后缀不得是纯数字：slugify 会循环剥除尾部 '-数字'（保幂等）⇒ 后缀若全是数字，
+    #     slug 会被剥回与首次相同、去重静默失效（4 位十六进制有 (10/16)^4≈15% 全数字）。
+    #     故加字母前缀 'e'，使尾部数字正则永不匹配。
+    #  2) **不得以时间为去重熵源**：Windows 上 time.time_ns() 分辨率约 15ms，循环内连续
+    #     取值会拿到同一时间戳 ⇒ 候选恒定 ⇒ 200 次全撞车后抛 RuntimeError。实测已复现。
+    #     改用单调计数器：既保证唯一，又对同一输入序列**确定可复现**（文件按名排序处理）。
+    for _ in range(100000):
+        cand = "%s-e%x" % (base_title, next(_SLUG_SEQ))
         s = _slugify(cand)
         if s and s not in used:
             used.add(s)

@@ -22,14 +22,21 @@ zstd = pytest.importorskip("zstandard")
 
 
 def test_unique_slug_never_uses_numeric_suffix():
-    """slugify 会循环剥除尾部 '-数字'（保幂等），故去重后缀必须非纯数字。"""
-    used = set()
-    t1 = _unique_slug("配置校验架构不一致", used)
-    t2 = _unique_slug("配置校验架构不一致", used)
-    assert _slugify(t1) != _slugify(t2), "同题必须得到不同 slug"
+    """slugify 会循环剥除尾部 '-数字'（保幂等），故去重后缀必须**按构造**非纯数字。
+
+    【为什么必须循环 200 次】4 位十六进制后缀有 (10/16)^4 ≈ 15% 的概率全是数字；
+    只跑一两次会概率性漏检（实测该缺陷曾"单独跑过、批量跑挂"）。
+    """
     import re as _re
-    assert not _re.search(r"-\d+$", _slugify(t2)), \
-        "去重后缀不得是纯数字（会被 slugify 剥掉）"
+    used = set()
+    slugs = []
+    for _ in range(200):
+        t = _unique_slug("配置校验架构不一致", used)
+        s = _slugify(t)
+        assert not _re.search(r"-\d+$", s), "去重后缀不得是纯数字（会被 slugify 剥掉）: %r" % s
+        assert s not in slugs, "slug 必须唯一: %r" % s
+        slugs.append(s)
+    assert len(set(slugs)) == 200
 
 
 def test_card_text_has_all_required_fields():
