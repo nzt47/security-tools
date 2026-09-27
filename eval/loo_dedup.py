@@ -43,7 +43,7 @@ def score(s: dict) -> tuple:
 
 
 def main() -> int:
-    rows = [json.loads(l) for l in open(SAMPLES, encoding="utf-8") if l.strip()]
+    rows = [json.loads(ln) for ln in open(SAMPLES, encoding="utf-8") if ln.strip()]
     grp: Dict[str, List[dict]] = defaultdict(list)
     for s in rows:
         grp[fp(s.get("task") or "")].append(s)

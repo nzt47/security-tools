@@ -61,7 +61,7 @@ def auc(pos: List[float], neg: List[float]) -> float:
 
 
 def main() -> int:
-    rows = [json.loads(l) for l in open(SAMPLES, encoding="utf-8") if l.strip()]
+    rows = [json.loads(ln) for ln in open(SAMPLES, encoding="utf-8") if ln.strip()]
     fs = {s["id"]: {d.get("path", "") for d in (s.get("diffs") or []) if d.get("path")} for s in rows}
     tt = {s["id"]: s.get("task_type") for s in rows}
     byfile: Dict[str, List[str]] = defaultdict(list)

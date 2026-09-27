@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import json
 import os
-import statistics as st
 import sys
 from collections import defaultdict
 from typing import Dict, List, Set
@@ -38,7 +37,7 @@ SAMPLES = os.path.join(_ROOT, "data", "experience", "samples.ndjson")
 
 
 def load() -> List[dict]:
-    return [json.loads(l) for l in open(SAMPLES, encoding="utf-8") if l.strip()]
+    return [json.loads(ln) for ln in open(SAMPLES, encoding="utf-8") if ln.strip()]
 
 
 def fileset(s: dict) -> Set[str]:
