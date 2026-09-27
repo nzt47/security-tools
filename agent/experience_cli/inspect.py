@@ -19,6 +19,11 @@ import sys
 from typing import List
 
 
+def _clean(s) -> str:
+    """TSV 单元格净化：制表符/换行会**冲散列**（用户实测反馈"表太乱"）。"""
+    return str(s if s is not None else "").replace("\t", " ").replace("\r", " ").replace("\n", " ").strip()
+
+
 def _load_questions(args) -> List[str]:
     if args.question:
         return [q for q in args.question if q.strip()]
@@ -57,6 +62,7 @@ def cmd_inspect(args: argparse.Namespace) -> int:
         #   前者是检索配置问题（改阈值/换腿即可），后者才是"该经验确实没沉淀"。
         #   此前一律报"库中无相关内容"，会让人工抽检（方案唯一的非自动判据）得出错误结论。
         rejected_by_score = False
+        probe: List[dict] = []
         if not hits and args.min_score > 0:
             probe = idx.search(q, top_k=args.top_k, include_unverified=True, min_bm25_score=0.0)
             rejected_by_score = bool(probe)
@@ -70,9 +76,17 @@ def cmd_inspect(args: argparse.Namespace) -> int:
                 print("    建议加 --min-score 0 复看实际召回了什么，再决定是调阈值还是补语料")
             else:
                 print("  （未命中：库中确无相关内容 —— 这本身是有效结论，请记为 'n'）")
-            rows.append({"q": "Q%02d" % qi, "question": q, "rank": "-",
-                         "id": "-", "task": "（未命中）", "type": "-", "lang": "-",
-                         "pitfalls": "-", "date": "-", "score": "-", "relevant": ""})
+            # 【必须区分两种未命中】"被阈值拒绝"与"库里真没有"后果相反：
+            #   前者是检索配置问题（调阈值/换腿），后者是"该经验确实没沉淀"。
+            #   此前一律写"（未命中）"，人工抽检无法据此判断（用户实测反馈）。
+            rows.append({"q": "Q%02d" % qi, "question": _clean(q), "rank": "-",
+                         "id": "-",
+                         "task": "（被相关性下限拒绝）" if rejected_by_score else "（库中确无相关内容）",
+                         "type": "-", "lang": "-",
+                         "pitfalls": "-", "date": "-",
+                         "score": ("%.1f" % (probe[0].get("raw_bm25", 0.0)) if rejected_by_score and probe else "-"),
+                         "status": "rejected_by_threshold" if rejected_by_score else "no_match",
+                         "relevant": ""})
             continue
         for r, h in enumerate(hits, 1):
             m = h["meta"]
@@ -81,19 +95,21 @@ def cmd_inspect(args: argparse.Namespace) -> int:
             print("     类型=%s 语言=%s 踩坑=%s 来源=%s 分=%.1f"
                   % (m.get("_task_type"), m.get("_lang"), m.get("_n_pitfalls"),
                      (m.get("_created_at") or "")[:10], h.get("raw_bm25", 0.0)))
-            rows.append({"q": "Q%02d" % qi, "question": q, "rank": r,
-                         "id": h["id"], "task": task,
+            rows.append({"q": "Q%02d" % qi, "question": _clean(q), "rank": r,
+                         "id": h["id"], "task": _clean(task),
                          "type": m.get("_task_type"), "lang": m.get("_lang"),
                          "pitfalls": m.get("_n_pitfalls"),
                          "date": (m.get("_created_at") or "")[:10],
-                         "score": round(h.get("raw_bm25", 0.0), 2), "relevant": ""})
+                         "score": round(h.get("raw_bm25", 0.0), 2),
+                         "status": "hit", "relevant": ""})
 
     print()
     print("=" * 78)
     print("汇总：问题 %d 个，其中 %d 个未命中" % (len(questions), miss))
     if args.mark_out:
+        # status 列让抽检者一眼看出"没命中"是哪一种（阈值拒绝 vs 库里没有）
         cols = ["q", "question", "rank", "id", "task", "type", "lang",
-                "pitfalls", "date", "score", "relevant"]
+                "pitfalls", "date", "score", "status", "relevant"]
         with open(args.mark_out, "w", encoding="utf-8") as fh:
             fh.write("# 在 relevant 列填 y / n（是否与你的问题相关）。y 记 1 分。\n")
             fh.write("\t".join(cols) + "\n")
