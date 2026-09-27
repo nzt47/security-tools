@@ -18,6 +18,7 @@ r"""经验库检索索引（方案 P2a）。
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -34,6 +35,9 @@ _DEFAULT_WEIGHTS = {"vector": 0.6, "bm25": 0.4}
 
 _DEFAULT_PERSIST_DIR = os.path.join("data", "skill_vectors", "experience")
 _DEFAULT_COLLECTION = "experience"
+#: 向量缓存文件名（纯内存后端的自救：避免每次重启重编码整个语料）
+_VEC_CACHE = "vectors.npz"
+_HASH_CACHE = "content_hashes.json"
 
 
 class _ExperienceMetaStore:
@@ -135,6 +139,96 @@ class ExperienceIndex:
                               "count": len(docs), "path": self.samples_path}))
         return len(docs)
 
+    # ── 向量缓存（解决纯内存后端冷启动重编码）──
+    def _fingerprint(self) -> str:
+        """语料指纹：由 id + 真正参与向量化的文本决定。文本变则指纹变。"""
+        h = hashlib.sha256()
+        for sid in sorted(self._docs):
+            h.update(sid.encode("utf-8"))
+            h.update(b"\x00")
+            h.update(json.dumps(self._docs[sid], sort_keys=True,
+                                ensure_ascii=False).encode("utf-8"))
+            h.update(b"\x01")
+        return h.hexdigest()
+
+    def _cache_files(self):
+        return (os.path.join(self.persist_dir, _VEC_CACHE),
+                os.path.join(self.persist_dir, _HASH_CACHE))
+
+    def _try_restore(self, adapter: Any) -> int:
+        """命中缓存则把向量与增量状态回灌适配器，使 ensure_indexed 短路返回。
+
+        【原理】SkillVectorAdapter 本身就有按 _indexed_content_hash 的增量短路
+        （vector_adapter.py:873-874 content_unchanged 直接 return）。故只要把
+        _st_backend / _indexed_skill_ids / _indexed_content_hash 恢复成"已索引"状态，
+        它就不会重新编码 —— 无需改动适配器一行。
+        """
+        vec_f, hash_f = self._cache_files()
+        if not (os.path.isfile(vec_f) and os.path.isfile(hash_f)):
+            return 0
+        try:
+            with open(hash_f, encoding="utf-8") as fh:
+                saved = json.load(fh)
+            if saved.get("fingerprint") != self._fingerprint():
+                logger.info(log_dict({"module_name": "experience_index",
+                                      "action": "cache.stale", "reason": "fingerprint_changed"}))
+                return 0
+            import numpy as np
+            ids = [str(i) for i in (saved.get("ids") or [])]
+            # 【防御】缓存可能来自另一份语料：id 必须全部存在于当前 _docs，
+            # 否则直接拒绝（否则下面的 _docs[i] 会 KeyError，被吞掉后静默退回全量编码）。
+            if not ids or any(i not in self._docs for i in ids):
+                logger.warning(log_dict({"module_name": "experience_index",
+                                          "action": "cache.id_mismatch", "count": len(ids)}))
+                return 0
+            vectors = np.load(vec_f, allow_pickle=False)["vectors"]
+            if vectors.shape[0] != len(ids) or vectors.shape[0] != len(self._docs):
+                return 0
+
+            adapter._ensure_vector_store()          # 载入模型（本地缓存，约数秒）
+            backend = getattr(adapter, "_st_backend", None)
+            if not backend:
+                return 0
+            model = backend[0]
+            metas = [dict(self._docs[i]) for i in ids]
+            adapter._st_backend = (model, list(ids), vectors, metas)
+            adapter._indexed_skill_ids = set(ids)
+            adapter._indexed_content_hash = dict(saved.get("content_hashes") or {})
+            n = int(adapter.ensure_indexed() or 0)   # 内容未变 ⇒ 短路
+            logger.info(log_dict({"module_name": "experience_index",
+                                  "action": "cache.restored", "count": n}))
+            return n
+        except Exception as exc:  # noqa: BLE001 - 缓存失败一律退回全量编码
+            logger.warning(log_dict({"module_name": "experience_index",
+                                     "action": "cache.restore_failed", "error": str(exc)}))
+            return 0
+
+    def _save_cache(self, adapter: Any) -> None:
+        try:
+            backend = getattr(adapter, "_st_backend", None)
+            if not backend:
+                return
+            _model, ids, vectors, _metas = backend
+            if not ids or vectors is None or len(ids) != len(vectors):
+                return
+            import numpy as np
+            vec_f, hash_f = self._cache_files()
+            # 【不易】npz 只存 float32 向量：ids 若以 dtype=object 存入，
+            # 读取时 allow_pickle=False 会直接报错（实测导致缓存恢复静默失效、
+            # 回退全量重编码 1369s）。故 ids 一律走 JSON。
+            np.savez_compressed(vec_f, vectors=np.asarray(vectors, dtype="float32"))
+            with open(hash_f, "w", encoding="utf-8") as fh:
+                json.dump({"fingerprint": self._fingerprint(),
+                           "ids": [str(i) for i in ids],
+                           "content_hashes": dict(getattr(adapter, "_indexed_content_hash", {})),
+                           "count": len(ids)},
+                          fh, ensure_ascii=False)
+            logger.info(log_dict({"module_name": "experience_index",
+                                  "action": "cache.saved", "count": len(ids)}))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(log_dict({"module_name": "experience_index",
+                                     "action": "cache.save_failed", "error": str(exc)}))
+
     # ── 双腿构建 ──
     def build(self) -> Dict[str, Any]:
         if not self._loaded:
@@ -160,7 +254,14 @@ class ExperienceIndex:
                     collection_name=self.collection_name,
                     persist_dir=self.persist_dir,
                 )
-                out["vector"] = int(adapter.ensure_indexed() or 0)
+                # 先试向量缓存：命中则免去全量重编码（纯内存后端的冷启动自救）
+                n = self._try_restore(adapter)
+                out["vector_cached"] = n
+                if n == 0:
+                    n = int(adapter.ensure_indexed() or 0)
+                    if n:
+                        self._save_cache(adapter)
+                out["vector"] = n
                 self._vector = adapter
             except Exception as exc:  # noqa: BLE001
                 logger.warning(log_dict({"module_name": "experience_index",
