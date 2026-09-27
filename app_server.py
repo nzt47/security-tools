@@ -650,7 +650,8 @@ def require_token(f):
 #   与逐路由装饰器**共存不冲突**（装饰器先拦，本闸门是第二道）。
 # 【默认档位】shadow —— 只记录不拦截，避免一次性打断既有界面；
 #   观察影子日志确认无误后，设 CP_API_AUTH_MODE=enforce 转为强制。
-# 【豁免】CP_API_AUTH_ALLOW 逗号分隔的路径前缀（默认 /api/health 供探活）。
+# 【豁免】CP_API_AUTH_ALLOW 逗号分隔；**默认精确匹配**，子路径须显式写 "/x/*"
+#   （默认 /api/health 供探活；精确匹配是有意为之，见 _api_auth_allow_path 注释）。
 _API_AUTH_MODE = str(os.environ.get("CP_API_AUTH_MODE", "shadow")).strip().lower()
 if _API_AUTH_MODE not in ("shadow", "enforce", "off"):
     logger.warning("[AuthGate] CP_API_AUTH_MODE=%r 非法，回落 shadow", _API_AUTH_MODE)
@@ -659,6 +660,12 @@ _API_AUTH_ALLOW = tuple(
     p.strip() for p in str(os.environ.get("CP_API_AUTH_ALLOW", "/api/health")).split(",") if p.strip()
 )
 _MUTATING = frozenset({"POST", "PUT", "DELETE", "PATCH"})
+
+
+def _api_auth_allow_path(path: str) -> bool:
+    """豁免判定（实现见 agent/server_auth.path_is_allowlisted，便于单测）。"""
+    from agent.server_auth import path_is_allowlisted
+    return path_is_allowlisted(path, _API_AUTH_ALLOW)
 
 
 @app.before_request
@@ -672,7 +679,7 @@ def _api_auth_gate():
         path = request.path or ""
         if not path.startswith("/api/"):
             return None
-        if any(path.startswith(p) for p in _API_AUTH_ALLOW):
+        if _api_auth_allow_path(path):
             return None
         from agent.server_auth import authorize_token, _bearer_or_header_token
         ok, _actor, source = authorize_token(_bearer_or_header_token())

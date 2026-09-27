@@ -53,11 +53,23 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     for qi, q in enumerate(questions, 1):
         hits = idx.search(q, top_k=args.top_k, include_unverified=True,
                           min_bm25_score=args.min_score)
+        # 【归因必须准确】"阈值拒绝"与"库里真没有"是两回事，后果也相反：
+        #   前者是检索配置问题（改阈值/换腿即可），后者才是"该经验确实没沉淀"。
+        #   此前一律报"库中无相关内容"，会让人工抽检（方案唯一的非自动判据）得出错误结论。
+        rejected_by_score = False
+        if not hits and args.min_score > 0:
+            probe = idx.search(q, top_k=args.top_k, include_unverified=True, min_bm25_score=0.0)
+            rejected_by_score = bool(probe)
         print()
         print("问题 %d/%d: %s" % (qi, len(questions), q))
         if not hits:
             miss += 1
-            print("  （未命中：库中无相关内容 —— 这本身是有效结论，请记为 'n'）")
+            if rejected_by_score:
+                print("  （未命中：**被相关性下限 %.1f 拒绝**，库中其实有条目但分数不足）"
+                      % args.min_score)
+                print("    建议加 --min-score 0 复看实际召回了什么，再决定是调阈值还是补语料")
+            else:
+                print("  （未命中：库中确无相关内容 —— 这本身是有效结论，请记为 'n'）")
             rows.append({"q": "Q%02d" % qi, "question": q, "rank": "-",
                          "id": "-", "task": "（未命中）", "type": "-", "lang": "-",
                          "pitfalls": "-", "date": "-", "score": "-", "relevant": ""})

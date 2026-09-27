@@ -149,7 +149,16 @@ dependencies = [
   #   `pip install -e .` 不装它，而 tests/unit/test_vector_store_sqlite_vec.py
   #   依赖它决定 L3 向量后端选型（装不上就整组跳过 ⇒ 覆盖率假高）。
   #   下限对齐 requirements.txt 的 >=0.1.9（本机实装 0.1.9）。
-  "sqlite-vec>=0.1.9"
+  "sqlite-vec>=0.1.9",
+  # zstandard：**直接依赖漏声明**（与上一项同属 audit_dependency_drift 的 [2a] 类）。
+  # Why 必须补：agent/experience_cli/_common.py:20 直接 import 它解 DSH 会话的
+  #   多帧 zstd（只解首帧会静默截断：实测 3,830 条 -> 1 条）；而
+  #   tests/unit/test_experience_cli.py 与 test_knowledge_convert.py 都用
+  #   pytest.importorskip("zstandard") 守卫 ⇒ pyproject 不声明则 CI 的
+  #   "pip install -e ." 不装它，两个模块**整组静默跳过且 exit 0（假绿）**。
+  #   与 pyproject.toml 中 sqlite-vec 的处置是同一模式（见上一项注释）。
+  #   下限取本机实装 0.25.0；该包元数据无任何 requires（叶子依赖，零传递风险）。
+  "zstandard>=0.25.0,<1.0.0"
 ]
 
 [project.scripts]

@@ -471,6 +471,8 @@ waitress==3.0.2
     # via Yunshu (pyproject.toml)
 wmi==1.5.1; sys_platform == 'win32'
     # via Yunshu (pyproject.toml)
+zstandard==0.25.0
+    # via Yunshu (pyproject.toml — experience_cli 解 DSH 会话多帧 zstd)
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

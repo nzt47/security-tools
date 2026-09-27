@@ -99,6 +99,32 @@ def authorize_token(token: str) -> Tuple[bool, str, str]:
     return False, "", "denied"
 
 
+def path_is_allowlisted(path: str, allowlist) -> bool:
+    """豁免路径判定：**默认精确匹配**，只有显式以 /* 结尾才匹配其子路径。
+
+    【为什么不能用 startswith 前缀匹配（首版缺陷，安全审计实测发现）】
+    首版为 any(path.startswith(p) for p in allowlist)，于是默认豁免项 "/api/health"
+    把 **/api/health/weights（PUT，改健康度权重）** 与
+    **/api/health/score/calculate（POST）** 一并豁免 —— 而这两条恰恰**没有任何
+    鉴权装饰器**（agent/server_routes/routes_health.py:244 / :173）
+    ⇒ 逐路由装饰器与全局豁免**同时失效**，且**切到 enforce 也拦不住**。
+    子路径豁免必须显式书写（如 "/api/health/*"），避免"加一个前缀 = 放开一片写接口"。
+
+    放在本模块而非 app_server：本模块可被单测直接导入（app_server 导入期会构造引擎）。
+    """
+    for raw in allowlist or ():
+        p = str(raw or "").strip().rstrip("/")
+        if not p:
+            continue
+        if p.endswith("/*"):
+            base = p[:-2]
+            if path == base or path.startswith(base + "/"):
+                return True
+        elif path == p:
+            return True
+    return False
+
+
 def require_token(f):
     """需要 API 令牌认证的装饰器（支持共享令牌 + 每使用者独立令牌）"""
     @functools.wraps(f)
