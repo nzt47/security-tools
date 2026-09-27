@@ -22,7 +22,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from ._common import (content_text, decompress_lines, desensitize, iter_sessions,
-                      result_text, ts_le)
+                      ms_to_iso, result_text, ts_le)
 
 FILE_WRITE_TOOLS = {"write", "write_file"}
 FILE_EDIT_TOOLS = {"edit", "multiedit", "str_replace_editor"}
@@ -157,6 +157,22 @@ def infer_task_type(text: str, paths: List[str]) -> str:
     if re.search(r"(?i)(infra|k8s|kubernetes|nginx|监控|运维|docker\b|容器)", t):
         return "infra"
     return "feature"
+
+
+def _first_ts(recs: List[Dict[str, Any]]) -> Optional[str]:
+    """turn 内**第一条带 time 的记录**的时间 -> 本地 ISO。
+
+    【为什么不是 recs[0]】turn 的首条记录通常是 `turn/start`，**它没有 time 字段**
+    （实测：tool/call、tool/result、step/start、step/end、assistant/message、
+    tool/code-dispatch 都有 time，而 turn/start、*-chunks 这类没有）。
+    直接取 recs[0] 会全部落到"取当前时刻"的兜底分支 —— 我第一次就是这么写的，
+    重新抽取后 484 条 created_at 仍全等于抽取时刻，靠打印月份分布才发现。
+    """
+    for o in recs:
+        got = ms_to_iso(o.get("time"))
+        if got:
+            return got
+    return None
 
 
 def extract(root: str, snapshot: Optional[str] = None, verbose: bool = False):
@@ -368,7 +384,14 @@ def extract(root: str, snapshot: Optional[str] = None, verbose: bool = False):
                 "signal": {"isError": len(errors), "superseded": superseded,
                            "test_cmds": len(test_calls), "revert_hits": revert_hits,
                            "dup_diffs": dup_n, "redactions": repl_total},
-                "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                # 【必须是「经验发生的时间」，不是「抽取的时间」】
+                # 旧实现取 time.strftime(now)：整个语料的 created_at 都是抽取那天
+                # （实测 505 条全是 2026-09-27），于是 inspect 的「来源日期」列没有信息量，
+                # 且方案里的「经验会过期（deprecated_after）」根本无法按年龄判定。
+                # 真值在会话记录的 time 字段（epoch 毫秒），取该 turn 首条记录的即可。
+                "created_at": (_first_ts(recs)
+                               or time.strftime("%Y-%m-%dT%H:%M:%S")),
+                "extracted_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 "deprecated_after": None,
             })
             stat["samples"] += 1

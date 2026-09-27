@@ -11,6 +11,7 @@ r"""yunshu learn —— 共享工具层。
 from __future__ import annotations
 
 import collections
+import datetime as _dt
 import json
 import os
 import re
@@ -145,11 +146,66 @@ def decompress_lines(path: str) -> Iterable[str]:
             yield line
 
 
+#: 秒 / 毫秒的分界（1e11 毫秒 ≈ 1973 年，1e11 秒 ≈ 5138 年，不会误判）
+_EPOCH_MS_CUT = 1e11
+
+
+def to_epoch_ms(v: Any) -> Optional[float]:
+    """把会话记录的时间戳统一成 epoch 毫秒。
+
+    【必须支持两种形态 —— 这是一个真实踩过的坑】
+      DSH 会话里 `time` 是 **epoch 毫秒整数**（实测 1789200668629），
+      **不是** ISO 字符串。此前 ts_le 写的是 `if not isinstance(ts, str): return True`，
+      于是对真实会话**恒为真** ⇒ `--snapshot-until` 成了静默空操作，
+      "冻结后结果才可复现"这一保证实际不成立。
+      单元测试没发现，是因为测试夹具把 time 写成了 ISO 字符串（与真实 schema 不符，假绿）。
+    """
+    if v is None or isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        n = float(v)
+        return n * 1000.0 if abs(n) < _EPOCH_MS_CUT else n
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return None
+        try:
+            return to_epoch_ms(float(s))
+        except ValueError:
+            pass
+        try:
+            dt = _dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=_dt.timezone.utc)
+        return dt.timestamp() * 1000.0
+    return None
+
+
+def ms_to_iso(ms: Any) -> Optional[str]:
+    """epoch 毫秒 -> 本地 ISO（秒级），失败返回 None。"""
+    e = to_epoch_ms(ms)
+    if e is None:
+        return None
+    try:
+        return _dt.datetime.fromtimestamp(e / 1000.0).strftime("%Y-%m-%dT%H:%M:%S")
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
 def ts_le(ts: Any, cutoff: Optional[str]) -> bool:
-    """记录时间是否 <= 快照截止点（会话库是活的，冻结后结果才可复现）。"""
-    if not cutoff or not isinstance(ts, str):
+    """记录时间是否 <= 快照截止点（会话库是活的，冻结后结果才可复现）。
+
+    【无法解析时不筛】宁可多收，不可因为解析失败而静默丢掉整段历史。
+    但这正是旧实现的隐患来源，故新增 tests/unit 回归用例**锁死真实形态（ms 整数）**。
+    """
+    if not cutoff:
         return True
-    return ts[:19] <= cutoff[:19]
+    a, b = to_epoch_ms(ts), to_epoch_ms(cutoff)
+    if a is None or b is None:
+        return True
+    return a <= b
 
 
 def result_text(block: Dict[str, Any]) -> str:

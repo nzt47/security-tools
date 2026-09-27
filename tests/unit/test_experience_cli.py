@@ -6,8 +6,10 @@ probe 与 extract 端到端（用合成会话，不依赖真实会话库）。
 """
 from __future__ import annotations
 
+import datetime
 import json
 import os
+from datetime import timezone
 
 import pytest
 
@@ -30,8 +32,16 @@ def _mk_session(dirpath: str, records) -> str:
     return p
 
 
-def _rec(seq, typ, data, time="2026-09-20T10:00:00", **kw):
-    o = {"type": typ, "seq": seq, "time": time, "data": data}
+#: 真实 DSH 会话里 time 是 **epoch 毫秒整数**（实测 1789200668629），不是 ISO 字符串。
+#: 夹具必须照抄真实形态 —— 此前夹具写成 ISO 字符串，掩盖了 ts_le 对真实会话恒真的缺陷。
+_T2026_09_20 = int(datetime.datetime(2026, 9, 20, 10, 0, 0, tzinfo=timezone.utc).timestamp() * 1000)
+
+
+def _rec(seq, typ, data, time=_T2026_09_20, **kw):
+    """time=None 表示**该记录没有 time 字段** —— 真实 `turn/start` 正是如此。"""
+    o = {"type": typ, "seq": seq, "data": data}
+    if time is not None:
+        o["time"] = time
     o.update(kw)
     return o
 
@@ -47,7 +57,8 @@ def fake_lib(tmp_path):
         # 系统样板（kind=plugin）—— 必须被忽略，否则 task 会变成 background job 文本
         _rec(2, "user/message", {"content": "background job pwsh-1 finished",
                                  "source": {"kind": "plugin"}}),
-        _rec(3, "turn/start", {"turn": 1}),
+        # 真实 turn/start **没有 time 字段**（实测），夹具必须照抄，否则 _first_ts 分支测不到
+        _rec(3, "turn/start", {"turn": 1}, time=None),
         _rec(4, "step/start", {"turn": 1, "step": 1}),
         _rec(5, "tool/call", {"turn": 1, "step": 1, "callId": "c1", "name": "edit",
                               "arguments": json.dumps({"file_path": str(tmp_path / "proj" / "a.py"),
@@ -66,8 +77,8 @@ def fake_lib(tmp_path):
                                                          "isError": False}]}}),
         _rec(9, "step/end", {"turn": 1, "step": 2}),
         _rec(10, "turn/end", {"turn": 1}),
-        # 噪声：思考链必须被排除
-        _rec(11, "reasoning-chunks", {"chunk": "thinking..."}),
+        # 噪声：思考链必须被排除（且它同样没有 time —— 与真实 *-chunks 一致）
+        _rec(11, "reasoning-chunks", {"chunk": "thinking..."}, time=None),
     ]
     _mk_session(str(root), recs)
     return str(tmp_path / "sessions")
@@ -192,4 +203,45 @@ def test_dedup_keeps_first_when_equally_informative():
     out = dedup_samples(rows, stat)
     assert [r["id"] for r in out] == ["a"]
     assert out[0]["signal"]["dup_samples"] == 2
+
+# ── 时间戳形态（真实 schema 是 epoch 毫秒整数，不是 ISO 字符串）──
+
+def test_snapshot_filter_works_on_real_epoch_ms():
+    """回归锁：DSH 记录的 time 是 int 毫秒。旧实现 isinstance(ts, str) 判假 ⇒
+    --snapshot-until 恒为空操作，"冻结后结果可复现"实为不成立。
+    """
+    from agent.experience_cli._common import ts_le
+    assert ts_le(_T2026_09_20, "2027-01-01T00:00:00") is True
+    assert ts_le(_T2026_09_20, "2020-01-01T00:00:00") is False, "毫秒整数必须能被截止点挡住"
+    # 秒级整数（另一种可能的形态）同样要正确
+    assert ts_le(_T2026_09_20 // 1000, "2020-01-01T00:00:00") is False
+    # ISO 字符串仍需兼容（旧夹具形态）
+    assert ts_le("2026-09-20T10:00:00", "2020-01-01T00:00:00") is False
+    # 无法解析时不筛（宁可多收，不可静默丢历史）
+    assert ts_le("not-a-time", "2020-01-01T00:00:00") is True
+    assert ts_le(None, "2020-01-01T00:00:00") is True
+
+
+def test_ms_to_iso_roundtrip_and_failure():
+    from agent.experience_cli._common import ms_to_iso
+    got = ms_to_iso(_T2026_09_20)
+    assert got and got.startswith("2026-09-20T"), got
+    assert ms_to_iso(None) is None
+    assert ms_to_iso("garbage") is None
+
+
+def test_extract_created_at_is_session_time_not_extraction_time(fake_lib, tmp_path):
+    """created_at 必须是「经验发生的时间」，否则来源日期列无信息量、过期判定失效。
+
+    【必须覆盖 turn 首条记录无 time 的情形】真实 `turn/start` **没有 time 字段**，
+    只取 recs[0] 会静默落到"当前时刻"兜底 —— 该缺陷在重抽 484 条后被打印
+    created_at 月份分布才发现，仅凭"等于自己"的断言看不出来。
+    """
+    out = tmp_path / "s.ndjson"
+    assert main(["extract", fake_lib, "--out", str(out)]) == 0
+    s = json.loads(out.read_text(encoding="utf-8").strip().splitlines()[0])
+    assert s["created_at"].startswith("2026-09-20T"), s["created_at"]
+    # 抽取时间另存，不与被抽取内容混为一谈
+    assert s["extracted_at"] and not s["extracted_at"].startswith("2026-09-20T")
+
 
