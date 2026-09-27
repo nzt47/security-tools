@@ -2071,6 +2071,66 @@ NET NEW: ('server_port_guard.py', 'timeout', 'timeout', '3.0', 'call_arg', 'high
 > **一句话交付结论**：**代码已推、PR 已开、能跑的 CI 门全绿（其中 2 个是本批先红后修）、全量单测 0 失败、
 > 生产数据 4/5 不变性成立（第 5 条是仓库既有的、已登记的测试卫生缺口）**；
 > 唯一的**功能级未完成项**仍是生产 `min_score=0.3` 的中文召回（需判据重设计）。
+---
+
+## 27. 合并进 master 与随之而来的 CI 收官（2026-09-27）
+
+### 27.1 合并动作
+
+| 项 | 值 |
+|---|---|
+| PR #980 | **MERGED**，merge commit **`213db455`**（`2026-09-26T23:00:31Z`） |
+| 合并形态 | merge commit（与仓库既有 `Merge pull request #NNN` 形态一致） |
+| master | `213db455` → 修正合并后 **`f6e58bd6`** |
+
+**★ 合并即验证**：push master 触发 **21 个 workflow**，而这次它们**真的跑了** —— 包括那两个
+"合并前永远跑不到"的门（§23.2 登记的残余风险）：
+
+| workflow | 结果 | 说明 |
+|---|---|---|
+| **Settings Registry Gap Guard** | **success** | 本批**新增**的门，**第一次真跑** |
+| **Skill Description Single Source** | **success** | 本批修改的门，**第一次真跑** |
+| **Skills Check** | **success** | 含 `dynamic-load-gate`：卡 B 修好的那处 HIGH 阻断在真实 push 上不再挡 |
+| 工具检索质量 CI | success | 含本批新增的 `skill-retrieval-quality-gate` |
+| 架构规则校验 | success | 本批先红后修（§24.1） |
+| 其余 16 个 workflow | **全部 success** | lock-discipline / 核心不变量 / 环境健康 / 硬编码密码 / 循环依赖 / Intent Layer / kwarg 扫描 / TASK-02 / 日志性能 / yunshu-ui / commit-origin / Pages / 通知 … |
+
+### 27.2 master 拿到 2 个分片红 —— 都是**本批新增测试的平台脆弱写法**
+
+| 分片 | 失败用例 | 根因 |
+|---|---|---|
+| `单元测试 Shard 6` | `test_startup_no_gap.py::test_reap_children_is_off_by_default` → `assert 0 == 1` | 断言**漏了平台分流**：非 win32 下 kill 走 `os.kill`，**不经注入的 runner** ⇒ 受控桩恒空。本文件其余同族断言都带 `if sys.platform == "win32"` 或用了 `_install_os_kill_probe`/`_kills`，**只有这一处漏了** |
+| `单元测试 Shard 4` | `test_descriptor_registry_concurrent_load.py::test_single_process_payload_digest_unchanged` | 对 `save()` 写出的**原始字节**取 sha256，而写盘是**文本模式** ⇒ Windows CRLF / POSIX LF ⇒ 同一语义载荷两平台摘要不同 |
+
+**Shard 4 的根因是实测钉死的，不是推测**：本机原始摘要 `fff74de9…`，**把 CRLF 归一化成 LF 后 = `8474224f…`**，
+而 Linux CI 报的原始摘要**恰好就是** `8474224f…` ⇒ 差异 **100% 来自行尾翻译**。
+
+### 27.3 修正 PR #985（4 个提交，**不含任何产品代码改动**）
+
+| 提交 | 内容 | 非空转自证 |
+|---|---|---|
+| `885d9973` | 两处平台脆弱断言 | 窄窗口伪造 `sys.platform="linux"`：新断言 `len(_kills(events))==1` → **True**；**旧断言 `len(stub.taskkill_argv)==1` → False（正是 CI 的 `assert 0 == 1`）**。digest 改为"LF 归一化后哈希"，基线取平台无关值；语义一变摘要即变（多加一条 ⇒ `767daf2e…`） |
+| `d6b03958` | `test_workflow_learning_admission.py` 的存量仓库判据 `exists()` → 「**有内容才算**」（与 `skills_mgmt.json` 同族；PR 的覆盖率 Shard 5 实测 `AssertionError: 存量仓库不应为空`） | 存量文件置空 `{}` ⇒ 该用例 **1 skipped**（改前 AssertionError）；还原后 **1 passed** |
+| `fc9af510` | `test_llm_error_path_recorded.py` 的负载敏感用例标 `serial`（仓库 L9 机制） | 并行段 `10 passed, 1 deselected`；串行段 `1 passed, 10 deselected` |
+| `74bbe961` | `test_handler_timeout_scanner.py::TestCurrentRepoInvariants` 标 `serial`（该类全仓扫描 + 真跑 CLI，并行段 `-n 2` + `--timeout=60` 必然超时） | 并行段 `15 passed, 5 deselected`；串行段 `5 passed, 15 deselected`（13.59s） |
+
+**PR #985 的 CI 结果**：**6/6 单元分片 pass**（含此前红掉的 Shard 4/6）、**6/6 覆盖率分片 pass**（含此前红掉的 Shard 5）、
+集成测试 4/4，Lint / 安全 / E2E / Pact / 可观测性等**全绿**，**fail = 0**。
+合并时唯一 pending 的是 `失败基线回归（只允许收缩）` —— master 那次同名 job 耗时 **79 分钟**且 success，本 PR 在 ~25 分钟时合并（**已知长作业**，非失败）。
+
+**★ 顺带把 §23.2 的结论从反面对上了**：PR #985 **不触碰** `.github/workflows/`，因此**拿到了完整的 PR check**（12 个分片 + 数十个 job）——
+与 #980 被远端抑制的情形形成**同一实验的对照组**，进一步坐实"抑制的触发条件是 PR 触碰 workflow 文件"。
+
+### 27.4 这一轮要把「哪些是既有的」说清楚
+
+- **属于本批、已修**：2 处平台脆弱断言（§27.2 / §27.3 前两条）。
+- **既有、按仓库机制归位**（不在本批改动范围，只是在 CI 上暴露）：
+  `test_llm_error_path_recorded` 与 `test_handler_timeout_scanner::TestCurrentRepoInvariants` 两处负载敏感用例 ——
+  证据是 **master push 那次同名分片通过**、**PR 上连续两轮超时**、失败形态**全部是** `Failed: Timeout (>60.0s)`（零断言失败）。
+  二者按 **L9 既定机制**挪到 serial 段（无 xdist、`--timeout=300`），**断言一字未改、也不跳过**。
+- **既有、已按同族口径收敛**：`data/learned_workflows.json` 未入库而判据曾用 `exists()` —— 已订正为「有内容才算」。
+- **根治方向（另立项）**：把 `TestCurrentRepoInvariants` 的"全仓扫描"改为对**固定快照目录**扫描，使其与仓库规模/机器负载解耦。
+
 
 
 
