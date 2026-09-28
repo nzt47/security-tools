@@ -24,6 +24,7 @@
  */
 
 import { record } from 'rrweb';
+import { authHeader } from '../lib/apiToken';
 import type { eventWithTime } from 'rrweb/typings/types';
 
 // ─── 业务错误码（边界显性化） ────────────────────────────────────────────
@@ -393,9 +394,12 @@ export async function captureReplayOnError(
       }
       // sendBeacon 失败（队列满），降级 fetch
     }
+    // 【注意】上面第 389 行的 navigator.sendBeacon **无法携带自定义请求头**，
+    // 故 /api/replay/upload 必须在 CP_API_AUTH_ALLOW 里豁免；这里带令牌是为了
+    // 让"降级到 fetch"的这条路径在未豁免时也能通过。
     const resp = await fetch(config.uploadEndpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
       body,
       keepalive: true,  // 允许页面卸载后继续完成请求
       credentials: 'include',

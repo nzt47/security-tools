@@ -168,7 +168,18 @@ dependencies = [
 # pip install -e . 后会 ModuleNotFoundError，见下方注释）。
 # main() 会自动跳过 argv 首位的 "learn" token，故 console 入口与
 # `python -m agent.experience_cli` 两种写法共用同一实现。
-yunshu = "agent.experience_cli:main"
+#
+# 【入口必须写裸名 experience_cli，不能写 agent.experience_cli（2026-09-28 实测）】
+#   上面的 where 决定"哪些包会被安装"。实测 find_packages(where="agent") 返回
+#   49 个**不带 agent. 前缀**的包，**`agent` 本身不在其中** ⇒ 装完之后
+#   `import agent` 不存在，写 agent.experience_cli:main 会
+#   **ModuleNotFoundError（本地能跑、装完就没了）**。
+#   同时注意：本机 site-packages 里还有一个**无关的 agent 包**
+#   （"Agent internals -- extracted modules from run_agent.py"），
+#   所以在仓库外 `import agent` 拿到的是别人的包 —— 这也是为什么
+#   CI 里 config-drift-guard.yml:49 要用 PYTHONPATH=. 兜住。
+#   ⚠️ 若将来把 where 改成 ["."]，这里必须**同步改回** agent.experience_cli:main。
+yunshu = "experience_cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -193,6 +204,20 @@ dev = [
 # 【TASK-05 新增 "cloudshu"】`python -m cloudshu` 是能力层的**非 LLM CLI 入口**
 #   （v1.4 战略判据的"人"那一半）。**不登记在这里 ⇒ `pip install -e .` 之后
 #   `python -m cloudshu` 会 ModuleNotFoundError** —— "本地能跑、装完就没了"。
+# 【为什么每个条目都是"包根目录"而不是"."】这里列的是**根**：写 where=["agent"]
+#   会把 agent/ 当搜索根，于是它下面的子包以**裸名**被安装
+#   （audit / caching / skills_mgmt / ...），仓库里 6 处裸顶层导入正依赖这个。
+#   **代价是 `agent` 自己不会被安装** —— 实测 find_packages(where="agent")
+#   返回 49 个包、"agent" 不在其中。后果见下方 [project.scripts] 的说明。
+#
+# 【2026-09-28 已实测并否决的"修法"】曾尝试把 "." 加进 where 让 agent 也可导入
+#   （where=[".", "agent", ...]，理论上严格超集、零回归）。**构建直接失败**：
+#       error: package directory 'agent\cognitive\test_cognitive' does not exist
+#   根因：cognitive / memory / utils 这三个名字**同时**存在于仓库根与被列出的
+#   包根 agent/ 之下，setuptools 对同名包只能记一份 package_dir，
+#   于是把根下的 cognitive.test_cognitive 解析到了 agent/cognitive/ 下面。
+#   ⇒ 想彻底修（真正的解法是 where=["."] + 修掉那 6 处裸导入）是一次独立重构，
+#     会影响 CI 里 20+ 个 workflow 的 pip install -e .，**不要顺手做**。
 where = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace", "utils", "cloudshu"]
 include = ["*"]
 

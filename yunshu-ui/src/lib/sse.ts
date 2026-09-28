@@ -11,6 +11,8 @@
  *  3. chunk 事件携带 seq 序号，供上层做乱序/丢包检测
  */
 
+import { authHeader } from './apiToken';
+
 export type ThinkingStatus = 'pending' | 'running' | 'done' | 'error';
 
 export type StreamEvent =
@@ -67,7 +69,10 @@ export async function* createChatStream(
   try {
     res = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // 【必须带令牌】POST /api/chat/stream 是变更型请求，会命中 app_server 的
+      // 全局鉴权闸门（_api_auth_gate）。此前这里没带 Authorization，
+      // 一旦 CP_API_AUTH_MODE=enforce，**整个聊天功能直接 401 不可用**。
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
       body: JSON.stringify({
         message: question,
         ...(options?.sessionId ? { session_id: options.sessionId } : {}),

@@ -1745,7 +1745,8 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
     try {
       const r = await fetch(`/api/skills-mgmt/${item.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        // 同文件 245 行的 DELETE 已带 authHeader；此处 PATCH 此前漏了
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({ name: draftName.trim(), description: draftDesc.trim() }),
       })
       if (!r.ok) {

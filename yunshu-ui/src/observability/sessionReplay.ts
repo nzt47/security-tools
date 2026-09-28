@@ -13,6 +13,7 @@
  * - 防抖节流：60s 定时 flush + 缓冲满 500 触发 flush；isFlushing 标志防止并发
  */
 import { gzip as pakoGzip } from 'pako'
+import { authHeader } from '../lib/apiToken'
 
 // ════════════════════════════════════════════════════════════════
 //  常量与配置
@@ -249,7 +250,8 @@ async function sendFetchOnce(
 ): Promise<boolean> {
   const res = await fetch(getUploadUrl(), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    // 带令牌（若 /api/replay/upload 已按 CP_API_AUTH_ALLOW 豁免则无害）
+    headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify(body),
     keepalive,
     signal,
