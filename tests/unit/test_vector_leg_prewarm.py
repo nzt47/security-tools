@@ -140,11 +140,19 @@ class TestAppServerStartupWiring:
         assert "threading.Thread(" in seg and "daemon=True" in seg, (
             "预热必须在**后台 daemon 线程**里跑：BGE-m3 实测加载 87.7s，卡住就等于服务起不来")
 
-    def test_预热调用在就绪门之前_但不参与其判定(self):
+    def test_预热在服务就绪之后才启动(self):
+        """时序修正（2026-09-29 实测）：预热必须排在"未进入服务状态 ⇒ exit"之后。
+
+        Why：预热要加载 BGE-m3（56.6s / 4.25GB），而启动路径自身也在加载 memory 向量库的模型；
+        放在 serve() 之前会争抢 import 锁与资源 ⇒ 端口未监听时对端就探测 ⇒ CI 的
+        「可观测性端到端验证」作业全部端点 connection refused（实测失败）。
+        """
         src = (Path(__file__).resolve().parents[2] / "app_server.py").read_text(encoding="utf-8")
-        i_warm = src.index("_warm_skill_vector_leg_async()")
-        i_gate = src.index("from agent.server_port_guard import guarded_startup")
-        assert i_warm < i_gate, "预热应在就绪门之前启动（但因为是后台线程，不影响门）"
+        # 用 rindex：文件里还有函数的**定义**行也含这个子串，最后一次出现才是主块里的调用点
+        i_warm = src.rindex("_warm_skill_vector_leg_async()")
+        i_served_gate = src.index('sys.exit(int(_startup.get("exit_code") or 1))')
+        assert i_warm > i_served_gate, (
+            "预热必须排在「服务未就绪即退出」之后：先让服务真正在监听，再放后台预热")
 
 # ═══════════════════════════════════════════════════════════════════
 #  向量腿**在线**时的判据：按来源分档（0.45 / 0.3）

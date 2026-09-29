@@ -289,8 +289,23 @@ class TestResumeWiring:
         assert os.getcwd() == before, "导入 run_full_pytest.py 泄漏了 os.chdir 副作用"
 
     def test_ignores_list_is_unchanged_size(self):
-        # 与 pytest.ini 的 --ignore 保持一致（11 条 ignore + 1 条 pytest.ini 里的 temp）
-        assert len(RFP.IGNORES) == 12, (
-            "IGNORES 与 pytest.ini 的 --ignore 列表必须同步；"
+        """数量棘轮 **+ 逐条比对**（后者比"数量相等"强：两边各删一条会让数量依旧相等却语义漂移）
+
+        【2026-09-29 棘轮显式更新：12 → 11】`tests/unit/test_utils_index_manager.py` 与
+        `agent/utils/index_manager.py` 一并作为**已核实的死代码**删除 ⇒ `pytest.ini` 的
+        `--ignore` 与 `scripts/run_full_pytest.IGNORES` **同步各删 1 条**（仍然逐条一致）。
+        删掉那条 `--ignore` 的理由：它指向的文件已不存在，留着是 no-op，但**将来若出现同名
+        文件会被静默忽略** —— stale `--ignore` 是埋雷而不是清理。
+        """
+        assert len(RFP.IGNORES) == 11, (
+            "IGNORES 与 pytest.ini 的 --ignore 列表必须同步（本棘轮只允许显式更新）；"
             f"当前 {len(RFP.IGNORES)} 条：{RFP.IGNORES}"
+        )
+        ini = (REPO_ROOT / "pytest.ini").read_text(encoding="utf-8")
+        from_ini = {ln.split("=", 1)[1].strip() for ln in ini.splitlines()
+                    if ln.strip().startswith("--ignore=")}
+        assert set(RFP.IGNORES) == from_ini, (
+            "两个列表必须**逐条**一致（只比数量会漏掉\"各删一条\"式的漂移）："
+            f"仅 IGNORES 有 {sorted(set(RFP.IGNORES) - from_ini)}；"
+            f"仅 pytest.ini 有 {sorted(from_ini - set(RFP.IGNORES))}"
         )

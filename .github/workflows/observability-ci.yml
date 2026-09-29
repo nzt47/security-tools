@@ -119,6 +119,12 @@ on:
 
 env:
   PYTHON_VERSION: '3.12'
+  # 【P0-1 补 · 2026-09-29】与 ci.yml / full-regression.yml 同款：CI 声明离线。
+  #   Why 这里必须补：本 workflow 的「可观测性端到端验证」作业会 `python app_server.py`
+  #   起真实服务、且依赖里装了 torch/sentence_transformers —— 而引擎启动期现在会预热
+  #   技能检索的向量腿（默认开）。置 SKILLS_OFFLINE=1 ⇒ 启动期**不预热**（不拉 4.25GB 模型），
+  #   避免与启动路径自身的模型加载争抢，导致端口还没监听、端到端探测就全部 connection refused。
+  SKILLS_OFFLINE: '1'
   OBSERVABILITY_TEST_PATHS: >-
     tests/unit/test_monitoring_tracing.py
     tests/unit/test_prometheus_exporter.py

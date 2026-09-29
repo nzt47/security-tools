@@ -2398,9 +2398,6 @@ if __name__ == "__main__":
     #         旧实例继续服务，本进程以退出码 3 退出（不会悄悄退化成"无服务"）。
     # threads 8→16: 高并发压测发现 LLM 长耗时请求占满线程导致排队（Task queue 高发），
     # 提升线程容量缓解排队；LLM 外呼另有 60s 看门狗兜底（orchestrator._run_llm_bounded）
-    # 【P0-1 补】后台预热技能检索的向量腿（不阻塞就绪门；开关见 _skill_vector_prewarm_enabled）
-    _warm_skill_vector_leg_async()
-
     from agent.server_port_guard import guarded_startup
     _startup = guarded_startup(
         lambda: serve(app, host="127.0.0.1", port=5678, threads=16),
@@ -2413,3 +2410,12 @@ if __name__ == "__main__":
             _startup.get("exit_code"),
             _startup.get("preflight") or _startup.get("serve_error"))
         sys.exit(int(_startup.get("exit_code") or 1))
+
+    # 【P0-1 补 · 2026-09-29 时序修正】预热**只在服务真正就绪之后**才启动。
+    #   Why 必须放在这里：预热会在后台线程里加载 BGE-m3（实测 56.6s / 4.25GB），而启动路径
+    #   自身也在导入 sentence_transformers 并加载 memory 向量库的模型 —— 两者争抢 import 锁
+    #   与 CPU/网络。实测（CI 的「可观测性端到端验证」作业）：放在 serve() 之前时，端口还没
+    #   监听、对端就开始探测 ⇒ 全部端点 connection refused、该作业失败。
+    #   ⇒ 先让服务在监听，再放后台预热：预热再慢也不影响就绪与可用性；开关见
+    #   `SkillsMgmtService.warm_vector_leg`（SKILLS_OFFLINE / CP_SKILL_VECTOR_PREWARM）。
+    _warm_skill_vector_leg_async()
