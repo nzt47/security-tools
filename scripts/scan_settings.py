@@ -46,6 +46,7 @@ import ast
 import json
 import re
 import sys
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
@@ -358,6 +359,72 @@ class ScanReport:
 #  AST 提取
 # ════════════════════════════════════════════════════════════
 
+# 【变易·L6 残留】整树节点表 + 「子树最大行号」备忘表（**一次 BFS 同时产出**）
+#
+# Why：`_extract` 原先让 6 个收集器**各自** `ast.walk(tree)` 一次，且
+#   `_enclosing_environ_params` / `_collect_function_scopes` 还对**每个函数**
+#   再做一次子树遍历求最大行号（且**各算一遍**）。实测（765 文件 / 本机）：
+#   全仓 `ast.walk` 共访问 **1,590 万个节点**（≈ 每文件整体遍历 6~7 次），
+#   占扫描累计耗时 **73.7%**，整趟 15.8s；CI 上叠加 `--cov=scripts` 的行级追踪后
+#   放大到 >300s，把 `test_settings_registry` 的整仓生产扫描打成 pytest 超时。
+#
+# 本改造把遍历降到 **一次 BFS**：节点表供 6 个收集器共用，"子树最大行号"在同一次
+# BFS 里顺带记下父指针、再逆序一趟 O(节点数) 汇总。**扫描输出逐字节不变**
+# （保序说明见下；仓库里有改前/改后的 sha256 对拍）。
+#
+# 【为什么不用 `node.end_lineno`】它能用一行拿到"构造末行"，但那是**源码跨度末行**
+#   （多行调用会落在闭合括号那一行），比"子树内最大 lineno"**更大** ⇒ 函数体区间变宽
+#   ⇒ `_is_pass_through` 的判定会漂移。本函数要的是与改前**逐字段相同**的值。
+def _walk_nodes_and_ends(tree: ast.AST) -> Tuple[List[ast.AST], Dict[int, int]]:
+    """一次 BFS 产出 `(节点表, 节点 id → 子树内最大行号)`
+
+    **保序即正确性**：`nodes` 与 `ast.walk(tree)` 逐元素同序（BFS，父先于子）——
+    这是 stdlib `ast.walk` 的同一算法（`popleft` 取节点、`extend` 追加子节点）。
+    多个收集器都是"扫全树挑出满足条件的节点"，顺序不影响结果；
+    下面的逆序汇总则**依赖**"父先于子"（逆序即子先于父）。
+
+    `ends[nid]` 是"子树内**有**行号者的最大值"，无行号记 -1；调用侧一律写成
+    `max(ends.get(nid, -1), start)`，与原式 `max(getattr(n,"lineno",start) for n in
+    ast.walk(node))` 等价：① 本节点有行号 ⇒ start ≤ 子树最大值，多取一次 max 不变；
+    ② 本节点无行号 ⇒ start=0，原式把缺行号的节点都折算成 start=0，
+    故 `max(子树最大值, 0)` 与原式相同。
+    """
+    nodes: List[ast.AST] = []
+    parent_idx: Dict[int, int] = {}          # 子节点 id → 父节点在 nodes 里的下标
+    queue: "deque[ast.AST]" = deque([tree])  # 与 stdlib `ast.walk` 同算法、同顺序
+    while queue:
+        node = queue.popleft()
+        here = len(nodes)
+        nodes.append(node)
+        for child in ast.iter_child_nodes(node):
+            parent_idx[id(child)] = here
+            queue.append(child)
+    ends: Dict[int, int] = {}
+    for idx in range(len(nodes) - 1, -1, -1):
+        node = nodes[idx]
+        best = ends.get(id(node), -1)
+        own = getattr(node, "lineno", -1)
+        if own > best:
+            best = own
+        up = parent_idx.get(id(node))
+        if up is not None and best > ends.get(id(nodes[up]), -1):
+            ends[id(nodes[up])] = best
+    return nodes, ends
+
+
+
+def _subtree_end(ends: Optional[Dict[int, int]], node: ast.AST) -> int:
+    """某个节点的子树最大行号（缺失记 -1）；无备忘表时按旧口径现算一次
+
+    调用侧一律写成 `max(_subtree_end(ends, node), start)` —— 见 `_walk_nodes_and_ends`
+    的等价性说明。
+    """
+    if ends is not None:
+        return ends.get(id(node), -1)
+    start = getattr(node, "lineno", 0)
+    return max((getattr(n, "lineno", start) for n in ast.walk(node)), default=start)
+
+
 class _Extractor(ast.NodeVisitor):
     """单文件提取器
 
@@ -391,9 +458,14 @@ class _Extractor(ast.NodeVisitor):
 
     # ── 常量表 ──
 
-    def _assign_targets(self, tree: ast.AST) -> None:
-        """记录赋值/删除语句里的下标左值（它们不是读取点）"""
-        for node in ast.walk(tree):
+    def _assign_targets(self, tree: ast.AST,
+                        nodes: Optional[Sequence[ast.AST]] = None) -> None:
+        """记录赋值/删除语句里的下标左值（它们不是读取点）
+
+        `nodes`：`_walk_nodes_and_ends(tree)` 的第一个返回值；缺省时自行遍历
+        （保持旧调用可用，包括仓库外的直接调用）。
+        """
+        for node in (nodes if nodes is not None else ast.walk(tree)):
             if isinstance(node, ast.Assign):
                 for tgt in node.targets:
                     for sub in ast.walk(tgt):
@@ -410,14 +482,15 @@ class _Extractor(ast.NodeVisitor):
                         if isinstance(sub, ast.Subscript):
                             self._target_subscripts.add(id(sub))
 
-    def collect_constants(self, tree: ast.AST) -> None:
+    def collect_constants(self, tree: ast.AST,
+                          nodes: Optional[Sequence[ast.AST]] = None) -> None:
         """建立同文件常量表（支持 `A + "_X"` 与 `f"{A}_X"` 折叠）
 
         仓库里大量开关名由常量拼接而成（如 `_ENV_ENABLED = _PREFIX + "_ENABLED"`），
         折叠后才能拿到真实开关名——否则会退化成"动态家族"而看不全。
         还覆盖 `self.ENV_ROOT = "..."`（类里存常量、方法里 `os.environ.get(self.ENV_ROOT)`）。
         """
-        for node in ast.walk(tree):
+        for node in (nodes if nodes is not None else ast.walk(tree)):
             targets: List[ast.expr] = []
             value: Optional[ast.expr] = None
             if isinstance(node, ast.Assign):
@@ -446,7 +519,8 @@ class _Extractor(ast.NodeVisitor):
                 else:
                     self.consts.setdefault(name, literal)
 
-    def collect_loop_literals(self, tree: ast.AST) -> None:
+    def collect_loop_literals(self, tree: ast.AST,
+                              nodes: Optional[Sequence[ast.AST]] = None) -> None:
         """收集「循环变量绑定到集合」的映射
 
         - 集合是**字面量**（`for k, env_name in [("tfidf", "SKILLS_FUSION_WEIGHT_TFIDF")]`）
@@ -454,7 +528,7 @@ class _Extractor(ast.NodeVisitor):
         - 集合是**具名常量**（`for key in _ENV_WHITELIST`）→ 记下来源符号，
           交由 `PASS_THROUGH_SITES` 显式声明（透传白名单≠开关，见该表说明）。
         """
-        for node in ast.walk(tree):
+        for node in (nodes if nodes is not None else ast.walk(tree)):
             if not isinstance(node, ast.For):
                 continue
             pool = _literal_collection(node.iter, self.consts)
@@ -540,14 +614,16 @@ class _Extractor(ast.NodeVisitor):
             parts.append(cur.id)
         return ".".join(reversed(parts))
 
-    def _enclosing_environ_params(self, tree: ast.AST) -> None:
+    def _enclosing_environ_params(self, tree: ast.AST,
+                                  nodes: Optional[Sequence[ast.AST]] = None,
+                                  ends: Optional[Dict[int, int]] = None) -> None:
         """收集「函数参数里出现 environ/env」的函数体行号区间
 
         简化实现：只要文件里存在名为 environ/env 的参数，就把该函数体内
         的裸 `environ.get` / `env.get` 视为 WSGI 访问。用 (start, end) 区间表示。
         """
         self._environ_ranges: List[Tuple[int, int]] = []
-        for node in ast.walk(tree):
+        for node in (nodes if nodes is not None else ast.walk(tree)):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
             args = node.args
@@ -560,14 +636,15 @@ class _Extractor(ast.NodeVisitor):
             if names & _ENVIRON_PARAM_NAMES:
                 self._environ_params |= names & _ENVIRON_PARAM_NAMES
                 start = getattr(node, "lineno", 0)
-                end = max((getattr(n, "lineno", start) for n in ast.walk(node)),
-                          default=start)
+                end = max(_subtree_end(ends, node), start)
                 self._environ_ranges.append((start, end))
 
-    def _collect_function_scopes(self, tree: ast.AST) -> None:
+    def _collect_function_scopes(self, tree: ast.AST,
+                                 nodes: Optional[Sequence[ast.AST]] = None,
+                                 ends: Optional[Dict[int, int]] = None) -> None:
         """收集每个函数体的 (行号区间, 形参名集合)——用于识别「直通助手」"""
         self._func_scopes: List[Tuple[int, int, Set[str]]] = []
-        for node in ast.walk(tree):
+        for node in (nodes if nodes is not None else ast.walk(tree)):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
             args = node.args
@@ -578,8 +655,7 @@ class _Extractor(ast.NodeVisitor):
             if args.kwarg:
                 names.add(args.kwarg.arg)
             start = getattr(node, "lineno", 0)
-            end = max((getattr(n, "lineno", start) for n in ast.walk(node)),
-                      default=start)
+            end = max(_subtree_end(ends, node), start)
             self._func_scopes.append((start, end, names))
 
     def _enclosing_params(self, lineno: int) -> Set[str]:
@@ -605,7 +681,8 @@ class _Extractor(ast.NodeVisitor):
             return False
         return arg.id in self._enclosing_params(getattr(node, "lineno", 0))
 
-    def classify_local_helpers(self, tree: ast.AST) -> None:
+    def classify_local_helpers(self, tree: ast.AST,
+                               nodes: Optional[Sequence[ast.AST]] = None) -> None:
         """识别本文件定义的开关读取助手，判定「直通」还是「前缀家族」
 
         | 形态 | 例子 | 处理 |
@@ -626,7 +703,7 @@ class _Extractor(ast.NodeVisitor):
         self._helper_params: Dict[str, List[str]] = {}
 
         # ── 第一轮：直接形态（模板 / 直通）──
-        for node in ast.walk(tree):
+        for node in (nodes if nodes is not None else ast.walk(tree)):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
             base = node.name
@@ -1075,14 +1152,15 @@ def _iter_py_files(roots: Iterable[Path], skip_parts: Set[str]
             yield path, rel_to_root
 
 
-def _local_consts(tree: ast.AST) -> Dict[str, Optional[str]]:
+def _local_consts(tree: ast.AST,
+                  nodes: Optional[Sequence[ast.AST]] = None) -> Dict[str, Optional[str]]:
     """单文件常量表（名 → 唯一字面量；**同名多值 ⇒ None**）
 
     【不易·与原来逐字同源】本函数就是原 `_build_global_consts` 里那段 `ast.walk` 循环，
     原样搬出来供"提取趟"复用 —— 单次扫描只解析一次树，常量贡献就地取，不再为此重扫全仓。
     """
     local: Dict[str, Optional[str]] = {}
-    for node in ast.walk(tree):
+    for node in (nodes if nodes is not None else ast.walk(tree)):
         if not isinstance(node, ast.Assign):
             continue
         literal = _literal_str(node.value)
@@ -1164,7 +1242,9 @@ class _ConstQuery(dict):
 
 
 def _extract(tree: ast.AST, text: str, rel: str,
-             global_consts: Optional[Dict[str, Optional[str]]] = None
+             global_consts: Optional[Dict[str, Optional[str]]] = None,
+             nodes: Optional[Sequence[ast.AST]] = None,
+             ends: Optional[Dict[int, int]] = None
              ) -> List[ReadPoint]:
     """**已解析好的**语法树 → 读取点（`scan_file` 的"树已就绪"版本）
 
@@ -1173,12 +1253,17 @@ def _extract(tree: ast.AST, text: str, rel: str,
         → 4. 本文件助手分类 → 5. 循环集合映射 → 6. 访问点收集
     """
     extractor = _Extractor(rel, text.splitlines(), global_consts, text)
-    extractor._assign_targets(tree)
-    extractor.collect_constants(tree)
-    extractor._enclosing_environ_params(tree)
-    extractor._collect_function_scopes(tree)
-    extractor.classify_local_helpers(tree)
-    extractor.collect_loop_literals(tree)
+    # 【L6 残留】整树**只遍历一次**：节点表与「子树最大行号」备忘表在 6 个收集器
+    #   之间共享。改前是 6 次整树 walk + 每个函数 2 次子树 walk（求最大行号），
+    #   实测占扫描累计耗时 73.7%；改后为 1 次整树 + 1 次子节点扫，**输出逐字节不变**。
+    if nodes is None or ends is None:
+        nodes, ends = _walk_nodes_and_ends(tree)
+    extractor._assign_targets(tree, nodes)
+    extractor.collect_constants(tree, nodes)
+    extractor._enclosing_environ_params(tree, nodes, ends)
+    extractor._collect_function_scopes(tree, nodes, ends)
+    extractor.classify_local_helpers(tree, nodes)
+    extractor.collect_loop_literals(tree, nodes)
     extractor.visit(tree)
     return extractor.reads
 
@@ -1267,8 +1352,12 @@ def scan_paths(roots: Iterable[Path], repo_root: Path = REPO_ROOT) -> ScanReport
     # ── ① 一趟：每个文件解析一次（常量贡献 + 提取）──────────────────────────
     for path, rel_to_root in _iter_py_files(root_list, _CONST_SKIP_PARTS):
         text, tree, err = _parse_source(path)
+        # 【L6 残留】本文件的一次 BFS 结果（节点表 + 子树最大行号）由常量趟、
+        #   提取趟、以及 ②③ 的重扫趟共用（原为每个收集器各遍历一次）
+        nodes = ends = None
         if tree is not None:
-            _merge_consts(global_consts, _local_consts(tree))
+            nodes, ends = _walk_nodes_and_ends(tree)
+            _merge_consts(global_consts, _local_consts(tree, nodes))
         if any(part in _SCAN_SKIP_PARTS for part in rel_to_root.parts[:-1]):
             continue
         try:
@@ -1280,7 +1369,7 @@ def scan_paths(roots: Iterable[Path], repo_root: Path = REPO_ROOT) -> ScanReport
             report.parse_errors.append({"module": rel, "error": err})
             continue
         probe = _ConstQuery()
-        pending.append([path, rel, _extract(tree, text, rel, probe), probe.queried])
+        pending.append([path, rel, _extract(tree, text, rel, probe, nodes, ends), probe.queried])
     # ── ②③ 索引已完整；只重扫"真正命中索引"的文件 ──────────────────────────
     hit_names = set(global_consts)
     if hit_names:
