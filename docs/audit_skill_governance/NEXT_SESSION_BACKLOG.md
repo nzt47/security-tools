@@ -121,8 +121,18 @@
    将来若给 `load_dynamic_tools()` 新增调用方并传**外部路径**，扫描器**不会**报警。已有 AST 锚点测试钉住，但依赖有人跑。
    建议：把"参数必须来自 `CUSTOM_TOOLS_DIR` 常量"写成断言式检查。
 2. ~~**`agent/tools/tool_generator.py:218/223`** 用未净化的 `name/category` 拼落盘路径（静态推断，未利用、未复现）。~~ —— ✅ **2026-09-28 已处理，且已复现**：停用净化后 `category="../.."` 真的把文件写到 `%TEMP%\my_tool.py`（`agent/tools/custom/` 之外）；现已前置两级净化 + 31 条安全用例。
-3. **`DescriptorRegistry.load()` 重试耗尽后改抛 `OSError`**：影响面（约 30 个调用点、含 UI 读路径）**未穷举**；
-   `save()` 侧 WinError 5 未根治（6 次退避里仍可能失败 1 次）；NFS/SMB 未实测。见 `LEDGER2.md`。
+3. **`DescriptorRegistry` 持久化健壮性** —— 部分闭环，**剩余项已收窄到一条**。
+   ~~影响面（约 30 个调用点、含 UI 读路径）**未穷举**~~ ⇒ **2026-09-29 已穷举**：`agent/` 生产侧 44 处直接调用点
+   （读 30 / 写 6 / 显式 8）+ `scripts/` CLI 22 处，**所有 UI 与接口读路径都在 `except Exception` 内**；
+   端到端实测最坏用户可见后果是 **HTTP 503**（`trace_diff`）或 **HTTP 200 + `load_error` 如实报错 + 空表**
+   （`capability_map`），无一处 500、无一处丢轨迹 ⇒ **判定不必改 `load()`**（依据见报告 §12.2）。
+   `save()` 失败分支两处真缺陷（`*.tmp` 残留 / 非瞬态 OSError 也白等 6 次退避）**已修**（`3d058974`，带改前红/改后绿用例）。
+   **仍未闭环（本卡剩余、需 owner 拍板）**：写侧**持续 ≥1.55s 的占用**（杀软长扫描 / NFS 租约）仍会让单次 `save()` 失败 ——
+   实测阈值 == 退避预算本身（1.4s 成功 / 1.6s 失败），**扩大预算只能把阈值后移、不能消除窗口**，故当时**没有**动预算。
+   根治要么改读侧以 `FILE_SHARE_DELETE` 打开（需 ctypes `CreateFileW`，会影响 `load()` 语义），
+   要么改成单写者串行 + 外部锁；两者都超出"最小改动"。**NFS/SMB 仍未实测**（本机无环境），不臆测。
+   `registry.py` 自带第二份原子写实现（未复用 `agent/utils/atomic_write.py`），两份口径不一致（重试范围 / fsync / 失败清理）
+   —— 是否合并，同样建议单独立卡。见 `LEDGER2.md`。
 4. ~~**测试卫生两个方向都还没收敛**：
    - 泄漏侧：`--runslow` 车道的 `test_skills_classifier` / `test_tool_callability` 未修（默认车道实测 CLEAN）；
    - 破坏侧：`test_tool_callability` 六处 `T.clear()`、`test_fan_out` 无条件 `unregister`；
