@@ -56,6 +56,22 @@ def monitor_with_persist(tmp_path):
     yield m
     m.stop()
 
+def _wait_for(predicate, timeout=5.0, interval=0.05):
+    """有界轮询等待（**到点再判一次**，同 `test_tlm_bidirectional_sync.py:100` 的仓库既有范式）
+
+    【为什么这里需要它】`ResourceMonitor` 的采样循环跑在后台线程里，
+    "线程多久被调度上"是**运行环境**的事，不是被测契约。原先用 `time.sleep(0.2)` 再断言，
+    等于把 200ms 的调度预算写成了判据 —— 共享 runner 上（CI Shard 4/6）实测两轮都因此变红。
+    换成"等到可观测条件成立、超时即失败"：既拿掉了对调度延迟的依赖，
+    又不放过"循环根本没跑"（超时后 predicate 仍为假 ⇒ 断言照常红）。
+    """
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if predicate():
+            return True
+        time.sleep(interval)
+    return predicate()
+
 
 @pytest.fixture
 def reset_global():
@@ -876,9 +892,20 @@ class TestStartStop:
         assert monitor.start() is True
 
     def test_sample_loop_runs(self, monitor):
+        """启动后采样循环必须产出样本。
+
+        【2026-09-30】原判据是 `start()` → `sleep(0.2)` → 断言 `_history` 非空。
+        `_sample_loop` 是**启动即采样一次**（随后才按 `sample_interval_sec` 等，默认 60s），
+        所以真正要守的是"这一轮采样发生了"，而不是"线程在 200ms 内被调度上"。
+        改成有界等待：循环没跑照样红（10s 后 predicate 仍为假），但不再把调度延迟当判据。
+        """
         monitor.start()
-        time.sleep(0.2)
-        monitor.stop()
+        try:
+            assert _wait_for(lambda: len(monitor._history) > 0, timeout=10.0), (
+                "启动后 10s 内采样循环未产出任何样本"
+                f"（_sample_thread={monitor._sample_thread!r}）")
+        finally:
+            monitor.stop()
         assert len(monitor._history) > 0
 
 
@@ -1294,12 +1321,22 @@ class TestGlobalSingleton:
 
 class TestIntegrationScenario:
     def test_full_lifecycle(self, monitor):
+        """启动 → 切压测模式 → 切回 → 停止：全程循环不中断，且已产出样本。
+
+        【2026-09-30】同 `test_sample_loop_runs`：两个 `sleep(0.2)` 换成对可观测条件的
+        有界等待。注意**不能**改成"等第二个样本"—— 非压测间隔默认 60s，
+        而 `enable_stress_mode()` 只改标志位、不会打断循环当前那次 `wait(60)`，
+        那样等反而会把用例拖到分钟级；模式切换本身仍被完整执行。
+        """
         monitor.start()
-        time.sleep(0.2)
-        monitor.enable_stress_mode()
-        time.sleep(0.2)
-        monitor.disable_stress_mode()
-        monitor.stop()
+        try:
+            assert _wait_for(lambda: len(monitor._history) > 0, timeout=10.0), (
+                "启动后 10s 内采样循环未产出任何样本"
+                f"（_sample_thread={monitor._sample_thread!r}）")
+            monitor.enable_stress_mode()
+            monitor.disable_stress_mode()
+        finally:
+            monitor.stop()
         assert len(monitor._history) > 0
 
     def test_trend_with_real_samples(self, monitor):
