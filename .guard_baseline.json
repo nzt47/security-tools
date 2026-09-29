@@ -45,7 +45,6 @@
     "system_prompt_config.py:23",
     "task_scheduler.py:34",
     "tool_router_reranker.py:518",
-    "index_manager.py:283",
     "sensitive_data_filter.py:51"
   ]
 }
