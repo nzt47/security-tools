@@ -171,10 +171,25 @@
     `VectorStore.__init__` → `_init_sqlite_vec()` → `_get_shared_encoder()` → `SentenceTransformer(model)`，
     这条路径**不受 `_DEPS_IMPORT_TIMEOUT`(30s) 约束**（主进程内调用，不是子进程）；本机实测冷启动
     **951 秒仍未返回**（被手工 kill）。也没有"重复构造 VectorStore"：`lifecycle_manager.py:174→:562` 每次构造恰好 1 个。
-    **未确证**：CI 上 `_is_model_fully_cached()` 的返回值（`observability-ci.yml` 无任何 HF 缓存步骤，只有 `cache: pip`，
-    故〔推断〕为无缓存→走探测分支）；以及本机 951s 与 CI 300s 是否同因。
-    **确证条件**：CI 日志里 `[WARN] ChromaDB not installed or import timeout` / `[OK] ChromaDB loaded` 那一对行，
-    以及 Shard 4 的 pytest-timeout traceback 全文（线程 id + 各次探测耗时）。
+    —— **2026-09-30 已确证（不再是推断）：真凶是 `lifecycle_manager.py` 里那次无上界的预导入** ——
+    `LifecycleManager.__init__`（`agent/orchestrator/lifecycle_manager.py:108-118`）为规避 Windows 上
+    `0xC0000005` 崩溃，在构造早期做了一次**阻塞的裸** `import sentence_transformers`（**无任何超时**）。
+    从 CI `Shard 4/6` 的原始日志里读到该埋点自己打的耗时，同一轮出现**两次**（两个 xdist worker 各一次）：
+    ```
+    2026-09-29 17:23:55 [INFO] lifecycle_manager.pre_import_sentence_transformers.ok
+        elapsed_ms=266534.8   cached=False
+    2026-09-29 17:52:52 [INFO] (同上埋点)
+        elapsed_ms=269284.3   cached=False
+    ```
+    ⇒ **单次 `import sentence_transformers` = 266.5s / 269.3s（4.4~4.5 分钟）**，
+    已经接近 `--timeout=300`；加上构造其余部分就越线 —— 这就是那两条 300s 超时的**直接解释**。
+    同轮日志另有 `[OK] ChromaDB loaded`，也印证了 §1 的探测路径（3 次）本身只占 ~90s 上界、不是主因。
+    **关键点：仓库既有的缓解手段拦不住这一行** —— `observability-ci.yml` 的 `SKILLS_OFFLINE=1` 与
+    `AGENT_HYBRID_EMBEDDING=0` 都只影响技能/嵌入腿，而这行是**裸 import**；
+    而 `ci.yml:420` 的注释恰恰写着"CI 必须启用 SKILLS_OFFLINE，**避免 transformers 递归文件系统扫描触发 300s 超时**"
+    —— 说明这个量级仓库是知道的，只是覆盖漏了这条路径。
+    **下一步（需 owner 拍板，本轮未改）**：把这次预导入纳入既有的离线开关（如 `SKILLS_OFFLINE`）门控，
+    或给它加上界。前者与仓库既有约定一致，但它是 Windows 崩溃规避路径，改动需确认不影响该修复的意图。
     另注：`pytest.ini:68` 已 `--ignore` 该文件，但分片用 `split_unit_tests.py` **显式传路径**、`--ignore` 拦不住
     （仓库自己在 `scripts/split_unit_tests.py:80-81` 写明）—— 要不要把它加进 `OBSERVABILITY_CI_ONLY`，
     是"减少覆盖"与"消掉偶发红"之间的取舍，**需 owner 拍板**，本轮未动。
