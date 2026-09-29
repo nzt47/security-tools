@@ -7,6 +7,37 @@
 
 ---
 
+## ★ 2026-09-28 回填（本轮闭环 / 新发现 / 仍开放）
+
+> 交付报告：`docs/closeout/遗留清理与浮红根治_20260928.md`（含逐条实测与**单变量反证**）。
+
+| 台账条目 | 本轮结论 | 证据锚点 |
+|---|---|---|
+| **P1-1** `tool-retrieval-ci.yml` 无手工触发 | ✅ **已处理**：补 `workflow_dispatch`（只加触发入口，判定一字未动） | `yaml.safe_load` → `triggers` 含 4 项 |
+| **P1-3** CLI 下限门没有任何 workflow 跑 | ✅ **已处理**：新增 `.github/workflows/route-conflict-gate.yml`（下限门；**不动**既有精确棘轮） | 命令 0.9 s；默认下限 exit 0；`--min-pass 999` exit 1（反证） |
+| **P2-2** `tool_generator.py:218/223` 未净化拼路径 | ✅ **已处理**（并且**复现了**，不再是"静态推断"）：停用净化后 `category="../.."` 真的写到 `%TEMP%\my_tool.py` | 新增 `_is_safe_path_segment` / `_is_safe_tool_module_name` + 31 条用例 |
+| **P2-5** 测试在检出目录**创建**运行期台账 | ✅ **已修**（"只防创建"口径 + 6 条自证） | 报告 §6.3；`_redirect_default_when_absent` 三分支各一条自证 |
+| **P2-8** knowledge 审计台账被测试追加 | ✅ **已修** | 实测 63702 B → **65902 B**（修前）→ 修后**逐字节不变** |
+| **P1-2** CI 上「永不执行」的断言 | ⚠️ **部分已修**：rank_bm25 硬前置 + 订正过时注释 + 镜像断言补 CI 可跑孪生；其余 4 条成因已钉死（产物全 gitignore）并登记 | 报告 §6.4 |
+| **P2-1** 动态加载豁免锚定在函数上 | ✅ **核验后判定"早已覆盖"**：锚点测试比建议更强（恰好 1 个调用方 + 实参来自 `CUSTOM_TOOLS_DIR` 遍历），且扫描器已接进 `skills-check.yml` | 报告 §6.5；实测 `--root agent` exit 0、该测试 14 passed |
+| **P0-1**（中文召回 4/8） | ✅ **已修（判据重设计）**：中文 **8/8**、英文 8/8、S10-03 两锚绿、负样本 **5/31 持平**、端到端 8/8 | 交付报告 §8；`MINSCORE1.md` 顶部已加"后续处置" |
+
+**本轮新发现（台账里原先没有的）**：
+
+1. **「测试浮红」的一个真根因：`sleep` 打桩是进程全局的**。`monkeypatch.setattr(<模块>.time, "sleep", ...)`
+   打的是全局 `time.sleep`（实测 `tc.time is time` → True）⇒ 同进程**任何**别的代码（含泄漏的 daemon 轮询
+   线程）的 sleep 都会混进记录器，把"环境噪声"判成"被测代码退化"。已新增作用域记录器夹具
+   （`tests/unit/conftest.py::scoped_sleep` / `scoped_async_sleep`）+ 1 条真实泄漏线程回归锁。
+2. **`test_skill_h3_migration.py` 的 `[fixture]` 参数并不密闭**：`_skill_sources(include_runtime_catalog=True)`
+   读**两份**运行期文件，而夹具只隔离了 `SKILLS_MGMT_PATH`，`SKILLS_JSON_PATH`（`data/skills.json`）没隔离
+   ⇒ "CI 冷启动语义"那一半在本机读的是真实运行期目录。已隔离并加 3 条非空转自证。
+3. **H-3 的"主轨独有恰好 2 条"作为"对实时台账"的断言已过期**：`data/skills_mgmt.json` 在 2026-09-28T19:49
+   经**生产导入通道**新增 6 条（`source=external_agent`、`tags=["external","imported","markdown"]`）
+   ⇒ 主轨独有由 2 变 8。已把判据拆成「契约本体（⊇，两类来源都判）」+「快照精确性（只有 `[fixture]` 判）」，
+   `[real]` 漂移时**显式 skip 并贴出实测集合**（不再恒红，也**不放宽**契约本体）。
+
+---
+
 ## 0. 先读这段：下次接手时的环境事实（省得重新踩）
 
 | 事实 | 值 / 说明 |
@@ -23,7 +54,7 @@
 
 ## P0 —— 唯一的功能级未完成项（需要「判据重设计」，不是补丁）
 
-### P0-1 生产 `min_score=0.3` 让技能检索中文命中从 8/8 掉到 4/8
+### P0-1 生产 `min_score=0.3` 让技能检索中文命中从 8/8 掉到 4/8 —— ✅ 2026-09-28 已修（判据重设计，见交付报告 §8）
 
 - **现象**：向量腿不可用的降级模式下，8 条中文 query 只有 4 条召回（`zh01/zh02/zh06/zh08` 全失）；英文不受影响（8/8）。
 - **根因（已实测钉死）**：腿级过滤比较的「有界相似度」**不是相似度**，而是 `_match_score = H / N`
@@ -64,7 +95,7 @@
 
 ## P1 —— 影响"门禁可信度"，建议下一批优先
 
-### P1-1 `ci.yml` 之外的门在 PR 上跑不到
+### P1-1 `ci.yml` 之外的门在 PR 上跑不到 —— ✅ 2026-09-28 已处理（补 `workflow_dispatch`，判定未动）
 - `tool-retrieval-ci.yml` **没有 `workflow_dispatch`** ⇒ 既拿不到 PR check（它按 `push`/`pull_request` + paths 过滤），
   也无法手工触发。建议：给它加 `workflow_dispatch:`（**只加触发入口，不改判定**），下次可以直接 `gh workflow run`。
 - **已闭环的对照**：`Settings Registry Gap Guard`（新增）与 `Skill Description Single Source`（修改）在 #980 合并后**第一次真跑并 success**，
@@ -78,7 +109,7 @@
 - `tests/unit/test_skill_h3_migration.py` 的 8 条 `[real]`（真实台账内容类）**已逐条登记并配夹具孪生**（`CI3.md` §3.4）——
   它们不再校验真实数据，这是**有意的取舍**，不需要再修，但别再误以为是漏配。
 
-### P1-3 `test_route_conflict_cases.py` 的棘轮口径不一致
+### P1-3 `test_route_conflict_cases.py` 的棘轮口径不一致 —— ✅ 2026-09-28 已处理（给 CLI 下限门补了 `route-conflict-gate.yml`；既有精确棘轮未动）
 - 进 CI 的是**精确相等**棘轮，而 CLI 的 `>=48` 下限门**没有任何 workflow 跑**。
   要么统一口径（都改成"下限 + 变化需显式更新"），要么给 CLI 门补一个 workflow。
 
@@ -89,14 +120,17 @@
 1. **动态加载豁免锚定在函数上**：`scripts/detect_dynamic_loads.py` 的豁免是 `(file, qualname, pattern)` 三元组；
    将来若给 `load_dynamic_tools()` 新增调用方并传**外部路径**，扫描器**不会**报警。已有 AST 锚点测试钉住，但依赖有人跑。
    建议：把"参数必须来自 `CUSTOM_TOOLS_DIR` 常量"写成断言式检查。
-2. **`agent/tools/tool_generator.py:218/223`** 用未净化的 `name/category` 拼落盘路径（静态推断，未利用、未复现）。
+2. ~~**`agent/tools/tool_generator.py:218/223`** 用未净化的 `name/category` 拼落盘路径（静态推断，未利用、未复现）。~~ —— ✅ **2026-09-28 已处理，且已复现**：停用净化后 `category="../.."` 真的把文件写到 `%TEMP%\my_tool.py`（`agent/tools/custom/` 之外）；现已前置两级净化 + 31 条安全用例。
 3. **`DescriptorRegistry.load()` 重试耗尽后改抛 `OSError`**：影响面（约 30 个调用点、含 UI 读路径）**未穷举**；
    `save()` 侧 WinError 5 未根治（6 次退避里仍可能失败 1 次）；NFS/SMB 未实测。见 `LEDGER2.md`。
-4. **测试卫生两个方向都还没收敛**：
+4. ~~**测试卫生两个方向都还没收敛**：
    - 泄漏侧：`--runslow` 车道的 `test_skills_classifier` / `test_tool_callability` 未修（默认车道实测 CLEAN）；
    - 破坏侧：`test_tool_callability` 六处 `T.clear()`、`test_fan_out` 无条件 `unregister`；
    - 空台账侧：`test_skill_search_description_source.py` 与 `test_skill_h3_migration.py` 会创建 **2 字节的 `data/skills_mgmt.json`（`{}`）**。
-   见 `TESTHYG2.md`、`CI3.md`。
+   见 `TESTHYG2.md`、`CI3.md`。~~
+   —— **2026-09-28 处置**：**破坏侧已修**（两文件加"先记后还原"夹具 + 非空转守卫；确定性复现见报告 §6.7：
+   canary 注册表 **1 条 → 0 条**）；**空台账侧已修**（ISO-RUNTIME，报告 §6.3）；
+   **泄漏侧未能复现**（`--runslow` 三文件 **176 passed**、5 个运行期落点逐字节不变）⇒ 保留为待复现项，不臆测硬改。
 5. **测试会往检出目录写运行期数据**：`data/skills_mgmt.json` / `data/audit/` / `data/learned_workflows.json`；
    后者**未入库**，而 `test_workflow_learning_admission.py` 的存量仓库判据已按「**有内容才算**」订正（与 `skills_mgmt.json` 同族）。
    建议把"运行期落点"统一走一个 autouse 重定向（参照 `tests/unit/conftest.py` 的 ISO-EVENTS 做法）。
@@ -114,6 +148,9 @@
     其中 `_t06_logs/` 12 处、`qwen-agent/` 等未跟踪目录占绝大多数；**干净检出上是 `high=0 → exit 0`**。
     建议本地排查统一用 `--root agent`，或以干净检出为准。
 11. **既存死代码/死键**：`index_manager.py` 死代码、`auto_upgrade` 死键（均为既存，未处理）。
+    —— **2026-09-28 补证**：`agent/utils/index_manager.py` 已被**一手核实为死**（全仓引用只有它自己 +
+    它自己的 3 个测试文件 + `scripts/run_full_pytest.py:72` 的清单条目；生产代码零导入）。
+    删除要一次动这 4 处并跑受影响守卫，本轮判为"影响面大于收益"而**只补证不删**（详见报告 §6.8）。
 
 ---
 
@@ -125,7 +162,7 @@
 | `tests/unit/test_descriptor_registry_concurrent_load.py` | 并发重建 0 损坏 / 0 丢失更新；瞬态 `PermissionError` 不被当"存储损坏"；单进程序列化摘要（**行尾归一化后**）不变 |
 | `tests/unit/test_dynamic_loads_high_exemption.py` | 豁免是三元组全等 + 配额、命中降级 MEDIUM 不删除；**放宽即红** |
 | `tests/unit/test_gate1_single_vector_quality_gate.py` | 单向量路质量闸（复用 `SINGLE_PATH_MIN_TOP1=0.45`） |
-| `tests/unit/test_minscore2_chinese_recall.py` | **特征化锁**：把"0.3 下中文 4/8、0.01 下 8/8"钉住；谁修好 P0-1 这条会变红 —— 那是**预期**，请同步更新数字与 `MINSCORE1.md` |
+| `tests/unit/test_minscore2_chinese_recall.py` | **特征化锁**：把"0.3 下中文 4/8、0.01 下 8/8"钉住 —— **2026-09-28 已按约定同步为 8/8**（含真实语义层端到端锁 + 腿级地板锁），判据常量与有界键集合的锁**一字未改** |
 | `tests/unit/test_date_shift_blindspots_guard.py` | 盲点登记键改为「文件 + 检测器:作用域#序号@证据指纹」（不再随行号漂移） |
 | `tests/unit/test_tool_count_consistency.py` | 宣告=下发；新增 autouse 隔离夹具（受害侧） |
 | `.github/workflows/settings-registry-gap-guard.yml` | 开关中心唯一事实源零缺口（AST 提取 vs 注册表） |

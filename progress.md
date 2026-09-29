@@ -88,3 +88,50 @@
 - 结案报告更新：`docs/DELIVERY_CLOSEOUT_REPORT_PHASE4_20260831.md` 补充 §6 任务验收核对、§7 CI/CD 验证、§8 遗留问题（401 鉴权约束 / demo 插件保留 / lint 存量 warnings / static 构建产物部署流程）、§9 验收记录（stakeholders 确认）
 - 遗留问题：均非阻塞（环境鉴权约束、演示插件保留、存量技术债、部署流程产物），无需本次修复
 - 结论：阶段 1–4 四阶段插件化改造路线全部交付收官
+
+## 2026-09-28: 遗留清理与「测试浮红」根治（本会话）
+- 起点：`master` `1de7015e`；交付报告 `docs/closeout/遗留清理与浮红根治_20260928.md`（含逐条实测与**单变量反证**）
+- **浮红根治（sleep 打桩作用域）**：`monkeypatch.setattr(<模块>.time, "sleep", ...)` 打的是**进程全局** `time.sleep`
+  （实测 `tc.time is time` → True）⇒ 同进程泄漏的 daemon 轮询线程（生产代码 60 处 `time.sleep`，多处在轮询循环里）
+  的 sleep 会混进记录器，把"环境噪声"判成"被测代码退化"（L6 记载的 CI 现场「slept 序列里出现越界值」）。
+  新增作用域夹具 `scoped_sleep` / `scoped_async_sleep`（只记录被监视源文件发出的调用，其余透传真睡），
+  改造 3 处用例，并新增 1 条**真实泄漏线程**回归锁（`BatchLogWriter` 故意不 `stop()`）。
+  验证：`test_retry_budget.py` + `test_wait_index_retry.py` **28 passed**；单变量反证（`watched()` 换成恒 True）确定性变红
+- **`test_skill_h3_migration.py` 的 3 条常红**：一半是**真 bug**（`[fixture]` 只隔离了 `SKILLS_MGMT_PATH`，漏了
+  `SKILLS_JSON_PATH` ⇒ 本机读真实运行期目录而恒红、CI 冷启动却是绿），一半是**运行期台账正当漂移**
+  （`data/skills_mgmt.json` 2026-09-28T19:49 经生产导入通道 +6 条 ⇒ 主轨独有由 2 变 8）。
+  修法：隔离第二份运行期文件；判据拆「契约本体（⊇，两类来源都判）」+「快照精确性（只有 `[fixture]` 判）」，
+  `[real]` 漂移时显式 skip 并贴出实测集合；新增 3 条非空转自证。验证：**26 passed / 2 skipped / 0 failed**
+- **P2-2 任意路径写文件**：`generate_persistent` 的 `name`/`category` 未净化 —— **复现了**（停用净化后
+  `category="../.."` 真的写到 `%TEMP%\my_tool.py`）。修法：前置两级净化（`_is_safe_path_segment` /
+  `_is_safe_tool_module_name`）+ 31 条安全用例；`test_tool_generator_security.py` **59 passed**
+- **门禁入口**：P1-1 `tool-retrieval-ci.yml` 补 `workflow_dispatch`；P1-3 新增 `route-conflict-gate.yml`（CLI 下限门，
+  实测 0.9 s；默认下限 exit 0、`--min-pass 999` exit 1 反证）
+- **失败基线收缩**：`failures_baseline.txt` 按"只允许收缩"纪律更新（见报告 §5）
+- **第二批（同会话续）**：
+  - **P2-8 + P2-5 运行期落点隔离**：`knowledge_audit.jsonl` 实测被测试追加（一次子集跑 **+2200 B**）⇒ 无条件重定向；
+    技能主轨/工作流仓库实测 1822 用例跑完 **sha 一字未变** ⇒ 只在"文件不存在"时重定向（避免本机读真实台账的断言退化）；
+    另加 6 条非空转自证（当场抓到过"助手用了未导入的 `pathlib.Path` 被 except 吞掉 ⇒ 夹具静默空转"）
+  - **P2-4 破坏侧**：`test_tool_callability` 6 处 `T.clear()` / `test_fan_out` 无条件 `unregister` 会把**全局工具注册表**
+    留成空表。确定性复现（收集期种 canary）：**1 条 → 0 条**；修后 **1 条 → 1 条**，三文件 **121 passed**；
+    并加非空转守卫（停用还原那一行 ⇒ 守卫立刻红）。**泄漏侧未能复现**（`--runslow` 176 passed、落点逐字节不变）
+  - **新发现并修掉的第二条常红**：`test_skill_description_single_source::test_main_track_only_allowlist_is_exact`
+    与 h3 同一漂移家族；拆分时**非空转自证逼出一条"已不可达的 assert"**（多⇒skip、少⇒契约先红）⇒ 已删并写明承担者
+  - **P1-2**：`rank_bm25` 的 `importorskip` 改硬前置 + 订正 `tool-retrieval-ci.yml` 过时注释；镜像断言补 CI 可跑孪生
+  - **P2-1**：核验后判定"早已覆盖"（锚点测试比台账建议更强 + 扫描器已接进 `skills-check.yml`）
+  - **事实订正**：pytest-timeout 的平台差异（`signal` on Linux ⇒ 用例判失败整轮继续；`thread` on Windows ⇒ `os._exit` 无摘要）
+- **第三批：P0-1 判据重设计（中文召回 4/8 → 8/8）**
+  - 推翻 MINSCORE1 的"不修"结论：候选特征从 5 个扩到 **15 个**，找到唯一能分开真阳性与 S10-03 噪声的新坐标
+    —— **命中 token 在语料里的邻域规模 `reach`**（zh01=4 vs 噪声=1）；语义："域外查询只能与语料发生一次孤立碰撞"
+  - 判据重设计四条：① 腿级地板 `_RRF_LEG_MIN_SCORE` 与调用方阈值**解耦**（收候选 vs 定验收分职责）；
+    ② 补偿通道加"**证据非单点偶然**"（命中 ≥2 处 或 reach ≥2）；③ 编排层**不再用同一个 0.3 复判同一个 H/N**；
+    ④ 观测透出 `quality_gate` + 闸日志新增 `evidence_reach/in_domain/gate_passed_via`
+  - **验收（真实路径）**：中文 **8/8**、英文 8/8、S10-03 噪声锚空、真命中锚保留、负样本非空 **5/31 持平**、
+    编排层端到端（真实 `_semantic_layer_match`）**8/8**；判据常量与有界键集合**一字未改**
+  - **三条单变量反证**：停用编排层分层 ⇒ 端到端退回 4/8；腿级地板 ⇒ 新锁查 `tfidf_candidate_count`（改前恒 0）；
+    证据条件 ⇒ 重写后的 `test_bm25_only_evidence_is_not_enough`
+  - **误伤修正**：合成小语料下 `reach ≥ 2` 过严（真 query 主题词可能只落 1 条技能）⇒ 与"命中 ≥2 处"取或
+  - **既有守卫抓到我的实现缺陷**：编排层最初写 `getattr(result,"quality_gate","")` 真值判断，MagicMock 替身会给出
+    自动创建的真值属性 ⇒ 相关度闸被绕过（`Test答非所问_语义层误命中` 两条红）；已改为**白名单严格判定 + fail-closed**
+- 仍未做（如实登记）：P1-2 剩余 4 条（产物全 gitignore，需造 tmp 产物孪生）、P2-3、P2-6~11、L6 残余、L10.2
+  —— 见报告 §6/§8.8 与 `NEXT_SESSION_BACKLOG.md` 的 2026-09-28 回填段
