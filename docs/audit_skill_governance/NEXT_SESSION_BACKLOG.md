@@ -160,7 +160,36 @@
 11. **既存死代码/死键**：`index_manager.py` 死代码、`auto_upgrade` 死键（均为既存，未处理）。
     —— **2026-09-28 补证**：`agent/utils/index_manager.py` 已被**一手核实为死**（全仓引用只有它自己 +
     它自己的 3 个测试文件 + `scripts/run_full_pytest.py:72` 的清单条目；生产代码零导入）。
-    删除要一次动这 4 处并跑受影响守卫，本轮判为"影响面大于收益"而**只补证不删**（详见报告 §6.8）。
+    删除要一次动这 4 处并跑受影响守卫，本轮判为"影响面大于收益"而**只补证不删**（详见报告 §6.8）。12. **`tests/test_digital_life.py` 在 CI 上超 300s 的归因（2026-09-30 实测，否证了"探测次数"假说）**。
+    现象：CI `Shard 4/6` 上 `TestDigitalLifeInitialization::test_init_with_default_config` 与
+    `TestDigitalLifeLifecycle::test_start_stop` 各报 `Timeout (>300.0s)`，而本机同文件 **13 passed / 3 xfailed，85.39s，不卡**。
+    实测结论：一次 `DigitalLife(config)` 构造**最多触发 3 次** `_probe_import`（本机 HF 缓存完整时 **2 次**），
+    且**只在进程内首次构造**时发生（第 2、3 次构造 = 0 次）；3 × 30s = **90s < 300s**，
+    要把单条用例凑到 300s 需 **≥10 次**，而整个文件 17 处 `DigitalLife(...)` 构造点的探测总数仍是 2~3 次
+    ⇒ **"探测次数凑满 300s"不成立**（已用 `_scratch/q1_probe_matrix.py` / `q1_start_stop.py` 计数实测）。
+    真正**无时间上界**的是**进程内**编码器加载：
+    `VectorStore.__init__` → `_init_sqlite_vec()` → `_get_shared_encoder()` → `SentenceTransformer(model)`，
+    这条路径**不受 `_DEPS_IMPORT_TIMEOUT`(30s) 约束**（主进程内调用，不是子进程）；本机实测冷启动
+    **951 秒仍未返回**（被手工 kill）。也没有"重复构造 VectorStore"：`lifecycle_manager.py:174→:562` 每次构造恰好 1 个。
+    **未确证**：CI 上 `_is_model_fully_cached()` 的返回值（`observability-ci.yml` 无任何 HF 缓存步骤，只有 `cache: pip`，
+    故〔推断〕为无缓存→走探测分支）；以及本机 951s 与 CI 300s 是否同因。
+    **确证条件**：CI 日志里 `[WARN] ChromaDB not installed or import timeout` / `[OK] ChromaDB loaded` 那一对行，
+    以及 Shard 4 的 pytest-timeout traceback 全文（线程 id + 各次探测耗时）。
+    另注：`pytest.ini:68` 已 `--ignore` 该文件，但分片用 `split_unit_tests.py` **显式传路径**、`--ignore` 拦不住
+    （仓库自己在 `scripts/split_unit_tests.py:80-81` 写明）—— 要不要把它加进 `OBSERVABILITY_CI_ONLY`，
+    是"减少覆盖"与"消掉偶发红"之间的取舍，**需 owner 拍板**，本轮未动。
+13. **`memory/vector_store/vector_store.py:158-159` 的离线开关实测无效（新发现，2026-09-30）**。
+    该处在"模型缓存完整"分支里写 `os.environ.setdefault("HF_HUB_OFFLINE", "1")`（`TRANSFORMERS_OFFLINE` 同款），
+    意图是"缓存完整 → 走本地加载、不发网络请求"。但**若 `huggingface_hub` 已被导入，该变量不再生效**，实测：
+    ```
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    huggingface_hub.constants.HF_HUB_OFFLINE  ->  False   # 常量在 import 期即固定
+    ```
+    后果（实测）：权重已加载完仍继续对 `huggingface.co` 发 HEAD 并 `Retry 1/5 … 5/5`
+    （`adapter_config.json`、`processor_config.json` 等）。
+    **未修**：可修的最小做法是"设置后再显式刷新 `huggingface_hub.constants`"，
+    但这是在**共享的生产模型加载路径**上动第三方模块常量，且本机 HF 不可达（`WinError 10060`）、
+    **无法验证修后的离线行为**，故只登记不臆改（"提前到模块顶部"会变成**无条件**离线，改变语义，不做）。
 
 ---
 
