@@ -506,6 +506,14 @@ class DescriptorRegistry:
         3×0.1s=0.3s；实测 8 进程 × 40 轮 × 3 cycle ≈ 3000 次 save 里仍有 1 次
         耗尽（见 LEDGER2.md）。改为 6 次指数退避（总预算 ≈ 1.55s，与 load 侧一致），
         仅影响**失败重试**路径：序列化内容与单进程产物逐字节不变。
+
+        【P2-3 补】改前失败路径另有两个缺陷（均已实测、已修，**不改成功路径**）：
+          (a) **临时文件残留**：任何一次失败（瞬态耗尽/非瞬态/序列化失败）都会在
+              目标目录留下一个 *.tmp；
+          (b) **非瞬态也退避**：ENOSPC/EXDEV 这类重试无意义，却白等 ≈1.55s。
+        退避预算本身**未扩大**：实测（_scratch/p2_3_save_probe.py）失败窗口就是
+        「目标被占用 ≥ 退避预算」，4 读者高占空比并发下即使给足预算仍失败 50%；
+        扩大预算只是把阈值后移、不能消除窗口 ⇒ 保留「耗尽即抛、由调用方重试」。
         """
         attempts = _SAVE_RETRY_ATTEMPTS
         delay = _LOAD_RETRY_BASE_DELAY
@@ -521,21 +529,42 @@ class DescriptorRegistry:
                 "variants": dict(self._variants),
                 "audit": list(self._audit_log[-_AUDIT_CAP:]),
             }
-            with tempfile.NamedTemporaryFile(
-                mode="w", encoding="utf-8", delete=False,
-                dir=str(self._path.parent), suffix=".tmp",
-            ) as tmp:
-                json.dump(payload, tmp, ensure_ascii=False, indent=2)
-                tmp_path = tmp.name
-            for attempt in range(attempts):
-                try:
-                    os.replace(tmp_path, self._path)
-                    return
-                except OSError:
-                    if attempt == attempts - 1:
-                        raise
-                    time.sleep(delay)
-                    delay *= 2
+            tmp_path = ""
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", encoding="utf-8", delete=False,
+                    dir=str(self._path.parent), suffix=".tmp",
+                ) as tmp:
+                    json.dump(payload, tmp, ensure_ascii=False, indent=2)
+                    tmp_path = tmp.name
+                for attempt in range(attempts):
+                    try:
+                        os.replace(tmp_path, self._path)
+                        return
+                    except OSError as e:
+                        # 【P2-3】只对"瞬态占用"退避：与 load() 同一分类口径，
+                        # 也与 agent/utils/atomic_write.py::_durable_replace 的
+                        # "非瞬态立即上抛"一致。ENOSPC / EXDEV / 只读目录这类
+                        # 非瞬态错误重试 6 次只是白等 ≈1.55s 并推迟真实故障暴露
+                        # （实测：ENOSPC 走满 5 次 sleep、耗时 1.562s 才抛，见
+                        # _scratch/p2_3_save_probe.py 段 C）。
+                        if not _is_transient_os_error(e) or attempt == attempts - 1:
+                            raise
+                        time.sleep(delay)
+                        delay *= 2
+            except BaseException:
+                # 【P2-3】失败（瞬态重试耗尽 / 非瞬态 / 序列化失败）时清理临时
+                # 文件：改前任何一次失败都会在目标目录留下一个 *.tmp（实测：
+                # 目标被占 ≥1.6s 时残留 1 个；4 读者高占空比并发下 3 次失败留 3 个，
+                # 见 _scratch/p2_3_save_probe.py 段 A/E）。不变量与
+                # agent/utils/atomic_write.py 对齐：失败不留临时文件、失败不改动
+                # 目标（目标仍是旧的完整内容），且清理失败不得掩盖原异常。
+                if tmp_path:
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+                raise
 
     def _ensure_loaded(self) -> None:
         if not self._loaded:

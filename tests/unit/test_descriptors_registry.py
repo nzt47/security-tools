@@ -1,9 +1,11 @@
 """agent/descriptors/registry.py — Registry 注册/合并/分裂/alias/持久化测试（TASK-S1-01）"""
 
 import json
+import os
 
 import pytest
 
+import agent.descriptors.registry as regmod
 from agent.descriptors.models import (
     DataClass,
     DescriptorValidationError,
@@ -28,6 +30,23 @@ from descriptors_util import destructive_descriptor, make_descriptor
 @pytest.fixture
 def reg(tmp_path):
     return DescriptorRegistry(tmp_path / "descriptors.json", autosave=False)
+
+
+class _OsShim:
+    """把 registry 模块内的 os 换成本 shim：只覆盖 os.replace，其余透传。
+
+    比 monkeypatch.setattr(os, "replace", ...) 安全——后者是**进程全局**打桩，
+    会波及同进程泄漏线程里的其它 os.replace 调用（见 NEXT_SESSION_BACKLOG 教训）。
+    """
+
+    def __init__(self, replace_fn):
+        self._replace_fn = replace_fn
+
+    def replace(self, *args, **kwargs):
+        return self._replace_fn(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(os, name)
 
 
 class TestSimilarityPrimitives:
@@ -429,6 +448,55 @@ class TestPersistence:
         reg.register(make_descriptor(cid="cp.fs.read", name="read"))
         reg2 = DescriptorRegistry(path, autosave=False)
         assert reg2.count() == 1  # 自动落盘可被新实例读到
+
+    def test_save_transient_failure_cleans_temp_and_keeps_target(
+            self, tmp_path, monkeypatch):
+        """P2-3：save() 失败（瞬态占用耗尽）不得在目标目录留下 *.tmp（改前红）
+
+        实测口径（_scratch/p2_3_save_probe.py 段 A / 段 E）：外部句柄持有目标
+        ≥1.55s 时 save() 抛 PermissionError(errno=13, winerror=5)，且**临时文件
+        残留在目标目录**（hold=1.6/2.0/3.0 各残留 1 个；4 读者高占空比并发下
+        3 次失败留 3 个）。这里用确定性注入复现同一失败路径（不依赖真并发）。
+        """
+        path = tmp_path / "d.json"
+        reg = DescriptorRegistry(path, autosave=False)
+        reg.register(make_descriptor(cid="cp.fs.read", name="read"))
+        reg.save()
+        before = path.read_bytes()
+        assert list(tmp_path.glob("*.tmp")) == []
+
+        def denied(src, dst):
+            raise PermissionError(13, "Permission denied", str(dst), 5)  # WinError 5
+
+        monkeypatch.setattr(regmod, "os", _OsShim(denied))
+        monkeypatch.setattr(regmod, "_SAVE_RETRY_ATTEMPTS", 2)  # 缩短退避
+        with pytest.raises(PermissionError):
+            reg.save()
+        assert list(tmp_path.glob("*.tmp")) == []            # ← 改前红：残留 1 个
+        assert path.read_bytes() == before                   # 失败不改动目标（旧内容完整）
+
+    def test_save_non_transient_error_is_not_retried(
+            self, tmp_path, monkeypatch, scoped_sleep):
+        """P2-3：非瞬态 OSError（ENOSPC）必须立即抛出，不白等 6 次退避（改前红）
+
+        实测（_scratch/p2_3_save_probe.py 段 C）：改前 ENOSPC 走满 6 次，
+        sleep 序列 [0.05, 0.1, 0.2, 0.4, 0.8]、耗时 1.562s 才抛；这与 load() 的
+        分类口径、以及 agent/utils/atomic_write.py::_durable_replace 的
+        「只重试瞬态」不一致。
+        """
+        path = tmp_path / "d.json"
+        reg = DescriptorRegistry(path, autosave=False)
+        reg.register(make_descriptor(cid="cp.fs.read", name="read"))
+        scope = scoped_sleep("agent/descriptors/registry.py")
+
+        def enospc(src, dst):
+            raise OSError(28, "No space left on device")
+
+        monkeypatch.setattr(regmod, "os", _OsShim(enospc))
+        with pytest.raises(OSError):
+            reg.save()
+        assert scope.recorded == []           # ← 改前红：[0.05, 0.1, 0.2, 0.4, 0.8]
+        assert list(tmp_path.glob("*.tmp")) == []
 
     def test_load_missing_file_empty(self, tmp_path):
         reg = DescriptorRegistry(tmp_path / "nope.json", autosave=False)
