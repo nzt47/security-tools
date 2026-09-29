@@ -5,6 +5,7 @@
 2. generate_persistent(): 保存到 tools/custom/ 目录，持久化
 """
 import ast
+import keyword
 import logging
 import multiprocessing
 import os
@@ -20,6 +21,59 @@ _CUSTOM_TOOLS_DIR = os.path.join(os.path.dirname(__file__), "custom")
 
 # 工具代码执行超时（秒）——防止 while True: pass 等无限循环阻塞注册流程
 _TOOL_CODE_TIMEOUT_SEC = 5.0
+
+#: 【P2-2 · 2026-09-28】Windows 保留设备名（`CON`/`NUL`/`COM1` …）—— 以它们为文件名段
+#: 在 Windows 上会打到设备而不是文件，属"路径段不安全"的另一形态。
+_RESERVED_PATH_SEGMENTS = frozenset(
+    ["CON", "PRN", "AUX", "NUL"]
+    + ["COM%d" % i for i in range(1, 10)]
+    + ["LPT%d" % i for i in range(1, 10)]
+)
+
+
+def _is_safe_path_segment(seg: Any) -> bool:
+    """单个目录名/文件名段是否可以安全地拼进落盘路径
+
+    Why：`generate_persistent` 会把 `category` / `name` 直接 `os.path.join` 到
+    `_CUSTOM_TOOLS_DIR` 之下。未净化的段（`../..`、绝对路径、`a/b`、`C:x`）能让
+    「写自定义工具」变成**任意路径写文件**。本函数是那道唯一入口的判据。
+
+    拒绝：非字符串/空白、首尾空白、`.` 与 `..`、绝对路径、任何目录分隔符、
+    冒号（盘符 / NTFS 备用数据流）、NUL 与控制字符、结尾点或空格（Windows 会把
+    `a.` / `a ` 归一成 `a`）、Windows 保留设备名。
+
+    【如实标注边界】本函数只判"段"，不解析符号链接（`custom/` 下若已有指向外部的
+    链接，本层不负责）；也不管大小写不敏感造成的重名覆盖。
+    """
+    if not isinstance(seg, str):
+        return False
+    s = seg
+    if not s or not s.strip() or s != s.strip():
+        return False
+    if s in (".", "..") or os.path.isabs(s):
+        return False
+    if any(ch in s for ch in ("/", "\\", ":", "\x00")):
+        return False
+    if any(ord(ch) < 32 for ch in s):
+        return False
+    if s[-1] in (".", " "):
+        return False
+    if s.split(".")[0].upper() in _RESERVED_PATH_SEGMENTS:
+        return False
+    return True
+
+
+def _is_safe_tool_module_name(name: Any) -> bool:
+    """工具名是否可安全用作**模块文件名**（`<name>.py`）与生成代码里的函数名
+
+    Why 要求合法标识符而不是只挡路径分隔符：`name` 同时被写进生成模块的
+    `def {name}` / `handler={name}` / `source_id="custom_{name}"`，非标识符会产出
+    语法坏文件；而 `generate_simple` 在 `namespace.get(name)` 落空时会**回退到第一个
+    可调用对象**并照旧返回 True ⇒ 非标识符的名字能一路走到落盘那一步。
+    关键字（`def` / `class` …）同样要拒：`def def():` 不是合法 Python。
+    """
+    return (isinstance(name, str) and name.isidentifier()
+            and not keyword.iskeyword(name))
 
 
 def _validate_tool_code_safety(code: str) -> tuple[bool, str]:
@@ -199,16 +253,33 @@ class ToolGenEngine:
         """注册一个持久化工具（保存到 tools/custom/ 目录）
 
         Args:
-            name: 工具名称
+            name: 工具名称。必须是合法 Python 标识符（且不以 `_` 开头）—— 它同时是
+                **模块文件名**（`<name>.py`）与生成代码里的函数名。
             description: 工具描述
             code: Python 函数代码
             schema: JSON Schema（可选）
-            category: 分类子目录名
+            category: 分类子目录名。必须是**单个安全路径段**（见 `_is_safe_path_segment`）。
 
         Returns:
-            是否成功生成并注册
+            是否成功生成并注册；`name` / `category` 不安全时**不注册、不落盘**，返回 False
+            （并在日志里给出拒绝原因）。
+
+        【P2-2 · 2026-09-28】行为变更声明：此前 `name` / `category` 未净化，
+        `category="../.."` 之类的入参可以把文件写到 `tools/custom/` 之外（任意路径写）。
+        现在这两个入参在**任何副作用之前**先过一次净化；既有合法调用（`category="custom"`、
+        合法标识符工具名）行为一字未变 —— 唯一被拒的是本来就写不出可用工具的那些输入。
         """
         try:
+            # 【P2-2】落盘路径净化：必须在**任何副作用之前**（原来是先注册再拼路径）
+            if not _is_safe_tool_module_name(name):
+                logger.error(log_dict({'module_name': 'tool_generator', 'action': 'adapter.failed',
+                                       'msg': f"拒绝持久化：工具名不是合法标识符: {name!r}"}))
+                return False
+            if not _is_safe_path_segment(category):
+                logger.error(log_dict({'module_name': 'tool_generator', 'action': 'adapter.failed',
+                                       'msg': f"拒绝持久化：分类不是安全的单一路径段: {category!r}"}))
+                return False
+
             # 先注册到内存
             ok = self.generate_simple(name, description, code, schema)
             if not ok:

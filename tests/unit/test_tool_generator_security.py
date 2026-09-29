@@ -231,3 +231,68 @@ class TestGeneratePersistent:
 
         assert not engine.generate_persistent("bad", "d", "def bad(): pass")
         assert not (tmp_path / "custom" / "bad.py").exists()
+
+    # ── 【P2-2 · 2026-09-28】落盘路径净化（name / category 未净化 = 任意路径写）──
+
+    @pytest.mark.parametrize("bad_category", [
+        "../..", "..", ".", "a/b", "a\\b", "/abs", "C:/x", "C:x",
+        "custom ", " custom", "trail.", "nul", "con", "COM1", "", "   ", 42, None,
+    ])
+    def test_不安全分类被拒且零副作用(self, tmp_path, monkeypatch, bad_category):
+        """category 未净化时 `<custom>/../..` 可把文件写到 tools/custom/ 之外 ⇒ 必须拒绝
+
+        判据三条：① 返回 False；② **不再走注册路径**（净化在任何副作用之前）；
+        ③ 连 `custom/` 目录都不建。
+        """
+        import agent.tools.tool_generator as tg
+
+        custom = tmp_path / "custom"
+        monkeypatch.setattr(tg, "_CUSTOM_TOOLS_DIR", str(custom))
+        engine = tg.ToolGenEngine()
+        called = []
+        monkeypatch.setattr(engine, "generate_simple",
+                            lambda *a, **k: called.append(a) or True)
+
+        assert engine.generate_persistent(
+            "my_tool", "d", "def my_tool(): return 1", category=bad_category) is False
+        assert called == [], "被拒的入参不得再进入注册/落盘路径"
+        assert not custom.exists(), "被拒时不该建目录"
+
+    @pytest.mark.parametrize("bad_name", [
+        "../evil", "..\\evil", "a/b", "C:x", "1abc", "a b", "def", "class", "", "   ", 42, None,
+    ])
+    def test_不安全工具名被拒且零副作用(self, tmp_path, monkeypatch, bad_name):
+        """工具名同时是模块文件名与生成代码里的函数名 ⇒ 非标识符/关键字必须拒绝
+
+        Why 不能只挡路径分隔符：`generate_simple` 在 `namespace.get(name)` 落空时会
+        回退到"第一个可调用对象"并照旧返回 True ⇒ 非标识符的名字能一路走到落盘那一步。
+        """
+        import agent.tools.tool_generator as tg
+
+        custom = tmp_path / "custom"
+        monkeypatch.setattr(tg, "_CUSTOM_TOOLS_DIR", str(custom))
+        engine = tg.ToolGenEngine()
+        called = []
+        monkeypatch.setattr(engine, "generate_simple",
+                            lambda *a, **k: called.append(a) or True)
+
+        assert engine.generate_persistent(
+            bad_name, "d", "def my_tool(): return 1") is False
+        assert called == [], "被拒的入参不得再进入注册/落盘路径"
+        assert not custom.exists(), "被拒时不该建目录"
+
+    def test_合法入参不受净化影响(self, tmp_path, monkeypatch):
+        """反证：合法 name/category 仍照常落盘（净化不是"一律拒绝"）"""
+        import agent.tools.tool_generator as tg
+
+        monkeypatch.setattr(tg, "_CUSTOM_TOOLS_DIR", str(tmp_path))
+        engine = tg.ToolGenEngine()
+        monkeypatch.setattr(engine, "generate_simple", lambda *a, **k: True)
+
+        assert engine.generate_persistent(
+            "my_tool", "描述", "def my_tool(): return 1", category="custom") is True
+        assert (tmp_path / "custom" / "my_tool.py").is_file()
+        # 落点必须仍在本 tmp 之内（净化没有把路径改到别处）
+        import os as _os
+        real = _os.path.realpath(tmp_path / "custom" / "my_tool.py")
+        assert real.startswith(_os.path.realpath(str(tmp_path)))
