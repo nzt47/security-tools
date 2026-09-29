@@ -979,3 +979,180 @@ def _iso_assessment_events_to_tmp(tmp_path, monkeypatch):
 
     yield
 
+
+# ════════════════════════════════════════════════════════════════════
+#  SLEEP-SCOPE（2026-09-28）：打桩 sleep 时**只认被测源文件**发出的调用
+# ════════════════════════════════════════════════════════════════════
+# 【为什么需要它 —— 本机实测，不是推断】
+#   `monkeypatch.setattr(<模块>.time, "sleep", ...)` 打的是**进程全局**的 `time.sleep`
+#   （`<模块>.time is time` 恒真，探针实测打印 True）。于是同进程里**任何**其它代码的
+#   sleep 都会落进记录器：
+#     · 生产代码里有 60 处 `time.sleep`，其中多处在 daemon 轮询循环里
+#       （`agent/log_system/optimized_storage.py:130` 的 0.05s、
+#        `agent/audit/chain.py:2483` 的 0.005s、`agent/monitoring/*` 等）；
+#     · xdist 的 `--dist=loadscope` 让同一个 worker 顺序跑很多文件，**先前用例启动却没
+#       收尾**的线程会活到后面的用例里。
+#   实测复现（2026-09-28，本机两步，都是跑出来的不是推的）：
+#     ① `import agent.tool_calling as tc; tc.time is time` ⇒ 打印 **True**；把它打桩后
+#        一个与该模块无关的线程调 `time.sleep(5.0)`，记录器立刻收到 `[5.0, 1.03]` ⇒
+#        判据 `all(0.8 <= s <= 1.2)` 为 **False**；
+#     ② 启动**真实生产线程** `BatchLogWriter`（daemon，0.05s 轮询、**故意不 stop**）
+#        后再跑 `test_retry_budget` 的 `_run`，记录器里混进 0.05 ⇒ 它自己的断言假红。
+#   L6 记录的 CI 现场（"slept 序列里出现越界值"）正是这个形状：
+#   **红的是测量，不是被测代码**。②的场景已被固化成本仓回归锁，见
+#   `tests/unit/test_retry_budget.py::TestEndToEndRetryAmplification::test_泄漏线程的sleep不混进判据`。
+# 【修法】把记录器**限定到被测源文件**：只把该文件发出的 sleep 记进 `recorded`
+#   （被测层照旧不真等），其它来源照常**透传真睡**（不改变无关代码的行为）。
+#   断言强度不变 —— 被测层的每一个 sleep 仍要被逐条检查；被去掉的只有**别人的**样本。
+# 【边界】只认"直接调用 `time.sleep` / `asyncio.sleep`"的形态；用 `from time import sleep`
+#   的模块本来就不受任何 monkeypatch 影响，本夹具与旧写法在这一点上完全一致。
+
+
+class _SleepScope:
+    """一次录制会话：`recorded` 只含被监视源文件发出的实参，`foreign` 是其余来源。"""
+
+    __slots__ = ("_sources", "recorded", "foreign")
+
+    def __init__(self, sources):
+        self._sources = tuple(
+            os.path.normcase(str(s).replace("/", os.sep)) for s in sources)
+        self.recorded = []
+        self.foreign = []
+
+    def watched(self, filename):
+        """调用点是否来自被监视的源文件（按**路径后缀**判，兼容相对导入路径）"""
+        f = os.path.normcase(os.path.abspath(str(filename)))
+        return any(f == s or f.endswith(os.sep + s) for s in self._sources)
+
+
+@pytest.fixture
+def scoped_sleep(monkeypatch):
+    """打桩 `time.sleep`，但**只记录**给定源文件发出的调用（其余来源透传真睡）。
+
+    用法::
+
+        scope = scoped_sleep("agent/tool_calling.py")
+        ...                      # 跑被测代码
+        assert scope.recorded    # 被测层真的等过
+        assert scope.foreign     # 同进程其它来源（泄漏线程）确实在跑
+    """
+    import time as _time
+    real_sleep = _time.sleep
+
+    def _make(*sources):
+        scope = _SleepScope(sources)
+
+        def _sleep(seconds=0, *args, **kwargs):
+            if scope.watched(sys._getframe(1).f_code.co_filename):
+                scope.recorded.append(seconds)   # 被测层：不真等（保持既有语义）
+                return None
+            scope.foreign.append(seconds)
+            return real_sleep(seconds, *args, **kwargs)
+
+        monkeypatch.setattr(_time, "sleep", _sleep)
+        return scope
+
+    return _make
+
+
+@pytest.fixture
+def scoped_async_sleep(monkeypatch):
+    """同上，用于 `asyncio.sleep`（MCP 重试那条用例打的是 `mc.asyncio.sleep`）。"""
+    import asyncio as _asyncio
+    real_sleep = _asyncio.sleep
+
+    def _make(*sources):
+        scope = _SleepScope(sources)
+
+        async def _sleep(delay, *args, **kwargs):
+            if scope.watched(sys._getframe(1).f_code.co_filename):
+                scope.recorded.append(delay)
+                return None
+            scope.foreign.append(delay)
+            return await real_sleep(delay, *args, **kwargs)
+
+        monkeypatch.setattr(_asyncio, "sleep", _sleep)
+        return scope
+
+    return _make
+
+
+# ════════════════════════════════════════════════════════════════════
+#  ISO-RUNTIME（2026-09-28）：运行期台账的**创建**不得落在检出目录
+# ════════════════════════════════════════════════════════════════════
+# 【为什么需要（P2-5 / P2-8，都是实测）】
+#   三个运行期落点的共同形态是「模块自有常量 + **首次读即落盘**」，与 ISO-EVENTS 的 env 链路
+#   零共享符号 ⇒ 那一层盖不住它们：
+#     · `agent/skills_mgmt/store.py:44-48`：`_load()` **文件不存在就立刻 `_persist()`**；
+#       干净检出上实测被创建成 **2 字节空 JSON 对象**（CI-1 在干净 checkout 上实跑过；
+#       CI-3 记录它会让同一轮里后面的"主轨"判据读到空文件而误判形态）。
+#     · `agent/workflow_learning/repository.py:16` `_DEFAULT_REPO_PATH`（同族，无 env 出口）。
+#     · `agent/knowledge/audit_entry.py:68` `CP_KNOWLEDGE_AUDIT_LOG`（**有** env 出口，但没有任何
+#       conftest 设置它）⇒ 本机实测：只跑 68 个技能/工作流/知识类用例一次，
+#       `data/audit/knowledge_audit.jsonl` 从 63702 B **涨到 65902 B**（真污染，不是推断）。
+#
+# 【口径：只防**创建**，不防**读取**】
+#   · 知识审计台账：**无条件**重定向（实测确实在被写）。
+#   · 技能主轨 / 工作流仓库：**仅当真实文件不存在时**才重定向。理由（也是实测）：本机
+#     68 文件 / 1822 用例跑完，这两个文件的 size+sha256 **一字未变** ⇒ 它们的风险只有
+#     "干净检出上被创建成空对象"这一种；而**无条件**重定向会让本机那些**故意读真实台账**的
+#     断言（如 `test_skill_h3_migration.py:260` 的 `SkillRegistry()`）在本地退化成空转 ——
+#     那是拿本地覆盖面换整洁，不划算。边界如实标注：真实台账**存在**时仍按原读语义走。
+# 【技法照 ISO-EVENTS】显式 import（`sys.modules.get` 在首个用例上会拿到 None）+ 只改路径解析
+#   + 幂等吞异常；**不 mkdir**（急切建目录会把"没写就不该有东西"的断言判红 —— 见 ISO-EVENTS
+#   的 `_lazy_tmpdir` 教训）。
+
+
+def _redirect_default_when_absent(module, attr, tmp_target, monkeypatch):
+    """把模块级"默认落点"常量重定向到 tmp —— **仅当真实文件不存在**时。
+
+    Returns:
+        True  = 已重定向（真实文件本来就不存在，属"干净检出"形态）；
+        False = 真实文件存在 ⇒ 按原样（不改读语义）。
+    """
+    try:
+        current = getattr(module, attr)
+    except AttributeError:
+        return False
+    try:
+        # 用 os.path 而不是 pathlib：本模块**没有**模块级 import Path，
+        # 若在这里用 Path 会被下面的 `except Exception` 静默吞掉 ⇒ 夹具变成空转。
+        if os.path.exists(str(current)):
+            return False
+    except Exception:  # noqa: BLE001 路径形态变了 ⇒ 不冒险改
+        return False
+    monkeypatch.setattr(module, attr, tmp_target, raising=False)
+    return True
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _iso_runtime_ledgers(tmp_path, monkeypatch):
+    """运行期台账落点隔离（口径见上文：写侧无条件，两个主轨常量只在"不存在"时）"""
+    import importlib as _importlib
+
+    # ① 技能主轨（默认落点；只在干净检出形态下重定向）
+    try:
+        st = _importlib.import_module("agent.skills_mgmt.store")
+        _redirect_default_when_absent(st, "_DEFAULT_STORE_PATH",
+                                      tmp_path / "skills_mgmt.json", monkeypatch)
+    except Exception:  # noqa: BLE001 结构变化 ⇒ 下次再适配
+        pass
+
+    # ② 工作流学习仓库（同族）
+    try:
+        rp = _importlib.import_module("agent.workflow_learning.repository")
+        _redirect_default_when_absent(rp, "_DEFAULT_REPO_PATH",
+                                      tmp_path / "learned_workflows.json", monkeypatch)
+    except Exception:  # noqa: BLE001
+        pass
+
+    # ③ knowledge 审计台账（有 env 出口 ⇒ 无条件重定向；落点用**平铺**路径，
+    #    免得 `os.makedirs(dirname)` 在 tmp_path 里凭空建出 data/audit/ 层级）
+    try:
+        monkeypatch.setenv("CP_KNOWLEDGE_AUDIT_LOG",
+                           str(tmp_path / "knowledge_audit.jsonl"))
+    except Exception:  # noqa: BLE001
+        pass
+
+    yield
+

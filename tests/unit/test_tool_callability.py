@@ -41,6 +41,44 @@ def _load_script(name: str):
 from agent.lines import callability as C  # noqa: E402
 from agent.lines import models as M  # noqa: E402
 
+
+# ════════════════════════════════════════════════════════════
+#  【P2-4 破坏侧 · 2026-09-28】全局工具注册表：快照 / 就地还原
+# ════════════════════════════════════════════════════════════
+# Why：本文件有 3 处 `T.clear()` + `finally: T.clear()`，而 `clear()` 的语义是**清空全局注册表**
+#   ⇒ 跑完之后注册表是**空的**，留给同一进程里后面的用例（xdist 的 `--dist=loadscope` 会把很多
+#   文件塞进同一个 worker；部分 CI 车道还有 pytest-randomly 随机序 ⇒ 谁先谁后不定）。
+#
+# 实测复现（确定性，不是推断）：先让一个"更早的注册者"注册 `canary_tool`，再跑本文件，
+#   最后一条探针看到注册表 **1 条 → 0 条**、canary **丢失** ⇒ 后面的用例拿到空注册表。
+#
+# 修法：每个用例前后**就地**快照/还原（`clear() + update(snapshot)` 保持 dict 对象身份不变，
+#   免得别处已持有的引用失效），并按 `clear()` 的同款口径把三个版本键缓存置为失效。
+#   用例内部照旧 `clear()`（它们要的就是"空起点"，断言一字未改）；被修好的只是"跑完之后"。
+@pytest.fixture(autouse=True)
+def _restore_global_tool_registry():
+    from agent import tools as T
+
+    snapshot = dict(T._registry)
+    version = T._registry_version
+    health = dict(getattr(T, "_tool_health", {}) or {})
+    try:
+        yield
+    finally:
+        T._registry.clear()
+        T._registry.update(snapshot)
+        T._registry_version = version
+        try:
+            T._tool_health.clear()
+            T._tool_health.update(health)
+        except Exception:  # noqa: BLE001 结构变化 ⇒ 不阻塞还原
+            pass
+        # 与 `agent/tools/__init__.py::clear()` 同款：三个缓存按"版本键"失效，
+        # 强制按**还原后**的注册表重建（否则会留下测试中途那份内容）
+        T._list_tools_cache = {"version": -1, "data": None}
+        T._get_tool_defs_cache = {"version": -1, "data": None}
+        T._callability_cache = {"version": -1, "data": frozenset()}
+
 backfill_mod = _load_script("backfill_tool_callability")
 sync_manifest_mod = _load_script("sync_capability_manifest")
 sync_index_mod = _load_script("sync_tool_index")
@@ -536,6 +574,39 @@ class TestRuntimeFilter:
             assert T.registry_facts()["no_schema"]["schema_registered"] is False
         finally:
             T.clear()
+
+
+class TestRegistrySnapshotRestores:
+    """【P2-4 破坏侧 · 2026-09-28】上面 6 处 `T.clear()` 的**还原机制**自证（非空转）
+
+    Why 需要它：本文件那 6 处 `T.clear()` 之所以不再伤别人，靠的是 autouse 夹具
+    `_restore_global_tool_registry` 的**收尾**；而夹具收尾坏掉时**不会红**（同一批工作里
+    ISO-RUNTIME 就抓到过一个被 `except Exception` 吞掉的 `NameError`，夹具静默空转）。
+    本用例直接驱动那个夹具函数：注册 canary → 快照（= 用例开始）→ `clear()`（= 破坏）
+    → `gen.close()`（= 用例收尾）⇒ canary **必须回来**。
+
+    无顺序依赖：不依赖任何别的用例先跑，也不依赖 pytest 的收集顺序。
+    """
+
+    CANARY = "canary_snapshot_restore_probe"
+
+    def test_clear之后收尾必须把注册表还原(self):
+        from agent import tools as T
+
+        assert self.CANARY not in T._registry, "前置：canary 不应已存在"
+        T.register(self.CANARY, "金丝雀", handler=lambda **k: {"ok": True})
+
+        fn = getattr(_restore_global_tool_registry, "__wrapped__",
+                     _restore_global_tool_registry)
+        gen = fn()                      # 夹具函数本体（生成器）
+        next(gen)                       # = 用例开始：拍快照
+        try:
+            T.clear()                   # = 本文件那 6 处破坏的形态
+            assert self.CANARY not in T._registry, "前置：clear() 应当真的清空了注册表"
+        finally:
+            gen.close()                 # = 用例收尾：走夹具的 finally
+        assert self.CANARY in T._registry, (
+            "收尾没有还原全局工具注册表 ⇒ 同一进程里后面的用例会拿到空注册表")
 
 
 class TestIndexGate:

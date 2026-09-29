@@ -55,21 +55,27 @@ class TestIndexIsClean:
 # ── wait_index_clean：等待与超时 ─────────────────────────────────────
 class TestWaitIndexClean:
     @pytest.mark.unit
-    def test_timeout_returns_false_when_never_clean(self):
-        """index 一直不干净时，超时返回 False 且持续轮询。"""
+    def test_timeout_returns_false_when_never_clean(self, scoped_sleep):
+        """index 一直不干净时，超时返回 False 且持续轮询。
+
+        【SLEEP-SCOPE · 2026-09-28】`wtr.time` 就是 `time` 模块 ⇒ 旧写法
+        `patch.object(wtr.time, "sleep")` 打的是**进程全局** `time.sleep`，
+        计数里会混进同进程其它线程/模块的 sleep。改用只认被测源文件的记录器：
+        计数的对象不变（本文件发出的等待），被排除的只有别人的样本。
+        """
         calls = {"n": 0}
+        scope = scoped_sleep("scripts/dev/wait_index_retry.py")
 
         def always_occupied(repo):
             calls["n"] += 1
             return False
 
-        with patch.object(wtr, "index_is_clean", side_effect=always_occupied), \
-             patch.object(wtr.time, "sleep") as m_sleep:
+        with patch.object(wtr, "index_is_clean", side_effect=always_occupied):
             result = wtr.wait_index_clean("/repo", timeout=0.2, poll=0.05)
 
         assert result is False
         assert calls["n"] >= 2  # 至少轮询 2 次才超时
-        assert m_sleep.call_count >= 1
+        assert scope.recorded, "应发生过至少一次轮询等待"
 
     @pytest.mark.unit
     def test_recovers_when_index_clean_becomes_true(self):
@@ -86,14 +92,21 @@ class TestWaitIndexClean:
         assert result is True
 
     @pytest.mark.unit
-    def test_immediately_clean_no_sleep(self):
-        """入口 index 已干净时不等待直接返回 True。"""
-        with patch.object(wtr, "index_is_clean", return_value=True), \
-             patch.object(wtr.time, "sleep") as m_sleep:
+    def test_immediately_clean_no_sleep(self, scoped_sleep):
+        """入口 index 已干净时不等待直接返回 True。
+
+        【SLEEP-SCOPE · 2026-09-28】旧写法对全局 mock 断言 `assert_not_called()`：
+        同进程**任何**别的线程只要在这段时间里 sleep 了一次，这条就会假红 ——
+        而生产代码里有 60 处 `time.sleep`、其中多处在 daemon 轮询循环里，
+        xdist 的同一 worker 里完全可能活着别处泄漏的线程。改用作用域记录器后，
+        判据仍是"本文件一次都没等"，但不再把别人的样本算进来。
+        """
+        scope = scoped_sleep("scripts/dev/wait_index_retry.py")
+        with patch.object(wtr, "index_is_clean", return_value=True):
             result = wtr.wait_index_clean("/repo", timeout=10.0, poll=0.05)
 
         assert result is True
-        m_sleep.assert_not_called()
+        assert scope.recorded == [], "已干净就不该发生任何轮询等待"
 
 
 # ── cherry_pick_with_retry：自动重试 ─────────────────────────────────

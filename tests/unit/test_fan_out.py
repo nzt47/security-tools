@@ -207,9 +207,21 @@ def _granted(call: dict, ctx) -> set:
 
 @pytest.fixture(autouse=True)
 def _isolate_registration():
-    """每个用例结束后注销 fan_out，避免污染全局工具注册表"""
+    """每个用例结束后**还原** `fan_out` 的注册状态（不再无条件注销）
+
+    【P2-4 破坏侧 · 2026-09-28】旧写法无条件 `unregister("fan_out")`：如果更早的代码/用例
+    **本来就注册过** `fan_out`（生产注册走 app 启动路径，单测进程里也可能有更早的注册者），
+    本夹具会把那个**真实工具**注销掉，留给后面的用例一个缺件的注册表 —— 与
+    `test_tool_callability.py` 的 `T.clear()` 同族（那里实测 1 条 → 0 条）。
+    改成"先记后还原"：本用例没注册过 ⇒ 维持原来的"注销"语义；本来就存在 ⇒ 原样放回。
+    """
+    before = _tools._registry.get("fan_out")
     yield
-    _tools.unregister("fan_out")
+    if before is None:
+        _tools.unregister("fan_out")
+    else:
+        _tools._registry["fan_out"] = before
+        _tools._registry_version += 1
 
 
 @pytest.fixture(autouse=True)

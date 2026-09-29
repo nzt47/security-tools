@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 import types
 
 import pytest
@@ -208,20 +209,21 @@ class TestJitterOnToolAndMcpRetry:
         from agent.timeout_budget import jittered_delay
         assert jittered_delay(2.0, factor=0.0) == 2.0
 
-    def test_mcp_retry_delay_is_jittered(self, monkeypatch):
-        """MCP 重试的等待时长带抖动（改动前是纯确定性倍增）"""
-        import mcp_services.mcp_client as mc
-        slept = []
+    def test_mcp_retry_delay_is_jittered(self, scoped_async_sleep):
+        """MCP 重试的等待时长带抖动（改动前是纯确定性倍增）
 
-        async def _fake_sleep(sec):
-            slept.append(sec)
-
-        monkeypatch.setattr(mc.asyncio, "sleep", _fake_sleep)
+        【SLEEP-SCOPE · 2026-09-28】`asyncio.sleep` 与 `time.sleep` 同病：它是**模块全局**
+        属性，打桩即全局生效 ⇒ `len(slept) == 2` 这条**计数**断言会被同进程其它事件循环的
+        sleep 打红。改用只认被测源文件的记录器（见 conftest 的 `scoped_async_sleep`）：
+        计数的对象**不变**（仍是被测层每一次重试等待），被排除的只有别人的样本。
+        """
+        scope = scoped_async_sleep("mcp_services/mcp_client.py")
         client, _calls = _make_mcp_client(max_retries=3)
 
         with pytest.raises(TimeoutError):
             asyncio.run(client.initialize())
 
+        slept = scope.recorded
         assert len(slept) == 2, f"3 次尝试应有 2 次等待，实际 {slept}"
         # 基础退避为 1.0、2.0（INITIAL_DELAY / ×BACKOFF_FACTOR），带 ±10% 抖动
         assert 0.9 <= slept[0] <= 1.1, slept
@@ -290,13 +292,15 @@ class TestEndToEndRetryAmplification:
         把放大源隔离在被测层之外，故总次数 = 工具循环次数 + 1。
     """
 
-    def _run(self, monkeypatch, budget_max_retries):
+    def _run(self, monkeypatch, budget_max_retries, scope):
         import agent.tool_calling as tc
         from agent.timeout_budget import RetryBudget, use_budget, reset_budget
 
         http_calls = {"n": 0}
-        slept = []
-        monkeypatch.setattr(tc.time, "sleep", lambda s: slept.append(s))
+        # 【SLEEP-SCOPE · 2026-09-28】只记录**被测源文件**发出的 sleep（见 conftest 的
+        # `scoped_sleep`）。旧写法 `monkeypatch.setattr(tc.time, "sleep", ...)` 打的是
+        # **进程全局** `time.sleep`（`tc.time is time` 恒真）⇒ 同进程泄漏线程的 sleep
+        # 会混进下面那条 ±10% 断言，把"环境噪声"判成"被测代码退化"。
         monkeypatch.setenv("CP_RETRY_DEADLINE_SEC", "0")
 
         caller = tc.ToolCallingService(_build_fake_llm(http_calls), max_rounds=0,
@@ -313,11 +317,13 @@ class TestEndToEndRetryAmplification:
                 print(f"  [预期终态] chat_with_steps 抛出 {type(exc).__name__}")
         finally:
             reset_budget(token)
-        return http_calls["n"], budget, slept
+        return http_calls["n"], budget, scope.recorded, scope.foreign
 
-    def test_http_calls_are_truncated_by_budget(self, monkeypatch):
+    def test_http_calls_are_truncated_by_budget(self, monkeypatch, scoped_sleep):
         """★硬要求：上游**持续失败**时总 HTTP 次数被预算截断（附实测输出）"""
-        calls, budget, slept = self._run(monkeypatch, budget_max_retries=1)
+        calls, budget, slept, _foreign = self._run(
+            monkeypatch, budget_max_retries=1,
+            scope=scoped_sleep("agent/tool_calling.py"))
         print(f"\n[E1e 实测/预算=1] 总 LLM HTTP 次数 = {calls}, "
               f"used={budget.used}, denied={budget.denied}, sleeps={slept}")
 
@@ -329,16 +335,53 @@ class TestEndToEndRetryAmplification:
         assert slept, "应发生过至少一次退避等待"
         assert all(0.8 <= s <= 1.2 for s in slept), f"退避应带抖动，实际 {slept}"
 
-    def test_larger_budget_allows_more_calls_monotonic(self, monkeypatch):
+    def test_larger_budget_allows_more_calls_monotonic(self, monkeypatch, scoped_sleep):
         """单调性反证：预算放大 ⇒ 允许更多重试（证明次数确由预算决定，
         而不是恒等于某个写死的数字）"""
-        tight, _b1, _s1 = self._run(monkeypatch, budget_max_retries=1)
-        loose, _b2, _s2 = self._run(monkeypatch, budget_max_retries=6)
+        scope = scoped_sleep("agent/tool_calling.py")
+        tight, _b1, _s1, _f1 = self._run(monkeypatch, budget_max_retries=1, scope=scope)
+        loose, _b2, _s2, _f2 = self._run(monkeypatch, budget_max_retries=6, scope=scope)
         print(f"\n[E1e 反证] 预算=1 → {tight} 次；预算=6 → {loose} 次")
         assert loose > tight, (
             f"预算放宽后应允许更多重试（{loose} 应 > {tight}）")
         # 上限由工具循环的 range(3) + 降级分支 1 次封顶
         assert loose <= 4, f"总次数应被 range(3)+降级 封顶，实际 {loose}"
+
+    def test_泄漏线程的sleep不混进判据(self, monkeypatch, scoped_sleep):
+        """【SLEEP-SCOPE · 2026-09-28】回归锁：**同进程别的线程**的 sleep 不得混进判据
+
+        复现形态是真实的，不是人造噪声：`BatchLogWriter` 是仓库**真实的生产组件**
+        （`agent/log_system/optimized_storage.py:63` 起的 daemon 刷新线程，循环里
+        `time.sleep(0.05)`），本用例**故意不 stop()** —— 这正是"先前的用例启动了它却没
+        收尾"的泄漏形态（同一 worker 进程里会一直活到后面的用例）。
+
+        【这条锁证明什么】旧写法（打桩全局 `time.sleep`）下，下面这次 `_run` 的记录器里
+        会混进泄漏线程的 0.05，`all(0.8 <= s <= 1.2)` 立刻假红 —— 单变量对照：把
+        `scoped_sleep(...)` 的 `watched()` 换成"恒 True"（= 旧机制的等价物）、其余一字不改，
+        同一条断言就**确定性变红**（本机 2026-09-28 实测）。
+        改后：`foreign` 里**确实**有别人的样本（前置非空转），而被判据检查的 `slept`
+        仍然全部落在被测层的 ±10% 带内。
+        """
+        from agent.log_system.optimized_storage import BatchLogWriter
+
+        scope = scoped_sleep("agent/tool_calling.py")
+        writer = BatchLogWriter(write_func=lambda batch: None, batch_size=10 ** 6,
+                                flush_interval_ms=10 ** 6, max_queue_size=10 ** 6)
+        writer.start()                     # ← 真实生产线程；**故意不 stop 到被测跑完**
+        try:
+            time.sleep(0.15)               # 让它至少跑几轮轮询（这段 sleep 属「别人的」）
+            _calls, _budget, slept, foreign = self._run(
+                monkeypatch, budget_max_retries=1, scope=scope)
+        finally:
+            writer.stop(timeout=1.0)
+
+        print(f"\n[SLEEP-SCOPE 实测] 被判据检查的样本={slept}"
+              f" / 同进程其它来源={foreign}（后者是泄漏线程的，不参与判据）")
+
+        assert foreign, "前置不成立：泄漏线程没有发生 sleep ⇒ 本用例会空转"
+        assert slept, "应发生过至少一次退避等待（被测层的样本没被记下来）"
+        assert all(0.8 <= s <= 1.2 for s in slept), (
+            f"被测层的退避样本必须全部在 ±10% 带内，实际 {slept}")
 
     def test_three_layer_nesting_bounded_by_single_budget(self):
         """★三层嵌套（外层循环 3 × 内层 error_handler 5）用一份预算收敛
