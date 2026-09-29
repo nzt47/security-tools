@@ -224,7 +224,17 @@ class Test真库同输入对照:
 
     @pytest.fixture()
     def loader(self):
-        pytest.importorskip("rank_bm25", reason="BM25 路不可用时本对照无意义")
+        # 【P1-2 · 2026-09-28】旧写法 `pytest.importorskip("rank_bm25")` 在缺依赖时**静默 skip**
+        # ⇒ 这两条"真技能库 + 真 BM25"对照会变成**永不执行的断言**（假绿；本仓对此有明确纪律）。
+        # 事实订正：`rank-bm25==0.2.2` 是 `pyproject.toml:145` 的**直接依赖**
+        # （随 `pip install -e .` 安装），`tool-retrieval-ci.yml` 也已显式安装 + 断言可导入
+        # ⇒ 缺它就是**环境坏了**，应当失败并给出可执行的修复命令，而不是悄悄跳过。
+        try:
+            import rank_bm25  # noqa: F401
+        except ImportError as exc:  # pragma: no cover - 只在环境缺依赖时触发
+            pytest.fail(
+                "rank_bm25 不可用 ⇒ 真库对照无法执行（它是 pyproject.toml:145 的直接依赖，"
+                "缺它就是环境问题）：%s。修复：pip install rank-bm25==0.2.2" % exc)
         return SkillLoader(file_store=SkillFileStore(repo_path=str(_REAL_REPO)))
 
     def test_噪声查询_不得有候选(self, loader):

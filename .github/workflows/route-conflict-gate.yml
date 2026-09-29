@@ -1,0 +1,118 @@
+# 路由冲突下限门（`scripts/eval_route_conflict.py --min-pass`）
+#
+# ══════════════════════════════════════════════════════════════════════════
+# 【这张门补的是什么 —— P1-3 · 2026-09-28】
+# ══════════════════════════════════════════════════════════════════════════
+#   `tests/unit/test_route_conflict_cases.py::test_基线可复现` 是**精确相等**棘轮
+#   （决策层通过数 == 48，改善到 49 也要显式更新基线）；而 CLI 侧的
+#   `--min-pass`（**下限**语义）此前**没有任何 workflow 跑**：`git grep eval_route_conflict .github`
+#   命中 0 处。两套口径并存而只有一套被跑 = 门禁可信度问题（要么统一口径，要么给
+#   下限门补一个 workflow）。本次选**后者**，且**不动任何判定**：pytest 那条精确棘轮
+#   原样留在 ci.yml 的分片里，本 workflow 只把"下限门"这条**没人跑过**的入口跑起来。
+#
+# ══════════════════════════════════════════════════════════════════════════
+# 【判定语义】只看退出码，不看日志里的 ✅
+# ══════════════════════════════════════════════════════════════════════════
+#   `eval_route_conflict.py` 的判据是「用例集自检通过 **且** 决策层通过数 >= 下限」，
+#   达标 exit 0、不达标 exit 1。**两条路径都在本机实测过**（2026-09-28，Windows）：
+#     · 默认下限 ⇒ 决策层通过 48/111，exit 0；
+#     · `--min-pass 999`（人为抬高下限）⇒ 同一次评测 exit 1 —— 证明这条门不是空转。
+#   下限值取自 `BASELINE_BY_VERSION["v2"]["bm25_only"]`（与 pytest 棘轮**同一个常量**），
+#   故两处不会各自漂移。
+#
+# ══════════════════════════════════════════════════════════════════════════
+# 【CI 安全性（本机实测 + 只读入库文件）】
+# ══════════════════════════════════════════════════════════════════════════
+#   · 索引源 `data/tool_index.json` 与用例集 `data/eval/route_conflict_cases.v2.jsonl`
+#     都是**入库文件**（`git check-ignore` 均无命中）⇒ 干净 checkout 上可复算；
+#   · `--no-embedding` 走纯 BM25 降级态，**不加载模型、不出网**（HF/TRANSFORMERS 离线也显式给上）；
+#   · 脚本模块级只 import 标准库（`agent.tool_router_hybrid` 是函数内延迟导入）；
+#   · 空载耗时实测 **0.9 s** ⇒ timeout-minutes: 10 有 600× 余量。
+#   ⚠️ 如实标注**未验证**的面：本机是 Windows/已装依赖的开发机，Linux + 干净 checkout 上
+#      的首次真跑要在本文件合并到默认分支后由 CI 自己证明（该 workflow 也只有合并后
+#      才能被 workflow_dispatch 触发）。若首跑因缺依赖变红，按下方"安装依赖"里的清单补齐，
+#      **不要**改判据。
+name: Route Conflict Gate
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'scripts/eval_route_conflict.py'
+      - 'data/eval/route_conflict_cases.v*.jsonl'
+      - 'data/tool_index.json'
+      - 'agent/tool_router_hybrid.py'
+      - 'agent/tool_router.py'
+      - 'tests/unit/test_route_conflict_cases.py'
+      - '.github/workflows/route-conflict-gate.yml'
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'scripts/eval_route_conflict.py'
+      - 'data/eval/route_conflict_cases.v*.jsonl'
+      - 'data/tool_index.json'
+      - 'agent/tool_router_hybrid.py'
+      - 'agent/tool_router.py'
+      - 'tests/unit/test_route_conflict_cases.py'
+      - '.github/workflows/route-conflict-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONIOENCODING: 'utf-8'
+  PYTHONPATH: '.'
+  # 强制纯 BM25 降级态：与 pytest 棘轮的 CI 口径一致（向量腿在 CI 上不可用）
+  AGENT_HYBRID_EMBEDDING: '0'
+  HF_HUB_OFFLINE: '1'
+  TRANSFORMERS_OFFLINE: '1'
+
+jobs:
+  floor-gate:
+    name: 路由冲突下限门（决策层通过数 ≥ 基线）
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置 Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 安装依赖
+        # 清单照 tool-retrieval-ci.yml 的同型 job 给（那里已证明能让 tool_router_hybrid
+        # 在 CI 上 import 成功），另加本门真正要用的 rank-bm25。
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml psutil rank-bm25 pytest pytest-timeout pytest-asyncio
+          pip install -e . || true
+
+      - name: 前置：断言降级态与 BM25 就位
+        run: |
+          python - <<'PY'
+          import os, sys
+          import importlib.util as u
+          if os.environ.get("AGENT_HYBRID_EMBEDDING") != "0":
+              sys.exit("::error::AGENT_HYBRID_EMBEDDING 未为 0（本门必须在纯 BM25 降级态跑）")
+          if u.find_spec("rank_bm25") is None:
+              sys.exit("::error::rank_bm25 未安装 ⇒ BM25 索引建不起来，本门会假红")
+          for p in ("data/tool_index.json", "data/eval/route_conflict_cases.v2.jsonl"):
+              if not os.path.isfile(p):
+                  sys.exit("::error::入库文件缺失: %s（干净 checkout 上应当存在）" % p)
+          print("前置就位：纯 BM25 降级态 + 入库索引/用例集")
+          PY
+
+      - name: 路由冲突下限门（机械判据，只看退出码）
+        run: |
+          python scripts/eval_route_conflict.py --no-embedding --cases-version 2
+          # 退出码 0 = 用例集自检通过 且 决策层通过数 >= BASELINE_BY_VERSION[v2][bm25_only]
+          # 退出码非 0 = 低于下限（或用例集自检失败）⇒ 本 job 红，脚本已把实测值打进日志

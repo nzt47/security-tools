@@ -1,54 +1,44 @@
-# 失败基线（failures_baseline.txt）—— TASK-03 · 2026-09-18 重建
+# 失败基线（failures_baseline.txt）
 #
-# 消费方：scripts/check_baseline_regression.py（出现基线之外的新失败即非零退出，已接入 .github/workflows/ci.yml 的 baseline-regression job）
+# 消费方：scripts/check_baseline_regression.py
+#   （出现基线之外的新失败即非零退出；**输出里没有 pytest 结束摘要时直接拒绝判定**，退出码 2）
 # 纪律：**只允许这个文件收缩**。新增条目必须人工确认为「已知债务」并写明归属，
-#       使用 --force-update 显式写入（--update 在没有新增失败时才会自动写入）。
+#       用 --force-update 显式写入（--update 在没有新增失败时才会自动写入）。
 #
-# ── 本次重建的口径 ──────────────────────────────────────────────────
-# 命令：python -m pytest tests/unit -q --no-header -p no:cacheprovider -p no:randomly \
+# ── 2026-09-28 清空（收缩到 0 条） ────────────────────────────────────
+# 上一版（2026-09-18 重建）固化 7 条，全部归属并行任务 TASK-01 / P0-1 的**在飞改动**，
+# 并写明「对应任务清零后必须用 --update 把它们从基线删除（只许收缩）」。本轮履行该条：
+#
+# 证据（本机 2026-09-28 实测，三个文件**整文件**跑）：
+#   python -m pytest tests/unit/test_date_shift_blindspots_guard.py \
+#                    tests/unit/test_llm_response_parsing.py \
+#                    tests/unit/test_tool_calling_comprehensive.py \
+#        -q -p no:randomly --timeout=120 --no-header -p no:cacheprovider
+#   ⇒ 156 passed, 1 skipped（0 failed）；7 条 nodeid 全部落在其中，逐条复现为绿。
+#
+# ⚠️ 如实标注一处**未能完成的复核**（与本仓 L6/L10 同族，已登记）：
+#   本轮尝试用「一轮整跑」复核全量 tests/unit（`-p no:randomly --timeout=300`），
+#   跑到 **76% 被 pytest-timeout 打断**（栈：tests/unit/test_settings_registry.py:159 scan →
+#   scripts/scan_settings.py:396 _assign_targets → ast.walk，即「全仓 AST 扫描」类用例）。
+#   机制（读 pytest_timeout 源码核实，非推断）：DEFAULT_METHOD 在**有 SIGALRM 的平台是 signal**
+#   （Linux CI 走这条：dump 栈后 `pytest.fail` ⇒ **该用例判失败、整轮继续**，结束摘要照常写出），
+#   在 Windows 是 **thread**（`timeout_timer`：「Dump stack of threads and call os._exit(1)」）
+#   ⇒ **整个进程被杀、既没有结束摘要也没有 junitxml**。本地跑的就是后者。
+#   这正是 2026-09-18 那次重建要用「分 10 块 + 14 文件补跑」的原因（见下「历史上一次重建的口径」），
+#   也是本仓 `scripts/run_full_pytest.py` 的 D2 兜底（检测"无摘要的块"并逐文件补跑）要解决的问题。
+#   两个后果，都写在这里免得下次误判：
+#     ① 本轮**不能**声称「全量单测当前零失败」——只能说「这 7 条已逐条复核为绿」；
+#     ② 若全量里还有**别的**失败，它们会在 CI 的 baseline-regression job 里以「新增失败」出现
+#        —— 那是**预期信号**（旧基线也没记过它们），不是本次清空引入的假警报。
+#   为此本轮给消费方加了一道闸（scripts/check_baseline_regression.py）：
+#   没有结束摘要的日志一律拒绝判定（退出码 2），否则就是「被 timeout 打断 ⇒ 失败集合为空集
+#   ⇒ 与基线差集为空 ⇒ 静默全绿」。契约测试见 tests/unit/test_check_baseline_regression.py（5 条）。
+#
+# ── 历史上一次重建的口径（保留，分块驱动仍适用） ──────────────────────
+#   命令：python -m pytest tests/unit -q --no-header -p no:cacheprovider -p no:randomly \
 #              --timeout=300 --cov=agent --cov-append    （分 10 块 + 14 文件补跑）
-# 驱动器：_ci_logs/task03/chunked_run.py（分块是为了在被杀/OOM 时可存活与可重跑）
-# 明细：docs/closeout/BASELINE_20260918.md §4、_ci_logs/task03/baseline_compare.json
+#   驱动器：_ci_logs/task03/chunked_run.py（分块是为了在被杀/OOM 时可存活与可重跑）
+#   明细：docs/closeout/BASELINE_20260918.md §4、_ci_logs/task03/baseline_compare.json
 #
-# ── 与上一版（78 条，2026-08-27）的差异 ───────────────────────────
-# 本次实测 10 条；其中 **3 条是本任务自己引入、并已在本次修复**（见下），
-# 故新基线为 **7 条**。
-#
-# [已修复·本任务] 3 条 —— 不算入基线，修复证据：
-#   tests/unit/test_scripts_quality_gate.py 单独跑 = 31 passed / exit 0
-#     · TestRunAllChecks::test_all_pass
-#     · TestMainEntry::test_main_exit_zero_on_pass
-#     · TestMainEntry::test_require_e2e_flag_parsing
-#   原因：TASK-03 E5「门禁诚实化」把 scripts/observability_quality_gate.py 的
-#   聚合从布尔 all_passed 改为三态（passed/inconclusive/failed）。旧测试断言的是
-#   『6 项里 3 项从未跑成（skipped）也算 passed』——那正是要根除的行为。
-#   已把测试夹具补成真·全通过，并**新增 4 条用例专盯这个 bug 不得回归**。
-#
-# [已修复·非本任务] 旧基线 78 条中**没有一条复现**（集合交集 = 0）。
-#   抽样复核：test_parent_selection / test_perf_monitor / test_response_workflows /
-#   test_skill_manager 四个文件共 157 个用例**全部通过**（exit 0，24.5s）。
-#   主因：旧基线（2026-08-27）早于 tests/conftest.py 的污染治理（_force_reset_intent_rules /
-#   _force_restore_golden_methods / 定向单例重置等），那批顺序污染失败已被根治。
-#   ⇒ 该基线**已失效**，本次重建即为纠正。
-#
-# [已知债务·非本任务] 7 条 —— 全部归属并行任务/在飞切片，逐条归因如下：
-#   · 命中点在 tests/unit/test_load_tool_meta_cache.py:106（该文件为**其它任务的改动**，git status 显示 M）——它把 time.time() 派生值写进 mtime，触发既有的日期平移守卫。与 TASK-03 无关；归属：P0-1/load_tool_meta 缓存任务。
-#   · 根因在 agent/tool_calling.py（DSML/文本协议解析）——该文件 git status 显示 M，为**并行任务 TASK-01**的在飞改动；报错为 'dsml_parse_error'。测试文件本身是新增未跟踪文件（非本任务创建）。归属：TASK-01。
-#   · 同上，agent/tool_calling.py 在飞改动导致 XML 工具调用抽取返回空列表。归属：TASK-01。
-#   · 同上（assert 0 == 2）。归属：TASK-01。
-#   · 同上（assert 0 == 1）。归属：TASK-01。
-#   · 同上（assert 0 == 1）。归属：TASK-01。
-#   · 同上（IndexError: list index out of range）。归属：TASK-01。
-#
-# ⚠️ 这 7 条是**在飞改动造成的当前失败**，不是「接受为永久现状」。
-#   对应任务清零后，必须用 `--update` 把它们从基线删除（只许收缩）。
-#   若在此之前把它们留在基线里，是为了让**其它**回归仍然能被拦下来 ——
-#   而不是为了让门禁变绿。
-
-FAILED tests/unit/test_date_shift_blindspots_guard.py::test_mtime_is_not_derived_from_the_unshifted_posix_clock
-FAILED tests/unit/test_llm_response_parsing.py::test_6_plain_text_response_is_untouched
-FAILED tests/unit/test_tool_calling_comprehensive.py::TestChatWithSteps::test_xml_tool_call_detection
-FAILED tests/unit/test_tool_calling_comprehensive.py::TestExtractXmlToolCalls::test_multiple_xml_tool_calls
-FAILED tests/unit/test_tool_calling_comprehensive.py::TestExtractXmlToolCalls::test_namespaced_xml
-FAILED tests/unit/test_tool_calling_comprehensive.py::TestExtractXmlToolCalls::test_simple_xml_tool_call
-FAILED tests/unit/test_tool_calling_comprehensive.py::TestExtractXmlToolCalls::test_xml_id_format
+# ── 当前基线 ─────────────────────────────────────────────────────────
+# 0 条。任何 FAILED/ERROR 都会被判为「基线之外的新失败」。

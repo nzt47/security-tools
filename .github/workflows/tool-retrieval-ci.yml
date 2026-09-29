@@ -63,6 +63,14 @@ on:
   schedule:
     # 每天凌晨 3 点运行(防止 tool_index.json 漂移未被察觉)
     - cron: '0 3 * * *'
+  # 【P1-1 · 2026-09-28】手工触发入口：本 workflow 原先只有 push/pull_request(paths 过滤)
+  #   + schedule，**没有** workflow_dispatch ⇒ 想单独跑一次这个门只能在本地跑，
+  #   或改一个触发路径把 commit 推上去（那等于用业务改动换一次门禁运行）。
+  #   这里**只加触发入口，不改任何判定**：job/steps/阈值/断言一字未动。
+  #   注意（既有事实，写在这里省得下次重新踩）：PR 只要触碰 .github/workflows/ 就连带
+  #   拿不到 PR check（见 docs/audit_skill_governance/AUDIT_AND_PLAN.md §23.2），
+  #   故 workflow_dispatch 要在本次改动**合并到默认分支之后**才第一次可用。
+  workflow_dispatch:
 
 env:
   # 强制纯 BM25 模式(CI 环境 SentenceTransformer 不可用,会触发原生崩溃)
@@ -233,7 +241,11 @@ jobs:
   #
   # 【判定语义 / 为什么必须有"前置断言"这一步】
   #   本门里最难的两条（真库同输入对照）用的是 pytest.importorskip("rank_bm25")
-  #   —— rank_bm25 **不在** pyproject 依赖里 ⇒ 一旦 runner 没装它，那两条会
+  #   —— 【P1-2 · 2026-09-28 订正】旧注释写的是「rank_bm25 **不在** pyproject 依赖里」，
+  #   实测**已过时**：`pyproject.toml:145` 就是 `rank-bm25==0.2.2`（直接依赖，注释写明
+  #   "技能 BM25 检索（TLM L1 确定性锚点匹配）"）。因此本 workflow 的既有做法（显式安装
+  #   + 断言可导入）是**硬前置**口径，测试侧也已从 `pytest.importorskip`（缺依赖静默 skip）
+  #   改为**直接失败** ⇒ 不再有"runner 没装它 ⇒ 这两条静默假绿"的路。
   #   **静默 skip**，job 仍然绿。这正是"静默 skip 成假绿"，所以这里：
   #   ① 显式安装 rank-bm25；② 装完再断言它真的可导入（不可导入就点名失败）。
   # ============================================================================

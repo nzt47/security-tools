@@ -157,6 +157,36 @@ def main(argv: list[str] | None = None) -> int:
     actual = parse_results(text)
     baseline = read_baseline(args.baseline)
 
+    # 【BASELINE-INTEGRITY · 2026-09-28】先确认「这次 pytest 真的跑完了」。
+    # Why 必须有这道闸：pytest 被 pytest-timeout（Windows 上默认 `--timeout-method=thread`）
+    #   或 OOM 打断时，日志里**既没有结束摘要、也没有短摘要行** ⇒ `parse_results` 得到空集合
+    #   ⇒ 与基线做差集后 `new` 为空 ⇒ 本脚本**退出码 0（全绿）**，而真实情况是「整轮没跑完」。
+    #   这是 2026-09-28 本机实测踩到的形态（不是推演）：`python -m pytest tests/unit -q
+    #   --no-header -p no:cacheprovider -p no:randomly --timeout=300` 在 76% 处被「全仓 AST
+    #   扫描」类用例超时打断（栈落在 `scripts/scan_settings.py:396 _assign_targets → ast.walk`，
+    #   来自 `tests/unit/test_settings_registry.py` 的模块级扫描夹具），日志里**只有 Timeout 栈**、
+    #   `--junitxml` 也没落盘。/tmp 里那条基线因此**无法**用一轮整跑复核（与 L6/L10 同族）。
+    #   ⇒ 判据收紧为：输出里必须存在 pytest 的结束摘要行，否则拒绝据此判定基线。
+    summary = extract_summary(text)
+    if summary is None:
+        print("=" * 78)
+        print("失败基线回归检查 —— 拒绝判定")
+        print("=" * 78)
+        print(f"来源        : {source}")
+        if args.pytest_log is None:
+            # 从日志文件复用时 rc 无意义（不重跑就没有退出码），别把它印成"这轮是 0"
+            print(f"pytest 退出码: {rc}")
+        print("-" * 78)
+        print("✗ 本次 pytest 输出里**没有结束摘要** ⇒ 这一轮没有跑完（被 timeout/OOM 打断，")
+        print("  或日志被截断），拒绝据此判定基线。")
+        print("  实测机制（读 pytest_timeout 源码核实）：platform 无 SIGALRM 时默认走 thread 方法，")
+        print("  其 `timeout_timer` 就是 dump 栈后 `os._exit(1)` ⇒ 既不打印摘要、也不写 junitxml，")
+        print("  失败集合会**静默变成空集**（假绿）；有 SIGALRM 的平台（Linux CI）默认走 signal，")
+        print("  只把该用例判失败、整轮继续并写出摘要 ⇒ 本条不会在那种环境下触发。")
+        print("  处置：改用分块驱动重跑（`scripts/run_full_pytest.py` 自带无摘要块的补跑兜底；")
+        print("        口径见 failures_baseline.txt 头部），不要用这轮日志下结论。")
+        return 2
+
     new = {k: v for k, v in actual.items() if k not in baseline}
     fixed = {k: v for k, v in baseline.items() if k not in actual}
     kept = {k: v for k, v in actual.items() if k in baseline}
@@ -170,9 +200,7 @@ def main(argv: list[str] | None = None) -> int:
     seed = extract_seed(text)
     if seed:
         print(f"随机 seed : {seed}（pytest-randomly 生效；比较基线时须记录 seed）")
-    summary = extract_summary(text)
-    if summary:
-        print(f"pytest 摘要: {summary}")
+    print(f"pytest 摘要: {summary}")
     print(f"仍存在    : {len(kept)}")
     print(f"已修复    : {len(fixed)}")
     print(f"**新增**  : {len(new)}")
