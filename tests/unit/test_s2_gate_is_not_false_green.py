@@ -38,7 +38,7 @@ G1-C（H-3）把 5 条主轨独有技能迁移成 `data/skills_repo/<id>/skill.m
 
 **【2026-09-27 CI-3 修 · 夹具根】**
 
-`data/skills_mgmt.json` 被 `.gitignore:224` 排除 ⇒ **不在 HEAD**，干净检出上不存在。
+`data/skills_mgmt.json` 被 `.gitignore:234` 排除 ⇒ **不在 HEAD**，干净检出上不存在。
 本门判的是两条生产路径的**差**（pathA 缺 2 / pathB 缺 0），**没有主轨就没有差**：
 干净检出实测 pathB **1 failed**，pathA 那两条虽然"绿"但绿的理由是"主轨不存在"（空转）。
 现改为把这些用例跑在**夹具根**上（tmp 里造一份"有主轨的仓库"：真仓 `data/skills_repo`
@@ -74,7 +74,7 @@ MAIN_TRACK_ONLY = [
 #  【2026-09-27 CI-3】夹具根：本门判的是「两条生产路径的**差**」，没有主轨就没有差
 # ────────────────────────────────────────────────────────────
 # 【为什么原来的写法在 CI 上必红 / 必空转（干净检出实测，不是推断）】
-#   `data/skills_mgmt.json` 被 `.gitignore:224` 排除 ⇒ 用 `git archive HEAD` 得到的
+#   `data/skills_mgmt.json` 被 `.gitignore:234` 排除 ⇒ 用 `git archive HEAD` 得到的
 #   干净检出上**没有主轨**（CI 的 6 个 shard 跑的就是这种 checkout）⇒ 根本没有"缺口"
 #   可判：
 #     · pathB 断言实测 **1 failed**（缺 2 条）—— 本门在 CI 上必红；

@@ -85,6 +85,14 @@ M2_TARGET_IDS = (
 #: 断言强度**未放宽**：仍是「实际主轨独有集合必须**恰好**等于本 allowlist」，多了少了
 #: 都红。G1-C 只是把集合从 7 缩到 2（原始设计就写明"若为它们补 skill.md，本 allowlist
 #: 必须同步缩小"），不是把断言改宽或删掉。
+#:
+#: 【H3-HYG · 2026-09-28 实测】该「恰好」是对**迁移时刻那份台账**的断言。运行期台账会由
+#: 生产导入通道**正当增长** —— 本机实测 2026-09-28T19:49 有 6 条 `source=external_agent`、
+#: `tags=["external","imported","markdown"]` 的技能写入 `data/skills_mgmt.json`（同一批 0.6 秒内），
+#: 主轨独有因此由 2 变 8 ⇒ 本机恒红、而 CI 冷启动（无台账）跳过。处置见下方用例：
+#: **契约本体（那 2 条仍不得有 skill.md）两类来源都判**；「恰好」只在未漂移时判，
+#: 漂移时显式 skip 并贴出实测集合。精确性本身仍由同目录 `test_skill_h3_migration.py` 的
+#: **冻结快照**参数（`test_main_track_only_set_is_exactly_two[fixture]`）在 CI 上照跑。
 KNOWN_MAIN_TRACK_ONLY = frozenset({
     "global-core-principles",
     "skill",
@@ -525,13 +533,54 @@ class TestG7LegacySnapshot:
         assert bad == [], f"重建后的快照仍与合并视图不一致: {bad}"
 
     def test_snapshot_mirror_is_byte_identical(self):
-        """legacy 主快照与镜像副本（agent/data/skills.json）必须逐字节相同"""
+        """legacy 主快照与镜像副本（agent/data/skills.json）必须逐字节相同
+
+        【P1-2 · 2026-09-28 如实标注】本用例读的是**两份 gitignore 的生成物**
+        （`data/skills.json` = `.gitignore:153`、`agent/data/skills.json` = `.gitignore:523`）
+        ⇒ CI 冷启动上**必然 skip**、属于"永不执行的断言"。同一条不变量已由下面的
+        `test_snapshot_mirror_pair_is_written_by_one_call` 用**生产写法在 tmp 里复现**，
+        在 CI 上照跑（含此前无人覆盖的"镜像分支条件不成立"那条路径）。
+        """
         a = ROOT / "data" / "skills.json"
         b = ROOT / "agent" / "data" / "skills.json"
         if not (a.exists() and b.exists()):
             pytest.skip("两份 legacy 快照之一不存在（CI 环境被 gitignore）")
         assert a.read_bytes() == b.read_bytes(), (
             "legacy 主快照与镜像副本已分叉（store.py 一次调用应同时重建两份）")
+
+    def test_snapshot_mirror_pair_is_written_by_one_call(self, tmp_path):
+        """【P1-2 · 2026-09-28】上面那条的 **CI 可跑孪生**：在 tmp 里复现同一对写入
+
+        生产写法（`store.py:556/564`）：主快照写 `<store.parent>/skills.json`，
+        镜像写 `<store.parent.parent>/agent/data/skills.json`，**且镜像仅在
+        `alt.parent.exists()` 成立时才写**。这条分支此前**没有任何用例覆盖**
+        （原用例只断言"两份都在时逐字节相同"）。
+
+        判据两条，都不可空转：
+          ① 镜像父目录**不存在** ⇒ 不创建镜像、也不得抛异常（`if alt.parent.exists()` 的否分支）；
+          ② 父目录**存在** ⇒ 镜像必须被写出，且与主快照**逐字节相同**。
+        """
+        from agent.skills_mgmt.store import SkillStore
+
+        repo = tmp_path / "repo"
+        store_path = repo / "data" / "skills_mgmt.json"
+        store_path.parent.mkdir(parents=True)
+        store = SkillStore(path=str(store_path))
+
+        main = repo / "data" / "skills.json"
+        mirror = repo / "agent" / "data" / "skills.json"
+        assert not mirror.parent.exists(), "前置：镜像父目录一开始不存在"
+
+        n = store.sync_to_legacy_skills_json()
+        assert n > 0, "快照重建出 0 行 ⇒ 本用例会空转"
+        assert main.is_file(), "主快照未写出"
+        assert not mirror.exists(), "镜像父目录不存在时不得创建镜像（生产分支①）"
+
+        mirror.parent.mkdir(parents=True)
+        assert store.sync_to_legacy_skills_json() == n, "二次重建行数应稳定"
+        assert mirror.is_file(), "镜像父目录存在时镜像必须写出（生产分支②）"
+        assert main.read_bytes() == mirror.read_bytes(), (
+            "同一次调用写出的主快照与镜像已分叉")
 
 
 # ────────────────────────────────────────────────────────────
@@ -581,7 +630,22 @@ class TestSingleSourcePayload:
         assert bad_zh == [], f"合并视图 description_zh 与基线不符: {bad_zh}"
 
     def test_main_track_only_allowlist_is_exact(self, repo_ids):
-        """H-3 裁定：主轨独有集合必须**恰好**等于已知 7 条（多了少了都红）"""
+        """H-3 裁定：主轨独有集合必须**恰好**等于已知 7 条（多了少了都红）
+
+        【H3-HYG · 2026-09-28】拆成两半（断言一条没删），与 `test_skill_h3_migration.py` 同款：
+          · **契约本体**（任何来源都判）：H-3 刻意留下的那 2 条**必须仍在主轨独有集合里**
+            —— 谁给它们补了 `skill.md`（= 偷偷纳入）⇒ 立刻红，与台账漂移无关；
+          · **恰好等于**：它是迁移时刻那份台账的*具体内容*；运行期经导入通道新增技能是
+            **正当增长**，对它判「恰好」等于把运行期活动判成红（D3.md:91：把历史遗留做成
+            红灯 = 造一个恒红的门）⇒ 漂移时按仓库既有约定**显式 skip** 并贴出实测集合。
+
+        【为什么要删掉原来那条"恰好相等"的 assert（2026-09-28，由非空转自证逼出来的）】
+        拆开后它**已不可达**：`actual` 与实际只可能有三种关系 —— 少（契约本体那条先红）、
+        多（走 skip）、相等（assert 恒真）⇒ 留着它就是一条**永远不执行的断言**（本仓对
+        "永不执行的断言"有明确纪律：那就是假绿）。精确性**没有丢**，只是换了承担者：
+        `test_skill_h3_migration.py::TestNoNewDualDescriptionConflict::test_main_track_only_set_is_exactly_two`
+        的**冻结快照**参数（`[fixture]`）在 CI 上照跑同一条不变量，且其非空转自证证明它仍判精确相等。
+        """
         main_ids = _main_track_ids()
         if not main_ids:
             pytest.skip(
@@ -589,16 +653,57 @@ class TestSingleSourcePayload:
                 "且读路径会在同一轮里把它创建为空对象）⇒ 「主轨独有集合」无定义，"
                 "本断言在 CI **不适用**（不是通过；本地/生产口径仍按下方『恰好相等』执行）")
         actual = set(main_ids) - set(repo_ids)
-        assert actual == set(KNOWN_MAIN_TRACK_ONLY), (
-            "主轨独有集合已变化：新增 " + str(sorted(actual - KNOWN_MAIN_TRACK_ONLY))
-            + " / 消失 " + str(sorted(KNOWN_MAIN_TRACK_ONLY - actual))
-            + "（若为它们补了 skill.md，请同步缩小 KNOWN_MAIN_TRACK_ONLY）")
+        missing = set(KNOWN_MAIN_TRACK_ONLY) - actual
+        assert missing == set(), (
+            "H-3 裁定「刻意保留在主轨、不纳入事实源域」的技能被纳入了（文件轨里出现了实体）: "
+            + str(sorted(missing)))
+        extra = actual - set(KNOWN_MAIN_TRACK_ONLY)
+        if extra:
+            pytest.skip(
+                "运行期台账已从迁移时刻漂移：主轨独有集合 = " + str(sorted(actual))
+                + "，其中 " + str(sorted(extra))
+                + " 是迁移后经**生产导入通道**新增的技能（实测 tags=['external','imported','markdown']、"
+                + "source=external_agent，2026-09-28T19:49 同一批写入）。「恰好」是对迁移时刻那份台账的"
+                + "断言，不能用来判运行期活动 ⇒ 按仓库既有约定显式 skip；契约本体（那 2 条仍不得有"
+                + "skill.md）**未放宽**，精确性由 test_skill_h3_migration.py 的冻结快照参数覆盖。")
+        # 到这里 `actual` 只可能**恰好等于** KNOWN_MAIN_TRACK_ONLY（多 ⇒ 上面已 skip；
+        # 少 ⇒ 上面已红）⇒ 原先那条 assert 是**死代码**，已按本仓"不留永不执行的断言"的
+        # 纪律删除；精确性由 test_skill_h3_migration.py 的冻结快照孪生承担（见 docstring）。
 
 
 # ────────────────────────────────────────────────────────────
 #  M7  V-guard：向量文本的"是否并入 description_zh"由**同一个开关**决定
 #      （【G1C-UA】取代原"永不并入"裁定，见下）
 # ────────────────────────────────────────────────────────────
+
+class TestMainTrackOnlyHalvesAreNotVacuous:
+    """【H3-HYG · 2026-09-28】上面拆出来的两半都必须**真的会红**（非空转自证）
+
+    手工构造三个输入直接调被测函数，证明拆法没有把断言拆成空转：
+      ① 那 2 条之一被纳入 ⇒ 契约本体（⊇）**真的会红**；
+      ② 台账漂移到多出几条 ⇒ 走的是**显式 skip**，不是静默通过；
+      ③ 未漂移 ⇒ **不抛不跳**（不产生假警报）。
+    """
+
+    @staticmethod
+    def _call(monkeypatch, main_ids, repo_ids):
+        mod = sys.modules[__name__]
+        monkeypatch.setattr(mod, "_main_track_ids", lambda: frozenset(main_ids))
+        return TestSingleSourcePayload().test_main_track_only_allowlist_is_exact(repo_ids)
+
+    def test_契约本体抓到偷偷纳入(self, monkeypatch):
+        with pytest.raises(AssertionError, match="被纳入"):
+            self._call(monkeypatch, main_ids={"global-core-principles"}, repo_ids=set())
+
+    def test_漂移时是显式skip而非静默通过(self, monkeypatch):
+        drifted = set(KNOWN_MAIN_TRACK_ONLY) | {"adaptation", "voice"}
+        with pytest.raises(pytest.skip.Exception):
+            self._call(monkeypatch, main_ids=drifted, repo_ids=set())
+
+    def test_未漂移时不产生假警报(self, monkeypatch):
+        """未漂移 ⇒ 既不红也不 skip（证明上面两条不是"一律报红 / 一律跳过"）"""
+        self._call(monkeypatch, main_ids=set(KNOWN_MAIN_TRACK_ONLY), repo_ids=set())
+
 
 class TestVectorHashUnaffected:
     """【G1C-UA 取代 G1-B/M7 的 V-guard 裁定】

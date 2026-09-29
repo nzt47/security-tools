@@ -39,7 +39,7 @@ G1-B 登记的 R-d：「展示读文件轨、搜索没跟上 ⇒ **看到的是�
 ## 【2026-09-27 CI-3】R-d-3 的主轨夹具
 
 `TestRealRepoSearchMatchesDisplay` 原来用 `SkillsMgmtService()`（**生产默认主轨**）。
-而 `data/skills_mgmt.json` 被 `.gitignore:224` 排除 ⇒ 干净检出上不存在、主轨为空 ⇒
+而 `data/skills_mgmt.json` 被 `.gitignore:234` 排除 ⇒ 干净检出上不存在、主轨为空 ⇒
 `store.list_all()` 为空 ⇒ 搜索无候选：干净检出实测 **2 failed / 15 passed**。
 现改为文件轨取**真仓副本**（迁移产物，断言对象不变）、主轨用夹具迷你台账
 （`real_repo_svc`），并加一条"主轨确实读的是夹具台账"的非空转自证。**断言一字未改。**
@@ -67,7 +67,7 @@ def iso_svc(tmp_path):
 #  【2026-09-27 CI-3】R-d-3 的取数：文件轨 = 真仓，主轨 = 夹具
 # ════════════════════════════════════════════════════════════════════
 # 【为什么必须夹具化（干净检出实测，不是推断）】
-#   `data/skills_mgmt.json`（技能主轨）被 `.gitignore:224` 排除 ⇒ **不在 HEAD**，
+#   `data/skills_mgmt.json`（技能主轨）被 `.gitignore:234` 排除 ⇒ **不在 HEAD**，
 #   用 `git archive HEAD` 得到的干净检出上不存在（CI 的 6 个 shard 跑的就是它）。
 #   而 `SkillsMgmtService()` 默认主轨路径 = `<repo>/data/skills_mgmt.json` ⇒
 #   `store.list_all()` 为空 ⇒ 搜索**无候选**：干净检出实测本类 **2 failed / 15 passed**。

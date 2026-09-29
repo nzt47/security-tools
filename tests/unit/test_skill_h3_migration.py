@@ -27,14 +27,14 @@
 ## 主轨来源：fixture（CI 冷启动真跑）+ real（按仓库既有约定 skip）—— 2026-09-27 CI-3
 
 本文件守的「逐字搬运 / 双轨不变量 / 主轨独有集合 / runtime_only 集合」都要**主轨内容**，
-而主轨文件 `data/skills_mgmt.json` 被 `.gitignore:224` 排除、**不在 HEAD**。照仓库既有约定
+而主轨文件 `data/skills_mgmt.json` 被 `.gitignore:234` 排除、**不在 HEAD**。照仓库既有约定
 （`tests/unit/test_skill_description_single_source.py:453`、
 `tests/unit/test_s3_01_handover.py:245` 同款），本文件把**同一批用例跑两个来源**：
 
 | 来源 | 断言性质 | CI 冷启动 | 落点 |
 |---|---|---|---|
 | `fixture` | **机制**：判据本身成不成立、集合**恰好**等于、注入被真读到 | **真跑** | `MAIN_TRACK_FIXTURE`（冻结快照）写进 `tmp_path`，生产读路径 monkeypatch 过去 |
-| `real` | **真实台账的具体内容**：这 5 条的中文/正文逐字等于**那份台账**的原文；双轨恰好 20 条 = 15 个 pd-* + 5 | **显式 skip（写明理由+本机复现方式）** | 仓库里那份运行期台账（`.gitignore:224`） |
+| `real` | **真实台账的具体内容**：这 5 条的中文/正文逐字等于**那份台账**的原文；双轨恰好 20 条 = 15 个 pd-* + 5 | **显式 skip（写明理由+本机复现方式）** | 仓库里那份运行期台账（`.gitignore:234`） |
 
 ⇒ 「机制」那一半在 CI 上**永不缺席**；「真实内容」那一半在**有台账的机器**上跑。
 两条硬数字（**20 条 / 15 个 pd-***）一个字没删：fixture 来源按「真仓文件轨的 pd-* ∪ H-3 纳入的
@@ -98,7 +98,7 @@ def meta_index(file_store):
 #  主轨来源：fixture（CI 冷启动也真跑）+ real（按仓库既有约定 skip）
 # ────────────────────────────────────────────────────────────
 # 【为什么必须分两类（干净检出实测，不是推断）】
-#   `data/skills_mgmt.json`（技能主轨）被 `.gitignore:224` 排除 ⇒ **不在 HEAD**，
+#   `data/skills_mgmt.json`（技能主轨）被 `.gitignore:234` 排除 ⇒ **不在 HEAD**，
 #   而 CI 的 6 个 shard、coverage-ci、observability-ci、test.yml 跑的全是干净 checkout。
 #   旧实现用 `pytest.skip("主轨不存在")` 兜底 6 处、唯独 runtime_only 那条吃硬断言 ⇒
 #   干净检出实测「1 failed / 9 passed / 6 skipped」（该文件**不存在**时）或
@@ -117,12 +117,12 @@ def meta_index(file_store):
 # 【断言强度】一条都没删、没放宽：数字（20 条 / 15 个 pd-*）仍在断言里，只是期望值改成从
 #   「真仓文件轨的 pd-* ∪ H-3 纳入的 5 条」**实读拼出**（夹具少写一条不会静默变绿）。
 
-#: 真实主轨台账在生产里的落点（`.gitignore:224` 排除 ⇒ **不在 HEAD**）
+#: 真实主轨台账在生产里的落点（`.gitignore:234` 排除 ⇒ **不在 HEAD**）
 MGMT = ROOT / "data" / "skills_mgmt.json"
 
 #: real 来源在 CI 冷启动下的 skip 理由（照既有约定：点明 gitignore + 本机怎么复现）
 _SKIP_REAL_LEDGER = (
-    "技能主轨 data/skills_mgmt.json 没有内容（CI 冷启动：该文件被 .gitignore:224 排除、不在 "
+    "技能主轨 data/skills_mgmt.json 没有内容（CI 冷启动：该文件被 .gitignore:234 排除、不在 "
     "HEAD；干净检出上要么不存在，要么被更早的用例创建成一个空对象）。本条断言的是**这份真实"
     "台账的具体内容**，故按仓库既有约定显式 skip；同一条不变量已由本文件的 fixture 来源用例"
     "覆盖（同一批用例的另一个参数）。本机复现：在**有台账**的工作区直接跑本文件即可（该台账是"
@@ -156,6 +156,17 @@ def main_track_source(request, tmp_path, monkeypatch):
         path.write_text(_MAIN_TRACK_FIXTURE_JSON, encoding="utf-8")
         from agent.lines import callability
         monkeypatch.setattr(callability, "SKILLS_MGMT_PATH", str(path))
+        # 【H3-HYG · 2026-09-28 实测修】include_runtime_catalog=True 下 _skill_sources
+        # 读的是**两份**运行期文件：② SKILLS_JSON_PATH（data/skills.json，运行时技能目录）
+        # 与 ③ SKILLS_MGMT_PATH（data/skills_mgmt.json，管理台账）。此前只隔离了 ③，
+        # ② 仍指向仓库里那份 **gitignore 的真实运行期目录** ⇒ fixture 这一半**并非**
+        # CI 冷启动语义：本机实测 2026-09-28 该目录含 8 条无仓库实体的技能（其中 6 条是
+        # 当天 19:49 经导入通道写入的 external/imported 技能），runtime_only 用例于是
+        # 拿到 8 条而恒红，而它在 CI 冷启动（两份文件都不存在）上是绿 —— 同一用例两副面孔。
+        # 隔离 ②（指向 tmp 下**不存在**的路径 ⇒ _read_json 得空表）后，本参数下的运行期
+        # 事实只剩「冻结快照」这一份，两种环境同形。
+        monkeypatch.setattr(callability, "SKILLS_JSON_PATH",
+                            str(tmp_path / "skills.json"))
         return MAIN_TRACK_FIXTURE, path, "fixture"
     return _real_main_track_or_skip(), MGMT, "real"
 
@@ -170,6 +181,29 @@ def main_track(main_track_source):
 def main_track_file(main_track_source):
     """主轨文件路径（fixture=tmp 里的迷你台账；real=仓库里那份运行期台账）"""
     return main_track_source[1]
+
+
+@pytest.fixture
+def track_source(main_track_source):
+    """本用例取的是哪一份主轨：'fixture'（冻结快照）/ 'real'（仓库里那份运行期台账）"""
+    return main_track_source[2]
+
+
+#: 【H3-HYG · 2026-09-28】真实台账**正当漂移**时的统一 skip 文案。
+#: Why 不是"放宽断言"：这两条断言的是**2026-09-27 迁移时刻那份台账的具体内容**，
+#: 而运行期台账会由生产写路径正当增长（本机实测 2026-09-28T19:49 有 6 条 external/imported
+#: 技能经导入通道写入）。对它继续判"恰好 2 条"就是 D3.md §91 说的"把历史遗留做成红灯"
+#: —— 即造一个恒红的门。契约的**精确性**那一半仍由本文件 [fixture] 参数（冻结快照）在 CI
+#: 上真跑（CI3.md §3.4 既有约定），本参数只承担"真实台账的具体内容"，而该内容已不存在。
+_LEDGER_DRIFT_SKIP = (
+    "真实台账 data/skills_mgmt.json 已从迁移时刻（sha256 bcda9ecf…）的内容漂移 —— "
+    "本用例断言的是**那份台账**的具体内容，不是「运行期只允许有这些技能」这条机制。"
+    "实测 %s = %s；其中 %s 是迁移后才出现的**运行期导入**技能"
+    "（tags=['external','imported','markdown']，2026-09-28T19:49 经导入通道写入）。"
+    "按本文件既有约定（CI3.md §3.4）显式 skip：同一条精确断言由 [fixture] 参数（冻结快照）"
+    "在 CI 上照跑；契约本体（那 2 条仍不得有仓库实体）**两类来源都判**，未放宽。"
+    "漂移事实已登记在 docs/audit_skill_governance/NEXT_SESSION_BACKLOG.md。"
+)
 
 
 def _fm(store, sid):
@@ -300,11 +334,57 @@ class TestNoNewDualDescriptionConflict:
                != str(meta_index[sid].get("description_zh") or "")]
         assert bad == [], f"出现了第三种描述形态（主轨中文 != 文件轨中文）: {bad}"
 
-    def test_main_track_only_set_is_exactly_two(self, meta_index, main_track):
-        """H-3 的另一半：不纳入的那 2 条**必须仍然没有** skill.md（否则是偷偷纳入）"""
+    def test_main_track_only_set_is_exactly_two(self, meta_index, main_track, track_source):
+        """H-3 的另一半：不纳入的那 2 条**必须仍然没有** skill.md（否则是偷偷纳入）
+
+        【H3-HYG · 2026-09-28】拆成两半，分别钉在两个口径上（断言一条没删）：
+          · **契约本体**（fixture / real **都判**）：那 2 条必须仍在「主轨独有」集合里。
+            有人给 global-core-principles / skill 补了 skill.md ⇒ 立刻红，与台账漂移无关；
+          · **恰好等于那 2 条**（只有 **fixture** 判）：它是迁移时刻那份台账的**具体内容**，
+            真实台账漂移后由 real 参数显式 skip 并贴出实测值（见 _LEDGER_DRIFT_SKIP）。
+        """
         actual = set(main_track) - set(meta_index)
+        missing = set(NOT_MIGRATED) - actual
+        assert missing == set(), (
+            "H-3 裁定「不纳入」的技能被偷偷纳入了（文件轨里出现了实体）: %s"
+            % sorted(missing))
+        if track_source == "real" and actual != set(NOT_MIGRATED):
+            pytest.skip(_LEDGER_DRIFT_SKIP % (
+                "主轨独有集合", sorted(actual), sorted(actual - set(NOT_MIGRATED))))
         assert actual == set(NOT_MIGRATED), (
             f"主轨独有集合 = {sorted(actual)}，期望 {sorted(NOT_MIGRATED)}")
+
+
+class TestContractHalvesAreNotVacuous:
+    """【H3-HYG · 2026-09-28】上面那条拆出来的两半都必须**真的会红**（非空转自证）
+
+    手工构造三个场景直接调被测函数，证明拆法没有把断言拆成空转：
+      ① 契约本体（⊇）会抓到「那 2 条之一被纳入」（与台账漂移无关）；
+      ② fixture 口径下"恰好 2 条"仍会因集合不等而红（没被 skip 分支吞掉）；
+      ③ real 口径下漂移是**显式 skip**，不是静默通过（`pytest.skip.Exception`）。
+    """
+
+    @staticmethod
+    def _call(meta_index, main_track, track_source):
+        return TestNoNewDualDescriptionConflict().test_main_track_only_set_is_exactly_two(
+            meta_index, main_track, track_source)
+
+    def test_契约本体抓到偷偷纳入(self):
+        with pytest.raises(AssertionError, match="偷偷纳入"):
+            self._call({"skill": {}},
+                       {"global-core-principles": {}, "skill": {}}, "fixture")
+
+    def test_fixture口径仍判恰好两条(self):
+        with pytest.raises(AssertionError, match="主轨独有集合"):
+            self._call({},
+                       {"global-core-principles": {}, "skill": {}, "extra-inline": {}},
+                       "fixture")
+
+    def test_real口径漂移时是显式skip而非静默通过(self):
+        with pytest.raises(pytest.skip.Exception):
+            self._call({},
+                       {"global-core-principles": {}, "skill": {}, "extra-inline": {}},
+                       "real")
 
 
 # ════════════════════════════════════════════════════════════
@@ -387,12 +467,23 @@ class TestActuallyRecallable:
         assert all(str(i.get("description") or "").strip() for i in sk), (
             "信封里存在描述为空的 skill 条目")
 
-    def test_runtime_only_set_shrinks_to_the_two(self, main_track_file):
-        """迁移的副作用面：runtime_only 标注必须正好剩下不纳入的 2 条"""
+    def test_runtime_only_set_shrinks_to_the_two(self, main_track_file, track_source):
+        """迁移的副作用面：runtime_only 标注必须正好剩下不纳入的 2 条
+
+        【H3-HYG · 2026-09-28】与 test_main_track_only_set_is_exactly_two 同款拆法：
+        契约本体（⊇）两类来源都判；「恰好 2 条」只有 fixture 判，real 漂移后显式 skip。
+        """
         from agent.lines.callability import build_manifest, runtime_only_skill_entries
         existing = {e["tool_name"] for e in build_manifest()["entries"]}
         got = {str(e.get("tool_name") or e.get("name"))
                for e in runtime_only_skill_entries(existing_names=existing)}
+        missing = set(NOT_MIGRATED) - got
+        assert missing == set(), (
+            "runtime_only 少了 H-3 裁定「不纳入」的条目（它们应仍在运行期标注里）: %s"
+            % sorted(missing))
+        if track_source == "real" and got != set(NOT_MIGRATED):
+            pytest.skip(_LEDGER_DRIFT_SKIP % (
+                "runtime_only 标注集合", sorted(got), sorted(got - set(NOT_MIGRATED))))
         assert got == set(NOT_MIGRATED), (
             f"runtime_only 标注 = {sorted(got)}，期望 {sorted(NOT_MIGRATED)}")
 
@@ -423,7 +514,7 @@ class TestSkillRecordDescriptionFixed:
 #
 #  · 出处：HEAD 工作区的主轨台账，sha256 = bcda9ecfbcf105b6965055418aa2ac1d5a2cbfa791ea2428520b19517af07a77
 #    （22 条 = 20 条双轨技能 + 2 条主轨独有；复算方式见 docs/audit_skill_governance/CI3.md）
-#  · 为什么冻结：`.gitignore:224` 排除该文件 ⇒ 不在 HEAD、干净检出上不存在（见文件头「主轨夹具」）
+#  · 为什么冻结：`.gitignore:234` 排除该文件 ⇒ 不在 HEAD、干净检出上不存在（见文件头「主轨夹具」）
 #  · 逐字保留：id / name / category / source / status / author / description /
 #    content（5 条迁移技能 + 2 条主轨独有）/ content_type / tags / enabled / is_sensitive
 #  · 归一：config_schema / output_schema 收敛为与 `test_s1_02_s3_01_fixpoint_guard._make_inputs`
