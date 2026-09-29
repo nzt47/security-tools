@@ -69,7 +69,6 @@ IGNORES = [
     "tests/integration/check_5xx_source.py",
     "tests/unit/temp",
     "tests/test_digital_life.py",
-    "tests/unit/test_utils_index_manager.py",
 ]
 
 # 【K9 规避】离线模式环境变量：chromadb→pydantic_settings 导入、sentence_transformers→
