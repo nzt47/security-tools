@@ -2150,6 +2150,40 @@ def _install_graceful_shutdown_hooks():
     return installed
 
 
+def _warm_skill_vector_leg_async():
+    """【P0-1 补】启动期**后台**预热技能检索的向量腿（不阻塞就绪门，失败不影响服务）
+
+    Why：`SkillLoader` 默认不初始化向量后端，而它的两处 fast-exit（`_try_vector_match` /
+    `_try_rrf_match`）在后端未初始化时**静默跳过**向量腿 ⇒ 生产会长期跑在 tfidf+bm25 降级态。
+    实测（MINSCORE1 §3.2）：向量腿在线时中文召回 **8/8**、S10-03 锚绿；降级态才是 4/8。
+
+    【边界】BGE-m3 加载实测 87.7s ⇒ 必须后台跑；预热结果只记日志（在线/未在线都如实打），
+    不改变任何判据，也不改变服务就绪与否。**开关判定在 `SkillsMgmtService.warm_vector_leg`**
+    （`SKILLS_OFFLINE` / `CP_SKILL_VECTOR_PREWARM`，两条都已在 registry 登记），本函数只负责
+    "放后台 + 记日志"。
+    """
+
+    def _run():
+        try:
+            from agent.state_manager import get_skills_mgmt_service
+            svc = get_skills_mgmt_service()
+            st = svc.warm_vector_leg() if hasattr(svc, "warm_vector_leg") else {}
+            _ms = st.get("elapsed_ms") or -1.0
+            if st.get("available"):
+                logger.info("[启动] 技能向量腿已在线：backend=%s indexed=%s degraded=%s %.1fms",
+                            st.get("backend"), st.get("indexed"), st.get("degraded"), _ms)
+            elif str(st.get("reason") or "").startswith("disabled:"):
+                logger.info("[启动] 技能向量腿预热被开关关闭（%s），检索走 tfidf+bm25",
+                            st.get("reason"))
+            else:
+                logger.warning("[启动] 技能向量腿**未在线**（检索将走 tfidf+bm25 降级态）："
+                               "reason=%s %.1fms", st.get("reason"), _ms)
+        except Exception as e:  # noqa: BLE001 预热失败不改服务语义
+            logger.warning("[启动] 技能向量腿预热异常（不影响服务）：%s", e)
+
+    threading.Thread(target=_run, name="skill-vector-prewarm", daemon=True).start()
+
+
 if __name__ == "__main__":
     # 脚本直跑（python app_server.py）时本模块名为 __main__；插件视图函数内的
     # 延迟导入 `from app_server import _Yunshu`（PLAN-1 §4）会把 app_server.py
@@ -2364,6 +2398,9 @@ if __name__ == "__main__":
     #         旧实例继续服务，本进程以退出码 3 退出（不会悄悄退化成"无服务"）。
     # threads 8→16: 高并发压测发现 LLM 长耗时请求占满线程导致排队（Task queue 高发），
     # 提升线程容量缓解排队；LLM 外呼另有 60s 看门狗兜底（orchestrator._run_llm_bounded）
+    # 【P0-1 补】后台预热技能检索的向量腿（不阻塞就绪门；开关见 _skill_vector_prewarm_enabled）
+    _warm_skill_vector_leg_async()
+
     from agent.server_port_guard import guarded_startup
     _startup = guarded_startup(
         lambda: serve(app, host="127.0.0.1", port=5678, threads=16),

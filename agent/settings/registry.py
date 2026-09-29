@@ -2528,6 +2528,23 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "回到改动前）[G1C-U1；agent/skills_mgmt/loader.py:88,132,383]",
        owner="agent/skills_mgmt/loader.py"),
 
+    # · P0-1 补（2026-09-29）：向量腿预热 + CI 离线否决
+    _a("CP_SKILL_VECTOR_PREWARM", CAT_SKILLS, True,
+       "启动期是否**后台预热技能检索的向量腿**（默认开）。Why：SkillLoader 默认不初始化向量"
+       "后端，而其两处 fast-exit 在后端未初始化时**静默跳过**向量腿 ⇒ 生产会长期跑在"
+       "tfidf+bm25 降级态（实测：向量腿在线时中文召回 8/8，降级态 4/8）。置 0/false/no/off ⇒"
+       "不预热、保持旧行为（服务照常启，检索走降级态，日志会记跳过原因）。"
+       "【成本】BGE-m3 首次加载实测 87.7s ⇒ 预热在**后台线程**里做，不阻塞启动就绪门"
+       "[P0-1；agent/skills_mgmt/service.py::warm_vector_leg]",
+       owner="agent/skills_mgmt/service.py"),
+    _a("SKILLS_OFFLINE", CAT_SKILLS, False,
+       "技能检索的**离线否决**（默认关）。CI 一直在设 `SKILLS_OFFLINE=1`，但本轮实测"
+       "**此前没有任何代码读它**（全仓只在注释里出现过）⇒ 那个声明一直是空转的。"
+       "现在把它真正接上：置 1/true/yes ⇒ 启动期**不预热向量腿**。"
+       "【不改判据】它只影响要不要预热，不参与任何打分/过滤"
+       "[P0-1；agent/skills_mgmt/service.py::warm_vector_leg]",
+       owner="agent/skills_mgmt/service.py"),
+
     # · C1 卡：LLM 客户端显式超时与重试（读取点 adapters.py:158-173；客户端懒加载，
     #   新建实例即取新值 ⇒ 不标重启，但已建实例仍持旧值）
     _a("LLM_ADAPTER_CONNECT_TIMEOUT", CAT_ORCHESTRATION, 5.0,

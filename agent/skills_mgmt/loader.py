@@ -784,6 +784,52 @@ class SkillLoader:
                 self._vector_adapter = None
         return self._vector_adapter
 
+    def warm_vector_leg(self, *, force: bool = False) -> Dict[str, Any]:
+        """预热**向量腿**（启动期一次性），返回结构化状态；**永不抛异常**。
+
+        【P0-1 补 · 2026-09-29】为什么需要它：本类两处 fast-exit（`_try_vector_match` 与
+        `_try_rrf_match`）在 `_st_backend` 与 `_native_chroma` **都为 None** 时**静默跳过**向量腿
+        —— 而"新建的 `SkillVectorAdapter`"天然就是这个状态（后端要等到 `ensure_indexed()` 才初始化）。
+        生产装配（`SkillsMgmtService.__init__` → `SkillLoader(file_store)`）**从不**主动初始化它
+        ⇒ 进程冷启动后向量腿长期不在线、检索实际跑在 tfidf+bm25 降级态。
+        实测（MINSCORE1 §3.2）：向量腿**在线**时同一条 query 中文召回 8/8、S10-03 锚绿；
+        降级态才是 P0-1 那个 4/8 ⇒ 这是它的**土壤**，故本轮补上一个**显式**预热入口。
+
+        【成本】BGE-m3 加载实测 87.7s（首次更久）⇒ 调用方必须放在**后台线程**里，不要卡启动。
+
+        Returns:
+            ``{"available": bool, "backend": str, "indexed": int, "degraded": bool,
+               "reason": str, "elapsed_ms": float}``
+            `available` 用的是与腿**完全同一个判据**（后端非 None），不是"我调过 init 了"。
+        """
+        t0 = time.time()
+        out: Dict[str, Any] = {"available": False, "backend": "", "indexed": 0,
+                               "degraded": False, "reason": "", "elapsed_ms": 0.0}
+        try:
+            adapter = self._get_vector_adapter()
+            if adapter is None:
+                out["reason"] = "adapter_unavailable"
+                return out
+            try:
+                out["indexed"] = int(adapter.ensure_indexed(force=force) or 0)
+            except Exception as e:  # noqa: BLE001 预热失败不改语义，只如实记录
+                out["reason"] = "ensure_indexed_failed:%s" % type(e).__name__
+            has_st = getattr(adapter, "_st_backend", None) is not None
+            has_native = getattr(adapter, "_native_chroma", None) is not None
+            out["available"] = bool(has_st or has_native)
+            out["backend"] = ("sentence_transformers" if has_st
+                              else ("native_chroma" if has_native else ""))
+            out["degraded"] = bool(getattr(adapter, "_active_backend_degraded", False))
+            if not out["available"] and not out["reason"]:
+                out["reason"] = "no_backend"
+            elif out["available"] and not out["reason"] and out["degraded"]:
+                out["reason"] = str(getattr(adapter, "_active_degrade_reason", "") or "degraded_backend")
+        except Exception as e:  # noqa: BLE001 任何意外都只记录
+            out["reason"] = "warm_exception:%s" % type(e).__name__
+        finally:
+            out["elapsed_ms"] = round((time.time() - t0) * 1000, 1)
+        return out
+
     def _try_vector_match(
         self,
         *,
@@ -1130,6 +1176,39 @@ class SkillLoader:
             if isinstance(value, (int, float)):
                 bounded.append(float(value))
         return max(bounded) if bounded else None
+
+
+    def _bounded_keys_passing(self, breakdown: Optional[Dict[str, Any]]) -> List[str]:
+        """有界证据**按来源分档**后达标的键（P0-1 补 · 2026-09-29）
+
+        Why 要分档（实测，不是口味）：
+          · `vector_score` 是**真相似度**，它的下限由 GATE-1 标定为 `_SINGLE_PATH_MIN_TOP1=0.45`
+            （实测把单向量路的负样本非空从 22/23 压到 12/23）—— 那是这条腿**自己的**标定值；
+          · `tfidf_score` = `_match_score` = H/N_q，本仓已用多条用例证明它**不是相似度**
+            （与文档长度无关、与 query 长度严格反比），沿用 `_RRF_QUALITY_MIN=0.3` 这条
+            **有标定**的线（FakeModel + 100 技能：负 0.1429 / 正 0.7143）。
+        把同一个 0.3 用在两者上，就是又一次量纲混用。实测后果：向量腿在线时，S10-03 噪声
+        query 的 `vector_score=0.3528 ≥ 0.3` ⇒ 过闸、锚红（且**不是**腿级地板造成的：
+        按 0.3 过滤也留得住 —— 实测该 query 的向量候选 0.3547~0.3718 全部 ≥0.3）。
+        分档后：噪声（0.3528 < 0.45，tfidf 0.1 < 0.3）主判据不过 ⇒ 落到补偿通道，而它在
+        「证据非单点偶然」上也不成立 ⇒ 拒绝；而 16 条正样本的 `vector_score` 实测 0.52~0.69
+        **全部 ≥0.45** ⇒ 一条不误伤。
+        """
+        if not isinstance(breakdown, dict):
+            return []
+        per_key_min = {
+            "vector_score": max(self._RRF_QUALITY_MIN, self._SINGLE_PATH_MIN_TOP1),
+            "tfidf_score": self._RRF_QUALITY_MIN,
+            "rerank_score": self._RRF_QUALITY_MIN,
+        }
+        passing: List[str] = []
+        for key, threshold in per_key_min.items():
+            value = breakdown.get(key)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue   # bool 是 int 子类，True 会当 1.0 放行一切，必须排除
+            if float(value) >= threshold:
+                passing.append(key)
+        return passing
 
     def _evidence_neighborhood(self, index: Dict[str, Dict[str, Any]],
                                query_tokens: List[str],
@@ -1977,13 +2056,17 @@ class SkillLoader:
                 and bm25_decision_ratio >= self._RRF_QUALITY_BM25_DECISION_RATIO
                 and in_domain
             )
-            bounded_evidence = effective_score >= self._RRF_QUALITY_MIN
+            # 【P0-1 补 · 2026-09-29】**按来源分档**判定有界证据（不再拿 0.3 比一个按 0.45
+            #   标定过的量）：vector_score 用 _SINGLE_PATH_MIN_TOP1(0.45)，tfidf/rerank 用
+            #   _RRF_QUALITY_MIN(0.3)。逐条依据与实测见 `_bounded_keys_passing`。
+            bounded_passing_keys = self._bounded_keys_passing(bd)
+            bounded_evidence = bool(bounded_passing_keys)
             gate_passed = bounded_evidence or bm25_rank1_evidence
             # 观测：把"靠哪条判据过的"透到上层（编排层据此不再用 H/N 复判，见 P0-1）
             gate_passed_via = ("bounded_similarity" if bounded_evidence
                                else ("bm25_rank1_in_domain" if bm25_rank1_evidence else ""))
             # 记录详细日志：有界相似度 + 无界原始分 + 归一化排名分 + BM25 裕度（分开，便于复核）
-            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.check', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'top1_rrf_normalized': bd.get('rrf_normalized'), 'bounded_similarity': bounded_score, 'bounded_keys_declared': bounded_key_declared, 'bm25_raw_unbounded': bd.get('bm25_score'), 'effective_score': round(effective_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'use_bm25': use_bm25, 'bm25_decision_ratio': round(bm25_decision_ratio, 4) if bm25_decision_ratio is not None else None, 'bm25_decision_ratio_min': self._RRF_QUALITY_BM25_DECISION_RATIO, 'bm25_rank1_evidence': bm25_rank1_evidence, 'evidence_reach': evidence_reach, 'evidence_tokens': evidence_tokens[:8], 'in_domain': in_domain, 'gate_passed_via': gate_passed_via, 'decision': 'pass' if gate_passed else 'reject', 'note': 'judged by bounded similarity >= threshold OR (bm25 rank1 with top1/top2 ratio >= bm25_decision_ratio_min); bm25 raw score is unbounded and is never compared with the threshold'}))
+            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.check', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'top1_rrf_normalized': bd.get('rrf_normalized'), 'bounded_similarity': bounded_score, 'bounded_keys_declared': bounded_key_declared, 'bm25_raw_unbounded': bd.get('bm25_score'), 'effective_score': round(effective_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'use_bm25': use_bm25, 'bm25_decision_ratio': round(bm25_decision_ratio, 4) if bm25_decision_ratio is not None else None, 'bm25_decision_ratio_min': self._RRF_QUALITY_BM25_DECISION_RATIO, 'bm25_rank1_evidence': bm25_rank1_evidence, 'bounded_passing_keys': bounded_passing_keys, 'evidence_reach': evidence_reach, 'evidence_tokens': evidence_tokens[:8], 'in_domain': in_domain, 'gate_passed_via': gate_passed_via, 'decision': 'pass' if gate_passed else 'reject', 'note': 'judged by bounded similarity >= threshold OR (bm25 rank1 with top1/top2 ratio >= bm25_decision_ratio_min); bm25 raw score is unbounded and is never compared with the threshold'}))
             if not gate_passed:
                 # 【变易】返回空 MatchResult（retrieval_method="rrf"），不触发 TF-IDF fallback
                 # 原因：负样本 query 在 TF-IDF 路本身就是低分召回，fallback 会引入新误召回

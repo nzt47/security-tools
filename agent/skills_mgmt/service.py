@@ -88,6 +88,36 @@ class SkillsMgmtService:
         self._approval = None  # ApprovalFlow 实例（None=未接入审批流）
         self._auto_rollback = None  # AutoRollback 懒加载单例缓存
 
+    def warm_vector_leg(self, *, force: bool = False) -> dict:
+        """预热技能检索的**向量腿**（启动期在后台线程调用）；**永不抛异常**
+
+        【P0-1 补 · 2026-09-29】为什么装配层要有这个方法：`SkillLoader` 默认**不**初始化向量
+        后端，而它的两处 fast-exit 在"后端未初始化"时静默跳过向量腿 ⇒ 生产的语义层实际长期
+        跑在 tfidf+bm25 降级态（实测：在线时中文 8/8，降级态 4/8）。预热入口放在这里，
+        调用点是 `app_server` 的启动路径（**不在 __init__** —— 否则每个构造服务对象的测试
+        都会去加载 BGE-m3）。
+
+        **开关就在本方法里**（受"开关零缺口"守卫约束，两条都已在 registry 登记）：
+          · `SKILLS_OFFLINE`（默认关）：CI 一直在设它，但本轮实测**此前没有任何代码读**
+            （全仓只在注释里出现过）⇒ 那个声明一直是空转的；现在真正接上：置 1/true/yes ⇒ 不预热。
+          · `CP_SKILL_VECTOR_PREWARM`（默认开）：置 0/false/no/off ⇒ 不预热（保持旧行为）。
+        被否决时**直接返回**、不触碰适配器（也就不会去联网拉模型）。
+        """
+        import os  # 局部导入：本模块顶部没有 os（既有风格是就近 import os as _os）
+
+        if str(os.environ.get("SKILLS_OFFLINE", "")).strip().lower() in ("1", "true", "yes", "on"):
+            return {"available": False, "backend": "", "indexed": 0, "degraded": False,
+                    "reason": "disabled:SKILLS_OFFLINE", "elapsed_ms": 0.0}
+        if str(os.environ.get("CP_SKILL_VECTOR_PREWARM", "1")).strip().lower() in ("0", "false", "no", "off"):
+            return {"available": False, "backend": "", "indexed": 0, "degraded": False,
+                    "reason": "disabled:CP_SKILL_VECTOR_PREWARM=0", "elapsed_ms": 0.0}
+        try:
+            return self.loader.warm_vector_leg(force=force)
+        except Exception as e:  # noqa: BLE001 与 loader 同纪律：预热失败不抛
+            return {"available": False, "backend": "", "indexed": 0, "degraded": False,
+                    "reason": "service_delegate_failed:%s" % type(e).__name__,
+                    "elapsed_ms": 0.0}
+
     @property
     def mcp_adapter(self):
         """延迟初始化 MCP 适配器 (首次访问时创建)"""
