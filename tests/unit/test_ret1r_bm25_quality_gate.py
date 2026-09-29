@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import pytest
 import yaml
@@ -33,7 +34,14 @@ POSITIVE_QUERY = "写测试时要避免哪些反模式"
 POSITIVE_EXPECTED = "testing-anti-patterns"
 
 #: 负样本：BM25 腿"判得很平"的无关 query（top1/top2 == 1.0）
-FLAT_QUERY = "技能整理评估标准流程确认归档"
+FLAT_QUERY = "技能整理评估标准流程归档"
+
+#: 【P0-1 · 2026-09-28】S10-03 的真机噪声 query（有界证据弱但非 None、BM25 果断、
+#: 但命中 token 在真库里只覆盖 1 条技能）—— 用于锁"证据单点偶然不得作为 BM25 证据"。
+S10_03_NOISE_QUERY = "2 加 3 等于多少？只回答数字"
+
+#: 真技能库（**入库**，CI 干净检出上存在）——真库形态那几条用它，不依赖合成夹具
+_REAL_REPO = Path(__file__).resolve().parents[2] / "data" / "skills_repo"
 
 _SKILLS = [
     # 目标技能：文档里只含 query 的 2 个 bigram（反模/模式）⇒ 有界相似度 2/11 = 0.18 < 0.3
@@ -187,39 +195,55 @@ class TestFlatBm25LegIsStillRejected:
 # ═══════════════════════════════════════════════════════════════════
 
 class TestBm25AloneIsNotEnough:
+    """BM25 只能**佐证**，不能单独成立 —— 本类锁的是这条属性（不是某个具体前置形态）。
 
-    def test_bm25_only_evidence_is_not_enough(self, loader, caplog):
-        """有界腿全空 + BM25 判得果断 ⇒ **仍然**拒绝（BM25 只能佐证，不能单独成立）
+    【P0-1 · 2026-09-28 机制换代说明（不是放宽守卫）】
+      本类原用例的前置断言是 `assert gate["bounded_similarity"] is None`，其成立**完全依赖**
+      「调用方的 min_score 被当作腿级过滤器」这一**量纲/职责混用**（原注释逐字写着：
+      「min_score=0.3 ⇒ TF-IDF 腿的候选全被自己的阈值挡掉」）。P0-1 把腿级过滤改成召回地板
+      `_RRF_LEG_MIN_SCORE` 之后，**这个前置形态在结构上不可能再出现**（腿不再被调用方阈值清空）
+      ⇒ 断言必须换承重结构，否则它测的就不是属性、而是一个已消失的实现细节。
 
-        这条边界是 RET-1R 在回归里踩出来的：真库锚测试
-        tests/unit/test_s10_03_retrieval_quality_gate.py::Test真库同输入对照::
-        test_噪声查询_不得有候选（噪声查询「2 加 3 等于多少？只回答数字」：
-        tfidf/vector 全空，BM25 top1/top2 = 4.6614/3.0204 = 1.543 >= 1.2）。
-        若新判据不要求「至少有一条有界腿给出过相似度」，它会把那条噪声放行 ——
-        即 TASK-S10-03 修掉的量纲混用陷阱复发。本用例用合成语料复现同一形态。
-        """
-        # min_score=0.3 ⇒ TF-IDF 腿的候选（覆盖率 0.18/0.09）全被自己的阈值挡掉
+      属性本身**未放宽、反而更严**：现在要求"**即使**有界腿给出了相似度（非 None）**且**
+      BM25 腿判得果断（裕度 ≥ 1.2），只要证据是**单点偶然**（命中 1 处且该处在语料里孤立），
+      仍必须整单拒绝"。原用例只覆盖"有界腿全空"这一种更弱的前提。
+      真实锚同形：S10-03 噪声「2 加 3 等于多少？只回答数字」在真库上 bounded=0.1（非 None）、
+      BM25 裕度 1.543 ≥ 1.2、命中 token 只有「回答」且只覆盖 1 条技能 ⇒ 必须拒绝。
+    """
+
+    @pytest.mark.skipif(not _REAL_REPO.is_dir(), reason="真技能库 data/skills_repo 缺失")
+    def test_bm25_only_evidence_is_not_enough(self, caplog):
+        """真库形态：有界相似度低但非 None + BM25 果断 + **证据单点偶然** ⇒ 仍然拒绝"""
+        from agent.skills_mgmt.loader import SkillLoader as _SL
+        ldr = _SL(file_store=SkillFileStore(repo_path=str(_REAL_REPO)))
         with caplog.at_level(logging.INFO, logger="agent.skills_mgmt"):
             caplog.clear()
-            result = loader.match(POSITIVE_QUERY, top_k=5, enabled_only=True,
-                                  min_score=0.3, use_bm25=True,
-                                  fusion_mode="rrf")
+            result = ldr.match(S10_03_NOISE_QUERY, top_k=5, enabled_only=True,
+                               min_score=0.3, use_bm25=True, fusion_mode="rrf")
         checks = [r for r in _gate_records(caplog)
                   if r["action"] == "rrf.quality_gate.check"]
         assert checks, "前置：该 query 必须走到质量闸"
         gate = checks[0]
-        assert gate["bounded_similarity"] is None, (
-            "前置：本场景要求有界腿全部未命中（bounded_similarity is None），"
+        assert gate["bounded_similarity"] is not None, (
+            "前置（P0-1 后的新形态）：噪声也有有界证据（腿不再被调用方阈值清空），"
             f"实际 {gate['bounded_similarity']}"
         )
-        assert gate["bm25_decision_ratio"] >= loader._RRF_QUALITY_BM25_DECISION_RATIO, (
-            "前置：本场景要求 BM25 腿判得果断（否则测不到「只靠 BM25」这条边界），"
+        assert gate["bounded_similarity"] < ldr._RRF_QUALITY_MIN, (
+            f"前置：有界相似度必须低于阈值，实际 {gate['bounded_similarity']}"
+        )
+        assert gate["bm25_decision_ratio"] >= ldr._RRF_QUALITY_BM25_DECISION_RATIO, (
+            "前置：BM25 腿必须判得果断（否则测不到「只靠 BM25」这条边界），"
             f"实际 {gate['bm25_decision_ratio']}"
         )
-        assert gate["bm25_rank1_evidence"] is False, (
-            "有界腿全空时 BM25 不得单独构成证据（否则量纲混用陷阱复发）"
+        assert gate["in_domain"] is False, (
+            "本场景的证据必须是**单点偶然**（命中 1 处且该处在语料里孤立）："
+            f"reach={gate.get('evidence_reach')} tokens={gate.get('evidence_tokens')}"
         )
-        assert result.matches == [], "只有 BM25 命中的查询不得放行"
+        assert gate["bm25_rank1_evidence"] is False, (
+            "单点偶然的证据不得让 BM25 单独构成证据（否则量纲混用陷阱复发）"
+        )
+        assert gate["decision"] == "reject"
+        assert result.matches == [], "只有 BM25 命中且证据孤立的查询不得放行"
 
 
 # ═══════════════════════════════════════════════════════════════════

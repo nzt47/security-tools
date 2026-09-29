@@ -1362,7 +1362,10 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        config_path="orchestrator.semantic_layer.enabled"),
     _a("ORCHESTRATOR_SEMANTIC_MIN_SCORE", CAT_ORCHESTRATION, None,
        "语义层最低命中分；config.yaml 路径 orchestrator.semantic_layer.min_score"
-       "（agent/orchestrator/orchestrator.py:1879-1887）",
+       "（agent/orchestrator/orchestrator.py:1879-1887）。"
+       "【P0-1 · 2026-09-28】RRF 路径上它只作为调用方阈值传给 loader，实际门槛由 loader 的"
+       "标定闸门决定（有界相似度 >= _RRF_QUALITY_MIN，或 BM25 rank1 + 裕度 + 证据非单点偶然）；"
+       "编排层不再用它复判；非 RRF 的单路 fallback 路径仍按原语义过滤。",
        owner="agent/orchestrator/orchestrator.py",
        config_path="orchestrator.semantic_layer.min_score",
        validator=Validator("float")),

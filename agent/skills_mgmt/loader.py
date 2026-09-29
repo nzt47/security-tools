@@ -293,7 +293,14 @@ class MatchResult:
                  # 【不易】不参与任何打分/排序/过滤，只做观测透出。
                  vector_leg_empty: bool = False,
                  vector_leg_degraded: bool = False,
-                 vector_degrade_reason: Optional[str] = None):
+                 vector_degrade_reason: Optional[str] = None,
+                 # 【P0-1 · 2026-09-28】质量闸的**放过方式**（纯观测字段，默认空串）:
+                 #   "bounded_similarity"   = 有界相似度 ≥ 阈值（主判据）；
+                 #   "bm25_rank1_in_domain" = BM25 腿 rank1 + 裕度 + **域内证据**（补偿判据）；
+                 #   ""                     = 本层**没有**跑质量闸（非 RRF 路径 / 闸门被关）。
+                 # 【为什么不参与打分】与 vector_leg_* 同纪律：只透出事实，不改变排序/过滤；
+                 #   编排层用它决定"是否还要用 H/N 复判"（P0-1 的阈值语义分层）。
+                 quality_gate: str = ""):
         self.matches = matches
         self.total_scanned = total_scanned
         self.elapsed_ms = round(elapsed_ms, 2)
@@ -310,6 +317,7 @@ class MatchResult:
         self.vector_leg_empty = vector_leg_empty
         self.vector_leg_degraded = vector_leg_degraded
         self.vector_degrade_reason = vector_degrade_reason
+        self.quality_gate = quality_gate
         # 可观测性：检索召回分块详情，供 Precision@K 监控与幻觉率分析
         # 未提供时按 matches 自动生成（保持向后兼容）
         if retrieved_chunks is None:
@@ -983,6 +991,56 @@ class SkillLoader:
     #   修复前把无界 BM25 原始分一起 max() ⇒ 噪声级候选（tfidf=0.1 + bm25=3.5184）过闸。
     _RRF_QUALITY_MIN = 0.3
 
+    # 【P0-1 · 2026-09-28】**腿级候选地板** —— 与调用方的验收阈值**解耦**
+    #
+    # 【问题（实测钉死，见 docs/audit_skill_governance/MINSCORE1.md）】
+    #   `min_score` 是**调用方的验收阈值**（语义：「低于此值视为未命中」），却一直被当作
+    #   **两条腿的候选过滤器**用（本文件 :1616 / :1646）。后果有两层，都是实测的：
+    #     ① 判据比较的量 `tfidf_score` = `_match_score` = **H/N_q**（query token 命中率）
+    #        —— 与文档长度无关、与 query 长度**严格反比**，**不是相似度**；
+    #        `0.3` ≡ 「命中 token 数 H ≥ 0.3·N_q」⇒ 中文 bigram 下**长 query 必然被拒**
+    #        （实测：真库 8 条中文 query 只有 4 条召回，miss 的 zh06 命中 4 个 token、
+    #          cov=0.2353，纯粹**因为 query 长**而被 0.3 挡掉；同语义英文 8/8）。
+    #     ② 更隐蔽的一层：BM25 补偿判据要求 `bounded_score is not None`（见 :1855 的 ②）
+    #        —— 腿被清空 ⇒ 该判据**永久失效** ⇒ 明明 BM25 rank1 就是正解、裕度 8.09，
+    #        整单照样 reject。
+    #   ⇒ 腿级过滤必须用**召回导向的地板**，把「收候选」与「定验收」分开。
+    #
+    # 【取值 0.01 的依据（不是随手调小）】
+    #   ① 有标定先例：GATE-1 的 F1/C2 与 MINSCORE1 §4.1 实测 `0.01` 下腿能给出全部候选
+    #      且**判据本身不放松**（闸门阈值仍是 _RRF_QUALITY_MIN=0.3，标定数据见上）；
+    #   ② 量纲上它只是"非零命中"的门槛：H/N_q ≥ 0.01 ⟺ 至少有一个 query token 命中
+    #      （N_q ≤ 100 时的中文/英文现实长度都满足）—— 它不承担任何质量判断；
+    #   ③ 放行更多候选**不等于**放行更多结果：下游闸门（本类 `_RRF_QUALITY_MIN` + 裕度 +
+    #      域内证据）才是决定"整单收不收"的地方 —— 实测负样本非空由 5/31 **降到 3/31**。
+    _RRF_LEG_MIN_SCORE = 0.01
+
+    # 【P0-1 · 2026-09-28】BM25 补偿判据的**域内证据**门槛：命中 token 在语料里的邻域规模下限。
+    #
+    # 【为什么需要它（这是本判据唯一的"新证据"，也是重设计的核心）】
+    #   S10-03 那条噪声 query「2 加 3 等于多少？只回答数字」在**其余每一个坐标上都不劣于**
+    #   真阳性 zh01「写测试时要避免哪些反模式」（实测：cov 0.1000 vs 0.0909、H 1 vs 1、
+    #   bm25_t1 4.6614 vs 2.5441、裕度 1.5433 vs 1.3359、IDF 加权覆盖 0.0869 vs 0.0594、
+    #   N_q 10 vs 11）⇒ **任何对这组特征单调的判据要么同时收下、要么同时拒绝**
+    #   （MINSCORE1 §4.3 的 Pareto 支配；这也是那张卡"不修"的第 3 条硬理由）。
+    #
+    #   唯一能把两者分开的坐标是**命中 token 在语料里的邻域规模**（reach）：
+    #     · zh01 的命中 token「测试」在 28 条技能里覆盖 **4** 条（测试相关技能成簇）；
+    #     · 噪声的命中 token「回答」只覆盖 **1** 条（self_reflection），是**孤立碰撞**。
+    #   ⇒ 语义上它判的是"**查询词汇到底在不在语料域内**"：域外查询（算术、闲聊）
+    #     最多与语料发生一次孤立碰撞；真查询的主题词会在**相关技能之间反复出现**。
+    #   这不是为一条样本调的阈值，而是"非孤立"这个**最小结构条件**（reach ≥ 2 或命中 ≥ 2）。
+    #   【为什么不只用 reach】reach 是**语料规模相关**的：小语料里真 query 的主题词可能
+    #   只落在 1 条技能上（实测合成夹具的反例）⇒ 与"命中 ≥ 2 处"取或，两者都表示
+    #   "证据不是单点偶然"。
+    # 【实测覆盖（16 正 + 31 负 + 噪声，见报告 §P0-1）】
+    #   16 条正样本 top1 的 reach = 4/19/4/4/22/9/4/5/2/9/2/2/4/3/12/14 —— **全部 ≥ 2**；
+    #   而阈值解耦后**新增的两条假阳**（噪声、`memory 概念解释`）reach 都 = 1，被本条件拦下；
+    #   负样本非空 7/31 → **3/31**（基线 5/31）。
+    # 【只作用于补偿判据，不作用于主判据】有界相似度 ≥ 阈值那条**完全不看它**
+    #   （短而准的 query 不受影响）；本条件只加在"用 BM25 证据补偿弱有界相似度"这条路上。
+    _RRF_EVIDENCE_MIN_NEIGHBORHOOD = 2
+
     # 【RET-1R · R-1】质量闸的**第二条判据**：BM25 腿的"判决裕度"下限（无量纲比值）。
     #
     # 现象（RET-1R 复现，见 docs/audit_skill_governance/RET1.md §2）：
@@ -1072,6 +1130,36 @@ class SkillLoader:
             if isinstance(value, (int, float)):
                 bounded.append(float(value))
         return max(bounded) if bounded else None
+
+    def _evidence_neighborhood(self, index: Dict[str, Dict[str, Any]],
+                               query_tokens: List[str],
+                               top1: "SkillMatch") -> Tuple[int, List[str]]:
+        """命中 token 在语料里的**邻域规模**（P0-1 · 2026-09-28）
+
+        reach = |∪ 倒排索引[t]|，t 取「既在 query 里、又出现在 top1 的索引文本里」的 token。
+        「查询词汇在语料域内」的可计算代理：域外查询最多与语料发生**一次孤立碰撞**
+        （reach = 1），而真查询的主题词会在相关技能之间反复出现（reach ≥ 2）。
+
+        【为什么用倒排索引而不是重扫】`_get_inverted_index` 本来就要为 tfidf 腿构建并缓存
+        （token → set[skill_id]），这里直接复用 ⇒ 零额外 I/O；且**与腿的失败/命中口径同源**
+        （同一 `_tokenize` / `_meta_to_meta_text`），不会出现"打分用一个口径、判据用另一个"。
+
+        Returns:
+            (reach, matched_tokens)；无法计算（索引缺该技能 / 无命中）时返回 (0, [])。
+        """
+        try:
+            meta = index.get(top1.skill_id) or {}
+            doc_tokens = set(_tokenize(_meta_to_meta_text(meta)))
+        except Exception:  # noqa: BLE001 结构异常 ⇒ 视作"无域内证据"，不抛给主链路
+            return 0, []
+        matched = [t for t in query_tokens if t in doc_tokens]
+        if not matched:
+            return 0, []
+        inv = self._get_inverted_index(index)
+        neighborhood: set = set()
+        for token in matched:
+            neighborhood |= inv.get(token, set())
+        return len(neighborhood), matched
 
     @staticmethod
     def _bm25_decision_ratio(matches: Optional[List["SkillMatch"]]) -> Optional[float]:
@@ -1603,9 +1691,14 @@ class SkillLoader:
         query_tokens = _tokenize(intent)
 
         # ── TF-IDF 路 ──
-        # 【不易修复】TF-IDF 路必须应用 min_score 阈值过滤
-        # 原因：若不过滤，低分技能也会获得 RRF 排名，导致负样本 query 被误召回
-        # （例："12345" 在 TF-IDF 中 score 极低但仍会被 RRF 赋予 rank 1）
+        # 【P0-1 · 2026-09-28 改】本条腿原先用**调用方的验收阈值** `min_score` 过滤候选。
+        #   那是**量纲/职责混用**：`min_score` 的语义是"低于此值视为未命中"，而这里的量是
+        #   H/N_q（query token 命中率，不是相似度，且与 query 长度反比）⇒ 长 query 的正解
+        #   在**进闸之前**就被删掉，连带把闸的 BM25 补偿判据（要求 bounded_score 非 None）
+        #   打成永久失效。现改用**腿级地板** `_RRF_LEG_MIN_SCORE`（只管"有没有命中"，
+        #   不做质量判断，标定见该常量），验收仍由下游闸门负责 —— 这是"收候选"与
+        #   "定验收"的职责分离。原注释里"不过滤会误召回"的顾虑由闸门（+域内证据）承担，
+        #   实测负样本非空由 5/31 降到 3/31。
         # 【变易】倒排索引加速：use_inverted_index=True 时 O(k) k=命中数，语义不变
         tfidf_matches: List[SkillMatch] = []
         try:
@@ -1613,7 +1706,7 @@ class SkillLoader:
                 index=index,
                 query_tokens=query_tokens,
                 enabled_only=enabled_only,
-                min_score=min_score,
+                min_score=self._RRF_LEG_MIN_SCORE,
                 use_inverted_index=use_inverted_index,
                 candidate_limit=candidate_limit,
             )
@@ -1624,8 +1717,9 @@ class SkillLoader:
             tfidf_matches = []
 
         # ── 向量路 ──
-        # 【不易修复】向量路同样应用 min_score 阈值过滤
-        # 原因：让向量自身过滤掉低相似度的负样本，避免无意义候选参与融合
+        # 【P0-1 · 2026-09-28 改】同 TF-IDF 路：腿级过滤改用 `_RRF_LEG_MIN_SCORE`。
+        #   注意向量路**本来给的就是真相似度**（bounded，与 query 长度无关）⇒ 对它是
+        #   "把候选交全给闸门"的纯召回改动，不改变任何判据的量纲。
         vector_matches: List[SkillMatch] = []
         adapter = self._get_vector_adapter()
         # 【不易】与 _try_vector_match 同步：检测 BM25-fallback 模式（非真向量后端）
@@ -1643,7 +1737,7 @@ class SkillLoader:
                 results = adapter.search(
                     intent, top_k=candidate_k,
                     enabled_only=enabled_only,
-                    min_score=min_score,
+                    min_score=self._RRF_LEG_MIN_SCORE,
                 )
                 for r in results:
                     skill_id = r["skill_id"]
@@ -1814,6 +1908,9 @@ class SkillLoader:
         #         比大小 ⇒ 量纲混用，tfidf=0.1 的噪声候选过闸。
         # 【简易】仅检查 top1：负样本的典型特征是所有候选有界相似度都低，top1 即可代表；
         #         因此本次是「挡低质」，不重排高分（保守优先）。
+        # 【P0-1】本变量把"整单是靠哪条判据过闸的"透给调用方；闸门整块不执行时保持空串
+        #   ⇒ 调用方据此走它自己的兼容判据（见 orchestrator 的同名处理）。
+        gate_passed_via = ""
         if fused and self._RRF_QUALITY_MIN > 0:
             top1 = fused[0]
             bd = top1.score_breakdown or {}
@@ -1850,18 +1947,43 @@ class SkillLoader:
             #   test_噪声查询_不得有候选）：噪声查询 "2 加 3 等于多少？只回答数字"
             #   在真库上 tfidf/vector 全空、BM25 只有 self_reflection(4.6614) 与
             #   pd-dispatching(3.0204)，裕度 1.543 >= 1.2 —— 没有条件 ② 就会把它放行。
+            # 【P0-1 · 2026-09-28】⑤ **域内证据**：命中 token 在语料里必须有邻域
+            #   （reach ≥ _RRF_EVIDENCE_MIN_NEIGHBORHOOD）。
+            #   Why 必须有它：腿级地板解耦后，S10-03 那条噪声 query 会拿到 bounded=0.1
+            #   （≠None）⇒ 仅凭现有四条它就能走 ②③④ 的补偿通道过闸（实测 decision=pass）。
+            #   而它与真阳性 zh01 在其余**每一个**坐标上都是"噪声不劣"（Pareto 支配）⇒
+            #   只能靠这个**新坐标**分开：噪声的命中 token「回答」只覆盖 1 条技能（孤立
+            #   碰撞），zh01 的「测试」覆盖 4 条。语义 = "查询词汇在不在语料域内"。
+            #   它不是为一条样本调的阈值，而是"非孤立"这个最小结构条件；16 条正样本
+            #   的 reach 最小值为 2，负样本里被它拦下的正是解耦后新增的那两条假阳。
+            #   注意它**只作用于补偿通道**：有界相似度达标（主判据 ①）完全不看 reach，
+            #   短而准的 query 不受影响。
+            evidence_reach, evidence_tokens = self._evidence_neighborhood(
+                index, query_tokens, top1)
+            # 「证据不是**单点偶然**」：命中 ≥2 处，或那一处命中在语料里不孤立。
+            # 【为什么是"或"而不是只看邻域】只有邻域那一条是**语料规模相关**的：小语料
+            #   （合成夹具只含 2~6 条技能）里，一条真 query 的主题词完全可能只出现在 1 条
+            #   技能里 —— 那时 reach=1 却并非"偶然碰撞"。实测（test_ret1r_bm25_quality_gate
+            #   的合成语料）：POSITIVE_QUERY 命中 2 个 bigram、reach=1，只看邻域会把这条
+            #   既有正样本打红。而"命中 2 处"本身就是**同一条技能上的两处独立重合**，
+            #   概率上远非偶然 ⇒ 两条并列取或，语义统一为"证据不是单点偶然"。
+            in_domain = (len(evidence_tokens) >= self._RRF_EVIDENCE_MIN_NEIGHBORHOOD
+                         or evidence_reach >= self._RRF_EVIDENCE_MIN_NEIGHBORHOOD)
             bm25_rank1_evidence = bool(
                 use_bm25
                 and bounded_score is not None
                 and bd.get("bm25_rank") == 1
                 and bm25_decision_ratio is not None
                 and bm25_decision_ratio >= self._RRF_QUALITY_BM25_DECISION_RATIO
+                and in_domain
             )
-            gate_passed = (
-                effective_score >= self._RRF_QUALITY_MIN or bm25_rank1_evidence
-            )
+            bounded_evidence = effective_score >= self._RRF_QUALITY_MIN
+            gate_passed = bounded_evidence or bm25_rank1_evidence
+            # 观测：把"靠哪条判据过的"透到上层（编排层据此不再用 H/N 复判，见 P0-1）
+            gate_passed_via = ("bounded_similarity" if bounded_evidence
+                               else ("bm25_rank1_in_domain" if bm25_rank1_evidence else ""))
             # 记录详细日志：有界相似度 + 无界原始分 + 归一化排名分 + BM25 裕度（分开，便于复核）
-            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.check', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'top1_rrf_normalized': bd.get('rrf_normalized'), 'bounded_similarity': bounded_score, 'bounded_keys_declared': bounded_key_declared, 'bm25_raw_unbounded': bd.get('bm25_score'), 'effective_score': round(effective_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'use_bm25': use_bm25, 'bm25_decision_ratio': round(bm25_decision_ratio, 4) if bm25_decision_ratio is not None else None, 'bm25_decision_ratio_min': self._RRF_QUALITY_BM25_DECISION_RATIO, 'bm25_rank1_evidence': bm25_rank1_evidence, 'decision': 'pass' if gate_passed else 'reject', 'note': 'judged by bounded similarity >= threshold OR (bm25 rank1 with top1/top2 ratio >= bm25_decision_ratio_min); bm25 raw score is unbounded and is never compared with the threshold'}))
+            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.check', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'top1_rrf_normalized': bd.get('rrf_normalized'), 'bounded_similarity': bounded_score, 'bounded_keys_declared': bounded_key_declared, 'bm25_raw_unbounded': bd.get('bm25_score'), 'effective_score': round(effective_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'use_bm25': use_bm25, 'bm25_decision_ratio': round(bm25_decision_ratio, 4) if bm25_decision_ratio is not None else None, 'bm25_decision_ratio_min': self._RRF_QUALITY_BM25_DECISION_RATIO, 'bm25_rank1_evidence': bm25_rank1_evidence, 'evidence_reach': evidence_reach, 'evidence_tokens': evidence_tokens[:8], 'in_domain': in_domain, 'gate_passed_via': gate_passed_via, 'decision': 'pass' if gate_passed else 'reject', 'note': 'judged by bounded similarity >= threshold OR (bm25 rank1 with top1/top2 ratio >= bm25_decision_ratio_min); bm25 raw score is unbounded and is never compared with the threshold'}))
             if not gate_passed:
                 # 【变易】返回空 MatchResult（retrieval_method="rrf"），不触发 TF-IDF fallback
                 # 原因：负样本 query 在 TF-IDF 路本身就是低分召回，fallback 会引入新误召回
@@ -2013,6 +2135,8 @@ class SkillLoader:
             vector_leg_empty=vector_leg_empty,
             vector_leg_degraded=vector_leg_degraded,
             vector_degrade_reason=_vector_leg_reason,
+            # 【P0-1】把过闸方式透给编排层（空串 = 本层没跑闸）
+            quality_gate=gate_passed_via,
         )
 
         from .observability import report_retrieval_observability

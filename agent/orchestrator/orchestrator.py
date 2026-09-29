@@ -74,6 +74,11 @@ logger = logging.getLogger(__name__)
 #: 融合分（top1 恒 ≈1.0）——两者都不可当作「相似度阈值」使用（见 _bounded_relevance）。
 _BOUNDED_RELEVANCE_KEYS = ("tfidf_score", "vector_score", "rerank_score")
 
+#: 【P0-1 · 2026-09-28】`SkillLoader` 质量闸"放过方式"的**契约内取值**（白名单）。
+#:   编排层只认这两个字符串；认不出（含鸭子类型替身给出的幻觉属性）一律按"本层没跑闸"处理，
+#:   回到 `_bounded_relevance < min_score` 的原判据保守复判 —— 见 `_semantic_layer_match`。
+_LOADER_QUALITY_GATE_VALUES = frozenset({"bounded_similarity", "bm25_rank1_in_domain"})
+
 #: 会话级 state 的惰性初始化锁（__new__ 构造的实例也要能用）
 _TURN_STATE_INIT_LOCK = threading.Lock()
 
@@ -2420,8 +2425,32 @@ class Orchestrator:
             # 的独立门控，让 orchestrator 层「二次校验阈值」恢复其注释所声明的语义。
             # BM25 原始分无界、rrf_normalized 为排名归一化值，均不参与比较。
             # 信号不可用（无 score_breakdown）→ 保持既有行为（向后兼容未改造的调用方）。
+            # 【P0-1 · 2026-09-28 · 阈值语义分层（本条的第二次、也是最后一次应用）】
+            #   RRF 路径上 loader **已经用标定过的质量闸判过一次**（有界相似度 ≥ 阈值，
+            #   或 BM25 rank1 + 裕度 ≥ 1.2 + **域内证据**，见 loader.quality_gate）。
+            #   此处若再用 `_bounded_relevance`（同一个 H/N_q）配同一个 min_score 复判：
+            #     ① 是**同一个量纲错误的第二次应用**（H/N_q 不是相似度，与 query 长度反比）；
+            #     ② 会把 loader 刚判过的补偿通道结果**无条件推翻** —— MINSCORE1 §4.5 实测：
+            #        被 loader 救回的 3 条（0.2857/0.2353/0.1429）在编排层 100% 被拦，
+            #        端到端中文仍是 4/8，即"只改 loader = 零收益"。
+            #   ⇒ 闸门跑过的路径（`quality_gate` 非空）**不再复判**：质量已由 loader 定；
+            #     没跑过闸的路径（旧 loader / 非 RRF 融合 / 闸门被关）**保持下列原判据不变**
+            #     （向后兼容未改造的调用方，语义与注释原文一致）。
+            # 【不易 · 必须**白名单严格判定**，不能用 getattr 的真值性】
+            #   本字段的契约是"loader 闸门跑过、并给出放过方式"，取值只有下面两个字符串。
+            #   若写成 `if getattr(result, "quality_gate", ""):`，那么**任何鸭子类型的结果对象**
+            #   （测试替身 MagicMock、自定义 loader 的返回体）都会给出一个**自动创建的真值属性**
+            #   ⇒ 相关度闸被整体绕过。实测（本仓既有守卫）：
+            #   `test_orchestrator_turn_state_isolation.py::Test答非所问_语义层误命中` 两条立刻变红 ——
+            #   正是它们该抓的东西。⇒ 只认契约内的字符串；**认不出就按"没跑闸"处理**（fail-closed，
+            #   回到下面的原判据保守复判）。
+            _quality_gate = getattr(result, "quality_gate", "")
+            _loader_gate_passed = (isinstance(_quality_gate, str)
+                                   and _quality_gate in _LOADER_QUALITY_GATE_VALUES)
             _relevance = self._bounded_relevance(top1)
-            if _relevance is not None and _relevance < min_score:
+            if _loader_gate_passed:
+                _reject_reason_kind = ""
+            elif _relevance is not None and _relevance < min_score:
                 _reject_reason_kind = "low_bounded_relevance"
             elif _relevance is None and self._has_bounded_breakdown(top1):
                 # 有界相似度路**存在但全部未命中**（真机形态：只 BM25 命中，

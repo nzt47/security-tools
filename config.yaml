@@ -639,8 +639,19 @@ orchestrator:
     # 总开关 - 关闭后语义层跳过，直接降级 LLM
     # 环境变量 ORCHESTRATOR_SEMANTIC_LAYER_ENABLED 覆盖此值
     enabled: true
-    # top1 最低匹配分阈值（< 此值视为未命中，降级 LLM）
+    # 语义层最低命中分阈值（< 此值视为未命中，降级 LLM）
     # 环境变量 ORCHESTRATOR_SEMANTIC_MIN_SCORE 覆盖此值
+    #
+    # 【P0-1 · 2026-09-28 语义订正（值未变，只有**职责**变了）】
+    #   改前：它被当成**两条检索腿的候选过滤器**用（loader 里直接传给 _tfidf_scan /
+    #     adapter.search）。那是量纲/职责混用 —— 它比的是 H/N_q（query token 命中率，
+    #     与 query 长度成反比，不是相似度）⇒ 长中文 query 的正解在进闸前就被删掉，
+    #     实测中文召回 4/8（同语义英文 8/8）。
+    #   改后：两条腿改用**召回地板** loader._RRF_LEG_MIN_SCORE（只管"有没有命中"），质量由
+    #     loader 的标定闸门判定：`有界相似度 >= loader._RRF_QUALITY_MIN(0.3)` 或
+    #     `BM25 rank1 + 裕度 >= 1.2 + 证据非单点偶然`；闸门判过之后编排层**不再**用本值复判。
+    #   现状：RRF 路径上本值仍作为调用方阈值传给 loader（保持接口/配置兼容），但决定"收不收"
+    #     的是上面那套标定判据；非 RRF 的单路 fallback 路径仍按原语义过滤。
     min_score: 0.3
     # 返回前 K 个候选（仅 top1 用于短路返回，其余供 LLM 增强上下文）
     top_k: 5
