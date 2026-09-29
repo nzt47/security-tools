@@ -56,6 +56,17 @@ def monitor_with_persist(tmp_path):
     yield m
     m.stop()
 
+#: 「启动后多久必须看到第一个样本」的上界。**由 CI 实测反推，不是拍的**：
+#: `_do_sample()` 在共享 runner 上单次耗时 **14~24s**，分项为 ——
+#:   `_sample_memory()` 的 tracemalloc 聚合**每次都撞满** `_TRACEMALLOC_SNAPSHOT_TIMEOUT`(5.0s)
+#:   （CI 实测 `memory_sample_ms` 5672/5737/6189/5887/5999），
+#:   `_sample_file_handles()`（psutil）实测 **7580/9717/17226/15184/18232 ms**，
+#:   thread/db 两项各 ~0.1ms。
+#: 取 60s：既容得下"CI 上一次采样本来就慢"，又仍能抓住"循环根本没采样"
+#: （循环坏了 ⇒ 60s 后 predicate 仍为假 ⇒ 断言照常红）。
+_SAMPLE_LOOP_TIMEOUT = 60.0
+
+
 def _wait_for(predicate, timeout=5.0, interval=0.05):
     """有界轮询等待（**到点再判一次**，同 `test_tlm_bidirectional_sync.py:100` 的仓库既有范式）
 
@@ -894,15 +905,18 @@ class TestStartStop:
     def test_sample_loop_runs(self, monitor):
         """启动后采样循环必须产出样本。
 
-        【2026-09-30】原判据是 `start()` → `sleep(0.2)` → 断言 `_history` 非空。
+        【2026-09-30】原判据是 `start()` → `sleep(0.2)` → 断言 `_history` 非空；
         `_sample_loop` 是**启动即采样一次**（随后才按 `sample_interval_sec` 等，默认 60s），
-        所以真正要守的是"这一轮采样发生了"，而不是"线程在 200ms 内被调度上"。
-        改成有界等待：循环没跑照样红（10s 后 predicate 仍为假），但不再把调度延迟当判据。
+        所以真正要守的是"这一轮采样发生了"，而不是"它在 200ms 内完成"。
+        但**第一次采样本身在 CI 上就要 14~24s**（实测分项见 `_SAMPLE_LOOP_TIMEOUT` 注释）——
+        先改成 10s 仍在 CI 上红了一次；那次留下的诊断输出（`_sample_thread` 显示已 started）
+        正是据此把上界按实测标定到 `_SAMPLE_LOOP_TIMEOUT` 的依据。
         """
         monitor.start()
         try:
-            assert _wait_for(lambda: len(monitor._history) > 0, timeout=10.0), (
-                "启动后 10s 内采样循环未产出任何样本"
+            assert _wait_for(lambda: len(monitor._history) > 0,
+                             timeout=_SAMPLE_LOOP_TIMEOUT), (
+                f"启动后 {_SAMPLE_LOOP_TIMEOUT:.0f}s 内采样循环未产出任何样本"
                 f"（_sample_thread={monitor._sample_thread!r}）")
         finally:
             monitor.stop()
@@ -1324,14 +1338,16 @@ class TestIntegrationScenario:
         """启动 → 切压测模式 → 切回 → 停止：全程循环不中断，且已产出样本。
 
         【2026-09-30】同 `test_sample_loop_runs`：两个 `sleep(0.2)` 换成对可观测条件的
-        有界等待。注意**不能**改成"等第二个样本"—— 非压测间隔默认 60s，
+        有界等待（上界同源，理由见 `_SAMPLE_LOOP_TIMEOUT` 的注释）。
+        注意**不能**改成"等第二个样本"—— 非压测间隔默认 60s，
         而 `enable_stress_mode()` 只改标志位、不会打断循环当前那次 `wait(60)`，
         那样等反而会把用例拖到分钟级；模式切换本身仍被完整执行。
         """
         monitor.start()
         try:
-            assert _wait_for(lambda: len(monitor._history) > 0, timeout=10.0), (
-                "启动后 10s 内采样循环未产出任何样本"
+            assert _wait_for(lambda: len(monitor._history) > 0,
+                             timeout=_SAMPLE_LOOP_TIMEOUT), (
+                f"启动后 {_SAMPLE_LOOP_TIMEOUT:.0f}s 内采样循环未产出任何样本"
                 f"（_sample_thread={monitor._sample_thread!r}）")
             monitor.enable_stress_mode()
             monitor.disable_stress_mode()

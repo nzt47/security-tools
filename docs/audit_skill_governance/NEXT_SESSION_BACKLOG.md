@@ -189,7 +189,24 @@
     （`adapter_config.json`、`processor_config.json` 等）。
     **未修**：可修的最小做法是"设置后再显式刷新 `huggingface_hub.constants`"，
     但这是在**共享的生产模型加载路径**上动第三方模块常量，且本机 HF 不可达（`WinError 10060`）、
-    **无法验证修后的离线行为**，故只登记不臆改（"提前到模块顶部"会变成**无条件**离线，改变语义，不做）。
+    **无法验证修后的离线行为**，故只登记不臆改（"提前到模块顶部"会变成**无条件**离线，改变语义，不做）。14. **`ResourceMonitor._do_sample()` 在共享 runner 上单次耗时 14~24s（2026-09-30 由 CI 日志实测）**。
+    CI `Shard 4/6` 的 `resource_monitor` 日志里逐条打出了分项耗时，取其中连续 5 次采样：
+    ```
+    memory_sample_ms    : 5672 / 5737 / 6189 / 5887 / 5999    ← tracemalloc 聚合**每次都撞满** 5s 上限
+    file_handle_sample_ms: 7580 / 9717 / 17226 / 15184 / 18232  ← psutil，**7.6~18.2s**
+    thread_sample_ms    : 0.101 / 0.099 / 0.108 / 0.115 / 0.059
+    db_sample_ms        : 0.056 / 0.050 / 0.047 / 0.054 / 0.085
+    ```
+    ⇒ 单次采样 = **~14~24s**，其中 `_sample_file_handles()` 是绝对大头。
+    两处**副作用**值得单独看：
+    （a）`_sample_memory()` 的「top 分配」特性在 CI 上**实际处于永久降级态**（`memory_sample_ms` 恒 ~6s ==
+        `_TRACEMALLOC_SNAPSHOT_TIMEOUT`(5.0) + 开销，且日志出现 `tracemalloc.snapshot.timeout` 警告）——
+        即"只看总量、没有 top 明细"；
+    （b）采样是后台线程按 `sample_interval_sec`（默认 60s）跑的，单次 14~24s 意味着**监控线程长期占用 CPU**，
+        这是生产相关成本，不只是测试变慢。
+    **未修**：`_sample_file_handles()` 慢在 `psutil.Process.open_files()`（容器 `/proc` + overlayfs），
+    要改需决定"采样超时/跳过策略"或换实现，属行为改动，需 owner 拍板。
+    **本机未能复现该量级**（本机单次采样远快于此），故"CI 特有"是〔推断〕，依据是同一份代码两份日志的分项差异。
 
 ---
 
