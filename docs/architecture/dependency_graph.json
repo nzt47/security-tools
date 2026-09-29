@@ -22,7 +22,7 @@
       "name": "singleton_manager",
       "layer": "utils",
       "file_path": "",
-      "in_degree": 54,
+      "in_degree": 53,
       "out_degree": 0
     },
     {
@@ -4426,14 +4426,6 @@
       "out_degree": 30
     },
     {
-      "path": "agent.utils.index_manager",
-      "name": "index_manager",
-      "layer": "utils",
-      "file_path": "agent/utils/index_manager.py",
-      "in_degree": 0,
-      "out_degree": 1
-    },
-    {
       "path": "agent.utils.observability",
       "name": "observability",
       "layer": "utils",
@@ -5998,7 +5990,7 @@
       "source_layer": "descriptors",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 563,
+      "line": 592,
       "source_file": "agent/descriptors/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27469,19 +27461,6 @@
       "is_dynamic": false
     },
     {
-      "source": "agent.utils.index_manager",
-      "target": "agent.utils.singleton_manager",
-      "source_layer": "utils",
-      "target_layer": "utils",
-      "import_type": "from_import",
-      "line": 281,
-      "source_file": "agent/utils/index_manager.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
       "source": "agent.utils.observability",
       "target": "agent.logging_utils",
       "source_layer": "utils",
@@ -27990,15 +27969,15 @@
     }
   ],
   "stats": {
-    "total_files": 633,
-    "total_nodes": 565,
-    "total_edges": 1805,
+    "total_files": 632,
+    "total_nodes": 564,
+    "total_edges": 1804,
     "cross_layer_edges": 1138,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
       "core": 75,
-      "utils": 12,
+      "utils": 11,
       "monitoring": 31,
       "tools": 29,
       "audit": 8,
