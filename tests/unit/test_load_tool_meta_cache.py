@@ -66,30 +66,63 @@ def test_parsed_result_equals_pure_python_safeloader():
         assert meta.internal == bool(src.get("internal", False))
 
 
-def test_warm_call_is_cached_and_under_budget():
-    """缓存命中应显著快于冷读，且有明确上界。"""
+def test_warm_call_is_cached_and_under_budget(monkeypatch):
+    """命中**不得读文件内容**，且不得显著慢于它的物理下限。
+
+    【口径修正·2026-09-29】原判据是「命中耗时 < 5ms」，注释写的是"命中路径是纯内存返回，
+    本应亚毫秒级"——**这句是错的**。`load_tool_meta()` 命中路径的物理下限不是 dict 查找，
+    而是 `_defs_signature()`：一次 `os.scandir` + 对 `data/tool_definitions/` 里 **91 个**
+    YAML 各做一次 `e.stat().st_mtime_ns`（mtime 失效机制的代价，见 `agent/lines/models.py:544`）。
+    所以 5ms 量的其实是 **runner 的磁盘**：CI 的 overlayfs + 共享 runner 上它**稳定**在
+    10.1ms（三次采样 [10.2, 10.11, 10.09]，且两个连续 head、两个不同分片都如此），
+    而本机同一份代码 <5ms —— 差的是文件系统，不是"命中变慢"。
+
+    改成两条**各自更强**的判据：
+      1. **机制锁（主判据，与机器无关）**：命中期间 `open()` **必须一次都没有发生**。
+         签名只允许 stat；把内容哈希写进签名会让每次命中重读 91 个 YAML —— 这正是
+         "签名计算写成全量哈希"那个回归，现在被**确定性**地抓住，而不是靠"看它快不快"。
+      2. **自标定上界（背板）**：命中耗时不得超过**同一次运行里实测的签名扫描耗时**的 4 倍 + 3ms。
+         机器越快，标尺越紧（快机上仍≈原来的 5ms 量级）；机器慢时标尺随之放宽，
+         但没有任何实现能在不重读文件的前提下超出它。
+    """
     M.invalidate_tool_meta_cache()
 
     t0 = time.perf_counter()
     first = M.load_tool_meta(force=True)
     cold_ms = (time.perf_counter() - t0) * 1000
 
-    # 【取多次中的最小值·2026-09-22】命中路径是纯内存返回，本应亚毫秒级；实测 CI 上出现过
-    #   6.83ms / 6.96ms —— 那不是"命中变慢"，而是用例所在进程被**调度挂起**（2 核 runner、
-    #   `-n 2 --dist=loadscope`、同 shard 还有全仓 AST 扫描类用例）。
-    #   上界**不放宽**（仍是 5ms，仍能抓住"签名计算写成全量哈希"这类真回归——那会让命中稳定在
-    #   毫秒级而非偶发一次），只是把"一次采样"换成"三次取最小"以剔除调度噪声。
-    #   （同文件对冷读已有"给 3 倍余量容忍 CI 抖动"的先例。）
+    # 标尺：同一次运行里，命中路径的物理下限就是这一次签名扫描
+    root = str(M.TOOL_DEFS_DIR)
+    ts = time.perf_counter()
+    M._defs_signature(root)
+    sig_ms = (time.perf_counter() - ts) * 1000
+
+    import builtins
+
+    opened: list = []
+    real_open = builtins.open
+
+    def _counting_open(*args, **kwargs):
+        opened.append(args[0] if args else kwargs.get("file"))
+        return real_open(*args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", _counting_open)
     warm_samples = []
     for _ in range(3):
         t0 = time.perf_counter()
         second = M.load_tool_meta()
         warm_samples.append((time.perf_counter() - t0) * 1000)
+    monkeypatch.undo()
     warm_ms = min(warm_samples)
 
     assert second is first, "缓存命中应返回同一对象（不重复构造）"
-    assert warm_ms < 5.0, (f"缓存命中耗时 {warm_ms:.2f}ms 超过 5ms 上界"
-                         f"（三次采样 {[round(s, 2) for s in warm_samples]}；签名计算可能写成了全量哈希）")
+    assert opened == [], (
+        f"命中路径读了文件：{opened[:5]} —— 签名只允许 stat（文件名 + mtime_ns）；"
+        "把内容哈希写进签名会让每次命中都重读全部 YAML（本用例要拦的正是这个回归）")
+    budget_ms = max(5.0, sig_ms * 4 + 3.0)
+    assert warm_ms < budget_ms, (f"缓存命中耗时 {warm_ms:.2f}ms 超过标定上界 {budget_ms:.2f}ms"
+                                f"（三次采样 {[round(s, 2) for s in warm_samples]}；"
+                                f"本次签名扫描 {sig_ms:.2f}ms；签名计算可能写成了全量哈希）")
     # 冷读用 C loader 后应有明确上界（实测 ~33ms；给 3 倍余量容忍 CI 抖动）
     assert cold_ms < 110.0, f"冷读耗时 {cold_ms:.1f}ms 偏高，CSafeLoader 未生效？"
 
