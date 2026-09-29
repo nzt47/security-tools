@@ -640,7 +640,6 @@ flowchart LR
         agent_utils_atomic_write["agent.utils.atomic_write"]:::crosslayer
         agent_utils_compatibility["agent.utils.compatibility"]:::crosslayer
         agent_utils_cross_process_lock["agent.utils.cross_process_lock"]:::crosslayer
-        agent_utils_index_manager["agent.utils.index_manager"]
         agent_utils_obs_hooks["agent.utils.obs_hooks"]:::crosslayer
         agent_utils_observability["agent.utils.observability"]
         agent_utils_perf_monitor["agent.utils.perf_monitor"]
@@ -2442,7 +2441,6 @@ flowchart LR
     agent_utils_cross_process_lock --> agent_utils_obs_hooks
     agent_utils_cross_process_lock -.-> agent_monitoring_metrics
     agent_utils_cross_process_lock -.-> agent_audit
-    agent_utils_index_manager --> agent_utils_singleton_manager
     agent_utils_observability -.-> agent_logging_utils
     agent_utils_observability -.-> agent_monitoring_business_metrics
     agent_utils_perf_monitor -.-> agent_logging_utils
@@ -2490,9 +2488,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 633
-- 模块节点数: 565
-- 依赖边数: 1805
+- 扫描文件数: 632
+- 模块节点数: 564
+- 依赖边数: 1804
 - 跨层调用数: 1138
 - 违规调用数: 0
 - 动态 import 数: 1
