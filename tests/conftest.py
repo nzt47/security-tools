@@ -1468,22 +1468,24 @@ def _offline_heavy_imports_blocked():
         yield
         return
 
-    saved = {}
-    added = set()
-    for name in _HEAVY_NATIVE_MODULES:
-        if name in sys.modules:
-            saved[name] = sys.modules[name]
-        else:
-            added.add(name)
+    # 【不易】只封禁**尚未被导入**的那几个名字 —— 这个条件不是优化，是正确性前提。
+    #   反例（2026-09-30 我改错后 CI 实测 12 条红）：`tests/unit/test_reranker_regression.py`
+    #   在**收集期**（模块顶层，第 30-32 行）就把 `sentence_transformers` / `onnxruntime` /
+    #   `transformers` 塞进 `sys.modules` 为 `MagicMock()`，正是为了**避免真实 import**；
+    #   随后用例用 `patch("onnxruntime.InferenceSession")` 依赖它是个模块对象。
+    #   若无条件遮盖成 `None`，`import onnxruntime` 会抛
+    #   `ModuleNotFoundError: import of onnxruntime halted; None in sys.modules` ⇒ 整族用例红。
+    #   原 `tests/unit/conftest.py` 的 `_BlockModules([...]) if m not in sys.modules` 就是这个语义。
+    #   对本用例要拦的目标（`tests/test_digital_life.py` 构造时才 import sentence_transformers）无影响：
+    #   那时它确实还不在 `sys.modules` 里 ⇒ 照样被拦住。
+    blocked = [name for name in _HEAVY_NATIVE_MODULES if name not in sys.modules]
+    for name in blocked:
         sys.modules[name] = None          # None → `import name` 抛 ImportError
     try:
         yield
     finally:
-        for name in _HEAVY_NATIVE_MODULES:
-            if name in added:
-                sys.modules.pop(name, None)
-            else:
-                sys.modules[name] = saved[name]
+        for name in blocked:
+            sys.modules.pop(name, None)   # 只删我们塞进去的，绝不触碰原有条目
 
 
 # ============================================================================
