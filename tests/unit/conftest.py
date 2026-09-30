@@ -485,18 +485,13 @@ def _skills_offline_mode():
     import sys
     patches = []
 
-    # 1. 禁用重量级 C 扩展 import (torch/chromadb/onnxruntime/sentence_transformers)
-    #    sys.modules[name]=None 让 `import name` 抛 ImportError, 复用业务 fallback
-    #    用 _BlockModules（非 patch.dict）仅封禁指定键并原样恢复:
-    #    patch.dict 退出时清空整个 sys.modules 再恢复快照, 会把测试期间首次
-    #    导入的模块删掉但父包属性残留, 导致 Python 3.10 mock patch 失效
-    #    (见 _BlockModules 类注释, CI Shard4 3.10 test_analytics_* 复现)。
-    _block_mods = [m for m in (
-        "torch", "chromadb", "chromadb.config",
-        "onnxruntime", "sentence_transformers", "sqlite_vec",
-    ) if m not in sys.modules]
-    if _block_mods:
-        patches.append(_BlockModules(_block_mods))
+    # 1. 重量级 C 扩展 import（torch/chromadb/onnxruntime/sentence_transformers/sqlite_vec）
+    #    的阻断**已上移到根 conftest** 的 `_offline_heavy_imports_blocked`（2026-09-30）：
+    #    原先只在这里挡，覆盖不到 `tests/` 根目录与 `tests/integration/`，而 CI 分片是
+    #    `--root tests` 显式传路径、那些文件照样会跑 ⇒ 实测 `tests/test_digital_life.py`
+    #    真的 `import sentence_transformers`（CI 埋点自报 266534.8ms），两条用例 300s 超时。
+    #    根 conftest 的 fixture 先于子目录 fixture 建立，故这里**不再重复**。
+    #    恢复语义仍由 `_BlockModules` 负责（该类在本文件另有 2 处使用，故保留）。
 
     # 2. patch observability 外部上报为 no-op
     try:

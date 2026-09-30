@@ -1433,6 +1433,60 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         )
 
 # ============================================================================
+# 【2026-09-30】SKILLS_OFFLINE 的重量级依赖阻断 —— 覆盖**整个 tests/ 树**
+# ============================================================================
+#
+# Why 要放在**根** conftest：`tests/unit/conftest.py` 早就按 `SKILLS_OFFLINE=1` 阻断
+#   torch / chromadb / sentence_transformers 等（见 `_skills_offline_mode`），但那只覆盖
+#   `tests/unit/`。而 CI 分片是 `split_unit_tests.py --root tests` **显式传路径**给 pytest，
+#   根目录与 `tests/integration/` 的用例照样会被跑到 —— 它们**不受该约定保护**。
+#
+# 实测代价（不是推演）：`tests/test_digital_life.py` 在 CI 上会真的 `import sentence_transformers`，
+#   CI `Shard 4/6` 日志里 `lifecycle_manager.pre_import_sentence_transformers.ok` 埋点自报
+#   **266534.8ms / 269284.3ms**（同轮两个 xdist worker 各一次），直接导致该文件两条
+#   `Timeout (>300.0s)`。同一轮日志里 `[OK] ChromaDB loaded` 说明这 266s 就是 import 本身。
+#
+# 因此把"CI 不导入重量级原生依赖"这条**既有约定**补到根 conftest：一处清单、一处实现，
+#   `tests/unit/conftest.py` 里原来那一步随之删掉（根 fixture 先于子目录 fixture 建立，故仍生效）。
+#
+# 行为边界：**只在 `SKILLS_OFFLINE` 非空时生效**（CI 专用；本地不设该变量则完全不影响）。
+# 阻断方式与 unit conftest 逐字同源：`sys.modules[name] = None` ⇒ `import name` 抛 ImportError
+#   ⇒ 业务侧既有的降级分支接管（JSON/BM25 回退），不抛到用例上。
+# 恢复只动被阻断的这几个键（**不用** `patch.dict(sys.modules, ...)`：它会清空整个 sys.modules
+#   再恢复快照，导致测试期间首次导入的模块被删而父包属性残留 —— 详见 unit conftest 的 `_BlockModules`）。
+
+_HEAVY_NATIVE_MODULES = (
+    "torch", "chromadb", "chromadb.config",
+    "onnxruntime", "sentence_transformers", "sqlite_vec",
+)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _offline_heavy_imports_blocked():
+    """`SKILLS_OFFLINE` 非空 ⇒ 全 tests/ 树都不得导入重量级原生依赖（CI 约定，见上方说明）"""
+    if not os.environ.get("SKILLS_OFFLINE"):
+        yield
+        return
+
+    saved = {}
+    added = set()
+    for name in _HEAVY_NATIVE_MODULES:
+        if name in sys.modules:
+            saved[name] = sys.modules[name]
+        else:
+            added.add(name)
+        sys.modules[name] = None          # None → `import name` 抛 ImportError
+    try:
+        yield
+    finally:
+        for name in _HEAVY_NATIVE_MODULES:
+            if name in added:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = saved[name]
+
+
+# ============================================================================
 # 导出公共API
 # ============================================================================
 

@@ -188,8 +188,15 @@
     `AGENT_HYBRID_EMBEDDING=0` 都只影响技能/嵌入腿，而这行是**裸 import**；
     而 `ci.yml:420` 的注释恰恰写着"CI 必须启用 SKILLS_OFFLINE，**避免 transformers 递归文件系统扫描触发 300s 超时**"
     —— 说明这个量级仓库是知道的，只是覆盖漏了这条路径。
-    **下一步（需 owner 拍板，本轮未改）**：把这次预导入纳入既有的离线开关（如 `SKILLS_OFFLINE`）门控，
-    或给它加上界。前者与仓库既有约定一致，但它是 Windows 崩溃规避路径，改动需确认不影响该修复的意图。
+    **—— 2026-09-30 已处置（§14.11）**：**没有**动 `lifecycle_manager.py` 这一行，而是补覆盖面 ——
+    把 `SKILLS_OFFLINE=1` 时对 `torch/chromadb/onnxruntime/sentence_transformers/sqlite_vec` 的阻断
+    从 `tests/unit/conftest.py` **上移到根 `tests/conftest.py`**（原先只覆盖 `tests/unit/`，
+    而分片是 `--root tests` 显式传路径 ⇒ 根目录与 integration/ 的用例不在保护范围内）。
+    实测：`tests/test_digital_life.py` 的预导入埋点由 `ok / 266534.8ms` 变为 `failed / 0.0ms`，
+    业务走既有 fallback；该文件 **13 passed / 3 xfailed，45.67s**（阻断前 85.39s），与阻断前结果一致。
+    **评估过但否决的两个选项**：① 给预导入加上界 —— `import` 半途被弃会留下不完整模块并持导入锁，比不修更危险；
+    ② 把该文件加进 `OBSERVABILITY_CI_ONLY` 排除集 —— 它本就在 `pytest.ini:68` 的 `--ignore` 里，
+    排除后**在 CI 与本地都不再跑**，是净覆盖损失。
     另注：`pytest.ini:68` 已 `--ignore` 该文件，但分片用 `split_unit_tests.py` **显式传路径**、`--ignore` 拦不住
     （仓库自己在 `scripts/split_unit_tests.py:80-81` 写明）—— 要不要把它加进 `OBSERVABILITY_CI_ONLY`，
     是"减少覆盖"与"消掉偶发红"之间的取舍，**需 owner 拍板**，本轮未动。
