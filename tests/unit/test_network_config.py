@@ -946,21 +946,51 @@ class TestChangeLog:
         assert len(logs) > 0
         assert logs[0]['action'] == 'update'
 
-    def test_change_log_limit(self):
+    def test_change_log_limit(self, monkeypatch):
         """测试变更日志限制（最多 100 条）
 
-        【不易】循环 110 次:>100 即可验证截断语义。原 150 次全量
-        _save 磁盘写 + json 序列化 O(n²),CI 共享 runner 高负载下
-        >60s 超时(3.12 历史失败);110 次仍保留 10 次截断后写入验证。
+        【不易·2026-09-30 口径修正】原实现经公开 API 连做 110 次 `update()`，每次都会把
+        **整份配置全量 `json.dump` 落盘**（`agent/network_config.py:673 → :393`）。
+        本机 110 次仅 **0.230s**，但 CI 上（该 job `--timeout=60`）实测卡死并超时，栈为：
+
+            tests/unit/test_network_config.py:960: manager.update({'llm': {'timeout': 30 + i}})
+            agent/network_config.py:673: self._save(config)
+            agent/network_config.py:393: json.dump(save_data, f, ensure_ascii=False, indent=2)
+              → fp.write(chunk)                     ← 卡在这里
+            Failed: Timeout (>60.0s) from pytest-timeout
+
+        即卡点是**磁盘写**，约 **260×** 的环境放大（本机 0.230s vs CI >60s；与仓库记录的
+        "扫描类用例在 CI 上的放大器倍数远大于本机"同族）。原 docstring 自己就写着
+        「原 150 次全量 _save 磁盘写…CI 共享 runner 高负载下 >60s 超时(3.12 历史失败)」——
+        此前已把 150 降到 110，**但 60s 预算在高负载下仍会被击穿**，且继续调小次数不是真解
+        （260× 的放大下少写几次仍会越线）。
+
+        本用例要守的是「**变更日志的上限语义**」，不是"110 次落盘有多快"。故**只把落盘这一步
+        换成 no-op**，其余（配置合并、变更日志追加与截断、公开 API 路径）全部保持真实；
+        循环后**恢复真实 `_save` 再跑一次**，并用**新开的管理器从文件读回**，
+        确保"截断后的日志/配置确实能落盘"没有被这层隔离掩盖。
+
+        Why 隔离是安全的：`_load()` 在缓存非空时直接返回 `self._cache`（:278-279），
+        `_add_change_log` 与 `get_change_log` 作用于同一份 `_cache`（:439 / :1436），
+        故去掉落盘不影响"追加 → 超 100 → 截断"这条被验证的链路。
         """
         manager = NetworkConfigManager(config_file=self.config_path)
 
-        # 添加超过 100 条日志
-        for i in range(110):
-            manager.update({'llm': {'timeout': 30 + i}})
+        # 1) 把日志推到 >100 条：落盘换成 no-op（本用例不验 I/O 速度）
+        with monkeypatch.context() as ctx:
+            ctx.setattr(NetworkConfigManager, "_save", lambda self, data: None)
+            for i in range(110):
+                manager.update({'llm': {'timeout': 30 + i}})
 
         logs = manager.get_change_log(limit=200)
-        assert len(logs) <= 100
+        # 比原来更强：110 次追加后必须**恰好**截断到 100（原来只断言 <= 100）
+        assert len(logs) == 100, f"变更日志应被截断到 100 条，实际 {len(logs)}"
+
+        # 2) 真实落盘仍要工作：一次真实 update + 新管理器读回（防隔离掩盖持久化缺陷）
+        manager.update({'llm': {'timeout': 777}})
+        reopened = NetworkConfigManager(config_file=self.config_path)
+        assert reopened.get_all()["llm"]["timeout"] == 777
+        assert len(reopened.get_change_log(limit=200)) <= 100
 
 
 # 运行测试
