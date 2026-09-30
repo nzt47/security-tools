@@ -230,6 +230,21 @@
     要改需决定"采样超时/跳过策略"或换实现，属行为改动，需 owner 拍板。
     **本机未能复现该量级**（本机单次采样远快于此），故"CI 特有"是〔推断〕，依据是同一份代码两份日志的分项差异。
 
+15. **`tests/unit/test_network_config.py::TestChangeLog::test_change_log_limit` 在 CI 上超时（既存、自文档化的负载敏感项）**。
+    现象：head `58727702` 的 `云枢系统测试流程 / 单元测试 (Python 3.12 / Shard 3)` 报
+    `Failed: Timeout (>60.0s) from pytest-timeout`（该 job 的 `--timeout` 是 60s）。
+    **与本会话的改动无关，已逐条排除**：`tests/unit/test_network_config.py` 与 `agent/network_config.py`
+    对 `torch/chromadb/sentence_transformers/onnxruntime/sqlite_vec` 的引用数**均为 0**（grep 实测），
+    故"SKILLS_OFFLINE 依赖阻断"这一改动**不可能**影响它；本机两种口径各 **42 passed**（4.48s / 3.64s）。
+    该用例**自己的 docstring 就写着**（`test_network_config.py:950-955`）：
+    「【不易】循环 110 次:>100 即可验证截断语义。原 150 次全量 `_save` 磁盘写 + json 序列化 O(n²)，
+    **CI 共享 runner 高负载下 >60s 超时(3.12 历史失败)**；110 次仍保留 10 次截断后写入验证。」
+    ⇒ 仓库此前已为此把 150 次降到 110 次，**但 60s 预算在高负载下仍会被击穿**。
+    **下一步（本轮未改）**：结构性解法不在测试侧，而在 `NetworkConfigManager.update()` 的 `_save` ——
+    每次 update 全量重写并序列化整份日志是 O(n²)。要么改增量写，要么让"截断语义"不必靠"写 110 次"验证
+    （例如直接构造 100+ 条日志后再触发一次保存）。两条都动生产/判据语义，故不"顺手"改 ——
+    与 §14.11.1 同款理由：先分清是"判据写错"还是"确属资源争用"，后者不该用放宽预算来掩盖。
+
 ---
 
 ## 附：本次结项时**新装上的守卫**（下次改这些面时会被它们挡住，属预期）
