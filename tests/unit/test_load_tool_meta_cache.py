@@ -87,9 +87,8 @@ def test_warm_call_is_cached_and_under_budget(monkeypatch):
     """
     M.invalidate_tool_meta_cache()
 
-    t0 = time.perf_counter()
+    # 冷读一次（force=True 绕过缓存）；耗时不再作为判据，理由见本用例末尾
     first = M.load_tool_meta(force=True)
-    cold_ms = (time.perf_counter() - t0) * 1000
 
     # 标尺：同一次运行里，命中路径的物理下限就是这一次签名扫描
     root = str(M.TOOL_DEFS_DIR)
@@ -123,8 +122,20 @@ def test_warm_call_is_cached_and_under_budget(monkeypatch):
     assert warm_ms < budget_ms, (f"缓存命中耗时 {warm_ms:.2f}ms 超过标定上界 {budget_ms:.2f}ms"
                                 f"（三次采样 {[round(s, 2) for s in warm_samples]}；"
                                 f"本次签名扫描 {sig_ms:.2f}ms；签名计算可能写成了全量哈希）")
-    # 冷读用 C loader 后应有明确上界（实测 ~33ms；给 3 倍余量容忍 CI 抖动）
-    assert cold_ms < 110.0, f"冷读耗时 {cold_ms:.1f}ms 偏高，CSafeLoader 未生效？"
+    # ── 冷读路径：改用**机制锁**，不再用绝对秒表 ──────────────────────────
+    # 【口径修正·2026-09-30】原来是 `assert cold_ms < 110.0`（注释："实测 ~33ms；给 3 倍余量"）。
+    #   它和 warm 那半是同一类毛病：**绝对秒表量的是 runner 的磁盘**。
+    #   CI `Shard 4/6` 实测**冷读 965.5ms**（8.8× 超出；本机同码 ~33ms），
+    #   于是这条在共享 runner 上同样会必然误报。
+    #   而断言消息自己写的就是"CSafeLoader 未生效？" —— 那才是该被守的东西，
+    #   并且可以**确定性**地守：直接盯 loader 的身份。
+    #   依据：`agent/lines/models.py:517-526` —— 纯 Python `SafeLoader` 实测 156.4ms
+    #   vs `CSafeLoader` 32.8ms（**4.77×**），解析结果逐字段相同，故"用的是哪个 loader"
+    #   是可判定的契约，而"解析花了多少毫秒"不是。
+    import yaml as _yaml
+    assert M._YamlLoader is _yaml.CSafeLoader, (
+        "load_tool_meta 必须用 C 实现解析（CSafeLoader）：纯 Python SafeLoader 实测慢 4.77×；"
+        f"当前 _YamlLoader={M._YamlLoader!r}")
 
 
 def test_cache_is_invalidated_when_yaml_changes(tmp_path, monkeypatch):
