@@ -124,11 +124,69 @@ class EgressGuard:
             )
             decision = decide_egress(request, engine=engine)
             cls._observe(decision, url=str(url or ""))
-            return decision
+            return cls._apply_chain_monitor(
+                decision, url=str(url or ""), method=str(method or "GET"),
+                capability_id=str(capability_id or ""),
+                data_class=str(data_class or ""),
+                tenant_id=str(tenant_id or "default"))
         except Exception as exc:  # noqa: BLE001 决策层异常 ⇒ 放行（fail-open）
             logger.warning("出域策略判定失败（按放行处理，不阻断主流程）: %s: %s",
                            type(exc).__name__, exc)
             return None
+
+    @classmethod
+    def _apply_chain_monitor(cls, decision: Any, *, url: str, method: str,
+                             capability_id: str, data_class: str,
+                             tenant_id: str) -> Any:
+        """叠加 §5.7 机制 4「出域链路监测」（**本次接线补齐**）
+
+        【它补的是逐请求判定查不到的那一半】上游 decide_egress 判的是
+        "**本次**请求的 payload / 目标是否合规"；而「读过密钥 → 之后用无关 payload
+        外发」这种**跨请求**链路，逐请求判定天然看不见（拆包 / 编码 / 延时外发
+        都能绕过）。agent/guardrails/egress_chain.py 正是为此而写
+        （其模块头自述了与 S4-02 的分工），但此前**没有生产调用方**。
+
+        【方向】只可能**更严**，不可能更松：原判定已拒绝时原样返回；只有原判定放行、
+        而链路命中时才翻成拒绝。监测器异常 ⇒ 返回原判定（不因守卫故障而改变结论）。
+        """
+        try:
+            from agent.guardrails.egress_chain import get_egress_chain_monitor
+            monitor = get_egress_chain_monitor()
+        except Exception as exc:  # noqa: BLE001  监测器不可用不得改变判定结果
+            logger.warning("出域链路监测不可用（按原判定继续）: %s: %s",
+                           type(exc).__name__, exc)
+            return decision
+        if monitor is None:
+            return decision
+        try:
+            # enforce=False：命中由本函数转成"拒绝决策"而不是抛异常 ——
+            # precheck 的契约是"返回决策或 None"，抛异常会绕过调用方的既有分支。
+            verdict = monitor.evaluate(
+                url=url, method=method, capability_id=capability_id,
+                data_class=data_class, tenant_id=tenant_id, enforce=False)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("出域链路判定失败（按原判定继续）: %s: %s",
+                           type(exc).__name__, exc)
+            return decision
+        if verdict is None or getattr(verdict, "allowed", True):
+            return decision
+        if decision is not None and not decision.allowed:
+            return decision          # 已经拒绝了：保持原判定与原原因
+        logger.warning("[EgressGuard] §5.7 机制 4 命中「读密钥→外发」链路: %s",
+                       getattr(verdict, "reason", ""))
+        if decision is None:
+            return None              # 原判定为"无意见" ⇒ 不凭空造一个拒绝决策
+        try:
+            from dataclasses import replace
+            evidence = dict(getattr(decision, "evidence", {}) or {})
+            evidence["egress_chain"] = verdict.to_dict()
+            reason = ("出域被拒绝：命中「读本地密钥 → 外发」链路（§5.7 机制 4）。"
+                      "该链路意味着可能已经泄露，应按事故流程止损并轮换凭证。")
+            return replace(decision, allowed=False, needs_human=True,
+                           reason=reason, evidence=evidence)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("出域链路命中但无法构造拒绝决策（保守放行原判定）: %s", exc)
+            return decision
 
     @classmethod
     def enforce(cls, **kwargs: Any) -> None:

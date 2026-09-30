@@ -23,6 +23,7 @@ from agent.observability.events import (
     CORE_EVENT_TYPES,
     ENVELOPE_FIELDS,
     GOVERNANCE_EVENT_TYPES,
+    LIFECYCLE_EVENT_TYPES,
     METRIC_EVENT_TYPES,
     NINE_EVENT_TYPES,
     SCHEMA_NAME,
@@ -148,12 +149,25 @@ class TestEventTypes:
         # S8-01 数据生命周期治理埋点：**新增分组**，不改上面三组的冻结语义
         assert GOVERNANCE_EVENT_TYPES == ("retention.run",)
 
+    def test_lifecycle_events_cover_v2_4_9(self):
+        # 【2026-09-30 新增分组】V2.0 §4.9 / INV-14 生命周期事件。
+        #   加它们的理由：审计实测 fact.withdrawn / call.cancelled / run.cancelled
+        #   全仓 **0 命中**，而事件信封是**闭集** ⇒ 取消/撤销即使发生也无处可记。
+        assert LIFECYCLE_EVENT_TYPES == (
+            "fact.withdrawn", "call.cancelled", "run.cancelled")
+
     def test_all_types_contains_everything(self):
         assert set(ALL_EVENT_TYPES) == (set(NINE_EVENT_TYPES)
                                        | set(METRIC_EVENT_TYPES)
-                                       | set(GOVERNANCE_EVENT_TYPES))
+                                       | set(GOVERNANCE_EVENT_TYPES)
+                                       | set(LIFECYCLE_EVENT_TYPES))
         assert EventType.isin("cost") and EventType.isin("model.degraded")
         assert EventType.isin("retention.run")
+        # 本条断言的作用正是"逼新增分组显式改这里" ⇒ 本次是**有意**更新，
+        #   而不是把断言放宽（放开会让"悄悄加事件"不再被拦）。
+        assert EventType.isin("fact.withdrawn")
+        assert EventType.isin("call.cancelled")
+        assert EventType.isin("run.cancelled")
         assert not EventType.isin("nope")
         assert set(EventType.values()) == set(ALL_EVENT_TYPES)
         assert EventType.COST == "cost"

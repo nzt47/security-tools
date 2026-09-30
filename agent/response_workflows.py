@@ -373,3 +373,355 @@ def log_dict_safe(payload: dict) -> dict:
     if "action" not in data:
         data["action"] = "unknown"
     return data
+
+
+# ════════════════════════════════════════════════════════════
+#  工具层错误恢复与结果压缩
+#  （V2.0 §3.6 七分类 / §4.5 结构化压缩；INV-08 不静默 / INV-09 写重试必带幂等键）
+# ════════════════════════════════════════════════════════════
+#
+# 【本节的来历 —— 先读这一段再改】
+#   `agent/tool_calling.py::_execute_safe` 从很早就写着：
+#       from agent.response_workflows import ErrorRecovery, ToolResultProcessor
+#       except ImportError: has_workflow = False
+#   但这两个符号**在本仓从来不存在**（审计实测：全仓 class 定义数 = 0）。
+#   于是该 ImportError 被静默吞掉，后果有二且都很隐蔽：
+#     ① 工具失败**永不重试**（不是"按策略不重试"，而是代码路径根本到不了）；
+#     ② `ToolResultProcessor.compress_verbose` **永不执行** ⇒ 工具输出压缩形同虚设。
+#   这违反 INV-08（禁止静默降级）。本节把这两个符号补成**真实现**，
+#   让"工具层重试"与"结果压缩"从"名义存在"变成"真实生效"。
+#
+# 【但补实现不等于放开重试 —— INV-09 是硬闸门】
+#   本仓**没有**工具写幂等键（审计实测：`agent/tools/` / `tool_gate` / `tool_approval`
+#   中 idempotency_key 命中 = 0），所以"重试写操作"会真实产生重复副作用。
+#   故 `ErrorRecovery` 的重试闸门是 **fail-closed**：
+#       只有 `data/tool_definitions/*.yaml` 声明 `effect: read` 的工具才允许重试；
+#       未知 / 缺失 / write / execute / extend ⇒ **一律不重试**。
+#   这不是"少做了一点"，而是"在没有幂等键之前唯一正确的做法"。
+
+#: 错误分类常量（V2.0 §3.6 七分类在**工具层**的落地口径）
+#: 【为什么与 agent/capregistry/errors.py 的 14 码并存而不合并】
+#:   两者粒度不同且都已接线：14 码是**能力出口**的对外契约（CI 可凭 status/code 阻断），
+#:   七分类是**重试决策**的输入。硬合并会让某一侧的既定消费者被迫改口径（D2 违规）。
+#:   二者的映射关系由 tests/unit/test_tool_error_recovery.py 对拍锁死，防止漂移。
+ERR_TRANSIENT = "TRANSIENT"
+ERR_TIMEOUT = "TIMEOUT"
+ERR_RATE_LIMIT = "RATE_LIMIT"
+ERR_AUTH = "AUTH"
+ERR_PERMANENT = "PERMANENT"
+ERR_UNAVAILABLE = "UNAVAILABLE"
+ERR_UNKNOWN = "UNKNOWN"
+
+#: 可重试集合（V2.0 §3.6 `RETRYABLE = {TRANSIENT, TIMEOUT, RATE_LIMIT}`）
+RETRYABLE_CLASSES = frozenset({ERR_TRANSIENT, ERR_TIMEOUT, ERR_RATE_LIMIT})
+
+#: 允许重试的工具后果等级（唯一判据，见本节来历第 2 段）
+RETRY_SAFE_EFFECTS = frozenset({"read"})
+
+#: 关键词 → 分类。顺序有意义：先判**不可重试**的强特征（权限/契约），后判可重试的弱特征，
+#: 否则 "timeout 后鉴权失败" 这类复合消息会被误判成可重试。
+_KEYWORD_TO_CLASS = (
+    # ── 不可重试（放最前，优先命中）──
+    ("permission denied", ERR_AUTH),
+    ("permission_denied", ERR_AUTH),
+    ("unauthorized", ERR_AUTH),
+    ("forbidden", ERR_AUTH),
+    ("401", ERR_AUTH),
+    ("403", ERR_AUTH),
+    ("鉴权", ERR_AUTH),
+    ("未授权", ERR_AUTH),
+    ("无权限", ERR_AUTH),
+    ("审批", ERR_AUTH),
+    ("schema", ERR_PERMANENT),
+    ("validation", ERR_PERMANENT),
+    ("参数", ERR_PERMANENT),
+    ("不存在", ERR_PERMANENT),
+    ("未知工具", ERR_PERMANENT),
+    ("not found", ERR_PERMANENT),
+    ("unknown tool", ERR_PERMANENT),
+    ("400", ERR_PERMANENT),
+    ("404", ERR_PERMANENT),
+    ("422", ERR_PERMANENT),
+    # ── 可重试 ──
+    ("rate limit", ERR_RATE_LIMIT),
+    ("ratelimit", ERR_RATE_LIMIT),
+    ("429", ERR_RATE_LIMIT),
+    ("限流", ERR_RATE_LIMIT),
+    ("频率过高", ERR_RATE_LIMIT),
+    ("quota", ERR_RATE_LIMIT),
+    ("timeout", ERR_TIMEOUT),
+    ("timed out", ERR_TIMEOUT),
+    ("超时", ERR_TIMEOUT),
+    ("408", ERR_TIMEOUT),
+    ("504", ERR_TIMEOUT),
+    ("connection", ERR_TRANSIENT),
+    ("refused", ERR_TRANSIENT),
+    ("reset by peer", ERR_TRANSIENT),
+    ("broken pipe", ERR_TRANSIENT),
+    ("500", ERR_TRANSIENT),
+    ("502", ERR_TRANSIENT),
+    ("503", ERR_TRANSIENT),
+    ("服务不可用", ERR_TRANSIENT),
+    ("temporarily", ERR_TRANSIENT),
+    # ── 连接类不可达（走 fallback 而非重试）──
+    ("unreachable", ERR_UNAVAILABLE),
+    ("dns", ERR_UNAVAILABLE),
+    ("no route", ERR_UNAVAILABLE),
+    ("拒绝连接", ERR_UNAVAILABLE),
+)
+
+#: 工具 effect 缓存（进程内；load_tool_meta 自身已带缓存，此处只避免重复字典查找）
+_TOOL_EFFECT_CACHE: dict = {}
+
+
+def resolve_tool_effect(tool_name: str) -> str:
+    """查工具的后果等级（`read`/`write`/`execute`/`extend`）；取不到返回空串。
+
+    **取不到时返回空串是 fail-closed 的关键**：`ErrorRecovery` 把空串视为
+    "后果未知" ⇒ 不重试。绝不返回 "read" 之类的乐观默认值。
+    """
+    if not tool_name:
+        return ""
+    cached = _TOOL_EFFECT_CACHE.get(tool_name)
+    if cached is not None:
+        return cached
+    effect = ""
+    try:
+        from agent.lines.models import load_tool_meta
+        meta = load_tool_meta().get(tool_name)
+        if meta is not None:
+            effect = str(getattr(meta, "effect", "") or "")
+    except Exception:  # noqa: BLE001  台账不可用 ⇒ 视为"后果未知"（fail-closed）
+        effect = ""
+    _TOOL_EFFECT_CACHE[tool_name] = effect
+    return effect
+
+
+class ErrorRecovery:
+    """工具层错误恢复决策（纯函数，零 IO、零副作用）
+
+    【不易】决策**只看**三件事：错误消息分类、已尝试次数、工具后果等级。
+            不看时间、不看随机数（除非调用方显式要求抖动）。
+    【变易】关键词表 `_KEYWORD_TO_CLASS` 可扩；重试上限 `MAX_ATTEMPTS` 可调。
+    【简易】不重试未知分类 —— 宁可少重试，不可重复副作用。
+    """
+
+    #: 工具层最多重试次数（与 tool_calling.`range(3)` 的既有外层循环对齐：
+    #: attempt 0/1 可重试，attempt 2 是最后一次 ⇒ 与"最多 3 次尝试"语义一致）
+    MAX_ATTEMPTS = 3
+
+    @staticmethod
+    def classify(error_msg: str) -> str:
+        """把错误消息归入七分类之一（大小写不敏感）。"""
+        haystack = str(error_msg or "").lower()
+        if not haystack:
+            return ERR_UNKNOWN
+        for needle, cls in _KEYWORD_TO_CLASS:
+            if needle in haystack:
+                return cls
+        return ERR_UNKNOWN
+
+    @staticmethod
+    def is_retryable_class(error_class: str) -> bool:
+        """分类是否属于可重试集合。"""
+        return error_class in RETRYABLE_CLASSES
+
+    @staticmethod
+    def _retry_safe(effect: str) -> bool:
+        """工具后果是否允许重试（fail-closed：未知 ⇒ 否）。"""
+        return str(effect or "").strip().lower() in RETRY_SAFE_EFFECTS
+
+    @staticmethod
+    def get_recovery_plan(error_msg: str,
+                          attempt: int,
+                          *,
+                          tool_name: str = "",
+                          effect: Optional[str] = None,
+                          delay_base: float = 1.0) -> dict:
+        """给出一次工具失败的处置方案。
+
+        Args:
+            error_msg: 原始错误消息（**只用于分类**，不外泄给模型）
+            attempt: 已尝试次数（0-based）
+            tool_name: 工具名；提供且未显式给 `effect` 时自动查台账
+            effect: 显式指定后果等级（`read`/`write`/...）。None ⇒ 按工具名查
+            delay_base: 退避基数（秒）
+
+        Returns:
+            `{"should_retry": bool, "delay": float, "message": str,
+               "error_class": str, "effect": str, "reason": str}`
+
+        `reason` 是**给人看的判定理由**，会被写进日志 —— 这样"为什么不重试"
+        在事后可归因，而不是一个沉默的 False（INV-08）。
+        """
+        error_class = ErrorRecovery.classify(error_msg)
+        resolved_effect = effect if effect is not None else resolve_tool_effect(tool_name)
+        retryable = ErrorRecovery.is_retryable_class(error_class)
+        safe = ErrorRecovery._retry_safe(resolved_effect)
+        within_attempts = attempt < ErrorRecovery.MAX_ATTEMPTS - 1
+
+        should_retry = bool(retryable and safe and within_attempts)
+        reason = "ok"
+        if not retryable:
+            reason = f"分类 {error_class} 不在可重试集合 {sorted(RETRYABLE_CLASSES)}"
+        elif not safe:
+            reason = (f"工具 {tool_name or '?'} 的 effect={resolved_effect or '(未知)'} "
+                      f"不在可重试集合 {sorted(RETRY_SAFE_EFFECTS)}"
+                      f"（无幂等键时不重试写操作，INV-09）")
+        elif not within_attempts:
+            reason = f"已达上限（attempt={attempt}, max={ErrorRecovery.MAX_ATTEMPTS}）"
+
+        # 退避：指数 + 抖动（去相关，避免多路失败同相位重试）
+        delay = 0.0
+        if should_retry:
+            base = float(delay_base) * (2 ** attempt)
+            delay = ErrorRecovery._jittered(base)
+
+        # 【run 级预算闸门（INV-09「重试预算属于 run，不属于 call」）】
+        # 预算耗尽 ⇒ 放弃本层重试，且**显式说明**，不静默降级。
+        if should_retry:
+            allowed, budget_note = ErrorRecovery._consume_budget()
+            if not allowed:
+                should_retry = False
+                delay = 0.0
+                reason = budget_note
+
+        message = (f"[{error_class}] {ErrorRecovery._safe_brief(error_msg)}"
+                   if should_retry else f"[{error_class}] 不重试（{reason}）")
+        return {
+            "should_retry": should_retry,
+            "delay": delay,
+            "message": message,
+            "error_class": error_class,
+            "effect": resolved_effect,
+            "reason": reason,
+        }
+
+    @staticmethod
+    def _jittered(base: float) -> float:
+        """指数退避加抖动；复用 run 级预算模块的抖动系数（保持全仓一致）。"""
+        try:
+            from agent.timeout_budget import jittered_delay
+            return float(jittered_delay(base))
+        except Exception:  # noqa: BLE001  抖动不可用 ⇒ 确定性退避（不阻断）
+            return float(base)
+
+    @staticmethod
+    def _consume_budget():
+        """从当前 run 的重试预算里扣一次；返回 `(allowed, note)`。
+
+        预算模块不可用 ⇒ `(True, "预算不可用")`，即**退回旧行为**而不是把工具层闷死
+        （与 `tool_calling` 里 LLM 重试层的降级口径一致）。
+        """
+        try:
+            from agent.timeout_budget import consume_retry
+            if bool(consume_retry("tool")):
+                return True, "预算扣减成功"
+            return False, "run 级重试预算已耗尽（INV-09：预算属于 run）"
+        except Exception as _e:  # noqa: BLE001
+            return True, f"预算不可用（按旧行为继续）: {_e}"
+
+    @staticmethod
+    def _safe_brief(error_msg: str, limit: int = 160) -> str:
+        """把错误消息压成一行短摘要（不含堆栈、不含路径）。
+
+        【为什么在这里做而不是交给模型】V2.0 §5.3「错误聚合摘要：不给模型拼堆栈」。
+        这里是**日志**用途，故只压空白与长度；进模型的形态仍走
+        `agent.capregistry.errors.to_llm_safe()`（那是唯一允许进上下文的形态）。
+        """
+        try:
+            text = " ".join(str(error_msg or "").split())
+        except Exception:  # noqa: BLE001
+            return ""
+        return text[:limit]
+
+
+class ToolResultProcessor:
+    """工具结果后处理：结构化压缩（V2.0 §4.5「token 预算一等公民」）
+
+    【为什么需要】`_execute_safe` 一直在调用它，但它此前不存在 ⇒ 工具返回的
+    大段文本（read_file 全文、shell 输出、HTTP 正文）原样进入模型上下文。
+    这是上下文膨胀最直接的一处来源。
+
+    【不易（三条纪律）】
+      1. **不静默截断**（INV-08）：被压缩的字段会追加显式标注
+         `[…已压缩: 原 N 字符 → M 字符，中段省略…]`，且 `ok`/`error` 语义不动。
+      2. **不改结构**：只压字符串叶子，键名/类型/层级一律保持，调用方的
+         `result["ok"]` 等既有读取点 100% 不变。
+      3. **绝不抛异常**：压缩失败 ⇒ 原样返回（压缩是优化，不是正确性前提）。
+    """
+
+    #: 单字段保留上限（字符）。**保守取值**：只压明显过大的输出，
+    #: 避免影响正常结果与其既有断言。
+    MAX_FIELD_CHARS = 8000
+    #: 压缩后头部 / 尾部保留比例（U 型注意力：首尾信息量最高，砍中段）
+    HEAD_RATIO = 0.7
+
+    @staticmethod
+    def compress_verbose(result: dict,
+                         *,
+                         max_chars: Optional[int] = None) -> dict:
+        """就地压缩结果中的超长字符串字段。
+
+        Args:
+            result: 工具返回结果（原地修改）
+            max_chars: 覆盖默认上限
+
+        Returns:
+            `{"compressed": bool, "fields": [键路径], "saved_chars": int}`
+            —— 返回报告而不是 None，便于调用方埋点（若调用方忽略返回值也不受影响）。
+        """
+        report = {"compressed": False, "fields": [], "saved_chars": 0}
+        if not isinstance(result, dict):
+            return report
+        cap = int(max_chars or ToolResultProcessor.MAX_FIELD_CHARS)
+        if cap <= 0:
+            return report
+        try:
+            ToolResultProcessor._walk(result, "", cap, report)
+        except Exception:  # noqa: BLE001  压缩失败不得影响工具结果可用性
+            return report
+        return report
+
+    @staticmethod
+    def _walk(node, path: str, cap: int, report: dict) -> None:
+        if isinstance(node, dict):
+            for key in list(node.keys()):
+                value = node[key]
+                if isinstance(value, str):
+                    new_value = ToolResultProcessor._shrink(value, cap)
+                    if new_value is not None:
+                        node[key] = new_value
+                        report["compressed"] = True
+                        report["fields"].append(f"{path}.{key}" if path else str(key))
+                        report["saved_chars"] += len(value) - len(new_value)
+                elif isinstance(value, (dict, list)):
+                    ToolResultProcessor._walk(
+                        value, f"{path}.{key}" if path else str(key), cap, report)
+        elif isinstance(node, list):
+            for idx, value in enumerate(node):
+                child_path = f"{path}[{idx}]"
+                if isinstance(value, str):
+                    new_value = ToolResultProcessor._shrink(value, cap)
+                    if new_value is not None:
+                        node[idx] = new_value
+                        report["compressed"] = True
+                        report["fields"].append(child_path)
+                        report["saved_chars"] += len(value) - len(new_value)
+                elif isinstance(value, (dict, list)):
+                    ToolResultProcessor._walk(value, child_path, cap, report)
+
+    @staticmethod
+    def _shrink(text: str, cap: int) -> Optional[str]:
+        """超限则返回压缩后的文本；未超限返回 None（表示"无需改动"）。"""
+        if len(text) <= cap:
+            return None
+        head_len = max(1, int(cap * ToolResultProcessor.HEAD_RATIO))
+        tail_len = max(1, cap - head_len)
+        head = text[:head_len]
+        tail = text[-tail_len:]
+        # 【为什么用 % 而不是 f-string】压缩标注里需要换行，而多行 f-string
+        #   在源码里极易被编辑工具改坏（本次就踩过）；% 形式无此风险。
+        marker = ("[\u2026已压缩: 原 %d 字符 \u2192 %d 字符，中段 %d 字符已省略\u2026]"
+                  % (len(text), cap, len(text) - head_len - tail_len))
+        return head + marker + tail

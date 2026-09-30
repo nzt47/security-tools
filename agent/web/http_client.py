@@ -518,18 +518,27 @@ class HttpClient:
             blocked["elapsed"] = round(time.time() - start, 3)
             return blocked
         try:
-            _http_reserved = {"url", "stream", "timeout"}
-            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _http_reserved}
+            # 【S3 审计修复：download 此前绕过逐跳复检】
+            #   改动前这里直接调 self._session.get(...)，而 requests 默认
+            #   allow_redirects=True ⇒ `公网 URL 302 到 169.254.169.254` 这条经典
+            #   SSRF 链**跳过了策略层判定**（地址层的连接期守卫仍在，但策略层缺失）。
+            #   现改走 _send_with_redirects —— 它 allow_redirects=False 并**逐跳**
+            #   重跑 _preflight_block（SSRF + 出域策略两层），与 request() 同一条路径。
+            _reserved = {"url", "stream", "timeout", "allow_redirects",
+                         "headers", "cookies", "verify", "params", "data", "json"}
+            safe_kwargs = {k: v for k, v in kwargs.items() if k not in _reserved}
             # 配置化：从 Config 读取默认超时（支持热加载）
             from agent.monitoring.observability_config import get_http_timeout
-            try:
-                from agent.guardrails import ssrf_guard as _ssrf
-                _scope = _ssrf.guard_scope()
-            except Exception:  # noqa: BLE001
-                _scope = _nullcontext()
-            with _scope:
-                resp = self._session.get(url, stream=True, timeout=get_http_timeout(),
-                                         **safe_kwargs)
+            resp, _hop_history, _hop_block = self._send_with_redirects(
+                method="GET", url=url, params=None, data=None, json_data=None,
+                headers=kwargs.get("headers"), cookies=kwargs.get("cookies"),
+                timeout=get_http_timeout(), allow_redirects=True, stream=True,
+                verify=bool(kwargs.get("verify", True)), safe_kwargs=safe_kwargs)
+            if _hop_block is not None:
+                # 某一跳被拒：与入口拦截同样计一次 blocked，并如实回报（不静默降级）
+                self._stats["blocked_count"] += 1
+                _hop_block["elapsed"] = round(time.time() - start, 3)
+                return _hop_block
             resp.raise_for_status()
 
             os.makedirs(os.path.dirname(os.path.abspath(filepath)) or ".", exist_ok=True)

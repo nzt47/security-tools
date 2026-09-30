@@ -26,4 +26,38 @@ schema:
       description: 搜索根路径，默认当前目录
   required:
   - pattern
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    pattern:
+      type: string
+    root:
+      type: string
+    abs_root:
+      type: string
+    total:
+      type: integer
+    truncated:
+      type: boolean
+    results:
+      type: array
+      items:
+        type: object
+        properties:
+          path:
+            type: string
+          abs_path:
+            type: string
+          name:
+            type: string
+          size:
+            type: integer
+          modified:
+            type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

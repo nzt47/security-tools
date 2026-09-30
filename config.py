@@ -21,14 +21,26 @@ logger = logging.getLogger(__name__)
 #  Pydantic 模型支持（可选）
 # ════════════════════════════════════════════════════════════════════════════════
 
+# 【2026-09-30 修复：一行死导入把全部配置校验废掉了】
+#   原实现第二行是 `from pydantic.error_wrappers import ErrorWrapper`，
+#   而该模块/符号在 pydantic v2 已被移除（本机实装 2.12.5）。于是：
+#       ImportError → _PYDANTIC_AVAILABLE = False → 校验**永远**走 _basic_validation，
+#       ConfigModel 从不构造，而日志却报「Pydantic 未安装」——**与事实相反**
+#       （本机确实装了 2.12.5）。这同时踩中两条纪律：静默降级（INV-08）+ 谎报状态。
+#   事实核查：全仓 grep ErrorWrapper 仅此一处，**从未被使用**。
+#   故删除该导入即可恢复校验能力，无需改任何校验逻辑。
+#
+# 【为什么分三条 except】把「没装 pydantic」与「装了但 API 不可用」分开，
+#   否则运维看到 "Pydantic 未安装" 会去装一个已经装好的包（本次就是这种情形）。
 try:
-    from pydantic import BaseModel, Field, ValidationError, validator
-    from pydantic.error_wrappers import ErrorWrapper
+    from pydantic import BaseModel, ConfigDict, Field, ValidationError, validator
     _PYDANTIC_AVAILABLE = True
+    _PYDANTIC_IMPORT_ERROR = ""
     logger.info("[ok] Pydantic 已加载，启用配置校验")
-except ImportError:
+except ImportError as _pd_err:
     _PYDANTIC_AVAILABLE = False
-    logger.warning("[warn] Pydantic 未安装，配置校验功能已禁用")
+    _PYDANTIC_IMPORT_ERROR = str(_pd_err)
+    logger.warning("[warn] Pydantic 不可用（配置校验将降级为基础校验模式）: %s", _pd_err)
 
 # 【P2 已清理】SecureConfigManager 加密层已移除，敏感数据统一由 .env 单一数据源管理
 # 详见 agent/env_config_manager.py:EnvConfigManager
@@ -47,8 +59,15 @@ class LLMConfig(BaseModel):
 
     @validator('provider')
     def provider_must_be_valid(cls, v):
-        if v and v not in ['openai', 'anthropic']:
-            raise ValueError(f"provider 必须是 'openai' 或 'anthropic'，当前值: {v}")
+        # 【2026-09-30 修正值域】原值域只有 openai/anthropic，但本仓实际支持
+        #   deepseek（agent/model_router/adapters.py:38 有其 base_url），且 .env 里
+        #   配的就是 LLM_PROVIDER=DeepSeek。值域过窄的后果不是"拦住错值"，而是
+        #   "一旦校验真的生效，启动就报一个假错误" —— 所以它与上面那行死导入是**同一个
+        #   缺陷的两半：一半让校验失效，另一半让校验一旦生效就误报。本次一并修正。
+        allowed = {'openai', 'anthropic', 'deepseek', 'azure', 'ollama'}
+        if v and v.strip().lower() not in allowed:
+            raise ValueError(
+                f"provider 必须是 {sorted(allowed)} 之一，当前值: {v}")
         return v
 
 
@@ -236,8 +255,18 @@ class CircuitBreakerConfigSection(BaseModel):
         alias="global",
     )
 
-    class Config:
-        allow_population_by_field_name = True
+    # 【2026-09-30 修 pydantic v2 键名】原为 v1 内侧类写法：
+    #       class Config:
+    #           allow_population_by_field_name = True
+    #   在 v2 下该键已被**重命名**（本机实装会打 UserWarning 说明此事）。
+    #   更要紧的是：v2 会**忽略**这个旧名 ⇒ 字段名填充实际失效，而 warnings 不显眼，
+    #   于是 `global`(alias) 与 `global_`(字段名) 双键名加载能力**静默丢失**
+    #   （docs/circuit_breaker_and_log_redaction.md 与部署清单都依赖这个能力）。
+    #   【为什么用 populate_by_name 而不是 validate_by_name】后者是 pydantic 2.11+ 才
+    #   有的新名，而 pyproject 的下限是 >=2.0.0；在 2.0–2.10 上它会被当成未知键直接报错。
+    #   populate_by_name 是全 v2 版本都支持的同义键，安全性更高。
+    #   （仓内 RELEASE_NOTES_circuit_breaker.md:178 早已登记过这条待修项，此处落地。）
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ConfigModel(BaseModel):
@@ -304,7 +333,11 @@ def validate_config(config: Dict[str, Any]) -> List[Dict[str, str]]:
     logger.debug("[配置校验] 📋 开始校验配置，配置包含 %d 个配置节", len(config.keys()))
 
     if not _PYDANTIC_AVAILABLE:
-        logger.info("[配置校验] ⚠️ Pydantic 不可用，使用基础校验模式")
+        # 【为什么把原因打出来】此前这一行只说"Pydantic 不可用"，运维无从判断是
+        # "没装" 还是 "装了但 API 不兼容" —— 本次的真实原因恰恰是后者。
+        logger.warning("[配置校验] ⚠️ Pydantic 不可用，降级为基础校验模式"
+                       "（配置完整性校验**未生效**）: %s",
+                       _PYDANTIC_IMPORT_ERROR or "原因未知")
         errors.extend(_basic_validation(config))
         if errors:
             logger.debug("[配置校验] 📊 基础校验完成，发现 %d 个问题", len(errors))
@@ -312,11 +345,21 @@ def validate_config(config: Dict[str, Any]) -> List[Dict[str, str]]:
             logger.debug("[配置校验] ✅ 基础校验完成，未发现问题")
         return errors
 
+    # 【2026-09-30：两种校验**合并**，而不是二选一】
+    #   原实现在 Pydantic 可用时 `return []` 提前返回，**跳过 _basic_validation**。
+    #   但两者检查的东西不同、不可互相替代：
+    #       _basic_validation : 必填配置节是否存在 / 节类型 / 关键值域（如 512<=token_limit<=32768）
+    #       ConfigModel       : 字段类型、取值范围、跨字段约束
+    #   而 ConfigModel 的每个配置节都有 default_factory ⇒ **缺失的节会被静默补默认值**，
+    #   于是"必填节缺失"这一类问题在 Pydantic 模式下**永远查不出来**。
+    #   本次把 Pydantic 校验真正启用（见文件头死导入修复）后，这一缺口会立刻暴露：
+    #   空配置从"报 7 个缺节错误"变成"0 错误"。故两种校验必须都跑。
+    #   顺带：这也让 test_config_boundary 里既有的两组断言（缺节数、无缺节）同时成立。
     logger.info("[配置校验] ✨ 使用 Pydantic 模型进行严格校验")
+    errors.extend(_basic_validation(config))
     try:
         ConfigModel(**config)
         logger.debug("[配置校验] ✅ Pydantic 校验通过，配置完整有效")
-        return []
     except ValidationError as e:
         error_count = len(e.errors())
         logger.warning("[配置校验] ⚠️ Pydantic 校验失败，发现 %d 个错误", error_count)
@@ -325,7 +368,12 @@ def validate_config(config: Dict[str, Any]) -> List[Dict[str, str]]:
             msg = error['msg']
             errors.append({"loc": loc, "msg": msg})
             logger.debug("[配置校验] 📝 错误: %s -> %s", loc, msg)
-        return errors
+
+    # 【必须有这一行】上面删掉了成功分支的 `return []`（改成"两种校验都跑"），
+    #   若不在函数末尾补 return，**成功路径会直接掉出函数返回 None** ——
+    #   全部边界用例以 isinstance(None, list) 失败。
+    #   合并后唯一正确的出口就是把累积的 errors 还回去。
+    return errors
 
 
 def _basic_validation(config: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -381,7 +429,11 @@ def _basic_validation(config: Dict[str, Any]) -> List[Dict[str, str]]:
                 logger.warning("[配置校验] ⚠️ memory.llm.timeout 值 '%s' 无效，应在 1-300 秒之间", timeout)
                 errors.append({
                     "loc": "memory.llm.timeout", 
-                    "msg": "LLM 超时时间设置为 %d 秒无效，应在 1-300 秒范围内。默认值为 30 秒。" % timeout
+                                        # 【为什么用 %s 而不是 %d】这一支本来就是用来**报告非法值**的：
+                    #   用户传真给了字符串时，%d 会当场 TypeError 崩溃 —— 校验器
+                    #   自己抛异常，而不是产出"该值非法"的结论。用 %s 才能如实把
+                    #   原始值报出来（本行在死导入修复前从未被执行到，属被掩盖的缺陷）。
+                    "msg": "LLM 超时时间设置为 %s 无效，应在 1-300 秒范围内。默认值为 30 秒。" % (timeout,)
                 })
             else:
                 logger.debug("[配置校验] ✅ memory.llm.timeout = %d 秒，校验通过", timeout)
@@ -391,7 +443,7 @@ def _basic_validation(config: Dict[str, Any]) -> List[Dict[str, str]]:
             logger.warning("[配置校验] ⚠️ memory.token_limit 值 '%s' 无效，应在 512-32768 之间", token_limit)
             errors.append({
                 "loc": "memory.token_limit", 
-                "msg": "Token 限制设置为 %d 无效，应在 512-32768 范围内。默认值为 4096。" % token_limit
+                                    "msg": "Token 限制设置为 %s 无效，应在 512-32768 范围内。默认值为 4096。" % (token_limit,)
             })
         else:
             logger.debug("[配置校验] ✅ memory.token_limit = %d，校验通过", token_limit)
@@ -407,7 +459,7 @@ def _basic_validation(config: Dict[str, Any]) -> List[Dict[str, str]]:
             logger.warning("[配置校验] ⚠️ behavior.check_interval 值 '%s' 无效，应在 5-300 秒之间", check_interval)
             errors.append({
                 "loc": "behavior.check_interval", 
-                "msg": "健康检查间隔设置为 %d 秒无效，应在 5-300 秒范围内。默认值为 30 秒。" % check_interval
+                                    "msg": "健康检查间隔设置为 %s 秒无效，应在 5-300 秒范围内。默认值为 30 秒。" % (check_interval,)
             })
         else:
             logger.debug("[配置校验] ✅ behavior.check_interval = %d 秒，校验通过", check_interval)

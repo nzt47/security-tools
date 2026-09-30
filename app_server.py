@@ -612,6 +612,25 @@ def _no_cache(response):
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
+    # ── §5.7 机制 6「UI 安全渲染」：安全响应头（**本次接线补齐**）────────
+    # 【为什么此前缺失】agent/guardrails/safe_render.py 早已实现 csp_headers()
+    #   （CSP + nosniff + no-referrer + X-Frame-Options），但**没有任何生产调用方**
+    #   —— 也就是说这些头从未真正下发过。
+    # 【CSP 为什么先上 Report-Only】本仓 templates/index.html 等页面含内联脚本，
+    #   而 csp_policy() 是「script 全禁」口径；直接强制会当场打挂工作台界面
+    #   （与既有"不一次性打挂本机调用"的纪律冲突）。Report-Only 只上报不阻断；
+    #   待内联脚本迁出后把下面那一行改成强制头即可（回退同样只改这一行）。
+    # 【其余三个头直接下发】nosniff / no-referrer / X-Frame-Options 对本应用
+    #   是纯收紧，不影响既有渲染。
+    try:
+        from agent.guardrails.safe_render import csp_headers as _csp_headers
+        for _hk, _hv in _csp_headers().items():
+            if _hk == "Content-Security-Policy":
+                response.headers["Content-Security-Policy-Report-Only"] = _hv
+            else:
+                response.headers.setdefault(_hk, _hv)
+    except Exception as _sh_err:  # noqa: BLE001  安全头失败绝不影响响应本身
+        logger.debug("安全响应头生成失败（本次响应不带该组头）: %s", _sh_err)
     return response
 
 # ── API 认证令牌 ──
@@ -652,10 +671,23 @@ def require_token(f):
 #   观察影子日志确认无误后，设 CP_API_AUTH_MODE=enforce 转为强制。
 # 【豁免】CP_API_AUTH_ALLOW 逗号分隔；**默认精确匹配**，子路径须显式写 "/x/*"
 #   （默认 /api/health 供探活；精确匹配是有意为之，见 _api_auth_allow_path 注释）。
-_API_AUTH_MODE = str(os.environ.get("CP_API_AUTH_MODE", "shadow")).strip().lower()
-if _API_AUTH_MODE not in ("shadow", "enforce", "off"):
-    logger.warning("[AuthGate] CP_API_AUTH_MODE=%r 非法，回落 shadow", _API_AUTH_MODE)
-    _API_AUTH_MODE = "shadow"
+# 【2026-09-30 三处改动，逐条说明为什么】
+#   ① **默认档位 shadow → enforce**：安全-default 才是对的。shadow 只记不拦，
+#      放在默认位意味着"部署完就有一个不设防的窗口，且没人会注意到"。
+#      本机 .env:442 **显式**写着 CP_API_AUTH_MODE=shadow，故本部署行为不变 ——
+#      但那是**显式选择**（且下方会告警），不再是"忘了配"的默认结果。
+#   ② **新增 enforce_all 档**：enforce 只覆盖变更型，GET 完全不查（安全审计实测：
+#      plugins/admin.py:779 的读全量审计日志等只读敏感面不在其内）。enforce_all 把
+#      GET/HEAD 一并纳入。【为什么不直接把 GET 并进 enforce】那会让所有已升级部署
+#      **当场**失去只读访问，属"一次性打挂"，与既有迁移纪律冲突；故作为显式升级档。
+#   ③ 新增 shadow 档在"已配令牌"时的一次性告警（见 _warn_if_gate_shadow_once）。
+_API_AUTH_MODE = str(os.environ.get("CP_API_AUTH_MODE", "enforce")).strip().lower()
+_AUTH_MODE_VALUES = ("shadow", "enforce", "enforce_all", "off")
+if _API_AUTH_MODE not in _AUTH_MODE_VALUES:
+    logger.warning("[AuthGate] CP_API_AUTH_MODE=%r 非法，回落 enforce", _API_AUTH_MODE)
+    _API_AUTH_MODE = "enforce"
+#: 读型方法（仅 enforce_all 档覆盖）
+_READ_METHODS = frozenset({"GET", "HEAD"})
 _API_AUTH_ALLOW = tuple(
     p.strip() for p in str(os.environ.get("CP_API_AUTH_ALLOW", "/api/health")).split(",") if p.strip()
 )
@@ -694,14 +726,46 @@ def _warn_if_gate_inert_once() -> None:
         logger.debug("[AuthGate] 令牌配置自检跳过: %s", _e)
 
 
+_AUTH_GATE_SHADOW_WARNED = False
+
+
+def _warn_if_gate_shadow_once() -> None:
+    """已在 shadow 档且**配了令牌**时告警一次（最容易被忽略的组合）。
+
+    【为什么单列这一条】_warn_if_gate_inert_once 只覆盖"令牌为空 ⇒ 闸门恒放行"；
+    而"**令牌配好了、闸门也在跑，却停在 shadow 只记不拦**"是另一种静默：
+    运维配完令牌会以为已经收口，实际上一个请求都没被拦过。
+    本仓 .env 当前正是这种状态（已配 64 字符令牌 + shadow），故必须显式可见。
+    """
+    global _AUTH_GATE_SHADOW_WARNED
+    if _AUTH_GATE_SHADOW_WARNED or _API_AUTH_MODE != "shadow":
+        return
+    _AUTH_GATE_SHADOW_WARNED = True
+    try:
+        from agent.server_auth import current_api_token, current_token_map
+        if current_api_token() or not current_token_map().empty:
+            logger.warning(
+                "[AuthGate] 令牌已配置，但 CP_API_AUTH_MODE=shadow ⇒ 闸门**只记录不拦截**，"
+                "未授权请求仍会被放行。确认影子日志无误后改为 enforce（或 enforce_all "
+                "以一并覆盖 GET/HEAD）即可收口。")
+    except Exception as _e:  # noqa: BLE001
+        logger.debug("[AuthGate] shadow 档自检跳过: %s", _e)
+
+
 @app.before_request
 def _api_auth_gate():
     """全局 API 鉴权兜底闸门。任何异常都放行并记 ERROR（可用性优先），不阻断业务。"""
     if _API_AUTH_MODE == "off":
         return None
     _warn_if_gate_inert_once()
+    _warn_if_gate_shadow_once()
     try:
-        if request.method not in _MUTATING:
+        # 【覆盖范围】enforce 只覆盖变更型；enforce_all 另覆盖读型（GET/HEAD）。
+        #   shadow 与 enforce 同覆盖面 —— 这样影子日志就是"切 enforce 后会拦什么"
+        #   的如实预演，而不是一个覆盖面不同的样本。
+        _covered = request.method in _MUTATING or (
+            _API_AUTH_MODE == "enforce_all" and request.method in _READ_METHODS)
+        if not _covered:
             return None
         path = request.path or ""
         # 【为什么不再限定 /api/ 前缀】首版只兜底 /api/，于是
@@ -717,11 +781,11 @@ def _api_auth_gate():
         ok, _actor, source = authorize_token(_bearer_or_header_token())
         if ok:
             return None
-        if _API_AUTH_MODE == "enforce":
-            logger.warning("[AuthGate] 拒绝未授权写请求 method=%s path=%s", request.method, path)
+        if _API_AUTH_MODE in ("enforce", "enforce_all"):
+            logger.warning("[AuthGate] 拒绝未授权请求 method=%s path=%s", request.method, path)
             return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
         # 影子模式：只记不拦，用于盘点实际会被拦下的调用
-        logger.warning("[AuthGate][shadow] 将拦截未授权写请求 method=%s path=%s source=%s",
+        logger.warning("[AuthGate][shadow] 将拦截未授权请求 method=%s path=%s source=%s",
                        request.method, path, source)
         return None
     except Exception as _e:  # noqa: BLE001 - 闸门自身故障不得阻断业务
@@ -2335,6 +2399,25 @@ if __name__ == "__main__":
                 print(f"ℹ️ SLO 周报定时任务未注册: {slo_task.get('reason')}")
         except Exception as e:
             print(f"⚠️ SLO 周报定时任务注册失败（不阻断主流程）: {e}")
+        # 数据保留策略归档（TASK-S8-01；**默认关闭** + **进程内首跑强制 dry-run**）
+        # 【为什么现在才接】`agent/retention/scheduler.py` 的开关（CP_RETENTION_ENABLED /
+        #   config.yaml retention.enabled）与首跑 dry-run 纪律**都已实现**，但
+        #   `register_retention_job()` 全仓**没有任何调用方** —— 也就是说运维即使把
+        #   开关打开也什么都不会发生，开关等于死信。本次把它接到与其他调度器同一处。
+        # 【安全性】未开启时该函数**不构造调度器、不碰任何文件**并直接返回 disabled；
+        #   策略表实测仅 `digestion_drafts` 一类标 deletable=True，审计链/每日根/
+        #   事件流等均为 redline 或 archive-only ⇒ 接线本身不引入删除动作。
+        try:
+            from agent.retention.scheduler import register_retention_job
+            retention_task = register_retention_job(scheduler)
+            _r_status = retention_task.get("status")
+            if _r_status == "scheduled":
+                print(f"✅ 数据保留策略归档任务注册: {retention_task}")
+            else:
+                print(f"ℹ️ 数据保留策略归档未启用: {_r_status}"
+                      f"（{retention_task.get('reason') or retention_task.get('hint') or '默认关闭'}）")
+        except Exception as e:
+            print(f"⚠️ 数据保留策略归档注册失败（不阻断主流程）: {e}")
         scheduler.start_daemon(check_interval=10)
         print("✅ 定时任务调度器已启动 (daemon)")
     except Exception as e:

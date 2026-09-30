@@ -32,4 +32,35 @@ schema:
       description: 可选，行范围，如 "1-50" 读取第1到50行
   required:
   - path
+# 【result_schema（V2.0 §3.4「output_schema 不可或缺」）】
+#   机制早已存在并已接线（agent/capregistry/contract.py + invoke.py 步骤⑦，
+#   契约违约会**报告但不改变 status**），缺失的只是**声明覆盖**：
+#   本次补前实测仅 3/91 个工具声明了 result_schema。
+#   写法沿用仓内既有口径：required 只锁 ok，其余字段可选，additionalProperties: true
+#   —— 宁可少检不可误报，避免把正常结果判成违约。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    content:
+      type: string
+    path:
+      type: string
+    size:
+      type: integer
+    encoding:
+      type: string
+    binary:
+      type: boolean
+    lines:
+      type: integer
+    range:
+      type: string
+    blocked_by:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

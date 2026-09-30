@@ -173,6 +173,20 @@ EV_INTERVENTION = "intervention"
 EV_COST = "cost"
 # ── S8-01 数据生命周期治理埋点 ──
 EV_RETENTION_RUN = "retention.run"
+# ── V2.0 §4.9 / INV-14 生命周期事件（本次新增）──
+# 【为什么需要这三个】审计实测：`fact.withdrawn` / `call.cancelled` / `run.cancelled`
+#   在**全仓 0 命中**，而事件信封是**闭集**（`normalize_type` 只认 ALL_EVENT_TYPES）
+#   ⇒ 取消/撤销即使发生也**无处可记**。V2.0 §4.9 的原话是「事件模型只增不减，
+#   已写入的事实无法撤出投影」，这三个事件就是补那一半：
+#     · fact.withdrawn  —— 与 fact.asserted 对称：把已断言的事实移出投影，
+#                          但**保留痕迹行**（INV-08：不静默消失）；
+#     · call.cancelled  —— 单次调用被取消（用户/deadline/上游重规划）；
+#     · run.cancelled   —— 整次 run 被取消（级联的载体，INV-14）。
+# 【为什么单开一组】上面三组是 §3.6 / P7.1-18 / §6.6 的**冻结清单**（有对拍用例），
+#   往里面塞会让"冻结"失去意义 ⇒ 与 GOVERNANCE_EVENT_TYPES 同样单列一组。
+EV_FACT_WITHDRAWN = "fact.withdrawn"
+EV_CALL_CANCELLED = "call.cancelled"
+EV_RUN_CANCELLED = "run.cancelled"
 
 #: §3.6 八事件（第 9 个 model.degraded 为 P7.1-18 补丁）
 CORE_EVENT_TYPES = (
@@ -187,7 +201,10 @@ METRIC_EVENT_TYPES = (EV_TASK_CLOSED, EV_TASK_ABANDONED, EV_APPROVAL,
 #: S8-01 数据生命周期治理埋点（保留策略每次执行一条；属**新增分组**，
 #: 不改动上面三组的语义 —— 上面三组是 §3.6/P7.1-18/§6.6 的冻结清单）
 GOVERNANCE_EVENT_TYPES = (EV_RETENTION_RUN,)
-ALL_EVENT_TYPES = NINE_EVENT_TYPES + METRIC_EVENT_TYPES + GOVERNANCE_EVENT_TYPES
+#: V2.0 §4.9 / INV-14 生命周期事件（新增分组，理由见上方常量处）
+LIFECYCLE_EVENT_TYPES = (EV_FACT_WITHDRAWN, EV_CALL_CANCELLED, EV_RUN_CANCELLED)
+ALL_EVENT_TYPES = (NINE_EVENT_TYPES + METRIC_EVENT_TYPES
+                   + GOVERNANCE_EVENT_TYPES + LIFECYCLE_EVENT_TYPES)
 
 #: 需要同步镜像入链式审计（S2-02）的治理类事件（§13.3 联动表：事件名 ↔ 审计写入）
 #:
@@ -1242,6 +1259,69 @@ def emit(event_type: str, payload: Optional[Dict[str, Any]] = None, *,
 
 
 # ════════════════════════════════════════════════════════════
+#  生命周期事件出口（V2.0 §4.9 / INV-14）
+# ════════════════════════════════════════════════════════════
+# 【为什么这三个要有专用出口而不是让调用方裸调 emit】
+#   它们的**载荷字段是对外契约**（§4.9.3 规定 `fact.withdrawn` 与 `fact.asserted`
+#   对称），裸调容易漏字段或改字段名，而事件是 append-only 的 —— 写错了就收不回。
+#   三个函数把字段名钉在一处，并由用例锁死。
+
+
+def emit_fact_withdrawn(*, call_id: str, subject: str, field: str,
+                        reason: str = "", correlation_id: str = "",
+                        actor: str = ACTOR_AUTO,
+                        store: Optional[EventStore] = None
+                        ) -> Optional[EventEnvelope]:
+    """发出 `fact.withdrawn` —— 把已断言的事实**移出投影但保留痕迹**（§4.9.3）
+
+    字段与 `fact.asserted` 对称：`call_id / subject / field / reason / ts`。
+
+    【为什么必须留痕而不是删掉】INV-08：静默消失与静默降级是幻觉与信任流失的
+    首要原因。投影层遇到本事件应把对应事实移出**当前快照**，但保留一行痕迹。
+    """
+    return emit(EV_FACT_WITHDRAWN,
+                {"call_id": call_id, "subject": subject, "field": field,
+                 "reason": reason},
+                actor=actor, correlation_id=correlation_id, store=store)
+
+
+def emit_call_cancelled(*, call_id: str, reason: str = "",
+                        requested_by: str = "", correlation_id: str = "",
+                        actor: str = ACTOR_AUTO,
+                        store: Optional[EventStore] = None
+                        ) -> Optional[EventEnvelope]:
+    """发出 `call.cancelled` —— 单次调用被取消（§4.9.1 三种来源之一）
+
+    三种来源：用户显式取消 / deadline 触发 / 上游重规划废弃分支 —— 记在 `reason`。
+    【幂等】`idempotency_key` 取 `call_id`：同一次调用被取消两次只记一条。
+    """
+    return emit(EV_CALL_CANCELLED,
+                {"call_id": call_id, "reason": reason,
+                 "requested_by": requested_by},
+                actor=actor, correlation_id=correlation_id or call_id,
+                idempotency_key=call_id, store=store)
+
+
+def emit_run_cancelled(*, run_id: str, reason: str = "",
+                       cancelled_calls: Optional[Sequence[str]] = None,
+                       correlation_id: str = "", actor: str = ACTOR_AUTO,
+                       store: Optional[EventStore] = None
+                       ) -> Optional[EventEnvelope]:
+    """发出 `run.cancelled` —— 整次 run 被取消（INV-14 级联的载体）
+
+    `cancelled_calls` 记录被本次级联取消的调用清单 —— 有它才能事后回答
+    「那次取消到底波及了哪些调用」（INV-14 要求「已完成的写操作必须补偿或
+    显式标注未补偿，不允许第三种状态」）。
+    【幂等】`idempotency_key` 取 `run_id`。
+    """
+    return emit(EV_RUN_CANCELLED,
+                {"run_id": run_id, "reason": reason,
+                 "cancelled_calls": list(cancelled_calls or [])},
+                actor=actor, correlation_id=correlation_id or run_id,
+                idempotency_key=run_id, store=store)
+
+
+# ════════════════════════════════════════════════════════════
 #  读取 / 聚合基元
 # ════════════════════════════════════════════════════════════
 
@@ -1351,8 +1431,9 @@ __all__ = [
     "EV_HEALING_TRIGGERED", "EV_METRICS_DELTA", "EV_POLICY_DENIED", "EV_BACKUP_HEALTH",
     "EV_MODEL_DEGRADED", "EV_TASK_CLOSED", "EV_TASK_ABANDONED", "EV_APPROVAL",
     "EV_ESCAPE", "EV_INTERVENTION", "EV_COST", "EV_RETENTION_RUN",
+    "EV_FACT_WITHDRAWN", "EV_CALL_CANCELLED", "EV_RUN_CANCELLED",
     "CORE_EVENT_TYPES", "NINE_EVENT_TYPES", "METRIC_EVENT_TYPES",
-    "GOVERNANCE_EVENT_TYPES", "ALL_EVENT_TYPES",
+    "GOVERNANCE_EVENT_TYPES", "LIFECYCLE_EVENT_TYPES", "ALL_EVENT_TYPES",
     "EventType", "EventEnvelope", "EventStore", "EventError", "EventEnvelopeError",
     "EventTypeError", "SingleWriterViolationError", "ReadOnlyEventStoreError",
     "normalize_type",
@@ -1361,6 +1442,7 @@ __all__ = [
     "register_writer", "release_writer", "active_writers", "reset_event_stores",
     "get_event_store", "get_event_reader", "default_correlation_id", "trace_fields",
     "emit", "iter_events", "read_events", "group_by_day", "filter_types",
+    "emit_fact_withdrawn", "emit_call_cancelled", "emit_run_cancelled",
 ]
 
 

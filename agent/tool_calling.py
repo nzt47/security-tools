@@ -141,6 +141,40 @@ def _validate_output_with_schema(response: str, max_retries: int = 3) -> dict:
     return {"valid": False, "content": response, "retry_count": max_retries}
 
 
+# ════════════════════════════════════════════════════════════
+#  单次 run 的控制块（修 C-1.2：abort / timeout 的跨会话串扰）
+# ════════════════════════════════════════════════════════════
+# 【改动前的真实缺陷（不是理论风险）】
+#   abort / timeout 信号此前是 **ToolCallingService 实例上的两个共享 Event**：
+#       self._abort_event = threading.Event()      # __init__
+#       self._timeout_event = threading.Event()    # __init__
+#   abort() 一置位，就终止**该实例上所有并发 run** 的工具循环；
+#   更糟的是每次新 run 开始时都会 `self._abort_event.clear()`，
+#   把另一个会话**尚未消费的中止信号**直接抹掉。
+#   ⇒ 现象是「甲会话点了停止，乙会话被一起掐断 / 停止键失灵」，
+#     且两个方向的症状都不是崩溃，而是**行为随机**，极难归因。
+#
+# 【修法】每个 run 开一份 _RunControl，循环内只读自己那一份；
+#   abort() 默认打**当前活动 run**（保持既有单会话调用方的语义不变），
+#   也接受 run_id 精确指定。
+#
+# 【向后兼容】`_abort_event` / `_timeout_event` 改由 property 暴露：
+#   无活动 run 时落到 _detached_control（仍是一个 threading.Event），
+#   故 tests/{boundary,integration,unit} 里 4 个文件对
+#   `isinstance(svc._abort_event, threading.Event)` 与 `svc.abort()` 后
+#   `is_set()` 的既有断言**全部继续成立**。
+class _RunControl:
+    """单次 run 的中止/超时信号（每 run 一份，互不干扰）"""
+
+    __slots__ = ("run_id", "abort_event", "timeout_event", "started_at")
+
+    def __init__(self, run_id: str) -> None:
+        self.run_id = run_id
+        self.abort_event = threading.Event()
+        self.timeout_event = threading.Event()
+        self.started_at = time.time()
+
+
 class ToolCallingService:
     """LLM 工具调用编排引擎（支持多模型路由）"""
 
@@ -174,11 +208,20 @@ class ToolCallingService:
         self._task_timeout = task_timeout
 
         self.last_steps: list[dict] = []
-        self._abort_event = threading.Event()
-        self._timeout_event = threading.Event()
 
-        from agent.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
-        self._circuit_breaker = CircuitBreaker(CircuitBreakerConfig(name="tool_calling"))
+        # ── 每 run 一份的中止/超时控制（见 _RunControl 的说明）──
+        self._runs: "dict[str, _RunControl]" = {}
+        self._run_stack: "list[str]" = []          # 栈顶 = 当前活动 run（支持嵌套）
+        self._runs_lock = threading.RLock()
+        #: 无活动 run 时的落点：让 `svc.abort()` / `svc._abort_event` 在
+        #: 「尚未 chat 就中止」这种既有用法下仍然可用（向后兼容，见 _RunControl）。
+        self._detached_control = _RunControl(run_id="")
+
+        # 【该删的已删】此处原有 `self._circuit_breaker = CircuitBreaker(...)`，
+        #   全仓实测：赋值后**再无任何引用**（死字段）⇒ 工具分发路径实际**没有熔断**。
+        #   保留一个不生效的字段会让人以为"已有熔断保护"，比没有更危险。
+        #   故删除该字段；"工具路径无熔断"作为登记缺口保留在审计报告 §3.4 高严重度项，
+        #   接线时应在 agent/tools/__init__.py 的 call() 收口处做，而不是在这里挂一个孤儿实例。
 
         # Schema 验证配置（P1 输出 Schema 验证能力）
         try:
@@ -248,10 +291,111 @@ class ToolCallingService:
             logger.error(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[ToolCalling] ⬆ 升级失败: %s' % e}))
             return False
 
-    def abort(self):
-        """手动中止当前正在进行的工具调用循环"""
-        self._abort_event.set()
-        logger.info(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[ToolCalling] ⏹ 手动中止已触发'}))
+    # ── 运行期控制块：每 run 一份（见 _RunControl 的说明）─────────────────
+
+    def _active_control(self) -> "_RunControl":
+        """当前活动 run 的控制块；无活动 run 时返回 _detached_control。"""
+        with self._runs_lock:
+            if self._run_stack:
+                ctl = self._runs.get(self._run_stack[-1])
+                if ctl is not None:
+                    return ctl
+            return self._detached_control
+
+    def _begin_run(self) -> "_RunControl":
+        """为一个新 run 建立**独立**控制块并压栈（支持嵌套 run）。"""
+        try:
+            from agent.capregistry.identity import new_run_id
+            _rid = new_run_id()
+        except Exception:  # noqa: BLE001  身份模块不可用 ⇒ 退化为本地 id（不阻断）
+            _rid = "run_" + uuid.uuid4().hex
+        ctl = _RunControl(run_id=_rid)
+        with self._runs_lock:
+            self._runs[_rid] = ctl
+            self._run_stack.append(_rid)
+        return ctl
+
+    def _end_run(self, run_id: str) -> None:
+        """注销 run 的控制块（幂等；run_id 不存在时静默返回）。"""
+        if not run_id:
+            return
+        with self._runs_lock:
+            self._runs.pop(run_id, None)
+            try:
+                self._run_stack.remove(run_id)
+            except ValueError:
+                pass
+
+    @property
+    def _abort_event(self) -> threading.Event:
+        """当前活动 run 的中止信号（**向后兼容属性**）。
+
+        改动前它是实例字段；改为属性后，
+        `isinstance(svc._abort_event, threading.Event)` 与无活动 run 时的
+        `svc.abort(); svc._abort_event.is_set()` 两种既有用法都继续成立。
+        """
+        return self._active_control().abort_event
+
+    @_abort_event.setter
+    def _abort_event(self, value: threading.Event) -> None:
+        self._active_control().abort_event = value
+
+    @property
+    def _timeout_event(self) -> threading.Event:
+        """当前活动 run 的超时信号（向后兼容属性，语义同 _abort_event）。"""
+        return self._active_control().timeout_event
+
+    @_timeout_event.setter
+    def _timeout_event(self, value: threading.Event) -> None:
+        self._active_control().timeout_event = value
+
+    def abort(self, run_id: "str | None" = None) -> bool:
+        """中止工具调用循环。
+
+        Args:
+            run_id: 精确指定要中止的 run。None（默认）⇒ 中止**当前活动 run**，
+                    无活动 run 时落到 _detached_control（保持既有单会话调用方语义）。
+
+        Returns:
+            True 表示已置位；False 表示指定的 run_id 不存在（**不静默**，会告警）。
+
+        【为什么接受 run_id】改动前一次 abort 会掐断该实例上**所有**并发 run
+        （见 _RunControl 记录的真实缺陷）。并发场景下调用方需要能只停自己那一个。
+        """
+        with self._runs_lock:
+            if run_id:
+                target = self._runs.get(run_id)
+            elif self._run_stack:
+                target = self._runs.get(self._run_stack[-1]) or self._detached_control
+            else:
+                target = self._detached_control
+        if target is None:
+            logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'abort',
+                                     'msg': '[ToolCalling] ⏹ 中止失败：run_id=%s 不存在（可能已结束）' % run_id}))
+            return False
+        target.abort_event.set()
+        logger.info(log_dict({'module_name': 'tool_calling', 'action': 'abort',
+                              'msg': '[ToolCalling] ⏹ 手动中止已触发 (run_id=%s)' % (target.run_id or '<detached>')}))
+        # ── 落 `run.cancelled` 事件（V2.0 §4.9 / INV-14）────────────────────
+        # 【为什么必须落】审计实测这三个事件在全仓 **0 命中** ⇒ 取消即使发生也
+        #   无处可记，事后无法回答"那次取消波及了哪些调用"。
+        # 【best-effort】事件出口自身失败绝不能影响中止动作（emit 本身已吞异常，
+        #   这里再兜一层，避免 import 期的意外把中止路径带崩）。
+        try:
+            from agent.observability.events import emit_run_cancelled
+            emit_run_cancelled(
+                run_id=target.run_id or "",
+                reason="operator_abort",
+                cancelled_calls=[c for c in self.active_run_ids()],
+                actor="human")
+        except Exception as _ev_err:  # noqa: BLE001
+            logger.debug("run.cancelled 事件未落（不影响中止）: %s", _ev_err)
+        return True
+
+    def active_run_ids(self) -> "list[str]":
+        """当前在跑的 run_id 列表（供 /health 面板与并发问题排查）。"""
+        with self._runs_lock:
+            return list(self._run_stack)
 
     def chat(self, messages: list[dict], system_prompt: str = "",
              max_tokens: int = 8192, temperature: float = 0.7,
@@ -283,9 +427,14 @@ class ToolCallingService:
         # 连续失败检测：记录每个工具连续返回错误的次数
         _consecutive_failures: dict[str, int] = {}
 
-        # 重置中止事件（每次新对话开始时清除之前的中止信号）
-        self._abort_event.clear()
-        self._timeout_event.clear()
+        # ── 本次 run 专属的控制块（修 C-1.2：abort/timeout 的跨会话串扰）────
+        # 改动前这里是 `self._abort_event.clear()` —— 实例共享字段，
+        # 于是「新会话开始」会抹掉**另一个会话尚未消费**的中止信号。
+        # 现在每个 run 拿自己的 Event，既不互相 clear，也不互相中止。
+        _ctl = self._begin_run()
+        _run_id = _ctl.run_id
+        _abort_evt = _ctl.abort_event
+        _timeout_evt = _ctl.timeout_event
 
         # ── 任务级重试预算（TASK-08 子工作流 D / E1e · E1e2）────────────────
         # 【为什么需要它】改动前重试在**三层**各自为政地放大：
@@ -323,10 +472,29 @@ class ToolCallingService:
             logger.debug(log_dict({'module_name': 'tool_calling', 'action': 'retry_budget',
                                    'msg': '重试预算不可用（按旧行为继续）: %s' % (_be,)}))
 
+        # ── run 级 deadline 传播（V2.0 §5.3 / §5.8.2）──────────────────
+        # 【为什么在这里设】本函数就是「一次 run」的边界。把 task_timeout 注入
+        #   deadline 后，下游全部 handler 上界会被 resolve_tool_handler_timeout
+        #   自动收敛到 remaining*0.7，**无需逐个改调用方**（D2 友好）。
+        # 【为什么必须 reset】ContextVar 在同一线程内会残留；不 reset 会让下一次
+        #   run 继承上一次的（可能已过期的）deadline —— 那比没有更坏。
+        _deadline_token = None
+        try:
+            from agent.timeout_budget import RESERVE_RATIO, set_run_deadline
+            _deadline_token = set_run_deadline(self._task_timeout)
+            if _deadline_token is not None:
+                logger.info(log_dict({'module_name': 'tool_calling', 'action': 'run_deadline',
+                                      'msg': '[ToolCalling] run deadline 已设置: %ds（下游 handler 上界收敛到 remaining*%.1f）'
+                                             % (self._task_timeout, 1.0 - RESERVE_RATIO)}))
+        except Exception as _dl_err:  # noqa: BLE001  deadline 不可用不得阻断主链路
+            _deadline_token = None
+            logger.debug(log_dict({'module_name': 'tool_calling', 'action': 'run_deadline',
+                                   'msg': 'run deadline 不可用（按旧行为继续）: %s' % _dl_err}))
+
         # 启动任务级超时定时器（默认 600s = 10 分钟）
         _timeout_timer = None
         if self._task_timeout > 0:
-            _timeout_timer = threading.Timer(self._task_timeout, self._timeout_event.set)
+            _timeout_timer = threading.Timer(self._task_timeout, _timeout_evt.set)
             _timeout_timer.daemon = True
             _timeout_timer.start()
             logger.info(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[ToolCalling] 任务超时保护已启用: %d 秒' % self._task_timeout}))
@@ -334,16 +502,16 @@ class ToolCallingService:
         response = None  # 安全初始值
         try:
             for round_idx in range(self._max_rounds + 1):
-                # 检查手动中止信号
-                if self._abort_event.is_set():
+                # 检查手动中止信号（只读**本 run** 的信号，不再读实例共享字段）
+                if _abort_evt.is_set():
                     logger.info(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[ToolCalling] ⏹ 检测到中止信号，终止工具循环'}))
                     steps.append({"type": "aborted", "summary": "⏹ 用户手动中止"})
                     if on_step: on_step(steps[-1])
                     result = {"text": self._get_last_assistant_text(working_messages) or "（已中止）", "steps": steps}
                     return result
 
-                # 检查任务超时
-                if self._timeout_event.is_set():
+                # 检查任务超时（同上，只读本 run）
+                if _timeout_evt.is_set():
                     logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[ToolCalling] ⏰ 任务执行超时（%d 秒），终止工具循环' % self._task_timeout}))
                     steps.append({"type": "timed_out", "summary": f"⏰ 任务执行超时（{self._task_timeout} 秒）"})
                     if on_step: on_step(steps[-1])
@@ -355,7 +523,7 @@ class ToolCallingService:
                 # LLM 调用增加指数退避重试，应对瞬时网络波动
                 llm_last_exc = None
                 for retry_attempt in range(3):
-                    if self._abort_event.is_set():
+                    if _abort_evt.is_set():
                         break
                     try:
                         has_tools = need_tools is not None and len(need_tools) > 0
@@ -638,6 +806,15 @@ class ToolCallingService:
                 result["reasoning"] = response.reasoning_content
             return result
         finally:
+            # 注销本 run 的控制块（否则 _runs 会随会话数无界增长）
+            self._end_run(_run_id)
+            # 释放 run deadline（否则会沿线程残留到下一次 run）
+            if _deadline_token is not None:
+                try:
+                    from agent.timeout_budget import reset_run_deadline
+                    reset_run_deadline(_deadline_token)
+                except Exception:  # noqa: BLE001  释放失败不得影响返回结果
+                    pass
             # 取消超时定时器（防止定时器在任务完成后触发）
             if _timeout_timer:
                 _timeout_timer.cancel()
@@ -981,23 +1158,54 @@ class ToolCallingService:
         except Exception:
             pass
 
-        # 尝试使用 ErrorRecovery 工作流
+        # ── 调用身份：**编排层在发出前预分配** call_id（V2.0 INV-04）──────────
+        # 【为什么必须在这里预分配】审计实测：agent/ 全域 call_id = 0 命中，
+        #   调用身份由 20+ 处在**执行体内部**现场自造 12 位 id
+        #   （tools/__init__.py:494、permission_system.py:644、llm_monitor.py:158 …）。
+        #   后果是审计链 / 统一 Trace / 成本台账没有共同主键 ⇒ 无法归位。
+        # 【为什么一个 id 覆盖全部重试】V2.0 §3.11 定义 idempotency_key = call_id，
+        #   而幂等的前提正是「重试不换 id」。故在**重试循环之外**分配一次。
+        from agent.capregistry.identity import call_scope, new_call_id
+        _call_id = new_call_id()
+
+        # 工具后果等级（read/write/execute/extend）—— 决定「能否重试」。
+        # 取不到 ⇒ 空串 ⇒ 视为后果未知 ⇒ 不重试（fail-closed，见 ErrorRecovery）。
+        from agent.response_workflows import resolve_tool_effect
+        _tool_effect = resolve_tool_effect(func_name)
+
+        # 工具错误恢复工作流（V2.0 §3.6 七分类 + INV-09 幂等闸门）
+        # 【为什么这里不再静默吞 ImportError】改动前导入的
+        #   ErrorRecovery / ToolResultProcessor **在本仓从来不存在**（实测类定义数 0），
+        #   该 ImportError 被吞掉的后果是：工具失败**永不重试**、
+        #   compress_verbose **永不执行**（上下文压缩形同虚设），且全程无声。
+        #   这违反 INV-08（禁止静默降级），故失败必须**显式告警**并声明本次不重试。
         try:
             from agent.response_workflows import ErrorRecovery, ToolResultProcessor
             has_workflow = True
-        except ImportError:
+        except ImportError as _wf_err:  # pragma: no cover - 仅当依赖被删除时触发
             has_workflow = False
+            logger.error(log_dict({'module_name': 'tool_calling', 'action': 'error_recovery',
+                                   'msg': '[ToolCalling] 工具错误恢复工作流不可用'
+                                          '（工具失败将不重试、结果不压缩）: %s' % _wf_err}))
 
         for attempt in range(3):
             try:
-                result = self._execute_safe_core(func_name, args)
+                # call_id 覆盖本次调用（含其全部重试）——执行体只读不建
+                with call_scope(_call_id):
+                    result = self._execute_safe_core(func_name, args)
 
-                # 后处理：格式化 + 压缩
+                # 后处理：格式化 + 压缩（V2.0 §4.5 token 预算一等公民）
                 if has_workflow and result.get("ok"):
                     try:
-                        ToolResultProcessor.compress_verbose(result)
-                    except Exception:
-                        pass
+                        _cr = ToolResultProcessor.compress_verbose(result)
+                        if _cr.get("compressed"):
+                            logger.info(log_dict({
+                                'module_name': 'tool_calling', 'action': 'result_compress',
+                                'msg': '[ToolCalling] 工具 %s 结果已压缩: 字段=%s, 省下 %d 字符'
+                                       % (func_name, _cr.get("fields"), _cr.get("saved_chars"))}))
+                    except Exception as _compress_err:  # noqa: BLE001  压缩失败不影响结果
+                        logger.debug(log_dict({'module_name': 'tool_calling', 'action': 'result_compress',
+                                               'msg': '结果压缩失败（原样返回）: %s' % _compress_err}))
 
                 if recorder is not None and ctx is not None:
                     recorder.finish_trace(ctx, result, None)
@@ -1005,13 +1213,23 @@ class ToolCallingService:
                 return result
             except tools.ToolError as e:
                 error_msg = str(e)
-                # 用错误恢复工作流决定是否重试
+                # 用错误恢复工作流决定是否重试（含 INV-09 幂等闸门与 run 级预算）
                 if has_workflow:
-                    plan = ErrorRecovery.get_recovery_plan(error_msg, attempt)
+                    plan = ErrorRecovery.get_recovery_plan(
+                        error_msg, attempt, tool_name=func_name, effect=_tool_effect)
                     if plan["should_retry"]:
-                        logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '[恢复] %s (尝试 %d/3, %.1fs 后重试)' % (plan['message'], attempt + 1, plan['delay'])}))
+                        logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'error_recovery',
+                                                'msg': '[恢复] call_id=%s %s (尝试 %d/%d, %.1fs 后重试)'
+                                                       % (_call_id, plan['message'], attempt + 1,
+                                                          ErrorRecovery.MAX_ATTEMPTS, plan['delay'])}))
                         time.sleep(plan["delay"])
                         continue
+                    # 【为什么不重试也必须留痕】INV-08：判定结果必须可归因，
+                    #   否则"没重试"与"代码路径到不了"在事后无法区分
+                    #   —— 这正是本次改动要修的病灶本身。
+                    logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'error_recovery',
+                                            'msg': '[恢复] call_id=%s 工具 %s 不重试: %s'
+                                                   % (_call_id, func_name, plan['reason'])}))
                 result = {"ok": False, "error": error_msg}
                 if recorder is not None and ctx is not None:
                     recorder.finish_trace(ctx, result, e)
@@ -1020,10 +1238,18 @@ class ToolCallingService:
             except Exception as e:
                 logger.error(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '工具 %s 执行异常: %s' % (func_name, e)}))
                 if has_workflow:
-                    plan = ErrorRecovery.get_recovery_plan(str(e), attempt)
+                    plan = ErrorRecovery.get_recovery_plan(
+                        str(e), attempt, tool_name=func_name, effect=_tool_effect)
                     if plan["should_retry"]:
+                        logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'error_recovery',
+                                                'msg': '[恢复] call_id=%s %s (尝试 %d/%d, %.1fs 后重试)'
+                                                       % (_call_id, plan['message'], attempt + 1,
+                                                          ErrorRecovery.MAX_ATTEMPTS, plan['delay'])}))
                         time.sleep(plan["delay"])
                         continue
+                    logger.warning(log_dict({'module_name': 'tool_calling', 'action': 'error_recovery',
+                                            'msg': '[恢复] call_id=%s 工具 %s 不重试: %s'
+                                                   % (_call_id, func_name, plan['reason'])}))
                 result = {"ok": False, "error": f"工具执行异常: {e}"}
                 if recorder is not None and ctx is not None:
                     recorder.finish_trace(ctx, result, e)

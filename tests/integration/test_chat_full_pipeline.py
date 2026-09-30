@@ -285,7 +285,16 @@ class TestChatFullPipeline:
 
         assert service._abort_event.is_set() is True
 
-        status = service._circuit_breaker.get_status()
-        assert status["state"] == "closed"
+        # 【2026-09-30 重构：原断言已移除，理由留档（非静默删除）】
+        #   原文为：
+        #       status = service._circuit_breaker.get_status()
+        #       assert status["state"] == "closed"
+        #   审计确认 `_circuit_breaker` 是 ToolCallingService 上的**死字段**：
+        #   赋值后全仓再无任何引用（工具分发路径实际**没有熔断**），
+        #   故该断言验证的是"一个从未被使用的对象处于初态"，
+        #   与任何真实行为无关。字段已删除，断言随之移除。
+        #   这不是降低覆盖：工具路径无熔断属**登记缺口**（审计报告 §3.4 高），
+        #   真实接线时应补的是"熔断打开时 call() 被拒"的行为断言，而非初态断言。
+        assert not hasattr(service, "_circuit_breaker")
 
         service._abort_event.clear()

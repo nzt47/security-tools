@@ -43,6 +43,10 @@ PLUGIN_DIR = Path(__file__).parent
 PLUGIN_PACKAGE = __package__ or "plugins"
 
 # 保留模块：协议层 / 服务层 / 装配器自身不参与扫描
+# 【删过又撤回，留档】我一度把 "services" 当"指向不存在文件的死引用"删掉 —— 错了：
+#   tests/test_plugin_loader.py::test_load_all_imports_candidates_and_skips_reserved
+#   会**显式写入一个 services.py** 并断言它被跳过 ⇒ "services" 是**保留名约定**
+#   （为服务层预留），不是笔误。测试是"预期行为"的权威，故撤回该删除。
 _SKIP_MODULES = {"plugin_api", "services", "loader"}
 
 # 刷新/注册的并发互斥（防并发 reload 与增量蓝图注册交错）

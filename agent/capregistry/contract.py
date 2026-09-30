@@ -41,8 +41,15 @@ __all__ = [
 #:   - `data_format_detect`：字符串 → 格式判定（JSON/XML/YAML/CSV）
 #:   - `json_query`：JSONPath 取值
 #:   - `get_file_info`：文件元信息
+#: 【2026-09-30 扩充 3 → 5】审计实测覆盖面只有 3/91，而 read_file / search_files
+#: 是被 LLM 调用频率最高的两个感知工具（工程主线可见集里就有它们）——
+#: 契约校验的价值与调用频次成正比，故优先补齐这两个。
+#: 【为什么不一次补 91 个】result_schema 必须**逐工具核对其真实返回形状**，
+#: 批量生成只会产出「看起来有、其实错」的 schema，那比没有更坏（假契约）。
+#: 扩充纪律：本元组**只许增长**，由 test_capregistry_core.py 锁定。
 RESULT_SCHEMA_REQUIRED_TOOLS: Tuple[str, ...] = (
-    "data_format_detect", "json_query", "get_file_info")
+    "data_format_detect", "json_query", "get_file_info",
+    "read_file", "search_files")
 
 
 def _builtin_check(value: Any, schema: Dict[str, Any], path: str,

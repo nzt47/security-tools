@@ -36,6 +36,7 @@ __all__ = [
     "ErrorCodeMeta",
     "CODE_META",
     "OK",
+    "PARTIAL",
     "RETRYABLE_CODES",
     "LLM_VISIBLE_CODES",
     "CapabilityError",
@@ -49,6 +50,15 @@ __all__ = [
 
 # ── 14 个错误码（v1.4 §8.2 逐条对齐；顺序即文档顺序，勿重排）──
 OK = "ok"
+
+#: 部分成功状态（V2.0 §3.4「partial 单独设立」）。
+#: 【为什么不放进 ERROR_CODES】它不是错误码 —— 调用**拿到了可用数据**，
+#:   只是有源缺失。放进 ERROR_CODES 会让"CI 可凭 code 阻断"的既有消费者把
+#:   部分成功误判为失败（D2 违规）。故它是与 ok/error 并列的第三种 **status**。
+#: 【为什么需要它】本仓此前只有 ok/error 二值 ⇒ "部分源超时但仍有可用数据"
+#:   只能二选一：要么谎报 ok（静默降级，违 INV-08），要么报 error 丢弃数据。
+#:   这正是 V2.0 §3.4 把它称为"降低首字时间的关键手段"的原因。
+PARTIAL = "partial"
 
 ERROR_CODES: tuple = (
     "ok",
@@ -407,24 +417,40 @@ class CapabilityResult:
     data: Any = None
     error: Optional[Dict[str, Any]] = None
     meta: Dict[str, Any] = field(default_factory=dict)
+    #: 部分成功时**缺失了什么**（V2.0 §3.4：partial 必须标注缺失，不得静默）。
+    #: 非 partial 时保持空列表 —— 这样 ok/error 的键集与改动前逐字一致（D2）。
+    missing: List[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
         return self.status == "ok"
 
+    @property
+    def is_partial(self) -> bool:
+        """是否为部分成功（拿得到数据，但有源缺失）。"""
+        return self.status == PARTIAL
+
     def to_dict(self) -> Dict[str, Any]:
-        # 【D2】键序与键集固定，便于 CLI/HTTP 逐字段对拍
-        return {
+        # 【D2】键序与键集固定，便于 CLI/HTTP 逐字段对拍。
+        # partial 是**新增状态**，只有它才多出 "missing" 键 ——
+        # 既有 ok/error 的键集与键序一字未改，故既有对拍断言不受影响。
+        out: Dict[str, Any] = {
             "status": self.status,
             "code": self.code,
             "data": self.data,
             "error": self.error,
             "meta": dict(self.meta),
         }
+        if self.status == PARTIAL:
+            out["missing"] = list(self.missing)
+        return out
 
     def http_status(self) -> int:
         if self.status == "ok":
             return 200
+        if self.status == PARTIAL:
+            # 206 Partial Content：语义精确 —— 有正文，但不完整。
+            return 206
         return CODE_META.get(self.code, CODE_META["internal_error"]).http_status
 
 
@@ -438,3 +464,30 @@ def err_result(err: CapabilityError,
     return CapabilityResult(
         status="error", code=err.code, data=None,
         error=err.to_llm_safe(), meta=dict(meta or {}))
+
+
+def partial_result(data: Any,
+                   missing: List[str],
+                   *,
+                   code: str = OK,
+                   meta: Optional[Dict[str, Any]] = None) -> CapabilityResult:
+    """构造**部分成功**结果（V2.0 §3.4）。
+
+    Args:
+        data: 已经拿到的可用数据（不得为 None —— 那应走 err_result）
+        missing: 缺失项的人类可读说明（**必填非空**：partial 的全部意义就是
+                 把"缺了什么"说清楚；空列表会被拒绝，避免 partial 退化成
+                 一个没有信息量的第三种状态）
+        code: 关联错误码（如 timeout），便于 CI 归类
+        meta: 附加元数据
+
+    Raises:
+        ValueError: missing 为空 —— 强制调用方声明缺失项（INV-08 不静默降级）
+    """
+    if not missing:
+        raise ValueError(
+            "partial_result 要求显式声明 missing 项；"
+            "若没有缺失就应当用 ok_result（宁可不产 partial，也不产无信息的 partial）")
+    return CapabilityResult(
+        status=PARTIAL, code=code, data=data, error=None,
+        meta=dict(meta or {}), missing=[str(m) for m in missing])

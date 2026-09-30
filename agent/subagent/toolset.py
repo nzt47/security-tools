@@ -477,8 +477,70 @@ class SubAgentToolset:
             extra={"tenant_id": self.tenant_id} if self.tenant_id else {},
         )
 
+    def _exposure_deny(self, name: str) -> Optional[ToolDecision]:
+        """§5.7 机制 3「能力最小暴露」判定（**本次接线补齐**）
+
+        【为什么此前是空的】agent/guardrails/capability_exposure.py 早已写好，
+        其模块头自述「本模块出清单与判定，**S4-04 把它接到执行器工具注入层**」——
+        而 S4-04 只落了 _matrix_deny（Actor 矩阵），机制 3 的接线一直没做，
+        于是它成为审计里「生产零调用方」的三个模块之一。
+
+        【只接绝对禁项，不接"默认闭集"那一半（关键取舍）】
+        is_exposed() 的闭集语义已由 build() 的「申请 ∩ 授权子集」实现了；
+        再接一遍会让 hard_denied() 把所有未授权名都报成"硬禁"，
+        使它从「绝对禁止清单」退化成「授权清单」，语义被稀释。
+        机制 3 的绝对禁项（记忆读写 / 核心改写 / 审批权）本就**强于**矩阵的
+        "可看见但被拒"，故放在矩阵之前判定，让拒绝原因指向真正的收口层。
+        """
+        try:
+            from agent.guardrails import capability_exposure as _expo
+        except Exception:  # noqa: BLE001  守卫不可用 ⇒ 不新增拒绝（矩阵仍在，不放松）
+            return None
+        # 【matched 取"最短的被命中形态"】
+        #   包裹名（mcp:fs::memory.write）经 name_candidates 会展开出多个可比对形态，
+        #   其中**原始包裹名**本身也含 "memory.write" ⇒ 直接判它会把 matched 报成
+        #   包裹名，与矩阵路径回填的内层名不一致
+        #   （test_wrapped_name_reports_matched_inner_name 锁的正是这个口径）。
+        #   最短的那个被命中形态就是该能力的**规范 id**，与矩阵同口径。
+        try:
+            flagged = [c for c in name_candidates(name)
+                       if _expo.classify_capability(c)]
+        except Exception:  # noqa: BLE001
+            return None
+        if not flagged:
+            return None
+        matched = min(flagged, key=len)
+        try:
+            classes = _expo.classify_capability(matched)
+        except Exception:  # noqa: BLE001
+            classes = []
+        if not classes:
+            return None
+        try:
+            labels = "、".join(_expo.CLASS_LABELS.get(c, c) for c in classes)
+        except Exception:  # noqa: BLE001
+            labels = "、".join(classes)
+        return ToolDecision(
+            tool=name, allowed=False, matched=matched,
+            reason=("§5.7 机制 3 绝对禁项（%s）—— sub_agent 永不暴露，显式授权亦不可覆盖"
+                    % labels),
+            in_authorized_subset=matched in self.authorized_capabilities,
+        )
+
     def _matrix_deny(self, name: str) -> Optional[ToolDecision]:
-        """受保护类别判定（矩阵 + 前缀双网，fail-closed）"""
+        """受保护类别判定（矩阵 → 前缀双网 → 机制 3 兜底，fail-closed）
+
+        【为什么是"矩阵先判、机制 3 兜底"而不是反过来】
+        两者判定同一件事的两个来源，但**返回的决策对象不同**：矩阵会填
+        `matrix_operation` / `matrix_scope`（下游与用例据它区分"被谁拒的"），
+        机制 3 没有这两个字段。若先判机制 3，矩阵本可拒绝的名字会改成由机制 3
+        拒绝 ⇒ 决策对象字段缺失 ⇒ 既有契约（test_subagent_toolset 三条）被破坏。
+        换成"矩阵放行时才用机制 3 兜底"后：
+          · 矩阵拒绝的名字 —— 行为**逐字不变**；
+          · 矩阵放行/无意见的名字 —— 新增机制 3 判定，**只可能更严**。
+        这正是机制 3 相对矩阵的增量所在（其 enforce_scope_consistency() 就是
+        为"两者若有分歧、以更严者为准"而写）。
+        """
         operation = _all_tool_operation_rules().get(name)
         if operation is None:
             for prefix in PROTECTED_TOOL_PREFIXES:
@@ -487,11 +549,12 @@ class SubAgentToolset:
                     return ToolDecision(
                         tool=name, allowed=False, matched=name,
                         reason=f"受保护类别 {prefix!r}（未登记映射，fail-closed 拒绝）")
-            return None
+            # 矩阵没有意见 ⇒ 交给机制 3（可能仍被绝对禁项拦下）
+            return self._exposure_deny(name)
         decision = decide(operation, self._permission_context(),
                           object_type="tool", object_id=name)
         if decision.allowed:
-            return None
+            return self._exposure_deny(name)
         return ToolDecision(
             tool=name, allowed=False, matched=name,
             reason=f"§7.0 矩阵拒绝（{decision.operation}）：{decision.reason}",
@@ -514,8 +577,13 @@ class SubAgentToolset:
         for name in candidates:
             hard = self._matrix_deny(name)
             if hard is not None:
+                # 【matched 优先取判定给出的值】矩阵路径下 hard.matched 恒等于候选名
+                #   （矩阵就是用它构造的），故改为 hard.matched **不改变矩阵行为**；
+                #   而机制 3 路径给出的是**规范 id**（包裹名的内层名），
+                #   这正是 test_wrapped_name_reports_matched_inner_name 锁定的口径。
                 return ToolDecision(
-                    tool=raw, allowed=False, matched=name, reason=hard.reason,
+                    tool=raw, allowed=False, matched=(hard.matched or name),
+                    reason=hard.reason,
                     matrix_operation=hard.matrix_operation,
                     matrix_scope=hard.matrix_scope,
                     in_authorized_subset=hard.in_authorized_subset)

@@ -48,10 +48,22 @@ class TestConfigValidation(unittest.TestCase):
             "security": {"enable_encryption": True},
             # circuit_breaker：2026-08 新增为必需配置节（三级熔断器配置，
             # 对应 ConfigModel.circuit_breaker / agent/circuit_breaker.py）
+            # 【2026-09-30 更正夹具语义（不是改断言）】
+            #   原值 failure_threshold = 5 / 20 / 100 是**次数**语义，与仓内权威不符：
+            #   docs/circuit_breaker_and_log_redaction.md:57-62 明确定义
+            #       failure_threshold : float, [0, 1]，1.0 = 100% 失败率才触发
+            #       min_requests      : int,   [1, 10000]，触发熔断的最小请求数
+            #   并由 config.py::CircuitBreakerScopeConfig 的 Field(ge=0.0, le=1.0) 强制。
+            #   夹具此前之所以"通过"，只是因为校验被一行死导入废掉了 —— 属陈旧夹具。
+            #   现按权威文档改为「失败率 + 最小请求数」，断言（0 错误）本身未动。
+            #   附带修正：字段名是 recovery_timeout（不是 cool_down_seconds）。
             "circuit_breaker": {
-                "session": {"failure_threshold": 5, "cool_down_seconds": 30},
-                "user": {"failure_threshold": 20, "cool_down_seconds": 60},
-                "global": {"failure_threshold": 100, "cool_down_seconds": 300},
+                "session": {"failure_threshold": 0.5, "min_requests": 5,
+                            "recovery_timeout": 30.0},
+                "user": {"failure_threshold": 0.5, "min_requests": 20,
+                         "recovery_timeout": 60.0},
+                "global": {"failure_threshold": 0.5, "min_requests": 100,
+                           "recovery_timeout": 300.0},
             },
         }
         errors = self.validate_config(config)

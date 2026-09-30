@@ -28,6 +28,19 @@ services:
       - ERROR_REPORTING_FILE_LEVEL=error
       - ERROR_REPORTING_WEBHOOK_ENABLED=false
       - ERROR_REPORTING_SLACK_ENABLED=false
+      # ── 鉴权令牌（安全审计 H1′ / A-2）────────────────────────────────
+      # 【为什么必须显式列出】Compose 会读项目目录下的 .env 做 ${VAR} **插值**，
+      #   但插值 ≠ 注入容器 —— 只有 environment: 里列出的变量才真正进容器。
+      #   改动前此处**没有**任何令牌变量，而 .env 也不在挂载卷里（见下方 volumes），
+      #   于是容器内 FLASK_API_TOKEN 为空 ⇒ agent/server_auth.py 走
+      #   SRC_NO_TOKEN_CONFIGURED ⇒ 所有 @require_token 端点**不做校验**。
+      #   同一份代码在宿主机（.env 已配 64 字符令牌）是 401、在容器里是放行，
+      #   属"一码两态"，运维无从察觉。列出这两项即消除该差异。
+      # 【为什么不写默认值】${FLASK_API_TOKEN:-} 为空时容器行为与改动前一致
+      #   （fail-open），但 app_server.py 会在启动时**明确告警**——
+      #   即"没有令牌"从此是可见状态，而不是沉默状态（INV-08）。
+      - FLASK_API_TOKEN=${FLASK_API_TOKEN:-}
+      - CP_UI_TOKENS=${CP_UI_TOKENS:-}
       # 功能开关
       - YUNSHU_FEATURE_SANDBOX=${YUNSHU_FEATURE_SANDBOX:-false}
       # [CHG-2026-0801] Reranker 热重载配置（Linux Docker 环境可安全启用）

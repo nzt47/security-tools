@@ -473,6 +473,70 @@ def _gate_unavailable_outcome(name: str, params: Any, exc: BaseException, *,
     }
 
 
+def _saga_begin_for_tool(name: str, params: dict):
+    """为**破坏性**工具调用开一次 Saga 三阶段账本（§4.6）；不适用/不可用返回 None。
+
+    【为什么是"开账本"而不是"拦调用" —— 这是本次接线的关键取舍】
+      `agent/self_healing/saga.py` 早已实现（prepare→execute→confirm + journal +
+      补偿失败升级 L4），但**没有任何生产调用方**（审计实测：`Saga(` 仅出现在自身
+      文件内）。§4.6 的原话是「高风险操作（risk ≥ high）必须走 Saga」。
+      然而"必须走 Saga"有两种落法：
+        a) **硬闸门** —— risk ≥ high 且无 undo_hint 就拒绝执行；
+        b) **开账本** —— 照常执行，但把"打算做什么 / 前后状态 / 该补偿什么"记进 journal。
+      本实现选 b，理由：本仓存量描述符的 `undo_hint` 覆盖率很低（S1-02 仍在回填），
+      选 a 会**当场拦死一批原本可用的写操作**，属"一次性打挂"；而 a 的价值
+      （可追溯、可补偿）在 b 下同样拿到。缺口不再沉默：risk ≥ high 且 undo_hint
+      不可执行时，这里**显式记 ERROR 事件**，把"该补而没补"暴露出来（INV-08）。
+
+    【失败姿态】任何异常 ⇒ 返回 None ⇒ 调用方按**原路径**执行（不因账本故障而
+      改变工具的可执行性）。
+    """
+    try:
+        from agent.lines.models import load_tool_meta
+        meta = load_tool_meta().get(name)
+        if meta is None:
+            return None
+        effect = str(getattr(meta, "effect", "") or "").strip().lower()
+        # 只给**会改变世界**的后果等级开账本；read 无需补偿
+        if effect not in ("write", "execute", "extend"):
+            return None
+        from agent.self_healing.saga import (
+            SAGA_REQUIRED_RISK, Saga, SagaStep, check_undo_hint, risk_rank,
+        )
+        risk = getattr(meta, "risk", "")
+        undo_hint = ""
+        try:
+            from agent.descriptors.registry import DescriptorRegistry
+            desc = None
+            try:
+                desc = DescriptorRegistry().get("cp.builtin." + name)
+            except Exception:  # noqa: BLE001
+                desc = None
+            if desc is not None:
+                gov = getattr(getattr(desc, "governance", None), "undo_hint", "")
+                undo_hint = str(gov or "")
+        except Exception:  # noqa: BLE001
+            undo_hint = ""
+        # 缺口显式化：risk ≥ high 而 undo_hint 不可执行 ⇒ 记 ERROR（**不拦调用**）
+        if risk_rank(risk) >= risk_rank(SAGA_REQUIRED_RISK):
+            try:
+                _check = check_undo_hint({"governance": {"undo_hint": undo_hint}})
+                if not bool(_check.get("ok", False)):
+                    logger.error(
+                        "[Saga] 工具 %s 的 risk=%s（≥%s）但 undo_hint 不可执行 ⇒ "
+                        "本次按「开账本不拦调用」执行；缺口已登记待回填（INV-08 不静默）: %s",
+                        name, risk, SAGA_REQUIRED_RISK, _check.get("reason", ""))
+            except Exception:  # noqa: BLE001
+                pass
+        saga = Saga(steps=[SagaStep(name=name, action=name,
+                                 compensating_action=undo_hint)])
+        saga.prepare({"tool": name, "params": params or {}})
+        return saga
+    except Exception as exc:  # noqa: BLE001  账本故障不得改变工具可执行性
+        logger.debug("[Saga] 工具 %s 未能开账本（按原路径执行）: %s", name, exc)
+        return None
+
+
 def call(*args, **params) -> Any:
     """调用指定工具
 
@@ -612,12 +676,23 @@ def call(*args, **params) -> Any:
             except Exception:  # noqa: BLE001  上界机制自身故障 ⇒ 退化为旧行为
                 _handler_timeout = 0.0
 
+            # ── §4.6 Saga：破坏性操作的三阶段账本（**本次接线补齐**）──────
+            # 【为什么接在这里】本行是工具 handler 的**唯一执行点**；把账本开在
+            #   "执行前、执行后"两侧，prepare/execute/confirm 三条 journal 才真正落盘。
+            # 【不改变可执行性】_saga_begin_for_tool 失败返回 None，且 abort/confirm
+            #   全程 best-effort —— 账本故障绝不让一次原本可用的写操作失败。
+            _saga = _saga_begin_for_tool(name, params)
             _ok, _outcome = call_with_timeout(
                 tool["handler"], _handler_timeout, kwargs=params, label=name,
             )
             if not _ok:
                 duration = time.time() - start
                 _update_health(name, False, duration)
+                if _saga is not None:
+                    try:
+                        _saga.abort("timeout: 工具执行超过上界 %.1fs" % _handler_timeout)
+                    except Exception as _sg_err:  # noqa: BLE001
+                        logger.debug("[Saga] abort 失败（不影响超时返回）: %s", _sg_err)
                 logger.error("[%s] 工具执行超时: %s — 上界 %.1fs",
                              trace_id, name, _handler_timeout)
                 if _action_tracker:
@@ -626,6 +701,12 @@ def call(*args, **params) -> Any:
                 # 上层（LLM 循环）应能读到它并换策略，而不是把整轮对话打断。
                 return timeout_error_payload(name, _handler_timeout)
             result = _outcome
+
+            if _saga is not None:
+                try:
+                    _saga.confirm(result=result)
+                except Exception as _sg_err:  # noqa: BLE001
+                    logger.debug("[Saga] confirm 失败（不影响工具结果）: %s", _sg_err)
 
             duration = time.time() - start
             _update_health(name, True, duration)

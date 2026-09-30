@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+from contextlib import contextmanager
 import inspect
 import os
 import random
@@ -175,8 +176,6 @@ def resolve_tool_handler_timeout(tool: Optional[dict], params: Optional[dict] = 
       3. 全局关闭（0）时**一律不限**，保留旧行为以便回滚。
     """
     ceiling = tool_handler_timeout()
-    if ceiling <= 0:
-        return 0.0
     if params:
         for key in _SCALAR_TIMEOUT_PARAMS:
             raw = params.get(key)
@@ -187,8 +186,16 @@ def resolve_tool_handler_timeout(tool: Optional[dict], params: Optional[dict] = 
             except (TypeError, ValueError):
                 continue
             if declared > 0:
-                return min(ceiling, declared + _OUTER_GRACE_SEC)
-    return ceiling
+                ceiling = min(ceiling, declared + _OUTER_GRACE_SEC)
+                break
+    # ── run 级 deadline 传播（V2.0 §5.3 / §5.8.2）─────────────────────
+    # 【为什么要在这里收敛而不是在被调方】本函数是 handler 上界的**唯一出口**，
+    #   在此收口可让全部既有调用方一次性获得传播能力，无需逐个改（D2 友好）。
+    # 【为什么把 ceiling <= 0 也交给 call_timeout】0 = 「不限」；改动前
+    #   `if ceiling <= 0: return 0.0` 会让「全局关闭超时」直接把 deadline 也一起
+    #   绕过 —— 那正是「单个挂死 handler 拖 30 分钟」的成因。现在只要 run 有
+    #   deadline，就至少收敛到 remaining*0.7。
+    return call_timeout(ceiling)
 
 
 # ════════════════════════════════════════════════════════════
@@ -306,6 +313,152 @@ def consume_retry(layer: str = "") -> bool:
     if budget is None:
         return True
     return budget.try_consume(layer)
+
+# ════════════════════════════════════════════════════════════
+#  run 级 deadline 传播（V2.0 §5.3 / §5.8.2）
+# ════════════════════════════════════════════════════════════
+#
+# 【为什么需要它 —— 实测病灶】审计实测：
+#   · 全仓 remaining = deadline - now 仅 2 处，且都在 rate_limiter 的闸门与
+#     cross_process_lock 里，**与编排链路无关**；
+#   · resolve_tool_handler_timeout 的上界是**静态** 1800s（30 分钟），
+#     而重试预算窗口只有 60s、前端预算是 15s —— 三者量级不自洽；
+#   · RetryBudget.deadline_sec 是「重试窗口」而不是「任务截止」，两者语义不同。
+#   ⇒ 「最坏耗时」无法被度量：单个挂死的 handler 可以把整条链路拖到 30 分钟。
+#
+# 【本节的克制之处（不易）】
+#   1. **不新增任何配置项**：deadline 由调用方（tool_calling 的 task_timeout）
+#      注入，与既有 behavior.tool_timeout / tool_calling.task_timeout 同源。
+#      这样既不改配置契约，也不触碰 settings 注册表的零缺口守卫。
+#   2. **无 deadline 时行为逐字不变**（D2）：call_timeout() 原样返回入参，
+#      所以所有未接线的调用方（脚本、单次调用、MCP 客户端）不受影响。
+#   3. **绝不返回 0**：本模块用 0 = 不限 的既有约定，若把「剩余不足」折算成 0
+#      就会从「限时」翻成「无限时」，方向正好相反。故设下限 _MIN_CALL_TIMEOUT。
+#   4. **父留余量**：V2.0 §5.8.2 要求父 run 自留 ≥20% 用于汇总与重规划；
+#      此处取 30%（RESERVE_RATIO），即 call_timeout = min(tool.timeout, remaining*0.7)
+#      —— 与 §5.3 给出的公式逐字一致。
+
+#: 父 run 必须自留的比例（V2.0 §5.8.2 要求 ≥20%）
+RESERVE_RATIO = 0.3
+
+#: 调用超时的绝对值下限（秒）。**不得为 0**：0 在本模块语义是「不限」，
+#: 若剩余时间不足就返回 0，会从「限时」翻成「无限时」，与意图相反。
+_MIN_CALL_TIMEOUT = 0.1
+
+#: 当前 run 的截止时刻（monotonic 绝对秒）。None = 未设置 ⇒ 不做传播。
+_RUN_DEADLINE: contextvars.ContextVar[Optional[float]] = contextvars.ContextVar(
+    "yunshu_run_deadline", default=None)
+
+
+@contextmanager
+def run_deadline_scope(seconds: float):
+    """在作用域内设置 run 级截止时间；退出时恢复外层值（支持嵌套）。
+
+    Args:
+        seconds: 从现在起的可用秒数（<=0 ⇒ 不设置，保持旧行为）。
+                 通常是任务的 task_timeout。
+
+    Yields:
+        该 run 的绝对截止时刻（monotonic），或 None。
+
+    【为什么用 monotonic】墙钟会被 NTP 校正 / 夏令时改动，用它做超时判定会出现
+    负剩余或凭空多出时间；本仓 RetryBudget 也统一用 time.monotonic。
+    """
+    if not seconds or float(seconds) <= 0:
+        yield None
+        return
+    token = _RUN_DEADLINE.set(time.monotonic() + float(seconds))
+    try:
+        yield _RUN_DEADLINE.get()
+    finally:
+        _RUN_DEADLINE.reset(token)
+
+
+def set_run_deadline(seconds: float):
+    """设置 run 截止时间，返回 token（配合 reset_run_deadline 使用）。
+
+    【为什么除 run_deadline_scope 之外还要这一对】调用方（tool_calling）的 run
+    体是一个**跨越数百行、含多处 return 的 try 块**，唯一能保证清理的位置是它的
+    finally —— 那里只能做 reset(token)，无法用 with 语法。与本模块既有的
+    use_budget / reset_budget 保持同一形态。
+
+    Args:
+        seconds: 从现在起的可用秒数。<=0 ⇒ 不设置（返回 None，保持旧行为）。
+
+    Returns:
+        token（可能是 None，表示本次未设置，reset 时应原样传回）。
+    """
+    if not seconds or float(seconds) <= 0:
+        return None
+    return _RUN_DEADLINE.set(time.monotonic() + float(seconds))
+
+
+def reset_run_deadline(token) -> None:
+    """恢复外层 deadline（token 为 None 时是 no-op）。"""
+    if token is None:
+        return
+    try:
+        _RUN_DEADLINE.reset(token)
+    except (ValueError, LookupError):        # 跨上下文 reset：忽略即可
+        pass
+
+
+def current_run_deadline() -> Optional[float]:
+    """当前 run 的绝对截止时刻（monotonic）；未设置返回 None。"""
+    return _RUN_DEADLINE.get()
+
+
+def remaining_sec() -> Optional[float]:
+    """距 run 截止还剩多少秒；未设置 deadline 返回 None（**不是** 0）。
+
+    返回 None 与返回 0 语义完全不同：
+      · None = 没有 deadline 概念 ⇒ 调用方应保持旧行为（不限）；
+      · 0    = 有 deadline 且已耗尽 ⇒ 调用方应立即走 fallback。
+    混为一谈会让「未接线」与「已超时」无法区分（INV-08 同类问题）。
+    """
+    deadline = _RUN_DEADLINE.get()
+    if deadline is None:
+        return None
+    return deadline - time.monotonic()
+
+
+def call_timeout(tool_timeout: float,
+                 *,
+                 reserve_ratio: float = RESERVE_RATIO) -> float:
+    """把工具自述超时**收敛到 run 剩余预算内**（V2.0 §5.3）。
+
+    公式：min(tool_timeout, remaining * (1 - reserve_ratio))
+
+    Args:
+        tool_timeout: 工具自述 / 全局上界（秒）。**<=0 表示「不限」**。
+        reserve_ratio: 父 run 自留比例，默认 0.3。
+
+    Returns:
+        收敛后的秒数（恒 > 0）。**无 deadline 时原样返回入参**，
+        因此未接线的调用方行为与改动前逐字一致（D2）。
+    """
+    remaining = remaining_sec()
+    if remaining is None:
+        return tool_timeout                      # 未接线：保持旧行为
+    keep = max(0.0, 1.0 - max(0.0, float(reserve_ratio)))
+    budget = remaining * keep
+    if budget <= 0:
+        # 已超时：给下限而不是 0（0 = 不限，会翻成无限时，见 _MIN_CALL_TIMEOUT）
+        return _MIN_CALL_TIMEOUT
+    if tool_timeout is None or float(tool_timeout) <= 0:
+        # 工具声明「不限」⇒ deadline 是唯一上界，正是本机制要堵的洞
+        return max(_MIN_CALL_TIMEOUT, budget)
+    return max(_MIN_CALL_TIMEOUT, min(float(tool_timeout), budget))
+
+
+def run_deadline_snapshot() -> Dict[str, Any]:
+    """run deadline 的只读快照（可观测 / 审计用）。"""
+    remaining = remaining_sec()
+    return {
+        "has_deadline": remaining is not None,
+        "remaining_sec": None if remaining is None else round(remaining, 3),
+        "reserve_ratio": RESERVE_RATIO,
+    }
 
 
 # ════════════════════════════════════════════════════════════
