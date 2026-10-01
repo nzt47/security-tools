@@ -402,6 +402,27 @@ class CircuitBreaker:
             "circuit_state_changed",
             {"from": old_state.value, "to": new_state.value},
         )
+        # ── [2026-10-02 新增] 业务指标：状态转换 + 当前状态 ──────────────────
+        # 【为什么必须补】monitoring/circuit_breaker_alerts.yml 的
+        #   `CircuitBreakerGlobalTriggered`（告警）与 `yunshu_circuit_breaker_state`（判据）
+        #   依赖这两条指标，而此前**全仓无人写**：`business_metrics` 的
+        #   `record_circuit_breaker_trigger` / `update_circuit_breaker_state` 两个 API
+        #   定义在案、零调用。后果是两个相反方向的失效：
+        #     · 引用 trigger_total 的告警 = **死规则**（序列不存在，永不触发）；
+        #     · `CircuitBreakerMetricsMissing` 用 absent(...) ⇒ 恒为 1 ⇒ **长期挂着**（告警疲劳）。
+        #   本方法是熔断状态机的**唯一收口**（连 force_open/force_close 也走它），
+        #   故在此处补埋点即可保证「状态变了必然记账」，不会漏也不会重复。
+        # 【失败隔离】埋点异常绝不影响熔断判定主路径。
+        try:
+            from agent.monitoring.business_metrics import (
+                get_business_metrics_collector,
+            )
+            _bm = get_business_metrics_collector()
+            _bm.record_circuit_breaker_trigger(
+                self.name, old_state.value, new_state.value, "state_machine")
+            _bm.update_circuit_breaker_state(self.name, new_state.value)
+        except Exception:  # noqa: BLE001 埋点失败绝不阻断熔断主路径
+            pass
 
     def _prune_window(self) -> None:
         """清理过期窗口条目（按 window_seconds 阈值裁剪）"""
@@ -626,7 +647,24 @@ def get_circuit_breaker(
                 cooldown_seconds=cooldown_seconds,
                 **kwargs,
             )
-        return _breakers[name]
+        _breaker = _breakers[name]
+
+    # ── [2026-10-02 新增] 取用时发布**当前状态** ────────────────────────────
+    # 【为什么不能只在 _set_state 里发】那只在状态**变化**时产生序列；
+    #   而正常的熔断器长期停在 CLOSED、可能几天不转换 ⇒ 指标一直**不存在** ⇒
+    #   `CircuitBreakerMetricsMissing`（expr 用 absent(...)）恒为 1 ⇒ 长期误报。
+    #   在访问点补一次发布，使"健康的熔断器"也有序列可查（set_gauge 幂等、开销极小）。
+    # 【失败隔离】埋点异常绝不影响取用。
+    try:
+        from agent.monitoring.business_metrics import (
+            get_business_metrics_collector,
+        )
+        _state_value = getattr(_breaker.state, "value", "unknown")
+        get_business_metrics_collector().update_circuit_breaker_state(
+            name, _state_value)
+    except Exception:  # noqa: BLE001 埋点失败绝不影响取用
+        pass
+    return _breaker
 
 
 def register_circuit_breaker(

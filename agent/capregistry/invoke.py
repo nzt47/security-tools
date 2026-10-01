@@ -297,6 +297,53 @@ def _gate_rejected(result: Any) -> bool:
         and bool(result.get("error_code"))
 
 
+def _record_invoke_business_metric(func_name: str, ok: bool, elapsed_s: float) -> None:
+    """把一次能力调用记进业务指标（供 /api/business/prometheus 与依赖它的告警使用）。
+
+    【为什么在这里补】业务指标整层此前无数据（见交付报告 §9.18）：
+      · 25 个模块各自 new 了 collector 实例、记录写进没人读的那份（已修）；
+      · 唯一的 HTTP 工具入口 `/capabilities/invoke` **从未记过任何指标**（本处修复）。
+    实测：修复前调用 `read_file` 成功返回 200，但 /api/business/prometheus **样本行仍为 0**。
+    【失败隔离】埋点异常绝不影响能力调用主路径。
+    """
+    try:
+        from agent.monitoring.business_metrics import record_tool_call
+        # 单位：指标名是 yunshu_tool_call_duration_seconds ⇒ 传**秒**
+        record_tool_call(func_name, "capability", ok, elapsed_s)
+    except Exception:  # noqa: BLE001 埋点失败绝不阻断调用
+        pass
+
+
+def _instrument_invoke(fn):
+    """给 `invoke_capability` 套一层业务指标埋点（**单点覆盖全部 return 与异常**）。
+
+    【为什么用装饰器而不是在每个 return 前加一行】该函数有**多个**返回点
+    （身份不合法 / not_found / schema_error / denied / 闸门拒绝 / 契约违约 / 成功 …），
+    逐点插入既啰嗦又必然漏；装饰器保证「一次调用恰好记一条」，且异常路径也留痕。
+    【为什么不动签名】`functools.wraps` 保留 `__name__`/`__doc__`/签名元数据，
+    HTTP / CLI / 模型三条链路的既有调用方与测试不受影响。
+    """
+    import functools
+
+    @functools.wraps(fn)
+    def _wrapped(name, *a, **kw):
+        _t0 = time.perf_counter()
+        try:
+            res = fn(name, *a, **kw)
+        except BaseException:  # noqa: BLE001 异常也要留痕，然后原样抛出
+            _record_invoke_business_metric(str(name), False, time.perf_counter() - _t0)
+            raise
+        _status = getattr(res, "status", None)
+        if _status is None and isinstance(res, dict):
+            _status = res.get("status")
+        _record_invoke_business_metric(
+            str(name), str(_status or "") == "ok", time.perf_counter() - _t0)
+        return res
+
+    return _wrapped
+
+
+@_instrument_invoke
 def invoke_capability(name: str, args: Optional[Mapping[str, Any]] = None, *,
                       identity: str = IDENTITY_HUMAN,
                       tenant_id: str = "default",

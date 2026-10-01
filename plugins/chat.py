@@ -274,6 +274,8 @@ def api_chat():
 
     # 对话处理
     chat_start = time.time()
+    # 【2026-10-02】供下方业务指标埋点区分成功/失败（失败路径在 except 里置 False）
+    _chat_ok = True
     try:
         logs.append(f"[CHAT] 开始调用 DigitalLife.chat()")
         # 会话元数据显式传入（并发安全），避免全局 _session_id 被并发覆盖
@@ -288,6 +290,7 @@ def api_chat():
     except Exception as e:
         import traceback
         chat_time = (time.time() - chat_start) * 1000
+        _chat_ok = False
         logger.error(f"Chat error: {e}", exc_info=True)
         response = f"（处理出错: {e}）"
         logs.append(f"[ERROR] 对话处理失败 - 耗时: {chat_time:.2f}ms, 错误: {str(e)}")
@@ -391,6 +394,23 @@ def api_chat():
     # jsonify 会抛 TypeError 让整个 /api/chat 500 —— 读数通道不得拖垮主链路。
     _response_metadata, _metadata_dropped = _json_safe_metadata(
         _Yunshu.last_response_metadata(session_id))
+
+    # 【2026-10-02 新增】对话业务指标 —— 供 /api/business/prometheus 及依赖它的告警使用。
+    #   【为什么必须在这里补】此前唯一会记业务指标的聊天路径是 `agent/server_routes/routes_chat.py`，
+    #   而那个模块**从未接线**（见 test_server_routes_registration_inventory 的 KNOWN_UNREGISTERED）⇒
+    #   线上聊天**零埋点**，业务指标端点恒为空（实测样本行 0）。本插件是会话域的**活路径**。
+    #   【单位】指标名是 yunshu_interaction_duration_seconds ⇒ 传**秒**，故把 ms 除以 1000。
+    #   【失败隔离】埋点异常绝不影响对话响应（与本文件既有纪律一致）。
+    try:
+        from agent.monitoring.business_metrics import record_interaction
+        record_interaction(
+            "chat",
+            str((llm_state or {}).get("provider") or "unknown"),
+            _chat_ok,
+            chat_time / 1000.0,
+        )
+    except Exception:  # noqa: BLE001 埋点失败绝不阻断主路径
+        pass
 
     return jsonify({
         "response": response,

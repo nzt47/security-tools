@@ -1127,7 +1127,27 @@ class ToolCallingService:
         `data/descriptors.json` 台账用**同一个键**直接 join
         （``UnifiedTraceStore.list_by_capability(capability_id)``），
         不再依赖 registry 侧事后匹配。改写失败时回退工具名原文——**不丢轨迹**。
+
+        【2026-10-02 新增：业务指标埋点，刻意放在 TraceContext 早退**之前**】
+        本方法原先只做统一 Trace，而统一 Trace 需要任务级 TraceContext、没有就直接 return。
+        业务指标**不需要**该前提，若放到早退之后，则"没有任务级上下文"的工具调用
+        （恰恰是绝大多数）又会变成零埋点 —— 那正是本次要修的病灶（见交付报告 §9.18）。
+        本方法是 `_execute_safe` 的**唯一收口**：成功、ToolError、未捕获异常、重试耗尽
+        四条终态路径**都会**调用它 ⇒ 一次调用恰好记一条，不会重复也不会漏。
         """
+        # ── 业务指标（tool_call_total / tool_call_duration_seconds）──────────
+        #   失败绝不影响工具执行主路径（与既有 Trace 同一纪律）。
+        try:
+            from agent.monitoring.business_metrics import record_tool_call
+            _ok = bool(result.get("ok", True)) if isinstance(result, dict) else True
+            # 分类取自既有 canonical id（cp.<source>.<name>）的中段，不新造真相源
+            _cap_parts = str(resolve_tool_capability_id(func_name) or "").split(".")
+            _category = _cap_parts[1] if len(_cap_parts) >= 3 else "unknown"
+            # 注意单位：指标名是 ..._duration_seconds ⇒ 传**秒**（perf_counter 差值本就是秒）
+            record_tool_call(func_name, _category, _ok, time.perf_counter() - started_mono)
+        except Exception:  # noqa: BLE001 埋点失败绝不阻断工具执行
+            pass
+
         try:
             from agent.observability.trace_v2 import TraceContext, TraceFacade
             if TraceContext.current() is None:

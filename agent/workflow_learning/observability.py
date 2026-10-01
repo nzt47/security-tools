@@ -11,8 +11,13 @@ from typing import Any, Dict, Iterator, Optional
 logger = logging.getLogger("agent.workflow_learning")
 
 try:
-    from agent.monitoring.business_metrics import BusinessMetricsCollector
-    _metrics = BusinessMetricsCollector()
+    from agent.monitoring.business_metrics import get_business_metrics_collector
+    # 【2026-10-02 修「指标写进没人读的实例」】必须用**全局单例** get_business_metrics_collector()，
+    #   不能 BusinessMetricsCollector() —— 后者每个模块各 new 一个实例，记录全落在自己那份里，
+    #   而 /api/business/prometheus 端点读的是单例 _global_business_collector ⇒ 端点**恒空**
+    #   （实测：74 行只有 # HELP/# TYPE、**样本行 0 条**，导致所有依赖业务指标的告警恒不触发）。
+    #   同一修法见 agent/skills_mgmt/observability.py:32-36（该处早已改对，本次把其余模块补齐）。
+    _metrics = get_business_metrics_collector()
     _METRICS_AVAILABLE = True
 except Exception:  # noqa: BLE001
     _metrics = None

@@ -51,6 +51,21 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
+  # ── [2026-10-02 新增] 云枢**业务指标**采集目标 ──────────────────────────
+  # 【为什么必须单独一个 job】业务指标不在 /metrics 上，而在云枢自己的
+  #   GET /api/business/prometheus（app_server.py:1623 的注释本就写着
+  #   「Prometheus 告警依赖 /api/business/prometheus」）—— 但**此前没有任何 job 抓它**，
+  #   加上业务指标整层没接线（见交付报告 §9.18），导致：引用业务指标的告警是死规则、
+  #   用 absent() 写的那条（CircuitBreakerMetricsMissing）长期误报。
+  # 【鉴权】该端点只在 CP_API_AUTH_ALLOW 的豁免清单里（与 /metrics 同口径）⇒
+  #   这里**不需要** bearer_token，也就不会把令牌写进监控配置文件（那比豁免只读端点更差）。
+  # 【回退】删掉本 job：业务指标不再进 Prometheus，相关告警回到「永不触发」。
+  - job_name: 'yunshu-business'
+    static_configs:
+      - targets: ['host.docker.internal:5678']
+    metrics_path: '/api/business/prometheus'
+    scrape_interval: 30s
+
   # ── [2026-10-02 新增] Grafana 采集目标 ──────────────────────────────────
   # 【为什么之前没有 / 为什么现在必须有】
   #   `monitoring/alerts.yml` 的 `GrafanaDown` 规则用的是 `up{job="grafana"} == 0`，

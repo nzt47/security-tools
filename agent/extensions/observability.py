@@ -15,8 +15,13 @@ from agent.logging_utils import log_dict
 logger = logging.getLogger("agent.extensions")
 
 try:
-    from agent.monitoring.business_metrics import BusinessMetricsCollector
-    _metrics = BusinessMetricsCollector()
+    from agent.monitoring.business_metrics import get_business_metrics_collector
+    # 【2026-10-02 修「指标写进没人读的实例」】必须用**全局单例** get_business_metrics_collector()，
+    #   不能 BusinessMetricsCollector() —— 后者每个模块各 new 一个实例，记录全落在自己那份里，
+    #   而 /api/business/prometheus 端点读的是单例 _global_business_collector ⇒ 端点**恒空**
+    #   （实测：74 行只有 # HELP/# TYPE、**样本行 0 条**，导致所有依赖业务指标的告警恒不触发）。
+    #   同一修法见 agent/skills_mgmt/observability.py:32-36（该处早已改对，本次把其余模块补齐）。
+    _metrics = get_business_metrics_collector()
     _METRICS_AVAILABLE = True
 except Exception:
     _metrics = None
@@ -61,6 +66,8 @@ def trackEvent(event_name: str, payload: Optional[Dict[str, Any]] = None) -> Non
             **safe_payload,
         )
         if _METRICS_AVAILABLE:
-            _metrics.record_interaction(event_name, "extensions", True, (time.time() - t0) * 1000)
+    # 【2026-10-02 修单位】指标名是 yunshu_interaction_duration_seconds ⇒ 必须传**秒**。
+    #   原写法 * 1000 传的是毫秒，量纲大了 1000 倍（延迟类告警的阈值会因此失真）。
+            _metrics.record_interaction(event_name, "extensions", True, (time.time() - t0))
     except Exception as e:
         logger.error(log_dict({'module_name': 'extensions', 'action': 'trackEvent.failed', 'error': f'{type(e).__name__}: {e}', 'event_name': event_name}))

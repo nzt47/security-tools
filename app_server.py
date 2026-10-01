@@ -718,7 +718,13 @@ _API_AUTH_ALLOW = tuple(
         #   "改一处打挂另一处"形态。故与 /api/health 一并作为默认豁免。
         #   【注意】本机 .env 显式设了 CP_API_AUTH_ALLOW 会**覆盖**此默认值 ⇒
         #   切 enforce_all 前必须把 /metrics 补进 .env 的豁免清单（已登记为遗留项）。
-        "CP_API_AUTH_ALLOW", "/api/health,/metrics")).split(",") if p.strip()
+        # 【2026-10-02 再纳入 /api/business/prometheus】同理：它也是**机器对机器**的只读
+        #   指标端点，prometheus.yml 的 `yunshu-business` job 要抓它。此前业务指标整层
+        #   没接线（见交付报告 §9.18），接线后若不在豁免里，抓取会 401 且**静默**
+        #   （Prometheus 只会把 target 标 down，业务指标的告警照样不触发）。
+        #   【口径】与 /metrics 一致：只读指标文本、无业务内容、服务仅绑 127.0.0.1。
+        "CP_API_AUTH_ALLOW",
+        "/api/health,/metrics,/api/business/prometheus")).split(",") if p.strip()
 )
 _MUTATING = frozenset({"POST", "PUT", "DELETE", "PATCH"})
 
