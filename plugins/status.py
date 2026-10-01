@@ -40,7 +40,10 @@ def _require_token(f):
             token = auth_header[7:]
         else:
             token = request.headers.get("X-API-Token", "")
-        if not token or not secrets.compare_digest(token, _API_TOKEN):
+        # 【2026-10-01】按字节比较（非 ASCII 令牌下 secrets.compare_digest(str,str) 抛 TypeError
+        #   ⇒ 无效令牌变 500；见 agent/server_auth.token_equal）。
+        from agent.server_auth import token_equal
+        if not token_equal(token, _API_TOKEN):
             return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
         return f(*args, **kwargs)
     return decorated

@@ -281,7 +281,11 @@ def admin_login():
     username = (data.get("username") or "").strip()
     password = (data.get("password") or "").strip()
     user = next((u for u in _USERS if u["username"] == username), None)
-    password_ok = hmac.compare_digest(password, _admin_password())
+    # 【为什么用字节比较】hmac.compare_digest(str, str) 对含非 ASCII 的口令会抛 TypeError
+    #   ⇒ 攻击者可让登录端点 500（且掩盖真实原因）。按字节比较后只是"不相等"。
+    password_ok = hmac.compare_digest(
+        password.encode("utf-8", "surrogatepass"),
+        _admin_password().encode("utf-8", "surrogatepass"))
     if user is None or not password_ok:
         return _fail(400, "用户名或密码错误")
     return _ok({"token": _issue_token(username), "user": user})

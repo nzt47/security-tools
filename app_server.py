@@ -19,7 +19,6 @@ import webbrowser
 import datetime
 import uuid
 import functools
-import secrets
 import concurrent.futures
 import time
 import sys
@@ -656,7 +655,12 @@ def require_token(f):
             token = auth_header[7:]
         else:
             token = request.headers.get("X-API-Token", "")
-        if not token or not secrets.compare_digest(token, _API_TOKEN):
+        # 【2026-10-01】改用 token_equal（按**字节**比较）：
+        #   非 ASCII 令牌会让 secrets.compare_digest(str, str) 抛 TypeError，
+        #   把"无效令牌"变成 500；极端情况下若外层是 fail-open 的 try，则直接放行。
+        #   统一走 agent/server_auth.token_equal（同一份实现，防止各处再写一遍出偏差）。
+        from agent.server_auth import token_equal
+        if not token_equal(token, _API_TOKEN):
             return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
         return f(*args, **kwargs)
     return decorated
@@ -818,8 +822,17 @@ def _api_auth_gate():
         logger.warning("[AuthGate][shadow] 将拦截未授权请求 method=%s path=%s source=%s",
                        request.method, path, source)
         return None
-    except Exception as _e:  # noqa: BLE001 - 闸门自身故障不得阻断业务
-        logger.error("[AuthGate] 校验异常（放行）: %s", _e)
+    except Exception as _e:  # noqa: BLE001
+        # 【2026-10-01 由 fail-open 改为 enforce 下 fail-closed】
+        #   原实现是"任何异常都放行（可用性优先）"。该策略实测直接变成**鉴权绕过**：
+        #   非 ASCII 令牌让 secrets.compare_digest 抛 TypeError，异常被这里吞掉后放行 ⇒
+        #   `Authorization: Bearer <含一个非 ASCII 字节>` 即拿到 200 + 完整响应体。
+        #   闸门自身故障必须**拒绝**而不是放行：放行等于把"闸门坏了"降级成"谁都能进"，
+        #   这是 INV-08（不静默降级）在安全面上的一等公民。
+        #   shadow/off 仍放行 —— 那两种模式的语义本就是"只记不拦"，不受影响。
+        logger.error("[AuthGate] 校验异常: %s", _e, exc_info=True)
+        if _API_AUTH_MODE in ("enforce", "enforce_all"):
+            return jsonify({"error": "未授权：鉴权闸门异常，已按拒绝处理"}), 401
         return None
 
 

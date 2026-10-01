@@ -113,6 +113,37 @@ def authorize_request() -> Tuple[bool, str, str]:
     return result
 
 
+def token_equal(presented: str, expected: str) -> bool:
+    """常量时间令牌比较（**按字节**比较，对非 ASCII 安全）。
+
+    【为什么不能直接 secrets.compare_digest(str, str)】对**含非 ASCII 字符**的 str，
+    它抛 `TypeError: comparing strings with non-ASCII characters is not supported`。
+    本仓该异常曾被鉴权闸门的 `except Exception: return None`（fail-open，见
+    app_server.py 的 _api_auth_gate）**吞掉**，后果是：
+
+        2026-10-01 实测（CP_API_AUTH_MODE=enforce_all）：
+          GET /api/status  +  Authorization: Bearer <含 é 的任意串>   ->  200 + 完整响应体
+          GET /api/status  +  X-API-Token: <含 é 的任意串>            ->  200 + 完整响应体
+        对照：无令牌 -> 401；合法令牌 -> 200。
+
+    ⇒ **任何在令牌头里塞一个非 ASCII 字节的请求，都会被当成通过**，
+    即一次**完整的远程鉴权绕过**（不是"降级"或"弱校验"）。
+    改成 bytes 比较后，非 ASCII 令牌只是"不相等"，走正常的 401 分支。
+
+    【为什么吞掉自身异常】比较函数**绝不允许**抛异常：调用方（尤其闸门）若把它包在
+    fail-open 的 try 里，任何异常都会变成放行。这里一律返回 False（=不通过）。
+    """
+    a = str(presented or "")
+    b = str(expected or "")
+    if not a or not b:
+        return False
+    try:
+        return secrets.compare_digest(a.encode("utf-8", "surrogatepass"),
+                                      b.encode("utf-8", "surrogatepass"))
+    except Exception:  # noqa: BLE001 比较本身不得抛（见上）
+        return False
+
+
 def authorize_token(token: str) -> Tuple[bool, str, str]:
     """校验令牌 → (是否通过, actor, identity_source)
 
@@ -128,7 +159,7 @@ def authorize_token(token: str) -> Tuple[bool, str, str]:
     """
     presented = str(token or "")
     shared = current_api_token() if _API_TOKEN_ENABLED else ""
-    if shared and presented and secrets.compare_digest(presented, shared):
+    if shared and token_equal(presented, shared):
         return True, "", SRC_SHARED_TOKEN
     from agent.security.identity import current_token_map
     token_map = current_token_map()
