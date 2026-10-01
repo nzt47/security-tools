@@ -99,18 +99,42 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v6
 
-      - name: 决定镜像来源
+      # 【2026-10-01 修：GHCR 不可用时优雅回退为本地构建】
+      #   背景：本 workflow 在最近 8+ 个提交上**连续失败**，日志结尾恒为
+      #     `Error response from daemon: Get "https://ghcr.io/v2/": denied: denied`
+      #   —— 私有包 ghcr.io/nzt47/kwarg-scanner 拉不动（GHCR_TOKEN 无权限/未配置），
+      #   而 `BUILD_LOCALLY: false` 是**硬编码**的 ⇒ 已写全的回退路径**永不触发**。
+      #   修法：把"登录"提前到探测之前，并**真的探测一次 docker pull**；拉不动就本地构建。
+      #   效果：① 现在恢复绿；② 将来 GHCR 恢复可用时**自动**走回镜像路径（无需改代码）。
+      - name: 登录 GHCR（拉取私有镜像，失败不阻断）
+        if: env.BUILD_LOCALLY != 'true'
+        continue-on-error: true
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          # 【不易】用户空间私有包（ghcr.io/nzt47/*）GITHUB_TOKEN 无法读取，需 PAT
+          username: nzt47
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: 决定镜像来源（含 GHCR 可用性探测）
         id: decide
         run: |
+          image="${{ env.SCANNER_IMAGE }}"
+          built="false"
           if [ "${{ env.BUILD_LOCALLY }}" = "true" ]; then
-            echo "image=kwarg-scanner:local" >> $GITHUB_OUTPUT
-            echo "built_locally=true" >> $GITHUB_OUTPUT
-            echo "选择本地构建镜像"
+            built="true"
+            echo "按 BUILD_LOCALLY=true 选择本地构建"
+          elif docker pull "$image" >/dev/null 2>&1; then
+            echo "✓ GHCR 预构建镜像可拉取：$image"
           else
-            echo "image=${{ env.SCANNER_IMAGE }}" >> $GITHUB_OUTPUT
-            echo "built_locally=false" >> $GITHUB_OUTPUT
-            echo "使用 GHCR 预构建镜像"
+            built="true"
+            echo "::warning::GHCR 镜像不可拉取（$image）→ 自动回退为本地构建。"
+            echo "::warning::常见原因：包为私有且 GHCR_TOKEN 缺失或无 packages:read 权限。"
+            echo "::warning::配好 GHCR_TOKEN（PAT，含 read:packages）后，本步骤会自动改回镜像路径。"
           fi
+          if [ "$built" = "true" ]; then image="kwarg-scanner:local"; fi
+          echo "image=$image" >> $GITHUB_OUTPUT
+          echo "built_locally=$built" >> $GITHUB_OUTPUT
 
       - name: 本地构建镜像
         if: steps.decide.outputs.built_locally == 'true'
@@ -122,15 +146,6 @@ jobs:
             ./packages/kwarg_scanner
           echo "✓ 镜像构建完成"
           docker images kwarg-scanner
-
-      - name: 登录 GHCR（拉取私有镜像）
-        if: steps.decide.outputs.built_locally == 'false'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          # 【不易】用户空间私有包（ghcr.io/nzt47/*）GITHUB_TOKEN 无法读取，需 PAT
-          username: nzt47
-          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: 镜像健康检查
         run: |

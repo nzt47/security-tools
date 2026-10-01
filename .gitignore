@@ -628,3 +628,9 @@ quality_gate_report.json
 #   故此处按文件名精确忽略，不使用整目录规则。
 docs/closeout/L1_evidence/PRE_TASK09_backup_*/audit_chain.db
 docs/closeout/L1_evidence/PRE_TASK09_backup_*/audit_chain.db.seqjournal
+
+# 【2026-10-01】.env 备份件必须忽略：内含令牌/口令明文，仓库内已有 .env 的忽略规则但
+# 带后缀的备份（.env.bak_*）此前会漏网 —— 一次 git add -A 就会把密钥入库。
+.env.bak*
+.env.bak_*
+

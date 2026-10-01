@@ -40,7 +40,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 登录 GHCR（拉取私有镜像）
+      # 【2026-10-01 修：GHCR 不可用时优雅回退为本地构建】
+      #   本 workflow 与 kwarg-docker-scan.yml 同因**连续失败**：私有包
+      #   ghcr.io/nzt47/kwarg-scanner 拉不动（`denied: denied`）。此处原本连回退路径都没有，
+      #   直接硬编码镜像名 ⇒ 只要 GHCR 拿不到就必红。
+      #   修法：登录失败不阻断，扫描前**真的探测一次 pull**，拉不动就本地构建。
+      - name: 登录 GHCR（拉取私有镜像，失败不阻断）
+        continue-on-error: true
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -55,13 +61,22 @@ jobs:
           # 不放开写权限会导致报告写入 PermissionError 崩溃（exit 1），被入口脚本误判为 HIGH 阻断
           sudo chmod -R a+rwX "${{ github.workspace }}"
           echo "=== 生成 kwarg-scanner GIIF 报告 ==="
+          # 【2026-10-01】镜像来源探测：GHCR 拉得动就用预构建镜像，否则本地构建回退
+          IMAGE="ghcr.io/nzt47/kwarg-scanner:latest"
+          if docker pull "$IMAGE" >/dev/null 2>&1; then
+            echo "✓ 使用 GHCR 预构建镜像：$IMAGE"
+          else
+            echo "::warning::GHCR 镜像不可拉取 → 回退为本地构建（配好 GHCR_TOKEN 后会自动改回）"
+            docker build -t kwarg-scanner:local ./packages/kwarg_scanner
+            IMAGE="kwarg-scanner:local"
+          fi
           # 【变易】&&/|| 捕获真实退出码（set -e 下 docker run 失败会直接中断步骤，scan_exit 无法落盘）
           docker run --rm \
             -v "${{ github.workspace }}:/project" \
             -e MIN_RISK=${{ env.MIN_RISK }} \
             -e OUTPUT_FORMAT=sonarqube \
             -e OUTPUT_FILE=/project/kwarg-sonar-issues.json \
-            ghcr.io/nzt47/kwarg-scanner:latest \
+            "$IMAGE" \
             && SCAN_EXIT=0 || SCAN_EXIT=$?
           echo "扫描退出码: $SCAN_EXIT"
           echo "scan_exit=$SCAN_EXIT" >> $GITHUB_OUTPUT

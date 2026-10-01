@@ -113,7 +113,17 @@ def path_is_allowlisted(path: str, allowlist) -> bool:
     放在本模块而非 app_server：本模块可被单测直接导入（app_server 导入期会构造引擎）。
     """
     for raw in allowlist or ():
-        p = str(raw or "").strip().rstrip("/")
+        p = str(raw or "").strip()
+        # 【2026-10-01 修：根路径此前无法豁免】
+        #   原实现无条件 `rstrip("/")`，于是豁免项 "/" 被归一成空串并在下一行 `continue`
+        #   被**静默丢弃** ⇒ 根路径永远进不了豁免集。
+        #   平时无感（enforce 不覆盖 GET），但 `enforce_all` 档会连 `GET /` 一起拦 ——
+        #   而生产的页面壳正挂在 `/` ⇒ **浏览器连壳和 JS 都加载不出来，
+        #   用户根本进不到"输入令牌"的界面**（鸡生蛋）。实测已复现：
+        #   enforce_all 下 `GET /`=401、`GET /chat`=401、`GET /static/js/*`=401。
+        #   修法：只对"/"保留原样，其余仍按原口径去尾斜杠（不改既有语义）。
+        if p != "/":
+            p = p.rstrip("/")
         if not p:
             continue
         if p.endswith("/*"):
