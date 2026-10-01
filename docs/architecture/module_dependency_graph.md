@@ -20,6 +20,7 @@ flowchart LR
     end
     subgraph capregistry [capregistry]
         agent_capregistry["agent.capregistry"]:::crosslayer
+        agent_capregistry_identity["agent.capregistry.identity"]:::crosslayer
         agent_capregistry_invoke["agent.capregistry.invoke"]:::crosslayer
         agent_capregistry_loader["agent.capregistry.loader"]
         agent_capregistry_pruning["agent.capregistry.pruning"]:::crosslayer
@@ -480,7 +481,7 @@ flowchart LR
         agent_self_healing_levels["agent.self_healing.levels"]:::crosslayer
         agent_self_healing_policy["agent.self_healing.policy"]:::crosslayer
         agent_self_healing_release_bundle["agent.self_healing.release_bundle"]
-        agent_self_healing_saga["agent.self_healing.saga"]
+        agent_self_healing_saga["agent.self_healing.saga"]:::crosslayer
         agent_self_healing_watchdog_singleton["agent.self_healing.watchdog_singleton"]
     end
     subgraph server_routes [server_routes]
@@ -1001,6 +1002,7 @@ flowchart LR
     agent_guardrails_egress_chain -.-> agent_circuit_breaker
     agent_guardrails_egress_chain -.-> agent_observability_events
     agent_guardrails_egress_guard -.-> agent_policy_egress
+    agent_guardrails_egress_guard --> agent_guardrails_egress_chain
     agent_guardrails_egress_guard -.-> agent_audit_facade
     agent_guardrails_egress_guard -.-> agent_policy_egress
     agent_guardrails_foreign_taint -.-> agent_audit_facade
@@ -1742,6 +1744,9 @@ flowchart LR
     agent_repair_verify --> agent_repair_patchapply
     agent_repair_verify --> agent_repair_policy
     agent_repair_verify --> agent_repair_trace
+    agent_response_workflows -.-> agent_lines_models
+    agent_response_workflows --> agent_timeout_budget
+    agent_response_workflows --> agent_timeout_budget
     agent_retention --> agent_retention_archiver
     agent_retention --> agent_retention_guard
     agent_retention --> agent_retention_manifest
@@ -2198,6 +2203,7 @@ flowchart LR
     agent_subagent_summarizer -.-> agent_logging_utils
     agent_subagent_toolset -.-> agent_security_actor_matrix
     agent_subagent_toolset -.-> agent_lines_models
+    agent_subagent_toolset -.-> agent_guardrails
     agent_subagent_toolset --> agent_subagent_sandbox
     agent_system_prompt_config --> agent_logging_utils
     agent_system_prompt_config -.-> agent_utils_singleton_manager
@@ -2242,12 +2248,17 @@ flowchart LR
     agent_tool_calling --> agent_circuit_breaker
     agent_tool_calling --> agent
     agent_tool_calling -.-> agent_descriptors_bridge
-    agent_tool_calling --> agent_circuit_breaker
+    agent_tool_calling -.-> agent_capregistry_identity
+    agent_tool_calling --> agent_response_workflows
+    agent_tool_calling -.-> agent_capregistry_identity
+    agent_tool_calling -.-> agent_observability_events
+    agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_tools_prompt_guard
     agent_tool_calling -.-> agent_observability_trace_v2
     agent_tool_calling -.-> agent_observability_tool_trace
     agent_tool_calling --> agent_response_workflows
+    agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
@@ -2298,8 +2309,11 @@ flowchart LR
     agent_tools -.-> agent_logging_utils
     agent_tools -.-> agent_audit_chain
     agent_tools -.-> agent_audit_facade
+    agent_tools -.-> agent_lines_models
+    agent_tools -.-> agent_self_healing_saga
     agent_tools -.-> agent_tool_gate
     agent_tools -.-> agent_lines_models
+    agent_tools -.-> agent_descriptors_registry
     agent_tools -.-> agent_lines_callability
     agent_tools -.-> agent_timeout_budget
     agent_tools_browser_tools -.-> agent_guardrails_ssrf_guard
@@ -2463,7 +2477,6 @@ flowchart LR
     agent_web_http_client -.-> agent_monitoring_observability_config
     agent_web_http_client -.-> agent_monitoring_observability_config
     agent_web_http_client -.-> agent_guardrails
-    agent_web_http_client -.-> agent_guardrails
     agent_web_observability -.-> agent_logging_utils
     agent_web_observability -.-> agent_monitoring_business_metrics
     agent_web_search -.-> agent_logging_utils
@@ -2488,9 +2501,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 632
-- 模块节点数: 564
-- 依赖边数: 1804
-- 跨层调用数: 1138
+- 扫描文件数: 633
+- 模块节点数: 565
+- 依赖边数: 1816
+- 跨层调用数: 1145
 - 违规调用数: 0
 - 动态 import 数: 1
