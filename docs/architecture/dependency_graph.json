@@ -142,8 +142,8 @@
       "name": "business_metrics",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 37,
-      "out_degree": 2
+      "in_degree": 35,
+      "out_degree": 3
     },
     {
       "path": "agent.audit.ui_middleware",
@@ -254,8 +254,8 @@
       "name": "circuit_breaker",
       "layer": "core",
       "file_path": "",
-      "in_degree": 13,
-      "out_degree": 2
+      "in_degree": 14,
+      "out_degree": 0
     },
     {
       "path": "agent.guardrails",
@@ -5299,32 +5299,6 @@
       "line": 499,
       "source_file": "agent/capregistry/view.py",
       "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.circuit_breaker",
-      "target": "agent.monitoring.business_metrics",
-      "source_layer": "core",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 659,
-      "source_file": "agent/circuit_breaker.py",
-      "is_cross_layer": true,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.circuit_breaker",
-      "target": "agent.monitoring.business_metrics",
-      "source_layer": "core",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 417,
-      "source_file": "agent/circuit_breaker.py",
-      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -12967,6 +12941,19 @@
       "target_layer": "core",
       "import_type": "from_import",
       "line": 29,
+      "source_file": "agent/monitoring/business_metrics.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.business_metrics",
+      "target": "agent.circuit_breaker",
+      "source_layer": "monitoring",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 1431,
       "source_file": "agent/monitoring/business_metrics.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -28187,8 +28174,8 @@
   "stats": {
     "total_files": 633,
     "total_nodes": 565,
-    "total_edges": 1820,
-    "cross_layer_edges": 1149,
+    "total_edges": 1819,
+    "cross_layer_edges": 1148,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {

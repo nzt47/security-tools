@@ -737,8 +737,6 @@ flowchart LR
     agent_capregistry_view -.-> agent_lines_models
     agent_capregistry_view --> agent
     agent_capregistry_view --> agent
-    agent_circuit_breaker -.-> agent_monitoring_business_metrics
-    agent_circuit_breaker -.-> agent_monitoring_business_metrics
     agent_cognitive --> agent_cognitive_loop
     agent_cognitive --> agent_cognitive_reflection
     agent_cognitive --> agent_cognitive_knowledge
@@ -1327,6 +1325,7 @@ flowchart LR
     agent_monitoring_alert_notifier --> agent_monitoring_prometheus
     agent_monitoring_business_metrics --> agent_monitoring_utils
     agent_monitoring_business_metrics -.-> agent_logging_utils
+    agent_monitoring_business_metrics -.-> agent_circuit_breaker
     agent_monitoring_chaos_injector --> agent_monitoring_tracing
     agent_monitoring_chaos_injector -.-> agent_logging_utils
     agent_monitoring_chaos_injector -.-> agent_utils_singleton_manager
@@ -2507,7 +2506,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 633
 - 模块节点数: 565
-- 依赖边数: 1820
-- 跨层调用数: 1149
+- 依赖边数: 1819
+- 跨层调用数: 1148
 - 违规调用数: 0
 - 动态 import 数: 1
