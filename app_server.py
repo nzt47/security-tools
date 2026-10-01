@@ -715,9 +715,18 @@ def _warn_if_gate_inert_once() -> None:
     if _AUTH_GATE_INERT_WARNED:
         return
     _AUTH_GATE_INERT_WARNED = True
+    # 【2026-10-01 修：本函数此前**永远不会触发**】
+    #   原实现 `from agent.server_auth import current_api_token, current_token_map`，
+    #   而 agent/server_auth.py **根本没有 `current_token_map` 这个模块级名字**
+    #   （实测：hasattr(sa, "current_token_map") is False）⇒ 每次调用都在 import 处
+    #   ImportError → 被本函数的 `except Exception` 吞成 DEBUG ⇒ "未配令牌会 ERROR"
+    #   这条可见性承诺**从未生效过**。这正是本仓反复出现的"静默降级"病灶。
+    #   【改用权威接口】`auth_status()` 是 server_auth 的公开面，其 `configured` 字段
+    #   已把"共享令牌 / 令牌映射表"两种来源合并判定，且自身异常时也降级为 False。
     try:
-        from agent.server_auth import current_api_token, current_token_map
-        if not current_api_token() and current_token_map().empty:
+        from agent.server_auth import auth_status
+        _st = auth_status()
+        if not _st.get("configured"):
             logger.error(
                 "[AuthGate] 未配置任何令牌（FLASK_API_TOKEN 与 CP_UI_TOKENS 均为空）⇒ "
                 "闸门恒放行，当前档位 %s 形同虚设、且不会产生任何影子日志。"
@@ -741,9 +750,13 @@ def _warn_if_gate_shadow_once() -> None:
     if _AUTH_GATE_SHADOW_WARNED or _API_AUTH_MODE != "shadow":
         return
     _AUTH_GATE_SHADOW_WARNED = True
+    # 【同样的坑，我照抄了相邻函数 —— 一并修正】
+    #   我新增本函数时复制了上面 _warn_if_gate_inert_once 的写法，于是把同一个
+    #   "导入不存在的 current_token_map" 的缺陷也带了进来 ⇒ **本条告警同样永不触发**，
+    #   而我加它的全部目的就是"让 shadow 档不再静默"。改用 auth_status()。
     try:
-        from agent.server_auth import current_api_token, current_token_map
-        if current_api_token() or not current_token_map().empty:
+        from agent.server_auth import auth_status
+        if auth_status().get("configured"):
             logger.warning(
                 "[AuthGate] 令牌已配置，但 CP_API_AUTH_MODE=shadow ⇒ 闸门**只记录不拦截**，"
                 "未授权请求仍会被放行。确认影子日志无误后改为 enforce（或 enforce_all "
