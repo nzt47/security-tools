@@ -216,13 +216,25 @@ def safe_resolve_path(path: str) -> str:
         raise ValueError(f"路径位于系统保护目录，拒绝访问: {abs_path}")
 
     # 【S-2 补漏：堵 symlink / junction 绕过】原实现只检查字面 abs_path，
-    #   一个指向 /etc 或保护目录的符号链接可以直接通过。此处对**真实路径**
-    #   再判一次；返回值保持 abs_path 不变（不改变任何既有调用方的可观测行为）。
+    #   一个指向 /etc 或保护目录的符号链接可以直接通过。此处对**真实路径**再判一次。
+    #
+    # 【2026-10-01 修一处我引入的跨平台回归 —— 务必保留此注释】
+    #   我最初在 realpath 抛错时 `raise ValueError("路径无法解析为真实路径，拒绝访问")`，
+    #   出发点是"解析不了就当危险"（fail-closed）。但它在 **Linux** 上把畸形输入的
+    #   既有契约改掉了：`os.path.realpath("\x00invalid")` 在 Linux 抛
+    #   `ValueError: lstat: embedded null character in path`，而 **Windows 不抛** ⇒
+    #   本地 125 passed、CI 上
+    #   `test_system_tools_platform.py::TestErrorHandling::test_invalid_path_characters`
+    #   失败（该用例要求 safe_resolve_path 对这种输入**返回字符串**）。
+    #   【正确取舍】本加固的目标是"符号链接绕过"，不是"畸形输入"——畸形输入自有下游
+    #   open() 处理，其错误契约不该被本函数顺手改掉。故：**realpath 失败即跳过本项检查，
+    #   保持改动前的行为**（不新增异常、不新增拒绝）。安全性不受影响：原实现同样
+    #   不做这一检查，且畸形路径在下游必然打不开。
     try:
         _real = os.path.realpath(abs_path)
-    except Exception:  # noqa: BLE001  解析失败 ⇒ 保守拒绝
-        raise ValueError(f"路径无法解析为真实路径，拒绝访问: {abs_path}")
-    if _real != abs_path and is_protected_path(_real):
+    except Exception:  # noqa: BLE001  解析不了 ⇒ 跳过本项检查（保持改动前行为）
+        _real = ""
+    if _real and _real != abs_path and is_protected_path(_real):
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'realpath', 'msg': f'[safe_resolve_path] 符号链接指向保护目录，已拦截: abs_path={abs_path}'}))
         raise ValueError(f"路径经符号链接指向系统保护目录，拒绝访问: {abs_path}")
 
