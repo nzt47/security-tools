@@ -611,8 +611,18 @@ class TestDeadRouteGuard:
         "routes_personality", "routes_permission", "routes_workspace", "routes_monitoring",
     )
 
-    #: 实测确认**唯二**真正未挂载的路径（2026-10-01，真实 url_map 比对）
-    KNOWN_ORPHAN_PATHS = ("/api/handoff", "/api/health/auth")
+    #: 【2026-10-01 已修复】审计实测的**唯二**真正未挂载路径，两条均已接线。
+    #:   本清单从「孤儿」转为「已救回」—— 保留它是因为**修好之后更需要守卫**：
+    #:   若哪天有人把这两条路由又搬回未接线的 server_routes/ 旧模块，断言会转红。
+    #:   映射值 = 该路径现在**真正生效**的归属文件（plugins/ 下，自动加载 ⇒ 不会再忘接线）。
+    RESCUED_PATHS = {
+        "/api/handoff": "plugins/chat.py",          # 会话域正主；原 routes_sessions.py:247
+        "/api/health/auth": "plugins/status.py",    # 状态域正主；原 routes_panorama.py:176
+    }
+
+    #: 修复后复测：server_routes/ 下已**没有**「声明了却没人接线」的路径。
+    #:   涨了就必须显式面对（要么接线、要么登记进上面的 RESCUED_PATHS 说明原因）。
+    KNOWN_ORPHAN_PATHS: tuple = ()
 
     def test_死代码仍然无调用方_若有则必须同步本守卫(self):
         root = _repo_root()
@@ -651,29 +661,27 @@ class TestDeadRouteGuard:
                  "请确认这不是重复注册；确认无误后请更新本守卫与交付报告。" % (wired,))
         assert wired == [], _msg2
 
-    def test_已知孤儿路径清单未变化(self):
-        """把「真正未挂载的路径」固化成**一份可核对的短清单**（当前 2 条）。
+    def test_已救回的两条路由确实落在会自动加载的插件里(self):
+        """把「救回后的归属」固化成可核对的清单，防止**悄悄退回**未接线状态。
 
         【为什么不在这里 import app_server 去 dump url_map】那会拉起调度器/单例等
-        模块级副作用，且单测里要跑 20s+。改为**静态**核对：这 2 条路径仍定义在
-        server_routes/ 下（即仍属「只在该处声明」的状态）。重新测量真实 url_map 的
-        一行命令见交付报告 §9.9。
+        模块级副作用，且单测里要跑 20s+。改为**静态**核对：这两条路径必须仍出现在
+        其归属的 plugins/ 文件中（plugins/ 由 loader 自动加载 ⇒ 文件在即挂载）。
+        真实 url_map 的复核命令见交付报告 §9.9；线上实测结论见 §9.11。
         """
         root = _repo_root()
-        found = {}
-        sr = os.path.join(root, "agent", "server_routes")
-        for fn in os.listdir(sr):
-            if not fn.endswith(".py"):
-                continue
-            with open(os.path.join(sr, fn), encoding="utf-8", errors="ignore") as fh:
+        assert not self.KNOWN_ORPHAN_PATHS, (
+            "出现了新的未挂载路径 %r —— 要么接线，要么登记进 RESCUED_PATHS 并写明原因"
+            % (self.KNOWN_ORPHAN_PATHS,))
+        for path, owner in self.RESCUED_PATHS.items():
+            owner_abs = os.path.join(root, *owner.split("/"))
+            assert os.path.isfile(owner_abs), (
+                "%s 声明的归属文件 %s 不存在（清单已过期）" % (path, owner))
+            with open(owner_abs, encoding="utf-8", errors="ignore") as fh:
                 src = fh.read()
-            for path in self.KNOWN_ORPHAN_PATHS:
-                if ('"%s"' % path) in src:
-                    found.setdefault(path, []).append(fn)
-        missing = [p for p in self.KNOWN_ORPHAN_PATHS if p not in found]
-        _msg3 = ("以下已知孤儿路径在 server_routes/ 里找不到了"
-                 "（可能已被修复 → 请更新本守卫与交付报告）: %r" % (missing,))
-        assert missing == [], _msg3
+            assert ('"%s"' % path) in src, (
+                "%s 已不在 %s 中声明 —— 它可能又被搬回了未接线的旧模块，"
+                "本清单与交付报告 §9.9/§9.11 需同步" % (path, owner))
 
 
 class TestCrossRegistryConsistency:

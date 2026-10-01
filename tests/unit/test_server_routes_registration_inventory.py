@@ -72,7 +72,7 @@ KNOWN_UNREGISTERED: dict[str, str] = {
     "routes_cli": "未接线；本文件仅 9 行占位（只打一条 info 日志）",
     "routes_computer_use": "未接线；本文件仅占位实现",
     "routes_config": "未接线；27/29 条端点由其他模块提供，语义层热更两条（/api/orchestrator/semantic-config）已单独接线",
-    "routes_sessions": "未接线；`/api/handoff` 已由 app_server.py:1027 明确宣告移除（会话 API 由 plugins/chat.py 提供），全仓无调用方",
+    "routes_sessions": "未接线（**故意**）；会话 API 由 plugins/chat.py 提供。原 `/api/handoff` 于 2026-10-01 迁入 plugins/chat.py:api_handoff（此前是「声明了却没接线 ⇒ 线上 404」的孤儿，见 app_server.py:1719 的 T7 注记）",
 }
 
 

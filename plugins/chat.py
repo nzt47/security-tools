@@ -634,6 +634,72 @@ def api_sessions_messages_clear(session_id):
 
 
 # ════════════════════════════════════════════════════════════
+#  会话交接文档（救回孤儿路由，2026-10-01）
+# ════════════════════════════════════════════════════════════
+
+class _HandoffStateAdapter:
+    """把 app_server 的两个模块级全局适配成 generate_handoff 期望的 state 形状。
+
+    【为什么需要这个适配器】generate_handoff(state, ...) 的签名要求
+     state.session_mgr 与 state.Yunshu（见 agent/handoff/handoff_generator.py:44-68），
+    而它诞生时是从 routes_sessions.register_routes(app, state) 里调用的 —— 那里
+    恰好握有 ServerState。迁到插件后没有 ServerState 可用，但 app_server 的两个
+    模块级全局（_session_mgr / _Yunshu）正是同一批对象。
+    【为什么不在插件顶层 import】循环导入红线（PLAN-1 §4）：本模块在 app_server
+    导入中途被加载；故属性在这里**延迟**取（property），请求期 app_server 已完全加载。
+    """
+
+    @property
+    def session_mgr(self):
+        from app_server import _session_mgr
+        return _session_mgr
+
+    @property
+    def Yunshu(self):
+        from app_server import _Yunshu
+        return _Yunshu
+
+
+@bp.route("/api/handoff", methods=["POST"])
+@_require_token
+def api_handoff():
+    """生成会话交接文档 —— LLM 把当前会话压缩成 Markdown，落盘到 OS 临时目录。
+
+    【为什么这条曾经是 404】它原定义在 agent/server_routes/routes_sessions.py:247，
+    而该模块**从未在 app_server 接线**（见 tests/unit/test_server_routes_registration_inventory.py
+    的 KNOWN_UNREGISTERED：「会话 API 由 plugins/chat.py 提供」）。
+    【为什么要救而不是删】generate_handoff 是**完整且有单测**的能力
+    （tests/unit/test_handoff_generator.py，含三处脱敏 + llm.chat→llm.summarize→规则提取
+    的降级链），而这条路由是它**唯一**的 HTTP 入口 —— 不接线就等于整条能力不可达。
+    本插件是会话域的正式归属（/api/sessions/* 全在此），故迁入此处。
+    【为什么不能直接接线 routes_sessions】该模块的 9 条会话路径与 plugins/chat.py
+    重复，整体接线会造成同名路径重复注册（语义歧义），已被 test_陈旧模块集合未被接线 拦住。
+
+    请求体（均可选）：
+        session_id: 目标会话 ID，缺省取当前会话
+        intent:     下一 session 用途描述，用于 skill 推荐
+
+    【安全】保留原路由的 @require_token；会话内容会送 LLM，故必须认证。
+    """
+    from agent.handoff.handoff_generator import generate_handoff
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({"error": "请求体必须是 JSON 对象"}), 400
+    try:
+        result = generate_handoff(
+            _HandoffStateAdapter(),
+            session_id=data.get("session_id"),
+            intent=data.get("intent"),
+        )
+        return jsonify(result)
+    except ValueError as e:
+        # 会话不存在 / 无消息 —— 调用方输入问题，非服务故障
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:  # noqa: BLE001 交接生成失败不得把端点打成未处理异常
+        return jsonify({"error": f"handoff 生成失败: {e}"}), 500
+
+
+# ════════════════════════════════════════════════════════════
 #  会话工作空间（任务工作目录）API
 #  默认：data/sessions/{id}/workspace；可绑定自定义本地目录（仿 DSH 添加工作区）
 # ════════════════════════════════════════════════════════════
@@ -1529,6 +1595,7 @@ PLUGIN = register_plugin(Plugin(
         "/api/history/<int:index>",
         "/api/history/search",
         "/api/news",
+        "/api/handoff",  # 会话交接文档（原 routes_sessions 未接线，2026-10-01 迁入）
         "/api/sessions",
         "/api/sessions/<session_id>",
         "/api/sessions/<session_id>/messages",
