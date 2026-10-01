@@ -12,6 +12,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MosaicNode } from 'react-mosaic-component';
 import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY, sanitizeLayout, stripRetiredPanels, type PanelId } from '../lib/mosaic';
 import { createChatStream, type ThinkingStatus } from '../lib/sse';
+import { authHeader } from '@/lib/apiToken';
 
 export interface ChatMessage {
   id: string;
@@ -316,7 +317,12 @@ export const useLayoutStore = create<LayoutStore>()(
         if (!sessionId) return;
         if (get().messages.length > 0 && !opts?.force) return;
         try {
-          const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`);
+          // 【2026-10-01 修：裸 fetch 不带令牌】同上 —— 实测有令牌时该端点仍 401，
+          //   导致切换会话读不到历史消息。统一走 authHeader()。
+          const res = await fetch(
+            `/api/sessions/${encodeURIComponent(sessionId)}/messages`,
+            { headers: authHeader() },
+          );
           if (!res.ok) return;
           // 竞态防护：加载期间用户已切到其他会话 → 丢弃过期响应
           const activeNow = get().activeSessionId;

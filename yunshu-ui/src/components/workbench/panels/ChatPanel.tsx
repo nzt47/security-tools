@@ -14,6 +14,7 @@ import { CHAT_FORMATS, chatStyleVars, useChatPrefsStore, type ChatFormat } from 
 import { MessageItem, isToolStep } from '../chat/MessageItem';
 import { MessageInput } from '../chat/MessageInput';
 import { ChatStyleMenu } from '../chat/ChatStyleMenu';
+import { authHeader } from '@/lib/apiToken';
 
 const SUGGESTIONS = [
   '用流式渲染实现一个聊天面板',
@@ -66,7 +67,10 @@ export function ChatPanel() {
   const [cmds, setCmds] = useState<SlashCmd[]>([]);
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/skills-mgmt/slash-commands')
+    // 【2026-10-01 修：裸 fetch 不带令牌】enforce/enforce_all 档下该请求恒 401，
+    //   斜杠命令提示因此静默失效（实测：有令牌时该端点仍 401）。
+    //   统一走 lib/apiToken 的 authHeader()，与 apiClient 同一口径。
+    fetch('/api/skills-mgmt/slash-commands', { headers: authHeader() })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (!cancelled && d?.commands) setCmds(d.commands); })
       .catch(() => {});
