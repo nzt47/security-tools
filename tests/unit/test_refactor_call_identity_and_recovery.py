@@ -717,3 +717,77 @@ class TestResultSchemaCoverage:
         assert required >= {"data_format_detect", "json_query", "get_file_info"}, \
             "原有三个不得被移除"
         assert {"read_file", "search_files"} <= required, "本次新增的两个必须在清单里"
+
+# ════════════════════════════════════════════════════════════
+#  11. 监控配置一致性门禁（防"只补 rule_files 不补挂载"打挂监控）
+# ════════════════════════════════════════════════════════════
+
+class TestMonitoringConfigConsistency:
+    """rule_files ↔ compose 卷挂载必须成对，否则 Prometheus **直接起不来**。
+
+    【为什么值得一条门禁】Prometheus 把 rule_files 的相对路径按**主配置所在目录**
+    （容器内 /etc/prometheus）解析：凡是配置里列了、而容器内不存在的规则文件，
+    都会导致启动/热加载失败（no such file）—— **比不写更糟**。实际发生过两次：
+      · 原 "prometheus/rules/x.yml" 前缀错误 ⇒ 解析到 /etc/prometheus/prometheus/rules/，
+        而挂载点是 /etc/prometheus/rules ⇒ 该文件**从未被加载**；
+      · rule_files 扩到 14 条后，docker-compose.monitoring.aliyun.yml 只挂 2 个文件，
+        若用它起栈则 12 条规则找不到 ⇒ 监控起不来。
+    本用例把"两者必须一致"钉死。
+    """
+
+    COMPOSE_FILES = ("docker-compose.monitoring.yml",
+                     "docker-compose.monitoring.aliyun.yml")
+
+    @staticmethod
+    def _posix(value):
+        return str(value).replace("\\", "/").rstrip("/")
+
+    @classmethod
+    def _mounts(cls, root, compose_name):
+        import yaml
+        with open(os.path.join(root, compose_name), encoding="utf-8") as fh:
+            comp = yaml.safe_load(fh) or {}
+        out = []
+        for svc in (comp.get("services") or {}).values():
+            for vol in (svc.get("volumes") or []):
+                parts = str(vol).split(":")
+                if len(parts) >= 2 and parts[0].startswith("."):
+                    out.append((cls._posix(parts[0]), cls._posix(parts[1])))
+        return out
+
+    @classmethod
+    def _resolve(cls, mounts, container_path):
+        best = None
+        for host, cont in mounts:
+            if container_path == cont or container_path.startswith(cont + "/"):
+                candidate = host + container_path[len(cont):]
+                if best is None or len(cont) > best[1]:
+                    best = (candidate, len(cont))
+        return best[0] if best else None
+
+    def test_每个_compose_都覆盖全部_rule_files(self):
+        import yaml
+        root = _repo_root()
+        prom_path = os.path.join(root, "monitoring", "prometheus.yml")
+        if not os.path.exists(prom_path):
+            pytest.skip("monitoring/prometheus.yml 不存在（非监控部署）")
+        with open(prom_path, encoding="utf-8") as fh:
+            prom = yaml.safe_load(fh) or {}
+        rule_files = list(prom.get("rule_files") or [])
+        assert rule_files, "rule_files 为空 —— 若是有意清空请更新本守卫"
+        problems = {}
+        for compose_name in self.COMPOSE_FILES:
+            if not os.path.exists(os.path.join(root, compose_name)):
+                continue          # 该变体不存在则跳过（不因缺文件而假红）
+            mounts = self._mounts(root, compose_name)
+            missing = []
+            for rel in rule_files:
+                host = self._resolve(mounts, "/etc/prometheus/" + rel)
+                if host is None or not os.path.exists(
+                        os.path.join(root, host.lstrip("./"))):
+                    missing.append(rel)
+            if missing:
+                problems[compose_name] = missing
+        assert problems == {}, (
+            "以下 compose 的 rule_files 在容器内不存在 ⇒ Prometheus 会加载失败，",
+            "必须同时在 volumes 里补齐（两份 compose 要保持一致）: %r" % (problems,))

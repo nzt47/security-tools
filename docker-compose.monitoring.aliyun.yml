@@ -13,6 +13,25 @@ services:
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
+      # ── [2026-10-01] 补齐与 docker-compose.monitoring.yml 对齐的规则文件挂载 ──────
+      # 【为什么必须补】monitoring/prometheus.yml 的 rule_files 已从 4 条扩到 14 条，
+      #   而 Prometheus 把 rule_files 的相对路径按【/etc/prometheus】解析 ——
+      #   凡是在配置里列了、容器内却不存在的规则文件，都会导致 Prometheus
+      #   **启动/热加载失败（no such file）**，比不写更糟。
+      #   本文件此前只挂 prometheus.yml + alerts.yml ⇒ 若线上用这份起栈，
+      #   12 条新增 rule_files 全部找不到，**监控会直接起不来**。
+      #   两份 compose 必须保持挂载一致（本文件是阿里云镜像变体，仅镜像源不同）。
+      # 【回退】与 monitoring/prometheus.yml 中新增的 rule_files 成对删除。
+      #   rules/ 前缀的 4 个文件由下面这一条目录挂载统一覆盖，无需逐个单挂。
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - ./monitoring/health_recording_rules.yml:/etc/prometheus/health_recording_rules.yml:ro
+      - ./monitoring/health_alerts.yml:/etc/prometheus/health_alerts.yml:ro
+      - ./monitoring/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
+      - ./monitoring/alerts_production.yml:/etc/prometheus/alerts_production.yml:ro
+      - ./monitoring/alerts_safe_file_reader.yml:/etc/prometheus/alerts_safe_file_reader.yml:ro
+      - ./monitoring/circuit_breaker_alerts.yml:/etc/prometheus/circuit_breaker_alerts.yml:ro
+      - ./monitoring/alerts/skill_retrieval_alerts.yml:/etc/prometheus/skill_retrieval_alerts.yml:ro
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
