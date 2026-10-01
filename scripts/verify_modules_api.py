@@ -35,7 +35,7 @@ def main() -> int:
     # 测试隔离：本机 .env 可能配置了 FLASK_API_TOKEN（require_token 启用），
     # 关闭 token 拦截使 actions 拦截分支断言不受环境影响（生产行为不变）
     import agent.server_auth as _sa
-    _sa._API_TOKEN_ENABLED = False
+    _sa._AUTH_DISABLED_FOR_TEST = True
 
     app = app_server.app
     app.testing = True  # 让视图异常直接传播，便于定位 500 根因

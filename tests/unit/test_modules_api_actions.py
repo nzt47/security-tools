@@ -27,7 +27,7 @@ from agent.modules_registry import ACTION_ROUTES, DOMAINS, get_node
 def app(monkeypatch):
     """最小 Flask app：注册 modules_bp + 为每个转发目标 URL 挂 fake 视图"""
     import agent.server_auth as sa
-    monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)  # 测试隔离 token 拦截
+    monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)  # 测试隔离 token 拦截
     flask_app = Flask(__name__)
     flask_app.register_blueprint(ma.modules_bp)
     seen = set()

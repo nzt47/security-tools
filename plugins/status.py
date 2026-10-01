@@ -30,8 +30,14 @@ def _require_token(f):
     """与 app_server.require_token 行为等价的本地版本（延迟读取令牌配置，避免循环导入）"""
     @functools.wraps(f)
     def decorated(*args, **kwargs):
-        from app_server import _API_TOKEN_ENABLED, _API_TOKEN
-        if not _API_TOKEN_ENABLED:
+        # 【2026-10-01 修同类 fail-open】改**运行期**判定（与 agent/server_auth 同口径）：
+        #   原实现读 app_server 的**导入期** `_API_TOKEN_ENABLED` ⇒ 进程启动时无令牌、
+        #   事后经 .env 热重载填上令牌，本装饰器仍**整段跳过校验**（实测任意错令牌放行）。
+        #   测试旁路走显式钩子 auth_disabled_for_test()，不再借那个状态快照。
+        from agent.server_auth import (
+            auth_disabled_for_test, current_api_token, token_equal)
+        expected = "" if auth_disabled_for_test() else current_api_token()
+        if not expected:
             return f(*args, **kwargs)
         # 从请求头中提取令牌
         auth_header = request.headers.get("Authorization", "")
@@ -42,8 +48,7 @@ def _require_token(f):
             token = request.headers.get("X-API-Token", "")
         # 【2026-10-01】按字节比较（非 ASCII 令牌下 secrets.compare_digest(str,str) 抛 TypeError
         #   ⇒ 无效令牌变 500；见 agent/server_auth.token_equal）。
-        from agent.server_auth import token_equal
-        if not token_equal(token, _API_TOKEN):
+        if not token_equal(token, expected):
             return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
         return f(*args, **kwargs)
     return decorated

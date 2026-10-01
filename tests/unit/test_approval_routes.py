@@ -43,7 +43,7 @@ class _Clock:
 @pytest.fixture(autouse=True)
 def _no_shared_token(monkeypatch):
     """共享令牌旁路（既有语义：未配置 ⇒ 不校验）；身份由映射表提供"""
-    monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+    monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
 
 
 @pytest.fixture

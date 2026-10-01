@@ -115,7 +115,7 @@ class TestNoRegressionOnUnconfigured:
     """「完全未配置令牌 ⇒ 不校验」的既有语义必须原样保留。"""
 
     def test_未配置令牌时无候选也放行(self, monkeypatch):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         monkeypatch.delenv("FLASK_API_TOKEN", raising=False)
         monkeypatch.setattr(sa, "_API_TOKEN", "")
         set_token_map(TokenMap(""))

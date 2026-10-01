@@ -44,7 +44,7 @@ def env(monkeypatch, tmp_path):
     config_path = tmp_path / "system_prompt_config.json"
     template_path = tmp_path / "system_prompt.txt"
     monkeypatch.setattr("agent.system_prompt_config.CONFIG_FILE", str(config_path))
-    monkeypatch.setattr("agent.server_auth._API_TOKEN_ENABLED", False, raising=False)
+    monkeypatch.setattr("agent.server_auth._AUTH_DISABLED_FOR_TEST", True, raising=False)
     import agent.system_prompt_manager as spm
     assert hasattr(spm, "SYSTEM_PROMPT_FILE"), "SYSTEM_PROMPT_FILE 不存在，隔离失败"
     monkeypatch.setattr(spm, "SYSTEM_PROMPT_FILE", str(template_path))

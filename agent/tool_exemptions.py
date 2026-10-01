@@ -106,6 +106,35 @@ def candidates() -> List[Dict[str, Any]]:
         if level == "L0":
             continue
         by_descriptor = name in gated
+        # 【2026-10-01 修「点了没反应的假绿灯」】`exemptable` 必须与闸门**同一判据**：
+        #   闸门 `tool_gate.py::_confirm_level_outcome` 有一条硬规则 ——
+        #   **L3 豁免一律忽略**（L3 = 默认禁止，仅显式预授权 SA+scope 可执行；见该处 A2/R2 论证）。
+        #   而本函数此前只看「是否被描述符门控」，于是**实测**把 10 个 L3 工具
+        #   （shell_execute / run_sandbox / generate_tool / ext_* / *_mcp …）**全部**标成
+        #   `exemptable=True, blocked_reason=''` ⇒ 界面上徽章可点、点了也写进覆盖层，
+        #   但闸门照样要求确认 —— 用户看到的是「已豁免」，实际行为是「仍要审核」。
+        #   【为什么此前没暴露】该处注释声称「10 个 L3 工具**全部**被描述符门控，故本规则
+        #   覆盖面为 0」。实测：`data/descriptors.json` 有 32 条台账，`trust.requires_approval=true`
+        #   的**一条都没有** ⇒ 描述符门控数 = **0** ⇒ 那条 L3 规则不是"零影响"，
+        #   而恰恰是这些豁免点不动的**唯一原因**。判据必须补上 L3。
+        by_l3 = level == "L3"
+        if by_descriptor:
+            blocked = (
+                "该工具的审批要求来自**能力描述符**（trust.requires_approval），"
+                "判定排在分级层之前 ⇒ 豁免名单够不着它。要放行只能改 "
+                "data/descriptors.json，或关掉整个审批边界开关"
+                "（CP_TOOL_GATE_APPROVAL_ENFORCE=0，B 级开关）"
+            )
+        elif by_l3:
+            blocked = (
+                "**L3 不可被豁免**：L3 的定义是「默认禁止，仅**显式预授权**（SA + scope）可执行」，"
+                "一份「免确认名单」把它变成「人来点一下也不用」，那是把禁止改写成允许。"
+                "闸门会**忽略**该工具的豁免条目（见 agent/tool_gate.py 的 A2/R2 规则）⇒ "
+                "放行 L3 只有正路：走 SA 预授权，或把该工具的 risk/effect 降到 L2 以下"
+                "（改 data/tool_definitions/*.yaml 的元数据，需过 test_confirm_level.py 的对拍）"
+            )
+        else:
+            blocked = ""
         out.append({
             "tool": name,
             "level": level,
@@ -113,13 +142,9 @@ def candidates() -> List[Dict[str, Any]]:
             "risk": str(getattr(meta, "risk", "") or ""),
             # 生效值既接受工具名也接受 canonical id ⇒ 两种写法都算"已豁免"
             "exempt": bool({name.lower(), G._canonical_candidate(name).lower()} & current),
-            "exemptable": not by_descriptor,
-            "blocked_reason": (
-                "该工具的审批要求来自**能力描述符**（trust.requires_approval），"
-                "判定排在分级层之前 ⇒ 豁免名单够不着它。要放行只能改 "
-                "data/descriptors.json，或关掉整个审批边界开关"
-                "（CP_TOOL_GATE_APPROVAL_ENFORCE=0，B 级开关）"
-            ) if by_descriptor else "",
+            # 与闸门同一判据：描述符门控 **或** L3 ⇒ 都不可豁免
+            "exemptable": not by_descriptor and not by_l3,
+            "blocked_reason": blocked,
         })
     return out
 

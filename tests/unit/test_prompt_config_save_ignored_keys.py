@@ -91,7 +91,7 @@ def flask_client(monkeypatch, tmp_path):
     monkeypatch.setattr("agent.system_prompt_config.CONFIG_FILE", config_path)
     # 认证旁路：未配置令牌时 require_token 本就放行；这里显式关掉共享令牌开关，
     # 避免外部环境设了 FLASK_API_TOKEN 时用例 401（既有测试同款技法）
-    monkeypatch.setattr("agent.server_auth._API_TOKEN_ENABLED", False, raising=False)
+    monkeypatch.setattr("agent.server_auth._AUTH_DISABLED_FOR_TEST", True, raising=False)
     # app/apply 会写运行时模板文件 —— 必须指到 tmp，绝不能碰真实 data/system_prompt.txt。
     # 这里**不做 except 兜底**：patch 不上就让它炸（宁可测试失败，也不能静默写真实文件）。
     import agent.system_prompt_manager as spm

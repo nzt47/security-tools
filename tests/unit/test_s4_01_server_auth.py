@@ -62,39 +62,39 @@ class TestAuthorizeToken:
         assert source == sa.SRC_SHARED_TOKEN
 
     def test_mapped_token_accepted_with_real_actor(self, monkeypatch):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap("tokA:alice"))
         ok, actor, source = sa.authorize_token("tokA")
         assert (ok, actor, source) == (True, "alice", "token_map")
 
     def test_unknown_token_denied_when_map_configured(self, monkeypatch):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap("tokA:alice"))
         assert sa.authorize_token("nope")[0] is False
         assert sa.authorize_token("")[0] is False
 
     def test_no_configuration_skips_validation(self, monkeypatch):
         """**既有行为**：未配置任何令牌 ⇒ 不校验"""
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap(""))
         ok, actor, source = sa.authorize_token("")
         assert (ok, actor, source) == (True, "", sa.SRC_NO_TOKEN_CONFIGURED)
 
     def test_token_map_works_even_when_shared_disabled(self, monkeypatch):
         """映射表是**独立**的新机制：共享令牌关闭不影响它"""
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap("tokA:bob"))
         assert sa.authorize_token("tokA")[:2] == (True, "bob")
 
 
 class TestRequireToken:
     def test_passes_when_not_configured(self, app, monkeypatch):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap(""))
         assert app.test_client().get("/guarded").status_code == 200
 
     def test_401_without_token_when_map_configured(self, app, monkeypatch):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap("tokA:alice"))
         response = app.test_client().get("/guarded")
         assert response.status_code == 401
@@ -114,7 +114,7 @@ class TestRequireToken:
 
     def test_binds_identity_into_audit_context(self, app, monkeypatch):
         """令牌命中 ⇒ 身份写入请求上下文（后续审计归因到真实 actor）"""
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap("tokA:alice"))
         application = app
         seen = {}
@@ -148,7 +148,7 @@ class TestNoIdentityLeak:
     def test_no_ui_actor_contextvar_leak(self, app, monkeypatch):
         from agent.audit import facade as facade_mod
 
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap("tokA:alice"))
         client = app.test_client()
         assert client.get("/guarded", headers={
@@ -157,7 +157,7 @@ class TestNoIdentityLeak:
         assert facade_mod.audit.resolve_actor() == ("system", "default_system")
 
     def test_g_context_is_request_scoped(self, app, monkeypatch):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap("tokA:alice"))
         application = app
 
@@ -180,7 +180,7 @@ class TestNoIdentityLeak:
 
 class TestResolveRequestIdentity:
     def test_legacy_header_path_without_map(self, app, monkeypatch):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap(""))
         with app.test_request_context(headers={"X-Audit-Actor": "carol"}):
             identity = sa.resolve_request_identity()
@@ -189,7 +189,7 @@ class TestResolveRequestIdentity:
         assert identity.degraded is True
 
     def test_remote_addr_fallback(self, app, monkeypatch):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap(""))
         with app.test_request_context(environ_base={"REMOTE_ADDR": "10.0.0.9"}):
             identity = sa.resolve_request_identity()
@@ -197,7 +197,7 @@ class TestResolveRequestIdentity:
         assert identity.identity_source == "remote_addr"
 
     def test_session_id_propagated(self, app, monkeypatch):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap(""))
         with app.test_request_context():
             identity = sa.resolve_request_identity(session_id="sess-1")
@@ -227,7 +227,7 @@ class TestLogRequest:
 
 class TestNoPlaintextTokenInLogs:
     def test_token_never_logged(self, app, monkeypatch, caplog):
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
         set_token_map(TokenMap("super-secret-token:alice"))
         with caplog.at_level("DEBUG", logger="agent.server_auth"):
             app.test_client().get(

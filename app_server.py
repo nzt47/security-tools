@@ -512,7 +512,12 @@ try:
     register_status_provider("/api/sensors", _provider_sensors)
     register_status_provider("/api/status", _provider_status)
     register_status_provider("/api/panorama", _provider_panorama)
-    register_modules_api(app, api_token_provider=lambda: _API_TOKEN if _API_TOKEN_ENABLED else None)
+    # 【2026-10-01】provider 也改运行期取值：否则热重载配上令牌后，
+    # modules API 的进程内转发仍拿不到令牌（与 require_token 同源缺陷）。
+    def _runtime_api_token():
+        from agent.server_auth import current_api_token
+        return current_api_token() or None
+    register_modules_api(app, api_token_provider=_runtime_api_token)
     logger.info("[启动] 模块聚合 API 路由已注册 (/api/modules/*)")
 except Exception as e:
     logger.warning(f"[启动] 模块聚合 API 注册失败: {e}")
@@ -643,10 +648,20 @@ else:
     logger.info("API 令牌认证未启用（设置 FLASK_API_TOKEN 环境变量以启用）")
 
 def require_token(f):
-    """需要 API 令牌认证的装饰器"""
+    """需要 API 令牌认证的装饰器（**运行期**判定是否启用）
+
+    【2026-10-01 修同类 fail-open】原实现读导入期 `_API_TOKEN_ENABLED`，于是：
+    进程启动时无令牌 ⇒ 该常量 False ⇒ 本装饰器**整段跳过校验**；之后即便经 `.env`
+    热重载填上令牌，装饰器仍不校验（实测：任意错令牌放行）。
+    现改为看**此刻**环境里有没有令牌，与 `agent/server_auth.authorize_token` 同口径。
+    测试旁路走 `agent.server_auth._AUTH_DISABLED_FOR_TEST`（显式钩子），
+    不再借 `_API_TOKEN_ENABLED` —— 后者退回为纯状态快照。
+    """
     @functools.wraps(f)
     def decorated(*args, **kwargs):
-        if not _API_TOKEN_ENABLED:
+        from agent.server_auth import auth_disabled_for_test, current_api_token
+        expected = "" if auth_disabled_for_test() else current_api_token()
+        if not expected:
             return f(*args, **kwargs)
         # 从请求头中提取令牌
         auth_header = request.headers.get("Authorization", "")
@@ -660,7 +675,7 @@ def require_token(f):
         #   把"无效令牌"变成 500；极端情况下若外层是 fail-open 的 try，则直接放行。
         #   统一走 agent/server_auth.token_equal（同一份实现，防止各处再写一遍出偏差）。
         from agent.server_auth import token_equal
-        if not token_equal(token, _API_TOKEN):
+        if not token_equal(token, expected):
             return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
         return f(*args, **kwargs)
     return decorated

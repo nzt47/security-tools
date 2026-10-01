@@ -600,8 +600,8 @@ class TestClassMoveRest:
         """
         import app_server
         import agent.server_auth as sa
-        monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)
-        monkeypatch.setattr(app_server, "_API_TOKEN_ENABLED", False)
+        monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
+        monkeypatch.setattr(app_server, "_AUTH_DISABLED_FOR_TEST", True)
 
     def test_classes_view_returns_groups(self, client, monkeypatch):
         self._auth_bypass(monkeypatch)

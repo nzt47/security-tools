@@ -43,9 +43,29 @@ from agent.security.identity import (
 
 logger = logging.getLogger(__name__)
 
-# ── API 令牌（**导入期取值**，保持既有语义；运行期以 `current_api_token()` 为准） ──
+# ── API 令牌 ──
+# 【2026-10-01 修正语义】`_API_TOKEN` / `_API_TOKEN_ENABLED` 是**导入期快照**，
+#   仅用于：启动日志、以及既有代码/端点上报「启用了没」这类**状态展示**。
+#   **判定一律走运行期** `current_api_token()`（见 `authorize_token`）。
+#   【此前的缺陷】把"是否启用"也交给这个导入期常量 ⇒ 进程启动时无令牌、之后经 `.env`
+#   热重载填入令牌后，`authorize_token` 仍走 `SRC_NO_TOKEN_CONFIGURED` 的 fail-open，
+#   实测 `authorize_token("totally-wrong")` 返回 `ok=True` —— **配了令牌却完全不校验**。
 _API_TOKEN = os.environ.get("FLASK_API_TOKEN", "")
 _API_TOKEN_ENABLED = bool(_API_TOKEN)
+
+#: 【测试专用显式旁路钩子】把"停用共享令牌"这件事独立出来，不要再借 `_API_TOKEN_ENABLED`。
+#:
+#: 【为什么必须拆开】此前测试用 `monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)` 模拟
+#:   "未配置令牌"。于是同一个变量同时承担了两种语义：**导入期状态**（生产判定用）与
+#:   **测试旁路**（开关用）。两种语义挤在一起，正是上面那个热重载 fail-open 的成因 ——
+#:   让"改一个测试开关"和"改生产鉴权语义"变成了同一个动作。
+#:   拆开后：生产只看运行期环境；测试用这个钩子，名字自解释、不可能被误用到生产路径。
+_AUTH_DISABLED_FOR_TEST = False
+
+
+def auth_disabled_for_test() -> bool:
+    """是否被测试显式停用共享令牌（生产恒为 False）。"""
+    return bool(_AUTH_DISABLED_FOR_TEST)
 
 #: 身份来源口径：共享令牌（无用户区分）
 SRC_SHARED_TOKEN = "shared_token"
@@ -153,12 +173,18 @@ def authorize_token(token: str) -> Tuple[bool, str, str]:
       3. 二者皆未启用 ⇒ 通过（**既有行为**：未配置令牌即不校验）；
       4. 其余 ⇒ 拒绝。
 
-    共享令牌的启用开关沿用**导入期** `_API_TOKEN_ENABLED`（与升级前逐字一致，
-    含测试用 `monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", False)` 的旁路语义）；
-    令牌取值本身运行期读环境变量，以支持 `.env` 热重载。
+    【2026-10-01 修正：共享令牌是否启用改为**运行期判定**】
+    · 此前：`shared = current_api_token() if _API_TOKEN_ENABLED else ""`，
+      `_API_TOKEN_ENABLED` 是导入期快照 ⇒ 启动时无令牌、事后经 `.env` 热重载填入令牌，
+      `shared` 仍是空串，函数落到第 3 条「二者皆未启用 ⇒ 通过」⇒ **配了令牌却放行一切**。
+      实测（复现脚本）：热重载后 `authorize_token("totally-wrong")` → `ok=True, source=no_token_configured`。
+    · 现在：只看**此刻**环境里有没有令牌。这对运营动作是硬要求 ——
+      "编辑 `.env` 轮换令牌"必须**立刻**生效，否则运维以为已强制校验、实际闸门全开且**静默**。
+    · 测试旁路改用显式钩子 `_AUTH_DISABLED_FOR_TEST`（`auth_disabled_for_test()`），
+      不再借 `_API_TOKEN_ENABLED`，避免"测试开关"与"生产语义"再被混为一谈。
     """
     presented = str(token or "")
-    shared = current_api_token() if _API_TOKEN_ENABLED else ""
+    shared = "" if _AUTH_DISABLED_FOR_TEST else current_api_token()
     if shared and token_equal(presented, shared):
         return True, "", SRC_SHARED_TOKEN
     from agent.security.identity import current_token_map
@@ -278,7 +304,11 @@ def auth_status() -> Dict[str, Any]:
     shared = False
     token_map_size = 0
     try:
-        shared = bool(current_api_token() if _API_TOKEN_ENABLED else "")
+        # 【2026-10-01】状态上报必须反映**运行期真相**：
+        #   此前读导入期 `_API_TOKEN_ENABLED`，热重载配上令牌后本端点仍报
+        #   `shared_token: false / configured: false` —— **状态端点在说谎**，
+        #   而它正是运维用来判断"到底有没有启用鉴权"的地方。
+        shared = bool(current_api_token())
     except Exception:  # noqa: BLE001 读环境变量失败 ⇒ 按"未配置"（更保守）
         shared = False
     try:
