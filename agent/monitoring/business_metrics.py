@@ -1397,3 +1397,41 @@ def record_extension_install(extension_type: str, source: str, success: bool):
 def get_dashboard_data(time_range: Optional[float] = None) -> Dict:
     """快捷函数：获取仪表盘数据"""
     return get_business_metrics_collector().get_dashboard_data(time_range)
+
+
+# ============================================================================
+# 熔断器观测钩子（**由本模块注入**，方向：monitoring → circuit_breaker，合法）
+# ============================================================================
+
+def _on_circuit_breaker_state(breaker_name: str, old_state, new_state) -> None:
+    """接收熔断器状态事件并写成业务指标。
+
+    `old_state is None` ⇒ 仅"发布当前状态"（访问点触发的，不是一次转换）。
+    """
+    _c = get_business_metrics_collector()
+    if old_state is not None:
+        _c.record_circuit_breaker_trigger(
+            breaker_name, str(old_state), str(new_state), "state_machine")
+    _c.update_circuit_breaker_state(breaker_name, str(new_state))
+
+
+def _install_circuit_breaker_observer() -> None:
+    """把上面的回调注入 `agent.circuit_breaker`。
+
+    【为什么用注入而不是让 circuit_breaker 直接 import 本模块】
+    `.importlinter` 有分层契约：`error_handler`（底层）不得导入 `monitoring`（上层）。
+    而 `agent/error_handler.py` **会导入 `agent.circuit_breaker`**，
+    所以 circuit_breaker 反向导入 monitoring 会让底层**间接**依赖上层，
+    CI 的「循环依赖校验」实测报 BROKEN（链路：error_handler → circuit_breaker → business_metrics）。
+    ⇒ 改为**上层注入**：方向变成 monitoring → circuit_breaker，合法且无环。
+    这也是本仓既有的认可模式（该契约注释里写明 error_handler 的 7 处延迟导入属"有意 DI 设计"）。
+    【失败隔离】钩子装不上不得影响本模块可用（业务指标照常工作，只是熔断器指标暂缺）。
+    """
+    try:
+        from agent.circuit_breaker import set_state_observer
+        set_state_observer(_on_circuit_breaker_state)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+_install_circuit_breaker_observer()

@@ -413,16 +413,7 @@ class CircuitBreaker:
         #   本方法是熔断状态机的**唯一收口**（连 force_open/force_close 也走它），
         #   故在此处补埋点即可保证「状态变了必然记账」，不会漏也不会重复。
         # 【失败隔离】埋点异常绝不影响熔断判定主路径。
-        try:
-            from agent.monitoring.business_metrics import (
-                get_business_metrics_collector,
-            )
-            _bm = get_business_metrics_collector()
-            _bm.record_circuit_breaker_trigger(
-                self.name, old_state.value, new_state.value, "state_machine")
-            _bm.update_circuit_breaker_state(self.name, new_state.value)
-        except Exception:  # noqa: BLE001 埋点失败绝不阻断熔断主路径
-            pass
+        _notify_state_observer(self.name, old_state.value, new_state.value)
 
     def _prune_window(self) -> None:
         """清理过期窗口条目（按 window_seconds 阈值裁剪）"""
@@ -623,6 +614,43 @@ def circuit_protected(
     return decorator
 
 
+# ── 观测钩子（**避免本模块反向导入 agent.monitoring**）───────────────────
+#
+# 【为什么必须用钩子而不是直接 import】本仓有明确的分层契约（.importlinter）：
+#   `error_handler` 位于底层、`monitoring` 位于上层，依赖方向只许 monitoring → error_handler。
+#   而 `agent.error_handler` **会导入本模块**（error_handler.py 有 3 处），
+#   于是「本模块 → agent.monitoring.*」会让底层**间接**反向依赖上层。
+#   实测（CI `循环依赖校验` / 本地 lint-imports）：
+#       agent.error_handler -> agent.circuit_breaker (l.441, l.483, l.711)
+#       agent.circuit_breaker -> agent.monitoring.business_metrics (新增的 2 行)
+#       ⇒ contract「error_handler 不得在模块级导入 monitoring 子模块」BROKEN
+#   ⇒ 正确修法是**断开这条边**（本仓既有约定：延迟导入/DI 是被认可的模式），
+#     而不是往 ignore_imports 里塞一条豁免把它盖住。
+#   【注入方】`agent/monitoring/business_metrics.py`（上层 → 下层，方向合法）。
+_state_observer = None
+
+
+def set_state_observer(observer) -> None:
+    """由**上层**（monitoring）注入状态观测回调；传 None 可卸载。
+
+    observer 契约：``observer(breaker_name, old_state, new_state)``，其中
+    ``old_state is None`` 表示"仅发布当前状态"（不是一次转换）。
+    回调异常**绝不影响**熔断判定主路径（见 `_notify_state_observer`）。
+    """
+    global _state_observer
+    _state_observer = observer
+
+
+def _notify_state_observer(breaker_name: str, old_state, new_state) -> None:
+    """调用观测回调；未注入或回调抛错都静默跳过（观测不得影响熔断）。"""
+    if _state_observer is None:
+        return
+    try:
+        _state_observer(breaker_name, old_state, new_state)
+    except Exception:  # noqa: BLE001 观测失败绝不阻断熔断主路径
+        pass
+
+
 # ── 全局熔断器注册表（按名称复用，避免每个调用点都新建实例） ─────
 _breakers: dict[str, "CircuitBreaker"] = {}
 _breakers_lock = threading.Lock()
@@ -655,15 +683,7 @@ def get_circuit_breaker(
     #   `CircuitBreakerMetricsMissing`（expr 用 absent(...)）恒为 1 ⇒ 长期误报。
     #   在访问点补一次发布，使"健康的熔断器"也有序列可查（set_gauge 幂等、开销极小）。
     # 【失败隔离】埋点异常绝不影响取用。
-    try:
-        from agent.monitoring.business_metrics import (
-            get_business_metrics_collector,
-        )
-        _state_value = getattr(_breaker.state, "value", "unknown")
-        get_business_metrics_collector().update_circuit_breaker_state(
-            name, _state_value)
-    except Exception:  # noqa: BLE001 埋点失败绝不影响取用
-        pass
+    _notify_state_observer(name, None, getattr(_breaker.state, "value", "unknown"))
     return _breaker
 
 
