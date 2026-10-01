@@ -689,7 +689,17 @@ if _API_AUTH_MODE not in _AUTH_MODE_VALUES:
 #: 读型方法（仅 enforce_all 档覆盖）
 _READ_METHODS = frozenset({"GET", "HEAD"})
 _API_AUTH_ALLOW = tuple(
-    p.strip() for p in str(os.environ.get("CP_API_AUTH_ALLOW", "/api/health")).split(",") if p.strip()
+    p.strip() for p in str(os.environ.get(
+        # 【2026-10-01 把 /metrics 纳入默认豁免】
+        #   为什么：enforce_all 档会覆盖 GET/HEAD，而 Prometheus 抓取 /metrics 是
+        #   **机器对机器**调用，无法携带 Authorization 头（scrape_config 虽可配
+        #   bearer_token，但那要把令牌写进监控配置，比"豁免一个只读指标端点"更差）。
+        #   若不在默认豁免里，一旦有人切到 enforce_all，**Prometheus 抓取会整条中断**，
+        #   且是静默的（监控不会告警"我抓不到了"）—— 正是本仓反复出现的
+        #   "改一处打挂另一处"形态。故与 /api/health 一并作为默认豁免。
+        #   【注意】本机 .env 显式设了 CP_API_AUTH_ALLOW 会**覆盖**此默认值 ⇒
+        #   切 enforce_all 前必须把 /metrics 补进 .env 的豁免清单（已登记为遗留项）。
+        "CP_API_AUTH_ALLOW", "/api/health,/metrics")).split(",") if p.strip()
 )
 _MUTATING = frozenset({"POST", "PUT", "DELETE", "PATCH"})
 
@@ -732,7 +742,11 @@ def _warn_if_gate_inert_once() -> None:
                 "闸门恒放行，当前档位 %s 形同虚设、且不会产生任何影子日志。"
                 "请先配置令牌再依赖本闸门。", _API_AUTH_MODE)
     except Exception as _e:  # noqa: BLE001
-        logger.debug("[AuthGate] 令牌配置自检跳过: %s", _e)
+        # 由 DEBUG 提为 WARNING：自检失败本身要可见 —— 本函数此前正是因为一个被吞掉的
+        # ImportError 而**从未生效过**，不能再用静默的日志级别重复同一个错误。
+        # （为什么标志位仍留在 try 之前：挪到之后会让失败时**每次请求**都重试；
+        #   保留一次性语义 + 让失败可见，是这两害之间更优的取舍。）
+        logger.warning("[AuthGate] 令牌配置自检未完成（本次不重试）: %s", _e)
 
 
 _AUTH_GATE_SHADOW_WARNED = False
@@ -762,7 +776,7 @@ def _warn_if_gate_shadow_once() -> None:
                 "未授权请求仍会被放行。确认影子日志无误后改为 enforce（或 enforce_all "
                 "以一并覆盖 GET/HEAD）即可收口。")
     except Exception as _e:  # noqa: BLE001
-        logger.debug("[AuthGate] shadow 档自检跳过: %s", _e)
+        logger.warning("[AuthGate] shadow 档自检未完成（本次不重试）: %s", _e)
 
 
 @app.before_request
