@@ -236,6 +236,18 @@ groups:
           impact: "监控系统失效，无法检测其他告警"
           action: "检查 Prometheus 状态，查看日志"
 
+      # ⚠️ [2026-10-02 核实] 本规则在本部署【结构性恒空、永不触发】—— 保留不删，原因与替代方案如下。
+      # 【为什么恒空】monitoring/prometheus.yml 的 scrape_configs 只有 2 个 job：yunshu、prometheus
+      #   （实测：Select-String -Path monitoring/prometheus.yml -Pattern 'job_name' 仅 2 行）。
+      #   没有任何 job="grafana" 的采集目标 ⇒ up{job="grafana"} 序列为空 ⇒ 表达式恒无结果。
+      #   （docker-compose 确实起了 grafana 容器，但 Prometheus 不采集它，二者不是一回事。）
+      # 【为什么不改成 up{job="prometheus"}】该写法与上方 PrometheusDown(alerts.yml:226-227)
+      #   完全重复，且会**谎报原因**：Prometheus 自己挂掉时会同时报"Grafana 不可用"。
+      # 【为什么不直接补一个 grafana scrape job】compose 的 grafana 服务未设 GF_METRICS_ENABLED=true，
+      #   Grafana 的 /metrics 返回 404 ⇒ 抓取失败 ⇒ up=0 ⇒ 本告警会**持续误报**（比静默更糟）。
+      # 【正确修法（本次未做，属另一改动面）】① Grafana 开 GF_METRICS_ENABLED=true；
+      #   ② prometheus.yml 增 job_name: 'grafana'，targets: ['grafana:3000']；③ 两处必须同批上线。
+      # 【回退方式】git checkout -- monitoring/alerts.yml（本次对该文件仅新增注释，expr 一字未改）
       - alert: GrafanaDown
         expr: up{job="grafana"} == 0
         for: 5m

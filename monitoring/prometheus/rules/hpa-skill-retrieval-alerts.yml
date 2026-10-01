@@ -12,6 +12,26 @@
 #    - skill_match_count_total (prometheus_client Counter, 代码定义)
 #    - container_cpu_usage_seconds_total (cAdvisor 标准)
 #    - kube_pod_container_resource_limits / kube_deployment_status_replicas (kube-state-metrics)
+#
+#  ⚠️⚠️ [2026-10-02 核实] 本部署**未部署** kube-state-metrics / cAdvisor ⚠️⚠️
+#    ⇒ 下列 6 个指标名在本仓与运行栈中【完全不存在】，引用它们的 5 条告警在本部署
+#       **结构性恒空、永不触发**。本次**不删除**这些规则（保留供 K8s 生产集群复用），
+#       仅就地标注，避免下一个人再查一遍。判定依据（实测，非阅读推断）：
+#        1) monitoring/prometheus.yml 的 scrape_configs 只有 2 个 job：yunshu、prometheus
+#           （无 cadvisor / kube-state-metrics / node-exporter）。
+#        2) 全仓 .py 非注释代码 0 处定义这些名字；仅在 docs/ 与 security-tools/ 的
+#           镜像副本里作为文本出现（脚本 scripts/k8s_preflight_check.sh:154-163 亦以
+#           "未找到 kube-state-metrics" 为预期分支，佐证本仓默认无该组件）。
+#        3) 本文件第 8 行自述的部署方式（kubectl apply 到 K8s 集群）与本仓 docker-compose
+#           栈不是同一套环境；这些规则只在真正具备 kube-state-metrics/cAdvisor 的集群里有效。
+#    缺失指标名清单（6 个）：
+#      container_cpu_usage_seconds_total, kube_pod_container_resource_limits,
+#      kube_deployment_status_replicas, kube_deployment_status_ready_replicas,
+#      kube_hpa_status_current_replicas, kube_hpa_status_desired_replicas
+#    受影响告警（5 条）：SkillServiceCPUHigh, SkillServiceCPUCritical,
+#      HPAMaxReplicasReached, HPAScaleUpStalled, SkillServicePodNotReady
+#    【回退方式】git checkout -- monitoring/prometheus/rules/hpa-skill-retrieval-alerts.yml
+#      （本次对该文件仅新增注释，expr 一字未改）
 #  【变易】分级告警: warning（HPA 触发线）/ critical（严重超标）
 #  【简易】每条告警含 runbook_url 指向 Grafana 面板
 #
@@ -63,6 +83,7 @@ groups:
     rules:
       # CPU 超过 HPA 扩容阈值（50%）— warning
       # 对齐调整后的 hpa.yaml averageUtilization: 50
+      # ⚠️ 本部署无 cAdvisor/kube-state-metrics ⇒ 本规则恒空（详见文件头说明），保留不删。
       - alert: SkillServiceCPUHigh
         expr: |
           sum(rate(container_cpu_usage_seconds_total{namespace="production",pod=~"skill-retrieval.*"}[1m])) by (pod)
@@ -82,6 +103,7 @@ groups:
           runbook_url: "http://localhost:3000/d/skill-hpa-monitor"
 
       # CPU 严重过载（80%）— critical
+      # ⚠️ 本部署无 cAdvisor/kube-state-metrics ⇒ 本规则恒空（详见文件头说明），保留不删。
       - alert: SkillServiceCPUCritical
         expr: |
           sum(rate(container_cpu_usage_seconds_total{namespace="production",pod=~"skill-retrieval.*"}[1m])) by (pod)
@@ -106,6 +128,7 @@ groups:
     rules:
       # HPA 达到 maxReplicas — 容量上限
       # 持续 5 分钟达 maxReplicas=10 说明流量超预期，需扩容集群或优化服务
+      # ⚠️ 本部署无 kube-state-metrics ⇒ 本规则恒空（详见文件头说明），保留不删。
       - alert: HPAMaxReplicasReached
         expr: kube_deployment_status_replicas{deployment="skill-retrieval-service",namespace="production"} >= 10
         for: 5m
@@ -121,6 +144,7 @@ groups:
 
       # HPA 扩容停滞 — desired > current 持续 5m
       # 说明 Pod 创建失败（资源不足/镜像拉取失败/调度失败）
+      # ⚠️ 本部署无 kube-state-metrics ⇒ 本规则恒空（详见文件头说明），保留不删。
       - alert: HPAScaleUpStalled
         expr: |
           kube_hpa_status_current_replicas{hpa="skill-retrieval-hpa",namespace="production"}
@@ -137,6 +161,7 @@ groups:
           runbook_url: "http://localhost:3000/d/skill-hpa-monitor"
 
       # Pod 非 Ready 持续 2m
+      # ⚠️ 本部署无 kube-state-metrics ⇒ 本规则恒空（详见文件头说明），保留不删。
       - alert: SkillServicePodNotReady
         expr: |
           kube_deployment_status_replicas{deployment="skill-retrieval-service",namespace="production"}

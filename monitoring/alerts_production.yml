@@ -1,10 +1,41 @@
+# ════════════════════════════════════════════════════════════════════════════
+# [2026-10-02] 指标名对齐修复（A 类：大小写/前缀不匹配）
+# 【为什么改】本文件此前 17 行 expr 引用了【代码里不存在的指标名】，PromQL 大小写敏感，
+#   表达式恒为空 ⇒ 告警永不触发（不是阈值问题，是名字根本查不到序列）。
+#   实测依据：GET http://127.0.0.1:5678/metrics（prometheus.yml 的 job="yunshu" 采集目标）
+#   暴露的是小写 yunshu_* 一族；大写 Yunshu_* 只存在于 agent/monitoring/prometheus.py 的
+#   PrometheusMetricsExporter(namespace="Yunshu")，而该 exporter 全仓无生产实例化点
+#   （仅 routes_logging.py:93 的工厂 + 测试引用）⇒ 大写名从未注册，永远查不到。
+# 【逐项映射】（左侧 = 修改前，右侧 = 代码里的真实名 + 定义处）
+#   http_requests_total                   -> yunshu_http_request_total
+#       定义：app_server.py:531-535 PrometheusMetrics(defaults_prefix='yunshu')
+#             实测样本{yunshu_http_request_total{method="GET",status="200"} 4829}
+#   http_request_duration_seconds_bucket  -> yunshu_http_request_duration_seconds_bucket
+#       同上（同一 exporter 的 Histogram，prometheus_client 自动派生 _bucket/_count/_sum）
+#   security_blocks_total                 -> yunshu_security_blocks_total（app_server.py:542-546）
+#   system_cpu_usage_percent              -> yunshu_cpu_usage_percent（app_server.py:584-587）
+#   system_memory_usage_percent           -> yunshu_memory_usage_percent（app_server.py:589-592）
+#   Yunshu_conversations_total            -> yunshu_conversations_total（app_server.py:570-574）
+#   Yunshu_active_connections             -> yunshu_active_connections（app_server.py:595-598）
+#   注：system_cpu_usage_percent / system_memory_usage_percent / security_blocks_total /
+#   http_requests_total 这 4 个名字确实存在于 utils/prometheus_monitor.py，但那是
+#   【另一个组件】且注册在私有 CollectorRegistry() 里，app_server.py 从未 import 它
+#   ⇒ 不在本栈 /metrics 上，不能作为 job="yunshu" 规则的依据。
+# 【已知残留（改名解决不了，另行跟进，不在本次改动范围）】
+#   yunshu_conversations_total：已注册但全仓无 .labels().inc() 写入点 ⇒ 恒零样本，
+#     HighConversationErrorRate / CriticalConversationErrorRate 改后仍不会触发（需补埋点）。
+#   yunshu_active_connections：已注册但无 .set() 调用点 ⇒ 恒 0，
+#     HighActiveConnections 改后仍不会触发（需补埋点）。
+# 【回退方式】git checkout -- monitoring/alerts_production.yml
+#   （或把这 7 个名字逐字改回左侧旧名；本文件除名字外无任何其它改动）
+# ════════════════════════════════════════════════════════════════════════════
 groups:
   - name: yunshu_alerts
     interval: 30s
     rules:
       # ==================== 错误率告警 ====================
       - alert: HighErrorRate
-        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+        expr: sum(rate(yunshu_http_request_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_request_total[5m])) > 0.05
         for: 5m
         labels:
           severity: warning
@@ -13,7 +44,7 @@ groups:
           description: "应用 {{ $labels.instance }} 的错误率超过 5% (当前值：{{ $value | humanizePercentage }})"
           
       - alert: CriticalErrorRate
-        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.20
+        expr: sum(rate(yunshu_http_request_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_request_total[5m])) > 0.20
         for: 3m
         labels:
           severity: critical
@@ -22,7 +53,7 @@ groups:
           description: "应用 {{ $labels.instance }} 的错误率超过 20% (当前值：{{ $value | humanizePercentage }})"
           
       - alert: VeryHighErrorRate
-        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.50
+        expr: sum(rate(yunshu_http_request_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_request_total[5m])) > 0.50
         for: 2m
         labels:
           severity: emergency
@@ -32,7 +63,7 @@ groups:
       
       # ==================== 延迟告警 ====================
       - alert: HighLatency
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        expr: histogram_quantile(0.95, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 0.5
         for: 5m
         labels:
           severity: warning
@@ -41,7 +72,7 @@ groups:
           description: "95 分位响应时间超过 500ms (当前值：{{ $value | humanizeDuration }})"
           
       - alert: VeryHighLatency
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.0
+        expr: histogram_quantile(0.95, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 1.0
         for: 3m
         labels:
           severity: critical
@@ -50,7 +81,7 @@ groups:
           description: "95 分位响应时间超过 1 秒 (当前值：{{ $value | humanizeDuration }})"
           
       - alert: ExtremeLatency
-        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 2.0
+        expr: histogram_quantile(0.99, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 2.0
         for: 2m
         labels:
           severity: emergency
@@ -60,7 +91,7 @@ groups:
       
       # ==================== 安全告警 ====================
       - alert: SecurityAttack
-        expr: sum(rate(security_blocks_total[5m])) > 3
+        expr: sum(rate(yunshu_security_blocks_total[5m])) > 3
         for: 1m
         labels:
           severity: warning
@@ -69,7 +100,7 @@ groups:
           description: "检测到频繁的安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
           
       - alert: CriticalSecurityAttack
-        expr: sum(rate(security_blocks_total[5m])) > 10
+        expr: sum(rate(yunshu_security_blocks_total[5m])) > 10
         for: 1m
         labels:
           severity: critical
@@ -78,7 +109,7 @@ groups:
           description: "检测到频繁的严重级别安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
           
       - alert: MassiveSecurityAttack
-        expr: sum(rate(security_blocks_total[5m])) > 30
+        expr: sum(rate(yunshu_security_blocks_total[5m])) > 30
         for: 1m
         labels:
           severity: emergency
@@ -88,7 +119,7 @@ groups:
       
       # ==================== 系统资源告警 ====================
       - alert: HighCPUUsage
-        expr: system_cpu_usage_percent > 70
+        expr: yunshu_cpu_usage_percent > 70
         for: 5m
         labels:
           severity: warning
@@ -97,7 +128,7 @@ groups:
           description: "CPU 使用率超过 70% (当前值：{{ $value | humanize }}%)"
           
       - alert: VeryHighCPUUsage
-        expr: system_cpu_usage_percent > 90
+        expr: yunshu_cpu_usage_percent > 90
         for: 2m
         labels:
           severity: critical
@@ -106,7 +137,7 @@ groups:
           description: "CPU 使用率超过 90% (当前值：{{ $value | humanize }}%)"
           
       - alert: HighMemoryUsage
-        expr: system_memory_usage_percent > 80
+        expr: yunshu_memory_usage_percent > 80
         for: 5m
         labels:
           severity: warning
@@ -115,7 +146,7 @@ groups:
           description: "内存使用率超过 80% (当前值：{{ $value | humanize }}%)"
           
       - alert: VeryHighMemoryUsage
-        expr: system_memory_usage_percent > 90
+        expr: yunshu_memory_usage_percent > 90
         for: 2m
         labels:
           severity: critical
@@ -124,8 +155,10 @@ groups:
           description: "内存使用率超过 90% (当前值：{{ $value | humanize }}%)"
       
       # ==================== 对话系统告警 ====================
+      # ⚠️ 指标名已对齐为真实名，但 yunshu_conversations_total 目前全仓无写入点（恒零样本），
+      #    本组两条告警仍不会触发；需在对话结束处补 CONVERSATIONS.labels(status=...).inc() 才会生效。
       - alert: HighConversationErrorRate
-        expr: sum(rate(Yunshu_conversations_total{status="exception"}[5m])) / sum(rate(Yunshu_conversations_total[5m])) > 0.10
+        expr: sum(rate(yunshu_conversations_total{status="exception"}[5m])) / sum(rate(yunshu_conversations_total[5m])) > 0.10
         for: 5m
         labels:
           severity: warning
@@ -134,7 +167,7 @@ groups:
           description: "对话异常率超过 10% (当前值：{{ $value | humanizePercentage }})"
           
       - alert: CriticalConversationErrorRate
-        expr: sum(rate(Yunshu_conversations_total{status="exception"}[5m])) / sum(rate(Yunshu_conversations_total[5m])) > 0.30
+        expr: sum(rate(yunshu_conversations_total{status="exception"}[5m])) / sum(rate(yunshu_conversations_total[5m])) > 0.30
         for: 3m
         labels:
           severity: critical
@@ -162,8 +195,9 @@ groups:
           description: "监控目标 {{ $labels.job }} 不可用"
           
       # ==================== 业务指标告警 ====================
+      # 注：NoTraffic 依赖 yunshu_http_request_total（实测有非零样本，可正常触发）。
       - alert: NoTraffic
-        expr: sum(rate(http_requests_total[10m])) == 0
+        expr: sum(rate(yunshu_http_request_total[10m])) == 0
         for: 5m
         labels:
           severity: warning
@@ -171,8 +205,10 @@ groups:
           summary: "无流量检测"
           description: "系统已超过 10 分钟没有收到任何请求"
           
+      # ⚠️ 指标名已对齐为真实名，但 yunshu_active_connections 目前无 .set() 调用点（恒 0），
+      #    本告警仍不会触发；需在连接数变化处补 ACTIVE_CONNECTIONS.set(n) 才会生效。
       - alert: HighActiveConnections
-        expr: Yunshu_active_connections > 100
+        expr: yunshu_active_connections > 100
         for: 5m
         labels:
           severity: warning

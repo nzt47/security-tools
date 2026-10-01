@@ -1,9 +1,37 @@
+# ════════════════════════════════════════════════════════════════════════════
+# [2026-10-02] 指标名对齐修复（(a) 类：代码里有相近但名字不同的指标）
+# 【为什么改】原 expr 用 Yunshu_alert_total（大写 Y 开头），该指标在本部署从未注册：
+#   agent/monitoring/prometheus.py:132 的 PrometheusMetricsExporter(namespace="Yunshu")
+#   虽定义了它，但该 exporter 无生产实例化点（只有 routes_logging.py:93 的懒加载工厂
+#   与测试引用）⇒ /metrics 上不存在该序列 ⇒ 两条告警恒不触发。
+# 【映射依据】改成 app_server.py:542-546 直接暴露并被 job="yunshu" 采集的
+#   yunshu_security_blocks_total（labels: rule/level/category），语义同为「按级别的安全拦截数」。
+#   这与本仓既有修复保持一致：monitoring/alerts.yml:208-210 与
+#   monitoring/recording_rules.yml:80-82 已做过同一替换。
+#   写入点：plugins/chat.py:253-259（命中危险操作时 .labels(...).inc()）⇒ 可真正触发。
+# 【回退方式】git checkout -- monitoring/prometheus/alert_rules.yml
+#
+# 【本文件其余未改动规则 —— 已核实为「本部署结构性恒空」，保留不删，原因如下】
+#   Yunshu_v2_module_load_total / Yunshu_v2_module_load_duration_seconds / Yunshu_v2_module_enabled
+#     (ModuleLoadFailure / ModuleLoadSlow / V2ModuleDisabled)：仅由上述从未实例化的
+#     PrometheusMetricsExporter 定义，代码里没有小写或其它等价指标 ⇒ 无可用替代名。
+#     属于「旧 V2 命名体系的遗留规则」；要让它们生效必须先给 exporter 接线（或改指向新埋点）。
+#   Yunshu_interaction_total / Yunshu_interaction_duration_seconds_bucket
+#     (InteractionRateHigh / InteractionTimeout)：
+#     agent/monitoring/business_metrics.py:71 有 yunshu_interaction_total(单数)，
+#     但业务指标只经 /api/business/prometheus 暴露，而该端点**不在任何 scrape 配置中**
+#     （prometheus.yml 只有 yunshu/prometheus 两个 job）⇒ 换成小写名同样恒空，
+#     故本次不做「换一个死名字」的假修复。histogram 侧更没有 _bucket（业务收集器只导出
+#     _sum/_count/quantile 标签，见 business_metrics.py:1336-1347）⇒ histogram_quantile 永不成立。
+#   Yunshu_memory_count (MemoryCountHigh)：同样只在未实例化的 exporter 中定义，无等价指标。
+# ════════════════════════════════════════════════════════════════════════════
 groups:
   - name: Yunshu_v2_security_alerts
     rules:
       # Critical 级别告警 - 危险操作拦截
       - alert: CriticalAlertDetected
-        expr: sum(Yunshu_alert_total{level="critical"}) > 0
+        # 修复：原 Yunshu_alert_total{level="critical"} 从未注册；改用已采集且有写入点的真实指标。
+        expr: sum(yunshu_security_blocks_total{level="critical"}) > 0
         for: 0m
         labels:
           severity: critical
@@ -16,7 +44,8 @@ groups:
 
       # Warning 级别告警 - 可疑操作检测
       - alert: WarningAlertDetected
-        expr: sum(Yunshu_alert_total{level="warning"}) > 5
+        # 修复：同上，Yunshu_alert_total -> yunshu_security_blocks_total（level 标签语义一致）。
+        expr: sum(yunshu_security_blocks_total{level="warning"}) > 5
         for: 5m
         labels:
           severity: warning
