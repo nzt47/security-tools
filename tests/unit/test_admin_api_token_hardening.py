@@ -32,7 +32,8 @@ from plugins.admin_api import (
 @pytest.fixture()
 def client(monkeypatch):
     """带固定签名密钥的测试客户端（否则进程内随机密钥让断言不可复现）。"""
-    monkeypatch.setenv("FLASK_API_TOKEN", "test-signing-seed-0123456789abcdef")
+    # 只需"确定"而非"保密"：让签名在多次断言间可复现（真实密钥来自 .env，从不进源码）
+    monkeypatch.setenv("FLASK_API_TOKEN", "unit-test-signing-seed")
     app = Flask(__name__)
     app.register_blueprint(admin_bp)
     return app.test_client()
@@ -117,19 +118,71 @@ class TestLoginEndpoint:
         assert _username_of(client, body["data"]["token"]) == "admin"
 
     def test_口令来自环境变量(self, client, monkeypatch):
+        """口令完全由环境变量决定：换掉环境变量值，旧值立刻失效。
+
+        【为什么用两个"像口令的假值"而不是历史上那个演示默认值】
+        本仓 CI 有用 gitleaks 扫源码里的口令字面量；测试文件也在扫描范围内，
+        在里面写死一个"演示口令"会重新触发同一条门禁（见本文件末的源码守卫）。
+        这里改用 `old-pw` 充当"上一版环境变量值"，语义等价且不留可疑字面量。
+        """
         monkeypatch.setenv("YUNSHU_ADMIN_PASSWORD", "s3cret-pw")
-        # 演示默认口令此时**必须**失效 —— 否则加固等于没做
-        r = client.post("/api/auth/login", json={"username": "admin", "password": "123456"})
-        assert r.get_json()["code"] != 200
+        r = client.post("/api/auth/login", json={"username": "admin", "password": "old-pw"})
+        assert r.get_json()["code"] != 200, "旧口令改环境变量后仍然能登 ⇒ 口令来源不对"
         r2 = client.post("/api/auth/login", json={"username": "admin", "password": "s3cret-pw"})
         assert r2.get_json()["code"] == 200
 
-    def test_用户不存在与口令错误返回同一文案(self, client):
+    def test_用户不存在与口令错误返回同一文案(self, client, monkeypatch):
         """防用户枚举：两种失败不得可区分。"""
+        monkeypatch.setenv("YUNSHU_ADMIN_PASSWORD", "s3cret-pw")
         a = client.post("/api/auth/login", json={"username": "nobody", "password": "x"}).get_json()
         b = client.post("/api/auth/login", json={"username": "admin", "password": "x"}).get_json()
         assert a["message"] == b["message"], (a, b)
         assert a["code"] == b["code"]
+
+    def test_未配置口令时一律拒绝_fail_closed(self, client, monkeypatch):
+        """口令只来自环境变量，源码里**不留任何字面量**（CI gitleaks 门禁要求）。
+
+        【为什么不给"演示默认口令"兜底】首版留了一个 6 位数字常量，被 gitleaks 规则
+        `hardcoded-password-assignment` 判失败。正确做法不是改名躲扫描，而是真的不留：
+        未配置 ⇒ **拒绝登录并点名要配哪个变量**（fail-closed，且不静默）。
+        【这一条同时也是回归守卫】若哪天有人又加了默认口令并让未配置时能登进去，本测试转红。
+        """
+        monkeypatch.delenv("YUNSHU_ADMIN_PASSWORD", raising=False)
+        body = client.post("/api/auth/login",
+                           json={"username": "admin", "password": "any-pw"}).get_json()
+        assert body["code"] != 200, "口令未配置却登录成功了 ⇒ 说明又出现了默认口令兜底"
+        assert "YUNSHU_ADMIN_PASSWORD" in body["message"], \
+            "失败文案必须点名要配置的环境变量，否则运维无从下手"
+
+    def test_源码中不得出现口令字面量(self):
+        """镜像 CI 的 gitleaks 规则 `hardcoded-password-assignment`。
+
+        【为什么要在这里再守一道】CI 那条规则是**正则匹配**（名字含 PASSWORD 的变量被赋字面量），
+        连注释里复现该形态都会命中。本仓的规矩是"门禁失败要变成常设守卫"，
+        否则同一个人在下一个改动里很容易再写回去（本次就是我自己写回去的）。
+        """
+        import os
+        import re
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        with open(os.path.join(root, "plugins", "admin_api.py"), encoding="utf-8") as fh:
+            src = fh.read()
+        # 判据 = 「变量名含 PASSWORD/SECRET，且**值不像环境变量名**」。
+        # 【为什么必须加后半句】`_PASSWORD_ENV = "YUNSHU_ADMIN_PASSWORD"` 这种把**变量名**
+        #   存进常量的写法是正当的（那不是口令本身），CI 的 gitleaks 也没判它失败。
+        #   守卫若只按左半边匹配，就会逼出"改名躲开自己的正则"这种自欺——
+        #   真正要禁的是**口令值**出现在源码里。
+        hits = []
+        for ln, line in enumerate(src.splitlines(), 1):
+            m = re.search(r"(\w*(?:PASSWORD|PASSWD|SECRET)\w*)\s*=\s*[\"']([^\"']*)[\"']",
+                          line)
+            if not m:
+                continue
+            value = m.group(2)
+            if re.fullmatch(r"[A-Z][A-Z0-9_]*", value):
+                continue  # 值是全大写标识符 ⇒ 存的是"环境变量名"，不是口令
+            hits.append(ln)
+        assert hits == [], (
+            "plugins/admin_api.py 出现了口令字面量赋值（CI gitleaks 会失败）: 行 %r" % (hits,))
 
     def test_未登录访问受保护端点返回401(self, client):
         body = client.get("/api/user/info").get_json()

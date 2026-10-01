@@ -1921,6 +1921,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
             owner="agent/process_distill/service.py"),
     _secret("FLASK_API_TOKEN", CAT_EXTERNAL,
             "云枢 HTTP 面访问令牌（只读脱敏）", owner="agent/server_auth.py"),
+    # 【2026-10-01】管理后台口令。此前**写死源码**（"123456"）故无需登记；
+    # 改为可配置后必须登记，否则 scripts/scan_settings.py --check 会报缺口（CI 实测捕获）。
+    # 只读脱敏：口令不进 UI，改它请编辑 .env 后重启。
+    _secret("YUNSHU_ADMIN_PASSWORD", CAT_EXTERNAL,
+            "管理后台口令（只读脱敏；缺省回落演示默认值并告警）",
+            owner="plugins/admin_api.py"),
     _secret("SMTP_PASSWORD", CAT_EXTERNAL, "SMTP 口令（只读脱敏）",
             owner="agent/knowledge/audit_job.py"),
     _b("LLM_MODEL", CAT_EXTERNAL, "",

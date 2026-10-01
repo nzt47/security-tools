@@ -239,32 +239,37 @@ def _filter_menus(nodes, username):
 #  认证与用户
 # ════════════════════════════════════════════════════════════════════════════
 
-#: 演示默认口令（仅在前端 devMock 与本地演示场景使用）。
-#: 【为什么不直接删掉它】删掉会让本机管理后台在未配置环境变量时**完全登不进去**，
-#:   属「把可用性换成安全性」的硬切换；本仓规矩是**不静默降级**（INV-08），
-#:   故保留默认值但**首次登录时大声告警**，把「你正在用默认口令」变成可见事实。
-_DEMO_PASSWORD = "123456"
+#: 口令**只来自环境变量**，源码里不留任何字面量。
+#:
+#: 【为什么不留「演示默认口令」兜底】首版实现留了一个 6 位数字常量作为缺省，理由是
+#:   "删掉会让本机管理后台登不进去"。该取舍被 CI 直接否掉：gitleaks 规则
+#:   `hardcoded-password-assignment` 命中「给一个名字里带 PASSWORD 的变量赋值一个字面量」
+#:   这一形态（连本注释此前的写法也算命中），而这条 CI 门禁的存在意义正是"源码里不许出现口令"。
+#:   正确的做法不是**改名躲扫描**（那是在骗自家的安全门禁），而是**真的不留字面量**：
+#:   未配置时 **fail-closed**（拒绝登录 + 明确告知要配哪个变量），
+#:   这同时满足 INV-08「不静默降级」—— 它默认为安全，且把"为什么登不进去"讲清楚。
+#:   本机 `.env` 已设 `YUNSHU_ADMIN_PASSWORD`，故运行时行为不变。
+_PASSWORD_ENV = "YUNSHU_ADMIN_PASSWORD"
 
-_demo_password_warned = False
+_password_unset_warned = False
 
 
 def _admin_password() -> str:
-    """管理后台口令：优先环境变量 YUNSHU_ADMIN_PASSWORD，缺省回落到演示默认值。"""
-    return (os.environ.get("YUNSHU_ADMIN_PASSWORD") or "").strip() or _DEMO_PASSWORD
+    """管理后台口令：**仅**取环境变量（未配置 → 空串 = 不可登录，fail-closed）。"""
+    return (os.environ.get(_PASSWORD_ENV) or "").strip()
 
 
-def _warn_if_demo_password() -> None:
-    """使用默认口令时告警**一次**（只告警：不 raise / 不 sys.exit，见 D4）。"""
-    global _demo_password_warned
-    if _demo_password_warned:
+def _warn_if_password_unset() -> None:
+    """口令未配置时告警**一次**（只告警：不 raise / 不 sys.exit，见 D4）。"""
+    global _password_unset_warned
+    if _password_unset_warned:
         return
-    _demo_password_warned = True
-    if not (os.environ.get("YUNSHU_ADMIN_PASSWORD") or "").strip():
+    _password_unset_warned = True
+    if not _admin_password():
         import logging
-        logging.getLogger(__name__).warning(
-            "管理后台正在使用**演示默认口令**（YUNSHU_ADMIN_PASSWORD 未配置）。"
-            "  本机工作台场景可接受；但只要 5678 端口对本机以外的网络可达，"
-            "请立即在 .env 中设置 YUNSHU_ADMIN_PASSWORD。")
+        logging.getLogger(__name__).error(
+            "管理后台口令未配置（环境变量 %s 为空）⇒ 登录端点将一律拒绝（fail-closed）。"
+            "  修复：在 .env 中设置 %s=<强口令> 后重启。", _PASSWORD_ENV, _PASSWORD_ENV)
 
 
 @bp.route("/api/auth/login", methods=["POST"])
@@ -276,7 +281,12 @@ def admin_login():
     【口令比较】常量时间比较，且「用户不存在」与「口令错误」返回同一句文案，
     避免通过错误文案区分二者（用户枚举）。
     """
-    _warn_if_demo_password()
+    _warn_if_password_unset()
+    expected = _admin_password()
+    if not expected:
+        # fail-closed：没有配口令就谁都不许登（而不是回落到某个默认值）。
+        # 文案里点名环境变量：把"为什么登不进去"讲清楚，运维不用翻源码。
+        return _fail(503, "管理后台口令未配置：请在 .env 中设置 %s 后重启" % _PASSWORD_ENV)
     data = request.get_json(silent=True) or {}
     username = (data.get("username") or "").strip()
     password = (data.get("password") or "").strip()
@@ -285,7 +295,7 @@ def admin_login():
     #   ⇒ 攻击者可让登录端点 500（且掩盖真实原因）。按字节比较后只是"不相等"。
     password_ok = hmac.compare_digest(
         password.encode("utf-8", "surrogatepass"),
-        _admin_password().encode("utf-8", "surrogatepass"))
+        expected.encode("utf-8", "surrogatepass"))
     if user is None or not password_ok:
         return _fail(400, "用户名或密码错误")
     return _ok({"token": _issue_token(username), "user": user})
