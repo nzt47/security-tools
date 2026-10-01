@@ -592,11 +592,29 @@ class TestDeadRouteGuard:
     本守卫锁住后者：计数只许减少，涨了就红，逼改动者显式面对。
     """
 
-    #: 审计实测基线（2026-09-30）：register_all_routes 内注册的路由数
-    BASELINE_MAX = 200
+    #: 【2026-10-01 更正】曾用「148 条死路由」描述本问题 —— **那是错的**。
+    #:   该数字来自「静态装饰器总数 − 运行期路由数」的差集推断，把**计数口径差**
+    #:   误当成了「未注册的路由」。实测（真实 import app_server 后 dump url_map）：
+    #:     · 运行期 endpoint 482 个
+    #:     · server_routes/ 目录声明路径 324 条 → **322 条已挂载，仅 2 条未挂载**
+    #:       （POST /api/handoff、GET /api/health/auth）
+    #:   所以「死」的不是路由，是**一个函数**：register_all_routes 从未被调用，
+    #:   且它引用的 18 个模块里有 9 个是**旧版**（chat/sessions/panorama/config/
+    #:   personality/permission/workspace/monitoring/extensions）—— 同名路径已由
+    #:   plugins/* 与新路由模块提供；app_server.py 显式注册的是**另一套 24 个模块**。
+    #:   真正的风险是**陷阱**而非「路由失效」：按该函数新增模块会以为生效、实际 404，
+    #:   本仓历史上真的发生过两次（routes_approval、routes_agent_lines）。
+
+    #: 该函数引用的 8 个「陈旧模块」—— 若被接线会与 plugins/* 重复注册同名路径
+    STALE_MODULES = (
+        "routes_chat", "routes_sessions", "routes_panorama", "routes_config",
+        "routes_personality", "routes_permission", "routes_workspace", "routes_monitoring",
+    )
+
+    #: 实测确认**唯二**真正未挂载的路径（2026-10-01，真实 url_map 比对）
+    KNOWN_ORPHAN_PATHS = ("/api/handoff", "/api/health/auth")
 
     def test_死代码仍然无调用方_若有则必须同步本守卫(self):
-        import re
         root = _repo_root()
         hits = []
         for base, dirs, files in os.walk(os.path.join(root, "agent")):
@@ -609,25 +627,53 @@ class TestDeadRouteGuard:
                     for i, line in enumerate(fh, 1):
                         if "register_all_routes" in line:
                             hits.append((os.path.relpath(path, root), i, line.strip()))
-        # 允许"定义"与"文档提及"，但不允许**除定义外的调用**
         callers = [h for h in hits
                    if not h[2].startswith("def ") and "无调用方" not in h[2]
                    and h[0] != os.path.join("agent", "server_routes", "__init__.py")]
         assert len(hits) >= 1, "register_all_routes 的定义应仍然存在（否则请更新本守卫）"
-        assert callers == [], (
-            "register_all_routes 出现了调用方 ⇒ 死路由已被启用，",
-            "请更新本守卫与审计报告 A-1：%r" % (callers,))
+        _msg = ("register_all_routes 出现了调用方 ⇒ 该陈旧注册路径被启用，"
+                "会与 plugins/* 重复注册同名路由。请先更新本守卫与交付报告：%r" % (callers,))
+        assert callers == [], _msg
 
-    def test_死路由规模不超过基线(self):
-        import re
+    def test_陈旧模块集合未被接线(self):
+        """拦「误把旧版模块接上去」这一具体动作。
+
+        这 8 个模块的路径已由 plugins/* 与新路由模块提供；一旦被 app_server 再注册一遍，
+        同名路径会重复挂载（Flask 允许但语义歧义），且会让人误以为旧模块仍是权威。
+        """
         root = _repo_root()
-        path = os.path.join(root, "agent", "server_routes", "__init__.py")
-        with open(path, encoding="utf-8", errors="ignore") as fh:
+        with open(os.path.join(root, "app_server.py"), encoding="utf-8",
+                  errors="ignore") as fh:
             src = fh.read()
-        # 粗口径：该文件里 import 的路由模块数（每个模块通常贡献若干路由）
-        imports = re.findall(r"^\s*from\s+\.\s*import\s+(\w+)", src, re.M)
-        assert len(imports) <= self.BASELINE_MAX, (
-            f"死代码规模从基线增长到 {len(imports)}（上界 {self.BASELINE_MAX}）")
+        wired = [m for m in self.STALE_MODULES
+                 if ("server_routes.%s import" % m) in src]
+        _msg2 = ("app_server.py 接上了陈旧路由模块 %r —— 它们的路径已由 plugins/* 提供，"
+                 "请确认这不是重复注册；确认无误后请更新本守卫与交付报告。" % (wired,))
+        assert wired == [], _msg2
+
+    def test_已知孤儿路径清单未变化(self):
+        """把「真正未挂载的路径」固化成**一份可核对的短清单**（当前 2 条）。
+
+        【为什么不在这里 import app_server 去 dump url_map】那会拉起调度器/单例等
+        模块级副作用，且单测里要跑 20s+。改为**静态**核对：这 2 条路径仍定义在
+        server_routes/ 下（即仍属「只在该处声明」的状态）。重新测量真实 url_map 的
+        一行命令见交付报告 §9.9。
+        """
+        root = _repo_root()
+        found = {}
+        sr = os.path.join(root, "agent", "server_routes")
+        for fn in os.listdir(sr):
+            if not fn.endswith(".py"):
+                continue
+            with open(os.path.join(sr, fn), encoding="utf-8", errors="ignore") as fh:
+                src = fh.read()
+            for path in self.KNOWN_ORPHAN_PATHS:
+                if ('"%s"' % path) in src:
+                    found.setdefault(path, []).append(fn)
+        missing = [p for p in self.KNOWN_ORPHAN_PATHS if p not in found]
+        _msg3 = ("以下已知孤儿路径在 server_routes/ 里找不到了"
+                 "（可能已被修复 → 请更新本守卫与交付报告）: %r" % (missing,))
+        assert missing == [], _msg3
 
 
 class TestCrossRegistryConsistency:
