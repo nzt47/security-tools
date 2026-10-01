@@ -25,4 +25,61 @@ schema:
       description: 是否显示隐藏文件
   required:
   - path
+# 【result_schema（V2.0 §3.4「output_schema 不可或缺」）】
+#   形状**读实现 + 实跑双证**得出，不是按工具名猜的：
+#   · agent/tools/file_tools.py:529 `list_directory` 有三个返回分支 ——
+#     目录 :595（ok/path/abs_path/type=dir/items/total）、
+#     单文件 :558（ok/path/type=file/name/total，**没有** items/abs_path）、
+#     失败 :550/:554/:586/:589（ok/error）。
+#   · 条目字段来自 :737 `_get_single_file_info`；其中 extension 仅文件有、
+#     link_target 仅符号链接有、stat 失败时的兜底条目只有 {name,type}（:583）
+#     ⇒ 条目内**不设 required**，type 也**不加 enum**（兜底值就是 "unknown"）。
+#   · 实跑 list_directory(<tmp>) 复核：keys=[abs_path,items,ok,path,total,type]。
+#   沿用仓内口径：required 只锁 ok、additionalProperties: true（宁可漏检不可误报）。
+#   回退：删掉下面整段 result_schema，并把 "list_directory" 从
+#   agent/capregistry/contract.py::RESULT_SCHEMA_REQUIRED_TOOLS 移除、
+#   把 tests/unit/test_refactor_call_identity_and_recovery.py 的 FLOOR 调回 5。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    path:
+      type: string
+    abs_path:
+      type: string
+    type:
+      type: string
+    name:
+      type: string
+    total:
+      type: integer
+    items:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+          type:
+            type: string
+          size:
+            type: integer
+          modified:
+            type: string
+          created:
+            type: string
+          permissions:
+            type: string
+          is_link:
+            type: boolean
+          extension:
+            type: string
+          link_target:
+            type: string
+        additionalProperties: true
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

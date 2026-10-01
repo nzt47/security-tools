@@ -14,7 +14,10 @@ groups:
     interval: 30s
     rules:
       - alert: YunshuServiceDown
-        expr: up{job="yunshu-app"} == 0
+        # [S6 2026-09-20] job 名对齐：权威 scrape 配置 monitoring/prometheus.yml 的 job_name 是 yunshu，
+        # 原 job="yunshu-app" 不匹配任何 scrape 配置 ⇒ up 序列为空 ⇒ 本规则永不触发。
+        # 回退方式：把 job 改回 "yunshu-app"，并同步修改 prometheus.yml 的 job_name（两者必须同改）。
+        expr: up{job="yunshu"} == 0
         for: 1m
         labels:
           severity: critical
@@ -29,7 +32,8 @@ groups:
 
       - alert: YunshuServiceRestart
         # 修复说明：原 yunshu_service_restart_total 指标未暴露，改用 up 指标在 1 小时内的状态重置次数
-        expr: resets(up{job="yunshu-app"}[1h]) > 3
+        # [S6 2026-09-20] 同上：job 名对齐为 yunshu。回退方式：改回 "yunshu-app" 并同步 prometheus.yml。
+        expr: resets(up{job="yunshu"}[1h]) > 3
         for: 0m
         labels:
           severity: warning

@@ -44,12 +44,28 @@ __all__ = [
 #: 【2026-09-30 扩充 3 → 5】审计实测覆盖面只有 3/91，而 read_file / search_files
 #: 是被 LLM 调用频率最高的两个感知工具（工程主线可见集里就有它们）——
 #: 契约校验的价值与调用频次成正比，故优先补齐这两个。
+#: 【2026-10-01 扩充 5 → 12】再补 7 个，全部满足「location: local + effect: read +
+#: 无网络无模型依赖」，且每一个都**先读实现、再实跑一次**核对了真实返回键：
+#:   - 感知类：`list_directory` / `diff_files` / `get_clipboard` / `list_processes`
+#:   - 纯本地计算类：`get_pdf_info` / `data_convert` / `humanize_zh`
+#: 其中三处正是"照工具名猜必错"的地方，恰好证明逐工具核对的必要性：
+#:   ① `list_processes` 的**工具包装层**返回 dict，而它调用的底层函数返回的是
+#:      **裸 list**（agent/tools/process_tools.py:113）—— 读错一层就会写出
+#:      `required: [ok]` 的错 schema；
+#:   ② `get_pdf_info` 的 `info` / `error` 分别在失败/成功分支上显式为 `null`，
+#:      必须标成可空，否则一次**正常失败**就会被判契约违约（假红）；
+#:   ③ `humanize_zh` 的 `ok` 只由包装层补，实现本身不含该键。
 #: 【为什么不一次补 91 个】result_schema 必须**逐工具核对其真实返回形状**，
 #: 批量生成只会产出「看起来有、其实错」的 schema，那比没有更坏（假契约）。
 #: 扩充纪律：本元组**只许增长**，由 test_capregistry_core.py 锁定。
+#: 回退：删掉本元组里新增的 7 个名字 → 同步删掉对应 YAML 的 `result_schema:` 段
+#:   → 把 tests/unit/test_refactor_call_identity_and_recovery.py 的
+#:   `TestResultSchemaCoverage.FLOOR` 调回 5。
 RESULT_SCHEMA_REQUIRED_TOOLS: Tuple[str, ...] = (
     "data_format_detect", "json_query", "get_file_info",
-    "read_file", "search_files")
+    "read_file", "search_files",
+    "list_directory", "diff_files", "get_clipboard", "list_processes",
+    "get_pdf_info", "data_convert", "humanize_zh")
 
 
 def _builtin_check(value: Any, schema: Dict[str, Any], path: str,

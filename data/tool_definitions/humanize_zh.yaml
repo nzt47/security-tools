@@ -26,4 +26,55 @@ schema:
       description: 是否启用严格检测模式（检测更多边缘情况，如同长度连续句子等），默认 false
   required:
   - text
+# 【result_schema（V2.0 §3.4「output_schema 不可或缺」）】
+#   形状读**包装层 + 实现**两处得出：
+#   · 包装 agent/tools/code_tools.py:95 `_humanize_zh`：
+#     :99 失败 -> {ok:False, error}；:101 成功 -> {ok:True, **result}（把实现结果平铺）。
+#   · 实现 agent/text_tools.py:408 `humanize_zh` 返回 :730
+#     {detected_patterns, total_issues, score, suggestions, text_length, aggressive}
+#     （:427 的空文本早退分支同形，且**只**在包装层才会被补上 ok）。
+#   · detected_patterns 条目形状见 :443/:454/... 的检测块：
+#     {pattern_id:int, name:str, count:int, matches:[str]}。
+#   ⚠️ 实现本身**不含 ok**，ok 只由包装层补 —— 这也是必须读包装层的原因。
+#   实跑复核：keys=[aggressive,detected_patterns,ok,score,suggestions,text_length,total_issues]。
+#   回退：删掉下面整段 result_schema，并把 "humanize_zh" 从
+#   agent/capregistry/contract.py::RESULT_SCHEMA_REQUIRED_TOOLS 移除、
+#   把 tests/unit/test_refactor_call_identity_and_recovery.py 的 FLOOR 调回 5。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    detected_patterns:
+      type: array
+      items:
+        type: object
+        properties:
+          pattern_id:
+            type: integer
+          name:
+            type: string
+          count:
+            type: integer
+          matches:
+            type: array
+            items:
+              type: string
+        additionalProperties: true
+    total_issues:
+      type: integer
+    score:
+      type: integer
+    suggestions:
+      type: array
+      items:
+        type: string
+    text_length:
+      type: integer
+    aggressive:
+      type: boolean
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

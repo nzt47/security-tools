@@ -17,4 +17,23 @@ tags: [clipboard]
 schema:
   type: object
   properties: {}
+# 【result_schema（V2.0 §3.4「output_schema 不可或缺」）】
+#   形状读 agent/system_tools.py:203 `get_clipboard` 得出，只有两条分支：
+#   · 成功 :208/:217 -> {ok, content}（content 已在实现里截断到 10000 字符）；
+#   · 失败 :219      -> {ok, error}。
+#   实跑 get_clipboard() 复核：keys=[content,ok]。
+#   回退：删掉下面整段 result_schema，并把 "get_clipboard" 从
+#   agent/capregistry/contract.py::RESULT_SCHEMA_REQUIRED_TOOLS 移除、
+#   把 tests/unit/test_refactor_call_identity_and_recovery.py 的 FLOOR 调回 5。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    content:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

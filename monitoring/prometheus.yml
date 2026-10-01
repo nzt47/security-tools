@@ -2,12 +2,43 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# ⚠️ 权威 job 名（S6 2026-09-20 起）
+#   本文件是 docker-compose.monitoring.yml 实际挂载到 /etc/prometheus/prometheus.yml 的 scrape 配置，
+#   yunshu 应用的 job 名以【下方 scrape_configs 里的 job_name】为唯一基准 = "yunshu"。
+#   仓库中另有多份未被挂载的历史副本（monitoring/prometheus/prometheus.yml 用 'Yunshu-v2'、
+#   deploy/monitoring/... 用 'yunshu-app'），它们只是快照，不得作为 job 名依据。
+#   所有规则文件（alerts.yml / health_*.yml / recording_rules.yml 等）中的 job="..." 均按 "yunshu" 书写。
+#   回退方式：改 job 名时必须同时改本文件的 job_name 和所有规则文件里的 job="..."，两者不一致 =
+#   up{} 序列为空 = 依赖 job 的规则永不触发（这正是本次修复的缺陷）。
 rule_files:
+  # 路径解析说明：Prometheus 按【主配置文件所在目录】解析 rule_files 相对路径，此处即 /etc/prometheus/。
+  # 因此下面的每一项都必须与 docker-compose.monitoring.yml 的挂载目标逐一对齐，否则规则静默不加载。
   - "alerts.yml"
-  - "prometheus/rules/lock_watchdog_alerts.yml"
+  # [S6 2026-09-20] 路径修正：原为 "prometheus/rules/lock_watchdog_alerts.yml"，会解析成
+  # /etc/prometheus/prometheus/rules/...，而 compose 实际只把该目录挂在 /etc/prometheus/rules
+  # ⇒ 该文件从未被加载（CHG-2026-0729 想挂子目录规则，但路径前缀与挂载点不一致，未生效）。
+  - "rules/lock_watchdog_alerts.yml"
   # 健康度评估体系规则（记录规则 + 告警规则）
   - "health_recording_rules.yml"
   - "health_alerts.yml"
+  # ── [S6 2026-09-20] 补齐此前未加载的规则文件 ────────────────────────────────
+  # 原 rule_files 仅列 4 个文件，仓库内另有 10 个格式合法、同属本套配置的规则文件从未加载
+  # （合计 88 条 alert + 11 条 record）。纳入后：规则文件 4 → 14，告警 34 → 122，记录规则 22 → 33。
+  # 未纳入的两个文件及原因见 docs/perf/可观测性实测.md 与本次交付说明：
+  #   alerts_production.bak.20260730_010425.yml（时间戳备份件，与 alerts_production.yml 内容完全同构，
+  #     同时加载会重复注册同名组 yunshu_alerts）、prometheus/rules/lock_watchdog_alerts_test.yml
+  #     （promtool 单测文件，只有 tests: 无 groups:，加载必然报错）。
+  # 回退方式：删除以下 10 行新增项即可精确回到修复前状态（原 4 个文件不受影响）。
+  - "recording_rules.yml"
+  - "alerts_production.yml"
+  - "alerts_safe_file_reader.yml"
+  - "circuit_breaker_alerts.yml"
+  - "skill_retrieval_alerts.yml"
+  - "alert_rules.yml"
+  - "rules/reranker-alerts.yml"
+  - "rules/hpa-skill-retrieval-alerts.yml"
+  - "rules/yunshu-v6-query-pattern-alerts.yml"
+  - "rules/planning_alerts.yml"
 
 scrape_configs:
   - job_name: 'yunshu'

@@ -30,4 +30,26 @@ schema:
   required:
   - data
   - to
+# 【result_schema（V2.0 §3.4「output_schema 不可或缺」）】
+#   形状读 agent/data_process_tools.py:291 `data_convert` 得出（纯本地、无网络无模型）：
+#   · 成功 :344（JSON→YAML）/ :376（YAML→JSON）-> {ok, data}，data 是结果**字符串**；
+#   · 失败 :309/:319/:325/:333/:352/:356/:360/:366/:379/:382 -> {ok, error}。
+#   · 包装层 agent/tools/code_tools.py:135 只加了参数校验（ok/error），未增字段。
+#   ⚠️ data 的类型是 **string**（转换后的文本）而不是 object —— 若按"数据转换"的
+#     字面直觉写成 object，每次成功调用都会被误判为违约。
+#   实跑复核：data_convert('{"a":1}',"yaml") -> {ok:true, data:"a: 1\n"}。
+#   回退：删掉下面整段 result_schema，并把 "data_convert" 从
+#   agent/capregistry/contract.py::RESULT_SCHEMA_REQUIRED_TOOLS 移除、
+#   把 tests/unit/test_refactor_call_identity_and_recovery.py 的 FLOOR 调回 5。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    data:
+      type: string
+    error:
+      type: string
+  required: [ok]
+  additionalProperties: true
 examples: []

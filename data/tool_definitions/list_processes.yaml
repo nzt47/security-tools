@@ -17,4 +17,37 @@ tags: [process]
 schema:
   type: object
   properties: {}
+# 【result_schema（V2.0 §3.4「output_schema 不可或缺」）】
+#   形状读**工具包装层**而不是底层实现得出 —— 这一步很关键：
+#   · 底层 agent/tools/process_tools.py:113 `list_processes` 返回的是**裸 list**
+#     （不是 dict！），直接用它会写出 required:[ok] 的错 schema；
+#   · 真正被调用的是 agent/tools/system_tools.py:62 注册的包装
+#     :66 `_list_processes` -> {ok: True, processes, count}（无失败分支，
+#     底层抛异常时由能力层统一包错误信封，故这里也**不**声明 error）。
+#   · 进程条目字段来自 process_tools.py:123（pid/name/status）。
+#   实跑复核：{"ok":true,"processes":[{"pid":6448,"name":"node.exe","status":"running"},...],"count":6}。
+#   回退：删掉下面整段 result_schema，并把 "list_processes" 从
+#   agent/capregistry/contract.py::RESULT_SCHEMA_REQUIRED_TOOLS 移除、
+#   把 tests/unit/test_refactor_call_identity_and_recovery.py 的 FLOOR 调回 5。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    count:
+      type: integer
+    processes:
+      type: array
+      items:
+        type: object
+        properties:
+          pid:
+            type: integer
+          name:
+            type: string
+          status:
+            type: string
+        additionalProperties: true
+  required: [ok]
+  additionalProperties: true
 examples: []

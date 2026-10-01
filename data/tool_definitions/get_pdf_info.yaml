@@ -23,4 +23,60 @@ schema:
       description: PDF 文件路径
   required:
   - path
+# 【result_schema（V2.0 §3.4「output_schema 不可或缺」）】
+#   形状读 agent/pdf_tools.py:320 `get_pdf_info` 得出：
+#   · 成功 :389 -> {ok: True, info: {...}, error: None}；
+#   · 失败 :352/:355/:392 -> {ok: False, info: None, error: "..."}。
+#   ⚠️ 本工具是**唯一一个 info/error 会显式为 null** 的新增项：
+#     info 在失败分支是 None、error 在成功分支是 None ⇒ 两者都必须写成
+#     可空类型 ["object","null"] / ["string","null"]，否则一次正常失败就会
+#     被判成"契约违约"（这正是"看起来对、其实错"的假契约形态）。
+#   · info 内层字段来自 :374 的字典字面量；pdf_version/title/author/subject/
+#     creator/producer/creation_date/modification_date 在实现里都可能是 None
+#     ⇒ 同样逐个标可空。
+#   实跑复核：get_pdf_info(<非 PDF>) -> {ok:false, info:null, error:"获取 PDF 元信息失败: ..."}。
+#   回退：删掉下面整段 result_schema，并把 "get_pdf_info" 从
+#   agent/capregistry/contract.py::RESULT_SCHEMA_REQUIRED_TOOLS 移除、
+#   把 tests/unit/test_refactor_call_identity_and_recovery.py 的 FLOOR 调回 5。
+result_schema:
+  type: object
+  properties:
+    ok:
+      type: boolean
+    info:
+      type: [object, "null"]
+      properties:
+        filename:
+          type: string
+        file_size:
+          type: integer
+        pages:
+          type: integer
+        pdf_version:
+          type: [string, "null"]
+        title:
+          type: [string, "null"]
+        author:
+          type: [string, "null"]
+        subject:
+          type: [string, "null"]
+        creator:
+          type: [string, "null"]
+        producer:
+          type: [string, "null"]
+        creation_date:
+          type: [string, "null"]
+        modification_date:
+          type: [string, "null"]
+        encrypted:
+          type: boolean
+        form_fields:
+          type: array
+          items:
+            type: string
+      additionalProperties: true
+    error:
+      type: [string, "null"]
+  required: [ok]
+  additionalProperties: true
 examples: []

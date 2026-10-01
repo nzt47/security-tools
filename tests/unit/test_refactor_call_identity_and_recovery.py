@@ -678,12 +678,21 @@ class TestCrossRegistryConsistency:
 class TestResultSchemaCoverage:
     """`result_schema` 覆盖**只增不减**（与 failures_baseline.txt 同一纪律）。
 
-    实测基线：改动前 3/91；本次补 read_file / search_files 后 5/91。
+    实测基线演进：3/91 →（补 read_file / search_files）5/91
+    →（补 list_directory / diff_files / get_clipboard / list_processes /
+    get_pdf_info / data_convert / humanize_zh）**12/91**。
     机制本身早已存在并接线（contract.py + invoke.py 步骤⑦，违约只报告不改 status），
     缺的是声明覆盖 —— 所以这里锁的是「别退回去」。
+
+    【为什么这 7 个可以被信任】它们不是按工具名批量生成的，而是逐个
+    **读实现 + 实跑一次**核对过真实返回键；其中 get_pdf_info 的 info/error
+    会显式为 null（若漏标可空，一次正常失败就会被误判成违约）。判据与
+    证据见 data/tool_definitions/*.yaml 里各自的 result_schema 注释。
+    回退：把 FLOOR 调回 5，并同步收缩 contract.py::RESULT_SCHEMA_REQUIRED_TOOLS
+    与对应 YAML。
     """
 
-    FLOOR = 5
+    FLOOR = 12
 
     def _count(self):
         import glob

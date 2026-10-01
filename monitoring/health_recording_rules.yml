@@ -12,7 +12,7 @@
 #     - yunshu_security_blocks_total{rule, level, category}
 #     - yunshu_llm_calls_total{provider, model, status}  (status: success/error)
 #     - yunshu_cpu_usage_percent / yunshu_memory_usage_percent (0-100)
-#     - up{job="yunshu-app"}
+#     - up{job="yunshu"}
 #   /api/business/prometheus 端点（business_metrics.py）：
 #     - yunshu_interaction_total{interaction_type, model, success}  (success: True/False)
 #     - yunshu_tool_call_total{tool_name, tool_category, success}   (success: True/False)
@@ -39,7 +39,10 @@ groups:
 
       - record: yunshu:health:stability:crash_count
         # 修复：yunshu_service_restart_total → resets(up[1h])
-        expr: resets(up{job="yunshu-app"}[1h]) or on() vector(0)
+        # [S6 2026-09-20] job 名对齐为 yunshu（权威 scrape 配置 monitoring/prometheus.yml）。
+        # 原 yunshu-app 使 up 序列为空，or on() vector(0) 会把崩溃计数恒定为 0（掩盖真实重启）。
+        # 回退方式：改回 "yunshu-app" 并同步 prometheus.yml 的 job_name。
+        expr: resets(up{job="yunshu"}[1h]) or on() vector(0)
         labels:
           dimension: stability
           indicator: crash_count
@@ -168,13 +171,17 @@ groups:
     rules:
       - record: yunshu:health:availability:uptime
         # 保留：依赖 Prometheus 内置 up 指标
-        expr: avg_over_time(up{job="yunshu-app"}[1h]) or on() vector(1)
+        # [S6 2026-09-20] job 名对齐为 yunshu；原 yunshu-app 使表达式落空，or on() vector(1)
+        # 把可用性恒定为 1（假绿）。回退方式：改回 "yunshu-app" 并同步 prometheus.yml。
+        expr: avg_over_time(up{job="yunshu"}[1h]) or on() vector(1)
         labels:
           dimension: availability
           indicator: uptime
 
       - record: yunshu:health:availability:service_health
-        # 修复：up{job=~"yunshu-.*"} → up{job=~"yunshu.*"}（实际 job 名为 yunshu-app）
+        # 修复：up{job=~"yunshu-.*"} → up{job=~"yunshu.*"}
+        # [S6 2026-09-20] 修正原注释的括注错误：实际 job 名是 yunshu（prometheus.yml 的 job_name），
+        # 不是 yunshu-app；prometheus.yml 中 job="yunshu-app" 从未出现过。回退方式：仅还原本注释文字。
         expr: |
           (
             sum(up{job=~"yunshu.*"})

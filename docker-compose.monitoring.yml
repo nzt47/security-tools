@@ -10,10 +10,25 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
       # [CHG-2026-0729] 挂载 rules 目录，使 reranker-alerts.yml 等子目录规则生效
+      # [S6 2026-09-20] 该挂载点在容器内是 /etc/prometheus/rules，因此 prometheus.yml 里引用这些
+      # 文件必须写 "rules/xxx.yml"（原写成 "prometheus/rules/xxx.yml" 解析到不存在的路径，
+      # 导致本挂载长期未真正生效）。回退：恢复原前缀即可，但不建议。
       - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
       # [2026-08-28] 健康度评估体系规则（记录规则 + 告警规则）
       - ./monitoring/health_recording_rules.yml:/etc/prometheus/health_recording_rules.yml:ro
       - ./monitoring/health_alerts.yml:/etc/prometheus/health_alerts.yml:ro
+      # ── [S6 2026-09-20] 补齐 prometheus.yml 新增 rule_files 项的挂载 ──────────────
+      # 为什么必须同时改这里：Prometheus 把 rule_files 的相对路径按【/etc/prometheus】解析，
+      # 凡是在 prometheus.yml 里列了、但容器内不存在的规则文件，都会导致 Prometheus 启动/热加载
+      # 失败（no such file），比不写更糟；只补 rule_files 不补挂载 = 直接把监控打挂。
+      # 回退方式：与 monitoring/prometheus.yml 中新增的 10 条 rule_files 成对删除。
+      - ./monitoring/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
+      - ./monitoring/alerts_production.yml:/etc/prometheus/alerts_production.yml:ro
+      - ./monitoring/alerts_safe_file_reader.yml:/etc/prometheus/alerts_safe_file_reader.yml:ro
+      - ./monitoring/circuit_breaker_alerts.yml:/etc/prometheus/circuit_breaker_alerts.yml:ro
+      - ./monitoring/alerts/skill_retrieval_alerts.yml:/etc/prometheus/skill_retrieval_alerts.yml:ro
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      # 注：rules/ 前缀的 4 个新文件已由上面的 ./monitoring/prometheus/rules 目录挂载覆盖，无需再单挂。
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'

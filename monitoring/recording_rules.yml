@@ -51,7 +51,10 @@ groups:
 
       - record: yunshu_memory_mb_used
         # 迁移说明：从 alerts.yml 迁移至本文件，使用 process_resident_memory_bytes 计算 RSS 内存占用
-        expr: process_resident_memory_bytes{job="yunshu-app"} / 1024 / 1024
+        # [S6 2026-09-20] job 名对齐为 yunshu（权威 scrape 配置 monitoring/prometheus.yml）。
+        # 原 yunshu-app 不匹配任何 scrape 配置 ⇒ 该记录规则无输出 ⇒ 依赖它的看板/告警取不到数。
+        # 回退方式：改回 "yunshu-app" 并同步 prometheus.yml 的 job_name。
+        expr: process_resident_memory_bytes{job="yunshu"} / 1024 / 1024
 
       - record: yunshu:llm_calls_per_hour:1h
         # 修复说明：原 yunshu:token_usage:1h 依赖未暴露的 yunshu_token_usage_total
@@ -69,7 +72,9 @@ groups:
 
       - record: yunshu:uptime_percent:24h
         # 保留说明：依赖 Prometheus 内置 up 指标，工作正常
-        expr: avg_over_time(up{job="yunshu-app"}[24h]) * 100
+        # [S6 2026-09-20] job 名对齐为 yunshu；原 yunshu-app 使该记录规则恒为空。
+        # 回退方式：改回 "yunshu-app" 并同步 prometheus.yml 的 job_name。
+        expr: avg_over_time(up{job="yunshu"}[24h]) * 100
 
       - record: yunshu:security_blocks:1h
         # 修复说明：原 yunshu:alert_count:1h 依赖未注册的 yunshu_alert_total（label 用 severity，但实际是 level）
