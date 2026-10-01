@@ -1,4 +1,5 @@
-version: '3.8'
+# 【2026-10-02 删除 version: '3.8'】Compose V2 已废弃该字段（每次命令都会打印 obsolete 警告，
+#   纯噪音且会淹没真正的警告）。删除不改变行为。回滚：加回 version: '3.8' 到本行位置。
 
 services:
   prometheus:

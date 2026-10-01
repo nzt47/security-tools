@@ -1,7 +1,9 @@
 # 使用阿里云镜像源的 Docker Compose 配置
 # 适用于中国大陆地区用户
 
-version: '3.8'
+# 【2026-10-02 删除 version: '3.8'】Compose V2 已废弃该字段，每次 compose 命令都会打印
+#   `the attribute `version` is obsolete, it will be ignored` —— 纯噪音，且会淹没真正的警告。
+#   删除它不改变任何行为（V2 本就忽略它）。回滚：把 version: '3.8' 加回本行位置。
 
 services:
   prometheus:
