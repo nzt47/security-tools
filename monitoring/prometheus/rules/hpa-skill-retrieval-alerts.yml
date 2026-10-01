@@ -183,9 +183,9 @@ groups:
         expr: |
           sum(rate(skill_match_count_total{namespace="production"}[1m]))
           <
-          sum(rate(skill_match_count_total{namespace="production"}[1m] offset 5m])) * 0.5
+          sum(rate(skill_match_count_total{namespace="production"}[1m] offset 5m)) * 0.5
           and
-          sum(rate(skill_match_count_total{namespace="production"}[1m] offset 5m])) > 10
+          sum(rate(skill_match_count_total{namespace="production"}[1m] offset 5m)) > 10
         for: 3m
         labels:
           severity: warning
