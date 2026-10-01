@@ -60,6 +60,12 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3000
       - GF_AUTH_ANONYMOUS_ENABLED=false
+      # 【2026-10-02 新增】显式打开 /metrics。
+      #   实测 grafana/grafana:10.4.0 **默认就是开**（GET /metrics -> HTTP 200，116,556 字节），
+      #   写出来是为了**钉住行为**：prometheus.yml 的 `job_name: grafana` 与 alerts.yml 的
+      #   `GrafanaDown` 都依赖这个端点，一旦将来 Grafana 改默认值，本 job 会静默失效
+      #   （target down ⇒ GrafanaDown 恒触发，但那时你至少会看到告警而不是静默）。
+      - GF_METRICS_ENABLED=true
       # 时区设置
       - TZ=Asia/Shanghai
     volumes:

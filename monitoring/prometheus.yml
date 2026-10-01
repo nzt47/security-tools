@@ -50,3 +50,25 @@ scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+
+  # ── [2026-10-02 新增] Grafana 采集目标 ──────────────────────────────────
+  # 【为什么之前没有 / 为什么现在必须有】
+  #   `monitoring/alerts.yml` 的 `GrafanaDown` 规则用的是 `up{job="grafana"} == 0`，
+  #   但本文件此前**没有** grafana job ⇒ 该序列为空 ⇒ **这条规则永远不可能触发**：
+  #   Grafana 真挂了也不会有人收到告警（是「死规则」，不是「误报」）。
+  # 【为什么以前不敢补】（此前的推断已被实测推翻，记录下来免得又被理由劝退）
+  #   旧注释称「compose 未设 GF_METRICS_ENABLED=true ⇒ /metrics 返回 404 ⇒ 补了会持续误报」。
+  #   **2026-10-02 起真栈实测**：grafana/grafana:10.4.0 的 `GET /metrics` 返回 **HTTP 200**
+  #   （116,556 字节完整指标文本），**不需要**该环境变量；随后临时补本 job 实测
+  #   `target=up`、`up{job="grafana"}=1`、`up{job="grafana"} == 0` 返回 **0 条**
+  #   ⇒ 补 job **不会**造成误报。旧的「404」前提是错的。
+  # 【为什么用 grafana:3000 而不是 localhost】两份 monitoring compose 都把 grafana 起在
+  #   同一自定义网络 `yunshu-monitoring` 上（服务名 grafana、容器端口 3000）⇒ 容器内按服务名解析。
+  # 【顺带】两份 compose 现已显式写 GF_METRICS_ENABLED=true —— 实测默认就是开，
+  #   写出来是为了**钉住行为**，防将来 Grafana 版本改默认值后本 job 静默失效。
+  # 【回退】删掉本 job 即回到原状（GrafanaDown 重新变成永不触发的死规则）。
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s

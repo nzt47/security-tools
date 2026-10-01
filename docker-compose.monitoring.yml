@@ -48,6 +48,9 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3000
+      # 【2026-10-02 新增】显式打开 /metrics（与 aliyun 变体保持一致，理由见该文件同处注释）。
+      #   prometheus.yml 的 job_name: grafana 与 alerts.yml 的 GrafanaDown 依赖它。
+      - GF_METRICS_ENABLED=true
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
