@@ -717,6 +717,7 @@ flowchart LR
     agent_caching_multi_level_cache -.-> agent_monitoring_observability_config
     agent_caching_observability -.-> agent_logging_utils
     agent_caching_observability -.-> agent_monitoring_business_metrics
+    agent_capregistry_invoke -.-> agent_monitoring_business_metrics
     agent_capregistry_invoke -.-> agent_tool_gate
     agent_capregistry_invoke -.-> agent_tools
     agent_capregistry_invoke -.-> agent_tool_gate
@@ -736,6 +737,8 @@ flowchart LR
     agent_capregistry_view -.-> agent_lines_models
     agent_capregistry_view --> agent
     agent_capregistry_view --> agent
+    agent_circuit_breaker -.-> agent_monitoring_business_metrics
+    agent_circuit_breaker -.-> agent_monitoring_business_metrics
     agent_cognitive --> agent_cognitive_loop
     agent_cognitive --> agent_cognitive_reflection
     agent_cognitive --> agent_cognitive_knowledge
@@ -2255,6 +2258,7 @@ flowchart LR
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_tools_prompt_guard
+    agent_tool_calling -.-> agent_monitoring_business_metrics
     agent_tool_calling -.-> agent_observability_trace_v2
     agent_tool_calling -.-> agent_observability_tool_trace
     agent_tool_calling --> agent_response_workflows
@@ -2503,7 +2507,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 633
 - 模块节点数: 565
-- 依赖边数: 1816
-- 跨层调用数: 1145
+- 依赖边数: 1820
+- 跨层调用数: 1149
 - 违规调用数: 0
 - 动态 import 数: 1

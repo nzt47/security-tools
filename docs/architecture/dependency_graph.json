@@ -142,7 +142,7 @@
       "name": "business_metrics",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 33,
+      "in_degree": 37,
       "out_degree": 2
     },
     {
@@ -223,7 +223,7 @@
       "layer": "capregistry",
       "file_path": "agent/capregistry/invoke.py",
       "in_degree": 2,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.capregistry.loader",
@@ -255,7 +255,7 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 13,
-      "out_degree": 0
+      "out_degree": 2
     },
     {
       "path": "agent.guardrails",
@@ -1967,7 +1967,7 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 4,
-      "out_degree": 20
+      "out_degree": 21
     },
     {
       "path": "agent.log_system.models",
@@ -5045,11 +5045,24 @@
     },
     {
       "source": "agent.capregistry.invoke",
+      "target": "agent.monitoring.business_metrics",
+      "source_layer": "capregistry",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 310,
+      "source_file": "agent/capregistry/invoke.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.capregistry.invoke",
       "target": "agent.tool_gate",
       "source_layer": "capregistry",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 396,
+      "line": 443,
       "source_file": "agent/capregistry/invoke.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5286,6 +5299,32 @@
       "line": 499,
       "source_file": "agent/capregistry/view.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.circuit_breaker",
+      "target": "agent.monitoring.business_metrics",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 659,
+      "source_file": "agent/circuit_breaker.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.circuit_breaker",
+      "target": "agent.monitoring.business_metrics",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 417,
+      "source_file": "agent/circuit_breaker.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -24926,7 +24965,7 @@
       "source_layer": "core",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 1400,
+      "line": 1420,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -24952,7 +24991,7 @@
       "source_layer": "core",
       "target_layer": "capregistry",
       "import_type": "from_import",
-      "line": 1168,
+      "line": 1188,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24965,7 +25004,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1173,
+      "line": 1193,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -25039,11 +25078,24 @@
     },
     {
       "source": "agent.tool_calling",
+      "target": "agent.monitoring.business_metrics",
+      "source_layer": "core",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 1141,
+      "source_file": "agent/tool_calling.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tool_calling",
       "target": "agent.observability.trace_v2",
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 1132,
+      "line": 1152,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -25056,7 +25108,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 1155,
+      "line": 1175,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -25069,7 +25121,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1183,
+      "line": 1203,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -28135,8 +28187,8 @@
   "stats": {
     "total_files": 633,
     "total_nodes": 565,
-    "total_edges": 1816,
-    "cross_layer_edges": 1145,
+    "total_edges": 1820,
+    "cross_layer_edges": 1149,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
