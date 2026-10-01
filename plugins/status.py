@@ -303,6 +303,34 @@ def api_health():
     return jsonify([r.to_dict() for r in readings])
 
 
+@bp.route("/api/health/auth")
+@_log_request(show_response=False)
+def api_health_auth():
+    """鉴权配置状态（**只读**；TASK-06 §3 第 5 步第 2 项第 ① 步）
+
+    【2026-10-01 为什么这条被搬到这里】它原定义在
+    `agent/server_routes/routes_panorama.py:176`，而该模块**从未在 app_server 接线**
+    （见 tests/unit/test_server_routes_registration_inventory.py 的 KNOWN_UNREGISTERED）
+    ⇒ 该端点在**生产环境一直 404**。
+    【为什么之前没人发现】`test_auth_migration_step1.py:109-111` 是**按源码文本**断言
+    （`'@app.route("/api/health/auth")' in src`），不做真实路由比对 ⇒
+    **单测绿、线上 404** —— 本仓历史上反复出现的同一形态。
+    本插件域内已有 `/api/health`、`/api/status`，是该端点语义上的正主，故迁入此处。
+    （未改动原文件里的旧实现；那条随其所属模块一并保持"未接线"状态。）
+
+    【为什么不塞进 /api/health】实测 /api/health 的响应体是**数组**（传感器读数列表），
+    前端 `data.forEach(m => ...)` 直接消费它 ⇒ 改成对象会当场打挂状态面板。
+    故按"新增只读端点"落地，保留 /api/health 的既有契约。
+    """
+    try:
+        from agent.server_auth import auth_status
+        return jsonify({"status": "ok", "data": auth_status()})
+    except Exception as e:  # noqa: BLE001 状态不可得不得让端点 500
+        return jsonify({"status": "degraded", "data": {
+            "configured": False,
+            "note": f"鉴权状态不可得: {type(e).__name__}"}}), 200
+
+
 @bp.route("/api/sensors")
 @_log_request(show_response=False)
 def api_sensors():
@@ -313,8 +341,24 @@ def api_sensors():
 @bp.route("/api/status")
 @_log_request(show_response=False)
 def api_status():
+    """运行状态总览（TASK-06：状态面**增量**暴露鉴权模式）
+
+    【为什么在这里加一个键而不是新开端点】/api/health/auth 已能回答同一问题，
+    但运维/前端看板上真正被轮询的是 /api/status —— 把鉴权模式挂在它下面，
+    才不用为了让看板显示"当前是否 enforce"再多打一个请求。
+    纯增量：只新增 auth 键，不改动 get_status() 的任何既有字段（老消费者不受影响）。
+
+    【为什么整体 try】get_status() 返回结构随运行时变化，鉴权状态取值失败
+    不得把"状态总览"这个基础端点打成 500（D4：附加信息失败不阻断主路径）。
+    """
     from app_server import _Yunshu
     status = _Yunshu.get_status()
+    try:
+        from agent.server_auth import auth_status
+        if isinstance(status, dict):
+            status["auth"] = auth_status()
+    except Exception:  # noqa: BLE001 鉴权状态不可得 ⇒ 不加该键，主响应照常返回
+        pass
     return jsonify(status)
 
 
@@ -855,6 +899,7 @@ PLUGIN = register_plugin(Plugin(
     submit_url="/api/status/config",  # T3.3：schema 驱动提交端点（GET 读当前值 / POST 应用）
     routes=[
         "/api/health",
+        "/api/health/auth",  # 鉴权只读状态（原 routes_panorama 中未接线，见该视图 docstring）
         "/api/sensors",
         "/api/status",
         "/api/mode",

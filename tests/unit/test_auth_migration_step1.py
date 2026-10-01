@@ -102,14 +102,39 @@ class TestJudgementIsUnchanged:
 class TestRoutesAreRegistered:
     """"只读暴露"必须是**真实注册**的端点（本仓有过"只写进死代码、测试全绿线上 404"的教训）"""
 
+    #: 【2026-10-01 更正：本类此前检查的是**错误的文件**】
+    #:   它读的是 agent/server_routes/routes_panorama.py —— 而该模块**从未在
+    #:   app_server 接线**（见 test_server_routes_registration_inventory.py 的
+    #:   KNOWN_UNREGISTERED）⇒ 该端点在**生产环境一直 404**，而本类全绿。
+    #:   也就是说：本类 docstring 写的教训（只写进死代码、测试全绿线上 404）
+    #:   恰恰由本类自己**实现了一遍** —— 意图是对的，落点是错的。
+    #:   端点已迁到 plugins/status.py（该插件由 loader 自动加载 ⇒ 必然注册），
+    #:   本类改检查那里，并**新增一条归属模块确实会被加载的断言**。
+    _OWNER = "plugins/status.py"
+
     def _source(self) -> str:
-        return (_PROJECT_ROOT / "agent/server_routes/routes_panorama.py").read_text(
-            encoding="utf-8")
+        return (_PROJECT_ROOT / self._OWNER).read_text(encoding="utf-8")
 
     def test_health_auth_端点存在(self):
         src = self._source()
-        assert '@app.route("/api/health/auth")' in src
+        assert '@bp.route("/api/health/auth")' in src, (
+            '该端点未定义在 %s —— 改位置须同步本测试与 '
+            'test_server_routes_registration_inventory.py' % self._OWNER)
         assert "auth_status" in src
+
+    def test_归属模块确实会被加载(self):
+        """**这条才是真正防「线上 404」的断言**（前一条只证明「代码写了」）。
+
+        plugins/* 由 plugins/loader.py 目录扫描自动加载 ⇒ 只要文件在 plugins/ 下
+        且模块级调用了 register_plugin，它的蓝图就一定会被挂上；
+        而 agent/server_routes/* 必须**逐个**在 app_server.py 显式接线。
+        本断言把这个区别钉死，避免端点再被放进「没人接线」的目录。
+        """
+        src = self._source()
+        assert self._OWNER.startswith("plugins/"), (
+            '该端点必须放在 plugins/ 下（自动加载）；放进 agent/server_routes/ '
+            '需同时在 app_server.py 显式接线，否则线上 404')
+        assert "register_plugin(" in src, "该插件未在模块级 register_plugin ⇒ 不会被装载"
 
     def test_不改_api_health_的响应形状(self):
         """`/api/health` 是**数组**契约，被前端 `data.forEach` 消费 ⇒ 不得改成对象
@@ -117,14 +142,16 @@ class TestRoutesAreRegistered:
         （若哪天要改形状，必须同步改前端与所有消费者，属独立变更 —— 本任务明确不做。）
         """
         src = self._source()
-        block = src.split('@app.route("/api/health")', 1)[1].split("@app.route", 1)[0]
+        block = src.split('@bp.route("/api/health")', 1)[1].split("@bp.route", 1)[0]
         assert "jsonify([r.to_dict() for r in readings])" in block, \
             "/api/health 的数组契约被改动了（会打挂状态面板）"
         assert "auth" not in block, "鉴权状态不该塞进 /api/health 的数组响应"
 
     def test_status_面增量暴露(self):
+        # 【2026-10-01】同一处"落点错了"的修正：本方法原先也在读 routes_panorama.py。
+        #   迁到 plugins/status.py 后，装饰器形态由 @app.route 变为 @bp.route。
         src = self._source()
-        block = src.split('@app.route("/api/status")', 1)[1].split("@app.route", 1)[0]
+        block = src.split('@bp.route("/api/status")', 1)[1].split("@bp.route", 1)[0]
         assert 'status["auth"]' in block
 
     def test_启动告警存在且不阻断(self):
