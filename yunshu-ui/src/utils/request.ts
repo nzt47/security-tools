@@ -10,6 +10,8 @@
 import axios, { type AxiosRequestConfig } from 'axios'
 import { toast } from '@/components/Toaster'
 import { STORAGE_KEYS, storage } from '@/utils/storage'
+// API 令牌（工作台插件面板用的那个）：管理后台请求需**同时**携带它，见下方请求拦截器
+import { getApiToken } from '@/lib/apiToken'
 
 /** 后端统一返回结构 */
 export interface ApiResponse<T = unknown> {
@@ -84,6 +86,18 @@ service.interceptors.request.use((config) => {
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+
+  // 【2026-10-01】同时带上 API 令牌（走 X-API-Token，不与上面的 Authorization 抢位）。
+  // 【为什么必须带】管理后台的会话令牌占用 Authorization；而后端全局鉴权网关
+  //   （app_server.py 的 _api_auth_gate）此前"只要 Authorization 存在就只看它"，
+  //   于是把管理会话令牌当成无效的 API 令牌直接 401 ⇒ **enforce_all 下整个管理后台不可用**。
+  //   后端已改为"Authorization 失败则回退 X-API-Token"（agent/server_auth.py::authorize_request），
+  //   前端在这里补上第二个头，两层各取所需即可同时通过。
+  // 【为什么不覆盖 Authorization】那会把管理会话令牌冲掉，管理端点又会全部 401。
+  const apiToken = getApiToken()
+  if (apiToken) {
+    config.headers["X-API-Token"] = apiToken
   }
   return config
 })

@@ -62,12 +62,55 @@ def current_api_token() -> str:
     return str(os.environ.get("FLASK_API_TOKEN", "") or _API_TOKEN or "")
 
 
-def _bearer_or_header_token() -> str:
-    """从请求取令牌原文（`Authorization: Bearer` 优先，其次 `X-API-Token`）"""
+def _candidate_tokens() -> list:
+    """按优先级返回请求携带的令牌**候选**（`Authorization` 优先，其次 `X-API-Token`），去重保序。
+
+    【为什么从"取一个"改成"取一串"】见 `authorize_request()` 的说明：管理后台的会话令牌
+    也放在 `Authorization: Bearer` 里，两者会互相顶掉，必须允许回退。
+    """
+    out = []
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
-        return auth_header[7:].strip()
-    return str(request.headers.get("X-API-Token", "") or "").strip()
+        t = auth_header[7:].strip()
+        if t:
+            out.append(t)
+    x = str(request.headers.get("X-API-Token", "") or "").strip()
+    if x and x not in out:
+        out.append(x)
+    return out
+
+
+def _bearer_or_header_token() -> str:
+    """从请求取**首选**令牌原文（保留旧签名：既有调用方仍只需一个值）。"""
+    candidates = _candidate_tokens()
+    return candidates[0] if candidates else ""
+
+
+def authorize_request() -> Tuple[bool, str, str]:
+    """校验请求携带的**任一**令牌：`Authorization` 优先，失败则回退 `X-API-Token`。
+
+    【为什么必须回退 —— 实测缺陷】管理后台的会话令牌**也**写在 `Authorization: Bearer`
+    （见 yunshu-ui/src/utils/request.ts:86 与 plugins/admin_api.py 的 `_token_username`）。
+    旧实现"Authorization 存在就只看它、不认 X-API-Token"，于是 `enforce_all` 下：
+      · 管理后台把**合法的管理会话令牌**放进 Authorization
+      · 网关把该令牌当成"无效的 API 令牌"**拒掉**
+      ⇒ **整个管理后台 401 不可用**（2026-10-01 实测：带管理令牌的 /api/user/info 一律 401）。
+    前端因此无法同时满足两层：这是**必须先修的结构性冲突**，而不是前端写法问题。
+
+    【为什么不削弱安全性】两个头携带的是**同一份**共享密钥或**同一张** token_map，
+    `authorize_token()` 的校验逻辑与常量时间比较一字未动。回退只让"Authorization 另有用途"
+    这一合法场景通过，**不会**让任何未经校验的请求通过：没有候选令牌时仍按空令牌走
+    `authorize_token("")`（保持"完全未配置令牌 ⇒ 放行"的既有语义不变）。
+    """
+    candidates = _candidate_tokens()
+    if not candidates:
+        return authorize_token("")
+    result = (False, "", "denied")
+    for tok in candidates:
+        result = authorize_token(tok)
+        if result[0]:
+            return result
+    return result
 
 
 def authorize_token(token: str) -> Tuple[bool, str, str]:
@@ -139,7 +182,7 @@ def require_token(f):
     """需要 API 令牌认证的装饰器（支持共享令牌 + 每使用者独立令牌）"""
     @functools.wraps(f)
     def decorated(*args, **kwargs):
-        ok, actor, source = authorize_token(_bearer_or_header_token())
+        ok, actor, source = authorize_request()
         if not ok:
             logger.warning(
                 "[Auth] 令牌校验失败 path=%s source=%s（未记录令牌原文）",

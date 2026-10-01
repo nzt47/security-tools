@@ -804,8 +804,11 @@ def _api_auth_gate():
         #   故扩面为零破坏；静态端点只受 GET/HEAD，不受影响。
         if _api_auth_allow_path(path):
             return None
-        from agent.server_auth import authorize_token, _bearer_or_header_token
-        ok, _actor, source = authorize_token(_bearer_or_header_token())
+        # 【2026-10-01】改用 authorize_request()：Authorization 校验失败时回退 X-API-Token。
+        #   否则管理后台的会话令牌（同在 Authorization 里）会被当成无效 API 令牌拒掉，
+        #   导致 enforce_all 下整个管理后台 401 不可用（实测缺陷，见 server_auth.authorize_request）。
+        from agent.server_auth import authorize_request
+        ok, _actor, source = authorize_request()
         if ok:
             return None
         if _API_AUTH_MODE in ("enforce", "enforce_all"):
