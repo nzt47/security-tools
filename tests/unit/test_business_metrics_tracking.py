@@ -321,9 +321,16 @@ class TestMetricNamingConvention:
         "skill_candidate_limit_current",
     }
 
+    # [2026-10-02 放宽] 原正则是 r"^yunshu_[a-z_]+_[a-z_]+$"，**不允许数字**。
+    # 但既有埋点里早就有算法名带数字的指标（yunshu_skill_bm25_index_count /
+    # yunshu_skill_bm25_match_count，见 agent/skills_mgmt/bm25_searcher.py:262/319），
+    # 这些名字只是本轮才补登记，此前"没被这条用例发现"是因为它们不在登记表里。
+    # "bm25" 是算法专名，改成 b_m25/b_m_twenty_five 之类纯属为过测试而扭曲命名；
+    # Prometheus 指标名本来就允许数字，故把 [a-z_] 放宽为 [a-z0-9_]，
+    # 仍然强制：yunshu_ 前缀 + 全小写 snake_case。
     def test_naming_pattern(self):
         """验证指标命名符合 yunshu_<模块>_<动作> 格式（规则钉死的名字除外）"""
-        pattern = r"^yunshu_[a-z_]+_[a-z_]+$"
+        pattern = r"^yunshu_[a-z0-9_]+_[a-z0-9_]+$"
         
         for name in BUSINESS_METRICS_DEFINITIONS.keys():
             if name in self._RULE_FIXED_NAMES:

@@ -221,6 +221,18 @@ class SafeFileReader:
         
         # 记录无效行比例
         total = result.valid_count + result.invalid_count
+
+        # [埋点·2026-10-02 补] 本次从该文件加载到的**有效条数**（历史记录条数）。
+        # 【为什么必须无条件上报（不能塞进下面的 if total > 0）】
+        #   告警 SafeFileReaderHistoryLoadEmpty 的判据是
+        #   "yunshu_safe_file_reader_loaded_history_count == 0"，而文件为空时
+        #   total 恰好 == 0 —— 若跟着无效行比例一起放进 if 分支，**恰恰漏掉要告警的
+        #   那一种场景**（原实现的问题正是这个 gauge 从来没人 set，序列根本不存在）。
+        # 【为什么埋在这里而不是调用方】条数只有读取器自己知道（ReadResult.valid_count），
+        #   与同段的 _record_duration / _record_invalid_ratio 保持同一上报口径（按 file_path）。
+        # 【失败隔离】_record_history_count 内部 try/except，绝不影响读取主流程。
+        _record_history_count(self.file_path, result.valid_count)
+
         if total > 0:
             ratio = result.invalid_count / total
             _record_invalid_ratio(self.file_path, ratio)
