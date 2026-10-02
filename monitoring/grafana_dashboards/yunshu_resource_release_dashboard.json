@@ -692,6 +692,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "云枢资源生命周期监控",
+  "description": "【本部署无数据源，不是故障】整板依赖 yunshu_resource_usage（labels: resource_type）；该指标由 agent/monitoring/resource_monitor.py 的 ResourceMonitor 上报，而当前没有任何生产代码 import / 启动它（只有配置校验、文档与测试引用） ⇒ 全板恒为空。接线方式：在启动流程里 get_resource_monitor().start()；启动后本板查询无需修改。在接线之前，请勿把本板当成「资源正常」。",
   "uid": "yunshu-resource-release",
   "version": 1,
   "weekStart": ""

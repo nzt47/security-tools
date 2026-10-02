@@ -8,7 +8,11 @@
 services:
   prometheus:
     # 使用网易镜像加速器
-    image: hub-mirror.c.163.com/prom/prometheus:latest
+    # 【2026-10-02 · 交付报告 §10 E-1】**原来的镜像源已不可达**：
+    #   docker pull hub-mirror.c.163.com/... 实测报 dial tcp: lookup hub-mirror.c.163.com: no such host，
+    #   即本文件在本网络下**根本拉不动镜像**。现改为官方源 + 钉住 tag（本部署实测可用）。
+    #   回退=改回镜像加速器地址（先确认它可达再改，否则等于把监控打挂）。
+    image: prom/prometheus:v2.51.0
     container_name: yunshu-prometheus
     ports:
       - "9090:9090"
@@ -52,7 +56,8 @@ services:
 
   grafana:
     # 使用网易镜像加速器
-    image: hub-mirror.c.163.com/grafana/grafana:latest
+    # 【2026-10-02 · 交付报告 §10 E-1】同上：镜像加速器不可达，改官方源 + 钉 tag（10.4.0）。
+    image: grafana/grafana:10.4.0
     container_name: yunshu-grafana
     ports:
       - "3000:3000"

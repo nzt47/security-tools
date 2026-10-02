@@ -54,12 +54,12 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket[1m])) by (le))",
           "legendFormat": "P99 (全集群)",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket[5m])) by (le))",
           "legendFormat": "P99 (5m 平滑)",
           "refId": "B"
         }
@@ -98,22 +98,22 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(skill_match_latency_ms_bucket[1m])) by (le))",
           "legendFormat": "P50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.90, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.90, sum(rate(skill_match_latency_ms_bucket[1m])) by (le))",
           "legendFormat": "P90",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(skill_match_latency_ms_bucket[1m])) by (le))",
           "legendFormat": "P95",
           "refId": "C"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket[1m])) by (le))",
           "legendFormat": "P99",
           "refId": "D"
         }
@@ -185,7 +185,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket[1m])) by (le))",
           "legendFormat": "P99",
           "refId": "A"
         }
@@ -216,7 +216,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(skill_match_latency_ms_bucket[1m])) by (le))",
           "legendFormat": "P95",
           "refId": "A"
         }
@@ -252,7 +252,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le, pod))",
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket[1m])) by (le, pod))",
           "legendFormat": "{{pod}}",
           "refId": "A"
         }
@@ -300,12 +300,12 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket[1m])) by (le))",
           "legendFormat": "P99",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(skill_match_count_total{namespace=\"$namespace\"}[1m]))",
+          "expr": "sum(rate(skill_match_count_total[1m]))",
           "legendFormat": "QPS",
           "refId": "B"
         }
@@ -350,7 +350,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket[1m])) by (le))",
           "legendFormat": "P99",
           "refId": "A"
         },
@@ -424,7 +424,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le)",
+          "expr": "sum(rate(skill_match_latency_ms_bucket[1m])) by (le)",
           "legendFormat": "{{le}}",
           "refId": "A",
           "format": "time_series",
@@ -469,7 +469,7 @@
       },
       "targets": [
         {
-          "expr": "Yunshu_active_connections{namespace=\"$namespace\"}",
+          "expr": "yunshu_active_connections",
           "legendFormat": "活跃连接数 ({{pod}})",
           "refId": "A"
         },
@@ -511,6 +511,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "P99 延迟追踪 — 生产环境 SLO 监控",
+  "description": "【本看板面向 k8s 部署，本部署（docker compose）下部分面板必然为空，不是故障】① 依赖 kube-state-metrics 的面板（kube_deployment_status_*、kube_hpa_status_*）与依赖 cAdvisor 的面板（container_cpu_usage_seconds_total）在本部署没有采集方；② k6_* 面板需要 k6 Remote Write；③ 模板变量 namespace/scenario 由上述指标取值，取不到值时会连带到使用它的查询。app 自己的指标（skill_match_latency_ms / skill_match_count_total / yunshu_*）不受影响。本次已把 skill_match_* 查询里不存在的 namespace 过滤条件去掉（该指标的标签只有 layer/method/success），这些面板现在能出数。要在 k8s 上恢复 namespace 过滤，需先在采集侧补上该标签。",
   "uid": "p99-latency-tracker",
   "version": 1,
   "weekStart": ""

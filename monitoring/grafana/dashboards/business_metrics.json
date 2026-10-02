@@ -16,7 +16,7 @@
       }
     ]
   },
-  "description": "业务指标监控：HTTP 请求 / 熔断器 / 限流器 / 交互 / 工具调用 / 任务完成 / 记忆命中 / 降级触发。数据源为 yunshu-app（端口 5678）暴露的 yunshu_* 业务指标。",
+  "description": "业务指标监控：HTTP 请求 / 熔断器 / 限流器 / 交互 / 工具调用 / 任务完成 / 记忆命中 / 降级触发。数据源为云枢应用（scrape job: yunshu / yunshu-business，端口 5678）暴露的 yunshu_* 业务指标。",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,

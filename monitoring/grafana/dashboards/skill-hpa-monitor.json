@@ -49,17 +49,17 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le, pod))",
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket[1m])) by (le, pod))",
           "legendFormat": "{{pod}} P99",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le, pod))",
+          "expr": "histogram_quantile(0.95, sum(rate(skill_match_latency_ms_bucket[1m])) by (le, pod))",
           "legendFormat": "{{pod}} P95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le, pod))",
+          "expr": "histogram_quantile(0.50, sum(rate(skill_match_latency_ms_bucket[1m])) by (le, pod))",
           "legendFormat": "{{pod}} P50",
           "refId": "C"
         }
@@ -91,12 +91,12 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(skill_match_count_total{namespace=\"$namespace\"}[1m])) by (pod)",
+          "expr": "sum(rate(skill_match_count_total[1m])) by (pod)",
           "legendFormat": "{{pod}}",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(skill_match_count_total{namespace=\"$namespace\"}[1m]))",
+          "expr": "sum(rate(skill_match_count_total[1m]))",
           "legendFormat": "总 QPS",
           "refId": "B"
         }
@@ -188,7 +188,7 @@
     },
     {
       "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-      "title": "活跃连接数 Yunshu_active_connections",
+      "title": "活跃连接数 yunshu_active_connections",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
       "fieldConfig": {
@@ -208,7 +208,7 @@
       },
       "targets": [
         {
-          "expr": "Yunshu_active_connections",
+          "expr": "yunshu_active_connections",
           "legendFormat": "活跃连接数",
           "refId": "A"
         }
@@ -244,7 +244,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(skill_match_count_total{namespace=\"$namespace\",success=\"false\"}[1m])) / sum(rate(skill_match_count_total{namespace=\"$namespace\"}[1m]))",
+          "expr": "sum(rate(skill_match_count_total{success=\"false\"}[1m])) / sum(rate(skill_match_count_total[1m]))",
           "legendFormat": "错误率",
           "refId": "A"
         }
@@ -364,6 +364,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "技能检索服务 — HPA 扩容监控",
+  "description": "【本看板面向 k8s 部署，本部署（docker compose）下部分面板必然为空，不是故障】① 依赖 kube-state-metrics 的面板（kube_deployment_status_*、kube_hpa_status_*）与依赖 cAdvisor 的面板（container_cpu_usage_seconds_total）在本部署没有采集方；② k6_* 面板需要 k6 Remote Write；③ 模板变量 namespace/scenario 由上述指标取值，取不到值时会连带到使用它的查询。app 自己的指标（skill_match_latency_ms / skill_match_count_total / yunshu_*）不受影响。本次已把 skill_match_* 查询里不存在的 namespace 过滤条件去掉（该指标的标签只有 layer/method/success），这些面板现在能出数。要在 k8s 上恢复 namespace 过滤，需先在采集侧补上该标签。",
   "uid": "skill-hpa-monitor",
   "version": 1,
   "weekStart": ""

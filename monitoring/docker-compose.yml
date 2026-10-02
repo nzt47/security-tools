@@ -1,3 +1,8 @@
+# ── 【2026-10-02 · 交付报告 §10 B-1/E-1】本文件是**失效的历史快照**，请勿用它起栈 ──
+#   两份能用的是仓库根目录的 docker-compose.monitoring.yml（及 .aliyun.yml 变体）。
+#   本文件为什么不能用：它是从仓库根执行时把 ./monitoring/... 解析成 monitoring/monitoring/...
+#   （挂载路径不存在）；且 Grafana 看板挂的是已不再被加载的 monitoring/grafana_dashboards/。
+#   回退=删除本注释；恢复使用=把挂载路径改成仓库根相对路径，并同步 rule_files 的 14 个文件。
 version: '3.8'
 
 services:

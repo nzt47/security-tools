@@ -32,6 +32,16 @@ metadata:
     app: skill-retrieval-service
     scale: "5000-skills"
 data:
+  # ── 【2026-10-02 · 交付报告 §10 D-1】下面 6 个旋钮**在本仓没有读取方**，设了也不生效 ──
+  #   实测（全仓 grep .py）：SKILLS_USE_INVERTED_INDEX / SKILLS_CANDIDATE_LIMIT /
+  #   SKILLS_USE_VECTOR / SKILLS_FUSION_MODE / SKILLS_USE_BM25 / SKILLS_USE_RERANKER
+  #   只出现在本文件与文档里，agent/ 下**没有任何代码读取它们**。
+  #   能力本身是有的（loader._tfidf_scan 支持 candidate_limit 截断、match() 有 use_inverted_index 开关，
+  #   且都埋了 gauge），缺的是「把 env 读进参数」这一步。
+  #   后果：运维照 runbook 改这些值**不会有任何效果**（candidate_limit 仍是 0、倒排索引仍按代码默认 True）。
+  #   出口（二选一，尚未决定）：① 在 loader 里读取开关（默认值与现状一致 ⇒ 不设时行为不变）；
+  #   ② 删掉本节这些行，承认该旋钮不存在。
+
   # ── 检索引擎配置 ──
   # 【不易】倒排索引必须启用（5000 技能 O(n)→O(k) 加速 2.6x）
   SKILLS_USE_INVERTED_INDEX: "true"

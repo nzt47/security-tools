@@ -449,14 +449,14 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "sum(rate(Yunshu_conversations_total{status=\"exception\"}[5m])) / sum(rate(Yunshu_conversations_total[5m]))",
+          "expr": "sum(rate(yunshu_conversations_total{status=\"exception\"}[5m])) / sum(rate(yunshu_conversations_total[5m]))",
           "legendFormat": "会话异常率",
           "refId": "A"
         }
       ],
       "title": "会话异常率 (告警阈值 10%/30%)",
       "type": "stat",
-      "description": "基于 Yunshu_conversations_total{status=success|exception} 计算。黄线 10% = HighConversationErrorRate 告警；红线 30% = CriticalConversationErrorRate 告警"
+      "description": "基于 yunshu_conversations_total{status=success|exception} 计算。黄线 10% = HighConversationErrorRate 告警；红线 30% = CriticalConversationErrorRate 告警"
     },
     {
       "datasource": {
@@ -597,6 +597,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Skill Retrieval HPA 监控大盘 (5000 技能量级)",
+  "description": "【本看板面向 k8s 部署，本部署（docker compose）下部分面板必然为空，不是故障】① 依赖 kube-state-metrics 的面板（kube_deployment_status_*、kube_hpa_status_*）与依赖 cAdvisor 的面板（container_cpu_usage_seconds_total）在本部署没有采集方；② k6_* 面板需要 k6 Remote Write；③ 模板变量 namespace/scenario 由上述指标取值，取不到值时会连带到使用它的查询。app 自己的指标（skill_match_latency_ms / skill_match_count_total / yunshu_*）不受影响。本次已把 skill_match_* 查询里不存在的 namespace 过滤条件去掉（该指标的标签只有 layer/method/success），这些面板现在能出数。要在 k8s 上恢复 namespace 过滤，需先在采集侧补上该标签。",
   "uid": "hpa-skill-retrieval-5k",
   "version": 1,
   "weekStart": ""

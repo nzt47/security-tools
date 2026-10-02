@@ -3,6 +3,17 @@
 # 部署位置: monitoring/alerts_safe_file_reader.yml
 # 关联指标: 需在 prometheus_exporter.py 中添加对应指标
 
+#
+# ── 【2026-10-02 现状 · 交付报告 §10 A-1】这 9 条规则在本部署**恒不触发**，请不要计入「告警覆盖率」──
+#   本文件依赖 yunshu_safe_file_reader_* 指标，发射方是 utils/file_reader.py 的 SafeFileReader；
+#   而 SafeFileReader 在**非测试代码里没有任何调用方**（启动期历史加载路径已不存在，现在的历史读取
+#   走 agent/jsonl_history.py 的「尾部窗口读取」）⇒ 指标恒为 0 ⇒ increase() 恒为 0 ⇒ 9 条规则全死。
+#   这不是「一切正常」，是「没人产生数据」。
+#   两条出路（二选一，尚未决定）：
+#     ① 接线：把一条真实的历史读取链路改走 SafeFileReader（保留整文件读取 + 编码降级 + 大小上限语义）；
+#     ② 删除：本文件 9 条规则 + agent/monitoring/prometheus.py 的 5 个 safe_file_reader 指标 + 发射点。
+#   验证：接线后 GET /metrics 应能搜到 yunshu_safe_file_reader_ 的样本行；
+#         删除后 promtool check config monitoring/prometheus.yml 仍应 EXIT=0。
 groups:
   - name: safe_file_reader_alerts
     interval: 30s

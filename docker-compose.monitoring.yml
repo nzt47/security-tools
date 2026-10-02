@@ -3,7 +3,9 @@
 
 services:
   prometheus:
-    image: prom/prometheus:latest
+    # 【2026-10-02 · 交付报告 §10 E-1】钉住 tag：原为 :latest，升级会静默改变行为。
+    #   v2.51.0 是本部署实测跑通 155 条规则热加载的版本；回退=改回 :latest（不建议）。
+    image: prom/prometheus:v2.51.0
     container_name: yunshu-prometheus
     ports:
       - "9090:9090"
@@ -40,7 +42,8 @@ services:
       - yunshu-monitoring
 
   grafana:
-    image: grafana/grafana:latest
+    # 【2026-10-02 · 交付报告 §10 E-1】钉住 tag：10.4.0 实测 /metrics 可用（GrafanaDown 依赖它）。
+    image: grafana/grafana:10.4.0
     container_name: yunshu-grafana
     ports:
       - "3000:3000"

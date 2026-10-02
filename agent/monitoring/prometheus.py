@@ -537,6 +537,10 @@ class RetryablePrometheusOperation:
             operation_func(*args, **kwargs)
 
 
+# 【2026-10-02 · 交付报告 §10 A-1】下面这 5 个指标**当前无生产调用方**：
+#   发射函数由 utils/file_reader.py 的 SafeFileReader 调用，而该文件在非测试代码里 0 引用
+#   ⇒ 指标恒为 0，monitoring/alerts_safe_file_reader.yml 的 9 条规则随之恒不触发
+#   （详见该文件头部的说明）。
 # ============================================================================
 # SafeFileReader Prometheus 指标
 # ============================================================================

@@ -13,6 +13,13 @@
 # 验证命令:
 #   promtool check rules monitoring/prometheus/rules/lock_watchdog_alerts.yml
 
+# ── 【2026-10-02 · 交付报告 §10 A-4】本文件的两条规则**仅在看门狗开启后有效** ──
+#   LOCK_WATCHDOG_ENABLED 默认 0（关闭）时 LockWatchdog 根本不运行，而
+#   yunshu_lock_hold_timeouts_total / yunshu_lock_wait_timeouts_total 这两个名字是
+#   **由看门狗在运行时注册**的 ⇒ 默认部署下 /metrics 里连名字都没有 ⇒ 两条规则恒不触发。
+#   这不是缺陷（默认关闭 = 生产零开销，是有意设计），但**不要让规则条数被当成活的覆盖率**：
+#   这里 2 条属于「开关打开才有意义」的规则。
+#   开启：.env 里 LOCK_WATCHDOG_ENABLED=1 后重启；阈值 LOCK_WATCHDOG_HOLD_MS / LOCK_WATCHDOG_WAIT_MS。
 groups:
   - name: lock_watchdog_alerts
     interval: 30s

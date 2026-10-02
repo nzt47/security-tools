@@ -106,7 +106,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "up{job=\"yunshu-app\"}",
+          "expr": "up{job=\"yunshu\"}",
           "legendFormat": "{{instance}}",
           "refId": "A"
         }
@@ -238,7 +238,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "system_cpu_usage_percent",
+          "expr": "yunshu_cpu_usage_percent",
           "legendFormat": "CPU",
           "refId": "A"
         }
@@ -304,7 +304,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "system_memory_usage_percent",
+          "expr": "yunshu_memory_usage_percent",
           "legendFormat": "Memory",
           "refId": "A"
         }
@@ -537,7 +537,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(http_requests_total[5m])) by (endpoint)",
+          "expr": "sum(rate(yunshu_http_request_total[5m])) by (method, status)",
           "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
@@ -844,7 +844,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(Yunshu_error_total[5m])) by (severity)",
+          "expr": "sum(increase(yunshu_http_request_total{status=~\"5..\"}[5m])) by (status)",
           "legendFormat": "{{severity}}",
           "refId": "A"
         }
@@ -963,7 +963,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(Yunshu_alert_total[1h])) by (severity)",
+          "expr": "sum(increase(yunshu_security_blocks_total[1h])) by (level)",
           "legendFormat": "{{severity}}",
           "refId": "A"
         }
@@ -981,7 +981,7 @@
       },
       "id": 103,
       "panels": [],
-      "title": "部署与回滚监控",
+      "title": "部署与回滚监控（⚠ 本部署未接入数据源）",
       "type": "row"
     },
     {
@@ -1066,6 +1066,7 @@
         }
       ],
       "title": "部署状态",
+      "description": "【本部署无数据源，不是故障】部署/回滚指标同样由 pushgateway 推送链路产生，本部署未接入该链路 ⇒ 面板恒空。接入方式见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md。",
       "type": "stat"
     },
     {
@@ -1132,6 +1133,7 @@
         }
       ],
       "title": "24小时回滚次数",
+      "description": "【本部署无数据源，不是故障】部署/回滚指标同样由 pushgateway 推送链路产生，本部署未接入该链路 ⇒ 面板恒空。接入方式见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md。",
       "type": "stat"
     },
     {
@@ -1198,6 +1200,7 @@
         }
       ],
       "title": "部署耗时",
+      "description": "【本部署无数据源，不是故障】部署/回滚指标同样由 pushgateway 推送链路产生，本部署未接入该链路 ⇒ 面板恒空。接入方式见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md。",
       "type": "stat"
     },
     {
@@ -1264,6 +1267,7 @@
         }
       ],
       "title": "24小时部署失败次数",
+      "description": "【本部署无数据源，不是故障】部署/回滚指标同样由 pushgateway 推送链路产生，本部署未接入该链路 ⇒ 面板恒空。接入方式见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md。",
       "type": "stat"
     },
     {
@@ -1398,6 +1402,7 @@
         }
       ],
       "title": "部署历史趋势",
+      "description": "【本部署无数据源，不是故障】部署/回滚指标同样由 pushgateway 推送链路产生，本部署未接入该链路 ⇒ 面板恒空。接入方式见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md。",
       "type": "timeseries"
     },
     {
@@ -1410,7 +1415,7 @@
       },
       "id": 104,
       "panels": [],
-      "title": "CI/CD 流水线监控",
+      "title": "CI/CD 流水线监控（⚠ 本部署未接入数据源）",
       "type": "row"
     },
     {
@@ -1477,6 +1482,7 @@
         }
       ],
       "title": "CI 流水线耗时",
+      "description": "【本部署无数据源，不是故障】该指标来自 CI/CD 推送链路（pushgateway），而本仓两份 monitoring compose 都没有 pushgateway 服务、prometheus.yml 也没有对应抓取 job，故本面板恒为空。接入步骤见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md；接入后本查询无需修改即可出数。",
       "type": "stat"
     },
     {
@@ -1543,6 +1549,7 @@
         }
       ],
       "title": "测试覆盖率",
+      "description": "【本部署无数据源，不是故障】该指标来自 CI/CD 推送链路（pushgateway），而本仓两份 monitoring compose 都没有 pushgateway 服务、prometheus.yml 也没有对应抓取 job，故本面板恒为空。接入步骤见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md；接入后本查询无需修改即可出数。",
       "type": "stat"
     },
     {
@@ -1609,6 +1616,7 @@
         }
       ],
       "title": "24小时测试失败次数",
+      "description": "【本部署无数据源，不是故障】该指标来自 CI/CD 推送链路（pushgateway），而本仓两份 monitoring compose 都没有 pushgateway 服务、prometheus.yml 也没有对应抓取 job，故本面板恒为空。接入步骤见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md；接入后本查询无需修改即可出数。",
       "type": "stat"
     },
     {
@@ -1675,6 +1683,7 @@
         }
       ],
       "title": "24小时构建失败次数",
+      "description": "【本部署无数据源，不是故障】该指标来自 CI/CD 推送链路（pushgateway），而本仓两份 monitoring compose 都没有 pushgateway 服务、prometheus.yml 也没有对应抓取 job，故本面板恒为空。接入步骤见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md；接入后本查询无需修改即可出数。",
       "type": "stat"
     },
     {
@@ -1763,6 +1772,7 @@
         }
       ],
       "title": "CI/CD 各阶段运行趋势",
+      "description": "【本部署无数据源，不是故障】该指标来自 CI/CD 推送链路（pushgateway），而本仓两份 monitoring compose 都没有 pushgateway 服务、prometheus.yml 也没有对应抓取 job，故本面板恒为空。接入步骤见 docs/CICD_METRICS_DEPLOYMENT_CHECKLIST.md；接入后本查询无需修改即可出数。",
       "type": "timeseries"
     },
     {
@@ -1828,7 +1838,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "Yunshu_memory_count",
+          "expr": "sum(yunshu_memory_storage_total)",
           "legendFormat": "Memories",
           "refId": "A"
         }
@@ -1891,7 +1901,8 @@
           "refId": "A"
         }
       ],
-      "title": "活跃用户数",
+      "title": "活跃用户数（本部署无指标）",
+      "description": "【本部署无此指标】仓库没有导出任何「活跃用户数」时间序列（查询里的 yunshu:active_users:5m 这条 recording rule 并不存在）。保留面板是为了不丢产品意图：需要该指标时应先补埋点与 recording rule，再回填本查询。",
       "type": "stat"
     },
     {
@@ -1944,7 +1955,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(security_blocks_total)",
+          "expr": "sum(yunshu_security_blocks_total)",
           "legendFormat": "Blocks",
           "refId": "A"
         }
@@ -2060,7 +2071,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "yunshu:token_usage:1h",
+          "expr": "sum(increase(llm_tokens_total[1h]))",
           "legendFormat": "Tokens",
           "refId": "A"
         }
@@ -2118,7 +2129,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "yunshu:cost_per_hour",
+          "expr": "sum(increase(llm_cost_usd_total[1h]))",
           "legendFormat": "Cost",
           "refId": "A"
         }
@@ -2161,15 +2172,15 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(http_requests_total, endpoint)",
+        "definition": "label_values(yunshu_http_request_total, status)",
         "hide": 0,
         "includeAll": true,
-        "label": "Endpoint",
+        "label": "HTTP 状态码",
         "multi": true,
-        "name": "endpoint",
+        "name": "status",
         "options": [],
         "query": {
-          "query": "label_values(http_requests_total, endpoint)",
+          "query": "label_values(yunshu_http_request_total, status)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -2188,7 +2199,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(up{job=\"yunshu-app\"}, instance)",
+        "definition": "label_values(up{job=\"yunshu\"}, instance)",
         "hide": 0,
         "includeAll": true,
         "label": "Instance",
@@ -2196,7 +2207,7 @@
         "name": "instance",
         "options": [],
         "query": {
-          "query": "label_values(up{job=\"yunshu-app\"}, instance)",
+          "query": "label_values(up{job=\"yunshu\"}, instance)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
