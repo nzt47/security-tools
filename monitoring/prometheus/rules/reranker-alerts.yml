@@ -1,3 +1,9 @@
+# 【2026-10-02 改写】本文件原用 histogram_quantile(... yunshu_rerank_duration_ms_bucket ...)，
+#   但 yunshu_rerank_duration_ms 走的是**业务指标层**（agent/monitoring/business_metrics.py），
+#   其导出是自家文本导出，对 histogram **只输出 _sum/_count/{quantile=...}、从不输出 _bucket**
+#   （实测：export_prometheus() 输出里没有 _bucket 行）⇒ 原表达式**结构性永不成立**。
+#   业务侧已预算好 p99 ⇒ 直接取该分位样本，同时保留 _count 用于「最小样本量」保护（那一半是真的）。
+# 【回退】git checkout -- monitoring/prometheus/rules/reranker-alerts.yml
 # Prometheus Alert Rules — v6.5 ONNX Reranker 监控告警
 #
 # 适用版本: v6.5 ONNX 量化方案 (commit d7d2f5a1+)
@@ -109,7 +115,7 @@ groups:
       # 避免低流量时段单次慢请求导致 P99 飙升误报
       - alert: RerankerP99LatencySLOBreach
         expr: |
-          histogram_quantile(0.99, sum(rate(yunshu_rerank_duration_ms_bucket[5m])) by (le)) > 500
+          max(yunshu_rerank_duration_ms{quantile="0.99"}) > 500
           and
           sum(rate(yunshu_rerank_duration_ms_count[5m])) > 0.5
         for: 5m
@@ -139,10 +145,10 @@ groups:
       #   避免低流量时段 P99 分位数不稳定
       - alert: RerankerP99LatencySpike
         expr: |
-          histogram_quantile(0.99, sum(rate(yunshu_rerank_duration_ms_bucket[5m])) by (le)) >
-          2 * histogram_quantile(0.99, sum(rate(yunshu_rerank_duration_ms_bucket[5m] offset 1h)) by (le))
+          max(yunshu_rerank_duration_ms{quantile="0.99"}) >
+          2 * max(yunshu_rerank_duration_ms{quantile="0.99"} offset 1h)
           and
-          histogram_quantile(0.99, sum(rate(yunshu_rerank_duration_ms_bucket[5m])) by (le)) > 300
+          max(yunshu_rerank_duration_ms{quantile="0.99"}) > 300
           and
           sum(rate(yunshu_rerank_duration_ms_count[5m] offset 1h)) > 0.5
           and

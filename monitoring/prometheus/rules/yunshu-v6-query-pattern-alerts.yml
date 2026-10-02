@@ -97,7 +97,10 @@ groups:
       # 条件: 某 category 占比 > 60%，持续 30 分钟
       - alert: YunshuV6FallbackFrequent
         expr: |
-          sum(rate(yunshu_skill_match_fallback_total{reason="extension_not_implemented"}[10m])) > 0.167
+          # [2026-10-02] 原选择器 reason="extension_not_implemented" 在现行代码中已不存在
+          #   （该 action 只在 refactor_archive，且 tests/unit/test_skills_mgmt.py:441-455
+          #    明确断言「不应再出现 extension_not_implemented」）⇒ 改用 reason=~".+" 命中任意降级原因。
+          sum(rate(yunshu_skill_match_fallback_total{reason=~".+"}[10m])) > 0.167
         for: 10m
         labels:
           severity: info
@@ -173,9 +176,7 @@ groups:
       # 影响: 违背 v6.2 "负样本延迟 ≤ 200ms" 目标
       - alert: YunshuV62LatencyHigh
         expr: |
-          histogram_quantile(0.99,
-            sum by (le) (rate(yunshu_negative_intent_duration_ms_bucket[5m]))
-          ) > 300
+          max(yunshu_negative_intent_duration_ms{quantile="0.99"}) > 300
         for: 10m
         labels:
           severity: warning
