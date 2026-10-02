@@ -564,10 +564,11 @@ def check_business_metrics() -> CheckResult:
     """4.1 BusinessMetricsCollector 熔断器指标"""
     try:
         from agent.monitoring.business_metrics import (
+    get_business_metrics_collector,
             BusinessMetricsCollector,
             BUSINESS_METRICS_DEFINITIONS,
         )
-        collector = BusinessMetricsCollector()
+        collector = get_business_metrics_collector()
         # 验证熔断器指标定义存在
         required_metrics = [
             "yunshu_circuit_breaker_trigger_total",

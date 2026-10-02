@@ -349,8 +349,10 @@ class CircuitBreakerAlertChecker:
     def check_business_metrics(self) -> None:
         """检查 6: BusinessMetricsCollector 指标上报"""
         try:
-            from agent.monitoring.business_metrics import BusinessMetricsCollector
-            collector = BusinessMetricsCollector()
+            from agent.monitoring.business_metrics import (
+    get_business_metrics_collector,
+)
+            collector = get_business_metrics_collector()
             # 熔断器相关方法：record_circuit_breaker_trigger + update_circuit_breaker_state
             assert hasattr(collector, "record_circuit_breaker_trigger"), "缺少 record_circuit_breaker_trigger 方法"
             assert hasattr(collector, "update_circuit_breaker_state"), "缺少 update_circuit_breaker_state 方法"

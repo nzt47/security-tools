@@ -78,8 +78,10 @@ def main():
             # 检查 BusinessMetricsCollector 是否有独立导出
             print("\n  检查 BusinessMetricsCollector.export_prometheus()...")
             try:
-                from agent.monitoring.business_metrics import BusinessMetricsCollector
-                bc = BusinessMetricsCollector()
+                from agent.monitoring.business_metrics import (
+    get_business_metrics_collector,
+)
+                bc = get_business_metrics_collector()
                 exported = bc.export_prometheus()
                 skill_lines = [l for l in exported.splitlines() if "skill" in l.lower()]
                 print("  export_prometheus() 中含 'skill' 的行：", len(skill_lines))

@@ -251,17 +251,17 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "histogram_quantile(0.5, sum(rate(yunshu_skill_eval_score_bucket[5m])) by (le))",
+          "expr": "max(yunshu_skill_eval_score{quantile=\"0.5\"})",
           "legendFormat": "P50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(yunshu_skill_eval_score_bucket[5m])) by (le))",
+          "expr": "max(yunshu_skill_eval_score{quantile=\"0.95\"})",
           "legendFormat": "P95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(yunshu_skill_eval_score_bucket[5m])) by (le))",
+          "expr": "max(yunshu_skill_eval_score{quantile=\"0.99\"})",
           "legendFormat": "P99",
           "refId": "C"
         }

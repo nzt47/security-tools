@@ -36,7 +36,7 @@ groups:
       # 基线: 5 次/分钟；条件: < 1 次/分钟，持续 10 分钟
       - alert: YunshuV6PositivePrecisionDropped
         expr: |
-          yunshu_skill_retrieval_precision_at_k{k="3"} < 0.40
+          yunshu_skill_retrieval_precision_at_k{k="3",quantile="0.5"} < 0.40
         for: 1m
         labels:
           severity: critical
@@ -124,7 +124,7 @@ groups:
       # 当此告警与 P0-3 同时触发时，优先怀疑 v6.2 误伤
       - alert: YunshuV62NegativeIntentFalseReject
         expr: |
-          yunshu_skill_retrieval_precision_at_k{k="3"} < 0.40
+          yunshu_skill_retrieval_precision_at_k{k="3",quantile="0.5"} < 0.40
           and
           sum(rate(skill_match_count_total{method="negative_intent"}[5m])) > 0.01
         for: 5m

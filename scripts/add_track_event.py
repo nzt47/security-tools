@@ -204,8 +204,10 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger("{logger_name}")
 
 try:
-    from agent.monitoring.business_metrics import BusinessMetricsCollector
-    _metrics = BusinessMetricsCollector()
+    from agent.monitoring.business_metrics import (
+    get_business_metrics_collector,
+)
+    _metrics = get_business_metrics_collector()
     _METRICS_AVAILABLE = True
 except Exception:
     _metrics = None
