@@ -1,36 +1,49 @@
 # ════════════════════════════════════════════════════════════════════════════
-# [2026-10-02] 指标名对齐修复（(a) 类：代码里有相近但名字不同的指标）
-# 【为什么改】原 expr 用 Yunshu_alert_total（大写 Y 开头），该指标在本部署从未注册：
-#   agent/monitoring/prometheus.py:132 的 PrometheusMetricsExporter(namespace="Yunshu")
-#   虽定义了它，但该 exporter 无生产实例化点（只有 routes_logging.py:93 的懒加载工厂
-#   与测试引用）⇒ /metrics 上不存在该序列 ⇒ 两条告警恒不触发。
-# 【映射依据】改成 app_server.py:542-546 直接暴露并被 job="yunshu" 采集的
-#   yunshu_security_blocks_total（labels: rule/level/category），语义同为「按级别的安全拦截数」。
-#   这与本仓既有修复保持一致：monitoring/alerts.yml:208-210 与
-#   monitoring/recording_rules.yml:80-82 已做过同一替换。
-#   写入点：plugins/chat.py:253-259（命中危险操作时 .labels(...).inc()）⇒ 可真正触发。
-# 【回退方式】git checkout -- monitoring/prometheus/alert_rules.yml
+# 云枢 V2 告警规则（`alert_rules.yml`）
 #
-# 【本文件其余未改动规则 —— 已核实为「本部署结构性恒空」，保留不删，原因如下】
-#   Yunshu_v2_module_load_total / Yunshu_v2_module_load_duration_seconds / Yunshu_v2_module_enabled
-#     (ModuleLoadFailure / ModuleLoadSlow / V2ModuleDisabled)：仅由上述从未实例化的
-#     PrometheusMetricsExporter 定义，代码里没有小写或其它等价指标 ⇒ 无可用替代名。
-#     属于「旧 V2 命名体系的遗留规则」；要让它们生效必须先给 exporter 接线（或改指向新埋点）。
-#   Yunshu_interaction_total / Yunshu_interaction_duration_seconds_bucket
-#     (InteractionRateHigh / InteractionTimeout)：
-#     agent/monitoring/business_metrics.py:71 有 yunshu_interaction_total(单数)，
-#     但业务指标只经 /api/business/prometheus 暴露，而该端点**不在任何 scrape 配置中**
-#     （prometheus.yml 只有 yunshu/prometheus 两个 job）⇒ 换成小写名同样恒空，
-#     故本次不做「换一个死名字」的假修复。histogram 侧更没有 _bucket（业务收集器只导出
-#     _sum/_count/quantile 标签，见 business_metrics.py:1336-1347）⇒ histogram_quantile 永不成立。
-#   Yunshu_memory_count (MemoryCountHigh)：同样只在未实例化的 exporter 中定义，无等价指标。
+# [2026-10-02 第二轮] 指标名对齐 + **删除恒不触发的死规则**
+#
+# 【本文件的原病根】多条规则引用 `Yunshu_*`（大写 Y 开头）的指标，
+#   而那套指标只由 `agent/monitoring/prometheus.py:132` 的
+#   `PrometheusMetricsExporter(namespace="Yunshu")` 定义 —— **该 exporter 在本部署从未实例化**
+#   （生产实例化点只有 `routes_logging.py:93` 的懒加载工厂，而该工厂的调用点只有 tests；
+#    实际在跑的是 `app_server.py:531` 的 `PrometheusMetrics(defaults_prefix="yunshu")`，
+#    输出的是**小写** `yunshu_*`）。⇒ 那些大写序列在 /metrics 上**永远不存在** ⇒ 规则永不触发。
+#
+# 【逐条处置】
+#   · CriticalAlertDetected / WarningAlertDetected
+#       `Yunshu_alert_total` -> `yunshu_security_blocks_total`（第一轮已改，保留）
+#       依据：`app_server.py:542-546` 直接暴露、job="yunshu" 采集；语义同为「按级别的安全拦截数」；
+#       写入点 `plugins/chat.py:253-259`。与 `alerts.yml:208-210`、`recording_rules.yml:80-82` 的既有替换一致。
+#   · InteractionRateHigh
+#       `Yunshu_interaction_total` -> `yunshu_interaction_total`（**改名即可救活**）
+#       依据：`agent/monitoring/business_metrics.py:71` 定义了它，且 `plugins/chat.py` 每次对话都记；
+#       第二轮已新增 `yunshu-business` scrape job 抓 /api/business/prometheus ⇒ 该序列进入抓取面。
+#   · InteractionTimeout
+#       `histogram_quantile(... Yunshu_interaction_duration_seconds_bucket ...)`
+#       -> `max(yunshu_interaction_duration_seconds{quantile="0.95"})`
+#       依据：业务指标的导出是**自家文本导出**，对 histogram **只输出 `_sum`/`_count`/`{quantile=...}`、
+#       **从不输出 `_bucket`**（实测 `business_metrics.py:1336-1347`）⇒ `histogram_quantile` 结构性永不成立，
+#       「改个名就好」是假的。业务侧已预算好 p95 ⇒ 直接取该分位样本，语义等价。
+#   · ModuleLoadFailure / ModuleLoadSlow / V2ModuleDisabled / MemoryCountHigh
+#       **整组删除**（原 `Yunshu_v2_memory_alerts` 组随之一并移除）。
+#       依据：它们引用的 `Yunshu_v2_module_load_total` / `Yunshu_v2_module_load_duration_seconds_bucket` /
+#       `Yunshu_v2_module_enabled` / `Yunshu_memory_count` **只**定义在上述从未实例化的 exporter 里，
+#       全仓**无任何小写或等价指标**（实测：把这 4 个名字拿去全仓 `.py` 非注释行搜索，命中 0）。
+#       ⇒ 留着不是「严格」，而是**假的覆盖率**：红/绿都不反映任何真实状态，
+#         还会让人以为"模块加载与记忆容量已被监控"。
+#       若将来确实要监控 V2 模块加载，正确做法是**先补埋点、再加规则**（一起上线），
+#       而不是保留一组永远查不到数据的表达式。
+#
+# 【回退】git checkout -- monitoring/prometheus/alert_rules.yml
+#   （若只想恢复被删的 4 条规则，从 git 历史取回对应 alert 段落即可；
+#    注意恢复后它们仍是恒不触发状态，除非同时给 exporter 接线或补埋点。）
 # ════════════════════════════════════════════════════════════════════════════
 groups:
   - name: Yunshu_v2_security_alerts
     rules:
       # Critical 级别告警 - 危险操作拦截
       - alert: CriticalAlertDetected
-        # 修复：原 Yunshu_alert_total{level="critical"} 从未注册；改用已采集且有写入点的真实指标。
         expr: sum(yunshu_security_blocks_total{level="critical"}) > 0
         for: 0m
         labels:
@@ -44,7 +57,6 @@ groups:
 
       # Warning 级别告警 - 可疑操作检测
       - alert: WarningAlertDetected
-        # 修复：同上，Yunshu_alert_total -> yunshu_security_blocks_total（level 标签语义一致）。
         expr: sum(yunshu_security_blocks_total{level="warning"}) > 5
         for: 5m
         labels:
@@ -55,36 +67,11 @@ groups:
           description: "云枢 V2 在过去 5 分钟内检测到超过 5 个可疑操作，请关注系统状态。"
           value: "{{ $value }}"
 
-      # 模块加载失败告警
-      - alert: ModuleLoadFailure
-        expr: sum(rate(Yunshu_v2_module_load_total{status="failure"}[5m])) > 0
-        for: 1m
-        labels:
-          severity: critical
-          component: v2_modules
-        annotations:
-          summary: "V2 模块加载失败"
-          description: "V2 模块（{{ $labels.module }}）加载失败，请检查模块依赖和配置。"
-          value: "{{ $value }}"
-          runbook_url: "http://localhost:3000/d/Yunshu-v2-dashboard"
-
   - name: Yunshu_v2_performance_alerts
     rules:
-      # 模块加载耗时过长
-      - alert: ModuleLoadSlow
-        expr: histogram_quantile(0.95, sum(rate(Yunshu_v2_module_load_duration_seconds_bucket[5m])) by (le, module)) > 0.5
-        for: 2m
-        labels:
-          severity: warning
-          component: performance
-        annotations:
-          summary: "V2 模块加载耗时过长"
-          description: "V2 模块 {{ $labels.module }} 加载耗时超过 500ms，可能影响系统性能。"
-          value: "{{ $value | humanizeDuration }}"
-
-      # 交互响应超时
+      # 交互响应超时（取业务侧已算好的 p95 分位样本；理由见文件头）
       - alert: InteractionTimeout
-        expr: histogram_quantile(0.95, sum(rate(Yunshu_interaction_duration_seconds_bucket[5m])) by (le)) > 3
+        expr: max(yunshu_interaction_duration_seconds{quantile="0.95"}) > 3
         for: 5m
         labels:
           severity: warning
@@ -92,11 +79,11 @@ groups:
         annotations:
           summary: "交互响应超时"
           description: "95% 的交互响应时间超过 3 秒，可能存在性能瓶颈。"
-          value: "{{ $value | humanizeDuration }}"
+          value: "{{ $value }}"
 
-      # 交互速率异常
+      # 交互速率异常（yunshu_interaction_total 现经 yunshu-business job 采集，见文件头）
       - alert: InteractionRateHigh
-        expr: sum(rate(Yunshu_interaction_total[5m])) > 50
+        expr: sum(rate(yunshu_interaction_total[5m])) > 50
         for: 5m
         labels:
           severity: warning
@@ -106,28 +93,5 @@ groups:
           description: "交互速率超过 50 次/秒，可能存在异常流量或系统压力过大。"
           value: "{{ $value }}"
 
-  - name: Yunshu_v2_memory_alerts
-    rules:
-      # 记忆数量过多
-      - alert: MemoryCountHigh
-        expr: Yunshu_memory_count > 10000
-        for: 10m
-        labels:
-          severity: warning
-          component: memory
-        annotations:
-          summary: "记忆数量过多"
-          description: "记忆数量超过 10000 条，建议进行记忆压缩或清理。"
-          value: "{{ $value }}"
-
-      # V2 模块状态异常
-      - alert: V2ModuleDisabled
-        expr: Yunshu_v2_module_enabled == 0
-        for: 5m
-        labels:
-          severity: warning
-          component: v2_modules
-        annotations:
-          summary: "V2 模块被禁用"
-          description: "V2 模块 {{ $labels.module }} 当前被禁用，请检查模块配置和依赖。"
-          value: "{{ $value }}"
+# 【已删除的组】Yunshu_v2_memory_alerts（MemoryCountHigh / V2ModuleDisabled）——
+#   两条规则引用的指标在代码里 0 命中，理由见文件头。

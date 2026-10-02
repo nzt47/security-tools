@@ -95,12 +95,25 @@ dial tcp 103.252.114.11:443: connectex: A connection attempt failed
 |---------|---------|------|
 | CriticalAlertDetected | critical 告警数 > 0 | Critical |
 | WarningAlertDetected | warning 告警数 > 5 | Warning |
-| ModuleLoadFailure | 模块加载失败 | Critical |
-| ModuleLoadSlow | 加载耗时 > 500ms | Warning |
 | InteractionTimeout | 响应时间 > 3s | Warning |
 | InteractionRateHigh | 交互速率 > 50/sec | Warning |
-| MemoryCountHigh | 记忆数 > 10000 | Warning |
-| V2ModuleDisabled | 模块被禁用 | Warning |
+
+**【2026-10-02 更新：上表原列 8 条，现为 4 条】** 删除了 4 条**恒不触发**的规则：
+`ModuleLoadFailure` / `ModuleLoadSlow` / `MemoryCountHigh` / `V2ModuleDisabled`。
+
+原因：它们引用的 `Yunshu_v2_module_load_total`、`Yunshu_v2_module_load_duration_seconds_bucket`、
+`Yunshu_v2_module_enabled`、`Yunshu_memory_count` **只**定义在
+`agent/monitoring/prometheus.py:132` 的 `PrometheusMetricsExporter(namespace="Yunshu")` 里，
+而该 exporter **在本部署从未实例化**（实际在跑的是 `app_server.py:531` 的小写 `yunshu_*` exporter），
+全仓也没有任何等价小写指标（实测这 4 个名字在 `.py` 非注释行命中 0）。
+⇒ 这些规则红/绿都不反映真实状态，属**假的覆盖率**。
+
+同时两条被**救活**（改名到真实存在的指标）：
+`InteractionRateHigh` 改用 `yunshu_interaction_total`；
+`InteractionTimeout` 由 `histogram_quantile(..._bucket...)` 改为 `max(yunshu_interaction_duration_seconds{quantile="0.95"})`
+（业务指标的文本导出**只出 `_sum`/`_count`/`quantile`，不出 `_bucket`**，故原写法结构性永不成立）。
+
+详见交付报告 §9.20 与 `monitoring/prometheus/alert_rules.yml` 文件头。
 
 ---
 
