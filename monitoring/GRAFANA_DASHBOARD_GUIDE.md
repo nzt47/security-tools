@@ -8,6 +8,18 @@
 
 ---
 
+> ⚠ **它不会被自动加载**：`monitoring/grafana_circuit_breaker_dashboard.json` 不在
+> `docker-compose.monitoring.yml` 挂载的 provisioning 目录（`monitoring/grafana/dashboards/`）里，
+> 因此起栈后不会出现在 Grafana 中，必须**手动 Import**（或把文件移进那个目录）。
+> 另据 `docs/perf/可观测性实测.md`，本看板的 4 个熔断指标属于"已声明但无样本" ——
+> 面板能否出数取决于熔断器是否真的被触发过，别把它当成"熔断器一切正常"的证据。
+
+> ⚠ **它不会被自动加载**：`monitoring/grafana_circuit_breaker_dashboard.json` 不在
+> `docker-compose.monitoring.yml` 挂载的 provisioning 目录（`monitoring/grafana/dashboards/`）里，
+> 因此起栈后不会出现在 Grafana 中，必须**手动 Import**（或把文件移进那个目录）。
+> 另据 `docs/perf/可观测性实测.md`，本看板的 4 个熔断指标属于「已声明但无样本」——
+> 面板能否出数取决于熔断器是否真的被触发过，别把它当成「熔断器一切正常」的证据。
+
 ## 一、仪表盘概述
 
 本仪表盘用于可视化三级熔断器（SESSION/USER/GLOBAL）的实时状态、触发趋势和告警信息，配合 Prometheus 告警规则 `monitoring/circuit_breaker_alerts.yml` 使用。

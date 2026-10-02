@@ -20,6 +20,18 @@
 - ✅ 指标在端口 8000 正常导出
 - ✅ 访问 http://localhost:8000/metrics 显示正常
 
+> ⚠ **下面是 2026-05-31 的历史快照，不是当前事实**：里的大驼峰 `Yunshu_*` 指标来自当时的
+> `prometheus_example.py`（端口 8000）；那套 exporter（`PrometheusMetricsExporter(namespace="Yunshu")`）
+> **在本部署从未实例化**（代码已注释），现在跑的是小写 `yunshu_*`、端口 5678。
+> 现行可用指标清单见 `docs/closeout/监控清理_evidence_20261002/live_metric_names.txt` 与
+> `monitoring/GRAFANA_SETUP_GUIDE.md`；本文件第 104 行起已记录这些大驼峰规则的删除理由。
+
+> ⚠ **下面是 2026-05-31 的历史快照，不是当前事实**：里的大驼峰 `Yunshu_*` 指标来自当时的
+> `prometheus_example.py`（端口 8000）；那套 exporter（`PrometheusMetricsExporter(namespace=Yunshu)`）
+> **在本部署从未实例化**（代码已注释），现在跑的是小写 `yunshu_*`、端口 5678。
+> 现行可用指标清单见 `docs/closeout/监控清理_evidence_20261002/live_metric_names.txt` 与
+> `monitoring/GRAFANA_SETUP_GUIDE.md`；本文件第 104 行起已记录这些大驼峰规则的删除理由。
+
 **导出的指标**:
 ```
 Yunshu_v2_module_load_duration_seconds_bucket{le="0.025",module="lifetrace"} 1.0

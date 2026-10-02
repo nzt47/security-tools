@@ -1,5 +1,13 @@
 """Grafana 面板指标名称检查器
 
+【2026-10-02 提醒 · 本脚本的盲区与替代】
+- 盲区 1：METRIC_RE 只匹配带前缀的 `yunshu_` / `Yunshu_`，**漏扫无前缀旧名**
+  （`http_requests_total` / `system_cpu_usage_percent` / `security_blocks_total` 等）——
+  这类名字恰恰是 2026-10-02 清理时的主要问题之一 ⇒ 本脚本"通过"**不等于**看板可用。
+- 盲区 2：只扫 `monitoring/grafana/dashboards`，不扫遗留目录 `monitoring/grafana_dashboards`。
+- 替代：**tests/unit/test_dashboard_metric_names.py**（扫 3 个目录，判据是"指标名必须能追溯到产出它的
+  代码 / 记录规则"，写错即 CI 红）。新看板以那条守卫为准，本脚本保留作人工排查用。
+
 扫描所有 dashboard JSON 中的 PromQL 表达式，提取指标名称，
 与规则文件中的指标名称对比，找出硬编码的旧版/不匹配指标。
 
