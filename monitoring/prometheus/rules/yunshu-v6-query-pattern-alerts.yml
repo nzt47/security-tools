@@ -203,7 +203,7 @@ groups:
           (
             sum(rate(skill_match_count_total{method="negative_intent"}[10m]))
             /
-            clamp_min(sum(rate(yunshu_skill_match_count[10m])), 0.001)
+            clamp_min(sum(rate(skill_match_count_total[10m])), 0.001)
           ) > 0.3
         for: 10m
         labels:

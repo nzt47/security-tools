@@ -310,8 +310,10 @@ groups:
 
       - alert: YunshuSkillEvalScoreLow
         # 1 小时内 P50 eval_score < 0.5 持续 10 分钟触发 warning
-        # 基于 yunshu_skill_eval_score histogram 的 _bucket 后缀指标计算分位数
-        expr: histogram_quantile(0.5, sum(rate(yunshu_skill_eval_score_bucket[1h])) by (le)) < 0.5
+        # 【2026-10-02 改写】yunshu_skill_eval_score 是**业务指标层**的 histogram，其文本导出
+  #   只输出 _sum/_count/{quantile=...}、**从不输出 _bucket** ⇒ 原 histogram_quantile(..._bucket...) 永不成立。
+  #   改为直接取业务侧已算好的 p50 分位样本（语义等价）。
+        expr: max(yunshu_skill_eval_score{quantile="0.5"}) < 0.5
         for: 10m
         labels:
           severity: warning
