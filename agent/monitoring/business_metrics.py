@@ -486,6 +486,162 @@ BUSINESS_METRICS_DEFINITIONS = {
         aggregation="sum",
         retention_days=30,
     ),
+
+    # ── 6. 技能检索指标（RRF / TF-IDF / 缓存 / 倒排索引 / Reranker）──
+    # 【为什么必须在这里"登记"而不是只在埋点处 inc/observe】
+    #   BusinessMetricsCollector.export_prometheus() 的遍历源是
+    #   BUSINESS_METRICS_DEFINITIONS（只导出"已登记"的名字）。没有登记 = 埋点写进了
+    #   内存字典、/api/business/prometheus 里连指标名都看不到 —— 这正是
+    #   reranker.py:662 的 yunshu_rerank_duration_ms 埋点了却告警恒不触发的原因。
+    # 【为什么是静态登记而不是 lock_watchdog 那样的运行时注册】
+    #   这些指标属于技能检索主链路（loader/vector_adapter/negative_intent_detector
+    #   都在同一个包内），登记点就在业务指标模块本身最不容易漏；lock_watchdog 用
+    #   运行时注册是因为它默认关闭、零开销，不适用于本场景。
+    # 【命名口径】名字逐字对齐 monitoring/ 下的规则文件（含 tfidf_scan_candidate_total_total
+    #   这种双 _total），改名等于规则继续恒不触发，故不做"美化"。
+    "tfidf_scan_candidate_limit_applied_total": BusinessMetricDefinition(
+        name="tfidf_scan_candidate_limit_applied_total",
+        description="TF-IDF 扫描 candidate_limit 截断实际生效次数（降级方案触发次数）",
+        metric_type="counter",
+        labels=["layer"],
+        unit="次",
+        category="skill_quality",
+        business_value="candidate_limit 降级是否在压测/生产中真的生效",
+        aggregation="sum",
+        retention_days=30,
+    ),
+    "tfidf_scan_candidate_truncated_total": BusinessMetricDefinition(
+        name="tfidf_scan_candidate_truncated_total",
+        description="TF-IDF 扫描被 candidate_limit 丢弃的候选技能数（按候选计，非按次计）",
+        metric_type="counter",
+        labels=["layer"],
+        unit="个",
+        category="skill_quality",
+        business_value="量化降级造成的候选集精度损失（截断比例的分母/分子之一）",
+        aggregation="sum",
+        retention_days=30,
+    ),
+    "tfidf_scan_candidate_total_total": BusinessMetricDefinition(
+        name="tfidf_scan_candidate_total_total",
+        description="TF-IDF 扫描命中 query token 的候选技能总数（截断前）",
+        metric_type="counter",
+        labels=["layer"],
+        unit="个",
+        category="skill_quality",
+        business_value="技能规模与 query 泛化程度的直接度量；与截断数相除得精度损失比",
+        aggregation="sum",
+        retention_days=30,
+    ),
+    "query_cache_hit_rate": BusinessMetricDefinition(
+        name="query_cache_hit_rate",
+        description="query embedding LRU 缓存命中率（0-100）",
+        metric_type="gauge",
+        labels=["cache"],
+        unit="%",
+        category="skill_quality",
+        business_value="衡量 BGE-m3 推理开销被缓存抵消的程度",
+        aggregation="last",
+        retention_days=30,
+    ),
+    "query_cache_misses_total": BusinessMetricDefinition(
+        name="query_cache_misses_total",
+        description="query embedding LRU 缓存未命中总次数",
+        metric_type="counter",
+        labels=["cache"],
+        unit="次",
+        category="skill_quality",
+        business_value="未命中激增 = 冷启动或 query 模式突变，是推理延迟的先行指标",
+        aggregation="sum",
+        retention_days=30,
+    ),
+    "inverted_index_built_total": BusinessMetricDefinition(
+        name="inverted_index_built_total",
+        description="TF-IDF 倒排索引重建次数",
+        metric_type="counter",
+        labels=["include_zh"],
+        unit="次",
+        category="skill_quality",
+        business_value="正常仅进程启动构建 1 次；频繁重建说明 _meta_index 被异常刷新",
+        aggregation="sum",
+        retention_days=30,
+    ),
+    "skill_use_inverted_index": BusinessMetricDefinition(
+        name="skill_use_inverted_index",
+        description="当前技能检索是否走倒排索引（1=启用，0=全量遍历）",
+        metric_type="gauge",
+        labels=["layer"],
+        unit="",
+        category="skill_quality",
+        business_value="与 skill_total_count 联合判断'大规模下却未启用加速'",
+        aggregation="last",
+        retention_days=7,
+    ),
+    "skill_total_count": BusinessMetricDefinition(
+        name="skill_total_count",
+        description="当前元数据索引中的技能总数",
+        metric_type="gauge",
+        labels=["layer"],
+        unit="个",
+        category="skill_quality",
+        business_value="技能规模，是容量规划与降级阈值的基准量",
+        aggregation="last",
+        retention_days=30,
+    ),
+    "skill_candidate_limit_current": BusinessMetricDefinition(
+        name="skill_candidate_limit_current",
+        description="当前生效的 TF-IDF 候选集上限（0=未降级）",
+        metric_type="gauge",
+        labels=["layer"],
+        unit="个",
+        category="skill_quality",
+        business_value="区分'P99 高是因为没开降级'还是'开了降级仍高'",
+        aggregation="last",
+        retention_days=30,
+    ),
+    "yunshu_skill_match_fallback_total": BusinessMetricDefinition(
+        name="yunshu_skill_match_fallback_total",
+        description="技能检索降级到下一层检索路的次数（按 reason 区分）",
+        metric_type="counter",
+        labels=["reason", "success"],
+        unit="次",
+        category="skill_quality",
+        business_value="检索层级失效（向量不可用/RRF 空/精排未生效）的直接信号",
+        aggregation="sum",
+        retention_days=30,
+    ),
+    "yunshu_negative_intent_detector_failed_total": BusinessMetricDefinition(
+        name="yunshu_negative_intent_detector_failed_total",
+        description="v6.2 负样本意图检测器降级/失败次数（prototype 加载失败、编码不可用、异常）",
+        metric_type="counter",
+        labels=["reason", "success"],
+        unit="次",
+        category="skill_quality",
+        business_value="检测器持续降级会让负样本回退到 RRF+Reranker（延迟 600ms+）",
+        aggregation="sum",
+        retention_days=30,
+    ),
+    "yunshu_negative_intent_duration_ms": BusinessMetricDefinition(
+        name="yunshu_negative_intent_duration_ms",
+        description="v6.2 负样本意图检测耗时分布（毫秒）",
+        metric_type="histogram",
+        labels=["result"],
+        unit="毫秒",
+        category="skill_quality",
+        business_value="验证'负样本延迟 ≤ 200ms'目标是否被 BGE-m3 编码拖垮",
+        aggregation="avg",
+        retention_days=7,
+    ),
+    "yunshu_rerank_duration_ms": BusinessMetricDefinition(
+        name="yunshu_rerank_duration_ms",
+        description="Cross-Encoder 精排耗时分布（毫秒，reranker.py 既有埋点）",
+        metric_type="histogram",
+        labels=["backend", "success"],
+        unit="毫秒",
+        category="skill_quality",
+        business_value="ONNX/PyTorch 后端的延迟 SLO（500ms）唯一数据源",
+        aggregation="avg",
+        retention_days=7,
+    ),
 }
 
 # ============================================================================
@@ -1104,6 +1260,32 @@ class BusinessMetricsCollector:
         n = int(value)
         for _ in range(n):
             self._increment_counter(metric_name, labels)
+
+    def add_counter(self, metric_name: str,
+                    value: float,
+                    labels: Optional[Dict[str, str]] = None) -> None:
+        """[技能检索埋点] 批量增量计数器 — 一次加锁加 value（value 可为任意正数）
+
+        【为什么必须有它，而不能复用 inc_counter】
+            inc_counter 的实现是「for _ in range(int(value))」逐次 +1。对
+            tfidf_scan_candidate_total_total 这类"一次扫描数百上千个候选"的指标，
+            逐次 +1 = 在检索**热路径**上做 O(value) 次"建标签键 + 加锁 + 写两个字典 +
+            追加时间戳"，P99（约 40ms 的预算）会被埋点本身吃掉；同时 _timestamps
+            会按 value 长度膨胀，内存无界。
+        【语义】与 inc_counter 一致，仅把"次数"换成"总量"。
+        【失败隔离】异常只记日志，绝不向上传播（与本类其余埋点同纪律）。
+        """
+        try:
+            if value <= 0:
+                return
+            label_key = make_label_key(labels or {})
+            with self._lock:
+                self._counters[metric_name][label_key] += value
+                # 时间戳按"调用次数"记（不按 value 展开），供时间窗查询近似定位；
+                # 本组指标不在 get_dashboard_data 的时间窗分类里，不做逐事件还原。
+                self._timestamps[metric_name][label_key].append(time.time())
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'business_metrics', 'action': 'metric.metric_name.error', 'msg': f'[BusinessMetrics] 计数器批量增加失败: metric={metric_name}, error={e}'}))
 
     def observe_histogram(self, metric_name: str,
                           value: float,

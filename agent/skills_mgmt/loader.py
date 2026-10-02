@@ -33,7 +33,7 @@ import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 from .file_store import SkillFileStore
-from .observability import logger, emit_metric, traced_action
+from .observability import logger, emit_metric, emit_counter_delta, traced_action
 from .exceptions import SkillNotFoundError, SkillMgmtError
 from agent.logging_utils import log_dict
 
@@ -443,6 +443,12 @@ class SkillLoader:
         self._inverted_index_meta_id = id(index)
         self._inverted_index_zh_flag = include_zh
         logger.info(log_dict({'module_name': 'loader', 'action': 'inverted_index.built', 'skill_count': len(index), 'token_count': len(inverted), 'include_description_zh': include_zh}))
+        # [埋点] 倒排索引重建计数（InvertedIndexRebuildFrequent 告警的唯一数据源）。
+        # 【为什么埋在这里而不是调用点】这里是"唯一真正重建"的位置：上面的缓存命中
+        # 分支已提前 return，能走到这里 = 一定发生了一次 O(n) 重建。
+        # 【失败隔离】emit_counter_delta 内部已 try/except，绝不影响索引构建。
+        emit_counter_delta("inverted_index_built_total", value=1,
+                           labels={"include_zh": str(include_zh)})
         return inverted
 
     def _tfidf_scan(self, index: Dict[str, Dict[str, Any]],
@@ -485,6 +491,20 @@ class SkillLoader:
         """
         matches: List[SkillMatch] = []
 
+        # [埋点] 技能检索规模/开关三类 gauge —— 每次扫描刷新为"当前真实值"。
+        # 【为什么是 gauge 而不是 counter】告警判据是**当前状态**（倒排索引是否启用、
+        # 技能总数、当前降级上限），gauge 的"最后一次值"语义与判据一致。
+        # 【为什么埋在本函数而不是配置读取处】本函数是倒排/全量两条路径的**共同入口**，
+        # 无论走哪条都会把真实生效值刷出来，不会出现"开关关了但指标还停在旧值"。
+        # 【失败隔离】emit_metric 内部 try/except，绝不影响检索。
+        emit_metric("skill_use_inverted_index",
+                    value=1 if use_inverted_index else 0,
+                    kind="gauge", labels={"layer": "1"})
+        emit_metric("skill_total_count",
+                    value=len(index), kind="gauge", labels={"layer": "1"})
+        emit_metric("skill_candidate_limit_current",
+                    value=candidate_limit, kind="gauge", labels={"layer": "1"})
+
         # 确定候选集：倒排索引筛选 or 全量遍历
         if use_inverted_index and query_tokens:
             inverted = self._get_inverted_index(index)
@@ -501,6 +521,15 @@ class SkillLoader:
             # 那条全量遍历路径**本来就在用**的文档序 ⇒ 两条路径的并列先后逐位一致，
             # 且不重排任何既有腿的次序（只把"未定义"变成"已定义"）。
             # 名字仅作最后兜底（候选不在 index 里时），保证任何输入都完全确定。
+            # [埋点] 截断前的候选技能总数（CandidateLimitTruncationRatioHigh 的分母）。
+            # 【为什么无论是否截断都要记】规则算的是"截断数/总数"的比例，分母缺了
+            # 比例就恒为 0（或除零）⇒ 必须每次扫描都累加总数。
+            # 【为什么用 emit_counter_delta 而不是 emit_metric(counter)】一次扫描的
+            # 候选数可达数百上千，逐次 +1 会在热路径上做 O(n) 次加锁写。
+            emit_counter_delta("tfidf_scan_candidate_total_total",
+                               value=len(candidate_hits),
+                               labels={"layer": "1", "success": "true"})
+
             _skill_pos = self._inverted_index_order or {}
             _pos = lambda sid: (_skill_pos.get(sid, _ORDER_MISSING), sid)
 
@@ -515,6 +544,16 @@ class SkillLoader:
                 )[:candidate_limit]
                 candidate_ids = set(sorted_ids)
                 logger.info(log_dict({'module_name': 'loader', 'action': 'tfidf_scan.candidate_limit_applied', 'total_candidates': len(candidate_hits), 'limit': candidate_limit, 'truncated': len(candidate_hits) - candidate_limit}))
+                # [埋点] candidate_limit 真正生效一次（CandidateLimitTruncationHigh 的
+                # 数据源：increase(...[5m]) > 1000 判"截断太频繁"）。
+                # 埋点位置与上面的 info 日志严格同点 —— 日志能看到的截断，指标一定也算到。
+                emit_metric("tfidf_scan_candidate_limit_applied_total", value=1,
+                            kind="counter", labels={"layer": "1"})
+                # [埋点] 被丢弃的候选**个数**（不是次数）—— 与上面的总数同口径，
+                # 两者相除才是规则要的"截断比例"。
+                emit_counter_delta("tfidf_scan_candidate_truncated_total",
+                                   value=len(candidate_hits) - candidate_limit,
+                                   labels={"layer": "1", "success": "true"})
             else:
                 candidate_ids = set(candidate_hits.keys())
 
@@ -653,6 +692,12 @@ class SkillLoader:
             # RRF 融合失败（向量路不可用或两路均空），降级 TF-IDF 单路
             fallback_used = True
             logger.warning(log_dict({'module_name': 'loader', 'action': 'match.rrf_fallback_to_tfidf', 'intent': intent[:100], 'fallback': 'tfidf'}))
+            # [埋点] 检索层级降级计数（YunshuV6FallbackFrequent 的数据源）。
+            # 【为什么 reason 用这个名字】必须与真实日志 action 一一对应，运维才能
+            # 从指标直接跳到日志；规则里写的 extension_not_implemented 对应的是
+            # v6.1 时代已被删除的分支（见改造报告），此处不硬凑假 reason。
+            emit_metric("yunshu_skill_match_fallback_total", value=1, kind="counter",
+                        labels={"reason": "rrf_fallback_to_tfidf", "success": "false"})
 
         if use_vector and fusion_mode not in ("rrf", "rrf_rerank"):
             # 尝试向量检索，失败则降级 TF-IDF
@@ -687,12 +732,18 @@ class SkillLoader:
             # 向量检索失败，降级 TF-IDF
             fallback_used = True
             logger.warning(log_dict({'module_name': 'loader', 'action': 'match.vector_fallback_to_tfidf', 'intent': intent[:100], 'fallback': 'tfidf'}))
+            # [埋点] 向量腿不可用导致降级（与日志同点，reason 对齐 action）
+            emit_metric("yunshu_skill_match_fallback_total", value=1, kind="counter",
+                        labels={"reason": "vector_fallback_to_tfidf", "success": "false"})
 
         # 【变易】use_bm25 已在 RRF 分支实现（自动升 rrf），此处不再警告
         # use_reranker 未生效场景：需 use_vector=True 才能精排，请求未满足时记录 warning
         if use_reranker and not use_vector:
             logger.warning(log_dict({'module_name': 'loader', 'action': 'match.reranker_not_applied', 'intent': intent[:100], 'use_reranker': use_reranker, 'reason': 'reranker requires use_vector=True', 'fallback': 'tfidf'}))
             fallback_used = True
+            # [埋点] 精排未生效（调用方误传 use_reranker=True 但 use_vector=False）
+            emit_metric("yunshu_skill_match_fallback_total", value=1, kind="counter",
+                        labels={"reason": "reranker_requires_vector", "success": "false"})
 
         # 加载元数据索引（第一层，只读 front matter）
         index = self.fs.load_metadata_index()
@@ -1810,6 +1861,9 @@ class SkillLoader:
            getattr(adapter, '_st_backend', None) is None and \
            getattr(adapter, '_native_chroma', None) is None:
             logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.vector.skipped_bm25_fallback', 'intent': intent[:100], 'reason': 'BM25 fallback is not real vector search'}))
+            # [埋点] 向量腿因"非真向量后端"被跳过（RRF 退化为 tfidf+bm25 或 tfidf 单路）
+            emit_metric("yunshu_skill_match_fallback_total", value=1, kind="counter",
+                        labels={"reason": "rrf_vector_skipped_bm25_fallback", "success": "false"})
             adapter = None
         if adapter is not None:
             try:
@@ -1848,6 +1902,9 @@ class SkillLoader:
                 return None
             # 【变易】有 BM25 兜底：向量路置空，继续走 tfidf+bm25 两路加权融合
             logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.vector_unavailable_bm25_fallback', 'intent': intent[:100], 'fallback': 'tfidf+bm25'}))
+            # [埋点] 向量适配器不可用但有 BM25 兜底（RRF 两路融合降级）
+            emit_metric("yunshu_skill_match_fallback_total", value=1, kind="counter",
+                        labels={"reason": "rrf_vector_unavailable_bm25_fallback", "success": "false"})
 
         # ── 【C1 裁决1】向量腿降级标记（**唯一计算点，纯观测**）──
         # 只读 adapter 的既有状态字段，不参与任何打分/排序/过滤/RRF 公式。

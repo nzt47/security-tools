@@ -188,6 +188,32 @@ def emit_metric(name: str, *, value: float = 1.0, labels: Optional[Dict[str, str
         logger.debug("emit_metric 失败: %s", name, exc_info=True)
 
 
+def emit_counter_delta(name: str, *, value: float,
+                       labels: Optional[Dict[str, str]] = None) -> None:
+    """发射**批量增量**计数指标（value 可为 >1 的总量，如"本次扫描的候选技能数"）
+
+    【为什么不能复用 emit_metric(kind="counter")】
+        emit_metric 走 collector.inc_counter，而 inc_counter 内部是
+        「for _ in range(int(value))」逐次 +1。TF-IDF 扫描一次可能有数百上千个
+        候选，逐次 +1 等于在检索热路径上做 O(value) 次加锁字典写，埋点本身
+        就会吃掉 P99 预算。本函数走 collector.add_counter 的单次加锁加法。
+    【为什么 labels 不自动补 success】
+        本函数服务于"总量/比例"这类指标（分子分母必须同口径），自动补标签会
+        让同一指标按不同标签集裂成多条序列，比例算出错。故由调用方显式给出。
+    【失败隔离】任何异常都不影响主流程（守【不易】）。
+    """
+    if not _METRICS_AVAILABLE:
+        return
+    try:
+        if hasattr(_metrics, "add_counter"):
+            _metrics.add_counter(name, value, labels=labels or {})
+        else:
+            # 兜底：老版本 collector 没有 add_counter（理论上不会发生）
+            _metrics.inc_counter(name, labels=labels or {}, value=value)
+    except Exception:  # noqa: BLE001  埋点失败不影响主流程
+        logger.debug("emit_counter_delta 失败: %s", name, exc_info=True)
+
+
 # ════════════════════════════════════════════════════════════
 #  全链路可观测性扩展字段（retrieved_chunks / eval_score 等）
 #  [不易] 接口签名保持可选，缺失不报错；metrics 发射失败不影响主流程

@@ -34,6 +34,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from agent.logging_utils import log_dict
 
+# [埋点] 复用 skills_mgmt 统一指标门面（内部走 get_business_metrics_collector() 全局单例，
+# 与 app_server 的 /api/business/prometheus 端点共享同一实例）。
+# 【失败隔离】observability.emit_metric 内部已 try/except；即使导入失败也只降级为 no-op，
+# 绝不能让"埋点"把检测器（乃至检索主流程）带崩。
+try:
+    from .observability import emit_metric
+except Exception:  # noqa: BLE001  独立脚本/异常环境下退化为 no-op
+    def emit_metric(name, *, value=1.0, labels=None, kind="counter"):  # type: ignore[misc]
+        return None
+
 logger = logging.getLogger("agent.skills_mgmt.negative_intent_detector")
 
 # 默认配置
@@ -54,6 +64,19 @@ def _env_float(name: str, default: float) -> float:
     except (TypeError, ValueError):
         logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'env_parse_failed', 'env_name': name, 'raw_value': raw, 'fallback': default}))
         return default
+
+
+def _record_detector_failed(reason: str) -> None:
+    """[埋点] 记录检测器降级/失败（yunshu_negative_intent_detector_failed_total）
+
+    【为什么统一收口到一个函数】失败点有 5 处（prototype 文件缺失/为空/无有效向量/
+    加载异常/某类别全编码失败），散落各处的重复埋点最容易漏；收口后 reason 取值
+    有限且可枚举，Prometheus 侧不会出现标签爆炸。
+    【单位】counter 按"次"计，value=1。
+    【失败隔离】emit_metric 内部 try/except，本函数不再二次抛错。
+    """
+    emit_metric("yunshu_negative_intent_detector_failed_total", value=1,
+                kind="counter", labels={"reason": reason, "success": "false"})
 
 
 class NegativeIntentDetector:
@@ -138,6 +161,7 @@ class NegativeIntentDetector:
                 # 1. 读取 JSON
                 if not self._prototypes_path.exists():
                     logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'prototypes.not_found', 'path': str(self._prototypes_path)}))
+                    _record_detector_failed("prototypes_not_found")
                     self._loaded = True
                     return False
 
@@ -147,6 +171,7 @@ class NegativeIntentDetector:
                 categories_data = data.get("categories", [])
                 if not categories_data:
                     logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'prototypes.empty', 'path': str(self._prototypes_path)}))
+                    _record_detector_failed("prototypes_empty")
                     self._loaded = True
                     return False
 
@@ -176,6 +201,7 @@ class NegativeIntentDetector:
                     if not sample_vecs:
                         # 该类所有样本编码失败，跳过
                         logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'category.encode_all_failed', 'category': cat_name}))
+                        _record_detector_failed("category_encode_all_failed")
                         # 回滚已添加的类别
                         self._categories.pop()
                         self._raw_samples.pop(cat_name)
@@ -190,6 +216,7 @@ class NegativeIntentDetector:
 
                 if not proto_vectors:
                     logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'prototypes.no_valid_vectors'}))
+                    _record_detector_failed("prototypes_no_valid_vectors")
                     self._loaded = True
                     return False
 
@@ -203,6 +230,7 @@ class NegativeIntentDetector:
 
             except Exception as e:  # noqa: BLE001
                 logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'prototypes.load_failed', 'error': str(e)[:300]}))
+                _record_detector_failed("prototypes_load_failed")
                 self._loaded = True
                 return False
 
@@ -238,20 +266,45 @@ class NegativeIntentDetector:
         if not query:
             return None
 
+        # [埋点] detect 耗时起点（毫秒口径 —— 指标名以 _ms 结尾，见改造规范）。
+        # 起点放在"开关/空串检查"之后：那两条是零成本的快速返回，计入会稀释分布。
+        _t_detect = time.perf_counter()
+
+        def _finish(result_label: str):
+            """[埋点] 收敛所有 return 点的耗时记录：先记 histogram 再原样返回 None。
+
+            【为什么用闭包而不是 try/finally】detect 的返回值有 None 与三元组两种，
+            try/finally 无法区分"放行/拒绝/降级"，而这三者的耗时分布正是运维要区分的
+            （违规长尾往往只在某一条路径上）。闭包只改 return 语句，不改控制流。
+            """
+            try:
+                # success 标签如实区分"正常判定"与"降级/异常"——否则一行
+                # result="degraded_*" 的慢样本会被 success="true"（emit_metric 的
+                # 默认补标签）误导成"健康路径上的长尾"。
+                _ok = "false" if result_label.startswith(("degraded", "error")) else "true"
+                emit_metric("yunshu_negative_intent_duration_ms",
+                            value=(time.perf_counter() - _t_detect) * 1000.0,
+                            kind="histogram",
+                            labels={"result": result_label, "success": _ok})
+            except Exception:  # noqa: BLE001  埋点失败隔离
+                pass
+            return None
+
         # 懒加载 prototypes
         if not self._loaded:
             if not self._load_prototypes():
-                return None  # 加载失败降级
+                return _finish("degraded_prototypes")  # 加载失败降级
 
         if self._proto_matrix is None or not self._categories:
-            return None
+            return _finish("degraded_no_prototypes")
 
         # 编码 query
         try:
             q_vec = self._vector_adapter.encode_query(query)
             if q_vec is None:
                 # 模型不可用，降级
-                return None
+                _record_detector_failed("encode_query_unavailable")
+                return _finish("degraded_encode")
 
             import numpy as np
 
@@ -266,16 +319,18 @@ class NegativeIntentDetector:
 
             # 阈值判定
             if max_sim < self._threshold:
-                return None
+                return _finish("passed")
 
             elapsed = (time.time() - t0) * 1000
             logger.info(log_dict({'module_name': 'negative_intent_detector', 'action': 'detect.rejected', 'intent': query[:100], 'category': matched_category, 'similarity': round(max_sim, 4), 'threshold': self._threshold}))
 
+            _finish("rejected")
             return (matched_category, max_sim, "negative_intent")
 
         except Exception as e:  # noqa: BLE001
             logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'detect.exception', 'error': str(e)[:300]}))
-            return None
+            _record_detector_failed("detect_exception")
+            return _finish("error")
 
     def health(self) -> Dict[str, Any]:
         """健康检查"""

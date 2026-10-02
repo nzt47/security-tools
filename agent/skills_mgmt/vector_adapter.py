@@ -43,7 +43,7 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple
 
 from .file_store import SkillFileStore
-from .observability import emit_metric
+from .observability import emit_metric, emit_counter_delta
 from agent.logging_utils import log_dict
 
 logger = logging.getLogger("agent.skills_mgmt.vector_adapter")
@@ -1113,13 +1113,28 @@ class SkillVectorAdapter:
             return None
 
         # ── 阶段 1: 快速路径（缓存命中检查）──
+        # 【埋点改造说明】原实现在锁内直接 return；现改为"锁内取快照 + 锁外发布指标"，
+        # 目的有三：① 返回值仍在锁内读取，缓存语义逐位不变；② 发布指标不持本锁，
+        # 避免持锁调用外部 collecter 造成锁嵌套；③ 命中/未命中两条路径都发布，
+        # 保证 query_cache_hit_rate 每次访问后都是最新的。
+        _hit = False
+        _cached_vec = None
         with self._lock:
             if query in self._query_cache:
                 self._query_cache.move_to_end(query)
                 self._query_cache_hits += 1
-                return self._query_cache[query]
-            # 【不易】未命中计数在锁内执行，避免 += 竞态导致计数偏低
-            self._query_cache_misses += 1
+                _hit = True
+                _cached_vec = self._query_cache[query]
+            else:
+                # 【不易】未命中计数在锁内执行，避免 += 竞态导致计数偏低
+                self._query_cache_misses += 1
+        if _hit:
+            self._publish_query_cache_metrics(hit=True)
+            return _cached_vec
+        # [埋点] 快速路径未命中：累加 query_cache_misses_total 并刷新命中率。
+        # 【为什么未命中也要刷命中率】命中率是 hits/(hits+misses)，只在命中时刷会让
+        # "命中率"停留在上一次命中时刻的值，规则（<30% / >70%）看到的就不是实时值。
+        self._publish_query_cache_metrics(hit=False)
 
         # ── 阶段 2: per-key 锁（避免 Thundering herd）──
         # 多线程同时请求同一 query 时，仅第一个线程执行 model.encode
@@ -1153,6 +1168,35 @@ class SkillVectorAdapter:
             except Exception as e:  # noqa: BLE001
                 logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'encode_query.failed', 'error': str(e)[:300]}))
                 return None
+
+    def _publish_query_cache_metrics(self, *, hit: bool) -> None:
+        """[埋点] 发布 query embedding LRU 缓存指标（失败隔离，绝不影响检索主流程）
+
+        【指标分工 —— 单位/类型不能混】
+            query_cache_hit_rate        gauge     当前命中率（0-100，瞬时比例）
+            query_cache_misses_total    counter   累计未命中次数（供 rate()/increase()）
+        【为什么在每次访问后发布而不是定时上报】
+            命中率只有在"刚刚发生一次访问"之后才有意义；本方法顺路读两个已有计数器，
+            没有额外遍历，成本是两次字典读 + 一次 gauge 写。
+        【为什么不在持 self._lock 时调用】
+            本方法自己要读 self._lock（取计数器快照），若在锁内调用会自锁；
+            因此调用点全部在锁**外**（见 _encode_query_cached 的阶段 1）。
+        【失败隔离】任何异常都在此吞掉 —— 埋点绝不能把缓存/检索打挂。
+        """
+        try:
+            with self._lock:
+                hits = self._query_cache_hits
+                misses = self._query_cache_misses
+            total = hits + misses
+            hit_rate = (hits / total * 100.0) if total > 0 else 0.0
+            emit_metric("query_cache_hit_rate", value=round(hit_rate, 2),
+                        kind="gauge", labels={"cache": "query_embedding"})
+            if not hit:
+                # 未命中是一次"事件"，计数口径为次（不是字节/长度）
+                emit_counter_delta("query_cache_misses_total", value=1,
+                                   labels={"cache": "query_embedding"})
+        except Exception:  # noqa: BLE001  埋点失败隔离
+            logger.debug("query cache metric publish failed", exc_info=True)
 
     def _invalidate_query_cache(self) -> None:
         """清空 query embedding 缓存 + per-key 锁（模型切换/索引重建时调用）"""

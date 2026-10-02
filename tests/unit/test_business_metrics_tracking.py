@@ -302,11 +302,32 @@ class TestMetricFailureIsolation:
 class TestMetricNamingConvention:
     """测试8：指标命名规范性检查"""
 
+    # [2026-10-02 例外清单] 下列指标名**不带 yunshu_ 前缀**，是被既有告警规则
+    # 的字面量**钉死**的：monitoring/alerts/skill_retrieval_alerts.yml 与
+    # monitoring/prometheus/rules/*.yml 里写的就是这些名字，而规则文件本次不允许
+    # 修改、也不允许为了"通过命名规范"改名 —— 改名等于告警继续恒不触发
+    # （即本次改造要修的那个缺陷）。故此处只放行这批"外部契约名"，
+    # 新增指标仍必须遵守 yunshu_<模块>_<动作> 规范。
+    _RULE_FIXED_NAMES = {
+        # skill_retrieval_alerts.yml（Group 2 candidate_limit / Group 3 LRU / Group 4 倒排索引）
+        "tfidf_scan_candidate_limit_applied_total",
+        "tfidf_scan_candidate_truncated_total",
+        "tfidf_scan_candidate_total_total",
+        "query_cache_hit_rate",
+        "query_cache_misses_total",
+        "inverted_index_built_total",
+        "skill_use_inverted_index",
+        "skill_total_count",
+        "skill_candidate_limit_current",
+    }
+
     def test_naming_pattern(self):
-        """验证指标命名符合 yunshu_<模块>_<动作> 格式"""
+        """验证指标命名符合 yunshu_<模块>_<动作> 格式（规则钉死的名字除外）"""
         pattern = r"^yunshu_[a-z_]+_[a-z_]+$"
         
         for name in BUSINESS_METRICS_DEFINITIONS.keys():
+            if name in self._RULE_FIXED_NAMES:
+                continue
             assert re.match(pattern, name), f"指标命名不符合规范: {name}"
 
     def test_no_uppercase_in_names(self):
