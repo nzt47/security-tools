@@ -54,7 +54,9 @@ skip_verify = false
 
 ### 方式 2：通过 Docker Compose 环境变量
 
-编辑 `monitoring/docker-compose.yml`：
+编辑 **`docker-compose.monitoring.yml`（仓库根目录，权威文件）** 的 `grafana` 服务：
+
+> 不要用 `monitoring/docker-compose.yml`——那是旧快照，它的挂载路径在本仓解析不到、且加载的是旧 scrape 配置。
 
 ```yaml
 services:
@@ -101,13 +103,13 @@ services:
 | Name | `Critical Alert Email` |
 | Integration | Email |
 | Addresses | `recipient@example.com`（收件人邮箱） |
-| Subject | `[CRITICAL] Yunshu V2 Alert - {{ .GroupLabels.alertname }}` |
+| Subject | `[CRITICAL] 云枢告警 - {{ .GroupLabels.alertname }}` |
 | Message | 自定义邮件内容模板 |
 
 ### 邮件内容模板示例
 
 ```html
-<h2>云枢 V2 告警通知</h2>
+<h2>云枢告警通知</h2>
 
 <p><strong>告警级别:</strong> {{ .GroupLabels.level }}</p>
 <p><strong>告警名称:</strong> {{ .GroupLabels.alertname }}</p>
@@ -122,9 +124,9 @@ services:
 {{ end }}
 
 <h3>建议操作</h3>
-<p>请立即检查云枢 V2 系统状态，确认是否有危险操作被拦截。</p>
+<p>请立即检查云枢系统状态，确认是否有危险操作被拦截。</p>
 
-<p>查看详情: <a href="http://localhost:3000/d/Yunshu-v2-dashboard">仪表盘链接</a></p>
+<p>查看详情: <a href="http://localhost:3000/d/yunshu-alerts">仪表盘链接</a>（uid 取自 `monitoring/grafana/dashboards/yunshu-alerts-monitor.json`）</p>
 ```
 
 ### 步骤 4：保存 Contact Point
@@ -148,10 +150,14 @@ services:
 |------|---|
 | Rule name | `Critical Alert Detected` |
 | Group | `Security Alerts` |
-| Namespace | `Yunshu V2` |
-| Query | `sum(Yunshu_alert_total{level="critical"}) > 0` |
+| Namespace | `云枢告警`（自定义命名空间名，与指标名无关） |
+| Query | `sum(yunshu_security_blocks_total{level="critical"}) > 0` |
 | Evaluation interval | `1m` |
 | For duration | `0s`（立即触发） |
+
+> **为什么换成这个**：`Yunshu_alert_total`（大写 Y 命名空间）在本部署不存在（那套 exporter 从未实例化）。
+> 语义等价的真实指标是 `yunshu_security_blocks_total`，其 `level` 标签实测存在（`critical`/`warning`），
+> 与 `monitoring/prometheus/alert_rules.yml` 里的规则同源。
 
 #### Annotations 配置
 
@@ -159,25 +165,38 @@ services:
 |------|---|
 | description | `检测到危险操作被拦截` |
 | severity | `critical` |
-| runbook_url | `http://localhost:3000/d/Yunshu-v2-dashboard` |
+| runbook_url | `http://localhost:3000/d/yunshu-alerts`（真实看板 uid = `yunshu-alerts`） |
 
-#### 规则 2：模块加载失败告警
+#### 规则 2：应用抓取失败告警（替代原「模块加载失败告警」）
+
+> **原规则作废**：`Yunshu_v2_module_load_total` 这类 V2 模块指标**本部署无对应指标**
+> （模块加载链路的 exporter 从未接出），配上去只会是一条永不触发的死规则。
+> 该位置改用真实可用的采集健康规则：
 
 | 字段 | 值 |
 |------|---|
-| Rule name | `Module Load Failure` |
-| Query | `sum(rate(Yunshu_v2_module_load_total{status="failure"}[5m])) > 0` |
-| Evaluation interval | `5m` |
+| Rule name | `Yunshu Scrape Down` |
+| Query | `up{job="yunshu"} == 0` |
+| Evaluation interval | `1m` |
 | For duration | `1m` |
 
-#### 规则 3：交互超时告警
+> 另一个等价选择：`up{job="yunshu-business"} == 0`（业务指标端点 `/api/business/prometheus` 抓取失败，
+> 它挂掉时 `job="yunshu"` 可能仍是 1，两者建议各配一条）。
+
+#### 规则 3：交互耗时告警
 
 | 字段 | 值 |
 |------|---|
-| Rule name | `Interaction Timeout` |
-| Query | `histogram_quantile(0.95, sum(rate(Yunshu_interaction_duration_seconds_bucket[5m])) by (le)) > 1000` |
+| Rule name | `Interaction Slow` |
+| Query | `max(yunshu_interaction_duration_seconds{quantile="0.95"}) > 3` |
 | Evaluation interval | `5m` |
 | For duration | `2m` |
+
+> **为什么不能写 `histogram_quantile(... _bucket ...)`**：
+> `yunshu_interaction_duration_seconds` 由云枢**自带的文本导出器**输出，只导出 `{quantile="0.5|0.95|0.99"}`
+> 分位数样本、**没有 `_bucket` 序列**，histogram_quantile 会返回空。直接取分位数即可。
+> 另注意单位是**秒**（旧文档写 `> 1000` 是拿毫秒当秒用，等于永不触发）。
+> 有真直方图的是 HTTP 层：`histogram_quantile(0.95, sum(rate(yunshu_http_request_duration_seconds_bucket[5m])) by (le))`。
 
 ### 步骤 3：关联 Contact Point
 
@@ -199,34 +218,36 @@ services:
 4. 选择 **Send test notification**
 5. 查看邮箱是否收到测试邮件
 
-### 方式 2：通过 API 触发
+### 方式 2：直接在 Prometheus 里验证查询有值（推荐先做这步）
+
+Grafana 规则不触发，九成是查询本身没有数据。先用真实指标确认链路是通的：
 
 ```bash
-# 模拟 Critical 告警
-curl -X POST http://localhost:8000/api/alert \
-  -H "Content-Type: application/json" \
-  -d '{"level": "critical", "message": "Test alert"}'
+# 安全拦截总数（危险操作拦截规则的源）
+curl -s 'http://localhost:9090/api/v1/query?query=sum(yunshu_security_blocks_total{level="critical"})'
+
+# 交互 p95（单位：秒）
+curl -s 'http://localhost:9090/api/v1/query?query=max(yunshu_interaction_duration_seconds{quantile="0.95"})'
+
+# 采集是否正常：两个 job 都应为 1
+curl -s 'http://localhost:9090/api/v1/query?query=up{job=~"yunshu.*"}'
 ```
 
-### 方式 3：通过云枢 V2 触发
+返回值为空（`"result":[]`）说明指标名不对或指标无写入——此时改告警规则再多次也没用。
 
-运行以下 Python 代码：
+### 方式 3：触发一次真实事件
 
-```python
-from agent.digital_life import DigitalLife
-from agent.prometheus_exporter import PrometheusMetricsExporter
+危险操作拦截类告警来自真实拦截动作（`yunshu_security_blocks_total` 由拦截链路写入）。
+要端到端验证，可在测试环境故意触发一次被拦截的操作，然后确认：
 
-dl = DigitalLife()
-exporter = PrometheusMetricsExporter(port=8000)
-exporter.start()
-
-# 触发 Critical 告警
-exporter.record_alert("critical")
-
-# 保持运行以便 Prometheus 抓取
-import time
-time.sleep(60)
+```bash
+# 拦截计数是否增长
+curl -s 'http://localhost:9090/api/v1/query?query=sum(yunshu_security_blocks_total)'
 ```
+
+> 旧文档里的 `PrometheusMetricsExporter(port=8000) + exporter.record_alert("critical")` 已删除：
+> 那是 `Yunshu_*` 命名空间的 exporter，本部署**从未实例化**（`agent/monitoring/prometheus.py` 中已注释），
+> 且端口也应是 5678。照它做只会得到一个不存在的指标。
 
 ---
 
@@ -258,7 +279,7 @@ time.sleep(60)
 **解决方案**:
 1. 确认告警规则状态为 "Firing"
 2. 检查 Contact Point 是否关联
-3. 查看 Grafana 日志：`docker logs Yunshu-grafana`
+3. 查看 Grafana 日志：`docker logs yunshu-grafana`（容器名以权威 compose 为准）
 
 ### 问题 4：邮件延迟
 
@@ -280,9 +301,9 @@ time.sleep(60)
 ```yaml
 # alerting_templates.yml
 templates:
-  - name: 'Yunshu_alert_template'
+  - name: 'yunshu_alert_template'   # 模板名，与指标名无关；小写以免与已作废的 Yunshu_* 指标命名混淆
     template: |
-      <h2>云枢 V2 告警通知</h2>
+      <h2>云枢告警通知</h2>
       <p><strong>告警级别:</strong> {{ .GroupLabels.level }}</p>
       <p><strong>触发时间:</strong> {{ .StartsAt }}</p>
       <hr>
@@ -319,9 +340,12 @@ inhibit_rules:
 
 | 级别 | 触发条件 | 建议操作 |
 |------|---------|---------|
-| Critical | 危险操作被拦截 | 立即检查系统 |
-| Warning | 可疑操作检测 | 关注并评估 |
-| Info | 系统状态变化 | 记录并跟踪 |
+| Critical | `sum(yunshu_security_blocks_total{level="critical"}) > 0`（危险操作被拦截） | 立即检查系统 |
+| Warning | `sum(yunshu_security_blocks_total{level="warning"}) > 5` 或交互 p95 > 3s | 关注并评估 |
+| Info | `up{job="yunshu"}` 抖动、配置/版本变更 | 记录并跟踪 |
+
+> `level` 取值 `critical` / `warning` 来自 `yunshu_security_blocks_total` 的标签，
+> 与 `monitoring/prometheus/alert_rules.yml`、`monitoring/health_recording_rules.yml` 中的用法一致。
 
 ---
 

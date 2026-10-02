@@ -150,7 +150,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\",le=\"40.0\"}[5m])) / sum(rate(skill_match_latency_ms_count{namespace=\"$namespace\"}[5m]))",
+          "expr": "sum(rate(skill_match_latency_ms_bucket{le=\"40.0\"}[5m])) / sum(rate(skill_match_latency_ms_count[5m]))",
           "legendFormat": "P99 SLO 合规率",
           "refId": "A"
         }
@@ -392,7 +392,7 @@
       },
       "targets": [
         {
-          "expr": "1 - sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\",le=\"40.0\"}[1m])) / sum(rate(skill_match_latency_ms_count{namespace=\"$namespace\"}[1m]))",
+          "expr": "1 - sum(rate(skill_match_latency_ms_bucket{le=\"40.0\"}[1m])) / sum(rate(skill_match_latency_ms_count[1m]))",
           "legendFormat": ">40ms 请求占比",
           "refId": "A"
         }

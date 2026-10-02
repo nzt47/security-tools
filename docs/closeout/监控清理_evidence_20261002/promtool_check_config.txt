@@ -1,0 +1,47 @@
+Checking /etc/prometheus/prometheus.yml
+  SUCCESS: 14 rule files found
+ SUCCESS: /etc/prometheus/prometheus.yml is valid prometheus config file syntax
+
+Checking /etc/prometheus/alerts.yml
+  SUCCESS: 16 rules found
+
+Checking /etc/prometheus/rules/lock_watchdog_alerts.yml
+  SUCCESS: 2 rules found
+
+Checking /etc/prometheus/health_recording_rules.yml
+  SUCCESS: 22 rules found
+
+Checking /etc/prometheus/health_alerts.yml
+  SUCCESS: 16 rules found
+
+Checking /etc/prometheus/recording_rules.yml
+  SUCCESS: 11 rules found
+
+Checking /etc/prometheus/alerts_production.yml
+  SUCCESS: 19 rules found
+
+Checking /etc/prometheus/alerts_safe_file_reader.yml
+  SUCCESS: 9 rules found
+
+Checking /etc/prometheus/circuit_breaker_alerts.yml
+  SUCCESS: 8 rules found
+
+Checking /etc/prometheus/skill_retrieval_alerts.yml
+  SUCCESS: 11 rules found
+
+Checking /etc/prometheus/alert_rules.yml
+  SUCCESS: 4 rules found
+
+Checking /etc/prometheus/rules/reranker-alerts.yml
+  SUCCESS: 8 rules found
+
+Checking /etc/prometheus/rules/hpa-skill-retrieval-alerts.yml
+  SUCCESS: 4 rules found
+
+Checking /etc/prometheus/rules/yunshu-v6-query-pattern-alerts.yml
+  SUCCESS: 8 rules found
+
+Checking /etc/prometheus/rules/planning_alerts.yml
+  SUCCESS: 2 rules found
+
+EXIT=0

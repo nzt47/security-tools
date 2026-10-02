@@ -1,0 +1,12 @@
+live (incl HELP/TYPE): 186
+monitoring\grafana\dashboards\business_metrics.json: metrics=10 NOT-LIVE=0  []
+monitoring\grafana\dashboards\hpa-skill-retrieval-dashboard.json: metrics=1 NOT-LIVE=0  []
+monitoring\grafana\dashboards\p99-latency-tracker.json: metrics=1 NOT-LIVE=0  []
+monitoring\grafana\dashboards\reranker-dashboard.json: metrics=6 NOT-LIVE=0  []
+monitoring\grafana\dashboards\skill-hpa-monitor.json: metrics=1 NOT-LIVE=0  []
+monitoring\grafana\dashboards\yunshu-alerts-monitor.json: metrics=6 NOT-LIVE=0  []
+monitoring\grafana\dashboards\yunshu-full-monitoring.json: metrics=15 NOT-LIVE=10  ['Yunshu_ci_build_failures_total', 'Yunshu_ci_pipeline_duration_seconds', 'Yunshu_ci_pipeline_runs_total', 'Yunshu_ci_test_coverage_percent', 'Yunshu_ci_test_failures_total', 'Yunshu_deployment_duration_seconds', 'Yunshu_deployment_failures_total', 'Yunshu_deployment_status', 'Yunshu_deployment_total', 'Yunshu_rollback_total']
+monitoring\grafana\dashboards\yunshu-monitor.json: metrics=5 NOT-LIVE=0  []
+monitoring\grafana\dashboards\yunshu-skill-quality.json: metrics=4 NOT-LIVE=0  []
+monitoring\grafana_circuit_breaker_dashboard.json: metrics=4 NOT-LIVE=0  []
+monitoring\grafana_dashboards\yunshu_resource_release_dashboard.json: metrics=1 NOT-LIVE=1  ['yunshu_resource_usage']
