@@ -74,7 +74,7 @@ python app_server.py
 ## 提供的 Prometheus 指标（本部署实测存在）
 
 来源：`GET http://127.0.0.1:5678/metrics`（job `yunshu`）与 `GET /api/business/prometheus`（job `yunshu-business`）。
-**写查询/告警前请先在这里或 `_scratch/live_names.txt` 里核对**。
+**写查询/告警前请先在这里或 `docs/closeout/监控清理_evidence_20261002/live_metric_names.txt` 里核对**。
 
 | 指标名称 | 类型 | 说明 |
 |---------|------|------|

@@ -499,7 +499,7 @@
         "name": "namespace",
         "type": "query",
         "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-        "query": "label_values(skill_match_latency_ms_bucket, namespace)",
+        "query": "label_values(kube_deployment_status_replicas, namespace)",
         "current": {"text": "production", "value": "production"},
         "hide": 0,
         "label": "Namespace",

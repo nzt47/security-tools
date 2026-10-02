@@ -6,7 +6,7 @@
 >
 > ⚠️ **生成看板前必须确认引用的指标名真实存在**：模板生成的是占位指标名
 > （`yunshu_<模块>_total` 等），真实指标清单以 `GET http://127.0.0.1:5678/metrics` +
-> `GET /api/business/prometheus` 的实际输出为准（合并清单见 `_scratch/live_names.txt`），
+> `GET /api/business/prometheus` 的实际输出为准（合并清单见 `docs/closeout/监控清理_evidence_20261002/live_metric_names.txt`），
 > 记录规则见 `monitoring/recording_rules.yml`。名字对不上 = 面板永久 No data，而且不会报错。
 > 生成前先跑 `python scripts/generate_dashboard.py --module <模块> --dry-run`：
 > 它**只预览不写文件**，会列出即将写入看板的全部引用指标，逐个到上面两份清单里核对。

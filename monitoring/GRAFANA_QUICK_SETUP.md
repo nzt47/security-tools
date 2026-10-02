@@ -148,11 +148,10 @@ datasources:
 > **状态怎么读**：看板 JSON 已在 2026-10-02 的修复批次中对齐真实指标名。
 > 看到空面板先对号入座：**保留但无数据源**（部署/CI 共 10 个面板，面板上已写说明）＞
 > **本部署无对应指标**（活跃用户数）＞ **查询已修好但要等 5xx**（错误率类）——这三类都不是故障。
-> 例外：`p99-latency-tracker.json` 的「P99 SLO 合规率」「HPA 阈值超标率」两个面板仍带
-> `namespace="$namespace"`（**还没修**，见下面"其余看板怎么选"），k8s 侧 kube_*/cAdvisor/k6 面板
-> 则永远没有数据源。
+> `p99-latency-tracker.json` 里曾漏改的两个面板（「P99 SLO 合规率」「HPA 阈值超标率」）已在同批末尾补修；
+> 该板剩下的 2 个空面板是 k8s 侧 `kube_*` / cAdvisor 依赖，本部署**永远没有数据源**。
 > 指标名的判定标准：`GET http://127.0.0.1:5678/metrics`、`GET /api/business/prometheus` 的实际输出
-> （合并清单 `_scratch/live_names.txt`）+ `monitoring/recording_rules.yml`、`monitoring/health_recording_rules.yml`
+> （合并清单 `docs/closeout/监控清理_evidence_20261002/live_metric_names.txt`）+ `monitoring/recording_rules.yml`、`monitoring/health_recording_rules.yml`
 > 里的 `yunshu:xxx:5m` 形态 recording rule。
 
 ### 全链路监控仪表盘 (`yunshu-full-monitoring.json`)
@@ -223,7 +222,7 @@ datasources:
 | `yunshu-monitor.json` | ✅ **6/6 有数据**（原 5 类无前缀旧名已全部改名，不再是全空看板） |
 | `yunshu-alerts-monitor.json` | ✅ 10/11 有数据；错误率面板已修好，待出现 5xx 才出数 |
 | `hpa-skill-retrieval-dashboard.json` | ⚠️ 4/6 有数据；「HPA 副本数变化」「CPU 利用率」需 kube-state-metrics / cAdvisor（本部署无采集源，板级说明已加） |
-| `p99-latency-tracker.json` | ⚠️ 9/11 有数据；「P99 SLO 合规率」「HPA 阈值超标率」两个面板**仍带** `namespace="$namespace"`（变量当前值 `production`）⇒ 仍空，建议删掉该过滤 |
+| `p99-latency-tracker.json` | ✅ 9/11 有数据（两个曾漏改的面板已补修）；空的是 2 个 k8s 面板（`kube_deployment_status_replicas`、`container_cpu_usage_seconds_total`，本部署无采集方） |
 | `skill-hpa-monitor.json` | ⚠️ 4/8 有数据；HPA 副本数、CPU、k6 压测、扩缩容事件 4 个面板无采集源（板级说明已加） |
 
 ---
@@ -385,9 +384,8 @@ cat monitoring/prometheus.yml
 > ① 部署/CI 共 10 个面板——保留但无数据源，面板上已写说明；
 > ② `yunshu-full-monitoring` 的「活跃用户数（本部署无指标）」——本部署没有该指标；
 > ③ 错误率/错误分布 3 个面板——查询已修好，但本部署没有 5xx 序列，出现 5xx 才出数。
-> 另外 `p99-latency-tracker.json` 的「P99 SLO 合规率」「HPA 阈值超标率」两个面板仍带
-> `namespace="$namespace"` ⇒ 仍空（这是**还没修**，不是设计如此）；k8s 侧的
-> `kube_*` / cAdvisor / k6 面板则永远没有数据源。
+> `p99-latency-tracker.json` 里曾漏改的两个面板已在同批补修；该板剩下的 2 个空面板与 k8s 侧
+> `kube_*` / cAdvisor / k6 面板同理 —— 本部署没有采集方，永远没有数据源。
 
 ### 问题 2: 数据源连接失败
 

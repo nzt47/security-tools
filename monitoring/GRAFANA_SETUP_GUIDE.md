@@ -32,7 +32,7 @@
 
 1. `GET http://127.0.0.1:5678/metrics`（`job="yunshu"` 的源）
 2. `GET http://127.0.0.1:5678/api/business/prometheus`（`job="yunshu-business"` 的源）
-   —— 上述两处的实测合并清单共 186 个名字，保存在 `_scratch/live_names.txt`；
+   —— 上述两处的实测合并清单共 186 个名字，保存在 `docs/closeout/监控清理_evidence_20261002/live_metric_names.txt`；
 3. recording rule：`monitoring/recording_rules.yml`、`monitoring/health_recording_rules.yml`，形如 `yunshu:error_rate:5m`（**带冒号**，是预聚合序列，不是 exporter 指标）。
 
 三处都搜不到 = **本部署无对应指标**，不要凭"应该有"写上去。
@@ -121,7 +121,7 @@ curl -s 'http://localhost:9090/api/v1/query?query=up'
 | `yunshu-alerts-monitor.json`（告警规则监视） | `yunshu-alerts` | 活跃告警数、错误率、95 分位、安全拦截、资源 | ✅ 10/11 出数；错误率面板已修好，但要等出现 5xx 才有数 |
 | `yunshu-full-monitoring.json`（云枢全链路监控仪表盘） | `yunshu-full-monitoring` | 健康概览、流量、错误告警、部署回滚、CI/CD、业务 | ⚠️ 26 个内容面板 = 13 出数 + 2 待 5xx + 10 保留但无数据源 + 1 无对应指标 |
 | `hpa-skill-retrieval-dashboard.json`（技能检索 HPA 5000 量级） | `hpa-skill-retrieval-5k` | 技能检索 P50/95/99、QPS、副本数、CPU | ⚠️ 4/6 出数；副本数、CPU 面板无 kube/cAdvisor 采集源 |
-| `p99-latency-tracker.json`（P99 延迟追踪 SLO） | `p99-latency-tracker` | 技能检索 SLO、百分位、慢副本定位 | ⚠️ 9/11 出数；2 个面板仍带 `namespace="$namespace"` ⇒ 仍空（见 4.3） |
+| `p99-latency-tracker.json`（P99 延迟追踪 SLO） | `p99-latency-tracker` | 技能检索 SLO、百分位、慢副本定位 | ✅ 9/11 出数；空的是 2 个 k8s 面板（`kube_deployment_status_replicas` / `container_cpu_usage_seconds_total`，本部署无采集方，见板级说明） |
 | `skill-hpa-monitor.json`（技能检索 HPA 扩容监控） | `skill-hpa-monitor` | 同上 + k6 压测指标 | ⚠️ 4/8 出数；副本数、CPU、k6、扩缩容事件 4 个面板无采集源 |
 
 > **修复批次（2026-10-02）的口径**：能靠"改查询"救活的面板全部改成了真实指标；
@@ -154,11 +154,11 @@ curl -s 'http://localhost:9090/api/v1/query?query=up'
 `yunshu_reranker_completed_total{backend}`、`yunshu_reranker_predict_failed_total`、
 `yunshu_reranker_load_time_seconds`，以及 `ALERTS{alertname=~"Reranker.*"}`。
 
-### 4.2 修复后的现状：空面板只有三类 **+ 一处未修完**
+### 4.2 修复后的现状：空面板只有三类
 
-2026-10-02 的修复批次已经把 9 个看板里"改查询就能救活"的面板全部改成真实指标。
-**按设计**还会空的面板只有下面三类（②③④），**都不是故障**；除此之外还有**一处属于"还没修"**——
-`p99-latency-tracker.json` 的两个面板仍带 `namespace="$namespace"`（见 4.3），那才需要动手：
+2026-10-02 的修复批次已经把 9 个看板里"改查询就能救活"的面板全部改成真实指标
+（含批次末尾补修的 `p99-latency-tracker.json` 两个漏改面板）。
+**按设计**还会空的面板只有下面三类（②③④），**都不是故障**：
 
 | 类别 | 数量 | 特征 | 怎么办 |
 |------|------|------|--------|
@@ -166,7 +166,7 @@ curl -s 'http://localhost:9090/api/v1/query?query=up'
 | ② 保留但无数据源 | 10 个面板（部署 ×5 + CI/CD ×5） | 面板上已带说明「本部署无数据源，不是故障」 | 改查询没用，要先补 pushgateway/CI 采集链路 |
 | ③ 本部署无对应指标 | 1 个面板（活跃用户数） | 标题已带「（本部署无指标）」 | 不要找指标顶替；确有需求要先加埋点 |
 | ④ 查询已修好但要等 5xx | 3 个面板（错误率 ×2 + 错误分布 ×1） | 本部署没有 5xx 序列 ⇒ 分子为空 | 出现 5xx 即出数；别把"空"读成"零错误" |
-| ⚠️ 未修完（**是缺陷**） | 2 个面板（p99 看板的 SLO 合规率 / HPA 阈值超标率） | 仍带 `namespace="$namespace"`，变量值为 `production` | 删掉该过滤即与同看板其它面板一致，见 4.3 |
+| ⑤ 原"未修完"已补齐 | 2 个面板（p99 看板的 SLO 合规率 / HPA 阈值超标率） | 原带 `namespace="$namespace"`（该指标没有这个标签） | ✅ 同批末尾已删除该过滤，现与同看板其它面板一致 |
 
 #### ① 已修复：原写法（已废弃） → 现在的实际查询
 
@@ -268,10 +268,10 @@ curl -s 'http://localhost:9090/api/v1/query?query=up'
   （该指标标签只有 `layer/method/success`），三个看板各加了**板级 `description`**，开板即说明
   "面向 k8s 部署，本部署下 kube_*/cAdvisor/k6 面板必然为空，不是故障"。
   ⇒ p99 看板 9/11、skill-hpa-monitor 4/8、hpa-skill-retrieval-5k 4/6 出数。
-  > **残留（本次未修完，建议顺手补）**：`p99-latency-tracker.json` 的「P99 SLO 合规率」与
-  > 「HPA 阈值超标率」两个面板**仍带** `namespace="$namespace"`（模板变量 `namespace` 的当前值是
-  > `production`，取自 `label_values(skill_match_latency_ms_bucket, namespace)`）⇒ 这两个面板仍为空。
-  > 把查询里的 `namespace="$namespace",` 删掉即可与同看板其它面板一致。
+  > **补记（同批末尾补修）**：`p99-latency-tracker.json` 的「P99 SLO 合规率」与「HPA 阈值超标率」
+  > 两个面板起初漏改（仍带 `namespace="$namespace"`）—— 该指标标签只有 `layer/method/success`。
+  > 现已删除该过滤；该板剩下的 2 个空面板是 `kube_*` / `container_*`，属"本部署没有采集方"，
+  > 由板级 `description` 覆盖。
 - **旧目录 `monitoring/grafana_dashboards/`（不被 compose 加载）**：`yunshu_resource_release_dashboard.json`
   有板级 `description`，但它整板依赖的 `yunshu_resource_usage` 不在实测指标清单里
   （ResourceMonitor 无生产调用方）⇒ 恒空；该目录的看板都必须手动 Import，详见其 README。
@@ -368,6 +368,6 @@ Prometheus 不读配置文件里的这段，它只认命令行参数）：
 
 ---
 
-**文档版本**: 2.1（整篇重写 + 2026-10-02 对齐看板 JSON 修复：第 4 节改为「原写法（已废弃）→ 现在的实际查询 → 状态」三列，4.3 记录已修复看板与残留）
+**文档版本**: 2.1（整篇重写 + 2026-10-02 对齐看板 JSON 修复：第 4 节改为「原写法（已废弃）→ 现在的实际查询 → 状态」三列，4.3 记录已修复看板（含末尾补修的 2 个面板））
 **最后更新**: 2026-10-02
 **维护者**: 云枢开发团队
