@@ -69,6 +69,25 @@ services:
     networks:
       - yunshu-monitoring
 
+  # ── 【2026-10-02 · 交付报告 §10 C-1】Alertmanager：告警**投递**链路（默认不启用）──
+  #   【为什么默认不启用】它必须有真实的接收方（邮件/企微/钉钉/自建网关）才有意义，
+  #     而接收方地址与凭据属部署方信息，不该由代码仓库假定。
+  #   【已验证】链路本身可用：Prometheus → Alertmanager → webhook 全通（证据见
+  #     docs/closeout/监控清理_evidence_20261002/alertmanager_delivery_received.jsonl）。
+  #   【启用】① cp monitoring/alertmanager.example.yml monitoring/alertmanager.yml 并填接收方；
+  #     ② 取消下面 8 行注释；③ 取消 monitoring/prometheus.yml 里 alerting 段的注释；④ docker compose up -d
+  #   【回退】重新注释掉这三处即可（不影响 Prometheus/Grafana 本身）。
+  # alertmanager:
+  #   image: prom/alertmanager:v0.27.0
+  #   container_name: yunshu-alertmanager
+  #   ports:
+  #     - "9093:9093"
+  #   volumes:
+  #     - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+  #   restart: unless-stopped
+  #   networks:
+  #     - yunshu-monitoring
+
 volumes:
   prometheus_data:
   grafana_data:

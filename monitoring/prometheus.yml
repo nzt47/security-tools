@@ -10,6 +10,23 @@ global:
 #   所有规则文件（alerts.yml / health_*.yml / recording_rules.yml 等）中的 job="..." 均按 "yunshu" 书写。
 #   回退方式：改 job 名时必须同时改本文件的 job_name 和所有规则文件里的 job="..."，两者不一致 =
 #   up{} 序列为空 = 依赖 job 的规则永不触发（这正是本次修复的缺陷）。
+# ── 【2026-10-02 · 交付报告 §10 C-1】告警**投递**链路：已验证可用，但默认未启用 ──
+#   现状：本文件**没有** alerting 段、两份 monitoring compose 也**没有** Alertmanager 服务
+#   ⇒ 规则能求值、能在 /alerts 里看到 firing，但**没有任何通知发得出去**（这是"有告警没人知道"的经典形态）。
+#   验证（2026-10-02 已做，非推断）：起 prom/alertmanager:v0.27.0 + 一条恒为真的测试规则 + 本机
+#   webhook 接收器，实测 Prometheus(firing) → Alertmanager(/api/v2/alerts 可见) → webhook(POST 收到) 全通，
+#   证据 docs/closeout/监控清理_evidence_20261002/alertmanager_delivery_received.jsonl。
+#   启用方式（三处一起改，缺一处通知永远发不出）：
+#     ① monitoring/alertmanager.example.yml → monitoring/alertmanager.yml（填入真实接收方）
+#     ② docker-compose.monitoring.yml 里取消注释 alertmanager 服务（现成块已备好）
+#     ③ 取消下面这段 alerting 的注释
+#   注意：目标要写**服务名** alertmanager:9093（compose 网络按服务名解析）；
+#   实测踩过"写成容器名 ⇒ 目标查不到 ⇒ 告警静默丢失"。
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
 rule_files:
   # 路径解析说明：Prometheus 按【主配置文件所在目录】解析 rule_files 相对路径，此处即 /etc/prometheus/。
   # 因此下面的每一项都必须与 docker-compose.monitoring.yml 的挂载目标逐一对齐，否则规则静默不加载。

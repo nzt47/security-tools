@@ -1,0 +1,34 @@
+# Alertmanager 最小可用配置（示例 / 可直接改）
+#
+# 【2026-10-02 · 交付报告 §10 C-1】本文件是**端到端验证过**的那份配置去掉测试接收器后的版本：
+#   验证做法 = 起 prom/alertmanager:v0.27.0 + 一个恒为真的测试规则 + 本机 webhook 接收器，
+#   实测链路 Prometheus(firing) → Alertmanager(/api/v2/alerts 可见) → webhook(POST 送达) 全通，
+#   证据见 docs/closeout/监控清理_evidence_20261002/alertmanager_delivery_received.jsonl。
+#
+# 【怎么启用】三处一起改（缺一处就是"规则在跑、通知永远发不出去"）：
+#   1) 本文件复制成 monitoring/alertmanager.yml，把 webhook url / email 换成真实接收方；
+#   2) docker-compose.monitoring.yml 里取消注释 alertmanager 服务（该文件已备好现成块）；
+#   3) monitoring/prometheus.yml 里取消注释 alerting.alertmanagers 段（目标写 alertmanager:9093，
+#      **用服务名**：compose 自定义网络上按服务名解析；实测踩过"写成容器名 ⇒ 目标查不到 ⇒ 告警静默丢失"）。
+# 【实测时延】从 Prometheus 判定 firing 到 webhook 收到：约 50 秒（含 alertmanager 发现刷新 +
+#   group_wait，本文件把 group_wait 压到 1s 已是激进值；生产建议 30s 以抑抖）。
+
+route:
+  # 默认路由：所有告警先到这里，再按 match 分流
+  receiver: default-webhook
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: default-webhook
+    webhook_configs:
+      - url: http://host.docker.internal:9099/hook   # ← 换成真实接收方（企微/钉钉/自建网关）
+        send_resolved: true
+
+# 可选：按 severity 分流（critical 走电话/IM，warning 只发邮件）
+# route:
+#   routes:
+#     - matchers: ['severity="critical"']
+#       receiver: critical-webhook

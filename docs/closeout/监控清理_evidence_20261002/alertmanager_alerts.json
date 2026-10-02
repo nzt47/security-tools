@@ -1,0 +1,2 @@
+[{"annotations":{"description":"本告警恒为真，只用于验证 Prometheus → Alertmanager → 通知 这条链路。","summary":"Alertmanager 投递链路端到端验证"},"endsAt":"2026-10-02T11:42:11.077Z","fingerprint":"0db7c4f2cc5cf75c","receivers":[{"name":"webhook"}],"startsAt":"2026-10-02T11:37:06.077Z","status":{"inhibitedBy":[],"silencedBy":[],"state":"active"},"updatedAt":"2026-10-02T11:38:11.083Z","generatorURL":"http://d3928e2631a5:9090/graph?g0.expr=vector%281%29+%3E+0\u0026g0.tab=1","labels":{"alertname":"E2EAlwaysFiring","severity":"critical","test":"alertmanager-e2e"}}]
+

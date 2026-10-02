@@ -7,6 +7,8 @@
 |---|---|---|
 | `live_metric_names.txt` | 本部署**真实存在**的 186 个指标名（去重） | `GET http://127.0.0.1:5678/metrics` 与 `GET http://127.0.0.1:5678/api/business/prometheus` 两份文本的**样本行 + # HELP/# TYPE 声明行**合并去重 |
 | `dashboard_metric_scan_after.txt` | 修复后逐看板扫描结果（每个看板引用的 `yunshu_*` / `Yunshu_*` 名字里有几个不在这 186 个里） | 见报告 §6；修复前同一脚本给出的"不可解析"计数是 18 处 |
+| `alertmanager_delivery_received.jsonl` | C-1 端到端验证：Alertmanager **真的推给 webhook** 的原始 POST body | 见报告 §6.1 的装置表（临时容器，跑完即拆） |
+| `alertmanager_alerts.json` | 同一时刻 Alertmanager 侧 `/api/v2/alerts` 的返回（证明它确实收到了告警） | 同上 |
 | `promtool_check_config.txt` | Prometheus 配置 + 14 个规则文件的校验输出（修正后仍是 `EXIT=0`） | `docker run --rm --entrypoint promtool` + 按 `docker-compose.monitoring.yml` 的 11 个挂载逐条复刻，最后一行带 `EXIT=0` |
 
 【为什么要落盘】判据 `live_metric_names.txt` 原本只存在于被 gitignore 的 `_scratch/` 里，
