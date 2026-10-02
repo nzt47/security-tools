@@ -27,7 +27,9 @@ services:
       # 回退方式：与 monitoring/prometheus.yml 中新增的 10 条 rule_files 成对删除。
       - ./monitoring/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
       - ./monitoring/alerts_production.yml:/etc/prometheus/alerts_production.yml:ro
-      - ./monitoring/alerts_safe_file_reader.yml:/etc/prometheus/alerts_safe_file_reader.yml:ro
+      # 【2026-10-02 · §10 A-1】原 alerts_safe_file_reader.yml 挂载已删除（规则文件与
+      #   monitoring/prometheus.yml 的 rule_files 项一并删除）：它的 9 条规则恒不触发（指标无产出方）。
+      #   恢复 = 三处一起补回（文件 + rule_files + 本挂载）。
       - ./monitoring/circuit_breaker_alerts.yml:/etc/prometheus/circuit_breaker_alerts.yml:ro
       - ./monitoring/alerts/skill_retrieval_alerts.yml:/etc/prometheus/skill_retrieval_alerts.yml:ro
       - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro

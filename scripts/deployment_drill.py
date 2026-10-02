@@ -3,6 +3,11 @@
 """SafeFileReader 上线流程演练脚本
 
 模拟完整的生产环境上线流程，生成演练记录文档。
+
+⚠ 【2026-10-02 已作废】本脚本是 SafeFileReader 上线专用的演练/自动化脚本：
+  ① 它断言的 monitoring/alerts_safe_file_reader.yml 与 9 条 SafeFileReader* 告警已于 2026-10-02 删除；
+  ② 它断言 app_server.py 里存在 _load_chat_history_from_file —— 该函数早已不存在 ⇒ 在本仓本来就跑不过。
+  保留仅为历史记录，请勿据它判断当前部署状态。原因见 docs/closeout/监控死规则与陈旧看板清理_20261002.md §3（A-1）。
 """
 
 import os

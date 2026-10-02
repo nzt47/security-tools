@@ -1,3 +1,8 @@
+> ⚠ **【2026-10-02 已作废】** 本文对应的 9 条告警规则（monitoring/alerts_safe_file_reader.yml）已删除：
+> SafeFileReader 在非测试代码里没有任何调用方（历史读取改走 agent/jsonl_history.py 的尾部窗口），
+> 指标恒为 0 ⇒ 规则恒不触发。原因、证据与恢复路径见
+> docs/closeout/监控死规则与陈旧看板清理_20261002.md 的 §3（A-1）。本文保留作历史记录。
+
 # SafeFileReader 历史记忆容错 - 生产环境部署检查清单
 
 **版本**: v1.0  

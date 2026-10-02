@@ -10,7 +10,9 @@
 monitoring/
 ├── prometheus.yml                  # 【权威】scrape 配置（4 个 job：yunshu / yunshu-business / prometheus / grafana）
 ├── alerts.yml                      # 告警规则（prometheus.yml 的 rule_files 逐条挂载，改一处要同时改挂载）
-├── alerts_production.yml / alerts_safe_file_reader.yml / circuit_breaker_alerts.yml
+├── alerts_production.yml / circuit_breaker_alerts.yml
+│                                 # 注：alerts_safe_file_reader.yml（9 条）已于 2026-10-02 删除
+│                                 #     （指标无产出方 ⇒ 恒不触发），见 docs/closeout/监控死规则与陈旧看板清理_20261002.md
 ├── health_alerts.yml               # 健康度体系告警
 ├── recording_rules.yml             # 预聚合记录规则（yunshu:xxx:5m）
 ├── health_recording_rules.yml      # 健康度体系记录规则（yunshu:health:*）

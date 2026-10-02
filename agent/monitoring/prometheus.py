@@ -538,9 +538,12 @@ class RetryablePrometheusOperation:
 
 
 # 【2026-10-02 · 交付报告 §10 A-1】下面这 5 个指标**当前无生产调用方**：
-#   发射函数由 utils/file_reader.py 的 SafeFileReader 调用，而该文件在非测试代码里 0 引用
-#   ⇒ 指标恒为 0，monitoring/alerts_safe_file_reader.yml 的 9 条规则随之恒不触发
-#   （详见该文件头部的说明）。
+#   发射函数由 utils/file_reader.py 的 SafeFileReader 调用，而该文件在非测试代码里 0 引用 ⇒ 指标恒为 0。
+#   依赖它们的 monitoring/alerts_safe_file_reader.yml（9 条）**已于 2026-10-02 删除**
+#   （规则文件 + rule_files 项 + 两份 compose 挂载一起移除）—— 恒不触发的规则会让"告警覆盖率"变成假的。
+#   【为什么这 5 个指标定义留着】它们被 utils/prometheus_exporter.py（薄包装）与 3 个测试文件引用，
+#   删除它属于"删死代码"的独立清理（影响面：1 个包装模块 + 4 个脚本 + 3 个测试）；
+#   而它们本身是惰性声明（没有调用方就恒为 0），不会制造"假覆盖率"。将来真接线可直接复用。
 # ============================================================================
 # SafeFileReader Prometheus 指标
 # ============================================================================

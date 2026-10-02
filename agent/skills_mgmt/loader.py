@@ -357,6 +357,131 @@ class MatchResult:
 #  三层检索引擎
 # ════════════════════════════════════════════════════════════
 
+# ══════════════════════════════════════════════════════════════════════════════
+# 【2026-10-02 · 交付报告 §10 D-1】六个"写了却没人读"的检索旋钮 —— 现在真的读了
+# ──────────────────────────────────────────────────────────────────────────────
+# 【背景】deploy/k8s/deployment.yaml 的 ConfigMap 与多份 runbook 一直在教运维设置
+#   SKILLS_USE_INVERTED_INDEX / SKILLS_CANDIDATE_LIMIT / SKILLS_USE_VECTOR /
+#   SKILLS_FUSION_MODE / SKILLS_USE_BM25 / SKILLS_USE_RERANKER，
+#   但全仓 agent/ 下**没有任何代码读取它们** ⇒ 设了完全没有效果（实测 candidate_limit 恒为 0）。
+#   能力本身是有的（_tfidf_scan 支持 candidate_limit 截断、match() 有各路开关参数），
+#   缺的只是"把 env 读进默认值"这一步。
+#
+# 【不易 · 行为不变的保证】六个旋钮都只在调用方**没有显式传参**时生效，而未设环境变量时的
+#   回退值与改动前逐字一致（False / False / False / "none" / True / 0）
+#   ⇒ 不设 env 的部署，检索行为**逐位不变**（tests/unit/test_loader_env_knobs.py 钉住）。
+# 【变易】显式传参永远优先于 env：调用方说了算，env 只提供"默认值"。
+# 【简易】六个 _resolve_* 是纯函数（便于单测）；解析放在入口函数体内，每次调用读一次 env
+#   ⇒ 改 env 无需重启进程即生效（与 skills/searcher 每次调用读 env 的既有约定一致）。
+# ══════════════════════════════════════════════════════════════════════════════
+
+_ENV_USE_INVERTED_INDEX = "SKILLS_USE_INVERTED_INDEX"
+_ENV_CANDIDATE_LIMIT = "SKILLS_CANDIDATE_LIMIT"
+_ENV_USE_VECTOR = "SKILLS_USE_VECTOR"
+_ENV_FUSION_MODE = "SKILLS_FUSION_MODE"
+_ENV_USE_BM25 = "SKILLS_USE_BM25"
+_ENV_USE_RERANKER = "SKILLS_USE_RERANKER"
+
+_TRUTHY = ("1", "true", "yes", "on")
+_FALSY = ("0", "false", "no", "off")
+_FUSION_MODES = ("none", "rrf", "rrf_rerank")
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    """读布尔型 env；未设或无法识别 ⇒ 回退 default（无法识别时记一条告警，不静默取 True）"""
+    raw = os.environ.get(name)
+    if raw is None or raw.strip() == "":
+        return default
+    val = raw.strip().lower()
+    if val in _TRUTHY:
+        return True
+    if val in _FALSY:
+        return False
+    logger.warning(log_dict({
+        "module_name": "loader", "action": "env_knob.invalid_value",
+        "env": name, "value": raw, "fallback": default,
+        "reason": "取值无法识别为布尔，按默认值处理",
+    }))
+    return default
+
+
+def _env_int(name: str, default: int, *, minimum: int = 0) -> int:
+    """读整型 env；未设 / 非数字 / 小于下限 ⇒ 回退 default"""
+    raw = os.environ.get(name)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        val = int(raw.strip())
+    except ValueError:
+        val = None
+    if val is None or val < minimum:
+        logger.warning(log_dict({
+            "module_name": "loader", "action": "env_knob.invalid_value",
+            "env": name, "value": raw, "fallback": default,
+            "reason": "不是 >= %d 的整数，按默认值处理" % minimum,
+        }))
+        return default
+    return val
+
+
+def _env_fusion_mode(default: str) -> str:
+    """读 SKILLS_FUSION_MODE；只接受 none/rrf/rrf_rerank，其余回退 default"""
+    raw = os.environ.get(_ENV_FUSION_MODE)
+    if raw is None or raw.strip() == "":
+        return default
+    val = raw.strip().lower()
+    if val in _FUSION_MODES:
+        return val
+    logger.warning(log_dict({
+        "module_name": "loader", "action": "env_knob.invalid_value",
+        "env": _ENV_FUSION_MODE, "value": raw, "fallback": default,
+        "allowed": list(_FUSION_MODES),
+    }))
+    return default
+
+
+def _resolve_use_inverted_index(explicit: Optional[bool]) -> bool:
+    """倒排索引开关：显式传参优先，否则读 SKILLS_USE_INVERTED_INDEX（默认 True）"""
+    if explicit is not None:
+        return bool(explicit)
+    return _env_bool(_ENV_USE_INVERTED_INDEX, True)
+
+
+def _resolve_candidate_limit(explicit: Optional[int]) -> int:
+    """候选集上限：显式传参优先，否则读 SKILLS_CANDIDATE_LIMIT（默认 0=不限制；负数按 0）"""
+    if explicit is not None:
+        return max(int(explicit), 0)
+    return _env_int(_ENV_CANDIDATE_LIMIT, 0, minimum=0)
+
+
+def _resolve_use_vector(explicit: Optional[bool]) -> bool:
+    """向量路开关：显式传参优先，否则读 SKILLS_USE_VECTOR（默认 False）"""
+    if explicit is not None:
+        return bool(explicit)
+    return _env_bool(_ENV_USE_VECTOR, False)
+
+
+def _resolve_use_bm25(explicit: Optional[bool]) -> bool:
+    """BM25 路开关：显式传参优先，否则读 SKILLS_USE_BM25（默认 False）"""
+    if explicit is not None:
+        return bool(explicit)
+    return _env_bool(_ENV_USE_BM25, False)
+
+
+def _resolve_use_reranker(explicit: Optional[bool]) -> bool:
+    """Reranker 开关：显式传参优先，否则读 SKILLS_USE_RERANKER（默认 False）"""
+    if explicit is not None:
+        return bool(explicit)
+    return _env_bool(_ENV_USE_RERANKER, False)
+
+
+def _resolve_fusion_mode(explicit: Optional[str]) -> str:
+    """融合模式：显式传参优先，否则读 SKILLS_FUSION_MODE（默认 none）"""
+    if explicit is not None:
+        return explicit
+    return _env_fusion_mode("none")
+
+
 class SkillLoader:
     """三层分层检索引擎
 
@@ -456,7 +581,8 @@ class SkillLoader:
                     enabled_only: bool,
                     min_score: float,
                     use_inverted_index: bool,
-                    candidate_limit: int = 0,
+                    # 【2026-10-02 · §10 D-1】None = "调用方未指定"，落到 SKILLS_CANDIDATE_LIMIT
+                    candidate_limit: Optional[int] = None,
                     ) -> List[SkillMatch]:
         """TF-IDF 扫描 — 用倒排索引筛选候选集，再精确计算匹配分
 
@@ -490,6 +616,10 @@ class SkillLoader:
             use_inverted_index=False 路径**逐位一致**，不重排任何既有次序。
         """
         matches: List[SkillMatch] = []
+
+        # 【2026-10-02 · §10 D-1】未显式传参时读 env（未设 env 时与改动前逐位一致）
+        use_inverted_index = _resolve_use_inverted_index(use_inverted_index)
+        candidate_limit = _resolve_candidate_limit(candidate_limit)
 
         # [埋点] 技能检索规模/开关三类 gauge —— 每次扫描刷新为"当前真实值"。
         # 【为什么是 gauge 而不是 counter】告警判据是**当前状态**（倒排索引是否启用、
@@ -596,17 +726,20 @@ class SkillLoader:
               enabled_only: bool = True,
               min_score: float = 0.01,
               # 以下为预留扩展点，当前不实现，仅占位（默认 False 保证向后兼容）
-              use_vector: bool = False,
-              use_bm25: bool = False,
-              use_reranker: bool = False,
+              # 【2026-10-02 · §10 D-1】以下六个旋钮的默认值改为 None = "未指定"，
+              # 由函数体顶部的 _resolve_* 落到对应的 SKILLS_* 环境变量；未设 env 时
+              # 回退值与改动前逐字一致（False/False/False/"none"/True/0）⇒ 行为不变。
+              use_vector: Optional[bool] = None,
+              use_bm25: Optional[bool] = None,
+              use_reranker: Optional[bool] = None,
               retrieval_weights: Optional[Dict[str, float]] = None,
-              fusion_mode: str = "none",
-              # 【变易】TF-IDF 倒排索引开关 — 默认启用，O(n)→O(k) 加速
+              fusion_mode: Optional[str] = None,
+              # 【变易】TF-IDF 倒排索引开关 — 默认启用（SKILLS_USE_INVERTED_INDEX 可覆盖），O(n)→O(k) 加速
               # 关闭时回退全量遍历（守【不易】向后兼容）
-              use_inverted_index: bool = True,
-              # 【变易】候选集上限（0=不限制）— 5000+ 技能降级方案
+              use_inverted_index: Optional[bool] = None,
+              # 【变易】候选集上限（0=不限制，SKILLS_CANDIDATE_LIMIT 可覆盖）— 5000+ 技能降级方案
               # >0 时按 token 命中数降序截断，精度换速度（推荐值 200）
-              candidate_limit: int = 0,
+              candidate_limit: Optional[int] = None,
               ) -> MatchResult:
         """第一层匹配 — 当前仅 TF-IDF，接口已预留向量/BM25/Reranker 扩展点
 
@@ -652,6 +785,14 @@ class SkillLoader:
         """
         t0 = time.time()
         tid = _trace_id()
+
+        # 【2026-10-02 · §10 D-1】六个旋钮：显式传参优先，未传则读 SKILLS_* env（未设 env 行为不变）
+        use_vector = _resolve_use_vector(use_vector)
+        use_bm25 = _resolve_use_bm25(use_bm25)
+        use_reranker = _resolve_use_reranker(use_reranker)
+        fusion_mode = _resolve_fusion_mode(fusion_mode)
+        use_inverted_index = _resolve_use_inverted_index(use_inverted_index)
+        candidate_limit = _resolve_candidate_limit(candidate_limit)
 
         # 扩展点防御：use_vector=True 时走向量检索分支，失败降级 TF-IDF
         # 【变易】use_bm25 已实现：触发 RRF 多路融合（tfidf+bm25 或 tfidf+vector+bm25）
@@ -1766,13 +1907,14 @@ class SkillLoader:
         min_score: float,
         tid: str,
         t0: float,
-        use_reranker: bool = False,
-        use_bm25: bool = False,
+        # 【2026-10-02 · §10 D-1】None = 未指定 ⇒ 落到 SKILLS_* env（match() 通常显式透传）
+        use_reranker: Optional[bool] = None,
+        use_bm25: Optional[bool] = None,
         retrieval_weights: Optional[Dict[str, float]] = None,
         # 【变易】TF-IDF 倒排索引开关 — 透传 match() 的 use_inverted_index
-        use_inverted_index: bool = True,
+        use_inverted_index: Optional[bool] = None,
         # 【变易】候选集上限 — 透传 match() 的 candidate_limit（降级方案）
-        candidate_limit: int = 0,
+        candidate_limit: Optional[int] = None,
     ) -> Optional[MatchResult]:
         """RRF 融合检索：TF-IDF + 向量（+ BM25）多路并行 + 排名融合
 
@@ -1812,6 +1954,12 @@ class SkillLoader:
         Returns:
             MatchResult（retrieval_method="rrf"/"rrf_rerank"）或 None（降级）
         """
+        # 【2026-10-02 · §10 D-1】未显式传参时读 env（与 match()/_tfidf_scan 同一套判据）
+        use_reranker = _resolve_use_reranker(use_reranker)
+        use_bm25 = _resolve_use_bm25(use_bm25)
+        use_inverted_index = _resolve_use_inverted_index(use_inverted_index)
+        candidate_limit = _resolve_candidate_limit(candidate_limit)
+
         # 候选池扩大倍率：RRF 受 rank 影响大，多取候选避免漏召
         # 【变易】2 倍是经验值，平衡召回率与计算成本
         candidate_k = max(top_k * 2, 10)

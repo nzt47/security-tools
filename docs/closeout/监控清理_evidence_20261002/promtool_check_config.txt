@@ -1,5 +1,5 @@
 Checking /etc/prometheus/prometheus.yml
-  SUCCESS: 14 rule files found
+  SUCCESS: 13 rule files found
  SUCCESS: /etc/prometheus/prometheus.yml is valid prometheus config file syntax
 
 Checking /etc/prometheus/alerts.yml
@@ -20,9 +20,6 @@ Checking /etc/prometheus/recording_rules.yml
 Checking /etc/prometheus/alerts_production.yml
   SUCCESS: 19 rules found
 
-Checking /etc/prometheus/alerts_safe_file_reader.yml
-  SUCCESS: 9 rules found
-
 Checking /etc/prometheus/circuit_breaker_alerts.yml
   SUCCESS: 8 rules found
 
@@ -39,7 +36,7 @@ Checking /etc/prometheus/rules/hpa-skill-retrieval-alerts.yml
   SUCCESS: 4 rules found
 
 Checking /etc/prometheus/rules/yunshu-v6-query-pattern-alerts.yml
-  SUCCESS: 8 rules found
+  SUCCESS: 2 rules found
 
 Checking /etc/prometheus/rules/planning_alerts.yml
   SUCCESS: 2 rules found

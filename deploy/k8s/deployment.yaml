@@ -32,15 +32,17 @@ metadata:
     app: skill-retrieval-service
     scale: "5000-skills"
 data:
-  # ── 【2026-10-02 · 交付报告 §10 D-1】下面 6 个旋钮**在本仓没有读取方**，设了也不生效 ──
-  #   实测（全仓 grep .py）：SKILLS_USE_INVERTED_INDEX / SKILLS_CANDIDATE_LIMIT /
-  #   SKILLS_USE_VECTOR / SKILLS_FUSION_MODE / SKILLS_USE_BM25 / SKILLS_USE_RERANKER
-  #   只出现在本文件与文档里，agent/ 下**没有任何代码读取它们**。
-  #   能力本身是有的（loader._tfidf_scan 支持 candidate_limit 截断、match() 有 use_inverted_index 开关，
-  #   且都埋了 gauge），缺的是「把 env 读进参数」这一步。
-  #   后果：运维照 runbook 改这些值**不会有任何效果**（candidate_limit 仍是 0、倒排索引仍按代码默认 True）。
-  #   出口（二选一，尚未决定）：① 在 loader 里读取开关（默认值与现状一致 ⇒ 不设时行为不变）；
-  #   ② 删掉本节这些行，承认该旋钮不存在。
+  # ── 【2026-10-02 · 交付报告 §10 D-1】**这 6 个旋钮已接线**（此前设了完全无效）──
+  #   接法（agent/skills_mgmt/loader.py）：match() / _try_rrf_match() / _tfidf_scan() 的参数
+  #   默认值改为 None（"未指定"），由 _resolve_* 落到下面这些 env；显式传参永远优先。
+  #   【不易】**未设 env 时回退值与接线前逐字一致**（False/False/False/"none"/True/0）
+  #     ⇒ 不设这些变量的部署，检索行为逐位不变（回归钉子：tests/unit/test_loader_env_knobs.py）。
+  #   【变易】非法取值（非数字/负数/无法识别的布尔/非法 fusion_mode）不 crash、也不静默取反，
+  #     一律回退默认值并记一条 env_knob.invalid_value 告警。
+  #   【运维提示】本 ConfigMap 现在**真的生效**了：SKILLS_CANDIDATE_LIMIT=200 会真的做候选截断
+  #     （gauge skill_candidate_limit_current 会同步反映），SKILLS_USE_VECTOR/BM25/FUSION_MODE
+  #     会真的改变检索路数 —— 调这些值前先按 docs/RRF_PRODUCTION_DEGRADATION_PLAN.md 做基线对比。
+  #   【回退】删掉某一行即回到代码默认值（等价于本次接线前的状态）。
 
   # ── 检索引擎配置 ──
   # 【不易】倒排索引必须启用（5000 技能 O(n)→O(k) 加速 2.6x）

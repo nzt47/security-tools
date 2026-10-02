@@ -245,7 +245,8 @@ def main():
   SafeFileReaderHistoryLoadFailed         历史加载失败         ✅ 可触发
   
   部署告警规则:
-  1. 将 monitoring/alerts_safe_file_reader.yml 复制到 Prometheus
+  1. 【2026-10-02 起该规则文件已删除】本测试**只验证 SafeFileReader 自身的指标能否递增**，
+    不再验证告警规则（9 条规则恒不触发，已删；原因见 docs/closeout/监控死规则与陈旧看板清理_20261002.md §3）
   2. 重载配置: curl -X POST http://localhost:9090/-/reload
   3. 在 Grafana 中查看告警状态
     """)
