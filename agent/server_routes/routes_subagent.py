@@ -12,11 +12,13 @@
 """
 
 import logging
+import time
 import uuid
 
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.server_routes.tracing_decorator import trace_route
+from agent.subagent.delegation_history import delegation_history
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +82,105 @@ def _as_str_list(value, field: str, *, allow_empty: bool) -> list:
     return out
 
 
+def _clamp_limit(value, *, default: int, lo: int, hi: int) -> int:
+    """limit 参数收敛（非法/越界一律回落到合法区间）"""
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(lo, min(hi, n))
+
+def _goal_from_body(data: dict) -> str:
+    """请求体 → 目标（``task`` 与 ``goal`` 同义；别名是历史包袱，保持兼容）"""
+    return str(data.get("task") or data.get("goal") or "").strip()
+
+
+def _short_goal_response():
+    """目标过短的统一拒绝（两个入口同一句文案，避免"改一处漏一处"）"""
+    return jsonify({
+        "ok": False, "error_code": "E_DELEGATION_INCOMPLETE",
+        "error": "目标过短：至少 8 字符且需具体可判定（含糊目标会被拒绝）",
+    }), 400
+
+
+def _no_channel_response(channel: dict):
+    """无执行通道的统一拒绝：**明确拒绝**，不跑注定失败的空执行"""
+    return jsonify({
+        "ok": False, "error_code": "E_DELEGATION_NO_CHANNEL",
+        "error": ("未配置执行通道（既无 LLM 也无外部 agent CLI）："
+                  "_llm 为空且环境变量 CP_SUBAGENT_AGENT_CLI 未设置"),
+        "channel": channel,
+    }), 409
+
+
+def _granted_tools() -> tuple:
+    """子代理工具子集（与模型侧 ``delegate`` 工具**同源**：同一份只读白名单）
+
+    两处各写一份 ⇒ 两套授权口径，本仓反复出现的老形态。白名单不可用时退化为空集
+    （纯推理委派），不阻断委派本身。
+    """
+    try:
+        from agent.tools.subagent_tools import _default_subagent_tools
+        return tuple(_default_subagent_tools())
+    except Exception as e:  # noqa: BLE001 白名单不可用 → 纯推理委派（不授予工具）
+        logger.warning("[SubagentAPI] 工具白名单不可用，按纯推理委派执行: %s", e)
+        return ()
+
+
+def _build_context(data: dict, task: str, *, delegation_prefix: str = "dlg-ui"):
+    """请求体 → ``DelegationContext``（八要素缺省补齐）
+
+    **两个入口共用**（具名 ``/api/subagent/<name>/delegate`` 与临时分身
+    ``/api/subagent/delegate``）：缺省规则各写一份必然漂移，而"缺省补齐"正是
+    UI 简化入口能被接受的全部理由。
+
+    Raises:
+        ValueError: ⑥预算 / ⑦超时不是整数（调用方转 400）。
+    """
+    from agent.subagent.delegation import DelegationContext
+
+    constraints = _as_str_list(data.get("constraints"), "constraints", allow_empty=False) \
+        or ["只读为主，不得修改仓库文件"]
+    prohibitions = _as_str_list(data.get("prohibitions"), "prohibitions", allow_empty=True)
+    if not prohibitions:
+        prohibitions = ["不得对外发送数据"]
+    prior_artifacts = _as_str_list(data.get("prior_artifacts"), "prior_artifacts", allow_empty=True)
+    try:
+        budget_tokens = int(data.get("budget_tokens") or 4000)
+        timeout_seconds = int(data.get("timeout_seconds") or 120)
+    except (TypeError, ValueError) as e:
+        raise ValueError("budget_tokens / timeout_seconds 必须是整数") from e
+
+    return DelegationContext(
+        goal=task,
+        constraints=constraints,
+        prior_artifacts=prior_artifacts,
+        prohibitions=prohibitions,
+        artifact_format=str(data.get("artifact_format") or "文本要点"),
+        budget_tokens=budget_tokens,
+        timeout_seconds=timeout_seconds,
+        # ⑧回调地址：八要素校验只要求"已声明"（空串 ⇒ E_DELEGATION_INCOMPLETE）。
+        # UI 是同步调用、结果直接由本响应返回，故用本地占位标识：投递器缺省只记审计、
+        # 不会真的外呼；需要真投递时调用方显式传 callback_url。
+        callback_url=str(data.get("callback_url") or "ui://workbench/sync"),
+        delegation_id=f"{delegation_prefix}-{uuid.uuid4().hex[:8]}",
+    )
+
+
+def _elements_view(ctx) -> dict:
+    """八要素回显：让调用方看到"实际是按什么跑的"（含缺省补齐后的值）"""
+    return {
+        "goal": ctx.goal,
+        "constraints": list(ctx.constraints),
+        "prior_artifacts": list(ctx.prior_artifacts),
+        "prohibitions": list(ctx.prohibitions),
+        "artifact_format": ctx.artifact_format,
+        "budget_tokens": ctx.budget_tokens,
+        "timeout_seconds": ctx.timeout_seconds,
+        "callback_url": ctx.callback_url,
+    }
+
+
 def register_routes(app, state):
     """注册所有分身管理路由"""
 
@@ -106,6 +207,42 @@ def register_routes(app, state):
         except Exception as e:
             logger.error("[SubagentAPI] 列表查询失败: %s", e)
             return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/subagent/history")
+    @trace_route("Subagent")
+    @log_request(show_response=False)
+    def api_subagent_history():
+        """委派记录（最近 N 条，**最新在前**）——「子代理」下拉的历史数据源
+
+        【为什么需要它】存活分身列表（``/api/subagent/list``）只列**当前活着**的容器，
+        而委派一律"跑完即回收"（``destroy_after=True``）⇒ 正常业务里那个列表几乎恒为空，
+        用户看到的是"业务明明发生了、面板却什么都没有"。本端点回答"发生过什么"。
+
+        数据源：每次真委派后由 ``agent/subagent/delegation_history.py`` 落的轻量 JSONL。
+        两处咽喉各记一处、互不重叠：单发走 ``SubagentContainer.run_delegation``，
+        批量走 ``SubagentLifecycleManager.delegate_many``（批量不经过容器）。
+        记录里**不含交付物正文**（外来文本 + 体量不可控），只有可展示的元信息。
+
+        Query:
+            limit (int, optional): 返回条数，缺省 20，收敛到 [1, 100]。
+
+        【路由优先级】本规则是**静态**路径，Werkzeug 静态优先于 ``/api/subagent/<name>``，
+        故不会被同名分身遮蔽（回归用例见 tests/unit/test_subagent_history_route.py）。
+        """
+        try:
+            limit = _clamp_limit(request.args.get("limit"), default=20, lo=1, hi=100)
+            records = delegation_history.query(limit=limit)
+            return jsonify({
+                "ok": True,
+                "records": records,
+                "count": len(records),
+                # 总数：None = 文件过大未统计（"未统计" ≠ 0，UI 据此区分"没有记录"）
+                "total": delegation_history.total(),
+                "ts": time.strftime("%H:%M:%S"),
+            })
+        except Exception as e:
+            logger.error("[SubagentAPI] 委派记录查询失败: %s", e)
+            return jsonify({"ok": False, "error": str(e), "records": []}), 500
 
     @app.route("/api/subagent/<name>")
     @trace_route("Subagent")
@@ -247,12 +384,9 @@ def register_routes(app, state):
         """
         try:
             data = request.get_json(silent=True) or {}
-            task = str(data.get("task") or data.get("goal") or "").strip()
+            task = _goal_from_body(data)
             if len(task) < 8:
-                return jsonify({
-                    "ok": False, "error_code": "E_DELEGATION_INCOMPLETE",
-                    "error": "目标过短：至少 8 字符且需具体可判定（含糊目标会被拒绝）",
-                }), 400
+                return _short_goal_response()
 
             # ── 分身解析：用**既有**生命周期管理器取容器（绝不 new 第二实例） ──
             mgr = getattr(Yunshu, "_subagent_mgr", None)
@@ -263,54 +397,26 @@ def register_routes(app, state):
                 }), 409
             container = mgr.get(name)
             if container is None:
-                return jsonify({"ok": False, "error": f"分身不存在: {name}"}), 404
+                # 【提示去处】具名端点的 404 不再是"死路"：临时分身入口不要求先有分身
+                return jsonify({
+                    "ok": False, "error": f"分身不存在: {name}",
+                    "hint": "可改用 POST /api/subagent/delegate（临时分身：现建现用、跑完即回收）",
+                }), 404
 
             # ── 执行通道：LLM 优先；都没有则明确拒绝（不跑注定失败的空执行） ──
             channel = _channel_info(Yunshu)
             if not channel["ok"]:
-                return jsonify({
-                    "ok": False, "error_code": "E_DELEGATION_NO_CHANNEL",
-                    "error": ("未配置执行通道（既无 LLM 也无外部 agent CLI）："
-                              "_llm 为空且环境变量 CP_SUBAGENT_AGENT_CLI 未设置"),
-                    "channel": channel,
-                }), 409
+                return _no_channel_response(channel)
 
             # ── 八要素（未传项按文档缺省补齐；校验在 DelegationExecutor 内继续生效） ──
-            constraints = _as_str_list(data.get("constraints"), "constraints", allow_empty=False) \
-                or ["只读为主，不得修改仓库文件"]
-            prohibitions = _as_str_list(data.get("prohibitions"), "prohibitions", allow_empty=True)
-            if not prohibitions:
-                prohibitions = ["不得对外发送数据"]
-            prior_artifacts = _as_str_list(data.get("prior_artifacts"), "prior_artifacts", allow_empty=True)
+            # 补齐规则与响应形状都由模块级 helper 提供：临时分身入口共用同一份
             try:
-                budget_tokens = int(data.get("budget_tokens") or 4000)
-                timeout_seconds = int(data.get("timeout_seconds") or 120)
-            except (TypeError, ValueError):
-                return jsonify({"ok": False, "error": "budget_tokens / timeout_seconds 必须是整数"}), 400
-
-            from agent.subagent.delegation import DelegationContext
-            ctx = DelegationContext(
-                goal=task,
-                constraints=constraints,
-                prior_artifacts=prior_artifacts,
-                prohibitions=prohibitions,
-                artifact_format=str(data.get("artifact_format") or "文本要点"),
-                budget_tokens=budget_tokens,
-                timeout_seconds=timeout_seconds,
-                # ⑧回调地址：八要素校验只要求"已声明"（空串即不合格 ⇒ E_DELEGATION_INCOMPLETE）。
-                # UI 是同步调用、结果直接由本响应返回，故用本地占位标识：投递器缺省只记审计，
-                # 不会真的外呼；如需真投递，调用方显式传 callback_url 即可。
-                callback_url=str(data.get("callback_url") or "ui://workbench/sync"),
-                delegation_id=f"dlg-ui-{uuid.uuid4().hex[:8]}",
-            )
+                ctx = _build_context(data, task)
+            except ValueError as e:
+                return jsonify({"ok": False, "error": str(e)}), 400
 
             # 工具子集与模型侧 delegate 工具同源（同一只读白名单，避免两套授权口径）
-            try:
-                from agent.tools.subagent_tools import _default_subagent_tools
-                granted = _default_subagent_tools()
-            except Exception as e:  # noqa: BLE001 白名单不可用 → 纯推理委派（不授予工具）
-                logger.warning("[SubagentAPI] 工具白名单不可用，按纯推理委派执行: %s", e)
-                granted = ()
+            granted = _granted_tools()
 
             logger.info("[SubagentAPI] 真委派 name=%s delegation=%s goal=%.60s tools=%s",
                         name, ctx.delegation_id, task, list(granted) or "（空）")
@@ -319,23 +425,84 @@ def register_routes(app, state):
                 llm=getattr(Yunshu, "_llm", None),
                 tools=granted,
                 authorized_capabilities=granted,
+                source="ui",  # 委派记录里区分"界面发起"与"模型工具发起"
             )
             payload = _outcome_payload(outcome, ctx)
             payload["name"] = name
-            payload["elements"] = {
-                "goal": ctx.goal,
-                "constraints": list(ctx.constraints),
-                "prior_artifacts": list(ctx.prior_artifacts),
-                "prohibitions": list(ctx.prohibitions),
-                "artifact_format": ctx.artifact_format,
-                "budget_tokens": ctx.budget_tokens,
-                "timeout_seconds": ctx.timeout_seconds,
-                "callback_url": ctx.callback_url,
-            }
+            payload["elements"] = _elements_view(ctx)
             payload["channel"] = channel
             return jsonify(payload)
         except Exception as e:
             logger.exception("[SubagentAPI] 委派失败: %s", e)
+            return jsonify({"ok": False, "error_code": "E_DELEGATION_FAILED",
+                            "error": str(e)}), 500
+
+    @app.route("/api/subagent/delegate", methods=["POST"])
+    @trace_route("Subagent")
+    @require_token
+    @log_request()
+    def api_subagent_delegate_ephemeral():
+        """**临时分身委派**：不要求先存在分身 —— 与模型侧 ``delegate`` 工具同一条链路
+
+        【为什么需要它】具名端点 ``/api/subagent/<name>/delegate`` 要求 ``mgr.get(name)``
+        命中一个**存活容器**；而容器"跑完即回收"（``destroy_after=True``）⇒ 界面上长期是
+        "列表为空 ⇒ 无法委托"，用户唯一的出路是先去「装配车间」手工造一个分身。
+        本端点直接走 ``SubagentLifecycleManager.delegate``：**就地建临时分身 → 执行 →
+        立即回收**，与模型工具、``fan_out`` 完全同一条执行链路（八要素 / 隔离 / Trace /
+        成本记账 / 回收三件套），因此"一个分身都没有"时界面也能真委派。
+
+        请求体与响应形状与具名端点**完全一致**（八要素缺省补齐复用同一份 helper），
+        只是 URL 上不需要 ``name``；响应多一个 ``ephemeral: true`` 供界面区分。
+
+        【回收纪律】``destroy_after=True`` 是硬编码的：临时分身不是资源、用完必须走
+        （否则会撞 ``max_subagents`` 上限，且"临时"二字就成了谎话）。
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            task = _goal_from_body(data)
+            if len(task) < 8:
+                return _short_goal_response()
+
+            # ── 生命周期管理器：必须是**既有**那一个（绝不 new 第二实例） ──
+            mgr = getattr(Yunshu, "_subagent_mgr", None)
+            if mgr is None or not callable(getattr(mgr, "delegate", None)):
+                return jsonify({
+                    "ok": False, "error_code": "E_SUBAGENT_UNAVAILABLE",
+                    "error": "分身系统未启用（subagent.enabled=False 或核心系统未初始化）",
+                }), 409
+
+            channel = _channel_info(Yunshu)
+            if not channel["ok"]:
+                return _no_channel_response(channel)
+
+            try:
+                ctx = _build_context(data, task, delegation_prefix="dlg-ui-tmp")
+            except ValueError as e:
+                return jsonify({"ok": False, "error": str(e)}), 400
+
+            from agent.subagent.container import SubagentConfig
+            from agent.tools.subagent_tools import _model_id
+
+            llm = getattr(Yunshu, "_llm", None)
+            granted = _granted_tools()
+            # 名称只需给个前缀：重名消歧与 TTL（取契约⑦）由 lifecycle._prepare_config 统一负责，
+            # 这里不重复实现 —— 否则又是一份会漂移的纪律
+            config = SubagentConfig(name="ui-delegate", model_id=_model_id(llm))
+            logger.info("[SubagentAPI] 临时分身委派 delegation=%s goal=%.60s tools=%s",
+                        ctx.delegation_id, task, list(granted) or "（空）")
+            outcome = mgr.delegate(
+                config, ctx, llm=llm, destroy_after=True,
+                tools=granted, authorized_capabilities=granted, source="ui")
+
+            payload = _outcome_payload(outcome, ctx)
+            # 容器名由 lifecycle 生成消歧，界面只需知道"这不是用户选的具名分身"
+            payload["name"] = "临时分身"
+            payload["ephemeral"] = True
+            payload["elements"] = _elements_view(ctx)
+            payload["channel"] = channel
+            return jsonify(payload)
+        except Exception as e:
+            logger.exception("[SubagentAPI] 临时分身委派失败: %s", e)
             return jsonify({"ok": False, "error_code": "E_DELEGATION_FAILED",
                             "error": str(e)}), 500
 

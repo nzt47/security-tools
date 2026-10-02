@@ -334,6 +334,7 @@ class SubagentLifecycleManager:
         credentials: Any = (),
         parent_trace: Any = None,
         input_text: str = "",
+        source: str = "lifecycle",
     ) -> Any:
         """创建分身 → 执行委派 → （默认）销毁：分身生命周期与委派契约对齐
 
@@ -346,6 +347,8 @@ class SubagentLifecycleManager:
             executor / llm / tools / authorized_capabilities / credentials /
                 parent_trace / input_text: 透传 ``SubagentContainer.run_delegation``。
             destroy_after: 执行后是否销毁分身（默认 True——委派结束即回收）。
+            source: 委派入口标注，仅用于委派记录（``ui`` / ``tool`` / ``fan_out``）；
+                缺省 ``"lifecycle"`` = 未标注，不改变任何执行语义。
 
         Returns:
             ``ExecutionOutcome``。
@@ -358,7 +361,7 @@ class SubagentLifecycleManager:
                 ctx, executor=executor, llm=llm, tools=tools,
                 authorized_capabilities=authorized_capabilities,
                 credentials=credentials, parent_trace=parent_trace,
-                input_text=input_text)
+                input_text=input_text, source=source)
         finally:
             if destroy_after and not container.is_destroyed:
                 self.destroy(container)
@@ -377,6 +380,7 @@ class SubagentLifecycleManager:
         authorized_for: Any = None,
         credentials_for: Any = None,
         parent_trace: Any = None,
+        source: str = "lifecycle",
     ) -> List[Any]:
         """**批量**委派：每个任务一个分身 → 并发执行 → 统一回收（``delegate`` 的批量版）
 
@@ -399,6 +403,7 @@ class SubagentLifecycleManager:
             destroy_after: 执行后是否销毁全部分身（默认 True——批量结束即回收）。
             max_concurrency / tools / authorized_capabilities / tools_for /
                 authorized_for / credentials_for / parent_trace: 透传 ``execute_many``。
+            source: 委派入口标注，仅用于委派记录；缺省 ``"lifecycle"`` = 未标注。
 
         Returns:
             与 ``specs`` **等长同序**的 ``ExecutionOutcome`` 列表。
@@ -454,9 +459,34 @@ class SubagentLifecycleManager:
                         self.destroy(container)
 
         filled = sum(1 for r in results if r is not None)
+        self._record_batch(items, containers, results, source)
         logger.info("[SubagentLifecycle] 批量委派完成: 任务=%d 已建分身=%d 已回填结果=%d",
                     len(items), len(containers), filled)
         return results
+
+    def _record_batch(self, items: list, containers: dict, results: list,
+                      source: str) -> None:
+        """批量委派的委派记录（**fail-soft**）
+
+        【为什么批量要单独记】``delegate_many`` 走的是
+        ``executor.execute_many``（**不经过** ``SubagentContainer.run_delegation`），
+        所以容器那处咽喉覆盖不到它。两条路径各记各的、互不重叠：
+        单发（delegate）由容器记，批量由这里记。
+        """
+        for idx, outcome in enumerate(results):
+            if outcome is None:
+                continue
+            try:
+                config, ctx = items[idx]
+                container = containers.get(idx)
+                name = (getattr(getattr(container, "config", None), "name", "")
+                        or getattr(config, "name", ""))
+                from agent.subagent.delegation_history import delegation_history
+                delegation_history.record_outcome(
+                    ctx=ctx, outcome=outcome, subagent=str(name or ""), source=source)
+            except Exception as e:  # noqa: BLE001 记录失败绝不影响批量结果
+                logger.debug("[SubagentLifecycle] 批量委派记录写入失败（第 %d 条）: %s",
+                             idx + 1, e)
 
     # ════════════════════════════════════════════════════════════════════
     #  垃圾回收

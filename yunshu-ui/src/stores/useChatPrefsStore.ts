@@ -24,6 +24,33 @@ export const CHAT_FORMATS: Record<ChatFormat, { label: string; hint: string }> =
   terminal: { label: '终端', hint: '等宽终端风格：适合看代码/日志类长回答' },
 }
 
+// ─── 对话模式（后端 /api/chat/stream 的 mode 参数） ──────────────
+// 【为什么做成三档可选而不是替他定档】三档对应**行为与成本的三种取舍**（见各 hint）：
+//   plain     = 现状（真流式、1 次模型调用、不查记忆/知识库）
+//   retrieval = 在 plain 之上注入检索到的记忆/知识片段（+≤3k token/轮，仍是真流式）
+//   full      = 走编排器全链路（意图分层 + 检索 + 规划 + 工具）—— 最准，但**非流式**且最贵
+// 默认 plain：与"改这一行之前"的行为逐字一致；想要更准由用户自己按场景切换。
+
+export type ChatMode = 'plain' | 'retrieval' | 'full'
+
+export const CHAT_MODES: Record<ChatMode, { label: string; icon: string; hint: string }> = {
+  plain: {
+    label: '轻量',
+    icon: '⚡',
+    hint: '只用本会话历史（默认）：最快最省，但不会去查长期记忆/知识库',
+  },
+  retrieval: {
+    label: '检索',
+    icon: '🔎',
+    hint: '在轻量之上注入检索到的记忆/知识片段（约 +3k token/轮，仍是真流式）',
+  },
+  full: {
+    label: '完整',
+    icon: '🧠',
+    hint: '走编排器全链路：意图分层 + 检索 + 规划 + 工具。回答最完整，但**非流式**且最贵（可能多轮模型调用）',
+  },
+}
+
 // ─── 颜色主题（5 套，取自 legacy CHAT_THEMES） ──────────────────
 
 export type ChatThemeKey = 'midnight' | 'ocean' | 'forest' | 'warm' | 'purple'
@@ -146,6 +173,8 @@ interface ChatPrefsState {
   showToolCalls: boolean
   /** 对话输出格式 */
   format: ChatFormat
+  /** 对话模式（决定后端跑哪条链路；见 CHAT_MODES 的说明） */
+  mode: ChatMode
   theme: ChatThemeKey
   bubbleStyle: ChatBubbleKey
   fontSize: ChatFontKey
@@ -153,11 +182,14 @@ interface ChatPrefsState {
   toggleDisplay: (key: 'thinking' | 'toolcalls') => void
   setDisplay: (key: 'thinking' | 'toolcalls', value: boolean) => void
   setStyle: (patch: Partial<Pick<ChatPrefsState, 'format' | 'theme' | 'bubbleStyle' | 'fontSize'>>) => void
+  setMode: (mode: ChatMode) => void
   resetStyle: () => void
 }
 
 export const DEFAULT_STYLE = {
   format: 'bubble' as ChatFormat,
+  // 默认轻量：与引入本开关之前的行为**逐字一致**（升级不该悄悄改变已有用户的对话成本）
+  mode: 'plain' as ChatMode,
   theme: 'midnight' as ChatThemeKey,
   bubbleStyle: 'rounded' as ChatBubbleKey,
   fontSize: 'normal' as ChatFontKey,
@@ -179,6 +211,7 @@ export const useChatPrefsStore = create<ChatPrefsState>()(
       setDisplay: (key, value) =>
         set(key === 'thinking' ? { showThinking: value } : { showToolCalls: value }),
       setStyle: (patch) => set(patch),
+      setMode: (mode) => set({ mode }),
       resetStyle: () => set({ ...DEFAULT_STYLE }),
     }),
     {
@@ -189,6 +222,7 @@ export const useChatPrefsStore = create<ChatPrefsState>()(
         showThinking: s.showThinking,
         showToolCalls: s.showToolCalls,
         format: s.format,
+        mode: s.mode,
         theme: s.theme,
         bubbleStyle: s.bubbleStyle,
         fontSize: s.fontSize,

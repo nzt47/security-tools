@@ -1488,6 +1488,40 @@ def _offline_heavy_imports_blocked():
             sys.modules.pop(name, None)   # 只删我们塞进去的，绝不触碰原有条目
 
 
+# ════════════════════════════════════════════════════════════
+#  【TESTHYG-2 · 2026-10-02】委派记录不得被测试写进**仓库 data/**
+# ════════════════════════════════════════════════════════════
+# 现象（实测，不是推断）：跑一遍
+#   tests/unit/test_fan_out.py + tests/unit/test_subagent_container_delegation.py
+# 之后，仓库里多出 `data/subagent_delegations.jsonl`，内容全是测试夹具里的目标串
+#   （`goal="把 docs/zh 下的 12 篇设计稿抽取为可复现步骤序列"`、`subagent="fan-out-…"`）。
+# 根因：这两个文件跑的是**真件**（真 SubagentContainer / 真 delegate_many），
+#   而"委派记录"写在容器的咽喉里（agent/subagent/container.py::run_delegation）——
+#   测试一旦跑真委派，就真的会往**用户的那份记录**里追加。
+# 后果不止是脏文件：用户的「子代理」下拉会把这些假记录当成"发生过的委派"展示出来。
+#
+# 修法：**重定向真实 I/O**（而不是把写入 mock 掉）——与 AsyncExecutor 测试把
+#   `_tasks_file` 指到 tmp 完全同口径。mock 掉就测不出"到底写没写、写到哪"，
+#   而这两件事恰恰是本次交付要保证的。
+# 为什么是 **session 级**：函数级会为全量两万多个用例各建一次 tmp 目录（代价不划算），
+#   而"不写仓库数据"这个不变量只要在会话内成立即可。
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _isolate_delegation_history(tmp_path_factory):
+    """把委派记录的目标文件重定向到本会话的 tmp（不碰仓库 data/subagent_delegations.jsonl）"""
+    from agent.subagent import delegation_history as _dh
+
+    target = _dh.DelegationHistory(
+        path=str(tmp_path_factory.mktemp("subagent_history") / "subagent_delegations.jsonl"))
+    original = _dh.delegation_history
+    _dh.delegation_history = target
+    try:
+        yield target
+    finally:
+        _dh.delegation_history = original
+
+
 # ============================================================================
 # 导出公共API
 # ============================================================================

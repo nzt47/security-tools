@@ -14,13 +14,21 @@ import { hubGet, hubPost, pickObj, Loading } from '../../../pages/hub/components
 
 interface CtxStatus {
   current_tokens: number
-  token_limit: number
-  percentage: number
+  /** 分母 = **编排窗口**（真正生效的那个）；后端取不到时是 null，界面必须如实显示 — */
+  token_limit: number | null
+  token_limit_source?: string
+  configured_token_limit?: number
+  configured_token_limit_note?: string
+  percentage: number | null
   per_message_send_limit: number
   per_message_recv_limit: number
+  /** 发送侧语义：warn_only = 超限**只告警不截断** */
+  send_limit_semantics?: string
   compress_threshold: number
   compress_rounds: number
+  compress_degraded?: boolean
   status_level: string
+  status_reasons?: string[]
   send_tokens: number
   recv_tokens: number
   messages_count: number
@@ -125,11 +133,15 @@ export function ContextManagerBar() {
     }
   }
 
+  // percentage 可能为 null（后端取不到真实窗口时**如实报 None**，不拿硬编码冒充分母）
   const pct = status?.percentage ?? 0
+  const pctKnown = status?.percentage != null
   const barColor = pct >= 80 ? 'bg-red-500' : pct >= 60 ? 'bg-amber-400' : 'bg-cyan-500'
   const lvl = levelOf(pct)
-  const dg = degradeOf(status?.compress_rounds ?? 0)
-  const fmt = (n?: number) => (n != null ? n.toLocaleString() : '-')
+  // 档位以**占用**为准；"摘要退化"由后端单列（此前把累计压缩次数当占用，22% 也报红）
+  const dg = degradeOf(status?.compress_degraded ? 5 : (status?.compress_rounds ?? 0))
+  const fmt = (n?: number | null) => (n != null ? n.toLocaleString() : '-')
+  const reasons = status?.status_reasons ?? []
 
   return (
     <div className="border-t border-slate-800 bg-slate-900/40">
@@ -146,7 +158,7 @@ export function ContextManagerBar() {
           <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
         </div>
         <span className={`shrink-0 font-mono text-[10px] ${pct >= 80 ? 'text-red-400' : pct >= 60 ? 'text-amber-400' : 'text-slate-300'}`}>
-          {pct.toFixed(0)}%
+          {pctKnown ? `${pct.toFixed(0)}%` : '—%'}
         </span>
         <span className="hidden shrink-0 font-mono text-[10px] text-slate-500 sm:inline">{fmt(status?.current_tokens)}/{fmt(status?.token_limit)}</span>
         {status && status.compress_rounds > 0 && (
@@ -197,6 +209,23 @@ export function ContextManagerBar() {
                 ))}
               </div>
 
+              {/* 窗口来源与成因（读数必须可复核：分母从哪来、红色是因为什么） */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-500">
+                <span>
+                  窗口来源：<span className="font-mono text-slate-400">{status.token_limit_source ?? '-'}</span>
+                </span>
+                {status.configured_token_limit != null && status.configured_token_limit !== status.token_limit && (
+                  <span title={status.configured_token_limit_note}>
+                    已保存值 <span className="font-mono text-slate-400">{fmt(status.configured_token_limit)}</span>
+                  </span>
+                )}
+                {reasons.length > 0 && (
+                  <span className={reasons.some((r) => r === 'usage_critical' || r === 'usage_high') ? 'text-amber-400' : 'text-slate-500'}>
+                    成因：{reasons.map((r) => (r === 'summary_degraded' ? '摘要退化（累计压缩次数多，与占用无关）' : r === 'summary_warn' ? '摘要质量下降' : r === 'usage_critical' ? '占用 ≥95%' : r === 'usage_high' ? '占用 ≥80%' : r)).join(' · ')}
+                  </span>
+                )}
+              </div>
+
               {/* 进度明细（只读） */}
               <div>
                 <div className="mb-1 flex justify-between text-[10px] text-slate-500">
@@ -211,9 +240,11 @@ export function ContextManagerBar() {
               {/* 控制面板：滑块（松手 300ms 后自动保存） */}
               <div className="grid gap-2 sm:grid-cols-3">
                 {[
-                  { l: '最大 Token', hint: '上下文窗口上限，超限丢弃最旧消息', val: localLimit ?? status.token_limit, min: 1024, max: 20000, step: 512, set: (v: number) => { setLocalLimit(v); scheduleSave({ token_limit: v }) } },
-                  { l: '单次发送', hint: '单条消息最大 token，超限截断', val: localSend ?? status.per_message_send_limit, min: 256, max: 8192, step: 128, set: (v: number) => { setLocalSend(v); scheduleSave({ per_message_send_limit: v }) } },
-                  { l: '单次回复', hint: '单条回复最大 token', val: localRecv ?? status.per_message_recv_limit, min: 256, max: 8192, step: 128, set: (v: number) => { setLocalRecv(v); scheduleSave({ per_message_recv_limit: v }) } },
+                  // 值域对齐真实模型能力（deepseek-flash 实测 context_window=1048576 /
+                  // max_output_tokens=393216）；原先 20000 / 8192 的上限让"想调大也调不动"。
+                  { l: '最大 Token', hint: '上下文窗口上限；超限丢弃最旧消息（改完当场生效，重启后回落 config.yaml）', val: localLimit ?? status.token_limit ?? 131072, min: 8192, max: 1048576, step: 8192, set: (v: number) => { setLocalLimit(v); scheduleSave({ token_limit: v }) } },
+                  { l: '单次发送', hint: '单条消息最大 token —— **超限只告警，不截断原文**', val: localSend ?? status.per_message_send_limit, min: 1024, max: 131072, step: 1024, set: (v: number) => { setLocalSend(v); scheduleSave({ per_message_send_limit: v }) } },
+                  { l: '单次回复', hint: '单次回复的 max_tokens（真实生效，受模型能力约束）', val: localRecv ?? status.per_message_recv_limit, min: 1024, max: 131072, step: 1024, set: (v: number) => { setLocalRecv(v); scheduleSave({ per_message_recv_limit: v }) } },
                 ].map((s) => (
                   <div key={s.l} className="rounded-lg border border-slate-800 bg-slate-900/50 px-2.5 py-2">
                     <div className="mb-1 flex items-center justify-between">

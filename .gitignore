@@ -72,6 +72,16 @@ data/audit/audit_stats.json
 data/audit/legacy_archive/
 data/audit/legacy_archive_manifest.json
 
+# ── 追加式运行时日志：不入库（2026-10-02 收口）────────────────────────────
+# 性质与 data/events/、data/audit/ 相同：它们是"这台机器上跑过什么"的留痕，不是源码资产。
+# 为什么必须显式登记（而不是"反正没人 add"）：
+#   `data/async_tasks.jsonl` 此前**是被跟踪的**，于是每跑一次后台任务就产生一处 diff；
+#   `data/subagent_delegations.jsonl`（2026-10-02 新增的委派记录）同理 —— 每委派一次追加一行。
+#   【本机现状】async_tasks.jsonl 里 609 条全为 2026-06-19 的测试夹具，已按 Owner 指示删除；
+#   下次真跑后台任务时会重新生成，那时不应再进版本库。
+data/async_tasks.jsonl
+data/subagent_delegations.jsonl
+
 # S2-03 events.v1 事件流运行时产物（统一事件出口 / 受控写台账 / 演示事件流 / 快照摘要）
 # 性质同 data/audit/：运行时留痕，不入库
 data/events/

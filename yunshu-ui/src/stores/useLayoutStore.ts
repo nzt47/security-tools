@@ -12,6 +12,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { MosaicNode } from 'react-mosaic-component';
 import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY, sanitizeLayout, stripRetiredPanels, type PanelId } from '../lib/mosaic';
 import { createChatStream, type ThinkingStatus } from '../lib/sse';
+import { useChatPrefsStore } from './useChatPrefsStore';
 import { authHeader } from '@/lib/apiToken';
 
 export interface ChatMessage {
@@ -244,10 +245,12 @@ export const useLayoutStore = create<LayoutStore>()(
         try {
           // 携带当前激活会话 ID → 后端按该会话落盘（多会话持久化关键）
           const sessionId = get().activeSessionId ?? undefined;
+          // 对话模式来自用户偏好（轻量/检索/完整）；每次发送时现取，切换后立即生效
+          const mode = useChatPrefsStore.getState().mode;
           for await (const event of createChatStream(
             text,
             abortController.signal,
-            { sessionId },
+            { sessionId, mode },
           )) {
             if (event.type === 'chunk') {
               accumulated += event.text.length;

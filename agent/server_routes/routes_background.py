@@ -4,7 +4,8 @@
 「会话任务」区域的「后台任务」下拉需要系统后台在跑什么，而 AsyncExecutor
 此前只有工具面（`agent.tools.code_tools`），没有 HTTP 面 —— 本模块补上：
 
-    GET  /api/background/tasks             列出全部后台任务（含状态/进度/耗时）
+    GET  /api/background/tasks             列出全部后台任务（含状态/进度/耗时 + 历史摘要）
+                                           （history: {total, records, path} —— 空态用）
     GET  /api/background/tasks/<task_id>   单任务状态
     GET  /api/background/tasks/<task_id>/result  任务结果（未完成时提示进行中）
     POST /api/background/tasks/<task_id>/cancel  取消任务（仅 pending/running）
@@ -18,9 +19,15 @@ import time
 
 from flask import jsonify, request
 
+from agent.jsonl_history import count_jsonl_lines, read_jsonl_tail
 from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
+
+#: 历史摘要里最多回带几条提交记录。
+#: 【为什么只带样本】下拉空态只需要"最近发生过什么"；完整历史在 JSONL 里，
+#: 每次轮询都回带全量会让一个只读控件变成流量源。
+HISTORY_SAMPLE = 5
 
 
 def _safe_int(value, default: int, lo: int, hi: int) -> int:
@@ -50,6 +57,27 @@ def _task_summary(task: dict) -> dict:
     }
 
 
+def _history_view(executor) -> dict:
+    """历史提交摘要（下拉空态用）：{total, records, path}
+
+    【为什么读执行器自己的 _tasks_file】执行器就是写这份文件的人（``self._tasks_file``，
+    缺省 CWD 相对的 ``data/async_tasks.jsonl``）。在这里另拼一个"绝对路径"会读到**另一份**
+    文件（工作目录不同即分叉），于是"明明跑过任务，历史却是空的"——正是本仓反复出现的
+    "两处口径不一致"形态。故路径只从执行器取。
+
+    【为什么 total 可能是 None】文件超过计数上限时宁可返回 None（"未统计"）也不返回一个
+    截断后看着精确的数字。UI 据此区分"没有记录"与"记录太多没统计"。
+    """
+    path = str(getattr(executor, "_tasks_file", "") or "data/async_tasks.jsonl")
+    try:
+        total = count_jsonl_lines(path)
+        recent = list(reversed(read_jsonl_tail(path, HISTORY_SAMPLE)))
+        return {"total": total, "records": [_task_summary(t) for t in recent], "path": path}
+    except Exception as e:  # noqa: BLE001 历史是附带信息，绝不因此打挂列表
+        logger.warning("后台任务历史摘要失败（不影响列表）: %s", e)
+        return {"total": None, "records": [], "path": path}
+
+
 def register_routes(app, state):
     """注册后台任务路由"""
 
@@ -75,6 +103,8 @@ def register_routes(app, state):
                 "total": len(tasks),
                 "running": running,
                 "active": running,  # 别名：下拉按钮角标使用
+                # 历史摘要：只读控件在"当前为空"时也要能回答问题"到底跑没跑过"
+                "history": _history_view(_executor()),
                 "status_filter": status,
                 "ts": time.strftime("%H:%M:%S"),
             })

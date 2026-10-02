@@ -186,4 +186,56 @@ describe('BackgroundTasksMenu · 运行时数据链路', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(15000) })
     expect(calls.length).toBe(afterClose)
   })
+
+  it('内存里没有任务时展示历史摘要（当前为空 ≠ 从来没跑过）', async () => {
+    // 线上反馈的另一半：列表是内存态，完成任务 1 小时后被清理 ⇒ 界面上"跑过"这件事彻底消失。
+    // 执行器另有落盘 JSONL（此前只写不读），history 摘要把它读出来回答"到底跑没跑过"。
+    installFetch(() => ({
+      body: {
+        ok: true, total: 0, active: 0, tasks: [],
+        history: {
+          total: 2,
+          path: 'data/async_tasks.jsonl',
+          records: [
+            { id: 'task-h1', name: '过程蒸馏', tool_name: 'process_distill_run', status: 'failed',
+              created_at: '2026-10-01T15:53:45', error: '上游超时' },
+            { id: 'task-h2', name: '批量导出', tool_name: 'bulk_export', status: 'completed',
+              created_at: '2026-10-01T14:00:00' },
+          ],
+        },
+      },
+    }))
+    render(<BackgroundTasksMenu />)
+    openMenu()
+
+    await waitFor(() => expect(screen.getByText(/历史提交 2 条/)).toBeInTheDocument())
+    // 行内容全部来自接口字段（名字 / 状态标签 / 时间）
+    expect(screen.getByText('过程蒸馏')).toBeInTheDocument()
+    expect(screen.getByText('批量导出')).toBeInTheDocument()
+    expect(screen.getByText('失败')).toBeInTheDocument()
+    expect(screen.getByText('已完成')).toBeInTheDocument()
+    expect(screen.getByText(/10-01 15:53:45/)).toBeInTheDocument()
+  })
+
+  it('历史条数未统计时如实说明，而不是显示 0', async () => {
+    // total=null 的语义是"文件过大未统计"；显示 0 会把"不知道"伪装成"没有"
+    installFetch(() => ({
+      body: {
+        ok: true, total: 0, active: 0, tasks: [],
+        history: { total: null, records: [{ id: 'task-x', name: '某任务', status: 'completed' }] },
+      },
+    }))
+    render(<BackgroundTasksMenu />)
+    openMenu()
+    await waitFor(() => expect(screen.getByText(/历史提交（条数未统计）/)).toBeInTheDocument())
+    expect(screen.getByText('某任务')).toBeInTheDocument()
+  })
+
+  it('有内存任务时头部同时给出历史条数', async () => {
+    installFetch(() => ({ body: { ...TASKS, history: { total: 7, records: [] } } }))
+    render(<BackgroundTasksMenu />)
+    openMenu()
+    await waitFor(() => expect(screen.getByText(/历史 7/)).toBeInTheDocument())
+    expect(screen.getByText(/共 2 · 运行中 1/)).toBeInTheDocument()
+  })
 })

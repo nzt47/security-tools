@@ -299,6 +299,7 @@ def _run_delegate(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
     outcome = manager.delegate(
         config, ctx, llm=llm, destroy_after=True,
         tools=_granted_tools, authorized_capabilities=_granted_tools,
+        source="tool",
     )
     return _result_from_outcome(outcome, ctx)
 

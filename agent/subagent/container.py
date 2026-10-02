@@ -257,6 +257,7 @@ class SubagentContainer:
         credentials: Iterable[dict[str, Any]] = (),
         parent_trace: Any = None,
         input_text: str = "",
+        source: str = "",
     ) -> "ExecutionOutcome":
         """经**真执行器**执行一次委派（八要素 → task_file → CLI 通道 → 回收三件套）
 
@@ -271,6 +272,9 @@ class SubagentContainer:
             llm: 内部执行器所用 LLM（``chat(messages, system_prompt=)``）。
             tools / authorized_capabilities / credentials / parent_trace / input_text:
                 透传 ``DelegationExecutor.execute``。
+            source: 委派入口标注（``ui`` / ``tool`` / ``fan_out`` / ``lifecycle``），
+                仅用于**委派记录**（``agent/subagent/delegation_history.py``）里区分谁发起的；
+                缺省空串 = 未标注，不改变任何执行语义。
 
         Returns:
             ``ExecutionOutcome``（已销毁则返回 ``ok=False`` 的结果，不抛异常）。
@@ -278,10 +282,14 @@ class SubagentContainer:
         from agent.subagent.executor import DelegationExecutor, ExecutionOutcome
 
         if self._is_destroyed:
-            return ExecutionOutcome(
+            destroyed = ExecutionOutcome(
                 delegation_id=getattr(ctx, "delegation_id", ""), ok=False,
                 error_code="E_SUBAGENT_DESTROYED", error="分身已销毁，无法执行委派",
                 sub_reason="destroyed")
+            # 被销毁的分身收到委派同样是"发生过一次委派"：记下来，
+            # 否则 UI 上这次尝试会**完全消失**（用户点了、什么都没发生、也没有记录）
+            self._record_delegation(ctx, destroyed, source)
+            return destroyed
 
         if executor is None:
             executor = DelegationExecutor(llm=llm if llm is not None else getattr(self, "llm", None))
@@ -303,10 +311,26 @@ class SubagentContainer:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         self.updated_at = time.time()
+        self._record_delegation(ctx, outcome, source)
         logger.info("[Subagent:%s] 委派完成 delegation=%s ok=%s tier=%s",
                     self.id, getattr(ctx, "delegation_id", ""),
                     getattr(outcome, "ok", None), getattr(outcome, "tier", ""))
         return outcome
+
+    def _record_delegation(self, ctx: "DelegationContext",
+                           outcome: "ExecutionOutcome", source: str) -> None:
+        """把本次委派落一条轻量记录（**fail-soft**：记不上历史不影响委派结果）
+
+        【为什么写在这里】``run_delegation`` 是所有真委派的**唯一**咽喉：
+        模型侧 ``delegate` 工具、批量 ``fan_out`、HTTP ``/api/subagent/<name>/delegate`
+        最终都从这里过。写在各调用方 ⇒ 三份实现必然漂移（本仓反复出现的老形态）。
+        """
+        try:
+            from agent.subagent.delegation_history import delegation_history
+            delegation_history.record_outcome(
+                ctx=ctx, outcome=outcome, subagent=self.config.name, source=source)
+        except Exception as e:  # noqa: BLE001 历史记录失败绝不影响委派链路
+            logger.debug("[Subagent:%s] 委派记录写入失败（不影响委派）: %s", self.id, e)
 
     # ── 记忆增量管理 ──
 

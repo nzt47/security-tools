@@ -1,14 +1,14 @@
 {
-  "trace_id": "cb62683a52bc4f17",
-  "timestamp": "2026-07-01T13:20:50.995824",
-  "duration_ms": 1689.54,
-  "overall_status": "pass",
-  "total_modules": 66,
-  "total_tests": 5797,
-  "total_boundary_tests": 1413,
-  "coverage_percent": 24.4,
-  "scene_covered_count": 47,
-  "scene_total_count": 47,
+  "trace_id": "3c59290ce8b04e10",
+  "timestamp": "2026-10-03T07:58:16.463621",
+  "duration_ms": 10967.23,
+  "overall_status": "warn",
+  "total_modules": 124,
+  "total_tests": 21873,
+  "total_boundary_tests": 4312,
+  "coverage_percent": 19.7,
+  "scene_covered_count": 50,
+  "scene_total_count": 50,
   "scene_coverage_percent": 100.0,
   "threshold": 5,
   "threshold_source": "ci_policy",
@@ -18,10 +18,11 @@
     {
       "module_name": "core",
       "description": "核心调度与状态机",
-      "total_tests": 89,
-      "boundary_tests": 40,
+      "total_tests": 211,
+      "boundary_tests": 75,
       "covered_scenes": [
         "empty",
+        "encoding",
         "exception",
         "extreme",
         "invalid",
@@ -43,12 +44,11 @@
     {
       "module_name": "cognitive",
       "description": "认知循环与决策",
-      "total_tests": 93,
-      "boundary_tests": 36,
+      "total_tests": 236,
+      "boundary_tests": 62,
       "covered_scenes": [
         "boundary",
         "empty",
-        "encoding",
         "exception",
         "extreme",
         "invalid",
@@ -69,10 +69,11 @@
     {
       "module_name": "orchestrator",
       "description": "任务编排",
-      "total_tests": 148,
-      "boundary_tests": 54,
+      "total_tests": 349,
+      "boundary_tests": 92,
       "covered_scenes": [
         "boundary",
+        "concurrency",
         "empty",
         "encoding",
         "exception",
@@ -81,7 +82,8 @@
         "null",
         "overflow",
         "resource",
-        "timeout"
+        "timeout",
+        "underflow"
       ],
       "required_scenes": [
         "timeout",
@@ -97,10 +99,11 @@
     {
       "module_name": "circuit_breaker",
       "description": "熔断器",
-      "total_tests": 47,
-      "boundary_tests": 13,
+      "total_tests": 126,
+      "boundary_tests": 27,
       "covered_scenes": [
         "boundary",
+        "empty",
         "exception",
         "extreme",
         "invalid",
@@ -120,15 +123,17 @@
     {
       "module_name": "rate_limiter",
       "description": "限流器",
-      "total_tests": 83,
-      "boundary_tests": 16,
+      "total_tests": 188,
+      "boundary_tests": 89,
       "covered_scenes": [
         "boundary",
+        "concurrency",
         "empty",
         "exception",
         "extreme",
         "null",
-        "overflow"
+        "overflow",
+        "timeout"
       ],
       "required_scenes": [
         "boundary",
@@ -144,8 +149,8 @@
     {
       "module_name": "graceful_degrade",
       "description": "优雅降级",
-      "total_tests": 72,
-      "boundary_tests": 31,
+      "total_tests": 187,
+      "boundary_tests": 51,
       "covered_scenes": [
         "boundary",
         "empty",
@@ -170,8 +175,8 @@
     {
       "module_name": "disaster_recovery",
       "description": "容灾恢复",
-      "total_tests": 87,
-      "boundary_tests": 50,
+      "total_tests": 211,
+      "boundary_tests": 70,
       "covered_scenes": [
         "boundary",
         "empty",
@@ -195,18 +200,47 @@
       "suggestions": []
     },
     {
+      "module_name": "self_healing",
+      "description": "自愈恢复动作映射",
+      "total_tests": 210,
+      "boundary_tests": 41,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "timeout"
+      ],
+      "required_scenes": [
+        "empty",
+        "invalid",
+        "timeout"
+      ],
+      "missing_scenes": [],
+      "min_tests": 3,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
       "module_name": "memory",
       "description": "记忆系统",
-      "total_tests": 279,
-      "boundary_tests": 68,
+      "total_tests": 874,
+      "boundary_tests": 178,
       "covered_scenes": [
         "boundary",
         "empty",
         "encoding",
+        "exception",
         "extreme",
         "invalid",
         "null",
-        "overflow"
+        "overflow",
+        "resource",
+        "timeout"
       ],
       "required_scenes": [
         "empty",
@@ -223,15 +257,17 @@
     {
       "module_name": "health",
       "description": "健康评估",
-      "total_tests": 48,
-      "boundary_tests": 30,
+      "total_tests": 244,
+      "boundary_tests": 63,
       "covered_scenes": [
         "boundary",
         "empty",
+        "exception",
         "extreme",
         "invalid",
         "null",
-        "overflow"
+        "overflow",
+        "permission"
       ],
       "required_scenes": [
         "empty",
@@ -247,17 +283,17 @@
     {
       "module_name": "tools",
       "description": "工具调用",
-      "total_tests": 99,
-      "boundary_tests": 53,
+      "total_tests": 202,
+      "boundary_tests": 38,
       "covered_scenes": [
-        "concurrency",
+        "boundary",
         "empty",
         "encoding",
         "exception",
         "extreme",
         "invalid",
         "null",
-        "overflow",
+        "permission",
         "timeout"
       ],
       "required_scenes": [
@@ -274,12 +310,16 @@
     {
       "module_name": "extensions",
       "description": "扩展系统",
-      "total_tests": 69,
-      "boundary_tests": 5,
+      "total_tests": 127,
+      "boundary_tests": 20,
       "covered_scenes": [
+        "boundary",
         "empty",
+        "extreme",
         "invalid",
-        "permission"
+        "permission",
+        "resource",
+        "timeout"
       ],
       "required_scenes": [
         "invalid",
@@ -294,15 +334,19 @@
     {
       "module_name": "guardrails",
       "description": "安全守护",
-      "total_tests": 86,
-      "boundary_tests": 14,
+      "total_tests": 319,
+      "boundary_tests": 44,
       "covered_scenes": [
+        "boundary",
         "empty",
-        "encoding",
+        "exception",
         "extreme",
         "invalid",
+        "null",
         "overflow",
-        "timeout"
+        "permission",
+        "timeout",
+        "underflow"
       ],
       "required_scenes": [
         "invalid",
@@ -318,12 +362,13 @@
     {
       "module_name": "permission_system",
       "description": "权限系统",
-      "total_tests": 28,
-      "boundary_tests": 8,
+      "total_tests": 116,
+      "boundary_tests": 28,
       "covered_scenes": [
         "boundary",
         "empty",
         "exception",
+        "extreme",
         "invalid",
         "null",
         "permission"
@@ -342,8 +387,8 @@
     {
       "module_name": "config",
       "description": "配置加载与校验",
-      "total_tests": 192,
-      "boundary_tests": 82,
+      "total_tests": 383,
+      "boundary_tests": 129,
       "covered_scenes": [
         "boundary",
         "empty",
@@ -351,7 +396,8 @@
         "extreme",
         "invalid",
         "null",
-        "permission",
+        "overflow",
+        "resource",
         "timeout"
       ],
       "required_scenes": [
@@ -368,16 +414,21 @@
     {
       "module_name": "monitoring",
       "description": "监控埋点",
-      "total_tests": 448,
-      "boundary_tests": 48,
+      "total_tests": 1626,
+      "boundary_tests": 225,
       "covered_scenes": [
         "boundary",
+        "concurrency",
         "empty",
         "exception",
         "extreme",
         "invalid",
         "null",
-        "timeout"
+        "overflow",
+        "permission",
+        "resource",
+        "timeout",
+        "underflow"
       ],
       "required_scenes": [
         "timeout",
@@ -392,17 +443,20 @@
     {
       "module_name": "observability",
       "description": "可观测性工具",
-      "total_tests": 247,
-      "boundary_tests": 46,
+      "total_tests": 1035,
+      "boundary_tests": 175,
       "covered_scenes": [
         "boundary",
+        "concurrency",
         "empty",
         "exception",
         "extreme",
         "invalid",
         "null",
+        "overflow",
         "permission",
         "resource",
+        "timeout",
         "underflow"
       ],
       "required_scenes": [
@@ -436,10 +490,30 @@
       "suggestions": []
     },
     {
+      "module_name": "data_analytics",
+      "description": "",
+      "total_tests": 45,
+      "boundary_tests": 18,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "overflow"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
       "module_name": "feedback",
       "description": "",
-      "total_tests": 60,
-      "boundary_tests": 44,
+      "total_tests": 117,
+      "boundary_tests": 54,
       "covered_scenes": [
         "boundary",
         "empty",
@@ -450,6 +524,26 @@
         "null",
         "overflow",
         "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "lazy_loader",
+      "description": "",
+      "total_tests": 63,
+      "boundary_tests": 19,
+      "covered_scenes": [
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "timeout"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -484,7 +578,7 @@
     {
       "module_name": "task_planner",
       "description": "",
-      "total_tests": 38,
+      "total_tests": 39,
       "boundary_tests": 34,
       "covered_scenes": [
         "boundary",
@@ -528,8 +622,8 @@
     {
       "module_name": "workflow_engine",
       "description": "",
-      "total_tests": 58,
-      "boundary_tests": 25,
+      "total_tests": 177,
+      "boundary_tests": 43,
       "covered_scenes": [
         "boundary",
         "empty",
@@ -551,11 +645,69 @@
     {
       "module_name": "network",
       "description": "",
-      "total_tests": 18,
-      "boundary_tests": 7,
+      "total_tests": 85,
+      "boundary_tests": 32,
       "covered_scenes": [
+        "empty",
         "extreme",
+        "invalid",
         "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "verification",
+      "description": "",
+      "total_tests": 91,
+      "boundary_tests": 16,
+      "covered_scenes": [
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "invalid",
+        "overflow",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "ab_testing",
+      "description": "",
+      "total_tests": 66,
+      "boundary_tests": 4,
+      "covered_scenes": [
+        "extreme"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "model_router",
+      "description": "",
+      "total_tests": 305,
+      "boundary_tests": 41,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -567,8 +719,8 @@
     {
       "module_name": "error_handler",
       "description": "",
-      "total_tests": 416,
-      "boundary_tests": 89,
+      "total_tests": 512,
+      "boundary_tests": 106,
       "covered_scenes": [
         "boundary",
         "empty",
@@ -576,6 +728,7 @@
         "extreme",
         "invalid",
         "null",
+        "resource",
         "timeout"
       ],
       "required_scenes": [],
@@ -588,11 +741,35 @@
     {
       "module_name": "audit",
       "description": "",
-      "total_tests": 24,
-      "boundary_tests": 4,
+      "total_tests": 612,
+      "boundary_tests": 80,
       "covered_scenes": [
         "boundary",
-        "empty"
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "permission",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "auto_tuner",
+      "description": "",
+      "total_tests": 55,
+      "boundary_tests": 8,
+      "covered_scenes": [
+        "empty",
+        "extreme",
+        "null"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -604,11 +781,14 @@
     {
       "module_name": "tool_calling",
       "description": "",
-      "total_tests": 38,
-      "boundary_tests": 4,
+      "total_tests": 154,
+      "boundary_tests": 30,
       "covered_scenes": [
         "boundary",
+        "empty",
         "exception",
+        "extreme",
+        "invalid",
         "null",
         "resource"
       ],
@@ -622,8 +802,8 @@
     {
       "module_name": "web",
       "description": "",
-      "total_tests": 344,
-      "boundary_tests": 45,
+      "total_tests": 354,
+      "boundary_tests": 46,
       "covered_scenes": [
         "boundary",
         "empty",
@@ -660,29 +840,16 @@
       "suggestions": []
     },
     {
-      "module_name": "model_router",
+      "module_name": "evolution",
       "description": "",
-      "total_tests": 23,
-      "boundary_tests": 1,
-      "covered_scenes": [
-        "extreme"
-      ],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "✅",
-      "is_new_module": false,
-      "suggestions": []
-    },
-    {
-      "module_name": "api_gateway",
-      "description": "",
-      "total_tests": 23,
-      "boundary_tests": 8,
+      "total_tests": 58,
+      "boundary_tests": 9,
       "covered_scenes": [
         "boundary",
-        "invalid",
-        "permission"
+        "empty",
+        "encoding",
+        "extreme",
+        "null"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -694,10 +861,79 @@
     {
       "module_name": "skills_mgmt",
       "description": "",
-      "total_tests": 70,
-      "boundary_tests": 15,
+      "total_tests": 1127,
+      "boundary_tests": 196,
       "covered_scenes": [
+        "boundary",
         "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "permission",
+        "resource",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "knowledge",
+      "description": "",
+      "total_tests": 518,
+      "boundary_tests": 144,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "resource",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "api_gateway",
+      "description": "",
+      "total_tests": 87,
+      "boundary_tests": 19,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "permission"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "server_routes",
+      "description": "",
+      "total_tests": 366,
+      "boundary_tests": 91,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
         "extreme",
         "invalid",
         "null",
@@ -711,13 +947,77 @@
       "suggestions": []
     },
     {
-      "module_name": "api_gateway",
+      "module_name": "scheduling",
       "description": "",
-      "total_tests": 23,
-      "boundary_tests": 8,
+      "total_tests": 113,
+      "boundary_tests": 27,
       "covered_scenes": [
         "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "utils",
+      "description": "",
+      "total_tests": 330,
+      "boundary_tests": 41,
+      "covered_scenes": [
+        "boundary",
+        "concurrency",
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
         "invalid",
+        "null",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "workflow_learning",
+      "description": "",
+      "total_tests": 243,
+      "boundary_tests": 29,
+      "covered_scenes": [
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "invalid",
+        "null"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "p6",
+      "description": "",
+      "total_tests": 271,
+      "boundary_tests": 53,
+      "covered_scenes": [
+        "empty",
+        "exception",
+        "extreme",
+        "null",
         "permission"
       ],
       "required_scenes": [],
@@ -728,15 +1028,18 @@
       "suggestions": []
     },
     {
-      "module_name": "skills_mgmt",
+      "module_name": "task_scheduler",
       "description": "",
-      "total_tests": 70,
-      "boundary_tests": 15,
+      "total_tests": 316,
+      "boundary_tests": 46,
       "covered_scenes": [
+        "boundary",
         "empty",
+        "exception",
         "extreme",
         "invalid",
         "null",
+        "permission",
         "timeout"
       ],
       "required_scenes": [],
@@ -763,34 +1066,18 @@
       "suggestions": []
     },
     {
-      "module_name": "lazy_loader",
+      "module_name": "security",
       "description": "",
-      "total_tests": 43,
-      "boundary_tests": 3,
+      "total_tests": 340,
+      "boundary_tests": 37,
       "covered_scenes": [
-        "null",
-        "timeout"
-      ],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "✅",
-      "is_new_module": false,
-      "suggestions": []
-    },
-    {
-      "module_name": "error_reporting_config",
-      "description": "",
-      "total_tests": 161,
-      "boundary_tests": 36,
-      "covered_scenes": [
-        "boundary",
         "empty",
         "encoding",
         "exception",
         "extreme",
         "invalid",
-        "null",
+        "permission",
+        "resource",
         "timeout"
       ],
       "required_scenes": [],
@@ -803,7 +1090,7 @@
     {
       "module_name": "multi_tenant",
       "description": "",
-      "total_tests": 10,
+      "total_tests": 15,
       "boundary_tests": 2,
       "covered_scenes": [
         "boundary",
@@ -819,10 +1106,12 @@
     {
       "module_name": "state_manager",
       "description": "",
-      "total_tests": 21,
-      "boundary_tests": 3,
+      "total_tests": 103,
+      "boundary_tests": 18,
       "covered_scenes": [
         "empty",
+        "exception",
+        "extreme",
         "invalid",
         "null"
       ],
@@ -834,11 +1123,235 @@
       "suggestions": []
     },
     {
-      "module_name": "ab_testing",
+      "module_name": "p6_config_loader",
       "description": "",
-      "total_tests": 59,
+      "total_tests": 85,
+      "boundary_tests": 15,
+      "covered_scenes": [
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "lines",
+      "description": "",
+      "total_tests": 212,
+      "boundary_tests": 27,
+      "covered_scenes": [
+        "boundary",
+        "concurrency",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "permission",
+        "resource",
+        "timeout",
+        "underflow"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "eval",
+      "description": "",
+      "total_tests": 454,
+      "boundary_tests": 71,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "server_auth",
+      "description": "",
+      "total_tests": 117,
+      "boundary_tests": 19,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "invalid",
+        "null",
+        "permission",
+        "underflow"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "descriptors",
+      "description": "",
+      "total_tests": 188,
+      "boundary_tests": 38,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "extreme",
+        "invalid",
+        "null",
+        "permission",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "autonomy",
+      "description": "",
+      "total_tests": 22,
       "boundary_tests": 2,
       "covered_scenes": [
+        "exception",
+        "invalid"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "async_executor",
+      "description": "",
+      "total_tests": 16,
+      "boundary_tests": 4,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "learning",
+      "description": "",
+      "total_tests": 33,
+      "boundary_tests": 5,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "null"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "tool_router_hybrid",
+      "description": "",
+      "total_tests": 193,
+      "boundary_tests": 30,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "extreme",
+        "invalid",
+        "null"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "capregistry",
+      "description": "",
+      "total_tests": 222,
+      "boundary_tests": 33,
+      "covered_scenes": [
+        "exception",
+        "extreme",
+        "invalid",
+        "overflow",
+        "permission",
+        "resource",
+        "timeout",
+        "underflow"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "session_manager",
+      "description": "",
+      "total_tests": 123,
+      "boundary_tests": 40,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "preflight",
+      "description": "",
+      "total_tests": 28,
+      "boundary_tests": 7,
+      "covered_scenes": [
+        "empty",
+        "exception",
         "extreme"
       ],
       "required_scenes": [],
@@ -866,12 +1379,69 @@
       "suggestions": []
     },
     {
-      "module_name": "utils",
+      "module_name": "compression_tools",
       "description": "",
-      "total_tests": 113,
-      "boundary_tests": 13,
+      "total_tests": 57,
+      "boundary_tests": 7,
       "covered_scenes": [
         "empty",
+        "exception",
+        "extreme"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "tool_gate",
+      "description": "",
+      "total_tests": 187,
+      "boundary_tests": 36,
+      "covered_scenes": [
+        "empty",
+        "exception",
+        "invalid",
+        "permission",
+        "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "context",
+      "description": "",
+      "total_tests": 115,
+      "boundary_tests": 21,
+      "covered_scenes": [
+        "empty",
+        "encoding",
+        "exception",
+        "invalid",
+        "null",
+        "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "data_process_tools",
+      "description": "",
+      "total_tests": 88,
+      "boundary_tests": 24,
+      "covered_scenes": [
+        "empty",
+        "exception",
         "invalid",
         "null"
       ],
@@ -883,17 +1453,40 @@
       "suggestions": []
     },
     {
-      "module_name": "subagent",
+      "module_name": "policy",
       "description": "",
-      "total_tests": 81,
-      "boundary_tests": 17,
+      "total_tests": 554,
+      "boundary_tests": 71,
+      "covered_scenes": [
+        "boundary",
+        "concurrency",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "prompt_manager",
+      "description": "",
+      "total_tests": 52,
+      "boundary_tests": 6,
       "covered_scenes": [
         "boundary",
         "empty",
         "exception",
         "extreme",
         "null",
-        "permission"
+        "timeout"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -903,12 +1496,18 @@
       "suggestions": []
     },
     {
-      "module_name": "server_routes",
+      "module_name": "tool_router",
       "description": "",
-      "total_tests": 40,
-      "boundary_tests": 1,
+      "total_tests": 116,
+      "boundary_tests": 20,
       "covered_scenes": [
-        "exception"
+        "boundary",
+        "empty",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "timeout"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -918,12 +1517,13 @@
       "suggestions": []
     },
     {
-      "module_name": "data_analytics",
+      "module_name": "text_tools",
       "description": "",
-      "total_tests": 22,
-      "boundary_tests": 1,
+      "total_tests": 35,
+      "boundary_tests": 3,
       "covered_scenes": [
-        "empty"
+        "empty",
+        "encoding"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -964,12 +1564,291 @@
       "suggestions": []
     },
     {
+      "module_name": "digestion",
+      "description": "",
+      "total_tests": 1239,
+      "boundary_tests": 193,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "resource",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "env_config_manager",
+      "description": "",
+      "total_tests": 72,
+      "boundary_tests": 9,
+      "covered_scenes": [
+        "empty",
+        "invalid",
+        "null",
+        "permission",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "tool_fewshot_store",
+      "description": "",
+      "total_tests": 20,
+      "boundary_tests": 5,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "error_reporting_config",
+      "description": "",
+      "total_tests": 137,
+      "boundary_tests": 34,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
       "module_name": "human_in_the_loop",
       "description": "",
-      "total_tests": 22,
+      "total_tests": 43,
+      "boundary_tests": 5,
+      "covered_scenes": [
+        "boundary",
+        "exception",
+        "invalid",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "data",
+      "description": "",
+      "total_tests": 149,
+      "boundary_tests": 21,
+      "covered_scenes": [
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "invalid",
+        "null"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "learning_metrics",
+      "description": "",
+      "total_tests": 20,
+      "boundary_tests": 2,
+      "covered_scenes": [
+        "extreme"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "experience_cli",
+      "description": "",
+      "total_tests": 14,
       "boundary_tests": 1,
       "covered_scenes": [
+        "empty"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "settings",
+      "description": "",
+      "total_tests": 223,
+      "boundary_tests": 20,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "extreme",
+        "invalid",
+        "null"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "quality",
+      "description": "",
+      "total_tests": 98,
+      "boundary_tests": 27,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "llm_monitor",
+      "description": "",
+      "total_tests": 36,
+      "boundary_tests": 3,
+      "covered_scenes": [
+        "exception",
         "invalid"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "handoff",
+      "description": "",
+      "total_tests": 6,
+      "boundary_tests": 2,
+      "covered_scenes": [
+        "empty",
+        "exception"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "log_system",
+      "description": "",
+      "total_tests": 162,
+      "boundary_tests": 15,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "jsonl_history",
+      "description": "",
+      "total_tests": 17,
+      "boundary_tests": 10,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "encoding",
+        "exception",
+        "null",
+        "overflow",
+        "resource"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "learning_budget",
+      "description": "",
+      "total_tests": 13,
+      "boundary_tests": 4,
+      "covered_scenes": [
+        "boundary",
+        "exception",
+        "invalid"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "llm_key",
+      "description": "",
+      "total_tests": 7,
+      "boundary_tests": 3,
+      "covered_scenes": [
+        "empty",
+        "resource",
+        "underflow"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -981,7 +1860,7 @@
     {
       "module_name": "llm_response_cache",
       "description": "",
-      "total_tests": 41,
+      "total_tests": 42,
       "boundary_tests": 16,
       "covered_scenes": [
         "boundary",
@@ -998,16 +1877,15 @@
       "suggestions": []
     },
     {
-      "module_name": "log_system",
+      "module_name": "dsml_adapter",
       "description": "",
-      "total_tests": 93,
-      "boundary_tests": 11,
+      "total_tests": 16,
+      "boundary_tests": 4,
       "covered_scenes": [
-        "boundary",
         "empty",
-        "encoding",
         "extreme",
-        "timeout"
+        "invalid",
+        "overflow"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1019,10 +1897,32 @@
     {
       "module_name": "logging_utils",
       "description": "",
-      "total_tests": 23,
-      "boundary_tests": 3,
+      "total_tests": 72,
+      "boundary_tests": 8,
       "covered_scenes": [
+        "empty",
+        "encoding",
         "exception",
+        "permission",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "mcp_executor",
+      "description": "",
+      "total_tests": 84,
+      "boundary_tests": 24,
+      "covered_scenes": [
+        "empty",
+        "exception",
+        "invalid",
+        "null",
         "permission",
         "timeout"
       ],
@@ -1052,11 +1952,29 @@
     {
       "module_name": "memory_optimized",
       "description": "",
-      "total_tests": 32,
-      "boundary_tests": 4,
+      "total_tests": 50,
+      "boundary_tests": 8,
       "covered_scenes": [
         "empty",
+        "extreme",
         "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "modules_api",
+      "description": "",
+      "total_tests": 16,
+      "boundary_tests": 4,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1068,30 +1986,15 @@
     {
       "module_name": "network_config",
       "description": "",
-      "total_tests": 66,
-      "boundary_tests": 9,
+      "total_tests": 106,
+      "boundary_tests": 12,
       "covered_scenes": [
         "boundary",
         "empty",
         "extreme",
         "invalid",
+        "permission",
         "timeout"
-      ],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "✅",
-      "is_new_module": false,
-      "suggestions": []
-    },
-    {
-      "module_name": "p6_config_loader",
-      "description": "",
-      "total_tests": 12,
-      "boundary_tests": 2,
-      "covered_scenes": [
-        "invalid",
-        "null"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1155,12 +2058,46 @@
     {
       "module_name": "test_permission_system",
       "description": "",
-      "total_tests": 29,
+      "total_tests": 35,
       "boundary_tests": 3,
       "covered_scenes": [
         "boundary",
         "empty",
         "permission"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "tools_prompt_guard",
+      "description": "",
+      "total_tests": 28,
+      "boundary_tests": 4,
+      "covered_scenes": [
+        "encoding",
+        "exception"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "process_distill",
+      "description": "",
+      "total_tests": 37,
+      "boundary_tests": 6,
+      "covered_scenes": [
+        "empty",
+        "invalid",
+        "null",
+        "timeout"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1185,9 +2122,153 @@
       "suggestions": []
     },
     {
+      "module_name": "system_prompt_config",
+      "description": "",
+      "total_tests": 39,
+      "boundary_tests": 1,
+      "covered_scenes": [
+        "empty"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "system_prompt_manager",
+      "description": "",
+      "total_tests": 12,
+      "boundary_tests": 1,
+      "covered_scenes": [
+        "null"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "repair",
+      "description": "",
+      "total_tests": 230,
+      "boundary_tests": 45,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "permission"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "response_workflows",
+      "description": "",
+      "total_tests": 29,
+      "boundary_tests": 8,
+      "covered_scenes": [
+        "empty",
+        "extreme",
+        "null"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "retention",
+      "description": "",
+      "total_tests": 132,
+      "boundary_tests": 18,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "extreme",
+        "invalid",
+        "overflow",
+        "permission"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "timeout_budget",
+      "description": "",
+      "total_tests": 28,
+      "boundary_tests": 11,
+      "covered_scenes": [
+        "boundary",
+        "exception",
+        "extreme",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "config_validation",
+      "description": "",
+      "total_tests": 74,
+      "boundary_tests": 44,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "extreme",
+        "null",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "ui_panels",
+      "description": "",
+      "total_tests": 76,
+      "boundary_tests": 11,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "extreme",
+        "null",
+        "permission"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
       "module_name": "safety_guard",
       "description": "",
-      "total_tests": 18,
+      "total_tests": 22,
       "boundary_tests": 4,
       "covered_scenes": [
         "boundary",
@@ -1202,9 +2283,58 @@
       "suggestions": []
     },
     {
+      "module_name": "subagent",
+      "description": "",
+      "total_tests": 618,
+      "boundary_tests": 158,
+      "covered_scenes": [
+        "boundary",
+        "concurrency",
+        "empty",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "permission",
+        "resource",
+        "timeout",
+        "underflow"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "system_tools",
+      "description": "",
+      "total_tests": 665,
+      "boundary_tests": 156,
+      "covered_scenes": [
+        "boundary",
+        "empty",
+        "encoding",
+        "exception",
+        "extreme",
+        "invalid",
+        "null",
+        "overflow",
+        "permission",
+        "timeout"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
       "module_name": "search_performance_monitor",
       "description": "",
-      "total_tests": 14,
+      "total_tests": 29,
       "boundary_tests": 2,
       "covered_scenes": [
         "boundary",
@@ -1240,20 +2370,48 @@
       "suggestions": []
     },
     {
-      "module_name": "system_tools",
+      "module_name": "server_port_guard",
       "description": "",
-      "total_tests": 638,
-      "boundary_tests": 141,
+      "total_tests": 26,
+      "boundary_tests": 3,
+      "covered_scenes": [
+        "exception"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "startup_diagnostics",
+      "description": "",
+      "total_tests": 17,
+      "boundary_tests": 3,
+      "covered_scenes": [
+        "empty"
+      ],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "✅",
+      "is_new_module": false,
+      "suggestions": []
+    },
+    {
+      "module_name": "tool_approval",
+      "description": "",
+      "total_tests": 64,
+      "boundary_tests": 17,
       "covered_scenes": [
         "boundary",
-        "empty",
-        "encoding",
+        "concurrency",
         "exception",
-        "extreme",
         "invalid",
         "null",
-        "overflow",
         "permission",
+        "resource",
         "timeout"
       ],
       "required_scenes": [],
@@ -1264,51 +2422,29 @@
       "suggestions": []
     },
     {
-      "module_name": "task_scheduler",
+      "module_name": "tool_exemptions",
       "description": "",
-      "total_tests": 80,
-      "boundary_tests": 8,
-      "covered_scenes": [
-        "empty",
-        "exception",
-        "extreme",
-        "null"
-      ],
+      "total_tests": 23,
+      "boundary_tests": 0,
+      "covered_scenes": [],
       "required_scenes": [],
       "missing_scenes": [],
       "min_tests": 0,
-      "status": "✅",
+      "status": "⚠️",
       "is_new_module": false,
-      "suggestions": []
+      "suggestions": [
+        "未配置边界场景要求，建议补充边界测试"
+      ]
     },
     {
-      "module_name": "quality",
+      "module_name": "tool_schema_pruner",
       "description": "",
-      "total_tests": 29,
-      "boundary_tests": 10,
-      "covered_scenes": [
-        "boundary",
-        "empty",
-        "exception",
-        "extreme",
-        "invalid",
-        "null"
-      ],
-      "required_scenes": [],
-      "missing_scenes": [],
-      "min_tests": 0,
-      "status": "✅",
-      "is_new_module": false,
-      "suggestions": []
-    },
-    {
-      "module_name": "text_tools",
-      "description": "",
-      "total_tests": 11,
+      "total_tests": 18,
       "boundary_tests": 3,
       "covered_scenes": [
         "empty",
-        "encoding"
+        "exception",
+        "null"
       ],
       "required_scenes": [],
       "missing_scenes": [],
@@ -1337,13 +2473,29 @@
       "suggestions": []
     },
     {
-      "module_name": "workflow_learning",
+      "module_name": "chat_limits",
       "description": "",
-      "total_tests": 14,
-      "boundary_tests": 2,
+      "total_tests": 11,
+      "boundary_tests": 0,
+      "covered_scenes": [],
+      "required_scenes": [],
+      "missing_scenes": [],
+      "min_tests": 0,
+      "status": "⚠️",
+      "is_new_module": false,
+      "suggestions": [
+        "未配置边界场景要求，建议补充边界测试"
+      ]
+    },
+    {
+      "module_name": "tool_router_reranker",
+      "description": "",
+      "total_tests": 17,
+      "boundary_tests": 9,
       "covered_scenes": [
-        "empty",
-        "null"
+        "exception",
+        "null",
+        "timeout"
       ],
       "required_scenes": [],
       "missing_scenes": [],

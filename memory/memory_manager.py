@@ -438,6 +438,58 @@ class MemoryManager:
             logger.error("堆栈跟踪:", exc_info=True)
             return False
 
+    # ════════════════════════════════════════════════════════════════════
+    #  压缩触发口径
+    # ════════════════════════════════════════════════════════════════════
+
+    def _compress_accounting(self, messages: list) -> tuple:
+        """把待压缩窗口切成 (计入触发的正文 token, 工具结果 token)
+
+        【为什么把工具结果**单独计量**（2026-09-13 Owner 立规，2026-10-02 落地）】
+        工具输出动辄上万 token（实测 ``list_directory`` 返回 195 项 ≈14k），若与对话正文
+        一起计入触发口径，就是"**一次大工具输出 = 一次压缩**"：既产生额外 LLM 摘要调用
+        （钱 + 延迟），又把刚拿到的上下文压掉。
+
+        【现状核实 · 2026-10-02】真实记忆文件（``memory_data/messages.jsonl``，1481 条）里
+        **只有 user/assistant** —— 编排器只把这两类写进记忆，工具结果留在**请求内**的
+        ``_working``（``orchestrator.py:3744-3753``）。所以本口径今天是**防御性**的：
+        它让"工具结果不触发压缩"成为**构造性事实**，而不是"碰巧没人写进去"。
+        将来谁把工具结果落进记忆，这里立刻兜住，不会静默变成"每轮一次压缩"。
+
+        Returns:
+            ``(counted_tokens, tool_tokens)``。工具结果的判据：``role == "tool"``
+            或带 ``tool_call_id``（OpenAI 兼容两种形态都认）。
+        """
+        counted = 0
+        tool_tokens = 0
+        for msg in messages or ():
+            try:
+                content = msg.get("content", "") or ""
+                tokens = int(self._token_counter.count(content))
+            except Exception:  # noqa: BLE001 单条计数失败按 0 计（不因一条脏数据丢整段统计）
+                tokens = 0
+            if str(msg.get("role", "")) == "tool" or msg.get("tool_call_id"):
+                tool_tokens += tokens
+            else:
+                counted += tokens
+        return counted, tool_tokens
+
+    def _should_compress_now(self, messages: list) -> bool:
+        """是否该压缩：正文按阈值触发；工具结果**单独**只有当它自己撑爆窗口时才触发
+
+        最后那半句是**兜底**：工具结果单独计量 ≠ 永不压缩 —— 否则一个只产工具输出的
+        记忆会无界增长。
+        """
+        counted, tool_tokens = self._compress_accounting(messages)
+        if tool_tokens:
+            # 只在与"确实有工具结果"时才多说一句：让"为什么没压缩"可复核
+            logger.info(
+                "[MemoryManager] 压缩口径：正文 %d tok（工具结果 %d tok 单独计量，不计入触发）",
+                counted, tool_tokens)
+        if self._summarizer.should_compress(counted, self._token_limit,
+                                            self._compress_threshold):
+            return True
+        return tool_tokens >= self._token_limit
     def add_message(self, role: str, content: str) -> str:
         """添加新消息
 
@@ -467,9 +519,8 @@ class MemoryManager:
 
         # 检查 Token 占用（优先窗口，空则回退文件）
         recent = list(self._message_window)[-200:] or self._storage.load_recent_messages(limit=200)
-        total_tokens = self._token_counter.count_messages(recent)
-        if self._summarizer.should_compress(total_tokens, self._token_limit,
-                                            self._compress_threshold):
+        # 【2026-10-02】触发口径走 _should_compress_now：工具结果单独计量（见其 docstring）
+        if self._should_compress_now(recent):
             self._need_compress = True
             self._async_compressor.request()
 
@@ -511,9 +562,8 @@ class MemoryManager:
         # 高重要性消息（>=7）触发快速压缩检查
         if score >= 7:
             recent = list(self._message_window)[-200:] or self._storage.load_recent_messages(limit=200)
-            total_tokens = self._token_counter.count_messages(recent)
-            if self._summarizer.should_compress(total_tokens, self._token_limit,
-                                                self._compress_threshold):
+            # 【2026-10-02】同上：工具结果单独计量（口径只有一份：_should_compress_now）
+            if self._should_compress_now(recent):
                 self._need_compress = True
                 self._async_compressor.request()
 

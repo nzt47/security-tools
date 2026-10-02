@@ -11,6 +11,7 @@
 import datetime
 import functools
 import json
+import logging
 import os
 import time
 
@@ -181,7 +182,7 @@ def api_chat():
     import app_server as _app_server
     from app_server import (
         _Yunshu, _session_mgr, _get_current_session_id, _safety_guard,
-        _save_conversation_record, _get_token_counter, logger,
+        _save_conversation_record, _get_token_counter, _cfg, logger,
         PROMETHEUS_AVAILABLE, SECURITY_BLOCKS,
     )
     import time
@@ -371,6 +372,21 @@ def api_chat():
     _input_tokens = _ctx_counter.count(user_input)
     _output_tokens = _ctx_counter.count(response)
 
+    # ── 单次发送**告警**（2026-10-02）：只告警，**不截断** ──
+    # 【为什么不是截断】`memory.per_message_send_limit` 的界面文案写着"超限截断"，
+    #   但它全仓**没有任何强制点**。本次把它变成**有意义的告警阈值**（产品决定）：
+    #   静默丢弃用户粘进来的原文，比"提示一句"危险得多 —— 用户会以为发出去的就是全文。
+    try:
+        _send_limit = int(_cfg.get("memory", "per_message_send_limit", default=8192) or 0)
+    except (TypeError, ValueError):
+        _send_limit = 0
+    _send_exceeded = bool(_send_limit and _input_tokens > _send_limit)
+    if _send_exceeded:
+        logger.warning(
+            "[context] 单条消息超过「单次发送」告警阈值: %d > %d tokens"
+            "（仅告警，未截断原文；阈值见 POST /api/context/config）",
+            _input_tokens, _send_limit)
+
     # 会话累计 token（快速估算，仅统计 content 字段）——**本请求会话**，非全局会话。
     # limit=0 = 不截断，取该会话全部消息（含刚写入的本轮）。
     _all_msgs = _session_mgr.get_messages(session_id, limit=0)
@@ -451,6 +467,14 @@ def api_chat():
             "percentage": (round(_session_total / _token_limit * 100, 1)
                            if _token_limit else None),
             "percentage_semantics": "session_cumulative_share_of_window",
+            # ── 单次发送告警（阈值 = memory.per_message_send_limit；**只告警不截断**）
+            "send_limit": {
+                "limit": _send_limit or None,
+                "input_tokens": _input_tokens,
+                "exceeded": _send_exceeded,
+                "semantics": "warn_only",
+                "note": "超限仅告警，绝不截断原文",
+            },
             "percentage_note": (
                 "= 会话累计 token ÷ token_limit（session_total_tokens / token_limit），"
                 "**非**当前窗口占用率；窗口占用率见 metadata.context_notice 的 "
@@ -1118,7 +1142,241 @@ def key_usable(k) -> bool:
     return _key_usable(k)
 
 
-def _workbench_real_stream(question, session_id=""):
+#: 本会话历史的**软上限**（条数）。真正的裁剪按 token 预算做，这个数字只为防内存失控。
+_HISTORY_SOFT_CAP = 400
+
+
+def _app_server_or_none():
+    """取**已加载**的 app_server 模块；没加载就返回 None
+
+    【不易·为什么用 sys.modules 而不是 `import app_server`】后者会执行整套 app_server 装配
+    （注册全部内建工具、拉起单例等）。生产里它**早已加载**，读个数是免费的；而在测试进程里
+    那是一次真实副作用（本仓已为"import app_server 污染进程级工具注册表"写过专门夹具）。
+    这里只是"顺便读个配置/窗口"，不该为此触发重量级导入。
+    """
+    import sys
+    return sys.modules.get("app_server")
+
+
+def _get_counter_or_none():
+    """取 token 计数器；取不到返回 None（**不拿字符数换算冒充 token**）"""
+    try:
+        mod = _app_server_or_none()
+        return mod._get_token_counter() if mod is not None else None
+    except Exception:  # noqa: BLE001 计数不可用 ⇒ 调用方保持原行为
+        return None
+
+
+def _select_within_budget(messages, budget, counter, *, min_messages: int = 2):
+    """按 **token 预算**从后往前保留消息（替代写死的"最近 8 条"）
+
+    【为什么这样选】对话的"当前话题"永远在尾部：从最新往前累计，直到预算用尽。
+    至少保留 ``min_messages`` 条 —— 否则连"接上上一句话"都做不到，预算再紧也不该退化到 1 条。
+
+    Args:
+        messages: 完整消息列表（末条是本轮用户输入）。
+        budget: 历史预算（<= 0 或计数不可用 ⇒ **原样返回**，保持调用方原行为）。
+        counter: token 计数器（需有 ``count(text) -> int``）。
+        min_messages: 无论如何保留的条数。
+
+    Returns:
+        ``(kept, dropped_count, used_tokens_or_None)``。计数不可用时 used 为 None（"未测"）。
+    """
+    if not messages or budget <= 0 or counter is None:
+        return list(messages), 0, None
+    kept: list = []
+    used = 0
+    for msg in reversed(messages):
+        try:
+            cost = int(counter.count(str(msg.get("content") or "")))
+        except Exception:  # noqa: BLE001 单条计数失败按 0 处理，不影响整体
+            cost = 0
+        if kept and len(kept) >= min_messages and used + cost > budget:
+            break
+        kept.append(msg)
+        used += cost
+    kept.reverse()
+    return kept, len(messages) - len(kept), used
+
+
+def _cfg_get(section, key, default=None):
+    """读 app_server 的运行时配置（取不到就返回 default，绝不抛）"""
+    try:
+        mod = _app_server_or_none()
+        if mod is None:
+            return default
+        return mod._cfg.get(section, key, default=default)
+    except Exception:  # noqa: BLE001 配置读取失败不得打断对话
+        return default
+
+
+def _resolve_context_window() -> int:
+    """真实编排窗口（``_memory_token_limit``）；不可得返回 0（调用方保持原行为）
+
+    【不易】不可得时返回 0 而不是 4096/131072 之类的"看起来合理"的值 ——
+    调用方据此**不做预算裁剪**（保持原行为），而不是拿着假窗口去砍用户的历史。
+    """
+    try:
+        mod = _app_server_or_none()
+        yunshu = getattr(mod, "_Yunshu", None) if mod is not None else None
+        getter = getattr(yunshu, "context_limit_info", None)
+        if callable(getter):
+            info = getter() or {}
+            limit = info.get("limit_tokens")
+            if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0:
+                return int(limit)
+        raw = getattr(yunshu, "_memory_token_limit", 0)
+        if isinstance(raw, int) and not isinstance(raw, bool) and raw > 0:
+            return int(raw)
+    except Exception:  # noqa: BLE001
+        pass
+    return 0
+
+
+def _resolve_stream_max_tokens(model: str) -> int:
+    """工作台流式路径的单次回复上限：与编排层**同一份口径**
+
+    【为什么优先问编排器】``Orchestrator._resolve_max_output_tokens`` 是这条口径的既有实现，
+    直接复用就不会出现"两个入口两个上限"（2026-10-02 实测工作台写死 2048 就是这么来的）。
+    编排器不可用（桩/未初始化）时按同一规则自己算一遍 —— 规则本体在 agent/chat_limits.py。
+    """
+    from agent.chat_limits import resolve_max_output_tokens
+
+    configured = _cfg_get("memory", "per_message_recv_limit", 0)
+    try:
+        mod = _app_server_or_none()
+        resolver = getattr(getattr(mod, "_Yunshu", None), "_resolve_max_output_tokens", None)
+        if callable(resolver):
+            return int(resolver(model))
+    except Exception:  # noqa: BLE001 拿不到编排器 ⇒ 用共享规则兜底
+        pass
+    return resolve_max_output_tokens(configured, model)
+
+
+#: 支持的对话模式（与前端 useChatPrefsStore.CHAT_MODES 同名契约）
+#:   plain     轻量：只用本会话历史（默认；1 次模型调用、真流式）
+#:   retrieval 检索：轻量之上注入检索到的记忆/知识片段（仍是真流式）
+#:   full      完整：委托编排器全链路（意图分层 + 检索 + 规划 + 工具）——**非流式**、可能多轮调用
+CHAT_STREAM_MODES = ("plain", "retrieval", "full")
+
+
+def _sse_event(evt: dict) -> str:
+    """把一个事件编码成 SSE 帧（与 _workbench_real_stream 内部 _sse 同格式）"""
+    return "data: " + json.dumps(evt, ensure_ascii=False) + "\n\n"
+
+
+def _retrieve_context_extra(question: str) -> str:
+    """「检索模式」要注入的上下文文本 —— 复用**编排器的同一份实现**；失败返回空串
+
+    【为什么必须复用】编排器的 `_context_assembler_extra()` 已经装配了
+    工作记忆 / 长期检索 / 程序性（技能+工作流）/ 经验库四层，并带注入防御、预算截断与
+    指标埋点。在工作台另写一份检索 = 两套命中结果、两套预算 —— 正是本仓反复栽的坑。
+    """
+    try:
+        mod = _app_server_or_none()
+        yunshu = getattr(mod, "_Yunshu", None) if mod is not None else None
+        getter = getattr(yunshu, "_context_assembler_extra", None)
+        if not callable(getter):
+            return ""
+        return str(getter(question, mode="workbench") or "")
+    except Exception as e:  # noqa: BLE001 检索失败 ⇒ 按轻量继续，绝不打断对话
+        logging.getLogger("plugins.chat.stream").warning(
+            "[workbench][SSE] 检索模式取上下文失败（按轻量继续）: %s", e)
+        return ""
+
+
+def _full_pipeline_events(question: str, session_id: str):
+    """「完整模式」：委托编排器全链路，把结果按 chunk 事件外发（**非流式**）
+
+    【为什么委托而不是在流式里复刻】编排器链路是 async 且步骤多（意图分层 → 检索 →
+    规划 → 工具 → 回答），复刻就是第二套实现；直接委托只有一套。
+    代价是**非流式**（回答整段到达、再分段外发）——这一点已写在 UI 的选项说明里，不隐瞒。
+    【记忆不重复写】编排器 `process()` 自己会写 `_memory`；本函数不写，
+    由 `_persist_turn_side_effects(..., write_memory=False)` 保证工作台侧不重复写。
+    """
+    log = logging.getLogger("plugins.chat.stream")
+    yield _sse_event({"type": "thinking", "id": "full-pipeline", "title": "完整链路",
+                      "detail": "走编排器：意图分层 → 检索 → 规划 → 工具 → 回答",
+                      "status": "running"})
+    mod = _app_server_or_none()
+    yunshu = getattr(mod, "_Yunshu", None) if mod is not None else None
+    if yunshu is None or not callable(getattr(yunshu, "chat", None)):
+        log.warning("[workbench][SSE] 完整模式不可用：编排器未就绪")
+        yield _sse_event({"type": "thinking", "id": "full-pipeline", "title": "完整链路",
+                          "detail": "编排器未就绪，未执行", "status": "error"})
+        yield _sse_event({"type": "chunk", "seq": 1,
+                          "text": "（完整模式不可用：编排器未就绪，请改用「轻量」或「检索」）"})
+        yield _sse_event({"type": "done"})
+        return
+
+    session_mgr = getattr(mod, "_session_mgr", None)
+    try:
+        answer = str(yunshu.chat(question, session_id=session_id or None,
+                                 session_mgr=session_mgr) or "")
+    except Exception as e:  # noqa: BLE001 编排器异常 ⇒ 明确告知，不静默返回空
+        log.error("[workbench][SSE] 完整模式执行失败: %s", e)
+        yield _sse_event({"type": "thinking", "id": "full-pipeline", "title": "完整链路",
+                          "detail": f"执行失败：{e}", "status": "error"})
+        yield _sse_event({"type": "chunk", "seq": 1,
+                          "text": f"（完整模式执行失败：{e}）"})
+        yield _sse_event({"type": "done"})
+        return
+
+    # 把编排层留存的**真实**上下文告警转成阶段事件（此前只在 /api/chat 的响应里可见）
+    try:
+        md = yunshu.last_response_metadata(session_id) or {}
+        notice = md.get("context_notice") if isinstance(md, dict) else None
+        if isinstance(notice, dict) and notice.get("level"):
+            yield _sse_event({"type": "thinking", "id": "context-notice",
+                              "title": "上下文提示",
+                              "detail": str(notice.get("message") or notice.get("level")),
+                              "status": "done"})
+    except Exception as e:  # noqa: BLE001 元数据读不到不影响回答
+        log.debug("[workbench][SSE] 读编排层元数据失败: %s", e)
+
+    yield _sse_event({"type": "thinking", "id": "full-pipeline", "title": "完整链路",
+                      "detail": "编排器已完成（结果整段返回，再分段外发）", "status": "done"})
+    seq = 0
+    for i in range(0, len(answer), 12):
+        seq += 1
+        yield _sse_event({"type": "chunk", "text": answer[i:i + 12], "seq": seq})
+    yield _sse_event({"type": "done"})
+
+
+def _persist_turn_side_effects(session_id: str, question: str, answer: str,
+                                 steps: list, *, write_memory: bool = True) -> None:
+    """把工作台这一轮写进**全局记忆**与**本轮状态**（与编排器路径同口径；fail-soft）
+
+    【为什么独立成函数】它不该影响对话本身：任何一步失败都只记日志。
+      · 记忆写入 = 与 /api/chat 对齐（编排器在 orchestrator.py:1661-1662 写 user/assistant）；
+      · turn_state 写入 = 与 /api/chat 的 _set_turn_state 对齐（tool_steps / reasoning）。
+    """
+    try:
+        log = logging.getLogger("plugins.chat.stream")
+        mod = _app_server_or_none()
+        yunshu = getattr(mod, "_Yunshu", None) if mod is not None else None
+        if yunshu is None:
+            return
+        memory = getattr(yunshu, "_memory", None)
+        # 【完整模式必须跳过】那条路是编排器自己写的记忆（orchestrator.process 末尾），
+        # 这里再写一次就是同一条对话在记忆里出现两遍。
+        if write_memory and memory is not None and callable(getattr(memory, "add_message", None)):
+            memory.add_message("user", question)
+            memory.add_message("assistant", answer)
+            log.info("[workbench][SSE] 已写入全局记忆（会话 %s）", session_id)
+        setter = getattr(yunshu, "_set_turn_state", None)
+        if callable(setter):
+            tool_steps = [s for s in (steps or [])
+                          if str(s.get("id") or "").startswith("tool-real-")]
+            reasoning = next((str(s.get("detail") or "") for s in (steps or [])
+                              if s.get("id") == "reasoning"), "")
+            # 显式传 None 也照写（该接口规定不得用 value-or-old 回退，见其 docstring）
+            setter(session_id, tool_steps=tool_steps, reasoning=reasoning or None)
+    except Exception as e:  # noqa: BLE001 记忆/状态写入失败不得影响已生成的回复
+        log.warning("[workbench][SSE] 记忆/本轮状态写入失败（不影响回复）: %s", e)
+
+
+def _workbench_real_stream(question, session_id="", mode="plain"):
     """真实 LLM 流式 SSE 生成器：thinking 事件 + 真实模型 chunk + done
 
     事件契约（与前端 yunshu-ui/src/lib/sse.ts 保持一致）：
@@ -1126,6 +1384,11 @@ def _workbench_real_stream(question, session_id=""):
       data: {"type":"chunk","text":"...","seq":N}
       data: {"type":"done"}
     配置来源：.env（LLM_PROVIDER / LLM_API_KEY / LLM_MODEL / LLM_BASE_URL）。
+
+    Args:
+        mode: 对话模式（见 :data:`CHAT_STREAM_MODES`）。
+            ``plain``（默认，与引入该开关之前逐字一致）/ ``retrieval``（+检索注入）/
+            ``full``（委托编排器全链路，非流式）。未知值一律按 ``plain`` 处理并记日志。
     """
     import logging
     logger = logging.getLogger("plugins.chat.stream")
@@ -1141,14 +1404,20 @@ def _workbench_real_stream(question, session_id=""):
 
     from memory.llm_service import LLMService
 
-    # ── 构造消息历史（若提供会话 ID，附带最近对话） ──
+    # ── 构造消息历史（若提供会话 ID，附带**本会话全部**历史） ──
+    # 【2026-10-02 改：不再写死"最近 8 条"】原实现 `hist[-8:]` 与「上下文最大 Token」
+    #   这个旋钮**完全无关** ⇒ 把窗口从 32768 调到 131072 对工作台毫无影响；反过来，
+    #   8 条里的长工具输出又会把窗口吃光而无人过问。现在取本会话全部历史（软上限
+    #   `_HISTORY_SOFT_CAP` 条只为防内存失控），真正的裁剪交给下面按 **token 预算**
+    #   做的 `_select_within_budget()` —— 预算必须在"工具集/系统提示已知之后"才算得准。
     messages = [{"role": "user", "content": question}]
     if session_id:
         try:
             from app_server import _session_mgr
-            hist = _session_mgr.get_messages(session_id)
+            # limit=0 与 /api/chat 同口径：不截断，取该会话全部消息
+            hist = _session_mgr.get_messages(session_id, limit=0) or []
             if hist:
-                recent = hist[-8:]  # 最近 8 条做上下文
+                recent = hist[-_HISTORY_SOFT_CAP:]
                 messages = [{"role": m.get("role", "user"), "content": m.get("content", "")}
                             for m in recent if m.get("content")]
                 messages.append({"role": "user", "content": question})
@@ -1171,29 +1440,30 @@ def _workbench_real_stream(question, session_id=""):
         except Exception as _e:
             logger.debug("[workbench][SSE] 用户消息落盘失败（忽略）: %s", _e)
 
+    # ── 完整模式：委托编排器全链路（意图分层 / 检索 / 规划 / 工具）──
+    # 【2026-10-02】由用户在工具栏「对话模式」里选择。委托而非复刻：编排器那条路是 async
+    #   且步骤多，复刻就是第二套实现。代价是**非流式**（已在 UI 选项说明里写明）。
+    #   【为什么放在这里】用户消息刚落盘、还没构造本路径的 LLMService、更没向模型发请求 ⇒
+    #   完整模式既不白建客户端，也不会走工作台自己的工具选择与预算（那些都是另一条链路的活）。
+    if mode == "full":
+        yield from _full_pipeline_events(question, session_id)
+        return
+
     llm = LLMService(
         provider=provider, api_key=api_key, model=model,
         timeout=60, base_url=base_url,
     )
 
-    # ── 前置 thinking 事件（推理链路：意图 → 检索 → 规划 → 工具 → 生成） ──
-    # 让右侧"思考过程"面板完整呈现智能体的推理与工具调用链路；
-    # 各阶段为轻量拟态（真实 LLM 调用前的结构化展示），生成阶段为真实流式。
-    yield _sse({"type": "thinking", "id": "intent", "title": "意图识别",
-                "detail": "解析输入：" + question[:40], "status": "running"})
-    yield _sse({"type": "thinking", "id": "intent", "title": "意图识别", "status": "done"})
-
-    yield _sse({"type": "thinking", "id": "retrieve", "title": "知识检索",
-                "detail": "从知识库/记忆召回相关上下文", "status": "running"})
-    yield _sse({"type": "thinking", "id": "retrieve", "title": "知识检索", "status": "done"})
-
-    yield _sse({"type": "thinking", "id": "plan", "title": "规划分解",
-                "detail": "拆解任务并确定回答策略", "status": "running"})
-    yield _sse({"type": "thinking", "id": "plan", "title": "规划分解", "status": "done"})
-
-    yield _sse({"type": "thinking", "id": "tool", "title": "工具调用",
-                "detail": "按需执行工具（本对话未触发外部工具）", "status": "running"})
-    yield _sse({"type": "thinking", "id": "tool", "title": "工具调用", "status": "done"})
+    # ── 前置 thinking 事件 ──
+    # 【2026-10-02：删掉四条**拟态**阶段】原实现依次外发"意图识别 / 知识检索 / 规划分解 /
+    #   工具调用"四条**总是显示完成**的事件，而本路径**并没有**跑这些引擎（源码自称"轻量拟态"）。
+    #   后果是用户看到一个"知识检索 ✓"却什么都没检索 —— 与"假分母""死旋钮"是同一类病：
+    #   界面声称的与实际执行的对不上。真正的阶段（上下文装配 / 工具调用：<name> / 思考过程 /
+    #   生成回复）本来就是**真实**事件，不需要用假的来"凑满"时间线；
+    #   意图/检索/规划由编排器路径（/api/chat）负责，这里不假装跑过。
+    yield _sse({"type": "thinking", "id": "prepare", "title": "对话准备",
+                "detail": "装配本会话上下文与工具集（意图/检索/规划由编排器路径负责，此处不跑）",
+                "status": "done"})
 
     # ── 真实流式生成（key 无效/缺失时自动降级为演示流） ──
     seq = 0
@@ -1230,6 +1500,28 @@ def _workbench_real_stream(question, session_id=""):
                 "detail": "模型流式输出中…", "status": "running"})
 
     SYSTEM_PROMPT = "你是云枢（Yunshu），一个拥有完整感知-认知-行动闭环的数字生命体。请以简洁、自然的语言回答用户。需要时可以使用提供的工具获取实时信息或执行操作。"
+
+    # ── 检索模式：注入检索到的记忆/知识片段（2026-10-02，用户在工具栏「对话模式」里选）──
+    # 口径只有一份：直接调编排器的 `_context_assembler_extra()`（见其 docstring）。
+    _retrieval_text = ""
+    _retrieval_tokens = 0
+    if mode == "retrieval":
+        _retrieval_text = _retrieve_context_extra(question)
+        if _retrieval_text:
+            SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + _retrieval_text
+            try:
+                _cnt = _get_counter_or_none()
+                _retrieval_tokens = int(_cnt.count(_retrieval_text)) if _cnt else 0
+            except Exception:  # noqa: BLE001 计不上就记 0（预算略保守）
+                _retrieval_tokens = 0
+        logger.info("[workbench][SSE] 检索模式：注入 %d 字符 / %d token（命中=%s）",
+                    len(_retrieval_text), _retrieval_tokens, bool(_retrieval_text))
+        yield _sse_event({
+            "type": "thinking", "id": "retrieval", "title": "记忆/知识检索",
+            "detail": ("命中并注入 %d token 的检索片段（工作记忆 / 长期检索 / 技能与工作流 / 经验库）"
+                       % _retrieval_tokens) if _retrieval_text else
+                      "本次未命中任何片段（或该能力未启用）——按轻量继续",
+            "status": "done"})
     # 🔴 DSML 根因防线（见 `agent/tools_prompt_guard.py` 模块 docstring 的实测对照）：
     #   本函数上面那句 SYSTEM_PROMPT 里的「可以使用提供的工具」是**无条件的**工具宣传，
     #   而下方的工具加载 `except` 分支（工具定义加载失败）会让 `tool_defs` 保持 None。
@@ -1329,7 +1621,75 @@ def _workbench_real_stream(question, session_id=""):
     except Exception as _ge:  # noqa: BLE001 守卫异常不得弄坏工作台
         logger.debug("[workbench][SSE] 工具一致性守卫异常（按原样继续）: %s", _ge)
 
-    loop_messages = list(messages)
+    # ══════════════════════════════════════════════════════════════════════
+    #  上下文预算与单次回复上限（2026-10-02：让工作台真正吃到面板上的旋钮）
+    # ══════════════════════════════════════════════════════════════════════
+    # 【此前的问题】本路径把 `max_tokens=2048` **写死**在请求里、历史写死"最近 8 条"：
+    #   面板上把「单次回复」调到 16384、「上下文最大 Token」调到 131072，对**主 UI 的
+    #   对话链路**毫无作用（那条路才是用户天天在用的）。实测：回复被卡在模型的 1/192。
+    # 【现在】两个数字都从同一份口径推出来（agent/chat_limits.py）：
+    #   max_tokens = 配置优先 + 模型档位下限 + 硬上限收敛；
+    #   历史预算   = 窗口 − 系统提示 − 工具 schema − max_tokens − 余量。
+    # 【为什么在这里算】工具 schema 是窗口里最大的一块（实测主线 26 个 ≈ 6.7k token），
+    #   必须等它确定后再算预算，否则预算是假的。
+    from agent.chat_limits import resolve_context_budget as _resolve_ctx_budget
+
+    _stream_max_tokens = _resolve_stream_max_tokens(model)
+    _window_tokens = _resolve_context_window()
+    _system_tokens = 0
+    _counter_for_budget = None
+    try:
+        _counter_for_budget = _get_counter_or_none()
+        if _counter_for_budget is not None:
+            _system_tokens = int(_counter_for_budget.count(SYSTEM_PROMPT))
+    except Exception:  # noqa: BLE001 系统提示计量失败按 0 计（预算略保守）
+        _system_tokens = 0
+    # 固定开销 = 工具 schema + 系统提示 + **检索注入**（检索模式下它同样占窗口）
+    _overhead = int(_tokens or 0) + _system_tokens + int(_retrieval_tokens or 0)
+    _budget = _resolve_ctx_budget(
+        _window_tokens, overhead_tokens=_overhead, max_output_tokens=_stream_max_tokens)
+    loop_messages, _dropped, _used = _select_within_budget(
+        messages, _budget, _get_counter_or_none())
+    logger.info(
+        "[workbench][SSE] 上下文预算: 窗口=%s 系统提示=%d 工具=%s 回复上限=%d ⇒ 历史预算=%d；"
+        "保留 %d/%d 条（丢弃 %d 条，%s token）",
+        _window_tokens or "不可得", _system_tokens,
+        ("%d token" % _tokens) if _tokens is not None else "未测",
+        _stream_max_tokens, _budget, len(loop_messages), len(messages), _dropped,
+        ("%d" % _used) if _used is not None else "未测")
+    # 把"这次到底带了多少上下文"变成**可见的**一步（此前完全不可观测，
+    # 用户只能靠猜"为什么它忘了我刚说的话"）
+    yield _sse({
+        "type": "thinking", "id": "context-budget", "title": "上下文装配",
+        "detail": ("窗口 %s · 系统提示 %d tok · 工具 %s · 回复上限 %d ⇒ 历史预算 %d；"
+                   "带入 %d 条（丢弃 %d 条%s）") % (
+            _window_tokens or "不可得", _system_tokens,
+            ("%d tok" % _tokens) if _tokens is not None else "未测",
+            _stream_max_tokens, _budget, len(loop_messages), _dropped,
+            ("，%d tok" % _used) if _used is not None else ""),
+        "status": "done"})
+
+    # ── 单次发送**告警**（只告警不截断，与 /api/chat 同一产品决定）──
+    try:
+        _send_limit = int(_cfg_get("memory", "per_message_send_limit", 8192) or 0)
+    except Exception:  # noqa: BLE001 配置读不到 ⇒ 不告警（不是错误）
+        _send_limit = 0
+    _input_tokens_est = None
+    if _send_limit and _counter_for_budget is not None:
+        try:
+            _input_tokens_est = int(_counter_for_budget.count(question))
+        except Exception:  # noqa: BLE001
+            _input_tokens_est = None
+    if _input_tokens_est is not None and _input_tokens_est > _send_limit:
+        logger.warning(
+            "[workbench][SSE] 单条消息超过「单次发送」告警阈值: %d > %d tokens"
+            "（仅告警，未截断原文）", _input_tokens_est, _send_limit)
+        yield _sse({
+            "type": "thinking", "id": "send-limit", "title": "消息超过告警阈值",
+            "detail": ("本条 %d tok > 阈值 %d tok —— **未截断**，原文已完整发出；"
+                       "阈值可在「上下文」面板调整") % (_input_tokens_est, _send_limit),
+            "status": "done"})
+
     max_tool_rounds = 4
     emitted = False
     seq = 0
@@ -1386,7 +1746,9 @@ def _workbench_real_stream(question, session_id=""):
             stream_kwargs = dict(
                 messages=loop_messages,
                 system_prompt=SYSTEM_PROMPT,
-                max_tokens=2048,
+                # 【2026-10-02】原先写死 2048：面板上的「单次回复」对主 UI 无效，
+                # 回复被卡在模型的 1/192。现与编排层同一份口径（配置驱动）。
+                max_tokens=_stream_max_tokens,
                 temperature=0.7,
                 on_tool_call=_on_tool_call,
                 tools=tool_defs,
@@ -1532,6 +1894,15 @@ def api_chat_stream():
     if not question:
         return jsonify({"error": "消息不能为空"}), 400
 
+    # ── 对话模式（2026-10-02）──────────────────────────────────────────
+    # 非法/缺失一律按默认 plain 处理（与引入该开关之前逐字一致），并把非法值记进日志 ——
+    # 前端传错不该让对话失败，但也不该静默变成别的模式。
+    raw_mode = str(data.get("mode") or "").strip().lower()
+    if raw_mode and raw_mode not in CHAT_STREAM_MODES:
+        logger.warning("[workbench][SSE] 未知对话模式 %r，按 plain 处理（可选：%s）",
+                       raw_mode, "/".join(CHAT_STREAM_MODES))
+    mode = raw_mode if raw_mode in CHAT_STREAM_MODES else "plain"
+
     # ── 会话解析（2026-09-07 修复） ──
     # 与 /api/chat 对齐：请求显式传了会话 ID 但后端不存在时自动创建
     # （外部调用方/旧前端可能持有过期 ID）；否则回退全局当前会话。
@@ -1566,8 +1937,11 @@ def api_chat_stream():
         # "思考与工具先出现、刷新或切会话后就没了"）。
         acc_parts: list = []
         acc_steps: list = []
+        #: 流是否**正常收尾**（区别于客户端中途断开）。只有正常收尾才写长期记忆，
+        #: 见下方 finally 里的说明。
+        completed = False
         try:
-            for _evt in _workbench_real_stream(question, session_id):
+            for _evt in _workbench_real_stream(question, session_id, mode):
                 _payload = _evt[len("data:"):].strip() if _evt.startswith("data:") else ""
                 if _payload:
                     try:
@@ -1579,6 +1953,7 @@ def api_chat_stream():
                     except Exception:
                         pass
                 yield _evt
+            completed = True
         except GeneratorExit:
             # 客户端提前断开（前端点"停止生成"或关闭标签页）
             logger.info("[workbench][SSE] 客户端断开，终止生成")
@@ -1594,6 +1969,19 @@ def api_chat_stream():
                     )
                 except Exception as _e2:
                     logger.warning("[workbench][SSE] 回复落盘失败: %s", _e2)
+                # ── 与编排器路径（/api/chat）对齐：全局记忆 + 本轮状态（2026-10-02）──
+                # 【为什么必须补】工作台是**主 UI**，此前却既不写记忆、也不写 turn_state：
+                #   ① 记忆：编排器把 user/assistant 写进 _memory（长期记忆 / 压缩 / 召回的数据源），
+                #      而工作台只写会话存储 ⇒ "面板量到的"与"被记住的"只反映另一半对话；
+                #   ② turn_state：/api/chat 会记本轮 tool_steps / reasoning 供 /api/status 等消费，
+                #      工作台只在会话消息里留 steps ⇒ 同一个会话换个入口读到的东西不一样。
+                # 【只在正常收尾时写记忆】客户端中途断开时回复是**残缺**的，
+                #   写进长期记忆会污染后续召回；会话存储仍保留部分回复（既有行为，便于用户查看）。
+                if completed and "".join(acc_parts):
+                    # 完整模式下记忆由编排器自己写（避免同一条对话在记忆里出现两遍）
+                    _persist_turn_side_effects(
+                        session_id, question, "".join(acc_parts), acc_steps,
+                        write_memory=(mode != "full"))
 
     resp = Response(stream_with_context(gen()), mimetype="text/event-stream")
     # SSE 关键响应头；after_request 会再补 no-store，对 SSE 无碍

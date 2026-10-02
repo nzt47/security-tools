@@ -6,7 +6,176 @@
 
 ---
 
-## [CHG] - 2026-08-16: L3 镜像模型缓存修复 + context 一致性预检（CI fail fast）✅
+## [CHG] - 2026-10-02（收口·追加）: 对话模式做成用户可选的三档菜单（轻量 / 检索 / 完整）✅
+
+**影响模块**: `plugins/chat.py`, `yunshu-ui/src/components/workbench/chat/ChatModeMenu.tsx`（新增）, `yunshu-ui/src/stores/useChatPrefsStore.ts`, `yunshu-ui/src/stores/useLayoutStore.ts`, `yunshu-ui/src/lib/sse.ts`, `yunshu-ui/src/components/workbench/panels/ChatPanel.tsx`
+**关联文档**: `docs/closeout/遗留清单收口_20261002.md` §8
+
+**背景**: 上一条遗留是"意图/检索/规划仍只在编排器路径跑"，我登记为"需 Owner 决策的行为与成本变更"。Owner 决定：三档都要，做成菜单自己选。
+
+### Added
+
+- **工具栏「输出格式」右侧新增「对话模式」下拉**（Bubble/紧凑/终端 的右边），三档并写明代价：
+  - ⚡ 轻量 `plain`（**默认**，与引入开关前逐字一致）：1 次模型调用、真流式；
+  - 🔎 检索 `retrieval`：在轻量之上注入检索片段（≤3000 token/轮），仍是真流式；
+  - 🧠 完整 `full`：委托编排器全链路（意图分层 + 检索 + 规划 + 工具），**非流式**、可能多轮调用。
+- 选择持久化（LocalStorage），随每次请求体 `mode` 下发；未知值后端回落 `plain` 并记日志。
+
+### 口径与不变量
+
+- 检索走编排器**同一份实现**（`_context_assembler_extra`），不另写一套；
+- 注入 token **计入上下文预算**（实测历史预算 107352 → 104486，自适应而非顶窗）；
+- 完整模式**委托而非复刻**（编排器 async 且步骤多）；记忆由编排器写，工作台 `write_memory=False` ⇒ 实测记忆 **+2 不重复**；
+- 失败可见：编排器不可用 / 抛异常 / 检索异常都明确回显，检索失败按轻量继续。
+
+### 验证结果
+
+- 后端新增 `tests/unit/test_workbench_chat_modes.py` **9 条**；前端新增 `ChatModeMenu.test.tsx` **5 条**；
+- 线上实测（重启 pid 12612）：plain 6s/27 chunk；retrieval 5s 且阶段显示「命中并注入 1433 token」、system prompt 67 → 1500 tok；full 走编排器 397 字、记忆 18 → 20；
+- `tsc` EXIT=0、`eslint` 0 problems、前端产物已重建（新菜单已在 `/chat` 生效）。
+
+---
+
+## [CHG] - 2026-10-02（收口）: 遗留清单 5 项全部关闭（flaky / effort / 压缩口径 / 两条路径 / 留痕）✅
+
+**影响模块**: `agent/circuit_breaker.py`（仅测试侧修复）, `memory/memory_manager.py`, `plugins/chat.py`, `.gitignore`, 测试四处新增/修改
+**关联文档**: `docs/closeout/遗留清单收口_20261002.md`
+
+### Fixed
+
+- **flaky 测试**（`test_circuit_breaker_boundary::test_concurrent_allow_request_during_open`）：夹具冷却期 0.1s，而 `allow_request` 到期会**惰性**转 HALF_OPEN 放行探测 ⇒ 负载高时状态抢在断言前翻转。改用 3600s 冷却期（该用例验的是"处于 OPEN 时全部拒绝"，与冷却期无关）并加状态反向锚；单文件连跑 5 次、`tests/boundary` 连跑 2 次全绿
+- **压缩触发口径**：新增 `MemoryManager._compress_accounting()` / `_should_compress_now()` —— **工具结果单独计量**，正文按阈值触发、工具结果只在自身撑爆窗口时兜底触发。核实：真实记忆 1481 条中 **0 条** tool（编排器只写 user/assistant），故今天是**防御性**的构造性事实，而非"碰巧没人写进去"
+- **主 UI 与编排器路径统一（三处）**：① 工作台**正常收尾**时按同口径写全局记忆（此前完全不写 ⇒ 记忆/压缩/召回只反映另一半对话；中途断开则不写，避免残缺回复污染召回）；② 工作台写 `turn_state`（`tool_steps` 只收真实工具事件）；③ **删掉四条拟态阶段事件**（"意图识别/知识检索/规划分解/工具调用"总是显示完成，而本路径根本没跑这些引擎）
+
+### 核实后**不做**
+
+- **`effort`（low/high/max）**：模型卡声明支持，但在 OpenAI 兼容面实测**无系统差异**（三次均值 288/335/229，low 反而比默认长；`reasoning_effort` 同样无效；该端点对未知字段不报错，故"发得出去"≠"被采纳"）。加它就是又一个"界面能调、实际无效"的死旋钮 ⇒ 不实现，结论入档
+
+### Changed
+
+- `.gitignore` 新增两条：`data/async_tasks.jsonl`、`data/subagent_delegations.jsonl`（追加式运行时留痕，性质同 `data/events/`）。**生效前提**：前者仍被跟踪，需提交本次删除或 `git rm --cached` 后规则才生效
+- 删除端到端验证留下的委派记录（保留 Owner 自己那条 `source=tool`），记录文件现存 1 条
+
+### 验证结果
+
+- 回归子集 `848 passed, 55 skipped`（含整个 `tests/boundary` 与全部被改模块的套件），EXIT=0
+- 新增用例：`test_workbench_memory_parity.py` 6 条、`test_memory_compress_accounting.py` 10 条
+- 线上实测（重启 pid 5788）：工作台一轮对话后 `/api/context/status` 的 `messages` 8 → 10、`current_tokens` 804 → 816（**记忆确实被写入**）；流式事件的阶段只剩 `对话准备 / 上下文装配 / 生成回复`（拟态阶段消失）
+
+### 仍登记为遗留（需 Owner 决策，非本轮范围）
+
+- 意图 / 知识检索 / 规划仍只在编排器路径上跑；让工作台也跑属**行为与成本变更**（改变回复内容、增加延迟与花费）
+---
+
+## [CHG] - 2026-10-02（追加）: 主 UI（工作台流式）此前根本不吃这两个旋钮 —— 已接线 ✅
+
+**影响模块**: `agent/chat_limits.py`（新增）, `agent/orchestrator/orchestrator.py`, `plugins/chat.py`, `tests/unit/test_workbench_sse_thinking.py`
+**关联文档**: `docs/closeout/上下文三旋钮口径与能力对齐_20261002.md` §5
+
+**发现**（在上一节改完上线后核对"用户天天在用的那条路"）：工作台走的是 `POST /api/chat/stream`，
+而 `plugins/chat.py::_workbench_real_stream` 里：
+
+- `max_tokens=2048` **写死**在请求体里 ⇒ 面板把「单次回复」调到 16384 对主 UI **零作用**，回复被卡在模型的 1/192；
+- 历史 `hist[-8:]` **写死最近 8 条** ⇒ 窗口从 32768 调到 131072 对主 UI **零作用**；
+- 带入多少上下文**完全不可观测**。
+
+即：上一节的数字修正一度只对 `/api/chat`（旧 hub 会话页）生效 —— 同一份对话换个入口换一套口径。
+
+### Fixed
+
+- **单一口径模块 `agent/chat_limits.py`**：`resolve_max_output_tokens()`（配置优先 / 模型档位下限 / 硬上限收敛）与 `resolve_context_budget()`（窗口 − 系统提示 − 工具 schema − 回复上限 − 余量）；编排层 `_resolve_max_output_tokens` 改为委托它（方法名/属性不变），工作台直接调它
+- **工作台历史按 token 预算裁**：取本会话全部历史（软上限 400 条）后自后向前累计到预算用尽，至少保留 2 条（`_select_within_budget`）
+- **`max_tokens` 改为解析值**（优先问编排器，取不到按同一规则自算）：实测 **2048 → 16384**
+- **装配可见**：新增 `thinking` 事件 `id=context-budget`（窗口/系统提示/工具/回复上限/历史预算/带入条数）；超「单次发送」阈值时推 `id=send-limit` 告警（只告警不截断）
+- **不触发重量级导入**：`_app_server_or_none()` 用 `sys.modules.get("app_server")` 取已加载模块（`import app_server` 会执行整套装配、在测试进程里是副作用）
+
+### 验证结果
+
+- 线上实测（重启 pid 12344）：`context-budget` 事件 = `窗口 131072 · 系统提示 67 tok · 工具 6757 tok · 回复上限 16384 ⇒ 历史预算 107352；带入 5 条`；正文 `chunk=18, done=1` 正常流出
+- 新增 7 条用例（`test_workbench_sse_thinking.py`：上限来自配置 / 未配置兜底 / 历史不再固定 8 条 / 小窗口按预算裁到 2 条 / `context-budget` 可见 / 超限只告警且原文完整 / 未超限不告警）
+- 相关子集 `156 passed`（workbench SSE / 上下文读数 / 三旋钮对齐 / 会话步骤持久化 / 流式用量可观测 / config 边界）
+---
+
+## [CHG] - 2026-10-02: 上下文三旋钮（最大 Token / 单次发送 / 单次回复）口径对齐 + 真正生效 ✅
+
+**影响模块**: `config.py`, `config.yaml`, `agent/orchestrator/orchestrator.py`, `plugins/memory.py`, `plugins/chat.py`, `yunshu-ui/src/components/workbench/panels/ContextManagerBar.tsx`, `templates/index.html`, `tests/unit/test_context_limits_alignment.py`（新增）, `tests/unit/test_s11_03_context_readings.py`, `tests/boundary/test_config_boundary.py`
+**关联文档**: `docs/closeout/上下文三旋钮口径与能力对齐_20261002.md`
+
+**触发**: 线上提问 ——「上下文最大 Token / 单次发送 / 单次回复的默认值是不是太小？没几下就用完」
+
+### 实测结论（先拿数说话）
+
+- **模型侧几乎没有限制**：`GET /v1/models` 直答 `deepseek-flash` = DeepSeek-V4.1-Flash，`context_window=1048576`、`max_output_tokens=393216`；`max_tokens=200000` 的请求实测被接受（HTTP 200）
+- **云枢侧三处不一致**：面板分母 `19968`／真正组装窗口 `32768`／代码默认 `4096`；两个 per-message 旋钮**全仓零强制点**；回复上限是 `orchestrator` 里按模型名硬编码的 **8192**（模型的 1/48）
+- **"没几下就用完"的直接来源**：面板把「累计压缩次数 ≥5」判成 critical ⇒ 占用 22% 也常年报红（真机 `compress_rounds=23`，它是摘要版本号、累计值，与占用无关）
+
+### Fixed
+
+- **回复上限改为配置驱动**：新增 `Orchestrator._resolve_max_output_tokens()` —— 配置优先、模型名启发式只当**下限**（未配置时与改动前逐字一致、单调不减）、`CP_CHAT_MAX_OUTPUT_CEILING` 硬上限收敛；「单次回复」旋钮**真正生效**
+- **面板分母口径统一**：`/api/context/status` 取 `context_limit_info()`（与 `/api/chat` 的 `context.token_limit` 同一事实源）并披露 `token_limit_source`；取不到时报 `None`（不拿硬编码冒充分母）
+- **档位按占用判**：「摘要退化」用独立 `compress_degraded`/`status_reasons` 表达；删掉死代码 `pct_warn = pct >= 80 or pct >= 60`
+- **滑块真正生效**：新增 `_push_runtime_window()`，把新窗口推给**运行中**的编排器（`_memory_token_limit` + `MemoryManager._token_limit`），并回报 `runtime_applied`；此前只改 `_cfg` 副本 ⇒ 面板数字变了、组装窗口没动
+- **"单次发送"改为只告警不截断**：`/api/chat` 响应新增 `context.send_limit`（`semantics=warn_only`）并在超限时 WARNING；**绝不**静默丢弃用户原文（产品决定）
+- **挖出并修掉第四、五层口径**：`config.py` 另有字典校验器 `validate_config` 与修正器 `validate_and_fix_config`，各自硬编码 `4096/32768` ⇒ 把 config.yaml 写成 `131072` 会被**静默改回 4096**（"调大窗口"在两层各失败一次且只有一条 WARNING）。现把六个数字收口成模块常量，四处引用同一份；修正目标改为默认常量
+
+### Changed
+
+- `config.yaml:memory.token_limit` **32768 → 131072**（实测模型窗口的 1/8，成本折中）；`config.py` 值域 `512..32768 → 512..1048576`
+- 默认值：`token_limit=131072`、`per_message_send_limit=8192`（告警阈值）、`per_message_recv_limit=16384`（真实 max_tokens）
+- `POST /api/context/config` 值域放宽（窗口 1048576 / 发送 131072 / 回复 393216）并回报 `runtime_applied`
+- 前端工作台面板与 legacy 页：值域、文案（"超限只告警不截断"）、窗口**来源**、成因分列，`percentage=null` 时显示 `—%`
+
+### 验证结果
+
+- 新增 `tests/unit/test_context_limits_alignment.py`（22 条：解析器 / 推送 / 面板口径 / POST 值域 / 四处定义同口径 / 131072 穿过全部校验层 / `32769` 回归锚）；`test_s11_03_context_readings.py` 增 2 条（超限只告警、原文一字不差进会话）
+- `tests/boundary` + 相关子集 `821 passed, 34 skipped`；唯一 1 条失败是熔断器并发时间竞态（单跑 3/3 通过，与本改动无关）
+- 前端 `tsc` EXIT=0、`vitest run src/components/workbench src/workbench` → **107 passed**
+- 线上实测：`/api/context/status` → `token_limit=131072 / source=config.yaml:memory.token_limit / status_level=ok / reasons=[summary_degraded]`；`POST` 改窗口 `runtime_applied=True` 且来源切到 `runtime_override(api)`；值域收敛 `recv=393216 send=131072`
+
+### 遗留
+
+- 工具结果未从压缩触发口径里单独计量（"一次大工具输出 = 一次压缩"行为不变，原立项保留）
+- provider 另支持 `effort: low/high/max`（默认 high），云枢未使用；需要更快/更省时可立项
+---
+
+## [CHG] - 2026-10-02: 会话任务面板「子代理 / 后台任务」补委派记录与历史摘要（不再"永远为空且不说原因"）✅
+
+**影响模块**: `yunshu-ui/src/components/workbench/chat/SubagentMenu.tsx`, `yunshu-ui/src/components/workbench/chat/BackgroundTasksMenu.tsx`, `agent/jsonl_history.py`（新增）, `agent/subagent/delegation_history.py`（新增）, `agent/subagent/container.py`, `agent/subagent/lifecycle.py`, `agent/tools/subagent_tools.py`, `agent/tools/fan_out_tools.py`, `agent/server_routes/routes_subagent.py`, `agent/server_routes/routes_background.py`, `tests/conftest.py`
+**关联文档**: `docs/closeout/会话任务面板_子代理与后台任务_20261002.md`（根因链 + 验证证据）
+
+### Fixed — 「有业务发生也永远看不到东西」的真实原因
+
+- **子代理下拉的集合恒为空**：`/api/subagent/list` 读的是**当前存活的分身容器**，而所有委派都传 `destroy_after=True`（跑完即回收）⇒ 界面只能看到"什么都没发生"。修法：新增**委派记录**数据源（每次委派落一条轻量记录，与容器是否还活着无关）
+- **后台任务列表是内存态**：完成任务超过 `result_ttl`（缺省 1 小时）被清理、进程重启即清空；执行器另有 `data/async_tasks.jsonl` 追加写但**代码从不回读** ⇒"跑过"这件事在界面上彻底消失。修法：列表响应回带**历史摘要**（总量 + 最近 5 条）
+- **陈旧选择**：`localStorage` 里保存的分身名随容器回收失效，却仍被当作委托目标发出 ⇒ 404「分身不存在」。修法：目标只取活跃分身，并显式提示 + 提供「清除选择」
+- **空态无解释**：无活跃分身时按钮禁用、点击静默 `return`，用户点不动也看不到原因。修法：按钮在标签上直说原因（转琥珀色），点击给出**指名下一步**的说明
+
+### Added
+
+- **`GET /api/subagent/history?limit=`**：委派记录（最新在前，limit 收敛 [1,100]）；静态路径优先于 `/api/subagent/<name>`（有用例钉死）
+- **`POST /api/subagent/delegate`（临时分身委派）**：不要求先存在分身 —— 走 `SubagentLifecycleManager.delegate(..., destroy_after=True, source="ui")`，与模型侧 `delegate` 工具、`fan_out` 同一条链路（现建现用、跑完即回收）。八要素缺省补齐 / 拒绝文案 / 工具白名单 / 要素回显全部抽成模块级 helper，两条委派入口共用一份；具名端点 404 增 `hint` 指向它
+- **`agent/jsonl_history.py`**：JSONL 尾部窗口读 / 计数 / 追加（两条消费方共用一份实现，避免"同一口径写两遍"）
+- **`agent/subagent/delegation_history.py`**：委派记录存储（`<仓库根>/data/subagent_delegations.jsonl`，**只记元信息**，不落交付物正文）；记录点在两处咽喉 —— `container.run_delegation`（单发）与 `lifecycle._record_batch`（批量走 `execute_many`，不经过容器）
+- 记录带 `source` 标注：`ui` / `tool` / `fan_out` / `lifecycle`，界面据此显示来源
+
+### Changed
+
+- **SubagentMenu**：新增「委派记录」区（成功/失败、来源、耗时、tier、产物数、目标、错误 + 「复用目标」回填）；空态补"委派跑完即回收，常年为空属正常"
+- **BackgroundTasksMenu**：空态展示历史提交摘要；头部统计追加 `· 历史 N`；`total=null`（文件过大未统计）显示为"条数未统计"而不是 0
+- **测试洁净（TESTHYG-2）**：`tests/conftest.py` 会话级重定向委派记录文件 —— 跑真委派的用例（`test_fan_out.py` / `test_subagent_container_delegation.py`）不再往仓库 `data/` 写测试夹具记录
+
+### 验证结果
+
+- 后端：`150 passed`（子代理容器 / 批量 / 委派路由 / 后台路由 / 新增工具与存储），新增三个测试文件 36 条全绿；真实入口守门 `import app_server` 后 `/api/subagent/history` 在 `url_map`
+- 前端：`tsc -b --noEmit` EXIT=0；`eslint` 0 problems；`vitest run src/components/workbench/chat` → **41 passed**（含"活跃列表为空也展示委派记录""陈旧选择回落活跃分身""空态历史摘要"等新用例）
+- 线上实测（后端重启 pid 5764→18380→17856）：`GET /api/subagent/history` → `200 {"count":0,"records":[],"total":0}`；`GET /api/background/tasks` → `history.total=611, path=data/async_tasks.jsonl`（5 条样本）
+- 污染回归：隔离夹具落地前后对比 —— 复跑 `122 passed` 且仓库 `data/` 两处候选路径均干净
+
+### 遗留
+
+- ~~界面「委托执行」仍要求存在活跃分身~~ → **本轮已做**：`POST /api/subagent/delegate`（临时分身）；界面在没有任何分身时也能真委派
+- ~~`data/async_tasks.jsonl` 的 611 条历史测试夹具~~ → **已删除**（核对：609 条全部落在 2026-06-19 同一批测试，无一条真实生产路径记录；该文件是执行器追加日志，下次真跑任务会重建）
+- 工作区里 `data/system_prompt_config.json` / `data/system_prompt.txt` 的 diff **非本次改动**（mtime 12:43:05，早于本次改动与重启），属先前通过界面做出的配置决定，故不回滚；归属说明见交付报告附录
 
 **影响模块**: `docker-compose.linux-test.yml`, `scripts/predownload_l3_hf_cache.ps1`（新增）, `scripts/ci_l3_context_preflight.py`（新增）, `.github/workflows/l3-docker-tests.yml`, `README.md`
 **关联提交**: `d01c1df4`（fix: HF 缓存路径 hub 后缀 + hf-mirror 预下载脚本）, `628616cb`（feat: context 预检脚本 + README 知识库 + 移除畸形文件）

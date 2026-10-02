@@ -685,22 +685,23 @@
                 <div class="ctx-section">
                   <div class="ctx-slider-row">
                     <label>最大 Token</label>
-                    <input type="range" min="512" max="32768" step="512" id="ctx-slider-limit" oninput="ctxSliderPreview(this, 'ctx-slider-limit-val')" onchange="ctxSaveConfig()">
-                    <span class="ctx-slider-val" id="ctx-slider-limit-val">4096</span>
+                    <!-- 2026-10-02：值域对齐真实模型能力（deepseek-flash 实测 context_window=1048576 / max_output_tokens=393216） -->
+                    <input type="range" min="8192" max="1048576" step="8192" id="ctx-slider-limit" oninput="ctxSliderPreview(this, 'ctx-slider-limit-val')" onchange="ctxSaveConfig()">
+                    <span class="ctx-slider-val" id="ctx-slider-limit-val">131072</span>
                   </div>
-                  <div class="ctx-hint ctx-hint-slider">滑动调整上下文窗口上限，超限的最旧消息会被丢弃</div>
+                  <div class="ctx-hint ctx-hint-slider">上下文窗口上限；超限丢弃最旧消息（改完当场生效，重启后回落 config.yaml）</div>
                   <div class="ctx-slider-row">
                     <label>发送上限</label>
-                    <input type="range" min="0" max="8192" step="128" id="ctx-slider-send" oninput="ctxSliderPreview(this, 'ctx-slider-send-val')" onchange="ctxSaveConfig()">
-                    <span class="ctx-slider-val" id="ctx-slider-send-val">2048</span>
+                    <input type="range" min="1024" max="131072" step="1024" id="ctx-slider-send" oninput="ctxSliderPreview(this, 'ctx-slider-send-val')" onchange="ctxSaveConfig()">
+                    <span class="ctx-slider-val" id="ctx-slider-send-val">8192</span>
                   </div>
-                  <div class="ctx-hint ctx-hint-slider">单次发送消息最大 token，超限截断</div>
+                  <div class="ctx-hint ctx-hint-slider">单条消息最大 token —— <b>超限只告警，不截断原文</b></div>
                   <div class="ctx-slider-row">
                     <label>接收上限</label>
-                    <input type="range" min="0" max="8192" step="128" id="ctx-slider-recv" oninput="ctxSliderPreview(this, 'ctx-slider-recv-val')" onchange="ctxSaveConfig()">
-                    <span class="ctx-slider-val" id="ctx-slider-recv-val">4096</span>
+                    <input type="range" min="1024" max="131072" step="1024" id="ctx-slider-recv" oninput="ctxSliderPreview(this, 'ctx-slider-recv-val')" onchange="ctxSaveConfig()">
+                    <span class="ctx-slider-val" id="ctx-slider-recv-val">16384</span>
                   </div>
-                  <div class="ctx-hint ctx-hint-slider">单次回复最大 token，超限截断</div>
+                  <div class="ctx-hint ctx-hint-slider">单次回复的 max_tokens（真实生效，受模型能力约束）</div>
                   <div class="ctx-actions">
                     <button onclick="manualCompress()">🔄 手动压缩</button>
                     <button onclick="resetContextStats()">📊 重置统计</button>
@@ -3967,7 +3968,7 @@ async function fetchContextStatus() {
 /** 更新 UI */
 function updateContextUI(data) {
   const pct = data.percentage || 0;
-  const limit = data.token_limit || 4096;
+  const limit = data.token_limit || 131072;  // 2026-10-02：兜底值同步到新默认
   const total = data.current_tokens || 0;
   const rounds = data.compress_rounds || 0;
   const statusLevel = data.status_level || 'ok';
@@ -4042,9 +4043,9 @@ function updateContextUI(data) {
   const sl = s('ctx-slider-limit');
   if (sl && !sl.matches(':focus')) { sl.value = limit; s('ctx-slider-limit-val').textContent = limit; }
   const ss = s('ctx-slider-send');
-  if (ss && !ss.matches(':focus')) { ss.value = data.per_message_send_limit || 2048; s('ctx-slider-send-val').textContent = data.per_message_send_limit || 2048; }
+  if (ss && !ss.matches(':focus')) { ss.value = data.per_message_send_limit || 8192; s('ctx-slider-send-val').textContent = data.per_message_send_limit || 8192; }
   const sr = s('ctx-slider-recv');
-  if (sr && !sr.matches(':focus')) { sr.value = data.per_message_recv_limit || 4096; s('ctx-slider-recv-val').textContent = data.per_message_recv_limit || 4096; }
+  if (sr && !sr.matches(':focus')) { sr.value = data.per_message_recv_limit || 16384; s('ctx-slider-recv-val').textContent = data.per_message_recv_limit || 16384; }
 
   // 最近消息
   const msgsList = s('ctx-recent-msgs');
@@ -4066,9 +4067,9 @@ function ctxSliderPreview(input, valId) { document.getElementById(valId).textCon
 function ctxSaveConfig() {
   if (_ctxDebounceTimer) clearTimeout(_ctxDebounceTimer);
   _ctxDebounceTimer = setTimeout(async () => {
-    const limit = parseInt(document.getElementById('ctx-slider-limit').value) || 4096;
-    const send = parseInt(document.getElementById('ctx-slider-send').value) || 2048;
-    const recv = parseInt(document.getElementById('ctx-slider-recv').value) || 4096;
+    const limit = parseInt(document.getElementById('ctx-slider-limit').value) || 131072;
+    const send = parseInt(document.getElementById('ctx-slider-send').value) || 8192;
+    const recv = parseInt(document.getElementById('ctx-slider-recv').value) || 16384;
     try {
       const res = await fetch('/api/context/config', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },

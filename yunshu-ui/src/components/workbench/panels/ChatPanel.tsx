@@ -14,6 +14,7 @@ import { CHAT_FORMATS, chatStyleVars, useChatPrefsStore, type ChatFormat } from 
 import { MessageItem, isToolStep } from '../chat/MessageItem';
 import { MessageInput } from '../chat/MessageInput';
 import { ChatStyleMenu } from '../chat/ChatStyleMenu';
+import { ChatModeMenu } from '../chat/ChatModeMenu';
 import { authHeader } from '@/lib/apiToken';
 
 const SUGGESTIONS = [
@@ -273,6 +274,10 @@ export function ChatPanel() {
             </button>
           ))}
         </div>
+
+        {/* 对话模式（后端跑哪条链路：轻量 / 检索 / 完整）——
+            紧跟「输出格式」右侧：一个管"怎么看"，一个管"怎么跑"，放一起才找得到 */}
+        <ChatModeMenu />
 
         <div className="ml-auto flex items-center gap-2">
           <span className="hidden text-[10px] text-slate-600 sm:inline">风格设置可调主题 / 气泡 / 字号</span>

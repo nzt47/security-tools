@@ -34,6 +34,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from config import (
     Config,
     ConfigValidationError,
+    MEMORY_TOKEN_LIMIT_DEFAULT,
+    MEMORY_TOKEN_LIMIT_MAX,
+    MEMORY_TOKEN_LIMIT_MIN,
     validate_config,
     validate_and_fix_config,
     _basic_validation,
@@ -354,11 +357,11 @@ class TestValidateAndFixBoundary:
         assert len(timeout_errors) >= 1
 
     def test_invalid_token_limit_fixed_to_default(self, valid_config):
-        """无效 token_limit 修复为默认值 4096"""
+        """无效 token_limit 修复为**默认值**（默认值本身是常量，测试不再写死数字）"""
         config = deepcopy(valid_config)
-        config["memory"]["token_limit"] = 999999
+        config["memory"]["token_limit"] = 10 ** 9
         fixed, errors = validate_and_fix_config(config)
-        assert fixed["memory"]["token_limit"] == 4096
+        assert fixed["memory"]["token_limit"] == MEMORY_TOKEN_LIMIT_DEFAULT
 
     def test_invalid_check_interval_fixed_to_default(self, valid_config):
         """无效 check_interval 修复为默认值 30"""
@@ -405,18 +408,32 @@ class TestValidateAndFixExtreme:
         assert fixed["memory"]["llm"]["timeout"] == 30
 
     def test_extreme_token_limit_below_min_fixed(self, valid_config):
-        """token_limit=511（低于 512）修复为默认值"""
+        """低于下限 ⇒ 修复为默认值"""
         config = deepcopy(valid_config)
-        config["memory"]["token_limit"] = 511
+        config["memory"]["token_limit"] = MEMORY_TOKEN_LIMIT_MIN - 1
         fixed, errors = validate_and_fix_config(config)
-        assert fixed["memory"]["token_limit"] == 4096
+        assert fixed["memory"]["token_limit"] == MEMORY_TOKEN_LIMIT_DEFAULT
 
     def test_extreme_token_limit_above_max_fixed(self, valid_config):
-        """token_limit=32769（超过 32768）修复为默认值"""
+        """高于**新**上限 ⇒ 修复为默认值（上限已按实测模型能力放宽到 1048576）"""
+        config = deepcopy(valid_config)
+        config["memory"]["token_limit"] = MEMORY_TOKEN_LIMIT_MAX + 1
+        fixed, errors = validate_and_fix_config(config)
+        assert fixed["memory"]["token_limit"] == MEMORY_TOKEN_LIMIT_DEFAULT
+
+    def test_32769_不再是非法值_回归锚(self, valid_config):
+        """**回归锚**：32769 曾因校验器上限 32768 被判非法并静默改回 4096，
+
+        于是"把窗口调大"这件事在字典校验器与修正器里各失败一次、且只有一条 WARNING
+        （2026-10-02 实测踩到）。现在它必须原样通过。
+        """
         config = deepcopy(valid_config)
         config["memory"]["token_limit"] = 32769
-        fixed, errors = validate_and_fix_config(config)
-        assert fixed["memory"]["token_limit"] == 4096
+        errors = validate_config(config)
+        assert not [e for e in errors if e.get("loc") == "memory.token_limit"], errors
+        fixed, fix_errors = validate_and_fix_config(config)
+        assert fixed["memory"]["token_limit"] == 32769
+        assert not [e for e in fix_errors if e.get("loc") == "memory.token_limit"]
 
     def test_extreme_check_interval_below_min_fixed(self, valid_config):
         """check_interval=4（低于 5）修复为默认值"""
@@ -517,17 +534,17 @@ class TestBasicValidationBoundary:
         assert len(timeout_errors) >= 1
 
     def test_extreme_token_limit_below_min(self, valid_config):
-        """token_limit=511 报错"""
+        """低于下限（512-1）报错"""
         config = deepcopy(valid_config)
-        config["memory"]["token_limit"] = 511
+        config["memory"]["token_limit"] = MEMORY_TOKEN_LIMIT_MIN - 1
         errors = _basic_validation(config)
         token_errors = [e for e in errors if "token_limit" in e.get("loc", "")]
         assert len(token_errors) >= 1
 
     def test_extreme_token_limit_above_max(self, valid_config):
-        """token_limit=32769 报错"""
+        """高于上限（1048576+1）报错 —— 上限已按实测模型能力放宽，故用常量而非 32769"""
         config = deepcopy(valid_config)
-        config["memory"]["token_limit"] = 32769
+        config["memory"]["token_limit"] = MEMORY_TOKEN_LIMIT_MAX + 1
         errors = _basic_validation(config)
         token_errors = [e for e in errors if "token_limit" in e.get("loc", "")]
         assert len(token_errors) >= 1

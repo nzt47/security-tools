@@ -605,7 +605,7 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
             # → executor.execute_many 并发执行 → 统一回收；结果与 specs 等长同序
             outcomes = list(manager.delegate_many(
                 specs, executor=executor, llm=llm, max_concurrency=concurrency,
-                tools_for=_tools_for, authorized_for=_tools_for))
+                tools_for=_tools_for, authorized_for=_tools_for, source="fan_out"))
         except Exception as e:  # noqa: BLE001  批量入口异常 → 逐任务失败，不外抛
             logger.error("[fan_out] 批量执行入口异常: %s", e, exc_info=True)
             outcomes = []

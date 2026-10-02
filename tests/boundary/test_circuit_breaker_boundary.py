@@ -405,18 +405,37 @@ class TestConcurrencySafety:
         assert stats.total_calls == num_threads * calls_per_thread
         assert stats.success_count == num_threads * calls_per_thread
 
-    def test_concurrent_allow_request_during_open(self, fast_breaker):
-        """熔断状态下并发调用 allow_request 全部被拒绝"""
+    def test_concurrent_allow_request_during_open(self):
+        """OPEN 状态下并发调用 allow_request 全部被拒绝
+
+        【2026-10-02 修 flaky（全量偶发红、单跑必过）】
+        【根因】原先本用例用 `fast_breaker`（**cooldown_seconds=0.1**）—— 那是为"观察状态转换"
+        造的夹具。而 `allow_request` 会在冷却期到期时**惰性**把 OPEN 转成 HALF_OPEN 并放行探测
+        （circuit_breaker.py:308-318）。机器一忙，从 `record_result` 打开熔断到 20 个线程真正
+        各调一次之间就可能过去 >100ms ⇒ 状态早已是 HALF_OPEN ⇒ 前 3 个探测返回 True ⇒ 断言失败。
+        【修法】本用例要验证的是"**处于 OPEN 时**全部拒绝"，与冷却期无关，故改用长冷却期的
+        熔断器，把那段时间窗口彻底消掉 —— 断言强度一字未减，只是不再依赖调度时序。
+        """
+        breaker = CircuitBreaker(
+            name="open_state_concurrency",
+            failure_threshold=0.3,
+            min_calls=5,
+            # 关键：冷却期必须远大于本用例的执行时间，否则 OPEN→HALF_OPEN 会抢在断言之前
+            cooldown_seconds=3600.0,
+            half_open_max_calls=3,
+            half_open_success_threshold=2,
+            window_seconds=60.0,
+        )
         for _ in range(3):
-            fast_breaker.record_result(True)
+            breaker.record_result(True)
         for _ in range(2):
-            fast_breaker.record_result(False)
-        assert fast_breaker.state == CircuitState.OPEN
+            breaker.record_result(False)
+        assert breaker.state == CircuitState.OPEN
 
         results = []
 
         def check():
-            results.append(fast_breaker.allow_request())
+            results.append(breaker.allow_request())
 
         threads = [threading.Thread(target=check) for _ in range(20)]
         for t in threads:
@@ -426,6 +445,9 @@ class TestConcurrencySafety:
 
         assert len(results) == 20
         assert all(r is False for r in results)
+        # 反向锚：所有拒绝都必须发生在**仍处于 OPEN** 的前提下
+        # （若哪天有人把"冷却期"调成 0 或改了惰性转换，这里会立刻说话）
+        assert breaker.state == CircuitState.OPEN
 
 
 # ═════════════════════════════════════════════════════════════════

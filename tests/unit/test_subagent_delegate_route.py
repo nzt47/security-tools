@@ -54,8 +54,12 @@ class FakeContainer:
 
 
 class FakeLifecycleManager:
-    def __init__(self, container: FakeContainer | None):
+    """生命周期管理器替身：具名端点用 get()，临时分身端点用 delegate()"""
+
+    def __init__(self, container: FakeContainer | None, outcome: FakeOutcome | None = None):
         self.container = container
+        self.delegate_outcome = outcome or FakeOutcome()
+        self.delegate_calls: list[Dict[str, Any]] = []
 
     def get(self, name):
         if self.container is None:
@@ -64,6 +68,11 @@ class FakeLifecycleManager:
 
     def list(self):
         return []
+
+    def delegate(self, config, ctx, **kw):
+        """临时分身委派：真件会"建容器 → 执行 → 回收"，这里只记录入参并返回预设结果"""
+        self.delegate_calls.append({"config": config, "ctx": ctx, **kw})
+        return self.delegate_outcome
 
 
 class FakeYunshu:
@@ -86,8 +95,9 @@ class FakeYunshu:
 @pytest.fixture
 def make_client(monkeypatch):
     """构造 client；monkeypatch 掉 require_token 鉴权装饰器不生效（register_routes 内绑定）"""
-    def _make(container: FakeContainer | None = None, llm: Any = "fake-llm"):
-        state = type("S", (), {"Yunshu": FakeYunshu(container, llm)})()
+    def _make(container: FakeContainer | None = None, llm: Any = "fake-llm",
+              manager: Any = "auto"):
+        state = type("S", (), {"Yunshu": FakeYunshu(container, llm, manager)})()
         app = Flask(__name__)
         app.config.update(TESTING=True)
         register_routes(app, state)
@@ -113,6 +123,8 @@ class TestDelegateHappyPath:
         # 走的是 run_delegation（不是占位 execute）
         assert len(container.calls) == 1
         call = container.calls[0]
+        # 委派来源标注：界面发起必须标成 ui，委派记录里才能与模型工具/fan_out 区分开
+        assert call["source"] == "ui"
         ctx = call["ctx"]
         assert ctx.goal == "把 docs 下的设计稿抽取为步骤序列"
         # 缺省补齐的八要素（②不得为空列表；④默认给出禁止事项）
@@ -251,3 +263,109 @@ class TestExecuteStaysSkeleton:
         r = client.post("/api/subagent/sa-1/execute", json={"task": "任意任务"})
         assert r.status_code == 200
         assert r.get_json()["result"]["output"] == "占位"
+
+
+class TestEphemeralDelegate:
+    """临时分身委派（POST /api/subagent/delegate）：**不要求先存在分身**
+
+    线上反馈的正面修法：具名端点要求 `mgr.get(name)` 命中存活容器，而容器跑完即回收，
+    于是"列表为空 ⇒ 无法委托 ⇒ 只能先去装配车间手工造一个"。本端点走
+    `SubagentLifecycleManager.delegate`：现建临时分身 → 执行 → 立即回收。
+    """
+
+    def test_一个分身都没有也能真委派_且强制回收(self, make_client):
+        mgr = FakeLifecycleManager(FakeContainer())
+        client, _ = make_client(manager=mgr)
+
+        r = client.post("/api/subagent/delegate",
+                        json={"task": "把 docs 下的设计稿抽取为可复现步骤序列"})
+        assert r.status_code == 200, r.get_data(as_text=True)
+        body = r.get_json()
+        assert body["ok"] is True
+        assert body["ephemeral"] is True, "响应要能让界面区分「临时分身」与「用户选的分身」"
+        assert "子代理的真实产出" in body["result"], "结果形状与模型侧 delegate 工具同源"
+
+        assert len(mgr.delegate_calls) == 1
+        call = mgr.delegate_calls[0]
+        assert call["destroy_after"] is True, "临时分身必须用完即回收（否则会撞 max_subagents）"
+        assert call["source"] == "ui", "委派记录里要能区分界面发起"
+        assert call["config"].name, "要给生命周期管理器一个非空名字（消歧与 TTL 由它负责）"
+        assert call["ctx"].goal == "把 docs 下的设计稿抽取为可复现步骤序列"
+        # 八要素缺省补齐与具名端点同一份规则
+        assert list(call["ctx"].constraints) == ["只读为主，不得修改仓库文件"]
+        assert list(call["ctx"].prohibitions) == ["不得对外发送数据"]
+        assert body["elements"]["budget_tokens"] == 4000
+        assert body["elements"]["timeout_seconds"] == 120
+        # 工具子集与模型侧同源（只读白名单），不是空集也不是全量
+        assert call["tools"] == call["authorized_capabilities"]
+
+    def test_八要素可由请求覆盖(self, make_client):
+        mgr = FakeLifecycleManager(FakeContainer())
+        client, _ = make_client(manager=mgr)
+        client.post("/api/subagent/delegate", json={
+            "task": "把 docs 下的设计稿抽取为可复现步骤序列",
+            "constraints": ["只读", "不联网"], "prohibitions": ["不得删除任何文件"],
+            "artifact_format": "markdown 表格", "budget_tokens": 1500, "timeout_seconds": 45,
+        })
+        ctx = mgr.delegate_calls[0]["ctx"]
+        assert list(ctx.constraints) == ["只读", "不联网"]
+        assert list(ctx.prohibitions) == ["不得删除任何文件"]
+        assert ctx.artifact_format == "markdown 表格"
+        assert (ctx.budget_tokens, ctx.timeout_seconds) == (1500, 45)
+
+    def test_分身系统未启用_409(self, make_client):
+        client, _ = make_client(manager=None)  # subagent.enabled=False 的等价形态
+        r = client.post("/api/subagent/delegate", json={"task": "一个足够长的目标任务"})
+        assert r.status_code == 409
+        assert r.get_json()["error_code"] == "E_SUBAGENT_UNAVAILABLE"
+
+    def test_无执行通道_409_且不跑空执行(self, make_client):
+        mgr = FakeLifecycleManager(FakeContainer())
+        client, _ = make_client(llm=None, manager=mgr)
+        r = client.post("/api/subagent/delegate", json={"task": "一个足够长的目标任务"})
+        assert r.status_code == 409
+        assert r.get_json()["error_code"] == "E_DELEGATION_NO_CHANNEL"
+        assert mgr.delegate_calls == [], "没有执行通道时不该发起委派"
+
+    def test_目标过短_400(self, make_client):
+        mgr = FakeLifecycleManager(FakeContainer())
+        client, _ = make_client(manager=mgr)
+        r = client.post("/api/subagent/delegate", json={"task": "太短"})
+        assert r.status_code == 400
+        assert r.get_json()["error_code"] == "E_DELEGATION_INCOMPLETE"
+        assert mgr.delegate_calls == []
+
+    def test_预算或超时非整数_400(self, make_client):
+        mgr = FakeLifecycleManager(FakeContainer())
+        client, _ = make_client(manager=mgr)
+        r = client.post("/api/subagent/delegate",
+                        json={"task": "一个足够长的目标任务", "budget_tokens": "很多"})
+        assert r.status_code == 400
+        assert "整数" in r.get_json()["error"]
+        assert mgr.delegate_calls == []
+
+    def test_两条委派路由互不遮蔽(self, make_client):
+        """静态 /api/subagent/delegate 与 /api/subagent/<name>/delegate 必须各自可达"""
+        container = FakeContainer()
+        mgr = FakeLifecycleManager(container)
+        client, _ = make_client(container, manager=mgr)
+        rules = {str(x.rule) for x in client.application.url_map.iter_rules()}
+        assert "/api/subagent/delegate" in rules
+        assert "/api/subagent/<name>/delegate" in rules
+
+        named = client.post("/api/subagent/sa-1/delegate", json={"task": "具名分身的任务目标"})
+        temp = client.post("/api/subagent/delegate", json={"task": "临时分身的任务目标"})
+        assert named.status_code == 200 and named.get_json().get("ephemeral") is None
+        assert temp.status_code == 200 and temp.get_json()["ephemeral"] is True
+        assert [c["ctx"].goal for c in container.calls] == ["具名分身的任务目标"]
+        assert [c["ctx"].goal for c in mgr.delegate_calls] == ["临时分身的任务目标"]
+
+    def test_具名端点分身不存在时给出临时分身去处(self, make_client):
+        mgr = FakeLifecycleManager(FakeContainer())
+        client, _ = make_client(container=None, manager=mgr)
+        r = client.post("/api/subagent/sa-gone/delegate", json={"task": "一个足够长的目标任务"})
+        assert r.status_code == 404
+        body = r.get_json()
+        assert "分身不存在" in body["error"]
+        # 404 不该是死路：告诉调用方还有临时分身入口可用
+        assert "/api/subagent/delegate" in body["hint"]

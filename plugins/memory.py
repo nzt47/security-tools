@@ -58,6 +58,69 @@ def _view(*, auth=False, log=None):
 
 
 # ════════════════════════════════════════════════════════════
+#  上下文口径：窗口上限的单一事实源
+# ════════════════════════════════════════════════════════════
+
+def _context_limit_info(yunshu):
+    """读取**编排窗口上限**及其来源（与 plugins/chat.py 的 _context_limit_info 同口径）
+
+    单一事实源是 ``DigitalLife.context_limit_info()``（LifecycleManager 初始化时写入
+    ``_memory_token_limit`` / ``_memory_token_limit_source``，见
+    agent/orchestrator/lifecycle_manager.py:283-289）。
+
+    【不易】取不到时返回 ``limit_tokens=None`` + ``limit_source="unavailable"``，
+    **绝不**回退到 4096 之类的硬编码值 —— 那比没有读数更坏：它看起来像个可信的数，
+    然后所有"占比"结论都建在假分母上。
+    """
+    getter = getattr(yunshu, "context_limit_info", None)
+    if callable(getter):
+        try:
+            info = getter()
+        except Exception:  # noqa: BLE001 读数不得炸请求
+            info = None
+        if isinstance(info, dict):
+            limit = info.get("limit_tokens")
+            source = info.get("limit_source")
+            if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0:
+                return {
+                    "limit_tokens": int(limit),
+                    "limit_source": (source if isinstance(source, str) and source
+                                     else "unavailable"),
+                }
+    return {"limit_tokens": None, "limit_source": "unavailable"}
+
+
+def _push_runtime_window(value: int) -> bool:
+    """把新窗口值推给**正在跑**的编排器（否则滑块只改了个没人读的副本）
+
+    【为什么必须有这一步】``_memory_token_limit`` 是**启动时**从 config.yaml 写死的；
+    此前 ``POST /api/context/config`` 只改 ``_cfg`` 这个运行时副本 ⇒ 面板上的数字变了、
+    真正"超限丢弃最旧消息"的边界一动不动（同一个旋钮，两套账）。
+    这里同时推两处，让三者回到同一个数：
+      1. ``_Yunshu._memory_token_limit``（组装窗口，get_context 用它）；
+      2. ``_Yunshu._memory._token_limit``（压缩触发阈值 = 窗口 × compress_threshold）。
+
+    Returns:
+        True = 已推给运行中的编排器；False = 编排器不可用（值只落在配置副本里）。
+    """
+    try:
+        from app_server import _Yunshu
+    except Exception:  # noqa: BLE001 拿不到主对象时如实返回未生效
+        return False
+    if _Yunshu is None or not hasattr(_Yunshu, "_memory_token_limit"):
+        return False
+    try:
+        _Yunshu._memory_token_limit = int(value)
+        _Yunshu._memory_token_limit_source = "runtime_override(api)"
+        memory = getattr(_Yunshu, "_memory", None)
+        if memory is not None and hasattr(memory, "_token_limit"):
+            memory._token_limit = int(value)
+        return True
+    except Exception:  # noqa: BLE001 推送失败不得让接口 500（值仍会写进配置副本）
+        return False
+
+
+# ════════════════════════════════════════════════════════════
 #  上下文监视器 API
 # ════════════════════════════════════════════════════════════
 
@@ -92,10 +155,20 @@ def api_context_status():
     recent = recent[-10:]
 
     total = send_tokens + recv_tokens
-    limit = _cfg.get("memory", "token_limit", default=4096)
-    pct = round(total / limit * 100, 1) if limit > 0 else 0
 
-    # 压缩次数
+    # ── 分母：**编排窗口**（单一事实源），不是 UI 存的另一个数 ──
+    # 【为什么必须改】本面板原先除以 `memory.token_limit`，而真正决定"能记住多少历史"的是
+    #   `orchestrator._memory_token_limit`（启动时由 config.yaml:memory.token_limit 写入，
+    #   见 lifecycle_manager.py:283-289）。同一时刻存在**三份不同的数**：代码默认 /
+    #   UI 存值 / config.yaml 值 —— 于是同一个占用在面板与 /api/chat 的 context 块里
+    #   能差出倍数（编排层 TASK-S10-03 已修过这个口径，本面板当时没跟上）。
+    #   取不到就如实报 None，**不拿硬编码值冒充分母**（那比没有读数更坏：它像真的）。
+    limit_info = _context_limit_info(_Yunshu)
+    limit = limit_info["limit_tokens"]
+    configured_limit = _cfg.get("memory", "token_limit", default=131072)
+    pct = round(total / limit * 100, 1) if limit else None
+
+    # 压缩次数（= 摘要版本号，**累计值**，不是"当前会话压缩了几次"）
     compress_rounds = 0
     try:
         compress_rounds = getattr(_Yunshu._memory, 'compress_rounds', 0)
@@ -104,29 +177,53 @@ def api_context_status():
     except Exception:
         pass
 
-    # 上下文状态级别
+    # ── 档位：**按占用**判定；"摘要退化"作为独立成因单列 ──
+    # 【为什么拆开】原先 `compress_rounds >= 5` 直接判 critical ⇒ 占用 22% 也常年报红，
+    #   用户看到的是"没几下就用满了"。累计压缩次数与"当前窗口占用"是两件事，
+    #   编排层已在 `_check_context_usage`（TASK-S10-03）明确区分 summary_degraded / usage_high，
+    #   本面板与之对齐。顺带删掉 `pct_warn = pct >= 80 or pct >= 60` 那句死代码（写等于没写）。
+    compress_degraded = compress_rounds >= 5
     compress_warn = compress_rounds >= 3
-    compress_crit = compress_rounds >= 5
-    pct_warn = pct >= 80 or pct >= 60
-    pct_crit = pct >= 95
-    if pct_crit or compress_crit:
+    if pct is None:
+        status_level = "unknown"
+    elif pct >= 95:
         status_level = "critical"
-    elif pct >= 80 or compress_warn:
+    elif pct >= 80:
         status_level = "warning"
     elif pct >= 60:
         status_level = "info"
     else:
         status_level = "ok"
+    status_reasons = []
+    if pct is not None and pct >= 95:
+        status_reasons.append("usage_critical")
+    elif pct is not None and pct >= 80:
+        status_reasons.append("usage_high")
+    if compress_degraded:
+        status_reasons.append("summary_degraded")
+    elif compress_warn:
+        status_reasons.append("summary_warn")
 
     return jsonify({
         "current_tokens": total,
+        # 分母 = 编排窗口（真正生效的那个）+ 来源披露；百分比语义写明白
         "token_limit": limit,
+        "token_limit_source": limit_info["limit_source"],
+        "configured_token_limit": configured_limit,
+        "configured_token_limit_note": (
+            "面板/接口保存的值是**运行时覆盖**（本进程内生效），重启后回落到 "
+            "config.yaml:memory.token_limit"),
         "percentage": pct,
-        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=2048),
-        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=4096),
+        "percentage_semantics": "current_window_usage",
+        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=8192),
+        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=16384),
+        # 语义声明：发送侧**只告警不截断**（绝不静默丢弃用户粘进来的原文）
+        "send_limit_semantics": "warn_only",
         "compress_threshold": _cfg.get("memory", "compress_threshold", default=0.8),
         "compress_rounds": compress_rounds,
+        "compress_degraded": compress_degraded,
         "status_level": status_level,
+        "status_reasons": status_reasons,
         "send_tokens": send_tokens,
         "recv_tokens": recv_tokens,
         "messages_count": len(messages),
@@ -138,37 +235,53 @@ def api_context_status():
 @_view(auth=True)
 def api_context_config():
     """更新上下文控制参数"""
-    from app_server import _cfg, logger
+    # _Yunshu 用于读取"真实窗口"（回显 token_limit 时必须与状态接口同一口径）
+    from app_server import _cfg, logger, _Yunshu
     data = request.get_json() or {}
     changed = []
 
+    # 【2026-10-02 值域对齐真实模型能力】原上限一律 32768，而实测本机模型
+    #   （deepseek-flash = DeepSeek-V4.1-Flash，GET /v1/models）context_window=1048576、
+    #   max_output_tokens=393216 ⇒ 想调大也调不动。
+    applied = False
     if "token_limit" in data:
         val = int(data["token_limit"])
-        val = max(512, min(32768, val))
+        val = max(512, min(1048576, val))
         _cfg.set(val, "memory", "token_limit")
         changed.append("token_limit")
+        # ★ 关键：把新值推给**正在跑**的编排器。只写 _cfg 的话，
+        #   面板数字变了、真正"超限丢最旧消息"的边界却没动（同一个旋钮两套账）。
+        applied = _push_runtime_window(val)
 
     if "per_message_send_limit" in data:
         val = int(data["per_message_send_limit"])
-        val = max(0, min(32768, val))
+        val = max(0, min(131072, val))
         _cfg.set(val, "memory", "per_message_send_limit")
         changed.append("per_message_send_limit")
 
     if "per_message_recv_limit" in data:
         val = int(data["per_message_recv_limit"])
-        val = max(0, min(32768, val))
+        val = max(0, min(393216, val))
         _cfg.set(val, "memory", "per_message_recv_limit")
         changed.append("per_message_recv_limit")
 
     if changed:
         logger.info(f"上下文配置已更新: {', '.join(changed)}")
 
+    limit_info = _context_limit_info(_Yunshu)
     return jsonify({
         "ok": True,
         "changed": changed,
-        "token_limit": _cfg.get("memory", "token_limit", default=4096),
-        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=2048),
-        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=4096),
+        # 窗口值是否**当场生效**（False = 只落进配置副本，重启后才可能生效）
+        "runtime_applied": applied,
+        "apply_note": (
+            "token_limit 已推给运行中的编排器（组装窗口 + 压缩阈值同步）；"
+            "发送/回复上限即时生效，但同样是运行时覆盖，重启后回落 config.yaml"),
+        "token_limit": limit_info["limit_tokens"] or _cfg.get("memory", "token_limit", default=131072),
+        "token_limit_source": limit_info["limit_source"],
+        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=8192),
+        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=16384),
+        "send_limit_semantics": "warn_only",
     })
 
 

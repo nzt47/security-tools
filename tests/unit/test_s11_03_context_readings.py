@@ -50,7 +50,9 @@ from agent.orchestrator.turn_state import TurnStateStore  # noqa: E402
 #:
 #: 真机现值（口径变更记录）：`config.yaml` 于 Owner 裁定 #1 显式写入
 #: `memory.token_limit: 32768`（见 docs/zh/Owner裁定记录_20260913.md §裁定 #1），
-#: 故 `context.token_limit` 真机应为 **32768**、来源 `config.yaml:memory.token_limit`。
+#: 并于 **2026-10-02 用实测数据收口为 131072** —— 见 `GET /v1/models` 实测：
+#: `deepseek-flash` = DeepSeek-V4.1-Flash，`context_window=1048576`、
+#: `max_output_tokens=393216`（故 131072 只是模型的 1/8，不构成超窗风险）。
 #: 本套件用桩值 131072 是为验证"读数跟着单一事实源走"，不主张真机数字。
 STUB_WINDOW = 131072
 
@@ -369,6 +371,92 @@ def test_不可序列化元数据被丢弃且显式披露(chat_env):
     assert body["metadata"] == {"plan_summary": {"goal": "g"}}
     assert body["metadata_omitted_keys"] == ["bad_object"]
     assert "bad_object" not in body["metadata"]
+
+
+# ── 意图4（2026-10-02）：单次发送是**告警阈值**，不是截断开关 ─────────────────
+
+class _RecordingLogger:
+    """记录 warning 的 logger 桩（``plugins/chat.py`` 用的是 app_server 里的 logger，
+    真 logger 在桩模块里不存在 ⇒ caplog 抓不到，必须直接断言桩上收到的消息）"""
+
+    def __init__(self):
+        self.warnings: list[str] = []
+
+    def warning(self, msg, *args, **kwargs):
+        try:
+            self.warnings.append(msg % args if args else str(msg))
+        except Exception:  # noqa: BLE001 格式串异常不该影响测试
+            self.warnings.append(str(msg))
+
+    def info(self, *a, **k):
+        pass
+
+    def error(self, *a, **k):
+        pass
+
+    def debug(self, *a, **k):
+        pass
+
+
+class _CfgWithSendLimit:
+    """``_cfg`` 桩：给「单次发送」一个阈值（便于用短文本触发/不触发告警）"""
+
+    def __init__(self, send_limit=10):
+        self._send_limit = send_limit
+
+    def get(self, section, key, default=None):
+        if key == "per_message_send_limit":
+            return self._send_limit
+        return default
+
+
+def test_单条消息超限只告警_绝不截断原文(chat_env):
+    """线上契约（2026-10-02 产品决定）：超限**只告警**，绝不静默丢弃用户原文。
+
+    为什么这条必须有测试：该旋钮的界面文案曾写"超限截断"，而它此前**全仓无强制点**；
+    把它接成"真截断"是最省事的做法，但用户会以为发出去的就是全文 —— 那是数据损失，
+    不是功能。本测试从两个方向钉死：① 告警可见（响应字段 + 日志）；② 原文完好。
+    """
+    client, yunshu, sessions = chat_env
+    import sys as _sys
+
+    _sys.modules["app_server"]._cfg = _CfgWithSendLimit(send_limit=10)
+    recorder = _RecordingLogger()
+    _sys.modules["app_server"].logger = recorder
+    long_message = "这是一条明显超过十个字符的用户消息" * 5
+    yunshu.next_response = "ok"
+    yunshu.next_metadata = {}
+
+    body = _post(client, long_message, "sess_A")
+
+    send = body["context"]["send_limit"]
+    assert send["limit"] == 10
+    assert send["exceeded"] is True
+    assert send["semantics"] == "warn_only"
+    assert send["input_tokens"] == len(long_message)
+    assert "截断" in send["note"]
+    # ① 告警必须可见（日志里点名，且说清"未截断"）
+    assert any("单次发送" in w for w in recorder.warnings), recorder.warnings
+    assert any("未截断" in w for w in recorder.warnings)
+    # ② 原文一字不差地存进了会话（截断会在这里露馅）
+    #    注意取 role=user 的那条：会话里 user 之后还有本条 assistant 回复
+    stored_user = [m for m in sessions.get_messages("sess_A", limit=0)
+                   if m.get("role") == "user"]
+    assert stored_user[-1]["content"] == long_message
+    assert len(stored_user[-1]["content"]) == len(long_message)
+
+
+def test_未超阈值时不报告警(chat_env):
+    """阈值够大 ⇒ 正常对话不该出现 exceeded=True（否则面板会一直吓人）"""
+    client, yunshu, _sessions = chat_env
+    import sys as _sys
+
+    _sys.modules["app_server"]._cfg = _CfgWithSendLimit(send_limit=100000)
+    yunshu.next_response = "ok"
+    yunshu.next_metadata = {}
+    body = _post(client, "短消息", "sess_A")
+    assert body["context"]["send_limit"]["exceeded"] is False
+    assert body["context"]["send_limit"]["limit"] == 100000
 
 
 # ════════════════════════════════════════════════════════════════════════════

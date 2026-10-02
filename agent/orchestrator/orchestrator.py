@@ -3003,6 +3003,57 @@ class Orchestrator:
             return source
         return "runtime_injected"
 
+    #: 单次回复 token 的**硬上限**缺省值。
+    #: 远小于 provider 实测能力（deepseek-flash 393216），但已足以覆盖长回答/长代码；
+    #: 再往上只推高延迟与成本，不带来更好结果。可用 CP_CHAT_MAX_OUTPUT_CEILING 覆盖。
+    MAX_OUTPUT_CEILING_DEFAULT = 131072
+    #: 模型名启发式的两档（与原实现逐字一致的名单/取值），在本方法里只当**下限**
+    MAX_OUTPUT_TIER_LARGE = 16384
+    MAX_OUTPUT_TIER_SMALL = 8192
+    #: 命中即按"大输出模型"对待的模型名片段（原实现 + v4-pro 一类）
+    _LARGE_OUTPUT_MODEL_HINTS = ("pro", "ultra", "reasoner", "opus",
+                                 "claude-4", "gpt-4-turbo", "o1", "o3")
+
+    def _resolve_max_output_tokens(self, model: str) -> int:
+        """单次回复的 ``max_tokens``：**配置优先 + 启发式兜底 + 硬上限收敛**
+
+        【为什么改成配置驱动】原实现是纯模型名启发式（``pro``/``ultra``/``reasoner`` → 16384，
+        否则 8192），而同名的 ``memory.per_message_recv_limit`` 旋钮**全仓没有任何读取方**：
+        界面上把它调大调小，回复长度一动不动。实测本机模型
+        （``deepseek-flash`` = DeepSeek-V4.1-Flash）``max_output_tokens=393216``，
+        而界面只给 8192 —— 模型的 1/48。
+
+        规则（三条都必要，缺一条就会重演本次缺陷）：
+          1. ``memory.per_message_recv_limit`` > 0 ⇒ 用它（旋钮**真正生效**）；
+             未配置/为 0 ⇒ 按模型名分档，与改动前**逐字一致**；
+          2. 结果**不低于**该分档值 ⇒ 单调不减：配置缺失绝不会让回复比以前更短；
+          3. 结果**不超过** ``CP_CHAT_MAX_OUTPUT_CEILING``（缺省 131072）⇒ 一个手滑的大数字
+             不会把 provider 打回 400（deepseek-flash 实测上限 393216）。
+
+        Args:
+            model: 本次请求实际下发的模型名（用于第 1 条的兜底分档）。
+
+        Returns:
+            可直接写进请求体的 ``max_tokens``（恒为正整数）。
+        """
+        cfg = getattr(self, "_config", None) or getattr(self, "config", None) or {}
+        configured = 0
+        try:
+            memory_cfg = cfg.get("memory") or {}
+            configured = int(memory_cfg.get("per_message_recv_limit") or 0)
+        except (AttributeError, TypeError, ValueError):
+            # 配置形状异常（None / 非映射 / 非整数）⇒ 按"未配置"处理，绝不因此报错
+            configured = 0
+
+        floor = (self.MAX_OUTPUT_TIER_LARGE
+                 if any(k in (model or "").lower() for k in self._LARGE_OUTPUT_MODEL_HINTS)
+                 else self.MAX_OUTPUT_TIER_SMALL)
+        # 三条规则的**实现只有一份**（agent/chat_limits.py）。工作台流式路径共用它 ——
+        # 否则就是"同一次对话换个入口就换一套上限"：2026-10-02 实测工作台把
+        # `max_tokens=2048` 写死在请求里，界面把"单次回复"调到 16384 对它毫无作用。
+        from agent.chat_limits import resolve_max_output_tokens as _resolve
+        return _resolve(configured, model, floor=floor)
+
     def _check_context_usage(self) -> Optional[dict]:
         """检查上下文使用率和压缩退化程度，返回结构化告警（或 None）
 
@@ -3570,13 +3621,13 @@ class Orchestrator:
                 _max_rounds = 3
                 response = ""
 
-                # 根据模型类型自适应输出 token 限制
-                _model_lower = (_working_model or "").lower()
-                if any(k in _model_lower for k in ("pro", "ultra", "reasoner", "opus",
-                                                   "claude-4", "gpt-4-turbo", "o1", "o3")):
-                    _max_output = 16384
-                else:
-                    _max_output = 8192
+                # 输出上限：**配置驱动**（memory.per_message_recv_limit）；
+                # 模型名启发式降级为**下限**（保住既有行为），并按硬上限收敛。
+                # 【为什么必须改】原实现是纯模型名启发式（命中 pro/ultra/reasoner… → 16384，
+                # 否则 8192），而同名的 /api/context/config 旋钮**全仓无人读** ⇒ 界面调它无效；
+                # 实测 deepseek-flash(DeepSeek-V4.1-Flash) 的 max_output_tokens=393216，
+                # 界面却只给 8192（模型的 1/48）。
+                _max_output = self._resolve_max_output_tokens(_working_model)
 
                 for _round_idx in range(_max_rounds):
                     # ── DSML 根因防线：提示词宣传 与 tools 下发 必须一致 ──

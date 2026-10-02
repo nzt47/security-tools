@@ -83,13 +83,62 @@ class BlackboxConfig(BaseModel):
     max_files: int = Field(default=10, ge=1, le=100, description="最大文件数量")
 
 
+# ════════════════════════════════════════════════════════════════════════════════
+#  上下文三旋钮的**唯一定义处**（默认值 + 值域）
+# ════════════════════════════════════════════════════════════════════════════════
+# 【为什么必须收口成常量】这三对数字原先散落在**四处**且口径不一致：
+#   ① pydantic 字段（MemoryConfig）、② Config.DEFAULT、
+#   ③ 字典校验器 validate_config、④ 修正器 validate_and_fix_config。
+#   2026-10-02 实测后果：把 config.yaml 写成 `token_limit: 131072`，
+#   ① 判非法（le=32768）、③ 也判非法并把值**静默改回 4096** —— 于是"调大窗口"在
+#   两层校验里各失败一次，而两处都不是显眼报错（只有一条 WARNING）。
+#
+#   上限依据为**实测**：`GET https://api.deepseek.com/v1/models` 直答
+#   `deepseek-flash` = DeepSeek-V4.1-Flash，`context_window=1048576`、
+#   `max_output_tokens=393216`（并用 max_tokens=200000 的请求实测被接受）。
+#
+#   语义（三者都不是"越多越好"，各有各的代价）：
+#     · token_limit：组装窗口，越大每轮输入越贵（默认取模型的 1/8）；
+#     · per_message_send_limit：**告警阈值**，只告警不截断（默认 8192）；
+#     · per_message_recv_limit：真实 max_tokens，越大单次输出成本越高（默认 16384）。
+MEMORY_TOKEN_LIMIT_DEFAULT = 131072
+MEMORY_TOKEN_LIMIT_MIN = 512
+MEMORY_TOKEN_LIMIT_MAX = 1048576
+PER_MESSAGE_SEND_LIMIT_DEFAULT = 8192
+PER_MESSAGE_SEND_LIMIT_MAX = 131072
+PER_MESSAGE_RECV_LIMIT_DEFAULT = 16384
+PER_MESSAGE_RECV_LIMIT_MAX = 393216
+
+
 class MemoryConfig(BaseModel):
-    """记忆配置模型"""
+    """记忆配置模型
+
+    【2026-10-02 默认值与值域对齐真实模型能力】
+    原默认（4096 / 2048 / 4096）是"小模型时代"的数，而本机 provider 实测
+    （GET https://api.deepseek.com/v1/models）：deepseek-flash =
+    DeepSeek-V4.1-Flash，context_window=1048576、max_output_tokens=393216。
+    后果不只是默认偏小：token_limit 的 le=32768 会把 config.yaml 里写的
+    131072 **在校验阶段打回**，于是想调大也调不动。故上限一并放宽到模型量级。
+
+    【三个字段各自的真实语义（此前只有名字，没有契约）】
+      - token_limit：**组装窗口**（超限丢弃最旧消息 + 触发压缩），由
+        lifecycle_manager 写进 orchestrator._memory_token_limit 后生效；
+      - per_message_recv_limit：单次回复的**真实 max_tokens**（由
+        orchestrator._resolve_max_output_tokens 读取，受模型能力与硬上限收敛）；
+      - per_message_send_limit：单条消息的**告警阈值** —— 按产品决定只告警不截断，
+        绝不静默丢弃用户粘进来的原文。
+    """
     data_dir: str = Field(default="./data", description="数据目录")
-    token_limit: int = Field(default=4096, ge=512, le=32768, description="Token 限制")
+    token_limit: int = Field(default=MEMORY_TOKEN_LIMIT_DEFAULT,
+                             ge=MEMORY_TOKEN_LIMIT_MIN, le=MEMORY_TOKEN_LIMIT_MAX,
+                             description="上下文窗口 Token 上限（组装窗口；超限丢弃最旧消息）")
     compress_threshold: float = Field(default=0.8, ge=0.0, le=1.0, description="压缩阈值")
-    per_message_send_limit: int = Field(default=2048, ge=0, le=32768, description="单次发送 Token 上限")
-    per_message_recv_limit: int = Field(default=4096, ge=0, le=32768, description="单次接收 Token 上限")
+    per_message_send_limit: int = Field(default=PER_MESSAGE_SEND_LIMIT_DEFAULT, ge=0,
+                                        le=PER_MESSAGE_SEND_LIMIT_MAX,
+                                        description="单次发送 Token 告警阈值（只告警不截断）")
+    per_message_recv_limit: int = Field(default=PER_MESSAGE_RECV_LIMIT_DEFAULT, ge=0,
+                                        le=PER_MESSAGE_RECV_LIMIT_MAX,
+                                        description="单次回复 Token 上限（真实 max_tokens）")
     async_compress: AsyncCompressConfig = Field(default_factory=AsyncCompressConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     blackbox: BlackboxConfig = Field(default_factory=BlackboxConfig)
@@ -438,12 +487,16 @@ def _basic_validation(config: Dict[str, Any]) -> List[Dict[str, str]]:
             else:
                 logger.debug("[配置校验] ✅ memory.llm.timeout = %d 秒，校验通过", timeout)
 
-        token_limit = memory.get('token_limit', 4096)
-        if not isinstance(token_limit, int) or token_limit < 512 or token_limit > 32768:
-            logger.warning("[配置校验] ⚠️ memory.token_limit 值 '%s' 无效，应在 512-32768 之间", token_limit)
+        token_limit = memory.get('token_limit', MEMORY_TOKEN_LIMIT_DEFAULT)
+        if (not isinstance(token_limit, int) or token_limit < MEMORY_TOKEN_LIMIT_MIN
+                or token_limit > MEMORY_TOKEN_LIMIT_MAX):
+            logger.warning("[配置校验] ⚠️ memory.token_limit 值 '%s' 无效，应在 %d-%d 之间",
+                           token_limit, MEMORY_TOKEN_LIMIT_MIN, MEMORY_TOKEN_LIMIT_MAX)
             errors.append({
                 "loc": "memory.token_limit", 
-                                    "msg": "Token 限制设置为 %s 无效，应在 512-32768 范围内。默认值为 4096。" % (token_limit,)
+                "msg": ("Token 限制设置为 %s 无效，应在 %d-%d 范围内。默认值为 %d。"
+                        % (token_limit, MEMORY_TOKEN_LIMIT_MIN,
+                           MEMORY_TOKEN_LIMIT_MAX, MEMORY_TOKEN_LIMIT_DEFAULT))
             })
         else:
             logger.debug("[配置校验] ✅ memory.token_limit = %d，校验通过", token_limit)
@@ -530,9 +583,14 @@ def validate_and_fix_config(config: Dict[str, Any]) -> tuple[Dict[str, Any], Lis
         llm['timeout'] = 30
         errors.append({"loc": "memory.llm.timeout", "msg": "值无效，已修正为 30"})
 
-    if 'token_limit' in memory and (not isinstance(memory['token_limit'], int) or memory['token_limit'] < 512 or memory['token_limit'] > 32768):
-        memory['token_limit'] = 4096
-        errors.append({"loc": "memory.token_limit", "msg": "值无效，已修正为 4096"})
+    # 【为什么落到**默认值**而不是写死 4096】写死就是第四份口径：修好校验器上限之后，
+    # 这里仍会把 131072 改回 4096（2026-10-02 实测踩过），于是"调大窗口"静默失败。
+    if 'token_limit' in memory and (not isinstance(memory['token_limit'], int)
+                                     or memory['token_limit'] < MEMORY_TOKEN_LIMIT_MIN
+                                     or memory['token_limit'] > MEMORY_TOKEN_LIMIT_MAX):
+        memory['token_limit'] = MEMORY_TOKEN_LIMIT_DEFAULT
+        errors.append({"loc": "memory.token_limit",
+                       "msg": "值无效，已修正为 %d" % (MEMORY_TOKEN_LIMIT_DEFAULT,)})
 
     # 修复 behavior 配置
     behavior = fixed_config.get('behavior', {})
@@ -589,10 +647,12 @@ class Config:
         },
         "memory": {
             "data_dir": "./data",
-            "token_limit": 4096,
+            # 与 MemoryConfig 的默认值保持**同一份口径**：两处不一致会让
+            # "代码默认" 与 "配置默认" 各说各话（本仓已多次栽在这类双口径上）
+            "token_limit": MEMORY_TOKEN_LIMIT_DEFAULT,
             "compress_threshold": 0.8,
-            "per_message_send_limit": 2048,
-            "per_message_recv_limit": 4096,
+            "per_message_send_limit": PER_MESSAGE_SEND_LIMIT_DEFAULT,
+            "per_message_recv_limit": PER_MESSAGE_RECV_LIMIT_DEFAULT,
             "async_compress": {
                 "enabled": True,
                 "interval_seconds": 60,

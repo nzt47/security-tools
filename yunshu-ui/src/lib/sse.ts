@@ -60,7 +60,12 @@ function parseEventBlock(block: string): StreamEvent | null {
 export async function* createChatStream(
   question: string,
   signal?: AbortSignal,
-  options?: { onError?: (err: Error) => void; sessionId?: string },
+  options?: {
+    onError?: (err: Error) => void
+    sessionId?: string
+    /** 对话模式（轻量/检索/完整）—— 后端据此选链路；缺省时后端按轻量处理 */
+    mode?: string
+  },
 ): AsyncGenerator<StreamEvent> {
   const startedAt = performance.now();
   console.debug('[云枢·SSE] 请求发出:', { url: API_URL, ts: Date.now() });
@@ -76,6 +81,9 @@ export async function* createChatStream(
       body: JSON.stringify({
         message: question,
         ...(options?.sessionId ? { session_id: options.sessionId } : {}),
+        // 【为什么显式带上】后端按 mode 选链路（轻量 / 检索 / 完整）；不带时后端默认轻量，
+        // 与引入该开关之前的行为逐字一致。
+        ...(options?.mode ? { mode: options.mode } : {}),
       }),
       signal,
     });
