@@ -48,6 +48,20 @@ def _sample_lines(text: str, metric: str = _STATE_METRIC):
     return [ln for ln in text.splitlines() if ln.startswith(metric + "{")]
 
 
+def _for_published(lines, names=None):
+    """只保留"本部署声明发布的那几个熔断器"的样本行。
+
+    【为什么必须过滤 · 2026-10-03 CI 实测】全量跑时**全局**采集器里早已有别的测试写下的熔断器样本
+    （tests/unit/test_circuit_breaker_boundary.py 等会真的驱动熔断器状态机 ⇒ 观察者往全局采集器里写，
+    实测一次全量里有 29 条），把它们算进来会让"幂等 / 数量"这类断言变成**依赖测试顺序**的假红：
+    CI 的 Shard 3/6 就是这么红的（`assert 29 == 4`），而单跑本文件却是绿的。
+    本文件只关心自己发布的那 N 个名字 —— 过滤后断言才是真正在测"发布行为"而不是"全局采集器有多干净"。
+    """
+    names = names if names is not None else BM.DEPLOYED_CIRCUIT_BREAKER_NAMES
+    return [ln for ln in lines
+            if any(('breaker_name="' + n + '"') in ln for n in names)]
+
+
 @pytest.fixture
 def isolated_metrics_state():
     """快照/还原全局采集器与全局熔断器注册表。
@@ -107,11 +121,11 @@ class TestStartupPublication:
     def test_幂等_重复调用不产生重复或冲突样本(self, isolated_metrics_state):
         collector = isolated_metrics_state
         BM.publish_deployed_circuit_breaker_states()
-        first = _sample_lines(collector.export_prometheus())
+        first = _for_published(_sample_lines(collector.export_prometheus()))
 
         BM.publish_deployed_circuit_breaker_states()
         BM.publish_deployed_circuit_breaker_states()
-        second = _sample_lines(collector.export_prometheus())
+        second = _for_published(_sample_lines(collector.export_prometheus()))
 
         assert second == first, (
             "重复调用改变了样本集合 => 不是幂等（gauge 覆盖语义应保证同一 label_key 只一条）："
