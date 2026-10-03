@@ -105,12 +105,51 @@ def manifest() -> Dict[str, Any]:
 # ════════════════════════════════════════════════════════════
 #  插件统一鉴权装饰器（2026-10-03 · 审计 M-40 的收口点）
 # ════════════════════════════════════════════════════════════
+def _resolve_host_decorator(name):
+    """解析宿主装饰器：优先 app_server，**回退 agent.server_auth**。
+
+    【为什么必须回退 —— 2026-10-03 迁移时实测踩到】各插件原来的懒包装一律写
+    `from app_server import require_token`，那**只在 app_server 已加载时才成立**。
+    而 plugins/status.py 的原实现刻意 import `agent.server_auth`（其 docstring 写明
+    「避免循环导入」）—— 因为 tests/test_plugin_submit_url.py 这类用例会**单独建 Flask app
+    并注册 status 蓝图**，根本不导入 app_server；此时 `from app_server import ...` 抛
+    ImportError: cannot import name 'require_token' from '<unknown module name>'，
+    2 条用例当场变红。
+
+    【为什么回退是等价安全的】`agent.server_auth` 里的 require_token / log_request 是
+    **规范实现**；app_server.py:661 那份是历史副本，两者语义一致（都走运行期判定 +
+    token_equal 按字节比较），已在迁移评估中逐行核对。
+    """
+    try:
+        import app_server
+        fn = getattr(app_server, name, None)
+        if fn is not None:
+            return fn
+    except Exception:  # noqa: BLE001 app_server 未加载 / 导入期副作用失败都不致命
+        pass
+    from agent import server_auth
+    return getattr(server_auth, name)
+
+
 def _lazy_wrap(f, build):
     """占位包装器：每次调用时用延迟解析出的真实装饰器包装 f 后执行。"""
     @functools.wraps(f)
     def _wrapped(*args, **kwargs):
         return build(f)(*args, **kwargs)
     return _wrapped
+
+
+def log_request(*args, **kwargs):
+    """插件用**统一**的延迟版 @log_request(...)（app_server 共享装饰器）。
+
+    【为什么也上收】与 require_auth 同因：chat/mcp_scheduler/safety/skills 各自抄了一份
+    完全相同的实现（审计 M-40）。两者共用同一个 _lazy_wrap，分开留会立刻再分叉。
+    """
+    def _decorator(f):
+        def _build(fn):
+            return _resolve_host_decorator("log_request")(*args, **kwargs)(fn)
+        return _lazy_wrap(f, _build)
+    return _decorator
 
 
 def require_auth(f):
@@ -139,6 +178,5 @@ def require_auth(f):
             ...
     """
     def _build(fn):
-        from app_server import require_token as _real
-        return _real(fn)
+        return _resolve_host_decorator("require_token")(fn)
     return _lazy_wrap(f, _build)
