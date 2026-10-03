@@ -121,3 +121,43 @@ class TestDocstringIsNotARoute:
         assert "/api/x" not in routes, (
             "plugin_api.py 的 docstring 用法示例被当成了真实路由 —— 门禁会凭空造出端点。"
         )
+
+
+class TestExclusionUsesRepoRelativePath:
+    """(6) 类缺陷：排除判定必须按**仓库相对路径**。
+
+    2026-10-03 由 CI 实测暴露：本仓 GitHub Actions 的 checkout 路径是
+    /home/runner/work/<repo>/<repo>/，而**仓库名恰好叫 security-tools**；
+    当时实现用绝对路径的 parts 去比对 EXCLUDE_DIRS（含 security-tools），于是 CI 上
+    整棵仓库被判为排除 ⇒ 只扫到 app_server.py/main.py，agent/ 与 plugins/ 全丢。
+    后果不只是两条用例变红，而是**门禁会带着残缺路由集静默判「零漂移」**。
+    """
+
+    def test_仓库内嵌套副本仍被排除(self, cd):
+        from pathlib import Path
+        assert cd._is_excluded(Path("security-tools/app_server.py")) is True
+
+    def test_正常源码不被排除(self, cd):
+        from pathlib import Path
+        for rel in ("agent/modules_api.py", "plugins/skills.py", "app_server.py"):
+            assert cd._is_excluded(Path(rel)) is False, rel + " 被误排除"
+
+    def test_CI_绝对路径场景不被误判(self, cd):
+        from pathlib import Path
+        abs_like = Path("/home/runner/work/security-tools/security-tools/agent/modules_api.py")
+        # 取「从 agent 开始」的部分作为仓库相对路径（不写死下标，避免路径层数变化时失效）
+        rel = Path(*abs_like.parts[abs_like.parts.index("agent"):])
+        assert rel.as_posix() == "agent/modules_api.py"
+        assert cd._is_excluded(rel) is False, (
+            "CI 的 checkout 路径含仓库名 security-tools，按绝对路径判定会整仓被排除"
+        )
+        # 反证：拿绝对路径直接判定会命中 —— 这正是当初的错误做法
+        assert any(p in cd.EXCLUDE_DIRS for p in abs_like.parts) is True
+
+    def test_agent_目录确实被扫描到(self, cd):
+        """端到端反证：agent/ 下的路由必须出现在结果里。"""
+        routes = cd.collect_routes_static()
+        where = [w for r in routes.values() for w in r["where"]]
+        assert any(w.startswith("agent/") for w in where), (
+            "agent/ 下的路由一条都没扫到 —— 排除逻辑很可能又按绝对路径判定了"
+        )

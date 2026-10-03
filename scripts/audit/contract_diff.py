@@ -85,6 +85,20 @@ def _real_route_decorator_lines(tree):
     return found
 
 
+def _is_excluded(rel) -> bool:
+    # 按**仓库相对路径**判断是否排除。
+    #
+    # 【为什么必须是相对路径 —— 2026-10-03 由 CI 实测暴露，且后果严重】本仓 GitHub
+    # Actions 的 checkout 路径是 /home/runner/work/<repo>/<repo>/，而**仓库名恰好叫
+    # security-tools**。若拿**绝对路径**的 parts 去比对 EXCLUDE_DIRS（其中含
+    # "security-tools"，本意是排除仓库内那份未跟踪的嵌套副本），则 CI 上**整棵仓库都
+    # 被判为排除** —— 实测后果：collect_routes_static() 只剩 app_server.py/main.py
+    # （它们走另一条不过滤的分支），agent/ 与 plugins/ 全被跳过，于是「Blueprint 前缀」
+    # 与「常量前缀」两条用例在 CI 上红、本机却全绿。**更危险的是它静默**：门禁会带着
+    # 一个残缺的路由集判「零漂移」——那正是本工具反复强调要避免的「门禁形同虚设」。
+    return any(part in EXCLUDE_DIRS for part in rel.parts)
+
+
 def _iter_source_files(suffixes, dirs):
     for d in dirs:
         base = ROOT / d
@@ -93,7 +107,7 @@ def _iter_source_files(suffixes, dirs):
         for p in base.rglob("*"):
             if not p.is_file() or p.suffix not in suffixes:
                 continue
-            if any(part in EXCLUDE_DIRS for part in p.parts):
+            if _is_excluded(p.relative_to(ROOT)):
                 continue
             yield p
 
