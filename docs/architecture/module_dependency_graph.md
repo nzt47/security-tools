@@ -56,6 +56,7 @@ flowchart LR
     subgraph core [core]
         agent_ab_testing["agent.ab_testing"]
         agent_api_gateway["agent.api_gateway"]
+        agent_api_gateway_flask["agent.api_gateway_flask"]
         agent_async_executor["agent.async_executor"]:::crosslayer
         agent_auto_tuner["agent.auto_tuner"]
         agent_autonomy["agent.autonomy"]:::crosslayer
@@ -685,6 +686,7 @@ flowchart LR
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
     agent_api_gateway -.-> agent_utils_singleton_manager
+    agent_api_gateway_flask --> agent_api_gateway
     agent_async_executor -.-> agent_tools
     agent_async_executor -.-> agent_utils_singleton_manager
     agent_async_executor --> agent_tool_gate
@@ -1843,7 +1845,9 @@ flowchart LR
     agent_server_routes_routes_approval -.-> agent_skills_mgmt_approval
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
+    agent_server_routes_routes_assets -.-> agent_server_auth
     agent_server_routes_routes_assets --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_background -.-> agent_server_auth
     agent_server_routes_routes_background -.-> agent_jsonl_history
     agent_server_routes_routes_background --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_background -.-> agent_async_executor
@@ -1885,6 +1889,7 @@ flowchart LR
     agent_server_routes_routes_dashboard -.-> agent_cognitive_failure_analysis
     agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
+    agent_server_routes_routes_feedback -.-> agent_server_auth
     agent_server_routes_routes_feedback -.-> agent_logging_utils
     agent_server_routes_routes_feedback -.-> agent_feedback
     agent_server_routes_routes_feedback -.-> agent_feedback
@@ -1907,6 +1912,7 @@ flowchart LR
     agent_server_routes_routes_knowledge -.-> agent_server_auth
     agent_server_routes_routes_knowledge --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_knowledge -.-> agent_tool_router_reranker
+    agent_server_routes_routes_llm_monitor -.-> agent_server_auth
     agent_server_routes_routes_llm_monitor --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_logging -.-> agent_server_auth
     agent_server_routes_routes_logging -.-> agent_monitoring_tracing
@@ -2517,9 +2523,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 636
-- 模块节点数: 568
-- 依赖边数: 1829
-- 跨层调用数: 1155
+- 扫描文件数: 638
+- 模块节点数: 569
+- 依赖边数: 1834
+- 跨层调用数: 1159
 - 违规调用数: 0
 - 动态 import 数: 1
