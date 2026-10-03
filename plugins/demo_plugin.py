@@ -92,5 +92,4 @@ PLUGIN = register_plugin(Plugin(
         "slotId": "panels",       # 挂入的目标插槽
         "module": "/plugins/demo-ui.js",  # Vite public/ 下的客户端模块
     },
-    routes=["/api/demo/probe", "/api/demo/config"],
 ))

@@ -5,11 +5,11 @@
     "registry_nodes": 32,
     "registry_actions": 24,
     "registry_error": null,
-    "plugins_with_declared_routes": 11,
-    "manifest_declared_total": 199,
+    "plugins_with_declared_routes": 0,
+    "manifest_declared_total": 0,
     "frontend_literals": {
       "react": 125,
-      "legacy": 8
+      "legacy": 2
     }
   },
   "findings_summary": {},

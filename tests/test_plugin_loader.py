@@ -32,12 +32,15 @@ def probe():
     from flask import jsonify
     return jsonify({{"plugin": {name!r}, "ok": True}})
 
+# 【2026-10-03 阶段 4 / R4】原模板带 routes=[{route!r}] —— Plugin 已删除该字段
+# （routes 改为从 app.url_map 派生）。这里不再传它；若有人把字段加回来，
+# 本模板会毫无察觉地继续通过，故由 test_plugin_manifest_derivation.py 的
+# AST 守卫单独钉住"不得出现手写 routes"。
 PLUGIN = register_plugin(Plugin(
     name={name!r},
     version="1.0.0",
     description="loader test",
     blueprint=bp,
-    routes=[{route!r}],
 ))
 '''
 

@@ -377,13 +377,4 @@ PLUGIN = register_plugin(Plugin(
     # 【必需】blueprint 缺失时 loader.register_blueprints 会直接 continue
     # （plugins/loader.py:143-144），路由永不挂载 —— 集成检查实测踩过此坑。
     blueprint=bp,
-    routes=[
-        "/api/experience/ingest",
-        "/api/experience/list",
-        "/api/experience/<id>",
-        "/api/experience/<id>/review",
-        "/api/experience/batch/<id>/rollback",
-        "/api/experience/stats",
-        "/api/experience/search",
-    ],
 ))

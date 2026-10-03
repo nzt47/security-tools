@@ -501,6 +501,20 @@ except Exception as _e:
         if _p.blueprint is not None:
             app.register_blueprint(_p.blueprint)
 
+# ── 绑定 app：让 /api/plugins 的 routes 能从 url_map 派生（阶段 4 / R4）──
+# 【必须在**所有**插件蓝图注册完成之后】plugin_api.manifest() 的 routes 现在是
+#   **派生值**（app.url_map 里属于该插件蓝图的全部规则）。Flask 的 Blueprint 在
+#   register_blueprint 之前不持有规则列表（实测 3.1.3：add_url_rule 只记录闭包），
+#   故绑定时机只能是"蓝图都挂完了"这一刻。
+# 【为什么不能只靠 current_app】manifest() 还有一条**无请求上下文**的调用路径：
+#   loader.refresh_manifest()（POST /api/plugins/reload 会调）。没有绑定点时那条路径
+#   只能拿到空 routes，表现为"reload 之后插件面板的路由全没了"，且是静默的。
+try:
+    from plugins.plugin_api import bind_app as _bind_plugin_app
+    _bind_plugin_app(app)
+except Exception as _be:  # noqa: BLE001 绑定失败不阻断启动，但必须可见
+    logger.warning("[启动] 插件 app 绑定失败（/api/plugins 的 routes 将无法派生）: %s", _be)
+
 # 注册模块聚合蓝图（S2: /api/modules/topology + <id>/detail + <id>/actions）
 # 说明: provider 用模块级 def 延迟解析 _Yunshu（_Yunshu 在文件后部初始化），
 #       注册动作本身不执行采集，运行时才调用，避免注册时序依赖。
@@ -2526,6 +2540,54 @@ def audit_modules_registry(app) -> dict:
 
 
 _modules_registry_audit = audit_modules_registry(app)
+
+
+# ════════════════════════════════════════════════════════════
+#  启动自检：插件 manifest 的派生完整性（2026-10-03 · 阶段 4 / R4）
+# ════════════════════════════════════════════════════════════
+def audit_plugin_manifest(app) -> dict:
+    """启动自检：声明了 blueprint 的插件，在真实 url_map 里必须**至少有一条路由**。
+
+    【解决什么】routes 改为从 url_map 派生之后，"漏声明"这一类漂移在构造上消失了；
+    但另一类漂移**没有**消失，而且更隐蔽：**插件声明了 blueprint，而该 blueprint
+    根本没被挂上 app**（或它其实一条 @bp.route 都没有）。此时派生结果为**空列表**，
+    与"这个插件本来就没有路由"在数据上完全一样 —— 前端只会少显示几行，
+    没有任何东西会变红。这正是审计 H-2 / K8 的同一家族（"某个 API 面整体缺失，
+    而服务看起来照常健康"）。
+
+    【为什么不阻断】与其余自检一致：它守的是"拓扑/清单是否可信"，不是安全边界。
+    但必须**点名到插件** —— 空列表是静默的，日志不能也是。
+
+    Returns:
+        {"ok": bool, "plugins": int, "empty_count": int, "empty": [插件名]}
+    """
+    try:
+        from plugins.plugin_api import get_plugins, plugin_routes
+        entries = []
+        for p in get_plugins():
+            if getattr(p, "blueprint", None) is None:
+                continue  # 无蓝图的插件（纯声明）不适用本条
+            entries.append((p.name, plugin_routes(p, app)))
+    except Exception as e:  # noqa: BLE001 自检失败不阻断启动
+        logger.warning("[PluginManifest][自检] 派生完整性检查失败（不阻断启动）: %s", e)
+        return {"ok": False, "error": str(e), "plugins": 0, "empty_count": -1, "empty": []}
+
+    empty = sorted(name for name, routes in entries if not routes)
+    if empty:
+        logger.error(
+            "[PluginManifest][自检] %d/%d 个**声明了 blueprint** 的插件在真实 url_map 中"
+            "派生到 0 条路由：%s ｜ 处理：确认该 blueprint 是否被 register_blueprint 挂上、"
+            "以及它是否真的注册了 @bp.route（派生为空与「本来没有路由」在数据上无法区分，"
+            "只能靠这条日志点名）。",
+            len(empty), len(entries), "; ".join(empty),
+        )
+    else:
+        logger.info("[PluginManifest][自检] %d 个带蓝图的插件均派生出路由（routes 来自 app.url_map）",
+                    len(entries))
+    return {"ok": True, "plugins": len(entries), "empty_count": len(empty), "empty": empty}
+
+
+_plugin_manifest_audit = audit_plugin_manifest(app)
 
 # 路由装配结算：登记为空则记 INFO；有失败且未显式降级则 raise（拒绝带伤启动）。
 # 【为什么 raise 而不是继续】失败即意味着某个 API 面整体缺失 —— 让进程「看起来健康」

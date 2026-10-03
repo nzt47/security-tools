@@ -4,10 +4,15 @@
 【存在理由】2026-10-03 审计（快照 c78caed0）确认：云枢的「后端能力 → 前端呈现」由
 四份互相独立的手写清单驱动，且相互之间没有任何机制做一致性校验：
   ① app_server + plugins + agent/server_routes 的真实 Flask 路由（3 个注册面）；
-  ② agent/modules_registry.py 的 6 域 32 节点 + 23 条 ACTION_ROUTES；
-  ③ plugins/*.py 里 Plugin(routes=[...]) 的声明（即 /api/plugins manifest）；
+  ② agent/modules_registry.py 的 6 域 32 节点 + 24 条 ACTION_ROUTES；
+  ③ ~~plugins/*.py 里 Plugin(routes=[...]) 的声明~~ ← **已消灭（阶段 4 / R4）**：
+     routes 改为从 app.url_map 派生，11 个插件的手写清单（199 条）全部删除。
+     本工具对这一面改为**防回归**判定（manifest_hand_written_routes）；
+     派生完整性由运行期的 app_server.audit_plugin_manifest() 守（静态拿不到 url_map）。
   ④ 前端两侧硬编码的 /api 字面量（React + legacy）。
 手工维护的清单必然漂移（方案第 13 节的原话），本工具把漂移变成可执行、可进 CI 的判定。
+**消灭一个事实源，优于让两个事实源保持同步** —— ③ 是这条原则的第一个落地样本：
+原判据（"两侧是否一致"）实测每年命中 11 处；改判据后该漂移类**在构造上不可能发生**。
 
 【设计约束】
 - 默认纯静态（正则 + AST），不导入 app_server：实测导入一次 53.5s，且会注册
@@ -378,21 +383,31 @@ def check(registry, routes, manifest, frontend):
                     "ACTION_ROUTES 指向的端点不存在: " + a["method"] + " " + a["url"],
                     "agent/modules_registry.py")
 
-    declared_all = set()
-    for plugin, paths in (manifest or {}).items():
-        for p in paths:
-            declared_all.add(p)
-            if not _route_known(p, routes):
-                add("manifest_route_not_real", "medium", plugin,
-                    "manifest 声明了并非真实规则的路径: " + p, "plugins/")
-    declared_norm = {_norm(p) for p in declared_all}
-    for path, info in routes.items():
-        if not any("plugins/" in w for w in info.get("where", [])):
-            continue
-        if _norm(path) not in declared_norm:
-            add("manifest_route_undeclared", "medium", path,
-                "插件真实注册了该路由，但 manifest.routes 未声明",
-                ", ".join(info.get("where", [])[:2]))
+    # ── 插件 manifest：判据已随"事实源唯一化"改写（2026-10-03 · 阶段 4 / R4）──
+    # 【为什么删掉原来那两条判据】原判据是
+    #   · manifest_route_not_real      —— manifest 声明了并非真实规则的路径；
+    #   · manifest_route_undeclared    —— 插件真实注册了路由但 manifest 未声明（实测命中 11 处）。
+    # 二者都建立在"manifest.routes 是**手写声明**"这个前提上。R4 把 routes 改为从
+    # app.url_map **派生**、并删除了 11 个插件里的手写清单后，这两条判据
+    # **在数学上恒真** —— 保留它们只会让门禁看起来很绿而什么都查不出，
+    # 正是"会漏报的门禁比会误报的更危险"。
+    #
+    # 【替代判据 = 防回归】现在唯一能让"两个事实源"复活的方式，就是有人把手写
+    # routes=[...] 加回去。collect_manifest_declared() 静态解析该关键字，
+    # 只要还能解析出非空结果，就说明声明回来了。
+    #
+    # 【完整性判据搬到运行期】"派生结果是否覆盖了插件真实注册的全部路由"需要真实
+    # url_map（Flask 的 Blueprint 在 register_blueprint 之前不持有规则列表），
+    # 静态工具拿不到 ⇒ 由 app_server.audit_plugin_manifest() 在启动期判定
+    # （带蓝图的插件必须至少派生出 1 条路由）。两把尺子分工明确：
+    #   本工具（静态·CI）：不许再出现手写清单；
+    #   启动自检（运行期）：派生必须完整、不许静默为空。
+    for plugin, paths in sorted((manifest or {}).items()):
+        add("manifest_hand_written_routes", "high", plugin,
+            "插件仍带手写 routes=[...]（%d 条）—— manifest 的 routes 现已从 app.url_map "
+            "派生，留着它就等于把第二个事实源加回来（审计 H-1/H-6）。"
+            "请从 plugins/*.py 的 Plugin(...) 中删除该关键字。" % len(paths),
+            "plugins/")
 
     for label, hits in (frontend or {}).items():
         for path, files in sorted(hits.items()):
