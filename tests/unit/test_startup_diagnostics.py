@@ -13,9 +13,11 @@
       静默加载失败"。行号确实对得上，但**该日志是陈旧产物**：
       最后写入 2026-08-28，而 `app_server.py` 最后修改于 2026-09-20
       —— 日志记录的是一个**旧版本**的启动过程。
-    · 按**当前源码**，那 5 个里 4 个已不复现（模块被删除/改名/改家），
-      唯一仍缺失的是 `agent/api_gateway_flask`。本文件的
-      `test_current_repo_has_exactly_one_missing_module` 把这一事实**锁死**。
+    · 按**当前源码**，那 5 个里 4 个已不复现（模块被删除/改名/改家）；
+      第 5 个 `agent/api_gateway_flask` 已于 2026-10-03 **补实现**（审计 H-2），
+      故当前缺失模块数为 **0**。本文件的
+      `test_current_repo_has_no_missing_module` 把这一事实**锁死**
+      （原名 ..._exactly_one_...，随该模块被补实现而更新）。
     · 任务书称失败"静默"。对**日志里的**那 5 条而言并不准确（都是 ERROR 级）。
       真正静默的是**今天**的 `api_gateway_flask` 分支：它被刻意降级为 `debug`
       （`app_server.py:1522`），生产日志里一行都没有 —— 这才是要修的那一处。
@@ -173,21 +175,32 @@ class TestAuditExpectedModules:
 class TestCurrentRepoGroundTruth:
     """把"当前仓库的真实情况"锁死 —— 防止任务书的错误描述被当成事实沿用"""
 
-    def test_current_repo_has_exactly_one_missing_module(self):
-        """★实测：`app_server.py` 引用但不可导入的模块**恰好 1 个**
+    def test_current_repo_has_no_missing_module(self):
+        """★实测：`app_server.py` 引用但不可导入的模块**为 0 个**。
 
-        即 `agent.api_gateway_flask`。这直接反驳任务书"5 个模块静默加载失败"
-        （那是 2026-08-28 的旧日志记录的状态）。
+        【2026-10-03 更新过断言，原因记在此处】
+        原名 test_current_repo_has_exactly_one_missing_module，断言**恰好 1 个**缺失，
+        即 agent.api_gateway_flask（当时用来反驳任务书「5 个模块静默加载失败」的旧描述）。
+        同日审计把该模块**补实现**了（H-2：app_server.py:2179 一直 import 它、模块却不在
+        仓库里 ⇒ /api/open/* 与 /api/docs 整体不可用而进程报告健康），于是「恰好 1 个」
+        不再成立。本测试的**目的没变** —— 锁死「当前仓库的真实情况」、不让过时描述替代
+        事实；所以正确做法是**更新事实**，不是删掉这条守卫。
         """
         missing = sd.audit_expected_modules(REPO_ROOT / "app_server.py")
         names = sorted(m["module"] for m in missing)
-        assert names == ["agent.api_gateway_flask"], (
-            f"当前应恰好只有 api_gateway_flask 缺失，实际: {names}")
+        assert names == [], (
+            f"当前不应再有缺失模块（api_gateway_flask 已于 2026-10-03 补实现），实际: {names}")
 
-    def test_api_gateway_flask_file_really_absent(self):
-        """该文件确实不存在（判定"删引用还是补文件"的事实前提）"""
-        assert not (REPO_ROOT / "agent" / "api_gateway_flask.py").exists()
-        assert (REPO_ROOT / "agent" / "api_gateway.py").exists()
+    def test_api_gateway_flask_file_now_present(self):
+        """该文件**现在存在**（「删引用还是补文件」的结论：选了补文件）
+
+        原名 test_api_gateway_flask_file_really_absent（断言不存在）。业务方裁定补实现，
+        故断言方向翻转；顺带把「补的是适配层、核心仍在 api_gateway.py」这个结构事实一并钉住。
+        """
+        assert (REPO_ROOT / "agent" / "api_gateway_flask.py").exists(), (
+            "适配层应已补实现（审计 H-2）")
+        assert (REPO_ROOT / "agent" / "api_gateway.py").exists(), (
+            "网关核心仍应在 api_gateway.py —— 适配层只负责 Flask 接线")
 
     def test_api_gateway_flask_import_is_not_debug_level(self):
         """★E1g 修复点：该降级不再压到 debug（否则生产日志里看不见）"""

@@ -12,6 +12,7 @@ import time
 import shutil
 from pathlib import Path
 from flask import request, jsonify, send_file
+from agent.server_auth import require_token
 from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,7 @@ def register_routes(app, state):
 
     @app.route("/api/assets/<category>/<item_id>", methods=["DELETE"])
     @trace_route("Assets")
+    @require_token
     def api_assets_delete(category, item_id):
         """删除指定资产项"""
         try:
@@ -135,6 +137,7 @@ def register_routes(app, state):
 
     @app.route("/api/assets/<category>", methods=["POST"])
     @trace_route("Assets")
+    @require_token
     def api_assets_add(category):
         """添加资产项到指定类别"""
         try:
@@ -160,6 +163,7 @@ def register_routes(app, state):
 
     @app.route("/api/assets/backup", methods=["POST"])
     @trace_route("Assets")
+    @require_token
     def api_assets_backup():
         """创建资产备份"""
         try:
@@ -211,6 +215,7 @@ def register_routes(app, state):
 
     @app.route("/api/assets/backup/<backup_id>", methods=["DELETE"])
     @trace_route("Assets")
+    @require_token
     def api_assets_backup_delete(backup_id):
         """删除指定备份"""
         try:
@@ -226,6 +231,7 @@ def register_routes(app, state):
 
     @app.route("/api/assets/restore", methods=["POST"])
     @trace_route("Assets")
+    @require_token
     def api_assets_restore():
         """从备份恢复资产数据"""
         try:

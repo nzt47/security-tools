@@ -13,7 +13,7 @@
  * - 防抖节流：60s 定时 flush + 缓冲满 500 触发 flush；isFlushing 标志防止并发
  */
 import { gzip as pakoGzip } from 'pako'
-import { authHeader } from '../lib/apiToken'
+import { authHeader, getApiToken } from '../lib/apiToken'
 
 // ════════════════════════════════════════════════════════════════
 //  常量与配置
@@ -250,7 +250,8 @@ async function sendFetchOnce(
 ): Promise<boolean> {
   const res = await fetch(getUploadUrl(), {
     method: 'POST',
-    // 带令牌（若 /api/replay/upload 已按 CP_API_AUTH_ALLOW 豁免则无害）
+    // 【安全·2026-10-03】该端点已改为**强制鉴权**（后端 @require_token，并从
+    // CP_API_AUTH_ALLOW 摘除豁免）。此处必须带令牌，否则 401。
     headers: { 'Content-Type': 'application/json', ...authHeader() },
     body: JSON.stringify(body),
     keepalive,
@@ -300,7 +301,13 @@ async function uploadReplay(
 
   // —— beacon 模式：卸载场景，单次发送不重试 ——
   if (opts.beacon) {
-    const ok = sendBeaconOnce(body)
+    // 【安全·2026-10-03 · 修复审计 H-5】sendBeacon **无法携带自定义请求头**，
+    // 因此在已配置 API 令牌的部署里它必然 401 —— 这正是此前该端点被放进
+    // CP_API_AUTH_ALLOW 豁免清单的全部原因（.env 原注释自述）。
+    // 现改为：**有令牌时跳过 beacon**，直接落到下方 fetch(keepalive) 分支
+    // （可带 Authorization，同样在页面卸载期可用，浏览器限制同为 ~64KB）。
+    // 无令牌部署（未启用鉴权）保持 beacon 优先的原行为，不改变既有语义。
+    const ok = getApiToken() ? false : sendBeaconOnce(body)
     if (ok) {
       logJson('log', 'upload_beacon_success', { event_count: events.length, bytes: body.data.length }, start)
       return true

@@ -172,21 +172,25 @@ def _resolvable(path: str, rules: dict) -> bool:
     return False
 
 
-def test_memory_js_fetch_paths_all_exist(real_app):
-    """memory.js 里每个 /api fetch 路径都必须命中真实 url_map（钉死"前端调了不存在的端点"）"""
-    assert MEMORY_JS.is_file(), f"前端文件不存在：{MEMORY_JS}"
-    rules = _rule_map(real_app)
+def test_legacy_memory_js_retired_along_with_legacy_ui():
+    """legacy memory.js 已随 legacy 界面退役 —— 且其"前端不得调不存在端点"的职责已交接。
 
-    paths = _frontend_api_paths(MEMORY_JS)
-    assert paths, "未从 memory.js 抽出任何 /api fetch 路径（正则或文件结构已变，测试需同步）"
+    【为什么这条测试从「检查 memory.js 的 fetch 路径」改成「断言它已退役」】
+    原测试（test_memory_js_fetch_paths_all_exist）读 static/js/sidebar/memory.js，
+    逐个校验其 /api fetch 路径命中真实 url_map。2026-10-03 的 legacy 一次性收敛
+    （提交 6ab31228）把整套 legacy SSR 界面退役，该文件已删除 ⇒ 原测试的**检查对象不存在了**。
 
-    unresolved = [p for p in paths if not _resolvable(p, rules)]
-    assert not unresolved, (
-        f"memory.js 调用了 url_map 中不存在的端点（生产 404）：{unresolved}"
+    【它原来的职责没有丢，而是被更强的机制接管】
+    「前端调了不存在的端点」现在由 scripts/audit/contract_diff.py 覆盖，且覆盖面更大：
+    它同时检查 **React（yunshu-ui/src）与 legacy（templates + static）两侧的字面量**，
+    并与真实 url_map 对拍、进了 CI 门禁（.github/workflows/contract-gate.yml）。
+    该工具首次运行就检出了 2 处真实缺陷（scheduler/mcp 的 delete 端点方法与路径双错）。
+    故这里保留的是一条**退役断言**，防止有人以为 legacy 文件还在、或悄悄把它加回来。
+    """
+    assert not MEMORY_JS.exists(), (
+        f"legacy 界面已收敛，该文件不应再存在：{MEMORY_JS}；"
+        "若确需恢复 legacy 界面，请同时恢复原 fetch 路径校验测试。"
     )
-
-    # 本次修复的 8 条必须全部由前端真实调用（防止修复对象漂移）
-    called = set(paths)
-    for legacy in ("/api/vector/stats", "/api/vector/recent", "/api/vector/add",
-                   "/api/vector/batch_add", "/api/vector/clear", "/api/knowledge/add"):
-        assert legacy in called, f"{legacy} 已不在 memory.js 调用面内，本测试的修复对象需复核"
+    assert (REPO_ROOT / "scripts" / "audit" / "contract_diff.py").is_file(), (
+        "承接「前端不得调不存在端点」职责的契约对拍工具必须存在"
+    )

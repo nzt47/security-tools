@@ -38,30 +38,11 @@ bp = Blueprint("chat", __name__)
 # 包装顺序与语义和迁移前一致：日志装饰器在内、令牌校验装饰器在外。
 # ════════════════════════════════════════════════════════════════════════════
 
-def _lazy_wrap(f, build):
-    """占位包装器：每次调用时用 app_server 的真实装饰器包装 f 后执行。"""
-    @functools.wraps(f)
-    def _wrapped(*args, **kwargs):
-        return build(f)(*args, **kwargs)
-    return _wrapped
-
-
-def _require_token(f):
-    """延迟版 @require_token（app_server 共享装饰器）"""
-    def _build(fn):
-        from app_server import require_token as _real
-        return _real(fn)
-    return _lazy_wrap(f, _build)
-
-
-def _log_request(*args, **kwargs):
-    """延迟版 @log_request(...)（app_server 共享装饰器）"""
-    def _decorator(f):
-        def _build(fn):
-            from app_server import log_request as _real
-            return _real(*args, **kwargs)(fn)
-        return _lazy_wrap(f, _build)
-    return _decorator
+# 【2026-10-03 迁移 · 审计 M-40】原实现是每个插件各抄一份 _lazy_wrap/_require_token/_log_request
+# （实测 5 份定义、64 处使用；改一处不会同步其余四处 —— 本仓已有两份掩码规则「对齐而非
+# 共用」、以及一次 require_token 空装饰器 fail-open 的前科）。现统一到 plugins/plugin_api.py，
+# 此处只保留**同名别名**，使全部 @_require_token / @_log_request 调用点零改动。
+from .plugin_api import log_request as _log_request, require_auth as _require_token
 
 
 def _json_safe_metadata(metadata):
@@ -158,6 +139,7 @@ def api_voice_status():
 
 
 @bp.route("/api/chat", methods=["POST"])
+@_require_token
 def api_chat():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     # _CHAT_HISTORY 是 app_server 的模块级共享缓存（api_config 等仍在原文件使用），
@@ -565,6 +547,7 @@ def api_sessions_list():
 
 
 @bp.route("/api/sessions", methods=["POST"])
+@_require_token
 def api_sessions_create():
     """创建新会话"""
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
@@ -1963,6 +1946,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
 
 
 @bp.route("/api/chat/stream", methods=["POST"])
+@_require_token
 def api_chat_stream():
     from flask import Response, stream_with_context
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）

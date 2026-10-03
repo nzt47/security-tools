@@ -1,0 +1,11 @@
+{
+  "note": "无鉴权装饰器的变更型路由（只允许收缩）。它不等于当前可未授权调用 —— 本部署 CP_API_AUTH_MODE=enforce_all，全局闸门已覆盖变更型方法。本基线的意义是：① 新写端点必须自带鉴权；② 档位若被下调，这里就是裸奔清单。",
+  "cleanup_progress": "存量未清；每修一条请重跑 --write 使基线收缩",
+  "total_unguarded_mutating": 1,
+  "by_file": {
+    "plugins/admin_api.py": 1
+  },
+  "unguarded_mutating": [
+    "plugins/admin_api.py:360 POST /api/auth/login"
+  ]
+}

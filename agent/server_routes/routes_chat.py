@@ -257,6 +257,7 @@ def register_routes(app, state):
 
     @app.route("/api/chat", methods=["POST"])
     @trace_route("Chat")
+    @require_token
     def api_chat():
         start_time = time.time()
 

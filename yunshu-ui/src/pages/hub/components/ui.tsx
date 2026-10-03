@@ -202,6 +202,25 @@ export async function hubPost<T = unknown>(url: string, body?: unknown, token?: 
   return res.json() as Promise<T>
 }
 
+/**
+ * DELETE JSON。
+ *
+ * 【为什么新增】2026-10-03 契约对拍（scripts/audit/contract_diff.py）实测检出 2 处
+ * 前端用 hubPost 打了「路径不存在的 POST」：
+ *   - /api/schedules/<id>/delete   （后端只有 DELETE /api/schedules/<task_id>）
+ *   - /api/mcp/services/<id>/delete（后端只有 DELETE /api/mcp/services/<id>）
+ * 两者**方法与路径都不对** ⇒ 运行时 405/404。此前没有 hubDelete，作者只能用 hubPost
+ * 凑 —— 缺一个正确表达「删」的 helper，正是这类缺陷的温床。补上它。
+ */
+export async function hubDelete<T = unknown>(url: string, token?: string | null): Promise<T> {
+  const headers: Record<string, string> = {}
+  const auth = token !== undefined && token !== null ? token : getApiToken()
+  if (auth) headers.Authorization = `Bearer ${auth}`
+  const res = await fetch(url, { method: 'DELETE', headers })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json() as Promise<T>
+}
+
 /** 将后端 {ok:true,data:...} 或 {code:200,data:...} 统一解包为 data */
 export function unwrap<T>(resp: Record<string, unknown>): T {
   const r = resp as { ok?: boolean; data?: T; code?: number }

@@ -29,32 +29,12 @@ from config import MEMORY_TOKEN_LIMIT_DEFAULT  # noqa: E402
 bp = Blueprint("status", __name__)
 
 
-def _require_token(f):
-    """与 app_server.require_token 行为等价的本地版本（延迟读取令牌配置，避免循环导入）"""
-    @functools.wraps(f)
-    def decorated(*args, **kwargs):
-        # 【2026-10-01 修同类 fail-open】改**运行期**判定（与 agent/server_auth 同口径）：
-        #   原实现读 app_server 的**导入期** `_API_TOKEN_ENABLED` ⇒ 进程启动时无令牌、
-        #   事后经 .env 热重载填上令牌，本装饰器仍**整段跳过校验**（实测任意错令牌放行）。
-        #   测试旁路走显式钩子 auth_disabled_for_test()，不再借那个状态快照。
-        from agent.server_auth import (
-            auth_disabled_for_test, current_api_token, token_equal)
-        expected = "" if auth_disabled_for_test() else current_api_token()
-        if not expected:
-            return f(*args, **kwargs)
-        # 从请求头中提取令牌
-        auth_header = request.headers.get("Authorization", "")
-        token = ""
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-        else:
-            token = request.headers.get("X-API-Token", "")
-        # 【2026-10-01】按字节比较（非 ASCII 令牌下 secrets.compare_digest(str,str) 抛 TypeError
-        #   ⇒ 无效令牌变 500；见 agent/server_auth.token_equal）。
-        if not token_equal(token, expected):
-            return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
-        return f(*args, **kwargs)
-    return decorated
+# 【2026-10-03 迁移 · 审计 M-40】鉴权装饰器上收到 plugin_api（同 chat/skills/safety/
+# mcp_scheduler）。等价性依据：本文件原 _require_token 与 app_server.require_token 语义一致
+# （都走运行期判定 + token_equal 按字节比较），而 require_auth 正是解析到后者。
+# 注：本文件的 _log_request 是一份**独立重写的日志逻辑**（60 行，含自己的字段拼装），
+# 迁移它属另一件事，不在此夹带 —— 故它保留原样。
+from .plugin_api import require_auth as _require_token
 
 
 def _log_request(show_body=True, show_response=True):

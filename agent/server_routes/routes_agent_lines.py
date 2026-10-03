@@ -453,6 +453,7 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
 
     @app.route("/api/agent-lines/preview", methods=["POST"])
     @trace_route("AgentLines")
+    @require_token
     @log_request(show_response=False)
     def api_agent_lines_preview():
         """按请求体里的档案跑一次装配（**零副作用**：不落盘、不动激活指针）"""
@@ -577,6 +578,7 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
 
     @app.route("/api/agent-lines/validate", methods=["POST"])
     @trace_route("AgentLines")
+    @require_token
     @log_request(show_response=False)
     def api_agent_lines_validate():
         """跑 `LineProfile.validate(known_tools)` 并返回问题列表（**不保存**）"""

@@ -8,7 +8,7 @@ import uuid
 import time
 from datetime import datetime, timedelta
 from flask import request, jsonify
-from agent.server_auth import log_request
+from agent.server_auth import log_request, require_token
 from agent.health.health_score import (
     HealthScoreCalculator,
     get_health_calculator,
@@ -172,6 +172,7 @@ def register_routes(app, state):
 
     @app.route("/api/health/score/calculate", methods=["POST"])
     @trace_route("HealthScore")
+    @require_token
     @log_request()
     def api_health_score_calculate():
         """手动提交指标计算健康度"""
@@ -243,6 +244,7 @@ def register_routes(app, state):
 
     @app.route("/api/health/weights", methods=["GET", "PUT"])
     @trace_route("HealthScore")
+    @require_token
     @log_request()
     def api_health_weights():
         """获取或更新维度权重"""

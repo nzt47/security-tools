@@ -13,6 +13,11 @@
 （本次审计实测 13 个模块如此，其中 `routes_memory` 有 8 个端点在线上 404，
 而 `/legacy` 页面的 `static/js/sidebar/memory.js` 正在调它们）。
 
+【2026-10-03 追记】上述 legacy 页面与其 JS 已随 legacy 一次性收敛退役
+（提交 6ab31228；`/legacy` 路由与 index.html 一并删除），故「谁在调这些 404 端点」
+这一半已不存在；**但本测试要钉的那件事没有变**：模块写了 register_routes 却没接线，
+必须由显式清单暴露出来。现存的 KNOWN_UNREGISTERED 清单仍是这些静默状态的唯一记录。
+
 本测试把这种**沉默状态**变成**显式清单**：
 - 新增一个 `server_routes/*.py` 模块并写了 `register_routes`，
   ⇒ 要么在 `app_server.py` 里接线，要么加进下面的 `KNOWN_UNREGISTERED` 并写明原因；

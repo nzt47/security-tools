@@ -24,7 +24,7 @@ from typing import Any, Dict
 
 from flask import request, jsonify, Response
 
-from agent.server_auth import log_request
+from agent.server_auth import log_request, require_token
 from agent.monitoring.replay_storage import (
     get_replay_storage,
     ReplayStorageError,
@@ -55,6 +55,7 @@ def register_routes(app, state):
 
     @app.route("/api/replay/upload", methods=["POST"])
     @trace_route("Replay")
+    @require_token
     @log_request(show_response=False)
     def api_replay_upload():
         """上传回放录制数据
@@ -284,6 +285,7 @@ def register_routes(app, state):
 
     @app.route("/api/replay/cleanup", methods=["POST"])
     @trace_route("Replay")
+    @require_token
     @log_request()
     def api_replay_cleanup():
         """清理过期回放数据

@@ -740,6 +740,7 @@ def register_routes(app, state):
     
     @app.route("/api/diagnostics/trace/extract", methods=["POST"])
     @trace_route("Diagnostics")
+    @require_token
     @log_request(show_response=False)
     def api_diagnostics_trace_extract():
         """

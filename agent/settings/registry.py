@@ -563,6 +563,16 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "工作区沙箱特性开关；关闭沙箱即放宽文件/命令隔离",
        owner="agent/server_routes/routes_workspace.py"),
 
+    # 【2026-10-03 登记 · 由 settings-registry-gap-guard 在 PR CI 上检出】
+    # 本批新增了两个运行期姿态开关，但漏了登记 —— 该门禁当场报「缺口 2 条」并阻断。
+    # 两者都用 _b（B 级：需二次认证 + 双人确认），因为改它们都会改变系统安全姿态。
+    _b("YUNSHU_ROUTE_ASSEMBLY_STRICT", CAT_SELF_HEALING, True,
+       "路由装配失败的处置：True=有失败即拒绝启动；设为 0/false/no/off 则打印失败清单后继续",
+       owner="agent/route_assembly.py"),
+    _b("YUNSHU_OPEN_API_ENDPOINTS", CAT_EXTERNAL, "",
+       "对外开放的端点清单（形如 GET /api/status,POST /api/chat）；默认为空=不开放任何能力。每项都会被 /api/open/* 以 API Key 鉴权+限流+配额暴露，填错等于扩大攻击面",
+       owner="agent/api_gateway_flask.py"),
+
     # 熔断与回滚（B：熔断/回滚）
     _b("ROLLBACK_SUCCESS_DROP_PCT", CAT_SELF_HEALING, 20.0,
        "成功率下降阈值（%）：超过即触发自动回滚",
