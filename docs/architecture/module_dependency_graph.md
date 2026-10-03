@@ -55,6 +55,7 @@ flowchart LR
     end
     subgraph core [core]
         agent_ab_testing["agent.ab_testing"]
+        agent_api_envelope["agent.api_envelope"]
         agent_api_gateway["agent.api_gateway"]
         agent_api_gateway_flask["agent.api_gateway_flask"]
         agent_async_executor["agent.async_executor"]:::crosslayer
@@ -1827,6 +1828,7 @@ flowchart LR
     agent_server_auth -.-> agent_security_identity
     agent_server_auth -.-> agent_security_identity
     agent_server_auth -.-> agent_security_identity
+    agent_server_auth --> agent_api_envelope
     agent_server_port_guard --> agent_logging_utils
     agent_server_routes_extensions -.-> agent_server_auth
     agent_server_routes_observability -.-> agent_logging_utils
@@ -2523,9 +2525,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 638
-- 模块节点数: 569
-- 依赖边数: 1834
+- 扫描文件数: 639
+- 模块节点数: 570
+- 依赖边数: 1835
 - 跨层调用数: 1159
 - 违规调用数: 0
 - 动态 import 数: 1

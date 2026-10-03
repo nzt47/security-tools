@@ -2247,7 +2247,7 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 34,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.monitoring.config_observability",
@@ -3520,6 +3520,14 @@
       "file_path": "agent/self_healing/watchdog_singleton.py",
       "in_degree": 0,
       "out_degree": 1
+    },
+    {
+      "path": "agent.api_envelope",
+      "name": "api_envelope",
+      "layer": "core",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.server_port_guard",
@@ -19446,9 +19454,22 @@
       "source_layer": "core",
       "target_layer": "security",
       "import_type": "from_import",
-      "line": 345,
+      "line": 425,
       "source_file": "agent/server_auth.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_auth",
+      "target": "agent.api_envelope",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 352,
+      "source_file": "agent/server_auth.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -19888,7 +19909,7 @@
       "source_layer": "server_routes",
       "target_layer": "capregistry",
       "import_type": "from_import",
-      "line": 129,
+      "line": 135,
       "source_file": "agent/server_routes/routes_capabilities.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19901,7 +19922,7 @@
       "source_layer": "server_routes",
       "target_layer": "security",
       "import_type": "from_import",
-      "line": 149,
+      "line": 155,
       "source_file": "agent/server_routes/routes_capabilities.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -19927,7 +19948,7 @@
       "source_layer": "server_routes",
       "target_layer": "capregistry",
       "import_type": "from_import",
-      "line": 302,
+      "line": 308,
       "source_file": "agent/server_routes/routes_capabilities.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22488,7 +22509,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 2848,
+      "line": 2856,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22501,7 +22522,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 2968,
+      "line": 2976,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -28399,14 +28420,14 @@
     }
   ],
   "stats": {
-    "total_files": 638,
-    "total_nodes": 569,
-    "total_edges": 1834,
+    "total_files": 639,
+    "total_nodes": 570,
+    "total_edges": 1835,
     "cross_layer_edges": 1159,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 78,
+      "core": 79,
       "utils": 11,
       "monitoring": 31,
       "tools": 29,
