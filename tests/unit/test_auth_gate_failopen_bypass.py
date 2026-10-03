@@ -102,7 +102,13 @@ class TestGateFailsClosed:
     """闸门自身异常时，enforce 模式必须**拒绝**而不是放行。"""
 
     def _gate_app(self, mode):
-        """构造一个最小闸门：与 app_server._api_auth_gate 的异常分支同构。"""
+        """构造一个最小闸门：与 app_server._api_auth_gate 的异常分支**同判定**。
+
+        【口径说明】本夹具只复刻"异常 ⇒ enforce 拒绝 / shadow 放行"这**一条判定**，
+        且只断言状态码；响应体形状不在本文件职责内（2026-10-03 起真实闸门的 401
+        已改走 RFC 9457 子集，形状断言见 tests/unit/test_api_envelope.py）。
+        不要让本夹具跟着改形状 —— 那会把两个关注点重新搅在一起。
+        """
         app = Flask("gate_failclosed")
 
         @app.route("/guarded")
@@ -138,12 +144,54 @@ class TestSourceGuards:
             return fh.read()
 
     def test_闸门异常分支在_enforce_下返回_401(self):
+        """异常分支必须**拒绝**，而不是 return None（那会退化成 fail-open 鉴权绕过）。
+
+        【2026-10-03 修正本守卫的判据】原判据是"异常分支里必须出现
+        `return jsonify`" —— 它把**构造响应所用的 helper 名**当成了判据。
+        阶段 2 / R3 把 401 改走统一错误模型（`return _problem(401, ...)`）后，
+        本守卫立刻变红：**它守的其实是"用哪个函数造响应"，而它想守的是"必须拒绝"**。
+        这正是本仓反复记录的"把实现细节当契约"的形态。
+        现改为按意图判定：异常分支必须 (a) 以 return 结束而非 return None，
+        (b) 产出 401，(c) 不在 enforce 分支里放行。
+        """
+        # 【为什么必须用 AST 而不是字符串切分】首版改用文本切片后当场踩坑：
+        #   "except Exception 之后" 一直切到了函数末尾，把 **shadow 分支那句合法的
+        #   return None** 也算进了 enforce 分支，守卫随即误报。
+        #   文本切分无法表达"这个 if 语句体"这种结构边界 —— 用 AST 才有边界。
+        import ast
         src = self._src("app_server.py")
-        block = src.split("def _api_auth_gate", 1)[1].split("def log_request", 1)[0]
-        assert "except Exception" in block
-        assert "鉴权闸门异常" in block, "闸门异常分支必须显式拒绝（fail-closed）"
-        assert "return jsonify" in block.split("except Exception", 1)[1], \
-            "异常分支必须返回 401，而不是 return None（那是 fail-open）"
+        tree = ast.parse(src)
+
+        fn = next((n for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef) and n.name == "_api_auth_gate"), None)
+        assert fn is not None, "找不到 _api_auth_gate —— 锚点失效，请迁移本用例"
+
+        handler = None
+        for node in ast.walk(fn):
+            if not isinstance(node, ast.Try):
+                continue
+            for h in node.handlers:
+                # except Exception ...
+                if isinstance(h.type, ast.Name) and h.type.id == "Exception":
+                    handler = h
+        assert handler is not None, "闸门异常分支缺失 —— fail-closed 保障被整体删掉了"
+
+        seg = ast.get_source_segment(src, handler) or ""
+        assert "鉴权闸门异常" in seg, "闸门异常分支必须显式拒绝（fail-closed）"
+
+        enforce_if = None
+        for node in ast.walk(handler):
+            if isinstance(node, ast.If) and "enforce" in (ast.get_source_segment(src, node.test) or ""):
+                enforce_if = node
+        assert enforce_if is not None, (
+            "异常分支必须区分 enforce 与 shadow —— 否则 shadow 的『只记不拦』语义会被误改"
+        )
+        body_src = [ast.get_source_segment(src, s) or "" for s in enforce_if.body]
+        joined = "\n".join(body_src)
+        assert "401" in joined, "enforce 分支必须产出 401"
+        assert not any(s.strip() == "return None" for s in body_src), (
+            "enforce 分支不得 return None（那是 fail-open ⇒ 鉴权绕过）"
+        )
 
     def test_授权路径不再直接用_compare_digest_比较原始字符串(self):
         src = self._src("agent/server_auth.py")

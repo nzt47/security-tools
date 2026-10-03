@@ -124,6 +124,12 @@ def register_routes(app, state=None) -> None:  # noqa: ARG001  与既有签名�
                      "/capabilities/* 将以**无鉴权**注册（口径不一致，已登记）: %s", exc)
 
         def _require_token(fn):  # type: ignore[misc]
+            # 【刻意**不**打 __requires_api_token__ 标记】
+            #   本桩是 fail-open 兜底（真装饰器取不到时直接放行），它**没有**提供任何
+            #   令牌校验。打标等于对外声明"本路由受令牌保护"，那是假话，且会让
+            #   find_shadowed_exemptions 把真实的裸奔误判成"豁免被遮蔽"——
+            #   把"没有保护"说成"保护了但豁免无效"，正好把结论说反。
+            #   标记的语义是**事实上是否校验**，不是"这里是否写了装饰器"。
             return fn
 
     from agent.capregistry import (IDENTITY_HUMAN, get_loader_manager,

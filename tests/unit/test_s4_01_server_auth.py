@@ -98,7 +98,15 @@ class TestRequireToken:
         set_token_map(TokenMap("tokA:alice"))
         response = app.test_client().get("/guarded")
         assert response.status_code == 401
-        assert "未授权" in response.get_json()["error"]
+        # 【2026-10-03 更新】此前断言的是 `{"error": "未授权：..."}` —— 那是本仓 6 种
+        # 错误结构之一。阶段 2 / R3 把 require_token 的 401 收敛到 RFC 9457 子集
+        # （agent/api_envelope.problem），故改为按**新契约**断言：
+        # 状态码 + RFC 9457 核心成员 + detail 说明原因（不再有裸 error 键）。
+        body = response.get_json()
+        assert response.mimetype == "application/problem+json"
+        assert {"type", "title", "status", "detail", "instance"} <= set(body)
+        assert body["status"] == 401
+        assert "令牌" in body["detail"]
 
     def test_bearer_and_x_api_token_headers(self, app, monkeypatch):
         monkeypatch.setattr(sa, "_API_TOKEN_ENABLED", True)

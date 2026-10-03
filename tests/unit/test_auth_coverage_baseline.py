@@ -71,42 +71,71 @@ def _real_route_decorator_lines(tree):
     return found
 
 
+def _scan_source(src: str, rel: str) -> set:
+    """扫一份源码，返回该文件里无鉴权变更型路由的键集合（键**不含行号**）。
+
+    【为什么拆成独立函数】键的"行号无关性"必须能被**直接测**（见
+    Test基线键不含行号::test_行号位移不改变键）。否则它只是一个口头约定，
+    下次有人顺手把行号加回键里，没有任何东西会红。
+    """
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return set()
+    found = set()
+    real = _real_route_decorator_lines(tree)
+    for i, ln in enumerate(src.splitlines()):
+        if (i + 1) not in real:  # ast.lineno 是 1-based；只在真实装饰器行上判定
+            continue
+        if not ROUTE_DEC.match(ln):
+            continue
+        block = _decorator_block(src.splitlines(), i)
+        blob = "\n".join(block)
+        if any(g in blob for g in GUARD_MARKERS):
+            continue
+        pm = PATH_RE.search(ln)
+        if not pm:
+            continue
+        mm = re.search(r"methods\s*=\s*\[([^\]]*)\]", blob)
+        methods = (re.findall(r'''["']([A-Z]+)["']''', mm.group(1))
+                   if mm else ["GET"])
+        hit = sorted(set(methods) & MUTATING)
+        if not hit:
+            continue
+        # 【2026-10-03 修：键里**不再带行号**】
+        #   原键形如 "plugins/admin_api.py:360 POST /api/auth/login"。行号参与的后果是：
+        #   只要在该路由**上方**动任何一行，整个键就变了 ⇒ test_基线只允许收缩 报
+        #   "基线条目已失效"、test_无新增的无鉴权变更型路由 报"新增 N 条无鉴权写端点"。
+        #   本轮实证：给 plugins/admin_api.py 的 _require_admin 加了 5 行标记代码，
+        #   基线里的 /api/auth/login 就从 :360 变成 :365 —— 守卫随即报出
+        #   **一条形状与"安全洞"完全相同的假警报**（"新增的无鉴权变更型路由"），
+        #   而实际上一条路由都没变。这类假警报会把人送去查一个不存在的洞，
+        #   两次之后这个守卫就会被无视（本仓 M-35 记录过同类后果）。
+        #   本仓已有同款教训：tests/unit/test_date_shift_blindspots_guard.py
+        #   专门有一条 test_legacy_line_number_keys_would_have_gone_red。
+        #   同一文件里"同一方法 + 同一路径"不可能出现两次（那本身是重复注册缺陷，
+        #   由 route-conflict-gate 单独守），故去掉行号不会减少分辨力。
+        found.add(rel + " " + "/".join(hit) + " " + pm.group(1))
+    return found
+
+
+def _decorator_block(lines, i: int) -> list:
+    """从装饰器行 i 起，向后取到 def 行为止（最多 10 行）的源码块。"""
+    block, j = [lines[i]], i + 1
+    while j < len(lines) and j < i + 10:
+        block.append(lines[j])
+        if re.match(r"^\s*def\s", lines[j]):
+            break
+        j += 1
+    return block
+
+
 def collect_unguarded_mutating():
-    """返回 {文件:行 方法 路径}：无鉴权装饰器的变更型路由。"""
+    """返回 {文件 方法 路径}：无鉴权装饰器的变更型路由（键不含行号，见 _scan_source）。"""
     found = set()
     for f in _scan_files():
-        src = f.read_text(encoding="utf-8", errors="replace")
-        lines = src.splitlines()
-        try:
-            tree = ast.parse(src)
-        except SyntaxError:
-            continue
-        real = _real_route_decorator_lines(tree)
-        for i, ln in enumerate(lines):
-            if (i + 1) not in real:  # ast.lineno 是 1-based；只在真实装饰器行上判定
-                continue
-            if not ROUTE_DEC.match(ln):
-                continue
-            block, j = [ln], i + 1
-            while j < len(lines) and j < i + 10:
-                block.append(lines[j])
-                if re.match(r"^\s*def\s", lines[j]):
-                    break
-                j += 1
-            blob = "\n".join(block)
-            if any(g in blob for g in GUARD_MARKERS):
-                continue
-            pm = PATH_RE.search(ln)
-            if not pm:
-                continue
-            mm = re.search(r"methods\s*=\s*\[([^\]]*)\]", blob)
-            methods = (re.findall(r'''["']([A-Z]+)["']''', mm.group(1))
-                       if mm else ["GET"])
-            hit = sorted(set(methods) & MUTATING)
-            if not hit:
-                continue
-            rel = str(f.relative_to(ROOT)).replace(chr(92), "/")
-            found.add(rel + ":" + str(i + 1) + " " + "/".join(hit) + " " + pm.group(1))
+        rel = str(f.relative_to(ROOT)).replace(chr(92), "/")
+        found |= _scan_source(f.read_text(encoding="utf-8", errors="replace"), rel)
     return found
 
 
@@ -164,3 +193,60 @@ class TestAuthCoverageBaseline:
             "routes_replay.py 的 /api/replay/upload 已加 @require_token（提交 258db45c），"
             "扫描却仍判为无鉴权 —— 说明装饰器识别逻辑有误。"
         )
+
+class Test基线键不含行号:
+    """基线的键必须**与行号无关** —— 否则任何无关编辑都会报出"安全洞"形状的假警报。
+
+    【为什么单列一类】2026-10-03 实证：给 plugins/admin_api.py 的 _require_admin
+    加了 5 行"令牌保护标记"代码，基线里的
+        plugins/admin_api.py:360 POST /api/auth/login
+    就变成 :365 ⇒ 两条守卫同时变红：
+        · test_无新增的无鉴权变更型路由 → "新增 1 条无鉴权变更型路由（写端点漏鉴权）"
+        · test_基线只允许收缩          → "基线条目已失效"
+    而**一条路由都没变**。第一条的措辞会把人直接送去查一个不存在的鉴权漏洞 ——
+    这正是"门禁看起来在报警、实际在说谎"的形态，比误报本身更贵。
+    """
+
+    def test_键里没有行号(self, baseline):
+        import re as _re
+
+        offenders = [r for r in baseline["unguarded_mutating"] if _re.search(r":\d+\s", r)]
+        assert not offenders, (
+            "基线键里出现了行号（形如 file:123 METHOD path）：" + str(offenders)
+            + " —— 行号会让「在该路由上方改任何一行」都变成假警报。"
+            "请重跑 python scripts/audit/auth_coverage.py --write 重建基线。"
+        )
+
+    def test_行号位移不改变键(self):
+        """把源码整体下移 7 行（等价于「上方插了 7 行代码」），键必须逐字不变。"""
+        src = (
+            "from flask import Blueprint\n"
+            "bp = Blueprint('x', __name__)\n"
+            "\n"
+            "@bp.route('/api/x', methods=['POST'])\n"
+            "def view():\n"
+            "    return 1\n"
+        )
+        before = _scan_source(src, "plugins/demo.py")
+        shifted = ("\n" * 7) + src
+        after = _scan_source(shifted, "plugins/demo.py")
+        assert before == after, (
+            "插入空行后键变了：before=" + str(sorted(before)) + " after=" + str(sorted(after))
+            + " ⇒ 键又沾上行号了"
+        )
+        assert before == {"plugins/demo.py POST /api/x"}, before
+
+    def test_位移后仍保持分辨力(self):
+        """反向：去掉鉴权装饰器后必须**仍然**能被检出（不是靠"什么都不报"通过的）。"""
+        guarded = (
+            "from flask import Blueprint\n"
+            "bp = Blueprint('x', __name__)\n"
+            "\n"
+            "@bp.route('/api/x', methods=['POST'])\n"
+            "@require_token\n"
+            "def view():\n"
+            "    return 1\n"
+        )
+        assert _scan_source(guarded, "plugins/demo.py") == set()
+        unguarded = guarded.replace("@require_token\n", "")
+        assert _scan_source(unguarded, "plugins/demo.py") == {"plugins/demo.py POST /api/x"}

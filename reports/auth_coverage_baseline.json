@@ -3,9 +3,9 @@
   "cleanup_progress": "存量未清；每修一条请重跑 --write 使基线收缩",
   "total_unguarded_mutating": 1,
   "by_file": {
-    "plugins/admin_api.py": 1
+    "plugins/admin_api.py POST /api/auth/login": 1
   },
   "unguarded_mutating": [
-    "plugins/admin_api.py:360 POST /api/auth/login"
+    "plugins/admin_api.py POST /api/auth/login"
   ]
 }

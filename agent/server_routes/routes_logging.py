@@ -1418,17 +1418,39 @@ def register_routes(app, state):
 
     @app.route("/dashboard", methods=["GET"])
     def api_dashboard():
-        """
-        可观测性仪表盘页面
+        """可观测性仪表盘：重定向到统一工作台（2026-10-03 legacy 收敛续作）。
 
-        提供指标、日志、追踪的三位一体可视化界面。
+        【为什么重定向而不是继续渲染 observability_dashboard.html】
+        该页**在本部署（CP_API_AUTH_MODE=enforce_all）下已经完全不可用**，不是"功能略旧"：
+        它消费的 5 条端点全部需要令牌，而**页面自身的 fetch 一个令牌都不带**。
+        2026-10-03 逐条活体实测（无令牌 GET）：
+            /api/diagnostics/metrics   -> 401
+            /api/diagnostics/health    -> 401
+            /api/observability/alerts  -> 401
+            /api/observability/traces  -> 401
+        ⇒ 打开 /dashboard 只会得到一个**没有任何数据的空壳**，且浏览器控制台刷 401。
+        （页面的 alert 新建/删除还会打 POST/DELETE /api/observability/alerts，
+        同样 401 —— 即"能看到的按钮点了也没用"。）
+
+        【能力并未丢失 —— 逐项对应到工作台】
+            /api/diagnostics/metrics + /api/observability/alerts  -> panorama/health
+            /api/observability/logs                               -> panorama/logs
+            /api/health/dashboard + /api/modules/topology          -> panorama/monitor
+        工作台的 hubGet 会自动附带本地 API 令牌（pages/hub/components/ui.tsx:180-188），
+        即这些数据在新界面里**本来就是通的**。
+
+        【目标是 /chat#/panorama/monitor】与 app_server.py 的 `/` → /chat#/workbench
+        同一形态：/chat 是 React SPA 入口，其为 HashRouter，工作台路由写在 # 之后。
+
+        【不易·一处必须说清的事实】本页此前被记为
+        「让 /api/diagnostics/metrics 留在 CP_API_AUTH_ALLOW 里的原因」。**该因果不成立**：
+        该端点带 @require_token（routes_logging.py:828），豁免条目被装饰器遮蔽、
+        **从来不产生效果**（活体 401 已证）。收敛本页**不会**关掉任何开放面；
+        它去掉的是一个不可用的旧页面 + 一条误导性的豁免条目。
+        同类"影子豁免"由 app_server.audit_shadowed_exemptions() 在启动期点名。
         """
-        try:
-            from flask import render_template
-            return render_template("observability_dashboard.html")
-        except Exception as e:
-            logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'加载仪表盘页面失败: {e}'}))
-            return f"仪表盘加载失败: {e}", 500
+        from flask import redirect
+        return redirect("/chat#/panorama/monitor")
 
     # ═══════════════════════════════════════════════════
     #  访问日志审计端点

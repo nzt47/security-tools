@@ -2003,23 +2003,43 @@ class TestObservabilityTraceDetailEndpoint:
 
 
 class TestDashboardEndpoint:
-    """GET /dashboard 端点测试"""
+    """GET /dashboard 端点测试（2026-10-03 legacy 收敛后改为**跳转**）。
 
-    def test_render_template_success(self, client):
-        """成功渲染仪表盘"""
-        with patch("flask.render_template", return_value="<html>dashboard</html>"):
-            resp = client.get("/dashboard")
+    【为什么这两条用例被重写】原用例断言「渲染 observability_dashboard.html 成功 = 200」
+    与「渲染失败 = 500 + 纯文本」。收敛后 /dashboard 不再渲染任何模板，而是 302 跳到
+    工作台 —— 两条用例断言的是**已被删除的行为**，属于本仓记录过的"把旧状态锁死"形态
+    （上一轮 CI 已因此修过 4 处）。
 
-        assert resp.status_code == 200
+    【收敛依据不只是"想删"】该页消费的 5 条端点在本部署（enforce_all）下**全部 401**
+    （/api/diagnostics/{metrics,health}、/api/observability/{alerts,traces}），
+    而页面自身的 fetch 不带令牌 ⇒ 打开就是一个**没有任何数据的空壳**，
+    浏览器控制台持续刷 401。能力已由工作台 panorama/{health,logs,monitor} 承接。
+    """
 
-    def test_render_template_failure_returns_500(self, client):
-        """渲染失败返回 500(纯文本)"""
+    def test_不再渲染模板而是跳转工作台(self, client):
+        resp = client.get("/dashboard")
+        assert resp.status_code == 302, (
+            "/dashboard 应 302 跳转到工作台；若又变回渲染，请确认 "
+            "templates/observability_dashboard.html 是否被恢复"
+        )
+        assert resp.headers["Location"].endswith("/chat#/panorama/monitor"), (
+            "跳转目标应为 /chat#/panorama/monitor，实际：" + str(resp.headers.get("Location"))
+        )
+
+    def test_不再有渲染失败路径(self, client):
+        """渲染路径已整体移除 ⇒ 模板缺失也不会再产生 500。
+
+        【反向前提】这条同时钉住"模板确实不再被引用"：即使模板文件不存在，
+        /dashboard 也必须照常跳转（若有人把 render_template 加回来，
+        在模板已删除的仓库里会立刻变成 500，本条即红）。
+        """
         with patch("flask.render_template", side_effect=RuntimeError("template not found")):
             resp = client.get("/dashboard")
 
-        assert resp.status_code == 500
-        # 返回纯文本错误（非 JSON），包含异常信息
-        assert b"template not found" in resp.data
+        assert resp.status_code == 302, (
+            "/dashboard 仍在走 render_template —— 而 observability_dashboard.html "
+            "已随 legacy 收敛删除，生产会 500"
+        )
 
 
 class TestAccessLogsEndpoint:

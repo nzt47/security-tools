@@ -220,13 +220,30 @@ DOMAINS: List[Domain] = [
                    description="MCP 服务注册与启用"),
     ]),
     Domain("service", "服务层", "🌐", [
+        # 【2026-10-03 修：清掉会必然漂移的手写计数】原描述写死
+        #   "287 API + 11 页面"，而同期实测（scripts/audit/contract_diff.py）
+        #   是 **450 条路由（其中 425 条 /api/*）+ 6 个 SSR 模板** —— 两个数都早就不对了。
+        #   这类"手写数字"没有保鲜机制：代码一动它就假，而没有任何东西会变红
+        #   （审计 H-2/H-1 的同一成因，也正是"契约事实源唯一化"要消灭的东西）。
+        #   ⇒ 描述里不再写计数；需要计数请看 /api/modules/topology 之外的实测工具
+        #     （python scripts/audit/contract_diff.py 会打印 routes_total）。
         ModuleNode("service.app", "Web 主服务", "app_server.py",
                    type="service", status_source="api:/api/health",
                    metrics=["overall_health"],
-                   description="Flask 主服务 127.0.0.1:5678，287 API + 11 页面"),
+                   description="Flask 主服务 127.0.0.1:5678（API 面 + SSR 页面入口）"),
+        # 【2026-10-03 H-2 收口复核】本节点曾声明 agent/api_gateway_flask.py 而该文件
+        #   不存在（契约对拍报 registry_path_missing，运行日志 5 次"API 网关层未安装"）。
+        #   该文件已于 905fe033 补实现，故本声明现在**为真**。复核结论：
+        #     · 文件存在 ✓（agent/api_gateway_flask.py，含 register_gateway / /api/docs）
+        #     · /api/open/<path:subpath> 统一入口 ✓（该文件 :163，转 gateway.handle_request）
+        #     · /api/docs ✓（:174，OpenAPI 3.0）
+        #     · 限流 / 配额 / API Key 确实存在，但**不在此文件**，而在网关核心
+        #       agent/api_gateway.py（API Key 管理 + 配额 + 限流 + 访问日志）
+        #       —— 故描述里写明"委托"，免得下一个人在本文件里找不到限流实现。
         ModuleNode("service.gateway", "API 网关", "agent/api_gateway_flask.py",
                    type="service", status_source="api:/api/health",
-                   description="/api/open/* 开放端点、限流、配额、/api/docs"),
+                   description="开放 API 网关：/api/open/* 入口 + /api/docs（鉴权/限流/配额"
+                               "委托 agent/api_gateway.py；开放面默认空，需显式登记）"),
         ModuleNode("service.network", "网络配置", "app_server.py /api/network-config",
                    type="config", status_source="api:/api/network-config",
                    actions=["update_network"],
@@ -294,6 +311,85 @@ def summary() -> dict:
         "nodes": sum(len(d.nodes) for d in DOMAINS),
         "actions": len(ACTION_ROUTES),
     }
+
+
+# ════════════════════════════════════════════════════════════
+#  自校验：声明必须命中真实路由（2026-10-03 · 审计 H-2 的机制化修复 / K1）
+# ════════════════════════════════════════════════════════════
+
+def declared_http_endpoints() -> List[Dict[str, str]]:
+    """展开本注册表里**所有指向真实 HTTP 端点**的声明。
+
+    两类来源：
+      · 节点的 `status_source`（形如 "api:/api/sensors"）—— 聚合器 S2 按它取值，
+        若该路径不存在，节点会永远显示"未知"而没有任何人知道为什么；
+      · `ACTION_ROUTES` 的 (method, url) —— 前端按它渲染干预按钮，
+        若路径/方法不对，按钮点了就是 404/405。
+
+    【为什么不在这里做校验】本模块的契约是"纯数据声明 + 纯函数辅助，不 import 业务
+    重依赖"（见模块 docstring），故校验函数接收 url_map 作为**入参**，
+    启动期由 app_server 用真实 url_map 调用，单测用夹具调用。
+    """
+    out: List[Dict[str, str]] = []
+    for d in DOMAINS:
+        for n in d.nodes:
+            src = (n.status_source or "").strip()
+            if src.startswith("api:"):
+                out.append({"source": "node:" + n.module_id,
+                            "method": "GET",
+                            "path": src[4:].strip()})
+    for key, route in ACTION_ROUTES.items():
+        out.append({"source": "action:" + key,
+                    "method": route.method.upper(),
+                    "path": route.url})
+    return out
+
+
+def validate_against_url_map(rules) -> List[str]:
+    """返回**未命中真实 url_map** 的声明（空列表 = 全部为真）。
+
+    Args:
+        rules: 可迭代的 (rule_string, methods)；通常来自 app.url_map.iter_rules()。
+            允许 methods 为 None（此时不做方法校验，只校验路径存在）。
+
+    Returns:
+        ["<来源> <METHOD> <path>", ...]（按来源排序）
+
+    【为什么必须有这个函数 —— 审计 H-2 的成因】
+    `service.gateway` 节点曾声明 `agent/api_gateway_flask.py` 而该文件**不存在**，
+    运行日志每次都报"API 网关层未安装"，但**服务照常启动**、拓扑图照常显示该节点 ——
+    声明与事实的偏离没有任何机制会发现（发现它的是三个月后的一次人工审计）。
+    本函数把那一次人工发现变成每次启动都会跑的机械判定。
+
+    【设计取舍：为什么是"告警"不是"阻断"】声明不准不会导致请求失败，只会导致
+    **拓扑图说谎**（点按钮 404 / 状态永远未知）。阻断启动的代价远大于收益；
+    但与 `_route_assembly_settlement` 一样，它必须**可见**（ERROR 级点名到条）。
+    """
+    normalized = []
+    for rule, methods in rules:
+        path = str(rule)
+        ms = {str(m).upper() for m in (methods or ())}
+        normalized.append((path, ms))
+
+    def _hit(path: str, method: str) -> bool:
+        # 通配声明（"/api/knowledge/*"）：命中其下**任一**真实规则即可。
+        # 【为什么要支持】节点用通配表达"这一片都属于我"是合理声明，
+        # 若按精确匹配判，它会永远是假警报 —— 而假警报会让整个门禁被无视。
+        if path.endswith("/*"):
+            base = path[:-2]
+            return any(p == base or p.startswith(base + "/") for p, _ in normalized)
+        for p, ms in normalized:
+            if p != path:
+                continue
+            if not ms or method in ms or "GET" == method and "HEAD" in ms:
+                return True
+        return False
+
+    misses = []
+    for item in declared_http_endpoints():
+        if not _hit(item["path"], item["method"]):
+            misses.append(item["source"] + " " + item["method"] + " " + item["path"])
+    return sorted(misses)
 
 
 if __name__ == "__main__":
