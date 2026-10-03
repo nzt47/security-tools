@@ -235,6 +235,36 @@ def path_is_allowlisted(path: str, allowlist) -> bool:
     return False
 
 
+def find_allowed_write_endpoints(allowlist, rules) -> list:
+    """返回「豁免清单覆盖到的**变更型**端点」—— 审计 H-5 的机制化检出点。
+
+    【为什么必须有这个函数】本模块 :205-211 已记录过一次同形事故：豁免项
+    "/api/health" 的前缀匹配把 PUT /api/health/weights 与
+    POST /api/health/score/calculate 一并放开。2026-10-03 审计 H-5 是**第二次**：
+    /api/replay/upload 因「sendBeacon 无法携带自定义请求头」被整条豁免，
+    而它自身又漏了 @require_token ⇒ 一个**写端点**完全无鉴权。
+    两次成因完全相同：**看装饰器的人看不到豁免清单，看豁免清单的人不知道哪条是写路由。**
+    故把两者求交，做成一个可被单测直接导入的纯函数。
+
+    Args:
+        allowlist: 当前生效的豁免清单（字符串可迭代）
+        rules: 可迭代的 (rule_string, methods)；通常来自 app.url_map.iter_rules()
+
+    Returns:
+        ["<path> (METHOD/METHOD)", ...]（按路径排序）；空列表 = 无风险
+    """
+    mutating = {"POST", "PUT", "DELETE", "PATCH"}
+    hits = []
+    for rule, methods in rules:
+        m = sorted({str(x).upper() for x in (methods or ())} & mutating)
+        if not m:
+            continue
+        path = str(rule)
+        if path_is_allowlisted(path, allowlist):
+            hits.append(f"{path} ({'/'.join(m)})")
+    return sorted(hits)
+
+
 def require_token(f):
     """需要 API 令牌认证的装饰器（支持共享令牌 + 每使用者独立令牌）"""
     @functools.wraps(f)

@@ -16,8 +16,16 @@ try:
 except ImportError:
     try:
         from ..server_auth import require_token
-    except ImportError:
-        require_token = lambda f: f  # fallback: 不启用鉴权
+    except ImportError as _e:  # noqa: BLE001
+        # 【安全·2026-10-03 修复 M-42】原实现为空装饰器 fallback（注释写作「不启用鉴权」）——
+        # 该模块的 6 条路由会在双 ImportError 路径下**静默失去鉴权**，违反本仓已在
+        # app_server.py:846-857 确立的 fail-closed 纪律（鉴权组件异常即拒绝）。
+        # 安全组件缺失不得降级放行，故改为 fail-fast：宁可导入期报错（启动即暴露），
+        # 也不接受「看起来有装饰器、实际不校验」。
+        raise RuntimeError(
+            "routes_system_prompt: 无法导入 require_token，拒绝以不启用鉴权的降级方式启动"
+            f"（原空装饰器 fallback 已于 2026-10-03 移除）: {_e}"
+        ) from _e
 
 
 def register_routes(app, state):

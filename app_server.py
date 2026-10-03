@@ -2346,6 +2346,57 @@ def _warm_skill_vector_leg_async():
     threading.Thread(target=_run, name="skill-vector-prewarm", daemon=True).start()
 
 
+# ════════════════════════════════════════════════════════════
+#  启动自检：鉴权豁免清单 vs 变更型端点（2026-10-03 · 审计 H-5 机制化修复）
+# ════════════════════════════════════════════════════════════
+def audit_auth_allowlist(app) -> dict:
+    """启动自检：豁免清单**不得**覆盖任何变更型端点。
+
+    【解决什么】审计 H-5 的成因不是「忘了给某条路由加装饰器」，而是**两处各自
+    看起来都合理**：① 视图函数漏了 @require_token；② 该路径又被
+    CP_API_AUTH_ALLOW 显式豁免（理由也写得很充分：sendBeacon 无法携带自定义请求头）。
+    两处叠加 ⇒ 一个**写端点**完全无鉴权，且没有任何机制会发现：静态扫描只看装饰器、
+    看不到 .env 的豁免；读 .env 的人又不知道哪条路径是写路由。
+
+    【怎么做】启动时把「当前生效的豁免清单」与「真实 url_map」求交，凡命中变更型
+    方法（POST/PUT/DELETE/PATCH）的豁免路径一律**点名 ERROR 告警**。
+    只告警不拦截 —— 豁免是显式人工决策，本函数把隐式后果变显式，而不是替人做决定
+    （直接拦下来会在升级路径上造成「一次打挂」）。
+
+    【为什么不放 CI】豁免清单来自 .env（本机环境、不入库），CI 读不到。
+    只能放启动期，而启动期也正是「变更后立刻可见」的位置。
+
+    Returns:
+        {"ok": bool, "exempt_write_count": int, "exempt_write": ["<path> (METHOD)"]}
+    """
+    hits: list = []
+    try:
+        from agent.server_auth import find_allowed_write_endpoints
+        hits = find_allowed_write_endpoints(
+            _API_AUTH_ALLOW,
+            ((str(r.rule), r.methods) for r in app.url_map.iter_rules()),
+        )
+    except Exception as e:  # noqa: BLE001 自检失败不阻断启动
+        logger.warning("[AuthGate][自检] 豁免清单审计失败（不阻断启动）: %s", e)
+        return {"ok": False, "error": str(e), "exempt_write_count": -1, "exempt_write": []}
+
+    if hits:
+        logger.error(
+            "[AuthGate][自检] 豁免清单覆盖了 %d 个**变更型**端点 —— 这些写操作当前"
+            "无需令牌即可调用：%s ｜ 处理：确认是否确有必要豁免；若否，从 "
+            "CP_API_AUTH_ALLOW 摘除并确认视图函数带 @require_token。"
+            "（本条即审计 H-5 的检出点）",
+            len(hits), "; ".join(hits),
+        )
+    else:
+        logger.info("[AuthGate][自检] 豁免清单未覆盖任何变更型端点（%d 项豁免全部为只读/页面）",
+                    len(_API_AUTH_ALLOW))
+    return {"ok": True, "exempt_write_count": len(hits), "exempt_write": hits}
+
+
+_auth_allowlist_audit = audit_auth_allowlist(app)
+
+
 if __name__ == "__main__":
     # 脚本直跑（python app_server.py）时本模块名为 __main__；插件视图函数内的
     # 延迟导入 `from app_server import _Yunshu`（PLAN-1 §4）会把 app_server.py
