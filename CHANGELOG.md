@@ -6,6 +6,42 @@
 
 ---
 
+## [CHG] - 2026-10-03: 监控死指标清理（删 15 条恒不触发告警 + 修 9 个看板 + 6 个检索旋钮接线 + C-1/C-2 实测）✅
+
+**影响模块**: `monitoring/`（9 个看板、13 个规则文件、2 份 compose）、`agent/skills_mgmt/loader.py`、
+`agent/monitoring/prometheus.py`、`deploy/k8s/deployment.yaml`、
+`tests/unit/test_dashboard_metric_names.py`（新增）、`tests/unit/test_loader_env_knobs.py`（新增）、
+`scripts/monitoring_longrun/`（新增，长跑装置）
+**关联文档**: `docs/closeout/监控死规则与陈旧看板清理_20261002.md`（结案报告）+ `docs/closeout/监控清理_evidence_20261002/`（证据）
+
+**触发**: 按 `docs/closeout/能力层重构交付报告_20261001.md` §10《下次接手清单》逐条接手（11 项）。
+
+### Fixed
+- **看板**：删 4 个 100% 引用不存在指标的陈旧看板；修 **5 个在用看板**（§10 未列到）——`yunshu-full-monitoring`（13 个 `Yunshu_*` + 旧 job 名 + 复数 `http_requests_total` + 无前缀 `system_*` + 3 条不存在的 recording rule + 由不存在指标取值的变量）、`yunshu-monitor`（整板 6 面板全空）、`yunshu-alerts-monitor`、`hpa/p99/skill-hpa`（去掉 `skill_match_*` 上不存在的 `namespace` 过滤）；判据是实测 186 个真实指标名
+- **11 个"注定为空"的面板保留但就地写明原因**（部署 5 + CI/CD 5 + 活跃用户 1）；资源发布看板整板注明（ResourceMonitor 无生产调用方）
+- **删 15 条恒不触发的告警**：SafeFileReader 9（A-1）+ v6.2 意图 5（A-2）+ P@K 1（A-3）；规则文件 **14→13**、告警 **107→92**；规则文件 / `rule_files` / compose 挂载**三处同进同退**
+- **D-1 接线**：6 个"写了没人读"的检索旋钮（`SKILLS_USE_INVERTED_INDEX` / `CANDIDATE_LIMIT` / `USE_VECTOR` / `FUSION_MODE` / `USE_BM25` / `USE_RERANKER`）真的生效；未设 env 时回退值与接线前**逐字一致**；非法值回退默认并记 `env_knob.invalid_value`
+- **E-1**：监控镜像钉 tag（`prom/prometheus:v2.51.0` / `grafana/grafana:10.4.0`）；aliyun 变体的镜像加速器实测 `no such host`，改官方源
+
+### Added
+- `tests/unit/test_dashboard_metric_names.py`：看板守卫（写了不存在的指标名即 CI 红，且"豁免必须带说明"）
+- `tests/unit/test_loader_env_knobs.py`：8 条，含"env 真的走到 `_tfidf_scan`"的端到端断言
+- `scripts/monitoring_longrun/`：C-2 长跑装置（harness + 规则健康采样 + 派生配置生成 + 分析器 + README）
+- `monitoring/alertmanager.example.yml` + 两份 compose / `prometheus.yml` 里"三处取消注释即可启用"的 Alertmanager 脚手架
+
+### 验证
+- `promtool check config` **EXIT=0**（13 规则文件 / 92 条告警）；两份 `docker compose config` **EXIT=0**
+- 相关子集 **91 + 63 + 4 + 2 + 8 passed**（看板守卫 / det2 确定性 / reranker / 业务指标 / 旋钮 / 安全文件读取器）
+- **C-1**：Prometheus → Alertmanager → webhook **端到端投递实测全通**（顺带记录 50 秒时延与"目标必须写服务名"两个坑）
+- **C-2**：监控栈**长跑 3.97 小时**——抓取无漂移无丢失、TSDB `+312 序列/小时` / `+0.60 MB/小时`、21 个告警 80 次跃迁（11 个走完 `pending→firing→resolved`）、规则求值无卡顿
+
+### 遗留
+- `CircuitBreakerMetricsMissing` 一旦 firing **不再 resolved**（C-2 新发现）；`prometheus_tsdb_head_samples_appended_total` 恒 0 的成因（两项已开专项）
+- 死代码收口：SafeFileReader 的重复指标定义 / `utils/prometheus_exporter.py` 薄包装 / 孤儿 negative_intent 检测器 / 过期的 `SKILL_QUERY_PATTERN_ENABLED` 回滚指引（已开专项）
+- 月度容量外推**明确不做**（3.97 小时不足以支撑，报告里写了结论边界）
+
+---
+
 ## [CHG] - 2026-10-03（同族隐患）: 修两处「可选依赖只置标志、注解却直接求值」的导入期 NameError ✅
 
 **影响模块**: `sensor/ocr_sensor.py`, `scripts/observability_post_deploy.py`, `tests/unit/test_optional_dep_annotations.py`（新增）
