@@ -127,6 +127,17 @@ from agent.log_system.dashboard import register_log_system
 logging.basicConfig(level=logging.INFO, encoding="utf-8", force=True)
 logger = logging.getLogger(__name__)
 
+# ── 路由装配失败登记（2026-10-03 · 审计 K8 / H-2 机制化修复）──
+# 20 处 try/except 的失败原本只打一行 logger.error 就继续启动。实测当前失败数为 0，
+# 但这条路径触发过一次：agent/api_gateway_flask.py 缺失导致 /api/open/* 与 /api/docs
+# 整个 API 面没注册，进程却照样健康（审计 H-2）。现统一登记，装配结束时结算：
+# 默认 strict（有失败即拒绝启动），YUNSHU_ROUTE_ASSEMBLY_STRICT=0 可显式降级。
+from agent.route_assembly import (  # noqa: E402 - 本模块无业务依赖，无循环导入风险
+    record as _record_route_failure,
+    finalize as _finalize_route_assembly,
+    summary as _route_assembly_summary,
+)
+
 # 启用结构化日志易读格式（控制台显示优化，不影响 JSON 原始内容）
 try:
     from scripts.struct_log_formatter import setup_readable_logging
@@ -1443,7 +1454,7 @@ try:
     from agent.server_routes.routes_system_prompt import register_routes as reg_system_prompt_config
     reg_system_prompt_config(app, lambda: None)  # state 不需要，用 lambda 代替
 except Exception as e:
-    logger.error("加载系统提示词配置路由失败: %s", e)
+    _record_route_failure("系统提示词配置路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1458,7 +1469,7 @@ try:
     install_hooks()
     logger.info("LLM 通信监控已启动")
 except Exception as e:
-    logger.error("加载 LLM 监控路由失败: %s", e)
+    _record_route_failure("LLM 监控路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1471,7 +1482,7 @@ try:
     reg_background(app, lambda: None)
     logger.info("后台任务路由已注册 (/api/background/tasks*)")
 except Exception as e:
-    logger.error("加载后台任务路由失败: %s", e)
+    _record_route_failure("后台任务路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1482,7 +1493,7 @@ try:
     reg_skills_mgmt(app, lambda: None)
     logger.info("技能管理系统路由已注册 (/api/skills-mgmt/*)")
 except Exception as e:
-    logger.error("加载技能管理路由失败: %s", e)
+    _record_route_failure("技能管理路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1494,7 +1505,7 @@ try:
     reg_workflow_learning(app, lambda: None)
     logger.info("工作流学习系统路由已注册 (/api/workflow-learning/*)")
 except Exception as e:
-    logger.error("加载工作流学习路由失败: %s", e)
+    _record_route_failure("工作流学习路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1507,7 +1518,7 @@ try:
     reg_process_distill(app, lambda: None)
     logger.info("过程蒸馏路由已注册 (/api/process-distill/*)")
 except Exception as e:
-    logger.error("加载过程蒸馏路由失败: %s", e)
+    _record_route_failure("过程蒸馏路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1521,7 +1532,7 @@ try:
     reg_visual_workflows(app, lambda: None)
     logger.info("可视化工作流草稿路由已注册 (/api/visual-workflows/*)")
 except Exception as e:
-    logger.error("加载可视化工作流路由失败: %s", e)
+    _record_route_failure("可视化工作流路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1537,7 +1548,7 @@ try:
     reg_approval(app, lambda: None)
     logger.info("审批 HTTP 面已注册 (/api/approval/*)")
 except Exception as e:
-    logger.error("加载审批 HTTP 面失败: %s", e)
+    _record_route_failure("审批 HTTP 面", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1550,7 +1561,7 @@ try:
     reg_ui_panels(app, lambda: None)
     logger.info("治理可观测面板路由已注册 (/api/cp/*)")
 except Exception as e:
-    logger.error("加载治理可观测面板路由失败: %s", e)
+    _record_route_failure("治理可观测面板路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1576,7 +1587,7 @@ try:
     reg_settings(app, lambda: None)
     logger.info("开关中心路由已注册 (/api/cp/settings*)")
 except Exception as e:
-    logger.error("加载开关中心路由失败: %s", e)
+    _record_route_failure("开关中心路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1597,7 +1608,7 @@ try:
     reg_logging(app, lambda: None)
     logger.info("运行时诊断路由注册成功 (/api/diagnostics/*, /api/observability/*)")
 except Exception as e:
-    logger.error("加载运行时诊断路由失败: %s", e)
+    _record_route_failure("运行时诊断路由", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1611,7 +1622,7 @@ try:
     reg_subagent(app, _subagent_state)
     logger.info("分身管理路由已注册 (/api/subagent/*)")
 except Exception as e:
-    logger.error("加载分身管理路由失败: %s", e)
+    _record_route_failure("分身管理路由", e)
 
 try:
     from types import SimpleNamespace
@@ -1624,7 +1635,7 @@ try:
     reg_assets(app, _assets_state)
     logger.info("资产管理路由已注册 (/api/assets/*)")
 except Exception as e:
-    logger.error("加载资产管理路由失败: %s", e)
+    _record_route_failure("资产管理路由", e)
 
 # ════════════════════════════════════════════════════════════
 #  用户行为回放路由（/api/replay/*）
@@ -1636,7 +1647,7 @@ try:
     reg_replay(app, lambda: None)
     logger.info("用户行为回放路由已注册 (/api/replay/*)")
 except Exception as e:
-    logger.error("加载回放路由失败: %s", e)
+    _record_route_failure("回放路由", e)
 
 # ════════════════════════════════════════════════════════════
 #  向量记忆路由
@@ -1666,7 +1677,7 @@ try:
     reg_business(app, lambda: None)
     logger.info("业务仪表盘路由已注册 (/api/business/*)")
 except Exception as e:
-    logger.error("加载业务仪表盘路由失败: %s", e)
+    _record_route_failure("业务仪表盘路由", e)
 
 # T2：用户反馈（后端 get_feedback_manager 已多模块使用，补 HTTP 暴露）
 try:
@@ -1674,7 +1685,7 @@ try:
     reg_feedback(app, lambda: None)
     logger.info("反馈路由已注册 (/api/feedback/*)")
 except Exception as e:
-    logger.error("加载反馈路由失败: %s", e)
+    _record_route_failure("反馈路由", e)
 
 # T4：健康评分（与 health_bp 的 /api/health/dashboard 等路径不冲突）
 try:
@@ -1682,7 +1693,7 @@ try:
     reg_health(app, lambda: None)
     logger.info("健康评分路由已注册 (/api/health/score 等)")
 except Exception as e:
-    logger.error("加载健康评分路由失败: %s", e)
+    _record_route_failure("健康评分路由", e)
 
 # ── W5/TASK-08 ⑤：检索降级可见化（embedding_health → 健康面）──────────────
 # 【契约（已冻结，不改签名）】agent/tool_router_hybrid.py:1387 `embedding_health()`
@@ -1740,7 +1751,7 @@ try:
     reg_dashboard(app, lambda: None)
     logger.info("监控仪表盘路由已注册 (/api/dashboard/*)")
 except Exception as e:
-    logger.error("加载监控仪表盘路由失败: %s", e)
+    _record_route_failure("监控仪表盘路由", e)
 
 # ── 主线管理（/api/agent-lines/*）──
 #  ⚠ 必须在此显式注册：`agent/server_routes/__init__.py::register_all_routes` 是
@@ -1751,7 +1762,7 @@ try:
     reg_agent_lines(app, lambda: None)
     logger.info("主线管理路由已注册 (/api/agent-lines/*)")
 except Exception as e:
-    logger.error("加载主线管理路由失败: %s", e)
+    _record_route_failure("主线管理路由", e)
 
 # T6：orchestrator 语义层配置热更（/api/orchestrator/semantic-config）
 #  【2026-09-18 接线】原注释写"路由由 agent/api_gateway.py 与 orchestrator 提供，
@@ -1766,7 +1777,7 @@ try:
     reg_sem_cfg(app, lambda: None)
     logger.info("语义层配置路由已注册 (/api/orchestrator/semantic-config)")
 except Exception as e:
-    logger.error("加载语义层配置路由失败: %s", e)
+    _record_route_failure("语义层配置路由", e)
 
 # ════════════════════════════════════════════════════════════
 #  能力层非 LLM 入口（TASK-05 §3 第 4 步）
@@ -1785,7 +1796,7 @@ try:
     from agent.server_routes.routes_capabilities import register_routes as reg_capabilities
     reg_capabilities(app, lambda: None)
 except Exception as e:
-    logger.error("加载能力层路由失败（/capabilities/* 将不可用，平台照常启动）: %s", e)
+    _record_route_failure("能力层路由", e)
 
 # T7：会话交接（原 routes_sessions.register_handoff_routes 已移除，
 # 会话 API 由 plugins/chat.py 提供，此处不再接线）
@@ -2203,7 +2214,7 @@ except ImportError:
     except Exception:  # noqa: BLE001  诊断登记失败不得阻断启动
         pass
 except Exception as e:
-    logger.warning("加载 API 网关适配层失败: %s", e)
+    _record_route_failure("API 网关适配层", e)
     try:
         from agent.startup_diagnostics import record_degradation
         record_degradation(
@@ -2395,6 +2406,16 @@ def audit_auth_allowlist(app) -> dict:
 
 
 _auth_allowlist_audit = audit_auth_allowlist(app)
+
+# 路由装配结算：登记为空则记 INFO；有失败且未显式降级则 raise（拒绝带伤启动）。
+# 【为什么 raise 而不是继续】失败即意味着某个 API 面整体缺失 —— 让进程「看起来健康」
+# 正是审计 H-2 的成因（/api/open/* 与 /api/docs 全没注册而服务照常）。
+try:
+    _route_assembly_settlement = _finalize_route_assembly()
+    logger.info('[启动] %s', _route_assembly_summary())
+except RuntimeError as _ra_e:
+    logger.error('[启动] %s', _ra_e)
+    raise
 
 
 if __name__ == "__main__":
