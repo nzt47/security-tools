@@ -1,12 +1,9 @@
 {
   "note": "无鉴权装饰器的变更型路由（只允许收缩）。它不等于当前可未授权调用 —— 本部署 CP_API_AUTH_MODE=enforce_all，全局闸门已覆盖变更型方法。本基线的意义是：① 新写端点必须自带鉴权；② 档位若被下调，这里就是裸奔清单。",
   "cleanup_progress": "存量未清；每修一条请重跑 --write 使基线收缩",
-  "total_unguarded_mutating": 16,
+  "total_unguarded_mutating": 11,
   "by_file": {
-    "plugins/admin_api.py": 11,
-    "plugins/chat.py": 3,
-    "plugins/demo_plugin.py": 1,
-    "plugins/safety.py": 1
+    "plugins/admin_api.py": 11
   },
   "unguarded_mutating": [
     "plugins/admin_api.py:275 POST /api/auth/login",
@@ -19,11 +16,6 @@
     "plugins/admin_api.py:430 PUT /api/role/<int:role_id>",
     "plugins/admin_api.py:442 DELETE /api/role/<int:role_id>",
     "plugins/admin_api.py:495 POST /api/notification/<int:notif_id>/read",
-    "plugins/admin_api.py:504 POST /api/notification/read-all",
-    "plugins/chat.py:160 POST /api/chat",
-    "plugins/chat.py:1965 POST /api/chat/stream",
-    "plugins/chat.py:567 POST /api/sessions",
-    "plugins/demo_plugin.py:40 POST /api/demo/config",
-    "plugins/safety.py:110 POST /api/window/consent"
+    "plugins/admin_api.py:504 POST /api/notification/read-all"
   ]
 }

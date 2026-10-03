@@ -1,5 +1,6 @@
 # plugins/plugin_api.py
 from __future__ import annotations
+import functools
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 from flask import Blueprint
@@ -99,3 +100,45 @@ def manifest() -> Dict[str, Any]:
         ],
         "host": {"python": sys.version.split()[0], "flask": flask.__version__},
     }
+
+
+# ════════════════════════════════════════════════════════════
+#  插件统一鉴权装饰器（2026-10-03 · 审计 M-40 的收口点）
+# ════════════════════════════════════════════════════════════
+def _lazy_wrap(f, build):
+    """占位包装器：每次调用时用延迟解析出的真实装饰器包装 f 后执行。"""
+    @functools.wraps(f)
+    def _wrapped(*args, **kwargs):
+        return build(f)(*args, **kwargs)
+    return _wrapped
+
+
+def require_auth(f):
+    """插件用**统一**鉴权装饰器：延迟解析 app_server 的 require_token。
+
+    【为什么上收到这里】审计 M-40 实测：plugins/{chat,mcp_scheduler,safety,skills,status}.py
+    各自抄了一份 _lazy_wrap + _require_token（共 5 份定义、64 处使用）。改一处不会同步其余
+    四处 —— 本仓已有同类前科（agent/logging_utils.py 与 utils/sensitive_data_filter.py 的
+    两份掩码规则「对齐而非共用」；以及那次 require_token 空装饰器 fail-open）。
+    plugin_api 是 plugins 的公共叶子模块，其自身注释早已记录过同一教训
+    （context_limit_info 被抄三份导致「同一个占用在不同面板显示不同占比」），把鉴权也上收到此。
+
+    【为什么延迟解析】PLAN-1 §4 红线：插件模块顶层不得 import app_server（循环导入）。
+    故直到**首次请求**才从 app_server 取真实装饰器；导入期零副作用。
+
+    【与既有 5 份的关系】本函数是**新代码与示范插件的标准写法**；既有 5 份属遗留，
+    迁移应逐插件进行（它们各自有 4~23 处在用），不做一次性替换以免放大回归面。
+
+    用法::
+
+        from .plugin_api import require_auth
+
+        @bp.route("/api/x", methods=["POST"])
+        @require_auth
+        def api_x():
+            ...
+    """
+    def _build(fn):
+        from app_server import require_token as _real
+        return _real(fn)
+    return _lazy_wrap(f, _build)

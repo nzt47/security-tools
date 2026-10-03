@@ -65,6 +65,26 @@ PATH_LITERAL = re.compile(r'''["'](/[A-Za-z0-9_\-./{}<>:$]*)["']''')
 FRONTEND_LITERAL = re.compile(r'''["'\x60](/api/[A-Za-z0-9_\-./{}<>:$]*)["'\x60]''')
 
 
+def _real_route_decorator_lines(tree):
+    # 返回 {行号: 方法名}，只含**真实**函数装饰器。
+    #
+    # 【为什么必须走 AST】纯文本扫描会把**文档字符串里的用法示例**当成真路由。实测：
+    # 2026-10-03 给 plugins/plugin_api.py 的 require_auth 写了段用法示例（docstring 里含
+    # @bp.route("/api/x", methods=["POST"])），文本扫描立刻把 /api/x 计成一条真实路由，
+    # routes_total 从 449 虚增到 450。一个会凭空造出端点的门禁没有可信度 —— 那正是
+    # 本工具反复强调的「零假阳性」红线。
+    found = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for d in node.decorator_list:
+            if isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute):
+                meth = d.func.attr.lower()
+                if meth in ("route", "get", "post", "put", "delete", "patch"):
+                    found[int(d.lineno)] = meth
+    return found
+
+
 def _iter_source_files(suffixes, dirs):
     for d in dirs:
         base = ROOT / d
@@ -91,6 +111,13 @@ def collect_routes_static():
         except OSError:
             continue
 
+        # AST 定位真实装饰器行（排除 docstring 里的示例）
+        try:
+            _tree = ast.parse(chr(10).join(lines))
+            real_routes = _real_route_decorator_lines(_tree)
+        except SyntaxError:
+            real_routes = {}
+
         consts = {}
         prefixes = {}
         for ln in lines:
@@ -102,6 +129,8 @@ def collect_routes_static():
                 prefixes[bm.group(1)] = bm.group(2)
 
         for i, raw_line in enumerate(lines):
+            if (i + 1) not in real_routes:  # ast.lineno 1-based：只在真实装饰器行上判定
+                continue
             line = raw_line
             # 展开 f"{PREFIX}/x" -> "/api/cp/x"
             for cname, cval in consts.items():

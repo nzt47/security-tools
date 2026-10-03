@@ -108,6 +108,7 @@ def api_privacy_info():
 
 
 @bp.route("/api/window/consent", methods=["POST"])
+@_require_token
 @_log_request()
 def api_window_consent():
     """用户同意或拒绝窗口监控"""

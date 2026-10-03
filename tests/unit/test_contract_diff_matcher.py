@@ -6,9 +6,13 @@
   ① TS 模板字面量 ${...} 残留 "$"（曾产生 60+ 条假阳性）；
   ② Blueprint url_prefix 未解析（/api/modules/topology 被误判不存在）；
   ③ 模块级常量前缀 f"{PREFIX}/x" 未展开（/api/cp/tool-exemptions 被误判）；
-  ④ 查询串模板 /api/x/stream${q}（q 是 "?a=b"，不是路径段）。
+  ④ 查询串模板 /api/x/stream${q}（q 是 "?a=b"，不是路径段）；
+  ⑤ **docstring 里的用法示例被当成真路由** —— 2026-10-03 实测：给 plugins/plugin_api.py
+     的 require_auth 写用法示例后，文本扫描把 /api/x 计成真实端点，routes_total 449→450。
 """
 from __future__ import annotations
+
+import ast
 
 import importlib.util
 import sys
@@ -91,3 +95,29 @@ class TestStaticScan:
         """M-26：security-tools/ 是未跟踪的完整副本，必须排除，否则产出双份契约。"""
         routes = cd.collect_routes_static()
         assert not any("security-tools" in w for r in routes.values() for w in r["where"])
+
+
+class TestDocstringIsNotARoute:
+    """(5) 类假阳性：源码文本里的用法示例不得被当作真实路由。"""
+
+    def test_docstring_里的路由示例不算真路由(self, cd):
+        # 用 chr(34)/chr(10) 拼装，避免在测试里嵌套三引号（本仓多处已因嵌套引号踩坑）
+        src = (
+            'def f():' + chr(10)
+            + '    ' + chr(34) * 3 + '用法示例:' + chr(10)
+            + chr(10)
+            + '        @bp.route(' + chr(34) + '/api/x' + chr(34) + ', methods=[' + chr(34) + 'POST' + chr(34) + '])' + chr(10)
+            + '    ' + chr(34) * 3 + chr(10)
+            + '    return 1' + chr(10)
+        )
+        assert cd._real_route_decorator_lines(ast.parse(src)) == {}
+
+    def test_真实装饰器仍被识别(self, cd):
+        src = '@bp.route("/api/y", methods=["POST"])\n@require_auth\ndef g():\n    pass\n'
+        assert list(cd._real_route_decorator_lines(ast.parse(src)).values()) == ["route"]
+
+    def test_plugin_api_的用法示例未污染真实路由集(self, cd):
+        routes = cd.collect_routes_static()
+        assert "/api/x" not in routes, (
+            "plugin_api.py 的 docstring 用法示例被当成了真实路由 —— 门禁会凭空造出端点。"
+        )

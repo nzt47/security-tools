@@ -13,7 +13,8 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
 
-from .plugin_api import Plugin, register_plugin
+# require_auth：插件统一鉴权装饰器（审计 M-40 的收口点，见 plugin_api 的说明）
+from .plugin_api import Plugin, register_plugin, require_auth
 
 bp = Blueprint("demo", __name__)
 
@@ -38,8 +39,14 @@ def demo_config_get():
 
 
 @bp.route("/api/demo/config", methods=["POST"])
+@require_auth
 def demo_config_post():
-    """应用配置（只接受 schema 已声明的字段）。"""
+    """应用配置（只接受 schema 已声明的字段）。
+
+    【为什么加鉴权】它是**改进程内配置的写端点**；本插件同时是全仓「怎么写插件」的
+    示范件（PLAN-4 的参考实现），示范里必须带上鉴权 —— 否则新插件作者照抄出来的端点
+    就是裸奔的（这正是 2026-09-27 鉴权盘点点名的「可复发的结构性成因」）。
+    """
     payload = request.get_json(silent=True) or {}
     allowed = {"greeting", "show_badge", "poll_interval"}
     applied = {}

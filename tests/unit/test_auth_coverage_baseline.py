@@ -21,6 +21,7 @@ app_server.audit_auth_allowlist）。两面合起来才是完整判定。
 """
 from __future__ import annotations
 
+import ast
 import json
 import re
 from pathlib import Path
@@ -31,7 +32,10 @@ ROOT = Path(__file__).resolve().parents[2]
 BASELINE = ROOT / "reports" / "auth_coverage_baseline.json"
 
 MUTATING = {"POST", "PUT", "DELETE", "PATCH"}
-GUARD_MARKERS = ("require_token", "auth=True", "login_required", "require_permission")
+# 认作"已鉴权"的装饰器标记。require_auth 是 plugins/plugin_api.py 的统一装饰器
+# （2026-10-03 审计 M-40 的收口点）——**必须**在内，否则用它标注的端点会被误判为裸奔。
+GUARD_MARKERS = ("require_token", "require_auth", "auth=True", "login_required",
+                 "require_permission")
 ROUTE_DEC = re.compile(r"^\s*@([A-Za-z_][\w.]*)\.route\(")
 PATH_RE = re.compile(r'''route\(\s*["']([^"']+)''')
 
@@ -43,12 +47,40 @@ def _scan_files():
     return [f for f in files if f.exists()]
 
 
+def _real_route_decorator_lines(tree):
+    """返回 {行号: 方法名}，只含**真实**函数装饰器。
+
+    【为什么必须走 AST】纯文本扫描会把**文档字符串里的示例**当成真路由 —— 这不是假设：
+    2026-10-03 给 plugins/plugin_api.py 的 require_auth 写了一段用法示例（docstring 里含
+    "@bp.route(\"/api/x\", methods=[\"POST\"])"），文本扫描立刻把它算成一条无鉴权写端点，
+    基线凭空多出一条假阳性。AST 只认 decorator_list，从根上消除这类误报。
+    """
+    found = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for d in node.decorator_list:
+            if isinstance(d, ast.Call) and isinstance(d.func, ast.Attribute):
+                meth = d.func.attr.lower()
+                if meth in ("route", "get", "post", "put", "delete", "patch"):
+                    found[int(d.lineno)] = meth
+    return found
+
+
 def collect_unguarded_mutating():
     """返回 {文件:行 方法 路径}：无鉴权装饰器的变更型路由。"""
     found = set()
     for f in _scan_files():
-        lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+        src = f.read_text(encoding="utf-8", errors="replace")
+        lines = src.splitlines()
+        try:
+            tree = ast.parse(src)
+        except SyntaxError:
+            continue
+        real = _real_route_decorator_lines(tree)
         for i, ln in enumerate(lines):
+            if (i + 1) not in real:  # ast.lineno 是 1-based；只在真实装饰器行上判定
+                continue
             if not ROUTE_DEC.match(ln):
                 continue
             block, j = [ln], i + 1
@@ -106,10 +138,17 @@ class TestAuthCoverageBaseline:
         assert isinstance(baseline.get("note"), str) and baseline["note"]
 
     def test_检测器具备分辨力_已知未装饰者必须被检出(self):
-        """证明扫描不是恒空集：已知的无鉴权写端点必须在结果里。"""
+        """证明扫描不是恒空集：已知的无鉴权写端点必须在结果里。
+
+        【为什么锚在 admin_api】plugins/chat.py 的 POST /api/chat 曾是本断言的锚点，
+        2026-10-03 补上鉴权后它不再适合当"未装饰"的样本 —— 锚点必须跟着**当前确实
+        未装饰**的端点走，否则这条断言会退化成永远失败（进而被人删掉）。
+        admin_api 的写端点要等它自己的守卫（其会话令牌与 FLASK_API_TOKEN 相互独立），
+        在此之前正是稳定的锚点。
+        """
         current = collect_unguarded_mutating()
-        assert any("plugins/chat.py" in r and "POST /api/chat" in r for r in current), (
-            "plugins/chat.py 的 POST /api/chat 当前无 @require_token，扫描却未检出 —— "
+        assert any("plugins/admin_api.py" in r and "POST /api/user" in r for r in current), (
+            "plugins/admin_api.py 的 POST /api/user 当前无鉴权装饰器，扫描却未检出 —— "
             "说明扫描逻辑已失效（守卫会变成永远通过的空壳）。"
         )
 

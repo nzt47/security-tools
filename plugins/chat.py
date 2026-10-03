@@ -158,6 +158,7 @@ def api_voice_status():
 
 
 @bp.route("/api/chat", methods=["POST"])
+@_require_token
 def api_chat():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     # _CHAT_HISTORY 是 app_server 的模块级共享缓存（api_config 等仍在原文件使用），
@@ -565,6 +566,7 @@ def api_sessions_list():
 
 
 @bp.route("/api/sessions", methods=["POST"])
+@_require_token
 def api_sessions_create():
     """创建新会话"""
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
@@ -1963,6 +1965,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
 
 
 @bp.route("/api/chat/stream", methods=["POST"])
+@_require_token
 def api_chat_stream():
     from flask import Response, stream_with_context
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
