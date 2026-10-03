@@ -4,6 +4,15 @@
 **适用对象**: 运维团队（SRE/On-call）
 **目标**: 快速上线 v6 + 监控 + 一键回滚
 
+> ⚠ **【2026-10-03 更正 · 请先读这段】** 本手册里出现的 `SKILL_QUERY_PATTERN_ENABLED`（§2、§4.2、§7.1、§8）
+> **在生产代码里不存在** —— 全仓 `git grep` 只有 `tests/unit/test_query_pattern.py`、
+> `scripts/verify_v61_booking_rule.py` 与 `docs/refactor_archive/` 的归档件引用它，
+> `agent/skills_mgmt/loader.py` 的 `_match_query_pattern` 从未读过这个环境变量。
+> ⇒ **设它 / 导它 / 往 .env 里写它，都没有任何效果**：既禁不掉 v6 正则层，也就不能当"一键回滚"用。
+> 真正可用的回滚是 §7.2 的 git revert，或 §8 Q4 的"注释规则行"。
+> 该开关的原设计意图见 `docs/QUERY_PATTERN_OPTIMIZATION_PLAN_20260723.md`；
+> 要让它复活属于"恢复 v6.1 意图层"的独立立项（见 `docs/closeout/监控死规则与陈旧看板清理_20261002.md` §4）。
+
 ---
 
 ## 1. 一句话概要
@@ -16,7 +25,7 @@ v6 在 RRF/reranker **之前**增加正则规则匹配，命中非技能意图�
 
 | 配置项 | 默认值 | 说明 | 修改方式 |
 |--------|--------|------|----------|
-| `SKILL_QUERY_PATTERN_ENABLED` | `true` | v6 总开关 | 环境变量 |
+| ~~`SKILL_QUERY_PATTERN_ENABLED`~~ | — | ⚠ **不存在**：生产代码从未读它（见文首更正）⇒ 写进 .env 无任何效果 | — |
 | `SKILL_RERANK_MIN_SCORE` | `0.001` | rerank 阈值（v5.1 固化）| 环境变量 |
 
 **修改配置原则**: 所有配置通过 `.env` 文件修改，其他文件通过环境变量引用（守【不易】）。
@@ -39,7 +48,9 @@ python scripts/eval_negative_rejection.py --rerank-min-score 0.001
 # 预期: 拒绝率 96% (24/25)
 
 # ── 4. 环境变量确认 ──
-echo $SKILL_QUERY_PATTERN_ENABLED   # 应为空（默认 true）或 true
+# ⚠ 【2026-10-03】SKILL_QUERY_PATTERN_ENABLED 在生产代码里不存在（无消费方）：
+#    下面这行只会回显空值，**不能当作"v6 已启用"的证据**，也不影响任何行为，故注释掉。
+# echo $SKILL_QUERY_PATTERN_ENABLED
 echo $SKILL_RERANK_MIN_SCORE         # 应为空（默认 0.001）或 0.001
 ```
 
@@ -64,8 +75,9 @@ grep "_match_query_pattern" agent/skills_mgmt/loader.py
 ```bash
 # 追加到 .env（若不存在）
 cat >> .env <<'EOF'
-# v6 query 模式识别（默认开启，可设 false/0/off/no 禁用）
-SKILL_QUERY_PATTERN_ENABLED=true
+# 【2026-10-03 更正】SKILL_QUERY_PATTERN_ENABLED 在生产代码里**不存在**（无消费方）。
+#   写进 .env 不会报错，但也不会切换任何行为 —— 故这里不再提供该行。
+#   将来若恢复 v6.1 意图层并真的接线该开关，再把 SKILL_QUERY_PATTERN_ENABLED=true 加回来。
 
 # rerank 阈值（v5.1 固化，0.001 为最优）
 SKILL_RERANK_MIN_SCORE=0.001
@@ -158,17 +170,21 @@ grep "match.query_pattern.rejected" /var/log/agent/loader.log | \
 
 ## 7. 回滚预案（重点）
 
-### 7.1 一键回滚（推荐，不重启服务）
+### 7.1 ~~一键回滚（推荐，不重启服务）~~ ⚠ **本节无效，勿照抄**
+
+> **【2026-10-03 实测更正】** `SKILL_QUERY_PATTERN_ENABLED` 在生产代码里不存在
+> （`agent/skills_mgmt/loader.py` 无任何读取点；只有测试与 `docs/refactor_archive/` 引用）
+> ⇒ **下面这些命令敲下去不会有任何效果**：v6 正则层照常生效，等于"回滚了个寂寞"。
+> 真正的回滚请用 §7.2（git revert 代码）或 §8 Q4（注释规则行，按类别禁用）。
 
 ```bash
-# 方式 1: 临时禁用 v6（环境变量，立即生效，无需重启）
-kubectl exec -n yunshu deployment/yunshu -- \
-  env-set SKILL_QUERY_PATTERN_ENABLED=false
+# ⛔ 已作废：本命令不会禁用 v6（该环境变量无消费方，敲了没反应）
+# kubectl exec -n yunshu deployment/yunshu -- \
+#   env-set SKILL_QUERY_PATTERN_ENABLED=false
 
-# 或直接进入 Pod 修改
-kubectl exec -it -n yunshu deployment/yunshu -- bash
-echo "SKILL_QUERY_PATTERN_ENABLED=false" >> /app/.env
-# 若服务支持热加载，立即生效；否则需重启
+# ⛔ 同样已作废：
+# kubectl exec -it -n yunshu deployment/yunshu -- bash
+# echo "SKILL_QUERY_PATTERN_ENABLED=false" >> /app/.env
 ```
 
 ### 7.2 完整回滚（需重启服务）
@@ -207,8 +223,9 @@ python scripts/eval_rrf_fusion.py --only rrf_rerank --top-k 3
 **排查**:
 ```bash
 # 1. 检查环境变量
-kubectl exec -n yunshu deployment/yunshu -- env | grep SKILL_QUERY
-# 若 SKILL_QUERY_PATTERN_ENABLED=false，改回 true
+# ⚠ 【2026-10-03】SKILL_QUERY_PATTERN_ENABLED 在生产代码里不存在（无消费方）⇒
+#    "命中率为 0"与它无关，查这个变量查不出原因。下面改查已真实接线的 SKILLS_* 旋钮。
+kubectl exec -n yunshu deployment/yunshu -- env | grep SKILLS_
 
 # 2. 检查调用方是否传 use_reranker=True 且 use_vector=True
 kubectl logs -n yunshu deployment/yunshu | grep "match.extension_not_implemented"
@@ -226,9 +243,10 @@ grep "category" agent/skills_mgmt/loader.py | head -10
 
 ### Q3: 正样本 P@3 下降？
 
-**立即回滚**:
+**立即回滚**（⚠ 【2026-10-03 更正】原来的 `export SKILL_QUERY_PATTERN_ENABLED=false` **无效**：
+该环境变量在生产代码里不存在，敲了不会有任何效果）:
 ```bash
-export SKILL_QUERY_PATTERN_ENABLED=false
+# 正确做法二选一：① 注释掉误伤的那条规则行（loader.py 的 _QUERY_PATTERNS）；② git revert 整个 v6 commit
 # 然后排查误伤:
 grep "match.query_pattern.rejected" /var/log/agent/loader.log | \
   jq -r '.intent' | head -100

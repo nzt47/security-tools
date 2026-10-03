@@ -5,6 +5,8 @@
 **评估人**: nzt47
 **适用 commit**: v6.2（含 `_get_negative_intent_detector` 修复）
 
+> ⚠ **【2026-10-03 更正】** 本文 §3.2 与 §9.2 里的 `SKILL_QUERY_PATTERN_ENABLED` 在生产代码里**不存在**（无消费方）；同表里的 `SKILL_NEGATIVE_INTENT_ENABLED` / `_THRESHOLD` 也**没有读取点**（检测器已被摘出检索链路，见 `agent/skills_mgmt/negative_intent_detector.py` 文件头）。⇒ 这些环境变量写进 `.env` 都不会改变行为。
+
 ---
 
 ## 1. 评估目标
@@ -99,8 +101,8 @@ ls tests/eval/negative_intent_prototypes.json
 ### 3.2 环境变量确认
 
 ```bash
-# v6.1 规则层（默认开启）
-echo $SKILL_QUERY_PATTERN_ENABLED       # 空（默认 true）
+# v6.1 规则层 ⚠ 2026-10-03：SKILL_QUERY_PATTERN_ENABLED 在生产代码里不存在（无消费方）
+echo $SKILL_QUERY_PATTERN_ENABLED       # ⚠ 恒为空，不代表任何状态
 
 # v6.2 embedding 层（默认开启）
 echo $SKILL_NEGATIVE_INTENT_ENABLED     # 空（默认 true）
@@ -377,7 +379,7 @@ git revert <v6.2-commit>
 
 | 变量名 | 默认值 | 推荐值 | 说明 |
 |--------|--------|--------|------|
-| `SKILL_QUERY_PATTERN_ENABLED` | `true` | `true` | v6.1 正则规则总开关 |
+| ~~`SKILL_QUERY_PATTERN_ENABLED`~~ | — | — | ⚠ 【2026-10-03】生产代码里**不存在**该开关（无消费方），本行仅存历史 |
 | `SKILL_NEGATIVE_INTENT_ENABLED` | `true` | `true` | v6.2 embedding 层总开关 |
 | `SKILL_NEGATIVE_INTENT_THRESHOLD` | `0.75` | **`0.71`** | v6.2 相似度阈值（校准后采用 0.71，守【不易】0 误伤） |
 | `SKILL_RERANK_MIN_SCORE` | `0.001` | `0.001` | Reranker 最低分阈值（v5.1 固化） |

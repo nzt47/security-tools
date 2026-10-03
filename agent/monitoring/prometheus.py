@@ -6,7 +6,9 @@ Prometheus 监控系统集成模块
 
 合并自：
 - agent/prometheus_exporter.py
-- utils/prometheus_exporter.py
+- utils/prometheus_exporter.py（【2026-10-03 死代码收口】该薄包装已删除：全仓 0 个 import，
+  仅被两个已作废脚本按【路径字符串】引用。保留本行只为说明合并来源；
+  恢复：git show <本次提交>^:utils/prometheus_exporter.py）
 """
 
 import logging
@@ -541,9 +543,17 @@ class RetryablePrometheusOperation:
 #   发射函数由 utils/file_reader.py 的 SafeFileReader 调用，而该文件在非测试代码里 0 引用 ⇒ 指标恒为 0。
 #   依赖它们的 monitoring/alerts_safe_file_reader.yml（9 条）**已于 2026-10-02 删除**
 #   （规则文件 + rule_files 项 + 两份 compose 挂载一起移除）—— 恒不触发的规则会让"告警覆盖率"变成假的。
-#   【为什么这 5 个指标定义留着】它们被 utils/prometheus_exporter.py（薄包装）与 3 个测试文件引用，
-#   删除它属于"删死代码"的独立清理（影响面：1 个包装模块 + 4 个脚本 + 3 个测试）；
-#   而它们本身是惰性声明（没有调用方就恒为 0），不会制造"假覆盖率"。将来真接线可直接复用。
+#   【2026-10-03 · 死代码收口实测：**不能删**】唯一原因是生产代码里有人 import：
+#     agent/server_routes/routes_logging.py:50-54 用 `from agent.monitoring.prometheus import (...)`
+#     显式导入了下面 5 个 record_*/set_* 函数（导入后在该文件里没有任何调用点 = 未使用的导入，
+#     但**删掉这些函数会让 routes_logging ImportError ⇒ app_server 装配不起来**）。
+#   上一轮"它们被 utils/prometheus_exporter.py（薄包装）与 3 个测试文件引用"的说法已过期：
+#     薄包装本轮已删（全仓 0 import）；3 个测试只按**指标名字符串**读 /metrics，并不 import 这些符号。
+#   ⇒ 想去掉 /metrics 上这 5 个恒为 0 的空名字，必须**同一次**改两处（独立立项，本次不做）：
+#     ① 删本块的 5 个指标定义 + 5 个 record_*/set_* 函数；
+#     ② 删 routes_logging.py:50-54 里那 5 个名字（已实测该导入在 routes_logging 内零调用点）。
+#   恢复路径：`git show <本次提交>^:agent/monitoring/prometheus.py` 覆盖本文件对应段落。
+#   它们本身是惰性声明（没有调用方就恒为 0），不会制造"假覆盖率"，将来真接线可直接复用。
 # ============================================================================
 # SafeFileReader Prometheus 指标
 # ============================================================================

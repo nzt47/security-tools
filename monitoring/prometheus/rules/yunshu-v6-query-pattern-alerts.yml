@@ -66,9 +66,12 @@ groups:
             query_pattern 可能失效，导致大量请求回退到 RRF+Reranker 路径。
             影响: GPU 占用上升，延迟增加（580ms vs 5ms）。
             排查:
-              1. 检查 SKILL_QUERY_PATTERN_ENABLED 是否被禁用
-              2. 检查 _QUERY_PATTERNS 是否被误删
-              3. 检查调用方是否未传 use_reranker=True
+              [2026-10-03 更正] 下面第 1 条原写作"检查 SKILL_QUERY_PATTERN_ENABLED 是否被禁用"——
+              该环境变量在生产代码里**不存在**（全仓只有测试与 docs/refactor_archive/ 引用它，
+              agent/skills_mgmt/loader.py 从不读它）⇒ 无论它设成什么都不会造成本告警，查它是浪费时间。
+              0. 先确认 v6 规则层是否还在：grep "_match_query_pattern" agent/skills_mgmt/loader.py
+              1. 检查 _QUERY_PATTERNS 是否被误删/被改窄
+              2. 检查调用方是否未传 use_reranker=True / use_vector=True
 
   # ════════════════════════════════════════════════════════════
   #  P2 级告警（info）— 观察记录

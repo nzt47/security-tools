@@ -4,6 +4,8 @@
 **目标**: 将负样本拒绝率从 68% → 84%（+16%），不影响正样本 P@3=0.4444
 **关联报告**: `docs/RETRIEVAL_UPGRADE_V5_1_REPORT_20260723.md` §6.1
 
+> ⚠ **【2026-10-03 更正】** 本文是 2026-07-23 的**设计稿**，其中"环境变量开关 `SKILL_QUERY_PATTERN_ENABLED`"这一步**从未在生产代码里落地**：全仓只有 `tests/unit/test_query_pattern.py`、`scripts/verify_v61_booking_rule.py` 与 `docs/refactor_archive/` 的归档件引用它，`agent/skills_mgmt/loader.py` 不读它。⇒ §2 的"可选层开关"、§5.2 的 `.env` 配置项都只是**纸面设计**，照做没有任何效果。原文保留以记录设计意图；真正落地属"恢复 v6.1 意图层"的独立立项。
+
 ---
 
 ## 1. 问题背景
@@ -31,7 +33,7 @@ v5.1 重跑验证确认 5 个类别拒绝率为 0%：
 - 失败降级：模式识别异常时不阻塞，继续走 RRF
 
 ### 【变易】按需演进
-- 模式识别作为可选层，环境变量 `SKILL_QUERY_PATTERN_ENABLED` 开关（默认 True）
+- 模式识别作为可选层，环境变量 `SKILL_QUERY_PATTERN_ENABLED` 开关（默认 True）—— ⚠ 【2026-10-03】该开关**从未落地**（生产代码不读它，见文首更正）
 - 模式规则集中管理（`_QUERY_PATTERNS` 常量），便于扩展
 - 命中模式后直接返回空 MatchResult（不触发 RRF/reranker）
 
@@ -172,9 +174,12 @@ def _match_query_pattern(
 
 ### 5.2 环境变量
 
+> ⚠ 【2026-10-03】本节的 `.env` 配置项**没有对应实现**：`SKILL_QUERY_PATTERN_ENABLED` 在生产代码里
+> 不存在（无消费方）⇒ 写进 `.env` 不会有任何效果。
+
 ```bash
-# .env 配置（默认开启，可关闭）
-SKILL_QUERY_PATTERN_ENABLED=true
+# ⛔ 已作废（无消费方，写了不生效）：
+# SKILL_QUERY_PATTERN_ENABLED=true
 ```
 
 ---

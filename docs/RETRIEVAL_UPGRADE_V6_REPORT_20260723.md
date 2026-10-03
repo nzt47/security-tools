@@ -5,6 +5,8 @@
 **核心成果**: 负样本拒绝率从 **68% → 96%**（+28%），正样本 P@3=0.4444 **0 误伤**
 **实施方式**: TDD 红绿循环（76 个单元测试先行）
 
+> ⚠ **【2026-10-03 更正】** 本文 §2 里"环境变量开关默认开启 `SKILL_QUERY_PATTERN_ENABLED`"这一条**不成立**：该环境变量在生产代码里**不存在**（loader 从未读它；全仓只有测试与 `docs/refactor_archive/` 引用）⇒ 设 `false/0/off/no` 都禁不掉 v6 规则。
+
 ---
 
 ## 1. 执行摘要
@@ -31,7 +33,7 @@ v6 引入 **Query 模式识别**：在 RRF/reranker 之前最早执行正则规�
 |--------|----------|------|
 | 45 个正样本 0 误伤 | `scripts/check_pattern_conflicts.py` | ✅ 全部不命中模式规则 |
 | fusion_mode="none" 行为不变 | `match()` 第 377 行守卫 `if use_reranker and use_vector` | ✅ 旧路径不触发模式识别 |
-| 环境变量开关默认开启 | `SKILL_QUERY_PATTERN_ENABLED` 默认 "true" | ✅ 可设 false/0/off/no 禁用 |
+| ~~环境变量开关默认开启~~ | ~~`SKILL_QUERY_PATTERN_ENABLED` 默认 "true"~~ | ⚠ **【2026-10-03 更正】不成立**：该变量在生产代码里不存在（无消费方），设 false/0/off/no 都禁不掉 v6 |
 | 模式规则集中管理 | `_QUERY_PATTERNS` 常量 | ✅ 9 条规则覆盖 5 类 |
 | 不引入新依赖 | 仅用 `re` 标准库 | ✅ 0 第三方依赖 |
 | 不改 `match()` 签名 | 仅在方法体开头插入调用 | ✅ 向后兼容 |

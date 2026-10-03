@@ -302,6 +302,11 @@ sum(yunshu_tool_calls_total)
 avg(yunshu_active_connections)
 
 # SafeFileReader 相关指标
+# ⚠ 【2026-10-03 实测】下面 3 条查询**恒为空/恒为 0**，不要拿它们当"读取健康"的证据：
+#   SafeFileReader（utils/file_reader.py）在非测试代码里 0 个调用方（历史读取已改走
+#   agent/jsonl_history.py 的尾部窗口），而这 5 个指标名没有任何产出方；
+#   依赖它们的 9 条告警已于 2026-10-02 删除（见 docs/closeout/监控死规则与陈旧看板清理_20261002.md §3 A-1）。
+#   指标定义本身仍保留（原因：agent/server_routes/routes_logging.py:50-54 仍在 import 它们的发射函数）。
 sum(yunshu_safe_file_reader_errors_total)
 sum(yunshu_safe_file_reader_encoding_fallbacks_total)
 avg(yunshu_safe_file_reader_read_duration_seconds)

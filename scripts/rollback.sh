@@ -306,6 +306,9 @@ if [ "${TARGETS["monitoring"]+isset}" ]; then
         echo -e "  ${GREEN}SafeFileReader 工具类${NC} ← $(basename "$FILE_READER_BACKUP")"
     fi
     
+    # 【2026-10-03】utils/prometheus_exporter.py 已作为零引用死代码删除（全仓 0 个 import）。
+    #   本分支保留但通常是 no-op：仓库内没有 prometheus_exporter.py.bak_* 归档；
+    #   只有历史备份真的存在时才会把该文件"复活"回来（那属于有意的从备份恢复）。
     PROMETHEUS_BACKUP=$(find "$PROJECT_ROOT/utils" -name "prometheus_exporter.py.bak_*" -type f 2>/dev/null | sort -r | head -1)
     if [ -n "$PROMETHEUS_BACKUP" ]; then
         echo -e "  ${GREEN}Prometheus 指标配置${NC} ← $(basename "$PROMETHEUS_BACKUP")"

@@ -5,6 +5,8 @@
 **评估人**: nzt47
 **适用 commit**: d7d5360b
 
+> ⚠ **【2026-10-03 更正】** 本文是 v6.1 的**历史评估报告**。其中"环境变量回滚开关 `SKILL_QUERY_PATTERN_ENABLED`"（§2.2、§8）**在生产代码里不存在**：loader 从未读它，全仓只有测试与 `docs/refactor_archive/` 引用 ⇒ §8 的"方式 3"敲下去**没有任何效果**。至今仍有效的回滚方式是"方式 1（注释规则行）"与"方式 2（git revert d7d5360b）"。
+
 ---
 
 ## 1. 评估目标
@@ -37,7 +39,7 @@ git log --oneline -1
 ### 2.2 环境变量确认
 
 ```bash
-echo $SKILL_QUERY_PATTERN_ENABLED   # 空（默认 true）
+echo $SKILL_QUERY_PATTERN_ENABLED   # ⚠ 2026-10-03：该变量在生产代码里不存在（无消费方），此行恒为空，不代表 v6 状态
 echo $SKILL_RERANK_MIN_SCORE         # 空（默认 0.001）
 # 离线模式（无网络环境）
 export HF_HUB_OFFLINE=1
@@ -295,8 +297,9 @@ for q in queries:
 # 方式 2: Git revert
 git revert d7d5360b
 
-# 方式 3: 环境变量（v6 总开关，回滚全部 6 类规则）
-export SKILL_QUERY_PATTERN_ENABLED=false
+# 方式 3（⛔ 已作废）: 环境变量 —— SKILL_QUERY_PATTERN_ENABLED 在生产代码里**不存在**（无消费方），
+#   敲这条不会回滚任何规则。要回滚全部 6 类，请用方式 1（逐个注释 _QUERY_PATTERNS 的行）或方式 2。
+# export SKILL_QUERY_PATTERN_ENABLED=false
 ```
 
 ---

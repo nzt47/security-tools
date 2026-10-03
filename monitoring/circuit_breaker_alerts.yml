@@ -145,8 +145,36 @@ groups:
     interval: 60s
     rules:
       # 4.1 熔断器指标缺失（配置可能被移除）
+      #
+      # 【2026-10-03 修 · 表达式缺陷】原式为
+      #     expr: absent(yunshu_circuit_breaker_state) or absent(yunshu_circuit_breaker_trigger_total)
+      #   【为什么它是错的】`or` 的语义是"任一边非空即非空"，于是把"其中一条序列**天然**缺席"
+      #   误当成"熔断器指标缺失"。而 yunshu_circuit_breaker_trigger_total 是 **counter**：
+      #   埋点侧（agent/monitoring/business_metrics.py::_on_circuit_breaker_state）只在
+      #   `old_state is not None`（= 真的发生了一次状态转换）时才写它 ⇒ 一个健康的熔断器
+      #   长期停在 CLOSED、可能几天不转换 ⇒ 这条序列**可以几天不存在**。
+      #   后果：只要它不存在，`or` 的结果就恒为 1 ⇒ 告警一旦 firing 就**永远不会 resolved**。
+      #   实测（C-2 3.97h 长跑 docs/closeout/监控清理_evidence_20261002/c2_longrun_report.md §3.3）：
+      #     pending @T+89.7s → firing @T+389.7s → 窗口末（最后一个样本 T+14370.9s）仍 firing，
+      #     而应用早在 T+269.7s 就恢复了（up{job="yunshu"}=1、业务端点可抓）。
+      #   【为什么改成 and】`A and B` 只返回"两边都有匹配元素"的那些元素 ⇒ 只有
+      #   **两条序列都不存在**才算"未采集到熔断器指标"，这与本规则 description / action 的字面
+      #   意图（config.py 里 circuit_breaker 字段被移除、模块未加载、/metrics 无输出）一致。
+      #   【回归防线】monitoring/prometheus/rules/circuit_breaker_alerts_test.yml：
+      #     用例 1（状态序列在、计数序列缺席 ⇒ 期望不告警）修前 FAILED、修后 SUCCESS；
+      #     用例 2（整族都不存在 ⇒ 期望 firing）修前修后都 SUCCESS（真阳性没被修没）。
+      #   【剩余风险 · 必读，别把这条规则当成"已经彻底好了"】实测本机**正在运行**的应用
+      #     GET /api/business/prometheus 里这两条指标只有 # HELP/# TYPE、**0 条样本**
+      #     （本仓没有任何生产路径会**无条件**调用 get_circuit_breaker()：tool_calling.py 只 import 不使用，
+      #     其余调用点都要走到具体业务分支；实测正在运行的应用跑了 45 分钟真实流量后这两条序列仍是
+      #     0 条样本 ⇒ 2026-10-02 加的"访问点发布"在本部署的实际流量下从未被执行到，
+      #     见 agent/circuit_breaker.py::get_circuit_breaker 尾注）。
+      #     ⇒ 若应用恢复后连**状态**序列也不存在，本式仍会 firing。彻底解决需要**埋点侧**
+      #     无条件发布状态序列（方案与影响面见 C-2 报告 §3.3.4），本次**未动生产代码**。
+      #   【怎么回滚】把下面 expr 里的 `and` 改回 `or` 并删掉本段注释即可（精确回到改动前）；
+      #     回滚后 circuit_breaker_alerts_test.yml 的用例 1 会立刻重新变红 —— 回滚同样可被测试发现。
       - alert: CircuitBreakerMetricsMissing
-        expr: absent(yunshu_circuit_breaker_state) or absent(yunshu_circuit_breaker_trigger_total)
+        expr: absent(yunshu_circuit_breaker_state) and absent(yunshu_circuit_breaker_trigger_total)
         for: 5m
         labels:
           severity: warning

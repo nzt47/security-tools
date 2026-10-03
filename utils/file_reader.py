@@ -22,6 +22,37 @@
         logger.warning("读取失败: %s", result.error)
 """
 
+# ============================================================================
+# 【2026-10-03 · 死代码收口】**本模块当前无生产调用方**（决策：保留，不删）。
+#
+# ① 现状：SafeFileReader 在非测试代码里 0 个调用方 —— 启动期"整文件读取历史"的接线已移除，
+#    现行历史读取走 agent/jsonl_history.py 的**尾部窗口**（只读末尾 256 KiB、坏行跳过、文件缺失返回空）。
+#    全仓仅剩 4 类引用，没有一个是生产链路：
+#      - tests/unit/test_safe_file_reader_alerts.py（单测 4 条，随本文件一起保留）
+#      - scripts/verify_business_metrics_registration.py:176、scripts/verify_skill_retrieval_metrics.py:188
+#        （两个验证脚本里的 import）
+#      - scripts/deploy_automation.py、scripts/deployment_drill.py（均已标注"作废"）
+#      - docs/deployment_guide_history_fix.md 等历史文档
+#
+# ② 为什么保留：它是**通用工具类**（存在性检查 / 10MB 上限 / 逐行容错 /
+#    编码降级 utf-8→utf-8-sig→gbk / 字段校验），将来真要接线可直接复用；
+#    删掉它只会让"接线"这件事被重写一遍，而这正是 A-1 想避免的。
+#
+# ③ 本文件内联的 5 个指标（见下 52-81 行，自带 prometheus_client 缺失时的 noop 降级）
+#    **自成一套**，与 agent/monitoring/prometheus.py:596-660 的同名定义互不冲突
+#    （两边都走"重复注册则复用 REGISTRY 里已有实例"）。
+#    ⚠ 已知不一致（本次不修，避免动到无调用方的东西）：本文件 _metrics_fallbacks 的标签是
+#    ['from_encoding','to_encoding','file_path']，而 prometheus.py:602 的同名 Counter 只有
+#    ['file_path'] —— 谁先注册谁说了算，本文件用 try/except 吞掉标签数不符。
+#
+# ④ 恢复接线时的参考位置（按顺序读）：
+#    - 先读现行实现：agent/jsonl_history.py（确认"整文件读取 + 编码降级"是否真是你要的语义）
+#    - 原始接线点已随重构移除：git log -S"_load_chat_history_from_file" -- app_server.py
+#    - 设计/用法示例：docs/deployment_guide_history_fix.md:119-140
+#    - 若接线，请**同时**决定是否恢复告警（否则又是一个"恒不触发"）：
+#      git show <A-1 删除提交>^:monitoring/alerts_safe_file_reader.yml
+# ============================================================================
+
 import os
 import json
 import logging

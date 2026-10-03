@@ -24,6 +24,37 @@
 【变易】prototype 数据外部化（JSON），阈值可通过环境变量调整
 【简易】单文件单类，无新依赖（复用 numpy + SkillVectorAdapter 的模型）
 """
+
+# ============================================================================
+# 【2026-10-03 · 死代码收口】**本模块当前无生产调用方**（决策：保留，不删）。
+#
+# ① 现状：loader 侧的懒加载钩子（_get_negative_intent_detector / _match_intent_by_embedding）
+#    是随 commit 1159d88f 被**主动删掉**的（不是漏删）；A-2 又删掉了它支撑的 5 条 v6.2 意图告警
+#    ⇒ 本仓只剩"非生产"引用：
+#      - tests/unit/test_negative_intent.py（单测，随本文件一起保留）
+#      - scripts/verify_skill_retrieval_metrics.py:123-142、scripts/calibrate_v62_threshold.py
+#      - agent/settings/registry.py:1537-1543 仍登记 SKILL_NEGATIVE_INTENT_ENABLED / _THRESHOLD
+#        并把 owner 指到本文件（**登记口径，不代表有调用方**）
+#      - agent/skills_mgmt/vector_adapter.py:1229 的注释、docs/refactor_archive/ 的归档件
+#
+# ② 它的两个指标仍"活着但恒为 0"：yunshu_negative_intent_detector_failed_total /
+#    yunshu_negative_intent_duration_ms 已在 agent/monitoring/business_metrics.py:612/623 登记、
+#    并出现在 /metrics —— 但没有生产调用方 ⇒ 永远为 0。
+#    （与 A-1 的 SafeFileReader 指标同病；规则侧的说明见
+#     monitoring/prometheus/rules/yunshu-v6-query-pattern-alerts.yml:107）
+#
+# ③ 为什么保留：检测器本身完整可复用（BGE-m3 prototype 余弦 + 阈值校准脚本 + 原型数据齐备），
+#    它缺的只是"被接回检索链路"这一根线；那是一次有意的重构回退，要重做基线，属独立立项。
+#
+# ④ 恢复路径（A-2 恢复清单的第①步，原文见
+#    docs/closeout/监控死规则与陈旧看板清理_20261002.md §3 表 A-2）：
+#    docs/refactor_archive/loader_v6_query_patterns_1159d88f-prior.py —— 该归档件保留了
+#    commit 1159d88f **之前**的 loader，含 _get_negative_intent_detector 懒加载与它的调用点。
+#    按它把钩子接回 agent/skills_mgmt/loader.py，并**同时**补上 SKILL_NEGATIVE_INTENT_ENABLED 的读取；
+#    之后才值得 git show <A-2 删除提交>^:<规则文件> 取回那 5 条告警。
+#    注意：loader.py 现已是 6 旋钮版本（见 docs/closeout/能力层重构交付报告_20261001.md D-1），
+#    接回前请先重做检索基线（接回会改变检索链路的结果质量）。
+# ============================================================================
 from __future__ import annotations
 
 import json

@@ -6,6 +6,47 @@
 
 ---
 
+## [CHG] - 2026-10-03: 死代码与过期运维指引收口（只删零引用者，其余就地标注）✅
+
+**影响模块**: `utils/prometheus_exporter.py`（删除）、`agent/monitoring/prometheus.py`、
+`utils/file_reader.py`、`agent/skills_mgmt/negative_intent_detector.py`、`agent/server_routes`（未改，仅核实）、
+`scripts/deploy_automation.py`、`scripts/deployment_drill.py`、`scripts/rollback.sh`、
+`docs/V6_OPS_RUNBOOK.md` 等 6 份文档、`monitoring/prometheus/rules/yunshu-v6-query-pattern-alerts.yml`（仅 description 文本）
+**关联文档**: `docs/closeout/死代码与过期运维指引收口_20261003.md`
+
+**触发**: 接手 `docs/closeout/监控死规则与陈旧看板清理_20261002.md` §12.4 的遗留项"死代码收口"。
+
+### Removed
+- **`utils/prometheus_exporter.py`（26 行整文件）**：全仓 **0 个 import**（`git grep` 实测；动态导入也没有），
+  只是 `agent/monitoring/prometheus.py` 的 `__all__` 转出壳。同批把指向它的 3 处**路径字符串**就地改掉
+  （`deploy_automation.py:98/236`、两个作废脚本的文件头说明、`rollback.sh:309` 加注"通常 no-op"）。
+
+### 保留 + 就地标注（不是遗漏，逐条有理由）
+- **`agent/monitoring/prometheus.py` 的 5 个 SafeFileReader 指标 + 5 个 `record_*/set_*` 函数**：
+  派单书预期的"无引用"**被实测证伪** —— `agent/server_routes/routes_logging.py:50-54` 在生产代码里 import 了这 5 个函数名
+  （在该文件内零调用点，属未使用的导入，但删函数即 ImportError）。故保留，并在 `:543-556` 写明"要删必须两文件同改"与恢复命令。
+- **`utils/file_reader.py`**：本体与测试一行未动，仅在文件头说明"无生产调用方 / 为何保留 / 恢复接线的参考位置"。
+- **`agent/skills_mgmt/negative_intent_detector.py`**：一行未动，仅文件头说明"懒加载钩子随 `1159d88f` 被删 ⇒ 无生产调用方"，
+  恢复路径指向 `docs/refactor_archive/loader_v6_query_patterns_1159d88f-prior.py`。
+
+### Fixed
+- **过期的 `SKILL_QUERY_PATTERN_ENABLED` 回滚指引**（7 个文件 / 21 处）改为事实描述：
+  该开关**在生产代码里不存在**（只有测试与 `docs/refactor_archive/` 引用）⇒ 照旧照抄"紧急回滚"命令没有任何效果。
+  重点是 `docs/V6_OPS_RUNBOOK.md` §7.1"一键回滚"整节标废，并把仍有效的回滚方式（git revert / 注释规则行）指出来。
+  **未实现该开关**（属恢复 v6.1 意图层，独立立项）。
+- `docs/OBSERVABILITY_OPERATION_MANUAL.md` 的 3 条 SafeFileReader PromQL 就地标注"恒为空/恒为 0"。
+
+### 验证
+- `python -c "import app_server"` → `IMPORT_OK`（改前/改后各一次）
+- `pytest tests/unit/test_safe_file_reader_alerts.py tests/unit/test_false_alarm_resistance.py tests/unit/test_prometheus_alert_trigger.py -q` → **4 passed**（与改前基线一致）
+- `promtool check config`（`prom/prometheus:v2.51.0` 容器，按 compose 复刻挂载）→ **EXIT=0**，13 个规则文件全 SUCCESS
+- `py_compile` 5 个编辑过的 .py → 通过
+
+### 遗留
+- `/metrics` 上 5 个恒为 0 的空名字**本轮未去掉**（被 routes_logging 的未使用 import 挡住），需要"两文件同改"的独立立项。
+
+---
+
 ## [CHG] - 2026-10-03: 监控死指标清理（删 15 条恒不触发告警 + 修 9 个看板 + 6 个检索旋钮接线 + C-1/C-2 实测）✅
 
 **影响模块**: `monitoring/`（9 个看板、13 个规则文件、2 份 compose）、`agent/skills_mgmt/loader.py`、

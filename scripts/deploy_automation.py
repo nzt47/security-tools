@@ -20,6 +20,9 @@
 ⚠ 【2026-10-02 已作废】本脚本是 SafeFileReader 上线专用的演练/自动化脚本：
   ① 它断言的 monitoring/alerts_safe_file_reader.yml 与 9 条 SafeFileReader* 告警已于 2026-10-02 删除；
   ② 它断言 app_server.py 里存在 _load_chat_history_from_file —— 该函数早已不存在 ⇒ 在本仓本来就跑不过。
+  ③ 【2026-10-03】它备份/检查的 utils/prometheus_exporter.py（薄包装）已作为零引用死代码删除，
+     本脚本内两处指针已就地改指真身 agent/monitoring/prometheus.py；check_alerts 里那 9 条
+     SafeFileReader* 规则名也已随 alerts_safe_file_reader.yml 一起删除 ⇒ 阶段2 必然失败。
   保留仅为历史记录，请勿据它判断当前部署状态。原因见 docs/closeout/监控死规则与陈旧看板清理_20261002.md §3（A-1）。
 """
 
@@ -94,8 +97,9 @@ def backup_files():
         ("app_server.py", "."),
         ("data/messages.jsonl", "data"),
         ("utils/file_reader.py", "utils"),
-        ("monitoring/alerts.yml", "monitoring"),
-        ("utils/prometheus_exporter.py", "utils")
+        ("monitoring/alerts.yml", "monitoring")
+        # 【2026-10-03】原 ("utils/prometheus_exporter.py", "utils") 已移除：
+        #   该薄包装模块零引用，已作为死代码删除 ⇒ 备份它只会打印一条"不存在"的告警。
     ]
     
     log("开始备份关键文件...", "INFO")
@@ -233,7 +237,10 @@ def check_metrics():
     log("阶段5: 监控指标检查", "INFO")
     log("=" * 60, "INFO")
     
-    exporter_file = os.path.join(PROJECT_ROOT, "utils/prometheus_exporter.py")
+    # 【2026-10-03】原指向 utils/prometheus_exporter.py（薄包装，已作为死代码删除）。
+    #   5 个 SafeFileReader 指标定义的**真身**在 agent/monitoring/prometheus.py:596-660；
+    #   改指真身，这条检查才仍然检查得到东西。
+    exporter_file = os.path.join(PROJECT_ROOT, "agent/monitoring/prometheus.py")
     metrics = [
         "yunshu_safe_file_reader_errors_total",
         "yunshu_safe_file_reader_encoding_fallbacks_total",

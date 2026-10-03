@@ -1,0 +1,73 @@
+# promtool test rules 单元测试 — circuit_breaker_alerts / CircuitBreakerMetricsMissing 生命周期
+#
+# 运行（仓库根目录，PowerShell）：
+#   docker run --rm --entrypoint promtool \
+#     -v ${PWD}\monitoring:/monitoring \
+#     prom/prometheus:v2.51.0 test rules /monitoring/prometheus/rules/circuit_breaker_alerts_test.yml
+#
+# 【为什么挂 monitoring/ 而不是只挂 rules/】
+#   promtool 把 rule_files 里的相对路径按**夹具所在目录**解析（已被 lock_watchdog_alerts_test.yml
+#   的既有跑法实证）。本夹具要引用上一级的 ../circuit_breaker_alerts.yml，
+#   只把 rules/ 挂到 /rules 时它会解析成容器内不存在的 /circuit_breaker_alerts.yml。
+#   挂仓库 monitoring/ 到 /monitoring 可原样保留仓内相对结构，且不需要往容器里复制任何文件。
+#
+# 【本夹具固化的是哪次实测】
+#   C-2 3.97 小时长跑（docs/closeout/监控清理_evidence_20261002/c2_longrun_report.md §3.3 / §5.1）：
+#     CircuitBreakerMetricsMissing: pending @T+89.7s → firing @T+389.7s → 窗口末（最后一个样本 T+14370.9s）仍 firing。
+#   同期应用在 T+269.7s 已经恢复（up{job="yunshu"}=1、/api/business/prometheus 可抓）
+#   ⇒ 「应用恢复之后这条告警本应 resolved，但它没有」。本文件把这件事固化成两条用例。
+#
+# 【两条用例各自证明什么】
+#   用例 1（红灯用例，修好后转绿）：熔断器 **状态** 序列已经在（= 应用正常、指标管道通），
+#     而 **触发计数** 序列因为「进程启动后从未发生过状态转换」而天然不存在。
+#     此时规则应当 **不告警** —— 修前它会一直 firing。
+#   用例 2（真阳性，修前修后都必须绿）：熔断器指标**整族**都没有（应用根本没在抓）→ 必须告警。
+#     它守的是「修法不能把真阳性一起修没了」。
+#
+# 【诚实边界（必读）】用例 1 复现的是**表达式缺陷**（or 把「计数序列天然缺席」当成了「指标缺失」）。
+#   C-2 那一次现场比用例 1 更严重：实测（见报告 §3.3.3）连 **状态序列也不存在**，
+#   所以只靠改表达式**不足以**让 C-2 那条告警 resolved —— 还需要在埋点侧无条件发布状态序列。
+#   两者的分工写在 monitoring/circuit_breaker_alerts.yml 规则上方的注释里。
+
+rule_files:
+  - ../../circuit_breaker_alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # ── 用例 1：状态序列在、计数序列缺席 ⇒ 期望「不告警」（修前红、修后绿）──────────
+  - name: CircuitBreakerMetricsMissing_must_not_fire_when_state_series_present
+    interval: 1m
+    input_series:
+      # 只有状态 gauge：这正是「应用已经在跑、且熔断器状态已被发布」的最小事实。
+      # yunshu_circuit_breaker_trigger_total 从 t=0 到 t=14m 都没有任何序列
+      # —— 不是因为指标管道坏了，而是因为这个 counter 只在**真的发生状态转换**时才诞生。
+      - series: 'yunshu_circuit_breaker_state{breaker_name="api",state="closed"}'
+        values: '1 1 1 1 1 1 1 1 1 1 1 1 1 1 1'
+    alert_rule_test:
+      # 12m > for: 5m，修前若表达式非空则此时早已 firing。
+      - eval_time: 12m
+        alertname: CircuitBreakerMetricsMissing
+        exp_alerts: []
+
+  # ── 用例 2：整族指标都不存在（应用没在抓）⇒ 期望「firing」（真阳性，修前修后都绿）──
+  - name: CircuitBreakerMetricsMissing_fires_when_whole_family_absent
+    interval: 1m
+    input_series:
+      # 一个和熔断器无关的序列，代表「Prometheus 还活着，只是熔断器指标一个都没有」。
+      - series: 'up{job="yunshu"}'
+        values: '0 0 0 0 0 0 0 0 0 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: CircuitBreakerMetricsMissing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              category: config
+              service: circuit_breaker
+            exp_annotations:
+              summary: "熔断器指标缺失"
+              description: "过去 5 分钟未采集到熔断器指标，配置可能被移除或模块未加载"
+              runbook_url: "docs/DEPLOYMENT_CHECKLIST_circuit_breaker.md#一配置项检查"
+              impact: "无法监控熔断器状态"
+              action: "1. 检查 config.py 中 circuit_breaker 字段是否存在 2. 验证 BusinessMetricsCollector 是否正常初始化 3. 查看 /metrics 端点输出"

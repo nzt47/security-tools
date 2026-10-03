@@ -5,6 +5,8 @@
 **评估人**: {{填写评估人}}
 **适用 commit**: {{填写 commit hash}}
 
+> ⚠ **【2026-10-03 更正】** 模板里的 `SKILL_QUERY_PATTERN_ENABLED`（§2.2）在生产代码里**不存在**（无消费方，只有测试与 `docs/refactor_archive/` 引用）⇒ 该项不构成任何有效的"环境变量确认"，填模板时不要拿它当通过条件。
+
 ---
 
 ## 1. 评估目标
@@ -35,7 +37,8 @@ git log --oneline -1
 ### 2.2 环境变量确认
 
 ```bash
-echo $SKILL_QUERY_PATTERN_ENABLED   # 应为空（默认 true）或 true
+# ⛔ 2026-10-03：SKILL_QUERY_PATTERN_ENABLED 在生产代码里不存在（无消费方）⇒ 本项无意义，已注释
+# echo $SKILL_QUERY_PATTERN_ENABLED   # 原写：应为空（默认 true）或 true
 echo $SKILL_RERANK_MIN_SCORE         # 应为空（默认 0.001）或 0.001
 ```
 
