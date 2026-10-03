@@ -64,6 +64,18 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
+      - name: 安装依赖
+        # 【为什么必须装依赖 —— 本门禁首次上 CI 就因此红过（16s，PR #997）】
+        # 「鉴权豁免自检」要 import agent.server_auth，而该模块**顶层 import flask**；
+        # 不装依赖时 job 直接以 ModuleNotFoundError: No module named 'flask' 失败。
+        # 依赖清单对齐 settings-registry-gap-guard.yml（本仓已验证可跑 tests/unit 子集的
+        # 最小集），另加 flask。刻意不装全套 requirements —— 本 job 只做静态对拍与少量
+        # 单测，拉 torch/chromadb 那套（约 3GB）毫无必要。
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask pyyaml pydantic prometheus-client psutil \
+                      pytest pytest-timeout pytest-asyncio
+
       - name: 校验工具与基线存在
         run: |
           set -e
