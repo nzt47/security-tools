@@ -7,6 +7,7 @@
 |---|---|---|
 | `live_metric_names.txt` | 本部署**真实存在**的 186 个指标名（去重） | `GET http://127.0.0.1:5678/metrics` 与 `GET http://127.0.0.1:5678/api/business/prometheus` 两份文本的**样本行 + # HELP/# TYPE 声明行**合并去重 |
 | `dashboard_metric_scan_after.txt` | 修复后逐看板扫描结果（每个看板引用的 `yunshu_*` / `Yunshu_*` 名字里有几个不在这 186 个里） | 见报告 §6；修复前同一脚本给出的"不可解析"计数是 18 处 |
+| `live_circuit_breaker_samples.txt` | 重启后的**现场实测**：熔断器状态 4 条真实样本行 + 两个端点上 `safe_file_reader` 均为 0 行；另含与 186 名快照的逐名比对结论（只少那 5 个有意删除的） | `GET :5678/api/business/prometheus` 与 `GET :5678/metrics`（应用重启后采集） |
 | `alertmanager_delivery_received.jsonl` | C-1 端到端验证：Alertmanager **真的推给 webhook** 的原始 POST body | 见报告 §6.1 的装置表（临时容器，跑完即拆） |
 | `alertmanager_alerts.json` | 同一时刻 Alertmanager 侧 `/api/v2/alerts` 的返回（证明它确实收到了告警） | 同上 |
 | `promtool_check_config.txt` | Prometheus 配置 + 14 个规则文件的校验输出（修正后仍是 `EXIT=0`） | `docker run --rm --entrypoint promtool` + 按 `docker-compose.monitoring.yml` 的 11 个挂载逐条复刻，最后一行带 `EXIT=0` |

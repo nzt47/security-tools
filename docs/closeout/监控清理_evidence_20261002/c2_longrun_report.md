@@ -348,6 +348,12 @@ EXIT=0
 | 3869.9 | YunshuSLOErrorBudgetBurnRateHigh | resolved |
 | 3929.9 | VeryHighCPUUsage | pending |
 
+> **【2026-10-03 后续】** 本节的根因已闭环：① 表达式 `or` → `and`（+ `promtool` 夹具红转绿）；
+> ② **埋点侧无条件发布熔断器状态序列**已在组合根 `app_server.py` 接通并**重启生效**——
+> 现场实测 `/api/business/prometheus` 出现 4 条 `yunshu_circuit_breaker_state{...state="closed"} 1.0`
+> （修复前 0 条）；证据 `live_circuit_breaker_samples.txt`，决策与边界见
+> `监控死规则与陈旧看板清理_20261002.md` §12.6。
+
 ## 4. 规则求值健康（48 个每 5 分钟样本）
 
 | 观测项 | 值 |

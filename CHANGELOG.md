@@ -33,7 +33,9 @@
 - `import app_server` → IMPORT_OK；`test_circuit_breaker_layering` + 新回归 **10 passed**；波及文件 **164 passed**；`test_business_metrics_tracking` 37 passed
 
 ### 遗留（已登记）
-- 埋点改动**需应用重启**才在线上生效（:5678 当前是另一条工作线的旧进程，未擅自重启）
+- ~~埋点改动需应用重启才在线上生效~~ → **2026-10-03 已在业主批准后重启并现场验证**：旧 PID 6148 → 新 PID 3456，
+  `/api/business/prometheus` 出现 **4 条** `yunshu_circuit_breaker_state{...state="closed"} 1.0` 真实样本行（修复前 0 条）；
+  与 186 名快照逐名比对只少那 5 个有意删除的 `safe_file_reader` 名字（181 = 186 − 5）
 - 业主自决项：C-1 Alertmanager **暂不启用**（脚手架就绪，待真实接收方）；月度容量外推**不做**；D-2 归另一条工作线
 
 ---

@@ -1,0 +1,10 @@
+# 现场证据：熔断器状态序列接通 + SafeFileReader 空指标删除（2026-10-03 重启后实测）
+# 采集命令：GET http://127.0.0.1:5678/api/business/prometheus 与 GET /metrics
+# 应用进程：重启后用 python app_server.py 启动（新 PID 见重启日志）
+
+[业务端点] yunshu_circuit_breaker_state 样本行 4 条：
+  yunshu_circuit_breaker_state{breaker_name="guardrails.egress_chain",state="closed"} 1.0
+  yunshu_circuit_breaker_state{breaker_name="learning_budget",state="closed"} 1.0
+  yunshu_circuit_breaker_state{breaker_name="critic",state="closed"} 1.0
+  yunshu_circuit_breaker_state{breaker_name="schema_validation",state="closed"} 1.0
+[业务端点] safe_file_reader 行 0 条；[原生端点] safe_file_reader 行 0 条（均为期望值 0）
