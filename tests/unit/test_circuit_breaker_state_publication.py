@@ -48,6 +48,22 @@ def _sample_lines(text: str, metric: str = _STATE_METRIC):
     return [ln for ln in text.splitlines() if ln.startswith(metric + "{")]
 
 
+def _state_keys(collector):
+    """采集器里 `yunshu_circuit_breaker_state` 的 **label_key 集合**。
+
+    注意：这里刻意**不过滤** —— 需要看到"全局采集器当前到底有哪些键"（可能含别的测试写下的），
+    因为本文件要断言的是"发布调用带来的**变化**"，不是"全局有多干净"。
+    """
+    with collector._lock:
+        return set(collector._gauges.get(_STATE_METRIC, {}).keys())
+
+
+def _state_values(collector):
+    """同上，但取 {label_key: value} 的副本（用于断言"值也不变"）。"""
+    with collector._lock:
+        return dict(collector._gauges.get(_STATE_METRIC, {}))
+
+
 def _for_published(lines, names=None):
     """只保留"本部署声明发布的那几个熔断器"的样本行。
 
@@ -119,25 +135,43 @@ class TestStartupPublication:
                 "%r 的真实状态应为 closed，导出的值必须与它一致" % (name,))
 
     def test_幂等_重复调用不产生重复或冲突样本(self, isolated_metrics_state):
+        """幂等的判据是"**重复调用不改变任何东西**"，不是"全局只有 4 条样本"。
+
+        【为什么改成这样 · 2026-10-03 CI 连红两次的教训】
+        原判据写的是"全局采集器里 `yunshu_circuit_breaker_state` 的样本集合恰好等于本部署的 4 个名字"，
+        这在**全量跑**里必然不成立，而且有两层：
+          ① 别的测试会往**同一个全局采集器**写**别的**熔断器（Shard 3/6 实测 29 条）；
+          ② 更隐蔽：别的测试会把**本部署也发布的**熔断器真的打到 OPEN
+             （`tests/unit/test_guardrails_egress_chain.py` 驱动 `guardrails.egress_chain` ⇒ 多出
+             `{state="open"} 1.0`，于是"过滤到已发布名字"后仍是 5 条 > 4）。
+        ⇒ 本用例改成测**发布这个动作本身的语义**：
+          (1) 发布后每个声明的名字都有 `(breaker,state=closed)` 这条键；
+          (2) 再重复调用两次，采集器里该指标的**键集合与值**都不变（这才是幂等）。
+        这样它与"全局采集器里还有谁"完全解耦；而"状态 gauge 任一时刻只应有一个 1"这条性质
+        由 `test_transition_clears_old_state_sample` 单独负责（那条测的是转换语义，不依赖全局干净）。
+        """
         collector = isolated_metrics_state
-        BM.publish_deployed_circuit_breaker_states()
-        first = _for_published(_sample_lines(collector.export_prometheus()))
 
         BM.publish_deployed_circuit_breaker_states()
-        BM.publish_deployed_circuit_breaker_states()
-        second = _for_published(_sample_lines(collector.export_prometheus()))
+        keys_after_first = _state_keys(collector)
+        values_after_first = _state_values(collector)
 
-        assert second == first, (
-            "重复调用改变了样本集合 => 不是幂等（gauge 覆盖语义应保证同一 label_key 只一条）："
-            "第一次 %r / 第二次 %r" % (first, second))
-        assert len(second) == len(set(second)) == len(BM.DEPLOYED_CIRCUIT_BREAKER_NAMES), (
-            "样本行出现重复或数量与熔断器数量不符：%r" % (second,))
-
-        # 同一个熔断器不得同时挂两条互相冲突的状态（例如既 closed=1 又 open=1）
+        # (1) 发布语义：本部署声明的每个熔断器都拿到了 state="closed" 这条键
         for name in BM.DEPLOYED_CIRCUIT_BREAKER_NAMES:
-            per_breaker = [ln for ln in second if ('breaker_name="' + name + '"') in ln]
-            assert len(per_breaker) == 1, (
-                "熔断器 %r 有多条并发状态样本（冲突）：%r" % (name, per_breaker))
+            key = BM.make_label_key({"breaker_name": name, "state": "closed"})
+            assert key in keys_after_first, (
+                "发布后缺少键 %r；实际键集合：%r" % (key, sorted(keys_after_first)))
+
+        # (2) 幂等：重复调用既不新增也不删除键、也不改值
+        BM.publish_deployed_circuit_breaker_states()
+        BM.publish_deployed_circuit_breaker_states()
+
+        assert _state_keys(collector) == keys_after_first, (
+            "重复调用改变了键集合 => 不是幂等（gauge 覆盖语义应保证同一 label_key 只一条）："
+            "第一次 %r / 之后 %r" % (sorted(keys_after_first), sorted(_state_keys(collector))))
+        assert _state_values(collector) == values_after_first, (
+            "重复调用改变了样本值 => 不是幂等：第一次 %r / 之后 %r"
+            % (values_after_first, _state_values(collector)))
 
     def test_不改变空族只输出_HELP_TYPE_的既有契约(self):
         """对照：**完全没数据**的族仍然只有 HELP/TYPE —— 修法没有去伪造样本。
