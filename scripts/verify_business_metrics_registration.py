@@ -170,20 +170,14 @@ def main() -> int:
     rr._load_model()
     print("  [真实] SkillReranker._load_model() 已执行（模型路径不存在 ⇒ skipped/failed 分支）")
 
-    # A-4 SafeFileReader 读取（含历史条数 gauge）
-    import json as _json
-
-    from utils.file_reader import SafeFileReader
-
-    fpath = os.path.join(os.environ.get("TEMP", "/tmp"), "verify_registry_sfr.jsonl")
-    with open(fpath, "w", encoding="utf-8") as fh:
-        fh.write(_json.dumps({"role": "user", "content": "hi"}, ensure_ascii=False) + chr(10))
-    SafeFileReader(fpath).read_json_lines(required_fields=["role", "content"])
-    # 再读一个空文件 ⇒ valid_count == 0（SafeFileReaderHistoryLoadEmpty 的目标场景）
-    empty = os.path.join(os.environ.get("TEMP", "/tmp"), "verify_registry_sfr_empty.jsonl")
-    open(empty, "w", encoding="utf-8").close()
-    SafeFileReader(empty).read_json_lines(required_fields=["role", "content"])
-    print("  [真实] SafeFileReader.read_json_lines() 已执行（含空文件）")
+    # A-4【2026-10-03 删除】原 A-4/A-5 验证 SafeFileReader 的
+    #   yunshu_safe_file_reader_loaded_history_count 出现在**默认 REGISTRY**（= /metrics）上。
+    #   该名字连同其余 4 个 yunshu_safe_file_reader_* 已于 2026-10-03 随 SafeFileReader 告警
+    #   一起删除（恒为 0 的空名字不该继续挂在 /metrics 上）⇒ 这条断言已失效并删除。
+    #   ⚠ 不要被"在本脚本里 import utils.file_reader 后仍能看到样本行"误导：那套同名指标是
+    #     utils/file_reader.py **自己内联**的定义，只在 import 它的进程里注册；生产代码 0 处 import 它，
+    #     服务进程的 /metrics 上并没有。原断言恰好会把这件事测反，故一并去掉（不再计入 PASS/FAIL）。
+    #   详见 docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md。
 
     text = collector.export_prometheus()
 
@@ -204,22 +198,6 @@ def main() -> int:
         else:
             FAIL += 1
             print("  [MISS] %s  <-- 真实路径没有产出样本行！" % name)
-
-    # A-5 SafeFileReader 的历史条数走的是**默认 REGISTRY**（不进业务导出）
-    from prometheus_client import generate_latest
-
-    default_reg = generate_latest().decode("utf-8")
-    hist_hits = [ln for ln in default_reg.splitlines()
-                 if ln.startswith("yunshu_safe_file_reader_loaded_history_count")]
-    print("  [真实] /metrics(默认 REGISTRY) 上的 yunshu_safe_file_reader_loaded_history_count：")
-    for h in hist_hits:
-        print("           %s" % h)
-    if hist_hits:
-        PASS += 1
-        REAL.append("yunshu_safe_file_reader_loaded_history_count")
-    else:
-        FAIL += 1
-        print("  [MISS] yunshu_safe_file_reader_loaded_history_count 无样本行")
 
     # ── B 段：调用点参数回放 ──────────────────────────────────────────
     print(NL + "B 段 · 调用点参数回放（[REPLAY]，不证明业务路径被走到）" + NL + "-" * 78)

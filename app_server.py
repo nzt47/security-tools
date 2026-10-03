@@ -1147,6 +1147,40 @@ def _install_service_account_hook():
 _install_service_account_hook()
 
 
+# ── 【熔断器状态序列接通】启动时无条件发布一次本部署熔断器的当前状态 ────────────
+# 【为什么必须有这一步】告警 CircuitBreakerMetricsMissing（monitoring/circuit_breaker_alerts.yml
+#   §4.1）用 `absent(state) and absent(trigger_total)` 判定"熔断器指标族整体缺失"；
+#   而 Counter/Gauge 序列只有**真的被写过**才会出现在 /api/business/prometheus 里
+#   （export_prometheus() 对"已登记但无样本"的族有意只输出 # HELP/# TYPE，这个契约不改）。
+#   实测（docs/closeout/监控清理_evidence_20261002/c2_longrun_report.md §3.3.1）：
+#   本仓**没有任何生产路径会无条件调用 get_circuit_breaker()** ⇒ 正在运行的应用跑了
+#   45 分钟真实流量后这两条序列仍是 0 条样本 ⇒ 告警一旦 firing 就永不 resolved。
+# 【为什么放在 app_server.py】本文件是**组合根**（最上层），由它决定"本部署有哪些熔断器"
+#   并驱动 monitoring 层的发布函数，方向是
+#     app_server → agent.monitoring.business_metrics → agent.circuit_breaker
+#   与 business_metrics 里 _install_circuit_breaker_observer 的注入方向一致；
+#   绝不能让 circuit_breaker（底层，被 error_handler 依赖）反向 import 上层
+#   （见 tests/unit/test_circuit_breaker_layering.py 与 .importlinter）。
+# 【发布什么】只发布**真实存在**的熔断器（名字逐个取自生产调用点，清单与理由见
+#   business_metrics.DEPLOYED_CIRCUIT_BREAKER_NAMES 的注释）；不伪造任何数值。
+# 【失败隔离】发布失败绝不阻断启动：缺一条埋点序列 << 服务起不来（D4）。
+# 【回滚】删掉本函数与下面那一行调用即可（一处，回到"序列只在状态转换时才诞生"）。
+def _publish_circuit_breaker_states():
+    try:
+        from agent.monitoring.business_metrics import (
+            publish_deployed_circuit_breaker_states,
+        )
+        published = publish_deployed_circuit_breaker_states()
+        logger.info("熔断器状态序列已发布（启动钩子）: %s", published)
+    except Exception as _e:  # noqa: BLE001 不阻断启动（D4）
+        logger.warning(
+            "熔断器状态序列发布失败（不影响启动；CircuitBreakerMetricsMissing "
+            "可能因序列缺席而告警）: %s", _e)
+
+
+_publish_circuit_breaker_states()
+
+
 # ── 【TASK-06】鉴权配置状态：启动告警（**不阻断**）────────────────────────────
 # TASK-06 §3 第 5 步第 2 项第 ① 步：本部署实测**未配置任何令牌**（只有"未配就不校验"
 # 的 fail-open）。一步改成 fail-closed 会当场 401 掉本机 UI 与全部脚本 ⇒ 先做

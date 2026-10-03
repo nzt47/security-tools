@@ -7,6 +7,16 @@
 2. 临时写入异常数据后恢复（告警应自动恢复）
 3. 单条损坏行（不应触发连续失败告警）
 4. 短暂网络波动（不应触发告警）
+
+⚠ 【2026-10-03 · 本文件的判据已失效，不要按它的结论判断线上状态】
+  它读的 5 个 yunshu_safe_file_reader_* 指标已于 2026-10-03 随 SafeFileReader 一起删除
+  （agent/monitoring/prometheus.py + agent/server_routes/routes_logging.py 两文件同改），
+  依赖它们的 9 条 SafeFileReader* 告警已于 2026-10-02 删除。
+  ⇒ /metrics 上查不到这些名字是**预期结果**：此时 scenario_2/3 会打印"失败"（因为 get() 取不到值
+    就按 0 计），那是**过期的判据**，不是线上真的不健康。本文件逻辑与断言按留档原样保留，未改。
+  ⚠ 另外：本文件**没有 pytest 可收集的 test_* 函数**（只有 scenario_*/main），pytest 收集 0 条，
+    它只在被当作脚本直接运行时才会去启停服务。
+  原因与恢复命令见 docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md。
 """
 
 import os

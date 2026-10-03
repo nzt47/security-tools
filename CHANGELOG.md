@@ -6,6 +6,38 @@
 
 ---
 
+## [CHG] - 2026-10-03: 熔断器状态序列接通 + 删掉 SafeFileReader 的空指标与作废断言 ✅
+
+**影响模块**: `app_server.py`、`agent/monitoring/business_metrics.py`、`agent/monitoring/prometheus.py`、
+`agent/server_routes/routes_logging.py`、`monitoring/circuit_breaker_alerts.yml`（仅注释）、
+`scripts/deploy_automation.py`、`scripts/deployment_drill.py`、`tests/unit/test_circuit_breaker_state_publication.py`（新增）等
+**关联文档**: `docs/closeout/熔断器状态序列接通_20261003.md`、`docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md`、
+`docs/closeout/监控死规则与陈旧看板清理_20261002.md` §12.6（业主裁定与执行）
+
+**触发**: 业主对本工作线 §12.5 待签核事项的裁定 —— ① 埋点侧修复"做"、② 告警基线 92 条"接受"、③ 空指标名"删"、④ 作废断言"删"、⑤ 其余授权自决。
+
+### Fixed
+- **熔断器状态序列接通**（C-2 遗留的另一半根因）：`app_server.py` 启动路径新增 `_publish_circuit_breaker_states()`，
+  经既有访问点 `get_circuit_breaker()` 无条件发布**本部署真实用到的 4 个熔断器**的当前状态。
+  此前本仓**没有任何生产路径会无条件调用它** ⇒ 运行 45 分钟仍是 0 条样本 ⇒
+  `CircuitBreakerMetricsMissing` 一旦 firing 永不 resolved。**不伪造数值、不改 `export_prometheus()` 的"空族只出 HELP/TYPE"契约、失败不阻断启动**。
+- **`/metrics` 上 5 个恒 0 的空名字已删除**：`prometheus.py` 删 5 个 `yunshu_safe_file_reader_*` 定义与 5 个发射函数，
+  `routes_logging.py` 去掉对应的 5 个未使用 import（两文件同改；`_safe_*` 工厂因另有 17 处共用而保留）。
+- **两个作废脚本里"本来就跑不过"的断言已删**：`deploy_automation.py` 删 3 类失效检查并修掉指向不存在测试文件的引用；
+  `deployment_drill.py` 只改头部 + 加"不要再据此判断部署状态"横幅（冻结记录原文保留）。
+
+### 验证
+- `promtool check config` **EXIT=0**（13 规则文件）；`promtool test rules` 夹具 **SUCCESS**
+- `prometheus_client` 默认 REGISTRY 里 `safe_file_reader` **0 行**（`REGISTRY_CLEAN_OK`）
+- 导入 `app_server` 后 `export_prometheus()` 出现 **4 条** `yunshu_circuit_breaker_state{breaker_name=...,state="closed"} 1.0` 真实样本行
+- `import app_server` → IMPORT_OK；`test_circuit_breaker_layering` + 新回归 **10 passed**；波及文件 **164 passed**；`test_business_metrics_tracking` 37 passed
+
+### 遗留（已登记）
+- 埋点改动**需应用重启**才在线上生效（:5678 当前是另一条工作线的旧进程，未擅自重启）
+- 业主自决项：C-1 Alertmanager **暂不启用**（脚手架就绪，待真实接收方）；月度容量外推**不做**；D-2 归另一条工作线
+
+---
+
 ## [CHG] - 2026-10-03: 死代码与过期运维指引收口（只删零引用者，其余就地标注）✅
 
 **影响模块**: `utils/prometheus_exporter.py`（删除）、`agent/monitoring/prometheus.py`、

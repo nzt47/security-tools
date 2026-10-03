@@ -3,6 +3,17 @@
 """SafeFileReader 抗干扰测试数据导出为CSV
 
 导出测试场景、指标数据、告警触发状态等信息，方便后续做趋势分析。
+
+⚠ 【2026-10-03 · 本脚本输出的是**历史留档数据**，不是当前状态】
+  下面 metrics_data / alert_rules 里的数值与名字都是 **2026-06-10 那次抗干扰测试的真实记录**，
+  按"历史留痕不篡改"原则**原文保留**，但请注意它们现在已经对不上仓库：
+  · 5 个 yunshu_safe_file_reader_* 指标（errors_total / encoding_fallbacks_total /
+    read_duration_seconds / loaded_history_count / invalid_ratio）已于 2026-10-03
+    随 SafeFileReader 告警一起删除（agent/monitoring/prometheus.py +
+    agent/server_routes/routes_logging.py 两文件同改）⇒ 不再出现在 /metrics 上；
+  · 其中的 SafeFileReader* 告警名（alerts_safe_file_reader.yml 那 9 条）已于 2026-10-02 删除。
+  ⇒ 导出的 CSV 只能当"当时发生了什么"的档案，**不能**当作当前的指标/告警清单。
+  原因见 docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md。
 """
 
 import os
@@ -295,6 +306,9 @@ def export_test_data():
     print(f"   - 测试场景: {len(test_scenarios)} 条")
     print(f"   - 指标记录: {len(metrics_data)} 条")
     print(f"   - 告警规则: {len(alert_rules)} 条")
+    print("\n⚠ 【2026-10-03】以上是 2026-06-10 的历史测试数据（原文留档）：")
+    print("   其中 5 个 yunshu_safe_file_reader_* 指标与 9 条 SafeFileReader* 告警当前均已删除，")
+    print("   请勿拿这份 CSV 当当前指标/告警清单（原因见 docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md）。")
 
 if __name__ == '__main__':
     export_test_data()

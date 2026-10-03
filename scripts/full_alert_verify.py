@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""完整告警验证：停止服务 → 注入损坏文件 → 重启 → 检查指标 → 恢复"""
+"""完整告警验证：停止服务 → 注入损坏文件 → 重启 → 检查指标 → 恢复
+
+⚠ 【2026-10-03 · 本脚本的判据已失效，不要再据此判断服务状态】
+  它查的 5 个 yunshu_safe_file_reader_* 指标已于 2026-10-03 随 SafeFileReader 一起删除
+  （agent/monitoring/prometheus.py + agent/server_routes/routes_logging.py 两文件同改），
+  依赖它们的 9 条 SafeFileReader* 告警也已于 2026-10-02 删除
+  ⇒ /metrics 上**查不到**这些名字是预期结果，不是"告警没触发"。
+  详见 docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md。
+  （保留仅为历史记录；脚本会停止正在运行的服务，勿随意执行。）
+"""
 
 import subprocess, os, sys, time, shutil, signal, json
 
@@ -10,6 +19,8 @@ BAK = 'data/messages.jsonl.bak_alert_test'
 print("=" * 60)
 print("🔔 完整告警触发验证")
 print("=" * 60)
+print("⚠ 【2026-10-03】本脚本查的 5 个 yunshu_safe_file_reader_* 指标与 9 条 SafeFileReader* 告警")
+print("   均已删除 ⇒ 查不到是**预期结果**，下面的告警判定已失效，勿据此判断服务状态。")
 
 # 1. 停止现有服务
 print("\n步骤 1/5: 停止现有服务")
@@ -123,7 +134,7 @@ if ready:
         print(f"✅ 告警规则 SafeFileReaderConsecutiveParseFailures: 触发条件满足")
     else:
         print(f"⚠️  json_parse_failed = {json_failed} (阈值: 10)")
-        print(f"   可能原因: 服务启动时历史加载未触发或文件已被恢复")
+        print(f"   【2026-10-03】该指标名已被删除，0 是预期值；本条判定已失效。")
     
     if invalid_ratio is not None:
         print(f"{'✅' if invalid_ratio > 0.1 else '⚠️'}  invalid_ratio = {invalid_ratio:.1%} (阈值: 10%)")

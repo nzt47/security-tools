@@ -23,9 +23,13 @@ known = `BUSINESS_METRICS_DEFINITIONS`（业务指标登记表）
 第二个测试断言这些面板确实带着说明，防止「豁免了却没解释」。
 
 【不覆盖（静态判不了）】
-「名字存在但没有数据」：例如 `yunshu_safe_file_reader_*` 由 utils/file_reader.py 发射，
+「名字存在但没有数据」：例如 `yunshu_safe_file_reader_*` 曾由 utils/file_reader.py 发射，
 而该文件在非测试代码里没有调用方 ⇒ 指标恒为 0、9 条告警恒不触发。这属于**接线**问题，
 见 docs/closeout/能力层重构交付报告_20261001.md §10（A 类）。
+【2026-10-03 更新】上面这个"恒为 0 的空名字"例子已经消失：那 5 个 `yunshu_safe_file_reader_*`
+已从 agent/monitoring/prometheus.py 删除（同时清掉 agent/server_routes/routes_logging.py 里
+对它们 5 个发射函数的未使用 import）⇒ /metrics 上不再出现。它们**只**留在 utils/file_reader.py
+自己内联的那套同名定义里（仅在 import 该模块的进程里注册，生产代码不 import）。
 """
 from __future__ import annotations
 

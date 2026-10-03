@@ -8,6 +8,15 @@
 3. 检查 /metrics 端点确认 json_parse_failed > 10
 4. 验证告警规则 SafeFileReaderConsecutiveParseFailures 满足触发条件
 5. 恢复原始文件，重启服务
+
+⚠ 【2026-10-03 · 本文件的判据已失效，不要按它的结论判断线上状态】
+  步骤 3 查的 yunshu_safe_file_reader_errors_total 等 5 个指标已于 2026-10-03 随 SafeFileReader
+  一起删除（agent/monitoring/prometheus.py + agent/server_routes/routes_logging.py 两文件同改），
+  步骤 4 的 SafeFileReaderConsecutiveParseFailures 告警也已于 2026-10-02 删除。
+  ⇒ 查不到名字 / json_failed 恒为 0 是**预期结果**，不代表告警没触发。本文件逻辑原样保留，未改。
+  ⚠ 另外：本文件**没有 pytest 可收集的 test_* 函数**，pytest 收集 0 条；它只在被当作脚本
+    直接运行时才会去启停服务。
+  原因与恢复命令见 docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md。
 """
 
 import os

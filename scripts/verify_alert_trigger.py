@@ -7,6 +7,12 @@ SERVER_URL = 'http://127.0.0.1:5678'
 print("=" * 60)
 print("🔔 Prometheus 告警触发验证 - 重启服务场景")
 print("=" * 60)
+print("⚠ 【2026-10-03 · 本脚本的判据已失效，不要再据此判断服务状态】")
+print("   它查的 5 个 yunshu_safe_file_reader_* 指标（以及 SafeFileReaderConsecutiveParseFailures")
+print("   等 9 条告警）已于 2026-10-02 / 2026-10-03 先后删除：")
+print("   · 5 个指标：随 SafeFileReader 一起从 agent/monitoring/prometheus.py 删除（两文件同改）；")
+print("   · 9 条告警：随 monitoring/alerts_safe_file_reader.yml 删除。")
+print("   ⇒ 下面 /metrics 里**查不到**这些名字是**预期结果**，不代表'告警没触发'或'历史加载没生效'。")
 
 # 1. 备份
 print("\n步骤 1/5: 备份原始文件")
@@ -130,7 +136,8 @@ try:
         else:
             print(f"⚠️  告警条件未满足")
             print(f"   json_parse_failed = {json_failed} (阈值: 10)")
-            print(f"   可能需要检查日志中的错误计数")
+            print(f"   【2026-10-03】注意：该指标名本身已被删除 ⇒ 恒为 0 是预期结果，")
+            print(f"   本条判定**已失效**，不要据此判断告警或历史加载是否正常。")
     else:
         print(f"❌ /metrics 返回 {resp.status_code}")
 except Exception as e:

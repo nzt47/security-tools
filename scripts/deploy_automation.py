@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""SafeFileReader 自动化部署脚本
+"""SafeFileReader 自动化部署脚本（**已作废的留档**）
 
-提取自生产环境部署检查清单的关键步骤，自动完成：
+本脚本为 SafeFileReader 时代留档，检查项已随该功能下线移除（2026-10-03），
+**不要再据此判断部署状态**。
+
+仍在的阶段（编号已随删除重排）：
 1. 代码变更验证
-2. 告警规则验证
-3. 回滚脚本验证
-4. 监控指标验证
-5. 数据备份验证
-6. 功能测试
-7. 回滚演练
+2. 回滚脚本验证
+3. 数据备份验证
+4. 功能测试
+5. 回滚演练
 
 用法:
     python deploy_automation.py --help
@@ -17,13 +18,21 @@
     python deploy_automation.py --check-only  # 仅检查不部署
     python deploy_automation.py --rollback-drill  # 仅回滚演练
 
-⚠ 【2026-10-02 已作废】本脚本是 SafeFileReader 上线专用的演练/自动化脚本：
-  ① 它断言的 monitoring/alerts_safe_file_reader.yml 与 9 条 SafeFileReader* 告警已于 2026-10-02 删除；
-  ② 它断言 app_server.py 里存在 _load_chat_history_from_file —— 该函数早已不存在 ⇒ 在本仓本来就跑不过。
-  ③ 【2026-10-03】它备份/检查的 utils/prometheus_exporter.py（薄包装）已作为零引用死代码删除，
-     本脚本内两处指针已就地改指真身 agent/monitoring/prometheus.py；check_alerts 里那 9 条
-     SafeFileReader* 规则名也已随 alerts_safe_file_reader.yml 一起删除 ⇒ 阶段2 必然失败。
-  保留仅为历史记录，请勿据它判断当前部署状态。原因见 docs/closeout/监控死规则与陈旧看板清理_20261002.md §3（A-1）。
+⚠ 【2026-10-03 已作废】本脚本是 SafeFileReader 上线专用的演练/自动化脚本，**不要再据此判断部署状态**：
+  ① 原"告警规则检查"（check_alerts）**已整段删除**：它断言的 monitoring/alerts_safe_file_reader.yml
+     已于 2026-10-02 删除（文件本仓不存在），其中 9 条 SafeFileReader* 告警名在 monitoring/alerts.yml
+     里也零命中 ⇒ 该阶段在本仓必然失败，留着只会制造"部署检查不通过"的假信号。
+  ② 原"代码变更检查"里"app_server.py 含 _load_chat_history_from_file + SafeFileReader"一条**已删除**：
+     该函数早已不存在（历史读取改走 agent/jsonl_history.py），这条断言本来就跑不过。
+  ③ 原"监控指标检查"（check_metrics）**已整段删除**：它断言 agent/monitoring/prometheus.py 里存在
+     5 个 yunshu_safe_file_reader_* 指标名；这 5 个恒为 0 的空名字已于 2026-10-03 随 SafeFileReader
+     告警一起删除（agent/monitoring/prometheus.py + agent/server_routes/routes_logging.py 两文件同改）
+     ⇒ 该阶段在删除后必然失败。
+  ④ 【2026-10-03】它备份的 utils/prometheus_exporter.py（薄包装）也已作为零引用死代码删除
+     （备份清单里那一项已移除）。"功能测试"阶段原先引用的 tests/unit/test_safe_file_reader.py
+     **本仓不存在** ⇒ 已于 2026-10-03 从清单与 pytest 命令里移除（改跑真实存在的两个文件）。
+  保留仅为历史记录。原因见 docs/closeout/监控死规则与陈旧看板清理_20261002.md §3（A-1）与
+  docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md。
 """
 
 import os
@@ -126,11 +135,8 @@ def check_code_changes():
     
     checks = [
         (check_file_exists, [os.path.join(PROJECT_ROOT, "utils/file_reader.py"), "SafeFileReader 工具类存在"]),
-        (check_file_content, [
-            os.path.join(PROJECT_ROOT, "app_server.py"),
-            ["_load_chat_history_from_file", "SafeFileReader"],
-            "历史加载逻辑集成 SafeFileReader"
-        ]),
+        # 【2026-10-03 删除】原此处断言 app_server.py 里含 "_load_chat_history_from_file" + "SafeFileReader"：
+        #   该函数早已不存在（历史读取改走 agent/jsonl_history.py 的尾部窗口），这条断言本来就跑不过。
         (check_file_content, [
             os.path.join(PROJECT_ROOT, "app_server.py"),
             ["DEFAULT_REGISTRY"],
@@ -159,34 +165,16 @@ def check_code_changes():
     
     return all(results)
 
-def check_alerts():
-    """检查告警规则"""
-    log("\n" + "=" * 60, "INFO")
-    log("阶段2: 告警规则检查", "INFO")
-    log("=" * 60, "INFO")
-    
-    alerts_file = os.path.join(PROJECT_ROOT, "monitoring/alerts.yml")
-    alert_rules = [
-        "SafeFileReaderFileNotFound",
-        "SafeFileReaderFileTooLarge",
-        "SafeFileReaderEncodingFallback",
-        "SafeFileReaderAllEncodingsFailed",
-        "SafeFileReaderHighInvalidRatio",
-        "SafeFileReaderConsecutiveParseFailures",
-        "SafeFileReaderHistoryLoadFailed",
-        "SafeFileReaderHistoryLoadEmpty",
-        "SafeFileReaderSlowRead"
-    ]
-    
-    if not check_file_exists(alerts_file, "告警规则配置文件"):
-        return False
-    
-    return check_file_content(alerts_file, alert_rules, "所有 SafeFileReader 告警规则已配置")
+# 【2026-10-03 删除】原 check_alerts()（阶段2 告警规则检查）：
+#   它断言 monitoring/alerts.yml 里存在 9 条 SafeFileReader* 告警名。该 9 条规则随
+#   monitoring/alerts_safe_file_reader.yml 于 2026-10-02 一起删除，alerts.yml 内零命中
+#   ⇒ 该检查在本仓必然失败，已整段删除（含 main() 里的两处调用）。
+#   恢复：git show <本次提交>^:scripts/deploy_automation.py
 
 def check_rollback_scripts():
     """检查回滚脚本"""
     log("\n" + "=" * 60, "INFO")
-    log("阶段3: 回滚脚本检查", "INFO")
+    log("阶段2: 回滚脚本检查", "INFO")
     log("=" * 60, "INFO")
     
     checks = []
@@ -206,7 +194,7 @@ def check_rollback_scripts():
 def check_backups():
     """检查备份文件"""
     log("\n" + "=" * 60, "INFO")
-    log("阶段4: 数据备份检查", "INFO")
+    log("阶段3: 数据备份检查", "INFO")
     log("=" * 60, "INFO")
     
     backup_patterns = [
@@ -231,38 +219,23 @@ def check_backups():
     
     return all_exist
 
-def check_metrics():
-    """检查 Prometheus 指标"""
-    log("\n" + "=" * 60, "INFO")
-    log("阶段5: 监控指标检查", "INFO")
-    log("=" * 60, "INFO")
-    
-    # 【2026-10-03】原指向 utils/prometheus_exporter.py（薄包装，已作为死代码删除）。
-    #   5 个 SafeFileReader 指标定义的**真身**在 agent/monitoring/prometheus.py:596-660；
-    #   改指真身，这条检查才仍然检查得到东西。
-    exporter_file = os.path.join(PROJECT_ROOT, "agent/monitoring/prometheus.py")
-    metrics = [
-        "yunshu_safe_file_reader_errors_total",
-        "yunshu_safe_file_reader_encoding_fallbacks_total",
-        "yunshu_safe_file_reader_read_duration_seconds",
-        "yunshu_safe_file_reader_loaded_history_count",
-        "yunshu_safe_file_reader_invalid_ratio"
-    ]
-    
-    if not check_file_exists(exporter_file, "Prometheus 指标配置文件"):
-        return False
-    
-    return check_file_content(exporter_file, metrics, "所有 SafeFileReader 指标已注册")
+# 【2026-10-03 删除】原 check_metrics()（阶段5 监控指标检查）：
+#   它断言 agent/monitoring/prometheus.py 里存在 5 个 yunshu_safe_file_reader_* 指标名。
+#   这 5 个恒为 0 的空名字已于 2026-10-03 随 SafeFileReader 告警一起删除
+#   （prometheus.py + routes_logging.py 两文件同改，见 docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md）
+#   ⇒ 该检查在删除后必然失败，已整段删除（含 main() 里的两处调用）。
+#   恢复：git show <本次提交>^:scripts/deploy_automation.py
 
 def run_functional_tests():
     """运行功能测试"""
     log("\n" + "=" * 60, "INFO")
-    log("阶段6: 功能测试", "INFO")
+    log("阶段4: 功能测试", "INFO")
     log("=" * 60, "INFO")
     
     # 检查测试文件是否存在
+    # 【2026-10-03 删】原清单第一项 `tests/unit/test_safe_file_reader.py` **本仓已不存在**
+    #   ⇒ 该阶段以前必然失败（"本来就跑不过"的断言，业主已授权删除）。其余两项保留。
     test_files = [
-        "tests/unit/test_safe_file_reader.py",
         "tests/unit/test_false_alarm_resistance.py",
         "tests/unit/test_history_load_edge_cases.py"
     ]
@@ -282,7 +255,10 @@ def run_functional_tests():
     # 运行测试
     log("正在运行单元测试...", "INFO")
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "tests/unit/test_safe_file_reader.py", "-v", "--tb=short"],
+        # 【2026-10-03 修】原来只跑 test_safe_file_reader.py（已不存在）⇒ 改跑上面清单里真实存在的两个文件
+        [sys.executable, "-m", "pytest",
+         "tests/unit/test_false_alarm_resistance.py",
+         "tests/unit/test_history_load_edge_cases.py", "-v", "--tb=short"],
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
@@ -301,7 +277,7 @@ def run_functional_tests():
 def rollback_drill():
     """回滚演练"""
     log("\n" + "=" * 60, "INFO")
-    log("阶段7: 回滚演练", "INFO")
+    log("阶段5: 回滚演练", "INFO")
     log("=" * 60, "INFO")
     
     log("⚠️  此步骤将停止服务并执行回滚演练", "WARNING")
@@ -362,22 +338,20 @@ def main():
     
     if args.check_only:
         # 仅检查
+        # 【2026-10-03】"告警规则检查"（check_alerts）与"监控指标检查"（check_metrics）两项已删除，见文件头 ①③。
         results.append(("代码变更检查", check_code_changes()))
-        results.append(("告警规则检查", check_alerts()))
         results.append(("回滚脚本检查", check_rollback_scripts()))
         results.append(("数据备份检查", check_backups()))
-        results.append(("监控指标检查", check_metrics()))
     elif args.rollback_drill:
         # 仅回滚演练
         results.append(("回滚演练", rollback_drill()))
     elif args.full:
         # 完整流程
         backup_files()
+        # 【2026-10-03】"告警规则检查"（check_alerts）与"监控指标检查"（check_metrics）两项已删除，见文件头 ①③。
         results.append(("代码变更检查", check_code_changes()))
-        results.append(("告警规则检查", check_alerts()))
         results.append(("回滚脚本检查", check_rollback_scripts()))
         results.append(("数据备份检查", check_backups()))
-        results.append(("监控指标检查", check_metrics()))
         results.append(("功能测试", run_functional_tests()))
         results.append(("回滚演练", rollback_drill()))
     else:

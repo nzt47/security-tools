@@ -47,11 +47,16 @@ from agent.monitoring.tracing import (
 )
 from agent.monitoring.metrics import get_metrics_collector
 from agent.monitoring.performance import get_performance_recorder
-from agent.monitoring.prometheus import (
-    PrometheusMetricsExporter,
-    record_error, record_encoding_fallback,
-    record_read_duration, set_loaded_history_count, set_invalid_ratio
-)
+from agent.monitoring.prometheus import PrometheusMetricsExporter
+# 【2026-10-03 · 业主批准删除】原 import 括号里还导入了 5 个 SafeFileReader 指标发射函数
+#   （record_error / record_encoding_fallback / record_read_duration /
+#     set_loaded_history_count / set_invalid_ratio）：本文件内**零调用点**（纯未使用导入），
+#   却因此让 agent/monitoring/prometheus.py 里那 5 个恒为 0 的指标定义删不掉。
+#   本轮两文件同改：这 5 个名字已从本 import 移除，对应指标定义与函数也已从 prometheus.py 删除
+#   ⇒ /metrics 上不再出现 yunshu_safe_file_reader_*（含 _bucket/_count/_sum 等派生后缀）。
+#   恢复：git show <本次提交>^:agent/server_routes/routes_logging.py
+#   （必须与 prometheus.py 同一次恢复：只恢复一处会让另一边失衡 —— 只有定义没人 import ⇒ 空名字重现；
+#     只有 import 没有定义 ⇒ app_server 装配期 ImportError。）
 from agent.health.assessor import health_assessor
 from agent.tools import list_tools
 from agent.server_routes.tracing_decorator import trace_route

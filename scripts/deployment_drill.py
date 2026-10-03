@@ -1,15 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""SafeFileReader 上线流程演练脚本
+"""SafeFileReader 上线流程演练脚本（**已作废的留档**）
 
-模拟完整的生产环境上线流程，生成演练记录文档。
+本脚本为 SafeFileReader 时代留档，检查项已随该功能下线移除（2026-10-03），
+**不要再据此判断部署状态**。
 
-⚠ 【2026-10-02 已作废】本脚本是 SafeFileReader 上线专用的演练/自动化脚本：
-  ① 它断言的 monitoring/alerts_safe_file_reader.yml 与 9 条 SafeFileReader* 告警已于 2026-10-02 删除；
-  ② 它断言 app_server.py 里存在 _load_chat_history_from_file —— 该函数早已不存在 ⇒ 在本仓本来就跑不过。
-  ③ 【2026-10-03】下面"部署文件"清单里的 utils/prometheus_exporter.py（薄包装）已作为零引用死代码删除。
-     该清单是 2026-06-10 演练的**冻结留痕**，故原文照留、不加删改；请勿据此判断当前部署状态。
-  保留仅为历史记录，请勿据它判断当前部署状态。原因见 docs/closeout/监控死规则与陈旧看板清理_20261002.md §3（A-1）。
+【本脚本现在还剩什么】
+  它**没有任何可执行的检查/断言**（从来就不检查仓库状态），只把 2026-06-10 那次上线演练的记录
+  **硬编码打印/落盘**为 reports/deployment_drill_*.{json,md}。因此"删掉失效检查"这一步在本脚本里
+  无对象可删 —— 唯一的失效物就是记录里的那些名字，而它们是**冻结的历史留痕**，按派单要求原文照留。
+
+【记录里哪些内容当前已不存在（只说明，不改正文）】
+  · monitoring/alerts_safe_file_reader.yml 及其 9 条 SafeFileReader* 告警：已于 2026-10-02 删除；
+  · utils/prometheus_exporter.py（薄包装）：已于 2026-10-03 作为零引用死代码删除；
+  · 5 个 yunshu_safe_file_reader_* 指标：已于 2026-10-03 两文件同改删除
+    （agent/monitoring/prometheus.py + agent/server_routes/routes_logging.py）；
+  · app_server.py 里的 _load_chat_history_from_file：早已不存在（历史读取改走 agent/jsonl_history.py）。
+
+  ⇒ 运行本脚本会生成一份"12/12 通过、100% 成功"的报告，那是 2026-06-10 的状态快照，
+    **不是**今天的部署结论；要回放上线流程请用当前版本的部署清单。
+  原因见 docs/closeout/监控死规则与陈旧看板清理_20261002.md §3（A-1）与
+  docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md。
 """
 
 import os
@@ -20,7 +31,13 @@ from datetime import datetime
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def generate_drill_record():
-    """生成上线演练记录"""
+    """生成上线演练记录（⚠ 内容为 2026-06-10 的冻结留痕，非当前部署状态）"""
+    print("=" * 70)
+    print("⚠ 【已作废 · 2026-10-03】本脚本为 SafeFileReader 时代留档，检查项已随该功能下线移除。")
+    print("   下面输出的全部内容是 2026-06-10 的**冻结演练记录**（历史留痕）：")
+    print("   其中的告警规则文件 / 9 条 SafeFileReader* 告警 / 5 个 yunshu_safe_file_reader_* 指标")
+    print("   当前均已不存在 ⇒ **不要再据此判断部署状态**。")
+    print("=" * 70)
     drill_record = {
         "演练ID": f"DRILL_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
         "演练名称": "SafeFileReader 历史记忆容错功能上线",

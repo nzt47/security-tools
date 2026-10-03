@@ -52,6 +52,10 @@ rule_files:
   #   它依赖 yunshu_safe_file_reader_* 指标，而发射方 utils/file_reader.py 的 SafeFileReader
   #   在非测试代码里**没有任何调用方**（历史读取已改走 agent/jsonl_history.py 的尾部窗口）
   #   ⇒ 指标恒为 0 ⇒ 9 条规则一条都不会触发。恒不触发的规则会让"告警覆盖率"变成假的，故删除。
+  #   【2026-10-03 追加】那 5 个 yunshu_safe_file_reader_* 指标定义**也已删除**
+  #   （agent/monitoring/prometheus.py + 唯一引用它们的 agent/server_routes/routes_logging.py
+  #     两文件同改；/metrics 上不再出现这 5 个恒 0 的空名字）。恢复时须连指标定义一起恢复
+  #   （git show <删除提交>^:agent/monitoring/prometheus.py），而不只是把规则捞回来。
   #   规则文件、本 rule_files 项、两份 compose 的挂载已**同时**移除 —— Prometheus 对 rule_files 里
   #   列了、容器内却不存在的文件会直接启动失败，三处必须同进同退。
   #   恢复路径：`git show <删除本次的提交>^:monitoring/alerts_safe_file_reader.yml`，并同时补回

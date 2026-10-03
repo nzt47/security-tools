@@ -2,7 +2,10 @@
 Prometheus 监控系统集成模块
 
 提供将 V2 功能性能指标导出到 Prometheus 的功能。
-集成了 SafeFileReader 指标。
+
+【2026-10-03】原"集成了 SafeFileReader 指标"一句已失效：那 5 个恒为 0 的
+  yunshu_safe_file_reader_* 指标定义与 5 个 record_*/set_* 发射函数已整段删除
+  （原因、保留物与恢复命令见下方"SafeFileReader 指标：已于 2026-10-03 两文件同改删除"注释块）。
 
 合并自：
 - agent/prometheus_exporter.py
@@ -539,23 +542,40 @@ class RetryablePrometheusOperation:
             operation_func(*args, **kwargs)
 
 
-# 【2026-10-02 · 交付报告 §10 A-1】下面这 5 个指标**当前无生产调用方**：
-#   发射函数由 utils/file_reader.py 的 SafeFileReader 调用，而该文件在非测试代码里 0 引用 ⇒ 指标恒为 0。
-#   依赖它们的 monitoring/alerts_safe_file_reader.yml（9 条）**已于 2026-10-02 删除**
-#   （规则文件 + rule_files 项 + 两份 compose 挂载一起移除）—— 恒不触发的规则会让"告警覆盖率"变成假的。
-#   【2026-10-03 · 死代码收口实测：**不能删**】唯一原因是生产代码里有人 import：
-#     agent/server_routes/routes_logging.py:50-54 用 `from agent.monitoring.prometheus import (...)`
-#     显式导入了下面 5 个 record_*/set_* 函数（导入后在该文件里没有任何调用点 = 未使用的导入，
-#     但**删掉这些函数会让 routes_logging ImportError ⇒ app_server 装配不起来**）。
-#   上一轮"它们被 utils/prometheus_exporter.py（薄包装）与 3 个测试文件引用"的说法已过期：
-#     薄包装本轮已删（全仓 0 import）；3 个测试只按**指标名字符串**读 /metrics，并不 import 这些符号。
-#   ⇒ 想去掉 /metrics 上这 5 个恒为 0 的空名字，必须**同一次**改两处（独立立项，本次不做）：
-#     ① 删本块的 5 个指标定义 + 5 个 record_*/set_* 函数；
-#     ② 删 routes_logging.py:50-54 里那 5 个名字（已实测该导入在 routes_logging 内零调用点）。
-#   恢复路径：`git show <本次提交>^:agent/monitoring/prometheus.py` 覆盖本文件对应段落。
-#   它们本身是惰性声明（没有调用方就恒为 0），不会制造"假覆盖率"，将来真接线可直接复用。
 # ============================================================================
-# SafeFileReader Prometheus 指标
+# SafeFileReader 指标：已于 2026-10-03 **两文件同改删除**（业主批准）
+# ============================================================================
+# 【删了什么】
+#   本文件原有一整块 SafeFileReader 指标，本轮全部移除：
+#     · 5 个指标定义：yunshu_safe_file_reader_errors_total /
+#       _encoding_fallbacks_total / _read_duration_seconds /
+#       _loaded_history_count / _invalid_ratio；
+#     · 5 个发射函数：record_error / record_encoding_fallback / record_read_duration /
+#       set_loaded_history_count / set_invalid_ratio；
+#     · 连带只服务于它们的标签口径差异注释（原 612-622 行）。
+#   同一次改动的另一半在 agent/server_routes/routes_logging.py：
+#     该文件原来 import 上面那 5 个发射函数（文件内零调用点 = 未使用导入），
+#     现已把这 5 个名字从 import 里去掉（import 其余内容不变）。
+# 【为什么删】
+#   SafeFileReader（utils/file_reader.py）在非测试代码里 **0 个调用方**（历史读取已改走
+#   agent/jsonl_history.py 的尾部窗口）⇒ 这 5 个名字在 /metrics 上**恒为 0**，属于
+#   "空名字"而不是监控证据。上一轮判定"不能删"的唯一原因就是 routes_logging.py 仍在 import
+#   这 5 个函数；本轮把两处同一次改掉，ImportError 风险随之消失。
+#   依赖它们的 9 条告警已于 2026-10-02 随 monitoring/alerts_safe_file_reader.yml 删除。
+# 【保留了什么（不要顺手删）】
+#   · utils/file_reader.py 本体 + 它**自己内联的**同名指标：自成一体，且
+#     tests/unit/test_safe_file_reader_alerts.py 直接依赖；只在 import utils.file_reader 的
+#     进程里注册，服务进程不 import 它 ⇒ 不会再出现在 /metrics 上。
+#   · _NoopMetric/_NoopCounter/_NoopHistogram/_NoopGauge 与 _safe_counter/_safe_histogram/
+#     _safe_gauge 三个工厂：它们被 skill_match_* / yunshu_intent_layer_* /
+#     context_assembler_* / route_depth* / cache_hit_ratio / zero_recall_total /
+#     tool_selected_total / llm_tokens_total / llm_cost_usd_total 等仍在用的指标共用，故整体保留。
+# 【怎么恢复】
+#   git show <本次提交>^:agent/monitoring/prometheus.py        # 恢复本段 5 个定义 + 5 个函数
+#   git show <本次提交>^:agent/server_routes/routes_logging.py # 恢复 routes_logging 的那 5 个 import 名
+#   ⚠ 两处必须**同一次**恢复：
+#     · 只恢复本文件 ⇒ /metrics 上重新出现 5 个恒为 0 的空名字（当前要避免的正是这个）；
+#     · 只恢复 routes_logging ⇒ 装配期 ImportError（app_server 起不来）。
 # ============================================================================
 
 # 降级实现：当 prometheus_client 不可用时使用 noop 对象，避免 NameError
@@ -603,36 +623,6 @@ def _safe_histogram(name, doc, labels, buckets=None):
         from prometheus_client import REGISTRY as _R
         return _R._names_to_collectors[name]
 
-yunshu_safe_file_reader_errors_total = _safe_counter(
-    'yunshu_safe_file_reader_errors_total',
-    'SafeFileReader 错误总数',
-    ['error_type', 'file_path']
-)
-
-# 【2026-10-03 实测 · 口径差异记录，本轮只加注释不改代码】
-#   本 Counter 只有 1 个标签 (file_path,)，而 utils/file_reader.py:90 的同名 Counter 声明了 3 个
-#   标签 (from_encoding, to_encoding, file_path) ⇒ 两处标签集合不一致。
-#   · 谁先注册谁说了算：app_server 装配期 app_server.py:1557 import routes_logging → 本模块先注册，
-#     本行成为 /metrics 上生效的定义（实测 REGISTRY._names_to_collectors[...]._labelnames == ('file_path',)）。
-#   · 后果：file_reader.py:135 的 3 标签 .labels() 抛 ValueError，被其 except 静默吞掉
-#     ⇒ 编码降级事件不计入指标（该指标恒为 0）。
-#   · 反向顺序（先 import utils.file_reader）会让本文件的 record_encoding_fallback(file_path)
-#     抛 ValueError（实测确认）——即**改哪个定义都会让另一方失效**。
-#   · 本轮不改的理由：SafeFileReader 在非测试代码里 0 个调用方（见上方 542-556 的说明），
-#     这条记录路径线上永不执行；统一标签需同时改两处定义，属独立立项。
-yunshu_safe_file_reader_encoding_fallbacks_total = _safe_counter(
-    'yunshu_safe_file_reader_encoding_fallbacks_total',
-    'SafeFileReader 编码降级次数',
-    ['file_path']
-)
-
-yunshu_safe_file_reader_read_duration_seconds = _safe_histogram(
-    'yunshu_safe_file_reader_read_duration_seconds',
-    'SafeFileReader 读取耗时',
-    ['file_path'],
-    buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
-)
-
 def _safe_gauge(name, doc, labels):
     # 降级处理：prometheus_client 不可用时返回 noop 对象，避免 NameError 崩溃
     if not _PROMETHEUS_AVAILABLE:
@@ -642,44 +632,6 @@ def _safe_gauge(name, doc, labels):
     except ValueError:
         from prometheus_client import REGISTRY as _R
         return _R._names_to_collectors[name]
-
-yunshu_safe_file_reader_loaded_history_count = _safe_gauge(
-    'yunshu_safe_file_reader_loaded_history_count',
-    'SafeFileReader 加载的历史对话数',
-    ['file_path']
-)
-
-yunshu_safe_file_reader_invalid_ratio = _safe_gauge(
-    'yunshu_safe_file_reader_invalid_ratio',
-    'SafeFileReader 无效行比例',
-    ['file_path']
-)
-
-
-def record_error(error_type, file_path):
-    """记录错误"""
-    yunshu_safe_file_reader_errors_total.labels(error_type=error_type, file_path=file_path).inc()
-
-
-def record_encoding_fallback(file_path):
-    """记录编码降级"""
-    yunshu_safe_file_reader_encoding_fallbacks_total.labels(file_path=file_path).inc()
-
-
-def record_read_duration(file_path, duration):
-    """记录读取耗时"""
-    yunshu_safe_file_reader_read_duration_seconds.labels(file_path=file_path).observe(duration)
-
-
-def set_loaded_history_count(file_path, count):
-    """设置加载的历史对话数"""
-    yunshu_safe_file_reader_loaded_history_count.labels(file_path=file_path).set(count)
-
-
-def set_invalid_ratio(file_path, ratio):
-    """设置无效行比例"""
-    yunshu_safe_file_reader_invalid_ratio.labels(file_path=file_path).set(ratio)
-
 
 # ============================================================================
 # 技能检索指标（供 HPA + Grafana dashboard 消费）

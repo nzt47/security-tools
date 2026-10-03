@@ -163,16 +163,43 @@ groups:
       #   【回归防线】monitoring/prometheus/rules/circuit_breaker_alerts_test.yml：
       #     用例 1（状态序列在、计数序列缺席 ⇒ 期望不告警）修前 FAILED、修后 SUCCESS；
       #     用例 2（整族都不存在 ⇒ 期望 firing）修前修后都 SUCCESS（真阳性没被修没）。
-      #   【剩余风险 · 必读，别把这条规则当成"已经彻底好了"】实测本机**正在运行**的应用
-      #     GET /api/business/prometheus 里这两条指标只有 # HELP/# TYPE、**0 条样本**
-      #     （本仓没有任何生产路径会**无条件**调用 get_circuit_breaker()：tool_calling.py 只 import 不使用，
-      #     其余调用点都要走到具体业务分支；实测正在运行的应用跑了 45 分钟真实流量后这两条序列仍是
-      #     0 条样本 ⇒ 2026-10-02 加的"访问点发布"在本部署的实际流量下从未被执行到，
-      #     见 agent/circuit_breaker.py::get_circuit_breaker 尾注）。
-      #     ⇒ 若应用恢复后连**状态**序列也不存在，本式仍会 firing。彻底解决需要**埋点侧**
-      #     无条件发布状态序列（方案与影响面见 C-2 报告 §3.3.4），本次**未动生产代码**。
-      #   【怎么回滚】把下面 expr 里的 `and` 改回 `or` 并删掉本段注释即可（精确回到改动前）；
-      #     回滚后 circuit_breaker_alerts_test.yml 的用例 1 会立刻重新变红 —— 回滚同样可被测试发现。
+      #   【埋点侧已于本次接通 · 2026-10-03】实测（C-2 报告 §3.3.3 证据 1）在**正在运行**的应用里，
+      #     GET /api/business/prometheus 里这两条指标只有 # HELP/# TYPE、**0 条样本**；根因是
+      #     **没有任何生产路径会无条件调用 get_circuit_breaker()**（tool_calling.py 只 import 不使用，
+      #     其余调用点都要走到具体业务分支；跑了 45 分钟真实流量后这两条序列仍是 0 条样本，
+      #     见 agent/circuit_breaker.py::get_circuit_breaker 尾注）⇒ 上面改 `and` 只解决"计数序列
+      #     天然缺席"，单靠它**不足以**让 C-2 那一次告警 resolved。
+      #     ⇒ 本次在**应用启动路径**上补上这一次无条件发布（链路逐级可追）：
+      #         app_server.py::_publish_circuit_breaker_states()（模块级调用，启动即执行）
+      #           → agent/monitoring/business_metrics.py::publish_deployed_circuit_breaker_states()
+      #           → agent.circuit_breaker.get_circuit_breaker(<真实名字>)（同一访问点的
+      #             _notify_state_observer(name, None, state)，circuit_breaker.py:686）
+      #           → update_circuit_breaker_state() → yunshu_circuit_breaker_state（set_gauge 幂等）
+      #     分层：由**组合根** app_server 驱动 monitoring（上层）→ circuit_breaker（下层），
+      #       不让底层反向 import 上层（守 tests/unit/test_circuit_breaker_layering.py 与 .importlinter）。
+      #     只发布**真实存在**的熔断器：名字逐个取自生产调用点
+      #       guardrails.egress_chain / learning_budget / critic / schema_validation；
+      #       直接构造、**不在全局注册表里**的实例（capregistry.{kind}、prometheus-exporter）
+      #       刻意不发布 —— 用同名去注册表取会拿到另一个对象，那条序列会是**假的**。
+      #     不改 export_prometheus() 的"空族只出 HELP/TYPE"契约（**不伪造样本**，
+      #       否则"没有数据"与"数据是 0"又会被混为一谈）。
+      #     【验证方式】`python -c "import app_server"` 后导出文本里能搜到形如
+      #       yunshu_circuit_breaker_state{breaker_name="critic",state="closed"} 1.0 的**样本行**
+      #       （实测 4 条，见 docs/closeout/熔断器状态序列接通_20261003.md）；
+      #       回归防线 tests/unit/test_circuit_breaker_state_publication.py（5 条，含幂等与空族契约对照）。
+      #   【剩余边界 · 必读，别把这条规则当成"已经彻底好了"】
+      #     ① 应用**根本没起来 / 端点抓不到**（进程未启动、up{job="yunshu-business"}=0、
+      #        /api/business/prometheus 不可达）时这两条序列依然不存在 ⇒ 本式**仍会 firing**——
+      #        这正是本规则的本意（真阳性）。此时该修的是"应用没起来"，不是这条规则。
+      #     ② 本次只发布**本部署真实存在**的那几个熔断器：将来新增了熔断器却漏登记，新熔断器
+      #        不会有自己的序列（但已有熔断器的序列仍在 ⇒ 本式不会触发）—— 这是"漏登记"的
+      #        可见性缺口，需要靠登记表守卫那一族测试补，不能靠这条规则兜。
+      #     ③ yunshu_circuit_breaker_trigger_total 仍然是 counter，仍然只在**真的发生状态转换**
+      #        时才诞生 —— 这是它的正确语义，不要为了"让告警能清"给它预置 0；本次的 `and` 已使
+      #        "只有它缺席"不再单独钉死告警，两处配合才成立。
+      #   【怎么回滚】表达式回滚：把下面 expr 里的 `and` 改回 `or`（并删掉本段注释）。
+      #     埋点侧回滚：删掉 app_server.py 的 `_publish_circuit_breaker_states` 函数与紧随其后的
+      #     那一行调用即可（一处；两处都能被上面的测试发现 —— 源码守卫会立刻转红）。
       - alert: CircuitBreakerMetricsMissing
         expr: absent(yunshu_circuit_breaker_state) and absent(yunshu_circuit_breaker_trigger_total)
         for: 5m

@@ -180,7 +180,9 @@ def main() -> int:
 
     print()
     print("=" * 78)
-    print("G. SafeFileReader 读取耗时（agent/monitoring/prometheus.py:601 既有定义）")
+    print("G. SafeFileReader 读取耗时（⚠ 2026-10-03：prometheus.py 那份定义已删除，")
+    print("   下面测的是 utils/file_reader.py:120 **自己内联**的同名 Histogram ——")
+    print("   它只在 import 该模块的进程里注册；生产代码 0 处 import 它 ⇒ 服务进程 /metrics 上没有）")
     print("=" * 78)
     import json as _json
     from prometheus_client import CollectorRegistry, generate_latest

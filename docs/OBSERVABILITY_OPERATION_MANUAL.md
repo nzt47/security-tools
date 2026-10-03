@@ -301,15 +301,17 @@ sum(yunshu_tool_calls_total)
 # 查询活跃连接数
 avg(yunshu_active_connections)
 
-# SafeFileReader 相关指标
-# ⚠ 【2026-10-03 实测】下面 3 条查询**恒为空/恒为 0**，不要拿它们当"读取健康"的证据：
-#   SafeFileReader（utils/file_reader.py）在非测试代码里 0 个调用方（历史读取已改走
-#   agent/jsonl_history.py 的尾部窗口），而这 5 个指标名没有任何产出方；
-#   依赖它们的 9 条告警已于 2026-10-02 删除（见 docs/closeout/监控死规则与陈旧看板清理_20261002.md §3 A-1）。
-#   指标定义本身仍保留（原因：agent/server_routes/routes_logging.py:50-54 仍在 import 它们的发射函数）。
-sum(yunshu_safe_file_reader_errors_total)
-sum(yunshu_safe_file_reader_encoding_fallbacks_total)
-avg(yunshu_safe_file_reader_read_duration_seconds)
+# SafeFileReader 相关指标 —— **已于 2026-10-03 整组删除，原有 3 条查询已移除**
+#   删掉的是这 5 个名字：yunshu_safe_file_reader_errors_total / _encoding_fallbacks_total /
+#   _read_duration_seconds / _loaded_history_count / _invalid_ratio，以及它们的 5 个发射函数
+#   （record_error / record_encoding_fallback / record_read_duration / set_loaded_history_count /
+#    set_invalid_ratio）。两文件同改：agent/monitoring/prometheus.py（删定义与函数）
+#   + agent/server_routes/routes_logging.py（删那 5 个名字的未使用 import）。
+#   为什么删：SafeFileReader（utils/file_reader.py）在非测试代码里 0 个调用方
+#   （历史读取已改走 agent/jsonl_history.py 的尾部窗口）⇒ 这些名字**没有任何产出方**，
+#   在 /metrics 上恒为 0，属于"空名字"而不是读取健康的证据；依赖它们的 9 条告警已于 2026-10-02 删除。
+#   ⇒ 现在在 /metrics 上查不到它们**是预期结果**，别再照旧手册去查（只会得到空结果）。
+#   原因与恢复命令见 docs/closeout/死代码删除_SafeFileReader指标与作废断言_20261003.md。
 ```
 
 ### 3.2 JSON 格式指标查询

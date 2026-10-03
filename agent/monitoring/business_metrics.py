@@ -2424,3 +2424,84 @@ def _install_circuit_breaker_observer() -> None:
 
 
 _install_circuit_breaker_observer()
+
+
+# ============================================================================
+# 启动期熔断器状态发布（**本部署"熔断器状态序列一定存在"的唯一保证**）
+# ============================================================================
+#
+# 【要治的病】告警 `CircuitBreakerMetricsMissing`（monitoring/circuit_breaker_alerts.yml §4.1）
+#   的表达式是 `absent(yunshu_circuit_breaker_state) and absent(yunshu_circuit_breaker_trigger_total)`。
+#   而 `export_prometheus()` 对"已登记但一条样本都没有"的族**只输出 # HELP/# TYPE**
+#   （见本文件 2306-2323 行的遍历：counter/gauge 都先判 `name in self._counters/_gauges`）。
+#   这是**有意为之的既有契约**——不在这里伪造样本，否则"没有数据"与"数据是 0"又被混为一谈。
+#   ⇒ 于是"序列不存在"这件事只能靠**真的写一次埋点**来消除。
+#
+# 【为什么必须由启动路径显式调用，而不是在导入期自动发布】
+#   本模块被大量单测/脚本导入；在导入期写全局采集器会让每个"只读导出"的调用方
+#   凭空多出熔断器样本、污染断言。发布是一次**部署动作**（组合根 app_server.py 负责），
+#   不该是库导入的副作用。
+#
+# 【名字从哪来：只发布**真实存在**的熔断器】
+#   下表每一行都取自本仓**生产代码**里经全局注册表 `get_circuit_breaker(<字面名>)` 取用的调用点。
+#   发布方式就是调用同一个访问点：`get_circuit_breaker(name)` 本身会
+#   `_notify_state_observer(name, None, state)`（agent/circuit_breaker.py:686），经本模块的
+#   `_on_circuit_breaker_state` 落到 `update_circuit_breaker_state()` ⇒ 写进
+#   `yunshu_circuit_breaker_state`（set_gauge 幂等）。
+#   【为什么走注册表名字而不是直接构造实例】只有"经注册表取得的名字"，发布出去的状态
+#     才与真实业务路径**拿到的是同一个对象**；直接 `CircuitBreaker(...)` 构造的实例
+#     （agent/capregistry/loader.py:181 的 `capregistry.{kind}`、agent/monitoring/prometheus.py:75
+#     的 `prometheus-exporter`）**不在全局注册表里**，用同名去注册表取会拿到**另一个对象**
+#     ⇒ 那条序列会是假的，故**刻意不发布**。
+#   【本部署没有"无条件存在"的熔断器】实测 `python -c "import app_server"` 之后
+#     `get_breaker_registry()` 为空、下表四个模块一个都没被加载 ⇒ 没有任何访问点会被无条件执行，
+#     这正是"跑 45 分钟真实流量后仍是 0 条样本"的根因
+#     （docs/closeout/监控清理_evidence_20261002/c2_longrun_report.md §3.3.1）。
+#     所以"遍历已注册熔断器发布"在本部署等于发布空集，必须显式声明本部署的熔断器拓扑。
+DEPLOYED_CIRCUIT_BREAKER_NAMES: tuple = (
+    # 出域链路熔断（命中"读密钥→外发"链路时 force_open）
+    "guardrails.egress_chain",   # agent/guardrails/egress_chain.py:381（常量定义于 :57）
+    # 学习预算护栏（日预算耗尽时熔断）
+    "learning_budget",           # agent/learning_budget.py:182（默认名定义于 :153）
+    # Critic 质量评审熔断
+    "critic",                    # agent/cognitive/critic.py:114
+    # 输出 Schema 校验熔断
+    "schema_validation",         # agent/guardrails/output_schema.py:202
+)
+
+
+def publish_deployed_circuit_breaker_states(names=None) -> list:
+    """发布本部署真实存在的熔断器**当前状态**，返回实际发布成功的名字列表。
+
+    [契约] 本函数只做"取一次访问点"，不改变任何熔断判定；幂等（同名重复调用仍写同一
+    label_key，gauge 覆盖语义）。**失败隔离**：任何一步异常都被吞掉并继续，
+    埋点缺一条序列远比启动/调用方被打断轻。
+    [分层] 本模块在 monitoring（上层），import agent.circuit_breaker（下层）方向合法；
+    调用方是组合根 app_server.py。反方向（circuit_breaker → 本模块）被
+    tests/unit/test_circuit_breaker_layering.py 与 .importlinter 明确禁止。
+    [回滚] 删除本函数与常量、并删掉 app_server.py 里的 `_publish_circuit_breaker_states` 调用即可。
+    """
+    published: list = []
+    try:
+        import agent.circuit_breaker as _cb
+    except Exception:  # noqa: BLE001 熔断器模块不可用 ⇒ 无可发布
+        return published
+
+    # 观察钩子必须已在位，否则 get_circuit_breaker() 的发布会被静默丢弃。
+    # 正常路径下 _install_circuit_breaker_observer() 已在模块导入时执行；
+    # 这里只在被显式卸载过时补装，**不覆盖**调用方自定义的观察者。
+    try:
+        if getattr(_cb, "_state_observer", None) is None:
+            _install_circuit_breaker_observer()
+    except Exception:  # noqa: BLE001
+        pass
+
+    for name in (names if names is not None else DEPLOYED_CIRCUIT_BREAKER_NAMES):
+        try:
+            _cb.get_circuit_breaker(name)   # 访问点内即完成状态发布
+            published.append(name)
+        except Exception as exc:  # noqa: BLE001 单个熔断器失败不影响其余
+            logger.warning(log_dict({'module_name': 'business_metrics',
+                                     'action': 'circuit_breaker.publish_initial.failed',
+                                     'breaker_name': name, 'error': str(exc)}))
+    return published
