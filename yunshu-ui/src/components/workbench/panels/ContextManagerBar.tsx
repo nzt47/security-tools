@@ -242,7 +242,7 @@ export function ContextManagerBar() {
                 {[
                   // 值域对齐真实模型能力（deepseek-flash 实测 context_window=1048576 /
                   // max_output_tokens=393216）；原先 20000 / 8192 的上限让"想调大也调不动"。
-                  { l: '最大 Token', hint: '上下文窗口上限；超限丢弃最旧消息（改完当场生效，重启后回落 config.yaml）', val: localLimit ?? status.token_limit ?? 131072, min: 8192, max: 1048576, step: 8192, set: (v: number) => { setLocalLimit(v); scheduleSave({ token_limit: v }) } },
+                  { l: '最大 Token', hint: '上下文窗口上限；超限丢弃最旧消息（改完当场生效，重启后回落代码默认值；config.yaml 不参与运行时合成）', val: localLimit ?? status.token_limit ?? 131072, min: 8192, max: 1048576, step: 8192, set: (v: number) => { setLocalLimit(v); scheduleSave({ token_limit: v }) } },
                   { l: '单次发送', hint: '单条消息最大 token —— **超限只告警，不截断原文**', val: localSend ?? status.per_message_send_limit, min: 1024, max: 131072, step: 1024, set: (v: number) => { setLocalSend(v); scheduleSave({ per_message_send_limit: v }) } },
                   { l: '单次回复', hint: '单次回复的 max_tokens（真实生效，受模型能力约束）', val: localRecv ?? status.per_message_recv_limit, min: 1024, max: 131072, step: 1024, set: (v: number) => { setLocalRecv(v); scheduleSave({ per_message_recv_limit: v }) } },
                 ].map((s) => (

@@ -368,8 +368,9 @@ def api_chat():
     #      而同一 handler 在 :149 是按**请求**解析 session_id 的
     #      ⇒ A 会话聊天可能报 B 会话的数字（读数串台）；
     #   ② `_token_limit = _cfg.get("memory", "token_limit", default=4096)`：
-    #      config.yaml 的 memory 段**没有** token_limit 键
-    #      （agent/orchestrator/lifecycle_manager.py:283-289），分母恒为硬编码 4096，
+    #      【2026-10-03 更新】config.yaml 的 memory 段**现在有** token_limit 键了，
+    #      但**没有任何运行时读取点**（config.py 不解析 YAML；见 lifecycle_manager.py:283-299），
+    #      所以当时的分母恒为硬编码 4096，
     #      与真正用于组装上下文的编排窗口（内置默认 131072）差 32 倍；
     #   ③ 于是 `percentage = 累计/4096` 几轮必然 >100%，
     #      与 metadata.context_notice.pct（÷131072）在同一响应里自相矛盾。

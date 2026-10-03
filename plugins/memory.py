@@ -38,6 +38,16 @@ from config import (  # noqa: E402
 
 bp = Blueprint("memory", __name__)
 
+#: 面板/接口保存的"配置值"重启后会回落到哪里 —— **用户可见文案，必须是事实**。
+#: 【2026-10-03 更正】原文案写"重启后回落到 config.yaml:memory.token_limit"，
+#:   但运行时配置合成为 DEFAULT → 环境变量 → overrides，**从不读 config.yaml**
+#:   （复核实验：谎报 config.yaml 为 65536，Config 仍返回 131072；见 docs/closeout/交付报告_20261003.md §12）。
+#:   真实回落目标是**代码默认值**（可被环境变量覆盖）。指向 config.yaml 会让用户改一个无效文件。
+RESTART_FALLBACK_NOTE = (
+    "面板/接口保存的值是**运行时覆盖**（本进程内生效），重启后回落到**代码默认值**"
+    "（环境变量可覆盖）；**config.yaml 不参与运行时配置合成**，改它对本项无效。"
+)
+
 
 def _view(*, auth=False, log=None):
     """延迟应用 app_server 的共享装饰器（require_token / log_request）。
@@ -105,7 +115,9 @@ def _context_limit_info(yunshu):
 def _push_runtime_window(value: int) -> bool:
     """把新窗口值推给**正在跑**的编排器（否则滑块只改了个没人读的副本）
 
-    【为什么必须有这一步】``_memory_token_limit`` 是**启动时**从 config.yaml 写死的；
+    【为什么必须有这一步】``_memory_token_limit`` 是**启动时**由 config 常量决定的
+    （``config.py`` 的取值链是 DEFAULT → 环境变量 → overrides，**从不读 config.yaml**，
+    2026-10-03 复核：把 config.yaml 的 memory.token_limit 谎报成 65536，Config 仍返回 131072）；
     此前 ``POST /api/context/config`` 只改 ``_cfg`` 这个运行时副本 ⇒ 面板上的数字变了、
     真正"超限丢弃最旧消息"的边界一动不动（同一个旋钮，两套账）。
     这里同时推两处，让三者回到同一个数：
@@ -170,10 +182,13 @@ def api_context_status():
 
     # ── 分母：**编排窗口**（单一事实源），不是 UI 存的另一个数 ──
     # 【为什么必须改】本面板原先除以 `memory.token_limit`，而真正决定"能记住多少历史"的是
-    #   `orchestrator._memory_token_limit`（启动时由 config.yaml:memory.token_limit 写入，
-    #   见 lifecycle_manager.py:283-289）。同一时刻存在**三份不同的数**：代码默认 /
-    #   UI 存值 / config.yaml 值 —— 于是同一个占用在面板与 /api/chat 的 context 块里
-    #   能差出倍数（编排层 TASK-S10-03 已修过这个口径，本面板当时没跟上）。
+    #   `orchestrator._memory_token_limit`（启动时取自 config 常量 / 环境变量，
+    #   见 lifecycle_manager.py:283-299 与 config.py 的 DEFAULT→env→overrides）。
+    #   【2026-10-03 更正】原注释写"启动时由 config.yaml:memory.token_limit 写入"并称
+    #   存在"代码默认 / UI 存值 / config.yaml 值"三份数 —— 第三份**不存在**：
+    #   config.yaml 从未参与运行时配置合成（实测见同文件 _push_runtime_window 的注释）。
+    #   真实存在的两份是"代码默认（或 env）"与"UI 运行时覆盖"，取错任一份都会与
+    #   /api/chat 的 context 块差出倍数（编排层 TASK-S10-03 已修过，本面板当时没跟上）。
     #   取不到就如实报 None，**不拿硬编码值冒充分母**（那比没有读数更坏：它像真的）。
     limit_info = _context_limit_info(_Yunshu)
     limit = limit_info["limit_tokens"]
@@ -222,9 +237,7 @@ def api_context_status():
         "token_limit": limit,
         "token_limit_source": limit_info["limit_source"],
         "configured_token_limit": configured_limit,
-        "configured_token_limit_note": (
-            "面板/接口保存的值是**运行时覆盖**（本进程内生效），重启后回落到 "
-            "config.yaml:memory.token_limit"),
+        "configured_token_limit_note": RESTART_FALLBACK_NOTE,
         "percentage": pct,
         "percentage_semantics": "current_window_usage",
         "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=PER_MESSAGE_SEND_LIMIT_DEFAULT),
@@ -288,7 +301,8 @@ def api_context_config():
         "runtime_applied": applied,
         "apply_note": (
             "token_limit 已推给运行中的编排器（组装窗口 + 压缩阈值同步）；"
-            "发送/回复上限即时生效，但同样是运行时覆盖，重启后回落 config.yaml"),
+            "发送/回复上限即时生效，但同样是运行时覆盖，重启后回落**代码默认值**"
+            "（环境变量可覆盖；config.yaml 不参与运行时配置合成）"),
         "token_limit": limit_info["limit_tokens"] or _cfg.get(
             "memory", "token_limit", default=MEMORY_TOKEN_LIMIT_DEFAULT),
         "token_limit_source": limit_info["limit_source"],

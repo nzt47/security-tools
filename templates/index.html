@@ -689,7 +689,7 @@
                     <input type="range" min="8192" max="1048576" step="8192" id="ctx-slider-limit" oninput="ctxSliderPreview(this, 'ctx-slider-limit-val')" onchange="ctxSaveConfig()">
                     <span class="ctx-slider-val" id="ctx-slider-limit-val">131072</span>
                   </div>
-                  <div class="ctx-hint ctx-hint-slider">上下文窗口上限；超限丢弃最旧消息（改完当场生效，重启后回落 config.yaml）</div>
+                  <div class="ctx-hint ctx-hint-slider">上下文窗口上限；超限丢弃最旧消息（改完当场生效，重启后回落代码默认值；config.yaml 不参与运行时合成）</div>
                   <div class="ctx-slider-row">
                     <label>发送上限</label>
                     <input type="range" min="1024" max="131072" step="1024" id="ctx-slider-send" oninput="ctxSliderPreview(this, 'ctx-slider-send-val')" onchange="ctxSaveConfig()">
