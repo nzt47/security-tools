@@ -1,0 +1,153 @@
+# 契约门禁 · Contract Gate
+#
+# 2026-10-03 新增（重构计划 阶段 6）。把已经入库的两份基线接进 PR：
+#   ① 契约漂移对拍（scripts/audit/contract_diff.py + reports/contract_drift_baseline.json）
+#   ② 鉴权双面守卫（豁免清单 + 覆盖率基线）
+#
+# 【为什么必须有这一层】审计结论：云枢的「后端能力 → 前端呈现」由**四份互相独立的
+# 手写清单**驱动（真实 Flask 路由 / agent/modules_registry.py / 插件 manifest / 前端字面量），
+# 相互之间没有任何一致性校验机制。方案原文（第 13 节）的判断是「手工维护的清单必然漂移」，
+# 本仓已被证实：modules_registry 声明了并不存在的 agent/api_gateway_flask.py（审计 H-2）；
+# 插件 manifest 的 routes 有 11 处不符；前端有 2 处调了「方法与路径都不对」的端点
+# （已由本门禁首次运行检出并修复，见提交 e414319d）。
+#
+# 【设计约束·逐条对应审计发现，勿删】
+#   C-1 不得用 -m <marker> 选择测试：pytest.ini 声明 19 个 marker 却有 12 条 --ignore 路径，
+#       选择器可能静默选中 0 个用例（审计 M-35/R15）。本 workflow 直接跑脚本，不做 marker 筛选。
+#   C-3 不得用窄 paths: 过滤：审计 M-35 记录过多次「改动未命中 paths ⇒ 不验证」的事故。
+#       故本 workflow 的 pull_request 不带 paths。
+#   C-4 与 ci.yml / test.yml 同名「云枢系统测试流程」导致的 workflow_run 匹配歧义是既有问题，
+#       本 workflow 用**唯一名称**，不参与 workflow_run 链，避免叠加新的歧义。
+#   A4'' 执行完整性：静态脚本速度快、失败即非 0，不存在 H-10 的 thread-timeout 二义性；
+#       但仍在最后一步显式断言「脚本确实产出了报告」，防止脚本静默空跑也判绿。
+
+name: 契约门禁
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+      - main
+      - develop
+      - 'release/**'
+  pull_request:
+    branches:
+      - master
+      - main
+      - develop
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.12'
+  # 本仓多处中文输出在非 UTF-8 控制台下会触发 GBK 编解码级联（pytest.ini:117-122 已记录），
+  # 故显式锁定 UTF-8 —— 否则 Python 步骤可能因打印中文而 UnicodeEncodeError 假红。
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: 'utf-8'
+
+jobs:
+  contract-gate:
+    name: 契约漂移 + 鉴权双面守卫（阻断）
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 校验工具与基线存在
+        run: |
+          set -e
+          for f in scripts/audit/contract_diff.py \
+                   scripts/audit/auth_coverage.py \
+                   reports/contract_drift_baseline.json \
+                   reports/auth_coverage_baseline.json; do
+            if [ ! -f "$f" ]; then
+              echo "::error::缺少 $f —— 契约门禁失去判据，请先恢复该文件"
+              exit 1
+            fi
+          done
+          echo "✓ 工具与两份基线齐备"
+
+      - name: 契约漂移对拍（阻断）
+        id: drift
+        run: |
+          set -o pipefail
+          python scripts/audit/contract_diff.py --json /tmp/contract_report.json 2>&1 | tee /tmp/contract_out.txt
+          rc=${PIPESTATUS[0]}
+          # 执行完整性（A4''）：脚本必须真的产出报告，否则「零漂移」不可信
+          if [ ! -s /tmp/contract_report.json ]; then
+            echo "::error::contract_diff 未产出报告（可能静默空跑）—— 判绿不可信"
+            exit 1
+          fi
+          python - <<'PY'
+          import json, sys
+          d = json.load(open('/tmp/contract_report.json', encoding='utf-8'))
+          snap = d.get('snapshot', {})
+          if not snap.get('routes_total'):
+              print('::error::routes_total 为 0/缺失：路由扫描失效，门禁形同虚设')
+              sys.exit(1)
+          print('routes_total=%s registry_nodes=%s manifest_declared=%s' % (
+              snap.get('routes_total'), snap.get('registry_nodes'),
+              snap.get('manifest_declared_total')))
+          PY
+          exit $rc
+
+      - name: 契约基线变更展示（PR 可见性）
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "=== reports/contract_drift_baseline.json 相对基线的变更 ==="
+          git diff --unified=2 "origin/${{ github.base_ref }}" -- \
+            reports/contract_drift_baseline.json reports/auth_coverage_baseline.json \
+            | head -200 || true
+          echo "=== （以上为契约/鉴权基线的变化，review 时请确认是预期的） ==="
+
+      - name: 鉴权豁免清单自检（阻断）
+        run: |
+          # 复用已单测的纯函数：豁免清单不得覆盖任何变更型端点（审计 H-5 的形态）
+          python - <<'PY'
+          import os, sys
+          sys.path.insert(0, '.')
+          from agent.server_auth import find_allowed_write_endpoints
+          from scripts.audit.contract_diff import collect_routes_static
+          allow = os.environ.get('CP_API_AUTH_ALLOW', '')
+          routes = collect_routes_static()
+          hits = find_allowed_write_endpoints(
+              allow.split(','), ((p, i['methods']) for p, i in routes.items()))
+          if hits:
+              for h in hits:
+                  print('::error::CP_API_AUTH_ALLOW 豁免了变更型端点 %s —— 写端点被放开（审计 H-5）' % h)
+              sys.exit(1)
+          print('✓ 豁免清单未覆盖任何变更型端点')
+          PY
+          # 注：仓库内 .env 不入库，CI 上 CP_API_AUTH_ALLOW 为空 ⇒ 本步实际校验的是
+          #     collect_routes_static() 的可用性；真实清单由启动期自检
+          #     app_server.audit_auth_allowlist() 覆盖（见提交 258db45c）。
+
+      - name: 鉴权覆盖率基线守卫 + 相关单测
+        run: |
+          python -m pytest -q --no-header -p no:randomly \
+            tests/unit/test_auth_coverage_baseline.py \
+            tests/unit/test_auth_allowlist_audit.py \
+            tests/unit/test_replay_upload_requires_token.py \
+            tests/unit/test_contract_diff_matcher.py \
+            tests/unit/test_route_assembly_failfast.py
+
+      - name: 上传报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-gate-report
+          path: |
+            /tmp/contract_report.json
+            /tmp/contract_out.txt
+          if-no-files-found: warn
