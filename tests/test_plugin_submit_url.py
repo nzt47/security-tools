@@ -43,12 +43,31 @@ def test_manifest_outputs_submit_url():
 
 
 def test_status_plugin_declares_submit_url():
-    """真实 status 插件声明 submit_url 指向 /api/status/config（schema 驱动闭环的端点）。"""
+    """真实 status 插件声明 submit_url 指向 /api/status/config（schema 驱动闭环的端点）。
+
+    【2026-10-03 改】原断言是 `"/api/status/config" in p.routes` —— 读的是 Plugin 上那份
+    **手写** routes 清单。阶段 4 / R4 已删除该字段（routes 改为从 app.url_map 派生），
+    故这里改为断言**派生结果**：把 status 蓝图挂到一个真实 Flask app 上，再问
+    plugin_routes() 要答案。这比原来那条更强 —— 它验的是"路由真的注册了"，
+    而不是"有人在清单里写了一行"。
+    """
+    from flask import Flask
     import plugins.status  # noqa: F401  （触发真实插件注册，模块级 PLUGIN 即注册对象）
+    from plugins.plugin_api import plugin_routes
+
     p = plugins.status.PLUGIN
     assert p.name == "status"
     assert p.submit_url == "/api/status/config"
-    assert "/api/status/config" in p.routes
+
+    app = Flask("submit_url_derivation")
+    app.register_blueprint(p.blueprint)
+    derived = plugin_routes(p, app)
+    assert "/api/status/config" in derived, (
+        "派生结果里没有 /api/status/config —— 说明该路由没注册到 blueprint，"
+        "或派生逻辑失效。derived=" + repr(derived[:8])
+    )
+    # 派生结果只含本蓝图的路由（不得把别人的规则算进来）
+    assert all(r.startswith("/api/") or r.startswith("/logs/") for r in derived), derived
 
 
 # ════════════════════════════════════════════════════════════════

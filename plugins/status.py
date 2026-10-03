@@ -834,22 +834,4 @@ PLUGIN = register_plugin(Plugin(
     },
     blueprint=bp,
     submit_url="/api/status/config",  # T3.3：schema 驱动提交端点（GET 读当前值 / POST 应用）
-    routes=[
-        "/api/health",
-        "/api/health/auth",  # 鉴权只读状态（原 routes_panorama 中未接线，见该视图 docstring）
-        "/api/sensors",
-        "/api/status",
-        "/api/mode",
-        "/api/planning/toggle",
-        "/api/cognitive/status",
-        "/api/heartbeat",
-        "/api/heartbeat/history",
-        "/api/heartbeat/status",
-        "/api/panorama",
-        "/api/personality",
-        "/api/personality/params",
-        "/api/personality/profile",
-        "/api/personality/reset",
-        "/api/status/config",
-    ],
 ))

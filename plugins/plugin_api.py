@@ -7,12 +7,26 @@ from flask import Blueprint
 
 @dataclass
 class Plugin:
+    """插件声明。
+
+    【2026-10-03 · 阶段 4 / R4（审计 H-1/H-6，指标 K2）—— routes 字段已**删除**】
+    它原来是一份**手写**路由清单（由人工补齐到 199 条），与 blueprint 上真实的
+    @bp.route 装饰器构成**两个事实源**。实测后果（审计原文）：**11 处**
+    "插件真实注册了路由，但 manifest.routes 未声明" —— 前端插件面板少显示 11 条路由，
+    而没有任何东西会变红。
+    现改为 manifest() 从 **app.url_map** 派生（见 plugin_routes），手写清单全部删除：
+    这一类漂移**在构造上不可能再发生**（不是"两份保持同步"，而是"只留一份"）。
+
+    【为什么删字段而不是留着不用】留着它就会有人继续填，两个事实源立刻复活
+    （本仓对"对齐而非共用"的教训有多次记录）。删除后误传 routes=[...] 会**当场
+    TypeError**，是最快的反馈。由 tests/unit/test_plugin_manifest_derivation.py 的
+    AST 守卫机械保证它不被加回来。
+    """
     name: str
     version: str
     description: str = ""
     schema: Dict[str, Any] = field(default_factory=dict)
     blueprint: Optional[Blueprint] = None
-    routes: List[str] = field(default_factory=list)
     submit_url: str = ""  # 配置提交端点（T3.3）：空串表示「暂不支持在线修改」
     client_slot: Optional[Dict[str, str]] = None  # 前端动态装载（T4.2）：{slotId, module}
 
@@ -83,8 +97,74 @@ def context_limit_info(yunshu) -> Dict[str, Any]:
                 }
     return {"limit_tokens": None, "limit_source": "unavailable"}
 
-def manifest() -> Dict[str, Any]:
+# ════════════════════════════════════════════════════════════
+#  路由派生（**唯一事实源**：app.url_map）
+# ════════════════════════════════════════════════════════════
+
+#: 宿主 Flask app，由 app_server 装配完全部蓝图后绑定一次。
+#:
+#: 【为什么需要一个绑定点，而不是每次取 current_app】manifest() 有两条调用路径：
+#:   ① GET /api/plugins（有请求上下文，current_app 可用）；
+#:   ② loader.refresh_manifest()（**无请求上下文** —— reload 时被调用，测试/脚本也会）。
+#: 没有绑定点时路径 ② 只能返回空 routes，等于让 reload 后的清单**静默少掉全部路由**。
+#:
+#: 【为什么派生必须发生在蓝图挂载之后】Flask 3.1.3 实测：Blueprint 在
+#: register_blueprint 之前**不持有**规则列表 —— add_url_rule 只记录一个闭包 lambda，
+#: 规则字符串在闭包里，没有公开读法。故 bind_app 的时机就是"蓝图装配完成"那一刻。
+_BOUND_APP = None
+
+
+def bind_app(app) -> None:
+    """绑定宿主 app（app_server 在蓝图装配完成后调用一次）。"""
+    global _BOUND_APP
+    _BOUND_APP = app
+
+
+def unbind_app() -> None:
+    """解绑（仅供测试隔离；生产路径不需要）。"""
+    global _BOUND_APP
+    _BOUND_APP = None
+
+
+def _resolve_app(app=None):
+    """解析派生用的 app：显式入参 > 绑定值 > 当前应用上下文（取不到则 None）。"""
+    if app is not None:
+        return app
+    if _BOUND_APP is not None:
+        return _BOUND_APP
+    try:
+        from flask import current_app
+        return current_app._get_current_object()  # 代理对象不能直接 iter_rules
+    except Exception:  # noqa: BLE001 无应用/请求上下文不是错误，是"派生不可用"
+        return None
+
+
+def plugin_routes(plugin: Plugin, app) -> List[str]:
+    """派生某插件蓝图在 app.url_map 中注册的**全部**路径（去重、排序）。
+
+    app 为 None（无上下文且未绑定）时返回空列表 —— 调用方可用 manifest 里的
+    routes_source 区分"确实没有路由"与"派生不可用"，**不要静默当成 0 条**。
+    """
+    bp = getattr(plugin, "blueprint", None)
+    if bp is None or app is None:
+        return []
+    prefix = bp.name + "."
+    paths = set()
+    for rule in app.url_map.iter_rules():
+        if str(rule.endpoint).startswith(prefix):
+            paths.add(str(rule.rule))
+    return sorted(paths)
+
+
+def manifest(app=None) -> Dict[str, Any]:
+    """插件清单（GET /api/plugins 的响应体）。
+
+    【routes 是**派生值**】取自 app.url_map，不再读任何手写清单 —— 这是 K2
+    （"插件 manifest routes 与真实规则双向一致率 → 100%"）的实现方式。
+    """
     import sys, flask
+    _app = _resolve_app(app)
+    source = "url_map" if _app is not None else "unavailable"
     return {
         "plugins": [
             {
@@ -94,7 +174,11 @@ def manifest() -> Dict[str, Any]:
                 "schema": p.schema or {},  # 统一约定：无 schema 输出为空 dict
                 "submit_url": p.submit_url,  # 配置提交端点（T3.3）；空串 = 不支持在线修改
                 "client_slot": p.client_slot,  # 前端动态装载（T4.2）；None = 无客户端模块
-                "routes": sorted(p.routes),
+                "routes": plugin_routes(p, _app),
+                # 【为什么把来源写进契约】"routes 为空"有两种截然不同的原因：
+                #   ① 该插件确实没有路由；② 当前拿不到 app（派生不可用）。
+                #   不区分就会重演本仓反复出现的"看起来正常、实际没数据"。
+                "routes_source": source,
             }
             for p in _REGISTRY
         ],

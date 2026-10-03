@@ -408,17 +408,4 @@ PLUGIN = register_plugin(Plugin(
         },
     },
     blueprint=bp,
-    routes=[
-        "/api/privacy/info",
-        "/api/window/consent",
-        "/api/safety/check",
-        "/api/safety/alerts",
-        "/api/safety/keywords",
-        "/api/permission/status",
-        "/api/permission/log",
-        "/api/permission/stats",
-        "/api/permission/access-log",
-        "/api/permission/emergency",
-        "/api/permission/toggle",
-    ],
 ))
