@@ -19,6 +19,12 @@
     python scripts/observability_post_deploy.py --notify-webhook <webhook_url>
 """
 
+# 【2026-10-03】延迟注解求值：requests 是可选依赖（REQUESTS_AVAILABLE 门控），
+#   而 _retry_request(...) -> Optional[requests.Response] 的注解会在 def 执行时求值，
+#   缺 requests 时脚本在导入期即 NameError，连 --help 都跑不出来。
+#   同类实证：裸环境 python scripts/observability_post_deploy.py --help 报 NameError: name 'requests' is not defined。
+from __future__ import annotations
+
 import argparse
 import json
 import sys

@@ -4414,7 +4414,13 @@ class Orchestrator:
                         messages=messages,
                         system_prompt=system_prompt,
                         # 【2026-10-03 审计 P1-2】同上：不得再出现字面量 8192
-                        max_tokens=self._resolve_max_output_tokens(_selected_model),
+                        # 【2026-10-03 回归修复】这里**不能**用 _selected_model：它只在
+                        #   `if self._tool_calling_service and allow_tools:` 分支里被赋值，
+                        #   本 else 分支（无工具调用服务，实测 test_digital_life_comprehensive.py
+                        #   ::TestCallLLMV2 走的就是它）会直接
+                        #   NameError: cannot access free variable '_selected_model'。
+                        #   本分支真正调用的模型是 self._llm.model ⇒ 按它的档位解析，语义也对。
+                        max_tokens=self._resolve_max_output_tokens(self._llm.model),
                         temperature=0.3,
                     ))
                 if profile.response_prefix:

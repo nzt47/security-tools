@@ -4,6 +4,13 @@ OCR 传感器 — 屏幕内容识别
 我是云枢的"视觉神经"——我能看到屏幕上显示的内容
 """
 
+# 【2026-10-03】延迟注解求值：numpy/cv2/pytesseract 都是**可选**依赖，
+#   下面的 except 分支只置 HAS_* 标志；但 capture_screen(self, region=None) -> Optional[np.ndarray]
+#   这类注解会在 def 执行时**求值**，缺 numpy 时模块导入期即 NameError（不是 ImportError，
+#   所以连「选依赖缺失」的兜底逻辑都走不到）。改为字符串化注解后，缺依赖只是功能降级。
+#   同类实证：裸环境 import sensor.ocr_sensor 报 NameError: name 'np' is not defined。
+from __future__ import annotations
+
 import logging
 import time
 import os

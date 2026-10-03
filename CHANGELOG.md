@@ -6,6 +6,36 @@
 
 ---
 
+## [CHG] - 2026-10-03（同族隐患）: 修两处「可选依赖只置标志、注解却直接求值」的导入期 NameError ✅
+
+**影响模块**: `sensor/ocr_sensor.py`, `scripts/observability_post_deploy.py`, `tests/unit/test_optional_dep_annotations.py`（新增）
+**关联文档**: `docs/closeout/交付报告_20261003.md` §9.5
+
+### 背景
+
+独立核验子代理按「try import / except ImportError 只置标志、但模块级仍使用该名字」的模式扫描全仓，
+39 个候选逐个读源码后确认 **2 处真隐患**（其余有守卫/条件定义/显式退出）：
+
+- `sensor/ocr_sensor.py:91`：`-> Optional[np.ndarray]`，缺 numpy 时**导入期** `NameError: name 'np' is not defined`；
+- `scripts/observability_post_deploy.py:86`：`-> Optional[requests.Response]`，缺 requests 时脚本连 `--help` 都跑不出来。
+
+共同根因：注解在 `def` 执行时求值，报的是 NameError（不是 ImportError）⇒ 连 `HAS_*` / `REQUESTS_AVAILABLE` 兜底分支都走不到。
+
+### Fixed
+
+- 两个文件各加 `from __future__ import annotations`（注解字符串化，**运行期行为不变**），并写明原因与实证。
+
+### Added
+
+- `tests/unit/test_optional_dep_annotations.py`（4 条）：2 条静态钉住这两处必须延迟注解求值，
+  2 条在子进程里用 `PYTHONPATH` 遮蔽 numpy / requests 后**真导入**模块，断言 `HAS_NUMPY is False` / `REQUESTS_AVAILABLE is False` 且导入成功。
+
+### 验证结果
+
+- 新用例 **4 passed**；裸 venv（无 numpy/requests）下 `observability_post_deploy.py --help` 正常、`ocr_sensor` 可导入；
+- 有依赖环境下两模块导入正常（`both import OK`）。
+
+---
 ## [CHG] - 2026-10-03（CI 修复）: 让 config.py 在「没有 pydantic」时也能导入，并补上依赖 ✅
 
 **影响模块**: `config.py`, `.github/workflows/ci-cd.yml`, `tests/unit/test_config_optional_pydantic.py`（新增）
@@ -28,7 +58,7 @@
 - `config.py`：pydantic 缺失分支改为给出**结构性占位**（`BaseModel` / `ConfigDict` / `Field` / `validator` / `ValidationError`），
   保证模块可导入、校验按 `_PYDANTIC_AVAILABLE` 显式门控；**占位基类一旦被实例化立刻 `RuntimeError`**（fail-loud，不静默产出假配置）。
   这条同时修掉一个更早的隐性缺陷：注释写着「Pydantic 模型支持（可选）」，但**可选分支从来没被实现** —— 只要 pydantic 不在，降级校验 `_basic_validation` 永远走不到。
-- `.github/workflows/ci-cd.yml`：该作业的 `Install test dependencies` 追加 `pydantic>=2.0.0`，并注记原因，避免作业长期跑在与生产不一致的极简环境里。
+- `.github/workflows/ci-cd.yml`：该作业的 `Install test dependencies` 追加 `pydantic>=2.0.0`。**这是防御性一致性，不是本红的修复点**——真正修好的是 config.py；独立核验进一步发现该作业在裸环境下**根本不会真正导入** `lifecycle_manager`（缺 `watchdog`，且 `conftest._safe_patch` 会吞 `ImportError`），致命点只是 NameError 不在被吞之列。
 
 ### Added
 
@@ -68,7 +98,7 @@
 
 ### 验证结果
 
-- 后端新增 `tests/unit/test_workbench_chat_modes.py` **9 条**；前端新增 `ChatModeMenu.test.tsx` **5 条**；
+- 后端新增 `tests/unit/test_workbench_chat_modes.py` **10 条**（原记 9 条，实测 `--collect-only` = 10，此处更正）；前端新增 `ChatModeMenu.test.tsx` **5 条**；
 - 线上实测（重启 pid 12612）：plain 6s/27 chunk；retrieval 5s 且阶段显示「命中并注入 1433 token」、system prompt 67 → 1500 tok；full 走编排器 397 字、记忆 18 → 20；
 - `tsc` EXIT=0、`eslint` 0 problems、前端产物已重建（新菜单已在 `/chat` 生效）。
 
