@@ -17,7 +17,9 @@
 
 import { ApiError, request } from './apiClient'
 
-const PREFIX = '/api/cp'
+import { CP } from '@/api/endpoints';
+
+const PREFIX = CP
 
 /** 生效来源（与开关中心同一套口径；未知取值原样透传，不猜） */
 export type ExemptionSource = 'ui_override' | 'env' | 'default'

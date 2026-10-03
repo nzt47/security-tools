@@ -16,6 +16,8 @@
  */
 import { request } from './apiClient'
 
+import { CAPABILITY_MANIFEST } from '@/api/endpoints';
+
 // ═══════════════════════════════════════════════════════════
 //  三档标识（文案与后端 MARK_* 常量同源）
 // ═══════════════════════════════════════════════════════════
@@ -253,5 +255,5 @@ export function callabilityCounts(marks?: Record<string, number> | null): string
 
 /** 工具 / 技能统一可调用性清单（工具端点在 routes_agent_lines.py；404 = 清单未生成） */
 export function fetchCapabilityManifest(): Promise<CapabilityManifestResponse> {
-  return request<CapabilityManifestResponse>('/api/capability-manifest')
+  return request<CapabilityManifestResponse>(CAPABILITY_MANIFEST)
 }

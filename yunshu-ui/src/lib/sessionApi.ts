@@ -15,6 +15,21 @@
  */
 import { request } from './apiClient';
 
+import {
+  SESSIONS,
+  SESSIONS_CURRENT,
+  SESSION_GROUPS,
+  WORKSPACES,
+  sessionById,
+  sessionRename,
+  sessionMessages,
+  sessionWorkspace,
+  sessionWorkspaceReveal,
+  sessionWorkspaceRoot,
+  sessionGroupSet,
+  sessionGroupById,
+} from '@/api/endpoints';
+
 export interface SessionMeta {
   id: string;
   title: string;
@@ -78,96 +93,96 @@ export interface SessionGroupsResponse {
 
 export const sessionApi = {
   /** 会话列表（按 updated_at 降序） */
-  list: () => request<SessionListResponse>('/api/sessions'),
+  list: () => request<SessionListResponse>(SESSIONS),
 
   /** 新建会话（可选指定标题） */
   create: (title = '') =>
-    request<SessionMeta>('/api/sessions', { method: 'POST', body: { title } }),
+    request<SessionMeta>(SESSIONS, { method: 'POST', body: { title } }),
 
   /** 删除会话（后端同时删除会话目录与工作空间） */
   remove: (id: string) =>
-    request<{ ok: boolean }>(`/api/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    request<{ ok: boolean }>(sessionById(id), { method: 'DELETE' }),
 
   /** 重命名会话 */
   rename: (id: string, title: string) =>
     request<{ ok: boolean }>(
-      `/api/sessions/${encodeURIComponent(id)}/rename`,
+      sessionRename(id),
       { method: 'PUT', body: { title } },
     ),
 
   /** 切换后端"当前会话"（影响默认会话归属与历史缓存） */
   setCurrent: (id: string) =>
-    request<{ ok: boolean }>('/api/sessions/current', { method: 'POST', body: { session_id: id } }),
+    request<{ ok: boolean }>(SESSIONS_CURRENT, { method: 'POST', body: { session_id: id } }),
 
   /** 清空单个会话的消息（保留会话与工作空间） */
   clearMessages: (id: string) =>
     request<{ ok: boolean }>(
-      `/api/sessions/${encodeURIComponent(id)}/messages`,
+      sessionMessages(id),
       { method: 'DELETE' },
     ),
 
   /** 会话工作空间文件树 */
   workspace: (id: string) =>
-    request<SessionWorkspace>(`/api/sessions/${encodeURIComponent(id)}/workspace`),
+    request<SessionWorkspace>(sessionWorkspace(id)),
 
   /** 在系统文件管理器中打开该会话的工作空间目录 */
   revealWorkspace: (id: string) =>
     request<{ ok: boolean; root?: string; error?: string }>(
-      `/api/sessions/${encodeURIComponent(id)}/workspace/reveal`,
+      sessionWorkspaceReveal(id),
       { method: 'POST' },
     ),
 
   /** 绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区） */
   bindWorkspaceRoot: (id: string, path: string, create = false) =>
     request<WorkspaceBindingResult>(
-      `/api/sessions/${encodeURIComponent(id)}/workspace-root`,
+      sessionWorkspaceRoot(id),
       { method: 'PUT', body: { path, create } },
     ),
 
   /** 恢复会话默认工作空间（移除自定义绑定） */
   unbindWorkspaceRoot: (id: string) =>
     request<WorkspaceBindingResult>(
-      `/api/sessions/${encodeURIComponent(id)}/workspace-root`,
+      sessionWorkspaceRoot(id),
       { method: 'DELETE' },
     ),
 
   // ──「已添加的工作区」记忆（跨会话复用）────────────────────────
 
   /** 已添加的工作区列表 */
-  listWorkspaces: () => request<{ workspaces: KnownWorkspace[] }>('/api/workspaces'),
+  listWorkspaces: () => request<{ workspaces: KnownWorkspace[] }>(WORKSPACES),
 
   /** 登记一个工作区目录（path 绝对路径；create=不存在则创建） */
   addWorkspace: (path: string, create = false) =>
-    request<KnownWorkspace>('/api/workspaces', { method: 'POST', body: { path, create } }),
+    request<KnownWorkspace>(WORKSPACES, { method: 'POST', body: { path, create } }),
 
   /** 从记忆列表移除一个工作区（不影响目录） */
   removeWorkspace: (path: string) =>
-    request<{ ok: boolean }>('/api/workspaces', { method: 'DELETE', body: { path } }),
+    request<{ ok: boolean }>(WORKSPACES, { method: 'DELETE', body: { path } }),
 
   // ── 会话分组（按项目/用途归类） ─────────────────────────────
 
   /** 全部分组 + 会话归属表 */
-  groups: () => request<SessionGroupsResponse>('/api/session-groups'),
+  groups: () => request<SessionGroupsResponse>(SESSION_GROUPS),
 
   /** 新建分组 */
   createGroup: (name: string) =>
-    request<SessionGroup>('/api/session-groups', { method: 'POST', body: { name } }),
+    request<SessionGroup>(SESSION_GROUPS, { method: 'POST', body: { name } }),
 
   /** 重命名分组 */
   renameGroup: (id: string, name: string) =>
     request<{ ok: boolean }>(
-      `/api/session-groups/${encodeURIComponent(id)}`,
+      sessionGroupById(id),
       { method: 'PUT', body: { name } },
     ),
 
   /** 删除分组（组内会话自动变为未分组） */
   deleteGroup: (id: string) =>
-    request<{ ok: boolean }>(`/api/session-groups/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    request<{ ok: boolean }>(sessionGroupById(id), { method: 'DELETE' }),
 
   /** 把会话移入分组；groupId 传 null 移出到「未分组」 */
   assignSessionGroup: (sessionId: string, groupId: string | null) =>
     request<{ ok: boolean }>(
-      `/api/sessions/${encodeURIComponent(sessionId)}/group`,
+      sessionGroupSet(sessionId),
       { method: 'PUT', body: { group_id: groupId } },
     ),
 };

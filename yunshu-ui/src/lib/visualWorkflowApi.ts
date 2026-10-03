@@ -20,6 +20,8 @@ import { request } from './apiClient';
 import type { Edge, Node } from '@xyflow/react';
 import type { FlowNodeData, NodeType } from '../components/VisualEditor/types';
 
+import { VISUAL_WORKFLOWS, visualWorkflowById } from '@/api/endpoints';
+
 /** 节点平面 JSON（落盘/上送用） */
 export interface PlainVisualNode {
   id: string;
@@ -161,13 +163,13 @@ interface SaveResp {
 
 /** 列出已保存的可视化工作流草稿（按更新时间倒序） */
 export async function listVisualWorkflows(): Promise<VisualWorkflowSummary[]> {
-  const resp = await request<ListResp>('/api/visual-workflows');
+  const resp = await request<ListResp>(VISUAL_WORKFLOWS);
   return resp?.items ?? [];
 }
 
 /** 读取单个草稿完整内容（nodes/edges/yaml） */
 export async function getVisualWorkflow(id: string): Promise<VisualWorkflowDetail> {
-  const resp = await request<DetailResp>(`/api/visual-workflows/${encodeURIComponent(id)}`);
+  const resp = await request<DetailResp>(visualWorkflowById(id));
   if (!resp?.workflow) throw new Error('草稿不存在或返回为空');
   return resp.workflow;
 }
@@ -176,7 +178,7 @@ export async function getVisualWorkflow(id: string): Promise<VisualWorkflowDetai
 export async function saveVisualWorkflow(
   input: SaveVisualWorkflowInput,
 ): Promise<{ id: string; action: 'created' | 'updated' }> {
-  const resp = await request<SaveResp>('/api/visual-workflows', {
+  const resp = await request<SaveResp>(VISUAL_WORKFLOWS, {
     method: 'POST',
     body: input,
   });
@@ -186,7 +188,7 @@ export async function saveVisualWorkflow(
 
 /** 删除草稿 */
 export async function deleteVisualWorkflow(id: string): Promise<void> {
-  await request<{ ok?: boolean }>(`/api/visual-workflows/${encodeURIComponent(id)}`, {
+  await request<{ ok?: boolean }>(visualWorkflowById(id), {
     method: 'DELETE',
   });
 }

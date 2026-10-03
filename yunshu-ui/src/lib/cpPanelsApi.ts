@@ -36,7 +36,9 @@ import type {
   SettingsView,
 } from './cpPanelsTypes'
 
-const PREFIX = '/api/cp'
+import { CP } from '@/api/endpoints';
+
+const PREFIX = CP
 
 // ═══════════════════════════════════════════════════════════
 //  只读面板

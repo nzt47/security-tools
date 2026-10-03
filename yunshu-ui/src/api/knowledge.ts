@@ -31,20 +31,29 @@ import type {
   QueryBody,
 } from './knowledge-types';
 
+import {
+  KNOWLEDGE_CARDS,
+  KNOWLEDGE_GRAPH,
+  KNOWLEDGE_INDEX,
+  KNOWLEDGE_LINT,
+  KNOWLEDGE_QUERY,
+  knowledgeCard,
+} from '@/api/endpoints';
+
 /** 卡片列表（支持 ?status=&type= 过滤） */
 export function listCards(params: ListCardsParams = {}): Promise<ListCardsResponse> {
   const q = buildQuery({ ...params });
-  return request<ListCardsResponse>(`/api/knowledge/cards${q ? `?${q}` : ''}`);
+  return request<ListCardsResponse>(`${KNOWLEDGE_CARDS}${q ? `?${q}` : ''}`);
 }
 
 /** 卡片详情（含 incoming_links） */
 export function getCard(slug: string): Promise<CardDetailResponse> {
-  return request<CardDetailResponse>(`/api/knowledge/cards/${encodeURIComponent(slug)}`);
+  return request<CardDetailResponse>(knowledgeCard(slug));
 }
 
 /** 创建卡片（正文双链自动解析进 links） */
 export function createCard(data: CardInput): Promise<CreateCardResponse> {
-  return request<CreateCardResponse>('/api/knowledge/cards', {
+  return request<CreateCardResponse>(KNOWLEDGE_CARDS, {
     method: 'POST',
     body: data,
   });
@@ -52,7 +61,7 @@ export function createCard(data: CardInput): Promise<CreateCardResponse> {
 
 /** 更新卡片（字段更新或 transition 状态迁移） */
 export function updateCard(slug: string, data: CardUpdate): Promise<UpdateCardResponse> {
-  return request<UpdateCardResponse>(`/api/knowledge/cards/${encodeURIComponent(slug)}`, {
+  return request<UpdateCardResponse>(knowledgeCard(slug), {
     method: 'PATCH',
     body: data,
   });
@@ -60,7 +69,7 @@ export function updateCard(slug: string, data: CardUpdate): Promise<UpdateCardRe
 
 /** 删除卡片（有入链时抛 ApiError 409，details 含 incoming_links） */
 export function deleteCard(slug: string): Promise<DeleteCardResponse> {
-  return request<DeleteCardResponse>(`/api/knowledge/cards/${encodeURIComponent(slug)}`, {
+  return request<DeleteCardResponse>(knowledgeCard(slug), {
     method: 'DELETE',
   });
 }
@@ -68,7 +77,7 @@ export function deleteCard(slug: string): Promise<DeleteCardResponse> {
 /** 知识库融合检索 */
 export function searchKnowledge(question: string, topK = 5): Promise<KnowledgeQueryResponse> {
   const body: QueryBody = { question, top_k: topK };
-  return request<KnowledgeQueryResponse>('/api/knowledge/query', {
+  return request<KnowledgeQueryResponse>(KNOWLEDGE_QUERY, {
     method: 'POST',
     body,
   });
@@ -76,17 +85,17 @@ export function searchKnowledge(question: string, topK = 5): Promise<KnowledgeQu
 
 /** index.md 内容 */
 export function getIndex(): Promise<KnowledgeIndexResponse> {
-  return request<KnowledgeIndexResponse>('/api/knowledge/index');
+  return request<KnowledgeIndexResponse>(KNOWLEDGE_INDEX);
 }
 
 /** 健康巡检报告（lint） */
 export function getLint(): Promise<KnowledgeLintResponse> {
-  return request<KnowledgeLintResponse>('/api/knowledge/lint');
+  return request<KnowledgeLintResponse>(KNOWLEDGE_LINT);
 }
 
 /** 关系图节点-边数据 */
 export function getGraph(): Promise<KnowledgeGraphResponse> {
-  return request<KnowledgeGraphResponse>('/api/knowledge/graph');
+  return request<KnowledgeGraphResponse>(KNOWLEDGE_GRAPH);
 }
 
 export type {
