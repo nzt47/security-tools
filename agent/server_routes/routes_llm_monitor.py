@@ -5,6 +5,7 @@
 
 import logging
 from flask import jsonify, request
+from agent.server_auth import require_token
 from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,7 @@ def register_routes(app, state):
 
     @app.route("/api/llm-monitor/toggle", methods=["POST"])
     @trace_route("LLMMonitor")
+    @require_token
     def api_llm_monitor_toggle():
         """启用或禁用监控"""
         try:
@@ -109,6 +111,7 @@ def register_routes(app, state):
 
     @app.route("/api/llm-monitor/clear", methods=["POST"])
     @trace_route("LLMMonitor")
+    @require_token
     def api_llm_monitor_clear():
         """清除所有记录"""
         try:

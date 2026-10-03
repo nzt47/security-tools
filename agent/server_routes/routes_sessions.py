@@ -86,6 +86,7 @@ def register_routes(app, state):
 
     @app.route("/api/sessions", methods=["POST"])
     @trace_route("Sessions")
+    @require_token
     def api_sessions_create():
         data = request.get_json() or {}
         title = data.get("title", "")

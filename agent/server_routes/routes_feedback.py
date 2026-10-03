@@ -16,6 +16,7 @@ import json
 from .tracing_decorator import trace_route
 import logging
 from flask import request, jsonify
+from agent.server_auth import require_token
 from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ def register_routes(app, state):
 
     @app.route('/api/feedback/submit', methods=['POST'])
     @trace_route("Feedback")
+    @require_token
     def submit_feedback():
         """提交用户反馈
 
@@ -190,6 +192,7 @@ def register_routes(app, state):
 
     @app.route('/api/feedback/<feedback_id>/resolve', methods=['POST'])
     @trace_route("Feedback")
+    @require_token
     def resolve_feedback(feedback_id):
         """标记反馈为已解决
 

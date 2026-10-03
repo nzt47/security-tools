@@ -18,6 +18,7 @@ import logging
 import time
 
 from flask import jsonify, request
+from agent.server_auth import require_token
 
 from agent.jsonl_history import count_jsonl_lines, read_jsonl_tail
 from agent.server_routes.tracing_decorator import trace_route
@@ -140,6 +141,7 @@ def register_routes(app, state):
 
     @app.route("/api/background/tasks/<task_id>/cancel", methods=["POST"])
     @trace_route("BackgroundTasks")
+    @require_token
     def api_background_task_cancel(task_id):
         """取消后台任务（仅 pending/running 可取消）"""
         try:

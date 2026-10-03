@@ -1253,6 +1253,7 @@ def register_routes(app, state):
 
     @app.route("/api/skills-mgmt/match", methods=["POST"])
     @trace_route("SkillsMgmt")
+    @require_token
     @log_request(show_response=False)
     def api_skills_mgmt_match():
         """Layer 1: 意图匹配 — 在元数据索引上做快速检索
@@ -1310,6 +1311,7 @@ def register_routes(app, state):
 
     @app.route("/api/skills-mgmt/abstract-from-memory", methods=["POST"])
     @trace_route("SkillsMgmt")
+    @require_token
     @log_request(show_response=False)
     def api_skills_mgmt_abstract_from_memory():
         """从云枢记忆中自动抽象新技能草稿
@@ -1462,6 +1464,7 @@ def register_routes(app, state):
 
     @app.route("/api/skills-mgmt/inject", methods=["POST"])
     @trace_route("SkillsMgmt")
+    @require_token
     @log_request(show_response=False)
     def api_skills_mgmt_inject():
         """一站式构建 LLM 上下文 (Layer 1 + Layer 2)
