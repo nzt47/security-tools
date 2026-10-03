@@ -197,6 +197,7 @@ do_rollback() {
     
     cp "$backup_path" "$target_path"
     log_info "✅ $description 已回滚: $(basename "$backup_path")"
+    ROLLED=$((ROLLED + 1))   # 【2026-10-03】统计真正恢复的文件数（见文件头 ROLLED 的说明）
     return 0
 }
 
@@ -208,6 +209,11 @@ do_rollback() {
 TARGET="all"
 RESTART=true
 FORCE=false
+# 【2026-10-03 新增】本轮回滚**实际恢复的文件数**。用途：本脚本按 .bak_* 归档恢复，
+#   而实测（2026-10-03）本仓**已无任何 .bak_* 归档** ⇒ 所有 find 都为空、脚本会
+#   「什么都没恢复却打印 🎉 回滚完成！并以 0 退出」——那比报错更危险（自动化会当成成功）。
+#   现在：0 个恢复 ⇒ 明确报错 + 退出码 4。回滚本改动：删掉本变量与下面的计数/判定即可。
+ROLLED=0
 LIST=false
 
 while [[ $# -gt 0 ]]; do
@@ -372,7 +378,20 @@ else
 fi
 
 echo ""
+if [ "$ROLLED" -eq 0 ]; then
+    # 【2026-10-03】"什么都没恢复"必须**报错退出**，不能打印 🎉 让自动化当成成功。
+    echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+    log_error "⛔ 本次没有恢复任何文件（0 个）：本仓已无 .bak_* 归档（2026-10-03 实测），"
+    log_error "   所有 find 都为空 —— 上面每一步都被静默跳过，**文件内容未被改动**。"
+    log_error "   本仓现在的正确回滚方式是 git（唯一版本真相）："
+    log_error "     git log --oneline -- <文件>        # 找到变更点"
+    log_error "     git revert <commit>                # 或 git checkout <good-commit> -- <文件>"
+    log_error "   注意：服务已按参数停止/重启过（回滚前先停服务），这一步没有随之中止。"
+    log_info  "回滚日志: $LOG_FILE"
+    echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+    exit 4
+fi
 echo -e "${CYAN}══════════════════════════════════════════════════════════${NC}"
-log_info "🎉 回滚完成！"
+log_info "🎉 回滚完成（实际恢复 $ROLLED 个文件）！"
 log_info "回滚日志: $LOG_FILE"
 echo -e "${CYAN}══════════════════════════════════════════════════════════${NC}"
