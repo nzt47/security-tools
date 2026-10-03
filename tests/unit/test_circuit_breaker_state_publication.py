@@ -183,3 +183,24 @@ class TestStartupWiring:
         for name in BM.DEPLOYED_CIRCUIT_BREAKER_NAMES:
             assert (chr(34) + name + chr(34)) in corpus, (
                 "发布名 %r 在 agent/ 的生产源码里找不到字面量出处 => 可能是编造的序列" % (name,))
+
+def test_transition_clears_old_state_sample(isolated_metrics_state):
+    """状态转换后，**旧**状态的样本必须被清零（状态 gauge 任一时刻只应有一个 1）
+
+    【为什么必须用 isolated_metrics_state 夹具】本用例会通过模块级观察者写**全局**采集器；
+    不还原就会把 cb_state_probe 的样本留给同会话的其它用例（实测：pytest-randomly 乱序时
+    会让"幂等"用例的数量断言误报）。
+
+
+    为什么单列：`yunshu_circuit_breaker_state` 带 `state` 标签，语义是"当前处于哪个状态"。
+    只写新状态、不清旧状态时，一次 `closed → open` 之后 `sum by (state)` 会读成
+    "两个状态同时成立"（既有行为；此前该族没有任何样本，所以错误一直不可见）。
+    """
+    from agent.monitoring import business_metrics as bm
+
+    bm._on_circuit_breaker_state("cb_state_probe", "closed", "open")
+    txt = bm.get_business_metrics_collector().export_prometheus()
+    lines = [ln for ln in txt.splitlines()
+             if ln.startswith('yunshu_circuit_breaker_state{breaker_name="cb_state_probe"')]
+    assert 'yunshu_circuit_breaker_state{breaker_name="cb_state_probe",state="open"} 1.0' in lines, lines
+    assert 'yunshu_circuit_breaker_state{breaker_name="cb_state_probe",state="closed"} 0.0' in lines, lines

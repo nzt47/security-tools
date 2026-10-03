@@ -2396,11 +2396,24 @@ def _on_circuit_breaker_state(breaker_name: str, old_state, new_state) -> None:
     """接收熔断器状态事件并写成业务指标。
 
     `old_state is None` ⇒ 仅"发布当前状态"（访问点触发的，不是一次转换）。
+
+    【2026-10-03 修 · 状态 gauge 必须"只有一个 1"】`yunshu_circuit_breaker_state` 是
+    **带 `state` 标签的状态 gauge**，语义是"当前处于哪个状态"。
+    原实现只把**新**状态写 1、从不把**旧**状态写 0 ⇒ 一次 `closed → open` 转换之后，
+    `{state="closed"} 1.0` 与 `{state="open"} 1.0` **会同时存在**，
+    任何 `sum by (state)` 的面板/规则都会被读成"两个状态同时成立"（既有行为，本次修正）。
+    【为什么现在修】这套序列此前**没有任何样本**（本部署从来没发布过）⇒ 错误一直不可见；
+    本次接通启动期发布之后它开始有数据，"旧状态不清零"就会第一次变成**看得见的假数据**。
+    【不易】只新增一条"旧状态置 0"的写入；不删任何序列、不改判定逻辑、不改 `state` 取值域，
+    转换计数（`record_circuit_breaker_trigger`）与从前逐字一致。
+    回滚 = 删掉下面那两行（"旧状态清零"那一对）。
     """
     _c = get_business_metrics_collector()
     if old_state is not None:
         _c.record_circuit_breaker_trigger(
             breaker_name, str(old_state), str(new_state), "state_machine")
+        # 【2026-10-03】把**旧**状态清零：状态 gauge 任一时刻只应有一个 state=1
+        _c.update_circuit_breaker_state(breaker_name, str(old_state), 0.0)
     _c.update_circuit_breaker_state(breaker_name, str(new_state))
 
 

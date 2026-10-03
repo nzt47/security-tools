@@ -32,6 +32,12 @@
 - 导入 `app_server` 后 `export_prometheus()` 出现 **4 条** `yunshu_circuit_breaker_state{breaker_name=...,state="closed"} 1.0` 真实样本行
 - `import app_server` → IMPORT_OK；`test_circuit_breaker_layering` + 新回归 **10 passed**；波及文件 **164 passed**；`test_business_metrics_tracking` 37 passed
 
+### 附带修正（父代理复核子代理报告后追加）
+- `_on_circuit_breaker_state` 现在**把旧状态置 0**：状态 gauge 任一时刻只应有一个 `state=1`，
+  否则一次 `closed → open` 之后会同时存在 `{state="closed"} 1.0` 与 `{state="open"} 1.0`
+  （既有行为；该族此前无样本所以不可见，接通后才第一次变成看得见的假数据）。新增回归
+  `test_transition_clears_old_state_sample`；受影响四文件 **118 passed**。
+
 ### 遗留（已登记）
 - ~~埋点改动需应用重启才在线上生效~~ → **2026-10-03 已在业主批准后重启并现场验证**：旧 PID 6148 → 新 PID 3456，
   `/api/business/prometheus` 出现 **4 条** `yunshu_circuit_breaker_state{...state="closed"} 1.0` 真实样本行（修复前 0 条）；
