@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Power } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList } from '../components/ui'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubDelete, hubPost , pickList } from '../components/ui'
 
 interface McpService {
   service_id: string
@@ -47,7 +47,7 @@ export default function ToolsMcp() {
 
   const del = async (id: string) => {
     try {
-      await hubPost(`/api/mcp/services/${id}/delete`, {})
+      await hubDelete(`/api/mcp/services/${id}`)
       load()
     } catch (e) { setError(String(e)) }
   }

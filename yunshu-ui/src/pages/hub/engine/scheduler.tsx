@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Pause, Play } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList } from '../components/ui'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubDelete, hubPost , pickList } from '../components/ui'
 
 interface Task {
   id: string
@@ -55,7 +55,7 @@ export default function EngineScheduler() {
     try { await hubPost(`/api/schedules/${id}/resume`); load() } catch (e) { setError(String(e)) }
   }
   const remove = async (id: string) => {
-    try { await hubPost(`/api/schedules/${id}/delete`, {}); load() } catch (e) { setError(String(e)) }
+    try { await hubDelete(`/api/schedules/${id}`); load() } catch (e) { setError(String(e)) }
   }
 
   return (

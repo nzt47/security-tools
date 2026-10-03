@@ -13,7 +13,7 @@
     }
   },
   "findings_summary": {
-    "high": 3,
+    "high": 1,
     "medium": 3
   },
   "findings": [
@@ -44,20 +44,6 @@
       "subject": "/api/skills/classify/run-auto",
       "detail": "插件真实注册了该路由，但 manifest.routes 未声明",
       "where": "plugins/skills.py:513"
-    },
-    {
-      "kind": "frontend_calls_missing_endpoint",
-      "severity": "high",
-      "subject": "react:/api/mcp/services/${id}/delete",
-      "detail": "1 处前端调用该端点，但真实路由中不存在",
-      "where": "yunshu-ui/src/pages/hub/tools/mcp.tsx"
-    },
-    {
-      "kind": "frontend_calls_missing_endpoint",
-      "severity": "high",
-      "subject": "react:/api/schedules/${id}/delete",
-      "detail": "1 处前端调用该端点，但真实路由中不存在",
-      "where": "yunshu-ui/src/pages/hub/engine/scheduler.tsx"
     }
   ]
 }
