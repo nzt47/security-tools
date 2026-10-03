@@ -34,7 +34,19 @@ def replay_app(monkeypatch):
     app = Flask(__name__)
     routes_replay.register_routes(app, None)
     app.config.update(TESTING=True)
-    return app
+    yield app
+    # ══════════════════════════════════════════════════════════════════
+    # 【必须显式还原，否则污染后续测试 —— 2026-10-03 实测踩到】
+    # agent.server_auth 在 import 期就把「令牌是否已配置」固化进模块状态。
+    # 本 fixture 在**设了 FLASK_API_TOKEN** 的前提下 reload 它 ⇒ 模块停留在
+    # 「已配置」态；而 monkeypatch 要到测试结束才撤销环境变量，于是后续用例
+    # （如 tests/test_plugin_submit_url.py 走 plugins/status.py 的 @_require_token）
+    # 会看到「已配置 ⇒ 校验」而不是它们预期的「未配置 ⇒ 放行」，凭空 2 条假红。
+    # 修法：先 undo 环境变量，再按干净环境重建模块状态；顺序不能反。
+    # ══════════════════════════════════════════════════════════════════
+    monkeypatch.undo()
+    importlib.reload(server_auth)
+    importlib.reload(routes_replay)
 
 
 def _post_upload(client, headers=None):

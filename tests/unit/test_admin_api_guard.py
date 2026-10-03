@@ -31,7 +31,14 @@ def admin_client(monkeypatch):
     app = Flask(__name__)
     app.register_blueprint(admin_api.bp)
     app.config.update(TESTING=True)
-    return app.test_client(), admin_api
+    yield app.test_client(), admin_api
+    # 【必须显式还原，否则污染后续测试】agent.server_auth 在 import 期就把「令牌是否
+    # 已配置」固化进模块状态；本 fixture 在设了 FLASK_API_TOKEN 的前提下 reload 它，
+    # 模块会停留在「已配置」态；而 monkeypatch 要到测试结束才撤销环境变量 ⇒ 后续用例
+    # （如 tests/test_plugin_submit_url.py）会看到「已配置 ⇒ 校验」而非预期的「未配置 ⇒ 放行」。
+    # 修法：先 undo 环境变量，再按干净环境重建模块状态；顺序不能反。
+    monkeypatch.undo()
+    importlib.reload(server_auth)
 
 
 def _code(resp):

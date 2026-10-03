@@ -2036,10 +2036,19 @@ logger.info("定时调度系统已启动")
 
 @app.route("/")
 def index():
-    """[简易] 新首页：系统健康度仪表盘（综合监控中心）"""
-    from flask import Response
-    response = render_template("health_dashboard.html")
-    return Response(response, mimetype='text/html; charset=utf-8')
+    """首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。
+
+    【为什么重定向而不是继续渲染 health_dashboard】/_legacy 那一整套 legacy SSR 界面
+    （index.html 4374 行 + health_dashboard + 19 个 sidebar/panorama 脚本 + 12 份 CSS）
+    已由 React 工作台取代：hubNav 的 panorama/health、panorama/monitor、panorama/logs
+    分别覆盖健康仪表盘、系统监控、日志查看。保留旧首页只会让同一能力有两个入口，
+    且旧页面的数据轮询不带令牌 ⇒ 在 enforce_all 下持续 401（审计 H-7，实测 105 次/分钟级）。
+
+    【目标是 /chat#/workbench】/chat 是 React SPA 的入口 HTML（templates/yunshu.html），
+    其内部 HashRouter 的工作台路由是 #/workbench。写全路径是为了让重定向意图一眼可见。
+    """
+    from flask import redirect
+    return redirect("/chat#/workbench")
 
 @app.route("/chat")
 def chat_page():
@@ -2069,12 +2078,6 @@ def chat_page():
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     return response
 
-@app.route("/legacy")
-def legacy_ui():
-    """旧版界面入口（云枢·数字生命体）"""
-    from flask import Response
-    response = render_template("index.html")
-    return Response(response, mimetype='text/html; charset=utf-8')
 
 @app.route("/static/<path:subpath>")
 def spa_fallback(subpath):
