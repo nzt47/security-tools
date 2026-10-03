@@ -23,8 +23,10 @@ server 生效）。本插件把同一套接口在 Flask 后端（5678 生产模�
 import hashlib
 import hmac
 import json
+import functools
 import os
 import secrets
+import threading
 import time
 
 from flask import Blueprint, request, jsonify
@@ -202,6 +204,89 @@ def _fail(code, message):
             "管理后台鉴权失败 code=%s path=%s（不记录令牌原文）", code, request.path)
     return jsonify({"code": code, "data": None, "message": message}), 200
 
+# ════════════════════════════════════════════════════════════════════════════
+#  管理后台鉴权守卫（2026-10-03 · 审计 H1 / M-39）
+# ════════════════════════════════════════════════════════════════════════════
+
+
+def _require_admin(f):
+    """管理后台鉴权：接受**本插件的会话令牌**或**共享 API 令牌**（二者取或）。
+
+    【为什么不能直接用 app_server 的 @require_token】
+      本插件的会话令牌（HMAC 签名的 mock-token-*）与 FLASK_API_TOKEN **相互独立**
+      —— 本模块 docstring 明确写了这条约定。若直接套 @require_token，只持会话令牌的
+      管理后台用户会被判 401，等于把整个后台打挂。
+
+    【为什么还要接受共享 API 令牌】
+      本仓的部署约定是「先在浏览器 localStorage 里配置 API 令牌」（.env 里
+      CP_API_AUTH_MODE 的注释写明了这个前置）；脚本/自动化也可能只带共享令牌。
+      取「或」既收口又不改变既有可用路径。
+
+    【失败姿态】任何异常一律**拒绝**（fail-closed）—— 本仓已有反面先例：
+      routes_system_prompt.py 曾用空装饰器兜底，使 6 条路由在异常路径下静默失去鉴权。
+    """
+    @functools.wraps(f)
+    def _wrapped(*args, **kwargs):
+        if _token_username():
+            return f(*args, **kwargs)
+        ok = False
+        try:
+            from agent.server_auth import authorize_request
+            ok, _actor, _source = authorize_request()
+        except Exception as e:  # noqa: BLE001 鉴权组件异常即拒绝，不放行
+            import logging
+            logging.getLogger(__name__).warning(
+                "管理后台鉴权组件异常，按拒绝处理 path=%s: %s", request.path, e)
+        if ok:
+            return f(*args, **kwargs)
+        return _fail(401, "未登录或登录已过期")
+    return _wrapped
+
+
+# ── 登录失败限速（审计 M-39：登录原先无任何限速/锁定，口令可被在线爆破）──
+# 单进程内存态：服务是单进程 waitress（app_server.py:2584）。
+# 【已知边界】plugins reload 会重置本表（importlib.reload 重跑模块体）—— 与 M-29 同源，
+#   属可接受：重置只会让限速更宽松一点点，不会放宽口令校验本身。
+_LOGIN_MAX_FAILURES = 5
+_LOGIN_WINDOW_SEC = 15 * 60
+_login_failures = {}  # key -> [失败时间戳]
+_login_lock = threading.Lock()
+
+
+def _login_key(username: str) -> str:
+    """限速键：用户名 + 来源 IP。
+
+    用 IP 是为了防「换个不存在的用户名继续撞」；带上用户名是为了防「同一 IP 撞多账号
+    时互相抵消计数」。
+    """
+    ip = (request.remote_addr or "?").strip()
+    return (username or "?").strip().lower() + "|" + ip
+
+
+def _login_locked(key: str):
+    """返回 (是否锁定, 剩余秒数)；顺带清理过期记录，避免无界增长。"""
+    now = time.time()
+    with _login_lock:
+        hits = [t for t in _login_failures.get(key, []) if now - t < _LOGIN_WINDOW_SEC]
+        if hits:
+            _login_failures[key] = hits
+        else:
+            _login_failures.pop(key, None)
+        if len(hits) >= _LOGIN_MAX_FAILURES:
+            return True, int(_LOGIN_WINDOW_SEC - (now - hits[0]))
+        return False, 0
+
+
+def _login_record_failure(key: str) -> None:
+    with _login_lock:
+        _login_failures.setdefault(key, []).append(time.time())
+
+
+def _login_clear(key: str) -> None:
+    with _login_lock:
+        _login_failures.pop(key, None)
+
+
 
 def _paginate(items, page, page_size, keyword_field=None, keyword=None):
     page = max(int(page or 1), 1)
@@ -282,6 +367,12 @@ def admin_login():
     避免通过错误文案区分二者（用户枚举）。
     """
     _warn_if_password_unset()
+    # 登录失败限速（审计 M-39）：先判锁定，再做任何口令计算 —— 避免被爆破时白烧 CPU。
+    _data0 = request.get_json(silent=True) or {}
+    _lkey = _login_key(_data0.get("username") or "")
+    _locked, _left = _login_locked(_lkey)
+    if _locked:
+        return _fail(429, "登录失败次数过多，请 %d 分钟后再试" % max(1, _left // 60))
     expected = _admin_password()
     if not expected:
         # fail-closed：没有配口令就谁都不许登（而不是回落到某个默认值）。
@@ -297,11 +388,14 @@ def admin_login():
         password.encode("utf-8", "surrogatepass"),
         expected.encode("utf-8", "surrogatepass"))
     if user is None or not password_ok:
-        return _fail(400, "用户名或密码错误")
+        _login_record_failure(_lkey)
+        return _fail(400, "用户名或密码错误")  # 文案不区分「用户不存在」与「口令错误」
+    _login_clear(_lkey)
     return _ok({"token": _issue_token(username), "user": user})
 
 
 @bp.route("/api/user/info", methods=["GET"])
+@_require_admin
 def admin_user_info():
     username = _token_username()
     if not username:
@@ -313,6 +407,7 @@ def admin_user_info():
 
 
 @bp.route("/api/auth/menus", methods=["GET"])
+@_require_admin
 def admin_menus():
     username = _token_username()
     if not username:
@@ -321,6 +416,7 @@ def admin_menus():
 
 
 @bp.route("/api/user/list", methods=["GET"])
+@_require_admin
 def admin_user_list():
     page = request.args.get("page", 1)
     page_size = request.args.get("pageSize", 10)
@@ -329,6 +425,7 @@ def admin_user_list():
 
 
 @bp.route("/api/user/<int:user_id>", methods=["DELETE"])
+@_require_admin
 def admin_user_delete(user_id):
     global _USERS
     if user_id == 1:
@@ -338,6 +435,7 @@ def admin_user_delete(user_id):
 
 
 @bp.route("/api/user", methods=["POST"])
+@_require_admin
 def admin_user_create():
     data = request.get_json(silent=True) or {}
     username = (data.get("username") or "").strip()
@@ -358,6 +456,7 @@ def admin_user_create():
 
 
 @bp.route("/api/user/<int:user_id>", methods=["PUT"])
+@_require_admin
 def admin_user_update(user_id):
     data = request.get_json(silent=True) or {}
     user = next((u for u in _USERS if u["id"] == user_id), None)
@@ -374,6 +473,7 @@ def admin_user_update(user_id):
 # ════════════════════════════════════════════════════════════════════════════
 
 @bp.route("/api/role/list", methods=["GET"])
+@_require_admin
 def admin_role_list():
     page = request.args.get("page", 1)
     page_size = request.args.get("pageSize", 10)
@@ -382,11 +482,13 @@ def admin_role_list():
 
 
 @bp.route("/api/permissions", methods=["GET"])
+@_require_admin
 def admin_permissions():
     return _ok(_PERMISSIONS)
 
 
 @bp.route("/api/role", methods=["POST"])
+@_require_admin
 def admin_role_create():
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
@@ -405,6 +507,7 @@ def admin_role_create():
 
 
 @bp.route("/api/role/<int:role_id>/permissions", methods=["PUT"])
+@_require_admin
 def admin_role_permissions(role_id):
     data = request.get_json(silent=True) or {}
     role = next((r for r in _ROLES if r["id"] == role_id), None)
@@ -418,6 +521,7 @@ def admin_role_permissions(role_id):
 
 
 @bp.route("/api/role/<int:role_id>/data-scope", methods=["PUT"])
+@_require_admin
 def admin_role_data_scope(role_id):
     data = request.get_json(silent=True) or {}
     role = next((r for r in _ROLES if r["id"] == role_id), None)
@@ -428,6 +532,7 @@ def admin_role_data_scope(role_id):
 
 
 @bp.route("/api/role/<int:role_id>", methods=["PUT"])
+@_require_admin
 def admin_role_update(role_id):
     data = request.get_json(silent=True) or {}
     role = next((r for r in _ROLES if r["id"] == role_id), None)
@@ -440,6 +545,7 @@ def admin_role_update(role_id):
 
 
 @bp.route("/api/role/<int:role_id>", methods=["DELETE"])
+@_require_admin
 def admin_role_delete(role_id):
     global _ROLES
     role = next((r for r in _ROLES if r["id"] == role_id), None)
@@ -470,6 +576,7 @@ _MENU_TABLE = [
 
 
 @bp.route("/api/menu/tree", methods=["GET"])
+@_require_admin
 def admin_menu_tree():
     return _ok(_MENU_TABLE)
 
@@ -481,6 +588,7 @@ def admin_menu_tree():
 # ════════════════════════════════════════════════════════════════════════════
 
 @bp.route("/api/notification/list", methods=["GET"])
+@_require_admin
 def admin_notification_list():
     page = request.args.get("page", 1)
     page_size = request.args.get("pageSize", 10)
@@ -488,11 +596,13 @@ def admin_notification_list():
 
 
 @bp.route("/api/notification/unread-count", methods=["GET"])
+@_require_admin
 def admin_notification_unread():
     return _ok({"count": sum(1 for n in _NOTIFICATIONS if not n["read"])})
 
 
 @bp.route("/api/notification/<int:notif_id>/read", methods=["POST"])
+@_require_admin
 def admin_notification_read(notif_id):
     for n in _NOTIFICATIONS:
         if n["id"] == notif_id:
@@ -502,6 +612,7 @@ def admin_notification_read(notif_id):
 
 
 @bp.route("/api/notification/read-all", methods=["POST"])
+@_require_admin
 def admin_notification_read_all():
     for n in _NOTIFICATIONS:
         n["read"] = True
@@ -509,6 +620,7 @@ def admin_notification_read_all():
 
 
 @bp.route("/api/dashboard/summary", methods=["GET"])
+@_require_admin
 def admin_dashboard_summary():
     return _ok({
         "totalUsers": len(_USERS),
@@ -523,6 +635,7 @@ def admin_dashboard_summary():
 
 
 @bp.route("/api/export/users", methods=["GET"])
+@_require_admin
 def admin_export_users():
     return _ok({"list": _USERS, "total": len(_USERS)})
 

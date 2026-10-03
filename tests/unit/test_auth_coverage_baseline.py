@@ -32,10 +32,14 @@ ROOT = Path(__file__).resolve().parents[2]
 BASELINE = ROOT / "reports" / "auth_coverage_baseline.json"
 
 MUTATING = {"POST", "PUT", "DELETE", "PATCH"}
-# 认作"已鉴权"的装饰器标记。require_auth 是 plugins/plugin_api.py 的统一装饰器
-# （2026-10-03 审计 M-40 的收口点）——**必须**在内，否则用它标注的端点会被误判为裸奔。
-GUARD_MARKERS = ("require_token", "require_auth", "auth=True", "login_required",
-                 "require_permission")
+# 认作"已鉴权"的装饰器标记。**每新增一个鉴权装饰器都必须登记到这里**，否则用它标注的
+# 端点会被误判为裸奔，守卫随即失真（实测教训：加 require_auth 后忘登记，基线凭空多 1 条；
+# 加 _require_admin 后忘登记，11 条已受保护的端点全部被误报）。
+#   require_token  —— agent/server_routes/* 与 5 个插件的本地包装
+#   require_auth   —— plugins/plugin_api.py 的统一装饰器（审计 M-40 收口点）
+#   _require_admin —— plugins/admin_api.py 的后台守卫（会话令牌 或 共享 API 令牌）
+GUARD_MARKERS = ("require_token", "require_auth", "_require_admin", "auth=True",
+                 "login_required", "require_permission")
 ROUTE_DEC = re.compile(r"^\s*@([A-Za-z_][\w.]*)\.route\(")
 PATH_RE = re.compile(r'''route\(\s*["']([^"']+)''')
 
@@ -140,15 +144,16 @@ class TestAuthCoverageBaseline:
     def test_检测器具备分辨力_已知未装饰者必须被检出(self):
         """证明扫描不是恒空集：已知的无鉴权写端点必须在结果里。
 
-        【为什么锚在 admin_api】plugins/chat.py 的 POST /api/chat 曾是本断言的锚点，
-        2026-10-03 补上鉴权后它不再适合当"未装饰"的样本 —— 锚点必须跟着**当前确实
-        未装饰**的端点走，否则这条断言会退化成永远失败（进而被人删掉）。
-        admin_api 的写端点要等它自己的守卫（其会话令牌与 FLASK_API_TOKEN 相互独立），
-        在此之前正是稳定的锚点。
+        【为什么锚在 /api/auth/login】本断言的锚点必须跟着**当前确实未装饰**的端点走，
+        否则会退化成永远失败（进而被人删掉）。2026-10-03 该锚点已迁移两次：
+          plugins/chat.py POST /api/chat   -> 补上鉴权后失效；
+          plugins/admin_api POST /api/user -> 补上 _require_admin 后失效；
+        现在只剩 /api/auth/login —— 它是**刻意**不装饰的（鸡生蛋：登录本身不该要求令牌），
+        因此是最合适的稳定锚点。若将来它也变了，这条断言必须再迁移。
         """
         current = collect_unguarded_mutating()
-        assert any("plugins/admin_api.py" in r and "POST /api/user" in r for r in current), (
-            "plugins/admin_api.py 的 POST /api/user 当前无鉴权装饰器，扫描却未检出 —— "
+        assert any("plugins/admin_api.py" in r and "/api/auth/login" in r for r in current), (
+            "plugins/admin_api.py 的 POST /api/auth/login 当前刻意无鉴权装饰器，扫描却未检出 —— "
             "说明扫描逻辑已失效（守卫会变成永远通过的空壳）。"
         )
 
