@@ -1329,6 +1329,7 @@ flowchart LR
     agent_monitoring_business_metrics --> agent_monitoring_utils
     agent_monitoring_business_metrics -.-> agent_logging_utils
     agent_monitoring_business_metrics -.-> agent_circuit_breaker
+    agent_monitoring_business_metrics -.-> agent_circuit_breaker
     agent_monitoring_chaos_injector --> agent_monitoring_tracing
     agent_monitoring_chaos_injector -.-> agent_logging_utils
     agent_monitoring_chaos_injector -.-> agent_utils_singleton_manager
@@ -2518,7 +2519,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 636
 - 模块节点数: 568
-- 依赖边数: 1828
-- 跨层调用数: 1154
+- 依赖边数: 1829
+- 跨层调用数: 1155
 - 违规调用数: 0
 - 动态 import 数: 1
