@@ -1,49 +1,17 @@
 {
   "snapshot": {
     "route_source": "static(decorators)",
-    "routes_total": 448,
+    "routes_total": 450,
     "registry_nodes": 32,
     "registry_actions": 24,
     "registry_error": null,
     "plugins_with_declared_routes": 11,
-    "manifest_declared_total": 196,
+    "manifest_declared_total": 199,
     "frontend_literals": {
       "react": 125,
       "legacy": 8
     }
   },
-  "findings_summary": {
-    "high": 1,
-    "medium": 3
-  },
-  "findings": [
-    {
-      "kind": "registry_path_missing",
-      "severity": "high",
-      "subject": "service.gateway",
-      "detail": "声明 path 指向的文件/目录不存在: agent/api_gateway_flask.py   <- 审计 H-2 的形态",
-      "where": "agent/modules_registry.py"
-    },
-    {
-      "kind": "manifest_route_undeclared",
-      "severity": "medium",
-      "subject": "/api/skills/describe",
-      "detail": "插件真实注册了该路由，但 manifest.routes 未声明",
-      "where": "plugins/skills.py:451"
-    },
-    {
-      "kind": "manifest_route_undeclared",
-      "severity": "medium",
-      "subject": "/api/skills/describe/auto",
-      "detail": "插件真实注册了该路由，但 manifest.routes 未声明",
-      "where": "plugins/skills.py:485"
-    },
-    {
-      "kind": "manifest_route_undeclared",
-      "severity": "medium",
-      "subject": "/api/skills/classify/run-auto",
-      "detail": "插件真实注册了该路由，但 manifest.routes 未声明",
-      "where": "plugins/skills.py:513"
-    }
-  ]
+  "findings_summary": {},
+  "findings": []
 }

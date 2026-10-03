@@ -1024,6 +1024,13 @@ PLUGIN = register_plugin(Plugin(
     routes=[
         "/api/skills",
         "/api/skills/content",
+        # 【2026-10-03 补齐 · 契约对拍检出】以下三条是**真实注册**但 manifest 漏声明：
+        #   /api/skills/describe、/api/skills/describe/auto、/api/skills/classify/run-auto
+        # 后果：前端/第三方按 manifest.routes 解析端点会 404；未来的 schema 驱动面板若按
+        # 声明路径预填/提交会直接失败。漏声明属「code-only 漂移」（方案第 4.1 节的分类）。
+        "/api/skills/describe",
+        "/api/skills/describe/auto",
+        "/api/skills/classify/run-auto",
         "/api/skills/add",
         "/api/skills/delete",
         "/api/skills/params",
