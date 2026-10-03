@@ -21,7 +21,10 @@ import secrets
 
 from flask import Blueprint, jsonify, request
 
-from .plugin_api import Plugin, register_plugin
+from .plugin_api import Plugin, context_limit_info, register_plugin
+
+# 配置常量与开关中心**同一份**（不再就地写 4096 之类的字面量）
+from config import MEMORY_TOKEN_LIMIT_DEFAULT  # noqa: E402
 
 bp = Blueprint("status", __name__)
 
@@ -438,6 +441,8 @@ def api_panorama():
     """获取全景页面所需的所有数据（单次调用）"""
     from app_server import _Yunshu, _session_mgr, _cfg
     from agent.tools import list_tools
+    # 上下文窗口读数走**单一口径**（plugins/plugin_api.context_limit_info）
+    _limit_info = context_limit_info(_Yunshu)
     readings = _Yunshu.body.collect_quick()
     reading_dicts = [r.to_dict() for r in readings]
     mode = _Yunshu.get_behavior_mode()
@@ -508,7 +513,13 @@ def api_panorama():
         "log_count": log_count,
         "log_stats": logs if isinstance(logs, dict) else {},
         "compress_threshold": _cfg.get("memory", "compress_threshold", default=0.8),
-        "token_limit": _cfg.get("memory", "token_limit", default=4096),
+        # 【2026-10-03 修】原为 `_cfg.get("memory", "token_limit", default=4096)`：
+        #   与 plugins/{chat,memory}.py 的读数是**第三份实现**，且取不到时冒出 4096 这个假分母
+        #   ⇒ 同一占用在不同面板能显示不同占比。现统一走 plugin_api 的单一口径（编排窗口），
+        #   并把来源一并披露；取不到就如实给 None，不拿硬编码值冒充。
+        "token_limit": _limit_info["limit_tokens"],
+        "token_limit_source": _limit_info["limit_source"],
+        "configured_token_limit": _cfg.get("memory", "token_limit", default=MEMORY_TOKEN_LIMIT_DEFAULT),
         # 阶段四
         "mode": mode.value,
         "mode_label": profile.label,

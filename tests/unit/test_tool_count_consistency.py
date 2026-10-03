@@ -103,10 +103,16 @@ def _status_text(**kwargs):
 
 
 def _real_prompt(tool_status):
-    """把工具状态段塞进**真实**系统提示词模板（与生产同一条渲染路径）。"""
-    from agent.system_prompt_manager import get_template
+    """把工具状态段塞进**出厂**系统提示词模板（与生产同一条渲染路径）。
 
-    return get_template().format(
+    【2026-10-03】原取自 agent.system_prompt_manager.get_template()，即**运行时文件**
+    data/system_prompt.txt —— 那是操作员可改的状态（能关掉 tool_status 段），
+    会让"本地开关"变成"测试红"。改为代码常量 DEFAULT_TEMPLATE（出厂模板）：
+    断言仍然钉住生产模板的固有不变量，但不再受运行时数据影响。
+    """
+    from agent.system_prompt_manager import DEFAULT_TEMPLATE
+
+    return DEFAULT_TEMPLATE.format(
         current_date="2025年1月1日", body_status="（略）", mode_name="正常",
         mode_description="正常", memory_context="（略）",
         tool_status=tool_status, skill_instructions="",

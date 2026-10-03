@@ -22,7 +22,7 @@ legacy 端点接线（2026 修复 404）：
 """
 import functools
 from flask import Blueprint, request, jsonify
-from .plugin_api import Plugin, register_plugin
+from .plugin_api import Plugin, context_limit_info, register_plugin
 
 # 【2026-10-03 审计 P2-5】值域与默认值不再在本文件里抄一份：改 config.py 常量时这里跟着变，
 #   否则"面板能设的范围/展示的默认值"会与实际生效的口径悄悄分叉。
@@ -83,33 +83,9 @@ def _view(*, auth=False, log=None):
 #  上下文口径：窗口上限的单一事实源
 # ════════════════════════════════════════════════════════════
 
-def _context_limit_info(yunshu):
-    """读取**编排窗口上限**及其来源（与 plugins/chat.py 的 _context_limit_info 同口径）
-
-    单一事实源是 ``DigitalLife.context_limit_info()``（LifecycleManager 初始化时写入
-    ``_memory_token_limit`` / ``_memory_token_limit_source``，见
-    agent/orchestrator/lifecycle_manager.py:283-289）。
-
-    【不易】取不到时返回 ``limit_tokens=None`` + ``limit_source="unavailable"``，
-    **绝不**回退到 4096 之类的硬编码值 —— 那比没有读数更坏：它看起来像个可信的数，
-    然后所有"占比"结论都建在假分母上。
-    """
-    getter = getattr(yunshu, "context_limit_info", None)
-    if callable(getter):
-        try:
-            info = getter()
-        except Exception:  # noqa: BLE001 读数不得炸请求
-            info = None
-        if isinstance(info, dict):
-            limit = info.get("limit_tokens")
-            source = info.get("limit_source")
-            if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0:
-                return {
-                    "limit_tokens": int(limit),
-                    "limit_source": (source if isinstance(source, str) and source
-                                     else "unavailable"),
-                }
-    return {"limit_tokens": None, "limit_source": "unavailable"}
+#: 上下文窗口读数 —— 单一实现在 plugins/plugin_api.py（2026-10-03 上收，原先本文件
+#: 与 plugins/chat.py 各抄了一份；同一口径写两遍必然漂移）。
+_context_limit_info = context_limit_info
 
 
 def _push_runtime_window(value: int) -> bool:

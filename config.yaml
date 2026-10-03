@@ -1,4 +1,35 @@
+# ════════════════════════════════════════════════════════════════════════════════
+#  config.yaml 的**接线状态**说明（2026-10-03 复核，方法见 docs/closeout/交付报告_20261003.md §12）
+#
+#  这份文件**不是**统一配置源，也**不是**死文件，而是**部分接线**：
+#   · 中心配置 config.py（Config / ConfigModel）**从不解析 YAML** —— 取值链只有
+#     DEFAULT → 环境变量 → overrides；memory / planning / behavior / features 等节在运行态
+#     来自**代码常量**，改本文件对它们无效。
+#   · 另有一批子系统**各自直读**本文件（env > config.yaml > 代码默认），改了就生效：
+#     autonomy.* / retention.* / slo_report.* / learning.*（budget、sensor_learning、evolver、
+#     lifecycle、precipitate、feedback_agent、experience_persist）/ skills_mgmt.*（assess、cleanup、
+#     scale）/ features.* / orchestrator.*（semantic_layer、reject、workflow_learning_layer、learning）/
+#     planning.wire_* / llm.model、llm.fallback_chain / workflow_learning.matcher / arch_rules.* /
+#     verification.output_validator.*
+#   · 开关中心 agent/settings/resolver.py 也是真读本文件（只读、按 mtime 缓存、**永不写**）；
+#     登记表里 121 个键声明了 config_path，实测当前 64 个由 config 层供值。
+#   · 未核实到直读点的段：session / logging / extensions / visibility_thresholds / tools
+#     —— 需要以它们为准之前，请先按 §12 的方法核实，不要凭段落名推断。
+#
+#  结论：要改「上下文/内存三旋钮」请用界面或环境变量（见 memory 段顶部横幅），
+#        改本文件对它们**无效**。
+# ════════════════════════════════════════════════════════════════════════════════
 memory:
+  # ⚠️【2026-10-03 复核结论：本段目前**没有任何运行时读取点**，改它不生效】
+  #   · 中心配置 config.py（Config / ConfigModel）的取值链是 DEFAULT → 环境变量 → overrides，
+  #     **从不解析 YAML**（源码内无 `import yaml`；本文件只被部分子系统**各自直读**）；
+  #   · 实测：把 agent.settings.resolver.read_config_yaml 谎报成 {'memory':{'token_limit':65536}}，
+  #     Config().get('memory')['token_limit'] 仍返回 131072；而 Config(overrides=...) 注入即时生效
+  #     —— 面板/接口改的就是后一条（运行时覆盖，重启回落**代码默认值**）。
+  #   ⇒ 本段（含 token_limit）**只是意图文档**；真正的口径是 config.py 的
+  #     MEMORY_TOKEN_LIMIT_DEFAULT / PER_MESSAGE_*_LIMIT_DEFAULT 常量，可被环境变量或运行时覆盖。
+  #   守门用例：tests/unit/test_config_yaml_wiring.py（若将来有人把本段接进运行时，它会红，
+  #   提示同步更新此处说明与 plugins/memory.py 的 RESTART_FALLBACK_NOTE）。
   max_tokens: 8000
   enable_long_term: false
   summary_threshold: 5000
@@ -6,9 +37,13 @@ memory:
   # ── 记忆压缩触发上限 + 编排窗口（2026-09-13 立规，2026-10-02 用实测数据收口）──
   # 语义：最近 200 条消息的 token 合计 ≥ token_limit × 0.8 时触发一次压缩
   #      （`memory/memory_manager.py:286,428` + `memory/summarizer.py::should_compress`）；
-  #      同时它就是**编排窗口**本身 —— `lifecycle_manager.py:283-289` 读本键写入
-  #      `orchestrator._memory_token_limit`，`get_context(token_limit=...)` 用它决定
+  #      同时它就是**编排窗口**本身 —— `get_context(token_limit=...)` 用它决定
   #      "超限丢最旧消息"的边界。所以本键**一个值管两件事**（压缩触发 + 组装窗口）。
+  #
+  # 【2026-10-03 更正来源】原注释写"`lifecycle_manager.py:283-289` 读本键写入
+  #   `orchestrator._memory_token_limit`" —— **与实现不符**：该处取的是 config.py 的常量
+  #   （`MEMORY_TOKEN_LIMIT_DEFAULT`）与环境变量，**不读本文件**。保留本键是为了留下
+  #   决策依据（见下），但请勿据此认为改它有效。
   #
   # 【为什么显式写出来】此前**没有这个键** ⇒ 代码取硬编码默认 4096，触发点仅 ≈3276。
   # 而一次大工具输出（如 `list_directory` 返回 195 项）就约 14k tokens

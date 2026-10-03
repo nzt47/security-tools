@@ -18,7 +18,7 @@ from typing import Optional
 
 from flask import Blueprint, request, jsonify
 
-from .plugin_api import Plugin, register_plugin
+from .plugin_api import Plugin, context_limit_info, register_plugin
 
 # 【2026-10-03 审计 P2-5】默认值不再在本文件里抄一份字面量（改常量时不会漏）
 from config import (  # noqa: E402
@@ -92,35 +92,10 @@ def _json_safe_metadata(metadata):
     return safe, dropped
 
 
-def _context_limit_info(yunshu):
-    """读取编排窗口上限及其来源（TASK-S11-03 R3）。
-
-    单一事实源是 ``DigitalLife.context_limit_info()``（由 LifecycleManager 在初始化时
-    写入 ``_memory_token_limit`` / ``_memory_token_limit_source``，
-    见 agent/orchestrator/lifecycle_manager.py:283-289）。
-
-    【不易】取不到时返回 ``limit_tokens=None`` + ``limit_source="unavailable"``，
-    **绝不**回退到 4096 之类的硬编码值——那样比没有读数更坏：它看起来像个可信的数。
-    ``getattr`` 兜底是为了兼容 mock / 旧对象（缺方法时不炸请求）。
-    """
-    getter = getattr(yunshu, "context_limit_info", None)
-    if callable(getter):
-        try:
-            info = getter()
-        except Exception:
-            info = None
-        if isinstance(info, dict):
-            limit = info.get("limit_tokens")
-            source = info.get("limit_source")
-            if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0:
-                return {
-                    "limit_tokens": int(limit),
-                    "limit_source": (
-                        source if isinstance(source, str) and source
-                        else "unavailable"
-                    ),
-                }
-    return {"limit_tokens": None, "limit_source": "unavailable"}
+#: 上下文窗口读数 —— 单一实现在 plugins/plugin_api.py（2026-10-03 上收）。
+#: 本文件保留 ``_context_limit_info`` 这个旧名，避免既有调用点与测试漂移；
+#: 逻辑本体只有一份：`plugins/plugin_api.py::context_limit_info`。
+_context_limit_info = context_limit_info
 
 
 # ── 语音输入 API ──

@@ -187,7 +187,7 @@ def _patch_active_line(monkeypatch):
 # ══════════════════════════════════════════════════════════════════════
 
 class TestV1AdvertEqualsDispatch:
-    def test_智能选择收窄时宣告数等于请求体tools长度(self, tools6, monkeypatch):
+    def test_智能选择收窄时宣告数等于请求体tools长度(self, tools6, monkeypatch, factory_prompt):
         """**本卡的核心断言**：收窄发生在渲染之前 ⇒ 两侧同一个数字。
 
         修复前：宣告 6（收窄前白名单）、下发 2（收窄后）⇒ 本用例会红。
@@ -206,7 +206,7 @@ class TestV1AdvertEqualsDispatch:
             "宣告 %s 个、下发 %d 个 —— 智能选择路径上的口径又分裂了" % (adv_n, len(tools)))
         assert adv_names == [d["function"]["name"] for d in tools], "名字也必须同源同序"
 
-    def test_智能选择返回空时退回白名单且两侧一致(self, tools6, monkeypatch):
+    def test_智能选择返回空时退回白名单且两侧一致(self, tools6, monkeypatch, factory_prompt):
         """收窄没结果 ⇒ 退回白名单（全量 6 个），宣告同样必须跟着变。"""
         _patch_selection(monkeypatch, [])
         orch, client = _build_v1_orch()
@@ -220,7 +220,7 @@ class TestV1AdvertEqualsDispatch:
         adv_n, _ = _advert(kwargs["messages"][0]["content"])
         assert adv_n == len(tools) == len(tools6)
 
-    def test_有激活主线时不走智能选择但口径仍一致(self, tools6, monkeypatch):
+    def test_有激活主线时不走智能选择但口径仍一致(self, tools6, monkeypatch, factory_prompt):
         """回归：主线优先（智能选择不该被调用），且宣告=下发仍然成立。"""
         calls = _patch_active_line(monkeypatch)
         orch, client = _build_v1_orch()
@@ -268,7 +268,7 @@ class TestV2AdvertEqualsDispatch:
         orch._tool_calling_service._tool_timeout = 30
         return orch
 
-    def test_V2智能选择收窄时宣告数等于下发白名单的tool_defs长度(self, tools6, monkeypatch):
+    def test_V2智能选择收窄时宣告数等于下发白名单的tool_defs长度(self, tools6, monkeypatch, factory_prompt):
         from agent import tools as _tools
 
         _patch_selection(monkeypatch, _SMART)
@@ -289,7 +289,7 @@ class TestV2AdvertEqualsDispatch:
             "V2 宣告 %s 个、下发 %d 个 —— 口径分裂" % (adv_n, len(dispatch)))
         assert adv_names == [d["function"]["name"] for d in dispatch]
 
-    def test_V2智能选择返回空时退回白名单且两侧一致(self, tools6, monkeypatch):
+    def test_V2智能选择返回空时退回白名单且两侧一致(self, tools6, monkeypatch, factory_prompt):
         from agent import tools as _tools
 
         _patch_selection(monkeypatch, [])

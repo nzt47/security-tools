@@ -1151,3 +1151,29 @@ def _iso_runtime_ledgers(tmp_path, monkeypatch):
 
     yield
 
+
+
+# ════════════════════════════════════════════════════════════
+#  出厂提示词模板夹具（2026-10-03）
+# ════════════════════════════════════════════════════════════
+
+@pytest.fixture
+def factory_prompt(monkeypatch):
+    """把系统提示词模板钉在**出厂模板**（代码常量 DEFAULT_TEMPLATE）上。
+
+    【为什么必须有】``data/system_prompt.txt`` / ``system_prompt_config.json`` 是**运行时状态**
+    （由 UI 保存路由写入：可关掉 tool_status / skill_instructions 等段）。
+    生产路径 ``agent.digital_life._get_template()`` 会**先读那个文件**、缺失才回落到
+    ``DEFAULT_TEMPLATE``。于是操作员在界面上关一个模块，本地就会有一批
+    "提示词必须含工具状态段"的断言变红 —— 红的是**本地开关状态**，不是代码正确性，
+    而 CI 检出 HEAD（含该段）照样绿：这种红没有信息量，还会掩盖真红。
+
+    故凡是要断言"生产模板的固有不变量"的用例，都显式声明本夹具：
+    断言的对象是**出厂模板**（改坏了它，测试必须红），不再受运行时数据影响。
+    需要验证**运行时文件**的用例请另行 `skipif` 说明，不要混用。
+    """
+    from agent import system_prompt_manager as spm
+
+    monkeypatch.setattr(spm, "get_template", lambda: spm.DEFAULT_TEMPLATE, raising=True)
+    return spm.DEFAULT_TEMPLATE
+
