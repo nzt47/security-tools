@@ -146,3 +146,25 @@ class Test当前真实路由集:
         """静态扫描必须真的扫到了量级正确的路由集（否则"零漂移"可能是扫了个空集）。"""
         routes = cd.collect_routes_static()
         assert len(routes) > 300, "静态扫描只找到 " + str(len(routes)) + " 条路由，量级不对"
+
+class Test启动自检确实接线:
+    """守卫存在 ≠ 守卫在跑（本仓记录过"脚本没有任何消费方"的形态）。"""
+
+    SRC = ROOT / "app_server.py"
+
+    def test_app_server_调用了注册表自检(self):
+        src = self.SRC.read_text(encoding="utf-8", errors="replace")
+        assert "def audit_modules_registry" in src, "自检函数被删了"
+        assert "_modules_registry_audit = audit_modules_registry(app)" in src, (
+            "自检函数定义了却没有被调用 —— K1 会退化成一次性人工审计"
+        )
+
+    def test_自检失败不阻断启动(self):
+        """与其他降级装配一致：声明不准不该让服务起不来（它只影响拓扑图的可信度）。"""
+        src = self.SRC.read_text(encoding="utf-8", errors="replace")
+        idx = src.index("def audit_modules_registry")
+        window = src[idx: idx + 2600]
+        assert "except Exception" in window, (
+            "自检未做异常保护 —— 它一旦抛异常会把服务挡在启动之外，"
+            "而它守的只是「声明准不准」"
+        )

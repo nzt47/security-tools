@@ -250,3 +250,28 @@ class Test分辨力:
         assert path_is_allowlisted("/api/diagnostics/metrics", ["/api/diagnostics/metrics"])
         assert not path_is_allowlisted("/api/diagnostics/metrics/x", ["/api/diagnostics/metrics"])
         assert path_is_allowlisted("/api/diagnostics/x", ["/api/diagnostics/*"])
+
+class Test启动自检确实接线:
+    """守卫存在 ≠ 守卫在跑。本仓记录过"脚本没有任何消费方"的形态
+    （failures_baseline.txt 曾只是一个记事本，新引入失败时不会有任何东西变红）。
+    故这里钉住：app_server 必须真的调用本自检并保留结果。
+    """
+
+    SRC = ROOT / "app_server.py"
+
+    def test_app_server_调用了影子豁免自检(self):
+        src = self.SRC.read_text(encoding="utf-8", errors="replace")
+        assert "def audit_shadowed_exemptions" in src, "自检函数被删了"
+        assert "_shadowed_exemption_audit = audit_shadowed_exemptions(app)" in src, (
+            "自检函数定义了却没有被调用 —— 守卫会变成摆设（本仓已发生过同类事故）"
+        )
+
+    def test_自检在启动路径上而非仅定义(self):
+        """调用点必须在模块级（导入即执行），不能藏在某个函数里等别人调用。"""
+        src = self.SRC.read_text(encoding="utf-8", errors="replace")
+        call = "_shadowed_exemption_audit = audit_shadowed_exemptions(app)"
+        idx = src.index(call)
+        # 该行之前的最近一个顶层语句必须是模块级的：用缩进判断（顶层无缩进）
+        assert not src[:idx].rstrip().endswith(":"), "调用点被移进了某个块内"
+        line = src.splitlines()[src[:idx].count("\n")]
+        assert line == call, "调用点不再处于模块顶层（缩进=" + repr(line[:6]) + "）"
