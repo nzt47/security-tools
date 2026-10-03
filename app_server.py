@@ -2092,31 +2092,10 @@ def spa_fallback(subpath):
     return resp
 
 
-@app.route("/mascot-test")
-def mascot_test():
-    """Mascot 功能测试页面"""
-    return render_template("mascot-test.html")
-
-@app.route("/network-test")
-def network_test():
-    """网络配置功能测试页面"""
-    response = render_template("test_network.html")
-    from flask import Response
-    return Response(response, mimetype='text/html; charset=utf-8')
-
-
 @app.route("/search-status")
 def search_status_page():
     """搜索引擎状态监控页面"""
     response = render_template("search-status.html")
-    from flask import Response
-    return Response(response, mimetype='text/html; charset=utf-8')
-
-
-@app.route("/network-config-debug")
-def network_config_debug():
-    """网络配置调试面板"""
-    response = render_template("network_config_debug.html")
     from flask import Response
     return Response(response, mimetype='text/html; charset=utf-8')
 

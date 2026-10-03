@@ -1,7 +1,7 @@
 {
   "snapshot": {
     "route_source": "static(decorators)",
-    "routes_total": 452,
+    "routes_total": 449,
     "registry_nodes": 32,
     "registry_actions": 24,
     "registry_error": null,
@@ -9,7 +9,7 @@
     "manifest_declared_total": 196,
     "frontend_literals": {
       "react": 125,
-      "legacy": 123
+      "legacy": 119
     }
   },
   "findings_summary": {

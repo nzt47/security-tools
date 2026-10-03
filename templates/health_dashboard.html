@@ -249,9 +249,9 @@
         <option value="/logs/dashboard">📋 日志系统</option>
         <option value="/search-status">🔍 搜索引擎状态</option>
         <option value="/replay-viewer">🎬 用户行为回放</option>
-        <option value="/mascot-test">🎭 Mascot 测试</option>
-        <option value="/network-test">🌐 网络测试</option>
-        <option value="/network-config-debug">⚙️ 网络配置调试</option>
+        <!-- 2026-10-03 R0-a 收敛：/mascot-test、/network-test、/network-config-debug
+             三个 dev/debug 页面已随路由退役（React 侧 hub/network 覆盖网络配置）。
+             此处同步摘除，避免首页导航留下死链。 -->
       </select>
     </div>
   </div>
