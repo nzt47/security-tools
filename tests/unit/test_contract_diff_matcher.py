@@ -206,3 +206,70 @@ class Test前端字面量的两个口径:
         """快照缺了 stray 就没法追踪收敛进度；缺了 literal 就没法看合同面。"""
         src = (ROOT / "scripts" / "audit" / "contract_diff.py").read_text(encoding="utf-8")
         assert '"frontend_literals"' in src and '"frontend_stray_literals"' in src
+
+class Test注释剥离:
+    """frontend_literals 必须**先剥注释**再扫，否则注释里描述端点的那类反引号代码跨
+    会被当成真实调用。
+
+    【为什么要单列一类，而不是顺带改掉】剥注释是一个**新的、有状态的**扫描步骤 ——
+    它本身就可能出两种错，两种都必须钉住：
+      · 剥多了：把字符串里的东西删掉，**丢掉真实调用**（漏报，最危险）；
+      · 剥少了：注释没剥干净，**虚高计数**并在路由被删时产生假警报（误报）。
+    实测（2026-10-03，先量化再决定）：全仓只剥掉 2 条路径，且逐条打印源码行确认
+    都在 JSDoc 注释里；当年对拍检出的真实调用（/api/schedules/…、/api/mcp/services/…）
+    一条都没丢。
+    """
+
+    def test_剥行注释(self, cd):
+        src = "const a = 1; // /api/should-not-count\nconst b = 2;\n"
+        assert "/api/should-not-count" not in cd.strip_comments(src)
+        assert "const b = 2;" in cd.strip_comments(src)
+
+    def test_剥块注释(self, cd):
+        src = "/* \n * `GET /api/agent-lines/planes` \n */\nconst url = '/api/real';\n"
+        out = cd.strip_comments(src)
+        assert "/api/agent-lines/planes" not in out
+        assert "/api/real" in out, "块注释之后的真实调用必须保留"
+
+    def test_剥_HTML_注释(self, cd):
+        src = "<!-- fetch('/api/fake') -->\n<script>fetch('/api/real')</script>"
+        out = cd.strip_comments(src)
+        assert "/api/fake" not in out
+        assert "/api/real" in out
+
+    def test_字符串里的双斜杠不得被剥(self, cd):
+        """**这是状态机存在的理由**：朴素正则会把 // 之后的整行删掉，
+        于是 'http://host/api/x' 里的真实端点被删 ⇒ 漏报。"""
+        src = "const url = 'http://example.com/api/real-endpoint';\n"
+        out = cd.strip_comments(src)
+        assert "/api/real-endpoint" in out, "字符串内的 // 被误当注释起始 ⇒ 真实端点丢失（漏报）"
+
+    def test_模板串内容保留(self, cd):
+        # 用 chr(96) 拼反引号、chr(36) 拼美元号：本文件自身是 Python，
+        # 直接写反引号/美元号容易被转义规则绕进去（首版就是这么写错的，被本用例当场抓出）。
+        bt, dollar = chr(96), chr(36)
+        src = "const u = " + bt + "/api/x/" + dollar + "{id}" + bt + "; // /api/comment\n"
+        out = cd.strip_comments(src)
+        assert "/api/x/" in out, "模板串里的真实路径被剥掉了"
+        assert "/api/comment" not in out, "行注释没剥干净"
+
+    def test_转义引号不提前结束字符串(self, cd):
+        """'it\\'s /api/real' —— 转义引号若被当成结束，后续文本会被误判为代码并遭注释剥离。"""
+        src = "const s = 'it\\'s /api/real'; // /api/comment\n"
+        out = cd.strip_comments(src)
+        assert "/api/real" in out
+        assert "/api/comment" not in out
+
+    def test_行号保持不变(self, cd):
+        """注释内容被跳过但**换行保留** —— 否则后续报错会指向错行。"""
+        src = "a\n// comment\nb\n/* multi\nline */\nc\n"
+        assert len(cd.strip_comments(src).splitlines()) == len(src.splitlines())
+
+    def test_注释里的反引号代码跨不再计入_stray(self, cd):
+        """本仓实际形态（capability 清单在注释里被描述过）。"""
+        stray = cd.collect_stray_frontend_literals()["react"]
+        # callability.ts 的注释里有两处反引号代码跨；剥注释后该文件只剩 1 处真实调用
+        assert stray.get("yunshu-ui/src/lib/callability.ts", 0) == 1, (
+            "callability.ts 的 stray 应为 1（仅第 256 行的真实调用）—— "
+            "大于 1 说明注释里的反引号代码跨又被算进来了"
+        )
