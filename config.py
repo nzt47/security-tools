@@ -42,6 +42,50 @@ except ImportError as _pd_err:
     _PYDANTIC_IMPORT_ERROR = str(_pd_err)
     logger.warning("[warn] Pydantic 不可用（配置校验将降级为基础校验模式）: %s", _pd_err)
 
+    # 【2026-10-03 CI 修复：无 pydantic 环境下本模块**根本无法导入**】
+    #   事实（CI 运行 37081484445 作业 Reranker Hot Reload & Log Verification）：
+    #       config.py:53 的 class LLMConfig(BaseModel) → NameError: name 'BaseModel' is not defined
+    #   该作业只装 pytest（不含项目依赖），pydantic 自然缺席；而
+    #   tests/unit/conftest.py 的自动 fixture 会 patch
+    #   agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE，
+    #   该模块顶部 from config import MEMORY_TOKEN_LIMIT_DEFAULT → 触发本模块导入
+    #   → 49 个用例在 setup 阶段全部 ERROR。
+    #   即：文件头写着「Pydantic 模型支持（可选）」，但**可选分支从来没被实现**——
+    #   只要 pydantic 不在，模块在导入期就炸，降级校验 _basic_validation 也永远走不到。
+    #   这与 INV-08（禁止静默降级成不可用）同向：问题不是「要不要降级」，
+    #   而是降级路径必须真的能跑起来。
+    #   修法：给出**结构性占位**，保证模块可导入、校验按 _PYDANTIC_AVAILABLE 显式门控；
+    #   占位基类一旦被实例化就**立即报错**（fail-loud），不会静默产出假配置。
+    class _PydanticUnavailable:
+        """pydantic 缺席时的占位基类：只保证模块可导入，不提供任何校验能力。"""
+
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError(
+                "pydantic 不可用，配置校验模型无法构造（应走 _basic_validation）；"
+                "原始导入错误: %s" % (_PYDANTIC_IMPORT_ERROR or "原因未知",)
+            )
+
+    class ValidationError(Exception):  # type: ignore[no-redef]
+        """占位异常：pydantic 缺席时校验走 _basic_validation，本异常不会被抛出。"""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args)
+
+    def _field_stub(*args, **kwargs):
+        """占位 Field：仅作为类属性默认值存活；类不会被实例化（见 _PydanticUnavailable）。"""
+        return None
+
+    def _validator_stub(*args, **kwargs):
+        """占位 validator：原样返回被装饰函数。"""
+        return lambda _fn: _fn
+
+    # 下面四行是有意的「同名替换」：正常分支已从 pydantic 导入真名，
+    # 只有 import 失败时才会执行到这里，故对 mypy 的类型改写噪声做定向忽略。
+    BaseModel = _PydanticUnavailable  # type: ignore[misc, assignment]
+    ConfigDict = dict  # type: ignore[misc, assignment]
+    Field = _field_stub
+    validator = _validator_stub
+
 # 【P2 已清理】SecureConfigManager 加密层已移除，敏感数据统一由 .env 单一数据源管理
 # 详见 agent/env_config_manager.py:EnvConfigManager
 

@@ -6,6 +6,44 @@
 
 ---
 
+## [CHG] - 2026-10-03（CI 修复）: 让 config.py 在「没有 pydantic」时也能导入，并补上依赖 ✅
+
+**影响模块**: `config.py`, `.github/workflows/ci-cd.yml`, `tests/unit/test_config_optional_pydantic.py`（新增）
+**关联文档**: `docs/closeout/交付报告_20261003.md` §10
+
+### 背景（CI 红，运行 37081484445）
+
+整改提交 `e55a7445` 推送后，作业 **Reranker Hot Reload & Log Verification** 由绿转红：
+`tests/unit/test_reranker.py` / `test_reranker_hot_reload.py` **49 个用例在 setup 阶段全部 ERROR**，
+错误为 `NameError: name 'BaseModel' is not defined`（`config.py:53`）。
+
+**完整链路（已核实，不是推断）**：该作业只装 pytest（无项目依赖）⇒ 无 pydantic ⇒
+`tests/unit/conftest.py` 的自动 fixture patch `agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE` ⇒
+`lifecycle_manager.py` 顶层 `from config import MEMORY_TOKEN_LIMIT_DEFAULT`（本轮为「口径单一来源」新加）⇒
+`import config` ⇒ `except ImportError` 分支**只置标志、未提供占位**，模块继续执行 `class LLMConfig(BaseModel)` ⇒ NameError。
+首个提交 `6005f6f6` 之所以是绿的：当时 `lifecycle_manager` 还不 import config，同一条链没被触发。
+
+### Fixed
+
+- `config.py`：pydantic 缺失分支改为给出**结构性占位**（`BaseModel` / `ConfigDict` / `Field` / `validator` / `ValidationError`），
+  保证模块可导入、校验按 `_PYDANTIC_AVAILABLE` 显式门控；**占位基类一旦被实例化立刻 `RuntimeError`**（fail-loud，不静默产出假配置）。
+  这条同时修掉一个更早的隐性缺陷：注释写着「Pydantic 模型支持（可选）」，但**可选分支从来没被实现** —— 只要 pydantic 不在，降级校验 `_basic_validation` 永远走不到。
+- `.github/workflows/ci-cd.yml`：该作业的 `Install test dependencies` 追加 `pydantic>=2.0.0`，并注记原因，避免作业长期跑在与生产不一致的极简环境里。
+
+### Added
+
+- `tests/unit/test_config_optional_pydantic.py`（5 条）：在**子进程**里用 `sys.meta_path` 屏蔽 pydantic 再 `import config`，
+  断言 ① 模块可导入 ② 降级校验真的产出问题 ③ 占位模型实例化即报错 ④ `agent.orchestrator.lifecycle_manager` 可导入
+  ⑤ 有 pydantic 时模型仍是真模型（对照组）。用子进程是因为本机装了 pydantic，进程内屏蔽验证不了「模块级导入期」行为。
+
+### 验证结果
+
+- `tests/unit/test_config_optional_pydantic.py` **5 passed**；
+- `tests/unit/test_reranker.py` + `test_reranker_hot_reload.py` **49 passed**（与 CI 同用例集）；
+- `mypy config.py` 仅剩 4 条**既有**告警（本次新增的 5 条已用定向 `type: ignore` 消除）；
+- 红线未受影响：`tests/boundary` 全绿。
+
+---
 ## [CHG] - 2026-10-02（收口·追加）: 对话模式做成用户可选的三档菜单（轻量 / 检索 / 完整）✅
 
 **影响模块**: `plugins/chat.py`, `yunshu-ui/src/components/workbench/chat/ChatModeMenu.tsx`（新增）, `yunshu-ui/src/stores/useChatPrefsStore.ts`, `yunshu-ui/src/stores/useLayoutStore.ts`, `yunshu-ui/src/lib/sse.ts`, `yunshu-ui/src/components/workbench/panels/ChatPanel.tsx`

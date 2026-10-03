@@ -321,7 +321,13 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          pip install "pytest>=7.0.0" "pytest-timeout>=2.0.0" "pytest-asyncio>=0.21.0" -q
+          # [2026-10-03] 追加 pydantic：本作业会通过 tests/unit/conftest.py 的自动 fixture
+          # 导入 agent.orchestrator.lifecycle_manager，而该模块顶层 import config，
+          # config.py 的配置模型依赖 pydantic。此前该作业只装 pytest，恰好因为
+          # 「lifecycle_manager 那时还不 import config」而侥幸通过（见运行 37081484445 的 49 个 ERROR）。
+          # 根因侧已让 config.py 在无 pydantic 时可导入（tests/unit/test_config_optional_pydantic.py 守护），
+          # 这里再补上依赖，避免作业跑在与生产不一致的极简环境里。
+          pip install "pytest>=7.0.0" "pytest-timeout>=2.0.0" "pytest-asyncio>=0.21.0" "pydantic>=2.0.0" -q
 
       - name: Run reranker unit tests (含日志优化与热重载)
         env:
