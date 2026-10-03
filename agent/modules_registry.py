@@ -313,6 +313,85 @@ def summary() -> dict:
     }
 
 
+# ════════════════════════════════════════════════════════════
+#  自校验：声明必须命中真实路由（2026-10-03 · 审计 H-2 的机制化修复 / K1）
+# ════════════════════════════════════════════════════════════
+
+def declared_http_endpoints() -> List[Dict[str, str]]:
+    """展开本注册表里**所有指向真实 HTTP 端点**的声明。
+
+    两类来源：
+      · 节点的 `status_source`（形如 "api:/api/sensors"）—— 聚合器 S2 按它取值，
+        若该路径不存在，节点会永远显示"未知"而没有任何人知道为什么；
+      · `ACTION_ROUTES` 的 (method, url) —— 前端按它渲染干预按钮，
+        若路径/方法不对，按钮点了就是 404/405。
+
+    【为什么不在这里做校验】本模块的契约是"纯数据声明 + 纯函数辅助，不 import 业务
+    重依赖"（见模块 docstring），故校验函数接收 url_map 作为**入参**，
+    启动期由 app_server 用真实 url_map 调用，单测用夹具调用。
+    """
+    out: List[Dict[str, str]] = []
+    for d in DOMAINS:
+        for n in d.nodes:
+            src = (n.status_source or "").strip()
+            if src.startswith("api:"):
+                out.append({"source": "node:" + n.module_id,
+                            "method": "GET",
+                            "path": src[4:].strip()})
+    for key, route in ACTION_ROUTES.items():
+        out.append({"source": "action:" + key,
+                    "method": route.method.upper(),
+                    "path": route.url})
+    return out
+
+
+def validate_against_url_map(rules) -> List[str]:
+    """返回**未命中真实 url_map** 的声明（空列表 = 全部为真）。
+
+    Args:
+        rules: 可迭代的 (rule_string, methods)；通常来自 app.url_map.iter_rules()。
+            允许 methods 为 None（此时不做方法校验，只校验路径存在）。
+
+    Returns:
+        ["<来源> <METHOD> <path>", ...]（按来源排序）
+
+    【为什么必须有这个函数 —— 审计 H-2 的成因】
+    `service.gateway` 节点曾声明 `agent/api_gateway_flask.py` 而该文件**不存在**，
+    运行日志每次都报"API 网关层未安装"，但**服务照常启动**、拓扑图照常显示该节点 ——
+    声明与事实的偏离没有任何机制会发现（发现它的是三个月后的一次人工审计）。
+    本函数把那一次人工发现变成每次启动都会跑的机械判定。
+
+    【设计取舍：为什么是"告警"不是"阻断"】声明不准不会导致请求失败，只会导致
+    **拓扑图说谎**（点按钮 404 / 状态永远未知）。阻断启动的代价远大于收益；
+    但与 `_route_assembly_settlement` 一样，它必须**可见**（ERROR 级点名到条）。
+    """
+    normalized = []
+    for rule, methods in rules:
+        path = str(rule)
+        ms = {str(m).upper() for m in (methods or ())}
+        normalized.append((path, ms))
+
+    def _hit(path: str, method: str) -> bool:
+        # 通配声明（"/api/knowledge/*"）：命中其下**任一**真实规则即可。
+        # 【为什么要支持】节点用通配表达"这一片都属于我"是合理声明，
+        # 若按精确匹配判，它会永远是假警报 —— 而假警报会让整个门禁被无视。
+        if path.endswith("/*"):
+            base = path[:-2]
+            return any(p == base or p.startswith(base + "/") for p, _ in normalized)
+        for p, ms in normalized:
+            if p != path:
+                continue
+            if not ms or method in ms or "GET" == method and "HEAD" in ms:
+                return True
+        return False
+
+    misses = []
+    for item in declared_http_endpoints():
+        if not _hit(item["path"], item["method"]):
+            misses.append(item["source"] + " " + item["method"] + " " + item["path"])
+    return sorted(misses)
+
+
 if __name__ == "__main__":
     import json
     print(json.dumps({

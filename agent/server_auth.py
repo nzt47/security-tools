@@ -344,7 +344,13 @@ def require_token(f):
             logger.warning(
                 "[Auth] 令牌校验失败 path=%s source=%s（未记录令牌原文）",
                 request.path, source)
-            return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
+            # 【2026-10-03 阶段 2 / R3】401 改走统一错误模型（RFC 9457 子集）。
+            #   本装饰器是**所有受保护路由**的 401 出口，是全仓出现频率最高的 API 错误 ——
+            #   它若仍是 {"error": ...}，K3（错误结构种数 = 1）就只是纸面达标。
+            #   延迟 import：本模块是被 plugins 与 app_server 早期导入的叶子模块，
+            #   把新依赖限制在**错误路径**上，导入期行为零变化。
+            from agent.api_envelope import problem as _problem
+            return _problem(401, detail="缺少或无效的 API 令牌。")
         if actor:
             _bind_identity(actor, source)
         return f(*args, **kwargs)

@@ -572,6 +572,14 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _b("YUNSHU_OPEN_API_ENDPOINTS", CAT_EXTERNAL, "",
        "对外开放的端点清单（形如 GET /api/status,POST /api/chat）；默认为空=不开放任何能力。每项都会被 /api/open/* 以 API Key 鉴权+限流+配额暴露，填错等于扩大攻击面",
        owner="agent/api_gateway_flask.py"),
+    # 【2026-10-03 登记 · 阶段 2 / R3（审计 H-3）】统一响应信封与 RFC 9457 错误模型。
+    # 用 _b：关掉它等于让 API 面的 404/405/500 回落 HTML —— 而那正是前端
+    # "测试绿、线上炸"的形态（两套客户端都在按 JSON 解析）。属安全/正确性姿态。
+    _b("YUNSHU_RFC9457_ERRORS", CAT_SELF_HEALING, True,
+       "API 面的错误响应是否用 RFC 9457（application/problem+json）；"
+       "设为 0/false/no/off 则回落到 Flask 的 HTML 错误页（仅供排障时临时对照，"
+       "生产不应关闭：前端客户端按 JSON 解析错误体）",
+       owner="agent/api_envelope.py"),
 
     # 熔断与回滚（B：熔断/回滚）
     _b("ROLLBACK_SUCCESS_DROP_PCT", CAT_SELF_HEALING, 20.0,

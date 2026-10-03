@@ -446,6 +446,20 @@ except Exception as _audit_e:  # noqa: BLE001 审计不可用不阻断启动
     _ui_audit_recorder = None
     logger.warning(f"[启动] UI 写路由审计安装失败（不阻断启动）: {_audit_e}")
 
+# ── 统一响应信封 + RFC 9457 错误模型（阶段 2 / R3 · 审计 H-3）──
+# 【为什么放在这里（紧跟 app 构造之后）】errorhandler 必须在**第一次请求之前**注册完成；
+#   放在文件末尾虽然也能生效（模块导入期就注册完了），但会与"哪些中间件先装"的阅读顺序
+#   脱节。与本文件既有的"紧跟 app 构造之后注册钩子"约定一致。
+# 【解决什么】此前 **0 个 @app.errorhandler** ⇒ API 面的 404/405/500 一律回落 Flask 的
+#   HTML 页面，而前端两套客户端都在按 JSON 解析 —— "测试绿、线上炸"的经典形态。
+# 【开关】YUNSHU_RFC9457_ERRORS=0 可整段关闭（回到 HTML 回落），已登记进开关中心。
+try:
+    from agent.api_envelope import install_error_handlers as _install_envelope
+    _envelope_install = _install_envelope(app)
+except Exception as _env_e:  # noqa: BLE001 信封装不上不得阻断启动（降级=现状）
+    _envelope_install = {"installed": False, "error": str(_env_e), "scope": "/api/", "statuses": []}
+    logger.warning("[启动] RFC 9457 错误模型装载失败（降级为 HTML 回落，不阻断启动）: %s", _env_e)
+
 # 注册日志系统蓝图（/logs/dashboard 页面 + REST API）
 try:
     register_log_system(app)
@@ -687,7 +701,10 @@ def require_token(f):
         #   统一走 agent/server_auth.token_equal（同一份实现，防止各处再写一遍出偏差）。
         from agent.server_auth import token_equal
         if not token_equal(token, expected):
-            return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
+            # 【2026-10-03 阶段 2 / R3】与 agent/server_auth.require_token 同口径改走
+            #   统一错误模型（本文件这份是历史副本，两份必须一起改，否则形状又分叉）。
+            from agent.api_envelope import problem as _problem
+            return _problem(401, detail="缺少或无效的 API 令牌。")
         return f(*args, **kwargs)
     # 【标记：本视图受逐路由令牌保护】与 agent.server_auth.require_token 同口径。
     #   本文件这份是历史副本（语义已逐行对齐），但两份都必须打标 ——
@@ -854,7 +871,13 @@ def _api_auth_gate():
             return None
         if _API_AUTH_MODE in ("enforce", "enforce_all"):
             logger.warning("[AuthGate] 拒绝未授权请求 method=%s path=%s", request.method, path)
-            return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
+            # 【2026-10-03 阶段 2 / R3】闸门 401 走统一错误模型。
+            #   闸门是 before_request，**先于**视图执行 ⇒ 它是绝大多数未授权请求的实际出口，
+            #   也是 errorhandler 覆盖不到的地方（errorhandler 只管异常与 abort）。
+            #   实测印证：此前 /api/<不存在> 无令牌时返回的是闸门的 401，
+            #   而不是 404 —— 即"最常被前端看到的错误体"这一条此前完全在错误模型之外。
+            from agent.api_envelope import problem as _problem
+            return _problem(401, detail="缺少或无效的 API 令牌。")
         # 影子模式：只记不拦，用于盘点实际会被拦下的调用
         logger.warning("[AuthGate][shadow] 将拦截未授权请求 method=%s path=%s source=%s",
                        request.method, path, source)
@@ -869,7 +892,11 @@ def _api_auth_gate():
         #   shadow/off 仍放行 —— 那两种模式的语义本就是"只记不拦"，不受影响。
         logger.error("[AuthGate] 校验异常: %s", _e, exc_info=True)
         if _API_AUTH_MODE in ("enforce", "enforce_all"):
-            return jsonify({"error": "未授权：鉴权闸门异常，已按拒绝处理"}), 401
+            from agent.api_envelope import problem as _problem
+            # type 用闸门专属 slug：前端/运维可据此区分"令牌不对"与"闸门自身故障"
+            # （后者要去看服务端日志，不是让用户重新登录）。
+            return _problem(401, type_slug="auth-gate-error",
+                            detail="鉴权闸门异常，已按拒绝处理。")
         return None
 
 
@@ -2451,6 +2478,54 @@ def audit_shadowed_exemptions(app) -> dict:
 
 
 _shadowed_exemption_audit = audit_shadowed_exemptions(app)
+
+
+# ════════════════════════════════════════════════════════════
+#  启动自检：模块注册表声明 vs 真实 url_map（2026-10-03 · 审计 H-2 / 指标 K1）
+# ════════════════════════════════════════════════════════════
+def audit_modules_registry(app) -> dict:
+    """启动自检：modules_registry 的每个端点声明都必须命中**真实** url_map。
+
+    【与 CI 里 contract_diff 的分工】
+      · contract_diff（.github/workflows/contract-gate.yml）是**静态**扫描：AST/正则覆盖
+        app_server + plugins + agent/server_routes 三个注册面，可进 PR 门禁；
+      · 本函数用**运行期真实 url_map**：任何静态看不到的注册方式（add_url_rule、
+        运行期动态注册）在这里无处可藏。两者互补，任一单独都不完整。
+    这正是本仓"扫描器必须两把尺子"的既有做法（装饰器面 vs 豁免面）。
+
+    【为什么值得每次启动都跑 —— 审计 H-2 的形态】
+    `service.gateway` 曾声明一个**不存在的文件**，服务照常启动、拓扑图照常显示该节点，
+    唯一线索是日志里一行"API 网关层未安装"。声明与事实的偏离不会让任何请求失败，
+    只会让**拓扑图说谎**（点按钮 404、状态永远"未知"），因此没有任何机制会去发现它。
+    2026-10-03 实测：53 条端点声明**全部命中**（0 条漂移），本自检从此把这件事
+    变成每次启动都可复算的判定，而不是三个月后靠人工审计才发现。
+
+    Returns:
+        {"ok": bool, "declared": int, "missing_count": int, "missing": [...]}
+    """
+    try:
+        from agent.modules_registry import declared_http_endpoints, validate_against_url_map
+        declared = declared_http_endpoints()
+        missing = validate_against_url_map(
+            (str(r.rule), r.methods) for r in app.url_map.iter_rules())
+    except Exception as e:  # noqa: BLE001 自检失败不阻断启动
+        logger.warning("[ModulesRegistry][自检] 声明对拍失败（不阻断启动）: %s", e)
+        return {"ok": False, "error": str(e), "declared": 0, "missing_count": -1, "missing": []}
+
+    if missing:
+        logger.error(
+            "[ModulesRegistry][自检] %d/%d 条端点声明在真实 url_map 中**找不到** —— "
+            "这些节点/动作在拓扑图上会永远显示「未知」或点了 404：%s ｜ 处理：改正声明，"
+            "或补上缺失的路由。",
+            len(missing), len(declared), "; ".join(missing),
+        )
+    else:
+        logger.info("[ModulesRegistry][自检] %d 条端点声明全部命中真实 url_map", len(declared))
+    return {"ok": True, "declared": len(declared),
+            "missing_count": len(missing), "missing": missing}
+
+
+_modules_registry_audit = audit_modules_registry(app)
 
 # 路由装配结算：登记为空则记 INFO；有失败且未显式降级则 raise（拒绝带伤启动）。
 # 【为什么 raise 而不是继续】失败即意味着某个 API 面整体缺失 —— 让进程「看起来健康」
