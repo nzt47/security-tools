@@ -1513,6 +1513,7 @@ flowchart LR
     agent_orchestrator_message_handler --> agent_orchestrator_dialog_state
     agent_orchestrator_observability -.-> agent_logging_utils
     agent_orchestrator_observability -.-> agent_monitoring_business_metrics
+    agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_autonomy
     agent_orchestrator_orchestrator -.-> agent_guardrails_input_guard
     agent_orchestrator_orchestrator -.-> agent_guardrails_output_guard
@@ -2517,7 +2518,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 636
 - 模块节点数: 568
-- 依赖边数: 1827
+- 依赖边数: 1828
 - 跨层调用数: 1154
 - 违规调用数: 0
 - 动态 import 数: 1
