@@ -203,6 +203,14 @@ class TestWorkbenchHonoursContextKnobs:
         sent = FakeLLMService.instances[0].seen_call["messages"]
         assert len(sent) == 2, f"应至少保留 2 条（含本轮输入），实得 {len(sent)}"
 
+    def test_窗口不可得时回落原行为8条而不是全量(self, monkeypatch):
+        """审计 P2-2：窗口拿不到时若"原样返回全部"，prompt 会从 8 条涨到最多 400 条 ——
+        那不是保持原行为，而是**静默放大**（成本与超窗风险都上去）"""
+        _install_app_server(monkeypatch, window=0, msg_count=50, msg_size=40)
+        _events_with_session()
+        sent = FakeLLMService.instances[0].seen_call["messages"]
+        assert len(sent) == 8, "窗口不可得 ⇒ 必须回落到改造前的 8 条上限，实得 %d" % len(sent)
+
     def test_上下文装配以_thinking_事件可见(self, monkeypatch):
         """此前"带了多少上下文"完全不可观测 —— 用户只能猜"为什么它忘了我刚说的" """
         _install_app_server(monkeypatch, window=131072, msg_count=5, msg_size=40)

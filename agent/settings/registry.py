@@ -2551,6 +2551,56 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "[P0-1；agent/skills_mgmt/service.py::warm_vector_leg]",
        owner="agent/skills_mgmt/service.py"),
 
+    # · §10 A-3（2026-10-02）的六个检索旋钮：**接线**（be8185b2 把 loader.py 的三个
+    #   _resolve_* 助手从"没人读"接进 match()/索引路径）当时只改了代码、**漏了登记**，
+    #   于是 scan_settings.py 报 6 个"代码读到但注册表未覆盖"的缺口（本次补齐）。
+    #   读取点：agent/skills_mgmt/loader.py 的 _resolve_* 助手（:443-482），由 match()（:790-795）、
+    #   索引路径（:621-622）与 :1958-1961 每次调用读取 ⇒ 未显式传参时才读 env、**热生效**；
+    #   env 名常量见 loader.py:378-383，默认值逐条取自同一处的 _env_bool/_env_int 实参。
+    #   【风险级一律 A】六项都只调"召回面/融合策略"，关闭它们不拆除任何防护，
+    #   且**显式传参优先**：会话内传参即可覆盖 env，不改任何既有调用方的行为。
+    _a("SKILLS_USE_INVERTED_INDEX", CAT_SKILLS, True,
+       "技能检索是否走 **TF-IDF 倒排索引**（默认开 = loader.py:447 的 _env_bool 默认 True）。"
+       "置 0/false/no/off ⇒ 回退 O(n) 全量遍历（旧行为）：匹配语义不变（仍用 _match_score 精确"
+       "计算，索引序与全量遍历逐位一致），只是由 O(k) 变回 O(n)、更慢。"
+       "【不改判据】它不参与打分/过滤 [§10 A-3；agent/skills_mgmt/loader.py:378,443-447]",
+       owner="agent/skills_mgmt/loader.py"),
+    _a("SKILLS_CANDIDATE_LIMIT", CAT_SKILLS, 0,
+       "候选集上限（默认 0 = **不限制**，即 loader.py:454 的 _env_int 默认 0 与下限 minimum=0；"
+       "负数/非数字一律回退 0 并留 WARNING）。>0 时在倒排/全量两条路径共用：只保留打分最高的"
+       "前 N 条再截 top_k —— 它是**召回面收紧**旋钮（调小可能把正确答案挡在候选集外）"
+       " [§10 A-3；agent/skills_mgmt/loader.py:379,450-454]",
+       owner="agent/skills_mgmt/loader.py",
+       validator=Validator("int", min=0, note="0 = 不限制；负数/非数字回退 0")),
+    _a("SKILLS_USE_VECTOR", CAT_SKILLS, False,
+       "技能检索的**向量路**开关（默认关 = loader.py:461 的 _env_bool 默认 False）。"
+       "置 1/true/yes 且融合模式为 rrf/rrf_rerank 时启用向量腿（BGE-m3）；后端未就绪或失败时"
+       "仍降级（有 BM25 则 tfidf+bm25，否则 TF-IDF 单路，守【不易】兼容）。"
+       "【成本】首次加载实测 87.7s，故默认关、由 CP_SKILL_VECTOR_PREWARM 预热"
+       " [§10 A-3；agent/skills_mgmt/loader.py:380,457-461]",
+       owner="agent/skills_mgmt/loader.py"),
+    _a("SKILLS_USE_BM25", CAT_SKILLS, False,
+       "BM25 路的开关（默认关 = loader.py:468 的 _env_bool 默认 False）。"
+       "置 1/true/yes ⇒ 触发 tfidf+bm25（向量腿在线则三路）加权 RRF 融合：单路 BM25 无排名"
+       "融合价值，故 loader.py:805-806 在 use_bm25=True 且模式为 none 时**自动升级为 rrf**"
+       "（与 use_reranker 同模式，让运维只置一个开关即生效）"
+       " [§10 A-3；agent/skills_mgmt/loader.py:382,464-468,805-806]",
+       owner="agent/skills_mgmt/loader.py"),
+    _a("SKILLS_USE_RERANKER", CAT_SKILLS, False,
+       "Cross-Encoder 精排（Reranker）开关（默认关 = loader.py:475 的 _env_bool 默认 False）。"
+       "仅在 use_vector=True 且融合模式已为 rrf 时才自动升级 rrf→rrf_rerank（两条件缺一即不生效，"
+       "见 loader.py:811-812）：RRF 召回 top-N（N=2*top_k）后精排取 top_k。"
+       "【成本】Cross-Encoder 逐条打分，查询时延随候选数上升 [§10 A-3；"
+       "agent/skills_mgmt/loader.py:383,471-475]",
+       owner="agent/skills_mgmt/loader.py"),
+    _a("SKILLS_FUSION_MODE", CAT_SKILLS, "none",
+       "技能检索的**融合模式**（默认 none = loader.py:482 的 _env_fusion_mode 实参默认“none”；"
+       "大小写不敏感）。取值只接受 none/rrf/rrf_rerank（= loader.py:387 的 _FUSION_MODES），"
+       "其余值回退默认并留 WARNING（记 allowed 列表）。none = 逐字等同旧版 TF-IDF 单路；"
+       "rrf = 多路 RRF 融合（需 use_vector 或 use_bm25）；rrf_rerank = RRF + Cross-Encoder 精排。"
+       "【不改判据】它只决定多路结果如何融合 [§10 A-3；agent/skills_mgmt/loader.py:381,427-440,478-482]",
+       owner="agent/skills_mgmt/loader.py", validator=_enum("none", "rrf", "rrf_rerank")),
+
     # · C1 卡：LLM 客户端显式超时与重试（读取点 adapters.py:158-173；客户端懒加载，
     #   新建实例即取新值 ⇒ 不标重启，但已建实例仍持旧值）
     _a("LLM_ADAPTER_CONNECT_TIMEOUT", CAT_ORCHESTRATION, 5.0,

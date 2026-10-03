@@ -125,6 +125,20 @@ class TestConfigLayersAgree:
 
         assert cfg.Config().get("memory", "token_limit") == cfg.MEMORY_TOKEN_LIMIT_DEFAULT
 
+    def test_两个单条上限越界也会被修正回默认值(self):
+        """审计 P2-3：此前只有 token_limit 会被修正器修回，两个 per_message 键越界后
+        原样留在运行时（面板还会把它当"真实上限"展示）"""
+        import config as cfg
+
+        fixed, errors = cfg.validate_and_fix_config({"memory": {
+            "per_message_send_limit": cfg.PER_MESSAGE_SEND_LIMIT_MAX + 1,
+            "per_message_recv_limit": 10 ** 9,
+        }})
+        assert fixed["memory"]["per_message_send_limit"] == cfg.PER_MESSAGE_SEND_LIMIT_DEFAULT
+        assert fixed["memory"]["per_message_recv_limit"] == cfg.PER_MESSAGE_RECV_LIMIT_DEFAULT
+        locs = {e.get("loc") for e in errors}
+        assert {"memory.per_message_send_limit", "memory.per_message_recv_limit"} <= locs
+
     def test_越界值仍会被拦下并修正到默认值(self):
         import config as cfg
 
@@ -132,6 +146,29 @@ class TestConfigLayersAgree:
         assert [e for e in errors if e.get("loc") == "memory.token_limit"]
         fixed, _ = cfg.validate_and_fix_config({"memory": {"token_limit": 10 ** 9}})
         assert fixed["memory"]["token_limit"] == cfg.MEMORY_TOKEN_LIMIT_DEFAULT
+
+
+class TestNoHardcodedOutputLimitInChatPaths:
+    """审计 P1-2：对话链路里**不得**再出现写死的 max_tokens 字面量
+
+    为什么用静态守门而不是行为用例：V2 支路（lifetrace 开时走它）在本机因节被关而**跑不到**，
+    行为用例会假胜；而"某条支路又长出 8192"正是这次审计抓到的问题形态。
+    """
+
+    def test_对话链路无写死的输出上限字面量(self):
+        import re
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[2]
+        targets = [root / "agent" / "orchestrator" / "orchestrator.py",
+                   root / "plugins" / "chat.py"]
+        bad = []
+        for path in targets:
+            for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                code = line.split("#", 1)[0]
+                if re.search(r"max_tokens\s*=\s*\d+", code):
+                    bad.append(path.name + ":" + str(i) + ": " + line.strip()[:90])
+        assert not bad, "对话链路仍有写死的 max_tokens（应走 _resolve_max_output_tokens/常量）：" + " | ".join(bad)
 
 
 class _PushTarget:

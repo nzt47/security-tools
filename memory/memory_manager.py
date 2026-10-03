@@ -13,6 +13,13 @@ from .summarizer import Summarizer
 from .storage import Storage
 from .black_box import BlackBox
 
+# 【2026-10-03 审计 P2-5】压缩阈值/窗口默认值不再在本文件里写死 4096：
+#   那是"同一批数字的又一份副本"，改 config.py 的常量时不会跟着变。
+try:
+    from config import MEMORY_TOKEN_LIMIT_DEFAULT as _TOKEN_LIMIT_DEFAULT
+except Exception:  # noqa: BLE001 独立运行时（如 memory/ 单包测试）退化为同值字面量
+    _TOKEN_LIMIT_DEFAULT = 131072
+
 logger = logging.getLogger(__name__)
 
 def log_event_loop_status() -> str:
@@ -326,7 +333,7 @@ class MemoryManager:
             self._async_compressor.start_sync()
 
         # 压缩阈值
-        self._token_limit = config.get("token_limit", 4096)
+        self._token_limit = config.get("token_limit", _TOKEN_LIMIT_DEFAULT)
         self._compress_threshold = config.get("compress_threshold", 0.8)
 
         # [审计改进] 内存消息窗口（滑动窗口 LRU 缓存）：
@@ -559,13 +566,16 @@ class MemoryManager:
             "tokens": self._token_counter.count(content)
         })
 
-        # 高重要性消息（>=7）触发快速压缩检查
-        if score >= 7:
-            recent = list(self._message_window)[-200:] or self._storage.load_recent_messages(limit=200)
-            # 【2026-10-02】同上：工具结果单独计量（口径只有一份：_should_compress_now）
-            if self._should_compress_now(recent):
-                self._need_compress = True
-                self._async_compressor.request()
+        # 压缩检查（**每次必查**）
+        # 【2026-10-03 审计 P2-4】原先这段被 score>=7 包着，只有"高重要性"消息才查；
+        #   而主链路另一处无条件的 add_message 被去掉之后（同一轮写两遍的缺陷修复），
+        #   若不提到外面就会出现"低重要性消息堆到超阈值也不触发压缩"的新洞。
+        #   故这里恢复"每次必查"，与 add_message 的既有语义一致。
+        recent = list(self._message_window)[-200:] or self._storage.load_recent_messages(limit=200)
+        # 【2026-10-02】工具结果单独计量（口径只有一份：_should_compress_now）
+        if self._should_compress_now(recent):
+            self._need_compress = True
+            self._async_compressor.request()
 
         return msg_id
 

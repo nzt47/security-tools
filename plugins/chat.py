@@ -14,10 +14,18 @@ import json
 import logging
 import os
 import time
+from typing import Optional
 
 from flask import Blueprint, request, jsonify
 
 from .plugin_api import Plugin, register_plugin
+
+# 【2026-10-03 审计 P2-5】默认值不再在本文件里抄一份字面量（改常量时不会漏）
+from config import (  # noqa: E402
+    PER_MESSAGE_SEND_LIMIT_DEFAULT,
+    PER_MESSAGE_RECV_LIMIT_DEFAULT,
+    MEMORY_TOKEN_LIMIT_DEFAULT,
+)
 
 bp = Blueprint("chat", __name__)
 
@@ -377,7 +385,8 @@ def api_chat():
     #   但它全仓**没有任何强制点**。本次把它变成**有意义的告警阈值**（产品决定）：
     #   静默丢弃用户粘进来的原文，比"提示一句"危险得多 —— 用户会以为发出去的就是全文。
     try:
-        _send_limit = int(_cfg.get("memory", "per_message_send_limit", default=8192) or 0)
+        _send_limit = int(_cfg.get("memory", "per_message_send_limit",
+                                   default=PER_MESSAGE_SEND_LIMIT_DEFAULT) or 0)
     except (TypeError, ValueError):
         _send_limit = 0
     _send_exceeded = bool(_send_limit and _input_tokens > _send_limit)
@@ -1145,6 +1154,11 @@ def key_usable(k) -> bool:
 #: 本会话历史的**软上限**（条数）。真正的裁剪按 token 预算做，这个数字只为防内存失控。
 _HISTORY_SOFT_CAP = 400
 
+#: 窗口**不可得**时的历史条数上限 = 改造前的原行为（`hist[-8:]`）。
+#: 【为什么必须有】预算需要窗口；窗口拿不到时若"原样返回全部"，prompt 会从 8 条涨到最多 400 条 ——
+#: 那不是"保持原行为"，而是**静默放大**（成本与超窗风险都上去）。见审计 P2-2。
+_FALLBACK_HISTORY_MESSAGES = 8
+
 
 def _app_server_or_none():
     """取**已加载**的 app_server 模块；没加载就返回 None
@@ -1344,7 +1358,9 @@ def _full_pipeline_events(question: str, session_id: str):
 
 
 def _persist_turn_side_effects(session_id: str, question: str, answer: str,
-                                 steps: list, *, write_memory: bool = True) -> None:
+                                 steps: list, *, write_memory: bool = True,
+                                 memory_answer: Optional[str] = None,
+                                 write_turn_state: bool = True) -> None:
     """把工作台这一轮写进**全局记忆**与**本轮状态**（与编排器路径同口径；fail-soft）
 
     【为什么独立成函数】它不该影响对话本身：任何一步失败都只记日志。
@@ -1360,12 +1376,28 @@ def _persist_turn_side_effects(session_id: str, question: str, answer: str,
         memory = getattr(yunshu, "_memory", None)
         # 【完整模式必须跳过】那条路是编排器自己写的记忆（orchestrator.process 末尾），
         # 这里再写一次就是同一条对话在记忆里出现两遍。
-        if write_memory and memory is not None and callable(getattr(memory, "add_message", None)):
+        # 【审计 P1-1】记忆里只写**模型真实产出**（memory_answer）：兜底文案（"LLM 调用失败"/
+        #   "模型未返回内容"）已带 synthetic 标记并被排除；全部是兜底文案时**不写记忆**
+        #   （会话存储照旧保留，用户刷新后仍能看到发生了什么）。
+        # 【不易】必须区分"没传"（None ⇒ 用完整正文）与"传了空串"（=> 本轮没有模型真实产出，
+        #   故不写记忆）。写成 `memory_answer or answer` 会让空串回落到完整正文 ——
+        #   那正是审计 P1-1 要防的"把兜底文案写进记忆"（本文件首版就踩了这一步）。
+        _mem_text = answer if memory_answer is None else memory_answer
+        if write_memory and _mem_text.strip() and memory is not None \
+                and callable(getattr(memory, "add_message", None)):
             memory.add_message("user", question)
-            memory.add_message("assistant", answer)
-            log.info("[workbench][SSE] 已写入全局记忆（会话 %s）", session_id)
+            memory.add_message("assistant", _mem_text)
+            log.info("[workbench][SSE] 已写入全局记忆（会话 %s，%d 字）",
+                     session_id, len(_mem_text))
+        elif write_memory and not _mem_text.strip():
+            log.warning("[workbench][SSE] 本轮无模型真实产出（兜底文案），**不写长期记忆**"
+                        "（避免污染压缩与召回）：会话 %s", session_id)
         setter = getattr(yunshu, "_set_turn_state", None)
-        if callable(setter):
+        # 【审计 P1-3】完整模式下本轮状态的**权威写入方是编排器**（它已写入真实
+        #   tool_steps/reasoning）。工作台再用空值调一次 _set_turn_state 会**覆盖**它 ——
+        #   而该接口规定"显式传 None 必须真实落 None、禁止回退" ⇒ 后写直接抹掉。
+        #   故完整模式跳过本轮状态写入。
+        if write_turn_state and callable(setter):
             tool_steps = [s for s in (steps or [])
                           if str(s.get("id") or "").startswith("tool-real-")]
             reasoning = next((str(s.get("detail") or "") for s in (steps or [])
@@ -1650,6 +1682,14 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
         _window_tokens, overhead_tokens=_overhead, max_output_tokens=_stream_max_tokens)
     loop_messages, _dropped, _used = _select_within_budget(
         messages, _budget, _get_counter_or_none())
+    # 【2026-10-03 审计 P2-2】窗口不可得（budget=0）时 _select_within_budget 会**原样返回**，
+    #   而 messages 现在是"全会话（软上限 400 条）" ⇒ 实际行为从"8 条"变成"最多 400 条"，
+    #   与注释里"保持原行为"不符，且可能超窗/推高成本。故显式回落到原行为的条数上限。
+    if _budget <= 0 and len(loop_messages) > _FALLBACK_HISTORY_MESSAGES:
+        loop_messages = loop_messages[-_FALLBACK_HISTORY_MESSAGES:]
+        _dropped = len(messages) - len(loop_messages)
+        logger.info("[workbench][SSE] 窗口不可得：回落原行为（最近 %d 条），丢弃 %d 条",
+                    _FALLBACK_HISTORY_MESSAGES, _dropped)
     logger.info(
         "[workbench][SSE] 上下文预算: 窗口=%s 系统提示=%d 工具=%s 回复上限=%d ⇒ 历史预算=%d；"
         "保留 %d/%d 条（丢弃 %d 条，%s token）",
@@ -1847,7 +1887,10 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
         err_text = f"\n\n> ⚠️ LLM 调用失败：{_e}\n> 请检查 .env 中 LLM_API_KEY / LLM_MODEL 配置。"
         seq += 1
         emitted = True
-        yield _sse({"type": "chunk", "text": err_text, "seq": seq})
+        # 【2026-10-03 审计 P1-1】兜底文案**不是模型产出**，必须打标记：
+        #   路由层据此把它排除在"长期记忆"之外 —— 否则一条"LLM 调用失败"会进记忆、
+        #   参与后续压缩与召回（实测探针：错误文案确实被写进 _memory）。
+        yield _sse({"type": "chunk", "text": err_text, "seq": seq, "synthetic": True})
 
     yield _sse({"type": "thinking", "id": "generate", "title": "生成回复", "status": "done"})
 
@@ -1877,7 +1920,8 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             logger.warning("[workbench][SSE] 空返回判定失败（使用默认文案）: %s", _guard_e)
             _empty_text = "（模型未返回内容）"
         seq += 1
-        yield _sse({"type": "chunk", "text": _empty_text, "seq": seq})
+        # 同上：这是"模型没返回内容"的占位文案，不是模型产出 ⇒ 不进长期记忆
+        yield _sse({"type": "chunk", "text": _empty_text, "seq": seq, "synthetic": True})
 
     yield _sse({"type": "done"})
 
@@ -1936,6 +1980,8 @@ def api_chat_stream():
         # 使**刷新页面 / 切换会话后仍能恢复内联显示**（否则用户看到的是
         # "思考与工具先出现、刷新或切会话后就没了"）。
         acc_parts: list = []
+        #: 只累积**模型真实产出**（兜底文案带 synthetic 标记，见审计 P1-1）
+        acc_real_parts: list = []
         acc_steps: list = []
         #: 流是否**正常收尾**（区别于客户端中途断开）。只有正常收尾才写长期记忆，
         #: 见下方 finally 里的说明。
@@ -1948,6 +1994,8 @@ def api_chat_stream():
                         _obj = json.loads(_payload)
                         if isinstance(_obj, dict) and _obj.get("type") == "chunk":
                             acc_parts.append(str(_obj.get("text") or ""))
+                            if not _obj.get("synthetic"):
+                                acc_real_parts.append(str(_obj.get("text") or ""))
                         elif isinstance(_obj, dict) and _obj.get("type") == "thinking":
                             merge_thinking_step(acc_steps, _obj)
                     except Exception:
@@ -1978,10 +2026,13 @@ def api_chat_stream():
                 # 【只在正常收尾时写记忆】客户端中途断开时回复是**残缺**的，
                 #   写进长期记忆会污染后续召回；会话存储仍保留部分回复（既有行为，便于用户查看）。
                 if completed and "".join(acc_parts):
-                    # 完整模式下记忆由编排器自己写（避免同一条对话在记忆里出现两遍）
+                    # 完整模式下记忆与本轮状态都由编排器自己写（避免重复写/空值覆盖）；
+                    # 记忆内容只取"模型真实产出"，兜底文案不进记忆（审计 P1-1）。
                     _persist_turn_side_effects(
                         session_id, question, "".join(acc_parts), acc_steps,
-                        write_memory=(mode != "full"))
+                        write_memory=(mode != "full"),
+                        memory_answer="".join(acc_real_parts),
+                        write_turn_state=(mode != "full"))
 
     resp = Response(stream_with_context(gen()), mimetype="text/event-stream")
     # SSE 关键响应头；after_request 会再补 no-store，对 SSE 无碍

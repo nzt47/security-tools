@@ -51,6 +51,10 @@ from agent.monitoring.tracing import set_trace_id
 
 logger = logging.getLogger(__name__)
 
+# 【2026-10-03 审计 P1-4/P2-5】窗口默认值取同一份常量；config.yaml **不参与**运行时配置合成
+# （来源标注见下方 _initialize_core_systems 里的注释与实测）。
+from config import MEMORY_TOKEN_LIMIT_DEFAULT as _MEMORY_TOKEN_LIMIT_DEFAULT  # noqa: E402
+
 
 
 def _trace_id():
@@ -275,18 +279,29 @@ class LifecycleManager:
         self._memory = MemoryManager(memory_cfg)
         # TASK-S10-03：上下文窗口上限的**单一事实源 + 来源披露**
         # 【不易】告警的百分比分母必须与「真正用于组装上下文的那个上限」一致，
-        #         且必须能说清它从哪来。config.yaml 的 memory 段当前**未配** token_limit，
-        #         于是这里落到 131072 的**内置默认值**——修复前这一点完全不可见，
-        #         读数的人只会看到一个孤零零的百分比（详见
-        #         docs/zh/真用前置_模型凭证核查_20260913.md §八 D4 与 D4 修正说明）。
-        # 【变易】配了 memory.token_limit 即自动切到该值（无需改代码），并如实标注来源。
+        #         且必须能说清它从哪来（详见 docs/zh/真用前置_模型凭证核查_20260913.md §八 D4）。
+        #
+        # 【2026-10-03 审计 P1-4 修正：来源标注此前**是假的**】
+        #   原实现是「memory_cfg 里有该键 ⇒ 标注 config.yaml:memory.token_limit」，
+        #   但 Config 从来不读 config.yaml（config.py 只有 DEFAULT→环境变量→overrides），
+        #   而 DEFAULT **恒含**该键 ⇒ 标签永远是 config.yaml:…，builtin_default 分支
+        #   在生产不可达。实测：把 config.yaml 的 token_limit 临时改成 65536，
+        #   Config().get("memory")["token_limit"] 仍然是常量默认值 —— 即"按面板提示改
+        #   config.yaml 就会生效"是**误导**：用户改了不生效，却看不出为什么。
+        #   现在按"值与常量默认值是否相等"如实标注，把"config.yaml 未被加载"显式写进来源。
         _configured_token_limit = memory_cfg.get("token_limit")
+        _default_token_limit = _MEMORY_TOKEN_LIMIT_DEFAULT
         if _configured_token_limit:
             self._memory_token_limit = _configured_token_limit
-            self._memory_token_limit_source = "config.yaml:memory.token_limit"
+            self._memory_token_limit_source = (
+                "builtin_default(%d)" % _default_token_limit
+                if int(_configured_token_limit) == int(_default_token_limit)
+                else "runtime_override(config/env, %d)｜注意 config.yaml 未被运行时加载"
+                     % int(_configured_token_limit)
+            )
         else:
-            self._memory_token_limit = 131072
-            self._memory_token_limit_source = "builtin_default(131072)"
+            self._memory_token_limit = _default_token_limit
+            self._memory_token_limit_source = "builtin_default(%d)" % _default_token_limit
         self._llm = self._memory._llm_service
         self._llm_pro = None  # 深度模型（由模型调度器加载）
         self._tool_calling_service = None
@@ -846,12 +861,21 @@ class LifecycleManager:
         try:
             if hasattr(self, '_memory') and self._memory:
                 recent = self._memory._storage.load_recent_messages(limit=200)
+                limit = getattr(self._memory, "_token_limit", 0) or 0
                 total = self._memory._token_counter.count_messages(recent)
-                limit = self._memory._token_limit
-                if self._memory._summarizer.should_compress(
-                    total, limit, self._memory._compress_threshold
-                ):
-                    logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._run_maint_compress.log', 'message': '[维护] 触发自动压缩 (%.1f%%)' % (total / limit * 100,)}))
+                # 【2026-10-03 审计 P2-1】此处原先自行 count_messages + should_compress，
+                #   绕过了 memory_manager 的**单一口径**（工具结果单独计量）。维护线程一旦
+                #   触发，就会把"一次大工具输出 = 一次压缩"重新带回来 ⇒ 改调同一实现；
+                #   拿不到新实现时退回旧算法（保证旧内存管理器仍可用）。
+                check = getattr(self._memory, "_should_compress_now", None)
+                if callable(check):
+                    should = bool(check(recent))
+                else:
+                    should = bool(self._memory._summarizer.should_compress(
+                        total, limit, self._memory._compress_threshold))
+                if should:
+                    pct = (total / limit * 100) if limit > 0 else 0.0
+                    logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._run_maint_compress.log', 'message': '[维护] 触发自动压缩 (%.1f%%)' % (pct,)}))
                     self._memory._need_compress = True
         except Exception as e:
             logger.debug(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._run_maint_compress.log', 'message': '[维护] 压缩检查失败: %s' % (e,)}))

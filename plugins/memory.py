@@ -24,6 +24,18 @@ import functools
 from flask import Blueprint, request, jsonify
 from .plugin_api import Plugin, register_plugin
 
+# 【2026-10-03 审计 P2-5】值域与默认值不再在本文件里抄一份：改 config.py 常量时这里跟着变，
+#   否则"面板能设的范围/展示的默认值"会与实际生效的口径悄悄分叉。
+from config import (  # noqa: E402
+    MEMORY_TOKEN_LIMIT_DEFAULT,
+    MEMORY_TOKEN_LIMIT_MIN,
+    MEMORY_TOKEN_LIMIT_MAX,
+    PER_MESSAGE_SEND_LIMIT_DEFAULT,
+    PER_MESSAGE_SEND_LIMIT_MAX,
+    PER_MESSAGE_RECV_LIMIT_DEFAULT,
+    PER_MESSAGE_RECV_LIMIT_MAX,
+)
+
 bp = Blueprint("memory", __name__)
 
 
@@ -165,7 +177,7 @@ def api_context_status():
     #   取不到就如实报 None，**不拿硬编码值冒充分母**（那比没有读数更坏：它像真的）。
     limit_info = _context_limit_info(_Yunshu)
     limit = limit_info["limit_tokens"]
-    configured_limit = _cfg.get("memory", "token_limit", default=131072)
+    configured_limit = _cfg.get("memory", "token_limit", default=MEMORY_TOKEN_LIMIT_DEFAULT)
     pct = round(total / limit * 100, 1) if limit else None
 
     # 压缩次数（= 摘要版本号，**累计值**，不是"当前会话压缩了几次"）
@@ -215,8 +227,8 @@ def api_context_status():
             "config.yaml:memory.token_limit"),
         "percentage": pct,
         "percentage_semantics": "current_window_usage",
-        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=8192),
-        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=16384),
+        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=PER_MESSAGE_SEND_LIMIT_DEFAULT),
+        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=PER_MESSAGE_RECV_LIMIT_DEFAULT),
         # 语义声明：发送侧**只告警不截断**（绝不静默丢弃用户粘进来的原文）
         "send_limit_semantics": "warn_only",
         "compress_threshold": _cfg.get("memory", "compress_threshold", default=0.8),
@@ -246,7 +258,7 @@ def api_context_config():
     applied = False
     if "token_limit" in data:
         val = int(data["token_limit"])
-        val = max(512, min(1048576, val))
+        val = max(MEMORY_TOKEN_LIMIT_MIN, min(MEMORY_TOKEN_LIMIT_MAX, val))
         _cfg.set(val, "memory", "token_limit")
         changed.append("token_limit")
         # ★ 关键：把新值推给**正在跑**的编排器。只写 _cfg 的话，
@@ -255,13 +267,13 @@ def api_context_config():
 
     if "per_message_send_limit" in data:
         val = int(data["per_message_send_limit"])
-        val = max(0, min(131072, val))
+        val = max(0, min(PER_MESSAGE_SEND_LIMIT_MAX, val))
         _cfg.set(val, "memory", "per_message_send_limit")
         changed.append("per_message_send_limit")
 
     if "per_message_recv_limit" in data:
         val = int(data["per_message_recv_limit"])
-        val = max(0, min(393216, val))
+        val = max(0, min(PER_MESSAGE_RECV_LIMIT_MAX, val))
         _cfg.set(val, "memory", "per_message_recv_limit")
         changed.append("per_message_recv_limit")
 
@@ -277,10 +289,11 @@ def api_context_config():
         "apply_note": (
             "token_limit 已推给运行中的编排器（组装窗口 + 压缩阈值同步）；"
             "发送/回复上限即时生效，但同样是运行时覆盖，重启后回落 config.yaml"),
-        "token_limit": limit_info["limit_tokens"] or _cfg.get("memory", "token_limit", default=131072),
+        "token_limit": limit_info["limit_tokens"] or _cfg.get(
+            "memory", "token_limit", default=MEMORY_TOKEN_LIMIT_DEFAULT),
         "token_limit_source": limit_info["limit_source"],
-        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=8192),
-        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=16384),
+        "per_message_send_limit": _cfg.get("memory", "per_message_send_limit", default=PER_MESSAGE_SEND_LIMIT_DEFAULT),
+        "per_message_recv_limit": _cfg.get("memory", "per_message_recv_limit", default=PER_MESSAGE_RECV_LIMIT_DEFAULT),
         "send_limit_semantics": "warn_only",
     })
 

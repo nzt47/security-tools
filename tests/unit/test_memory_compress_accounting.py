@@ -121,6 +121,38 @@ class TestTrigger:
         assert manager._should_compress_now(mixed) is False
 
 
+class TestOtherEntryPointsShareTheSameRule:
+    """审计 P2-1/P2-4：压缩触发的**每一处入口**都必须走同一口径"""
+
+    def test_维护线程不再自算压缩(self):
+        """P2-1：lifecycle_manager._run_maint_compress 原先自行 count_messages + should_compress，
+        绕过"工具结果单独计量"。静态守门：该方法体内必须调用 _should_compress_now。"""
+        from pathlib import Path
+        import re
+
+        path = (Path(__file__).resolve().parents[2] / "agent" / "orchestrator"
+                / "lifecycle_manager.py")
+        src = path.read_text(encoding="utf-8")
+        body = src.split("def _run_maint_compress", 1)[1].split("def _run_maint_prune", 1)[0]
+        assert "_should_compress_now" in body, "维护线程必须走单一压缩口径（否则大工具输出又会被当正文计）"
+        # 直算 should_compress 只允许作为**旧内存管理器的兜底**存在，且必须有显式说明
+        direct = re.findall(
+            r"^\s*should = bool\(self\._memory\._summarizer\.should_compress", body, re.M)
+        assert len(direct) <= 1, "维护线程不得自己再算一套压缩口径"
+        if direct:
+            assert "拿不到新实现时退回旧算法" in body, "兜底分支必须写明它是兜底而非主口径"
+
+    def test_高重要性检查不再是压缩的前置条件(self, manager):
+        """P2-4：主链路去掉重复写入后，score_and_save_message 必须**每次**都查压缩 ——
+        否则"低重要性消息堆到超阈值"就再也没人触发压缩（新洞）"""
+        manager.add_message("tool", "x" * 100)   # 工具结果：只进工具口径
+        assert manager._should_compress_now([_msg("user", 900)]) is True
+        # 直接调用评分写入（低长度 ⇒ 低重要性分），压缩标志仍必须被点亮
+        manager._need_compress = False
+        manager.score_and_save_message("user", "y" * 900)
+        assert manager._need_compress is True, "低重要性消息超阈值也必须触发压缩检查"
+
+
 class TestLiveInvariant:
     """把"工具结果不进记忆"这条**现状**也钉住：它是上面口径有效的前提"""
 

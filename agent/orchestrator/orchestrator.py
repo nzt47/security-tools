@@ -27,6 +27,7 @@ from typing import Optional, Dict, Any, Tuple
 # digital_life 符号延迟到文件末尾导入，避免与 digital_life.py:369 形成模块级循环导入
 # (orchestrator.py 顶层导入 → digital_life.py:369 → agent.orchestrator.Orchestrator → orchestrator.py 未完成)
 
+from agent import chat_limits as _chat_limits
 from agent.autonomy import AutonomyContext, resolve_autonomy_level
 from agent.guardrails.input_guard import InputGuard, GuardAction
 from agent.guardrails.output_guard import OutputGuard
@@ -3006,13 +3007,16 @@ class Orchestrator:
     #: 单次回复 token 的**硬上限**缺省值。
     #: 远小于 provider 实测能力（deepseek-flash 393216），但已足以覆盖长回答/长代码；
     #: 再往上只推高延迟与成本，不带来更好结果。可用 CP_CHAT_MAX_OUTPUT_CEILING 覆盖。
-    MAX_OUTPUT_CEILING_DEFAULT = 131072
+    #:
+    #: 【2026-10-03 审计 P2-5】以下四个名字原先是本文件里**又一份副本**（与
+    #: agent/chat_limits.py 各写一份）。现改为指向共享模块的同一对象：既保住
+    #: 既有引用面（外部/测试仍可读 Orchestrator.MAX_OUTPUT_TIER_LARGE），又消除副本。
+    MAX_OUTPUT_CEILING_DEFAULT = _chat_limits.MAX_OUTPUT_CEILING_DEFAULT
     #: 模型名启发式的两档（与原实现逐字一致的名单/取值），在本方法里只当**下限**
-    MAX_OUTPUT_TIER_LARGE = 16384
-    MAX_OUTPUT_TIER_SMALL = 8192
+    MAX_OUTPUT_TIER_LARGE = _chat_limits.MAX_OUTPUT_TIER_LARGE
+    MAX_OUTPUT_TIER_SMALL = _chat_limits.MAX_OUTPUT_TIER_SMALL
     #: 命中即按"大输出模型"对待的模型名片段（原实现 + v4-pro 一类）
-    _LARGE_OUTPUT_MODEL_HINTS = ("pro", "ultra", "reasoner", "opus",
-                                 "claude-4", "gpt-4-turbo", "o1", "o3")
+    _LARGE_OUTPUT_MODEL_HINTS = _chat_limits.LARGE_OUTPUT_MODEL_HINTS
 
     def _resolve_max_output_tokens(self, model: str) -> int:
         """单次回复的 ``max_tokens``：**配置优先 + 启发式兜底 + 硬上限收敛**
@@ -3045,9 +3049,8 @@ class Orchestrator:
             # 配置形状异常（None / 非映射 / 非整数）⇒ 按"未配置"处理，绝不因此报错
             configured = 0
 
-        floor = (self.MAX_OUTPUT_TIER_LARGE
-                 if any(k in (model or "").lower() for k in self._LARGE_OUTPUT_MODEL_HINTS)
-                 else self.MAX_OUTPUT_TIER_SMALL)
+        # 档位判定也只有一份实现（agent/chat_limits.tier_floor）
+        floor = _chat_limits.tier_floor(model)
         # 三条规则的**实现只有一份**（agent/chat_limits.py）。工作台流式路径共用它 ——
         # 否则就是"同一次对话换个入口就换一套上限"：2026-10-02 实测工作台把
         # `max_tokens=2048` 写死在请求里，界面把"单次回复"调到 16384 对它毫无作用。
@@ -4380,7 +4383,8 @@ class Orchestrator:
                         )
                         _result = self._run_llm_bounded(lambda: _tc_pro.chat_with_steps(
                             messages=messages, system_prompt=system_prompt,
-                            max_tokens=8192, temperature=0.3,
+                            max_tokens=self._resolve_max_output_tokens(_selected_model),
+                            temperature=0.3,
                             tools_whitelist=tools_whitelist,
                             on_step=_current_steps.append,
                         ))
@@ -4389,7 +4393,10 @@ class Orchestrator:
                     else:
                         _result = self._run_llm_bounded(lambda: self._tool_calling_service.chat_with_steps(
                             messages=messages, system_prompt=system_prompt,
-                            max_tokens=8192, temperature=0.3,
+                            # 【2026-10-03 审计 P1-2】原先写死 8192 —— V2 支路（lifetrace 开时走它）
+                            # 会让「单次回复」旋钮重新变成死旋钮。与其他两处统一走解析值。
+                            max_tokens=self._resolve_max_output_tokens(_selected_model),
+                            temperature=0.3,
                             tools_whitelist=tools_whitelist,
                             on_step=_current_steps.append,
                         ))
@@ -4406,7 +4413,8 @@ class Orchestrator:
                     response = self._run_llm_bounded(lambda: self._llm.chat(
                         messages=messages,
                         system_prompt=system_prompt,
-                        max_tokens=8192,
+                        # 【2026-10-03 审计 P1-2】同上：不得再出现字面量 8192
+                        max_tokens=self._resolve_max_output_tokens(_selected_model),
                         temperature=0.3,
                     ))
                 if profile.response_prefix:

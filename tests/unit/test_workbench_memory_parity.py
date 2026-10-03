@@ -19,6 +19,10 @@ import plugins.chat as chat_module  # noqa: F401  （保证插件模块已导入
 
 
 class FakeLLM:
+    """假 LLM：``mode="ok"`` 正常两片；``"boom"`` 抛异常；``"empty"`` 一片不出"""
+
+    mode = "ok"
+
     def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.seen = {}
@@ -28,6 +32,10 @@ class FakeLLM:
         self.seen = {"messages": list(messages), "max_tokens": max_tokens}
         if on_reasoning is not None:
             on_reasoning("先想一下。")
+        if FakeLLM.mode == "boom":
+            raise RuntimeError("upstream-500-marker")
+        if FakeLLM.mode == "empty":
+            return
         yield "云枢"
         yield "回答"
 
@@ -167,6 +175,38 @@ class TestClientDisconnect:
         resp.close()
 
         assert memory.writes == [], "断流时不得写入长期记忆"
+
+
+class TestFailurePathMemoryHygiene:
+    """审计 P1-1：失败/空返回的**兜底文案不得进长期记忆**（会话仍保留，用户可复查）
+
+    为什么这是缺陷而不是"少写一条"：兜底文案会进 compression 与召回，
+    之后每次检索都可能把"LLM 调用失败"当上下文喂回模型。
+    """
+
+    def test_LLM抛异常_不写记忆但会话照留(self, env, monkeypatch):
+        client, memory, _yunshu, sessions = env
+        monkeypatch.setattr(FakeLLM, "mode", "boom", raising=False)
+        body = _drain(client.post("/api/chat/stream",
+                                  json={"message": "你好", "session_id": "sess-boom"}))
+        assert "LLM 调用失败" in body, "用户仍应看到失败原因"
+        assert memory.writes == [], "兜底文案不得写入长期记忆（会污染压缩与召回）"
+        rows = sessions.get_messages("sess-boom", limit=0)
+        assert [r["role"] for r in rows] == ["user", "assistant"], "会话仍保留，便于刷新后复查"
+
+    def test_模型空返回_同样不写记忆(self, env, monkeypatch):
+        client, memory, _yunshu, _sessions = env
+        monkeypatch.setattr(FakeLLM, "mode", "empty", raising=False)
+        _drain(client.post("/api/chat/stream",
+                           json={"message": "你好", "session_id": "sess-empty"}))
+        assert memory.writes == [], "占位文案（模型未返回内容）不得进记忆"
+
+    def test_正常收尾仍写记忆_防过度收紧(self, env, monkeypatch):
+        client, memory, _yunshu, _sessions = env
+        monkeypatch.setattr(FakeLLM, "mode", "ok", raising=False)
+        _drain(client.post("/api/chat/stream",
+                           json={"message": "你好", "session_id": "sess-ok"}))
+        assert [r for r, _ in memory.writes] == ["user", "assistant"]
 
 
 class TestFailSoft:

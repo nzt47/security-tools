@@ -220,6 +220,15 @@ class TestFullMode:
         assert text == "完整模式的一段较长回答，用于验证分段外发。"
         assert not FakeLLM.instances, "完整模式不得再走工作台自己的流式模型调用"
 
+    def test_不覆盖编排器的本轮状态(self, env):
+        """审计 P1-3：工作台若再用空值调 _set_turn_state，会**抹掉**编排器刚写的真实值
+        （该接口规定"显式传 None 必须真实落 None、禁止回退"）"""
+        y = _Yunshu(answer="完整回答")
+        client, _fake = env(y)
+        _body(client.post("/api/chat/stream",
+                          json={"message": "复杂任务", "session_id": "s1", "mode": "full"}))
+        assert y.turn_state == {}, "完整模式下工作台不得写本轮状态（权威写入方是编排器）"
+
     def test_不重复写记忆_但会话照落盘(self, env):
         """编排器 process() 自己会写记忆；工作台再写一次就是同一轮记两遍"""
         y = _Yunshu(answer="完整回答")

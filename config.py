@@ -592,6 +592,20 @@ def validate_and_fix_config(config: Dict[str, Any]) -> tuple[Dict[str, Any], Lis
         errors.append({"loc": "memory.token_limit",
                        "msg": "值无效，已修正为 %d" % (MEMORY_TOKEN_LIMIT_DEFAULT,)})
 
+    # 【2026-10-03 审计 P2-3】两个 per_message 上限此前**只由 pydantic 报错、没人修回**：
+    #   越界值会原样留在运行时（面板再把它当"真实上限"展示）。这里补上与 token_limit 同形的修正。
+    for _key, _max, _default in (
+        ("per_message_send_limit", PER_MESSAGE_SEND_LIMIT_MAX, PER_MESSAGE_SEND_LIMIT_DEFAULT),
+        ("per_message_recv_limit", PER_MESSAGE_RECV_LIMIT_MAX, PER_MESSAGE_RECV_LIMIT_DEFAULT),
+    ):
+        _val = memory.get(_key)
+        if _val is None:
+            continue
+        if not isinstance(_val, int) or isinstance(_val, bool) or _val < 0 or _val > _max:
+            memory[_key] = _default
+            errors.append({"loc": "memory.%s" % _key,
+                           "msg": "值无效，已修正为 %d" % _default})
+
     # 修复 behavior 配置
     behavior = fixed_config.get('behavior', {})
     if not isinstance(behavior, dict):
