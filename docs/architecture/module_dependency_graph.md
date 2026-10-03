@@ -60,6 +60,7 @@ flowchart LR
         agent_auto_tuner["agent.auto_tuner"]
         agent_autonomy["agent.autonomy"]:::crosslayer
         agent_behavior_controller["agent.behavior_controller"]:::crosslayer
+        agent_chat_limits["agent.chat_limits"]:::crosslayer
         agent_circuit_breaker["agent.circuit_breaker"]:::crosslayer
         agent_code_review["agent.code_review"]:::crosslayer
         agent_compression_tools["agent.compression_tools"]:::crosslayer
@@ -78,6 +79,7 @@ flowchart LR
         agent_error_reporting_config["agent.error_reporting_config"]:::crosslayer
         agent_feedback["agent.feedback"]:::crosslayer
         agent_graceful_degrade["agent.graceful_degrade"]:::crosslayer
+        agent_jsonl_history["agent.jsonl_history"]:::crosslayer
         agent_lazy_loader_async["agent.lazy_loader_async"]
         agent_learning_budget["agent.learning_budget"]
         agent_learning_metrics["agent.learning_metrics"]:::crosslayer
@@ -582,6 +584,7 @@ flowchart LR
         agent_subagent_container["agent.subagent.container"]:::crosslayer
         agent_subagent_credentials["agent.subagent.credentials"]
         agent_subagent_delegation["agent.subagent.delegation"]:::crosslayer
+        agent_subagent_delegation_history["agent.subagent.delegation_history"]:::crosslayer
         agent_subagent_executor["agent.subagent.executor"]:::crosslayer
         agent_subagent_lifecycle["agent.subagent.lifecycle"]:::crosslayer
         agent_subagent_mechanical["agent.subagent.mechanical"]:::crosslayer
@@ -1529,6 +1532,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_observability
     agent_orchestrator_orchestrator -.-> agent_learning_metrics
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
+    agent_orchestrator_orchestrator -.-> agent_chat_limits
     agent_orchestrator_orchestrator -.-> agent_verification_output_validator
     agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator -.-> agent_response_workflows
@@ -1838,6 +1842,7 @@ flowchart LR
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_assets --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_background -.-> agent_jsonl_history
     agent_server_routes_routes_background --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_background -.-> agent_async_executor
     agent_server_routes_routes_business_dashboard -.-> agent_server_auth
@@ -1985,9 +1990,12 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_offline_evolver
     agent_server_routes_routes_subagent -.-> agent_server_auth
     agent_server_routes_routes_subagent --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_subagent -.-> agent_subagent_delegation_history
+    agent_server_routes_routes_subagent -.-> agent_subagent_delegation
     agent_server_routes_routes_subagent -.-> agent_subagent_channel
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
-    agent_server_routes_routes_subagent -.-> agent_subagent_delegation
+    agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
+    agent_server_routes_routes_subagent -.-> agent_subagent_container
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
     agent_server_routes_routes_system_prompt --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_system_prompt -.-> agent_server_auth
@@ -2181,6 +2189,8 @@ flowchart LR
     agent_subagent_container --> agent_subagent_delegation
     agent_subagent_container --> agent_subagent_executor
     agent_subagent_container --> agent_subagent_executor
+    agent_subagent_container --> agent_subagent_delegation_history
+    agent_subagent_delegation_history -.-> agent_jsonl_history
     agent_subagent_executor -.-> agent_security_actor_matrix
     agent_subagent_executor --> agent_subagent_barrier
     agent_subagent_executor --> agent_subagent_channel
@@ -2195,6 +2205,7 @@ flowchart LR
     agent_subagent_lifecycle --> agent_subagent_container
     agent_subagent_lifecycle --> agent_subagent_executor
     agent_subagent_lifecycle --> agent_subagent_executor
+    agent_subagent_lifecycle --> agent_subagent_delegation_history
     agent_subagent_lifecycle --> agent_subagent_sandbox
     agent_subagent_mechanical -.-> agent_digestion_cases
     agent_subagent_mechanical -.-> agent_digestion_sandbox
@@ -2504,9 +2515,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 633
-- 模块节点数: 565
-- 依赖边数: 1819
-- 跨层调用数: 1148
+- 扫描文件数: 636
+- 模块节点数: 568
+- 依赖边数: 1827
+- 跨层调用数: 1154
 - 违规调用数: 0
 - 动态 import 数: 1
