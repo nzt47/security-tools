@@ -65,7 +65,11 @@ class TestNoUserVisibleFalseFallback:
     _USER_VISIBLE = [
         'plugins/memory.py',
         'yunshu-ui/src/components/workbench/panels/ContextManagerBar.tsx',
-        'templates/index.html',
+        # 【2026-10-03 移除一项】原含 'templates/index.html' —— 该模板已随 legacy 一次性
+        # 收敛退役（提交 6ab31228：/ 改重定向到 /chat#/workbench，index.html 4374 行删除），
+        # 留在清单里会让本测试以 FileNotFoundError 失败（读不到文件）而非断言失败。
+        # 该页面的用户可见文案已随页面消失，故移除条目是正确处置；
+        # 其余两项仍在，「不得向用户谎报回落到 config.yaml」的守卫作用不变。
     ]
     #: 「回落到 config.yaml…」——运行时合成里根本不存在这一层
     _FALSE = re.compile(r'回落[^。；<"\']{0,14}config\.yaml')

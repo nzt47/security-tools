@@ -9,8 +9,11 @@
   （+ retriever_degraded）。
 
 【为什么单开端点而不塞进 `/api/health` 的响应体】实测 `GET /api/health` 的响应体是
-**数组**（plugins/status.py:298-303 的传感器读数列表），前端
-`static/js/sidebar/status-panel.js:30` 直接 `data.forEach(...)`，且
+**数组**（plugins/status.py:298-303 的传感器读数列表）。
+【2026-10-03 追记】该数组形状原本被 legacy 页面 `static/js/sidebar/status-panel.js:30`
+的 `data.forEach(...)` 冻结；该文件已随 legacy 一次性收敛退役（提交 6ab31228），
+但**数组契约本身仍然成立且被下面的契约测试钉死** —— 退役的是那个消费者，不是契约。
+（React 侧 panorama/health 走 hubGet，同样按数组消费。）且
 tests/unit/test_auth_migration_step1.py:114-123 与
 tests/contract/contract_definitions.py:200-221 把它钉死为数组契约
 ⇒ 按"新增只读端点"落地（同 /api/health/auth 的先例），**降级可见且零破坏**。
