@@ -311,10 +311,85 @@ def collect_frontend_literals():
                 txt = f.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            for m in FRONTEND_LITERAL.finditer(txt):
+            # 【必须先剥注释】否则注释里描述端点的那类反引号代码跨会被当成真实调用
+            # （实测 4 处），既虚高计数，又会在该路由被删时产生假警报。
+            for m in FRONTEND_LITERAL.finditer(strip_comments(txt)):
                 hits.setdefault(m.group(1), []).append(rel)
         out[label] = hits
     return out
+
+
+#: 引号字符：单引号、双引号、反引号（模板串）。用 hex 转义写是为了本文件自身可读，
+#: 语义与字面反引号完全相同。
+_QUOTES = ("'", '"', "\x60")
+
+
+def strip_comments(src: str) -> str:
+    """剥离 TS/JS 的注释与 HTML 注释；**保留**字符串与模板串内容。
+
+    【解决什么】frontend_literals 用"引号包裹的 /api 路径"来识别前端调用，于是
+    **注释里的反引号代码跨**也被算进来了。实测（2026-10-03，先量化再决定）：
+        yunshu-ui/src/lib/callability.ts:7    * · [反引号]GET /api/agent-lines/planes[反引号]
+        yunshu-ui/src/lib/callability.ts:8    * · [反引号]GET /api/capability-manifest[反引号]
+        yunshu-ui/src/lib/approvalChain.ts:5  * 而 [反引号]POST /api/cp/approvals/batch/link[反引号]
+        yunshu-ui/src/lib/toolExemptionsApi.ts:4 * 契约来源：[反引号]/api/cp/tool-exemptions[反引号]
+    它们不是调用，却：① 让"还要收口多少"的数虚高（阶段 5 的 stray 口径要到 0）；
+    ② 更具破坏性的是 —— **一旦被注释描述的那条路由被删除**，就会凭空产生一条
+    "前端调用了不存在的端点"的漂移项。那是假警报，而假警报会让门禁被无视
+    （本仓 M-35 记录过同类后果）。
+
+    【为什么必须用状态机而不是正则】不能简单地删掉"斜杠斜杠到行尾"——
+    http://x 这类**字符串里**的斜杠斜杠会被误删，把真实的端点弄丢，
+    那才是真正危险的（漏报）。故逐字符扫描，进入字符串就把整段原样吐出。
+
+    【边界】正则字面量不单独处理：其中的斜杠后不是斜杠或星号时按普通字符处理，
+    不会误判为注释起始。实测本仓不存在会被误判的写法。
+    """
+    out = []
+    i, n = 0, len(src)
+    while i < n:
+        c = src[i]
+        nxt = src[i + 1] if i + 1 < n else ""
+        if c in _QUOTES:
+            q = c
+            out.append(c)
+            i += 1
+            while i < n:
+                if src[i] == "\\":
+                    out.append(src[i:i + 2])
+                    i += 2
+                    continue
+                out.append(src[i])
+                if src[i] == q:
+                    i += 1
+                    break
+                i += 1
+            continue
+        if c == "/" and nxt == "/":
+            # 只跳到行尾、不删换行 —— 保证后续**行号不变**（本仓对"行号参与判据"已有教训）
+            while i < n and src[i] != "\n":
+                i += 1
+            continue
+        if c == "/" and nxt == "*":
+            i += 2
+            while i + 1 < n and not (src[i] == "*" and src[i + 1] == "/"):
+                # 【块注释里的换行必须补出来】否则跨行块注释会让后续**行号整体前移**，
+                # 报错信息指向错行。本仓对"行号参与判据"已有教训
+                # （test_date_shift_blindspots_guard 里那批 legacy 行号键）。
+                if src[i] == "\n":
+                    out.append("\n")
+                i += 1
+            i += 2
+            continue
+        if c == "<" and src.startswith("<!--", i):
+            i += 4
+            while i < n and not src.startswith("-->", i):
+                i += 1
+            i += 3
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
 
 
 #: 前端**被许可的端点常量层**（阶段 5 / R5）。
@@ -333,7 +408,7 @@ SANCTIONED_FRONTEND_LAYER = "yunshu-ui/src/api/endpoints.ts"
 
 
 def collect_stray_frontend_literals():
-    """统计**常量层之外**的 \`/api\` 字面量**出现次数**（按文件聚合，非去重）。
+    """统计**常量层之外**的 /api 字面量**出现次数**（按文件聚合，非去重）。
 
     与 collect_frontend_literals 的区别：那个给的是"引用了多少个不同端点"（去重、供对拍），
     这个给的是"还有多少处需要收口"（计次、供进度与门禁）。
@@ -359,7 +434,7 @@ def collect_stray_frontend_literals():
                 txt = f.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            n = len(FRONTEND_LITERAL.findall(txt))
+            n = len(FRONTEND_LITERAL.findall(strip_comments(txt)))
             if n:
                 per_file[rel] = n
         out[label] = per_file
