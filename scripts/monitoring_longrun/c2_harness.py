@@ -44,6 +44,7 @@ SAMPLE_EVERY = 60
 FLIP_ON_AT = 300
 FLIP_OFF_AT = 1500
 LOG = C2 / "harness.log"
+_COLLISION_SEEN = set()   # 已告警过的「同键多序列」表达式（只记一次，避免刷屏）
 SAMPLES = C2 / "samples.jsonl"
 EVENTS = C2 / "events.jsonl"
 
@@ -98,6 +99,16 @@ def api(path, timeout=10.0):
 
 
 def query(expr):
+    """执行一次即时查询，返回 {键: 值}
+
+    【2026-10-03 修 · 字典键碰撞】第一版用 job/alertname/__name__ 做键，**同一查询返回多条序列时
+    后一条会静默覆盖前一条**。实测就是这样把 prometheus_tsdb_head_samples_appended_total
+    的真实值搞丢的：v2.51.0 上这条指标带 `type` 标签，一次查询给回 {type="float"}（真实累计值）
+    与 {type="histogram"}（本部署恒 0）两条，两条的 job 都是 "prometheus" ⇒ 后者覆盖前者
+    ⇒ 239/239 个样本恒 0，还被写进报告当成"指标有问题"。
+    现在：键仍优先用 job，但发现重复时**用其余标签区分**并记一条告警（不再静默覆盖）。
+    【更稳的写法】对这类指标直接查 sum(...)（见采样表里的 tsdb_samples_appended）。
+    """
     try:
         d = api("/api/v1/query?query=" + urllib.parse.quote(expr))
     except Exception:
@@ -108,6 +119,13 @@ def query(expr):
     for s in d["data"]["result"]:
         m = s["metric"]
         key = m.get("job") or m.get("alertname") or m.get("__name__") or "value"
+        if key in out:
+            extra = ",".join("%s=%s" % (k, v) for k, v in sorted(m.items())
+                             if k not in ("job", "__name__", "instance"))
+            key = "%s{%s}" % (key, extra) if extra else key + "#dup"
+            if expr not in _COLLISION_SEEN:
+                _COLLISION_SEEN.add(expr)
+                log("!! 该查询返回多条同键序列，已改用标签区分（避免静默覆盖）：%s" % expr)
         try:
             out[key] = float(s["value"][1])
         except Exception:
@@ -279,7 +297,9 @@ def main():
                 "up_5m_counts": query("count_over_time(up[5m])"),
                 "tsdb_head_series": query("prometheus_tsdb_head_series"),
                 "tsdb_head_chunks": query("prometheus_tsdb_head_chunks"),
-                "tsdb_samples_appended": query("prometheus_tsdb_head_samples_appended_total"),
+                # 【2026-10-03 修】用 sum() 收成一条序列：该指标带 `type` 标签（float/histogram），
+                #   直接查会返回两条且都会被 job 键折叠（详见 query() 的注释）。
+                "tsdb_samples_appended": query("sum(prometheus_tsdb_head_samples_appended_total)"),
                 "tsdb_blocks_bytes": query("prometheus_tsdb_storage_blocks_bytes"),
                 "wal_bytes": query("prometheus_tsdb_wal_storage_size_bytes"),
                 "probe": PROBE.gauge,

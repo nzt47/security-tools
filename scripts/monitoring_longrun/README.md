@@ -33,5 +33,11 @@ python scripts/monitoring_longrun/analyze.py                # 跑完复核原始
 
 1. **自动汇总很容易把 `{job: value}` 当标量** ⇒ TSDB 增量会全算成 +0（第一版报告就这样错了，
    已在 `analyze.py` 里改成先取标量再算差；报告里也留了更正记录）。
+3. **同一个查询会返回多条序列**：`prometheus_tsdb_head_samples_appended_total` 在 v2.51.0 上带
+   `type` 标签（`float` 真实值 / `histogram` 恒 0），一次查询两条序列的 `job` 都是
+   `prometheus` ⇒ 用 job 做字典键会**静默互相覆盖**（第一版就这样把 239/239 个样本记成了 0，
+   还被当成"指标有问题"写进报告）。`query()` 现已改为"同键则用其余标签区分 + 记一条告警"，
+   采样这类指标请直接写 `sum(...)`。
+
 2. **告警「消失」= resolved**：`/api/v1/alerts` 只返回**当前**活跃的告警；若不显式处理
    「上一轮有、这一轮没了」，就会漏掉所有 resolved 跃迁（第一版报告就漏了探针那条 resolved）。

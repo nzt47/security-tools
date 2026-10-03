@@ -77,7 +77,8 @@
 - **C-2**：监控栈**长跑 3.97 小时**——抓取无漂移无丢失、TSDB `+312 序列/小时` / `+0.60 MB/小时`、21 个告警 80 次跃迁（11 个走完 `pending→firing→resolved`）、规则求值无卡顿
 
 ### 遗留
-- `CircuitBreakerMetricsMissing` 一旦 firing **不再 resolved**（C-2 新发现）；`prometheus_tsdb_head_samples_appended_total` 恒 0 的成因（两项已开专项）
+- ~~`CircuitBreakerMetricsMissing` 一旦 firing 不再 resolved~~ → **2026-10-03 已闭环**：判定式根因是 `or` 的并集语义，已改 `and` + 新增 `promtool` 夹具（红转绿）；**埋点侧无条件发布状态序列**仍待立项（本部署连状态序列都不存在）
+- ~~`prometheus_tsdb_head_samples_appended_total` 恒 0~~ → **2026-10-03 已闭环**：不是指标有问题，是长跑脚本 `query()` 的**字典键碰撞**（该指标带 `type` 标签、两条序列塌成一个键，后写覆盖）；脚本已修
 - 死代码收口：SafeFileReader 的重复指标定义 / `utils/prometheus_exporter.py` 薄包装 / 孤儿 negative_intent 检测器 / 过期的 `SKILL_QUERY_PATTERN_ENABLED` 回滚指引（已开专项）
 - 月度容量外推**明确不做**（3.97 小时不足以支撑，报告里写了结论边界）
 
