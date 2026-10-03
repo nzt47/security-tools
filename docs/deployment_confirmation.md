@@ -5,6 +5,23 @@
 **版本**: v1.0  
 **状态**: ✅ 已批准上线
 
+> ⚠ **【2026-10-03 实测更正】** 本文是 2026-06-10 的上线确认书，**保留作历史记录**（不改结论、不删章节）。
+> 但其中的**告警、指标、备份、回滚**四类内容已被后续清理推翻，阅读时以本框为准：
+>
+> ① **9 条告警规则**（`monitoring/alerts_safe_file_reader.yml`）**已于 2026-10-02 整文件删除**。
+>    §2.3 表里的 4 条告警名（`SafeFileReaderConsecutiveParseFailures` / `…HighInvalidRatio` /
+>    `…EncodingFallback` / `…HistoryLoadEmpty`）**现于全仓告警规则中一处都不存在** ⇒ §2.3 的"4/4 通过"只是当时留痕。
+> ② **5 个指标仍注册但恒为 0**：SafeFileReader 在非测试代码里 **0 个调用方**（历史读取已改走
+>    `agent/jsonl_history.py` 的尾部窗口）⇒ §6.2 的指标表名**都对得上**（`live_metric_names.txt` 可查），
+>    但值恒为 0，**不能当作读取健康的证据**。
+> ③ **§四备份清单里的 5 个 `.bak_20260610_144932` 文件在本仓全部不存在**（实测零命中）⇒ §5 的回滚方案照抄无效；
+>    且 §3.2 第 5 行提到的 `utils/prometheus_exporter.py` **已于 2026-10-03 作为零引用死代码删除**。
+> ④ **现行唯一可用回滚是 git**：`git log --oneline -- <文件>` → `git revert <commit>`（或 `git checkout <good-commit> -- <文件>`）。
+>    `scripts/rollback.sh` 找不到 `.bak_*` 归档会**静默跳过并以退出码 0 结束**（看似成功、实际没恢复）。
+>
+> 证据与恢复路径：`docs/closeout/监控死规则与陈旧看板清理_20261002.md` §3、
+> `docs/closeout/死代码与过期运维指引收口_20261003.md` §2.1、`docs/closeout/过期运维指引收口_第二批_20261003.md`。
+
 ---
 
 ## 一、部署概述
@@ -60,7 +77,10 @@
 | SafeFileReaderEncodingFallback | info | 编码降级发生 | ✅ 正确触发 |
 | SafeFileReaderHistoryLoadEmpty | info | 历史加载为空 | ✅ 正确触发 |
 
-**告警验证通过率**: 4/4 = **100%**
+> ⚠ **【2026-10-03】上表 4 条告警规则现已全部不存在**（随 `monitoring/alerts_safe_file_reader.yml` 于 2026-10-02 删除，
+> `git grep -n 'SafeFileReader' monitoring/` 零命中）⇒ **"4/4 = 100%" 是 2026-06-10 当时的历史留痕，不是当前状态**。
+
+**告警验证通过率**: ~~4/4 = **100%**~~ ⚠ 对应规则已于 2026-10-02 删除
 
 ### 2.4 部署自动化验证
 
@@ -94,6 +114,9 @@
 
 ### 3.2 备份验证日志
 ```log
+# ⚠ 【2026-10-03 实测】以下 5 个 .bak_20260610_144932 备份文件在本仓**全部不存在**
+#   （Get-ChildItem -Recurse -Filter '*.bak*' 零命中）⇒ 这只是 2026-06-10 当时脚本的输出留痕。
+#   另：第 5 行的 utils/prometheus_exporter.py 已于 2026-10-03 作为零引用死代码删除。
 [2026-06-10 14:49:32] [SUCCESS] ✅ 已备份: app_server.py -> app_server.py.bak_20260610_144932
 [2026-06-10 14:49:32] [SUCCESS] ✅ 已备份: data/messages.jsonl -> data/messages.jsonl.bak_20260610_144932
 [2026-06-10 14:49:32] [SUCCESS] ✅ 已备份: utils/file_reader.py -> utils/file_reader.py.bak_20260610_144932
@@ -115,6 +138,9 @@
 
 ## 四、备份文件清单
 
+> ⚠ **【2026-10-03 实测】下表 5 个备份文件在本仓一个都不存在**（`Get-ChildItem -Recurse -Filter '*.bak*'` 零命中）。
+> 这是 2026-06-10 上线演练时的清单，**不可作为当前的回滚依据**；现行回滚走 git（见 §5.4）。
+
 | 文件类型 | 原文件路径 | 备份文件路径 | 备份时间 |
 |----------|------------|--------------|----------|
 | 应用代码 | `app_server.py` | `app_server.py.bak_20260610_144932` | 2026-06-10 14:49:32 |
@@ -131,13 +157,39 @@
 - Shell 版本: `scripts/rollback.sh`
 - PowerShell 版本: `scripts/rollback.ps1`
 
-### 5.2 回滚命令
-```bash
-# Linux/macOS
-./scripts/rollback.sh -t all
+### 5.2 回滚命令 ⚠ **【2026-10-03 实测：这两条当前不会恢复任何文件】**
 
-# Windows PowerShell
-.\scripts\rollback.ps1 -Target all
+> 脚本按 `find ... -name "<文件>.bak_*"` 找归档；本仓 `.bak_*` **零命中** ⇒ 找不到就**静默跳过**，
+> 最终**以退出码 0 结束**（"看起来成功、实际什么都没做"，比报错更危险）。留着它们只为对照历史。
+
+```bash
+# ⛔ 当前为 no-op（无 .bak_* 归档可回滚）：
+# ./scripts/rollback.sh -t all
+
+# ⛔ 同上：
+# .\scripts\rollback.ps1 -Target all
+
+# ✅ 现行可用方式（见 §5.4）：
+git log --oneline -20 -- app_server.py utils/file_reader.py data/messages.jsonl monitoring/alerts.yml
+git revert <bad-commit>
+```
+
+### 5.4 ✅ 【2026-10-03 新增】现行回滚方案（git）
+
+`scripts/rollback.sh` / `rollback.ps1` **仅在 `.bak_*` 归档存在时才有意义**，而本仓没有。
+当前唯一经核实可用的回滚路径是 git（唯一且完整的版本真相）：
+
+```bash
+# 1) 先定位
+git log --oneline -20 -- <文件>
+
+# 2) 回退（二选一）
+git revert <bad-commit>                  # 留痕式，推荐
+git checkout <good-commit> -- <文件>      # 只回退指定文件
+
+# 3) 重启并验证
+python app_server.py
+curl http://localhost:5678/health
 ```
 
 ### 5.3 回滚演练结果
@@ -152,6 +204,11 @@
 ---
 
 ## 六、监控指标确认
+
+> ⚠ **【2026-10-03 实测】下表 5 个指标名全部真实存在**（可在 `docs/closeout/监控清理_evidence_20261002/live_metric_names.txt`
+> 中逐条查到），但它们的**发射方 SafeFileReader 在非测试代码里 0 个调用方**（历史读取已改走
+> `agent/jsonl_history.py` 的尾部窗口）⇒ **5 个指标恒为 0**，`/metrics` 上只是 5 个空名字。
+> 不要用它们判断读取是否正常；判断历史读取请看服务日志的 `[历史加载]` 行与前端历史列表。
 
 ### 6.1 Prometheus 指标端点
 - URL: `http://localhost:5678/metrics`
@@ -203,7 +260,7 @@
 - [应急预案](file:///c:/Users/Administrator/agent/docs/emergency_plan.md)
 
 ### 8.2 相关脚本
-- [自动化部署脚本](file:///c:/Users/Administrator/agent/scripts/deploy_automation.py)
+- [自动化部署脚本](file:///c:/Users/Administrator/agent/scripts/deploy_automation.py)（⚠ 已标注"作废"，其断言依赖已删除的规则文件）
 - [回滚脚本 Shell](file:///c:/Users/Administrator/agent/scripts/rollback.sh)
 - [回滚脚本 PowerShell](file:///c:/Users/Administrator/agent/scripts/rollback.ps1)
 

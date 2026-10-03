@@ -4,6 +4,23 @@
 **版本**: v1.0  
 **状态**: ✅ 全部通过
 
+> ⚠ **【2026-10-03 实测更正】** 本文是 2026-06-10 的测试报告，**保留作历史记录**（说明"当时测过什么"）。
+> 但下列内容已被后续清理推翻，阅读时以本框为准：
+>
+> ① **§四整节引用的告警规则已全部不存在**：9 条规则所在的 `monitoring/alerts_safe_file_reader.yml`
+>    **已于 2026-10-02 整文件删除**（恒不触发）⇒ §4.2 表里的 `SafeFileReaderConsecutiveParseFailures`、
+>    `SafeFileReaderHighInvalidRatio`、`SafeFileReaderHistoryLoadEmpty`、`SafeFileReaderEncodingFallback`
+>    **在全仓告警规则中一处都查不到**（`git grep -n 'SafeFileReader' monitoring/` 零命中）。
+>    §4.2 的"✅ 触发"是 2026-06-10 手工验证的留痕，**不是当前状态**。
+> ② **§4.1 的值不会再出现**：表里 `errors_total=15` / `invalid_ratio=1.0` / `loaded_history_count=5` 这些数字，
+>    依赖 SafeFileReader 被真实调用；而它**在非测试代码里 0 个调用方**（历史读取已改走
+>    `agent/jsonl_history.py` 的尾部窗口）⇒ 现在这 5 个指标名仍在 `/metrics` 上，但**恒为 0**。
+> ③ **§7.1 修改文件清单里的两个文件已有变化**：`monitoring/alerts_safe_file_reader.yml`（删除）与
+>    `utils/prometheus_exporter.py`（**2026-10-03 作为零引用死代码删除**）**均已不在仓库中**。
+>
+> 指标名的存在性可逐条核对：`docs/closeout/监控清理_evidence_20261002/live_metric_names.txt`（实测 186 个）。
+> 证据与恢复路径：`docs/closeout/监控死规则与陈旧看板清理_20261002.md` §3、`docs/closeout/过期运维指引收口_第二批_20261003.md`。
+
 ---
 
 ## 一、测试概述
@@ -132,6 +149,9 @@
 
 ### 4.2 告警规则触发确认
 
+> ⚠ **【2026-10-03】下表 4 条规则现均已不存在**（随 `monitoring/alerts_safe_file_reader.yml` 于 2026-10-02 删除）。
+> 下表整体视为 **2026-06-10 的历史留痕**；当前不存在任何 SafeFileReader 告警规则。
+
 | 告警规则 | 触发条件 | 实际值 | 是否触发 | 严重级别 |
 |----------|----------|--------|----------|----------|
 | `SafeFileReaderConsecutiveParseFailures` | `json_parse_failed` > 10 (5m) | **15** | ✅ 触发 | critical |
@@ -186,6 +206,11 @@
 ## 七、代码审查
 
 ### 7.1 修改文件
+
+> ⚠ **【2026-10-03】下表最后两行的文件已不在仓库中**：
+> - `monitoring/alerts_safe_file_reader.yml` —— 2026-10-02 整文件删除（9 条规则恒不触发）
+> - `utils/prometheus_exporter.py` —— 2026-10-03 作为**零引用死代码**删除（全仓 0 个 import）
+> 前两行（`app_server.py` / `utils/file_reader.py`）仍存在，但 `utils/file_reader.py` 当前**无生产调用方**。
 | 文件 | 变更 | 行数 |
 |------|------|------|
 | `app_server.py` | 集成 SafeFileReader，替换直接加载逻辑 | +90 / -130 |
@@ -214,6 +239,11 @@
 | 异常监控 | ❌ 无 | ✅ Prometheus + 告警 |
 
 ### 8.2 建议
+
+> ⚠ **【2026-10-03】下面第 1 条已不可执行**："Prometheus 告警面板"里**不再有** `SafeFileReader*` 告警
+> （规则已于 2026-10-02 删除，面板恒空）⇒ 现在"没有告警"**不等于**"读取健康"，别把它当作通过判据。
+> 第 2 条里的 `json_parse_failed` 标签仍随 `yunshu_safe_file_reader_errors_total` 存在，但该计数器**恒为 0**，
+> 观察不到"持续增长"。
 1. 定期检查 Prometheus 告警面板，确认无 `SafeFileReader*` 告警
 2. 若 `json_parse_failed` 持续增长，检查 `data/messages.jsonl` 写入逻辑
 3. 建议为 `messages.jsonl` 添加写入前 JSON 校验，从源头防止损坏

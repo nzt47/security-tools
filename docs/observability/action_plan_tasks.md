@@ -77,7 +77,11 @@
 
 ### TASK-P1-002：修复敏感字段脱敏测试（6 个失败）
 
-- **失败文件：** [test_config_secure.py](file:///c:/Users/Administrator/agent/tests/unit/test_config_secure.py) 行 158-237 + [test_log_system_safe_logger.py](file:///c:/Users/Administrator/agent/tests/unit/test_log_system_safe_logger.py) 行 39, 52
+> ⚠ **【2026-10-03 实测】本节已不可执行**：`tests/unit/test_config_secure.py` **在仓库中不存在**
+> （随 `config_secure.py` 一起在 2026-07-19 的 P2 清理中删除，见 `docs/security/SECURITY_AUDIT_UPDATE_P2_COMPLETE_20260720.md:52`）
+> ⇒ 下面的 P1-002-a / P1-002-c 步骤与验证命令都会失败。本节保留作历史记录。
+
+- **失败文件：** ~~[test_config_secure.py](file:///c:/Users/Administrator/agent/tests/unit/test_config_secure.py)~~ ⚠ **该文件已删除**（行 158-237） + [test_log_system_safe_logger.py](file:///c:/Users/Administrator/agent/tests/unit/test_log_system_safe_logger.py) 行 39, 52
 - **生产代码：** [sensitive_data_filter.py](file:///c:/Users/Administrator/agent/agent/utils/sensitive_data_filter.py) 行 99
 - **根因：** 生产 `REDACTED_VALUE = "********"`（8 星），测试期望 `"***"`（3 星）
 
@@ -93,7 +97,8 @@
 
 - [ ] **P1-002-c**：运行验证
   ```bash
-  python -m pytest tests/unit/test_config_secure.py tests/unit/test_log_system_safe_logger.py -v --tb=short
+  # ⚠ 【2026-10-03】test_config_secure.py 已删除 ⇒ 该命令会报 "file or directory not found"，只跑后者：
+  python -m pytest tests/unit/test_log_system_safe_logger.py -v --tb=short
   ```
 
 ---

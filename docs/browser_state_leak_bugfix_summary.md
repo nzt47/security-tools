@@ -351,9 +351,16 @@ mock_proc.terminate.side_effect = psutil.TimeoutExpired("timeout")
 
 ### 7.1 单文件运行
 
+> ⚠ **【2026-10-03 实测】`tests/unit/test_system_tools_extreme_edge_cases.py` 在仓库中不存在**
+> （`Get-ChildItem -Recurse` 零命中）⇒ 下面这条命令照抄会失败。本文其余内容保留作历史记录。
+> 注意 7.2 的全量命令里还列了另外 7 个 `test_system_tools*.py`，也请先 `ls` 确认再跑。
+
 ```bash
 $env:PYTHONIOENCODING="utf-8"
-python -m pytest tests/unit/test_system_tools_extreme_edge_cases.py -p no:cacheprovider --no-header -v
+# ⛔ tests/unit/test_system_tools_extreme_edge_cases.py 已不存在：
+# python -m pytest tests/unit/test_system_tools_extreme_edge_cases.py -p no:cacheprovider --no-header -v
+# ✅ 先确认目标文件是否存在，再决定跑哪些：
+Get-ChildItem tests/unit/test_system_tools*.py | Select-Object -ExpandProperty Name
 ```
 
 **结果**: 37 个测试全部通过 ✅

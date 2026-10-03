@@ -5,6 +5,25 @@
 **版本**: v1.0  
 **状态**: ✅ 已生效
 
+> ⚠ **【2026-10-03 实测更正 · 照抄下面部分步骤会失败，请先读这段】**
+>
+> ① **本预案里所有 `cp ...bak_20260610_144932 ...` 手动回滚命令都不可用**：这些备份文件
+>    **在本仓并不存在**。实测 `git grep -n 'file_reader.py.bak'` 只命中**文档与脚本里的字符串**，
+>    `Get-ChildItem -Recurse -Filter '*.bak*'` **一个文件都没有**（详见
+>    `docs/closeout/过期运维指引收口_第二批_20261003.md` §1）。
+>    受影响的步骤：**A5（:67）、C4（:215-218）、C5（:234-236）**。
+> ② **`scripts/rollback.sh` / `rollback.ps1` 同样不会恢复任何文件**：它们按
+>    `find ... -name "xxx.bak_*"` 找归档，找不到就**静默跳过**（不是报错）⇒
+>    `./scripts/rollback.sh -t code` 会"正常退出但什么都没恢复"，比报错更容易骗过人。
+> ③ **正确的回滚是 git 层面的**（这也是本仓唯一的版本真相）：
+>    `git log --oneline -- <文件>` 找到变更点 → `git revert <commit>`（或
+>    `git checkout <good-commit> -- <文件>`）。清单见下方 §C2 与 §6.3。
+> ④ 告警 `SafeFileReaderHistoryLoadFailed` 等 4 条**已于 2026-10-02 随
+>    `monitoring/alerts_safe_file_reader.yml` 一起删除**（全仓已无该名字），B1 里"告警触发"这一条现象不再存在。
+>    原因与恢复路径：`docs/closeout/监控死规则与陈旧看板清理_20261002.md` §3。
+>
+> 本文**保留作历史记录**（2026-06-10 上线期文档），未做整篇删除；以下只把"照着做会失败"的步骤改为事实描述。
+
 ---
 
 ## 一、预案概述
@@ -60,11 +79,21 @@ cd C:\Users\Administrator\agent
 .\scripts\rollback.ps1 -Target code -NoRestart
 ```
 
-#### A5. 手动回滚方案（备用）
+#### A5. 手动回滚方案（备用）⚠ **本节命令已作废**
+
+> **【2026-10-03 实测】** 下面两条 `cp` 引用的备份文件**在本仓不存在**
+> （`Get-ChildItem -Recurse -Filter '*.bak*'` 零命中）⇒ **照抄会直接 `No such file or directory`**。
+> 正确的手动回滚是 git 层面：`git log --oneline -- app_server.py` 找到最后一个正常 commit，
+> 再 `git checkout <good-commit> -- app_server.py utils/file_reader.py`。
+
 ```bash
-# 如果回滚脚本失败，手动恢复
-cp app_server.py.bak_20260610_144932 app_server.py
-cp utils/file_reader.py.bak_20260610_144932 utils/file_reader.py
+# ⛔ 已作废（引用的备份文件不存在，执行会报 "No such file or directory"）：
+# cp app_server.py.bak_20260610_144932 app_server.py
+# cp utils/file_reader.py.bak_20260610_144932 utils/file_reader.py
+
+# ✅ 现行可用的手动回滚（git 是唯一的版本真相）：
+git log --oneline -10 -- app_server.py utils/file_reader.py   # 先找到目标 commit
+git checkout <good-commit> -- app_server.py utils/file_reader.py
 python app_server.py
 ```
 
@@ -75,7 +104,10 @@ python app_server.py
 #### B1. 故障现象
 - 用户历史对话列表为空
 - 历史文件损坏或不存在
-- 告警 `SafeFileReaderHistoryLoadFailed` 触发
+- ~~告警 `SafeFileReaderHistoryLoadFailed` 触发~~ ⚠ **【2026-10-03】该告警已不存在**：
+  它随 `monitoring/alerts_safe_file_reader.yml` 于 2026-10-02 一并删除（全仓 `git grep` 已无此名字，
+  见 `docs/closeout/监控死规则与陈旧看板清理_20261002.md` §3）⇒ **不要再等这条告警来发现历史丢失**，
+  改为看服务日志 `[历史加载]` 行与前端历史列表
 
 #### B2. 诊断步骤
 ```bash
@@ -97,8 +129,14 @@ with open('data/messages.jsonl', 'r') as f:
 # 3. 检查备份文件
 ls -la data/messages.jsonl.bak_*
 
-# 4. 检查告警状态
+# 4. 检查指标端点
+#    ⚠【2026-10-03】下面这 5 个 safe_file_reader 指标**仍然注册在 /metrics 上，但恒为 0**：
+#    发射方 SafeFileReader 在非测试代码里 0 个调用方（历史读取已改走 agent/jsonl_history.py 的尾部窗口）
+#    ⇒ 这条命令**查不出"历史是否丢失"**，只能证明指标端点活着。改用下面第 5 条。
 curl http://localhost:5678/metrics | grep safe_file_reader
+
+# 5. ✅ 真正能反映"历史是否读到"的证据（现行实现：尾部窗口读取）
+tail -100 logs/app_server.log | grep "历史加载"
 ```
 
 #### B3. 应急响应流程
@@ -106,8 +144,8 @@ curl http://localhost:5678/metrics | grep safe_file_reader
 | 步骤 | 操作 | 命令 | SLA |
 |------|------|------|-----|
 | 1 | 确认数据丢失 | 检查文件和告警 | 2分钟 |
-| 2 | 查找备份文件 | `ls data/*.bak_*` | 1分钟 |
-| 3 | 恢复备份文件 | `./scripts/rollback.sh -t data` | 5分钟 |
+| 2 | 查找备份文件 | ~~`ls data/*.bak_*`~~ ⚠ **【2026-10-03】本仓内 `data/*.bak_*` 零命中**，该步通常无结果 | 1分钟 |
+| 3 | 恢复备份文件 | ~~`./scripts/rollback.sh -t data`~~ ⚠ **不会恢复任何文件**（脚本 `find ... -name "messages.jsonl.bak_*"` 找不到就静默跳过）；改走 git：`git checkout <good-commit> -- data/messages.jsonl` | 5分钟 |
 | 4 | 重启服务 | `python app_server.py` | 3分钟 |
 | 5 | 验证历史恢复 | 检查前端历史列表 | 5分钟 |
 
@@ -122,14 +160,20 @@ curl http://localhost:5678/metrics | grep safe_file_reader
 .\scripts\rollback.ps1 -Target data
 ```
 
-#### B5. 手动恢复方案（备用）
-```bash
-# 如果回滚脚本失败，手动恢复数据
-# 1. 找到最新备份
-BACKUP_FILE=$(ls -t data/messages.jsonl.bak_* | head -1)
+#### B5. 手动恢复方案（备用）⚠ **前提通常不成立**
 
-# 2. 恢复文件
-cp $BACKUP_FILE data/messages.jsonl
+> **【2026-10-03 实测】** `data/messages.jsonl.bak_*` **在本仓零命中**（`Get-ChildItem -Recurse -Filter '*.bak*'`）⇒
+> 若你的环境里确实没有历史备份，本节第 1 步会得到空值、第 2 步会失败。先按下面的命令**判空**再决定走哪条路。
+
+```bash
+# 1. 找到最新备份（若输出为空 ⇒ 本节不可用，改走 git 恢复）
+BACKUP_FILE=$(ls -t data/messages.jsonl.bak_* 2>/dev/null | head -1)
+if [ -z "$BACKUP_FILE" ]; then
+  echo "无 .bak 备份 ⇒ 改用 git 回滚：git log --oneline -- data/messages.jsonl; git checkout <good-commit> -- data/messages.jsonl"
+else
+  # 2. 恢复文件
+  cp "$BACKUP_FILE" data/messages.jsonl
+fi
 
 # 3. 重启服务
 python app_server.py
@@ -179,7 +223,10 @@ def repair_history_file(file_path, backup_path):
 #### C2. 诊断步骤
 ```bash
 # 1. 检查备份文件完整性
-ls -la *.bak_* data/*.bak_* utils/*.bak_* monitoring/*.bak_*
+#    ⚠【2026-10-03 实测】本仓内以上四类 `.bak_*` **全部零命中** ⇒ 输出为空是「正常现状」，
+#    不是「C 类故障」。真正的版本真相在 git，改看：
+git log --oneline -10 -- app_server.py utils/file_reader.py data/messages.jsonl monitoring/alerts.yml
+git status --short        # 确认工作区没有被回滚脚本搅动
 
 # 2. 检查文件权限
 ls -la scripts/rollback.sh scripts/rollback.ps1
@@ -209,13 +256,19 @@ df -h
 pkill -9 -f app_server.py
 
 # 2. 查找备份文件
-ls -t *.bak_* | head -1
+#    ⚠【2026-10-03 实测】本仓内零命中，下面这条通常无输出：
+ls -t *.bak_* 2>/dev/null | head -1
 
 # 3. 手动恢复所有文件
-cp app_server.py.bak_20260610_144932 app_server.py
-cp utils/file_reader.py.bak_20260610_144932 utils/file_reader.py
-cp data/messages.jsonl.bak_20260610_144932 data/messages.jsonl
-cp monitoring/alerts.yml.bak_20260610_144932 monitoring/alerts.yml
+#    ⛔ 已作废：以下 4 个 .bak_20260610_144932 文件**在本仓不存在**，照抄会报 No such file or directory。
+# cp app_server.py.bak_20260610_144932 app_server.py
+# cp utils/file_reader.py.bak_20260610_144932 utils/file_reader.py
+# cp data/messages.jsonl.bak_20260610_144932 data/messages.jsonl
+# cp monitoring/alerts.yml.bak_20260610_144932 monitoring/alerts.yml
+#
+#    ✅ 现行做法：用 git 把四个文件回退到已知正常的 commit
+git log --oneline -10 -- app_server.py utils/file_reader.py data/messages.jsonl monitoring/alerts.yml
+git checkout <good-commit> -- app_server.py utils/file_reader.py data/messages.jsonl monitoring/alerts.yml
 
 # 4. 启动服务
 nohup python app_server.py > logs/app_server.log 2>&1 &
@@ -231,9 +284,13 @@ curl http://localhost:5678/health
 Stop-Process -Name python -Force
 
 # 2. 恢复文件
-Copy-Item "app_server.py.bak_20260610_144932" "app_server.py"
-Copy-Item "utils\file_reader.py.bak_20260610_144932" "utils\file_reader.py"
-Copy-Item "data\messages.jsonl.bak_20260610_144932" "data\messages.jsonl"
+# ⛔ 已作废：以下备份文件在本仓不存在（实测 Get-ChildItem -Recurse -Filter '*.bak*' 零命中），
+#    执行会报 Cannot find path。改用 git 回退：
+# Copy-Item "app_server.py.bak_20260610_144932" "app_server.py"
+# Copy-Item "utils\file_reader.py.bak_20260610_144932" "utils\file_reader.py"
+# Copy-Item "data\messages.jsonl.bak_20260610_144932" "data\messages.jsonl"
+git log --oneline -10 -- app_server.py utils/file_reader.py data/messages.jsonl
+git checkout <good-commit> -- app_server.py utils/file_reader.py data/messages.jsonl
 
 # 3. 启动服务
 Start-Process python -ArgumentList "app_server.py"
@@ -259,9 +316,14 @@ Invoke-WebRequest -Uri "http://localhost:5678/health"
 python -c "import yaml; yaml.safe_load(open('monitoring/alerts.yml'))"
 
 # 2. 检查规则名称
+#    ⚠【2026-10-03 实测】monitoring/alerts.yml 里**已经没有**任何 SafeFileReader 规则
+#    （grep 零命中）——那 9 条原本在 monitoring/alerts_safe_file_reader.yml，已于 2026-10-02 整文件删除。
+#    所以这条命令现在查不到东西是「预期结果」，不能据此判断告警配置坏了：
 grep -E "alert: SafeFileReader" monitoring/alerts.yml
 
 # 3. 恢复告警规则
+#    ⚠【2026-10-03 实测】./scripts/rollback.sh -t monitoring 不会恢复任何文件：
+#    它按 find -name "alerts.yml.bak_*" / "file_reader.py.bak_*" 找归档，本仓零命中 ⇒ 静默跳过。
 ./scripts/rollback.sh -t monitoring
 
 # 4. 重启 Prometheus
@@ -278,6 +340,11 @@ systemctl restart prometheus
 - Prometheus 无法抓取
 
 #### E2. 应急响应
+
+> ⚠ **【2026-10-03】** 下面第 1 条能查到 5 个 `safe_file_reader` 指标名，但它们**恒为 0**
+> （发射方 SafeFileReader 在非测试代码里 0 个调用方）⇒ 它们**不是**读取健康的证据，
+> 只能用来判断「指标端点是否活着」。判断历史读取是否正常请看服务日志的 `[历史加载]` 行。
+
 ```bash
 # 1. 检查指标端点
 curl http://localhost:5678/metrics | grep safe_file_reader
@@ -354,6 +421,27 @@ python app_server.py
 | 不重启 | `./rollback.sh -n` | `.\rollback.ps1 -NoRestart` |
 | 列备份 | `./rollback.sh -l` | `.\rollback.ps1 -List` |
 
+### 6.3 ⚠ **【2026-10-03 实测】上面这套回滚命令当前不会恢复任何文件**
+
+`scripts/rollback.sh` / `rollback.ps1` 的工作方式是 `find ... -name "<文件>.bak_*"` 找归档再覆盖回去。
+实测本仓 **`.bak_*` 归档零命中**（`Get-ChildItem -Recurse -Filter '*.bak*'` 无输出）⇒
+脚本会走到「找不到备份」分支并**静默跳过**，最终以退出码 0 结束，**看上去成功、实际什么都没做**。
+
+**当前唯一可用的回滚路径是 git**：
+
+```bash
+# 1) 找到要回退到的 commit
+git log --oneline -20 -- app_server.py utils/file_reader.py data/messages.jsonl monitoring/alerts.yml
+
+# 2) 回退（二选一）
+git revert <bad-commit>                       # 留痕式回滚（推荐）
+git checkout <good-commit> -- <文件>...        # 只回退指定文件
+
+# 3) 重启并验证
+python app_server.py
+curl http://localhost:5678/health
+```
+
 ---
 
 ## 七、演练记录
@@ -374,9 +462,14 @@ python app_server.py
 - [部署检查清单](file:///c:/Users/Administrator/agent/docs/deploy_checklist_safe_file_reader.md)
 
 ### 8.2 备份文件位置
-- **代码备份**: `*.bak_YYYYMMDD_HHMMSS`
-- **数据备份**: `data/*.bak_YYYYMMDD_HHMMSS`
-- **监控备份**: `monitoring/*.bak_YYYYMMDD_HHMMSS`
+
+> ⚠ **【2026-10-03 实测】以下三类备份在本仓目前全部不存在**（`Get-ChildItem -Recurse -Filter '*.bak*'` 零命中）。
+> 这些是 2026-06-10 上线演练期的产物，未随仓库保留；`.gitignore` 也未必收它们。
+> **不要依赖这些路径做恢复** —— 现行的版本真相在 git（见 §6.3）。
+
+- ~~**代码备份**: `*.bak_YYYYMMDD_HHMMSS`~~ ⚠ 本仓不存在
+- ~~**数据备份**: `data/*.bak_YYYYMMDD_HHMMSS`~~ ⚠ 本仓不存在
+- ~~**监控备份**: `monitoring/*.bak_YYYYMMDD_HHMMSS`~~ ⚠ 本仓不存在
 
 ---
 

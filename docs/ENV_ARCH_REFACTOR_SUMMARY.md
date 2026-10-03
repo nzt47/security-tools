@@ -369,7 +369,7 @@ configure_llm(provider, api_key, model, base_url)
 
 - [CHANGELOG_ENV_SINGLE_SOURCE_20260719.md](file:///c:/Users/Administrator/agent/docs/CHANGELOG_ENV_SINGLE_SOURCE_20260719.md) — 架构变更日志（详细技术细节）
 - [SECURITY_AUDIT_REPORT.md](file:///c:/Users/Administrator/agent/docs/security/SECURITY_AUDIT_REPORT.md) — 项目安全审计报告
-- [SECURITY_NOTICE_20260719_api_key_leak.md](file:///c:/Users/Administrator/agent/docs/security/SECURITY_NOTICE_20260719_api_key_leak.md) — API key 泄露事件通知
+- ~~[SECURITY_NOTICE_20260719_api_key_leak.md](file:///c:/Users/Administrator/agent/docs/security/SECURITY_NOTICE_20260719_api_key_leak.md)~~ ⚠ **【2026-10-03 实测】该文件不存在**：它含明文 API key，已于 BFG 清理中**有意从全部 git 历史删除**（见 `docs/BFG_CLEANUP_REPORT_20260719.md:91`）⇒ 链接永久失效，属预期结果
 - [secure_config_guide.md](file:///c:/Users/Administrator/agent/docs/security/secure_config_guide.md) — 安全配置指南
 - [security_coding_checklist.md](file:///c:/Users/Administrator/agent/docs/security/security_coding_checklist.md) — 安全编码检查清单
 

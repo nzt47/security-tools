@@ -4,6 +4,18 @@
 > 适用版本：commit `96697c7a` 及之后
 > 涉及文件：[`agent/memory/adapters/holographic_adapter.py`](../agent/memory/adapters/holographic_adapter.py)
 
+> ⚠ **【2026-10-03 实测更正 · 三个"照着跑"的命令不可用】** 本文里有 3 处 `python scripts/xxx.py` 命令，
+> 但对应文件**在仓库中都不存在**（已逐个 `Test-Path` 核实）：
+>
+> | 文中命令 | 出现位置 | 实测结果 |
+> |---|---|---|
+> | `python scripts/manual_migrate.py` | §4 运行、§5 检查 | ⚠ **文件不存在** —— 该脚本内容其实以**代码块**形式内联在本文里，需自行落盘后再跑 |
+> | `python scripts/verify_migration.py` | §9 运行、§10 Q4 | ⚠ **文件不存在** —— 同上，验证脚本也是内联代码块 |
+> | `python scripts/backfill_vectors.py` | §6 步骤 5 的提示语 | ⚠ **文件不存在**，回填向量需自行实现 |
+>
+> **真正存在的迁移入口**（实测）：`scripts/tlm_migrate_entrypoint.sh`、`scripts/migrate_to_sqlite_vec.py`。
+> 本文其余的表结构说明、降级契约与排查思路仍然有效，**保留作历史记录**。
+
 ---
 
 ## 1. 迁移概述

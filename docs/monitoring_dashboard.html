@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeFileReader 全链路监控大屏</title>
+    <title>SafeFileReader 全链路监控大屏（2026-06-10 静态快照 · 已过期）</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -184,6 +184,27 @@
     </style>
 </head>
 <body>
+    <!-- ================================================================
+         ⚠【2026-10-03 实测更正 · 本页面是静态快照，不要当实时看板用】
+
+         1) 本文件的数字（5 / 100% / 1ms / 各类错误计数 = 0）是 2026-06-10 的
+            **手工写死的静态值**，页面里没有任何 fetch / PromQL 查询 —— 它从来不是
+            活的 Grafana 面板，只是当期的一张截图式留痕。
+
+         2) 它引用的 5 个指标名真实存在，但**恒为 0**：
+            SafeFileReader（utils/file_reader.py）在非测试代码里 **0 个调用方**，
+            历史读取已改走 agent/jsonl_history.py 的尾部窗口。
+            指标名可逐条核对：docs/closeout/监控清理_evidence_20261002/live_metric_names.txt
+
+         3) 页面底部「活跃告警」区的 3 条告警（SafeFileReaderConsecutiveParseFailures /
+            SafeFileReaderHighInvalidRatio / SafeFileReaderEncodingFallback）**已全部不存在**：
+            它们所在的 monitoring/alerts_safe_file_reader.yml 已于 2026-10-02 整文件删除
+            （9 条规则恒不触发）⇒ 那块面板现在**恒空**。
+
+         ⇒ 结论：本页面保留作历史记录，**未重写**；如需现行看板请走 Grafana / Prometheus。
+         证据：docs/closeout/监控死规则与陈旧看板清理_20261002.md §3、
+               docs/closeout/过期运维指引收口_第二批_20261003.md
+         ================================================================ -->
     <div class="header">
         <h1>SafeFileReader 全链路监控大屏</h1>
         <div class="time" id="currentTime">2026-06-10 15:00:00 | 服务状态: 正常运行</div>
@@ -203,6 +224,8 @@
             <div class="panel-title">加载历史对话数</div>
             <div class="metric-value success" id="historyCount">5</div>
             <div class="metric-label">yunshu_safe_file_reader_loaded_history_count</div>
+            <!-- ⚠【2026-10-03】该指标恒为 0（SafeFileReader 无生产调用方）；上面这个 "5" 是 2026-06-10 的静态值 -->
+            <div class="metric-label" style="color:#ffcc00;">⚠ 恒为 0（无调用方）— 静态快照值</div>
         </div>
 
         <div class="panel">
@@ -266,6 +289,9 @@
         <!-- 告警面板 -->
         <div class="panel row-2">
             <div class="panel-title">活跃告警 (实时)</div>
+            <!-- ⚠【2026-10-03】下面 3 条告警名称已全部不存在：monitoring/alerts_safe_file_reader.yml
+                 已于 2026-10-02 整文件删除 ⇒ 本面板当前恒空。保留作历史快照。 -->
+            <div class="metric-label" style="color:#ffcc00;">⚠ 这 3 条告警规则已于 2026-10-02 删除，本区恒空</div>
             <div class="alert-list" id="alertList">
                 <div class="alert-item resolved">
                     <strong>[已恢复] SafeFileReaderConsecutiveParseFailures</strong>

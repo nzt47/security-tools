@@ -609,6 +609,17 @@ yunshu_safe_file_reader_errors_total = _safe_counter(
     ['error_type', 'file_path']
 )
 
+# 【2026-10-03 实测 · 口径差异记录，本轮只加注释不改代码】
+#   本 Counter 只有 1 个标签 (file_path,)，而 utils/file_reader.py:90 的同名 Counter 声明了 3 个
+#   标签 (from_encoding, to_encoding, file_path) ⇒ 两处标签集合不一致。
+#   · 谁先注册谁说了算：app_server 装配期 app_server.py:1557 import routes_logging → 本模块先注册，
+#     本行成为 /metrics 上生效的定义（实测 REGISTRY._names_to_collectors[...]._labelnames == ('file_path',)）。
+#   · 后果：file_reader.py:135 的 3 标签 .labels() 抛 ValueError，被其 except 静默吞掉
+#     ⇒ 编码降级事件不计入指标（该指标恒为 0）。
+#   · 反向顺序（先 import utils.file_reader）会让本文件的 record_encoding_fallback(file_path)
+#     抛 ValueError（实测确认）——即**改哪个定义都会让另一方失效**。
+#   · 本轮不改的理由：SafeFileReader 在非测试代码里 0 个调用方（见上方 542-556 的说明），
+#     这条记录路径线上永不执行；统一标签需同时改两处定义，属独立立项。
 yunshu_safe_file_reader_encoding_fallbacks_total = _safe_counter(
     'yunshu_safe_file_reader_encoding_fallbacks_total',
     'SafeFileReader 编码降级次数',

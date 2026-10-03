@@ -209,7 +209,16 @@ sqlite3 data/memory/holographic.db "SELECT COUNT(*) FROM memories_vec_failed;"
 sqlite3 data/memory/holographic.db "DROP TABLE memories_vec;"
 # 重启服务，_init_vec_table 重建空表
 # 触发兜底表重放
-python scripts/replay_vec_failed.py --all
+# ⚠ 【2026-10-03 实测】原命令 python scripts/replay_vec_failed.py --all **不可用**：
+#    scripts/ 下没有 replay_vec_failed.py（全仓 Get-ChildItem -Filter "*replay*" 零命中）⇒ 照抄会报
+#    "can't open file ... No such file or directory"。
+#    真正的实现是 HolographicAdapter 的方法（agent/memory/adapters/holographic_adapter.py:885，
+#    签名 replay_vec_failed(self, max_items: int = 100) -> int），本文件 §根因 4 用的就是这个写法：
+python -c "
+from agent.memory.adapters.holographic_adapter import HolographicAdapter
+a = HolographicAdapter('data/memory/holographic.db')
+a.replay_vec_failed(max_items=100000)   # --all 的等价写法：给足够大的上限
+"
 ```
 
 ---
@@ -338,7 +347,9 @@ print(f'检索结果: {len(r)} 条')
 
 ```bash
 # 每日：cron 触发兜底表重放（添加到 crontab）
-0 3 * * * cd /path/to/agent && python scripts/replay_vec_failed.py --max-items 1000
+# ⚠ 【2026-10-03 实测】原 cron 用的 python scripts/replay_vec_failed.py --max-items 1000 **不可用**
+#    （该脚本不存在，见上）；改用 HolographicAdapter 的同一方法：
+0 3 * * * cd /path/to/agent && python -c "from agent.memory.adapters.holographic_adapter import HolographicAdapter as H; H('data/memory/holographic.db').replay_vec_failed(max_items=1000)"
 
 # 每周：数据库完整性检查
 0 5 * * 0 sqlite3 data/memory/holographic.db "PRAGMA integrity_check;" >> logs/integrity.log

@@ -361,5 +361,5 @@ v2-m3 模型加载成功，但 CPU 推理性能严重不达标：
 |------|------|
 | [agent/skills_mgmt/reranker.py](file:///c:/Users/Administrator/agent/agent/skills_mgmt/reranker.py) | Reranker 模块 |
 | [tests/unit/test_reranker.py](file:///c:/Users/Administrator/agent/tests/unit/test_reranker.py) | TDD 单元测试 |
-| [scripts/verify_v65_reranker_model.py](file:///c:/Users/Administrator/agent/scripts/verify_v65_reranker_model.py) | 模型加载验证 |
+| ~~[scripts/verify_v65_reranker_model.py](file:///c:/Users/Administrator/agent/scripts/verify_v65_reranker_model.py)~~ ⚠ **【2026-10-03 实测】该脚本不存在**（`scripts/` 下无此文件）⇒ 链接失效，勿据此复跑 | 模型加载验证 |
 | [docs/RETRIEVAL_UPGRADE_V6_5_RERANKER_PLAN.md](file:///c:/Users/Administrator/agent/docs/RETRIEVAL_UPGRADE_V6_5_RERANKER_PLAN.md) | v6.5 实现计划 |

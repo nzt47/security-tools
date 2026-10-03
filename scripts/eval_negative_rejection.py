@@ -143,8 +143,14 @@ def main(argv: List[str] = None) -> int:
     args = parser.parse_args(argv)
 
     # 设置环境变量
+    #
+    # 【2026-10-03 修 · 曾经是无效写法】原写作 SKILL_RERANK_MIN_SCORE，**全仓没有任何代码读这个名字**
+    #   （真名是 SKILL_RERANKER_MIN_SCORE：agent/skills_mgmt/reranker.py:156 读取、
+    #    agent/settings/registry.py:1520 登记）⇒ 原来 --rerank-min-score 参数**根本没生效**，
+    #    评估一直跑的是默认阈值 0.001。
+    # 【变易】改对之后本脚本的拒绝率/保留率数值会**变化** —— 那才是该阈值真实生效的结果。
     import os
-    os.environ["SKILL_RERANK_MIN_SCORE"] = str(args.rerank_min_score)
+    os.environ["SKILL_RERANKER_MIN_SCORE"] = str(args.rerank_min_score)
     os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
     os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 

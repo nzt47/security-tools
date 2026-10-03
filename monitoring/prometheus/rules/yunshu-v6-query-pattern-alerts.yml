@@ -19,7 +19,9 @@
 # 日志来源（ELK/Loki 查询）:
 #   action="match.query_pattern.rejected"  (loader.py L306)
 #   action="match.rrf_fallback_to_tfidf"   (loader.py L411)
-#   action="match.extension_not_implemented" (loader.py L472)
+#   action="match.rrf_fallback_to_tfidf"(loader.py:835) / "match.vector_fallback_to_tfidf"(loader.py:875) / "match.reranker_not_applied"(loader.py:883)
+#   【2026-10-03 更正】原文写的 action="match.extension_not_implemented" **在现行代码中不存在**
+#     （只剩 loader.py:838 一句注释），照它 grep 永远查不到东西。
 #
 # 验证命令:
 #   promtool check rules yunshu-v6-query-pattern-alerts.yml
@@ -59,7 +61,8 @@ groups:
           severity: warning
           level: P1
           team: skills_mgmt
-          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+          # 【2026-10-03 更正】原指向 docs/V6_MONITORING_CONFIG_CHECKLIST.md，**该文件不存在**（docs/ 下无此文件）
+          runbook: docs/V6_OPS_RUNBOOK.md
         annotations:
           summary: "v6 RRF 降级次数激增（基线 200%+）"
           description: |
@@ -92,13 +95,15 @@ groups:
           severity: info
           level: P2
           team: skills_mgmt
-          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+          # 【2026-10-03 更正】同上：原 runbook 指向的文件不存在
+          runbook: docs/V6_OPS_RUNBOOK.md
         annotations:
-          summary: "v6 extension_not_implemented 频繁（>10 次/分钟）"
+          summary: "v6 检索降级频繁（>10 次/分钟）"
           description: |
             调用方可能误传 use_vector/use_reranker=True 但未传 fusion_mode。
             排查:
-              kubectl logs -n yunshu <pod> | grep "match.extension_not_implemented" | jq -r '.intent' | head -20
+              # 【2026-10-03 更正】原来 grep 的 action 在现行代码中不存在（见文件头"日志来源"）
+              kubectl logs -n yunshu <pod> | grep -E "match\.(rrf_fallback_to_tfidf|vector_fallback_to_tfidf|reranker_not_applied)" | jq -r '.intent' | head -20
 
 
   # ── 【2026-10-02 · 交付报告 §10 A-2/A-3】整组 yunshu_v62_negative_intent_alerts（5 条）已**删除** ──

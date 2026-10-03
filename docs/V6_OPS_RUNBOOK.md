@@ -26,7 +26,8 @@ v6 在 RRF/reranker **之前**增加正则规则匹配，命中非技能意图�
 | 配置项 | 默认值 | 说明 | 修改方式 |
 |--------|--------|------|----------|
 | ~~`SKILL_QUERY_PATTERN_ENABLED`~~ | — | ⚠ **不存在**：生产代码从未读它（见文首更正）⇒ 写进 .env 无任何效果 | — |
-| `SKILL_RERANK_MIN_SCORE` | `0.001` | rerank 阈值（v5.1 固化）| 环境变量 |
+| ~~`SKILL_RERANK_MIN_SCORE`~~ | — | ⚠ **【2026-10-03 实测】该名字不存在**：全仓无任何读取方（`git grep -n SKILL_RERANK_MIN_SCORE` 只命中文档与 `scripts/eval_negative_rejection.py:147` 的写入）。写进 .env 无任何效果 | — |
+| `SKILL_RERANKER_MIN_SCORE` | `0.001` | **真正生效的** rerank 阈值（v5.1 已固化为代码默认值）| 环境变量 |
 
 **修改配置原则**: 所有配置通过 `.env` 文件修改，其他文件通过环境变量引用（守【不易】）。
 
@@ -51,7 +52,10 @@ python scripts/eval_negative_rejection.py --rerank-min-score 0.001
 # ⚠ 【2026-10-03】SKILL_QUERY_PATTERN_ENABLED 在生产代码里不存在（无消费方）：
 #    下面这行只会回显空值，**不能当作"v6 已启用"的证据**，也不影响任何行为，故注释掉。
 # echo $SKILL_QUERY_PATTERN_ENABLED
-echo $SKILL_RERANK_MIN_SCORE         # 应为空（默认 0.001）或 0.001
+# ⚠ 【2026-10-03 实测】原写的是 SKILL_RERANK_MIN_SCORE —— **该名字在代码里无读取方**，
+#    回显空值不代表"默认生效"。真正被读的是 SKILL_RERANKER_MIN_SCORE
+#    （定义处 agent/skills_mgmt/reranker.py:155-157；settings 登记处 agent/settings/registry.py:1520）：
+echo $SKILL_RERANKER_MIN_SCORE       # 应为空（默认 0.001）或 0.001
 ```
 
 ---
@@ -80,7 +84,10 @@ cat >> .env <<'EOF'
 #   将来若恢复 v6.1 意图层并真的接线该开关，再把 SKILL_QUERY_PATTERN_ENABLED=true 加回来。
 
 # rerank 阈值（v5.1 固化，0.001 为最优）
-SKILL_RERANK_MIN_SCORE=0.001
+# ⚠ 【2026-10-03 实测更正】原写 SKILL_RERANK_MIN_SCORE —— 该名字无任何读取方，写了不生效。
+#   真正生效的名字是 SKILL_RERANKER_MIN_SCORE（reranker.py:155-157 读取，默认已是 0.001）：
+# SKILL_RERANK_MIN_SCORE=0.001      # ⛔ 无效名字，已注释
+SKILL_RERANKER_MIN_SCORE=0.001
 EOF
 
 # 重启服务使配置生效
@@ -228,8 +235,18 @@ python scripts/eval_rrf_fusion.py --only rrf_rerank --top-k 3
 kubectl exec -n yunshu deployment/yunshu -- env | grep SKILLS_
 
 # 2. 检查调用方是否传 use_reranker=True 且 use_vector=True
-kubectl logs -n yunshu deployment/yunshu | grep "match.extension_not_implemented"
-# 若有 warning，说明调用方未正确传参
+# ⚠ 【2026-10-03 实测更正】原第 2 条查的 match.extension_not_implemented **在现行代码中不存在**：
+#    agent/skills_mgmt/loader.py 里它只出现在 :838 的一句注释中（说明该 action 属于 v6.1 时代
+#    已被删除的分支），全仓其余命中都在 docs/refactor_archive/ 与 tests/eval/*.log 历史日志里。
+#    ⇒ 这条 grep **永远不会有输出**，用它排查等于白查。
+#    现行真实可查的替代 action（2026-10-03 在 loader.py 里逐条核实）：
+#      · match.reranker_not_applied        loader.py:883  ← 与本节场景最对应：调用方传了 use_reranker=True
+#                                                          但 use_vector=False 时记录，reason="reranker requires use_vector=True"
+#      · match.rrf_fallback_to_tfidf       loader.py:835  ← RRF 融合失败降级 TF-IDF 单路
+#      · match.vector_fallback_to_tfidf    loader.py:875  ← 向量腿不可用降级 TF-IDF
+kubectl logs -n yunshu deployment/yunshu | grep -E "match.reranker_not_applied|match.rrf_fallback_to_tfidf|match.vector_fallback_to_tfidf"
+# 若有 warning，说明调用方未正确传参（这三条降级同时会打指标 yunshu_skill_match_fallback_total）
+kubectl logs -n yunshu deployment/yunshu | grep "match.reranker_not_applied" | jq -r '.reason' | head -5
 ```
 
 ### Q2: 某类别命中率为 0？
@@ -237,8 +254,14 @@ kubectl logs -n yunshu deployment/yunshu | grep "match.extension_not_implemented
 **排查**:
 ```bash
 # 检查该类别的正则是否被误删
+# ⚠ 【2026-10-03 实测】loader.py 里现在**没有类别正则表**，也没有 _QUERY_PATTERNS / _match_query_pattern：
+#    该变量在 2026-10-03 的检索时点全仓零命中（agent/ 下只有 orchestrator/message_handler.py 的
+#    SIMPLE_QUERY_PATTERNS，与 v6 无关）；v6 的 query_pattern 层本身已经不在了。
+#    ⇒ 下面这条 grep 只会捞到日志里出现的 "category" 字样，查不出"某类别正则被误删"。
 grep "category" agent/skills_mgmt/loader.py | head -10
-# 应看到 keyword_trap/translation/creative/math/similar 5 类
+# 现行对应能力：正则意图层已移除，改用 RRF 融合 + quality gate（rrf.quality_gate.* 日志）与
+# （若已接线）negative_intent 语义拒绝层。查这些动作：
+kubectl logs -n yunshu deployment/yunshu | grep -E "rrf.quality_gate|negative_intent"
 ```
 
 ### Q3: 正样本 P@3 下降？
@@ -246,16 +269,28 @@ grep "category" agent/skills_mgmt/loader.py | head -10
 **立即回滚**（⚠ 【2026-10-03 更正】原来的 `export SKILL_QUERY_PATTERN_ENABLED=false` **无效**：
 该环境变量在生产代码里不存在，敲了不会有任何效果）:
 ```bash
-# 正确做法二选一：① 注释掉误伤的那条规则行（loader.py 的 _QUERY_PATTERNS）；② git revert 整个 v6 commit
-# 然后排查误伤:
-grep "match.query_pattern.rejected" /var/log/agent/loader.log | \
+# 正确做法：git revert 整个 v6 commit（见 §7.2）。
+# ⚠ 【2026-10-03 实测】原来并列的"① 注释掉 loader.py 的 _QUERY_PATTERNS 里误伤的规则行"**已不可执行**：
+#    该变量/正则表在当前 loader.py 中**不存在**（见 Q2），无从注释。
+# 然后排查误伤（注意：match.query_pattern.rejected 这个 action 同样已不存在，见 Q1 的说明）:
+grep -E "match.reranker_not_applied|match.rrf_fallback_to_tfidf" /var/log/agent/loader.log | \
   jq -r '.intent' | head -100
 ```
 
 ### Q4: 如何临时禁用某个类别？
 
 **注释规则行**（单行回滚）:
+
+> ⛔ **【2026-10-03 实测：本节已不可执行】** 下面注释所指的 `agent/skills_mgmt/loader.py` 里的
+> `_QUERY_PATTERNS`（正则类别表）**在当前代码中不存在** —— 全仓 `git grep -n "_QUERY_PATTERNS"` 只命中
+> `agent/orchestrator/message_handler.py` 的同名无关常量 `SIMPLE_QUERY_PATTERNS`。
+> v6.1 的 query_pattern 层与其正则表已随重构移除 ⇒ **没有"某个类别的正则行"可以注释**。
+> 要按粒度禁用某类意图，现行可用的只有：① 调 `SKILL_RERANKER_MIN_SCORE`（**不是** `SKILL_RERANK_MIN_SCORE`，后者不存在）/ `SKILLS_FUSION_*` 等
+> **真实存在**的旋钮（见 §2）；② 若 negative_intent 语义层已接线，调其阈值。
+> 恢复 v6.1 意图层属独立立项，见 `docs/QUERY_PATTERN_OPTIMIZATION_PLAN_20260723.md`。
+
 ```python
+# ⛔ 已作废：_QUERY_PATTERNS 在当前 loader.py 中不存在，以下写法无从下手
 # 在 agent/skills_mgmt/loader.py 的 _QUERY_PATTERNS 中
 # 注释掉对应类别的正则行即可
 # 例如禁用 similar:
@@ -284,9 +319,16 @@ v6.2 在 v6.1 正则规则未命中后，用 BGE-m3 embedding 与 10 类非技�
 
 ### 10.2 v6.2 关键配置
 
+> ⚠ **【2026-10-03 实测 · 本节的开关一律不生效，别照抄】**
+> `SKILL_NEGATIVE_INTENT_ENABLED` 的唯一读取方是 `agent/skills_mgmt/negative_intent_detector.py`（:292 / :370），
+> 而该模块**在本仓没有任何生产调用方**（loader 里的懒加载钩子随 commit `1159d88f` 被主动删除；
+> 依赖它的 5 条告警规则也已在 2026-10-02 整组删除）⇒ **设这个变量、或执行 §10.4/§10.5 里的 `env-set` 回滚命令，
+> 都不会有任何效果** —— 属"过期运维指引"。恢复路径见该模块文件头（先接线、再补开关读取）。
+> 下面保留原文作历史记录，请勿据此操作。
+
 | 配置项 | 默认值 | 推荐值 | 说明 | 修改方式 |
 |--------|--------|--------|------|----------|
-| `SKILL_NEGATIVE_INTENT_ENABLED` | `true` | `true` | v6.2 总开关 | 环境变量 |
+| `SKILL_NEGATIVE_INTENT_ENABLED` | `true` | ~~`true`~~（**无读取方，设了无效**） | v6.2 总开关 | 环境变量（当前无效） |
 | `SKILL_NEGATIVE_INTENT_THRESHOLD` | `0.75` | **`0.71`** | 相似度阈值（校准后采用 0.71）| 环境变量 |
 
 **配置原则**：所有配置通过 `.env` 文件修改（守【不易】）。
@@ -362,7 +404,7 @@ kubectl apply -f monitoring/prometheus/rules/yunshu-v6-query-pattern-alerts.yml
 
 ```bash
 # 仅禁 v6.2 embedding 层，v6.1 规则层与 RRF+Reranker 不受影响
-kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false
+kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false   # ⚠ 无生产读取方 ⇒ 不生效（见 §10.2 顶注）
 # 或在 .env 中
 echo "SKILL_NEGATIVE_INTENT_ENABLED=false" >> .env && systemctl restart yunshu-agent
 ```
@@ -396,7 +438,7 @@ kubectl logs -n yunshu <pod> | jq 'select(.module_name=="negative_intent_detecto
 **紧急处理**：
 ```bash
 # 1. 立即禁用 v6.2
-kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false
+kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false   # ⚠ 无生产读取方 ⇒ 不生效（见 §10.2 顶注）
 
 # 2. 检查误伤样本
 kubectl logs -n yunshu <pod> | jq 'select(.action=="detect.rejected") | .intent' | head -100
@@ -416,7 +458,7 @@ kubectl logs -n yunshu <pod> | jq 'select(.action=="detect.rejected") | .duratio
 kubectl top pod -n yunshu
 
 # 若 CPU 不足，临时禁用 v6.2
-kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false
+kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false   # ⚠ 无生产读取方 ⇒ 不生效（见 §10.2 顶注）
 ```
 
 ### 10.7 v6.2 监控指标
@@ -434,11 +476,11 @@ kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false
 
 | 文档 | 用途 |
 |------|------|
-| [V6_MONITORING_CONFIG_CHECKLIST.md](file:///c:/Users/Administrator/agent/docs/V6_MONITORING_CONFIG_CHECKLIST.md) | 完整监控指标清单（10 章） |
+| ~~[V6_MONITORING_CONFIG_CHECKLIST.md](file:///c:/Users/Administrator/agent/docs/V6_MONITORING_CONFIG_CHECKLIST.md)~~ ⚠ **【2026-10-03 实测】该文件不存在**（`docs/` 下无此文件）| — |
 | [RETRIEVAL_UPGRADE_V6_REPORT_20260723.md](file:///c:/Users/Administrator/agent/docs/RETRIEVAL_UPGRADE_V6_REPORT_20260723.md) | v6 技术报告（11 章） |
 | [RETRIEVAL_UPGRADE_V6_1_REPORT.md](file:///c:/Users/Administrator/agent/docs/RETRIEVAL_UPGRADE_V6_1_REPORT.md) | v6.1 booking 规则评估报告 |
 | [RETRIEVAL_UPGRADE_V6_2_REPORT.md](file:///c:/Users/Administrator/agent/docs/RETRIEVAL_UPGRADE_V6_2_REPORT.md) | v6.2 语义拒绝层评估报告 |
-| [QUERY_PATTERN_V61_BOOKING_VALIDATION_PLAN.md](file:///c:/Users/Administrator/agent/docs/QUERY_PATTERN_V61_BOOKING_VALIDATION_PLAN.md) | v6.1 booking 规则验证方案 |
+| ~~[QUERY_PATTERN_V61_BOOKING_VALIDATION_PLAN.md](file:///c:/Users/Administrator/agent/docs/QUERY_PATTERN_V61_BOOKING_VALIDATION_PLAN.md)~~ ⚠ **【2026-10-03 实测】该文件不存在**；对应脚本 `scripts/verify_v61_booking_rule.py` 仍在 | — |
 | [v6.2_query_intent_generalization_plan.md](file:///c:/Users/Administrator/agent/.trae/documents/v6.2_query_intent_generalization_plan.md) | v6.2 实施计划 |
 | [yunshu-v6-query-pattern-alerts.yml](file:///c:/Users/Administrator/agent/monitoring/prometheus/rules/yunshu-v6-query-pattern-alerts.yml) | Prometheus 告警规则（含 v6.2 增量） |
 

@@ -41,9 +41,27 @@
 # ③ 本文件内联的 5 个指标（见下 52-81 行，自带 prometheus_client 缺失时的 noop 降级）
 #    **自成一套**，与 agent/monitoring/prometheus.py:596-660 的同名定义互不冲突
 #    （两边都走"重复注册则复用 REGISTRY 里已有实例"）。
-#    ⚠ 已知不一致（本次不修，避免动到无调用方的东西）：本文件 _metrics_fallbacks 的标签是
-#    ['from_encoding','to_encoding','file_path']，而 prometheus.py:602 的同名 Counter 只有
-#    ['file_path'] —— 谁先注册谁说了算，本文件用 try/except 吞掉标签数不符。
+#    ⚠ 已知不一致（本次仍不修，理由见下）：本文件 _metrics_fallbacks 的标签是
+#    ['from_encoding','to_encoding','file_path']，而 prometheus.py:612 的同名 Counter 只有
+#    ['file_path']。
+#
+#    【2026-10-03 实测：这不是"文档层面的口径差异"，而是一个**已存在的静默失效**，但故意不改】
+#    · 机制：prometheus_client 对同名指标只允许注册一次。app_server 装配期先 import
+#      agent.server_routes.routes_logging（app_server.py:1557）→ 它 import agent.monitoring.prometheus
+#      → prometheus.py:612 先注册，**标签固定为 (file_path,)**。
+#      本文件的 _safe_metric() 随后触发 ValueError，走 _REG._names_to_collectors 复用**同一个** collector
+#      （实测：两处拿到的是同一个对象，_labelnames 均为 ('file_path',)，见下表）。
+#    · 后果：本文件 :135 的 .labels(from_encoding=…, to_encoding=…, file_path=…) 会抛
+#      ValueError("Incorrect label names")，被 :136 的 except 静默吞掉 ⇒
+#      **编码降级事件不会体现在该指标上**（指标值保持 0）。
+#    · 反向同理：若先 import 本文件，registry 标签变成 3 个，prometheus.py:655 的
+#      record_encoding_fallback(file_path) 反而会抛异常（实测确认）。
+#    · 实测命令（两种导入顺序各跑一次）：python -c "..." 见
+#      docs/closeout/过期运维指引收口_第二批_20261003.md §4 —— 结论：
+#        app_server 装配序 → REGISTRY labelnames = ('file_path',)；3 标签 .labels() RAISED ValueError
+#    · **为什么不改**：SafeFileReader 在本仓**无任何生产调用方**（见本段 ①），这条路径线上永不执行；
+#      改它收益为 0，而"统一标签"要同时动本文件与 prometheus.py 两处定义（后者有生产 import，见
+#      prometheus.py:546-555），属独立立项。此处只记录事实，零代码改动。
 #
 # ④ 恢复接线时的参考位置（按顺序读）：
 #    - 先读现行实现：agent/jsonl_history.py（确认"整文件读取 + 编码降级"是否真是你要的语义）
@@ -87,6 +105,11 @@ try:
     )
 
     # 编码降级计数器
+    # 【2026-10-03 实测】下面这 3 个标签**在 app_server 装配序下拿不到**：
+    #   prometheus.py:612 的同名 Counter 先注册且只有 (file_path,)，_safe_metric() 命中 ValueError 后
+    #   复用其 collector ⇒ 本对象实际 _labelnames = ('file_path',)，:135 的 3 标签 .labels() 会抛
+    #   ValueError 并被 :136 静默吞掉（编码降级不计入指标）。本模块无生产调用方，故**只记录不改**。
+    #   详见文件头 ③ 与 docs/closeout/过期运维指引收口_第二批_20261003.md §4。
     _metrics_fallbacks = _safe_metric(
         Counter, 'yunshu_safe_file_reader_encoding_fallbacks_total',
         'SafeFileReader 编码降级次数', ['from_encoding', 'to_encoding', 'file_path'],
@@ -129,7 +152,12 @@ def _record_error(error_type: str, file_path: str):
 
 
 def _record_fallback(from_enc: str, to_enc: str, file_path: str):
-    """记录编码降级指标"""
+    """记录编码降级指标
+
+    ⚠【2026-10-03 实测】在 app_server 装配序下，_metrics_fallbacks 被 prometheus.py:612 抢先注册为
+    单标签 (file_path,)，下面的 3 标签 .labels() 会抛 ValueError 并被 except 静默吞掉
+    ⇒ 编码降级不会体现在指标上。本模块无生产调用方，故**只记录不改**（见文件头 ③）。
+    """
     if _metrics_fallbacks:
         try:
             _metrics_fallbacks.labels(from_encoding=from_enc, to_encoding=to_enc, file_path=file_path).inc()

@@ -15,10 +15,18 @@
 
 ### 1.1 Prometheus 指标列表
 
+> ⚠ **【2026-10-03 实测】** 下表 5 个指标名**真实存在**（`live_metric_names.txt` 可逐条核对），但：
+> ① 它们**全部恒为 0**（SafeFileReader 在非测试代码里 0 个调用方）；
+> ② 第 2 行 `yunshu_safe_file_reader_encoding_fallbacks_total` 的标签列表**与线上生效值不符**：
+>    本表写的是 3 标签，但 `/metrics` 上实际生效的是 `(file_path,)` 单标签 —— 因为
+>    `agent/monitoring/prometheus.py` 的同名 Counter 先注册且只有 1 个标签（详见
+>    `docs/closeout/过期运维指引收口_第二批_20261003.md` §4）。
+> ③ 本文描述的 9 条告警规则已随 `monitoring/alerts_safe_file_reader.yml` 于 2026-10-02 删除。
+
 | 指标名称 | 类型 | 标签 | 说明 |
 |----------|------|------|------|
 | `yunshu_safe_file_reader_errors_total` | Counter | `error_type`, `file_path` | 错误总数 |
-| `yunshu_safe_file_reader_encoding_fallbacks_total` | Counter | `from_encoding`, `to_encoding`, `file_path` | 编码降级次数 |
+| `yunshu_safe_file_reader_encoding_fallbacks_total` | Counter | ~~`from_encoding`, `to_encoding`, `file_path`~~ ⚠ 线上实际生效的是 `file_path`（单标签，两处定义不一致） | 编码降级次数 |
 | `yunshu_safe_file_reader_read_duration_seconds` | Histogram | `file_path` | 读取耗时分布 |
 | `yunshu_safe_file_reader_loaded_history_count` | Gauge | `file_path` | 加载的历史对话数 |
 | `yunshu_safe_file_reader_invalid_ratio` | Gauge | `file_path` | 无效行比例 (0-1) |
