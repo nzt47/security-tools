@@ -317,6 +317,55 @@ def collect_frontend_literals():
     return out
 
 
+#: 前端**被许可的端点常量层**（阶段 5 / R5）。
+#:
+#: 【为什么需要这个概念】`frontend_literals` 统计的是**去重后的路径数** ——
+#: 它衡量"前端引用了多少个不同的后端端点"，是个合同**面**指标；把散落的字面量
+#: 收口到常量层**不会**让它变小（路径还在，只是换了地方写）。用它当"收敛进度"会得出
+#: 错误的结论（"改了一堆，数字没动"）。
+#: 故另设 `frontend_stray_literals`：统计**常量层之外**还剩多少处 `/api` 字面量 ——
+#: 这才是"还要收口多少"的可执行度量，且它的目标是 0。
+#:
+#: 【常量层仍参与正确性校验】本文件只把它从**计数**里排除，不排除它的路径参与
+#: "是否命中真实后端路由"的判定 —— 计数与正确性分开：计数要"还剩多少处散落"，
+#: 正确性要"每一条都真实存在"。若把常量层整段排除，那才是把门禁弄瞎。
+SANCTIONED_FRONTEND_LAYER = "yunshu-ui/src/api/endpoints.ts"
+
+
+def collect_stray_frontend_literals():
+    """统计**常量层之外**的 \`/api\` 字面量**出现次数**（按文件聚合，非去重）。
+
+    与 collect_frontend_literals 的区别：那个给的是"引用了多少个不同端点"（去重、供对拍），
+    这个给的是"还有多少处需要收口"（计次、供进度与门禁）。
+    """
+    groups = {
+        "react": list(_iter_source_files({".ts", ".tsx"}, ["yunshu-ui/src"])),
+        "legacy": list(_iter_source_files({".html", ".js"}, ["templates", "static"])),
+    }
+    out = {}
+    for label, files in groups.items():
+        per_file = {}
+        for f in files:
+            rel = str(f.relative_to(ROOT)).replace("\\", "/")
+            if rel == SANCTIONED_FRONTEND_LAYER:
+                continue  # 常量层本身不计（它就是收口点）
+            if ".test." in rel or ".spec." in rel or rel.endswith(".min.js"):
+                continue
+            if "/assets/" in rel or rel.endswith(".map"):
+                continue
+            if "/mocks/" in rel or "devMock" in rel or "exportMock" in rel:
+                continue
+            try:
+                txt = f.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            n = len(FRONTEND_LITERAL.findall(txt))
+            if n:
+                per_file[rel] = n
+        out[label] = per_file
+    return out
+
+
 def _norm(path):
     """归一化动态段：<int:id> / <id> / :id / {id} / ${id} -> <>，便于跨框架比较。
 
@@ -449,6 +498,7 @@ def main():
     registry, reg_err = collect_registry()
     manifest = collect_manifest_declared()
     frontend = collect_frontend_literals()
+    stray = collect_stray_frontend_literals()
 
     findings = check(registry, routes, manifest, frontend)
     by_sev = {}
@@ -465,6 +515,12 @@ def main():
             "plugins_with_declared_routes": len(manifest or {}),
             "manifest_declared_total": sum(len(v) for v in (manifest or {}).values()),
             "frontend_literals": {k: len(v) for k, v in (frontend or {}).items()},
+            # 【两个数必须一起看】literal 数（去重路径，合同面）与 stray 数
+            # （常量层之外的**出现次数**，收敛进度）。只看前者会得出
+            # "改了一堆、数字没动"的错觉；只看后者会忽略"引用了哪些端点"本身。
+            "frontend_stray_literals": {k: sum(v.values()) for k, v in stray.items()},
+            "frontend_stray_by_file": {k: dict(sorted(v.items(), key=lambda kv: -kv[1]))
+                                       for k, v in stray.items()},
         },
         "findings_summary": by_sev,
         "findings": findings,
@@ -480,6 +536,17 @@ def main():
     print("  契约漂移对拍（阶段 0 / R1）")
     print("=" * 70)
     for k, v in report["snapshot"].items():
+        # 【逐文件明细太长】stray_by_file 全量打印会糊满一屏、把真信号淹掉
+        # （本仓对"一个会刷屏的门禁没人会看"有记录）。故此处在人读摘要里只打
+        # Top 5；完整明细在 --json 的 report 里，机读方自取。
+        if k == "frontend_stray_by_file":
+            for label, per_file in (v or {}).items():
+                top = list(per_file.items())[:5]
+                rest = len(per_file) - len(top)
+                print("  frontend_stray_top5[" + label + "]: " + ", ".join(
+                    f + "=" + str(n) for f, n in top)
+                    + (f"  (+{rest} more files)" if rest > 0 else ""))
+            continue
         print("  " + str(k) + ": " + str(v))
     print("  漂移分级: " + str(by_sev if by_sev else "无"))
     print("-" * 70)

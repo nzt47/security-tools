@@ -8,8 +8,60 @@
     "plugins_with_declared_routes": 0,
     "manifest_declared_total": 0,
     "frontend_literals": {
-      "react": 125,
+      "react": 127,
       "legacy": 2
+    },
+    "frontend_stray_literals": {
+      "react": 137,
+      "legacy": 2
+    },
+    "frontend_stray_by_file": {
+      "react": {
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx": 29,
+        "yunshu-ui/src/pages/hub/memory/skills.tsx": 9,
+        "yunshu-ui/src/lib/sessionApi.ts": 8,
+        "yunshu-ui/src/pages/hub/tools/toolset.tsx": 6,
+        "yunshu-ui/src/api/knowledge.ts": 5,
+        "yunshu-ui/src/pages/prompt-lab/identityPrompt.ts": 5,
+        "yunshu-ui/src/pages/hub/engine/scheduler.tsx": 5,
+        "yunshu-ui/src/pages/hub/personality.tsx": 4,
+        "yunshu-ui/src/pages/hub/memory/workflow.tsx": 4,
+        "yunshu-ui/src/pages/hub/network/index.tsx": 4,
+        "yunshu-ui/src/pages/hub/tools/mcp.tsx": 4,
+        "yunshu-ui/src/lib/contextMonitorApi.ts": 3,
+        "yunshu-ui/src/components/workbench/panels/ContextManagerBar.tsx": 3,
+        "yunshu-ui/src/pages/prompt-lab/LlmMonitorPanel.tsx": 3,
+        "yunshu-ui/src/pages/hub/memory/index.tsx": 3,
+        "yunshu-ui/src/pages/hub/panorama/monitor.tsx": 3,
+        "yunshu-ui/src/pages/hub/panorama/sensors.tsx": 3,
+        "yunshu-ui/src/lib/agentLinesApi.ts": 2,
+        "yunshu-ui/src/lib/cpPanelsApi.ts": 2,
+        "yunshu-ui/src/lib/experienceApi.ts": 2,
+        "yunshu-ui/src/lib/toolExemptionsApi.ts": 2,
+        "yunshu-ui/src/lib/visualWorkflowApi.ts": 2,
+        "yunshu-ui/src/utils/replayRecorder.ts": 2,
+        "yunshu-ui/src/components/workbench/chat/SubagentMenu.tsx": 2,
+        "yunshu-ui/src/pages/hub/plugin-manage.tsx": 2,
+        "yunshu-ui/src/pages/hub/engine/heartbeat.tsx": 2,
+        "yunshu-ui/src/pages/hub/memory/search.tsx": 2,
+        "yunshu-ui/src/pages/hub/panorama/health.tsx": 2,
+        "yunshu-ui/src/pages/hub/session/index.tsx": 2,
+        "yunshu-ui/src/pages/hub/workshop/agents.tsx": 2,
+        "yunshu-ui/src/lib/approvalChain.ts": 1,
+        "yunshu-ui/src/lib/callability.ts": 1,
+        "yunshu-ui/src/observability/sessionReplay.ts": 1,
+        "yunshu-ui/src/components/workbench/chat/LlmHealthMenu.tsx": 1,
+        "yunshu-ui/src/components/workbench/panels/ChatPanel.tsx": 1,
+        "yunshu-ui/src/pages/Export/index.tsx": 1,
+        "yunshu-ui/src/pages/hub/module-list.tsx": 1,
+        "yunshu-ui/src/pages/hub/memory/generate-requirement-modal.tsx": 1,
+        "yunshu-ui/src/pages/hub/tools/cli.tsx": 1,
+        "yunshu-ui/src/pages/hub/tools/computer-use.tsx": 1
+      },
+      "legacy": {
+        "templates/search-status.html": 1,
+        "static/js/approval_console.js": 1
+      }
     }
   },
   "findings_summary": {},
