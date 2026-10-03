@@ -112,8 +112,41 @@ def _iter_source_files(suffixes, dirs):
             yield p
 
 
+#: 便宜预筛：文件里是否**可能**存在路由装饰器。
+#  【为什么必须有 —— 2026-10-03 由 CI 超时暴露】一次全量扫描要读 719 个 .py 并对每个做
+#  ast.parse；本机实测 **4.35s**，而 CI 的共享 runner（xdist 双 worker + 重测试并行）
+#  上超过 pytest-timeout 的 **60s** 上限，5 个调用该函数的用例全部超时失败。
+#  实测这 719 个文件里绝大多数**根本没有路由装饰器**，对它们做 ast.parse 纯属浪费。
+#  先用一次 C 级正则判一遍，没有就整文件跳过 —— 这一条把开销降到只解析真正相关的文件。
+_ROUTE_HINT = re.compile(r"@\w+\.(route|get|post|put|delete|patch)\(")
+
+#: collect_routes_static 的记忆化缓存。
+#  【为什么】它是**工作树的纯函数**：同一次进程内结果不变，而调用方（多个用例、
+#  以及 CLI 的多次对拍）会反复调用。CI 上曾因 5 次重复全量扫描而全部超时。
+_ROUTE_CACHE = None
+
+
+def reset_routes_cache() -> None:
+    """清空记忆化缓存（测试/同一进程内工作树被改动后需要）。"""
+    global _ROUTE_CACHE
+    _ROUTE_CACHE = None
+
+
+def _copy_routes(routes):
+    """返回深一层的副本：缓存必须防调用方就地改动（否则缓存被污染）。"""
+    return {k: {"path": v["path"], "methods": list(v["methods"]),
+                "where": list(v["where"])} for k, v in routes.items()}
+
+
 def collect_routes_static():
-    """静态收集 Flask 路由：路径 -> {methods, where}（覆盖 3 个注册面）。"""
+    """静态收集 Flask 路由：路径 -> {methods, where}（覆盖 3 个注册面）。
+
+    结果为**记忆化**的；同一进程内重复调用几乎零成本（见 _ROUTE_CACHE 的说明）。
+    """
+    global _ROUTE_CACHE
+    if _ROUTE_CACHE is not None:
+        return _copy_routes(_ROUTE_CACHE)
+
     files = [p for p in [ROOT / "app_server.py", ROOT / "main.py"] if p.exists()]
     files += list(_iter_source_files(
         {".py"}, ["plugins", "agent", "sensor", "memory", "cognitive"]))
@@ -121,13 +154,16 @@ def collect_routes_static():
     routes = {}
     for f in files:
         try:
-            lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+            text = f.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
+        if not _ROUTE_HINT.search(text):  # 便宜预筛，见 _ROUTE_HINT 说明
+            continue
+        lines = text.splitlines()
 
         # AST 定位真实装饰器行（排除 docstring 里的示例）
         try:
-            _tree = ast.parse(chr(10).join(lines))
+            _tree = ast.parse(text)
             real_routes = _real_route_decorator_lines(_tree)
         except SyntaxError:
             real_routes = {}
@@ -147,9 +183,10 @@ def collect_routes_static():
                 continue
             line = raw_line
             # 展开 f"{PREFIX}/x" -> "/api/cp/x"
-            for cname, cval in consts.items():
-                line = line.replace('f"{' + cname + '}', '"' + cval)
-                line = line.replace("f'{" + cname + "}", "'" + cval)
+            if consts and 'f"{' in line or (consts and "f'{" in line):
+                for cname, cval in consts.items():
+                    line = line.replace('f"{' + cname + '}', '"' + cval)
+                    line = line.replace("f'{" + cname + "}", "'" + cval)
             m = ROUTE_DECORATOR.match(line)
             if not m:
                 continue
@@ -185,7 +222,8 @@ def collect_routes_static():
             cur["where"].append(rel + ":" + str(i + 1))
     for v in routes.values():
         v["methods"] = sorted(v["methods"])
-    return routes
+    _ROUTE_CACHE = routes  # 记忆化（见 _ROUTE_CACHE 说明）
+    return _copy_routes(routes)
 
 
 def collect_routes_live():
