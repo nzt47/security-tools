@@ -240,6 +240,11 @@ def _require_admin(f):
         if ok:
             return f(*args, **kwargs)
         return _fail(401, "未登录或登录已过期")
+    # 【标记：本视图受逐路由鉴权保护】口径见 agent.server_auth.REQUIRES_TOKEN_ATTR。
+    #   本装饰器与 require_token 的**判据不同**（会话令牌 或 共享令牌），
+    #   但对"这条路由是否需要令牌"这一事实的回答相同，故打同一个标记。
+    from agent.server_auth import REQUIRES_TOKEN_ATTR as _RTA
+    setattr(_wrapped, _RTA, True)
     return _wrapped
 
 

@@ -235,6 +235,76 @@ def path_is_allowlisted(path: str, allowlist) -> bool:
     return False
 
 
+#: 逐路由鉴权装饰器在**被包装函数上留下**的标记属性。
+#:
+#: 【为什么需要它：让"这个视图是否受令牌保护"成为可运行期查询的事实】
+#:   在它之前，唯一能回答该问题的办法是**读源码**（AST 扫描）或用错误的令牌去探。
+#:   前者会漏（插件经 plugin_api 延迟包装、装饰器定义散在 5 处），后者有副作用。
+#:   2026-10-03 实测到它的必要性：`CP_API_AUTH_ALLOW` 里写着 `/api/diagnostics/metrics`，
+#:   于是「豁免清单」与「任务/文档描述」都认定该端点无需令牌；而它其实带
+#:   `@require_token`（routes_logging.py:828），活体实测 **401**。
+#:   —— 豁免条目**被装饰器遮蔽**，不产生任何效果，却让所有读清单的人得出相反结论。
+#:
+#: 【纪律·与 GUARD_MARKERS 同级】**新增任何鉴权装饰器都必须设置本属性**，
+#:   否则 find_shadowed_exemptions 会静默失明（与"新装饰器忘登记 GUARD_MARKERS"
+#:   是同一类失效）。由 tests/unit/test_shadowed_exemption.py 的元守卫机械保证。
+#:   经 functools.wraps 包装的装饰器**无需**显式复制：wraps 走
+#:   `wrapper.__dict__.update(wrapped.__dict__)`，故标记会随包装链自动向上传递
+#:   （@require_token 在 @log_request 内/外两种嵌套顺序都成立，已实测）。
+REQUIRES_TOKEN_ATTR = "__requires_api_token__"
+
+
+def is_token_guarded(view_fn) -> bool:
+    """该视图函数是否带逐路由令牌装饰器（读标记属性，非源码扫描）。"""
+    return bool(getattr(view_fn, REQUIRES_TOKEN_ATTR, False))
+
+
+def find_shadowed_exemptions(allowlist, guarded_rules) -> list:
+    """返回「豁免清单覆盖到、但**已被装饰器遮蔽**的端点」—— 影子豁免的检出点。
+
+    【解决什么】豁免清单（`CP_API_AUTH_ALLOW`）与逐路由装饰器是**两套独立策略**，
+    同一条路径可以同时命中两者。此时生效的是**装饰器**（它跑在视图里，闸门放行与否
+    都拦不住它）⇒ 豁免条目**不产生任何效果**。
+
+    这不危险（没有多放开任何东西），但**极具误导性**：它让
+      · 读豁免清单的人以为"该端点无需令牌"；
+      · 读文档/做审计的人据此推断"某页面可以 tokenless 消费它"；
+      · 排障时按"它应该不需要令牌"去查错方向。
+    本仓已有先例：H-5 的反面形态（漏装饰器 **且** 被豁免）靠
+    find_allowed_write_endpoints 检出；本函数补的是**另一半**。
+
+    【2026-10-03 实测】本机 `.env` 的 13 条豁免里，`/api/diagnostics/metrics`
+    同时带 `@require_token`：活体 `GET` 无令牌返回 **401**（静态 AST 扫描独立得出同一结论）。
+    它此前被记为「最后一个为了 tokenless 页面而保留的只读豁免」——该描述与事实不符。
+
+    【与 find_allowed_write_endpoints 的分工】
+      · 那个查「豁免放开了本该受保护的写端点」= **多放开了**（安全洞，H-5）；
+      · 本函数查「豁免对已受保护的端点毫无作用」= **没放开还宣称放开了**（认知洞，H-7 同族）。
+    两者都要，缺一面就会得出错误结论。
+
+    Args:
+        allowlist: 当前生效的豁免清单（字符串可迭代）
+        guarded_rules: 可迭代的 (rule_string, methods)，**仅包含视图函数带令牌装饰器的规则**；
+            典型来自 app.url_map.iter_rules() 经 is_token_guarded 过滤
+
+    Returns:
+        ["<path> (METHOD/METHOD)", ...]（按路径排序）；空列表 = 无影子豁免
+
+    【为什么不报告 HEAD/OPTIONS】Flask 为每条规则自动补这两个方法
+    （`provide_automatic_options`），它们对"这条豁免说明了什么"没有信息量，
+    列出来只会让输出变长、真信号被淹。
+    """
+    auto = {"HEAD", "OPTIONS"}
+    hits = []
+    for rule, methods in guarded_rules:
+        path = str(rule)
+        if not path_is_allowlisted(path, allowlist):
+            continue
+        m = sorted({str(x).upper() for x in (methods or ())} - auto)
+        hits.append(path if not m else f"{path} ({'/'.join(m)})")
+    return sorted(hits)
+
+
 def find_allowed_write_endpoints(allowlist, rules) -> list:
     """返回「豁免清单覆盖到的**变更型**端点」—— 审计 H-5 的机制化检出点。
 
@@ -278,6 +348,10 @@ def require_token(f):
         if actor:
             _bind_identity(actor, source)
         return f(*args, **kwargs)
+    # 【必须在 wraps 之后设置】wraps 会 `wrapper.__dict__.update(wrapped.__dict__)`，
+    #   先设会被覆盖；后设则本标记成为最终视图函数上的可见事实，
+    #   且外层再套 log_request 之类的 wraps 装饰器时标记继续向上传递。
+    setattr(decorated, REQUIRES_TOKEN_ATTR, True)
     return decorated
 
 

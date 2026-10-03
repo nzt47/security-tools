@@ -220,13 +220,30 @@ DOMAINS: List[Domain] = [
                    description="MCP 服务注册与启用"),
     ]),
     Domain("service", "服务层", "🌐", [
+        # 【2026-10-03 修：清掉会必然漂移的手写计数】原描述写死
+        #   "287 API + 11 页面"，而同期实测（scripts/audit/contract_diff.py）
+        #   是 **450 条路由（其中 425 条 /api/*）+ 6 个 SSR 模板** —— 两个数都早就不对了。
+        #   这类"手写数字"没有保鲜机制：代码一动它就假，而没有任何东西会变红
+        #   （审计 H-2/H-1 的同一成因，也正是"契约事实源唯一化"要消灭的东西）。
+        #   ⇒ 描述里不再写计数；需要计数请看 /api/modules/topology 之外的实测工具
+        #     （python scripts/audit/contract_diff.py 会打印 routes_total）。
         ModuleNode("service.app", "Web 主服务", "app_server.py",
                    type="service", status_source="api:/api/health",
                    metrics=["overall_health"],
-                   description="Flask 主服务 127.0.0.1:5678，287 API + 11 页面"),
+                   description="Flask 主服务 127.0.0.1:5678（API 面 + SSR 页面入口）"),
+        # 【2026-10-03 H-2 收口复核】本节点曾声明 agent/api_gateway_flask.py 而该文件
+        #   不存在（契约对拍报 registry_path_missing，运行日志 5 次"API 网关层未安装"）。
+        #   该文件已于 905fe033 补实现，故本声明现在**为真**。复核结论：
+        #     · 文件存在 ✓（agent/api_gateway_flask.py，含 register_gateway / /api/docs）
+        #     · /api/open/<path:subpath> 统一入口 ✓（该文件 :163，转 gateway.handle_request）
+        #     · /api/docs ✓（:174，OpenAPI 3.0）
+        #     · 限流 / 配额 / API Key 确实存在，但**不在此文件**，而在网关核心
+        #       agent/api_gateway.py（API Key 管理 + 配额 + 限流 + 访问日志）
+        #       —— 故描述里写明"委托"，免得下一个人在本文件里找不到限流实现。
         ModuleNode("service.gateway", "API 网关", "agent/api_gateway_flask.py",
                    type="service", status_source="api:/api/health",
-                   description="/api/open/* 开放端点、限流、配额、/api/docs"),
+                   description="开放 API 网关：/api/open/* 入口 + /api/docs（鉴权/限流/配额"
+                               "委托 agent/api_gateway.py；开放面默认空，需显式登记）"),
         ModuleNode("service.network", "网络配置", "app_server.py /api/network-config",
                    type="config", status_source="api:/api/network-config",
                    actions=["update_network"],

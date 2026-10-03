@@ -689,6 +689,11 @@ def require_token(f):
         if not token_equal(token, expected):
             return jsonify({"error": "未授权：缺少或无效的 API 令牌"}), 401
         return f(*args, **kwargs)
+    # 【标记：本视图受逐路由令牌保护】与 agent.server_auth.require_token 同口径。
+    #   本文件这份是历史副本（语义已逐行对齐），但两份都必须打标 ——
+    #   否则 find_shadowed_exemptions 会漏掉走本副本的路由而**静默失明**。
+    from agent.server_auth import REQUIRES_TOKEN_ATTR as _RTA
+    setattr(decorated, _RTA, True)
     return decorated
 
 # ── 全局 API 鉴权闸门（fail-closed；影子模式可先观察）──
@@ -2388,6 +2393,64 @@ def audit_auth_allowlist(app) -> dict:
 
 
 _auth_allowlist_audit = audit_auth_allowlist(app)
+
+
+# ════════════════════════════════════════════════════════════
+#  启动自检：豁免清单里的**影子条目**（2026-10-03 · 与 H-5 互补的另一半）
+# ════════════════════════════════════════════════════════════
+def audit_shadowed_exemptions(app) -> dict:
+    """启动自检：豁免条目**不得**被逐路由装饰器遮蔽。
+
+    【解决什么】上面 audit_auth_allowlist 查的是「豁免**多**放开了什么」（安全洞，H-5）。
+    本函数查它**互补的另一半**：「豁免**什么也没放开**，却宣称放开了」（认知洞）。
+
+    两套策略同时命中一条路径时，生效的是**装饰器**（它在视图内部执行，闸门放不放行
+    都拦不住）⇒ 豁免条目完全不产生效果。
+
+    【为什么这值得一个启动自检 —— 本次是**实证**，不是假想】
+    2026-10-03 续作任务书把 `/api/diagnostics/metrics` 描述为
+    「为了 tokenless 页面 `/dashboard` 而保留的**最后一个只读豁免**」，并据此规划
+    「收敛该页面即可摘掉最后一个豁免」。**该描述与事实不符**：该端点带
+    `@require_token`（agent/server_routes/routes_logging.py:828），
+    活体 `curl`（enforce_all 档）实测 **401**，静态 AST 扫描独立得出同一结论。
+    ⇒ 豁免条目被遮蔽，页面其实**从来没能** tokenless 消费它。
+      错误结论的直接后果是**规划建立在假前提上**（把"摘掉一个无效条目"当成
+      "关掉一个开放面"，从而低估剩余开放面、并高估了那次收敛的安全收益）。
+
+    【为什么不拦截】与 audit_auth_allowlist 一致：豁免是显式人工决策，
+    本函数把隐式后果变显式，不替人做决定。
+
+    Returns:
+        {"ok": bool, "shadowed_count": int, "shadowed": ["<path> (METHOD)"]}
+    """
+    hits: list = []
+    try:
+        from agent.server_auth import find_shadowed_exemptions, is_token_guarded
+        view_functions = app.view_functions
+        hits = find_shadowed_exemptions(
+            _API_AUTH_ALLOW,
+            ((str(r.rule), r.methods)
+             for r in app.url_map.iter_rules()
+             if is_token_guarded(view_functions.get(r.endpoint))),
+        )
+    except Exception as e:  # noqa: BLE001 自检失败不阻断启动
+        logger.warning("[AuthGate][自检] 影子豁免审计失败（不阻断启动）: %s", e)
+        return {"ok": False, "error": str(e), "shadowed_count": -1, "shadowed": []}
+
+    if hits:
+        logger.warning(
+            "[AuthGate][自检] 豁免清单有 %d 条**影子条目** —— 这些路径已被逐路由令牌"
+            "装饰器保护，豁免对它们**不产生任何效果**：%s ｜ 处理：从 CP_API_AUTH_ALLOW "
+            "摘除（保留只会让读清单的人以为该端点无需令牌，进而得出错误结论）。",
+            len(hits), "; ".join(hits),
+        )
+    else:
+        logger.info("[AuthGate][自检] 豁免清单无影子条目（%d 项豁免均真实生效或为页面）",
+                    len(_API_AUTH_ALLOW))
+    return {"ok": True, "shadowed_count": len(hits), "shadowed": hits}
+
+
+_shadowed_exemption_audit = audit_shadowed_exemptions(app)
 
 # 路由装配结算：登记为空则记 INFO；有失败且未显式降级则 raise（拒绝带伤启动）。
 # 【为什么 raise 而不是继续】失败即意味着某个 API 面整体缺失 —— 让进程「看起来健康」

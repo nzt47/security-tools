@@ -14,7 +14,6 @@
   配置，运行时 app_server 已完全加载，无循环问题）。
 """
 
-import functools
 import json
 import os
 import secrets
@@ -29,89 +28,28 @@ from config import MEMORY_TOKEN_LIMIT_DEFAULT  # noqa: E402
 bp = Blueprint("status", __name__)
 
 
-# 【2026-10-03 迁移 · 审计 M-40】鉴权装饰器上收到 plugin_api（同 chat/skills/safety/
-# mcp_scheduler）。等价性依据：本文件原 _require_token 与 app_server.require_token 语义一致
-# （都走运行期判定 + token_equal 按字节比较），而 require_auth 正是解析到后者。
-# 注：本文件的 _log_request 是一份**独立重写的日志逻辑**（60 行，含自己的字段拼装），
-# 迁移它属另一件事，不在此夹带 —— 故它保留原样。
+# 【2026-10-03 迁移 · 审计 M-40】鉴权与日志装饰器**全部**上收到 plugin_api
+# （同 chat/skills/safety/mcp_scheduler）。等价性依据：本文件原 _require_token 与
+# app_server.require_token 语义一致（都走运行期判定 + token_equal 按字节比较），
+# 而 require_auth 正是解析到后者。
+#
+# 【_log_request 的单独评估结论：迁移，理由是它当前**比宿主版更不安全**】
+#   本轮（2026-10-03 续作）逐行比对两份实现后确认：本文件那份**不是**宿主的等价副本，
+#   而是独立重写，且其中一处会在正常路径上抛异常 ——
+#     · 宿主（agent/server_auth.py:498）：`response[0].get_data(as_text=True)`
+#     · 本文件原版：`response[0].get_json()`
+#   `get_json()` 在响应不是 JSON（或 content-type 不符）时**抛异常**，而调用点在
+#   `@_log_request()`（show_response 默认 True）的 5 条路由上 —— 一条只读端点只要
+#   返回非 JSON，就会被日志装饰器变成 500。这正是"同一件事写两遍必然分叉"的形态。
+#   迁移后：① 非 JSON 响应不再炸；② 去掉 60 行会继续漂移的字段拼装；
+#   ③ M-40「5 份拷贝」真正收敛为 1 份。
+#
+# 【行为变化（如实记录，不夹带）】日志出口由 `print()`（stdout）改为宿主的结构化
+#   `logger`；错误路径不再由本装饰器自己补 [STACK TRACE]，改为异常照原样抛出、
+#   由上层处理器记录堆栈。二者都是**日志呈现**的差异，不改变任何接口的语义或状态码；
+#   仓库内没有任何用例断言过该 stdout 格式（已 grep 确认）。
+from .plugin_api import log_request as _log_request
 from .plugin_api import require_auth as _require_token
-
-
-def _log_request(show_body=True, show_response=True):
-    """与 app_server.log_request 行为等价的本地版本（装饰器需模块级应用，无法延迟 import）"""
-    def decorator(f):
-        @functools.wraps(f)
-        def decorated(*args, **kwargs):
-            import time
-            start_time = time.time()
-            endpoint = f.__name__
-
-            logs = []
-            logs.append(f"[REQUEST] 接口: {endpoint}")
-            logs.append(f"[REQUEST] 方法: {request.method}")
-            logs.append(f"[REQUEST] 路径: {request.path}")
-            logs.append(f"[REQUEST] 查询参数: {dict(request.args)}")
-
-            if show_body and request.method in ['POST', 'PUT', 'PATCH']:
-                try:
-                    body = request.get_json() if request.is_json else request.form.to_dict()
-                    body_str = str(body)[:200] + ('...' if len(str(body)) > 200 else '')
-                    logs.append(f"[REQUEST] 请求体: {body_str}")
-                except Exception:
-                    logs.append(f"[REQUEST] 请求体: 无法解析")
-
-            # 执行原始函数
-            try:
-                response = f(*args, **kwargs)
-                response_time = (time.time() - start_time) * 1000
-
-                logs.append(f"[RESPONSE] 状态码: {response[1] if isinstance(response, tuple) else 200}")
-                logs.append(f"[RESPONSE] 耗时: {response_time:.2f}ms")
-
-                if show_response:
-                    if isinstance(response, tuple) and len(response) > 0:
-                        resp_data = response[0].get_json() if hasattr(response[0], 'get_json') else str(response[0])[:200]
-                    else:
-                        resp_data = response.get_json() if hasattr(response, 'get_json') else str(response)[:200]
-                    logs.append(f"[RESPONSE] 内容: {resp_data}")
-
-                success = True
-
-            except Exception as e:
-                import traceback as tb
-                response_time = (time.time() - start_time) * 1000
-                logs.append(f"[ERROR] 异常: {type(e).__name__} - {str(e)[:200]}")
-                logs.append(f"[ERROR] 耗时: {response_time:.2f}ms")
-
-                # 捕获堆栈信息到日志
-                stack_trace = tb.format_exc()
-                logs.append(f"[STACK TRACE] {stack_trace[:500]}")
-
-                success = False
-
-                # 打印异常日志到控制台
-                print("\n" + "=" * 60)
-                print(f"❌ API 请求异常 [{endpoint}]")
-                print("-" * 60)
-                for log in logs:
-                    print(log)
-                print("=" * 60 + "\n")
-
-                raise
-
-            finally:
-                # 打印成功日志到控制台
-                if success:
-                    print("\n" + "=" * 60)
-                    print(f"📡 API 请求日志 [{endpoint}]")
-                    print("-" * 60)
-                    for log in logs:
-                        print(log)
-                    print("=" * 60 + "\n")
-
-            return response
-        return decorated
-    return decorator
 
 
 # ════════════════════════════════════════════════════════════

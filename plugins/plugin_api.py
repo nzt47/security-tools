@@ -179,4 +179,15 @@ def require_auth(f):
     """
     def _build(fn):
         return _resolve_host_decorator("require_token")(fn)
-    return _lazy_wrap(f, _build)
+    wrapped = _lazy_wrap(f, _build)
+    # 【标记：本视图受令牌保护】口径见 agent.server_auth.REQUIRES_TOKEN_ATTR。
+    #   【为什么必须在这里手工打标，不能靠 wraps 传递】本装饰器是**延迟**的：
+    #   _lazy_wrap 返回的 _wrapped 才是挂在 app.url_map 上的视图函数，而真正的
+    #   require_token 要到**首次请求**才在 _build 里解析出来。故 wraps 传播链
+    #   在导入期根本不存在 —— 不打标则所有插件路由都会被判为"未受保护"，
+    #   find_shadowed_exemptions 对 plugins/ 整片失明。
+    #   由于标记是**声明性**的（这里声明"本路由受令牌保护"，与运行期解析结果一致，
+    #   二者由 _resolve_host_decorator 的回退链保证同源），此处打标是准确的而非臆测。
+    from agent.server_auth import REQUIRES_TOKEN_ATTR as _RTA
+    setattr(wrapped, _RTA, True)
+    return wrapped
