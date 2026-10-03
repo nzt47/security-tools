@@ -161,3 +161,48 @@ class TestExclusionUsesRepoRelativePath:
         assert any(w.startswith("agent/") for w in where), (
             "agent/ 下的路由一条都没扫到 —— 排除逻辑很可能又按绝对路径判定了"
         )
+
+class Test前端字面量的两个口径:
+    """`frontend_literals`（去重路径 = 合同面）与 `frontend_stray_literals`（出现次数 = 收敛进度）
+    必须**分开**，且常量层只从**计数**里排除、不从**正确性校验**里排除。
+
+    【为什么单列一类】阶段 5 / R5 要收口前端 /api 字面量。开发中实测到一个会误导人的点：
+    去重路径数**不会**因为"把字面量搬进常量层"而下降（路径还在，只是换了地方写）。
+    若拿它当进度指标，就会得出"改了一堆、数字没动"的错误结论，进而放弃收口。
+    故两个口径都保留，且用途写死：
+      · literal 数 -> 对拍（引用了哪些端点）；
+      · stray 数   -> 进度与门禁（还有多少处散落），目标 0。
+    """
+
+    def test_常量层从计数里排除(self, cd):
+        stray = cd.collect_stray_frontend_literals()["react"]
+        assert cd.SANCTIONED_FRONTEND_LAYER not in stray, (
+            "被许可的端点常量层不应出现在 stray 统计里 —— 它就是收口点本身"
+        )
+
+    def test_常量层仍参与正确性对拍(self, cd):
+        """**这条是关键**：常量层被排除的只能是"计数"，不能是"路径是否存在"的校验。
+
+        若把它整段排除，\`frontend_calls_missing_endpoint\` 就会对该层**失明** ——
+        而那正是当年检出 2 个真实前后端缺陷（方法与路径双错）的判据，
+        等于为了降数字把门禁弄瞎。
+        """
+        literals = cd.collect_frontend_literals()["react"]
+        files_of = {f for fs in literals.values() for f in fs}
+        assert cd.SANCTIONED_FRONTEND_LAYER in files_of, (
+            "端点常量层没有参与 frontend_literals 对拍 —— "
+            "它的路径将不再被校验是否命中真实后端路由（门禁被弄瞎）"
+        )
+
+    def test_stray_计次而非去重(self, cd, tmp_path):
+        """同一文件里写两次同一个路径，stray 必须是 2 而不是 1。"""
+        stray = cd.collect_stray_frontend_literals()
+        assert isinstance(stray, dict) and "react" in stray and "legacy" in stray
+        # 逐文件计数，且总数 = 各文件之和（去重口径下这两者会不等）
+        for label, per_file in stray.items():
+            assert all(isinstance(n, int) and n > 0 for n in per_file.values())
+
+    def test_两个口径都在报告快照里(self, cd):
+        """快照缺了 stray 就没法追踪收敛进度；缺了 literal 就没法看合同面。"""
+        src = (ROOT / "scripts" / "audit" / "contract_diff.py").read_text(encoding="utf-8")
+        assert '"frontend_literals"' in src and '"frontend_stray_literals"' in src

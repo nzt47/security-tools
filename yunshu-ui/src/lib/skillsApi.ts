@@ -10,6 +10,37 @@
 
 const API_BASE = '';  // 同域
 
+// 端点常量层（阶段 5 / R5）：所有 /api 路径收口到 src/api/endpoints.ts，
+// 便于后端改路径时**一处可见**，也让契约对拍有单一插桩点。
+import {
+  SKILLS_MGMT,
+  SKILLS_MGMT_CREATE_AI,
+  SKILLS_MGMT_CREATE_MANUAL,
+  SKILLS_MGMT_HEALTH,
+  SKILLS_MGMT_INSTALL,
+  SKILLS_MGMT_META_CATEGORIES,
+  SKILLS_MGMT_REVIEW_BATCH,
+  SKILLS_MGMT_REVIEW_THRESHOLDS,
+  SKILLS_MGMT_SEARCH,
+  WORKFLOW_LEARNING_HEALTH,
+  WORKFLOW_LEARNING_LEARN,
+  WORKFLOW_LEARNING_MATCH,
+  WORKFLOW_LEARNING_TRY_EXECUTE,
+  WORKFLOW_LEARNING_WORKFLOWS,
+  skillById,
+  skillExecution,
+  skillOptimize,
+  skillReview,
+  skillToggle,
+  skillVersions,
+  skillVersionsBump,
+  skillVersionsRollback,
+  workflowLearnExecute,
+  workflowLearnPriority,
+  workflowLearnToggle,
+  workflowLearnWorkflows,
+} from '@/api/endpoints';
+
 // ═══════════════════════════════════════════════════════════════
 //  类型定义（与后端 models.py 对齐）
 // ═══════════════════════════════════════════════════════════════
@@ -234,7 +265,7 @@ export const skillsApi = {
   /** 健康检查 — 返回依赖状态 */
   checkHealth(signal?: AbortSignal) {
     return request<{ ok: boolean; stats: Record<string, unknown> }>(
-      '/api/skills-mgmt/health',
+      SKILLS_MGMT_HEALTH,
       { signal },
     );
   },
@@ -250,22 +281,22 @@ export const skillsApi = {
         q.set(k, String(v));
       }
     });
-    return request<SkillSearchResult>(`/api/skills-mgmt/search?${q.toString()}`, { signal });
+    return request<SkillSearchResult>(`${SKILLS_MGMT_SEARCH}?${q.toString()}`, { signal });
   },
 
   /** 列出全部技能 */
   list(signal?: AbortSignal) {
-    return request<{ ok: true; items: Skill[] }>('/api/skills-mgmt', { signal });
+    return request<{ ok: true; items: Skill[] }>(SKILLS_MGMT, { signal });
   },
 
   /** 获取单个技能详情 */
   get(skillId: string, signal?: AbortSignal) {
-    return request<{ ok: true; skill: Skill }>(`/api/skills-mgmt/${skillId}`, { signal });
+    return request<{ ok: true; skill: Skill }>(skillById(skillId), { signal });
   },
 
   /** AI 辅助生成技能 */
   createAi(payload: { name: string; intent: string; category?: SkillCategory; tags?: string[] }) {
-    return request<{ ok: true; skill: Skill }>('/api/skills-mgmt/create/ai', {
+    return request<{ ok: true; skill: Skill }>(SKILLS_MGMT_CREATE_AI, {
       method: 'POST',
       body: payload,
     });
@@ -273,7 +304,7 @@ export const skillsApi = {
 
   /** 手动创建技能 */
   createManual(payload: Partial<Skill> & { name: string; content: string }) {
-    return request<{ ok: true; skill: Skill }>('/api/skills-mgmt/create/manual', {
+    return request<{ ok: true; skill: Skill }>(SKILLS_MGMT_CREATE_MANUAL, {
       method: 'POST',
       body: payload,
     });
@@ -281,7 +312,7 @@ export const skillsApi = {
 
   /** 从外部源安装技能（github:/url:/local:/registry:） */
   install(payload: { source: string; force?: boolean }) {
-    return request<{ ok: true; skill: Skill }>('/api/skills-mgmt/install', {
+    return request<{ ok: true; skill: Skill }>(SKILLS_MGMT_INSTALL, {
       method: 'POST',
       body: payload,
     });
@@ -290,7 +321,7 @@ export const skillsApi = {
   /** 触发审核（单个技能） */
   review(skillId: string) {
     return request<{ ok: true; skill: Skill; review: ReviewResult }>(
-      `/api/skills-mgmt/${skillId}/review`,
+      skillReview(skillId),
       { method: 'POST' },
     );
   },
@@ -298,7 +329,7 @@ export const skillsApi = {
   /** 批量审核所有待审技能 */
   reviewBatch() {
     return request<{ ok: true; reviewed: number; results: { id: string; review: ReviewResult }[] }>(
-      '/api/skills-mgmt/review/batch',
+      SKILLS_MGMT_REVIEW_BATCH,
       { method: 'POST' },
     );
   },
@@ -306,19 +337,19 @@ export const skillsApi = {
   /** 获取/更新审核阈值 */
   getThresholds() {
     return request<{ ok: true; thresholds: Record<string, number> }>(
-      '/api/skills-mgmt/review/thresholds',
+      SKILLS_MGMT_REVIEW_THRESHOLDS,
     );
   },
   updateThresholds(thresholds: Record<string, number>) {
     return request<{ ok: true; thresholds: Record<string, number> }>(
-      '/api/skills-mgmt/review/thresholds',
+      SKILLS_MGMT_REVIEW_THRESHOLDS,
       { method: 'PUT', body: thresholds },
     );
   },
 
   /** 更新技能字段（PATCH） */
   update(skillId: string, patch: Partial<Skill>) {
-    return request<{ ok: true; skill: Skill }>(`/api/skills-mgmt/${skillId}`, {
+    return request<{ ok: true; skill: Skill }>(skillById(skillId), {
       method: 'PATCH',
       body: patch,
     });
@@ -326,12 +357,12 @@ export const skillsApi = {
 
   /** 删除技能 */
   remove(skillId: string) {
-    return request<{ ok: true }>(`/api/skills-mgmt/${skillId}`, { method: 'DELETE' });
+    return request<{ ok: true }>(skillById(skillId), { method: 'DELETE' });
   },
 
   /** 启用/禁用切换 */
   toggle(skillId: string, enabled: boolean) {
-    return request<{ ok: true; skill: Skill }>(`/api/skills-mgmt/${skillId}/toggle`, {
+    return request<{ ok: true; skill: Skill }>(skillToggle(skillId), {
       method: 'POST',
       body: { enabled },
     });
@@ -340,13 +371,13 @@ export const skillsApi = {
   /** 版本列表 */
   listVersions(skillId: string) {
     return request<{ ok: true; versions: SkillVersion[] }>(
-      `/api/skills-mgmt/${skillId}/versions`,
+      skillVersions(skillId),
     );
   },
 
   /** 版本升级（major/minor/patch） */
   bumpVersion(skillId: string, kind: 'major' | 'minor' | 'patch', changelog?: string, content?: string) {
-    return request<{ ok: true; skill: Skill }>(`/api/skills-mgmt/${skillId}/versions/bump`, {
+    return request<{ ok: true; skill: Skill }>(skillVersionsBump(skillId), {
       method: 'POST',
       body: { kind, changelog, content },
     });
@@ -354,7 +385,7 @@ export const skillsApi = {
 
   /** 版本回滚 */
   rollbackVersion(skillId: string, targetVersion: string) {
-    return request<{ ok: true; skill: Skill }>(`/api/skills-mgmt/${skillId}/versions/rollback`, {
+    return request<{ ok: true; skill: Skill }>(skillVersionsRollback(skillId), {
       method: 'POST',
       body: { target_version: targetVersion },
     });
@@ -363,14 +394,14 @@ export const skillsApi = {
   /** 参数优化建议 */
   optimize(skillId: string) {
     return request<{ ok: true; skill: Skill; suggestions: string[] }>(
-      `/api/skills-mgmt/${skillId}/optimize`,
+      skillOptimize(skillId),
       { method: 'POST' },
     );
   },
 
   /** 记录一次执行（成功/失败 + 耗时） */
   recordExecution(skillId: string, success: boolean, latencyMs: number) {
-    return request<{ ok: true }>(`/api/skills-mgmt/${skillId}/execution`, {
+    return request<{ ok: true }>(skillExecution(skillId), {
       method: 'POST',
       body: { success, latency_ms: latencyMs },
     });
@@ -379,7 +410,7 @@ export const skillsApi = {
   /** 元信息：可用分类 */
   metaCategories() {
     return request<{ ok: true; categories: SkillCategory[] }>(
-      '/api/skills-mgmt/meta/categories',
+      SKILLS_MGMT_META_CATEGORIES,
     );
   },
 };
@@ -391,7 +422,7 @@ export const skillsApi = {
 export const workflowApi = {
   checkHealth(signal?: AbortSignal) {
     return request<{ ok: boolean; stats: Record<string, unknown> }>(
-      '/api/workflow-learning/health',
+      WORKFLOW_LEARNING_HEALTH,
       { signal },
     );
   },
@@ -406,7 +437,7 @@ export const workflowApi = {
     duration_ms?: number;
   }) {
     return request<{ ok: true; workflow?: LearnedWorkflow; learned: boolean; reason?: string }>(
-      '/api/workflow-learning/learn',
+      WORKFLOW_LEARNING_LEARN,
       { method: 'POST', body: payload },
     );
   },
@@ -416,7 +447,7 @@ export const workflowApi = {
     return request<{
       ok: true;
       matches: { workflow: LearnedWorkflow; similarity: number; score: number }[];
-    }>('/api/workflow-learning/match', {
+    }>(WORKFLOW_LEARNING_MATCH, {
       method: 'POST',
       body: { task_text: taskText, top_k: topK },
     });
@@ -425,7 +456,7 @@ export const workflowApi = {
   /** 尝试执行匹配到的最佳工作流（优先本地执行，避免冗余 LLM 调用） */
   tryExecute(taskText: string, params?: Record<string, unknown>) {
     return request<{ ok: true; result?: WorkflowExecutionResult; skipped: boolean; reason?: string }>(
-      '/api/workflow-learning/try-execute',
+      WORKFLOW_LEARNING_TRY_EXECUTE,
       { method: 'POST', body: { task_text: taskText, params } },
     );
   },
@@ -433,7 +464,7 @@ export const workflowApi = {
   /** 按 ID 执行工作流 */
   executeById(wfId: string, params?: Record<string, unknown>) {
     return request<{ ok: true; result: WorkflowExecutionResult }>(
-      `/api/workflow-learning/execute/${wfId}`,
+      workflowLearnExecute(wfId),
       { method: 'POST', body: { params } },
     );
   },
@@ -441,20 +472,20 @@ export const workflowApi = {
   /** 列出所有工作流 */
   list(enabledOnly = false) {
     return request<{ ok: true; workflows: LearnedWorkflow[] }>(
-      `/api/workflow-learning/workflows?enabled_only=${enabledOnly ? 'true' : 'false'}`,
+      `${WORKFLOW_LEARNING_WORKFLOWS}?enabled_only=${enabledOnly ? 'true' : 'false'}`,
     );
   },
 
   /** 获取单个工作流 */
   get(wfId: string) {
     return request<{ ok: true; workflow: LearnedWorkflow }>(
-      `/api/workflow-learning/workflows/${wfId}`,
+      workflowLearnWorkflows(wfId),
     );
   },
 
   /** 删除工作流 */
   remove(wfId: string) {
-    return request<{ ok: true }>(`/api/workflow-learning/workflows/${wfId}`, {
+    return request<{ ok: true }>(workflowLearnWorkflows(wfId), {
       method: 'DELETE',
     });
   },
@@ -462,7 +493,7 @@ export const workflowApi = {
   /** 启用/禁用切换 */
   toggle(wfId: string, enabled: boolean) {
     return request<{ ok: true; workflow: LearnedWorkflow }>(
-      `/api/workflow-learning/workflows/${wfId}/toggle`,
+      workflowLearnToggle(wfId),
       { method: 'POST', body: { enabled } },
     );
   },
@@ -470,7 +501,7 @@ export const workflowApi = {
   /** 调整优先级 */
   setPriority(wfId: string, priority: number) {
     return request<{ ok: true; workflow: LearnedWorkflow }>(
-      `/api/workflow-learning/workflows/${wfId}/priority`,
+      workflowLearnPriority(wfId),
       { method: 'POST', body: { priority } },
     );
   },
