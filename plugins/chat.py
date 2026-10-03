@@ -1247,7 +1247,12 @@ def _resolve_stream_max_tokens(model: str) -> int:
 #:   plain     轻量：只用本会话历史（默认；1 次模型调用、真流式）
 #:   retrieval 检索：轻量之上注入检索到的记忆/知识片段（仍是真流式）
 #:   full      完整：委托编排器全链路（意图分层 + 检索 + 规划 + 工具）——**非流式**、可能多轮调用
-CHAT_STREAM_MODES = ("plain", "retrieval", "full")
+#:   full_stream 完整·流式（2026-10-03 新增）：跑编排器的「回答前」能力（语义层技能命中 + 检索装配），
+#:              回答仍由**工作台自己的流式工具循环**产出 ⇒ 保住首字延迟。**不**跑意图拒识/规划
+#:              （那需要整套意图路由），也**不**委托非流式链路 —— 这一点在事件里如实声明。
+#:   口径依据（实测，2026-10-03）：同一长答问题上 full 首字=完成=8.80s（全程无输出），
+#:   而 plain 首字 2.61s / retrieval 2.94s ⇒ 差距全在"要等编排器整段跑完"。
+CHAT_STREAM_MODES = ("plain", "retrieval", "full", "full_stream")
 
 
 def _sse_event(evt: dict) -> str:
@@ -1274,6 +1279,35 @@ def _retrieve_context_extra(question: str) -> str:
             "[workbench][SSE] 检索模式取上下文失败（按轻量继续）: %s", e)
         return ""
 
+
+def _semantic_prestage(question: str):
+    """跑编排器的**语义层**（回答前能力之一），命中则返回技能 instruction。
+
+    【为什么只调用不复制】`Orchestrator._semantic_layer_match` 已实现 RRF 三路融合召回 +
+    技能 instruction 加载 + 埋点，`DigitalLife` 直接继承它；在工作台另写一份 = 两套召回、两套阈值，
+    正是本仓反复栽的坑（同一口径写两遍必然漂移）。
+
+    Returns:
+        (instruction, skill_id, score)：未命中/异常一律返回 ("", "", None) —— fail-soft，
+        绝不让"回答前阶段"的失败打断对话。
+    """
+    try:
+        mod = _app_server_or_none()
+        yunshu = getattr(mod, "_Yunshu", None) if mod is not None else None
+        matcher = getattr(yunshu, "_semantic_layer_match", None)
+        if not callable(matcher):
+            return "", "", None
+        hit = matcher(question)
+        if not isinstance(hit, dict):
+            return "", "", None
+        instruction = str(hit.get("output") or "")
+        if not instruction:
+            return "", "", None
+        return instruction, str(hit.get("skill_id") or ""), hit.get("score")
+    except Exception as e:  # noqa: BLE001 语义层失败 ⇒ 按轻量继续
+        logging.getLogger("plugins.chat.stream").warning(
+            "[workbench][SSE] 语义层前置失败（按轻量继续）: %s", e)
+        return "", "", None
 
 def _full_pipeline_events(question: str, session_id: str):
     """「完整模式」：委托编排器全链路，把结果按 chunk 事件外发（**非流式**）
@@ -1513,7 +1547,33 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     # 口径只有一份：直接调编排器的 `_context_assembler_extra()`（见其 docstring）。
     _retrieval_text = ""
     _retrieval_tokens = 0
-    if mode == "retrieval":
+
+    # ── 完整·流式：先跑编排器的「回答前」能力（2026-10-03 新增）──
+    #   为什么需要这一档：full 档委托编排器 ⇒ **首字 = 完成**（实测长答 8.80s 全程无输出），
+    #   而编排器真正"贵"的是回答生成那一步；意图/检索这类前置步骤很便宜。
+    #   本档把前置能力（语义层技能命中 + 检索装配）借过来，回答仍交给下面**已有的**流式工具循环，
+    #   于是既有"编排器的智能前段"、又不牺牲逐字输出。
+    #   边界（如实声明，不假装跑过）：意图拒识 / 规划 / 编排器自己的工具循环在**本档不跑**。
+    if mode == "full_stream":
+        yield _sse_event({
+            "type": "thinking", "id": "prestage", "title": "编排前段（流式档）",
+            "detail": "跑编排器的语义层（技能命中）与检索装配；回答走本工作台的流式工具循环。"
+                      "不跑意图拒识/规划（那会退回非流式整段返回）。",
+            "status": "running"})
+        _kw_instruction, _kw_skill, _kw_score = _semantic_prestage(question)
+        if _kw_instruction:
+            SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + _kw_instruction
+            yield _sse_event({
+                "type": "thinking", "id": "semantic", "title": "语义层命中技能",
+                "detail": "技能 %s（score=%s）的 instruction 已注入系统提示词" % (
+                    _kw_skill or "(未命名)", _kw_score),
+                "status": "done"})
+        else:
+            yield _sse_event({
+                "type": "thinking", "id": "semantic", "title": "语义层未命中",
+                "detail": "无技能 instruction 注入，按检索档继续", "status": "done"})
+
+    if mode in ("retrieval", "full_stream"):
         _retrieval_text = _retrieve_context_extra(question)
         if _retrieval_text:
             SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + _retrieval_text

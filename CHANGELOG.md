@@ -36,6 +36,41 @@
 - 有依赖环境下两模块导入正常（`both import OK`）。
 
 ---
+## [CHG] - 2026-10-03: 对话模式增第四档「完整·流式」——先实测再定方案 ✅
+
+**影响模块**: `plugins/chat.py`, `yunshu-ui/src/stores/useChatPrefsStore.ts`, `tests/unit/test_workbench_chat_modes.py`, `tests/unit/conftest.py`（前一条同批夹具）
+**关联文档**: `docs/closeout/交付报告_20261003.md` §13
+
+### 背景（实测数据，不是推断）
+
+同一长答问题上打 `/api/chat/stream` 逐事件计时：
+`plain` 首字 2.61s / 完成 3.56s；`retrieval` 首字 2.94s / 完成 4.20s；
+**`full` 首字 = 完成 = 8.80s（100% 时间无任何输出）**。另发现 `full` 命中已学习工作流时会秒回
+（0.16s / 2656 字 / 0 次 LLM 调用）⇒ 方差极大：要么秒回，要么全程空屏。
+
+根因不是"编排器慢"，而是**那一步没有流式**：编排器内 `chat_stream` 引用数为 0，
+其回答链路（`_llm.chat` / `ToolCallingService.chat_with_steps`）本质非流式。
+
+### Added
+
+- 第四档 **`full_stream`（完整·流式）**：
+  · **编排前段**只调用不复制：`Orchestrator._semantic_layer_match`（RRF 三路召回 + 技能 instruction）
+    与 `_context_assembler_extra`（检索装配）；
+  · **回答**由工作台**已有**的流式工具循环产出；
+  · **如实声明边界**：不跑意图拒识 / 规划 / 编排器自己的工具循环 —— 事件文案中写明。
+- `_semantic_prestage()` 为 fail-soft：语义层抛异常/返回空 ⇒ 按检索档继续，绝不打断对话。
+- 前端菜单第四项（label「完整·流式」，icon 🧠⚡），hint 写明跑什么、不跑什么。
+
+### 验证结果
+
+- 实测（重启后端后，同一问题）：`full_stream` 首字 **1.66s** / 完成 3.30s / 278 chunk，
+  对比 `full` 首字 9.67s / 8 chunk ⇒ **首字 ≈5.8× 提升**，且逐字到达；
+- 阶段事件可见：对话准备 → **编排前段（流式档）** → **语义层未命中** → 检索 → 上下文装配；
+- 用例：`test_workbench_chat_modes.py` 增 4 条（命中注入且真流式 / 未命中如实说明 / 语义层异常降级 / 四档清单）⇒ 14 passed；
+- workbench + boundary 回归 764 passed / 34 skipped；前端 `tsc` EXIT=0、ChatModeMenu 用例 5 passed；
+- 前端产物已重建并核验（served bundle `index-BbIsWZk9.js` 含「完整·流式」）。
+
+---
 ## [CHG] - 2026-10-03（CI 修复）: 让 config.py 在「没有 pydantic」时也能导入，并补上依赖 ✅
 
 **影响模块**: `config.py`, `.github/workflows/ci-cd.yml`, `tests/unit/test_config_optional_pydantic.py`（新增）

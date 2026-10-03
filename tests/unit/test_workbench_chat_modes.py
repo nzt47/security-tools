@@ -74,17 +74,24 @@ class _SessionMgr:
 class _Yunshu:
     """桩编排器：检索返回固定文本；chat() 记录入参并返回固定回答"""
 
-    def __init__(self, extra="", answer="完整链路回答", chat_raises=None):
+    def __init__(self, extra="", answer="完整链路回答", chat_raises=None, semantic=None):
         self._extra = extra
         self._answer = answer
         self._chat_raises = chat_raises
+        self._semantic = semantic          # None=未命中；dict=命中（模拟编排器语义层）
         self._memory = _Memory()
         self.chat_calls = []
+        self.semantic_calls = []
         self.turn_state = {}
 
     def _context_assembler_extra(self, question, mode="default"):
         self.last_extra_call = (question, mode)
         return self._extra
+
+    def _semantic_layer_match(self, question, trace_id=None):
+        """模拟 Orchestrator._semantic_layer_match（DigitalLife 直接继承该方法）。"""
+        self.semantic_calls.append(question)
+        return self._semantic
 
     def chat(self, question, *, session_id=None, session_mgr=None):
         self.chat_calls.append({"question": question, "session_id": session_id,
@@ -260,3 +267,64 @@ class TestFullMode:
         text = "".join(e["text"] for e in events if e["type"] == "chunk")
         assert "规划超时" in text
         assert events[-1]["type"] == "done"
+
+
+class TestFullStreamMode:
+    """完整·流式（2026-10-03）：编排前段 + 工作台流式回答。"""
+
+    def test_语义命中时注入技能指令且回答仍真流式(self, env):
+        sem = {"output": "技能指令：先查文档再动手", "skill_id": "sk-demo", "score": 0.87}
+        yunshu = _Yunshu(extra="检索片段", semantic=sem)
+        client, _fake = env(yunshu)
+
+        body = _body(client.post("/api/chat/stream",
+                                json={"message": "怎么做", "session_id": "s1",
+                                      "mode": "full_stream"}))
+
+        ids = [e.get("id") for e in _events(body) if e["type"] == "thinking"]
+        assert "prestage" in ids and "semantic" in ids, ids
+        detail = " ".join(str(e.get("detail", "")) for e in _events(body))
+        assert "sk-demo" in detail and "0.87" in detail, detail
+
+        # ① 技能指令与检索片段都进了 system prompt
+        prompt = FakeLLM.instances[-1].seen["system_prompt"]
+        assert "先查文档再动手" in prompt and "检索片段" in prompt
+        # ② 回答由本工作台的流式循环产出（逐块），不是整段外发
+        assert [e["type"] for e in _events(body) if e["type"] == "chunk"] == ["chunk", "chunk"]
+        # ③ **不**委托编排器（委托=非流式，正是本档要避免的）
+        assert yunshu.chat_calls == [], "full_stream 不得走 yunshu.chat()（那是非流式委托）"
+        assert yunshu.semantic_calls == ["怎么做"]
+
+    def test_语义未命中时按检索档继续且如实说明(self, env):
+        yunshu = _Yunshu(extra="检索片段", semantic=None)
+        client, _fake = env(yunshu)
+
+        body = _body(client.post("/api/chat/stream",
+                                json={"message": "你好", "session_id": "s1",
+                                      "mode": "full_stream"}))
+
+        detail = " ".join("%s %s" % (e.get("title", ""), e.get("detail", ""))
+                          for e in _events(body))
+        assert "语义层未命中" in detail, detail
+        assert "检索片段" in FakeLLM.instances[-1].seen["system_prompt"]
+        assert yunshu.chat_calls == []
+
+    def test_语义层抛异常时按检索档继续(self, env):
+        yunshu = _Yunshu(extra="检索片段")
+
+        def _boom(question, trace_id=None):
+            raise RuntimeError("semantic down")
+
+        yunshu._semantic_layer_match = _boom
+        client, _fake = env(yunshu)
+        body = _body(client.post("/api/chat/stream",
+                                json={"message": "你好", "session_id": "s1",
+                                      "mode": "full_stream"}))
+        assert [e["type"] for e in _events(body) if e["type"] == "chunk"] == ["chunk", "chunk"]
+        assert "检索片段" in FakeLLM.instances[-1].seen["system_prompt"]
+
+    def test_模式清单含四档(self):
+        from plugins.chat import CHAT_STREAM_MODES
+
+        assert CHAT_STREAM_MODES == ("plain", "retrieval", "full", "full_stream")
+

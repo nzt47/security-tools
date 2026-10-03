@@ -29,9 +29,12 @@ export const CHAT_FORMATS: Record<ChatFormat, { label: string; hint: string }> =
 //   plain     = 现状（真流式、1 次模型调用、不查记忆/知识库）
 //   retrieval = 在 plain 之上注入检索到的记忆/知识片段（+≤3k token/轮，仍是真流式）
 //   full      = 走编排器全链路（意图分层 + 检索 + 规划 + 工具）—— 最准，但**非流式**且最贵
+//   full_stream = 编排前段（语义层技能命中 + 检索装配）+ **工作台流式工具循环**回答 ——
+//                 2026-10-03 实测：full 在长答问题上首字 = 完成 = 8.80s（全程无输出），
+//                 plain 首字 2.61s / retrieval 2.94s ⇒ 于是补这一档，兼顾"编排前段"与首字延迟。
 // 默认 plain：与"改这一行之前"的行为逐字一致；想要更准由用户自己按场景切换。
 
-export type ChatMode = 'plain' | 'retrieval' | 'full'
+export type ChatMode = 'plain' | 'retrieval' | 'full' | 'full_stream'
 
 export const CHAT_MODES: Record<ChatMode, { label: string; icon: string; hint: string }> = {
   plain: {
@@ -48,6 +51,11 @@ export const CHAT_MODES: Record<ChatMode, { label: string; icon: string; hint: s
     label: '完整',
     icon: '🧠',
     hint: '走编排器全链路：意图分层 + 检索 + 规划 + 工具。回答最完整，但**非流式**且最贵（可能多轮模型调用）',
+  },
+  full_stream: {
+    label: '完整·流式',
+    icon: '🧠⚡',
+    hint: '编排前段（语义层技能命中 + 检索装配）+ 流式工具循环回答：兼顾"编排器前段"与逐字输出；不跑意图拒识/规划',
   },
 }
 
