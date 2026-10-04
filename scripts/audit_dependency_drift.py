@@ -515,6 +515,11 @@ def main(argv: list[str] | None = None) -> int:
         help="存在真冲突时以非零退出（CI 门禁用）",
     )
     ap.add_argument(
+        "--fail-on-missing",
+        action="store_true",
+        help="pyproject 声明但锁定文件缺失（[2b] ONLY_IN_PYPROJECT）时以非零退出（CI 门禁用）",
+    )
+    ap.add_argument(
         "--check-installed",
         action="store_true",
         help="pyproject 排除了本机实装版本时以非零退出（要求同时给 --installed）",
@@ -580,6 +585,25 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 1
+    if args.fail_on_missing:
+        # 【为什么必须单独有一个开关，且必须进 CI】2026-10-04 实测：
+        #   用一个**在 Linux 容器里由 pip-compile 生成**的锁文件替换 requirements.txt 后，
+        #   pyproject 声明的 4 个 Windows 专属直接依赖（comtypes / pypiwin32 / pywin32 / wmi，
+        #   均带 sys_platform == 'win32' 标记）**全部消失** —— pip-compile 按**当前平台**
+        #   求值标记，于是在 Linux 上把它们解析掉了。
+        #   此时本脚本 [2b] 正确报出 ONLY_IN_PYPROJECT = 4，
+        #   **但 --fail-on-conflict 只判 CONFLICT，退出码仍是 0** ⇒
+        #   「生产运行环境（Windows）会丢掉 WMI 感知能力」这件事可以**全绿地合入**。
+        #   本仓对这类门禁的定性是"会漏报的门禁比会误报的更危险，因为它看起来很绿"。
+        #   ⇒ 补这个开关，并接进 ci.yml 的 dependency-consistency job。
+        n = report["counts"]["ONLY_IN_PYPROJECT"]
+        if n > 0:
+            print(
+                f"[audit_dependency_drift] ✗ pyproject 声明了 {n} 个依赖但锁定文件里没有"
+                f"（生产锁文件缺件；带平台标记时通常意味着锁文件是为**另一个平台**生成的）",
+                file=sys.stderr,
+            )
+            return 1
     if args.check_installed:
         n = report["counts"]["PYPROJECT_REJECTS_INSTALLED"]
         if not inst:
