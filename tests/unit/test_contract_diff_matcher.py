@@ -265,11 +265,40 @@ class Test注释剥离:
         src = "a\n// comment\nb\n/* multi\nline */\nc\n"
         assert len(cd.strip_comments(src).splitlines()) == len(src.splitlines())
 
-    def test_注释里的反引号代码跨不再计入_stray(self, cd):
-        """本仓实际形态（capability 清单在注释里被描述过）。"""
-        stray = cd.collect_stray_frontend_literals()["react"]
-        # callability.ts 的注释里有两处反引号代码跨；剥注释后该文件只剩 1 处真实调用
-        assert stray.get("yunshu-ui/src/lib/callability.ts", 0) == 1, (
-            "callability.ts 的 stray 应为 1（仅第 256 行的真实调用）—— "
-            "大于 1 说明注释里的反引号代码跨又被算进来了"
-        )
+    def test_注释里的路径不计入字面量(self, cd):
+        """合成输入：只在注释里出现的路径，不得计入。"""
+        bt = chr(96)
+        # 注意：反引号必须**紧贴** /api —— 写成 [反引号]GET /api/x 时，
+        # 连对照组（strip=False）都匹配不到，用例会以"断言写错"的方式失败。
+        txt = "// " + bt + "/api/only-in-comment" + bt + chr(10) + "const a = 1" + chr(10)
+        assert cd.count_frontend_literals(txt) == 0, "注释里的路径被计入了 —— 注释剥离失效"
+        assert cd.count_frontend_literals(txt, strip=False) == 1, "对照组：不剥注释时应为 1"
+
+    def test_真实调用仍计入字面量(self, cd):
+        """合成输入：注释与真实调用并存时，只计真实那一处。"""
+        bt = chr(96)
+        txt = "// " + bt + "/api/in-comment" + bt + chr(10) + "fetch(" + chr(39) + "/api/real" + chr(39) + ")" + chr(10)
+        assert cd.count_frontend_literals(txt) == 1
+        assert cd.count_frontend_literals(txt, strip=False) == 2, "对照组：不剥注释时应为 2"
+
+    def test_剥注释只会减少或持平(self, cd):
+        """全仓**单调性**：剥注释不可能凭空造出字面量（两种算法互为对照）。
+
+        【为什么用它替代原来那条数值断言】原断言写死了 stray[.../callability.ts] == 1，
+        而该文件被迁进常量层后这个数**合法地**变成 0，于是用例在 CI 上红了三条作业
+        （契约门禁 + 两个测试分片），而功能完全正确。教训：
+        **守卫要锚在机制上，不要锚在今天的数值上**；只允许下降/持平的单调性命题不会失效。
+        """
+        checked = 0
+        for f in cd._iter_source_files({".ts", ".tsx"}, ["yunshu-ui/src"]):
+            rel = str(f.relative_to(cd.ROOT)).replace(chr(92), "/")
+            if ".test." in rel or ".spec." in rel or "/assets/" in rel or rel.endswith(".map"):
+                continue
+            if "/mocks/" in rel or "devMock" in rel or "exportMock" in rel:
+                continue
+            txt = f.read_text(encoding="utf-8", errors="replace")
+            assert cd.count_frontend_literals(txt) <= cd.count_frontend_literals(txt, strip=False), (
+                rel + "：剥注释后字面量反而变多了 —— 剥离逻辑在凭空造字面量"
+            )
+            checked += 1
+        assert checked > 20, "巡检文件数过少（" + str(checked) + "），本用例可能已成空壳"

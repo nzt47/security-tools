@@ -6,6 +6,16 @@
  */
 import { request } from './apiClient'
 
+import {
+  EXPERIENCE_STATS,
+  EXPERIENCE_INGEST,
+  EXPERIENCE_LIST,
+  EXPERIENCE_SEARCH,
+  experienceById,
+  experienceReview,
+  experienceBatchRollback,
+} from '@/api/endpoints';
+
 export interface ExperienceStack {
   lang?: string
   frameworks?: string[]
@@ -69,7 +79,7 @@ export interface IngestResult {
 }
 
 export function fetchStats() {
-  return request<{ ok: boolean; stats: ExperienceStats }>('/api/experience/stats')
+  return request<{ ok: boolean; stats: ExperienceStats }>(EXPERIENCE_STATS)
 }
 
 export function fetchList(params: {
@@ -85,12 +95,12 @@ export function fetchList(params: {
   })
   const q = qs.toString()
   return request<{ ok: boolean; total: number; items: ExperienceItem[] }>(
-    `/api/experience/list${q ? '?' + q : ''}`,
+    `${EXPERIENCE_LIST}${q ? '?' + q : ''}`,
   )
 }
 
 export function fetchDetail(id: string) {
-  return request<{ ok: boolean; item: ExperienceItem }>(`/api/experience/${encodeURIComponent(id)}`)
+  return request<{ ok: boolean; item: ExperienceItem }>(experienceById(id))
 }
 
 /** 预检预览：纯本地 BM25，不走 DeepSeek */
@@ -98,14 +108,14 @@ export function searchPreview(q: string, topK = 5, lang?: string) {
   const qs = new URLSearchParams({ q, top_k: String(topK) })
   if (lang) qs.set('lang', lang)
   return request<{ ok: boolean; hits: ExperienceHit[]; error?: string }>(
-    `/api/experience/search?${qs.toString()}`,
+    `${EXPERIENCE_SEARCH}?${qs.toString()}`,
   )
 }
 
 /** 审阅：L2 逐次确认 —— confirmed 必须显式为 true（后端强制） */
 export function reviewItem(id: string, action: 'accept' | 'reject' | 'deprecate', reason = '') {
   return request<{ ok: boolean; error?: string }>(
-    `/api/experience/${encodeURIComponent(id)}/review`,
+    experienceReview(id),
     { method: 'POST', body: { action, reason, confirmed: true } },
   )
 }
@@ -113,13 +123,13 @@ export function reviewItem(id: string, action: 'accept' | 'reject' | 'deprecate'
 /** 按 batch_id 回滚（后端写审计链） */
 export function rollbackBatch(batchId: string, reason = '') {
   return request<{ ok: boolean; removed?: number; remaining?: number; error?: string }>(
-    `/api/experience/batch/${encodeURIComponent(batchId)}/rollback`,
+    experienceBatchRollback(batchId),
     { method: 'POST', body: { confirmed: true, reason } },
   )
 }
 
 export function ingestSamples(samples: ExperienceItem[]) {
-  return request<IngestResult>('/api/experience/ingest', {
+  return request<IngestResult>(EXPERIENCE_INGEST, {
     method: 'POST',
     body: { samples },
   })

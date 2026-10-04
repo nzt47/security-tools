@@ -10,6 +10,8 @@
  */
 import { request } from './apiClient';
 
+import { CONTEXT_STATUS, CONTEXT_CONFIG, CONTEXT_COMPRESS } from '@/api/endpoints';
+
 export type ContextStatusLevel = 'ok' | 'info' | 'warning' | 'critical';
 
 export interface RecentMessage {
@@ -47,14 +49,14 @@ export interface CompressResult {
 
 export const contextMonitorApi = {
   status: (signal?: AbortSignal) =>
-    request<ContextStatus>('/api/context/status', { signal }),
+    request<ContextStatus>(CONTEXT_STATUS, { signal }),
 
   saveConfig: (config: ContextConfig) =>
-    request<{ ok: boolean }>('/api/context/config', {
+    request<{ ok: boolean }>(CONTEXT_CONFIG, {
       method: 'POST',
       body: config,
     }),
 
   compress: () =>
-    request<CompressResult>('/api/context/compress', { method: 'POST' }),
+    request<CompressResult>(CONTEXT_COMPRESS, { method: 'POST' }),
 };

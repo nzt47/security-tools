@@ -14,7 +14,9 @@
 import { request } from './apiClient'
 import type { CallabilityInfo } from './callability'
 
-const PREFIX = '/api/agent-lines'
+import { AGENT_LINES } from '@/api/endpoints';
+
+const PREFIX = AGENT_LINES
 
 // ═══════════════════════════════════════════════════════════
 //  类型（与后端 LineProfile.to_dict / AssemblyResult.to_dict 对齐）

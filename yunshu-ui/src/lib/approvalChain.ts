@@ -21,6 +21,8 @@
  */
 import { ApiError, request } from './apiClient'
 
+import { APPROVAL_SESSION } from '@/api/endpoints';
+
 /** 与 `agent/security/approval_session.py` 的常量逐字一致（改后端必须同步改这里） */
 export const SESSION_COOKIE = 'cp_approval_session'
 export const CSRF_COOKIE = 'cp_approval_csrf'
@@ -55,7 +57,7 @@ let opening: Promise<unknown> | null = null
 /** 开启审批会话（并发调用**共享同一次请求**；响应把 session/csrf 写进 Cookie） */
 export function openApprovalSession(): Promise<unknown> {
   if (!opening) {
-    opening = request('/api/approval/session', { method: 'POST', body: {} }).finally(() => {
+    opening = request(APPROVAL_SESSION, { method: 'POST', body: {} }).finally(() => {
       opening = null
     })
   }

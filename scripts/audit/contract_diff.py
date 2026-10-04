@@ -407,6 +407,19 @@ def strip_comments(src: str) -> str:
 SANCTIONED_FRONTEND_LAYER = "yunshu-ui/src/api/endpoints.ts"
 
 
+def count_frontend_literals(txt: str, *, strip: bool = True) -> int:
+    """统计一段前端源码里的 /api 字面量个数（默认**先剥注释**）。
+
+    【为什么单独抽出来】"注释里的端点描述不算调用"这条判据必须能被**直接测**。
+    它原先只能整仓跑一遍再断言某个文件的数值 —— 而那正是"把会变的现状写死"的形态。
+    本轮实测踩到：`callability.ts` 的 stray 数在**把该文件迁进常量层之后**由 1 变 0，
+    于是断言 `== 1` 的用例在 CI 上红了三条作业（契约门禁 + 两个测试分片），
+    而**功能本身完全正确** —— 收集器是对的，错的是把"今天的数值"当成契约。
+    ⇒ 判据改为对**合成输入**做（见 test_contract_diff_matcher.py），锚在机制上。
+    """
+    return len(FRONTEND_LITERAL.findall(strip_comments(txt) if strip else txt))
+
+
 def collect_stray_frontend_literals():
     """统计**常量层之外**的 /api 字面量**出现次数**（按文件聚合，非去重）。
 
@@ -434,7 +447,7 @@ def collect_stray_frontend_literals():
                 txt = f.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            n = len(FRONTEND_LITERAL.findall(strip_comments(txt)))
+            n = count_frontend_literals(txt)
             if n:
                 per_file[rel] = n
         out[label] = per_file
