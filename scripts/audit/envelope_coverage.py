@@ -47,7 +47,28 @@ ENDPOINT_RE = re.compile(r"""['"](/api/[A-Za-z0-9_\-/{}.$]*)['"]""")
 #: 启发式函数名 —— 它们存在的前提就是「后端形态未知」。
 HEURISTIC_RE = re.compile(r"\b(pickObj|pickList)\b")
 
+#: TS/JS 注释（行注释与块注释）。
+# 【为什么必须先剥注释】常量层文件头用 `/api/xxx` 举过用法示例，
+#   不剥就会把一个**文档占位符**当成真实端点去探测（实测探到 404）。
+#   这与 contract_diff 在 #1002 做的「先剥注释再扫」是同一件事。
+_COMMENT_RE = re.compile(r"/\*.*?\*/|//[^\n]*", re.S)
+
+
+def _strip_js_comments(text):
+    """剥掉 TS/JS 注释。**够用即止**：只服务"取端点字面量"这一件事。
+
+    【边界】不做字符串感知 —— 故 `"http://x"` 里的双斜杠会被误当行注释起点。
+    对本脚本无害：常量层的字面量都是 `'/api/...'` 形态，不含 `//`；
+    真要精确剥离请复用 contract_diff.strip_comments（本脚本刻意不反向依赖它，
+    避免"审计工具依赖被审对象"的循环）。
+    """
+    return _COMMENT_RE.sub(" ", text)
+
 SKIP_DIRS = {"node_modules", "dist", ".vite", "coverage"}
+
+#: 端点常量层（阶段 5 / R5 的收口点）。收口之后端点字面量住在这里，
+#: 而不是页面层 —— 见 discover_guarded_endpoints 的说明。
+SANCTIONED_LAYER = "yunshu-ui/src/api/endpoints.ts"
 
 
 def _iter_ui_files():
@@ -59,27 +80,51 @@ def _iter_ui_files():
 
 
 def discover_guarded_endpoints():
-    """返回 {端点: [文件, ...]} —— 被启发式**同文件**守护的端点。
+    """返回 {端点: [使用它的文件, ...]} —— 被启发式守护的端点。
 
-    【口径】同一文件里既出现启发式、又出现端点字面量 ⇒ 该端点被启发式解析。
+    【口径】「用了 pickObj/pickList 的文件」所消费的端点。
+    端点从**两处**收集，缺一不可：
+      ① 该文件里的 `/api/...` 字面量；
+      ② **端点常量层** `src/api/endpoints.ts` 里的字面量。
+
+    【为什么必须加上 ②（2026-10-04 实测踩到）】
+    阶段 5 的收口把页面层的字面量**搬进了常量层**（#1006 / #1012 收官后 react stray = 0）。
+    只扫页面层的话，本脚本会从「37 个端点」掉到「3 个」—— 那不是前置变好了，
+    而是**扫描口径失明**：端点还在被消费，只是换了书写位置。
+    这与 contract_diff 把常量层排除在**计数**之外是两件事：
+    计数要「还剩多少处散落」，本脚本要「哪些端点被启发式消费」。
+
     这是**上界**（同文件可能有多处互不相关的用法），但对「盘点前置」足够，
     且不会漏（宁可多留不可少留）。
     """
-    found = {}
+    heuristic_files = []
     for p in _iter_ui_files():
         try:
             text = p.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        if not HEURISTIC_RE.search(text):
-            continue
-        rel = p.relative_to(ROOT).as_posix()
-        for m in ENDPOINT_RE.finditer(text):
+        if HEURISTIC_RE.search(text):
+            heuristic_files.append((p, text))
+
+    def _collect(text, rel, found):
+        for m in ENDPOINT_RE.finditer(_strip_js_comments(text)):
             ep = m.group(1)
             # 动态片段（模板串）无法直接探测，跳过但如实计数。
             if "{" in ep or "$" in ep:
                 continue
             found.setdefault(ep, []).append(rel)
+
+    found = {}
+    for p, text in heuristic_files:
+        _collect(text, p.relative_to(ROOT).as_posix(), found)
+
+    # ② 常量层：被启发式的文件 import 的端点写在这里。
+    layer = ROOT / SANCTIONED_LAYER
+    if layer.exists():
+        try:
+            _collect(layer.read_text(encoding="utf-8", errors="ignore"), SANCTIONED_LAYER, found)
+        except OSError:
+            pass
     return found
 
 
