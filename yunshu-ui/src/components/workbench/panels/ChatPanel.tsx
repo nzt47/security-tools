@@ -17,6 +17,10 @@ import { ChatStyleMenu } from '../chat/ChatStyleMenu';
 import { ChatModeMenu } from '../chat/ChatModeMenu';
 import { authHeader } from '@/lib/apiToken';
 
+import {
+  SKILLS_MGMT_SLASH_COMMANDS,
+} from '@/api/endpoints';
+
 const SUGGESTIONS = [
   '用流式渲染实现一个聊天面板',
   '帮我规划一个知识检索任务',
@@ -71,7 +75,7 @@ export function ChatPanel() {
     // 【2026-10-01 修：裸 fetch 不带令牌】enforce/enforce_all 档下该请求恒 401，
     //   斜杠命令提示因此静默失效（实测：有令牌时该端点仍 401）。
     //   统一走 lib/apiToken 的 authHeader()，与 apiClient 同一口径。
-    fetch('/api/skills-mgmt/slash-commands', { headers: authHeader() })
+    fetch(SKILLS_MGMT_SLASH_COMMANDS, { headers: authHeader() })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (!cancelled && d?.commands) setCmds(d.commands); })
       .catch(() => {});

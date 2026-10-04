@@ -15,6 +15,10 @@ import { getExportMockUsers, getUserList } from '@/api/user'
 import type { UserListItem } from '@/api/user'
 import { downloadFile } from '@/utils/system'
 
+import {
+  USER_LIST,
+} from '@/api/endpoints';
+
 type ExportFormat = 'csv' | 'json'
 
 /** 大数据量 Mock 开关：.env.development 的 VITE_EXPORT_LARGE_MOCK=true 时走 5000 条演示数据 */
@@ -62,7 +66,7 @@ export default function DataExport() {
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
-    const sourceDesc = USE_LARGE_MOCK ? '大数据 Mock（/api/export/users，5000 条）' : '/api/user/list'
+    const sourceDesc = USE_LARGE_MOCK ? '大数据 Mock（/api/export/users，5000 条）' : USER_LIST
     console.info(`[export] 开始拉取数据源：${sourceDesc}`)
     try {
       const { list } = USE_LARGE_MOCK

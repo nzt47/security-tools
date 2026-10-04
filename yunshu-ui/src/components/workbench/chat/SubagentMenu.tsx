@@ -26,11 +26,18 @@ import { Bot, Check, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, UserPl
 import { hubGet } from '../../../pages/hub/components/ui'
 import { authHeader } from '../../../lib/apiToken'
 
+import {
+  SUBAGENT_DELEGATE,
+  SUBAGENT_HISTORY,
+  SUBAGENT_LIST,
+  subagentDelegateByName,
+} from '@/api/endpoints';
+
 /** 当前任务委托的子代理（LocalStorage 持久化；跨会话保留用户选择） */
 const DELEGATE_KEY = 'yunshu.subagent.delegate'
 
 /** 临时分身委派端点（不要求先存在分身：现建现用、跑完即回收，与模型侧 delegate 工具同链路） */
-const EPHEMERAL_DELEGATE_URL = '/api/subagent/delegate'
+const EPHEMERAL_DELEGATE_URL = SUBAGENT_DELEGATE
 
 interface Subagent {
   id?: string
@@ -154,7 +161,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
         count?: number
         channel?: ChannelInfo
         error?: string
-      }>('/api/subagent/list')
+      }>(SUBAGENT_LIST)
       if (r?.ok === false) {
         setError(String(r.error ?? '分身列表查询失败'))
         setList([])
@@ -180,7 +187,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
         records?: DelegationRecord[]
         total?: number | null
         error?: string
-      }>('/api/subagent/history?limit=20')
+      }>(`${SUBAGENT_HISTORY}?limit=20`)
       if (r?.ok === false) {
         setRecordsError(String(r.error ?? '委派记录查询失败'))
       } else {
@@ -270,7 +277,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
       // 目标：走**真委派**端点（/execute 是容器占位骨架，只回占位文案 ⇒ "没跑通"）
       // 两条链路：有活跃分身 → 具名端点用它；否则 → 临时分身端点（与模型侧 delegate 同链路）
       const url = name
-        ? `/api/subagent/${encodeURIComponent(name)}/delegate`
+        ? subagentDelegateByName(name)
         : EPHEMERAL_DELEGATE_URL
       const res = await fetch(url, {
         method: 'POST',

@@ -9,6 +9,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { RefreshCw, Search } from 'lucide-react'
 import { Card, Badge, PageHeader, hubGet, Loading, ErrorBox, pickObj } from './components/ui'
 
+import {
+  MODULES_TOPOLOGY,
+} from '@/api/endpoints';
+
 interface ModuleNode {
   module_id: string
   name: string
@@ -51,7 +55,7 @@ export default function ModuleListPage() {
   const load = () => {
     setLoading(true)
     setError('')
-    hubGet('/api/modules/topology').then((r) => {
+    hubGet(MODULES_TOPOLOGY).then((r) => {
       const d = pickObj<{ domains?: Domain[] }>(r) ?? {}
       setDomains(Array.isArray(d.domains) ? d.domains : [])
       setLoading(false)

@@ -105,16 +105,34 @@ def _is_excluded(rel) -> bool:
 
 
 def _iter_source_files(suffixes, dirs):
+    """遍历 dirs 下指定后缀的源文件，**边走边剪枝**。
+
+    【为什么从 rglob 改成 os.walk 剪枝 —— 2026-10-04 由 CI 超时暴露】
+    `rglob("*")` 会**先把整棵树走完**，`continue` 只是"走完之后不 yield"，
+    **省不到走树的钱**：`node_modules`（数十万条目）照样被逐条 stat 一遍。
+    本仓对这一类已有记录与前科：实测 15,822 路径/35.17s，过滤后只需读 3,263 个/0.49s；
+    #1008 已用同一修法解决另外两处，这里是最初出现该形态的地方，此前被 #1008 漏掉了。
+    `os.walk` 允许**就地改写 `dirnames`**：把排除目录从待下降列表里删掉，
+    于是那些子树根本不会被 stat。
+
+    【为什么还要加前缀剪枝】`EXCLUDE_DIRS` 逐条列举**永远漏**（每新增一个工具目录就漏一个）。
+    点开头的目录（`.venv`/`.mypy_cache`/`.pytest_tmp` …）统一不下降，
+    是"锚在机制上"而不是"锚在今天这份名单上"（本仓 §6 第 1 条）。
+
+    【语义不变】剪枝只跳过 `EXCLUDE_DIRS` 的成员与点开头目录 —— 二者原本就会被
+    `_is_excluded` 或其后缀过滤掉；产物集合与 rglob 版逐条相同（见配套守卫用例）。
+    """
     for d in dirs:
         base = ROOT / d
         if not base.exists():
             continue
-        for p in base.rglob("*"):
-            if not p.is_file() or p.suffix not in suffixes:
-                continue
-            if _is_excluded(p.relative_to(ROOT)):
-                continue
-            yield p
+        for dirpath, dirnames, filenames in os.walk(base):
+            dirnames[:] = [n for n in dirnames
+                           if n not in EXCLUDE_DIRS and not n.startswith(".")]
+            for name in filenames:
+                if Path(name).suffix not in suffixes:
+                    continue
+                yield Path(dirpath) / name
 
 
 #: 便宜预筛：文件里是否**可能**存在路由装饰器。
@@ -323,6 +341,14 @@ def collect_frontend_literals():
 #: 语义与字面反引号完全相同。
 _QUOTES = ("'", '"', "\x60")
 
+#: "下一个可能改变扫描状态的位置"：三种注释起始 + 三种引号。
+#  【为什么合成一条正则而不是对每个 token 各做一次 find】
+#   strip_comments 的循环里每轮都要找"下一个特殊位置"。
+#   用 6 次 `str.find` 是 6 趟 C 扫描；实测这比原来的逐字符版**更慢**（特殊字符密集的文件上 1.1s→8.4s），
+#   因为每轮都付 6 次调用开销。合成一条 alternation 后只有 1 趟，且命中即止。
+#  正则的作用仅此而已 —— 剥离本身仍是状态机（docstring 已说明为何不能用正则剥离）。
+_SPECIAL_RE = re.compile("//|/[*]|<!--|[" + "".join(_QUOTES) + "]")
+
 
 def strip_comments(src: str) -> str:
     """剥离 TS/JS 的注释与 HTML 注释；**保留**字符串与模板串内容。
@@ -386,6 +412,27 @@ def strip_comments(src: str) -> str:
             while i < n and not src.startswith("-->", i):
                 i += 1
             i += 3
+            continue
+        # 【整段快进】这里原本是 `out.append(c); i += 1`，即**每个普通字符**过一次循环。
+        #   实测一次全量扫描要剥 5.8 MB，绝大多数落在 minified 构建产物这类几乎无注释的大文件上，
+        #   于是成本与**文件体积**成正比而不是与"特殊字符个数"成正比 —— CI 上因此超时
+        #   （Shard 5 报 `Failed: Timeout (>60.0s)`，见 05 轮记录）。
+        #   改为：先 find 出"下一个可能改变状态的位置"，把中间整段一次切片取出。
+        #   find 是 C 级扫描 ⇒ 循环次数从"字符数"降到"特殊字符数"。
+        # 【为什么引号也必须算进"可能改变状态的位置"】否则会漏掉 `"//x"` 这种
+        #   "字符串里的双斜杠" —— 而"字符串里的斜杠斜杠不能被删"正是本函数存在的理由
+        #   （见上方 docstring）。
+        # 【为什么语义不变】能走到这里，说明 c 既不是引号、也不构成注释起始；
+        #   而注释起始的前缀分别是 `/`·`/`·`<`，引号是各自本身 —— 跳到其中任意一个，
+        #   跳过的都只是**不可能改变状态**的普通字符。
+        _m = _SPECIAL_RE.search(src, i)
+        if _m is None:
+            out.append(src[i:])
+            break
+        nxt_special = _m.start()
+        if nxt_special > i:
+            out.append(src[i:nxt_special])
+            i = nxt_special
             continue
         out.append(c)
         i += 1

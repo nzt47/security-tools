@@ -9,6 +9,10 @@ import { useState } from 'react'
 import { Loader2, Lightbulb, ShieldCheck } from 'lucide-react'
 import { hubPost } from '../../hub/components/ui'
 
+import {
+  SKILLS_MGMT_CREATE_AI,
+} from '@/api/endpoints';
+
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
 
 interface Props {
@@ -29,7 +33,7 @@ export default function GenerateRequirementModal({ initialIntent = '', onClose, 
     if (!intent.trim()) return
     setBusy(true); setErr(''); setOkMsg('')
     try {
-      const r = await hubPost<{ skill?: { id?: string; name?: string } }>('/api/skills-mgmt/create/ai', {
+      const r = await hubPost<{ skill?: { id?: string; name?: string } }>(SKILLS_MGMT_CREATE_AI, {
         name: name.trim() || `auto-req-${Date.now() % 1000000}`,
         intent: intent.trim(),
         tags: ['auto', 'requirement'],

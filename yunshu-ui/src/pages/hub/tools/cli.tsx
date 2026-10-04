@@ -6,6 +6,10 @@ import { useState } from 'react'
 import { Terminal } from 'lucide-react'
 import { Card, PageHeader, hubGet, unwrap } from '../components/ui'
 
+import {
+  PROCESS_LIST,
+} from '@/api/endpoints';
+
 interface ProcessInfo {
   pid: number
   name: string
@@ -17,7 +21,7 @@ export default function ToolsCli() {
   const [loaded, setLoaded] = useState(false)
 
   const loadProcs = () => {
-    hubGet('/api/process/list').then((r) => {
+    hubGet(PROCESS_LIST).then((r) => {
       const d = unwrap<ProcessInfo[]>(r as Record<string, unknown>) ?? []
       setProcs(d)
       setLoaded(true)

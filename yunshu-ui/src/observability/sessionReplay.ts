@@ -15,6 +15,10 @@
 import { gzip as pakoGzip } from 'pako'
 import { authHeader, getApiToken } from '../lib/apiToken'
 
+import {
+  REPLAY_UPLOAD,
+} from '@/api/endpoints';
+
 // ════════════════════════════════════════════════════════════════
 //  常量与配置
 // ════════════════════════════════════════════════════════════════
@@ -157,7 +161,7 @@ function computeDurationSec(events: BufferedEvent[]): number {
 
 /** 获取上传端点 */
 function getUploadUrl(): string {
-  return import.meta.env.VITE_REPLAY_UPLOAD_URL ?? '/api/replay/upload'
+  return import.meta.env.VITE_REPLAY_UPLOAD_URL ?? REPLAY_UPLOAD
 }
 
 /** 类型守卫：判断是否为普通对象 */

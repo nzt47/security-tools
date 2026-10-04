@@ -24,6 +24,11 @@ import { SchemaRenderer } from '@/plugins/schema'
 import { ApiTokenField } from '@/plugins/ApiTokenField'
 import { ApiError, request } from '@/lib/apiClient'
 
+import {
+  PLUGINS,
+  PLUGINS_RELOAD,
+} from '@/api/endpoints';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON Schema 动态值无静态类型
 type Json = Record<string, any>
 
@@ -118,7 +123,7 @@ export default function PluginManagePage() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
-    request<{ plugins?: unknown[]; host?: { python?: string; flask?: string } }>('/api/plugins')
+    request<{ plugins?: unknown[]; host?: { python?: string; flask?: string } }>(PLUGINS)
       .then((d) => {
         setPlugins(
           Array.isArray(d?.plugins)
@@ -180,7 +185,7 @@ export default function PluginManagePage() {
     setRefreshing(true)
     setNotice(null)
     try {
-      const r = await request<{ ok?: boolean; error?: string }>('/api/plugins/reload', { method: 'POST' })
+      const r = await request<{ ok?: boolean; error?: string }>(PLUGINS_RELOAD, { method: 'POST' })
       if (r && r.ok === false) {
         setNotice({ kind: 'err', text: `刷新失败：${r.error ?? '未知错误'}` })
       } else {

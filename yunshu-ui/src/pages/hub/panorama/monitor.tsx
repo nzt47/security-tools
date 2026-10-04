@@ -6,6 +6,12 @@ import { useEffect, useState } from 'react'
 import { Server, Activity, RefreshCw } from 'lucide-react'
 import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGet, pickObj } from '../components/ui'
 
+import {
+  HEALTH_DASHBOARD,
+  MODULES_TOPOLOGY,
+  STATUS,
+} from '@/api/endpoints';
+
 interface ModuleNode {
   id: string
   name: string
@@ -33,10 +39,10 @@ export default function PanoramaMonitor() {
     setLoading(true)
     setError('')
     Promise.allSettled([
-      hubGet('/api/modules/topology').then((r) => { const d = pickObj<{ domains?: ModuleNode[] }>(r) ?? {}; const doms = d.domains ?? []; return doms.flatMap((dm: ModuleNode) => (dm.children ?? []).length ? dm.children! : [dm]) }),
+      hubGet(MODULES_TOPOLOGY).then((r) => { const d = pickObj<{ domains?: ModuleNode[] }>(r) ?? {}; const doms = d.domains ?? []; return doms.flatMap((dm: ModuleNode) => (dm.children ?? []).length ? dm.children! : [dm]) }),
       // /api/health/dashboard 返回 {dimensions: {error_rate, response_time, tool_success}, issues, overall_health}
       // 将 dimensions 对象转为评分数组，issues 并入（作为异常项）
-      hubGet('/api/health/dashboard').then((r) => {
+      hubGet(HEALTH_DASHBOARD).then((r) => {
         const d = pickObj<{ dimensions?: Record<string, number>; issues?: HealthItem[]; overall_health?: number }>(r) ?? {}
         const dims = Object.entries(d.dimensions ?? {}).map(([k, v]) => {
           const num = Number(v) || 0 // NaN → 0（不能写 ??，左侧恒为 number）
@@ -47,7 +53,7 @@ export default function PanoramaMonitor() {
         })
         return [...dims, ...(Array.isArray(d.issues) ? d.issues : [])]
       }),
-      hubGet('/api/status').catch(() => null),
+      hubGet(STATUS).catch(() => null),
     ]).then(([m, h, s]) => {
       if (m.status === 'fulfilled') setModules(m.value ?? [])
       if (h.status === 'fulfilled') setHealth(h.value ?? [])

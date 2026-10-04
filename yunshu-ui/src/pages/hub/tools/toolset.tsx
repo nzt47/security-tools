@@ -2,9 +2,9 @@
  * 工具集 —— 按【四能力平面】分组的工具配置 / 启停
  *
  * 数据源：
- *   - `/api/tools/config`        工具列表 + 启用状态 + 调用次数（plugins/skills.py）
- *   - `/api/tools/toggle`        启停
- *   - `/api/agent-lines/planes`  治理元数据（plane/effect/risk/needs_approval）+ 平面分类法
+ *   - TOOLS_CONFIG        工具列表 + 启用状态 + 调用次数（plugins/skills.py）
+ *   - TOOLS_TOGGLE        启停
+ *   - AGENT_LINES_PLANES  治理元数据（plane/effect/risk/needs_approval）+ 平面分类法
  *                               + 每行 `callability`（「可被 LLM 调用」统一标注）与
  *                                 `callability_marks` / `callability_note`（三档标识图例）
  *
@@ -28,6 +28,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Power, ShieldAlert } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
+
+import {
+  AGENT_LINES_PLANES,
+  TOOLS_CONFIG,
+  TOOLS_TOGGLE,
+} from '@/api/endpoints';
 
 interface ToolItem {
   name: string
@@ -91,13 +97,13 @@ export default function ToolsToolset() {
   const load = () => {
     setLoading(true)
     // 旧口径（启用状态）——失败则整体报错
-    hubGet('/api/tools/config').then((r) => {
+    hubGet(TOOLS_CONFIG).then((r) => {
       setTools(pickList<ToolItem>(r, 'tools'))
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
 
     // 治理元数据——独立降级：拿不到就不显示平面，不影响启停功能
-    hubGet('/api/agent-lines/planes').then((r) => {
+    hubGet(AGENT_LINES_PLANES).then((r) => {
       const resp = r as {
         tools?: MetaRow[]
         planes?: PlaneDef[]
@@ -127,7 +133,7 @@ export default function ToolsToolset() {
 
   const toggle = async (name: string, enabled: boolean) => {
     try {
-      await hubPost('/api/tools/toggle', { name, enabled: !enabled })
+      await hubPost(TOOLS_TOGGLE, { name, enabled: !enabled })
       load()
     } catch (e) { setError(String(e)) }
   }

@@ -16,6 +16,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Activity, AlertTriangle, CheckCircle2, ChevronRight, Loader2, Stethoscope, X } from 'lucide-react'
 import { authHeader } from '../../../lib/apiToken'
 
+import {
+  DIAGNOSTICS_LLM_CHECK,
+} from '@/api/endpoints';
+
 interface LlmCheck {
   ok?: boolean
   config?: {
@@ -53,7 +57,7 @@ export function LlmHealthMenu() {
     setLoading(true)
     setFetchError('')
     try {
-      const res = await fetch('/api/diagnostics/llm-check', {
+      const res = await fetch(DIAGNOSTICS_LLM_CHECK, {
         method: 'POST',
         headers: { ...authHeader() },
       })

@@ -7,6 +7,11 @@ import { useEffect, useRef, useState } from 'react'
 import { Send, Loader2 } from 'lucide-react'
 import { hubGet, hubPost } from '../components/ui'
 
+import {
+  CHAT,
+  SESSIONS,
+} from '@/api/endpoints';
+
 interface ChatMsg {
   id: string
   role: 'user' | 'assistant'
@@ -27,7 +32,7 @@ export default function SessionPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    hubGet('/api/sessions').then((resp) => {
+    hubGet(SESSIONS).then((resp) => {
       const raw = resp as Record<string, unknown>
       // /api/sessions 返回 {current_id, sessions: [...]} 结构
       const data = (raw.sessions as Session[] | undefined) ?? (raw as unknown as Session[])
@@ -49,7 +54,7 @@ export default function SessionPage() {
     setMessages((m) => [...m, { id: `u-${Date.now()}`, role: 'user', content: text }])
     setLoading(true)
     try {
-      const resp = await hubPost('/api/chat', { message: text, session_id: sessionId || undefined })
+      const resp = await hubPost(CHAT, { message: text, session_id: sessionId || undefined })
       const r = resp as Record<string, unknown>
       const reply = (r as { response?: string }).response ?? (r as { data?: { response?: string } }).data?.response ?? '（无响应）'
       setMessages((m) => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: String(reply) }])

@@ -17,6 +17,12 @@ import {
 import { RefreshCw, Server } from 'lucide-react'
 import { Card, Badge, PageHeader, hubGet, Loading, ErrorBox } from '../components/ui'
 
+import {
+  DIAGNOSTICS_METRICS,
+  HEALTH_PROBE_TREND,
+  OBSERVABILITY_ALERTS,
+} from '@/api/endpoints';
+
 interface ProbePoint {
   timestamp: string
   overall: number
@@ -58,16 +64,16 @@ export default function PanoramaHealth() {
     setLoading(true)
     setError('')
     Promise.allSettled([
-      hubGet('/api/health/probe-trend?hours=1').then((r) => {
+      hubGet(`${HEALTH_PROBE_TREND}?hours=1`).then((r) => {
         const d = r as { points?: ProbePoint[] }
         return Array.isArray(d?.points) ? d.points : []
       }),
-      hubGet('/api/observability/alerts').then((r) => {
+      hubGet(OBSERVABILITY_ALERTS).then((r) => {
         const d = r as { groups?: { alerts?: AlertItem[] }[] }
         const groups = Array.isArray(d?.groups) ? d.groups : []
         return groups.flatMap((g) => g.alerts ?? [])
       }),
-      hubGet('/api/diagnostics/metrics').catch(() => null),
+      hubGet(DIAGNOSTICS_METRICS).catch(() => null),
     ]).then(([p, a]) => {
       if (p.status === 'fulfilled') setPoints(p.value ?? [])
       if (a.status === 'fulfilled') setAlerts(a.value ?? [])

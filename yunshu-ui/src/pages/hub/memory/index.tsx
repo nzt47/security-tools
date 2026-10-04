@@ -10,6 +10,12 @@ import { useEffect, useState } from 'react'
 import { Brain, Search, Plus } from 'lucide-react'
 import { Card, StatCard, Loading, ErrorBox, PageHeader, hubGet, hubPost, pickList, pickObj } from '../components/ui'
 
+import {
+  MEMORY_MANUAL,
+  MEMORY_OVERVIEW,
+  VECTOR_SEARCH,
+} from '@/api/endpoints';
+
 interface MemoryOverview {
   message_count?: number
   summary?: string
@@ -42,7 +48,7 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
   const [msg, setMsg] = useState('')
 
   useEffect(() => {
-    hubGet('/api/memory/overview').then((r) => {
+    hubGet(MEMORY_OVERVIEW).then((r) => {
       setOverview(pickObj<MemoryOverview>(r) ?? {})
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
@@ -53,7 +59,7 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
     setSaving(true)
     setMsg('')
     try {
-      const r = await hubPost('/api/memory/manual', { content: manualText.trim() })
+      const r = await hubPost(MEMORY_MANUAL, { content: manualText.trim() })
       setMsg(`已保存手动记忆：${JSON.stringify(r).slice(0, 80)}`)
       setManualText('')
     } catch (e) {
@@ -67,7 +73,7 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
     if (!searchQ.trim()) return
     setLoading(true)
     try {
-      const r = await hubPost('/api/vector/search', { query: searchQ.trim(), limit: 10 })
+      const r = await hubPost(VECTOR_SEARCH, { query: searchQ.trim(), limit: 10 })
       setResults(pickList<SearchResult>(r, 'results'))
       setLoading(false)
     } catch (e) {
