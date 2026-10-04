@@ -34,6 +34,7 @@ known = `BUSINESS_METRICS_DEFINITIONS`（业务指标登记表）
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -59,7 +60,44 @@ _EXCLUDED_PARTS = {
     "env_archive", "_edge_profile", "__pycache__", ".mypy_cache", ".ruff_cache",
     ".pytest_cache", ".benchmarks", "pytest_chunks", "test_data", "test_reports",
     "_ci_logs", "_t06_logs", "_t08_logs",
+    # 【2026-10-04 补：非本仓的树】下面这些都在工作区里、但**不属于本仓的源码**：
+    #   · security-tools/ —— 未跟踪的完整嵌套副本（25,813 文件，审计 M-26）。
+    #     contract_diff 早已显式排除它（"否则产出双份契约"），本文件此前**没有**。
+    #     实测：它贡献了 1,236 个被扫的 .py。今天它**不改变任何结论**
+    #     （known 265 -> 265，见下方 _iter_repo_py 的说明里记的实测），
+    #     但它是一个**会掩盖缺失的隐患**：只要某个指标名恰好只存在于副本里，
+    #     本守卫就会误判"本仓能产出它"。这正是本仓反复记录的
+    #     "会漏报的门禁比会误报的更危险，因为它看起来很绿"。
+    #   · 其余为工具/备份/临时树，同样不是本仓源码。
+    "security-tools", ".devtools", ".worktrees", ".fix_backups",
+    "_tmp_rootcause_probe", "patches", ".tmp-merge", "backup_pre_rebase",
 }
+
+
+def _iter_repo_py():
+    """产出本仓的 .py 路径：**边走边剪枝**（不进入被排除目录）。
+
+    【为什么必须剪枝，而不是"rglob 之后再过滤"】
+    原实现是 `for path in ROOT.rglob("*.py")` 再按 `parts & _EXCLUDED_PARTS` 过滤 ——
+    而 rglob **会先把整棵树走完**。本机实测：
+
+        ROOT.rglob("*.py")  ->  15,822 个路径，耗时 **35.17s**
+        过滤后需要读的文件   ->  3,263 个，读它们只要 **0.49s**
+
+    也就是说：过滤只省下了"读文件"的 0.49s，**走树的 35s 一分没省**。
+    而 15,822 里有 1,236 个来自上面说的嵌套副本 —— 剪枝后根本不进那棵树。
+
+    【为什么这在这条上格外重要】本文件的用例实测耗时 **88.21s**（本机），
+    而 CI 分片对单用例的超时是 **60s** ⇒ 它是一个**注定超时**的用例，
+    只是碰巧还没在负载够重的 runner 上撞上（同族的 collect_routes_static 与
+    test_business_metrics_registration_completeness 都已经撞过了）。
+    """
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        # 就地剪枝：os.walk 支持通过改写 dirnames 阻止其下降
+        dirnames[:] = sorted(d for d in dirnames if d not in _EXCLUDED_PARTS)
+        for name in sorted(filenames):
+            if name.endswith(".py"):
+                yield Path(dirpath) / name
 
 _METRIC_RE = re.compile(r"\b(?:yunshu_|Yunshu_)\w+")
 _LITERAL_RE = re.compile(r"""['"]((?:yunshu|Yunshu)_[A-Za-z0-9_]+)['"]""")
@@ -92,9 +130,7 @@ def _known_metric_names() -> set:
 
     known |= set(BUSINESS_METRICS_DEFINITIONS.keys())
 
-    for path in ROOT.rglob("*.py"):
-        if set(path.relative_to(ROOT).parts[:-1]) & _EXCLUDED_PARTS:
-            continue
+    for path in _iter_repo_py():
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:  # pragma: no cover - 权限 / 占用等异常
@@ -197,3 +233,64 @@ def test_tolerated_panels_explain_themselves():
             "以下面板的指标被 _TOLERATED 豁免，但面板没有说明原因"
             "（description 里需含「无数据源」）：\n  " + "\n  ".join(sorted(set(missing)))
         )
+
+class Test扫描范围与代价:
+    """守卫本身的**扫描范围**与**代价**（2026-10-04 补）。
+
+    【为什么单列一类】本文件的核心断言是"看板里每个指标名都能追溯到产出方"，
+    而"产出方"由一次全仓扫描算出来。扫描范围一旦不对，断言就会**静默失真**：
+      · 范围过大（把未跟踪的嵌套副本也算进来）⇒ 副本里恰好存在某个名字时，
+        本仓明明产不出来，守卫却判"有产出方" ⇒ **漏报**；
+      · 范围过小/遍历失效 ⇒ 判据集合偏空，断言退化成"什么都通过"。
+    另外这一节还钉住**代价**：本用例实测曾达 88.21s，而 CI 分片单用例超时是 60s。
+    """
+
+    def test_非本仓的树必须排除(self):
+        """working tree 里的嵌套副本与工具树不是本仓源码，排除它们既是正确性也是性能。"""
+        for part in ("security-tools", ".devtools", ".worktrees", "_tmp_rootcause_probe"):
+            assert part in _EXCLUDED_PARTS, (
+                part + " 不在 _EXCLUDED_PARTS 里 —— 该树会被算成本仓的产出方（守领会漏报），"
+                "同时 rglob 会多走一棵大树（实测 security-tools 一个就带进 1,236 个 .py）"
+            )
+
+    def test_遍历真的剪枝(self):
+        """_iter_repo_py() **不得**产出任何被排除目录下的路径。
+
+        这条与上一条不同：上一条只证明"名单里有它"，这条证明"遍历真的没进去"。
+        原实现是 rglob 之后再过滤 —— 名单再全也照样走完整棵树（35.17s）。
+        """
+        bad = [p for p in _iter_repo_py()
+               if set(p.relative_to(ROOT).parts[:-1]) & _EXCLUDED_PARTS]
+        assert not bad, (
+            "遍历进入了被排除目录（前 3 个）：" + str(bad[:3])
+            + " —— 剪枝失效，走树的代价会回来（本仓对「扫描器必须两把尺子」有记录）"
+        )
+
+    def test_遍历产出非空且量级正常(self):
+        """防"遍历失效导致空集"：空集会让 known 只剩登记表，断言随之失真。"""
+        files = list(_iter_repo_py())
+        assert len(files) > 300, (
+            "遍历只产出 " + str(len(files)) + " 个 .py，量级不对 —— "
+            "剪枝可能连本仓源码一起剪掉了"
+        )
+
+    def test_扫描耗时不退化(self):
+        """把"走完整棵树"这个退化锁住。
+
+        【为什么可以断言耗时】这里比的不是绝对的秒数，而是**量级**：
+        剪枝后坏情况也只走本仓那 3 千来个文件（实测 1.2s）；
+        若有人改回 rglob 全树，本机就会到 **88s**（实测），在 CI 上必然超时。
+        阈值取 20s：比正常（<2s）宽 10 倍以上，不会因机器抖动假红，
+        但足以拦住"走完整棵树"这种数量级退化。
+        """
+        import time
+
+        t0 = time.time()
+        known = _known_metric_names()
+        cost = time.time() - t0
+        assert cost < 20.0, (
+            "指标名扫描耗时 %.1fs，已退化到数量级错误 —— 多半是遍历又走完整棵树了"
+            "（原实现 rglob 全树在本机实测 35.17s 走树 + 88.21s 总耗时，"
+            "而 CI 分片单用例超时 60s）" % cost
+        )
+        assert len(known) > 100, "扫描结果异常偏小，判据本身可能已失效"
