@@ -4,12 +4,15 @@
  */
 import { useEffect, useState } from 'react'
 import { HeartPulse, RefreshCw } from 'lucide-react'
-import { Card, StatCard, Loading, ErrorBox, Badge, PageHeader, hubGet, pickList, pickObj } from '../components/ui'
+import { Card, StatCard, Loading, ErrorBox, Badge, PageHeader } from '../components/ui'
 
 import {
   HEARTBEAT,
   HEARTBEAT_HISTORY,
 } from '@/api/endpoints';
+// 【P1-front 第一批】改用**显式信封解析**：后端这三个端点已带 X-Envelope: v2，
+// 故不再需要 pickObj/pickList 的启发式猜形（见 src/api/envelope.ts 的说明）。
+import { getEnvelope } from '@/api/envelope';
 
 interface Heartbeat {
   status?: string
@@ -25,6 +28,19 @@ interface HistoryItem {
   [k: string]: unknown
 }
 
+/** /api/heartbeat/history 的**业务载荷**形状（分页字段与数据同在 data 下）。
+ *
+ * 【为什么显式写出来而不是靠 pickList 猜】迁移前靠"在若干候选键里找数组"取到
+ * `history`；那种写法在后端换包法时会**静默返回空数组**（页面显示"无数据"，
+ * 不报错）。这里把形状写成类型，取不到就是编译期/运行期可见的问题。
+ */
+interface HeartbeatHistory {
+  history?: HistoryItem[]
+  total?: number
+  limit?: number
+  offset?: number
+}
+
 export default function EngineHeartbeat() {
   const [hb, setHb] = useState<Heartbeat | null>(null)
   const [history, setHistory] = useState<HistoryItem[]>([])
@@ -35,12 +51,13 @@ export default function EngineHeartbeat() {
     setLoading(true)
     setError('')
     Promise.allSettled([
-      hubGet(HEARTBEAT).then((r) => pickObj<Heartbeat>(r) ?? (r as unknown as Heartbeat)),
-      // /api/heartbeat/history 返回 {history: [...], limit, offset, total}
-      hubGet(HEARTBEAT_HISTORY).then((r) => pickList<HistoryItem>(r, 'history')),
+      // 显式解析：载荷就是信封的 data（形状与迁移前逐一相同）
+      getEnvelope<Heartbeat>(HEARTBEAT),
+      // /api/heartbeat/history 的 data 形如 {history: [...], limit, offset, total}
+      getEnvelope<HeartbeatHistory>(HEARTBEAT_HISTORY).then((d) => d.history ?? []),
     ]).then(([h, hh]) => {
       if (h.status === 'fulfilled') setHb(h.value)
-      if (hh.status === 'fulfilled') setHistory(hh.value ?? [])
+      if (hh.status === 'fulfilled') setHistory(hh.value)
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }

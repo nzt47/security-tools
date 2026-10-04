@@ -51,6 +51,13 @@ bp = Blueprint("status", __name__)
 from .plugin_api import log_request as _log_request
 from .plugin_api import require_auth as _require_token
 
+# 【P1-front 第一批 · 2026-10-04】统一响应信封（阶段 2 / R3）。
+# 为什么这里可以顶层 import：`agent.api_envelope` 只依赖 stdlib + flask，
+# 不反向依赖 app_server，故不触发本文件头注里那条循环导入红线。
+# 为什么从心跳开始：它是"删掉前端 pickObj 启发式"的前置里**消费面最窄**的一个
+# （只有 pages/hub/engine/heartbeat.tsx），且该页注释已写明真实形状。
+from agent.api_envelope import ok as _ok, problem as _problem
+
 
 # ════════════════════════════════════════════════════════════
 #  人格配置管理器（迁移自 app_server.py，仅本域使用）
@@ -731,7 +738,14 @@ def api_status_config_post():
 @bp.route("/api/heartbeat")
 @_log_request(show_response=False)
 def api_heartbeat():
-    """心跳检测接口 — 全维度健康检查"""
+    """心跳检测接口 — 全维度健康检查（**已迁移到统一信封**）。
+
+    【迁移说明】业务载荷一字未动（仍是 perform_heartbeat_check 的
+    `{timestamp, status, checks}`），只是**装进** `ok()` 的 data，并带上
+    `X-Envelope: v2` —— 前端据此可以**显式**判断形态，而不必再猜（P1-front）。
+    错误路径改走 `problem()`，与 404/405/500 的全局 errorhandler 同形状
+    （原先这里是自造的 `{"status":"error","error":...}`，属那 6 种错误结构之一）。
+    """
     from app_server import _Yunshu
     from agent.task_scheduler import get_scheduler, perform_heartbeat_check
     try:
@@ -740,15 +754,25 @@ def api_heartbeat():
         # 同步保存到调度器
         scheduler = get_scheduler()
         scheduler._save_heartbeat(hb_result)
-        return jsonify(hb_result)
+        return _ok(hb_result)
     except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+        # 【为什么用 _problem 而不是自造 dict】统一错误模型是 K3 的目标：
+        # 错误体只有一种形状。detail 面向本次请求，故放异常摘要（仍截断，避免泄漏长栈）。
+        return _problem(500, detail="心跳检查执行失败：" + str(e)[:200])
 
 
 @bp.route("/api/heartbeat/history")
 @_log_request(show_response=False)
 def api_heartbeat_history():
-    """获取心跳历史"""
+    """获取心跳历史（**已迁移到统一信封**）。
+
+    【为什么分页字段留在 data 里、不挪进 meta】
+    前端 `pickList(r, 'history')` 取的是 `r['history']`。装了信封之后，
+    若把 total/limit/offset 挪到 envelope 的 meta 层，所有读分页的地方会
+    **静默拿到 undefined**（不报错、只是少一页）—— 那正是"迁移信封时顺手改契约"
+    的典型后果。故本批**保持业务键原样**，信封只负责"装在 data 下 + 声明版本"。
+    （`ok()` 另留了 meta 位，供将来分页统一时显式迁移，而非本次夹带。）
+    """
     from agent.task_scheduler import get_scheduler
     limit = request.args.get("limit", 100, type=int)
     offset = request.args.get("offset", 0, type=int)
@@ -758,7 +782,7 @@ def api_heartbeat_history():
     total = len(history)
     history.reverse()
     paged = history[offset:offset + limit]
-    return jsonify({
+    return _ok({
         "history": paged,
         "total": total,
         "limit": limit,
@@ -769,14 +793,14 @@ def api_heartbeat_history():
 @bp.route("/api/heartbeat/status")
 @_log_request(show_response=False)
 def api_heartbeat_status():
-    """获取心跳概览"""
+    """获取心跳概览（**已迁移到统一信封**）。"""
     from agent.task_scheduler import get_scheduler
     scheduler = get_scheduler()
     data = scheduler.get_heartbeat_status()
     latest = data.get("latest", {})
     history = data.get("history", [])
     healthy_count = sum(1 for h in history if h.get("status") == "healthy")
-    return jsonify({
+    return _ok({
         "status": latest.get("status", "unknown"),
         "timestamp": latest.get("timestamp"),
         "total_checks": len(history),
