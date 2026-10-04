@@ -307,6 +307,45 @@ def collect_manifest_declared():
     return declared
 
 
+def _is_frontend_build_artifact(rel: str) -> bool:
+    """该**仓库相对路径**是否为前端构建产物（而非人手写的源码）。
+
+    【为什么要单独抽出来 —— 2026-10-05 实测到一次"过滤误伤"】
+    原先两处收集器都写 `if "/assets/" in rel: continue`，本意是排除 `static/assets/`
+    下的 Vite 构建产物。但 `"/assets/" in rel` 是**子串**判断，它同时吞掉了
+    `yunshu-ui/src/pages/hub/assets/index.tsx` —— 一个**真实源码文件**。
+
+    【后果不是"少几处计数"，而是整段逃出对拍】实测该文件里 6 处 `/api` 字面量
+    既不计入 `frontend_literals`（去重路径数），也不计入 `frontend_stray_literals`
+    （收口进度）。于是：
+      · `test_react_字面量必须恰好为零` 报 0 并通过 —— 而该文件明明还有 5 处；
+      · 更严重的是"前端调用 → 后端路由"这一步也看不见它，
+        因此**藏住了一个真实缺陷**：前端 `POST /api/assets/<cat>/<id>/delete`
+        与后端 `DELETE /api/assets/<cat>/<id>` 方法与路径双错（实测 404）。
+
+    【判据为什么锚在"构建产物目录"而不是"目录名叫 assets"】
+    按路径段判断：只有 `<某目录>/assets/<文件名带内容哈希>` 这种形态才是产物。
+    本仓实测 legacy 侧 57 个命中（`static/assets/AdminGuard-BgOtL5QH.js` 等）全部符合；
+    而源码目录 `src/pages/hub/assets/index.tsx` 的文件名不含哈希 ⇒ 不会被误伤。
+    【为什么不按"哈希后缀"正判而用目录 + 反判】目录是**机制**（构建输出位置），
+    哈希后缀是"今天构建工具的命名习惯" —— 换构建器就会漂移。故目录为准，
+    哈希只用来把源码目录排除出去。
+    """
+    parts = rel.replace("\\", "/").split("/")
+    if "assets" not in parts:
+        return False
+    idx = parts.index("assets")
+    if idx == 0 or idx + 1 >= len(parts):
+        return False
+    if parts[idx - 1] != "static" or len(parts) != idx + 2:
+        return False
+    return bool(_BUILD_HASH_RE.search(parts[idx + 1]))
+
+
+#: Vite 产物名形如 `index-BjzRX7wB.js` / `AdminGuard-BgOtL5QH.js`（8 位内容哈希）。
+_BUILD_HASH_RE = re.compile(r"-[A-Za-z0-9_-]{8}\.[A-Za-z0-9]+$")
+
+
 def collect_frontend_literals():
     """两套前端分别统计：React（yunshu-ui/src）与 legacy（templates + static）。"""
     out = {}
@@ -320,7 +359,7 @@ def collect_frontend_literals():
             rel = str(f.relative_to(ROOT)).replace("\\", "/")
             if ".test." in rel or ".spec." in rel or rel.endswith(".min.js"):
                 continue
-            if "/assets/" in rel or rel.endswith(".map"):
+            if _is_frontend_build_artifact(rel) or rel.endswith(".map"):
                 continue
             # mock 层提供的是同构假数据，不代表真实调用面（审计 M-3 已记录其掩盖漂移）。
             if "/mocks/" in rel or "devMock" in rel or "exportMock" in rel:
@@ -486,7 +525,7 @@ def collect_stray_frontend_literals():
                 continue  # 常量层本身不计（它就是收口点）
             if ".test." in rel or ".spec." in rel or rel.endswith(".min.js"):
                 continue
-            if "/assets/" in rel or rel.endswith(".map"):
+            if _is_frontend_build_artifact(rel) or rel.endswith(".map"):
                 continue
             if "/mocks/" in rel or "devMock" in rel or "exportMock" in rel:
                 continue

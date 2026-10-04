@@ -9,7 +9,14 @@
  */
 import { useEffect, useState } from 'react'
 import { Archive, Plus, Trash2 } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList, pickObj } from '../components/ui'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, hubDelete } from '../components/ui'
+import {
+  ASSETS_OVERVIEW,
+  ASSETS_BACKUP,
+  ASSETS_BACKUP_LIST,
+  assetsByCategory,
+  assetById,
+} from '@/api/endpoints';
 
 const CATEGORIES = [
   { key: 'memory', label: '记忆数据', icon: '🧠' },
@@ -39,6 +46,31 @@ interface BackupItem {
   [k: string]: unknown
 }
 
+/** `/api/assets/overview` 的业务载荷（后端：`{ok, overview}`）。
+ *
+ * 【为什么写成类型而不是继续用 pickObj 猜】`pickObj(r) ?? (r as ...)` 会把
+ * "取不到"变成静默的 `{}`，页面显示 0 而没有任何错误。显式取值则一眼可见。
+ */
+interface AssetsOverview {
+  ok?: boolean
+  overview?: Record<string, number>
+}
+
+/** `GET /api/assets/<category>` 的业务载荷（后端：`{ok, items, count, category}`）。 */
+interface AssetsList {
+  ok?: boolean
+  items?: AssetItem[]
+  count?: number
+  category?: string
+}
+
+/** `GET /api/assets/backup/list` 的业务载荷（后端：`{ok, backups, count}`）。 */
+interface AssetsBackupList {
+  ok?: boolean
+  backups?: BackupItem[]
+  count?: number
+}
+
 interface AssetsPageProps {
   /** 初始分类（默认 memory）；由工作台导航 key 推导（assets/<category>），配合重挂载切换视图 */
   initialCategory?: string
@@ -55,24 +87,25 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
   const [newTitle, setNewTitle] = useState('')
 
   const loadOverview = () => {
-    hubGet('/api/assets/overview').then((r) => {
-      const d = pickObj<Record<string, unknown>>(r) ?? {}
-      const ov = ((d['overview'] as Record<string, number> | undefined) ?? d) as Record<string, number>
-      setOverview(ov)
+    hubGet<AssetsOverview>(ASSETS_OVERVIEW).then((r) => {
+      // 兼容旧形态（未装信封时后端直接把 overview 摊在顶层），但**不再靠猜**：
+      // 两个候选键都显式写出，取不到就是空对象（与迁移前行为一致）。
+      const ov = r?.overview ?? (r as unknown as Record<string, number>)
+      setOverview(ov ?? {})
     }).catch(() => {})
   }
 
   const loadList = (cat: string) => {
     setLoading(true)
-    hubGet(`/api/assets/${cat}`).then((r) => {
-      setItems(pickList<AssetItem>(r, 'items'))
+    hubGet<AssetsList>(assetsByCategory(cat)).then((r) => {
+      setItems(r?.items ?? [])
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }
 
   const loadBackups = () => {
-    hubGet('/api/assets/backup/list').then((r) => {
-      setBackups(pickList<BackupItem>(r, 'backups'))
+    hubGet<AssetsBackupList>(ASSETS_BACKUP_LIST).then((r) => {
+      setBackups(r?.backups ?? [])
     }).catch(() => {})
   }
 
@@ -91,7 +124,7 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
   const addItem = async () => {
     if (!newTitle.trim()) return
     try {
-      await hubPost(`/api/assets/${active}`, { title: newTitle.trim() })
+      await hubPost(assetsByCategory(active), { title: newTitle.trim() })
       setNewTitle('')
       loadList(active)
       loadOverview()
@@ -100,7 +133,10 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
 
   const delItem = async (id: string) => {
     try {
-      await hubPost(`/api/assets/${active}/${encodeURIComponent(id)}/delete`, {})
+      // 【修真实缺陷】原先是 `POST /api/assets/<cat>/<id>/delete` ——
+      // 后端只注册了 `DELETE /api/assets/<cat>/<id>`，该路径**根本不存在**（实测 404）。
+      // 这条缺陷此前被 contract_diff 的 "/assets/" 过滤挡住，对拍与 stray 门禁都看不见它。
+      await hubDelete(assetById(active, id))
       loadList(active)
       loadOverview()
     } catch (e) { setError(String(e)) }
@@ -108,7 +144,10 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
 
   const backup = async () => {
     try {
-      const r = await hubPost('/api/assets/backup')
+      // 【修真实缺陷】`hubPost` 对**空 body 刻意不设 Content-Type**（见 ui.tsx 注释），
+      // 而后端 `api_assets_backup` 直接 `request.get_json() or {}` ⇒ 抛 415，
+      // 又被它的 `except Exception` 吞成 **500**（实测）。显式传 `{}` 即带上 JSON 头。
+      const r = await hubPost(ASSETS_BACKUP, {})
       setMsg(`备份完成：${JSON.stringify(r).slice(0, 100)}`)
       loadBackups()
     } catch (e) { setError(String(e)) }

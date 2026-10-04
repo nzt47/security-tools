@@ -266,3 +266,26 @@ export const SKILLS_MGMT_SLASH_COMMANDS = '/api/skills-mgmt/slash-commands';
 export const USER_LIST = '/api/user/list';
 export const PROCESS_LIST = '/api/process/list';
 export const BROWSER_NAVIGATE = '/api/browser/navigate';
+
+// ===============================================================
+//  资产管理（/api/assets/*）
+// ===============================================================
+// 【为什么这批要单独补】该页原先在文件内联写死 6 处 `/api` 字面量，
+// 而 `contract_diff` 的 stray 计数**漏掉了它**：收集器里有一条
+// `"/assets/" in rel` 过滤，本意是排除 `static/assets/` 下的构建产物，
+// 却把 `src/pages/hub/assets/` 这个**真实源码目录**一并吞了。
+// 后果不是"少几处计数"，而是**这条路径完全逃出对拍** —— 实测它因此藏住了
+// 一个真实缺陷：前端用 `POST /api/assets/<cat>/<id>/delete`，
+// 而后端注册的是 `DELETE /api/assets/<cat>/<id>`（前端那条路径根本不存在，必 404）。
+// 同批修好的还有「备份」按钮：`hubPost` 对空 body **刻意不设 Content-Type**
+// （见 components/ui.tsx 的注释），而后端 `api_assets_backup` 直接 `get_json() or {}`
+// ⇒ 抛 415 被 `except Exception` 吞成 **500**。故本页的写操作显式传 `{}` 作 body。
+export const ASSETS_OVERVIEW = '/api/assets/overview';
+export const ASSETS_BACKUP = '/api/assets/backup';
+export const ASSETS_BACKUP_LIST = '/api/assets/backup/list';
+// 动态段按常量层纪律用**函数**，不散落模板串（文件头「纪律 ②」）。
+export const assetsByCategory = (category: string) => `/api/assets/${encodeURIComponent(category)}`;
+// 【删除的真实契约是 DELETE + 纯路径】原前端写的是 `.../delete` 后缀 + POST，
+// 与后端 `@app.route("/api/assets/<category>/<item_id>", methods=["DELETE"])` 不符。
+export const assetById = (category: string, itemId: string) =>
+  `/api/assets/${encodeURIComponent(category)}/${encodeURIComponent(itemId)}`;
