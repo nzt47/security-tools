@@ -173,18 +173,48 @@ class TestTempFileNameInjection:
 class TestRepoBoundaryIntegrity:
     """模拟恶意技能绕过下载阶段后的连番攻击，验证仓库外文件系统未被触碰"""
 
-    def test_attacks_leave_no_files_outside_repo(self, tmp_path):
-        # 只追踪仓库边界外（tmp_path 之外）的文件，仓库内的合法技能目录不算新增
-        outside = tmp_path.parent
-        repo_prefix = str(tmp_path.resolve())
+    def test_attacks_leave_no_files_outside_repo(self):
+        """仓库边界完整性：全攻击面串联后，**仓库目录之外零新增**。
+
+        【2026-10-04 修：这个用例此前是"并发假红"的稳定来源】
+        原实现取 `outside = tmp_path.parent` 做前后快照 —— 而 pytest 的 `tmp_path` 由
+        `tmp_path_factory` 统一建在**同一个共享父目录**下（`/tmp/pytest-of-<user>/pytest-<N>/`）。
+        在 pytest-xdist 下，**并发的其它用例正在往同一个父目录里建各自的 tmp_path**
+        ⇒ 只要它们在 before/after 这个窗口内建了目录，本用例就报
+        "仓库边界外产生了新的文件/目录，路径穿越防护失效"，而**防护本身完全正常**。
+
+        本仓其实早就记录过它 —— `docs/.../云枢_遗留与待拍板清单_20260918.md:52`：
+        「受并发进程/残留文件影响 | **单跑通过**」。只是当时只记录、没有修。
+        实测代价：PR #1006 上它把 `单元测试 Shard 4` 打成红，而同一次运行的
+        `失败基线回归`（**全量 tests/unit、单进程、无 xdist**）是 **pass** ——
+        这正是"会误报的门禁会让人不再信任它"的形态。
+
+        【修法：给本用例一个**私有**父目录】改用 `tempfile.mkdtemp()`，
+        快照范围只在它内部 ⇒ 并发用例再也影响不到它，而**断言反而更强**：
+        私有父目录里除 repo 之外必须**始终为空**（原实现里 before 通常为空、但不是断言）。
+        """
+        import shutil
+        import tempfile
+        from pathlib import Path
+
+        base = Path(tempfile.mkdtemp(prefix="skill_boundary_"))
+        repo = base / "repo"
+        repo.mkdir()
+        repo_prefix = str(repo.resolve())
 
         def _outside_paths():
-            return {p for p in outside.rglob("*")
-                    if not str(p).startswith(repo_prefix)}
+            # base 是**本用例私有**的，故这里扫到的任何东西都只可能是被测代码写出来的
+            return {p for p in base.rglob("*") if not str(p).startswith(repo_prefix)}
 
+        try:
+            self._run_boundary_attacks(repo, _outside_paths)
+        finally:
+            shutil.rmtree(base, ignore_errors=True)
+
+    def _run_boundary_attacks(self, repo, _outside_paths):
         before = _outside_paths()
 
-        store = SkillFileStore(repo_path=str(tmp_path))
+        store = SkillFileStore(repo_path=str(repo))
 
         # ① skill_id 注入
         for evil_id in ("../evil", "x/../../evil"):
