@@ -1,19 +1,18 @@
-"""前端 /api 字面量**收敛进度**守卫（2026-10-04 · 阶段 5 / R5）。
+"""前端 /api 字面量守卫（2026-10-04 · 阶段 5 / R5）—— **已从"只允许收缩"升级为"必须为零"**。
 
-【解决什么】contract_diff 已经能报出"常量层之外还剩多少处 /api 字面量"
-（frontend_stray_literals），但**只是报**：没有任何东西阻止它变大。
-本文件把它变成**只允许收缩的基线**（纪律与 failures_baseline.txt、鉴权覆盖率基线同款）：
-  · 新增文件带字面量 => 红（新代码必须走常量层）；
-  · 已有文件字面量变多 => 红；
-  · 修好后必须重跑 --write-stray-baseline 让基线收缩（否则基线会退化成永久豁免单）。
+【演进过程，写在这里免得下一个人以为它一直是这样】
+  ① 建基线时（本文件第一版）它守的是"只允许收缩"：因为当时 react 还剩 42 处 / 22 文件，
+     直接断言 0 会让它长期红、进而被无视（本仓对"会长期红的门禁"有记录）。
+  ② 长尾批次把 react 打到 **0** 之后，本文件按当初写下的承诺**升级为最强形式**：
+     react 必须恰好为 0，不再需要权衡。
+     （原话："真收口到 0 时本用例会红，那时应连同基线与本用例一起更新，而不是让它静默通过。"）
+  ③ legacy（templates/ + static/）仍有 2 处，来自两个**待退役的遗留页**
+     （templates/search-status.html、static/js/approval_console.js）。
+     它们随 K9（legacy 模板 14 → 0 或 ≤2）一起收敛，故这一面仍用收缩式基线。
 
-【为什么盯这个数而不是"去重路径数"】后者是合同**面**指标 ——
-把字面量从页面搬进 src/api/endpoints.ts **不会**让它下降（路径还在，只是换了地方写）。
-用它当进度会得出"改了一堆、数字没动"的错误结论（开发中实测过这个错觉）。
-stray 才是"还要收口多少"，目标 0。
-
-【当前进度】建基线时：react 42 处 / 22 文件，legacy 2 处 / 2 文件。
-（从 256 处一路降下来：客户端层已全部收口 = 0；页面层第一批 8 个文件 -62。）
+【一个必须保留的"假零"防线】stray == 0 有两个来源：真的收口了，或者**扫描器坏了**。
+后者是典型的"看起来很绿" —— 故 test_扫描器仍在工作_常量层可见 用"常量层必须仍被扫到"
+来把两者区分开。这条不能删。
 """
 from __future__ import annotations
 
@@ -53,74 +52,78 @@ def current(cd):
     return cd.collect_stray_frontend_literals()
 
 
-class Test收敛基线:
-    def test_新增文件不得带字面量(self, baseline, current):
-        """新代码必须走 src/api/endpoints.ts —— 这是本基线的主要作用。"""
-        known = {f for group in baseline["by_file"].values() for f in group}
-        new = []
-        for label, per_file in current.items():
-            for f, n in per_file.items():
-                if f not in known and n > 0:
-                    new.append(label + " " + f + "=" + str(n))
-        assert not new, (
-            "以下文件新引入了硬编码 /api 字面量（此前不在基线里）：\n  "
-            + "\n  ".join(sorted(new))
-            + "\n修法：改用 src/api/endpoints.ts 的常量/构造函数；"
-            "确需新增端点就在端点层加一个导出。"
+class TestReact必须为零:
+    """React 侧已全部收口 —— 这里用**最强形式**断言，不再有"基线余量"。"""
+
+    def test_react_字面量必须恰好为零(self, current):
+        per_file = current.get("react", {})
+        total = sum(per_file.values())
+        assert total == 0, (
+            "React 侧出现了常量层之外的 /api 字面量（共 " + str(total) + " 处）：\n  "
+            + "\n  ".join(f + "=" + str(n) for f, n in sorted(per_file.items()))
+            + "\n修法：在 src/api/endpoints.ts 里加一个导出（常量或构造函数）并改用它。"
+            "该层是唯一被许可的端点字面量所在地。"
         )
 
-    def test_已有文件不得变多(self, baseline, current):
-        grown = []
-        for label, per_file in current.items():
-            for f, n in per_file.items():
-                was = baseline["by_file"].get(label, {}).get(f, 0)
-                if n > was:
-                    grown.append(label + " " + f + ": " + str(was) + " -> " + str(n))
-        assert not grown, (
-            "以下文件的硬编码字面量变多了（本基线只允许收缩）：\n  "
-            + "\n  ".join(sorted(grown))
+    def test_扫描器仍在工作_常量层可见(self, cd):
+        """**假零防线**：stray==0 也可能来自"扫描器坏了"。
+
+        用"常量层必须仍被扫到"把两者分开 —— 常量层参与对拍（只是不计入 stray），
+        若它从对拍结果里消失，说明扫描或排除逻辑坏了，此时 0 是假象。
+        """
+        lits = cd.collect_frontend_literals()["react"]
+        assert lits, "扫描器没有扫到任何 React 字面量 —— stray==0 可能是假象"
+        files = {f for fs in lits.values() for f in fs}
+        assert cd.SANCTIONED_FRONTEND_LAYER in files, (
+            "端点常量层没有出现在对拍结果里 —— 扫描或排除逻辑已失效（0 是假象）"
+        )
+        assert len(lits) > 50, (
+            "对拍到的去重路径只有 " + str(len(lits)) + " 个，量级不对 —— 扫描可能只覆盖了部分文件"
         )
 
-    def test_基线只允许收缩(self, baseline, current):
-        """已清零的文件必须从基线删除，否则基线会退化成永久豁免单。"""
+
+class TestLegacy仍用收缩式基线:
+    """legacy 还有 2 处（两个待退役的遗留页）—— 这一面维持"只允许收缩"。"""
+
+    def test_legacy_不得新增或变多(self, baseline, current):
+        known = baseline["by_file"].get("legacy", {})
+        bad = []
+        for f, n in current.get("legacy", {}).items():
+            was = known.get(f, 0)
+            if n > was:
+                bad.append(f + ": " + str(was) + " -> " + str(n))
+        assert not bad, (
+            "legacy 侧的硬编码字面量变多了（只允许收缩）：\n  " + "\n  ".join(sorted(bad))
+        )
+
+    def test_legacy_只允许收缩(self, baseline, current):
         stale = []
-        for label, per_file in baseline["by_file"].items():
-            for f, was in per_file.items():
-                if current.get(label, {}).get(f, 0) == 0:
-                    stale.append(label + " " + f + "（基线 " + str(was) + " -> 现 0）")
+        for f, was in baseline["by_file"].get("legacy", {}).items():
+            if current.get("legacy", {}).get(f, 0) == 0:
+                stale.append(f + "（基线 " + str(was) + " -> 现 0）")
         assert not stale, (
-            "以下文件已达标（0 处）但仍在基线里：\n  " + "\n  ".join(sorted(stale))
-            + "\n请重跑：python scripts/audit/contract_diff.py --write-stray-baseline "
-              "reports/frontend_stray_baseline.json"
+            "以下 legacy 文件已达标但仍在基线里：\n  " + "\n  ".join(sorted(stale))
+            + "\n请重跑 --write-stray-baseline 收缩基线（随 K9 退役这两个遗留页后应为空）"
         )
 
-    def test_基线文件自洽(self, baseline, current):
+
+class Test基线文件自洽:
+    def test_字段与量级(self, baseline, current):
         assert baseline["sanctioned_layer"] == "yunshu-ui/src/api/endpoints.ts"
         assert isinstance(baseline.get("note"), str) and baseline["note"]
+        assert baseline["total"]["react"] == 0, "React 已收口，基线里 React 必须是 0"
         for label, per_file in baseline["by_file"].items():
             assert baseline["total"][label] == sum(per_file.values()), label
             assert baseline["sanctioned_layer"] not in per_file, label
 
-    def test_当前总数不高于基线总数(self, baseline, current):
+    def test_总量不得高于基线(self, baseline, current):
         for label, per_file in current.items():
-            assert sum(per_file.values()) <= baseline["total"][label], (
-                label + " 的 stray 总数超过了基线"
-            )
+            assert sum(per_file.values()) <= baseline["total"][label], label + " 超过了基线总量"
 
-    def test_检测器有分辨力(self, current):
-        """证明扫描不是恒空集：当前确实还剩一些字面量在常量层之外。
 
-        【锚法】不写死具体数字（那会随迁移进度合法变化 —— 本会话已因此红过三条 CI），
-        只断言"仍有残留"。真收口到 0 时本用例会红，那时应连同基线与本用例一起更新，
-        而不是让它静默通过。
-        """
-        assert sum(v for pf in current.values() for v in pf.values()) > 0, (
-            "扫描返回 0 —— 要么真收口干净了（那就该更新基线并调整本用例），"
-            "要么扫描逻辑失效了。两种情况都要人工确认，不能静默通过。"
-        )
-
-    def test_CI_确实带上了本守卫(self):
+class TestCI_确实带上了本守卫:
+    def test_gate_包含本文件(self):
         src = (ROOT / ".github" / "workflows" / "contract-gate.yml").read_text(encoding="utf-8")
         assert "tests/unit/test_frontend_stray_baseline.py" in src, (
-            "contract-gate.yml 没跑本文件 —— 基线写了也没人守"
+            "contract-gate.yml 没跑本文件 —— 守卫写了也没人跑"
         )

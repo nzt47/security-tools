@@ -12,6 +12,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, Gauge, HelpCircle, RefreshCw, Minimize2 } from 'lucide-react'
 import { hubGet, hubPost, pickObj, Loading } from '../../../pages/hub/components/ui'
 
+import {
+  CONTEXT_COMPRESS,
+  CONTEXT_CONFIG,
+  CONTEXT_STATUS,
+} from '@/api/endpoints';
+
 interface CtxStatus {
   current_tokens: number
   /** 分母 = **编排窗口**（真正生效的那个）；后端取不到时是 null，界面必须如实显示 — */
@@ -65,7 +71,7 @@ export function ContextManagerBar() {
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(() => {
-    hubGet('/api/context/status').then((r) => {
+    hubGet(CONTEXT_STATUS).then((r) => {
       const d = pickObj<CtxStatus>(r) ?? (r as unknown as CtxStatus)
       setStatus(d)
       setError('')
@@ -105,7 +111,7 @@ export function ContextManagerBar() {
   const scheduleSave = (patch: Record<string, number>) => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      hubPost('/api/context/config', patch).then(() => {
+      hubPost(CONTEXT_CONFIG, patch).then(() => {
         flashMsg('上下文配置已保存')
       }).catch((e) => {
         const m = e instanceof Error ? e.message : String(e)
@@ -119,7 +125,7 @@ export function ContextManagerBar() {
     setBusy(true)
     setMsg('')
     try {
-      const r = await hubPost('/api/context/compress')
+      const r = await hubPost(CONTEXT_COMPRESS)
       const rr = r as { ok?: boolean; freed_tokens?: number; error?: string }
       if (rr.ok) flashMsg(`已压缩，释放 ${rr.freed_tokens ?? 0} tokens`)
       else if (rr.error) flashMsg(`压缩失败：${rr.error}`)

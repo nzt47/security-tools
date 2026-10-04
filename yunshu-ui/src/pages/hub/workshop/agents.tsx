@@ -6,6 +6,12 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, Rocket } from 'lucide-react'
 import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList } from '../components/ui'
 
+import {
+  SUBAGENT_CREATE,
+  SUBAGENT_LIST,
+  subagentDestroyByName,
+} from '@/api/endpoints';
+
 interface Subagent {
   name: string
   model_id?: string
@@ -28,7 +34,7 @@ export default function WorkshopAgents() {
 
   const load = () => {
     setLoading(true)
-    hubGet('/api/subagent/list').then((r) => {
+    hubGet(SUBAGENT_LIST).then((r) => {
       setAgents(pickList<Subagent>(r, 'subagents'))
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
@@ -38,7 +44,7 @@ export default function WorkshopAgents() {
 
   const create = async () => {
     try {
-      await hubPost('/api/subagent/create', {
+      await hubPost(SUBAGENT_CREATE, {
         name,
         model_id: model,
         memory_provider: memory,
@@ -53,7 +59,7 @@ export default function WorkshopAgents() {
 
   const destroy = async (n: string) => {
     try {
-      await hubPost(`/api/subagent/${encodeURIComponent(n)}/destroy`)
+      await hubPost(subagentDestroyByName(n))
       load()
     } catch (e) { setError(String(e)) }
   }

@@ -207,3 +207,62 @@ export const mcpServiceById = (id: string) => `/api/mcp/services/${encodeURIComp
 export const WORKFLOW_LEARNING_BATCH_CONVERT = '/api/workflow-learning/batch-convert-external-skills';
 export const WORKFLOW_LEARNING_CONVERT_EXTERNAL = '/api/workflow-learning/convert-external-skill';
 export const workflowLearnConvertToSkill = (id: string) => `/api/workflow-learning/workflows/${encodeURIComponent(id)}/convert-to-skill`;
+// ===============================================================
+//  LLM 监控（/api/llm-monitor）
+// ===============================================================
+export const LLM_MONITOR_STATS = '/api/llm-monitor/stats';
+export const LLM_MONITOR_CLEAR = '/api/llm-monitor/clear';
+export const LLM_MONITOR_TOGGLE = '/api/llm-monitor/toggle';
+export const LLM_MONITOR_RECORDS = '/api/llm-monitor/records';
+
+// ===============================================================
+//  记忆 / 向量检索（/api/memory、/api/vector）
+// ===============================================================
+export const MEMORY_MANUAL = '/api/memory/manual';
+export const MEMORY_OVERVIEW = '/api/memory/overview';
+export const VECTOR_SEARCH = '/api/vector/search';
+
+// ===============================================================
+//  健康 / 模块拓扑 / 状态 / 全景 / 传感器
+// ===============================================================
+export const HEALTH = '/api/health';
+export const HEALTH_DASHBOARD = '/api/health/dashboard';
+export const HEALTH_PROBE_TREND = '/api/health/probe-trend';
+export const MODULES_TOPOLOGY = '/api/modules/topology';
+export const STATUS = '/api/status';
+export const PANORAMA = '/api/panorama';
+export const SENSORS = '/api/sensors';
+
+// ===============================================================
+//  智能体线 / 工具（/api/agent-lines、/api/tools）
+// ===============================================================
+export const AGENT_LINES_PLANES = '/api/agent-lines/planes';
+export const TOOLS_CONFIG = '/api/tools/config';
+export const TOOLS_TOGGLE = '/api/tools/toggle';
+
+// ===============================================================
+//  回放 / 子智能体（/api/replay、/api/subagent）
+// ===============================================================
+export const REPLAY_UPLOAD = '/api/replay/upload';
+export const SUBAGENT_LIST = '/api/subagent/list';
+export const SUBAGENT_CREATE = '/api/subagent/create';
+export const SUBAGENT_DELEGATE = '/api/subagent/delegate';
+export const SUBAGENT_HISTORY = '/api/subagent/history';
+export const subagentDelegateByName = (name: string) => `/api/subagent/${encodeURIComponent(name)}/delegate`;
+export const subagentDestroyByName = (name: string) => `/api/subagent/${encodeURIComponent(name)}/destroy`;
+
+// ===============================================================
+//  插件 / 心跳 / 可观测 / 杂项
+// ===============================================================
+export const PLUGINS = '/api/plugins';
+export const PLUGINS_RELOAD = '/api/plugins/reload';
+export const HEARTBEAT = '/api/heartbeat';
+export const HEARTBEAT_HISTORY = '/api/heartbeat/history';
+export const DIAGNOSTICS_METRICS = '/api/diagnostics/metrics';
+export const DIAGNOSTICS_LLM_CHECK = '/api/diagnostics/llm-check';
+export const OBSERVABILITY_ALERTS = '/api/observability/alerts';
+export const CHAT = '/api/chat';
+export const SKILLS_MGMT_SLASH_COMMANDS = '/api/skills-mgmt/slash-commands';
+export const USER_LIST = '/api/user/list';
+export const PROCESS_LIST = '/api/process/list';
+export const BROWSER_NAVIGATE = '/api/browser/navigate';

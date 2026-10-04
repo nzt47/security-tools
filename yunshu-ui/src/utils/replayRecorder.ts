@@ -27,6 +27,10 @@ import { record } from 'rrweb';
 import { authHeader } from '../lib/apiToken';
 import type { eventWithTime } from 'rrweb/typings/types';
 
+import {
+  REPLAY_UPLOAD,
+} from '@/api/endpoints';
+
 // ─── 业务错误码（边界显性化） ────────────────────────────────────────────
 
 export enum ReplayErrorCode {
@@ -98,7 +102,7 @@ function resolveConfig(): ReplayConfig {
     sampleRate,
     uploadDurationSec,
     maxBytes: 2 * 1024 * 1024,
-    uploadEndpoint: '/api/replay/upload',
+    uploadEndpoint: REPLAY_UPLOAD,
     samplingInterval: 200,
   };
 }
@@ -119,7 +123,7 @@ export function getReplayConfig(): ReplayConfig {
       sampleRate: 0,
       uploadDurationSec: 30,
       maxBytes: 2 * 1024 * 1024,
-      uploadEndpoint: '/api/replay/upload',
+      uploadEndpoint: REPLAY_UPLOAD,
       samplingInterval: 200,
     };
   }

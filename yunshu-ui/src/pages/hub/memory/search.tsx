@@ -6,6 +6,11 @@ import { useState } from 'react'
 import { Search } from 'lucide-react'
 import {  Card, Loading, ErrorBox, PageHeader, hubPost , pickList } from '../components/ui'
 
+import {
+  KNOWLEDGE_QUERY,
+  VECTOR_SEARCH,
+} from '@/api/endpoints';
+
 interface Hit {
   content?: string
   text?: string
@@ -27,7 +32,7 @@ export default function MemorySearch() {
     setLoading(true)
     setError('')
     try {
-      const url = mode === 'vector' ? '/api/vector/search' : '/api/knowledge/query'
+      const url = mode === 'vector' ? VECTOR_SEARCH : KNOWLEDGE_QUERY
       const body = mode === 'vector' ? { query: q.trim(), limit: 10 } : { query: q.trim(), limit: 10 }
       const r = await hubPost(url, body)
       setHits(pickList<Hit>(r, 'results'))

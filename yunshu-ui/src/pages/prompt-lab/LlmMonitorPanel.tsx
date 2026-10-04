@@ -18,6 +18,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Loader2, Radio, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { hubGet, hubPost } from '../hub/components/ui'
 
+import {
+  LLM_MONITOR_CLEAR,
+  LLM_MONITOR_STATS,
+  LLM_MONITOR_TOGGLE,
+} from '@/api/endpoints';
+
 const AUTO_REFRESH_MS = 10_000
 const PAGE_SIZE = 30
 
@@ -137,7 +143,7 @@ export default function LlmMonitorPanel() {
     try {
       const offset = opts?.append ? records.length : 0
       const [s, rec] = await Promise.allSettled([
-        hubGet<LlmStats | { data?: LlmStats }>('/api/llm-monitor/stats'),
+        hubGet<LlmStats | { data?: LlmStats }>(LLM_MONITOR_STATS),
         hubGet<{ records?: LlmRecord[]; total?: number; data?: LlmRecord[] }>(
           `/api/llm-monitor/records?limit=${PAGE_SIZE}&offset=${offset}${src ? `&source=${encodeURIComponent(src)}` : ''}`,
         ),
@@ -174,7 +180,7 @@ export default function LlmMonitorPanel() {
   const clear = async () => {
     setBusy(true)
     try {
-      await hubPost('/api/llm-monitor/clear')
+      await hubPost(LLM_MONITOR_CLEAR)
       setMsg('LLM 通信记录已清空（含已落盘的会话快照）')
       setExpanded({})
       await load()
@@ -187,7 +193,7 @@ export default function LlmMonitorPanel() {
 
   const toggleEnabled = async (enabled: boolean) => {
     try {
-      await hubPost('/api/llm-monitor/toggle', { enabled })
+      await hubPost(LLM_MONITOR_TOGGLE, { enabled })
       setStats((prev) => ({ ...(prev ?? {}), enabled }))
       setMsg(enabled ? '监控已启用' : '监控已暂停')
     } catch (e) {

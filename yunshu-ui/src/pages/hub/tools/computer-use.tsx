@@ -6,6 +6,10 @@ import { useState } from 'react'
 import { Monitor, Navigation } from 'lucide-react'
 import { Card, PageHeader, hubPost } from '../components/ui'
 
+import {
+  BROWSER_NAVIGATE,
+} from '@/api/endpoints';
+
 export default function ToolsComputerUse() {
   const [url, setUrl] = useState('')
   const [busy, setBusy] = useState(false)
@@ -16,7 +20,7 @@ export default function ToolsComputerUse() {
     setBusy(true)
     setResult('')
     try {
-      const r = await hubPost('/api/browser/navigate', { url: url.trim() })
+      const r = await hubPost(BROWSER_NAVIGATE, { url: url.trim() })
       setResult(`导航结果：${JSON.stringify(r).slice(0, 200)}`)
     } catch (e) {
       setResult(`失败：${e instanceof Error ? e.message : e}`)

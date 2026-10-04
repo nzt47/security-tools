@@ -6,6 +6,11 @@ import { useEffect, useState } from 'react'
 import { HeartPulse, RefreshCw } from 'lucide-react'
 import { Card, StatCard, Loading, ErrorBox, Badge, PageHeader, hubGet, pickList, pickObj } from '../components/ui'
 
+import {
+  HEARTBEAT,
+  HEARTBEAT_HISTORY,
+} from '@/api/endpoints';
+
 interface Heartbeat {
   status?: string
   ok?: boolean
@@ -30,9 +35,9 @@ export default function EngineHeartbeat() {
     setLoading(true)
     setError('')
     Promise.allSettled([
-      hubGet('/api/heartbeat').then((r) => pickObj<Heartbeat>(r) ?? (r as unknown as Heartbeat)),
+      hubGet(HEARTBEAT).then((r) => pickObj<Heartbeat>(r) ?? (r as unknown as Heartbeat)),
       // /api/heartbeat/history 返回 {history: [...], limit, offset, total}
-      hubGet('/api/heartbeat/history').then((r) => pickList<HistoryItem>(r, 'history')),
+      hubGet(HEARTBEAT_HISTORY).then((r) => pickList<HistoryItem>(r, 'history')),
     ]).then(([h, hh]) => {
       if (h.status === 'fulfilled') setHb(h.value)
       if (hh.status === 'fulfilled') setHistory(hh.value ?? [])

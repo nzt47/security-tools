@@ -6,6 +6,12 @@ import { useEffect, useState } from 'react'
 import { Activity, Cpu, MemoryStick, Battery, RefreshCw } from 'lucide-react'
 import {  Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGet , pickList, pickObj } from '../components/ui'
 
+import {
+  HEALTH,
+  PANORAMA,
+  SENSORS,
+} from '@/api/endpoints';
+
 interface SensorReading {
   sensor_name: string
   description: string
@@ -33,9 +39,9 @@ export default function PanoramaSensors() {
     setLoading(true)
     setError('')
     Promise.allSettled([
-      hubGet('/api/panorama').then((r) => pickObj<Panorama>(r) ?? (r as unknown as Panorama)),
-      hubGet('/api/sensors').then((r) => pickList<SensorReading>(r, 'sensors')),
-      hubGet('/api/health').catch(() => null),
+      hubGet(PANORAMA).then((r) => pickObj<Panorama>(r) ?? (r as unknown as Panorama)),
+      hubGet(SENSORS).then((r) => pickList<SensorReading>(r, 'sensors')),
+      hubGet(HEALTH).catch(() => null),
     ]).then(([p, s]) => {
       if (p.status === 'fulfilled') setPanorama(p.value)
       if (s.status === 'fulfilled') setSensors(s.value ?? [])
