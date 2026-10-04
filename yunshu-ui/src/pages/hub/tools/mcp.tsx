@@ -6,6 +6,12 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, Power } from 'lucide-react'
 import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubDelete, hubPost , pickList } from '../components/ui'
 
+import {
+  MCP_ENABLE,
+  MCP_SERVICES,
+  mcpServiceById,
+} from '@/api/endpoints';
+
 interface McpService {
   service_id: string
   id?: string
@@ -27,7 +33,7 @@ export default function ToolsMcp() {
 
   const load = () => {
     setLoading(true)
-    hubGet('/api/mcp/services').then((r) => {
+    hubGet(MCP_SERVICES).then((r) => {
       setServices(pickList<McpService>(r, 'services'))
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
@@ -37,7 +43,7 @@ export default function ToolsMcp() {
 
   const add = async () => {
     try {
-      await hubPost('/api/mcp/services', { name, command: cmd })
+      await hubPost(MCP_SERVICES, { name, command: cmd })
       setShowForm(false)
       setName('')
       setCmd('')
@@ -47,14 +53,14 @@ export default function ToolsMcp() {
 
   const del = async (id: string) => {
     try {
-      await hubDelete(`/api/mcp/services/${id}`)
+      await hubDelete(mcpServiceById(id))
       load()
     } catch (e) { setError(String(e)) }
   }
 
   const toggle = async (id: string) => {
     try {
-      await hubPost('/api/mcp/enable', { service_id: id })
+      await hubPost(MCP_ENABLE, { service_id: id })
       load()
     } catch (e) { setError(String(e)) }
   }

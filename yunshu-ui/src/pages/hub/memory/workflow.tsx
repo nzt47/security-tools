@@ -10,6 +10,13 @@ import { useEffect, useState } from 'react'
 import { Play } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
 
+import {
+  WORKFLOW_LEARNING_WORKFLOWS,
+  workflowLearnConvertToSkill,
+  workflowLearnExecute,
+  workflowLearnToggle,
+} from '@/api/endpoints';
+
 interface Workflow {
   id: string
   name?: string
@@ -29,7 +36,7 @@ export function MemoryWorkflowTable() {
 
   const load = () => {
     setLoading(true)
-    hubGet('/api/workflow-learning/workflows').then((r) => {
+    hubGet(WORKFLOW_LEARNING_WORKFLOWS).then((r) => {
       setItems(pickList<Workflow>(r, 'items'))
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
@@ -39,14 +46,14 @@ export function MemoryWorkflowTable() {
 
   const toggle = async (id: string) => {
     try {
-      await hubPost(`/api/workflow-learning/workflows/${id}/toggle`)
+      await hubPost(workflowLearnToggle(id))
       load()
     } catch (e) { setError(String(e)) }
   }
 
   const exec = async (id: string, fallbackTask?: string) => {
     try {
-      const r = await hubPost(`/api/workflow-learning/execute/${id}`, {
+      const r = await hubPost(workflowLearnExecute(id), {
         task_text: fallbackTask || '执行该工作流',
       })
       setExecMsg(`执行结果：${JSON.stringify(r).slice(0, 120)}`)
@@ -60,7 +67,7 @@ export function MemoryWorkflowTable() {
   const convert = async (wf: Workflow) => {
     try {
       const r = await hubPost<{ skill_id?: string; skill_name?: string; action?: string; error?: string; review?: { verdict?: string; status?: string }; digest?: { verdict?: string; status?: string } }>(
-        `/api/workflow-learning/workflows/${wf.id}/convert-to-skill`,
+        workflowLearnConvertToSkill(wf.id),
         // 术语纪律（TASK-S0-01）：新参数 auto_review（评审语义；旧 auto_digest 由后端兼容）
         { force: false, auto_review: true },
       )

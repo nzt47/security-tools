@@ -8,23 +8,15 @@
     "plugins_with_declared_routes": 0,
     "manifest_declared_total": 0,
     "frontend_literals": {
-      "react": 116,
+      "react": 102,
       "legacy": 2
     },
     "frontend_stray_literals": {
-      "react": 104,
+      "react": 42,
       "legacy": 2
     },
     "frontend_stray_by_file": {
       "react": {
-        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx": 29,
-        "yunshu-ui/src/pages/hub/memory/skills.tsx": 7,
-        "yunshu-ui/src/pages/prompt-lab/identityPrompt.ts": 5,
-        "yunshu-ui/src/pages/hub/engine/scheduler.tsx": 5,
-        "yunshu-ui/src/pages/hub/personality.tsx": 4,
-        "yunshu-ui/src/pages/hub/memory/workflow.tsx": 4,
-        "yunshu-ui/src/pages/hub/network/index.tsx": 4,
-        "yunshu-ui/src/pages/hub/tools/mcp.tsx": 4,
         "yunshu-ui/src/components/workbench/panels/ContextManagerBar.tsx": 3,
         "yunshu-ui/src/pages/prompt-lab/LlmMonitorPanel.tsx": 3,
         "yunshu-ui/src/pages/hub/memory/index.tsx": 3,

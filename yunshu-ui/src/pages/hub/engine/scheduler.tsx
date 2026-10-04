@@ -6,6 +6,13 @@ import { useEffect, useState } from 'react'
 import { Plus, Trash2, Pause, Play } from 'lucide-react'
 import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubDelete, hubPost , pickList } from '../components/ui'
 
+import {
+  SCHEDULES,
+  scheduleById,
+  schedulePause,
+  scheduleResume,
+} from '@/api/endpoints';
+
 interface Task {
   id: string
   name: string
@@ -29,7 +36,7 @@ export default function EngineScheduler() {
 
   const load = () => {
     setLoading(true)
-    hubGet('/api/schedules').then((r) => {
+    hubGet(SCHEDULES).then((r) => {
       setTasks(pickList<Task>(r, 'tasks'))
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
@@ -39,7 +46,7 @@ export default function EngineScheduler() {
 
   const create = async () => {
     try {
-      await hubPost('/api/schedules', {
+      await hubPost(SCHEDULES, {
         name, action, interval_minutes: Number(interval) || 0, cron_expr: cron,
       })
       setShowForm(false)
@@ -49,13 +56,13 @@ export default function EngineScheduler() {
   }
 
   const pause = async (id: string) => {
-    try { await hubPost(`/api/schedules/${id}/pause`); load() } catch (e) { setError(String(e)) }
+    try { await hubPost(schedulePause(id)); load() } catch (e) { setError(String(e)) }
   }
   const resume = async (id: string) => {
-    try { await hubPost(`/api/schedules/${id}/resume`); load() } catch (e) { setError(String(e)) }
+    try { await hubPost(scheduleResume(id)); load() } catch (e) { setError(String(e)) }
   }
   const remove = async (id: string) => {
-    try { await hubDelete(`/api/schedules/${id}`); load() } catch (e) { setError(String(e)) }
+    try { await hubDelete(scheduleById(id)); load() } catch (e) { setError(String(e)) }
   }
 
   return (

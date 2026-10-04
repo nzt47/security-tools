@@ -22,6 +22,42 @@ import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
 import SkillContentModal from './skill-content-modal'
 
+import {
+  SKILLS_MGMT,
+  SKILLS_MGMT_ASSESS_CURATE,
+  SKILLS_MGMT_ASSESS_EVENTS,
+  SKILLS_MGMT_ASSESS_FEED,
+  SKILLS_MGMT_ASSESS_MERGE_BACKUPS,
+  SKILLS_MGMT_ASSESS_MERGE_SAFE,
+  SKILLS_MGMT_ASSESS_MERGE_UNDO,
+  SKILLS_MGMT_ASSESS_RUN_ALL,
+  SKILLS_MGMT_ASSESS_STREAM,
+  SKILLS_MGMT_CLASSES,
+  SKILLS_MGMT_CLASSES_MOVE,
+  SKILLS_MGMT_CLASSES_RUN_AUTO,
+  SKILLS_MGMT_CREATE_MANUAL,
+  SKILLS_MGMT_DUPLICATES,
+  SKILLS_MGMT_INSTALL,
+  SKILLS_MGMT_INSTALL_PREPRECHECK,
+  SKILLS_MGMT_QUEUE,
+  SKILLS_MGMT_REVIEW_AUDIT,
+  SKILLS_MGMT_REVIEW_BATCH,
+  WORKFLOW_LEARNING_BATCH_CONVERT,
+  WORKFLOW_LEARNING_CONVERT_EXTERNAL,
+  skillAssess,
+  skillById,
+  skillFixAuto,
+  skillOptimize,
+  skillPublish,
+  skillRedraft,
+  skillSlash,
+  skillSuggestFix,
+  skillToggle,
+  skillVersions,
+  skillVersionsBump,
+  skillVersionsRollback,
+} from '@/api/endpoints';
+
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
@@ -81,7 +117,7 @@ export default function SkillAssessManager() {
   const [events, setEvents] = useState<AssessmentEv[]>([])
   const loadEvents = useCallback(async () => {
     try {
-      const r = await hubGet<{ records?: AssessmentEv[] }>('/api/skills-mgmt/assess/events?limit=10')
+      const r = await hubGet<{ records?: AssessmentEv[] }>(`${SKILLS_MGMT_ASSESS_EVENTS}?limit=10`)
       const recs = Array.isArray(r.records) ? r.records : []
       setEvents(recs)
       const mx = recs.reduce<string>((a, e) => (e.ts && e.ts > a ? e.ts : a), '')
@@ -109,7 +145,7 @@ export default function SkillAssessManager() {
         const q = sinceRef.current ? `?since=${encodeURIComponent(sinceRef.current)}&timeout_sec=20` : ''
         const ctrl = new AbortController()
         const tmr = setTimeout(() => ctrl.abort(), 30000)
-        const res = await fetch(`/api/skills-mgmt/assess/stream${q}`, { signal: ctrl.signal })
+        const res = await fetch(`${SKILLS_MGMT_ASSESS_STREAM}${q}`, { signal: ctrl.signal })
         clearTimeout(tmr)
         if (res.ok) {
           const d = (await res.json()) as { records?: AssessmentEv[] }
@@ -158,8 +194,8 @@ export default function SkillAssessManager() {
   const exportOverview = async () => {
     try {
       const [a, e] = await Promise.all([
-        hubGet<{ records?: { ts?: string; event?: string; skill_id?: string; actor?: string; reason?: string }[] }>('/api/skills-mgmt/review/audit?limit=500'),
-        hubGet<{ records?: AssessmentEv[] }>('/api/skills-mgmt/assess/events?limit=200'),
+        hubGet<{ records?: { ts?: string; event?: string; skill_id?: string; actor?: string; reason?: string }[] }>(`${SKILLS_MGMT_REVIEW_AUDIT}?limit=500`),
+        hubGet<{ records?: AssessmentEv[] }>(`${SKILLS_MGMT_ASSESS_EVENTS}?limit=200`),
       ])
       const esc = (s?: string) => `"${String(s ?? '').replace(/"/g, '""')}"`
       const rows: string[] = []
@@ -189,7 +225,7 @@ export default function SkillAssessManager() {
   const refreshQueue = useCallback(async () => {
     setQLoading(true)
     try {
-      const r = await hubGet<{ items?: QueueItem[] }>('/api/skills-mgmt/queue')
+      const r = await hubGet<{ items?: QueueItem[] }>(SKILLS_MGMT_QUEUE)
       setQueue(Array.isArray(r.items) ? r.items : [])
     } catch { setQueue([]) }
     finally { setQLoading(false) }
@@ -198,7 +234,7 @@ export default function SkillAssessManager() {
   const load = useCallback(async () => {
     setError('')
     try {
-      const r = await hubGet<{ items?: SkillItem[] }>('/api/skills-mgmt')
+      const r = await hubGet<{ items?: SkillItem[] }>(SKILLS_MGMT)
       setItems(Array.isArray(r.items) ? r.items : [])
     } catch (e) {
       setError(`技能资产加载失败：${e instanceof Error ? e.message : String(e)}`)
@@ -225,24 +261,24 @@ export default function SkillAssessManager() {
     } finally { setBusy(''); void loadEvents() }
   }
 
-  const assessOne = (id: string) => act('评审-评估', () => hubPost(`/api/skills-mgmt/assess/${id}`))
-  const runAll = () => act('全量自动评审-评估', () => hubPost('/api/skills-mgmt/assess/run-all'))
-  const batchReview = () => act('批量审核', () => hubPost('/api/skills-mgmt/review/batch'))
+  const assessOne = (id: string) => act('评审-评估', () => hubPost(skillAssess(id)))
+  const runAll = () => act('全量自动评审-评估', () => hubPost(SKILLS_MGMT_ASSESS_RUN_ALL))
+  const batchReview = () => act('批量审核', () => hubPost(SKILLS_MGMT_REVIEW_BATCH))
   /** 发布（先经「人工复核」弹窗确认；未通过评审时须填原因强制发布并写入审计） */
   const confirmPublish = (it: SkillItem, reason?: string) => {
     setPublishTarget(null)
     const needsReason = it.review?.status !== 'passed' || it.review?.review_verdict === 'block'
     void act('发布', () =>
       needsReason
-        ? hubPost(`/api/skills-mgmt/${it.id}/publish?force=1&reason=${encodeURIComponent(reason || 'manual_review_passed')}`)
-        : hubPost(`/api/skills-mgmt/${it.id}/publish`))
+        ? hubPost(`${skillPublish(it.id)}?force=1&reason=${encodeURIComponent(reason || 'manual_review_passed')}`)
+        : hubPost(skillPublish(it.id)))
   }
-  const toggle = (it: SkillItem) => act('启停', () => hubPost(`/api/skills-mgmt/${it.id}/toggle`, { enabled: !it.enabled }))
+  const toggle = (it: SkillItem) => act('启停', () => hubPost(skillToggle(it.id), { enabled: !it.enabled }))
   const remove = async (it: SkillItem) => {
     if (!window.confirm(`确定从资产库删除技能「${it.name || it.id}」？`)) return
     setBusy('删除'); setError(''); setMsg('')
     try {
-      const r = await fetch(`/api/skills-mgmt/${it.id}`, { method: 'DELETE', headers: authHeader() })
+      const r = await fetch(skillById(it.id), { method: 'DELETE', headers: authHeader() })
       const body = await r.json().catch(() => null)
       if (!r.ok) setMsg(`删除失败：${body?.error ?? `HTTP ${r.status}`}`)
       else setMsg(`已删除「${it.name || it.id}」`)
@@ -259,7 +295,7 @@ export default function SkillAssessManager() {
   const [classView, setClassView] = useState<ClassGroup[] | null>(null)
   const loadClasses = useCallback(async () => {
     try {
-      const r = await hubGet<{ groups?: ClassGroup[] }>('/api/skills-mgmt/classes')
+      const r = await hubGet<{ groups?: ClassGroup[] }>(SKILLS_MGMT_CLASSES)
       setClassView(Array.isArray(r.groups) ? r.groups : [])
       setError('')
     } catch (e) {
@@ -274,7 +310,7 @@ export default function SkillAssessManager() {
   const rerunAutoClassify = async () => {
     setBusy('自动分类'); setMsg(''); setError('')
     try {
-      const r = await hubPost<{ classified?: number; created_classes?: number }>('/api/skills-mgmt/classes/run-auto')
+      const r = await hubPost<{ classified?: number; created_classes?: number }>(SKILLS_MGMT_CLASSES_RUN_AUTO)
       setMsg(`自动分类完成：新归类 ${r?.classified ?? 0} 项，自动新建类 ${r?.created_classes ?? 0} 个。`)
       await Promise.all([load(), loadClasses()])
     } catch (e) {
@@ -284,7 +320,7 @@ export default function SkillAssessManager() {
   /** 行内移动技能到其它分类（人工选择；后续自动重判不再覆盖） */
   const moveClass = async (it: SkillItem, cls: string) => {
     try {
-      const r = await hubPost<{ ok?: boolean; error?: string }>('/api/skills-mgmt/classes/move', { skill_id: it.id, class_name: cls })
+      const r = await hubPost<{ ok?: boolean; error?: string }>(SKILLS_MGMT_CLASSES_MOVE, { skill_id: it.id, class_name: cls })
       if (r && r.ok === false) setMsg(`移动失败：${r.error}`)
       else { setMsg(`已将「${it.name || it.id}」移至「${cls}」`); await Promise.all([load(), loadClasses()]) }
     } catch (e) { setMsg(`移动失败：${e instanceof Error ? e.message : String(e)}`) }
@@ -719,7 +755,7 @@ function AuditPanel() {
     setError('')
     if (!append) setLoading(true)
     try {
-      const r = await hubGet<{ records?: AuditRec[] }>(`/api/skills-mgmt/review/audit?limit=${PAGE}&offset=${offset}`)
+      const r = await hubGet<{ records?: AuditRec[] }>(`${SKILLS_MGMT_REVIEW_AUDIT}?limit=${PAGE}&offset=${offset}`)
       const recs = Array.isArray(r.records) ? r.records : []
       const next = append ? merge(baseRef.current, recs) : recs
       baseRef.current = next
@@ -963,7 +999,7 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     if (!form.name.trim() || !form.content.trim()) return
     setBusy(true); setErr('')
     try {
-      await hubPost('/api/skills-mgmt/create/manual', {
+      await hubPost(SKILLS_MGMT_CREATE_MANUAL, {
         id: slug(form.name), name: form.name.trim(), description: form.description.trim(),
         content: form.content, content_type: form.content_type,
         tags: form.tags.split(/[,，\s]+/).filter(Boolean), author: 'workbench', category: 'custom',
@@ -1030,7 +1066,7 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
       const headers: Record<string, string> = {}
       const tok = getApiToken()
       if (tok) headers.Authorization = `Bearer ${tok}`
-      const res = await fetch(`/api/skills-mgmt/install/precheck?source=${encodeURIComponent(src)}`, { headers })
+      const res = await fetch(`${SKILLS_MGMT_INSTALL_PREPRECHECK}?source=${encodeURIComponent(src)}`, { headers })
       const body = (await res.json().catch(() => null)) as Precheck | null
       if (!res.ok || !body) throw new Error(body?.error ?? `HTTP ${res.status}`)
       setPre(body)
@@ -1046,7 +1082,7 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       const tok = getApiToken()
       if (tok) headers.Authorization = `Bearer ${tok}`
-      const res = await fetch('/api/skills-mgmt/install', {
+      const res = await fetch(SKILLS_MGMT_INSTALL, {
         method: 'POST', headers, body: JSON.stringify({ source: src }),
       })
       const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; message?: string } | null
@@ -1124,14 +1160,14 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   const loadDups = async () => {
     try {
-      const r = await hubGet<{ duplicates?: { skill_a?: string; skill_b?: string; name_a?: string; name_b?: string; jaccard?: number }[] }>('/api/skills-mgmt/duplicates?min_jaccard=0.7')
+      const r = await hubGet<{ duplicates?: { skill_a?: string; skill_b?: string; name_a?: string; name_b?: string; jaccard?: number }[] }>(`${SKILLS_MGMT_DUPLICATES}?min_jaccard=0.7`)
       setDups(Array.isArray(r.duplicates) ? r.duplicates : [])
     } catch { setDups([]) }
   }
 
   const loadBacks = async () => {
     try {
-      const r = await hubGet<{ backups?: typeof backs }>('/api/skills-mgmt/assess/merge-backups?limit=50')
+      const r = await hubGet<{ backups?: typeof backs }>(`${SKILLS_MGMT_ASSESS_MERGE_BACKUPS}?limit=50`)
       setBacks(Array.isArray(r.backups) ? r.backups : [])
     } catch { setBacks([]) }
   }
@@ -1140,7 +1176,7 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     if (!window.confirm(`安全合并：先备份快照，再删除「${srcId}」并入「${dstId}」？（可随时撤销）`)) return
     setBusy('3'); setRunMsg('')
     try {
-      const r = await hubPost<{ merge_id?: string; merged_id?: string }>('/api/skills-mgmt/assess/merge-safe', { src_id: srcId, dst_id: dstId, strategy: 'auto' })
+      const r = await hubPost<{ merge_id?: string; merged_id?: string }>(SKILLS_MGMT_ASSESS_MERGE_SAFE, { src_id: srcId, dst_id: dstId, strategy: 'auto' })
       setRunMsg(`已安全合并：${srcId} → ${dstId}${r?.merge_id ? `（备份 ${r.merge_id}）` : ''}。可在下方「合并备份」中撤销。`)
       onDone()
       void loadDups()
@@ -1155,7 +1191,7 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     if (!window.confirm('撤销该次安全合并？（恢复被删技能并回滚保留方）')) return
     setBusy('4'); setRunMsg('')
     try {
-      const r = await hubPost<{ restored?: string[] }>('/api/skills-mgmt/assess/merge-undo', { merge_id: mid })
+      const r = await hubPost<{ restored?: string[] }>(SKILLS_MGMT_ASSESS_MERGE_UNDO, { merge_id: mid })
       setRunMsg(`已撤销合并（${mid}），恢复：${(r?.restored ?? []).join('、') || '-'}。`)
       onDone()
       void loadDups()
@@ -1167,14 +1203,14 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   const plan = async () => {
     setBusy('1'); setRunMsg('')
-    try { setRes(await hubPost('/api/skills-mgmt/assess/curate?dry_run=1')) }
+    try { setRes(await hubPost(`${SKILLS_MGMT_ASSESS_CURATE}?dry_run=1`)) }
     catch (e) { setRunMsg(`体检失败：${e instanceof Error ? e.message : String(e)}`) }
     finally { setBusy('') }
   }
   const apply = async () => {
     setBusy('2'); setRunMsg('')
     try {
-      const r = await hubPost<{ applied_count?: number; applied?: { id?: string; action?: string }[] }>('/api/skills-mgmt/assess/curate?dry_run=0&auto_clean=1')
+      const r = await hubPost<{ applied_count?: number; applied?: { id?: string; action?: string }[] }>(`${SKILLS_MGMT_ASSESS_CURATE}?dry_run=0&auto_clean=1`)
       setRes(r)
       setRunMsg(`已自动整理 ${r?.applied_count ?? 0} 项：${(r?.applied ?? []).map((a) => `${a.id ?? ''}·${a.action ?? ''}`).join('；') || '无'}。合并/拆分需人工决策，见体检计划。`)
       onDone()
@@ -1300,7 +1336,7 @@ function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () =
   const [fixMsg, setFixMsg] = useState('')
   useEffect(() => {
     let cancelled = false
-    hubPost<{ suggestions?: string[] }>(`/api/skills-mgmt/${item.id}/optimize`).then((r) => {
+    hubPost<{ suggestions?: string[] }>(skillOptimize(item.id)).then((r) => {
       if (cancelled) return
       setSug(Array.isArray(r?.suggestions) ? r.suggestions : [])
     }).catch((e) => {
@@ -1311,7 +1347,7 @@ function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () =
     })
       .finally(() => { if (!cancelled) setBusy(false) })
     hubPost<{ fixes?: { code?: string; severity?: string; finding?: string; fix?: string }[] }>(
-      `/api/skills-mgmt/${item.id}/suggest-fix`,
+      skillSuggestFix(item.id),
     ).then((r) => { if (!cancelled) setFixList(Array.isArray(r?.fixes) ? r.fixes : []) }).catch(() => {})
     return () => { cancelled = true }
   }, [item.id])
@@ -1326,7 +1362,7 @@ function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () =
     setFixBusy(true); setFixMsg('')
     try {
       const r = await hubPost<{ applied?: { code?: string; action?: string }[]; applied_codes?: string[]; already_fixed?: string[]; refreshed?: boolean }>(
-        `/api/skills-mgmt/${item.id}/fix-auto`, { codes: autoCodes })
+        skillFixAuto(item.id), { codes: autoCodes })
       const appliedN = (r?.applied_codes ?? []).length
       const done = (r?.already_fixed ?? []).length
       setFixMsg(`云枢已完成自动修复：应用 ${appliedN} 项${done ? `，另 ${done} 项已就绪无需改动` : ''}${r?.refreshed ? '，并已重新评审（建议关闭后重新打开查看最新结论）' : ''}。`)
@@ -1454,7 +1490,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       source_format: 'markdown',
     }))
     const r = await hubPost<BatchResult & { ok?: boolean; error?: string }>(
-      '/api/workflow-learning/batch-convert-external-skills',
+      WORKFLOW_LEARNING_BATCH_CONVERT,
       { external_skills: items, llm_enabled: false, queue_mode: queueMode },
     )
     if (r && r.ok === false && r.error) throw new Error(r.error)
@@ -1481,7 +1517,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       if (parsed.length === 0) throw new Error('批量导入数组为空')
       if (parsed.length > 200) throw new Error('单次批量最多 200 个技能')
       const r = await hubPost<BatchResult & { ok?: boolean; error?: string }>(
-        '/api/workflow-learning/batch-convert-external-skills',
+        WORKFLOW_LEARNING_BATCH_CONVERT,
         { external_skills: parsed, llm_enabled: false, queue_mode: queueMode },
       )
       if (r && r.ok === false && r.error) throw new Error(r.error)
@@ -1497,7 +1533,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       if (!parsed || typeof parsed !== 'object') throw new Error('需要 JSON 对象或数组')
       const obj = parsed as Record<string, unknown>
       const r = await hubPost<{ skill_id?: string; skill_name?: string; source_format?: string; ok?: boolean; error?: string }>(
-        '/api/workflow-learning/convert-external-skill',
+        WORKFLOW_LEARNING_CONVERT_EXTERNAL,
         { external_data: obj, llm_enabled: false },
       )
       if (r && r.ok === false && r.error) throw new Error(r.error)
@@ -1653,7 +1689,7 @@ function VersionsModal({ item, onClose, onDone }: { item: SkillItem; onClose: ()
   const load = useCallback(async () => {
     setErr('')
     try {
-      const r = await hubGet<{ versions?: SkillVersionLike[] }>(`/api/skills-mgmt/${item.id}/versions`)
+      const r = await hubGet<{ versions?: SkillVersionLike[] }>(skillVersions(item.id))
       setVersions(Array.isArray(r.versions) ? r.versions : [])
     } catch (e) {
       setErr(`版本读取失败：${e instanceof Error ? e.message : String(e)}`)
@@ -1664,7 +1700,7 @@ function VersionsModal({ item, onClose, onDone }: { item: SkillItem; onClose: ()
   const bump = async (kind: 'patch' | 'minor') => {
     setBusy(kind); setErr(''); setMsg('')
     try {
-      await hubPost(`/api/skills-mgmt/${item.id}/versions/bump`, { kind, changelog: `UI 升级 ${kind}` })
+      await hubPost(skillVersionsBump(item.id), { kind, changelog: `UI 升级 ${kind}` })
       setMsg(`已升级 ${kind} 版本。`)
       await load(); onDone()
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
@@ -1674,7 +1710,7 @@ function VersionsModal({ item, onClose, onDone }: { item: SkillItem; onClose: ()
     if (!window.confirm(`确定回滚到 ${v}？当前内容将切到该版本快照（可再升级回来）。`)) return
     setBusy('rb'); setErr(''); setMsg('')
     try {
-      await hubPost(`/api/skills-mgmt/${item.id}/versions/rollback`, { target_version: v })
+      await hubPost(skillVersionsRollback(item.id), { target_version: v })
       setMsg(`已回滚到 ${v}。`)
       await load(); onDone()
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
@@ -1730,7 +1766,7 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
     setBusy(true); setErr(''); setMsg('')
     try {
       const r = await hubPost<{ current?: { name?: string; description?: string }; proposed?: { name?: string; description?: string }; source?: string }>(
-        `/api/skills-mgmt/${item.id}/redraft`, { llm: useLlm })
+        skillRedraft(item.id), { llm: useLlm })
       setCur(r?.current ?? null)
       setDraftName(r?.proposed?.name ?? item.name ?? '')
       setDraftDesc(r?.proposed?.description ?? '')
@@ -1743,7 +1779,7 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
   const apply = async () => {
     setBusy(true); setErr(''); setMsg('')
     try {
-      const r = await fetch(`/api/skills-mgmt/${item.id}`, {
+      const r = await fetch(skillById(item.id), {
         method: 'PATCH',
         // 同文件 245 行的 DELETE 已带 authHeader；此处 PATCH 此前漏了
         headers: { 'Content-Type': 'application/json', ...authHeader() },
@@ -1753,7 +1789,7 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
         const b = await r.json().catch(() => null)
         throw new Error(b?.error ?? `HTTP ${r.status}`)
       }
-      await hubPost(`/api/skills-mgmt/assess/${item.id}`)
+      await hubPost(skillAssess(item.id))
       setMsg('已应用再定义草稿并重新评审-评估。')
       onDone()
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
@@ -1817,7 +1853,7 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
     if (!append) setBusy(true)
     try {
       const q = filterId.trim() ? `&skill_id=${encodeURIComponent(filterId.trim())}` : ''
-      const r = await hubGet<{ records?: FeedItem[] }>(`/api/skills-mgmt/assess/feed?limit=${PAGE}&offset=${offset}${q}`)
+      const r = await hubGet<{ records?: FeedItem[] }>(`${SKILLS_MGMT_ASSESS_FEED}?limit=${PAGE}&offset=${offset}${q}`)
       const recs = Array.isArray(r.records) ? r.records : []
       const next = append ? [...baseRef.current, ...recs] : recs
       baseRef.current = next
@@ -1910,7 +1946,7 @@ function CommandModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
       try { body.params = paramsText.trim() ? JSON.parse(paramsText) : {} } catch { setErr('patch 需为合法 JSON'); setBusy(false); return }
     }
     try {
-      const r = await hubPost<{ ok?: boolean; error?: string }>(`/api/skills-mgmt/slash/${item.id}`, body)
+      const r = await hubPost<{ ok?: boolean; error?: string }>(skillSlash(item.id), body)
       setOut(JSON.stringify(r, null, 2).slice(0, 3000))
       // 成功执行/打补丁后刷新父级行数据（启用状态、描述等可能已变化）
       if (r && r.ok !== false) onDone?.()

@@ -6,6 +6,12 @@ import { useEffect, useState } from 'react'
 import { Globe, Save, RotateCcw } from 'lucide-react'
 import { Card, Loading, ErrorBox, PageHeader, hubGet, hubPost, unwrap } from '../components/ui'
 
+import {
+  APPLY_NETWORK_CONFIG,
+  NETWORK_CONFIG,
+  NETWORK_CONFIG_RESET,
+} from '@/api/endpoints';
+
 export default function NetworkPage() {
   const [config, setConfig] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(true)
@@ -15,7 +21,7 @@ export default function NetworkPage() {
 
   const load = () => {
     setLoading(true)
-    hubGet('/api/network-config').then((r) => {
+    hubGet(NETWORK_CONFIG).then((r) => {
       setConfig(unwrap<Record<string, unknown>>(r as Record<string, unknown>) ?? {})
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
@@ -28,8 +34,8 @@ export default function NetworkPage() {
     setSaving(true)
     setMsg('')
     try {
-      await hubPost('/api/network-config', config)
-      await hubPost('/api/apply-network-config', {})
+      await hubPost(NETWORK_CONFIG, config)
+      await hubPost(APPLY_NETWORK_CONFIG, {})
       setMsg('网络配置已保存并应用')
     } catch (e) {
       setMsg(`保存失败：${e instanceof Error ? e.message : e}`)
@@ -40,7 +46,7 @@ export default function NetworkPage() {
 
   const reset = async () => {
     try {
-      await hubPost('/api/network-config/reset')
+      await hubPost(NETWORK_CONFIG_RESET)
       load()
       setMsg('配置已重置')
     } catch (e) { setError(String(e)) }
