@@ -1,0 +1,81 @@
+/**
+ * 显式信封解析的守卫（P1-front 第一批 · 2026-10-04）。
+ *
+ * 【边界用什么构造】用**合成 Response**，不打真实后端。理由同契约对拍那条纪律：
+ * 锚在机制上 —— 合成输入能覆盖"头缺失 / 版本不符 / 体非 JSON / 业务码非 200"
+ * 这些**真实后端今天不会产生**的分支，而靠真后端只能覆盖"一切正常"那一支。
+ */
+import { describe, expect, it } from 'vitest';
+import {
+  ENVELOPE_HEADER,
+  ENVELOPE_VERSION,
+  EnvelopeError,
+  getEnvelope,
+  readEnvelope,
+} from './envelope';
+
+function resp(body: unknown, opts: { envelope?: string | null; status?: number } = {}) {
+  const headers = new Headers();
+  if (opts.envelope !== null) headers.set(ENVELOPE_HEADER, opts.envelope ?? ENVELOPE_VERSION);
+  return new Response(typeof body === 'string' ? body : JSON.stringify(body), {
+    status: opts.status ?? 200,
+    headers,
+  });
+}
+
+describe('readEnvelope', () => {
+  it('取出 data', async () => {
+    const r = resp({ code: 200, data: { status: 'healthy' }, message: '' });
+    await expect(readEnvelope<{ status: string }>(r, '/api/x')).resolves.toEqual({ status: 'healthy' });
+  });
+
+  it('缺少信封头时**报错**而不是猜形状', async () => {
+    // 这是本模块存在的核心理由：老 helper 会"猜"，把错误推到很远的地方。
+    const r = resp({ status: 'healthy' }, { envelope: null });
+    await expect(readEnvelope(r, '/api/not-migrated')).rejects.toBeInstanceOf(EnvelopeError);
+    await expect(readEnvelope(r, '/api/not-migrated')).rejects.toThrow(/没有 X-Envelope 头/);
+  });
+
+  it('信封版本不符时报错，并说清两边版本', async () => {
+    const r = resp({ code: 200, data: {} }, { envelope: 'v3' });
+    await expect(readEnvelope(r, '/api/x')).rejects.toThrow(/v3/);
+  });
+
+  it('体不是 JSON 时报错（而不是抛出 SyntaxError 让人猜）', async () => {
+    const r = resp('<html>502</html>');
+    await expect(readEnvelope(r, '/api/x')).rejects.toBeInstanceOf(EnvelopeError);
+  });
+
+  it('业务码非 200 时报错并带上 message', async () => {
+    const r = resp({ code: 500, message: '内部错误', data: null });
+    await expect(readEnvelope(r, '/api/x')).rejects.toThrow(/500/);
+  });
+
+  it('缺 code 视为不合契约', async () => {
+    const r = resp({ data: {} });
+    await expect(readEnvelope(r, '/api/x')).rejects.toThrow(/code/);
+  });
+});
+
+describe('getEnvelope', () => {
+  it('非 2xx 直接抛 HTTP 状态（不试图解析错误体）', async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = (async () => new Response('nope', { status: 503 })) as typeof fetch;
+    try {
+      await expect(getEnvelope('/api/x')).rejects.toThrow(/503/);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it('2xx 且带信封时返回 data', async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      resp({ code: 200, data: { ok: true } })) as typeof fetch;
+    try {
+      await expect(getEnvelope<{ ok: boolean }>('/api/x')).resolves.toEqual({ ok: true });
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+});
