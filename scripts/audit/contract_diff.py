@@ -578,6 +578,8 @@ def main():
     ap.add_argument("--json", metavar="PATH", help="把基线报告写入该文件（建议入库）")
     ap.add_argument("--fail-on-drift", action="store_true",
                     help="有 high/medium 漂移即退出码 1")
+    ap.add_argument("--write-stray-baseline", type=Path, default=None,
+                    help="把当前 frontend_stray_literals 写成**只允许收缩**的基线文件")
     ap.add_argument("--live", action="store_true",
                     help="导入 app_server 取 url_map 真值（慢）")
     args = ap.parse_args()
@@ -613,6 +615,30 @@ def main():
         "findings_summary": by_sev,
         "findings": findings,
     }
+
+    if args.write_stray_baseline:
+        # 【基线里记什么】逐文件的 stray 出现次数。它衡量的是"**常量层之外**还剩多少处
+        #   /api 字面量"，目标是 0；纪律与 failures_baseline.txt / 鉴权覆盖率基线同款：
+        #   **只允许收缩** —— 新增文件不得带字面量，已有文件不得变多。
+        #   【为什么不记"去重路径数"】那个数是合同**面**指标，把字面量搬进常量层不会
+        #   让它下降（见 SANCTIONED_FRONTEND_LAYER 的说明），拿它当进度会得出错误结论。
+        payload = {
+            "note": (
+                "前端 /api 字面量收敛基线（常量层之外的出现次数）。**只允许收缩**："
+                "新增文件不得带字面量；已有文件不得变多。修完请重跑 "
+                "python scripts/audit/contract_diff.py --write-stray-baseline "
+                "reports/frontend_stray_baseline.json 使基线收缩。"
+                "常量层 yunshu-ui/src/api/endpoints.ts 自身不计入（它就是收口点）。"
+            ),
+            "sanctioned_layer": SANCTIONED_FRONTEND_LAYER,
+            "total": {k: sum(v.values()) for k, v in stray.items()},
+            "by_file": {k: dict(sorted(v.items(), key=lambda kv: -kv[1]))
+                        for k, v in stray.items()},
+        }
+        args.write_stray_baseline.parent.mkdir(parents=True, exist_ok=True)
+        args.write_stray_baseline.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        print("[contract_diff] stray 基线已写入 " + str(args.write_stray_baseline))
 
     if args.json:
         out = Path(args.json)
