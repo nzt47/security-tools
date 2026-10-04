@@ -12,6 +12,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { hubGet, hubPost } from '../hub/components/ui'
 
+import {
+  SYSTEM_PROMPT_CONFIG,
+  SYSTEM_PROMPT_CONFIG_APPLY,
+  SYSTEM_PROMPT_CONFIG_PREVIEW,
+  SYSTEM_PROMPT_CONFIG_RESET,
+} from '@/api/endpoints';
+
 // ─── 后端返回结构（宽容类型，字段缺失时回退） ────────────────────────
 
 export interface IdentitySummary {
@@ -266,7 +273,7 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
     if (!sec || Object.keys(sec).length === 0) return
     setTemplateLoading(true)
     try {
-      const r = await hubPost<{ template?: string }>('/api/system-prompt/config/preview', {
+      const r = await hubPost<{ template?: string }>(SYSTEM_PROMPT_CONFIG_PREVIEW, {
         config: { sections: sec },
       })
       const text = String((r as { template?: string })?.template ?? '')
@@ -284,7 +291,7 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
     setLoading(true)
     setError('')
     try {
-      const resp = unwrapObj<IdentityConfigResponse>(await hubGet('/api/system-prompt/config'))
+      const resp = unwrapObj<IdentityConfigResponse>(await hubGet(SYSTEM_PROMPT_CONFIG))
       const secs = resp.sections ?? {}
       setSections(secs)
       setRegistry(Array.isArray(resp.registry) ? resp.registry : [])
@@ -346,7 +353,7 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
     setSaving(true)
     setMsg('')
     try {
-      await hubPost('/api/system-prompt/config', { sections })
+      await hubPost(SYSTEM_PROMPT_CONFIG, { sections })
       if (timerRef.current) clearTimeout(timerRef.current)
       setMsg('系统提示词（身份提示词）配置已保存')
       await reload()
@@ -359,7 +366,7 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
 
   const onReset = useCallback(async () => {
     try {
-      await hubPost('/api/system-prompt/config/reset')
+      await hubPost(SYSTEM_PROMPT_CONFIG_RESET)
       setMsg('身份提示词已重置为默认')
       await reload()
     } catch (e) {
@@ -378,7 +385,7 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
     setMsg('')
     try {
       const r = await hubPost<{ template?: string; template_length?: number; synced?: boolean }>(
-        '/api/system-prompt/config/apply',
+        SYSTEM_PROMPT_CONFIG_APPLY,
         { config: { sections: sectionsRef.current } },
       )
       if (timerRef.current) clearTimeout(timerRef.current)

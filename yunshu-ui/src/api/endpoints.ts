@@ -130,3 +130,80 @@ export const AGENT_LINES = '/api/agent-lines';
 // ═══════════════════════════════════════════════════════════════
 export const CP = '/api/cp';
 export const CP_TOOL_EXEMPTIONS = '/api/cp/tool-exemptions';
+// ===============================================================
+//  技能评审 / 评估（/api/skills-mgmt/assess|classes|queue|review）
+// ===============================================================
+export const SKILLS_MGMT_ASSESS_EVENTS = '/api/skills-mgmt/assess/events';
+export const SKILLS_MGMT_ASSESS_STREAM = '/api/skills-mgmt/assess/stream';
+export const SKILLS_MGMT_ASSESS_FEED = '/api/skills-mgmt/assess/feed';
+export const SKILLS_MGMT_ASSESS_RUN_ALL = '/api/skills-mgmt/assess/run-all';
+export const SKILLS_MGMT_ASSESS_MERGE_BACKUPS = '/api/skills-mgmt/assess/merge-backups';
+export const SKILLS_MGMT_ASSESS_MERGE_SAFE = '/api/skills-mgmt/assess/merge-safe';
+export const SKILLS_MGMT_ASSESS_MERGE_UNDO = '/api/skills-mgmt/assess/merge-undo';
+export const SKILLS_MGMT_ASSESS_CURATE = '/api/skills-mgmt/assess/curate';
+export const skillAssess = (id: string) => `/api/skills-mgmt/assess/${encodeURIComponent(id)}`;
+export const SKILLS_MGMT_CLASSES = '/api/skills-mgmt/classes';
+export const SKILLS_MGMT_CLASSES_RUN_AUTO = '/api/skills-mgmt/classes/run-auto';
+export const SKILLS_MGMT_CLASSES_MOVE = '/api/skills-mgmt/classes/move';
+export const SKILLS_MGMT_QUEUE = '/api/skills-mgmt/queue';
+export const SKILLS_MGMT_DUPLICATES = '/api/skills-mgmt/duplicates';
+export const SKILLS_MGMT_REVIEW_AUDIT = '/api/skills-mgmt/review/audit';
+export const SKILLS_MGMT_INSTALL_PREPRECHECK = '/api/skills-mgmt/install/precheck';
+export const skillPublish = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/publish`;
+export const skillSuggestFix = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/suggest-fix`;
+export const skillFixAuto = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/fix-auto`;
+export const skillRedraft = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/redraft`;
+export const skillSlash = (id: string) => `/api/skills-mgmt/slash/${encodeURIComponent(id)}`;
+
+// ===============================================================
+//  技能检索（/api/skills，与 /api/skills-mgmt 是两套）
+// ===============================================================
+export const SKILLS = '/api/skills';
+export const SKILLS_TOGGLE = '/api/skills/toggle';
+export const SKILLS_DESCRIBE_AUTO = '/api/skills/describe/auto';
+export const SKILLS_CLASSIFY_RUN_AUTO = '/api/skills/classify/run-auto';
+
+// ===============================================================
+//  系统提示词（/api/system-prompt）
+// ===============================================================
+export const SYSTEM_PROMPT_CONFIG = '/api/system-prompt/config';
+export const SYSTEM_PROMPT_CONFIG_PREVIEW = '/api/system-prompt/config/preview';
+export const SYSTEM_PROMPT_CONFIG_RESET = '/api/system-prompt/config/reset';
+export const SYSTEM_PROMPT_CONFIG_APPLY = '/api/system-prompt/config/apply';
+
+// ===============================================================
+//  定时调度（/api/schedules）
+// ===============================================================
+export const SCHEDULES = '/api/schedules';
+export const scheduleById = (id: string) => `/api/schedules/${encodeURIComponent(id)}`;
+export const schedulePause = (id: string) => `/api/schedules/${encodeURIComponent(id)}/pause`;
+export const scheduleResume = (id: string) => `/api/schedules/${encodeURIComponent(id)}/resume`;
+
+// ===============================================================
+//  人格（/api/personality）
+// ===============================================================
+export const PERSONALITY = '/api/personality';
+export const PERSONALITY_PROFILE = '/api/personality/profile';
+export const PERSONALITY_PARAMS = '/api/personality/params';
+export const PERSONALITY_RESET = '/api/personality/reset';
+
+// ===============================================================
+//  网络配置（/api/network-config）
+// ===============================================================
+export const NETWORK_CONFIG = '/api/network-config';
+export const NETWORK_CONFIG_RESET = '/api/network-config/reset';
+export const APPLY_NETWORK_CONFIG = '/api/apply-network-config';
+
+// ===============================================================
+//  MCP 服务（/api/mcp）
+// ===============================================================
+export const MCP_SERVICES = '/api/mcp/services';
+export const MCP_ENABLE = '/api/mcp/enable';
+export const mcpServiceById = (id: string) => `/api/mcp/services/${encodeURIComponent(id)}`;
+
+// ===============================================================
+//  工作流学习 · 外部技能转换
+// ===============================================================
+export const WORKFLOW_LEARNING_BATCH_CONVERT = '/api/workflow-learning/batch-convert-external-skills';
+export const WORKFLOW_LEARNING_CONVERT_EXTERNAL = '/api/workflow-learning/convert-external-skill';
+export const workflowLearnConvertToSkill = (id: string) => `/api/workflow-learning/workflows/${encodeURIComponent(id)}/convert-to-skill`;

@@ -7,6 +7,13 @@ import { useEffect, useState } from 'react'
 import { Save, RotateCcw, User } from 'lucide-react'
 import { Card, Badge, PageHeader, hubGet, hubPost, pickObj, Loading, ErrorBox } from './components/ui'
 
+import {
+  PERSONALITY,
+  PERSONALITY_PARAMS,
+  PERSONALITY_PROFILE,
+  PERSONALITY_RESET,
+} from '@/api/endpoints';
+
 interface Dimension { key: string; label: string; left: string; right: string }
 interface Personality {
   current_profile: string
@@ -26,7 +33,7 @@ export default function PersonalityPage() {
 
   const load = () => {
     setLoading(true)
-    hubGet('/api/personality').then((r) => {
+    hubGet(PERSONALITY).then((r) => {
       const d = pickObj<Personality>(r) ?? (r as unknown as Personality)
       setData(d)
       setParams(d.custom_params ?? {})
@@ -39,7 +46,7 @@ export default function PersonalityPage() {
 
   const applyProfile = async (key: string) => {
     try {
-      const r = await hubPost('/api/personality/profile', { profile: key })
+      const r = await hubPost(PERSONALITY_PROFILE, { profile: key })
       const rr = r as { custom_params?: Record<string, number>; current_profile?: string }
       if (rr.custom_params) setParams(rr.custom_params)
       if (rr.current_profile) setActiveProfile(rr.current_profile)
@@ -52,7 +59,7 @@ export default function PersonalityPage() {
     setSaving(true)
     setMsg('')
     try {
-      await hubPost('/api/personality/params', { params })
+      await hubPost(PERSONALITY_PARAMS, { params })
       setActiveProfile('custom')
       setMsg('人格参数已保存（自定义）')
     } catch (e) { setMsg(`保存失败：${e instanceof Error ? e.message : e}`) } finally { setSaving(false) }
@@ -60,7 +67,7 @@ export default function PersonalityPage() {
 
   const reset = async () => {
     try {
-      await hubPost('/api/personality/reset')
+      await hubPost(PERSONALITY_RESET)
       load()
       setMsg('人格参数已重置')
     } catch (e) { setError(String(e)) }

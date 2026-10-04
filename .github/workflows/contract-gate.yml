@@ -152,6 +152,7 @@ jobs:
             tests/unit/test_auth_allowlist_audit.py \
             tests/unit/test_replay_upload_requires_token.py \
             tests/unit/test_contract_diff_matcher.py \
+            tests/unit/test_frontend_stray_baseline.py \
             tests/unit/test_route_assembly_failfast.py
 
       - name: 上传报告

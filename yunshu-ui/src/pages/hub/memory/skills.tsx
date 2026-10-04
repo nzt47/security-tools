@@ -31,6 +31,15 @@ import ApiTokenPrompt from './api-token-prompt'
 import SkillContentModal from './skill-content-modal'
 import ClassIcon from './class-icon'
 
+import {
+  SKILLS,
+  SKILLS_CLASSIFY_RUN_AUTO,
+  SKILLS_DESCRIBE_AUTO,
+  SKILLS_MGMT_CLASSES,
+  SKILLS_MGMT_CLASSES_MOVE,
+  SKILLS_TOGGLE,
+} from '@/api/endpoints';
+
 interface Skill {
   id: string
   name: string
@@ -85,7 +94,7 @@ export function MemorySkillsTable() {
 
   const load = () => {
     setLoading(true)
-    hubGet('/api/skills').then((r) => {
+    hubGet(SKILLS).then((r) => {
       const installed = pickList<Skill>(r, 'installed')
       const available = pickList<Skill>(r, 'available')
       setSkills(installed.length > 0 ? installed : available)
@@ -101,8 +110,8 @@ export function MemorySkillsTable() {
     }).catch(() => { setCallability({}); setRuntimeSkillCount(0); setCallabilityNote('') })
 
     // 可选分类名——独立降级：拿不到就不显示「改类」入口（改类是人工兜底，非主路径）
-    // 复用既有端点 `/api/skills-mgmt/classes`（技能中心同款；hubGet 会自动附带本地令牌）
-    hubGet<{ ok?: boolean; groups?: { name?: string }[] }>('/api/skills-mgmt/classes').then((r) => {
+    // 复用既有端点 /api/skills-mgmt/classes（技能中心同款；hubGet 会自动附带本地令牌）
+    hubGet<{ ok?: boolean; groups?: { name?: string }[] }>(SKILLS_MGMT_CLASSES).then((r) => {
       const names = (r?.groups ?? []).map((g) => String(g?.name ?? '')).filter(Boolean)
       setClassNames(names.includes(UNCLASSIFIED) ? names : [...names, UNCLASSIFIED])
     }).catch(() => setClassNames([]))
@@ -112,7 +121,7 @@ export function MemorySkillsTable() {
 
   const toggle = async (id: string) => {
     try {
-      await hubPost('/api/skills/toggle', { id }, getApiToken())
+      await hubPost(SKILLS_TOGGLE, { id }, getApiToken())
       load()
     } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
   }
@@ -125,11 +134,11 @@ export function MemorySkillsTable() {
    */
   const moveClass = async (id: string, cls: string) => {
     setMovingId(null)
-    // 复用既有端点 `/api/skills-mgmt/classes/move`（技能中心同款，单一权威；不新增第二份口径）
+    // 复用既有端点 /api/skills-mgmt/classes/move（技能中心同款，单一权威；不新增第二份口径）
     if (cls === AUTO_CLASS) {                       // 恢复自动：解除人工钉住
       try {
         const r = await hubPost<{ ok?: boolean; released?: string[]; error?: string }>(
-          '/api/skills-mgmt/classes/move', { skill_id: id, auto: true }, getApiToken())
+          SKILLS_MGMT_CLASSES_MOVE, { skill_id: id, auto: true }, getApiToken())
         if (r?.ok === false) { setInfo(`恢复自动失败：${r.error ?? ''}`); return }
         setInfo(`已解除「${id}」的人工钉住（${(r?.released || []).join(' / ')}）：`
           + '归类暂保持不变，内容域变化时按规则自动跟随')
@@ -139,7 +148,7 @@ export function MemorySkillsTable() {
     }
     try {
       const r = await hubPost<{ ok?: boolean; error?: string; class_name?: string }>(
-        '/api/skills-mgmt/classes/move', { skill_id: id, class_name: cls }, getApiToken())
+        SKILLS_MGMT_CLASSES_MOVE, { skill_id: id, class_name: cls }, getApiToken())
       if (r?.ok === false) { setInfo(`改类失败：${r.error ?? ''}`); return }
       setInfo(`已把「${id}」移动到「${r?.class_name || cls}」并钉住（自动重判不再改动它）`)
       load()
@@ -161,7 +170,7 @@ export function MemorySkillsTable() {
   /** 自动补全已知内置技能的缺省中文说明（自省反思/邮件/记忆摘要等） */
   const autoDescribe = async () => {
     try {
-      const r = await hubPost<{ count?: number }>('/api/skills/describe/auto', undefined, getApiToken())
+      const r = await hubPost<{ count?: number }>(SKILLS_DESCRIBE_AUTO, undefined, getApiToken())
       setInfo(`自动补全完成（${r?.count ?? 0} 项）。仍缺描述的（如 mock 测试项）可手工补写或删除。`)
       load()
     } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
@@ -172,7 +181,7 @@ export function MemorySkillsTable() {
     setClsBusy(true); setError('')
     try {
       const r = await hubPost<{ classified?: number; created_classes?: number }>(
-        '/api/skills/classify/run-auto', undefined, getApiToken())
+        SKILLS_CLASSIFY_RUN_AUTO, undefined, getApiToken())
       setInfo(`运行时自动分类完成：重判 ${r?.classified ?? 0} 项，自动新建类 ${r?.created_classes ?? 0} 个。`)
       load()
     } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
