@@ -534,18 +534,22 @@ try:
             return None
 
     def _provider_panorama():
-        """全景指标（CPU/内存/电池/sensor_on 等），补全拓扑节点指标 chip"""
+        """全景指标（CPU/内存/电池/sensor_on 等），补全拓扑节点指标 chip
+
+        【P1-front 第五批 · 2026-10-05】`api_panorama` 已迁移到统一信封 ⇒ 响应体顶层
+        从 {sensor_on, sensor_total, health, ...} 变成 {code, data, message}。
+        本函数此前**进程内**调用该视图并**直接读顶层键**：迁移后 `data.get("sensor_on")`
+        会静默拿到 None（不报错，只是拓扑节点的指标 chip 全空）—— 正是
+        「迁移信封夹带契约变更、消费方静默读 undefined」那一类。
+        现改走 `plugins.status.panorama_provider_payload()`：它只认信封、不是信封就抛错
+        （该函数有单测钉住两个方向）；同时把原先**吞掉原因**的 except 补上日志 ——
+        降级可以，但不许无声。
+        """
         try:
-            from plugins.status import api_panorama  # T1.4：全景路由已迁移至 status 插件
-            resp = api_panorama()
-            data = resp.get_json() or {}
-            out = {"sensor_on": data.get("sensor_on"), "sensor_total": data.get("sensor_total")}
-            for reading in data.get("health", []) or []:
-                name = reading.get("sensor_name")
-                if name and reading.get("value") is not None:
-                    out[name] = reading["value"]
-            return out
-        except Exception as _e:  # noqa: BLE001 - 采集失败降级为离线
+            from plugins.status import api_panorama, panorama_provider_payload
+            return panorama_provider_payload(api_panorama().get_json() or {})
+        except Exception as _e:  # noqa: BLE001 - 采集失败降级为离线（但必须留痕）
+            logger.warning("[模块聚合] 全景 provider 采集失败（节点指标 chip 将为空）: %s", _e)
             return None
 
     register_status_provider("/api/sensors", _provider_sensors)

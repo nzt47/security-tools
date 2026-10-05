@@ -4,7 +4,11 @@
  */
 import { useEffect, useState } from 'react'
 import { Activity, Cpu, MemoryStick, Battery, RefreshCw } from 'lucide-react'
-import {  Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGet , pickList, pickObj } from '../components/ui'
+import {  Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGet } from '../components/ui'
+// 【P1-front 第五批】后端 GET /api/panorama 与 GET /api/sensors 已带 X-Envelope: v2，
+// 改用显式信封解析。同页的 /api/health **不在本系列**（它有 40+ 消费方，含看门狗与就绪门），
+// 故仍走 hubGet 的旧解析。
+import { getEnvelope } from '@/api/envelope'
 
 import {
   HEALTH,
@@ -39,8 +43,9 @@ export default function PanoramaSensors() {
     setLoading(true)
     setError('')
     Promise.allSettled([
-      hubGet(PANORAMA).then((r) => pickObj<Panorama>(r) ?? (r as unknown as Panorama)),
-      hubGet(SENSORS).then((r) => pickList<SensorReading>(r, 'sensors')),
+      // 【P1-front 第五批】显式信封解析：panorama 的 data 是对象本身、sensors 的 data 是数组本身。
+      getEnvelope<Panorama | null>(PANORAMA).then((d) => d ?? ({} as Panorama)),
+      getEnvelope<SensorReading[]>(SENSORS).then((list) => (Array.isArray(list) ? list : [])),
       hubGet(HEALTH).catch(() => null),
     ]).then(([p, s]) => {
       if (p.status === 'fulfilled') setPanorama(p.value)

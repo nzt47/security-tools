@@ -4,7 +4,12 @@
  */
 import { useEffect, useState } from 'react'
 import { Server, Activity, RefreshCw } from 'lucide-react'
-import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGet, pickObj } from '../components/ui'
+import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader } from '../components/ui'
+// 【P1-front 第五批】本页三个端点**都已带 X-Envelope: v2**：
+//   /api/modules/topology —— 第二批迁的（当时只改了别的消费方，本页一直用 pickObj 兼容着，本批一并收口）
+//   /api/health/dashboard、/api/status —— 本批迁移
+// 故整页改用显式信封解析。
+import { getEnvelope } from '@/api/envelope'
 
 import {
   HEALTH_DASHBOARD,
@@ -39,11 +44,11 @@ export default function PanoramaMonitor() {
     setLoading(true)
     setError('')
     Promise.allSettled([
-      hubGet(MODULES_TOPOLOGY).then((r) => { const d = pickObj<{ domains?: ModuleNode[] }>(r) ?? {}; const doms = d.domains ?? []; return doms.flatMap((dm: ModuleNode) => (dm.children ?? []).length ? dm.children! : [dm]) }),
+      getEnvelope<{ domains?: ModuleNode[] } | null>(MODULES_TOPOLOGY).then((d) => { const doms = d?.domains ?? []; return doms.flatMap((dm: ModuleNode) => (dm.children ?? []).length ? dm.children! : [dm]) }),
       // /api/health/dashboard 返回 {dimensions: {error_rate, response_time, tool_success}, issues, overall_health}
       // 将 dimensions 对象转为评分数组，issues 并入（作为异常项）
-      hubGet(HEALTH_DASHBOARD).then((r) => {
-        const d = pickObj<{ dimensions?: Record<string, number>; issues?: HealthItem[]; overall_health?: number }>(r) ?? {}
+      getEnvelope<{ dimensions?: Record<string, number>; issues?: HealthItem[]; overall_health?: number } | null>(HEALTH_DASHBOARD).then((d0) => {
+        const d = d0 ?? {}
         const dims = Object.entries(d.dimensions ?? {}).map(([k, v]) => {
           const num = Number(v) || 0 // NaN → 0（不能写 ??，左侧恒为 number）
           return {
@@ -53,7 +58,7 @@ export default function PanoramaMonitor() {
         })
         return [...dims, ...(Array.isArray(d.issues) ? d.issues : [])]
       }),
-      hubGet(STATUS).catch(() => null),
+      getEnvelope<Record<string, unknown> | null>(STATUS).catch(() => null),
     ]).then(([m, h, s]) => {
       if (m.status === 'fulfilled') setModules(m.value ?? [])
       if (h.status === 'fulfilled') setHealth(h.value ?? [])
