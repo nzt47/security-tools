@@ -159,6 +159,29 @@ def problem(status: int, *, title: Optional[str] = None, detail: str = "",
     return resp
 
 
+def unwrap_enveloped(body: Any) -> Any:
+    """从**已声明信封**的响应体里取出业务数据（**进程内**消费视图函数时用）。
+
+    【为什么需要它】`ok()` 铺开后，视图响应体的顶层从业务键变成 `{code, data, message}`。
+    **进程内**直接调用视图函数、再读它 `jsonify` 结果的消费方（本仓实例：`app_server` 的
+    模块聚合 provider `_provider_panorama`）会**静默拿到 None** —— 不报错，只是那一块指标全空。
+    本仓对「静默错」的记录多于「响亮失败」，故这里**只认信封**：不是信封体就抛错并说清原因，
+    而不是「兼容两态」地猜（与前端 `api/envelope.ts` 的纪律同源）。
+
+    Args:
+        body: 视图响应的 JSON 体（通常是 `resp.get_json()`）
+
+    Raises:
+        ValueError: 体不是统一信封（视图尚未迁移 / 迁移被回退 / 调用处拿错了响应）
+    """
+    if not isinstance(body, dict) or "code" not in body or "data" not in body:
+        raise ValueError(
+            "响应体不是统一信封（缺 code/data）：实测 " + repr(body)[:200]
+            + " —— 该视图尚未迁移就别用本函数；若刚迁移，说明迁移被回退或调用处拿错了响应。"
+        )
+    return body["data"]
+
+
 def install_error_handlers(app, *, enabled: Optional[bool] = None) -> Dict[str, Any]:
     """注册全局 errorhandler，消灭 API 面的 HTML 回落。
 

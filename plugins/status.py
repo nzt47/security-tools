@@ -56,7 +56,7 @@ from .plugin_api import require_auth as _require_token
 # 不反向依赖 app_server，故不触发本文件头注里那条循环导入红线。
 # 为什么从心跳开始：它是"删掉前端 pickObj 启发式"的前置里**消费面最窄**的一个
 # （只有 pages/hub/engine/heartbeat.tsx），且该页注释已写明真实形状。
-from agent.api_envelope import ok as _ok, problem as _problem
+from agent.api_envelope import ok as _ok, problem as _problem, unwrap_enveloped
 
 
 # ════════════════════════════════════════════════════════════
@@ -270,8 +270,14 @@ def api_health_auth():
 @bp.route("/api/sensors")
 @_log_request(show_response=False)
 def api_sensors():
+    """传感器读数列表（**已迁移到统一信封**）。
+
+    【P1-front 第五批 · 2026-10-05】本端点返回**裸数组**（实测 18 项）。
+    data 仍是**同一个数组**（不加一层业务键）；消费方只有
+    `pages/hub/panorama/sensors.tsx`，它原来靠 `pickList(r, 'sensors')` 猜。
+    """
     from app_server import _Yunshu
-    return jsonify(_Yunshu.body.get_sensor_info())
+    return _ok(_Yunshu.body.get_sensor_info())
 
 
 @bp.route("/api/status")
@@ -286,16 +292,20 @@ def api_status():
 
     【为什么整体 try】get_status() 返回结构随运行时变化，鉴权状态取值失败
     不得把"状态总览"这个基础端点打成 500（D4：附加信息失败不阻断主路径）。
+
+    【P1-front 第五批 · 2026-10-05】已迁移到统一信封：载荷**一字未动**
+    （仍是 get_status() 的那个对象 + 可选的 auth 键），只是装进 ok() 的 data。
+    消费方只有 pages/hub/panorama/monitor.tsx（它取到值后只存不渲染）。
     """
     from app_server import _Yunshu
     status = _Yunshu.get_status()
     try:
-        from agent.server_auth import auth_status
+        from agent.server_auth import auth_status  # noqa: E402
         if isinstance(status, dict):
             status["auth"] = auth_status()
     except Exception:  # noqa: BLE001 鉴权状态不可得 ⇒ 不加该键，主响应照常返回
         pass
-    return jsonify(status)
+    return _ok(status)
 
 
 @bp.route("/api/mode")
@@ -363,7 +373,14 @@ def api_cognitive_status():
 @bp.route("/api/panorama")
 @_log_request(show_response=False)
 def api_panorama():
-    """获取全景页面所需的所有数据（单次调用）"""
+    """获取全景页面所需的所有数据（单次调用，**已迁移到统一信封**）。
+
+    【P1-front 第五批 · 2026-10-05】载荷**一字未动**（仍是那 31 个键），只是装进 ok() 的 data。
+    【一处必须同改的消费方】`app_server._provider_panorama()` **进程内**调用本视图并直接读
+    顶层键（sensor_on / sensor_total / health）—— 迁移后那些键移到了 data 里，不改它就会
+    **静默拿到 None**（拓扑节点的指标 chip 全空，不报错）。故同批改走
+    `panorama_provider_payload()`（见其 docstring，两个方向都有单测）。
+    """
     from app_server import _Yunshu, _session_mgr, _cfg
     from agent.tools import list_tools
     # 上下文窗口读数走**单一口径**（plugins/plugin_api.context_limit_info）
@@ -418,7 +435,7 @@ def api_panorama():
     else:
         last_trace = []
 
-    return jsonify({
+    return _ok({
         # 阶段一
         "health": [r.to_dict() for r in readings],
         "sensor_on": sum(1 for s in sensor_info if s.get("enabled")),
@@ -461,6 +478,27 @@ def api_panorama():
         # 追踪
         "last_trace": last_trace,
     })
+
+
+def panorama_provider_payload(body) -> dict:
+    """把 `/api/panorama` 的**响应体**投影成模块拓扑节点用的指标 chip。
+
+    【为什么这段在这里而不是 app_server】它原先写在 `app_server._provider_panorama()` 里，
+    而 app_server 的导入本机 80–100s（守卫里不能导入，见推进 §4.1）⇒ 这段投影**测不到**。
+    可它恰恰是「视图迁移信封会静默改坏」的那一处：它读的是响应的**顶层键**。
+    搬到插件里（纯函数、只依赖 api_envelope）之后，`tests/unit/test_envelope_batch5.py`
+    可以对它打两个方向：**信封体给出正确 chip**、**裸体必须响亮失败**（不得静默给空）。
+
+    Args:
+        body: `/api/panorama` 视图响应的 JSON 体
+    """
+    data = unwrap_enveloped(body)
+    out = {"sensor_on": data.get("sensor_on"), "sensor_total": data.get("sensor_total")}
+    for reading in data.get("health", []) or []:
+        name = reading.get("sensor_name")
+        if name and reading.get("value") is not None:
+            out[name] = reading["value"]
+    return out
 
 
 def _get_sensor_categories():

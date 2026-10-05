@@ -3,6 +3,9 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, request
 
+# 【P1-front 第五批 · 2026-10-05】统一响应信封（阶段 2 / R3）。
+# 只依赖 stdlib + flask，不会把 app_server 拉进本模块（模块聚合 / 独立采集器也会 import 本模块）。
+from agent.api_envelope import ok as _ok
 from agent.health.assessor import health_assessor
 from agent.health.probes import run_all_probes
 from agent.health.storage import health_storage
@@ -12,8 +15,15 @@ health_bp = Blueprint('health', __name__)
 
 @health_bp.route('/api/health/dashboard', methods=['GET'])
 def dashboard():
+    """健康看板全量数据（**已迁移到统一信封**）。
+
+    【P1-front 第五批】载荷**一字未动**（overall_health / dimensions / issues / history），
+    只是装进 ok() 的 data。消费方只有 pages/hub/panorama/monitor.tsx。
+    【同模块的 get_probe_overview()/get_trend() 不走 HTTP】它们是给模块聚合与测试用的
+    纯函数，不返回 Flask 响应，故本次不涉及（改它们等于改函数契约）。
+    """
     health = health_assessor.assess()
-    return jsonify({
+    return _ok({
         "overall_health": health.overall,
         "dimensions": health.dimensions,
         "issues": health.issues,
