@@ -1447,7 +1447,15 @@
       "layer": "health",
       "file_path": "agent/health/dashboard.py",
       "in_degree": 2,
-      "out_degree": 3
+      "out_degree": 4
+    },
+    {
+      "path": "agent.api_envelope",
+      "name": "api_envelope",
+      "layer": "core",
+      "file_path": "",
+      "in_degree": 5,
+      "out_degree": 0
     },
     {
       "path": "agent.health.health_score",
@@ -2232,14 +2240,6 @@
       "file_path": "agent/modules_api.py",
       "in_degree": 0,
       "out_degree": 6
-    },
-    {
-      "path": "agent.api_envelope",
-      "name": "api_envelope",
-      "layer": "core",
-      "file_path": "",
-      "in_degree": 4,
-      "out_degree": 0
     },
     {
       "path": "agent.modules_registry",
@@ -9336,11 +9336,24 @@
     },
     {
       "source": "agent.health.dashboard",
+      "target": "agent.api_envelope",
+      "source_layer": "health",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 8,
+      "source_file": "agent/health/dashboard.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.dashboard",
       "target": "agent.health.assessor",
       "source_layer": "health",
       "target_layer": "health",
       "import_type": "from_import",
-      "line": 6,
+      "line": 9,
       "source_file": "agent/health/dashboard.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9353,7 +9366,7 @@
       "source_layer": "health",
       "target_layer": "health",
       "import_type": "from_import",
-      "line": 7,
+      "line": 10,
       "source_file": "agent/health/dashboard.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9366,7 +9379,7 @@
       "source_layer": "health",
       "target_layer": "health",
       "import_type": "from_import",
-      "line": 8,
+      "line": 11,
       "source_file": "agent/health/dashboard.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -28461,8 +28474,8 @@
   "stats": {
     "total_files": 639,
     "total_nodes": 570,
-    "total_edges": 1838,
-    "cross_layer_edges": 1161,
+    "total_edges": 1839,
+    "cross_layer_edges": 1162,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {

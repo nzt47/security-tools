@@ -1049,6 +1049,7 @@ flowchart LR
     agent_health_collector --> agent_health_assessor
     agent_health_collector --> agent_health_probes
     agent_health_collector --> agent_health_storage
+    agent_health_dashboard -.-> agent_api_envelope
     agent_health_dashboard --> agent_health_assessor
     agent_health_dashboard --> agent_health_probes
     agent_health_dashboard --> agent_health_storage
@@ -2530,7 +2531,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 639
 - 模块节点数: 570
-- 依赖边数: 1838
-- 跨层调用数: 1161
+- 依赖边数: 1839
+- 跨层调用数: 1162
 - 违规调用数: 0
 - 动态 import 数: 1
