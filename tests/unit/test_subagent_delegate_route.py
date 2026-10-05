@@ -228,18 +228,36 @@ class TestDelegateGuards:
 
 
 class TestListChannelInfo:
+    """通道可用性提示（UI 据此提前告知"委托执行必然失败"）。
+
+    【2026-10-05 随 P1-front 第三批更新】`GET /api/subagent/list` 已迁移到统一响应信封，
+    业务载荷从**顶层**移到了 `data` 下（键名与结构一字未动）。
+    本文件原先是 `body["ok"]` / `body["channel"]`，迁移后要读 `data` ——
+    加一个 `_data()` 把这件事集中一处，并**顺带断言信封存在**，
+    免得将来有人把信封摘掉时这些用例仍然"绿着"。
+    """
+
+    @staticmethod
+    def _data(client):
+        resp = client.get("/api/subagent/list")
+        assert resp.headers.get("X-Envelope") == "v2", (
+            "该端点应带 X-Envelope: v2（P1-front 第三批已迁移）；实测 "
+            + repr(resp.headers.get("X-Envelope"))
+        )
+        return resp.get_json()["data"]
+
     def test_列表返回执行通道可用性(self, make_client):
         client, _ = make_client(FakeContainer(), llm=None)
-        body = client.get("/api/subagent/list").get_json()
-        assert body["ok"] is True
-        assert body["channel"]["llm"] is False
-        assert body["channel"]["ok"] is False
+        data = self._data(client)
+        assert data["ok"] is True
+        assert data["channel"]["llm"] is False
+        assert data["channel"]["ok"] is False
 
     def test_有_LLM_时通道可用(self, make_client):
         client, _ = make_client(FakeContainer(), llm="llm-obj")
-        body = client.get("/api/subagent/list").get_json()
-        assert body["channel"]["llm"] is True
-        assert body["channel"]["ok"] is True
+        data = self._data(client)
+        assert data["channel"]["llm"] is True
+        assert data["channel"]["ok"] is True
 
 
 class TestExecuteStaysSkeleton:
