@@ -89,3 +89,27 @@ export async function getEnvelope<T>(url: string, token?: string | null): Promis
   if (!res.ok) throw new Error('HTTP ' + res.status)
   return readEnvelope<T>(res, url)
 }
+
+/** POST + 显式信封解析。用于**已迁移**的写端点（第六批起有 POST 端点迁入）。
+ *
+ * 【与 hubPost 的语义逐条对齐 —— 迁移解析方式不得顺带改行为】
+ *  · 未显式传 token 时自动附带本地保存的 API 令牌（与 hubGet/hubPost/getEnvelope 同）；
+ *  · **只在确有 body 时才声明 `Content-Type: application/json`**：空 body 配 JSON 头会让
+ *    后端的 `request.get_json()` 抛 415/400（本仓已实测过这一条，见 hubPost 的注释），
+ *    故这里逐字保留同一判断，不因为「反正现在都有 body」而简化。
+ *
+ * 【为什么错误体不在这里解析】与 getEnvelope 同：非 2xx 直接抛 HTTP 状态 ——
+ * 错误侧的统一（RFC 9457）是另一条线，不在本模块。
+ */
+export async function postEnvelope<T>(url: string, body?: unknown, token?: string | null): Promise<T> {
+  const headers: Record<string, string> = {}
+  if (body !== undefined && body !== null) headers['Content-Type'] = 'application/json'
+  Object.assign(headers, token ? { Authorization: 'Bearer ' + token } : authHeader())
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) throw new Error('HTTP ' + res.status)
+  return readEnvelope<T>(res, url)
+}

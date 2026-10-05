@@ -347,7 +347,14 @@ def test_query_hits(kb_env):
     ))
     resp = client.post("/api/knowledge/query", json={"question": "RRF 融合"})
     assert resp.status_code == 200
-    data = _json(resp)
+    assert resp.headers.get("X-Envelope") == "v2", (
+        "成功响应必须带统一信封头（P1-front 第六批）——带了头前端才会用显式解析；"
+        "没有头说明该视图被改回了 jsonify。"
+    )
+    body = _json(resp)
+    assert body["code"] == 200, repr(body)[:200]
+    # 【P1-front 第六批】成功载荷移进 data（错误路径仍是既有的 {ok:false,error}+状态码）
+    data = body["data"]
     assert data["ok"] is True
     assert len(data["hits"]) >= 1
     assert data["hits"][0]["slug"] == "rrf-fusion"

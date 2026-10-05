@@ -24,6 +24,10 @@ import functools
 from flask import Blueprint, request, jsonify
 from .plugin_api import Plugin, context_limit_info, register_plugin
 
+# 【P1-front 第六批 · 2026-10-05】统一响应信封（阶段 2 / R3）。
+# 只依赖 stdlib + flask，不会把 app_server 拉进本模块的导入期。
+from agent.api_envelope import ok as _ok
+
 # 【2026-10-03 审计 P2-5】值域与默认值不再在本文件里抄一份：改 config.py 常量时这里跟着变，
 #   否则"面板能设的范围/展示的默认值"会与实际生效的口径悄悄分叉。
 from config import (  # noqa: E402
@@ -317,7 +321,7 @@ def api_memory_overview():
         recent = _Yunshu._memory._storage.load_recent_messages(limit=20)
         logs = _Yunshu._memory._black_box.analyze()
         log_stats = logs if isinstance(logs, dict) else {}
-        return jsonify({
+        return _ok({
             "summary_version": summary[1] if summary else None,
             "summary_text": summary[0][:300] if summary and summary[0] else None,
             "recent_messages": [
@@ -346,7 +350,7 @@ def api_memory_manual():
             "role": "user",
             "content": f"[手动记忆·优先级:{priority}] {content}"
         })
-        return jsonify({"ok": True})
+        return _ok({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -454,11 +458,11 @@ def api_vector_search():
 
     vs = getattr(_Yunshu, '_vector_memory', None)
     if not vs:
-        return jsonify({"ok": True, "results": [], "count": 0, "available": False})
+        return _ok({"ok": True, "results": [], "count": 0, "available": False})
 
     try:
         results = vs.search(query, top_k)
-        return jsonify({
+        return _ok({
             "ok": True,
             "results": [item.to_dict() for item in results],
             "count": len(results),
