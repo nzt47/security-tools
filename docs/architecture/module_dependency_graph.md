@@ -2001,6 +2001,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_offline_evolver
     agent_server_routes_routes_subagent -.-> agent_server_auth
     agent_server_routes_routes_subagent --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_subagent -.-> agent_api_envelope
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation_history
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation
     agent_server_routes_routes_subagent -.-> agent_subagent_channel
@@ -2529,7 +2530,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 639
 - 模块节点数: 570
-- 依赖边数: 1837
-- 跨层调用数: 1160
+- 依赖边数: 1838
+- 跨层调用数: 1161
 - 违规调用数: 0
 - 动态 import 数: 1
