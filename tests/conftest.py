@@ -85,6 +85,45 @@ _DOTENV_FLOOR_FILE = os.path.join(_DOTENV_FLOOR_DIR, "isolated.env")
 os.environ["CP_ENV_FILE"] = _DOTENV_FLOOR_FILE
 atexit.register(shutil.rmtree, _DOTENV_FLOOR_DIR, ignore_errors=True)
 
+# ── 【NETCFG-FLOOR · 2026-10-05】网络配置文件的同类地板 ──
+#
+# 【解决什么】'agent/network_config.py::_NETWORK_CONFIG_FILE' 默认指向**仓库内**的
+#   'agent/data/network_config.json'（该文件被 .gitignore 忽略，故 CI 检出时不存在）。
+#   任何 'NetworkConfigManager()'（**不带** 'config_file='）在**读**的时候，
+#   只要文件不存在就会**创建**它（见该模块 '_load' 的'使用默认配置，已创建'分支）。
+#
+#   单进程全量跑时这会制造一类**跨用例污染**：某个用例把这个真实文件创建/改写了，
+#   而另一个用例恰好在断言它的内容 —— 实测形态：
+#     'tests/unit/test_network_config_demo_no_side_effect.py::
+#       test_importing_demo_script_does_not_touch_real_files'
+#     报 'AssertionError: 导入 ... 改写了真实配置文件：[agent/data/network_config.json]'，
+#   而那个演示脚本**并没有**写它（实测：连续 3 次子进程导入，两处指纹逐字节不变）。
+#   该用例只在'目标文件存在'时才跑（纯 CI 检出会 skip），因此它的红/绿取决于
+#   **同一分片里还有谁动过这个文件** —— 也就是说，它测的不是它想测的那件事。
+#
+# 【为什么用'地板'而不是改那个用例】把断言放宽 = 把守护拆掉；
+#   要让断言成立，得先保证**没有任何测试会碰真实文件**。这与本文件既有的
+#   'CP_ENV_FILE' 地板（'.env' 的同类问题）是**同一口径**：
+#   重定向真实 I/O，而不是 mock 掉写入。
+#
+# 【时机】放在 'CP_ENV_FILE' 地板之后、且在任何测试模块被收集之前（conftest 导入期）。
+#   'agent.network_config' 在**构造时**读取该模块级常量，故在此改写模块属性即可
+#   覆盖后续所有默认构造。
+#
+# 【不影响的用法】显式传了 'config_file=' 的用例（大批，如 test_network_config_coverage）
+#   本来就走临时路径，不受影响。
+# 【逃生门】'CP_TEST_NETCFG_REAL=1' 时不装地板（供将来确实需要真实文件的场景）。
+if os.environ.get('CP_TEST_NETCFG_REAL') != '1':
+    _NETCFG_FLOOR_DIR = tempfile.mkdtemp(prefix='pytest_netcfg_floor_')
+    _NETCFG_FLOOR_FILE = os.path.join(_NETCFG_FLOOR_DIR, 'network_config.json')
+    try:
+        import agent.network_config as _netcfg_mod
+
+        _netcfg_mod._NETWORK_CONFIG_FILE = Path(_NETCFG_FLOOR_FILE)
+    except Exception as _e:  # noqa: BLE001 地板是'更严'，不得成为收集期的硬依赖
+        logging.getLogger(__name__).warning('[NETCFG-FLOOR] 未能重定向网络配置默认路径: %s', _e)
+    atexit.register(shutil.rmtree, _NETCFG_FLOOR_DIR, ignore_errors=True)
+
 # ── 【TESTHYG-1 · 离线基线】测试进程**不加载** .env（见上方地板）──
 # import app_server 会真的实例化 sentence-transformers 编码器，而"只读本地缓存、
 # 不出网"的前提是 HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE（.env:153-154 提供的
