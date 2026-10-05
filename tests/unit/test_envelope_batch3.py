@@ -42,21 +42,30 @@ def mcp_app():
     return app.test_client()
 
 
-@pytest.fixture(scope="module")
-def subagent_app():
+@pytest.fixture
+def subagent_app(monkeypatch):
     """routes_subagent 的 `register_routes(app, state)`。
 
     【为什么要关掉逐路由令牌校验】`/api/subagent/list` 带 `@require_token`，
     而本文件测的是**响应契约**（信封与载荷），不是鉴权 —— 鉴权另有
     `test_auth_allowlist_audit.py` 等专测。用本仓**为测试显式提供**的旁路钩子
     `auth_disabled_for_test`（生产恒为 False），而不是去伪造令牌。
+
+    【2026-10-05 修正：必须用 monkeypatch，不能用直接赋值】
+    初版写的是 `sa._AUTH_DISABLED_FOR_TEST = True`（且 fixture 是 module 作用域）——
+    那是**永久**改模块全局，不会自动还原。分片跑（多进程）时看不出来，
+    但在 CI 的「失败基线回归」（**单进程**跑 2.3 万条用例）里它会**泄漏给后续测试**：
+    实测下游 `test_experience_plugin.py::test_mutating_routes_require_token` 因此 fail-open
+    （本该 401 却放行），报 `AssertionError: 变更型接口必须鉴权`，且**每次都会红**。
+    本仓其余 20 余处用这个钩子的地方**一律**是 `monkeypatch.setattr(...)`（自动还原）——
+    这就是那条约定存在的理由。本 fixture 因此收窄为 function 作用域。
     """
     from flask import Flask
     from agent.api_envelope import install_error_handlers
     import agent.server_auth as sa
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
-    sa._AUTH_DISABLED_FOR_TEST = True
+    monkeypatch.setattr(sa, "_AUTH_DISABLED_FOR_TEST", True)
     rs = importlib.import_module("agent.server_routes.routes_subagent")
 
     class _StubYunshu:
