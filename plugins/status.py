@@ -627,7 +627,14 @@ def _get_permission_info():
 @bp.route("/api/personality", methods=["GET"])
 @_log_request(show_response=False)
 def api_personality_get():
-    return jsonify(_personality_mgr.get())
+    """读取人格配置（**已迁移到统一信封**）。
+
+    【P1-front 第四批 · 2026-10-05】载荷**一字未动**（仍是裸对象
+    {current_profile, custom_params, dimensions, profiles}），只是装进 ok() 的 data
+    并带 X-Envelope: v2。消费方只有 pages/hub/personality.tsx 一个文件
+    （同页的 params/profile/reset 是 POST，属另一批，不在本次范围）。
+    """
+    return _ok(_personality_mgr.get())
 
 
 @bp.route("/api/personality/params", methods=["POST"])
