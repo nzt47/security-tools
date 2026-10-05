@@ -55,7 +55,7 @@ flowchart LR
     end
     subgraph core [core]
         agent_ab_testing["agent.ab_testing"]
-        agent_api_envelope["agent.api_envelope"]
+        agent_api_envelope["agent.api_envelope"]:::crosslayer
         agent_api_gateway["agent.api_gateway"]
         agent_api_gateway_flask["agent.api_gateway_flask"]
         agent_async_executor["agent.async_executor"]:::crosslayer
@@ -1301,6 +1301,7 @@ flowchart LR
     agent_model_router_observability -.-> agent_logging_utils
     agent_model_router_observability -.-> agent_monitoring_business_metrics
     agent_model_router_router -.-> agent_logging_utils
+    agent_modules_api --> agent_api_envelope
     agent_modules_api --> agent_modules_registry
     agent_modules_api --> agent_server_auth
     agent_modules_api --> agent_rate_limiter
@@ -2037,6 +2038,7 @@ flowchart LR
     agent_server_routes_routes_visual_workflows -.-> agent_server_auth
     agent_server_routes_routes_visual_workflows --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_workflow_learning -.-> agent_server_auth
+    agent_server_routes_routes_workflow_learning -.-> agent_api_envelope
     agent_server_routes_routes_workflow_learning --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_workflow_learning -.-> agent_state_manager
     agent_server_routes_routes_workflow_learning -.-> agent_workflow_learning
@@ -2527,7 +2529,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 639
 - 模块节点数: 570
-- 依赖边数: 1835
-- 跨层调用数: 1159
+- 依赖边数: 1837
+- 跨层调用数: 1160
 - 违规调用数: 0
 - 动态 import 数: 1
