@@ -1454,7 +1454,7 @@
       "name": "api_envelope",
       "layer": "core",
       "file_path": "",
-      "in_degree": 5,
+      "in_degree": 6,
       "out_degree": 0
     },
     {
@@ -3687,7 +3687,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_knowledge.py",
       "in_degree": 0,
-      "out_degree": 6
+      "out_degree": 7
     },
     {
       "path": "agent.tool_router_reranker",
@@ -20594,11 +20594,24 @@
     },
     {
       "source": "agent.server_routes.routes_knowledge",
+      "target": "agent.api_envelope",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 41,
+      "source_file": "agent/server_routes/routes_knowledge.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_knowledge",
       "target": "agent.tool_router_reranker",
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 97,
+      "line": 100,
       "source_file": "agent/server_routes/routes_knowledge.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -28474,8 +28487,8 @@
   "stats": {
     "total_files": 639,
     "total_nodes": 570,
-    "total_edges": 1839,
-    "cross_layer_edges": 1162,
+    "total_edges": 1840,
+    "cross_layer_edges": 1163,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {

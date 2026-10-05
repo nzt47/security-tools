@@ -1915,6 +1915,7 @@ flowchart LR
     agent_server_routes_routes_knowledge -.-> agent_knowledge_lint
     agent_server_routes_routes_knowledge -.-> agent_server_auth
     agent_server_routes_routes_knowledge --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_knowledge -.-> agent_api_envelope
     agent_server_routes_routes_knowledge -.-> agent_tool_router_reranker
     agent_server_routes_routes_llm_monitor -.-> agent_server_auth
     agent_server_routes_routes_llm_monitor --> agent_server_routes_tracing_decorator
@@ -2531,7 +2532,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 639
 - 模块节点数: 570
-- 依赖边数: 1839
-- 跨层调用数: 1162
+- 依赖边数: 1840
+- 跨层调用数: 1163
 - 违规调用数: 0
 - 动态 import 数: 1
