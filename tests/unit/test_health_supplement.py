@@ -108,29 +108,36 @@ class TestHealthDashboard:
 
     def test_dashboard_has_overall_health(self, client):
         resp = client.get('/api/health/dashboard')
-        data = resp.get_json()
+        # 【P1-front 第五批】成功载荷已装进统一信封的 data（视图改用 ok()）。
+        assert resp.headers.get("X-Envelope") == "v2", (
+            "成功响应必须带统一信封头 —— 没有头说明该视图被改回了 jsonify，"
+            "前端 panorama/monitor 的显式解析会直接抛错。"
+        )
+        body = resp.get_json()
+        assert body["code"] == 200
+        data = body["data"]
         assert "overall_health" in data
 
     def test_dashboard_has_dimensions(self, client):
         resp = client.get('/api/health/dashboard')
-        data = resp.get_json()
+        data = resp.get_json()["data"]
         assert "dimensions" in data
 
     def test_dashboard_has_issues(self, client):
         resp = client.get('/api/health/dashboard')
-        data = resp.get_json()
+        data = resp.get_json()["data"]
         assert "issues" in data
 
     def test_dashboard_has_history(self, client):
         resp = client.get('/api/health/dashboard')
-        data = resp.get_json()
+        data = resp.get_json()["data"]
         assert "history" in data
         assert isinstance(data["history"], list)
 
     def test_dashboard_history_max_10(self, client):
         """dashboard 返回最多 10 条历史"""
         resp = client.get('/api/health/dashboard')
-        data = resp.get_json()
+        data = resp.get_json()["data"]
         assert len(data["history"]) <= 10
 
 
