@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Pause, Play } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubDelete, hubPost , pickList } from '../components/ui'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubDelete, hubPost } from '../components/ui'
 
 import {
   SCHEDULES,
@@ -12,6 +12,9 @@ import {
   schedulePause,
   scheduleResume,
 } from '@/api/endpoints';
+// 【P1-front 第三批】后端 GET /api/schedules 已带 X-Envelope: v2，改用显式信封解析。
+// 同路径的 POST（创建任务）是另一个端点，仍是普通 JSON。
+import { getEnvelope } from '@/api/envelope';
 
 interface Task {
   id: string
@@ -22,6 +25,13 @@ interface Task {
   enabled?: boolean
   next_run?: string
   [k: string]: unknown
+}
+
+/** `GET /api/schedules` 的业务载荷（后端：`{ok, tasks, total}`）。 */
+interface ScheduleList {
+  ok?: boolean
+  tasks?: Task[]
+  total?: number
 }
 
 export default function EngineScheduler() {
@@ -36,8 +46,8 @@ export default function EngineScheduler() {
 
   const load = () => {
     setLoading(true)
-    hubGet(SCHEDULES).then((r) => {
-      setTasks(pickList<Task>(r, 'tasks'))
+    getEnvelope<ScheduleList>(SCHEDULES).then((d) => {
+      setTasks(d?.tasks ?? [])
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }

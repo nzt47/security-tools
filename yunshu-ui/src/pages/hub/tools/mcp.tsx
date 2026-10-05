@@ -4,13 +4,16 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Power } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubDelete, hubPost , pickList } from '../components/ui'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubDelete, hubPost } from '../components/ui'
 
 import {
   MCP_ENABLE,
   MCP_SERVICES,
   mcpServiceById,
 } from '@/api/endpoints';
+// 【P1-front 第三批】后端 GET 已带 X-Envelope: v2，改用显式信封解析。
+// 注意：同路径的 POST（新建服务）是另一个端点，仍是普通 JSON。
+import { getEnvelope } from '@/api/envelope';
 
 interface McpService {
   service_id: string
@@ -23,6 +26,12 @@ interface McpService {
   [k: string]: unknown
 }
 
+/** `GET /api/mcp/services` 的业务载荷（后端：`{ok, services}`）。 */
+interface McpServiceList {
+  ok?: boolean
+  services?: McpService[]
+}
+
 export default function ToolsMcp() {
   const [services, setServices] = useState<McpService[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,8 +42,8 @@ export default function ToolsMcp() {
 
   const load = () => {
     setLoading(true)
-    hubGet(MCP_SERVICES).then((r) => {
-      setServices(pickList<McpService>(r, 'services'))
+    getEnvelope<McpServiceList>(MCP_SERVICES).then((d) => {
+      setServices(d?.services ?? [])
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }
