@@ -37,6 +37,9 @@ from agent.knowledge.lint import lint_all
 from agent.server_auth import log_request, require_token
 from agent.server_routes.tracing_decorator import trace_route
 
+# 【P1-front 第六批 · 2026-10-05】统一响应信封（阶段 2 / R3）。只依赖 stdlib + flask。
+from agent.api_envelope import ok as _ok
+
 logger = logging.getLogger(__name__)
 
 
@@ -125,7 +128,7 @@ def register_routes(app, state):
 
         try:
             hits = searcher.search(question, top_k=top_k)
-            return jsonify({
+            return _ok({
                 "ok": True,
                 "hits": [
                     {

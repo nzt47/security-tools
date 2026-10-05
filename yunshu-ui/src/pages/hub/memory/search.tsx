@@ -4,7 +4,9 @@
  */
 import { useState } from 'react'
 import { Search } from 'lucide-react'
-import {  Card, Loading, ErrorBox, PageHeader, hubPost , pickList } from '../components/ui'
+import {  Card, Loading, ErrorBox, PageHeader } from '../components/ui'
+// 【P1-front 第六批】两个端点都是 POST 且已带 X-Envelope: v2，改用 postEnvelope 显式解析。
+import { postEnvelope } from '@/api/envelope'
 
 import {
   KNOWLEDGE_QUERY,
@@ -32,10 +34,17 @@ export default function MemorySearch() {
     setLoading(true)
     setError('')
     try {
-      const url = mode === 'vector' ? VECTOR_SEARCH : KNOWLEDGE_QUERY
-      const body = mode === 'vector' ? { query: q.trim(), limit: 10 } : { query: q.trim(), limit: 10 }
-      const r = await hubPost(url, body)
-      setHits(pickList<Hit>(r, 'results'))
+      const body = { query: q.trim(), limit: 10 }
+      if (mode === 'vector') {
+        const d = await postEnvelope<{ results?: Hit[] }>(VECTOR_SEARCH, body)
+        setHits(d?.results ?? [])
+      } else {
+        // 【第六批顺手修掉的一处真实缺陷】后端 /api/knowledge/query 返回的键是 `hits`，
+        // 而迁移前这里写的是 pickList(r, 'results') —— pickList 在传了 prefer 时**只找那一个键**，
+        // 于是「知识库」页签**一直返回空列表**（不报错，静默空）。本批改成显式读 hits。
+        const d = await postEnvelope<{ hits?: Hit[] }>(KNOWLEDGE_QUERY, body)
+        setHits(d?.hits ?? [])
+      }
     } catch (e) {
       setError(String(e))
     } finally {

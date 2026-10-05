@@ -8,7 +8,10 @@
  */
 import { useEffect, useState } from 'react'
 import { Brain, Search, Plus } from 'lucide-react'
-import { Card, StatCard, Loading, ErrorBox, PageHeader, hubGet, hubPost, pickList, pickObj } from '../components/ui'
+import { Card, StatCard, Loading, ErrorBox, PageHeader } from '../components/ui'
+// 【P1-front 第六批】三个端点都已带 X-Envelope: v2（overview 是 GET，另两个是 POST），
+// 改用显式信封解析：GET 走 getEnvelope、POST 走 postEnvelope（后者的请求头语义与 hubPost 逐条对齐）。
+import { getEnvelope, postEnvelope } from '@/api/envelope'
 
 import {
   MEMORY_MANUAL,
@@ -48,8 +51,9 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
   const [msg, setMsg] = useState('')
 
   useEffect(() => {
-    hubGet(MEMORY_OVERVIEW).then((r) => {
-      setOverview(pickObj<MemoryOverview>(r) ?? {})
+    // 显式信封解析：data 就是概览对象本身
+    getEnvelope<MemoryOverview | null>(MEMORY_OVERVIEW).then((d) => {
+      setOverview(d ?? {})
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }, [])
@@ -59,8 +63,10 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
     setSaving(true)
     setMsg('')
     try {
-      const r = await hubPost(MEMORY_MANUAL, { content: manualText.trim() })
-      setMsg(`已保存手动记忆：${JSON.stringify(r).slice(0, 80)}`)
+      // 迁移前这里直接把**整个响应体**塞进提示文案；现在响应体是信封，
+      // 故取 data（业务体）再序列化 —— 提示里不再出现 code/message 这些传输层字段。
+      const d = await postEnvelope<{ ok?: boolean }>(MEMORY_MANUAL, { content: manualText.trim() })
+      setMsg(`已保存手动记忆：${JSON.stringify(d).slice(0, 80)}`)
       setManualText('')
     } catch (e) {
       setMsg(`保存失败：${e instanceof Error ? e.message : e}`)
@@ -73,8 +79,11 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
     if (!searchQ.trim()) return
     setLoading(true)
     try {
-      const r = await hubPost(VECTOR_SEARCH, { query: searchQ.trim(), limit: 10 })
-      setResults(pickList<SearchResult>(r, 'results'))
+      // 【已知不一致，本次不动】后端 api_vector_search 读的是 `top_k`（默认 5），
+      // 而这里一直传的是 `limit` ⇒ 10 这个值**从未生效**（实际取 5 条）。
+      // 改它属于「改请求契约」，与本批「只改响应解析」不是一件事，故留原样并在此标注。
+      const d = await postEnvelope<{ results?: SearchResult[] }>(VECTOR_SEARCH, { query: searchQ.trim(), limit: 10 })
+      setResults(d?.results ?? [])
       setLoading(false)
     } catch (e) {
       setError(String(e))

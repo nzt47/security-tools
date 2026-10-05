@@ -11,6 +11,7 @@ import {
   ENVELOPE_VERSION,
   EnvelopeError,
   getEnvelope,
+  postEnvelope,
   readEnvelope,
 } from './envelope';
 
@@ -76,6 +77,72 @@ describe('getEnvelope', () => {
       await expect(getEnvelope<{ ok: boolean }>('/api/x')).resolves.toEqual({ ok: true });
     } finally {
       globalThis.fetch = original;
+    }
+  });
+});
+
+describe('postEnvelope', () => {
+  /** 捕获 fetch 收到的实参，用于断言请求形态（迁移解析方式**不得顺带改请求行为**）。 */
+  function spyFetch(reply: Response) {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      return reply;
+    }) as typeof fetch;
+    return { calls, restore: () => { globalThis.fetch = original; } };
+  }
+
+  it('2xx 且带信封时返回 data', async () => {
+    const s = spyFetch(resp({ code: 200, data: { ok: true, results: [] }, message: '' }));
+    try {
+      await expect(postEnvelope<{ ok: boolean }>('/api/vector/search', { query: 'x' })).resolves.toEqual({ ok: true, results: [] });
+      expect(s.calls[0].init.method).toBe('POST');
+    } finally {
+      s.restore();
+    }
+  });
+
+  it('有 body 时声明 JSON 内容类型并序列化', async () => {
+    const s = spyFetch(resp({ code: 200, data: null }));
+    try {
+      await postEnvelope('/api/memory/manual', { content: '你好' });
+      const init = s.calls[0].init;
+      expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+      expect(init.body).toBe(JSON.stringify({ content: '你好' }));
+    } finally {
+      s.restore();
+    }
+  });
+
+  it('**空 body 时不得声明 JSON 内容类型**（否则后端 get_json() 会 415/400）', async () => {
+    const s = spyFetch(resp({ code: 200, data: null }));
+    try {
+      await postEnvelope('/api/x');
+      const init = s.calls[0].init;
+      expect((init.headers as Record<string, string>)['Content-Type']).toBeUndefined();
+      expect(init.body).toBeUndefined();
+    } finally {
+      s.restore();
+    }
+  });
+
+  it('显式传令牌时用 Authorization，未传时走本地令牌（可能为空）', async () => {
+    const s = spyFetch(resp({ code: 200, data: null }));
+    try {
+      await postEnvelope('/api/x', { a: 1 }, 'tok-123');
+      expect((s.calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer tok-123');
+    } finally {
+      s.restore();
+    }
+  });
+
+  it('非 2xx 直接抛 HTTP 状态', async () => {
+    const s = spyFetch(new Response('nope', { status: 503 }));
+    try {
+      await expect(postEnvelope('/api/x', { a: 1 })).rejects.toThrow(/503/);
+    } finally {
+      s.restore();
     }
   });
 });
