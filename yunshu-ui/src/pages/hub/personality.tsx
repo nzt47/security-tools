@@ -5,7 +5,10 @@
  */
 import { useEffect, useState } from 'react'
 import { Save, RotateCcw, User } from 'lucide-react'
-import { Card, Badge, PageHeader, hubGet, hubPost, pickObj, Loading, ErrorBox } from './components/ui'
+import { Card, Badge, PageHeader, hubPost, Loading, ErrorBox } from './components/ui'
+// 【P1-front 第四批】后端 GET /api/personality 已带 X-Envelope: v2，改用显式信封解析。
+// 同页的三个 POST（params/profile/reset）尚未迁移，继续走 hubPost。
+import { getEnvelope } from '@/api/envelope';
 
 import {
   PERSONALITY,
@@ -33,11 +36,13 @@ export default function PersonalityPage() {
 
   const load = () => {
     setLoading(true)
-    hubGet(PERSONALITY).then((r) => {
-      const d = pickObj<Personality>(r) ?? (r as unknown as Personality)
+    // 【P1-front 第四批】显式信封解析：data 就是人格配置对象本身（原来靠 pickObj 猜）。
+    // 显式声明可空：信封里 data 理论上可以是 null（后端契约不保证非空），
+    // 下面的 ?? 就是为这一态准备的，类型也应如实反映，而不是靠断言盖掉。
+    getEnvelope<Personality | null>(PERSONALITY).then((d) => {
       setData(d)
-      setParams(d.custom_params ?? {})
-      setActiveProfile(d.current_profile ?? 'custom')
+      setParams(d?.custom_params ?? {})
+      setActiveProfile(d?.current_profile ?? 'custom')
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }

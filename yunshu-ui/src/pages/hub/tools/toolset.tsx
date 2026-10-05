@@ -26,8 +26,11 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { Power, ShieldAlert } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
+import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark, type CallabilityInfo } from '@/lib/callability'
+// 【P1-front 第四批】后端 GET /api/tools/config 已带 X-Envelope: v2，改用显式信封解析。
+// 同页的 AGENT_LINES_PLANES（治理元数据）尚未迁移，继续走 hubGet 的旧解析。
+import { getEnvelope } from '@/api/envelope'
 
 import {
   AGENT_LINES_PLANES,
@@ -97,8 +100,10 @@ export default function ToolsToolset() {
   const load = () => {
     setLoading(true)
     // 旧口径（启用状态）——失败则整体报错
-    hubGet(TOOLS_CONFIG).then((r) => {
-      setTools(pickList<ToolItem>(r, 'tools'))
+    // 【P1-front 第四批】显式信封解析：data 就是工具数组本身（原来靠 pickList 在候选键里猜）。
+    // 取不到数组时按空表处理（与 pickList 的「找不到就返回空表」语义一致）。
+    getEnvelope<ToolItem[]>(TOOLS_CONFIG).then((list) => {
+      setTools(Array.isArray(list) ? list : [])
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
 

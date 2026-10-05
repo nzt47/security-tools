@@ -36,6 +36,11 @@ bp = Blueprint("skills", __name__)
 # 此处只保留**同名别名**，使全部 @_require_token / @_log_request 调用点零改动。
 from .plugin_api import log_request as _log_request, require_auth as _require_token
 
+# 【P1-front 第四批 · 2026-10-05】统一响应信封（阶段 2 / R3）。
+# 与上方同一条红线兼容：agent.api_envelope 只依赖 stdlib + flask，
+# 不会把 app_server 拉进本模块的导入期（PLAN-1 §4 的循环导入约定）。
+from agent.api_envelope import ok as _ok
+
 
 # ════════════════════════════════════════════════════════════════════════════
 #  工具状态持久化（从 app_server.py 迁移；仅本域使用，故随插件迁入）
@@ -835,7 +840,14 @@ def api_extensions_channel_send():
 @bp.route("/api/tools/config", methods=["GET"])
 @_log_request(show_response=False)
 def api_tools_config():
-    """获取工具列表及使用统计"""
+    """获取工具列表及使用统计（**已迁移到统一信封**）。
+
+    【P1-front 第四批 · 2026-10-05】本端点原来返回**裸数组**（实测 91 项）——
+    前端只能靠 pickList(r, 'tools') 在候选键里「找数组」来猜。现在装进 ok() 的
+    data 并带 X-Envelope: v2，前端改为显式解析（pages/hub/tools/toolset.tsx）。
+    【形状选择】data 仍是**同一个数组**（不是 {tools: [...]}）：本端点原本就没有
+    业务键可保，加一层键等于顺手改契约；数组本身由端点契约确定，不需再猜。
+    """
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _Yunshu
     from agent.tools import list_tools
@@ -855,7 +867,7 @@ def api_tools_config():
             "call_count": call_count,
             "last_used": None,
         })
-    return jsonify(result)
+    return _ok(result)
 
 
 @bp.route("/api/tools/toggle", methods=["POST"])
