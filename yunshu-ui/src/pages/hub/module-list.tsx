@@ -7,11 +7,14 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { RefreshCw, Search } from 'lucide-react'
-import { Card, Badge, PageHeader, hubGet, Loading, ErrorBox, pickObj } from './components/ui'
+import { Card, Badge, PageHeader, Loading, ErrorBox } from './components/ui'
 
 import {
   MODULES_TOPOLOGY,
 } from '@/api/endpoints';
+// 【P1-front 第二批】后端该端点已带 X-Envelope: v2，故改用**显式信封解析**，
+// 不再用 pickObj 猜形状（见 src/api/envelope.ts 的说明）。
+import { getEnvelope } from '@/api/envelope';
 
 interface ModuleNode {
   module_id: string
@@ -29,6 +32,17 @@ interface Domain {
   domain_name: string
   icon?: string
   nodes: ModuleNode[]
+}
+
+/** `/api/modules/topology` 的业务载荷（后端：`{generated_at, overall_health, domains}`）。
+ *
+ * 【为什么显式写出来】迁移前用 `pickObj<{domains?: Domain[]}>(r) ?? {}` ——
+ * 取不到时静默变成 `{}`，页面显示"无模块"而没有任何错误提示。
+ */
+interface ModulesTopology {
+  generated_at?: string
+  overall_health?: number | null
+  domains?: Domain[]
 }
 
 const STATUS_COLOR: Record<string, 'green' | 'red' | 'amber' | 'slate'> = {
@@ -55,9 +69,8 @@ export default function ModuleListPage() {
   const load = () => {
     setLoading(true)
     setError('')
-    hubGet(MODULES_TOPOLOGY).then((r) => {
-      const d = pickObj<{ domains?: Domain[] }>(r) ?? {}
-      setDomains(Array.isArray(d.domains) ? d.domains : [])
+    getEnvelope<ModulesTopology>(MODULES_TOPOLOGY).then((d) => {
+      setDomains(Array.isArray(d?.domains) ? d.domains : [])
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }

@@ -6,6 +6,10 @@ import logging
 from flask import request, jsonify
 
 from agent.server_auth import require_token, log_request
+
+# 【P1-front 第二批 · 2026-10-05】统一响应信封（阶段 2 / R3）。
+# 为什么可以顶层 import：agent.api_envelope 只依赖 stdlib + flask，不反向依赖 app_server。
+from agent.api_envelope import ok as _ok
 from agent.server_routes.tracing_decorator import trace_route
 from agent.state_manager import get_workflow_learning_service
 from agent.workflow_learning import (
@@ -172,16 +176,25 @@ def register_routes(app, state):
     @trace_route("WorkflowLearning")
     @log_request(show_response=False)
     def api_wf_list():
-        """列出所有工作流"""
+        """列出所有工作流（**已迁移到统一信封**）。
+
+        【P1-front 第二批】载荷**一字未动**（仍是 `{ok, items, total}`），只是装进 `ok()` 的 data。
+        消费方只有 `pages/hub/memory/workflow.tsx` 一个文件；它原先用 `pickList(r, items)`，
+        那种写法在后端换包法时会**静默返回空数组**（页面显示无数据而不报错）。
+        """
         try:
             enabled_only = request.args.get("enabled_only", "").lower() in (
                 "1", "true", "yes")
             items = _svc().list_workflows(enabled_only=enabled_only)
-            return jsonify({
+            payload = {
                 "ok": True,
                 "items": [w.model_dump() for w in items],
                 "total": len(items),
-            })
+            }
+            # total 同时放进 envelope 的 meta：分页/计数是**信封层**的通用信息。
+            # 而 data 里那个 ok/total 是**既有业务契约**，两个都留 ——
+            # 不删业务键，避免"迁移信封时顺手改契约"（见 P1-front 第一批的两条判断）。
+            return _ok(payload, meta={"total": len(items)})
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
