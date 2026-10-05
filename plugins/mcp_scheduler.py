@@ -21,6 +21,11 @@ from flask import Blueprint, request, jsonify
 
 from .plugin_api import Plugin, register_plugin
 
+# 【P1-front 第三批 · 2026-10-05】统一响应信封（阶段 2 / R3）。
+# 该模块顶层只依赖 flask/plugin_api/标准库；信封模块同样只依赖 stdlib + flask，
+# 不触发本文件头注里那条"绝不顶层 import app_server"的循环导入红线。
+from agent.api_envelope import ok as _ok
+
 bp = Blueprint("mcp_scheduler", __name__)
 
 
@@ -47,11 +52,17 @@ from .plugin_api import log_request as _log_request, require_auth as _require_to
 @_require_token
 @_log_request(show_response=False)
 def api_mcp_services_get():
-    """获取所有 MCP 服务"""
+    """获取所有 MCP 服务（**已迁移到统一信封**）。
+
+    【P1-front 第三批】载荷**一字未动**（仍是 `{ok, services}`），只是装进 `ok()` 的 data
+    并带上 `X-Envelope: v2`。消费方只有 `pages/hub/tools/mcp.tsx` 一个文件。
+    【注意】同路径还有一个 POST（新建服务），那是**另一个端点**（`api_mcp_service_add`），
+    两者不是"重复注册"（运行期 url_map 实测两条规则、方法不同），故只迁 GET 这一侧。
+    """
     from app_server import _network_config_mgr
     try:
         services = _network_config_mgr.get_mcp_services()
-        return jsonify({"ok": True, "services": services})
+        return _ok({"ok": True, "services": services})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -243,9 +254,13 @@ def api_scheduler_history():
 @bp.route("/api/schedules", methods=["GET"])
 @_log_request(show_response=False)
 def api_schedules_list():
-    """获取所有定时任务"""
+    """获取所有定时任务（**已迁移到统一信封**）。
+
+    【P1-front 第三批】载荷**一字未动**（仍是 `{ok, tasks, total}`），只是装进 `ok()` 的 data。
+    消费方只有 `pages/hub/engine/scheduler.tsx`。同路径的 POST（创建任务）是另一个端点，只迁 GET。
+    """
     from agent.scheduling import get_schedule_scheduler
-    return jsonify(get_schedule_scheduler().get_tasks())
+    return _ok(get_schedule_scheduler().get_tasks())
 
 
 @bp.route("/api/schedules", methods=["POST"])

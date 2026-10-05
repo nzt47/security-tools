@@ -4,13 +4,15 @@
  */
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Rocket } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList } from '../components/ui'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubPost } from '../components/ui'
 
 import {
   SUBAGENT_CREATE,
   SUBAGENT_LIST,
   subagentDestroyByName,
 } from '@/api/endpoints';
+// 【P1-front 第三批】后端 GET /api/subagent/list 已带 X-Envelope: v2，改用显式信封解析。
+import { getEnvelope } from '@/api/envelope';
 
 interface Subagent {
   name: string
@@ -20,6 +22,19 @@ interface Subagent {
   tool_sources?: string[]
   tags?: string[]
   [k: string]: unknown
+}
+
+/** `GET /api/subagent/list` 的业务载荷（后端：`{ok, subagents, count, channel}`）。
+ *
+ * `count` 与 `channel` 本页当前不读，但**必须**在类型里保留 ——
+ * 它们是后端契约的一部分（`channel` 用于"通道不可用时提前提示"），
+ * 前端不读不等于可以删。
+ */
+interface SubagentList {
+  ok?: boolean
+  subagents?: Subagent[]
+  count?: number
+  channel?: Record<string, unknown>
 }
 
 export default function WorkshopAgents() {
@@ -34,8 +49,8 @@ export default function WorkshopAgents() {
 
   const load = () => {
     setLoading(true)
-    hubGet(SUBAGENT_LIST).then((r) => {
-      setAgents(pickList<Subagent>(r, 'subagents'))
+    getEnvelope<SubagentList>(SUBAGENT_LIST).then((d) => {
+      setAgents(d?.subagents ?? [])
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }

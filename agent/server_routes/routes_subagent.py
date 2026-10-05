@@ -18,6 +18,10 @@ import uuid
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.server_routes.tracing_decorator import trace_route
+
+# 【P1-front 第三批 · 2026-10-05】统一响应信封（阶段 2 / R3）。
+# 只依赖 stdlib + flask，不反向依赖 app_server。
+from agent.api_envelope import ok as _ok
 from agent.subagent.delegation_history import delegation_history
 
 logger = logging.getLogger(__name__)
@@ -194,10 +198,16 @@ def register_routes(app, state):
     @trace_route("Subagent")
     @log_request(show_response=False)
     def api_subagent_list():
-        """获取所有活跃分身列表（附带委派执行通道可用性，供 UI 提前提示）"""
+        """获取所有活跃分身列表（附带委派执行通道可用性，供 UI 提前提示）。
+
+        【P1-front 第三批】载荷**一字未动**（仍是 `{ok, subagents, count, channel}`），
+        只是装进 `ok()` 的 data 并带上 `X-Envelope: v2`。
+        消费方只有 `pages/hub/workshop/agents.tsx`（它只读 `subagents`；
+        `count`/`channel` 是给 UI 提前提示通道可用性用的，一并保留）。
+        """
         try:
             subagents = Yunshu.list_subagents()
-            return jsonify({
+            return _ok({
                 "ok": True,
                 "subagents": subagents,
                 "count": len(subagents),
