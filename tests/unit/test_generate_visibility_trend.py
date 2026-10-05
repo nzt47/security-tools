@@ -293,13 +293,25 @@ class TestPrometheusClientQueryRange:
             "data": {"result": [{"metric": {}, "values": [[1, "1.0"]]}]}
         }).encode("utf-8")
         success_resp = _mock_urlopen_response(status=200, body=body)
+        # 【2026-10-05 修一次负载相关的假红 —— 由 CI 的「失败基线回归」实测暴露】
+        #   原先 patch 的是**全局** `time.sleep`，断言 `mock_sleep.call_count == 1`。
+        #   但它是**进程级**的：同一进程里任何线程只要在这段窗口内 sleep，都会记到同一个 mock 上。
+        #   分片跑时无事（窗口内只有本测试在睡）；而「失败基线回归」把 2.3 万条用例放进**单进程**跑
+        #   （实测 89 分钟），审计写入线程、调度器、限流器都在睡 ⇒ 实测 `assert 3416 == 1`，
+        #   该作业每次都会红，而**功能完全正常**。
+        #   修正：只 patch **被测模块**的 `time.sleep`（该模块内部写的是 `time.sleep(...)`，
+        #   patch 它在自己命名空间里的 `time` 属性即可精确命中），不再动进程级的那个。
         with patch("urllib.request.urlopen") as mock_urlopen, \
-             patch("time.sleep") as mock_sleep:
+             patch("generate_visibility_trend.time.sleep") as mock_sleep:
             # 第一次失败，第二次成功
             mock_urlopen.side_effect = [urllib.error.URLError("fail"), success_resp]
             values = client.query_range("up", 0, 100, "1h")
             assert len(values) == 1
-            assert mock_sleep.call_count == 1  # 第一次失败后 sleep 一次
+            assert mock_sleep.call_count == 1, (
+                "重试后应恰好 sleep 一次，实测 " + str(mock_sleep.call_count) + " 次。"
+                + "次数偏大 ⇒ 补丁可能又打回了全局 time.sleep，把别的线程的睡也算了进来"
+                + "（本仓 CI 实测过 3416 次）；次数为 0 才是真的没重试。"
+            )
 
     @pytest.mark.unit
     @pytest.mark.p1
