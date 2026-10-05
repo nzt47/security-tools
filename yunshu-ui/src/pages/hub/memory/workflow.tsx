@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Play } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
+import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubPost } from '../components/ui'
 
 import {
   WORKFLOW_LEARNING_WORKFLOWS,
@@ -16,6 +16,9 @@ import {
   workflowLearnExecute,
   workflowLearnToggle,
 } from '@/api/endpoints';
+// 【P1-front 第二批】后端该端点已带 X-Envelope: v2，故改用显式信封解析，
+// 不再用 pickList 在候选键里"找数组"（那种写法换包法时会静默返回空列表）。
+import { getEnvelope } from '@/api/envelope';
 
 interface Workflow {
   id: string
@@ -27,6 +30,13 @@ interface Workflow {
   [k: string]: unknown
 }
 
+/** `/api/workflow-learning/workflows` 的业务载荷（后端：`{ok, items, total}`）。 */
+interface WorkflowList {
+  ok?: boolean
+  items?: Workflow[]
+  total?: number
+}
+
 /** 列表体（技能中心「工作流技能」Tab 复用；页面/中心各自提供外壳） */
 export function MemoryWorkflowTable() {
   const [items, setItems] = useState<Workflow[]>([])
@@ -36,8 +46,8 @@ export function MemoryWorkflowTable() {
 
   const load = () => {
     setLoading(true)
-    hubGet(WORKFLOW_LEARNING_WORKFLOWS).then((r) => {
-      setItems(pickList<Workflow>(r, 'items'))
+    getEnvelope<WorkflowList>(WORKFLOW_LEARNING_WORKFLOWS).then((d) => {
+      setItems(d?.items ?? [])
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }

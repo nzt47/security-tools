@@ -33,6 +33,10 @@ from typing import Callable, Dict, List, Optional
 
 from flask import Blueprint, current_app, jsonify, request
 
+# 【P1-front 第二批 · 2026-10-05】统一响应信封（阶段 2 / R3）。
+# 该模块只依赖 flask/标准库，顶层 import 信封模块不引入循环。
+from agent.api_envelope import ok as _ok
+
 from agent.modules_registry import (
     ACTION_ROUTES,
     DOMAINS,
@@ -335,7 +339,12 @@ def _do_action(module_id: str, action: str, user_params: dict, reason: str) -> t
 
 @modules_bp.route("/topology")
 def topology():
-    """六域模块树 + 实时状态 + 指标（拓扑视图数据源）"""
+    """六域模块树 + 实时状态 + 指标（拓扑视图数据源）。
+
+    【P1-front 第二批】载荷**一字未动**（仍是 `{generated_at, overall_health, domains}`），
+    只是装进 `ok()` 的 data 并带上 `X-Envelope: v2` —— 前端据此可显式判断形态。
+    消费方只有 `pages/hub/module-list.tsx` 一个文件。
+    """
     domains_out = []
     health_scores = []
     for domain in DOMAINS:
@@ -362,7 +371,7 @@ def topology():
             "icon": domain.icon,
             "nodes": nodes_out,
         })
-    return jsonify({
+    return _ok({
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "overall_health": round(sum(health_scores) / len(health_scores), 2) if health_scores else None,
         "domains": domains_out,
