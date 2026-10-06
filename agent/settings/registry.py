@@ -1933,6 +1933,14 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_ENV_FILE", CAT_EXTERNAL, "",
        "`.env` 目标文件覆盖（空=仓库根 .env；测试隔离用；路径项，UI 只读展示）",
        owner="agent/env_config_manager.py", validator=Validator("path")),
+    # 【2026-10-06 补登】与 CP_ENV_FILE 同一族：给「运行期网络配置文件」一个**调用期**解析的覆盖口。
+    # 为什么必须有它：测试地板此前只能在「导入期改进程级模块属性」这条路上做，而那条路实测在
+    # CI 的某些 worker 里会失效（见 docs/closeout/契约治理重构_第五轮_P1front第四批_20261005.md
+    # §3 与 §4.10）—— 失效意味着**单测会去创建/改写仓库内的运行期配置**。
+    # 默认空串 = 与以往行为完全一致（仍读 agent/data/network_config.json）。
+    _c("CP_NETWORK_CONFIG_FILE", CAT_EXTERNAL, "",
+       "网络配置文件目标覆盖（空=仓库内 agent/data/network_config.json；测试隔离用；路径项，UI 只读展示）",
+       owner="agent/network_config.py", validator=Validator("path")),
     _secret("OPENAI_API_KEY", CAT_EXTERNAL, "OpenAI API Key（只读脱敏）",
             owner="agent/orchestrator/lifecycle_manager.py"),
     _secret("DEEPSEEK_API_KEY", CAT_EXTERNAL, "DeepSeek API Key（只读脱敏）",

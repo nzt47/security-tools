@@ -85,6 +85,34 @@ _DOTENV_FLOOR_FILE = os.path.join(_DOTENV_FLOOR_DIR, "isolated.env")
 os.environ["CP_ENV_FILE"] = _DOTENV_FLOOR_FILE
 atexit.register(shutil.rmtree, _DOTENV_FLOOR_DIR, ignore_errors=True)
 
+# ── 【NETCFG-FLOOR · 2026-10-06】**网络配置文件**的同类地板（与 CP_ENV_FILE 同一口径）──
+# 【解决什么】agent/network_config.py 的默认路径指向**仓库内**的
+#   agent/data/network_config.json（被 .gitignore 忽略，故 CI 检出时不存在）。
+#   任何 NetworkConfigManager()（**不带** config_file=）在**读**的时候，只要文件不存在
+#   就会**创建**它（见该模块 _load 的「使用默认配置，已创建」分支）。
+#   单进程全量跑时这会制造跨用例污染：某个用例把这个真实文件创建/改写了，
+#   而另一个用例恰好在断言它的内容 —— 实测形态就是
+#   test_network_config_demo_no_side_effect.py 报「导入 ... 改写了真实配置文件」，
+#   而那个演示脚本**并没有**写它（连续 3 次子进程导入，两处指纹逐字节不变）。
+#
+# 【为什么这次用环境变量，而不是「导入期改进程级模块属性」】
+#   上一轮（PR #1022，已关）用的正是后者，而它在 CI 的 Shard 6 **没有生效**：
+#   地板自带的 3 条守卫变红、断言消息里实测值仍是仓库路径，且**没有**留下
+#   「未能重定向」的告警（说明不是当场抛异常那么简单）。两种候选机制是：
+#     ① 地板那次 import 当场失败（被 except 吞成一条可能不出现在日志里的 warning）；
+#     ② 地板装上了，但之后模块被重载/重新执行 ⇒ 模块级常量退回默认值。
+#   环境变量 + agent/network_config.py 的**调用期解析**（default_config_file()）
+#   对这两种机制**同时免疫**：环境变量跨重载存活，而且装地板根本不需要 import 任何东西
+#   （没有「装不上」这条失败路径可用）。这就是本文件不留 try/except 的原因 ——
+#   一件不可能失败的事，不需要吞异常。
+#
+# 【逃生门】CP_TEST_NETCFG_REAL=1 时不装地板（供将来确实需要真实文件的场景）。
+if os.environ.get("CP_TEST_NETCFG_REAL") != "1":
+    _NETCFG_FLOOR_DIR = tempfile.mkdtemp(prefix="pytest_netcfg_floor_")
+    _NETCFG_FLOOR_FILE = os.path.join(_NETCFG_FLOOR_DIR, "network_config.json")
+    os.environ["CP_NETWORK_CONFIG_FILE"] = _NETCFG_FLOOR_FILE
+    atexit.register(shutil.rmtree, _NETCFG_FLOOR_DIR, ignore_errors=True)
+
 # ── 【TESTHYG-1 · 离线基线】测试进程**不加载** .env（见上方地板）──
 # import app_server 会真的实例化 sentence-transformers 编码器，而"只读本地缓存、
 # 不出网"的前提是 HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE（.env:153-154 提供的

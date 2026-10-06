@@ -32,8 +32,35 @@ from agent.env_config_manager import get_env_config_manager
 
 logger = logging.getLogger(__name__)
 
-# 配置文件路径
-_NETWORK_CONFIG_FILE = Path(__file__).parent / 'data' / 'network_config.json'
+# 配置文件的**默认**路径（仓库内那份）。
+# 【2026-10-06】它**不再是构造时的取值来源** —— 生效路径一律经 default_config_file() 解析，
+# 后者支持环境变量覆盖（与 .env 的 CP_ENV_FILE 同一族）。原因见 default_config_file 的 docstring。
+_DEFAULT_NETWORK_CONFIG_FILE = Path(__file__).parent / 'data' / 'network_config.json'
+# 兼容别名：历史上有引用方从本模块取「_NETWORK_CONFIG_FILE」
+# （含 agent/network/__init__.py 的再导出）。**它只是默认值，不代表当前生效路径** ——
+# 需要生效路径请调用 default_config_file()。
+_NETWORK_CONFIG_FILE = _DEFAULT_NETWORK_CONFIG_FILE
+
+
+#: 覆盖默认配置文件路径的环境变量名。
+#: 【为什么要有它】测试地板需要把「真实 I/O」重定向到临时目录（与 CP_ENV_FILE 同口径），
+#:   而**不能**依赖「导入期改进程级模块属性」：那条路实测在 CI 的某些 worker 里会失效
+#:   （PR #1022 的地板自带守卫在 Shard 6 变红，实测值仍是仓库路径；两种候选机制 ——
+#:   导入当场失败被 except 吞掉 / 导入后模块被重载 —— 都能被「环境变量 + 调用期解析」同时免疫：
+#:   环境变量跨重载存活，且地板根本不必导入本模块）。
+_NETWORK_CONFIG_ENV = 'CP_NETWORK_CONFIG_FILE'
+
+
+def default_config_file() -> Path:
+    """生效的默认配置文件路径 —— **每次调用时**解析（不是导入期快照）。
+
+    优先级：环境变量 CP_NETWORK_CONFIG_FILE → 仓库内 agent/data/network_config.json。
+    空值与未设置等价（与 CP_ENV_FILE 的语义一致：默认空串 = 与以往行为完全相同）。
+    """
+    override = os.environ.get(_NETWORK_CONFIG_ENV)
+    if override:
+        return Path(override)
+    return _DEFAULT_NETWORK_CONFIG_FILE
 
 # 默认配置
 _DEFAULT_NETWORK_CONFIG = {
@@ -217,7 +244,10 @@ class NetworkConfigManager:
         【P2 已清理】secure_manager 参数已移除，敏感数据统一由 .env 单一数据源管理。
         详见 agent/env_config_manager.py:EnvConfigManager。
         """
-        self._config_file = Path(config_file) if config_file else _NETWORK_CONFIG_FILE
+        # 【为什么走函数而不是模块常量】模块常量是**导入期快照**：测试地板若靠「导入期改它」重定向，
+        #   一旦模块被重载/重新执行就会退回仓库路径（实测发生过的形态）。调用期解析 + 环境变量
+        #   可以同时免疫「地板没装上」与「地板被重置」两种失效。
+        self._config_file = Path(config_file) if config_file else default_config_file()
         self._env_config = get_env_config_manager()  # .env 单一数据源
         self._cache: Optional[Dict[str, Any]] = None
 
