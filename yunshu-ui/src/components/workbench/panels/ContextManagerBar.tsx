@@ -10,7 +10,9 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, Gauge, HelpCircle, RefreshCw, Minimize2 } from 'lucide-react'
-import { hubGet, hubPost, pickObj, Loading } from '../../../pages/hub/components/ui'
+import { hubPost, Loading } from '../../../pages/hub/components/ui'
+// 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2，改用显式信封解析。
+import { getEnvelope } from '@/api/envelope'
 
 import {
   CONTEXT_COMPRESS,
@@ -71,8 +73,8 @@ export function ContextManagerBar() {
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(() => {
-    hubGet(CONTEXT_STATUS).then((r) => {
-      const d = pickObj<CtxStatus>(r) ?? (r as unknown as CtxStatus)
+    // 显式信封解析：data 就是状态对象本身（原来靠 pickObj 猜形状）
+    getEnvelope<CtxStatus>(CONTEXT_STATUS).then((d) => {
       setStatus(d)
       setError('')
     }).catch((e) => setError(String(e)))

@@ -152,7 +152,11 @@ def _apply_desc_overlay(items: list) -> None:
 @bp.route("/api/skills", methods=["GET"])
 @_log_request(show_response=False)
 def api_skills_get():
-    """获取技能列表（分类：已安装 + 可安装的内置技能）"""
+    """获取技能列表（分类：已安装 + 可安装的内置技能，**已迁移到统一信封**）。
+
+    【P1-front 第七批 · 2026-10-05】载荷**一字未动**（实测键就是 installed / available），
+    只是装进 ok() 的 data。消费方只有 pages/hub/memory/skills.tsx。
+    """
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _skills_mgr
     installed = _skills_mgr.get_all()
@@ -252,7 +256,7 @@ def api_skills_get():
     except Exception:  # noqa: BLE001 分类不可用时列表照常返回
         pass
 
-    return jsonify({
+    return _ok({
         "installed": installed,
         "available": available,
     })

@@ -15,7 +15,10 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Eye, Layers, Loader2, Power } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
+import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
+// 【P1-front 第七批】GET /api/skills 已带 X-Envelope: v2，改用显式信封解析。
+// 同页其余调用（/api/skills-mgmt/classes、/api/skills/toggle、改类、补说明）尚未迁移，继续走 hubGet/hubPost。
+import { getEnvelope } from '@/api/envelope'
 import {
   callabilityCounts, callabilityLegend, callabilityMark, fetchCapabilityManifest,
   indexCallability,
@@ -94,9 +97,10 @@ export function MemorySkillsTable() {
 
   const load = () => {
     setLoading(true)
-    hubGet(SKILLS).then((r) => {
-      const installed = pickList<Skill>(r, 'installed')
-      const available = pickList<Skill>(r, 'available')
+    // 显式信封解析：data 就是 {installed, available}（原来靠 pickList 在候选键里找数组）
+    getEnvelope<{ installed?: Skill[]; available?: Skill[] }>(SKILLS).then((d) => {
+      const installed = d?.installed ?? []
+      const available = d?.available ?? []
       setSkills(installed.length > 0 ? installed : available)
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })

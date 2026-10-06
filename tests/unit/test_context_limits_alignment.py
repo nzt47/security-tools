@@ -292,7 +292,12 @@ class TestPanelReadings:
     def test_分母取编排窗口而非配置副本(self, panel_env):
         client, yunshu, cfg = panel_env
         cfg.set(19968, "memory", "token_limit")  # UI 存值：**不得**再当分母
-        body = client.get("/api/context/status").get_json()
+        resp = client.get("/api/context/status")
+        # 【P1-front 第七批】该端点已迁入统一信封：先钉住信封本身，再读 data。
+        # 没有这个头就说明迁移被回退 —— 前端的显式解析会直接抛错（不是静默读空）。
+        assert resp.headers.get("X-Envelope") == "v2", "成功响应必须带统一信封头"
+        assert resp.get_json()["code"] == 200
+        body = resp.get_json()["data"]
         assert body["token_limit"] == 131072
         assert body["token_limit_source"] == "config.yaml:memory.token_limit"
         assert body["configured_token_limit"] == 19968, "UI 存值仍要如实回显（便于对照）"
@@ -302,7 +307,8 @@ class TestPanelReadings:
         """线上症状：占用 22% 却常年报红（因为累计压缩 23 次）"""
         client, yunshu, _ = panel_env
         yunshu._memory = _MemoryStub(rounds=23)
-        body = client.get("/api/context/status").get_json()
+        # 【P1-front 第七批】成功载荷已装进统一信封的 data（视图改用 ok()）
+        body = client.get("/api/context/status").get_json()["data"]
         assert body["percentage"] < 60
         assert body["status_level"] == "ok", "档位只跟占用走"
         assert body["compress_degraded"] is True
@@ -315,7 +321,8 @@ class TestPanelReadings:
 
         monkeypatch.setattr(mem, "_context_limit_info",
                             lambda _y: {"limit_tokens": 1000, "limit_source": "stub"})
-        body = client.get("/api/context/status").get_json()
+        # 【P1-front 第七批】成功载荷已装进统一信封的 data（视图改用 ok()）
+        body = client.get("/api/context/status").get_json()["data"]
         assert body["percentage"] == 100.0
         assert body["status_level"] == "critical"
         assert "usage_critical" in body["status_reasons"]
@@ -323,7 +330,8 @@ class TestPanelReadings:
     def test_取不到分母时如实报None(self, panel_env):
         client, yunshu, _ = panel_env
         yunshu._memory_token_limit = None
-        body = client.get("/api/context/status").get_json()
+        # 【P1-front 第七批】成功载荷已装进统一信封的 data（视图改用 ok()）
+        body = client.get("/api/context/status").get_json()["data"]
         assert body["token_limit"] is None
         assert body["token_limit_source"] == "unavailable"
         assert body["percentage"] is None, "分母未知 ⇒ 百分比必须是 None，不能是 0 或假数"
@@ -331,7 +339,8 @@ class TestPanelReadings:
 
     def test_发送侧语义声明为只告警(self, panel_env):
         client, _, _ = panel_env
-        body = client.get("/api/context/status").get_json()
+        # 【P1-front 第七批】成功载荷已装进统一信封的 data（视图改用 ok()）
+        body = client.get("/api/context/status").get_json()["data"]
         assert body["send_limit_semantics"] == "warn_only"
 
 

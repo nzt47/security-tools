@@ -13,6 +13,7 @@ import {
   getEnvelope,
   postEnvelope,
   readEnvelope,
+  unwrapEnvelopeBody,
 } from './envelope';
 
 function resp(body: unknown, opts: { envelope?: string | null; status?: number } = {}) {
@@ -144,5 +145,26 @@ describe('postEnvelope', () => {
     } finally {
       s.restore();
     }
+  });
+});
+
+describe('unwrapEnvelopeBody', () => {
+  it('取出 data（供走 apiClient.request() 的消费方显式拆信封）', () => {
+    expect(unwrapEnvelopeBody<{ percentage: number }>(
+      { code: 200, data: { percentage: 1 }, message: '' }, '/api/context/status',
+    )).toEqual({ percentage: 1 });
+  });
+
+  it('不是信封体就抛错 —— **不做「兼容两态」的宽解析**', () => {
+    // 这条钉的是本批最危险的形态：contextMonitorApi 走的是 request()（返回原始体），
+    // 若这里宽容地把裸体当 data 返回，迁移漏改时它会**静默读到 undefined** 而不报错。
+    for (const raw of [{ percentage: 1 }, {}, null, [1, 2], { data: {} }]) {
+      expect(() => unwrapEnvelopeBody(raw, '/api/context/status')).toThrow(EnvelopeError);
+    }
+  });
+
+  it('业务码非 200 时抛错并带上 message', () => {
+    expect(() => unwrapEnvelopeBody({ code: 500, data: null, message: '内部错误' }, '/api/x'))
+      .toThrow(/500/);
   });
 });
