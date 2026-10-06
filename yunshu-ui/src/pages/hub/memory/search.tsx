@@ -34,15 +34,23 @@ export default function MemorySearch() {
     setLoading(true)
     setError('')
     try {
-      const body = { query: q.trim(), limit: 10 }
+      // 【请求键按**各端点自己的契约**，两个端点读的键并不相同】
+      // 原先两边都发 { query, limit }，对活体服务打真实请求实测：
+      //   · /api/knowledge/query → 后端读 question/top_k ⇒ 取不到 question 直接 **HTTP 400**
+      //     「查询问题不能为空」（「知识库」页签因此一直是报错态，而不是空列表）；
+      //   · /api/vector/search   → 后端读 query/top_k ⇒ top_k 取不到，永远按默认 5 条返回
+      //     （前端写的 limit: 10 **从未生效**）。
+      // 契约见 plugins/memory.py::api_vector_search 与
+      // agent/server_routes/routes_knowledge.py::api_knowledge_query；
+      // 机械守卫：tests/unit/test_frontend_request_contract.py（把「前端发的键」与「后端读的键」对拍）。
+      const topK = 10
       if (mode === 'vector') {
-        const d = await postEnvelope<{ results?: Hit[] }>(VECTOR_SEARCH, body)
+        const d = await postEnvelope<{ results?: Hit[] }>(VECTOR_SEARCH, { query: q.trim(), top_k: topK })
         setHits(d?.results ?? [])
       } else {
-        // 【第六批顺手修掉的一处真实缺陷】后端 /api/knowledge/query 返回的键是 `hits`，
-        // 而迁移前这里写的是 pickList(r, 'results') —— pickList 在传了 prefer 时**只找那一个键**，
-        // 于是「知识库」页签**一直返回空列表**（不报错，静默空）。本批改成显式读 hits。
-        const d = await postEnvelope<{ hits?: Hit[] }>(KNOWLEDGE_QUERY, body)
+        // 【第六批只修了一半】后端返回的键是 hits（不是 results）—— 那次只改了**响应**解析，
+        // 请求侧仍是错的（见上），所以这条页签当时只是从「静默空」变成了「显示 400」。
+        const d = await postEnvelope<{ hits?: Hit[] }>(KNOWLEDGE_QUERY, { question: q.trim(), top_k: topK })
         setHits(d?.hits ?? [])
       }
     } catch (e) {
