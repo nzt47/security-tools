@@ -24,7 +24,7 @@
  * SECTION_REGISTRY 渲染顺序）：模板内容只由面板项的 enabled 决定。
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, within, waitFor, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, within, waitFor, cleanup, fireEvent, act } from '@testing-library/react'
 import PromptLab from './index'
 
 type Section = { enabled?: boolean; custom_content?: string; label?: string; token_limit?: number }
@@ -162,14 +162,26 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
     // 点击该面板项的开关（停用）→ 600ms 防抖后重建模板 → 提示词区域不再包含占位符
     const toggle = within(card as HTMLElement).getByRole('button')
     expect(toggle.getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(toggle)
 
-    await waitFor(
-      () => {
-        expect(promptArea()?.textContent ?? '').not.toContain('{skill_instructions}')
-      },
-      { timeout: 4000 },
-    )
+    // 【为什么改成**假定时器**推进】这一步等的是组件内 600ms 防抖之后的模板重建
+    // （pages/prompt-lab/identityPrompt.ts 的 PREVIEW_DEBOUNCE_MS）。原先用「真实时间 +
+    // 固定 4000ms 预算」，于是它实际上是**在断言机器跑得多快**：
+    //   · 实测过一次 CI 红，而那次提交**只改了一个 .md**（即与被测代码无关）；
+    //   · 本机同一文件连跑 13 次里也红过 1 次（首次运行、Vite 缓存还是冷的）。
+    // 现在时间由测试自己推进 ⇒ 与 runner 快慢、覆盖率插桩、并行度都无关，
+    // 而判据仍然钉在机制上：**防抖到点之后模板必须被重建**。
+    // 推进 2000ms 是「≥ 600ms 防抖」的余量，不是新的时间预算（没有真实时钟参与）。
+    vi.useFakeTimers()
+    try {
+      fireEvent.click(toggle)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000)
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+
+    expect(promptArea()?.textContent ?? '').not.toContain('{skill_instructions}')
     // 其余启用节仍在（证明是「该节」被去掉，而不是整块模板塌掉）
     expect(promptArea()?.textContent ?? '').toContain('{tool_status}')
     expect(promptArea()?.textContent ?? '').toContain('{memory_context}')
