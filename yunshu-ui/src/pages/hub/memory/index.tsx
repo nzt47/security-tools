@@ -79,10 +79,10 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
     if (!searchQ.trim()) return
     setLoading(true)
     try {
-      // 【已知不一致，本次不动】后端 api_vector_search 读的是 `top_k`（默认 5），
-      // 而这里一直传的是 `limit` ⇒ 10 这个值**从未生效**（实际取 5 条）。
-      // 改它属于「改请求契约」，与本批「只改响应解析」不是一件事，故留原样并在此标注。
-      const d = await postEnvelope<{ results?: SearchResult[] }>(VECTOR_SEARCH, { query: searchQ.trim(), limit: 10 })
+      // 【对齐后端契约】api_vector_search 读的是 `top_k`（默认 5，上限 50），这里原先传 `limit`
+      // ⇒ 10 这个值**从未生效**（对活体服务实测：返回 count=5）。本批把这个请求键改正；
+      // 同一处不匹配也在 pages/hub/memory/search.tsx 里，一并改。
+      const d = await postEnvelope<{ results?: SearchResult[] }>(VECTOR_SEARCH, { query: searchQ.trim(), top_k: 10 })
       setResults(d?.results ?? [])
       setLoading(false)
     } catch (e) {
