@@ -131,7 +131,14 @@ def _push_runtime_window(value: int) -> bool:
 @bp.route("/api/context/status")
 @_view(log=False)
 def api_context_status():
-    """获取当前上下文使用状态"""
+    """获取当前上下文使用状态（**已迁移到统一信封**）。
+
+    【P1-front 第七批 · 2026-10-05】载荷**一字未动**（实测 19 个键），只是装进 ok() 的 data。
+    【本端点有**两个**消费方，且它们用的是两套客户端】
+      · components/workbench/panels/ContextManagerBar.tsx —— hubGet + pickObj（本批改 getEnvelope）；
+      · lib/contextMonitorApi.ts —— 走 lib/apiClient.request()，它**不拆信封**（返回原始体）。
+    两个都同批改，否则 contextMonitorApi 会在 {code,data,message} 上读 percentage 而**静默拿到 undefined**。
+    """
     from app_server import _get_current_session_id, _session_mgr, _get_token_counter, _cfg, _Yunshu
     session_id = _get_current_session_id()
     messages = _session_mgr.get_messages(session_id, limit=0)  # 全部消息
@@ -211,7 +218,7 @@ def api_context_status():
     elif compress_warn:
         status_reasons.append("summary_warn")
 
-    return jsonify({
+    return _ok({
         "current_tokens": total,
         # 分母 = 编排窗口（真正生效的那个）+ 来源披露；百分比语义写明白
         "token_limit": limit,

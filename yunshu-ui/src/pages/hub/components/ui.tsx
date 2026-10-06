@@ -229,38 +229,15 @@ export function unwrap<T>(resp: Record<string, unknown>): T {
 }
 
 /**
- * 从后端响应中提取数组列表（兼容多种返回结构）：
- * - {data: [...]} / {data: {list: [...]}}
- * - {sessions/items/cards/tasks/subagents/tools/tools_list: [...]}
- * - 直接返回数组
+ * 【K4 收口 · 2026-10-05 · P1-front 第七批】pickList / pickObj 两个**启发式**已删除。
+ *
+ * 它们做的是「在若干候选键里猜哪个是业务载荷」（pickList 找数组、pickObj 取 data 或整体），
+ * 那不是契约：后端换一种包法，前端会**静默读错**而不是报错（本仓对此有多次记录）。
+ * 随着 X-Envelope 铺开到全部被消费端点，调用点已逐个换成显式解析：
+ *   · 自己发请求的页面 → src/api/envelope.ts 的 getEnvelope / postEnvelope；
+ *   · 走 lib/apiClient.request() 的链路 → unwrapEnvelopeBody（拿已解析的体来拆）。
+ *
+ * 【为什么不留着「以防万一」】留着就等于把「猜」重新变成可选项 ——
+ * 下一个新增页面会顺手用它，而它的失败模式是静默的。
+ * 守卫：tests/unit/test_frontend_pick_helpers_removed.py（先剥注释再计数，必须为 0）。
  */
-export function pickList<T = Record<string, unknown>>(resp: unknown, prefer?: string): T[] {
-  const r = resp as Record<string, unknown>
-  if (Array.isArray(resp)) return resp as T[]
-  if (!r || typeof r !== 'object') return []
-  // 优先取 data
-  const d = r.data
-  if (Array.isArray(d)) return d as T[]
-  if (d && typeof d === 'object') {
-    const dl = (d as Record<string, unknown>).list
-    if (Array.isArray(dl)) return dl as T[]
-  }
-  // 常见列表字段
-  const keys = prefer ? [prefer] : ['sessions', 'items', 'cards', 'tasks', 'subagents', 'tools', 'tools_list', 'list', 'logs', 'history', 'results', 'installed', 'available', 'menus', 'records']
-  for (const k of keys) {
-    const v = r[k]
-    if (Array.isArray(v)) return v as T[]
-    if (v && typeof v === 'object' && Array.isArray((v as Record<string, unknown>).list)) {
-      return (v as Record<string, unknown>).list as T[]
-    }
-  }
-  return []
-}
-
-/** 从后端响应中提取对象（兼容 data 包裹） */
-export function pickObj<T = Record<string, unknown>>(resp: unknown): T | null {
-  if (!resp || typeof resp !== 'object') return null
-  const r = resp as Record<string, unknown>
-  if (r.data && typeof r.data === 'object' && !Array.isArray(r.data)) return r.data as T
-  return r as T
-}

@@ -11,6 +11,12 @@
 import { request } from './apiClient';
 
 import { CONTEXT_STATUS, CONTEXT_CONFIG, CONTEXT_COMPRESS } from '@/api/endpoints';
+// 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2。
+// 本模块走的是 lib/apiClient.request()（它**不拆信封**、返回原始体），
+// 故这里用 unwrapEnvelopeBody 显式拆 —— 否则下面那些字段会**静默读到 undefined**
+// （`percentage`/`status_level` 变成 undefined，面板不报错只是显示空）。
+// 纪律与页面层同源：**只认信封**，不是信封体就抛错，不做「兼容两态」的宽解析。
+import { unwrapEnvelopeBody } from '@/api/envelope';
 
 export type ContextStatusLevel = 'ok' | 'info' | 'warning' | 'critical';
 
@@ -48,8 +54,11 @@ export interface CompressResult {
 }
 
 export const contextMonitorApi = {
-  status: (signal?: AbortSignal) =>
-    request<ContextStatus>(CONTEXT_STATUS, { signal }),
+  status: async (signal?: AbortSignal) =>
+    unwrapEnvelopeBody<ContextStatus>(
+      await request<unknown>(CONTEXT_STATUS, { signal }),
+      CONTEXT_STATUS,
+    ),
 
   saveConfig: (config: ContextConfig) =>
     request<{ ok: boolean }>(CONTEXT_CONFIG, {

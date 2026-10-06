@@ -38,6 +38,32 @@ export class EnvelopeError extends Error {
 }
 
 /**
+ * 从**已解析好的响应体**里取出信封载荷；体不是信封就抛错。
+ *
+ * 【为什么单独有这个函数】页面层用 getEnvelope/postEnvelope（自己发请求）；
+ * 而 lib/apiClient.request() 那条链路（lib/contextMonitorApi.ts 等）**自己发请求并返回原始体**，
+ * 且它不拆信封 —— 那种消费方需要一个「拿已解析的体来拆」的入口，
+ * 否则它会在 {code, data, message} 上读业务键而**静默拿到 undefined**。
+ *
+ * @param body 已经 JSON.parse 过的响应体（或 request() 的返回值）
+ * @param endpoint 仅用于报错信息
+ * @throws EnvelopeError 体不是统一信封 / 业务码非 200
+ */
+export function unwrapEnvelopeBody<T>(body: unknown, endpoint: string): T {
+  const env = body as Partial<Envelope<T>> | null
+  if (env === null || typeof env !== 'object' || typeof env.code !== 'number') {
+    throw new EnvelopeError(
+      endpoint + ' 的响应体不是统一信封（缺数字型 code）—— 该端点尚未迁移到统一信封，'
+      + '或迁移被回退，或调用处拿错了响应。实测：' + JSON.stringify(body)?.slice(0, 200),
+    )
+  }
+  if (env.code !== 200) {
+    throw new EnvelopeError(endpoint + ' 返回业务码 ' + env.code + '（消息：' + (env.message || '') + '）')
+  }
+  return env.data as T
+}
+
+/**
  * 从 \`fetch\` 的 Response 读取**已声明信封**的成功载荷。
  *
  * @param res fetch 的 Response（须先 \`await\`，本函数读 header 与 body）
@@ -65,16 +91,7 @@ export async function readEnvelope<T>(res: Response, endpoint: string): Promise<
   } catch {
     throw new EnvelopeError(endpoint + ' 声明了信封头但不是合法 JSON')
   }
-  const env = body as Partial<Envelope<T>>
-  if (env === null || typeof env !== 'object' || typeof env.code !== 'number') {
-    throw new EnvelopeError(
-      endpoint + ' 的信封体缺少数字型 code —— 实测：' + JSON.stringify(body)?.slice(0, 200),
-    )
-  }
-  if (env.code !== 200) {
-    throw new EnvelopeError(endpoint + ' 返回业务码 ' + env.code + '（消息：' + (env.message || '') + '）')
-  }
-  return env.data as T
+  return unwrapEnvelopeBody<T>(body, endpoint)
 }
 
 /** GET + 显式信封解析。用于**已迁移**的只读端点。
