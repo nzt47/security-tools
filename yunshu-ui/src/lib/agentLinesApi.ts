@@ -14,7 +14,12 @@
 import { request } from './apiClient'
 import type { CallabilityInfo } from './callability'
 
-import { AGENT_LINES } from '@/api/endpoints';
+import {
+  AGENT_LINES,
+  AGENT_LINES_PREVIEW,
+  AGENT_LINES_VALIDATE,
+  agentLineById as agentLineByIdPath,
+} from '@/api/endpoints';
 
 const PREFIX = AGENT_LINES
 
@@ -153,6 +158,8 @@ export interface PreviewResponse {
   notes: string[]
   tool_source: string
   saved: boolean
+  /** 第 4 面（分身面）；旧后端不返回该字段（⇒ 面板不渲染该区块，见 readSubagentAssembly） */
+  subagent_assembly?: SubagentAssemblyInfo
 }
 
 export interface ValidateResponse {
@@ -172,6 +179,101 @@ export interface LineDetailResponse {
   preview: AssemblyPreview
   issues: string[]
   tool_source: string
+  /** 第 4 面（分身面）；旧后端不返回该字段 */
+  subagent_assembly?: SubagentAssemblyInfo
+}
+
+// ═══════════════════════════════════════════════════════════
+//  第 4 面 · 分身面（派一个分身时它到底拿到什么）
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 分身的只读装配单（后端 `agent/subagent/assembly.py::SubagentAssembly.to_dict()`
+ * + 四个投影字段 `available` / `reason` / `semantics` / `semantics_note`）。
+ *
+ * 【为什么前端必须用后端这份】装配算法与子代理权限矩阵（§7.0 / §5.7 机制 3）的唯一
+ * 权威在后端，且**与派发路径共用同一个入口**（`agent/tools/fan_out_tools.py` 把
+ * `resolve_subagent_assembly(...)` 塞进委派契约）。前端自己拼一遍就是第二份
+ * "分身能拿到什么"的口径 —— 与本页技能面 / 提示词片段同一条纪律。
+ *
+ * 【锚定已保存档案】装配单按 line_id 从 registry 取档案（派发时就是这个状态）：
+ * 草案里尚未保存的**新** id 会如实显示"装不上"，那不是渲染失败，那正是派发的结果。
+ */
+export interface SubagentAssemblyInfo {
+  /** 装配单是否成立；false = 点名的线不存在 / 已停用 / 损坏 ⇒ 派发时该任务会失败 */
+  available: boolean
+  /** 'line' | 'default-readonly' | 'unavailable'（直接取装配单自己的 mode，不重判） */
+  mode: string
+  /**
+   * 'named-resolved'（沿主线装配）
+   * | 'unnamed-default-readonly'（未点名 ⇒ 只读默认集，**不是降级**）
+   * | 'named-but-unavailable'（点名了却装不上 ⇒ fail-closed）
+   * | 'degraded'（投影层故障降级，只影响本块）
+   */
+  semantics: string
+  /** 该档的人读语义说明（后端原文，前端只上屏、不重述判断） */
+  semantics_note: string
+  /** 生效主线 id；空串 = 未点名 */
+  line_id: string
+  /** 授权给分身的工具名（已去 govern 平面、已去 §5.7 机制 3 硬禁） */
+  tools: string[]
+  /** 其中需要人工确认的工具名 */
+  needs_approval: string[]
+  /** 装配单的人读说明：被剔的 govern / 硬禁项与原因都在这段原文里 */
+  note: string
+  /** 分身侧技能面（授权面，不是正文） */
+  skills: string[]
+  skills_mode: string
+  /** 分身侧技能面的人读说明（含"私人记忆类被收紧"等事实） */
+  skills_note: string
+  prompt_note: string
+  prompt_source: string
+  /** available=false 时的原因（后端原文） */
+  reason: string
+}
+
+function _strList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((x): x is string => typeof x === 'string') : []
+}
+
+/**
+ * 读后端给的分身面（**只做形状规范化，不做任何判定**）。
+ *
+ * `present=false` 表示后端根本没返回该字段（旧后端 / 未部署）⇒ 面板整块不渲染，
+ * 行为与接上它之前一致；异形载荷（不是对象、缺 `available` 布尔标志）同样按"没给"
+ * 处理 —— **宁可不说，也不说错**（这一块讲的是分身拿到多少权限，猜错比不显示更糟）。
+ */
+export function readSubagentAssembly(resp: unknown): {
+  present: boolean
+  assembly: SubagentAssemblyInfo | null
+} {
+  const src = (resp ?? {}) as { subagent_assembly?: unknown }
+  const raw = src.subagent_assembly
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { present: false, assembly: null }
+  }
+  const o = raw as Record<string, unknown>
+  if (typeof o.available !== 'boolean') return { present: false, assembly: null }
+  const str = (v: unknown) => (typeof v === 'string' ? v : '')
+  return {
+    present: true,
+    assembly: {
+      available: o.available,
+      mode: str(o.mode),
+      semantics: str(o.semantics),
+      semantics_note: str(o.semantics_note),
+      line_id: str(o.line_id),
+      tools: _strList(o.tools),
+      needs_approval: _strList(o.needs_approval),
+      note: str(o.note),
+      skills: _strList(o.skills),
+      skills_mode: str(o.skills_mode),
+      skills_note: str(o.skills_note),
+      prompt_note: str(o.prompt_note),
+      prompt_source: str(o.prompt_source),
+      reason: str(o.reason),
+    },
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -190,7 +292,7 @@ export function fetchPlanes(): Promise<PlanesResponse> {
 
 /** 单条档案 + 现场装配预览 */
 export function fetchLine(lineId: string): Promise<LineDetailResponse> {
-  return request<LineDetailResponse>(`${PREFIX}/${encodeURIComponent(lineId)}`)
+  return request<LineDetailResponse>(agentLineByIdPath(lineId))
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -202,7 +304,7 @@ export function previewLine(
   profile: Partial<LineProfile>,
   signal?: AbortSignal,
 ): Promise<PreviewResponse> {
-  return request<PreviewResponse>(`${PREFIX}/preview`, {
+  return request<PreviewResponse>(AGENT_LINES_PREVIEW, {
     method: 'POST',
     body: profile,
     signal,
@@ -211,7 +313,7 @@ export function previewLine(
 
 /** 只校验档案并返回问题列表（不保存） */
 export function validateLine(profile: Partial<LineProfile>): Promise<ValidateResponse> {
-  return request<ValidateResponse>(`${PREFIX}/validate`, { method: 'POST', body: profile })
+  return request<ValidateResponse>(AGENT_LINES_VALIDATE, { method: 'POST', body: profile })
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -230,7 +332,7 @@ export function saveLine(
   lineId: string,
   profile: Partial<LineProfile>,
 ): Promise<{ ok: boolean; line: LineProfile; created: boolean; note: string }> {
-  return request(`${PREFIX}/${encodeURIComponent(lineId)}`, {
+  return request(agentLineByIdPath(lineId), {
     method: 'PUT',
     body: profile,
   })
@@ -240,7 +342,7 @@ export function saveLine(
 export function deleteLine(
   lineId: string,
 ): Promise<{ ok: boolean; deleted: string; active: string | null; note: string }> {
-  return request(`${PREFIX}/${encodeURIComponent(lineId)}`, {
+  return request(agentLineByIdPath(lineId), {
     method: 'DELETE',
     body: { confirm: true },
   })

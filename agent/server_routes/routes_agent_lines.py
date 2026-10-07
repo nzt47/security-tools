@@ -309,6 +309,82 @@ def _prompt_fragments_payload(profile: LineProfile) -> Dict[str, Any]:
     }
 
 
+#: 分身面的人读语义文案（前端只上屏；判断本身只有一处实现，见下）
+#: 键 = `subagent_assembly.semantics`；值 = 该档的中文说明（含"为什么"）。
+SUBAGENT_SEMANTICS: Dict[str, str] = {
+    "named-resolved": (
+        "点名主线已装配：去 govern 平面、去 §5.7 机制 3 硬禁（子代理不含记忆读写）。"
+        "基准是**已保存档案**（派发时 registry 的真实状态）—— "
+        "未保存的改动不会体现在这里。"),
+    "unnamed-default-readonly": (
+        "任务未点名 line 且无全局激活主线 ⇒ 只读默认集。**这不是降级**："
+        "没点名就按最小集给（写文件 / Shell 不在内），而不是按最大集给。"),
+    "named-but-unavailable": (
+        "点了名却装不上 ⇒ 派发时该任务就地失败（E_FAN_OUT_LINE_UNAVAILABLE），"
+        "**绝不回退成全量授权**（fail-closed）。"),
+    "degraded": "装配单计算异常（已降级）：只影响本块，装配预览其余部分照常。",
+}
+
+
+def _subagent_assembly_payload(line_id: str, registry: Any, meta: Dict[str, Any],
+                               available: List[str]) -> Dict[str, Any]:
+    """分身面：派一个分身时它到底拿到什么 —— HTTP 投影（判定只有一处实现）
+
+    【为什么由后端投影】装配算法与子代理权限矩阵的唯一权威在
+    `agent/subagent/assembly.py::resolve_subagent_assembly`（派发路径
+    `agent/tools/fan_out_tools.py` 的唯一入口）。前端自己拼一遍就是第二份
+    "分身能拿到什么"的口径 —— 与 /preview 之所以由后端算装配结果完全同理。
+
+    【本字段锚定**已保存档案**】`resolve_subagent_assembly` 按 line_id 从 registry
+    取档案（派发时就是这个状态）。因此 /preview 里若填了一个**尚未保存**的新 id，
+    本块会如实显示"装不上" —— 那不是渲染失败，那正是真去派发会得到的结果。
+
+    【两条相反失败语义（唯一权威见 assembly 模块 docstring）】
+      1. `line_id` 为空 ⇒ 只读默认集（`mode=default-readonly`，**不是降级**）；
+      2. 点名了但不存在 / 已停用 / 损坏 ⇒ `LineUnavailable` ⇒ 本块 `available=false`
+         并给出原因，**响应其余部分（预览本体 / 详情本体）照常返回**。
+
+    Returns:
+        `SubagentAssembly.to_dict()` 的全部字段 + 三个投影字段：
+        `available`（装配单是否成立）/ `reason`（仅 available=false）/
+        `semantics` + `semantics_note`（人读失败语义）。
+        `semantics` 直接读装配单自己的 `mode`，不在本层重判一遍。
+    """
+    from agent.subagent.assembly import LineUnavailable, resolve_subagent_assembly
+
+    empty: Dict[str, Any] = {
+        "line_id": str(line_id or ""),
+        "tools": [], "needs_approval": [], "note": "",
+        "skills": [], "skills_mode": "", "skills_note": "",
+        "prompt_note": "", "prompt_source": "",
+    }
+    try:
+        asm = resolve_subagent_assembly(str(line_id or ""), registry, meta, available)
+    except LineUnavailable as e:
+        # fail-closed 的错误路径：如实回"该任务会失败"，而不是回一份看起来正常的空装配单
+        return {
+            **empty, "available": False, "mode": "unavailable",
+            "semantics": "named-but-unavailable",
+            "semantics_note": SUBAGENT_SEMANTICS["named-but-unavailable"],
+            "reason": str(e),
+        }
+    except Exception as e:  # noqa: BLE001 本块失败不得把预览端点带崩（与片段投影同款）
+        logger.warning("[AgentLines] 分身装配单投影降级（预览照常）: %s", e)
+        return {
+            **empty, "available": False, "mode": "unavailable", "semantics": "degraded",
+            "semantics_note": SUBAGENT_SEMANTICS["degraded"],
+            "reason": "装配单不可用（已降级）：%s" % (e,),
+        }
+    payload: Dict[str, Any] = dict(asm.to_dict())
+    payload["available"] = True
+    payload["reason"] = ""
+    # 语义取自装配单自己的 mode（同一份判定），本层不另立第二套判断
+    payload["semantics"] = ("unnamed-default-readonly"
+                            if asm.mode == "default-readonly" else "named-resolved")
+    payload["semantics_note"] = SUBAGENT_SEMANTICS[payload["semantics"]]
+    return payload
+
+
 def _num(value: Any, default: float = 0.0) -> float:
     """宽容取数（仅用于生成提示文案，失败即回默认值）"""
     try:
@@ -499,6 +575,12 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
         将来谁用详情页渲染那两块，就会自己再算一遍（本模块 docstring 明令避免的第二份口径）。
         这里复用同一对判定（`resolve_skill_pack` / `_prompt_fragments_payload`），
         与 `/preview`、`/validate` **同源**；纯计算、零副作用、不挂令牌的既有口径不变。
+
+        【为什么还带 subagent_assembly】「主线档案 = 工具/技能/提示词/分身 四面共用」，
+        前两面在本端点已有的 `preview` / `skills` 里，第三面在 `prompt_fragments` 里，
+        唯独分身面此前**没有任何读端点**（判定只在派发路径内部）—— 于是"这条线派出去的
+        分身拿到什么"在 UI 上无从查证。这里复用派发路径的同一个装配单入口
+        （`resolve_subagent_assembly`），纯只读投影，不产生第二份口径。
         """
         try:
             reg = get_line_registry()
@@ -513,6 +595,9 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 "skills": resolve_skill_pack(profile).to_dict(),
                 "issues": _issues_of(profile, meta),
                 "tool_source": source,
+                # 第 4 面（分身面）：与 fan_out 派发路径同一个装配单入口，不是第二份判定
+                "subagent_assembly": _subagent_assembly_payload(
+                    profile.id, reg, meta, available),
                 **_prompt_fragments_payload(profile),
             })
         except Exception as e:  # noqa: BLE001
@@ -530,6 +615,9 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
         响应除工具段外还带 `skills`：这条线的技能包判定（白名单/不限制 +
         allowed + unknown + 人读原因）。**纯计算、不挂令牌**：与工具预览同级，
         否则"调权重看效果"会退化成 401（口径见模块 docstring）。
+
+        `subagent_assembly`（第 4 面 / 分身面）与详情端点同源同算，且**锚定已保存
+        档案**：草案里尚未保存的新 id 会如实显示"装不上"（见该投影函数的 docstring）。
         """
         try:
             body = _json_body()
@@ -547,6 +635,9 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 "notes": _normalize_notes(body, profile),
                 "tool_source": source,
                 "saved": False,
+                # 分身面：与详情端点、fan_out 派发路径同一个装配单入口（唯一判定）
+                "subagent_assembly": _subagent_assembly_payload(
+                    profile.id, get_line_registry(), meta, available),
                 # 会注入系统提示词的片段（role=line 的内容与来源），与运行时同源；
                 # 前端据此渲染，不再自行判断"会不会注入"
                 **_prompt_fragments_payload(profile),
