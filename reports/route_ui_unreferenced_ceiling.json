@@ -1,0 +1,5 @@
+{
+  "live_unreferenced": 156,
+  "note": "活的、但既没被前端引用、也不在 CLI/脚本/运行时引用里的路由数上限。纪律：只允许收缩（与 failures_baseline.txt 同族）。新增活体路由若落进 unreferenced，要么把它接进 UI 或 CLI，要么在这里抬高并写明理由。",
+  "updated": "2026-10-07"
+}
