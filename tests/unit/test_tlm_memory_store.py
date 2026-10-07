@@ -168,7 +168,7 @@ class TestVectorWriteRetry:
     """[变易] 向量写入失败重试 1s/2s/4s，重试耗尽写入兜底表"""
 
     @pytest.mark.unit
-    def test_retry_succeeds_after_two_failures(self, vec_enabled):
+    def test_retry_succeeds_after_two_failures(self, vec_enabled, scoped_sleep):
         """mock _write_vec_row 前 2 次失败，第 3 次成功 → 最终返回 True"""
         adapter = vec_enabled
         call_count = {"n": 0}
@@ -181,19 +181,26 @@ class TestVectorWriteRetry:
                 raise RuntimeError(f"模拟第 {call_count['n']} 次写入失败")
             return original_write(key, embedding)
 
-        # patch time.sleep 避免测试实际等待 1s+2s
-        with patch("agent.memory.adapters.holographic_adapter.time.sleep") as mock_sleep:
-            with patch.object(adapter, "_write_vec_row", side_effect=flaky_write):
-                with patch.object(adapter, "_write_vec_failed") as mock_fallback:
-                    # _retry_vec_write 是 void 方法（后台线程 target），通过调用次数和兜底表未调用来验证成功
-                    adapter._retry_vec_write("retry_key", [0.1] * adapter._VEC_DIM, max_retries=3)
+        # 【SLEEP-SCOPE · 2026-10-07 同源修法】只记录**被测源文件**发出的 sleep
+        # （见 conftest 的 `scoped_sleep`）。旧写法
+        # `patch("agent.memory.adapters.holographic_adapter.time.sleep")` 打的是
+        # **进程全局** `time.sleep`（`holographic_adapter.time is time` 恒真，且本函数内
+        # `import time as _time; _time.sleep(...)` 也是同一个模块对象）⇒ 同进程泄漏线程
+        # 的 sleep 会混进计数，把"环境噪声"判成"重试次数错误"（CI 实测 call_count=1491）。
+        scope = scoped_sleep("agent/memory/adapters/holographic_adapter.py")
+        with patch.object(adapter, "_write_vec_row", side_effect=flaky_write):
+            with patch.object(adapter, "_write_vec_failed") as mock_fallback:
+                # _retry_vec_write 是 void 方法（后台线程 target），通过调用次数和兜底表未调用来验证成功
+                adapter._retry_vec_write("retry_key", [0.1] * adapter._VEC_DIM, max_retries=3)
 
         assert call_count["n"] == 3, "应尝试 3 次（2 次失败 + 1 次成功）"
         # 成功后不应写入兜底表
         mock_fallback.assert_not_called()
         # 应有 2 次退避等待（标称 1s + 2s，RetryPolicy 默认 jitter=0.1 允许 ±10% 抖动）
-        assert mock_sleep.call_count == 2
-        delays = [call.args[0] for call in mock_sleep.call_args_list]
+        # 判据强度不变：仍要求恰好 2 次、逐条 ±10% 带内、且递增；只去掉了**别人的**样本。
+        assert len(scope.recorded) == 2, (
+            f"被测层应恰好等待 2 次，实际 {len(scope.recorded)}（样本={scope.recorded}）")
+        delays = list(scope.recorded)
         # 验证退避序列递增且符合指数退避标称值（1s, 2s），容忍 jitter
         assert 0.9 <= delays[0] <= 1.1, f"首次退避应在 ~1s 附近（含 jitter），实际 {delays[0]}"
         assert 1.8 <= delays[1] <= 2.2, f"第二次退避应在 ~2s 附近（含 jitter），实际 {delays[1]}"
