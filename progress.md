@@ -155,4 +155,5 @@
 - **遇到并解决**：① 自动解冲突用 `git add -u` 会把带冲突标记的文件当「已解决」⇒ 只对确认取 ours 的路径 add；
   ② 后台编排器函数内 `Write-Output` 污染返回值（已 GREEN 却走 STOP 分支）⇒ 日志只写文件；
   ③ 全局 `open`/`sleep` 探针捕到无关线程 ⇒ 探针收窄到目标目录（`test_load_tool_meta_cache` 单进程全量假红）。
-- 未决：#967（设计边界待 owner 拍）、#971（等一次干净 CI）。
+- 未决：**无**。#967 已按方案 A（line prompt_note 归稳定块）合并（1445fbd0）；#971 已合并（6dfebcc4）；#1033 内容收编后关闭。
+  仍登记两条非阻塞 CI 配置风险：tool-tests 的 fix/** push 误触发、test_manifest_marks_no_container_isolation 的负载型超时。
