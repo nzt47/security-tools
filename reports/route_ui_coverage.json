@@ -1,0 +1,6943 @@
+{
+  "generated_at": "2026-10-07T14:40:30",
+  "totals": {
+    "routes": 451,
+    "live": 233,
+    "dead_copy": 218,
+    "ui": 109,
+    "cli_script": 21,
+    "runtime_only": 24,
+    "unreferenced": 297,
+    "live_by_category": {
+      "ui": 47,
+      "cli_script": 8,
+      "runtime_only": 22,
+      "unreferenced": 156
+    }
+  },
+  "frontend_endpoints": 111,
+  "frontend_unmatched": [
+    "/api/approval",
+    "/api/cp"
+  ],
+  "entries": [
+    {
+      "path": "/",
+      "norm": "/",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "app_server.py:2087"
+      ]
+    },
+    {
+      "path": "/<path:subpath>",
+      "norm": "/*",
+      "methods": [
+        "DELETE",
+        "GET",
+        "PATCH",
+        "POST",
+        "PUT"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/api_gateway_flask.py"
+      ],
+      "where": [
+        "agent/api_gateway_flask.py:163"
+      ]
+    },
+    {
+      "path": "/api/agent-lines",
+      "norm": "/api/agent-lines",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_agent_lines.py:293",
+        "agent/server_routes/routes_agent_lines.py:481"
+      ]
+    },
+    {
+      "path": "/api/agent-lines/<line_id>",
+      "norm": "/api/agent-lines/*",
+      "methods": [
+        "DELETE",
+        "GET",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_agent_lines.py:431",
+        "agent/server_routes/routes_agent_lines.py:503",
+        "agent/server_routes/routes_agent_lines.py:529"
+      ]
+    },
+    {
+      "path": "/api/agent-lines/active",
+      "norm": "/api/agent-lines/active",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_agent_lines.py:552"
+      ]
+    },
+    {
+      "path": "/api/agent-lines/planes",
+      "norm": "/api/agent-lines/planes",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_agent_lines.py:317"
+      ]
+    },
+    {
+      "path": "/api/agent-lines/preview",
+      "norm": "/api/agent-lines/preview",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_agent_lines.py:454"
+      ]
+    },
+    {
+      "path": "/api/agent-lines/validate",
+      "norm": "/api/agent-lines/validate",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_agent_lines.py:579"
+      ]
+    },
+    {
+      "path": "/api/apply-network-config",
+      "norm": "/api/apply-network-config",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:190",
+        "plugins/admin.py:286"
+      ]
+    },
+    {
+      "path": "/api/approval/<record_id>/approve",
+      "norm": "/api/approval/*/approve",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_approval.py:360"
+      ]
+    },
+    {
+      "path": "/api/approval/<record_id>/reject",
+      "norm": "/api/approval/*/reject",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_approval.py:365"
+      ]
+    },
+    {
+      "path": "/api/approval/console",
+      "norm": "/api/approval/console",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_approval.py:372"
+      ]
+    },
+    {
+      "path": "/api/approval/link",
+      "norm": "/api/approval/link",
+      "methods": [
+        "POST"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/approve_tool_call.ps1"
+      ],
+      "where": [
+        "agent/server_routes/routes_approval.py:280"
+      ]
+    },
+    {
+      "path": "/api/approval/link/<token>",
+      "norm": "/api/approval/link/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_approval.py:316"
+      ]
+    },
+    {
+      "path": "/api/approval/pending",
+      "norm": "/api/approval/pending",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/approve_tool_call.ps1"
+      ],
+      "where": [
+        "agent/server_routes/routes_approval.py:235"
+      ]
+    },
+    {
+      "path": "/api/approval/second-factor",
+      "norm": "/api/approval/second-factor",
+      "methods": [
+        "POST"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/approve_tool_call.ps1"
+      ],
+      "where": [
+        "agent/server_routes/routes_approval.py:336"
+      ]
+    },
+    {
+      "path": "/api/approval/session",
+      "norm": "/api/approval/session",
+      "methods": [
+        "DELETE",
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "scripts/approve_tool_call.ps1"
+      ],
+      "where": [
+        "agent/server_routes/routes_approval.py:197",
+        "agent/server_routes/routes_approval.py:222"
+      ]
+    },
+    {
+      "path": "/api/approval/whoami",
+      "norm": "/api/approval/whoami",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_approval.py:174"
+      ]
+    },
+    {
+      "path": "/api/assets/<category>",
+      "norm": "/api/assets/*",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_assets.py:138",
+        "agent/server_routes/routes_assets.py:90"
+      ]
+    },
+    {
+      "path": "/api/assets/<category>/<item_id>",
+      "norm": "/api/assets/*/*",
+      "methods": [
+        "DELETE"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_assets.py:113"
+      ]
+    },
+    {
+      "path": "/api/assets/backup",
+      "norm": "/api/assets/backup",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_assets.py:164"
+      ]
+    },
+    {
+      "path": "/api/assets/backup/<backup_id>",
+      "norm": "/api/assets/backup/*",
+      "methods": [
+        "DELETE"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_assets.py:216"
+      ]
+    },
+    {
+      "path": "/api/assets/backup/list",
+      "norm": "/api/assets/backup/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_assets.py:192"
+      ]
+    },
+    {
+      "path": "/api/assets/export",
+      "norm": "/api/assets/export",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_assets.py:268"
+      ]
+    },
+    {
+      "path": "/api/assets/overview",
+      "norm": "/api/assets/overview",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_assets.py:71"
+      ]
+    },
+    {
+      "path": "/api/assets/restore",
+      "norm": "/api/assets/restore",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_assets.py:232"
+      ]
+    },
+    {
+      "path": "/api/audit/logs",
+      "norm": "/api/audit/logs",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin.py:784"
+      ]
+    },
+    {
+      "path": "/api/audit/route-ui-coverage",
+      "norm": "/api/audit/route-ui-coverage",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/audit_coverage.py:27"
+      ]
+    },
+    {
+      "path": "/api/auth/login",
+      "norm": "/api/auth/login",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:429"
+      ]
+    },
+    {
+      "path": "/api/auth/menus",
+      "norm": "/api/auth/menus",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:478"
+      ]
+    },
+    {
+      "path": "/api/auth/token-check",
+      "norm": "/api/auth/token-check",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:185",
+        "plugins/admin.py:58"
+      ]
+    },
+    {
+      "path": "/api/background/tasks",
+      "norm": "/api/background/tasks",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_background.py:89"
+      ]
+    },
+    {
+      "path": "/api/background/tasks/<task_id>",
+      "norm": "/api/background/tasks/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_background.py:116"
+      ]
+    },
+    {
+      "path": "/api/background/tasks/<task_id>/cancel",
+      "norm": "/api/background/tasks/*/cancel",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_background.py:142"
+      ]
+    },
+    {
+      "path": "/api/background/tasks/<task_id>/result",
+      "norm": "/api/background/tasks/*/result",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_background.py:129"
+      ]
+    },
+    {
+      "path": "/api/browser/close",
+      "norm": "/api/browser/close",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:225",
+        "plugins/system_tools.py:305"
+      ]
+    },
+    {
+      "path": "/api/browser/navigate",
+      "norm": "/api/browser/navigate",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:206",
+        "plugins/system_tools.py:284"
+      ]
+    },
+    {
+      "path": "/api/browser/screenshot",
+      "norm": "/api/browser/screenshot",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:217",
+        "plugins/system_tools.py:296"
+      ]
+    },
+    {
+      "path": "/api/business/dashboard",
+      "norm": "/api/business/dashboard",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_business_dashboard.py:283"
+      ]
+    },
+    {
+      "path": "/api/business/definitions",
+      "norm": "/api/business/definitions",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_business_dashboard.py:367"
+      ]
+    },
+    {
+      "path": "/api/business/health",
+      "norm": "/api/business/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_business_dashboard.py:259"
+      ]
+    },
+    {
+      "path": "/api/business/metrics/<metric_name>",
+      "norm": "/api/business/metrics/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_business_dashboard.py:325"
+      ]
+    },
+    {
+      "path": "/api/business/prometheus",
+      "norm": "/api/business/prometheus",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_business_dashboard.py:355"
+      ]
+    },
+    {
+      "path": "/api/capability-manifest",
+      "norm": "/api/capability-manifest",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_agent_lines.py:381"
+      ]
+    },
+    {
+      "path": "/api/chat",
+      "norm": "/api/chat",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/monitoring/business_metrics.py",
+        "scripts/probe_prefix_cache_interaction.py",
+        "scripts/stress_zh_assembly_20260815.py",
+        "scripts/verify_zh_scenarios_20260815.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_chat.py:258",
+        "plugins/chat.py:141"
+      ]
+    },
+    {
+      "path": "/api/chat/stream",
+      "norm": "/api/chat/stream",
+      "methods": [
+        "POST"
+      ],
+      "category": "cli_script",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/probe_prefix_cache_interaction.py"
+      ],
+      "where": [
+        "plugins/chat.py:1948"
+      ]
+    },
+    {
+      "path": "/api/clear",
+      "norm": "/api/clear",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:175",
+        "plugins/chat.py:955"
+      ]
+    },
+    {
+      "path": "/api/clipboard",
+      "norm": "/api/clipboard",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:294",
+        "agent/server_routes/routes_workspace.py:301",
+        "plugins/system_tools.py:383",
+        "plugins/system_tools.py:391"
+      ]
+    },
+    {
+      "path": "/api/cognitive/prompt",
+      "norm": "/api/cognitive/prompt",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "cognitive/flask_adapter.py:33"
+      ]
+    },
+    {
+      "path": "/api/cognitive/reject",
+      "norm": "/api/cognitive/reject",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "cognitive/flask_adapter.py:45"
+      ]
+    },
+    {
+      "path": "/api/cognitive/status",
+      "norm": "/api/cognitive/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_panorama.py:237",
+        "cognitive/flask_adapter.py:28",
+        "plugins/status.py:353"
+      ]
+    },
+    {
+      "path": "/api/cognitive/translate/<sensor_name>",
+      "norm": "/api/cognitive/translate/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "cognitive/flask_adapter.py:38"
+      ]
+    },
+    {
+      "path": "/api/config",
+      "norm": "/api/config",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "cli_script",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py",
+        "scripts/demo_s2_02_audit.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_config.py:87",
+        "plugins/admin.py:71"
+      ]
+    },
+    {
+      "path": "/api/config/logs",
+      "norm": "/api/config/logs",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:679",
+        "plugins/admin.py:768"
+      ]
+    },
+    {
+      "path": "/api/context/compress",
+      "norm": "/api/context/compress",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "plugins/memory.py:307"
+      ]
+    },
+    {
+      "path": "/api/context/config",
+      "norm": "/api/context/config",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:246"
+      ]
+    },
+    {
+      "path": "/api/context/status",
+      "norm": "/api/context/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:131"
+      ]
+    },
+    {
+      "path": "/api/cp/actions/<action>",
+      "norm": "/api/cp/actions/*",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:462"
+      ]
+    },
+    {
+      "path": "/api/cp/approvals/batch",
+      "norm": "/api/cp/approvals/batch",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:875"
+      ]
+    },
+    {
+      "path": "/api/cp/approvals/batch/link",
+      "norm": "/api/cp/approvals/batch/link",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:798"
+      ]
+    },
+    {
+      "path": "/api/cp/approvals/inbox",
+      "norm": "/api/cp/approvals/inbox",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:267"
+      ]
+    },
+    {
+      "path": "/api/cp/audit/export",
+      "norm": "/api/cp/audit/export",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:370"
+      ]
+    },
+    {
+      "path": "/api/cp/audit/export.csv",
+      "norm": "/api/cp/audit/export.csv",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:394"
+      ]
+    },
+    {
+      "path": "/api/cp/confirmations/<action>",
+      "norm": "/api/cp/confirmations/*",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:420"
+      ]
+    },
+    {
+      "path": "/api/cp/descriptors/map",
+      "norm": "/api/cp/descriptors/map",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:249"
+      ]
+    },
+    {
+      "path": "/api/cp/digestion/pipeline",
+      "norm": "/api/cp/digestion/pipeline",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:233"
+      ]
+    },
+    {
+      "path": "/api/cp/healing/incidents",
+      "norm": "/api/cp/healing/incidents",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:307"
+      ]
+    },
+    {
+      "path": "/api/cp/memory/skills",
+      "norm": "/api/cp/memory/skills",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:322"
+      ]
+    },
+    {
+      "path": "/api/cp/observability/stream",
+      "norm": "/api/cp/observability/stream",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:293"
+      ]
+    },
+    {
+      "path": "/api/cp/panels",
+      "norm": "/api/cp/panels",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:199"
+      ]
+    },
+    {
+      "path": "/api/cp/roi",
+      "norm": "/api/cp/roi",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:280"
+      ]
+    },
+    {
+      "path": "/api/cp/security/authz-alerts",
+      "norm": "/api/cp/security/authz-alerts",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:345"
+      ]
+    },
+    {
+      "path": "/api/cp/security/render-state",
+      "norm": "/api/cp/security/render-state",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_ui_panels.py:359"
+      ]
+    },
+    {
+      "path": "/api/cp/settings",
+      "norm": "/api/cp/settings",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_settings.py:274"
+      ]
+    },
+    {
+      "path": "/api/cp/settings/<key>",
+      "norm": "/api/cp/settings/*",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_settings.py:284"
+      ]
+    },
+    {
+      "path": "/api/cp/settings/<key>/confirm",
+      "norm": "/api/cp/settings/*/confirm",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_settings.py:314"
+      ]
+    },
+    {
+      "path": "/api/cp/settings/<key>/reset",
+      "norm": "/api/cp/settings/*/reset",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_settings.py:339"
+      ]
+    },
+    {
+      "path": "/api/cp/tool-exemptions",
+      "norm": "/api/cp/tool-exemptions",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_settings.py:364",
+        "agent/server_routes/routes_settings.py:375"
+      ]
+    },
+    {
+      "path": "/api/dashboard/health",
+      "norm": "/api/dashboard/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_dashboard.py:680"
+      ]
+    },
+    {
+      "path": "/api/dashboard/memory",
+      "norm": "/api/dashboard/memory",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_dashboard.py:855"
+      ]
+    },
+    {
+      "path": "/api/dashboard/quality",
+      "norm": "/api/dashboard/quality",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_dashboard.py:702"
+      ]
+    },
+    {
+      "path": "/api/dashboard/summary",
+      "norm": "/api/dashboard/summary",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:699"
+      ]
+    },
+    {
+      "path": "/api/dashboard/traces",
+      "norm": "/api/dashboard/traces",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_dashboard.py:780"
+      ]
+    },
+    {
+      "path": "/api/dashboard/traces/<trace_id>",
+      "norm": "/api/dashboard/traces/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_dashboard.py:833"
+      ]
+    },
+    {
+      "path": "/api/demo/config",
+      "norm": "/api/demo/config",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/demo_plugin.py:35",
+        "plugins/demo_plugin.py:41"
+      ]
+    },
+    {
+      "path": "/api/demo/probe",
+      "norm": "/api/demo/probe",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/demo_plugin.py:29"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/config",
+      "norm": "/api/diagnostics/config",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:635"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/error_correlation",
+      "norm": "/api/diagnostics/error_correlation",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:693"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/health",
+      "norm": "/api/diagnostics/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/health_check.py",
+        "scripts/verify_loader_degradation_startup.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_logging.py:665"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/llm-check",
+      "norm": "/api/diagnostics/llm-check",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:604"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/logs",
+      "norm": "/api/diagnostics/logs",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:851"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/metrics",
+      "norm": "/api/diagnostics/metrics",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:827"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/tools",
+      "norm": "/api/diagnostics/tools",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:571"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/trace",
+      "norm": "/api/diagnostics/trace",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/observability_post_deploy.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_logging.py:716"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/trace/extract",
+      "norm": "/api/diagnostics/trace/extract",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:741"
+      ]
+    },
+    {
+      "path": "/api/diagnostics/trace/inject",
+      "norm": "/api/diagnostics/trace/inject",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/observability_post_deploy.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_logging.py:794"
+      ]
+    },
+    {
+      "path": "/api/docs",
+      "norm": "/api/docs",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/api_gateway_flask.py"
+      ],
+      "where": [
+        "agent/api_gateway_flask.py:174"
+      ]
+    },
+    {
+      "path": "/api/experience/<sid>",
+      "norm": "/api/experience/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/experience.py:250"
+      ]
+    },
+    {
+      "path": "/api/experience/<sid>/review",
+      "norm": "/api/experience/*/review",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/experience.py:315"
+      ]
+    },
+    {
+      "path": "/api/experience/batch/<batch_id>/rollback",
+      "norm": "/api/experience/batch/*/rollback",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/experience.py:339"
+      ]
+    },
+    {
+      "path": "/api/experience/ingest",
+      "norm": "/api/experience/ingest",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/experience.py:157"
+      ]
+    },
+    {
+      "path": "/api/experience/list",
+      "norm": "/api/experience/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/experience.py:216"
+      ]
+    },
+    {
+      "path": "/api/experience/search",
+      "norm": "/api/experience/search",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/experience.py:287"
+      ]
+    },
+    {
+      "path": "/api/experience/stats",
+      "norm": "/api/experience/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/experience.py:261"
+      ]
+    },
+    {
+      "path": "/api/export/users",
+      "norm": "/api/export/users",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:714"
+      ]
+    },
+    {
+      "path": "/api/extensions/channels/send",
+      "norm": "/api/extensions/channels/send",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:156",
+        "plugins/skills.py:818"
+      ]
+    },
+    {
+      "path": "/api/extensions/configure",
+      "norm": "/api/extensions/configure",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:85",
+        "plugins/skills.py:732"
+      ]
+    },
+    {
+      "path": "/api/extensions/discover",
+      "norm": "/api/extensions/discover",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:101",
+        "plugins/skills.py:754"
+      ]
+    },
+    {
+      "path": "/api/extensions/install",
+      "norm": "/api/extensions/install",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:38",
+        "plugins/skills.py:664"
+      ]
+    },
+    {
+      "path": "/api/extensions/installed",
+      "norm": "/api/extensions/installed",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:28",
+        "plugins/skills.py:650"
+      ]
+    },
+    {
+      "path": "/api/extensions/list",
+      "norm": "/api/extensions/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:17",
+        "plugins/skills.py:635"
+      ]
+    },
+    {
+      "path": "/api/extensions/market/recommend",
+      "norm": "/api/extensions/market/recommend",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:128",
+        "plugins/skills.py:786"
+      ]
+    },
+    {
+      "path": "/api/extensions/market/refresh",
+      "norm": "/api/extensions/market/refresh",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:140",
+        "plugins/skills.py:802"
+      ]
+    },
+    {
+      "path": "/api/extensions/market/search",
+      "norm": "/api/extensions/market/search",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:115",
+        "plugins/skills.py:768"
+      ]
+    },
+    {
+      "path": "/api/extensions/toggle",
+      "norm": "/api/extensions/toggle",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/extensions.py:69",
+        "plugins/skills.py:710"
+      ]
+    },
+    {
+      "path": "/api/extensions/uninstall",
+      "norm": "/api/extensions/uninstall",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/extensions.py:54",
+        "plugins/skills.py:686"
+      ]
+    },
+    {
+      "path": "/api/feedback/<feedback_id>",
+      "norm": "/api/feedback/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_feedback.py:165"
+      ]
+    },
+    {
+      "path": "/api/feedback/<feedback_id>/resolve",
+      "norm": "/api/feedback/*/resolve",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_feedback.py:193"
+      ]
+    },
+    {
+      "path": "/api/feedback/list",
+      "norm": "/api/feedback/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_feedback.py:113"
+      ]
+    },
+    {
+      "path": "/api/feedback/quality-cases",
+      "norm": "/api/feedback/quality-cases",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_feedback.py:264"
+      ]
+    },
+    {
+      "path": "/api/feedback/report",
+      "norm": "/api/feedback/report",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_feedback.py:305"
+      ]
+    },
+    {
+      "path": "/api/feedback/submit",
+      "norm": "/api/feedback/submit",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_feedback.py:33"
+      ]
+    },
+    {
+      "path": "/api/feedback/summary",
+      "norm": "/api/feedback/summary",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_feedback.py:236"
+      ]
+    },
+    {
+      "path": "/api/filesystem/info",
+      "norm": "/api/filesystem/info",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:144",
+        "plugins/system_tools.py:198"
+      ]
+    },
+    {
+      "path": "/api/filesystem/list",
+      "norm": "/api/filesystem/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:135",
+        "plugins/system_tools.py:187"
+      ]
+    },
+    {
+      "path": "/api/filesystem/read",
+      "norm": "/api/filesystem/read",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:98",
+        "plugins/system_tools.py:141"
+      ]
+    },
+    {
+      "path": "/api/filesystem/search",
+      "norm": "/api/filesystem/search",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:153",
+        "plugins/system_tools.py:209"
+      ]
+    },
+    {
+      "path": "/api/filesystem/write",
+      "norm": "/api/filesystem/write",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:118",
+        "plugins/system_tools.py:165"
+      ]
+    },
+    {
+      "path": "/api/handoff",
+      "norm": "/api/handoff",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:248",
+        "plugins/chat.py:675"
+      ]
+    },
+    {
+      "path": "/api/health",
+      "norm": "/api/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/audit/ui_middleware.py",
+        "agent/modules_api.py",
+        "agent/server_auth.py",
+        "agent/settings/registry.py",
+        "app_server.py",
+        "scripts/deployment_drill.py",
+        "scripts/probe_prefix_cache_interaction.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_panorama.py:169",
+        "plugins/status.py:234"
+      ]
+    },
+    {
+      "path": "/api/health/alerts",
+      "norm": "/api/health/alerts",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_health.py:309"
+      ]
+    },
+    {
+      "path": "/api/health/auth",
+      "norm": "/api/health/auth",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_panorama.py:176",
+        "plugins/status.py:242"
+      ]
+    },
+    {
+      "path": "/api/health/dashboard",
+      "norm": "/api/health/dashboard",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/health/dashboard.py",
+        "agent/modules_api.py",
+        "scripts/verify_loader_degradation_startup.py"
+      ],
+      "where": [
+        "agent/health/dashboard.py:16"
+      ]
+    },
+    {
+      "path": "/api/health/export",
+      "norm": "/api/health/export",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_health.py:421"
+      ]
+    },
+    {
+      "path": "/api/health/history",
+      "norm": "/api/health/history",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_health.py:219"
+      ]
+    },
+    {
+      "path": "/api/health/probe-trend",
+      "norm": "/api/health/probe-trend",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/health/dashboard.py"
+      ],
+      "where": [
+        "agent/health/dashboard.py:103"
+      ]
+    },
+    {
+      "path": "/api/health/quick-check",
+      "norm": "/api/health/quick-check",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_health.py:346"
+      ]
+    },
+    {
+      "path": "/api/health/retrieval",
+      "norm": "/api/health/retrieval",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "app_server.py:1765"
+      ]
+    },
+    {
+      "path": "/api/health/score",
+      "norm": "/api/health/score",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/verify_loader_degradation_startup.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_health.py:147"
+      ]
+    },
+    {
+      "path": "/api/health/score/calculate",
+      "norm": "/api/health/score/calculate",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_health.py:173"
+      ]
+    },
+    {
+      "path": "/api/health/summary",
+      "norm": "/api/health/summary",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_health.py:285"
+      ]
+    },
+    {
+      "path": "/api/health/trend",
+      "norm": "/api/health/trend",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_health.py:199"
+      ]
+    },
+    {
+      "path": "/api/health/weights",
+      "norm": "/api/health/weights",
+      "methods": [
+        "GET",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_health.py:245"
+      ]
+    },
+    {
+      "path": "/api/heartbeat",
+      "norm": "/api/heartbeat",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:25",
+        "plugins/status.py:789"
+      ]
+    },
+    {
+      "path": "/api/heartbeat/history",
+      "norm": "/api/heartbeat/history",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:37",
+        "plugins/status.py:815"
+      ]
+    },
+    {
+      "path": "/api/heartbeat/status",
+      "norm": "/api/heartbeat/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:56",
+        "plugins/status.py:844"
+      ]
+    },
+    {
+      "path": "/api/history",
+      "norm": "/api/history",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:153",
+        "plugins/chat.py:933"
+      ]
+    },
+    {
+      "path": "/api/history/<int:index>",
+      "norm": "/api/history/*",
+      "methods": [
+        "DELETE"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:208",
+        "plugins/chat.py:989"
+      ]
+    },
+    {
+      "path": "/api/history/search",
+      "norm": "/api/history/search",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:191",
+        "plugins/chat.py:969"
+      ]
+    },
+    {
+      "path": "/api/knowledge/add",
+      "norm": "/api/knowledge/add",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:610"
+      ]
+    },
+    {
+      "path": "/api/knowledge/cards",
+      "norm": "/api/knowledge/cards",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "scripts/dev/e2e_knowledge_409.py",
+        "scripts/dev/kb_crud_smoke.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_knowledge.py:188",
+        "agent/server_routes/routes_knowledge.py:225"
+      ]
+    },
+    {
+      "path": "/api/knowledge/cards/<slug>",
+      "norm": "/api/knowledge/cards/*",
+      "methods": [
+        "DELETE",
+        "GET",
+        "PATCH"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_knowledge.py:209",
+        "agent/server_routes/routes_knowledge.py:255",
+        "agent/server_routes/routes_knowledge.py:317"
+      ]
+    },
+    {
+      "path": "/api/knowledge/graph",
+      "norm": "/api/knowledge/graph",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_knowledge.py:368"
+      ]
+    },
+    {
+      "path": "/api/knowledge/index",
+      "norm": "/api/knowledge/index",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_knowledge.py:338"
+      ]
+    },
+    {
+      "path": "/api/knowledge/lint",
+      "norm": "/api/knowledge/lint",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_knowledge.py:352"
+      ]
+    },
+    {
+      "path": "/api/knowledge/query",
+      "norm": "/api/knowledge/query",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_knowledge.py:109"
+      ]
+    },
+    {
+      "path": "/api/learning/metrics",
+      "norm": "/api/learning/metrics",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/learning_metrics_api.py",
+        "scripts/demo_learning_metrics.py"
+      ],
+      "where": [
+        "agent/learning_metrics_api.py:27"
+      ]
+    },
+    {
+      "path": "/api/llm-monitor/clear",
+      "norm": "/api/llm-monitor/clear",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_llm_monitor.py:112"
+      ]
+    },
+    {
+      "path": "/api/llm-monitor/records",
+      "norm": "/api/llm-monitor/records",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "scripts/probe_prefix_cache_interaction.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_llm_monitor.py:25"
+      ]
+    },
+    {
+      "path": "/api/llm-monitor/records/<record_id>",
+      "norm": "/api/llm-monitor/records/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_llm_monitor.py:56"
+      ]
+    },
+    {
+      "path": "/api/llm-monitor/stats",
+      "norm": "/api/llm-monitor/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_llm_monitor.py:74"
+      ]
+    },
+    {
+      "path": "/api/llm-monitor/toggle",
+      "norm": "/api/llm-monitor/toggle",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_llm_monitor.py:98"
+      ]
+    },
+    {
+      "path": "/api/llm/instances",
+      "norm": "/api/llm/instances",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:232",
+        "agent/server_routes/routes_config.py:256",
+        "plugins/admin.py:337",
+        "plugins/admin.py:365"
+      ]
+    },
+    {
+      "path": "/api/llm/instances/<string:instance_id>",
+      "norm": "/api/llm/instances/*",
+      "methods": [
+        "DELETE",
+        "GET",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:243",
+        "agent/server_routes/routes_config.py:276",
+        "agent/server_routes/routes_config.py:295",
+        "plugins/admin.py:350"
+      ]
+    },
+    {
+      "path": "/api/llm/instances/<string:instance_id>/default",
+      "norm": "/api/llm/instances/*/default",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:310",
+        "plugins/admin.py:423"
+      ]
+    },
+    {
+      "path": "/api/llm/instances/<string:instance_id>/test",
+      "norm": "/api/llm/instances/*/test",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:325",
+        "plugins/admin.py:438"
+      ]
+    },
+    {
+      "path": "/api/mcp/enable",
+      "norm": "/api/mcp/enable",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:470",
+        "plugins/mcp_scheduler.py:143"
+      ]
+    },
+    {
+      "path": "/api/mcp/services",
+      "norm": "/api/mcp/services",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:398",
+        "agent/server_routes/routes_config.py:422",
+        "plugins/mcp_scheduler.py:51",
+        "plugins/mcp_scheduler.py:85"
+      ]
+    },
+    {
+      "path": "/api/mcp/services/<string:service_id>",
+      "norm": "/api/mcp/services/*",
+      "methods": [
+        "DELETE",
+        "GET",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:409",
+        "agent/server_routes/routes_config.py:440",
+        "agent/server_routes/routes_config.py:457",
+        "plugins/mcp_scheduler.py:108"
+      ]
+    },
+    {
+      "path": "/api/memory/<int:index>",
+      "norm": "/api/memory/*",
+      "methods": [
+        "DELETE"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:389"
+      ]
+    },
+    {
+      "path": "/api/memory/clear-summary",
+      "norm": "/api/memory/clear-summary",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:397"
+      ]
+    },
+    {
+      "path": "/api/memory/compress",
+      "norm": "/api/memory/compress",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "plugins/memory.py:373"
+      ]
+    },
+    {
+      "path": "/api/memory/manual",
+      "norm": "/api/memory/manual",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "plugins/memory.py:353"
+      ]
+    },
+    {
+      "path": "/api/memory/overview",
+      "norm": "/api/memory/overview",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:329"
+      ]
+    },
+    {
+      "path": "/api/memory/review",
+      "norm": "/api/memory/review",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:426"
+      ]
+    },
+    {
+      "path": "/api/memory/summary",
+      "norm": "/api/memory/summary",
+      "methods": [
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:409"
+      ]
+    },
+    {
+      "path": "/api/memory/windows/clear",
+      "norm": "/api/memory/windows/clear",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:724"
+      ]
+    },
+    {
+      "path": "/api/memory/windows/config",
+      "norm": "/api/memory/windows/config",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:707"
+      ]
+    },
+    {
+      "path": "/api/memory/windows/current",
+      "norm": "/api/memory/windows/current",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:697"
+      ]
+    },
+    {
+      "path": "/api/memory/windows/events",
+      "norm": "/api/memory/windows/events",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:639"
+      ]
+    },
+    {
+      "path": "/api/memory/windows/stats",
+      "norm": "/api/memory/windows/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:655"
+      ]
+    },
+    {
+      "path": "/api/menu/tree",
+      "norm": "/api/menu/tree",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:655"
+      ]
+    },
+    {
+      "path": "/api/mode",
+      "norm": "/api/mode",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_panorama.py:220",
+        "plugins/status.py:311"
+      ]
+    },
+    {
+      "path": "/api/modules/<module_id>/actions",
+      "norm": "/api/modules/*/actions",
+      "methods": [
+        "POST"
+      ],
+      "category": "cli_script",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/verify_topology_view.py"
+      ],
+      "where": [
+        "agent/modules_api.py:407"
+      ]
+    },
+    {
+      "path": "/api/modules/<module_id>/detail",
+      "norm": "/api/modules/*/detail",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/verify_topology_view.py"
+      ],
+      "where": [
+        "agent/modules_api.py:381"
+      ]
+    },
+    {
+      "path": "/api/modules/topology",
+      "norm": "/api/modules/topology",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "scripts/verify_modules_api.py",
+        "scripts/verify_topology_view.py"
+      ],
+      "where": [
+        "agent/modules_api.py:340"
+      ]
+    },
+    {
+      "path": "/api/network-config",
+      "norm": "/api/network-config",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_config.py:133",
+        "agent/server_routes/routes_config.py:140",
+        "plugins/admin.py:196",
+        "plugins/admin.py:205"
+      ]
+    },
+    {
+      "path": "/api/network-config/export",
+      "norm": "/api/network-config/export",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:161",
+        "plugins/admin.py:251"
+      ]
+    },
+    {
+      "path": "/api/network-config/import",
+      "norm": "/api/network-config/import",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:172",
+        "plugins/admin.py:264"
+      ]
+    },
+    {
+      "path": "/api/network-config/reset",
+      "norm": "/api/network-config/reset",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:153",
+        "plugins/admin.py:241"
+      ]
+    },
+    {
+      "path": "/api/news",
+      "norm": "/api/news",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:454"
+      ]
+    },
+    {
+      "path": "/api/notification/<int:notif_id>/read",
+      "norm": "/api/notification/*/read",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:681"
+      ]
+    },
+    {
+      "path": "/api/notification/list",
+      "norm": "/api/notification/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:667"
+      ]
+    },
+    {
+      "path": "/api/notification/read-all",
+      "norm": "/api/notification/read-all",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:691"
+      ]
+    },
+    {
+      "path": "/api/notification/unread-count",
+      "norm": "/api/notification/unread-count",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:675"
+      ]
+    },
+    {
+      "path": "/api/observability/access_logs",
+      "norm": "/api/observability/access_logs",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:1459"
+      ]
+    },
+    {
+      "path": "/api/observability/access_stats",
+      "norm": "/api/observability/access_stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:1504"
+      ]
+    },
+    {
+      "path": "/api/observability/alerts",
+      "norm": "/api/observability/alerts",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:1172",
+        "agent/server_routes/routes_logging.py:1191"
+      ]
+    },
+    {
+      "path": "/api/observability/alerts/<alert_name>",
+      "norm": "/api/observability/alerts/*",
+      "methods": [
+        "DELETE",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:1247",
+        "agent/server_routes/routes_logging.py:1296"
+      ]
+    },
+    {
+      "path": "/api/observability/alerts/validate",
+      "norm": "/api/observability/alerts/validate",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:1320"
+      ]
+    },
+    {
+      "path": "/api/observability/logs",
+      "norm": "/api/observability/logs",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:877",
+        "agent/server_routes/routes_logging.py:995"
+      ]
+    },
+    {
+      "path": "/api/observability/logs/labels",
+      "norm": "/api/observability/logs/labels",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:965"
+      ]
+    },
+    {
+      "path": "/api/observability/logs/stream",
+      "norm": "/api/observability/logs/stream",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:1074"
+      ]
+    },
+    {
+      "path": "/api/observability/state",
+      "norm": "/api/observability/state",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:1041"
+      ]
+    },
+    {
+      "path": "/api/observability/traces",
+      "norm": "/api/observability/traces",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:1350"
+      ]
+    },
+    {
+      "path": "/api/observability/traces/<trace_id>",
+      "norm": "/api/observability/traces/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_logging.py:1389"
+      ]
+    },
+    {
+      "path": "/api/orchestrator/semantic-config",
+      "norm": "/api/orchestrator/semantic-config",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_semantic_config.py:42",
+        "agent/server_routes/routes_semantic_config.py:60"
+      ]
+    },
+    {
+      "path": "/api/panorama",
+      "norm": "/api/panorama",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_panorama.py:256",
+        "plugins/status.py:373"
+      ]
+    },
+    {
+      "path": "/api/permission/access-log",
+      "norm": "/api/permission/access-log",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_permission.py:166",
+        "plugins/safety.py:280"
+      ]
+    },
+    {
+      "path": "/api/permission/emergency",
+      "norm": "/api/permission/emergency",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_permission.py:175",
+        "plugins/safety.py:291"
+      ]
+    },
+    {
+      "path": "/api/permission/log",
+      "norm": "/api/permission/log",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_permission.py:107",
+        "plugins/safety.py:211"
+      ]
+    },
+    {
+      "path": "/api/permission/stats",
+      "norm": "/api/permission/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_permission.py:122",
+        "plugins/safety.py:231"
+      ]
+    },
+    {
+      "path": "/api/permission/status",
+      "norm": "/api/permission/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_permission.py:76",
+        "plugins/safety.py:172"
+      ]
+    },
+    {
+      "path": "/api/permission/toggle",
+      "norm": "/api/permission/toggle",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_permission.py:207",
+        "plugins/safety.py:326"
+      ]
+    },
+    {
+      "path": "/api/permissions",
+      "norm": "/api/permissions",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:556"
+      ]
+    },
+    {
+      "path": "/api/personality",
+      "norm": "/api/personality",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_personality.py:23",
+        "plugins/status.py:665"
+      ]
+    },
+    {
+      "path": "/api/personality/params",
+      "norm": "/api/personality/params",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_personality.py:29",
+        "plugins/status.py:684"
+      ]
+    },
+    {
+      "path": "/api/personality/profile",
+      "norm": "/api/personality/profile",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_personality.py:39",
+        "plugins/status.py:694"
+      ]
+    },
+    {
+      "path": "/api/personality/reset",
+      "norm": "/api/personality/reset",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_personality.py:49",
+        "plugins/status.py:704"
+      ]
+    },
+    {
+      "path": "/api/planning/toggle",
+      "norm": "/api/planning/toggle",
+      "methods": [
+        "POST"
+      ],
+      "category": "cli_script",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py",
+        "scripts/verify_modules_api.py"
+      ],
+      "where": [
+        "plugins/status.py:329"
+      ]
+    },
+    {
+      "path": "/api/plugins",
+      "norm": "/api/plugins",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "app_server.py:1452"
+      ]
+    },
+    {
+      "path": "/api/plugins/reload",
+      "norm": "/api/plugins/reload",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "app_server.py:1458"
+      ]
+    },
+    {
+      "path": "/api/privacy/info",
+      "norm": "/api/privacy/info",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/safety.py:54"
+      ]
+    },
+    {
+      "path": "/api/process-distill/distill",
+      "norm": "/api/process-distill/distill",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_process_distill.py:67"
+      ]
+    },
+    {
+      "path": "/api/process-distill/health",
+      "norm": "/api/process-distill/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_process_distill.py:58"
+      ]
+    },
+    {
+      "path": "/api/process/list",
+      "norm": "/api/process/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:237",
+        "plugins/system_tools.py:318"
+      ]
+    },
+    {
+      "path": "/api/process/start",
+      "norm": "/api/process/start",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_workspace.py:267",
+        "plugins/system_tools.py:354"
+      ]
+    },
+    {
+      "path": "/api/process/stop",
+      "norm": "/api/process/stop",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_workspace.py:279",
+        "plugins/system_tools.py:367"
+      ]
+    },
+    {
+      "path": "/api/process/whitelist",
+      "norm": "/api/process/whitelist",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:243",
+        "plugins/system_tools.py:326"
+      ]
+    },
+    {
+      "path": "/api/process/whitelist/add",
+      "norm": "/api/process/whitelist/add",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:249",
+        "plugins/system_tools.py:334"
+      ]
+    },
+    {
+      "path": "/api/process/whitelist/remove",
+      "norm": "/api/process/whitelist/remove",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:258",
+        "plugins/system_tools.py:344"
+      ]
+    },
+    {
+      "path": "/api/replay/<replay_id>",
+      "norm": "/api/replay/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_replay.py:195"
+      ]
+    },
+    {
+      "path": "/api/replay/<replay_id>/data",
+      "norm": "/api/replay/*/data",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_replay.py:223"
+      ]
+    },
+    {
+      "path": "/api/replay/cleanup",
+      "norm": "/api/replay/cleanup",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_replay.py:286"
+      ]
+    },
+    {
+      "path": "/api/replay/list",
+      "norm": "/api/replay/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_replay.py:142"
+      ]
+    },
+    {
+      "path": "/api/replay/stats",
+      "norm": "/api/replay/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_replay.py:258"
+      ]
+    },
+    {
+      "path": "/api/replay/upload",
+      "norm": "/api/replay/upload",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_replay.py:56"
+      ]
+    },
+    {
+      "path": "/api/role",
+      "norm": "/api/role",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:562"
+      ]
+    },
+    {
+      "path": "/api/role/<int:role_id>",
+      "norm": "/api/role/*",
+      "methods": [
+        "DELETE",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:609",
+        "plugins/admin_api.py:623"
+      ]
+    },
+    {
+      "path": "/api/role/<int:role_id>/data-scope",
+      "norm": "/api/role/*/data-scope",
+      "methods": [
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:597"
+      ]
+    },
+    {
+      "path": "/api/role/<int:role_id>/permissions",
+      "norm": "/api/role/*/permissions",
+      "methods": [
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:582"
+      ]
+    },
+    {
+      "path": "/api/role/list",
+      "norm": "/api/role/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:547"
+      ]
+    },
+    {
+      "path": "/api/safety/alerts",
+      "norm": "/api/safety/alerts",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_permission.py:46",
+        "plugins/safety.py:137"
+      ]
+    },
+    {
+      "path": "/api/safety/check",
+      "norm": "/api/safety/check",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_permission.py:36",
+        "plugins/safety.py:125"
+      ]
+    },
+    {
+      "path": "/api/safety/keywords",
+      "norm": "/api/safety/keywords",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_permission.py:54",
+        "plugins/safety.py:147"
+      ]
+    },
+    {
+      "path": "/api/sandbox/run",
+      "norm": "/api/sandbox/run",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:167",
+        "plugins/system_tools.py:225"
+      ]
+    },
+    {
+      "path": "/api/scheduler/create",
+      "norm": "/api/scheduler/create",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:83",
+        "plugins/mcp_scheduler.py:174"
+      ]
+    },
+    {
+      "path": "/api/scheduler/delete",
+      "norm": "/api/scheduler/delete",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:100",
+        "plugins/mcp_scheduler.py:195"
+      ]
+    },
+    {
+      "path": "/api/scheduler/execute-now",
+      "norm": "/api/scheduler/execute-now",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:119",
+        "plugins/mcp_scheduler.py:218"
+      ]
+    },
+    {
+      "path": "/api/scheduler/history",
+      "norm": "/api/scheduler/history",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:134",
+        "plugins/mcp_scheduler.py:235"
+      ]
+    },
+    {
+      "path": "/api/scheduler/tasks",
+      "norm": "/api/scheduler/tasks",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:77",
+        "plugins/mcp_scheduler.py:166"
+      ]
+    },
+    {
+      "path": "/api/scheduler/toggle",
+      "norm": "/api/scheduler/toggle",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:109",
+        "plugins/mcp_scheduler.py:206"
+      ]
+    },
+    {
+      "path": "/api/schedules",
+      "norm": "/api/schedules",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:254",
+        "plugins/mcp_scheduler.py:266"
+      ]
+    },
+    {
+      "path": "/api/schedules/<task_id>",
+      "norm": "/api/schedules/*",
+      "methods": [
+        "DELETE"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:296"
+      ]
+    },
+    {
+      "path": "/api/schedules/<task_id>/pause",
+      "norm": "/api/schedules/*/pause",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:308"
+      ]
+    },
+    {
+      "path": "/api/schedules/<task_id>/resume",
+      "norm": "/api/schedules/*/resume",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:320"
+      ]
+    },
+    {
+      "path": "/api/schedules/history",
+      "norm": "/api/schedules/history",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:332"
+      ]
+    },
+    {
+      "path": "/api/search-performance/check",
+      "norm": "/api/search-performance/check",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:186",
+        "plugins/admin.py:889"
+      ]
+    },
+    {
+      "path": "/api/search-performance/history",
+      "norm": "/api/search-performance/history",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:198",
+        "plugins/admin.py:903"
+      ]
+    },
+    {
+      "path": "/api/search-performance/start",
+      "norm": "/api/search-performance/start",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:160",
+        "plugins/admin.py:859"
+      ]
+    },
+    {
+      "path": "/api/search-performance/status",
+      "norm": "/api/search-performance/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:149",
+        "plugins/admin.py:846"
+      ]
+    },
+    {
+      "path": "/api/search-performance/stop",
+      "norm": "/api/search-performance/stop",
+      "methods": [
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:174",
+        "plugins/admin.py:875"
+      ]
+    },
+    {
+      "path": "/api/search-performance/summary",
+      "norm": "/api/search-performance/summary",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:210",
+        "plugins/admin.py:917"
+      ]
+    },
+    {
+      "path": "/api/search/instances",
+      "norm": "/api/search/instances",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:489",
+        "agent/server_routes/routes_config.py:501",
+        "plugins/admin.py:491",
+        "plugins/admin.py:503"
+      ]
+    },
+    {
+      "path": "/api/search/instances/<string:instance_id>",
+      "norm": "/api/search/instances/*",
+      "methods": [
+        "DELETE",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:540",
+        "agent/server_routes/routes_config.py:574",
+        "plugins/admin.py:563",
+        "plugins/admin.py:623"
+      ]
+    },
+    {
+      "path": "/api/search/instances/<string:instance_id>/default",
+      "norm": "/api/search/instances/*/default",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:601",
+        "plugins/admin.py:685"
+      ]
+    },
+    {
+      "path": "/api/search/instances/<string:instance_id>/test",
+      "norm": "/api/search/instances/*/test",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_config.py:633",
+        "plugins/admin.py:733"
+      ]
+    },
+    {
+      "path": "/api/sensors",
+      "norm": "/api/sensors",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/modules_api.py",
+        "app_server.py",
+        "scripts/quick_flask_test.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_panorama.py:198",
+        "plugins/status.py:270"
+      ]
+    },
+    {
+      "path": "/api/session-groups",
+      "norm": "/api/session-groups",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:871",
+        "plugins/chat.py:879"
+      ]
+    },
+    {
+      "path": "/api/session-groups/<group_id>",
+      "norm": "/api/session-groups/*",
+      "methods": [
+        "DELETE",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:891",
+        "plugins/chat.py:906"
+      ]
+    },
+    {
+      "path": "/api/sessions",
+      "norm": "/api/sessions",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "scripts/dev/verify_prompt_injection_mock.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_sessions.py:77",
+        "agent/server_routes/routes_sessions.py:87",
+        "plugins/chat.py:536",
+        "plugins/chat.py:549"
+      ]
+    },
+    {
+      "path": "/api/sessions/<session_id>",
+      "norm": "/api/sessions/*",
+      "methods": [
+        "DELETE"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:98",
+        "plugins/chat.py:562"
+      ]
+    },
+    {
+      "path": "/api/sessions/<session_id>/group",
+      "norm": "/api/sessions/*/group",
+      "methods": [
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:917"
+      ]
+    },
+    {
+      "path": "/api/sessions/<session_id>/messages",
+      "norm": "/api/sessions/*/messages",
+      "methods": [
+        "DELETE",
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:144",
+        "plugins/chat.py:626",
+        "plugins/chat.py:636"
+      ]
+    },
+    {
+      "path": "/api/sessions/<session_id>/rename",
+      "norm": "/api/sessions/*/rename",
+      "methods": [
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:108",
+        "plugins/chat.py:582"
+      ]
+    },
+    {
+      "path": "/api/sessions/<session_id>/workspace",
+      "norm": "/api/sessions/*/workspace",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:719"
+      ]
+    },
+    {
+      "path": "/api/sessions/<session_id>/workspace-root",
+      "norm": "/api/sessions/*/workspace-root",
+      "methods": [
+        "DELETE",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:742",
+        "plugins/chat.py:768"
+      ]
+    },
+    {
+      "path": "/api/sessions/<session_id>/workspace/reveal",
+      "norm": "/api/sessions/*/workspace/reveal",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:780"
+      ]
+    },
+    {
+      "path": "/api/sessions/current",
+      "norm": "/api/sessions/current",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_sessions.py:120",
+        "plugins/chat.py:597"
+      ]
+    },
+    {
+      "path": "/api/skills",
+      "norm": "/api/skills",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:152"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt",
+      "norm": "/api/skills-mgmt",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "scripts/verify_observability_metrics.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:166"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>",
+      "norm": "/api/skills-mgmt/*",
+      "methods": [
+        "DELETE",
+        "GET",
+        "PATCH"
+      ],
+      "category": "runtime_only",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/audit/ui_middleware.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:181",
+        "agent/server_routes/routes_skills_mgmt.py:736",
+        "agent/server_routes/routes_skills_mgmt.py:751"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/duplicates",
+      "norm": "/api/skills-mgmt/*/duplicates",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1117"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/execute",
+      "norm": "/api/skills-mgmt/*/execute",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1426"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/execution",
+      "norm": "/api/skills-mgmt/*/execution",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:869"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/feedback",
+      "norm": "/api/skills-mgmt/*/feedback",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1011",
+        "agent/server_routes/routes_skills_mgmt.py:938"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/fix-auto",
+      "norm": "/api/skills-mgmt/*/fix-auto",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:584"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/instruction",
+      "norm": "/api/skills-mgmt/*/instruction",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1294"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/optimize",
+      "norm": "/api/skills-mgmt/*/optimize",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:855"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/optimize-with-feedback",
+      "norm": "/api/skills-mgmt/*/optimize-with-feedback",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1039"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/param-stats",
+      "norm": "/api/skills-mgmt/*/param-stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:907"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/publish",
+      "norm": "/api/skills-mgmt/*/publish",
+      "methods": [
+        "POST"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/audit/contract_diff.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:682"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/redraft",
+      "norm": "/api/skills-mgmt/*/redraft",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:554"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/review",
+      "norm": "/api/skills-mgmt/*/review",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:335"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/scripts",
+      "norm": "/api/skills-mgmt/*/scripts",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1412"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/suggest-fix",
+      "norm": "/api/skills-mgmt/*/suggest-fix",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:570"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/toggle",
+      "norm": "/api/skills-mgmt/*/toggle",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:766"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/versions",
+      "norm": "/api/skills-mgmt/*/versions",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:786"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/versions/bump",
+      "norm": "/api/skills-mgmt/*/versions/bump",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:802"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/<skill_id>/versions/rollback",
+      "norm": "/api/skills-mgmt/*/versions/rollback",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:830"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/abstract-from-memory",
+      "norm": "/api/skills-mgmt/abstract-from-memory",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1312"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/assess/<skill_id>",
+      "norm": "/api/skills-mgmt/assess/*",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:610"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/assess/curate",
+      "norm": "/api/skills-mgmt/assess/curate",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:388"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/assess/events",
+      "norm": "/api/skills-mgmt/assess/events",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:648"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/assess/feed",
+      "norm": "/api/skills-mgmt/assess/feed",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:439"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/assess/merge-backups",
+      "norm": "/api/skills-mgmt/assess/merge-backups",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:425"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/assess/merge-safe",
+      "norm": "/api/skills-mgmt/assess/merge-safe",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:406"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/assess/merge-undo",
+      "norm": "/api/skills-mgmt/assess/merge-undo",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:537"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/assess/run-all",
+      "norm": "/api/skills-mgmt/assess/run-all",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:375"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/assess/stream",
+      "norm": "/api/skills-mgmt/assess/stream",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:662"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/auto-merge",
+      "norm": "/api/skills-mgmt/auto-merge",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1200"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/classes",
+      "norm": "/api/skills-mgmt/classes",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:471"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/classes/move",
+      "norm": "/api/skills-mgmt/classes/move",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:498"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/classes/run-auto",
+      "norm": "/api/skills-mgmt/classes/run-auto",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:486"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/cleanup/orphans",
+      "norm": "/api/skills-mgmt/cleanup/orphans",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:83"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/cleanup/report",
+      "norm": "/api/skills-mgmt/cleanup/report",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:72"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/cleanup/unused",
+      "norm": "/api/skills-mgmt/cleanup/unused",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:100"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/create/ai",
+      "norm": "/api/skills-mgmt/create/ai",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:198"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/create/manual",
+      "norm": "/api/skills-mgmt/create/manual",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:225"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/digest/<skill_id>",
+      "norm": "/api/skills-mgmt/digest/*",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:611"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/digest/curate",
+      "norm": "/api/skills-mgmt/digest/curate",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:389"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/digest/events",
+      "norm": "/api/skills-mgmt/digest/events",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:649"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/digest/feed",
+      "norm": "/api/skills-mgmt/digest/feed",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:440"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/digest/merge-backups",
+      "norm": "/api/skills-mgmt/digest/merge-backups",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:426"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/digest/merge-safe",
+      "norm": "/api/skills-mgmt/digest/merge-safe",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:407"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/digest/merge-undo",
+      "norm": "/api/skills-mgmt/digest/merge-undo",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:538"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/digest/run-all",
+      "norm": "/api/skills-mgmt/digest/run-all",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:376"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/digest/stream",
+      "norm": "/api/skills-mgmt/digest/stream",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:663"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/duplicates",
+      "norm": "/api/skills-mgmt/duplicates",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1088"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/health",
+      "norm": "/api/skills-mgmt/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "scripts/mock_metrics_server.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:58"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/inject",
+      "norm": "/api/skills-mgmt/inject",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1465"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/install",
+      "norm": "/api/skills-mgmt/install",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:240"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/install/precheck",
+      "norm": "/api/skills-mgmt/install/precheck",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:261"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/match",
+      "norm": "/api/skills-mgmt/match",
+      "methods": [
+        "POST"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/verify_observability_metrics.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1254"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/merge",
+      "norm": "/api/skills-mgmt/merge",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1141"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/meta/categories",
+      "norm": "/api/skills-mgmt/meta/categories",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1064"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/queue",
+      "norm": "/api/skills-mgmt/queue",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:279"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/review/audit",
+      "norm": "/api/skills-mgmt/review/audit",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:630"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/review/batch",
+      "norm": "/api/skills-mgmt/review/batch",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:353"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/review/thresholds",
+      "norm": "/api/skills-mgmt/review/thresholds",
+      "methods": [
+        "GET",
+        "PUT"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:703"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/search",
+      "norm": "/api/skills-mgmt/search",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:129"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/slash-commands",
+      "norm": "/api/skills-mgmt/slash-commands",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:459"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/slash/<skill_id>",
+      "norm": "/api/skills-mgmt/slash/*",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1504"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/three-layer/summary",
+      "norm": "/api/skills-mgmt/three-layer/summary",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1240"
+      ]
+    },
+    {
+      "path": "/api/skills-mgmt/upload",
+      "norm": "/api/skills-mgmt/upload",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:292"
+      ]
+    },
+    {
+      "path": "/api/skills/add",
+      "norm": "/api/skills/add",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:550"
+      ]
+    },
+    {
+      "path": "/api/skills/classify/run-auto",
+      "norm": "/api/skills/classify/run-auto",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:503"
+      ]
+    },
+    {
+      "path": "/api/skills/content",
+      "norm": "/api/skills/content",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:265"
+      ]
+    },
+    {
+      "path": "/api/skills/delete",
+      "norm": "/api/skills/delete",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:559"
+      ]
+    },
+    {
+      "path": "/api/skills/describe",
+      "norm": "/api/skills/describe",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:441"
+      ]
+    },
+    {
+      "path": "/api/skills/describe/auto",
+      "norm": "/api/skills/describe/auto",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:475"
+      ]
+    },
+    {
+      "path": "/api/skills/params",
+      "norm": "/api/skills/params",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:540"
+      ]
+    },
+    {
+      "path": "/api/skills/toggle",
+      "norm": "/api/skills/toggle",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "plugins/skills.py:391"
+      ]
+    },
+    {
+      "path": "/api/status",
+      "norm": "/api/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_panorama.py:204",
+        "plugins/status.py:283"
+      ]
+    },
+    {
+      "path": "/api/status/config",
+      "norm": "/api/status/config",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/status.py:716",
+        "plugins/status.py:732"
+      ]
+    },
+    {
+      "path": "/api/subagent/<name>",
+      "norm": "/api/subagent/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:257"
+      ]
+    },
+    {
+      "path": "/api/subagent/<name>/delegate",
+      "norm": "/api/subagent/*/delegate",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:374"
+      ]
+    },
+    {
+      "path": "/api/subagent/<name>/destroy",
+      "norm": "/api/subagent/*/destroy",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:320"
+      ]
+    },
+    {
+      "path": "/api/subagent/<name>/execute",
+      "norm": "/api/subagent/*/execute",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:342"
+      ]
+    },
+    {
+      "path": "/api/subagent/<name>/reload",
+      "norm": "/api/subagent/*/reload",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:519"
+      ]
+    },
+    {
+      "path": "/api/subagent/create",
+      "norm": "/api/subagent/create",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:274"
+      ]
+    },
+    {
+      "path": "/api/subagent/delegate",
+      "norm": "/api/subagent/delegate",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:450"
+      ]
+    },
+    {
+      "path": "/api/subagent/history",
+      "norm": "/api/subagent/history",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:221"
+      ]
+    },
+    {
+      "path": "/api/subagent/list",
+      "norm": "/api/subagent/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:197"
+      ]
+    },
+    {
+      "path": "/api/system-prompt",
+      "norm": "/api/system-prompt",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "plugins/admin.py:110",
+        "plugins/admin.py:143"
+      ]
+    },
+    {
+      "path": "/api/system-prompt/config",
+      "norm": "/api/system-prompt/config",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_system_prompt.py:58",
+        "agent/server_routes/routes_system_prompt.py:97"
+      ]
+    },
+    {
+      "path": "/api/system-prompt/config/apply",
+      "norm": "/api/system-prompt/config/apply",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_system_prompt.py:145"
+      ]
+    },
+    {
+      "path": "/api/system-prompt/config/preview",
+      "norm": "/api/system-prompt/config/preview",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_system_prompt.py:207"
+      ]
+    },
+    {
+      "path": "/api/system-prompt/config/reset",
+      "norm": "/api/system-prompt/config/reset",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_system_prompt.py:126"
+      ]
+    },
+    {
+      "path": "/api/system-prompt/reset",
+      "norm": "/api/system-prompt/reset",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin.py:180"
+      ]
+    },
+    {
+      "path": "/api/system-prompt/sync-status",
+      "norm": "/api/system-prompt/sync-status",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_system_prompt.py:233"
+      ]
+    },
+    {
+      "path": "/api/tasks",
+      "norm": "/api/tasks",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:346"
+      ]
+    },
+    {
+      "path": "/api/tasks/<task_id>",
+      "norm": "/api/tasks/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:355"
+      ]
+    },
+    {
+      "path": "/api/tasks/<task_id>/cancel",
+      "norm": "/api/tasks/*/cancel",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:364"
+      ]
+    },
+    {
+      "path": "/api/test/division",
+      "norm": "/api/test/division",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:239",
+        "app_server.py:2201"
+      ]
+    },
+    {
+      "path": "/api/test/error",
+      "norm": "/api/test/error",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:225",
+        "app_server.py:2177"
+      ]
+    },
+    {
+      "path": "/api/test/null",
+      "norm": "/api/test/null",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_monitoring.py:232",
+        "app_server.py:2190"
+      ]
+    },
+    {
+      "path": "/api/tools/categories",
+      "norm": "/api/tools/categories",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:893"
+      ]
+    },
+    {
+      "path": "/api/tools/config",
+      "norm": "/api/tools/config",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:844"
+      ]
+    },
+    {
+      "path": "/api/tools/health",
+      "norm": "/api/tools/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:955"
+      ]
+    },
+    {
+      "path": "/api/tools/keywords",
+      "norm": "/api/tools/keywords",
+      "methods": [
+        "DELETE",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:903",
+        "plugins/skills.py:917"
+      ]
+    },
+    {
+      "path": "/api/tools/keywords/reset",
+      "norm": "/api/tools/keywords/reset",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:946"
+      ]
+    },
+    {
+      "path": "/api/tools/keywords/update",
+      "norm": "/api/tools/keywords/update",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:931"
+      ]
+    },
+    {
+      "path": "/api/tools/status-batch",
+      "norm": "/api/tools/status-batch",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/skills.py:963"
+      ]
+    },
+    {
+      "path": "/api/tools/toggle",
+      "norm": "/api/tools/toggle",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [
+        "agent/modules_registry.py"
+      ],
+      "where": [
+        "plugins/skills.py:877"
+      ]
+    },
+    {
+      "path": "/api/user",
+      "norm": "/api/user",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:507"
+      ]
+    },
+    {
+      "path": "/api/user/<int:user_id>",
+      "norm": "/api/user/*",
+      "methods": [
+        "DELETE",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:496",
+        "plugins/admin_api.py:529"
+      ]
+    },
+    {
+      "path": "/api/user/info",
+      "norm": "/api/user/info",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:466"
+      ]
+    },
+    {
+      "path": "/api/user/list",
+      "norm": "/api/user/list",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:487"
+      ]
+    },
+    {
+      "path": "/api/vector/add",
+      "norm": "/api/vector/add",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:504"
+      ]
+    },
+    {
+      "path": "/api/vector/batch_add",
+      "norm": "/api/vector/batch_add",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:527"
+      ]
+    },
+    {
+      "path": "/api/vector/clear",
+      "norm": "/api/vector/clear",
+      "methods": [
+        "DELETE"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:585"
+      ]
+    },
+    {
+      "path": "/api/vector/item/<item_id>",
+      "norm": "/api/vector/item/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:549"
+      ]
+    },
+    {
+      "path": "/api/vector/recent",
+      "norm": "/api/vector/recent",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:564"
+      ]
+    },
+    {
+      "path": "/api/vector/search",
+      "norm": "/api/vector/search",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:463"
+      ]
+    },
+    {
+      "path": "/api/vector/stats",
+      "norm": "/api/vector/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:490"
+      ]
+    },
+    {
+      "path": "/api/visual-workflows",
+      "norm": "/api/visual-workflows",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_visual_workflows.py:205",
+        "agent/server_routes/routes_visual_workflows.py:234"
+      ]
+    },
+    {
+      "path": "/api/visual-workflows/<vid>",
+      "norm": "/api/visual-workflows/*",
+      "methods": [
+        "DELETE",
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_visual_workflows.py:219",
+        "agent/server_routes/routes_visual_workflows.py:275"
+      ]
+    },
+    {
+      "path": "/api/voice/listen",
+      "norm": "/api/voice/listen",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:157",
+        "plugins/chat.py:83"
+      ]
+    },
+    {
+      "path": "/api/voice/status",
+      "norm": "/api/voice/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:237",
+        "plugins/chat.py:120"
+      ]
+    },
+    {
+      "path": "/api/web/clean",
+      "norm": "/api/web/clean",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:576",
+        "plugins/system_tools.py:518"
+      ]
+    },
+    {
+      "path": "/api/web/css",
+      "norm": "/api/web/css",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:521",
+        "plugins/system_tools.py:469"
+      ]
+    },
+    {
+      "path": "/api/web/download",
+      "norm": "/api/web/download",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:597",
+        "plugins/system_tools.py:541"
+      ]
+    },
+    {
+      "path": "/api/web/get",
+      "norm": "/api/web/get",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:452",
+        "plugins/system_tools.py:405"
+      ]
+    },
+    {
+      "path": "/api/web/post",
+      "norm": "/api/web/post",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:482",
+        "plugins/system_tools.py:423"
+      ]
+    },
+    {
+      "path": "/api/web/search",
+      "norm": "/api/web/search",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:544",
+        "plugins/system_tools.py:497"
+      ]
+    },
+    {
+      "path": "/api/web/search/status",
+      "norm": "/api/web/search/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "templates/search-status.html"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:620",
+        "plugins/system_tools.py:567"
+      ]
+    },
+    {
+      "path": "/api/web/stats",
+      "norm": "/api/web/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:609",
+        "plugins/system_tools.py:554"
+      ]
+    },
+    {
+      "path": "/api/web/xpath",
+      "norm": "/api/web/xpath",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_chat.py:499",
+        "plugins/system_tools.py:442"
+      ]
+    },
+    {
+      "path": "/api/window/consent",
+      "norm": "/api/window/consent",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/safety.py:91"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/batch-convert-external-skills",
+      "norm": "/api/workflow-learning/batch-convert-external-skills",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:377"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/convert-external-skill",
+      "norm": "/api/workflow-learning/convert-external-skill",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:320"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/convertible",
+      "norm": "/api/workflow-learning/convertible",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:308"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/execute/<wf_id>",
+      "norm": "/api/workflow-learning/execute/*",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:150"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/health",
+      "norm": "/api/workflow-learning/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:63"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/learn",
+      "norm": "/api/workflow-learning/learn",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:76"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/match",
+      "norm": "/api/workflow-learning/match",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:109"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/try-execute",
+      "norm": "/api/workflow-learning/try-execute",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:128"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/workflows",
+      "norm": "/api/workflow-learning/workflows",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:175"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/workflows/<wf_id>",
+      "norm": "/api/workflow-learning/workflows/*",
+      "methods": [
+        "DELETE",
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:201",
+        "agent/server_routes/routes_workflow_learning.py:213"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/workflows/<wf_id>/convert-to-skill",
+      "norm": "/api/workflow-learning/workflows/*/convert-to-skill",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:260"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/workflows/<wf_id>/priority",
+      "norm": "/api/workflow-learning/workflows/*/priority",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:241"
+      ]
+    },
+    {
+      "path": "/api/workflow-learning/workflows/<wf_id>/toggle",
+      "norm": "/api/workflow-learning/workflows/*/toggle",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workflow_learning.py:226"
+      ]
+    },
+    {
+      "path": "/api/workspace",
+      "norm": "/api/workspace",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:27",
+        "plugins/system_tools.py:61"
+      ]
+    },
+    {
+      "path": "/api/workspace/delete",
+      "norm": "/api/workspace/delete",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:59",
+        "plugins/system_tools.py:98"
+      ]
+    },
+    {
+      "path": "/api/workspace/info",
+      "norm": "/api/workspace/info",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:74",
+        "plugins/system_tools.py:114"
+      ]
+    },
+    {
+      "path": "/api/workspace/write",
+      "norm": "/api/workspace/write",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_workspace.py:40",
+        "plugins/system_tools.py:76"
+      ]
+    },
+    {
+      "path": "/api/workspaces",
+      "norm": "/api/workspaces",
+      "methods": [
+        "DELETE",
+        "GET",
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:818",
+        "plugins/chat.py:826",
+        "plugins/chat.py:855"
+      ]
+    },
+    {
+      "path": "/approval-console",
+      "norm": "/approval-console",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_approval.py:380"
+      ]
+    },
+    {
+      "path": "/capabilities/<name>",
+      "norm": "/capabilities/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_capabilities.py:322"
+      ]
+    },
+    {
+      "path": "/capabilities/health",
+      "norm": "/capabilities/health",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/verify_loader_degradation_startup.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_capabilities.py:338"
+      ]
+    },
+    {
+      "path": "/capabilities/invoke",
+      "norm": "/capabilities/invoke",
+      "methods": [
+        "POST"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/verify_llm_off_entrypoints.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_capabilities.py:223"
+      ]
+    },
+    {
+      "path": "/capabilities/skills/search",
+      "norm": "/capabilities/skills/search",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_capabilities.py:287"
+      ]
+    },
+    {
+      "path": "/capabilities/tools",
+      "norm": "/capabilities/tools",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/verify_llm_off_entrypoints.py",
+        "scripts/verify_loader_degradation_startup.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_capabilities.py:168"
+      ]
+    },
+    {
+      "path": "/chat",
+      "norm": "/chat",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "app_server.py",
+        "scripts/dev/cp_panel_evidence_server.py"
+      ],
+      "where": [
+        "app_server.py:2103"
+      ]
+    },
+    {
+      "path": "/dashboard",
+      "norm": "/dashboard",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/log_system/dashboard.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_logging.py:1419"
+      ]
+    },
+    {
+      "path": "/logs/api/actions",
+      "norm": "/logs/api/actions",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:189"
+      ]
+    },
+    {
+      "path": "/logs/api/errors",
+      "norm": "/logs/api/errors",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:160"
+      ]
+    },
+    {
+      "path": "/logs/api/insights",
+      "norm": "/logs/api/insights",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:176"
+      ]
+    },
+    {
+      "path": "/logs/api/introspection/run",
+      "norm": "/logs/api/introspection/run",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:259"
+      ]
+    },
+    {
+      "path": "/logs/api/introspection/status",
+      "norm": "/logs/api/introspection/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:252"
+      ]
+    },
+    {
+      "path": "/logs/api/knowledge",
+      "norm": "/logs/api/knowledge",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:213"
+      ]
+    },
+    {
+      "path": "/logs/api/query",
+      "norm": "/logs/api/query",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:134"
+      ]
+    },
+    {
+      "path": "/logs/api/stats",
+      "norm": "/logs/api/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:112"
+      ]
+    },
+    {
+      "path": "/logs/api/trends",
+      "norm": "/logs/api/trends",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:226"
+      ]
+    },
+    {
+      "path": "/logs/dashboard",
+      "norm": "/logs/dashboard",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:63"
+      ]
+    },
+    {
+      "path": "/logs/dashboard/data",
+      "norm": "/logs/dashboard/data",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/log_system/dashboard.py:69"
+      ]
+    },
+    {
+      "path": "/metrics",
+      "norm": "/metrics",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "agent/audit/ui_middleware.py",
+        "agent/utils/perf_monitor.py",
+        "scripts/check_mcp_log_level.py",
+        "scripts/deployment_drill.py",
+        "scripts/exporter_link_cache.py",
+        "scripts/mock_metrics_server.py",
+        "scripts/mock_service_standalone.py",
+        "scripts/monitoring_longrun/c2_harness.py",
+        "scripts/monitoring_longrun/gen_derived_config.py",
+        "scripts/probe_prefix_cache_interaction.py",
+        "scripts/simulate_prometheus_restart.py",
+        "scripts/surge_metrics_template.py"
+      ],
+      "where": [
+        "agent/server_routes/routes_logging.py:1138"
+      ]
+    },
+    {
+      "path": "/replay-viewer",
+      "norm": "/replay-viewer",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "app_server.py:2156"
+      ]
+    },
+    {
+      "path": "/search-status",
+      "norm": "/search-status",
+      "methods": [
+        "GET"
+      ],
+      "category": "runtime_only",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "app_server.py"
+      ],
+      "where": [
+        "app_server.py:2148"
+      ]
+    },
+    {
+      "path": "/static/<path:subpath>",
+      "norm": "/static/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [
+        "app_server.py",
+        "scripts/dev/cp_panel_evidence_server.py"
+      ],
+      "where": [
+        "app_server.py:2132"
+      ]
+    }
+  ],
+  "content_hash": "a0ff3ed155ed470e"
+}

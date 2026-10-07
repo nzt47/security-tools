@@ -256,6 +256,8 @@ export const subagentDestroyByName = (name: string) => `/api/subagent/${encodeUR
 // ===============================================================
 export const PLUGINS = '/api/plugins';
 export const PLUGINS_RELOAD = '/api/plugins/reload';
+// 路由↔UI 覆盖盘点（只读产物；后端 plugins/audit_coverage.py）
+export const ROUTE_UI_COVERAGE = '/api/audit/route-ui-coverage';
 export const HEARTBEAT = '/api/heartbeat';
 export const HEARTBEAT_HISTORY = '/api/heartbeat/history';
 export const DIAGNOSTICS_METRICS = '/api/diagnostics/metrics';
