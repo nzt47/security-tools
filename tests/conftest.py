@@ -113,6 +113,16 @@ if os.environ.get("CP_TEST_NETCFG_REAL") != "1":
     os.environ["CP_NETWORK_CONFIG_FILE"] = _NETCFG_FLOOR_FILE
     atexit.register(shutil.rmtree, _NETCFG_FLOOR_DIR, ignore_errors=True)
 
+# ── 【2026-10-07】管理后台 RBAC 持久化地板（M-31「补成持久化」之后）──
+# 写端点会落盘；不装地板，单测里调 /api/user 或 /api/role 的写接口就会创建/改写
+# 仓库内的 data/admin_rbac.json。与上面的网络配置地板同族：只设环境变量，
+# 由 plugins/admin_api.py 的 _rbac_file() **调用期**解析（对 reload 免疫，且不留 try/except）。
+# 【逃生门】CP_TEST_ADMIN_RBAC_REAL=1 时不装地板。
+if os.environ.get("CP_TEST_ADMIN_RBAC_REAL") != "1":
+    _RBAC_FLOOR_DIR = tempfile.mkdtemp(prefix="pytest_rbac_floor_")
+    os.environ["CP_ADMIN_RBAC_FILE"] = os.path.join(_RBAC_FLOOR_DIR, "admin_rbac.json")
+    atexit.register(shutil.rmtree, _RBAC_FLOOR_DIR, ignore_errors=True)
+
 # ── 【TESTHYG-1 · 离线基线】测试进程**不加载** .env（见上方地板）──
 # import app_server 会真的实例化 sentence-transformers 编码器，而"只读本地缓存、
 # 不出网"的前提是 HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE（.env:153-154 提供的

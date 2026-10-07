@@ -36,10 +36,12 @@ from .plugin_api import Plugin, register_plugin
 bp = Blueprint("admin_api", __name__)
 
 # ════════════════════════════════════════════════════════════════════════════
-#  内存态数据（与 devMock 同构）
+#  用户 / 角色数据（与 devMock 同构）
+#  【2026-10-07 · M-31 裁决「补成持久化」】下面两份是**首次启动的种子**；
+#  真正的活体数据 _USERS/_ROLES 由 _load_rbac() 从持久化文件载入（见本节末尾）。
 # ════════════════════════════════════════════════════════════════════════════
 
-_USERS = [
+_DEFAULT_USERS = [
     {"id": 1, "username": "admin", "nickname": "本地管理员", "email": "admin@yunshu.local",
      "role": "admin", "status": 1, "createdAt": "2026-01-01 09:00:00",
      "permissions": ["dashboard:view", "workbench:use", "prompt-lab:use",
@@ -50,7 +52,7 @@ _USERS = [
      "permissions": ["dashboard:view", "workbench:use", "system:view", "system:notification:view"]},
 ]
 for _i in range(3, 27):
-    _USERS.append({
+    _DEFAULT_USERS.append({
         "id": _i, "username": f"user{_i:02d}", "nickname": f"用户{_i}",
         "email": f"user{_i}@yunshu.local",
         "role": "admin" if _i == 1 else ("manager" if _i % 3 == 0 else "user"),
@@ -59,7 +61,7 @@ for _i in range(3, 27):
         "permissions": ["dashboard:view", "workbench:use"],
     })
 
-_ROLES = [
+_DEFAULT_ROLES = [
     {"id": 1, "name": "admin", "label": "系统管理员", "description": "拥有全部权限",
      "permissions": ["*"], "dataScope": "all", "status": 1, "createdAt": "2026-01-01 09:00:00"},
     {"id": 2, "name": "manager", "label": "部门经理", "description": "部门数据权限",
@@ -70,6 +72,68 @@ _ROLES = [
                      "system:notification:view"], "dataScope": "self",
      "status": 1, "createdAt": "2026-01-03 09:00:00"},
 ]
+
+# ════════════════════════════════════════════════════════════════════════════
+#  持久化（2026-10-07 · M-31 裁决：RBAC 不再只是内存 fixture）
+# ════════════════════════════════════════════════════════════════════════════
+#  【契约】用户/角色落盘为单个 JSON：{"users": [...], "roles": [...]}。
+#  写盘用 tmp + os.replace（原子）并在进程内 RLock 串行化 —— 服务是单进程 waitress，
+#  但同一进程内多请求线程仍可能并发写，原「单进程内存态」的假设对写盘不成立。
+_RBAC_ENV = "CP_ADMIN_RBAC_FILE"
+_RBAC_LOCK = threading.RLock()
+
+
+def _rbac_file() -> str:
+    """**调用期**解析落盘路径：CP_ADMIN_RBAC_FILE 优先，否则仓库 data/admin_rbac.json。
+
+    【为什么调用期而不是模块常量】与 agent/network_config.py 同款（第五轮第四批 §4.10）：
+    模块级常量当「生效路径」会在 reload / 测试地板下失效，于是单测悄悄写到仓库真实文件。
+    """
+    env = os.environ.get(_RBAC_ENV)
+    if env:
+        return env
+    return os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "data", "admin_rbac.json",
+    )
+
+
+def _load_rbac():
+    """从持久化文件载入；缺失 / 损坏 / 空态 ⇒ 回落种子（此函数**不写盘**）。"""
+    try:
+        with open(_rbac_file(), "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        users = data.get("users")
+        roles = data.get("roles")
+        if isinstance(users, list) and isinstance(roles, list) and users and roles:
+            return users, roles
+    except FileNotFoundError:
+        pass
+    except Exception:
+        pass
+    return [dict(u) for u in _DEFAULT_USERS], [dict(r) for r in _DEFAULT_ROLES]
+
+
+def _save_rbac() -> None:
+    """把当前 _USERS/_ROLES 原子落盘（每个写端点成功后调用）。"""
+    path = _rbac_file()
+    directory = os.path.dirname(path)
+    with _RBAC_LOCK:
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump({"users": _USERS, "roles": _ROLES}, fh, ensure_ascii=False, indent=2)
+        os.replace(tmp, path)
+
+
+def reset_rbac() -> None:
+    """从当前 CP_ADMIN_RBAC_FILE 重新载入（测试 / 热切换用）。"""
+    global _USERS, _ROLES
+    _USERS, _ROLES = _load_rbac()
+
+
+_USERS, _ROLES = _load_rbac()
 
 _PERMISSIONS = [
     {"code": "dashboard:view", "label": "查看仪表盘", "group": "基础"},
@@ -436,6 +500,7 @@ def admin_user_delete(user_id):
     if user_id == 1:
         return _fail(400, "内置管理员不可删除")
     _USERS = [u for u in _USERS if u["id"] != user_id]
+    _save_rbac()
     return _ok()
 
 
@@ -457,6 +522,7 @@ def admin_user_create():
         "createdAt": time.strftime("%Y-%m-%d %H:%M:%S"),
         "permissions": ["dashboard:view", "workbench:use"],
     })
+    _save_rbac()
     return _ok(_USERS[-1])
 
 
@@ -470,6 +536,7 @@ def admin_user_update(user_id):
     for key in ("nickname", "email", "role", "status"):
         if key in data:
             user[key] = data[key]
+    _save_rbac()
     return _ok(user)
 
 
@@ -508,6 +575,7 @@ def admin_role_create():
         "dataScope": data.get("dataScope") or "self", "status": 1,
         "createdAt": time.strftime("%Y-%m-%d %H:%M:%S"),
     })
+    _save_rbac()
     return _ok(_ROLES[-1])
 
 
@@ -522,6 +590,7 @@ def admin_role_permissions(role_id):
         role["permissions"] = ["*"]
     else:
         role["permissions"] = data.get("permissions") or []
+    _save_rbac()
     return _ok(role)
 
 
@@ -533,6 +602,7 @@ def admin_role_data_scope(role_id):
     if not role:
         return _fail(404, "角色不存在")
     role["dataScope"] = data.get("dataScope", "self")
+    _save_rbac()
     return _ok(role)
 
 
@@ -546,6 +616,7 @@ def admin_role_update(role_id):
     for key in ("label", "description"):
         if key in data:
             role[key] = data[key]
+    _save_rbac()
     return _ok(role)
 
 
@@ -559,6 +630,7 @@ def admin_role_delete(role_id):
     if role["name"] == "admin":
         return _fail(400, "内置管理员角色不可删除")
     _ROLES = [r for r in _ROLES if r["id"] != role_id]
+    _save_rbac()
     return _ok()
 
 
