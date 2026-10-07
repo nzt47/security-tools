@@ -4,9 +4,21 @@ name: 云枢工具模块测试
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+# 【变易·2026-10-07 收窄触发】移除 push 的 'fix/**' / 'feature/**'。
+#   病因：GitHub 在 push 事件上把「新旧 head 之间**全部**提交的改动」并入 paths 过滤，
+#   对较老 base rebase 后的 force-push，即使增量 diff 不碰任何 paths 也会命中，
+#   从而在**与被触发 PR 无关**的分支上拉起本 workflow（实测 run 37505951284：
+#   9 条失败全部来自 docs/archive/agent_tests_20260810/ 的存量坏归档用例）。
+#   该 workflow 只跑归档测试；PR 到 master（本仓默认分支）本就不触发（pull_request
+#   仅 main/develop），tests/ 下已有活跃等价用例（test_pdf_tools.py、
+#   test_system_tools_{core,platform,security}.py、test_web_tools_news.py 等）
+#   承担真实门禁信号，故收窄 push 不丢失任何真实信号。
+#   保留 main/develop：长分支的 push 信号与 force-push 语义无关，不属本问题。
+# 【重开条件】若 main/develop 成为真实长期分支且归档用例在本机/CI 稳定绿，
+#   再评估恢复 'fix/**' / 'feature/**' 的 push 触发。
 on:
   push:
-    branches: [main, develop, 'fix/**', 'feature/**']
+    branches: [main, develop]
     paths:
       - 'agent/tools/**'
       - 'agent/system_tools.py'
