@@ -5,10 +5,13 @@
  */
 import { useEffect, useState } from 'react'
 import { Save, RotateCcw, User } from 'lucide-react'
-import { Card, Badge, PageHeader, hubPost, Loading, ErrorBox } from './components/ui'
+import { Card, Badge, PageHeader, Loading, ErrorBox } from './components/ui'
 // 【P1-front 第四批】后端 GET /api/personality 已带 X-Envelope: v2，改用显式信封解析。
-// 同页的三个 POST（params/profile/reset）尚未迁移，继续走 hubPost。
-import { getEnvelope } from '@/api/envelope';
+// 【P1-front 第八批】同页三个 POST（params/profile/reset）也已迁移，一并改用 postEnvelope。
+//   【迁移顺手修掉的一处静默缺陷】后端一向返回 `params` / `profile`，而本页原先读的是
+//   `custom_params` / `current_profile`（与同文件 GET 的键名混淆）⇒ 点预设人格后本地参数
+//   一直不刷新（拿到 undefined，不报错）。现按后端既有契约读 `params` / `profile`。
+import { getEnvelope, postEnvelope } from '@/api/envelope';
 
 import {
   PERSONALITY,
@@ -51,10 +54,9 @@ export default function PersonalityPage() {
 
   const applyProfile = async (key: string) => {
     try {
-      const r = await hubPost(PERSONALITY_PROFILE, { profile: key })
-      const rr = r as { custom_params?: Record<string, number>; current_profile?: string }
-      if (rr.custom_params) setParams(rr.custom_params)
-      if (rr.current_profile) setActiveProfile(rr.current_profile)
+      const d = await postEnvelope<{ profile?: string; params?: Record<string, number> }>(PERSONALITY_PROFILE, { profile: key })
+      if (d.params) setParams(d.params)
+      if (d.profile) setActiveProfile(d.profile)
       setMsg(`已应用人格：${data?.profiles[key]?.name ?? key}`)
     } catch (e) { setError(String(e)) }
   }
@@ -64,7 +66,7 @@ export default function PersonalityPage() {
     setSaving(true)
     setMsg('')
     try {
-      await hubPost(PERSONALITY_PARAMS, { params })
+      await postEnvelope(PERSONALITY_PARAMS, { params })
       setActiveProfile('custom')
       setMsg('人格参数已保存（自定义）')
     } catch (e) { setMsg(`保存失败：${e instanceof Error ? e.message : e}`) } finally { setSaving(false) }
@@ -72,7 +74,7 @@ export default function PersonalityPage() {
 
   const reset = async () => {
     try {
-      await hubPost(PERSONALITY_RESET)
+      await postEnvelope(PERSONALITY_RESET)
       load()
       setMsg('人格参数已重置')
     } catch (e) { setError(String(e)) }

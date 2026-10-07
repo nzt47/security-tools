@@ -675,6 +675,12 @@ def api_personality_get():
     return _ok(_personality_mgr.get())
 
 
+# 【P1-front 第八批 · 2026-10-07】三个写端点改走 ok()：**业务载荷一字未动**
+#   （仍是 {ok, params} / {ok, profile, params}），只是装进 data 并带 X-Envelope: v2。
+#   【迁移顺手记下的一处真实契约不一致】这三个视图**一向**返回 params / profile，
+#   而同页前端读的却是 custom_params / current_profile（与同文件 GET 的键名混淆）
+#   ⇒ 点预设人格后本地参数一直不刷新（静默 undefined，不报错）。本批按后端**既有**
+#   契约修前端读取键（不动后端键，也不动错误路径），并在 test_envelope_batch8 里钉住。
 @bp.route("/api/personality/params", methods=["POST"])
 @_require_token
 @_log_request()
@@ -682,7 +688,7 @@ def api_personality_params():
     data = request.get_json() or {}
     params = data.get("params", {})
     result = _personality_mgr.update_params(params)
-    return jsonify(result)
+    return _ok(result)
 
 
 @bp.route("/api/personality/profile", methods=["POST"])
@@ -692,7 +698,7 @@ def api_personality_profile():
     data = request.get_json() or {}
     profile = data.get("profile", "")
     result = _personality_mgr.apply_profile(profile)
-    return jsonify(result)
+    return _ok(result)
 
 
 @bp.route("/api/personality/reset", methods=["POST"])
@@ -700,7 +706,7 @@ def api_personality_profile():
 @_log_request()
 def api_personality_reset():
     result = _personality_mgr.reset()
-    return jsonify(result)
+    return _ok(result)
 
 
 # ════════════════════════════════════════════════════════════
