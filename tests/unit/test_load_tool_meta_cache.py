@@ -98,11 +98,27 @@ def test_warm_call_is_cached_and_under_budget(monkeypatch):
 
     import builtins
 
+    # 【2026-10-07 收窄探针】只给**工具定义目录**记账。
+    # 原实现给全进程的 open() 记账，于是同进程里别的后台写入者会被算进来 —— 实测
+    # （单进程全量 baseline）命中的是 `data/lifetrace/sources/sources_*.json` 这个
+    # **运行时**文件，与「命中路径重读 YAML」毫无关系，却让本机制锁假红。
+    # 与 conftest 的 `scoped_sleep` 同源：探针只应记录它声称要记录的那一类调用。
+    # 收窄后判据一分不减：「命中路径不得 open 任何 data/tool_definitions 文件」。
+    tool_defs_prefix = str(M.TOOL_DEFS_DIR)
+
     opened: list = []
     real_open = builtins.open
 
+    _tool_defs_abs = os.path.abspath(tool_defs_prefix)
+
     def _counting_open(*args, **kwargs):
-        opened.append(args[0] if args else kwargs.get("file"))
+        target = args[0] if args else kwargs.get("file")
+        try:
+            # 用 abspath 比较：命中路径若以相对路径 open 也要被抓到（不漏报）
+            if target is not None and os.path.abspath(str(target)).startswith(_tool_defs_abs):
+                opened.append(target)
+        except Exception:  # noqa: BLE001 拿不准就记账，宁可多留
+            opened.append(target)
         return real_open(*args, **kwargs)
 
     monkeypatch.setattr(builtins, "open", _counting_open)
@@ -116,7 +132,7 @@ def test_warm_call_is_cached_and_under_budget(monkeypatch):
 
     assert second is first, "缓存命中应返回同一对象（不重复构造）"
     assert opened == [], (
-        f"命中路径读了文件：{opened[:5]} —— 签名只允许 stat（文件名 + mtime_ns）；"
+        f"命中路径读了工具定义文件：{opened[:5]} —— 签名只允许 stat（文件名 + mtime_ns）；"
         "把内容哈希写进签名会让每次命中都重读全部 YAML（本用例要拦的正是这个回归）")
     budget_ms = max(5.0, sig_ms * 4 + 3.0)
     assert warm_ms < budget_ms, (f"缓存命中耗时 {warm_ms:.2f}ms 超过标定上界 {budget_ms:.2f}ms"
