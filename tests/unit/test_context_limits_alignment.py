@@ -354,7 +354,11 @@ class TestConfigPost:
         pushed = {}
         monkeypatch.setattr(mem, "_push_runtime_window",
                             lambda v: pushed.setdefault("v", v) is None or True)
-        body = client.post("/api/context/config", json={"token_limit": 131072}).get_json()
+        # 【P1-front 第九批】成功载荷已装进统一信封的 data（视图改用 ok()）：
+        # 先钉住信封头本身，再读 data —— 没有头就说明迁移被回退。
+        resp = client.post("/api/context/config", json={"token_limit": 131072})
+        assert resp.headers.get("X-Envelope") == "v2", "成功响应必须带统一信封头"
+        body = resp.get_json()["data"]
         assert body["ok"] is True and "token_limit" in body["changed"]
         assert body["runtime_applied"] is True
         assert pushed["v"] == 131072
@@ -385,5 +389,5 @@ class TestConfigPost:
 
         client, _, _ = panel_env
         monkeypatch.setattr(mem, "_push_runtime_window", lambda v: False)
-        body = client.post("/api/context/config", json={"token_limit": 65536}).get_json()
+        body = client.post("/api/context/config", json={"token_limit": 65536}).get_json()["data"]
         assert body["runtime_applied"] is False
