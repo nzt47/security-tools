@@ -156,6 +156,7 @@ agent/data/role_assignments.json
 agent/data/tenants.json
 agent/data/users.json
 agent/data/tool_router_test_report.json
+data/admin_rbac.json
 data/failures/
 data/persona/distillation_history.json
 data/scheduled_tasks.json

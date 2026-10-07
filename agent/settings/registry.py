@@ -1941,6 +1941,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_NETWORK_CONFIG_FILE", CAT_EXTERNAL, "",
        "网络配置文件目标覆盖（空=仓库内 agent/data/network_config.json；测试隔离用；路径项，UI 只读展示）",
        owner="agent/network_config.py", validator=Validator("path")),
+    # 【2026-10-07 补登】管理后台 RBAC（用户/角色）持久化文件覆盖口。M-31 裁决「补成持久化」
+    # 后写端点会落盘；没有这个覆盖口，单测会去创建/改写仓库内的 data/admin_rbac.json
+    # （与 CP_NETWORK_CONFIG_FILE 同族：调用期解析 + 测试地板）。
+    _c("CP_ADMIN_RBAC_FILE", CAT_EXTERNAL, "",
+       "管理后台 RBAC 持久化文件覆盖（空=仓库内 data/admin_rbac.json；测试隔离用；路径项，UI 只读展示）",
+       owner="plugins/admin_api.py", validator=Validator("path")),
     _secret("OPENAI_API_KEY", CAT_EXTERNAL, "OpenAI API Key（只读脱敏）",
             owner="agent/orchestrator/lifecycle_manager.py"),
     _secret("DEEPSEEK_API_KEY", CAT_EXTERNAL, "DeepSeek API Key（只读脱敏）",
