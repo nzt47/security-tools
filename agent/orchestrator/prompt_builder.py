@@ -29,9 +29,11 @@ from typing import Iterable, Optional
 
 from agent.logging_utils import log_dict
 from agent.prompt_manager.roles import (
+    HARD_ROLES,
     PromptFragment,
     compose_fragments,
 )
+from agent.system_prompt_manager import append_to_stable_block
 
 logger = logging.getLogger(__name__)
 
@@ -388,6 +390,7 @@ class PromptBuilder:
         # 预算：这里**刻意不传** budget_tokens —— 预算权威是下面的 10000-token
         # 检查（单一权威，避免两套预算在同一段文本上互相打架，见模块 docstring）。
         tail_text = ""
+        stable_text = ""
         if fragments is not None:
             # 物化一次：下面预算超限分支还要复用同一批片段（生成器只能用一次）
             fragments = tuple(fragments)
@@ -395,7 +398,14 @@ class PromptBuilder:
             tool_status = composed.role_text("tool") or tool_status
             skill_instructions = composed.role_text("skill") or skill_instructions
             memory_context = composed.role_text("memory") or memory_context
-            tail_text = system_tail_text(composed.parts)
+            # 【稳定 / 易变分离】硬身份片段（system/persona/line）走**稳定块**；
+            # 其余无槽位片段（task 当轮素材）留作**易变尾部**。这样 F3-1 把易变
+            # 尾簇搬成最后一条消息时，不会把「本线身份边界」一起搬走。
+            # 无易变标记的模板退回旧的「追加末尾」（见 append_to_stable_block）。
+            stable_text = system_tail_text(
+                [p for p in composed.parts if p.role in HARD_ROLES])
+            tail_text = system_tail_text(
+                [p for p in composed.parts if p.role not in HARD_ROLES])
 
         system_prompt = _sp_template.format(
             current_date=current_date,
@@ -408,6 +418,8 @@ class PromptBuilder:
         )
         if wm_text:
             system_prompt += wm_text
+        if stable_text:
+            system_prompt = append_to_stable_block(system_prompt, stable_text)
         if tail_text:
             system_prompt += "\n\n" + tail_text
 
@@ -437,13 +449,12 @@ class PromptBuilder:
                     )
                     if wm_text:
                         system_prompt += wm_text
-                    if fragments is not None:
-                        # 截断口径与旧路径一致：可裁剪的尾部素材（task 等）丢弃、
-                        # tool 段截到 300 字符、skill 段置空；但**不可裁剪的硬片段**
-                        # （role=line/persona/system）必须活下来 —— 见 system_tail_text。
-                        hard_tail = system_tail_text(fragments, hard_only=True)
-                        if hard_tail:
-                            system_prompt += "\n\n" + hard_tail
+                    # 截断口径与旧路径一致：可裁剪的尾部素材（task 等）丢弃、
+                    # tool 段截到 300 字符、skill 段置空；但**不可裁剪的硬片段**
+                    # （role=line/persona/system）必须活下来，且仍放回稳定块
+                    # （与上面同一位置，不是尾部）—— 见 system_tail_text / HARD_ROLES。
+                    if stable_text:
+                        system_prompt = append_to_stable_block(system_prompt, stable_text)
                 logger.info(
                     "[Token] system prompt: %d tokens (预算 %d)", sp_tokens, sp_budget
                 )

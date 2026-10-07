@@ -67,6 +67,10 @@ from agent.orchestrator.prompt_builder import (
     system_tail_text,
     task_fragment,
 )
+# 【F3-1 × 主线片段】稳定块回填：role=line 是跨请求不变的身份边界，必须落在
+# 易变尾簇入口**之前**（否则会被 F3-1 一起搬进请求最后一条消息）。纯 stdlib 依赖，
+# 与 system_prompt_manager.split_volatile_tail 共用同一边界判据。
+from agent.system_prompt_manager import append_to_stable_block
 
 # TASK-S9-01: 「本轮 tool_steps / reasoning」按会话隔离存储（修复跨轮串台）
 from agent.orchestrator.turn_state import (
@@ -3499,24 +3503,29 @@ class Orchestrator:
         _ctx_extra = self._context_assembler_extra(user_input)
 
         # ── 提示词片段：一次合并（顺序由片段声明，不再由代码位置决定）──
-        #   role=line  ← 生效主线的 prompt_note（未装线 ⇒ None）
-        #   role=task  ← ContextAssembler 旁路注入（CEL，观察模式）
+        #   role=line  ← 生效主线的 prompt_note（未装线 ⇒ None）—— **稳定块**
+        #   role=task  ← ContextAssembler 旁路注入（CEL，观察模式）—— 易变尾簇
         #   role=task  ← TASK-S9-01 工作流层工具执行素材（只是**素材**，由 LLM 转述成答案，
-        #                而不是把它（原始 JSON/repr）当作最终答案直接回吐）
-        # 三者都没有时 _tail 为空串 ⇒ 与改动前逐字一致。
+        #                而不是把它（原始 JSON/repr）当作最终答案直接回吐）—— 易变尾簇
+        # 三者都没有时 _line_text/_tail 均为空串 ⇒ 与改动前逐字一致。
+        # 【为什么 line 进稳定块】它是本线跨请求不变的身份边界，按词表顺序
+        #   （line 在 skill/tool/memory 之前）也应落在易变尾簇入口之前；否则 F3-1
+        #   会把它随「记忆线索」一起搬进请求最后一条消息，白丢稳定前缀。
         _line_fragment = line_prompt_fragment()
-        _fragments = [
+        _line_text = system_tail_text([_line_fragment]) if _line_fragment is not None else ""
+        _task_fragments = [
             f for f in (
-                _line_fragment,
                 task_fragment(_ctx_extra, "context_assembler"),
                 task_fragment(extra_material, "workflow_material"),
             ) if f is not None
         ]
-        _tail = system_tail_text(_fragments)
+        _tail = system_tail_text(_task_fragments)
         if _line_fragment is not None:
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.line_prompt_note', 'message': '[主线] 已注入 prompt_note 片段: %s（%d 字符）' % (_line_fragment.source, len(_line_fragment.content))}))
         if extra_material:
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.wf_material', 'message': '[工作流层] 已注入工具执行素材: %d 字符（allow_tools=%s）' % (len(extra_material), allow_tools)}))
+        if _line_text:
+            system_prompt = append_to_stable_block(system_prompt, _line_text)
         if _tail:
             system_prompt = system_prompt + "\n\n" + _tail
 
@@ -3541,10 +3550,10 @@ class Orchestrator:
                 # 截断口径与改动前一致：可裁剪的尾部素材（task）丢弃、tool 段截到
                 # 300 字符、skill 段置空；但**不可裁剪的硬片段**（role=line）必须
                 # 活下来 —— 丢掉它会让"本线自称的身份边界"与真实能力边界不一致。
-                # 无 line 片段时 _hard_tail 为 "" ⇒ 与改动前逐字一致。
-                _hard_tail = system_tail_text(_fragments, hard_only=True)
-                if _hard_tail:
-                    system_prompt = system_prompt + "\n\n" + _hard_tail
+                # 与上面同一位置：回填到**稳定块**（无易变标记的模板则追加末尾）。
+                # 无 line 片段时 _line_text 为 "" ⇒ 与改动前逐字一致。
+                if _line_text:
+                    system_prompt = append_to_stable_block(system_prompt, _line_text)
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.token', 'message': '[Token] system prompt: %d tokens (预算 %d)' % (_sp_tokens, _sp_budget)}))
         except Exception:
             pass
@@ -4366,28 +4375,32 @@ class Orchestrator:
             )
 
         # ── 提示词片段：一次合并（与 _call_llm 同一套声明顺序）──
-        #   role=line  ← 生效主线的 prompt_note（未装线 ⇒ None）
+        #   role=line  ← 生效主线的 prompt_note（未装线 ⇒ None）—— **稳定块**
         #   role=task  ← ContextAssembler 旁路注入
         #                 （learning.context_assembler.enabled 默认 false，观察模式；
-        #                   任何异常静默降级，主链路零影响）
+        #                   任何异常静默降级，主链路零影响）—— 易变尾簇
         #   role=task  ← TASK-S9-01 工作流层工具执行素材（只是**素材**，由 LLM 转述成答案，
-        #                而不是把它（原始 JSON/repr）当作最终答案直接回吐）
-        # 三者都没有时 _tail 为空串 ⇒ 与改动前逐字一致。
+        #                而不是把它（原始 JSON/repr）当作最终答案直接回吐）—— 易变尾簇
+        # 三者都没有时 _line_text/_tail 均为空串 ⇒ 与改动前逐字一致。
+        # 【为什么 line 进稳定块】同 _call_llm：跨请求不变的身份边界不得被 F3-1
+        #   的易变尾簇搬运带走（本路径下面紧接着就做 split_volatile_tail）。
         # 注：本路径今天**没有** system prompt 的 token 预算检查，故不新增（保持原样）。
         _ctx_extra = self._context_assembler_extra(user_input)
         _line_fragment = line_prompt_fragment()
-        _fragments = [
+        _line_text = system_tail_text([_line_fragment]) if _line_fragment is not None else ""
+        _task_fragments = [
             f for f in (
-                _line_fragment,
                 task_fragment(_ctx_extra, "context_assembler"),
                 task_fragment(extra_material, "workflow_material"),
             ) if f is not None
         ]
-        _tail = system_tail_text(_fragments)
+        _tail = system_tail_text(_task_fragments)
         if _line_fragment is not None:
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.line_prompt_note', 'message': '[主线] 已注入 prompt_note 片段: %s（%d 字符）' % (_line_fragment.source, len(_line_fragment.content))}))
         if extra_material:
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.wf_material', 'message': '[工作流层] 已注入工具执行素材: %d 字符（allow_tools=%s）' % (len(extra_material), allow_tools)}))
+        if _line_text:
+            system_prompt = append_to_stable_block(system_prompt, _line_text)
         if _tail:
             system_prompt = system_prompt + "\n\n" + _tail
 

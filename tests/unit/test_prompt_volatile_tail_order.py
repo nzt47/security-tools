@@ -24,6 +24,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import agent.system_prompt_manager as spm
+from agent.prompt_manager.roles import PromptFragment
 
 
 # ── 测试用真模板：与 data/system_prompt.txt 同构（含 ## 记忆线索 分隔标记）──
@@ -136,9 +137,47 @@ class TestSplitVolatileTail:
         monkeypatch.delenv(spm.PROMPT_VOLATILE_TAIL_ENV, raising=False)
         assert spm.volatile_tail_move_enabled() is True
 
+    def test_稳定片段插在易变入口之前(self, monkeypatch):
+        """append_to_stable_block：#967 的 prompt_note 必须落在稳定块一侧"""
+        monkeypatch.delenv(spm.PROMPT_VOLATILE_TAIL_ENV, raising=False)
+        full = _render(REAL_TEMPLATE)
+        out = spm.append_to_stable_block(full, "LINE_MARKER")
+        stable, tail = spm.split_volatile_tail(out)
+        assert "LINE_MARKER" in stable, "稳定片段不得落进易变尾簇（否则会被搬走）"
+        assert "LINE_MARKER" not in tail
+        assert stable + "\n\n" + tail == out, "插入后切分仍必须保内容"
+
+    def test_无易变标记的模板_稳定片段退回追加末尾(self, monkeypatch):
+        """无标记 ⇒ 无稳定/易变之分，退回旧行为（追加末尾），绝不猜"""
+        monkeypatch.delenv(spm.PROMPT_VOLATILE_TAIL_ENV, raising=False)
+        full = "身份段\n工具：TOOL"
+        assert spm.append_to_stable_block(full, "LINE") == full + "\n\nLINE"
+        assert spm.volatile_tail_boundary(full) == -1
+
+    def test_逃生开关关闭时_稳定片段也退回追加末尾(self, monkeypatch):
+        monkeypatch.setenv(spm.PROMPT_VOLATILE_TAIL_ENV, "0")
+        full = _render(REAL_TEMPLATE)
+        assert spm.volatile_tail_boundary(full) == -1
+        assert spm.append_to_stable_block(full, "LINE") == full + "\n\nLINE"
+
 
 class TestOrchestratorV2Layout:
     """出网装配（V2 主线，生产实际走的那条）：尾簇必须是最后一条消息"""
+
+    @pytest.fixture(autouse=True)
+    def _no_active_line(self, monkeypatch):
+        """本类只守 **F3-1 的搬运不变量**，故隔离 #967 的主线片段注入。
+
+        否则用例会去读仓库真实的激活主线（data/agent_lines/_active.json →
+        engineering）并把它的 prompt_note 混进 sent，测的就不是"搬移保内容"
+        而是"当前哪条线激活"（非密闭；换线/改 note 就会无谓变红）。
+        主线片段自身的接线由 tests/unit/test_prompt_roles.py 与
+        test_主线片段落在稳定_system_而不是易变尾簇 覆盖。
+        """
+        monkeypatch.setattr(
+            "agent.orchestrator.orchestrator.line_prompt_fragment",
+            lambda *a, **k: None,
+        )
 
     def _build_orch(self):
         from agent.orchestrator.orchestrator import Orchestrator
@@ -230,6 +269,42 @@ class TestOrchestratorV2Layout:
                 sent = sent + "\n\n" + m["content"]
         expected = _render(REAL_TEMPLATE, memory="MEMORY_MARKER：相关记忆")
         assert sent == expected, "搬移后整条请求的文本必须与原渲染逐字一致（只换承载消息）"
+
+    @patch("agent.tools.get_tool_defs", return_value=[])
+    @patch("agent.orchestrator.orchestrator._get_template")
+    def test_主线片段落在稳定_system_而不是易变尾簇(self, mock_tpl, _mock_defs, monkeypatch):
+        """【#967 × F3-1】role=line 跨请求不变 ⇒ 必须进稳定块，不得被尾簇搬运带走。
+
+        可证伪：把生产代码里的 append_to_stable_block 改回"追加在模板之后"，
+        第 2 条断言（line 片段不得出现在最后一条尾簇消息里）立刻变红。
+        """
+        monkeypatch.delenv(spm.PROMPT_VOLATILE_TAIL_ENV, raising=False)
+        note = "LINE_NOTE_MARKER：本线身份边界"
+        monkeypatch.setattr(
+            "agent.orchestrator.orchestrator.line_prompt_fragment",
+            lambda *a, **k: PromptFragment(role="line", content=note, source="line:test"),
+        )
+        mock_tpl.return_value = REAL_TEMPLATE
+        orch, tcs = self._build_orch()
+
+        orch._call_llm_v2("USER_INPUT_MARKER", "CPU 12%")
+
+        kwargs = tcs.chat_with_steps.call_args.kwargs
+        sys_prompt = kwargs["system_prompt"]
+        msgs = kwargs["messages"]
+
+        # 1) 稳定 system 里有 line 片段、且没有易变块
+        assert note in sys_prompt
+        assert "## 记忆线索" not in sys_prompt and "MEMORY_MARKER" not in sys_prompt
+        # 2) 尾簇（最后一条）里**没有** line 片段 —— 否则说明被搬走了
+        assert msgs[-1]["role"] == "system"
+        assert "## 记忆线索" in msgs[-1]["content"]
+        assert note not in msgs[-1]["content"]
+        # 3) 保内容：整条请求 = 原渲染，line 片段插在稳定块末尾
+        sent = sys_prompt + "\n\n" + msgs[-1]["content"]
+        full = _render(REAL_TEMPLATE, memory="MEMORY_MARKER：相关记忆")
+        stable0, tail0 = spm.split_volatile_tail(full)
+        assert sent == spm.append_to_stable_block(stable0, note) + "\n\n" + tail0
 
     @patch("agent.tools.get_tool_defs", return_value=[])
     @patch("agent.orchestrator.orchestrator._get_template")
