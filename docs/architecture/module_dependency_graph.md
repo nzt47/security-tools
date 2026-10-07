@@ -284,9 +284,10 @@ flowchart LR
         agent_lines["agent.lines"]:::crosslayer
         agent_lines_assembler["agent.lines.assembler"]
         agent_lines_callability["agent.lines.callability"]:::crosslayer
-        agent_lines_integration["agent.lines.integration"]
+        agent_lines_integration["agent.lines.integration"]:::crosslayer
         agent_lines_location["agent.lines.location"]
         agent_lines_models["agent.lines.models"]:::crosslayer
+        agent_lines_skillpack["agent.lines.skillpack"]
     end
     subgraph log_system [log_system]
         agent_log_system_dashboard["agent.log_system.dashboard"]
@@ -388,7 +389,7 @@ flowchart LR
         agent_orchestrator_message_handler["agent.orchestrator.message_handler"]
         agent_orchestrator_observability["agent.orchestrator.observability"]
         agent_orchestrator_orchestrator["agent.orchestrator.orchestrator"]:::crosslayer
-        agent_orchestrator_prompt_builder["agent.orchestrator.prompt_builder"]
+        agent_orchestrator_prompt_builder["agent.orchestrator.prompt_builder"]:::crosslayer
         agent_orchestrator_response_builder["agent.orchestrator.response_builder"]
         agent_orchestrator_routing_observability["agent.orchestrator.routing_observability"]:::crosslayer
         agent_orchestrator_status_reporter["agent.orchestrator.status_reporter"]
@@ -436,6 +437,7 @@ flowchart LR
         agent_prompt_manager_deployment["agent.prompt_manager.deployment"]
         agent_prompt_manager_observability["agent.prompt_manager.observability"]
         agent_prompt_manager_registry["agent.prompt_manager.registry"]
+        agent_prompt_manager_roles["agent.prompt_manager.roles"]:::crosslayer
         agent_prompt_manager_storage["agent.prompt_manager.storage"]
         agent_prompt_manager_version_control["agent.prompt_manager.version_control"]
     end
@@ -580,6 +582,7 @@ flowchart LR
     end
     subgraph subagent [subagent]
         agent_subagent["agent.subagent"]
+        agent_subagent_assembly["agent.subagent.assembly"]:::crosslayer
         agent_subagent_barrier["agent.subagent.barrier"]:::crosslayer
         agent_subagent_channel["agent.subagent.channel"]:::crosslayer
         agent_subagent_collection["agent.subagent.collection"]
@@ -873,6 +876,7 @@ flowchart LR
     agent_digital_life_persona --> agent_behavior_controller
     agent_digital_life_persona --> agent_tools_prompt_guard
     agent_digital_life_persona -.-> agent_skills_mgmt_registry
+    agent_digital_life_persona -.-> agent_lines_integration
     agent_digital_life_persona -.-> agent_skills_mgmt_registry
     agent_digital_life_persona -.-> agent_tools
     agent_digital_life_persona --> agent_performance_monitor
@@ -1192,6 +1196,8 @@ flowchart LR
     agent_lines_callability --> agent_lines_assembler
     agent_lines_callability --> agent_lines_models
     agent_lines_integration --> agent
+    agent_lines_skillpack -.-> agent_skills_mgmt_registry
+    agent_lines_skillpack -.-> agent_skills_mgmt_registry
     agent_llm_monitor -.-> agent_monitoring_prometheus
     agent_llm_monitor --> agent_logging_utils
     agent_llm_monitor -.-> agent_utils_singleton_manager
@@ -1531,6 +1537,8 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_tool_calling
     agent_orchestrator_orchestrator -.-> agent_tool_router
     agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
+    agent_orchestrator_orchestrator --> agent_orchestrator_prompt_builder
+    agent_orchestrator_orchestrator -.-> agent_system_prompt_manager
     agent_orchestrator_orchestrator --> agent_orchestrator_turn_state
     agent_orchestrator_orchestrator -.-> agent_digital_life
     agent_orchestrator_orchestrator -.-> agent_tools_plan_tools
@@ -1563,6 +1571,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_skills_mgmt_loader
+    agent_orchestrator_orchestrator -.-> agent_lines
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_capregistry_invoke
     agent_orchestrator_orchestrator -.-> agent_lines
@@ -1576,6 +1585,9 @@ flowchart LR
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_prompt_builder -.-> agent_logging_utils
+    agent_orchestrator_prompt_builder -.-> agent_prompt_manager_roles
+    agent_orchestrator_prompt_builder -.-> agent_system_prompt_manager
+    agent_orchestrator_prompt_builder -.-> agent_lines
     agent_orchestrator_prompt_builder -.-> agent_digital_life
     agent_orchestrator_response_builder -.-> agent_logging_utils
     agent_orchestrator_routing_observability -.-> agent_logging_utils
@@ -1840,6 +1852,8 @@ flowchart LR
     agent_server_routes_routes_agent_lines --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_agent_lines --> agent
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
+    agent_server_routes_routes_agent_lines -.-> agent_orchestrator_prompt_builder
+    agent_server_routes_routes_agent_lines -.-> agent_prompt_manager_roles
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
     agent_server_routes_routes_approval -.-> agent_security
     agent_server_routes_routes_approval -.-> agent_security
@@ -2198,6 +2212,14 @@ flowchart LR
     agent_subagent --> agent_subagent_delegation
     agent_subagent --> agent_subagent_executor
     agent_subagent --> agent_subagent_toolset
+    agent_subagent_assembly --> agent_subagent_toolset
+    agent_subagent_assembly -.-> agent_lines
+    agent_subagent_assembly -.-> agent_lines
+    agent_subagent_assembly -.-> agent_lines
+    agent_subagent_assembly -.-> agent_lines
+    agent_subagent_assembly -.-> agent_skills_mgmt_loader
+    agent_subagent_assembly -.-> agent_prompt_manager_roles
+    agent_subagent_assembly -.-> agent_tools_subagent_tools
     agent_subagent_collection -.-> agent_security_actor_matrix
     agent_subagent_collection -.-> agent_cognitive_reflection
     agent_subagent_container --> agent_subagent_sandbox
@@ -2390,14 +2412,12 @@ flowchart LR
     agent_tools_fan_out_tools -.-> agent_subagent_delegation
     agent_tools_fan_out_tools --> agent_tools_subagent_tools
     agent_tools_fan_out_tools -.-> agent_subagent_delegation
-    agent_tools_fan_out_tools -.-> agent_lines
-    agent_tools_fan_out_tools -.-> agent_subagent_toolset
-    agent_tools_fan_out_tools --> agent_tools_subagent_tools
     agent_tools_fan_out_tools -.-> agent_subagent_delegation
     agent_tools_fan_out_tools -.-> agent_subagent_toolset
     agent_tools_fan_out_tools --> agent_tools_subagent_tools
     agent_tools_fan_out_tools -.-> agent_subagent_channel
     agent_tools_fan_out_tools -.-> agent_lines
+    agent_tools_fan_out_tools -.-> agent_subagent_assembly
     agent_tools_fan_out_tools -.-> agent_subagent_container
     agent_tools_fan_out_tools -.-> agent_subagent_lifecycle
     agent_tools_fan_out_tools -.-> agent_monitoring_tracing
@@ -2530,9 +2550,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 639
-- 模块节点数: 570
-- 依赖边数: 1840
-- 跨层调用数: 1163
+- 扫描文件数: 642
+- 模块节点数: 573
+- 依赖边数: 1857
+- 跨层调用数: 1179
 - 违规调用数: 0
 - 动态 import 数: 1
