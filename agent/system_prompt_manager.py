@@ -82,6 +82,34 @@ def volatile_tail_move_enabled() -> bool:
     return raw.strip().lower() not in _FALSY_ENV_VALUES
 
 
+def volatile_tail_boundary(system_prompt: str) -> int:
+    """返回易变尾簇入口的下标（= 稳定块末尾）；不可搬运时返回 -1。
+
+    与 split_volatile_tail **共用同一判据**（开关 / 最靠前的标记 / 切出非空稳定块
+    与非空尾簇），避免“把稳定片段补进稳定块”与“把易变尾簇搬走”各判一次而边界漂移。
+
+    Returns:
+        >= 0：易变尾簇入口下标；-1：未启用搬运 / 无标记 / 标记在开头 / 任一侧为空
+        （调用方一律按“不切分”处理）。
+    """
+    if not system_prompt:
+        return -1
+    if not volatile_tail_move_enabled():
+        return -1
+    pos = -1
+    for marker in VOLATILE_TAIL_MARKERS:
+        i = system_prompt.find(marker)
+        if i >= 0 and (pos < 0 or i < pos):
+            pos = i
+    # pos <= 0：无标记，或标记就在开头（切出来没有稳定块 ⇒ 搬了等于把 system
+    # message 清空，绝不这么做）
+    if pos <= 0:
+        return -1
+    if not system_prompt[:pos].strip() or not system_prompt[pos:].strip():
+        return -1
+    return pos
+
+
 def split_volatile_tail(system_prompt: str) -> tuple:
     """把渲染好的 system prompt 切成 (稳定前缀, 易变尾簇)。
 
@@ -105,22 +133,30 @@ def split_volatile_tail(system_prompt: str) -> tuple:
     """
     if not system_prompt:
         return system_prompt or "", ""
-    if not volatile_tail_move_enabled():
+    pos = volatile_tail_boundary(system_prompt)
+    if pos < 0:
         return system_prompt, ""
-    pos = -1
-    for marker in VOLATILE_TAIL_MARKERS:
-        i = system_prompt.find(marker)
-        if i >= 0 and (pos < 0 or i < pos):
-            pos = i
-    # pos <= 0：无标记，或标记就在开头（切出来没有稳定块 ⇒ 搬了等于把 system
-    # message 清空，绝不这么做）
-    if pos <= 0:
-        return system_prompt, ""
-    stable = system_prompt[:pos]
-    tail = system_prompt[pos:].lstrip("\n")
-    if not stable.strip() or not tail.strip():
-        return system_prompt, ""
-    return stable, tail
+    return system_prompt[:pos], system_prompt[pos:].lstrip("\n")
+
+
+def append_to_stable_block(system_prompt: str, text: str) -> str:
+    """把一段**稳定**文本追加到「稳定块」末尾（易变尾簇入口之前）。
+
+    【为什么需要】role=line（生效主线的 prompt_note）是**跨请求不变**的身份边界，
+    但模板里没有它的槽位；旧口径把它追加在整个模板之后，正好落在易变尾簇
+    （记忆线索）里。F3-1 把易变尾簇搬成请求的最后一条消息后，这段稳定内容
+    会随尾簇一起被搬走 ⇒ 稳定前缀白白少一截，且与「词表顺序 = 前缀缓存顺序：
+    line 在 skill/tool/memory 之前」自相矛盾。这里把它补到边界**之前**。
+
+    无易变标记 / 未启用搬运 ⇒ 追加在整个 system prompt 之后（与旧行为逐字一致，
+    供不带「## 记忆线索」的自定义模板与既有契约使用）。
+    """
+    if not text:
+        return system_prompt
+    pos = volatile_tail_boundary(system_prompt)
+    if pos < 0:
+        return (system_prompt + "\n\n" + text) if system_prompt else text
+    return system_prompt[:pos] + "\n\n" + text + system_prompt[pos:]
 
 
 def get_template() -> str:

@@ -50,4 +50,11 @@ allow_govern: false
 skills:
 - engineering-test-delivery
 - testing-anti-patterns
+- context_aware
+- emotion_expression
+- memory_summary
+- proactive_suggestion
+- safety_guard
+- self_reflection
+- voice_interaction
 prompt_note: 纯研发线：只碰代码，不碰自身能力集（永不用 govern 平面工具）。

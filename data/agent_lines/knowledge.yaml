@@ -51,6 +51,13 @@ requires_approval: []
 allow_govern: false
 skills:
 - global-core-principles
+- context_aware
+- emotion_expression
+- memory_summary
+- proactive_suggestion
+- safety_guard
+- self_reflection
+- voice_interaction
 prompt_note: '本线的产物是**可复现的步骤序列**，不是摘要：每条步骤要能被另一个 agent 照做。
 
   固化产物分两类——workflow（0-Token 本地执行）与 skill（语义层召回），

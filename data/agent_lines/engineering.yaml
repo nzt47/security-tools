@@ -49,6 +49,13 @@ skills:
 - code-observability
 - testing-anti-patterns
 - global-core-principles
+- context_aware
+- emotion_expression
+- memory_summary
+- proactive_suggestion
+- safety_guard
+- self_reflection
+- voice_interaction
 prompt_note: '本线的交付标准是"改完并验证"：改动前先 read_file/grep 摸清现状，
 
   改动用 edit 做最小替换，改完必须跑验证（测试/lint/复现脚本）并报告结果。

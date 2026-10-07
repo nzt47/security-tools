@@ -172,6 +172,62 @@ class TestL1CapabilityRewrite:
         out = resolve_capability_id("alpha", registry=reg)
         assert out["joined"] is True
 
+    def test_name_index_ignores_stale_entry_from_recycled_address(self, tmp_path):
+        """回归：``id()`` 复用带来的**陈旧名字索引**不得污染新 registry
+
+        旧缓存键是 ``(id(registry), registry.count())``：对象被 GC 后地址会被复用，
+        新 registry 一旦落到同一地址、同一 count，就会读到**另一个对象**留下的索引
+        （该表里没有本次要查的名字）⇒ 本应 ``registry_name`` 命中的解析退化为
+        ``derived`` + ``joined=False``。CI 上本类第一条用例偶发
+        ``assert False is True`` 即此因（本地整文件跑时地址恰未被复用，故为绿）。
+
+        本用例**确定性地**构造该条件：按旧键口径直接写入一条"同地址同 count"的陈旧
+        条目（不靠反复分配赌地址复用），断言解析结果不受影响。修复后缓存改以 registry
+        对象为弱键，元组不可作弱键 ⇒ 该键口径本身已不存在（注入不再成立）。
+        """
+        from tests.unit.digestion_util import descriptor_registry
+        reg = descriptor_registry(tmp_path, [])
+        reg.register(bridge_mod.descriptor_from_builtin_tool(
+            "beta", "B", source_id="tools"))
+        # 对拍：未污染时按 capability.name 命中（旧键口径要写的就是这张表的"错版本"）
+        clean = resolve_capability_id("beta", registry=reg)
+        assert clean["resolved_by"] == "registry_name"
+        assert clean["joined"] is True
+        try:
+            with bridge_mod._NAME_INDEX_LOCK:
+                bridge_mod._NAME_INDEX_CACHE[(id(reg), reg.count())] = {
+                    "read_file": "cp.builtin.read_file"}
+        except TypeError:
+            # 修复后为弱键字典：元组不可弱引用 ⇒ 旧的"地址可命中"键结构已不存在
+            pass
+        out = resolve_capability_id("beta", registry=reg)
+        assert out["joined"] is True
+        assert out["capability_id"] == "cp.tools.beta"
+        assert out["resolved_by"] == "registry_name"
+
+    def test_name_index_leaves_no_residue_for_dead_registry(self, tmp_path):
+        """registry 回收后不得留下可按 ``(id, count)`` 复用的缓存条目
+
+        与上一条同源的**结构判据**：只要"地址 + count"仍能命中缓存条目，``id()``
+        复用就还会把已回收对象的索引喂给后来的 registry。条目须随对象回收消失
+        （弱键自动失效），而不是靠"地址多半不会被复用"侥幸。
+        """
+        import gc
+        from tests.unit.digestion_util import descriptor_registry
+        reg = descriptor_registry(tmp_path, [])
+        reg.register(bridge_mod.descriptor_from_builtin_tool(
+            "beta", "B", source_id="tools"))
+        assert resolve_capability_id("beta", registry=reg)["resolved_by"] == \
+            "registry_name"                       # 这一步必然写下该 registry 的索引
+        legacy_key = (id(reg), reg.count())
+        del reg
+        gc.collect()
+        try:
+            residue = bridge_mod._NAME_INDEX_CACHE.get(legacy_key)
+        except TypeError:
+            residue = None                        # 弱键字典：旧键口径已不存在
+        assert residue is None
+
 
 class TestL1ToolChainLedgerPoint:
     def test_tool_chain_writes_canonical_key(self, facade):

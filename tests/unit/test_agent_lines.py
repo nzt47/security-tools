@@ -126,6 +126,22 @@ def test_builtin_line_mutes_only_real_tools(line_id):
     assert not unknown, f"{line_id} 引用了不存在的工具: {unknown}"
 
 
+@pytest.mark.parametrize("line_id", sorted(EXPECTED_LINES))
+def test_builtin_line_skills_are_real(line_id):
+    """skills 只能引用真实存在的技能 id（与 boost/mute 同款口径）
+
+    为什么必须与工具那条并列：技能侧的失效更隐蔽 —— 工具少了会在装配预览里少一个
+    chip，技能少了只是系统提示词少一段。清单类字段的 typo 一律在数据层拦住。
+    """
+    from agent.lines import known_skill_ids
+
+    profile = get_line_registry().load(line_id)
+    known = set(known_skill_ids())
+    assert known, "技能目录为空，本断言会假通过"
+    unknown = [s for s in profile.skills if s not in known]
+    assert not unknown, f"{line_id} 引用了不存在的技能: {unknown}"
+
+
 def test_lifecycle_line_has_govern_enabled():
     """数字生命体这条线以"进化"为核心之一，必须能拿到治理平面工具"""
     profile = get_line_registry().load("digital_life")
