@@ -135,3 +135,24 @@
     自动创建的真值属性 ⇒ 相关度闸被绕过（`Test答非所问_语义层误命中` 两条红）；已改为**白名单严格判定 + fail-closed**
 - 仍未做（如实登记）：P1-2 剩余 4 条（产物全 gitignore，需造 tmp 产物孪生）、P2-3、P2-6~11、L6 残余、L10.2
   —— 见报告 §6/§8.8 与 `NEXT_SESSION_BACKLOG.md` 的 2026-09-28 回填段
+
+## 2026-10-07: 契约治理第五轮（五）—— 写端点信封收口 · 自动 UI · RBAC 持久化 · 路由覆盖盘点
+- 起点 `master 46159d6f` → 终点 `b5b67ae9`；A 段（三个老 PR 体检）+ B 段（六个 PR）合并。
+- **A**：#970 已 squash 合并；#971 代码侧 111 passed、唯一红项为既有 flake 与 force-push 误触发的 legacy job；
+  #967 CI 真实回归（line `prompt_note` 落入 F3-1 易变尾簇）⇒ 需一条适配提交。落纸见
+  `docs/closeout/契约治理重构_第五轮_老PR体检_20261007.md`。
+- **写端点信封**：第八批 `/api/personality/*`（#1034）、第九批 `/api/context/{config,compress}`（#1035）；
+  「只加不改 + 两端原子化」；顺手修掉前端读错响应键（`custom_params`→`params`，此前静默不刷新）。
+- **自动 UI（#1036）**：`src/features/<key>/index.tsx` + `manifest` 由 `import.meta.glob` 构建期自动挂进导航；
+  `extensionHost` 按既有 `register(registry)` 约定动态挂载插件自带 UI；「扩展中心」成为 SchemaRenderer
+  的**第二个真实消费方**。⇒ 新功能**零清单进 UI**。
+- **RBAC 持久化（#1037）**：M-31 裁决；落盘 `{users,roles}`，路径**调用期**解析 `CP_ADMIN_RBAC_FILE`，
+  测试地板隔离，AST 守卫 8 个写端点都必须落盘。
+- **路由覆盖盘点（#1038）**：脚本 + 产物 + `GET /api/audit/route-ui-coverage` + 页面；
+  「未分类活体只允许收缩」门禁。实测：静态 **451** / 活体 **233** / 死副本 **218**。
+- **线上验证**：重启活体（PID 2684）后端点 **200 + v2**、无令牌 **401 + v2**；入口 chunk 含
+  「扩展中心 / 路由覆盖」。⇒ 交付物在真实服务上可见。
+- **遇到并解决**：① 自动解冲突用 `git add -u` 会把带冲突标记的文件当「已解决」⇒ 只对确认取 ours 的路径 add；
+  ② 后台编排器函数内 `Write-Output` 污染返回值（已 GREEN 却走 STOP 分支）⇒ 日志只写文件；
+  ③ 全局 `open`/`sleep` 探针捕到无关线程 ⇒ 探针收窄到目标目录（`test_load_tool_meta_cache` 单进程全量假红）。
+- 未决：#967（设计边界待 owner 拍）、#971（等一次干净 CI）。
