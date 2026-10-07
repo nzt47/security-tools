@@ -19,6 +19,8 @@ import {
 // 会话任务为首屏，静态导入；其余功能页 React.lazy 按需加载，
 // 首屏 bundle 只含会话页，点击其他导航时才拉取对应 chunk。
 import WorkbenchChatPage from '@/workbench/WorkbenchChatPage'
+// 【自动发现】src/features/<key>/index.tsx（带 manifest）在构建期静态发现，见 featureRegistry.ts
+import { DISCOVERED_FEATURES } from './featureRegistry'
 
 const PanoramaHealth = lazy(() => import('@/pages/hub/panorama/health'))
 const PanoramaSensors = lazy(() => import('@/pages/hub/panorama/sensors'))
@@ -187,6 +189,8 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'admin/logs', label: '系统日志', icon: ScrollText, component: HubAdminLogs },
     ],
   },
+  // 【自动发现】features/<key>/index.tsx（export default + manifest）—— 新功能零清单进导航
+  ...DISCOVERED_FEATURES,
 ]
 
 /**
