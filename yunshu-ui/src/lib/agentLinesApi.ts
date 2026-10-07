@@ -179,6 +179,15 @@ export interface LineDetailResponse {
   preview: AssemblyPreview
   issues: string[]
   tool_source: string
+  /** 技能包判定（详情端点同样回传，与 /preview 同源同算；旧后端缺省） */
+  skills?: SkillPackInfo
+  /**
+   * 会注入系统提示词的片段（详情端点同样回传，与 /preview 同源；旧后端缺省）。
+   * 形状由调用方按需规范化（权威形状见 routes_agent_lines.py::_prompt_fragments_payload）。
+   */
+  prompt_fragments?: unknown
+  /** 片段为空时后端给的人读原因 */
+  prompt_fragments_note?: string
   /** 第 4 面（分身面）；旧后端不返回该字段 */
   subagent_assembly?: SubagentAssemblyInfo
 }
