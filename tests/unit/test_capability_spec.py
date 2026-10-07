@@ -297,6 +297,12 @@ class TestThreeLayerCheck:
         import scripts.sync_capability_manifest as S
         assert S.validate(manifest) == []
 
+    # 【CI 负载假红】本用例复算全量能力清单 build_manifest()（91 工具的全仓
+    # AST/location 调用链扫描，热态 1.2~4.6s、约 1300 万次调用）。ci.yml 并行段
+    # 以 -n 2 + --cov 在共享 runner 上运行，负载尖峰会撞 60s pytest-timeout
+    # （是超时，不是断言失败）。serial 段（ci.yml:528-537，无 xdist、无 --cov）
+    # 是该类重活的既定归属；判据与断言一字未改，只改它跑在哪条 lane。
+    @pytest.mark.serial
     def test_清单与权威数据一致(self, manifest):
         """手改清单/盘点表会被拦住（两者都是派生物）"""
         import scripts.sync_capability_manifest as S

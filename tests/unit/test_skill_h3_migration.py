@@ -449,6 +449,12 @@ class TestActuallyRecallable:
         assert still == [], (
             f"裁剪文件轨索引后仍在候选池里 ⇒ 召回不是由迁移产生: {still}")
 
+    # 【CI 负载假红】本用例复算全量能力清单 build_manifest()（91 工具的全仓
+    # AST/location 调用链扫描，热态 1.2~4.6s、约 1300 万次调用）。ci.yml 并行段
+    # 以 -n 2 + --cov 在共享 runner 上运行，负载尖峰会撞 60s pytest-timeout
+    # （是超时，不是断言失败）。serial 段（ci.yml:528-537，无 xdist、无 --cov）
+    # 是该类重活的既定归属；判据与断言一字未改，只改它跑在哪条 lane。
+    @pytest.mark.serial
     def test_capability_manifest_and_envelope(self, meta_index):
         from agent.lines.callability import build_manifest
         from agent.capregistry import build_registry
@@ -467,6 +473,12 @@ class TestActuallyRecallable:
         assert all(str(i.get("description") or "").strip() for i in sk), (
             "信封里存在描述为空的 skill 条目")
 
+    # 【CI 负载假红】本用例复算全量能力清单 build_manifest()（91 工具的全仓
+    # AST/location 调用链扫描，热态 1.2~4.6s、约 1300 万次调用）。ci.yml 并行段
+    # 以 -n 2 + --cov 在共享 runner 上运行，负载尖峰会撞 60s pytest-timeout
+    # （是超时，不是断言失败）。serial 段（ci.yml:528-537，无 xdist、无 --cov）
+    # 是该类重活的既定归属；判据与断言一字未改，只改它跑在哪条 lane。
+    @pytest.mark.serial
     def test_runtime_only_set_shrinks_to_the_two(self, main_track_file, track_source):
         """迁移的副作用面：runtime_only 标注必须正好剩下不纳入的 2 条
 
