@@ -10,9 +10,10 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, Gauge, HelpCircle, RefreshCw, Minimize2 } from 'lucide-react'
-import { hubPost, Loading } from '../../../pages/hub/components/ui'
+import { Loading } from '../../../pages/hub/components/ui'
 // 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2，改用显式信封解析。
-import { getEnvelope } from '@/api/envelope'
+// 【P1-front 第九批】同页两个 POST（config/compress）也已迁移，一并改用 postEnvelope。
+import { getEnvelope, postEnvelope } from '@/api/envelope'
 
 import {
   CONTEXT_COMPRESS,
@@ -113,7 +114,7 @@ export function ContextManagerBar() {
   const scheduleSave = (patch: Record<string, number>) => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      hubPost(CONTEXT_CONFIG, patch).then(() => {
+      postEnvelope(CONTEXT_CONFIG, patch).then(() => {
         flashMsg('上下文配置已保存')
       }).catch((e) => {
         const m = e instanceof Error ? e.message : String(e)
@@ -127,11 +128,10 @@ export function ContextManagerBar() {
     setBusy(true)
     setMsg('')
     try {
-      const r = await hubPost(CONTEXT_COMPRESS)
-      const rr = r as { ok?: boolean; freed_tokens?: number; error?: string }
-      if (rr.ok) flashMsg(`已压缩，释放 ${rr.freed_tokens ?? 0} tokens`)
-      else if (rr.error) flashMsg(`压缩失败：${rr.error}`)
-      else flashMsg(String(rr.ok ?? JSON.stringify(r).slice(0, 60)))
+      const d = await postEnvelope<{ ok?: boolean; freed_tokens?: number; error?: string }>(CONTEXT_COMPRESS)
+      if (d.ok) flashMsg(`已压缩，释放 ${d.freed_tokens ?? 0} tokens`)
+      else if (d.error) flashMsg(`压缩失败：${d.error}`)
+      else flashMsg(String(d.ok ?? JSON.stringify(d).slice(0, 60)))
     } catch (e) {
       const m = e instanceof Error ? e.message : String(e)
       flashMsg(m.includes('401') ? '压缩需配置 FLASK_API_TOKEN' : `压缩失败：${m}`, 3500)

@@ -246,7 +246,12 @@ def api_context_status():
 @bp.route("/api/context/config", methods=["POST"])
 @_view(auth=True)
 def api_context_config():
-    """更新上下文控制参数"""
+    """更新上下文控制参数（**已迁移到统一信封**）。
+
+    【P1-front 第九批 · 2026-10-07】业务载荷一字未动（仍是 ok/changed/runtime_applied/...），
+    只是装进 ok() 的 data 并带 X-Envelope: v2。消费方两个：ContextManagerBar.tsx（hubPost）
+    与 lib/contextMonitorApi.ts（apiClient，返回原始体 ⇒ 需 unwrapEnvelopeBody）。
+    """
     # _Yunshu 用于读取"真实窗口"（回显 token_limit 时必须与状态接口同一口径）
     from app_server import _cfg, logger, _Yunshu
     data = request.get_json() or {}
@@ -281,7 +286,7 @@ def api_context_config():
         logger.info(f"上下文配置已更新: {', '.join(changed)}")
 
     limit_info = _context_limit_info(_Yunshu)
-    return jsonify({
+    return _ok({
         "ok": True,
         "changed": changed,
         # 窗口值是否**当场生效**（False = 只落进配置副本，重启后才可能生效）
@@ -302,11 +307,14 @@ def api_context_config():
 @bp.route("/api/context/compress", methods=["POST"])
 @_view(auth=True)
 def api_context_compress():
-    """手动触发上下文压缩"""
+    """手动触发上下文压缩（**已迁移到统一信封**）。
+
+    【P1-front 第九批 · 2026-10-07】成功路径改走 ok()；**错误路径（500）按纪律本次不动**。
+    """
     from app_server import _Yunshu, logger
     try:
         result = _Yunshu._memory.compress()
-        return jsonify({
+        return _ok({
             "ok": True,
             "freed_tokens": result.get("freed", 0),
             "current_tokens": result.get("current", 0),
