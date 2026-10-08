@@ -140,6 +140,9 @@ class ExecutionOutcome:
         isolation: 隔离策略声明。
         callback: 回调投递结果。
         task_file: task_file 落盘路径（复现用）。
+        role_audit: 角色档位的审计留痕证据（`{action, tier, recorded, ...}`）；
+            默认档（`template`）为空 dict，非默认档必有该键（`recorded=False` 表示
+            审计写入失败 —— **如实报告**，不伪装成"已留痕"）。
     """
 
     delegation_id: str = ""
@@ -167,6 +170,7 @@ class ExecutionOutcome:
     task_file: str = ""
     sub_reason: str = ""
     invocation: Optional[Dict[str, Any]] = None
+    role_audit: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def has_credentials(self) -> bool:
@@ -196,6 +200,7 @@ class ExecutionOutcome:
             "triad": (self.triad.to_dict() if self.triad else None),
             "cost": (self.cost.to_dict() if self.cost else None),
             "invocation": self.invocation,
+            "role_audit": dict(self.role_audit),
         }
 
 
@@ -270,15 +275,25 @@ class LlmChannelExecutor(ChannelExecutor):
              "content": ("task_file（八要素上下文包）：\n"
                          + json.dumps(task_file, ensure_ascii=False, indent=2))},
         ]
+        # ── system prompt：云枢自有基座 + 本轮角色片段（受控模板）──
+        # 【顺序】基座在前、角色在后：基座的"最后一轮只输出单个 JSON 对象"是协议硬要求，
+        # 不该被角色叙述埋在后面；角色片段只补充"以什么身份做"。
+        # 【它是受控的】override 只承载 role_templates 词表里的正文（template/full-system
+        # 档），或模板+显式开启的自由文本（full-system）；template+text 档的自由文本
+        # 走 ②约束，**不会**出现在这里。回归：tests/unit/test_subagent_role_wiring.py。
+        override = str(getattr(invocation, "system_prompt", "") or "").strip()
+        base_prompt = self._system_prompt
+        if override:
+            base_prompt = f"{base_prompt}\n\n{override}"
         # 把**实际运行模型**告诉子代理：否则被问及"你由什么提供推理"时会臆测厂商
         # （实测：跑在 deepseek 上却自称"由 Anthropic 的 Claude 提供"）。这属于对外
         # 输出的可信度问题，而非人格设定，故在 system prompt 末尾如实声明。
-        system_prompt = self._system_prompt
+        system_prompt = base_prompt
         _model = str(getattr(self._llm, "model", "") or "").strip()
         if _model:
             _provider = str(getattr(self._llm, "provider", "") or "").strip()
             system_prompt = (
-                f"{self._system_prompt}\n"
+                f"{base_prompt}\n"
                 f"你的实际运行模型：{_provider + '/' if _provider else ''}{_model}"
                 "（以此为准；不得臆测为其它厂商或模型）。"
             )
@@ -451,6 +466,8 @@ class DelegationExecutor:
                 credentials: Sequence[Mapping[str, Any]] = (),
                 parent_trace: Any = None,
                 input_text: str = "",
+                system_prompt: str = "",
+                role_tier: str = "",
                 ) -> ExecutionOutcome:
         """执行一次委派（全闸门）
 
@@ -462,6 +479,13 @@ class DelegationExecutor:
             credentials: 临时凭据规格（``name``/``value``/``source``/可选 ``ttl_seconds``）。
             parent_trace: 父 ``TraceContext``（编排任务）；缺省由 ``ctx`` 的 trace 字段重建。
             input_text: 委派目标文本（供复评维度使用；缺省 ``ctx.goal``）。
+            system_prompt: **本轮角色片段**（受控模板正文；空 = 不加，system prompt 与
+                改动前逐字相同）。它由 `agent/subagent/role_templates.py` 的词表产出，
+                执行器把它拼在云枢自有基座**之后**。**自由文本只在 `full-system` 档
+                才会出现在这里**（默认与 `template+text` 档绝不）。
+            role_tier: 角色档位（`template` / `template+text` / `full-system`）。
+                非默认档 ⇒ 本方法写一条 `subagent.role.tier` 审计，并把结果放进
+                `outcome.role_audit`（`recorded` 如实反映是否真的写入）。
 
         Returns:
             ``ExecutionOutcome``（``ok=False`` 时 ``error_code`` 可读）。
@@ -499,13 +523,15 @@ class DelegationExecutor:
             return self._execute_locked(ctx, toolset=toolset, credentials=credentials,
                                         parent_trace=parent_trace,
                                         input_text=input_text or ctx.goal,
+                                        system_prompt=system_prompt, role_tier=role_tier,
                                         start=start)
         finally:
             self._barrier.release()
 
     def _execute_locked(self, ctx: DelegationContext, *, toolset: SubAgentToolset,
                         credentials: Sequence[Mapping[str, Any]], parent_trace: Any,
-                        input_text: str, start: float) -> ExecutionOutcome:
+                        input_text: str, system_prompt: str = "", role_tier: str = "",
+                        start: float) -> ExecutionOutcome:
         """持并发槽位的执行主体（授权后续全部步骤）"""
         delegation_id = ctx.delegation_id
         base = ExecutionOutcome(delegation_id=delegation_id, ok=False,
@@ -513,6 +539,10 @@ class DelegationExecutor:
                                 isolation=isolation_policy_report(
                                     container_root=self._container_root,
                                     trusted=self._trusted))
+        # ── 角色档位留痕（非默认档 = 一次显式的权限抬升，必须在**实跑**这一刻留下一笔）──
+        # 放在最前面：只要真的带着该档位进入了执行主体，就留痕（后续 task_file/凭据
+        # 失败也不影响"这一次确实用了这个档"这个事实）。
+        base.role_audit = self._audit_role_tier(ctx, role_tier, system_prompt)
 
         # ── 步骤 2：物化 task_file（§3.10）──
         try:
@@ -531,7 +561,7 @@ class DelegationExecutor:
             # ── 步骤 5/6：临时凭据（finally 销毁）+ 隔离环境 + 通道调用 ──
             try:
                 creds, channel_output = self._run_with_credentials(
-                    ctx, task_file_path, credentials)
+                    ctx, task_file_path, credentials, system_prompt=system_prompt)
             except CredentialError as e:
                 base.error_code = getattr(e, "code", "E_CREDENTIAL")
                 base.error = str(e)
@@ -680,6 +710,7 @@ class DelegationExecutor:
 
     def _run_with_credentials(self, ctx: DelegationContext, task_file_path: str,
                               credentials: Sequence[Mapping[str, Any]],
+                              *, system_prompt: str = "",
                               ) -> Tuple[List[TemporaryCredential], ChannelOutput]:
         """在凭据作用域内执行通道调用（``finally`` 无条件销毁凭据）
 
@@ -699,6 +730,9 @@ class DelegationExecutor:
                 env=env,
                 cwd=self._container_root,
                 env_mode=ENV_REPLACE,   # 已自建完整环境（隔离 + 凭据），不再叠宿主环境
+                # 本轮角色片段（受控模板）；LlmChannelExecutor 拼在云枢自有基座之后，
+                # 外部 CLI 通道忽略它（system prompt 由对端进程决定）
+                system_prompt=str(system_prompt or ""),
             )
             output = resolve_channel_output(
                 lambda: self._channel(invocation), llm=self._llm, invocation=invocation)
@@ -824,18 +858,60 @@ class DelegationExecutor:
                           status=str(payload["status"]))
         return result
 
-    def _audit_event(self, action: str, ctx: DelegationContext,
-                     payload: Mapping[str, Any], *, status: str = "") -> None:
-        """审计（best-effort；审计失败不得阻断委派主路径）"""
+    def _audit_event_recorded(self, action: str, ctx: DelegationContext,
+                              payload: Mapping[str, Any], *, status: str = "") -> bool:
+        """写审计并**返回是否真的写入**（best-effort，但结果可查）
+
+        与 :meth:`_audit_event` 的唯一差别是返回值：需要"留痕证据"的调用方
+        （角色档位）据此把"记上了没有"如实投影出去，而不是把"尝试过"说成"留痕了"。
+        """
         if self._audit is None:
-            return
+            return False
         try:
             self._audit.record(
                 action, actor=ctx.delegate_actor or ACTOR_SUB_AGENT,
                 subject=f"delegation:{ctx.delegation_id}",
                 payload=dict(payload), status=status)
+            return True
         except Exception as e:  # noqa: BLE001
             logger.warning("[Executor] 审计写入失败 %s: %s", action, e)
+            return False
+
+    def _audit_event(self, action: str, ctx: DelegationContext,
+                     payload: Mapping[str, Any], *, status: str = "") -> None:
+        """审计（best-effort；审计失败不得阻断委派主路径）"""
+        self._audit_event_recorded(action, ctx, payload, status=status)
+
+    def _audit_role_tier(self, ctx: DelegationContext, role_tier: str,
+                         system_prompt: str) -> Dict[str, Any]:
+        """角色档位留痕（非默认档 ⇒ 写一条 `subagent.role.tier`）
+
+        【为什么在**执行器**留痕，而不是只在创建端点】创建时记一次，答的是"配置写成什么"；
+        这里记的是"这一次真的带着该档位跑了"。两者不同，而权限抬升要的是后者。
+        【默认档不记】每个分身都记一条会把审计淹掉 —— 噪声不是留痕。
+        【只有判定不可用时按需审计】`role_templates` 不可导入属异常形态，此时宁可多记。
+
+        Returns:
+            `{}`（默认档/未指定）或 `{"action", "tier", "system_prompt_chars",
+            "explicit", "recorded"}`。**不含 system prompt 正文**。
+        """
+        tier = str(role_tier or "").strip()
+        if not tier:
+            return {}
+        try:
+            from agent.subagent.role_templates import requires_audit
+
+            elevated = bool(requires_audit(tier))
+        except Exception as e:  # noqa: BLE001 档位词表不可用 ⇒ 按"需审计"处理（不静默跳过）
+            logger.warning("[Executor] 角色档位判定不可用（按需审计处理）: %s", e)
+            elevated = True
+        if not elevated:
+            return {}
+        payload = {"tier": tier, "system_prompt_chars": len(str(system_prompt or "")),
+                   "explicit": True}
+        recorded = self._audit_event_recorded("subagent.role.tier", ctx, payload,
+                                              status="enabled")
+        return {"action": "subagent.role.tier", **payload, "recorded": bool(recorded)}
 
     # ── 并行编排 ──
 

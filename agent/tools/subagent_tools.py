@@ -195,6 +195,12 @@ def _result_from_outcome(outcome: Any, ctx: Any) -> Dict[str, Any]:
     if trace_id:
         result["trace_id"] = trace_id
 
+    # 角色档位留痕证据（仅非默认档存在）：把"这次带着哪个档位跑、审计记上了没有"
+    # 如实回给调用方。默认档为空 ⇒ 不出现该键（与 trace_id 同款"有才回"）。
+    role_audit = getattr(outcome, "role_audit", None)
+    if isinstance(role_audit, Mapping) and role_audit:
+        result["role_audit"] = dict(role_audit)
+
     artifacts = getattr(outcome, "artifacts", ()) or ()
     if artifacts:
         result["artifact_count"] = len(artifacts)

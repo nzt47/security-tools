@@ -221,6 +221,11 @@ class ChannelInvocation:
             = **只用** ``env``。执行器走隔离默认值时必须用 ``ENV_REPLACE``——
             否则被隔离删掉的宿主变量会被宿主环境重新带回来（静默失效）。
         cwd: 工作目录。
+        system_prompt: **本轮的 system prompt 覆盖片段**（缺省空串 = 用执行器自己的固定文本）。
+            只有内部 LLM 执行器（`agent/subagent/executor.py::LlmChannelExecutor`）消费它：
+            它把这段拼在云枢自有基座**之后**。外部 CLI 通道忽略之（system prompt 由
+            对端自己的进程决定）。它承载的是**云枢自有受控角色模板**（见
+            `agent/subagent/role_templates.py`），**不是**外来文本——外来文本永远进不了这里。
     """
 
     argv: Tuple[str, ...]
@@ -231,6 +236,7 @@ class ChannelInvocation:
     env: Mapping[str, str] = field(default_factory=dict)
     cwd: str = ""
     env_mode: str = ENV_MERGE
+    system_prompt: str = ""
 
     @property
     def command(self) -> str:
@@ -248,6 +254,9 @@ class ChannelInvocation:
             "env_keys": sorted(str(k) for k in self.env.keys()),
             "env_mode": self.env_mode,
             "cwd": self.cwd,
+            # **只回长度不回正文**：system prompt 可能含受控角色模板正文，审计视图
+            # 记"有没有、多长"即可（正文在委派响应/审计事件里另有投影口径）
+            "system_prompt_chars": len(self.system_prompt or ""),
         }
 
 

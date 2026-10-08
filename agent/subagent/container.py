@@ -59,6 +59,15 @@ class SubagentConfig:
             不是 0.0 —— "没表态"与"要最确定性"是两回事。
             生效路径见 `agent/subagent/llm_factory.py`（同一 provider 内的生成参数，
             不改 provider / 密钥 / base_url）。
+        role_template: 受控角色模板 id（`agent/subagent/role_templates.py::ROLE_TEMPLATES`
+            的键）。**空 = 未装角色**（执行器 system prompt 与改动前逐字相同）；
+            非空但不在词表里 ⇒ 创建/委派端点 400（不回退默认模板）。
+        role_mode: 角色分级开关（默认 `"template"`）。`"template"` = 只用词表正文；
+            `"template+text"` = 自由文本只进 ②约束；`"full-system"` = 自由文本进
+            system prompt（**打破 §5.7 机制 1/2**，必须显式开启 + 审计 + UI 红档徽章）。
+            词表与语义见 `agent/subagent/role_templates.py`。
+        role_text: 角色自由文本（仅 `template+text` / `full-system` 档生效）。
+            默认档下给非空值会被端点**拒绝**（不静默忽略 —— 那会让使用者以为它生效了）。
     """
     name: str
     model_id: str
@@ -69,6 +78,9 @@ class SubagentConfig:
     tags: list[str] = field(default_factory=list)
     ttl_seconds: int = 0  # 0 = 永久存活
     llm_temperature: Optional[float] = None
+    role_template: str = ""
+    role_text: str = ""
+    role_mode: str = "template"
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -262,6 +274,8 @@ class SubagentContainer:
         credentials: Iterable[dict[str, Any]] = (),
         parent_trace: Any = None,
         input_text: str = "",
+        system_prompt: str = "",
+        role_tier: str = "",
         source: str = "",
     ) -> "ExecutionOutcome":
         """经**真执行器**执行一次委派（八要素 → task_file → CLI 通道 → 回收三件套）
@@ -277,6 +291,10 @@ class SubagentContainer:
             llm: 内部执行器所用 LLM（``chat(messages, system_prompt=)``）。
             tools / authorized_capabilities / credentials / parent_trace / input_text:
                 透传 ``DelegationExecutor.execute``。
+            system_prompt / role_tier: 角色片段与档位（见
+                ``agent/subagent/role_templates.py``）。空 ``system_prompt`` = 不加角色，
+                system prompt 与改动前逐字相同；非默认 ``role_tier`` 由执行器写审计并
+                回投 ``outcome.role_audit``。
             source: 委派入口标注（``ui`` / ``tool`` / ``fan_out`` / ``lifecycle``），
                 仅用于**委派记录**（``agent/subagent/delegation_history.py``）里区分谁发起的；
                 缺省空串 = 未标注，不改变任何执行语义。
@@ -305,6 +323,7 @@ class SubagentContainer:
             ctx, tools=tools, authorized_capabilities=authorized_capabilities,
             credentials=list(credentials), parent_trace=parent_trace,
             input_text=input_text or getattr(ctx, "goal", ""),
+            system_prompt=system_prompt, role_tier=role_tier,
         )
         # 容器侧留痕（独立于执行器 Trace；仅供容器自省，不改 execute() 的上下文语义）
         self.context.append({
@@ -365,6 +384,26 @@ class SubagentContainer:
 
     # ── 状态查询 ──
 
+    def role_view(self) -> dict:
+        """角色生效情况（**如实回显**：模板 / 档位 / 是否需要审计 / 是否红档）
+
+        【为什么放在容器上】创建响应、列表、委派响应都要回这一份；各写一次必然漂移
+        （本仓反复出现的老形态）。这里只调 `agent/subagent/role_templates.py`
+        的 `resolve_subagent_role`，不另立口径。
+        【刻意不带 role_text 正文】列表载荷不该携带自由文本；正文只在它该去的槽位出现
+        （②约束或 system prompt），由委派链路决定。
+        """
+        try:
+            from agent.subagent.role_templates import resolve_subagent_role
+
+            return resolve_subagent_role(self.config.role_template, self.config.role_text,
+                                         self.config.role_mode).to_dict()
+        except Exception as e:  # noqa: BLE001 角色视图不可用不得让状态查询挂掉
+            logger.warning("[Subagent:%s] 角色视图不可用: %s", self.id, e)
+            return {"template": "", "tier": "", "source": "", "fragment_chars": 0,
+                    "constraints": 0, "audit_required": False, "red": False,
+                    "error": str(e)}
+
     def get_status(self) -> dict:
         """获取分身状态报告"""
         return {
@@ -380,6 +419,8 @@ class SubagentContainer:
             "ttl_seconds": self.config.ttl_seconds,
             # 生成温度（None = 未干预执行器默认）；界面据此显示 T=…
             "llm_temperature": self.config.llm_temperature,
+            # 角色生效情况（三档 + 红档/审计标记）；**不含 role_text 正文**，见 role_view
+            "role": self.role_view(),
             "age_seconds": round(self.age_seconds, 1),
             "is_expired": self.is_expired,
             "is_destroyed": self._is_destroyed,
