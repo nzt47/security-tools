@@ -1850,6 +1850,7 @@ flowchart LR
     agent_server_routes_routes_agent_lines -.-> agent_lines
     agent_server_routes_routes_agent_lines -.-> agent_server_auth
     agent_server_routes_routes_agent_lines --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_agent_lines -.-> agent_subagent_assembly
     agent_server_routes_routes_agent_lines --> agent
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
     agent_server_routes_routes_agent_lines -.-> agent_orchestrator_prompt_builder
@@ -2552,7 +2553,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 642
 - 模块节点数: 573
-- 依赖边数: 1857
-- 跨层调用数: 1179
+- 依赖边数: 1858
+- 跨层调用数: 1180
 - 违规调用数: 0
 - 动态 import 数: 1

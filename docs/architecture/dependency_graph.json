@@ -3575,7 +3575,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_agent_lines.py",
       "in_degree": 0,
-      "out_degree": 8
+      "out_degree": 9
     },
     {
       "path": "agent.server_routes.tracing_decorator",
@@ -3584,6 +3584,14 @@
       "file_path": "",
       "in_degree": 23,
       "out_degree": 2
+    },
+    {
+      "path": "agent.subagent.assembly",
+      "name": "assembly",
+      "layer": "subagent",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 8
     },
     {
       "path": "agent.server_routes.routes_approval",
@@ -4280,14 +4288,6 @@
       "file_path": "",
       "in_degree": 4,
       "out_degree": 4
-    },
-    {
-      "path": "agent.subagent.assembly",
-      "name": "assembly",
-      "layer": "subagent",
-      "file_path": "agent/subagent/assembly.py",
-      "in_degree": 1,
-      "out_degree": 8
     },
     {
       "path": "agent.digestion.sandbox",
@@ -19734,6 +19734,19 @@
     },
     {
       "source": "agent.server_routes.routes_agent_lines",
+      "target": "agent.subagent.assembly",
+      "source_layer": "server_routes",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 353,
+      "source_file": "agent/server_routes/routes_agent_lines.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_agent_lines",
       "target": "agent",
       "source_layer": "server_routes",
       "target_layer": "unknown",
@@ -19790,7 +19803,7 @@
       "source_layer": "server_routes",
       "target_layer": "lines",
       "import_type": "from_import",
-      "line": 457,
+      "line": 533,
       "source_file": "agent/server_routes/routes_agent_lines.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -28732,8 +28745,8 @@
   "stats": {
     "total_files": 642,
     "total_nodes": 573,
-    "total_edges": 1857,
-    "cross_layer_edges": 1179,
+    "total_edges": 1858,
+    "cross_layer_edges": 1180,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
