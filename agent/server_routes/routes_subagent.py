@@ -33,6 +33,9 @@ from agent.subagent.memory_broker import (
     resolve_memory_config,
 )
 
+# 密钥闸门异常（credentials.py 既有）：bundle 导出被拦下时要回明确错误码
+from agent.subagent.credentials import ManifestSecretLeak
+
 logger = logging.getLogger(__name__)
 
 
@@ -56,6 +59,41 @@ def _channel_info(Yunshu) -> dict:
         "agent_cli": cli,
         "ok": llm is not None or bool(cli),
     }
+
+
+def _active_line_id() -> str:
+    """当前生效主线 id（bundle 装配单的 line 入参；读不到按"未点名"处理）
+
+    与 agent/lines/integration.py::resolve_line_id 同源，不自己读激活指针文件。
+    空串是真语义：导入侧据此走只读默认集（不是出错）。
+    """
+    try:
+        from agent.lines import resolve_line_id
+
+        return str(resolve_line_id() or "")
+    except Exception as e:  # noqa: BLE001 主线子系统不可用按"未点名"处理
+        logger.debug("[SubagentAPI] 生效主线读取失败（按未点名处理）: %s", e)
+        return ""
+
+
+def _bundle_assembly(line_id: str):
+    """bundle 导出用的装配单快照（fail-soft：不可用则**如实**不带授权快照）
+
+    唯一权威仍是 agent/subagent/assembly.py::resolve_subagent_assembly；本函数只
+    提供它的两个入参（工具元数据 + 候选池），不重写装配算法。装配单不可用时少一段
+    快照，而不是让整个导出失败——导出的是"这个分身"，不是"它的装配预览"。
+    """
+    try:
+        from agent.lines import get_line_registry, load_tool_meta
+        from agent.subagent.assembly import resolve_subagent_assembly
+
+        meta = load_tool_meta()
+        available = sorted(meta.keys())
+        return resolve_subagent_assembly(str(line_id or ""), get_line_registry(),
+                                         meta, available)
+    except Exception as e:  # noqa: BLE001 装配单不可用不得让导出挂掉
+        logger.warning("[SubagentAPI] 装配单投影不可用（bundle 导出照常，不带授权快照）: %s", e)
+        return None
 
 
 def _outcome_payload(outcome, ctx) -> dict:
@@ -509,6 +547,114 @@ def register_routes(app, state):
             return jsonify({"ok": True, "subagent": subagent})
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
+
+    # ═══════════════════════════════════════════════════
+    #  可带走 bundle（S5）：导出 / 导入
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/subagent/<name>/bundle")
+    @trace_route("Subagent")
+    @require_token
+    @log_request(show_response=False)
+    def api_subagent_bundle(name):
+        """导出可带走 bundle（只读；**导出前必经密钥闸**）
+
+        【为什么只回引用不回值】secrets.refs 只有 source/name/env_var 三个键；
+        值由到达端自己的 TTL 凭据管理器签发。整包过 credentials.py 的
+        assert_manifest_secret_free —— 检出长期密钥时**拒绝导出**（fail-closed），
+        而不是"照常导出、只记一条日志"。
+
+        契约见 agent/subagent/bundle.py（schema_version / identity / assembly /
+        secrets / entrypoint / runtime）。
+        """
+        try:
+            mgr = getattr(Yunshu, "_subagent_mgr", None)
+            container = mgr.get(name) if callable(getattr(mgr, "get", None)) else None
+            if container is None:
+                return jsonify({"ok": False, "error": f"分身不存在: {name}"}), 404
+            cfg = getattr(container, "config", None)
+            if cfg is None:
+                return jsonify({"ok": False,
+                                "error": f"分身容器无配置，无法导出: {name}"}), 500
+
+            from agent.subagent.bundle import build_bundle, secret_refs_from_env
+            from agent.subagent.llm_factory import resolve_subagent_llm
+
+            line_id = _active_line_id()
+            resolution = resolve_subagent_llm(
+                getattr(cfg, "model_id", ""),
+                parent_llm=getattr(Yunshu, "_llm", None),
+                temperature=getattr(cfg, "llm_temperature", None))
+            bundle = build_bundle(
+                cfg, line_id=line_id, llm_resolution=resolution,
+                assembly=_bundle_assembly(line_id),
+                secret_refs=secret_refs_from_env())
+            return jsonify({"ok": True, "bundle": bundle})
+        except ManifestSecretLeak as e:
+            logger.error("[SubagentAPI] bundle 导出被密钥闸拦下 name=%s: %s", name, e)
+            return jsonify({"ok": False, "error_code": "E_MANIFEST_SECRET_LEAK",
+                            "error": str(e)}), 409
+        except Exception as e:  # noqa: BLE001 导出失败要有明确错误码，不裸 500
+            logger.exception("[SubagentAPI] bundle 导出失败: %s", e)
+            return jsonify({"ok": False, "error_code": "E_BUNDLE_EXPORT_FAILED",
+                            "error": str(e)}), 500
+
+    @app.route("/api/subagent/import", methods=["POST"])
+    @trace_route("Subagent")
+    @require_token
+    @log_request()
+    def api_subagent_import():
+        """从 bundle 导入一个分身（非法 bundle ⇒ 400 且**不建容器**）
+
+        【顺序纪律】先 validate / import_config（纯函数，不改任何状态），全部通过
+        才调 create_subagent。任何一步失败都不会留下半成品容器。
+        【name 冲突】由生命周期管理器判定并如实回（消歧不在本层另造一套）。
+
+        返回 {ok, subagent, imported:{bundle_id, backend}}。
+        """
+        from agent.subagent.bundle import (
+            BundleValidationError,
+            UnsupportedBackend,
+            bundle_from_json,
+            get_backend,
+            import_config,
+            validate_bundle,
+        )
+        try:
+            data = request.get_json(silent=True) or {}
+            raw = data.get("bundle")
+            if raw is None:
+                return jsonify({"ok": False, "error_code": "E_BUNDLE_INVALID",
+                                "error": "请求体缺少 bundle 字段"}), 400
+            if isinstance(raw, str):
+                # 允许直接投递 bundle_to_json 的文本；解析失败即 400
+                raw = bundle_from_json(raw)
+            problems = validate_bundle(raw)
+            if problems:
+                return jsonify({
+                    "ok": False, "error_code": "E_BUNDLE_INVALID",
+                    "error": "非法 bundle（未建容器）：" + "；".join(problems[:8]),
+                    "problems": problems,
+                }), 400
+            backend = get_backend(raw)
+            config = import_config(raw)
+            container = Yunshu.create_subagent(config)
+            return jsonify({
+                "ok": True,
+                "subagent": container.get_status(),
+                "imported": {"bundle_id": str(raw.get("bundle_id") or ""),
+                             "backend": backend},
+            })
+        except BundleValidationError as e:
+            return jsonify({"ok": False, "error_code": "E_BUNDLE_INVALID",
+                            "error": str(e)}), 400
+        except UnsupportedBackend as e:
+            return jsonify({"ok": False, "error_code": "E_BUNDLE_BACKEND_UNSUPPORTED",
+                            "error": str(e)}), 400
+        except Exception as e:  # noqa: BLE001 与 create 同款：非法输入一律 400
+            logger.error("[SubagentAPI] bundle 导入失败: %s", e)
+            return jsonify({"ok": False, "error_code": "E_BUNDLE_IMPORT_FAILED",
+                            "error": str(e)}), 400
 
     # ═══════════════════════════════════════════════════
     #  创建 & 销毁

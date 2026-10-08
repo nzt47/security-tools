@@ -198,17 +198,21 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="credentials", layer="hands", label="凭据",
         question="钥匙在谁手里？", state=OWNED,
-        evidence="TTL ≤ 任务时长 + finally 无条件销毁 + 环境注入 + 销毁证据审计",
-        evidence_files=("agent/subagent/credentials.py",),
-        gap="跨 provider 的引用式自带密钥未做（属 S5 bundle 契约的一部分）",
+        evidence="TTL ≤ 任务时长 + finally 无条件销毁 + 环境注入 + 销毁证据审计；"
+                 "bundle 的 secrets.refs 只存引用（source/name/env_var，无值）",
+        evidence_files=("agent/subagent/credentials.py", "agent/subagent/bundle.py"),
+        gap="跨 provider 的引用式自带密钥未做：bundle 已给出引用槽位，"
+            "但引用→值的签发/注入（按到达端 TTL 凭据）尚未接线",
         next_stage="S5"),
     # ── 身体层 ──
     SovereigntyFace(
         key="execution_backend", layer="body", label="执行后端",
         question="在哪跑？", state=PARTIAL,
-        evidence="channel.py：内部 LLM（同进程）+ 外部 agent CLI（subprocess）两档；协议同为 task_file → JSON Lines",
-        evidence_files=("agent/subagent/channel.py", "agent/subagent/container.py"),
-        gap="container / bundle 后端未做；subprocess 需 CP_SUBAGENT_AGENT_CLI（当前未配置）",
+        evidence="channel.py：内部 LLM（同进程）+ 外部 agent CLI（subprocess）两档；协议同为 task_file → JSON Lines；"
+                 "bundle 的 runtime.backend 经 resolve_backend 映射到这两档（未知后端 fail-closed）",
+        evidence_files=("agent/subagent/channel.py", "agent/subagent/container.py",
+                        "agent/subagent/bundle.py"),
+        gap="container 后端未做；本地推理档未做；subprocess 需 CP_SUBAGENT_AGENT_CLI（当前未配置）",
         next_stage="S5"),
     SovereigntyFace(
         key="lifecycle", layer="body", label="生命周期",
@@ -217,10 +221,15 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         evidence_files=("agent/subagent/lifecycle.py", "agent/subagent/barrier.py")),
     SovereigntyFace(
         key="portability", layer="body", label="可带走 bundle",
-        question="换机断网还能不能活？", state=MISSING,
-        evidence="pages/hub/workshop/replicate.tsx 是纯说明页（零 API 调用），如实标注规划中",
-        evidence_files=("yunshu-ui/src/pages/hub/workshop/replicate.tsx",),
-        gap="无分身包格式、无导出/导入端点、无离线依赖打包",
+        question="换机断网还能不能活？", state=PARTIAL,
+        evidence="bundle 契约（身份/装配/引用式密钥/entrypoint 协议）+ GET /api/subagent/<name>/bundle "
+                 "导出（过密钥闸）+ POST /api/subagent/import 导入；"
+                 "replicate.tsx 已从纯说明页改为真实导出面",
+        evidence_files=("agent/subagent/bundle.py",
+                        "agent/server_routes/routes_subagent.py",
+                        "yunshu-ui/src/pages/hub/workshop/replicate.tsx"),
+        gap="离线依赖打包与本地推理未做；导入无 UI（只有端点）；"
+            "container 后端未做——换机断网仍不能完整运行",
         next_stage="S5"),
     SovereigntyFace(
         key="communication", layer="body", label="通信与协同",

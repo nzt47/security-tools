@@ -257,6 +257,9 @@ export const SUBAGENT_HISTORY = '/api/subagent/history';
 export const SUBAGENT_CAPABILITIES = '/api/subagent/capabilities';
 export const subagentDelegateByName = (name: string) => `/api/subagent/${encodeURIComponent(name)}/delegate`;
 export const subagentDestroyByName = (name: string) => `/api/subagent/${encodeURIComponent(name)}/destroy`;
+// 可带走 bundle（S5）：GET 导出一个分身的包 / POST 从包导入（见 agent/subagent/bundle.py）
+export const SUBAGENT_IMPORT = '/api/subagent/import';
+export const SUBAGENT_BUNDLE_BY_NAME = (name: string) => `/api/subagent/${encodeURIComponent(name)}/bundle`;
 
 // ===============================================================
 //  插件 / 心跳 / 可观测 / 杂项

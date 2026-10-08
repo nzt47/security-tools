@@ -260,6 +260,29 @@ class ChannelInvocation:
         }
 
 
+#: §3.10 命令行**协议尾巴**（`<cli>` 之后的部分；唯一权威）
+CLI_ARGV_TAIL: Tuple[str, ...] = ("-p", "--output-format", "--max-turns")
+
+
+def split_agent_cli(agent_cli: str) -> Tuple[str, ...]:
+    """把可执行串切成 argv（可带参数，如 ``python -m my_agent``），按 shell 规则切分
+
+    【为什么单独抽出来】§3.10 的 `<agent_cli>` 是**可以带参数**的（"python -m my_agent"），
+    因此"怎么切"不是一处实现细节，而是协议的一部分。bundle 契约
+    （`agent/subagent/bundle.py`）要把同一份协议**声明**成 argv_template 并渲染回 argv：
+    两处各写一遍切分规则，迟早出现"渲染结果 ≠ 真实调用"（正是"换后端不改协议"要防的事）。
+    这里收口成唯一实现，`build_cli_argv` 与本文件的其它调用点共用。
+
+    Raises:
+        ChannelError: 空串（§3.10 要求可执行入口）。
+    """
+    cli = str(agent_cli or "").strip()
+    if not cli:
+        raise ChannelError("agent_cli 不得为空（§3.10 要求可执行入口）")
+    parts = shlex.split(cli, posix=False) if os.name == "nt" else shlex.split(cli)
+    return tuple(p.strip('"') for p in parts)
+
+
 def build_cli_argv(agent_cli: str, task_file: str, *,
                    max_turns: int = DEFAULT_MAX_TURNS,
                    output_format: str = DEFAULT_OUTPUT_FORMAT) -> Tuple[str, ...]:
@@ -267,16 +290,12 @@ def build_cli_argv(agent_cli: str, task_file: str, *,
 
     ``agent_cli`` 可为带参数的可执行串（``python -m my_agent``），按 shell 规则切分。
     """
-    cli = str(agent_cli or "").strip()
-    if not cli:
-        raise ChannelError("agent_cli 不得为空（§3.10 要求可执行入口）")
     if not str(task_file or "").strip():
         raise ChannelError("task_file 不得为空")
     turns = int(max_turns)
     if turns <= 0:
         raise ChannelError(f"max_turns 必须为正整数：{max_turns!r}")
-    parts = shlex.split(cli, posix=False) if os.name == "nt" else shlex.split(cli)
-    parts = [p.strip('"') for p in parts]
+    parts = split_agent_cli(agent_cli)
     return tuple(parts) + (
         "-p", str(task_file),
         "--output-format", str(output_format or DEFAULT_OUTPUT_FORMAT),
@@ -702,7 +721,8 @@ __all__ = [
     # taint
     "TaintedText", "assert_untainted",
     # 调用
-    "ChannelInvocation", "build_cli_argv", "default_agent_cli", "default_max_turns",
+    "ChannelInvocation", "build_cli_argv", "split_agent_cli", "CLI_ARGV_TAIL",
+    "default_agent_cli", "default_max_turns",
     "RawOutput", "ChannelExecutor", "SubprocessChannelExecutor", "make_executor",
     # 解析
     "parse_json_lines", "parse_json_document", "merge_records", "collect_artifacts",
