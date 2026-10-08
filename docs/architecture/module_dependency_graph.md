@@ -307,6 +307,7 @@ flowchart LR
         agent_memory_adapters_holographic_adapter["agent.memory.adapters.holographic_adapter"]
         agent_memory_adapters_mem0_adapter["agent.memory.adapters.mem0_adapter"]
         agent_memory_base["agent.memory.base"]
+        agent_memory_broker["agent.memory.broker"]:::crosslayer
         agent_memory_context_assembler["agent.memory.context_assembler"]
         agent_memory_file_watcher["agent.memory.file_watcher"]
         agent_memory_filter["agent.memory.filter"]
@@ -595,6 +596,7 @@ flowchart LR
         agent_subagent_lifecycle["agent.subagent.lifecycle"]:::crosslayer
         agent_subagent_llm_factory["agent.subagent.llm_factory"]:::crosslayer
         agent_subagent_mechanical["agent.subagent.mechanical"]:::crosslayer
+        agent_subagent_memory_broker["agent.subagent.memory_broker"]:::crosslayer
         agent_subagent_observability["agent.subagent.observability"]
         agent_subagent_role_templates["agent.subagent.role_templates"]:::crosslayer
         agent_subagent_sandbox["agent.subagent.sandbox"]:::crosslayer
@@ -1255,6 +1257,8 @@ flowchart LR
     agent_memory_adapters_mem0_adapter --> agent_memory_base
     agent_memory_adapters_mem0_adapter -.-> agent_logging_utils
     agent_memory_base -.-> agent_logging_utils
+    agent_memory_broker --> agent_memory_layered_store
+    agent_memory_broker --> agent_memory_tenancy
     agent_memory_context_assembler -.-> agent_logging_utils
     agent_memory_context_assembler --> agent_memory_observability
     agent_memory_file_watcher -.-> agent_logging_utils
@@ -2023,6 +2027,7 @@ flowchart LR
     agent_server_routes_routes_subagent --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_subagent -.-> agent_api_envelope
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation_history
+    agent_server_routes_routes_subagent -.-> agent_subagent_memory_broker
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation
     agent_server_routes_routes_subagent -.-> agent_subagent_channel
@@ -2240,8 +2245,10 @@ flowchart LR
     agent_subagent_container --> agent_subagent_delegation
     agent_subagent_container --> agent_subagent_executor
     agent_subagent_container --> agent_subagent_executor
+    agent_subagent_container --> agent_subagent_memory_broker
     agent_subagent_container --> agent_subagent_delegation_history
     agent_subagent_container --> agent_subagent_role_templates
+    agent_subagent_container --> agent_subagent_memory_broker
     agent_subagent_delegation_history -.-> agent_jsonl_history
     agent_subagent_executor -.-> agent_security_actor_matrix
     agent_subagent_executor --> agent_subagent_barrier
@@ -2251,11 +2258,14 @@ flowchart LR
     agent_subagent_executor --> agent_subagent_delegation
     agent_subagent_executor --> agent_subagent_sandbox
     agent_subagent_executor --> agent_subagent_toolset
+    agent_subagent_executor -.-> agent_memory_broker
+    agent_subagent_executor -.-> agent_memory_broker
     agent_subagent_executor -.-> agent_observability_trace_v2
     agent_subagent_executor -.-> agent_observability_trace_v2
     agent_subagent_executor -.-> agent_observability_trace_v2
     agent_subagent_executor --> agent_subagent_role_templates
     agent_subagent_lifecycle --> agent_subagent_container
+    agent_subagent_lifecycle --> agent_subagent_memory_broker
     agent_subagent_lifecycle --> agent_subagent_executor
     agent_subagent_lifecycle --> agent_subagent_executor
     agent_subagent_lifecycle --> agent_subagent_delegation_history
@@ -2567,9 +2577,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 645
-- 模块节点数: 576
-- 依赖边数: 1871
-- 跨层调用数: 1191
+- 扫描文件数: 647
+- 模块节点数: 578
+- 依赖边数: 1879
+- 跨层调用数: 1194
 - 违规调用数: 0
 - 动态 import 数: 1
