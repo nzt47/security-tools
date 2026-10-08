@@ -114,6 +114,26 @@ class LLMService:
 
     # ── TASK-S2-03：模型降级链（P7.1-18 第 9 事件 model.degraded） ──
 
+    def with_model(self, model: str) -> "LLMService":
+        """派生「仅模型名不同」的**独立实例**（公开入口；分身异构模型用）
+
+        与降级链内部的 ``_shadow_service`` 是**同一份实现**：复用本实例的
+        ``provider`` / ``api_key`` / ``base_url`` 与已建客户端，只把 ``model`` 换成入参
+        （``copy.copy`` + 重绑重试包装器；**不改本实例**，故并发安全）。
+
+        【为什么把它公开出来】分身的 ``model_id`` 需要一个"同 provider、换模型"的构造口。
+        没有这个口，调用方只能自己 ``LLMService(provider=…, api_key=…, …)`` ——
+        那等于在本模块之外**再抄一份"provider / 密钥从哪来"的口径**（本仓反复出现的老形态）。
+
+        Raises:
+            ValueError: 模型名为空/纯空白（"跟随母体"是**上层**语义，不在本方法里兜底 ——
+                本方法只回答"换成一个具体模型名"这一件事）。
+        """
+        name = str(model or "").strip()
+        if not name:
+            raise ValueError("with_model 需要非空模型名（'跟随母体' 由调用方在更上层处理）")
+        return self._shadow_service(name)
+
     def _shadow_service(self, model: str) -> "LLMService":
         """构造「仅模型名不同」的影子实例（并发安全：不改 self.model）
 

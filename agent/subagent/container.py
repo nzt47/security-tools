@@ -55,6 +55,10 @@ class SubagentConfig:
             - 'system': 系统级操作
         tags: 标签（用于任务匹配）
         ttl_seconds: 存活时间（秒），超时自动销毁；0 表示永久
+        llm_temperature: 生成温度（0.0–2.0）；``None`` = **不干预**（用执行器默认），
+            不是 0.0 —— "没表态"与"要最确定性"是两回事。
+            生效路径见 `agent/subagent/llm_factory.py`（同一 provider 内的生成参数，
+            不改 provider / 密钥 / base_url）。
     """
     name: str
     model_id: str
@@ -64,6 +68,7 @@ class SubagentConfig:
     permissions: list[str] = field(default_factory=lambda: ["read"])
     tags: list[str] = field(default_factory=list)
     ttl_seconds: int = 0  # 0 = 永久存活
+    llm_temperature: Optional[float] = None
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -373,6 +378,8 @@ class SubagentContainer:
             "context_window": self.config.context_window,
             "context_used": len(self.context),
             "ttl_seconds": self.config.ttl_seconds,
+            # 生成温度（None = 未干预执行器默认）；界面据此显示 T=…
+            "llm_temperature": self.config.llm_temperature,
             "age_seconds": round(self.age_seconds, 1),
             "is_expired": self.is_expired,
             "is_destroyed": self._is_destroyed,

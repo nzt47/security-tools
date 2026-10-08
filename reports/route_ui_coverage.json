@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-08T06:34:51",
+  "generated_at": "2026-10-08T13:37:19",
   "totals": {
     "routes": 451,
     "live": 233,
@@ -5488,7 +5488,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:257"
+        "agent/server_routes/routes_subagent.py:324"
       ]
     },
     {
@@ -5502,7 +5502,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:374"
+        "agent/server_routes/routes_subagent.py:449"
       ]
     },
     {
@@ -5516,7 +5516,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:320"
+        "agent/server_routes/routes_subagent.py:395"
       ]
     },
     {
@@ -5530,7 +5530,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:342"
+        "agent/server_routes/routes_subagent.py:417"
       ]
     },
     {
@@ -5544,7 +5544,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:519"
+        "agent/server_routes/routes_subagent.py:617"
       ]
     },
     {
@@ -5560,7 +5560,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:274"
+        "agent/server_routes/routes_subagent.py:341"
       ]
     },
     {
@@ -5576,7 +5576,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:450"
+        "agent/server_routes/routes_subagent.py:541"
       ]
     },
     {
@@ -5592,7 +5592,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:221"
+        "agent/server_routes/routes_subagent.py:288"
       ]
     },
     {
@@ -5608,7 +5608,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:197"
+        "agent/server_routes/routes_subagent.py:260"
       ]
     },
     {

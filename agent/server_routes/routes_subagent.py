@@ -14,6 +14,7 @@
 import logging
 import time
 import uuid
+from typing import Any, Dict
 
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
@@ -117,6 +118,68 @@ def _no_channel_response(channel: dict):
     }), 409
 
 
+def _llm_view(Yunshu: Any, declared: Any = ()) -> Dict[str, Any]:
+    """部署级 LLM 事实 + 可选模型清单（**逐分身**生效来源见 `_subagent_with_llm`）
+
+    【为什么在列表端点里回这个】装配车间要回答两个问题：①"这个分身实际会用哪个
+    模型"②"我能填哪些模型名"。两者都只有后端知道（母体当前模型 + 各分身声明），
+    前端自己猜就是第二份口径。**不新增路由**：与 `channel` 同款，作为本页的自举载荷。
+    【不编造模型目录】候选只列"有出处"的名字（部署默认 + 各分身已声明），见
+    `agent/subagent/llm_factory.py::llm_options`。
+    """
+    try:
+        from agent.subagent.llm_factory import llm_options, model_name
+
+        parent = getattr(Yunshu, "_llm", None)
+        view = llm_options(model_name(parent), declared)
+        view["provider"] = str(getattr(parent, "provider", "") or "")
+        return view
+    except Exception as e:  # noqa: BLE001 提示性载荷不可用不得让列表挂掉
+        logger.warning("[SubagentAPI] LLM 视图不可用（列表照常返回）: %s", e)
+        return {"model": "", "provider": "", "options": []}
+
+
+def _subagent_with_llm(subagent: Any, parent_llm: Any) -> Dict[str, Any]:
+    """给一条分身状态补上"它实际会用的模型"（来源三档，见 llm_factory 模块 docstring）
+
+    单个分身解析失败只影响该行（补一条 `fallback-after-error`），列表整体照常返回。
+    """
+    row: Dict[str, Any] = dict(subagent or {})
+    try:
+        from agent.subagent.llm_factory import resolve_subagent_llm
+
+        row["llm"] = resolve_subagent_llm(row.get("model_id", ""),
+                                          parent_llm=parent_llm,
+                                          temperature=row.get("llm_temperature")).to_dict()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[SubagentAPI] 分身 %s 的 LLM 解析失败: %s", row.get("name"), e)
+        row["llm"] = {"requested": str(row.get("model_id") or ""), "model": "",
+                      "source": "fallback-after-error", "error": str(e)}
+    return row
+
+
+def _llm_temperature(data: Dict[str, Any], default: Any = None) -> Any:
+    """读并校验分身的生成温度（``llm_temperature``）
+
+    ``None`` / 缺省 / 空串 ⇒ 返回 ``None``（**不干预**执行器默认，不是 0.0：
+    "没表态"与"要最确定性"是两回事）。给了值就**必须**是 0.0–2.0 的有限数
+    （越界即 ValueError，调用方转 400）—— 不做静默夹取：悄悄把 3.0 改成 2.0
+    就是替使用者改了参数，而他会以为 3.0 生效了。
+    """
+    raw = data.get("llm_temperature", default)
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"llm_temperature 必须是数字（0.0–2.0），收到: {raw!r}") from e
+    if value != value or value in (float("inf"), float("-inf")):  # NaN / ±inf
+        raise ValueError(f"llm_temperature 必须是有限数字，收到: {raw!r}")
+    if value < 0.0 or value > 2.0:
+        raise ValueError(f"llm_temperature 越界（须在 0.0–2.0）：{value}")
+    return value
+
+
 def _granted_tools() -> tuple:
     """子代理工具子集（与模型侧 ``delegate`` 工具**同源**：同一份只读白名单）
 
@@ -206,13 +269,17 @@ def register_routes(app, state):
         `count`/`channel` 是给 UI 提前提示通道可用性用的，一并保留）。
         """
         try:
-            subagents = Yunshu.list_subagents()
+            raw_subagents = Yunshu.list_subagents()
+            parent_llm = getattr(Yunshu, "_llm", None)
+            subagents = [_subagent_with_llm(sa, parent_llm) for sa in raw_subagents]
             return _ok({
                 "ok": True,
                 "subagents": subagents,
                 "count": len(subagents),
                 # UI 用：通道不可用时"委托执行"必然失败，提前提示而不是让用户白点
                 "channel": _channel_info(Yunshu),
+                # UI 用：部署级模型 + 可选模型清单（不新增路由；逐分身生效来源在各行 llm 里）
+                "llm": _llm_view(Yunshu, [sa.get("model_id") for sa in subagents]),
             })
         except Exception as e:
             logger.error("[SubagentAPI] 列表查询失败: %s", e)
@@ -280,31 +347,39 @@ def register_routes(app, state):
 
         POST JSON:
             name (str): 分身名称（唯一）
-            model_id (str): LLM 模型 ID
+            model_id (str, optional): LLM 模型名；**空/缺省 = 跟随母体**（见下）
             memory_provider (str): 记忆提供商
             tool_sources (list[str], optional): 工具源列表
             permissions (list[str], optional): 权限列表（默认 ['read']）
             context_window (int, optional): 上下文窗口大小（默认 4096）
             tags (list[str], optional): 标签
             ttl_seconds (int, optional): 存活时间（0=永久）
+
+        【`model_id` 从"必填"改为"空 = 跟随母体"】此前必填，于是"跟随母体"只能靠**抄一个
+        母体模型名**来伪装；部署一换模型，那串名字就从"跟随"变成"显式指定旧模型"——
+        一个会过期的假选择。现在空串是**真语义**：解析时走
+        `agent/subagent/llm_factory.py` 的 `inherit` 档（始终跟随母体当前模型），
+        生效模型随 `/api/subagent/list` 与委派响应如实回显。
         """
         try:
             data = request.get_json() or {}
 
-            required = ["name", "model_id", "memory_provider"]
+            required = ["name", "memory_provider"]
             missing = [k for k in required if k not in data]
             if missing:
                 return jsonify({"ok": False, "error": f"缺少必要字段: {missing}"}), 400
 
             config = {
                 "name": data["name"],
-                "model_id": data["model_id"],
+                "model_id": str(data.get("model_id") or "").strip(),
                 "memory_provider": data["memory_provider"],
                 "tool_sources": data.get("tool_sources", []),
                 "permissions": data.get("permissions", ["read"]),
                 "context_window": data.get("context_window", 4096),
                 "tags": data.get("tags", []),
                 "ttl_seconds": data.get("ttl_seconds", 0),
+                # 生成温度：None = 不干预执行器默认；给了值走 llm_factory 的温度包装
+                "llm_temperature": _llm_temperature(data),
             }
 
             container = Yunshu.create_subagent(config)
@@ -428,11 +503,26 @@ def register_routes(app, state):
             # 工具子集与模型侧 delegate 工具同源（同一只读白名单，避免两套授权口径）
             granted = _granted_tools()
 
-            logger.info("[SubagentAPI] 真委派 name=%s delegation=%s goal=%.60s tools=%s",
-                        name, ctx.delegation_id, task, list(granted) or "（空）")
+            # ── LLM：按**这个分身自己的** model_id 解析（空 = 跟随母体）──
+            # 【为什么在路由层解析】容器不该反向去找母体；而"母体 LLM"只有这里拿得到。
+            # 解析结果**随响应回显**（llm.model / llm.source / llm.error）：
+            # 指定模型未生效时必须看得见，绝不静默换模型（见 llm_factory 模块 docstring）。
+            from agent.subagent.llm_factory import resolve_subagent_llm
+
+            resolution = resolve_subagent_llm(
+                getattr(getattr(container, "config", None), "model_id", ""),
+                parent_llm=getattr(Yunshu, "_llm", None),
+                temperature=getattr(getattr(container, "config", None), "llm_temperature", None))
+            if resolution.source == "fallback-after-error":
+                logger.warning("[SubagentAPI] 分身 %s 的指定模型未生效（已回退母体）: %s",
+                               name, resolution.error)
+
+            logger.info("[SubagentAPI] 真委派 name=%s delegation=%s goal=%.60s tools=%s llm=%s(%s)",
+                        name, ctx.delegation_id, task, list(granted) or "（空）",
+                        resolution.model or "?", resolution.source)
             outcome = container.run_delegation(
                 ctx,
-                llm=getattr(Yunshu, "_llm", None),
+                llm=resolution.llm,
                 tools=granted,
                 authorized_capabilities=granted,
                 source="ui",  # 委派记录里区分"界面发起"与"模型工具发起"
@@ -441,6 +531,7 @@ def register_routes(app, state):
             payload["name"] = name
             payload["elements"] = _elements_view(ctx)
             payload["channel"] = channel
+            payload["llm"] = resolution.to_dict()
             return jsonify(payload)
         except Exception as e:
             logger.exception("[SubagentAPI] 委派失败: %s", e)
@@ -498,10 +589,16 @@ def register_routes(app, state):
             # 名称只需给个前缀：重名消歧与 TTL（取契约⑦）由 lifecycle._prepare_config 统一负责，
             # 这里不重复实现 —— 否则又是一份会漂移的纪律
             config = SubagentConfig(name="ui-delegate", model_id=_model_id(llm))
-            logger.info("[SubagentAPI] 临时分身委派 delegation=%s goal=%.60s tools=%s",
-                        ctx.delegation_id, task, list(granted) or "（空）")
+            # 临时分身没有"用户选的模型"：config.model_id 抄的是母体当前模型，
+            # 解析器把"指定的就是母体在用的那个"判为 inherit（不造无意义的影子实例）
+            from agent.subagent.llm_factory import resolve_subagent_llm
+
+            resolution = resolve_subagent_llm(config.model_id, parent_llm=llm)
+            logger.info("[SubagentAPI] 临时分身委派 delegation=%s goal=%.60s tools=%s llm=%s(%s)",
+                        ctx.delegation_id, task, list(granted) or "（空）",
+                        resolution.model or "?", resolution.source)
             outcome = mgr.delegate(
-                config, ctx, llm=llm, destroy_after=True,
+                config, ctx, llm=resolution.llm, destroy_after=True,
                 tools=granted, authorized_capabilities=granted, source="ui")
 
             payload = _outcome_payload(outcome, ctx)
@@ -510,6 +607,7 @@ def register_routes(app, state):
             payload["ephemeral"] = True
             payload["elements"] = _elements_view(ctx)
             payload["channel"] = channel
+            payload["llm"] = resolution.to_dict()
             return jsonify(payload)
         except Exception as e:
             logger.exception("[SubagentAPI] 临时分身委派失败: %s", e)
@@ -548,6 +646,8 @@ def register_routes(app, state):
                 "context_window": data.get("context_window", current["context_window"]),
                 "tags": data.get("tags", current.get("tags", [])),
                 "ttl_seconds": data.get("ttl_seconds", current.get("ttl_seconds", 0)),
+                # 温度同款校验：越界即 400（不静默夹取）；未传则沿用现值
+                "llm_temperature": _llm_temperature(data, current.get("llm_temperature")),
             }
 
             Yunshu.hot_reload_subagent(name, new_config)
@@ -557,5 +657,7 @@ def register_routes(app, state):
                 "subagent": updated,
                 "message": f"分身 '{name}' 热更新完成",
             })
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500

@@ -387,3 +387,260 @@ class TestEphemeralDelegate:
         assert "分身不存在" in body["error"]
         # 404 不该是死路：告诉调用方还有临时分身入口可用
         assert "/api/subagent/delegate" in body["hint"]
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  ⑥ 分身独立 LLM：具名委派按**这个分身自己的** model_id 派生模型
+#     （`agent/subagent/llm_factory.py`；空 = 跟随母体）
+# ══════════════════════════════════════════════════════════════════════
+
+
+class SpyParentLLM:
+    """母体 LLM 替身：记录 with_model 调用；派生出的子实例带自己的 model 名"""
+
+    def __init__(self, model: str = "deepseek-flash"):
+        self.model = model
+        self.provider = "deepseek"
+        self.calls: list = []
+
+    def with_model(self, model: str):
+        self.calls.append(model)
+        child = SpyParentLLM(model)
+        child.provider = self.provider
+        return child
+
+
+def _container_with_model(model_id: str, outcome: FakeOutcome | None = None) -> FakeContainer:
+    """带上 `config.model_id` 的物质（真容器有 config；替身此前没有）"""
+    container = FakeContainer(outcome)
+    container.config = type("C", (), {"model_id": model_id})()
+    return container
+
+
+class TestPerSubagentLlm:
+    def test_具名委派_按分身自己的模型派生并回显来源(self, make_client):
+        parent = SpyParentLLM("deepseek-flash")
+        container = _container_with_model("deepseek-v4-pro")
+        client, _ = make_client(container, llm=parent)
+
+        r = client.post("/api/subagent/sa-1/delegate", json={"task": "一个足够长的目标任务"})
+        assert r.status_code == 200, r.get_data(as_text=True)
+        body = r.get_json()
+
+        # ① 真委派用的是**派生出来的**实例，不是母体实例
+        assert parent.calls == ["deepseek-v4-pro"], "必须经 with_model 派生，且只派生一次"
+        used = container.calls[0]["llm"]
+        assert used is not parent
+        assert used.model == "deepseek-v4-pro"
+        # ② 生效模型与来源随响应回显（界面据此显示"这个分身实际跑哪个模型"）
+        assert body["llm"] == {"requested": "deepseek-v4-pro",
+                               "model": "deepseek-v4-pro",
+                               "source": "explicit", "error": "",
+                               "temperature": None}
+
+    def test_未声明模型_跟随母体且不派生(self, make_client):
+        parent = SpyParentLLM("deepseek-flash")
+        container = _container_with_model("")
+        client, _ = make_client(container, llm=parent)
+
+        body = client.post("/api/subagent/sa-1/delegate",
+                           json={"task": "一个足够长的目标任务"}).get_json()
+        assert container.calls[0]["llm"] is parent
+        assert parent.calls == []
+        assert body["llm"]["source"] == "inherit"
+        assert body["llm"]["model"] == "deepseek-flash"
+
+    def test_派生失败_回退母体但响应用户可见(self, make_client):
+        """不静默换模型：bad 模型名不该让委派失败，但**换了必须看得见**"""
+        class BoomParent(SpyParentLLM):
+            def with_model(self, model):
+                self.calls.append(model)
+                raise RuntimeError("模型名不被接受")
+
+        parent = BoomParent("deepseek-flash")
+        container = _container_with_model("gpt-4")
+        client, _ = make_client(container, llm=parent)
+
+        r = client.post("/api/subagent/sa-1/delegate", json={"task": "一个足够长的目标任务"})
+        assert r.status_code == 200, "回退是刻意的：坏模型名不该让整次委派失败"
+        body = r.get_json()
+        assert container.calls[0]["llm"] is parent, "回退用的是母体实例"
+        llm = body["llm"]
+        assert llm["source"] == "fallback-after-error"
+        assert llm["requested"] == "gpt-4"
+        assert llm["model"] == "deepseek-flash"
+        assert "模型名不被接受" in llm["error"], "原因必须原样带回，便于界面点名"
+
+    def test_临时分身_抄的是母体模型_判为跟随(self, make_client):
+        """临时分身没有"用户选的模型"：config.model_id 抄母体 ⇒ 不得算成 explicit"""
+        parent = SpyParentLLM("deepseek-flash")
+        mgr = FakeLifecycleManager(FakeContainer())
+        client, _ = make_client(container=None, llm=parent, manager=mgr)
+
+        body = client.post("/api/subagent/delegate",
+                           json={"task": "一个足够长的目标任务"}).get_json()
+        assert mgr.delegate_calls[0]["llm"] is parent
+        assert parent.calls == [], "抄母体模型名不该触发派生（否则白造影子实例）"
+        assert body["llm"]["source"] == "inherit"
+
+    def test_列表端点_逐分身给出生效模型与可选清单(self, monkeypatch):
+        """列表页要回答"这个分身实际用哪个模型"与"我能填哪些模型名" —— 都在这一份载荷里"""
+        import types
+
+        from flask import Flask as _Flask
+
+        from agent.server_routes.routes_subagent import register_routes as _register
+
+        parent = SpyParentLLM("deepseek-flash")
+
+        class RowYunshu:
+            _llm = parent
+
+            def list_subagents(self):
+                return [{"name": "alpha", "model_id": "deepseek-v4-pro", "status": "running"},
+                        {"name": "beta", "model_id": "", "status": "idle"}]
+
+        app = _Flask(__name__)
+        app.config.update(TESTING=True)
+        _register(app, types.SimpleNamespace(Yunshu=RowYunshu()))
+        resp = app.test_client().get("/api/subagent/list")
+        # 列表端点走统一信封（{code,data}）：业务载荷在 data 里
+        body = resp.get_json()["data"]
+
+        rows = {r["name"]: r for r in body["subagents"]}
+        assert rows["alpha"]["llm"]["source"] == "explicit"
+        assert rows["alpha"]["llm"]["model"] == "deepseek-v4-pro"
+        assert rows["beta"]["llm"]["source"] == "inherit"
+        assert rows["beta"]["llm"]["model"] == "deepseek-flash"
+        # 部署级事实 + 可选清单（部署模型在前，已声明去重在后；**不编造模型目录**）
+        assert body["llm"]["model"] == "deepseek-flash"
+        assert body["llm"]["provider"] == "deepseek"
+        assert body["llm"]["options"] == [
+            {"model": "deepseek-flash", "source": "deployment"},
+            {"model": "deepseek-v4-pro", "source": "declared"},
+        ]
+        # 载荷里不得出现密钥形态
+        assert "sk-" not in str(body)
+
+    def test_列表端点_单个分身解析失败不影响整表(self, monkeypatch):
+        """逐行兜底：解析器对某个分身抛异常 ⇒ 该行如实记 `fallback-after-error`，整表照常"""
+        import types
+
+        from flask import Flask as _Flask
+
+        from agent.server_routes import routes_subagent as routes_mod
+        from agent.subagent import llm_factory as factory_mod
+
+        class RowYunshu:
+            _llm = SpyParentLLM("deepseek-flash")
+
+            def list_subagents(self):
+                return [{"name": "bad", "model_id": "boom"},
+                        {"name": "ok", "model_id": "", "llm_temperature": 0.25}]
+
+        real = factory_mod.resolve_subagent_llm
+
+        def flaky(model_id, parent_llm=None, temperature=None):
+            if str(model_id) == "boom":
+                raise RuntimeError("解析器炸了")
+            return real(model_id, parent_llm=parent_llm, temperature=temperature)
+
+        monkeypatch.setattr(factory_mod, "resolve_subagent_llm", flaky)
+        app = _Flask(__name__)
+        app.config.update(TESTING=True)
+        routes_mod.register_routes(app, types.SimpleNamespace(Yunshu=RowYunshu()))
+        resp = app.test_client().get("/api/subagent/list")
+        assert resp.status_code == 200
+        body = resp.get_json()["data"]
+        rows = {r["name"]: r for r in body["subagents"]}
+        assert rows["bad"]["llm"]["source"] == "fallback-after-error"
+        assert "解析器炸了" in rows["bad"]["llm"]["error"]
+        assert rows["ok"]["llm"]["source"] == "inherit", "同表另一行不受影响"
+        # 温度随状态回显（0.25 必须原样带出，不能被当成缺省丢掉）
+        assert rows["ok"]["llm"]["temperature"] == 0.25
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  ⑦ 生成温度：越界 400、不静默夹取；委派时真的钉到调用面
+# ══════════════════════════════════════════════════════════════════════
+
+
+class TestTemperatureWiring:
+    def _create_client(self, monkeypatch):
+        import types
+
+        from flask import Flask as _Flask
+
+        from agent.server_routes import routes_subagent as routes_mod
+
+        created: list = []
+
+        class CreateYunshu:
+            _llm = SpyParentLLM("deepseek-flash")
+
+            def create_subagent(self, config):
+                created.append(config)
+
+                class _C:
+                    name = config.get("name", "")
+                    config_obj = types.SimpleNamespace(**config)
+
+                    def get_status(self):
+                        return {"name": config.get("name"), "llm_temperature":
+                                config.get("llm_temperature")}
+
+                _C.config = _C.config_obj
+                return _C()
+
+            def list_subagents(self):
+                return []
+
+        app = _Flask(__name__)
+        app.config.update(TESTING=True)
+        routes_mod.register_routes(app, types.SimpleNamespace(Yunshu=CreateYunshu()))
+        return app.test_client(), created
+
+    def test_创建时温度越界_400且不静默夹取(self, monkeypatch):
+        client, created = self._create_client(monkeypatch)
+        r = client.post("/api/subagent/create",
+                        json={"name": "t1", "memory_provider": "default", "llm_temperature": 3})
+        assert r.status_code == 400, r.get_data(as_text=True)
+        assert "llm_temperature" in r.get_json()["error"]
+        assert created == [], "越界必须在建容器之前就被拒"
+
+    def test_创建时温度非数字_400(self, monkeypatch):
+        client, created = self._create_client(monkeypatch)
+        r = client.post("/api/subagent/create",
+                        json={"name": "t2", "memory_provider": "default",
+                              "llm_temperature": "很热"})
+        assert r.status_code == 400
+        assert created == []
+
+    def test_创建时温度合法_按数字落配置(self, monkeypatch):
+        client, created = self._create_client(monkeypatch)
+        r = client.post("/api/subagent/create",
+                        json={"name": "t3", "memory_provider": "default",
+                              "llm_temperature": "0.35"})
+        assert r.status_code == 200, r.get_data(as_text=True)
+        assert created and created[0]["llm_temperature"] == 0.35
+
+    def test_未传温度_配置为None且不干预(self, monkeypatch):
+        client, created = self._create_client(monkeypatch)
+        r = client.post("/api/subagent/create",
+                        json={"name": "t4", "memory_provider": "default"})
+        assert r.status_code == 200
+        assert created[0]["llm_temperature"] is None, "缺省是「不干预」，不是 0.0"
+
+    def test_具名委派_温度钉到调用面(self, make_client):
+        parent = SpyParentLLM("deepseek-flash")
+        container = _container_with_model("")
+        container.config.llm_temperature = 0.15
+        client, _ = make_client(container, llm=parent)
+
+        body = client.post("/api/subagent/sa-1/delegate",
+                           json={"task": "一个足够长的目标任务"}).get_json()
+        used = container.calls[0]["llm"]
+        assert used is not parent, "温度表态后必须包一层（否则调用面拿的还是母体默认）"
+        assert used.temperature == 0.15
+        assert body["llm"]["temperature"] == 0.15
+        assert body["llm"]["model"] == "deepseek-flash", "包一层不改变实际模型名"
