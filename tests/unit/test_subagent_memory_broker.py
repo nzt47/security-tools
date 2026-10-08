@@ -333,10 +333,19 @@ class TestVocabulary:
     def test_scope键两处同口径(self):
         assert MEMORY_SCOPE_KEYS == SCOPE_KEYS
 
-    def test_scoped与本批未实现(self):
-        plan = resolve_memory_config("scoped", {"tenant_id": TENANT})
-        assert not plan.ok and not plan.implemented
-        assert "scoped" in plan.error
+    def test_scoped_三要素齐全才放行(self):
+        """P3 scoped 档已实现：仅当 provider 非空且三要素齐全才 ok（否则 fail-closed）"""
+        plan = resolve_memory_config(
+            "scoped", {"tenant_id": TENANT, "workspace_id": WS, "subject_id": "u1"},
+            "holographic")
+        assert plan.ok and plan.implemented and plan.is_scoped
+        assert plan.audit_required is True
+        # 缺任一要素 ⇒ 拒绝（不静默降级）
+        assert not resolve_memory_config(
+            "scoped", {"tenant_id": TENANT, "workspace_id": WS}, "holographic").ok
+        assert not resolve_memory_config(
+            "scoped", {"tenant_id": TENANT, "workspace_id": WS, "subject_id": "u1"},
+            "").ok
 
     def test_none配非空域即报错(self):
         plan = resolve_memory_config("none", {"tenant_id": TENANT})
@@ -447,14 +456,49 @@ class TestRouteMemoryValidation:
         assert r.get_json()["error_code"] == "E_MEMORY_CONFIG"
         assert yunshu.created == []
 
-    def test_create_scoped未实现_400(self, make_client):
+    def test_create_scoped缺三要素_400_不建容器(self, make_client):
         client, yunshu = make_client()
         r = client.post("/api/subagent/create", json={
             "name": "sa-x", "memory_provider": "holographic",
             "memory_mode": "scoped", "memory_scope": {"tenant_id": TENANT}})
         assert r.status_code == 400, r.get_data(as_text=True)
         assert r.get_json()["error_code"] == "E_MEMORY_CONFIG"
-        assert yunshu.created == []
+        assert yunshu.created == [], "缺三要素不得建容器"
+
+    def test_create_scoped空provider_400_不建容器(self, make_client):
+        client, yunshu = make_client()
+        r = client.post("/api/subagent/create", json={
+            "name": "sa-x", "memory_provider": "",
+            "memory_mode": "scoped",
+            "memory_scope": {"tenant_id": TENANT, "workspace_id": WS, "subject_id": "u1"}})
+        assert r.status_code == 400, r.get_data(as_text=True)
+        assert r.get_json()["error_code"] == "E_MEMORY_CONFIG"
+        assert yunshu.created == [], "空 provider 不得建容器"
+
+    def test_create_scoped_齐全_回显quota与breaker(self, make_client):
+        client, yunshu = make_client()
+        r = client.post("/api/subagent/create", json={
+            "name": "sa-x", "memory_provider": "holographic",
+            "memory_mode": "scoped",
+            "memory_scope": {"tenant_id": TENANT, "workspace_id": WS, "subject_id": "u1"},
+            "memory_quota": {"max_entries": 5}})
+        assert r.status_code == 200, r.get_data(as_text=True)
+        mem = r.get_json()["subagent"]["memory"]
+        assert mem["mode"] == "scoped" and mem["scoped"] is True
+        assert mem["quota"]["max_entries"] == 5
+        assert mem["breaker"]["breaker_open"] is False
+        assert yunshu.created[0]["memory_mode"] == "scoped"
+        assert yunshu.created[0]["memory_quota"] == {"max_entries": 5}
+
+    def test_reload_scoped_接配额字段(self, make_client):
+        client, yunshu = make_client()
+        r = client.post("/api/subagent/sa-1/reload", json={
+            "memory_mode": "scoped", "memory_provider": "holographic",
+            "memory_scope": {"tenant_id": TENANT, "workspace_id": WS, "subject_id": "u1"},
+            "memory_quota": {"max_bytes": 4096}})
+        assert r.status_code == 200, r.get_data(as_text=True)
+        assert yunshu.reloaded["config"]["memory_quota"] == {"max_bytes": 4096}
+        assert yunshu.reloaded["config"]["memory_mode"] == "scoped"
 
     def test_create_brokered_回显memory段(self, make_client):
         client, yunshu = make_client()

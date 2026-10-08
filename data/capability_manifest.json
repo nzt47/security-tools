@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-09T01:25:37",
+  "generated_at": "2026-10-09T04:24:40",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -2973,7 +2973,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 184 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 188 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -3019,6 +3019,7 @@
         "_name_conflicts.append",
         "as_completed",
         "assemble",
+        "audit.record",
         "authorized_by_delegation.get",
         "authorized_for",
         "base.payload.get",
@@ -3029,6 +3030,7 @@
         "check",
         "chunks.append",
         "cls",
+        "config.get",
         "constraints.append",
         "contexts.append",
         "counter",
@@ -3085,6 +3087,8 @@
         "mapped.get",
         "math.ceil",
         "max",
+        "mem_meta.get",
+        "mem_scope.get",
         "memory.get",
         "memory_delta.keys",
         "merged.update",
@@ -14112,7 +14116,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 184 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 188 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -14158,6 +14162,7 @@
         "_name_conflicts.append",
         "as_completed",
         "assemble",
+        "audit.record",
         "authorized_by_delegation.get",
         "authorized_for",
         "base.payload.get",
@@ -14168,6 +14173,7 @@
         "check",
         "chunks.append",
         "cls",
+        "config.get",
         "constraints.append",
         "contexts.append",
         "counter",
@@ -14224,6 +14230,8 @@
         "mapped.get",
         "math.ceil",
         "max",
+        "mem_meta.get",
+        "mem_scope.get",
         "memory.get",
         "memory_delta.keys",
         "merged.update",

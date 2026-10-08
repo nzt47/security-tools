@@ -71,10 +71,16 @@ class SubagentConfig:
         memory_mode: 记忆档位（默认 `"none"` = 逐字旧行为）。
             `"none"` 不分身记忆；`"brokered"` 母体代管——按 `memory_scope` 取一段
             **只读、限定域**的记忆进委派契约 ②约束，记忆 id/tenancy 只进 metadata，
-            分身侧仍无任何记忆工具（§5.7 机制 3 硬禁不变）；`"scoped"` **本批未实现**
-            （解析期 400，不静默降级）。词表与校验见 `agent/subagent/memory_broker.py`。
-        memory_scope: brokered 的记忆域（键：tenant_id / workspace_id / subject_id /
-            workspace_root / memory_types / limit）。默认档给非空值会被端点**拒绝**。
+            分身侧仍无任何记忆工具；`"scoped"` 分身自带私人记忆域（**显式开启的受控档**：
+            必须 memory_scope 含 tenant_id/workspace_id/subject_id 三要素且
+            memory_provider 非空，缺任一 ⇒ 端点 400；配额/熔断见 memory_quota）。
+            词表与校验见 `agent/subagent/memory_broker.py`。
+        memory_scope: 记忆域（键：tenant_id / workspace_id / subject_id /
+            workspace_root / memory_types / limit）。brokered/scoped 使用；默认档给
+            非空值会被端点**拒绝**；scoped 要求前三个键齐全。
+        memory_quota: scoped 档的配额（键：max_entries / max_bytes /
+            consecutive_reject_limit）。缺省用 memory_quota.py 的默认值；非 scoped 给值
+            会被端点**拒绝**（不静默忽略）。
     """
     name: str
     model_id: str
@@ -88,9 +94,11 @@ class SubagentConfig:
     role_template: str = ""
     role_text: str = ""
     role_mode: str = "template"
-    # P3 brokered 档：默认 none/None ⇒ 行为逐字不变
+    # P3 记忆档：默认 none/None ⇒ 行为逐字不变
     memory_mode: str = "none"
     memory_scope: Optional[dict] = None
+    # P3 scoped 档配额（仅 scoped 生效；默认 None ⇒ 用默认配额）
+    memory_quota: Optional[dict] = None
 
 
 # ════════════════════════════════════════════════════════════════════

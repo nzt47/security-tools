@@ -200,6 +200,8 @@ SCOPE_OWN = "own_scope"                 # 仅自身 scope（auto 查看）
 SCOPE_IN_SCOPE = "scope"                # scope 内（auto 执行 capability）
 SCOPE_AUTHORIZED_SUBSET = "authorized_subset"   # 授权子集（sub_agent 执行 capability）
 SCOPE_WORKING_MEMORY = "working_memory"         # 仅工作记忆（auto 写入记忆）
+#: 分身自带私人记忆域（**仅 scoped 档**）：sub_agent 只可读写自身域
+SCOPE_SCOPED_MEMORY = "scoped_memory"
 SCOPE_NONE = "none"                     # 无权限
 
 #: 工作记忆层标识（§7.0「仅工作记忆」；兼容字段/中文写法）
@@ -284,6 +286,9 @@ class PermissionContext:
     authorized_capabilities: FrozenSet[str] = frozenset()
     session_id: str = ""
     identity_source: str = ""
+    #: 【P3 scoped 档】是否已显式开启分身私人记忆域。**默认 False** ⇒ 判定逐字旧行为；
+    #: 仅当创建/委派请求显式 memory_mode="scoped" 且三要素齐全时由调用方置 True。
+    scoped_memory_enabled: bool = False
     extra: Mapping[str, Any] = field(default_factory=dict)
 
 
@@ -477,6 +482,30 @@ _RULES: Dict[Tuple[str, str], PermissionRule] = {
         "TASK-06：改开关是治理动作，SA 一律拒绝"),
 }
 
+# ── 【P3 scoped 档】受控放开的两格（**不改静态矩阵默认值**）──
+#
+# 【为什么不在上面的 _RULES 里直接把 sub_agent 改成 allow】scoped 是**显式开启的
+# 受控档**，不是默认档：默认（none/brokered/未表态）下 sub_agent 仍然 ❌。把静态行改
+# 成 allow 会让默认档凭空多出记忆读写权限。故本处另存一份**仅在
+# PermissionContext.scoped_memory_enabled=True 时**才被 decide() 采用的覆盖行。
+#
+# 【同源口径】这两条覆盖行的**启用条件**由 agent/subagent/memory_broker.py 的
+# resolve_memory_config 判定（memory_mode=scoped 且 tenant_id/workspace_id/subject_id
+# 三要素齐全且 provider 非空），四处判定（矩阵 / toolset / assembly /
+# capability_exposure）共用同一布尔，避免"矩阵放行但工具仍不可见"的分裂。
+_SCOPED_MEMORY_OPERATIONS: FrozenSet[str] = frozenset({
+    OP_VIEW_MEMORY, OP_WRITE_MEMORY,
+})
+
+_SCOPED_MEMORY_RULES: Dict[str, PermissionRule] = {
+    OP_VIEW_MEMORY: _allow(
+        SCOPE_SCOPED_MEMORY,
+        desc="P3 scoped 档：sub_agent 仅可读**自身**私人记忆域（显式开启）"),
+    OP_WRITE_MEMORY: _allow(
+        SCOPE_SCOPED_MEMORY,
+        desc="P3 scoped 档：sub_agent 仅可写**自身**私人记忆域（显式开启）"),
+}
+
 # ════════════════════════════════════════════════════════════
 #  §7.0 文档矩阵（逐格期望值；单测据以逐行核验，防实现与文档漂移）
 # ════════════════════════════════════════════════════════════
@@ -536,6 +565,17 @@ MATRIX_DOC_ROWS: Dict[str, Tuple[str, ...]] = {
     "强制推进 stage/摘除来源": (OP_FORCE_STAGE, OP_REMOVE_SOURCE),
     "执行 capability": (OP_EXECUTE_CAPABILITY,),
     "写入记忆": (OP_WRITE_MEMORY,),
+}
+
+#: 【P3 scoped 档】§7.0 矩阵里被**显式开启后受控放开**的两格（默认档不动）
+#:
+#: 【为什么另存一份而不是改 MATRIX_DOC】MATRIX_DOC 是**默认档**的逐格期望值，
+#: 被一致性用例逐格对拍。scoped 是显式开启的受控档，不是默认值；把它混进 MATRIX_DOC
+#: 会让"默认矩阵"看起来也放行了记忆。本常量只描述"开关打开后这两格变为什么"，
+#: 默认行**逐字不变**。
+MATRIX_DOC_SCOPED: Dict[str, Dict[str, str]] = {
+    OP_VIEW_MEMORY: {ACTOR_SUB_AGENT: SCOPE_SCOPED_MEMORY},
+    OP_WRITE_MEMORY: {ACTOR_SUB_AGENT: SCOPE_SCOPED_MEMORY},
 }
 
 
@@ -719,6 +759,12 @@ def decide(operation: str, ctx: PermissionContext, *,
             identity_source=ctx.identity_source, matrix_hit=False)
 
     rule = _RULES.get((op, actor_type))
+    # 【P3 scoped 档】仅显式开启（且执行体为 sub_agent）时，对两格记忆操作走
+    # allow-with-scope 覆盖；默认 False ⇒ rule 保持静态表原值，判定逐字不变。
+    if (bool(getattr(ctx, "scoped_memory_enabled", False))
+            and actor_type == ACTOR_SUB_AGENT
+            and op in _SCOPED_MEMORY_OPERATIONS):
+        rule = _SCOPED_MEMORY_RULES[op]
     if rule is None:
         return PermissionDecision(
             allowed=False, operation=op, actor=actor, actor_type=actor_type,
@@ -757,6 +803,13 @@ def decide(operation: str, ctx: PermissionContext, *,
             allowed=False,
             reason=(f"sub_agent 执行 capability 仅限授权子集："
                     f"{object_id or '未声明 capability'} 不在授权清单"), **base)
+
+    if rule.scope == SCOPE_SCOPED_MEMORY and not _scope_allowed(ctx, target_scope):
+        return PermissionDecision(
+            allowed=False,
+            reason=(f"scoped 档仅可访问自身私人记忆域"
+                    f"（自身={ctx.scope or '未声明'}，目标={target_scope or '未声明'}）"),
+            **base)
 
     if rule.scope == SCOPE_WORKING_MEMORY:
         layer = str(memory_layer or "").strip().lower()
@@ -803,5 +856,6 @@ __all__ = [
     # 规则与判定
     "PermissionRule", "PermissionContext", "PermissionDecision",
     "decide", "rule_for", "register_rule", "reset_rules", "matrix_rows",
-    "MATRIX_DOC", "MATRIX_DOC_ROWS",
+    "MATRIX_DOC", "MATRIX_DOC_ROWS", "MATRIX_DOC_SCOPED",
+    "SCOPE_SCOPED_MEMORY",
 ]

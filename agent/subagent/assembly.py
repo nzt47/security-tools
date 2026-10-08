@@ -122,7 +122,8 @@ class SubagentAssembly:
         }
 
 
-def _drop_hard_denied(granted: Sequence[str]) -> Tuple[List[str], List[str]]:
+def _drop_hard_denied(granted: Sequence[str], *,
+                      scoped_memory: bool = False) -> Tuple[List[str], List[str]]:
     """剔除 §5.7 机制 3 硬禁项（记忆读写等），保持原顺序
 
     返回 `(保留, 被剔除)`。为什么在**授权前**就剔：`SubAgentToolset` 的判定是
@@ -130,10 +131,13 @@ def _drop_hard_denied(granted: Sequence[str]) -> Tuple[List[str], List[str]]:
     的空头授权；而一旦它真去调用，`DelegationExecutor` 会判**整次委派失败**
     （`E_TOOL_NOT_AUTHORIZED`）。口径与执行层同源（同一个 `SubAgentToolset.hard_denied`），
     本模块不另立标准。
+
+    `scoped_memory=True`（P3 scoped 档，显式开启）时记忆读写**不再**是硬禁项
+    （改由矩阵 allow-with-scope + 运行期域守卫约束）；**默认 False ⇒ 剔除行为逐字不变**。
     """
     from agent.subagent.toolset import SubAgentToolset
 
-    denied = set(SubAgentToolset.hard_denied(granted))
+    denied = set(SubAgentToolset.hard_denied(granted, scoped_memory=scoped_memory))
     return ([t for t in granted if t not in denied],
             [t for t in granted if t in denied])
 
@@ -359,6 +363,8 @@ def resolve_subagent_assembly(
     registry: Any,
     meta: Mapping[str, Any],
     available: Sequence[str],
+    *,
+    scoped_memory: bool = False,
 ) -> SubagentAssembly:
     """按主线装配一个分身的工具集（fail-closed；唯二出口见模块 docstring）
 
@@ -367,6 +373,8 @@ def resolve_subagent_assembly(
         registry: `agent.lines.LineRegistry`。
         meta: `agent.lines.load_tool_meta()` 的产物（plane/effect/risk 判定的唯一数据源）。
         available: 宿主**真实注册**的工具名（候选池）。
+        scoped_memory: 【P3 scoped 档】是否已显式开启分身私人记忆域。**默认 False**
+            ⇒ `_drop_hard_denied` 的剔除行为逐字不变；仅 True 时记忆读写工具不再被删。
 
     Returns:
         `SubagentAssembly`。
@@ -382,7 +390,7 @@ def resolve_subagent_assembly(
 
         base = [t for t in _default_subagent_tools() if t in meta]
         granted = [t for t in base if meta[t].plane != "govern"]
-        granted, _dropped = _drop_hard_denied(granted)
+        granted, _dropped = _drop_hard_denied(granted, scoped_memory=scoped_memory)
         # 【为什么这里用 resolve_skill_pack(None) 而不是 line_skill_pack("") 】
         # line_skill_pack 的入参缺省/为空时会去读**全局激活指针**
         # （agent/lines/integration.py::resolve_line_id）；而本分支的语义恰恰是
@@ -425,7 +433,7 @@ def resolve_subagent_assembly(
     # §5.7 机制 3：子代理工具集不含记忆读写——主线档案可以给**主智能体**装配
     # 记忆工具，但派给子代理时必须剔除（矩阵 view.memory / memory.write
     # 对 sub_agent 是 ❌，留在授权集里只会变成"授予了却永远调不动"）。
-    granted, dropped_protected = _drop_hard_denied(granted)
+    granted, dropped_protected = _drop_hard_denied(granted, scoped_memory=scoped_memory)
 
     needs = [t for t in granted if meta[t].needs_approval]
     protected_note = (f"；另剔除 {len(dropped_protected)} 个 §5.7 机制 3 硬禁工具"
