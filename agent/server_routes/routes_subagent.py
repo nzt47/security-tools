@@ -375,6 +375,29 @@ def register_routes(app, state):
             logger.error("[SubagentAPI] 列表查询失败: %s", e)
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/subagent/capabilities")
+    @trace_route("Subagent")
+    @log_request(show_response=False)
+    def api_subagent_capabilities():
+        """主权分身能力投影（六层二十面 + 三态 + 证据）—— 组装台「主权清单」的数据源
+
+        【为什么是一个只读投影】页面要显示"这一面到底拥不拥有主权"，而这件事**只有后端知道**
+        （字段有没有消费者、机制在不在）。让前端自己判 = 第二份口径，迟早把"字段在、没人读"
+        化妆成"已接线"——那正是组装台要消灭的误导。
+        【为什么带 evidence_files】反幻觉：说某面"拥有"就必须能指到实现文件；
+        守卫 `tests/unit/test_subagent_capabilities.py` 逐个断言这些路径真实存在。
+        【不新增敏感面】只回能力状态与证据路径，不含任何配置值 / 密钥 / 运行时数据。
+        【只读、无副作用】`agent/subagent/capabilities.py` 是唯一权威。
+        """
+        try:
+            from agent.subagent.capabilities import sovereignty_report
+
+            report = sovereignty_report()
+            return jsonify({"ok": True, "capabilities": report})
+        except Exception as e:  # noqa: BLE001 投影失败不得让整页挂掉
+            logger.error("[SubagentAPI] 能力投影失败: %s", e)
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/subagent/history")
     @trace_route("Subagent")
     @log_request(show_response=False)
