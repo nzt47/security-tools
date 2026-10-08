@@ -23,7 +23,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Check, Copy, Info, Layers, MessageSquare, Plus, Save, Search, ShieldAlert, Sparkles,
-  Target, Trash2,
+  Target, Trash2, Users,
 } from 'lucide-react'
 import { Badge, CallabilityBadge, Card, ErrorBox, Loading, PageHeader } from '../components/ui'
 import { callabilityCounts, callabilityLegend, hasCallabilityMark } from '@/lib/callability'
@@ -33,6 +33,7 @@ import {
   fetchLines,
   fetchPlanes,
   previewLine,
+  readSubagentAssembly,
   saveLine,
   setActiveLine,
   validateLine,
@@ -40,6 +41,7 @@ import {
   type LineProfile,
   type PlanesResponse,
   type SkillPackInfo,
+  type SubagentAssemblyInfo,
   type ToolCatalogEntry,
 } from '@/lib/agentLinesApi'
 import {
@@ -498,11 +500,116 @@ export function SkillPackBlock({ skills }: { skills?: SkillPackInfo | null }) {
   )
 }
 
+/**
+ * 分身面区块（装配预览内）—— 派一个分身时它到底拿到什么
+ * ------------------------------------------------------------------
+ * 数据来自 `GET /api/agent-lines/<id>` / `POST /api/agent-lines/preview` 的
+ * `subagent_assembly`（判定实现在 `agent/subagent/assembly.py::resolve_subagent_assembly`
+ * —— **与派发路径 `agent/tools/fan_out_tools.py` 共用同一个入口**，那里把它塞进
+ * `DelegationContext.metadata`）。
+ *
+ * 【为什么前端一个字都不算】这一块讲的是"分身被授予了哪些能力"：前端再拼一遍就是
+ * 第二份分身授权口径，与真正下发到委派契约里的装配单迟早分叉 —— 与本页技能面 /
+ * 提示词片段同一条纪律。
+ *
+ * 四档如实呈现（与后端 `semantics` 一一对应，文案也直接取后端 `semantics_note`）：
+ *   - named-resolved           ⇒ 沿主线装配：工具集 + 需确认 + 被拒/硬禁的人读说明；
+ *   - unnamed-default-readonly ⇒ 未点名 ⇒ 只读默认集（**不是降级**：没点名按最小集给）；
+ *   - named-but-unavailable    ⇒ 点名了却装不上 ⇒ 派发时该任务会失败（fail-closed）；
+ *   - degraded                 ⇒ 投影层故障降级（只影响本块，预览其余照常）；
+ *   - 字段缺失（旧后端）⇒ 整块不渲染，与本页接上它之前完全一致。
+ */
+export function SubagentAssemblyBlock({ assembly, meta }: {
+  assembly?: SubagentAssemblyInfo | null
+  meta?: Record<string, ToolCatalogEntry>
+}) {
+  if (!assembly) return null
+  const tools = assembly.tools ?? []
+  const modeLabel = assembly.mode === 'line'
+    ? '沿主线装配'
+    : (assembly.mode === 'default-readonly' ? '只读默认集（未点名）' : '装不上')
+  const modeColor: BadgeColor = !assembly.available
+    ? 'red'
+    : (assembly.mode === 'line' ? 'cyan' : 'slate')
+  return (
+    <div
+      className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2"
+      data-testid="line-subagent-face"
+      data-subagent-mode={assembly.mode}
+      data-subagent-semantics={assembly.semantics}
+    >
+      <div className="mb-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+        <Users size={12} className="text-cyan-400" />
+        <span>分身面（派一个分身时它拿到什么）</span>
+        <Badge color={modeColor}>{modeLabel}</Badge>
+        {assembly.available && (
+          <span className="font-mono text-[11px] text-slate-500">{tools.length} 个工具</span>
+        )}
+        {assembly.needs_approval.length > 0 && (
+          <Badge color="amber">需人工确认 {assembly.needs_approval.length}</Badge>
+        )}
+      </div>
+
+      {assembly.available ? (
+        <div className="space-y-2">
+          {tools.length > 0 ? (
+            <div data-testid="line-subagent-tools">
+              <div className="mb-1 text-[11px] text-slate-500">
+                允许的工具集（已去 govern 平面、已去 §5.7 机制 3 硬禁）
+              </div>
+              <ToolChips names={tools} meta={meta} color="cyan" />
+            </div>
+          ) : (
+            <div className="text-[11px] text-amber-300" data-testid="line-subagent-tools-empty">
+              本线装配结果为空 ⇒ 分身一个工具都拿不到（不是"给全量"，是"一个都不给"）。
+            </div>
+          )}
+          {assembly.needs_approval.length > 0 && (
+            <div data-testid="line-subagent-approval">
+              <div className="mb-1 text-[11px] text-slate-500">其中需要人工确认</div>
+              <ToolChips names={assembly.needs_approval} meta={meta} color="amber" />
+            </div>
+          )}
+          <div data-testid="line-subagent-note">
+            <div className="mb-1 text-[11px] text-slate-500">
+              被拒 / 硬禁项 · 人读原因（后端装配单原文）
+            </div>
+            <div className="text-[11px] text-slate-400">
+              {assembly.note || '（后端未给出说明）'}
+            </div>
+          </div>
+          {assembly.skills_note && (
+            <div className="text-[11px] text-slate-500" data-testid="line-subagent-skills-note">
+              分身技能面：{assembly.skills_note}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div
+          className="rounded border border-red-900/60 bg-red-950/30 px-2 py-1.5 text-[11px] text-red-300"
+          data-testid="line-subagent-unavailable"
+        >
+          {assembly.reason || '装配单不可用（后端未给出原因）'}
+        </div>
+      )}
+
+      {assembly.semantics_note && (
+        <div
+          className={`mt-1.5 text-[11px] ${assembly.available ? 'text-slate-500' : 'text-amber-300'}`}
+          data-testid="line-subagent-semantics"
+        >
+          {assembly.semantics_note}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════
 //  装配预览面板
 // ═══════════════════════════════════════════════════════════
-
 function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
+                       subagentAssembly,
                        promptInjectionState, issues, notes, error, pending }: {
   preview: AssemblyPreview | null
   /** 本线技能包判定（后端算）；旧后端不返回 ⇒ 技能区块整体不渲染 */
@@ -511,6 +618,8 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
   promptFragments?: PromptFragmentInfo[] | null
   /** 后端给的人读说明（片段为空时为什么为空） */
   promptFragmentsNote?: string
+  /** 第 4 面：分身装配单（后端算）；null = 后端没返回该字段 ⇒ 整块不渲染 */
+  subagentAssembly?: SubagentAssemblyInfo | null
   /** 这些片段本轮是否真的会进提示词：未激活 / 已激活但未保存 / 已生效 */
   promptInjectionState: 'not_active' | 'unsaved' | 'injected'
   issues: string[]
@@ -657,6 +766,9 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
           {/* 技能段：与工具段同一份「后端判定」，前端只上屏 */}
           <SkillPackBlock skills={skills} />
 
+          {/* 第 4 面（分身面）：与派发路径同一个装配单；前端只上屏 */}
+          <SubagentAssemblyBlock assembly={subagentAssembly} meta={meta} />
+
           <div className="space-y-2">
             <FoldList title="被效果上限 / 平面未启用拦下" names={preview.denied_by_effect}
               meta={meta} color="slate" />
@@ -709,6 +821,9 @@ export default function ToolsAgentLines() {
     useState<PromptFragmentInfo[] | null>(null)
   /** 片段为空时后端给的人读原因 */
   const [previewPromptFragmentsNote, setPreviewPromptFragmentsNote] = useState('')
+  /** 第 4 面：分身装配单（后端 /preview 回传；null = 后端没给该字段 ⇒ 不渲染） */
+  const [previewSubagentAssembly, setPreviewSubagentAssembly] =
+    useState<SubagentAssemblyInfo | null>(null)
   const [previewIssues, setPreviewIssues] = useState<string[]>([])
   const [previewNotes, setPreviewNotes] = useState<string[]>([])
   const [previewError, setPreviewError] = useState('')
@@ -771,12 +886,14 @@ export default function ToolsAgentLines() {
     if (!draft) {
       setPreview(null); setPreviewSkills(null); setPreviewIssues([]); setPreviewNotes([])
       setPreviewPromptFragments(null); setPreviewPromptFragmentsNote('')
+      setPreviewSubagentAssembly(null)
       setPreviewError(''); setPreviewing(false)
       return
     }
     if (!(draft.id || '').trim()) {
       setPreview(null); setPreviewSkills(null)
       setPreviewPromptFragments(null); setPreviewPromptFragmentsNote('')
+      setPreviewSubagentAssembly(null)
       setPreviewIssues([]); setPreviewNotes([]); setPreviewing(false)
       setPreviewError('填写「主线 id」后自动计算装配预览')
       return
@@ -793,6 +910,9 @@ export default function ToolsAgentLines() {
           const pf = readPromptFragments(r)
           setPreviewPromptFragments(pf.available ? pf.fragments : null)
           setPreviewPromptFragmentsNote(pf.note)
+          // 第 4 面：旧后端没有 subagent_assembly 字段 ⇒ present=false ⇒ 整块不渲染
+          const sa = readSubagentAssembly(r)
+          setPreviewSubagentAssembly(sa.present ? sa.assembly : null)
           setPreviewIssues(r.issues ?? [])
           setPreviewNotes(r.notes ?? [])
           setPreviewError('')
@@ -1371,6 +1491,7 @@ export default function ToolsAgentLines() {
                   skills={previewSkills}
                   promptFragments={previewPromptFragments}
                   promptFragmentsNote={previewPromptFragmentsNote}
+                  subagentAssembly={previewSubagentAssembly}
                   promptInjectionState={promptInjectionState}
                   issues={previewIssues}
                   notes={previewNotes}

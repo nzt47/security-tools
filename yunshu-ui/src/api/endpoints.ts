@@ -123,6 +123,11 @@ export const visualWorkflowById = (id: string) => `/api/visual-workflows/${encod
 export const APPROVAL_SESSION = '/api/approval/session';
 export const CAPABILITY_MANIFEST = '/api/capability-manifest';
 export const AGENT_LINES = '/api/agent-lines';
+export const AGENT_LINES_PREVIEW = '/api/agent-lines/preview';
+export const AGENT_LINES_VALIDATE = '/api/agent-lines/validate';
+/** 单条主线：GET 详情 / PUT 保存 / DELETE 删除（同一路径；删除另需 confirm） */
+export const agentLineById = (lineId: string) =>
+  `/api/agent-lines/${encodeURIComponent(lineId)}`;
 
 // ═══════════════════════════════════════════════════════════════
 //  控制平面（/api/cp）—— cpPanelsApi 与 toolExemptionsApi 此前各写一份 PREFIX，
