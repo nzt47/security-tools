@@ -1,15 +1,16 @@
 /**
- * 「主线 × 四面」总览页的守卫
+ * 「主线 × 四面」总览视图的守卫
  * ------------------------------------------------------------------
- * 本页是「宿主功能零清单进导航」的第三个实例（features/line-assembly/index.tsx）。
- * 锁死的不变量：
+ * 本页 2026-10-08 起是「装配车间 → 分身创建与组装」的第 3 个视图
+ * （原 `src/features/line-assembly/index.tsx`）。锁死的不变量：
  *   1. 四个面**逐格**如实呈现后端字段（工具面 count/上限、技能面 白名单/不限制、
  *      提示词面 段数、分身面 mode+工具数）；
  *   2. 旧后端缺某一段字段 ⇒ 该格显示"后端未返回"，**不假装是 0**
  *      （"没有这一面"和"这一面是空的"是两回事）；
  *   3. 分身面不可用（点名的线装不上）⇒ 显示后端给的原因，而不是"0 个工具"；
  *   4. 单条详情取数失败 ⇒ 只影响那一行，其余行照常；
- *   5. manifest 四件齐全且被 featureRegistry 自动发现（零清单进导航）。
+ *   5. **不再导出 `manifest`** —— 留着它 featureRegistry 会把这个页再挂成一条顶层导航项，
+ *      等于同一个页面对外开两个入口（并入装配车间时明确禁止的双入口）。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, waitFor } from '@testing-library/react'
@@ -72,7 +73,8 @@ const fetchMock = vi.fn(async (url: string) => {
 })
 vi.stubGlobal('fetch', fetchMock)
 
-const { default: LineAssemblyOverview, manifest } = await import('./index')
+const mod = await import('./line-assembly')
+const LineAssemblyOverview = mod.default
 
 beforeEach(() => {
   fetchMock.mockClear()
@@ -92,16 +94,10 @@ async function renderSettled() {
 }
 
 describe('主线 × 四面 总览', () => {
-  it('manifest 四件齐全（featureRegistry 的自动发现前提）', () => {
-    expect(manifest.key).toBe('line-assembly')
-    expect(manifest.label).toBeTruthy()
-    expect(manifest.icon).toBeTruthy()
-    expect(manifest.order).toBeGreaterThan(0)
-  })
-
-  it('零清单进导航：被 featureRegistry 自动发现', async () => {
+  it('不再导出 manifest（否则零清单机制会把它挂成第二条顶层导航 = 双入口）', async () => {
+    expect('manifest' in mod).toBe(false)
     const { DISCOVERED_FEATURES } = await import('@/workbench/featureRegistry')
-    expect(DISCOVERED_FEATURES.map((f) => f.key)).toContain('line-assembly')
+    expect(DISCOVERED_FEATURES.map((f) => f.key)).not.toContain('line-assembly')
   })
 
   it('四面逐格如实呈现（工具/技能/提示词/分身）', async () => {

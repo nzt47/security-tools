@@ -1,29 +1,33 @@
 /**
- * 工具调用 —— 主内容区 Tab 容器（工具集 / CLI 软件 / MCP 系统 / Computer Use / 主线管理）
+ * 工具调用 —— 主内容区 Tab 容器（工具集 / CLI 软件 / MCP 系统 / Computer Use）
  * ------------------------------------------------------------------
  * 导航结构调整（与「提示词实验室」同款处理）：原「工具调用」是左侧导航树的**分组**，
  * 5 个子项各自占一条导航项，层级深且容易迷路。现收敛为：
  *   - 左侧导航：单一叶子项「工具调用」；
- *   - 主内容区顶部：一条 Tab 条并列 5 个子模块（子项即 Tab，点击切换、无需回导航树）。
+ *   - 主内容区顶部：一条 Tab 条并列子模块（子项即 Tab，点击切换、无需回导航树）。
+ *
+ * 【2026-10-08：第 5 个 Tab「主线管理」已迁出】它并入「装配车间 → 分身创建与组装」
+ * （`pages/hub/workshop/agent-lines.tsx`）—— 理由：分身真正拿到什么由**主线档案**决定，
+ * 与"创建分身"同屏才解释得通；且本仓禁止同一页面对外开两个入口。
+ * 故本容器从 5 个 Tab 收缩为 4 个；Tab 记忆键沿用，历史值 `'lines'` 回落「工具集」。
  *
  * 实现要点：
- *   - 5 个子模块仍保留**懒加载**（React.lazy），首屏只为当前 Tab 拉取 chunk；
+ *   - 子模块仍保留**懒加载**（React.lazy），首屏只为当前 Tab 拉取 chunk；
  *   - Tab 选择记忆在 localStorage（重开页面回到上次所在子模块）；
  *   - 每个子模块自带 PageHeader，Tab 条只负责"并列 + 切换"，不改动子模块内部实现。
  */
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Boxes, Loader2, Monitor, Plug, Route, Terminal, Wrench } from 'lucide-react'
+import { Boxes, Loader2, Monitor, Plug, Terminal, Wrench } from 'lucide-react'
 
 const ToolsToolset = lazy(() => import('./toolset'))
 const ToolsCli = lazy(() => import('./cli'))
 const ToolsMcp = lazy(() => import('./mcp'))
 const ToolsComputerUse = lazy(() => import('./computer-use'))
-const ToolsAgentLines = lazy(() => import('./lines'))
 
 /** 子模块 Tab 键（= 原导航 key 的尾段，便于对照历史记录） */
-export type ToolsTab = 'toolset' | 'cli' | 'mcp' | 'computer-use' | 'lines'
+export type ToolsTab = 'toolset' | 'cli' | 'mcp' | 'computer-use'
 
 export interface ToolsTabDef {
   id: ToolsTab
@@ -33,13 +37,12 @@ export interface ToolsTabDef {
   component: ComponentType
 }
 
-/** 5 个子项（顺序 = 导航原顺序：工具集 → CLI → MCP → Computer Use → 主线管理） */
+/** 4 个子项（顺序 = 导航原顺序：工具集 → CLI → MCP → Computer Use） */
 export const TOOLS_TABS: ToolsTabDef[] = [
   { id: 'toolset', label: '工具集', icon: Boxes, hint: '按四能力平面分组的工具配置 / 启停（含「可被 LLM 调用」标注）', component: ToolsToolset },
   { id: 'cli', label: 'CLI 软件', icon: Terminal, hint: '命令行工具与系统进程管理', component: ToolsCli },
   { id: 'mcp', label: 'MCP 系统', icon: Plug, hint: 'MCP 服务连接与外部能力接入', component: ToolsMcp },
   { id: 'computer-use', label: 'Computer Use', icon: Monitor, hint: '浏览器自动化与屏幕操作', component: ToolsComputerUse },
-  { id: 'lines', label: '主线管理', icon: Route, hint: '能力平面档案（权重 / 核心工具 / 效果上限）与装配预览', component: ToolsAgentLines },
 ]
 
 /** Tab 选择记忆（会话级偏好，刷新不跳回第一个 Tab） */
@@ -48,6 +51,14 @@ export const TOOLS_TAB_STORAGE_KEY = 'yunshu.tools.tab'
 export const isToolsTab = (v: unknown): v is ToolsTab =>
   typeof v === 'string' && TOOLS_TABS.some((t) => t.id === v)
 
+/**
+ * 读 Tab 记忆；非法值回落「工具集」。
+ *
+ * 【为什么这里要显式说明】`'lines'`（原第 5 个 Tab 的 id）现在不在 `TOOLS_TABS` 里，
+ * 于是老用户 localStorage 里的 `'lines'` 会**静默回落**到「工具集」—— 这不是缺陷，
+ * 是"Tab 已迁走"的预期行为；回归用例见 `index.test.tsx`
+ * （「Tab 迁走后，记忆里的旧值 'lines' 回落工具集」）。
+ */
 function readSavedTab(): ToolsTab {
   try {
     const v = localStorage.getItem(TOOLS_TAB_STORAGE_KEY)
