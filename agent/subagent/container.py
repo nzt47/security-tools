@@ -68,6 +68,13 @@ class SubagentConfig:
             词表与语义见 `agent/subagent/role_templates.py`。
         role_text: 角色自由文本（仅 `template+text` / `full-system` 档生效）。
             默认档下给非空值会被端点**拒绝**（不静默忽略 —— 那会让使用者以为它生效了）。
+        memory_mode: 记忆档位（默认 `"none"` = 逐字旧行为）。
+            `"none"` 不分身记忆；`"brokered"` 母体代管——按 `memory_scope` 取一段
+            **只读、限定域**的记忆进委派契约 ②约束，记忆 id/tenancy 只进 metadata，
+            分身侧仍无任何记忆工具（§5.7 机制 3 硬禁不变）；`"scoped"` **本批未实现**
+            （解析期 400，不静默降级）。词表与校验见 `agent/subagent/memory_broker.py`。
+        memory_scope: brokered 的记忆域（键：tenant_id / workspace_id / subject_id /
+            workspace_root / memory_types / limit）。默认档给非空值会被端点**拒绝**。
     """
     name: str
     model_id: str
@@ -81,6 +88,9 @@ class SubagentConfig:
     role_template: str = ""
     role_text: str = ""
     role_mode: str = "template"
+    # P3 brokered 档：默认 none/None ⇒ 行为逐字不变
+    memory_mode: str = "none"
+    memory_scope: Optional[dict] = None
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -145,8 +155,9 @@ class SubagentContainer:
         # 运行时内存增量（执行产生的记忆变更）
         self._memory_delta: dict[str, Any] = {}
 
-        logger.info("[Subagent] 创建分身: %s (id=%s, model=%s, memory=%s, permissions=%s)",
-                    config.name, self.id, config.model_id, config.memory_provider, config.permissions)
+        logger.info("[Subagent] 创建分身: %s (id=%s, model=%s, memory=%s, memory_mode=%s, permissions=%s)",
+                    config.name, self.id, config.model_id, config.memory_provider,
+                    getattr(config, "memory_mode", "none"), config.permissions)
 
     # ── 属性 ──
 
@@ -314,6 +325,12 @@ class SubagentContainer:
             self._record_delegation(ctx, destroyed, source)
             return destroyed
 
+        # ── config→ctx 桥：把生效记忆档位与域标识写进 ctx.metadata ──
+        # memory_mode='none'（默认）⇒ 完全不碰 ctx（行为逐字不变）。
+        from agent.subagent.memory_broker import attach_memory_metadata
+
+        ctx = attach_memory_metadata(ctx, self.config)
+
         if executor is None:
             executor = DelegationExecutor(llm=llm if llm is not None else getattr(self, "llm", None))
 
@@ -404,6 +421,24 @@ class SubagentContainer:
                     "constraints": 0, "audit_required": False, "red": False,
                     "error": str(e)}
 
+    def memory_view(self) -> dict:
+        """记忆档位生效情况（**如实回显**：档位 / 域 / 是否需审计）
+
+        【为什么放在容器上】创建响应、列表、热更新响应都要回这一份；各写一次必然漂移。
+        这里只调 agent/subagent/memory_broker.py 的 memory_view，不另立口径。
+        【刻意不带记忆正文】列表载荷不该携带记忆内容；正文只在 ②约束里出现。
+        """
+        try:
+            from agent.subagent.memory_broker import memory_view
+
+            return memory_view(self.config)
+        except Exception as e:  # noqa: BLE001 记忆视图不可用不得让状态查询挂掉
+            logger.warning("[Subagent:%s] 记忆视图不可用: %s", self.id, e)
+            return {"mode": str(getattr(self.config, "memory_mode", "none") or "none"),
+                    "enabled": False, "implemented": False, "scope": {},
+                    "audit_required": False, "red": False,
+                    "provider": "", "error": str(e)}
+
     def get_status(self) -> dict:
         """获取分身状态报告"""
         return {
@@ -421,6 +456,8 @@ class SubagentContainer:
             "llm_temperature": self.config.llm_temperature,
             # 角色生效情况（三档 + 红档/审计标记）；**不含 role_text 正文**，见 role_view
             "role": self.role_view(),
+            # 记忆档位（none/brokered/scoped + 域）；**不含记忆正文**，见 memory_view
+            "memory": self.memory_view(),
             "age_seconds": round(self.age_seconds, 1),
             "is_expired": self.is_expired,
             "is_destroyed": self._is_destroyed,

@@ -164,17 +164,17 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     # ── 记忆层 ──
     SovereigntyFace(
         key="memory_scope", layer="memory", label="记忆域与档位",
-        question="它记得的东西归谁？", state=PARTIAL,
-        evidence="memory/tenancy.py 有 tenant/workspace/subject 隔离矩阵与写入决策",
-        evidence_files=("agent/memory/tenancy.py", "agent/subagent/toolset.py"),
-        gap="SubagentConfig.memory_provider 无消费方；actor_matrix 对 sub_agent 的 view.memory / memory.write 恒 ❌（§5.7 机制 3）",
+        question="它记得的东西归谁？", state=OWNED,
+        evidence="memory_mode none|brokered：母体按 tenancy 取只读上下文并注入 ②约束（broker + 域越界守卫），分身侧无记忆工具（§5.7 机制 3 不破）",
+        evidence_files=("agent/memory/broker.py", "agent/subagent/memory_broker.py", "agent/memory/tenancy.py"),
+        gap="scoped（分身自带私人记忆域、放开机制 3 硬禁）未做——需四处判定同改 + 配额 + 熔断 + 审计",
         next_stage="S3"),
     SovereigntyFace(
         key="memory_provider", layer="memory", label="记忆提供商与知识库",
         question="存在哪、离线可用吗？", state=PARTIAL,
         evidence="memory/router.py（5 类任务路由 + L1/L2/L3 分层）+ holographic_adapter（本地 SQLite/FTS5）",
         evidence_files=("agent/memory/router.py", "agent/memory/adapters/holographic_adapter.py"),
-        gap="按 provider 取 adapter 的分身接线未完成（brokered → scoped）",
+        gap="按 provider 取 adapter 的 scoped 接线未完成；brokered 只经母体 tenancy 只读，不按 provider 选 adapter",
         next_stage="S3"),
     SovereigntyFace(
         key="memory_ops", layer="memory", label="记忆导出/擦除/迁移",
