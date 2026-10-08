@@ -94,25 +94,31 @@ MEMORY_SCOPE_KEYS: Tuple[str, ...] = (
 #: 视为"未表态 ⇒ none"的取值（大小写不敏感）
 _NONE_SENTINELS: Tuple[str, ...] = ("", "default", "auto", "off", "0", "false")
 
-#: scoped 档**已接线**的 provider 词表（唯一权威；配置校验与运行期 select_store 共用）。
-#: 增加 provider = 先在 agent/memory/scoped_store.py 的 select_store 里接上真实后端，
-#: 再登记到这里；未登记的 provider 一律 400，不静默回退默认后端。
-SUPPORTED_MEMORY_PROVIDERS: Tuple[str, ...] = ("holographic", "mem0")
+#: scoped provider 词表/别名的**唯一权威**在 agent.memory.scoped_store（memory 域）。
+#: 本模块不定义第二份，避免漂移；同时保持 subagent -> memory 的单向依赖
+#: （反向 import 会与 memory_broker -> scoped_store 构成 no_circular_dependency 环）。
 
-#: provider 别名（大小写不敏感）——归一化后必须落在 SUPPORTED_MEMORY_PROVIDERS 内
-_MEMORY_PROVIDER_ALIASES: Dict[str, str] = {
-    "holographic": "holographic",
-    "holo": "holographic",
-    "layered": "holographic",
-    "local": "holographic",
-    "mem0": "mem0",
-}
+
+def __getattr__(name: str) -> Any:
+    """兼容旧用法：agent.subagent.memory_broker.SUPPORTED_MEMORY_PROVIDERS
+
+    PEP 562 模块级 __getattr__：只有真正被访问时才从 memory 域取，import 期不拉重依赖。
+    """
+    if name == "SUPPORTED_MEMORY_PROVIDERS":
+        from agent.memory.scoped_store import SUPPORTED_MEMORY_PROVIDERS
+
+        return SUPPORTED_MEMORY_PROVIDERS
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
 
 
 def normalize_memory_provider(provider: Any) -> str:
-    """provider 别名归一化（不校验词表；校验由 resolve_memory_config 统一做）"""
-    raw = str(provider or "").strip().lower()
-    return _MEMORY_PROVIDER_ALIASES.get(raw, raw)
+    """provider 别名归一化（不校验词表；校验由 resolve_memory_config 统一做）
+
+    别名表与 scoped_store 同源（懒加载，避免 subagent 在 import 期拉入 memory 重依赖）。
+    """
+    from agent.memory.scoped_store import normalize_provider_alias
+
+    return normalize_provider_alias(provider)
 
 
 class MemoryConfigError(ValueError):
@@ -261,6 +267,8 @@ def resolve_memory_config(mode: Any = MEMORY_MODE_NONE,
             mode=normalized, implemented=True, error=(
                 "memory_mode='scoped' 需要非空 memory_provider（分身自带私人记忆域必须有"
                 "明确 provider；缺失即拒绝，不静默降级）"))
+    from agent.memory.scoped_store import SUPPORTED_MEMORY_PROVIDERS
+
     canonical_provider = normalize_memory_provider(provider_name)
     if canonical_provider not in SUPPORTED_MEMORY_PROVIDERS:
         return MemoryResolution(

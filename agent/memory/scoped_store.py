@@ -47,11 +47,7 @@ from agent.memory.tenancy import (
     get_tenancy_policy,
     resolve_tenancy,
 )
-from agent.subagent.memory_broker import (
-    SUPPORTED_MEMORY_PROVIDERS,
-    normalize_memory_provider as _normalize_memory_provider,
-)
-from agent.subagent.memory_quota import (
+from agent.memory.quota import (
     AUDIT_SCOPED_DEGRADED,
     AUDIT_SCOPED_PERSIST,
 )
@@ -75,12 +71,24 @@ __all__ = [
     "ScopedReadOutcome",
     "ScopedMemoryDomain",
     "normalize_provider",
+    "normalize_provider_alias",
     "provider_runtime_view",
     "scoped_domain_from_scope",
 ]
 
-#: scoped 档**已接线**的 provider 词表（唯一权威在 agent/subagent/memory_broker.py：
-#: 配置校验与 select_store 共用同一份，不另立第二套）。此处为 re-export 便于同域引用。
+#: scoped 档**已接线**的 provider 词表（唯一权威；配置校验与 select_store 共用同一份）。
+#: 刻意放在 memory 域：scoped_store 属 memory，反向 import agent.subagent 会与
+#: memory_broker -> scoped_store 构成 no_circular_dependency 环（见 memory_quota shim）。
+SUPPORTED_MEMORY_PROVIDERS: Tuple[str, ...] = ("holographic", "mem0")
+
+#: provider 别名（大小写不敏感）；归一化后必须落在 SUPPORTED_MEMORY_PROVIDERS 内
+_PROVIDER_ALIASES: Dict[str, str] = {
+    "holographic": "holographic",
+    "holo": "holographic",
+    "layered": "holographic",
+    "local": "holographic",
+    "mem0": "mem0",
+}
 
 #: provider -> 承载后端的稳定标签（回显 / 报告用；不是实现细节的承诺）
 PROVIDER_STORES: Dict[str, str] = {
@@ -119,12 +127,15 @@ class _BackendWriteFailed(ScopedMemoryError):
     """底层后端明确报告失败（如 Mem0Adapter.save 返回 False）"""
 
 
-def normalize_provider(provider: Any) -> str:
-    """provider 别名归一化；词表外取值 => UnknownMemoryProviderError（不猜）
+def normalize_provider_alias(provider: Any) -> str:
+    """provider 别名归一化（**不校验词表**；校验由调用方或 normalize_provider 做）"""
+    raw = str(provider or "").strip().lower()
+    return _PROVIDER_ALIASES.get(raw, raw)
 
-    别名表与词表复用 memory_broker 的同一份口径，避免两处漂移。
-    """
-    canonical = _normalize_memory_provider(provider)
+
+def normalize_provider(provider: Any) -> str:
+    """provider 别名归一化 + 词表校验；词表外取值 => UnknownMemoryProviderError（不猜）"""
+    canonical = normalize_provider_alias(provider)
     if canonical not in SUPPORTED_MEMORY_PROVIDERS:
         raise UnknownMemoryProviderError(provider)
     return canonical
@@ -400,7 +411,7 @@ class ScopedMemoryDomain:
         self._clock = clock
         self.max_chars = max(1, int(max_chars))
         if guard is None:
-            from agent.subagent.memory_quota import guard_from_quota
+            from agent.memory.quota import guard_from_quota
 
             guard = guard_from_quota(
                 quota, audit=audit, actor="sub_agent",
@@ -447,7 +458,7 @@ class ScopedMemoryDomain:
 
     def _emit(self, action: str, *, status: str = "",
               payload: Optional[Mapping[str, Any]] = None) -> bool:
-        from agent.subagent.memory_quota import emit_scoped_audit
+        from agent.memory.quota import emit_scoped_audit
 
         return emit_scoped_audit(
             self._audit, action, actor="sub_agent",
