@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-10-08T21:13:43",
+  "generated_at": "2026-10-09T02:49:38",
   "totals": {
-    "routes": 452,
+    "routes": 454,
     "live": 233,
-    "dead_copy": 219,
-    "ui": 112,
+    "dead_copy": 221,
+    "ui": 113,
     "cli_script": 21,
     "runtime_only": 24,
-    "unreferenced": 295,
+    "unreferenced": 296,
     "live_by_category": {
       "ui": 47,
       "cli_script": 8,
@@ -15,7 +15,7 @@
       "unreferenced": 156
     }
   },
-  "frontend_endpoints": 114,
+  "frontend_endpoints": 115,
   "frontend_unmatched": [
     "/api/approval",
     "/api/cp"
@@ -1974,7 +1974,6 @@
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
-        "scripts/_t08_http_stress.py",
         "scripts/deployment_drill.py",
         "scripts/probe_prefix_cache_interaction.py"
       ],
@@ -5488,7 +5487,21 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:437"
+        "agent/server_routes/routes_subagent.py:538"
+      ]
+    },
+    {
+      "path": "/api/subagent/<name>/bundle",
+      "norm": "/api/subagent/*/bundle",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:555"
       ]
     },
     {
@@ -5502,7 +5515,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:572"
+        "agent/server_routes/routes_subagent.py:792"
       ]
     },
     {
@@ -5516,7 +5529,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:518"
+        "agent/server_routes/routes_subagent.py:738"
       ]
     },
     {
@@ -5530,7 +5543,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:540"
+        "agent/server_routes/routes_subagent.py:760"
       ]
     },
     {
@@ -5544,7 +5557,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:771"
+        "agent/server_routes/routes_subagent.py:1010"
       ]
     },
     {
@@ -5560,7 +5573,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:378"
+        "agent/server_routes/routes_subagent.py:471"
       ]
     },
     {
@@ -5576,7 +5589,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:454"
+        "agent/server_routes/routes_subagent.py:663"
       ]
     },
     {
@@ -5592,7 +5605,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:686"
+        "agent/server_routes/routes_subagent.py:916"
       ]
     },
     {
@@ -5608,7 +5621,23 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:401"
+        "agent/server_routes/routes_subagent.py:494"
+      ]
+    },
+    {
+      "path": "/api/subagent/import",
+      "norm": "/api/subagent/import",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": false,
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:602"
       ]
     },
     {
@@ -5624,7 +5653,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:346"
+        "agent/server_routes/routes_subagent.py:438"
       ]
     },
     {
@@ -6895,7 +6924,6 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
-        "scripts/_t08_http_stress.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
         "scripts/exporter_link_cache.py",
@@ -6904,7 +6932,8 @@
         "scripts/monitoring_longrun/c2_harness.py",
         "scripts/monitoring_longrun/gen_derived_config.py",
         "scripts/probe_prefix_cache_interaction.py",
-        "scripts/simulate_prometheus_restart.py"
+        "scripts/simulate_prometheus_restart.py",
+        "scripts/surge_metrics_template.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1138"
@@ -6960,5 +6989,5 @@
       ]
     }
   ],
-  "content_hash": "a17c69cf8cb967bc"
+  "content_hash": "64a2eebdd8bdafab"
 }
