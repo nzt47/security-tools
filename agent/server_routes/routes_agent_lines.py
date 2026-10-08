@@ -345,7 +345,7 @@ def _subagent_assembly_payload(line_id: str, registry: Any, meta: Dict[str, Any]
          并给出原因，**响应其余部分（预览本体 / 详情本体）照常返回**。
 
     Returns:
-        `SubagentAssembly.to_dict()` 的全部字段 + 三个投影字段：
+        `SubagentAssembly.to_dict()` 的全部字段 + 四个投影字段：
         `available`（装配单是否成立）/ `reason`（仅 available=false）/
         `semantics` + `semantics_note`（人读失败语义）。
         `semantics` 直接读装配单自己的 `mode`，不在本层重判一遍。
