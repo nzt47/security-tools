@@ -3903,7 +3903,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_subagent.py",
       "in_degree": 0,
-      "out_degree": 19
+      "out_degree": 20
     },
     {
       "path": "agent.subagent.delegation_history",
@@ -3935,6 +3935,14 @@
       "layer": "subagent",
       "file_path": "",
       "in_degree": 4,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.subagent.capabilities",
+      "name": "capabilities",
+      "layer": "subagent",
+      "file_path": "",
+      "in_degree": 1,
       "out_degree": 0
     },
     {
@@ -22077,11 +22085,24 @@
     },
     {
       "source": "agent.server_routes.routes_subagent",
+      "target": "agent.subagent.capabilities",
+      "source_layer": "server_routes",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 393,
+      "source_file": "agent/server_routes/routes_subagent.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_subagent",
       "target": "agent.subagent.role_templates",
       "source_layer": "server_routes",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 602,
+      "line": 625,
       "source_file": "agent/server_routes/routes_subagent.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22094,7 +22115,7 @@
       "source_layer": "server_routes",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 626,
+      "line": 649,
       "source_file": "agent/server_routes/routes_subagent.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22107,7 +22128,7 @@
       "source_layer": "server_routes",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 706,
+      "line": 729,
       "source_file": "agent/server_routes/routes_subagent.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22120,7 +22141,7 @@
       "source_layer": "server_routes",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 707,
+      "line": 730,
       "source_file": "agent/server_routes/routes_subagent.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22133,7 +22154,7 @@
       "source_layer": "server_routes",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 716,
+      "line": 739,
       "source_file": "agent/server_routes/routes_subagent.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22146,7 +22167,7 @@
       "source_layer": "server_routes",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 725,
+      "line": 748,
       "source_file": "agent/server_routes/routes_subagent.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -28915,10 +28936,10 @@
     }
   ],
   "stats": {
-    "total_files": 644,
-    "total_nodes": 575,
-    "total_edges": 1870,
-    "cross_layer_edges": 1190,
+    "total_files": 645,
+    "total_nodes": 576,
+    "total_edges": 1871,
+    "cross_layer_edges": 1191,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -28946,7 +28967,7 @@
       "digestion": 18,
       "workflow_learning": 9,
       "process_distill": 9,
-      "subagent": 18,
+      "subagent": 19,
       "self_healing": 6,
       "model_router": 4,
       "extensions": 15,
