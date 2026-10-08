@@ -123,7 +123,7 @@ def _make_executor(tmp_path, **kw) -> DelegationExecutor:
 
 class TestDefaultOff:
     def test_未开启时工厂返回None且零出站(self, monkeypatch, tmp_path):
-        for name in (cb.ENV_HTTP, cb.ENV_ALLOW, cb.ENV_TOKEN):
+        for name in (cb.ENV_HTTP, cb.ENV_ALLOW, cb.ENV_AUTH_NAME):
             monkeypatch.delenv(name, raising=False)
         assert build_callback_dispatcher() is None
 
@@ -179,7 +179,7 @@ class TestEnabledDelivery:
     def test_白名单内host恰好一次POST且带Bearer(self, monkeypatch):
         monkeypatch.setenv(cb.ENV_HTTP, "1")
         monkeypatch.setenv(cb.ENV_ALLOW, "api.partner.com")
-        monkeypatch.setenv(cb.ENV_TOKEN, "s3cr3t-token")
+        monkeypatch.setenv(cb.ENV_AUTH_NAME, "s3cr3t-token")
         monkeypatch.delenv(cb.ENV_TIMEOUT, raising=False)
         spy = SpyTransport(status=200)
         dispatcher = build_callback_dispatcher(transport=spy)

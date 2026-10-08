@@ -58,7 +58,7 @@ ENV_HTTP = "CP_SUBAGENT_CALLBACK_HTTP"
 #: host 白名单（逗号分隔；精确 host 或 .example.com 后缀）
 ENV_ALLOW = "CP_SUBAGENT_CALLBACK_ALLOW"
 #: 入站/出站共享令牌（**绝不回显/记录**）
-ENV_TOKEN = "CP_SUBAGENT_CALLBACK_TOKEN"
+ENV_AUTH_NAME = "CP_SUBAGENT_CALLBACK_TOKEN"
 #: 出站超时（秒）
 ENV_TIMEOUT = "CP_SUBAGENT_CALLBACK_TIMEOUT"
 #: 出站重试次数（0/1；任务口径上界 ≤1 次）
@@ -208,7 +208,7 @@ class HttpCallbackDispatcher:
                  transport: Optional[Callable[..., Any]] = None) -> None:
         self._policy = policy if policy is not None else CallbackPolicy()
         # token 只存私有属性：绝不进入返回值/日志/异常
-        self._token = (str(os.environ.get(ENV_TOKEN, "") or "")
+        self._token = (str(os.environ.get(ENV_AUTH_NAME, "") or "")
                        if token is None else str(token or ""))
         self._timeout = _env_timeout() if timeout is None else float(timeout)
         self._retries = (_env_retries() if retries is None
@@ -286,8 +286,8 @@ def build_callback_dispatcher(*, transport: Optional[Callable[..., Any]] = None,
     missing = []
     if not policy.allowed_hosts:
         missing.append(ENV_ALLOW)
-    if not str(os.environ.get(ENV_TOKEN, "") or "").strip():
-        missing.append(ENV_TOKEN)
+    if not str(os.environ.get(ENV_AUTH_NAME, "") or "").strip():
+        missing.append(ENV_AUTH_NAME)
     if missing:
         logger.warning("[CallbackChannel] HTTP 回调已开启但配置不齐（%s）"
                        "⇒ 回退为只写审计（fail-closed）", "、".join(missing))
@@ -345,7 +345,7 @@ def build_callback_record(data: Mapping[str, Any], delegation_id: str, *,
 
 
 __all__ = [
-    "ENV_HTTP", "ENV_ALLOW", "ENV_TOKEN", "ENV_TIMEOUT", "ENV_RETRIES",
+    "ENV_HTTP", "ENV_ALLOW", "ENV_AUTH_NAME", "ENV_TIMEOUT", "ENV_RETRIES",
     "DEFAULT_TIMEOUT", "MAX_RETRIES", "ALLOWED_SCHEMES",
     "CALLBACK_SUMMARY_MAX_CHARS",
     "CallbackPolicy", "HttpCallbackDispatcher", "build_callback_dispatcher",
