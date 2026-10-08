@@ -1,21 +1,18 @@
 /**
  * 装配车间 —— 分身创建与组装（多 agent 设计系统）
  * ------------------------------------------------------------------
- * 【2026-10-08 合并：本页成为「分身装配」的唯一入口】三个视图：
- *   ① 分身        —— 存活分身的创建 / 销毁（`/api/subagent/*`），本页原有内容；
- *   ② 主线档案    —— 能力平面档案（权重/保底/效果上限/技能包/提示词）+ 实时装配预览，
- *                     由原「工具调用 → 主线管理」Tab 迁入（`pages/hub/tools/lines.tsx`）；
- *   ③ 主线 × 四面 —— 一条主线在「工具 / 技能 / 提示词 / 分身」四个面上的横向对比，
- *                     由原 `features/line-assembly`（零清单导航项）并入，并**删除其 manifest**
- *                     （留着它会凭空多出一条顶层导航项 = 同一个页面两个入口）。
+ * 【2026-10-08 组装台：本页成为「分身装配」的唯一入口】四个视图：
+ *   ① 分身        —— 存活分身列表 / 销毁 + 生效徽章（`/api/subagent/*`）；
+ *   ② 组装台      —— 六步拼装 + **主权清单**（后端三态投影）+ 装配预览（真实请求体），
+ *                     取代原「创建分身」四格弹表单（**唯一创建入口**）；
+ *   ③ 主线档案    —— 能力平面档案（权重/保底/效果上限/技能包/提示词）+ 实时装配预览；
+ *   ④ 主线 × 四面 —— 一条主线在「工具 / 技能 / 提示词 / 分身」四个面上的横向对比。
  *
- * 【为什么必须合并（不是挪 UI 而已）】分身真正拿到什么由**主线档案**决定：
- * `agent/subagent/assembly.py::resolve_subagent_assembly` 按 line 装配工具集，再由
- * `agent/subagent/toolset.py`（§7.0 矩阵 + §5.7 机制 3）收紧。而本页「创建分身」表单里的
- * `model_id` / `memory_provider` / `tool_sources` 三个字段**目前没有任何运行时消费者**
- * （只进容器状态与热更新变更日志）。把"表单承诺"与"真正决定分身能力的主线档案"分在
- * 两个导航栏目里，是这一页最容易误导人的地方 —— 合并后同屏，且不再暗示表单那几个字段
- * 已经生效（真正的 per-分身 模型/记忆接线见后续阶段，届时同页给出"生效来源"）。
+ * 【为什么把"创建"搬进组装台】原创建表单把"主权二十面"压成四个输入框，其中
+ * `memory_provider` / `tool_sources` **没有任何运行时消费者**（只进状态与热更新日志）。
+ * 组装台把每一面的真实状态（拥有 / 声明未接线 / 未做）由后端投影摆出来，并把
+ * "装配预览 = 真实请求体"钉成同源 —— 表单承诺与运行时事实不再各说各话。
+ * 权威设计见 `docs/主权分身_维度与组装页设计_20261008.md`。
  *
  * 【Tab 选择记忆】与「工具调用」Tab 容器同款：localStorage 记住上次视图，非法值回落
  * 「分身」。注意两个 key 是**分开的**（`yunshu.workshop.view` 与本页无关的
@@ -25,11 +22,10 @@
  */
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Layers, Loader2, Plus, Rocket, Route, Trash2, Users } from 'lucide-react'
+import { Hammer, Layers, Loader2, Route, Trash2, Users } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubPost } from '../components/ui'
 
 import {
-  SUBAGENT_CREATE,
   SUBAGENT_LIST,
   subagentDestroyByName,
 } from '@/api/endpoints';
@@ -133,15 +129,8 @@ function RoleBadge({ role }: { role?: SubagentRole }) {
   return <Badge color="slate">受控模板</Badge>
 }
 
-/** 后端不可用时的档位兜底（与 role_templates.ROLE_TIERS 同序同值；正常走 roleCatalog） */
-const DEFAULT_ROLE_TIERS = [
-  { value: 'template', label: '受控模板', red: false },
-  { value: 'template+text', label: '模板 + 自由文本（进约束）', red: false },
-  { value: 'full-system', label: '自由文本进系统提示词（红档）', red: true },
-]
-
 /** 视图键（= 原导航/Tab 身份，便于对照历史记录） */
-export type WorkshopView = 'agents' | 'lines' | 'line-assembly'
+export type WorkshopView = 'agents' | 'assembly' | 'lines' | 'line-assembly'
 
 export interface WorkshopViewDef {
   id: WorkshopView
@@ -150,9 +139,10 @@ export interface WorkshopViewDef {
   hint: string
 }
 
-/** 三个视图：顺序 = 「先有分身 → 再定它拿到什么 → 再看四个面」的阅读顺序 */
+/** 四个视图：顺序 = 「先有分身 → 再装一个 → 再看它拿到什么 → 再看四个面」 */
 export const WORKSHOP_VIEWS: WorkshopViewDef[] = [
-  { id: 'agents', label: '分身', icon: Users, hint: '存活分身的创建与销毁（模型 / 记忆提供商为声明字段，见页面内说明）' },
+  { id: 'agents', label: '分身', icon: Users, hint: '存活分身列表与销毁（生效模型 / 角色来源见表中徽章）' },
+  { id: 'assembly', label: '组装台', icon: Hammer, hint: '六步拼装一个主权分身：主权清单（三态）+ 装配预览（真实请求体）' },
   { id: 'lines', label: '主线档案', icon: Route, hint: '能力平面档案（权重 / 核心工具 / 效果上限 / 技能包 / 提示词）与实时装配预览' },
   { id: 'line-assembly', label: '主线 × 四面', icon: Layers, hint: '一条主线在工具 / 技能 / 提示词 / 分身四个面上的横向对比' },
 ]
@@ -174,6 +164,7 @@ function readSavedView(): WorkshopView {
   }
 }
 
+const AssemblyConsole = lazy(() => import('./assembly'))
 const AgentLinesView = lazy(() => import('./agent-lines'))
 const LineAssemblyView = lazy(() => import('./line-assembly'))
 
@@ -186,25 +177,13 @@ export interface WorkshopAgentsProps {
 //  ① 分身：创建 / 列表 / 销毁（本页原有内容，一字未改语义）
 // ═══════════════════════════════════════════════════════════
 
-function SubagentView() {
+function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
   const [agents, setAgents] = useState<Subagent[]>([])
   const [deployment, setDeployment] = useState<DeploymentLlm | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [name, setName] = useState('')
-  // 空 = 跟随母体（后端真语义；不再靠"抄一个母体模型名"来伪装跟随）
-  const [model, setModel] = useState('')
-  // 空 = 不干预执行器默认（不是 0.0）；填了则必须 0.0–2.0（越界后端 400）
-  const [temperature, setTemperature] = useState('')
-  const [memory, setMemory] = useState('default')
-  const [tools, setTools] = useState('')
-  // 角色：受控模板 id + 档位 + 自由文本。默认档（template）下自由文本会被后端 400 ——
-  // 这是刻意的：'没显式选档' ≠ '自由文本生效'，前端不替使用者静默选档。
+  // 角色模板词表：仅用于把 template id 显示成人读标题（生效情况由后端 role 段给）
   const [roleCatalog, setRoleCatalog] = useState<RoleCatalog | null>(null)
-  const [roleTemplate, setRoleTemplate] = useState('')
-  const [roleMode, setRoleMode] = useState('template')
-  const [roleText, setRoleText] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -218,32 +197,6 @@ function SubagentView() {
 
   useEffect(load, [])
 
-  const create = async () => {
-    try {
-      const body: Record<string, unknown> = {
-        name,
-        model_id: model.trim(),  // 空串 = 跟随母体（后端按 inherit 档解析）
-        memory_provider: memory,
-        tool_sources: tools ? tools.split(',').map((t) => t.trim()).filter(Boolean) : [],
-        tags: ['hub'],
-        // 角色（受控模板）：模板 id + 档位恒发；自由文本留空则**不发这个键**
-        // （默认档下发非空 role_text 后端会 400 —— 那正是'要显式选档'的纪律）
-        role_template: roleTemplate.trim(),
-        role_mode: roleMode,
-      }
-      // 温度：留空**不发这个键**（= 不干预执行器默认），而不是发 0
-      const t = temperature.trim()
-      if (t) body.llm_temperature = Number(t)
-      const rt = roleText.trim()
-      if (rt) body.role_text = rt
-      await hubPost(SUBAGENT_CREATE, body)
-      setShowForm(false)
-      setName(''); setTools(''); setTemperature('')
-      setRoleTemplate(''); setRoleText(''); setRoleMode('template')
-      load()
-    } catch (e) { setError(String(e)) }
-  }
-
   const destroy = async (n: string) => {
     try {
       await hubPost(subagentDestroyByName(n))
@@ -252,99 +205,21 @@ function SubagentView() {
   }
 
   const deploymentModel = String(deployment?.model || '')
-  // 档位候选来自后端（与 role_templates.ROLE_TIERS 同源）；后端不可用时用兜底常量
-  const roleTiers = roleCatalog?.tiers?.length ? roleCatalog.tiers : DEFAULT_ROLE_TIERS
 
   return (
     <>
       <div className="mb-3 flex items-center justify-between gap-3">
         <span className="text-xs text-slate-500">
-          工具集由「主线档案」决定（装配时去 govern、去 §5.7 机制 3 硬禁）；
-          <span className="text-slate-400">模型已接线</span>
-          （留空 = 跟随母体{deploymentModel ? `：${deploymentModel}` : '（母体模型未知）'}，
-          指定则派生独立实例；生效来源见表中徽章）。
+          装配一个分身请到「组装台」（六步 + 主权清单 + 装配预览，唯一创建入口）。
+          本页只列**存活分身**与生效来源：<span className="text-slate-400">模型已接线</span>
+          （空 = 跟随母体{deploymentModel ? `：${deploymentModel}` : '（母体模型未知）'}，指定则派生独立实例），
           <span className="text-slate-400">角色已接线</span>
-          （受控模板：默认档只用词表正文；自由文本必须显式选 template+text / full-system 档，
-          后者是红档且执行器写审计；生效档位见表中徽章）。
+          （受控模板；自由文本须显式选 template+text / full-system 档）。
           记忆提供商 / 工具源仍是**声明字段**（尚未接线，见后续阶段）。
         </span>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"><Plus size={12} /> 创建分身</button>
+        <button onClick={onShowAssembly} data-testid="go-assembly" className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"><Hammer size={12} /> 前往组装台</button>
       </div>
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
-      {showForm && (
-        <Card className="mb-4">
-          <div className="grid gap-3 md:grid-cols-4">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="分身名称 *" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
-            {/* 模型：datalist 给"有出处"的候选（部署默认 + 已声明），**不挡手填** */}
-            <input
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              list="subagent-model-options"
-              data-testid="subagent-model-input"
-              placeholder={deploymentModel ? `留空 = 跟随母体（${deploymentModel}）` : '留空 = 跟随母体'}
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
-            />
-            <datalist id="subagent-model-options">
-              {(deployment?.options ?? []).map((o) => (
-                <option key={String(o.model)} value={String(o.model ?? '')}>
-                  {o.source === 'deployment' ? '部署默认' : '已声明'}
-                </option>
-              ))}
-            </datalist>
-            <input value={memory} onChange={(e) => setMemory(e.target.value)} placeholder="记忆提供商" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
-            <input value={tools} onChange={(e) => setTools(e.target.value)} placeholder="工具源(逗号分隔)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
-            {/* 温度：留空 = 不干预执行器默认（**不是 0**）；越界由后端 400，前端不做静默夹取 */}
-            <input
-              value={temperature}
-              onChange={(e) => setTemperature(e.target.value)}
-              inputMode="decimal"
-              data-testid="subagent-temperature-input"
-              placeholder="生成温度 0.0–2.0（留空 = 默认）"
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
-            />
-            {/* 角色：模板候选来自后端受控词表（不是自由输入 id） */}
-            <select
-              value={roleTemplate}
-              onChange={(e) => setRoleTemplate(e.target.value)}
-              data-testid="subagent-role-template"
-              title="受控角色模板（agent/subagent/role_templates.py 词表；空 = 未装角色=旧行为）"
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none"
-            >
-              <option value="">角色：未装（旧行为）</option>
-              {(roleCatalog?.templates ?? []).map((t) => (
-                <option key={String(t.id)} value={String(t.id)}>{String(t.title || t.id)}</option>
-              ))}
-            </select>
-            {/* 档位：默认 template；自由文本必须显式选档，否则后端 400（不静默） */}
-            <select
-              value={roleMode}
-              onChange={(e) => setRoleMode(e.target.value)}
-              data-testid="subagent-role-mode"
-              title="角色档位：template 默认 / template+text 自由文本进约束 / full-system 自由文本进系统提示词（红档）"
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none"
-            >
-              {roleTiers.map((t) => (
-                <option key={String(t.value)} value={String(t.value)}>
-                  {t.red ? '⚠ ' : ''}{String(t.label || t.value)}
-                </option>
-              ))}
-            </select>
-            <input
-              value={roleText}
-              onChange={(e) => setRoleText(e.target.value)}
-              data-testid="subagent-role-text"
-              placeholder="角色自由文本（仅显式选 template+text / full-system 档生效）"
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none md:col-span-2"
-            />
-          </div>
-          <div className="mt-3 flex items-center gap-2">
-            <button onClick={create} className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500">
-              <Rocket size={14} /> 组装分身
-            </button>
-            <span className="text-xs text-slate-600">需管理员 token（FLASK_API_TOKEN）</span>
-          </div>
-        </Card>
-      )}
       {loading ? <Loading /> : (
         <Card>
           <DataTable
@@ -412,7 +287,7 @@ function SubagentView() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  容器：三视图 Tab
+//  容器：四视图 Tab
 // ═══════════════════════════════════════════════════════════
 
 export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
@@ -431,7 +306,7 @@ export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* 顶栏：模块标题 + 三视图 Tab 条（子视图即 Tab，点击切换、无需回导航树） */}
+      {/* 顶栏：模块标题 + 四视图 Tab 条（子视图即 Tab，点击切换、无需回导航树） */}
       <header className="shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4">
         <div className="mb-3 flex items-center gap-2">
           <Users size={14} className="text-cyan-400" />
@@ -478,12 +353,13 @@ export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
           {view === 'agents' && (
             <div className="p-6">
               <PageHeader
-                title="分身创建与组装"
-                description="多 agent 设计系统 —— 分身生命周期管理"
+                title="分身列表"
+                description="存活分身与生效来源（创建请到「组装台」）"
               />
-              <SubagentView key="agents" />
+              <SubagentView key="agents" onShowAssembly={() => setView('assembly')} />
             </div>
           )}
+          {view === 'assembly' && <AssemblyConsole key="assembly" onShowAgents={() => setView('agents')} />}
           {view === 'lines' && <AgentLinesView key="lines" />}
           {view === 'line-assembly' && <LineAssemblyView key="line-assembly" />}
         </Suspense>

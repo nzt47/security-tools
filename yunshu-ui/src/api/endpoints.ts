@@ -253,6 +253,8 @@ export const SUBAGENT_LIST = '/api/subagent/list';
 export const SUBAGENT_CREATE = '/api/subagent/create';
 export const SUBAGENT_DELEGATE = '/api/subagent/delegate';
 export const SUBAGENT_HISTORY = '/api/subagent/history';
+// 主权分身能力投影（六层二十面三态 + 证据）：组装台「主权清单」的数据源
+export const SUBAGENT_CAPABILITIES = '/api/subagent/capabilities';
 export const subagentDelegateByName = (name: string) => `/api/subagent/${encodeURIComponent(name)}/delegate`;
 export const subagentDestroyByName = (name: string) => `/api/subagent/${encodeURIComponent(name)}/destroy`;
 
