@@ -162,6 +162,8 @@ class SubagentContainer:
 
         # 运行时内存增量（执行产生的记忆变更）
         self._memory_delta: dict[str, Any] = {}
+        # scoped 私人记忆域（每容器一份；配额/熔断跨委派持续生效）
+        self._scoped_memory_domain: Any = None
 
         logger.info("[Subagent] 创建分身: %s (id=%s, model=%s, memory=%s, memory_mode=%s, permissions=%s)",
                     config.name, self.id, config.model_id, config.memory_provider,
@@ -340,7 +342,11 @@ class SubagentContainer:
         ctx = attach_memory_metadata(ctx, self.config)
 
         if executor is None:
-            executor = DelegationExecutor(llm=llm if llm is not None else getattr(self, "llm", None))
+            # scoped 档注入**容器级**记忆域：配额/熔断跨多次委派持续生效；
+            # 非 scoped 时 scoped_memory_domain() 返回 None（默认路径逐字不变）。
+            executor = DelegationExecutor(
+                llm=llm if llm is not None else getattr(self, "llm", None),
+                scoped_memory_domain=self._scoped_domain())
 
         started = time.time()
         # 显式标注：executor 为注入点（Any），标注后再返回可避免 no-any-return
@@ -365,6 +371,19 @@ class SubagentContainer:
                     self.id, getattr(ctx, "delegation_id", ""),
                     getattr(outcome, "ok", None), getattr(outcome, "tier", ""))
         return outcome
+
+    def _scoped_domain(self) -> Any:
+        """容器级 scoped 私人记忆域（非 scoped / 配置非法 ⇒ None）
+
+        【为什么缓存在容器上】配额与连续拒绝熔断必须**跨多次委派**持续生效；
+        每次委派新建 guard 会让配额在两次调用之间悄悄清零（等于没有配额）。
+        真实后端选择与守卫口径见 agent/memory/scoped_store.py，本方法只是持有者。
+        """
+        if self._scoped_memory_domain is None:
+            from agent.subagent.memory_broker import scoped_memory_domain
+
+            self._scoped_memory_domain = scoped_memory_domain(self.config)
+        return self._scoped_memory_domain
 
     def _record_delegation(self, ctx: "DelegationContext",
                            outcome: "ExecutionOutcome", source: str) -> None:

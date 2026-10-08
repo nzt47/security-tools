@@ -38,6 +38,8 @@ __all__ = [
     "AUDIT_SCOPED_WRITE",
     "AUDIT_SCOPED_REJECT",
     "AUDIT_SCOPED_BREAKER_OPEN",
+    "AUDIT_SCOPED_PERSIST",
+    "AUDIT_SCOPED_DEGRADED",
     "MEMORY_QUOTA_KEYS",
     "DEFAULT_MAX_ENTRIES",
     "DEFAULT_MAX_BYTES",
@@ -60,6 +62,10 @@ AUDIT_SCOPED_ENABLED = "subagent.memory.scoped.enabled"
 AUDIT_SCOPED_WRITE = "subagent.memory.scoped.write"
 AUDIT_SCOPED_REJECT = "subagent.memory.scoped.reject"
 AUDIT_SCOPED_BREAKER_OPEN = "subagent.memory.scoped.breaker_open"
+#: 一次成功落库（admit 之外、按实际字节对账后的留痕）
+AUDIT_SCOPED_PERSIST = "subagent.memory.scoped.persist"
+#: 一次如实降级（异步不可用 / 依赖缺失 / 底层写入抛错；不伪造成功）
+AUDIT_SCOPED_DEGRADED = "subagent.memory.scoped.degraded"
 
 #: memory_quota 允许的键（唯一词表；未知键 ⇒ 配置错误，不静默忽略）
 MEMORY_QUOTA_KEYS = ("max_entries", "max_bytes", "consecutive_reject_limit")
@@ -192,6 +198,8 @@ class MemoryQuotaGuard:
         self._consecutive_rejects = 0
         self._breaker_open = False
         self._opened_at = 0.0
+        #: 最近一次 admit 成功占位的字节数（record_write / rollback_admission 对账用）
+        self._pending_bytes = 0
 
     # ── 视图 ──
 
@@ -223,6 +231,7 @@ class MemoryQuotaGuard:
         self._consecutive_rejects = 0
         self._breaker_open = False
         self._opened_at = 0.0
+        self._pending_bytes = 0
 
     # ── 准入 ──
 
@@ -263,35 +272,18 @@ class MemoryQuotaGuard:
         over_entries = (self._entries + 1) > self.max_entries
         over_bytes = (self._bytes + size) > self.max_bytes
         if over_entries or over_bytes:
-            self._consecutive_rejects += 1
             quota_reason = (
                 "scoped 记忆配额超限：条数 %d/%d" % (self._entries + 1, self.max_entries)
                 if over_entries else
                 "scoped 记忆配额超限：字节 %d/%d" % (self._bytes + size, self.max_bytes))
-            if self._consecutive_rejects >= self.consecutive_reject_limit:
-                self._breaker_open = True
-                self._opened_at = float(self._clock())
-                recorded = emit_scoped_audit(
-                    self._audit, AUDIT_SCOPED_BREAKER_OPEN, actor=self._actor,
-                    subject=self._subject,
-                    payload={**payload, "code": E_MEMORY_BREAKER_OPEN,
-                             "consecutive_rejects": self._consecutive_rejects},
-                    status="open")
-                return self._decision(
-                    False, E_MEMORY_BREAKER_OPEN,
-                    "scoped 记忆写入连续被拒达阈值，熔断打开：%s" % quota_reason,
-                    recorded=recorded)
-            recorded = emit_scoped_audit(
-                self._audit, AUDIT_SCOPED_REJECT, actor=self._actor,
-                subject=self._subject,
-                payload={**payload, "code": E_MEMORY_QUOTA_EXCEEDED,
-                         "consecutive_rejects": self._consecutive_rejects},
-                status="rejected")
-            return self._decision(False, E_MEMORY_QUOTA_EXCEEDED, quota_reason,
-                                  recorded=recorded)
+            # 配额拒绝的计数 / 熔断 / 审计只有一条实现（record_reject）：
+            # admit 与域校验拒绝共用它，避免两套口径各自漂移。
+            return self.record_reject(E_MEMORY_QUOTA_EXCEEDED, quota_reason,
+                                      payload=payload)
 
         self._entries += 1
         self._bytes += size
+        self._pending_bytes = size
         self._consecutive_rejects = 0
         recorded = emit_scoped_audit(
             self._audit, AUDIT_SCOPED_WRITE, actor=self._actor,
@@ -327,6 +319,32 @@ class MemoryQuotaGuard:
             status="rejected")
         return self._decision(False, str(code or E_MEMORY_QUOTA_EXCEEDED),
                               str(reason or ""), recorded=recorded)
+
+    def record_write(self, actual_bytes: int) -> MemoryQuotaDecision:
+        """底层写入成功后按**实际字节**对账（admit 已按预估计入配额）
+
+        预算与实际之差就地修正；成功落库清零连续拒绝计数（与 admit 语义一致）。
+        审计在调用方（ScopedMemoryDomain）按 `AUDIT_SCOPED_PERSIST` 统一写，
+        本方法只维护计数与熔断状态 —— 避免同一次写入产生两条不同口径的留痕。
+        """
+        actual = max(0, int(actual_bytes or 0))
+        delta = actual - int(self._pending_bytes)
+        if delta:
+            self._bytes = max(0, self._bytes + delta)
+        self._pending_bytes = 0
+        self._consecutive_rejects = 0
+        return self._decision(True, "", "scoped 记忆写入落库成功")
+
+    def rollback_admission(self) -> None:
+        """撤销最近一次 admit 的计数占位（底层写入失败 / 降级时用）
+
+        降级不是"配额被拒"：不累加连续拒绝、不打开熔断，只把未落库的占位释放，
+        否则一次依赖缺失会永久吃掉配额（用户看到"写成功"却什么都没存）。
+        """
+        if self._entries > 0:
+            self._entries -= 1
+        self._bytes = max(0, self._bytes - int(self._pending_bytes))
+        self._pending_bytes = 0
 
     def audit_enabled(self, *, payload: Optional[Mapping[str, Any]] = None) -> bool:
         """写一条 scoped 开启审计（显式开启是安全姿态变更，必须留痕）"""

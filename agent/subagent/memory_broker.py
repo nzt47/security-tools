@@ -49,13 +49,16 @@ __all__ = [
     "IMPLEMENTED_MEMORY_MODES",
     "MEMORY_SCOPE_KEYS",
     "SCOPED_REQUIRED_SCOPE_KEYS",
+    "SUPPORTED_MEMORY_PROVIDERS",
     "MemoryConfigError",
+    "normalize_memory_provider",
     "MemoryResolution",
     "normalize_memory_mode",
     "resolve_memory_config",
     "resolve_config_memory",
     "scoped_memory_enabled",
     "scoped_guard",
+    "scoped_memory_domain",
     "memory_view",
     "attach_memory_metadata",
 ]
@@ -90,6 +93,26 @@ MEMORY_SCOPE_KEYS: Tuple[str, ...] = (
 
 #: 视为"未表态 ⇒ none"的取值（大小写不敏感）
 _NONE_SENTINELS: Tuple[str, ...] = ("", "default", "auto", "off", "0", "false")
+
+#: scoped 档**已接线**的 provider 词表（唯一权威；配置校验与运行期 select_store 共用）。
+#: 增加 provider = 先在 agent/memory/scoped_store.py 的 select_store 里接上真实后端，
+#: 再登记到这里；未登记的 provider 一律 400，不静默回退默认后端。
+SUPPORTED_MEMORY_PROVIDERS: Tuple[str, ...] = ("holographic", "mem0")
+
+#: provider 别名（大小写不敏感）——归一化后必须落在 SUPPORTED_MEMORY_PROVIDERS 内
+_MEMORY_PROVIDER_ALIASES: Dict[str, str] = {
+    "holographic": "holographic",
+    "holo": "holographic",
+    "layered": "holographic",
+    "local": "holographic",
+    "mem0": "mem0",
+}
+
+
+def normalize_memory_provider(provider: Any) -> str:
+    """provider 别名归一化（不校验词表；校验由 resolve_memory_config 统一做）"""
+    raw = str(provider or "").strip().lower()
+    return _MEMORY_PROVIDER_ALIASES.get(raw, raw)
 
 
 class MemoryConfigError(ValueError):
@@ -238,6 +261,13 @@ def resolve_memory_config(mode: Any = MEMORY_MODE_NONE,
             mode=normalized, implemented=True, error=(
                 "memory_mode='scoped' 需要非空 memory_provider（分身自带私人记忆域必须有"
                 "明确 provider；缺失即拒绝，不静默降级）"))
+    canonical_provider = normalize_memory_provider(provider_name)
+    if canonical_provider not in SUPPORTED_MEMORY_PROVIDERS:
+        return MemoryResolution(
+            mode=normalized, implemented=True, error=(
+                "memory_mode='scoped' 的 memory_provider=%r 未接线；已支持: %s"
+                "（不静默回退默认后端）"
+                % (provider_name, " / ".join(SUPPORTED_MEMORY_PROVIDERS))))
     missing = [k for k in SCOPED_REQUIRED_SCOPE_KEYS
                if not str(clean_scope.get(k) or "").strip()]
     if missing:
@@ -248,7 +278,7 @@ def resolve_memory_config(mode: Any = MEMORY_MODE_NONE,
                 % " / ".join(missing)))
     return MemoryResolution(
         mode=normalized, scope=clean_scope, implemented=True, audit_required=True,
-        provider=provider_name, quota=clean_quota)
+        provider=canonical_provider, quota=clean_quota)
 
 
 def _config_field(config: Any, name: str, default: Any = None) -> Any:
@@ -294,8 +324,8 @@ def scoped_guard(config: Any, *, audit: Any = None, actor: str = "", subject: st
 def memory_view(config: Any, guard: Any = None) -> Dict[str, Any]:
     """配置 → memory 段投影（创建/列表/热更新回显用；**不含记忆正文**）
 
-    none / brokered 的输出与改动前**逐字一致**；scoped 额外回显 quota 与熔断状态
-    （guard 缺省 ⇒ 按配置构造静态视图，breaker 恒 closed）。
+    none / brokered 的输出与改动前**逐字一致**；scoped 额外回显 provider/store/
+    离线 degraded、quota 与熔断状态（guard 缺省 ⇒ 按配置构造静态视图，breaker 恒 closed）。
     """
     plan = resolve_config_memory(config)
     view = plan.to_dict()
@@ -303,7 +333,33 @@ def memory_view(config: Any, guard: Any = None) -> Dict[str, Any]:
     if plan.ok and plan.is_scoped:
         live = guard or guard_from_quota(plan.quota)
         view["breaker"] = live.status()
+        # 真实承载面（provider→后端标签 + 离线可用性）——回显事实，不承诺实现细节
+        try:
+            from agent.memory.scoped_store import provider_runtime_view
+
+            view.update(provider_runtime_view(plan.provider))
+        except Exception as e:  # noqa: BLE001 承载面不可用 ⇒ 如实降级，不让回显挂掉
+            view["store"] = ""
+            view["available"] = False
+            view["degraded"] = "provider_view_unavailable:%s" % type(e).__name__
     return view
+
+
+def scoped_memory_domain(config: Any, *, audit: Any = None, root: str = "",
+                         store: Any = None, store_factory: Any = None) -> Any:
+    """配置 → scoped 私人记忆域（非 scoped 或配置非法 ⇒ None）
+
+    真实读写后端的选择与守卫在 agent/memory/scoped_store.py；本函数只是配置桥
+    （与 scoped_guard 同款：调用方拿到 None 即不应走 scoped 写入路径）。
+    """
+    plan = resolve_config_memory(config)
+    if not (plan.ok and plan.is_scoped):
+        return None
+    from agent.memory.scoped_store import scoped_domain_from_scope
+
+    return scoped_domain_from_scope(
+        plan.provider, plan.scope, quota=plan.quota, audit=audit, root=root,
+        store=store, store_factory=store_factory)
 
 
 def attach_memory_metadata(ctx: Any, config: Any, audit: Any = None) -> Any:
