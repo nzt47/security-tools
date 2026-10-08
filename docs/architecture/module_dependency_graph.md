@@ -601,6 +601,7 @@ flowchart LR
         agent_subagent_role_templates["agent.subagent.role_templates"]:::crosslayer
         agent_subagent_sandbox["agent.subagent.sandbox"]:::crosslayer
         agent_subagent_summarizer["agent.subagent.summarizer"]
+        agent_subagent_task_board["agent.subagent.task_board"]:::crosslayer
         agent_subagent_toolset["agent.subagent.toolset"]:::crosslayer
     end
     subgraph task_planner [task_planner]
@@ -2027,6 +2028,7 @@ flowchart LR
     agent_server_routes_routes_subagent --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_subagent -.-> agent_api_envelope
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation_history
+    agent_server_routes_routes_subagent -.-> agent_subagent_task_board
     agent_server_routes_routes_subagent -.-> agent_subagent_memory_broker
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation
@@ -2247,6 +2249,7 @@ flowchart LR
     agent_subagent_container --> agent_subagent_executor
     agent_subagent_container --> agent_subagent_memory_broker
     agent_subagent_container --> agent_subagent_delegation_history
+    agent_subagent_container --> agent_subagent_task_board
     agent_subagent_container --> agent_subagent_role_templates
     agent_subagent_container --> agent_subagent_memory_broker
     agent_subagent_delegation_history -.-> agent_jsonl_history
@@ -2269,6 +2272,7 @@ flowchart LR
     agent_subagent_lifecycle --> agent_subagent_executor
     agent_subagent_lifecycle --> agent_subagent_executor
     agent_subagent_lifecycle --> agent_subagent_delegation_history
+    agent_subagent_lifecycle --> agent_subagent_task_board
     agent_subagent_lifecycle --> agent_subagent_sandbox
     agent_subagent_mechanical -.-> agent_digestion_cases
     agent_subagent_mechanical -.-> agent_digestion_sandbox
@@ -2278,6 +2282,7 @@ flowchart LR
     agent_subagent_sandbox -.-> agent_lines_models
     agent_subagent_sandbox -.-> agent_permission_system
     agent_subagent_summarizer -.-> agent_logging_utils
+    agent_subagent_task_board -.-> agent_jsonl_history
     agent_subagent_toolset -.-> agent_security_actor_matrix
     agent_subagent_toolset -.-> agent_lines_models
     agent_subagent_toolset -.-> agent_guardrails
@@ -2447,6 +2452,7 @@ flowchart LR
     agent_tools_fan_out_tools -.-> agent_subagent_assembly
     agent_tools_fan_out_tools -.-> agent_subagent_container
     agent_tools_fan_out_tools -.-> agent_subagent_lifecycle
+    agent_tools_fan_out_tools -.-> agent_observability_trace_v2
     agent_tools_fan_out_tools -.-> agent_monitoring_tracing
     agent_tools_fan_out_tools -.-> agent_subagent_barrier
     agent_tools_fan_out_tools -.-> agent_subagent_executor
@@ -2577,9 +2583,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 647
-- 模块节点数: 578
-- 依赖边数: 1879
-- 跨层调用数: 1194
+- 扫描文件数: 648
+- 模块节点数: 579
+- 依赖边数: 1884
+- 跨层调用数: 1197
 - 违规调用数: 0
 - 动态 import 数: 1
