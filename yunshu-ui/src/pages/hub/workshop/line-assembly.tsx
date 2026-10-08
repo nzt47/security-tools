@@ -13,8 +13,11 @@
  * 【为什么逐条取详情，而不是让前端自己算四面】四段的判定全在后端（`assemble` /
  * `resolve_skill_pack` / `line_fragment_for_profile` / `resolve_subagent_assembly`）；
  * 前端再算一遍就是第二份口径 —— 本页只做"批量取回 + 如实上屏"。
- * 【零清单进导航】本文件是 `src/features/<key>/index.tsx`（`export default` + `manifest`），
- * 由 `workbench/featureRegistry.ts` 构建期自动发现并挂上导航，不改任何清单。
+ * 【归属：装配车间 → 分身创建与组装 的第 3 个视图】本页原先是
+ * `src/features/line-assembly/index.tsx`（宿主功能零清单进导航），2026-10-08 起并入
+ * 装配车间：它讲的是"分身从主线拿到什么"，与「分身」列表、「主线档案」编辑器同处一页
+ * 才解释得通。并入时**删掉了 `manifest`** —— 留着它 featureRegistry 仍会把它挂成一条
+ * 顶层导航项，等于同一个页面对外开两个入口（本仓明确禁止的双入口）。
  * 【旧后端容错】某一段字段缺失 ⇒ 该格显示「—（后端未返回）」，**不假装是 0**
  * —— "没有这一面"和"这一面是空的"是两回事。
  */
@@ -28,8 +31,6 @@ import {
   type LineProfile,
   type SubagentAssemblyInfo,
 } from '@/lib/agentLinesApi'
-
-export const manifest = { key: 'line-assembly', label: '主线 × 四面', icon: Layers, order: 920 }
 
 /** 一行的取数状态（详情按 id 逐条取；失败如实记账，不静默留白） */
 interface Row {
@@ -139,7 +140,7 @@ export default function LineAssemblyOverview() {
           </h1>
           <p className="mt-1 text-xs text-slate-500">
             一条主线档案在「工具 / 技能 / 提示词 / 分身」四个面上的样子（横向对比）。
-            四段判定全部来自后端，本页只上屏；逐条编辑与实时预览仍在「工具调用 → 主线管理」。
+            四段判定全部来自后端，本页只上屏；逐条编辑与实时预览见本页「主线档案」视图。
           </p>
         </div>
         <button

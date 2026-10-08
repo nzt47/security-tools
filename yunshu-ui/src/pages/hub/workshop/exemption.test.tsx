@@ -135,7 +135,7 @@ const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
 
 const promptMock = vi.fn((_message?: string, _default?: string): string | null => '受控环境批量迁移')
 
-const { default: ToolsAgentLines } = await import('./lines')
+const { default: ToolsAgentLines } = await import('./agent-lines')
 
 // ═══════════════════════════════════════════════════════════
 //  查询助手

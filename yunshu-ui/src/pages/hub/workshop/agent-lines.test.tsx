@@ -120,7 +120,7 @@ const fetchMock = vi.fn(async (url: string) => {
 })
 vi.stubGlobal('fetch', fetchMock)
 
-const { default: ToolsAgentLines, SkillPackBlock } = await import('./lines')
+const { default: ToolsAgentLines, SkillPackBlock } = await import('./agent-lines')
 
 function renderPage() {
   return render(<ToolsAgentLines />)

@@ -134,7 +134,7 @@ const fetchMock = vi.fn(async (url: string) => {
 })
 vi.stubGlobal('fetch', fetchMock)
 
-const { default: ToolsAgentLines } = await import('./lines')
+const { default: ToolsAgentLines } = await import('./agent-lines')
 const { readSubagentAssembly } = await import('@/lib/agentLinesApi')
 
 beforeEach(() => {

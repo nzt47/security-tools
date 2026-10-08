@@ -118,7 +118,7 @@ const fetchMock = vi.fn(async (url: string) => {
 })
 vi.stubGlobal('fetch', fetchMock)
 
-const { default: ToolsAgentLines, readPromptFragments } = await import('./lines')
+const { default: ToolsAgentLines, readPromptFragments } = await import('./agent-lines')
 
 beforeEach(() => {
   fetchMock.mockClear()
