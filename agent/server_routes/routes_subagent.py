@@ -14,7 +14,7 @@
 import logging
 import time
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Sequence
 
 from flask import request, jsonify
 from agent.server_auth import require_token, log_request
@@ -158,6 +158,83 @@ def _subagent_with_llm(subagent: Any, parent_llm: Any) -> Dict[str, Any]:
     return row
 
 
+def _role_view() -> Dict[str, Any]:
+    """部署级角色事实（受控模板词表 + 三档语义），随列表载荷一并返回（**不新增路由**）
+
+    与 `_llm_view` 同款：前端不自己维护第二份模板清单（那会与后端分叉）。
+    """
+    try:
+        from agent.subagent.role_templates import role_catalog
+
+        return role_catalog()
+    except Exception as e:  # noqa: BLE001 提示性载荷不可用不得让列表挂掉
+        logger.warning("[SubagentAPI] 角色视图不可用（列表照常返回）: %s", e)
+        return {"templates": [], "tiers": [], "default_tier": "template",
+                "role_text_max_chars": 0}
+
+
+def _subagent_with_role(row: Dict[str, Any]) -> Dict[str, Any]:
+    """给一条分身状态补上"它的角色生效情况"（模板 / 档位 / 是否红档 / 是否需审计）
+
+    `container.get_status()` 已带 `role` 段；本函数只兜底那些**没有容器的行**
+    （例如测试替身或未来其它数据源），口径仍是同一个 `resolve_subagent_role`。
+    投影**不含 role_text 正文**（列表载荷不该携带自由文本）。
+    """
+    out = dict(row or {})
+    if "role" in out:
+        return out
+    try:
+        from agent.subagent.role_templates import resolve_subagent_role
+
+        out["role"] = resolve_subagent_role(
+            out.get("role_template", ""), out.get("role_text", ""),
+            out.get("role_mode", "template")).to_dict()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[SubagentAPI] 分身 %s 的角色解析失败: %s", out.get("name"), e)
+        out["role"] = {"template": "", "tier": "", "source": "", "fragment_chars": 0,
+                       "constraints": 0, "audit_required": False, "red": False,
+                       "error": str(e)}
+    return out
+
+
+def _live_role_config(Yunshu: Any, name: str) -> Dict[str, Any]:
+    """取**存活容器**上的角色字段（热更新未传字段时沿用现值）
+
+    【为什么不能读状态投影】状态里**刻意不含 `role_text` 正文**（列表载荷不该携带
+    自由文本）；热更新若从状态取值，就会把已有 `role_text` 静默清空 —— 那就成了
+    "改个模型顺手把角色说明抹了"。
+    """
+    mgr = getattr(Yunshu, "_subagent_mgr", None)
+    container = mgr.get(name) if callable(getattr(mgr, "get", None)) else None
+    cfg = getattr(container, "config", None)
+    if cfg is None:
+        return {}
+    return {"role_template": getattr(cfg, "role_template", ""),
+            "role_text": getattr(cfg, "role_text", ""),
+            "role_mode": getattr(cfg, "role_mode", "template")}
+
+
+def _role_fields(data: Dict[str, Any], base: Dict[str, Any] | None = None) -> Dict[str, str]:
+    """读并**校验**角色的三个字段（创建 / 热更新共用一份口径）
+
+    校验在**进门时**做（而不是等到委派）：未知模板 / 默认档配自由文本都必须立刻 400，
+    理由与 `_llm_temperature` 越界同款 —— 不做静默夹取、不把错误留到运行时。
+
+    Raises:
+        ValueError: 角色配置无效（调用方转 400）。
+    """
+    from agent.subagent.role_templates import resolve_subagent_role
+
+    base = base or {}
+    template = str(data.get("role_template", base.get("role_template", "")) or "").strip()
+    text = str(data.get("role_text", base.get("role_text", "")) or "")
+    mode = data.get("role_mode", base.get("role_mode", "template"))
+    plan = resolve_subagent_role(template, text, mode)
+    if plan.error:
+        raise ValueError(f"角色配置无效：{plan.error}")
+    return {"role_template": template, "role_text": text, "role_mode": plan.tier}
+
+
 def _llm_temperature(data: Dict[str, Any], default: Any = None) -> Any:
     """读并校验分身的生成温度（``llm_temperature``）
 
@@ -194,12 +271,19 @@ def _granted_tools() -> tuple:
         return ()
 
 
-def _build_context(data: dict, task: str, *, delegation_prefix: str = "dlg-ui"):
+def _build_context(data: dict, task: str, *, delegation_prefix: str = "dlg-ui",
+                   extra_constraints: Sequence[str] = ()):
     """请求体 → ``DelegationContext``（八要素缺省补齐）
 
     **两个入口共用**（具名 ``/api/subagent/<name>/delegate`` 与临时分身
     ``/api/subagent/delegate``）：缺省规则各写一份必然漂移，而"缺省补齐"正是
     UI 简化入口能被接受的全部理由。
+
+    Args:
+        extra_constraints: 追加进 **②约束** 的行（当前唯一来源 = 角色模板
+            ``template+text`` 档的自由文本，见 ``agent/subagent/role_templates.py``）。
+            追加在调用方约束**之后**：调用方的边界在前，角色补充在后，读起来是
+            "先满足这些边界，再按这个角色做"。
 
     Raises:
         ValueError: ⑥预算 / ⑦超时不是整数（调用方转 400）。
@@ -208,6 +292,8 @@ def _build_context(data: dict, task: str, *, delegation_prefix: str = "dlg-ui"):
 
     constraints = _as_str_list(data.get("constraints"), "constraints", allow_empty=False) \
         or ["只读为主，不得修改仓库文件"]
+    # 角色自由文本（template+text 档）追加在调用方约束之后；空元组 ⇒ 逐字不变
+    constraints = list(constraints) + [str(c) for c in extra_constraints if str(c).strip()]
     prohibitions = _as_str_list(data.get("prohibitions"), "prohibitions", allow_empty=True)
     if not prohibitions:
         prohibitions = ["不得对外发送数据"]
@@ -263,15 +349,17 @@ def register_routes(app, state):
     def api_subagent_list():
         """获取所有活跃分身列表（附带委派执行通道可用性，供 UI 提前提示）。
 
-        【P1-front 第三批】载荷**一字未动**（仍是 `{ok, subagents, count, channel}`），
-        只是装进 `ok()` 的 data 并带上 `X-Envelope: v2`。
-        消费方只有 `pages/hub/workshop/agents.tsx`（它只读 `subagents`；
-        `count`/`channel` 是给 UI 提前提示通道可用性用的，一并保留）。
+        【P1-front 第三批】载荷装进 `ok()` 的 data 并带 `X-Envelope: v2`。
+        消费方只有 `pages/hub/workshop/agents.tsx`。
+        【2026-10-08 新增两段，仍**不新增路由**】：`llm`（部署级模型 + 可选清单，
+        P1 加）与 `role`（受控角色模板词表 + 三档语义）；逐分身的生效情况分别在
+        每行的 `llm` / `role` 里。`count`/`channel` 一并保留（UI 提前提示通道可用性）。
         """
         try:
             raw_subagents = Yunshu.list_subagents()
             parent_llm = getattr(Yunshu, "_llm", None)
-            subagents = [_subagent_with_llm(sa, parent_llm) for sa in raw_subagents]
+            subagents = [_subagent_with_role(_subagent_with_llm(sa, parent_llm))
+                         for sa in raw_subagents]
             return _ok({
                 "ok": True,
                 "subagents": subagents,
@@ -280,6 +368,8 @@ def register_routes(app, state):
                 "channel": _channel_info(Yunshu),
                 # UI 用：部署级模型 + 可选模型清单（不新增路由；逐分身生效来源在各行 llm 里）
                 "llm": _llm_view(Yunshu, [sa.get("model_id") for sa in subagents]),
+                # UI 用：受控角色模板词表 + 三档语义（不新增路由；逐分身生效情况在各行 role 里）
+                "role": _role_view(),
             })
         except Exception as e:
             logger.error("[SubagentAPI] 列表查询失败: %s", e)
@@ -354,6 +444,13 @@ def register_routes(app, state):
             context_window (int, optional): 上下文窗口大小（默认 4096）
             tags (list[str], optional): 标签
             ttl_seconds (int, optional): 存活时间（0=永久）
+            role_template (str, optional): 受控角色模板 id（`agent/subagent/role_templates.py`
+                词表的键）；**空 = 未装角色**（system prompt 与改动前逐字相同）
+            role_mode (str, optional): 角色档位。`template`（默认）/ `template+text`
+                （自由文本只进 ②约束）/ `full-system`（自由文本进 system prompt：红档，
+                **必须显式开启**，执行器写审计 + UI 红档徽章）
+            role_text (str, optional): 角色自由文本。默认档下提供非空值 ⇒ 400
+                （不静默忽略 —— 那会让使用者以为它生效了）；仅在显式开启的档位生效
 
         【`model_id` 从"必填"改为"空 = 跟随母体"】此前必填，于是"跟随母体"只能靠**抄一个
         母体模型名**来伪装；部署一换模型，那串名字就从"跟随"变成"显式指定旧模型"——
@@ -380,6 +477,9 @@ def register_routes(app, state):
                 "ttl_seconds": data.get("ttl_seconds", 0),
                 # 生成温度：None = 不干预执行器默认；给了值走 llm_factory 的温度包装
                 "llm_temperature": _llm_temperature(data),
+                # 角色（受控模板 + 分级开关）：未知模板 / 默认档配自由文本在此 400。
+                # 展开在 try 内：_role_fields 抛 ValueError ⇒ 外层转 400（不建容器）。
+                **_role_fields(data),
             }
 
             container = Yunshu.create_subagent(config)
@@ -493,10 +593,26 @@ def register_routes(app, state):
             if not channel["ok"]:
                 return _no_channel_response(channel)
 
+            # ── 角色（受控模板）：按**这个分身的**配置解析；无效配置不得带病委派 ──
+            # 档位与片段都来自 `agent/subagent/role_templates.py` 的受控词表：
+            #   · 默认 template 档：system_prompt = 模板正文；role_text 绝不进 system prompt；
+            #   · template+text 档：自由文本只进 ②约束（下面 extra_constraints）；
+            #   · full-system 档：自由文本进 system_prompt（红档，执行器写审计）。
+            cfg = getattr(container, "config", None)
+            from agent.subagent.role_templates import resolve_subagent_role
+
+            role = resolve_subagent_role(
+                getattr(cfg, "role_template", ""), getattr(cfg, "role_text", ""),
+                getattr(cfg, "role_mode", "template"))
+            if role.error:
+                # 进门时已校验过一次；这里再挡一次，防"配置是热更新改坏的"绕过创建校验
+                return jsonify({"ok": False, "error_code": "E_ROLE_CONFIG",
+                                "error": role.error}), 400
+
             # ── 八要素（未传项按文档缺省补齐；校验在 DelegationExecutor 内继续生效） ──
             # 补齐规则与响应形状都由模块级 helper 提供：临时分身入口共用同一份
             try:
-                ctx = _build_context(data, task)
+                ctx = _build_context(data, task, extra_constraints=role.constraints)
             except ValueError as e:
                 return jsonify({"ok": False, "error": str(e)}), 400
 
@@ -517,14 +633,18 @@ def register_routes(app, state):
                 logger.warning("[SubagentAPI] 分身 %s 的指定模型未生效（已回退母体）: %s",
                                name, resolution.error)
 
-            logger.info("[SubagentAPI] 真委派 name=%s delegation=%s goal=%.60s tools=%s llm=%s(%s)",
+            logger.info("[SubagentAPI] 真委派 name=%s delegation=%s goal=%.60s tools=%s llm=%s(%s) role=%s(%s)",
                         name, ctx.delegation_id, task, list(granted) or "（空）",
-                        resolution.model or "?", resolution.source)
+                        resolution.model or "?", resolution.source,
+                        role.template or "未装", role.tier)
             outcome = container.run_delegation(
                 ctx,
                 llm=resolution.llm,
                 tools=granted,
                 authorized_capabilities=granted,
+                # 角色片段只承载受控模板正文（full-system 档才含显式开启的自由文本）
+                system_prompt=role.system_prompt,
+                role_tier=role.tier,
                 source="ui",  # 委派记录里区分"界面发起"与"模型工具发起"
             )
             payload = _outcome_payload(outcome, ctx)
@@ -532,6 +652,8 @@ def register_routes(app, state):
             payload["elements"] = _elements_view(ctx)
             payload["channel"] = channel
             payload["llm"] = resolution.to_dict()
+            # 角色生效情况随响应回显（模板/档位/红档/是否需审计；**不含 role_text 正文**）
+            payload["role"] = role.to_dict()
             return jsonify(payload)
         except Exception as e:
             logger.exception("[SubagentAPI] 委派失败: %s", e)
@@ -597,9 +719,17 @@ def register_routes(app, state):
             logger.info("[SubagentAPI] 临时分身委派 delegation=%s goal=%.60s tools=%s llm=%s(%s)",
                         ctx.delegation_id, task, list(granted) or "（空）",
                         resolution.model or "?", resolution.source)
+            # 临时分身**没有**角色配置（当场现建、跑完即回收）：解析结果恒为"未装角色"
+            # ⇒ system prompt 与改动前逐字相同。仍然走同一条解析与回显口径，
+            # 免得"临时/具名"两条路径各有一套角色语义。
+            from agent.subagent.role_templates import resolve_subagent_role
+
+            role = resolve_subagent_role(config.role_template, config.role_text,
+                                         config.role_mode)
             outcome = mgr.delegate(
                 config, ctx, llm=resolution.llm, destroy_after=True,
-                tools=granted, authorized_capabilities=granted, source="ui")
+                tools=granted, authorized_capabilities=granted,
+                system_prompt=role.system_prompt, role_tier=role.tier, source="ui")
 
             payload = _outcome_payload(outcome, ctx)
             # 容器名由 lifecycle 生成消歧，界面只需知道"这不是用户选的具名分身"
@@ -608,6 +738,7 @@ def register_routes(app, state):
             payload["elements"] = _elements_view(ctx)
             payload["channel"] = channel
             payload["llm"] = resolution.to_dict()
+            payload["role"] = role.to_dict()
             return jsonify(payload)
         except Exception as e:
             logger.exception("[SubagentAPI] 临时分身委派失败: %s", e)
@@ -628,6 +759,9 @@ def register_routes(app, state):
             permissions (list[str], optional): 新权限
             context_window (int, optional): 新上下文窗口大小
             ttl_seconds (int, optional): 新存活时间
+            role_template / role_mode / role_text (optional): 角色三字段；
+                未传则**沿用该分身现值**（含自由文本正文，故读的是存活容器的配置，
+                不是状态投影 —— 状态投影刻意不含 role_text 正文）
         """
         try:
             data = request.get_json() or {}
@@ -637,6 +771,9 @@ def register_routes(app, state):
             if current is None:
                 return jsonify({"ok": False, "error": f"分身不存在: {name}"}), 404
 
+            # 角色三字段未传时**沿用在世容器的现值**（不能读状态投影：它刻意不含
+            # role_text 正文，从状态取值会把已有自由文本静默清空）
+            role_base = _live_role_config(Yunshu, name)
             new_config = {
                 "name": name,
                 "model_id": data.get("model_id", current["model_id"]),
@@ -648,6 +785,8 @@ def register_routes(app, state):
                 "ttl_seconds": data.get("ttl_seconds", current.get("ttl_seconds", 0)),
                 # 温度同款校验：越界即 400（不静默夹取）；未传则沿用现值
                 "llm_temperature": _llm_temperature(data, current.get("llm_temperature")),
+                # 角色同款校验：未知模板 / 默认档配自由文本在此 400（进门时挡，不留到运行时）
+                **_role_fields(data, role_base),
             }
 
             Yunshu.hot_reload_subagent(name, new_config)

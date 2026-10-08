@@ -67,6 +67,7 @@ PROMPT_ROLES: tuple[str, ...] = (
     "system",
     "persona",
     "line",
+    "delegate_role",
     "skill",
     "tool",
     "memory",
@@ -91,6 +92,13 @@ ROLE_SEMANTICS: dict[str, str] = {
         "权威来源 = data/agent_lines/<id>.yaml。"
         "有权写：装线的人（UI「主线管理 → prompt_note」或直接改 YAML）。"
         "**运行时只读**——编排器不生成、不改写它。"
+    ),
+    "delegate_role": (
+        "分身角色片段：派给子代理的**受控角色模板**正文（云枢自有文本，进仓可审）。"
+        "权威来源 = agent/subagent/role_templates.py::ROLE_TEMPLATES（词表封闭，"
+        "模板 id 之外的文本一律拒收）。有权写：仓库维护者（改词表即改角色）。"
+        "**运行时只读**——发起方只做\"取词表里的那一条\"，不得把自由文本塞进本角色；"
+        "自由文本一律走 ②约束 / user 槽位（见 docs/分身独立化_分级设计与阶段计划_20261008.md §2）。"
     ),
     "skill": (
         "技能指令：按本轮命中的技能渲染出的操作指引。"
@@ -119,8 +127,14 @@ ROLE_SEMANTICS: dict[str, str] = {
 #: 判据不是"重要"，而是"丢了就不再是同一个 Agent"：
 #:   - system 丢了 ⇒ 没有本体身份；
 #:   - persona 丢了 ⇒ 人格/表达要求断层；
-#:   - line 丢了 ⇒ 本线自称的身份边界与真实能力边界不一致（**说一套做一套**）。
-HARD_ROLES = frozenset({"system", "persona", "line"})
+#:   - line 丢了 ⇒ 本线自称的身份边界与真实能力边界不一致（**说一套做一套**）；
+#:   - delegate_role 丢了 ⇒ 分身的角色模板被静默摘掉，它会退回通用执行体，
+#:     而配置/界面/审计里仍写着"这个分身是代码审查专家"——**声明与实跑不一致**。
+#:
+#: 【为什么 delegate_role 是硬角色而不是可裁片段】它的正文是**词表里那一条**
+#: （agent/subagent/role_templates.py，进仓可审、无自由文本路径），不是逐轮素材；
+#: 丢掉它不省预算（一段短文本），却会让"这个分身是谁"变成随预算浮动的量。
+HARD_ROLES = frozenset({"system", "persona", "line", "delegate_role"})
 
 #: 可裁剪片段（预算超限时按 :func:`compose_fragments` 的次序逐个丢弃）。
 #:   - skill/tool/memory 有各自的降级形态（截断到 300 字符 / 置空 / 不注入）；

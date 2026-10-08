@@ -207,7 +207,10 @@ class TestComposeEmptyAndBudget:
         assert c.overflow is True, "预算仍不够时必须如实上报，而不是偷偷切半个硬片段"
 
     def test_词表与可裁剪性自洽(self):
-        assert HARD_ROLES == frozenset({"system", "persona", "line"})
+        # delegate_role 是 2026-10-08 为「分身受控角色模板」新增的硬角色：
+        # 它承载 role_templates 词表里的那条正文，丢了 = 分身声明与实跑不一致
+        # （理由写在 roles.py::HARD_ROLES 上方）。
+        assert HARD_ROLES == frozenset({"system", "persona", "line", "delegate_role"})
         assert CROPPABLE_ROLES | HARD_ROLES == set(PROMPT_ROLES)
         assert not (CROPPABLE_ROLES & HARD_ROLES)
 

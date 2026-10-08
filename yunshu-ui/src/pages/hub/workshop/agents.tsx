@@ -45,6 +45,8 @@ interface Subagent {
   tags?: string[]
   /** 后端补的"实际会用哪个模型"（三档来源，见 agent/subagent/llm_factory.py） */
   llm?: SubagentLlm
+  /** 后端补的"角色生效情况"（受控模板 / 档位 / 红档，见 agent/subagent/role_templates.py） */
+  role?: SubagentRole
   [k: string]: unknown
 }
 
@@ -59,6 +61,34 @@ interface SubagentLlm {
   error?: string
   /** 实际生效的生成温度；null/undefined = **未干预**执行器默认（不是 0.0） */
   temperature?: number | null
+}
+
+/** 逐分身的角色生效情况（后端 `resolve_subagent_role(...).to_dict()`，**不含自由文本正文**） */
+interface SubagentRole {
+  /** 生效的受控模板 id；空 = 未装角色（system prompt 与改动前逐字相同） */
+  template?: string
+  /** template / template+text / full-system */
+  tier?: string
+  /** 片段来源（如 role_template:code_review；未装角色为空） */
+  source?: string
+  /** 角色片段字符数（不是配置里那串声明的长度） */
+  fragment_chars?: number
+  /** 追加进 ②约束 的行数（template+text 档为 1，其余为 0） */
+  constraints?: number
+  /** 该档位是否必须留审计（非默认档 = true） */
+  audit_required?: boolean
+  /** 是否红档（full-system：自由文本进 system prompt） */
+  red?: boolean
+  /** 解析失败原因（非空 = 这份配置在委派时会被拒） */
+  error?: string
+}
+
+/** 部署级角色事实（`GET /api/subagent/list` 的 `role` 段，后端 `role_catalog()`） */
+interface RoleCatalog {
+  templates?: { id?: string; title?: string; body?: string; note?: string }[]
+  tiers?: { value?: string; label?: string; semantics?: string; red?: boolean; audit?: boolean }[]
+  default_tier?: string
+  role_text_max_chars?: number
 }
 
 /** 部署级 LLM 事实 + 可选模型清单（`GET /api/subagent/list` 的 `llm` 段） */
@@ -81,6 +111,7 @@ interface SubagentList {
   count?: number
   channel?: Record<string, unknown>
   llm?: DeploymentLlm
+  role?: RoleCatalog
 }
 
 /** 模型来源徽章（三档与后端 `source` 一一对应；"未生效"必须是红档，不许静默） */
@@ -91,6 +122,23 @@ function LlmSourceBadge({ llm }: { llm?: SubagentLlm }) {
   if (source === 'inherit') return <Badge color="slate">跟随母体</Badge>
   return <Badge color="red">指定未生效</Badge>
 }
+
+/** 角色档位徽章（默认档 = 受控模板；红档 = full-system，自由文本进 system prompt） */
+function RoleBadge({ role }: { role?: SubagentRole }) {
+  if (!role) return null
+  if (role.error) return <Badge color="red">角色配置无效</Badge>
+  if (!role.template) return <Badge color="slate">未装角色</Badge>
+  if (role.red) return <Badge color="red">红档·自由文本进系统提示词</Badge>
+  if (role.tier === 'template+text') return <Badge color="amber">模板+文本（进约束）</Badge>
+  return <Badge color="slate">受控模板</Badge>
+}
+
+/** 后端不可用时的档位兜底（与 role_templates.ROLE_TIERS 同序同值；正常走 roleCatalog） */
+const DEFAULT_ROLE_TIERS = [
+  { value: 'template', label: '受控模板', red: false },
+  { value: 'template+text', label: '模板 + 自由文本（进约束）', red: false },
+  { value: 'full-system', label: '自由文本进系统提示词（红档）', red: true },
+]
 
 /** 视图键（= 原导航/Tab 身份，便于对照历史记录） */
 export type WorkshopView = 'agents' | 'lines' | 'line-assembly'
@@ -151,12 +199,19 @@ function SubagentView() {
   const [temperature, setTemperature] = useState('')
   const [memory, setMemory] = useState('default')
   const [tools, setTools] = useState('')
+  // 角色：受控模板 id + 档位 + 自由文本。默认档（template）下自由文本会被后端 400 ——
+  // 这是刻意的：'没显式选档' ≠ '自由文本生效'，前端不替使用者静默选档。
+  const [roleCatalog, setRoleCatalog] = useState<RoleCatalog | null>(null)
+  const [roleTemplate, setRoleTemplate] = useState('')
+  const [roleMode, setRoleMode] = useState('template')
+  const [roleText, setRoleText] = useState('')
 
   const load = () => {
     setLoading(true)
     getEnvelope<SubagentList>(SUBAGENT_LIST).then((d) => {
       setAgents(d?.subagents ?? [])
       setDeployment(d?.llm ?? null)
+      setRoleCatalog(d?.role ?? null)
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }
@@ -171,13 +226,20 @@ function SubagentView() {
         memory_provider: memory,
         tool_sources: tools ? tools.split(',').map((t) => t.trim()).filter(Boolean) : [],
         tags: ['hub'],
+        // 角色（受控模板）：模板 id + 档位恒发；自由文本留空则**不发这个键**
+        // （默认档下发非空 role_text 后端会 400 —— 那正是'要显式选档'的纪律）
+        role_template: roleTemplate.trim(),
+        role_mode: roleMode,
       }
       // 温度：留空**不发这个键**（= 不干预执行器默认），而不是发 0
       const t = temperature.trim()
       if (t) body.llm_temperature = Number(t)
+      const rt = roleText.trim()
+      if (rt) body.role_text = rt
       await hubPost(SUBAGENT_CREATE, body)
       setShowForm(false)
       setName(''); setTools(''); setTemperature('')
+      setRoleTemplate(''); setRoleText(''); setRoleMode('template')
       load()
     } catch (e) { setError(String(e)) }
   }
@@ -190,6 +252,8 @@ function SubagentView() {
   }
 
   const deploymentModel = String(deployment?.model || '')
+  // 档位候选来自后端（与 role_templates.ROLE_TIERS 同源）；后端不可用时用兜底常量
+  const roleTiers = roleCatalog?.tiers?.length ? roleCatalog.tiers : DEFAULT_ROLE_TIERS
 
   return (
     <>
@@ -199,6 +263,9 @@ function SubagentView() {
           <span className="text-slate-400">模型已接线</span>
           （留空 = 跟随母体{deploymentModel ? `：${deploymentModel}` : '（母体模型未知）'}，
           指定则派生独立实例；生效来源见表中徽章）。
+          <span className="text-slate-400">角色已接线</span>
+          （受控模板：默认档只用词表正文；自由文本必须显式选 template+text / full-system 档，
+          后者是红档且执行器写审计；生效档位见表中徽章）。
           记忆提供商 / 工具源仍是**声明字段**（尚未接线，见后续阶段）。
         </span>
         <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"><Plus size={12} /> 创建分身</button>
@@ -234,6 +301,40 @@ function SubagentView() {
               data-testid="subagent-temperature-input"
               placeholder="生成温度 0.0–2.0（留空 = 默认）"
               className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+            />
+            {/* 角色：模板候选来自后端受控词表（不是自由输入 id） */}
+            <select
+              value={roleTemplate}
+              onChange={(e) => setRoleTemplate(e.target.value)}
+              data-testid="subagent-role-template"
+              title="受控角色模板（agent/subagent/role_templates.py 词表；空 = 未装角色=旧行为）"
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none"
+            >
+              <option value="">角色：未装（旧行为）</option>
+              {(roleCatalog?.templates ?? []).map((t) => (
+                <option key={String(t.id)} value={String(t.id)}>{String(t.title || t.id)}</option>
+              ))}
+            </select>
+            {/* 档位：默认 template；自由文本必须显式选档，否则后端 400（不静默） */}
+            <select
+              value={roleMode}
+              onChange={(e) => setRoleMode(e.target.value)}
+              data-testid="subagent-role-mode"
+              title="角色档位：template 默认 / template+text 自由文本进约束 / full-system 自由文本进系统提示词（红档）"
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none"
+            >
+              {roleTiers.map((t) => (
+                <option key={String(t.value)} value={String(t.value)}>
+                  {t.red ? '⚠ ' : ''}{String(t.label || t.value)}
+                </option>
+              ))}
+            </select>
+            <input
+              value={roleText}
+              onChange={(e) => setRoleText(e.target.value)}
+              data-testid="subagent-role-text"
+              placeholder="角色自由文本（仅显式选 template+text / full-system 档生效）"
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none md:col-span-2"
             />
           </div>
           <div className="mt-3 flex items-center gap-2">
@@ -274,6 +375,20 @@ function SubagentView() {
                           回退原因
                         </span>
                       )}
+                    </span>
+                  )
+                },
+              },
+              {
+                key: 'role', title: '角色',
+                render: (r) => {
+                  const role = r.role
+                  const tpl = String(role?.template || '')
+                  const title = (roleCatalog?.templates ?? []).find((t) => t.id === tpl)?.title
+                  return (
+                    <span className="flex flex-wrap items-center gap-1.5" data-testid={`subagent-role-${String(r.name)}`}>
+                      <span className="text-xs text-slate-300">{tpl ? String(title || tpl) : '未装'}</span>
+                      <RoleBadge role={role} />
                     </span>
                   )
                 },

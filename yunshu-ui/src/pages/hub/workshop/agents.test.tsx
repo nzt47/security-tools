@@ -80,14 +80,31 @@ const LIST_PAYLOAD = {
       { model: 'deepseek-v4-pro', source: 'declared' },
     ],
   },
+  // 角色目录（后端 role_catalog()）：模板候选 + 三档语义（前端不自己维护第二份清单）
+  role: {
+    default_tier: 'template',
+    role_text_max_chars: 2000,
+    templates: [
+      { id: 'generic_readonly', title: '通用只读执行体', body: '…', note: '' },
+      { id: 'code_review', title: '代码审查', body: '…', note: '' },
+      { id: 'research', title: '资料调研', body: '…', note: '' },
+    ],
+    tiers: [
+      { value: 'template', label: '受控模板', red: false, audit: false },
+      { value: 'template+text', label: '模板 + 自由文本（进约束）', red: false, audit: true },
+      { value: 'full-system', label: '自由文本进系统提示词（红档）', red: true, audit: true },
+    ],
+  },
   subagents: [
     {
       name: 'alpha', model_id: 'deepseek-v4-pro', memory_provider: 'holographic', status: 'running',
       llm: { requested: 'deepseek-v4-pro', model: 'deepseek-v4-pro', source: 'explicit', error: '', temperature: null },
+      role: { template: 'code_review', tier: 'template', source: 'role_template:code_review', fragment_chars: 78, constraints: 0, audit_required: false, red: false, error: '' },
     },
     {
       name: 'beta', model_id: '', memory_provider: 'holographic', status: 'idle', llm_temperature: 0.25,
       llm: { requested: '', model: 'deepseek-flash', source: 'inherit', error: '', temperature: 0.25 },
+      role: { template: '', tier: 'template', source: '', fragment_chars: 0, constraints: 0, audit_required: false, red: false, error: '' },
     },
     {
       name: 'gamma', model_id: 'gpt-4', memory_provider: 'holographic', status: 'idle',
@@ -96,6 +113,7 @@ const LIST_PAYLOAD = {
         error: '派生模型 gpt-4 失败（RuntimeError: 模型名不被接受）：已回退到母体模型 deepseek-flash',
         temperature: null,
       },
+      role: { template: 'research', tier: 'full-system', source: 'role_template:research', fragment_chars: 120, constraints: 0, audit_required: true, red: true, error: '' },
     },
   ],
 }
@@ -297,5 +315,63 @@ describe('装配车间 · 分身创建与组装（三视图）', () => {
     fireEvent.click(screen.getByText('组装分身'))
     await waitFor(() => expect(postCalls.length).toBe(1))
     expect(postCalls[0].body.llm_temperature).toBe(0)
+  })
+
+  // ═══════════════════════════════════════════════════════════
+  //  角色（受控模板）：默认档/红档都在表里如实显示；自由文本必须显式选档才发送
+  // ═══════════════════════════════════════════════════════════
+
+  it('角色列显示生效模板与档位徽章（红档必须红）', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    const cell = (name: string) => screen.getByTestId(`subagent-role-${name}`).textContent ?? ''
+    // alpha：默认档（受控模板），显示模板**标题**而不是 id
+    expect(cell('alpha')).toContain('代码审查')
+    expect(cell('alpha')).toContain('受控模板')
+    // beta：未装角色 ⇒ 明确写“未装”，不假装有角色
+    expect(cell('beta')).toContain('未装')
+    // gamma：full-system ⇒ 红档徽章（自由文本进系统提示词，不许静默）
+    expect(cell('gamma')).toContain('资料调研')
+    expect(cell('gamma')).toContain('红档')
+  })
+
+  it('角色模板候选来自后端词表（不是前端硬编码清单）', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('创建分身'))
+    const select = screen.getByTestId('subagent-role-template') as HTMLSelectElement
+    const values = Array.from(select.options).map((o) => o.value)
+    expect(values).toEqual(['', 'generic_readonly', 'code_review', 'research'])
+    const mode = screen.getByTestId('subagent-role-mode') as HTMLSelectElement
+    expect(Array.from(mode.options).map((o) => o.value)).toEqual([
+      'template', 'template+text', 'full-system',
+    ])
+  })
+
+  it('角色留空创建 ⇒ 发空模板与默认档，且**不发** role_text 键', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('创建分身'))
+    fireEvent.change(screen.getByPlaceholderText('分身名称 *'), { target: { value: 'theta' } })
+    fireEvent.click(screen.getByText('组装分身'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].body.role_template).toBe('')
+    expect(postCalls[0].body.role_mode).toBe('template')
+    expect('role_text' in postCalls[0].body).toBe(false)
+  })
+
+  it('显式选 template+text 并填自由文本 ⇒ 三个角色字段都发出', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('创建分身'))
+    fireEvent.change(screen.getByPlaceholderText('分身名称 *'), { target: { value: 'iota' } })
+    fireEvent.change(screen.getByTestId('subagent-role-template'), { target: { value: 'code_review' } })
+    fireEvent.change(screen.getByTestId('subagent-role-mode'), { target: { value: 'template+text' } })
+    fireEvent.change(screen.getByTestId('subagent-role-text'), { target: { value: '  只审查不要改代码  ' } })
+    fireEvent.click(screen.getByText('组装分身'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].body.role_template).toBe('code_review')
+    expect(postCalls[0].body.role_mode).toBe('template+text')
+    expect(postCalls[0].body.role_text).toBe('只审查不要改代码')
   })
 })

@@ -192,6 +192,12 @@ class SubagentLifecycleManager:
                 changes.append(f"memory: {subagent.config.memory_provider} -> {new_config.memory_provider}")
             if new_config.tool_sources != subagent.config.tool_sources:
                 changes.append(f"tools: {subagent.config.tool_sources} -> {new_config.tool_sources}")
+            if new_config.role_template != subagent.config.role_template:
+                changes.append(f"role_template: {subagent.config.role_template!r} -> {new_config.role_template!r}")
+            if new_config.role_mode != subagent.config.role_mode:
+                # 档位抬升（template → template+text/full-system）是**安全姿态变更**，
+                # 必须在热更新日志里点名；只改 role_text 不点名（正文不在这里落盘）
+                changes.append(f"role_mode: {subagent.config.role_mode} -> {new_config.role_mode}")
             if new_config.permissions != subagent.config.permissions:
                 changes.append(f"permissions: {subagent.config.permissions} -> {new_config.permissions}")
                 # 权限变更立即更新沙箱（模块已由 container.py 加载，sys.modules 命中）
@@ -334,6 +340,8 @@ class SubagentLifecycleManager:
         credentials: Any = (),
         parent_trace: Any = None,
         input_text: str = "",
+        system_prompt: str = "",
+        role_tier: str = "",
         source: str = "lifecycle",
     ) -> Any:
         """创建分身 → 执行委派 → （默认）销毁：分身生命周期与委派契约对齐
@@ -345,7 +353,9 @@ class SubagentLifecycleManager:
             config: 分身配置模板。
             ctx: 委派上下文（八要素）。
             executor / llm / tools / authorized_capabilities / credentials /
-                parent_trace / input_text: 透传 ``SubagentContainer.run_delegation``。
+                parent_trace / input_text / system_prompt / role_tier:
+                透传 ``SubagentContainer.run_delegation``（角色片段与档位，见
+                ``agent/subagent/role_templates.py``）。
             destroy_after: 执行后是否销毁分身（默认 True——委派结束即回收）。
             source: 委派入口标注，仅用于委派记录（``ui`` / ``tool`` / ``fan_out``）；
                 缺省 ``"lifecycle"`` = 未标注，不改变任何执行语义。
@@ -361,7 +371,8 @@ class SubagentLifecycleManager:
                 ctx, executor=executor, llm=llm, tools=tools,
                 authorized_capabilities=authorized_capabilities,
                 credentials=credentials, parent_trace=parent_trace,
-                input_text=input_text, source=source)
+                input_text=input_text, system_prompt=system_prompt,
+                role_tier=role_tier, source=source)
         finally:
             if destroy_after and not container.is_destroyed:
                 self.destroy(container)
@@ -531,6 +542,8 @@ class SubagentLifecycleManager:
                         "memory_provider": sa.config.memory_provider,
                         # 生成温度随状态回显（None = 未干预执行器默认）；列表页据此显示 T=…
                         "llm_temperature": sa.config.llm_temperature,
+                        # 角色生效情况（与容器 get_status 同一份视图，避免两套口径）
+                        "role": sa.role_view(),
                         "permissions": list(sa.config.permissions),
                         "context_size": len(sa.context),
                         "age_seconds": round(sa.age_seconds, 1),
