@@ -61,10 +61,12 @@ ENV_ALLOW = "CP_SUBAGENT_CALLBACK_ALLOW"
 ENV_TOKEN = "CP_SUBAGENT_CALLBACK_TOKEN"
 #: 出站超时（秒）
 ENV_TIMEOUT = "CP_SUBAGENT_CALLBACK_TIMEOUT"
+#: 出站重试次数（0/1；任务口径上界 ≤1 次）
+ENV_RETRIES = "CP_SUBAGENT_CALLBACK_MAX_RETRIES"
 
-#: 默认超时（秒）
+#: 默认超时（秒）——可被 ENV_TIMEOUT 覆盖（observability 规则 subagent.callback_timeout_sec）
 DEFAULT_TIMEOUT = 5.0
-#: 重试次数上界（任务口径：≤1 次）
+#: 重试次数上界/默认（任务口径：≤1 次）——可被 ENV_RETRIES 覆盖
 MAX_RETRIES = 1
 #: 允许的 scheme
 ALLOWED_SCHEMES = ("http", "https")
@@ -103,6 +105,15 @@ def _env_timeout() -> float:
     except (TypeError, ValueError):
         return DEFAULT_TIMEOUT
     return value if value > 0 else DEFAULT_TIMEOUT
+
+
+def _env_retries() -> int:
+    """读重试次数（非法回退默认；夹到 [0, MAX_RETRIES]，绝不越过任务口径上界）"""
+    try:
+        value = int(str(os.environ.get(ENV_RETRIES, "") or MAX_RETRIES))
+    except (TypeError, ValueError):
+        return MAX_RETRIES
+    return max(0, min(value, MAX_RETRIES))
 
 
 def host_allowed(host: str, allowed: Sequence[str]) -> bool:
@@ -193,14 +204,15 @@ class HttpCallbackDispatcher:
     def __init__(self, *, policy: Optional[CallbackPolicy] = None,
                  token: Optional[str] = None,
                  timeout: Optional[float] = None,
-                 retries: int = MAX_RETRIES,
+                 retries: Optional[int] = None,
                  transport: Optional[Callable[..., Any]] = None) -> None:
         self._policy = policy if policy is not None else CallbackPolicy()
         # token 只存私有属性：绝不进入返回值/日志/异常
         self._token = (str(os.environ.get(ENV_TOKEN, "") or "")
                        if token is None else str(token or ""))
         self._timeout = _env_timeout() if timeout is None else float(timeout)
-        self._retries = max(0, min(int(retries), MAX_RETRIES))
+        self._retries = (_env_retries() if retries is None
+                         else max(0, min(int(retries), MAX_RETRIES)))
         self._transport = transport if transport is not None else self._requests_transport
 
     @property
@@ -333,7 +345,7 @@ def build_callback_record(data: Mapping[str, Any], delegation_id: str, *,
 
 
 __all__ = [
-    "ENV_HTTP", "ENV_ALLOW", "ENV_TOKEN", "ENV_TIMEOUT",
+    "ENV_HTTP", "ENV_ALLOW", "ENV_TOKEN", "ENV_TIMEOUT", "ENV_RETRIES",
     "DEFAULT_TIMEOUT", "MAX_RETRIES", "ALLOWED_SCHEMES",
     "CALLBACK_SUMMARY_MAX_CHARS",
     "CallbackPolicy", "HttpCallbackDispatcher", "build_callback_dispatcher",

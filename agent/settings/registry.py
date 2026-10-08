@@ -9,7 +9,7 @@
     1. **零缺口**：`scripts/scan_settings.py` 用 AST 从代码机械提取全部 env 读取点，
        提取结果必须 100% 落在本表内（缺口 = 测试失败）；
     2. **零重造**：`agent/monitoring/observability_config.py` 的
-       `OBSERVABILITY_VALIDATION_RULES`（48 条，已有 path/校验/默认/说明）必须
+       `OBSERVABILITY_VALIDATION_RULES`（既有 path/校验/默认/说明；条数以该表为准）必须
        100% 被本表以 `config_path` 合并，且默认值逐条一致（缺一条 = 测试失败）。
 
 【风险三级（唯一分级口径，与任务书 §二.步骤 1 逐字对齐）】
@@ -773,9 +773,9 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _secret("CP_SUBAGENT_CALLBACK_TOKEN", CAT_SELF_HEALING,
             "子代理回调入站/出站共享令牌（只读脱敏；绝不回显）",
             owner="agent/subagent/callback_channel.py"),
-    _a("CP_SUBAGENT_CALLBACK_TIMEOUT", CAT_SELF_HEALING, 5.0,
-       "子代理回调出站超时（秒；非法/非正数回退 5.0）",
-       owner="agent/subagent/callback_channel.py", validator=Validator("float")),
+    # CP_SUBAGENT_CALLBACK_TIMEOUT / CP_SUBAGENT_CALLBACK_MAX_RETRIES 不在本表——
+    # 它们由 _merge_observability_specs() 从 observability_config 的
+    # subagent.callback_* 规则合并（默认值/说明同源，见 _OC_MERGE）。
     _a("CP_SUBAGENT_MAX_TURNS", CAT_SELF_HEALING, None,
        "子智能体单任务最大轮数", owner="agent/subagent/channel.py",
        validator=Validator("int")),
@@ -1040,7 +1040,7 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     # resolver.py:376-385 只把 resolved.value（覆盖层值）写 env；
     # 全仓唯一会用 spec.default 作运行态落点的是 resolver.py:426（reset 时回写
     # ObservabilityConfig），它受 _is_observability_path(spec) 把关 —— 即
-    # config_path 必须命中 observability_rule_paths() 的 48 条之一。
+    # config_path 必须命中 observability_rule_paths() 的既有规则路径之一。
     # 【L1 更正】本两项在 L1 之后**已有** config_path（见下），故"无 config_path"
     # 不再是豁免理由；真正的豁免理由是：evolution.enabled / evolution.llm_generate
     # **不在** observability_rule_paths() 里 ⇒ _is_observability_path 仍为 False，
@@ -2869,6 +2869,14 @@ _OC_MERGE: Dict[str, Tuple[str, Validator, str, str, str]] = {
                                      CAT_OBSERVABILITY, RISK_A, ""),
     "knowledge.file_lock_timeout_sec": ("", Validator("int"),
                                         CAT_OBSERVABILITY, RISK_A, ""),
+    # 【S5 通信 · 回调反向通道】env 名与 callback_channel.py 的读取点同源；
+    # 这两条同时让硬编码边界扫描把 subagent/callback_channel.py 视为「已配置化模块」。
+    "subagent.callback_timeout_sec": ("CP_SUBAGENT_CALLBACK_TIMEOUT",
+                                      Validator("float"),
+                                      CAT_OBSERVABILITY, RISK_A, ""),
+    "subagent.callback_max_retries": ("CP_SUBAGENT_CALLBACK_MAX_RETRIES",
+                                      Validator("int"),
+                                      CAT_OBSERVABILITY, RISK_A, ""),
 }
 
 #: takeon.timeout_sec 亦在规则表内（写法与 _OC_MERGE 的键保持一致）

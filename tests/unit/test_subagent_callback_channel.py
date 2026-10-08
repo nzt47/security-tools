@@ -147,6 +147,29 @@ class TestDefaultOff:
                                     "mode": "audit_record"}
 
 
+class TestBoundaryConfig:
+    """硬编码边界扫描的「已配置化」判据必须覆盖本模块（CI Boundary Guard 守卫）"""
+
+    def test_超时与重试已登记为可观测配置(self):
+        from agent.monitoring.observability_config import (
+            OBSERVABILITY_VALIDATION_RULES,
+        )
+
+        paths = {r.path for r in OBSERVABILITY_VALIDATION_RULES}
+        assert "subagent.callback_timeout_sec" in paths
+        assert "subagent.callback_max_retries" in paths
+
+    def test_环境开关与可观测路径同源合并(self):
+        from agent.settings import registry as reg
+
+        timeout = reg.get_spec("CP_SUBAGENT_CALLBACK_TIMEOUT")
+        assert timeout is not None
+        assert timeout.config_path == "subagent.callback_timeout_sec"
+        retries = reg.get_spec("CP_SUBAGENT_CALLBACK_MAX_RETRIES")
+        assert retries is not None
+        assert retries.config_path == "subagent.callback_max_retries"
+
+
 # ════════════════════════════════════════════════════════════
 #  ② 开启 + 白名单内 host
 # ════════════════════════════════════════════════════════════
@@ -181,6 +204,21 @@ class TestEnabledDelivery:
         result = dispatcher(OK, {"delegation_id": "dlg-1"})
         assert len(spy.calls) == 2  # 初次 + 最多 1 次重试
         assert result["delivered"] is False and result["error"]
+
+    def test_重试次数可由环境开关关闭(self, monkeypatch):
+        monkeypatch.setenv(cb.ENV_RETRIES, "0")
+        spy = SpyTransport(exc=RuntimeError("boom"))
+        dispatcher = HttpCallbackDispatcher(policy=_enabled_policy(), token="t",
+                                            transport=spy)
+        dispatcher(OK, {"delegation_id": "d"})
+        assert len(spy.calls) == 1  # 环境配置 0 ⇒ 不重试
+
+    def test_超时可由环境开关配置(self, monkeypatch):
+        monkeypatch.setenv(cb.ENV_TIMEOUT, "9")
+        spy = SpyTransport()
+        dispatcher = HttpCallbackDispatcher(policy=_enabled_policy(), token="t",
+                                            transport=spy)
+        assert dispatcher.timeout == 9.0
 
 
 # ════════════════════════════════════════════════════════════
