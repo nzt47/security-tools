@@ -595,6 +595,7 @@ flowchart LR
         agent_subagent_llm_factory["agent.subagent.llm_factory"]:::crosslayer
         agent_subagent_mechanical["agent.subagent.mechanical"]:::crosslayer
         agent_subagent_observability["agent.subagent.observability"]
+        agent_subagent_role_templates["agent.subagent.role_templates"]:::crosslayer
         agent_subagent_sandbox["agent.subagent.sandbox"]:::crosslayer
         agent_subagent_summarizer["agent.subagent.summarizer"]
         agent_subagent_toolset["agent.subagent.toolset"]:::crosslayer
@@ -2021,16 +2022,21 @@ flowchart LR
     agent_server_routes_routes_subagent --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_subagent -.-> agent_api_envelope
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation_history
+    agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation
     agent_server_routes_routes_subagent -.-> agent_subagent_channel
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
     agent_server_routes_routes_subagent -.-> agent_subagent_llm_factory
     agent_server_routes_routes_subagent -.-> agent_subagent_llm_factory
+    agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
+    agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
+    agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_subagent_llm_factory
     agent_server_routes_routes_subagent -.-> agent_subagent_container
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
     agent_server_routes_routes_subagent -.-> agent_subagent_llm_factory
+    agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_system_prompt --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_system_prompt -.-> agent_server_auth
     agent_server_routes_routes_system_prompt -.-> agent_system_prompt_config
@@ -2233,6 +2239,7 @@ flowchart LR
     agent_subagent_container --> agent_subagent_executor
     agent_subagent_container --> agent_subagent_executor
     agent_subagent_container --> agent_subagent_delegation_history
+    agent_subagent_container --> agent_subagent_role_templates
     agent_subagent_delegation_history -.-> agent_jsonl_history
     agent_subagent_executor -.-> agent_security_actor_matrix
     agent_subagent_executor --> agent_subagent_barrier
@@ -2245,6 +2252,7 @@ flowchart LR
     agent_subagent_executor -.-> agent_observability_trace_v2
     agent_subagent_executor -.-> agent_observability_trace_v2
     agent_subagent_executor -.-> agent_observability_trace_v2
+    agent_subagent_executor --> agent_subagent_role_templates
     agent_subagent_lifecycle --> agent_subagent_container
     agent_subagent_lifecycle --> agent_subagent_executor
     agent_subagent_lifecycle --> agent_subagent_executor
@@ -2254,6 +2262,7 @@ flowchart LR
     agent_subagent_mechanical -.-> agent_digestion_sandbox
     agent_subagent_observability -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_monitoring_business_metrics
+    agent_subagent_role_templates -.-> agent_prompt_manager_roles
     agent_subagent_sandbox -.-> agent_lines_models
     agent_subagent_sandbox -.-> agent_permission_system
     agent_subagent_summarizer -.-> agent_logging_utils
@@ -2556,9 +2565,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 643
-- 模块节点数: 574
-- 依赖边数: 1862
-- 跨层调用数: 1184
+- 扫描文件数: 644
+- 模块节点数: 575
+- 依赖边数: 1870
+- 跨层调用数: 1190
 - 违规调用数: 0
 - 动态 import 数: 1
