@@ -24,6 +24,7 @@ from agent.server_routes.tracing_decorator import trace_route
 # 只依赖 stdlib + flask，不反向依赖 app_server。
 from agent.api_envelope import ok as _ok
 from agent.subagent.delegation_history import delegation_history
+from agent.subagent.task_board import task_board
 
 # P3 brokered 档：档位词表/校验的唯一口径（仅 stdlib 依赖，不拉记忆重模块）
 from agent.subagent.memory_broker import (
@@ -467,6 +468,11 @@ def register_routes(app, state):
         批量走 ``SubagentLifecycleManager.delegate_many``（批量不经过容器）。
         记录里**不含交付物正文**（外来文本 + 体量不可控），只有可展示的元信息。
 
+        【P4 共享任务看板】响应额外内联 board 段（**不新增路由**，先例：
+        /api/subagent/list 内联 llm / role 段）：records 为按 task_id 折叠后的
+        最新态、count 为折叠后条数、total 为看板原始事件数、write_failed 为
+        写失败累计（fail-soft 的显式证据）。
+
         Query:
             limit (int, optional): 返回条数，缺省 20，收敛到 [1, 100]。
 
@@ -482,6 +488,9 @@ def register_routes(app, state):
                 "count": len(records),
                 # 总数：None = 文件过大未统计（"未统计" ≠ 0，UI 据此区分"没有记录"）
                 "total": delegation_history.total(),
+                # P4 共享任务看板：不新增路由，在既有响应里内联 board 段
+                # （先例：/api/subagent/list 内联 llm / role 段）。
+                "board": task_board.snapshot(limit=limit),
                 "ts": time.strftime("%H:%M:%S"),
             })
         except Exception as e:

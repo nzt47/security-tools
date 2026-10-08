@@ -372,6 +372,14 @@ class SubagentContainer:
                 ctx=ctx, outcome=outcome, subagent=self.config.name, source=source)
         except Exception as e:  # noqa: BLE001 历史记录失败绝不影响委派链路
             logger.debug("[Subagent:%s] 委派记录写入失败（不影响委派）: %s", self.id, e)
+        # P4 共享任务看板：与上面的委派流水紧邻、同址、同一份入参口径；
+        # 独立 try —— 委派流水写失败不得连带吞掉看板事件（两者互不串线）。
+        try:
+            from agent.subagent.task_board import task_board
+            task_board.record_outcome(
+                ctx=ctx, outcome=outcome, subagent=self.config.name, source=source)
+        except Exception as e:  # noqa: BLE001 看板写入失败绝不影响委派链路
+            logger.debug("[Subagent:%s] 看板记录写入失败（不影响委派）: %s", self.id, e)
 
     # ── 记忆增量管理 ──
 

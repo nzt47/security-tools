@@ -265,6 +265,33 @@ def _resolve_line(line_id: str, registry: Any) -> str:
 
 
 
+def _resolve_workspace_id() -> str:
+    """解析本次批量委派应写进 ctx.metadata 的 workspace_id（P7.1-19 不变量）
+
+    优先级：
+      1. 当前 TraceContext 的 workspace_id（编排任务已有工作区时，这是权威值）；
+      2. derive_workspace_id(os.getcwd())（与 agent/security/tenant.py::server_tenant_id
+         同一口径：仓库活的工作区 = 启动目录哈希）；
+      3. 都取不到 ⇒ 空串（如实留空，绝不臆造）。
+
+    目的：fan_out 的 ctx 补上 workspace_id 后，执行器经 metadata 取它构造子
+    TraceContext（executor.py 的 _enter_child_trace），子 Trace 才能落库
+    （缺 workspace_id 是 P7.1-19 的显式降级路径）。fail-soft：解析失败留空，
+    绝不影响派发。
+    """
+    try:
+        from agent.observability.trace_v2 import TraceContext, derive_workspace_id
+
+        active = TraceContext.current()
+        value = str(getattr(active, "workspace_id", "") or "").strip()
+        if value:
+            return value
+        return str(derive_workspace_id(os.getcwd()) or "")
+    except Exception as e:  # noqa: BLE001 workspace 解析失败不阻断派发
+        logger.debug("[fan_out] workspace_id 解析失败（留空）: %s", e)
+        return ""
+
+
 def _prompt_constraint(prompt_source: str, prompt_note: str) -> str:
     """把本线 prompt_note 包成**一条约束文本**（带来源标注）；无片段 ⇒ 空串
 
@@ -473,6 +500,10 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
         parent_trace_id = ""
 
     short = uuid.uuid4().hex[:8]
+    # P4 共享任务看板：workspace_id 逐任务写进 ctx.metadata（见 _resolve_workspace_id），
+    # fan_out_batch_id 让同一批的逐任务记录可归组（与 delegation_id 的 fan-<short>-<i> 同源）。
+    workspace_id = _resolve_workspace_id()
+    fan_out_batch = f"fan-{short}"
     results: List[Any] = [None] * len(tasks)
     line_cache: Dict[str, Dict[str, Any]] = {}
     prepared: List[Dict[str, Any]] = []
@@ -572,6 +603,10 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
                 "skills": list(item["skills_granted"]),
                 "skills_mode": item["skills_mode"],
                 "prompt_source": item["prompt_source"],
+                # P4 共享任务看板：工作区标识（P7.1-19 不变量，缺它子 Trace 降级）
+                # 与批量标识（看板按 fan_out_batch_id 归组同一批的逐任务记录）。
+                "workspace_id": workspace_id,
+                "fan_out_batch_id": fan_out_batch,
             },
         )
         specs.append((SubagentConfig(name=f"fan-out-{short}-{idx + 1}",

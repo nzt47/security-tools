@@ -511,6 +511,15 @@ class SubagentLifecycleManager:
             except Exception as e:  # noqa: BLE001 记录失败绝不影响批量结果
                 logger.debug("[SubagentLifecycle] 批量委派记录写入失败（第 %d 条）: %s",
                              idx + 1, e)
+            # P4 共享任务看板：批量与单发各记各的（批量不经过容器咽喉），
+            # 与上面的委派流水紧邻、同址；独立 try 避免一处失败串掉另一处。
+            try:
+                from agent.subagent.task_board import task_board
+                task_board.record_outcome(
+                    ctx=ctx, outcome=outcome, subagent=str(name or ""), source=source)
+            except Exception as e:  # noqa: BLE001 看板写入失败绝不影响批量结果
+                logger.debug("[SubagentLifecycle] 批量看板记录写入失败（第 %d 条）: %s",
+                             idx + 1, e)
 
     # ════════════════════════════════════════════════════════════════════
     #  垃圾回收

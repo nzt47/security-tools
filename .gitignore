@@ -81,6 +81,7 @@ data/audit/legacy_archive_manifest.json
 #   下次真跑后台任务时会重新生成，那时不应再进版本库。
 data/async_tasks.jsonl
 data/subagent_delegations.jsonl
+data/subagent_task_board.jsonl
 
 # S2-03 events.v1 事件流运行时产物（统一事件出口 / 受控写台账 / 演示事件流 / 快照摘要）
 # 性质同 data/audit/：运行时留痕，不入库
