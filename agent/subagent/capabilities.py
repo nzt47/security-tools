@@ -224,11 +224,11 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         next_stage="S5"),
     SovereigntyFace(
         key="communication", layer="body", label="通信与协同",
-        question="多个它之间怎么说话？", state=PARTIAL,
-        evidence="fan_out 并行派发 + 逐任务信封 + delegate_many + delegation_history",
-        evidence_files=("agent/tools/fan_out_tools.py", "agent/subagent/lifecycle.py"),
-        gap="无共享任务看板（TaskCreate/Update）、无分身间直连；母体为中枢的设计未落地",
-        next_stage="S4"),
+        question="多个它之间怎么说话？", state=OWNED,
+        evidence="共享任务看板（append-only 任务事件，母体**唯一**写板；fan_out/单发逐任务上板，可折出最新态）+ fan_out 并行派发 + delegation_history",
+        evidence_files=("agent/subagent/task_board.py", "agent/tools/fan_out_tools.py", "agent/subagent/lifecycle.py"),
+        gap="分身间直连 / 服务发现刻意不做（母体中枢）；二次派发轮次机制尚未接线",
+        next_stage=""),
     # ── 治理层 ──
     SovereigntyFace(
         key="observability", layer="governance", label="可观测 / 审计 / 成本",
