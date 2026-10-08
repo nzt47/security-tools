@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-09T02:49:38",
+  "generated_at": "2026-10-09T04:24:53",
   "totals": {
     "routes": 454,
     "live": 233,
@@ -5487,7 +5487,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:538"
+        "agent/server_routes/routes_subagent.py:551"
       ]
     },
     {
@@ -5501,7 +5501,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:555"
+        "agent/server_routes/routes_subagent.py:568"
       ]
     },
     {
@@ -5515,7 +5515,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:792"
+        "agent/server_routes/routes_subagent.py:811"
       ]
     },
     {
@@ -5529,7 +5529,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:738"
+        "agent/server_routes/routes_subagent.py:757"
       ]
     },
     {
@@ -5543,7 +5543,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:760"
+        "agent/server_routes/routes_subagent.py:779"
       ]
     },
     {
@@ -5557,7 +5557,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1010"
+        "agent/server_routes/routes_subagent.py:1034"
       ]
     },
     {
@@ -5573,7 +5573,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:471"
+        "agent/server_routes/routes_subagent.py:484"
       ]
     },
     {
@@ -5589,7 +5589,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:663"
+        "agent/server_routes/routes_subagent.py:676"
       ]
     },
     {
@@ -5605,7 +5605,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:916"
+        "agent/server_routes/routes_subagent.py:936"
       ]
     },
     {
@@ -5621,7 +5621,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:494"
+        "agent/server_routes/routes_subagent.py:507"
       ]
     },
     {
@@ -5637,7 +5637,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:602"
+        "agent/server_routes/routes_subagent.py:615"
       ]
     },
     {
@@ -5653,7 +5653,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:438"
+        "agent/server_routes/routes_subagent.py:451"
       ]
     },
     {

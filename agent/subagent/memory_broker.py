@@ -11,21 +11,35 @@
          **只写标识不写正文**（正文由 agent/memory/broker.py 在执行期取）。
       3. **如实回显**（memory_view）：创建/列表/热更新响应的 memory 段。
 
-    分身侧**不新增任何记忆工具**：本模块绝不触碰 toolset / actor_matrix。
+    brokered 档分身侧**不新增任何记忆工具**（本模块不触碰 toolset / actor_matrix）；
+    scoped 档是**显式开启的受控档**：只有 memory_mode="scoped" 且 memory_scope 含
+    tenant_id / workspace_id / subject_id 三要素且 memory_provider 非空时才放开，
+    缺任一 ⇒ E_MEMORY_CONFIG（fail-closed，不静默降级）。
 
-【本批只交付 brokered】
-    scoped 档尚未实现 ⇒ 解析期显式拒绝（E_MEMORY_CONFIG），**不静默降级为 none**
-    （静默降级会让使用者以为 scoped 生效了）。none 档给非空 memory_scope 同样拒绝
-    （与角色"默认档配自由文本 400"同款：不静默忽略）。
+【本批：brokered + scoped】
+    · none/brokered：与改动前逐字一致（默认档不变）；none 档给非空 memory_scope 仍拒绝。
+    · scoped：放行并回显三要素 + provider + 配额；配额/熔断在
+      agent/subagent/memory_quota.py（显式错误码，不静默丢）。四处判定
+      （actor_matrix / toolset / assembly / capability_exposure）共用同一布尔，
+      由 scoped_memory_enabled() 给出。
 
 【依赖纪律】
-    仅标准库。执行期真正的记忆读取在 agent/memory/broker.py，由执行器惰性导入。
+    仅标准库 + 同包 memory_quota（亦仅标准库）。执行期真正的记忆读取在
+    agent/memory/broker.py，由执行器惰性导入。
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple
+
+from agent.subagent.memory_quota import (
+    AUDIT_SCOPED_ENABLED,
+    MemoryQuotaConfigError,
+    emit_scoped_audit,
+    guard_from_quota,
+    normalize_memory_quota,
+)
 
 __all__ = [
     "MEMORY_MODE_NONE",
@@ -34,10 +48,14 @@ __all__ = [
     "MEMORY_MODES",
     "IMPLEMENTED_MEMORY_MODES",
     "MEMORY_SCOPE_KEYS",
+    "SCOPED_REQUIRED_SCOPE_KEYS",
     "MemoryConfigError",
     "MemoryResolution",
     "normalize_memory_mode",
     "resolve_memory_config",
+    "resolve_config_memory",
+    "scoped_memory_enabled",
+    "scoped_guard",
     "memory_view",
     "attach_memory_metadata",
 ]
@@ -54,8 +72,13 @@ MEMORY_MODE_SCOPED = "scoped"
 #: 档位全集（顺序 = 权限从低到高；UI 选择器与审计枚举都取这里）
 MEMORY_MODES: Tuple[str, ...] = (MEMORY_MODE_NONE, MEMORY_MODE_BROKERED, MEMORY_MODE_SCOPED)
 
-#: 本批**已实现**的档位
-IMPLEMENTED_MEMORY_MODES: Tuple[str, ...] = (MEMORY_MODE_NONE, MEMORY_MODE_BROKERED)
+#: 本批**已实现**的档位（scoped 为显式开启的受控档）
+IMPLEMENTED_MEMORY_MODES: Tuple[str, ...] = (
+    MEMORY_MODE_NONE, MEMORY_MODE_BROKERED, MEMORY_MODE_SCOPED)
+
+#: scoped 档**必须齐全**的三要素（缺任一 ⇒ 400，fail-closed）
+SCOPED_REQUIRED_SCOPE_KEYS: Tuple[str, ...] = (
+    "tenant_id", "workspace_id", "subject_id")
 
 #: scope 允许出现的键。与 agent/memory/broker.py 的 SCOPE_KEYS 同口径
 #: （内存侧不反向依赖 subagent，故各留一份，由 tests/unit/test_subagent_memory_broker.py
@@ -80,10 +103,12 @@ class MemoryResolution:
     Attributes:
         mode: 归一化后的档位（none / brokered / scoped）。
         scope: 归一化后的域（标识；空 dict = 未限定，broker 会如实降级）。
-        implemented: 该档是否已实现（scoped = False；解析期直接 error）。
-        audit_required: 是否必须留审计（brokered = True）。
-        red: 是否红档（brokered **不是**：正文只进 ②约束，不进 system prompt）。
+        implemented: 该档是否已实现（none / brokered / scoped = True）。
+        audit_required: 是否必须留审计（brokered / scoped = True）。
+        red: 是否红档（brokered / scoped **都不是**：正文不进 system prompt）。
         error: 解析失败原因（非空 = 调用方应拒绝，不得带病委派）。
+        provider: scoped 档的记忆 provider（默认档为空，回显用）。
+        quota: scoped 档归一化后的配额配置（none/brokered 恒为空）。
     """
 
     mode: str = MEMORY_MODE_NONE
@@ -92,6 +117,8 @@ class MemoryResolution:
     audit_required: bool = False
     red: bool = False
     error: str = ""
+    provider: str = ""
+    quota: Mapping[str, Any] = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
@@ -101,9 +128,17 @@ class MemoryResolution:
     def enabled(self) -> bool:
         return self.mode != MEMORY_MODE_NONE
 
+    @property
+    def is_scoped(self) -> bool:
+        return self.mode == MEMORY_MODE_SCOPED
+
     def to_dict(self) -> Dict[str, Any]:
-        """投影给 HTTP/UI（**不含记忆正文**）"""
-        return {
+        """投影给 HTTP/UI（**不含记忆正文**）
+
+        none / brokered 的键集与改动前**逐字一致**；scoped 额外带
+        scoped / provider / quota 三个键。
+        """
+        data: Dict[str, Any] = {
             "mode": self.mode,
             "enabled": self.enabled,
             "implemented": bool(self.implemented),
@@ -112,6 +147,11 @@ class MemoryResolution:
             "red": bool(self.red),
             "error": self.error,
         }
+        if self.is_scoped and not self.error:
+            data["scoped"] = True
+            data["provider"] = str(self.provider or "")
+            data["quota"] = dict(self.quota)
+        return data
 
 
 def normalize_memory_mode(value: Any) -> str:
@@ -141,56 +181,132 @@ def _clean_scope(scope: Any) -> Dict[str, Any]:
 
 
 def resolve_memory_config(mode: Any = MEMORY_MODE_NONE,
-                          scope: Any = None) -> MemoryResolution:
-    """(memory_mode, memory_scope) → MemoryResolution（**不抛**）
+                          scope: Any = None,
+                          provider: Any = None,
+                          quota: Any = None) -> MemoryResolution:
+    """(memory_mode, memory_scope[, provider, quota]) → MemoryResolution（**不抛**）
 
     失败一律收口为 error 非空（端点据此 400）：
       · 未知档位 ⇒ error；
-      · scoped（本批未实现）⇒ error（不静默降级为 none）；
-      · none 档给非空 scope ⇒ error（不静默忽略 —— 那会让使用者以为它生效了）；
-      · scope 非对象 / 含未知键 ⇒ error。
+      · none：与改动前逐字一致（给非空 scope 仍 error）；
+      · brokered：与改动前逐字一致（不需要三要素）；给 quota ⇒ error（不静默忽略）；
+      · scoped：**显式开启的受控档**，要求 provider 非空且 scope 含
+        tenant_id/workspace_id/subject_id 三要素，缺任一 ⇒ error（fail-closed）；
+      · scope 非对象 / 含未知键 ⇒ error；memory_quota 非对象 / 未知键 / 非正整数 ⇒ error。
     """
     try:
         normalized = normalize_memory_mode(mode)
     except MemoryConfigError as e:
         return MemoryResolution(mode=str(mode or ""), error=str(e))
 
-    if normalized == MEMORY_MODE_SCOPED:
-        return MemoryResolution(
-            mode=normalized, implemented=False, error=(
-                "scoped 档尚未实现（本批只交付 brokered）：分身侧不新增任何记忆工具，"
-                "请使用 memory_mode='brokered'（母体代管只读记忆）"))
-
     try:
         clean_scope = _clean_scope(scope)
     except MemoryConfigError as e:
         return MemoryResolution(mode=normalized, error=str(e))
 
-    if normalized == MEMORY_MODE_NONE and clean_scope:
+    try:
+        clean_quota = normalize_memory_quota(quota)
+    except MemoryQuotaConfigError as e:
+        return MemoryResolution(mode=normalized, error=str(e))
+
+    if normalized == MEMORY_MODE_NONE:
+        if clean_scope:
+            return MemoryResolution(
+                mode=normalized, error=(
+                    "memory_mode='none' 却给了非空 memory_scope：默认档不接受记忆域，"
+                    "请显式 memory_mode='brokered'（不静默忽略 —— 那会让你以为它生效了）"))
+        if clean_quota:
+            return MemoryResolution(
+                mode=normalized, error=(
+                    "memory_mode='none' 却给了 memory_quota：默认档不使用配额，"
+                    "请显式 memory_mode='scoped'（不静默忽略）"))
+        return MemoryResolution(mode=normalized, scope=clean_scope, implemented=True)
+
+    if normalized == MEMORY_MODE_BROKERED:
+        if clean_quota:
+            return MemoryResolution(
+                mode=normalized, error=(
+                    "memory_mode='brokered' 不接受 memory_quota：brokered 为母体代管只读，"
+                    "配额仅 scoped 档使用（不静默忽略）"))
         return MemoryResolution(
-            mode=normalized, error=(
-                "memory_mode='none' 却给了非空 memory_scope：默认档不接受记忆域，"
-                "请显式 memory_mode='brokered'（不静默忽略 —— 那会让你以为它生效了）"))
+            mode=normalized, scope=clean_scope, implemented=True, audit_required=True)
 
+    # ── scoped：显式开启的受控档（三要素 + provider 缺一不可）──
+    provider_name = str(provider or "").strip()
+    if not provider_name:
+        return MemoryResolution(
+            mode=normalized, implemented=True, error=(
+                "memory_mode='scoped' 需要非空 memory_provider（分身自带私人记忆域必须有"
+                "明确 provider；缺失即拒绝，不静默降级）"))
+    missing = [k for k in SCOPED_REQUIRED_SCOPE_KEYS
+               if not str(clean_scope.get(k) or "").strip()]
+    if missing:
+        return MemoryResolution(
+            mode=normalized, implemented=True, error=(
+                "memory_mode='scoped' 的 memory_scope 缺三要素 %s"
+                "（tenant_id / workspace_id / subject_id 缺一不可；不静默降级）"
+                % " / ".join(missing)))
     return MemoryResolution(
-        mode=normalized,
-        scope=clean_scope,
-        implemented=True,
-        audit_required=(normalized == MEMORY_MODE_BROKERED),
-    )
+        mode=normalized, scope=clean_scope, implemented=True, audit_required=True,
+        provider=provider_name, quota=clean_quota)
 
 
-def memory_view(config: Any) -> Dict[str, Any]:
-    """配置 → memory 段投影（创建/列表/热更新回显用；**不含记忆正文**）"""
-    plan = resolve_memory_config(
-        getattr(config, "memory_mode", MEMORY_MODE_NONE),
-        getattr(config, "memory_scope", None))
+def _config_field(config: Any, name: str, default: Any = None) -> Any:
+    """从配置对象或 Mapping 读字段（兼容两种形态，口径唯一）"""
+    if isinstance(config, Mapping):
+        return config.get(name, default)
+    return getattr(config, name, default)
+
+
+def resolve_config_memory(config: Any) -> MemoryResolution:
+    """配置对象 / Mapping → MemoryResolution（**四处判定与路由共用的同一入口**）"""
+    return resolve_memory_config(
+        _config_field(config, "memory_mode", MEMORY_MODE_NONE),
+        _config_field(config, "memory_scope", None),
+        _config_field(config, "memory_provider", ""),
+        _config_field(config, "memory_quota", None))
+
+
+def scoped_memory_enabled(config: Any) -> bool:
+    """配置 → 是否**已显式且完整**开启 scoped 私人记忆域（唯一口径）
+
+    这是四处判定（actor_matrix / toolset / assembly / capability_exposure）共用的
+    同一份判据：只有 memory_mode='scoped' 且三要素齐全且 provider 非空才为 True。
+    默认档（none/brokered/未表态）恒为 False。
+    """
+    plan = resolve_config_memory(config)
+    return bool(plan.ok and plan.is_scoped)
+
+
+def scoped_guard(config: Any, *, audit: Any = None, actor: str = "", subject: str = "",
+                 clock: Any = None) -> Any:
+    """配置 → scoped 配额/熔断守卫（非 scoped 或配置非法 ⇒ None）
+
+    配额/熔断为**显式开启**的一部分；调用方拿到 None 即不应走 scoped 写入路径。
+    """
+    plan = resolve_config_memory(config)
+    if not (plan.ok and plan.is_scoped):
+        return None
+    return guard_from_quota(plan.quota, audit=audit, actor=actor, subject=subject,
+                            clock=clock)
+
+
+def memory_view(config: Any, guard: Any = None) -> Dict[str, Any]:
+    """配置 → memory 段投影（创建/列表/热更新回显用；**不含记忆正文**）
+
+    none / brokered 的输出与改动前**逐字一致**；scoped 额外回显 quota 与熔断状态
+    （guard 缺省 ⇒ 按配置构造静态视图，breaker 恒 closed）。
+    """
+    plan = resolve_config_memory(config)
     view = plan.to_dict()
-    view["provider"] = str(getattr(config, "memory_provider", "") or "")
+    view["provider"] = str(_config_field(config, "memory_provider", "") or "")
+    if plan.ok and plan.is_scoped:
+        live = guard or guard_from_quota(plan.quota)
+        view["breaker"] = live.status()
     return view
 
 
-def attach_memory_metadata(ctx: Any, config: Any) -> Any:
+def attach_memory_metadata(ctx: Any, config: Any, audit: Any = None) -> Any:
     """把生效档位与域**标识**写进委派上下文 metadata（config→ctx 桥）
 
     【为什么就地写】委派上下文是 frozen dataclass；本函数被
@@ -199,18 +315,37 @@ def attach_memory_metadata(ctx: Any, config: Any) -> Any:
     后者只返回 config、不返回 ctx，故对 metadata 这一层做就地更新
     （标识级，幂等）。memory_mode='none' ⇒ **完全不碰** ctx（逐字旧行为）。
 
+    【scoped 开启审计】显式开启 scoped 是安全姿态变更；传入 audit 时写一条
+    subagent.memory.scoped.enabled（fail-soft）。默认档不写（噪声不是留痕）。
+
     Returns:
         传入的 ctx（便于链式调用）。
     """
-    normalized = str(getattr(config, "memory_mode", MEMORY_MODE_NONE) or "").strip().lower()
+    normalized = str(_config_field(config, "memory_mode", MEMORY_MODE_NONE)
+                     or "").strip().lower()
     if normalized in _NONE_SENTINELS or normalized == MEMORY_MODE_NONE:
         return ctx
-    scope = getattr(config, "memory_scope", None)
+    scope = _config_field(config, "memory_scope", None)
+    if normalized == MEMORY_MODE_SCOPED and audit is not None:
+        emit_scoped_audit(
+            audit, AUDIT_SCOPED_ENABLED,
+            actor=str(getattr(ctx, "delegate_actor", "") or "sub_agent"),
+            subject="delegation:%s" % (getattr(ctx, "delegation_id", "") or ""),
+            payload={"mode": "scoped",
+                     "provider": str(_config_field(config, "memory_provider", "") or ""),
+                     "scope_keys": sorted(str(k) for k in (scope or {}) if str(k))},
+            status="enabled")
     current = getattr(ctx, "metadata", None)
     meta: Dict[str, Any] = dict(current) if isinstance(current, Mapping) else {}
     meta["memory_mode"] = normalized
     if isinstance(scope, Mapping) and scope:
         meta["memory_scope"] = dict(scope)
+    if normalized == MEMORY_MODE_SCOPED:
+        # scoped 额外携带 provider 与配额**标识**（供执行器回显/留痕；不含正文）
+        meta["memory_provider"] = str(_config_field(config, "memory_provider", "") or "")
+        quota = _config_field(config, "memory_quota", None)
+        if isinstance(quota, Mapping) and quota:
+            meta["memory_quota"] = dict(quota)
     if isinstance(current, dict):
         current.clear()
         current.update(meta)

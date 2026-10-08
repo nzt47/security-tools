@@ -391,13 +391,18 @@ class SubAgentToolset:
     requested: Tuple[str, ...] = ()
     scope: str = ""
     tenant_id: str = ""
+    #: 【P3 scoped 档】是否已显式开启分身私人记忆域。**默认 False** ⇒ §5.7 机制 3
+    #: 硬禁（记忆读写）逐字不变；仅 True 时记忆类工具不再被硬禁，且矩阵对其走
+    #: allow-with-scope（仅自身域）。
+    scoped_memory: bool = False
     report: ToolTrimReport = field(default_factory=ToolTrimReport)
 
     # ── 构造 ──
 
     @classmethod
     def hard_denied(cls, names: Iterable[str],
-                    actor: str = "sub_agent:anonymous") -> List[str]:
+                    actor: str = "sub_agent:anonymous", *,
+                    scoped_memory: bool = False) -> List[str]:
         """从候选工具名里挑出会被 §5.7 机制 3 硬禁的那些（保持入参顺序，去重）
 
         供**装配层**（``agent/tools/fan_out_tools.py``）在授权**前**剔除，与执行层
@@ -405,7 +410,12 @@ class SubAgentToolset:
         放进 ``authorized_capabilities``，子代理会看到一份"授予了却永远调不动"的
         空头清单（且执行时判整次委派失败），不如在授权清单里就如实不出现。
         """
-        probe = cls(actor=actor)
+        # 【P3 scoped 档】scoped 下记忆类不再"绝对禁止"，故探针给一个自指的
+        # 非空 scope：让矩阵走 allow-with-scope 单元格，从而只把**仍然绝对禁止**的
+        # 类别（审批权 / 核心改写 / 治理写）算作硬禁。真正的域越界守卫在运行期由
+        # PermissionContext.scope 承担（此处只回答"是不是绝对禁项"）。
+        probe = cls(actor=actor, scope=(str(actor) if scoped_memory else ""),
+                    scoped_memory=scoped_memory)
         seen: set = set()
         out: List[str] = []
         for raw in names:
@@ -426,6 +436,7 @@ class SubAgentToolset:
         actor: str = "sub_agent:anonymous",
         scope: str = "",
         tenant_id: str = "",
+        scoped_memory: bool = False,
     ) -> "SubAgentToolset":
         """计算裁剪子集：申请 ∩ 授权子集 − 矩阵拒绝项
 
@@ -444,6 +455,7 @@ class SubAgentToolset:
             requested=tuple(str(t) for t in requested),
             scope=str(scope or ""),
             tenant_id=str(tenant_id or ""),
+            scoped_memory=bool(scoped_memory),
         )
         visible: List[str] = []
         denied: List[Dict[str, Any]] = []
@@ -474,6 +486,7 @@ class SubAgentToolset:
             actor_type=ACTOR_SUB_AGENT,
             scope=self.scope,
             authorized_capabilities=self.authorized_capabilities,
+            scoped_memory_enabled=bool(self.scoped_memory),
             extra={"tenant_id": self.tenant_id} if self.tenant_id else {},
         )
 
@@ -504,14 +517,16 @@ class SubAgentToolset:
         #   最短的那个被命中形态就是该能力的**规范 id**，与矩阵同口径。
         try:
             flagged = [c for c in name_candidates(name)
-                       if _expo.classify_capability(c)]
+                       if _expo.classify_capability(
+                           c, scoped_memory=self.scoped_memory)]
         except Exception:  # noqa: BLE001
             return None
         if not flagged:
             return None
         matched = min(flagged, key=len)
         try:
-            classes = _expo.classify_capability(matched)
+            classes = _expo.classify_capability(
+                matched, scoped_memory=self.scoped_memory)
         except Exception:  # noqa: BLE001
             classes = []
         if not classes:
@@ -551,8 +566,12 @@ class SubAgentToolset:
                         reason=f"受保护类别 {prefix!r}（未登记映射，fail-closed 拒绝）")
             # 矩阵没有意见 ⇒ 交给机制 3（可能仍被绝对禁项拦下）
             return self._exposure_deny(name)
+        # 【P3 scoped 档】target_scope 传自身域：scoped 记忆行只放行"自身
+        # 私人记忆域"，越域在矩阵层即被拒。默认档下该参数被 deny 行忽略
+        # （SCOPE_NONE），判定逐字不变。
         decision = decide(operation, self._permission_context(),
-                          object_type="tool", object_id=name)
+                          object_type="tool", object_id=name,
+                          target_scope=self.scope)
         if decision.allowed:
             return self._exposure_deny(name)
         return ToolDecision(

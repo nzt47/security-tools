@@ -293,14 +293,22 @@ def _live_memory_config(Yunshu: Any, name: str) -> Dict[str, Any]:
     if cfg is None:
         return {}
     return {"memory_mode": getattr(cfg, "memory_mode", "none"),
-            "memory_scope": getattr(cfg, "memory_scope", None)}
+            "memory_scope": getattr(cfg, "memory_scope", None),
+            "memory_quota": getattr(cfg, "memory_quota", None)}
 
 
-def _memory_fields(data: Dict[str, Any], base: Dict[str, Any] | None = None) -> Dict[str, Any]:
-    """读并**校验**记忆两个字段（创建 / 热更新 / 临时委派共用一份口径）
+def _memory_fields(data: Dict[str, Any], base: Dict[str, Any] | None = None,
+                   provider: Any = None) -> Dict[str, Any]:
+    """读并**校验**记忆字段（创建 / 热更新 / 临时委派共用一份口径）
 
-    校验在**进门时**做（而不是等到委派）：未知档位 / scoped（未实现）/ 默认档配非空域
-    都必须立刻 400，与 `_role_fields` 同款 —— 不静默夹取、不把错误留到运行时。
+    校验在**进门时**做（而不是等到委派）：未知档位 / scoped 缺三要素或 provider /
+    默认档配非空域或配额 / 未知配额键都必须立刻 400，与 `_role_fields` 同款 ——
+    不静默夹取、不把错误留到运行时。
+
+    Args:
+        data: 请求体。
+        base: 未传字段时的现值（热更新用）。
+        provider: 生效 memory_provider（scoped 要求非空；由调用方从 config 取值）。
 
     Raises:
         MemoryConfigError: 记忆配置非法（调用方转 400 E_MEMORY_CONFIG）。
@@ -308,11 +316,15 @@ def _memory_fields(data: Dict[str, Any], base: Dict[str, Any] | None = None) -> 
     base = base or {}
     mode = data.get("memory_mode", base.get("memory_mode", "none"))
     scope = data.get("memory_scope", base.get("memory_scope"))
-    plan = resolve_memory_config(mode, scope)
+    quota = data.get("memory_quota", base.get("memory_quota"))
+    if provider is None:
+        provider = data.get("memory_provider", base.get("memory_provider", ""))
+    plan = resolve_memory_config(mode, scope, provider, quota)
     if plan.error:
         raise MemoryConfigError(plan.error)
     return {"memory_mode": plan.mode,
-            "memory_scope": (dict(plan.scope) or None)}
+            "memory_scope": (dict(plan.scope) or None),
+            "memory_quota": (dict(plan.quota) or None)}
 
 
 def _subagent_with_memory(row: Dict[str, Any]) -> Dict[str, Any]:
@@ -320,7 +332,8 @@ def _subagent_with_memory(row: Dict[str, Any]) -> Dict[str, Any]:
     out = dict(row or {})
     if "memory" in out:
         return out
-    plan = resolve_memory_config(out.get("memory_mode", "none"), out.get("memory_scope"))
+    plan = resolve_memory_config(out.get("memory_mode", "none"), out.get("memory_scope"),
+                                 out.get("memory_provider", ""), out.get("memory_quota"))
     view = plan.to_dict()
     view["provider"] = str(out.get("memory_provider", "") or "")
     out["memory"] = view
@@ -685,9 +698,14 @@ def register_routes(app, state):
                 （不静默忽略 —— 那会让使用者以为它生效了）；仅在显式开启的档位生效
             memory_mode (str, optional): 记忆档位。`none`（默认）/ `brokered`
                 （母体按 memory_scope 取一段**只读、限定域**记忆进 ②约束；分身侧仍无
-                任何记忆工具）/ `scoped`（**本批未实现 ⇒ 400**）
-            memory_scope (dict, optional): brokered 的记忆域（tenant_id / workspace_id /
-                subject_id / workspace_root / memory_types / limit）；默认档给非空值 ⇒ 400
+                任何记忆工具）/ `scoped`（分身自带私人记忆域，**显式开启的受控档**：
+                必须三要素齐全且 memory_provider 非空，缺任一 ⇒ 400）
+            memory_scope (dict, optional): 记忆域（tenant_id / workspace_id /
+                subject_id / workspace_root / memory_types / limit）；brokered 使用；
+                scoped 要求 tenant_id / workspace_id / subject_id 三要素齐全；
+                默认档给非空值 ⇒ 400
+            memory_quota (dict, optional): scoped 档配额（max_entries / max_bytes /
+                consecutive_reject_limit）；非 scoped 给值 ⇒ 400（不静默忽略）
 
         【`model_id` 从"必填"改为"空 = 跟随母体"】此前必填，于是"跟随母体"只能靠**抄一个
         母体模型名**来伪装；部署一换模型，那串名字就从"跟随"变成"显式指定旧模型"——
@@ -717,8 +735,9 @@ def register_routes(app, state):
                 # 角色（受控模板 + 分级开关）：未知模板 / 默认档配自由文本在此 400。
                 # 展开在 try 内：_role_fields 抛 ValueError ⇒ 外层转 400（不建容器）。
                 **_role_fields(data),
-                # 记忆档位：未知档位 / scoped（未实现）/ 默认档配非空域 ⇒ E_MEMORY_CONFIG 400
-                **_memory_fields(data),
+                # 记忆档位：未知档位 / scoped 缺三要素或 provider / 默认档配非空域或配额
+                # ⇒ E_MEMORY_CONFIG 400（不建容器）
+                **_memory_fields(data, provider=data.get("memory_provider", "")),
             }
 
             container = Yunshu.create_subagent(config)
@@ -854,7 +873,8 @@ def register_routes(app, state):
 
             # ── 记忆档位：同样再挡一次（配置可能被热更新改坏），无效不得带病委派 ──
             memory_plan = resolve_memory_config(
-                getattr(cfg, "memory_mode", "none"), getattr(cfg, "memory_scope", None))
+                getattr(cfg, "memory_mode", "none"), getattr(cfg, "memory_scope", None),
+                getattr(cfg, "memory_provider", ""), getattr(cfg, "memory_quota", None))
             if memory_plan.error:
                 return jsonify({"ok": False, "error_code": "E_MEMORY_CONFIG",
                                 "error": memory_plan.error}), 400
@@ -952,8 +972,10 @@ def register_routes(app, state):
                 return _no_channel_response(channel)
 
             # 记忆档位（临时分身没有既有配置，直接读请求体；非法 ⇒ 400 E_MEMORY_CONFIG）
+            # scoped 要求请求显式给出非空 memory_provider（fail-closed）
+            mem_provider = str(data.get("memory_provider", "") or "")
             try:
-                mem_fields = _memory_fields(data)
+                mem_fields = _memory_fields(data, provider=mem_provider)
             except MemoryConfigError as e:
                 return jsonify({"ok": False, "error_code": "E_MEMORY_CONFIG",
                                 "error": str(e)}), 400
@@ -970,7 +992,9 @@ def register_routes(app, state):
             granted = _granted_tools()
             # 名称只需给个前缀：重名消歧与 TTL（取契约⑦）由 lifecycle._prepare_config 统一负责，
             # 这里不重复实现 —— 否则又是一份会漂移的纪律
-            config = SubagentConfig(name="ui-delegate", model_id=_model_id(llm), **mem_fields)
+            config = SubagentConfig(name="ui-delegate", model_id=_model_id(llm),
+                                    memory_provider=(mem_provider or "holographic"),
+                                    **mem_fields)
             # 临时分身没有"用户选的模型"：config.model_id 抄的是母体当前模型，
             # 解析器把"指定的就是母体在用的那个"判为 inherit（不造无意义的影子实例）
             from agent.subagent.llm_factory import resolve_subagent_llm
@@ -1024,8 +1048,9 @@ def register_routes(app, state):
             role_template / role_mode / role_text (optional): 角色三字段；
                 未传则**沿用该分身现值**（含自由文本正文，故读的是存活容器的配置，
                 不是状态投影 —— 状态投影刻意不含 role_text 正文）
-            memory_mode / memory_scope (optional): 记忆档位与域；
-                未传则**沿用该分身现值**（读存活容器的配置）；非法 ⇒ 400 E_MEMORY_CONFIG
+            memory_mode / memory_scope / memory_quota (optional): 记忆档位、域与
+                scoped 配额；未传则**沿用该分身现值**（读存活容器的配置）；
+                非法 ⇒ 400 E_MEMORY_CONFIG
         """
         try:
             data = request.get_json() or {}
@@ -1053,8 +1078,11 @@ def register_routes(app, state):
                 "llm_temperature": _llm_temperature(data, current.get("llm_temperature")),
                 # 角色同款校验：未知模板 / 默认档配自由文本在此 400（进门时挡，不留到运行时）
                 **_role_fields(data, role_base),
-                # 记忆同款校验：未知档位 / scoped（未实现）/ 默认档配非空域在此 400
-                **_memory_fields(data, memory_base),
+                # 记忆同款校验：未知档位 / scoped 缺三要素或 provider / 默认档配非空域在此 400
+                **_memory_fields(
+                    data, memory_base,
+                    provider=data.get("memory_provider",
+                                      current.get("memory_provider", ""))),
             }
 
             Yunshu.hot_reload_subagent(name, new_config)

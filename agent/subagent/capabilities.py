@@ -165,9 +165,9 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="memory_scope", layer="memory", label="记忆域与档位",
         question="它记得的东西归谁？", state=OWNED,
-        evidence="memory_mode none|brokered：母体按 tenancy 取只读上下文并注入 ②约束（broker + 域越界守卫），分身侧无记忆工具（§5.7 机制 3 不破）",
-        evidence_files=("agent/memory/broker.py", "agent/subagent/memory_broker.py", "agent/memory/tenancy.py"),
-        gap="scoped（分身自带私人记忆域、放开机制 3 硬禁）未做——需四处判定同改 + 配额 + 熔断 + 审计",
+        evidence="memory_mode none|brokered|scoped：none 不分身记忆；brokered 母体按 tenancy 取只读上下文注入 ②约束；scoped 为显式开启的受控档（三要素 + provider 非空），四处判定同改 + 配额/熔断/审计（§5.7 机制 3 受控例外）",
+        evidence_files=("agent/memory/broker.py", "agent/subagent/memory_broker.py", "agent/subagent/memory_quota.py", "agent/memory/tenancy.py"),
+        gap="scoped 的真实记忆后端落库/检索接线未做（本批交付能力面放开 + 配额熔断 + 审计；存储由后续批次接入）",
         next_stage="S3"),
     SovereigntyFace(
         key="memory_provider", layer="memory", label="记忆提供商与知识库",

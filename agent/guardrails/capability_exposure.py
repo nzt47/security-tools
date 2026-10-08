@@ -55,6 +55,10 @@ FORBIDDEN_CAPABILITY_CLASSES: Tuple[str, ...] = (
     "approval",         # 审批权
 )
 
+#: 【P3 scoped 档】显式开启后**不再视为绝对禁项**的类别（仅记忆读写两类）
+#: 核心改写 / 审批权在 scoped 档下**仍**是绝对禁项（§5.7 机制 3 的另外两类）。
+SCOPED_ALLOWED_CLASSES: Tuple[str, ...] = ("memory_read", "memory_write")
+
 #: 类别 → 中文名
 CLASS_LABELS: Dict[str, str] = {
     "memory_read": "记忆读",
@@ -133,11 +137,15 @@ def _lower(value: Any) -> str:
     return str(value or "").strip().lower()
 
 
-def classify_capability(capability: Any) -> List[str]:
+def classify_capability(capability: Any, *,
+                        scoped_memory: bool = False) -> List[str]:
     """判定能力命中的禁项类别（空列表 = 无禁项）
 
     Args:
         capability: 能力 id / 工具名（如 `cp.memory.layered_store.write` / `approval.approve`）。
+        scoped_memory: 【P3 scoped 档】True 时把**记忆读写**两类从禁项中剔除
+            （分身自带私人记忆域，显式开启）；核心改写 / 审批权仍然禁。
+            **默认 False ⇒ 判定逐字不变**。
     """
     name = _lower(capability)
     if not name:
@@ -146,12 +154,14 @@ def classify_capability(capability: Any) -> List[str]:
     for category, pattern in FORBIDDEN_PATTERNS:
         if pattern.search(name) and category not in classes:
             classes.append(category)
+    if scoped_memory and classes:
+        classes = [c for c in classes if c not in SCOPED_ALLOWED_CLASSES]
     return classes
 
 
-def is_forbidden(capability: Any) -> bool:
-    """能力是否属于绝对禁项（§5.7 机制 3 三类）"""
-    return bool(classify_capability(capability))
+def is_forbidden(capability: Any, *, scoped_memory: bool = False) -> bool:
+    """能力是否属于绝对禁项（§5.7 机制 3 三类；scoped 档下记忆两类除外）"""
+    return bool(classify_capability(capability, scoped_memory=scoped_memory))
 
 
 def is_exposed(
@@ -160,6 +170,7 @@ def is_exposed(
     actor_type: str = ACTOR_SUB_AGENT,
     authorized: Optional[Iterable[str]] = None,
     toolset: Optional[Iterable[str]] = None,
+    scoped_memory: bool = False,
 ) -> ExposureDecision:
     """判定能力是否暴露给该执行体（**默认闭集**）
 
@@ -177,7 +188,7 @@ def is_exposed(
     if _lower(actor_type) != ACTOR_SUB_AGENT:
         return ExposureDecision(capability=name, exposed=True,
                                 reason="非 sub_agent，不受机制 3 裁剪约束（见 Actor 矩阵）")
-    classes = classify_capability(name)
+    classes = classify_capability(name, scoped_memory=scoped_memory)
     if classes:
         labels = "、".join(CLASS_LABELS.get(c, c) for c in classes)
         return ExposureDecision(
@@ -207,6 +218,7 @@ def trim_toolset(
     actor_type: str = ACTOR_SUB_AGENT,
     authorized: Optional[Iterable[str]] = None,
     toolset: Optional[Iterable[str]] = None,
+    scoped_memory: bool = False,
 ) -> Dict[str, Any]:
     """把请求的能力集**裁剪**为可暴露子集（S4-04 执行器注入层的输入）
 
@@ -230,7 +242,7 @@ def trim_toolset(
     not_authorized: List[str] = []
     for cap in (requested or ()):
         verdict = is_exposed(cap, actor_type=actor_type, authorized=authorized,
-                             toolset=toolset)
+                             toolset=toolset, scoped_memory=scoped_memory)
         if verdict.exposed:
             allowed.append(str(cap))
         else:
@@ -253,6 +265,7 @@ def require_exposed(
     actor_type: str = ACTOR_SUB_AGENT,
     authorized: Optional[Iterable[str]] = None,
     toolset: Optional[Iterable[str]] = None,
+    scoped_memory: bool = False,
 ) -> None:
     """执行前置闸门：能力未暴露即**拒绝**
 
@@ -260,7 +273,7 @@ def require_exposed(
         CapabilityNotExposedError: 未暴露。
     """
     verdict = is_exposed(capability, actor_type=actor_type, authorized=authorized,
-                         toolset=toolset)
+                         toolset=toolset, scoped_memory=scoped_memory)
     if verdict.exposed:
         return
     raise CapabilityNotExposedError(
@@ -367,9 +380,11 @@ def exposure_state() -> Dict[str, Any]:
 
 #: 矩阵未覆盖时（如与 `agent.security.actor_matrix` 的断言），矩阵对 sub_agent
 #: 的授权子集是否存在——用于 S6-01 面板解释"为什么这个工具看不见"
-def explain_denial(capability: Any, *, authorized: Optional[Iterable[str]] = None) -> str:
+def explain_denial(capability: Any, *, authorized: Optional[Iterable[str]] = None,
+                   scoped_memory: bool = False) -> str:
     """解释某能力为何对 sub_agent 不可见（面向 UI/运维的可读文案）"""
-    verdict = is_exposed(capability, authorized=authorized)
+    verdict = is_exposed(capability, authorized=authorized,
+                         scoped_memory=scoped_memory)
     if verdict.exposed:
         return f"能力 {capability} 对 sub_agent 可见：{verdict.reason}"
     if verdict.classes:
@@ -382,6 +397,7 @@ def explain_denial(capability: Any, *, authorized: Optional[Iterable[str]] = Non
 
 __all__ = [
     "ACTOR_SUB_AGENT", "FORBIDDEN_CAPABILITY_CLASSES", "CLASS_LABELS",
+    "SCOPED_ALLOWED_CLASSES",
     "FORBIDDEN_PATTERNS", "DEFAULT_SUBAGENT_TOOLSET",
     "EXECUTION_TOOLS_REQUIRING_GRANT", "SCOPE_AUTHORIZED_SUBSET",
     "ExposureError", "CapabilityNotExposedError", "ExposureDecision",

@@ -516,8 +516,19 @@ class DelegationExecutor:
                 sub_reason="incomplete_contract", error_detail=e.to_dict())
 
         subset = self._resolve_subset(ctx, authorized_capabilities)
-        toolset = SubAgentToolset.build(tools, subset, actor=ctx.delegate_actor,
-                                        tenant_id=ctx.tenant_id)
+        # 【P3 scoped 档】把生效记忆档位与自身域传给裁剪器：默认档 scoped=False
+        # ⇒ 与改动前逐字一致；scoped 时记忆类工具才不被硬禁，且矩阵要求 target_scope
+        # 等于自身域（越域即拒）。
+        mem_meta = getattr(ctx, "metadata", None) or {}
+        mem_scope = mem_meta.get("memory_scope") if isinstance(mem_meta, Mapping) else None
+        own_scope = ""
+        if isinstance(mem_scope, Mapping):
+            own_scope = str(mem_scope.get("workspace_id", "") or "")
+        toolset = SubAgentToolset.build(
+            tools, subset, actor=ctx.delegate_actor, tenant_id=ctx.tenant_id,
+            scope=own_scope,
+            scoped_memory=(str(mem_meta.get("memory_mode", "") or "").strip().lower()
+                           == "scoped"))
 
         # ── 步骤 5 前置：并发闸门（§4.2 回压）──
         try:
@@ -558,6 +569,10 @@ class DelegationExecutor:
         """
         meta = getattr(ctx, "metadata", None) or {}
         mode = str(meta.get("memory_mode", "") or "").strip().lower()
+        if mode == "scoped":
+            # 【P3 scoped 档】分身自带私人记忆域：不向 ②约束注入任何正文，
+            # 只做"开启留痕 + 标识回显"（配额/熔断的准入由 memory_quota 单独承担）。
+            return ctx, self._scoped_memory_segment(ctx, meta)
         if mode != "brokered":
             return ctx, {}
 
@@ -606,6 +621,30 @@ class DelegationExecutor:
         base["memory_count"] = len(new_meta["memory_ids"])
         base["recorded"] = self._audit_memory_broker(ctx, base)
         return new_ctx, base
+
+    def _scoped_memory_segment(self, ctx: DelegationContext,
+                               meta: Mapping[str, Any]) -> Dict[str, Any]:
+        """scoped 档：开启留痕 + 标识回显（**不注入任何记忆正文**）
+
+        与 brokered 的区别：scoped 的读写由分身自身的私人记忆域承担，本执行器
+        **不**向 ②约束追加记忆行；这里只写一条 subagent.memory.scoped.enabled 审计，
+        并把 provider / 域键 / 配额**标识**回投 outcome.memory（不含正文）。
+        """
+        scope = meta.get("memory_scope") or {}
+        quota = meta.get("memory_quota") or {}
+        segment: Dict[str, Any] = {
+            "mode": "scoped",
+            "provider": str(meta.get("memory_provider", "") or ""),
+            "scope_keys": sorted(str(k) for k in (scope or {}) if str(k)),
+            "quota": dict(quota) if isinstance(quota, Mapping) else {},
+            "degraded": "",
+        }
+        segment["recorded"] = self._audit_event_recorded(
+            "subagent.memory.scoped.enabled", ctx,
+            {"mode": "scoped", "provider": segment["provider"],
+             "scope_keys": segment["scope_keys"], "quota": segment["quota"]},
+            status="enabled")
+        return segment
 
     def _audit_memory_broker(self, ctx: DelegationContext,
                              memory: Mapping[str, Any]) -> bool:
