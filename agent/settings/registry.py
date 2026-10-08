@@ -760,6 +760,22 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _secret("CP_SUBAGENT_AGENT_CLI", CAT_SELF_HEALING,
             "子智能体 agent CLI 可执行路径（只读脱敏）",
             owner="agent/subagent/channel.py"),
+    # 【S5 通信 · 回调反向通道（2026-10-09）】出站默认关闭（只写审计，行为逐字不变）；
+    # 开启即允许执行器把委派结果 POST 到白名单内 host —— 是一次安全姿态变更，故用 _b。
+    _b("CP_SUBAGENT_CALLBACK_HTTP", CAT_SELF_HEALING, False,
+       "子代理回调的 HTTP 出站总开关；开启即允许向 CP_SUBAGENT_CALLBACK_ALLOW "
+       "白名单 host 投递委派结果（默认关闭 = 只写审计）",
+       owner="agent/subagent/callback_channel.py",
+       impact="影响面：开启后执行器会把委派结果 POST 到白名单内 host（出站网络动作）"),
+    _c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
+       "子代理回调 host 白名单（逗号分隔；精确 host 或 .example.com 后缀；只读）",
+       owner="agent/subagent/callback_channel.py"),
+    _secret("CP_SUBAGENT_CALLBACK_TOKEN", CAT_SELF_HEALING,
+            "子代理回调入站/出站共享令牌（只读脱敏；绝不回显）",
+            owner="agent/subagent/callback_channel.py"),
+    _a("CP_SUBAGENT_CALLBACK_TIMEOUT", CAT_SELF_HEALING, 5.0,
+       "子代理回调出站超时（秒；非法/非正数回退 5.0）",
+       owner="agent/subagent/callback_channel.py", validator=Validator("float")),
     _a("CP_SUBAGENT_MAX_TURNS", CAT_SELF_HEALING, None,
        "子智能体单任务最大轮数", owner="agent/subagent/channel.py",
        validator=Validator("int")),

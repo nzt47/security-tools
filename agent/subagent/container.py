@@ -342,11 +342,15 @@ class SubagentContainer:
         ctx = attach_memory_metadata(ctx, self.config)
 
         if executor is None:
+            from agent.subagent.callback_channel import default_callback_dispatcher
+
             # scoped 档注入**容器级**记忆域：配额/熔断跨多次委派持续生效；
             # 非 scoped 时 scoped_memory_domain() 返回 None（默认路径逐字不变）。
+            # 同时按部署开关注入回调投递器（未开启 ⇒ None，默认仍只写审计）。
             executor = DelegationExecutor(
                 llm=llm if llm is not None else getattr(self, "llm", None),
-                scoped_memory_domain=self._scoped_domain())
+                scoped_memory_domain=self._scoped_domain(),
+                callback_dispatcher=default_callback_dispatcher())
 
         started = time.time()
         # 显式标注：executor 为注入点（Any），标注后再返回可避免 no-any-return
