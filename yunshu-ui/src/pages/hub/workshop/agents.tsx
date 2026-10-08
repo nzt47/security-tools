@@ -43,20 +43,51 @@ interface Subagent {
   status?: string
   tool_sources?: string[]
   tags?: string[]
+  /** 后端补的"实际会用哪个模型"（三档来源，见 agent/subagent/llm_factory.py） */
+  llm?: SubagentLlm
   [k: string]: unknown
 }
 
-/** `GET /api/subagent/list` 的业务载荷（后端：`{ok, subagents, count, channel}`）。
+/** 逐分身的模型生效情况（后端 `resolve_subagent_llm(...).to_dict()`） */
+interface SubagentLlm {
+  /** 配置里点的模型名（空 = 跟随母体） */
+  requested?: string
+  /** **实际生效**的模型名（取自实例本身，不取配置） */
+  model?: string
+  /** inherit=跟随母体 / explicit=指定且已派生 / fallback-after-error=指定未生效已回退 */
+  source?: string
+  error?: string
+}
+
+/** 部署级 LLM 事实 + 可选模型清单（`GET /api/subagent/list` 的 `llm` 段） */
+interface DeploymentLlm {
+  model?: string
+  provider?: string
+  /** 只列"有出处"的模型名（部署默认 + 已声明），**不是**一份模型目录 */
+  options?: { model?: string; source?: string }[]
+}
+
+/** `GET /api/subagent/list` 的业务载荷（后端：`{ok, subagents, count, channel, llm}`）。
  *
- * `count` 与 `channel` 本页当前不读，但**必须**在类型里保留 ——
- * 它们是后端契约的一部分（`channel` 用于"通道不可用时提前提示"），
- * 前端不读不等于可以删。
+ * `count` / `channel` / `llm` 本页此前不读，但**必须**在类型里保留 ——
+ * 它们是后端契约的一部分（`channel` 用于"通道不可用时提前提示"，`llm` 用于
+ * "这个分身实际跑哪个模型 + 我能填哪些模型名"），前端不读不等于可以删。
  */
 interface SubagentList {
   ok?: boolean
   subagents?: Subagent[]
   count?: number
   channel?: Record<string, unknown>
+  llm?: DeploymentLlm
+}
+
+/** 模型来源徽章（三档与后端 `source` 一一对应；"未生效"必须是红档，不许静默） */
+function LlmSourceBadge({ llm }: { llm?: SubagentLlm }) {
+  if (!llm) return null
+  const source = String(llm.source || '')
+  if (source === 'explicit') return <Badge color="green">指定模型</Badge>
+  if (source === 'inherit') return <Badge color="slate">跟随母体</Badge>
+  return <Badge color="red">指定未生效</Badge>
 }
 
 /** 视图键（= 原导航/Tab 身份，便于对照历史记录） */
@@ -107,11 +138,13 @@ export interface WorkshopAgentsProps {
 
 function SubagentView() {
   const [agents, setAgents] = useState<Subagent[]>([])
+  const [deployment, setDeployment] = useState<DeploymentLlm | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
-  const [model, setModel] = useState('gpt-4o')
+  // 空 = 跟随母体（后端真语义；不再靠"抄一个母体模型名"来伪装跟随）
+  const [model, setModel] = useState('')
   const [memory, setMemory] = useState('default')
   const [tools, setTools] = useState('')
 
@@ -119,6 +152,7 @@ function SubagentView() {
     setLoading(true)
     getEnvelope<SubagentList>(SUBAGENT_LIST).then((d) => {
       setAgents(d?.subagents ?? [])
+      setDeployment(d?.llm ?? null)
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }
@@ -129,7 +163,7 @@ function SubagentView() {
     try {
       await hubPost(SUBAGENT_CREATE, {
         name,
-        model_id: model,
+        model_id: model.trim(),  // 空串 = 跟随母体（后端按 inherit 档解析）
         memory_provider: memory,
         tool_sources: tools ? tools.split(',').map((t) => t.trim()).filter(Boolean) : [],
         tags: ['hub'],
@@ -147,12 +181,17 @@ function SubagentView() {
     } catch (e) { setError(String(e)) }
   }
 
+  const deploymentModel = String(deployment?.model || '')
+
   return (
     <>
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <span className="text-xs text-slate-500">
-          分身的工具集由「主线档案」决定（装配时去 govern、去 §5.7 机制 3 硬禁）；
-          下面表单里的模型 / 记忆提供商 / 工具源是**声明字段**。
+          工具集由「主线档案」决定（装配时去 govern、去 §5.7 机制 3 硬禁）；
+          <span className="text-slate-400">模型已接线</span>
+          （留空 = 跟随母体{deploymentModel ? `：${deploymentModel}` : '（母体模型未知）'}，
+          指定则派生独立实例；生效来源见表中徽章）。
+          记忆提供商 / 工具源仍是**声明字段**（尚未接线，见后续阶段）。
         </span>
         <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"><Plus size={12} /> 创建分身</button>
       </div>
@@ -161,7 +200,22 @@ function SubagentView() {
         <Card className="mb-4">
           <div className="grid gap-3 md:grid-cols-4">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="分身名称 *" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
-            <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="模型 ID" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
+            {/* 模型：datalist 给"有出处"的候选（部署默认 + 已声明），**不挡手填** */}
+            <input
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              list="subagent-model-options"
+              data-testid="subagent-model-input"
+              placeholder={deploymentModel ? `留空 = 跟随母体（${deploymentModel}）` : '留空 = 跟随母体'}
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+            />
+            <datalist id="subagent-model-options">
+              {(deployment?.options ?? []).map((o) => (
+                <option key={String(o.model)} value={String(o.model ?? '')}>
+                  {o.source === 'deployment' ? '部署默认' : '已声明'}
+                </option>
+              ))}
+            </datalist>
             <input value={memory} onChange={(e) => setMemory(e.target.value)} placeholder="记忆提供商" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
             <input value={tools} onChange={(e) => setTools(e.target.value)} placeholder="工具源(逗号分隔)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
           </div>
@@ -180,7 +234,26 @@ function SubagentView() {
             keyField="name"
             columns={[
               { key: 'name', title: '分身', render: (r) => <span className="font-medium text-slate-200">{String(r.name)}</span> },
-              { key: 'model_id', title: '模型', render: (r) => <span className="font-mono text-xs text-cyan-400">{String(r.model_id ?? '-')}</span> },
+              {
+                key: 'model_id', title: '模型（实际生效）',
+                render: (r) => {
+                  const llm = r.llm
+                  const effective = String(llm?.model || r.model_id || '')
+                  return (
+                    <span className="flex flex-wrap items-center gap-1.5" data-testid={`subagent-llm-${String(r.name)}`}>
+                      <span className="font-mono text-xs text-cyan-400" data-testid="subagent-llm-model">
+                        {effective || '未解析'}
+                      </span>
+                      <LlmSourceBadge llm={llm} />
+                      {llm?.error && (
+                        <span className="text-[10px] text-red-300" title={String(llm.error)}>
+                          回退原因
+                        </span>
+                      )}
+                    </span>
+                  )
+                },
+              },
               { key: 'memory_provider', title: '记忆', render: (r) => <Badge color="cyan">{String(r.memory_provider ?? 'default')}</Badge> },
               { key: 'status', title: '状态', render: (r) => <Badge color={String(r.status) === 'running' ? 'green' : 'slate'}>{String(r.status ?? '?')}</Badge> },
               {

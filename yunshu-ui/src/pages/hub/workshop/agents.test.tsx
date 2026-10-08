@@ -70,14 +70,46 @@ function envelope(data: unknown, status = 200) {
   } as unknown as Response
 }
 
-const fetchMock = vi.fn(async (url: string) => {
+/** 后端 `GET /api/subagent/list` 载荷：三行覆盖"指定 / 跟随 / 指定未生效"三档 */
+const LIST_PAYLOAD = {
+  ok: true, count: 3, channel: {},
+  llm: {
+    model: 'deepseek-flash', provider: 'deepseek',
+    options: [
+      { model: 'deepseek-flash', source: 'deployment' },
+      { model: 'deepseek-v4-pro', source: 'declared' },
+    ],
+  },
+  subagents: [
+    {
+      name: 'alpha', model_id: 'deepseek-v4-pro', memory_provider: 'holographic', status: 'running',
+      llm: { requested: 'deepseek-v4-pro', model: 'deepseek-v4-pro', source: 'explicit', error: '' },
+    },
+    {
+      name: 'beta', model_id: '', memory_provider: 'holographic', status: 'idle',
+      llm: { requested: '', model: 'deepseek-flash', source: 'inherit', error: '' },
+    },
+    {
+      name: 'gamma', model_id: 'gpt-4', memory_provider: 'holographic', status: 'idle',
+      llm: {
+        requested: 'gpt-4', model: 'deepseek-flash', source: 'fallback-after-error',
+        error: '派生模型 gpt-4 失败（RuntimeError: 模型名不被接受）：已回退到母体模型 deepseek-flash',
+      },
+    },
+  ],
+}
+
+const postCalls: { url: string; body: Record<string, unknown> }[] = []
+
+const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
   const u = String(url)
-  if (u.includes('/api/subagent/list')) {
-    return envelope({
-      ok: true, count: 1, channel: {},
-      subagents: [{ name: 'alpha', model_id: 'gpt-4o', memory_provider: 'holographic', status: 'running' }],
-    })
+  if (init?.method === 'POST') {
+    let body: Record<string, unknown> = {}
+    try { body = JSON.parse(String(init.body ?? '{}')) } catch { body = {} }
+    postCalls.push({ url: u, body })
+    return envelope({ ok: true })
   }
+  if (u.includes('/api/subagent/list')) return envelope(LIST_PAYLOAD)
   if (u.includes('/api/agent-lines/planes')) return json(PLANES)
   if (u.includes('/api/agent-lines')) {
     if (/\/api\/agent-lines\/[^/?]+$/.test(u)) return json(DETAIL)
@@ -94,6 +126,7 @@ const { WORKSHOP_VIEWS, WORKSHOP_VIEW_STORAGE_KEY } = mod
 beforeEach(() => {
   localStorage.clear()
   fetchMock.mockClear()
+  postCalls.length = 0
 })
 afterEach(cleanup)
 
@@ -163,9 +196,73 @@ describe('装配车间 · 分身创建与组装（三视图）', () => {
     expect(screen.getByRole('tab', { name: /主线 × 四面/ })).toHaveAttribute('aria-selected', 'true')
   })
 
-  it('分身视图如实说明：工具集由主线档案决定，表单三个字段是声明字段', async () => {
+  it('分身视图如实说明：工具集由主线档案决定；模型已接线、记忆/工具源仍是声明字段', async () => {
     render(<WorkshopAgents />)
     await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
-    expect(screen.getByText(/分身的工具集由「主线档案」决定/)).toBeInTheDocument()
+    expect(screen.getByText(/工具集由「主线档案」决定/)).toBeInTheDocument()
+    expect(screen.getByText(/模型已接线/)).toBeInTheDocument()
+    expect(screen.getByText(/记忆提供商 \/ 工具源仍是/)).toBeInTheDocument()
+  })
+
+  // ═══════════════════════════════════════════════════════════
+  //  分身独立 LLM：表格显示"实际生效"，表单不再暗示"声明即生效"
+  // ═══════════════════════════════════════════════════════════
+
+  it('模型列显示**实际生效**的模型（不是配置里那串声明的名字）', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    const cell = (name: string) =>
+      screen.getByTestId(`subagent-llm-${name}`).textContent ?? ''
+    expect(cell('alpha')).toContain('deepseek-v4-pro')
+    expect(cell('alpha')).toContain('指定模型')
+    // beta 配置里 model_id 是空串 ⇒ 显示母体当前模型，并标"跟随母体"
+    expect(cell('beta')).toContain('deepseek-flash')
+    expect(cell('beta')).toContain('跟随母体')
+    // gamma 指定了 gpt-4 但没生效 ⇒ 显示母体模型 + 红档"指定未生效"（不许静默）
+    expect(cell('gamma')).toContain('deepseek-flash')
+    expect(cell('gamma')).toContain('指定未生效')
+    expect(cell('gamma')).toContain('回退原因')
+  })
+
+  it('未生效那行把后端回退原因原样挂在 title 上', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('gamma')).toBeInTheDocument())
+    const cell = screen.getByTestId('subagent-llm-gamma')
+    const reason = cell.querySelector('[title]')
+    expect(reason?.getAttribute('title')).toContain('派生模型 gpt-4 失败')
+  })
+
+  it('创建表单：模型候选来自后端（部署默认 + 已声明），placeholder 写明"留空=跟随母体"', async () => {
+    const { container } = render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('创建分身'))
+    const input = screen.getByTestId('subagent-model-input')
+    expect(input.getAttribute('placeholder')).toContain('跟随母体')
+    expect(input.getAttribute('placeholder')).toContain('deepseek-flash')
+    const options = Array.from(container.querySelectorAll('#subagent-model-options option'))
+      .map((o) => o.getAttribute('value'))
+    expect(options).toEqual(['deepseek-flash', 'deepseek-v4-pro'])
+  })
+
+  it('模型留空创建 ⇒ POST model_id 为空串（"跟随母体"是真语义，不抄母体模型名）', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('创建分身'))
+    fireEvent.change(screen.getByPlaceholderText('分身名称 *'), { target: { value: 'delta' } })
+    fireEvent.click(screen.getByText('组装分身'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].url).toContain('/api/subagent/create')
+    expect(postCalls[0].body.model_id).toBe('')
+  })
+
+  it('填了模型则按填的提交', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('创建分身'))
+    fireEvent.change(screen.getByPlaceholderText('分身名称 *'), { target: { value: 'epsilon' } })
+    fireEvent.change(screen.getByTestId('subagent-model-input'), { target: { value: '  deepseek-v4-pro  ' } })
+    fireEvent.click(screen.getByText('组装分身'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].body.model_id).toBe('deepseek-v4-pro')
   })
 })
