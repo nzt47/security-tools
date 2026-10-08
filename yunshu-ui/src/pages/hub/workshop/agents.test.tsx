@@ -83,17 +83,18 @@ const LIST_PAYLOAD = {
   subagents: [
     {
       name: 'alpha', model_id: 'deepseek-v4-pro', memory_provider: 'holographic', status: 'running',
-      llm: { requested: 'deepseek-v4-pro', model: 'deepseek-v4-pro', source: 'explicit', error: '' },
+      llm: { requested: 'deepseek-v4-pro', model: 'deepseek-v4-pro', source: 'explicit', error: '', temperature: null },
     },
     {
-      name: 'beta', model_id: '', memory_provider: 'holographic', status: 'idle',
-      llm: { requested: '', model: 'deepseek-flash', source: 'inherit', error: '' },
+      name: 'beta', model_id: '', memory_provider: 'holographic', status: 'idle', llm_temperature: 0.25,
+      llm: { requested: '', model: 'deepseek-flash', source: 'inherit', error: '', temperature: 0.25 },
     },
     {
       name: 'gamma', model_id: 'gpt-4', memory_provider: 'holographic', status: 'idle',
       llm: {
         requested: 'gpt-4', model: 'deepseek-flash', source: 'fallback-after-error',
         error: '派生模型 gpt-4 失败（RuntimeError: 模型名不被接受）：已回退到母体模型 deepseek-flash',
+        temperature: null,
       },
     },
   ],
@@ -264,5 +265,37 @@ describe('装配车间 · 分身创建与组装（三视图）', () => {
     fireEvent.click(screen.getByText('组装分身'))
     await waitFor(() => expect(postCalls.length).toBe(1))
     expect(postCalls[0].body.model_id).toBe('deepseek-v4-pro')
+  })
+
+  // ── 生成温度：表态才显示、表态才发送（"没表态" ≠ "0.0"）──────
+
+  it('温度列：表态的显示 T=…，未表态的**不显示**（不把"没表态"说成"最确定性"）', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    const beta = screen.getByTestId('subagent-llm-beta')
+    expect(beta.querySelector('[data-testid="subagent-llm-temperature"]')?.textContent).toBe('T=0.25')
+    const alpha = screen.getByTestId('subagent-llm-alpha')
+    expect(alpha.querySelector('[data-testid="subagent-llm-temperature"]')).toBeNull()
+  })
+
+  it('温度留空创建 ⇒ **不发** llm_temperature 键（= 不干预执行器默认，而不是发 0）', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('创建分身'))
+    fireEvent.change(screen.getByPlaceholderText('分身名称 *'), { target: { value: 'zeta' } })
+    fireEvent.click(screen.getByText('组装分身'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect('llm_temperature' in postCalls[0].body).toBe(false)
+  })
+
+  it('温度填了则按数字提交（含 0 —— 0 是"要最确定性"，必须发出去）', async () => {
+    render(<WorkshopAgents />)
+    await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('创建分身'))
+    fireEvent.change(screen.getByPlaceholderText('分身名称 *'), { target: { value: 'eta' } })
+    fireEvent.change(screen.getByTestId('subagent-temperature-input'), { target: { value: '0' } })
+    fireEvent.click(screen.getByText('组装分身'))
+    await waitFor(() => expect(postCalls.length).toBe(1))
+    expect(postCalls[0].body.llm_temperature).toBe(0)
   })
 })

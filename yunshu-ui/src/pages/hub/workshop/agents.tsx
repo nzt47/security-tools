@@ -57,6 +57,8 @@ interface SubagentLlm {
   /** inherit=跟随母体 / explicit=指定且已派生 / fallback-after-error=指定未生效已回退 */
   source?: string
   error?: string
+  /** 实际生效的生成温度；null/undefined = **未干预**执行器默认（不是 0.0） */
+  temperature?: number | null
 }
 
 /** 部署级 LLM 事实 + 可选模型清单（`GET /api/subagent/list` 的 `llm` 段） */
@@ -145,6 +147,8 @@ function SubagentView() {
   const [name, setName] = useState('')
   // 空 = 跟随母体（后端真语义；不再靠"抄一个母体模型名"来伪装跟随）
   const [model, setModel] = useState('')
+  // 空 = 不干预执行器默认（不是 0.0）；填了则必须 0.0–2.0（越界后端 400）
+  const [temperature, setTemperature] = useState('')
   const [memory, setMemory] = useState('default')
   const [tools, setTools] = useState('')
 
@@ -161,15 +165,19 @@ function SubagentView() {
 
   const create = async () => {
     try {
-      await hubPost(SUBAGENT_CREATE, {
+      const body: Record<string, unknown> = {
         name,
         model_id: model.trim(),  // 空串 = 跟随母体（后端按 inherit 档解析）
         memory_provider: memory,
         tool_sources: tools ? tools.split(',').map((t) => t.trim()).filter(Boolean) : [],
         tags: ['hub'],
-      })
+      }
+      // 温度：留空**不发这个键**（= 不干预执行器默认），而不是发 0
+      const t = temperature.trim()
+      if (t) body.llm_temperature = Number(t)
+      await hubPost(SUBAGENT_CREATE, body)
       setShowForm(false)
-      setName(''); setTools('')
+      setName(''); setTools(''); setTemperature('')
       load()
     } catch (e) { setError(String(e)) }
   }
@@ -218,6 +226,15 @@ function SubagentView() {
             </datalist>
             <input value={memory} onChange={(e) => setMemory(e.target.value)} placeholder="记忆提供商" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
             <input value={tools} onChange={(e) => setTools(e.target.value)} placeholder="工具源(逗号分隔)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
+            {/* 温度：留空 = 不干预执行器默认（**不是 0**）；越界由后端 400，前端不做静默夹取 */}
+            <input
+              value={temperature}
+              onChange={(e) => setTemperature(e.target.value)}
+              inputMode="decimal"
+              data-testid="subagent-temperature-input"
+              placeholder="生成温度 0.0–2.0（留空 = 默认）"
+              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+            />
           </div>
           <div className="mt-3 flex items-center gap-2">
             <button onClick={create} className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500">
@@ -239,11 +256,18 @@ function SubagentView() {
                 render: (r) => {
                   const llm = r.llm
                   const effective = String(llm?.model || r.model_id || '')
+                  const t = llm?.temperature
                   return (
                     <span className="flex flex-wrap items-center gap-1.5" data-testid={`subagent-llm-${String(r.name)}`}>
                       <span className="font-mono text-xs text-cyan-400" data-testid="subagent-llm-model">
                         {effective || '未解析'}
                       </span>
+                      {/* 温度：null/undefined = 未干预（**不显示 T=0**，那会把"没表态"说成"最确定性"） */}
+                      {typeof t === 'number' && (
+                        <span className="font-mono text-[11px] text-slate-400" data-testid="subagent-llm-temperature">
+                          T={t}
+                        </span>
+                      )}
                       <LlmSourceBadge llm={llm} />
                       {llm?.error && (
                         <span className="text-[10px] text-red-300" title={String(llm.error)}>

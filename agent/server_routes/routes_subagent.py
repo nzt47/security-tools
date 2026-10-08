@@ -149,12 +149,35 @@ def _subagent_with_llm(subagent: Any, parent_llm: Any) -> Dict[str, Any]:
         from agent.subagent.llm_factory import resolve_subagent_llm
 
         row["llm"] = resolve_subagent_llm(row.get("model_id", ""),
-                                          parent_llm=parent_llm).to_dict()
+                                          parent_llm=parent_llm,
+                                          temperature=row.get("llm_temperature")).to_dict()
     except Exception as e:  # noqa: BLE001
         logger.warning("[SubagentAPI] 分身 %s 的 LLM 解析失败: %s", row.get("name"), e)
         row["llm"] = {"requested": str(row.get("model_id") or ""), "model": "",
                       "source": "fallback-after-error", "error": str(e)}
     return row
+
+
+def _llm_temperature(data: Dict[str, Any], default: Any = None) -> Any:
+    """读并校验分身的生成温度（``llm_temperature``）
+
+    ``None`` / 缺省 / 空串 ⇒ 返回 ``None``（**不干预**执行器默认，不是 0.0：
+    "没表态"与"要最确定性"是两回事）。给了值就**必须**是 0.0–2.0 的有限数
+    （越界即 ValueError，调用方转 400）—— 不做静默夹取：悄悄把 3.0 改成 2.0
+    就是替使用者改了参数，而他会以为 3.0 生效了。
+    """
+    raw = data.get("llm_temperature", default)
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"llm_temperature 必须是数字（0.0–2.0），收到: {raw!r}") from e
+    if value != value or value in (float("inf"), float("-inf")):  # NaN / ±inf
+        raise ValueError(f"llm_temperature 必须是有限数字，收到: {raw!r}")
+    if value < 0.0 or value > 2.0:
+        raise ValueError(f"llm_temperature 越界（须在 0.0–2.0）：{value}")
+    return value
 
 
 def _granted_tools() -> tuple:
@@ -355,6 +378,8 @@ def register_routes(app, state):
                 "context_window": data.get("context_window", 4096),
                 "tags": data.get("tags", []),
                 "ttl_seconds": data.get("ttl_seconds", 0),
+                # 生成温度：None = 不干预执行器默认；给了值走 llm_factory 的温度包装
+                "llm_temperature": _llm_temperature(data),
             }
 
             container = Yunshu.create_subagent(config)
@@ -486,7 +511,8 @@ def register_routes(app, state):
 
             resolution = resolve_subagent_llm(
                 getattr(getattr(container, "config", None), "model_id", ""),
-                parent_llm=getattr(Yunshu, "_llm", None))
+                parent_llm=getattr(Yunshu, "_llm", None),
+                temperature=getattr(getattr(container, "config", None), "llm_temperature", None))
             if resolution.source == "fallback-after-error":
                 logger.warning("[SubagentAPI] 分身 %s 的指定模型未生效（已回退母体）: %s",
                                name, resolution.error)
@@ -620,6 +646,8 @@ def register_routes(app, state):
                 "context_window": data.get("context_window", current["context_window"]),
                 "tags": data.get("tags", current.get("tags", [])),
                 "ttl_seconds": data.get("ttl_seconds", current.get("ttl_seconds", 0)),
+                # 温度同款校验：越界即 400（不静默夹取）；未传则沿用现值
+                "llm_temperature": _llm_temperature(data, current.get("llm_temperature")),
             }
 
             Yunshu.hot_reload_subagent(name, new_config)
@@ -629,5 +657,7 @@ def register_routes(app, state):
                 "subagent": updated,
                 "message": f"分身 '{name}' 热更新完成",
             })
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500

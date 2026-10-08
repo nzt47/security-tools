@@ -91,6 +91,9 @@ class LlmResolution:
     error: str = ""
     """``fallback-after-error`` 时的原因原文；其余档为空串。"""
 
+    temperature: Optional[float] = None
+    """实际生效的生成温度；``None`` = **未干预**（执行器默认），不是 0.0。"""
+
     def to_dict(self) -> Dict[str, Any]:
         """投影给 HTTP/UI 的字段（**绝不含 llm 对象与任何密钥**）"""
         return {
@@ -98,41 +101,100 @@ class LlmResolution:
             "model": self.model,
             "source": self.source,
             "error": self.error,
+            "temperature": self.temperature,
         }
 
 
-def resolve_subagent_llm(model_id: Any = "", parent_llm: Any = None) -> LlmResolution:
-    """按分身的 ``model_id`` 解析出它该用的 LLM（不抛；三档来源见模块 docstring）
+class TemperaturePinnedLLM:
+    """把生成温度钉在某个值的 LLM 包装（**只包 chat / chat_stream 一层**）
+
+    【为什么用包装而不是改 LLMService】温度在本仓是 ``chat(..., temperature=...)`` 的
+    **逐次调用参数**（`memory/llm_service.py`），执行器调用时用的是缺省值。要让"某个分身
+    固定用 0.2"生效，只能在**调用面**注入 —— 不能去改 ``LLMService`` 的默认值：那是
+    provider 级全局项，改它等于把母体与所有其它分身的温度一起改了。
+
+    【只碰 temperature】provider / api_key / base_url 仍来自被包装的实例（部署级权威）；
+    本类不读配置、不建客户端、不碰密钥。
+    【__getattr__ 透传】调用方（执行器、日志、`model_name()`）会读 ``model`` / ``provider``
+    等属性；不透明转发会把"实际模型名"读丢（那正是本轮要如实显示的东西）。
+    """
+
+    def __init__(self, inner: Any, temperature: float):
+        self._inner = inner
+        self._temperature = float(temperature)
+
+    @property
+    def temperature(self) -> float:
+        return self._temperature
+
+    def chat(self, messages: Any, system_prompt: str = "",
+             max_tokens: int = 1024, temperature: float = 0.7) -> Any:
+        return self._inner.chat(messages, system_prompt=system_prompt,
+                                max_tokens=max_tokens, temperature=self._temperature)
+
+    def chat_stream(self, messages: Any, system_prompt: str = "",
+                    max_tokens: int = 1024, temperature: float = 0.7) -> Any:
+        """流式对话：同样只把温度钉住
+
+        【为什么**不**收 `**kw` 转发】本仓的关键字参数冲突扫描（`scripts/scan_kwarg_conflicts.py`，
+        pre-commit HIGH 阻断）把"显式 kwargs + `**dict` 转发"判为 HIGH：一旦上游字典里出现
+        同名键，就会 `TypeError: got multiple values for keyword argument`。
+        本包装只需要钉温度一个参数，故**只声明已知形参、不转发未知 kwargs** —— 少一个转发点，
+        就少一处"上游加参数时这里悄悄炸"的地方（实测该模式被扫描器拦下）。
+        """
+        return self._inner.chat_stream(messages, system_prompt=system_prompt,
+                                       max_tokens=max_tokens,
+                                       temperature=self._temperature)
+
+    def __getattr__(self, name: str) -> Any:
+        # 只在实例属性找不到时走到这里（_inner / _temperature 是实例属性，不会递归）
+        return getattr(self._inner, name)
+
+
+def _pin_temperature(llm: Any, temperature: Optional[float]) -> Any:
+    """温度未表态（None）⇒ 原样返回（**身份不变**，便于"没表态"与"表态了"区分）；否则包一层"""
+    if temperature is None:
+        return llm
+    return TemperaturePinnedLLM(llm, temperature)
+
+
+def resolve_subagent_llm(model_id: Any = "", parent_llm: Any = None,
+                        temperature: Optional[float] = None) -> LlmResolution:
+    """按分身的 ``model_id`` / ``llm_temperature`` 解析出它该用的 LLM（不抛；三档来源见模块 docstring）
 
     Args:
         model_id: 分身配置里的模型名；空/``inherit``/``跟随母体`` ⇒ 跟随母体。
         parent_llm: 母体当前 LLM（缺省 None ⇒ 无法派生，回 ``fallback-after-error``）。
+        temperature: 分身的生成温度；``None`` = 不干预（执行器默认）。
+            给了值 ⇒ 返回的实例是 `TemperaturePinnedLLM` 包装（**继承档也包**：
+            温度是逐次调用参数，与"用哪个模型实例"是两件事）。
 
     Returns:
-        `LlmResolution`。
+        `LlmResolution`（``temperature`` 为实际生效值；``None`` 表示未干预）。
     """
     requested = str(model_id or "").strip()
     parent_model = model_name(parent_llm)
 
     if _is_inherit(requested):
-        return LlmResolution(llm=parent_llm, requested=requested, model=parent_model,
-                             source="inherit")
+        return LlmResolution(llm=_pin_temperature(parent_llm, temperature), requested=requested,
+                             model=parent_model, source="inherit", temperature=temperature)
 
     if parent_llm is None:
         return LlmResolution(
             llm=None, requested=requested, model="", source="fallback-after-error",
-            error="无母体 LLM 可派生（配置未就绪）：已回退，本次委派不会用指定模型")
+            error="无母体 LLM 可派生（配置未就绪）：已回退，本次委派不会用指定模型",
+            temperature=None)
 
     # 指定的就是母体当前模型 ⇒ 复用母体实例（不为"相同模型"造一个影子，免得来源显示成 explicit）
     if requested == parent_model:
-        return LlmResolution(llm=parent_llm, requested=requested, model=parent_model,
-                             source="inherit")
+        return LlmResolution(llm=_pin_temperature(parent_llm, temperature), requested=requested,
+                             model=parent_model, source="inherit", temperature=temperature)
 
     with_model = getattr(parent_llm, "with_model", None)
     if not callable(with_model):
         return LlmResolution(
-            llm=parent_llm, requested=requested, model=parent_model,
-            source="fallback-after-error",
+            llm=_pin_temperature(parent_llm, temperature), requested=requested, model=parent_model,
+            source="fallback-after-error", temperature=temperature,
             error=("母体 LLM 不支持按模型派生（缺 with_model，见 memory/llm_service.py）："
                    f"已回退到母体模型 {parent_model or '<未知>'}"))
 
@@ -140,13 +202,14 @@ def resolve_subagent_llm(model_id: Any = "", parent_llm: Any = None) -> LlmResol
         child = with_model(requested)
     except Exception as e:  # noqa: BLE001 派生失败不得让委派挂掉（但必须被看见）
         return LlmResolution(
-            llm=parent_llm, requested=requested, model=parent_model,
-            source="fallback-after-error",
+            llm=_pin_temperature(parent_llm, temperature), requested=requested, model=parent_model,
+            source="fallback-after-error", temperature=temperature,
             error=(f"派生模型 {requested} 失败（{type(e).__name__}: {e}）："
                    f"已回退到母体模型 {parent_model or '<未知>'}"))
 
-    return LlmResolution(llm=child, requested=requested, model=model_name(child) or requested,
-                         source="explicit")
+    return LlmResolution(llm=_pin_temperature(child, temperature), requested=requested,
+                         model=model_name(child) or requested, source="explicit",
+                         temperature=temperature)
 
 
 def llm_options(deployment_model: str,
@@ -177,4 +240,5 @@ def llm_options(deployment_model: str,
     return {"model": model, "options": options}
 
 
-__all__ = ["LlmResolution", "llm_options", "model_name", "resolve_subagent_llm"]
+__all__ = ["LlmResolution", "TemperaturePinnedLLM", "llm_options", "model_name",
+           "resolve_subagent_llm"]

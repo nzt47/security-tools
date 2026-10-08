@@ -529,6 +529,8 @@ class SubagentLifecycleManager:
                         "name": sa.config.name,
                         "model_id": sa.config.model_id,
                         "memory_provider": sa.config.memory_provider,
+                        # 生成温度随状态回显（None = 未干预执行器默认）；列表页据此显示 T=…
+                        "llm_temperature": sa.config.llm_temperature,
                         "permissions": list(sa.config.permissions),
                         "context_size": len(sa.context),
                         "age_seconds": round(sa.age_seconds, 1),

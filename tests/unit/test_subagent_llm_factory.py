@@ -185,7 +185,7 @@ class TestProjection:
     def test_to_dict_键集固定且不含密钥(self):
         parent = SpyLLM("m-a")
         payload = resolve_subagent_llm("m-b", parent_llm=parent).to_dict()
-        assert set(payload) == {"requested", "model", "source", "error"}
+        assert set(payload) == {"requested", "model", "source", "error", "temperature"}
         blob = json.dumps(payload, ensure_ascii=False)
         for forbidden in ("api_key", "sk-", "sk_test", "bearer", FAKE_KEY):
             assert forbidden not in blob
@@ -214,3 +214,87 @@ class TestProjection:
         assert isinstance(res, LlmResolution)
         with pytest.raises(Exception):
             res.model = "改写"  # type: ignore[misc]
+
+
+# ════════════════════════════════════════════════════════════
+#  5. 生成温度（llm_temperature）：只在调用面钉温，不碰 provider / 密钥
+# ════════════════════════════════════════════════════════════
+
+
+class RecordingLLM:
+    """记录每次 chat / chat_stream 的实参（含 temperature）"""
+
+    def __init__(self, model: str = "m-a", provider: str = "deepseek",
+                 api_key: str = "sk-inner"):
+        self.model = model
+        self.provider = provider
+        self.api_key = api_key
+        self.calls: list = []
+
+    def chat(self, messages, system_prompt="", max_tokens=1024, temperature=0.7):
+        self.calls.append(("chat", temperature))
+        return f"reply@{temperature}"
+
+    def chat_stream(self, messages, system_prompt="", max_tokens=1024, temperature=0.7, **kw):
+        self.calls.append(("stream", temperature))
+        return iter([f"chunk@{temperature}"])
+
+    def with_model(self, model):
+        return RecordingLLM(model, self.provider, self.api_key)
+
+
+class TestTemperature:
+    def test_未表态_不包装且身份不变(self):
+        """None = 不干预执行器默认 —— 必须**原样返回实例**，否则"没表态"与"表态了"分不清"""
+        parent = RecordingLLM("m-a")
+        res = resolve_subagent_llm("", parent_llm=parent)
+        assert res.llm is parent
+        assert res.temperature is None
+        assert res.to_dict()["temperature"] is None
+
+    def test_表态_包装后_chat_按钉住的温度调用(self):
+        parent = RecordingLLM("m-a")
+        res = resolve_subagent_llm("", parent_llm=parent, temperature=0.2)
+        assert res.temperature == 0.2
+        # 只改温度：调用方再传 0.9 也必须被钉成 0.2
+        assert res.llm.chat([{"role": "user", "content": "x"}], temperature=0.9) == "reply@0.2"
+        assert parent.calls == [("chat", 0.2)]
+
+    def test_表态_包装后_chat_stream_同样被钉住(self):
+        res = resolve_subagent_llm("", parent_llm=RecordingLLM("m-a"), temperature=1.5)
+        assert list(res.llm.chat_stream([])) == ["chunk@1.5"]
+
+    def test_包装透明转发其它属性(self):
+        """model / provider / api_key 必须读得到（否则界面会把"实际模型名"读丢）"""
+        res = resolve_subagent_llm("", parent_llm=RecordingLLM("m-a"), temperature=0.2)
+        assert model_name(res.llm) == "m-a"
+        assert res.llm.provider == "deepseek"
+        assert res.llm.api_key == "sk-inner", "密钥取自部署实例，不由分身配置提供"
+
+    def test_指定模型_温度同时生效(self):
+        parent = RecordingLLM("m-a")
+        res = resolve_subagent_llm("m-b", parent_llm=parent, temperature=0.0)
+        assert res.source == "explicit"
+        assert res.model == "m-b"
+        assert res.temperature == 0.0
+        assert res.llm.chat([]) == "reply@0.0", "0.0 是「要最确定性」，必须真钉住"
+        assert res.to_dict()["temperature"] == 0.0
+
+    def test_回退档_温度仍然生效(self):
+        """模型没派生成，温度不该跟着丢：回退的是模型，不是整份配置"""
+
+        class Boom(RecordingLLM):
+            def with_model(self, model):
+                raise RuntimeError("no")
+
+        res = resolve_subagent_llm("m-b", parent_llm=Boom("m-a"), temperature=0.3)
+        assert res.source == "fallback-after-error"
+        assert res.model == "m-a"
+        assert res.temperature == 0.3
+        assert res.llm.chat([]) == "reply@0.3"
+
+    def test_投影含温度且仍不含密钥(self):
+        res = resolve_subagent_llm("", parent_llm=RecordingLLM("m-a"), temperature=0.7)
+        payload = res.to_dict()
+        assert payload["temperature"] == 0.7
+        assert "sk-inner" not in json.dumps(payload)
