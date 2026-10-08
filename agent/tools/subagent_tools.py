@@ -201,6 +201,12 @@ def _result_from_outcome(outcome: Any, ctx: Any) -> Dict[str, Any]:
     if isinstance(role_audit, Mapping) and role_audit:
         result["role_audit"] = dict(role_audit)
 
+    # brokered 记忆解析结果（仅启用时存在）：把"这次取没取到记忆、有没有降级"如实回给
+    # 调用方。**不含记忆正文**（正文只在 ②约束里）；默认档为空 ⇒ 不出现该键。
+    memory = getattr(outcome, "memory", None)
+    if isinstance(memory, Mapping) and memory:
+        result["memory"] = dict(memory)
+
     artifacts = getattr(outcome, "artifacts", ()) or ()
     if artifacts:
         result["artifact_count"] = len(artifacts)

@@ -47,7 +47,7 @@ import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Dict, FrozenSet, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from agent.security.actor_matrix import ACTOR_SUB_AGENT
@@ -143,6 +143,9 @@ class ExecutionOutcome:
         role_audit: 角色档位的审计留痕证据（`{action, tier, recorded, ...}`）；
             默认档（`template`）为空 dict，非默认档必有该键（`recorded=False` 表示
             审计写入失败 —— **如实报告**，不伪装成"已留痕"）。
+        memory: brokered 记忆档的解析结果（`{mode, source, constraint_chars,
+            degraded, memory_count, recorded}`）；**不含记忆正文**。
+            none 档为空 dict（默认路径不新增该键，与 role_audit 同款"有才回"）。
     """
 
     delegation_id: str = ""
@@ -171,6 +174,7 @@ class ExecutionOutcome:
     sub_reason: str = ""
     invocation: Optional[Dict[str, Any]] = None
     role_audit: Dict[str, Any] = field(default_factory=dict)
+    memory: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def has_credentials(self) -> bool:
@@ -201,6 +205,7 @@ class ExecutionOutcome:
             "cost": (self.cost.to_dict() if self.cost else None),
             "invocation": self.invocation,
             "role_audit": dict(self.role_audit),
+            "memory": dict(self.memory),
         }
 
 
@@ -378,6 +383,7 @@ class DelegationExecutor:
         output_format: str = DEFAULT_OUTPUT_FORMAT,
         trusted: bool = False,
         container_root: str = "",
+        memory_broker: Any = None,
     ) -> None:
         """
         Args:
@@ -402,6 +408,10 @@ class DelegationExecutor:
             output_format: ``--output-format``。
             trusted: 是否可信执行（**默认 False** = 第三方隔离，§5.9）。
             container_root: 隔离容器工作根（用作 HOME 指向）。
+            memory_broker: brokered 记忆取用器（**注入点**；签名见
+                `agent.memory.broker.assemble_brokered_context`）。缺省 None = 用默认实现
+                （**只在 `ctx.metadata['memory_mode']=='brokered'` 时才会被调用**；
+                默认档 none 绝不触达 ⇒ 逐字旧行为）。
         """
         self._agent_cli = str(agent_cli or "")
         self._llm = llm
@@ -420,6 +430,7 @@ class DelegationExecutor:
         self._output_format = str(output_format or DEFAULT_OUTPUT_FORMAT)
         self._trusted = bool(trusted)
         self._container_root = str(container_root or "")
+        self._memory_broker = memory_broker
         self._lock = threading.Lock()
         self._workspace_ready = False
 
@@ -520,13 +531,96 @@ class DelegationExecutor:
                 duration_ms=(time.time() - start) * 1000, sub_reason="backpressure",
                 toolset=toolset.as_manifest())
         try:
-            return self._execute_locked(ctx, toolset=toolset, credentials=credentials,
-                                        parent_trace=parent_trace,
-                                        input_text=input_text or ctx.goal,
-                                        system_prompt=system_prompt, role_tier=role_tier,
-                                        start=start)
+            # ── 步骤 1.5：brokered 记忆注入（**在 _execute_locked 之前**，逐字影响 task_file）──
+            ctx, memory = self._apply_memory_broker(ctx)
+            outcome = self._execute_locked(ctx, toolset=toolset, credentials=credentials,
+                                           parent_trace=parent_trace,
+                                           input_text=input_text or ctx.goal,
+                                           system_prompt=system_prompt, role_tier=role_tier,
+                                           start=start)
+            if memory:
+                # none 档 memory 为空 ⇒ 不设（outcome.memory 保持空 dict，逐字旧行为）
+                outcome.memory = dict(memory)
+            return outcome
         finally:
             self._barrier.release()
+
+    def _apply_memory_broker(self, ctx: DelegationContext) -> Tuple[DelegationContext, Dict[str, Any]]:
+        """按 `ctx.metadata['memory_mode']` 调 brokered 记忆取用器（**fail-soft**）
+
+        ``none``（默认）/ 任何非 brokered 档 ⇒ 原样返回（逐字旧行为）。
+        brokered 且取到非空正文 ⇒ 追加**一条**带来源/域标注的 ②约束，并把
+        memory_ids / tenancy（标识，非正文）写进 metadata；取不到 ⇒ ctx 原样不动，
+        但把降级原因放进返回的 memory 段（如实报告，不静默）。
+
+        Returns:
+            `(ctx_or_new_ctx, memory_segment)`；memory_segment 为空 dict = 未启用。
+        """
+        meta = getattr(ctx, "metadata", None) or {}
+        mode = str(meta.get("memory_mode", "") or "").strip().lower()
+        if mode != "brokered":
+            return ctx, {}
+
+        scope = meta.get("memory_scope") or {}
+        broker = self._memory_broker
+        if broker is None:
+            from agent.memory.broker import assemble_brokered_context as broker  # type: ignore[assignment]
+
+        base: Dict[str, Any] = {"mode": "brokered", "source": "", "constraint_chars": 0,
+                                "degraded": "", "memory_count": 0}
+        try:
+            bc = broker(ctx.goal, scope=scope,
+                        expected_tenant_id=ctx.tenant_id,
+                        expected_workspace_id=str(meta.get("workspace_id", "") or ""),
+                        expected_subject_id=ctx.subject_id)
+        except Exception as e:  # noqa: BLE001 取用器异常绝不阻断委派
+            logger.warning("[Executor] brokered 记忆取用异常（降级，不阻断委派）: %s", e)
+            base["degraded"] = "broker_failed:%s" % type(e).__name__
+            base["recorded"] = self._audit_memory_broker(ctx, base)
+            return ctx, base
+
+        try:
+            from agent.memory.broker import render_constraint
+        except Exception as e:  # noqa: BLE001 渲染依赖不可用 ⇒ 降级
+            logger.warning("[Executor] brokered 记忆渲染不可用（降级）: %s", e)
+            base["degraded"] = "render_unavailable:%s" % type(e).__name__
+            base["recorded"] = self._audit_memory_broker(ctx, base)
+            return ctx, base
+
+        base["source"] = str(getattr(bc, "provider", "") or "")
+        base["degraded"] = str(getattr(bc, "degraded", "") or "")
+        constraint = render_constraint(bc)
+        if not constraint:
+            # 没取到正文：**ctx 原样不动**（不注入空行），但如实报告降级
+            base["degraded"] = base["degraded"] or "empty_recall"
+            base["recorded"] = self._audit_memory_broker(ctx, base)
+            return ctx, base
+
+        new_meta: Dict[str, Any] = dict(meta)
+        new_meta["memory_ids"] = list(getattr(bc, "memory_ids", ()) or ())
+        new_meta["memory_tenancy"] = dict(getattr(bc, "tenancy", None) or {})
+        new_meta["memory_degraded"] = base["degraded"]
+        new_ctx = replace(ctx, constraints=tuple(ctx.constraints) + (constraint,),
+                          metadata=new_meta)
+        base["constraint_chars"] = len(constraint)
+        base["memory_count"] = len(new_meta["memory_ids"])
+        base["recorded"] = self._audit_memory_broker(ctx, base)
+        return new_ctx, base
+
+    def _audit_memory_broker(self, ctx: DelegationContext,
+                             memory: Mapping[str, Any]) -> bool:
+        """写一条 `subagent.memory.brokered` 审计（返回是否真的写入）
+
+        与角色档位同款：显式启用记忆注入是**安全姿态变更**，必须在实跑这一刻留痕。
+        默认档 none 绝不触达本方法（噪声不是留痕）。**payload 不含记忆正文**。
+        """
+        payload = {"mode": str(memory.get("mode", "") or ""),
+                   "source": str(memory.get("source", "") or ""),
+                   "constraint_chars": int(memory.get("constraint_chars", 0) or 0),
+                   "memory_count": int(memory.get("memory_count", 0) or 0),
+                   "degraded": str(memory.get("degraded", "") or "")}
+        return self._audit_event_recorded("subagent.memory.brokered", ctx, payload,
+                                          status="enabled")
 
     def _execute_locked(self, ctx: DelegationContext, *, toolset: SubAgentToolset,
                         credentials: Sequence[Mapping[str, Any]], parent_trace: Any,

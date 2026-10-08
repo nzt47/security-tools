@@ -198,6 +198,12 @@ class SubagentLifecycleManager:
                 # 档位抬升（template → template+text/full-system）是**安全姿态变更**，
                 # 必须在热更新日志里点名；只改 role_text 不点名（正文不在这里落盘）
                 changes.append(f"role_mode: {subagent.config.role_mode} -> {new_config.role_mode}")
+            if getattr(new_config, "memory_mode", "none") != getattr(subagent.config, "memory_mode", "none"):
+                # 记忆档位变更（none → brokered）同样是**安全姿态变更**，必须点名；
+                # 只改 memory_scope 不点名（正文不在这里落盘）
+                changes.append("memory_mode: %s -> %s" % (
+                    getattr(subagent.config, "memory_mode", "none"),
+                    getattr(new_config, "memory_mode", "none")))
             if new_config.permissions != subagent.config.permissions:
                 changes.append(f"permissions: {subagent.config.permissions} -> {new_config.permissions}")
                 # 权限变更立即更新沙箱（模块已由 container.py 加载，sys.modules 命中）
@@ -316,6 +322,13 @@ class SubagentLifecycleManager:
             taken = name in self._subagents
         if taken:
             config = replace(config, name=f"{name}-{getattr(ctx, 'delegation_id', 'x')}")
+
+        # ── config→ctx 桥（delegate/delegate_many 共用）──
+        # 批量路径（delegate_many → executor.execute_many）**不经过容器**，故桥必须在这里
+        # 也做一遍；单发路径稍后再经 run_delegation 做（幂等）。memory_mode='none' ⇒ 不碰 ctx。
+        from agent.subagent.memory_broker import attach_memory_metadata
+
+        attach_memory_metadata(ctx, config)
         return config
 
     def _unavailable_outcome(self, ctx: Any, error: str) -> Any:

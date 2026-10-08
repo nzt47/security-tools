@@ -25,6 +25,13 @@ from agent.server_routes.tracing_decorator import trace_route
 from agent.api_envelope import ok as _ok
 from agent.subagent.delegation_history import delegation_history
 
+# P3 brokered 档：档位词表/校验的唯一口径（仅 stdlib 依赖，不拉记忆重模块）
+from agent.subagent.memory_broker import (
+    MemoryConfigError,
+    memory_view,
+    resolve_memory_config,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -235,6 +242,52 @@ def _role_fields(data: Dict[str, Any], base: Dict[str, Any] | None = None) -> Di
     return {"role_template": template, "role_text": text, "role_mode": plan.tier}
 
 
+def _live_memory_config(Yunshu: Any, name: str) -> Dict[str, Any]:
+    """取**存活容器**上的记忆档位字段（热更新未传字段时沿用现值）
+
+    与 `_live_role_config` 同款：memory_scope 是**标识**不是正文，但热更新仍读存活
+    容器的配置（不从状态投影取值），避免"改个模型顺手把记忆域清了"。
+    """
+    mgr = getattr(Yunshu, "_subagent_mgr", None)
+    container = mgr.get(name) if callable(getattr(mgr, "get", None)) else None
+    cfg = getattr(container, "config", None)
+    if cfg is None:
+        return {}
+    return {"memory_mode": getattr(cfg, "memory_mode", "none"),
+            "memory_scope": getattr(cfg, "memory_scope", None)}
+
+
+def _memory_fields(data: Dict[str, Any], base: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    """读并**校验**记忆两个字段（创建 / 热更新 / 临时委派共用一份口径）
+
+    校验在**进门时**做（而不是等到委派）：未知档位 / scoped（未实现）/ 默认档配非空域
+    都必须立刻 400，与 `_role_fields` 同款 —— 不静默夹取、不把错误留到运行时。
+
+    Raises:
+        MemoryConfigError: 记忆配置非法（调用方转 400 E_MEMORY_CONFIG）。
+    """
+    base = base or {}
+    mode = data.get("memory_mode", base.get("memory_mode", "none"))
+    scope = data.get("memory_scope", base.get("memory_scope"))
+    plan = resolve_memory_config(mode, scope)
+    if plan.error:
+        raise MemoryConfigError(plan.error)
+    return {"memory_mode": plan.mode,
+            "memory_scope": (dict(plan.scope) or None)}
+
+
+def _subagent_with_memory(row: Dict[str, Any]) -> Dict[str, Any]:
+    """给一条分身状态补上 memory 段（兜底没有容器的行；口径仍是同一个 resolve）"""
+    out = dict(row or {})
+    if "memory" in out:
+        return out
+    plan = resolve_memory_config(out.get("memory_mode", "none"), out.get("memory_scope"))
+    view = plan.to_dict()
+    view["provider"] = str(out.get("memory_provider", "") or "")
+    out["memory"] = view
+    return out
+
+
 def _llm_temperature(data: Dict[str, Any], default: Any = None) -> Any:
     """读并校验分身的生成温度（``llm_temperature``）
 
@@ -358,7 +411,8 @@ def register_routes(app, state):
         try:
             raw_subagents = Yunshu.list_subagents()
             parent_llm = getattr(Yunshu, "_llm", None)
-            subagents = [_subagent_with_role(_subagent_with_llm(sa, parent_llm))
+            subagents = [_subagent_with_memory(_subagent_with_role(
+                            _subagent_with_llm(sa, parent_llm)))
                          for sa in raw_subagents]
             return _ok({
                 "ok": True,
@@ -474,6 +528,11 @@ def register_routes(app, state):
                 **必须显式开启**，执行器写审计 + UI 红档徽章）
             role_text (str, optional): 角色自由文本。默认档下提供非空值 ⇒ 400
                 （不静默忽略 —— 那会让使用者以为它生效了）；仅在显式开启的档位生效
+            memory_mode (str, optional): 记忆档位。`none`（默认）/ `brokered`
+                （母体按 memory_scope 取一段**只读、限定域**记忆进 ②约束；分身侧仍无
+                任何记忆工具）/ `scoped`（**本批未实现 ⇒ 400**）
+            memory_scope (dict, optional): brokered 的记忆域（tenant_id / workspace_id /
+                subject_id / workspace_root / memory_types / limit）；默认档给非空值 ⇒ 400
 
         【`model_id` 从"必填"改为"空 = 跟随母体"】此前必填，于是"跟随母体"只能靠**抄一个
         母体模型名**来伪装；部署一换模型，那串名字就从"跟随"变成"显式指定旧模型"——
@@ -503,6 +562,8 @@ def register_routes(app, state):
                 # 角色（受控模板 + 分级开关）：未知模板 / 默认档配自由文本在此 400。
                 # 展开在 try 内：_role_fields 抛 ValueError ⇒ 外层转 400（不建容器）。
                 **_role_fields(data),
+                # 记忆档位：未知档位 / scoped（未实现）/ 默认档配非空域 ⇒ E_MEMORY_CONFIG 400
+                **_memory_fields(data),
             }
 
             container = Yunshu.create_subagent(config)
@@ -511,6 +572,10 @@ def register_routes(app, state):
                 "subagent": container.get_status(),
                 "message": f"分身 '{container.config.name}' 创建成功",
             })
+        except MemoryConfigError as e:
+            logger.warning("[SubagentAPI] 创建失败（记忆配置非法）: %s", e)
+            return jsonify({"ok": False, "error_code": "E_MEMORY_CONFIG",
+                            "error": str(e)}), 400
         except Exception as e:
             logger.error("[SubagentAPI] 创建失败: %s", e)
             return jsonify({"ok": False, "error": str(e)}), 400
@@ -632,6 +697,13 @@ def register_routes(app, state):
                 return jsonify({"ok": False, "error_code": "E_ROLE_CONFIG",
                                 "error": role.error}), 400
 
+            # ── 记忆档位：同样再挡一次（配置可能被热更新改坏），无效不得带病委派 ──
+            memory_plan = resolve_memory_config(
+                getattr(cfg, "memory_mode", "none"), getattr(cfg, "memory_scope", None))
+            if memory_plan.error:
+                return jsonify({"ok": False, "error_code": "E_MEMORY_CONFIG",
+                                "error": memory_plan.error}), 400
+
             # ── 八要素（未传项按文档缺省补齐；校验在 DelegationExecutor 内继续生效） ──
             # 补齐规则与响应形状都由模块级 helper 提供：临时分身入口共用同一份
             try:
@@ -677,6 +749,9 @@ def register_routes(app, state):
             payload["llm"] = resolution.to_dict()
             # 角色生效情况随响应回显（模板/档位/红档/是否需审计；**不含 role_text 正文**）
             payload["role"] = role.to_dict()
+            # 记忆配置随响应回显（档位/域/是否需审计；**不含记忆正文**）；
+            # 实际取用结果在 outcome 映射的 payload["memory"] 里（有才回，含 degraded）
+            payload["memory_config"] = memory_view(cfg)
             return jsonify(payload)
         except Exception as e:
             logger.exception("[SubagentAPI] 委派失败: %s", e)
@@ -721,6 +796,13 @@ def register_routes(app, state):
             if not channel["ok"]:
                 return _no_channel_response(channel)
 
+            # 记忆档位（临时分身没有既有配置，直接读请求体；非法 ⇒ 400 E_MEMORY_CONFIG）
+            try:
+                mem_fields = _memory_fields(data)
+            except MemoryConfigError as e:
+                return jsonify({"ok": False, "error_code": "E_MEMORY_CONFIG",
+                                "error": str(e)}), 400
+
             try:
                 ctx = _build_context(data, task, delegation_prefix="dlg-ui-tmp")
             except ValueError as e:
@@ -733,7 +815,7 @@ def register_routes(app, state):
             granted = _granted_tools()
             # 名称只需给个前缀：重名消歧与 TTL（取契约⑦）由 lifecycle._prepare_config 统一负责，
             # 这里不重复实现 —— 否则又是一份会漂移的纪律
-            config = SubagentConfig(name="ui-delegate", model_id=_model_id(llm))
+            config = SubagentConfig(name="ui-delegate", model_id=_model_id(llm), **mem_fields)
             # 临时分身没有"用户选的模型"：config.model_id 抄的是母体当前模型，
             # 解析器把"指定的就是母体在用的那个"判为 inherit（不造无意义的影子实例）
             from agent.subagent.llm_factory import resolve_subagent_llm
@@ -762,6 +844,8 @@ def register_routes(app, state):
             payload["channel"] = channel
             payload["llm"] = resolution.to_dict()
             payload["role"] = role.to_dict()
+            # 记忆配置回显（档位/域；**不含记忆正文**；实际取用结果见 payload["memory"]）
+            payload["memory_config"] = memory_view(config)
             return jsonify(payload)
         except Exception as e:
             logger.exception("[SubagentAPI] 临时分身委派失败: %s", e)
@@ -785,6 +869,8 @@ def register_routes(app, state):
             role_template / role_mode / role_text (optional): 角色三字段；
                 未传则**沿用该分身现值**（含自由文本正文，故读的是存活容器的配置，
                 不是状态投影 —— 状态投影刻意不含 role_text 正文）
+            memory_mode / memory_scope (optional): 记忆档位与域；
+                未传则**沿用该分身现值**（读存活容器的配置）；非法 ⇒ 400 E_MEMORY_CONFIG
         """
         try:
             data = request.get_json() or {}
@@ -797,6 +883,8 @@ def register_routes(app, state):
             # 角色三字段未传时**沿用在世容器的现值**（不能读状态投影：它刻意不含
             # role_text 正文，从状态取值会把已有自由文本静默清空）
             role_base = _live_role_config(Yunshu, name)
+            # 记忆两字段未传时同样沿用在世容器的现值（memory_scope 是标识，可安全回显）
+            memory_base = _live_memory_config(Yunshu, name)
             new_config = {
                 "name": name,
                 "model_id": data.get("model_id", current["model_id"]),
@@ -810,6 +898,8 @@ def register_routes(app, state):
                 "llm_temperature": _llm_temperature(data, current.get("llm_temperature")),
                 # 角色同款校验：未知模板 / 默认档配自由文本在此 400（进门时挡，不留到运行时）
                 **_role_fields(data, role_base),
+                # 记忆同款校验：未知档位 / scoped（未实现）/ 默认档配非空域在此 400
+                **_memory_fields(data, memory_base),
             }
 
             Yunshu.hot_reload_subagent(name, new_config)
@@ -819,6 +909,9 @@ def register_routes(app, state):
                 "subagent": updated,
                 "message": f"分身 '{name}' 热更新完成",
             })
+        except MemoryConfigError as e:
+            return jsonify({"ok": False, "error_code": "E_MEMORY_CONFIG",
+                            "error": str(e)}), 400
         except ValueError as e:
             return jsonify({"ok": False, "error": str(e)}), 400
         except Exception as e:
