@@ -350,6 +350,43 @@ class LlmChannelExecutor(ChannelExecutor):
                 "_turns_used": turns_used, "_max_turns": max_turns}
 
 
+class LocalInferenceChannelExecutor(ChannelExecutor):
+    """本地推理执行器（第三档；协议与 LlmChannelExecutor 完全一致）
+
+    【为什么在本模块而不是 local_inference.py】它复用 LlmChannelExecutor；若放在
+    local_inference.py，就会形成 local_inference -> executor 的静态依赖，而 executor
+    又在 _default_channel 里延迟引用 local_inference，触发架构规则 no_circular_dependency。
+    故：adapter 与 env 留在 local_inference.py，执行器与构造口放这里（单向依赖）。
+    """
+
+    def __init__(self, adapter: Any, *, system_prompt: str = "") -> None:
+        self._adapter = adapter
+        self._inner = LlmChannelExecutor(
+            adapter, system_prompt=(system_prompt or DELEGATE_SYSTEM_PROMPT))
+
+    @property
+    def llm(self) -> Any:
+        """本地 adapter：注入后第 3 级 LLM 抽取在本地档也可用"""
+        return self._adapter
+
+    @property
+    def provider(self) -> str:
+        return "local"
+
+    def __call__(self, invocation: ChannelInvocation) -> RawOutput:
+        return self._inner(invocation)
+
+
+def build_local_channel(*, engine: str = "", model: str = "", api_base: str = "",
+                        local: Any = None, system_prompt: str = ""
+                        ) -> LocalInferenceChannelExecutor:
+    """构造本地推理通道（构造期零网络；adapter 见 agent/subagent/local_inference.py）"""
+    from agent.subagent.local_inference import build_local_adapter
+
+    adapter = build_local_adapter(engine=engine, model=model, api_base=api_base, local=local)
+    return LocalInferenceChannelExecutor(adapter, system_prompt=system_prompt)
+
+
 # ════════════════════════════════════════════════════════════
 #  执行器
 # ════════════════════════════════════════════════════════════
@@ -369,6 +406,7 @@ class DelegationExecutor:
         self,
         *,
         channel: Optional[ChannelExecutor] = None,
+        local_channel: Optional[ChannelExecutor] = None,
         agent_cli: str = "",
         llm: Any = None,
         max_concurrency: int = DEFAULT_MAX_CONCURRENCY,
@@ -392,8 +430,12 @@ class DelegationExecutor:
         """
         Args:
             channel: CLI 通道执行器（**测试用桩 / 内部实现注入点**）。缺省时：有
-                ``agent_cli`` → 子进程执行器；有 ``llm`` → 内部 LLM 执行器；都没有
-                → 未配置执行器（调用即显式失败，**不静默返回假成功**）。
+                ``agent_cli`` → 子进程执行器；有 ``local_channel`` → 本地推理执行器；
+                有 ``llm`` → 内部 LLM 执行器；都没有 → 未配置执行器（调用即显式失败，
+                **不静默返回假成功**）。
+            local_channel: 本地推理通道（缺省 None = 不介入；也可由
+                ``CP_SUBAGENT_LOCAL_ENABLED`` 显式开启后自动构造，见
+                ``agent/subagent/local_inference.py``）。
             agent_cli: 外部 agent CLI（§3.10 的 ``<agent_cli>``）。
             llm: 内部 LLM 执行器所用的 LLM（鸭子类型 ``chat(messages, system_prompt=)``），
                 同时用于输出解析第 3 级的 LLM 抽取。
@@ -424,6 +466,7 @@ class DelegationExecutor:
         """
         self._agent_cli = str(agent_cli or "")
         self._llm = llm
+        self._local_channel = local_channel
         self._channel: ChannelExecutor = channel or self._default_channel()
         self._barrier = barrier or ConcurrencyBarrier(
             max_concurrency=max_concurrency, queue_timeout=queue_timeout,
@@ -445,11 +488,27 @@ class DelegationExecutor:
         self._workspace_ready = False
 
     def _default_channel(self) -> ChannelExecutor:
-        """缺省通道：CLI > 内部 LLM > 未配置（显式失败）"""
+        """缺省通道：CLI > 本地（显式开启）> 内部 LLM > 未配置（显式失败）
+
+        【优先级写死在这里，不隐式抢】外部 CLI 仍在最前（既有行为不动）；本地档只有
+        在**显式开启**（``CP_SUBAGENT_LOCAL_ENABLED``）时才参与，关着时逐字旧行为。
+        """
         if self._agent_cli or default_agent_cli():
             return make_executor(agent_cli=self._agent_cli)
+        if self._local_channel is not None:
+            return self._local_channel
         if self._llm is not None:
             return LlmChannelExecutor(self._llm)
+        try:
+            from agent.subagent.local_inference import local_backend_enabled
+
+            if local_backend_enabled():
+                local_channel = build_local_channel()
+                # 本地 adapter 同时作为第 3 级 LLM 抽取的 llm（否则抽取在本地档不可用）
+                self._llm = local_channel.llm
+                return local_channel
+        except Exception as e:  # noqa: BLE001 本地档启用失败 ⇒ 按无通道处理，不假成功
+            logger.warning("[Executor] 本地推理档启用失败（按无通道处理）: %s", e)
         return make_executor(agent_cli="")
 
     # ── 属性 ──
@@ -1337,6 +1396,7 @@ class DelegationExecutor:
 
 def build_executor(*, llm: Any = None, agent_cli: str = "",
                    channel: Optional[ChannelExecutor] = None,
+                   local_channel: Optional[ChannelExecutor] = None,
                    callback_dispatcher: Any = None,
                    **kwargs: Any) -> DelegationExecutor:
     """按可用条件构造执行器（LLM 优先于 CLI 的**内部等价实现**路径）
@@ -1353,15 +1413,18 @@ def build_executor(*, llm: Any = None, agent_cli: str = "",
         callback_dispatcher = default_callback_dispatcher()
     kwargs["callback_dispatcher"] = callback_dispatcher
     if channel is not None:
-        return DelegationExecutor(channel=channel, llm=llm, **kwargs)
+        return DelegationExecutor(channel=channel, llm=llm,
+                                  local_channel=local_channel, **kwargs)
     if agent_cli or default_agent_cli():
-        return DelegationExecutor(agent_cli=agent_cli, llm=llm, **kwargs)
-    return DelegationExecutor(llm=llm, **kwargs)
+        return DelegationExecutor(agent_cli=agent_cli, llm=llm,
+                                  local_channel=local_channel, **kwargs)
+    return DelegationExecutor(llm=llm, local_channel=local_channel, **kwargs)
 
 
 __all__ = [
     "CAPABILITY_DELEGATE", "CAPABILITY_DELEGATE_TOOL",
     "E_DELEGATION_FAILED", "DEFAULT_MAX_CONCURRENCY",
     "DELEGATE_SYSTEM_PROMPT", "DELEGATE_CONTINUE_PROMPT",
-    "ExecutionOutcome", "LlmChannelExecutor", "DelegationExecutor", "build_executor",
+    "ExecutionOutcome", "LlmChannelExecutor", "LocalInferenceChannelExecutor",
+    "DelegationExecutor", "build_executor", "build_local_channel",
 ]

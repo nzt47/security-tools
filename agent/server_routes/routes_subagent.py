@@ -62,11 +62,20 @@ def _channel_info(Yunshu) -> dict:
         cli = str(default_agent_cli() or "")
     except Exception:  # noqa: BLE001 通道探测失败按"无 CLI"处理
         cli = ""
+    local = False
+    try:
+        from agent.subagent.local_inference import local_backend_enabled
+        local = bool(local_backend_enabled())
+    except Exception:  # noqa: BLE001 本地档探测失败按"未开启"处理
+        local = False
     return {
         "llm": llm is not None,
         "cli": bool(cli),
         "agent_cli": cli,
-        "ok": llm is not None or bool(cli),
+        # 本地推理档（显式开启才算可用；断网场景下的第三通道）——不加这一项，
+        # 界面/工具侧仍会以 E_DELEGATION_NO_CHANNEL 拒绝，断网档等于没做
+        "local": local,
+        "ok": llm is not None or bool(cli) or local,
     }
 
 
