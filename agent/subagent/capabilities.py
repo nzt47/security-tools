@@ -231,13 +231,19 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         question="换机断网还能不能活？", state=PARTIAL,
         evidence="bundle 契约（身份/装配/引用式密钥/entrypoint 协议 + v2 environment 依赖清单）"
                  "+ GET /api/subagent/<name>/bundle 导出（过密钥闸）+ POST /api/subagent/import 导入；"
-                 "replicate.tsx 已从纯说明页改为真实导出/导入面",
+                 "replicate.tsx 已从纯说明页改为真实导出/导入面；离线包入口 "
+                 "scripts/build_offline_pack.py（wheelhouse 扫描 + artifacts 段 + offline_ready "
+                 "**覆盖判定**：必须覆盖全部声明依赖）+ scripts/trim_bundle.py（脱敏裁剪）",
         evidence_files=("agent/subagent/bundle.py", "agent/subagent/dependencies.py",
                         "agent/server_routes/routes_subagent.py",
-                        "yunshu-ui/src/pages/hub/workshop/replicate.tsx"),
-        gap="依赖清单已采集（environment 段）但未打包 wheel，换机仍不能离线安装；"
-            "container 已有镜像内 CLI 入口（scripts/subagent_peer.py）可协议真跑，"
-            "但镜内真实推理仍需自带 local 后端——换机断网仍不能完整运行",
+                        "yunshu-ui/src/pages/hub/workshop/replicate.tsx",
+                        "scripts/subagent_peer.py", "docker/subagent-peer/Dockerfile",
+                        "scripts/build_offline_pack.py", "scripts/trim_bundle.py"),
+        gap="裸 JSON 导出不含 wheel（offline_ready 恒 false）；离线包入口已接线并可把 "
+            "offline_ready 翻真（实测 build_offline_pack 产出自带 wheelhouse 的 tar.gz），"
+            "但全量 wheelhouse 需运维在联网机执行（本仓不预置二进制 wheel），且无 API "
+            "直接下载离线包；container 已有镜像内 CLI 入口（scripts/subagent_peer.py）"
+            "可协议真跑，但镜内真实推理仍需自带 local 后端——换机断网仍不能完整运行",
         next_stage="S5"),
     SovereigntyFace(
         key="communication", layer="body", label="通信与协同",
