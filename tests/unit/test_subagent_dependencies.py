@@ -183,7 +183,10 @@ class TestNoNetwork:
         monkeypatch.setattr(subprocess, "run", _boom)
         manifest = D.build_dependency_manifest()
         assert isinstance(manifest, dict)
-        assert manifest["artifacts"] == {"mode": "none", "count": 0}
+        # 未传 artifacts ⇒ 完整"无打包物"形状（键集固定，UI/校验不必分支）
+        assert manifest["artifacts"]["mode"] == D.ARTIFACTS_MODE_NONE
+        assert manifest["artifacts"]["count"] == 0
+        assert manifest["artifacts"]["files"] == []
 
     def test_声明依赖来自_pyproject(self):
         manifest = D.build_dependency_manifest()
