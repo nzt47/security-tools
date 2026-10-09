@@ -5,16 +5,20 @@
  * （bundle 契约 + 密钥闸 + 导出端点）。本页改为**真实导出面**：填分身名 → 调
  * GET /api/subagent/<name>/bundle → 展示可复制的 JSON；失败如实显示错误。
  *
- * 【为什么不在前端拼 bundle】契约的唯一权威是 agent/subagent/bundle.py；前端自己
- * 拼一份就是第二份口径（那正是本仓反复记录的漂移形态）。本页只做"发起 + 展示"。
+ * 【为什么不在前端拼 bundle/校验】契约的唯一权威是 agent/subagent/bundle.py；前端
+ * 自己拼一份或自己判"合法"就是第二份口径（那正是本仓反复记录的漂移形态）。本页只做
+ * "发起 + 展示"：bundle 合法性一律由后端 validate_bundle 裁定（非法 400 不建容器）。
  *
- * 【如实标注】导入端点（POST /api/subagent/import）已实现但**本页没有导入 UI**；
- * 离线运行（本地推理 / 依赖打包 / container 后端）**未做** —— 都写在页面上，
+ * 【导入面（2026-10-09 补齐）】选文件或粘贴 JSON → POST /api/subagent/import。
+ * 前端只发**原样文本/对象**，不做本地结构判定（那会与后端两份口径）；唯一的本地
+ * 处理是"是不是合法 JSON"，因为它决定要不要发这次请求。
+ *
+ * 【如实标注】离线运行（本地推理 / 依赖打包 / container 后端）**未做** —— 写在页面上，
  * 不假装已接线。
  */
 import { useState } from 'react'
-import type { KeyboardEvent } from 'react'
-import { ClipboardCopy, Loader2, Package, RefreshCw, ShieldAlert } from 'lucide-react'
+import type { ChangeEvent, KeyboardEvent } from 'react'
+import { ClipboardCopy, Loader2, Package, RefreshCw, Upload } from 'lucide-react'
 import { Card, ErrorBox, PageHeader } from '../components/ui'
 import { request } from '@/lib/apiClient'
 import { SUBAGENT_BUNDLE_BY_NAME, SUBAGENT_IMPORT } from '@/api/endpoints'
@@ -25,12 +29,29 @@ interface BundleEnvelope {
   data?: { bundle?: unknown }
 }
 
+/** 导入响应（后端 {ok, subagent, imported:{bundle_id, backend}}；兼容 data 包法） */
+interface ImportEnvelope {
+  ok?: boolean
+  subagent?: { name?: string }
+  imported?: { bundle_id?: string; backend?: string }
+  error?: string
+  error_code?: string
+  problems?: string[]
+  data?: ImportEnvelope
+}
+
 export default function WorkshopReplicate() {
   const [name, setName] = useState('')
   const [bundle, setBundle] = useState<unknown>(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // ── 导入面 ──
+  const [importText, setImportText] = useState('')
+  const [importError, setImportError] = useState('')
+  const [importMessage, setImportMessage] = useState('')
+  const [importing, setImporting] = useState(false)
 
   const text = bundle === null ? '' : JSON.stringify(bundle, null, 2)
 
@@ -68,11 +89,56 @@ export default function WorkshopReplicate() {
     if (e.key === 'Enter') void exportBundle()
   }
 
+  /** 选文件只做"读进文本框"：真正的合法性判定交给后端（单一权威） */
+  const onPickFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    setImportError(''); setImportMessage('')
+    try {
+      const content = await file.text()
+      setImportText(content)
+      setImportMessage('已读取 ' + file.name + '（点「导入」提交）')
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const importBundle = async () => {
+    const raw = importText.trim()
+    if (!raw) { setImportError('请先选择或粘贴 bundle JSON'); return }
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      // 只有"能不能解析成 JSON"在本地判：它决定要不要发请求；结构合法性仍归后端
+      setImportError('不是合法 JSON：请确认贴入的是导出的 bundle 文本')
+      return
+    }
+    setImporting(true); setImportError(''); setImportMessage('')
+    try {
+      const res = await request<ImportEnvelope>(SUBAGENT_IMPORT, {
+        method: 'POST',
+        body: { bundle: parsed },
+      })
+      const payload = (res && (res.data ?? res)) as ImportEnvelope
+      const imported = payload.imported || {}
+      const who = (payload.subagent && payload.subagent.name) || '新分身'
+      setImportMessage(
+        '已导入 ' + who + '（bundle_id=' + (imported.bundle_id || '?')
+        + '，backend=' + (imported.backend || '?') + '）',
+      )
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="p-6">
       <PageHeader
         title="系统自我复制"
-        description="装配车间 —— 可带走 bundle：导出为真实端点，导入与离线运行如实标注"
+        description="装配车间 —— 可带走 bundle：导出与导入都是真实端点，离线运行如实标注"
       />
 
       <Card title="导出可带走 bundle">
@@ -126,15 +192,47 @@ export default function WorkshopReplicate() {
       </Card>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card title="导入（接口已通，界面未做）">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400"><ShieldAlert size={18} /></div>
-            <p className="text-sm leading-6 text-slate-400">
-              导入端点 <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">POST {SUBAGENT_IMPORT}</code>
-              已实现（非法 bundle 400 且不建容器），但本页**没有**导入 UI —— 如实标注，不假装已接线。
-              导入后按同一份配置可再导出（幂等）。
-            </p>
+        <Card title="导入可带走 bundle">
+          <p className="text-sm leading-6 text-slate-400">
+            选择或粘贴一个 bundle JSON → 调
+            <code className="mx-1 rounded bg-slate-800 px-1 text-xs text-cyan-400">POST {SUBAGENT_IMPORT}</code>
+            。bundle 的合法性（结构 / 版本 / 引用式密钥 / 后端词表）**一律由后端裁定**：
+            非法即 400 且不建容器，前端只如实展示错误与 problems。
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              type="file"
+              accept="application/json,.json"
+              onChange={onPickFile}
+              data-testid="replicate-import-file"
+              className="text-xs text-slate-400 file:mr-2 file:rounded-lg file:border-0 file:bg-slate-700 file:px-3 file:py-1.5 file:text-xs file:text-slate-100"
+            />
+            <button
+              type="button"
+              onClick={importBundle}
+              disabled={importing}
+              data-testid="replicate-import"
+              className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-4 py-2 text-sm text-white hover:bg-cyan-500 disabled:opacity-40"
+            >
+              {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} 导入
+            </button>
           </div>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            data-testid="replicate-import-text"
+            placeholder="或直接粘贴 bundle JSON 文本"
+            className="mt-3 h-28 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 font-mono text-[11px] leading-5 text-slate-200 placeholder-slate-600 outline-none"
+          />
+          {importError && (
+            <div className="mt-3" data-testid="replicate-import-error"><ErrorBox message={importError} /></div>
+          )}
+          {importMessage && (
+            <div
+              className="mt-3 rounded-lg border border-emerald-800/60 bg-emerald-950/30 px-3 py-2 text-xs text-emerald-300"
+              data-testid="replicate-import-message"
+            >{importMessage}</div>
+          )}
         </Card>
 
         <Card title="离线运行（未做）">
@@ -153,9 +251,9 @@ export default function WorkshopReplicate() {
       <Card className="mt-4" title="能力对照">
         <ul className="space-y-2 text-sm text-slate-400">
           <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> 导出 bundle：真实端点，过密钥闸（不含任何密钥值）</li>
-          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> 导入 bundle：<code className="text-cyan-400">POST /api/subagent/import</code>（界面未做）</li>
-          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-slate-600" /> 通信反向通道：单发 delegate 为同步响应，分身→母体的异步反向通道未做</li>
-          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-slate-600" /> 离线运行：本地推理 / 依赖打包未做</li>
+          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> 导入 bundle：真实端点 + 本页导入 UI（非法 bundle 400 不建容器）</li>
+          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> 通信反向通道：可选 HTTP 投递 + require_token 入站（默认关闭，仅开启才外呼）</li>
+          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-slate-600" /> 离线运行：本地推理 / 依赖打包 / container 后端未做</li>
         </ul>
       </Card>
     </div>

@@ -1,10 +1,12 @@
 /**
- * 装配车间 —— 可带走 bundle 导出面守卫（S5）
+ * 装配车间 —— 可带走 bundle 导出 + 导入面守卫（S5 / portability）
  * ------------------------------------------------------------------
- * 锁死三件事：
+ * 锁死的事：
  *   1. 导出走**真实端点常量**（SUBAGENT_BUNDLE_BY_NAME），不是页面里裸写 /api；
  *   2. 成功时把后端 bundle 原样展示（JSON 可复制）；
- *   3. 空名不发请求；后端拒绝（如密钥闸 409）⇒ 显示错误、不显示 JSON。
+ *   3. 空名不发请求；后端拒绝（如密钥闸 409）⇒ 显示错误、不显示 JSON；
+ *   4. 导入：合法 JSON ⇒ 调真实端点 SUBAGENT_IMPORT 并显示结果；非法 JSON / 空文本
+ *      ⇒ **本地**报错且不发请求；后端 400 ⇒ 如实显示错误。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
@@ -35,6 +37,13 @@ const calls: string[] = []
 const fetchMock = vi.fn(async (url: string) => {
   calls.push(String(url))
   if (String(url).includes('/bundle')) return json({ ok: true, bundle: BUNDLE })
+  if (String(url).includes('/import')) {
+    return json({
+      ok: true,
+      subagent: { name: 'sa-imported' },
+      imported: { bundle_id: 'bnd-abc123', backend: 'inproc' },
+    })
+  }
   return json({ ok: false, error: 'unexpected' }, 500)
 })
 vi.stubGlobal('fetch', fetchMock)
@@ -72,10 +81,60 @@ describe('装配车间 · 可带走 bundle 导出面', () => {
       expect(screen.getByTestId('replicate-error')).toHaveTextContent('E_MANIFEST_SECRET_LEAK'))
     expect(screen.queryByTestId('replicate-json')).toBeNull()
   })
+})
 
-  it('页面如实标注导入与离线运行未做', () => {
+describe('装配车间 · bundle 导入面', () => {
+  it('粘贴合法 JSON ⇒ 调真实导入端点并显示结果', async () => {
     render(<WorkshopReplicate />)
-    expect(screen.getAllByText(/界面未做/).length).toBeGreaterThan(0)
+    fireEvent.change(screen.getByTestId('replicate-import-text'), {
+      target: { value: JSON.stringify(BUNDLE) },
+    })
+    fireEvent.click(screen.getByTestId('replicate-import'))
+    await waitFor(() =>
+      expect(screen.getByTestId('replicate-import-message')).toHaveTextContent('sa-imported'))
+    expect(calls).toContain('/api/subagent/import')
+    expect(screen.getByTestId('replicate-import-message').textContent).toContain('bnd-abc123')
+    expect(screen.getByTestId('replicate-import-message').textContent).toContain('inproc')
+  })
+
+  it('非法 JSON ⇒ 本地报错且不发请求', () => {
+    render(<WorkshopReplicate />)
+    fireEvent.change(screen.getByTestId('replicate-import-text'),
+      { target: { value: '{不是合法 json' } })
+    fireEvent.click(screen.getByTestId('replicate-import'))
+    expect(screen.getByTestId('replicate-import-error')).toHaveTextContent('不是合法 JSON')
+    expect(calls).toEqual([])
+  })
+
+  it('空文本 ⇒ 提示且不发请求', () => {
+    render(<WorkshopReplicate />)
+    fireEvent.click(screen.getByTestId('replicate-import'))
+    expect(screen.getByTestId('replicate-import-error')).toHaveTextContent('请先选择或粘贴')
+    expect(calls).toEqual([])
+  })
+
+  it('后端 400（非法 bundle）⇒ 如实显示错误、不假装成功', async () => {
+    fetchMock.mockImplementationOnce(async () =>
+      json({
+        ok: false,
+        error_code: 'E_BUNDLE_INVALID',
+        error: '非法 bundle（未建容器）：runtime.backend 未知',
+        problems: ['runtime.backend 未知'],
+      }, 400))
+    render(<WorkshopReplicate />)
+    fireEvent.change(screen.getByTestId('replicate-import-text'),
+      { target: { value: JSON.stringify(BUNDLE) } })
+    fireEvent.click(screen.getByTestId('replicate-import'))
+    await waitFor(() =>
+      expect(screen.getByTestId('replicate-import-error')).toHaveTextContent('非法 bundle'))
+    expect(screen.queryByTestId('replicate-import-message')).toBeNull()
+  })
+
+  it('导入 UI 真实存在，离线运行仍如实标注未做', () => {
+    render(<WorkshopReplicate />)
+    expect(screen.getByTestId('replicate-import-file')).toBeInTheDocument()
+    expect(screen.getByTestId('replicate-import')).toBeInTheDocument()
     expect(screen.getAllByText(/离线运行/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/未做/).length).toBeGreaterThan(0)
   })
 })
