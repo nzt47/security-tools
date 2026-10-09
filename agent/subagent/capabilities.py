@@ -238,13 +238,15 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="communication", layer="body", label="通信与协同",
         question="多个它之间怎么说话？", state=OWNED,
-        evidence="共享任务看板（append-only 任务事件，母体**唯一**写板；fan_out/单发逐任务上板，可折出最新态）+ 二次派发轮次机制（HTTP delegate 的 previous_delegation_id ⇒ 同 task_id 第二轮 + 上一轮显式 superseded）+ fan_out 并行派发 + delegation_history + 静态对端与心跳（CP_SUBAGENT_PEERS 声明式白名单 + send_heartbeats 逐对端健康折叠与审计，读面内联 /api/subagent/history 的 peers 段）",
+        evidence="共享任务看板（append-only 任务事件，母体**唯一**写板；fan_out/单发逐任务上板，可折出最新态）+ 二次派发轮次机制（HTTP delegate 的 previous_delegation_id ⇒ 同 task_id 第二轮 + 上一轮显式 superseded）+ fan_out 并行派发 + delegation_history + 静态对端与心跳（CP_SUBAGENT_PEERS 声明式白名单 + send_heartbeats 逐对端健康折叠与审计，读面内联 /api/subagent/history 的 peers 段；app_server 启动期注册周期任务、读面共享 live registry、健康态落 data/subagent_peer_health.json 并在启动时回填）",
         evidence_files=("agent/subagent/task_board.py", "agent/subagent/rounds.py",
                         "agent/tools/fan_out_tools.py", "agent/subagent/lifecycle.py",
-                        "agent/subagent/peers.py"),
+                        "agent/subagent/peers.py", "app_server.py",
+                        "agent/server_routes/routes_subagent.py"),
         gap="分身间直连 / 服务发现刻意不做（母体中枢），对端只来自静态白名单、不做任何探测；"
             "HTTP delegate 单发跟单已接线，fan_out 批量第二轮尚未接线；"
-            "心跳仅静态触发（register_peer_heartbeats 提供入口，启动期接入与健康持久化属后续）；"
+            "心跳已在启动期接线并持久化健康态（app_server 注册 + 读面共享 live registry + 落盘回填），"
+            "但需回调出站配置齐（开关 + host 白名单 + 令牌）才注册；"
             "离线回退未做（offline_fallback_report 显式登记 status=not_implemented，无 outbox、无重放）",
         next_stage=""),
     # ── 治理层 ──

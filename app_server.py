@@ -2774,6 +2774,30 @@ if __name__ == "__main__":
                       f"（{retention_task.get('reason') or retention_task.get('hint') or '默认关闭'}）")
         except Exception as e:
             print(f"⚠️ 数据保留策略归档注册失败（不阻断主流程）: {e}")
+        # S5 通信 · 静态对端心跳：**启动期接线**（此前 register_peer_heartbeats 只有测试在调，
+        # 运维即使配了 CP_SUBAGENT_PEERS + 周期也不会发）。顺序有意如此：
+        #   ① 先 build_live_registry（含上次健康态回填）并 install —— 读面立刻能看见它；
+        #   ② 再 register（缺周期 / 缺对端 / 缺投递器都不注册，并如实返回 reason）。
+        # 缺投递器时不注册、而不是"注册了却每轮把对端记成失败"：绝不把没接线
+        # 化妆成"对端全挂"。健康态随后由周期任务落 data/subagent_peer_health.json。
+        try:
+            from agent.subagent import peers as _peers
+            _peer_registry = _peers.build_live_registry()
+            _peers.install_live_registry(_peer_registry)
+            _peer_audit = None
+            try:
+                from agent.audit.facade import get_audit as _get_audit
+                _peer_audit = _get_audit()
+            except Exception as _audit_e:  # noqa: BLE001 审计不可得不得阻断注册
+                print(f"⚠️ 对端心跳审计门面不可得（心跳仍可注册，audited=False）: {_audit_e}")
+            _peer_hb = _peers.register_peer_heartbeats(
+                scheduler, registry=_peer_registry, audit=_peer_audit)
+            if _peer_hb.get("registered"):
+                print(f"✅ 对端心跳周期任务注册: {_peer_hb}")
+            else:
+                print(f"ℹ️ 对端心跳未注册: {_peer_hb.get('reason')}")
+        except Exception as e:
+            print(f"⚠️ 对端心跳接线失败（不阻断主流程）: {e}")
         scheduler.start_daemon(check_interval=10)
         print("✅ 定时任务调度器已启动 (daemon)")
     except Exception as e:

@@ -28,7 +28,7 @@ from agent.api_envelope import ok as _ok
 from agent.subagent.delegation_history import delegation_history
 from agent.subagent.task_board import task_board
 # S5 通信 · 静态对端：读面用的纯逻辑表（只读环境变量；不做任何服务发现/探测）
-from agent.subagent.peers import StaticPeerRegistry
+from agent.subagent.peers import read_snapshot
 
 # 二次派发轮次机制（P4/P5 通信）：请求里的 previous_delegation_id 转成第二轮上下文。
 # RoundError 是 fail-closed 判定结果（调用方转 400）——纯 stdlib 模块，导入零成本。
@@ -581,8 +581,9 @@ def register_routes(app, state):
         peers = ``CP_SUBAGENT_PEERS`` 静态声明的对端（name/url/enabled），
         health = 各对端健康折叠态，offline_fallback = 离线回退的显式登记
         （status=not_implemented）。**不做任何服务发现/探测**——这一段只回声明，
-        不回「发现了谁」。心跳周期由 ``register_peer_heartbeats`` 提供
-        （启动期接入属后续）。
+        不回「发现了谁」。心跳周期由 ``register_peer_heartbeats`` 提供，
+        并在 app_server 启动期接线；读面取共享的 live registry，故 health
+        里能看到心跳累计结果（未接线时回落为"每请求按环境现造"）。
 
         Query:
             limit (int, optional): 返回条数，缺省 20，收敛到 [1, 100]。
@@ -603,9 +604,10 @@ def register_routes(app, state):
                 # （先例：/api/subagent/list 内联 llm / role 段）。
                 "board": task_board.snapshot(limit=limit),
                 # S5 通信 · 静态对端心跳：同样**不新增路由**，在既有响应里内联 peers 段。
-                # 内容 = 静态声明的对端（url/enabled）+ 健康态 + 离线回退显式登记；
-                # 每请求读一次环境变量 ⇒ 配置变更即时可见（无缓存，也无探测）。
-                "peers": StaticPeerRegistry.from_env().snapshot(),
+                # 内容 = 静态声明的对端（url/enabled）+ 健康态 + 离线回退显式登记。
+                # read_snapshot() 优先用**启动期共享的 live registry**（心跳写进去的健康态
+                # 才看得见）；未接线时回落到"每请求读环境变量"的老口径（无探测、无缓存）。
+                "peers": read_snapshot(),
                 "ts": time.strftime("%H:%M:%S"),
             })
         except Exception as e:
