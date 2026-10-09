@@ -58,6 +58,10 @@ _FOLD_SCAN_LIMIT = 100_000
 BOARD_OPS = ("create", "update")
 STATUSES = ("pending", "running", "done", "failed", "superseded")
 
+#: 「被新一轮取代」状态（二次派发轮次机制的写侧使用；必须在 STATUSES 内）。
+#: 由 record_outcome 在写入跟单事件前，对上一轮**再写一行** update 事件来标记。
+SUPERSEDED_STATUS = "superseded"
+
 
 @dataclass
 class TaskRecord:
@@ -251,9 +255,39 @@ class TaskBoard:
             row = build_record(ctx, outcome, source=source, subagent=subagent)
             tid = str(row.get("task_id") or "")
             board_op = "update" if (tid and self.has_task(tid)) else "create"
+            previous_id = str(row.get("previous_delegation_id") or "")
+            if previous_id:
+                # 二次派发（round>=2）：先把上一轮显式标成 superseded —— append-only
+                # 契约下是**再写一行 update**，绝不回改旧行；再把本轮事件写上去。
+                # 两步都 fail-soft 且各自独立（取代标记写失败不影响本轮上板）。
+                self._supersede(task_id=tid, previous_delegation_id=previous_id)
             return self.record(row, board_op=board_op)
         except Exception as e:  # noqa: BLE001 看板永远不阻断委派
             logger.warning("[TaskBoard] 看板记录生成失败（不影响委派）: %s", e)
+            self._count_write_failure()
+            return False
+
+    def _supersede(self, *, task_id: str, previous_delegation_id: str) -> bool:
+        """把上一轮委派显式标成 superseded（append-only：再写一行 update）
+
+        【为什么由本模块写、而不是调用方】看板写 API 只被母体侧模块调用（模块
+        docstring 第 1 条）；把"取代"做成 record_outcome 的内部步骤，就仍保持
+        **唯一写入口**，不新增第二个写点。
+
+        【折叠读与原始流的两种视角】写的是与本轮相同的 task_id（同一条逻辑任务）
+        的 update 事件 ⇒ 折叠读时被本轮事件覆盖（最新胜，用户看到的是第二轮）；
+        原始事件流里则留下"这一轮取代了谁"的显式证据（status=superseded）。
+        """
+        try:
+            now = _now_iso()
+            row = TaskRecord(
+                task_id=_text(task_id), board_op="update",
+                status=SUPERSEDED_STATUS,
+                delegation_id=_text(previous_delegation_id),
+                round=1, created_at=now, updated_at=now).to_dict()
+            return self.record(row, board_op="update")
+        except Exception as e:  # noqa: BLE001 取代标记失败不得影响委派或本轮上板
+            logger.warning("[TaskBoard] superseded 标记写入失败（不影响委派）: %s", e)
             self._count_write_failure()
             return False
 
@@ -271,6 +305,29 @@ class TaskBoard:
         return False
 
     # ── 读 ──
+
+    def find_delegation(self, delegation_id: str) -> Optional[dict]:
+        """按 delegation_id 查最近一条看板事件（尾部窗口；缺失/读失败 ⇒ None）
+
+        【用途】二次派发的**跟单基准**：路由据此校验"上一轮确实上过板"，并取出它的
+        task_id / round / tenant_id / subject_id / goal（见
+        agent/subagent/rounds.py 的 validate_previous / link_follow_up）。
+
+        只读、fail-soft（读失败当"没查到" ⇒ 上层 fail-closed 拒绝跟单），**不改**
+        追加写契约；调用方不因此写板（母体唯一写板者不受影响）。
+        """
+        target = _text(delegation_id)
+        if not target:
+            return None
+        try:
+            rows = read_jsonl_tail(self._path, _FOLD_SCAN_LIMIT)
+        except Exception as e:  # noqa: BLE001
+            logger.debug("[TaskBoard] 委派查找失败（按未找到处理）: %s", e)
+            return None
+        for row in reversed(rows):
+            if isinstance(row, Mapping) and _text(row.get("delegation_id")) == target:
+                return dict(row)
+        return None
 
     def query(self, limit: int = 20) -> list[dict]:
         """折叠 'task_id' 取最新态，返回最近 'limit' 个任务（最新在前）
@@ -378,5 +435,5 @@ task_board = TaskBoard()
 
 __all__ = [
     "TaskRecord", "TaskBoard", "task_board", "build_record", "status_from_outcome",
-    "DEFAULT_PATH", "GOAL_MAX_CHARS", "BOARD_OPS", "STATUSES",
+    "DEFAULT_PATH", "GOAL_MAX_CHARS", "BOARD_OPS", "STATUSES", "SUPERSEDED_STATUS",
 ]

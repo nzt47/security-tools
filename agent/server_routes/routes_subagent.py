@@ -30,6 +30,10 @@ from agent.subagent.task_board import task_board
 # S5 通信 · 静态对端：读面用的纯逻辑表（只读环境变量；不做任何服务发现/探测）
 from agent.subagent.peers import StaticPeerRegistry
 
+# 二次派发轮次机制（P4/P5 通信）：请求里的 previous_delegation_id 转成第二轮上下文。
+# RoundError 是 fail-closed 判定结果（调用方转 400）——纯 stdlib 模块，导入零成本。
+from agent.subagent.rounds import RoundError
+
 # P3 brokered 档：档位词表/校验的唯一口径（仅 stdlib 依赖，不拉记忆重模块）
 from agent.subagent.memory_broker import (
     MemoryConfigError,
@@ -441,6 +445,37 @@ def _build_context(data: dict, task: str, *, delegation_prefix: str = "dlg-ui",
         callback_url=str(data.get("callback_url") or "ui://workbench/sync"),
         delegation_id=f"{delegation_prefix}-{uuid.uuid4().hex[:8]}",
     )
+
+
+def _apply_follow_up(data: dict, ctx: Any):
+    """把请求里的 previous_delegation_id 解析成第二轮上下文（**fail-closed**）
+
+    【为什么不静默忽略】跟单基准必须是**真实上过板**的那一轮；查不到/跨域/已是
+    第二轮就拒绝（调用方转 400），绝不悄悄退化成"普通第一轮" —— 否则用户以为在
+    做校验、实际另起炉灶，而看板上看不出差别（见 agent/subagent/rounds.py 边界）。
+
+    Args:
+        data: 请求体（读 previous_delegation_id）。
+        ctx: 已补齐八要素的委派上下文。
+
+    Returns:
+        (ctx, round_info)。首轮时 round_info 仍返回（round=1、follow_up=False），
+        与 llm / role / memory 等回显段同款：**恒有**，调用方不必判空。
+
+    Raises:
+        RoundError: 上一轮不存在 / 跨租户或跨主体 / 已到最大轮次。
+    """
+    from agent.subagent.rounds import link_follow_up, round_view, validate_previous
+
+    previous_id = str(data.get("previous_delegation_id") or "").strip()
+    if not previous_id:
+        return ctx, round_view(ctx)
+    previous = task_board.find_delegation(previous_id)
+    validate_previous(previous, tenant_id=getattr(ctx, "tenant_id", "default"),
+                      subject_id=getattr(ctx, "subject_id", ""),
+                      previous_delegation_id=previous_id)
+    linked = link_follow_up(ctx, previous)
+    return linked, round_view(linked)
 
 
 def _elements_view(ctx) -> dict:
@@ -979,6 +1014,10 @@ def register_routes(app, state):
             # 补齐规则与响应形状都由模块级 helper 提供：临时分身入口共用同一份
             try:
                 ctx = _build_context(data, task, extra_constraints=role.constraints)
+                # 二次派发：previous_delegation_id ⇒ 同 task_id 的第二轮（fail-closed）
+                ctx, round_info = _apply_follow_up(data, ctx)
+            except RoundError as e:
+                return jsonify({"ok": False, "error_code": e.code, "error": str(e)}), 400
             except ValueError as e:
                 return jsonify({"ok": False, "error": str(e)}), 400
 
@@ -1023,6 +1062,8 @@ def register_routes(app, state):
             # 记忆配置随响应回显（档位/域/是否需审计；**不含记忆正文**）；
             # 实际取用结果在 outcome 映射的 payload["memory"] 里（有才回，含 degraded）
             payload["memory_config"] = memory_view(cfg)
+            # 轮次回显（第几轮 / 跟的是谁）；首轮也有，恒为 round=1、follow_up=False
+            payload["round"] = round_info
             return jsonify(payload)
         except Exception as e:
             logger.exception("[SubagentAPI] 委派失败: %s", e)
@@ -1078,6 +1119,10 @@ def register_routes(app, state):
 
             try:
                 ctx = _build_context(data, task, delegation_prefix="dlg-ui-tmp")
+                # 二次派发：与具名端点同一份 helper / 同一套 fail-closed 判定
+                ctx, round_info = _apply_follow_up(data, ctx)
+            except RoundError as e:
+                return jsonify({"ok": False, "error_code": e.code, "error": str(e)}), 400
             except ValueError as e:
                 return jsonify({"ok": False, "error": str(e)}), 400
 
@@ -1121,6 +1166,7 @@ def register_routes(app, state):
             payload["role"] = role.to_dict()
             # 记忆配置回显（档位/域；**不含记忆正文**；实际取用结果见 payload["memory"]）
             payload["memory_config"] = memory_view(config)
+            payload["round"] = round_info
             return jsonify(payload)
         except Exception as e:
             logger.exception("[SubagentAPI] 临时分身委派失败: %s", e)
