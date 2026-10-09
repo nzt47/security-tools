@@ -601,6 +601,7 @@ flowchart LR
         agent_subagent_executor["agent.subagent.executor"]:::crosslayer
         agent_subagent_lifecycle["agent.subagent.lifecycle"]:::crosslayer
         agent_subagent_llm_factory["agent.subagent.llm_factory"]:::crosslayer
+        agent_subagent_local_inference["agent.subagent.local_inference"]:::crosslayer
         agent_subagent_mechanical["agent.subagent.mechanical"]:::crosslayer
         agent_subagent_memory_broker["agent.subagent.memory_broker"]:::crosslayer
         agent_subagent_memory_quota["agent.subagent.memory_quota"]
@@ -2053,6 +2054,7 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation
     agent_server_routes_routes_subagent -.-> agent_subagent_channel
+    agent_server_routes_routes_subagent -.-> agent_subagent_local_inference
     agent_server_routes_routes_subagent -.-> agent_lines
     agent_server_routes_routes_subagent -.-> agent_lines
     agent_server_routes_routes_subagent -.-> agent_subagent_assembly
@@ -2305,8 +2307,10 @@ flowchart LR
     agent_subagent_executor --> agent_subagent_sandbox
     agent_subagent_executor --> agent_subagent_scoped_memory_gate
     agent_subagent_executor --> agent_subagent_toolset
+    agent_subagent_executor --> agent_subagent_local_inference
     agent_subagent_executor -.-> agent_memory_scoped_store
     agent_subagent_executor --> agent_subagent_callback_channel
+    agent_subagent_executor --> agent_subagent_local_inference
     agent_subagent_executor -.-> agent_memory_broker
     agent_subagent_executor -.-> agent_memory_broker
     agent_subagent_executor -.-> agent_memory_scoped_store
@@ -2323,6 +2327,7 @@ flowchart LR
     agent_subagent_lifecycle --> agent_subagent_delegation_history
     agent_subagent_lifecycle --> agent_subagent_task_board
     agent_subagent_lifecycle --> agent_subagent_sandbox
+    agent_subagent_local_inference -.-> agent_memory_broker
     agent_subagent_mechanical -.-> agent_digestion_cases
     agent_subagent_mechanical -.-> agent_digestion_sandbox
     agent_subagent_memory_broker --> agent_subagent_memory_quota
@@ -2515,6 +2520,7 @@ flowchart LR
     agent_tools_fan_out_tools -.-> agent_subagent_container
     agent_tools_fan_out_tools -.-> agent_subagent_lifecycle
     agent_tools_fan_out_tools -.-> agent_observability_trace_v2
+    agent_tools_fan_out_tools -.-> agent_subagent_local_inference
     agent_tools_fan_out_tools -.-> agent_monitoring_tracing
     agent_tools_fan_out_tools -.-> agent_subagent_barrier
     agent_tools_fan_out_tools -.-> agent_subagent_executor
@@ -2548,6 +2554,7 @@ flowchart LR
     agent_tools_subagent_tools -.-> agent_subagent_container
     agent_tools_subagent_tools -.-> agent_subagent_channel
     agent_tools_subagent_tools -.-> agent_monitoring_tracing
+    agent_tools_subagent_tools -.-> agent_subagent_local_inference
     agent_tools_system_tools --> agent
     agent_tools_system_tools -.-> agent_system_tools
     agent_tools_system_tools -.-> agent_system_tools
@@ -2645,9 +2652,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 657
-- 模块节点数: 588
-- 依赖边数: 1937
-- 跨层调用数: 1225
+- 扫描文件数: 658
+- 模块节点数: 589
+- 依赖边数: 1943
+- 跨层调用数: 1229
 - 违规调用数: 0
 - 动态 import 数: 1
