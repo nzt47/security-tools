@@ -14,10 +14,12 @@
        （含 token）⇒ 导出被密钥闸误判为 `ManifestSecretLeak`。这是本模块第一风险。
     2. **判不了就标 unknown / missing，永不默认 ok**：没查到实装 ⇒ `missing`；
        没有 packaging 或版本区间解析失败 ⇒ `unknown`；pyproject 读不到 ⇒ `unreadable`。
-    3. **`offline_ready` 恒为 false（本增量）**：只有包里真带了可安装物（wheelhouse）
-       才可能为 true；本模块 `artifacts.mode="none"`，故"全部依赖都装好了"也**不**
-       声称离线就绪 —— `satisfied_locally`（导出机装了）与 `offline_ready`（包能自足）
-       是两件事。
+    3. **`offline_ready` 只在包里真带了"覆盖全部声明依赖"的 wheelhouse 时才为 true**：
+       `artifacts.mode="wheelhouse"` 且 count>0、逐文件覆盖 items（`covered_distributions`）、
+       本机无 missing/version_mismatch、python 版本匹配，缺一即 false。
+       `satisfied_locally`（导出机装了）与 `offline_ready`（包能自足）始终是两件事：
+       裸 JSON 导出（artifacts.mode=none）恒 false，只有离线包
+       （`scripts/build_offline_pack.py` 产出自带 wheelhouse 的包）才可能为 true。
 
 【不联网、不 subprocess、不 import 被测包】
     只读 pyproject.toml + importlib.metadata；不调 pip、不 HTTP、不 import 依赖本身。
@@ -28,12 +30,14 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import platform
 import re
 from importlib import metadata as importlib_metadata
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import (Any, Dict, List, Mapping, Optional, Sequence, Set,
+                    Tuple)
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +45,9 @@ __all__ = [
     "CANONICAL_SOURCE",
     "PYPROJECT_PATH",
     "ARTIFACTS_MODE_NONE",
+    "ARTIFACTS_MODE_WHEELHOUSE",
+    "ARTIFACTS_SCHEMA_VERSION",
+    "WHEELHOUSE_MANIFEST_NAME",
     "STATUS_OK",
     "STATUS_MISSING",
     "STATUS_VERSION_MISMATCH",
@@ -51,6 +58,12 @@ __all__ = [
     "installed_versions",
     "satisfies",
     "build_dependency_manifest",
+    "wheel_specs_from_environment",
+    "apply_artifacts_to_bundle",
+    "scan_wheelhouse",
+    "wheelhouse_manifest_path",
+    "wheel_distribution",
+    "covered_distributions",
     "offline_ready",
     "check_against_bundle",
     "validate_environment",
@@ -59,8 +72,14 @@ __all__ = [
 #: 声明依赖的权威来源（requirements.txt 仓内自认残缺，不作权威）
 CANONICAL_SOURCE = "pyproject.toml [project].dependencies"
 
-#: 无打包物（未 vendoring wheel）——本增量的诚实取值
+#: 无打包物（未 vendoring wheel）——裸 JSON 导出的诚实取值
 ARTIFACTS_MODE_NONE = "none"
+#: 已 vendoring wheelhouse（离线包自带可安装物）——offline_ready 才**可能**为真
+ARTIFACTS_MODE_WHEELHOUSE = "wheelhouse"
+#: wheelhouse 清单文件名（构建脚本产出；扫描优先读它，避免每次重算大 wheel 的 sha256）
+WHEELHOUSE_MANIFEST_NAME = "wheelhouse_manifest.json"
+#: artifacts 段结构版本
+ARTIFACTS_SCHEMA_VERSION = 1
 
 STATUS_OK = "ok"
 STATUS_MISSING = "missing"
@@ -165,6 +184,189 @@ def satisfies(version: str, specifier: str) -> Optional[bool]:
 
 
 # ════════════════════════════════════════════════════════════
+#  离线打包物（wheelhouse）：扫描 / 覆盖判定 / 写回 bundle
+# ════════════════════════════════════════════════════════════
+
+
+def _none_artifacts() -> Dict[str, Any]:
+    """无打包物的**完整**形状（键集固定，UI/校验不必分支处理"有没有 files"）"""
+    return {"version": ARTIFACTS_SCHEMA_VERSION, "mode": ARTIFACTS_MODE_NONE,
+            "count": 0, "total_bytes": 0, "digest": "", "files": []}
+
+
+def wheelhouse_manifest_path(directory: str) -> str:
+    """wheelhouse 目录里的清单路径（构建脚本产出、扫描优先读）"""
+    return os.path.join(str(directory), WHEELHOUSE_MANIFEST_NAME)
+
+
+def _sha256_file(path: str) -> str:
+    """文件 sha256（分块读，避免把数百 MB 的 wheel 整个读进内存）"""
+    import hashlib
+
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def wheel_distribution(filename: str) -> str:
+    """wheel 文件名 → 规范分发名（PEP 427：``{dist}-{ver}-...whl``，dist 内的 ``-`` 已转 ``_``）
+
+    只取第一段并做 PEP 503 归一化；解析不出返回空串 —— 调用方按"未覆盖"处理。
+    宁可判不覆盖，也不臆造一个能对上的名字（那会让离线就绪判定说谎）。
+    """
+    name = str(filename or "").strip()
+    if not name.lower().endswith(".whl"):
+        return ""
+    return canonical_name(name.split("-", 1)[0])
+
+
+def covered_distributions(artifacts: Any) -> Set[str]:
+    """artifacts 覆盖的分发名集合（规范名；解析不出即不计入）"""
+    if not isinstance(artifacts, Mapping):
+        return set()
+    files = artifacts.get("files")
+    if not isinstance(files, list):
+        return set()
+    out: Set[str] = set()
+    for item in files:
+        if not isinstance(item, Mapping):
+            continue
+        dist = canonical_name(str(item.get("distribution") or ""))
+        if not dist:
+            dist = wheel_distribution(str(item.get("name") or ""))
+        if dist:
+            out.add(dist)
+    return out
+
+
+def _pack_digest(files: Sequence[Mapping[str, Any]]) -> str:
+    """整包摘要：对排序后的 ``name:sha256`` 行做 sha256（换/少一个 wheel 即变）"""
+    import hashlib
+
+    lines = ["%s:%s" % (str(f.get("name") or ""), str(f.get("sha256") or ""))
+             for f in sorted(files, key=lambda x: str(x.get("name") or ""))]
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+
+
+def write_wheelhouse_manifest(directory: str,
+                              artifacts: Mapping[str, Any]) -> bool:
+    """把 artifacts 写成目录里的清单（临时文件 + ``os.replace``，best-effort）"""
+    target = wheelhouse_manifest_path(directory)
+    try:
+        tmp = target + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(dict(artifacts), fh, ensure_ascii=False, indent=2,
+                      sort_keys=True)
+        os.replace(tmp, target)
+        return True
+    except OSError:
+        return False
+
+
+def scan_wheelhouse(directory: str, *, write_manifest: bool = False
+                    ) -> Dict[str, Any]:
+    """扫描 wheelhouse 目录 → ``environment.artifacts`` 段（只读 + 可选写清单）
+
+    优先读目录里的 ``wheelhouse_manifest.json``（构建脚本产出，含逐文件 sha256）；
+    缺失才现算 —— torch 这类数百 MB 的 wheel 每次导出重算 sha256 不现实。
+    目录不存在 / 没有 ``.whl`` ⇒ ``mode="none"``（**不谎报**有打包物）。
+    """
+    root = str(directory or "").strip()
+    if not root or not os.path.isdir(root):
+        return _none_artifacts()
+    files: List[Dict[str, Any]] = []
+    manifest_file = wheelhouse_manifest_path(root)
+    if os.path.isfile(manifest_file):
+        try:
+            with open(manifest_file, "r", encoding="utf-8") as fh:
+                doc = json.load(fh)
+            raw = doc.get("files") if isinstance(doc, Mapping) else None
+            if isinstance(raw, list):
+                files = [dict(f) for f in raw if isinstance(f, Mapping)]
+        except (OSError, ValueError):
+            files = []
+    if not files:
+        for entry in sorted(os.listdir(root)):
+            if not entry.lower().endswith(".whl"):
+                continue
+            full = os.path.join(root, entry)
+            if not os.path.isfile(full):
+                continue
+            files.append({"name": entry, "bytes": os.path.getsize(full),
+                          "sha256": _sha256_file(full),
+                          "distribution": wheel_distribution(entry)})
+    if not files:
+        return _none_artifacts()
+    for item in files:
+        if not item.get("distribution"):
+            item["distribution"] = wheel_distribution(str(item.get("name") or ""))
+    total = 0
+    for item in files:
+        try:
+            total += int(item.get("bytes") or 0)
+        except (TypeError, ValueError):
+            pass
+    artifacts = {"version": ARTIFACTS_SCHEMA_VERSION,
+                 "mode": ARTIFACTS_MODE_WHEELHOUSE, "count": len(files),
+                 "total_bytes": total, "digest": _pack_digest(files),
+                 "files": files}
+    if write_manifest:
+        write_wheelhouse_manifest(root, artifacts)
+    return artifacts
+
+
+def wheel_specs_from_environment(environment: Any,
+                                 *, only: Optional[Sequence[str]] = None
+                                 ) -> List[str]:
+    """从 bundle 的 environment 段取 pip 规格串（``name+specifier``）
+
+    ``only``（分发名，区分大小写不敏感）用于只给部分依赖打包（例如 CI 只打轻量集）。
+    非列表 / 空名一律跳过；返回顺序即声明顺序（可复现）。
+    """
+    section = environment if isinstance(environment, Mapping) else {}
+    items = section.get("items") if isinstance(section.get("items"), list) else []
+    wanted = {canonical_name(str(x)) for x in (only or ())} if only else None
+    out: List[str] = []
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        name = str(item.get("name") or "").strip()
+        if not name:
+            continue
+        if wanted is not None and canonical_name(name) not in wanted:
+            continue
+        out.append(name + str(item.get("required") or "").strip())
+    return out
+
+
+def apply_artifacts_to_bundle(bundle: Mapping[str, Any], artifacts: Mapping[str, Any]
+                              ) -> Dict[str, Any]:
+    """把 wheelhouse artifacts 写回 bundle 的 environment 段并**重算** offline_ready
+
+    只改 ``environment.artifacts`` 与 ``environment.offline_ready`` 两个叶子，其余键
+    逐字保留（bundle 的其他字段权威仍在 build_bundle）；不改传入对象（返回新 dict）。
+    """
+    import copy
+
+    out = copy.deepcopy(dict(bundle))
+    env = out.get("environment")
+    if not isinstance(env, dict):
+        env = {}
+        out["environment"] = env
+    env["artifacts"] = dict(artifacts) if isinstance(artifacts, Mapping) \
+        else _none_artifacts()
+    env["offline_ready"] = offline_ready(env)
+    env["reason"] = (
+        "离线包已含 wheelhouse（artifacts.mode=wheelhouse）且覆盖全部声明依赖：可离线安装"
+        if env["offline_ready"] else
+        "环境未达离线就绪：需 wheelhouse 覆盖全部声明依赖、本机无 missing/version_mismatch"
+        "且 python 版本匹配（见 artifacts/counts/python）")
+    return out
+
+
+# ════════════════════════════════════════════════════════════
 #  构造 environment 段
 # ════════════════════════════════════════════════════════════
 
@@ -187,7 +389,9 @@ def build_dependency_manifest(*, declared: Optional[List[Mapping[str, Any]]] = N
                               expected_python: str = "",
                               running_python: str = "",
                               captured_at: str = "",
-                              source_status: str = "") -> Dict[str, Any]:
+                              source_status: str = "",
+                              artifacts: Optional[Mapping[str, Any]] = None
+                              ) -> Dict[str, Any]:
     """构造 `environment` 段（纯函数；可注入 declared/installed 便于测试）
 
     结构见模块 docstring。**任何异常都收敛为 unreadable/unknown，绝不抛到导出层。**
@@ -236,7 +440,8 @@ def build_dependency_manifest(*, declared: Optional[List[Mapping[str, Any]]] = N
         "counts": counts,
         "satisfied_locally": (counts[STATUS_MISSING] == 0
                               and counts[STATUS_VERSION_MISMATCH] == 0),
-        "artifacts": {"mode": ARTIFACTS_MODE_NONE, "count": 0},
+        "artifacts": (dict(artifacts) if isinstance(artifacts, Mapping)
+                      else _none_artifacts()),
         "offline_ready": False,
         "reason": ("仅采集声明依赖与本机实装，未打包 wheel：不代表目标机可离线安装；"
                    "satisfied_locally 只说明导出机装了，不等于可带走"),
@@ -269,14 +474,31 @@ def offline_ready(manifest: Mapping[str, Any]) -> bool:
         except (TypeError, ValueError):
             return False
     python = section.get("python") if isinstance(section.get("python"), Mapping) else {}
-    return str(python.get("status") or "") == STATUS_OK
+    if str(python.get("status") or "") != STATUS_OK:
+        return False
+    # wheelhouse 必须覆盖**全部声明依赖**：带三个 wheel 不等于"能离线装齐"。
+    # 少了这一条，offline_ready 会只看 artifacts.count>0 —— 那是数量在说话，不是覆盖在说话。
+    items = section.get("items") if isinstance(section.get("items"), list) else []
+    declared = {canonical_name(str(it.get("name") or ""))
+                for it in items
+                if isinstance(it, Mapping) and str(it.get("name") or "").strip()}
+    counts = section.get("counts") if isinstance(section.get("counts"), Mapping) else {}
+    try:
+        declared_count = int(counts.get("declared") or 0)
+    except (TypeError, ValueError):
+        declared_count = 0
+    if declared_count > 0 and not declared:
+        # items 被裁剪掉时，空集合的"覆盖"是假的 —— 不能凭"没声明"蒙混成离线就绪
+        return False
+    return declared <= covered_distributions(artifacts)
 
 
 def check_against_bundle(environment: Any) -> Dict[str, Any]:
     """导入端对拍：在**到达端**核对 bundle 声明的依赖是否满足（只读、fail-soft）
 
     返回 `{satisfied, missing, version_mismatch, python_ok, offline_ready, reason}`。
-    导入成功 ≠ 可离线跑：`offline_ready` 恒 false，`satisfied` 只说明到达端这台机器装齐了。
+    导入成功 ≠ 可离线跑：`offline_ready` 是**包自己的声明**（裸 JSON 导出恒 false，
+    仅自带 wheelhouse 的离线包可为 true），`satisfied` 只说明到达端这台机器装齐了。
     """
     section = environment if isinstance(environment, Mapping) else {}
     items = section.get("items") if isinstance(section.get("items"), list) else []
@@ -307,7 +529,10 @@ def check_against_bundle(environment: Any) -> Dict[str, Any]:
               % (missing, mismatch, python_ok))
     return {"satisfied": bool(satisfied), "missing": missing,
             "version_mismatch": mismatch, "python_ok": bool(python_ok),
-            "offline_ready": False, "reason": reason}
+            # 【口径】offline_ready 是**包自己的声明**（包内是否带了覆盖全部依赖的
+            # wheelhouse）；satisfied 是**到达端这台机器**装没装齐。两者互不推论。
+            "offline_ready": bool(section.get("offline_ready")),
+            "reason": reason}
 
 
 def validate_environment(environment: Any) -> List[str]:
@@ -319,6 +544,17 @@ def validate_environment(environment: Any) -> List[str]:
         problems.append("environment.source_status 必须是 ok / unreadable")
     if "offline_ready" in environment and not isinstance(environment["offline_ready"], bool):
         problems.append("environment.offline_ready 必须是布尔")
+    artifacts = environment.get("artifacts")
+    if artifacts is not None:
+        if not isinstance(artifacts, Mapping):
+            problems.append("environment.artifacts 必须是对象")
+        else:
+            if artifacts.get("mode") not in (ARTIFACTS_MODE_NONE,
+                                             ARTIFACTS_MODE_WHEELHOUSE):
+                problems.append(
+                    "environment.artifacts.mode 必须是 none / wheelhouse")
+            if "files" in artifacts and not isinstance(artifacts["files"], list):
+                problems.append("environment.artifacts.files 必须是列表")
     items = environment.get("items")
     if items is not None:
         if not isinstance(items, list):
