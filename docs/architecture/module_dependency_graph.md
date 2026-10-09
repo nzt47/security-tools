@@ -2343,6 +2343,7 @@ flowchart LR
     agent_subagent_memory_quota -.-> agent_memory_quota
     agent_subagent_observability -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_monitoring_business_metrics
+    agent_subagent_peers --> agent_subagent_callback_channel
     agent_subagent_peers -.-> agent_task_scheduler
     agent_subagent_role_templates -.-> agent_prompt_manager_roles
     agent_subagent_sandbox -.-> agent_lines_models
@@ -2657,7 +2658,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 659
 - 模块节点数: 590
-- 依赖边数: 1945
+- 依赖边数: 1946
 - 跨层调用数: 1231
 - 违规调用数: 0
 - 动态 import 数: 1
