@@ -580,6 +580,26 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="knowledge.file_lock_timeout_sec 必须在 1-60 秒之间",
         description="log.md 文件锁获取超时（秒），用于 knowledge/ingest.py 的 _FileLock(timeout=)",
     ),
+
+    # ── 23. 子代理回调反向通道（subagent callback，S5 通信） ──
+    # 出站超时；命中 subagent/callback_channel.py 的 DEFAULT_TIMEOUT（可被
+    # CP_SUBAGENT_CALLBACK_TIMEOUT 覆盖）
+    ValidationRule(
+        path="subagent.callback_timeout_sec",
+        validator=_range_validator(0.1, 300),
+        default=5.0,
+        error_message="subagent.callback_timeout_sec 必须在 0.1-300 秒之间",
+        description="子代理回调 HTTP 出站超时秒数，用于 subagent/callback_channel.py 的 DEFAULT_TIMEOUT",
+    ),
+    # 出站重试次数；命中 subagent/callback_channel.py 的 MAX_RETRIES（可被
+    # CP_SUBAGENT_CALLBACK_MAX_RETRIES 覆盖，上界 1）
+    ValidationRule(
+        path="subagent.callback_max_retries",
+        validator=_range_validator(0, 1),
+        default=1,
+        error_message="subagent.callback_max_retries 必须在 0-1 之间（0 表示不重试）",
+        description="子代理回调 HTTP 出站重试次数上界，用于 subagent/callback_channel.py 的 MAX_RETRIES",
+    ),
 ]
 
 

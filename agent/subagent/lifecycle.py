@@ -436,9 +436,11 @@ class SubagentLifecycleManager:
         if not items:
             return []
         if executor is None:
+            from agent.subagent.callback_channel import default_callback_dispatcher
             from agent.subagent.executor import DelegationExecutor
 
-            executor = DelegationExecutor(llm=llm)
+            executor = DelegationExecutor(
+                llm=llm, callback_dispatcher=default_callback_dispatcher())
 
         results: list = [None] * len(items)
         containers: dict = {}

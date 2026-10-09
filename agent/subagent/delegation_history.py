@@ -44,6 +44,9 @@ GOAL_MAX_CHARS = 160
 #: 错误信息截断长度
 ERROR_MAX_CHARS = 300
 
+#: 入站回调幂等扫描窗口（尾部记录条数；够覆盖近期重复投递）
+DEDUP_SCAN_LIMIT = 5000
+
 
 class DelegationHistory:
     """委派记录（追加写 JSONL + 尾部窗口读）"""
@@ -60,6 +63,29 @@ class DelegationHistory:
     def append(self, record: dict) -> bool:
         """追加一条记录（失败返回 False，不抛出）"""
         return append_jsonl(self._path, record)
+
+    def find(self, delegation_id: str, *, source: str = "") -> Optional[dict]:
+        """按 delegation_id 查最近一条记录（尾部窗口；缺失/读失败返回 None）
+
+        【用途】入站回调幂等：同一 delegation_id 已入账则不再追加。
+        只读、fail-soft（读失败当"没查到"，由调用方的进程锁兜底），**不改**追加契约。
+        """
+        target = str(delegation_id or "")
+        if not target:
+            return None
+        try:
+            records = read_jsonl_tail(self._path, DEDUP_SCAN_LIMIT)
+        except Exception:  # noqa: BLE001 读历史失败不得让幂等判定打挂请求
+            return None
+        for rec in reversed(records):
+            if not isinstance(rec, dict):
+                continue
+            if str(rec.get("delegation_id") or "") != target:
+                continue
+            if source and str(rec.get("source") or "") != source:
+                continue
+            return rec
+        return None
 
     def record_outcome(self, *, ctx: Any, outcome: Any, subagent: str = "",
                        source: str = "") -> bool:
@@ -128,4 +154,4 @@ def _total_tokens(cost: Any) -> Optional[int]:
 delegation_history = DelegationHistory()
 
 __all__ = ["DelegationHistory", "delegation_history", "DEFAULT_PATH",
-           "GOAL_MAX_CHARS", "ERROR_MAX_CHARS"]
+           "GOAL_MAX_CHARS", "ERROR_MAX_CHARS", "DEDUP_SCAN_LIMIT"]

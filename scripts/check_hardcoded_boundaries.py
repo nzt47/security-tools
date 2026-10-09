@@ -68,6 +68,10 @@ _MANUAL_CONFIGURED_MODULES: Set[str] = {
     "monitoring/search.py",
     "monitoring/self_healer.py",
     "monitoring/observability_config.py",
+    # S5 通信 · 回调反向通道：超时/重试已接入 observability_config
+    # （subagent.callback_timeout_sec / subagent.callback_max_retries）；
+    # 本脚本以脚本目录为 sys.path[0] 运行，agent.monitoring 导入失败时走本表。
+    "subagent/callback_channel.py",
 }
 
 # 从 description 中提取 .py 模块路径的正则

@@ -11,7 +11,9 @@
     回收三件套），与模型侧 ``delegate`` 工具**同一条真执行链路**。UI 用这条。
 """
 
+import json
 import logging
+import threading
 import time
 import uuid
 from typing import Any, Dict, Sequence
@@ -37,6 +39,11 @@ from agent.subagent.memory_broker import (
 from agent.subagent.credentials import ManifestSecretLeak
 
 logger = logging.getLogger(__name__)
+
+#: 入站回调请求体上限（64KiB）——超过即 413，不解析、不落账
+CALLBACK_MAX_BODY_BYTES = 64 * 1024
+#: 入站回调幂等的进程内锁（配合 delegation_history.find 只读判重，防并发重复落账）
+_CALLBACK_DEDUP_LOCK = threading.Lock()
 
 
 def _channel_info(Yunshu) -> dict:
@@ -668,6 +675,64 @@ def register_routes(app, state):
             logger.error("[SubagentAPI] bundle 导入失败: %s", e)
             return jsonify({"ok": False, "error_code": "E_BUNDLE_IMPORT_FAILED",
                             "error": str(e)}), 400
+
+    # ═══════════════════════════════════════════════════
+    #  S5 通信：回调反向通道（入站）
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/subagent/callback", methods=["POST"])
+    @trace_route("Subagent")
+    @require_token
+    @log_request(show_body=False)
+    def api_subagent_callback():
+        """接收分身/远端的委派结果回调（**只落账，不执行任何工具、不建/改容器**）
+
+        请求体：{delegation_id, status, trace_id?, summary?, artifact_count?, source?}
+          · summary 只作**短摘要**（截断 ≤1000），**不执行**、不解析为工具调用；
+          · 幂等：同一 delegation_id 重复投递 ⇒ 200 + deduplicated=true，不重复落账；
+          · 缺/错 token ⇒ 401（@require_token）；体过大 >64KiB ⇒ 413；
+            缺 delegation_id ⇒ 400；非法 JSON ⇒ 400。
+
+        落账复用既有 delegation_history.append（与 record_outcome 同一份 JSONL 契约），
+        只用只读 find 判重；响应**不回显**任何令牌或摘要正文。
+        """
+        # ① 体量闸门：先看声明的 Content-Length，读取后再复核（兼顾 chunked 无长度）
+        declared = request.content_length
+        if declared is not None and declared > CALLBACK_MAX_BODY_BYTES:
+            return jsonify({"ok": False, "error_code": "E_CALLBACK_BODY_TOO_LARGE",
+                            "error": f"回调请求体超过 {CALLBACK_MAX_BODY_BYTES} 字节"}), 413
+        raw = request.get_data(cache=True) or b""
+        if len(raw) > CALLBACK_MAX_BODY_BYTES:
+            return jsonify({"ok": False, "error_code": "E_CALLBACK_BODY_TOO_LARGE",
+                            "error": f"回调请求体超过 {CALLBACK_MAX_BODY_BYTES} 字节"}), 413
+        # ② 解析（非法 JSON / 非对象一律 400，不静默当空对象）
+        data: dict = {}
+        if raw:
+            try:
+                parsed = json.loads(raw.decode("utf-8"))
+            except (ValueError, UnicodeDecodeError) as e:
+                return jsonify({"ok": False, "error_code": "E_CALLBACK_BAD_JSON",
+                                "error": f"回调请求体不是合法 JSON：{type(e).__name__}"}), 400
+            if not isinstance(parsed, dict):
+                return jsonify({"ok": False, "error_code": "E_CALLBACK_BAD_BODY",
+                                "error": "回调请求体必须是 JSON 对象"}), 400
+            data = parsed
+        delegation_id = str(data.get("delegation_id") or "").strip()
+        if not delegation_id:
+            return jsonify({"ok": False, "error_code": "E_CALLBACK_NO_DELEGATION_ID",
+                            "error": "请求体缺少 delegation_id"}), 400
+        # ③ 幂等落账：进程锁内判重 + 追加（跨进程竞态如实登记为未做）
+        from agent.subagent.callback_channel import build_callback_record
+
+        with _CALLBACK_DEDUP_LOCK:
+            if delegation_history.find(delegation_id, source="callback") is not None:
+                return jsonify({"ok": True, "deduplicated": True,
+                                "delegation_id": delegation_id}), 200
+            written = delegation_history.append(
+                build_callback_record(data, delegation_id))
+        return jsonify({"ok": True, "deduplicated": False,
+                        "delegation_id": delegation_id,
+                        "recorded": bool(written)}), 200
 
     # ═══════════════════════════════════════════════════
     #  创建 & 销毁

@@ -1092,8 +1092,19 @@ class DelegationExecutor:
                                   "delivered": False, "error": ""}
         if self._callback_dispatcher is not None:
             try:
-                self._callback_dispatcher(ctx.callback_url, payload)
-                result["delivered"] = True
+                returned = self._callback_dispatcher(ctx.callback_url, payload)
+                # 投递器可回 Mapping（见 callback_channel.HttpCallbackDispatcher）：如实
+                # 并入 delivered/status/error/mode，使「被策略拒绝 / 传输失败」不被误报成
+                # delivered=True。返回 None 的既有投递器语义不变（视为已投递）。
+                if isinstance(returned, Mapping):
+                    result["delivered"] = bool(returned.get("delivered", False))
+                    if returned.get("status") is not None:
+                        result["status"] = returned.get("status")
+                    result["error"] = str(returned.get("error") or "")
+                    if returned.get("mode"):
+                        result["mode"] = str(returned["mode"])
+                else:
+                    result["delivered"] = True
             except Exception as e:  # noqa: BLE001  回调失败不阻断
                 result["error"] = f"{type(e).__name__}: {e}"
                 logger.warning("[Executor] 回调投递失败 %s: %s", ctx.callback_url, e)
@@ -1250,12 +1261,21 @@ class DelegationExecutor:
 
 def build_executor(*, llm: Any = None, agent_cli: str = "",
                    channel: Optional[ChannelExecutor] = None,
+                   callback_dispatcher: Any = None,
                    **kwargs: Any) -> DelegationExecutor:
     """按可用条件构造执行器（LLM 优先于 CLI 的**内部等价实现**路径）
 
     任务书「上游已知坑 #1」：环境可能无外部 agent CLI/凭证，故真实调用是可选的；
     无 CLI 时用内部 LLM 执行器（协议完全一致），无 LLM 时如实标注为未配置。
+
+    【S5 回调反向通道】未显式注入 callback_dispatcher 时走工厂：未开启 ⇒ None
+    （生产默认仍只写审计，行为逐字不变）；开启且配置齐全 ⇒ HttpCallbackDispatcher。
     """
+    if callback_dispatcher is None:
+        from agent.subagent.callback_channel import default_callback_dispatcher
+
+        callback_dispatcher = default_callback_dispatcher()
+    kwargs["callback_dispatcher"] = callback_dispatcher
     if channel is not None:
         return DelegationExecutor(channel=channel, llm=llm, **kwargs)
     if agent_cli or default_agent_cli():

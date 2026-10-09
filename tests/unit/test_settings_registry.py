@@ -4,7 +4,7 @@
     1. **零缺口**：`scripts/scan_settings.py` 用 AST 从代码里机械提取全部 env 读取点，
        提取结果必须 100% 被 `agent/settings/registry.py` 覆盖（缺口即失败）；
     2. **零重造**：`agent/monitoring/observability_config.py` 的既有校验表
-       （48 条 path/校验/默认/说明）必须 100% 被注册表以 `config_path` 合并，
+       （既有 path/校验/默认/说明）必须 100% 被注册表以 `config_path` 合并，
        且默认值逐条一致（少一条即失败）。
 
 另加"反向防漂移"：**注册表里登记的 env 名必须在代码里真的被读到**（`extra == []`），
@@ -333,7 +333,7 @@ class TestMechanicalZeroGap:
 
 class TestObservabilityRuleMerge:
     def test_every_rule_path_is_merged(self):
-        """★ 既有 48 条校验规则必须逐条被注册表合并（config_path 对齐）"""
+        """★ 既有校验规则必须逐条被注册表合并（config_path 对齐）"""
         merged = {s.config_path for s in R.all_specs() if s.config_path}
         for rule in OBSERVABILITY_VALIDATION_RULES:
             assert rule.path in merged, f"未合并既有校验项：{rule.path}"
@@ -461,7 +461,7 @@ class TestRegisteredDefaultsMatchCodeFacts:
     `resolver.py::restore_runtime` 的 ObservabilityConfig 回写，它受
     `_is_observability_path(spec)`（config_path 必须命中 `observability_rule_paths()`）
     把关 —— 【L1 更正】`EVOLUTION_ENABLED` / `EVOLUTION_LLM_GENERATE` 此后**已有**
-    `config_path`，但两条路径都不在那 48 条里 ⇒ `_is_observability_path` 仍为 False，
+    `config_path`，但两条路径都不在 observability 规则路径里 ⇒ `_is_observability_path` 仍为 False，
     仍不触发（"无 config_path" 不再是这两项的豁免理由）。
     因此该 `default` 只影响**展示与来源判定**（`resolve()` 的 value/display_value），
     必须与代码事实一致。
@@ -764,7 +764,7 @@ class TestConfigPathMatchesSourceReadSite:
     def test_declared_file_config_paths_are_exactly_this_inventory(self):
         """声明了 config.yaml 文件路径的键集合必须与本清单**逐字**相等
 
-        注意：ObservabilityConfig 的运行态路径（observability_rule_paths() 的 48 条）
+        注意：ObservabilityConfig 的运行态路径（observability_rule_paths() 的既有规则路径）
         由 TestObservabilityRuleMerge 守护，不在本清单里。
         """
         actual = {spec.key for spec in R.all_specs()

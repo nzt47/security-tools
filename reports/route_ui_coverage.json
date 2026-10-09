@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-10-09T04:24:53",
+  "generated_at": "2026-10-09T06:25:38",
   "totals": {
-    "routes": 454,
+    "routes": 455,
     "live": 233,
-    "dead_copy": 221,
+    "dead_copy": 222,
     "ui": 113,
     "cli_script": 21,
     "runtime_only": 24,
-    "unreferenced": 296,
+    "unreferenced": 297,
     "live_by_category": {
       "ui": 47,
       "cli_script": 8,
@@ -5487,7 +5487,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:551"
+        "agent/server_routes/routes_subagent.py:558"
       ]
     },
     {
@@ -5501,7 +5501,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:568"
+        "agent/server_routes/routes_subagent.py:575"
       ]
     },
     {
@@ -5515,7 +5515,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:811"
+        "agent/server_routes/routes_subagent.py:876"
       ]
     },
     {
@@ -5529,7 +5529,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:757"
+        "agent/server_routes/routes_subagent.py:822"
       ]
     },
     {
@@ -5543,7 +5543,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:779"
+        "agent/server_routes/routes_subagent.py:844"
       ]
     },
     {
@@ -5557,7 +5557,21 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1034"
+        "agent/server_routes/routes_subagent.py:1099"
+      ]
+    },
+    {
+      "path": "/api/subagent/callback",
+      "norm": "/api/subagent/callback",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": false,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_subagent.py:683"
       ]
     },
     {
@@ -5573,7 +5587,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:484"
+        "agent/server_routes/routes_subagent.py:491"
       ]
     },
     {
@@ -5589,7 +5603,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:676"
+        "agent/server_routes/routes_subagent.py:741"
       ]
     },
     {
@@ -5605,7 +5619,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:936"
+        "agent/server_routes/routes_subagent.py:1001"
       ]
     },
     {
@@ -5621,7 +5635,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:507"
+        "agent/server_routes/routes_subagent.py:514"
       ]
     },
     {
@@ -5637,7 +5651,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:615"
+        "agent/server_routes/routes_subagent.py:622"
       ]
     },
     {
@@ -5653,7 +5667,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:451"
+        "agent/server_routes/routes_subagent.py:458"
       ]
     },
     {
@@ -6989,5 +7003,5 @@
       ]
     }
   ],
-  "content_hash": "64a2eebdd8bdafab"
+  "content_hash": "ee91feb3f5eb900a"
 }
