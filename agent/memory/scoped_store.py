@@ -50,6 +50,7 @@ from agent.memory.tenancy import (
 from agent.memory.quota import (
     AUDIT_SCOPED_DEGRADED,
     AUDIT_SCOPED_PERSIST,
+    AUDIT_SCOPED_READ,
 )
 
 logger = logging.getLogger(__name__)
@@ -246,6 +247,18 @@ class ScopedMemoryEntry:
 
 def _coerce_entry(entry: Any) -> ScopedMemoryEntry:
     return entry if isinstance(entry, ScopedMemoryEntry) else ScopedMemoryEntry.from_mapping(entry)
+
+
+def _row_metadata(row: Any) -> Mapping[str, Any]:
+    """取后端条目的 metadata（MemoryResult.metadata 或 Mapping["metadata"]）
+
+    mem0 的 search 返回带 metadata 的 MemoryResult；不同后端也可能给 Mapping。
+    取不到一律返回空表 —— 调用方据此按"域名不可判"处理（宁可少读，不可串读）。
+    """
+    meta = getattr(row, "metadata", None)
+    if not isinstance(meta, Mapping) and isinstance(row, Mapping):
+        meta = row.get("metadata")
+    return meta if isinstance(meta, Mapping) else {}
 
 
 @dataclass(frozen=True)
@@ -587,7 +600,22 @@ class ScopedMemoryDomain:
 
     def read(self, query: str = "", *, limit: Optional[int] = None,
              memory_types: Optional[Sequence[Any]] = None) -> ScopedReadOutcome:
-        """同步召回（同一同步桥；失败 => 明确 degraded，返回空）"""
+        """同步召回（同一同步桥；失败 => 明确 degraded，返回空）
+
+        【空域断言】scope 缺三要素（has_domain=False）⇒ degraded="domain_missing"，
+        **不触达后端**：空域读到的东西无法判定归属，放行等于把"谁的记忆"交给后端决定。
+        【mem0 后置域过滤】mem0 的 search 忽略 metadata（adapter 接口如此）⇒ 逐条按
+        scope 比对 tenant/workspace/subject，域名不符或缺 metadata 一律剔除；任一被剔除
+        即 degraded="scope_filtered" 并留审计。holographic 的 recall 已由 tenancy 过滤，
+        不做二次过滤（避免对无 metadata 的 dataclass 条目误伤）。
+        【成功留痕】读成功写一条 AUDIT_SCOPED_READ（只记条数，不记正文）。
+        """
+        if not self.scope.has_domain:
+            self._emit(AUDIT_SCOPED_DEGRADED, status="degraded",
+                       payload={"reason": "domain_missing", "provider": self.provider,
+                                "op": "read"})
+            return ScopedReadOutcome(ok=False, error_code=E_MEMORY_SCOPE_MISMATCH,
+                                     degraded="domain_missing")
         try:
             backend = self.select_store()
             rows = run_sync(
@@ -602,7 +630,44 @@ class ScopedMemoryDomain:
                                 "op": "read"})
             return ScopedReadOutcome(ok=False, error_code=E_MEMORY_DEGRADED,
                                      degraded=degraded)
-        return ScopedReadOutcome(ok=True, entries=tuple(rows or ()))
+        kept, dropped = self._filter_rows(rows)
+        if dropped:
+            self._emit(AUDIT_SCOPED_DEGRADED, status="degraded",
+                       payload={"reason": "scope_filtered", "provider": self.provider,
+                                "op": "read", "dropped": dropped})
+        self._emit(AUDIT_SCOPED_READ, status="read",
+                   payload={"provider": self.provider, "count": len(kept),
+                            "dropped": dropped})
+        return ScopedReadOutcome(ok=True,
+                                 degraded=("scope_filtered" if dropped else ""),
+                                 entries=tuple(kept))
+
+    def _filter_rows(self, rows: Sequence[Any]) -> Tuple[list, int]:
+        """按 scope 过滤后端条目（**只对 mem0 生效**）；返回 (保留, 剔除数)
+
+        为什么只对 mem0：它的 search 不含 metadata 过滤（跨域串读的真实洞）；
+        holographic 的 recall 已按 tenancy 过滤，条目是无 metadata 的 dataclass，
+        二次过滤会把正常召回全部误伤。
+        """
+        if str(self.provider) != "mem0":
+            return list(rows or ()), 0
+        kept: list = []
+        dropped = 0
+        for row in rows or ():
+            meta = _row_metadata(row)
+            in_scope = True
+            for dim in ("tenant_id", "workspace_id", "subject_id"):
+                want = str(getattr(self.scope, dim, "") or "")
+                if not want:
+                    continue
+                if str(meta.get(dim) or "") != want:
+                    in_scope = False
+                    break
+            if in_scope:
+                kept.append(row)
+            else:
+                dropped += 1
+        return kept, dropped
 
     # -- 视图 --
 
