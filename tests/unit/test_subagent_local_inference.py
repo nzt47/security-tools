@@ -27,10 +27,10 @@ from agent.subagent.bundle import (BACKEND_LOCAL, SUPPORTED_BACKENDS,
                                    UnsupportedBackend, get_backend, resolve_backend)
 from agent.subagent.channel import (TIER_JSONL, ChannelInvocation, build_cli_argv,
                                     resolve_channel_output)
-from agent.subagent.executor import DelegationExecutor
-from agent.subagent.local_inference import (LocalInferenceChannelExecutor,
-                                            LocalInferenceError, LocalLLMAdapter,
-                                            build_local_channel,
+from agent.subagent.executor import (DelegationExecutor,
+                                      LocalInferenceChannelExecutor,
+                                      build_local_channel)
+from agent.subagent.local_inference import (LocalInferenceError, LocalLLMAdapter,
                                             local_backend_enabled, local_status)
 
 
@@ -229,5 +229,5 @@ class TestL8Capabilities:
         assert verify_faces() == [], "能力面自检不通过（证据文件缺失/字段为空）"
         # 符号级：光把状态改 OWNED 而删掉实现，这里立刻红
         from agent.subagent.bundle import BACKEND_LOCAL as backend
-        from agent.subagent.local_inference import LocalInferenceChannelExecutor as ex
+        from agent.subagent.executor import LocalInferenceChannelExecutor as ex
         assert backend == "local" and ex is not None

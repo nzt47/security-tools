@@ -350,6 +350,43 @@ class LlmChannelExecutor(ChannelExecutor):
                 "_turns_used": turns_used, "_max_turns": max_turns}
 
 
+class LocalInferenceChannelExecutor(ChannelExecutor):
+    """本地推理执行器（第三档；协议与 LlmChannelExecutor 完全一致）
+
+    【为什么在本模块而不是 local_inference.py】它复用 LlmChannelExecutor；若放在
+    local_inference.py，就会形成 local_inference -> executor 的静态依赖，而 executor
+    又在 _default_channel 里延迟引用 local_inference，触发架构规则 no_circular_dependency。
+    故：adapter 与 env 留在 local_inference.py，执行器与构造口放这里（单向依赖）。
+    """
+
+    def __init__(self, adapter: Any, *, system_prompt: str = "") -> None:
+        self._adapter = adapter
+        self._inner = LlmChannelExecutor(
+            adapter, system_prompt=(system_prompt or DELEGATE_SYSTEM_PROMPT))
+
+    @property
+    def llm(self) -> Any:
+        """本地 adapter：注入后第 3 级 LLM 抽取在本地档也可用"""
+        return self._adapter
+
+    @property
+    def provider(self) -> str:
+        return "local"
+
+    def __call__(self, invocation: ChannelInvocation) -> RawOutput:
+        return self._inner(invocation)
+
+
+def build_local_channel(*, engine: str = "", model: str = "", api_base: str = "",
+                        local: Any = None, system_prompt: str = ""
+                        ) -> LocalInferenceChannelExecutor:
+    """构造本地推理通道（构造期零网络；adapter 见 agent/subagent/local_inference.py）"""
+    from agent.subagent.local_inference import build_local_adapter
+
+    adapter = build_local_adapter(engine=engine, model=model, api_base=api_base, local=local)
+    return LocalInferenceChannelExecutor(adapter, system_prompt=system_prompt)
+
+
 # ════════════════════════════════════════════════════════════
 #  执行器
 # ════════════════════════════════════════════════════════════
@@ -463,8 +500,7 @@ class DelegationExecutor:
         if self._llm is not None:
             return LlmChannelExecutor(self._llm)
         try:
-            from agent.subagent.local_inference import (build_local_channel,
-                                                        local_backend_enabled)
+            from agent.subagent.local_inference import local_backend_enabled
 
             if local_backend_enabled():
                 local_channel = build_local_channel()
@@ -1389,5 +1425,6 @@ __all__ = [
     "CAPABILITY_DELEGATE", "CAPABILITY_DELEGATE_TOOL",
     "E_DELEGATION_FAILED", "DEFAULT_MAX_CONCURRENCY",
     "DELEGATE_SYSTEM_PROMPT", "DELEGATE_CONTINUE_PROMPT",
-    "ExecutionOutcome", "LlmChannelExecutor", "DelegationExecutor", "build_executor",
+    "ExecutionOutcome", "LlmChannelExecutor", "LocalInferenceChannelExecutor",
+    "DelegationExecutor", "build_executor", "build_local_channel",
 ]

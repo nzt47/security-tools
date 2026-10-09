@@ -579,7 +579,8 @@ def resolve_backend(bundle: Mapping[str, Any], *, llm: Any = None, agent_cli: st
         BundleError: inproc 未注入 llm / subprocess 未配置 CLI。
     """
     backend = get_backend(bundle)
-    from agent.subagent.executor import LlmChannelExecutor, build_executor
+    from agent.subagent.executor import (LlmChannelExecutor, build_executor,
+                                         build_local_channel)
 
     if backend == BACKEND_SUBPROCESS:
         cli = str(agent_cli or default_agent_cli() or "").strip()
@@ -606,8 +607,6 @@ def resolve_backend(bundle: Mapping[str, Any], *, llm: Any = None, agent_cli: st
         # 不用远端 llm，也不要求它存在（断网场景下母体可能没有可用远端）。
         if channel is not None:
             return build_executor(llm=llm, channel=channel, **kwargs)
-        from agent.subagent.local_inference import build_local_channel
-
         local_channel = build_local_channel()
         return build_executor(llm=local_channel.llm, channel=local_channel, **kwargs)
 

@@ -40,8 +40,6 @@ import os
 from collections.abc import Mapping
 from typing import Any, Dict, Optional
 
-from agent.subagent.channel import ChannelExecutor, ChannelInvocation, RawOutput
-
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -54,8 +52,7 @@ __all__ = [
     "local_backend_enabled",
     "local_status",
     "LocalLLMAdapter",
-    "LocalInferenceChannelExecutor",
-    "build_local_channel",
+    "build_local_adapter",
 ]
 
 #: 有真实实现的本地引擎（只列实现了的；core/local_llm 的 vllm 分支未实现，不列）
@@ -165,47 +162,22 @@ class LocalLLMAdapter:
         yield self.chat(messages, system_prompt=system_prompt)
 
 
-class LocalInferenceChannelExecutor(ChannelExecutor):
-    """第三档执行器：把 `LlmChannelExecutor` 的多轮文本循环跑在本地 adapter 上
-
-    不重写协议：内部委托 `LlmChannelExecutor`，因此 task_file / JSON Lines /
-    三级降级 / max_turns 行为与内部 LLM 档逐字一致。
-    """
-
-    def __init__(self, adapter: LocalLLMAdapter, *, system_prompt: str = "") -> None:
-        from agent.subagent.executor import DELEGATE_SYSTEM_PROMPT, LlmChannelExecutor
-
-        self._adapter = adapter
-        self._inner = LlmChannelExecutor(
-            adapter, system_prompt=(system_prompt or DELEGATE_SYSTEM_PROMPT))
-
-    @property
-    def llm(self) -> LocalLLMAdapter:
-        """本地 adapter：执行器把它注入通道后，第 3 级 LLM 抽取在本地档也可用"""
-        return self._adapter
-
-    @property
-    def provider(self) -> str:
-        return "local"
-
-    def __call__(self, invocation: ChannelInvocation) -> RawOutput:
-        return self._inner(invocation)
-
-
-def build_local_channel(*, engine: str = "", model: str = "", api_base: str = "",
-                        local: Any = None, system_prompt: str = ""
-                        ) -> LocalInferenceChannelExecutor:
-    """构造本地通道（**构造期零网络**：不探活、不下载，探活只在真正调用时发生）
+def build_local_adapter(*, engine: str = "", model: str = "", api_base: str = "",
+                        local: Any = None) -> LocalLLMAdapter:
+    """构造本地 LLM adapter（**构造期零网络**：不探活、不下载，探活只在真正调用时）
 
     Args:
-        engine: 引擎名；缺省读 `CP_SUBAGENT_LOCAL_ENGINE`，再缺省 ollama。
-        model: 模型名；缺省读 `CP_SUBAGENT_LOCAL_MODEL`，空则用 core 的内置默认。
-        api_base: 端点；缺省读 `CP_SUBAGENT_LOCAL_API_BASE`，空则用 core 的内置默认。
-        local: 注入的 `LocalLLM` 替身（测试用；不给就惰性导入 core.local_llm 构造）。
-        system_prompt: 覆盖基座 prompt（空 = 用执行器的 DELEGATE_SYSTEM_PROMPT）。
+        engine: 引擎名；缺省读 CP_SUBAGENT_LOCAL_ENGINE，再缺省 ollama。
+        model: 模型名；缺省读 CP_SUBAGENT_LOCAL_MODEL，空则用 core 的内置默认。
+        api_base: 端点；缺省读 CP_SUBAGENT_LOCAL_API_BASE，空则用 core 的内置默认。
+        local: 注入的 LocalLLM 替身（测试用；不给就惰性导入 core.local_llm 构造）。
 
     Raises:
         LocalInferenceError: 引擎无真实实现（fail-closed，不假装支持）。
+
+    【为什么执行器不在这里】复用 LlmChannelExecutor 的 LocalInferenceChannelExecutor
+    放在 agent/subagent/executor.py —— 否则本模块静态 import executor，而 executor 又
+    反向引用本模块，会触发架构规则 no_circular_dependency（实测 CI 红）。
     """
     eng = str(engine or os.environ.get(ENV_LOCAL_ENGINE, "") or "ollama").strip() or "ollama"
     if eng not in SUPPORTED_LOCAL_ENGINES:
@@ -221,7 +193,5 @@ def build_local_channel(*, engine: str = "", model: str = "", api_base: str = ""
         if mdl:
             local = LocalLLM(engine=eng, model=mdl, api_base=(base or None))
         else:
-            # 不抄 core 的默认模型名（避免"硬编码模型名"在第二处出现）
             local = LocalLLM(engine=eng, api_base=(base or None))
-    adapter = LocalLLMAdapter(local, model=str(getattr(local, "_model", "") or ""))
-    return LocalInferenceChannelExecutor(adapter, system_prompt=system_prompt)
+    return LocalLLMAdapter(local, model=str(getattr(local, "_model", "") or ""))
