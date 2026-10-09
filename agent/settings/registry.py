@@ -2115,6 +2115,19 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
             "能力服务访问令牌的**兼容别名**（CP_API_TOKEN 未设时兜底；只读脱敏）；"
             "**只有 env 一层**（cloudshu/cli.py:358）",
             owner="cloudshu/cli.py"),
+    # 【S5 通信 · 静态对端 + 心跳（PR-E，2026-10-09）】对端**只来自这一条静态白名单**：
+    # JSON 数组或 name=url,name=url。解析器 agent/subagent/peers.py **刻意不做**
+    # DNS/SRV/mDNS/注册中心等任何服务发现（出站目标可涌现 = 无法拦截的 SSRF 面）。
+    # C 级：对端回调地址是外部端点，属"只读脱敏"口径；默认空串 = 一个对端都不配。
+    _c("CP_SUBAGENT_PEERS", CAT_EXTERNAL, "",
+       "子代理静态对端清单（JSON 数组或 name=url,name=url；空=无对端）；"
+       "**不做任何服务发现/探测**，对端地址不构成对外的密钥面（只读）",
+       owner="agent/subagent/peers.py"),
+    # 心跳周期；**缺失即不注册**（peers.py 不写死数字默认，宁可显式"未接线"）。
+    _c("CP_SUBAGENT_PEER_HEARTBEAT_SEC", CAT_EXTERNAL, None,
+       "子代理对端心跳周期（秒）；缺失=不注册周期任务（显式未接线，无写死默认）；"
+       "启动期接入属后续（只读）",
+       owner="agent/subagent/peers.py", validator=Validator("int")),
     _b("CP_MCP_SERVER_TOOLS", CAT_EXTERNAL, "",
        "MCP 服务对外暴露的工具白名单（逗号分隔；未设则用内置默认集）；"
        "放宽即扩大对外暴露面（与「关闭即降低防护」同性质，故取 B）；"

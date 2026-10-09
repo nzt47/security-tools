@@ -234,10 +234,13 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="communication", layer="body", label="通信与协同",
         question="多个它之间怎么说话？", state=OWNED,
-        evidence="共享任务看板（append-only 任务事件，母体**唯一**写板；fan_out/单发逐任务上板，可折出最新态）+ fan_out 并行派发 + delegation_history",
-        evidence_files=("agent/subagent/task_board.py", "agent/tools/fan_out_tools.py", "agent/subagent/lifecycle.py"),
-        gap="分身间直连 / 服务发现刻意不做（母体中枢）；二次派发轮次机制尚未接线",
-        next_stage=""),
+        evidence="共享任务看板（append-only 任务事件，母体**唯一**写板；fan_out/单发逐任务上板，可折出最新态）+ fan_out 并行派发 + delegation_history + 静态对端与心跳（CP_SUBAGENT_PEERS 声明式白名单 + send_heartbeats 逐对端健康折叠与审计，读面内联 /api/subagent/history 的 peers 段）",
+        evidence_files=("agent/subagent/task_board.py", "agent/tools/fan_out_tools.py", "agent/subagent/lifecycle.py", "agent/subagent/peers.py"),
+        gap="分身间直连 / 服务发现刻意不做（母体中枢），对端只来自静态白名单、不做任何探测；"
+            "心跳仅静态触发（register_peer_heartbeats 提供入口，启动期接入与健康持久化属后续）；"
+            "离线回退未做（offline_fallback_report 显式登记 status=not_implemented，无 outbox、无重放）；"
+            "二次派发轮次机制尚未接线",
+        next_stage="S5"),
     # ── 治理层 ──
     SovereigntyFace(
         key="observability", layer="governance", label="可观测 / 审计 / 成本",
