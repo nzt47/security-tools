@@ -101,6 +101,23 @@ _FENCE_RE = re.compile(r"^\s*```[a-zA-Z0-9_-]*\s*$")
 #: 上游输出长度上限（进入 LLM 抽取前的截断，防超长注入撑爆上下文）
 MAX_EXTRACT_CHARS = 20000
 
+#: 子代理侧**声明式**记忆操作（协议内声明 + 母体执行 + 守域）的载荷键。
+#: 与 §3.10 既有字段同层：形态非法一律丢弃并记 degraded，**绝不**让委派失败。
+MEMORY_READ_KEYS: Tuple[str, ...] = ("memory_reads",)
+MEMORY_WRITE_KEYS: Tuple[str, ...] = ("memory_writes",)
+
+#: 单次载荷允许的声明条数上限（外来声明不设界可被用来放大母体侧工作量）
+MAX_MEMORY_READS = 8
+MAX_MEMORY_WRITES = 8
+#: 单条读取 query 的字符上限
+MAX_MEMORY_QUERY_CHARS = 500
+#: 单条写入正文的字符上限（与 scoped_store.MAX_SCOPED_WRITE_CHARS 同值；此处刻意
+#: 不 import memory 域，保持通道层的依赖纪律）
+MAX_MEMORY_CONTENT_CHARS = 800
+#: 写入声明允许的键（**不含** tenant/workspace/subject——域标识由母体 scope 强制覆盖）
+MEMORY_WRITE_SPEC_KEYS: Tuple[str, ...] = (
+    "content", "memory_type", "scope", "key", "confidence")
+
 
 # ════════════════════════════════════════════════════════════
 #  异常与错误码
@@ -524,6 +541,117 @@ def collect_artifacts(payload: Mapping[str, Any]) -> List[Dict[str, Any]]:
 
 
 # ════════════════════════════════════════════════════════════
+#  声明式记忆操作（P-F：子代理发起声明，母体执行 + 守域）
+# ════════════════════════════════════════════════════════════
+
+
+def _first_present(payload: Mapping[str, Any], keys: Sequence[str]) -> Any:
+    """取第一个出现过的键值（键存在即算，值可为空）"""
+    for key in keys:
+        if key in payload:
+            return payload[key]
+    return None
+
+
+def _memory_read_query(item: Any) -> str:
+    """从一条读取声明里取 query（字符串 / 含 query 槽位的字典）"""
+    if isinstance(item, str):
+        return item.strip()
+    if isinstance(item, Mapping):
+        for key in ("query", "q", "text"):
+            value = item.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return ""
+
+
+def _memory_write_spec(item: Any) -> Optional[Dict[str, Any]]:
+    """收口一条写入声明（只留白名单键；非法返回 None）
+
+    刻意不保留 tenant/workspace/subject：域标识只能来自母体持有的 scope，
+    外来声明提供的域一律丢弃（守域不靠"子代理自觉"）。
+    """
+    if not isinstance(item, Mapping):
+        return None
+    content = item.get("content", item.get("text"))
+    if not isinstance(content, str) or not content.strip():
+        return None
+    spec: Dict[str, Any] = {"content": content.strip()[:MAX_MEMORY_CONTENT_CHARS]}
+    for key in MEMORY_WRITE_SPEC_KEYS:
+        if key == "content" or key not in item:
+            continue
+        value = item.get(key)
+        if value is None:
+            continue
+        if key == "confidence":
+            try:
+                spec[key] = float(value)
+            except (TypeError, ValueError):
+                continue
+        else:
+            text = str(value or "").strip()
+            if text:
+                spec[key] = text
+    if "memory_type" not in spec:
+        alias = item.get("type")
+        if isinstance(alias, str) and alias.strip():
+            spec["memory_type"] = alias.strip()
+    return spec
+
+
+def collect_memory_declarations(
+    payload: Any,
+) -> Tuple[Tuple[str, ...], Tuple[Dict[str, Any], ...], str]:
+    """从载荷提取子代理声明的记忆读写（只读投影，非法即丢弃）
+
+    子代理输出是外来文本（§5.7 机制 1）：「声明要读写什么」只是声明，本函数
+    只做形态收口与截断，绝不执行、绝不因它让委派失败。协议键见
+    MEMORY_READ_KEYS / MEMORY_WRITE_KEYS。
+
+    Returns:
+        (reads, writes, degraded)；degraded 为分号连接的丢弃原因（空 = 全部合法）。
+    """
+    if not isinstance(payload, Mapping):
+        return (), (), ""
+    reasons: List[str] = []
+
+    reads: List[str] = []
+    raw_reads = _first_present(payload, MEMORY_READ_KEYS)
+    if raw_reads is not None:
+        if not isinstance(raw_reads, (list, tuple)):
+            reasons.append("memory_reads_not_list")
+        else:
+            for item in raw_reads:
+                query = _memory_read_query(item)
+                if not query:
+                    reasons.append("memory_reads_dropped")
+                    continue
+                if len(reads) >= MAX_MEMORY_READS:
+                    reasons.append("memory_reads_truncated")
+                    break
+                reads.append(query[:MAX_MEMORY_QUERY_CHARS])
+
+    writes: List[Dict[str, Any]] = []
+    raw_writes = _first_present(payload, MEMORY_WRITE_KEYS)
+    if raw_writes is not None:
+        if not isinstance(raw_writes, (list, tuple)):
+            reasons.append("memory_writes_not_list")
+        else:
+            for item in raw_writes:
+                spec = _memory_write_spec(item)
+                if spec is None:
+                    reasons.append("memory_writes_dropped")
+                    continue
+                if len(writes) >= MAX_MEMORY_WRITES:
+                    reasons.append("memory_writes_truncated")
+                    break
+                writes.append(spec)
+
+    degraded = ";".join(dict.fromkeys(reasons))
+    return tuple(reads), tuple(writes), degraded
+
+
+# ════════════════════════════════════════════════════════════
 #  通道输出（三级降级结果）
 # ════════════════════════════════════════════════════════════
 
@@ -544,6 +672,11 @@ class ChannelOutput:
         error: 人读原因。
         sub_reason: 底层真实成因（``timeout`` / ``returncode`` / ``parse`` / ``no_llm``）。
         invocation: 调用描述（审计用，无凭据明文）。
+        memory_reads / memory_writes: 【P-F 声明式记忆操作】子代理在载荷里**声明**的
+            读写意图（只读投影，来自 collect_memory_declarations；域标识已剥离）。
+            它们只是声明，执行与否由母体守门器决定；默认档恒为空。
+        memory_declaration_degraded: 声明收口时的丢弃原因（空 = 全部合法）；
+            **绝不**因此改变 ok —— 非法声明只丢不杀。
     """
 
     ok: bool
@@ -557,6 +690,9 @@ class ChannelOutput:
     error: str = ""
     sub_reason: str = ""
     invocation: Optional[ChannelInvocation] = None
+    memory_reads: Tuple[str, ...] = ()
+    memory_writes: Tuple[Dict[str, Any], ...] = ()
+    memory_declaration_degraded: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -570,6 +706,18 @@ class ChannelOutput:
             "sub_reason": self.sub_reason,
             "upstream_text": self.text.to_dict(),
             "invocation": self.invocation.to_dict() if self.invocation else None,
+            # 【P-F 只读投影】只回条数 / 长度 / 类型，**不回正文**
+            "memory_declarations": {
+                "reads": [{"query_chars": len(q)} for q in self.memory_reads],
+                "writes": [
+                    {"memory_type": str(w.get("memory_type", "") or ""),
+                     "content_chars": len(str(w.get("content", "") or "")),
+                     "key": str(w.get("key", "") or ""),
+                     "scope": str(w.get("scope", "") or "")}
+                    for w in self.memory_writes
+                ],
+                "degraded": self.memory_declaration_degraded,
+            },
         }
 
 
@@ -653,11 +801,13 @@ def resolve_channel_output(
             continue
         tier = TIER_JSONL if attempt == 1 else TIER_JSONL_RETRY
         payload = merge_records(records)
+        reads, writes, declared_degraded = collect_memory_declarations(payload)
         return ChannelOutput(
             ok=True, tier=tier, records=tuple(records), payload=payload,
             artifacts=tuple(collect_artifacts(payload)), attempts=attempts,
             text=TaintedText(last.stdout or "", "upstream"),
-            invocation=invocation)
+            invocation=invocation, memory_reads=reads, memory_writes=writes,
+            memory_declaration_degraded=declared_degraded)
 
     assert last is not None  # 循环至少执行一次
     text = last.stdout or ""
@@ -665,11 +815,14 @@ def resolve_channel_output(
     if not last.timed_out and text.strip():
         extracted = _extract_with_llm(llm, text)
         if extracted is not None:
+            reads, writes, declared_degraded = collect_memory_declarations(extracted)
             return ChannelOutput(
                 ok=True, tier=TIER_TEXT_EXTRACT, records=(extracted,),
                 payload=dict(extracted),
                 artifacts=tuple(collect_artifacts(extracted)), attempts=attempts,
-                text=TaintedText(text, "upstream"), invocation=invocation)
+                text=TaintedText(text, "upstream"), invocation=invocation,
+                memory_reads=reads, memory_writes=writes,
+                memory_declaration_degraded=declared_degraded)
 
     # 第 4 级：E_UPSTREAM_FORMAT
     if last.timed_out:
@@ -726,6 +879,11 @@ __all__ = [
     "RawOutput", "ChannelExecutor", "SubprocessChannelExecutor", "make_executor",
     # 解析
     "parse_json_lines", "parse_json_document", "merge_records", "collect_artifacts",
+    # 声明式记忆操作（P-F）
+    "MEMORY_READ_KEYS", "MEMORY_WRITE_KEYS", "MEMORY_WRITE_SPEC_KEYS",
+    "MAX_MEMORY_READS", "MAX_MEMORY_WRITES",
+    "MAX_MEMORY_QUERY_CHARS", "MAX_MEMORY_CONTENT_CHARS",
+    "collect_memory_declarations",
     # 结果
     "ChannelOutput", "resolve_channel_output", "run_channel",
 ]

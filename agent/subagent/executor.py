@@ -87,6 +87,7 @@ from agent.subagent.delegation import (
     write_task_file,
 )
 from agent.subagent.sandbox import apply_isolation_env, isolation_policy_report
+from agent.subagent.scoped_memory_gate import ScopedMemoryGate
 from agent.subagent.toolset import (
     E_TOOL_NOT_AUTHORIZED,
     SubAgentToolset,
@@ -145,7 +146,9 @@ class ExecutionOutcome:
             审计写入失败 —— **如实报告**，不伪装成"已留痕"）。
         memory: brokered 记忆档的解析结果（`{mode, source, constraint_chars,
             degraded, memory_count, recorded}`）；**不含记忆正文**。
-            none 档为空 dict（默认路径不新增该键，与 role_audit 同款"有才回"）。
+            scoped 档另含 `write`（结构化事实写回）与 `ops`（子代理声明的记忆读写
+            执行结果：计数 + 错误码）；none 档为空 dict（默认路径不新增该键，
+            与 role_audit 同款"有才回"）。
     """
 
     delegation_id: str = ""
@@ -557,8 +560,13 @@ class DelegationExecutor:
                                            system_prompt=system_prompt, role_tier=role_tier,
                                            start=start)
             if memory:
+                # 【P-F】_execute_locked 在通道输出后已算好声明式记忆操作结果（仅 scoped）；
+                # 换 memory 段时把它一并带过来（只含计数/错误码，不含正文）。
+                memory_ops = dict((outcome.memory or {}).get("ops") or {})
                 # none 档 memory 为空 ⇒ 不设（outcome.memory 保持空 dict，逐字旧行为）
                 outcome.memory = dict(memory)
+                if memory_ops:
+                    outcome.memory["ops"] = memory_ops
                 if str(memory.get("mode", "") or "") == "scoped":
                     # scoped 成功委派 → 把结构化事实写回分身私人域（fail-soft）
                     outcome.memory["write"] = self._write_back_scoped_memory(ctx, outcome)
@@ -721,6 +729,66 @@ class DelegationExecutor:
             status="written" if segment.get("ok") else "degraded")
         return segment
 
+    def _run_scoped_memory_gate(self, ctx: DelegationContext, *,
+                                toolset: SubAgentToolset, channel_output: ChannelOutput,
+                                ok: bool) -> Dict[str, Any]:
+        """【P-F】执行子代理在载荷里**声明**的 scoped 记忆读写（母体执行 + 守域）
+
+        只在 memory_mode == scoped 时触达；none/brokered 原样返回空 dict（不新增键）。
+        无论读写成败都**不**改变委派结果（fail-soft），结果只投影计数与错误码
+        （outcome.memory['ops']，**不含正文**）。
+        """
+        meta = getattr(ctx, "metadata", None) or {}
+        if str(meta.get("memory_mode", "") or "").strip().lower() != "scoped":
+            return {}
+        try:
+            domain = self._resolve_scoped_domain(meta)
+        except Exception as e:  # noqa: BLE001 域构造失败（如未知 provider）=> 如实降级
+            return {"ok": False,
+                    "error_code": str(getattr(e, "code", "") or "E_MEMORY_DEGRADED"),
+                    "degraded": "domain_unavailable:%s" % type(e).__name__,
+                    "attempted": False, "recorded": False}
+        gate = ScopedMemoryGate.from_context(meta, domain=domain, toolset=toolset,
+                                             audit=self._audit)
+        if gate is None:
+            return {"ok": False, "error_code": "E_MEMORY_DEGRADED",
+                    "degraded": "gate_disabled", "attempted": False, "recorded": False}
+        reads = tuple(getattr(channel_output, "memory_reads", ()) or ())
+        writes = tuple(getattr(channel_output, "memory_writes", ()) or ())
+        declared = {"reads": len(reads), "writes": len(writes),
+                    "degraded": str(getattr(channel_output,
+                                            "memory_declaration_degraded", "") or "")}
+        if not reads and not writes:
+            return {"ok": False, "error_code": "", "degraded": "no_declared_ops",
+                    "attempted": False, "recorded": False, "declared": declared}
+        if not ok:
+            return {"ok": False, "error_code": "", "degraded": "delegation_not_ok",
+                    "attempted": False, "recorded": False, "declared": declared}
+        result: Dict[str, Any] = {
+            "ok": True, "error_code": "", "degraded": "", "attempted": True,
+            "declared": declared, "reads": [], "writes": {},
+        }
+        try:
+            for query in reads:
+                result["reads"].append(gate.read(query))
+            if writes:
+                result["writes"] = gate.write_declared(writes)
+            read_ok = all(bool(item.get("ok")) for item in result["reads"])
+            write_ok = (not writes) or bool(result["writes"].get("ok"))
+            result["ok"] = bool(read_ok and write_ok)
+            if result["reads"] and not read_ok:
+                result["degraded"] = "read_degraded"
+            elif writes and not write_ok:
+                result["degraded"] = "write_degraded"
+            result["recorded"] = bool(result["writes"].get("recorded")) or any(
+                bool(item.get("recorded")) for item in result["reads"])
+            return result
+        except Exception as e:  # noqa: BLE001 守门器异常绝不阻断委派
+            logger.warning("[Executor] scoped 声明式记忆操作异常（降级）: %s", e)
+            result.update(ok=False, error_code="E_MEMORY_DEGRADED",
+                          degraded="gate_failed:%s" % type(e).__name__)
+            return result
+
     def _resolve_scoped_domain(self, meta: Mapping[str, Any]) -> Any:
         """取 scoped 记忆域：注入实例优先，否则按 metadata 现场构造（含审计 sink）"""
         if self._scoped_memory_domain is not None:
@@ -852,6 +920,14 @@ class DelegationExecutor:
                 base.sub_reason = "tool_trimmed"
             else:
                 base.ok = True
+
+            # ── 步骤 7.5：声明式记忆操作（仅 scoped；母体执行 + 守域，fail-soft）──
+            # 子代理只能在载荷里"声明"读写意图，真正执行由母体守门器完成；默认档
+            # none/brokered 与未开启 scoped 的情况绝不在 outcome.memory 里出现该键。
+            ops = self._run_scoped_memory_gate(
+                ctx, toolset=toolset, channel_output=channel_output, ok=base.ok)
+            if ops:
+                base.memory["ops"] = ops
 
             # ── 步骤 8：Trace ──
             self._record_trace(ctx, sub_ctx, base,
