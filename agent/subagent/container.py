@@ -99,6 +99,9 @@ class SubagentConfig:
     memory_scope: Optional[dict] = None
     # P3 scoped 档配额（仅 scoped 生效；默认 None ⇒ 用默认配额）
     memory_quota: Optional[dict] = None
+    # P5 执行后端（声明式选路）：""=auto（CP_SUBAGENT_CONTAINER_ENABLED 开则 container，
+    # 否则 inproc）；"inproc"/"container" 显式覆盖。见 _resolve_execution_channel。
+    execution_backend: str = ""
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -349,6 +352,7 @@ class SubagentContainer:
             # 同时按部署开关注入回调投递器（未开启 ⇒ None，默认仍只写审计）。
             executor = DelegationExecutor(
                 llm=llm if llm is not None else getattr(self, "llm", None),
+                channel=self._resolve_execution_channel(),
                 scoped_memory_domain=self._scoped_domain(),
                 callback_dispatcher=default_callback_dispatcher())
 
@@ -388,6 +392,24 @@ class SubagentContainer:
 
             self._scoped_memory_domain = scoped_memory_domain(self.config)
         return self._scoped_memory_domain
+
+    def _resolve_execution_channel(self) -> Any:
+        """按 config.execution_backend 选执行通道（缺省/auto ⇒ None = inproc 旧行为）
+
+        container 显式选择（或 CP_SUBAGENT_CONTAINER_ENABLED 开启的 auto）时构造容器
+        通道；镜像缺失 ⇒ ContainerBackendError **向上抛**（fail-closed，不回落 inproc）。
+        这也是 container 档的**消费者**：import 一个 runtime.backend=container 的 bundle
+        后，它的容器委托走这里。
+        """
+        from agent.subagent.container_backend import (build_container_channel,
+                                                      container_backend_enabled)
+
+        backend = str(getattr(self.config, "execution_backend", "") or "").strip().lower()
+        if backend in ("", "auto"):
+            backend = "container" if container_backend_enabled() else "inproc"
+        if backend == "container":
+            return build_container_channel()
+        return None
 
     def _record_delegation(self, ctx: "DelegationContext",
                            outcome: "ExecutionOutcome", source: str) -> None:

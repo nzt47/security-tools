@@ -572,6 +572,19 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _b("YUNSHU_OPEN_API_ENDPOINTS", CAT_EXTERNAL, "",
        "对外开放的端点清单（形如 GET /api/status,POST /api/chat）；默认为空=不开放任何能力。每项都会被 /api/open/* 以 API Key 鉴权+限流+配额暴露，填错等于扩大攻击面",
        owner="agent/api_gateway_flask.py"),
+    # 【P5 container 执行档（2026-10-09）】容器通道的开关/镜像/CLI。开启即安全姿态变更
+    # （委派改在容器内执行）⇒ 用 _b；镜像与 CLI 属外部依赖端点，用 _c（只读脱敏）。
+    _b("CP_SUBAGENT_CONTAINER_ENABLED", CAT_SELF_HEALING, False,
+       "子代理容器执行档总开关；开启即允许执行器用 docker run 跑委派"
+       "（网络 none / 根只读 / 丢弃全部 capability / 非 root）",
+       owner="agent/subagent/container_backend.py",
+       impact="影响面：开启后子代理委派在容器内执行；需本机 Docker CLI + daemon 在跑"),
+    _c("CP_SUBAGENT_CONTAINER_IMAGE", CAT_EXTERNAL, "",
+       "子代理容器执行档镜像名（只读脱敏；空 = 未配置，容器档 fail-closed）",
+       owner="agent/subagent/container_backend.py"),
+    _c("CP_SUBAGENT_CONTAINER_CLI", CAT_EXTERNAL, "",
+       "子代理容器执行档 CLI（默认 docker；只读脱敏）",
+       owner="agent/subagent/container_backend.py"),
     # 【2026-10-03 登记 · 阶段 2 / R3（审计 H-3）】统一响应信封与 RFC 9457 错误模型。
     # 用 _b：关掉它等于让 API 面的 404/405/500 回落 HTML —— 而那正是前端
     # "测试绿、线上炸"的形态（两套客户端都在按 JSON 解析）。属安全/正确性姿态。
