@@ -66,6 +66,8 @@ AUDIT_SCOPED_BREAKER_OPEN = "subagent.memory.scoped.breaker_open"
 AUDIT_SCOPED_PERSIST = "subagent.memory.scoped.persist"
 #: 一次如实降级（异步不可用 / 依赖缺失 / 底层写入抛错；不伪造成功）
 AUDIT_SCOPED_DEGRADED = "subagent.memory.scoped.degraded"
+#: 一次成功的 scoped 读取（域过滤后留痕；只记条数，不记正文）
+AUDIT_SCOPED_READ = "subagent.memory.scoped.read"
 
 #: memory_quota 允许的键（唯一词表；未知键 ⇒ 配置错误，不静默忽略）
 MEMORY_QUOTA_KEYS = ("max_entries", "max_bytes", "consecutive_reject_limit")
