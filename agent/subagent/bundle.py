@@ -590,7 +590,7 @@ def resolve_backend(bundle: Mapping[str, Any], *, llm: Any = None, agent_cli: st
 
 
 __all__ = [
-    "BUNDLE_SCHEMA_VERSION", "SUPPORTED_SCHEMA_VERSIONS", "BUNDLE_PROTOCOL",
+    "BUNDLE_SCHEMA_VERSION", "BUNDLE_PROTOCOL",
     "BACKEND_INPROC", "BACKEND_SUBPROCESS", "SUPPORTED_BACKENDS", "DEFAULT_BACKEND",
     "ARGV_TEMPLATE", "REQUIRED_TOP_KEYS", "SECRET_REF_KEYS",
     "BundleError", "BundleValidationError", "UnsupportedBackend",
