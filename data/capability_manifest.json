@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-09T08:24:34",
+  "generated_at": "2026-10-09T13:43:02",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -2973,7 +2973,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 198 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 201 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -3020,6 +3020,7 @@
         "_RULES.get",
         "_expo.CLASS_LABELS.get",
         "_name_conflicts.append",
+        "any",
         "as_completed",
         "assemble",
         "audit.record",
@@ -3066,6 +3067,7 @@
         "frag.content.strip",
         "frozenset",
         "fut.result",
+        "gate.read",
         "gated.append",
         "get_trace_id",
         "getattr",
@@ -3133,6 +3135,7 @@
         "registry.load",
         "replace",
         "result.strip",
+        "result.update",
         "returned.get",
         "round",
         "row.get",
@@ -14126,7 +14129,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 198 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.fan_out_tools:_fan_out）在 6 跳内未命中任何跨边界原语；另有 201 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -14173,6 +14176,7 @@
         "_RULES.get",
         "_expo.CLASS_LABELS.get",
         "_name_conflicts.append",
+        "any",
         "as_completed",
         "assemble",
         "audit.record",
@@ -14219,6 +14223,7 @@
         "frag.content.strip",
         "frozenset",
         "fut.result",
+        "gate.read",
         "gated.append",
         "get_trace_id",
         "getattr",
@@ -14286,6 +14291,7 @@
         "registry.load",
         "replace",
         "result.strip",
+        "result.update",
         "returned.get",
         "round",
         "row.get",
