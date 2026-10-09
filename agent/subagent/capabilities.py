@@ -233,7 +233,7 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                         "agent/server_routes/routes_subagent.py",
                         "yunshu-ui/src/pages/hub/workshop/replicate.tsx"),
         gap="依赖清单已采集（environment 段）但未打包 wheel，换机仍不能离线安装；"
-            "container 后端未做——换机断网仍不能完整运行",
+            "container 契约已接线（真跑需镜像内 CLI 入口）——换机断网仍不能完整运行",
         next_stage="S5"),
     SovereigntyFace(
         key="communication", layer="body", label="通信与协同",
