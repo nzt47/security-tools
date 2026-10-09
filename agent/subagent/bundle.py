@@ -72,7 +72,9 @@ from agent.subagent.credentials import (
 logger = logging.getLogger(__name__)
 
 #: bundle 契约版本（结构一变必须 +1，bundle_from_json 据此 fail-closed）
-BUNDLE_SCHEMA_VERSION = 1
+#: v2 新增可选顶层 environment 段（离线依赖清单）；导入侧**兼容 v1**（旧包仍可带走）。
+BUNDLE_SCHEMA_VERSION = 2
+SUPPORTED_SCHEMA_VERSIONS: Tuple[int, ...] = (1, 2)
 
 #: entrypoint 协议名（唯一取值；inproc / subprocess 共用）
 BUNDLE_PROTOCOL = "task_file-jsonl"
@@ -224,6 +226,7 @@ def build_bundle(
     llm_resolution: Any = None,
     assembly: Any = None,
     secret_refs: Iterable[Mapping[str, Any]] = (),
+    environment: Optional[Mapping[str, Any]] = None,
     backend: str = DEFAULT_BACKEND,
     generated_at: Optional[str] = None,
     bundle_id: Optional[str] = None,
@@ -307,6 +310,10 @@ def build_bundle(
         "entrypoint": {"protocol": BUNDLE_PROTOCOL, "argv_template": list(ARGV_TEMPLATE)},
         "runtime": {"backend": str(backend or DEFAULT_BACKEND)},
     }
+    if environment is not None:
+        # 离线依赖清单（v2 顶层可选段）。包名以 list[{name,...}] 承载，绝不作 dict 键：
+        # 否则 tokenizers 这类包名会命中密钥闸的"可疑键名"正则 ⇒ 导出被误判为密钥泄漏。
+        bundle["environment"] = dict(environment)
     # ① 导出前必过既有密钥闸门（复用 credentials.py，不重写正则）
     assert_manifest_secret_free(bundle)
     return bundle
@@ -335,9 +342,10 @@ def bundle_from_json(text: str) -> Dict[str, Any]:
     if not isinstance(doc, dict):
         raise BundleValidationError([f"bundle 顶层必须是对象，实际为 {type(doc).__name__}"])
     problems: List[str] = []
-    if doc.get("schema_version") != BUNDLE_SCHEMA_VERSION:
+    if doc.get("schema_version") not in SUPPORTED_SCHEMA_VERSIONS:
         problems.append(
-            f"schema_version 不受支持：{doc.get('schema_version')!r}（期望 {BUNDLE_SCHEMA_VERSION}）")
+            f"schema_version 不受支持：{doc.get('schema_version')!r}"
+            f"（支持 {list(SUPPORTED_SCHEMA_VERSIONS)}）")
     problems.extend(f"缺少必需键：{k}" for k in REQUIRED_TOP_KEYS if k not in doc)
     if problems:
         raise BundleValidationError(problems)
@@ -370,10 +378,18 @@ def validate_bundle(bundle: Any) -> List[str]:
     problems: List[str] = []
     if not isinstance(bundle, Mapping):
         return [f"bundle 顶层必须是对象，实际为 {type(bundle).__name__}"]
-    if bundle.get("schema_version") != BUNDLE_SCHEMA_VERSION:
+    schema_version = bundle.get("schema_version")
+    if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
         problems.append(
-            f"schema_version 不受支持：{bundle.get('schema_version')!r}（期望 {BUNDLE_SCHEMA_VERSION}）")
+            f"schema_version 不受支持：{schema_version!r}"
+            f"（支持 {list(SUPPORTED_SCHEMA_VERSIONS)}）")
     problems.extend(f"缺少必需键：{k}" for k in REQUIRED_TOP_KEYS if k not in bundle)
+    # v2 起要求 environment 段（依赖清单）；v1 旧包仍接受（不因新增字段而拒绝"可带走"）
+    if schema_version == 2 and "environment" not in bundle:
+        problems.append("缺少必需键：environment（schema_version=2）")
+    if "environment" in bundle:
+        from agent.subagent.dependencies import validate_environment
+        problems.extend(validate_environment(bundle.get("environment")))
 
     # ── identity ──
     ident = _check_sub_object(bundle, "identity", _IDENTITY_KEYS, problems)
@@ -574,7 +590,7 @@ def resolve_backend(bundle: Mapping[str, Any], *, llm: Any = None, agent_cli: st
 
 
 __all__ = [
-    "BUNDLE_SCHEMA_VERSION", "BUNDLE_PROTOCOL",
+    "BUNDLE_SCHEMA_VERSION", "SUPPORTED_SCHEMA_VERSIONS", "BUNDLE_PROTOCOL",
     "BACKEND_INPROC", "BACKEND_SUBPROCESS", "SUPPORTED_BACKENDS", "DEFAULT_BACKEND",
     "ARGV_TEMPLATE", "REQUIRED_TOP_KEYS", "SECRET_REF_KEYS",
     "BundleError", "BundleValidationError", "UnsupportedBackend",
