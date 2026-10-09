@@ -157,9 +157,12 @@ class TestC7Consumer:
 
     def test_import_config_携带后端(self):
         cfg = SubagentConfig(name="sa-e", model_id="m")
+        # schema v2 起 environment 为必需段（#1062）：这里给最小合法形态，本用例只测后端携带
         bundle = build_bundle(cfg, backend="container",
                               generated_at="2026-10-09T00:00:00+00:00",
-                              bundle_id="bnd-c")
+                              bundle_id="bnd-c",
+                              environment={"source_status": "ok", "items": [],
+                                           "offline_ready": False})
         assert bundle["runtime"]["backend"] == "container"
         assert import_config(bundle).execution_backend == "container"
 
