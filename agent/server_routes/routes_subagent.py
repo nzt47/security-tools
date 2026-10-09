@@ -719,7 +719,8 @@ def register_routes(app, state):
             backend = get_backend(raw)
             config = import_config(raw)
             container = Yunshu.create_subagent(config)
-            # 到达端依赖对拍：导入成功 ≠ 可离线跑（offline_ready 恒 false，见 dependencies）
+            # 到达端依赖对拍：导入成功 ≠ 可离线跑。offline_ready 是**包自己的声明**
+            # （裸 JSON 导出恒 false，自带 wheelhouse 的离线包可为 true）；satisfied 是到达端实测。
             from agent.subagent.dependencies import check_against_bundle
 
             environment = raw.get("environment")
