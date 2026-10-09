@@ -251,8 +251,9 @@ def offline_ready(manifest: Mapping[str, Any]) -> bool:
     只有"真带了 wheelhouse（mode!=none 且 count>0）且无 missing/version_mismatch
     且 python 版本匹配"时才是 true。本增量 artifacts.mode 恒 none ⇒ 恒 false。
     """
-    env = manifest if isinstance(manifest, Mapping) else {}
-    artifacts = env.get("artifacts") if isinstance(env.get("artifacts"), Mapping) else {}
+    section = manifest if isinstance(manifest, Mapping) else {}
+    artifacts = (section.get("artifacts")
+                 if isinstance(section.get("artifacts"), Mapping) else {})
     if str(artifacts.get("mode") or ARTIFACTS_MODE_NONE) == ARTIFACTS_MODE_NONE:
         return False
     try:
@@ -260,14 +261,14 @@ def offline_ready(manifest: Mapping[str, Any]) -> bool:
             return False
     except (TypeError, ValueError):
         return False
-    counts = env.get("counts") if isinstance(env.get("counts"), Mapping) else {}
+    counts = section.get("counts") if isinstance(section.get("counts"), Mapping) else {}
     for key in (STATUS_MISSING, STATUS_VERSION_MISMATCH):
         try:
             if int(counts.get(key) or 0) > 0:
                 return False
         except (TypeError, ValueError):
             return False
-    python = env.get("python") if isinstance(env.get("python"), Mapping) else {}
+    python = section.get("python") if isinstance(section.get("python"), Mapping) else {}
     return str(python.get("status") or "") == STATUS_OK
 
 
@@ -277,8 +278,8 @@ def check_against_bundle(environment: Any) -> Dict[str, Any]:
     返回 `{satisfied, missing, version_mismatch, python_ok, offline_ready, reason}`。
     导入成功 ≠ 可离线跑：`offline_ready` 恒 false，`satisfied` 只说明到达端这台机器装齐了。
     """
-    env = environment if isinstance(environment, Mapping) else {}
-    items = env.get("items") if isinstance(env.get("items"), list) else []
+    section = environment if isinstance(environment, Mapping) else {}
+    items = section.get("items") if isinstance(section.get("items"), list) else []
     inst = installed_versions()
     missing: List[str] = []
     mismatch: List[str] = []
@@ -295,7 +296,7 @@ def check_against_bundle(environment: Any) -> Dict[str, Any]:
         verdict = satisfies(str(got), str(item.get("required") or ""))
         if verdict is False:
             mismatch.append(name)
-    python = env.get("python") if isinstance(env.get("python"), Mapping) else {}
+    python = section.get("python") if isinstance(section.get("python"), Mapping) else {}
     required = str(python.get("required") or "")
     running = platform.python_version()
     py_verdict = satisfies(running, required) if required else None
