@@ -212,11 +212,14 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         key="execution_backend", layer="body", label="执行后端",
         question="在哪跑？", state=PARTIAL,
         evidence="channel.py：内部 LLM（同进程）+ 外部 agent CLI（subprocess）+ 本地推理（local，见 local_inference.py）+ 容器（container，见 container_backend.py）四档；"
-                 "协议同为 task_file → JSON Lines；bundle 的 runtime.backend 经 resolve_backend 与 SubagentConfig.execution_backend 映射（未知/不可用 fail-closed）",
+                 "协议同为 task_file → JSON Lines；bundle 的 runtime.backend 经 resolve_backend 与 SubagentConfig.execution_backend 映射（未知/不可用 fail-closed）；"
+                 "container 已有镜像内可执行对端（scripts/subagent_peer.py，§3.10 协议：离线回执 + --handler 注入镜内执行体），"
+                 "task_file 只读挂 /task 与可写 tmpfs /work 分离（同目标会被 tmpfs 盖住，实测真跑必红）",
         evidence_files=("agent/subagent/channel.py", "agent/subagent/local_inference.py",
                         "agent/subagent/container_backend.py",
-                        "agent/subagent/container.py", "agent/subagent/bundle.py"),
-        gap="container 真跑需镜像内含可执行对端（本仓尚无分身侧 CLI 入口脚本）；subprocess 需 CP_SUBAGENT_AGENT_CLI（当前未配置）",
+                        "agent/subagent/container.py", "agent/subagent/bundle.py",
+                        "scripts/subagent_peer.py", "docker/subagent-peer/Dockerfile"),
+        gap="container 已可协议真跑（镜内对端 + 挂载分离实测绿灯），但镜内**真实推理**仍需镜像自带 local 后端与模型（本轮不做）；装对端镜像后 subprocess 档需配 CP_SUBAGENT_AGENT_CLI（当前未配置）",
         next_stage="S5"),
     SovereigntyFace(
         key="lifecycle", layer="body", label="生命周期",
@@ -233,7 +236,8 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                         "agent/server_routes/routes_subagent.py",
                         "yunshu-ui/src/pages/hub/workshop/replicate.tsx"),
         gap="依赖清单已采集（environment 段）但未打包 wheel，换机仍不能离线安装；"
-            "container 契约已接线（真跑需镜像内 CLI 入口）——换机断网仍不能完整运行",
+            "container 已有镜像内 CLI 入口（scripts/subagent_peer.py）可协议真跑，"
+            "但镜内真实推理仍需自带 local 后端——换机断网仍不能完整运行",
         next_stage="S5"),
     SovereigntyFace(
         key="communication", layer="body", label="通信与协同",

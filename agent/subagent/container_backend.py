@@ -19,8 +19,14 @@
     · invocation.argv 里 task_file 必须恰好出现 1 次，否则 ChannelError（不猜路径）。
     · 镜像名安全地经 argv 传入（不拼 shell 字符串），宿主路径只读挂载到容器 task_dir；
       不挂 $HOME/~/.ssh/凭据目录；禁止 --privileged/--network=host/-v 等（见 FORBIDDEN_FLAGS）。
-    · 真跑需要镜像内含可执行对端（本仓尚无分身侧 CLI 入口脚本）—— 本档先交付
-      **argv/探测/拒绝** 契约层，真机 E2E 需镜像入口，如实登记、不谎报。
+    · task_file 只读挂在**独立路径** task_mount（默认 /task），绝不与可写 tmpfs
+      task_dir（默认 /work）同目标：**实测**同目标时 tmpfs 会盖住 bind 挂载，
+      容器里根本读不到 task_file（真跑 100% 失败），故 task_mount != task_dir 是
+      构造期硬约束，不是风格偏好。
+    · 真跑需要镜像内含可执行对端：本仓提供 ``scripts/subagent_peer.py``（§3.10 协议
+      对端：离线回执 + ``--handler`` 注入镜内执行体）与参考镜像
+      ``docker/subagent-peer/Dockerfile``；镜内**真实推理**仍需镜像自带 local 后端，
+      这一条如实登记为残余缺口，不谎报。
 
 【依赖纪律】
     顶层仅标准库 + agent.subagent.channel；agent.digestion.isolation（容量常量与
@@ -96,7 +102,10 @@ class ContainerSpec:
     image: str
     cli: str = "docker"
     user: str = "65534:65534"
+    #: 容器内可写工作目录（tmpfs；根只读时唯一可写的落点）
     task_dir: str = "/work"
+    #: 宿主 task_file 所在目录的**只读**挂载点（必须 != task_dir，否则 tmpfs 遮盖 bind）
+    task_mount: str = "/task"
     network: str = "none"
 
     def run_prefix(self) -> Tuple[str, ...]:
@@ -150,10 +159,22 @@ class ContainerChannelExecutor(ChannelExecutor):
     def build_argv(self, invocation: ChannelInvocation) -> List[str]:
         """把 invocation.argv 包进 docker run（task_file 换成容器内路径）
 
+        task_file 的只读挂载点（task_mount）与可写 tmpfs 工作目录（task_dir）是
+        两个不同路径：同目标时 Docker 会用 tmpfs 盖住 bind，容器里读不到
+        task_file —— 这是实测出来的硬约束，不是风格偏好。
+
         Raises:
-            ChannelError: argv 里 task_file 未出现或出现多次（fail-closed，不猜）。
+            ChannelError: argv 里 task_file 未出现或出现多次，或 task_mount 与
+                task_dir 同目标（fail-closed，不猜路径、不静默改写挂载点）。
         """
         task_file = str(invocation.task_file or "")
+        task_dir = self.spec.task_dir.rstrip("/") or "/work"
+        task_mount = self.spec.task_mount.rstrip("/")
+        if not task_mount or task_mount == task_dir:
+            raise ChannelError(
+                "container 后端要求 task_mount != task_dir（当前 %r / %r）："
+                "同目标时 tmpfs 会盖住只读 bind，容器读不到 task_file"
+                % (self.spec.task_mount, self.spec.task_dir))
         argv = list(invocation.argv or ())
         hits = [i for i, token in enumerate(argv) if token == task_file]
         if len(hits) != 1:
@@ -161,11 +182,11 @@ class ContainerChannelExecutor(ChannelExecutor):
                 "container 后端要求 invocation.argv 里 task_file 恰好出现 1 次，实际 %d 次"
                 % len(hits))
         host_dir = os.path.dirname(os.path.abspath(task_file))
-        container_task = self.spec.task_dir.rstrip("/") + "/" + os.path.basename(task_file)
+        container_task = task_mount + "/" + os.path.basename(task_file)
         inner = [container_task if token == task_file else token for token in argv]
-        mount = "type=bind,source=%s,target=%s,readonly" % (host_dir, self.spec.task_dir)
+        mount = "type=bind,source=%s,target=%s,readonly" % (host_dir, task_mount)
         return [*self.spec.run_prefix(), "--mount", mount,
-                "-w", self.spec.task_dir, self.spec.image, *inner]
+                "-w", task_dir, self.spec.image, *inner]
 
     def __call__(self, invocation: ChannelInvocation) -> RawOutput:
         start = time.time()
@@ -201,7 +222,8 @@ class ContainerChannelExecutor(ChannelExecutor):
 
 
 def build_container_channel(*, image: str = "", cli: str = "", user: str = "",
-                            task_dir: str = "", runner: Any = None,
+                            task_dir: str = "", task_mount: str = "",
+                            runner: Any = None,
                             prober: Any = None) -> ContainerChannelExecutor:
     """构造容器通道（**构造期零网络/零 docker 调用**）
 
@@ -219,5 +241,6 @@ def build_container_channel(*, image: str = "", cli: str = "", user: str = "",
              or "docker"),
         user=(str(user).strip() or "65534:65534"),
         task_dir=(str(task_dir).strip() or "/work"),
+        task_mount=(str(task_mount).strip() or "/task"),
     )
     return ContainerChannelExecutor(spec, runner=runner, prober=prober)

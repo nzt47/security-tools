@@ -1,7 +1,8 @@
 """container 执行后端守卫（agent/subagent/container_backend.py + bundle/config 接线）
 
 C1 词表与映射：container 在后端词表；未知后端仍 fail-closed；
-C2 argv 包裹：inner 逐 token 等于 build_cli_argv；隔离参数齐备；禁止参数缺席；
+C2 argv 包裹：inner 逐 token 等于 build_cli_argv（task_file 映射到只读 /task，
+   与可写 tmpfs /work 分离）；隔离参数齐备；禁止参数缺席；
    task_file 必须恰好 1 次（否则 ChannelError）；
 C3 不可用即拒绝：probe 不可用 ⇒ runner 零调用、错误非空；
 C4 可用即执行：runner 收到 docker argv，RawOutput 正确映射；
@@ -68,7 +69,10 @@ class TestC2Argv:
         assert "yunshu-subagent:1" in argv
         idx = argv.index("yunshu-subagent:1")
         inner = argv[idx + 1:]
-        container_task = "/work/" + tmp_path.joinpath("task.json").name
+        # task_file 只读挂在 /task、可写 tmpfs 在 /work：同目标时 tmpfs 会盖住 bind，
+        # 容器读不到 task_file（实测真跑 100% 失败）。回归守卫另见
+        # tests/unit/test_subagent_peer_entrypoint.py::TestC8MountSeparation。
+        container_task = "/task/" + tmp_path.joinpath("task.json").name
         expected = [container_task if t == str(inv.task_file) else t for t in inv.argv]
         assert inner == expected, "inner 必须逐 token 等于 build_cli_argv（换后端不改协议）"
         for flag in ex.forbidden_flags():
