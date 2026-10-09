@@ -27,6 +27,8 @@ from agent.server_routes.tracing_decorator import trace_route
 from agent.api_envelope import ok as _ok
 from agent.subagent.delegation_history import delegation_history
 from agent.subagent.task_board import task_board
+# S5 通信 · 静态对端：读面用的纯逻辑表（只读环境变量；不做任何服务发现/探测）
+from agent.subagent.peers import StaticPeerRegistry
 
 # P3 brokered 档：档位词表/校验的唯一口径（仅 stdlib 依赖，不拉记忆重模块）
 from agent.subagent.memory_broker import (
@@ -531,6 +533,13 @@ def register_routes(app, state):
         最新态、count 为折叠后条数、total 为看板原始事件数、write_failed 为
         写失败累计（fail-soft 的显式证据）。
 
+        【S5 通信 · 静态对端】响应再内联 peers 段（同样**不新增路由**）：
+        peers = ``CP_SUBAGENT_PEERS`` 静态声明的对端（name/url/enabled），
+        health = 各对端健康折叠态，offline_fallback = 离线回退的显式登记
+        （status=not_implemented）。**不做任何服务发现/探测**——这一段只回声明，
+        不回「发现了谁」。心跳周期由 ``register_peer_heartbeats`` 提供
+        （启动期接入属后续）。
+
         Query:
             limit (int, optional): 返回条数，缺省 20，收敛到 [1, 100]。
 
@@ -549,6 +558,10 @@ def register_routes(app, state):
                 # P4 共享任务看板：不新增路由，在既有响应里内联 board 段
                 # （先例：/api/subagent/list 内联 llm / role 段）。
                 "board": task_board.snapshot(limit=limit),
+                # S5 通信 · 静态对端心跳：同样**不新增路由**，在既有响应里内联 peers 段。
+                # 内容 = 静态声明的对端（url/enabled）+ 健康态 + 离线回退显式登记；
+                # 每请求读一次环境变量 ⇒ 配置变更即时可见（无缓存，也无探测）。
+                "peers": StaticPeerRegistry.from_env().snapshot(),
                 "ts": time.strftime("%H:%M:%S"),
             })
         except Exception as e:
