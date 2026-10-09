@@ -473,11 +473,19 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
     llm = getattr(dl, "_llm", None)
     from agent.subagent.channel import default_agent_cli
 
-    if llm is None and not default_agent_cli():
-        logger.error("[fan_out] 未配置执行通道：既无 LLM 也无外部 agent CLI")
+    local_on = False
+    try:
+        from agent.subagent.local_inference import local_backend_enabled
+        local_on = bool(local_backend_enabled())
+    except Exception:  # noqa: BLE001 本地档探测失败按"未开启"处理
+        local_on = False
+
+    if llm is None and not default_agent_cli() and not local_on:
+        logger.error("[fan_out] 未配置执行通道：既无 LLM 也无外部 agent CLI，本地推理档也未开启")
         return {"ok": False, "error_code": E_DELEGATION_NO_CHANNEL, "error": (
             "未配置执行通道（既无 LLM 也无外部 agent CLI）: dl._llm 为空且环境变量 "
-            "CP_SUBAGENT_AGENT_CLI 未设置；请先完成 LLM 配置或配置外部 agent CLI")}
+            "CP_SUBAGENT_AGENT_CLI 未设置；请先完成 LLM 配置或配置外部 agent CLI"
+            "（或开启本地推理档 CP_SUBAGENT_LOCAL_ENABLED）")}
 
     concurrency, concurrency_note = _clamp_concurrency(kwargs.get("max_concurrency"))
 

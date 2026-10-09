@@ -792,6 +792,22 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _a("CP_SUBAGENT_MAX_TURNS", CAT_SELF_HEALING, None,
        "子智能体单任务最大轮数", owner="agent/subagent/channel.py",
        validator=Validator("int")),
+    # 【P5 本地推理档（2026-10-09）】断网场景的第三执行通道。默认关闭：关着时通道
+    # 选择与改动前逐字相同；开启即允许执行器走本地 Ollama（不再是远端 API 调用）。
+    _a("CP_SUBAGENT_LOCAL_ENABLED", CAT_SELF_HEALING, False,
+       "子代理本地推理档总开关；开启即允许执行器使用本地 Ollama（断网可跑），"
+       "默认关闭 = 通道选择与改动前逐字相同",
+       owner="agent/subagent/local_inference.py",
+       impact="影响面：开启后子代理可走本地推理（不依赖远端 API）；需本机 Ollama 服务在跑"),
+    _a("CP_SUBAGENT_LOCAL_ENGINE", CAT_SELF_HEALING, "ollama",
+       "子代理本地推理引擎（当前仅 ollama 有真实实现；vLLM 未实现，选它会被拒）",
+       owner="agent/subagent/local_inference.py"),
+    _c("CP_SUBAGENT_LOCAL_MODEL", CAT_SELF_HEALING, "",
+       "子代理本地推理模型名（如 qwen2.5:7b）；空 = 用 core.local_llm 的内置默认",
+       owner="agent/subagent/local_inference.py"),
+    _c("CP_SUBAGENT_LOCAL_API_BASE", CAT_SELF_HEALING, "",
+       "子代理本地推理端点（本地回环地址，只读脱敏）；空 = 用引擎内置默认",
+       owner="agent/subagent/local_inference.py"),
     # ── 集中式工具闸门（agent/tool_gate.py，接入点 = agent/tools/__init__.py::call()）──
     _b("CP_TOOL_GATE_ENABLED", CAT_SELF_HEALING, True,
        "集中式工具闸门总开关；置 0/false 等于关掉闸门的显式拒绝判定",

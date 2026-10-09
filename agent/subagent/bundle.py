@@ -82,8 +82,10 @@ BUNDLE_PROTOCOL = "task_file-jsonl"
 #: 后端词表（复用既有执行路径）
 BACKEND_INPROC = "inproc"
 BACKEND_SUBPROCESS = "subprocess"
-BACKEND_CONTAINER = "container"   # 容器档（argv/探测/拒绝；见 container_backend.py）
-SUPPORTED_BACKENDS: Tuple[str, ...] = (BACKEND_INPROC, BACKEND_SUBPROCESS, BACKEND_CONTAINER)
+BACKEND_LOCAL = "local"          # 本地推理档（断网可跑；见 agent/subagent/local_inference.py）
+BACKEND_CONTAINER = "container"  # 容器档（argv/探测/拒绝；见 container_backend.py）
+SUPPORTED_BACKENDS: Tuple[str, ...] = (BACKEND_INPROC, BACKEND_SUBPROCESS,
+                                       BACKEND_LOCAL, BACKEND_CONTAINER)
 DEFAULT_BACKEND = BACKEND_INPROC
 
 #: argv 模板占位符（{cli} 渲染成可执行串切分后的多个 token）
@@ -569,7 +571,8 @@ def resolve_backend(bundle: Mapping[str, Any], *, llm: Any = None, agent_cli: st
 
     · inproc     → 内部 LLM 执行器（LlmChannelExecutor，同进程）；
     · subprocess → 外部 agent CLI 执行器（需 agent_cli / CP_SUBAGENT_AGENT_CLI）；
-    两者共用 entrypoint.argv_template 的同一份 task_file-jsonl 协议。
+    · local      → 本地推理执行器（LocalInferenceChannelExecutor，断网可跑；不依赖远端 llm）；
+    三者共用 entrypoint.argv_template 的同一份 task_file-jsonl 协议。
 
     Raises:
         UnsupportedBackend: 未知后端（fail-closed）。
@@ -598,6 +601,16 @@ def resolve_backend(bundle: Mapping[str, Any], *, llm: Any = None, agent_cli: st
             raise BundleError("container 后端不可用：%s" % e) from e
         return build_executor(llm=llm, channel=container_channel, **kwargs)
 
+    if backend == BACKEND_LOCAL:
+        # 本地推理档：显式构造本地通道；adapter 注入 llm 供第 3 级抽取复用。
+        # 不用远端 llm，也不要求它存在（断网场景下母体可能没有可用远端）。
+        if channel is not None:
+            return build_executor(llm=llm, channel=channel, **kwargs)
+        from agent.subagent.local_inference import build_local_channel
+
+        local_channel = build_local_channel()
+        return build_executor(llm=local_channel.llm, channel=local_channel, **kwargs)
+
     # inproc：显式构造内部 LLM 通道，避免被环境里的 CP_SUBAGENT_AGENT_CLI 拐去子进程
     if channel is not None:
         return build_executor(llm=llm, channel=channel, **kwargs)
@@ -608,7 +621,7 @@ def resolve_backend(bundle: Mapping[str, Any], *, llm: Any = None, agent_cli: st
 
 __all__ = [
     "BUNDLE_SCHEMA_VERSION", "BUNDLE_PROTOCOL",
-    "BACKEND_INPROC", "BACKEND_SUBPROCESS", "BACKEND_CONTAINER",
+    "BACKEND_INPROC", "BACKEND_SUBPROCESS", "BACKEND_LOCAL", "BACKEND_CONTAINER",
     "SUPPORTED_BACKENDS", "DEFAULT_BACKEND",
     "ARGV_TEMPLATE", "REQUIRED_TOP_KEYS", "SECRET_REF_KEYS",
     "BundleError", "BundleValidationError", "UnsupportedBackend",

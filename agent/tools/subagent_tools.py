@@ -296,11 +296,19 @@ def _run_delegate(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
     # ── 步骤 6：执行通道（LLM 优先；都没有则明确拒绝，不跑注定失败的空执行）──
     from agent.subagent.channel import default_agent_cli
 
-    if llm is None and not default_agent_cli():
-        logger.error("[delegate] 未配置执行通道：既无 LLM 也无外部 agent CLI")
+    local_on = False
+    try:
+        from agent.subagent.local_inference import local_backend_enabled
+        local_on = bool(local_backend_enabled())
+    except Exception:  # noqa: BLE001 本地档探测失败按"未开启"处理
+        local_on = False
+
+    if llm is None and not default_agent_cli() and not local_on:
+        logger.error("[delegate] 未配置执行通道：既无 LLM 也无外部 agent CLI，本地推理档也未开启")
         return {"ok": False, "error_code": E_DELEGATION_NO_CHANNEL, "error": (
             "未配置执行通道（既无 LLM 也无外部 agent CLI）: dl._llm 为空且环境变量 "
-            "CP_SUBAGENT_AGENT_CLI 未设置；请先完成 LLM 配置或配置外部 agent CLI")}
+            "CP_SUBAGENT_AGENT_CLI 未设置；请先完成 LLM 配置或配置外部 agent CLI"
+            "（或开启本地推理档 CP_SUBAGENT_LOCAL_ENABLED）")}
 
     # ── 步骤 7：真实委派（创建分身 → 执行 → 回收，全部由既有生命周期管理器负责）──
     # tools 与 authorized_capabilities 传同一份只读子集：前者是"向子代理申请可见的清单"，

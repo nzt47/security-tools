@@ -142,11 +142,14 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         next_stage="S5"),
     SovereigntyFace(
         key="local_inference", layer="brain", label="本地推理",
-        question="断网还能不能想？", state=PARTIAL,
-        evidence="core/local_llm.py 存在（主智能体侧）；分身执行后端目前只有内部 LLM 与外部 CLI 两档",
-        evidence_files=("core/local_llm.py", "agent/subagent/channel.py"),
-        gap="分身执行后端无\"本地推理\"档；外部 CLI 通道需 CP_SUBAGENT_AGENT_CLI（当前未配置）",
-        next_stage="S5"),
+        question="断网还能不能想？", state=OWNED,
+        evidence="第三执行后端 local（agent/subagent/local_inference.py）：LocalLLMAdapter 接 core/local_llm.py 的 Ollama，"
+                 "LocalInferenceChannelExecutor 复用 LlmChannelExecutor 的多轮/JSONL 协议；"
+                 "bundle.runtime.backend=local + CP_SUBAGENT_LOCAL_ENABLED 显式开启，通道判定（路由/工具）同步认识",
+        evidence_files=("agent/subagent/local_inference.py", "core/local_llm.py",
+                        "agent/subagent/channel.py", "agent/subagent/bundle.py"),
+        gap="真机 E2E 需本机 Ollama 服务在跑（CI 只做协议级注入验证）；core/local_llm 的 vLLM 分支未实现（本档 fail-closed，不假装支持）",
+        next_stage=""),
     SovereigntyFace(
         key="cognitive_loop", layer="brain", label="认知闭环（规划/反思/学习）",
         question="它会不会自我纠错、越用越聪明？", state=PARTIAL,
@@ -208,11 +211,12 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="execution_backend", layer="body", label="执行后端",
         question="在哪跑？", state=PARTIAL,
-        evidence="channel.py：内部 LLM（同进程）+ 外部 agent CLI（subprocess）+ 容器（container，见 container_backend.py）三档；协议同为 task_file → JSON Lines；"
-                 "bundle 的 runtime.backend 经 resolve_backend 与 SubagentConfig.execution_backend 映射（未知/不可用 fail-closed）",
-        evidence_files=("agent/subagent/channel.py", "agent/subagent/container_backend.py",
+        evidence="channel.py：内部 LLM（同进程）+ 外部 agent CLI（subprocess）+ 本地推理（local，见 local_inference.py）+ 容器（container，见 container_backend.py）四档；"
+                 "协议同为 task_file → JSON Lines；bundle 的 runtime.backend 经 resolve_backend 与 SubagentConfig.execution_backend 映射（未知/不可用 fail-closed）",
+        evidence_files=("agent/subagent/channel.py", "agent/subagent/local_inference.py",
+                        "agent/subagent/container_backend.py",
                         "agent/subagent/container.py", "agent/subagent/bundle.py"),
-        gap="container 真跑需镜像内含可执行对端（本仓尚无分身侧 CLI 入口脚本）；本地推理档未做；subprocess 需 CP_SUBAGENT_AGENT_CLI（当前未配置）",
+        gap="container 真跑需镜像内含可执行对端（本仓尚无分身侧 CLI 入口脚本）；subprocess 需 CP_SUBAGENT_AGENT_CLI（当前未配置）",
         next_stage="S5"),
     SovereigntyFace(
         key="lifecycle", layer="body", label="生命周期",
