@@ -222,13 +222,13 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="portability", layer="body", label="可带走 bundle",
         question="换机断网还能不能活？", state=PARTIAL,
-        evidence="bundle 契约（身份/装配/引用式密钥/entrypoint 协议）+ GET /api/subagent/<name>/bundle "
-                 "导出（过密钥闸）+ POST /api/subagent/import 导入；"
-                 "replicate.tsx 已从纯说明页改为真实导出面",
-        evidence_files=("agent/subagent/bundle.py",
+        evidence="bundle 契约（身份/装配/引用式密钥/entrypoint 协议 + v2 environment 依赖清单）"
+                 "+ GET /api/subagent/<name>/bundle 导出（过密钥闸）+ POST /api/subagent/import 导入；"
+                 "replicate.tsx 已从纯说明页改为真实导出/导入面",
+        evidence_files=("agent/subagent/bundle.py", "agent/subagent/dependencies.py",
                         "agent/server_routes/routes_subagent.py",
                         "yunshu-ui/src/pages/hub/workshop/replicate.tsx"),
-        gap="离线依赖打包与本地推理未做；导入无 UI（只有端点）；"
+        gap="依赖清单已采集（environment 段）但未打包 wheel，换机仍不能离线安装；"
             "container 后端未做——换机断网仍不能完整运行",
         next_stage="S5"),
     SovereigntyFace(

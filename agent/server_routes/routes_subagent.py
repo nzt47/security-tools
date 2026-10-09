@@ -611,6 +611,7 @@ def register_routes(app, state):
                                 "error": f"分身容器无配置，无法导出: {name}"}), 500
 
             from agent.subagent.bundle import build_bundle, secret_refs_from_env
+            from agent.subagent.dependencies import build_dependency_manifest
             from agent.subagent.llm_factory import resolve_subagent_llm
 
             line_id = _active_line_id()
@@ -621,7 +622,9 @@ def register_routes(app, state):
             bundle = build_bundle(
                 cfg, line_id=line_id, llm_resolution=resolution,
                 assembly=_bundle_assembly(line_id),
-                secret_refs=secret_refs_from_env())
+                secret_refs=secret_refs_from_env(),
+                # 离线依赖清单（v2 environment 段）：只读 pyproject + 本机实装，不联网
+                environment=build_dependency_manifest())
             return jsonify({"ok": True, "bundle": bundle})
         except ManifestSecretLeak as e:
             logger.error("[SubagentAPI] bundle 导出被密钥闸拦下 name=%s: %s", name, e)
@@ -672,11 +675,17 @@ def register_routes(app, state):
             backend = get_backend(raw)
             config = import_config(raw)
             container = Yunshu.create_subagent(config)
+            # 到达端依赖对拍：导入成功 ≠ 可离线跑（offline_ready 恒 false，见 dependencies）
+            from agent.subagent.dependencies import check_against_bundle
+
+            environment = raw.get("environment")
             return jsonify({
                 "ok": True,
                 "subagent": container.get_status(),
                 "imported": {"bundle_id": str(raw.get("bundle_id") or ""),
-                             "backend": backend},
+                             "backend": backend,
+                             "environment": environment},
+                "environment_check": check_against_bundle(environment),
             })
         except BundleValidationError as e:
             return jsonify({"ok": False, "error_code": "E_BUNDLE_INVALID",

@@ -61,6 +61,21 @@ def make_config(**over) -> SubagentConfig:
 def make_bundle(config: SubagentConfig | None = None, **kw) -> dict:
     kw.setdefault("generated_at", STAMP)
     kw.setdefault("bundle_id", BID)
+    # v2 起 environment 为必需段（离线依赖清单）；本文件用最小合法形态占位，
+    # 依赖清单本身的语义由 tests/unit/test_subagent_dependencies.py 专测。
+    kw.setdefault("environment", {
+        "source": "pyproject.toml [project].dependencies",
+        "source_status": "ok",
+        "captured_at": STAMP,
+        "python": {"required": "", "running": "", "status": "unknown"},
+        "items": [],
+        "counts": {"declared": 0, "ok": 0, "missing": 0,
+                   "version_mismatch": 0, "unknown": 0},
+        "satisfied_locally": True,
+        "artifacts": {"mode": "none", "count": 0},
+        "offline_ready": False,
+        "reason": "测试占位：未打包 wheel",
+    })
     return B.build_bundle(config or make_config(), **kw)
 
 
@@ -127,7 +142,8 @@ class TestContract:
 
     def test_顶层键集固定(self):
         b = make_bundle()
-        assert set(b) == set(B.REQUIRED_TOP_KEYS)
+        # v2 顶层 = 必需键 ∪ {environment}（依赖清单为可选段里的必需项）
+        assert set(b) == set(B.REQUIRED_TOP_KEYS) | {"environment"}
         assert set(b["identity"]) == {"name", "tags", "ttl_seconds", "context_window"}
         assert set(b["assembly"]) == {"role", "model", "memory", "tools", "permissions"}
         assert set(b["assembly"]["role"]) == {"template", "text", "mode"}
@@ -299,7 +315,14 @@ class TestRoutes:
         body = resp.get_json()
         assert body["ok"] is True
         assert body["bundle"]["schema_version"] == B.BUNDLE_SCHEMA_VERSION
-        assert "sk-" not in json.dumps(body, ensure_ascii=False)
+        # 用密钥闸的**同一份判定**断言"无密钥形态"：环境段含依赖名
+        # prometheus-flask-exporter（裸 "sk-" 子串会被它误伤，那不是密钥）
+        from agent.subagent.credentials import find_manifest_secrets
+        assert find_manifest_secrets(body) == []
+        # 导出必带 v2 environment 段（离线依赖清单），且 offline_ready 恒 false（未打包 wheel）
+        env = body["bundle"]["environment"]
+        assert env["artifacts"]["mode"] == "none"
+        assert env["offline_ready"] is False
 
     def test_GET检出密钥拒绝导出(self):
         cfg = make_config(role_text="token: sk-" + "E" * 24)
@@ -338,7 +361,12 @@ class TestRoutes:
         assert resp.status_code == 200, resp.get_data(as_text=True)
         body = resp.get_json()
         assert body["ok"] is True
-        assert body["imported"] == {"bundle_id": BID, "backend": "inproc"}
+        imported = body["imported"]
+        assert imported["bundle_id"] == BID
+        assert imported["backend"] == "inproc"
+        # 导入成功回显 environment（原样）与到达端对拍：导入成功 ≠ 可离线跑
+        assert imported["environment"]["artifacts"]["mode"] == "none"
+        assert body["environment_check"]["offline_ready"] is False
         assert body["subagent"]["name"] == "sa-1"
         assert len(yunshu.created) == 1
         assert isinstance(yunshu.created[0], SubagentConfig)
