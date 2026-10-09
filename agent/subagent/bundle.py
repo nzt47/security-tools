@@ -77,10 +77,11 @@ BUNDLE_SCHEMA_VERSION = 1
 #: entrypoint 协议名（唯一取值；inproc / subprocess 共用）
 BUNDLE_PROTOCOL = "task_file-jsonl"
 
-#: 后端词表（复用既有两条真实执行路径；container 属 S5 以外的后续批次）
+#: 后端词表（复用既有执行路径）
 BACKEND_INPROC = "inproc"
 BACKEND_SUBPROCESS = "subprocess"
-SUPPORTED_BACKENDS: Tuple[str, ...] = (BACKEND_INPROC, BACKEND_SUBPROCESS)
+BACKEND_CONTAINER = "container"   # 容器档（argv/探测/拒绝；见 container_backend.py）
+SUPPORTED_BACKENDS: Tuple[str, ...] = (BACKEND_INPROC, BACKEND_SUBPROCESS, BACKEND_CONTAINER)
 DEFAULT_BACKEND = BACKEND_INPROC
 
 #: argv 模板占位符（{cli} 渲染成可执行串切分后的多个 token）
@@ -481,6 +482,10 @@ def import_config(bundle: Mapping[str, Any]) -> SubagentConfig:
         role_mode=str(role.get("mode") or "template"),
         memory_mode=str(memory.get("mode") or "none"),
         memory_scope=(dict(memory["scope"]) if memory.get("scope") else None),
+        # 执行后端随 bundle 携带：container 包导入后由容器通道执行（声明式选路）
+        execution_backend=("container"
+                           if str((bundle.get("runtime") or {}).get("backend") or "") == "container"
+                           else ""),
     )
 
 
@@ -565,6 +570,18 @@ def resolve_backend(bundle: Mapping[str, Any], *, llm: Any = None, agent_cli: st
                 "已停止启动，不回落到 inproc")
         return build_executor(llm=llm, agent_cli=cli, channel=channel, **kwargs)
 
+    if backend == BACKEND_CONTAINER:
+        # 容器档：显式构造容器通道；镜像缺失/不可用 ⇒ fail-closed（不回落其它后端）
+        if channel is not None:
+            return build_executor(llm=llm, channel=channel, **kwargs)
+        from agent.subagent.container_backend import (ContainerBackendError,
+                                                      build_container_channel)
+        try:
+            container_channel = build_container_channel()
+        except ContainerBackendError as e:
+            raise BundleError("container 后端不可用：%s" % e) from e
+        return build_executor(llm=llm, channel=container_channel, **kwargs)
+
     # inproc：显式构造内部 LLM 通道，避免被环境里的 CP_SUBAGENT_AGENT_CLI 拐去子进程
     if channel is not None:
         return build_executor(llm=llm, channel=channel, **kwargs)
@@ -575,7 +592,8 @@ def resolve_backend(bundle: Mapping[str, Any], *, llm: Any = None, agent_cli: st
 
 __all__ = [
     "BUNDLE_SCHEMA_VERSION", "BUNDLE_PROTOCOL",
-    "BACKEND_INPROC", "BACKEND_SUBPROCESS", "SUPPORTED_BACKENDS", "DEFAULT_BACKEND",
+    "BACKEND_INPROC", "BACKEND_SUBPROCESS", "BACKEND_CONTAINER",
+    "SUPPORTED_BACKENDS", "DEFAULT_BACKEND",
     "ARGV_TEMPLATE", "REQUIRED_TOP_KEYS", "SECRET_REF_KEYS",
     "BundleError", "BundleValidationError", "UnsupportedBackend",
     "build_bundle", "bundle_to_json", "bundle_from_json",

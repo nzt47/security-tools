@@ -208,11 +208,11 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="execution_backend", layer="body", label="执行后端",
         question="在哪跑？", state=PARTIAL,
-        evidence="channel.py：内部 LLM（同进程）+ 外部 agent CLI（subprocess）两档；协议同为 task_file → JSON Lines；"
-                 "bundle 的 runtime.backend 经 resolve_backend 映射到这两档（未知后端 fail-closed）",
-        evidence_files=("agent/subagent/channel.py", "agent/subagent/container.py",
-                        "agent/subagent/bundle.py"),
-        gap="container 后端未做；本地推理档未做；subprocess 需 CP_SUBAGENT_AGENT_CLI（当前未配置）",
+        evidence="channel.py：内部 LLM（同进程）+ 外部 agent CLI（subprocess）+ 容器（container，见 container_backend.py）三档；协议同为 task_file → JSON Lines；"
+                 "bundle 的 runtime.backend 经 resolve_backend 与 SubagentConfig.execution_backend 映射（未知/不可用 fail-closed）",
+        evidence_files=("agent/subagent/channel.py", "agent/subagent/container_backend.py",
+                        "agent/subagent/container.py", "agent/subagent/bundle.py"),
+        gap="container 真跑需镜像内含可执行对端（本仓尚无分身侧 CLI 入口脚本）；本地推理档未做；subprocess 需 CP_SUBAGENT_AGENT_CLI（当前未配置）",
         next_stage="S5"),
     SovereigntyFace(
         key="lifecycle", layer="body", label="生命周期",
