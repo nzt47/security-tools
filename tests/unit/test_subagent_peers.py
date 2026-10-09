@@ -10,6 +10,13 @@
   G6 周期注册：缺 CP_SUBAGENT_PEER_HEARTBEAT_SEC 就不注册（不写死数字默认）；
   G7 读面：GET /api/subagent/history 内联 peers 段（最小 Flask app + 替身，不 import app_server）；
   G8 静态纪律：peers.py 不做任何服务发现（无 socket/DNS/SRV/mDNS/注册中心痕迹）。
+  H1 健康持久化：落盘/回填往返；只回填当前声明的对端（不造幽灵）；坏文件不抛；
+  H2 live registry：接线后读面看到心跳写入的健康态；未接线回落"每请求按环境现造"；
+  H3 投递器守卫：拿不到 HTTP 投递器 ⇒ 不注册（reason=dispatcher_unavailable），
+     而不是注册一个"每轮把对端记成失败"的假任务；
+  H4 tick：审计真的写（不是"尝试过"）、健康态真的落盘；
+  H5 启动期锚点：app_server 真的调 build/install/register（入口没人调 = 死信），
+     且读面取的是 read_snapshot（共享 live registry），不是每请求重建的快照。
 
 【不碰仓库 data/】路由用替身与 tmp_path 的 JSONL；不 import app_server（本仓有过
 "手搓 Flask 全绿、线上 404"的教训，故另用静态 AST 断言真实入口的注册在别处覆盖）。
@@ -36,13 +43,33 @@ from agent.subagent.peers import (
     PeerHealth,
     PeerTarget,
     StaticPeerRegistry,
+    build_live_registry,
+    get_live_registry,
     heartbeat_payload,
+    install_live_registry,
+    load_health,
     offline_fallback_report,
+    read_snapshot,
     register_peer_heartbeats,
+    reset_live_registry,
+    save_health,
     send_heartbeats,
 )
 
 pytestmark = pytest.mark.timeout(900)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_live_registry():
+    """每个用例前后清空 live registry
+
+    【为什么必须】live registry 是进程级单例；一个用例 install 过之后不清，
+    后面的读面用例会拿到上一个用例的健康态 —— 假绿（该看到 attempts=0 却看到 1）
+    或假红（该看到心跳结果却看到初值）都可能出现，且与用例顺序绑定。
+    """
+    reset_live_registry()
+    yield
+    reset_live_registry()
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PEERS_SRC = _REPO_ROOT / "agent" / "subagent" / "peers.py"
@@ -310,17 +337,20 @@ class TestG6Register:
         assert register_peer_heartbeats(scheduler=sched)["registered"] is False
         assert sched.tasks == []
 
-    def test_有周期有对端才注册且tick能发心跳(self, monkeypatch):
+    def test_有周期有对端才注册且tick能发心跳(self, monkeypatch, tmp_path):
         monkeypatch.setenv(ENV_HEARTBEAT_INTERVAL, "45")
         monkeypatch.setenv(ENV_PEERS, "a=http://h/a")
         sched = _Scheduler()
         disp = _Dispatcher()
-        out = register_peer_heartbeats(scheduler=sched, dispatcher=disp)
+        health = tmp_path / "health.json"
+        out = register_peer_heartbeats(scheduler=sched, dispatcher=disp,
+                                       health_path=str(health))
         assert out["registered"] is True and out["interval_seconds"] == 45
         assert len(sched.tasks) == 1
         assert sched.tasks[0]["name"] == "subagent_peer_heartbeat"
         sched.tasks[0]["func"]()
         assert [url for url, _ in disp.calls] == ["http://h/a"]
+        assert health.exists(), "tick 后健康态必须落盘"
 
     def test_有周期无对端不注册(self, monkeypatch):
         monkeypatch.setenv(ENV_HEARTBEAT_INTERVAL, "30")
@@ -330,6 +360,165 @@ class TestG6Register:
         assert out["registered"] is False and out["reason"] == "no_peers"
         assert sched.tasks == []
 
+
+# ════════════════════════════════════════════════════════════
+#  H1 健康持久化
+# ════════════════════════════════════════════════════════════
+
+
+class TestH1HealthPersistence:
+    def test_落盘与回填往返(self, tmp_path):
+        reg = StaticPeerRegistry.from_env("a=http://h/a")
+        send_heartbeats(reg, _Dispatcher(boom=True))
+        path = tmp_path / "health.json"
+        assert save_health(reg, str(path)) is True
+        reloaded = StaticPeerRegistry.from_env("a=http://h/a")
+        assert load_health(reloaded, str(path)) == 1
+        h = reloaded.health()["a"]
+        assert h["attempts"] == 1
+        assert h["consecutive_failures"] == 1
+        assert h["ok"] is False and h["last_error"]
+
+    def test_只回填当前声明的对端(self, tmp_path):
+        reg = StaticPeerRegistry.from_env("a=http://h/a,gone=http://h/gone")
+        send_heartbeats(reg, _Dispatcher())
+        path = tmp_path / "health.json"
+        save_health(reg, str(path))
+        now = StaticPeerRegistry.from_env("a=http://h/a")
+        assert load_health(now, str(path)) == 1
+        assert set(now.health()) == {"a"}, "不得凭空造出已删除对端的幽灵健康态"
+
+    def test_文件缺失或损坏不抛且为0(self, tmp_path):
+        reg = StaticPeerRegistry.from_env("a=http://h/a")
+        assert load_health(reg, str(tmp_path / "nope.json")) == 0
+        bad = tmp_path / "bad.json"
+        bad.write_text("{not json", encoding="utf-8")
+        assert load_health(reg, str(bad)) == 0
+        assert reg.health()["a"]["attempts"] == 0
+
+    def test_build_live_registry_回填上次健康态(self, monkeypatch, tmp_path):
+        monkeypatch.setenv(ENV_PEERS, "a=http://h/a")
+        path = tmp_path / "health.json"
+        reg = StaticPeerRegistry.from_env("a=http://h/a")
+        send_heartbeats(reg, _Dispatcher())
+        save_health(reg, str(path))
+        live = build_live_registry(str(path))
+        assert live.health()["a"]["ok"] is True
+
+    def test_落盘不留半截临时文件(self, tmp_path):
+        reg = StaticPeerRegistry.from_env("a=http://h/a")
+        path = tmp_path / "health.json"
+        assert save_health(reg, str(path)) is True
+        assert not (tmp_path / "health.json.tmp").exists(), "临时文件必须被 os.replace 收走"
+
+
+# ════════════════════════════════════════════════════════════
+#  H2 live registry：读面共享
+# ════════════════════════════════════════════════════════════
+
+
+class TestH2LiveRegistry:
+    def test_未接线读面按环境现造(self, monkeypatch):
+        monkeypatch.setenv(ENV_PEERS, "a=http://h/a")
+        assert get_live_registry() is None
+        seg = read_snapshot()
+        assert seg["peers"][0]["name"] == "a"
+        assert seg["health"]["a"]["attempts"] == 0
+
+    def test_接线后读面看到心跳健康态(self, monkeypatch):
+        monkeypatch.setenv(ENV_PEERS, "a=http://h/a")
+        reg = StaticPeerRegistry.from_env("a=http://h/a")
+        send_heartbeats(reg, _Dispatcher())
+        install_live_registry(reg)
+        seg = read_snapshot()
+        assert get_live_registry() is reg
+        assert seg["health"]["a"]["attempts"] == 1
+        assert seg["health"]["a"]["ok"] is True
+
+
+# ════════════════════════════════════════════════════════════
+#  H3 投递器守卫
+# ════════════════════════════════════════════════════════════
+
+
+class TestH3DispatcherGuard:
+    def test_无投递器不注册(self, monkeypatch):
+        monkeypatch.setenv(ENV_HEARTBEAT_INTERVAL, "30")
+        monkeypatch.setenv(ENV_PEERS, "a=http://h/a")
+        import agent.subagent.callback_channel as cc
+        monkeypatch.setattr(cc, "default_callback_dispatcher", lambda: None)
+        sched = _Scheduler()
+        out = register_peer_heartbeats(scheduler=sched)
+        assert out["registered"] is False
+        assert out["reason"] == "dispatcher_unavailable"
+        assert sched.tasks == [], "没有投递器却注册 ⇒ 每轮把对端记成失败"
+
+    def test_缺省投递器被采用(self, monkeypatch, tmp_path):
+        monkeypatch.setenv(ENV_HEARTBEAT_INTERVAL, "30")
+        monkeypatch.setenv(ENV_PEERS, "a=http://h/a")
+        import agent.subagent.callback_channel as cc
+        fake = _Dispatcher()
+        monkeypatch.setattr(cc, "default_callback_dispatcher", lambda: fake)
+        sched = _Scheduler()
+        out = register_peer_heartbeats(
+            scheduler=sched, health_path=str(tmp_path / "health.json"))
+        assert out["registered"] is True
+        sched.tasks[0]["func"]()
+        assert [url for url, _ in fake.calls] == ["http://h/a"]
+
+
+# ════════════════════════════════════════════════════════════
+#  H4 tick：审计真的写、健康态真的落盘
+# ════════════════════════════════════════════════════════════
+
+
+class TestH4TickAuditAndPersist:
+    def test_tick写审计并落盘(self, monkeypatch, tmp_path):
+        monkeypatch.setenv(ENV_HEARTBEAT_INTERVAL, "30")
+        monkeypatch.setenv(ENV_PEERS, "a=http://h/a")
+        sched = _Scheduler()
+        audit = _Audit()
+        path = tmp_path / "health.json"
+        out = register_peer_heartbeats(
+            scheduler=sched, dispatcher=_Dispatcher(), audit=audit,
+            health_path=str(path))
+        assert out["registered"] is True
+        sched.tasks[0]["func"]()
+        assert len(audit.calls) == 1
+        assert audit.calls[0]["action"] == AUDIT_ACTION
+        assert audit.calls[0]["status"] == "ok"
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        assert doc["health"]["a"]["ok"] is True, "tick 后健康态必须落盘"
+
+    def test_审计缺失不阻断落盘(self, monkeypatch, tmp_path):
+        monkeypatch.setenv(ENV_HEARTBEAT_INTERVAL, "30")
+        monkeypatch.setenv(ENV_PEERS, "a=http://h/a")
+        sched = _Scheduler()
+        path = tmp_path / "health.json"
+        register_peer_heartbeats(scheduler=sched, dispatcher=_Dispatcher(),
+                                 audit=None, health_path=str(path))
+        sched.tasks[0]["func"]()
+        assert json.loads(path.read_text(encoding="utf-8"))["health"]["a"]["ok"] is True
+
+
+# ════════════════════════════════════════════════════════════
+#  H5 启动期接线锚点（源码级：入口没人调 = 死信）
+# ════════════════════════════════════════════════════════════
+
+
+class TestH5StartupAnchor:
+    def test_app_server_真的接线(self):
+        src = (_REPO_ROOT / "app_server.py").read_text(encoding="utf-8")
+        assert "build_live_registry" in src, "app_server 未构造 live registry"
+        assert "install_live_registry" in src, "读面与心跳不共享 registry ⇒ 健康态永远为空"
+        assert "register_peer_heartbeats" in src, "心跳入口没人调 = 死信"
+
+    def test_读面取共享快照(self):
+        src = (_REPO_ROOT / "agent" / "server_routes" / "routes_subagent.py").read_text(
+            encoding="utf-8")
+        assert "read_snapshot()" in src
+        assert "StaticPeerRegistry.from_env().snapshot()" not in src, (
+            "读面若每请求重建 registry，心跳写的健康态永远读不到")
 
 # ════════════════════════════════════════════════════════════
 #  G7 读面：/api/subagent/history 内联 peers 段

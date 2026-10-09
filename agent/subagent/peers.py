@@ -17,8 +17,19 @@
     ``offline_fallback_report()`` 用**中性状态名** ``not_implemented`` 显式登记
     "重放与 outbox 都没做"——让 UI/审计看到的是"未做"，而不是把缺失化妆成一个空数组。
 
-【依赖纪律】纯标准库。``agent.task_scheduler`` 只在 ``register_peer_heartbeats()``
-    内部**惰性导入**（避免导入期把调度器及其一整条依赖链拉起来）。
+【本版补上的接线：心跳从"有入口"到"真的会跑"】
+    · **启动期接线**：app_server 调 ``register_peer_heartbeats``；缺周期 / 缺对端 /
+      缺投递器一律**不注册**并如实返回 reason，绝不写死默认周期、也绝不静默假装在发。
+    · **读面共享**：``install_live_registry()`` 把心跳用的同一个 registry 交给读面。
+      否则健康态写在一个"每请求重建"的临时对象上 —— 写归写，读面永远看到 attempts=0。
+    · **健康持久化**：每次 tick 后把健康态落 JSON（``data/subagent_peer_health.json``），
+      启动时回填；否则重启就丢"连续失败几次"，故障跨重启不可累积。
+    · **审计真的写**：tick 把 ``audit`` 传给 ``send_heartbeats``；审计不可得时
+      ``audited=False`` 如实投影，不把"尝试过"说成"留痕了"。
+
+【依赖纪律】纯标准库。``agent.task_scheduler`` 与 ``agent.subagent.callback_channel``
+    只在 ``register_peer_heartbeats()`` 内部**惰性导入**（避免导入期把调度器/出站
+    策略链拉起来）。
 """
 
 from __future__ import annotations
@@ -70,6 +81,26 @@ def _as_status(value: Any) -> Optional[int]:
         return None
     try:
         return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_int(value: Any) -> int:
+    """宽松取**非负**整数（None/bool/不可解析 → 0；不抛）——持久化回填用"""
+    if isinstance(value, bool):
+        return 0
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _as_float_or_none(value: Any) -> Optional[float]:
+    """epoch 秒 → float；None/不可解析 → None（不臆造 0.0）"""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
     except (TypeError, ValueError):
         return None
 
@@ -245,6 +276,31 @@ class StaticPeerRegistry:
         with self._lock:
             return {name: h.to_dict() for name, h in self._health.items()}
 
+    def import_health(self, mapping: Mapping[str, Any]) -> int:
+        """从持久化快照回填健康态，返回真正回填的对端数
+
+        **只认当前声明的对端**：持久化文件可能来自旧配置，回填一个已删除的对端
+        会凭空造出"幽灵健康态"，让读面显示一个根本不存在的对端。非法值一律
+        归一（不抛），因为健康态是观测数据，不该让坏文件把启动打挂。
+        """
+        if not isinstance(mapping, Mapping):
+            return 0
+        restored = 0
+        with self._lock:
+            for name, data in mapping.items():
+                health = self._health.get(str(name))
+                if health is None or not isinstance(data, Mapping):
+                    continue
+                health.attempts = _as_int(data.get("attempts"))
+                health.ok = bool(data.get("ok"))
+                health.consecutive_failures = _as_int(
+                    data.get("consecutive_failures"))
+                health.last_status = _as_status(data.get("last_status"))
+                health.last_error = str(data.get("last_error") or "")
+                health.last_ok_at = _as_float_or_none(data.get("last_ok_at"))
+                restored += 1
+        return restored
+
     def note_result(self, name: str, *, ok: bool, status: Optional[int] = None,
                     error: str = "", now: Optional[float] = None) -> PeerHealth:
         """把一次心跳结果折叠进健康态并返回新值（未知名字 → 现造一条，不抛）"""
@@ -277,6 +333,102 @@ class StaticPeerRegistry:
             # 显式声明：本表是静态声明，不是发现结果
             "service_discovery": False,
         }
+
+
+#: 健康态持久化文件名（落在 repo/data/ 下，与 task_scheduler 的
+#: heartbeat_history.json 同域；不含任何对端地址之外的凭据）
+HEALTH_FILE_NAME = "subagent_peer_health.json"
+#: 持久化载荷版本（结构一变 +1，读侧据此 fail-soft）
+HEALTH_SCHEMA_VERSION = 1
+
+_LIVE_REGISTRY: Optional[StaticPeerRegistry] = None
+_LIVE_LOCK = threading.Lock()
+
+
+def default_health_path() -> str:
+    """默认健康态落盘路径：``<repo>/data/subagent_peer_health.json``
+
+    【为什么按 __file__ 反推而不是 cwd】app_server 可能以任意 cwd 启动；按 cwd
+    落盘会得到"换个目录启动就读不到上次健康态"的静默漂移。
+    """
+    root = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
+    return os.path.join(root, "data", HEALTH_FILE_NAME)
+
+
+def save_health(registry: StaticPeerRegistry, path: Optional[str] = None) -> bool:
+    """健康态落盘（best-effort：失败只 warning，绝不影响心跳）
+
+    写临时文件再 ``os.replace``：避免进程在写到一半时被杀，留一份半截 JSON ——
+    下次启动回填到一半的健康态比没有更坏。
+    """
+    target = str(path or default_health_path())
+    try:
+        parent = os.path.dirname(target)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        tmp = target + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump({"version": HEALTH_SCHEMA_VERSION,
+                       "health": registry.health()},
+                      fh, ensure_ascii=False, sort_keys=True)
+        os.replace(tmp, target)
+        return True
+    except OSError as e:  # noqa: BLE001 磁盘问题不得拖垮周期任务
+        logger.warning("[Peers] 健康态落盘失败（不影响心跳）: %s",
+                       type(e).__name__)
+        return False
+
+
+def load_health(registry: StaticPeerRegistry, path: Optional[str] = None) -> int:
+    """健康态回填（文件缺失/损坏 ⇒ 0，不抛；返回值 = 真正回填的对端数）"""
+    target = str(path or default_health_path())
+    try:
+        with open(target, "r", encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except (OSError, ValueError):
+        return 0
+    if not isinstance(doc, Mapping):
+        return 0
+    return registry.import_health(doc.get("health") or {})
+
+
+def build_live_registry(path: Optional[str] = None) -> StaticPeerRegistry:
+    """构造"心跳 + 读面"共用的 registry（按环境读声明，并回填上次健康态）"""
+    registry = StaticPeerRegistry.from_env()
+    load_health(registry, path)
+    return registry
+
+
+def install_live_registry(registry: Optional[StaticPeerRegistry]) -> None:
+    """登记进程级 live registry —— 读面据此看到心跳写进去的健康态"""
+    global _LIVE_REGISTRY
+    with _LIVE_LOCK:
+        _LIVE_REGISTRY = registry
+
+
+def get_live_registry() -> Optional[StaticPeerRegistry]:
+    """取进程级 live registry（未接线时为 None）"""
+    with _LIVE_LOCK:
+        return _LIVE_REGISTRY
+
+
+def reset_live_registry() -> None:
+    """清空 live registry（**测试专用**：避免用例之间串健康态）"""
+    install_live_registry(None)
+
+
+def read_snapshot() -> Dict[str, Any]:
+    """读面载荷：优先 live registry（含心跳健康态），否则按当前环境现造
+
+    【为什么不总是 live】未接线（单测 / 未启动 app_server）时，读面必须与改动前
+    逐字一致：每请求读环境变量。只有启动期 install 过，才共享心跳健康态 ——
+    这样"配置变更即时可见"的老口径在未接线场景不回归。
+    """
+    registry = get_live_registry()
+    if registry is None:
+        registry = StaticPeerRegistry.from_env()
+    return registry.snapshot()
 
 
 def _audit_heartbeat(audit: Any, target: PeerTarget, *, ok: bool,
@@ -375,12 +527,20 @@ def _read_interval_seconds(explicit: Optional[Any] = None) -> Optional[int]:
 def register_peer_heartbeats(scheduler: Any = None,
                              registry: Optional[StaticPeerRegistry] = None,
                              dispatcher: Optional[Callable[..., Any]] = None,
-                             interval_seconds: Optional[Any] = None) -> Dict[str, Any]:
-    """把心跳注册成周期任务（**只在配了周期且确有对端时**）
+                             interval_seconds: Optional[Any] = None, *,
+                             audit: Any = None,
+                             health_path: Optional[str] = None) -> Dict[str, Any]:
+    """把心跳注册成周期任务（**只在配了周期、确有对端、且有投递器时**）
 
     ``interval_seconds`` 缺省读 ``CP_SUBAGENT_PEER_HEARTBEAT_SEC``；缺失 ⇒ 不注册，
     且**不**用任何写死的数字兜底（宁可显式"未接线"，也不偷偷每 60 秒打一次）。
-    启动期接入（在 app_server/生命周期里调用本函数）属后续工作，本 PR 只提供入口。
+    ``dispatcher`` 缺省走 ``callback_channel.default_callback_dispatcher()``，复用
+    既有出站策略（开关 + host 白名单 + 令牌 + 不跟随重定向）；拿不到投递器则
+    返回 ``reason="dispatcher_unavailable"`` 且**不注册** —— 否则 tick 会以
+    "None 不可调用"逐对端记失败，把"没接线"化妆成"对端全挂"。
+
+    每次 tick 的顺序：尽发一轮心跳 → 写审计（``audit=None`` 时 audited=False，
+    如实投影）→ 健康态落盘（``health_path`` 缺省 ``data/subagent_peer_health.json``）。
     """
     interval = _read_interval_seconds(interval_seconds)
     if interval is None:
@@ -394,6 +554,17 @@ def register_peer_heartbeats(scheduler: Any = None,
         return {"registered": False, "interval_seconds": interval, "peers": 0,
                 "task": "", "reason": "no_peers"}
 
+    disp = dispatcher
+    if disp is None:
+        from agent.subagent.callback_channel import default_callback_dispatcher
+        disp = default_callback_dispatcher()
+    if disp is None:
+        logger.warning("[Peers] 无 HTTP 投递器（回调出站未配置齐）"
+                       "⇒ 不注册心跳周期任务")
+        return {"registered": False, "interval_seconds": interval,
+                "peers": len(reg.targets), "task": "",
+                "reason": "dispatcher_unavailable"}
+
     if scheduler is None:
         from agent.task_scheduler import get_scheduler  # 惰性：避免导入期拉整条链
         scheduler = get_scheduler()
@@ -402,7 +573,8 @@ def register_peer_heartbeats(scheduler: Any = None,
 
     def _tick() -> None:
         try:
-            send_heartbeats(reg, dispatcher)
+            send_heartbeats(reg, disp, audit=audit)
+            save_health(reg, health_path)
         except Exception as e:  # noqa: BLE001 周期任务绝不因单次失败崩掉
             logger.warning("[Peers] 心跳周期任务异常（已吞，等待下轮）: %s",
                            type(e).__name__)
@@ -416,7 +588,11 @@ def register_peer_heartbeats(scheduler: Any = None,
 __all__ = [
     "ENV_PEERS", "ENV_HEARTBEAT_INTERVAL", "PROTOCOL",
     "OFFLINE_FALLBACK_STATUS", "AUDIT_ACTION", "AUDIT_ACTOR", "HEARTBEAT_KIND",
+    "HEALTH_FILE_NAME", "HEALTH_SCHEMA_VERSION",
     "PeerTarget", "PeerHealth", "StaticPeerRegistry",
     "heartbeat_payload", "offline_fallback_report", "send_heartbeats",
     "register_peer_heartbeats",
+    "default_health_path", "save_health", "load_health", "build_live_registry",
+    "install_live_registry", "get_live_registry", "reset_live_registry",
+    "read_snapshot",
 ]
