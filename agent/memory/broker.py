@@ -41,6 +41,7 @@ __all__ = [
     "assemble_brokered_context",
     "default_recall_fn",
     "render_constraint",
+    "run_sync",
 ]
 
 #: 默认最多取几条记忆（注入的是"一段"上下文，不是整库）
@@ -91,6 +92,32 @@ class BrokeredContext:
         }
 
 
+def run_sync(factory: Callable[[], Any], *, need: str = "记忆调用") -> Any:
+    """把 async 记忆调用同步化的**唯一**包装（brokered 取用 / scoped 读写共用）
+
+    同步栈里（HTTP 同步请求 / 线程池 worker）调用 async 记忆入口必须经此包装，
+    避免各模块各造一份 asyncio.run 口径。当前线程已有运行中的事件循环时
+    **显式抛错**（而不是悄悄换一个循环或返回假成功）—— 调用方据此如实降级。
+
+    Args:
+        factory: 无参可调用，返回一个 awaitable（**不要**在调用前创建 coroutine：
+            coroutine 在抛错路径上可能未被 await，产生 never-awaited 告警）。
+        need: 出错信息里的用途标注。
+
+    Raises:
+        RuntimeError: 当前线程已有运行中的事件循环。
+    """
+    import asyncio
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError("%s 需要同步执行，但当前线程已有运行中的事件循环" % need)
+    return asyncio.run(factory())
+
+
 def default_recall_fn() -> Callable[..., List[Any]]:
     """构造默认 recall 可调用：把 async 的 LayeredMemoryStore.recall 同步化
 
@@ -113,24 +140,15 @@ def default_recall_fn() -> Callable[..., List[Any]]:
         limit: int = DEFAULT_LIMIT,
         memory_types: Optional[Sequence[Any]] = None,
     ) -> List[Any]:
-        import asyncio
-
-        # 当前线程已有运行中的事件循环 ⇒ asyncio.run 会抛；提前给出可读原因
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            pass
-        else:
-            raise RuntimeError(
-                "brokered 记忆取用需要同步执行，但当前线程已有运行中的事件循环")
-
         from agent.memory.layered_store import LayeredMemoryStore
 
         store = LayeredMemoryStore()
-        return asyncio.run(store.recall(
-            query, tenant_id=tenant_id, workspace_id=workspace_id,
-            subject_id=subject_id, workspace_root=workspace_root,
-            limit=int(limit), memory_types=memory_types))
+        return run_sync(
+            lambda: store.recall(
+                query, tenant_id=tenant_id, workspace_id=workspace_id,
+                subject_id=subject_id, workspace_root=workspace_root,
+                limit=int(limit), memory_types=memory_types),
+            need="brokered 记忆取用")
 
     return _recall
 

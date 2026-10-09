@@ -384,6 +384,7 @@ class DelegationExecutor:
         trusted: bool = False,
         container_root: str = "",
         memory_broker: Any = None,
+        scoped_memory_domain: Any = None,
     ) -> None:
         """
         Args:
@@ -412,6 +413,11 @@ class DelegationExecutor:
                 `agent.memory.broker.assemble_brokered_context`）。缺省 None = 用默认实现
                 （**只在 `ctx.metadata['memory_mode']=='brokered'` 时才会被调用**；
                 默认档 none 绝不触达 ⇒ 逐字旧行为）。
+            scoped_memory_domain: scoped 私人记忆域（**注入点**；见
+                `agent.memory.scoped_store.ScopedMemoryDomain`）。缺省 None = 按
+                ctx.metadata 现场构造（只在 `memory_mode=='scoped'` 时触达；
+                none/brokered 绝不触达 ⇒ 逐字旧行为）。容器注入同一实例可跨委派
+                复用配额/熔断状态。
         """
         self._agent_cli = str(agent_cli or "")
         self._llm = llm
@@ -431,6 +437,7 @@ class DelegationExecutor:
         self._trusted = bool(trusted)
         self._container_root = str(container_root or "")
         self._memory_broker = memory_broker
+        self._scoped_memory_domain = scoped_memory_domain
         self._lock = threading.Lock()
         self._workspace_ready = False
 
@@ -552,6 +559,9 @@ class DelegationExecutor:
             if memory:
                 # none 档 memory 为空 ⇒ 不设（outcome.memory 保持空 dict，逐字旧行为）
                 outcome.memory = dict(memory)
+                if str(memory.get("mode", "") or "") == "scoped":
+                    # scoped 成功委派 → 把结构化事实写回分身私人域（fail-soft）
+                    outcome.memory["write"] = self._write_back_scoped_memory(ctx, outcome)
             return outcome
         finally:
             self._barrier.release()
@@ -645,6 +655,111 @@ class DelegationExecutor:
              "scope_keys": segment["scope_keys"], "quota": segment["quota"]},
             status="enabled")
         return segment
+
+    # ── scoped 写回（委派成功后把结构化事实落回分身私人域）──
+
+    def _write_back_scoped_memory(self, ctx: DelegationContext,
+                                  outcome: ExecutionOutcome) -> Dict[str, Any]:
+        """scoped 委派成功后写回结构化事实（**fail-soft，绝不阻断委派**）
+
+        只取 payload 的 summary / facts / result（**不搬运 output_text 原文**）并按
+        scoped_store.MAX_SCOPED_WRITE_CHARS 截断；写回经 ScopedMemoryDomain.write，
+        严格遵循 admit → 域校验 → 真实存储 → record_write → 审计。任何失败/降级都
+        如实放进 outcome.memory['write']（**不含正文**），委派结果不受影响。
+        """
+        meta = getattr(ctx, "metadata", None) or {}
+        if str(meta.get("memory_mode", "") or "").strip().lower() != "scoped":
+            return {}
+        if not bool(getattr(outcome, "ok", False)):
+            return {"ok": False, "error_code": "", "degraded": "delegation_not_ok",
+                    "attempted": False}
+        facts = self._scoped_facts_from_payload(getattr(outcome, "payload", None) or {})
+        if not facts:
+            return {"ok": False, "error_code": "", "degraded": "no_structured_facts",
+                    "attempted": False}
+        try:
+            from agent.memory.scoped_store import ScopedMemoryEntry
+        except Exception as e:  # noqa: BLE001 依赖缺失 ⇒ 如实降级，不阻断委派
+            return {"ok": False, "error_code": "E_MEMORY_DEGRADED",
+                    "degraded": "import_failed:%s" % type(e).__name__,
+                    "attempted": False}
+        entry = ScopedMemoryEntry(
+            content=facts, memory_type="fact",
+            source_task_id=str(getattr(ctx, "task_id", "") or ""),
+            extra={"source": "delegation"})
+        try:
+            domain = self._resolve_scoped_domain(meta)
+        except Exception as e:  # noqa: BLE001 域构造失败（如未知 provider）⇒ 如实降级
+            return {"ok": False,
+                    "error_code": str(getattr(e, "code", "") or "E_MEMORY_DEGRADED"),
+                    "degraded": "domain_unavailable:%s" % type(e).__name__,
+                    "attempted": False}
+        if domain is None:
+            return {"ok": False, "error_code": "E_MEMORY_DEGRADED",
+                    "degraded": "domain_unavailable", "attempted": False}
+        try:
+            result = domain.write(
+                entry, task_id=str(getattr(ctx, "task_id", "") or ""),
+                trace_id=str(getattr(outcome, "trace_id", "") or ""))
+        except Exception as e:  # noqa: BLE001 写回异常绝不阻断委派
+            logger.warning("[Executor] scoped 记忆写回异常（降级，不阻断委派）: %s", e)
+            segment: Dict[str, Any] = {
+                "ok": False, "error_code": "E_MEMORY_DEGRADED",
+                "degraded": "write_failed:%s" % type(e).__name__}
+        else:
+            segment = (result.to_dict() if hasattr(result, "to_dict")
+                       else {"ok": bool(getattr(result, "ok", False)),
+                             "error_code": str(getattr(result, "error_code", "") or ""),
+                             "degraded": str(getattr(result, "degraded", "") or "")})
+        segment["attempted"] = True
+        segment["recorded"] = self._audit_event_recorded(
+            "subagent.memory.scoped.writeback", ctx,
+            {"ok": bool(segment.get("ok")),
+             "error_code": str(segment.get("error_code", "") or ""),
+             "degraded": str(segment.get("degraded", "") or ""),
+             "bytes": int(segment.get("bytes", 0) or 0)},
+            status="written" if segment.get("ok") else "degraded")
+        return segment
+
+    def _resolve_scoped_domain(self, meta: Mapping[str, Any]) -> Any:
+        """取 scoped 记忆域：注入实例优先，否则按 metadata 现场构造（含审计 sink）"""
+        if self._scoped_memory_domain is not None:
+            return self._scoped_memory_domain
+        from agent.memory.scoped_store import scoped_domain_from_scope
+
+        return scoped_domain_from_scope(
+            meta.get("memory_provider", ""), meta.get("memory_scope") or {},
+            quota=meta.get("memory_quota") or {}, audit=self._audit)
+
+    @staticmethod
+    def _scoped_facts_from_payload(payload: Mapping[str, Any]) -> str:
+        """从上游结构化载荷提取可写回的事实摘要（**不含 output_text 原文**）
+
+        来源按键固定：summary（字符串）+ facts（字符串数组 / 字符串）+ result。
+        长度受限（scoped_store.MAX_SCOPED_WRITE_CHARS）；空则返回空串（不写回）。
+        """
+        if not isinstance(payload, Mapping):
+            return ""
+        try:
+            from agent.memory.scoped_store import MAX_SCOPED_WRITE_CHARS as limit
+        except Exception:  # noqa: BLE001
+            limit = 800
+        parts: List[str] = []
+        summary = payload.get("summary")
+        if isinstance(summary, str) and summary.strip():
+            parts.append(summary.strip())
+        facts = payload.get("facts")
+        if isinstance(facts, (list, tuple)):
+            for item in facts:
+                text = str(item or "").strip()
+                if text:
+                    parts.append(text)
+        elif isinstance(facts, str) and facts.strip():
+            parts.append(facts.strip())
+        result = payload.get("result")
+        if isinstance(result, str) and result.strip():
+            parts.append(result.strip())
+        return "；".join(parts)[:int(limit)]
 
     def _audit_memory_broker(self, ctx: DelegationContext,
                              memory: Mapping[str, Any]) -> bool:
