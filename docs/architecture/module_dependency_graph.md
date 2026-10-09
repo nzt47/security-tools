@@ -318,8 +318,10 @@ flowchart LR
         agent_memory_long_term_memory["agent.memory.long_term_memory"]:::crosslayer
         agent_memory_markdown_syncer["agent.memory.markdown_syncer"]
         agent_memory_observability["agent.memory.observability"]
+        agent_memory_quota["agent.memory.quota"]:::crosslayer
         agent_memory_reviewer["agent.memory.reviewer"]:::crosslayer
         agent_memory_router["agent.memory.router"]:::crosslayer
+        agent_memory_scoped_store["agent.memory.scoped_store"]:::crosslayer
         agent_memory_short_term_memory["agent.memory.short_term_memory"]:::crosslayer
         agent_memory_taxonomy["agent.memory.taxonomy"]:::crosslayer
         agent_memory_tenancy["agent.memory.tenancy"]
@@ -1302,6 +1304,15 @@ flowchart LR
     agent_memory_router --> agent_memory_adapters_mem0_adapter
     agent_memory_router -.-> agent_logging_utils
     agent_memory_router --> agent_memory_filter
+    agent_memory_scoped_store --> agent_memory_broker
+    agent_memory_scoped_store --> agent_memory_taxonomy
+    agent_memory_scoped_store --> agent_memory_tenancy
+    agent_memory_scoped_store --> agent_memory_quota
+    agent_memory_scoped_store --> agent_memory_quota
+    agent_memory_scoped_store -.-> agent_subagent_credentials
+    agent_memory_scoped_store --> agent_memory_quota
+    agent_memory_scoped_store --> agent_memory_layered_store
+    agent_memory_scoped_store --> agent_memory_adapters_mem0_adapter
     agent_memory_short_term_memory --> agent_memory_base
     agent_memory_short_term_memory -.-> agent_logging_utils
     agent_memory_taxonomy -.-> agent_logging_utils
@@ -2261,6 +2272,7 @@ flowchart LR
     agent_subagent_container --> agent_subagent_executor
     agent_subagent_container --> agent_subagent_executor
     agent_subagent_container --> agent_subagent_memory_broker
+    agent_subagent_container --> agent_subagent_memory_broker
     agent_subagent_container --> agent_subagent_delegation_history
     agent_subagent_container --> agent_subagent_task_board
     agent_subagent_container --> agent_subagent_role_templates
@@ -2274,8 +2286,11 @@ flowchart LR
     agent_subagent_executor --> agent_subagent_delegation
     agent_subagent_executor --> agent_subagent_sandbox
     agent_subagent_executor --> agent_subagent_toolset
+    agent_subagent_executor -.-> agent_memory_scoped_store
     agent_subagent_executor -.-> agent_memory_broker
     agent_subagent_executor -.-> agent_memory_broker
+    agent_subagent_executor -.-> agent_memory_scoped_store
+    agent_subagent_executor -.-> agent_memory_scoped_store
     agent_subagent_executor -.-> agent_observability_trace_v2
     agent_subagent_executor -.-> agent_observability_trace_v2
     agent_subagent_executor -.-> agent_observability_trace_v2
@@ -2290,6 +2305,13 @@ flowchart LR
     agent_subagent_mechanical -.-> agent_digestion_cases
     agent_subagent_mechanical -.-> agent_digestion_sandbox
     agent_subagent_memory_broker --> agent_subagent_memory_quota
+    agent_subagent_memory_broker -.-> agent_memory_scoped_store
+    agent_subagent_memory_broker -.-> agent_memory_scoped_store
+    agent_subagent_memory_broker -.-> agent_memory_scoped_store
+    agent_subagent_memory_broker -.-> agent_memory_scoped_store
+    agent_subagent_memory_broker -.-> agent_memory_scoped_store
+    agent_subagent_memory_quota -.-> agent_memory_quota
+    agent_subagent_memory_quota -.-> agent_memory_quota
     agent_subagent_observability -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_monitoring_business_metrics
     agent_subagent_role_templates -.-> agent_prompt_manager_roles
@@ -2597,9 +2619,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 650
-- 模块节点数: 581
-- 依赖边数: 1896
-- 跨层调用数: 1204
+- 扫描文件数: 652
+- 模块节点数: 583
+- 依赖边数: 1916
+- 跨层调用数: 1215
 - 违规调用数: 0
 - 动态 import 数: 1
