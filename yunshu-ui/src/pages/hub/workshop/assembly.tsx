@@ -366,7 +366,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 <span className="text-[11px] text-slate-600">预览即真实请求体（同一序列化函数）</span>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-[11px] text-slate-500">
-                可带走（bundle 导出/导入 + 离线运行）尚未实现 —— 见右侧「可带走 bundle」面，S5 交付。
+                可带走（bundle 导出/导入）已接线；离线运行部分接线（local 推理 / container 需镜像内对端；wheelhouse 打包未做）—— 见「可带走 bundle」面。
               </div>
             </div>
           </Card>
