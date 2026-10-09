@@ -608,6 +608,7 @@ flowchart LR
         agent_subagent_observability["agent.subagent.observability"]
         agent_subagent_peers["agent.subagent.peers"]:::crosslayer
         agent_subagent_role_templates["agent.subagent.role_templates"]:::crosslayer
+        agent_subagent_rounds["agent.subagent.rounds"]:::crosslayer
         agent_subagent_sandbox["agent.subagent.sandbox"]:::crosslayer
         agent_subagent_scoped_memory_gate["agent.subagent.scoped_memory_gate"]
         agent_subagent_summarizer["agent.subagent.summarizer"]
@@ -2049,10 +2050,12 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation_history
     agent_server_routes_routes_subagent -.-> agent_subagent_task_board
     agent_server_routes_routes_subagent -.-> agent_subagent_peers
+    agent_server_routes_routes_subagent -.-> agent_subagent_rounds
     agent_server_routes_routes_subagent -.-> agent_subagent_memory_broker
     agent_server_routes_routes_subagent -.-> agent_subagent_credentials
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation
+    agent_server_routes_routes_subagent -.-> agent_subagent_rounds
     agent_server_routes_routes_subagent -.-> agent_subagent_channel
     agent_server_routes_routes_subagent -.-> agent_subagent_local_inference
     agent_server_routes_routes_subagent -.-> agent_lines
@@ -2652,9 +2655,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 658
-- 模块节点数: 589
-- 依赖边数: 1943
-- 跨层调用数: 1229
+- 扫描文件数: 659
+- 模块节点数: 590
+- 依赖边数: 1945
+- 跨层调用数: 1231
 - 违规调用数: 0
 - 动态 import 数: 1
