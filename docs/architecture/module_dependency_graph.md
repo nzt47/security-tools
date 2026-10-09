@@ -597,6 +597,7 @@ flowchart LR
         agent_subagent_credentials["agent.subagent.credentials"]:::crosslayer
         agent_subagent_delegation["agent.subagent.delegation"]:::crosslayer
         agent_subagent_delegation_history["agent.subagent.delegation_history"]:::crosslayer
+        agent_subagent_dependencies["agent.subagent.dependencies"]:::crosslayer
         agent_subagent_executor["agent.subagent.executor"]:::crosslayer
         agent_subagent_lifecycle["agent.subagent.lifecycle"]:::crosslayer
         agent_subagent_llm_factory["agent.subagent.llm_factory"]:::crosslayer
@@ -2065,7 +2066,9 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_subagent_callback_channel
     agent_server_routes_routes_subagent -.-> agent_subagent_capabilities
     agent_server_routes_routes_subagent -.-> agent_subagent_bundle
+    agent_server_routes_routes_subagent -.-> agent_subagent_dependencies
     agent_server_routes_routes_subagent -.-> agent_subagent_llm_factory
+    agent_server_routes_routes_subagent -.-> agent_subagent_dependencies
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_subagent_llm_factory
     agent_server_routes_routes_subagent -.-> agent_subagent_container
@@ -2271,6 +2274,7 @@ flowchart LR
     agent_subagent_bundle --> agent_subagent_container
     agent_subagent_bundle --> agent_subagent_credentials
     agent_subagent_bundle --> agent_subagent_executor
+    agent_subagent_bundle --> agent_subagent_dependencies
     agent_subagent_bundle --> agent_subagent_container_backend
     agent_subagent_callback_channel --> agent_subagent_credentials
     agent_subagent_callback_channel --> agent_subagent_delegation_history
@@ -2641,9 +2645,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 656
-- 模块节点数: 587
-- 依赖边数: 1934
-- 跨层调用数: 1223
+- 扫描文件数: 657
+- 模块节点数: 588
+- 依赖边数: 1937
+- 跨层调用数: 1225
 - 违规调用数: 0
 - 动态 import 数: 1
