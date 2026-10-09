@@ -152,7 +152,7 @@ flowchart LR
         agent_digestion_gate["agent.digestion.gate"]
         agent_digestion_generation["agent.digestion.generation"]
         agent_digestion_internalize["agent.digestion.internalize"]:::crosslayer
-        agent_digestion_isolation["agent.digestion.isolation"]
+        agent_digestion_isolation["agent.digestion.isolation"]:::crosslayer
         agent_digestion_judge_runtime["agent.digestion.judge_runtime"]
         agent_digestion_probe["agent.digestion.probe"]
         agent_digestion_real_capture["agent.digestion.real_capture"]
@@ -593,6 +593,7 @@ flowchart LR
         agent_subagent_channel["agent.subagent.channel"]:::crosslayer
         agent_subagent_collection["agent.subagent.collection"]
         agent_subagent_container["agent.subagent.container"]:::crosslayer
+        agent_subagent_container_backend["agent.subagent.container_backend"]
         agent_subagent_credentials["agent.subagent.credentials"]:::crosslayer
         agent_subagent_delegation["agent.subagent.delegation"]:::crosslayer
         agent_subagent_delegation_history["agent.subagent.delegation_history"]:::crosslayer
@@ -603,8 +604,10 @@ flowchart LR
         agent_subagent_memory_broker["agent.subagent.memory_broker"]:::crosslayer
         agent_subagent_memory_quota["agent.subagent.memory_quota"]
         agent_subagent_observability["agent.subagent.observability"]
+        agent_subagent_peers["agent.subagent.peers"]:::crosslayer
         agent_subagent_role_templates["agent.subagent.role_templates"]:::crosslayer
         agent_subagent_sandbox["agent.subagent.sandbox"]:::crosslayer
+        agent_subagent_scoped_memory_gate["agent.subagent.scoped_memory_gate"]
         agent_subagent_summarizer["agent.subagent.summarizer"]
         agent_subagent_task_board["agent.subagent.task_board"]:::crosslayer
         agent_subagent_toolset["agent.subagent.toolset"]:::crosslayer
@@ -2043,6 +2046,7 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_api_envelope
     agent_server_routes_routes_subagent -.-> agent_subagent_delegation_history
     agent_server_routes_routes_subagent -.-> agent_subagent_task_board
+    agent_server_routes_routes_subagent -.-> agent_subagent_peers
     agent_server_routes_routes_subagent -.-> agent_subagent_memory_broker
     agent_server_routes_routes_subagent -.-> agent_subagent_credentials
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
@@ -2267,6 +2271,7 @@ flowchart LR
     agent_subagent_bundle --> agent_subagent_container
     agent_subagent_bundle --> agent_subagent_credentials
     agent_subagent_bundle --> agent_subagent_executor
+    agent_subagent_bundle --> agent_subagent_container_backend
     agent_subagent_callback_channel --> agent_subagent_credentials
     agent_subagent_callback_channel --> agent_subagent_delegation_history
     agent_subagent_collection -.-> agent_security_actor_matrix
@@ -2276,12 +2281,16 @@ flowchart LR
     agent_subagent_container --> agent_subagent_executor
     agent_subagent_container --> agent_subagent_executor
     agent_subagent_container --> agent_subagent_memory_broker
+    agent_subagent_container --> agent_subagent_container_backend
     agent_subagent_container --> agent_subagent_callback_channel
     agent_subagent_container --> agent_subagent_memory_broker
     agent_subagent_container --> agent_subagent_delegation_history
     agent_subagent_container --> agent_subagent_task_board
     agent_subagent_container --> agent_subagent_role_templates
     agent_subagent_container --> agent_subagent_memory_broker
+    agent_subagent_container_backend --> agent_subagent_channel
+    agent_subagent_container_backend -.-> agent_digestion_isolation
+    agent_subagent_container_backend -.-> agent_digestion_isolation
     agent_subagent_delegation_history -.-> agent_jsonl_history
     agent_subagent_executor -.-> agent_security_actor_matrix
     agent_subagent_executor --> agent_subagent_barrier
@@ -2290,6 +2299,7 @@ flowchart LR
     agent_subagent_executor --> agent_subagent_credentials
     agent_subagent_executor --> agent_subagent_delegation
     agent_subagent_executor --> agent_subagent_sandbox
+    agent_subagent_executor --> agent_subagent_scoped_memory_gate
     agent_subagent_executor --> agent_subagent_toolset
     agent_subagent_executor -.-> agent_memory_scoped_store
     agent_subagent_executor --> agent_subagent_callback_channel
@@ -2321,9 +2331,14 @@ flowchart LR
     agent_subagent_memory_quota -.-> agent_memory_quota
     agent_subagent_observability -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_monitoring_business_metrics
+    agent_subagent_peers -.-> agent_task_scheduler
     agent_subagent_role_templates -.-> agent_prompt_manager_roles
     agent_subagent_sandbox -.-> agent_lines_models
     agent_subagent_sandbox -.-> agent_permission_system
+    agent_subagent_scoped_memory_gate --> agent_subagent_toolset
+    agent_subagent_scoped_memory_gate -.-> agent_memory_scoped_store
+    agent_subagent_scoped_memory_gate -.-> agent_memory_scoped_store
+    agent_subagent_scoped_memory_gate -.-> agent_memory_quota
     agent_subagent_summarizer -.-> agent_logging_utils
     agent_subagent_task_board -.-> agent_jsonl_history
     agent_subagent_toolset -.-> agent_security_actor_matrix
@@ -2626,9 +2641,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 653
-- 模块节点数: 584
-- 依赖边数: 1922
-- 跨层调用数: 1216
+- 扫描文件数: 656
+- 模块节点数: 587
+- 依赖边数: 1934
+- 跨层调用数: 1223
 - 违规调用数: 0
 - 动态 import 数: 1
