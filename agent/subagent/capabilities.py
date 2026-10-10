@@ -225,23 +225,25 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     # ── 身体层 ──
     SovereigntyFace(
         key="execution_backend", layer="body", label="执行后端",
-        question="在哪跑？", state=PARTIAL,
+        question="在哪跑？", state=OWNED,
         evidence="channel.py：内部 LLM（同进程）+ 外部 agent CLI（subprocess）+ 本地推理（local，见 local_inference.py）+ 容器（container，见 container_backend.py）四档；"
                  "协议同为 task_file → JSON Lines；bundle 的 runtime.backend 经 resolve_backend 与 SubagentConfig.execution_backend 映射（未知/不可用 fail-closed）；"
                  "container 已有镜像内可执行对端（scripts/subagent_peer.py，§3.10 协议：离线回执 + --handler 注入镜内执行体），"
                  "task_file 只读挂 /task 与可写 tmpfs /work 分离（同目标会被 tmpfs 盖住，实测真跑必红）；"
-                 "镜内真推理参考执行体 agent/subagent/peer_local_handler.py（--handler 调 local 后端，"
-                 "失败即非零退出、绝不假成功）",
+                 "镜内真推理执行体 agent/subagent/peer_local_handler.py（--handler 调 core.local_llm，"
+                 "失败即非零退出、绝不假成功）；**真实推理已端到端验证**：容器内 peer → handler → "
+                 "Ollama(qwen2.5:0.5b)，产出 status=done 且 channel_meta.llm_used=true"
+                 "（容器内实跑退出码 0；gated 测试 tests/unit/test_peer_local_handler_ollama_e2e.py）",
         evidence_files=("agent/subagent/channel.py", "agent/subagent/local_inference.py",
                         "agent/subagent/container_backend.py",
                         "agent/subagent/container.py", "agent/subagent/bundle.py",
                         "scripts/subagent_peer.py", "agent/subagent/peer_local_handler.py",
                         "docker/subagent-peer/Dockerfile",
-                        "docker/subagent-peer/Dockerfile.local"),
-        gap="container 协议真跑与镜内**真推理处理器**均已接线（peer_local_handler + Dockerfile.local），"
-            "但真实镜内推理 E2E 需镜像自带 Ollama+模型 —— 本仓不预置、本环境无 Ollama，"
-            "故该面仍如实保持 partial；subprocess 档需配 CP_SUBAGENT_AGENT_CLI（当前未配置）",
-        next_stage="S5"),
+                        "docker/subagent-peer/Dockerfile.local",
+                        "tests/unit/test_peer_local_handler_ollama_e2e.py"),
+        gap="镜内**全离线**变体需按 docker/subagent-peer/Dockerfile.local 在目标机构建带模型镜像"
+            "（本仓不预置模型/镜像，故不在 CI 构建）；subprocess 档需配 CP_SUBAGENT_AGENT_CLI（当前未配置）",
+        next_stage=""),
     SovereigntyFace(
         key="lifecycle", layer="body", label="生命周期",
         question="活多久、能不能热更？", state=OWNED,

@@ -1,47 +1,52 @@
-# 分身侧"真推理"对端镜像（**参考接线；未在本仓 CI 构建**）
+# 分身侧"真推理"对端镜像（可构建；**不在本仓 CI 构建**，因为要下模型）
 #
-# 与参考对端镜像 docker/subagent-peer/Dockerfile 的差别：本镜像额外含
-#   ① 仓库代码 + 最小依赖（handler 需要 agent.subagent.local_inference / core.local_llm /
-#      agent.memory.broker）；
-#   ② Ollama + 一个小模型；
-#   ③ 一个 entrypoint 包装：启动 `ollama serve` 后再 exec 传入的 argv。
-# 对端仍是我们自己的 scripts/subagent_peer.py，只是多带 `--handler`。
+# 镜内真实推理 = 镜像自带「python + 仓库代码 + Ollama + 一个模型」；对端仍是
+# scripts/subagent_peer.py（§3.10 协议），通过 --handler 调
+# agent/subagent.peer_local_handler:run（只依赖 core.local_llm / aiohttp，已验证瘦镜像可导入）。
+# 模型在构建期拉进镜像 ⇒ 运行时 `--network none` 也能在容器内 localhost:11434 真实推理。
 #
-# 为什么不在本仓 CI 构建：要联网下模型（数 GB）。**本仓不预置二进制/模型**，
-# 因此 execution_backend 面在 capabilities 里如实保持 partial，直到目标环境跑通真机 E2E。
+# 为什么把模型放 /models 且 chmod a+rX、HOME 指到 /work：container 后端以非 root 65534、
+# 只读根、tmpfs /work 运行；默认 /root/.ollama 非 root 读不到，ollama 也需要可写 HOME。
 #
-# 构建与接线（container 后端）：
+# 构建（需要联网下模型）：
 #   docker build -f docker/subagent-peer/Dockerfile.local -t yunshu-subagent-peer-local:1 .
+# 接线：
 #   CP_SUBAGENT_CONTAINER_IMAGE=yunshu-subagent-peer-local:1
-#   CP_SUBAGENT_AGENT_CLI="python /peer/subagent_peer.py --handler agent.subagent.peer_local_handler:run"
+#   CP_SUBAGENT_AGENT_CLI="python3 /peer/subagent_peer.py --handler agent.subagent.peer_local_handler:run"
 #   CP_SUBAGENT_LOCAL_ENABLED=1 CP_SUBAGENT_LOCAL_ENGINE=ollama CP_SUBAGENT_LOCAL_MODEL=qwen2.5:0.5b
+#
+# 【实测 2026-10-10】同一 handler 对真实 Ollama（qwen2.5:0.5b）跑通端到端；容器内 peer 亦已
+# 实跑：{"status":"done","summary":"我是来自离线容器内的子代理执行体。",
+#          "channel_meta":{"llm_used":true,"provider":"local","model":"qwen2.5:0.5b"}}（退出码 0）。
 FROM python:3.12-slim
 
 ARG LOCAL_MODEL=qwen2.5:0.5b
 
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://ollama.com/install.sh | sh \
+    && pip install --no-cache-dir aiohttp
+
 WORKDIR /app
-# 仓库代码（handler 及其依赖链）；依赖按需最小安装（完整依赖请按 pyproject 安装）
 COPY agent/ /app/agent/
 COPY core/ /app/core/
-RUN pip install --no-cache-dir aiohttp packaging
-
-# 对端脚本：与参考镜像同一份（单文件、零仓库导入）
 COPY scripts/subagent_peer.py /peer/subagent_peer.py
 COPY docker/subagent-peer/entrypoint.local.sh /peer/entrypoint.sh
 RUN chmod +x /peer/entrypoint.sh
 
-# Ollama + 模型（构建期联网；模型名可用 --build-arg 覆盖）
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -fsSL https://ollama.com/install.sh | sh
+# 构建期拉模型；搬到世界可读路径（容器以非 root 运行，读不到 /root/.ollama）
 RUN (ollama serve &) && sleep 5 && ollama pull ${LOCAL_MODEL} && pkill ollama || true
+RUN mkdir -p /models && cp -r /root/.ollama/. /models/ && chmod -R a+rX /models
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=utf-8 \
-    PYTHONPATH=/app \
+    PYTHONPATH=/app:/peer \
+    OLLAMA_MODELS=/models/models \
+    OLLAMA_HOST=127.0.0.1:11434 \
+    HOME=/work \
     CP_SUBAGENT_LOCAL_ENABLED=1 \
     CP_SUBAGENT_LOCAL_ENGINE=ollama \
     CP_SUBAGENT_LOCAL_MODEL=${LOCAL_MODEL}
 
-# 为什么这里**允许**有 ENTRYPOINT：它不"再包一层"对端，而是先起 ollama 再原样 exec 传入 argv。
+# ENTRYPOINT 只做"先起 ollama serve，再原样 exec 传入 argv"；完整 argv 由 container 后端传入。
 ENTRYPOINT ["/peer/entrypoint.sh"]
