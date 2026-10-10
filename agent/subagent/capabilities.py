@@ -228,23 +228,23 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         evidence_files=("agent/subagent/lifecycle.py", "agent/subagent/barrier.py")),
     SovereigntyFace(
         key="portability", layer="body", label="可带走 bundle",
-        question="换机断网还能不能活？", state=PARTIAL,
+        question="换机断网还能不能活？", state=OWNED,
         evidence="bundle 契约（身份/装配/引用式密钥/entrypoint 协议 + v2 environment 依赖清单）"
                  "+ GET /api/subagent/<name>/bundle 导出（过密钥闸）+ POST /api/subagent/import 导入；"
-                 "replicate.tsx 已从纯说明页改为真实导出/导入面；离线包入口 "
-                 "scripts/build_offline_pack.py（wheelhouse 扫描 + artifacts 段 + offline_ready "
-                 "**覆盖判定**：必须覆盖全部声明依赖）+ scripts/trim_bundle.py（脱敏裁剪）",
+                 "离线包端到端：scripts/build_offline_pack.py 在联网机产出含 wheelhouse 的 tar.gz"
+                 "（offline_ready **覆盖判定**；scripts/trim_bundle.py 脱敏）→ --pack-dir 交付到 "
+                 "CP_SUBAGENT_OFFLINE_PACK_DIR → GET /api/subagent/<name>/offline_pack 下载"
+                 "（agent/subagent/offline_pack.py 定位；路径穿越/未构建一律 fail-closed）；"
+                 "replicate.tsx 为真实导出/导入面",
         evidence_files=("agent/subagent/bundle.py", "agent/subagent/dependencies.py",
+                        "agent/subagent/offline_pack.py",
                         "agent/server_routes/routes_subagent.py",
                         "yunshu-ui/src/pages/hub/workshop/replicate.tsx",
                         "scripts/subagent_peer.py", "docker/subagent-peer/Dockerfile",
                         "scripts/build_offline_pack.py", "scripts/trim_bundle.py"),
-        gap="裸 JSON 导出不含 wheel（offline_ready 恒 false）；离线包入口已接线并可把 "
-            "offline_ready 翻真（实测 build_offline_pack 产出自带 wheelhouse 的 tar.gz），"
-            "但全量 wheelhouse 需运维在联网机执行（本仓不预置二进制 wheel），且无 API "
-            "直接下载离线包；container 已有镜像内 CLI 入口（scripts/subagent_peer.py）"
-            "可协议真跑，但镜内真实推理仍需自带 local 后端——换机断网仍不能完整运行",
-        next_stage="S5"),
+        gap="全量 wheelhouse 需运维在联网机执行 build_offline_pack（本仓不预置二进制 wheel）；"
+            "container 镜内真实推理另见执行后端面",
+        next_stage=""),
     SovereigntyFace(
         key="communication", layer="body", label="通信与协同",
         question="多个它之间怎么说话？", state=OWNED,

@@ -2157,6 +2157,13 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "子代理对端心跳周期（秒）；缺失=不注册周期任务（显式未接线，无写死默认）；"
        "启动期接入属后续（只读）",
        owner="agent/subagent/peers.py", validator=Validator("int")),
+    # 【S5 portability · 离线包下载（2026-10-10）】运维在联网机用
+    # scripts/build_offline_pack.py --pack-dir 预构建 <name>.tar.gz；产品面按此目录
+    # 交付下载（GET /api/subagent/<name>/offline_pack）。默认空 = 不提供下载
+    # （fail-closed，不假装有包）。C 级：目录路径属部署配置，只读。
+    _c("CP_SUBAGENT_OFFLINE_PACK_DIR", CAT_EXTERNAL, "",
+       "分身子代理离线包（<name>.tar.gz）所在目录；空=不提供下载（只读）",
+       owner="agent/subagent/offline_pack.py"),
     _b("CP_MCP_SERVER_TOOLS", CAT_EXTERNAL, "",
        "MCP 服务对外暴露的工具白名单（逗号分隔；未设则用内置默认集）；"
        "放宽即扩大对外暴露面（与「关闭即降低防护」同性质，故取 B）；"
