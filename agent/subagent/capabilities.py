@@ -181,10 +181,17 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         next_stage="S5"),
     SovereigntyFace(
         key="memory_ops", layer="memory", label="记忆导出/擦除/迁移",
-        question="能不能删干净、搬走？", state=MISSING,
-        evidence="无按分身导出/擦除入口（data/ 约 272MB 且多处被 .gitignore 排除）",
-        gap="无记忆主权操作入口；P5 做包裁剪与脱敏时一并做",
-        next_stage="S5"),
+        question="能不能删干净、搬走？", state=OWNED,
+        evidence="ScopedMemoryDomain 三种记忆主权操作（agent/memory/scoped_store.py）："
+                 "export_entries（只读；空域断言；失败返回明确 error_code 且返回空）、"
+                 "erase_entries（**必须 confirm** + **先快照后删**，快照写失败即中止删除）、"
+                 "import_entries（逐条 fail-soft；复用 write 的密钥闸/域校验/配额，域由目标域强制覆盖）；"
+                 "入口 CLI scripts/subagent_memory_ops.py（export/import/erase/migrate）；"
+                 "三者均写审计（subagent.memory.export / erase / import，只记条数）",
+        evidence_files=("agent/memory/scoped_store.py", "scripts/subagent_memory_ops.py"),
+        gap="mem0 后端只有 save/search、无列出/删除 ⇒ 导出/擦除 fail-closed"
+            "（E_MEMORY_OP_UNSUPPORTED，不假装支持）；data/ 整目录裁剪与脱敏仍属独立项",
+        next_stage=""),
     # ── 手脚层 ──
     SovereigntyFace(
         key="tools_skills", layer="hands", label="工具 / 技能 / 组件",

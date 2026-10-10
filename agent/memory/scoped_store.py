@@ -34,8 +34,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple
 
@@ -63,6 +65,11 @@ __all__ = [
     "E_MEMORY_DEGRADED",
     "E_MEMORY_SECRET_BLOCKED",
     "E_MEMORY_EMPTY",
+    "E_MEMORY_OP_UNSUPPORTED",
+    "E_MEMORY_ERASE_NOT_CONFIRMED",
+    "AUDIT_SCOPED_EXPORT",
+    "AUDIT_SCOPED_ERASE",
+    "AUDIT_SCOPED_IMPORT",
     "MAX_SCOPED_WRITE_CHARS",
     "UnknownMemoryProviderError",
     "ScopedMemoryError",
@@ -70,6 +77,10 @@ __all__ = [
     "ScopedMemoryEntry",
     "ScopedWriteOutcome",
     "ScopedReadOutcome",
+    "ScopedExportOutcome",
+    "ScopedEraseOutcome",
+    "ScopedImportOutcome",
+    "scoped_entry_from_exported",
     "ScopedMemoryDomain",
     "normalize_provider",
     "normalize_provider_alias",
@@ -103,6 +114,15 @@ E_MEMORY_SCOPE_MISMATCH = "E_MEMORY_SCOPE_MISMATCH"
 E_MEMORY_DEGRADED = "E_MEMORY_DEGRADED"
 E_MEMORY_SECRET_BLOCKED = "E_MEMORY_SECRET_BLOCKED"
 E_MEMORY_EMPTY = "E_MEMORY_EMPTY"
+#: 后端不支持"列出/删除"（mem0 adapter 只有 save/search）—— fail-closed，不假装支持
+E_MEMORY_OP_UNSUPPORTED = "E_MEMORY_OP_UNSUPPORTED"
+#: 擦除未带显式确认 —— **绝不**默认执行不可逆删除
+E_MEMORY_ERASE_NOT_CONFIRMED = "E_MEMORY_ERASE_NOT_CONFIRMED"
+
+#: 记忆主权操作审计动作（导出 / 擦除 / 导入；只记条数，不记正文）
+AUDIT_SCOPED_EXPORT = "subagent.memory.export"
+AUDIT_SCOPED_ERASE = "subagent.memory.erase"
+AUDIT_SCOPED_IMPORT = "subagent.memory.import"
 
 #: 单次写回正文上限（结构性事实摘要，不是整段正文搬运）
 MAX_SCOPED_WRITE_CHARS = 800
@@ -126,6 +146,10 @@ class UnknownMemoryProviderError(ScopedMemoryError):
 
 class _BackendWriteFailed(ScopedMemoryError):
     """底层后端明确报告失败（如 Mem0Adapter.save 返回 False）"""
+
+
+class _BackendOpUnsupported(ScopedMemoryError):
+    """后端不支持该记忆主权操作（如 mem0 无列出/删除）—— **fail-closed**"""
 
 
 def normalize_provider_alias(provider: Any) -> str:
@@ -303,6 +327,83 @@ class ScopedReadOutcome:
         }
 
 
+@dataclass(frozen=True)
+class ScopedExportOutcome:
+    """一次 scoped 导出结果（entries 为**脱敏后的序列化字典**，不含未脱敏正文）"""
+
+    ok: bool = False
+    error_code: str = ""
+    degraded: str = ""
+    entries: Tuple[Dict[str, Any], ...] = ()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"ok": bool(self.ok), "error_code": self.error_code,
+                "degraded": self.degraded, "count": len(self.entries)}
+
+
+@dataclass(frozen=True)
+class ScopedEraseOutcome:
+    """一次 scoped 擦除结果（**先快照后删**；只回计数与快照路径，不回正文）"""
+
+    ok: bool = False
+    error_code: str = ""
+    degraded: str = ""
+    scanned: int = 0
+    deleted: int = 0
+    snapshot_path: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"ok": bool(self.ok), "error_code": self.error_code,
+                "degraded": self.degraded, "scanned": int(self.scanned),
+                "deleted": int(self.deleted), "snapshot_path": self.snapshot_path}
+
+
+@dataclass(frozen=True)
+class ScopedImportOutcome:
+    """一次 scoped 导入结果（逐条 fail-soft；只回计数）"""
+
+    ok: bool = False
+    error_code: str = ""
+    degraded: str = ""
+    imported: int = 0
+    failed: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"ok": bool(self.ok), "error_code": self.error_code,
+                "degraded": self.degraded, "imported": int(self.imported),
+                "failed": int(self.failed)}
+
+
+def scoped_entry_from_exported(row: Mapping[str, Any], *,
+                               keep_scope: bool = False) -> ScopedMemoryEntry:
+    """导出字典（``MemoryEntry.to_dict`` 形态）→ 待写回的 ``ScopedMemoryEntry``
+
+    【字段映射】``content_redacted``（脱敏后正文）→ ``content``；``type`` → ``memory_type``；
+    ``id`` → ``key``（**保留原 id**，便于迁移去重与溯源）；域标识（tenant/workspace/subject）
+    刻意**不带** —— 到达域的域由目标 domain 的 scope 强制覆盖（守域不靠字典自带）。
+
+    【scope 默认不带（keep_scope=False）】导出里的 ``scope`` 是**源域**的
+    ``project:<源 workspace>``；迁移到别的 workspace 时若原样带上，会被 tenancy 以
+    ``scope_workspace_mismatch`` 正确拒绝（实测）。默认交由**目标域上下文**决定；
+    同域回灌（备份恢复）可显式传 ``keep_scope=True``。
+    """
+    data = row if isinstance(row, Mapping) else {}
+    try:
+        confidence = float(data.get("confidence") or 0.5)
+    except (TypeError, ValueError):
+        confidence = 0.5
+    scope = str(data.get("scope") or "").strip() if keep_scope else ""
+    return ScopedMemoryEntry(
+        content=str(data.get("content_redacted") or data.get("content") or ""),
+        memory_type=str(data.get("type") or data.get("memory_type") or "fact"),
+        scope=scope,
+        key=str(data.get("id") or data.get("key") or "").strip(),
+        confidence=min(1.0, max(0.0, confidence)),
+        source_task_id=str(data.get("source_task_id") or "").strip(),
+        extra=dict(data.get("extra") or {}),
+    )
+
+
 # ============================================================
 #  后端包装（统一 async write / read 签名；重依赖在函数内导入）
 # ============================================================
@@ -343,6 +444,22 @@ class _LayeredBackend:
             memory_types=memory_types or (scope.memory_types or None),
         )
 
+    async def list_entries(self, scope: ScopedMemoryScope, *,
+                           limit: Optional[int] = None) -> Sequence[Any]:
+        """列出 scope 内条目（导出/擦除候选集；租户过滤复用 store 既有实现）"""
+        return await self._store.list_entries(
+            tenant_id=scope.tenant_id or None,
+            workspace_id=scope.workspace_id or None,
+            subject_id=scope.subject_id or None,
+            workspace_root=scope.workspace_root,
+            memory_types=scope.memory_types or None,
+            limit=limit,
+        )
+
+    async def delete_entry(self, entry: Any, scope: ScopedMemoryScope) -> bool:
+        """物理删除一条（**只删 list_entries 给出的本域条目**）"""
+        return bool(await self._store.delete_entry(entry, force=True))
+
 
 class _Mem0Backend:
     """mem0 后端：复用既有 Mem0Adapter（可选依赖；未装时内置 JSON 降级）"""
@@ -369,6 +486,15 @@ class _Mem0Backend:
     async def read(self, query: str, scope: ScopedMemoryScope, *,
                    limit: int, memory_types: Optional[Sequence[Any]]) -> Sequence[Any]:
         return await self._adapter.search(query, top_k=int(limit))
+
+    async def list_entries(self, scope: ScopedMemoryScope, *,
+                           limit: Optional[int] = None) -> Sequence[Any]:
+        raise _BackendOpUnsupported(
+            "mem0 adapter 只有 save/search，没有列出能力：导出/擦除 fail-closed")
+
+    async def delete_entry(self, entry: Any, scope: ScopedMemoryScope) -> bool:
+        raise _BackendOpUnsupported(
+            "mem0 adapter 没有删除能力：擦除 fail-closed（不假装已删）")
 
 
 # ============================================================
@@ -668,6 +794,169 @@ class ScopedMemoryDomain:
             else:
                 dropped += 1
         return kept, dropped
+
+    # -- 记忆主权操作（导出 / 擦除 / 导入；P5 memory_ops）--
+
+    def _list_raw(self, limit: Optional[int] = None) -> list:
+        """列出本域**原始后端条目**（导出与擦除共用的候选集；空域断言已在上层）"""
+        backend = self.select_store()
+        return list(run_sync(lambda: backend.list_entries(self.scope, limit=limit),
+                             need="scoped 记忆列出"))
+
+    def _serialize(self, row: Any) -> Dict[str, Any]:
+        """后端条目 → 可 JSON 化字典（优先条目自带的 to_dict；缺字段则按属性兜底）"""
+        to_dict = getattr(row, "to_dict", None)
+        if callable(to_dict):
+            try:
+                data = to_dict()
+                if isinstance(data, Mapping):
+                    return dict(data)
+            except Exception:  # noqa: BLE001 退回属性兜底，不让序列化把导出打挂
+                pass
+        raw_type = getattr(row, "type", "")
+        return {
+            "content_redacted": str(getattr(row, "content", "") or ""),
+            "type": str(getattr(raw_type, "value", raw_type) or ""),
+            "id": str(getattr(row, "id", "") or ""),
+            "scope": str(getattr(row, "scope", "") or ""),
+            "confidence": getattr(row, "confidence", 0.5),
+            "source_task_id": str(getattr(row, "source_task_id", "") or ""),
+            "extra": dict(getattr(row, "extra", {}) or {}),
+        }
+
+    def export_entries(self, *, limit: Optional[int] = None) -> ScopedExportOutcome:
+        """列出本域全部条目并序列化（**只读**；正文是脱敏后的 content_redacted）
+
+        【空域断言】与 read 同一口径：scope 缺三要素 ⇒ domain_missing，不触达后端
+        （空域导出无法判定归属）。
+        【失败语义】后端不支持（mem0 无列出）或异常 ⇒ ok=False + 明确 error_code 且**返回空**。
+        """
+        if not self.scope.has_domain:
+            self._emit(AUDIT_SCOPED_DEGRADED, status="degraded",
+                       payload={"reason": "domain_missing", "provider": self.provider,
+                                "op": "export"})
+            return ScopedExportOutcome(ok=False, error_code=E_MEMORY_SCOPE_MISMATCH,
+                                       degraded="domain_missing")
+        try:
+            rows = self._list_raw(limit)
+        except _BackendOpUnsupported as e:
+            self._emit(AUDIT_SCOPED_DEGRADED, status="degraded",
+                       payload={"reason": "op_unsupported", "provider": self.provider,
+                                "op": "export"})
+            return ScopedExportOutcome(ok=False, error_code=E_MEMORY_OP_UNSUPPORTED,
+                                       degraded=str(e))
+        except Exception as e:  # noqa: BLE001 fail-soft
+            degraded = "export_failed:%s" % type(e).__name__
+            self._emit(AUDIT_SCOPED_DEGRADED, status="degraded",
+                       payload={"reason": degraded, "provider": self.provider,
+                                "op": "export"})
+            return ScopedExportOutcome(ok=False, error_code=E_MEMORY_DEGRADED,
+                                       degraded=degraded)
+        serialized = tuple(self._serialize(row) for row in rows)
+        self._emit(AUDIT_SCOPED_EXPORT, status="exported",
+                   payload={"provider": self.provider, "count": len(serialized)})
+        return ScopedExportOutcome(ok=True, entries=serialized)
+
+    def _default_snapshot_path(self) -> str:
+        """默认快照路径（擦除前必写；放在分片根或 data/ 下，带 UTC 时间戳）"""
+        base = self._root or os.path.join(".", "data")
+        stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+        return os.path.join(base, "memory_erase_snapshots",
+                            "erase_%s_%s.json"
+                            % (self.scope.subject_id or "scope", stamp))
+
+    def _write_snapshot(self, path: str, rows: Sequence[Dict[str, Any]]) -> str:
+        """写擦除前快照（临时文件 + os.replace；**失败即抛**，由调用方中止删除）"""
+        target = str(path or self._default_snapshot_path())
+        parent = os.path.dirname(os.path.abspath(target))
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        payload = {"schema": "yunshu.memory.erase_snapshot.v1",
+                   "provider": self.provider, "scope": self.scope.as_dict(),
+                   "count": len(rows), "entries": list(rows)}
+        tmp = target + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False, indent=2, sort_keys=True)
+        os.replace(tmp, target)
+        return target
+
+    def erase_entries(self, *, confirm: bool = False, limit: Optional[int] = None,
+                      snapshot_path: str = "") -> ScopedEraseOutcome:
+        """删除本域条目（**先快照后删**；必须 confirm=True）
+
+        【为什么必须显式 confirm】删除不可逆。缺 confirm ⇒ 立即返回
+        E_MEMORY_ERASE_NOT_CONFIRMED，**不触达后端**（不"先删了再说"）。
+        【为什么先快照】误删/取消时要能回灌；快照写失败 ⇒ **中止删除**（宁可没删，
+        也不留一份"删了但没快照"的不可逆结果）。
+        """
+        if not confirm:
+            return ScopedEraseOutcome(ok=False,
+                                      error_code=E_MEMORY_ERASE_NOT_CONFIRMED,
+                                      degraded="confirm_required")
+        if not self.scope.has_domain:
+            return ScopedEraseOutcome(ok=False, error_code=E_MEMORY_SCOPE_MISMATCH,
+                                      degraded="domain_missing")
+        try:
+            rows = self._list_raw(limit)
+        except _BackendOpUnsupported as e:
+            return ScopedEraseOutcome(ok=False, error_code=E_MEMORY_OP_UNSUPPORTED,
+                                      degraded=str(e))
+        except Exception as e:  # noqa: BLE001
+            return ScopedEraseOutcome(ok=False, error_code=E_MEMORY_DEGRADED,
+                                      degraded="erase_failed:%s" % type(e).__name__)
+        if not rows:
+            self._emit(AUDIT_SCOPED_ERASE, status="empty",
+                       payload={"provider": self.provider, "deleted": 0})
+            return ScopedEraseOutcome(ok=True, scanned=0, deleted=0)
+        serialized = [self._serialize(row) for row in rows]
+        try:
+            snap = self._write_snapshot(snapshot_path, serialized)
+        except OSError as e:  # noqa: BLE001 快照写不了就**不删**
+            return ScopedEraseOutcome(ok=False, error_code=E_MEMORY_DEGRADED,
+                                      degraded="snapshot_failed:%s" % type(e).__name__)
+        backend = self.select_store()
+        deleted = 0
+        for row in rows:
+            try:
+                if run_sync(lambda r=row: backend.delete_entry(r, self.scope),
+                            need="scoped 记忆擦除"):
+                    deleted += 1
+            except Exception:  # noqa: BLE001 逐条 fail-soft，继续删其余
+                continue
+        self._emit(AUDIT_SCOPED_ERASE, status="erased",
+                   payload={"provider": self.provider, "scanned": len(rows),
+                            "deleted": deleted})
+        return ScopedEraseOutcome(ok=(deleted == len(rows)), scanned=len(rows),
+                                  deleted=deleted, snapshot_path=snap)
+
+    def import_entries(self, rows: Sequence[Mapping[str, Any]], *,
+                       keep_scope: bool = False) -> ScopedImportOutcome:
+        """把导出条目写回本域（逐条 fail-soft；域由本域 scope 强制覆盖）
+
+        复用既有 ``write`` 的全套守卫（空正文/密钥闸门/域校验/配额），
+        因此"导入"不是绕过守卫的后门。``keep_scope`` 见 scoped_entry_from_exported。
+        """
+        imported = failed = 0
+        for row in rows or ():
+            entry = scoped_entry_from_exported(row, keep_scope=keep_scope)
+            if not entry.content.strip():
+                failed += 1
+                continue
+            try:
+                outcome = self.write(entry)
+            except Exception:  # noqa: BLE001 单条失败不阻断其余
+                failed += 1
+                continue
+            if outcome.ok:
+                imported += 1
+            else:
+                failed += 1
+        ok = (failed == 0)
+        self._emit(AUDIT_SCOPED_IMPORT, status="imported" if ok else "partial",
+                   payload={"provider": self.provider, "imported": imported,
+                            "failed": failed})
+        return ScopedImportOutcome(ok=ok, imported=imported, failed=failed,
+                                   degraded=("" if ok else "partial_import"))
 
     # -- 视图 --
 
