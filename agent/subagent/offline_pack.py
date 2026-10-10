@@ -47,9 +47,16 @@ class OfflinePackError(Exception):
 
 
 def offline_pack_dir(environ: Optional[Mapping[str, str]] = None) -> str:
-    """配置的离线包目录（缺失/空白 ⇒ 空串；不抛）"""
-    env = environ if environ is not None else os.environ
-    return str(env.get(ENV_OFFLINE_PACK_DIR, "") or "").strip()
+    """配置的离线包目录（缺失/空白 ⇒ 空串；不抛）
+
+    【为什么写成显式 os.environ.get(常量)】scan_settings 的 AST 提取器认的是
+    ``os.environ.get(<常量>)`` 这一形状；若先赋给局部变量再 ``env.get(<常量>)``，
+    提取器看不到这次读取 ⇒ 注册表里登记的键会被判成"注册了没人读"（extra），
+    CI 的开关零缺口守卫即红（实测）。显式写出来，提取器与注册表才对得上。
+    """
+    if environ is None:
+        return str(os.environ.get(ENV_OFFLINE_PACK_DIR, "") or "").strip()
+    return str(environ.get(ENV_OFFLINE_PACK_DIR, "") or "").strip()
 
 
 def safe_pack_name(name: Any) -> str:
