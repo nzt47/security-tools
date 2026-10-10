@@ -32,16 +32,21 @@
   ⇒ `No such file or directory`（tmpfs 盖住只读 bind）—— 已修为 `/task` 只读挂载。
 - 分离后：真实 `docker run` 往返 ⇒ `resolve_channel_output` 得 `tier=jsonl`、`status=offline_receipt`。
 
-## 真推理变体（参考接线，未在本仓 CI 构建）
+## 真推理变体（可构建；**不在本仓 CI 构建**，因为要下模型）
 
-`Dockerfile.local` 在参考镜像上再装 Ollama + 一个小模型，并用 `entrypoint.local.sh`
-先 `ollama serve` 再 exec 传入 argv；对端改用我们要的执行体：
+`Dockerfile.local` = `python:3.12-slim` + Ollama + 仓库代码 + 一个小模型（构建期拉进镜像）；
+`entrypoint.local.sh` 先 `ollama serve` 再 exec 传入 argv；对端改用我们的执行体：
 
     docker build -f docker/subagent-peer/Dockerfile.local -t yunshu-subagent-peer-local:1 .
     CP_SUBAGENT_CONTAINER_IMAGE=yunshu-subagent-peer-local:1
-    CP_SUBAGENT_AGENT_CLI="python /peer/subagent_peer.py --handler agent.subagent.peer_local_handler:run"
+    CP_SUBAGENT_AGENT_CLI="python3 /peer/subagent_peer.py --handler agent.subagent.peer_local_handler:run"
+    CP_SUBAGENT_LOCAL_ENABLED=1 CP_SUBAGENT_LOCAL_ENGINE=ollama CP_SUBAGENT_LOCAL_MODEL=qwen2.5:0.5b
 
-`agent/subagent/peer_local_handler.py` 把 task_file 交给 `local` 后端（`core/local_llm` 的
-Ollama）；模型没产出就**抛错**（对端非零退出、母体记 `E_UPSTREAM_FORMAT`），绝不编造 summary。
-本仓**不预置**模型（体积 / 授权原因），因此 `execution_backend` 面在 capabilities 里如实保持
-`partial`，直到目标环境跑通真机 E2E。
+`agent/subagent/peer_local_handler.py` 把 task_file 交给本地 Ollama；模型没产出就**抛错**
+（对端非零退出、母体记 `E_UPSTREAM_FORMAT`），绝不编造 summary。模型放 `/models`（`chmod a+rX`）、
+`HOME=/work`：因为 container 后端以**非 root 65534 + 只读根**运行，默认 `/root/.ollama` 读不到。
+
+**实测（2026-10-10）**：以 `ollama/ollama` 容器 + `qwen2.5:0.5b` 跑通 —— 容器内 peer → handler →
+真实推理，产出 `status=done`、`channel_meta.llm_used=true`（退出码 0）；宿主侧同一 handler 亦通过。
+可复算入口：`CP_SUBAGENT_LOCAL_E2E=1 python -m pytest tests/unit/test_peer_local_handler_ollama_e2e.py -q`
+（无 Ollama 时跳过）。本仓不预置模型/镜像，故 `Dockerfile.local` 不在 CI 构建。
