@@ -25553,7 +25553,7 @@
       "source_layer": "subagent",
       "target_layer": "digestion",
       "import_type": "from_import",
-      "line": 149,
+      "line": 152,
       "source_file": "agent/subagent/container_backend.py",
       "is_cross_layer": true,
       "is_violation": false,
