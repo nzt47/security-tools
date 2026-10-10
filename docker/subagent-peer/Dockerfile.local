@@ -18,6 +18,13 @@
 # 【实测 2026-10-10】同一 handler 对真实 Ollama（qwen2.5:0.5b）跑通端到端；容器内 peer 亦已
 # 实跑：{"status":"done","summary":"我是来自离线容器内的子代理执行体。",
 #          "channel_meta":{"llm_used":true,"provider":"local","model":"qwen2.5:0.5b"}}（退出码 0）。
+#
+# 【真跑两条硬前提（2026-10-10 容器档实测补记）】
+#   1) 内存：容器档默认 cgroup 上限 256MiB（IsolationQuota 默认）装不下 0.5B 模型——实跑得到
+#      "llama-server process has terminated: signal: killed"。需
+#      CP_DIGESTION_ISOLATION_MEMORY_MB=1024（run_prefix 经 IsolationQuota.from_env() 读取）。
+#   2) 只读根：容器档是 --read-only + 仅 tmpfs /work，/tmp 不可写；entrypoint.local.sh
+#      把 ollama 日志写到可写的 $HOME（镜像里 = /work），写 /tmp 会让 ollama serve 起不来。
 FROM python:3.12-slim
 
 ARG LOCAL_MODEL=qwen2.5:0.5b

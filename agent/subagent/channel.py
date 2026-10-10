@@ -405,6 +405,7 @@ class SubprocessChannelExecutor(ChannelExecutor):
                 list(invocation.argv),
                 capture_output=True,
                 text=True,
+                encoding="utf-8", errors="replace",
                 timeout=float(invocation.timeout_seconds),
                 env=env,
                 cwd=invocation.cwd or None,

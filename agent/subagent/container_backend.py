@@ -112,7 +112,10 @@ class ContainerSpec:
         """docker run 的隔离前缀（网络/资源/权限**逐条显式**，便于 argv 级断言）"""
         from agent.digestion.isolation import IsolationQuota
 
-        quota = IsolationQuota()
+        # 用 from_env()：容器内存/CPU 等应受 CP_DIGESTION_ISOLATION_* 约束（与
+        # IsolationExecutor 同源）。裸 IsolationQuota() 只取类默认值（内存 256MiB），
+        # 会把"可配置配额"变成死值——镜内本地推理（见 Dockerfile.local）恰好需要更大内存。
+        quota = IsolationQuota.from_env()
         return (
             self.cli, "run", "--rm",
             "--network", self.network,
@@ -205,6 +208,7 @@ class ContainerChannelExecutor(ChannelExecutor):
                              duration_ms=(time.time() - start) * 1000)
         try:
             proc = self._runner(argv, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace",
                                 timeout=float(invocation.timeout_seconds))
         except subprocess.TimeoutExpired:
             return RawOutput(returncode=-1, timed_out=True, error="timeout",

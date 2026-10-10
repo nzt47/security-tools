@@ -20,6 +20,8 @@ P5 handler：成功走 handler；失败 ⇒ stdout 空 + 退出码 4（不产出
 P6 错误码：非 json 输出格式 ⇒ 2；task_file 非对象/缺失 ⇒ 3；
 C8 挂载点：bind 目标 != tmpfs 目标；task_file 映射到 task_mount；同目标 ⇒ ChannelError；
 E2E docker 真跑（默认跳过）：CP_SUBAGENT_PEER_IMAGE 指到已构建镜像才跑。
+E2E docker 离线真推理（默认跳过）：CP_SUBAGENT_OFFLINE_E2E=1 + 带模型镜像 + 1GiB 配额；
+entrypoint 日志路径守卫（容器档 --read-only，/tmp 不可写）。
 
 不 import app_server。
 """
@@ -49,6 +51,9 @@ from agent.subagent.container_backend import (ContainerChannelExecutor,
 _ROOT = Path(__file__).resolve().parents[2]
 _PEER = _ROOT / "scripts" / "subagent_peer.py"
 _IMAGE = os.environ.get("CP_SUBAGENT_PEER_IMAGE", "")
+_OFFLINE_E2E = os.environ.get("CP_SUBAGENT_OFFLINE_E2E", "").strip() == "1"
+_OFFLINE_IMAGE = os.environ.get("CP_SUBAGENT_OFFLINE_IMAGE",
+                                "yunshu-subagent-peer-local:1")
 
 
 def _load_peer():
@@ -77,7 +82,8 @@ def _task_file(tmp_path, **overrides):
 def _run_peer(task_file, *extra, env=None, cwd=None):
     argv = [sys.executable, str(_PEER), "-p", str(task_file)]
     argv.extend(extra)
-    return subprocess.run(argv, capture_output=True, text=True, env=env,
+    return subprocess.run(argv, capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", env=env,
                           cwd=cwd, timeout=60)
 
 
@@ -239,3 +245,51 @@ class TestE2EDocker:
         assert out.tier == TIER_JSONL
         assert out.payload["status"] == peer.RECEIPT_STATUS
         assert out.payload["task_id"] == "task-1"
+
+
+class TestEntrypointLocalLogPath:
+    def test_本地对端日志不写只读_tmp(self):
+        src = (_ROOT / "docker" / "subagent-peer"
+               / "entrypoint.local.sh").read_text(encoding="utf-8")
+        assert ">/tmp/" not in src, (
+            "container 后端以 --read-only 运行、只有 tmpfs /work 可写：日志重定向到 /tmp "
+            "会让 ollama serve 起不来，镜内全离线真推理直接失败")
+        assert "${HOME" in src, "日志应落在可写的 HOME（镜像里 = /work）"
+
+
+@pytest.mark.skipif(not _OFFLINE_E2E,
+                    reason="CP_SUBAGENT_OFFLINE_E2E=1 且已构建带模型镜像才跑")
+class TestOfflineLocalInferenceE2E:
+    """镜内**全离线**真推理（镜像自带 Ollama+模型；--network none 真跑）。
+
+    与 test_peer_local_handler_ollama_e2e.py 不同：那份跑宿主机 Ollama（容器里只有 handler），
+    这份跑容器自带模型——不 build 镜像就跳过，不红、不假绿。
+    0.5B 模型在容器档默认 256MiB cgroup 下会被 OOM kill（实测 llama-server signal: killed），
+    故显式抬到 1GiB；这条同时钉住 run_prefix 必须走 IsolationQuota.from_env()。
+    """
+
+    def test_镜内真推理产出_llm_used(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("CP_DIGESTION_ISOLATION_MEMORY_MB", "1024")
+        task = tmp_path / "task.json"
+        task.write_text(json.dumps({
+            "task_id": "offline-e2e", "delegation_id": "offline-e2e",
+            "goal": "只输出一行合法 JSON：{\"status\":\"done\",\"summary\":\"镜内就绪\"}。"
+                    "禁止 markdown 围栏，禁止任何解释。",
+            "constraints": ["只输出 JSON"], "artifact_format": "json",
+        }, ensure_ascii=False), encoding="utf-8")
+        ex = ContainerChannelExecutor(
+            ContainerSpec(image=_OFFLINE_IMAGE),
+            prober=lambda: SimpleNamespace(available=True, reasons=[]))
+        invocation = ChannelInvocation(
+            argv=build_cli_argv(
+                "python3 /peer/subagent_peer.py "
+                "--handler agent.subagent.peer_local_handler:run",
+                str(task), max_turns=3),
+            task_file=str(task), max_turns=3, timeout_seconds=180.0)
+        out = resolve_channel_output(lambda: ex(invocation), invocation=invocation)
+        assert out.ok is True, out.error or "容器无输出"
+        assert out.tier == TIER_JSONL
+        meta = out.payload.get("channel_meta") or {}
+        assert meta.get("llm_used") is True, "必须真用本地模型，不得是离线回执"
+        assert meta.get("model")
+        assert str(out.payload.get("summary") or out.payload.get("status") or "").strip()

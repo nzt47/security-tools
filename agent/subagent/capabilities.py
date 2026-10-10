@@ -241,8 +241,12 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                         "docker/subagent-peer/Dockerfile",
                         "docker/subagent-peer/Dockerfile.local",
                         "tests/unit/test_peer_local_handler_ollama_e2e.py"),
-        gap="镜内**全离线**变体需按 docker/subagent-peer/Dockerfile.local 在目标机构建带模型镜像"
-            "（本仓不预置模型/镜像，故不在 CI 构建）；subprocess 档需配 CP_SUBAGENT_AGENT_CLI（当前未配置）",
+        gap="镜内**全离线**变体（镜像自带 Ollama+模型、运行时 --network none）已在容器档真跑验证"
+            "（Dockerfile.local 形态的镜像；产出 status=done / channel_meta.llm_used=true）；"
+            "两条硬前提：容器档默认 256MiB cgroup 装不下 0.5B 模型（需 CP_DIGESTION_ISOLATION_MEMORY_MB≥1024），"
+            "且 --read-only 下 /tmp 不可写（entrypoint 日志落 $HOME）；镜像仍不进 CI——构建期要下 ollama "
+            "二进制 1.44GB + 模型 397MB，需按 docker/subagent-peer/Dockerfile.local 在目标机构建；"
+            "subprocess 档需配 CP_SUBAGENT_AGENT_CLI（当前未配置）",
         next_stage=""),
     SovereigntyFace(
         key="lifecycle", layer="body", label="生命周期",

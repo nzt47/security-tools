@@ -79,6 +79,13 @@ class TestC2Argv:
             assert flag not in argv, "禁止参数出现在容器 argv：%s" % flag
         assert argv.count(container_task) == 1
 
+    def test_配额受_cp_digestion_环境变量约束(self, monkeypatch):
+        monkeypatch.setenv("CP_DIGESTION_ISOLATION_MEMORY_MB", "1024")
+        argv = list(ContainerSpec(image="img").run_prefix())
+        assert argv[argv.index("--memory") + 1] == "1024m", (
+            "容器内存必须可经 CP_DIGESTION_ISOLATION_MEMORY_MB 配置；"
+            "裸 IsolationQuota() 只取类默认值(256MiB)，会让镜内本地推理被 OOM kill")
+
     def test_task_file_缺失_抛_ChannelError(self, tmp_path):
         ex = ContainerChannelExecutor(ContainerSpec(image="img"))
         bad = ChannelInvocation(argv=("my-agent", "-p", "/nope.json"),
@@ -109,6 +116,24 @@ class TestC3C4ProbeAndRun:
         out = ex(_invocation(tmp_path))
         assert out.returncode == 0 and out.stdout == '{"status":"done"}'
         assert seen and seen[0][0] == "docker"
+
+    def test_runner_显式_utf8_解码(self, tmp_path):
+        seen = {}
+
+        def _run(argv, **kwargs):
+            seen.update(kwargs)
+            return _Proc()
+
+        ex = ContainerChannelExecutor(
+            ContainerSpec(image="img"),
+            prober=lambda: SimpleNamespace(available=True, reasons=[]),
+            runner=_run)
+        ex(_invocation(tmp_path))
+        assert seen.get("text") is True
+        assert seen.get("encoding") == "utf-8", (
+            "不显式 utf-8 时 Windows(GBK) 读取容器 UTF-8 输出会在读取线程抛 "
+            "UnicodeDecodeError、stdout 变空 ⇒ 假 E_UPSTREAM_FORMAT/empty")
+        assert seen.get("errors") == "replace"
 
 
 class TestC5ConstructionOffline:
