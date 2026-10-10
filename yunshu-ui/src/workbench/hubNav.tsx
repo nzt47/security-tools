@@ -116,13 +116,6 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/settings', label: '开关中心', icon: SlidersHorizontal, component: GovernancePanels },
     ],
   },
-  // 经验库（方案「把 DSH 的历史会话提炼成经验库」P3）
-  // 【为什么落在这里】顶层前四项 session→prompt-lab→skills-center→tools，
-  // 以及 tools→panorama→governance 的相邻关系，均被既有信息架构测试锁死
-  // （hubNav.test.ts / hubNav.search.test.ts；治理面板上移是为修"滚不到就找不到"
-  //  的实测缺陷，不应因新增模块而回退）。故新模块置于治理面板之后、
-  // 系统组件之前，零测试改动。
-  { key: 'experience', label: '经验库', icon: BookOpen, component: ExperiencePanel },
   {
     key: 'memory', label: '记忆管理', icon: Brain,
     children: [
@@ -130,6 +123,10 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'memory/auto', label: '自动记忆', icon: RefreshCw, component: MemoryPage },
       // 注：技能中心已上提为顶层导航项（与「提示词实验室」并列），不再挂在记忆管理下。
       { key: 'memory/knowledge', label: '知识库系统', icon: BookOpen, component: MemoryKnowledge },
+      // 【阶段 1.3】经验库从顶层移入记忆管理，与「知识库系统」并列。
+      // 两者是"记忆"族里两个不同物种（任务经验 vs 知识卡片），数据模型/检索算法/
+      // 质量机制都不同 ⇒ 只归位、**不合并组件**（方案 §4.3）。
+      { key: 'memory/experience', label: '经验库', icon: BookOpen, component: ExperiencePanel },
       { key: 'memory/search', label: '搜索', icon: Search, component: MemorySearch },
     ],
   },
