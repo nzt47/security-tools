@@ -1,7 +1,7 @@
 /**
  * 云枢统一工作台 —— 导航配置中心
  * ------------------------------------------------
- * 单一数据源：导航树（9 大栏目 + 系统管理子菜单）与内容组件映射。
+ * 单一数据源：导航树（阶段 3 收敛为 8 个语义桶 + 系统管理子菜单）与内容组件映射。
  * ContentPanel 根据当前选中导航项，从此处取组件渲染。
  * 所有既有功能（Hub 8 栏目 + 管理后台）统一挂载到工作台。
  */
@@ -76,17 +76,19 @@ export interface HubNavItem {
 
 /** 全量导航树 */
 export const HUB_NAV: HubNavItem[] = [
-  { key: 'session', label: '会话任务', icon: MessageSquare, component: WorkbenchChatPage },
-  { key: 'prompt-lab', label: '提示词实验室', icon: FlaskConical, component: PromptLab },
-  // 技能中心：从「记忆管理」上提为顶层导航项，与「提示词实验室」并列
-  // （LLM 技能 = 模型执行，工作流技能 = 本地执行，分 Tab 管理）。
-  { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
-  // 工具调用：原 5 个子项（工具集 / CLI 软件 / MCP 系统 / Computer Use / 主线管理）
-  // 已收敛为主内容区 Tab（见 @/pages/hub/tools/index.tsx），导航树只留单一叶子项 ——
-  // 与「提示词实验室 / 技能中心」同款层级：导航列模块，模块内的子项用 Tab 并列。
-  // 位置：紧邻「提示词实验室 / 技能中心」之后、**全景看板之前**（配置类模块在前，
-  // 看板/管理类在后）。
-  { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
+  // 【阶段 3】顶层收敛（13 → 8 个语义桶）。桶内子项 key 一律不变 ⇒ 旧深链仍有效，
+  // 只有「组 key」（engine）消失，走 LEGACY_NAV_KEY_MAP 兼容映射。
+  {
+    key: 'workspace', label: '会话与配置', icon: MessageSquare,
+    children: [
+      { key: 'session', label: '会话任务', icon: MessageSquare, component: WorkbenchChatPage },
+      // 技能中心：LLM 技能 = 模型执行，工作流技能 = 本地执行，与提示词实验室并列（分 Tab 管理）。
+      { key: 'prompt-lab', label: '提示词实验室', icon: FlaskConical, component: PromptLab },
+      { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
+      // 工具调用：原 5 个子项已在页面内收敛为 Tab（pages/hub/tools/index.tsx）。
+      { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
+    ],
+  },
   {
     key: 'panorama', label: '全景看板', icon: LayoutDashboard,
     children: [
@@ -94,6 +96,10 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'panorama/sensors', label: '全景感知', icon: Activity, component: PanoramaSensors },
       { key: 'panorama/monitor', label: '系统监控', icon: Server, component: PanoramaMonitor },
       { key: 'panorama/logs', label: '日志查看', icon: FileText, component: PanoramaLogs },
+      // 【阶段 3】原顶层「循环工程」并入全景看板（方案 §5 备选：循环工程也可并入全景看板）。
+      // 子项 key 保留 engine/* ⇒ 旧深链 ?panel=engine/heartbeat 仍有效；组 key engine 走兼容映射。
+      { key: 'engine/heartbeat', label: '心跳监测', icon: HeartPulse, component: EngineHeartbeat },
+      { key: 'engine/scheduler', label: '定时任务', icon: CalendarClock, component: EngineScheduler },
     ],
   },
   {
@@ -137,21 +143,6 @@ export const HUB_NAV: HubNavItem[] = [
   // 【阶段 1.1】原「人格与提示词 → 人格配置」独立页已并入「提示词实验室」第 3 个 Tab
   // （人格 = 它是谁 / 因素实验室 = 它怎么答，同属模型侧配置），persona 分组随之删除。
   {
-    key: 'engine', label: '循环工程', icon: RefreshCw,
-    children: [
-      { key: 'engine/heartbeat', label: '心跳监测', icon: HeartPulse, component: EngineHeartbeat },
-      { key: 'engine/scheduler', label: '定时任务', icon: CalendarClock, component: EngineScheduler },
-    ],
-  },
-  { key: 'network', label: '网络配置', icon: Globe, component: NetworkPage },
-  {
-    key: 'workshop', label: '装配车间', icon: Factory,
-    children: [
-      { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
-      { key: 'workshop/replicate', label: '系统自我复制', icon: Copy, component: WorkshopReplicate },
-    ],
-  },
-  {
     key: 'assets', label: '资产管理', icon: Database,
     children: [
       { key: 'assets/memory', label: '记忆数据', icon: Database, component: AssetsPage },
@@ -165,10 +156,20 @@ export const HUB_NAV: HubNavItem[] = [
     ],
   },
   {
+    // 【阶段 3】分身单列一桶（方案 §5「分身」）；排在「记忆与资产」之后、「系统」之前。
+    key: 'workshop', label: '装配车间', icon: Factory,
+    children: [
+      { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
+      { key: 'workshop/replicate', label: '系统自我复制', icon: Copy, component: WorkshopReplicate },
+    ],
+  },
+  {
     key: 'components', label: '系统组件', icon: Boxes,
     children: [
       { key: 'components/modules', label: '模块列表', icon: Boxes, component: ModuleListPage },
       { key: 'components/plugins', label: '插件与扩展', icon: Puzzle, component: PluginsPage },
+      // 【阶段 3】原顶层「网络配置」并入系统组件桶（key 保留 network ⇒ 旧深链仍有效）。
+      { key: 'network', label: '网络配置', icon: Globe, component: NetworkPage },
     ],
   },
   {
@@ -228,8 +229,14 @@ export function findNavItem(key: string): HubNavItem | undefined {
   return flattenNav().find((it) => it.key === key)
 }
 
-/** 默认选中项：第一个叶子（会话任务） */
-export const DEFAULT_NAV_KEY = HUB_NAV[0]?.key ?? 'session'
+/**
+ * 默认选中项：第一个**叶子**（会话任务）。
+ *
+ * 【阶段 3 修正】原实现取 HUB_NAV[0].key —— 顶层收敛后 HUB_NAV[0] 是分组
+ * 「会话与配置」（无 component），会让工作台默认打开空态（DetachedChatApp 回归用例暴露此点）；
+ * 改为展平后取第一个叶子，语义与注释「第一个叶子」一致。
+ */
+export const DEFAULT_NAV_KEY = flattenNav(HUB_NAV).find((it) => !it.children)?.key ?? 'session'
 
 // ════════════════════════════════════════════════════════════
 //  导航检索 + 深链（2026-09-22）
@@ -289,6 +296,8 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   'experience': 'memory/experience',
   // 扩展中心并入系统组件 · 插件管理（阶段 1.2）
   'extensions': 'components/plugins',
+  // 循环工程并入全景看板（阶段 3）：组 key 消失，落到其原第一个子项
+  'engine': 'engine/heartbeat',
 })
 
 /** key 是否存在于给定导航树（items 可注入，便于测试「迁移后」的树） */
