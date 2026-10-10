@@ -2,7 +2,7 @@
  * PromptLab —— 提示词影响因素管理面板（主页编排）
  * ------------------------------------------------
  * 布局：顶栏（标题 + 模块 Tab 条）+ 分类筛选 + 主体（左因素区 / 右预览 PreviewPanel）
- *      / LLM 通信监控 Tab（全宽，LlmMonitorPanel）
+ *      / LLM 通信监控 Tab（全宽，LlmMonitorPanel）/ 人格 Tab（PersonalityPage）
  * 功能：5 类因素调节（滑块/下拉/文本/开关）、实时预览（模拟 + 真实 LLM）、
  *       分类筛选、自定义因素添加/删除、JSON/CSV 导出。
  *
@@ -18,7 +18,7 @@
  * CustomFactorForm / PreviewPanel / IdentityPromptPanel / LlmMonitorPanel。
  */
 import { useEffect, useMemo, useState } from 'react';
-import { FlaskConical, Plus, Radio, RotateCcw } from 'lucide-react';
+import { FlaskConical, Plus, Radio, RotateCcw, Smile } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
 import {
@@ -40,17 +40,22 @@ import CustomFactorForm from './CustomFactorForm';
 import PreviewPanel, { type PreviewMode } from './PreviewPanel';
 import IdentityPromptPanel, { toIdentityPromptPanelProps } from './IdentityPromptPanel';
 import LlmMonitorPanel from './LlmMonitorPanel';
+// 人格配置（原「人格与提示词 → 人格配置」独立页）并入本页第 3 个 Tab（阶段 1.1）
+import PersonalityPage from '../hub/personality';
 import { useIdentityPrompt } from './identityPrompt';
 import '../PromptLab.css';
 
 type Filter = 'all' | FactorCategory;
 
-/** 主内容区模块 Tab（并列展示）：影响因素实验室 / LLM 通信监控 */
-type LabTab = 'factors' | 'llm-monitor';
+/** 主内容区模块 Tab（并列展示）：影响因素实验室 / LLM 通信监控 / 人格 */
+type LabTab = 'factors' | 'llm-monitor' | 'personality';
 
 const LAB_TABS: { id: LabTab; label: string; icon: typeof FlaskConical; hint: string }[] = [
   { id: 'factors', label: '提示词影响因素实验室', icon: FlaskConical, hint: '5 类影响因素调节 + 身份提示词线上配置 + 实时预览' },
   { id: 'llm-monitor', label: 'LLM 通信监控', icon: Radio, hint: '每次 LLM 调用的完整收发内容（折叠展开）+ Token 统计' },
+  // 阶段 1.1：原「人格与提示词 → 人格配置」独立页并入本页 Tab。
+  // 语义：人格是"它是谁"（画像），因素实验室是"它怎么答"（行为），同属"模型侧配置"。
+  { id: 'personality', label: '人格', icon: Smile, hint: '云枢的语气体征（语气/情感/简练/主动/幽默/同理心）+ 预设人格' },
 ];
 
 /** 记住上次所在 Tab（会话级偏好，刷新不跳回） */
@@ -59,7 +64,7 @@ const TAB_STORAGE_KEY = 'yunshu.prompt-lab.tab';
 const readSavedTab = (): LabTab => {
   try {
     const v = localStorage.getItem(TAB_STORAGE_KEY);
-    return v === 'llm-monitor' ? 'llm-monitor' : 'factors';
+    return LAB_TABS.some((t) => t.id === v) ? (v as LabTab) : 'factors';
   } catch {
     return 'factors';
   }
@@ -277,10 +282,15 @@ export default function PromptLab() {
             />
           </div>
         </>
-      ) : (
+      ) : tab === 'llm-monitor' ? (
         /* LLM 通信监控：主内容区整屏（原页面底部并入 → 提为主 Tab） */
         <div className="pl-tab-body">
           <LlmMonitorPanel />
+        </div>
+      ) : (
+        /* 人格：原「人格与提示词 → 人格配置」独立页并入（阶段 1.1） */
+        <div className="pl-tab-body">
+          <PersonalityPage />
         </div>
       )}
 

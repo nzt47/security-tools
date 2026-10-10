@@ -33,6 +33,12 @@ type Sections = Record<string, Section>
 /** 被 mock 的配置库（测试可写；每次用例前重置） */
 const h = vi.hoisted(() => ({ sections: {} as Record<string, any> }))
 
+// 阶段 1.1：人格 Tab 的内容是原 pages/hub/personality；此处打桩，避免真实 /api/personality 请求，
+// 只验证「人格」Tab 已挂载到该页组件。
+vi.mock('../hub/personality', () => ({
+  default: () => <div data-testid="personality-page-stub" />,
+}))
+
 vi.mock('../hub/components/ui', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>()
 
@@ -209,7 +215,8 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
     const labels = within(tablist)
       .getAllByRole('tab')
       .map((t) => (t.textContent ?? '').trim())
-    expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控'])
+    // 阶段 1.1：人格并入成为第 3 个 Tab（原两 Tab 顺序不变）
+    expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控', '人格'])
 
     // 默认在影响因素实验室：监控面板未挂载（不在页面最底部）
     expect(screen.queryByText('发送 Tokens')).toBeNull()
@@ -218,5 +225,10 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
     // 监控面板已挂载并展示统计条
     expect(await screen.findByText('发送 Tokens')).toBeTruthy()
     expect(screen.getByText('接收 Tokens')).toBeTruthy()
+
+    // 阶段 1.1：第三个 Tab「人格」切换到原人格配置页
+    expect(screen.queryByTestId('personality-page-stub')).toBeNull()
+    fireEvent.click(within(tablist).getByRole('tab', { name: '人格' }))
+    expect(await screen.findByTestId('personality-page-stub')).toBeTruthy()
   })
 })
