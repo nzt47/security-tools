@@ -1,9 +1,12 @@
 /**
- * 路由覆盖 —— 把「450 条后端路由谁进了 UI」呈现出来（2026-10-07）。
+ * 路由覆盖 —— 治理面板子项（UI IA 整合阶段 2）
+ * ------------------------------------------------------------------
+ * 原为 `src/features/route-coverage/index.tsx`（自动发现项「路由覆盖」，顶层）。
+ * 它的数据源是**构建期产物**（提交物 + 新鲜度守卫 + 「未分类活体路由只允许收缩」的棘轮），
+ * 与全景看板的运行时运维视图语义不匹配；现按方案 §4.4 归入同类语义的「治理面板」，
+ * 与「能力图谱 / 审计导出」并列，并删除原自动发现 manifest（禁止双入口）。
  *
  * 数据源：GET /api/audit/route-ui-coverage（读提交产物 reports/route_ui_coverage.json）。
- * 【本页是「宿主功能零清单进导航」的第二个实例】它只是一个
- * src/features/<key>/index.tsx（export default + manifest），由 featureRegistry 自动挂上。
  *
  * 【为什么它不自己跑扫描】全树扫描（路由 AST + 数百前端文件）不适合放在 HTTP 热路径；
  * 产物由 scripts/audit/route_ui_coverage.py 生成，守卫用 --check 钉住新鲜度，
@@ -13,8 +16,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Route as RouteIcon, RefreshCw, Search } from 'lucide-react'
 import { request } from '@/lib/apiClient'
 import { ROUTE_UI_COVERAGE } from '@/api/endpoints'
-
-export const manifest = { key: 'route-coverage', label: '路由覆盖', icon: RouteIcon, order: 910 }
 
 interface Entry {
   path: string
@@ -47,7 +48,7 @@ const CAT_CLASS: Record<string, string> = {
   unreferenced: 'text-slate-500',
 }
 
-export default function RouteCoveragePage() {
+export default function RouteCoveragePanel() {
   const [data, setData] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

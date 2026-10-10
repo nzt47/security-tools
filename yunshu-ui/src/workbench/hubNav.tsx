@@ -11,7 +11,7 @@ import {
   MessageSquare, LayoutDashboard, Brain, Wrench, RefreshCw, Globe, Factory, Database,
   Activity, FileText, Server, BookOpen, Search, Boxes, Monitor,
   HeartPulse, CalendarClock, Users, Copy, Hammer, FolderHeart, Lightbulb, Palette,
-  Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle,
+  Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
 } from 'lucide-react'
 
@@ -114,6 +114,10 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/audit', label: '审计导出', icon: ScrollText, component: GovernancePanels },
       // TASK-S7-01「开关中心」：登记表全量（分类分组 + 搜索 + 风险分级 + 生效来源）
       { key: 'governance/settings', label: '开关中心', icon: SlidersHorizontal, component: GovernancePanels },
+      // 【阶段 2】路由覆盖归位：数据是构建期审计产物（提交物 + 新鲜度守卫 + 棘轮），
+      // 与全景看板的运行时运维视图语义不匹配；与「能力地图 / 审计导出」同类，故入治理面板。
+      // 原为 features/route-coverage 自动发现项（顶层），现已删除 manifest（禁止双入口）。
+      { key: 'governance/route-coverage', label: '路由覆盖', icon: Route, component: GovernancePanels },
     ],
   },
   {
@@ -197,7 +201,7 @@ export interface HubPanelParams {
   mode?: 'manual' | 'auto'
   /** governance/<panel>：治理面板栏目（六面板 + 审计导出 + 开关中心；单组件按参数渲染） */
   panel?: 'pipeline' | 'capabilities' | 'approvals' | 'roi' | 'incidents'
-    | 'memory' | 'audit' | 'settings'
+    | 'memory' | 'audit' | 'settings' | 'route-coverage'
 }
 
 /** 由导航 key 推导复用页面的初始参数；其余导航项无需参数（返回空对象，组件自带默认视图） */

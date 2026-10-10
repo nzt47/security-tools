@@ -74,6 +74,8 @@ import {
 import { AbsoluteActionBar } from './actions'
 import { ImplicitEntryLog, recordImplicitEntry } from './implicitEntry'
 import { SettingsPanel } from './settings'
+// 【阶段 2】路由覆盖从顶层自动发现项归位：构建期产物审计，与能力地图 / 审计导出同类
+import RouteCoveragePanel from './route-coverage'
 
 // ═══════════════════════════════════════════════════════════
 //  容器：按 panel 渲染（P0 展开 / P1·P2 折叠 / 自愈自动展开）
@@ -84,6 +86,8 @@ export type GovernancePanelId =
   | 'roi' | 'incidents' | 'memory' | 'audit'
   // TASK-S7-01「开关中心」：登记表全量 + 生效来源 + 风险分级 + B 级二次确认
   | 'settings'
+  // 阶段 2「路由覆盖」：构建期路由→UI 覆盖审计（原顶层自动发现项）
+  | 'route-coverage'
 
 /**
  * 折叠区 / 面板外壳**已上移到 `./components`**（TASK-S7-01）
@@ -111,6 +115,8 @@ export function GovernancePanels({ panel = 'pipeline' }: { panel?: GovernancePan
       return <AuditExportPanel />
     case 'settings':
       return <SettingsPanel />
+    case 'route-coverage':
+      return <RouteCoveragePanel />
     case 'pipeline':
     default:
       return <DigestionPipelinePanel />

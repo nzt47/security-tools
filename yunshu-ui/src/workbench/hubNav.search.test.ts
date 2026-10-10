@@ -130,6 +130,14 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     expect(childKeys[0]).toBe('governance/pipeline')
     expect(childKeys[1]).toBe('governance/approvals')
   })
+
+  it('「路由覆盖」是治理面板的子项（阶段 2 归位，不再是顶层自动发现项）', () => {
+    const gov = HUB_NAV.find((i) => i.key === 'governance')
+    const childKeys = (gov?.children ?? []).map((c) => c.key)
+
+    expect(childKeys).toContain('governance/route-coverage')
+    expect(HUB_NAV.map((i) => i.key)).not.toContain('route-coverage')
+  })
 })
 
 describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {

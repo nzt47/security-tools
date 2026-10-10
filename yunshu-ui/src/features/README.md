@@ -35,5 +35,10 @@ export default function MyFeaturePage() {
 > 「不再导出 manifest」）。判据：这个页面**是否需要自己出现在左侧导航**；不需要就不要 manifest。
 >
 > 【2026-10-11 第二实例】原「扩展中心」(`features/extensions`) 与「插件管理」合并为
-> 「插件与扩展」页 (`pages/hub/plugins/`) 的「扩展呈现」Tab 后，同样删除 manifest；
-> 合并后本机制只剩 `features/route-coverage` 一个实例（守卫见 `featureRegistry.test.ts`）。
+> 「插件与扩展」页 (`pages/hub/plugins/`) 的「扩展呈现」Tab 后，同样删除 manifest。
+>
+> 【2026-10-11 第三实例】原「路由覆盖」(`features/route-coverage`) 数据源是构建期审计产物，
+> 归入同类语义的「治理面板 → 路由覆盖」(`pages/hub/governance/route-coverage.tsx`)，同样删除 manifest。
+>
+> 至此 `src/features/` 目录**没有真实实例**；机制保留给未来宿主功能页，其行为（四件齐全 /
+> 缺件不上导航 / order 排序）由 `featureRegistry.test.ts` 用**合成模块**持续守卫。
