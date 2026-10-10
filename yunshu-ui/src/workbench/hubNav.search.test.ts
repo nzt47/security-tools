@@ -17,6 +17,9 @@ import {
   navKeyFromSearch,
   searchForNavKey,
   flattenNav,
+  LEGACY_NAV_KEY_MAP,
+  resolveNavKey,
+  type HubNavItem,
 } from './hubNav'
 
 describe('filterNav —— 侧栏搜索', () => {
@@ -126,5 +129,50 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     expect(childKeys).toContain('governance/approvals')
     expect(childKeys[0]).toBe('governance/pipeline')
     expect(childKeys[1]).toBe('governance/approvals')
+  })
+})
+
+describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
+  it('映射表覆盖方案 §6 列出的三组旧 key → 新 key', () => {
+    expect(LEGACY_NAV_KEY_MAP['persona/personality']).toBe('prompt-lab')
+    expect(LEGACY_NAV_KEY_MAP['experience']).toBe('memory/experience')
+    expect(LEGACY_NAV_KEY_MAP['extensions']).toBe('components/plugins')
+  })
+
+  it('迁移未落地（旧 key 仍在树里）⇒ 原样返回，不提前改道到尚未就绪的新页', () => {
+    // 关键回归：阶段 1.3 之前 memory/experience 不存在，?panel=experience 必须仍开经验库
+    expect(resolveNavKey('experience')).toBe('experience')
+    expect(resolveNavKey('persona/personality')).toBe('persona/personality')
+    expect(resolveNavKey('extensions')).toBe('extensions')
+    expect(navKeyFromSearch('?panel=experience')).toBe('experience')
+  })
+
+  it('旧 key 已移除但新 key 在树里 ⇒ 落到新 key（深链不断）', () => {
+    const icon = HUB_NAV[0].icon
+    const afterMigration: HubNavItem[] = [
+      { key: 'prompt-lab', label: '提示词实验室', icon },
+      {
+        key: 'memory', label: '记忆管理', icon,
+        children: [
+          { key: 'memory/knowledge', label: '知识库系统', icon },
+          { key: 'memory/experience', label: '经验库', icon },
+        ],
+      },
+      { key: 'components/plugins', label: '插件与扩展', icon },
+    ]
+    expect(resolveNavKey('persona/personality', afterMigration)).toBe('prompt-lab')
+    expect(resolveNavKey('experience', afterMigration)).toBe('memory/experience')
+    expect(resolveNavKey('extensions', afterMigration)).toBe('components/plugins')
+    // 新 key 本身在树里 ⇒ 原样
+    expect(resolveNavKey('memory/experience', afterMigration)).toBe('memory/experience')
+  })
+
+  it('新旧都不在树里 ⇒ 空串（拒绝非法 key 的语义不变）', () => {
+    expect(resolveNavKey('not-a-real-panel')).toBe('')
+    const onlySession: HubNavItem[] = [HUB_NAV[0]]
+    expect(resolveNavKey('experience', onlySession)).toBe('')
+    expect(navKeyFromSearch('?panel=not-a-real-panel')).toBe('')
+    expect(navKeyFromSearch('?panel=')).toBe('')
+    expect(navKeyFromSearch('?panel=persona/nope')).toBe('')
   })
 })
