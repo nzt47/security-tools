@@ -274,17 +274,64 @@ export function filterNav(items: HubNavItem[], query: string): HubNavItem[] {
 /** 深链参数名：`#/workbench?panel=governance/approvals` */
 export const NAV_PANEL_PARAM = 'panel'
 
+// ════════════════════════════════════════════════════════════
+//  旧深链兼容层（2026-10-11 UI 信息架构整合 · 阶段 0）
+// ════════════════════════════════════════════════════════════
+
+/**
+ * 旧深链 key → 新 key 映射表。
+ *
+ * 【为什么需要】深链 `?panel=<key>` 是**外部契约**：收藏、文档、他人链接都按旧 key
+ * 写死。信息架构调整（合并/移动/删除导航项）后，这些链接会指向树上不存在的 key，
+ * 被 navKeyFromSearch 拒绝后落回默认页 —— 人看到的是「工作台坏了」，而不是「链接过时」。
+ *
+ * 依据：docs/proposals/ui_information_architecture_review_20261011.md §6「阶段 0」。
+ */
+export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freeze({
+  // 人格配置并入提示词实验室（阶段 1.1）
+  'persona/personality': 'prompt-lab',
+  // 经验库移入记忆管理（阶段 1.3）
+  'experience': 'memory/experience',
+  // 扩展中心并入系统组件 · 插件管理（阶段 1.2）
+  'extensions': 'components/plugins',
+})
+
+/** key 是否存在于给定导航树（items 可注入，便于测试「迁移后」的树） */
+export function isNavKey(key: string, items: HubNavItem[] = HUB_NAV): boolean {
+  return flattenNav(items).some((it) => it.key === key)
+}
+
+/**
+ * 把深链 key 规范化成导航树里**真实存在**的 key。
+ *
+ * 语义（三条，缺一不可）：
+ *   1. key 本身在树里 ⇒ 原样返回。迁移尚未落地时旧 key 仍在，行为与从前完全一致
+ *      （不会把旧入口提前指向还没做好的新页，例如阶段 1.3 之前 memory/experience
+ *      还不存在，此时 `?panel=experience` 必须继续打开顶层经验库）；
+ *   2. key 已不在树里、但命中 LEGACY_NAV_KEY_MAP 且新 key 存在 ⇒ 落到新 key（兼容生效）；
+ *   3. 两者都不在树里 ⇒ 空串（navKeyFromSearch 继续拒绝非法/拼错 key，不渲染空白页）。
+ */
+export function resolveNavKey(key: string, items: HubNavItem[] = HUB_NAV): string {
+  if (!key) return ''
+  if (isNavKey(key, items)) return key
+  const mapped = LEGACY_NAV_KEY_MAP[key]
+  return mapped && isNavKey(mapped, items) ? mapped : ''
+}
+
 /**
  * 从 URL search 取导航 key；**不合法（不在导航树里）一律返回空串**
  *
  * 【为什么必须校验】地址栏是可以手改的。若不校验，一个拼错的 `?panel=` 会把
  * activeKey 设成一个不存在的 key ⇒ ContentPanel 渲染兜底空白页，人看到的是
  * "工作台坏了"，而不是"链接写错了"。
+ *
+ * 【与兼容层的关系】先经 resolveNavKey 做旧 key → 新 key 归一，再保持「非法 key
+ * 返回空串」语义不变（见 LEGACY_NAV_KEY_MAP / resolveNavKey）。
  */
 export function navKeyFromSearch(search: string): string {
   try {
     const key = new URLSearchParams(search).get(NAV_PANEL_PARAM) ?? ''
-    return key && findNavItem(key) ? key : ''
+    return resolveNavKey(key)
   } catch {
     return ''
   }
