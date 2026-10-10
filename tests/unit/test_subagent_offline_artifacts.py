@@ -185,15 +185,22 @@ class TestA3Entries:
         wh = dest / "wheelhouse"
         wh.mkdir(parents=True, exist_ok=True)
         (wh / "numpy-1.0.0-py3-none-any.whl").write_bytes(b"dummy")
+        packs = tmp_path / "packs"   # 模拟 CP_SUBAGENT_OFFLINE_PACK_DIR
         proc = subprocess.run(
             [sys.executable, str(_REPO_ROOT / "scripts" / "build_offline_pack.py"),
-             "--bundle", str(bundle_path), "--dest", str(dest), "--skip-download"],
+             "--bundle", str(bundle_path), "--dest", str(dest), "--skip-download",
+             "--pack-dir", str(packs)],
             capture_output=True, text=True, timeout=180)
         assert proc.returncode == 0, proc.stderr[-1500:]
         out = json.loads((dest / "bundle.json").read_text(encoding="utf-8"))
         assert out["environment"]["offline_ready"] is True
         assert out["environment"]["artifacts"]["mode"] == dep.ARTIFACTS_MODE_WHEELHOUSE
         assert (tmp_path / "out_pack.tar.gz").is_file()
+        # 按分身名交付到下载目录 ⇒ 可被 offline_pack.resolve_pack 直接定位（API 下载闭环）
+        from agent.subagent.offline_pack import resolve_pack
+        served = resolve_pack("sa-offline", pack_dir=str(packs))
+        assert served.endswith("sa-offline.tar.gz")
+        assert (packs / "sa-offline.tar.gz").is_file()
 
     def test_trim_丢三类且同步置假(self, tmp_path):
         art = dep.scan_wheelhouse(str(_wheelhouse(tmp_path, ["numpy"])))

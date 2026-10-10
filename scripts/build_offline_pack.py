@@ -48,6 +48,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-download", action="store_true",
                         help="跳过 pip download，只扫描已有 wheelhouse")
     parser.add_argument("--no-tar", action="store_true", help="不生成 tar.gz")
+    parser.add_argument("--pack-dir", default="",
+                        help="把成品复制到该目录的 <分身名>.tar.gz（供 API 下载；"
+                             "对应 CP_SUBAGENT_OFFLINE_PACK_DIR）")
     return parser
 
 
@@ -135,6 +138,21 @@ def main(argv=None) -> int:
     if not args.no_tar:
         tar_out = _make_tar(args.dest, os.path.normpath(args.dest) + ".tar.gz")
         print("[offline-pack] 已打包: %s" % tar_out)
+        if args.pack_dir:
+            # 按分身名交付到下载目录（名字非法即拒绝，不替调用方"清洗"成别的名字）
+            import shutil
+
+            from agent.subagent.offline_pack import safe_pack_name
+            who = str((packed.get("identity") or {}).get("name") or "").strip()
+            safe = safe_pack_name(who)
+            if not safe:
+                print("identity.name 非法，无法按名交付（--pack-dir 跳过）: %r" % who,
+                      file=sys.stderr)
+                return 5
+            os.makedirs(args.pack_dir, exist_ok=True)
+            served = os.path.join(args.pack_dir, safe + ".tar.gz")
+            shutil.copy2(tar_out, served)
+            print("[offline-pack] 已交付到下载目录: %s" % served)
     return 0
 
 

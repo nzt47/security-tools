@@ -18,7 +18,7 @@ import time
 import uuid
 from typing import Any, Dict, Sequence
 
-from flask import request, jsonify
+from flask import request, jsonify, send_file
 from agent.server_auth import require_token, log_request
 from agent.server_routes.tracing_decorator import trace_route
 
@@ -29,6 +29,8 @@ from agent.subagent.delegation_history import delegation_history
 from agent.subagent.task_board import task_board
 # S5 通信 · 静态对端：读面用的纯逻辑表（只读环境变量；不做任何服务发现/探测）
 from agent.subagent.peers import read_snapshot
+# S5 portability · 离线包定位（纯逻辑；路由只回文件，判定/错误码在模块内）
+from agent.subagent.offline_pack import OfflinePackError, resolve_pack
 
 # 二次派发轮次机制（P4/P5 通信）：请求里的 previous_delegation_id 转成第二轮上下文。
 # RoundError 是 fail-closed 判定结果（调用方转 400）——纯 stdlib 模块，导入零成本。
@@ -680,6 +682,28 @@ def register_routes(app, state):
             logger.exception("[SubagentAPI] bundle 导出失败: %s", e)
             return jsonify({"ok": False, "error_code": "E_BUNDLE_EXPORT_FAILED",
                             "error": str(e)}), 500
+
+    @app.route("/api/subagent/<name>/offline_pack")
+    @trace_route("Subagent")
+    @require_token
+    @log_request(show_response=False)
+    def api_subagent_offline_pack(name):
+        """下载**预构建**的离线包（``<name>.tar.gz``）—— 把"可带走"交付到产品面
+
+        【数据来源】``CP_SUBAGENT_OFFLINE_PACK_DIR`` 指向运维用
+        ``scripts/build_offline_pack.py --pack-dir`` 预构建的目录。**不在请求里构建**
+        （pip 下载是联网长任务，不该挂在 HTTP 请求上）。
+        【fail-closed】目录未配置 / 名字非法 / 包未构建 ⇒ 404 + 稳定 error_code，
+        绝不回空文件、绝不回落到别的文件；定位口径在 agent/subagent/offline_pack.py。
+        """
+        try:
+            path = resolve_pack(name)
+        except OfflinePackError as e:
+            logger.info("[SubagentAPI] 离线包不可用 name=%s code=%s", name, e.code)
+            return jsonify({"ok": False, "error_code": e.code, "error": str(e)}), 404
+        return send_file(path, as_attachment=True,
+                         download_name="%s-offline-pack.tar.gz" % name,
+                         mimetype="application/gzip")
 
     @app.route("/api/subagent/import", methods=["POST"])
     @trace_route("Subagent")
