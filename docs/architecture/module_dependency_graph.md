@@ -591,6 +591,7 @@ flowchart LR
         agent_subagent_callback_channel["agent.subagent.callback_channel"]:::crosslayer
         agent_subagent_capabilities["agent.subagent.capabilities"]:::crosslayer
         agent_subagent_channel["agent.subagent.channel"]:::crosslayer
+        agent_subagent_cognitive_loop["agent.subagent.cognitive_loop"]
         agent_subagent_collection["agent.subagent.collection"]
         agent_subagent_container["agent.subagent.container"]:::crosslayer
         agent_subagent_container_backend["agent.subagent.container_backend"]
@@ -2287,6 +2288,7 @@ flowchart LR
     agent_subagent_bundle --> agent_subagent_container_backend
     agent_subagent_callback_channel --> agent_subagent_credentials
     agent_subagent_callback_channel --> agent_subagent_delegation_history
+    agent_subagent_cognitive_loop --> agent_subagent_channel
     agent_subagent_collection -.-> agent_security_actor_matrix
     agent_subagent_collection -.-> agent_cognitive_reflection
     agent_subagent_container --> agent_subagent_sandbox
@@ -2315,6 +2317,7 @@ flowchart LR
     agent_subagent_executor --> agent_subagent_scoped_memory_gate
     agent_subagent_executor --> agent_subagent_toolset
     agent_subagent_executor --> agent_subagent_local_inference
+    agent_subagent_executor --> agent_subagent_cognitive_loop
     agent_subagent_executor -.-> agent_memory_scoped_store
     agent_subagent_executor --> agent_subagent_callback_channel
     agent_subagent_executor --> agent_subagent_local_inference
@@ -2661,9 +2664,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 661
-- 模块节点数: 592
-- 依赖边数: 1949
+- 扫描文件数: 662
+- 模块节点数: 593
+- 依赖边数: 1951
 - 跨层调用数: 1233
 - 违规调用数: 0
 - 动态 import 数: 1
