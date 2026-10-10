@@ -543,6 +543,24 @@ class TestSubprocessExecutorOptionalPath:
         assert "CP_S404_MARKER" not in captured["env"]
         assert captured["env"] == {"EXTRA": "1"}
 
+    def test_显式_utf8_解码(self):
+        captured = {}
+
+        class FakeProc:
+            returncode = 0
+            stdout = '{"a": 1}'
+            stderr = ""
+
+        def fake_run(argv, **kwargs):
+            captured.update(kwargs)
+            return FakeProc()
+
+        executor = SubprocessChannelExecutor(popen=fake_run)
+        executor(ChannelInvocation(argv=("cli",), task_file="tf.json"))
+        assert captured.get("encoding") == "utf-8", (
+            "Windows(GBK) 下不显式 utf-8 会在读取线程抛 UnicodeDecodeError、stdout 变空")
+        assert captured.get("errors") == "replace"
+
     def test_timeout_expired_maps_to_timed_out(self):
         import subprocess as _sp
 
