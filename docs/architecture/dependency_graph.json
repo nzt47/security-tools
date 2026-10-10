@@ -4006,7 +4006,7 @@
       "name": "local_inference",
       "layer": "subagent",
       "file_path": "",
-      "in_degree": 5,
+      "in_degree": 6,
       "out_degree": 1
     },
     {
@@ -4448,6 +4448,14 @@
       "file_path": "agent/subagent/observability.py",
       "in_degree": 0,
       "out_degree": 2
+    },
+    {
+      "path": "agent.subagent.peer_local_handler",
+      "name": "peer_local_handler",
+      "layer": "subagent",
+      "file_path": "agent/subagent/peer_local_handler.py",
+      "in_degree": 0,
+      "out_degree": 1
     },
     {
       "path": "agent.subagent.summarizer",
@@ -26091,6 +26099,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.subagent.peer_local_handler",
+      "target": "agent.subagent.local_inference",
+      "source_layer": "subagent",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 60,
+      "source_file": "agent/subagent/peer_local_handler.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.subagent.peers",
       "target": "agent.subagent.callback_channel",
       "source_layer": "subagent",
@@ -30057,9 +30078,9 @@
     }
   ],
   "stats": {
-    "total_files": 660,
-    "total_nodes": 591,
-    "total_edges": 1948,
+    "total_files": 661,
+    "total_nodes": 592,
+    "total_edges": 1949,
     "cross_layer_edges": 1233,
     "violation_edges": 0,
     "dynamic_edges": 1,
@@ -30088,7 +30109,7 @@
       "digestion": 18,
       "workflow_learning": 9,
       "process_distill": 9,
-      "subagent": 31,
+      "subagent": 32,
       "self_healing": 6,
       "model_router": 4,
       "extensions": 15,

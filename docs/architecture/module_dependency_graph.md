@@ -607,6 +607,7 @@ flowchart LR
         agent_subagent_memory_quota["agent.subagent.memory_quota"]
         agent_subagent_observability["agent.subagent.observability"]
         agent_subagent_offline_pack["agent.subagent.offline_pack"]:::crosslayer
+        agent_subagent_peer_local_handler["agent.subagent.peer_local_handler"]
         agent_subagent_peers["agent.subagent.peers"]:::crosslayer
         agent_subagent_role_templates["agent.subagent.role_templates"]:::crosslayer
         agent_subagent_rounds["agent.subagent.rounds"]:::crosslayer
@@ -2346,6 +2347,7 @@ flowchart LR
     agent_subagent_memory_quota -.-> agent_memory_quota
     agent_subagent_observability -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_monitoring_business_metrics
+    agent_subagent_peer_local_handler --> agent_subagent_local_inference
     agent_subagent_peers --> agent_subagent_callback_channel
     agent_subagent_peers -.-> agent_task_scheduler
     agent_subagent_role_templates -.-> agent_prompt_manager_roles
@@ -2659,9 +2661,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 660
-- 模块节点数: 591
-- 依赖边数: 1948
+- 扫描文件数: 661
+- 模块节点数: 592
+- 依赖边数: 1949
 - 跨层调用数: 1233
 - 违规调用数: 0
 - 动态 import 数: 1
