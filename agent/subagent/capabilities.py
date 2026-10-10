@@ -152,11 +152,19 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         next_stage=""),
     SovereigntyFace(
         key="cognitive_loop", layer="brain", label="认知闭环（规划/反思/学习）",
-        question="它会不会自我纠错、越用越聪明？", state=PARTIAL,
-        evidence="云枢复评（TriadCollector + CloudReviewer）对单次委派做回收三件套校验",
-        evidence_files=("agent/subagent/collection.py",),
-        gap="分身侧无独立的规划/反思/学习闭环；fan_out 只有一次性并行派发",
-        next_stage="S4"),
+        question="它会不会自我纠错、越用越聪明？", state=OWNED,
+        evidence="分身侧有界环 agent/subagent/cognitive_loop.py（opt-in，包在**通道咽喉** ⇒ "
+                 "四档后端同时获得）：plan（LLM 出步骤写进 task_file.plan）→ act（原通道不变）→ "
+                 "reflect（LLM 自评 verdict=pass|revise）→ revise（注入 task_file.self_review 重跑；"
+                 "第二轮更差/超时则**保留第一轮**）；学习 = 同 workspace 教训流水"
+                 "（cognitive_lessons.jsonl：规划前回读最近 5 条、revise 后落盘）；"
+                 "任一步失败 ⇒ 退回原产出 + degraded 审计（绝不拖死正常委派）；"
+                 "另有云枢复评（TriadCollector + CloudReviewer）对单次委派做回收三件套校验",
+        evidence_files=("agent/subagent/cognitive_loop.py", "agent/subagent/collection.py",
+                        "agent/subagent/executor.py"),
+        gap="环**默认关闭**（CP_SUBAGENT_COGNITIVE_LOOP=1 开启；未开=逐字旧行为，且开启会增加"
+            "母体侧 LLM 调用）；学习沉淀限于**同 workspace** 的教训流水，跨 workspace/跨实例共享未做",
+        next_stage=""),
     SovereigntyFace(
         key="autonomy", layer="brain", label="自主权分级",
         question="它能自己决定到什么程度？", state=OWNED,

@@ -2164,6 +2164,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_SUBAGENT_OFFLINE_PACK_DIR", CAT_EXTERNAL, "",
        "分身子代理离线包（<name>.tar.gz）所在目录；空=不提供下载（只读）",
        owner="agent/subagent/offline_pack.py"),
+    # 【S4 cognitive_loop · 分身侧规划/反思/修订环（2026-10-10）】默认关（"0"）；开启后
+    # 执行器在**通道咽喉**包一层有界环（plan→act→reflect→revise），四档后端同时受益。
+    # 只读开关：开启会增加母体侧 LLM 调用（成本），不改变任何密钥/暴露面。
+    _c("CP_SUBAGENT_COGNITIVE_LOOP", CAT_ORCHESTRATION, "0",
+       "子代理认知闭环开关（1/true/yes/on 开启；默认关=逐字旧行为）；开启会增加母体侧 LLM 调用（只读）",
+       owner="agent/subagent/cognitive_loop.py"),
     _b("CP_MCP_SERVER_TOOLS", CAT_EXTERNAL, "",
        "MCP 服务对外暴露的工具白名单（逗号分隔；未设则用内置默认集）；"
        "放宽即扩大对外暴露面（与「关闭即降低防护」同性质，故取 B）；"

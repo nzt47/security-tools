@@ -474,6 +474,12 @@ class DelegationExecutor:
         self._credentials = credential_manager or TemporaryCredentialManager()
         self._trace = trace
         self._audit = audit
+        # 认知闭环（opt-in，默认关）：包在**通道咽喉** ⇒ 四档后端同时获得 规划/反思/修订；
+        # 未开启时逐字旧行为（`ReflectiveChannelExecutor` 只在 enabled 时构造）。
+        from agent.subagent.cognitive_loop import (ReflectiveChannelExecutor,
+                                                   cognitive_loop_enabled)
+        if cognitive_loop_enabled():
+            self._channel = ReflectiveChannelExecutor(self._channel, llm, audit=audit)
         self._collector = collector or TriadCollector(reviewer=reviewer)
         self._ledger = cost_ledger or CostLedger(audit=audit)
         self._callback_dispatcher = callback_dispatcher
