@@ -221,12 +221,18 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         evidence="channel.py：内部 LLM（同进程）+ 外部 agent CLI（subprocess）+ 本地推理（local，见 local_inference.py）+ 容器（container，见 container_backend.py）四档；"
                  "协议同为 task_file → JSON Lines；bundle 的 runtime.backend 经 resolve_backend 与 SubagentConfig.execution_backend 映射（未知/不可用 fail-closed）；"
                  "container 已有镜像内可执行对端（scripts/subagent_peer.py，§3.10 协议：离线回执 + --handler 注入镜内执行体），"
-                 "task_file 只读挂 /task 与可写 tmpfs /work 分离（同目标会被 tmpfs 盖住，实测真跑必红）",
+                 "task_file 只读挂 /task 与可写 tmpfs /work 分离（同目标会被 tmpfs 盖住，实测真跑必红）；"
+                 "镜内真推理参考执行体 agent/subagent/peer_local_handler.py（--handler 调 local 后端，"
+                 "失败即非零退出、绝不假成功）",
         evidence_files=("agent/subagent/channel.py", "agent/subagent/local_inference.py",
                         "agent/subagent/container_backend.py",
                         "agent/subagent/container.py", "agent/subagent/bundle.py",
-                        "scripts/subagent_peer.py", "docker/subagent-peer/Dockerfile"),
-        gap="container 已可协议真跑（镜内对端 + 挂载分离实测绿灯），但镜内**真实推理**仍需镜像自带 local 后端与模型（本轮不做）；装对端镜像后 subprocess 档需配 CP_SUBAGENT_AGENT_CLI（当前未配置）",
+                        "scripts/subagent_peer.py", "agent/subagent/peer_local_handler.py",
+                        "docker/subagent-peer/Dockerfile",
+                        "docker/subagent-peer/Dockerfile.local"),
+        gap="container 协议真跑与镜内**真推理处理器**均已接线（peer_local_handler + Dockerfile.local），"
+            "但真实镜内推理 E2E 需镜像自带 Ollama+模型 —— 本仓不预置、本环境无 Ollama，"
+            "故该面仍如实保持 partial；subprocess 档需配 CP_SUBAGENT_AGENT_CLI（当前未配置）",
         next_stage="S5"),
     SovereigntyFace(
         key="lifecycle", layer="body", label="生命周期",

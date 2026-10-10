@@ -31,3 +31,17 @@
 - 未分离挂载点时（bind 与 tmpfs 同目标 `/work`）：`docker run … cat /work/task.json`
   ⇒ `No such file or directory`（tmpfs 盖住只读 bind）—— 已修为 `/task` 只读挂载。
 - 分离后：真实 `docker run` 往返 ⇒ `resolve_channel_output` 得 `tier=jsonl`、`status=offline_receipt`。
+
+## 真推理变体（参考接线，未在本仓 CI 构建）
+
+`Dockerfile.local` 在参考镜像上再装 Ollama + 一个小模型，并用 `entrypoint.local.sh`
+先 `ollama serve` 再 exec 传入 argv；对端改用我们要的执行体：
+
+    docker build -f docker/subagent-peer/Dockerfile.local -t yunshu-subagent-peer-local:1 .
+    CP_SUBAGENT_CONTAINER_IMAGE=yunshu-subagent-peer-local:1
+    CP_SUBAGENT_AGENT_CLI="python /peer/subagent_peer.py --handler agent.subagent.peer_local_handler:run"
+
+`agent/subagent/peer_local_handler.py` 把 task_file 交给 `local` 后端（`core/local_llm` 的
+Ollama）；模型没产出就**抛错**（对端非零退出、母体记 `E_UPSTREAM_FORMAT`），绝不编造 summary。
+本仓**不预置**模型（体积 / 授权原因），因此 `execution_backend` 面在 capabilities 里如实保持
+`partial`，直到目标环境跑通真机 E2E。
