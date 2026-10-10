@@ -701,6 +701,15 @@ def register_routes(app, state):
         except OfflinePackError as e:
             logger.info("[SubagentAPI] 离线包不可用 name=%s code=%s", name, e.code)
             return jsonify({"ok": False, "error_code": e.code, "error": str(e)}), 404
+        # 下载离线包是一次"主权交付"事件，留一条审计（best-effort，失败不阻断下载）
+        try:
+            from agent.audit.facade import get_audit
+            get_audit().record("subagent.offline_pack.download", actor="subagent.api",
+                               subject="subagent:" + str(name),
+                               payload={"result": "served"}, status="ok")
+        except Exception as _audit_e:  # noqa: BLE001 审计 best-effort，绝不阻断交付
+            logger.warning("[SubagentAPI] 离线包下载审计写入失败（不影响下载）: %s",
+                           _audit_e)
         return send_file(path, as_attachment=True,
                          download_name="%s-offline-pack.tar.gz" % name,
                          mimetype="application/gzip")
