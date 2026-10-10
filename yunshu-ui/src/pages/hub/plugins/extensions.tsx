@@ -1,16 +1,17 @@
 /**
- * 扩展中心 —— 「插件自带 UI」与「Schema 驱动配置」的统一呈现（T3.3 + T4.2 落地）。
+ * 插件与扩展 ·「扩展呈现」Tab —— 插件自带 UI 与 Schema 驱动配置的自动呈现
+ * ------------------------------------------------------------------
+ * 【阶段 1.2 迁移】本文件原为 `src/features/extensions/index.tsx`（自动发现项「扩展中心」），
+ * 现并入「插件与扩展」页（`./index.tsx`）成为第 2 个 Tab，并按 features/README.md 的
+ * 既有约定**删掉 manifest**：并入宿主页的子视图不得再自己出现在左侧导航（禁止双入口）。
  *
  * 【它是 SchemaRenderer 的第二个真实消费方】第一个是插件管理页（逐个展开、按需配置）；
- * 本页把「所有声明了 schema 的插件」自动铺开成一屏，是新插件「新增即被发现」的默认落点。
+ * 本 Tab 把「所有声明了 schema 的插件」自动铺开成一屏，是新插件「新增即被发现」的默认落点。
  *
  * 【插件自带 UI 自动挂上】对每个 client_slot.module 调 registerPluginModule，
  * 把模块声明的界面直接渲染出来 —— 插件作者只写 public/plugins/<name>.js + 后端声明。
  *
  * 【失败必须可见】模块加载失败 / 模块没导出 register / schema 提交失败，全部上屏。
- *
- * 【本页自身也是「宿主功能自动发现」的第一个实例】它就是一个 features/<key>/index.tsx，
- * 由 featureRegistry 的 import.meta.glob 自动挂进导航，没有改 hubNav 的任何一行清单。
  */
 import { useCallback, useEffect, useState } from 'react'
 import * as React from 'react'
@@ -19,8 +20,6 @@ import { request } from '@/lib/apiClient'
 import { PLUGINS, PLUGINS_RELOAD } from '@/api/endpoints'
 import { SchemaRenderer } from '@/plugins/schema'
 import { registerPluginModule, type SlotEntry } from '@/plugins/extensionHost'
-
-export const manifest = { key: 'extensions', label: '扩展中心', icon: Puzzle, order: 900 }
 
 interface PluginInfo {
   name: string
@@ -51,7 +50,7 @@ function normalize(raw: unknown): PluginInfo | null {
   }
 }
 
-export default function ExtensionsPage() {
+export default function PluginExtensionsPage() {
   const [plugins, setPlugins] = useState<PluginInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -125,7 +124,7 @@ export default function ExtensionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-semibold text-slate-100">
-            <Puzzle size={18} className="text-cyan-400" /> 扩展中心
+            <Puzzle size={18} className="text-cyan-400" /> 扩展呈现
           </h1>
           <p className="mt-1 text-xs text-slate-500">
             插件自带界面（client_slot）与 Schema 驱动配置的自动呈现；新增插件声明后点「刷新清单」即可出现，无需改前端。

@@ -140,10 +140,10 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
   })
 
   it('分阶段迁移：已移除的旧 key 落到新 key，未迁移的旧 key 仍原样', () => {
-    // 阶段 1.1 已落地：persona/personality 已从树里移除 → 落到提示词实验室
+    // 阶段 1.1 / 1.2 已落地：persona/personality、extensions 已从树里移除 → 落到新 key
     expect(resolveNavKey('persona/personality')).toBe('prompt-lab')
-    // 阶段 1.2 / 1.3 尚未落地：extensions、experience 仍在树里 → 原样返回
-    expect(resolveNavKey('extensions')).toBe('extensions')
+    expect(resolveNavKey('extensions')).toBe('components/plugins')
+    // 阶段 1.3 尚未落地：experience 仍在树里 → 原样返回
     expect(resolveNavKey('experience')).toBe('experience')
     expect(navKeyFromSearch('?panel=experience')).toBe('experience')
   })
