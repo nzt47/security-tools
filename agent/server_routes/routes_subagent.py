@@ -351,6 +351,21 @@ def _memory_fields(data: Dict[str, Any], base: Dict[str, Any] | None = None,
             "memory_quota": (dict(plan.quota) or None)}
 
 
+def _autonomy_field(data: Dict[str, Any], base: Dict[str, Any] | None = None) -> str:
+    """读并**严格校验**自主权档位（创建/热更新共用）
+
+    非法值直接 ValueError（调用方转 400）—— 不做静默回退默认档：那会让使用者
+    以为自己的档位生效了，而实际跑的是别人的默认。"" = 不接入（逐字旧行为）。
+    """
+    from agent.subagent.autonomy_gate import parse_autonomy_level
+
+    raw = data.get("autonomy_level", (base or {}).get("autonomy_level", ""))
+    parsed = parse_autonomy_level(raw)
+    if parsed is None:
+        raise ValueError("autonomy_level 非法（须为 L1–L5 或空串）: %r" % (raw,))
+    return parsed
+
+
 def _subagent_with_memory(row: Dict[str, Any]) -> Dict[str, Any]:
     """给一条分身状态补上 memory 段（兜底没有容器的行；口径仍是同一个 resolve）"""
     out = dict(row or {})
@@ -905,6 +920,8 @@ def register_routes(app, state):
                 # 记忆档位：未知档位 / scoped 缺三要素或 provider / 默认档配非空域或配额
                 # ⇒ E_MEMORY_CONFIG 400（不建容器）
                 **_memory_fields(data, provider=data.get("memory_provider", "")),
+                # 自主权档位（L1–L5）；非法值 ⇒ ValueError ⇒ 400（不建容器）
+                "autonomy_level": _autonomy_field(data),
             }
 
             container = Yunshu.create_subagent(config)

@@ -175,10 +175,18 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="autonomy", layer="brain", label="自主权分级",
         question="它能自己决定到什么程度？", state=OWNED,
-        evidence="agent/autonomy.py L1–L5 + actor_matrix + requires_approval（主智能体侧）",
-        evidence_files=("agent/autonomy.py", "agent/security/actor_matrix.py"),
-        gap="自主权档位尚未进 SubagentConfig（分身目前是受治理的一次性委派）",
-        next_stage="S4"),
+        evidence="档位（L1–L5）**已进 SubagentConfig**：agent/subagent/autonomy_gate.py —— "
+                 "创建/热更新端点严格校验（非法 400，不静默回退默认档）；委派时 config→ctx 桥把"
+                 "生效档位写进 DelegationContext.metadata；执行器包 AutonomyContext，并在工具闸门里"
+                 "把**档位之外类别**的声称调用计入 violations（与“裁剪集外调用”同款，整次委派失败）；"
+                 "主智能体侧另有 agent/autonomy.py 的 L1–L5 策略表 + actor_matrix + requires_approval",
+        evidence_files=("agent/subagent/autonomy_gate.py", "agent/subagent/container.py",
+                        "agent/subagent/executor.py", "agent/subagent/lifecycle.py",
+                        "agent/autonomy.py", "agent/security/actor_matrix.py"),
+        gap="档位→工具类别的分类沿用 agent.autonomy.classify_action 的关键字表"
+            "（工具名显式声明优先），未覆盖自定义工具；per_level_policy 的 config 覆盖尚未"
+            "透传到分身侧（当前只读策略表）",
+        next_stage="S5"),
     # ── 记忆层 ──
     SovereigntyFace(
         key="memory_scope", layer="memory", label="记忆域与档位",

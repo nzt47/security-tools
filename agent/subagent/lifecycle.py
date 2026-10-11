@@ -327,8 +327,10 @@ class SubagentLifecycleManager:
         # 批量路径（delegate_many → executor.execute_many）**不经过容器**，故桥必须在这里
         # 也做一遍；单发路径稍后再经 run_delegation 做（幂等）。memory_mode='none' ⇒ 不碰 ctx。
         from agent.subagent.memory_broker import attach_memory_metadata
+        from agent.subagent.autonomy_gate import attach_autonomy_metadata
 
         attach_memory_metadata(ctx, config)
+        attach_autonomy_metadata(ctx, config)
         return config
 
     def _unavailable_outcome(self, ctx: Any, error: str) -> Any:

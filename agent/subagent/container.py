@@ -81,6 +81,10 @@ class SubagentConfig:
         memory_quota: scoped 档的配额（键：max_entries / max_bytes /
             consecutive_reject_limit）。缺省用 memory_quota.py 的默认值；非 scoped 给值
             会被端点**拒绝**（不静默忽略）。
+        autonomy_level: 自主权档位（L1–L5）；**空 = 不接入**（逐字旧行为，走母体默认）。
+            非空值在创建/热更新端点严格校验（非法 → 400）。生效时执行器包
+            AutonomyContext 并在工具闸门里拒绝档位外的声称调用。见
+            agent/subagent/autonomy_gate.py 与 agent/autonomy.py。
     """
     name: str
     model_id: str
@@ -102,6 +106,8 @@ class SubagentConfig:
     # P5 执行后端（声明式选路）：""=auto（CP_SUBAGENT_CONTAINER_ENABLED 开则 container，
     # 否则 inproc）；"inproc"/"container" 显式覆盖。见 _resolve_execution_channel。
     execution_backend: str = ""
+    # 自主权档位（L1–L5）；""=不接入（逐字旧行为）。接线见 autonomy_gate.py。
+    autonomy_level: str = ""
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -341,8 +347,12 @@ class SubagentContainer:
         # ── config→ctx 桥：把生效记忆档位与域标识写进 ctx.metadata ──
         # memory_mode='none'（默认）⇒ 完全不碰 ctx（行为逐字不变）。
         from agent.subagent.memory_broker import attach_memory_metadata
+        from agent.subagent.autonomy_gate import attach_autonomy_metadata
 
         ctx = attach_memory_metadata(ctx, self.config)
+        # 自主权档位（config→ctx 桥；空档不碰 ctx）。与 memory 桥同处，保证单发/具名
+        # 路径与批量路径看到同一份生效档位。
+        ctx = attach_autonomy_metadata(ctx, self.config)
 
         if executor is None:
             from agent.subagent.callback_channel import default_callback_dispatcher
@@ -507,6 +517,8 @@ class SubagentContainer:
             "name": self.config.name,
             "model_id": self.config.model_id,
             "memory_provider": self.config.memory_provider,
+            # 自主权档位（""=未接入）；界面/审计据此显示
+            "autonomy_level": str(getattr(self.config, "autonomy_level", "") or ""),
             "tool_sources": list(self.config.tool_sources),
             "permissions": list(self.config.permissions),
             "tags": list(self.config.tags),
