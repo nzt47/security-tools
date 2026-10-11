@@ -60,13 +60,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     plugins: [
-      react({
-        babel: {
-          plugins: [
-            'react-dev-locator',
-          ],
-        },
-      }),
+      react(),
       tsconfigPaths(),
       // 管理后台本地接口 Mock（mock 中间件先于 proxy 执行，命中 /auth/login、/user/info
       // 等管理 API 时不再转发后端）：VITE_MOCK_API=true 时启用；false 走真实后端
