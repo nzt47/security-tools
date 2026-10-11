@@ -4399,7 +4399,7 @@
       "layer": "subagent",
       "file_path": "",
       "in_degree": 9,
-      "out_degree": 22
+      "out_degree": 23
     },
     {
       "path": "agent.subagent.toolset",
@@ -4423,7 +4423,15 @@
       "layer": "subagent",
       "file_path": "agent/subagent/cognitive_loop.py",
       "in_degree": 1,
-      "out_degree": 1
+      "out_degree": 2
+    },
+    {
+      "path": "agent.subagent.cognitive_lessons",
+      "name": "cognitive_lessons",
+      "layer": "subagent",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 0
     },
     {
       "path": "agent.subagent.scoped_memory_gate",
@@ -23421,7 +23429,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 2949,
+      "line": 2958,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -23434,7 +23442,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3069,
+      "line": 3078,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -25340,6 +25348,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.subagent.cognitive_loop",
+      "target": "agent.subagent.cognitive_lessons",
+      "source_layer": "subagent",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 32,
+      "source_file": "agent/subagent/cognitive_loop.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.subagent.collection",
       "target": "agent.security.actor_matrix",
       "source_layer": "subagent",
@@ -25735,7 +25756,7 @@
       "source_layer": "subagent",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 1417,
+      "line": 1421,
       "source_file": "agent/subagent/executor.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -25848,11 +25869,24 @@
     },
     {
       "source": "agent.subagent.executor",
+      "target": "agent.subagent.cognitive_lessons",
+      "source_layer": "subagent",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 1128,
+      "source_file": "agent/subagent/executor.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.subagent.executor",
       "target": "agent.subagent.role_templates",
       "source_layer": "subagent",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 1302,
+      "line": 1306,
       "source_file": "agent/subagent/executor.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -30112,9 +30146,9 @@
     }
   ],
   "stats": {
-    "total_files": 662,
-    "total_nodes": 593,
-    "total_edges": 1951,
+    "total_files": 663,
+    "total_nodes": 594,
+    "total_edges": 1953,
     "cross_layer_edges": 1233,
     "violation_edges": 0,
     "dynamic_edges": 1,
@@ -30143,7 +30177,7 @@
       "digestion": 18,
       "workflow_learning": 9,
       "process_distill": 9,
-      "subagent": 33,
+      "subagent": 34,
       "self_healing": 6,
       "model_router": 4,
       "extensions": 15,
