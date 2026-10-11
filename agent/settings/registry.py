@@ -780,7 +780,11 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "白名单 host 投递委派结果（默认关闭 = 只写审计）",
        owner="agent/subagent/callback_channel.py",
        impact="影响面：开启后执行器会把委派结果 POST 到白名单内 host（出站网络动作）"),
-    _c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
+    _c("CP_SUBAGENT_CALLBACK_OUTBOX_DIR", CAT_SELF_HEALING, "",
+   "子代理回调 outbox 目录（离线回退：HTTP 投递失败落本地 jsonl，可用 "
+   "callback_outbox.replay 稍后重放）；空=关闭（逐字旧行为）（只读）",
+   owner="agent/subagent/callback_outbox.py"),
+_c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
        "子代理回调 host 白名单（逗号分隔；精确 host 或 .example.com 后缀；只读）",
        owner="agent/subagent/callback_channel.py"),
     _secret("CP_SUBAGENT_CALLBACK_TOKEN", CAT_SELF_HEALING,
@@ -2188,6 +2192,13 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_SUBAGENT_COGNITIVE_PROMOTION_N", CAT_ORCHESTRATION, "3",
        "共享教训 candidate→shared 所需的独立实例确认数（0=只走人工批准）（只读）",
        owner="agent/subagent/cognitive_lessons.py"),
+    # 【S4 tools_skills · 运行期工具声明（2026-10-12）】插件/MCP 工具在运行期注册但没有
+    # YAML 声明，assembler 对未声明工具刻意 fail-closed。本文件是唯一放行凭据（运维显式声明
+    # plane/effect/risk），第三方不得自证边界；空 = 关闭（逐字旧行为）。
+    _c("CP_SUBAGENT_RUNTIME_TOOL_DECLS", CAT_EXTERNAL, "",
+       "运行期工具声明文件（JSON：{工具名: {plane, effect, risk, tags?, description?}}）；"
+       "只有**已注册且在此显式声明**的插件/MCP 工具才进入分身装配候选；空=关闭（只读）",
+       owner="agent/subagent/runtime_tool_decls.py"),
     _b("CP_MCP_SERVER_TOOLS", CAT_EXTERNAL, "",
        "MCP 服务对外暴露的工具白名单（逗号分隔；未设则用内置默认集）；"
        "放宽即扩大对外暴露面（与「关闭即降低防护」同性质，故取 B）；"

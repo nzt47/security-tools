@@ -540,6 +540,10 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
             "line": line_id,
             "budget_tokens": int(elements["budget_tokens"]),
             "timeout_seconds": float(elements["timeout_seconds"]),
+            # P4/P5 二次派发：逐任务可选的「上一轮 delegation_id」（批量跟单）。
+            # 校验在步骤 5 做；不合格的任务如实失败，不拖垮同批其余任务。
+            "previous_delegation_id": (str(task.get("previous_delegation_id") or "").strip()
+                                       if isinstance(task, Mapping) else ""),
         }
         if not entry["ok"]:
             logger.warning("[fan_out] 第 %d 个任务主线不可用: %s", idx + 1, entry["error"])
@@ -617,6 +621,27 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
                 "fan_out_batch_id": fan_out_batch,
             },
         )
+        # ── 二次派发（批量跟单）：把本轮挂到上一轮同一 task_id 上（母体唯一写板者）──
+        prev_id = str(item.get("previous_delegation_id") or "").strip()
+        if prev_id:
+            try:
+                from agent.subagent.task_board import task_board as _board
+                from agent.subagent.rounds import (link_follow_up, validate_previous)
+
+                previous = _board.find_delegation(prev_id)
+                validate_previous(previous, tenant_id=getattr(ctx, "tenant_id", "default"),
+                                  subject_id=getattr(ctx, "subject_id", ""),
+                                  previous_delegation_id=prev_id)
+                ctx = link_follow_up(ctx, previous)
+            except Exception as e:  # noqa: BLE001 跟单失败只该任务失败，不拖垮整批
+                code = str(getattr(e, "code", "") or "E_ROUND_LINK_FAILED")
+                logger.warning("[fan_out] 第 %d 个任务跟单不合格: %s", idx + 1, e)
+                results[idx] = _task_result(
+                    idx, item["line"], status="failed",
+                    summary=str(e), error_code=code, error=str(e),
+                    budget_tokens=item["budget_tokens"],
+                    timeout_seconds=item["timeout_seconds"])
+                continue
         specs.append((SubagentConfig(name=f"fan-out-{short}-{idx + 1}",
                                      model_id=_model_id(llm)), ctx))
         item_by_index[idx] = item
@@ -625,9 +650,12 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
     # 逐任务工具集工厂：``execute_many`` 的 ``tools`` / ``authorized_capabilities`` 是
     # **整批共用**的单值，逐任务只能靠 ``tools_for`` / ``authorized_for``（与既有的
     # ``credentials_for`` 同款工厂语义）。这里申请与授权同源：都是该任务那条线的装配集。
+    # 只收**真正进了 specs 的**任务：跟单不合格的任务被 skip（results[idx] 已如实标记），
+    # 它的 index 不在 ctx_by_index 里 —— 不过滤就会 KeyError。
     authorized_by_delegation = {
         ctx_by_index[item["index"]].delegation_id: tuple(item["tools_granted"])
         for item in prepared
+        if item["index"] in ctx_by_index
     }
 
     def _tools_for(ctx: Any) -> Tuple[str, ...]:
@@ -790,6 +818,7 @@ def register_all(dl):
                         "type": "object",
                         "properties": {
                             "line": {"type": "string", "description": "主线 id（已有 7 条：assistant / dev / digital_life / engineering / harness / knowledge / recon）。缺省用全局激活主线；无激活主线时只给只读默认集（读文件/检索类，写入与 Shell 不在内）。主线不存在或已停用 ⇒ 该任务失败，不会降级成全量授权"},
+                            "previous_delegation_id": {"type": "string", "description": "可选：上一轮委派的 delegation_id（批量二次派发/校验轮跟单）。给了就要求它真实上过板、同租户同主体、且尚未被取代——不合格会让**该任务失败**（fail-closed，不降级成普通第一轮）；缺省 = 普通第一轮"},
                             "goal": {"type": "string", "description": "①目标：子代理要达成的结果，必须具体可判定（至少 8 字符）。含糊目标会被拒绝——80% 的委派失败源于此"},
                             "constraints": {"type": "array", "items": {"type": "string"}, "description": "②约束：必须遵守的边界条件，字符串列表且**不得为空列表**（无约束的委派等同于未声明边界）。示例：[只读仓库，不得修改任何文件, 不得访问网络]"},
                             "prior_artifacts": {"type": "array", "items": {"type": "string"}, "description": "③已有成果：子代理可直接复用的既有产物引用（文件路径/URL/标识）。确实没有时传空列表 []，**不得省略该字段**"},

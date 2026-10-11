@@ -43,6 +43,10 @@ def build_parser():
     p_prom.add_argument("--approver", default="", help="审批人标识（审计用）")
     p_er = subs.add_parser("erase", help="擦除当前作用域内的一条教训")
     p_er.add_argument("lesson_id")
+    p_ex = subs.add_parser("export", help="导出当前作用域的全部教训（JSON；与 memory_ops 同口径）")
+    p_ex.add_argument("--out", default="", help="写文件路径（缺省打印到 stdout）")
+    p_im = subs.add_parser("import", help="从 JSON 导入教训（域强制为当前作用域）")
+    p_im.add_argument("path", help="JSON 文件路径：数组或 {lessons: [...]}")
     return parser
 
 
@@ -79,6 +83,24 @@ def main(argv=None) -> int:
             n = cl.erase(args.lesson_id, environ=env)
             print("[cognitive-lessons] 已擦除 %d 条" % n)
             return 0 if n else 3
+        if args.cmd == "export":
+            rows = cl.list_lessons(environ=env)
+            text = json.dumps({"count": len(rows), "lessons": rows},
+                              ensure_ascii=False, indent=2)
+            if args.out:
+                with open(args.out, "w", encoding="utf-8") as fh:
+                    fh.write(text)
+                print("[cognitive-lessons] 已导出 %d 条 → %s" % (len(rows), args.out))
+            else:
+                print(text)
+            return 0
+        if args.cmd == "import":
+            with open(args.path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            rows = data.get("lessons") if isinstance(data, dict) else data
+            n = cl.import_lessons(rows, environ=env)
+            print("[cognitive-lessons] 已导入 %d 条" % n)
+            return 0
     return 2
 
 

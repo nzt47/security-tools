@@ -320,3 +320,83 @@ class TestCLI:
         rc = self._cli().main(["--tenant", "t1", "--subject", "s1", "--dir", "", "list"])
         assert rc == 2
 
+class Test导出导入:
+    """三期：教训池与 memory_ops 同口径导出/导入（域强制、幂等合并）"""
+
+    def _cli(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "cl_cli_ops", ROOT / "scripts" / "subagent_cognitive_lessons.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_export_只含当前作用域(self, tmp_path):
+        env = _env(tmp_path)
+        with cl.scope_context("t1", "s1"):
+            cl.record_lesson("sig-a", "for-a", environ=env)
+        with cl.scope_context("t1", "s2"):
+            cl.record_lesson("sig-b", "for-b", environ=env)
+        with cl.scope_context("t1", "s1"):
+            rows = cl.list_lessons(environ=env)
+        assert [r["signature"] for r in rows] == ["sig-a"]
+        assert rows[0]["state"] == cl.STATE_CANDIDATE
+
+    def test_import_强制目标作用域并幂等(self, tmp_path):
+        env = _env(tmp_path)
+        foreign = [{"lesson_id": "deadbeef", "tenant": "other", "subject": "other",
+                    "signature": "sig-x", "advice": "advice-x", "confidence": 0.9,
+                    "confirmed_by": ["inst-a"], "state": cl.STATE_SHARED}]
+        with cl.scope_context("t1", "s1"):
+            assert cl.import_lessons(foreign, environ=env) == 1
+            assert cl.import_lessons(foreign, environ=env) == 1   # 幂等：不新增第二条
+            rows = cl.list_lessons(environ=env)
+        assert len(rows) == 1
+        assert rows[0]["tenant"] == "t1" and rows[0]["subject"] == "s1"
+        assert rows[0]["lesson_id"] != "deadbeef", "外来 lesson_id 不可信，必须重算"
+        assert rows[0]["state"] == cl.STATE_SHARED
+
+    def test_import_跳过空signature或advice(self, tmp_path):
+        env = _env(tmp_path)
+        with cl.scope_context("t1", "s1"):
+            assert cl.import_lessons([{"signature": "", "advice": "x"},
+                                      {"signature": "y", "advice": "   "},
+                                      "not-a-mapping"], environ=env) == 0
+            assert cl.list_lessons(environ=env) == []
+
+    def test_import_合并确认人与状态(self, tmp_path):
+        env = _env_inst(tmp_path, "inst-a", n=3)
+        with cl.scope_context("t1", "s1"):
+            cl.record_lesson("sig", "advice", environ=env)
+        row = _rows(tmp_path)[0]
+        merged = dict(row, confirmed_by=["inst-b"], instance_id="inst-b",
+                      state=cl.STATE_SHARED, confidence=0.9)
+        with cl.scope_context("t1", "s1"):
+            assert cl.import_lessons([merged], environ=env) == 1
+            rows = cl.list_lessons(environ=env)
+        assert rows[0]["confirmed_by"] == ["inst-a", "inst-b"]
+        assert rows[0]["state"] == cl.STATE_SHARED
+        assert rows[0]["confidence"] >= 0.9
+
+    def test_cli_导出导入往返(self, tmp_path):
+        env = _env(tmp_path)
+        with cl.scope_context("t1", "s1"):
+            cl.record_lesson("sig", "advice", environ=env)
+        cli = self._cli()
+        dump = tmp_path / "dump.json"
+        assert cli.main(["--tenant", "t1", "--subject", "s1", "--dir", str(tmp_path),
+                         "export", "--out", str(dump)]) == 0
+        assert dump.exists()
+        other = tmp_path / "other"
+        other.mkdir()
+        assert cli.main(["--tenant", "t2", "--subject", "s2", "--dir", str(other),
+                         "import", str(dump)]) == 0
+        env2 = {"CP_SUBAGENT_COGNITIVE_SHARED_LESSONS": "1",
+                "CP_SUBAGENT_COGNITIVE_LESSONS_DIR": str(other)}
+        with cl.scope_context("t2", "s2"):
+            rows = cl.list_lessons(environ=env2)
+        assert len(rows) == 1
+        assert rows[0]["tenant"] == "t2" and rows[0]["subject"] == "s2"
+
+

@@ -1071,3 +1071,47 @@ class TestPreconditions:
             assert fan_out_tools._max_tasks() == fan_out_tools._DEFAULT_MAX_TASKS
         else:
             assert fan_out_tools._max_tasks() == fan_out_tools._DEFAULT_MAX_TASKS
+
+
+class TestBatchFollowUp:
+    """P4/P5 二次派发：fan_out 逐任务跟单（与单发 HTTP delegate 同口径）"""
+
+    def _record(self, **over):
+        rec = {"delegation_id": "dlg-prev", "task_id": "task-x", "goal": "上一轮目标",
+               "status": "completed", "tenant_id": "default", "subject_id": "", "round": 1}
+        rec.update(over)
+        return rec
+
+    def test_合法跟单_挂到同一task_id_且round为2(self, make_tool, full_pool, monkeypatch):
+        from agent.subagent import rounds
+        from agent.subagent.task_board import task_board as board
+
+        monkeypatch.setattr(board, "find_delegation", lambda _id: self._record())
+        handler, ex, _, _ = make_tool()
+        result = handler(tasks=[_task(previous_delegation_id="dlg-prev")])
+
+        assert result["succeeded"] == 1
+        ctx = ex.calls[0]["delegations"][0]
+        assert rounds.round_of(ctx) == 2
+        assert ctx.task_id == "task-x"
+
+    def test_未知上一轮_该任务失败且不降级(self, make_tool, full_pool, monkeypatch):
+        from agent.subagent.task_board import task_board as board
+
+        monkeypatch.setattr(board, "find_delegation", lambda _id: None)
+        handler, ex, _, _ = make_tool()
+        result = handler(tasks=[_task(previous_delegation_id="dlg-nope")])
+
+        assert result["failed"] == 1
+        assert result["results"][0]["error_code"] == "E_ROUND_PREVIOUS_NOT_FOUND"
+        assert ex.calls == []   # 未降级成普通第一轮：根本没派发
+
+    def test_跨域跟单被拒(self, make_tool, full_pool, monkeypatch):
+        from agent.subagent.task_board import task_board as board
+
+        monkeypatch.setattr(board, "find_delegation",
+                            lambda _id: self._record(tenant_id="other"))
+        handler, ex, _, _ = make_tool()
+        result = handler(tasks=[_task(previous_delegation_id="dlg-prev")])
+        assert result["failed"] == 1
+        assert result["results"][0]["error_code"] == "E_ROUND_SCOPE_MISMATCH"

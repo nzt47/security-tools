@@ -148,7 +148,8 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "bundle.runtime.backend=local + CP_SUBAGENT_LOCAL_ENABLED 显式开启，通道判定（路由/工具）同步认识",
         evidence_files=("agent/subagent/local_inference.py", "core/local_llm.py",
                         "agent/subagent/channel.py", "agent/subagent/bundle.py"),
-        gap="真机 E2E 需本机 Ollama 服务在跑（CI 只做协议级注入验证）；core/local_llm 的 vLLM 分支未实现（本档 fail-closed，不假装支持）",
+        gap="真机 E2E 需本机服务在跑（CI 只做协议级注入验证；Ollama 探活 /api/tags、vLLM 探活 /v1/models）；"
+            "超时仍硬编码（探活 5s / 生成 60s），未登记 agent/settings/registry.py",
         next_stage=""),
     SovereigntyFace(
         key="cognitive_loop", layer="brain", label="认知闭环（规划/反思/学习）",
@@ -170,7 +171,10 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
             "提升闸门（candidate→shared，I2）**二期已落地**：N 个不同 instance_id 独立确认自动提升，"
             "或人工 promote（N=CP_SUBAGENT_COGNITIVE_PROMOTION_N 默认 3，0=只走人工；instance 身份取 "
             "CP_SUBAGENT_INSTANCE_ID，兜底 host+仓库根哈希）；"
-            "剩：与 subagent_memory_ops 导入导出打通 = 三期（跨租户共享明确不做）",
+            "三期已落地：教训池与 memory_ops **同口径导出/导入**"
+            "（scripts/subagent_cognitive_lessons.py 的 export/import）；导入按 "
+            "(tenant, subject, signature, advice) **重算 lesson_id** 并强制目标作用域（外来域标识丢弃），"
+            "幂等合并 confirmed_by/state（跨租户共享明确不做）",
         next_stage=""),
     SovereigntyFace(
         key="autonomy", layer="brain", label="自主权分级",
@@ -221,17 +225,24 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "入口 CLI scripts/subagent_memory_ops.py（export/import/erase/migrate）；"
                  "三者均写审计（subagent.memory.export / erase / import，只记条数）",
         evidence_files=("agent/memory/scoped_store.py", "scripts/subagent_memory_ops.py"),
-        gap="mem0 后端只有 save/search、无列出/删除 ⇒ 导出/擦除 fail-closed"
-            "（E_MEMORY_OP_UNSUPPORTED，不假装支持）；data/ 整目录裁剪与脱敏仍属独立项",
+        gap="mem0 **引擎**路径的 add/search 不接受域过滤参数 ⇒ 其列出/删除仍 fail-closed"
+            "（E_MEMORY_OP_UNSUPPORTED，不假装支持）；**内置降级**（未装 mem0 时的本地 JSON 存储）"
+            "已实现按域列出/删除并做后置域过滤；data/ 整目录裁剪与脱敏仍属独立项",
         next_stage=""),
     # ── 手脚层 ──
     SovereigntyFace(
         key="tools_skills", layer="hands", label="工具 / 技能 / 组件",
         question="能调用什么、谁批准？", state=OWNED,
-        evidence="resolve_subagent_assembly 按主线装配（去 govern、去机制 3 硬禁）+ SkillPack 技能面 + SubAgentToolset 裁剪",
-        evidence_files=("agent/subagent/assembly.py", "agent/lines/skillpack.py"),
-        gap="扩展中心插件（Plugin.client_slot/schema）与 MCP 接入未进分身装配面",
-        next_stage="S5"),
+        evidence="resolve_subagent_assembly 按主线装配（去 govern、去机制 3 硬禁）+ SkillPack 技能面 + "
+                 "SubAgentToolset 裁剪 + **运行期工具声明桥**（插件/MCP 经 "
+                 "CP_SUBAGENT_RUNTIME_TOOL_DECLS 显式声明 plane/effect/risk 后进装配候选）",
+        evidence_files=("agent/subagent/assembly.py", "agent/lines/skillpack.py",
+                        "agent/subagent/runtime_tool_decls.py"),
+        gap="插件/MCP 在**运行期**注册（agent/extensions、agent/tools/mcp_connector）但没有 "
+            "data/tool_definitions/<name>.yaml ⇒ assembler 对未声明工具刻意 fail-closed"
+            "（无法证明安全边界）。已提供**显式声明**通道：只有**已注册且被运维声明**"
+            "（plane/effect/risk 取值合法）的工具才进候选；第三方不得自证边界，未声明行为逐字不变",
+        next_stage=""),
     SovereigntyFace(
         key="permission_sandbox", layer="hands", label="权限 / 沙箱 / 护栏",
         question="做坏事时谁拦？", state=OWNED,
@@ -305,10 +316,13 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                         "agent/subagent/peers.py", "app_server.py",
                         "agent/server_routes/routes_subagent.py"),
         gap="分身间直连 / 服务发现刻意不做（母体中枢），对端只来自静态白名单、不做任何探测；"
-            "HTTP delegate 单发跟单已接线，fan_out 批量第二轮尚未接线；"
+            "**二次派发轮次**单发（HTTP delegate 的 previous_delegation_id）与批量"
+            "（fan_out 逐任务 previous_delegation_id，经 rounds.link_follow_up/validate_previous）"
+            "均已接线（不合格只让该任务失败，fail-closed，不降级成普通第一轮）；"
             "心跳已在启动期接线并持久化健康态（app_server 注册 + 读面共享 live registry + 落盘回填），"
             "但需回调出站配置齐（开关 + host 白名单 + 令牌）才注册；"
-            "离线回退未做（offline_fallback_report 显式登记 status=not_implemented，无 outbox、无重放）",
+            "离线回退**已接线（opt-in）**：HTTP 回调投递失败（传输异常 / 5xx）落本地 outbox "
+            "（CP_SUBAGENT_CALLBACK_OUTBOX_DIR），可用 callback_outbox.replay 稍后重放；未配置该目录即逐字旧行为",
         next_stage=""),
     # ── 治理层 ──
     SovereigntyFace(

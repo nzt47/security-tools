@@ -54,6 +54,7 @@ __all__ = [
     "shared_enabled", "lessons_dir", "promotion_n", "instance_id",
     "scope_context", "current_scope", "current_workspace_id",
     "lesson_id", "record_lesson", "recall_shared", "promote", "erase",
+    "list_lessons", "import_lessons",
 ]
 
 #: 开关与目录（注册于 agent/settings/registry.py）
@@ -362,6 +363,146 @@ def record_lesson(signature: str, advice: str, *, evidence: str = "",
             rows = rows[-POOL_ENTRY_CAP:]
         return lid if _write(path, rows) else None
 
+
+def list_lessons(*, environ: Optional[Mapping[str, str]] = None) -> List[dict]:
+    """列出**当前作用域**的全部教训（含 state/confirmed_by 归一视图；只读）
+
+    与 recall_shared 的区别：recall 带命中匹配与条数/字符双上限（给规划器回读），本函数
+    给导出/运维看**全量**。未开共享池 / 无作用域 / 文件损坏 ⇒ []（不抛）。
+    """
+    scope = current_scope()
+    if scope is None:
+        return []
+    tenant, subject = scope
+    path = _pool_path(environ)
+    if path is None:
+        return []
+    with _write_lock:
+        rows = _load(path)
+    if rows is None:
+        return []
+    out: List[dict] = []
+    for row in rows:
+        if str(row.get("tenant") or "") != tenant:
+            continue
+        if str(row.get("subject") or "") != subject:
+            continue
+        view = dict(row)
+        view.update(_normalize_row(row))
+        out.append(view)
+    return out
+
+
+#: 状态高低次序（合并时取更靠上的一档）
+_STATE_RANK = {STATE_LOCAL: 0, STATE_CANDIDATE: 1, STATE_SHARED: 2}
+
+
+def _higher_state(a: str, b: str) -> str:
+    return a if _STATE_RANK.get(a, 1) >= _STATE_RANK.get(b, 1) else b
+
+
+def _merge_row(old: dict, new: Mapping[str, Any], *, stamp: str) -> None:
+    """把一条外来教训并进已有行（就地，幂等）
+
+    · confirmed_by 取并集（上限 CONFIRMED_BY_CAP），confirmations = 并集大小；
+    · state 取更靠上的一档；confidence 取较大；last_seen_at 取较新。
+    """
+    old_view = _normalize_row(old)
+    new_view = _normalize_row(new)
+    cby = list(dict.fromkeys(list(old_view["confirmed_by"]) + list(new_view["confirmed_by"])))
+    merged_state = _higher_state(old_view["state"], new_view["state"])
+    old.update({
+        "schema_version": SCHEMA_VERSION,
+        "instance_id": old_view["instance_id"] or new_view["instance_id"],
+        "workspace_id": (str(old.get("workspace_id") or "")
+                         or str(new.get("workspace_id") or "")),
+        "confirmed_by": cby[:CONFIRMED_BY_CAP],
+        "confirmations": len(cby[:CONFIRMED_BY_CAP]),
+        "state": merged_state,
+        "confidence": max(float(old.get("confidence") or 0.0),
+                          float(new.get("confidence") or 0.0)),
+        "last_seen_at": (max(str(old.get("last_seen_at") or ""),
+                             str(new.get("last_seen_at") or "")) or stamp),
+    })
+    if merged_state == STATE_SHARED and not old.get("promoted_at"):
+        old["promoted_at"] = str(new.get("promoted_at") or stamp)
+
+
+def import_lessons(rows: Any, *, environ: Optional[Mapping[str, str]] = None,
+                   now: Optional[datetime] = None) -> int:
+    """把外部教训行并回**当前作用域**（域一律以当前作用域为准，外来域标识被丢弃）
+
+    · 只收 Mapping 且 signature/advice 非空；其余跳过（fail-soft，不整批失败）；
+    · **强制覆盖** tenant/subject，并按 (tenant, subject, signature, advice) **重算 lesson_id**
+      —— 外来文件里的 lesson_id 不可信（可能属于别的域或被篡改）；
+    · 同 lesson_id 幂等合并；返回新增+更新条数；池上限 POOL_ENTRY_CAP。
+    """
+    scope = current_scope()
+    if scope is None:
+        return 0
+    tenant, subject = scope
+    path = _pool_path(environ)
+    if path is None:
+        return 0
+    stamp = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat()
+    incoming: List[dict] = []
+    for raw in rows or ():
+        if not isinstance(raw, Mapping):
+            continue
+        sig = str(raw.get("signature") or "").strip()
+        text = str(raw.get("advice") or "").strip()
+        if not sig or not text:
+            continue
+        text = text[:ADVICE_CHAR_CAP]
+        view = _normalize_row(raw)
+        try:
+            ttl = int(raw.get("ttl_days"))
+        except (TypeError, ValueError):
+            ttl = DEFAULT_TTL_DAYS
+        try:
+            conf = max(0.0, min(1.0, float(raw.get("confidence") or 0.0)))
+        except (TypeError, ValueError):
+            conf = 0.0
+        incoming.append({
+            "schema_version": SCHEMA_VERSION,
+            "lesson_id": lesson_id(tenant, subject, sig, text),
+            "tenant": tenant,
+            "subject": subject,
+            "workspace_id": str(raw.get("workspace_id") or ""),
+            "instance_id": view["instance_id"],
+            "signature": sig,
+            "advice": text,
+            "evidence": str(raw.get("evidence") or "")[:200],
+            "confidence": conf,
+            "confirmed_by": list(view["confirmed_by"]),
+            "confirmations": view["confirmations"],
+            "state": view["state"],
+            "created_at": str(raw.get("created_at") or stamp),
+            "last_seen_at": str(raw.get("last_seen_at") or stamp),
+            "ttl_days": ttl,
+            "taint": TAINT,
+        })
+    if not incoming:
+        return 0
+    with _write_lock:
+        existing = _load(path)
+        if existing is None:
+            return 0
+        by_id = {str(r.get("lesson_id") or ""): r for r in existing}
+        changed = 0
+        for row in incoming:
+            old = by_id.get(row["lesson_id"])
+            if old is None:
+                existing.append(row)
+                by_id[row["lesson_id"]] = row
+            else:
+                _merge_row(old, row, stamp=stamp)
+            changed += 1
+        if len(existing) > POOL_ENTRY_CAP:
+            existing = existing[-POOL_ENTRY_CAP:]
+        if not _write(path, existing):
+            return 0
+    return changed
 
 def recall_shared(signature: str = "", *, count: int = RECALL_COUNT_CAP,
                   char_budget: int = RECALL_CHAR_CAP,
