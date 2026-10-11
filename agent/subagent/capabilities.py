@@ -158,12 +158,16 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "reflect（LLM 自评 verdict=pass|revise）→ revise（注入 task_file.self_review 重跑；"
                  "第二轮更差/超时则**保留第一轮**）；学习 = 同 workspace 教训流水"
                  "（cognitive_lessons.jsonl：规划前回读最近 5 条、revise 后落盘）；"
+                 "跨 workspace/跨实例共享（一期，默认关）= 按 (tenant, subject) 隔离的共享 "
+                 "lessons.jsonl（方案 A + 双上限 + erase + taint=upstream），"
+                 "经 ContextVar 由母体 executor 设定作用域；"
                  "任一步失败 ⇒ 退回原产出 + degraded 审计（绝不拖死正常委派）；"
                  "另有云枢复评（TriadCollector + CloudReviewer）对单次委派做回收三件套校验",
-        evidence_files=("agent/subagent/cognitive_loop.py", "agent/subagent/collection.py",
-                        "agent/subagent/executor.py"),
-        gap="环**默认关闭**（CP_SUBAGENT_COGNITIVE_LOOP=1 开启；未开=逐字旧行为，且开启会增加"
-            "母体侧 LLM 调用）；学习沉淀限于**同 workspace** 的教训流水，跨 workspace/跨实例共享未做",
+        evidence_files=("agent/subagent/cognitive_loop.py", "agent/subagent/cognitive_lessons.py",
+                        "agent/subagent/collection.py", "agent/subagent/executor.py"),
+        gap="环**默认关闭**（CP_SUBAGENT_COGNITIVE_LOOP=1；未开=逐字旧行为）；跨 workspace 共享池同样"
+            "**默认关**（CP_SUBAGENT_COGNITIVE_SHARED_LESSONS=1 + CP_SUBAGENT_COGNITIVE_LESSONS_DIR）；"
+            "提升闸门（candidate→shared，I2）与 subagent_memory_ops 导入导出打通 = 二期/三期",
         next_stage=""),
     SovereigntyFace(
         key="autonomy", layer="brain", label="自主权分级",
