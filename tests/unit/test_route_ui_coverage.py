@@ -112,10 +112,27 @@ class Test意图标注:
         m = _mod()
         pending = {e["norm"] for e in m.classify()["entries"] if e["ui_pending"]}
         for route in (
-            "/api/browser/screenshot", "/api/clipboard",
-            "/api/cognitive/status", "/api/config/logs", "/api/dashboard/summary",
+            "/api/browser/screenshot", "/api/browser/close", "/api/clipboard",
+            "/api/cognitive/status", "/api/cognitive/prompt", "/api/cognitive/reject",
+            "/api/cognitive/translate/*",
         ):
             assert route in pending, route + " 应标注为该进 UI 且当前未进"
+
+    def test_已接入的_config_logs_不再是待办(self):
+        """分批接入的回环：接入后 category=ui 且 ui_pending=False。"""
+        m = _mod()
+        entry = {e["norm"]: e for e in m.classify()["entries"]}["/api/config/logs"]
+        assert entry["category"] == "ui"
+        assert entry["ui_pending"] is False
+
+    def test_baseURL_相对字面量被计入_ui(self):
+        """src/api/ 下 request({url: '/dashboard/summary'}) 经 baseURL=/api ⇒ 应算 ui。"""
+        m = _mod()
+        entries = {e["norm"]: e for e in m.classify()["entries"]}
+        entry = entries["/api/dashboard/summary"]
+        assert entry["category"] == "ui"
+        assert entry["ui_refs"], "应记录 src/api 下的引用"
+        assert entry["ui_pending"] is False
 
     def test_标注文件缺失时退化为空而不是抛错(self, tmp_path, monkeypatch):
         m = _mod()

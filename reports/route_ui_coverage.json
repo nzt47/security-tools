@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-10-11T16:52:46",
+  "generated_at": "2026-10-11T19:38:45",
   "totals": {
     "routes": 456,
     "live": 233,
     "dead_copy": 223,
-    "ui": 113,
+    "ui": 128,
     "cli_script": 21,
     "runtime_only": 24,
-    "unreferenced": 298,
+    "unreferenced": 283,
     "live_by_category": {
-      "ui": 47,
+      "ui": 62,
       "cli_script": 8,
       "runtime_only": 22,
-      "unreferenced": 156
+      "unreferenced": 141
     },
     "by_intent": {
       "should_be_in_ui": 9,
@@ -20,10 +20,13 @@
       "unclassified": 220
     }
   },
-  "frontend_endpoints": 115,
+  "frontend_endpoints": 133,
   "frontend_unmatched": [
     "/api/approval",
-    "/api/cp"
+    "/api/assets",
+    "/api/cp",
+    "/api/demo/validate-email",
+    "/api/menu"
   ],
   "intent_file": "config/route_ui_intent.json",
   "pending_ui": [
@@ -117,31 +120,6 @@
       "area": "认知闭环",
       "where": [
         "cognitive/flask_adapter.py:38"
-      ]
-    },
-    {
-      "path": "/api/config/logs",
-      "norm": "/api/config/logs",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "系统管理·日志",
-      "where": [
-        "agent/server_routes/routes_config.py:679",
-        "plugins/admin.py:768"
-      ]
-    },
-    {
-      "path": "/api/dashboard/summary",
-      "norm": "/api/dashboard/summary",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "管理仪表盘",
-      "where": [
-        "plugins/admin_api.py:699"
       ]
     }
   ],
@@ -663,9 +641,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/audit.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:784"
@@ -701,9 +681,11 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/user.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:429"
@@ -719,9 +701,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/user.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:478"
@@ -1181,9 +1165,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_config.py:679",
@@ -1192,7 +1178,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "系统管理·日志",
       "intent_note": "与系统日志同屏",
-      "ui_pending": true
+      "ui_pending": false
     },
     {
       "path": "/api/context/compress",
@@ -1698,9 +1684,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/dashboard.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:699"
@@ -1708,7 +1696,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理仪表盘",
       "intent_note": "",
-      "ui_pending": true
+      "ui_pending": false
     },
     {
       "path": "/api/dashboard/traces",
@@ -2135,9 +2123,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/user.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:714"
@@ -3645,9 +3635,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/menu.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:655"
@@ -3866,9 +3858,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/notification.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:667"
@@ -3884,9 +3878,11 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/notification.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:691"
@@ -3902,9 +3898,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/notification.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:675"
@@ -4287,9 +4285,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/role.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:556"
@@ -4742,9 +4742,11 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/role.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:562"
@@ -4816,9 +4818,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/role.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:547"
@@ -7701,9 +7705,11 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/user.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:507"
@@ -7739,9 +7745,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/user.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:466"
@@ -7760,7 +7768,8 @@
       "category": "ui",
       "live": true,
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/api/user.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -8967,5 +8976,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "ba0a2393df3a4ac5"
+  "content_hash": "e350ba18550ab190"
 }
