@@ -37,6 +37,9 @@ schema:
             type: string
             description: 主线 id（已有 7 条：assistant / dev / digital_life / engineering / harness / knowledge
               / recon）。缺省用全局激活主线；无激活主线时只给只读默认集（读文件/检索类，写入与 Shell 不在内）。主线不存在或已停用 ⇒ 该任务失败，不会降级成全量授权
+          previous_delegation_id:
+            type: string
+            description: 可选：上一轮委派的 delegation_id（批量二次派发/校验轮跟单）。给了就要求它真实上过板、同租户同主体、且尚未被取代——不合格会让**该任务失败**（fail-closed，不降级成普通第一轮）；缺省 = 普通第一轮
           goal:
             type: string
             description: ①目标：子代理要达成的结果，必须具体可判定（至少 8 字符）。含糊目标会被拒绝——80% 的委派失败源于此
