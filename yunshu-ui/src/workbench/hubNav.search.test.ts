@@ -118,8 +118,8 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     const topKeys = HUB_NAV.map((i) => i.key)
 
     expect(topKeys.indexOf('governance')).toBeLessThan(topKeys.indexOf('components'))
-    // 顶层前四项目前为：会话任务 → 提示词实验室 → 技能中心 → 工具调用（既有口径，未动）
-    expect(topKeys.slice(0, 4)).toEqual(['session', 'prompt-lab', 'skills-center', 'tools'])
+    // 阶段 3：顶层收敛为 8 桶，前四桶固定（治理面板仍在第二、三桶之间，一屏可达）
+    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'panorama', 'governance', 'memory'])
   })
 
   it('「审批收件箱」仍是治理面板下的子项（入口没被搬走）', () => {
@@ -141,17 +141,21 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
 })
 
 describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
-  it('映射表覆盖方案 §6 列出的三组旧 key → 新 key', () => {
+  it('映射表覆盖方案 §6 三组旧 key + 阶段 3 的 engine → engine/heartbeat', () => {
     expect(LEGACY_NAV_KEY_MAP['persona/personality']).toBe('prompt-lab')
     expect(LEGACY_NAV_KEY_MAP['experience']).toBe('memory/experience')
     expect(LEGACY_NAV_KEY_MAP['extensions']).toBe('components/plugins')
+    expect(LEGACY_NAV_KEY_MAP['engine']).toBe('engine/heartbeat')
   })
 
-  it('迁移全部落地：三组旧 key 全部落到新 key（深链不断）', () => {
+  it('迁移已落地 ⇒ 全部旧 key 落到新 key（深链不断）', () => {
     expect(resolveNavKey('persona/personality')).toBe('prompt-lab')
-    expect(resolveNavKey('extensions')).toBe('components/plugins')
     expect(resolveNavKey('experience')).toBe('memory/experience')
+    expect(resolveNavKey('extensions')).toBe('components/plugins')
+    expect(resolveNavKey('engine')).toBe('engine/heartbeat')
     expect(navKeyFromSearch('?panel=experience')).toBe('memory/experience')
+    expect(navKeyFromSearch('?panel=persona/personality')).toBe('prompt-lab')
+    expect(navKeyFromSearch('?panel=extensions')).toBe('components/plugins')
   })
 
   it('旧 key 已移除但新 key 在树里 ⇒ 落到新 key（深链不断）', () => {
