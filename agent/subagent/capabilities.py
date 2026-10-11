@@ -171,7 +171,10 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
             "提升闸门（candidate→shared，I2）**二期已落地**：N 个不同 instance_id 独立确认自动提升，"
             "或人工 promote（N=CP_SUBAGENT_COGNITIVE_PROMOTION_N 默认 3，0=只走人工；instance 身份取 "
             "CP_SUBAGENT_INSTANCE_ID，兜底 host+仓库根哈希）；"
-            "剩：与 subagent_memory_ops 导入导出打通 = 三期（跨租户共享明确不做）",
+            "三期已落地：教训池与 memory_ops **同口径导出/导入**"
+            "（scripts/subagent_cognitive_lessons.py 的 export/import）；导入按 "
+            "(tenant, subject, signature, advice) **重算 lesson_id** 并强制目标作用域（外来域标识丢弃），"
+            "幂等合并 confirmed_by/state（跨租户共享明确不做）",
         next_stage=""),
     SovereigntyFace(
         key="autonomy", layer="brain", label="自主权分级",
@@ -230,10 +233,16 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="tools_skills", layer="hands", label="工具 / 技能 / 组件",
         question="能调用什么、谁批准？", state=OWNED,
-        evidence="resolve_subagent_assembly 按主线装配（去 govern、去机制 3 硬禁）+ SkillPack 技能面 + SubAgentToolset 裁剪",
-        evidence_files=("agent/subagent/assembly.py", "agent/lines/skillpack.py"),
-        gap="扩展中心插件（Plugin.client_slot/schema）与 MCP 接入未进分身装配面",
-        next_stage="S5"),
+        evidence="resolve_subagent_assembly 按主线装配（去 govern、去机制 3 硬禁）+ SkillPack 技能面 + "
+                 "SubAgentToolset 裁剪 + **运行期工具声明桥**（插件/MCP 经 "
+                 "CP_SUBAGENT_RUNTIME_TOOL_DECLS 显式声明 plane/effect/risk 后进装配候选）",
+        evidence_files=("agent/subagent/assembly.py", "agent/lines/skillpack.py",
+                        "agent/subagent/runtime_tool_decls.py"),
+        gap="插件/MCP 在**运行期**注册（agent/extensions、agent/tools/mcp_connector）但没有 "
+            "data/tool_definitions/<name>.yaml ⇒ assembler 对未声明工具刻意 fail-closed"
+            "（无法证明安全边界）。已提供**显式声明**通道：只有**已注册且被运维声明**"
+            "（plane/effect/risk 取值合法）的工具才进候选；第三方不得自证边界，未声明行为逐字不变",
+        next_stage=""),
     SovereigntyFace(
         key="permission_sandbox", layer="hands", label="权限 / 沙箱 / 护栏",
         question="做坏事时谁拦？", state=OWNED,

@@ -2192,6 +2192,13 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_SUBAGENT_COGNITIVE_PROMOTION_N", CAT_ORCHESTRATION, "3",
        "共享教训 candidate→shared 所需的独立实例确认数（0=只走人工批准）（只读）",
        owner="agent/subagent/cognitive_lessons.py"),
+    # 【S4 tools_skills · 运行期工具声明（2026-10-12）】插件/MCP 工具在运行期注册但没有
+    # YAML 声明，assembler 对未声明工具刻意 fail-closed。本文件是唯一放行凭据（运维显式声明
+    # plane/effect/risk），第三方不得自证边界；空 = 关闭（逐字旧行为）。
+    _c("CP_SUBAGENT_RUNTIME_TOOL_DECLS", CAT_EXTERNAL, "",
+       "运行期工具声明文件（JSON：{工具名: {plane, effect, risk, tags?, description?}}）；"
+       "只有**已注册且在此显式声明**的插件/MCP 工具才进入分身装配候选；空=关闭（只读）",
+       owner="agent/subagent/runtime_tool_decls.py"),
     _b("CP_MCP_SERVER_TOOLS", CAT_EXTERNAL, "",
        "MCP 服务对外暴露的工具白名单（逗号分隔；未设则用内置默认集）；"
        "放宽即扩大对外暴露面（与「关闭即降低防护」同性质，故取 B）；"

@@ -384,6 +384,13 @@ def resolve_subagent_assembly(
             **绝不**回退成全量授权）。
     """
     from agent.lines import assemble, resolve_skill_pack
+    # 【插件/MCP 进装配面】运行期注册的工具默认不在 YAML 清单里 ⇒ assembler 按
+    # fail-closed 打进 denied_unknown。这里**只**并入运维**显式声明**了
+    # plane/effect/risk 的那些（CP_SUBAGENT_RUNTIME_TOOL_DECLS → JSON）；
+    # 第三方插件不得自证边界，未声明者行为逐字不变（仍被拒）。
+    from agent.subagent.runtime_tool_decls import augment_meta
+
+    meta = augment_meta(meta, available)
 
     if not line_id:
         from agent.tools.subagent_tools import _default_subagent_tools
