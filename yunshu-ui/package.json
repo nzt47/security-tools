@@ -112,7 +112,6 @@
     "@vitejs/plugin-react": "^4.4.1",
     "@vitest/coverage-v8": "^2.1.9",
     "autoprefixer": "^10.4.21",
-    "babel-plugin-react-dev-locator": "^1.0.0",
     "electron": "^43.4.0",
     "electron-builder": "^26.15.3",
     "eslint": "^9.25.0",
@@ -127,7 +126,6 @@
     "vite": "^6.3.5",
     "vite-plugin-electron": "^1.1.1",
     "vite-plugin-electron-renderer": "^1.0.0",
-    "vite-plugin-trae-solo-badge": "^1.0.0",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^2.1.9"
   }
