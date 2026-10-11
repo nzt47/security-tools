@@ -112,18 +112,19 @@ class Test意图标注:
         m = _mod()
         pending = {e["norm"] for e in m.classify()["entries"] if e["ui_pending"]}
         for route in (
-            "/api/browser/screenshot", "/api/browser/close", "/api/clipboard",
             "/api/cognitive/status", "/api/cognitive/prompt", "/api/cognitive/reject",
             "/api/cognitive/translate/*",
         ):
             assert route in pending, route + " 应标注为该进 UI 且当前未进"
 
-    def test_已接入的_config_logs_不再是待办(self):
+    def test_已接入的路由不再是待办(self):
         """分批接入的回环：接入后 category=ui 且 ui_pending=False。"""
         m = _mod()
-        entry = {e["norm"]: e for e in m.classify()["entries"]}["/api/config/logs"]
-        assert entry["category"] == "ui"
-        assert entry["ui_pending"] is False
+        entries = {e["norm"]: e for e in m.classify()["entries"]}
+        for route in ("/api/config/logs", "/api/browser/screenshot",
+                      "/api/browser/close", "/api/clipboard"):
+            assert entries[route]["category"] == "ui", route
+            assert entries[route]["ui_pending"] is False, route
 
     def test_baseURL_相对字面量被计入_ui(self):
         """src/api/ 下 request({url: '/dashboard/summary'}) 经 baseURL=/api ⇒ 应算 ui。"""
