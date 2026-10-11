@@ -23,7 +23,7 @@ export default function MyFeaturePage() {
 | 场景 | 做法 | 是否改前端 |
 |---|---|---|
 | 宿主功能页（本仓自有页面） | 放一个 `src/features/<key>/index.tsx`（带 manifest） | 否（自动发现） |
-| 插件自带 UI / 配置 | 后端 `Plugin.client_slot`（UI）+ `Plugin.schema`（配置） | 否（扩展中心自动呈现） |
+| 插件自带 UI / 配置 | 后端 `Plugin.client_slot`（UI）+ `Plugin.schema`（配置） | 否（「插件与扩展」页的「扩展呈现」Tab 自动呈现） |
 
 > 边界：只发现 `features/<key>/index.tsx` 一层；必须同时导出 `default` 与 `manifest`。
 > 需要导航参数 props 的页面，沿用 `derivePanelParams` 的「key 即参数」约定。
@@ -33,3 +33,7 @@ export default function MyFeaturePage() {
 > 并**删掉 manifest** —— 留着它本机制仍会把它挂成一条顶层导航项，等于同一页面对外开两个入口
 > （本仓明确禁止双入口，回归用例见 `pages/hub/workshop/line-assembly.test.tsx`
 > 「不再导出 manifest」）。判据：这个页面**是否需要自己出现在左侧导航**；不需要就不要 manifest。
+>
+> 【2026-10-11 第二实例】原「扩展中心」(`features/extensions`) 与「插件管理」合并为
+> 「插件与扩展」页 (`pages/hub/plugins/`) 的「扩展呈现」Tab 后，同样删除 manifest；
+> 合并后本机制只剩 `features/route-coverage` 一个实例（守卫见 `featureRegistry.test.ts`）。

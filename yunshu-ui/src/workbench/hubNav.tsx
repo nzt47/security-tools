@@ -55,7 +55,9 @@ const HubAdminLogs = lazy(() => import('@/pages/hub/admin/index').then((m) => ({
 const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 const ModuleListPage = lazy(() => import('@/pages/hub/module-list'))
-const PluginManagePage = lazy(() => import('@/pages/hub/plugin-manage'))
+// 插件与扩展：原「插件管理」与「扩展中心」合并为一个导航项（两 Tab），
+// 见 pages/hub/plugins/index.tsx（extensionHost.registerPluginModule 链路保留）。
+const PluginsPage = lazy(() => import('@/pages/hub/plugins'))
 // 治理面板（v7.2 §7 六面板 + 审计导出）：**工作台内扩展，不建独立 Web App**（UI 五坑④）。
 // 单一组件 + `panel` 参数（同 ContentPanel 的"key 即参数语义"约定，见 derivePanelParams）。
 const GovernancePanels = lazy(() => import('@/pages/hub/governance'))
@@ -165,7 +167,7 @@ export const HUB_NAV: HubNavItem[] = [
     key: 'components', label: '系统组件', icon: Boxes,
     children: [
       { key: 'components/modules', label: '模块列表', icon: Boxes, component: ModuleListPage },
-      { key: 'components/plugins', label: '插件管理', icon: Puzzle, component: PluginManagePage },
+      { key: 'components/plugins', label: '插件与扩展', icon: Puzzle, component: PluginsPage },
     ],
   },
   {
