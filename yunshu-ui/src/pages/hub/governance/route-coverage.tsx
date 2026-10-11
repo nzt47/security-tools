@@ -26,12 +26,19 @@ interface Entry {
   ui_refs: string[]
   non_ui_refs: string[]
   where: string[]
+  /** 人工意图标注：should_be_in_ui / should_not_be_in_ui / unclassified */
+  intent?: string
+  intent_area?: string
+  /** 该进 UI 却没进（产物已按 live + category 判定） */
+  ui_pending?: boolean
 }
 interface Payload {
   generated_at: string
   totals: Record<string, unknown>
   frontend_endpoints: number
   frontend_unmatched: string[]
+  /** 该进 UI 却没进的路由（服务端按意图标注 + 机械分类算出） */
+  pending_ui?: unknown[]
   entries: Entry[]
 }
 
@@ -47,6 +54,16 @@ const CAT_CLASS: Record<string, string> = {
   runtime_only: 'text-amber-400',
   unreferenced: 'text-slate-500',
 }
+const INTENT_LABEL: Record<string, string> = {
+  should_be_in_ui: '该进 UI',
+  should_not_be_in_ui: '不该进',
+  unclassified: '未标注',
+}
+const INTENT_CLASS: Record<string, string> = {
+  should_be_in_ui: 'text-amber-300',
+  should_not_be_in_ui: 'text-slate-500',
+  unclassified: 'text-slate-600',
+}
 
 export default function RouteCoveragePanel() {
   const [data, setData] = useState<Payload | null>(null)
@@ -54,6 +71,7 @@ export default function RouteCoveragePanel() {
   const [error, setError] = useState('')
   const [cat, setCat] = useState<string>('all')
   const [liveOnly, setLiveOnly] = useState(false)
+  const [pendingOnly, setPendingOnly] = useState(false)
   const [q, setQ] = useState('')
 
   const load = useCallback(() => {
@@ -72,9 +90,10 @@ export default function RouteCoveragePanel() {
     return list.filter((e) =>
       (cat === 'all' || e.category === cat)
       && (!liveOnly || e.live)
+      && (!pendingOnly || e.ui_pending)
       && (!needle || e.path.toLowerCase().includes(needle)),
     )
-  }, [data, cat, liveOnly, q])
+  }, [data, cat, liveOnly, pendingOnly, q])
 
   const t = (data?.totals ?? {}) as Record<string, number>
   const liveByCat = (t.live_by_category ?? {}) as Record<string, number>
@@ -99,9 +118,10 @@ export default function RouteCoveragePanel() {
       {error && <div className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-2 text-sm text-red-300">读取失败：{error}</div>}
       {loading && <div className="text-sm text-slate-500">加载中…</div>}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {[
           ['静态路由', t.routes], ['活体', t.live], ['死副本', t.dead_copy], ['前端端点', data?.frontend_endpoints],
+          ['该进却未进', (data?.pending_ui ?? []).length],
         ].map(([label, v]) => (
           <div key={String(label)} className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3">
             <div className="text-xs text-slate-500">{label}</div>
@@ -118,6 +138,10 @@ export default function RouteCoveragePanel() {
             {c !== 'all' && <span className="ml-1 text-slate-500">活体 {liveByCat[c] ?? 0} / 总 {t[c] ?? 0}</span>}
           </button>
         ))}
+        <button onClick={() => setPendingOnly((v) => !v)} data-testid="route-pending-filter"
+          className={'ml-2 rounded-lg border px-3 py-1.5 ' + (pendingOnly ? 'border-amber-700 bg-amber-950/40 text-amber-300' : 'border-slate-700 text-slate-300 hover:bg-slate-800')}>
+          该进却未进 <span className="ml-1 text-slate-500">{(data?.pending_ui ?? []).length}</span>
+        </button>
         <label className="ml-2 flex items-center gap-1 text-slate-300">
           <input type="checkbox" checked={liveOnly} onChange={(e) => setLiveOnly(e.target.checked)} /> 只看活体
         </label>
@@ -135,6 +159,7 @@ export default function RouteCoveragePanel() {
               <th className="px-3 py-2">路径</th>
               <th className="px-3 py-2">方法</th>
               <th className="px-3 py-2">分类</th>
+              <th className="px-3 py-2">意图</th>
               <th className="px-3 py-2">活体</th>
               <th className="px-3 py-2">引用</th>
             </tr>
@@ -145,6 +170,10 @@ export default function RouteCoveragePanel() {
                 <td className="px-3 py-1.5 font-mono text-slate-200">{e.path}</td>
                 <td className="px-3 py-1.5 text-slate-500">{(e.methods ?? []).join(',')}</td>
                 <td className={'px-3 py-1.5 ' + (CAT_CLASS[e.category] ?? '')}>{CAT_LABEL[e.category] ?? e.category}</td>
+                <td className={'px-3 py-1.5 ' + (INTENT_CLASS[e.intent ?? 'unclassified'] ?? '')} data-testid={`route-intent-${e.norm}`}>
+                  {INTENT_LABEL[e.intent ?? 'unclassified'] ?? e.intent}
+                  {e.ui_pending && <span className="ml-1 rounded bg-amber-950/50 px-1 text-[10px] text-amber-300">待办</span>}
+                </td>
                 <td className="px-3 py-1.5">{e.live ? '是' : <span className="text-slate-600">死副本</span>}</td>
                 <td className="px-3 py-1.5 text-slate-500">{(e.ui_refs ?? []).length} 前端 / {(e.non_ui_refs ?? []).length} 非前端</td>
               </tr>

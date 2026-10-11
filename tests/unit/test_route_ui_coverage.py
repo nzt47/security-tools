@@ -83,6 +83,53 @@ class Test分类:
         )
 
 
+class Test意图标注:
+    """方案 §7：人工标注「该进 UI / 不该进」，只把「该进却没进」生成待办。"""
+
+    def test_标注文件被消费且取值合法(self):
+        m = _mod()
+        intents = m._load_intents()
+        assert intents, "config/route_ui_intent.json 应被解析出标注"
+        assert intents["/api/browser/screenshot"]["intent"] == "should_be_in_ui"
+        assert all(v["intent"] in m.INTENT_VALUES for v in intents.values())
+
+    def test_每条路由都带意图字段且ui_pending自洽(self):
+        m = _mod()
+        payload = m.classify()
+        valid = {"should_be_in_ui", "should_not_be_in_ui", "unclassified"}
+        for e in payload["entries"]:
+            assert e["intent"] in valid
+            assert e["ui_pending"] is (
+                e["intent"] == "should_be_in_ui" and e["live"] and e["category"] != "ui"
+            )
+        pending_norms = {p["norm"] for p in payload["pending_ui"]}
+        assert pending_norms == {e["norm"] for e in payload["entries"] if e["ui_pending"]}
+        assert not any(
+            e["ui_pending"] for e in payload["entries"] if e["intent"] == "should_not_be_in_ui"
+        )
+
+    def test_方案点名的候选确实落在该进未进待办里(self):
+        m = _mod()
+        pending = {e["norm"] for e in m.classify()["entries"] if e["ui_pending"]}
+        for route in (
+            "/api/browser/screenshot", "/api/clipboard",
+            "/api/cognitive/status", "/api/config/logs", "/api/dashboard/summary",
+        ):
+            assert route in pending, route + " 应标注为该进 UI 且当前未进"
+
+    def test_标注文件缺失时退化为空而不是抛错(self, tmp_path, monkeypatch):
+        m = _mod()
+        monkeypatch.setattr(m, "INTENT_FILE", tmp_path / "missing.json")
+        assert m._load_intents() == {}
+
+    def test_标注文件损坏时退化为空而不是抛错(self, tmp_path, monkeypatch):
+        m = _mod()
+        bad = tmp_path / "bad.json"
+        bad.write_text("{ not json", encoding="utf-8")
+        monkeypatch.setattr(m, "INTENT_FILE", bad)
+        assert m._load_intents() == {}
+
+
 @pytest.fixture
 def cov_client(monkeypatch, tmp_path):
     fake = types.ModuleType("app_server")

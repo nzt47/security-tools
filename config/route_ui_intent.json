@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "updated": "2026-10-11",
+  "note": "路由「该进 UI / 不该进」的人工意图标注（方案 docs/proposals/ui_information_architecture_review_20261011.md §7）。未标注 = unclassified；本文件只增判断，不改机械分类，也不放宽「未分类活体路由只允许收缩」的棘轮。",
+  "intents": {
+    "/api/browser/screenshot": {"intent": "should_be_in_ui", "area": "会话侧/工作区", "note": "工作区能力，可做成会话侧面板"},
+    "/api/browser/close": {"intent": "should_be_in_ui", "area": "会话侧/工作区", "note": "与截图同一能力"},
+    "/api/clipboard": {"intent": "should_be_in_ui", "area": "会话侧/工作区", "note": "剪贴板读写，工作区面板"},
+    "/api/cognitive/status": {"intent": "should_be_in_ui", "area": "全景看板", "note": "认知闭环状态"},
+    "/api/cognitive/prompt": {"intent": "should_be_in_ui", "area": "认知闭环", "note": "先定是否该进；暂记该进"},
+    "/api/cognitive/reject": {"intent": "should_be_in_ui", "area": "认知闭环", "note": "先定是否该进；暂记该进"},
+    "/api/cognitive/translate/*": {"intent": "should_be_in_ui", "area": "认知闭环", "note": "先定是否该进；暂记该进"},
+    "/api/config/logs": {"intent": "should_be_in_ui", "area": "系统管理·日志", "note": "与系统日志同屏"},
+    "/api/dashboard/summary": {"intent": "should_be_in_ui", "area": "管理仪表盘", "note": ""},
+    "/api/demo/config": {"intent": "should_not_be_in_ui", "area": "开发 mock", "note": "仅 dev mock，永不上屏"},
+    "/api/demo/probe": {"intent": "should_not_be_in_ui", "area": "开发 mock", "note": "仅 dev mock，永不上屏"},
+    "/api/auth/token-check": {"intent": "should_not_be_in_ui", "area": "内部鉴权", "note": "令牌校验，编排层调用"},
+    "/api/health/auth": {"intent": "should_not_be_in_ui", "area": "探针", "note": "健康探针，给编排器而非人"}
+  }
+}
