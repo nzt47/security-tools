@@ -222,8 +222,9 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "入口 CLI scripts/subagent_memory_ops.py（export/import/erase/migrate）；"
                  "三者均写审计（subagent.memory.export / erase / import，只记条数）",
         evidence_files=("agent/memory/scoped_store.py", "scripts/subagent_memory_ops.py"),
-        gap="mem0 后端只有 save/search、无列出/删除 ⇒ 导出/擦除 fail-closed"
-            "（E_MEMORY_OP_UNSUPPORTED，不假装支持）；data/ 整目录裁剪与脱敏仍属独立项",
+        gap="mem0 **引擎**路径的 add/search 不接受域过滤参数 ⇒ 其列出/删除仍 fail-closed"
+            "（E_MEMORY_OP_UNSUPPORTED，不假装支持）；**内置降级**（未装 mem0 时的本地 JSON 存储）"
+            "已实现按域列出/删除并做后置域过滤；data/ 整目录裁剪与脱敏仍属独立项",
         next_stage=""),
     # ── 手脚层 ──
     SovereigntyFace(
