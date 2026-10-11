@@ -137,7 +137,9 @@ export const HUB_NAV: HubNavItem[] = [
       // 两者是"记忆"族里两个不同物种（任务经验 vs 知识卡片），数据模型/检索算法/
       // 质量机制都不同 ⇒ 只归位、**不合并组件**（方案 §4.3）。
       { key: 'memory/experience', label: '经验库', icon: BookOpen, component: ExperiencePanel },
-      { key: 'memory/search', label: '搜索', icon: Search, component: MemorySearch },
+      // 【全库检索】就地升级为三分面统一入口（向量记忆 / 知识库 / 经验库）：
+      // key 不变 ⇒ memory.children 顺序锁与 ?panel=memory/search 深链零成本（方案 1）。
+      { key: 'memory/search', label: '全库检索', icon: Search, component: MemorySearch },
     ],
   },
   // 【阶段 1.1】原「人格与提示词 → 人格配置」独立页已并入「提示词实验室」第 3 个 Tab
