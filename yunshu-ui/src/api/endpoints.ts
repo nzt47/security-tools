@@ -280,6 +280,10 @@ export const SKILLS_MGMT_SLASH_COMMANDS = '/api/skills-mgmt/slash-commands';
 export const USER_LIST = '/api/user/list';
 export const PROCESS_LIST = '/api/process/list';
 export const BROWSER_NAVIGATE = '/api/browser/navigate';
+// 浏览器截图 / 关闭 + 剪贴板（方案 §7 分批接入：browser/screenshot、browser/close、clipboard）
+export const BROWSER_SCREENSHOT = '/api/browser/screenshot';
+export const BROWSER_CLOSE = '/api/browser/close';
+export const CLIPBOARD = '/api/clipboard';
 
 // ===============================================================
 //  资产管理（/api/assets/*）

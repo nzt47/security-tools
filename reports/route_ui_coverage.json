@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-10-11T19:38:45",
+  "generated_at": "2026-10-11T21:12:54",
   "totals": {
     "routes": 456,
     "live": 233,
     "dead_copy": 223,
-    "ui": 128,
+    "ui": 131,
     "cli_script": 21,
     "runtime_only": 24,
-    "unreferenced": 283,
+    "unreferenced": 280,
     "live_by_category": {
-      "ui": 62,
+      "ui": 65,
       "cli_script": 8,
       "runtime_only": 22,
-      "unreferenced": 141
+      "unreferenced": 138
     },
     "by_intent": {
       "should_be_in_ui": 9,
@@ -20,7 +20,7 @@
       "unclassified": 220
     }
   },
-  "frontend_endpoints": 133,
+  "frontend_endpoints": 136,
   "frontend_unmatched": [
     "/api/approval",
     "/api/assets",
@@ -30,48 +30,6 @@
   ],
   "intent_file": "config/route_ui_intent.json",
   "pending_ui": [
-    {
-      "path": "/api/browser/close",
-      "norm": "/api/browser/close",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "会话侧/工作区",
-      "where": [
-        "agent/server_routes/routes_workspace.py:225",
-        "plugins/system_tools.py:305"
-      ]
-    },
-    {
-      "path": "/api/browser/screenshot",
-      "norm": "/api/browser/screenshot",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "会话侧/工作区",
-      "where": [
-        "agent/server_routes/routes_workspace.py:217",
-        "plugins/system_tools.py:296"
-      ]
-    },
-    {
-      "path": "/api/clipboard",
-      "norm": "/api/clipboard",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "会话侧/工作区",
-      "where": [
-        "agent/server_routes/routes_workspace.py:294",
-        "agent/server_routes/routes_workspace.py:301",
-        "plugins/system_tools.py:383",
-        "plugins/system_tools.py:391"
-      ]
-    },
     {
       "path": "/api/cognitive/prompt",
       "norm": "/api/cognitive/prompt",
@@ -812,9 +770,11 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workspace.py:225",
@@ -823,7 +783,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "与截图同一能力",
-      "ui_pending": true
+      "ui_pending": false
     },
     {
       "path": "/api/browser/navigate",
@@ -852,9 +812,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workspace.py:217",
@@ -863,7 +825,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "工作区能力，可做成会话侧面板",
-      "ui_pending": true
+      "ui_pending": false
     },
     {
       "path": "/api/business/dashboard",
@@ -1047,9 +1009,11 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workspace.py:294",
@@ -1060,7 +1024,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "剪贴板读写，工作区面板",
-      "ui_pending": true
+      "ui_pending": false
     },
     {
       "path": "/api/cognitive/prompt",
@@ -8976,5 +8940,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "e350ba18550ab190"
+  "content_hash": "63ac5fd7d6f58f0d"
 }
