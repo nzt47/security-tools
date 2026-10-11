@@ -9,6 +9,8 @@ import {  Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGe
 // 改用显式信封解析。同页的 /api/health **不在本系列**（它有 40+ 消费方，含看门狗与就绪门），
 // 故仍走 hubGet 的旧解析。
 import { getEnvelope } from '@/api/envelope'
+// 认知闭环（元认知）状态 / 裁决 —— 方案 §7 第三批接入
+import CognitiveLoopPanel from './CognitiveLoopPanel'
 
 import {
   HEALTH,
@@ -109,6 +111,10 @@ export default function PanoramaSensors() {
               ]}
             />
           </Card>
+
+          <div className="mt-4">
+            <CognitiveLoopPanel />
+          </div>
         </>
       )}
     </div>
