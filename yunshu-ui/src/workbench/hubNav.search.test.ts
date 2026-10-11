@@ -139,11 +139,12 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(LEGACY_NAV_KEY_MAP['extensions']).toBe('components/plugins')
   })
 
-  it('迁移未落地（旧 key 仍在树里）⇒ 原样返回，不提前改道到尚未就绪的新页', () => {
-    // 关键回归：阶段 1.3 之前 memory/experience 不存在，?panel=experience 必须仍开经验库
-    expect(resolveNavKey('experience')).toBe('experience')
-    expect(resolveNavKey('persona/personality')).toBe('persona/personality')
+  it('分阶段迁移：已移除的旧 key 落到新 key，未迁移的旧 key 仍原样', () => {
+    // 阶段 1.1 已落地：persona/personality 已从树里移除 → 落到提示词实验室
+    expect(resolveNavKey('persona/personality')).toBe('prompt-lab')
+    // 阶段 1.2 / 1.3 尚未落地：extensions、experience 仍在树里 → 原样返回
     expect(resolveNavKey('extensions')).toBe('extensions')
+    expect(resolveNavKey('experience')).toBe('experience')
     expect(navKeyFromSearch('?panel=experience')).toBe('experience')
   })
 

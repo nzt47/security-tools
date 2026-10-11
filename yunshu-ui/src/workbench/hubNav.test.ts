@@ -104,3 +104,18 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
     expect(derivePanelParams('tools')).toEqual({})
   })
 })
+
+describe('hubNav 导航结构（人格配置并入提示词实验室 · 阶段 1.1）', () => {
+  it('persona 分组与其子项已从导航树移除', () => {
+    const keys = flattenNav(HUB_NAV).map((i) => i.key)
+    expect(keys).not.toContain('persona')
+    expect(keys).not.toContain('persona/personality')
+  })
+
+  it('「提示词实验室」仍是叶子项（人格以页内 Tab 承载，不再单列导航）', () => {
+    const promptLab = HUB_NAV.find((i) => i.key === 'prompt-lab')
+    expect(promptLab).toBeDefined()
+    expect(promptLab?.children).toBeUndefined()
+    expect(promptLab?.component).toBeDefined()
+  })
+})
