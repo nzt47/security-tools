@@ -108,22 +108,30 @@ class Test意图标注:
             e["ui_pending"] for e in payload["entries"] if e["intent"] == "should_not_be_in_ui"
         )
 
-    def test_方案点名的候选确实落在该进未进待办里(self):
+    def test_该进未进待办已清空(self):
+        """分批接入完成：所有标注 should_be_in_ui 的活体路由都已进 UI。"""
         m = _mod()
-        pending = {e["norm"] for e in m.classify()["entries"] if e["ui_pending"]}
-        for route in (
-            "/api/cognitive/status", "/api/cognitive/prompt", "/api/cognitive/reject",
-            "/api/cognitive/translate/*",
-        ):
-            assert route in pending, route + " 应标注为该进 UI 且当前未进"
+        payload = m.classify()
+        pending = sorted(e["norm"] for e in payload["entries"] if e["ui_pending"])
+        assert pending == [], "仍有该进却未进的路由：" + repr(pending)
+        assert payload["pending_ui"] == []
 
     def test_已接入的路由不再是待办(self):
         """分批接入的回环：接入后 category=ui 且 ui_pending=False。"""
         m = _mod()
         entries = {e["norm"]: e for e in m.classify()["entries"]}
         for route in ("/api/config/logs", "/api/browser/screenshot",
-                      "/api/browser/close", "/api/clipboard"):
+                      "/api/browser/close", "/api/clipboard",
+                      "/api/cognitive/status", "/api/cognitive/reject"):
             assert entries[route]["category"] == "ui", route
+            assert entries[route]["ui_pending"] is False, route
+
+    def test_认知调试面被标注为不该进(self):
+        """cognitive/prompt 与 cognitive/translate 属调试面，判为不该进。"""
+        m = _mod()
+        entries = {e["norm"]: e for e in m.classify()["entries"]}
+        for route in ("/api/cognitive/prompt", "/api/cognitive/translate/*"):
+            assert entries[route]["intent"] == "should_not_be_in_ui", route
             assert entries[route]["ui_pending"] is False, route
 
     def test_baseURL_相对字面量被计入_ui(self):

@@ -284,6 +284,9 @@ export const BROWSER_NAVIGATE = '/api/browser/navigate';
 export const BROWSER_SCREENSHOT = '/api/browser/screenshot';
 export const BROWSER_CLOSE = '/api/browser/close';
 export const CLIPBOARD = '/api/clipboard';
+// 认知闭环（元认知）状态 / 任务接受度裁决（方案 §7 第三批接入）
+export const COGNITIVE_STATUS = '/api/cognitive/status';
+export const COGNITIVE_REJECT = '/api/cognitive/reject';
 
 // ===============================================================
 //  资产管理（/api/assets/*）
