@@ -7,6 +7,8 @@
  */
 import { Download, ScrollText } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+// 配置变更日志（/api/config/logs）——《工作台 UI 信息架构评审》§7 分批接入的第一条
+import ConfigChangeLogPanel from './ConfigChangeLogPanel'
 
 /** 日志行（本地 mock 数据，供导出演示） */
 interface LogRow {
@@ -96,6 +98,8 @@ export default function SystemLog() {
         <ScrollText size={14} />
         <span>数据为本地 mock，共 {MOCK_LOGS.length} 条；导出为 CSV（仅 admin 可见导出按钮）</span>
       </div>
+
+      <ConfigChangeLogPanel />
     </div>
   )
 }

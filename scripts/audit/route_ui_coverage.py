@@ -117,11 +117,41 @@ def _refs_from_files(files):
     return refs
 
 
+#: 客户端 baseURL=/api 的相对字面量所在目录（collect_frontend_literals 只认 "/api/" 字面量）
+_API_CLIENT_DIR = "yunshu-ui/src/api"
+_RELATIVE_API_LITERAL = re.compile(r"""['"](/[A-Za-z0-9_./{}<>:$%-]+)['"]""")
+
+
+def _refs_from_api_client_dir() -> dict:
+    """src/api/ 下的相对 URL 字面量（客户端 baseURL=/api）⇒ 登记 /api 前缀变体。
+
+    【修一个真实盲区】collect_frontend_literals 的正则只认**已带 /api 前缀**的字面量，
+    于是 request({url: '/dashboard/summary'}) 这类经 baseURL 拼接的调用被算成
+    unreferenced（实测 /api/dashboard/summary 被误判）。只扫 src/api/ 目录，避免把
+    普通相对路径（如前端路由 /login）误当 API。
+    """
+    extra: dict = {}
+    for f in _iter_files({".ts", ".tsx"}, [_API_CLIENT_DIR]):
+        try:
+            txt = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        rel = str(f.relative_to(ROOT)).replace("\\", "/")
+        for m in _RELATIVE_API_LITERAL.finditer(txt):
+            token = norm(m.group(1))
+            if not token or token == "/" or token.startswith("/api/"):
+                continue
+            extra.setdefault("/api" + token, set()).add(rel)
+    return extra
+
+
 def _refs_from_frontend(fe):
     refs: dict = {}
     for label in ("react", "legacy"):
         for lit, files in (fe.get(label) or {}).items():
             refs.setdefault(norm(lit), set()).update(files)
+    for lit, files in _refs_from_api_client_dir().items():
+        refs.setdefault(lit, set()).update(files)
     return refs
 
 

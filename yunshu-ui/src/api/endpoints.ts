@@ -198,6 +198,8 @@ export const PERSONALITY_RESET = '/api/personality/reset';
 export const NETWORK_CONFIG = '/api/network-config';
 export const NETWORK_CONFIG_RESET = '/api/network-config/reset';
 export const APPLY_NETWORK_CONFIG = '/api/apply-network-config';
+// 配置变更日志（读 NetworkConfig.change_log；供 系统管理·日志 页「配置变更日志」区）
+export const CONFIG_CHANGE_LOGS = '/api/config/logs';
 
 // ===============================================================
 //  MCP 服务（/api/mcp）
