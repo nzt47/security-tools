@@ -145,7 +145,7 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
             "凭据值由**到达端环境**经 credentials 桥解析，base_url host 必须落在 CP_SUBAGENT_LLM_ALLOW，"
             "任一步不成即回退母体实例并带回非空 error（**绝不静默换 provider**）。残留边界：白名单需显式"
             "配置；跨 provider 的真实连通性属环境事实（CI 只做协议级注入验证）",
-        next_stage="S5"),
+        next_stage=""),
     SovereigntyFace(
         key="local_inference", layer="brain", label="本地推理",
         question="断网还能不能想？", state=OWNED,
