@@ -108,6 +108,9 @@ class SubagentConfig:
     execution_backend: str = ""
     # 自主权档位（L1–L5）；""=不接入（逐字旧行为）。接线见 autonomy_gate.py。
     autonomy_level: str = ""
+    # 引用式密钥（bundle 的 secrets.refs；**只存引用不存值**）：导入后由到达端在每次
+    # 委派时按本地环境解析成 TTL 凭据（credentials.refs_to_specs）。空=不接入（逐字旧行为）。
+    secret_refs: tuple = ()
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -365,6 +368,17 @@ class SubagentContainer:
                 channel=self._resolve_execution_channel(),
                 scoped_memory_domain=self._scoped_domain(),
                 callback_dispatcher=default_callback_dispatcher())
+
+        # ── 引用式密钥：到达端把 bundle 的 secrets.refs 解析成本次委派的 TTL 凭据 ──
+        # 显式传入的 credentials 优先（逐任务工厂语义）；没有时才回落到 config 的引用。
+        # 值只从**到达端自己的环境**解析（缺值跳过，绝不伪造）；签发/销毁仍走
+        # credential_scope 的 finally（TTL ≤ ctx.timeout_seconds）。
+        if not credentials:
+            refs = tuple(getattr(self.config, "secret_refs", ()) or ())
+            if refs:
+                from agent.subagent.credentials import refs_to_specs
+
+                credentials = refs_to_specs(refs)
 
         started = time.time()
         # 显式标注：executor 为注入点（Any），标注后再返回可避免 no-any-return

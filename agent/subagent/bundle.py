@@ -504,6 +504,13 @@ def import_config(bundle: Mapping[str, Any]) -> SubagentConfig:
         execution_backend=("container"
                            if str((bundle.get("runtime") or {}).get("backend") or "") == "container"
                            else ""),
+        # 引用式密钥（**只搬引用，不搬值**）：值由到达端自己的环境解析（credentials.refs_to_specs）
+        secret_refs=tuple(
+            {"source": str(r.get("source") or ""), "name": str(r.get("name") or ""),
+             "env_var": str(r.get("env_var") or "")}
+            for r in ((bundle.get("secrets") or {}).get("refs") or [])
+            if isinstance(r, Mapping)
+        ),
     )
 
 

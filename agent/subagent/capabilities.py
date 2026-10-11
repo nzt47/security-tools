@@ -138,7 +138,9 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         question="用哪个大脑、能不能换？", state=OWNED,
         evidence="resolve_subagent_llm（inherit/explicit/fallback-after-error）+ LLMService.with_model + 温度在调用面钉住",
         evidence_files=("agent/subagent/llm_factory.py", "memory/llm_service.py"),
-        gap="仅限同一 provider 下的模型名；跨 provider / 自带密钥需 per-分身 TTL 凭据",
+        gap="仅限同一 provider 下的模型名：LLMService.with_model 复用部署 SDK 客户端"
+            "（provider/api_key/base_url 恒取部署配置）。per-分身 TTL 凭据**已就绪**（见 credentials 面"
+            "的引用式密钥桥），但**按 subagent 覆盖 base_url/api_key 的客户端构造尚未接线**",
         next_stage="S5"),
     SovereigntyFace(
         key="local_inference", layer="brain", label="本地推理",
@@ -254,9 +256,12 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         evidence="TTL ≤ 任务时长 + finally 无条件销毁 + 环境注入 + 销毁证据审计；"
                  "bundle 的 secrets.refs 只存引用（source/name/env_var，无值）",
         evidence_files=("agent/subagent/credentials.py", "agent/subagent/bundle.py"),
-        gap="跨 provider 的引用式自带密钥未做：bundle 已给出引用槽位，"
-            "但引用→值的签发/注入（按到达端 TTL 凭据）尚未接线",
-        next_stage="S5"),
+        gap="引用→值的签发/注入**已接线**：bundle 的 secrets.refs 经 import_config 存进 "
+            "SubagentConfig.secret_refs（**只搬引用不搬值**），容器每次委派按**到达端本地环境**解析"
+            "（credentials.refs_to_specs，ref 的 env_var 原样沿用，缺值跳过不伪造）并走 "
+            "credential_scope 签发 + finally 无条件销毁（TTL ≤ 任务时长）；跨 provider 的**模型客户端**"
+            "构造仍缺（见 model 面）",
+        next_stage=""),
     # ── 身体层 ──
     SovereigntyFace(
         key="execution_backend", layer="body", label="执行后端",
