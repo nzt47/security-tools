@@ -346,3 +346,48 @@ class Mem0Adapter(MemoryInterface):
     def get_raw_facts(self) -> dict:
         """获取所有原始事实（调试用）"""
         return dict(self._facts)
+
+    # ── 记忆主权操作（列出 / 删除；P5 memory_ops）──
+    #
+    # 【只对内置降级实现】mem0 引擎的 add/search 不接受 domain 过滤参数，无法保证
+    # "只列出/只删除本域"——那会让导出/擦除越过租户边界。故引擎路径**显式不支持**
+    # （由 agent/memory/scoped_store.py 的 _Mem0Backend 转成 E_MEMORY_OP_UNSUPPORTED，
+    # fail-closed，不假装支持）。内置降级的事实带 scope 元数据，可安全按域过滤。
+
+    @property
+    def uses_mem0_engine(self) -> bool:
+        return bool(self._has_mem0 and self._mem0_client)
+
+    async def list_entries(self) -> list[MemoryResult]:
+        """列出**内置降级**存储的全部事实（元数据含 key/scope）；引擎路径 NotImplementedError"""
+        if self.uses_mem0_engine:
+            raise NotImplementedError(
+                "mem0 引擎无按域列出能力（无法保证域隔离）：导出 fail-closed")
+        out: list[MemoryResult] = []
+        for entry in self._facts.values():
+            content: Any = entry.get("data", "")
+            try:
+                parsed = json.loads(content)
+                if isinstance(parsed, (dict, list)):
+                    content = parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            meta: dict = {"key": entry.get("key", ""), "created_at": entry.get("created_at")}
+            md = entry.get("metadata", {})
+            if isinstance(md, dict):
+                meta.update(md)
+            out.append(MemoryResult(content=content, confidence=0.5,
+                                    source="mem0", metadata=meta))
+        return out
+
+    async def delete(self, key: str) -> bool:
+        """按 key 删除**内置降级**存储的一条事实；引擎路径 NotImplementedError"""
+        if self.uses_mem0_engine:
+            raise NotImplementedError(
+                "mem0 引擎无按域删除能力（无法保证域隔离）：擦除 fail-closed")
+        norm = self._normalize_key(key)
+        if norm not in self._facts:
+            return False
+        del self._facts[norm]
+        self._save_facts()
+        return True

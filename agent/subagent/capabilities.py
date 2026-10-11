@@ -148,7 +148,8 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "bundle.runtime.backend=local + CP_SUBAGENT_LOCAL_ENABLED 显式开启，通道判定（路由/工具）同步认识",
         evidence_files=("agent/subagent/local_inference.py", "core/local_llm.py",
                         "agent/subagent/channel.py", "agent/subagent/bundle.py"),
-        gap="真机 E2E 需本机 Ollama 服务在跑（CI 只做协议级注入验证）；core/local_llm 的 vLLM 分支未实现（本档 fail-closed，不假装支持）",
+        gap="真机 E2E 需本机服务在跑（CI 只做协议级注入验证；Ollama 探活 /api/tags、vLLM 探活 /v1/models）；"
+            "超时仍硬编码（探活 5s / 生成 60s），未登记 agent/settings/registry.py",
         next_stage=""),
     SovereigntyFace(
         key="cognitive_loop", layer="brain", label="认知闭环（规划/反思/学习）",
@@ -221,8 +222,9 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "入口 CLI scripts/subagent_memory_ops.py（export/import/erase/migrate）；"
                  "三者均写审计（subagent.memory.export / erase / import，只记条数）",
         evidence_files=("agent/memory/scoped_store.py", "scripts/subagent_memory_ops.py"),
-        gap="mem0 后端只有 save/search、无列出/删除 ⇒ 导出/擦除 fail-closed"
-            "（E_MEMORY_OP_UNSUPPORTED，不假装支持）；data/ 整目录裁剪与脱敏仍属独立项",
+        gap="mem0 **引擎**路径的 add/search 不接受域过滤参数 ⇒ 其列出/删除仍 fail-closed"
+            "（E_MEMORY_OP_UNSUPPORTED，不假装支持）；**内置降级**（未装 mem0 时的本地 JSON 存储）"
+            "已实现按域列出/删除并做后置域过滤；data/ 整目录裁剪与脱敏仍属独立项",
         next_stage=""),
     # ── 手脚层 ──
     SovereigntyFace(

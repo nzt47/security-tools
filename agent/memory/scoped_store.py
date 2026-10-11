@@ -487,14 +487,47 @@ class _Mem0Backend:
                    limit: int, memory_types: Optional[Sequence[Any]]) -> Sequence[Any]:
         return await self._adapter.search(query, top_k=int(limit))
 
+    @staticmethod
+    def _in_scope(meta: Any, scope: ScopedMemoryScope) -> bool:
+        """条目元数据是否落在本域（tenant/workspace/subject 逐维比对；缺维不判）"""
+        if not isinstance(meta, Mapping):
+            return False
+        for dim in ("tenant_id", "workspace_id", "subject_id"):
+            want = str(getattr(scope, dim, "") or "")
+            if want and str(meta.get(dim) or "") != want:
+                return False
+        return True
+
     async def list_entries(self, scope: ScopedMemoryScope, *,
                            limit: Optional[int] = None) -> Sequence[Any]:
-        raise _BackendOpUnsupported(
-            "mem0 adapter 只有 save/search，没有列出能力：导出/擦除 fail-closed")
+        """列出本域条目（**后置域过滤**——mem0 的列出不带域参数，不过滤就等于越域导出）
+
+        【引擎 vs 内置降级】mem0 引擎的 add/search 不接受 domain 过滤参数，无法保证
+        只列出本域 ⇒ 引擎路径仍 fail-closed；内置降级（现实测使用的形态）事实带 scope
+        元数据，可安全过滤后导出。
+        """
+        if bool(getattr(self._adapter, "uses_mem0_engine", False)):
+            raise _BackendOpUnsupported(
+                "mem0 引擎无按域列出能力（无法保证域隔离）：导出/擦除 fail-closed")
+        rows = await self._adapter.list_entries()
+        kept = [row for row in (rows or ())
+                if self._in_scope(getattr(row, "metadata", None), scope)]
+        if limit is not None:
+            kept = kept[:int(limit)]
+        return kept
 
     async def delete_entry(self, entry: Any, scope: ScopedMemoryScope) -> bool:
-        raise _BackendOpUnsupported(
-            "mem0 adapter 没有删除能力：擦除 fail-closed（不假装已删）")
+        """删除本域一条（**入口先按域校验**；不在本域 ⇒ 不删）"""
+        if bool(getattr(self._adapter, "uses_mem0_engine", False)):
+            raise _BackendOpUnsupported(
+                "mem0 引擎无按域删除能力（无法保证域隔离）：擦除 fail-closed（不假装已删）")
+        meta = getattr(entry, "metadata", None)
+        if not self._in_scope(meta, scope):
+            return False
+        key = str((meta or {}).get("key") or "") if isinstance(meta, Mapping) else ""
+        if not key:
+            return False
+        return bool(await self._adapter.delete(key))
 
 
 # ============================================================
