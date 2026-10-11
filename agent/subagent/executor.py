@@ -1284,6 +1284,19 @@ class DelegationExecutor:
             except Exception as e:  # noqa: BLE001  回调失败不阻断
                 result["error"] = f"{type(e).__name__}: {e}"
                 logger.warning("[Executor] 回调投递失败 %s: %s", ctx.callback_url, e)
+            # 离线回退（opt-in）：HTTP 投递失败（传输异常 / 5xx）落本地 outbox，稍后可重放。
+            # 未配置 CP_SUBAGENT_CALLBACK_OUTBOX_DIR 时是 no-op（逐字旧行为）；
+            # mode=blocked 是策略确定性拒绝，入包只会永久重试 ⇒ 不入。
+            if not result.get("delivered") and str(result.get("mode") or "") == "http":
+                try:
+                    from agent.subagent.callback_outbox import enqueue as _enqueue
+
+                    rid = _enqueue(ctx.callback_url, payload,
+                                   error=str(result.get("error") or ""))
+                    if rid:
+                        result["outbox_id"] = rid
+                except Exception as e:  # noqa: BLE001 outbox 落盘失败绝不阻断回调路径
+                    logger.debug("[Executor] 回调 outbox 落盘失败: %s", e)
         else:
             # 缺省「记录结果/触发后续」：把地址与结果摘要写审计
             result["delivered"] = True
