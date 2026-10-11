@@ -148,7 +148,8 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "bundle.runtime.backend=local + CP_SUBAGENT_LOCAL_ENABLED 显式开启，通道判定（路由/工具）同步认识",
         evidence_files=("agent/subagent/local_inference.py", "core/local_llm.py",
                         "agent/subagent/channel.py", "agent/subagent/bundle.py"),
-        gap="真机 E2E 需本机 Ollama 服务在跑（CI 只做协议级注入验证）；core/local_llm 的 vLLM 分支未实现（本档 fail-closed，不假装支持）",
+        gap="真机 E2E 需本机服务在跑（CI 只做协议级注入验证；Ollama 探活 /api/tags、vLLM 探活 /v1/models）；"
+            "超时仍硬编码（探活 5s / 生成 60s），未登记 agent/settings/registry.py",
         next_stage=""),
     SovereigntyFace(
         key="cognitive_loop", layer="brain", label="认知闭环（规划/反思/学习）",

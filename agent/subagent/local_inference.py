@@ -19,9 +19,9 @@
     Trace、成本记账全部不动。本地与远端只差"谁来回答"。
 
 【如实边界（不能假装）】
-    · `core/local_llm.py` 的 `vllm` 分支**声明了但未实现**（非 ollama 的 generate 恒
-      返回 None）⇒ 本模块对未知引擎 fail-closed（`SUPPORTED_LOCAL_ENGINES` 只有
-      ollama），**不假装支持 vLLM / llama.cpp**。
+    · `core/local_llm.py` 的 **ollama 与 vLLM 两条分支都已有真实实现**（vLLM 走
+      OpenAI 兼容 `/v1/completions`，探活 `/v1/models`）⇒ `SUPPORTED_LOCAL_ENGINES`
+      为 (ollama, vllm)；其它引擎（如 llama.cpp）仍 fail-closed，不假装支持。
     · `LocalLLM.generate` 只接受**一个字符串 prompt**，没有 system 角色、没有多轮；
       `LocalLLMAdapter.chat` 会把 messages + system **压平成一个 prompt** —— 这是
       语义损失，如实写在 adapter docstring 里，不声称角色保真。
@@ -55,8 +55,8 @@ __all__ = [
     "build_local_adapter",
 ]
 
-#: 有真实实现的本地引擎（只列实现了的；core/local_llm 的 vllm 分支未实现，不列）
-SUPPORTED_LOCAL_ENGINES = ("ollama",)
+#: 有真实实现的本地引擎（只列实现了的）：core/local_llm 的 ollama 与 vllm 两条分支都已实现
+SUPPORTED_LOCAL_ENGINES = ("ollama", "vllm")
 
 #: 环境变量（全部登记进 agent/settings/registry.py，否则 scan_settings --check 红）
 ENV_LOCAL_ENABLED = "CP_SUBAGENT_LOCAL_ENABLED"
@@ -182,7 +182,7 @@ def build_local_adapter(*, engine: str = "", model: str = "", api_base: str = ""
     eng = str(engine or os.environ.get(ENV_LOCAL_ENGINE, "") or "ollama").strip() or "ollama"
     if eng not in SUPPORTED_LOCAL_ENGINES:
         raise LocalInferenceError(
-            "本地引擎未实现: %r（当前仅 %s 有真实实现；vLLM 分支未实现，不假装支持）"
+            "本地引擎未实现: %r（当前有真实实现的只有 %s；未知引擎不假装支持）"
             % (eng, list(SUPPORTED_LOCAL_ENGINES)),
             code="E_LOCAL_ENGINE_UNSUPPORTED")
     if local is None:

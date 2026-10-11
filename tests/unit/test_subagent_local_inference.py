@@ -163,9 +163,14 @@ class TestL5NoNetworkAtConstruction:
 
 class TestL6Honest:
     def test_未知引擎_fail_closed(self):
+        # vllm 已实现 ⇒ 用真正未知的引擎（llama.cpp）验证 fail-closed 语义
         with pytest.raises(LocalInferenceError) as ei:
-            build_local_channel(engine="vllm", local=_FakeLocal())
+            build_local_channel(engine="llamacpp", local=_FakeLocal())
         assert ei.value.code == "E_LOCAL_ENGINE_UNSUPPORTED"
+
+    def test_vllm_已实现_不再判为未知(self):
+        channel = build_local_channel(engine="vllm", local=_FakeLocal())
+        assert isinstance(channel, LocalInferenceChannelExecutor)
 
     def test_status_不泄漏端点值(self):
         status = local_status({"CP_SUBAGENT_LOCAL_API_BASE": "http://internal.example:11434",
