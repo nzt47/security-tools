@@ -733,6 +733,35 @@ class TestCallback:
         assert outcome.callback["delivered"] is False
         assert "RuntimeError" in outcome.callback["error"]
 
+    def test_http_失败落_outbox_可重放(self, tmp_path, facade, monkeypatch):
+        from agent.subagent import callback_outbox as ob
+
+        monkeypatch.setenv(ob.ENV_OUTBOX_DIR, str(tmp_path / "outbox"))
+        executor = make_executor(
+            tmp_path, facade=facade,
+            callback_dispatcher=lambda url, p: {"delivered": False, "mode": "http",
+                                                "status": 503, "error": "HTTP 503"})
+        outcome = executor.execute(make_ctx(), tools=TOOLS,
+                                   authorized_capabilities=SUBSET)
+        assert outcome.callback["delivered"] is False
+        assert outcome.callback.get("outbox_id"), "HTTP 失败必须落 outbox"
+        pend = ob.pending()
+        assert len(pend) == 1
+        assert pend[0]["callback_url"] == "internal://pipeline/stage2"
+
+    def test_blocked_不入_outbox(self, tmp_path, facade, monkeypatch):
+        from agent.subagent import callback_outbox as ob
+
+        monkeypatch.setenv(ob.ENV_OUTBOX_DIR, str(tmp_path / "outbox2"))
+        executor = make_executor(
+            tmp_path, facade=facade,
+            callback_dispatcher=lambda url, p: {"delivered": False, "mode": "blocked",
+                                                "error": "not allowed"})
+        outcome = executor.execute(make_ctx(), tools=TOOLS,
+                                   authorized_capabilities=SUBSET)
+        assert outcome.callback["delivered"] is False
+        assert ob.pending() == [], "策略确定性拒绝不入 outbox（重试无意义）"
+
     def test_default_callback_records_audit(self, tmp_path, facade):
         audit = RecordingAudit()
         executor = make_executor(tmp_path, facade=facade, audit=audit)

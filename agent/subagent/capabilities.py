@@ -312,7 +312,8 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
             "均已接线（不合格只让该任务失败，fail-closed，不降级成普通第一轮）；"
             "心跳已在启动期接线并持久化健康态（app_server 注册 + 读面共享 live registry + 落盘回填），"
             "但需回调出站配置齐（开关 + host 白名单 + 令牌）才注册；"
-            "离线回退未做（offline_fallback_report 显式登记 status=not_implemented，无 outbox、无重放）",
+            "离线回退**已接线（opt-in）**：HTTP 回调投递失败（传输异常 / 5xx）落本地 outbox "
+            "（CP_SUBAGENT_CALLBACK_OUTBOX_DIR），可用 callback_outbox.replay 稍后重放；未配置该目录即逐字旧行为",
         next_stage=""),
     # ── 治理层 ──
     SovereigntyFace(

@@ -52,8 +52,8 @@ ENV_HEARTBEAT_INTERVAL = "CP_SUBAGENT_PEER_HEARTBEAT_SEC"
 #: 心跳协议名（与 bundle 的 entrypoint 协议同源：task_file → JSON Lines）
 PROTOCOL = "task_file-jsonl"
 
-#: 离线回退状态：中性名，明确"未实现"，不冒充成支持/不支持
-OFFLINE_FALLBACK_STATUS = "not_implemented"
+#: 离线回退状态：中性名。outbox + replay 已接线，但是 **opt-in**（未配置目录即逐字旧行为）
+OFFLINE_FALLBACK_STATUS = "implemented_opt_in"
 
 #: 审计动作名与操作者（母体侧；对端不写审计）
 AUDIT_ACTION = "subagent.peer.heartbeat"
@@ -156,13 +156,32 @@ def heartbeat_payload(peer_name: str, protocol: str = PROTOCOL,
 
 
 def offline_fallback_report() -> Dict[str, Any]:
-    """离线回退的**显式登记**（现状是什么就说什么，绝不粉饰）"""
+    """离线回退的**显式登记**（现状是什么就说什么，绝不粉饰）
+
+    机制已接线（opt-in）：HTTP 回调投递失败（传输异常 / 5xx）时写入
+    CP_SUBAGENT_CALLBACK_OUTBOX_DIR 下的 outbox，可用
+    agent.subagent.callback_outbox.replay 稍后重放。未配置该目录 ⇒ 不写、不重放，
+    行为与接线前逐字相同。
+    """
+    enabled = False
+    configured = False
+    try:
+        from agent.subagent.callback_outbox import outbox_dir, outbox_enabled
+
+        enabled = bool(outbox_enabled())
+        configured = bool(outbox_dir())
+    except Exception:  # noqa: BLE001 投影不可用 ⇒ 如实降级为未启用
+        enabled = configured = False
     return {
         "status": OFFLINE_FALLBACK_STATUS,
-        "replay": False,
-        "outbox": False,
-        "note": ("离线回退未实现：心跳失败只更新健康态并写审计，本地 outbox 与稍后重放"
-                 "均未接线；此字段是中性显式登记，既不表示已支持，也不表示已关闭。"),
+        "replay": True,
+        "outbox": True,
+        "enabled": enabled,
+        "dir_configured": configured,
+        "note": ("离线回退已接线（opt-in）：HTTP 回调投递失败（传输异常 / 5xx）时写入本地 outbox，"
+                 "可用 callback_outbox.replay() 稍后重放；未配置 CP_SUBAGENT_CALLBACK_OUTBOX_DIR 的"
+                 "部署行为与接线前逐字相同（不写、不重放）。策略拒绝（mode=blocked）不入包——"
+                 "那是确定性拒绝，重试无意义。"),
     }
 
 
