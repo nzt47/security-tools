@@ -131,3 +131,27 @@ N 的初值建议 3，可配；"独立"按 `instance_id` 去重，避免同一�
 2. 共享池是**共享文件系统**还是**母体服务**？（决定 A vs C）
 3. TTL / 保留期与容量上限取值？
 4. `subject` 的派生规则（与现有 scoped_store 的主体键是否同一套）？
+
+---
+
+## 13. 落地记录（2026-10-11 · 一期 MVP 按默认假设实现）
+
+本次按默认假设实现**一期（方案 A）**；提升闸门（I2）留二期。
+
+| 待决策 | 默认假设（本次落地） | 落地位置 |
+|---|---|---|
+| Q2 存储 | **方案 A：共享文件系统**（`lessons.jsonl`） | `agent/subagent/cognitive_lessons.py` |
+| Q4 subject | **直接取母体 `DelegationContext.tenant_id / subject_id`**，不另行派生 | `executor.py::_run_with_credentials` 用 `scope_context(...)` 设定 |
+| Q3 TTL/容量 | TTL 90 天 / 单池 2000 条 / 单条 advice ≤ 500 字符 / 回读 ≤ 5 条且 ≤ 2000 字符 | 同上模块常量 |
+| Q1 提升闸门 | **一期不做**（进池即可见）；二期再做 N 次独立确认 / 人工批准 | — |
+| 签名口径（文档未定） | 取 `issues` 规范化（排序后 `|` 连接，截断 200）；空则 `unclassified` | `cognitive_loop.py::_remember` |
+| 接线层（文档未定） | 作用域经 **ContextVar** 设定（`channel.py` 明确不把域标识放进 invocation），在 executor 调通道处包裹 | `executor.py` + `cognitive_lessons.scope_context` |
+
+实现边界（如实）：
+
+- 默认关：`CP_SUBAGENT_COGNITIVE_SHARED_LESSONS` 未开 = 仅同 workspace 流水（逐字旧行为）；
+- 作用域缺 tenant 或 subject ⇒ 不读不写（I1 fail-closed）；目录未配置 / 文件损坏 / 写失败同样退化为空（I4）；
+- 记录固定 `taint=upstream`（I3）；`erase` 在当前作用域内原子重写（I5）；同内容重复只累加 confirmations（幂等）；
+- **尚未同步能力面**：`agent/subagent/capabilities.py` 的 `cognitive_loop.gap` 仍是旧文案，
+  且 `data/capability_manifest.json` 是派生清单，按交接纪律需在**干净 worktree** 重派生后单独更新；
+- 提升闸门、与 `subagent_memory_ops.py` 的导入导出打通 = 二期 / 三期。

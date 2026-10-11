@@ -29,6 +29,7 @@ import os
 from typing import Any, Mapping, Optional, Sequence
 
 from agent.subagent.channel import ChannelExecutor, ChannelInvocation, RawOutput
+from agent.subagent.cognitive_lessons import recall_shared, record_lesson
 
 logger = logging.getLogger(__name__)
 
@@ -96,13 +97,21 @@ def _lessons_path(invocation: ChannelInvocation) -> str:
 
 
 def _recall(invocation: ChannelInvocation) -> list:
-    """回读最近 MAX_LESSONS 条教训；文件缺失/坏行 ⇒ 空（fail-soft，不阻断规划）"""
+    """回读最近 MAX_LESSONS 条教训：本地流水 ＋（开启时）跨 workspace 共享池。
+
+    本地文件缺失/坏行 ⇒ 空；共享池未开/无作用域/目录缺失 ⇒ 不追加。两者都 fail-soft，
+    绝不因"读教训失败"阻断规划。
+    """
     try:
         with open(_lessons_path(invocation), "r", encoding="utf-8") as fh:
             rows = [json.loads(line) for line in fh if line.strip()]
     except (OSError, ValueError):
-        return []
-    return [r for r in rows if isinstance(r, dict)][-MAX_LESSONS:]
+        rows = []
+    local = [r for r in rows if isinstance(r, dict)][-MAX_LESSONS:]
+    shared = recall_shared("")  # 当前 (tenant, subject) 作用域内不限签名；受双上限
+    if not shared:
+        return local
+    return (local + shared)[-MAX_LESSONS:]
 
 
 def _remember(invocation: ChannelInvocation, task: Mapping[str, Any],
@@ -117,6 +126,16 @@ def _remember(invocation: ChannelInvocation, task: Mapping[str, Any],
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
     except OSError as e:
         logger.debug("[CognitiveLoop] 教训落盘失败: %s", e)
+    # 跨 workspace 共享池（方案 A）：开启且当前有 (tenant, subject) 作用域时才写；
+    # 失败/未开/无作用域一律静默跳过，不影响本地流水。签名取"失败签名"（issues 的规范化）。
+    issues = [str(i).strip() for i in (critique.get("issues") or []) if str(i).strip()]
+    advice = str(critique.get("suggestion") or "").strip() or "；".join(issues)
+    if advice:
+        try:
+            record_lesson("|".join(sorted(issues))[:200] or "unclassified", advice,
+                          evidence=str((task or {}).get("goal") or "")[:120])
+        except Exception as e:  # noqa: BLE001 共享池写入绝不拖死委派
+            logger.debug("[CognitiveLoop] 共享教训写入失败: %s", e)
 
 
 def plan_prompt(task: Mapping[str, Any],
