@@ -780,7 +780,11 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "白名单 host 投递委派结果（默认关闭 = 只写审计）",
        owner="agent/subagent/callback_channel.py",
        impact="影响面：开启后执行器会把委派结果 POST 到白名单内 host（出站网络动作）"),
-    _c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
+    _c("CP_SUBAGENT_CALLBACK_OUTBOX_DIR", CAT_SELF_HEALING, "",
+   "子代理回调 outbox 目录（离线回退：HTTP 投递失败落本地 jsonl，可用 "
+   "callback_outbox.replay 稍后重放）；空=关闭（逐字旧行为）（只读）",
+   owner="agent/subagent/callback_outbox.py"),
+_c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
        "子代理回调 host 白名单（逗号分隔；精确 host 或 .example.com 后缀；只读）",
        owner="agent/subagent/callback_channel.py"),
     _secret("CP_SUBAGENT_CALLBACK_TOKEN", CAT_SELF_HEALING,

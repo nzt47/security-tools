@@ -294,15 +294,16 @@ class TestG4NoCredentialEcho:
 
 
 class TestG5OfflineFallback:
-    def test_状态是中性_not_implemented(self):
+    def test_状态_已接线_optin(self):
         report = offline_fallback_report()
-        assert report["status"] == OFFLINE_FALLBACK_STATUS == "not_implemented"
-        assert report["replay"] is False and report["outbox"] is False
-        assert report["note"].strip(), "未实现必须写清反幻觉说明"
+        assert report["status"] == OFFLINE_FALLBACK_STATUS == "implemented_opt_in"
+        assert report["replay"] is True and report["outbox"] is True
+        assert report["enabled"] is False, "未配置 outbox 目录 ⇒ 未启用（逐字旧行为）"
+        assert report["note"].strip(), "必须写清 opt-in 边界说明"
 
     def test_快照内联离线报告(self):
         snap = StaticPeerRegistry.from_env("a=http://h/a").snapshot()
-        assert snap["offline_fallback"]["status"] == "not_implemented"
+        assert snap["offline_fallback"]["status"] == OFFLINE_FALLBACK_STATUS
 
 
 # ════════════════════════════════════════════════════════════
@@ -565,7 +566,7 @@ class TestG7HistoryPeersSegment:
         assert seg["count"] == 2 and seg["enabled_count"] == 1
         assert set(seg["health"]) == {"a", "b"}
         assert seg["health"]["a"]["attempts"] == 0
-        assert seg["offline_fallback"]["status"] == "not_implemented"
+        assert seg["offline_fallback"]["status"] == OFFLINE_FALLBACK_STATUS
 
     def test_畸形配置读面仍200且空表(self, monkeypatch, tmp_path):
         monkeypatch.setenv(ENV_PEERS, "{broken[")
