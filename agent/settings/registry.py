@@ -2179,6 +2179,15 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_SUBAGENT_COGNITIVE_LESSONS_DIR", CAT_EXTERNAL, "",
        "共享教训池目录（内含 lessons.jsonl）；空=未配置 ⇒ 不读不写（fail-closed，只读）",
        owner="agent/subagent/cognitive_lessons.py"),
+    # 【S4 cognitive_loop · 提升闸门（二期，2026-10-12）】candidate→shared 需 N 个**不同
+    # instance_id** 的独立确认（或人工 promote）；instance 身份优先取显式 CP_SUBAGENT_INSTANCE_ID。
+    # 两个变量都只读；instance_id 只用于"独立确认"去重，不参与可见性（可见性仍由 tenant/subject 定）。
+    _c("CP_SUBAGENT_INSTANCE_ID", CAT_EXTERNAL, "",
+       "云枢母体部署实例稳定标识（cognitive_loop 独立确认去重；生产多实例部署应显式设置；空=按主机名+仓库根兜底）（只读）",
+       owner="agent/subagent/cognitive_lessons.py"),
+    _c("CP_SUBAGENT_COGNITIVE_PROMOTION_N", CAT_ORCHESTRATION, "3",
+       "共享教训 candidate→shared 所需的独立实例确认数（0=只走人工批准）（只读）",
+       owner="agent/subagent/cognitive_lessons.py"),
     _b("CP_MCP_SERVER_TOOLS", CAT_EXTERNAL, "",
        "MCP 服务对外暴露的工具白名单（逗号分隔；未设则用内置默认集）；"
        "放宽即扩大对外暴露面（与「关闭即降低防护」同性质，故取 B）；"

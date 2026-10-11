@@ -1126,7 +1126,8 @@ class DelegationExecutor:
             # 认知闭环共享教训池的作用域：域标识只能来自母体持有的 ctx（不放进 invocation，
             # 见 channel.py 的域标识约定）。ContextVar 保证并发委派互不串；共享未开启时是空操作。
             from agent.subagent.cognitive_lessons import scope_context
-            with scope_context(ctx.tenant_id, ctx.subject_id):
+            with scope_context(ctx.tenant_id, ctx.subject_id,
+                               workspace_id=str(ctx.metadata.get("workspace_id") or "")):
                 output = resolve_channel_output(
                     lambda: self._channel(invocation), llm=self._llm, invocation=invocation)
         # 退出 with 即已销毁；此处断言销毁证据（隐藏失败会长期留存凭据）
