@@ -230,15 +230,9 @@ export default function PromptLab() {
           </nav>
 
           <div className="pl-body">
-            {/* 左侧：因素模块 + 身份提示词 */}
+            {/* 第 1 列：全部因素（分类筛选在上方） */}
             <main className="pl-factors">
-              {/* 身份提示词（线上配置）——原「人格与提示词 → 身份提示词」并入 */}
-              <IdentityPromptPanel
-                {...toIdentityPromptPanelProps(identity)}
-                focusedKey={focusRowKey}
-                onFocusRow={setFocusRowKey}
-              />
-
+              <h2 className="pl-col-title">全部</h2>
               {shownCategories.map((cat) => (
                 <section key={cat.id} className="pl-category">
                   <h2 className="pl-category-title" style={{ color: cat.color }}>
@@ -264,7 +258,16 @@ export default function PromptLab() {
               ))}
             </main>
 
-            {/* 右侧：实时预览面板（PreviewPanel） */}
+            {/* 第 2 列：身份提示词（系统提示词 · 线上配置）——原并入实验室，现单独成列与预览并列 */}
+            <section className="pl-identity-col" aria-label="身份提示词（系统提示词 · 线上配置）">
+              <IdentityPromptPanel
+                {...toIdentityPromptPanelProps(identity)}
+                focusedKey={focusRowKey}
+                onFocusRow={setFocusRowKey}
+              />
+            </section>
+
+            {/* 第 3 列：实时预览面板（PreviewPanel） */}
             <PreviewPanel
               mode={mode}
               onModeChange={onModeChange}

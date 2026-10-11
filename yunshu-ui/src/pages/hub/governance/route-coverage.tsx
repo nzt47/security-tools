@@ -14,7 +14,9 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Route as RouteIcon, RefreshCw, Search } from 'lucide-react'
-import { request } from '@/lib/apiClient'
+// 该端点走 v2 统一信封（后端 _ok(payload)）⇒ 必须显式解包；
+// 直接用 request()（返回原始体、不拆信封）会在 {code,data,message} 上读 entries 而**静默拿到空**。
+import { getEnvelope } from '@/api/envelope'
 import { ROUTE_UI_COVERAGE } from '@/api/endpoints'
 
 interface Entry {
@@ -77,7 +79,7 @@ export default function RouteCoveragePanel() {
   const load = useCallback(() => {
     setLoading(true)
     setError('')
-    request<Payload>(ROUTE_UI_COVERAGE)
+    getEnvelope<Payload>(ROUTE_UI_COVERAGE)
       .then((d) => setData(d && Array.isArray(d.entries) ? d : null))
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false))

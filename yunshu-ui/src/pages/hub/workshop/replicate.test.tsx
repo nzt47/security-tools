@@ -130,11 +130,12 @@ describe('装配车间 · bundle 导入面', () => {
     expect(screen.queryByTestId('replicate-import-message')).toBeNull()
   })
 
-  it('导入 UI 真实存在，离线运行仍如实标注未做', () => {
+  it('导入 UI 真实存在，离线依赖标注为"运维预构建 + 覆盖判定"（不再说未做）', () => {
     render(<WorkshopReplicate />)
     expect(screen.getByTestId('replicate-import-file')).toBeInTheDocument()
     expect(screen.getByTestId('replicate-import')).toBeInTheDocument()
     expect(screen.getAllByText(/离线运行/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/未做/).length).toBeGreaterThan(0)
+    // 准确性修正：wheelhouse 由 build_offline_pack 预构建，offline_ready 是覆盖判定
+    expect(screen.getAllByText(/预构建/).length).toBeGreaterThan(0)
   })
 })

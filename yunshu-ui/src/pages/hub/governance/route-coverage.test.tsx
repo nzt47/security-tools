@@ -7,8 +7,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
-const requestMock = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/apiClient', () => ({ request: requestMock }))
+// 【为什么 mock getEnvelope 而不是 request】该端点走 v2 信封，组件必须解包；
+// mock request（原始体）会把「未解包 ⇒ 静默空」这个真缺陷在测试里掩盖掉。
+const envMock = vi.hoisted(() => vi.fn())
+vi.mock('@/api/envelope', () => ({ getEnvelope: envMock }))
 
 import RouteCoveragePanel from './route-coverage'
 
@@ -30,12 +32,12 @@ const PAYLOAD = {
 
 afterEach(() => {
   cleanup()
-  requestMock.mockReset()
+  envMock.mockReset()
 })
 
 describe('RouteCoveragePanel · 意图标注', () => {
   it('上屏 pending 计数 + 意图列（含「待办」标记）', async () => {
-    requestMock.mockResolvedValue(PAYLOAD)
+    envMock.mockResolvedValue(PAYLOAD)
     render(<RouteCoveragePanel />)
 
     const filter = await screen.findByTestId('route-pending-filter')
@@ -49,7 +51,7 @@ describe('RouteCoveragePanel · 意图标注', () => {
   })
 
   it('「该进却未进」过滤只留 ui_pending 行', async () => {
-    requestMock.mockResolvedValue(PAYLOAD)
+    envMock.mockResolvedValue(PAYLOAD)
     render(<RouteCoveragePanel />)
     await screen.findByTestId('route-pending-filter')
 

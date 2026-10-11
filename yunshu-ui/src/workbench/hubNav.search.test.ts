@@ -118,8 +118,8 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     const topKeys = HUB_NAV.map((i) => i.key)
 
     expect(topKeys.indexOf('governance')).toBeLessThan(topKeys.indexOf('components'))
-    // 阶段 3：顶层收敛为 8 桶，前四桶固定（治理面板仍在第二、三桶之间，一屏可达）
-    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'panorama', 'governance', 'memory'])
+    // 第二轮 IA：记忆管理上移到 workspace 之后；治理面板仍紧跟「全景看板」之后
+    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'memory', 'panorama', 'governance'])
   })
 
   it('「审批收件箱」仍是治理面板下的子项（入口没被搬走）', () => {
@@ -143,17 +143,20 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
 describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
   it('映射表覆盖方案 §6 三组旧 key + 阶段 3 的 engine → engine/heartbeat', () => {
     expect(LEGACY_NAV_KEY_MAP['persona/personality']).toBe('prompt-lab')
-    expect(LEGACY_NAV_KEY_MAP['experience']).toBe('memory/experience')
+    expect(LEGACY_NAV_KEY_MAP['experience']).toBe('memory')
     expect(LEGACY_NAV_KEY_MAP['extensions']).toBe('components/plugins')
     expect(LEGACY_NAV_KEY_MAP['engine']).toBe('engine/heartbeat')
+    // 第二轮 IA：记忆/资产子项 → 叶子
+    expect(LEGACY_NAV_KEY_MAP['memory/experience']).toBe('memory')
+    expect(LEGACY_NAV_KEY_MAP['assets/memory']).toBe('assets')
   })
 
   it('迁移已落地 ⇒ 全部旧 key 落到新 key（深链不断）', () => {
     expect(resolveNavKey('persona/personality')).toBe('prompt-lab')
-    expect(resolveNavKey('experience')).toBe('memory/experience')
+    expect(resolveNavKey('experience')).toBe('memory')
     expect(resolveNavKey('extensions')).toBe('components/plugins')
     expect(resolveNavKey('engine')).toBe('engine/heartbeat')
-    expect(navKeyFromSearch('?panel=experience')).toBe('memory/experience')
+    expect(navKeyFromSearch('?panel=experience')).toBe('memory')
     expect(navKeyFromSearch('?panel=persona/personality')).toBe('prompt-lab')
     expect(navKeyFromSearch('?panel=extensions')).toBe('components/plugins')
   })
@@ -162,20 +165,18 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     const icon = HUB_NAV[0].icon
     const afterMigration: HubNavItem[] = [
       { key: 'prompt-lab', label: '提示词实验室', icon },
-      {
-        key: 'memory', label: '记忆管理', icon,
-        children: [
-          { key: 'memory/knowledge', label: '知识库系统', icon },
-          { key: 'memory/experience', label: '经验库', icon },
-        ],
-      },
+      { key: 'memory', label: '记忆管理', icon },
+      { key: 'assets', label: '资产管理', icon },
       { key: 'components/plugins', label: '插件与扩展', icon },
     ]
     expect(resolveNavKey('persona/personality', afterMigration)).toBe('prompt-lab')
-    expect(resolveNavKey('experience', afterMigration)).toBe('memory/experience')
+    expect(resolveNavKey('experience', afterMigration)).toBe('memory')
     expect(resolveNavKey('extensions', afterMigration)).toBe('components/plugins')
+    // 第二轮 IA：memory/<x> 与 assets/<x> 都落到叶子
+    expect(resolveNavKey('memory/experience', afterMigration)).toBe('memory')
+    expect(resolveNavKey('assets/interactions', afterMigration)).toBe('assets')
     // 新 key 本身在树里 ⇒ 原样
-    expect(resolveNavKey('memory/experience', afterMigration)).toBe('memory/experience')
+    expect(resolveNavKey('memory', afterMigration)).toBe('memory')
   })
 
   it('新旧都不在树里 ⇒ 空串（拒绝非法 key 的语义不变）', () => {

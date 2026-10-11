@@ -8,9 +8,9 @@
 import { lazy, type ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
-  MessageSquare, LayoutDashboard, Brain, Wrench, RefreshCw, Globe, Factory, Database,
-  Activity, FileText, Server, BookOpen, Search, Boxes, Monitor,
-  HeartPulse, CalendarClock, Users, Copy, Hammer, FolderHeart, Lightbulb, Palette,
+  MessageSquare, LayoutDashboard, Brain, Wrench, Globe, Factory, Database,
+  Activity, FileText, Server, Boxes, Monitor,
+  HeartPulse, CalendarClock, Users, Copy, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
 } from 'lucide-react'
@@ -26,13 +26,10 @@ const PanoramaHealth = lazy(() => import('@/pages/hub/panorama/health'))
 const PanoramaSensors = lazy(() => import('@/pages/hub/panorama/sensors'))
 const PanoramaMonitor = lazy(() => import('@/pages/hub/panorama/monitor'))
 const PanoramaLogs = lazy(() => import('@/pages/hub/panorama/logs'))
-const MemoryPage = lazy(() => import('@/pages/hub/memory'))
 const SkillCenter = lazy(() => import('@/pages/hub/memory/skill-center'))
-// 经验库（方案「把 DSH 的历史会话提炼成经验库」P3 面板）
-// 数据源 /api/experience/*，后端 plugins/experience.py
-const ExperiencePanel = lazy(() => import('@/pages/hub/experience'))
-const MemoryKnowledge = lazy(() => import('@/pages/hub/memory/knowledge'))
-const MemorySearch = lazy(() => import('@/pages/hub/memory/search'))
+// 【第二轮 IA】记忆管理 = 主内容区 Tab 容器（手动 / 自动 / 知识库 / 经验库 / 全库检索）；
+// 导航树只保留单一叶子项「记忆管理」（见 pages/hub/memory/hub.tsx）。
+const MemoryHub = lazy(() => import('@/pages/hub/memory/hub'))
 // 工具调用：子项（工具集 / CLI 软件 / MCP 系统 / Computer Use / 主线管理）已在页面内
 // 收敛为 Tab（见 @/pages/hub/tools/index.tsx），导航树只保留单一叶子项「工具调用」。
 // 其中「主线管理」= 能力平面档案（四平面权重 + 保底 + 效果上限）+ 实时装配预览，
@@ -89,6 +86,9 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
     ],
   },
+  // 【第二轮 IA】记忆管理上移：排在「工具调用」（会话与配置桶末项）之后；
+  // 子项收敛为页内 Tab ⇒ 导航树只保留单一叶子项。
+  { key: 'memory', label: '记忆管理', icon: Brain, component: MemoryHub },
   {
     key: 'panorama', label: '全景看板', icon: LayoutDashboard,
     children: [
@@ -126,37 +126,9 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/route-coverage', label: '路由覆盖', icon: Route, component: GovernancePanels },
     ],
   },
-  {
-    key: 'memory', label: '记忆管理', icon: Brain,
-    children: [
-      { key: 'memory/manual', label: '手动记忆', icon: Brain, component: MemoryPage },
-      { key: 'memory/auto', label: '自动记忆', icon: RefreshCw, component: MemoryPage },
-      // 注：技能中心已上提为顶层导航项（与「提示词实验室」并列），不再挂在记忆管理下。
-      { key: 'memory/knowledge', label: '知识库系统', icon: BookOpen, component: MemoryKnowledge },
-      // 【阶段 1.3】经验库从顶层移入记忆管理，与「知识库系统」并列。
-      // 两者是"记忆"族里两个不同物种（任务经验 vs 知识卡片），数据模型/检索算法/
-      // 质量机制都不同 ⇒ 只归位、**不合并组件**（方案 §4.3）。
-      { key: 'memory/experience', label: '经验库', icon: BookOpen, component: ExperiencePanel },
-      // 【全库检索】就地升级为三分面统一入口（向量记忆 / 知识库 / 经验库）：
-      // key 不变 ⇒ memory.children 顺序锁与 ?panel=memory/search 深链零成本（方案 1）。
-      { key: 'memory/search', label: '全库检索', icon: Search, component: MemorySearch },
-    ],
-  },
-  // 【阶段 1.1】原「人格与提示词 → 人格配置」独立页已并入「提示词实验室」第 3 个 Tab
-  // （人格 = 它是谁 / 因素实验室 = 它怎么答，同属模型侧配置），persona 分组随之删除。
-  {
-    key: 'assets', label: '资产管理', icon: Database,
-    children: [
-      { key: 'assets/memory', label: '记忆数据', icon: Database, component: AssetsPage },
-      { key: 'assets/prompts', label: '提示词库', icon: FileText, component: AssetsPage },
-      { key: 'assets/tools', label: '工具资源', icon: Wrench, component: AssetsPage },
-      { key: 'assets/skills', label: '技能与工作流', icon: Hammer, component: AssetsPage },
-      { key: 'assets/habits', label: '用户习惯', icon: FolderHeart, component: AssetsPage },
-      { key: 'assets/inspires', label: '灵感想法', icon: Lightbulb, component: AssetsPage },
-      { key: 'assets/hobbies', label: '爱好创造', icon: Palette, component: AssetsPage },
-      { key: 'assets/interactions', label: '交互记忆', icon: MessageSquare, component: AssetsPage },
-    ],
-  },
+  // 【第二轮 IA】资产管理：8 类子项本就都在同一页（AssetsPage 内置分类切换）⇒
+  // 导航树去掉子项、收敛为单一叶子项「资产管理」。
+  { key: 'assets', label: '资产管理', icon: Database, component: AssetsPage },
   {
     // 【阶段 3】分身单列一桶（方案 §5「分身」）；排在「记忆与资产」之后、「系统」之前。
     key: 'workshop', label: '装配车间', icon: Factory,
@@ -209,12 +181,8 @@ export interface HubPanelParams {
 
 /** 由导航 key 推导复用页面的初始参数；其余导航项无需参数（返回空对象，组件自带默认视图） */
 export function derivePanelParams(activeKey: string): HubPanelParams {
-  if (activeKey.startsWith('assets/')) {
-    return { initialCategory: activeKey.slice('assets/'.length) }
-  }
-  if (activeKey === 'memory/manual' || activeKey === 'memory/auto') {
-    return { mode: activeKey.slice('memory/'.length) as 'manual' | 'auto' }
-  }
+  // 【第二轮 IA】assets / memory 已收敛为叶子（子项在页内 Tab / 分类切换），
+  // 不再由导航 key 推导 initialCategory / mode。
   if (activeKey.startsWith('governance/')) {
     return { panel: activeKey.slice('governance/'.length) as HubPanelParams['panel'] }
   }
@@ -294,12 +262,27 @@ export const NAV_PANEL_PARAM = 'panel'
 export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freeze({
   // 人格配置并入提示词实验室（阶段 1.1）
   'persona/personality': 'prompt-lab',
-  // 经验库移入记忆管理（阶段 1.3）
-  'experience': 'memory/experience',
+  // 经验库先移入记忆管理（阶段 1.3），第二轮再随记忆管理收敛为页内 Tab
+  'experience': 'memory',
   // 扩展中心并入系统组件 · 插件管理（阶段 1.2）
   'extensions': 'components/plugins',
   // 循环工程并入全景看板（阶段 3）：组 key 消失，落到其原第一个子项
   'engine': 'engine/heartbeat',
+  // 【第二轮 IA】记忆管理子项 → 页内 Tab（落到「记忆管理」页，Tab 记忆接续上次选择）
+  'memory/manual': 'memory',
+  'memory/auto': 'memory',
+  'memory/knowledge': 'memory',
+  'memory/experience': 'memory',
+  'memory/search': 'memory',
+  // 【第二轮 IA】资产管理子项 → 同一面板（页内分类切换）
+  'assets/memory': 'assets',
+  'assets/prompts': 'assets',
+  'assets/tools': 'assets',
+  'assets/skills': 'assets',
+  'assets/habits': 'assets',
+  'assets/inspires': 'assets',
+  'assets/hobbies': 'assets',
+  'assets/interactions': 'assets',
 })
 
 /** key 是否存在于给定导航树（items 可注入，便于测试「迁移后」的树） */

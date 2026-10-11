@@ -49,6 +49,7 @@ const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
   }
   if (u.includes('/api/subagent/list')) return envelope(LIST_PAYLOAD)
   if (u.includes('/api/subagent/capabilities')) return json(CAPABILITIES)
+  if (u.includes('/api/agent-lines')) return json({ ok: true, active: 'engineering', lines: [], broken: [] })
   return json({})
 })
 vi.stubGlobal('fetch', fetchMock)
@@ -138,9 +139,16 @@ describe('组装台 · 生成与自解释', () => {
     expect(text).toContain('S3')
   })
 
-  it('记忆字段如实标注为"声明字段"（不假装已接线）', async () => {
+  it('记忆档已接线、不再标成"声明字段"（准确性）', async () => {
     await settle()
-    expect(screen.getByTestId('assembly-memory-note').textContent).toContain('声明字段')
+    const note = screen.getByTestId('assembly-memory-note').textContent ?? ''
+    expect(note).toContain('已接线')
+    expect(note).not.toContain('无消费者')
+  })
+
+  it('组装台与主线档案同源：显示当前生效主线（active）', async () => {
+    await settle()
+    await waitFor(() => expect(screen.getByTestId('assembly-active-line').textContent).toContain('engineering'))
   })
 
   it('生成成功 ⇒ 显示成功消息', async () => {
