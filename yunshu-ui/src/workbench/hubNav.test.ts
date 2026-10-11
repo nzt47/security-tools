@@ -60,13 +60,18 @@ describe('hubNav 导航结构（技能中心上提为顶层项）', () => {
     const memory = HUB_NAV.find((i) => i.key === 'memory')
     const memoryChildKeys = (memory?.children ?? []).map((c) => c.key)
     expect(memoryChildKeys).not.toContain('memory/skills-center')
+    // 【阶段 1.3】经验库归位到「知识库系统」之后（只归位，不合并组件）
     expect(memoryChildKeys).toEqual([
       'memory/manual',
       'memory/auto',
       'memory/knowledge',
+      'memory/experience',
       'memory/search',
     ])
     expect(flattenNav(HUB_NAV).some((i) => i.key.startsWith('memory/skills'))).toBe(false)
+    // 顶层不再单列「经验库」
+    expect(HUB_NAV.map((i) => i.key)).not.toContain('experience')
+    expect(flattenNav(HUB_NAV).some((i) => i.key === 'memory/experience')).toBe(true)
   })
 
   it('技能中心与提示词实验室渲染的是不同页面组件', () => {
