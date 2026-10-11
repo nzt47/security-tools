@@ -133,10 +133,22 @@ class TestM3Import:
 
 
 class TestM4BackendBoundary:
-    def test_mem0_导出擦除fail_closed(self, tmp_path):
+    def test_mem0_内置降级_导出擦除可用(self, tmp_path):
+        # mem0 未装 ⇒ 内置降级存储；事实带 scope 元数据 ⇒ 导出/擦除按域可用
         d = ScopedMemoryDomain("mem0", root=str(tmp_path / "m"),
                                scope={"tenant_id": "t", "workspace_id": "w",
                                       "subject_id": "s"})
+        assert d.export_entries().ok is True
+        assert d.erase_entries(confirm=True).ok is True
+
+    def test_mem0_引擎路径_导出擦除仍fail_closed(self, tmp_path, monkeypatch):
+        d = ScopedMemoryDomain("mem0", root=str(tmp_path / "m2"),
+                               scope={"tenant_id": "t", "workspace_id": "w",
+                                      "subject_id": "s"})
+        backend = d.select_store()
+        # 引擎路径的 add/search 不接受域参数 ⇒ 无法保证域隔离 ⇒ 仍 fail-closed
+        monkeypatch.setattr(type(backend._adapter), "uses_mem0_engine",
+                            property(lambda self: True))
         assert d.export_entries().error_code == E_MEMORY_OP_UNSUPPORTED
         erased = d.erase_entries(confirm=True)
         assert erased.ok is False and erased.error_code == E_MEMORY_OP_UNSUPPORTED
