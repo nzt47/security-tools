@@ -13,8 +13,9 @@
  * 前端只发**原样文本/对象**，不做本地结构判定（那会与后端两份口径）；唯一的本地
  * 处理是"是不是合法 JSON"，因为它决定要不要发这次请求。
  *
- * 【如实标注】离线运行**部分接线**：local（本地推理）与 container（隔离运行）已进
- * runtime.backend 词表；wheelhouse 打包**未做** ⇒ environment.offline_ready 恒 false。
+ * 【如实标注】离线运行：local（本地推理）与 container（隔离运行）已进 runtime.backend 词表；
+ * wheelhouse 由 scripts/build_offline_pack.py 在**联网机预构建**，environment.offline_ready 是
+ * **覆盖判定**（声明依赖缺 wheel 即 false，不是恒 false）。
  * 页面只显示后端给的 environment/offline_ready 与导入 problems，不复算（判定权威在后端）。
  */
 import { useState } from 'react'
@@ -350,9 +351,10 @@ export default function WorkshopReplicate() {
               <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">local</code>（断网可跑，需本机 Ollama）/ 
               <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">container</code>（隔离运行，镜像内对端见
               <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">docker/subagent-peer</code>），
-              共用同一份 task_file-jsonl 协议。**wheelhouse 打包未做** ⇒
-              <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">environment.offline_ready</code>
-              恒 false（换机仍不能离线安装依赖）。
+              共用同一份 task_file-jsonl 协议。wheelhouse 需运维在联网机用
+              <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">scripts/build_offline_pack.py</code>
+              预构建，<code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">environment.offline_ready</code>
+              为**覆盖判定**（声明依赖缺 wheel 即 false）。
             </p>
           </div>
         </Card>
@@ -363,7 +365,7 @@ export default function WorkshopReplicate() {
           <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> 导出 bundle：真实端点，过密钥闸（不含任何密钥值）</li>
           <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> 导入 bundle：真实端点 + 本页导入 UI（非法 bundle 400 不建容器）</li>
           <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> 通信反向通道：可选 HTTP 投递 + require_token 入站（默认关闭，仅开启才外呼）</li>
-          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> 离线运行：local（本地推理）与 container（镜像内对端）已接线；wheelhouse 打包未做（offline_ready 恒 false）</li>
+          <li className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> 离线运行：local（本地推理）与 container（镜像内对端）已接线；wheelhouse 需运维在联网机预构建（offline_ready 为覆盖判定）</li>
         </ul>
       </Card>
     </div>

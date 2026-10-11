@@ -159,7 +159,7 @@ describe('装配车间 · 四视图容器', () => {
     await waitFor(() => expect(screen.getByText('alpha')).toBeInTheDocument())
     expect(screen.getByText(/装配一个分身请到「组装台」/)).toBeInTheDocument()
     expect(screen.getByText(/模型已接线/)).toBeInTheDocument()
-    expect(screen.getByText(/记忆提供商 \/ 工具源仍是/)).toBeInTheDocument()
+    expect(screen.getByText(/工具源（tool_sources）仍是/)).toBeInTheDocument()
   })
 
   it('模型列显示实际生效 + 角色列显示模板与档位徽章', async () => {

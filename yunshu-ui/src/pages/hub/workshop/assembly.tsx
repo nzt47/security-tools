@@ -29,6 +29,8 @@ import {
   type SovereigntyFace,
   type SovereigntyReport,
 } from '@/lib/subagentApi'
+// 与「主线档案」同源：active 主线决定委派时的工具集（只读展示，不在本页提供选择）
+import { fetchLines } from '@/lib/agentLinesApi'
 
 interface RoleCatalogLite {
   templates?: { id?: string; title?: string; note?: string }[]
@@ -75,6 +77,8 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
   const [roleCatalog, setRoleCatalog] = useState<RoleCatalogLite | null>(null)
   const [llmCatalog, setLlmCatalog] = useState<LlmCatalogLite | null>(null)
   const [sovereignty, setSovereignty] = useState<SovereigntyReport | null>(null)
+  // undefined = 未取到（后端不可用）；null = 未装线；string = 当前激活主线 id
+  const [activeLine, setActiveLine] = useState<string | null | undefined>(undefined)
   const [expanded, setExpanded] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -101,6 +105,8 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
         setRoleCatalog(d?.role ?? null); setLlmCatalog(d?.llm ?? null)
       }),
       fetchSovereignty().then(setSovereignty),
+      // 与「主线档案」同源：active 决定委派时的工具集（本页只读，不提供"选主线"）
+      fetchLines().then((r) => setActiveLine(r?.active ?? null)).catch(() => setActiveLine(undefined)),
     ]).then((results) => {
       const failed = results.find((r) => r.status === 'rejected')
       if (failed && failed.status === 'rejected') setError(String(failed.reason))
@@ -287,12 +293,24 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
               />
             </div>
-            <p className="mt-2 text-[11px] text-amber-400/80" data-testid="assembly-memory-note">
-              记忆提供商目前是**声明字段**（无消费者）；记忆档（none/brokered/scoped）由 S3 接线。
+            <p className="mt-2 text-[11px] text-slate-500" data-testid="assembly-memory-note">
+              记忆档 <code>memory_mode</code>（none / brokered / scoped）**已接线**，由后端消费；
+              scoped 档按 <code>memory_provider</code> 选真实后端（holographic → 本地 SQLite；mem0 → 可选依赖 + 内置降级）。
+              本页填的是创建时的声明值，实际生效/降级以「分身」列表的 memory_view 为准。
             </p>
           </Card>
 
           <Card title="④ 工具与技能（只读说明）">
+            <div
+              className="mb-3 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-[12px] text-slate-300"
+              data-testid="assembly-active-line"
+            >
+              当前生效主线：
+              <span className="font-mono text-cyan-300">
+                {activeLine === undefined ? '未取到（后端不可用）' : (activeLine === null ? '未装线（只读默认集）' : activeLine)}
+              </span>
+              <span className="ml-2 text-[11px] text-slate-500">与「主线档案」视图同源（GET /api/agent-lines 的 active）</span>
+            </div>
             <p id="step-hands" className="text-[12px] text-slate-400">
               分身的工具集由「主线档案 + SubAgentToolset」在**委派时**装配（去 govern、去 §5.7 机制 3 硬禁），
               SubagentConfig 里没有 line 字段，本页不提供"选主线"——那会暗示它能决定工具集。
@@ -366,7 +384,9 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 <span className="text-[11px] text-slate-600">预览即真实请求体（同一序列化函数）</span>
               </div>
               <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-[11px] text-slate-500">
-                可带走（bundle 导出/导入）已接线；离线运行部分接线（local 推理 / container 需镜像内对端；wheelhouse 打包未做）—— 见「可带走 bundle」面。
+                可带走（bundle 导出/导入 + 离线包下载）已接线；离线运行：local 推理已接线、container 需镜像内对端；
+                离线依赖清单 <code>environment.offline_ready</code> 是**覆盖判定**（用
+                scripts/build_offline_pack.py 在联网机预构建 wheelhouse）—— 见「可带走 bundle」面。
               </div>
             </div>
           </Card>
@@ -380,9 +400,12 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 <div className="flex items-center gap-2 text-xs text-slate-400" data-testid="sovereignty-summary">
                   <ShieldCheck size={13} className="text-emerald-400" />
                   拥有 {sovereignty.summary.owned} · 声明未接线 {sovereignty.summary.partial} · 未做 {sovereignty.summary.missing}
+                  {sovereignty.summary.partial === 0 && sovereignty.summary.missing === 0
+                    ? <span className="text-emerald-400/90">（无真缺口；展开项里的「边界 / 已知限制」不是未做）</span>
+                    : null}
                   <Badge color="cyan">{sovereignty.maturity.current}</Badge>
                 </div>
-                <p className="text-[11px] text-slate-500">点任一面看"凭什么"（证据 / 缺口 / 补齐阶段）</p>
+                <p className="text-[11px] text-slate-500">点任一面看"凭什么"（证据 / 边界或缺口 / 计划阶段）</p>
                 {sovereignty.layers.map((layer) => (
                   <div key={layer.key} className="flex flex-col gap-1">
                     <div className="mt-1 text-[11px] font-medium text-slate-500">{layer.label} · {layer.question}</div>
@@ -422,7 +445,11 @@ function FaceRow({ face, expanded, onToggle }: { face: SovereigntyFace; expanded
           {face.evidence_files.length > 0 && (
             <div className="mt-1 font-mono text-[10px] text-slate-500">{face.evidence_files.join('  ')}</div>
           )}
-          {face.gap && <div className="mt-1 text-amber-400/80">缺口：{face.gap}</div>}
+          {face.gap && (
+            <div className={face.state === 'owned' ? 'mt-1 text-slate-400' : 'mt-1 text-amber-400/80'}>
+              {face.state === 'owned' ? '边界 / 已知限制：' : '缺口：'}{face.gap}
+            </div>
+          )}
           {face.next_stage && <div className="text-slate-500">计划：{face.next_stage}</div>}
         </div>
       )}

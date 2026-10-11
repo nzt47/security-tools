@@ -215,7 +215,7 @@ function SubagentView({ onShowAssembly }: { onShowAssembly?: () => void }) {
           （空 = 跟随母体{deploymentModel ? `：${deploymentModel}` : '（母体模型未知）'}，指定则派生独立实例），
           <span className="text-slate-400">角色已接线</span>
           （受控模板；自由文本须显式选 template+text / full-system 档）。
-          记忆提供商 / 工具源仍是**声明字段**（尚未接线，见后续阶段）。
+          记忆提供商业已接线（scoped 档按 provider 选真实后端）；工具源（tool_sources）仍是**声明字段**（尚未接线）。
         </span>
         <button onClick={onShowAssembly} data-testid="go-assembly" className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"><Hammer size={12} /> 前往组装台</button>
       </div>
