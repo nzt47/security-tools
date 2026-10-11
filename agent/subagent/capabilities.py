@@ -136,11 +136,15 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="model", layer="brain", label="模型",
         question="用哪个大脑、能不能换？", state=OWNED,
-        evidence="resolve_subagent_llm（inherit/explicit/fallback-after-error）+ LLMService.with_model + 温度在调用面钉住",
+        evidence="resolve_subagent_llm（inherit/explicit/fallback-after-error）+ LLMService.with_model + "
+                 "温度在调用面钉住 + 跨 provider（resolve_cross_provider_llm：opt-in + host 白名单 + "
+                 "到达端引用式密钥，失败回退且可见）",
         evidence_files=("agent/subagent/llm_factory.py", "memory/llm_service.py"),
-        gap="仅限同一 provider 下的模型名：LLMService.with_model 复用部署 SDK 客户端"
-            "（provider/api_key/base_url 恒取部署配置）。per-分身 TTL 凭据**已就绪**（见 credentials 面"
-            "的引用式密钥桥），但**按 subagent 覆盖 base_url/api_key 的客户端构造尚未接线**",
+        gap="同 provider 换模型名是默认路径（with_model 复用部署客户端）；**跨 provider 已接线**"
+            "（opt-in + host 白名单）：分身声明 llm_override{provider, base_url, model, 凭据引用}，"
+            "凭据值由**到达端环境**经 credentials 桥解析，base_url host 必须落在 CP_SUBAGENT_LLM_ALLOW，"
+            "任一步不成即回退母体实例并带回非空 error（**绝不静默换 provider**）。残留边界：白名单需显式"
+            "配置；跨 provider 的真实连通性属环境事实（CI 只做协议级注入验证）",
         next_stage="S5"),
     SovereigntyFace(
         key="local_inference", layer="brain", label="本地推理",

@@ -2195,6 +2195,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     # 【S4 tools_skills · 运行期工具声明（2026-10-12）】插件/MCP 工具在运行期注册但没有
     # YAML 声明，assembler 对未声明工具刻意 fail-closed。本文件是唯一放行凭据（运维显式声明
     # plane/effect/risk），第三方不得自证边界；空 = 关闭（逐字旧行为）。
+    # 【S4 model · 跨 provider（2026-10-12）】base_url 决定提示词/上下文往哪发，故与回调
+    # 通道同款 SSRF 口径：必须显式声明 host 白名单；空 = 跨 provider 一律拒绝（回退母体）。
+    _c("CP_SUBAGENT_LLM_ALLOW", CAT_EXTERNAL, "",
+       "分身跨 provider 的 base_url host 白名单（逗号分隔；精确 host 或 .后缀）；"
+       "空=禁止跨 provider（回退母体实例，绝不静默换 provider）（只读）",
+       owner="agent/subagent/llm_factory.py"),
     _c("CP_SUBAGENT_RUNTIME_TOOL_DECLS", CAT_EXTERNAL, "",
        "运行期工具声明文件（JSON：{工具名: {plane, effect, risk, tags?, description?}}）；"
        "只有**已注册且在此显式声明**的插件/MCP 工具才进入分身装配候选；空=关闭（只读）",

@@ -36,8 +36,13 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple
+
+#: 跨 provider 出站 host 白名单（逗号分隔；空 = 关闭）。与回调通道同款 SSRF 口径：
+#: base_url 决定"提示词与上下文往哪发"，不设白名单等于允许把内容发到任意主机。
+ENV_LLM_ALLOW = "CP_SUBAGENT_LLM_ALLOW"
 
 #: 视为"未指定模型"的取值（大小写不敏感；含中文同义写法，界面直接写"跟随母体"也能被识别）
 _INHERIT_SENTINELS: Tuple[str, ...] = ("", "inherit", "parent", "follow", "跟随母体", "-")
@@ -212,6 +217,71 @@ def resolve_subagent_llm(model_id: Any = "", parent_llm: Any = None,
                          temperature=temperature)
 
 
+def resolve_cross_provider_llm(override: Any, *, parent_llm: Any = None,
+                               temperature: Optional[float] = None,
+                               environ: Optional[Mapping[str, str]] = None,
+                               ) -> Optional[LlmResolution]:
+    """分身声明了**跨 provider** 覆盖时构造独立 LLM（opt-in + host 白名单；不抛）
+
+    override（Mapping）字段：provider / base_url / model / api_key_ref
+    （{"source","name","env_var"}，值由**到达端环境**解析，复用 credentials 桥）。
+
+    【安全边界】base_url 的 host **必须**落在 CP_SUBAGENT_LLM_ALLOW 白名单里
+    （空 = 关闭，一律拒绝）：这是"提示词/上下文往哪发"的边界，与回调通道同款 SSRF 口径。
+    【失败语义】任何一步不成（未开 / host 不在白名单 / API key 解析不到 / 构造异常）
+    ⇒ 返回 fallback-after-error 的母体实例 + 非空 error（**绝不静默换 provider**）。
+    override 为空 ⇒ 返回 None（调用方走既有同 provider 路径，行为逐字不变）。
+    """
+    if not isinstance(override, Mapping) or not override:
+        return None
+    env = os.environ if environ is None else environ
+    requested = str(override.get("model") or "").strip()
+    provider = str(override.get("provider") or "").strip()
+    base_url = str(override.get("base_url") or "").strip()
+
+    def _fallback(msg: str) -> LlmResolution:
+        return LlmResolution(llm=_pin_temperature(parent_llm, temperature),
+                             requested=requested or provider,
+                             model=model_name(parent_llm) or "",
+                             source="fallback-after-error", temperature=temperature,
+                             error=msg)
+
+    if not provider or not base_url or not requested:
+        return _fallback("跨 provider 覆盖缺 provider/base_url/model：已回退母体实例（未换 provider）")
+    # 显式 os.environ.get(ENV_…) 形式：开关零缺口守卫（AST 提取）据此认定"该变量有消费者"
+    if environ is None:
+        allowed_raw = str(os.environ.get(ENV_LLM_ALLOW, "") or "").strip()
+    else:
+        allowed_raw = str(environ.get(ENV_LLM_ALLOW, "") or "").strip()
+    if not allowed_raw:
+        return _fallback(ENV_LLM_ALLOW + " 未配置 host 白名单 ⇒ 跨 provider 一律拒绝（已回退母体实例）")
+    from urllib.parse import urlsplit
+
+    from agent.subagent.callback_channel import host_allowed
+
+    allowed = [h.strip() for h in allowed_raw.split(",") if h.strip()]
+    host = urlsplit(base_url).hostname or ""
+    if not host or not host_allowed(host, allowed):
+        return _fallback("base_url 的 host 不在白名单（%s）：跨 provider 被拒（已回退母体实例）"
+                         % (host or "<空>"))
+    ref = override.get("api_key_ref")
+    from agent.subagent.credentials import refs_to_specs
+
+    specs = refs_to_specs([ref] if isinstance(ref, Mapping) else [], environ=env)
+    if not specs:
+        return _fallback("API key 引用在到达端无值（api_key_ref）：跨 provider 被拒（已回退母体实例）")
+    api_key = str(specs[0].get("value") or "")
+    try:
+        from memory.llm_service import LLMService
+
+        child = LLMService(provider=provider, api_key=api_key, model=requested,
+                           base_url=base_url)
+    except Exception as e:  # noqa: BLE001 构造失败不得让委派挂掉（但必须被看见）
+        return _fallback("构造跨 provider LLM 失败（%s）：已回退母体实例" % type(e).__name__)
+    return LlmResolution(llm=_pin_temperature(child, temperature), requested=requested,
+                         model=model_name(child) or requested, source="cross-provider",
+                         temperature=temperature)
+
 def llm_options(deployment_model: str,
                 declared_models: Optional[Any] = None) -> Dict[str, Any]:
     """可选模型清单（**不编造模型目录**：只列"有出处"的名字）
@@ -241,4 +311,4 @@ def llm_options(deployment_model: str,
 
 
 __all__ = ["LlmResolution", "TemperaturePinnedLLM", "llm_options", "model_name",
-           "resolve_subagent_llm"]
+           "resolve_subagent_llm", "resolve_cross_provider_llm", "ENV_LLM_ALLOW"]

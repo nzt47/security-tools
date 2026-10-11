@@ -111,6 +111,9 @@ class SubagentConfig:
     # 引用式密钥（bundle 的 secrets.refs；**只存引用不存值**）：导入后由到达端在每次
     # 委派时按本地环境解析成 TTL 凭据（credentials.refs_to_specs）。空=不接入（逐字旧行为）。
     secret_refs: tuple = ()
+    # 跨 provider 覆盖（可选）：{provider, base_url, model, api_key_ref}。**opt-in + host 白名单**
+    # （CP_SUBAGENT_LLM_ALLOW）；未配置白名单一律拒绝并回退母体实例（见 llm_factory）。
+    llm_override: Optional[dict] = None
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -357,6 +360,19 @@ class SubagentContainer:
         # 路径与批量路径看到同一份生效档位。
         ctx = attach_autonomy_metadata(ctx, self.config)
 
+        # ── 跨 provider（opt-in + host 白名单）：只有声明了 llm_override 才新建独立 LLM ──
+        # 任何一步不成都会回退母体实例并带回非空 error（**绝不静默换 provider**）。
+        base_llm = llm if llm is not None else getattr(self, "llm", None)
+        override = getattr(self.config, "llm_override", None)
+        if override:
+            from agent.subagent.llm_factory import resolve_cross_provider_llm
+
+            res = resolve_cross_provider_llm(
+                override, parent_llm=base_llm,
+                temperature=getattr(self.config, "llm_temperature", None))
+            if res is not None:
+                base_llm = res.llm
+
         if executor is None:
             from agent.subagent.callback_channel import default_callback_dispatcher
 
@@ -364,7 +380,7 @@ class SubagentContainer:
             # 非 scoped 时 scoped_memory_domain() 返回 None（默认路径逐字不变）。
             # 同时按部署开关注入回调投递器（未开启 ⇒ None，默认仍只写审计）。
             executor = DelegationExecutor(
-                llm=llm if llm is not None else getattr(self, "llm", None),
+                llm=base_llm,
                 channel=self._resolve_execution_channel(),
                 scoped_memory_domain=self._scoped_domain(),
                 callback_dispatcher=default_callback_dispatcher())
