@@ -40,6 +40,10 @@ from scripts.audit.contract_diff import (  # noqa: E402
 )
 
 DEFAULT_JSON = ROOT / "reports" / "route_ui_coverage.json"
+#: 人工意图标注（该进 UI / 不该进）；未标注 = unclassified
+INTENT_FILE = ROOT / "config" / "route_ui_intent.json"
+INTENT_VALUES = {"should_be_in_ui", "should_not_be_in_ui"}
+_UNCLASSIFIED = "unclassified"
 
 #: 归一化：Flask 变量段 <int:x>/<x> 与 JS 模板 ${x} 都折成 *
 _PARAM_RE = re.compile(r"<[^>]+>")
@@ -121,6 +125,39 @@ def _refs_from_frontend(fe):
     return refs
 
 
+def _load_intents() -> dict:
+    """读取人工意图标注 config/route_ui_intent.json。
+
+    【fail-closed】文件缺失 / 解析失败 / 结构不符 ⇒ 返回空表（全部按 unclassified 处理），
+    不抛错、也**不假装**有标注：本文件是增量的人工判断，缺了它脚本仍按原机械分类工作。
+    """
+    if not INTENT_FILE.exists():
+        return {}
+    try:
+        data = json.loads(INTENT_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print("[WARN] 意图标注文件无法解析：" + str(INTENT_FILE) + " -> " + str(exc), file=sys.stderr)
+        return {}
+    raw = data.get("intents") if isinstance(data, dict) else None
+    if not isinstance(raw, dict):
+        return {}
+    out: dict = {}
+    for key, value in raw.items():
+        if isinstance(value, str):
+            intent, area, note = value, "", ""
+        elif isinstance(value, dict):
+            intent = value.get("intent", "")
+            area = value.get("area", "")
+            note = value.get("note", "")
+            area = area if isinstance(area, str) else ""
+            note = note if isinstance(note, str) else ""
+        else:
+            continue
+        if intent in INTENT_VALUES:
+            out[norm(str(key))] = {"intent": intent, "area": area, "note": note}
+    return out
+
+
 def classify() -> dict:
     routes = collect_routes_static()
     ui_refs = _refs_from_frontend(collect_frontend_literals())
@@ -171,12 +208,26 @@ def classify() -> dict:
             "where": where[:4],
         })
 
+    # 人工意图标注：只**增**字段，不改机械分类；ui_pending = 该进 UI 却没进
+    intents = _load_intents()
+    for e in entries:
+        meta = intents.get(e["norm"])
+        e["intent"] = meta["intent"] if meta else _UNCLASSIFIED
+        e["intent_area"] = meta["area"] if meta else ""
+        e["intent_note"] = meta["note"] if meta else ""
+        e["ui_pending"] = bool(e["intent"] == "should_be_in_ui" and e["live"] and e["category"] != "ui")
+
     live_n = sum(1 for e in entries if e["live"])
     totals = {"routes": len(entries), "live": live_n, "dead_copy": len(entries) - live_n,
               "ui": 0, "cli_script": 0, "runtime_only": 0, "unreferenced": 0}
     for e in entries:
         totals[e["category"]] += 1
     totals["live_by_category"] = live_totals
+    by_intent = {"should_be_in_ui": 0, "should_not_be_in_ui": 0, _UNCLASSIFIED: 0}
+    for e in entries:
+        if e["live"]:
+            by_intent[e["intent"]] += 1
+    totals["by_intent"] = by_intent
 
     route_norms = {e["norm"] for e in entries}
     unmatched = sorted(p for p in ui_refs if p not in route_norms)
@@ -185,6 +236,12 @@ def classify() -> dict:
         "totals": totals,
         "frontend_endpoints": len(ui_refs),
         "frontend_unmatched": unmatched[:50],
+        "intent_file": str(INTENT_FILE.relative_to(ROOT)).replace("\\", "/"),
+        "pending_ui": [
+            {"path": e["path"], "norm": e["norm"], "methods": e["methods"],
+             "category": e["category"], "area": e["intent_area"], "where": e["where"]}
+            for e in entries if e["ui_pending"]
+        ],
         "entries": entries,
     }
     payload["content_hash"] = _content_hash(payload)
@@ -204,7 +261,8 @@ def _content_hash(payload: dict) -> str:
         "frontend_unmatched": payload["frontend_unmatched"],
         "entries": [
             {"path": e["path"], "methods": e["methods"],
-             "category": e["category"], "live": e["live"]}
+             "category": e["category"], "live": e["live"],
+             "intent": e["intent"], "ui_pending": e["ui_pending"]}
             for e in payload["entries"]
         ],
     }
@@ -229,6 +287,10 @@ def _summary(payload: dict) -> str:
         "  runtime_only    : " + str(t["runtime_only"]),
         "  unreferenced    : " + str(t["unreferenced"]),
         "活体按分类        : " + json.dumps(t.get("live_by_category", {}), ensure_ascii=False),
+        "意图（活体）      : 该进 " + str(t.get("by_intent", {}).get("should_be_in_ui", 0))
+        + " / 不该进 " + str(t.get("by_intent", {}).get("should_not_be_in_ui", 0))
+        + " / 未标注 " + str(t.get("by_intent", {}).get("unclassified", 0)),
+        "该进却未进 UI     : " + str(len(payload.get("pending_ui", []))),
         "前端端点（去重）  : " + str(payload["frontend_endpoints"]),
         "前端引用但无路由  : " + str(len(payload["frontend_unmatched"])),
         "content_hash      : " + payload["content_hash"],

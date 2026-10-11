@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-10T09:30:45",
+  "generated_at": "2026-10-11T16:52:46",
   "totals": {
     "routes": 456,
     "live": 233,
@@ -13,12 +13,137 @@
       "cli_script": 8,
       "runtime_only": 22,
       "unreferenced": 156
+    },
+    "by_intent": {
+      "should_be_in_ui": 9,
+      "should_not_be_in_ui": 4,
+      "unclassified": 220
     }
   },
   "frontend_endpoints": 115,
   "frontend_unmatched": [
     "/api/approval",
     "/api/cp"
+  ],
+  "intent_file": "config/route_ui_intent.json",
+  "pending_ui": [
+    {
+      "path": "/api/browser/close",
+      "norm": "/api/browser/close",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "area": "会话侧/工作区",
+      "where": [
+        "agent/server_routes/routes_workspace.py:225",
+        "plugins/system_tools.py:305"
+      ]
+    },
+    {
+      "path": "/api/browser/screenshot",
+      "norm": "/api/browser/screenshot",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "area": "会话侧/工作区",
+      "where": [
+        "agent/server_routes/routes_workspace.py:217",
+        "plugins/system_tools.py:296"
+      ]
+    },
+    {
+      "path": "/api/clipboard",
+      "norm": "/api/clipboard",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "area": "会话侧/工作区",
+      "where": [
+        "agent/server_routes/routes_workspace.py:294",
+        "agent/server_routes/routes_workspace.py:301",
+        "plugins/system_tools.py:383",
+        "plugins/system_tools.py:391"
+      ]
+    },
+    {
+      "path": "/api/cognitive/prompt",
+      "norm": "/api/cognitive/prompt",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "area": "认知闭环",
+      "where": [
+        "cognitive/flask_adapter.py:33"
+      ]
+    },
+    {
+      "path": "/api/cognitive/reject",
+      "norm": "/api/cognitive/reject",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "area": "认知闭环",
+      "where": [
+        "cognitive/flask_adapter.py:45"
+      ]
+    },
+    {
+      "path": "/api/cognitive/status",
+      "norm": "/api/cognitive/status",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "area": "全景看板",
+      "where": [
+        "agent/server_routes/routes_panorama.py:237",
+        "cognitive/flask_adapter.py:28",
+        "plugins/status.py:353"
+      ]
+    },
+    {
+      "path": "/api/cognitive/translate/<sensor_name>",
+      "norm": "/api/cognitive/translate/*",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "area": "认知闭环",
+      "where": [
+        "cognitive/flask_adapter.py:38"
+      ]
+    },
+    {
+      "path": "/api/config/logs",
+      "norm": "/api/config/logs",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "area": "系统管理·日志",
+      "where": [
+        "agent/server_routes/routes_config.py:679",
+        "plugins/admin.py:768"
+      ]
+    },
+    {
+      "path": "/api/dashboard/summary",
+      "norm": "/api/dashboard/summary",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "area": "管理仪表盘",
+      "where": [
+        "plugins/admin_api.py:699"
+      ]
+    }
   ],
   "entries": [
     {
@@ -33,7 +158,11 @@
       "non_ui_refs": [],
       "where": [
         "app_server.py:2087"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/<path:subpath>",
@@ -53,7 +182,11 @@
       ],
       "where": [
         "agent/api_gateway_flask.py:163"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/agent-lines",
@@ -71,7 +204,11 @@
       "where": [
         "agent/server_routes/routes_agent_lines.py:429",
         "agent/server_routes/routes_agent_lines.py:650"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/agent-lines/<line_id>",
@@ -89,7 +226,11 @@
         "agent/server_routes/routes_agent_lines.py:567",
         "agent/server_routes/routes_agent_lines.py:672",
         "agent/server_routes/routes_agent_lines.py:698"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/agent-lines/active",
@@ -103,7 +244,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_agent_lines.py:721"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/agent-lines/planes",
@@ -119,7 +264,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_agent_lines.py:453"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/agent-lines/preview",
@@ -135,7 +284,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_agent_lines.py:608"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/agent-lines/validate",
@@ -151,7 +304,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_agent_lines.py:748"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/apply-network-config",
@@ -168,7 +325,11 @@
       "where": [
         "agent/server_routes/routes_config.py:190",
         "plugins/admin.py:286"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/approval/<record_id>/approve",
@@ -182,7 +343,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_approval.py:360"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/approval/<record_id>/reject",
@@ -196,7 +361,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_approval.py:365"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/approval/console",
@@ -210,7 +379,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_approval.py:372"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/approval/link",
@@ -226,7 +399,11 @@
       ],
       "where": [
         "agent/server_routes/routes_approval.py:280"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/approval/link/<token>",
@@ -240,7 +417,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_approval.py:316"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/approval/pending",
@@ -256,7 +437,11 @@
       ],
       "where": [
         "agent/server_routes/routes_approval.py:235"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/approval/second-factor",
@@ -272,7 +457,11 @@
       ],
       "where": [
         "agent/server_routes/routes_approval.py:336"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/approval/session",
@@ -292,7 +481,11 @@
       "where": [
         "agent/server_routes/routes_approval.py:197",
         "agent/server_routes/routes_approval.py:222"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/approval/whoami",
@@ -306,7 +499,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_approval.py:174"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/assets/<category>",
@@ -322,7 +519,11 @@
       "where": [
         "agent/server_routes/routes_assets.py:138",
         "agent/server_routes/routes_assets.py:90"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/assets/<category>/<item_id>",
@@ -336,7 +537,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:113"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/assets/backup",
@@ -352,7 +557,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:164"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/assets/backup/<backup_id>",
@@ -366,7 +575,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:216"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/assets/backup/list",
@@ -382,7 +595,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:192"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/assets/export",
@@ -396,7 +613,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:268"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/assets/overview",
@@ -412,7 +633,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:71"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/assets/restore",
@@ -426,7 +651,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:232"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/audit/logs",
@@ -440,7 +669,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:784"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/audit/route-ui-coverage",
@@ -456,7 +689,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/audit_coverage.py:27"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/auth/login",
@@ -470,7 +707,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:429"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/auth/menus",
@@ -484,7 +725,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:478"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/auth/token-check",
@@ -499,7 +744,11 @@
       "where": [
         "agent/server_routes/routes_sessions.py:185",
         "plugins/admin.py:58"
-      ]
+      ],
+      "intent": "should_not_be_in_ui",
+      "intent_area": "内部鉴权",
+      "intent_note": "令牌校验，编排层调用",
+      "ui_pending": false
     },
     {
       "path": "/api/background/tasks",
@@ -513,7 +762,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_background.py:89"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/background/tasks/<task_id>",
@@ -527,7 +780,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_background.py:116"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/background/tasks/<task_id>/cancel",
@@ -541,7 +798,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_background.py:142"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/background/tasks/<task_id>/result",
@@ -555,7 +816,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_background.py:129"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/browser/close",
@@ -570,7 +835,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:225",
         "plugins/system_tools.py:305"
-      ]
+      ],
+      "intent": "should_be_in_ui",
+      "intent_area": "会话侧/工作区",
+      "intent_note": "与截图同一能力",
+      "ui_pending": true
     },
     {
       "path": "/api/browser/navigate",
@@ -587,7 +856,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:206",
         "plugins/system_tools.py:284"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/browser/screenshot",
@@ -602,7 +875,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:217",
         "plugins/system_tools.py:296"
-      ]
+      ],
+      "intent": "should_be_in_ui",
+      "intent_area": "会话侧/工作区",
+      "intent_note": "工作区能力，可做成会话侧面板",
+      "ui_pending": true
     },
     {
       "path": "/api/business/dashboard",
@@ -616,7 +893,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:283"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/business/definitions",
@@ -630,7 +911,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:367"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/business/health",
@@ -644,7 +929,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:259"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/business/metrics/<metric_name>",
@@ -658,7 +947,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:325"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/business/prometheus",
@@ -672,7 +965,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:355"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/capability-manifest",
@@ -688,7 +985,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_agent_lines.py:517"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/chat",
@@ -710,7 +1011,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:258",
         "plugins/chat.py:141"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/chat/stream",
@@ -726,7 +1031,11 @@
       ],
       "where": [
         "plugins/chat.py:1948"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/clear",
@@ -741,7 +1050,11 @@
       "where": [
         "agent/server_routes/routes_sessions.py:175",
         "plugins/chat.py:955"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/clipboard",
@@ -759,7 +1072,11 @@
         "agent/server_routes/routes_workspace.py:301",
         "plugins/system_tools.py:383",
         "plugins/system_tools.py:391"
-      ]
+      ],
+      "intent": "should_be_in_ui",
+      "intent_area": "会话侧/工作区",
+      "intent_note": "剪贴板读写，工作区面板",
+      "ui_pending": true
     },
     {
       "path": "/api/cognitive/prompt",
@@ -773,7 +1090,11 @@
       "non_ui_refs": [],
       "where": [
         "cognitive/flask_adapter.py:33"
-      ]
+      ],
+      "intent": "should_be_in_ui",
+      "intent_area": "认知闭环",
+      "intent_note": "先定是否该进；暂记该进",
+      "ui_pending": true
     },
     {
       "path": "/api/cognitive/reject",
@@ -787,7 +1108,11 @@
       "non_ui_refs": [],
       "where": [
         "cognitive/flask_adapter.py:45"
-      ]
+      ],
+      "intent": "should_be_in_ui",
+      "intent_area": "认知闭环",
+      "intent_note": "先定是否该进；暂记该进",
+      "ui_pending": true
     },
     {
       "path": "/api/cognitive/status",
@@ -803,7 +1128,11 @@
         "agent/server_routes/routes_panorama.py:237",
         "cognitive/flask_adapter.py:28",
         "plugins/status.py:353"
-      ]
+      ],
+      "intent": "should_be_in_ui",
+      "intent_area": "全景看板",
+      "intent_note": "认知闭环状态",
+      "ui_pending": true
     },
     {
       "path": "/api/cognitive/translate/<sensor_name>",
@@ -817,7 +1146,11 @@
       "non_ui_refs": [],
       "where": [
         "cognitive/flask_adapter.py:38"
-      ]
+      ],
+      "intent": "should_be_in_ui",
+      "intent_area": "认知闭环",
+      "intent_note": "先定是否该进；暂记该进",
+      "ui_pending": true
     },
     {
       "path": "/api/config",
@@ -836,7 +1169,11 @@
       "where": [
         "agent/server_routes/routes_config.py:87",
         "plugins/admin.py:71"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/config/logs",
@@ -851,7 +1188,11 @@
       "where": [
         "agent/server_routes/routes_config.py:679",
         "plugins/admin.py:768"
-      ]
+      ],
+      "intent": "should_be_in_ui",
+      "intent_area": "系统管理·日志",
+      "intent_note": "与系统日志同屏",
+      "ui_pending": true
     },
     {
       "path": "/api/context/compress",
@@ -869,7 +1210,11 @@
       ],
       "where": [
         "plugins/memory.py:307"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/context/config",
@@ -885,7 +1230,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:246"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/context/status",
@@ -901,7 +1250,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:131"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/actions/<action>",
@@ -915,7 +1268,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:462"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/approvals/batch",
@@ -929,7 +1286,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:875"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/approvals/batch/link",
@@ -943,7 +1304,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:798"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/approvals/inbox",
@@ -957,7 +1322,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:267"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/audit/export",
@@ -971,7 +1340,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:370"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/audit/export.csv",
@@ -985,7 +1358,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:394"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/confirmations/<action>",
@@ -999,7 +1376,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:420"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/descriptors/map",
@@ -1013,7 +1394,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:249"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/digestion/pipeline",
@@ -1027,7 +1412,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:233"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/healing/incidents",
@@ -1041,7 +1430,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:307"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/memory/skills",
@@ -1055,7 +1448,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:322"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/observability/stream",
@@ -1069,7 +1466,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:293"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/panels",
@@ -1083,7 +1484,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:199"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/roi",
@@ -1097,7 +1502,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:280"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/security/authz-alerts",
@@ -1111,7 +1520,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:345"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/security/render-state",
@@ -1125,7 +1538,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:359"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/settings",
@@ -1139,7 +1556,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_settings.py:274"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/settings/<key>",
@@ -1153,7 +1574,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_settings.py:284"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/settings/<key>/confirm",
@@ -1167,7 +1592,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_settings.py:314"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/settings/<key>/reset",
@@ -1181,7 +1610,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_settings.py:339"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/cp/tool-exemptions",
@@ -1199,7 +1632,11 @@
       "where": [
         "agent/server_routes/routes_settings.py:364",
         "agent/server_routes/routes_settings.py:375"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/dashboard/health",
@@ -1213,7 +1650,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:680"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/dashboard/memory",
@@ -1227,7 +1668,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:855"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/dashboard/quality",
@@ -1241,7 +1686,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:702"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/dashboard/summary",
@@ -1255,7 +1704,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:699"
-      ]
+      ],
+      "intent": "should_be_in_ui",
+      "intent_area": "管理仪表盘",
+      "intent_note": "",
+      "ui_pending": true
     },
     {
       "path": "/api/dashboard/traces",
@@ -1269,7 +1722,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:780"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/dashboard/traces/<trace_id>",
@@ -1283,7 +1740,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:833"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/demo/config",
@@ -1299,7 +1760,11 @@
       "where": [
         "plugins/demo_plugin.py:35",
         "plugins/demo_plugin.py:41"
-      ]
+      ],
+      "intent": "should_not_be_in_ui",
+      "intent_area": "开发 mock",
+      "intent_note": "仅 dev mock，永不上屏",
+      "ui_pending": false
     },
     {
       "path": "/api/demo/probe",
@@ -1313,7 +1778,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/demo_plugin.py:29"
-      ]
+      ],
+      "intent": "should_not_be_in_ui",
+      "intent_area": "开发 mock",
+      "intent_note": "仅 dev mock，永不上屏",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/config",
@@ -1327,7 +1796,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:635"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/error_correlation",
@@ -1341,7 +1814,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:693"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/health",
@@ -1358,7 +1835,11 @@
       ],
       "where": [
         "agent/server_routes/routes_logging.py:665"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/llm-check",
@@ -1374,7 +1855,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:604"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/logs",
@@ -1388,7 +1873,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:851"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/metrics",
@@ -1404,7 +1893,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:827"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/tools",
@@ -1418,7 +1911,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:571"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/trace",
@@ -1434,7 +1931,11 @@
       ],
       "where": [
         "agent/server_routes/routes_logging.py:716"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/trace/extract",
@@ -1448,7 +1949,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:741"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/diagnostics/trace/inject",
@@ -1464,7 +1969,11 @@
       ],
       "where": [
         "agent/server_routes/routes_logging.py:794"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/docs",
@@ -1480,7 +1989,11 @@
       ],
       "where": [
         "agent/api_gateway_flask.py:174"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/experience/<sid>",
@@ -1494,7 +2007,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:250"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/experience/<sid>/review",
@@ -1508,7 +2025,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:315"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/experience/batch/<batch_id>/rollback",
@@ -1522,7 +2043,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:339"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/experience/ingest",
@@ -1538,7 +2063,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:157"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/experience/list",
@@ -1554,7 +2083,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:216"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/experience/search",
@@ -1570,7 +2103,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:287"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/experience/stats",
@@ -1586,7 +2123,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:261"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/export/users",
@@ -1600,7 +2141,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:714"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/channels/send",
@@ -1615,7 +2160,11 @@
       "where": [
         "agent/server_routes/extensions.py:156",
         "plugins/skills.py:818"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/configure",
@@ -1630,7 +2179,11 @@
       "where": [
         "agent/server_routes/extensions.py:85",
         "plugins/skills.py:732"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/discover",
@@ -1645,7 +2198,11 @@
       "where": [
         "agent/server_routes/extensions.py:101",
         "plugins/skills.py:754"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/install",
@@ -1660,7 +2217,11 @@
       "where": [
         "agent/server_routes/extensions.py:38",
         "plugins/skills.py:664"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/installed",
@@ -1675,7 +2236,11 @@
       "where": [
         "agent/server_routes/extensions.py:28",
         "plugins/skills.py:650"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/list",
@@ -1690,7 +2255,11 @@
       "where": [
         "agent/server_routes/extensions.py:17",
         "plugins/skills.py:635"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/market/recommend",
@@ -1705,7 +2274,11 @@
       "where": [
         "agent/server_routes/extensions.py:128",
         "plugins/skills.py:786"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/market/refresh",
@@ -1720,7 +2293,11 @@
       "where": [
         "agent/server_routes/extensions.py:140",
         "plugins/skills.py:802"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/market/search",
@@ -1735,7 +2312,11 @@
       "where": [
         "agent/server_routes/extensions.py:115",
         "plugins/skills.py:768"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/toggle",
@@ -1752,7 +2333,11 @@
       "where": [
         "agent/server_routes/extensions.py:69",
         "plugins/skills.py:710"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/extensions/uninstall",
@@ -1767,7 +2352,11 @@
       "where": [
         "agent/server_routes/extensions.py:54",
         "plugins/skills.py:686"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/feedback/<feedback_id>",
@@ -1781,7 +2370,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:165"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/feedback/<feedback_id>/resolve",
@@ -1795,7 +2388,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:193"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/feedback/list",
@@ -1809,7 +2406,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:113"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/feedback/quality-cases",
@@ -1823,7 +2424,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:264"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/feedback/report",
@@ -1837,7 +2442,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:305"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/feedback/submit",
@@ -1851,7 +2460,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:33"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/feedback/summary",
@@ -1865,7 +2478,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:236"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/filesystem/info",
@@ -1880,7 +2497,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:144",
         "plugins/system_tools.py:198"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/filesystem/list",
@@ -1895,7 +2516,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:135",
         "plugins/system_tools.py:187"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/filesystem/read",
@@ -1910,7 +2535,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:98",
         "plugins/system_tools.py:141"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/filesystem/search",
@@ -1925,7 +2554,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:153",
         "plugins/system_tools.py:209"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/filesystem/write",
@@ -1940,7 +2573,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:118",
         "plugins/system_tools.py:165"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/handoff",
@@ -1955,7 +2592,11 @@
       "where": [
         "agent/server_routes/routes_sessions.py:248",
         "plugins/chat.py:675"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health",
@@ -1981,7 +2622,11 @@
       "where": [
         "agent/server_routes/routes_panorama.py:169",
         "plugins/status.py:234"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/alerts",
@@ -1995,7 +2640,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:309"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/auth",
@@ -2010,7 +2659,11 @@
       "where": [
         "agent/server_routes/routes_panorama.py:176",
         "plugins/status.py:242"
-      ]
+      ],
+      "intent": "should_not_be_in_ui",
+      "intent_area": "探针",
+      "intent_note": "健康探针，给编排器而非人",
+      "ui_pending": false
     },
     {
       "path": "/api/health/dashboard",
@@ -2030,7 +2683,11 @@
       ],
       "where": [
         "agent/health/dashboard.py:16"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/export",
@@ -2044,7 +2701,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:421"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/history",
@@ -2058,7 +2719,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:219"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/probe-trend",
@@ -2076,7 +2741,11 @@
       ],
       "where": [
         "agent/health/dashboard.py:103"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/quick-check",
@@ -2090,7 +2759,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:346"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/retrieval",
@@ -2106,7 +2779,11 @@
       ],
       "where": [
         "app_server.py:1765"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/score",
@@ -2122,7 +2799,11 @@
       ],
       "where": [
         "agent/server_routes/routes_health.py:147"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/score/calculate",
@@ -2136,7 +2817,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:173"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/summary",
@@ -2150,7 +2835,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:285"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/trend",
@@ -2164,7 +2853,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:199"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/health/weights",
@@ -2179,7 +2872,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:245"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/heartbeat",
@@ -2196,7 +2893,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:25",
         "plugins/status.py:789"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/heartbeat/history",
@@ -2213,7 +2914,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:37",
         "plugins/status.py:815"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/heartbeat/status",
@@ -2228,7 +2933,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:56",
         "plugins/status.py:844"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/history",
@@ -2243,7 +2952,11 @@
       "where": [
         "agent/server_routes/routes_sessions.py:153",
         "plugins/chat.py:933"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/history/<int:index>",
@@ -2258,7 +2971,11 @@
       "where": [
         "agent/server_routes/routes_sessions.py:208",
         "plugins/chat.py:989"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/history/search",
@@ -2273,7 +2990,11 @@
       "where": [
         "agent/server_routes/routes_sessions.py:191",
         "plugins/chat.py:969"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/knowledge/add",
@@ -2287,7 +3008,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:610"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/knowledge/cards",
@@ -2308,7 +3033,11 @@
       "where": [
         "agent/server_routes/routes_knowledge.py:188",
         "agent/server_routes/routes_knowledge.py:225"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/knowledge/cards/<slug>",
@@ -2326,7 +3055,11 @@
         "agent/server_routes/routes_knowledge.py:209",
         "agent/server_routes/routes_knowledge.py:255",
         "agent/server_routes/routes_knowledge.py:317"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/knowledge/graph",
@@ -2342,7 +3075,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_knowledge.py:368"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/knowledge/index",
@@ -2358,7 +3095,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_knowledge.py:338"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/knowledge/lint",
@@ -2374,7 +3115,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_knowledge.py:352"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/knowledge/query",
@@ -2390,7 +3135,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_knowledge.py:109"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/learning/metrics",
@@ -2407,7 +3156,11 @@
       ],
       "where": [
         "agent/learning_metrics_api.py:27"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/llm-monitor/clear",
@@ -2423,7 +3176,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_llm_monitor.py:112"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/llm-monitor/records",
@@ -2441,7 +3198,11 @@
       ],
       "where": [
         "agent/server_routes/routes_llm_monitor.py:25"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/llm-monitor/records/<record_id>",
@@ -2455,7 +3216,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_llm_monitor.py:56"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/llm-monitor/stats",
@@ -2471,7 +3236,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_llm_monitor.py:74"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/llm-monitor/toggle",
@@ -2487,7 +3256,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_llm_monitor.py:98"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/llm/instances",
@@ -2505,7 +3278,11 @@
         "agent/server_routes/routes_config.py:256",
         "plugins/admin.py:337",
         "plugins/admin.py:365"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/llm/instances/<string:instance_id>",
@@ -2524,7 +3301,11 @@
         "agent/server_routes/routes_config.py:276",
         "agent/server_routes/routes_config.py:295",
         "plugins/admin.py:350"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/llm/instances/<string:instance_id>/default",
@@ -2539,7 +3320,11 @@
       "where": [
         "agent/server_routes/routes_config.py:310",
         "plugins/admin.py:423"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/llm/instances/<string:instance_id>/test",
@@ -2554,7 +3339,11 @@
       "where": [
         "agent/server_routes/routes_config.py:325",
         "plugins/admin.py:438"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/mcp/enable",
@@ -2571,7 +3360,11 @@
       "where": [
         "agent/server_routes/routes_config.py:470",
         "plugins/mcp_scheduler.py:143"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/mcp/services",
@@ -2591,7 +3384,11 @@
         "agent/server_routes/routes_config.py:422",
         "plugins/mcp_scheduler.py:51",
         "plugins/mcp_scheduler.py:85"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/mcp/services/<string:service_id>",
@@ -2610,7 +3407,11 @@
         "agent/server_routes/routes_config.py:440",
         "agent/server_routes/routes_config.py:457",
         "plugins/mcp_scheduler.py:108"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/<int:index>",
@@ -2624,7 +3425,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:389"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/clear-summary",
@@ -2638,7 +3443,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:397"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/compress",
@@ -2654,7 +3463,11 @@
       ],
       "where": [
         "plugins/memory.py:373"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/manual",
@@ -2672,7 +3485,11 @@
       ],
       "where": [
         "plugins/memory.py:353"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/overview",
@@ -2688,7 +3505,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:329"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/review",
@@ -2703,7 +3524,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:426"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/summary",
@@ -2717,7 +3542,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:409"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/windows/clear",
@@ -2731,7 +3560,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:724"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/windows/config",
@@ -2746,7 +3579,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:707"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/windows/current",
@@ -2760,7 +3597,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:697"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/windows/events",
@@ -2774,7 +3615,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:639"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/memory/windows/stats",
@@ -2788,7 +3633,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:655"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/menu/tree",
@@ -2802,7 +3651,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:655"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/mode",
@@ -2817,7 +3670,11 @@
       "where": [
         "agent/server_routes/routes_panorama.py:220",
         "plugins/status.py:311"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/modules/<module_id>/actions",
@@ -2833,7 +3690,11 @@
       ],
       "where": [
         "agent/modules_api.py:407"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/modules/<module_id>/detail",
@@ -2849,7 +3710,11 @@
       ],
       "where": [
         "agent/modules_api.py:381"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/modules/topology",
@@ -2868,7 +3733,11 @@
       ],
       "where": [
         "agent/modules_api.py:340"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/network-config",
@@ -2890,7 +3759,11 @@
         "agent/server_routes/routes_config.py:140",
         "plugins/admin.py:196",
         "plugins/admin.py:205"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/network-config/export",
@@ -2905,7 +3778,11 @@
       "where": [
         "agent/server_routes/routes_config.py:161",
         "plugins/admin.py:251"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/network-config/import",
@@ -2920,7 +3797,11 @@
       "where": [
         "agent/server_routes/routes_config.py:172",
         "plugins/admin.py:264"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/network-config/reset",
@@ -2937,7 +3818,11 @@
       "where": [
         "agent/server_routes/routes_config.py:153",
         "plugins/admin.py:241"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/news",
@@ -2951,7 +3836,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:454"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/notification/<int:notif_id>/read",
@@ -2965,7 +3854,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:681"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/notification/list",
@@ -2979,7 +3872,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:667"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/notification/read-all",
@@ -2993,7 +3890,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:691"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/notification/unread-count",
@@ -3007,7 +3908,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:675"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/access_logs",
@@ -3021,7 +3926,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1459"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/access_stats",
@@ -3035,7 +3944,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1504"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/alerts",
@@ -3053,7 +3966,11 @@
       "where": [
         "agent/server_routes/routes_logging.py:1172",
         "agent/server_routes/routes_logging.py:1191"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/alerts/<alert_name>",
@@ -3069,7 +3986,11 @@
       "where": [
         "agent/server_routes/routes_logging.py:1247",
         "agent/server_routes/routes_logging.py:1296"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/alerts/validate",
@@ -3083,7 +4004,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1320"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/logs",
@@ -3099,7 +4024,11 @@
       "where": [
         "agent/server_routes/routes_logging.py:877",
         "agent/server_routes/routes_logging.py:995"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/logs/labels",
@@ -3113,7 +4042,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:965"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/logs/stream",
@@ -3127,7 +4060,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1074"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/state",
@@ -3141,7 +4078,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1041"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/traces",
@@ -3155,7 +4096,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1350"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/observability/traces/<trace_id>",
@@ -3169,7 +4114,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1389"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/orchestrator/semantic-config",
@@ -3185,7 +4134,11 @@
       "where": [
         "agent/server_routes/routes_semantic_config.py:42",
         "agent/server_routes/routes_semantic_config.py:60"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/panorama",
@@ -3204,7 +4157,11 @@
       "where": [
         "agent/server_routes/routes_panorama.py:256",
         "plugins/status.py:373"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/permission/access-log",
@@ -3219,7 +4176,11 @@
       "where": [
         "agent/server_routes/routes_permission.py:166",
         "plugins/safety.py:280"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/permission/emergency",
@@ -3236,7 +4197,11 @@
       "where": [
         "agent/server_routes/routes_permission.py:175",
         "plugins/safety.py:291"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/permission/log",
@@ -3251,7 +4216,11 @@
       "where": [
         "agent/server_routes/routes_permission.py:107",
         "plugins/safety.py:211"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/permission/stats",
@@ -3266,7 +4235,11 @@
       "where": [
         "agent/server_routes/routes_permission.py:122",
         "plugins/safety.py:231"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/permission/status",
@@ -3281,7 +4254,11 @@
       "where": [
         "agent/server_routes/routes_permission.py:76",
         "plugins/safety.py:172"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/permission/toggle",
@@ -3298,7 +4275,11 @@
       "where": [
         "agent/server_routes/routes_permission.py:207",
         "plugins/safety.py:326"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/permissions",
@@ -3312,7 +4293,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:556"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/personality",
@@ -3329,7 +4314,11 @@
       "where": [
         "agent/server_routes/routes_personality.py:23",
         "plugins/status.py:665"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/personality/params",
@@ -3346,7 +4335,11 @@
       "where": [
         "agent/server_routes/routes_personality.py:29",
         "plugins/status.py:684"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/personality/profile",
@@ -3365,7 +4358,11 @@
       "where": [
         "agent/server_routes/routes_personality.py:39",
         "plugins/status.py:694"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/personality/reset",
@@ -3384,7 +4381,11 @@
       "where": [
         "agent/server_routes/routes_personality.py:49",
         "plugins/status.py:704"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/planning/toggle",
@@ -3401,7 +4402,11 @@
       ],
       "where": [
         "plugins/status.py:329"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/plugins",
@@ -3419,7 +4424,11 @@
       ],
       "where": [
         "app_server.py:1452"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/plugins/reload",
@@ -3437,7 +4446,11 @@
       ],
       "where": [
         "app_server.py:1458"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/privacy/info",
@@ -3451,7 +4464,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/safety.py:54"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/process-distill/distill",
@@ -3465,7 +4482,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_process_distill.py:67"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/process-distill/health",
@@ -3479,7 +4500,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_process_distill.py:58"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/process/list",
@@ -3496,7 +4521,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:237",
         "plugins/system_tools.py:318"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/process/start",
@@ -3513,7 +4542,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:267",
         "plugins/system_tools.py:354"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/process/stop",
@@ -3530,7 +4563,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:279",
         "plugins/system_tools.py:367"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/process/whitelist",
@@ -3545,7 +4582,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:243",
         "plugins/system_tools.py:326"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/process/whitelist/add",
@@ -3560,7 +4601,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:249",
         "plugins/system_tools.py:334"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/process/whitelist/remove",
@@ -3575,7 +4620,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:258",
         "plugins/system_tools.py:344"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/replay/<replay_id>",
@@ -3589,7 +4638,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:195"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/replay/<replay_id>/data",
@@ -3603,7 +4656,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:223"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/replay/cleanup",
@@ -3617,7 +4674,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:286"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/replay/list",
@@ -3631,7 +4692,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:142"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/replay/stats",
@@ -3645,7 +4710,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:258"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/replay/upload",
@@ -3661,7 +4730,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:56"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/role",
@@ -3675,7 +4748,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:562"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/role/<int:role_id>",
@@ -3691,7 +4768,11 @@
       "where": [
         "plugins/admin_api.py:609",
         "plugins/admin_api.py:623"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/role/<int:role_id>/data-scope",
@@ -3705,7 +4786,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:597"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/role/<int:role_id>/permissions",
@@ -3719,7 +4804,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:582"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/role/list",
@@ -3733,7 +4822,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:547"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/safety/alerts",
@@ -3748,7 +4841,11 @@
       "where": [
         "agent/server_routes/routes_permission.py:46",
         "plugins/safety.py:137"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/safety/check",
@@ -3763,7 +4860,11 @@
       "where": [
         "agent/server_routes/routes_permission.py:36",
         "plugins/safety.py:125"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/safety/keywords",
@@ -3781,7 +4882,11 @@
       "where": [
         "agent/server_routes/routes_permission.py:54",
         "plugins/safety.py:147"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sandbox/run",
@@ -3796,7 +4901,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:167",
         "plugins/system_tools.py:225"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/scheduler/create",
@@ -3811,7 +4920,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:83",
         "plugins/mcp_scheduler.py:174"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/scheduler/delete",
@@ -3828,7 +4941,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:100",
         "plugins/mcp_scheduler.py:195"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/scheduler/execute-now",
@@ -3845,7 +4962,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:119",
         "plugins/mcp_scheduler.py:218"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/scheduler/history",
@@ -3860,7 +4981,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:134",
         "plugins/mcp_scheduler.py:235"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/scheduler/tasks",
@@ -3877,7 +5002,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:77",
         "plugins/mcp_scheduler.py:166"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/scheduler/toggle",
@@ -3894,7 +5023,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:109",
         "plugins/mcp_scheduler.py:206"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/schedules",
@@ -3912,7 +5045,11 @@
       "where": [
         "plugins/mcp_scheduler.py:254",
         "plugins/mcp_scheduler.py:266"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/schedules/<task_id>",
@@ -3926,7 +5063,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:296"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/schedules/<task_id>/pause",
@@ -3940,7 +5081,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:308"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/schedules/<task_id>/resume",
@@ -3954,7 +5099,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:320"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/schedules/history",
@@ -3968,7 +5117,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:332"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search-performance/check",
@@ -3983,7 +5136,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:186",
         "plugins/admin.py:889"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search-performance/history",
@@ -3998,7 +5155,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:198",
         "plugins/admin.py:903"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search-performance/start",
@@ -4015,7 +5176,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:160",
         "plugins/admin.py:859"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search-performance/status",
@@ -4030,7 +5195,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:149",
         "plugins/admin.py:846"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search-performance/stop",
@@ -4047,7 +5216,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:174",
         "plugins/admin.py:875"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search-performance/summary",
@@ -4062,7 +5235,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:210",
         "plugins/admin.py:917"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search/instances",
@@ -4080,7 +5257,11 @@
         "agent/server_routes/routes_config.py:501",
         "plugins/admin.py:491",
         "plugins/admin.py:503"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search/instances/<string:instance_id>",
@@ -4098,7 +5279,11 @@
         "agent/server_routes/routes_config.py:574",
         "plugins/admin.py:563",
         "plugins/admin.py:623"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search/instances/<string:instance_id>/default",
@@ -4113,7 +5298,11 @@
       "where": [
         "agent/server_routes/routes_config.py:601",
         "plugins/admin.py:685"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/search/instances/<string:instance_id>/test",
@@ -4128,7 +5317,11 @@
       "where": [
         "agent/server_routes/routes_config.py:633",
         "plugins/admin.py:733"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sensors",
@@ -4149,7 +5342,11 @@
       "where": [
         "agent/server_routes/routes_panorama.py:198",
         "plugins/status.py:270"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/session-groups",
@@ -4167,7 +5364,11 @@
       "where": [
         "plugins/chat.py:871",
         "plugins/chat.py:879"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/session-groups/<group_id>",
@@ -4183,7 +5384,11 @@
       "where": [
         "plugins/chat.py:891",
         "plugins/chat.py:906"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sessions",
@@ -4205,7 +5410,11 @@
         "agent/server_routes/routes_sessions.py:87",
         "plugins/chat.py:536",
         "plugins/chat.py:549"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sessions/<session_id>",
@@ -4220,7 +5429,11 @@
       "where": [
         "agent/server_routes/routes_sessions.py:98",
         "plugins/chat.py:562"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sessions/<session_id>/group",
@@ -4234,7 +5447,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:917"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sessions/<session_id>/messages",
@@ -4251,7 +5468,11 @@
         "agent/server_routes/routes_sessions.py:144",
         "plugins/chat.py:626",
         "plugins/chat.py:636"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sessions/<session_id>/rename",
@@ -4266,7 +5487,11 @@
       "where": [
         "agent/server_routes/routes_sessions.py:108",
         "plugins/chat.py:582"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sessions/<session_id>/workspace",
@@ -4280,7 +5505,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:719"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sessions/<session_id>/workspace-root",
@@ -4296,7 +5525,11 @@
       "where": [
         "plugins/chat.py:742",
         "plugins/chat.py:768"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sessions/<session_id>/workspace/reveal",
@@ -4310,7 +5543,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:780"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/sessions/current",
@@ -4327,7 +5564,11 @@
       "where": [
         "agent/server_routes/routes_sessions.py:120",
         "plugins/chat.py:597"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills",
@@ -4343,7 +5584,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:152"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt",
@@ -4361,7 +5606,11 @@
       ],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:166"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>",
@@ -4381,7 +5630,11 @@
         "agent/server_routes/routes_skills_mgmt.py:181",
         "agent/server_routes/routes_skills_mgmt.py:736",
         "agent/server_routes/routes_skills_mgmt.py:751"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/duplicates",
@@ -4395,7 +5648,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1117"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/execute",
@@ -4409,7 +5666,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1426"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/execution",
@@ -4423,7 +5684,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:869"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/feedback",
@@ -4439,7 +5704,11 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1011",
         "agent/server_routes/routes_skills_mgmt.py:938"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/fix-auto",
@@ -4453,7 +5722,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:584"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/instruction",
@@ -4467,7 +5740,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1294"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/optimize",
@@ -4481,7 +5758,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:855"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/optimize-with-feedback",
@@ -4495,7 +5776,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1039"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/param-stats",
@@ -4509,7 +5794,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:907"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/publish",
@@ -4525,7 +5814,11 @@
       ],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:682"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/redraft",
@@ -4539,7 +5832,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:554"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/review",
@@ -4553,7 +5850,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:335"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/scripts",
@@ -4567,7 +5868,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1412"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/suggest-fix",
@@ -4581,7 +5886,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:570"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/toggle",
@@ -4595,7 +5904,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:766"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/versions",
@@ -4609,7 +5922,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:786"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/versions/bump",
@@ -4623,7 +5940,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:802"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/versions/rollback",
@@ -4637,7 +5958,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:830"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/abstract-from-memory",
@@ -4651,7 +5976,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1312"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/assess/<skill_id>",
@@ -4665,7 +5994,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:610"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/assess/curate",
@@ -4681,7 +6014,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:388"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/assess/events",
@@ -4697,7 +6034,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:648"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/assess/feed",
@@ -4713,7 +6054,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:439"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/assess/merge-backups",
@@ -4729,7 +6074,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:425"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/assess/merge-safe",
@@ -4745,7 +6094,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:406"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/assess/merge-undo",
@@ -4761,7 +6114,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:537"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/assess/run-all",
@@ -4777,7 +6134,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:375"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/assess/stream",
@@ -4793,7 +6154,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:662"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/auto-merge",
@@ -4807,7 +6172,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1200"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/classes",
@@ -4823,7 +6192,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:471"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/classes/move",
@@ -4839,7 +6212,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:498"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/classes/run-auto",
@@ -4855,7 +6232,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:486"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/cleanup/orphans",
@@ -4869,7 +6250,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:83"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/cleanup/report",
@@ -4883,7 +6268,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:72"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/cleanup/unused",
@@ -4897,7 +6286,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:100"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/create/ai",
@@ -4913,7 +6306,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:198"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/create/manual",
@@ -4929,7 +6326,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:225"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/digest/<skill_id>",
@@ -4943,7 +6344,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:611"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/digest/curate",
@@ -4957,7 +6362,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:389"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/digest/events",
@@ -4971,7 +6380,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:649"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/digest/feed",
@@ -4985,7 +6398,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:440"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/digest/merge-backups",
@@ -4999,7 +6416,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:426"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/digest/merge-safe",
@@ -5013,7 +6434,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:407"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/digest/merge-undo",
@@ -5027,7 +6452,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:538"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/digest/run-all",
@@ -5041,7 +6470,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:376"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/digest/stream",
@@ -5055,7 +6488,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:663"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/duplicates",
@@ -5071,7 +6508,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1088"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/health",
@@ -5089,7 +6530,11 @@
       ],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:58"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/inject",
@@ -5103,7 +6548,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1465"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/install",
@@ -5119,7 +6568,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:240"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/install/precheck",
@@ -5135,7 +6588,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:261"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/match",
@@ -5151,7 +6608,11 @@
       ],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1254"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/merge",
@@ -5165,7 +6626,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1141"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/meta/categories",
@@ -5181,7 +6646,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1064"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/queue",
@@ -5197,7 +6666,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:279"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/review/audit",
@@ -5213,7 +6686,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:630"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/review/batch",
@@ -5229,7 +6706,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:353"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/review/thresholds",
@@ -5246,7 +6727,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:703"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/search",
@@ -5262,7 +6747,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:129"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/slash-commands",
@@ -5278,7 +6767,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:459"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/slash/<skill_id>",
@@ -5292,7 +6785,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1504"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/three-layer/summary",
@@ -5306,7 +6803,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1240"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills-mgmt/upload",
@@ -5320,7 +6821,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:292"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills/add",
@@ -5334,7 +6839,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:550"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills/classify/run-auto",
@@ -5350,7 +6859,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:503"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills/content",
@@ -5364,7 +6877,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:265"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills/delete",
@@ -5378,7 +6895,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:559"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills/describe",
@@ -5392,7 +6913,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:441"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills/describe/auto",
@@ -5408,7 +6933,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:475"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills/params",
@@ -5422,7 +6951,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:540"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/skills/toggle",
@@ -5440,7 +6973,11 @@
       ],
       "where": [
         "plugins/skills.py:391"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/status",
@@ -5459,7 +6996,11 @@
       "where": [
         "agent/server_routes/routes_panorama.py:204",
         "plugins/status.py:283"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/status/config",
@@ -5475,7 +7016,11 @@
       "where": [
         "plugins/status.py:716",
         "plugins/status.py:732"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/<name>",
@@ -5489,7 +7034,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:619"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/<name>/bundle",
@@ -5503,7 +7052,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:636"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/<name>/delegate",
@@ -5516,8 +7069,12 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:969"
-      ]
+        "agent/server_routes/routes_subagent.py:978"
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/<name>/destroy",
@@ -5530,8 +7087,12 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:915"
-      ]
+        "agent/server_routes/routes_subagent.py:924"
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/<name>/execute",
@@ -5544,8 +7105,12 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:937"
-      ]
+        "agent/server_routes/routes_subagent.py:946"
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/<name>/offline_pack",
@@ -5559,7 +7124,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:686"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/<name>/reload",
@@ -5572,8 +7141,12 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1203"
-      ]
+        "agent/server_routes/routes_subagent.py:1212"
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/callback",
@@ -5586,8 +7159,12 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:776"
-      ]
+        "agent/server_routes/routes_subagent.py:785"
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/capabilities",
@@ -5603,7 +7180,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:539"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/create",
@@ -5618,8 +7199,12 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:834"
-      ]
+        "agent/server_routes/routes_subagent.py:843"
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/delegate",
@@ -5634,8 +7219,12 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1100"
-      ]
+        "agent/server_routes/routes_subagent.py:1109"
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/history",
@@ -5651,7 +7240,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:562"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/import",
@@ -5666,8 +7259,12 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:708"
-      ]
+        "agent/server_routes/routes_subagent.py:717"
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/subagent/list",
@@ -5683,7 +7280,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:506"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/system-prompt",
@@ -5701,7 +7302,11 @@
       "where": [
         "plugins/admin.py:110",
         "plugins/admin.py:143"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/system-prompt/config",
@@ -5719,7 +7324,11 @@
       "where": [
         "agent/server_routes/routes_system_prompt.py:58",
         "agent/server_routes/routes_system_prompt.py:97"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/system-prompt/config/apply",
@@ -5735,7 +7344,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_system_prompt.py:145"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/system-prompt/config/preview",
@@ -5751,7 +7364,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_system_prompt.py:207"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/system-prompt/config/reset",
@@ -5767,7 +7384,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_system_prompt.py:126"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/system-prompt/reset",
@@ -5781,7 +7402,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:180"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/system-prompt/sync-status",
@@ -5795,7 +7420,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_system_prompt.py:233"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tasks",
@@ -5809,7 +7438,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:346"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tasks/<task_id>",
@@ -5823,7 +7456,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:355"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tasks/<task_id>/cancel",
@@ -5837,7 +7474,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:364"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/test/division",
@@ -5854,7 +7495,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:239",
         "app_server.py:2201"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/test/error",
@@ -5871,7 +7516,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:225",
         "app_server.py:2177"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/test/null",
@@ -5888,7 +7537,11 @@
       "where": [
         "agent/server_routes/routes_monitoring.py:232",
         "app_server.py:2190"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tools/categories",
@@ -5902,7 +7555,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:893"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tools/config",
@@ -5918,7 +7575,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:844"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tools/health",
@@ -5932,7 +7593,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:955"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tools/keywords",
@@ -5948,7 +7613,11 @@
       "where": [
         "plugins/skills.py:903",
         "plugins/skills.py:917"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tools/keywords/reset",
@@ -5962,7 +7631,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:946"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tools/keywords/update",
@@ -5976,7 +7649,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:931"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tools/status-batch",
@@ -5990,7 +7667,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:963"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/tools/toggle",
@@ -6008,7 +7689,11 @@
       ],
       "where": [
         "plugins/skills.py:877"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/user",
@@ -6022,7 +7707,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:507"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/user/<int:user_id>",
@@ -6038,7 +7727,11 @@
       "where": [
         "plugins/admin_api.py:496",
         "plugins/admin_api.py:529"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/user/info",
@@ -6052,7 +7745,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:466"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/user/list",
@@ -6068,7 +7765,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:487"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/vector/add",
@@ -6082,7 +7783,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:504"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/vector/batch_add",
@@ -6096,7 +7801,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:527"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/vector/clear",
@@ -6110,7 +7819,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:585"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/vector/item/<item_id>",
@@ -6124,7 +7837,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:549"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/vector/recent",
@@ -6138,7 +7855,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:564"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/vector/search",
@@ -6154,7 +7875,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:463"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/vector/stats",
@@ -6168,7 +7893,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:490"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/visual-workflows",
@@ -6186,7 +7915,11 @@
       "where": [
         "agent/server_routes/routes_visual_workflows.py:205",
         "agent/server_routes/routes_visual_workflows.py:234"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/visual-workflows/<vid>",
@@ -6202,7 +7935,11 @@
       "where": [
         "agent/server_routes/routes_visual_workflows.py:219",
         "agent/server_routes/routes_visual_workflows.py:275"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/voice/listen",
@@ -6217,7 +7954,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:157",
         "plugins/chat.py:83"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/voice/status",
@@ -6232,7 +7973,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:237",
         "plugins/chat.py:120"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/web/clean",
@@ -6247,7 +7992,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:576",
         "plugins/system_tools.py:518"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/web/css",
@@ -6262,7 +8011,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:521",
         "plugins/system_tools.py:469"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/web/download",
@@ -6277,7 +8030,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:597",
         "plugins/system_tools.py:541"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/web/get",
@@ -6292,7 +8049,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:452",
         "plugins/system_tools.py:405"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/web/post",
@@ -6307,7 +8068,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:482",
         "plugins/system_tools.py:423"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/web/search",
@@ -6322,7 +8087,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:544",
         "plugins/system_tools.py:497"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/web/search/status",
@@ -6339,7 +8108,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:620",
         "plugins/system_tools.py:567"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/web/stats",
@@ -6354,7 +8127,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:609",
         "plugins/system_tools.py:554"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/web/xpath",
@@ -6369,7 +8146,11 @@
       "where": [
         "agent/server_routes/routes_chat.py:499",
         "plugins/system_tools.py:442"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/window/consent",
@@ -6383,7 +8164,11 @@
       "non_ui_refs": [],
       "where": [
         "plugins/safety.py:91"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/batch-convert-external-skills",
@@ -6399,7 +8184,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:377"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/convert-external-skill",
@@ -6415,7 +8204,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:320"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/convertible",
@@ -6429,7 +8222,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:308"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/execute/<wf_id>",
@@ -6443,7 +8240,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:150"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/health",
@@ -6459,7 +8260,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:63"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/learn",
@@ -6475,7 +8280,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:76"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/match",
@@ -6491,7 +8300,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:109"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/try-execute",
@@ -6507,7 +8320,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:128"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/workflows",
@@ -6523,7 +8340,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:175"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/workflows/<wf_id>",
@@ -6539,7 +8360,11 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:201",
         "agent/server_routes/routes_workflow_learning.py:213"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/workflows/<wf_id>/convert-to-skill",
@@ -6553,7 +8378,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:260"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/workflows/<wf_id>/priority",
@@ -6567,7 +8396,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:241"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workflow-learning/workflows/<wf_id>/toggle",
@@ -6581,7 +8414,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:226"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workspace",
@@ -6596,7 +8433,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:27",
         "plugins/system_tools.py:61"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workspace/delete",
@@ -6611,7 +8452,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:59",
         "plugins/system_tools.py:98"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workspace/info",
@@ -6626,7 +8471,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:74",
         "plugins/system_tools.py:114"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workspace/write",
@@ -6641,7 +8490,11 @@
       "where": [
         "agent/server_routes/routes_workspace.py:40",
         "plugins/system_tools.py:76"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/api/workspaces",
@@ -6661,7 +8514,11 @@
         "plugins/chat.py:818",
         "plugins/chat.py:826",
         "plugins/chat.py:855"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/approval-console",
@@ -6675,7 +8532,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_approval.py:380"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/capabilities/<name>",
@@ -6689,7 +8550,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_capabilities.py:322"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/capabilities/health",
@@ -6705,7 +8570,11 @@
       ],
       "where": [
         "agent/server_routes/routes_capabilities.py:338"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/capabilities/invoke",
@@ -6721,7 +8590,11 @@
       ],
       "where": [
         "agent/server_routes/routes_capabilities.py:223"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/capabilities/skills/search",
@@ -6735,7 +8608,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_capabilities.py:287"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/capabilities/tools",
@@ -6752,7 +8629,11 @@
       ],
       "where": [
         "agent/server_routes/routes_capabilities.py:168"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/chat",
@@ -6769,7 +8650,11 @@
       ],
       "where": [
         "app_server.py:2103"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/dashboard",
@@ -6785,7 +8670,11 @@
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1419"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/api/actions",
@@ -6799,7 +8688,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:189"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/api/errors",
@@ -6813,7 +8706,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:160"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/api/insights",
@@ -6827,7 +8724,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:176"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/api/introspection/run",
@@ -6841,7 +8742,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:259"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/api/introspection/status",
@@ -6855,7 +8760,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:252"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/api/knowledge",
@@ -6869,7 +8778,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:213"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/api/query",
@@ -6883,7 +8796,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:134"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/api/stats",
@@ -6897,7 +8814,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:112"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/api/trends",
@@ -6911,7 +8832,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:226"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/dashboard",
@@ -6925,7 +8850,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:63"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/logs/dashboard/data",
@@ -6939,7 +8868,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:69"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/metrics",
@@ -6966,7 +8899,11 @@
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1138"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/replay-viewer",
@@ -6982,7 +8919,11 @@
       ],
       "where": [
         "app_server.py:2156"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/search-status",
@@ -6998,7 +8939,11 @@
       ],
       "where": [
         "app_server.py:2148"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     },
     {
       "path": "/static/<path:subpath>",
@@ -7015,8 +8960,12 @@
       ],
       "where": [
         "app_server.py:2132"
-      ]
+      ],
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
     }
   ],
-  "content_hash": "b4f39dd150aa44a4"
+  "content_hash": "ba0a2393df3a4ac5"
 }
