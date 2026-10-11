@@ -26,6 +26,14 @@ def _env(tmp_path: Path, enabled: bool = True) -> dict:
     }
 
 
+def _env_inst(tmp_path: Path, inst: str, n=None) -> dict:
+    env = _env(tmp_path)
+    env[cl.ENV_INSTANCE_ID] = inst
+    if n is not None:
+        env[cl.ENV_PROMOTION_N] = str(n)
+    return env
+
+
 def _rows(tmp_path: Path) -> list:
     path = tmp_path / cl.LESSONS_FILENAME
     if not path.exists():
@@ -103,15 +111,18 @@ class Test双上限与幂等:
             hits = cl.recall_shared("sig", char_budget=12, environ=env)
         assert len(hits) == 1
 
-    def test_同内容重复确认不产生第二条(self, tmp_path):
-        env = _env(tmp_path)
+    def test_同内容重复不产生第二条且同实例不自证(self, tmp_path):
+        env = _env_inst(tmp_path, "A")
         with cl.scope_context("t1", "s1"):
             first = cl.record_lesson("sig", "same", environ=env)
             second = cl.record_lesson("sig", "same", environ=env)
         assert first == second
         rows = _rows(tmp_path)
         assert len(rows) == 1
-        assert rows[0]["confirmations"] == 2
+        # 二期口径：confirmations = **不同 instance_id** 的独立确认数；同一实例反复记录不自证
+        assert rows[0]["confirmations"] == 1
+        assert rows[0]["confirmed_by"] == ["A"]
+        assert rows[0]["state"] == cl.STATE_CANDIDATE
 
 
 class Testtaint与可遗忘与failclosed:
@@ -195,4 +206,117 @@ class Test接线到cognitive_loop:
                            {"verdict": "revise", "issues": ["boom"], "suggestion": "换个做法"})
             hits = cl.recall_shared("boom", environ=None)
         assert [h["advice"] for h in hits] == ["换个做法"]
+
+
+class TestInstanceId口径:
+    """二期：instance_id = 部署实例稳定标识，只用于独立确认去重。"""
+
+    def test_显式环境变量优先并去空白(self):
+        assert cl.instance_id({cl.ENV_INSTANCE_ID: "  node-a  "}) == "node-a"
+
+    def test_兜底稳定且非空(self):
+        a = cl.instance_id({})
+        b = cl.instance_id({})
+        assert a and a == b and a.startswith("host-")
+
+
+class Test提升闸门:
+    """I2：candidate→shared 需 N 个不同 instance_id 的独立确认，或人工批准。"""
+
+    def test_同实例反复记录不自证(self, tmp_path):
+        env = _env_inst(tmp_path, "A", n=3)
+        with cl.scope_context("t1", "s1"):
+            for _ in range(5):
+                cl.record_lesson("sig", "advice", environ=env)
+        row = _rows(tmp_path)[0]
+        assert row["confirmations"] == 1
+        assert row["confirmed_by"] == ["A"]
+        assert row["state"] == cl.STATE_CANDIDATE
+
+    def test_确认数N减1不进shared(self, tmp_path):
+        with cl.scope_context("t1", "s1"):
+            for inst in ("A", "B"):
+                cl.record_lesson("sig", "advice", environ=_env_inst(tmp_path, inst, n=3))
+        row = _rows(tmp_path)[0]
+        assert row["confirmations"] == 2
+        assert row["state"] == cl.STATE_CANDIDATE
+
+    def test_第N个不同实例自动进shared(self, tmp_path):
+        with cl.scope_context("t1", "s1"):
+            for inst in ("A", "B", "C"):
+                cl.record_lesson("sig", "advice", environ=_env_inst(tmp_path, inst, n=3))
+        row = _rows(tmp_path)[0]
+        assert row["confirmed_by"] == ["A", "B", "C"]
+        assert row["confirmations"] == 3
+        assert row["state"] == cl.STATE_SHARED
+        assert row.get("promoted_at")
+
+    def test_N为0只走人工批准(self, tmp_path):
+        with cl.scope_context("t1", "s1"):
+            for inst in ("A", "B", "C", "D"):
+                cl.record_lesson("sig", "advice", environ=_env_inst(tmp_path, inst, n=0))
+        assert _rows(tmp_path)[0]["state"] == cl.STATE_CANDIDATE
+
+    def test_人工批准提升且受作用域约束(self, tmp_path):
+        env = _env_inst(tmp_path, "A", n=0)
+        with cl.scope_context("t1", "s1"):
+            lid = cl.record_lesson("sig", "advice", environ=env)
+        with cl.scope_context("t1", "s2"):
+            assert cl.promote(lid, approver="ops", environ=env) is False  # 别的 subject 越权 ⇒ 拒
+        with cl.scope_context("t1", "s1"):
+            assert cl.promote(lid, approver="ops", environ=env) is True
+            hits = cl.recall_shared("sig", environ=env)
+        assert hits[0]["state"] == cl.STATE_SHARED
+        assert _rows(tmp_path)[0]["approved_by"] == "ops"
+
+    def test_shared在回读中排前(self, tmp_path):
+        with cl.scope_context("t1", "s1"):
+            for inst in ("A", "B", "C"):
+                cl.record_lesson("sig", "promoted", environ=_env_inst(tmp_path, inst, n=3))
+            cl.record_lesson("sig", "candidate", environ=_env_inst(tmp_path, "A", n=3))
+            hits = cl.recall_shared("sig", environ=_env_inst(tmp_path, "A", n=3))
+        assert hits[0]["advice"] == "promoted"
+        assert hits[0]["state"] == cl.STATE_SHARED
+
+
+class Test旧行兼容:
+    def test_一期行按candidate单实例保守解释(self, tmp_path):
+        env = _env(tmp_path)
+        old = {
+            "schema_version": 1, "lesson_id": "legacy-1", "tenant": "t1", "subject": "s1",
+            "signature": "sig", "advice": "old", "confidence": 0.9, "confirmations": 7,
+            "created_at": datetime.now(timezone.utc).isoformat(), "ttl_days": 90,
+            "taint": cl.TAINT,
+        }
+        (tmp_path / cl.LESSONS_FILENAME).write_text(
+            json.dumps(old, ensure_ascii=False) + "\n", encoding="utf-8")
+        with cl.scope_context("t1", "s1"):
+            hits = cl.recall_shared("sig", environ=env)
+        assert hits[0]["advice"] == "old"
+        assert hits[0]["confirmations"] == 1  # 一期 confirmations 是"次数"，不做独立实例数用
+        assert hits[0]["state"] == cl.STATE_CANDIDATE
+
+
+class TestCLI:
+    def _cli(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "cog_lessons_cli", str(ROOT / "scripts" / "subagent_cognitive_lessons.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_人工批准经CLI(self, tmp_path):
+        env = _env_inst(tmp_path, "A", n=0)
+        with cl.scope_context("t1", "s1"):
+            lid = cl.record_lesson("sig", "advice", environ=env)
+        rc = self._cli().main(["--tenant", "t1", "--subject", "s1", "--dir", str(tmp_path),
+                               "promote", lid, "--approver", "ops"])
+        assert rc == 0
+        assert _rows(tmp_path)[0]["state"] == cl.STATE_SHARED
+
+    def test_缺失目录被拒(self, monkeypatch):
+        monkeypatch.delenv("CP_SUBAGENT_COGNITIVE_LESSONS_DIR", raising=False)
+        rc = self._cli().main(["--tenant", "t1", "--subject", "s1", "--dir", "", "list"])
+        assert rc == 2
 

@@ -158,7 +158,7 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "reflect（LLM 自评 verdict=pass|revise）→ revise（注入 task_file.self_review 重跑；"
                  "第二轮更差/超时则**保留第一轮**）；学习 = 同 workspace 教训流水"
                  "（cognitive_lessons.jsonl：规划前回读最近 5 条、revise 后落盘）；"
-                 "跨 workspace/跨实例共享（一期，默认关）= 按 (tenant, subject) 隔离的共享 "
+                 "跨 workspace/跨实例共享（一期，默认关）+ 提升闸门二期 = 按 (tenant, subject) 隔离的共享 "
                  "lessons.jsonl（方案 A + 双上限 + erase + taint=upstream），"
                  "经 ContextVar 由母体 executor 设定作用域；"
                  "任一步失败 ⇒ 退回原产出 + degraded 审计（绝不拖死正常委派）；"
@@ -167,7 +167,10 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                         "agent/subagent/collection.py", "agent/subagent/executor.py"),
         gap="环**默认关闭**（CP_SUBAGENT_COGNITIVE_LOOP=1；未开=逐字旧行为）；跨 workspace 共享池同样"
             "**默认关**（CP_SUBAGENT_COGNITIVE_SHARED_LESSONS=1 + CP_SUBAGENT_COGNITIVE_LESSONS_DIR）；"
-            "提升闸门（candidate→shared，I2）与 subagent_memory_ops 导入导出打通 = 二期/三期",
+            "提升闸门（candidate→shared，I2）**二期已落地**：N 个不同 instance_id 独立确认自动提升，"
+            "或人工 promote（N=CP_SUBAGENT_COGNITIVE_PROMOTION_N 默认 3，0=只走人工；instance 身份取 "
+            "CP_SUBAGENT_INSTANCE_ID，兜底 host+仓库根哈希）；"
+            "剩：与 subagent_memory_ops 导入导出打通 = 三期（跨租户共享明确不做）",
         next_stage=""),
     SovereigntyFace(
         key="autonomy", layer="brain", label="自主权分级",

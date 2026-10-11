@@ -155,3 +155,28 @@ N 的初值建议 3，可配；"独立"按 `instance_id` 去重，避免同一�
 - **尚未同步能力面**：`agent/subagent/capabilities.py` 的 `cognitive_loop.gap` 仍是旧文案，
   且 `data/capability_manifest.json` 是派生清单，按交接纪律需在**干净 worktree** 重派生后单独更新；
 - 提升闸门、与 `subagent_memory_ops.py` 的导入导出打通 = 二期 / 三期。
+
+---
+
+## 14. 落地记录（2026-10-12 · 二期：提升闸门）
+
+二期把 §7 的提升闸门落地为代码（`agent/subagent/cognitive_lessons.py`），并自行确定文档未定的
+`instance_id` 口径（属实现必答项）。
+
+| 待决策 | 二期裁定 | 落地位置 |
+|---|---|---|
+| Q1 谁有权 candidate→shared | **默认自动**：N 个**不同 instance_id** 的独立确认即自动提升；亦可 `promote()` **人工批准**（`N=0` = 只走人工） | `cognitive_lessons.record_lesson/promote` |
+| instance_id 口径（文档未定） | **部署实例**稳定标识：`CP_SUBAGENT_INSTANCE_ID` 优先；兜底 `host-<sha256(hostname\|仓库根)[:16]>`。**只用于独立确认去重，不参与可见性** | `cognitive_lessons.instance_id` |
+| N 取值 | `CP_SUBAGENT_COGNITIVE_PROMOTION_N`，默认 3；`confirmed_by` 去重列表硬上限 50 | 同上 |
+
+实现边界（如实）：
+
+- 状态机 `local / candidate / shared` 落为记录字段；**新建默认 candidate**（沿用一期"进池即可见"的
+  可见性语义，闸门只改写 `shared` 信任层与排序），`local` 仅为状态机完整性与人工降级保留；
+- 同一 instance 反复记录**不自证**（`confirmed_by` 按 instance_id 去重）；一期旧行无 instance 信息，
+  按 `candidate + 单实例` 保守解释（其 `confirmations` 是"次数"，不当作独立实例数，避免虚高闸门）；
+- 回读按 `shared > 独立确认数 > confidence > 新近度` 排序，并返回 `state`；
+- 人工批准与擦除同口径：**只在当前 (tenant, subject) 内**生效（I1 同样约束擦除/提升面）；
+- CLI：`scripts/subagent_cognitive_lessons.py`（list / promote / erase）；
+- 仍未做：与 `subagent_memory_ops.py` 导入导出打通、跨租户共享（明确不做）= 三期；
+  能力面 `cognitive_loop.gap` 文案随本 PR 同步，`data/capability_manifest.json` 按纪律在干净树重派生。
