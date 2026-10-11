@@ -2170,6 +2170,15 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _c("CP_SUBAGENT_COGNITIVE_LOOP", CAT_ORCHESTRATION, "0",
        "子代理认知闭环开关（1/true/yes/on 开启；默认关=逐字旧行为）；开启会增加母体侧 LLM 调用（只读）",
        owner="agent/subagent/cognitive_loop.py"),
+    # 【S4 cognitive_loop · 跨 workspace 共享教训池（2026-10-11，方案 A）】默认关。
+    # 开启后把教训写入/回读一个按 (tenant, subject) 隔离的共享 lessons.jsonl；
+    # 无作用域/目录不可用 ⇒ fail-closed 退化为仅同 workspace 流水。两个变量都只读。
+    _c("CP_SUBAGENT_COGNITIVE_SHARED_LESSONS", CAT_ORCHESTRATION, "0",
+       "子代理跨 workspace 共享教训池开关（1/true/yes/on 开启；默认关=仅同 workspace 流水）（只读）",
+       owner="agent/subagent/cognitive_lessons.py"),
+    _c("CP_SUBAGENT_COGNITIVE_LESSONS_DIR", CAT_EXTERNAL, "",
+       "共享教训池目录（内含 lessons.jsonl）；空=未配置 ⇒ 不读不写（fail-closed，只读）",
+       owner="agent/subagent/cognitive_lessons.py"),
     _b("CP_MCP_SERVER_TOOLS", CAT_EXTERNAL, "",
        "MCP 服务对外暴露的工具白名单（逗号分隔；未设则用内置默认集）；"
        "放宽即扩大对外暴露面（与「关闭即降低防护」同性质，故取 B）；"
