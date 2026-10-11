@@ -966,8 +966,12 @@ class DelegationExecutor:
                                if channel_output.invocation else None)
 
             # ── 步骤 7：工具裁剪闸门（含上游声称的间接调用）──
-            tool_calls, violations = self._gate_tool_calls(toolset,
-                                                           channel_output.payload)
+            # 自主权档位（若该分身显式声明）也在这里生效：档位外类别计入 violations。
+            from agent.subagent.autonomy_gate import metadata_level
+
+            tool_calls, violations = self._gate_tool_calls(
+                toolset, channel_output.payload,
+                metadata_level(getattr(ctx, "metadata", None)))
             base.tool_calls = tuple(tool_calls)
             base.tool_violations = tuple(violations)
 
@@ -1126,10 +1130,21 @@ class DelegationExecutor:
             # 认知闭环共享教训池的作用域：域标识只能来自母体持有的 ctx（不放进 invocation，
             # 见 channel.py 的域标识约定）。ContextVar 保证并发委派互不串；共享未开启时是空操作。
             from agent.subagent.cognitive_lessons import scope_context
+            from agent.subagent.autonomy_gate import metadata_level as _metadata_level
+            from agent.autonomy import AutonomyContext
+
+            _autonomy = _metadata_level(getattr(ctx, "metadata", None))
             with scope_context(ctx.tenant_id, ctx.subject_id,
                                workspace_id=str(ctx.metadata.get("workspace_id") or "")):
-                output = resolve_channel_output(
-                    lambda: self._channel(invocation), llm=self._llm, invocation=invocation)
+                if _autonomy is None:
+                    output = resolve_channel_output(
+                        lambda: self._channel(invocation), llm=self._llm, invocation=invocation)
+                else:
+                    # 本分身的自主权档位对通道内任何 AutonomyPolicy/get_autonomy_level
+                    # 消费者生效（空档 ⇒ 不包，逐字旧行为）。
+                    with AutonomyContext(_autonomy):
+                        output = resolve_channel_output(
+                            lambda: self._channel(invocation), llm=self._llm, invocation=invocation)
         # 退出 with 即已销毁；此处断言销毁证据（隐藏失败会长期留存凭据）
         for cred in creds:
             record = self._credentials.get(cred.credential_id)
@@ -1150,6 +1165,7 @@ class DelegationExecutor:
     @staticmethod
     def _gate_tool_calls(toolset: SubAgentToolset,
                          payload: Mapping[str, Any],
+                         autonomy_level: Any = None,
                          ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """对上游**声称**的每一次工具调用过闸（含别名/间接路径）
 
@@ -1181,6 +1197,20 @@ class DelegationExecutor:
             gated.append(entry)
             if not decision.allowed:
                 violations.append(entry)
+                continue
+            # 自主权档位（显式声明时）：声称调用了档位之外类别的工具，与"裁剪集外
+            # 调用"同款 —— 计入 violations、整次委派失败。空档 ⇒ 不看（逐字旧行为）。
+            if autonomy_level is not None:
+                from agent.subagent.autonomy_gate import out_of_level_reason
+
+                name = ""
+                if isinstance(spec, Mapping):
+                    name = str(spec.get("name") or spec.get("tool") or "")
+                reason = out_of_level_reason(name, autonomy_level)
+                if reason:
+                    entry["reason"] = reason
+                    entry["autonomy_outside_level"] = True
+                    violations.append(entry)
         return gated, violations
 
     # ── 辅助 ──

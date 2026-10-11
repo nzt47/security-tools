@@ -175,17 +175,34 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
     SovereigntyFace(
         key="autonomy", layer="brain", label="自主权分级",
         question="它能自己决定到什么程度？", state=OWNED,
-        evidence="agent/autonomy.py L1–L5 + actor_matrix + requires_approval（主智能体侧）",
-        evidence_files=("agent/autonomy.py", "agent/security/actor_matrix.py"),
-        gap="自主权档位尚未进 SubagentConfig（分身目前是受治理的一次性委派）",
-        next_stage="S4"),
+        evidence="档位（L1–L5）**已进 SubagentConfig**：agent/subagent/autonomy_gate.py —— "
+                 "创建/热更新端点严格校验（非法 400，不静默回退默认档）；委派时 config→ctx 桥把"
+                 "生效档位写进 DelegationContext.metadata；执行器包 AutonomyContext，并在工具闸门里"
+                 "把**档位之外类别**的声称调用计入 violations（与“裁剪集外调用”同款，整次委派失败）；"
+                 "主智能体侧另有 agent/autonomy.py 的 L1–L5 策略表 + actor_matrix + requires_approval",
+        evidence_files=("agent/subagent/autonomy_gate.py", "agent/subagent/container.py",
+                        "agent/subagent/executor.py", "agent/subagent/lifecycle.py",
+                        "agent/autonomy.py", "agent/security/actor_matrix.py"),
+        gap="档位→工具类别的分类沿用 agent.autonomy.classify_action 的关键字表"
+            "（工具名显式声明优先），未覆盖自定义工具；per_level_policy 的 config 覆盖尚未"
+            "透传到分身侧（当前只读策略表）",
+        next_stage="S5"),
     # ── 记忆层 ──
     SovereigntyFace(
         key="memory_scope", layer="memory", label="记忆域与档位",
         question="它记得的东西归谁？", state=OWNED,
-        evidence="memory_mode none|brokered|scoped：none 不分身记忆；brokered 母体按 tenancy 取只读上下文注入 ②约束；scoped 为显式开启的受控档（三要素 + provider 非空），四处判定同改；委派成功后经 ScopedMemoryDomain 写回结构化事实（admit 配额 → tenancy 域校验 → 真实后端 write → record_write → 审计），配额/熔断/审计真实强制（§5.7 机制 3 受控例外）",
-        evidence_files=("agent/memory/broker.py", "agent/memory/scoped_store.py", "agent/subagent/memory_broker.py", "agent/subagent/memory_quota.py", "agent/memory/tenancy.py", "agent/subagent/executor.py"),
-        gap="写回仅覆盖委派成功路径；分身侧工具主动 read/write 尚未接入（ScopedMemoryDomain.read 已就绪但无消费者），配额熔断按容器存活期生效",
+        evidence="memory_mode none|brokered|scoped：none 不分身记忆；brokered 母体按 tenancy 取只读上下文注入 ②约束；"
+                 "scoped 为显式开启的受控档（三要素 + provider 非空），四处判定同改；委派成功后经 ScopedMemoryDomain "
+                 "写回结构化事实（admit 配额 → tenancy 域校验 → 真实后端 write → record_write → 审计）；"
+                 "**分身侧主动 read/write 已接线**：协议内声明式守门器 agent/subagent/scoped_memory_gate.py"
+                 "（子代理在载荷声明 memory_reads/writes ⇒ 母体 ScopedMemoryGate 代执行；四道闸：mode/域启用判定 → "
+                 "toolset 权限 → 母体域强制覆盖 → fail-soft；域标识一律取母体 domain.scope，子代理声明的域被丢弃），"
+                 "配额/熔断/审计真实强制（§5.7 机制 3 受控例外）",
+        evidence_files=("agent/memory/broker.py", "agent/memory/scoped_store.py", "agent/subagent/memory_broker.py",
+                        "agent/subagent/scoped_memory_gate.py", "agent/subagent/memory_quota.py",
+                        "agent/memory/tenancy.py", "agent/subagent/executor.py"),
+        gap="子代理是独立进程、执行咽喉只到通道调用（无工具执行循环）⇒ 主动读写只能在载荷里**声明**、由母体代行"
+            "（不是分身自己调工具）；mem0 后端无列出/删除见 memory_ops 面；配额熔断按容器存活期生效",
         next_stage="S5"),
     SovereigntyFace(
         key="memory_provider", layer="memory", label="记忆提供商与知识库",
