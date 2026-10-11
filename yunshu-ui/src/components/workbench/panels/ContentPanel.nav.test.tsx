@@ -1,12 +1,14 @@
 /**
  * ContentPanel 导航渲染回归测试 —— 缺陷 ②
  * ------------------------------------------------
- * 背景：assets 组 8 个菜单共用 AssetsPage、memory/manual|auto 共用 MemoryPage。
- * 若渲染不携带 key={activeKey} 且不传参数，点不同子菜单会因组件实例复用而渲染成
- * 相同内容（内部 state 停留在上次分类/模式）。
+ * 背景：多个菜单共用同一页面组件时，若渲染不携带 key={activeKey} 且不传参数，
+ * 点不同子菜单会因组件实例复用而渲染成相同内容（内部 state 停留在上次参数）。
  * 本测试用"挂载时读取 props 存为 state"的探针组件验证：
- *   1. 跨导航切换（同组件）会强制重挂载（key），state 按新 initialCategory/mode 初始化；
+ *   1. 跨导航切换（同组件）会强制重挂载（key），state 按新参数初始化；
  *   2. derivePanelParams 推导的参数被透传给复用组件。
+ *
+ * 【第二轮 IA 后的覆盖点】assets 与 memory 已收敛为叶子（子项在页内 Tab / 分类切换），
+ * 不再由导航 key 推导 initialCategory / mode；仍由导航 key 参数化的是 governance/<panel>。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useState } from 'react'
@@ -27,24 +29,30 @@ vi.mock('../../../workbench/hubNav', async (importActual) => {
   }
 })
 
-/** 资产页探针：initialCategory 只在挂载时读入 state —— 未重挂载则切换后残留旧分类 */
+/** 治理面板探针：panel 只在挂载时读入 state —— 未重挂载则切换后残留旧面板 */
+function ProbeGovernance({ panel = '(none)' }: { panel?: string }) {
+  const [p] = useState(panel)
+  return <div data-testid="probe-gov">{p}</div>
+}
+
+/** 资产页探针：叶子项不再传 initialCategory，默认值即证据 */
 function ProbeAsset({ initialCategory = '(none)' }: { initialCategory?: string }) {
   const [cat] = useState(initialCategory)
   return <div data-testid="probe-asset">{cat}</div>
 }
 
-/** 记忆页探针：mode 只在挂载时读入 state —— 未重挂载则切换后残留旧模式 */
-function ProbeMemory({ mode }: { mode: 'manual' | 'auto' }) {
+/** 记忆页探针：叶子项不再传 mode */
+function ProbeMemory({ mode = '(none)' }: { mode?: string }) {
   const [m] = useState(mode)
   return <div data-testid="probe-memory">{m}</div>
 }
 
 beforeEach(() => {
   registry.clear()
-  registry.set('assets/memory', { component: ProbeAsset })
-  registry.set('assets/prompts', { component: ProbeAsset })
-  registry.set('memory/manual', { component: ProbeMemory })
-  registry.set('memory/auto', { component: ProbeMemory })
+  registry.set('governance/approvals', { component: ProbeGovernance })
+  registry.set('governance/settings', { component: ProbeGovernance })
+  registry.set('assets', { component: ProbeAsset })
+  registry.set('memory', { component: ProbeMemory })
   // 未注册的 key → findNavItem 返回空 → ContentPanel 渲染空态提示
   useWorkbenchNav.setState({ activeKey: 'session' })
 })
@@ -54,29 +62,26 @@ afterEach(() => {
 })
 
 describe('ContentPanel 复用组件参数化（缺陷②）', () => {
-  it('assets 子菜单切换：跨导航重挂载且按 key 传入 initialCategory', async () => {
-    act(() => useWorkbenchNav.getState().setActiveKey('assets/memory'))
+  it('governance 子面板切换：跨导航重挂载且按 key 传入 panel', async () => {
+    act(() => useWorkbenchNav.getState().setActiveKey('governance/approvals'))
     render(<ContentPanel />)
-    expect(await screen.findByTestId('probe-asset')).toHaveTextContent('memory')
+    expect(await screen.findByTestId('probe-gov')).toHaveTextContent('approvals')
 
-    // 切到 assets/prompts：同组件类型，靠 key={activeKey} 重挂载 + initialCategory='prompts'
-    act(() => useWorkbenchNav.getState().setActiveKey('assets/prompts'))
-    // 缺陷 ② 复现点：若未重挂载，此处会残留 'memory'
-    expect(screen.getByTestId('probe-asset')).toHaveTextContent('prompts')
+    act(() => useWorkbenchNav.getState().setActiveKey('governance/settings'))
+    // 缺陷 ② 复现点：若未重挂载，此处会残留 'approvals'
+    expect(screen.getByTestId('probe-gov')).toHaveTextContent('settings')
 
-    // 再切回 assets/memory：state 须重新初始化为 'memory'
-    act(() => useWorkbenchNav.getState().setActiveKey('assets/memory'))
-    expect(screen.getByTestId('probe-asset')).toHaveTextContent('memory')
+    act(() => useWorkbenchNav.getState().setActiveKey('governance/approvals'))
+    expect(screen.getByTestId('probe-gov')).toHaveTextContent('approvals')
   })
 
-  it('记忆子菜单切换：mode 随导航 key 变化并重挂载', async () => {
-    act(() => useWorkbenchNav.getState().setActiveKey('memory/manual'))
+  it('assets / memory 已是叶子项：不再透传 initialCategory / mode', async () => {
+    act(() => useWorkbenchNav.getState().setActiveKey('assets'))
     render(<ContentPanel />)
-    expect(await screen.findByTestId('probe-memory')).toHaveTextContent('manual')
+    expect(await screen.findByTestId('probe-asset')).toHaveTextContent('(none)')
 
-    act(() => useWorkbenchNav.getState().setActiveKey('memory/auto'))
-    // 缺陷 ② 复现点：若未重挂载，此处会残留 'manual'
-    expect(screen.getByTestId('probe-memory')).toHaveTextContent('auto')
+    act(() => useWorkbenchNav.getState().setActiveKey('memory'))
+    expect(screen.getByTestId('probe-memory')).toHaveTextContent('(none)')
   })
 
   it('未注册导航 key：渲染空态提示（不白屏）', () => {

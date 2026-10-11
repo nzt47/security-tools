@@ -7,42 +7,32 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_NAV_KEY, derivePanelParams, findNavItem, flattenNav, HUB_NAV } from './hubNav'
 
-describe('hubNav derivePanelParams（缺陷② · assets/记忆菜单参数化）', () => {
-  it('assets/<category> → initialCategory（与资产类别 key 一致）', () => {
-    expect(derivePanelParams('assets/memory')).toEqual({ initialCategory: 'memory' })
-    expect(derivePanelParams('assets/prompts')).toEqual({ initialCategory: 'prompts' })
-    expect(derivePanelParams('assets/tools')).toEqual({ initialCategory: 'tools' })
-    expect(derivePanelParams('assets/interactions')).toEqual({ initialCategory: 'interactions' })
+describe('hubNav derivePanelParams（第二轮 IA：assets/memory 收敛为叶子）', () => {
+  it('assets 与 memory 已是叶子项，不再推导 initialCategory / mode', () => {
+    expect(derivePanelParams('assets')).toEqual({})
+    expect(derivePanelParams('memory')).toEqual({})
+    // 旧子项 key 不再由导航 key 推导（经 LEGACY_NAV_KEY_MAP 归一为叶子 key）
+    expect(derivePanelParams('assets/memory')).toEqual({})
+    expect(derivePanelParams('memory/manual')).toEqual({})
   })
 
-  it('memory/manual 与 memory/auto → mode', () => {
-    expect(derivePanelParams('memory/manual')).toEqual({ mode: 'manual' })
-    expect(derivePanelParams('memory/auto')).toEqual({ mode: 'auto' })
+  it('governance/<panel> 仍按 panel 推导', () => {
+    expect(derivePanelParams('governance/approvals')).toEqual({ panel: 'approvals' })
+    expect(derivePanelParams('governance/settings')).toEqual({ panel: 'settings' })
   })
 
   it('其它导航项无需参数（组件自带默认视图）', () => {
     expect(derivePanelParams('session')).toEqual({})
-    expect(derivePanelParams('memory/skills')).toEqual({})
-    expect(derivePanelParams('memory/knowledge')).toEqual({})
     expect(derivePanelParams('admin/users')).toEqual({})
     expect(derivePanelParams('')).toEqual({})
   })
 
-  it('导航树 assets 组全部 8 项、memory manual/auto 项均可被推导覆盖', () => {
+  it('导航树里 assets/memory 已无子项 key（子项在页内切换）', () => {
     const keys = flattenNav(HUB_NAV).map((i) => i.key)
-    const assets = keys.filter((k) => k.startsWith('assets/'))
-    expect(assets).toHaveLength(8)
-    for (const k of assets) {
-      expect(derivePanelParams(k).initialCategory).toBe(k.slice('assets/'.length))
-    }
-    expect(derivePanelParams('memory/manual').mode).toBe('manual')
-    expect(derivePanelParams('memory/auto').mode).toBe('auto')
-    // assets 8 子菜单确认都映射到 AssetsPage（同一组件）
-    const assetsComponents = flattenNav(HUB_NAV)
-      .filter((i) => i.key.startsWith('assets/'))
-      .map((i) => i.component)
-    expect(new Set(assetsComponents).size).toBe(1)
-    expect(assetsComponents[0]).toBeDefined()
+    expect(keys.filter((k) => k.startsWith('assets/'))).toEqual([])
+    expect(keys.filter((k) => k.startsWith('memory/'))).toEqual([])
+    expect(keys).toContain('assets')
+    expect(keys).toContain('memory')
   })
 })
 
@@ -57,22 +47,15 @@ describe('hubNav 导航结构（技能中心与提示词实验室同属「会话
     expect(item?.component).toBeDefined()
   })
 
-  it('「技能中心」不再挂在「记忆管理」下（原入口已移除）', () => {
-    const memory = HUB_NAV.find((i) => i.key === 'memory')
-    const memoryChildKeys = (memory?.children ?? []).map((c) => c.key)
-    expect(memoryChildKeys).not.toContain('memory/skills-center')
-    // 【阶段 1.3】经验库归位到「知识库系统」之后（只归位，不合并组件）
-    expect(memoryChildKeys).toEqual([
-      'memory/manual',
-      'memory/auto',
-      'memory/knowledge',
-      'memory/experience',
-      'memory/search',
-    ])
-    expect(flattenNav(HUB_NAV).some((i) => i.key.startsWith('memory/skills'))).toBe(false)
+  it('「记忆管理」已是叶子项（5 个子项收敛为页内 Tab）', () => {
+    const memory = findNavItem('memory')
+    expect(memory).toBeDefined()
+    expect(memory?.children).toBeUndefined()
+    expect(memory?.component).toBeDefined()
+    // 原 memory/<x> 子项 key 全部从导航树移除（经 LEGACY_NAV_KEY_MAP 落到 memory）
+    expect(flattenNav(HUB_NAV).some((i) => i.key.startsWith('memory/'))).toBe(false)
     // 顶层不再单列「经验库」
     expect(HUB_NAV.map((i) => i.key)).not.toContain('experience')
-    expect(flattenNav(HUB_NAV).some((i) => i.key === 'memory/experience')).toBe(true)
   })
 
   it('技能中心与提示词实验室渲染的是不同页面组件', () => {
@@ -92,8 +75,8 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
 
   it('「工具调用」随「会话与配置」桶整体排在「全景看板」之前（配置类在前）', () => {
     const topKeys = HUB_NAV.map((i) => i.key)
-    // 阶段 3：顶层收敛为 8 桶，前四桶固定
-    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'panorama', 'governance', 'memory'])
+    // 阶段 3：顶层收敛为 8 桶；第二轮 IA 把「记忆管理」上移到「工具调用」之后
+    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'memory', 'panorama', 'governance'])
     expect(topKeys).toHaveLength(8)
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
@@ -133,7 +116,7 @@ describe('hubNav 导航结构（人格配置并入提示词实验室 · 阶段 1
 describe('hubNav 顶层收敛（阶段 3 · 8 个语义桶）', () => {
   it('顶层恰好 8 个桶，顺序固定', () => {
     expect(HUB_NAV.map((i) => i.key)).toEqual([
-      'workspace', 'panorama', 'governance', 'memory',
+      'workspace', 'memory', 'panorama', 'governance',
       'assets', 'workshop', 'components', 'admin',
     ])
   })
@@ -152,7 +135,7 @@ describe('hubNav 顶层收敛（阶段 3 · 8 个语义桶）', () => {
       'session', 'prompt-lab', 'skills-center', 'tools',
       'panorama/health', 'panorama/logs', 'engine/heartbeat', 'engine/scheduler',
       'governance/approvals', 'governance/route-coverage',
-      'memory/experience', 'assets/interactions',
+      'memory', 'assets',
       'workshop/agents', 'components/plugins', 'network',
       'admin/dashboard', 'admin/logs',
     ]) {
