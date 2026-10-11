@@ -171,7 +171,10 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
             "提升闸门（candidate→shared，I2）**二期已落地**：N 个不同 instance_id 独立确认自动提升，"
             "或人工 promote（N=CP_SUBAGENT_COGNITIVE_PROMOTION_N 默认 3，0=只走人工；instance 身份取 "
             "CP_SUBAGENT_INSTANCE_ID，兜底 host+仓库根哈希）；"
-            "剩：与 subagent_memory_ops 导入导出打通 = 三期（跨租户共享明确不做）",
+            "三期已落地：教训池与 memory_ops **同口径导出/导入**"
+            "（scripts/subagent_cognitive_lessons.py 的 export/import）；导入按 "
+            "(tenant, subject, signature, advice) **重算 lesson_id** 并强制目标作用域（外来域标识丢弃），"
+            "幂等合并 confirmed_by/state（跨租户共享明确不做）",
         next_stage=""),
     SovereigntyFace(
         key="autonomy", layer="brain", label="自主权分级",
