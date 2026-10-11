@@ -98,6 +98,38 @@ def env_var_name(source: str, name: str) -> str:
 # ════════════════════════════════════════════════════════════
 
 
+def refs_to_specs(refs: Iterable[Mapping[str, Any]], *,
+                  environ: Optional[Mapping[str, str]] = None) -> List[Dict[str, Any]]:
+    """bundle 的密钥**引用** → credential_scope 的签发规格（值在**到达端**解析）
+
+    【为什么值不能在包里】bundle 的 secrets.refs 只有 source/name/env_var 三元组，
+    **绝不存值**（bundle.py 的校验会拒第四个键）。所以值必须在**到达端自己的环境**里：
+    变量名优先取 ref 的 env_var，缺它时按 env_var_name(source, name) 派生。
+
+    【缺值即跳过】到达端没有该槽位 ⇒ 跳过并 warning（**不伪造、不回显值**）；是否因此
+    失败由调用方决定（本函数只做解析）。返回项的 env_var 会被 issue() 原样沿用，
+    保证子代理按包里宣告的变量名取到值。
+    """
+    env = os.environ if environ is None else environ
+    specs: List[Dict[str, Any]] = []
+    for ref in refs or ():
+        if not isinstance(ref, Mapping):
+            continue
+        source = str(ref.get("source") or "").strip()
+        name = str(ref.get("name") or "").strip()
+        if not name:
+            continue
+        env_var = (str(ref.get("env_var") or "").strip()
+                   or env_var_name(source, name))
+        value = str(env.get(env_var) or "")
+        if not value:
+            logger.warning("[Credentials] 引用 %s/%s 在到达端无值（槽位 %s）⇒ 跳过签发",
+                           source or "?", name, env_var)
+            continue
+        specs.append({"name": name, "value": value, "source": source,
+                      "env_var": env_var})
+    return specs
+
 class CredentialError(Exception):
     """凭据相关异常基类"""
 
@@ -283,7 +315,8 @@ class TemporaryCredentialManager:
 
     def issue(self, name: str, value: str, *, source: str,
               task_timeout_seconds: float,
-              ttl_seconds: Optional[float] = None) -> TemporaryCredential:
+              ttl_seconds: Optional[float] = None,
+              env_var: str = "") -> TemporaryCredential:
         """签发一条临时凭据
 
         Args:
@@ -292,6 +325,9 @@ class TemporaryCredentialManager:
             source: 来源标识（每来源独立）。
             task_timeout_seconds: 任务时长（§5.9 的 TTL 上界来源）。
             ttl_seconds: 期望 TTL；缺省 = 任务时长。
+            env_var: 注入变量名；缺省按 env_var_name(source, name) 派生。引用式密钥
+                （bundle 的 secrets.refs）会带自己的 env_var，必须原样沿用 —— 否则子代理
+                按包里宣告的变量名取不到值。
 
         Raises:
             CredentialTTLTooLong: ``ttl > task_timeout`` 或 ``ttl > max_ttl``。
@@ -318,6 +354,7 @@ class TemporaryCredentialManager:
         cred = TemporaryCredential(
             name=str(name).strip(),
             source=str(source).strip(),
+            env_var=str(env_var or "").strip(),
             ttl_seconds=ttl,
             value_fingerprint=fingerprint(value),
             issued_at=now,
@@ -466,6 +503,7 @@ def credential_scope(
                 source=str(spec.get("source") or ""),
                 task_timeout_seconds=task_timeout_seconds,
                 ttl_seconds=spec.get("ttl_seconds"),
+                env_var=str(spec.get("env_var") or ""),
             ))
         yield issued
     finally:
@@ -539,7 +577,7 @@ __all__ = [
     "E_CREDENTIAL_TTL_TOO_LONG", "E_CREDENTIAL_DESTROYED", "E_MANIFEST_SECRET_LEAK",
     "CredentialError", "CredentialTTLTooLong", "CredentialDestroyed", "ManifestSecretLeak",
     "TemporaryCredential", "TemporaryCredentialManager",
-    "credential_scope",
+    "credential_scope", "refs_to_specs",
     "fingerprint", "env_var_name",
     "find_manifest_secrets", "assert_manifest_secret_free",
 ]
