@@ -71,6 +71,29 @@ def run(task_file: Any, *, max_turns: int = 10, output_format: str = "json") -> 
     if not isinstance(task_file, dict):
         raise RuntimeError("task_file 必须是 JSON 对象")
     llm = _resolve_llm()
+    # ── S5-3：母体把**已授权**的工具定义写进 task_file ⇒ 分身侧自己跑工具循环 ──
+    # 只有同时满足 ① task_file 带 tool_defs、② max_turns>1、③ LLM 支持工具调用
+    # 才走这条路；否则**逐字回落**既有单轮路径（本地 Ollama 适配器没有 tools 形参）。
+    _tool_defs = task_file.get("tool_defs")
+    if _tool_defs and int(max_turns) > 1:
+        from agent.subagent.tool_loop import llm_supports_tools, run_tool_loop
+
+        if llm_supports_tools(llm):
+            outcome = run_tool_loop(
+                llm,
+                messages=[{"role": "user", "content": task_prompt(task_file)}],
+                system_prompt=SYSTEM_PROMPT, tool_defs=_tool_defs,
+                allowed=task_file.get("allowed_tools"),
+                max_turns=int(max_turns))
+            if not outcome.ok:
+                raise RuntimeError("分身侧工具循环失败: %s"
+                                   % (outcome.error or outcome.error_code))
+            text = str(outcome.text or "").strip()
+            if not text:
+                raise RuntimeError("镜内工具循环未产出内容（模型未给出最终回答）")
+            record = build_record(text, llm)
+            record["tool_calls"] = outcome.to_dict()["tool_calls"]
+            return record
     try:
         text = llm.chat([{"role": "user", "content": task_prompt(task_file)}],
                         system_prompt=SYSTEM_PROMPT)

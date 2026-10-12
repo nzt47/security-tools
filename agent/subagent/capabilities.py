@@ -193,10 +193,10 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
         evidence_files=("agent/subagent/autonomy_gate.py", "agent/subagent/container.py",
                         "agent/subagent/executor.py", "agent/subagent/lifecycle.py",
                         "agent/autonomy.py", "agent/security/actor_matrix.py"),
-        gap="档位→工具类别的分类沿用 agent.autonomy.classify_action 的关键字表"
-            "（工具名显式声明优先），未覆盖自定义工具；per_level_policy 的 config 覆盖尚未"
-            "透传到分身侧（当前只读策略表）",
-        next_stage="S5"),
+        gap="档位→工具类别已由 S5-1 的可表达策略覆盖（config.yaml autonomy.tool_policy 显式声明"
+            " → 权威元数据派生 → 未登记工具保守默认 high_risk），自定义工具不再落到 LOW_RISK 兜底；"
+            "残留：per_level_policy 的 config 覆盖尚未透传到分身侧（当前只读策略表）",
+        next_stage=""),
     # ── 记忆层 ──
     SovereigntyFace(
         key="memory_scope", layer="memory", label="记忆域与档位",
@@ -209,18 +209,24 @@ SOVEREIGNTY_FACES: Tuple[SovereigntyFace, ...] = (
                  "toolset 权限 → 母体域强制覆盖 → fail-soft；域标识一律取母体 domain.scope，子代理声明的域被丢弃），"
                  "配额/熔断/审计真实强制（§5.7 机制 3 受控例外）",
         evidence_files=("agent/memory/broker.py", "agent/memory/scoped_store.py", "agent/subagent/memory_broker.py",
-                        "agent/subagent/scoped_memory_gate.py", "agent/subagent/memory_quota.py",
+                        "agent/subagent/scoped_memory_gate.py", "agent/subagent/tool_loop.py",
+                        "agent/subagent/memory_quota.py",
                         "agent/memory/tenancy.py", "agent/subagent/executor.py"),
-        gap="子代理是独立进程、执行咽喉只到通道调用（无工具执行循环）⇒ 主动读写只能在载荷里**声明**、由母体代行"
-            "（不是分身自己调工具）；mem0 后端无列出/删除见 memory_ops 面；配额熔断按容器存活期生效",
-        next_stage="S5"),
+        gap="工具循环已落地（S5-3：agent/subagent/tool_loop.py + peer_local_handler 接线——母体把已授权"
+            "工具定义写进 task_file，分身自己执行并回报；白名单外一律拒），不再必须“声明 + 母体代执行”；"
+            "残留：容器/CLI 等 execution backend 是否支持工具调用取决于环境侧（不支持则逐字回退声明式守门器）；"
+            "mem0 后端无列出/删除见 memory_ops 面；配额熔断按容器存活期生效",
+        next_stage=""),
     SovereigntyFace(
         key="memory_provider", layer="memory", label="记忆提供商与知识库",
         question="存在哪、离线可用吗？", state=OWNED,
         evidence="scoped 档按 memory_provider 经 ScopedMemoryDomain.select_store 取真实后端：holographic → LayeredMemoryStore（本地 SQLite/FTS5）；mem0 → Mem0Adapter（可选依赖 + 内置降级）；未知 provider 显式 400 / UnknownMemoryProviderError，不静默回退；memory_view 如实回显 provider/store/离线 degraded",
         evidence_files=("agent/memory/scoped_store.py", "agent/subagent/memory_broker.py", "agent/memory/router.py", "agent/memory/adapters/holographic_adapter.py"),
-        gap="mem0 为可选依赖：未安装时 Mem0Adapter 走内置 JSON 降级（非语义去重）且单文件无租户物理分库；brokered 仍只经母体 tenancy 只读、不按 provider 选 adapter（设计如此）",
-        next_stage="S5"),
+        gap="mem0 为可选依赖：未安装时 Mem0Adapter 走内置 JSON 降级（非语义去重）；该降级已按"
+            " (tenant, workspace, subject) 物理分库（scoped_shard_path，S5-2），不再单文件混租户；"
+            "残留：真实 mem0 引擎的租户隔离依赖其自身 metadata/user 作用域（引擎未装，未实测）；"
+            "brokered 仍只经母体 tenancy 只读、不按 provider 选 adapter（设计如此）",
+        next_stage=""),
     SovereigntyFace(
         key="memory_ops", layer="memory", label="记忆导出/擦除/迁移",
         question="能不能删干净、搬走？", state=OWNED,
