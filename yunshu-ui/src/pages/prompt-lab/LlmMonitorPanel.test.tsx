@@ -6,8 +6,8 @@
  * 的四项行为钉成回归：
  *
  *   1. 折叠面板：每次通信一行，点击行头展开当次详细收发内容，再点收起；
- *   2. 时间显示 → token 数量：行头显示本次通信 Token（▲发送 ▾接收），
- *      **不再显示时间戳**（即使记录里带着 timestamp_str）；
+ *   2. 时间 + token 数量：行头显示时间戳（悬浮给完整日期时间）与本次通信 Token
+ *      （▲发送 ▾接收）。【2026-10-13 需求更新】此前只显示 Token、刻意隐藏时间；
  *   3. 会话持久化：后端在服务关闭时落盘的最后一条通信回填后标注「上次会话」，
  *      并在说明文案中给出快照时间（数据源 /api/llm-monitor/stats.persisted）；
  *   4. 统计条：发送/接收 Tokens 汇总可见。
@@ -43,10 +43,10 @@ const RECORD = {
   request_tokens: 1200,
   response_tokens: 340,
   total_tokens: 1540,
-  // 记录里**带着**时间戳：用于断言行头不再显示它（需求：时间 → token）
+  // 记录带着时间戳：用于断言行头**要显示**它（需求 2026-10-13：每条标上时间）
   timestamp: 1789773504,
-  timestamp_str: '2026-09-19 23:00:00',
-  timestamp_full: '2026-09-19 23:00:00.123',
+  timestamp_str: '23:00:00',
+  timestamp_full: '2026-09-19 23:00:00',
   system_prompt: 'SYSTEM-PROMPT-MARKER',
   messages: [{ role: 'user', content: 'USER-MSG-MARKER' }],
   response_text: 'RESP-MARKER',
@@ -75,7 +75,7 @@ afterEach(cleanup)
 const rowHead = () => document.querySelector('.lm-record-head') as HTMLElement
 
 describe('需求③：LLM 通信监控（折叠面板 / Token 替代时间 / 会话持久化）', () => {
-  it('行头显示本次通信 Token 数量，且不再显示时间戳', async () => {
+  it('行头显示时间与本次通信 Token 数量', async () => {
     render(<LlmMonitorPanel />)
     const head = await waitFor(() => {
       const el = rowHead()
@@ -90,9 +90,11 @@ describe('需求③：LLM 通信监控（折叠面板 / Token 替代时间 / 会
     expect(head.textContent).toContain('1.2k')
     expect(head.textContent).toContain('340')
 
-    // 需求：时间显示已替换为 token 数量 ⇒ 行头不得出现任何时间戳
-    expect(head.textContent).not.toContain('2026-09-19')
-    expect(head.textContent).not.toContain('23:00:00')
+    // 需求（2026-10-13）：每条记录标上时间；悬浮给完整日期时间
+    const time = head.querySelector('.lm-time') as HTMLElement
+    expect(time).toBeTruthy()
+    expect(time.textContent).toBe('23:00:00')
+    expect(time.getAttribute('title')).toBe('2026-09-19 23:00:00')
   })
 
   it('折叠面板：点击行头展开当次详细收发内容，再点收起', async () => {

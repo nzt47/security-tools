@@ -963,7 +963,14 @@
   background: rgba(251, 191, 36, 0.16);
   color: #fcd34d;
 }
-/* Token 数量（替代原时间显示） */
+/* 记录时间（2026-10-13：与 Token 并列显示；此前只显示 Token） */
+.lm-time {
+  flex-shrink: 0;
+  font-family: var(--wb-mono);
+  font-size: 10.5px;
+  color: var(--wb-text-dim);
+}
+/* Token 数量 */
 .lm-tokens {
   flex-shrink: 0;
   padding: 0 6px;
