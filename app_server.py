@@ -1689,6 +1689,9 @@ try:
         session_mgr=None,
         vector_store=None,
         skills_mgr=_skills_mgr,
+        # 【2026-10-13】资产·记忆数据必须与「记忆管理」同源：直接注入同一个 MemoryManager，
+        # 而不是让 assets 路由去读 data/memory/agent_memory.json（迁移脚本的旧源，二者对不上）。
+        memory_mgr=getattr(_Yunshu, "_memory", None),
     )
     reg_assets(app, _assets_state)
     logger.info("资产管理路由已注册 (/api/assets/*)")

@@ -21,6 +21,7 @@ from flask import Flask
 
 from agent.server_routes import routes_assets
 from agent.server_routes.routes_assets import (
+    ALL_CATEGORIES,
     FILE_BASED_CATEGORIES,
     register_routes,
     _read_json_file,
@@ -104,7 +105,7 @@ class TestGetNonFileItems:
         items = _get_non_file_items("skills", state)
         assert items == [{
             "id": "s1", "title": "n", "name": "n", "description": "d",
-            "enabled": True, "category": "skills",
+            "enabled": True, "category": "skills", "source": "system",
         }]
 
     def test_skills_without_manager(self):
@@ -112,10 +113,32 @@ class TestGetNonFileItems:
         state = SimpleNamespace(skills_mgr=None)
         assert _get_non_file_items("skills", state) == []
 
-    def test_non_skills_category(self):
-        """非 skills 类别（未实现子系统对接）应返回空列表"""
-        state = SimpleNamespace(skills_mgr=SimpleNamespace(get_all=lambda: []))
+    def test_non_skills_category_empty_when_no_source(self, tmp_path, monkeypatch):
+        """memory 在无 memory_mgr 且无本地账本时应返回空列表"""
+        monkeypatch.setattr(routes_assets, "ASSETS_DIR", tmp_path / "assets")
+        state = SimpleNamespace(skills_mgr=SimpleNamespace(get_all=lambda: []), memory_mgr=None)
         assert _get_non_file_items("memory", state) == []
+
+    def test_memory_与记忆管理同源被映射(self, tmp_path, monkeypatch):
+        """记忆真源 = MemoryManager._storage（与「记忆管理」同一份），标 source=system"""
+        storage = SimpleNamespace(load_recent_messages=lambda limit=50: [
+            {"role": "user", "content": "第一行\n第二行", "timestamp": "2026-01-01T00:00:00"},
+            {"role": "assistant", "content": "", "timestamp": "2026-01-02T00:00:00"},
+        ])
+        monkeypatch.setattr(routes_assets, "ASSETS_DIR", tmp_path / "assets")
+        state = SimpleNamespace(skills_mgr=None, memory_mgr=SimpleNamespace(_storage=storage))
+        items = _get_non_file_items("memory", state)
+        assert [i["description"] for i in items] == ["user", "assistant"]
+        assert items[0]["title"] == "第一行"
+        assert items[0]["source"] == "system"
+
+    def test_本地补录与真实条目合并(self, tmp_path, monkeypatch):
+        """本地账本条目（source=local）与真实条目合并返回"""
+        monkeypatch.setattr(routes_assets, "ASSETS_DIR", tmp_path / "assets")
+        _write_asset(tmp_path, "memory", [{"id": "local1", "title": "本地补录"}])
+        items = _get_non_file_items("memory", SimpleNamespace(skills_mgr=None, memory_mgr=None))
+        assert [i["id"] for i in items] == ["local1"]
+        assert items[0]["source"] == "local"
 
     def test_manager_raises_returns_empty(self):
         """skills_mgr 抛异常应被捕获并返回空列表"""
@@ -206,11 +229,19 @@ class TestList:
 class TestAdd:
     """POST /api/assets/<category>"""
 
-    def test_add_non_file_category_rejected(self, client):
-        """非文件类不支持直接添加, 应返回 400"""
+    def test_add_non_file_category_writes_local_ledger(self, client, tmp_path):
+        """非文件类（skills）也能添加：写入本地补录账本，不动真实子系统"""
         resp = client.post("/api/assets/skills", json={"name": "x"})
+        assert resp.status_code == 200
+        assert resp.get_json()["item"]["source"] == "local"
+        saved = json.loads((tmp_path / "assets" / "skills.json").read_text(encoding="utf-8"))
+        assert saved[0]["name"] == "x"
+
+    def test_add_unknown_category_rejected(self, client):
+        """未知类别应返回 400"""
+        resp = client.post("/api/assets/nope", json={"name": "x"})
         assert resp.status_code == 400
-        assert "不支持" in resp.get_json()["error"]
+        assert "未知类别" in resp.get_json()["error"]
 
     def test_add_success(self, client, tmp_path):
         """文件类添加成功应返回新项并落盘"""
@@ -237,10 +268,19 @@ class TestAdd:
 class TestDelete:
     """DELETE /api/assets/<category>/<item_id>"""
 
-    def test_delete_non_file_category_rejected(self, client):
-        """非文件类不支持删除, 应返回 400"""
+    def test_delete_real_subsystem_item_not_in_ledger(self, client):
+        """真实子系统条目不在本地账本 ⇒ 404（提示去对应页面）"""
         resp = client.delete("/api/assets/skills/s1")
-        assert resp.status_code == 400
+        assert resp.status_code == 404
+        assert "本地账本" in resp.get_json()["error"]
+
+    def test_delete_local_ledger_item(self, client, tmp_path):
+        """本地补录条目可删除"""
+        client.post("/api/assets/skills", json={"name": "x"})
+        item_id = json.loads((tmp_path / "assets" / "skills.json").read_text(encoding="utf-8"))[0]["id"]
+        resp = client.delete(f"/api/assets/skills/{item_id}")
+        assert resp.status_code == 200
+        assert json.loads((tmp_path / "assets" / "skills.json").read_text(encoding="utf-8")) == []
 
     def test_delete_not_found(self, client, tmp_path):
         """删除不存在的项应返回 404"""
@@ -295,17 +335,17 @@ class TestBackup:
         backup_file = tmp_path / "backups" / f"{backup_id}.json"
         assert backup_file.exists()
         content = json.loads(backup_file.read_text(encoding="utf-8"))
-        assert set(content.keys()) == FILE_BASED_CATEGORIES
+        assert set(content.keys()) == set(ALL_CATEGORIES)
         assert content["habits"] == [{"id": "h1"}]
 
-    def test_backup_selected_categories_skips_non_file(self, client, tmp_path):
-        """指定类别备份时应跳过非文件类（skills）"""
+    def test_backup_selected_categories(self, client, tmp_path):
+        """指定类别备份时只含所选类别（现含非文件类的本地账本）"""
         _write_asset(tmp_path, "habits", [{"id": "h1"}])
         resp = client.post("/api/assets/backup", json={"categories": ["habits", "skills"]})
         assert resp.status_code == 200
         backup_file = tmp_path / "backups" / f"{resp.get_json()['backup_id']}.json"
         content = json.loads(backup_file.read_text(encoding="utf-8"))
-        assert set(content.keys()) == {"habits"}
+        assert set(content.keys()) == {"habits", "skills"}
 
     def test_backup_error(self, client, monkeypatch):
         """读取资产失败应返回 500"""
@@ -336,7 +376,7 @@ class TestBackupList:
         assert data["count"] == 1
         b = data["backups"][0]
         assert b["backup_id"].startswith("assets_backup_")
-        assert set(b["categories"]) == FILE_BASED_CATEGORIES
+        assert set(b["categories"]) == set(ALL_CATEGORIES)
         assert b["file_count"] == 2  # habits 2 条, 其余空
         assert b["size_bytes"] > 0
 
@@ -401,24 +441,24 @@ class TestRestore:
         resp = client.post("/api/assets/restore", json={"backup_id": "nope"})
         assert resp.status_code == 404
 
-    def test_restore_success_skips_non_file(self, client, tmp_path):
-        """恢复成功应写回文件类资产并跳过非文件类条目"""
+    def test_restore_writes_all_categories(self, client, tmp_path):
+        """恢复成功应写回所有类别的本地账本（含 memory 等非文件类的本地条目）"""
         backups = tmp_path / "backups"
         backups.mkdir(parents=True, exist_ok=True)
         (backups / "assets_backup_b1.json").write_text(json.dumps({
             "habits": [{"id": "h1"}],
-            "memory": [{"id": "m1"}],  # 非文件类别 → 跳过
+            "memory": [{"id": "m1"}],  # 非文件类别 → 写回其本地账本
         }, ensure_ascii=False), encoding="utf-8")
         _write_asset(tmp_path, "habits", [{"id": "old"}])  # 制造被改坏的资产
         resp = client.post("/api/assets/restore", json={"backup_id": "assets_backup_b1"})
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["ok"] is True
-        assert data["result"]["restored_files"] == ["habits"]
-        assert data["result"]["restored_count"] == 1
+        assert data["result"]["restored_files"] == ["habits", "memory"]
+        assert data["result"]["restored_count"] == 2
         saved = json.loads((tmp_path / "assets" / "habits.json").read_text(encoding="utf-8"))
         assert saved == [{"id": "h1"}]
-        assert not (tmp_path / "assets" / "memory.json").exists()
+        assert json.loads((tmp_path / "assets" / "memory.json").read_text(encoding="utf-8")) == [{"id": "m1"}]
 
     def test_restore_corrupt_backup(self, client, tmp_path):
         """备份文件损坏（非法 JSON）应返回 500"""
@@ -438,7 +478,7 @@ class TestExport:
         resp = client.get("/api/assets/export")
         assert resp.status_code == 200
         exported = json.loads(resp.data.decode("utf-8"))
-        assert set(exported.keys()) == FILE_BASED_CATEGORIES
+        assert set(exported.keys()) == set(ALL_CATEGORIES)
         assert exported["habits"] == [{"id": "h1"}]
         export_files = list((tmp_path / "backups").glob("assets_export_*.json"))
         assert len(export_files) == 1

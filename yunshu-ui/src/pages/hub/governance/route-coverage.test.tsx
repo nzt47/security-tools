@@ -44,6 +44,8 @@ describe('RouteCoveragePanel · 意图标注', () => {
     expect(filter.textContent).toContain('该进却未进')
     expect(filter.textContent).toContain('1')
 
+    // 等表格渲染完成再断言：filter 按钮挂载即有，表格要等 getEnvelope resolve（否则竞态）
+    await screen.findByTestId('route-intent-/api/x')
     expect(screen.getByTestId('route-intent-/api/x').textContent).toContain('该进 UI')
     expect(screen.getByTestId('route-intent-/api/x').textContent).toContain('待办')
     expect(screen.getByTestId('route-intent-/api/y').textContent).toContain('未标注')
@@ -55,6 +57,7 @@ describe('RouteCoveragePanel · 意图标注', () => {
     render(<RouteCoveragePanel />)
     await screen.findByTestId('route-pending-filter')
 
+    await screen.findByTestId('route-desc-/api/x')
     expect(screen.getByTestId('route-desc-/api/x').textContent).toContain('创建一条 X 记录')
     // handler 说明不贴模块标签
     expect(screen.getByTestId('route-desc-/api/x').textContent).not.toContain('模块')
@@ -69,6 +72,7 @@ describe('RouteCoveragePanel · 意图标注', () => {
     render(<RouteCoveragePanel />)
     await screen.findByTestId('route-pending-filter')
 
+    await screen.findByText('/api/x')
     fireEvent.click(screen.getByTestId('route-pending-filter'))
 
     expect(screen.getByText('/api/x')).toBeTruthy()
