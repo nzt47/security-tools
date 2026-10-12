@@ -291,25 +291,25 @@ class TestRoutesAssetsExportKeysAreDeterministic:
 
     def test_iteration_uses_an_ordered_constant(self):
         from agent.server_routes.routes_assets import (
-            FILE_BASED_CATEGORIES, FILE_BASED_CATEGORY_ORDER)
-        assert isinstance(FILE_BASED_CATEGORY_ORDER, tuple), (
-            "迭代用的常量必须有序：:173/:265 直接迭代它生成 JSON 的键序")
-        assert FILE_BASED_CATEGORY_ORDER == ("habits", "inspires", "hobbies", "interactions")
-        assert FILE_BASED_CATEGORIES == set(FILE_BASED_CATEGORY_ORDER), (
+            ALL_CATEGORIES, LEDGER_CATEGORY_ORDER)
+        assert isinstance(LEDGER_CATEGORY_ORDER, tuple), (
+            "迭代用的常量必须有序：备份/导出直接迭代它生成 JSON 的键序")
+        assert LEDGER_CATEGORY_ORDER == tuple(ALL_CATEGORIES)
+        assert set(ALL_CATEGORIES) == set(LEDGER_CATEGORY_ORDER), (
             "成员集合必须由有序枚举派生（单一事实来源）")
 
     def test_export_key_order_matches_declaration(self):
-        from agent.server_routes.routes_assets import FILE_BASED_CATEGORY_ORDER
+        from agent.server_routes.routes_assets import LEDGER_CATEGORY_ORDER
         export_data = {}
-        for cat in FILE_BASED_CATEGORY_ORDER:
+        for cat in LEDGER_CATEGORY_ORDER:
             export_data[cat] = []
-        assert list(export_data) == ["habits", "inspires", "hobbies", "interactions"]
+        assert list(export_data) == list(LEDGER_CATEGORY_ORDER)
 
     def test_export_key_order_is_identical_across_hash_seeds(self):
         code = ("import json\n"
-                "from agent.server_routes.routes_assets import FILE_BASED_CATEGORY_ORDER\n"
+                "from agent.server_routes.routes_assets import LEDGER_CATEGORY_ORDER\n"
                 "d = {}\n"
-                "for c in FILE_BASED_CATEGORY_ORDER:\n    d[c] = []\n"
+                "for c in LEDGER_CATEGORY_ORDER:\n    d[c] = []\n"
                 "print(json.dumps(list(d)))\n")
         _assert_one_kind(_run_across_seeds(code), "/api/assets/export 的键序")
 

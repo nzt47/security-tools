@@ -28,6 +28,19 @@ BACKUPS_DIR = Path("data/backups")
 FILE_BASED_CATEGORY_ORDER = ("habits", "inspires", "hobbies", "interactions")
 FILE_BASED_CATEGORIES = set(FILE_BASED_CATEGORY_ORDER)
 ALL_CATEGORIES = ["memory", "prompts", "tools", "skills", "habits", "inspires", "hobbies", "interactions"]
+#: [DET-4] 本地账本类别（全部 8 类）的**有序**枚举：备份/导出直接迭代它生成 JSON 键序
+LEDGER_CATEGORY_ORDER = tuple(ALL_CATEGORIES)
+
+#: 「非文件型」= 计数与清单来自**真实子系统**（memory/prompts/tools/skills）；
+#: 其余 4 类是本地账本。非文件型仍保留一份**本地补录账本**
+#: （data/assets/<cat>.json）用于「添加」——子系统不提供创建/删除入口的类别
+#: （skills/tools）也能记账，且真实条目只读、本地条目可删。
+NON_FILE_CATEGORY_ORDER = ("memory", "prompts", "tools", "skills")
+NON_FILE_CATEGORIES = set(NON_FILE_CATEGORY_ORDER)
+#: 真实记忆条目文件（条目 {id, content, metadata, timestamp}）
+MEMORY_FILE = Path(__file__).resolve().parents[2] / "data" / "memory" / "agent_memory.json"
+#: 子系统条目上屏上限（记忆实测 1600+ 条，全量上屏没有意义）
+SYSTEM_ITEMS_LIMIT = 200
 
 
 def _read_json_file(filepath: Path) -> list:
@@ -44,25 +57,144 @@ def _write_json_file(filepath: Path, data: list) -> None:
     filepath.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def _get_non_file_items(category: str, state) -> list:
-    """从其他子系统获取非文件型资产"""
+def _map_skill_items(state) -> list:
+    """skills 子系统条目（真源：SkillsManager）。"""
+    mgr = getattr(state, "skills_mgr", None)
+    if not mgr:
+        return []
+    return [
+        {
+            "id": s.get("id", ""),
+            "title": s.get("name", ""),
+            "name": s.get("name", ""),
+            "description": s.get("description", ""),
+            "enabled": s.get("enabled", False),
+            "category": "skills",
+        }
+        for s in mgr.get_all()
+    ]
+
+
+def _read_memory_items() -> list:
+    """记忆数据：data/memory/agent_memory.json（真源，只读）。"""
+    out = []
+    for it in _read_json_file(MEMORY_FILE):
+        if not isinstance(it, dict):
+            continue
+        content = str(it.get("content") or "").strip()
+        first = content.splitlines()[0] if content else ""
+        meta = it.get("metadata") if isinstance(it.get("metadata"), dict) else {}
+        out.append({
+            "id": str(it.get("id") or ""),
+            "title": first[:80] or "（空记忆）",
+            "name": first[:80] or "（空记忆）",
+            "description": str(meta.get("type") or "记忆"),
+            "created_at": str(it.get("timestamp") or meta.get("created_at") or ""),
+            "category": "memory",
+        })
+    return out
+
+
+def _read_prompt_items() -> list:
+    """提示词库：PromptStorage（data/prompts/prompts.db，真源，只读）。"""
+    from agent.prompt_manager.storage import get_prompt_storage
+    out = []
+    for rec in get_prompt_storage().list_prompts(limit=100000):
+        d = rec.to_dict() if hasattr(rec, "to_dict") else dict(rec)
+        out.append({
+            "id": str(d.get("prompt_id") or ""),
+            "title": str(d.get("name") or d.get("prompt_id") or ""),
+            "name": str(d.get("name") or ""),
+            "description": str(d.get("prompt_type") or ""),
+            "created_at": str(d.get("created_at_iso") or ""),
+            "category": "prompts",
+        })
+    return out
+
+
+def _read_tool_items() -> list:
+    """工具资源：agent.tools.list_tools()（工具定义真源，只读）。"""
+    from agent.tools import list_tools
+    out = []
+    for t in (list_tools() or []):
+        if not isinstance(t, dict):
+            continue
+        out.append({
+            "id": str(t.get("name") or ""),
+            "title": str(t.get("name") or ""),
+            "name": str(t.get("name") or ""),
+            "description": str(t.get("description") or ""),
+            "created_at": "",
+            "category": "tools",
+        })
+    return out
+
+
+def _real_items(category: str, state) -> list:
+    """非文件型的**真实子系统**条目（只读来源）。
+
+    单项类别取数失败只影响该类别（返回空表），不把整个端点打成 500。
+    """
     try:
-        if category == "skills" and state.skills_mgr:
-            skills = state.skills_mgr.get_all()
-            return [
-                {
-                    "id": s.get("id", ""),
-                    "title": s.get("name", ""),
-                    "name": s.get("name", ""),
-                    "description": s.get("description", ""),
-                    "enabled": s.get("enabled", False),
-                    "category": "skills",
-                }
-                for s in skills
-            ]
-    except Exception as e:
-        logger.warning("[AssetsAPI] 获取 %s 数据失败: %s", category, e)
-    return []
+        if category == "skills":
+            items = _map_skill_items(state)
+        elif category == "memory":
+            items = _read_memory_items()
+        elif category == "prompts":
+            items = _read_prompt_items()
+        elif category == "tools":
+            items = _read_tool_items()
+        else:
+            items = []
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[AssetsAPI] 获取 %s 真实数据失败: %s", category, e)
+        items = []
+    for it in items:
+        it.setdefault("source", "system")
+    return items
+
+
+def _local_items(category: str) -> list:
+    """本地补录账本（data/assets/<cat>.json）：非文件型类别里可增删的那部分。"""
+    out = []
+    for it in _read_json_file(ASSETS_DIR / f"{category}.json"):
+        if isinstance(it, dict):
+            out.append({**it, "source": it.get("source") or "local"})
+    return out
+
+
+def _get_non_file_items(category: str, state, limit: int = SYSTEM_ITEMS_LIMIT) -> list:
+    """非文件型 = 真实子系统条目（只读） + 本地补录账本（可增删）。
+
+    【为什么合并】子系统多数没有「创建」入口（skills/tools 只能改启用态），
+    若「添加」一律 400，这三类在资产管理里就是死路。真实条目只读、本地条目可删，
+    账本落在 data/assets/<cat>.json，与 4 个文件型类别的落点一致。
+    """
+    real = _real_items(category, state)
+    if limit is not None:
+        real = real[:limit]
+    return real + _local_items(category)
+
+
+def _non_file_count(category: str, state) -> int:
+    """非文件型真实总数 = 真实子系统条目数 + 本地补录条数（不受上屏上限影响）。
+
+    与 _get_non_file_items 不同，这里**不吞异常**：overview 是「一眼看全」的门面，
+    统计失败应当 500 而不是静默显示 0（否则坏了也看不出来）。
+    """
+    if category == "skills":
+        n = len(_map_skill_items(state))
+    elif category == "memory":
+        n = len(_read_json_file(MEMORY_FILE))
+    elif category == "prompts":
+        from agent.prompt_manager.storage import get_prompt_storage
+        n = len(get_prompt_storage().list_prompts(limit=100000))
+    elif category == "tools":
+        from agent.tools import list_tools
+        n = len(list_tools() or [])
+    else:
+        n = 0
+    return n + len(_read_json_file(ASSETS_DIR / f"{category}.json"))
 
 
 def register_routes(app, state):
@@ -76,11 +208,10 @@ def register_routes(app, state):
             overview = {}
             for cat in ALL_CATEGORIES:
                 if cat in FILE_BASED_CATEGORIES:
-                    items = _read_json_file(ASSETS_DIR / f"{cat}.json")
-                    overview[cat] = len(items)
+                    overview[cat] = len(_read_json_file(ASSETS_DIR / f"{cat}.json"))
                 else:
-                    items = _get_non_file_items(cat, state)
-                    overview[cat] = len(items)
+                    # 真实子系统总数（不受上屏上限影响）+ 本地补录条数
+                    overview[cat] = _non_file_count(cat, state)
             overview["total"] = sum(overview.values())
             return jsonify({"ok": True, "overview": overview})
         except Exception as e:
@@ -94,8 +225,10 @@ def register_routes(app, state):
         try:
             if category in FILE_BASED_CATEGORIES:
                 items = _read_json_file(ASSETS_DIR / f"{category}.json")
+                total = len(items)
             else:
                 items = _get_non_file_items(category, state)
+                total = _non_file_count(category, state)
             for i, item in enumerate(items):
                 if not item.get("id"):
                     item["id"] = f"{category}_{i}"
@@ -105,7 +238,9 @@ def register_routes(app, state):
                     item["type"] = category
                 if not item.get("category"):
                     item["category"] = category
-            return jsonify({"ok": True, "items": items, "count": len(items), "category": category})
+            # total = 真实总数（非文件型可能大于上屏条数 count）
+            return jsonify({"ok": True, "items": items, "count": len(items),
+                            "total": total, "category": category})
         except Exception as e:
             logger.error("[AssetsAPI] list %s 失败: %s", category, e)
             return jsonify({"ok": False, "error": str(e)}), 500
@@ -116,8 +251,8 @@ def register_routes(app, state):
     def api_assets_delete(category, item_id):
         """删除指定资产项"""
         try:
-            if category not in FILE_BASED_CATEGORIES:
-                return jsonify({"ok": False, "error": f"类别 {category} 不支持删除"}), 400
+            if category not in ALL_CATEGORIES:
+                return jsonify({"ok": False, "error": f"未知类别 {category}"}), 400
 
             filepath = ASSETS_DIR / f"{category}.json"
             items = _read_json_file(filepath)
@@ -126,7 +261,8 @@ def register_routes(app, state):
             after = len(items)
 
             if before == after:
-                return jsonify({"ok": False, "error": "未找到指定资产项"}), 404
+                # 真实子系统条目不在本地账本里 ⇒ 只能去对应子系统删除
+                return jsonify({"ok": False, "error": "本地账本中未找到该条目（来自子系统的只读条目请到对应页面处理）"}), 404
 
             _write_json_file(filepath, items)
             logger.info("[AssetsAPI] 已删除 %s/%s", category, item_id)
@@ -141,8 +277,8 @@ def register_routes(app, state):
     def api_assets_add(category):
         """添加资产项到指定类别"""
         try:
-            if category not in FILE_BASED_CATEGORIES:
-                return jsonify({"ok": False, "error": f"类别 {category} 不支持直接添加"}), 400
+            if category not in ALL_CATEGORIES:
+                return jsonify({"ok": False, "error": f"未知类别 {category}"}), 400
 
             data = request.get_json() or {}
             filepath = ASSETS_DIR / f"{category}.json"
@@ -151,6 +287,8 @@ def register_routes(app, state):
             new_item = {
                 "id": f"{category}_{int(time.time() * 1000)}",
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                # 非文件型：本地补录条目如实标注来源（真实子系统条目 source=system、只读）
+                "source": "local",
                 **data,
             }
             items.append(new_item)
@@ -176,9 +314,9 @@ def register_routes(app, state):
             backup_data = {}
 
             # [DET-4] 兜底默认必须是**有序**枚举（见文件头的声明）
-            cats = categories if categories else FILE_BASED_CATEGORY_ORDER
+            cats = categories if categories else LEDGER_CATEGORY_ORDER
             for cat in cats:
-                if cat in FILE_BASED_CATEGORIES:
+                if cat in ALL_CATEGORIES:
                     backup_data[cat] = _read_json_file(ASSETS_DIR / f"{cat}.json")
 
             backup_file = BACKUPS_DIR / f"{backup_id}.json"
@@ -247,7 +385,7 @@ def register_routes(app, state):
             backup_data = json.loads(backup_file.read_text(encoding="utf-8"))
             restored = []
             for cat, items in backup_data.items():
-                if cat in FILE_BASED_CATEGORIES:
+                if cat in ALL_CATEGORIES:
                     _write_json_file(ASSETS_DIR / f"{cat}.json", items)
                     restored.append(cat)
 
@@ -271,7 +409,7 @@ def register_routes(app, state):
         """导出所有资产为 JSON 文件"""
         try:
             export_data = {}
-            for cat in FILE_BASED_CATEGORY_ORDER:   # [DET-4] 导出键序 = 声明序
+            for cat in LEDGER_CATEGORY_ORDER:   # [DET-4] 导出键序 = 声明序
                 export_data[cat] = _read_json_file(ASSETS_DIR / f"{cat}.json")
 
             export_file = BACKUPS_DIR / f"assets_export_{int(time.time())}.json"

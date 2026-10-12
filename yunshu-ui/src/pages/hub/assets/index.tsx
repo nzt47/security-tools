@@ -35,6 +35,8 @@ interface AssetItem {
   name?: string
   description?: string
   created_at?: string
+  /** system = 来自真实子系统（只读）；local/缺省 = 本地账本条目（可删） */
+  source?: string
   [k: string]: unknown
 }
 
@@ -61,6 +63,8 @@ interface AssetsList {
   ok?: boolean
   items?: AssetItem[]
   count?: number
+  /** 真实总数：非文件型可能大于上屏条数 count（服务端按上限截断） */
+  total?: number
   category?: string
 }
 
@@ -80,6 +84,7 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
   const [overview, setOverview] = useState<Record<string, number>>({})
   const [active, setActive] = useState(initialCategory)
   const [items, setItems] = useState<AssetItem[]>([])
+  const [total, setTotal] = useState(0)
   const [backups, setBackups] = useState<BackupItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -98,7 +103,9 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
   const loadList = (cat: string) => {
     setLoading(true)
     hubGet<AssetsList>(assetsByCategory(cat)).then((r) => {
-      setItems(r?.items ?? [])
+      const list = r?.items ?? []
+      setItems(list)
+      setTotal(r?.total ?? list.length)
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }
@@ -190,7 +197,7 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card title={`${activeCat?.icon ?? ''} ${activeCat?.label ?? active}（${items.length}）`}>
+          <Card title={`${activeCat?.icon ?? ''} ${activeCat?.label ?? active}（${items.length}${total > items.length ? ` / 共 ${total}` : ''}）`}>
             {loading ? <Loading /> : (
               <>
                 <DataTable
@@ -207,9 +214,14 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
                     {
                       key: 'actions', title: '',
                       render: (r) => (
-                        <button onClick={() => delItem(String(r.id))} className="flex items-center gap-1 rounded-md border border-red-900/60 px-2 py-1 text-xs text-red-400 hover:bg-red-950">
-                          <Trash2 size={11} /> 删除
-                        </button>
+                        // 真实子系统条目只读：不给删除按钮，避免点了必然 404
+                        r.source === 'system' ? (
+                          <span className="text-[10px] text-slate-500" title="来自子系统，只读；请到对应页面处理">系统</span>
+                        ) : (
+                          <button onClick={() => delItem(String(r.id))} className="flex items-center gap-1 rounded-md border border-red-900/60 px-2 py-1 text-xs text-red-400 hover:bg-red-950">
+                            <Trash2 size={11} /> 删除
+                          </button>
+                        )
                       ),
                     },
                   ]}
