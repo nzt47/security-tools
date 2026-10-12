@@ -10,7 +10,8 @@
  * 三条硬要求（对应需求）：
  *   1. **折叠面板**：每次通信一行，点击展开查看完整收发内容
  *      （请求 = system prompt + messages + tools 定义；响应 = reasoning + 文本 + tool_calls + error）。
- *   2. **时间 → Token**：记录行不再显示时间戳，改为显示本次通信的 Token 数量（▲发送 ▾接收）。
+ *   2. **时间 + Token**：记录行显示时间戳（悬浮给完整日期时间），同时显示本次通信的
+ *      Token 数量（▲发送 ▾接收）。【2026-10-13 需求更新】此前只显示 Token、刻意隐藏时间。
  *   3. **会话持久化**：服务关闭时后端把最后一条通信落盘（atexit），重开后本面板
  *      回填该条并标注「上次会话」——见 agent/llm_monitor.py::persist_session_last。
  */
@@ -246,7 +247,7 @@ export default function LlmMonitorPanel() {
       </div>
       <p className="pl-category-desc">
         查看每次 LLM 调用的完整收发内容：请求 = 发给 LLM 的全部消息 + 工具定义，响应 = LLM 返回文本 + 工具调用。
-        记录行显示<b>本次通信的 Token 数量</b>（▲发送 ▾接收），点击行即可<b>展开</b>当次详细通信信息。
+        记录行显示<b>时间</b>与<b>本次通信的 Token 数量</b>（▲发送 ▾接收，时间悬浮可见完整日期），点击行即可<b>展开</b>当次详细通信信息。
         {stats?.persisted?.persisted_at && (
           <> 服务关闭时会自动保存<b>会话最后一条通信</b>（快照 {stats.persisted.persisted_at}）。</>
         )}
@@ -325,7 +326,14 @@ export default function LlmMonitorPanel() {
                   <span className="lm-ico">{SOURCE_ICON[String(r.source ?? 'chat')] ?? '💬'}</span>
                   <span className="lm-model">{r.model || r.provider || '?'}</span>
                   <span className={`lm-badge ${String(r.source ?? 'chat')}`}>{r.source || 'chat'}</span>
-                  {/* 需求：时间显示 → token 数量显示 */}
+                  {/* 需求（2026-10-13）：每条记录标上时间；悬浮显示完整日期时间 */}
+                  <span
+                    className="lm-time"
+                    title={r.timestamp_full || r.timestamp_str || ''}
+                    data-testid={`lm-time-${r.id}`}
+                  >
+                    {r.timestamp_str || r.timestamp_full || '—'}
+                  </span>
                   <span className="lm-tokens" title={`本次通信 Token：发送 ${r.request_tokens ?? 0} / 接收 ${r.response_tokens ?? 0}`}>
                     ▲{formatNum(r.request_tokens ?? 0)} ▾{formatNum(r.response_tokens ?? 0)}
                     <em>tok</em>
