@@ -1292,6 +1292,45 @@ def _semantic_prestage(question: str):
             "[workbench][SSE] 语义层前置失败（按轻量继续）: %s", e)
         return "", "", None
 
+def _orch_step_to_event(step, state):
+    """编排器步骤（agent/tool_calling.py 的 step dict）→ thinking SSE 事件
+
+    容忍结构差异：认不出类型 ⇒ None（不发假事件）。tool_call/tool_result 用同一 id
+    关联（前端 upsert：running → done/error），同一工具的多次调用按序号区分。
+    """
+    if not isinstance(step, dict):
+        return None
+    t = str(step.get("type") or "")
+    tool = str(step.get("tool") or "")
+    last = state.setdefault("last_tool_id", {})
+    if t == "tool_call":
+        state["n"] = int(state.get("n", 0)) + 1
+        sid = "orch-tool-%s-%d" % (tool or "?", state["n"])
+        last[tool] = sid
+        return {"type": "thinking", "id": sid, "title": "工具调用：%s" % (tool or "?"),
+                "detail": "参数: %s" % (str(step.get("args") or "")[:160]),
+                "status": "running"}
+    if t == "tool_result":
+        sid = last.get(tool) or ("orch-tool-%s-%d" % (tool or "?", state.get("n", 0)))
+        ok = str(step.get("status") or "") == "success"
+        return {"type": "thinking", "id": sid, "title": "工具结果：%s" % (tool or "?"),
+                "detail": str(step.get("summary") or "")[:200],
+                "status": "done" if ok else "error"}
+    if t == "text":
+        state["n"] = int(state.get("n", 0)) + 1
+        return {"type": "thinking", "id": "orch-text-%d" % state["n"],
+                "title": "编排器", "detail": str(step.get("content") or "")[:200],
+                "status": "done"}
+    if t in ("aborted", "timed_out", "tool_stuck"):
+        state["n"] = int(state.get("n", 0)) + 1
+        title = {"aborted": "编排已中止", "timed_out": "编排超时",
+                 "tool_stuck": "工具卡住"}[t]
+        return {"type": "thinking", "id": "orch-%s-%d" % (t, state["n"]),
+                "title": title, "detail": str(step.get("summary") or ""),
+                "status": "error"}
+    return None
+
+
 def _full_pipeline_events(question: str, session_id: str):
     """「完整模式」：委托编排器全链路，把结果按 chunk 事件外发（**非流式**）
 
@@ -1317,6 +1356,21 @@ def _full_pipeline_events(question: str, session_id: str):
         return
 
     session_mgr = getattr(mod, "_session_mgr", None)
+
+    # ── P1：本档**复用编排器这一轮**，并把它内部的真实步骤外发 ──
+    #   出口在当前线程设置；编排器 _call_llm_v2 的 on_step 既进本地列表、也进本出口
+    #   （池线程通过 _run_llm_bounded 的上下文复制看到它）。步骤在回合结束后按真实
+    #   类型转成 thinking 事件——本档本就是「非流式委托」，与既有语义一致；
+    #   **不伪造**任何未跑过的阶段（认不出的步骤类型直接丢弃）。
+    _orch_steps: list = []
+    _sink_token = None
+    try:
+        from agent.orchestrator.orchestrator import (
+            reset_turn_step_sink, set_turn_step_sink)
+        _sink_token = set_turn_step_sink(_orch_steps.append)
+    except Exception as _se:  # noqa: BLE001 出口不可用 ⇒ 退化为整段返回（既有行为）
+        log.debug("[workbench][SSE] 编排步骤出口不可用: %s", _se)
+        _sink_token = None
     try:
         answer = str(yunshu.chat(question, session_id=session_id or None,
                                  session_mgr=session_mgr) or "")
@@ -1328,6 +1382,19 @@ def _full_pipeline_events(question: str, session_id: str):
                           "text": f"（完整模式执行失败：{e}）"})
         yield _sse_event({"type": "done"})
         return
+    finally:
+        if _sink_token is not None:
+            try:
+                reset_turn_step_sink(_sink_token)
+            except Exception:  # noqa: BLE001
+                pass
+
+    # 编排器本轮**真实**步骤（工具调用/结果/文本/中断）→ thinking 事件
+    _step_state: dict = {}
+    for _step in _orch_steps:
+        _evt = _orch_step_to_event(_step, _step_state)
+        if _evt is not None:
+            yield _sse_event(_evt)
 
     # 把编排层留存的**真实**上下文告警转成阶段事件（此前只在 /api/chat 的响应里可见）
     try:

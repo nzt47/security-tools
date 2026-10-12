@@ -74,11 +74,13 @@ class _SessionMgr:
 class _Yunshu:
     """桩编排器：检索返回固定文本；chat() 记录入参并返回固定回答"""
 
-    def __init__(self, extra="", answer="完整链路回答", chat_raises=None, semantic=None):
+    def __init__(self, extra="", answer="完整链路回答", chat_raises=None, semantic=None,
+                 steps=None):
         self._extra = extra
         self._answer = answer
         self._chat_raises = chat_raises
         self._semantic = semantic          # None=未命中；dict=命中（模拟编排器语义层）
+        self._steps = list(steps or [])    # P1：模拟编排器 _call_llm_v2 的 on_step 外发
         self._memory = _Memory()
         self.chat_calls = []
         self.semantic_calls = []
@@ -98,6 +100,13 @@ class _Yunshu:
                                 "session_mgr": session_mgr})
         if self._chat_raises:
             raise self._chat_raises
+        # 模拟编排器内部 _call_llm_v2 的 on_step：走请求级出口（P1）
+        if self._steps:
+            from agent.orchestrator.orchestrator import current_turn_step_sink
+            _sink = current_turn_step_sink()
+            if _sink is not None:
+                for _s in self._steps:
+                    _sink(_s)
         return self._answer
 
     def last_response_metadata(self, session_id=None):
@@ -226,6 +235,21 @@ class TestFullMode:
         text = "".join(e["text"] for e in _events(body) if e["type"] == "chunk")
         assert text == "完整模式的一段较长回答，用于验证分段外发。"
         assert not FakeLLM.instances, "完整模式不得再走工作台自己的流式模型调用"
+
+    def test_外发编排器真实步骤(self, env):
+        """P1：full 档**复用编排器回合**，并把其内部 on_step 作为 thinking 事件外发"""
+        y = _Yunshu(answer="ok", steps=[
+            {"type": "tool_call", "tool": "read_file", "args": "{}", "status": "running"},
+            {"type": "tool_result", "tool": "read_file", "status": "success", "summary": "done"},
+        ])
+        client, _fake = env(y)
+        body = _body(client.post("/api/chat/stream",
+                                 json={"message": "任务", "session_id": "s1", "mode": "full"}))
+        ev = [e for e in _events(body) if e["type"] == "thinking"]
+        tool_ev = [e for e in ev if str(e.get("id", "")).startswith("orch-tool-")]
+        assert len(tool_ev) == 2, "编排器工具步骤没有外发"
+        assert tool_ev[0]["id"] == tool_ev[1]["id"], "call/result 必须同 id 供前端 upsert"
+        assert {e["status"] for e in tool_ev} == {"running", "done"}
 
     def test_不覆盖编排器的本轮状态(self, env):
         """审计 P1-3：工作台若再用空值调 _set_turn_state，会**抹掉**编排器刚写的真实值
