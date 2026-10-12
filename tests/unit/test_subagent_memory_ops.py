@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -157,6 +158,46 @@ class TestM4BackendBoundary:
         assert AUDIT_SCOPED_EXPORT == "subagent.memory.export"
         assert AUDIT_SCOPED_ERASE == "subagent.memory.erase"
 
+
+class TestShardedTenants:
+    """S5-2：scoped mem0 内置降级按 (tenant, workspace, subject) 物理分库"""
+
+    def test_路径按域分片且互不相同(self, tmp_path):
+        from agent.memory.scoped_store import ScopedMemoryScope, scoped_shard_path
+        root = str(tmp_path)
+        s1 = ScopedMemoryScope(tenant_id="t1", workspace_id="w", subject_id="s")
+        s2 = ScopedMemoryScope(tenant_id="t2", workspace_id="w", subject_id="s")
+        p1 = scoped_shard_path(root, s1)
+        p2 = scoped_shard_path(root, s2)
+        assert p1 != p2
+        assert p1.endswith(os.path.join("t1", "w", "s.json"))
+        assert p2.endswith(os.path.join("t2", "w", "s.json"))
+
+    def test_不安全字符不折叠到同一路径(self, tmp_path):
+        from agent.memory.scoped_store import ScopedMemoryScope, scoped_shard_path
+        root = str(tmp_path)
+        a = scoped_shard_path(root, ScopedMemoryScope(tenant_id="a/b"))
+        b = scoped_shard_path(root, ScopedMemoryScope(tenant_id="a_b"))
+        assert a != b, "不同租户被折叠到同一物理文件 = 串库"
+
+    def test_两个租户物理隔离(self, tmp_path):
+        root = tmp_path / "m"
+        d1 = _domain(root, tenant="t1", workspace="w", subject="s", provider="mem0")
+        d2 = _domain(root, tenant="t2", workspace="w", subject="s", provider="mem0")
+        if getattr(d1.select_store()._adapter, "_has_mem0", False):
+            pytest.skip("本机装了 mem0 引擎：内置降级分片不适用")
+        _seed(d1, 1)
+        _seed(d2, 1)
+        from agent.memory.scoped_store import scoped_shard_path
+        p1 = Path(scoped_shard_path(str(root), d1.scope))
+        p2 = Path(scoped_shard_path(str(root), d2.scope))
+        assert p1.exists() and p2.exists() and p1 != p2
+        f1 = json.loads(p1.read_text(encoding="utf-8"))
+        f2 = json.loads(p2.read_text(encoding="utf-8"))
+        # 每个分片文件只含本租户的事实（物理上不可能串库）
+        assert len(f1) == 1 and len(f2) == 1
+        assert all(v.get("metadata", {}).get("tenant_id") == "t1" for v in f1.values())
+        assert all(v.get("metadata", {}).get("tenant_id") == "t2" for v in f2.values())
 
 
 class TestM5CLI:
