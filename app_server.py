@@ -775,7 +775,15 @@ _API_AUTH_ALLOW = tuple(
         #   （Prometheus 只会把 target 标 down，业务指标的告警照样不触发）。
         #   【口径】与 /metrics 一致：只读指标文本、无业务内容、服务仅绑 127.0.0.1。
         "CP_API_AUTH_ALLOW",
-        "/api/health,/metrics,/api/business/prometheus")).split(",") if p.strip()
+        # 【2026-10-12 补两条只读 UI 轮询端点】本部署 enforce_all + .env 显式豁免清单缺它们，
+        #   工作台日志实测被拒 2064（/api/context/status）与 980（/api/background/tasks）次——
+        #   面板读数因此长期为空/报错。两者都是**只读 GET 且无 @require_token**，
+        #   与 /metrics 同口径（只读、无业务写副作用）。
+        #   注意**不**纳入 /api/skills-mgmt/assess/stream：它带 @require_token，纳入豁免
+        #   只会成为"影子豁免"（不生效且误导，见 find_shadowed_exemptions），
+        #   正确修法是前端补 Authorization 头（本轮已修 yunshu-ui 的裸 fetch）。
+        "/api/health,/metrics,/api/business/prometheus,"
+        "/api/context/status,/api/background/tasks")).split(",") if p.strip()
 )
 _MUTATING = frozenset({"POST", "PUT", "DELETE", "PATCH"})
 

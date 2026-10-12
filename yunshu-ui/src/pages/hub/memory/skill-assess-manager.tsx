@@ -145,7 +145,13 @@ export default function SkillAssessManager() {
         const q = sinceRef.current ? `?since=${encodeURIComponent(sinceRef.current)}&timeout_sec=20` : ''
         const ctrl = new AbortController()
         const tmr = setTimeout(() => ctrl.abort(), 30000)
-        const res = await fetch(`${SKILLS_MGMT_ASSESS_STREAM}${q}`, { signal: ctrl.signal })
+        // 【2026-10-12 修】本端点带 @require_token（routes_skills_mgmt.py:665），
+        // 裸 fetch 不带 Authorization ⇒ 本部署 enforce_all 下被拒 187 次（工作台日志）。
+        // 同文件 281 行的 DELETE 早已带 authHeader，这里此前漏了。
+        const res = await fetch(`${SKILLS_MGMT_ASSESS_STREAM}${q}`, {
+          signal: ctrl.signal,
+          headers: authHeader(),
+        })
         clearTimeout(tmr)
         if (res.ok) {
           const d = (await res.json()) as { records?: AssessmentEv[] }

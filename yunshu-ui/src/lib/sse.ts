@@ -18,6 +18,28 @@ export type ThinkingStatus = 'pending' | 'running' | 'done' | 'error';
 export type StreamEvent =
   | { type: 'thinking'; id: string; title: string; detail?: string; status: ThinkingStatus }
   | { type: 'chunk'; text: string; seq?: number }
+  /**
+   * 服务端**显式报错**（2026-10-12 新增）。
+   *
+   * 【为什么必须有】后端 plugins/chat.py 的 gen() 原来在 except Exception 里只
+   * logger.error 就结束流——既不补发 done 也不发 error。而本客户端的读取循环把 EOF
+   * 当『正常结束』，于是用户看到的是『答到一半没了、不报错、也不继续』。
+   * 现在后端异常分支补发本事件，客户端据此把该条回复标红并在正文写明原因。
+   */
+  | { type: 'error'; message: string }
+  /**
+   * 工具调用落在**人工审批边界**（等待审批 / 被否决 / 审批流不可用）。
+   *
+   * 后端在工具循环里从工具结果的 error_code 识别，作为**独立事件**发给界面；
+   * 这样『等待审批』不再是静默的（此前界面既不显示等待、也不显示超时）。
+   */
+  | {
+      type: 'approval';
+      tool: string;
+      status: 'pending' | 'rejected' | 'unavailable';
+      approvalId?: string;
+      message?: string;
+    }
   | { type: 'done' };
 
 /**

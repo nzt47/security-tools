@@ -1879,6 +1879,27 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 except Exception as _te:
                     logger.error("[workbench][SSE] 工具执行失败 %s: %s", tname, _te)
                     tool_result = f"工具执行失败: {_te}"
+                # 【P0-A 2026-10-12】人工审批边界：把『等待审批 / 被否决』从**工具结果 JSON**
+                #   提升为**独立 SSE 事件**。此前它只藏在回传给模型的 result 里 ⇒ 界面既不显示
+                #   "等待人工审批"、也不显示"审批超时/被否决"，用户看到的是"模型答到一半不动了"。
+                #   这里只做**识别与上报**，不改变工具结果本身（模型仍按原口径收到 guidance）。
+                _approval_evt = None
+                if isinstance(tool_result, str) and tool_result.lstrip().startswith("{"):
+                    try:
+                        _r = json.loads(tool_result)
+                        if isinstance(_r, dict):
+                            _code = str(_r.get("error_code") or "")
+                            if _code in ("APPROVAL_REQUIRED", "APPROVAL_REJECTED"):
+                                _approval_evt = {
+                                    "type": "approval",
+                                    "tool": tname,
+                                    "status": ("pending" if _code == "APPROVAL_REQUIRED"
+                                               else "rejected"),
+                                    "approvalId": str(_r.get("approval_id") or ""),
+                                    "message": str(_r.get("error") or "")[:400],
+                                }
+                    except Exception:
+                        _approval_evt = None
                 # 回传结果给模型（assistant 消息含 tool_calls + reasoning_content
                 # [DeepSeek thinking 模式要求]；tool 消息含执行结果）
                 assistant_msg = {
@@ -1901,6 +1922,8 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 # 展示工具完成状态（含结果摘要）
                 yield _sse({"type": "thinking", "id": f"tool-real-{tname}", "title": f"工具调用：{tname}",
                             "detail": f"结果: {tool_result[:100]}", "status": "done"})
+                if _approval_evt:
+                    yield _sse(_approval_evt)
     except Exception as _e:
         logger.error("[workbench][SSE] LLM 流式生成异常: %s", _e)
         err_text = f"\n\n> ⚠️ LLM 调用失败：{_e}\n> 请检查 .env 中 LLM_API_KEY / LLM_MODEL 配置。"
@@ -2026,7 +2049,20 @@ def api_chat_stream():
             # 客户端提前断开（前端点"停止生成"或关闭标签页）
             logger.info("[workbench][SSE] 客户端断开，终止生成")
         except Exception as _e:
-            logger.error("[workbench][SSE] 生成器异常: %s", _e)
+            # 【P0-B 2026-10-12】异常分支**必须显式收尾**：原实现只 logger.error 就结束流
+            #   —— 既不补发 done 也不发 error，而前端把 EOF 当"正常结束"，于是用户看到的是
+            #   "答到一半没了、不报错、也不继续"。这里补发 error（正文标红写原因）与 done
+            #   （让前端知道流已收尾，不再把 EOF 误当正常完成）。
+            logger.error("[workbench][SSE] 生成器异常: %s", _e, exc_info=True)
+            try:
+                yield _sse({"type": "error",
+                            "message": f"生成过程中断：{type(_e).__name__}: {_e}"})
+            except Exception:  # noqa: BLE001 客户端已断开时补发失败不算二次错误
+                pass
+            try:
+                yield _sse({"type": "done"})
+            except Exception:  # noqa: BLE001
+                pass
         finally:
             if session_id and (acc_parts or acc_steps):
                 try:
