@@ -245,6 +245,37 @@ class TestApprovalFlow:
         assert loaded.state == "approved"
         assert loaded.object_id == "sk-7"
 
+    def test_外部写者可见且不被整库重写抹掉(self, tmp_path):
+        """多写者回归（2026-10-12）：长命实例必须看到外部新挂的记录，且不得抹掉它。
+
+        【缺陷现场】控制台/收件箱的 ``get_approval_flow()`` 返回进程级单例，
+        一次载入后 ``_loaded=True`` 便不再读盘；而工具审批桥 ``_write_flow()``
+        每次**新建**实例挂单。于是：
+          ① 新待办不在单例内存里 ⇒ 收件箱"经常看不到"；
+          ② 单例裁决另一条时 ``_persist`` 按陈旧内存**整库重写**，把新待办物理删除
+             ⇒ 用户看到的"审批过后整张单子就没了"。
+        """
+        path = tmp_path / "approval.jsonl"
+        long_lived = ApprovalFlow(records_path=str(path), enabled=True)
+        # 先触发一次载入，建立内存视图（模拟控制台单例早已初始化）
+        assert long_lived.list({"state": "pending_review"}) == []
+
+        # 另一实例（模拟工具审批桥）挂两条新待办
+        bridge = ApprovalFlow(records_path=str(path), enabled=True)
+        r1 = bridge.submit("tool_call", "shell_execute", level="L1")
+        r2 = bridge.submit("tool_call", "write_file", level="L1")
+
+        # ① 长命实例必须看到外部新挂的记录
+        seen = {r.record_id for r in long_lived.list({"state": "pending_review"})}
+        assert {r1.record_id, r2.record_id} <= seen, "外部新挂的待办对长命实例不可见"
+
+        # ② 裁决其一后，另一条必须仍在库中（不得被陈旧内存的整库重写抹掉）
+        long_lived.approve(r1.record_id, actor="human")
+        ids = {r.record_id
+               for r in ApprovalFlow(records_path=str(path), enabled=True).list()}
+        assert r2.record_id in ids, "外部新挂的记录被陈旧内存的整库重写抹掉了"
+        assert r1.record_id in ids
+
     def test_stats_counts(self, tmp_path):
         """审批统计（供审计仪表盘）"""
         flow = make_flow(tmp_path)

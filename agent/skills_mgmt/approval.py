@@ -401,6 +401,21 @@ class ApprovalFlow:
         self._index: Dict[str, ApprovalRecord] = {}
         self._appliers: Dict[str, Callable[[], Any]] = {}
         self._loaded = False
+        #: 上次载入/落盘时审批库的 ``(st_mtime_ns, st_size)`` 指纹。
+        #:
+        #: 【🔴 为什么必须有它（2026-10-12 实测缺陷）】审批库是**多写者**的：
+        #:   · 控制台/收件箱走 :func:`agent.server_routes.routes_approval.get_approval_flow`
+        #:     的**进程级单例**（``_flow``，一次载入后 ``_loaded=True`` 即不再读盘）；
+        #:   · 工具审批桥 ``agent.tool_approval._write_flow()`` **每次新建**实例挂单；
+        #:   · UI/CLI 还可能在别的进程里裁决。
+        #:   而 :meth:`_persist` 是**整库重写**（把内存里的 ``self._records`` 全量写回）。
+        #:   于是单例的内存视图一旦落后于磁盘，就同时产生两个用户可见症状：
+        #:     ① **待办看不到**：桥接层刚挂的单不在单例内存里 ⇒ 收件箱为空；
+        #:     ② **单子凭空消失**：单例批准另一条时 ``_persist`` 按它那份陈旧内存整库重写
+        #:        ⇒ 桥接层新挂的单**被物理抹掉**。
+        #:   修法：每次进入公共读/写路径时对拍文件指纹，变了就**重载**；``_persist`` 后
+        #:   更新指纹。这样任何外部写者的改动都能被同进程的长命实例看到，且不会被回写覆盖。
+        self._loaded_fingerprint: Optional[Tuple[int, int]] = None
         if not self._enabled:
             # 【不易】用户显式关闭审批的开关必须醒目记录并告警
             logger.warning(
@@ -1024,9 +1039,20 @@ class ApprovalFlow:
         整体 500，而且 ``_loaded`` 停在 False ⇒ **每次请求都再抛一次**。
         一条坏记录不该让"人看不到任何待办"，故按"跳过该条 + 记 error 留痕"处理：
         宁可少显示一条（可审计、可人工修），不可让整个审批面不可用。
+
+        【🔴 2026-10-12 新增：外部改写检测】审批库是多写者的（见 ``__init__`` 里
+        ``_loaded_fingerprint`` 的说明）。``_loaded=True`` **不再等于**"可以一直用内存"：
+        每次进入本函数都对拍文件指纹，变了就丢弃内存视图重载。
         """
-        if self._loaded:
+        if self._loaded and self._records_fingerprint() == self._loaded_fingerprint:
             return
+        if self._loaded:
+            # 外部写者改过库 ⇒ 重载（否则收件箱看不到新待办，且 _persist 会抹掉它们）
+            logger.debug("[Approval] 审批库已被外部改写，重新载入 path=%s",
+                         self._records_path)
+            self._records = []
+            self._index = {}
+            self._loaded = False
         for d in _read_jsonl(self._records_path):
             try:
                 rec = ApprovalRecord.from_dict(d)
@@ -1038,10 +1064,26 @@ class ApprovalFlow:
                              str(d)[:200] if not isinstance(d, dict)
                              else str(d.get("record_id") or "?"))
         self._loaded = True
+        self._loaded_fingerprint = self._records_fingerprint()
         logger.info("[Approval] 加载完成 count=%s path=%s",
                     len(self._records), self._records_path)
+
+    def _records_fingerprint(self) -> Optional[Tuple[int, int]]:
+        """审批库当前 ``(st_mtime_ns, st_size)``；不可读 ⇒ ``None``（视为"无库"）
+
+        指纹只用于**判断是否被外部改写**，不承担内容校验；``None`` 与任何值都不相等
+        ⇒ 文件被删除/不可读时同样会触发一次重载（然后按空库处理）。
+        """
+        try:
+            st = os.stat(self._records_path)
+        except OSError:
+            return None
+        return (int(getattr(st, "st_mtime_ns", 0)), int(st.st_size))
 
     def _persist(self) -> None:
         lines = [json.dumps(r.to_dict(), ensure_ascii=False)
                  for r in self._records]
         _atomic_write_lines(self._records_path, lines)
+        # 整库重写后刷新指纹：否则下一次 _ensure_loaded 会把"自己刚写的"误判为
+        # 外部改写而立刻重载一遍（多耗一次读盘，且掩盖真正的外部变更）。
+        self._loaded_fingerprint = self._records_fingerprint()

@@ -242,6 +242,8 @@ export const useLayoutStore = create<LayoutStore>()(
         };
 
         let accumulated = 0;
+        // 【2026-10-12】区分『正常收尾』与『读到 EOF 却从未收到 done』
+        let sawDone = false;
         try {
           // 携带当前激活会话 ID → 后端按该会话落盘（多会话持久化关键）
           const sessionId = get().activeSessionId ?? undefined;
@@ -269,9 +271,71 @@ export const useLayoutStore = create<LayoutStore>()(
               }));
             } else if (event.type === 'thinking') {
               upsertThinking(event);
+            } else if (event.type === 'approval') {
+              // 人工审批边界：把『等待审批 / 被否决』作为**可见步骤**挂出来。
+              // 此前这些信息只藏在工具结果 JSON 里，界面完全看不到。
+              const pending = event.status === 'pending';
+              upsertThinking({
+                id: `approval-${event.tool}`,
+                title: pending
+                  ? `等待人工审批：${event.tool}`
+                  : `审批未通过：${event.tool}`,
+                detail:
+                  event.message ||
+                  (pending
+                    ? `已挂审批单${event.approvalId ? ` ${event.approvalId}` : ''}；人工确认后重发即可`
+                    : '本次调用被否决，模型应改用其他方式'),
+                status: pending ? 'running' : 'error',
+              });
+            } else if (event.type === 'error') {
+              // 服务端显式报错：在正文里留下证据，并把该条回复标为 error（不再假装正常结束）
+              const msg = event.message || '服务端异常，本轮回复中断';
+              accumulated += msg.length;
+              emitStreamLog({
+                kind: 'error',
+                ts: Date.now(),
+                streamId,
+                accumulated,
+                detail: msg,
+              });
+              set((state) => ({
+                messages: state.messages.map((m) =>
+                  m.id === streamId
+                    ? {
+                        ...m,
+                        content: `${m.content}${m.content ? '\n\n' : ''}> ⚠️ ${msg}`,
+                        status: 'error' as const,
+                      }
+                    : m,
+                ),
+                streaming: false,
+                activeStreamId: null,
+              }));
+              return;
             } else if (event.type === 'done') {
+              sawDone = true;
               break;
             }
+          }
+          if (!sawDone) {
+            // 读到 EOF 却没有 done：服务端崩溃 / 连接被截断。**绝不能当正常结束**
+            // （这正是『答到一半没了、不报错』的客户端一半）。
+            const msg = '流在收到 done 之前结束，回复可能不完整。';
+            emitStreamLog({ kind: 'error', ts: Date.now(), streamId, accumulated, detail: msg });
+            set((state) => ({
+              messages: state.messages.map((m) =>
+                m.id === streamId
+                  ? {
+                      ...m,
+                      content: `${m.content}${m.content ? '\n\n' : ''}> ⚠️ ${msg}`,
+                      status: 'error' as const,
+                    }
+                  : m,
+              ),
+              streaming: false,
+              activeStreamId: null,
+            }));
+            return;
           }
           emitStreamLog({ kind: 'done', ts: Date.now(), streamId, accumulated });
           set((state) => ({
