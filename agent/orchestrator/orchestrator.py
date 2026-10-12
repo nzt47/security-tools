@@ -14,6 +14,7 @@
 """
 
 import asyncio
+import contextvars
 import logging
 import threading
 import time
@@ -98,6 +99,41 @@ _TURN_STATE_INIT_LOCK = threading.Lock()
 #: 工作流层「工具执行素材」注入 system prompt 的字符上限（防单次工具大输出撑爆上下文）。
 #: 注：只截断素材，不改动上下文预算逻辑（D4 归 S9-03）。
 _WF_MATERIAL_MAX_CHARS = int(os.getenv("ORCHESTRATOR_WF_MATERIAL_MAX_CHARS", "6000"))
+
+# ── P1：本轮步骤的**外发出口**（流式层复用编排器回合，只做事件出口）──────────
+#
+# 【解决什么】/api/chat/stream 此前有自己的一套流式工具循环，与编排器是两套实现。
+#   P1 让流式层**复用编排器这一轮**（yunshu.chat → process → _call_llm_v2），
+#   由本出口把编排器内部的 on_step **实时**转发出去，流式层只做 SSE 事件出口。
+# 【为什么用 contextvar】步骤出口是**本次请求**的属性，而 process/_call_llm_v2 的
+#   调用链很长、并发会话共享同一实例；环境变量是进程级、实例属性会串台。
+#   contextvar 按执行上下文隔离，且**不跨线程继承** ⇒ 流式层必须在真正执行
+#   yunshu.chat 的那个线程里设置（与 tool_gate 的 session_source 同一纪律）。
+_TURN_STEP_SINK: contextvars.ContextVar = contextvars.ContextVar(
+    "cp_orchestrator_turn_step_sink", default=None)
+
+
+def set_turn_step_sink(sink: Any) -> contextvars.Token:
+    """把**当前上下文**的步骤出口设为 ``sink(step)``（返回 Token 供 reset）"""
+    return _TURN_STEP_SINK.set(sink)
+
+
+def reset_turn_step_sink(token: Any) -> None:
+    """还原步骤出口（None/非法 Token ⇒ 静默空操作）"""
+    if token is None:
+        return
+    try:
+        _TURN_STEP_SINK.reset(token)
+    except Exception:  # noqa: BLE001 还原失败不影响主流程
+        pass
+
+
+def current_turn_step_sink() -> Any:
+    """当前上下文的步骤出口（未设置 ⇒ None）"""
+    try:
+        return _TURN_STEP_SINK.get()
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _looks_like_tool_payload(value: Any) -> bool:
@@ -4274,7 +4310,16 @@ class Orchestrator:
         简易: 只做"提交→限时取结果"，不做线程强杀（让底层线程自然结束）。
         """
         _t = timeout or _LLM_CALL_TIMEOUT
-        _fut = _LLM_CALL_POOL.submit(fn)
+        # 【P1】把**调用方上下文**复制进池线程：`on_step` 出口（_TURN_STEP_SINK）等
+        #   contextvar 只按执行上下文隔离、**不跨线程继承**；不复制的话池线程里读到的
+        #   永远是默认值，流式层设的步骤出口就形同虚设（本仓 tool_gate 的
+        #   session_source 有同款纪律："设置点必须在真正执行的线程内"）。
+        #   复制上下文不改变 fn 本身，只让池线程看到与调用方相同的上下文。
+        try:
+            _ctx = contextvars.copy_context()
+            _fut = _LLM_CALL_POOL.submit(_ctx.run, fn)
+        except Exception:  # noqa: BLE001 复制失败 ⇒ 按既有语义提交（不阻断 LLM 外呼）
+            _fut = _LLM_CALL_POOL.submit(fn)
         return _fut.result(timeout=_t)
 
     def _call_llm_v2(self, user_input: str, body_status: str, *,
@@ -4437,6 +4482,18 @@ class Orchestrator:
                 # 并发会话会互相追加；且未走工具路径时 XML 兜底会读到上一轮的值）
                 _current_steps: list = []
                 _round_steps: list = []
+
+                # P1：本轮每个步骤既进本地列表（既有行为，供 turn_state/XML 兜底），
+                #   也转发到**请求级出口**（流式层复用编排器回合时的事件来源）。
+                def _on_turn_step(_step, _acc=_current_steps):
+                    _acc.append(_step)
+                    _sink = current_turn_step_sink()
+                    if _sink is not None:
+                        try:
+                            _sink(_step)
+                        except Exception as _se:  # noqa: BLE001 出口异常不阻断回合
+                            logger.debug("[orchestrator] 步骤出口异常: %s", _se)
+
                 if self._tool_calling_service and allow_tools:
                     # `tools_whitelist` 已在本方法开头（提示词渲染之前）定稿，
                     # 「提示词宣告数 == 出网 tools 数」由那一份保证（B1-T2）；
@@ -4457,7 +4514,7 @@ class Orchestrator:
                             max_tokens=self._resolve_max_output_tokens(_selected_model),
                             temperature=0.3,
                             tools_whitelist=tools_whitelist,
-                            on_step=_current_steps.append,
+                            on_step=_on_turn_step,
                         ))
                         response = _result["text"]
                         _round_steps = _result.get("steps", [])
@@ -4469,7 +4526,7 @@ class Orchestrator:
                             max_tokens=self._resolve_max_output_tokens(_selected_model),
                             temperature=0.3,
                             tools_whitelist=tools_whitelist,
-                            on_step=_current_steps.append,
+                            on_step=_on_turn_step,
                         ))
                         response = _result["text"]
                         _round_steps = _result.get("steps", [])
