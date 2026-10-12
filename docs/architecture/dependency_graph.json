@@ -2822,8 +2822,8 @@
       "name": "lifecycle",
       "layer": "subagent",
       "file_path": "",
-      "in_degree": 3,
-      "out_degree": 9
+      "in_degree": 4,
+      "out_degree": 10
     },
     {
       "path": "agent.web",
@@ -26075,6 +26075,19 @@
     },
     {
       "source": "agent.subagent.lifecycle",
+      "target": "agent.subagent.task_board",
+      "source_layer": "subagent",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 593,
+      "source_file": "agent/subagent/lifecycle.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.subagent.lifecycle",
       "target": "agent.subagent.memory_broker",
       "source_layer": "subagent",
       "target_layer": "subagent",
@@ -28831,11 +28844,11 @@
     },
     {
       "source": "agent.tools.fan_out_tools",
-      "target": "agent.subagent.task_board",
+      "target": "agent.subagent.lifecycle",
       "source_layer": "tools",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 628,
+      "line": 631,
       "source_file": "agent/tools/fan_out_tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -28848,7 +28861,7 @@
       "source_layer": "tools",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 629,
+      "line": 632,
       "source_file": "agent/tools/fan_out_tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -30419,7 +30432,7 @@
   "stats": {
     "total_files": 666,
     "total_nodes": 597,
-    "total_edges": 1972,
+    "total_edges": 1973,
     "cross_layer_edges": 1240,
     "violation_edges": 0,
     "dynamic_edges": 1,

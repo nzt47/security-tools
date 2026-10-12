@@ -2347,6 +2347,7 @@ flowchart LR
     agent_subagent_executor --> agent_subagent_autonomy_gate
     agent_subagent_executor --> agent_subagent_callback_outbox
     agent_subagent_lifecycle --> agent_subagent_container
+    agent_subagent_lifecycle --> agent_subagent_task_board
     agent_subagent_lifecycle --> agent_subagent_memory_broker
     agent_subagent_lifecycle --> agent_subagent_autonomy_gate
     agent_subagent_lifecycle --> agent_subagent_executor
@@ -2559,7 +2560,7 @@ flowchart LR
     agent_tools_fan_out_tools -.-> agent_monitoring_tracing
     agent_tools_fan_out_tools -.-> agent_subagent_barrier
     agent_tools_fan_out_tools -.-> agent_subagent_executor
-    agent_tools_fan_out_tools -.-> agent_subagent_task_board
+    agent_tools_fan_out_tools -.-> agent_subagent_lifecycle
     agent_tools_fan_out_tools -.-> agent_subagent_rounds
     agent_tools_file_tools -.-> agent_logging_utils
     agent_tools_file_tools_reg --> agent
@@ -2691,7 +2692,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 666
 - 模块节点数: 597
-- 依赖边数: 1972
+- 依赖边数: 1973
 - 跨层调用数: 1240
 - 违规调用数: 0
 - 动态 import 数: 1
