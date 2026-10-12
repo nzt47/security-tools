@@ -34,9 +34,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple
@@ -81,6 +83,7 @@ __all__ = [
     "ScopedEraseOutcome",
     "ScopedImportOutcome",
     "scoped_entry_from_exported",
+    "scoped_shard_path",
     "ScopedMemoryDomain",
     "normalize_provider",
     "normalize_provider_alias",
@@ -461,6 +464,41 @@ class _LayeredBackend:
         return bool(await self._store.delete_entry(entry, force=True))
 
 
+# ── S5-2 物理分租户：scoped mem0 后端的**按域分片**存储路径 ──────────────
+#
+# 【为什么】原先 mem0（内置 JSON 降级）固定写单文件
+#   <root>/mem0/scoped_facts.json：所有 tenant/workspace/subject 共用一份 JSON，
+#   物理上无法分租户 —— 一次误列举/误导出就是跨租户数据泄漏，而"域过滤"只存在于
+#   应用层。分片后每个 (tenant, workspace, subject) 落在自己的文件里，**读写天然
+#   不可能串库**（纵深防御：即使上层过滤有 bug，文件本身也不含别人的数据）。
+# 归一化：非法字符替换为 _；若原始值被改写则追加 8 位 sha1，避免 "a/b" 与 "a_b"
+#   这类不同租户被折叠到同一路径（折叠 = 串库，绝不能发生）。
+_SHARD_UNSAFE_RE = re.compile(r"[^0-9A-Za-z_.-]+")
+
+
+def _shard_part(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return "_"
+    safe = _SHARD_UNSAFE_RE.sub("_", raw)[:48].strip("._-") or "_"
+    if safe != raw:
+        safe = "%s-%s" % (safe, hashlib.sha1(raw.encode("utf-8")).hexdigest()[:8])
+    return safe
+
+
+def scoped_shard_path(root: str, scope: Any) -> str:
+    """该 scoped 域的物理存储路径（**真分库/分租户**）
+
+    <root>/mem0/tenants/<tenant>/<workspace>/<subject>.json；空段用 _ 占位。
+    """
+    return os.path.join(
+        str(root or ""), "mem0", "tenants",
+        _shard_part(getattr(scope, "tenant_id", "")),
+        _shard_part(getattr(scope, "workspace_id", "")),
+        _shard_part(getattr(scope, "subject_id", "")) + ".json",
+    )
+
+
 class _Mem0Backend:
     """mem0 后端：复用既有 Mem0Adapter（可选依赖；未装时内置 JSON 降级）"""
 
@@ -481,7 +519,9 @@ class _Mem0Backend:
         ok = await self._adapter.save(key, entry.content, metadata)
         if not ok:
             raise _BackendWriteFailed("Mem0Adapter.save 明确返回 False")
-        return {"key": key, "shard_path": ""}
+        # 回显真实分片路径（供审计/排查核对『这条写进了哪个租户的库』）
+        return {"key": key,
+                "shard_path": str(getattr(self._adapter, "storage_path", "") or "")}
 
     async def read(self, query: str, scope: ScopedMemoryScope, *,
                    limit: int, memory_types: Optional[Sequence[Any]]) -> Sequence[Any]:
@@ -619,9 +659,9 @@ class ScopedMemoryDomain:
         if canonical == "mem0":
             from agent.memory.adapters.mem0_adapter import Mem0Adapter
 
-            storage_path = os.path.join(
-                self._root or os.path.join(".", "data", "memory"),
-                "mem0", "scoped_facts.json")
+            root = self._root or os.path.join(".", "data", "memory")
+            # 【S5-2】按域物理分片（真分库/分租户），不再共用一个 scoped_facts.json
+            storage_path = scoped_shard_path(root, self.scope)
             return _Mem0Backend(Mem0Adapter(storage_path=storage_path))
         # 理论不可达：canonical 已过 normalize_provider
         raise UnknownMemoryProviderError(canonical)
