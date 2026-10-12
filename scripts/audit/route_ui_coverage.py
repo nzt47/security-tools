@@ -10,6 +10,9 @@
   · runtime_only ：只在 app_server / agent 的非路由模块里出现（进程内 provider、探针、看门狗）；
   · unreferenced ：以上都没找到引用（可能是纯内部、已废弃，或由动态拼接调用）。
 
+  另附每条的 description：处理函数 docstring 首个非空行（"这个路由做什么"）。**不进 content_hash**：
+  说明文字随注释编辑漂移，算进门禁会让 --check 为改一句文档假红（与 refs 同理）。
+
 【口径与边界（如实标注，不假装穷尽）】
   1. 路由与前端字面量分别复用 scripts.audit.contract_diff 的 collect_routes_static 与
      collect_frontend_literals（后者已先剥注释、排除构建产物与 mock）；
@@ -22,6 +25,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -86,6 +90,75 @@ def _is_live_where(rel: str, registered_mods: set) -> bool:
         mod = Path(rel).name[:-3] if rel.endswith(".py") else Path(rel).name
         return mod in registered_mods
     return True  # sensor/ / memory/ / cognitive/ / agent 其它：非 server_routes，默认按活体
+
+
+#: 每个路由「做什么」的**简短说明**来源：处理函数 docstring 的首个非空行。
+#  【为什么不进 content_hash】说明文字会随注释编辑漂移（重写一句话、翻译、纠正错别字），
+#  若算进门禁，--check 会为「改了一句文档」天天假红 —— 与 refs 的取舍同理（见 _content_hash）。
+#  【为什么不改 contract_diff.collect_routes_static】那里是路由**分类**的单一来源，
+#  被 contract-gate 等 6 处消费；说明是呈现层附加物，就地按 where 的 file:line 反查更安全。
+_ROUTE_METHODS = {"route", "get", "post", "put", "delete", "patch"}
+_DOC_CACHE: dict = {}
+
+
+def _first_doc_line(doc) -> str:
+    """取 docstring 的首个非空行（"简短说明"），压平空白并截断。"""
+    if not doc:
+        return ""
+    for raw in str(doc).splitlines():
+        line = " ".join(raw.split())
+        if line:
+            return line[:120]
+    return ""
+
+
+def _doc_index(rel: str) -> dict:
+    """文件 -> {路由装饰器行号: 处理函数首行说明}（按需解析并缓存）。"""
+    cached = _DOC_CACHE.get(rel)
+    if cached is not None:
+        return cached
+    idx: dict = {}
+    try:
+        tree = ast.parse((ROOT / rel).read_text(encoding="utf-8", errors="replace"))
+    except (OSError, SyntaxError):
+        _DOC_CACHE[rel] = idx
+        return idx
+    # 模块级兜底：处理函数没写 docstring 时，至少给出「这个模块管什么」
+    idx["__module__"] = _first_doc_line(ast.get_docstring(tree))
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        first = _first_doc_line(ast.get_docstring(node))
+        if not first:
+            continue
+        for dec in node.decorator_list:
+            if (isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute)
+                    and dec.func.attr.lower() in _ROUTE_METHODS):
+                idx[int(dec.lineno)] = first
+    _DOC_CACHE[rel] = idx
+    return idx
+
+
+def _route_doc(where):
+    """按 where 的 file:line 反查说明，返回 (文本, 来源)。
+
+    来源取 "handler"（处理函数 docstring）优先；否则退到 "module"（模块 docstring 首行，
+    如实标注为模块级、非该路由专述）；都没有则 ("", "")。
+    """
+    pairs = []
+    for w in where:
+        rel, _, line = str(w).rpartition(":")
+        if rel and line.isdigit():
+            pairs.append((rel.replace("\\", "/"), int(line)))
+    for rel, line in pairs:
+        doc = _doc_index(rel).get(line, "")
+        if doc:
+            return doc, "handler"
+    for rel, _line in pairs:
+        doc = _doc_index(rel).get("__module__", "")
+        if doc:
+            return doc, "module"
+    return "", ""
 
 
 def _iter_files(suffixes, dirs):
@@ -227,6 +300,7 @@ def classify() -> dict:
         live = any(_is_live_where(x, registered_mods) for x in where)
         if live:
             live_totals[cat] += 1
+        desc, desc_src = _route_doc(where)
         entries.append({
             "path": path,
             "norm": np,
@@ -236,6 +310,9 @@ def classify() -> dict:
             "ui_refs": ui,
             "non_ui_refs": sorted(set(cli) | set(rt))[:12],
             "where": where[:4],
+            # 一句话说明；**不进 content_hash**，见 _first_doc_line 说明
+            "description": desc,
+            "description_source": desc_src,
         })
 
     # 人工意图标注：只**增**字段，不改机械分类；ui_pending = 该进 UI 却没进

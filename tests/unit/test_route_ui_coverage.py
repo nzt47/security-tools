@@ -83,6 +83,40 @@ class Test分类:
         )
 
 
+class Test说明:
+    """每条路由都要有一句「它做什么」；来源可追溯，且不参与门禁哈希。"""
+
+    def test_first_doc_line_压平空白并截断(self):
+        m = _mod()
+        assert m._first_doc_line("\n\n  第一行\n第二行") == "第一行"
+        assert m._first_doc_line(None) == ""
+        assert len(m._first_doc_line("x" * 300)) == 120
+
+    def test_每条路由都有非空说明且来源可追溯(self):
+        m = _mod()
+        entries = m.classify()["entries"]
+        missing = [e["path"] for e in entries if not e.get("description")]
+        assert missing == [], "这些路由没有任何说明：" + repr(missing[:10])
+        assert all(e["description_source"] in ("handler", "module") for e in entries)
+
+    def test_说明优先取处理函数_docstring(self):
+        m = _mod()
+        entries = {e["norm"]: e for e in m.classify()["entries"]}
+        e = entries["/api/agent-lines"]
+        assert e["description_source"] == "handler"
+        assert "主线档案" in e["description"]
+
+    def test_说明不参与门禁哈希(self):
+        """说明随注释漂移，改它不得触发 --check 漂移（与 refs 同理）。"""
+        m = _mod()
+        payload = m.classify()
+        h1 = payload["content_hash"]
+        for e in payload["entries"]:
+            e["description"] = "被改掉的说明"
+            e["description_source"] = "module"
+        assert m._content_hash(payload) == h1
+
+
 class Test意图标注:
     """方案 §7：人工标注「该进 UI / 不该进」，只把「该进却没进」生成待办。"""
 
