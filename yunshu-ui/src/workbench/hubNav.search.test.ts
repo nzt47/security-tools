@@ -118,8 +118,8 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     const topKeys = HUB_NAV.map((i) => i.key)
 
     expect(topKeys.indexOf('governance')).toBeLessThan(topKeys.indexOf('components'))
-    // 第二轮 IA：记忆管理上移到 workspace 之后；治理面板仍紧跟「全景看板」之后
-    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'memory', 'panorama', 'governance'])
+    // 第三轮 IA：记忆+资产合为「记忆与资产」桶；治理面板仍紧跟「全景看板」之后
+    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'memory-assets', 'panorama', 'governance'])
   })
 
   it('「审批收件箱」仍是治理面板下的子项（入口没被搬走）', () => {
@@ -146,6 +146,8 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(LEGACY_NAV_KEY_MAP['experience']).toBe('memory')
     expect(LEGACY_NAV_KEY_MAP['extensions']).toBe('components/plugins')
     expect(LEGACY_NAV_KEY_MAP['engine']).toBe('engine/heartbeat')
+    // 第三轮 IA：装配车间并入会话与配置 ⇒ 组 key 落到其原第一个子项
+    expect(LEGACY_NAV_KEY_MAP['workshop']).toBe('workshop/agents')
     // 第二轮 IA：记忆/资产子项 → 叶子
     expect(LEGACY_NAV_KEY_MAP['memory/experience']).toBe('memory')
     expect(LEGACY_NAV_KEY_MAP['assets/memory']).toBe('assets')
@@ -156,6 +158,8 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(resolveNavKey('experience')).toBe('memory')
     expect(resolveNavKey('extensions')).toBe('components/plugins')
     expect(resolveNavKey('engine')).toBe('engine/heartbeat')
+    expect(resolveNavKey('workshop')).toBe('workshop/agents')
+    expect(navKeyFromSearch('?panel=workshop')).toBe('workshop/agents')
     expect(navKeyFromSearch('?panel=experience')).toBe('memory')
     expect(navKeyFromSearch('?panel=persona/personality')).toBe('prompt-lab')
     expect(navKeyFromSearch('?panel=extensions')).toBe('components/plugins')
