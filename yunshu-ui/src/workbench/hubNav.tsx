@@ -1,14 +1,14 @@
 /**
  * 云枢统一工作台 —— 导航配置中心
  * ------------------------------------------------
- * 单一数据源：导航树（阶段 3 收敛为 8 个语义桶 + 系统管理子菜单）与内容组件映射。
+ * 单一数据源：导航树（阶段 3 收敛、第三轮 IA 并为 **6 个语义桶** + 系统管理子菜单）与内容组件映射。
  * ContentPanel 根据当前选中导航项，从此处取组件渲染。
  * 所有既有功能（Hub 8 栏目 + 管理后台）统一挂载到工作台。
  */
 import { lazy, type ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
-  MessageSquare, LayoutDashboard, Brain, Wrench, Globe, Factory, Database,
+  MessageSquare, LayoutDashboard, Brain, Wrench, Globe, Database,
   Activity, FileText, Server, Boxes, Monitor,
   HeartPulse, CalendarClock, Users, Copy, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
@@ -73,8 +73,9 @@ export interface HubNavItem {
 
 /** 全量导航树 */
 export const HUB_NAV: HubNavItem[] = [
-  // 【阶段 3】顶层收敛（13 → 8 个语义桶）。桶内子项 key 一律不变 ⇒ 旧深链仍有效，
-  // 只有「组 key」（engine）消失，走 LEGACY_NAV_KEY_MAP 兼容映射。
+  // 【阶段 3】顶层收敛（13 → 8 个语义桶）；【第三轮 IA】再并为 6 桶（记忆+资产合桶、
+  // 装配车间并入会话与配置）。桶内子项 key 一律不变 ⇒ 旧深链仍有效；
+  // 消失的「组 key」（engine / workshop）走 LEGACY_NAV_KEY_MAP 兼容映射。
   {
     key: 'workspace', label: '会话与配置', icon: MessageSquare,
     children: [
@@ -84,11 +85,21 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
       // 工具调用：原 5 个子项已在页面内收敛为 Tab（pages/hub/tools/index.tsx）。
       { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
+      // 【第三轮 IA】装配车间并入「会话与配置」：分身创建与组装 = 对话侧配置；
+      // 系统自我复制 = 配置的可带走导出/导入，同属「配置」语义（原顶层 2 项分组随之消失）。
+      { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
+      { key: 'workshop/replicate', label: '系统自我复制', icon: Copy, component: WorkshopReplicate },
     ],
   },
-  // 【第二轮 IA】记忆管理上移：排在「工具调用」（会话与配置桶末项）之后；
-  // 子项收敛为页内 Tab ⇒ 导航树只保留单一叶子项。
-  { key: 'memory', label: '记忆管理', icon: Brain, component: MemoryHub },
+  // 【第三轮 IA】记忆管理与资产管理各自只剩一个叶子，合并为一个语义桶「记忆与资产」：
+  // 顶层由 8 桶收敛为 6 桶。两个叶子 key 不变 ⇒ 旧深链 ?panel=memory / ?panel=assets 仍有效。
+  {
+    key: 'memory-assets', label: '记忆与资产', icon: Brain,
+    children: [
+      { key: 'memory', label: '记忆管理', icon: Brain, component: MemoryHub },
+      { key: 'assets', label: '资产管理', icon: Database, component: AssetsPage },
+    ],
+  },
   {
     key: 'panorama', label: '全景看板', icon: LayoutDashboard,
     children: [
@@ -126,17 +137,8 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/route-coverage', label: '路由覆盖', icon: Route, component: GovernancePanels },
     ],
   },
-  // 【第二轮 IA】资产管理：8 类子项本就都在同一页（AssetsPage 内置分类切换）⇒
-  // 导航树去掉子项、收敛为单一叶子项「资产管理」。
-  { key: 'assets', label: '资产管理', icon: Database, component: AssetsPage },
-  {
-    // 【阶段 3】分身单列一桶（方案 §5「分身」）；排在「记忆与资产」之后、「系统」之前。
-    key: 'workshop', label: '装配车间', icon: Factory,
-    children: [
-      { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
-      { key: 'workshop/replicate', label: '系统自我复制', icon: Copy, component: WorkshopReplicate },
-    ],
-  },
+  // 【第三轮 IA】原顶层叶子「资产管理」已并入上面的「记忆与资产」桶；
+  // 原顶层分组「装配车间」的两个子项已并入「会话与配置」。二者不再占顶层槽位。
   {
     key: 'components', label: '系统组件', icon: Boxes,
     children: [
@@ -268,6 +270,8 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   'extensions': 'components/plugins',
   // 循环工程并入全景看板（阶段 3）：组 key 消失，落到其原第一个子项
   'engine': 'engine/heartbeat',
+  // 【第三轮 IA】装配车间并入会话与配置：组 key 消失，落到其原第一个子项
+  'workshop': 'workshop/agents',
   // 【第二轮 IA】记忆管理子项 → 页内 Tab（落到「记忆管理」页，Tab 记忆接续上次选择）
   'memory/manual': 'memory',
   'memory/auto': 'memory',

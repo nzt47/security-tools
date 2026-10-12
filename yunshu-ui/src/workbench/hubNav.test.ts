@@ -75,12 +75,12 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
 
   it('「工具调用」随「会话与配置」桶整体排在「全景看板」之前（配置类在前）', () => {
     const topKeys = HUB_NAV.map((i) => i.key)
-    // 阶段 3：顶层收敛为 8 桶；第二轮 IA 把「记忆管理」上移到「工具调用」之后
-    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'memory', 'panorama', 'governance'])
-    expect(topKeys).toHaveLength(8)
+    // 阶段 3：顶层收敛；第三轮 IA 并为 6 桶（记忆+资产合桶、装配车间并入会话与配置）
+    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'memory-assets', 'panorama', 'governance'])
+    expect(topKeys).toHaveLength(6)
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
-      'session', 'prompt-lab', 'skills-center', 'tools',
+      'session', 'prompt-lab', 'skills-center', 'tools', 'workshop/agents', 'workshop/replicate',
     ])
     expect(topKeys.indexOf('workspace')).toBeLessThan(topKeys.indexOf('panorama'))
   })
@@ -113,12 +113,26 @@ describe('hubNav 导航结构（人格配置并入提示词实验室 · 阶段 1
   })
 })
 
-describe('hubNav 顶层收敛（阶段 3 · 8 个语义桶）', () => {
-  it('顶层恰好 8 个桶，顺序固定', () => {
+describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA · 6 个语义桶）', () => {
+  it('顶层恰好 6 个桶，顺序固定', () => {
     expect(HUB_NAV.map((i) => i.key)).toEqual([
-      'workspace', 'memory', 'panorama', 'governance',
-      'assets', 'workshop', 'components', 'admin',
+      'workspace', 'memory-assets', 'panorama', 'governance', 'components', 'admin',
     ])
+  })
+
+  it('单叶子的「记忆管理 / 资产管理」合入「记忆与资产」桶（不再各占顶层槽位）', () => {
+    const bucket = HUB_NAV.find((i) => i.key === 'memory-assets')
+    expect((bucket?.children ?? []).map((c) => c.key)).toEqual(['memory', 'assets'])
+    // 叶子 key 不变 ⇒ 旧深链 ?panel=memory / ?panel=assets 仍解析
+    expect(findNavItem('memory')?.component).toBeDefined()
+    expect(findNavItem('assets')?.component).toBeDefined()
+  })
+
+  it('「装配车间」两个子项并入「会话与配置」，顶层不再有 workshop 分组', () => {
+    const keys = flattenNav(HUB_NAV).map((i) => i.key)
+    expect(keys).toContain('workshop/agents')
+    expect(keys).toContain('workshop/replicate')
+    expect(HUB_NAV.map((i) => i.key)).not.toContain('workshop')
   })
 
   it('桶内子项全部为叶子（不再有嵌套分组，NavPanel 一级展开即可见全部叶子）', () => {
