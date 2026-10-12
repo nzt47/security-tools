@@ -5,12 +5,13 @@
  *       token_limit / send / recv（松手防抖保存）；手动压缩；机制说明。
  * 注：输入框"滑杆遮挡"问题为 textarea 滚动条所致，已通过按钮外置+增高上限修复，
  *     与本组件无关（滑块保留）。
- * 数据源：/api/context/status、/api/context/config、/api/context/compress
+ * 数据源：/api/context/status、/api/context/config、/api/context/compress，
+ *         以及 /api/llm-monitor/stats（会话级读数：轮数 / 调用频数 / tok·s⁻¹ / 总 tokens / 缓存命中）
  * 注：config/compress 写操作需 FLASK_API_TOKEN（401 时提示）。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, Gauge, HelpCircle, RefreshCw, Minimize2 } from 'lucide-react'
-import { Loading } from '../../../pages/hub/components/ui'
+import { Loading, hubGet } from '../../../pages/hub/components/ui'
 // 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2，改用显式信封解析。
 // 【P1-front 第九批】同页两个 POST（config/compress）也已迁移，一并改用 postEnvelope。
 import { getEnvelope, postEnvelope } from '@/api/envelope'
@@ -19,6 +20,7 @@ import {
   CONTEXT_COMPRESS,
   CONTEXT_CONFIG,
   CONTEXT_STATUS,
+  LLM_MONITOR_STATS,
 } from '@/api/endpoints';
 
 interface CtxStatus {
@@ -41,6 +43,23 @@ interface CtxStatus {
   send_tokens: number
   recv_tokens: number
   messages_count: number
+  /** 轮数 = 用户发言条数（一次发言 = 一轮） */
+  turns?: number
+}
+
+/** 会话级 LLM 读数（/api/llm-monitor/stats 的消费子集） */
+interface LlmStats {
+  /** 调用频数（LLM 调用次数，含工具循环/摘要） */
+  total?: number
+  total_tokens?: number
+  total_response_tokens?: number
+  /** 生成吞吐（输出 token / 总耗时） */
+  tok_per_s?: number
+  cache_hit_tokens?: number
+  cache_miss_tokens?: number
+  /** 前缀缓存命中率；API 未上报缓存字段时为 null */
+  cache_hit_ratio?: number | null
+  cache_reported_calls?: number
 }
 
 const STORAGE_KEY = 'yunshu_ctx_monitor'
@@ -61,6 +80,7 @@ function degradeOf(rounds: number): { label: string; dot: string; text: string }
 
 export function ContextManagerBar() {
   const [status, setStatus] = useState<CtxStatus | null>(null)
+  const [llm, setLlm] = useState<LlmStats | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const [error, setError] = useState('')
@@ -79,6 +99,11 @@ export function ContextManagerBar() {
       setStatus(d)
       setError('')
     }).catch((e) => setError(String(e)))
+    // 会话级 LLM 读数（tok/s、缓存命中、调用频数、总 tokens）：与上下文状态同轮询。
+    // 该端点走裸 JSON（非信封）⇒ 用 hubGet 并兼容 data 包裹形态。
+    hubGet<LlmStats | { data?: LlmStats }>(LLM_MONITOR_STATS).then((r) => {
+      setLlm((r as { data?: LlmStats })?.data ?? (r as LlmStats) ?? null)
+    }).catch(() => { /* 读数失败不打断上下文水位展示 */ })
   }, [])
 
   useEffect(() => {
@@ -169,6 +194,17 @@ export function ContextManagerBar() {
           {pctKnown ? `${pct.toFixed(0)}%` : '—%'}
         </span>
         <span className="hidden shrink-0 font-mono text-[10px] text-slate-500 sm:inline">{fmt(status?.current_tokens)}/{fmt(status?.token_limit)}</span>
+        {llm?.tok_per_s != null && (
+          <span className="hidden shrink-0 font-mono text-[10px] text-cyan-500 md:inline">{Number(llm.tok_per_s).toFixed(0)} tok/s</span>
+        )}
+        {llm?.cache_hit_ratio != null && (
+          <span
+            className="hidden shrink-0 font-mono text-[10px] text-emerald-500 lg:inline"
+            title={`前缀缓存命中 ${(llm.cache_hit_ratio * 100).toFixed(1)}% · 命中 ${fmt(llm.cache_hit_tokens)} / 计 ${fmt((llm.cache_hit_tokens ?? 0) + (llm.cache_miss_tokens ?? 0))} tok`}
+          >
+            缓存 {(llm.cache_hit_ratio * 100).toFixed(0)}%
+          </span>
+        )}
         {status && status.compress_rounds > 0 && (
           <span className="hidden shrink-0 text-[10px] text-slate-600 md:inline">压缩 {status.compress_rounds} 次</span>
         )}
@@ -202,12 +238,16 @@ export function ContextManagerBar() {
           {msg && <div className="rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-1.5 text-[11px] text-cyan-400">{msg}</div>}
           {!status ? <Loading text="加载上下文状态…" /> : (
             <>
-              {/* 概览 */}
-              <div className="grid grid-cols-4 gap-2 text-center">
+              {/* 概览：上下文 + 会话级 LLM 读数（对齐 DeepSeek Harness 的状态栏读数） */}
+              <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
                 {[
-                  { l: '水位', v: `${pct.toFixed(0)}%`, c: pct >= 80 ? 'text-red-400' : pct >= 60 ? 'text-amber-400' : 'text-emerald-400' },
-                  { l: 'Token', v: `${fmt(status.current_tokens)}/${fmt(status.token_limit)}`, c: 'text-slate-200' },
-                  { l: '消息', v: fmt(status.messages_count), c: 'text-slate-200' },
+                  { l: '窗口已用', v: pctKnown ? `${pct.toFixed(0)}%` : '—', c: pct >= 80 ? 'text-red-400' : pct >= 60 ? 'text-amber-400' : 'text-emerald-400' },
+                  { l: '窗口 Token', v: `${fmt(status.current_tokens)}/${fmt(status.token_limit)}`, c: 'text-slate-200' },
+                  { l: '轮数', v: fmt(status.turns), c: 'text-slate-200' },
+                  { l: '调用频数', v: `${fmt(llm?.total)} 次`, c: 'text-slate-200' },
+                  { l: 'tok/s', v: llm?.tok_per_s != null ? Number(llm.tok_per_s).toFixed(1) : '-', c: 'text-cyan-400' },
+                  { l: 'tok 总数', v: fmt(llm?.total_tokens), c: 'text-slate-200' },
+                  { l: '缓存命中', v: llm?.cache_hit_ratio != null ? `${(llm.cache_hit_ratio * 100).toFixed(0)}%` : '未上报', c: llm?.cache_hit_ratio != null ? 'text-emerald-400' : 'text-slate-500' },
                   { l: '压缩', v: `${status.compress_rounds} 次`, c: 'text-cyan-400' },
                 ].map((s) => (
                   <div key={s.l} className="rounded-lg border border-slate-800 bg-slate-900/60 px-2 py-1.5">

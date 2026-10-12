@@ -146,6 +146,7 @@ def api_context_status():
     counter = _get_token_counter()
     send_tokens = 0
     recv_tokens = 0
+    turns = 0          # 轮数 = 用户发言条数（一次发言 = 一轮）
     recent = []
 
     for msg in messages:
@@ -153,6 +154,7 @@ def api_context_status():
         tokens = counter.count(content)
         role = msg.get("role", "")
         if role == "user":
+            turns += 1
             send_tokens += tokens
         elif role == "assistant":
             recv_tokens += tokens
@@ -239,6 +241,9 @@ def api_context_status():
         "send_tokens": send_tokens,
         "recv_tokens": recv_tokens,
         "messages_count": len(messages),
+        # 轮数（用户发言条数）；与 LLM 调用频数（/api/llm-monitor/stats.total）分列：
+        # 一轮对话可能触发多次 LLM 调用（工具循环/摘要），两者不应混同。
+        "turns": turns,
         "recent_messages": recent,
     })
 

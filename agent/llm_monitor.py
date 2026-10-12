@@ -339,17 +339,40 @@ class LLMMonitor:
             logger.debug("删除 LLM 监控快照失败: %s", e)
 
     def get_stats(self) -> dict:
-        """获取汇总统计"""
+        """获取汇总统计（含 tok/s 与前缀缓存命中）。
+
+        【2026-10-13 新增】会话上下文面板要对齐 DeepSeek Harness 的读数
+        （tok/s、缓存命中、总 tokens），故在既有键之上**只增不改**。
+        """
         with self._lock:
             total = len(self._records)
             if total == 0:
                 return {"total": 0, "total_request_tokens": 0,
                         "total_response_tokens": 0, "total_cost_estimate": 0,
-                        "avg_duration_ms": 0, "by_source": {}}
+                        "avg_duration_ms": 0, "by_source": {},
+                        "tok_per_s": 0.0, "cache_hit_tokens": 0,
+                        "cache_miss_tokens": 0, "cache_reported_calls": 0,
+                        "cache_hit_ratio": None}
 
             total_req_tok = sum(r.request_tokens for r in self._records)
             total_res_tok = sum(r.response_tokens for r in self._records)
-            avg_dur = sum(r.duration_ms for r in self._records) / total
+            total_dur_ms = sum(r.duration_ms for r in self._records)
+            avg_dur = total_dur_ms / total
+
+            # 生成吞吐：输出 token / 总耗时（records 的 duration_ms 是每次调用耗时）
+            tok_per_s = (round(total_res_tok / (total_dur_ms / 1000), 1)
+                         if total_dur_ms > 0 else 0.0)
+            # 前缀缓存命中：只统计 API **明确上报过**缓存字段的调用（cache_reported），
+            # 否则"没上报"会被错算成"未命中"而拉低命中率（口径见 extract_usage）。
+            cache_hit_tokens = sum(int(getattr(r, "prompt_cache_hit_tokens", 0) or 0)
+                                   for r in self._records)
+            cache_miss_tokens = sum(int(getattr(r, "prompt_cache_miss_tokens", 0) or 0)
+                                    for r in self._records)
+            cache_reported_calls = sum(
+                1 for r in self._records if getattr(r, "cache_reported", False))
+            cache_total = cache_hit_tokens + cache_miss_tokens
+            cache_hit_ratio = (round(cache_hit_tokens / cache_total, 4)
+                               if cache_total > 0 else None)
 
             by_source = {}
             for r in self._records:
@@ -371,6 +394,11 @@ class LLMMonitor:
                 "avg_duration_ms": round(avg_dur, 1),
                 "estimated_cost_usd": round(cost_input + cost_output, 6),
                 "by_source": by_source,
+                "tok_per_s": tok_per_s,
+                "cache_hit_tokens": cache_hit_tokens,
+                "cache_miss_tokens": cache_miss_tokens,
+                "cache_reported_calls": cache_reported_calls,
+                "cache_hit_ratio": cache_hit_ratio,
             }
 
     # ── Token 估算 ──
