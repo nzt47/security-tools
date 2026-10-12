@@ -77,8 +77,16 @@ def fixed_clock(now: Optional[str] = None):
 
 
 def make_root(tmp_path) -> str:
-    """建立临时"仓库根"骨架（data/ 下的既有落点）。"""
-    root = os.path.abspath(str(tmp_path))
+    """建立临时"仓库根"骨架（data/ 下的既有落点）。
+
+    【为什么根目录下沉一层 —— 2026-10-12 CI 实测误红】`tests/unit/conftest.py` 的
+    运行期台账夹具在「默认落点不存在」时把 workflow 仓库重定向到
+    `tmp_path/learned_workflows.json`（首次读即落盘空对象，见 WorkflowRepository._load）。
+    若本函数直接把 `tmp_path` 本身当仓库根，那次**与本用例无关的**懒初始化落盘会出现在
+    `_tree_state(root)` 里，令 `test_dry_run_writes_nothing` 误报「dry-run 竟然改动了磁盘」。
+    根目录下沉一层，运行期台账落在 root 之外，断言只盯归档域自身。
+    """
+    root = os.path.abspath(os.path.join(str(tmp_path), "retention-root"))
     for sub in ("data/events", "data/audit", "data/digestion/cases",
                 "data/digestion/drafts", "data/digestion/shadow",
                 "data/policies", "data/memory", "agent/data"):
