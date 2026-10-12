@@ -2,7 +2,8 @@
  * PromptLab · 提示词影响因素实验室 样式
  * ------------------------------------------------
  * 复用工作台主题变量（--wb-*），独立作用域 .pl- 前缀，避免污染其他模块。
- * 布局：顶栏 + 筛选条 + 主体（左因素区 / 右粘性预览区），窄屏预览区下移。
+ * 布局：顶栏 + 筛选条 + 主体（因素区 / 身份提示词区 / 右粘性预览区，因素一行一张卡），
+  窄屏（≤1300px）三列堆叠为纵向。
  */
 .pl-root {
   min-height: 100vh;
@@ -203,7 +204,8 @@
   min-width: 0;
 }
 .pl-identity-col {
-  flex: 0 0 360px;
+  /* 放大：身份提示词（系统提示词 · 线上配置）要放下分区标题 + 发出内容 + 编辑区 */
+  flex: 0 0 440px;
   min-width: 0;
 }
 .pl-col-title {
@@ -214,7 +216,8 @@
   color: #94a3b8;
 }
 .pl-preview {
-  flex: 0 0 380px;
+  /* 放大：实时预览要放下提示词 / 模拟输出 / Token 估算 + 导出 */
+  flex: 0 0 520px;
   position: sticky;
   top: 158px;
   max-height: calc(100vh - 178px);
@@ -255,6 +258,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 10px;
+}
+/* 因素列：一行只排一个因素（原 auto-fill 会并排 2~3 张卡 ⇒ 卡片窄、滑块与下拉都挤） */
+.pl-factors .pl-card-grid {
+  grid-template-columns: 1fr;
 }
 
 /* ── 因素卡片 ── */
@@ -1113,7 +1120,9 @@
 }
 
 /* ── 响应式：窄屏时预览区下移，筛选条不吸顶 ── */
-@media (max-width: 1100px) {
+/* 断点随两列固定宽度上调（440 + 520 + gap/padding ≈ 1000）：低于 1300 时因素列已不足
+   一张卡的最小宽度（300），故提前堆叠，避免单列卡片被压到溢出 */
+@media (max-width: 1300px) {
   .pl-body {
     flex-direction: column;
     align-items: stretch; /* column 方向下子项撑满，避免因素区 shrink-to-fit 留白 */
