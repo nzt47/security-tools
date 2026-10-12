@@ -620,6 +620,7 @@ flowchart LR
         agent_subagent_scoped_memory_gate["agent.subagent.scoped_memory_gate"]
         agent_subagent_summarizer["agent.subagent.summarizer"]
         agent_subagent_task_board["agent.subagent.task_board"]:::crosslayer
+        agent_subagent_tool_loop["agent.subagent.tool_loop"]
         agent_subagent_toolset["agent.subagent.toolset"]:::crosslayer
     end
     subgraph task_planner [task_planner]
@@ -745,6 +746,7 @@ flowchart LR
     agent_auto_tuner -.-> agent_evolution_injector
     agent_auto_tuner -.-> agent_evolution_injector
     agent_auto_tuner -.-> agent_evolution_injector
+    agent_autonomy -.-> agent_lines_models
     agent_behavior_controller --> agent_logging_utils
     agent_caching_multi_level_cache -.-> agent_logging_utils
     agent_caching_multi_level_cache -.-> agent_monitoring_observability_config
@@ -2372,6 +2374,7 @@ flowchart LR
     agent_subagent_observability -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_monitoring_business_metrics
     agent_subagent_peer_local_handler --> agent_subagent_local_inference
+    agent_subagent_peer_local_handler --> agent_subagent_tool_loop
     agent_subagent_peers --> agent_subagent_callback_outbox
     agent_subagent_peers --> agent_subagent_callback_channel
     agent_subagent_peers -.-> agent_task_scheduler
@@ -2386,6 +2389,7 @@ flowchart LR
     agent_subagent_scoped_memory_gate -.-> agent_memory_quota
     agent_subagent_summarizer -.-> agent_logging_utils
     agent_subagent_task_board -.-> agent_jsonl_history
+    agent_subagent_tool_loop -.-> agent_tools
     agent_subagent_toolset -.-> agent_security_actor_matrix
     agent_subagent_toolset -.-> agent_lines_models
     agent_subagent_toolset -.-> agent_guardrails
@@ -2690,9 +2694,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 666
-- 模块节点数: 597
-- 依赖边数: 1973
-- 跨层调用数: 1240
+- 扫描文件数: 667
+- 模块节点数: 598
+- 依赖边数: 1976
+- 跨层调用数: 1242
 - 违规调用数: 0
 - 动态 import 数: 1
