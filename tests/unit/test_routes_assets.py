@@ -114,33 +114,29 @@ class TestGetNonFileItems:
         assert _get_non_file_items("skills", state) == []
 
     def test_non_skills_category_empty_when_no_source(self, tmp_path, monkeypatch):
-        """memory 在无真实文件且无本地账本时应返回空列表"""
-        monkeypatch.setattr(routes_assets, "MEMORY_FILE", tmp_path / "none.json")
+        """memory 在无 memory_mgr 且无本地账本时应返回空列表"""
         monkeypatch.setattr(routes_assets, "ASSETS_DIR", tmp_path / "assets")
-        state = SimpleNamespace(skills_mgr=SimpleNamespace(get_all=lambda: []))
+        state = SimpleNamespace(skills_mgr=SimpleNamespace(get_all=lambda: []), memory_mgr=None)
         assert _get_non_file_items("memory", state) == []
 
-    def test_memory_真实文件被映射(self, tmp_path, monkeypatch):
-        """记忆真源（agent_memory.json）应被映射为资产条目，标 source=system"""
-        f = tmp_path / "mem.json"
-        f.write_text(json.dumps([
-            {"id": "m1", "content": "第一行\n第二行",
-             "metadata": {"type": "conversation"}, "timestamp": "2026-01-01T00:00:00"},
-            {"id": "m2", "content": ""},
-        ], ensure_ascii=False), encoding="utf-8")
-        monkeypatch.setattr(routes_assets, "MEMORY_FILE", f)
+    def test_memory_与记忆管理同源被映射(self, tmp_path, monkeypatch):
+        """记忆真源 = MemoryManager._storage（与「记忆管理」同一份），标 source=system"""
+        storage = SimpleNamespace(load_recent_messages=lambda limit=50: [
+            {"role": "user", "content": "第一行\n第二行", "timestamp": "2026-01-01T00:00:00"},
+            {"role": "assistant", "content": "", "timestamp": "2026-01-02T00:00:00"},
+        ])
         monkeypatch.setattr(routes_assets, "ASSETS_DIR", tmp_path / "assets")
-        items = _get_non_file_items("memory", SimpleNamespace(skills_mgr=None))
-        assert [i["id"] for i in items] == ["m1", "m2"]
+        state = SimpleNamespace(skills_mgr=None, memory_mgr=SimpleNamespace(_storage=storage))
+        items = _get_non_file_items("memory", state)
+        assert [i["description"] for i in items] == ["user", "assistant"]
         assert items[0]["title"] == "第一行"
         assert items[0]["source"] == "system"
 
     def test_本地补录与真实条目合并(self, tmp_path, monkeypatch):
         """本地账本条目（source=local）与真实条目合并返回"""
-        monkeypatch.setattr(routes_assets, "MEMORY_FILE", tmp_path / "none.json")
         monkeypatch.setattr(routes_assets, "ASSETS_DIR", tmp_path / "assets")
         _write_asset(tmp_path, "memory", [{"id": "local1", "title": "本地补录"}])
-        items = _get_non_file_items("memory", SimpleNamespace(skills_mgr=None))
+        items = _get_non_file_items("memory", SimpleNamespace(skills_mgr=None, memory_mgr=None))
         assert [i["id"] for i in items] == ["local1"]
         assert items[0]["source"] == "local"
 

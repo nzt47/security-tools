@@ -37,8 +37,10 @@ LEDGER_CATEGORY_ORDER = tuple(ALL_CATEGORIES)
 #: （skills/tools）也能记账，且真实条目只读、本地条目可删。
 NON_FILE_CATEGORY_ORDER = ("memory", "prompts", "tools", "skills")
 NON_FILE_CATEGORIES = set(NON_FILE_CATEGORY_ORDER)
-#: 真实记忆条目文件（条目 {id, content, metadata, timestamp}）
-MEMORY_FILE = Path(__file__).resolve().parents[2] / "data" / "memory" / "agent_memory.json"
+#: 记忆数据的来源 = 与「记忆管理」**同一个** MemoryManager（memory_data/messages.jsonl）。
+#  经 _assets_state.memory_mgr 注入；**不读** data/memory/agent_memory.json —— 那是迁移脚本
+#  （scripts/migrate_to_sqlite_vec.py）的旧源，与运行时记忆无关。2026-10-13 由
+#  「资产·记忆数据 与 记忆管理 是否同源」实测暴露（原先读旧源 ⇒ 两处对不上）。
 #: 子系统条目上屏上限（记忆实测 1600+ 条，全量上屏没有意义）
 SYSTEM_ITEMS_LIMIT = 200
 
@@ -75,21 +77,42 @@ def _map_skill_items(state) -> list:
     ]
 
 
-def _read_memory_items() -> list:
-    """记忆数据：data/memory/agent_memory.json（真源，只读）。"""
+def _memory_storage(state):
+    """「记忆管理」同源的存储对象（MemoryManager._storage）；不可用时返回 None。"""
+    mgr = getattr(state, "memory_mgr", None)
+    storage = getattr(mgr, "_storage", None) if mgr is not None else None
+    return storage if hasattr(storage, "load_recent_messages") else None
+
+
+def _memory_total(state) -> int:
+    """记忆总条数（与「记忆管理」同一份 memory_data/messages.jsonl）。"""
+    storage = _memory_storage(state)
+    if storage is None:
+        return 0
+    return len(storage.load_recent_messages(limit=1000000))
+
+
+def _read_memory_items(state) -> list:
+    """记忆数据：与「记忆管理」同源（MemoryManager._storage，只读）。
+
+    条目形状 {role, content, timestamp} ⇒ 映射为资产的 {id,title,description,created_at}。
+    """
+    storage = _memory_storage(state)
+    if storage is None:
+        return []
     out = []
-    for it in _read_json_file(MEMORY_FILE):
-        if not isinstance(it, dict):
+    for i, m in enumerate(storage.load_recent_messages(limit=SYSTEM_ITEMS_LIMIT)):
+        if not isinstance(m, dict):
             continue
-        content = str(it.get("content") or "").strip()
+        content = str(m.get("content") or "").strip()
         first = content.splitlines()[0] if content else ""
-        meta = it.get("metadata") if isinstance(it.get("metadata"), dict) else {}
+        ts = str(m.get("timestamp") or "")
         out.append({
-            "id": str(it.get("id") or ""),
+            "id": f"memory_{i}_{ts}",
             "title": first[:80] or "（空记忆）",
             "name": first[:80] or "（空记忆）",
-            "description": str(meta.get("type") or "记忆"),
-            "created_at": str(it.get("timestamp") or meta.get("created_at") or ""),
+            "description": str(m.get("role") or "message"),
+            "created_at": ts,
             "category": "memory",
         })
     return out
@@ -139,7 +162,7 @@ def _real_items(category: str, state) -> list:
         if category == "skills":
             items = _map_skill_items(state)
         elif category == "memory":
-            items = _read_memory_items()
+            items = _read_memory_items(state)
         elif category == "prompts":
             items = _read_prompt_items()
         elif category == "tools":
@@ -185,7 +208,7 @@ def _non_file_count(category: str, state) -> int:
     if category == "skills":
         n = len(_map_skill_items(state))
     elif category == "memory":
-        n = len(_read_json_file(MEMORY_FILE))
+        n = _memory_total(state)
     elif category == "prompts":
         from agent.prompt_manager.storage import get_prompt_storage
         n = len(get_prompt_storage().list_prompts(limit=100000))
