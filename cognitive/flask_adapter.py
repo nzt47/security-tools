@@ -1,4 +1,9 @@
 # cognitive/flask_adapter.py
+"""元认知 API 路由：把 PromptInjector 的注入 / 翻译 / 拒答暴露为 Flask 端点。
+
+注：/api/cognitive/prompt 与 /translate 是**调试面**（原文可能含传感器原始文本），
+按 config/route_ui_intent.json 标注为「不该进 UI」。
+"""
 import logging
 
 logger = logging.getLogger(__name__)
@@ -32,11 +37,13 @@ def register_prompt_routes(app, injector, sensor_cache: dict):
 
     @app.route("/api/cognitive/prompt")
     def cognitive_prompt():
+        """按当前传感器读数生成完整注入提示词（调试面，非用户 UI）。"""
         text = injector.inject(_get_all_readings())
         return Response(text, mimetype="text/plain; charset=utf-8")
 
     @app.route("/api/cognitive/translate/<sensor_name>")
     def cognitive_translate(sensor_name):
+        """把指定传感器的读数翻译成自然语言；sensor_name 不存在时 404。"""
         for r in _get_all_readings():
             if r.get("sensor_name") == sensor_name:
                 return injector.translate(r)
@@ -44,6 +51,7 @@ def register_prompt_routes(app, injector, sensor_cache: dict):
 
     @app.route("/api/cognitive/reject")
     def cognitive_reject():
+        """判断当前读数下任务是否应被拒绝，返回 {rejected, reason}。"""
         rejected, reason = injector.should_reject_task(_get_all_readings())
         return jsonify({"rejected": rejected, "reason": reason})
 

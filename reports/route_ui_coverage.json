@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-11T23:05:44",
+  "generated_at": "2026-10-12T21:05:28",
   "totals": {
     "routes": 456,
     "live": 233,
@@ -42,8 +42,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "app_server.py:2087"
+        "app_server.py:2095"
       ],
+      "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -68,6 +70,8 @@
       "where": [
         "agent/api_gateway_flask.py:163"
       ],
+      "description": "开放端点统一入口：全部交给网关（鉴权 → 限流 → 配额 → 分发）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -90,6 +94,8 @@
         "agent/server_routes/routes_agent_lines.py:429",
         "agent/server_routes/routes_agent_lines.py:650"
       ],
+      "description": "全部主线档案 + 当前激活的主线（`active: null` = 不装线，全量工具）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -112,6 +118,8 @@
         "agent/server_routes/routes_agent_lines.py:672",
         "agent/server_routes/routes_agent_lines.py:698"
       ],
+      "description": "单条档案 + 现场装配预览（不保存、不改状态）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -130,6 +138,8 @@
       "where": [
         "agent/server_routes/routes_agent_lines.py:721"
       ],
+      "description": "设置全局激活主线：`{\"line_id\": \"<id>\"}` 或 `{\"line_id\": null}`",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -150,6 +160,8 @@
       "where": [
         "agent/server_routes/routes_agent_lines.py:453"
       ],
+      "description": "分类法单一来源 + 全量工具目录 + 未登记（fail-closed）工具清单",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -170,6 +182,8 @@
       "where": [
         "agent/server_routes/routes_agent_lines.py:608"
       ],
+      "description": "按请求体里的档案跑一次装配（**零副作用**：不落盘、不动激活指针）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -190,6 +204,8 @@
       "where": [
         "agent/server_routes/routes_agent_lines.py:748"
       ],
+      "description": "跑 `LineProfile.validate(known_tools, known_skills)` 并返回问题列表（**不保存**）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -211,6 +227,8 @@
         "agent/server_routes/routes_config.py:190",
         "plugins/admin.py:286"
       ],
+      "description": "应用网络配置到应用实例（即时生效）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -229,6 +247,8 @@
       "where": [
         "agent/server_routes/routes_approval.py:360"
       ],
+      "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -247,6 +267,8 @@
       "where": [
         "agent/server_routes/routes_approval.py:365"
       ],
+      "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -265,6 +287,8 @@
       "where": [
         "agent/server_routes/routes_approval.py:372"
       ],
+      "description": "审批控制台（程序化/嵌入式调用方；**仍受 require_token 约束**）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -285,6 +309,8 @@
       "where": [
         "agent/server_routes/routes_approval.py:280"
       ],
+      "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -303,6 +329,8 @@
       "where": [
         "agent/server_routes/routes_approval.py:316"
       ],
+      "description": "校验链接（**不消费**）：分享式链接在此即暴露 `session_mismatch`",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -323,6 +351,8 @@
       "where": [
         "agent/server_routes/routes_approval.py:235"
       ],
+      "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -343,6 +373,8 @@
       "where": [
         "agent/server_routes/routes_approval.py:336"
       ],
+      "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -367,6 +399,8 @@
         "agent/server_routes/routes_approval.py:197",
         "agent/server_routes/routes_approval.py:222"
       ],
+      "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -385,6 +419,8 @@
       "where": [
         "agent/server_routes/routes_approval.py:174"
       ],
+      "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -405,6 +441,8 @@
         "agent/server_routes/routes_assets.py:138",
         "agent/server_routes/routes_assets.py:90"
       ],
+      "description": "添加资产项到指定类别",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -423,6 +461,8 @@
       "where": [
         "agent/server_routes/routes_assets.py:113"
       ],
+      "description": "删除指定资产项",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -443,6 +483,8 @@
       "where": [
         "agent/server_routes/routes_assets.py:164"
       ],
+      "description": "创建资产备份",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -461,6 +503,8 @@
       "where": [
         "agent/server_routes/routes_assets.py:216"
       ],
+      "description": "删除指定备份",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -481,6 +525,8 @@
       "where": [
         "agent/server_routes/routes_assets.py:192"
       ],
+      "description": "获取备份列表",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -499,6 +545,8 @@
       "where": [
         "agent/server_routes/routes_assets.py:268"
       ],
+      "description": "导出所有资产为 JSON 文件",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -519,6 +567,8 @@
       "where": [
         "agent/server_routes/routes_assets.py:71"
       ],
+      "description": "获取8类资产的概览（各类数量）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -537,6 +587,8 @@
       "where": [
         "agent/server_routes/routes_assets.py:232"
       ],
+      "description": "从备份恢复资产数据",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -557,6 +609,8 @@
       "where": [
         "plugins/admin.py:784"
       ],
+      "description": "获取结构化审计日志（只读查询 Append-only 审计日志）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -577,6 +631,8 @@
       "where": [
         "plugins/audit_coverage.py:27"
       ],
+      "description": "路由↔UI 覆盖盘点（只读，读提交产物）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -597,6 +653,8 @@
       "where": [
         "plugins/admin_api.py:429"
       ],
+      "description": "登录：校验口令（环境变量优先）+ 签发**带签名**的会话令牌。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -617,6 +675,8 @@
       "where": [
         "plugins/admin_api.py:478"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -636,6 +696,8 @@
         "agent/server_routes/routes_sessions.py:185",
         "plugins/admin.py:58"
       ],
+      "description": "检查令牌是否有效（前端用）",
+      "description_source": "handler",
       "intent": "should_not_be_in_ui",
       "intent_area": "内部鉴权",
       "intent_note": "令牌校验，编排层调用",
@@ -654,6 +716,8 @@
       "where": [
         "agent/server_routes/routes_background.py:89"
       ],
+      "description": "列出后台任务（默认按创建时间倒序；limit 截断，status 过滤）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -672,6 +736,8 @@
       "where": [
         "agent/server_routes/routes_background.py:116"
       ],
+      "description": "单任务状态",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -690,6 +756,8 @@
       "where": [
         "agent/server_routes/routes_background.py:142"
       ],
+      "description": "取消后台任务（仅 pending/running 可取消）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -708,6 +776,8 @@
       "where": [
         "agent/server_routes/routes_background.py:129"
       ],
+      "description": "任务结果（未完成时返回进行中提示，不视为错误）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -729,6 +799,8 @@
         "agent/server_routes/routes_workspace.py:225",
         "plugins/system_tools.py:305"
       ],
+      "description": "关闭浏览器",
+      "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "与截图同一能力",
@@ -750,6 +822,8 @@
         "agent/server_routes/routes_workspace.py:206",
         "plugins/system_tools.py:284"
       ],
+      "description": "浏览器导航到 URL",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -771,6 +845,8 @@
         "agent/server_routes/routes_workspace.py:217",
         "plugins/system_tools.py:296"
       ],
+      "description": "浏览器截图",
+      "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "工作区能力，可做成会话侧面板",
@@ -789,6 +865,8 @@
       "where": [
         "agent/server_routes/routes_business_dashboard.py:283"
       ],
+      "description": "业务仪表盘总览",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -807,6 +885,8 @@
       "where": [
         "agent/server_routes/routes_business_dashboard.py:367"
       ],
+      "description": "指标定义列表",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -825,6 +905,8 @@
       "where": [
         "agent/server_routes/routes_business_dashboard.py:259"
       ],
+      "description": "业务指标健康检查",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -843,6 +925,8 @@
       "where": [
         "agent/server_routes/routes_business_dashboard.py:325"
       ],
+      "description": "单个指标详情",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -861,6 +945,8 @@
       "where": [
         "agent/server_routes/routes_business_dashboard.py:355"
       ],
+      "description": "Prometheus 格式导出",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -881,6 +967,8 @@
       "where": [
         "agent/server_routes/routes_agent_lines.py:517"
       ],
+      "description": "工具 / 技能的「可被 LLM 调用」统一清单（`data/capability_manifest.json`）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -907,6 +995,8 @@
         "agent/server_routes/routes_chat.py:258",
         "plugins/chat.py:141"
       ],
+      "description": "对话 & 语音 & Web 工具 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -925,8 +1015,10 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:1948"
+        "plugins/chat.py:2038"
       ],
+      "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -946,6 +1038,8 @@
         "agent/server_routes/routes_sessions.py:175",
         "plugins/chat.py:955"
       ],
+      "description": "会话管理 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -970,6 +1064,8 @@
         "plugins/system_tools.py:383",
         "plugins/system_tools.py:391"
       ],
+      "description": "读取剪贴板",
+      "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "剪贴板读写，工作区面板",
@@ -986,8 +1082,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "cognitive/flask_adapter.py:33"
+        "cognitive/flask_adapter.py:38"
       ],
+      "description": "按当前传感器读数生成完整注入提示词（调试面，非用户 UI）。",
+      "description_source": "handler",
       "intent": "should_not_be_in_ui",
       "intent_area": "认知闭环（调试面）",
       "intent_note": "原始注入提示词文本，属开发/调试面，不作为用户 UI",
@@ -1006,8 +1104,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "cognitive/flask_adapter.py:45"
+        "cognitive/flask_adapter.py:52"
       ],
+      "description": "判断当前读数下任务是否应被拒绝，返回 {rejected, reason}。",
+      "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "认知闭环",
       "intent_note": "任务接受度裁决；已在「全景感知 → 认知闭环」面板落地",
@@ -1027,9 +1127,11 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_panorama.py:237",
-        "cognitive/flask_adapter.py:28",
+        "cognitive/flask_adapter.py:33",
         "plugins/status.py:353"
       ],
+      "description": "全景 & 健康 & 状态 API 路由",
+      "description_source": "module",
       "intent": "should_be_in_ui",
       "intent_area": "全景看板",
       "intent_note": "认知闭环状态；已在「全景感知 → 认知闭环」面板落地",
@@ -1046,8 +1148,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "cognitive/flask_adapter.py:38"
+        "cognitive/flask_adapter.py:44"
       ],
+      "description": "把指定传感器的读数翻译成自然语言；sensor_name 不存在时 404。",
+      "description_source": "handler",
       "intent": "should_not_be_in_ui",
       "intent_area": "认知闭环（调试面）",
       "intent_note": "按传感器名翻译读数，调试面；无稳定用户入口",
@@ -1071,6 +1175,8 @@
         "agent/server_routes/routes_config.py:87",
         "plugins/admin.py:71"
       ],
+      "description": "LLM 配置读写（S2-02：POST 写操作显式审计 config.write；api_key 内容不入链）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1092,6 +1198,8 @@
         "agent/server_routes/routes_config.py:679",
         "plugins/admin.py:768"
       ],
+      "description": "获取配置变更日志",
+      "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "系统管理·日志",
       "intent_note": "与系统日志同屏",
@@ -1114,6 +1222,8 @@
       "where": [
         "plugins/memory.py:307"
       ],
+      "description": "手动触发上下文压缩（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1134,6 +1244,8 @@
       "where": [
         "plugins/memory.py:246"
       ],
+      "description": "更新上下文控制参数（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1154,6 +1266,8 @@
       "where": [
         "plugins/memory.py:131"
       ],
+      "description": "获取当前上下文使用状态（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1172,6 +1286,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:462"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1190,6 +1306,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:875"
       ],
+      "description": "批量裁决（**逐条复用单条审批的完整安全链，不新增旁路**）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1208,6 +1326,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:798"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1226,6 +1346,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:267"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1244,6 +1366,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:370"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1262,6 +1386,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:394"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1280,6 +1406,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:420"
       ],
+      "description": "签发「永不自动化五类」操作的单次确认凭据",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1298,6 +1426,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:249"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1316,6 +1446,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:233"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1334,6 +1466,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:307"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1352,6 +1486,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:322"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1370,6 +1506,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:293"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1388,6 +1526,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:199"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1406,6 +1546,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:280"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1424,6 +1566,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:345"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1442,6 +1586,8 @@
       "where": [
         "agent/server_routes/routes_ui_panels.py:359"
       ],
+      "description": "治理可观测面板 HTTP 面（TASK-S6-01）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1460,6 +1606,8 @@
       "where": [
         "agent/server_routes/routes_settings.py:274"
       ],
+      "description": "开关中心 HTTP 面（TASK-S7-01 步骤 3）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1478,6 +1626,8 @@
       "where": [
         "agent/server_routes/routes_settings.py:284"
       ],
+      "description": "开关中心 HTTP 面（TASK-S7-01 步骤 3）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1496,6 +1646,8 @@
       "where": [
         "agent/server_routes/routes_settings.py:314"
       ],
+      "description": "开关中心 HTTP 面（TASK-S7-01 步骤 3）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1514,6 +1666,8 @@
       "where": [
         "agent/server_routes/routes_settings.py:339"
       ],
+      "description": "开关中心 HTTP 面（TASK-S7-01 步骤 3）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1536,6 +1690,8 @@
         "agent/server_routes/routes_settings.py:364",
         "agent/server_routes/routes_settings.py:375"
       ],
+      "description": "开关中心 HTTP 面（TASK-S7-01 步骤 3）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1554,6 +1710,8 @@
       "where": [
         "agent/server_routes/routes_dashboard.py:680"
       ],
+      "description": "仪表盘健康检查",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1572,6 +1730,8 @@
       "where": [
         "agent/server_routes/routes_dashboard.py:855"
       ],
+      "description": "Memory 使用仪表盘",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1590,6 +1750,8 @@
       "where": [
         "agent/server_routes/routes_dashboard.py:702"
       ],
+      "description": "质量监控仪表盘",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1610,6 +1772,8 @@
       "where": [
         "plugins/admin_api.py:699"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "should_be_in_ui",
       "intent_area": "管理仪表盘",
       "intent_note": "",
@@ -1628,6 +1792,8 @@
       "where": [
         "agent/server_routes/routes_dashboard.py:780"
       ],
+      "description": "追踪数据列表",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1646,6 +1812,8 @@
       "where": [
         "agent/server_routes/routes_dashboard.py:833"
       ],
+      "description": "追踪详情",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1666,6 +1834,8 @@
         "plugins/demo_plugin.py:35",
         "plugins/demo_plugin.py:41"
       ],
+      "description": "读取当前生效配置（schema 驱动面板的值预填）。",
+      "description_source": "handler",
       "intent": "should_not_be_in_ui",
       "intent_area": "开发 mock",
       "intent_note": "仅 dev mock，永不上屏",
@@ -1684,6 +1854,8 @@
       "where": [
         "plugins/demo_plugin.py:29"
       ],
+      "description": "演示插件自证路由（刷新后 /api/plugins 的 routes 可见）。",
+      "description_source": "handler",
       "intent": "should_not_be_in_ui",
       "intent_area": "开发 mock",
       "intent_note": "仅 dev mock，永不上屏",
@@ -1702,6 +1874,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:635"
       ],
+      "description": "获取配置状态摘要（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1720,6 +1894,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:693"
       ],
+      "description": "获取异常关联统计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1741,6 +1917,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:665"
       ],
+      "description": "综合健康检查",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1761,6 +1939,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:604"
       ],
+      "description": "LLM 连通性自检（POST：会向 LLM 端点发起一次最小真实调用）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1779,6 +1959,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:851"
       ],
+      "description": "获取最近日志记录（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1799,6 +1981,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:827"
       ],
+      "description": "获取运行时指标（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1817,6 +2001,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:571"
       ],
+      "description": "获取已注册工具清单",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1837,6 +2023,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:716"
       ],
+      "description": "获取当前追踪上下文",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1855,6 +2043,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:741"
       ],
+      "description": "从请求头提取追踪上下文",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1875,6 +2065,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:794"
       ],
+      "description": "生成追踪上下文请求头",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1895,6 +2087,8 @@
       "where": [
         "agent/api_gateway_flask.py:174"
       ],
+      "description": "OpenAPI 3.0 文档（覆盖全部内部路由 + 已开放端点）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1913,6 +2107,8 @@
       "where": [
         "plugins/experience.py:250"
       ],
+      "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1931,6 +2127,8 @@
       "where": [
         "plugins/experience.py:315"
       ],
+      "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1949,6 +2147,8 @@
       "where": [
         "plugins/experience.py:339"
       ],
+      "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1969,6 +2169,8 @@
       "where": [
         "plugins/experience.py:157"
       ],
+      "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -1989,6 +2191,8 @@
       "where": [
         "plugins/experience.py:216"
       ],
+      "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2009,6 +2213,8 @@
       "where": [
         "plugins/experience.py:287"
       ],
+      "description": "仅供 UI 预检预览 —— 纯本地检索，不走 DeepSeek。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2029,6 +2235,8 @@
       "where": [
         "plugins/experience.py:261"
       ],
+      "description": "经验库插件（方案「把 DSH 的历史会话提炼成经验库」P3）。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2049,6 +2257,8 @@
       "where": [
         "plugins/admin_api.py:714"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2068,6 +2278,8 @@
         "agent/server_routes/extensions.py:156",
         "plugins/skills.py:818"
       ],
+      "description": "通过通道发送消息",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2087,6 +2299,8 @@
         "agent/server_routes/extensions.py:85",
         "plugins/skills.py:732"
       ],
+      "description": "配置扩展参数",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2106,6 +2320,8 @@
         "agent/server_routes/extensions.py:101",
         "plugins/skills.py:754"
       ],
+      "description": "发现所有可用扩展",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2125,6 +2341,8 @@
         "agent/server_routes/extensions.py:38",
         "plugins/skills.py:664"
       ],
+      "description": "安装扩展",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2144,6 +2362,8 @@
         "agent/server_routes/extensions.py:28",
         "plugins/skills.py:650"
       ],
+      "description": "按类型分组获取已安装扩展",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2163,6 +2383,8 @@
         "agent/server_routes/extensions.py:17",
         "plugins/skills.py:635"
       ],
+      "description": "列出所有已安装扩展",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2182,6 +2404,8 @@
         "agent/server_routes/extensions.py:128",
         "plugins/skills.py:786"
       ],
+      "description": "获取推荐扩展",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2201,6 +2425,8 @@
         "agent/server_routes/extensions.py:140",
         "plugins/skills.py:802"
       ],
+      "description": "刷新社区扩展索引",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2220,6 +2446,8 @@
         "agent/server_routes/extensions.py:115",
         "plugins/skills.py:768"
       ],
+      "description": "搜索扩展市场",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2241,6 +2469,8 @@
         "agent/server_routes/extensions.py:69",
         "plugins/skills.py:710"
       ],
+      "description": "启用/禁用扩展",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2260,6 +2490,8 @@
         "agent/server_routes/extensions.py:54",
         "plugins/skills.py:686"
       ],
+      "description": "卸载扩展",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2278,6 +2510,8 @@
       "where": [
         "agent/server_routes/routes_feedback.py:165"
       ],
+      "description": "获取单个反馈详情",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2296,6 +2530,8 @@
       "where": [
         "agent/server_routes/routes_feedback.py:193"
       ],
+      "description": "标记反馈为已解决",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2314,6 +2550,8 @@
       "where": [
         "agent/server_routes/routes_feedback.py:113"
       ],
+      "description": "获取反馈列表",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2332,6 +2570,8 @@
       "where": [
         "agent/server_routes/routes_feedback.py:264"
       ],
+      "description": "获取优质案例列表",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2350,6 +2590,8 @@
       "where": [
         "agent/server_routes/routes_feedback.py:305"
       ],
+      "description": "生成反馈分析报告",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2368,6 +2610,8 @@
       "where": [
         "agent/server_routes/routes_feedback.py:33"
       ],
+      "description": "提交用户反馈",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2386,6 +2630,8 @@
       "where": [
         "agent/server_routes/routes_feedback.py:236"
       ],
+      "description": "获取反馈汇总统计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2405,6 +2651,8 @@
         "agent/server_routes/routes_workspace.py:144",
         "plugins/system_tools.py:198"
       ],
+      "description": "获取文件/目录信息",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2424,6 +2672,8 @@
         "agent/server_routes/routes_workspace.py:135",
         "plugins/system_tools.py:187"
       ],
+      "description": "列出目录内容",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2443,6 +2693,8 @@
         "agent/server_routes/routes_workspace.py:98",
         "plugins/system_tools.py:141"
       ],
+      "description": "读取本地文件内容",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2462,6 +2714,8 @@
         "agent/server_routes/routes_workspace.py:153",
         "plugins/system_tools.py:209"
       ],
+      "description": "搜索文件",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2481,6 +2735,8 @@
         "agent/server_routes/routes_workspace.py:118",
         "plugins/system_tools.py:165"
       ],
+      "description": "写入本地文件",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2500,6 +2756,8 @@
         "agent/server_routes/routes_sessions.py:248",
         "plugins/chat.py:675"
       ],
+      "description": "生成交接文档 — LLM 压缩当前会话为 Markdown，保存到 OS 临时目录",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2530,6 +2788,8 @@
         "agent/server_routes/routes_panorama.py:169",
         "plugins/status.py:234"
       ],
+      "description": "全景 & 健康 & 状态 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2548,6 +2808,8 @@
       "where": [
         "agent/server_routes/routes_health.py:309"
       ],
+      "description": "获取健康度告警状态（应用内 AlertManager 实时状态）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2567,6 +2829,8 @@
         "agent/server_routes/routes_panorama.py:176",
         "plugins/status.py:242"
       ],
+      "description": "鉴权配置状态（**只读**；TASK-06 §3 第 5 步第 2 项第 ① 步）",
+      "description_source": "handler",
       "intent": "should_not_be_in_ui",
       "intent_area": "探针",
       "intent_note": "健康探针，给编排器而非人",
@@ -2591,6 +2855,8 @@
       "where": [
         "agent/health/dashboard.py:16"
       ],
+      "description": "健康看板全量数据（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2609,6 +2875,8 @@
       "where": [
         "agent/server_routes/routes_health.py:421"
       ],
+      "description": "导出健康度报告",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2627,6 +2895,8 @@
       "where": [
         "agent/server_routes/routes_health.py:219"
       ],
+      "description": "获取健康度历史记录",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2649,6 +2919,8 @@
       "where": [
         "agent/health/dashboard.py:103"
       ],
+      "description": "健康看板 API",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2667,6 +2939,8 @@
       "where": [
         "agent/server_routes/routes_health.py:346"
       ],
+      "description": "快速健康检查（轻量级）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2685,8 +2959,10 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1765"
+        "app_server.py:1773"
       ],
+      "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2707,6 +2983,8 @@
       "where": [
         "agent/server_routes/routes_health.py:147"
       ],
+      "description": "获取当前健康度评分",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2725,6 +3003,8 @@
       "where": [
         "agent/server_routes/routes_health.py:173"
       ],
+      "description": "手动提交指标计算健康度",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2743,6 +3023,8 @@
       "where": [
         "agent/server_routes/routes_health.py:285"
       ],
+      "description": "获取健康度摘要（简化版）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2761,6 +3043,8 @@
       "where": [
         "agent/server_routes/routes_health.py:199"
       ],
+      "description": "获取健康度趋势",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2780,6 +3064,8 @@
       "where": [
         "agent/server_routes/routes_health.py:245"
       ],
+      "description": "获取或更新维度权重",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2801,6 +3087,8 @@
         "agent/server_routes/routes_monitoring.py:25",
         "plugins/status.py:789"
       ],
+      "description": "心跳检测接口 — 全维度健康检查（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2822,6 +3110,8 @@
         "agent/server_routes/routes_monitoring.py:37",
         "plugins/status.py:815"
       ],
+      "description": "获取心跳历史（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2841,6 +3131,8 @@
         "agent/server_routes/routes_monitoring.py:56",
         "plugins/status.py:844"
       ],
+      "description": "获取心跳概览（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2860,6 +3152,8 @@
         "agent/server_routes/routes_sessions.py:153",
         "plugins/chat.py:933"
       ],
+      "description": "会话管理 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2879,6 +3173,8 @@
         "agent/server_routes/routes_sessions.py:208",
         "plugins/chat.py:989"
       ],
+      "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2898,6 +3194,8 @@
         "agent/server_routes/routes_sessions.py:191",
         "plugins/chat.py:969"
       ],
+      "description": "搜索历史记录",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2916,6 +3214,8 @@
       "where": [
         "plugins/memory.py:610"
       ],
+      "description": "添加知识文档（legacy：原 agent/server_routes/routes_memory.py）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2941,6 +3241,8 @@
         "agent/server_routes/routes_knowledge.py:188",
         "agent/server_routes/routes_knowledge.py:225"
       ],
+      "description": "卡片列表（支持 ?status= & ?type= 过滤）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2963,6 +3265,8 @@
         "agent/server_routes/routes_knowledge.py:255",
         "agent/server_routes/routes_knowledge.py:317"
       ],
+      "description": "卡片详情（含 links、contradictions、incoming_links）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -2983,6 +3287,8 @@
       "where": [
         "agent/server_routes/routes_knowledge.py:368"
       ],
+      "description": "节点-边数据（关系图入口）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3003,6 +3309,8 @@
       "where": [
         "agent/server_routes/routes_knowledge.py:338"
       ],
+      "description": "获取 index.md 内容。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3023,6 +3331,8 @@
       "where": [
         "agent/server_routes/routes_knowledge.py:352"
       ],
+      "description": "健康报告（lint_all）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3043,6 +3353,8 @@
       "where": [
         "agent/server_routes/routes_knowledge.py:109"
       ],
+      "description": "知识库融合检索：RRF 融合 + 双链扩展 + rerank 重排。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3064,6 +3376,8 @@
       "where": [
         "agent/learning_metrics_api.py:27"
       ],
+      "description": "学习有效性度量查询 API — TASK-03",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3084,6 +3398,8 @@
       "where": [
         "agent/server_routes/routes_llm_monitor.py:112"
       ],
+      "description": "清除所有记录",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3106,6 +3422,8 @@
       "where": [
         "agent/server_routes/routes_llm_monitor.py:25"
       ],
+      "description": "获取 LLM 通信记录列表（倒序）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3124,6 +3442,8 @@
       "where": [
         "agent/server_routes/routes_llm_monitor.py:56"
       ],
+      "description": "获取单条 LLM 通信记录详情",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3144,6 +3464,8 @@
       "where": [
         "agent/server_routes/routes_llm_monitor.py:74"
       ],
+      "description": "获取 LLM 通信统计概览（含会话快照持久化信息）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3164,6 +3486,8 @@
       "where": [
         "agent/server_routes/routes_llm_monitor.py:98"
       ],
+      "description": "启用或禁用监控",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3186,6 +3510,8 @@
         "plugins/admin.py:337",
         "plugins/admin.py:365"
       ],
+      "description": "获取所有 LLM 实例",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3209,6 +3535,8 @@
         "agent/server_routes/routes_config.py:295",
         "plugins/admin.py:350"
       ],
+      "description": "获取单个 LLM 实例",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3228,6 +3556,8 @@
         "agent/server_routes/routes_config.py:310",
         "plugins/admin.py:423"
       ],
+      "description": "设置默认 LLM 实例",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3247,6 +3577,8 @@
         "agent/server_routes/routes_config.py:325",
         "plugins/admin.py:438"
       ],
+      "description": "测试 LLM 实例连通性",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3268,6 +3600,8 @@
         "agent/server_routes/routes_config.py:470",
         "plugins/mcp_scheduler.py:143"
       ],
+      "description": "启用/禁用 MCP 服务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3292,6 +3626,8 @@
         "plugins/mcp_scheduler.py:51",
         "plugins/mcp_scheduler.py:85"
       ],
+      "description": "获取所有 MCP 服务（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3315,6 +3651,8 @@
         "agent/server_routes/routes_config.py:457",
         "plugins/mcp_scheduler.py:108"
       ],
+      "description": "更新 MCP 服务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3333,6 +3671,8 @@
       "where": [
         "plugins/memory.py:389"
       ],
+      "description": "删除指定索引的记忆",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3351,6 +3691,8 @@
       "where": [
         "plugins/memory.py:397"
       ],
+      "description": "清空长期摘要",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3371,6 +3713,8 @@
       "where": [
         "plugins/memory.py:373"
       ],
+      "description": "触发记忆压缩",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3393,6 +3737,8 @@
       "where": [
         "plugins/memory.py:353"
       ],
+      "description": "手动添加记忆",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3413,6 +3759,8 @@
       "where": [
         "plugins/memory.py:329"
       ],
+      "description": "获取记忆概览",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3432,6 +3780,8 @@
       "where": [
         "plugins/memory.py:426"
       ],
+      "description": "记忆库审查接口（legacy：原 agent/server_routes/routes_memory.py）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3450,6 +3800,8 @@
       "where": [
         "plugins/memory.py:409"
       ],
+      "description": "更新长期摘要内容",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3468,6 +3820,8 @@
       "where": [
         "plugins/memory.py:724"
       ],
+      "description": "清空窗口事件记录",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3487,6 +3841,8 @@
       "where": [
         "plugins/memory.py:707"
       ],
+      "description": "获取或更新窗口监控配置",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3505,6 +3861,8 @@
       "where": [
         "plugins/memory.py:697"
       ],
+      "description": "获取当前活跃窗口",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3523,6 +3881,8 @@
       "where": [
         "plugins/memory.py:639"
       ],
+      "description": "获取窗口切换事件",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3541,6 +3901,8 @@
       "where": [
         "plugins/memory.py:655"
       ],
+      "description": "获取窗口使用统计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3561,6 +3923,8 @@
       "where": [
         "plugins/admin_api.py:655"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3580,6 +3944,8 @@
         "agent/server_routes/routes_panorama.py:220",
         "plugins/status.py:311"
       ],
+      "description": "全景 & 健康 & 状态 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3600,6 +3966,8 @@
       "where": [
         "agent/modules_api.py:407"
       ],
+      "description": "统一干预入口（写操作，FLASK_API_TOKEN 启用时需认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3620,6 +3988,8 @@
       "where": [
         "agent/modules_api.py:381"
       ],
+      "description": "节点详情：状态/指标/可执行动作/近期审计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3643,6 +4013,8 @@
       "where": [
         "agent/modules_api.py:340"
       ],
+      "description": "六域模块树 + 实时状态 + 指标（拓扑视图数据源）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3669,6 +4041,8 @@
         "plugins/admin.py:196",
         "plugins/admin.py:205"
       ],
+      "description": "获取网络配置",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3688,6 +4062,8 @@
         "agent/server_routes/routes_config.py:161",
         "plugins/admin.py:251"
       ],
+      "description": "导出网络配置（脱敏）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3707,6 +4083,8 @@
         "agent/server_routes/routes_config.py:172",
         "plugins/admin.py:264"
       ],
+      "description": "导入网络配置",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3728,6 +4106,8 @@
         "agent/server_routes/routes_config.py:153",
         "plugins/admin.py:241"
       ],
+      "description": "重置网络配置为默认值",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3746,6 +4126,8 @@
       "where": [
         "plugins/chat.py:454"
       ],
+      "description": "新闻直通接口 — 搜索+翻译+格式化，绕过 LLM",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3764,6 +4146,8 @@
       "where": [
         "plugins/admin_api.py:681"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3784,6 +4168,8 @@
       "where": [
         "plugins/admin_api.py:667"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3804,6 +4190,8 @@
       "where": [
         "plugins/admin_api.py:691"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3824,6 +4212,8 @@
       "where": [
         "plugins/admin_api.py:675"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3842,6 +4232,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:1459"
       ],
+      "description": "获取可观测性端点访问日志（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3860,6 +4252,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:1504"
       ],
+      "description": "获取访问统计信息（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3882,6 +4276,8 @@
         "agent/server_routes/routes_logging.py:1172",
         "agent/server_routes/routes_logging.py:1191"
       ],
+      "description": "获取告警规则列表（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3902,6 +4298,8 @@
         "agent/server_routes/routes_logging.py:1247",
         "agent/server_routes/routes_logging.py:1296"
       ],
+      "description": "更新告警规则（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3920,6 +4318,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:1320"
       ],
+      "description": "验证告警规则表达式（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3940,6 +4340,8 @@
         "agent/server_routes/routes_logging.py:877",
         "agent/server_routes/routes_logging.py:995"
       ],
+      "description": "查询日志（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3958,6 +4360,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:965"
       ],
+      "description": "获取日志标签列表（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3976,6 +4380,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:1074"
       ],
+      "description": "实时日志流（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -3994,6 +4400,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:1041"
       ],
+      "description": "获取可观测性状态（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4012,6 +4420,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:1350"
       ],
+      "description": "获取追踪数据列表（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4030,6 +4440,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:1389"
       ],
+      "description": "获取追踪详情（需要认证）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4050,6 +4462,8 @@
         "agent/server_routes/routes_semantic_config.py:42",
         "agent/server_routes/routes_semantic_config.py:60"
       ],
+      "description": "查询语义层当前生效配置（含 env/config.yaml/API override 合并结果）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4073,6 +4487,8 @@
         "agent/server_routes/routes_panorama.py:256",
         "plugins/status.py:373"
       ],
+      "description": "获取全景页面所需的所有数据（单次调用）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4092,6 +4508,8 @@
         "agent/server_routes/routes_permission.py:166",
         "plugins/safety.py:280"
       ],
+      "description": "获取数据访问记录",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4113,6 +4531,8 @@
         "agent/server_routes/routes_permission.py:175",
         "plugins/safety.py:291"
       ],
+      "description": "紧急控制 — 暂停/停止/重置",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4132,6 +4552,8 @@
         "agent/server_routes/routes_permission.py:107",
         "plugins/safety.py:211"
       ],
+      "description": "获取权限操作日志",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4151,6 +4573,8 @@
         "agent/server_routes/routes_permission.py:122",
         "plugins/safety.py:231"
       ],
+      "description": "获取聚合统计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4170,6 +4594,8 @@
         "agent/server_routes/routes_permission.py:76",
         "plugins/safety.py:172"
       ],
+      "description": "获取权限控制面板状态 — 当前操作 + 总览统计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4191,6 +4617,8 @@
         "agent/server_routes/routes_permission.py:207",
         "plugins/safety.py:326"
       ],
+      "description": "切换权限开关",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4211,6 +4639,8 @@
       "where": [
         "plugins/admin_api.py:556"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4232,6 +4662,8 @@
         "agent/server_routes/routes_personality.py:23",
         "plugins/status.py:665"
       ],
+      "description": "读取人格配置（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4253,6 +4685,8 @@
         "agent/server_routes/routes_personality.py:29",
         "plugins/status.py:684"
       ],
+      "description": "人格配置 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4276,6 +4710,8 @@
         "agent/server_routes/routes_personality.py:39",
         "plugins/status.py:694"
       ],
+      "description": "人格配置 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4299,6 +4735,8 @@
         "agent/server_routes/routes_personality.py:49",
         "plugins/status.py:704"
       ],
+      "description": "人格配置 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4320,6 +4758,8 @@
       "where": [
         "plugins/status.py:329"
       ],
+      "description": "切换规划引擎运行开关（热生效，不写 config.yaml）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4340,8 +4780,10 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1452"
+        "app_server.py:1460"
       ],
+      "description": "插件元信息 manifest（插件化机制 T1.1）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4362,8 +4804,10 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1458"
+        "app_server.py:1466"
       ],
+      "description": "刷新插件清单（动态装载 T4.1）：扫描 plugins/ 目录重建注册表，无需重启进程。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4382,6 +4826,8 @@
       "where": [
         "plugins/safety.py:54"
       ],
+      "description": "返回数据采集透明度信息",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4400,6 +4846,8 @@
       "where": [
         "agent/server_routes/routes_process_distill.py:67"
       ],
+      "description": "从知识库/素材蒸馏并固化为 workflow/skill。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4418,6 +4866,8 @@
       "where": [
         "agent/server_routes/routes_process_distill.py:58"
       ],
+      "description": "过程蒸馏 HTTP API 路由（/api/process-distill/*）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4439,6 +4889,8 @@
         "agent/server_routes/routes_workspace.py:237",
         "plugins/system_tools.py:318"
       ],
+      "description": "列出白名单进程",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4460,6 +4912,8 @@
         "agent/server_routes/routes_workspace.py:267",
         "plugins/system_tools.py:354"
       ],
+      "description": "启动白名单程序",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4481,6 +4935,8 @@
         "agent/server_routes/routes_workspace.py:279",
         "plugins/system_tools.py:367"
       ],
+      "description": "终止进程（仅限白名单）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4500,6 +4956,8 @@
         "agent/server_routes/routes_workspace.py:243",
         "plugins/system_tools.py:326"
       ],
+      "description": "获取进程白名单详情",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4519,6 +4977,8 @@
         "agent/server_routes/routes_workspace.py:249",
         "plugins/system_tools.py:334"
       ],
+      "description": "添加自定义白名单条目",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4538,6 +4998,8 @@
         "agent/server_routes/routes_workspace.py:258",
         "plugins/system_tools.py:344"
       ],
+      "description": "移除自定义白名单条目",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4556,6 +5018,8 @@
       "where": [
         "agent/server_routes/routes_replay.py:195"
       ],
+      "description": "获取单条回放元数据",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4574,6 +5038,8 @@
       "where": [
         "agent/server_routes/routes_replay.py:223"
       ],
+      "description": "获取回放数据（解码后的 JSON 字符串）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4592,6 +5058,8 @@
       "where": [
         "agent/server_routes/routes_replay.py:286"
       ],
+      "description": "清理过期回放数据",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4610,6 +5078,8 @@
       "where": [
         "agent/server_routes/routes_replay.py:142"
       ],
+      "description": "查询回放列表",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4628,6 +5098,8 @@
       "where": [
         "agent/server_routes/routes_replay.py:258"
       ],
+      "description": "获取回放关联统计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4648,6 +5120,8 @@
       "where": [
         "agent/server_routes/routes_replay.py:56"
       ],
+      "description": "上传回放录制数据",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4668,6 +5142,8 @@
       "where": [
         "plugins/admin_api.py:562"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4688,6 +5164,8 @@
         "plugins/admin_api.py:609",
         "plugins/admin_api.py:623"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4706,6 +5184,8 @@
       "where": [
         "plugins/admin_api.py:597"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4724,6 +5204,8 @@
       "where": [
         "plugins/admin_api.py:582"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4744,6 +5226,8 @@
       "where": [
         "plugins/admin_api.py:547"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4763,6 +5247,8 @@
         "agent/server_routes/routes_permission.py:46",
         "plugins/safety.py:137"
       ],
+      "description": "获取最近的告警通知",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4782,6 +5268,8 @@
         "agent/server_routes/routes_permission.py:36",
         "plugins/safety.py:125"
       ],
+      "description": "检查文本是否包含危险操作",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4804,6 +5292,8 @@
         "agent/server_routes/routes_permission.py:54",
         "plugins/safety.py:147"
       ],
+      "description": "获取或添加危险关键词",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4823,6 +5313,8 @@
         "agent/server_routes/routes_workspace.py:167",
         "plugins/system_tools.py:225"
       ],
+      "description": "在受限沙盒中执行 Python 代码（受 features.sandbox 开关控制）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4842,6 +5334,8 @@
         "agent/server_routes/routes_monitoring.py:83",
         "plugins/mcp_scheduler.py:174"
       ],
+      "description": "创建定时任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4863,6 +5357,8 @@
         "agent/server_routes/routes_monitoring.py:100",
         "plugins/mcp_scheduler.py:195"
       ],
+      "description": "删除定时任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4884,6 +5380,8 @@
         "agent/server_routes/routes_monitoring.py:119",
         "plugins/mcp_scheduler.py:218"
       ],
+      "description": "立即执行指定任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4903,6 +5401,8 @@
         "agent/server_routes/routes_monitoring.py:134",
         "plugins/mcp_scheduler.py:235"
       ],
+      "description": "获取任务执行历史",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4924,6 +5424,8 @@
         "agent/server_routes/routes_monitoring.py:77",
         "plugins/mcp_scheduler.py:166"
       ],
+      "description": "列出所有定时任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4945,6 +5447,8 @@
         "agent/server_routes/routes_monitoring.py:109",
         "plugins/mcp_scheduler.py:206"
       ],
+      "description": "启用/禁用定时任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4967,6 +5471,8 @@
         "plugins/mcp_scheduler.py:254",
         "plugins/mcp_scheduler.py:266"
       ],
+      "description": "获取所有定时任务（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -4985,6 +5491,8 @@
       "where": [
         "plugins/mcp_scheduler.py:296"
       ],
+      "description": "删除定时任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5003,6 +5511,8 @@
       "where": [
         "plugins/mcp_scheduler.py:308"
       ],
+      "description": "暂停定时任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5021,6 +5531,8 @@
       "where": [
         "plugins/mcp_scheduler.py:320"
       ],
+      "description": "恢复定时任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5039,6 +5551,8 @@
       "where": [
         "plugins/mcp_scheduler.py:332"
       ],
+      "description": "获取执行历史",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5058,6 +5572,8 @@
         "agent/server_routes/routes_monitoring.py:186",
         "plugins/admin.py:889"
       ],
+      "description": "手动执行一次性能检测",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5077,6 +5593,8 @@
         "agent/server_routes/routes_monitoring.py:198",
         "plugins/admin.py:903"
       ],
+      "description": "获取性能检测历史记录",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5098,6 +5616,8 @@
         "agent/server_routes/routes_monitoring.py:160",
         "plugins/admin.py:859"
       ],
+      "description": "启动搜索引擎性能监控",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5117,6 +5637,8 @@
         "agent/server_routes/routes_monitoring.py:149",
         "plugins/admin.py:846"
       ],
+      "description": "获取搜索引擎性能监控状态",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5138,6 +5660,8 @@
         "agent/server_routes/routes_monitoring.py:174",
         "plugins/admin.py:875"
       ],
+      "description": "停止搜索引擎性能监控",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5157,6 +5681,8 @@
         "agent/server_routes/routes_monitoring.py:210",
         "plugins/admin.py:917"
       ],
+      "description": "获取性能摘要",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5179,6 +5705,8 @@
         "plugins/admin.py:491",
         "plugins/admin.py:503"
       ],
+      "description": "配置 & 网络配置 & LLM & MCP API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5201,6 +5729,8 @@
         "plugins/admin.py:563",
         "plugins/admin.py:623"
       ],
+      "description": "配置 & 网络配置 & LLM & MCP API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5220,6 +5750,8 @@
         "agent/server_routes/routes_config.py:601",
         "plugins/admin.py:685"
       ],
+      "description": "配置 & 网络配置 & LLM & MCP API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5239,6 +5771,8 @@
         "agent/server_routes/routes_config.py:633",
         "plugins/admin.py:733"
       ],
+      "description": "测试搜索实例连通性",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5264,6 +5798,8 @@
         "agent/server_routes/routes_panorama.py:198",
         "plugins/status.py:270"
       ],
+      "description": "传感器读数列表（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5286,6 +5822,8 @@
         "plugins/chat.py:871",
         "plugins/chat.py:879"
       ],
+      "description": "列出全部分组及 会话→分组 归属表",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5306,6 +5844,8 @@
         "plugins/chat.py:891",
         "plugins/chat.py:906"
       ],
+      "description": "重命名分组",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5332,6 +5872,8 @@
         "plugins/chat.py:536",
         "plugins/chat.py:549"
       ],
+      "description": "获取会话列表",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5351,6 +5893,8 @@
         "agent/server_routes/routes_sessions.py:98",
         "plugins/chat.py:562"
       ],
+      "description": "删除会话",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5369,6 +5913,8 @@
       "where": [
         "plugins/chat.py:917"
       ],
+      "description": "把会话移入/移出分组：body {group_id: string|null}；null = 未分组",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5390,6 +5936,8 @@
         "plugins/chat.py:626",
         "plugins/chat.py:636"
       ],
+      "description": "获取会话消息",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5409,6 +5957,8 @@
         "agent/server_routes/routes_sessions.py:108",
         "plugins/chat.py:582"
       ],
+      "description": "重命名会话",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5427,6 +5977,8 @@
       "where": [
         "plugins/chat.py:719"
       ],
+      "description": "列出会话工作空间文件树（会话不存在 404）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5447,6 +5999,8 @@
         "plugins/chat.py:742",
         "plugins/chat.py:768"
       ],
+      "description": "绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5465,6 +6019,8 @@
       "where": [
         "plugins/chat.py:780"
       ],
+      "description": "在系统文件管理器中打开该会话的工作空间目录（本机桌面应用场景）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5486,6 +6042,8 @@
         "agent/server_routes/routes_sessions.py:120",
         "plugins/chat.py:597"
       ],
+      "description": "切换当前会话",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5506,6 +6064,8 @@
       "where": [
         "plugins/skills.py:152"
       ],
+      "description": "获取技能列表（分类：已安装 + 可安装的内置技能，**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5528,6 +6088,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:166"
       ],
+      "description": "列出所有技能 (不分页)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5552,6 +6114,8 @@
         "agent/server_routes/routes_skills_mgmt.py:736",
         "agent/server_routes/routes_skills_mgmt.py:751"
       ],
+      "description": "获取单个技能详情",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5570,6 +6134,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1117"
       ],
+      "description": "找出与指定技能重复的其他技能",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5588,6 +6154,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1426"
       ],
+      "description": "Layer 3: 沙箱执行技能脚本",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5606,6 +6174,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:869"
       ],
+      "description": "上报一次技能执行结果 (用于性能追踪)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5626,6 +6196,8 @@
         "agent/server_routes/routes_skills_mgmt.py:1011",
         "agent/server_routes/routes_skills_mgmt.py:938"
       ],
+      "description": "获取技能反馈聚合统计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5644,6 +6216,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:584"
       ],
+      "description": "云枢自动完成评审改进（确定性补丁 + 重新评审）：",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5662,6 +6236,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1294"
       ],
+      "description": "Layer 2: 按需加载技能使用说明 (skill.md 正文)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5680,6 +6256,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:855"
       ],
+      "description": "基于使用指标推荐参数调整",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5698,6 +6276,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1039"
       ],
+      "description": "一键式：拉取反馈统计 + 触发参数优化",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5716,6 +6296,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:907"
       ],
+      "description": "获取技能的参数级执行统计 (Item 4)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5736,6 +6318,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:682"
       ],
+      "description": "发布技能（TASK-04 Step 3 强制审核链；S2-02：显式审计动作 skill.publish）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5754,6 +6338,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:554"
       ],
+      "description": "生成「再定义」草稿（LLM 可选，失败回退确定性）：中文说明/展示名，供确认后应用",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5772,6 +6358,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:335"
       ],
+      "description": "审核指定技能 (重复检测 + 安全扫描 + 质量评估)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5790,6 +6378,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1412"
       ],
+      "description": "Layer 3: 列出技能的脚本文件 (元信息，不加载代码)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5808,6 +6398,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:570"
       ],
+      "description": "评审发现 → 自动修复建议（规则化对策，可手动应用后重新评审）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5826,6 +6418,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:766"
       ],
+      "description": "切换启用状态 (防连点 — 由后端权威决定)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5844,6 +6438,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:786"
       ],
+      "description": "列出技能的所有历史版本",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5862,6 +6458,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:802"
       ],
+      "description": "升级技能版本",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5880,6 +6478,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:830"
       ],
+      "description": "回滚到指定历史版本",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5898,6 +6498,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1312"
       ],
+      "description": "从云枢记忆中自动抽象新技能草稿",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5916,6 +6518,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:610"
       ],
+      "description": "对单个技能执行权威评审（完整审核链 + 扩展评估）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5936,6 +6540,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:388"
       ],
+      "description": "老技能一键体检/整理：补齐说明、归档停用零使用、给出合并/拆分建议。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5956,6 +6562,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:648"
       ],
+      "description": "读取最近评估结果事件（轻量推送/通知源；最新在前）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5976,6 +6584,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:439"
       ],
+      "description": "“全部动态”聚合流：评估事件 + 人工复核审计（时间倒序，支持分页与按技能过滤）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -5996,6 +6606,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:425"
       ],
+      "description": "列出最近的安全合并备份（供可视化/批量撤销选择）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6016,6 +6628,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:406"
       ],
+      "description": "安全合并：先写两侧快照(merge_id) 再执行合并，可一键撤销",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6036,6 +6650,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:537"
       ],
+      "description": "按 merge_id 撤销安全合并（恢复被删技能 + 回滚保留方）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6056,6 +6672,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:375"
       ],
+      "description": "批量自动评估所有尚无审核结果的技能（不改技能状态）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6076,6 +6694,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:662"
       ],
+      "description": "评估事件实时推送（长轮询）：返回 ts > since 的新增事件，超时返回空。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6094,6 +6714,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1200"
       ],
+      "description": "自动合并高相似度技能对（Jaccard ≥ 阈值）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6114,6 +6736,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:471"
       ],
+      "description": "技能分类视图：自动归类 + 按类分组（同类折叠浏览的数据源）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6134,6 +6758,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:498"
       ],
+      "description": "人工移动技能到指定分类（后续自动重判不再覆盖人工选择）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6154,6 +6780,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:486"
       ],
+      "description": "全量自动分类：为尚未归类的技能自动判定（可自动新建类；人工移动不受影响）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6172,6 +6800,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:83"
       ],
+      "description": "清除孤儿残留技能。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6190,6 +6820,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:72"
       ],
+      "description": "技能中心清理总览：孤儿残留 + 无用技能候选（只报告不删除）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6208,6 +6840,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:100"
       ],
+      "description": "物理删除无用技能（归档超期零使用）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6228,6 +6862,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:198"
       ],
+      "description": "AI 辅助生成技能",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6248,6 +6884,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:225"
       ],
+      "description": "手动创建技能 — 直接提交完整字段",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6266,6 +6904,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:611"
       ],
+      "description": "对单个技能执行权威评审（完整审核链 + 扩展评估）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6284,6 +6924,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:389"
       ],
+      "description": "老技能一键体检/整理：补齐说明、归档停用零使用、给出合并/拆分建议。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6302,6 +6944,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:649"
       ],
+      "description": "读取最近评估结果事件（轻量推送/通知源；最新在前）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6320,6 +6964,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:440"
       ],
+      "description": "“全部动态”聚合流：评估事件 + 人工复核审计（时间倒序，支持分页与按技能过滤）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6338,6 +6984,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:426"
       ],
+      "description": "列出最近的安全合并备份（供可视化/批量撤销选择）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6356,6 +7004,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:407"
       ],
+      "description": "安全合并：先写两侧快照(merge_id) 再执行合并，可一键撤销",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6374,6 +7024,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:538"
       ],
+      "description": "按 merge_id 撤销安全合并（恢复被删技能 + 回滚保留方）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6392,6 +7044,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:376"
       ],
+      "description": "批量自动评估所有尚无审核结果的技能（不改技能状态）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6410,6 +7064,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:663"
       ],
+      "description": "评估事件实时推送（长轮询）：返回 ts > since 的新增事件，超时返回空。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6430,6 +7086,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1088"
       ],
+      "description": "扫描整个技能库，列出 Jaccard≥阈值的重复对",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6452,6 +7110,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:58"
       ],
+      "description": "技能管理系统健康检查",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6470,6 +7130,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1465"
       ],
+      "description": "一站式构建 LLM 上下文 (Layer 1 + Layer 2)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6490,6 +7152,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:240"
       ],
+      "description": "从外部来源安装技能",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6510,6 +7174,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:261"
       ],
+      "description": "外来安装预检：拉取来源并评估（与云枢自身功能重复/阻断项），不落库。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6530,6 +7196,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1254"
       ],
+      "description": "Layer 1: 意图匹配 — 在元数据索引上做快速检索",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6548,6 +7216,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1141"
       ],
+      "description": "合并两个重复技能",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6568,6 +7238,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1064"
       ],
+      "description": "列出所有分类与标签 (供前端过滤面板)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6588,6 +7260,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:279"
       ],
+      "description": "外部导入·待人工放行队列（外来源草稿，最新在前）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6608,6 +7282,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:630"
       ],
+      "description": "读取人工复核/强制发布审计记录（技能中心可视化；最新在前）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6628,6 +7304,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:353"
       ],
+      "description": "批量审核所有 pending_review 状态的技能",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6649,6 +7327,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:703"
       ],
+      "description": "获取或更新审核阈值",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6669,6 +7349,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:129"
       ],
+      "description": "高级搜索 — 支持分类/标签/状态/全文/分页/排序",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6689,6 +7371,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:459"
       ],
+      "description": "斜杠命令注册表：已发布+启用技能 → 会话可输入 /skill:<id> 提示",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6707,6 +7391,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1504"
       ],
+      "description": "Slash 命令解析器 — 统一技能操作入口",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6725,6 +7411,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1240"
       ],
+      "description": "三层架构统计摘要 — 供前端可视化",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6743,6 +7431,8 @@
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:292"
       ],
+      "description": "上传 zip 技能包并安装到三层架构文件仓库",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6761,6 +7451,8 @@
       "where": [
         "plugins/skills.py:550"
       ],
+      "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6781,6 +7473,8 @@
       "where": [
         "plugins/skills.py:503"
       ],
+      "description": "运行时技能「一键自动分类」：为未归类（含未分类存量）重新判定，可自动建类。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6799,6 +7493,8 @@
       "where": [
         "plugins/skills.py:265"
       ],
+      "description": "按 id 取运行时技能的「具体内容」供 UI 查看（只读，无需令牌）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6817,6 +7513,8 @@
       "where": [
         "plugins/skills.py:559"
       ],
+      "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6835,6 +7533,8 @@
       "where": [
         "plugins/skills.py:441"
       ],
+      "description": "【G1-B / M0 已冻结】原「手工补写某个运行时技能的中文说明到覆盖层」",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6855,6 +7555,8 @@
       "where": [
         "plugins/skills.py:475"
       ],
+      "description": "【G1-B / M0 已冻结】原「为缺描述的已知内置技能自动补中文说明」",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6873,6 +7575,8 @@
       "where": [
         "plugins/skills.py:540"
       ],
+      "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6895,6 +7599,8 @@
       "where": [
         "plugins/skills.py:391"
       ],
+      "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6918,6 +7624,8 @@
         "agent/server_routes/routes_panorama.py:204",
         "plugins/status.py:283"
       ],
+      "description": "运行状态总览（TASK-06：状态面**增量**暴露鉴权模式）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6938,6 +7646,8 @@
         "plugins/status.py:716",
         "plugins/status.py:732"
       ],
+      "description": "读取 status 插件 schema 全部字段的当前生效值（供 SchemaRenderer 预填）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6954,8 +7664,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:619"
+        "agent/server_routes/routes_subagent.py:634"
       ],
+      "description": "获取指定分身详情",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6972,8 +7684,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:636"
+        "agent/server_routes/routes_subagent.py:651"
       ],
+      "description": "导出可带走 bundle（只读；**导出前必经密钥闸**）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6990,8 +7704,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:978"
+        "agent/server_routes/routes_subagent.py:995"
       ],
+      "description": "**真委派**：把任务交给指定分身，经真实执行器跑（八要素 + 隔离 + Trace + 成本）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7008,8 +7724,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:924"
+        "agent/server_routes/routes_subagent.py:941"
       ],
+      "description": "销毁指定分身",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7026,8 +7744,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:946"
+        "agent/server_routes/routes_subagent.py:963"
       ],
+      "description": "在指定分身中执行任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7044,8 +7764,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:686"
+        "agent/server_routes/routes_subagent.py:701"
       ],
+      "description": "下载**预构建**的离线包（``<name>.tar.gz``）—— 把\"可带走\"交付到产品面",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7062,8 +7784,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1212"
+        "agent/server_routes/routes_subagent.py:1229"
       ],
+      "description": "热更新分身配置",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7080,8 +7804,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:785"
+        "agent/server_routes/routes_subagent.py:800"
       ],
+      "description": "接收分身/远端的委派结果回调（**只落账，不执行任何工具、不建/改容器**）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7100,8 +7826,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:539"
+        "agent/server_routes/routes_subagent.py:554"
       ],
+      "description": "主权分身能力投影（六层二十面 + 三态 + 证据）—— 组装台「主权清单」的数据源",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7120,8 +7848,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:843"
+        "agent/server_routes/routes_subagent.py:858"
       ],
+      "description": "创建新分身",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7140,8 +7870,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1109"
+        "agent/server_routes/routes_subagent.py:1126"
       ],
+      "description": "**临时分身委派**：不要求先存在分身 —— 与模型侧 ``delegate`` 工具同一条链路",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7160,8 +7892,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:562"
+        "agent/server_routes/routes_subagent.py:577"
       ],
+      "description": "委派记录（最近 N 条，**最新在前**）——「子代理」下拉的历史数据源",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7180,8 +7914,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:717"
+        "agent/server_routes/routes_subagent.py:732"
       ],
+      "description": "从 bundle 导入一个分身（非法 bundle ⇒ 400 且**不建容器**）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7200,8 +7936,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:506"
+        "agent/server_routes/routes_subagent.py:521"
       ],
+      "description": "获取所有活跃分身列表（附带委派执行通道可用性，供 UI 提前提示）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7224,6 +7962,8 @@
         "plugins/admin.py:110",
         "plugins/admin.py:143"
       ],
+      "description": "获取系统提示词模板及预览信息",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7246,6 +7986,8 @@
         "agent/server_routes/routes_system_prompt.py:58",
         "agent/server_routes/routes_system_prompt.py:97"
       ],
+      "description": "获取提示词组件配置及 Token 开销统计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7266,6 +8008,8 @@
       "where": [
         "agent/server_routes/routes_system_prompt.py:145"
       ],
+      "description": "根据当前配置生成模板并应用到运行环境",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7286,6 +8030,8 @@
       "where": [
         "agent/server_routes/routes_system_prompt.py:207"
       ],
+      "description": "根据提供的配置生成预览模板（不保存）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7306,6 +8052,8 @@
       "where": [
         "agent/server_routes/routes_system_prompt.py:126"
       ],
+      "description": "恢复默认配置",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7324,6 +8072,8 @@
       "where": [
         "plugins/admin.py:180"
       ],
+      "description": "重置系统提示词为默认",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7342,6 +8092,8 @@
       "where": [
         "agent/server_routes/routes_system_prompt.py:233"
       ],
+      "description": "检查配置模板与运行模板是否同步",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7360,6 +8112,8 @@
       "where": [
         "plugins/mcp_scheduler.py:346"
       ],
+      "description": "列出所有异步任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7378,6 +8132,8 @@
       "where": [
         "plugins/mcp_scheduler.py:355"
       ],
+      "description": "获取单个异步任务状态",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7396,6 +8152,8 @@
       "where": [
         "plugins/mcp_scheduler.py:364"
       ],
+      "description": "取消异步任务",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7415,8 +8173,10 @@
       ],
       "where": [
         "agent/server_routes/routes_monitoring.py:239",
-        "app_server.py:2201"
+        "app_server.py:2209"
       ],
+      "description": "测试端点：测试除法运算（正常情况）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7436,8 +8196,10 @@
       ],
       "where": [
         "agent/server_routes/routes_monitoring.py:225",
-        "app_server.py:2177"
+        "app_server.py:2185"
       ],
+      "description": "测试端点：触发除零错误以验证堆栈捕获",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7457,8 +8219,10 @@
       ],
       "where": [
         "agent/server_routes/routes_monitoring.py:232",
-        "app_server.py:2190"
+        "app_server.py:2198"
       ],
+      "description": "测试端点：触发空指针错误以验证堆栈捕获",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7477,6 +8241,8 @@
       "where": [
         "plugins/skills.py:893"
       ],
+      "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7497,6 +8263,8 @@
       "where": [
         "plugins/skills.py:844"
       ],
+      "description": "获取工具列表及使用统计（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7515,6 +8283,8 @@
       "where": [
         "plugins/skills.py:955"
       ],
+      "description": "获取工具健康状态（追踪、成功率、评分）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7535,6 +8305,8 @@
         "plugins/skills.py:903",
         "plugins/skills.py:917"
       ],
+      "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7553,6 +8325,8 @@
       "where": [
         "plugins/skills.py:946"
       ],
+      "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7571,6 +8345,8 @@
       "where": [
         "plugins/skills.py:931"
       ],
+      "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7589,6 +8365,8 @@
       "where": [
         "plugins/skills.py:963"
       ],
+      "description": "获取所有工具和技能的启用状态摘要（供快捷开关栏使用）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7611,6 +8389,8 @@
       "where": [
         "plugins/skills.py:877"
       ],
+      "description": "切换工具启用状态",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7631,6 +8411,8 @@
       "where": [
         "plugins/admin_api.py:507"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7651,6 +8433,8 @@
         "plugins/admin_api.py:496",
         "plugins/admin_api.py:529"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7671,6 +8455,8 @@
       "where": [
         "plugins/admin_api.py:466"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7692,6 +8478,8 @@
       "where": [
         "plugins/admin_api.py:487"
       ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7710,6 +8498,8 @@
       "where": [
         "plugins/memory.py:504"
       ],
+      "description": "添加单条向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7728,6 +8518,8 @@
       "where": [
         "plugins/memory.py:527"
       ],
+      "description": "批量添加向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7746,6 +8538,8 @@
       "where": [
         "plugins/memory.py:585"
       ],
+      "description": "清空向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7764,6 +8558,8 @@
       "where": [
         "plugins/memory.py:549"
       ],
+      "description": "按 ID 获取记忆项（legacy：原 agent/server_routes/routes_memory.py）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7782,6 +8578,8 @@
       "where": [
         "plugins/memory.py:564"
       ],
+      "description": "获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7802,6 +8600,8 @@
       "where": [
         "plugins/memory.py:463"
       ],
+      "description": "语义搜索向量记忆",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7820,6 +8620,8 @@
       "where": [
         "plugins/memory.py:490"
       ],
+      "description": "获取向量记忆统计（legacy：原 agent/server_routes/routes_memory.py）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7842,6 +8644,8 @@
         "agent/server_routes/routes_visual_workflows.py:205",
         "agent/server_routes/routes_visual_workflows.py:234"
       ],
+      "description": "保存（upsert）可视化工作流草稿",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7862,6 +8666,8 @@
         "agent/server_routes/routes_visual_workflows.py:219",
         "agent/server_routes/routes_visual_workflows.py:275"
       ],
+      "description": "可视化编辑器工作流草稿持久化 API",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7881,6 +8687,8 @@
         "agent/server_routes/routes_chat.py:157",
         "plugins/chat.py:83"
       ],
+      "description": "语音识别接口 - 从麦克风捕获语音并转换为文本",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7900,6 +8708,8 @@
         "agent/server_routes/routes_chat.py:237",
         "plugins/chat.py:120"
       ],
+      "description": "获取语音系统状态",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7919,6 +8729,8 @@
         "agent/server_routes/routes_chat.py:576",
         "plugins/system_tools.py:518"
       ],
+      "description": "数据清洗",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7938,6 +8750,8 @@
         "agent/server_routes/routes_chat.py:521",
         "plugins/system_tools.py:469"
       ],
+      "description": "CSS 选择器提取",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7957,6 +8771,8 @@
         "agent/server_routes/routes_chat.py:597",
         "plugins/system_tools.py:541"
       ],
+      "description": "下载文件",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7976,6 +8792,8 @@
         "agent/server_routes/routes_chat.py:452",
         "plugins/system_tools.py:405"
       ],
+      "description": "HTTP GET 请求",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -7995,6 +8813,8 @@
         "agent/server_routes/routes_chat.py:482",
         "plugins/system_tools.py:423"
       ],
+      "description": "HTTP POST 请求",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8014,6 +8834,8 @@
         "agent/server_routes/routes_chat.py:544",
         "plugins/system_tools.py:497"
       ],
+      "description": "搜索互联网",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8035,6 +8857,8 @@
         "agent/server_routes/routes_chat.py:620",
         "plugins/system_tools.py:567"
       ],
+      "description": "获取当前搜索引擎状态和切换日志（用于前端显示）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8054,6 +8878,8 @@
         "agent/server_routes/routes_chat.py:609",
         "plugins/system_tools.py:554"
       ],
+      "description": "Web 模块统计",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8073,6 +8899,8 @@
         "agent/server_routes/routes_chat.py:499",
         "plugins/system_tools.py:442"
       ],
+      "description": "XPath 提取",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8091,6 +8919,8 @@
       "where": [
         "plugins/safety.py:91"
       ],
+      "description": "用户同意或拒绝窗口监控",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8111,6 +8941,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:377"
       ],
+      "description": "批量把外部 agent 的技能转换为本地技能（自动合并/加强/新建）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8131,6 +8963,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:320"
       ],
+      "description": "把外部 agent 的技能描述翻译为云枢 SKILL 并注册",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8149,6 +8983,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:308"
       ],
+      "description": "列出当前可转换为 Skill 的工作流（满足质量门控且未转换过）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8167,6 +9003,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:150"
       ],
+      "description": "按 ID 直接执行工作流 (人工触发)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8187,6 +9025,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:63"
       ],
+      "description": "工作流学习系统 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8207,6 +9047,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:76"
       ],
+      "description": "从一次成功的 LLM 交互中学习方法",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8227,6 +9069,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:109"
       ],
+      "description": "模拟匹配 — 返回候选工作流列表 (不执行)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8247,6 +9091,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:128"
       ],
+      "description": "尝试匹配并执行本地工作流 (优先于 LLM)",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8267,6 +9113,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:175"
       ],
+      "description": "列出所有工作流（**已迁移到统一信封**）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8287,6 +9135,8 @@
         "agent/server_routes/routes_workflow_learning.py:201",
         "agent/server_routes/routes_workflow_learning.py:213"
       ],
+      "description": "工作流学习系统 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8305,6 +9155,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:260"
       ],
+      "description": "把指定工作流抽象为 Skill 并注册到 skills_mgmt",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8323,6 +9175,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:241"
       ],
+      "description": "工作流学习系统 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8341,6 +9195,8 @@
       "where": [
         "agent/server_routes/routes_workflow_learning.py:226"
       ],
+      "description": "工作流学习系统 API 路由",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8360,6 +9216,8 @@
         "agent/server_routes/routes_workspace.py:27",
         "plugins/system_tools.py:61"
       ],
+      "description": "列出工作区内容",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8379,6 +9237,8 @@
         "agent/server_routes/routes_workspace.py:59",
         "plugins/system_tools.py:98"
       ],
+      "description": "删除工作区文件",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8398,6 +9258,8 @@
         "agent/server_routes/routes_workspace.py:74",
         "plugins/system_tools.py:114"
       ],
+      "description": "工作区信息",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8417,6 +9279,8 @@
         "agent/server_routes/routes_workspace.py:40",
         "plugins/system_tools.py:76"
       ],
+      "description": "写入工作区文件",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8441,6 +9305,8 @@
         "plugins/chat.py:826",
         "plugins/chat.py:855"
       ],
+      "description": "列出已添加的工作区（路径/名称/添加时间）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8459,6 +9325,8 @@
       "where": [
         "agent/server_routes/routes_approval.py:380"
       ],
+      "description": "人工在浏览器里打开审批收件箱的入口（**不经 require_token**）",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8477,6 +9345,8 @@
       "where": [
         "agent/server_routes/routes_capabilities.py:322"
       ],
+      "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8497,6 +9367,8 @@
       "where": [
         "agent/server_routes/routes_capabilities.py:338"
       ],
+      "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8517,6 +9389,8 @@
       "where": [
         "agent/server_routes/routes_capabilities.py:223"
       ],
+      "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8535,6 +9409,8 @@
       "where": [
         "agent/server_routes/routes_capabilities.py:287"
       ],
+      "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8556,6 +9432,8 @@
       "where": [
         "agent/server_routes/routes_capabilities.py:168"
       ],
+      "description": "能力层 HTTP 面 —— 非 LLM 入口（v1.4 §5.3 / §6 / §13，TASK-05 第 4 步）",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8575,8 +9453,10 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2103"
+        "app_server.py:2111"
       ],
+      "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8597,6 +9477,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:1419"
       ],
+      "description": "可观测性仪表盘：重定向到统一工作台（2026-10-03 legacy 收敛续作）。",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8615,6 +9497,8 @@
       "where": [
         "agent/log_system/dashboard.py:189"
       ],
+      "description": "行动建议 API",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8633,6 +9517,8 @@
       "where": [
         "agent/log_system/dashboard.py:160"
       ],
+      "description": "错误查询 API",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8651,6 +9537,8 @@
       "where": [
         "agent/log_system/dashboard.py:176"
       ],
+      "description": "内省洞察 API",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8669,6 +9557,8 @@
       "where": [
         "agent/log_system/dashboard.py:259"
       ],
+      "description": "手动触发内省分析",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8687,6 +9577,8 @@
       "where": [
         "agent/log_system/dashboard.py:252"
       ],
+      "description": "内省引擎状态 API",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8705,6 +9597,8 @@
       "where": [
         "agent/log_system/dashboard.py:213"
       ],
+      "description": "知识发现 API",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8723,6 +9617,8 @@
       "where": [
         "agent/log_system/dashboard.py:134"
       ],
+      "description": "日志查询 API",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8741,6 +9637,8 @@
       "where": [
         "agent/log_system/dashboard.py:112"
       ],
+      "description": "日志统计 API",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8759,6 +9657,8 @@
       "where": [
         "agent/log_system/dashboard.py:226"
       ],
+      "description": "趋势数据 API",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8777,6 +9677,8 @@
       "where": [
         "agent/log_system/dashboard.py:63"
       ],
+      "description": "日志仪表盘页面",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8795,6 +9697,8 @@
       "where": [
         "agent/log_system/dashboard.py:69"
       ],
+      "description": "仪表盘实时数据 API",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8826,6 +9730,8 @@
       "where": [
         "agent/server_routes/routes_logging.py:1138"
       ],
+      "description": "Prometheus 格式指标导出",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8844,8 +9750,10 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2156"
+        "app_server.py:2164"
       ],
+      "description": "[简易] 用户行为回放页面",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8864,8 +9772,10 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2148"
+        "app_server.py:2156"
       ],
+      "description": "搜索引擎状态监控页面",
+      "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -8885,8 +9795,10 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2132"
+        "app_server.py:2140"
       ],
+      "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",

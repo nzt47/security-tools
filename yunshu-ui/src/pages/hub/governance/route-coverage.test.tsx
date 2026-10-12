@@ -24,9 +24,9 @@ const PAYLOAD = {
   frontend_unmatched: [],
   pending_ui: [{ norm: '/api/x', path: '/api/x' }],
   entries: [
-    { path: '/api/x', norm: '/api/x', methods: ['GET'], category: 'unreferenced', live: true, ui_refs: [], non_ui_refs: [], where: [], intent: 'should_be_in_ui', ui_pending: true },
+    { path: '/api/x', norm: '/api/x', methods: ['GET'], category: 'unreferenced', live: true, ui_refs: [], non_ui_refs: [], where: [], intent: 'should_be_in_ui', ui_pending: true, description: '创建一条 X 记录', description_source: 'handler' },
     { path: '/api/y', norm: '/api/y', methods: ['GET'], category: 'ui', live: true, ui_refs: ['a.ts'], non_ui_refs: [], where: [], intent: 'unclassified', ui_pending: false },
-    { path: '/api/z', norm: '/api/z', methods: ['POST'], category: 'unreferenced', live: true, ui_refs: [], non_ui_refs: [], where: [], intent: 'should_not_be_in_ui', ui_pending: false },
+    { path: '/api/z', norm: '/api/z', methods: ['POST'], category: 'unreferenced', live: true, ui_refs: [], non_ui_refs: [], where: [], intent: 'should_not_be_in_ui', ui_pending: false, description: 'Z 模块：处理 Z 族请求', description_source: 'module' },
   ],
 }
 
@@ -48,6 +48,20 @@ describe('RouteCoveragePanel · 意图标注', () => {
     expect(screen.getByTestId('route-intent-/api/x').textContent).toContain('待办')
     expect(screen.getByTestId('route-intent-/api/y').textContent).toContain('未标注')
     expect(screen.getByTestId('route-intent-/api/z').textContent).toContain('不该进')
+  })
+
+  it('「说明」列给出每条路由做什么；模块兜底带「模块」标签', async () => {
+    envMock.mockResolvedValue(PAYLOAD)
+    render(<RouteCoveragePanel />)
+    await screen.findByTestId('route-pending-filter')
+
+    expect(screen.getByTestId('route-desc-/api/x').textContent).toContain('创建一条 X 记录')
+    // handler 说明不贴模块标签
+    expect(screen.getByTestId('route-desc-/api/x').textContent).not.toContain('模块')
+    // 模块级兜底如实标注，不能冒充处理函数自述
+    expect(screen.getByTestId('route-desc-/api/z').textContent).toContain('模块')
+    // 无说明时不留空白
+    expect(screen.getByTestId('route-desc-/api/y').textContent).toContain('—')
   })
 
   it('「该进却未进」过滤只留 ui_pending 行', async () => {
