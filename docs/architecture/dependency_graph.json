@@ -70,7 +70,7 @@
       "name": "tools",
       "layer": "tools",
       "file_path": "",
-      "in_degree": 14,
+      "in_degree": 16,
       "out_degree": 17
     },
     {
@@ -3270,7 +3270,7 @@
       "name": "storage",
       "layer": "prompt_manager",
       "file_path": "agent/prompt_manager/storage.py",
-      "in_degree": 0,
+      "in_degree": 2,
       "out_degree": 2
     },
     {
@@ -3639,7 +3639,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_assets.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 6
     },
     {
       "path": "agent.server_routes.routes_background",
@@ -11514,7 +11514,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 672,
+      "line": 700,
       "source_file": "agent/llm_monitor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -11553,7 +11553,7 @@
       "source_layer": "core",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 1102,
+      "line": 1130,
       "source_file": "agent/llm_monitor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -20292,6 +20292,58 @@
       "line": 16,
       "source_file": "agent/server_routes/routes_assets.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_assets",
+      "target": "agent.prompt_manager.storage",
+      "source_layer": "server_routes",
+      "target_layer": "prompt_manager",
+      "import_type": "from_import",
+      "line": 123,
+      "source_file": "agent/server_routes/routes_assets.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_assets",
+      "target": "agent.tools",
+      "source_layer": "server_routes",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 140,
+      "source_file": "agent/server_routes/routes_assets.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_assets",
+      "target": "agent.prompt_manager.storage",
+      "source_layer": "server_routes",
+      "target_layer": "prompt_manager",
+      "import_type": "from_import",
+      "line": 213,
+      "source_file": "agent/server_routes/routes_assets.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_assets",
+      "target": "agent.tools",
+      "source_layer": "server_routes",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 216,
+      "source_file": "agent/server_routes/routes_assets.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -30479,8 +30531,8 @@
   "stats": {
     "total_files": 667,
     "total_nodes": 598,
-    "total_edges": 1976,
-    "cross_layer_edges": 1242,
+    "total_edges": 1980,
+    "cross_layer_edges": 1246,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {

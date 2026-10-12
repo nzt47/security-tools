@@ -441,7 +441,7 @@ flowchart LR
         agent_prompt_manager_observability["agent.prompt_manager.observability"]
         agent_prompt_manager_registry["agent.prompt_manager.registry"]
         agent_prompt_manager_roles["agent.prompt_manager.roles"]:::crosslayer
-        agent_prompt_manager_storage["agent.prompt_manager.storage"]
+        agent_prompt_manager_storage["agent.prompt_manager.storage"]:::crosslayer
         agent_prompt_manager_version_control["agent.prompt_manager.version_control"]
     end
     subgraph quality [quality]
@@ -1903,6 +1903,10 @@ flowchart LR
     agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_assets -.-> agent_server_auth
     agent_server_routes_routes_assets --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_assets -.-> agent_prompt_manager_storage
+    agent_server_routes_routes_assets -.-> agent_tools
+    agent_server_routes_routes_assets -.-> agent_prompt_manager_storage
+    agent_server_routes_routes_assets -.-> agent_tools
     agent_server_routes_routes_background -.-> agent_server_auth
     agent_server_routes_routes_background -.-> agent_jsonl_history
     agent_server_routes_routes_background --> agent_server_routes_tracing_decorator
@@ -2696,7 +2700,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 667
 - 模块节点数: 598
-- 依赖边数: 1976
-- 跨层调用数: 1242
+- 依赖边数: 1980
+- 跨层调用数: 1246
 - 违规调用数: 0
 - 动态 import 数: 1
