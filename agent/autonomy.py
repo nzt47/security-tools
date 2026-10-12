@@ -17,6 +17,15 @@
 可覆盖，环境变量 AUTONOMY_DEFAULT_LEVEL 最高优先；会话级可通过
 set_session_level() 覆盖。
 
+【S5-1 可表达策略（2026-10-12）】"档位→动作"不再只靠关键字表：
+    config.yaml `autonomy.tool_policy`（工具名 / `前缀*` → 类别）是操作员可表达的
+    声明策略；未声明的工具按权威能力元数据（`data/tool_definitions/*.yaml` 的
+    plane/effect/risk，取**最保守**）派生；两者都判不出时按
+    `autonomy.unknown_tool_category`（默认 **high_risk**）**保守兜底**，不再默认
+    放行。逐级保守的可判定形式 = 档位越高允许类别只增不减（L1⊆L2⊆L3⊆L4=L5），
+    由 `AutonomyPolicy.required_level()` 与测试 `TestMonotonicLevels` 钉住。
+    详见 `classify_action` 上方注释。
+
 【简易】纯声明式策略表 + ContextVar 上下文注入（遵 agent/monitoring/tracing.py
 的 Token 式恢复模式），无 I/O 持锁。
 
@@ -36,7 +45,7 @@ from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -173,13 +182,159 @@ _TOOL_NAME_CATEGORY: Dict[str, ToolCategory] = {
 }
 
 
-def classify_action(action: str, tool_name: Optional[str] = None) -> ToolCategory:
-    """动作/工具名 → 行为类别（声明式关键字表，最保守命中优先）"""
-    name = (tool_name or "").strip()
-    if name:
-        explicit = _TOOL_NAME_CATEGORY.get(name)
-        if explicit is not None:
-            return explicit
+# ── S5-1 可表达策略：操作员声明 + 权威元数据派生（覆盖自定义工具）──────────
+#
+# 【为什么】原先 classify_action 只有"工具名硬编码表 + 关键字表"，两处都覆盖不到
+#   自定义工具（运行时注册 / LLM 自生成）：它们会落到 LOW_RISK 兜底，而 LOW_RISK 在
+#   L2 档即被允许 ⇒ **新工具默认按最宽口径放行**，与"逐级保守"相反。
+# 新的判定顺序（工具名给定时）：
+#   ① 操作员在 config.yaml autonomy.tool_policy 里显式声明的类别（精确名或 前缀* glob）
+#      ——"可表达策略"的落点，也是唯一能覆盖内置工具的口子；
+#   ② 内置 _TOOL_NAME_CATEGORY（保持既有语义逐字不变）；
+#   ③ 权威能力元数据派生（data/tool_definitions/*.yaml 的 plane/effect/risk，取**最保守**
+#      的一条）——覆盖所有已登记工具，含自定义工具；
+#   ④ 动作串关键字（既有表）；
+#   ⑤ 都判不出来 ⇒ autonomy.unknown_tool_category（默认 **high_risk**，保守）：
+#      判不了归属的工具**不再默认放行**。
+# 未传 tool_name（纯动作串，既有调用方）⇒ 仍走关键字 → LOW_RISK 兜底，逐字不变。
+_CATEGORY_ORDER: Dict[ToolCategory, int] = {
+    ToolCategory.READONLY: 0,
+    ToolCategory.LOW_RISK: 1,
+    ToolCategory.MEDIUM_RISK: 2,
+    ToolCategory.HIGH_RISK: 3,
+}
+
+_EFFECT_CATEGORY: Dict[str, ToolCategory] = {
+    "read": ToolCategory.READONLY,
+    "write": ToolCategory.MEDIUM_RISK,
+    "execute": ToolCategory.HIGH_RISK,
+    "extend": ToolCategory.HIGH_RISK,
+}
+_RISK_CATEGORY: Dict[str, ToolCategory] = {
+    "low": ToolCategory.LOW_RISK,
+    "medium": ToolCategory.MEDIUM_RISK,
+    "high": ToolCategory.MEDIUM_RISK,
+    "critical": ToolCategory.HIGH_RISK,
+}
+_PLANE_CATEGORY: Dict[str, ToolCategory] = {
+    "resident": ToolCategory.LOW_RISK,
+    "perceive": ToolCategory.READONLY,
+    "act": ToolCategory.MEDIUM_RISK,
+    "govern": ToolCategory.HIGH_RISK,
+}
+
+#: 操作员声明（归一化键 → 类别；键可写 前缀*）
+_DECLARED_TOOL_CATEGORY: Dict[str, ToolCategory] = {}
+#: 未登记工具的类别（None ⇒ 用 _DEFAULT_UNKNOWN_TOOL_CATEGORY）
+_UNKNOWN_TOOL_CATEGORY: Optional[ToolCategory] = None
+_DEFAULT_UNKNOWN_TOOL_CATEGORY = ToolCategory.HIGH_RISK
+_TOOL_POLICY_LOADED = False
+_TOOL_POLICY_LOCK = threading.RLock()
+_META_CATEGORY_CACHE: Dict[str, Optional[ToolCategory]] = {}
+
+
+def _parse_category(value: Any) -> Optional[ToolCategory]:
+    """宽容解析类别字符串；非法 ⇒ None（并告警，便于配置纠错）"""
+    try:
+        return ToolCategory(str(value or "").strip().lower())
+    except ValueError:
+        logger.warning("[自主权] tool_policy 的类别取值非法: %r（可选 %s）",
+                       value, [c.value for c in ToolCategory])
+        return None
+
+
+def _load_tool_policy() -> None:
+    """载入 autonomy.tool_policy / autonomy.unknown_tool_category（进程内一次）"""
+    global _TOOL_POLICY_LOADED, _UNKNOWN_TOOL_CATEGORY
+    if _TOOL_POLICY_LOADED:
+        return
+    with _TOOL_POLICY_LOCK:
+        if _TOOL_POLICY_LOADED:
+            return
+        declared: Dict[str, ToolCategory] = {}
+        unknown: Optional[ToolCategory] = None
+        try:
+            cpath = Path(__file__).resolve().parent.parent / "config.yaml"
+            if cpath.exists():
+                import yaml as _yaml
+                data = _yaml.safe_load(cpath.read_text(encoding="utf-8")) or {}
+                cfg = data.get("autonomy") or {}
+                raw = cfg.get("tool_policy") or {}
+                if isinstance(raw, Mapping):
+                    for key, val in raw.items():
+                        cat = _parse_category(val)
+                        k = str(key or "").strip()
+                        if cat is not None and k:
+                            declared[k] = cat
+                if "unknown_tool_category" in cfg:
+                    unknown = _parse_category(cfg.get("unknown_tool_category"))
+        except Exception as e:  # noqa: BLE001 配置不可读 ⇒ 保持保守默认，绝不放开
+            logger.debug("[自主权] tool_policy 读取失败（用保守默认）: %s", e)
+            declared = {}
+        _DECLARED_TOOL_CATEGORY.clear()
+        _DECLARED_TOOL_CATEGORY.update(declared)
+        _UNKNOWN_TOOL_CATEGORY = unknown
+        _TOOL_POLICY_LOADED = True
+
+
+def declared_category(tool_name: str) -> Optional[ToolCategory]:
+    """操作员显式声明的类别（精确名优先于 前缀*）；未声明 ⇒ None"""
+    _load_tool_policy()
+    name = str(tool_name or "").strip()
+    if not name:
+        return None
+    exact = _DECLARED_TOOL_CATEGORY.get(name)
+    if exact is not None:
+        return exact
+    for pattern, cat in _DECLARED_TOOL_CATEGORY.items():
+        if pattern.endswith("*") and name.startswith(pattern[:-1]):
+            return cat
+    return None
+
+
+def _derive_category_from_meta(meta: Any) -> Optional[ToolCategory]:
+    """从能力元数据（plane/effect/risk）派生类别，取**最保守**的一条"""
+    cands: List[ToolCategory] = []
+    for attr, table in (("effect", _EFFECT_CATEGORY),
+                        ("risk", _RISK_CATEGORY),
+                        ("plane", _PLANE_CATEGORY)):
+        val = str(getattr(meta, attr, "") or "").strip().lower()
+        cat = table.get(val)
+        if cat is not None:
+            cands.append(cat)
+    if not cands:
+        return None
+    return max(cands, key=lambda c: _CATEGORY_ORDER[c])
+
+
+def metadata_category(tool_name: str) -> Optional[ToolCategory]:
+    """按权威元数据派生类别；元数据不可用/未登记 ⇒ None（**不缓存失败**）"""
+    name = str(tool_name or "").strip()
+    if not name:
+        return None
+    if name in _META_CATEGORY_CACHE:
+        return _META_CATEGORY_CACHE[name]
+    cat: Optional[ToolCategory] = None
+    try:
+        from agent.lines.models import load_tool_meta
+        meta = (load_tool_meta() or {}).get(name)
+        if meta is not None:
+            cat = _derive_category_from_meta(meta)
+    except Exception as e:  # noqa: BLE001 元数据不可用 ⇒ 交给下一级（关键字/保守默认）
+        logger.debug("[自主权] 工具元数据不可用（跳过派生）: %s", e)
+        return None
+    _META_CATEGORY_CACHE[name] = cat
+    return cat
+
+
+def unknown_tool_category() -> ToolCategory:
+    """未登记/判不出归属的工具类别（默认 high_risk，保守；可由 config 覆盖）"""
+    _load_tool_policy()
+    return _UNKNOWN_TOOL_CATEGORY or _DEFAULT_UNKNOWN_TOOL_CATEGORY
+
+
+def _keyword_category(action: str) -> Optional[ToolCategory]:
+    """动作串关键字命中 ⇒ 类别；一条都不命中 ⇒ None（不猜、不兜底）"""
     text = (action or "").lower()
     # 高风险优先判定（最保守：系统级操作不因含只读词而被低估）
     for marker in _HIGH_RISK_MARKERS:
@@ -191,8 +346,32 @@ def classify_action(action: str, tool_name: Optional[str] = None) -> ToolCategor
     for marker in _READONLY_MARKERS:
         if marker.lower() in text:
             return ToolCategory.READONLY
-    # 默认视为低风险（无副作用声明）
-    return ToolCategory.LOW_RISK
+    return None
+
+
+def classify_action(action: str, tool_name: Optional[str] = None) -> ToolCategory:
+    """动作/工具名 → 行为类别（可表达策略 + 权威元数据 + 关键字，逐级保守）
+
+    判定顺序见上方「可表达策略」注释：
+      声明策略 → 内置工具名表 → 权威元数据派生 → 关键字 → 未知工具保守默认。
+    **未传 tool_name** 时保持既有口径：关键字 → LOW_RISK 兜底（逐字不变）。
+    """
+    name = (tool_name or "").strip()
+    if name:
+        declared = declared_category(name)
+        if declared is not None:
+            return declared
+        explicit = _TOOL_NAME_CATEGORY.get(name)
+        if explicit is not None:
+            return explicit
+        derived = metadata_category(name)
+        if derived is not None:
+            return derived
+        keyword = _keyword_category(action)
+        if keyword is not None:
+            return keyword
+        return unknown_tool_category()
+    return _keyword_category(action) or ToolCategory.LOW_RISK
 
 
 class AutonomyPolicy:
@@ -380,9 +559,28 @@ class AutonomyPolicy:
     @classmethod
     def reset_config_cache(cls) -> None:
         """重置配置缓存（仅测试用）"""
+        global _TOOL_POLICY_LOADED, _UNKNOWN_TOOL_CATEGORY
         with cls._lock:
             cls._overrides = {}
             cls._overrides_loaded = False
+        with _TOOL_POLICY_LOCK:
+            _DECLARED_TOOL_CATEGORY.clear()
+            _UNKNOWN_TOOL_CATEGORY = None
+            _TOOL_POLICY_LOADED = False
+        _META_CATEGORY_CACHE.clear()
+
+    @classmethod
+    def required_level(cls, category: ToolCategory) -> AutonomyLevel:
+        """该行为类别所需的最低自主权档位（逐级保守：L1 最严 → L5 最宽）
+
+        「逐级保守」的可判定形式：档位越高允许的类别**只增不减**（L1⊆L2⊆L3⊆L4=L5），
+        故任一类别都存在唯一的最低档位。由 ``TestMonotonicLevels`` 钉住。
+        """
+        for lv in (AutonomyLevel.L1, AutonomyLevel.L2, AutonomyLevel.L3,
+                   AutonomyLevel.L4, AutonomyLevel.L5):
+            if category in cls.get(lv).allowed_categories:
+                return lv
+        return AutonomyLevel.L5
 
     @classmethod
     def table(cls) -> Dict[str, Dict[str, Any]]:

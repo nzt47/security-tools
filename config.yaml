@@ -286,6 +286,14 @@ autonomy:
   # 按等级覆盖策略（键为 L1-L5，值为 LevelPolicy 字段的 dict 子集）
   # 例: per_level_policy: {L2: {confirmation_scope: all}}
   per_level_policy: {}
+  # ── S5-1 可表达策略（2026-10-12）：把"档位→动作"从关键字表升级为可声明的策略 ──
+  # 工具名 → 行为类别（readonly / low_risk / medium_risk / high_risk，逐级保守）。
+  # 精确名优先于 `前缀*` glob。留空 ⇒ 回落到权威元数据派生（data/tool_definitions/*.yaml
+  # 的 plane/effect/risk，取最保守）与内置表；两者都判不出时按 unknown_tool_category。
+  # 例: tool_policy: {"ext_*": high_risk, "kb_*": medium_risk, "my_custom_tool": readonly}
+  tool_policy: {}
+  # 未登记/判不出归属的工具按此类别（默认 high_risk = 最保守；宁可多问一次，不可默认放行）
+  unknown_tool_category: high_risk
 session:
   auto_save: true
   save_interval: 300

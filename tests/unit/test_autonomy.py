@@ -117,6 +117,78 @@ class TestClassification:
         assert classify_action("普通无副作用操作") == ToolCategory.LOW_RISK
 
 
+class TestExpressivePolicy:
+    """S5-1：可表达策略 + 权威元数据派生（覆盖自定义工具，逐级保守）"""
+
+    def test_declared_policy_overrides_builtin(self, monkeypatch):
+        """操作员声明优先于内置表（唯一能覆盖内置工具的口子）"""
+        import agent.autonomy as A
+        monkeypatch.setattr(A, "_TOOL_POLICY_LOADED", True)
+        monkeypatch.setattr(A, "_DECLARED_TOOL_CATEGORY",
+                            {"write_file": ToolCategory.READONLY})
+        assert classify_action("tool:write_file", "write_file") == ToolCategory.READONLY
+
+    def test_declared_glob_matches_prefix(self, monkeypatch):
+        import agent.autonomy as A
+        monkeypatch.setattr(A, "_TOOL_POLICY_LOADED", True)
+        monkeypatch.setattr(A, "_DECLARED_TOOL_CATEGORY",
+                            {"ext_*": ToolCategory.HIGH_RISK})
+        assert classify_action("tool:ext_install", "ext_install") == ToolCategory.HIGH_RISK
+
+    def test_metadata_derivation_covers_custom_tool(self, monkeypatch):
+        """自定义工具（无内置表条目）按权威元数据派生，而非落到 LOW_RISK 兜底"""
+        import agent.autonomy as A
+        monkeypatch.setattr(A, "_TOOL_POLICY_LOADED", True)
+        monkeypatch.setattr(A, "_DECLARED_TOOL_CATEGORY", {})
+        monkeypatch.setattr(A, "metadata_category",
+                            lambda name: ToolCategory.MEDIUM_RISK if name == "kb_capture" else None)
+        assert classify_action("tool:kb_capture", "kb_capture") == ToolCategory.MEDIUM_RISK
+
+    def test_unknown_tool_is_conservative(self, monkeypatch):
+        """判不出归属的工具按 unknown_tool_category（默认 high_risk），不再默认放行"""
+        import agent.autonomy as A
+        monkeypatch.setattr(A, "_TOOL_POLICY_LOADED", True)
+        monkeypatch.setattr(A, "_DECLARED_TOOL_CATEGORY", {})
+        monkeypatch.setattr(A, "metadata_category", lambda name: None)
+        monkeypatch.setattr(A, "_UNKNOWN_TOOL_CATEGORY", None)
+        assert classify_action("tool:brand_new", "brand_new") == ToolCategory.HIGH_RISK
+        monkeypatch.setattr(A, "_UNKNOWN_TOOL_CATEGORY", ToolCategory.MEDIUM_RISK)
+        assert classify_action("tool:brand_new", "brand_new") == ToolCategory.MEDIUM_RISK
+
+    def test_metadata_derivation_takes_most_conservative(self):
+        """plane/effect/risk 三轴取最保守的一条"""
+        from agent.autonomy import _derive_category_from_meta
+
+        class _M:
+            def __init__(self, plane, effect, risk):
+                self.plane, self.effect, self.risk = plane, effect, risk
+
+        # 只读 effect 但 plane=govern ⇒ 取 govern（HIGH）
+        assert _derive_category_from_meta(_M("govern", "read", "low")) == ToolCategory.HIGH_RISK
+        # 全低 ⇒ 取 low_risk（比 readonly 更严）
+        assert _derive_category_from_meta(_M("perceive", "read", "low")) == ToolCategory.LOW_RISK
+        assert _derive_category_from_meta(_M("", "", "")) is None
+
+
+class TestMonotonicLevels:
+    """逐级保守：档位越高允许的类别只增不减"""
+
+    def test_allowed_categories_are_nested(self):
+        order = [AutonomyLevel.L1, AutonomyLevel.L2, AutonomyLevel.L3,
+                 AutonomyLevel.L4, AutonomyLevel.L5]
+        prev = set()
+        for lv in order:
+            cur = set(AutonomyPolicy.get(lv).allowed_categories)
+            assert prev <= cur, f"{lv.value} 的允许类别不是前一级的超集"
+            prev = cur
+
+    def test_required_level_minimal(self):
+        assert AutonomyPolicy.required_level(ToolCategory.READONLY) == AutonomyLevel.L1
+        assert AutonomyPolicy.required_level(ToolCategory.LOW_RISK) == AutonomyLevel.L2
+        assert AutonomyPolicy.required_level(ToolCategory.MEDIUM_RISK) == AutonomyLevel.L3
+        assert AutonomyPolicy.required_level(ToolCategory.HIGH_RISK) == AutonomyLevel.L4
+
+
 class TestAggregation:
     """聚合视图（不改既有判定语义）"""
 
