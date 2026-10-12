@@ -228,6 +228,12 @@ docs/observability/boundary_coverage_report.md
 *.db
 *.db-shm
 *.db-wal
+# SQLite 回滚日志（事务期间瞬时出现；与 *.db 同生命周期，不入库）。
+# 【为什么补这一条】缺它时 `git status --porcelain` 会把并行的 DB 事务留下的
+# `data/memory/long_term.db-journal` 报成 `??` 未跟踪文件 ⇒ 与 DB 无关的单测
+# （tests/unit/test_ci_guard_fix_regression.py::test_stdout纯净_不执行任何git修改）
+# 在 xdist -n 2 下偶发红灯。
+*.db-journal
 agent/data/tool_trace.db
 data/memory/long_term.db
 data/skill_vectors/
