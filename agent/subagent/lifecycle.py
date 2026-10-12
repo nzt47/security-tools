@@ -582,3 +582,15 @@ class SubagentLifecycleManager:
     def __repr__(self) -> str:
         with self._lock:
             return f"<SubagentLifecycleManager 活跃={len(self._subagents)}/{self._max_subagents}>"
+
+def find_board_delegation(delegation_id: str):
+    """母体侧**读板代理**：工具层（如 fan_out 的二次派发跟单）经此读一条委派记录
+
+    【为什么要有这层】tests/unit/test_subagent_task_board.py 的不变量：task_board 的
+    静态导入方只允许母体侧白名单（lifecycle / container / routes_subagent）。工具层
+    （agent/tools/*）直接 import 会破坏该不变量 —— 故统一走本代理，**白名单不扩容**。
+    """
+    from agent.subagent.task_board import task_board
+
+    return task_board.find_delegation(str(delegation_id or ""))
+

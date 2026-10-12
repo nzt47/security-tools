@@ -625,10 +625,13 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
         prev_id = str(item.get("previous_delegation_id") or "").strip()
         if prev_id:
             try:
-                from agent.subagent.task_board import task_board as _board
+                # 【不变量】task_board 的静态导入方只允许母体侧白名单
+                # （lifecycle / container / routes_subagent）——工具层直接 import 会
+                # 打破 tests/unit/test_subagent_task_board.py 的守卫，故走 lifecycle 的读板代理。
+                from agent.subagent.lifecycle import find_board_delegation
                 from agent.subagent.rounds import (link_follow_up, validate_previous)
 
-                previous = _board.find_delegation(prev_id)
+                previous = find_board_delegation(prev_id)
                 validate_previous(previous, tenant_id=getattr(ctx, "tenant_id", "default"),
                                   subject_id=getattr(ctx, "subject_id", ""),
                                   previous_delegation_id=prev_id)

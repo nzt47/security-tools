@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-12T04:26:39",
+  "generated_at": "2026-10-12T18:12:20",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -369,14 +369,14 @@
   "counts": {
     "total": 119,
     "callable": 70,
-    "conditional": 48,
-    "blocked": 1,
+    "conditional": 47,
+    "blocked": 2,
     "model_callable": 89,
     "by_trigger": {
       "model": 89,
-      "system": 29,
+      "system": 28,
       "human": 0,
-      "none": 1
+      "none": 2
     },
     "by_type": {
       "tool": 91,
@@ -385,12 +385,13 @@
       "script": 0
     },
     "by_permission_level": {
-      "public": 62,
+      "public": 61,
       "internal": 37,
-      "restricted": 20
+      "restricted": 21
     },
     "blocked_reasons": {
-      "内部执行体": 1
+      "内部执行体": 1,
+      "纯提示词技能": 1
     },
     "conditional_reasons": {
       "无 JSON Schema": 27,
@@ -11563,10 +11564,10 @@
       "callable_mode": "manual",
       "schema_registered": false,
       "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
-      "permission_level": "public",
+      "permission_level": "restricted",
       "sandbox_allowed": true,
       "isolation_level": "process",
-      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用；无 JSON Schema（缺参数契约，模型无法按 schema 填参）",
+      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
       "capability_id": "default:yunshu:voice_interaction@1.0.0",
       "kind": "skill",
       "location": "local",
@@ -11589,12 +11590,16 @@
       "aliases": [],
       "deprecated": false,
       "entity_versioned": true,
-      "mark": "⚠️ 条件可调用",
-      "reachable": true,
-      "trigger": "system",
-      "reason_kind": "not_model_initiated",
-      "blockers": [],
-      "blocker_codes": [],
+      "mark": "❌ 不可调用",
+      "reachable": false,
+      "trigger": "none",
+      "reason_kind": "unreachable",
+      "blockers": [
+        "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用"
+      ],
+      "blocker_codes": [
+        "disabled"
+      ],
       "soft_blockers": [
         "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
         "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
@@ -11607,7 +11612,7 @@
       "notes": [],
       "declared_llm_callable": false,
       "declared_permission_level": "",
-      "derived_permission_level": "public",
+      "derived_permission_level": "restricted",
       "declared_in": "data/skills_repo/voice_interaction/skill.md",
       "category": "skill",
       "plane": "resident",
@@ -11615,7 +11620,7 @@
       "risk": "low",
       "needs_approval": false,
       "internal": false,
-      "enabled": true,
+      "enabled": false,
       "skill_in_repo": true,
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
@@ -22742,10 +22747,10 @@
       "callable_mode": "manual",
       "schema_registered": false,
       "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
-      "permission_level": "public",
+      "permission_level": "restricted",
       "sandbox_allowed": true,
       "isolation_level": "process",
-      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用；无 JSON Schema（缺参数契约，模型无法按 schema 填参）",
+      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
       "capability_id": "default:yunshu:voice_interaction@1.0.0",
       "kind": "skill",
       "location": "local",
@@ -22768,12 +22773,16 @@
       "aliases": [],
       "deprecated": false,
       "entity_versioned": true,
-      "mark": "⚠️ 条件可调用",
-      "reachable": true,
-      "trigger": "system",
-      "reason_kind": "not_model_initiated",
-      "blockers": [],
-      "blocker_codes": [],
+      "mark": "❌ 不可调用",
+      "reachable": false,
+      "trigger": "none",
+      "reason_kind": "unreachable",
+      "blockers": [
+        "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用"
+      ],
+      "blocker_codes": [
+        "disabled"
+      ],
       "soft_blockers": [
         "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
         "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
@@ -22786,7 +22795,7 @@
       "notes": [],
       "declared_llm_callable": false,
       "declared_permission_level": "",
-      "derived_permission_level": "public",
+      "derived_permission_level": "restricted",
       "declared_in": "data/skills_repo/voice_interaction/skill.md",
       "category": "skill",
       "plane": "resident",
@@ -22794,7 +22803,7 @@
       "risk": "low",
       "needs_approval": false,
       "internal": false,
-      "enabled": true,
+      "enabled": false,
       "skill_in_repo": true,
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
