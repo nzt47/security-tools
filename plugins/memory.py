@@ -333,7 +333,15 @@ def api_memory_overview():
     from app_server import _Yunshu
     try:
         summary = _Yunshu._memory.load_summary()
-        recent = _Yunshu._memory._storage.load_recent_messages(limit=20)
+        storage = getattr(_Yunshu._memory, "_storage", None)
+        recent = storage.load_recent_messages(limit=20) if storage else []
+        try:
+            # 「消息数」= 真实总条数（recent 只是最近 20 条预览）。
+            # 原实现是 len(recent) ⇒ 恒 ≤20、与真实记忆量对不上，也让「资产管理·记忆数据」
+            # 与「记忆管理」显示不一致（2026-10-13 同源核对时暴露）。
+            total = len(storage.load_recent_messages(limit=1000000)) if storage else len(recent)
+        except Exception:  # noqa: BLE001 统计失败退回 recent 长度，不把概览打成 500
+            total = len(recent)
         logs = _Yunshu._memory._black_box.analyze()
         log_stats = logs if isinstance(logs, dict) else {}
         return _ok({
@@ -343,7 +351,7 @@ def api_memory_overview():
                 {"index": i, "role": m.get("role", "?"), "content": m.get("content", "")[:100]}
                 for i, m in enumerate(recent)
             ] if recent else [],
-            "message_count": len(recent) if recent else 0,
+            "message_count": total,
             "log_stats": log_stats,
         })
     except Exception as e:
