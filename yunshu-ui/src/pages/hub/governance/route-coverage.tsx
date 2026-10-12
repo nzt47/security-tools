@@ -33,6 +33,10 @@ interface Entry {
   intent_area?: string
   /** 该进 UI 却没进（产物已按 live + category 判定） */
   ui_pending?: boolean
+  /** 一句话说明：这个路由做什么（处理函数 docstring 首行） */
+  description?: string
+  /** handler = 处理函数自述；module = 处理函数没写、退到模块首行（非该路由专述） */
+  description_source?: string
 }
 interface Payload {
   generated_at: string
@@ -159,6 +163,7 @@ export default function RouteCoveragePanel() {
           <thead className="bg-slate-900/60 text-slate-400">
             <tr>
               <th className="px-3 py-2">路径</th>
+              <th className="px-3 py-2">说明</th>
               <th className="px-3 py-2">方法</th>
               <th className="px-3 py-2">分类</th>
               <th className="px-3 py-2">意图</th>
@@ -170,6 +175,19 @@ export default function RouteCoveragePanel() {
             {rows.slice(0, 400).map((e) => (
               <tr key={e.path} className="border-t border-slate-800/60">
                 <td className="px-3 py-1.5 font-mono text-slate-200">{e.path}</td>
+                <td className="max-w-[380px] px-3 py-1.5 text-slate-400" data-testid={`route-desc-${e.norm}`}>
+                  {e.description ? (
+                    <>
+                      <span title={e.description}>{e.description}</span>
+                      {e.description_source === 'module' && (
+                        <span className="ml-1 rounded bg-slate-800 px-1 text-[10px] text-slate-500"
+                          title="该路由处理函数未写说明，此处取所在模块的说明">模块</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-slate-600">—</span>
+                  )}
+                </td>
                 <td className="px-3 py-1.5 text-slate-500">{(e.methods ?? []).join(',')}</td>
                 <td className={'px-3 py-1.5 ' + (CAT_CLASS[e.category] ?? '')}>{CAT_LABEL[e.category] ?? e.category}</td>
                 <td className={'px-3 py-1.5 ' + (INTENT_CLASS[e.intent ?? 'unclassified'] ?? '')} data-testid={`route-intent-${e.norm}`}>
