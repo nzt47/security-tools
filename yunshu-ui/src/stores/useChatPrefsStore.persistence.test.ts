@@ -90,12 +90,15 @@ describe('useChatPrefsStore · 持久化链路', () => {
     ])
   })
 
-  it('持久化只落盘 7 个偏好字段（partialize 契约不含方法）', () => {
+  it('持久化只落盘 8 个偏好字段（partialize 契约不含方法）', () => {
     useChatPrefsStore.getState().setDisplay('thinking', false)
-    // 2026-10-02 新增 mode（对话模式：轻量/检索/完整）⇒ 契约由 6 项变 7 项。
+    // 2026-10-02 新增 mode（对话模式：轻量/检索/完整）⇒ 契约由 6 项变 7 项；
+    // 2026-10-13 新增 permissionMode（权限档位：仅可查看/工作区修改/自动审查/完全权限）
+    //   ⇒ 契约由 7 项变 8 项。
     // 这条用例的价值正在于"加字段必须显式改这里"，避免新字段悄悄进/不进 LocalStorage。
     expect(Object.keys(storedState()).sort()).toEqual(
-      ['bubbleStyle', 'fontSize', 'format', 'mode', 'showThinking', 'showToolCalls', 'theme'],
+      ['bubbleStyle', 'fontSize', 'format', 'mode', 'permissionMode', 'showThinking',
+       'showToolCalls', 'theme'],
     )
   })
 
