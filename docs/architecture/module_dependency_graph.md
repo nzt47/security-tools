@@ -2479,6 +2479,7 @@ flowchart LR
     agent_tool_gate -.-> agent_human_in_the_loop_hitl
     agent_tool_gate -.-> agent_human_in_the_loop_ethics
     agent_tool_gate --> agent_permission_system
+    agent_tool_gate -.-> agent_settings_overrides
     agent_tool_gate --> agent_permission_system
     agent_tool_gate -.-> agent_lines
     agent_tool_router -.-> agent_observability_tool_trace
@@ -2700,7 +2701,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 667
 - 模块节点数: 598
-- 依赖边数: 1980
-- 跨层调用数: 1246
+- 依赖边数: 1981
+- 跨层调用数: 1247
 - 违规调用数: 0
 - 动态 import 数: 1
