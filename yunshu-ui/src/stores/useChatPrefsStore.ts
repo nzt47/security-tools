@@ -59,6 +59,36 @@ export const CHAT_MODES: Record<ChatMode, { label: string; icon: string; hint: s
   },
 }
 
+// ─── 权限档位（对齐 DSH 的 sandbox/permission modes；随每次请求发给后端） ──
+//   档位只改"这次对话里工具要不要一条条点审批"，不改任何能力本身：
+//   read_only 只放行只读能力；workspace 让读写免审批、执行命令仍逐次确认；
+//   auto 保持既有 L0–L3 分级（默认）；full 跳过全部审批（可信环境才用）。
+
+export type PermissionMode = 'read_only' | 'workspace' | 'auto' | 'full'
+
+export const PERMISSION_MODES: Record<PermissionMode, { label: string; icon: string; hint: string }> = {
+  read_only: {
+    label: '仅可查看',
+    icon: '🔒',
+    hint: '只放行只读能力（读文件/列目录/检索）。写盘与执行命令一律拒绝，最安全',
+  },
+  workspace: {
+    label: '工作区修改',
+    icon: '📁',
+    hint: '读写工作区文件免审批；执行命令（shell 等）仍需逐次确认',
+  },
+  auto: {
+    label: '自动审查',
+    icon: '🤖',
+    hint: '默认：按 L0–L3 分级与描述符/伦理规则逐条判定，该确认的才确认',
+  },
+  full: {
+    label: '完全权限',
+    icon: '⚡',
+    hint: '跳过全部审批（含 L2/L3）。黑名单与受限会话判定仍生效；仅可信环境使用',
+  },
+}
+
 // ─── 颜色主题（5 套，取自 legacy CHAT_THEMES） ──────────────────
 
 export type ChatThemeKey = 'midnight' | 'ocean' | 'forest' | 'warm' | 'purple'
@@ -183,6 +213,8 @@ interface ChatPrefsState {
   format: ChatFormat
   /** 对话模式（决定后端跑哪条链路；见 CHAT_MODES 的说明） */
   mode: ChatMode
+  /** 权限档位（决定工具要不要逐条审批；随请求体 permission_mode 发给后端） */
+  permissionMode: PermissionMode
   theme: ChatThemeKey
   bubbleStyle: ChatBubbleKey
   fontSize: ChatFontKey
@@ -191,6 +223,7 @@ interface ChatPrefsState {
   setDisplay: (key: 'thinking' | 'toolcalls', value: boolean) => void
   setStyle: (patch: Partial<Pick<ChatPrefsState, 'format' | 'theme' | 'bubbleStyle' | 'fontSize'>>) => void
   setMode: (mode: ChatMode) => void
+  setPermissionMode: (mode: PermissionMode) => void
   resetStyle: () => void
 }
 
@@ -198,6 +231,8 @@ export const DEFAULT_STYLE = {
   format: 'bubble' as ChatFormat,
   // 默认轻量：与引入本开关之前的行为**逐字一致**（升级不该悄悄改变已有用户的对话成本）
   mode: 'plain' as ChatMode,
+  // 默认自动审查：与"加这个档位之前"的行为一致（该确认的才确认）
+  permissionMode: 'auto' as PermissionMode,
   theme: 'midnight' as ChatThemeKey,
   bubbleStyle: 'rounded' as ChatBubbleKey,
   fontSize: 'normal' as ChatFontKey,
@@ -220,6 +255,7 @@ export const useChatPrefsStore = create<ChatPrefsState>()(
         set(key === 'thinking' ? { showThinking: value } : { showToolCalls: value }),
       setStyle: (patch) => set(patch),
       setMode: (mode) => set({ mode }),
+      setPermissionMode: (mode) => set({ permissionMode: mode }),
       resetStyle: () => set({ ...DEFAULT_STYLE }),
     }),
     {
@@ -231,6 +267,7 @@ export const useChatPrefsStore = create<ChatPrefsState>()(
         showToolCalls: s.showToolCalls,
         format: s.format,
         mode: s.mode,
+        permissionMode: s.permissionMode,
         theme: s.theme,
         bubbleStyle: s.bubbleStyle,
         fontSize: s.fontSize,

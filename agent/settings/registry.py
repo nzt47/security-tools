@@ -877,6 +877,22 @@ _c("CP_SUBAGENT_CALLBACK_ALLOW", CAT_SELF_HEALING, "",
               "子代理自己发出的工具调用仍各自过闸门",
        rollback="回滚：POST /api/cp/settings/CP_TOOL_CONFIRM_LEVEL_EXEMPT/reset 清除覆盖层，"
                 "或把值置空（= 一个都不豁免）"),
+    # 【2026-10-13 新增】权限档位：把"这次会话里要不要一条条点审批"变成一个用户可切的档，
+    #   对齐 DSH 的 sandbox/permission modes。判在 agent/tool_gate.py（黑名单之后、审批之前）。
+    #   登记为 A 级：它只改"这次会话的授权姿态"，不改任何能力本身；三个真正放宽整层的
+    #   开关（CP_TOOL_GATE_APPROVAL_ENFORCE / CP_TOOL_CONFIRM_LEVEL_ENFORCE /
+    #   CP_TOOL_GATE_STRICT）仍是各自的原级别。
+    _a("CP_TOOL_PERMISSION_MODE", CAT_SELF_HEALING, "auto",
+       "工具权限档位（对齐 DSH）：read_only 仅可查看（只放行只读能力）/ "
+       "workspace 工作区修改（读写免审批，执行命令仍逐次确认）/ "
+       "auto 自动审查（既有 L0–L3 分级，默认）/ full 完全权限（跳过全部审批）。"
+       "界面入口：对话头部的权限档位选择器",
+       env_name="CP_TOOL_PERMISSION_MODE", owner="agent/tool_gate.py",
+       impact="影响面：直接决定本次会话里多少工具需要人工审批。full 会跳过 L1–L3、"
+              "描述符 requires_approval 与兜底审批（权限策略黑名单、受限会话 sandbox_allowed、"
+              "伦理硬规则**不受影响**）——这是主动放宽自己的授权，请只在可信环境使用。",
+       rollback="回滚：POST /api/cp/settings/CP_TOOL_PERMISSION_MODE/reset 清除覆盖层，"
+                "或把值设为 auto"),
     _c("CP_SERVICE_ACCOUNTS_PATH", CAT_SELF_HEALING,
        "data/service_accounts.json",
        "service_account 凭据文件路径（**加密落盘**，Fernet；只记账号 scope、"

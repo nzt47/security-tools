@@ -249,10 +249,12 @@ export const useLayoutStore = create<LayoutStore>()(
           const sessionId = get().activeSessionId ?? undefined;
           // 对话模式来自用户偏好（轻量/检索/完整）；每次发送时现取，切换后立即生效
           const mode = useChatPrefsStore.getState().mode;
+          // 权限档位同样现取：切换后立即对下一条消息生效
+          const permissionMode = useChatPrefsStore.getState().permissionMode;
           for await (const event of createChatStream(
             text,
             abortController.signal,
-            { sessionId, mode },
+            { sessionId, mode, permissionMode },
           )) {
             if (event.type === 'chunk') {
               accumulated += event.text.length;
