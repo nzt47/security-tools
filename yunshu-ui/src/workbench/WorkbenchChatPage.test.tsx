@@ -281,6 +281,32 @@ describe('WorkbenchChatPage · DSH 式会话界面', () => {
     });
   });
 
+  it('正在流式时挂载同一会话 ⇒ 不清空进行中的消息（切面板回来不断会话）', async () => {
+    // jsdom 不实现 scrollIntoView：渲染非空消息列表会触发自动滚动
+    Element.prototype.scrollIntoView = vi.fn();
+    // 模拟"从别的面板切回来"：store 里已有一条正在流式的 assistant 消息
+    useLayoutStore.setState({
+      streaming: true,
+      activeSessionId: 'sess-b',
+      messages: [
+        { id: 'stream-1', role: 'assistant', content: '正在生成中…', status: 'streaming' },
+      ] as never,
+    });
+
+    render(<WorkbenchChatPage />);
+
+    await waitFor(() => {
+      expect(useLayoutStore.getState().activeSessionId).toBe('sess-b');
+    });
+
+    // 关键：boot 没有 clearConversation —— 进行中的消息仍在（修复前会被抹掉，
+    // 后续 chunk append 到不存在的 id 上而静默丢失，表现为"切面板就断"）。
+    const msgs = useLayoutStore.getState().messages;
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].id).toBe('stream-1');
+    expect(msgs[0].content).toBe('正在生成中…');
+  });
+
   it('点击新建会话 → POST /api/sessions 并立即激活新会话', async () => {
     const { container } = render(<WorkbenchChatPage />);
 
