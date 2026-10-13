@@ -63,6 +63,33 @@ class TestPermissionModeOutcome:
         assert tg._permission_mode_outcome("shell_execute") == (None, False)
 
 
+class TestPermissionModeContextvar:
+    """请求级档位（contextvar）必须**优先于** env/覆盖层，且复位后回落到 env。"""
+
+    def test_contextvar_优先且可复位(self, monkeypatch):
+        monkeypatch.setenv(tg.PERMISSION_MODE_ENV, tg.MODE_FULL)
+        token = tg.set_permission_mode(tg.MODE_READ_ONLY)
+        try:
+            assert tg._permission_mode() == tg.MODE_READ_ONLY
+            assert tg.current_permission_mode() == tg.MODE_READ_ONLY
+            # 档位即时生效：写工具被拒（而不是走 env 的 full 放行）
+            deny = tg.check_tool_call("write_file", {})
+            assert deny is not None and deny.get("error_code") == "PERMISSION_DENIED"
+        finally:
+            tg.reset_permission_mode(token)
+        # 复位 ⇒ 回落 env
+        assert tg.current_permission_mode() == ""
+        assert tg._permission_mode() == tg.MODE_FULL
+
+    def test_非法档位不写进_contextvar(self):
+        token = tg.set_permission_mode("bogus")
+        try:
+            assert tg.current_permission_mode() == ""
+            assert tg._permission_mode() == tg.MODE_AUTO
+        finally:
+            tg.reset_permission_mode(token)
+
+
 class TestPermissionModeThroughGate:
     def test_read_only_闸门真的拒绝写工具(self, mode):
         mode(tg.MODE_READ_ONLY)
