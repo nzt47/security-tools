@@ -1816,15 +1816,23 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                        "阈值可在「上下文」面板调整") % (_input_tokens_est, _send_limit),
             "status": "done"})
 
-    max_tool_rounds = 4
+    # 【2026-10-13】原为 4：大任务（如"修评估集"）在第 4 轮仍要调工具就被硬停，
+    #   而停止后又没有收束请求 ⇒ 用户只看到第一轮那句"明白，先做只读勘察"。
+    #   上限仍要（防死循环），但放宽到 8，并在用尽后补一次无工具收束（见下）。
+    max_tool_rounds = 8
     emitted = False
     seq = 0
+    #: 最后一轮是否还在发工具调用（= 因轮次上限退出，而非自然结束）
+    _last_round_had_tools = False
+    #: 最后一轮外发的可见正文字符数（=0 表示这一轮没有可读产出）
+    _last_round_text_chars = 0
     # ── 异常 B 证据链（TASK-01 §3 修复 B）：本轮流式的可诊断状态 ──
     # 修复前这些信息**一个都没留**，只有一句"（模型未返回内容）"文案。
     _stream_started = time.time()
     _last_finish_reason = ""
     _saw_tool_calls = False
     _saw_any_payload = ""
+    _stream_error = False
 
     # on_reasoning 是 chat_stream 的**新增可选回调**（思考过程外发）。老实现 / 测试替身
     # 可能没有该形参，直接传会 TypeError 打断对话主链路 → 先探测签名，不支持就退化为
@@ -1845,6 +1853,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
         for round_idx in range(max_tool_rounds + 1):
             # 本轮收集到的工具调用（name, args_json, reasoning_content）
             collected_tools = []
+            _last_round_text_chars = 0
 
             def _on_tool_call(tool_name, args_json, reasoning_content=""):
                 logger.info("[workbench][SSE] 模型工具调用: %s %s", tool_name, args_json[:120])
@@ -1910,6 +1919,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                     continue
                 seq += 1
                 emitted = True
+                _last_round_text_chars += len(text_piece)
                 yield _sse({"type": "chunk", "text": text_piece, "seq": seq})
 
             # 收尾：本轮推理已全部外发 → 标记思考过程完成
@@ -1920,7 +1930,9 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
 
             # 无工具调用 → 生成完成，退出循环
             if not collected_tools:
+                _last_round_had_tools = False
                 break
+            _last_round_had_tools = True
             _saw_tool_calls = True
 
             # ── 执行工具并回传结果 ──
@@ -1992,6 +2004,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 if _approval_evt:
                     yield _sse(_approval_evt)
     except Exception as _e:
+        _stream_error = True
         logger.error("[workbench][SSE] LLM 流式生成异常: %s", _e)
         err_text = f"\n\n> ⚠️ LLM 调用失败：{_e}\n> 请检查 .env 中 LLM_API_KEY / LLM_MODEL 配置。"
         seq += 1
@@ -2000,6 +2013,46 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
         #   路由层据此把它排除在"长期记忆"之外 —— 否则一条"LLM 调用失败"会进记忆、
         #   参与后续压缩与召回（实测探针：错误文案确实被写进 _memory）。
         yield _sse({"type": "chunk", "text": err_text, "seq": seq, "synthetic": True})
+
+    # ── 收束：轮次用尽仍在调工具 / 最后一轮没有可见正文 ⇒ 强制一次「无工具收束」──
+    #   【2026-10-13 修「只回一句就不继续」】此前循环退出后直接结束：若模型把可见
+    #   正文都用在第一轮（"明白，先做只读勘察"），之后每轮只发工具调用，用户看到的
+    #   就只有那句开头、且没有任何"为什么停"的交代。这里补一次**不带 tools** 的收束，
+    #   让最后一屏总有模型对当前进度的结论与下一步；收束仍为空则交给既有兜底文案。
+    if not _stream_error and (_last_round_had_tools or _last_round_text_chars == 0):
+        if _last_round_had_tools:
+            yield _sse({"type": "thinking", "id": "tool-round-cap",
+                        "title": "工具轮次已达上限",
+                        "detail": ("已用满 %d 轮工具调用，正在让模型收束当前结论与下一步"
+                                   "（可回复「继续」接着做）") % max_tool_rounds,
+                        "status": "done"})
+        _synth_emitted = False
+        try:
+            for _synth_piece in llm.chat_stream(
+                    messages=loop_messages, system_prompt=SYSTEM_PROMPT,
+                    max_tokens=_stream_max_tokens, temperature=0.7):
+                if not _synth_piece:
+                    continue
+                # 同一道兜底消毒闸：可见出口不留 DSML 标记
+                try:
+                    from agent.dsml_adapter import sanitize_visible_text as _sanitize2
+                    _synth_piece, _ = _sanitize2(_synth_piece)
+                except Exception:  # noqa: BLE001
+                    pass
+                if not _synth_piece:
+                    continue
+                seq += 1
+                emitted = True
+                _synth_emitted = True
+                yield _sse({"type": "chunk", "text": _synth_piece, "seq": seq})
+        except Exception as _se:  # noqa: BLE001 收束失败不吞掉已有输出
+            logger.error("[workbench][SSE] 收束请求失败: %s", _se)
+        if not _synth_emitted and _last_round_had_tools:
+            seq += 1
+            emitted = True
+            yield _sse({"type": "chunk",
+                        "text": "\n\n（已达工具轮次上限，本轮未再产出正文；回复「继续」可接着做。）",
+                        "seq": seq, "synthetic": True})
 
     yield _sse({"type": "thinking", "id": "generate", "title": "生成回复", "status": "done"})
 

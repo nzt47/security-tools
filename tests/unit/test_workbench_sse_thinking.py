@@ -236,3 +236,53 @@ class TestWorkbenchHonoursContextKnobs:
         _install_app_server(monkeypatch, window=131072, per_message_send_limit=100000)
         events = _events_with_session()
         assert not [e for e in events if e.get("id") == "send-limit"]
+
+# ════════════════════════════════════════════════════════════════════════════
+#  2026-10-13：工具轮之后模型"静默"时必须收束
+#
+#  线上实测：一条大任务里模型第一轮回「明白，先做只读勘察」并调了工具，之后各轮
+#  只发工具调用/不再产出正文；轻量循环退出后**没有收束请求** ⇒ 用户只看到那一句开头，
+#  看起来就是"答一句就不动了"。本类把它钉死：最后一轮没有可见正文时，必须再发一次
+#  **不带 tools** 的收束请求，并把它的正文外发。
+# ════════════════════════════════════════════════════════════════════════════
+
+
+class _ToolThenSilentLLM:
+    """第 1 轮：一句开头 + 一个工具调用；第 2 轮：静默；第 3 次（收束）：结论。"""
+
+    instances: list = []
+
+    def __init__(self, **kwargs):
+        self.calls: list = []
+        _ToolThenSilentLLM.instances.append(self)
+
+    def chat_stream(self, messages, system_prompt="", max_tokens=1024, temperature=0.7,
+                    on_tool_call=None, tools=None, on_reasoning=None):
+        self.calls.append({"tools": tools})
+        n = len(self.calls)
+        if n == 1:
+            yield "明白，先做只读勘察。"
+            if on_tool_call is not None:
+                on_tool_call("list_directory", '{"path": "data"}')
+        elif n == 2:
+            return  # 静默：无正文、无工具
+        else:
+            yield "结论：问题定位在 X，下一步 Y。"
+
+
+class TestSilentAfterToolsGetsClosed:
+    def test_工具轮后静默_强制收束并把正文外发(self, monkeypatch):
+        _ToolThenSilentLLM.instances = []
+        monkeypatch.setattr(llm_module, "LLMService", _ToolThenSilentLLM, raising=True)
+        import agent.tools as _tools_mod
+        monkeypatch.setattr(_tools_mod, "call", lambda name, **kw: {"ok": True}, raising=False)
+        _install_app_server(monkeypatch, window=131072)
+
+        events = _events_with_session()
+        chunks = "".join(e["text"] for e in events if e["type"] == "chunk")
+        assert "明白，先做只读勘察。" in chunks
+        assert "结论：问题定位在 X，下一步 Y。" in chunks, (
+            "工具轮之后模型静默时没有收束，用户只能看到第一句开头")
+        # 收束请求必须**不带 tools**（否则又是一轮工具调用，永远收不了尾）
+        assert _ToolThenSilentLLM.instances[0].calls[-1]["tools"] is None
+
