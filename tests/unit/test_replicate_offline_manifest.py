@@ -7,8 +7,8 @@
     导出/导入早已接线）。本守卫把"页面真的消费了这些字段"钉成**可证伪**断言：
     删掉展示、或把过期文案写回去，立刻红。
 
-不 import app_server；纯源码级断言（不跑前端构建；构建产物由 build:flask 同步，
-另见 tests/unit/test_legacy_surface_inventory.py 对 templates/yunshu.html 的登记）。
+不 import app_server；纯源码级断言（不跑前端构建；构建产物由 build:flask 同步且**不入库**，
+见 tests/unit/test_legacy_surface_inventory.py 的 BUILD_ARTIFACTS 与 Test构建产物不入库）。
 """
 from pathlib import Path
 

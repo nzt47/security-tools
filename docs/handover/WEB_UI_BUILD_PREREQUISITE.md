@@ -1,12 +1,14 @@
 # Web 工作台启动前置：必须先跑 `npm run build:flask`
 
-> **结论（2026-09-22 核实）**：新克隆的仓库**直接** `python app_server.py` 再访问
-> `http://127.0.0.1:5678/chat`，**一定会白屏**。
-> 启动前必须先构建前端：`cd yunshu-ui && npm ci && npm run build:flask`。
+> **结论（2026-09-22 核实；2026-10-14 收口后更新）**：新克隆的仓库**直接** `python app_server.py`
+> 再访问 `http://127.0.0.1:5678/chat`，**仍然打不开工作台** —— 但表现已从「白屏」变成
+> **503「工作台尚未构建」+ 可复制的构建命令**。
+> 启动前仍必须先构建前端：`cd yunshu-ui && npm ci && npm run build:flask`。
 >
 > 根因是**仓库卫生问题**：`npm run build:flask` 的两个产物里，一个（`templates/yunshu.html`）入库、
 > 另一个（`static/assets/`）被忽略 —— 这是**清理不彻底**，而非「有意让人先踩一次白屏」（详见 §4）。
-> 本文只如实记录，**不改 `.gitignore`、不把构建产物纳入版本控制、不改路由行为**。
+> **2026-10-14 已收口**：`templates/yunshu.html` 也已 `git rm --cached` + 进 `.gitignore`；
+> `/chat` 在文件缺失时返回 **503 + 构建指引**（不再 500、不再白屏）。§4 末尾与 §6 已同步。
 
 ---
 
@@ -110,10 +112,10 @@ foreach ($f in $refs) { "{0,-40} {1}" -f $f, (Test-Path (Join-Path 'static/asset
   > （历史误跟踪的旧产物已 `git rm --cached`；部署/开发时执行 `build:flask` 重新生成）
 - ⇒ **本次收口选择"把前置条件写进文档"，而不是改忽略规则或提交产物**。
 
-### 遗留的仓库卫生问题（**未修，仅供决策**）
+### 仓库卫生问题（**2026-10-14 已修**）
 
 `templates/yunshu.html` 与 `static/assets/` 是**同一条命令、同一份产物集**，
-但只有后者被 `git rm --cached`；前者仍被跟踪，于是：
+此前只有后者被 `git rm --cached`；前者仍被跟踪，于是：
 
 - 新克隆拿到一个"指向不存在资源的入口页"（本文的白屏）；
 - 每次 `build:flask` 都会把 `templates/yunshu.html` 变成工作区改动（`git status` 显示 ` M templates/yunshu.html`）。
@@ -123,8 +125,9 @@ foreach ($f in $refs) { "{0,-40} {1}" -f $f, (Test-Path (Join-Path 'static/asset
 `540cc3d9 工作台体验：...`）。**但它的后果（新克隆白屏）此前没有任何文档写过**
 （全文检索 `build:flask` 只命中交付/验收类报告，无启动说明），故本文补上。
 
-> 是否进一步把 `templates/yunshu.html` 也 `git rm --cached` + 让 `/chat` 在缺失时给出明确提示，
-> 属于**路由/版本控制行为变更**，超出本次"文档收口"范围，需另行决策 —— 本文不做。
+> **后续（已完成）**：`templates/yunshu.html` 已 `git rm --cached` + 写入 `.gitignore`，
+> `/chat` 在缺失时返回 **503 + 可操作指引**（`app_server.py` 的 `_SPA_MISSING_HTML`）；
+> 守卫见 `tests/unit/test_legacy_surface_inventory.py::Test构建产物不入库`。
 
 ---
 
@@ -153,5 +156,6 @@ foreach ($f in $refs) { "{0,-40} {1}" -f $f, (Test-Path (Join-Path 'static/asset
 
 ---
 
-**文档状态**：新增（2026-09-22）
-**本次范围**：只改文档；未改 `.gitignore` / 未提交构建产物 / 未改路由
+**文档状态**：新增（2026-09-22）；2026-10-14 补记收口结果
+**原本次范围**：只改文档；未改 `.gitignore` / 未提交构建产物 / 未改路由
+**2026-10-14 收口**：`templates/yunshu.html` 停止跟踪 + 进 `.gitignore`；`/chat` 缺产物时 503 + 指引

@@ -2111,6 +2111,26 @@ def index():
     from flask import redirect
     return redirect("/chat#/workbench")
 
+#: /chat 的构建产物缺失页（新克隆未跑 build:flask 时的**可操作**指引）
+#: 【为什么不再是 render_template 回退】templates/yunshu.html 自 2026-10-14 起不再入库
+#: （见 .gitignore 与 docs/handover/WEB_UI_BUILD_PREREQUISITE.md §4）；文件缺失时
+#: render_template 只会抛 TemplateNotFound ⇒ 500 空白页，既看不到原因也没有修法。
+_SPA_MISSING_HTML = """<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>工作台尚未构建</title></head>
+<body style="font-family:system-ui,Segoe UI,sans-serif;max-width:44rem;margin:4rem auto;line-height:1.7">
+<h1>工作台尚未构建</h1>
+<p><code>templates/yunshu.html</code> 是 <code>npm run build:flask</code> 的构建产物，
+自 2026-10-14 起不再纳入版本控制。当前该文件缺失，/chat 无法提供 React 工作台。</p>
+<pre style="background:#f5f5f5;padding:1rem;overflow:auto">cd yunshu-ui
+npm ci
+npm run build:flask</pre>
+<p>构建完成后刷新本页即可（/chat 每次请求读盘 + no-store，无需重启后端）。
+详见 README「启动 Web 工作台（/chat）」与
+<code>docs/handover/WEB_UI_BUILD_PREREQUISITE.md</code>。</p>
+</body></html>
+"""
+
+
 @app.route("/chat")
 def chat_page():
     """云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。
@@ -2124,6 +2144,11 @@ def chat_page():
     static/assets，旧 HTML 引用的 chunk 已不存在 ⇒ 刷新页面白屏（实测
     /static/assets/index-<旧hash>.js 404）。故这里直接读文件（dist HTML 无 Jinja
     占位符，原文即可），并显式 no-store，保证重新构建后刷新即生效、无需重启服务。
+
+    修复 2026-10-14（**产物不再入库**）：templates/yunshu.html 已 git rm --cached +
+    进 .gitignore（与 static/assets 同口径，见 WEB_UI_BUILD_PREREQUISITE §4）。
+    文件缺失时不再回退 render_template（那只会 TemplateNotFound ⇒ 500），
+    而是返回 503 + 构建指引，让「没构建过」这件事可见且可修。
     """
     import os as _os
     from flask import Response
@@ -2133,8 +2158,11 @@ def chat_page():
         with open(tpl_path, "r", encoding="utf-8") as f:
             html = f.read()
     except OSError:
-        # 构建产物缺失（未跑过 build:flask）→ 回退 Jinja 渲染，保持既有行为
-        html = render_template("yunshu.html")
+        # 【2026-10-14】构建产物缺失（新克隆未跑 build:flask）：
+        # 原实现回退到 Jinja 渲染同一个模板，但文件本身就不在 ⇒ TemplateNotFound
+        # ⇒ 500 空白页。现改为 503 + 可操作指引（见上方 _SPA_MISSING_HTML）。
+        return Response(_SPA_MISSING_HTML, status=503,
+                        mimetype='text/html; charset=utf-8')
     response = Response(html, mimetype='text/html; charset=utf-8')
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     return response

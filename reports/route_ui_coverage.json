@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-13T20:51:50",
+  "generated_at": "2026-10-14T00:09:38",
   "totals": {
     "routes": 456,
     "live": 233,
@@ -8177,7 +8177,7 @@
       ],
       "where": [
         "agent/server_routes/routes_monitoring.py:239",
-        "app_server.py:2212"
+        "app_server.py:2240"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -8200,7 +8200,7 @@
       ],
       "where": [
         "agent/server_routes/routes_monitoring.py:225",
-        "app_server.py:2188"
+        "app_server.py:2216"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -8223,7 +8223,7 @@
       ],
       "where": [
         "agent/server_routes/routes_monitoring.py:232",
-        "app_server.py:2201"
+        "app_server.py:2229"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -9457,7 +9457,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2114"
+        "app_server.py:2134"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -9754,7 +9754,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2167"
+        "app_server.py:2195"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -9776,7 +9776,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2159"
+        "app_server.py:2187"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -9799,7 +9799,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2143"
+        "app_server.py:2171"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
