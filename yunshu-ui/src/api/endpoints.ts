@@ -183,6 +183,12 @@ export const SYSTEM_PROMPT_CONFIG_PREVIEW = '/api/system-prompt/config/preview';
 export const SYSTEM_PROMPT_CONFIG_RESET = '/api/system-prompt/config/reset';
 export const SYSTEM_PROMPT_CONFIG_APPLY = '/api/system-prompt/config/apply';
 
+// ═══════════════════════════════════════════════════════════════
+//  提示词实验室 · 真实输出代理（/api/prompt-lab）
+// ═══════════════════════════════════════════════════════════════
+/** 用云枢已配置的 LLM 生成预览文本（前端不再直连外部 Endpoint） */
+export const PROMPT_LAB_LLM_PREVIEW = '/api/prompt-lab/llm-preview';
+
 // ===============================================================
 //  定时调度（/api/schedules）
 // ===============================================================

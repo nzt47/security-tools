@@ -14,6 +14,7 @@
  */
 import type { FactorCategory, PromptFactorDef, FactorValue } from './promptFactorTypes';
 import { postEnvelope } from '@/api/envelope';
+import { PROMPT_LAB_LLM_PREVIEW } from '@/api/endpoints';
 
 export type { FactorCategory, PromptFactorDef, FactorValue };
 
@@ -342,7 +343,7 @@ export async function requestBackendLlmPreview(opts: {
   maxTokens: number;
 }): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
   try {
-    const body = await postEnvelope<{ text?: string }>('/api/prompt-lab/llm-preview', {
+    const body = await postEnvelope<{ text?: string }>(PROMPT_LAB_LLM_PREVIEW, {
       systemPrompt: opts.systemPrompt,
       prompt: opts.prompt,
       model: opts.model || '',
