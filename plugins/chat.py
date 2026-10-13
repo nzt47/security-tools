@@ -1816,10 +1816,10 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                        "阈值可在「上下文」面板调整") % (_input_tokens_est, _send_limit),
             "status": "done"})
 
-    # 【2026-10-13】原为 4：大任务（如"修评估集"）在第 4 轮仍要调工具就被硬停，
-    #   而停止后又没有收束请求 ⇒ 用户只看到第一轮那句"明白，先做只读勘察"。
-    #   上限仍要（防死循环），但放宽到 8，并在用尽后补一次无工具收束（见下）。
-    max_tool_rounds = 8
+    # 【2026-10-13】原为 4、后 8：大任务（如"修评估集"）往往要十几轮只读勘察才动手，
+    #   8 轮仍是"做一半被硬停"，用户看到的就是"继续不下去"。参照 DSH：**做够为止**，
+    #   只保留一个很高的安全上限 + 墙钟预算（见下），不再用个小数字卡住真任务。
+    max_tool_rounds = 40
     emitted = False
     seq = 0
     #: 最后一轮是否还在发工具调用（= 因轮次上限退出，而非自然结束）
@@ -1833,6 +1833,11 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     _saw_tool_calls = False
     _saw_any_payload = ""
     _stream_error = False
+    #: 本轮墙钟预算（秒）：到点即不再发起新的工具轮，转为收束。
+    #  DSH 式"做够为止"不能真的无界：长任务十几~几十轮是正常的，但必须有个上限兜住
+    #  失控/上游卡死。15 分钟对工作台一次对话足够，超了会明确告知而不是静默中断。
+    _turn_budget_s = 900.0
+    _turn_deadline = _stream_started + _turn_budget_s
 
     # on_reasoning 是 chat_stream 的**新增可选回调**（思考过程外发）。老实现 / 测试替身
     # 可能没有该形参，直接传会 TypeError 打断对话主链路 → 先探测签名，不支持就退化为
@@ -1851,6 +1856,13 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
 
     try:
         for round_idx in range(max_tool_rounds + 1):
+            # 墙钟预算到点：不再开新一轮工具，直接转入收束（_last_round_had_tools=True）
+            if time.time() > _turn_deadline:
+                logger.warning(
+                    "[workbench][SSE] 本轮已达 %.0fs 墙钟预算，停止再调工具并收束",
+                    _turn_budget_s)
+                _last_round_had_tools = True
+                break
             # 本轮收集到的工具调用（name, args_json, reasoning_content）
             collected_tools = []
             _last_round_text_chars = 0
@@ -2048,9 +2060,16 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                                    "（可回复「继续」接着做）") % max_tool_rounds,
                         "status": "done"})
         _synth_emitted = False
+        # 收束时明确要"用正文回答、不要工具标记"：不加这句时模型常在收尾处又吐一个
+        # 文本协议工具标记（可见正文以 '<' 断尾，实测两次），用户看到的仍像"断掉"。
+        _synth_messages = list(loop_messages) + [{
+            "role": "user",
+            "content": "（系统提示）请直接用中文给出你目前的结论与下一步计划，"
+                       "不要再调用工具，也不要输出任何工具调用标记。",
+        }]
         try:
             for _synth_piece in llm.chat_stream(
-                    messages=loop_messages, system_prompt=SYSTEM_PROMPT,
+                    messages=_synth_messages, system_prompt=SYSTEM_PROMPT,
                     max_tokens=_stream_max_tokens, temperature=0.7):
                 if not _synth_piece:
                     continue
