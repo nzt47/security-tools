@@ -1793,7 +1793,18 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             ("%d tok" % _tokens) if _tokens is not None else "未测",
             _stream_max_tokens, _budget, len(loop_messages), _dropped,
             ("，%d tok" % _used) if _used is not None else ""),
-        "status": "done"})
+        "status": "done",
+        # 【2026-10-14 对齐 DSH】结构化读数：上下文面板的「上下文已用」三档
+        # （系统提示词 / 工具定义 / 对话消息）直接取这里，避免前端解析 detail 文本。
+        "meta": {
+            "window_tokens": _window_tokens or None,
+            "system_tokens": _system_tokens,
+            "tools_tokens": int(_tokens) if _tokens is not None else None,
+            "history_tokens": int(_used) if _used is not None else None,
+            "budget_tokens": _budget,
+            "kept": len(loop_messages),
+            "dropped": _dropped,
+        }})
 
     # ── 单次发送**告警**（只告警不截断，与 /api/chat 同一产品决定）──
     try:
@@ -1829,6 +1840,12 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     # ── 异常 B 证据链（TASK-01 §3 修复 B）：本轮流式的可诊断状态 ──
     # 修复前这些信息**一个都没留**，只有一句"（模型未返回内容）"文案。
     _stream_started = time.time()
+    #: 【2026-10-14 对齐 DSH】会话统计三读数（本轮流内累计）
+    #:   模型用时 = 各轮 LLM 流式调用耗时之和；工具调用用时 = 各次工具执行耗时之和；
+    #:   首 token 平均 = 本轮**第一次** LLM 调用收到首个非空文本片段的耗时。
+    _model_ms = 0.0
+    _tool_ms = 0.0
+    _ttft_ms = None
     _last_finish_reason = ""
     _saw_tool_calls = False
     _saw_any_payload = ""
@@ -1903,7 +1920,11 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             )
             if _reasoning_supported:
                 stream_kwargs["on_reasoning"] = _on_reasoning
+            _llm_t0 = time.time()
+            _llm_first_piece_at = None
             for text_piece in llm.chat_stream(**stream_kwargs):
+                if text_piece and _llm_first_piece_at is None:
+                    _llm_first_piece_at = time.time()
                 # 先把新增的推理增量作为 thinking 事件推给前端（思考过程可见）
                 if len(reasoning_parts) > reasoning_sent:
                     delta_reasoning = "".join(reasoning_parts[reasoning_sent:])
@@ -1936,6 +1957,10 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 _round_text_parts.append(text_piece)
                 yield _sse({"type": "chunk", "text": text_piece, "seq": seq})
 
+            _model_ms += (time.time() - _llm_t0) * 1000.0
+            if _ttft_ms is None and _llm_first_piece_at is not None:
+                _ttft_ms = (_llm_first_piece_at - _llm_t0) * 1000.0
+
             # 收尾：本轮推理已全部外发 → 标记思考过程完成
             if reasoning_sent:
                 yield _sse({"type": "thinking", "id": "reasoning",
@@ -1965,6 +1990,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                             "detail": f"参数: {targs_json[:120]}", "status": "running"})
                 # 解析参数并执行
                 tool_result = ""
+                _tool_t0 = time.time()
                 try:
                     import json as _json
                     targs = _json.loads(targs_json) if targs_json else {}
@@ -1979,6 +2005,8 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 except Exception as _te:
                     logger.error("[workbench][SSE] 工具执行失败 %s: %s", tname, _te)
                     tool_result = f"工具执行失败: {_te}"
+                finally:
+                    _tool_ms += (time.time() - _tool_t0) * 1000.0
                 # 【P0-A 2026-10-12】人工审批边界：把『等待审批 / 被否决』从**工具结果 JSON**
                 #   提升为**独立 SSE 事件**。此前它只藏在回传给模型的 result 里 ⇒ 界面既不显示
                 #   "等待人工审批"、也不显示"审批超时/被否决"，用户看到的是"模型答到一半不动了"。
@@ -2094,6 +2122,27 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                         "text": "\n\n（已达工具轮次上限，本轮未再产出正文；回复「继续」可接着做。）",
                         "seq": seq, "synthetic": True})
 
+    # 【2026-10-14 对齐 DSH】把本轮读数累计进会话暂存区
+    # （/api/context/status 的 session_stats / context_breakdown 读这里）
+    try:
+        from agent.context_stats import record_turn as _record_turn
+        _record_turn(
+            session_id, model_ms=_model_ms, tool_ms=_tool_ms, ttft_ms=_ttft_ms,
+            breakdown={
+                "window_tokens": _window_tokens or None,
+                "system_tokens": _system_tokens,
+                "tools_tokens": int(_tokens) if _tokens is not None else None,
+                "history_tokens": int(_used) if _used is not None else None,
+            })
+    except Exception as _rs_e:  # noqa: BLE001 读数暂存失败绝不影响对话
+        logger.debug("[workbench][SSE] 会话读数暂存失败: %s", _rs_e)
+
+    yield _sse({"type": "thinking", "id": "session-stats", "title": "会话统计",
+                "detail": "", "status": "done",
+                "meta": {"model_ms": round(_model_ms, 1),
+                         "tool_ms": round(_tool_ms, 1),
+                         "ttft_ms": (round(_ttft_ms, 1) if _ttft_ms is not None else None)}})
+
     yield _sse({"type": "thinking", "id": "generate", "title": "生成回复", "status": "done"})
 
     if not emitted:
@@ -2126,6 +2175,47 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
         yield _sse({"type": "chunk", "text": _empty_text, "seq": seq, "synthetic": True})
 
     yield _sse({"type": "done"})
+
+
+@bp.route("/api/prompt-lab/llm-preview", methods=["POST"])
+@_require_token
+def api_prompt_lab_llm_preview():
+    """提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。
+
+    【为什么必须走后端】前端原先**直接 fetch 用户在面板里填的 Endpoint**：
+      ① 不填就没有可用地址（面板默认值是空串，只能靠人手填）；
+      ② 填成外部域名会被浏览器 CORS 挡（返回体为空 ⇒ 界面只显示 "HTTP 404："）；
+      ③ 填错路径（少 /v1 之类）同样是 404 且看不出原因。
+    本端点用云枢**自己已配置**的 LLM（与工作台对话同一条 .env 来源）生成，
+    前端默认走它；自定义 Endpoint 仍保留给「想验证别的网关」的场景。
+
+    请求体：{prompt, systemPrompt?, model?, maxTokens?}
+    返回：统一信封，data = {text}
+    """
+    from flask import request as _rq
+    from agent.api_envelope import ok as _ok
+
+    data = _rq.get_json(silent=True) or {}
+    system_prompt = str(data.get("systemPrompt") or "")
+    prompt = str(data.get("prompt") or "")
+    if not prompt.strip():
+        return _ok({"text": ""}, message="缺少 prompt", status=400)
+    try:
+        from memory.llm_service import LLMService
+        _provider = os.environ.get("LLM_PROVIDER", "deepseek").strip().lower()
+        _api_key = os.environ.get("LLM_API_KEY", "") or os.environ.get("DEEPSEEK_API_KEY", "")
+        _model = str(data.get("model") or os.environ.get("LLM_MODEL", "deepseek-v4-flash"))
+        _base_url = (os.environ.get("LLM_BASE_URL", "")
+                     or os.environ.get("DEEPSEEK_BASE_URL", ""))
+        _svc = LLMService(provider=_provider, api_key=_api_key, model=_model,
+                          base_url=_base_url or "")
+        _text = _svc.chat([{"role": "user", "content": prompt}],
+                          system_prompt=system_prompt,
+                          max_tokens=int(data.get("maxTokens") or 1024))
+        return _ok({"text": _text or "", "model": _model, "provider": _provider})
+    except Exception as _e:  # noqa: BLE001 代理失败如实回报，前端据此给出可读错误
+        logger.error("[prompt-lab][llm-preview] 代理调用失败: %s", _e)
+        return _ok({"text": ""}, message=f"{type(_e).__name__}: {_e}", status=502)
 
 
 @bp.route("/api/chat/stream", methods=["POST"])

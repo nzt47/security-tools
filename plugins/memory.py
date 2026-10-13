@@ -21,6 +21,8 @@ legacy 端点接线（2026 修复 404）：
     共享装饰器与全局保留在 app_server.py，视图函数内延迟 import。
 """
 import functools
+import json
+import os
 from flask import Blueprint, request, jsonify
 from .plugin_api import Plugin, context_limit_info, register_plugin
 
@@ -128,6 +130,42 @@ def _push_runtime_window(value: int) -> bool:
 #  上下文监视器 API
 # ════════════════════════════════════════════════════════════
 
+# ── 「当前窗口压缩次数」的会话基线 ──────────────────────────────────
+#: 【为什么需要】memory_manager.compress_rounds 是**全局累计**的摘要版本号
+#: （单一 MemoryManager 跨会话共享），后端注释也写明它"不是当前会话压缩了几次"。
+#: 面板要显示"当前窗口压缩了几次"，就必须减去该会话开始时的基线。
+#: 基线落 data/ 下的运行时文件（不入库），刷新页面不丢；同会话跨进程也保留。
+_COMPRESS_BASE_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "data", "context_session_compress_base.json")
+_COMPRESS_BASE_CACHE: dict | None = None
+
+
+def _compress_base(session_id: str, current: int) -> int:
+    """取（必要时登记）该会话的压缩基线；拿不到会话 ID 时返回当前值（窗口数恒 0）"""
+    global _COMPRESS_BASE_CACHE
+    key = str(session_id or "")
+    if not key:
+        return int(current)
+    if _COMPRESS_BASE_CACHE is None:
+        try:
+            with open(_COMPRESS_BASE_PATH, "r", encoding="utf-8") as f:
+                _COMPRESS_BASE_CACHE = {str(k): int(v)
+                                        for k, v in (json.load(f) or {}).items()}
+        except Exception:  # noqa: BLE001 文件缺失/损坏 ⇒ 从空表开始
+            _COMPRESS_BASE_CACHE = {}
+    if key not in _COMPRESS_BASE_CACHE:
+        _COMPRESS_BASE_CACHE[key] = int(current)
+        try:
+            os.makedirs(os.path.dirname(_COMPRESS_BASE_PATH), exist_ok=True)
+            with open(_COMPRESS_BASE_PATH, "w", encoding="utf-8") as f:
+                json.dump(_COMPRESS_BASE_CACHE, f, ensure_ascii=False, indent=2)
+        except Exception as e:  # noqa: BLE001 写基线失败不影响读数（只是窗口数退化）
+            import logging
+            logging.getLogger(__name__).debug("写压缩基线失败: %s", e)
+    return _COMPRESS_BASE_CACHE[key]
+
+
 @bp.route("/api/context/status")
 @_view(log=False)
 def api_context_status():
@@ -179,6 +217,17 @@ def api_context_status():
     #   真实存在的两份是"代码默认（或 env）"与"UI 运行时覆盖"，取错任一份都会与
     #   /api/chat 的 context 块差出倍数（编排层 TASK-S10-03 已修过，本面板当时没跟上）。
     #   取不到就如实报 None，**不拿硬编码值冒充分母**（那比没有读数更坏：它像真的）。
+    # 【2026-10-14 对齐 DSH】会话统计与上下文装配明细（由 plugins/chat.py 的
+    # 流式主循环每轮实测后写入 agent/context_stats.py）
+    session_stats = {}
+    try:
+        from agent.context_stats import get_session_stats as _get_session_stats
+        session_stats = _get_session_stats(session_id) or {}
+    except Exception as _ss_e:  # noqa: BLE001 读数不可用 ⇒ 如实返回空对象
+        import logging as _logging
+        _logging.getLogger(__name__).debug("会话读数读取失败: %s", _ss_e)
+        session_stats = {}
+
     limit_info = _context_limit_info(_Yunshu)
     limit = limit_info["limit_tokens"]
     configured_limit = _cfg.get("memory", "token_limit", default=MEMORY_TOKEN_LIMIT_DEFAULT)
@@ -192,6 +241,14 @@ def api_context_status():
             compress_rounds = compress_rounds()
     except Exception:
         pass
+
+    # 【2026-10-14 对齐 DSH】「当前窗口的压缩次数」= 本会话基线之上的增量。
+    # 面板此前显示的是全局累计版本号（换会话不归零、与实际窗口脱节）。
+    try:
+        compress_rounds_window = max(0, int(compress_rounds)
+                                     - int(_compress_base(session_id, compress_rounds)))
+    except Exception:  # noqa: BLE001 基线不可用 ⇒ 如实退回累计值，不伪造 0
+        compress_rounds_window = int(compress_rounds)
 
     # ── 档位：**按占用**判定；"摘要退化"作为独立成因单列 ──
     # 【为什么拆开】原先 `compress_rounds >= 5` 直接判 critical ⇒ 占用 22% 也常年报红，
@@ -235,6 +292,8 @@ def api_context_status():
         "send_limit_semantics": "warn_only",
         "compress_threshold": _cfg.get("memory", "compress_threshold", default=0.8),
         "compress_rounds": compress_rounds,
+        # 当前窗口（= 本会话基线之上）的压缩次数；面板展示用这个
+        "compress_rounds_window": compress_rounds_window,
         "compress_degraded": compress_degraded,
         "status_level": status_level,
         "status_reasons": status_reasons,
@@ -244,6 +303,9 @@ def api_context_status():
         # 轮数（用户发言条数）；与 LLM 调用频数（/api/llm-monitor/stats.total）分列：
         # 一轮对话可能触发多次 LLM 调用（工具循环/摘要），两者不应混同。
         "turns": turns,
+        # 会话统计：模型用时/工具调用用时/首 token 平均（毫秒）+ 上下文装配明细
+        "session_stats": session_stats,
+        "context_breakdown": session_stats.get("breakdown") or {},
         "recent_messages": recent,
     })
 

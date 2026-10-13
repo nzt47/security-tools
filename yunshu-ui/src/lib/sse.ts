@@ -16,7 +16,16 @@ import { authHeader } from './apiToken';
 export type ThinkingStatus = 'pending' | 'running' | 'done' | 'error';
 
 export type StreamEvent =
-  | { type: 'thinking'; id: string; title: string; detail?: string; status: ThinkingStatus }
+  | {
+      type: 'thinking'
+      id: string
+      title: string
+      detail?: string
+      status: ThinkingStatus
+      /** 【2026-10-14 对齐 DSH】结构化读数（如 context-budget / session-stats 的数值），
+       *  面板据此上屏；此前只有 detail 文本，无法机器读取。 */
+      meta?: Record<string, unknown>
+    }
   | { type: 'chunk'; text: string; seq?: number }
   /**
    * 服务端**显式报错**（2026-10-12 新增）。

@@ -1,10 +1,14 @@
 /**
- * ContextManagerBar · 会话级读数回归测试（2026-10-13）
+ * ContextManagerBar · 会话级读数回归测试
  * ------------------------------------------------------------------
- * 需求：上下文管理面板要像 DeepSeek Harness 一样显示
- *   轮数 / 调用频数 / tok·s⁻¹ / tok 总数 / 缓存命中 / 窗口已用。
- * 这里把「两个数据源合并上屏」钉住：/api/context/status（turns）+
- * /api/llm-monitor/stats（total / tok_per_s / total_tokens / cache_hit_ratio）。
+ * 2026-10-13 首版：轮数 / 调用频数 / tok·s⁻¹ / 缓存命中。
+ * 2026-10-14 改为 **DeepSeek Harness 同构的三组读数**：
+ *   会话统计（模型用时 / 工具调用用时 / 首 token 平均 / 输出速度）、
+ *   Token 用量（缓存命中 / 未缓存输入 / 缓存读取 / 输出）、
+ *   上下文已用（系统提示词 / 工具定义 / 对话消息）；
+ * 并把「压缩次数」从**全局累计**改为**当前窗口**（compress_rounds_window）。
+ * 数据源：/api/context/status（session_stats / context_breakdown / compress_rounds_window）
+ *        + /api/llm-monitor/stats。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -24,6 +28,9 @@ vi.mock('../../../pages/hub/components/ui', async (importOriginal) => {
 import { ContextManagerBar } from './ContextManagerBar'
 
 beforeEach(() => {
+  // 展开状态持久化在 LocalStorage（见组件 STORAGE_KEY）⇒ 用例间必须隔离，
+  // 否则第 2 个用例会带着"已展开"启动，expand() 反而把它折叠回去。
+  localStorage.clear()
   envMock.mockResolvedValue({
     current_tokens: 12000,
     token_limit: 131072,
@@ -31,7 +38,21 @@ beforeEach(() => {
     per_message_send_limit: 131072,
     per_message_recv_limit: 393216,
     compress_threshold: 0.8,
-    compress_rounds: 2,
+    compress_rounds: 7,
+    compress_rounds_window: 2,
+    session_stats: {
+      turns: 3,
+      model_ms: 12345,
+      tool_ms: 4567,
+      ttft_ms: 820,
+      ttft_samples: 3,
+    },
+    context_breakdown: {
+      window_tokens: 131072,
+      system_tokens: 1234,
+      tools_tokens: 6700,
+      history_tokens: 12000,
+    },
     status_level: 'ok',
     send_tokens: 5000,
     recv_tokens: 7000,
@@ -62,29 +83,60 @@ const expand = () => {
   fireEvent.click(toggle as HTMLElement)
 }
 
-describe('ContextManagerBar · 会话级读数', () => {
-  it('展开后显示 轮数 / 调用频数 / tok/s / tok 总数 / 缓存命中 / 窗口已用', async () => {
+describe('ContextManagerBar · DSH 三组读数', () => {
+  it('展开后显示 会话统计 / Token 用量 / 上下文已用 三组', async () => {
     render(<ContextManagerBar />)
     expand()
 
-    // 两路数据都异步到齐后才渲染表格内容
-    await screen.findByText('窗口已用')
-    await waitFor(() => expect(screen.getByText('7 次')).toBeTruthy())
+    await screen.findByText('会话统计')
+    await waitFor(() => expect(screen.getByText('缓存命中')).toBeTruthy())
 
+    expect(screen.getByText('Token 用量')).toBeTruthy()
+    expect(screen.getByText('上下文已用')).toBeTruthy()
+
+    // 会话统计：模型用时 12.3s / 工具 4.6s / TTFT 820ms / TPS 42.5
+    expect(screen.getByText('模型用时')).toBeTruthy()
+    expect(screen.getByText('12.3 s')).toBeTruthy()
+    expect(screen.getByText('工具调用用时')).toBeTruthy()
+    expect(screen.getByText('4.6 s')).toBeTruthy()
+    expect(screen.getByText('首 token 平均（TTFT）')).toBeTruthy()
+    expect(screen.getByText('820 ms')).toBeTruthy()
+    expect(screen.getByText('输出速度（TPS）')).toBeTruthy()
+    expect(screen.getByText('42.5 tok/s')).toBeTruthy()
+
+    // Token 用量：命中 75% / 未缓存 1000 / 缓存读取 3000 / 输出 9000
+    expect(screen.getByText('75%')).toBeTruthy()
+    expect(screen.getByText('未缓存输入')).toBeTruthy()
+    expect(screen.getByText('1,000')).toBeTruthy()
+    expect(screen.getByText('缓存读取')).toBeTruthy()
+    expect(screen.getByText('3,000')).toBeTruthy()
+    expect(screen.getByText('输出')).toBeTruthy()
+    expect(screen.getByText('9,000')).toBeTruthy()
+
+    // 上下文已用：系统提示词 / 工具定义 / 对话消息
+    expect(screen.getByText('系统提示词')).toBeTruthy()
+    expect(screen.getByText('1,234 tok')).toBeTruthy()
+    expect(screen.getByText('工具定义')).toBeTruthy()
+    expect(screen.getByText('6,700 tok')).toBeTruthy()
+    expect(screen.getByText('对话消息')).toBeTruthy()
+    expect(screen.getByText('12,000 tok')).toBeTruthy()
+
+    // 窗口概览 + 压缩次数取「当前窗口」(2)，不是全局累计 (7)
     expect(screen.getByText('窗口已用')).toBeTruthy()
     expect(screen.getByText('窗口 Token')).toBeTruthy()
     expect(screen.getByText('轮数')).toBeTruthy()
-    expect(screen.getByText('调用频数')).toBeTruthy()
-    expect(screen.getByText('tok/s')).toBeTruthy()
-    expect(screen.getByText('tok 总数')).toBeTruthy()
-    expect(screen.getByText('缓存命中')).toBeTruthy()
-
-    // 值：turns=10 / 频数=7 / tok/s=42.5 / 总 tokens=34800 / 缓存=75% / 窗口=9%
-    expect(screen.getByText('10')).toBeTruthy()
-    expect(screen.getByText('42.5')).toBeTruthy()
-    expect(screen.getByText('34,800')).toBeTruthy()
-    expect(screen.getByText('75%')).toBeTruthy()
+    expect(screen.getByText('当前窗口压缩')).toBeTruthy()
+    expect(screen.getByText('2 次')).toBeTruthy()
+    expect(screen.queryByText('7 次')).toBeNull()
     // 9% 折叠条与展开网格各出现一次 ⇒ 用 getAllByText
     expect(screen.getAllByText('9%').length).toBeGreaterThan(0)
+  })
+
+  it('机制说明开关已移除', async () => {
+    render(<ContextManagerBar />)
+    expand()
+    await screen.findByText('会话统计')
+    expect(screen.queryByText('机制说明')).toBeNull()
+    expect(screen.queryByText('收起机制说明')).toBeNull()
   })
 })

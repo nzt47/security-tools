@@ -99,15 +99,28 @@ export default function PreviewPanel({
       {mode === 'llm' && (
         <details className="pl-llm-config" open>
           <summary>
-            <Settings2 size={12} /> LLM 接口配置（OpenAI 兼容）
+            <Settings2 size={12} /> LLM 接口配置
           </summary>
           <label className="pl-field">
+            <span>用云枢默认 LLM</span>
+            <input
+              type="checkbox"
+              checked={llm.useBackend}
+              onChange={(e) => setLlm({ useBackend: e.target.checked })}
+            />
+          </label>
+          <p className="pl-export-hint">
+            勾选后由后端用 <code>.env</code> 里已配置的模型生成（推荐，无需 Endpoint / API Key）；
+            取消勾选才直连你自己填的 OpenAI 兼容地址（直连受浏览器 CORS 限制，容易只拿到空的
+            <code>HTTP 4xx</code>）。
+          </p>
+          <label className="pl-field">
             <span>Endpoint</span>
-            <input className="pl-text" value={llm.endpoint} onChange={(e) => setLlm({ endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" />
+            <input className="pl-text" value={llm.endpoint} disabled={llm.useBackend} onChange={(e) => setLlm({ endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" />
           </label>
           <label className="pl-field">
             <span>API Key</span>
-            <input className="pl-text" type="password" value={llm.apiKey} onChange={(e) => setLlm({ apiKey: e.target.value })} placeholder="sk-…（仅本地存储）" />
+            <input className="pl-text" type="password" value={llm.apiKey} disabled={llm.useBackend} onChange={(e) => setLlm({ apiKey: e.target.value })} placeholder="sk-…（仅本地存储）" />
           </label>
           <label className="pl-field">
             <span>模型</span>

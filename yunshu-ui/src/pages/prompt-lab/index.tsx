@@ -31,6 +31,7 @@ import {
   numOf,
   radarData,
   requestLlmPreview,
+  requestBackendLlmPreview,
   simulateOutput,
   usageReport,
 } from '../../lib/promptFactors';
@@ -118,22 +119,31 @@ export default function PromptLab() {
   );
 
   const runLlm = async () => {
-    if (!llm.endpoint.trim()) {
-      setLlmError('请先在上方"真实接口"设置中填写 Endpoint。');
+    if (!llm.useBackend && !llm.endpoint.trim()) {
+      setLlmError('请先在上方"真实接口"设置中填写 Endpoint，或勾选「用云枢默认 LLM」。');
       return;
     }
     setLlmLoading(true);
     setLlmError(null);
-    const res = await requestLlmPreview({
-      endpoint: llm.endpoint.trim(),
-      apiKey: llm.apiKey,
-      model: llm.model,
-      systemPrompt,
-      prompt,
-      temperature: numOf(values, 'temperature'),
-      topP: numOf(values, 'top_p'),
-      maxTokens: numOf(values, 'max_tokens'),
-    });
+    // 【2026-10-14 修 404】默认走后端代理（用 .env 已配置的 LLM），
+    // 只有用户显式取消勾选时才直连自带的 OpenAI 兼容地址。
+    const res = llm.useBackend
+      ? await requestBackendLlmPreview({
+          systemPrompt,
+          prompt,
+          model: llm.model,
+          maxTokens: numOf(values, 'max_tokens'),
+        })
+      : await requestLlmPreview({
+          endpoint: llm.endpoint.trim(),
+          apiKey: llm.apiKey,
+          model: llm.model,
+          systemPrompt,
+          prompt,
+          temperature: numOf(values, 'temperature'),
+          topP: numOf(values, 'top_p'),
+          maxTokens: numOf(values, 'max_tokens'),
+        });
     setLlmLoading(false);
     if (res.ok === true) {
       setLlmOutput(res.text);
