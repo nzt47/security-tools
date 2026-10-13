@@ -9,16 +9,16 @@
  */
 import { ApiError, request } from './apiClient'
 import { approvalCsrfHeaders, withApprovalSession } from './approvalChain'
+// 端点字面量只允许出现在 src/api/endpoints.ts（契约守卫 test_frontend_stray_baseline）
+import { APPROVAL_LINK, APPROVAL_SECOND_FACTOR, approvalDecision } from '@/api/endpoints'
 
-const BASE = '/api/approval'
-
-function post(path: string, body: Record<string, unknown>) {
+function post(url: string, body: Record<string, unknown>) {
   // 每次请求现取 CSRF 头：会话可能刚被 openApprovalSession 重开
-  return request(`${BASE}${path}`, { method: 'POST', body, headers: approvalCsrfHeaders() })
+  return request(url, { method: 'POST', body, headers: approvalCsrfHeaders() })
 }
 
 async function issueLink(recordId: string): Promise<string> {
-  const r = (await post('/link', { record_id: recordId })) as { link?: { token?: string } }
+  const r = (await post(APPROVAL_LINK, { record_id: recordId })) as { link?: { token?: string } }
   return r?.link?.token || ''
 }
 
@@ -28,12 +28,12 @@ export async function approveRecord(recordId: string, note = ''): Promise<void> 
   await withApprovalSession(async () => {
     const body: Record<string, unknown> = { link_token: await issueLink(recordId), note }
     try {
-      await post(`/${encodeURIComponent(recordId)}/approve`, body)
+      await post(approvalDecision(recordId, true), body)
     } catch (e) {
       if (e instanceof ApiError && e.code === 'second_factor_required') {
-        const sf = (await post('/second-factor', { record_id: recordId })) as { code?: string }
+        const sf = (await post(APPROVAL_SECOND_FACTOR, { record_id: recordId })) as { code?: string }
         body.second_factor = sf?.code || ''
-        await post(`/${encodeURIComponent(recordId)}/approve`, body)
+        await post(approvalDecision(recordId, true), body)
         return
       }
       throw e
@@ -45,7 +45,7 @@ export async function approveRecord(recordId: string, note = ''): Promise<void> 
 export async function rejectRecord(recordId: string, note: string): Promise<void> {
   if (!recordId) throw new Error('缺少审批单号')
   await withApprovalSession(async () => {
-    await post(`/${encodeURIComponent(recordId)}/reject`, {
+    await post(approvalDecision(recordId, false), {
       link_token: await issueLink(recordId), note,
     })
   })
