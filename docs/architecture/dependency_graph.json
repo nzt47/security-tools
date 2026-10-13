@@ -11514,7 +11514,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 700,
+      "line": 703,
       "source_file": "agent/llm_monitor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -11553,7 +11553,7 @@
       "source_layer": "core",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 1130,
+      "line": 1133,
       "source_file": "agent/llm_monitor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -30594,7 +30594,7 @@
     }
   ],
   "stats": {
-    "total_files": 667,
+    "total_files": 668,
     "total_nodes": 598,
     "total_edges": 1985,
     "cross_layer_edges": 1250,
