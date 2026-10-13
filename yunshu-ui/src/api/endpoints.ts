@@ -121,6 +121,13 @@ export const VISUAL_WORKFLOWS = '/api/visual-workflows';
 export const visualWorkflowById = (id: string) => `/api/visual-workflows/${encodeURIComponent(id)}`;
 
 export const APPROVAL_SESSION = '/api/approval/session';
+/** 一次性审批链接（会话绑定 + record 绑定；对话内联审批弹窗用） */
+export const APPROVAL_LINK = '/api/approval/link';
+/** destructive 审批的二次认证确认码（同会话内自动取用） */
+export const APPROVAL_SECOND_FACTOR = '/api/approval/second-factor';
+/** 单条裁决：POST /approve 或 /reject */
+export const approvalDecision = (recordId: string, approve: boolean) =>
+  `/api/approval/${encodeURIComponent(recordId)}/${approve ? 'approve' : 'reject'}`;
 export const CAPABILITY_MANIFEST = '/api/capability-manifest';
 export const AGENT_LINES = '/api/agent-lines';
 export const AGENT_LINES_PREVIEW = '/api/agent-lines/preview';

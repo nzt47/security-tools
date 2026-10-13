@@ -87,6 +87,8 @@ export async function* createChatStream(
     sessionId?: string
     /** 对话模式（轻量/检索/完整）—— 后端据此选链路；缺省时后端按轻量处理 */
     mode?: string
+    /** 权限档位（read_only/workspace/auto/full）—— 后端工具闸门即时读；缺省按 auto */
+    permissionMode?: string
   },
 ): AsyncGenerator<StreamEvent> {
   const startedAt = performance.now();
@@ -106,6 +108,8 @@ export async function* createChatStream(
         // 【为什么显式带上】后端按 mode 选链路（轻量 / 检索 / 完整）；不带时后端默认轻量，
         // 与引入该开关之前的行为逐字一致。
         ...(options?.mode ? { mode: options.mode } : {}),
+        // 权限档位：决定本次对话里多少工具需要人工审批（后端按 contextvar 即时生效）
+        ...(options?.permissionMode ? { permission_mode: options.permissionMode } : {}),
       }),
       signal,
     });

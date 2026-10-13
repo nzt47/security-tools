@@ -38,6 +38,13 @@ export interface ThinkingEvent {
   at: number;
 }
 
+/** 待人工审批（由 SSE approval 事件设置）：审批弹窗据此渲染「批准 / 拒绝」。 */
+export interface PendingApproval {
+  tool: string;
+  approvalId: string;
+  message: string;
+}
+
 interface LayoutStore {
   layout: MosaicNode<PanelId> | null;
   messages: ChatMessage[];
@@ -64,6 +71,9 @@ interface LayoutStore {
   setHighlightMsg: (id: string | null) => void;
   /** 设置当前激活会话（会话切换/新建/删除后由页面调用） */
   setActiveSession: (id: string | null) => void;
+  /** 当前待人工审批（SSE approval 事件驱动；弹窗消费，点头即批并自动续跑） */
+  pendingApproval: PendingApproval | null;
+  setPendingApproval: (v: PendingApproval | null) => void;
 }
 
 // 仅暴露给 persist 的字段（layout 之外的动态数据不做本地持久化）
@@ -162,6 +172,7 @@ export const useLayoutStore = create<LayoutStore>()(
       activeStreamId: null,
       highlightMsgId: null,
       activeSessionId: null,
+      pendingApproval: null,
 
       setLayout: (next) => set({ layout: next }),
 
@@ -249,10 +260,12 @@ export const useLayoutStore = create<LayoutStore>()(
           const sessionId = get().activeSessionId ?? undefined;
           // 对话模式来自用户偏好（轻量/检索/完整）；每次发送时现取，切换后立即生效
           const mode = useChatPrefsStore.getState().mode;
+          // 权限档位同样现取：切换后立即对下一条消息生效
+          const permissionMode = useChatPrefsStore.getState().permissionMode;
           for await (const event of createChatStream(
             text,
             abortController.signal,
-            { sessionId, mode },
+            { sessionId, mode, permissionMode },
           )) {
             if (event.type === 'chunk') {
               accumulated += event.text.length;
@@ -286,6 +299,16 @@ export const useLayoutStore = create<LayoutStore>()(
                     ? `已挂审批单${event.approvalId ? ` ${event.approvalId}` : ''}；人工确认后重发即可`
                     : '本次调用被否决，模型应改用其他方式'),
                 status: pending ? 'running' : 'error',
+              });
+              // 待审批 ⇒ 拉起内联审批弹窗（点头即批，不必去审批面板、也不必手打「继续」）
+              set({
+                pendingApproval: pending
+                  ? {
+                      tool: event.tool,
+                      approvalId: event.approvalId || '',
+                      message: event.message || '',
+                    }
+                  : null,
               });
             } else if (event.type === 'error') {
               // 服务端显式报错：在正文里留下证据，并把该条回复标为 error（不再假装正常结束）
@@ -424,6 +447,7 @@ export const useLayoutStore = create<LayoutStore>()(
       },
 
       setHighlightMsg: (id) => set({ highlightMsgId: id }),
+      setPendingApproval: (v) => set({ pendingApproval: v }),
 
       setActiveSession: (id) => {
         // 会话切换/新建/删除后由页面调用；只更新归属标记，不清空消息流

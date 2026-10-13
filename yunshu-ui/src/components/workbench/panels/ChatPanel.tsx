@@ -15,6 +15,8 @@ import { MessageItem, isToolStep } from '../chat/MessageItem';
 import { MessageInput } from '../chat/MessageInput';
 import { ChatStyleMenu } from '../chat/ChatStyleMenu';
 import { ChatModeMenu } from '../chat/ChatModeMenu';
+import { PermissionModeMenu } from '../chat/PermissionModeMenu';
+import { ApprovalPrompt } from '../chat/ApprovalPrompt';
 import { authHeader } from '@/lib/apiToken';
 
 import {
@@ -282,6 +284,12 @@ export function ChatPanel() {
         {/* 对话模式（后端跑哪条链路：轻量 / 检索 / 完整）——
             紧跟「输出格式」右侧：一个管"怎么看"，一个管"怎么跑"，放一起才找得到 */}
         <ChatModeMenu />
+
+        {/* 权限档位（工具要不要逐条审批）—— 紧邻对话模式：一个管"怎么跑"，一个管"授权多大" */}
+        <PermissionModeMenu />
+
+        {/* 内联审批弹窗：SSE approval 事件 ⇒ 点头即批并自动续跑（不必去审批面板/手打继续） */}
+        <ApprovalPrompt />
 
         <div className="ml-auto flex items-center gap-2">
           <span className="hidden text-[10px] text-slate-600 sm:inline">风格设置可调主题 / 气泡 / 字号</span>

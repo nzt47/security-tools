@@ -2150,6 +2150,14 @@ def api_chat_stream():
                        raw_mode, "/".join(CHAT_STREAM_MODES))
     mode = raw_mode if raw_mode in CHAT_STREAM_MODES else "plain"
 
+    # ── 权限档位（2026-10-13，对齐 DSH）─────────────────────────────────
+    # 请求体带 permission_mode ⇒ 本次请求生效（contextvar，工具闸门即时读）；
+    # 非法/缺失 ⇒ 空串，闸门回落 env/覆盖层/默认 auto。
+    raw_perm = str(data.get("permission_mode") or data.get("permissionMode") or "").strip().lower()
+    if raw_perm and raw_perm not in ("read_only", "workspace", "auto", "full"):
+        logger.warning("[workbench][SSE] 未知权限档位 %r，按默认 auto 处理", raw_perm)
+        raw_perm = ""
+
     # ── 会话解析（2026-09-07 修复） ──
     # 与 /api/chat 对齐：请求显式传了会话 ID 但后端不存在时自动创建
     # （外部调用方/旧前端可能持有过期 ID）；否则回退全局当前会话。
@@ -2189,6 +2197,14 @@ def api_chat_stream():
         #: 流是否**正常收尾**（区别于客户端中途断开）。只有正常收尾才写长期记忆，
         #: 见下方 finally 里的说明。
         completed = False
+        # 权限档位（contextvar）：在生成器所在执行上下文里设置，工具闸门即时可见。
+        _perm_token = None
+        if raw_perm:
+            try:
+                from agent.tool_gate import set_permission_mode as _set_perm
+                _perm_token = _set_perm(raw_perm)
+            except Exception as _pe:  # noqa: BLE001 档位设置失败 ⇒ 回落默认，不阻断对话
+                logger.debug("[workbench][SSE] 设置权限档位失败（按默认 auto）: %s", _pe)
         try:
             for _evt in _workbench_real_stream(question, session_id, mode):
                 _payload = _evt[len("data:"):].strip() if _evt.startswith("data:") else ""
@@ -2249,6 +2265,12 @@ def api_chat_stream():
                         write_memory=(mode != "full"),
                         memory_answer="".join(acc_real_parts),
                         write_turn_state=(mode != "full"))
+            if _perm_token is not None:
+                try:
+                    from agent.tool_gate import reset_permission_mode as _reset_perm
+                    _reset_perm(_perm_token)
+                except Exception:  # noqa: BLE001
+                    pass
 
     resp = Response(stream_with_context(gen()), mimetype="text/event-stream")
     # SSE 关键响应头；after_request 会再补 no-store，对 SSE 无碍

@@ -166,8 +166,20 @@ export default function WorkbenchChatPage() {
           setSessionId(target)
           setActiveSession(target)
           setLastUsedSession(target)
-          clearConversation()
-          void loadSessionHistory(target)
+          // 【2026-10-13 修「切到别的面板就断会话」】挂载时**不能无条件清空/重载**：
+          //   流跑在 useLayoutStore 里（模块级 AbortController），**不随本组件卸载中止**；
+          //   但 clearConversation() 会把流式中那条 assistant 消息从 store 抹掉，之后
+          //   每个 chunk 都 append 到不存在的消息 id 上被静默丢弃 ⇒ 用户从别的面板切回来
+          //   看到的就是"回答断在这儿了"。
+          //   判据：正在流式 **且** 目标会话就是当前会话（= 典型的重挂载，而不是真的切会话）。
+          //   真切会话（target 变了）仍然清空重载：那是语义上另一段对话。
+          const _st = useLayoutStore.getState()
+          if (_st.streaming && target === _st.activeSessionId) {
+            // 保持 store 里的实时消息与流式归属，什么都不做
+          } else {
+            clearConversation()
+            void loadSessionHistory(target)
+          }
           void sessionApi.setCurrent(target).catch(() => {})
         } else {
           setActiveSession(null)

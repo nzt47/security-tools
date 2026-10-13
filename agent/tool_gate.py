@@ -450,6 +450,27 @@ SANDBOX_ALLOWED_ENFORCE_ENV = "CP_TOOL_SANDBOX_ALLOWED_ENFORCE"
 #: （v1.4 §14 执行纪律里就有"影子告警 → 白名单 → 拒绝"的先例）。
 CONFIRM_LEVEL_SHADOW_ENV = "CP_TOOL_CONFIRM_LEVEL_SHADOW"
 
+#: ── 权限档位（2026-10-13，对齐 DSH 的 sandbox/permission modes）─────────────
+#: 四档，UI 可切，落覆盖层 data/ui_settings.json（env > override > 默认 auto）：
+#:   · read_only  仅可查看：只放行 effect=read 的能力，其余一律拒绝；
+#:   · workspace  工作区修改：read/write 放行（**免审批**）；execute/delete/
+#:                govern 仍走原审批链（shell 这类仍然逐次确认）；
+#:   · auto       自动审查：保持既有 L0–L3 分级审批（默认，逐字不变）；
+#:   · full       完全权限：黑名单与受限会话判定照旧，其余**跳过全部审批**。
+#: 口径：档位是"用户对本次会话的授权姿态"，不是绕过闸门的后门 —— 黑名单与
+#:      sandbox_allowed 永远先判，full 也不豁免它们。
+PERMISSION_MODE_ENV = "CP_TOOL_PERMISSION_MODE"
+MODE_READ_ONLY = "read_only"
+MODE_WORKSPACE = "workspace"
+MODE_AUTO = "auto"
+MODE_FULL = "full"
+PERMISSION_MODES: Tuple[str, ...] = (MODE_READ_ONLY, MODE_WORKSPACE, MODE_AUTO, MODE_FULL)
+#: 档位"免审批"覆盖的 effect 集合（其余 effect 继续走既有分级/兜底）
+_MODE_ALLOW_EFFECTS = {
+    MODE_READ_ONLY: frozenset({"read"}),
+    MODE_WORKSPACE: frozenset({"read", "write"}),
+}
+
 #: 执行身份（contextvar）。**空串 = 未声明**（与"声明了 human"是两件事，
 #: 理由同 `_SESSION_SOURCE_VAR` 的注释：未声明要走"无身份 ⇒ 拒绝"那一支）。
 _IDENTITY_VAR: contextvars.ContextVar = contextvars.ContextVar(
@@ -589,6 +610,88 @@ def _preauthorized(capability: str, identity: str,
 # ─────────────────────────────────────────────────────────────
 
 
+#: 本会话/本请求的权限档位（contextvar；空串 = 未声明 ⇒ 回落 env/覆盖层/默认 auto）。
+#: 【为什么用 contextvar 而不是只读设置】档位是"这次对话的授权姿态"，工作台在每次
+#:  /api/chat(/stream) 请求体里带上来即可即时生效，不必先走"改设置"（那还要人工授权、
+#:  而且要重启进程才热生效）。落盘偏好仍可选地走覆盖层（见 _permission_mode 的回落）。
+_PERMISSION_MODE_VAR: contextvars.ContextVar = contextvars.ContextVar(
+    "cp_permission_mode", default="",
+)
+
+
+def set_permission_mode(mode: str):
+    """设置本次请求的权限档位；返回 token 供 reset_permission_mode 复位。"""
+    m = str(mode or "").strip().lower()
+    return _PERMISSION_MODE_VAR.set(m if m in PERMISSION_MODES else "")
+
+
+def reset_permission_mode(token) -> None:
+    """复位本次请求的权限档位（异常一律忽略：复位失败不该影响主链路）。"""
+    try:
+        _PERMISSION_MODE_VAR.reset(token)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def current_permission_mode() -> str:
+    """当前 contextvar 里的档位（未声明 ⇒ 空串）。"""
+    try:
+        return str(_PERMISSION_MODE_VAR.get() or "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _permission_mode() -> str:
+    """当前权限档位（contextvar > env > UI 覆盖层 > 默认 auto）；非法/读不到 ⇒ auto。"""
+    ctx_mode = current_permission_mode()
+    if ctx_mode:
+        return ctx_mode
+    raw = _env_str(PERMISSION_MODE_ENV)
+    if not raw:
+        try:
+            from agent.settings.overrides import get_override_store  # noqa: PLC0415
+            rec = get_override_store().get(PERMISSION_MODE_ENV)
+            if rec is not None:
+                raw = str(getattr(rec, "value", "") or "")
+        except Exception as e:  # noqa: BLE001 读不到 ⇒ 默认档，不影响主链路
+            logger.debug("[tool_gate] 权限档位读取失败（按默认 auto）: %s: %s",
+                         type(e).__name__, e)
+    mode = str(raw or "").strip().lower()
+    return mode if mode in PERMISSION_MODES else MODE_AUTO
+
+
+def _permission_mode_outcome(func_name: str) -> Tuple[Optional[Dict[str, Any]], bool]:
+    """按权限档位给出「拒绝结果, 是否跳过后续审批」两元组。
+
+    - (deny, False) ⇒ 直接拒绝；
+    - (None, True)  ⇒ 放行**并跳过**后续审批（档位授权的"免审批"）；
+    - (None, False) ⇒ 不改既有判定（继续走 L0–L3 / 兜底）。
+    """
+    mode = _permission_mode()
+    if mode == MODE_AUTO:
+        return None, False
+    meta = _meta_for(func_name)
+    effect = str(getattr(meta, "effect", "") or "").strip().lower()
+    plane = str(getattr(meta, "plane", "") or "").strip().lower()
+    if mode == MODE_READ_ONLY:
+        if effect == "read":
+            return None, True
+        return _deny(
+            func_name,
+            "当前权限档位为「仅可查看」：该能力 effect=%s（非只读），已拒绝。"
+            "如需写盘/执行命令，请在对话头部把权限档位切到「工作区修改」或「完全权限」。"
+            % (effect or "未知")), False
+    if mode == MODE_WORKSPACE:
+        if plane == "govern":
+            return None, False        # 治理动作不可用档位绕过
+        if effect in _MODE_ALLOW_EFFECTS[MODE_WORKSPACE]:
+            return None, True
+        return None, False            # execute/delete/extend ⇒ 仍逐次确认
+    if mode == MODE_FULL:
+        return None, True
+    return None, False
+
+
 def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
                     dl: Any = None,
                     session_source: Optional[str] = None) -> Optional[Dict[str, Any]]:
@@ -662,6 +765,15 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
             return _deny(name, "该工具在权限策略的显式黑名单中（来源: %s 的 "
                               "roles[*].denied_tools，命中条目 %r）"
                          % (POLICY_POLICIES_PATH, hit))
+
+        # 1.5 **权限档位**（2026-10-13，对齐 DSH）：在"黑名单/受限会话"之后、"审批"之前
+        #     判一次。read_only 出 deny；workspace/full 可能出"跳过后续审批"。
+        #     放在审批之前：档位授权的免审批不该先挂一张审批单再放行。
+        _mode_outcome, _mode_bypass = _permission_mode_outcome(name)
+        if _mode_outcome is not None:
+            return _mode_outcome
+        if _mode_bypass:
+            return None
 
         # 2. 描述符审批边界（data/descriptors.json 的 trust.requires_approval）
         #
