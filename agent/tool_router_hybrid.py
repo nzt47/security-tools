@@ -84,8 +84,8 @@ _COSINE_CUTOFF = 0.2      # Embedding 余弦剪枝阈值(低于此值不进入�
 # 【变易·W5 复核 A2/A3】取值可复算（口径 = **CJK 相邻二元组 + 对数 idf**，
 #         且**只用 calib 划分**、不含 test 划分 ⇒ 不构成 ECE 泄漏）：
 #           证据：eval/routing_baseline/bm25_raw_top1.json（受跟踪产物，逐条 raw BM25 top1）
-#                 stats.calib_all_layers = n=11 / p10=3.0472 / p50=5.5375 /
-#                 p90=10.9457 / max=11.408；calib 划分 33 条、test 42 条（与 report.json 一致）
+#                 stats.calib_all_layers = n=11 / p10=3.058 / p50=5.5507 /
+#                 p90=10.964 / max=11.4297；calib 划分 33 条、test 42 条（与 report.json 一致）
 #           取中位数为"半饱和点"⇒ 典型查询的 BM25 校准分落在 0.5 附近，
 #           接近 1.0 只留给显著高于基线的证据。
 #           自检：tests/unit/test_tool_router_hybrid_fusion_calibration.py::TestS0Provenance
@@ -95,7 +95,7 @@ _COSINE_CUTOFF = 0.2      # Embedding 余弦剪枝阈值(低于此值不进入�
 #         因此 `alpha=0.5` 是**融合权重**等权，**不等价于两路同等置信** ——
 #         不得把它表述为"原理性等权"。
 # 【简易】p = s / (s + S0) 单调、有界、保留 raw 量纲；比 min-max 多一个常量、零依赖。
-_BM25_HALF_SATURATION = 5.5375
+_BM25_HALF_SATURATION = 5.5507
 
 # ── 【W5/L28-A8】候选的"idf 证据下限"（查询相对，不是绝对分阈值）──
 # Why（对数 idf 的必要补充）: 取对数后，稀有词的权重优势被压缩（df=1 的 59.67 → 4.09），
