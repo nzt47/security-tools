@@ -1,8 +1,6 @@
 name: shell_execute
 category: code
-description: 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回
-  stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止。Run shell commands, execute terminal
-  commands
+description: 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。background=true 时改为后台执行（fire-and-forget）：立即返回 task_id，稍后用 get_task_status/get_task_result 取结果、用 cancel_task 取消。注意：危险命令（如 rm -rf）会被安全系统阻止。Run shell commands, execute terminal commands, run in background
 deprecated: false
 version: 1.0.0
 location: remote
@@ -31,6 +29,9 @@ schema:
     timeout:
       type: integer
       description: 超时秒数，默认 30，最大 120
+    background:
+      type: boolean
+      description: '是否后台执行（fire-and-forget）。true=立即返回 task_id，稍后用 get_task_status/get_task_result 取结果；false（默认）=阻塞等待本次执行结果'
   required:
   - command
 examples: []

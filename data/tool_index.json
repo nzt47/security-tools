@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-18T22:47:33",
+  "generated_at": "2026-10-14T00:04:53",
   "tool_count": 90,
   "categories": [
     "async",
@@ -261,14 +261,15 @@
     {
       "name": "shell_execute",
       "category": "code",
-      "description": "在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止。Run shell commands, execute terminal commands",
+      "description": "在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。background=true 时改为后台执行（fire-and-forget）：立即返回 task_id，稍后用 get_task_status/get_task_result 取结果、用 cancel_task 取消。注意：危险命令（如 rm -rf）会被安全系统阻止。Run shell commands, execute terminal commands, run in background",
       "version": "1.0.0",
       "deprecated": false,
       "parameter_names": [
         "command",
         "shell",
         "cwd",
-        "timeout"
+        "timeout",
+        "background"
       ]
     },
     {
