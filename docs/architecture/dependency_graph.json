@@ -62,7 +62,7 @@
       "name": "async_executor",
       "layer": "core",
       "file_path": "agent/async_executor.py",
-      "in_degree": 3,
+      "in_degree": 4,
       "out_degree": 4
     },
     {
@@ -78,7 +78,7 @@
       "name": "tool_gate",
       "layer": "core",
       "file_path": "",
-      "in_degree": 16,
+      "in_degree": 18,
       "out_degree": 20
     },
     {
@@ -846,7 +846,7 @@
       "name": "shell_tools",
       "layer": "tools",
       "file_path": "",
-      "in_degree": 2,
+      "in_degree": 3,
       "out_degree": 3
     },
     {
@@ -2687,7 +2687,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 3
+      "out_degree": 7
     },
     {
       "path": "agent.tools.code_tools",
@@ -29398,11 +29398,24 @@
     },
     {
       "source": "agent.tools.system_tools",
+      "target": "agent.tools.shell_tools",
+      "source_layer": "tools",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 83,
+      "source_file": "agent/tools/system_tools.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.system_tools",
       "target": "agent.system_tools",
       "source_layer": "tools",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 19,
+      "line": 98,
       "source_file": "agent/tools/system_tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -29415,7 +29428,46 @@
       "source_layer": "tools",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 37,
+      "line": 116,
+      "source_file": "agent/tools/system_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.system_tools",
+      "target": "agent.async_executor",
+      "source_layer": "tools",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 30,
+      "source_file": "agent/tools/system_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.system_tools",
+      "target": "agent.tool_gate",
+      "source_layer": "tools",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 39,
+      "source_file": "agent/tools/system_tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.system_tools",
+      "target": "agent.tool_gate",
+      "source_layer": "tools",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 45,
       "source_file": "agent/tools/system_tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -30544,8 +30596,8 @@
   "stats": {
     "total_files": 667,
     "total_nodes": 598,
-    "total_edges": 1981,
-    "cross_layer_edges": 1247,
+    "total_edges": 1985,
+    "cross_layer_edges": 1250,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {

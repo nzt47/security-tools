@@ -2603,8 +2603,12 @@ flowchart LR
     agent_tools_subagent_tools -.-> agent_monitoring_tracing
     agent_tools_subagent_tools -.-> agent_subagent_local_inference
     agent_tools_system_tools --> agent
+    agent_tools_system_tools --> agent_tools_shell_tools
     agent_tools_system_tools -.-> agent_system_tools
     agent_tools_system_tools -.-> agent_system_tools
+    agent_tools_system_tools -.-> agent_async_executor
+    agent_tools_system_tools -.-> agent_tool_gate
+    agent_tools_system_tools -.-> agent_tool_gate
     agent_tools_task_tools -.-> agent_observability_escape
     agent_tools_task_tools -.-> agent_observability_escape
     agent_tools_task_tools -.-> agent_task_scheduler
@@ -2701,7 +2705,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 667
 - 模块节点数: 598
-- 依赖边数: 1981
-- 跨层调用数: 1247
+- 依赖边数: 1985
+- 跨层调用数: 1250
 - 违规调用数: 0
 - 动态 import 数: 1
