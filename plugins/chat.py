@@ -1936,8 +1936,15 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             _saw_tool_calls = True
 
             # ── 执行工具并回传结果 ──
+            # 【2026-10-13 修「反复重调同一批工具 / 没两句就断」】OpenAI/DeepSeek 的消息结构要求：
+            #   **一条** assistant 消息承载本轮**全部** tool_calls，随后每个 tool_call_id 各一条
+            #   tool 消息。原实现把每个工具拆成 "assistant(只含该工具)+tool" 成对追加 —— 多工具
+            #   轮次的消息序列不合法，模型据此**反复重发同一批工具调用**，轮次耗尽后只留下残句。
             from agent.tools import call as _tool_call
-            for tname, targs_json, reasoning in collected_tools:
+            _tool_calls_msg: list = []
+            _tool_results: list = []
+            _tool_reasoning = ""
+            for _ti, (tname, targs_json, reasoning) in enumerate(collected_tools):
                 seq += 1
                 emitted = True
                 yield _sse({"type": "thinking", "id": f"tool-real-{tname}", "title": f"工具调用：{tname}",
@@ -1979,30 +1986,37 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                                 }
                     except Exception:
                         _approval_evt = None
-                # 回传结果给模型（assistant 消息含 tool_calls + reasoning_content
-                # [DeepSeek thinking 模式要求]；tool 消息含执行结果）
-                assistant_msg = {
-                    "role": "assistant",
-                    "content": "",
-                    "tool_calls": [{
-                        "id": f"call_{tname}",
-                        "type": "function",
-                        "function": {"name": tname, "arguments": targs_json},
-                    }],
-                }
-                if reasoning:
-                    assistant_msg["reasoning_content"] = reasoning
-                loop_messages.append(assistant_msg)
-                loop_messages.append({
-                    "role": "tool",
-                    "tool_call_id": f"call_{tname}",
-                    "content": tool_result[:4000],
+                _call_id = f"call_{tname}_{_ti}"
+                _tool_calls_msg.append({
+                    "id": _call_id,
+                    "type": "function",
+                    "function": {"name": tname, "arguments": targs_json},
                 })
+                _tool_results.append((_call_id, tool_result))
+                if reasoning and not _tool_reasoning:
+                    _tool_reasoning = reasoning
                 # 展示工具完成状态（含结果摘要）
                 yield _sse({"type": "thinking", "id": f"tool-real-{tname}", "title": f"工具调用：{tname}",
                             "detail": f"结果: {tool_result[:100]}", "status": "done"})
                 if _approval_evt:
                     yield _sse(_approval_evt)
+            # 本轮全部工具执行完 ⇒ 按合法结构一次性回传：
+            #   一条 assistant(tool_calls=全部) + 每个 tool_call_id 一条 tool。
+            if _tool_calls_msg:
+                _assistant_tool_msg = {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": _tool_calls_msg,
+                }
+                if _tool_reasoning:
+                    _assistant_tool_msg["reasoning_content"] = _tool_reasoning
+                loop_messages.append(_assistant_tool_msg)
+                for _call_id, _res in _tool_results:
+                    loop_messages.append({
+                        "role": "tool",
+                        "tool_call_id": _call_id,
+                        "content": _res[:4000],
+                    })
     except Exception as _e:
         _stream_error = True
         logger.error("[workbench][SSE] LLM 流式生成异常: %s", _e)
