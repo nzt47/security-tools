@@ -67,11 +67,15 @@ PAGES = {
         # 被 test_每个页面的取数目标是磁盘实况 当场抓出 —— 这正是该断言存在的意义。
         "endpoints": ["/api/web/search", "/api/web/search/status"],
     },
+}
+
+#: 构建产物（**不入库**，2026-10-14 起）：由 `npm run build:flask` 生成，
+#: 故在干净 checkout / CI 里**不存在**，不能进「磁盘 ↔ 登记逐一对齐」的比对。
+#: 它此前登记在 PAGES 里（React SPA 外壳；壳内 hubGet 自带令牌，故不受 AUTH_DEBT 影响）。
+BUILD_ARTIFACTS = {
     "templates/yunshu.html": {
-        # React SPA 外壳（由 yunshu-ui 构建同步，见 npm run build:flask）。
-        # 它与其余 legacy 页不同：壳内的 hubGet 会自动附带本地 API 令牌，故**不受影响**。
         "route": "/chat",
-        "endpoints": [],
+        "generated_by": "cd yunshu-ui && npm ci && npm run build:flask",
     },
 }
 
@@ -119,9 +123,16 @@ def _templates_on_disk():
 
 class Test遗留页面清单:
     def test_清单与磁盘实况逐一对齐(self):
-        """少一个 = 有人删了页面却没收缩清单；多一个 = 有人加回了 legacy SSR 页。"""
+        """少一个 = 有人删了页面却没收缩清单；多一个 = 有人加回了 legacy SSR 页。
+
+        【构建产物除外】templates/yunshu.html 由 build:flask 生成、不在版本控制里，
+        干净 checkout / CI 上不存在；把它算进比对会让本用例在 CI 上必然红。
+        故两边同时剔除，另由 Test构建产物不入库 守它的忽略规则与缺失提示。
+        """
         declared = {Path(k).name for k in PAGES}
-        on_disk = set(_templates_on_disk())
+        artifacts = {Path(k).name for k in BUILD_ARTIFACTS}
+        on_disk = set(_templates_on_disk()) - artifacts
+        declared = declared - artifacts
         assert on_disk == declared, (
             "templates/ 与登记表不一致。\n  磁盘多出（新增 legacy SSR 页？新能力请落到 "
             "React 工作台 hubNav）: " + str(sorted(on_disk - declared))
@@ -196,3 +207,28 @@ class Test_dashboard_收敛:
         assert '@app.route("/dashboard", methods=["GET"])' in src, (
             "/dashboard 路由被整条删除 —— 旧书签会 404。预期做法是保留路由 + 改跳转。"
         )
+
+
+class Test构建产物不入库:
+    """templates/yunshu.html 的入库口径（2026-10-14 收口，见 WEB_UI_BUILD_PREREQUISITE §4）
+
+    它与 static/assets/ 是同一条 build:flask 命令的同一次产物；只忽略后者是历史遗留。
+    本类守两件事：① 忽略规则确实登记了它；② /chat 在它缺失时给**可操作**提示而非 500。
+    """
+
+    GITIGNORE = ROOT / ".gitignore"
+    APP = ROOT / "app_server.py"
+
+    def test_忽略规则登记了构建产物(self):
+        ig = self.GITIGNORE.read_text(encoding="utf-8", errors="replace")
+        assert "templates/yunshu.html" in ig, (
+            "templates/yunshu.html 必须写进 .gitignore（与 static/assets 同口径）")
+
+    def test_chat_缺失产物时给可操作提示而不是_500(self):
+        src = self.APP.read_text(encoding="utf-8", errors="replace")
+        assert "npm run build:flask" in src, (
+            "/chat 的缺失页必须给出可复制的构建命令")
+        assert "status=503" in src, (
+            "/chat 缺产物时应回 503（服务未就绪），而不是 500 空白页")
+        assert 'render_template("yunshu.html")' not in src, (
+            "缺产物时回退 render_template 只会抛 TemplateNotFound ⇒ 500，不得保留")

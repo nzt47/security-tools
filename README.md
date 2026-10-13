@@ -63,10 +63,10 @@ cd ..
 python app_server.py
 ```
 
-**原因**：`templates/yunshu.html`（被 git 跟踪）引用的哈希 chunk 位于 `static/assets/`，
-而该目录被 `.gitignore` 的 `static/assets/` 条目忽略、**不被版本控制**。新克隆只有 HTML、没有它引用的 chunk，
-`/chat` 会返回 200 的 HTML + 404 的入口脚本 ⇒ **白屏**（`app_server.py:1535-1543` 对未命中的
-`/static/*` 直接 404，且刻意不回退）。
+**原因（2026-10-14 收口后）**：`templates/yunshu.html` 与 `static/assets/` 是**同一次构建的产物**，
+两者都已 `git rm --cached` 并写进 `.gitignore`。新克隆里**两者都不存在** ⇒ 直接访问 `/chat`
+会得到 **503「工作台尚未构建」+ 可复制的构建命令**（不再是从前的「200 HTML + 404 脚本 = 白屏」，
+也不再是 500）。构建完成后刷新即可（`/chat` 每次读盘 + `no-store`，不必重启后端）。
 
 > 用 `start_yunshu.bat` 一键启动**不受影响**：它起的是 Vite dev server（5173）并打开
 > `http://localhost:5173/static/#/workbench`，前端走源码而非构建产物 —— 这也意味着**它发现不了**

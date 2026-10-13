@@ -454,6 +454,11 @@ yunshu-ui/release/
 # static/assets/ 为 npm run build:flask 从 yunshu-ui/dist 复制的 Vite 哈希构建产物
 # （历史误跟踪的旧产物已 git rm --cached；部署/开发时执行 build:flask 重新生成）
 static/assets/
+# templates/yunshu.html 与 static/assets/ 是**同一条命令的同一次产物**（dist/index.html）：
+# 它引用带内容哈希的 chunk，入库只会让"新克隆拿到指向不存在资源的入口页"。
+# 2026-10-14 起同样 git rm --cached；/chat 在文件缺失时返回 503 + 构建指引（不再 500）。
+# 依据：docs/handover/WEB_UI_BUILD_PREREQUISITE.md §4。
+templates/yunshu.html
 # 前端恢复副本（restored-frontend/ 为本地备份参考，不入库）
 restored-frontend/
 # 任务计划运行时备份（TaskScheduler 生成的 data/*.json.bak_<时间戳>，不入库）
