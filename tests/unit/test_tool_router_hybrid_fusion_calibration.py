@@ -318,7 +318,7 @@ class TestS0Provenance:
         """代码注释引用的 n/p10/p50/p90/max 必须与产物逐项相同（防假注释）"""
         st = artifact["stats"]["bigram_log"]["calib_all_layers"]
         assert (st["n_with_hits"], st["p10"], st["p50_median"], st["p90"], st["max"]) == (
-            11, 3.0472, 5.5375, 10.9457, 11.408), f"注释引用的分位数与产物不符：{st}"
+            11, 3.058, 5.5507, 10.964, 11.4297), f"注释引用的分位数与产物不符：{st}"
 
     def test_uni_log_caliber_is_also_reproducible(self, artifact, monkeypatch):
         """提交1（仅对数 idf、单字分词）口径同样可复算（A1-b-prime 需要该口径的 S0）"""

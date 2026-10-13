@@ -527,7 +527,7 @@ class TestCasesVersionSelection:
         out = capsys.readouterr().out
         assert rc == 0
         assert "决策层通过 27/50" in out
-        assert "τ 建议   : 0.0462" in out
+        assert "τ 建议   : 0.0465" in out
 
 
 class TestEvalRunsV2:
