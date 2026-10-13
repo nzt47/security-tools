@@ -254,11 +254,13 @@ class _ToolThenSilentLLM:
 
     def __init__(self, **kwargs):
         self.calls: list = []
+        self.seen_messages: list = []
         _ToolThenSilentLLM.instances.append(self)
 
     def chat_stream(self, messages, system_prompt="", max_tokens=1024, temperature=0.7,
                     on_tool_call=None, tools=None, on_reasoning=None):
         self.calls.append({"tools": tools})
+        self.seen_messages = list(messages)
         n = len(self.calls)
         if n == 1:
             yield "明白，先做只读勘察。"
@@ -285,4 +287,27 @@ class TestSilentAfterToolsGetsClosed:
             "工具轮之后模型静默时没有收束，用户只能看到第一句开头")
         # 收束请求必须**不带 tools**（否则又是一轮工具调用，永远收不了尾）
         assert _ToolThenSilentLLM.instances[0].calls[-1]["tools"] is None
+
+    def test_工具回传结构合法且带_reasoning_content(self, monkeypatch):
+        """线上 400 根因回归：DeepSeek thinking 模式要求带 tool_calls 的 assistant 消息
+        **必须回传 reasoning_content**，且一轮多个 tool_calls 要放在**同一条** assistant 里、
+        每个 tool_call_id 各配一条 tool 消息（拆成多对 assistant+tool 会让模型反复重调）。"""
+        _ToolThenSilentLLM.instances = []
+        monkeypatch.setattr(llm_module, "LLMService", _ToolThenSilentLLM, raising=True)
+        import agent.tools as _tools_mod
+        monkeypatch.setattr(_tools_mod, "call", lambda name, **kw: {"ok": True}, raising=False)
+        _install_app_server(monkeypatch, window=131072)
+
+        _events_with_session()
+        # 第 2 次调用拿到的 messages 里必须含上一轮的 assistant 工具消息
+        sent = _ToolThenSilentLLM.instances[0].seen_messages
+        asst = [m for m in sent if m.get("role") == "assistant" and m.get("tool_calls")]
+        assert asst, "工具轮之后未把 assistant(tool_calls) 回传"
+        assert "reasoning_content" in asst[-1], (
+            "缺 reasoning_content ⇒ DeepSeek thinking 模式下一轮直接 400（实测）")
+        assert isinstance(asst[-1]["tool_calls"], list) and len(asst[-1]["tool_calls"]) == 1
+        # 每个 tool_call_id 都有一条 tool 结果
+        _ids = {tc["id"] for tc in asst[-1]["tool_calls"]}
+        tool_msgs = [m for m in sent if m.get("role") == "tool"]
+        assert _ids and {m["tool_call_id"] for m in tool_msgs} == _ids
 

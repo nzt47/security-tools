@@ -1854,6 +1854,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             # 本轮收集到的工具调用（name, args_json, reasoning_content）
             collected_tools = []
             _last_round_text_chars = 0
+            _round_text_parts: list = []
 
             def _on_tool_call(tool_name, args_json, reasoning_content=""):
                 logger.info("[workbench][SSE] 模型工具调用: %s %s", tool_name, args_json[:120])
@@ -1920,6 +1921,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 seq += 1
                 emitted = True
                 _last_round_text_chars += len(text_piece)
+                _round_text_parts.append(text_piece)
                 yield _sse({"type": "chunk", "text": text_piece, "seq": seq})
 
             # 收尾：本轮推理已全部外发 → 标记思考过程完成
@@ -2005,11 +2007,16 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             if _tool_calls_msg:
                 _assistant_tool_msg = {
                     "role": "assistant",
-                    "content": "",
+                    # 本轮模型在调工具前外发的正文也要一并回传（否则历史失真、模型重复解释）
+                    "content": "".join(_round_text_parts),
                     "tool_calls": _tool_calls_msg,
+                    # 【2026-10-13 线上实测 400】DeepSeek thinking 模式**强制**要求带 tool_calls 的
+                    # assistant 消息回传 reasoning_content：缺键时下一轮直接
+                    # 400 'The reasoning_content in the thinking mode must be passed back to the API'。
+                    # 这就是「调一次工具后就再也接不下去、只留一句残句」的根因 —— 必须**始终带键**
+                    # （本轮确实没有推理内容时也带空串，而不是省略）。
+                    "reasoning_content": _tool_reasoning,
                 }
-                if _tool_reasoning:
-                    _assistant_tool_msg["reasoning_content"] = _tool_reasoning
                 loop_messages.append(_assistant_tool_msg)
                 for _call_id, _res in _tool_results:
                     loop_messages.append({
