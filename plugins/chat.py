@@ -1816,15 +1816,28 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                        "阈值可在「上下文」面板调整") % (_input_tokens_est, _send_limit),
             "status": "done"})
 
-    max_tool_rounds = 4
+    # 【2026-10-13】原为 4、后 8：大任务（如"修评估集"）往往要十几轮只读勘察才动手，
+    #   8 轮仍是"做一半被硬停"，用户看到的就是"继续不下去"。参照 DSH：**做够为止**，
+    #   只保留一个很高的安全上限 + 墙钟预算（见下），不再用个小数字卡住真任务。
+    max_tool_rounds = 40
     emitted = False
     seq = 0
+    #: 最后一轮是否还在发工具调用（= 因轮次上限退出，而非自然结束）
+    _last_round_had_tools = False
+    #: 最后一轮外发的可见正文字符数（=0 表示这一轮没有可读产出）
+    _last_round_text_chars = 0
     # ── 异常 B 证据链（TASK-01 §3 修复 B）：本轮流式的可诊断状态 ──
     # 修复前这些信息**一个都没留**，只有一句"（模型未返回内容）"文案。
     _stream_started = time.time()
     _last_finish_reason = ""
     _saw_tool_calls = False
     _saw_any_payload = ""
+    _stream_error = False
+    #: 本轮墙钟预算（秒）：到点即不再发起新的工具轮，转为收束。
+    #  DSH 式"做够为止"不能真的无界：长任务十几~几十轮是正常的，但必须有个上限兜住
+    #  失控/上游卡死。15 分钟对工作台一次对话足够，超了会明确告知而不是静默中断。
+    _turn_budget_s = 900.0
+    _turn_deadline = _stream_started + _turn_budget_s
 
     # on_reasoning 是 chat_stream 的**新增可选回调**（思考过程外发）。老实现 / 测试替身
     # 可能没有该形参，直接传会 TypeError 打断对话主链路 → 先探测签名，不支持就退化为
@@ -1843,8 +1856,17 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
 
     try:
         for round_idx in range(max_tool_rounds + 1):
+            # 墙钟预算到点：不再开新一轮工具，直接转入收束（_last_round_had_tools=True）
+            if time.time() > _turn_deadline:
+                logger.warning(
+                    "[workbench][SSE] 本轮已达 %.0fs 墙钟预算，停止再调工具并收束",
+                    _turn_budget_s)
+                _last_round_had_tools = True
+                break
             # 本轮收集到的工具调用（name, args_json, reasoning_content）
             collected_tools = []
+            _last_round_text_chars = 0
+            _round_text_parts: list = []
 
             def _on_tool_call(tool_name, args_json, reasoning_content=""):
                 logger.info("[workbench][SSE] 模型工具调用: %s %s", tool_name, args_json[:120])
@@ -1910,6 +1932,8 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                     continue
                 seq += 1
                 emitted = True
+                _last_round_text_chars += len(text_piece)
+                _round_text_parts.append(text_piece)
                 yield _sse({"type": "chunk", "text": text_piece, "seq": seq})
 
             # 收尾：本轮推理已全部外发 → 标记思考过程完成
@@ -1920,12 +1944,21 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
 
             # 无工具调用 → 生成完成，退出循环
             if not collected_tools:
+                _last_round_had_tools = False
                 break
+            _last_round_had_tools = True
             _saw_tool_calls = True
 
             # ── 执行工具并回传结果 ──
+            # 【2026-10-13 修「反复重调同一批工具 / 没两句就断」】OpenAI/DeepSeek 的消息结构要求：
+            #   **一条** assistant 消息承载本轮**全部** tool_calls，随后每个 tool_call_id 各一条
+            #   tool 消息。原实现把每个工具拆成 "assistant(只含该工具)+tool" 成对追加 —— 多工具
+            #   轮次的消息序列不合法，模型据此**反复重发同一批工具调用**，轮次耗尽后只留下残句。
             from agent.tools import call as _tool_call
-            for tname, targs_json, reasoning in collected_tools:
+            _tool_calls_msg: list = []
+            _tool_results: list = []
+            _tool_reasoning = ""
+            for _ti, (tname, targs_json, reasoning) in enumerate(collected_tools):
                 seq += 1
                 emitted = True
                 yield _sse({"type": "thinking", "id": f"tool-real-{tname}", "title": f"工具调用：{tname}",
@@ -1967,31 +2000,44 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                                 }
                     except Exception:
                         _approval_evt = None
-                # 回传结果给模型（assistant 消息含 tool_calls + reasoning_content
-                # [DeepSeek thinking 模式要求]；tool 消息含执行结果）
-                assistant_msg = {
-                    "role": "assistant",
-                    "content": "",
-                    "tool_calls": [{
-                        "id": f"call_{tname}",
-                        "type": "function",
-                        "function": {"name": tname, "arguments": targs_json},
-                    }],
-                }
-                if reasoning:
-                    assistant_msg["reasoning_content"] = reasoning
-                loop_messages.append(assistant_msg)
-                loop_messages.append({
-                    "role": "tool",
-                    "tool_call_id": f"call_{tname}",
-                    "content": tool_result[:4000],
+                _call_id = f"call_{tname}_{_ti}"
+                _tool_calls_msg.append({
+                    "id": _call_id,
+                    "type": "function",
+                    "function": {"name": tname, "arguments": targs_json},
                 })
+                _tool_results.append((_call_id, tool_result))
+                if reasoning and not _tool_reasoning:
+                    _tool_reasoning = reasoning
                 # 展示工具完成状态（含结果摘要）
                 yield _sse({"type": "thinking", "id": f"tool-real-{tname}", "title": f"工具调用：{tname}",
                             "detail": f"结果: {tool_result[:100]}", "status": "done"})
                 if _approval_evt:
                     yield _sse(_approval_evt)
+            # 本轮全部工具执行完 ⇒ 按合法结构一次性回传：
+            #   一条 assistant(tool_calls=全部) + 每个 tool_call_id 一条 tool。
+            if _tool_calls_msg:
+                _assistant_tool_msg = {
+                    "role": "assistant",
+                    # 本轮模型在调工具前外发的正文也要一并回传（否则历史失真、模型重复解释）
+                    "content": "".join(_round_text_parts),
+                    "tool_calls": _tool_calls_msg,
+                    # 【2026-10-13 线上实测 400】DeepSeek thinking 模式**强制**要求带 tool_calls 的
+                    # assistant 消息回传 reasoning_content：缺键时下一轮直接
+                    # 400 'The reasoning_content in the thinking mode must be passed back to the API'。
+                    # 这就是「调一次工具后就再也接不下去、只留一句残句」的根因 —— 必须**始终带键**
+                    # （本轮确实没有推理内容时也带空串，而不是省略）。
+                    "reasoning_content": _tool_reasoning,
+                }
+                loop_messages.append(_assistant_tool_msg)
+                for _call_id, _res in _tool_results:
+                    loop_messages.append({
+                        "role": "tool",
+                        "tool_call_id": _call_id,
+                        "content": _res[:4000],
+                    })
     except Exception as _e:
+        _stream_error = True
         logger.error("[workbench][SSE] LLM 流式生成异常: %s", _e)
         err_text = f"\n\n> ⚠️ LLM 调用失败：{_e}\n> 请检查 .env 中 LLM_API_KEY / LLM_MODEL 配置。"
         seq += 1
@@ -2000,6 +2046,53 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
         #   路由层据此把它排除在"长期记忆"之外 —— 否则一条"LLM 调用失败"会进记忆、
         #   参与后续压缩与召回（实测探针：错误文案确实被写进 _memory）。
         yield _sse({"type": "chunk", "text": err_text, "seq": seq, "synthetic": True})
+
+    # ── 收束：轮次用尽仍在调工具 / 最后一轮没有可见正文 ⇒ 强制一次「无工具收束」──
+    #   【2026-10-13 修「只回一句就不继续」】此前循环退出后直接结束：若模型把可见
+    #   正文都用在第一轮（"明白，先做只读勘察"），之后每轮只发工具调用，用户看到的
+    #   就只有那句开头、且没有任何"为什么停"的交代。这里补一次**不带 tools** 的收束，
+    #   让最后一屏总有模型对当前进度的结论与下一步；收束仍为空则交给既有兜底文案。
+    if not _stream_error and (_last_round_had_tools or _last_round_text_chars == 0):
+        if _last_round_had_tools:
+            yield _sse({"type": "thinking", "id": "tool-round-cap",
+                        "title": "工具轮次已达上限",
+                        "detail": ("已用满 %d 轮工具调用，正在让模型收束当前结论与下一步"
+                                   "（可回复「继续」接着做）") % max_tool_rounds,
+                        "status": "done"})
+        _synth_emitted = False
+        # 收束时明确要"用正文回答、不要工具标记"：不加这句时模型常在收尾处又吐一个
+        # 文本协议工具标记（可见正文以 '<' 断尾，实测两次），用户看到的仍像"断掉"。
+        _synth_messages = list(loop_messages) + [{
+            "role": "user",
+            "content": "（系统提示）请直接用中文给出你目前的结论与下一步计划，"
+                       "不要再调用工具，也不要输出任何工具调用标记。",
+        }]
+        try:
+            for _synth_piece in llm.chat_stream(
+                    messages=_synth_messages, system_prompt=SYSTEM_PROMPT,
+                    max_tokens=_stream_max_tokens, temperature=0.7):
+                if not _synth_piece:
+                    continue
+                # 同一道兜底消毒闸：可见出口不留 DSML 标记
+                try:
+                    from agent.dsml_adapter import sanitize_visible_text as _sanitize2
+                    _synth_piece, _ = _sanitize2(_synth_piece)
+                except Exception:  # noqa: BLE001
+                    pass
+                if not _synth_piece:
+                    continue
+                seq += 1
+                emitted = True
+                _synth_emitted = True
+                yield _sse({"type": "chunk", "text": _synth_piece, "seq": seq})
+        except Exception as _se:  # noqa: BLE001 收束失败不吞掉已有输出
+            logger.error("[workbench][SSE] 收束请求失败: %s", _se)
+        if not _synth_emitted and _last_round_had_tools:
+            seq += 1
+            emitted = True
+            yield _sse({"type": "chunk",
+                        "text": "\n\n（已达工具轮次上限，本轮未再产出正文；回复「继续」可接着做。）",
+                        "seq": seq, "synthetic": True})
 
     yield _sse({"type": "thinking", "id": "generate", "title": "生成回复", "status": "done"})
 
