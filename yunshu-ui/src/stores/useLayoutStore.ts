@@ -36,6 +36,8 @@ export interface ThinkingEvent {
   detail?: string;
   status: ThinkingStatus;
   at: number;
+  /** 结构化读数（后端 thinking 事件的 meta；如上下文装配/会话统计的数值） */
+  meta?: Record<string, unknown>;
 }
 
 /** 待人工审批（由 SSE approval 事件设置）：审批弹窗据此渲染「批准 / 拒绝」。 */
@@ -213,6 +215,7 @@ export const useLayoutStore = create<LayoutStore>()(
           title: string;
           detail?: string;
           status: ThinkingStatus;
+          meta?: Record<string, unknown>;
         }) => {
           emitStreamLog({
             kind: 'thinking',

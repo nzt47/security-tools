@@ -28,9 +28,11 @@ export interface LlmConfig {
   model: string;
   /** 上下文窗口大小（token），用于用量占比估算 */
   contextWindow: number;
+  /** 【2026-10-14】true=走云枢后端代理（默认；不需要 Endpoint/API Key） */
+  useBackend: boolean;
 }
 
-const DEFAULT_LLM: LlmConfig = { enabled: false, endpoint: '', apiKey: '', model: 'gpt-4o-mini', contextWindow: 32768 };
+const DEFAULT_LLM: LlmConfig = { enabled: false, endpoint: '', apiKey: '', model: 'gpt-4o-mini', contextWindow: 32768, useBackend: true };
 
 interface PromptLabState {
   values: Record<string, FactorValue>;
@@ -93,6 +95,8 @@ function sanitizeLlm(raw: unknown): LlmConfig {
       typeof r.contextWindow === 'number' && Number.isFinite(r.contextWindow) && r.contextWindow > 0
         ? r.contextWindow
         : DEFAULT_LLM.contextWindow,
+    // 只有显式存过 false 才关（老数据无此字段 ⇒ 默认走后端代理）
+    useBackend: r.useBackend !== false,
   };
 }
 

@@ -486,18 +486,6 @@ export default function WorkbenchChatPage() {
               <History size={11} />
               历史问话
             </button>
-            {messageCount > 0 && (
-              <button
-                type="button"
-                onClick={() => void handleClearConversation()}
-                disabled={streaming}
-                title="清空当前会话的全部消息（后端同步删除，保留会话与工作空间）"
-                className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40"
-              >
-                <RotateCcw size={11} />
-                清空对话
-              </button>
-            )}
           </div>
         </div>
 

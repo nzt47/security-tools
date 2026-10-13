@@ -13,6 +13,7 @@
  *  - 因此本文件只保留因素引擎与 token 估算；模板文本由上游传入。
  */
 import type { FactorCategory, PromptFactorDef, FactorValue } from './promptFactorTypes';
+import { postEnvelope } from '@/api/envelope';
 
 export type { FactorCategory, PromptFactorDef, FactorValue };
 
@@ -328,8 +329,34 @@ export function exportCsv(values: Record<string, FactorValue>, customFactors: Pr
 }
 
 /**
- * 真实 LLM 预览接口（预留）：兼容 OpenAI 风格 chat/completions。
- * 未配置 endpoint/apiKey 时由页面降级到模拟预览。
+ * 走**云枢后端代理**的真实预览（默认路径，2026-10-14 修 404）。
+ *
+ * 【为什么默认走它】前端直连用户填的 Endpoint 有三个坑：面板默认值是空串、外部域名
+ * 被浏览器 CORS 挡（响应体为空 ⇒ 界面只显示 "HTTP 404："）、路径写错同样是 404。
+ * 后端 /api/prompt-lab/llm-preview 用 .env 里已配置的 LLM 生成，开箱可用。
+ */
+export async function requestBackendLlmPreview(opts: {
+  systemPrompt: string;
+  prompt: string;
+  model?: string;
+  maxTokens: number;
+}): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  try {
+    const body = await postEnvelope<{ text?: string }>('/api/prompt-lab/llm-preview', {
+      systemPrompt: opts.systemPrompt,
+      prompt: opts.prompt,
+      model: opts.model || '',
+      maxTokens: opts.maxTokens,
+    });
+    return { ok: true, text: String(body?.text ?? '') };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
+ * 真实 LLM 预览接口（**自定义Endpoint 直连**）：兼容 OpenAI 风格 chat/completions。
+ * 仅在用户显式取消「使用云枢默认 LLM」时使用；直连受浏览器 CORS 约束。
  */
 export async function requestLlmPreview(opts: {
   endpoint: string;

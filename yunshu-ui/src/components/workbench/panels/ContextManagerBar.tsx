@@ -10,7 +10,7 @@
  * 注：config/compress 写操作需 FLASK_API_TOKEN（401 时提示）。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronDown, Gauge, HelpCircle, RefreshCw, Minimize2 } from 'lucide-react'
+import { ChevronDown, Gauge, RefreshCw, Minimize2 } from 'lucide-react'
 import { Loading, hubGet } from '../../../pages/hub/components/ui'
 // 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2，改用显式信封解析。
 // 【P1-front 第九批】同页两个 POST（config/compress）也已迁移，一并改用 postEnvelope。
@@ -45,6 +45,23 @@ interface CtxStatus {
   messages_count: number
   /** 轮数 = 用户发言条数（一次发言 = 一轮） */
   turns?: number
+  /** 【2026-10-14 对齐 DSH】当前窗口（本会话基线之上）的压缩次数 */
+  compress_rounds_window?: number
+  /** 【2026-10-14】会话统计：模型用时 / 工具调用用时 / 首 token 平均（毫秒） */
+  session_stats?: {
+    turns?: number
+    model_ms?: number
+    tool_ms?: number
+    ttft_ms?: number | null
+    ttft_samples?: number
+  }
+  /** 【2026-10-14】最近一轮的上下文装配明细（系统提示词 / 工具定义 / 对话消息） */
+  context_breakdown?: {
+    window_tokens?: number | null
+    system_tokens?: number
+    tools_tokens?: number | null
+    history_tokens?: number | null
+  }
 }
 
 /** 会话级 LLM 读数（/api/llm-monitor/stats 的消费子集） */
@@ -64,25 +81,10 @@ interface LlmStats {
 
 const STORAGE_KEY = 'yunshu_ctx_monitor'
 
-/** 水位 → 文案/颜色（与进度条一致：>=80 红、60~80 黄、其余绿） */
-function levelOf(pct: number): { label: string; dot: string; text: string } {
-  if (pct >= 80) return { label: '即将溢出', dot: '🔴', text: 'text-red-400' }
-  if (pct >= 60) return { label: '接近阈值', dot: '🟡', text: 'text-amber-400' }
-  return { label: '正常', dot: '🟢', text: 'text-emerald-400' }
-}
-
-/** 压缩退化状态 */
-function degradeOf(rounds: number): { label: string; dot: string; text: string } {
-  if (rounds >= 5) return { label: '退化明显，建议新建会话', dot: '🔴', text: 'text-red-400' }
-  if (rounds >= 3) return { label: '摘要质量开始下降', dot: '🟡', text: 'text-amber-400' }
-  return { label: '质量良好', dot: '✓', text: 'text-emerald-400' }
-}
-
 export function ContextManagerBar() {
   const [status, setStatus] = useState<CtxStatus | null>(null)
   const [llm, setLlm] = useState<LlmStats | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const [showHelp, setShowHelp] = useState(false)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -170,11 +172,16 @@ export function ContextManagerBar() {
   const pct = status?.percentage ?? 0
   const pctKnown = status?.percentage != null
   const barColor = pct >= 80 ? 'bg-red-500' : pct >= 60 ? 'bg-amber-400' : 'bg-cyan-500'
-  const lvl = levelOf(pct)
-  // 档位以**占用**为准；"摘要退化"由后端单列（此前把累计压缩次数当占用，22% 也报红）
-  const dg = degradeOf(status?.compress_degraded ? 5 : (status?.compress_rounds ?? 0))
   const fmt = (n?: number | null) => (n != null ? n.toLocaleString() : '-')
   const reasons = status?.status_reasons ?? []
+  // 【2026-10-14 对齐 DSH】三组读数的取数（取不到就显示 —，不拿占位数字冒充）
+  const ss = status?.session_stats ?? {}
+  const bk = status?.context_breakdown ?? {}
+  const msText = (ms?: number | null) =>
+    ms == null ? '—'
+      : ms >= 60000 ? `${(ms / 60000).toFixed(1)} min`
+        : ms >= 1000 ? `${(ms / 1000).toFixed(1)} s`
+          : `${Math.round(ms)} ms`
 
   return (
     <div className="border-t border-slate-800 bg-slate-900/40">
@@ -205,29 +212,14 @@ export function ContextManagerBar() {
             缓存 {(llm.cache_hit_ratio * 100).toFixed(0)}%
           </span>
         )}
-        {status && status.compress_rounds > 0 && (
-          <span className="hidden shrink-0 text-[10px] text-slate-600 md:inline">压缩 {status.compress_rounds} 次</span>
+        {status && (status.compress_rounds_window ?? status.compress_rounds) > 0 && (
+          <span
+            className="hidden shrink-0 text-[10px] text-slate-600 md:inline"
+            title={`当前窗口压缩 ${status.compress_rounds_window ?? status.compress_rounds} 次（累计摘要版本 ${status.compress_rounds}）`}
+          >
+            压缩 {status.compress_rounds_window ?? status.compress_rounds} 次
+          </span>
         )}
-        {/* 机制说明快捷入口 */}
-        <span
-          role="button"
-          tabIndex={0}
-          title="上下文管理机制说明"
-          onClick={(e) => {
-            e.stopPropagation()
-            setShowHelp((v) => !v)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault(); e.stopPropagation()
-              setShowHelp((v) => !v)
-            }
-          }}
-          className={`flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 transition-colors ${showHelp ? 'bg-cyan-500/15 text-cyan-300' : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'}`}
-        >
-          <HelpCircle size={11} />
-          <span className="hidden lg:inline">机制说明</span>
-        </span>
         <ChevronDown size={11} className={`shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
@@ -238,17 +230,62 @@ export function ContextManagerBar() {
           {msg && <div className="rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-1.5 text-[11px] text-cyan-400">{msg}</div>}
           {!status ? <Loading text="加载上下文状态…" /> : (
             <>
-              {/* 概览：上下文 + 会话级 LLM 读数（对齐 DeepSeek Harness 的状态栏读数） */}
+              {/* ── DeepSeek Harness 同构读数（2026-10-14）──────────────────────
+                  三组：会话统计 / Token 用量 / 上下文已用。取数口径：
+                    · 会话统计   ← status.session_stats（后端流式主循环每轮实测累计）
+                    · Token 用量 ← /api/llm-monitor/stats（前缀缓存命中/未命中/输出）
+                    · 上下文已用 ← status.context_breakdown（最近一轮装配明细）
+                  任一项取不到就显示 —，**不拿占位数字冒充**（本仓纪律）。 */}
+              <div className="grid gap-2 sm:grid-cols-3">
+                {([
+                  {
+                    title: '会话统计',
+                    rows: [
+                      ['模型用时', msText(ss.model_ms)],
+                      ['工具调用用时', msText(ss.tool_ms)],
+                      ['首 token 平均（TTFT）', ss.ttft_ms != null ? `${Math.round(ss.ttft_ms)} ms` : '—'],
+                      ['输出速度（TPS）', llm?.tok_per_s != null ? `${Number(llm.tok_per_s).toFixed(1)} tok/s` : '—'],
+                    ],
+                  },
+                  {
+                    title: 'Token 用量',
+                    rows: [
+                      ['缓存命中', llm?.cache_hit_ratio != null ? `${(llm.cache_hit_ratio * 100).toFixed(0)}%` : '未上报'],
+                      ['未缓存输入', fmt(llm?.cache_miss_tokens)],
+                      ['缓存读取', fmt(llm?.cache_hit_tokens)],
+                      ['输出', fmt(llm?.total_response_tokens)],
+                    ],
+                  },
+                  {
+                    title: '上下文已用',
+                    rows: [
+                      ['系统提示词', bk.system_tokens != null ? `${fmt(bk.system_tokens)} tok` : '—'],
+                      ['工具定义', bk.tools_tokens != null ? `${fmt(bk.tools_tokens)} tok` : '—'],
+                      ['对话消息', bk.history_tokens != null ? `${fmt(bk.history_tokens)} tok` : `${fmt(status.current_tokens)} tok`],
+                    ],
+                  },
+                ] as { title: string; rows: [string, string][] }[]).map((g) => (
+                  <div key={g.title} className="rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-2">
+                    <div className="mb-1 text-[10px] font-medium text-cyan-300">{g.title}</div>
+                    <div className="space-y-0.5">
+                      {g.rows.map(([label, value]) => (
+                        <div key={label} className="flex items-center justify-between gap-2 text-[11px]">
+                          <span className="text-slate-500">{label}</span>
+                          <span className="font-mono text-slate-200">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 窗口概览（水位/压缩/轮数/调用频数） */}
               <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
                 {[
                   { l: '窗口已用', v: pctKnown ? `${pct.toFixed(0)}%` : '—', c: pct >= 80 ? 'text-red-400' : pct >= 60 ? 'text-amber-400' : 'text-emerald-400' },
                   { l: '窗口 Token', v: `${fmt(status.current_tokens)}/${fmt(status.token_limit)}`, c: 'text-slate-200' },
                   { l: '轮数', v: fmt(status.turns), c: 'text-slate-200' },
-                  { l: '调用频数', v: `${fmt(llm?.total)} 次`, c: 'text-slate-200' },
-                  { l: 'tok/s', v: llm?.tok_per_s != null ? Number(llm.tok_per_s).toFixed(1) : '-', c: 'text-cyan-400' },
-                  { l: 'tok 总数', v: fmt(llm?.total_tokens), c: 'text-slate-200' },
-                  { l: '缓存命中', v: llm?.cache_hit_ratio != null ? `${(llm.cache_hit_ratio * 100).toFixed(0)}%` : '未上报', c: llm?.cache_hit_ratio != null ? 'text-emerald-400' : 'text-slate-500' },
-                  { l: '压缩', v: `${status.compress_rounds} 次`, c: 'text-cyan-400' },
+                  { l: '当前窗口压缩', v: `${fmt(status.compress_rounds_window ?? status.compress_rounds)} 次`, c: 'text-cyan-400' },
                 ].map((s) => (
                   <div key={s.l} className="rounded-lg border border-slate-800 bg-slate-900/60 px-2 py-1.5">
                     <div className="text-[10px] text-slate-500">{s.l}</div>
@@ -323,54 +360,10 @@ export function ContextManagerBar() {
                   <button onClick={load} className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-400 hover:bg-slate-800">
                     <RefreshCw size={11} /> 刷新
                   </button>
-                  <button
-                    onClick={() => setShowHelp((v) => !v)}
-                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] ${showHelp ? 'border-cyan-700 bg-cyan-500/10 text-cyan-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
-                  >
-                    <HelpCircle size={11} /> {showHelp ? '收起机制说明' : '机制说明'}
-                  </button>
                 </div>
                 <span className="text-[9px] text-slate-600">压缩为写操作，需 FLASK_API_TOKEN</span>
               </div>
 
-              {/* ⚙️ 机制说明 */}
-              {showHelp && (
-                <div className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
-                  <div className="flex items-center gap-1.5 text-[10.5px] font-medium text-cyan-300">
-                    <HelpCircle size={11} /> 上下文管理机制（多层次自动策略，无需手动干预）
-                  </div>
-
-                  <div className="text-[11px] leading-relaxed text-slate-300">
-                    <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
-                      <span className="text-cyan-400">① 异步后台压缩</span>：每次对话后检查 token 总量，
-                      使用率超过阈值（<b className="text-slate-100">{Math.round(status.compress_threshold * 100)}%</b>）时，
-                      在后台自动把<b className="text-slate-100">旧对话压缩为摘要</b>，保留关键决策与结论。
-                      当前已压缩 <b className="text-slate-100">{status.compress_rounds} 次</b>。
-                    </div>
-                    <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
-                      <span className="text-cyan-400">② 三级水位预警</span>：
-                      🟢 &lt;60% 正常 · 🟡 60%~80% 接近阈值 · 🔴 &gt;80% 即将溢出；
-                      达到临界时，回复末尾会提示创建新会话。当前：<span className={lvl.text}>{lvl.dot} {lvl.label}</span>（{pct.toFixed(1)}%）。
-                    </div>
-                    <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
-                      <span className="text-cyan-400">③ 摘要退化检测</span>：每次压缩都会损失部分细节，
-                      <b className="text-slate-100">压缩 ≥3 次</b>时摘要质量开始下降，<b className="text-slate-100">≥5 次</b>时退化明显，
-                      建议创建新会话继续对话。当前：<span className={dg.text}>{dg.dot} {dg.label}</span>。
-                    </div>
-                    <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
-                      <span className="text-cyan-400">④ System Prompt 预算保护</span>：System prompt 有
-                      <b className="text-slate-100"> 10000 tokens</b> 的预算上限，超限时自动截断工具状态列表，保证核心指令完整。
-                    </div>
-                    <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
-                      <span className="text-cyan-400">⑤ 主动丢弃</span>：即使压缩后仍超限，系统会从
-                      <b className="text-slate-100">最旧的非摘要消息</b>开始丢弃，直到满足 token_limit。
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      提示：若反复压缩后仍频繁溢出（水位长期 ≥80%），建议点击顶部「新建会话」开始新对话。
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>

@@ -311,3 +311,30 @@ class TestSilentAfterToolsGetsClosed:
         tool_msgs = [m for m in sent if m.get("role") == "tool"]
         assert _ids and {m["tool_call_id"] for m in tool_msgs} == _ids
 
+
+
+class TestSessionStatsReadouts:
+    """【2026-10-14 对齐 DSH】会话统计与上下文装配明细的结构化外发
+
+    面板「会话统计」直接读这些 meta，不再靠解析 detail 文本。
+    """
+
+    def test_会话统计事件带结构化读数(self):
+        events = _events()
+        stats = [e for e in events if e.get("id") == "session-stats"]
+        assert stats, "未外发 session-stats 事件"
+        meta = stats[0].get("meta") or {}
+        assert meta.get("model_ms") is not None
+        assert meta.get("tool_ms") is not None
+        # 假服务第一片正文立刻产出 ⇒ TTFT 是有限值（不是 None）
+        assert meta.get("ttft_ms") is not None
+        assert meta["model_ms"] >= 0
+        assert meta["ttft_ms"] >= 0
+
+    def test_上下文装配事件带三档明细(self):
+        events = _events()
+        budget = [e for e in events if e.get("id") == "context-budget"]
+        assert budget, "未外发 context-budget 事件"
+        meta = budget[0].get("meta") or {}
+        for key in ("system_tokens", "tools_tokens", "history_tokens"):
+            assert key in meta, f"context-budget 缺少 {key}"

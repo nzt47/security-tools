@@ -349,7 +349,7 @@ class LLMMonitor:
             if total == 0:
                 return {"total": 0, "total_request_tokens": 0,
                         "total_response_tokens": 0, "total_cost_estimate": 0,
-                        "avg_duration_ms": 0, "by_source": {},
+                        "avg_duration_ms": 0, "total_duration_ms": 0, "by_source": {},
                         "tok_per_s": 0.0, "cache_hit_tokens": 0,
                         "cache_miss_tokens": 0, "cache_reported_calls": 0,
                         "cache_hit_ratio": None}
@@ -392,6 +392,9 @@ class LLMMonitor:
                 "total_response_tokens": total_res_tok,
                 "total_tokens": total_req_tok + total_res_tok,
                 "avg_duration_ms": round(avg_dur, 1),
+                # 【2026-10-14 对齐 DSH】会话统计的「模型用时」= 全部 LLM 调用耗时之和
+                # （此前只有 avg，面板拿不到总量）。
+                "total_duration_ms": round(total_dur_ms, 1),
                 "estimated_cost_usd": round(cost_input + cost_output, 6),
                 "by_source": by_source,
                 "tok_per_s": tok_per_s,
