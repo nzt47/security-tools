@@ -55,8 +55,9 @@ const HubAdminLogs = lazy(() => import('@/pages/hub/admin/index').then((m) => ({
 // 数据导出：复用管理后台 Export 页（原 /export 路由已随第二套外壳摘除，收敛到系统管理栏目）
 const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
-// 插件与扩展：原「插件管理」与「扩展中心」合并为一个导航项（两 Tab），
-// 见 pages/hub/plugins/index.tsx（extensionHost.registerPluginModule 链路保留）。
+// 插件与扩展：原「插件管理」与「扩展中心」合并为一个导航项；2026-10-15 进一步取消 Tab，
+// 插件自带 UI 直接挂在清单卡片里（extensionHost.registerPluginModule 链路保留），
+// 见 pages/hub/plugins/index.tsx 与 pages/hub/plugin-manage.tsx。
 const PluginsPage = lazy(() => import('@/pages/hub/plugins'))
 // 治理面板（v7.2 §7 六面板 + 审计导出）：**工作台内扩展，不建独立 Web App**（UI 五坑④）。
 // 单一组件 + `panel` 参数（同 ContentPanel 的"key 即参数语义"约定，见 derivePanelParams）。

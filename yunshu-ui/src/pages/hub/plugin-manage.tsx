@@ -1,6 +1,11 @@
 /**
- * 插件管理 —— 插件清单 + schema 驱动配置表单（工作台「系统组件 / 插件管理」）
+ * 插件与扩展 —— 插件清单 + schema 配置表单 + 插件自带 UI（工作台「会话与配置 / 插件与扩展」）
  * -------------------------------------------------
+ * 【2026-10-15 合并】原「清单与配置 / 扩展呈现」两 Tab 合为一页：
+ *   · 两者同读 /api/plugins，「扩展呈现」的 schema 配置部分与本页完全重复；
+ *   · 「扩展呈现」唯一独有能力是自动挂载插件自带 UI（client_slot → registerPluginModule），
+ *     现已并入本页每个插件卡片（声明了 client_slot 的插件才会出现「插件界面」区块）。
+ * 仍是插件的唯一导航入口（禁止双入口）。
  * 数据源：/api/plugins（GET manifest）、/api/plugins/reload（POST 刷新，受令牌保护）
  *
  * 能力（任务 5 / P1-4：并入 legacy src/plugins/ 的 PluginPanel + SchemaRenderer +
@@ -17,12 +22,13 @@
  *    一致）；ApiTokenField 输入后经 lib/apiToken 持久化，apiClient.request 自动注入
  *    Authorization 头，无需重复输入。
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createElement, useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, RefreshCw, Server, Settings2 } from 'lucide-react'
 import { Card, Badge, PageHeader, Loading, ErrorBox } from './components/ui'
 import { SchemaRenderer } from '@/plugins/schema'
 import { ApiTokenField } from '@/plugins/ApiTokenField'
 import { ApiError, request } from '@/lib/apiClient'
+import { registerPluginModule, type SlotEntry } from '@/plugins/extensionHost'
 
 import {
   PLUGINS,
@@ -111,6 +117,9 @@ export default function PluginManagePage() {
   const [config, setConfig] = useState<PluginInfo | null>(null)
   const [routeName, setRouteName] = useState<string | null>(null)
 
+  /** 插件自带 UI 的挂载结果（client_slot → registerPluginModule；原「扩展呈现」能力） */
+  const [mounted, setMounted] = useState<Record<string, { state: string; error?: string; entries: SlotEntry[] }>>({})
+
   // 当前配置面板的表单态
   const [values, setValues] = useState<Json>({})
   const [valuesLoading, setValuesLoading] = useState(false)
@@ -137,6 +146,22 @@ export default function PluginManagePage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // 【2026-10-15 合并「扩展呈现」】声明 client_slot 的插件自动挂载自带 UI：
+  // 插件作者只写 public/plugins/<name>.js + 后端声明，新增即被发现，无需改前端。
+  useEffect(() => {
+    let cancelled = false
+    const withSlot = plugins.filter((p) => p.clientSlot?.module)
+    void (async () => {
+      for (const p of withSlot) {
+        const r = await registerPluginModule(p.name, String(p.clientSlot?.module), {})
+        if (!cancelled) {
+          setMounted((m) => ({ ...m, [p.name]: { state: r.state, error: r.error, entries: r.entries } }))
+        }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [plugins])
 
   /** 拉取当前配置面板插件的生效值（仅 schema 声明字段；失败静默回退 default） */
   const loadCurrentValues = useCallback(async (plugin: PluginInfo) => {
@@ -299,8 +324,8 @@ export default function PluginManagePage() {
   return (
     <div className="p-6">
       <PageHeader
-        title="插件管理"
-        description={`已加载 ${plugins.length} 个插件${host?.flask ? `（Flask ${host.flask} / Python ${host.python ?? ''}）` : ''}`}
+        title="插件与扩展"
+        description={`已加载 ${plugins.length} 个插件${host?.flask ? `（Flask ${host.flask} / Python ${host.python ?? ''}）` : ''}；逐插件可展开配置、路由明细与插件自带界面`}
         actions={
           <div className="flex items-center gap-2">
             <div className="w-60" data-testid="plugin-api-token-wrap">
@@ -401,6 +426,32 @@ export default function PluginManagePage() {
                     {(p.routes ?? []).length === 0 && (
                       <div className="py-2 text-center text-[11px] text-slate-600">无路由</div>
                     )}
+                  </div>
+                )}
+
+                {/* 插件自带 UI（原「扩展呈现」）：声明 client_slot 才渲染；失败必须上屏 */}
+                {p.clientSlot?.module && (
+                  <div
+                    className="rounded-lg border border-slate-800 bg-slate-950/60 p-3"
+                    data-testid={`plugin-client-slot-${p.name}`}
+                  >
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                      <span className="font-medium text-slate-300">插件界面</span>
+                      <span className="font-mono text-slate-600">{p.clientSlot.module}</span>
+                      {!mounted[p.name] && <span className="text-slate-600">加载中…</span>}
+                      {mounted[p.name]?.state === 'error' && (
+                        <span className="text-red-400">加载失败：{mounted[p.name]?.error}</span>
+                      )}
+                      {mounted[p.name]?.state === 'ok' && mounted[p.name]?.entries.length === 0 && (
+                        <span className="text-amber-400">模块已加载但没有 mountToSlot 任何界面</span>
+                      )}
+                    </div>
+                    {(mounted[p.name]?.entries ?? []).map((e, i) => (
+                      <div key={(e.id || 'entry') + i} className="border-t border-slate-800 pt-2">
+                        {e.title && <div className="mb-1 text-[11px] text-slate-400">{e.icon} {e.title}</div>}
+                        {e.component ? createElement(e.component as React.ComponentType) : null}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
