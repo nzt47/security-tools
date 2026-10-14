@@ -5,33 +5,27 @@
  *
  * 【取数纪律】层次与职责是本仓既有事实（写死在下方常量，随代码变更同步）；
  * 数量则一律来自**真实端点**，取不到就显示 —，不拿占位数字冒充（本仓纪律）。
- *   向量记忆 / 会话：/api/memory/overview
- *   知识库        ：/api/knowledge/index
- *   经验库        ：/api/experience/stats
+ *   会话消息：/api/memory/overview（统一信封 v2 → getEnvelope）
+ *   向量记忆：/api/vector/stats（尚未迁移 → hubGet）
+ *   知识卡片：/api/knowledge/cards（尚未迁移 → hubGet）
+ *   经验条目：/api/experience/stats（尚未迁移 → hubGet）
+ *   （原「窗口事件」一项在后端没有任何对应端点，已删除 —— 不留只会显示 — 的占位卡。）
  */
 import { useEffect, useState } from 'react'
-import { BookOpen, Brain, Database, Layers, Lightbulb, RefreshCw } from 'lucide-react'
-import { Card, PageHeader, StatCard } from '../components/ui'
+import { BookOpen, Brain, Database, Lightbulb, RefreshCw } from 'lucide-react'
+import { Card, PageHeader, StatCard, hubGet } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
-import { EXPERIENCE_STATS, KNOWLEDGE_INDEX, MEMORY_OVERVIEW } from '@/api/endpoints'
+import { EXPERIENCE_STATS, KNOWLEDGE_CARDS, MEMORY_OVERVIEW, VECTOR_STATS } from '@/api/endpoints'
 
-type AnyObj = Record<string, unknown>
+/** 各来源的业务载荷（键取不到就返回 null —— 由调用方显示 —，绝不拿占位数字冒充） */
+interface MemoryOverview { message_count?: number }
+interface VectorStats { count?: number; total_memories?: number }
+interface KnowledgeCards { count?: number; cards?: unknown[] }
+interface ExperienceStats { stats?: { corpus_size?: number } }
 
-/** 从任意形状的对象里按候选键取一个数字（取不到返回 null —— 由调用方显示 —） */
-function pickNum(obj: unknown, keys: string[]): number | null {
-  if (!obj || typeof obj !== 'object') return null
-  const rec = obj as AnyObj
-  for (const k of keys) {
-    const v = rec[k]
-    if (typeof v === 'number' && Number.isFinite(v)) return v
-  }
-  // 数组型响应（如 /api/knowledge/index 返回卡片列表）按长度计
-  if (Array.isArray(obj)) return obj.length
-  for (const k of ['items', 'cards', 'list', 'data']) {
-    const v = rec[k]
-    if (Array.isArray(v)) return v.length
-  }
-  return null
+/** 只认真实数字：字符串/布尔/undefined 一律视为"取不到"（本仓纪律：失败要显示得出来） */
+function numOrNull(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null
 }
 
 const fmt = (n: number | null) => (n == null ? '—' : n.toLocaleString())
@@ -84,36 +78,49 @@ const PARTS: { name: string; role: string; write: string; read: string; icon: ty
 ]
 
 export default function MemoryStructure() {
-  const [overview, setOverview] = useState<unknown>(null)
-  const [knowledge, setKnowledge] = useState<unknown>(null)
-  const [experience, setExperience] = useState<unknown>(null)
+  const [overview, setOverview] = useState<MemoryOverview | null>(null)
+  const [vector, setVector] = useState<VectorStats | null>(null)
+  const [knowledge, setKnowledge] = useState<KnowledgeCards | null>(null)
+  const [experience, setExperience] = useState<ExperienceStats | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
   const load = () => {
     setLoading(true)
     setError('')
-    // 三个端点各自独立：任一失败不影响其余读数（缺失项显示 —）
+    // 四个来源各自独立：任一失败不影响其余读数（缺失项显示 —），但要**说出是哪个取不到**。
+    // 【为什么混用 getEnvelope / hubGet】/api/memory/overview 已迁到统一信封（v2）；
+    // /api/vector/stats、/api/knowledge/cards、/api/experience/stats 尚未迁移（无 X-Envelope 头），
+    // 对它们调 getEnvelope 会直接抛错 ⇒ 原先四个读数静默变成 —（本页此前"很多取不到"的根因）。
+    // 未迁移端点沿用本仓既有的 hubGet（与知识库 / 资产等页同一口径），迁移后再换 getEnvelope。
     Promise.allSettled([
-      getEnvelope<unknown>(MEMORY_OVERVIEW),
-      getEnvelope<unknown>(KNOWLEDGE_INDEX),
-      getEnvelope<unknown>(EXPERIENCE_STATS),
-    ]).then(([o, k, e]) => {
+      getEnvelope<MemoryOverview | null>(MEMORY_OVERVIEW),
+      hubGet<VectorStats>(VECTOR_STATS),
+      hubGet<KnowledgeCards>(KNOWLEDGE_CARDS),
+      hubGet<ExperienceStats>(EXPERIENCE_STATS),
+    ]).then(([o, v, k, e]) => {
+      const missing: string[] = []
       if (o.status === 'fulfilled') setOverview(o.value)
-      else setError(String(o.reason))
+      else missing.push('会话消息')
+      if (v.status === 'fulfilled') setVector(v.value)
+      else missing.push('向量记忆')
       if (k.status === 'fulfilled') setKnowledge(k.value)
+      else missing.push('知识卡片')
       if (e.status === 'fulfilled') setExperience(e.value)
+      else missing.push('经验条目')
+      setError(missing.length > 0 ? '以下读数取不到：' + missing.join(' / ') : '')
       setLoading(false)
     })
   }
 
   useEffect(load, [])
 
-  const vectorDocs = pickNum(overview, ['vector_docs', 'vector_count', 'docs'])
-  const messages = pickNum(overview, ['message_count', 'messages'])
-  const windowEvents = pickNum(overview, ['window_events', 'events'])
-  const cards = pickNum(knowledge, ['total', 'count', 'cards'])
-  const expTotal = pickNum(experience, ['total', 'count', 'samples'])
+  const vectorDocs = vector ? (numOrNull(vector.count) ?? numOrNull(vector.total_memories)) : null
+  const messages = overview ? numOrNull(overview.message_count) : null
+  const cards = knowledge
+    ? (numOrNull(knowledge.count) ?? (Array.isArray(knowledge.cards) ? knowledge.cards.length : null))
+    : null
+  const expTotal = experience ? numOrNull(experience.stats?.corpus_size) : null
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-5">
@@ -135,12 +142,12 @@ export default function MemoryStructure() {
       </div>
 
       {/* ── 组成总览（真实数量）──────────────────────────────────── */}
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+      {/* 四张卡：全部来自真实端点（取不到显示 —，由上方提示条说明是哪一个） */}
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="向量记忆文档" value={fmt(vectorDocs)} unit="条" icon={<Brain size={14} />} />
         <StatCard label="知识卡片" value={fmt(cards)} unit="张" icon={<BookOpen size={14} />} color="text-amber-400" />
         <StatCard label="经验条目" value={fmt(expTotal)} unit="条" icon={<Lightbulb size={14} />} color="text-emerald-400" />
         <StatCard label="会话消息" value={fmt(messages)} unit="条" icon={<Database size={14} />} color="text-slate-400" />
-        <StatCard label="窗口事件" value={fmt(windowEvents)} unit="次" icon={<Layers size={14} />} color="text-violet-400" />
       </div>
 
       {/* ── 三层结构 ────────────────────────────────────────────── */}

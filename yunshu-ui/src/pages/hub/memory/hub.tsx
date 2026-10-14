@@ -1,5 +1,5 @@
 /**
- * 记忆管理 —— 主内容区 Tab 容器（向量记忆 / 记忆结构 / 知识库系统 / 经验库 / 全库检索）
+ * 记忆管理 —— 主内容区 Tab 容器（记忆结构 / 向量记忆 / 知识库系统 / 经验库 / 全库检索）
  * 【第四轮 IA · 2026-10-14】原「手动记忆」+「自动记忆」两个 Tab 合并为「向量记忆」
  * （页内分段控件保留两种视图），并新增「记忆结构」Tab。
  * ------------------------------------------------------------------
@@ -37,10 +37,11 @@ export interface MemoryTabDef {
 }
 
 /** 子模块（【第四轮 IA · 2026-10-14】手动记忆 + 自动记忆合并为「向量记忆」，
- *  并新增「记忆结构」；顺序 = 展示顺序） */
+ *  并新增「记忆结构」；【2026-10-15】「记忆结构」上移到第一位 —— 它讲的是这套记忆
+ *  由什么组成、谁写谁读，先看结构再看数据更顺；顺序 = 展示顺序） */
 export const MEMORY_TABS: MemoryTabDef[] = [
-  { id: 'vector', label: '向量记忆', icon: Brain, hint: '记忆本体：手动录入 + 对话中自动沉淀，统一走向量检索' },
   { id: 'structure', label: '记忆结构', icon: Layers, hint: '记忆的层次、组成部分、数据来源与职责边界' },
+  { id: 'vector', label: '向量记忆', icon: Brain, hint: '记忆本体：手动录入 + 对话中自动沉淀，统一走向量检索' },
   { id: 'knowledge', label: '知识库系统', icon: BookOpen, hint: '知识卡片编辑 / 双链图谱 / 融合检索' },
   { id: 'experience', label: '经验库', icon: BookOpen, hint: '从历史会话提炼的任务经验（审查台）' },
   { id: 'search', label: '全库检索', icon: Search, hint: '一个入口，分面检索：向量记忆 / 知识库 / 经验库' },
@@ -57,17 +58,19 @@ function readSavedTab(): MemoryTab {
     const v = localStorage.getItem(MEMORY_TAB_STORAGE_KEY)
     if (!isMemoryTab(v)) {
       // 【第四轮 IA】旧值 manual / auto 已合并为 vector：沿用「上次看的是手动还是自动」
-      // 的记忆时，统一落到合并后的「向量记忆」（否则会静默跳回第一个 Tab）。
-      return v === 'manual' || v === 'auto' ? 'vector' : 'vector'
+      // 的记忆时，统一落到合并后的「向量记忆」。
+      // 其余（无记忆 / 未知值）落到**第一个 Tab**，与上方 MEMORY_TABS 的顺序保持一致
+      //（顺序调整后若仍写死 'vector'，新用户会落在第二个 Tab 上）。
+      return v === 'manual' || v === 'auto' ? 'vector' : MEMORY_TABS[0].id
     }
     return v
   } catch {
-    return 'vector'
+    return MEMORY_TABS[0].id
   }
 }
 
 export interface MemoryHubProps {
-  /** 初始 Tab（缺省用 localStorage 记忆的值；非法值回落第一个 Tab「向量记忆」） */
+  /** 初始 Tab（缺省用 localStorage 记忆的值；非法值回落第一个 Tab「记忆结构」） */
   initialTab?: MemoryTab
 }
 
