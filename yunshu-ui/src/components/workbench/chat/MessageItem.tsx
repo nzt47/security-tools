@@ -16,7 +16,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ChevronDown, ChevronRight, EyeOff, Loader2, Wrench, XCircle } from 'lucide-react';
-import type { ChatMessage, ThinkingEvent } from '../../../stores/useLayoutStore';
+import { isHistoryMessageId, type ChatMessage, type ThinkingEvent } from '../../../stores/useLayoutStore';
 import { useChatPrefsStore } from '../../../stores/useChatPrefsStore';
 import { Markdown } from './Markdown';
 
@@ -109,7 +109,10 @@ export function MessageItem({
   return (
     <motion.div
       data-mid={message.id}
-      initial={{ opacity: 0, y: 12, filter: 'blur(2px)' }}
+      // 历史消息（刷新/切会话时一次载入）不播放入场动画：否则长会话会逐条淡入，
+      // 与"从顶部平滑滚到底"叠在一起，观感就是"从头刷到尾"（见 useLayoutStore 的
+      // HISTORY_MSG_ID_PREFIX 说明）。initial={false} 即关闭该元素的首次动画。
+      initial={isHistoryMessageId(message.id) ? false : { opacity: 0, y: 12, filter: 'blur(2px)' }}
       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       className={`wb-msg wb-chat-format-${format} flex gap-3 ${isUser ? 'flex-row-reverse' : ''} ${highlighted ? 'wb-msg-flash' : ''}`}
