@@ -4,6 +4,8 @@
  * 单一数据源：导航树（阶段 3 收敛、第三轮 IA 并为 6 桶、**第四轮 IA 再并为 4 桶**）与内容组件映射。
  * 第四轮（2026-10-14）：记忆与资产 + 插件与扩展 + 网络配置并入「会话与配置」，
  * 模块列表并入「全景看板」，「系统组件」桶取消。
+ * 第五轮（2026-10-14）：模块列表与系统监控同读 /api/modules/topology（双入口）⇒
+ * 合并为「系统监控」的页内「模块明细」Tab，独立叶子 components/modules 移除。
  * ContentPanel 根据当前选中导航项，从此处取组件渲染。
  * 所有既有功能（Hub 8 栏目 + 管理后台）统一挂载到工作台。
  */
@@ -11,7 +13,7 @@ import { lazy, type ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   MessageSquare, LayoutDashboard, Brain, Wrench, Globe, Database,
-  Activity, FileText, Server, Boxes, Monitor,
+  Activity, FileText, Server, Monitor,
   HeartPulse, CalendarClock, Users, Copy, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
@@ -53,7 +55,6 @@ const HubAdminLogs = lazy(() => import('@/pages/hub/admin/index').then((m) => ({
 // 数据导出：复用管理后台 Export 页（原 /export 路由已随第二套外壳摘除，收敛到系统管理栏目）
 const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
-const ModuleListPage = lazy(() => import('@/pages/hub/module-list'))
 // 插件与扩展：原「插件管理」与「扩展中心」合并为一个导航项（两 Tab），
 // 见 pages/hub/plugins/index.tsx（extensionHost.registerPluginModule 链路保留）。
 const PluginsPage = lazy(() => import('@/pages/hub/plugins'))
@@ -111,9 +112,6 @@ export const HUB_NAV: HubNavItem[] = [
       // 子项 key 保留 engine/* ⇒ 旧深链 ?panel=engine/heartbeat 仍有效；组 key engine 走兼容映射。
       { key: 'engine/heartbeat', label: '心跳监测', icon: HeartPulse, component: EngineHeartbeat },
       { key: 'engine/scheduler', label: '定时任务', icon: CalendarClock, component: EngineScheduler },
-      // 【第四轮 IA · 2026-10-14】「模块列表」从被取消的「系统组件」桶迁入全景看板
-      // （运行时模块/依赖视图与全景看板同类）。key 不变 ⇒ 旧深链仍有效。
-      { key: 'components/modules', label: '模块列表', icon: Boxes, component: ModuleListPage },
     ],
   },
   {
@@ -269,7 +267,11 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   // 【第四轮 IA · 2026-10-14】「记忆与资产」「系统组件」两个桶被取消：
   //   组 key 消失 ⇒ 落到各自的原第一个子项（叶子 key 不变，深链继续有效）。
   'memory-assets': 'memory',
-  'components': 'components/modules',
+  // 【第五轮 IA · 2026-10-14】「模块列表」并入「系统监控」（两者同读 /api/modules/topology，
+  //   是本仓明令避免的"双入口"）：独立叶子 components/modules 消失 ⇒ 连同旧组 key
+  //   components 一起落到 panorama/monitor（页内「模块明细」Tab）。
+  'components': 'panorama/monitor',
+  'components/modules': 'panorama/monitor',
   // 【第二轮 IA】记忆管理子项 → 页内 Tab（落到「记忆管理」页，Tab 记忆接续上次选择）
   'memory/manual': 'memory',
   'memory/auto': 'memory',

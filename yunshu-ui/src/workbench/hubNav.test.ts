@@ -121,23 +121,23 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     ])
   })
 
-  it('【第四轮 IA】记忆与资产 / 插件与扩展 / 网络配置 并入「会话与配置」；模块列表入「全景看板」；「系统组件」桶取消', () => {
+  it('【第四轮+第五轮 IA】记忆/资产/插件/网络 并入「会话与配置」；模块列表并入「系统监控」；「系统组件」桶取消', () => {
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     const childKeys = (workspace?.children ?? []).map((c) => c.key)
     for (const k of ['memory', 'assets', 'components/plugins', 'network']) {
       expect(childKeys).toContain(k)
     }
-    // 两个桶被取消；模块列表迁入全景看板
     const topKeys = HUB_NAV.map((i) => i.key)
     expect(topKeys).not.toContain('memory-assets')
     expect(topKeys).not.toContain('components')
-    const panorama = HUB_NAV.find((i) => i.key === 'panorama')
-    expect((panorama?.children ?? []).map((c) => c.key)).toContain('components/modules')
+    // 【第五轮 · 2026-10-14】模块列表不再是独立叶子：它与系统监控同读
+    //   /api/modules/topology（双入口）⇒ 合并为系统监控页内的「模块明细」Tab。
+    expect(flattenNav(HUB_NAV).some((i) => i.key === 'components/modules')).toBe(false)
+    expect(findNavItem('panorama/monitor')?.component).toBeDefined()
     // 叶子 key 不变 ⇒ 旧深链 ?panel=memory / ?panel=assets / ?panel=network 仍解析
     expect(findNavItem('memory')?.component).toBeDefined()
     expect(findNavItem('assets')?.component).toBeDefined()
     expect(findNavItem('network')?.component).toBeDefined()
-    expect(findNavItem('components/modules')?.component).toBeDefined()
   })
 
   it('「装配车间」两个子项并入「会话与配置」，顶层不再有 workshop 分组', () => {
