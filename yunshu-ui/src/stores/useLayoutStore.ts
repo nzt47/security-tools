@@ -30,6 +30,20 @@ export interface ChatMessage {
   steps?: ThinkingEvent[];
 }
 
+/**
+ * 历史消息 id 前缀：loadSessionHistory 从后端载入的消息一律用它生成 id。
+ *
+ * 【为什么需要】ChatPanel / MessageItem 据此区分「刷新或切会话时一次性载入的历史」
+ * 与「本次会话新产生的消息」——前者应**直接落底且不播放入场动画**，后者才用
+ * 平滑滚动 + 入场动画。否则长会话每次刷新都会"从头刷到尾"（先逐条淡入、再从顶部
+ * 平滑滚到底，见 ChatPanel 的滚动 effect 与 MessageItem 的入场动画）。
+ */
+export const HISTORY_MSG_ID_PREFIX = 'hist-';
+
+export function isHistoryMessageId(id: string): boolean {
+  return id.startsWith(HISTORY_MSG_ID_PREFIX);
+}
+
 export interface ThinkingEvent {
   id: string;
   title: string;
@@ -435,7 +449,7 @@ export const useLayoutStore = create<LayoutStore>()(
           const loaded: ChatMessage[] = hist
             .filter((m) => m.content)
             .map((m, i) => ({
-              id: `hist-${sessionId}-${i}`,
+              id: `${HISTORY_MSG_ID_PREFIX}${sessionId}-${i}`,
               role: (m.role === 'assistant' ? 'assistant' : 'user') as ChatMessage['role'],
               content: String(m.content),
               createdAt: m.timestamp ? new Date(m.timestamp).getTime() : Date.now(),

@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, Square } from 'lucide-react';
-import { subscribeStreamLog, useLayoutStore } from '../../../stores/useLayoutStore';
+import { isHistoryMessageId, subscribeStreamLog, useLayoutStore } from '../../../stores/useLayoutStore';
 import { CHAT_FORMATS, chatStyleVars, useChatPrefsStore, type ChatFormat } from '../../../stores/useChatPrefsStore';
 import { MessageItem, isToolStep } from '../chat/MessageItem';
 import { MessageInput } from '../chat/MessageInput';
@@ -137,10 +137,14 @@ export function ChatPanel() {
   // 最后一条消息内容：内容增长时触底滚动（独立变量便于依赖数组静态检查）
   const lastMsgContent = messages[messages.length - 1]?.content;
 
-  // 流式内容增长 / 新消息 → 平滑滚动到底部
+  // 【2026-10-15 修「刷新后会话从头刷到尾」】
+  // 历史消息是 loadSessionHistory 一次性 set 进来的：若仍用 smooth，浏览器会带着整段
+  // 会话从顶部平滑滚到末尾，长会话看起来就像"从头刷到尾"。历史批次直接落底（auto），
+  // 只有本次会话新产生的消息才平滑滚动。
+  const lastIsHistory = messages.length > 0 && isHistoryMessageId(messages[messages.length - 1].id);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, lastMsgContent]);
+    bottomRef.current?.scrollIntoView({ behavior: lastIsHistory ? 'auto' : 'smooth', block: 'end' });
+  }, [messages, lastMsgContent, lastIsHistory]);
 
   // 历史问话跳转定位：滚动到目标消息（data-mid 锚点）并触发 wb-msg-flash 高亮，
   // 动画结束后清空 store 标记，避免下一次挂载重复闪烁。
