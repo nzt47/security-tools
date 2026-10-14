@@ -17,6 +17,7 @@ import type { ComponentType } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useWorkbenchNav } from '../../../workbench/navStore'
 import { derivePanelParams, findNavItem, type HubPanelParams } from '../../../workbench/hubNav'
+import PanelErrorBoundary from './PanelErrorBoundary'
 
 export function ContentPanel() {
   const activeKey = useWorkbenchNav((s) => s.activeKey)
@@ -38,7 +39,11 @@ export function ContentPanel() {
             </div>
           }
         >
-          <Component key={activeKey} {...params} />
+          {/* 【2026-10-15】错误边界：任一面板渲染期抛错时给出可读错误卡，
+              而不是让 React 卸载整棵子树 ⇒ 主内容区整块空白（仪表盘空白页的失败形态）。 */}
+          <PanelErrorBoundary resetKey={activeKey}>
+            <Component key={activeKey} {...params} />
+          </PanelErrorBoundary>
         </Suspense>
       ) : (
         <div className="flex h-full items-center justify-center text-sm text-slate-500">
