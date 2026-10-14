@@ -41,7 +41,7 @@ const LAST_SESSION_KEY = 'yunshu.session.last'
 /** 把 API 错误转成可读提示：401（FLASK_API_TOKEN 保护）给出配置指引 */
 function toHumanError(e: unknown): string {
   if (e instanceof ApiError && e.status === 401) {
-    return '写操作需要 API 令牌（401）：请在「系统组件 → 插件管理 → API 令牌」填入 FLASK_API_TOKEN 后重试'
+    return '写操作需要 API 令牌（401）：请在「会话与配置 → 插件与扩展」里填入 FLASK_API_TOKEN 后重试'
   }
   return e instanceof Error ? e.message : String(e)
 }

@@ -122,7 +122,7 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
                 条向量文档。
               </p>
               <div className="rounded-lg border border-cyan-900/50 bg-cyan-950/20 px-4 py-3 text-xs leading-6 text-cyan-200/80">
-                提示：如需手动录入关键信息，请在左侧导航切换至「手动记忆」（memory/manual）。
+                提示：如需手动录入关键信息，请切到本页「向量记忆」左上角的「手动录入」视图。
               </div>
             </div>
           </Card>
