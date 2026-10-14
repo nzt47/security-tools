@@ -29,15 +29,15 @@ interface StatCardConfig {
   iconColor: string
 }
 
-/** 顶部统计卡片：白底卡片 + 左侧大数字 + 右侧圆角图标（与系统管理其余页面风格一致） */
+/** 顶部统计卡片：深色卡片 + 左侧大数字 + 右侧圆角图标（与工作台其余页面同一套语义 Token） */
 function StatCard({ config }: { config: StatCardConfig }) {
   const Icon = config.icon
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-slate-500">{config.title}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-slate-800">{config.value}</p>
+          <p className="text-sm text-muted-foreground">{config.title}</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">{config.value}</p>
         </div>
         <div className={'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ' + config.iconBg}>
           <Icon className={'h-5 w-5 ' + config.iconColor} />
@@ -50,17 +50,17 @@ function StatCard({ config }: { config: StatCardConfig }) {
 /** 结构不符：把校验明细摊开，别让人对着空白页猜（本仓纪律：失败必须说得出为什么） */
 function ShapeMismatch({ issues }: { issues: string[] }) {
   return (
-    <div className="rounded-xl border border-amber-300 bg-amber-50 p-5">
-      <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+    <div className="rounded-xl border border-amber-700/60 bg-amber-950/40 p-5">
+      <div className="flex items-center gap-2 text-sm font-medium text-amber-300">
         <AlertTriangle size={16} />
         接口返回结构与页面不匹配，已停止渲染以免空白页
       </div>
-      <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-700">
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-400">
         {issues.map((it) => (
           <li key={it}>{it}</li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-amber-700">
+      <p className="mt-3 text-xs text-amber-400">
         后端：GET /api/dashboard/summary（plugins/admin_api.py::admin_dashboard_summary）。
         若接口有意改字段，请同步 src/api/dashboard.ts 的 DashboardSummaryData 与本页。
       </p>
@@ -97,14 +97,14 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   if (!data) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-slate-400">
+      <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
         数据加载失败，请稍后重试
       </div>
     )
@@ -115,13 +115,13 @@ export default function Dashboard() {
   }
 
   const cards: StatCardConfig[] = [
-    { title: '用户总数', value: data.totalUsers.toLocaleString(), icon: Users, iconBg: 'bg-indigo-50', iconColor: 'text-indigo-600' },
-    { title: '活跃用户', value: data.activeUsers.toLocaleString(), icon: Activity, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
-    { title: '角色数', value: data.totalRoles.toLocaleString(), icon: UserCog, iconBg: 'bg-sky-50', iconColor: 'text-sky-600' },
-    { title: '今日审计', value: data.todayAuditCount.toLocaleString(), icon: ClipboardList, iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
-    { title: '传感器', value: data.sensorCount.toLocaleString(), icon: Server, iconBg: 'bg-violet-50', iconColor: 'text-violet-600' },
-    { title: '通知总数', value: data.totalNotifications.toLocaleString(), icon: Bell, iconBg: 'bg-slate-100', iconColor: 'text-slate-600' },
-    { title: '未读通知', value: data.unreadNotifications.toLocaleString(), icon: BellRing, iconBg: 'bg-rose-50', iconColor: 'text-rose-600' },
+    { title: '用户总数', value: data.totalUsers.toLocaleString(), icon: Users, iconBg: 'bg-cyan-500/15', iconColor: 'text-indigo-400' },
+    { title: '活跃用户', value: data.activeUsers.toLocaleString(), icon: Activity, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400' },
+    { title: '角色数', value: data.totalRoles.toLocaleString(), icon: UserCog, iconBg: 'bg-sky-500/15', iconColor: 'text-sky-400' },
+    { title: '今日审计', value: data.todayAuditCount.toLocaleString(), icon: ClipboardList, iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400' },
+    { title: '传感器', value: data.sensorCount.toLocaleString(), icon: Server, iconBg: 'bg-violet-500/15', iconColor: 'text-violet-400' },
+    { title: '通知总数', value: data.totalNotifications.toLocaleString(), icon: Bell, iconBg: 'bg-muted', iconColor: 'text-muted-foreground' },
+    { title: '未读通知', value: data.unreadNotifications.toLocaleString(), icon: BellRing, iconBg: 'bg-rose-500/15', iconColor: 'text-rose-400' },
   ]
 
   return (
@@ -132,12 +132,12 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-800">系统状态</h2>
-        <p className="mt-0.5 text-xs text-slate-400">来自 /api/dashboard/summary 的 systemStatus</p>
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-foreground">系统状态</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">来自 /api/dashboard/summary 的 systemStatus</p>
         <div className="mt-3 flex items-center gap-2">
-          <ShieldCheck size={16} className={data.systemStatus === 'healthy' ? 'text-emerald-600' : 'text-amber-600'} />
-          <span className="text-sm text-slate-700">{data.systemStatus}</span>
+          <ShieldCheck size={16} className={data.systemStatus === 'healthy' ? 'text-emerald-400' : 'text-amber-400'} />
+          <span className="text-sm text-foreground">{data.systemStatus}</span>
         </div>
       </div>
     </div>
