@@ -730,6 +730,49 @@ class MemoryManager:
         """
         return self._summarizer.compress(old_messages)
 
+    def compress_now(self) -> dict:
+        """手动压缩（同步）：执行一次**真正的**压缩，并回报可核实的结果。
+
+        【为什么需要它】工作台面板的「手动压缩」此前调用的是上面那个
+        compress(old_messages) —— 它是**摘要器的薄封装**（返回 str），而调用点
+        plugins/memory.py::api_context_compress 既没传参、又按 dict 取
+        result.get("freed") ⇒ 必然 TypeError，接口恒 500
+        （2026-10-14 实测：MemoryManager.compress() missing 1 required positional
+        argument: 'old_messages'）。这里给出与面板契约一致的手动入口。
+
+        【为什么不报 freed_tokens】本实现的压缩**不删除**已存消息：它把窗口内消息
+        压成 / 并入摘要（_execute_compression 只 save_summary），消息仍留在
+        messages.jsonl 与内存窗口里。因此"释放了多少 token"在当前结构下
+        **不可核实** —— 报一个数字只会是编的（本仓纪律：取不到就如实说取不到）。
+        故这里只回报「是否成功 + 摘要版本前后 + 参与压缩的消息数」。
+
+        Returns:
+            dict: {ok, summary_version, version_before, messages_compressed}
+        """
+        version_before = 0
+        try:
+            summary = self.load_summary()
+            version_before = int(summary[1]) if summary else 0
+        except Exception:  # noqa: BLE001 旧版本读不到不阻断压缩
+            version_before = 0
+        try:
+            messages = self._storage.load_recent_messages(limit=100)
+        except Exception:  # noqa: BLE001 消息读不到按 0 计
+            messages = []
+        ok = self._execute_compression()
+        version_after = version_before
+        try:
+            summary = self.load_summary()
+            version_after = int(summary[1]) if summary else version_before
+        except Exception:  # noqa: BLE001
+            version_after = version_before
+        return {
+            "ok": bool(ok),
+            "summary_version": int(version_after),
+            "version_before": int(version_before),
+            "messages_compressed": len(messages),
+        }
+
     def save_log(self, event_type: str, data: dict):
         """记录黑匣子事件（快捷入口）"""
         self._black_box.log(event_type, data)
