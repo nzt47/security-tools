@@ -79,6 +79,16 @@ interface LlmStats {
   cache_reported_calls?: number
 }
 
+/** POST /api/context/compress 的响应体（【2026-10-14】不再有 freed_tokens：压缩不删消息，
+ *  释放量不可核实 ⇒ 后端改报摘要版本与并入消息数） */
+interface CompressResp {
+  ok?: boolean
+  summary_version?: number
+  version_before?: number
+  messages_compressed?: number
+  error?: string
+}
+
 const STORAGE_KEY = 'yunshu_ctx_monitor'
 
 export function ContextManagerBar() {
@@ -155,10 +165,12 @@ export function ContextManagerBar() {
     setBusy(true)
     setMsg('')
     try {
-      const d = await postEnvelope<{ ok?: boolean; freed_tokens?: number; error?: string }>(CONTEXT_COMPRESS)
-      if (d.ok) flashMsg(`已压缩，释放 ${d.freed_tokens ?? 0} tokens`)
-      else if (d.error) flashMsg(`压缩失败：${d.error}`)
-      else flashMsg(String(d.ok ?? JSON.stringify(d).slice(0, 60)))
+      // 【2026-10-14】后端不再回报 freed_tokens（压缩不删消息，释放量不可核实）；
+      // 改报「摘要版本 + 并入消息数」—— 面板只展示能被核实的东西。
+      const d = await postEnvelope<CompressResp>(CONTEXT_COMPRESS)
+      if (d.ok) flashMsg(`已压缩：摘要版本 v${d.summary_version ?? '?'}（并入 ${d.messages_compressed ?? 0} 条消息）`)
+      else if (d.error) flashMsg(`压缩失败：${d.error}`, 3500)
+      else flashMsg('本轮没有可压缩的消息（摘要未变更）')
     } catch (e) {
       const m = e instanceof Error ? e.message : String(e)
       flashMsg(m.includes('401') ? '压缩需配置 FLASK_API_TOKEN' : `压缩失败：${m}`, 3500)

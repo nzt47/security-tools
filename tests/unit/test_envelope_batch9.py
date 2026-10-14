@@ -52,7 +52,15 @@ class _CfgStub:
 class _MemoryStub:
     @staticmethod
     def compress():
+        # 摘要器薄封装（返回 str）—— 手动压缩**不再**走它，见 compress_now()
         return {"freed": 7, "current": 13}
+
+    @staticmethod
+    def compress_now():
+        # 【2026-10-14 修 500】手动压缩的真入口：只回报可核实字段（无 freed_tokens，
+        # 因为压缩不删消息、释放量不可核实）。
+        return {"ok": True, "summary_version": 9, "version_before": 8,
+                "messages_compressed": 12}
 
 
 class _YunshuStub:
@@ -110,9 +118,13 @@ class Test上下文写端点载荷:
         assert data["ok"] is True
         assert data["changed"] == ["token_limit"]
 
-    def test_compress_成功路径业务键一字未动(self, batch9):
+    def test_compress_成功路径业务键随手动压缩修复更新(self, batch9):
+        """【2026-10-14】原断言钉的是 freed_tokens/current_tokens —— 那两个键来自
+        一个**不存在的手动压缩实现**（compress() 缺参 + 返回 str）⇒ 面板恒 500。
+        修复后改报可核实字段；本条随之更新（契约变更必须可见，不能只改代码）。"""
         data = _env_post(batch9, "/api/context/compress")
-        assert data == {"ok": True, "freed_tokens": 7, "current_tokens": 13}, repr(data)[:200]
+        assert data == {"ok": True, "summary_version": 9, "version_before": 8,
+                        "messages_compressed": 12}, repr(data)[:200]
 
 
 def _own_returns(fn: ast.FunctionDef):

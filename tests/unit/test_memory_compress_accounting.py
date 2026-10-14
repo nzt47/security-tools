@@ -164,3 +164,32 @@ class TestLiveInvariant:
         而这条"前提"若变了，也应当有人主动来这里更新说明。
         """
         assert True  # 只是文档锚点，不做断言（真实数据在 CI 里不可得，见 docstring）
+
+class TestManualCompressEntry:
+    """手动压缩入口（2026-10-14）：面板「手动压缩」此前恒 500
+
+    真因：plugins/memory.py 调的是 compress()（**无参**），而
+    MemoryManager.compress(old_messages) 需要 messages ⇒ TypeError；且它返回 str，
+    调用点却按 dict 取 result.get("freed") ⇒ 就算补上参数还会再炸一次。
+    新入口 compress_now() 必须：① 真跑 _execute_compression；② 只回报可核实字段。
+    """
+
+    def test_compress_now_走真正的压缩入口并回报可核实字段(self, manager, monkeypatch):
+        called = []
+        monkeypatch.setattr(manager, "_execute_compression",
+                            lambda: (called.append(1), True)[1])
+        got = manager.compress_now()
+        assert called == [1], "必须走 _execute_compression（真正的压缩），而不是摘要器薄封装"
+        assert set(got) == {"ok", "summary_version", "version_before", "messages_compressed"}
+        assert got["ok"] is True
+
+    def test_compress_now_不谎报释放量(self, manager, monkeypatch):
+        monkeypatch.setattr(manager, "_execute_compression", lambda: True)
+        got = manager.compress_now()
+        assert "freed_tokens" not in got, "压缩不删消息 ⇒ 释放量不可核实，不得编造"
+
+    def test_compress_now_压缩未生效时如实回报(self, manager, monkeypatch):
+        monkeypatch.setattr(manager, "_execute_compression", lambda: False)
+        got = manager.compress_now()
+        assert got["ok"] is False
+        assert got["messages_compressed"] == 0

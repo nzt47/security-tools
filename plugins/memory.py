@@ -380,11 +380,16 @@ def api_context_compress():
     """
     from app_server import _Yunshu, logger
     try:
-        result = _Yunshu._memory.compress()
+        # 【2026-10-14 修 500】原实现调 compress()（无参）+ 按 dict 取 freed/current：
+        #   MemoryManager.compress(old_messages) 缺参直接 TypeError，面板恒 500。
+        #   现走 compress_now()（真正的压缩入口），并**如实**回报结果 ——
+        #   "释放多少 token"在当前实现下不可核实（压缩不删消息），故不编数字。
+        result = _Yunshu._memory.compress_now()
         return _ok({
-            "ok": True,
-            "freed_tokens": result.get("freed", 0),
-            "current_tokens": result.get("current", 0),
+            "ok": bool(result.get("ok")),
+            "summary_version": result.get("summary_version"),
+            "version_before": result.get("version_before"),
+            "messages_compressed": result.get("messages_compressed"),
         })
     except Exception as e:
         logger.warning(f"手动压缩失败: {e}")
