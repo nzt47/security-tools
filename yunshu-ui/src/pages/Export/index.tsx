@@ -174,8 +174,8 @@ export default function DataExport() {
       {/* 顶部：标题 + 数据统计 + 操作 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-800">数据导出</h1>
-          <p className="mt-0.5 text-sm text-slate-400">
+          <h1 className="text-lg font-semibold text-foreground">数据导出</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             共 {stats.total} 条 · 启用 {stats.enabled} · 管理员 {stats.admins}
           </p>
         </div>
@@ -184,7 +184,7 @@ export default function DataExport() {
             type="button"
             onClick={() => void loadData()}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             刷新
@@ -193,7 +193,7 @@ export default function DataExport() {
             type="button"
             onClick={handleExport}
             disabled={exporting || users.length === 0}
-            className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {exporting ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
             {exporting
@@ -204,7 +204,7 @@ export default function DataExport() {
             <button
               type="button"
               onClick={handleCancel}
-              className="flex items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+              className="flex items-center gap-1.5 rounded-md border border-red-800/60 bg-card px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-950/40"
             >
               <X size={14} />
               取消
@@ -214,46 +214,46 @@ export default function DataExport() {
       </div>
 
       {/* 格式选择 */}
-      <div className="flex items-center gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3">
-        <span className="text-sm text-slate-500">导出格式</span>
-        <label className="flex cursor-pointer items-center gap-1.5 text-sm text-slate-700">
+      <div className="flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3">
+        <span className="text-sm text-muted-foreground">导出格式</span>
+        <label className="flex cursor-pointer items-center gap-1.5 text-sm text-foreground">
           <input
             type="radio"
             name="format"
             value="csv"
             checked={format === 'csv'}
             onChange={() => setFormat('csv')}
-            className="accent-indigo-600"
+            className="accent-cyan-500"
           />
-          <FileSpreadsheet size={14} className="text-green-600" />
+          <FileSpreadsheet size={14} className="text-emerald-400" />
           CSV（表格软件可直接打开）
         </label>
-        <label className="flex cursor-pointer items-center gap-1.5 text-sm text-slate-700">
+        <label className="flex cursor-pointer items-center gap-1.5 text-sm text-foreground">
           <input
             type="radio"
             name="format"
             value="json"
             checked={format === 'json'}
             onChange={() => setFormat('json')}
-            className="accent-indigo-600"
+            className="accent-cyan-500"
           />
-          <FileJson size={14} className="text-amber-600" />
+          <FileJson size={14} className="text-amber-400" />
           JSON（保留完整字段结构）
         </label>
       </div>
 
       {/* 导出进度：分片生成期间展示进度条与已处理条数 */}
       {exporting && (
-        <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-          <div className="flex items-center justify-between text-xs text-slate-500">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>正在生成导出内容（分片处理中，不阻塞页面）...</span>
             <span>
               {progress}/{users.length} 条
             </span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded bg-slate-100">
+          <div className="mt-2 h-1.5 overflow-hidden rounded bg-muted">
             <div
-              className="h-full rounded bg-indigo-500 transition-all duration-200"
+              className="h-full rounded bg-cyan-500 transition-all duration-200"
               style={{ width: `${users.length ? (progress / users.length) * 100 : 0}%` }}
             />
           </div>
@@ -261,20 +261,20 @@ export default function DataExport() {
       )}
 
       {/* 数据预览表 */}
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         {error ? (
-          <div className="px-4 py-8 text-center text-sm text-red-600">{error}</div>
+          <div className="px-4 py-8 text-center text-sm text-red-400">{error}</div>
         ) : loading && users.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-slate-400">
+          <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-muted-foreground">
             <Loader2 size={16} className="animate-spin" />
             数据加载中...
           </div>
         ) : users.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-slate-400">暂无数据，请点击「刷新」重试</div>
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">暂无数据，请点击「刷新」重试</div>
         ) : (
           <div className="max-h-[60vh] overflow-auto">
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="sticky top-0 bg-card text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">ID</th>
                   <th className="px-4 py-2.5 font-medium">用户名</th>
@@ -284,25 +284,25 @@ export default function DataExport() {
                   <th className="px-4 py-2.5 font-medium">创建时间</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border/60">
                 {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-2 text-slate-500">{u.id}</td>
-                    <td className="px-4 py-2 text-slate-800">{u.username}</td>
-                    <td className="px-4 py-2 text-slate-500">{u.email}</td>
+                  <tr key={u.id} className="hover:bg-muted/40">
+                    <td className="px-4 py-2 text-muted-foreground">{u.id}</td>
+                    <td className="px-4 py-2 text-foreground">{u.username}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{u.email}</td>
                     <td className="px-4 py-2">
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{u.role}</span>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{u.role}</span>
                     </td>
                     <td className="px-4 py-2">
                       <span
                         className={`rounded px-1.5 py-0.5 text-xs ${
-                          u.status === 1 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                          u.status === 1 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-950/40 text-red-400'
                         }`}
                       >
                         {u.status === 1 ? '启用' : '禁用'}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-slate-500">{u.createdAt}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{u.createdAt}</td>
                   </tr>
                 ))}
               </tbody>

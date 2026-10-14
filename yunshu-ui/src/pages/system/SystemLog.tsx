@@ -49,42 +49,42 @@ export default function SystemLog() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-2 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-800">系统日志</h1>
+        <h1 className="text-2xl font-semibold text-foreground">系统日志</h1>
         {/* 操作级权限控制：无 system:log:export 权限码不渲染导出按钮 */}
         {canExport && (
           <button
             type="button"
             onClick={handleExport}
-            className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
           >
             <Download size={14} />
             导出日志
           </button>
         )}
       </div>
-      <p className="mb-6 text-sm text-slate-500">
+      <p className="mb-6 text-sm text-muted-foreground">
         示例页面：路由 /system/log（权限码 system:view，可见性由后端菜单树 /api/auth/menus 下发控制）。
       </p>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <table className="min-w-full divide-y divide-border text-sm">
+          <thead className="bg-muted/50">
             <tr>
               {['时间', '操作人', '操作', '结果'].map((head) => (
-                <th key={head} className="px-4 py-2.5 text-left font-medium text-slate-500">
+                <th key={head} className="px-4 py-2.5 text-left font-medium text-muted-foreground">
                   {head}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border/60">
             {MOCK_LOGS.map((row, index) => (
-              <tr key={index} className="transition hover:bg-slate-50">
-                <td className="px-4 py-2.5 text-slate-500">{row.time}</td>
-                <td className="px-4 py-2.5 font-medium text-slate-700">{row.operator}</td>
-                <td className="px-4 py-2.5 text-slate-600">{row.action}</td>
+              <tr key={index} className="transition hover:bg-muted/40">
+                <td className="px-4 py-2.5 text-muted-foreground">{row.time}</td>
+                <td className="px-4 py-2.5 font-medium text-foreground">{row.operator}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{row.action}</td>
                 <td className="px-4 py-2.5">
-                  <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-600">
+                  <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
                     {row.result}
                   </span>
                 </td>
@@ -94,7 +94,7 @@ export default function SystemLog() {
         </table>
       </div>
 
-      <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+      <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
         <ScrollText size={14} />
         <span>数据为本地 mock，共 {MOCK_LOGS.length} 条；导出为 CSV（仅 admin 可见导出按钮）</span>
       </div>
