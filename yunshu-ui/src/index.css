@@ -11,4 +11,32 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* ── 语义设计 Token（工作台深色基线）────────────────────────────────
+     这些变量此前**没有定义**，而 components/ui 通篇引用的是语义类
+     （bg-card / text-foreground / border-border / bg-primary …）⇒ 那些类全是空类。
+     现按本仓既有约定（tailwind.config.js 的语义色 + 这里的 CSS 变量）补齐，
+     取值对齐工作台深色：底 slate-950、卡片 slate-900、文字 slate-100、主色 cyan。
+     透明度修饰符（bg-card/50 等）由 Tailwind 的 <alpha-value> 处理。 */
+  --background: 222 47% 4%;
+  --foreground: 210 40% 96%;
+  --border: 217 33% 20%;
+  --overlay: 222 47% 3%;
+
+  --card: 222 40% 8%;
+  --card-foreground: 210 40% 96%;
+
+  --muted: 217 33% 15%;
+  --muted-foreground: 215 20% 65%;
+
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 96%;
+
+  --primary: 187 92% 55%;
+  --primary-foreground: 222 47% 8%;
+
+  --danger: 0 72% 51%;
+  --danger-foreground: 0 0% 100%;
+
+  --success: 152 60% 45%;
 }
