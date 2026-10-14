@@ -54,53 +54,53 @@ export default function ConfigChangeLogPanel() {
   return (
     <section className="mt-6" data-testid="config-change-log">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
           <History size={16} /> 配置变更日志
         </h2>
         <button
           type="button"
           onClick={load}
-          className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/40"
         >
           <RefreshCw size={12} /> 刷新
         </button>
       </div>
-      <p className="mb-3 text-xs text-slate-500">
+      <p className="mb-3 text-xs text-muted-foreground">
         数据源 GET /api/config/logs（NetworkConfig.change_log，最多保留最近 100 条）。
       </p>
 
       {error && (
         <div role="alert" data-testid="config-change-log-error"
-          className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600">
+          className="mb-3 rounded-lg border border-red-800/60 bg-red-950/40 px-4 py-2 text-sm text-red-400">
           读取失败：{error}
         </div>
       )}
-      {loading && <div className="text-sm text-slate-500">加载中…</div>}
+      {loading && <div className="text-sm text-muted-foreground">加载中…</div>}
 
       {!loading && !error && rows.length === 0 && (
         <div data-testid="config-change-log-empty"
-          className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+          className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
           暂无配置变更记录（后端 change_log 为空）。
         </div>
       )}
 
       {rows.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-slate-200 text-sm" data-testid="config-change-log-table">
-            <thead className="bg-slate-50">
+        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+          <table className="min-w-full divide-y divide-border text-sm" data-testid="config-change-log-table">
+            <thead className="bg-muted/50">
               <tr>
                 {['时间', '动作', '对象', '详情'].map((h) => (
-                  <th key={h} className="px-4 py-2.5 text-left font-medium text-slate-500">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left font-medium text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border/60">
               {rows.map((r, i) => (
-                <tr key={r.id || i} className="transition hover:bg-slate-50">
-                  <td className="px-4 py-2.5 text-slate-500">{fmtTime(r.timestamp)}</td>
-                  <td className="px-4 py-2.5 font-medium text-slate-700">{ACTION_LABEL[r.action || ''] ?? r.action ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-slate-600">{r.section ?? '—'}</td>
-                  <td className="px-4 py-2.5 font-mono text-xs text-slate-500">
+                <tr key={r.id || i} className="transition hover:bg-muted/40">
+                  <td className="px-4 py-2.5 text-muted-foreground">{fmtTime(r.timestamp)}</td>
+                  <td className="px-4 py-2.5 font-medium text-foreground">{ACTION_LABEL[r.action || ''] ?? r.action ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{r.section ?? '—'}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
                     {r.details ? JSON.stringify(r.details) : '—'}
                   </td>
                 </tr>

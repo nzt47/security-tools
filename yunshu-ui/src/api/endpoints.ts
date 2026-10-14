@@ -241,6 +241,8 @@ export const LLM_MONITOR_RECORDS = '/api/llm-monitor/records';
 export const MEMORY_MANUAL = '/api/memory/manual';
 export const MEMORY_OVERVIEW = '/api/memory/overview';
 export const VECTOR_SEARCH = '/api/vector/search';
+/** 向量库统计（count / total_memories / backend；尚未迁到统一信封） */
+export const VECTOR_STATS = '/api/vector/stats';
 
 // ===============================================================
 //  健康 / 模块拓扑 / 状态 / 全景 / 传感器

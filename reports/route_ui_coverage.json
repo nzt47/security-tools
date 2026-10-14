@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-10-15T01:53:02",
+  "generated_at": "2026-10-15T01:51:03",
   "totals": {
     "routes": 457,
     "live": 234,
     "dead_copy": 223,
-    "ui": 136,
+    "ui": 137,
     "cli_script": 19,
     "runtime_only": 24,
-    "unreferenced": 278,
+    "unreferenced": 277,
     "live_by_category": {
-      "ui": 68,
+      "ui": 69,
       "cli_script": 8,
       "runtime_only": 22,
-      "unreferenced": 136
+      "unreferenced": 135
     },
     "by_intent": {
       "should_be_in_ui": 7,
@@ -20,7 +20,7 @@
       "unclassified": 221
     }
   },
-  "frontend_endpoints": 141,
+  "frontend_endpoints": 142,
   "frontend_unmatched": [
     "/api/approval",
     "/api/assets",
@@ -8639,9 +8639,11 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:570"
@@ -9831,5 +9833,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "e803976ea9371d43"
+  "content_hash": "56182ae7f8a97161"
 }
