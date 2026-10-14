@@ -49,6 +49,11 @@ def _main() -> int:
     idx._doc_ids = ["d1", "d2"]
     idx._embeddings = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
     idx._ensure_worker = lambda: True  # type: ignore[method-assign]
+    # 【2026-10-14 修】search() 取锁后会**再判一次** worker 就绪（E1-F1-A 防御纵深：
+    #   _ensure_worker() 返回到取锁之间存在 worker 崩溃/被回收的窗口）。本脚本注入的是
+    #   "已就绪的假 worker"，故必须同时把就绪事件置位 —— 否则 search() 直接 return []，
+    #   缓存路径根本走不到，表现就是 Daily Regression 里的 misses=0/hits=0/cache_size=0。
+    idx._worker_ready.set()
 
     def _fake_encode(texts):
         if isinstance(texts, str):

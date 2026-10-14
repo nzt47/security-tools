@@ -212,6 +212,16 @@ jobs:
     name: 失败基线回归（只允许收缩）
     runs-on: ubuntu-latest
     needs: [dependency-consistency]
+    # 【2026-10-14 卡点治理】实测该 job 单进程跑 tests/unit（24,427 条）需 **57.7 / 76.8 / 94.3
+    #   分钟**（三次成功运行的 job 时长，数据取自 actions API）。它不是"卡死"，是**真的慢**，
+    #   但挂在每个 PR 上会让 PR 的 CI 墙钟时间被它一个人拖到 1.5 小时（本仓实测：多次 PR 的
+    #   mergeStateStatus 长时间停在 UNSTABLE 就是等它）。
+    #   ⇒ 移到 **push 到 master / 每日定时** 跑：单进程"跨用例泄漏"这条网仍在 master 上生效，
+    #     而 PR 侧由分片单元测试（6 分片）覆盖同一入口 tests/unit，反馈从 ~90 分钟降到 ~15 分钟。
+    #   若将来要把它拉回 PR：必须先解决"24k 条单进程"这个成本本身（分片会丢跨用例泄漏语义，
+    #   见 tests/unit/test_envelope_batch3.py:57 记录的真实泄漏事件），而不是简单加 -n。
+    if: github.event_name != 'pull_request'
+    timeout-minutes: 150
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -237,8 +247,10 @@ jobs:
         #   出现基线之外的**新**失败即非零退出。两者职责不同，不要混为一谈。
         run: |
           mkdir -p _ci_logs
+          # --durations=25：把最慢的 25 条打进日志，让"要不要继续优化"有据可依
+          #   （2026-10-14 实测：无单点热点，成本平摊在 24k 条用例上）。
           python -m pytest tests/unit -q --no-header -p no:cacheprovider -p no:randomly \
-            --timeout=300 > _ci_logs/baseline_run.txt 2>&1 || true
+            --timeout=300 --durations=25 > _ci_logs/baseline_run.txt 2>&1 || true
           python scripts/check_baseline_regression.py \
             --pytest-log _ci_logs/baseline_run.txt \
             --report _ci_logs/baseline_compare.json
