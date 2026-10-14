@@ -343,7 +343,8 @@ def topology():
 
     【P1-front 第二批】载荷**一字未动**（仍是 `{generated_at, overall_health, domains}`），
     只是装进 `ok()` 的 data 并带上 `X-Envelope: v2` —— 前端据此可显式判断形态。
-    消费方只有 `pages/hub/module-list.tsx` 一个文件。
+    消费方只有 `pages/hub/panorama/monitor.tsx` 一个文件（原 `module-list.tsx` 与其
+    总览已于 2026-10-15 合并为同一页，仍是单一消费方）。
     """
     domains_out = []
     health_scores = []
