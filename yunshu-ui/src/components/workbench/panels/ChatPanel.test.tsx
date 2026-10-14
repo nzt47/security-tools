@@ -14,6 +14,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+// 仅类型导入（编译期擦除，不会在本文件打桩 localStorage 之前加载 store 模块）
+import type { ChatMessage } from '../../../stores/useLayoutStore';
 
 // ── mock SSE 客户端（vi.hoisted 供提升的 mock 工厂引用） ──
 const { mockCreateStream } = vi.hoisted(() => ({ mockCreateStream: vi.fn() }));
@@ -168,5 +170,41 @@ describe('ChatPanel 显示开关（思考 / 工具）', () => {
     expect(
       container.querySelectorAll<HTMLButtonElement>('.wb-display-toggle')[0].getAttribute('aria-pressed'),
     ).toBe('false');
+  });
+});
+
+describe('ChatPanel 历史载入（刷新 / 切会话）', () => {
+  beforeEach(() => {
+    useLayoutStore.setState({ messages: [], thinking: [], streaming: false, activeStreamId: null });
+  });
+
+  afterEach(cleanup);
+
+  /** 用可控的 scrollIntoView 桩渲染，返回调用记录 */
+  async function renderWithScrollSpy(messages: ChatMessage[]) {
+    const scrollSpy = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollSpy as unknown as typeof Element.prototype.scrollIntoView;
+    useLayoutStore.setState({ messages, thinking: [], streaming: false, activeStreamId: null });
+    render(<ChatPanel />);
+    await waitFor(() => expect(scrollSpy).toHaveBeenCalled());
+    Element.prototype.scrollIntoView = original;
+    return scrollSpy;
+  }
+
+  it('历史消息一次性载入时直接落底（auto），不再从头平滑滚到尾', async () => {
+    const scrollSpy = await renderWithScrollSpy([
+      { id: 'hist-s1-0', role: 'user', content: '历史问', createdAt: 1, status: 'done' },
+      { id: 'hist-s1-1', role: 'assistant', content: '历史答', createdAt: 2, status: 'done' },
+    ]);
+    expect(scrollSpy.mock.calls.at(-1)?.[0]).toMatchObject({ behavior: 'auto', block: 'end' });
+  });
+
+  it('本次会话新产生的消息仍用平滑滚动（smooth）', async () => {
+    const scrollSpy = await renderWithScrollSpy([
+      { id: 'hist-s1-0', role: 'user', content: '历史问', createdAt: 1, status: 'done' },
+      { id: 'asst-new', role: 'assistant', content: '新的回答', createdAt: 3, status: 'done' },
+    ]);
+    expect(scrollSpy.mock.calls.at(-1)?.[0]).toMatchObject({ behavior: 'smooth' });
   });
 });
