@@ -1,7 +1,8 @@
 """P1-front **第二批**：模块拓扑与工作流列表的显式信封契约（2026-10-05）。
 
 【这两条为什么一起做】
-- `GET /api/modules/topology` —— 消费方只有 `pages/hub/module-list.tsx`（用 `pickObj` 猜）；
+- `GET /api/modules/topology` —— 消费方只有 `pages/hub/panorama/monitor.tsx`（用 `pickObj` 猜；
+  该页 2026-10-14 前已换成显式 `getEnvelope`，原 `module-list.tsx` 已并入同一页）；
 - `GET /api/workflow-learning/workflows` —— 消费方只有 `pages/hub/memory/workflow.tsx`（用 `pickList` 猜）。
 两条都是**单消费方、单实现、无 405 混入**，正是 §2.4 选择标准里的"消费面已明确"。
 

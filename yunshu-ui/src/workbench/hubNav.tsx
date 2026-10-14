@@ -269,7 +269,9 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   'memory-assets': 'memory',
   // 【第五轮 IA · 2026-10-14】「模块列表」并入「系统监控」（两者同读 /api/modules/topology，
   //   是本仓明令避免的"双入口"）：独立叶子 components/modules 消失 ⇒ 连同旧组 key
-  //   components 一起落到 panorama/monitor（页内「模块明细」Tab）。
+  //   components 一起落到 panorama/monitor。
+  // 【2026-10-15】该页进一步把「总览 / 模块明细」两个 Tab 合为一页（同源同口径，
+  //   不再有 Tab 切换），旧深链仍落到本页。
   'components': 'panorama/monitor',
   'components/modules': 'panorama/monitor',
   // 【第二轮 IA】记忆管理子项 → 页内 Tab（落到「记忆管理」页，Tab 记忆接续上次选择）
