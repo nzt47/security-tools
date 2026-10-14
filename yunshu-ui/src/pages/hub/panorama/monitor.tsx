@@ -1,142 +1,107 @@
 /**
- * 系统监控 —— 模块拓扑 / 健康评分 / 运行状态
- * 数据源：/api/modules/topology、/api/health/dashboard、/api/status
+ * 系统监控 —— 全景看板下「运行时视角」的**统一入口**（2026-10-14 合并「模块列表」）
+ * ------------------------------------------------------------------
+ * 【为什么合并】本页与「模块列表」原本都读 /api/modules/topology（前端**仅这两个消费方**），
+ * 是同一份数据的两个入口 —— 正是本仓纪律要避免的「双入口」。合并后：
+ *   · 总览     —— 运行状态 + 健康评分（原「系统监控」，见 monitor-overview.tsx）
+ *   · 模块明细 —— 按域分组 + 搜索/筛选 + 危险等级 + 路径（原「模块列表」，module-list.tsx）
+ *
+ * 独立的 components/modules 叶子已从导航树移除；旧深链
+ * ?panel=components/modules 经 hubNav 的 LEGACY_NAV_KEY_MAP 落到本页。
  */
-import { useEffect, useState } from 'react'
-import { Server, Activity, RefreshCw } from 'lucide-react'
-import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader } from '../components/ui'
-// 【P1-front 第五批】本页三个端点**都已带 X-Envelope: v2**：
-//   /api/modules/topology —— 第二批迁的（当时只改了别的消费方，本页一直用 pickObj 兼容着，本批一并收口）
-//   /api/health/dashboard、/api/status —— 本批迁移
-// 故整页改用显式信封解析。
-import { getEnvelope } from '@/api/envelope'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { Activity, Loader2, ListTree } from 'lucide-react'
 
-import {
-  HEALTH_DASHBOARD,
-  MODULES_TOPOLOGY,
-  STATUS,
-} from '@/api/endpoints';
+const MonitorOverview = lazy(() => import('./monitor-overview'))
+const ModuleListPage = lazy(() => import('../module-list'))
 
-interface ModuleNode {
-  id: string
-  name: string
-  status?: string
-  health?: string
-  version?: string
-  children?: ModuleNode[]
+export type MonitorTab = 'overview' | 'modules'
+
+interface MonitorTabDef {
+  id: MonitorTab
+  label: string
+  icon: LucideIcon
+  hint: string
 }
 
-interface HealthItem {
-  sensor_name?: string
-  description?: string
-  severity?: string
-  score?: number
+export const MONITOR_TABS: MonitorTabDef[] = [
+  { id: 'overview', label: '总览', icon: Activity, hint: '模块运行状态与健康评分' },
+  { id: 'modules', label: '模块明细', icon: ListTree, hint: '按域列出全部模块（状态/类型/路径/危险等级），支持搜索与筛选' },
+]
+
+const STORAGE_KEY = 'yunshu.panorama.monitor.tab'
+
+function readSavedTab(): MonitorTab {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY)
+    return v === 'modules' ? 'modules' : 'overview'
+  } catch {
+    return 'overview'
+  }
+}
+
+function tabClass(selected: boolean): string {
+  const base = 'flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1.5 text-[12.5px] transition-colors '
+  return base + (selected
+    ? 'border-slate-700 bg-slate-950 font-medium text-cyan-300'
+    : 'border-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200')
 }
 
 export default function PanoramaMonitor() {
-  const [modules, setModules] = useState<ModuleNode[]>([])
-  const [health, setHealth] = useState<HealthItem[]>([])
-  const [, setStatus] = useState<Record<string, unknown> | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [tab, setTab] = useState<MonitorTab>(readSavedTab)
 
-  const load = () => {
-    setLoading(true)
-    setError('')
-    Promise.allSettled([
-      getEnvelope<{ domains?: ModuleNode[] } | null>(MODULES_TOPOLOGY).then((d) => { const doms = d?.domains ?? []; return doms.flatMap((dm: ModuleNode) => (dm.children ?? []).length ? dm.children! : [dm]) }),
-      // /api/health/dashboard 返回 {dimensions: {error_rate, response_time, tool_success}, issues, overall_health}
-      // 将 dimensions 对象转为评分数组，issues 并入（作为异常项）
-      getEnvelope<{ dimensions?: Record<string, number>; issues?: HealthItem[]; overall_health?: number } | null>(HEALTH_DASHBOARD).then((d0) => {
-        const d = d0 ?? {}
-        const dims = Object.entries(d.dimensions ?? {}).map(([k, v]) => {
-          const num = Number(v) || 0 // NaN → 0（不能写 ??，左侧恒为 number）
-          return {
-            sensor_name: k, description: k.replace(/_/g, ' '), score: num,
-            severity: num < 0.8 ? 'warning' : 'normal',
-          }
-        })
-        return [...dims, ...(Array.isArray(d.issues) ? d.issues : [])]
-      }),
-      getEnvelope<Record<string, unknown> | null>(STATUS).catch(() => null),
-    ]).then(([m, h, s]) => {
-      if (m.status === 'fulfilled') setModules(m.value ?? [])
-      if (h.status === 'fulfilled') setHealth(h.value ?? [])
-      if (s.status === 'fulfilled') setStatus(s.value as Record<string, unknown> | null)
-      setLoading(false)
-    }).catch((e) => { setError(String(e)); setLoading(false) })
-  }
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, tab)
+    } catch {
+      /* localStorage 不可用时仅内存态 */
+    }
+  }, [tab])
 
-  useEffect(load, [])
-
-  const flatten = (nodes: ModuleNode[]): ModuleNode[] =>
-    nodes.flatMap((n) => [n, ...(n.children ? flatten(n.children) : [])])
-
-  const flat = flatten(modules)
+  const active = MONITOR_TABS.find((t) => t.id === tab) ?? MONITOR_TABS[0]
 
   return (
-    <div className="p-6">
-      <PageHeader
-        title="系统监控"
-        description="模块运行状态与健康评分"
-        actions={
-          <button onClick={load} className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
-            <RefreshCw size={12} /> 刷新
-          </button>
-        }
-      />
-      {error && <div className="mb-4"><ErrorBox message={error} /></div>}
-      {loading ? <Loading /> : (
-        <>
-          <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <StatCard label="模块总数" value={flat.length} icon={<Server size={16} />} />
-            <StatCard
-              label="在线模块"
-              value={flat.filter((m) => String(m.status ?? m.health ?? '').toLowerCase() !== 'offline').length}
-              icon={<Activity size={16} />} color="text-emerald-400"
-            />
-            <StatCard label="健康检查项" value={health.length} icon={<Activity size={16} />} />
-            <StatCard
-              label="异常项"
-              value={health.filter((h) => h.severity && h.severity !== 'normal').length}
-              icon={<Activity size={16} />} color="text-amber-400"
-            />
-          </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Activity size={14} className="text-cyan-400" />
+          <h1 className="text-[15px] font-semibold text-slate-100">系统监控</h1>
+          <span className="text-[11px] text-slate-500">{active.hint}</span>
+        </div>
+        <nav className="-mb-px flex flex-wrap gap-1" role="tablist" aria-label="系统监控子视图">
+          {MONITOR_TABS.map((t) => {
+            const Icon = t.icon
+            const selected = tab === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                className={tabClass(selected)}
+                onClick={() => setTab(t.id)}
+                title={t.hint}
+              >
+                <Icon size={13} className={selected ? 'text-cyan-400' : 'text-slate-500'} />
+                {t.label}
+              </button>
+            )
+          })}
+        </nav>
+      </header>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card title="模块拓扑">
-              <DataTable
-                data={flat}
-                keyField="id"
-                columns={[
-                  { key: 'name', title: '模块', render: (r) => <span className="text-slate-200">{String(r.name ?? r.id)}</span> },
-                  { key: 'status', title: '状态', render: (r) => (
-                    <Badge color={String(r.status ?? r.health) === 'ok' || String(r.status) === 'online' ? 'green' : String(r.status) === 'offline' ? 'red' : 'slate'}>
-                      {String(r.status ?? r.health ?? '?')}
-                    </Badge>
-                  ) },
-                ]}
-              />
-            </Card>
-
-            <Card title="健康评分">
-              <DataTable
-                data={health}
-                keyField="sensor_name"
-                columns={[
-                  { key: 'description', title: '项目', render: (r) => <span className="text-slate-200">{String(r.description ?? r.sensor_name ?? '')}</span> },
-                  { key: 'severity', title: '等级', render: (r) => (
-                    <Badge color={r.severity === 'normal' ? 'green' : r.severity === 'warning' ? 'amber' : 'red'}>
-                      {r.severity ?? '-'}
-                    </Badge>
-                  ) },
-                  { key: 'score', title: '评分', render: (r) => (r.score != null ? <span className="font-mono">{Number(r.score).toFixed(2)}</span> : '-') },
-                ]}
-              />
-            </Card>
-          </div>
-        </>
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-slate-950">
+        <Suspense
+          fallback={
+            <div className="flex h-full items-center justify-center gap-2 text-slate-500">
+              <Loader2 size={16} className="animate-spin" /> 载入中…
+            </div>
+          }
+        >
+          {tab === 'overview' ? <MonitorOverview /> : <ModuleListPage />}
+        </Suspense>
+      </div>
     </div>
   )
 }

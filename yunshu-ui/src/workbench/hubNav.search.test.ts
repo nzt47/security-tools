@@ -151,7 +151,9 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(LEGACY_NAV_KEY_MAP['workshop']).toBe('workshop/agents')
     // 【第四轮 IA】「记忆与资产」「系统组件」两个桶取消 ⇒ 组 key 也落到其原第一个子项
     expect(LEGACY_NAV_KEY_MAP['memory-assets']).toBe('memory')
-    expect(LEGACY_NAV_KEY_MAP['components']).toBe('components/modules')
+    // 【第五轮】模块列表并入系统监控 ⇒ 旧组 key 与旧叶子 key 都落到 panorama/monitor
+    expect(LEGACY_NAV_KEY_MAP['components']).toBe('panorama/monitor')
+    expect(LEGACY_NAV_KEY_MAP['components/modules']).toBe('panorama/monitor')
     // 第二轮 IA：记忆/资产子项 → 叶子
     expect(LEGACY_NAV_KEY_MAP['memory/experience']).toBe('memory')
     expect(LEGACY_NAV_KEY_MAP['assets/memory']).toBe('assets')
