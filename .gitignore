@@ -661,3 +661,10 @@ docs/closeout/L1_evidence/PRE_TASK09_backup_*/audit_chain.db.seqjournal
 # 属运行期状态而非源码：内容随会话/压缩推进而变，入库只会制造噪声 diff。
 data/context_session_compress_base.json
 
+# 【2026-10-15】回放元数据库 data/replays/replay_meta.db。
+# 每次回放都会改写，被跟踪时工作区长期挂着 " M"（收口前的常态）。
+# 收口方式与 templates/yunshu.html 相同：git rm --cached 脱离跟踪 + 此处显式登记。
+# 注意：上面的 *.db 规则对**已跟踪**文件完全无效，故必须像这样单独登记，
+# 防止它再被 git add 带回来（本仓库对此已有先例记录，见本文件 TASK-03 段）。
+data/replays/replay_meta.db
+
