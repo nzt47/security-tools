@@ -657,3 +657,7 @@ docs/closeout/L1_evidence/PRE_TASK09_backup_*/audit_chain.db.seqjournal
 .env.bak*
 .env.bak_*
 
+# 【2026-10-14】「当前窗口压缩次数」的会话基线（plugins/memory.py 运行时写入）。
+# 属运行期状态而非源码：内容随会话/压缩推进而变，入库只会制造噪声 diff。
+data/context_session_compress_base.json
+
