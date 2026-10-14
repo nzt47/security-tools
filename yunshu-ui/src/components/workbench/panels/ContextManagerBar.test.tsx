@@ -126,17 +126,23 @@ describe('ContextManagerBar · DSH 三组读数', () => {
     expect(screen.getByText('窗口 Token')).toBeTruthy()
     expect(screen.getByText('轮数')).toBeTruthy()
     expect(screen.getByText('当前窗口压缩')).toBeTruthy()
-    expect(screen.getByText('2 次')).toBeTruthy()
+    // 「2 次」现在出现在两处：窗口概览格子 + 常驻的机制说明正文（① 当前窗口已压缩 2 次）
+    expect(screen.getAllByText('2 次').length).toBeGreaterThan(0)
+    // 累计摘要版本只在机制说明里以「（累计摘要版本 7）」出现，不再作为「7 次」展示
     expect(screen.queryByText('7 次')).toBeNull()
     // 9% 折叠条与展开网格各出现一次 ⇒ 用 getAllByText
     expect(screen.getAllByText('9%').length).toBeGreaterThan(0)
   })
 
-  it('机制说明开关已移除', async () => {
+  it('机制说明：开关已移除，但说明正文常驻', async () => {
     render(<ContextManagerBar />)
     expand()
     await screen.findByText('会话统计')
+    // 开关（折叠条快捷入口 + 面板内按钮）已移除
     expect(screen.queryByText('机制说明')).toBeNull()
     expect(screen.queryByText('收起机制说明')).toBeNull()
+    // 【2026-10-14】正文改为常驻：不点任何东西也应该看得到
+    expect(screen.getByText(/上下文管理机制/)).toBeTruthy()
+    expect(screen.getByText(/异步后台压缩/)).toBeTruthy()
   })
 })

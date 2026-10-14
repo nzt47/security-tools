@@ -10,7 +10,7 @@
  * 注：config/compress 写操作需 FLASK_API_TOKEN（401 时提示）。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronDown, Gauge, RefreshCw, Minimize2 } from 'lucide-react'
+import { ChevronDown, Gauge, Info, RefreshCw, Minimize2 } from 'lucide-react'
 import { Loading, hubGet } from '../../../pages/hub/components/ui'
 // 【P1-front 第七批】GET /api/context/status 已带 X-Envelope: v2，改用显式信封解析。
 // 【P1-front 第九批】同页两个 POST（config/compress）也已迁移，一并改用 postEnvelope。
@@ -362,6 +362,44 @@ export function ContextManagerBar() {
                   </button>
                 </div>
                 <span className="text-[9px] text-slate-600">压缩为写操作，需 FLASK_API_TOKEN</span>
+              </div>
+
+              {/* 机制说明（【2026-10-14】去掉开关，**正文常驻**：说明本身就是读数的一部分，
+                  藏起来只会让人反复问「这数是怎么来的」） */}
+              <div className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                <div className="flex items-center gap-1.5 text-[10.5px] font-medium text-cyan-300">
+                  <Info size={11} /> 上下文管理机制（多层次自动策略，无需手动干预）
+                </div>
+                <div className="text-[11px] leading-relaxed text-slate-300">
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
+                    <span className="text-cyan-400">① 异步后台压缩</span>：每次对话后检查 token 总量，
+                    使用率超过阈值（<b className="text-slate-100">{Math.round(status.compress_threshold * 100)}%</b>）时，
+                    在后台自动把<b className="text-slate-100">旧对话压缩为摘要</b>，保留关键决策与结论。
+                    当前窗口已压缩 <b className="text-slate-100">{status.compress_rounds_window ?? status.compress_rounds} 次</b>
+                    （累计摘要版本 <b className="text-slate-100">{status.compress_rounds}</b>）。
+                  </div>
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
+                    <span className="text-cyan-400">② 三级水位预警</span>：
+                    🟢 &lt;60% 正常 · 🟡 60%~80% 接近阈值 · 🔴 ≥80% 即将溢出。
+                  </div>
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
+                    <span className="text-cyan-400">③ 摘要退化检测</span>：每次压缩都会损失细节，
+                    <b className="text-slate-100">累计压缩 ≥3 次</b>质量开始下降、<b className="text-slate-100">≥5 次</b>退化明显；
+                    判据用的是<b className="text-slate-100">累计值</b>（退化是累积效应，与当前占用无关），
+                    故可能「占用很低但成因显示摘要退化」。
+                  </div>
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
+                    <span className="text-cyan-400">④ System Prompt 预算保护</span>：System prompt 有
+                    <b className="text-slate-100"> 10000 tokens</b> 的预算上限，超限时自动截断工具状态列表，保证核心指令完整。
+                  </div>
+                  <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
+                    <span className="text-cyan-400">⑤ 主动丢弃</span>：即使压缩后仍超限，系统会从
+                    <b className="text-slate-100">最旧的非摘要消息</b>开始丢弃，直到满足 token_limit。
+                  </div>
+                  <div className="text-[10px] text-slate-500">
+                    提示：水位长期 ≥80% 或摘要严重退化时，建议新建会话继续（系统不会自动替你新建会话）。
+                  </div>
+                </div>
               </div>
 
             </>

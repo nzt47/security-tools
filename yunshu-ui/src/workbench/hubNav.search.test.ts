@@ -114,12 +114,13 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     expect(topKeys.indexOf('governance')).toBe(topKeys.indexOf('panorama') + 1)
   })
 
-  it('不再排在「系统组件」等之后（侧栏靠底 ⇒ 滚不到 ⇒ 找不到）', () => {
+  it('不再排在末位桶之后（侧栏靠底 ⇒ 滚不到 ⇒ 找不到）', () => {
     const topKeys = HUB_NAV.map((i) => i.key)
 
-    expect(topKeys.indexOf('governance')).toBeLessThan(topKeys.indexOf('components'))
-    // 第三轮 IA：记忆+资产合为「记忆与资产」桶；治理面板仍紧跟「全景看板」之后
-    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'memory-assets', 'panorama', 'governance'])
+    // 【第四轮 IA】「系统组件」桶已取消，此刻的"桶底"是「系统管理」。
+    // 判据不变：治理面板必须排在最后一个桶之前。
+    expect(topKeys.indexOf('governance')).toBeLessThan(topKeys.indexOf('admin'))
+    expect(topKeys).toEqual(['workspace', 'panorama', 'governance', 'admin'])
   })
 
   it('「审批收件箱」仍是治理面板下的子项（入口没被搬走）', () => {
@@ -148,6 +149,9 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(LEGACY_NAV_KEY_MAP['engine']).toBe('engine/heartbeat')
     // 第三轮 IA：装配车间并入会话与配置 ⇒ 组 key 落到其原第一个子项
     expect(LEGACY_NAV_KEY_MAP['workshop']).toBe('workshop/agents')
+    // 【第四轮 IA】「记忆与资产」「系统组件」两个桶取消 ⇒ 组 key 也落到其原第一个子项
+    expect(LEGACY_NAV_KEY_MAP['memory-assets']).toBe('memory')
+    expect(LEGACY_NAV_KEY_MAP['components']).toBe('components/modules')
     // 第二轮 IA：记忆/资产子项 → 叶子
     expect(LEGACY_NAV_KEY_MAP['memory/experience']).toBe('memory')
     expect(LEGACY_NAV_KEY_MAP['assets/memory']).toBe('assets')
@@ -185,8 +189,12 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
 
   it('新旧都不在树里 ⇒ 空串（拒绝非法 key 的语义不变）', () => {
     expect(resolveNavKey('not-a-real-panel')).toBe('')
-    const onlySession: HubNavItem[] = [HUB_NAV[0]]
-    expect(resolveNavKey('experience', onlySession)).toBe('')
+    // 【第四轮 IA】HUB_NAV[0]（会话与配置）如今**已包含** memory ⇒ 旧 key 'experience'
+    // 在其中能解析到 memory，不再是"不在树里"。为守住本用例的判据（映射目标不在
+    // 给定树里 ⇒ 空串），改用一棵确实不含 memory 的子树（系统管理桶）。
+    const withoutMemory: HubNavItem[] = HUB_NAV.filter((i) => i.key === 'admin')
+    expect(withoutMemory.some((b) => (b.children ?? []).some((c) => c.key === 'memory'))).toBe(false)
+    expect(resolveNavKey('experience', withoutMemory)).toBe('')
     expect(navKeyFromSearch('?panel=not-a-real-panel')).toBe('')
     expect(navKeyFromSearch('?panel=')).toBe('')
     expect(navKeyFromSearch('?panel=persona/nope')).toBe('')

@@ -1,7 +1,9 @@
 /**
  * 云枢统一工作台 —— 导航配置中心
  * ------------------------------------------------
- * 单一数据源：导航树（阶段 3 收敛、第三轮 IA 并为 **6 个语义桶** + 系统管理子菜单）与内容组件映射。
+ * 单一数据源：导航树（阶段 3 收敛、第三轮 IA 并为 6 桶、**第四轮 IA 再并为 4 桶**）与内容组件映射。
+ * 第四轮（2026-10-14）：记忆与资产 + 插件与扩展 + 网络配置并入「会话与配置」，
+ * 模块列表并入「全景看板」，「系统组件」桶取消。
  * ContentPanel 根据当前选中导航项，从此处取组件渲染。
  * 所有既有功能（Hub 8 栏目 + 管理后台）统一挂载到工作台。
  */
@@ -89,15 +91,13 @@ export const HUB_NAV: HubNavItem[] = [
       // 系统自我复制 = 配置的可带走导出/导入，同属「配置」语义（原顶层 2 项分组随之消失）。
       { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
       { key: 'workshop/replicate', label: '系统自我复制', icon: Copy, component: WorkshopReplicate },
-    ],
-  },
-  // 【第三轮 IA】记忆管理与资产管理各自只剩一个叶子，合并为一个语义桶「记忆与资产」：
-  // 顶层由 8 桶收敛为 6 桶。两个叶子 key 不变 ⇒ 旧深链 ?panel=memory / ?panel=assets 仍有效。
-  {
-    key: 'memory-assets', label: '记忆与资产', icon: Brain,
-    children: [
+      // 【第四轮 IA · 2026-10-14】「记忆与资产」整桶并入本桶（顶层再少一个桶）；
+      // 「插件与扩展」「网络配置」从被取消的「系统组件」桶迁入。叶子 key 一律不变
+      // ⇒ 旧深链 ?panel=memory / ?panel=assets / ?panel=components/plugins / ?panel=network 仍有效。
       { key: 'memory', label: '记忆管理', icon: Brain, component: MemoryHub },
       { key: 'assets', label: '资产管理', icon: Database, component: AssetsPage },
+      { key: 'components/plugins', label: '插件与扩展', icon: Puzzle, component: PluginsPage },
+      { key: 'network', label: '网络配置', icon: Globe, component: NetworkPage },
     ],
   },
   {
@@ -111,6 +111,9 @@ export const HUB_NAV: HubNavItem[] = [
       // 子项 key 保留 engine/* ⇒ 旧深链 ?panel=engine/heartbeat 仍有效；组 key engine 走兼容映射。
       { key: 'engine/heartbeat', label: '心跳监测', icon: HeartPulse, component: EngineHeartbeat },
       { key: 'engine/scheduler', label: '定时任务', icon: CalendarClock, component: EngineScheduler },
+      // 【第四轮 IA · 2026-10-14】「模块列表」从被取消的「系统组件」桶迁入全景看板
+      // （运行时模块/依赖视图与全景看板同类）。key 不变 ⇒ 旧深链仍有效。
+      { key: 'components/modules', label: '模块列表', icon: Boxes, component: ModuleListPage },
     ],
   },
   {
@@ -139,15 +142,6 @@ export const HUB_NAV: HubNavItem[] = [
   },
   // 【第三轮 IA】原顶层叶子「资产管理」已并入上面的「记忆与资产」桶；
   // 原顶层分组「装配车间」的两个子项已并入「会话与配置」。二者不再占顶层槽位。
-  {
-    key: 'components', label: '系统组件', icon: Boxes,
-    children: [
-      { key: 'components/modules', label: '模块列表', icon: Boxes, component: ModuleListPage },
-      { key: 'components/plugins', label: '插件与扩展', icon: Puzzle, component: PluginsPage },
-      // 【阶段 3】原顶层「网络配置」并入系统组件桶（key 保留 network ⇒ 旧深链仍有效）。
-      { key: 'network', label: '网络配置', icon: Globe, component: NetworkPage },
-    ],
-  },
   {
     key: 'admin', label: '系统管理', icon: Settings,
     children: [
@@ -272,6 +266,10 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   'engine': 'engine/heartbeat',
   // 【第三轮 IA】装配车间并入会话与配置：组 key 消失，落到其原第一个子项
   'workshop': 'workshop/agents',
+  // 【第四轮 IA · 2026-10-14】「记忆与资产」「系统组件」两个桶被取消：
+  //   组 key 消失 ⇒ 落到各自的原第一个子项（叶子 key 不变，深链继续有效）。
+  'memory-assets': 'memory',
+  'components': 'components/modules',
   // 【第二轮 IA】记忆管理子项 → 页内 Tab（落到「记忆管理」页，Tab 记忆接续上次选择）
   'memory/manual': 'memory',
   'memory/auto': 'memory',

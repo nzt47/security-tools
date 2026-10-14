@@ -63,7 +63,7 @@ export function LlmHealthMenu() {
       })
       const body = (await res.json().catch(() => ({}))) as LlmCheck
       if (res.status === 401) {
-        setFetchError('需要 API 令牌（401）：请在「系统组件 → 插件管理 → API 令牌」填入 FLASK_API_TOKEN 后重试')
+        setFetchError('需要 API 令牌（401）：请在「会话与配置 → 插件与扩展」里填入 FLASK_API_TOKEN 后重试')
       } else if (!res.ok) {
         setFetchError(String(body?.error ?? `HTTP ${res.status}`))
       }

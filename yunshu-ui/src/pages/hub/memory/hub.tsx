@@ -1,5 +1,7 @@
 /**
- * 记忆管理 —— 主内容区 Tab 容器（手动记忆 / 自动记忆 / 知识库系统 / 经验库 / 全库检索）
+ * 记忆管理 —— 主内容区 Tab 容器（向量记忆 / 记忆结构 / 知识库系统 / 经验库 / 全库检索）
+ * 【第四轮 IA · 2026-10-14】原「手动记忆」+「自动记忆」两个 Tab 合并为「向量记忆」
+ * （页内分段控件保留两种视图），并新增「记忆结构」Tab。
  * ------------------------------------------------------------------
  * 信息架构调整（与「工具调用」「提示词实验室」同款处理）：原「记忆管理」是左侧导航树的
  * **分组**，5 个子项各占一条导航项。现收敛为：
@@ -16,15 +18,16 @@
  */
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { BookOpen, Brain, Loader2, RefreshCw, Search } from 'lucide-react'
+import { BookOpen, Brain, Layers, Loader2, Search } from 'lucide-react'
 
 // MemoryPage 同时承载「手动记忆 / 自动记忆」（由 mode 参数区分）
 const MemoryPage = lazy(() => import('./index'))
 const MemoryKnowledge = lazy(() => import('./knowledge'))
 const ExperiencePanel = lazy(() => import('../experience'))
 const MemorySearch = lazy(() => import('./search'))
+const MemoryStructure = lazy(() => import('./structure'))
 
-export type MemoryTab = 'manual' | 'auto' | 'knowledge' | 'experience' | 'search'
+export type MemoryTab = 'vector' | 'structure' | 'knowledge' | 'experience' | 'search'
 
 export interface MemoryTabDef {
   id: MemoryTab
@@ -33,10 +36,11 @@ export interface MemoryTabDef {
   hint: string
 }
 
-/** 5 个子项（顺序 = 原导航顺序） */
+/** 子模块（【第四轮 IA · 2026-10-14】手动记忆 + 自动记忆合并为「向量记忆」，
+ *  并新增「记忆结构」；顺序 = 展示顺序） */
 export const MEMORY_TABS: MemoryTabDef[] = [
-  { id: 'manual', label: '手动记忆', icon: Brain, hint: '手动录入关键信息 + 知识检索' },
-  { id: 'auto', label: '自动记忆', icon: RefreshCw, hint: '对话过程中自动沉淀的记忆 / 知识检索' },
+  { id: 'vector', label: '向量记忆', icon: Brain, hint: '记忆本体：手动录入 + 对话中自动沉淀，统一走向量检索' },
+  { id: 'structure', label: '记忆结构', icon: Layers, hint: '记忆的层次、组成部分、数据来源与职责边界' },
   { id: 'knowledge', label: '知识库系统', icon: BookOpen, hint: '知识卡片编辑 / 双链图谱 / 融合检索' },
   { id: 'experience', label: '经验库', icon: BookOpen, hint: '从历史会话提炼的任务经验（审查台）' },
   { id: 'search', label: '全库检索', icon: Search, hint: '一个入口，分面检索：向量记忆 / 知识库 / 经验库' },
@@ -51,14 +55,19 @@ export const isMemoryTab = (v: unknown): v is MemoryTab =>
 function readSavedTab(): MemoryTab {
   try {
     const v = localStorage.getItem(MEMORY_TAB_STORAGE_KEY)
-    return isMemoryTab(v) ? v : 'manual'
+    if (!isMemoryTab(v)) {
+      // 【第四轮 IA】旧值 manual / auto 已合并为 vector：沿用「上次看的是手动还是自动」
+      // 的记忆时，统一落到合并后的「向量记忆」（否则会静默跳回第一个 Tab）。
+      return v === 'manual' || v === 'auto' ? 'vector' : 'vector'
+    }
+    return v
   } catch {
-    return 'manual'
+    return 'vector'
   }
 }
 
 export interface MemoryHubProps {
-  /** 初始 Tab（缺省用 localStorage 记忆的值；非法值回落「手动记忆」） */
+  /** 初始 Tab（缺省用 localStorage 记忆的值；非法值回落第一个 Tab「向量记忆」） */
   initialTab?: MemoryTab
 }
 
@@ -71,6 +80,8 @@ function tabClass(selected: boolean): string {
 
 export default function MemoryHub({ initialTab }: MemoryHubProps) {
   const [tab, setTab] = useState<MemoryTab>(() => (isMemoryTab(initialTab) ? initialTab : readSavedTab()))
+  // 合并后的「向量记忆」内部再分「手动录入 / 自动沉淀」两种视图（功能不减，入口合一）
+  const [vectorMode, setVectorMode] = useState<'manual' | 'auto'>('manual')
 
   useEffect(() => {
     try {
@@ -121,8 +132,34 @@ export default function MemoryHub({ initialTab }: MemoryHubProps) {
             </div>
           }
         >
-          {tab === 'manual' || tab === 'auto' ? (
-            <MemoryPage mode={tab} />
+          {tab === 'vector' ? (
+            <div className="flex min-h-full flex-col">
+              {/* 合并前的两个入口（手动记忆 / 自动记忆）→ 页内分段控件，避免功能丢失 */}
+              <div className="flex items-center gap-2 border-b border-slate-800/60 bg-slate-900/30 px-5 py-2">
+                <div className="flex overflow-hidden rounded-md border border-slate-700" role="tablist" aria-label="向量记忆视图">
+                  {([['manual', '手动录入'], ['auto', '自动沉淀']] as const).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={vectorMode === id}
+                      onClick={() => setVectorMode(id)}
+                      className={vectorMode === id
+                        ? 'bg-cyan-500/15 px-3 py-1 text-[11.5px] font-medium text-cyan-300'
+                        : 'px-3 py-1 text-[11.5px] text-slate-400 hover:bg-slate-800'}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  {vectorMode === 'manual' ? '手动录入关键信息' : '对话过程中自动沉淀的记忆'}
+                </span>
+              </div>
+              <MemoryPage mode={vectorMode} />
+            </div>
+          ) : tab === 'structure' ? (
+            <MemoryStructure />
           ) : tab === 'knowledge' ? (
             <MemoryKnowledge />
           ) : tab === 'experience' ? (

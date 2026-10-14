@@ -75,12 +75,13 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
 
   it('「工具调用」随「会话与配置」桶整体排在「全景看板」之前（配置类在前）', () => {
     const topKeys = HUB_NAV.map((i) => i.key)
-    // 阶段 3：顶层收敛；第三轮 IA 并为 6 桶（记忆+资产合桶、装配车间并入会话与配置）
-    expect(topKeys.slice(0, 4)).toEqual(['workspace', 'memory-assets', 'panorama', 'governance'])
-    expect(topKeys).toHaveLength(6)
+    // 第三轮 IA 并为 6 桶；【第四轮 IA · 2026-10-14】再并为 4 桶
+    expect(topKeys).toEqual(['workspace', 'panorama', 'governance', 'admin'])
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
-      'session', 'prompt-lab', 'skills-center', 'tools', 'workshop/agents', 'workshop/replicate',
+      'session', 'prompt-lab', 'skills-center', 'tools',
+      'workshop/agents', 'workshop/replicate',
+      'memory', 'assets', 'components/plugins', 'network',
     ])
     expect(topKeys.indexOf('workspace')).toBeLessThan(topKeys.indexOf('panorama'))
   })
@@ -113,19 +114,30 @@ describe('hubNav 导航结构（人格配置并入提示词实验室 · 阶段 1
   })
 })
 
-describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA · 6 个语义桶）', () => {
-  it('顶层恰好 6 个桶，顺序固定', () => {
+describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA 4 桶）', () => {
+  it('顶层恰好 4 个桶，顺序固定', () => {
     expect(HUB_NAV.map((i) => i.key)).toEqual([
-      'workspace', 'memory-assets', 'panorama', 'governance', 'components', 'admin',
+      'workspace', 'panorama', 'governance', 'admin',
     ])
   })
 
-  it('单叶子的「记忆管理 / 资产管理」合入「记忆与资产」桶（不再各占顶层槽位）', () => {
-    const bucket = HUB_NAV.find((i) => i.key === 'memory-assets')
-    expect((bucket?.children ?? []).map((c) => c.key)).toEqual(['memory', 'assets'])
-    // 叶子 key 不变 ⇒ 旧深链 ?panel=memory / ?panel=assets 仍解析
+  it('【第四轮 IA】记忆与资产 / 插件与扩展 / 网络配置 并入「会话与配置」；模块列表入「全景看板」；「系统组件」桶取消', () => {
+    const workspace = HUB_NAV.find((i) => i.key === 'workspace')
+    const childKeys = (workspace?.children ?? []).map((c) => c.key)
+    for (const k of ['memory', 'assets', 'components/plugins', 'network']) {
+      expect(childKeys).toContain(k)
+    }
+    // 两个桶被取消；模块列表迁入全景看板
+    const topKeys = HUB_NAV.map((i) => i.key)
+    expect(topKeys).not.toContain('memory-assets')
+    expect(topKeys).not.toContain('components')
+    const panorama = HUB_NAV.find((i) => i.key === 'panorama')
+    expect((panorama?.children ?? []).map((c) => c.key)).toContain('components/modules')
+    // 叶子 key 不变 ⇒ 旧深链 ?panel=memory / ?panel=assets / ?panel=network 仍解析
     expect(findNavItem('memory')?.component).toBeDefined()
     expect(findNavItem('assets')?.component).toBeDefined()
+    expect(findNavItem('network')?.component).toBeDefined()
+    expect(findNavItem('components/modules')?.component).toBeDefined()
   })
 
   it('「装配车间」两个子项并入「会话与配置」，顶层不再有 workshop 分组', () => {
