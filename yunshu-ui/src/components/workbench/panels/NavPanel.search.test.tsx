@@ -52,6 +52,18 @@ describe('NavPanel 搜索框', () => {
     fireEvent.change(searchBox(), { target: { value: '治理' } })
 
     expect(screen.getByText('审批收件箱')).toBeTruthy()
+    // 「审计导出 / 开关中心」2026-10-15 已移到「全景看板」桶（运行时运维），
+    // 命中「治理」不再包含它们；这里改用仍在治理面板的「路由覆盖」。
+    expect(screen.getByText('路由覆盖')).toBeTruthy()
+    expect(screen.queryByText('开关中心')).toBeNull()
+  })
+
+  it('输入分组名「全景」⇒ 整组展开，且能看到已迁入的「审计导出 / 开关中心」（2026-10-15 IA）', () => {
+    render(<NavPanel />)
+
+    fireEvent.change(searchBox(), { target: { value: '全景' } })
+
+    expect(screen.getByText('审计导出')).toBeTruthy()
     expect(screen.getByText('开关中心')).toBeTruthy()
   })
 
