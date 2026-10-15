@@ -815,6 +815,32 @@ def api_sessions_workspace_reveal(session_id):
 #  「已添加的工作区」记忆 API（跨会话复用；workspaces.json）
 # ════════════════════════════════════════════════════════════
 
+def _resolve_workspace_dir(path: str, create: bool) -> tuple:
+    """校验并归一化一个"工作空间目录"入参，返回 (resolved | None, error | None)。
+
+    【单一口径】/api/workspaces 与 /api/projects 共用本函数 —— "绝对路径 / 目录不存在
+    时是否自动创建 / 必须是文件夹"这套判定各写一份，迟早会漂移（本仓反复记录过这类
+    两份口径的缺陷）。
+    """
+    import os as _os
+    path = (path or "").strip().strip('"').strip("'")
+    if not path:
+        return None, "路径不能为空"
+    if not _os.path.isabs(path):
+        return None, "请输入本地绝对路径（例如 C:\\Users\\you\\myproject）"
+    resolved = _os.path.normpath(path)
+    if not _os.path.exists(resolved):
+        if not create:
+            return None, f"目录不存在：{resolved}（勾选“自动创建”可新建）"
+        try:
+            _os.makedirs(resolved, exist_ok=True)
+        except OSError as _e:
+            return None, f"创建目录失败：{_e}"
+    if not _os.path.isdir(resolved):
+        return None, f"路径不是文件夹：{resolved}"
+    return resolved, None
+
+
 @bp.route("/api/workspaces")
 def api_workspaces_list():
     """列出已添加的工作区（路径/名称/添加时间）"""
@@ -829,23 +855,10 @@ def api_workspaces_add():
     """登记一个工作区目录：body {path, create?}；路径须为本地绝对路径"""
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _workspace_registry
-    import os as _os
     data = request.get_json(silent=True) or {}
-    path = (data.get("path") or "").strip().strip('"').strip("'")
-    if not path:
-        return jsonify({"error": "路径不能为空"}), 400
-    if not _os.path.isabs(path):
-        return jsonify({"error": "请输入本地绝对路径（例如 C:\\Users\\you\\myproject）"}), 400
-    resolved = _os.path.normpath(path)
-    if not _os.path.exists(resolved):
-        if not data.get("create"):
-            return jsonify({"error": f"目录不存在：{resolved}（勾选“自动创建”可新建）"}), 400
-        try:
-            _os.makedirs(resolved, exist_ok=True)
-        except OSError as _e:
-            return jsonify({"error": f"创建目录失败：{_e}"}), 400
-    if not _os.path.isdir(resolved):
-        return jsonify({"error": f"路径不是文件夹：{resolved}"}), 400
+    resolved, err = _resolve_workspace_dir(data.get("path") or "", bool(data.get("create")))
+    if err:
+        return jsonify({"error": err}), 400
     entry = _workspace_registry.add_workspace(resolved)
     if entry is None:
         return jsonify({"error": "登记失败"}), 400
@@ -865,26 +878,118 @@ def api_workspaces_remove():
 
 
 # ════════════════════════════════════════════════════════════
+#  项目 API（会话按项目归类；项目自带工作空间根目录；projects.json）
+# ════════════════════════════════════════════════════════════
+
+@bp.route("/api/projects")
+def api_projects_list():
+    """列出全部项目（id / name / workspace_root / created_at / updated_at）"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _projects
+    return jsonify({"projects": _projects.list_projects()})
+
+
+@bp.route("/api/projects", methods=["POST"])
+@_require_token
+def api_projects_create():
+    """新建项目：body {name, path|workspace_root, create?}
+
+    工作空间目录的校验/自动创建与 /api/workspaces 同一套判定（_resolve_workspace_dir）；
+    成功后同时登记到「已添加的工作区」记忆，方便其它会话快速选择。
+    """
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _projects, _workspace_registry, logger
+    data = request.get_json(silent=True) or {}
+    resolved, err = _resolve_workspace_dir(
+        data.get("path") or data.get("workspace_root") or "", bool(data.get("create"))
+    )
+    if err:
+        return jsonify({"error": err}), 400
+    project = _projects.create_project(name=data.get("name", ""), workspace_root=resolved)
+    try:
+        _workspace_registry.add_workspace(resolved)
+    except Exception as _e:  # noqa: BLE001  记忆登记失败不影响项目本身
+        logger.warning("登记工作区记忆失败（忽略）: %s", _e)
+    logger.info("创建项目: %s — %s（工作空间 %s）", project["id"], project["name"], resolved)
+    return jsonify(project), 201
+
+
+@bp.route("/api/projects/<project_id>", methods=["PUT"])
+@_require_token
+def api_projects_update(project_id):
+    """改名 / 改工作空间：body {name?, path|workspace_root?, create?}（只改传了的字段）"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _projects, _workspace_registry, logger
+    data = request.get_json(silent=True) or {}
+    if not _projects.get_project(project_id):
+        return jsonify({"error": "项目不存在"}), 404
+    fields: dict = {}
+    if "name" in data:
+        fields["name"] = data.get("name", "")
+    raw_path = data.get("path") if "path" in data else data.get("workspace_root")
+    if raw_path is not None:
+        resolved, err = _resolve_workspace_dir(raw_path, bool(data.get("create")))
+        if err:
+            return jsonify({"error": err}), 400
+        fields["workspace_root"] = resolved
+    project = _projects.update_project(project_id, **fields)
+    if project is None:
+        return jsonify({"error": "项目不存在"}), 404
+    if "workspace_root" in fields:
+        try:
+            _workspace_registry.add_workspace(fields["workspace_root"])
+        except Exception as _e:  # noqa: BLE001
+            logger.warning("登记工作区记忆失败（忽略）: %s", _e)
+    return jsonify(project)
+
+
+@bp.route("/api/projects/<project_id>", methods=["DELETE"])
+@_require_token
+def api_projects_delete(project_id):
+    """删除项目；项目内的分组随项目一同删除（会话本体不删）。
+
+    【级联口径】分组只在项目内有意义 ⇒ 随项目删除（delete_groups_for_project）；
+    组内会话不删除，只是失去分组归属。
+    """
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _projects, _session_groups, logger
+    if not _projects.get_project(project_id):
+        return jsonify({"error": "项目不存在"}), 404
+    removed_groups = 0
+    try:
+        removed_groups = _session_groups.delete_groups_for_project(project_id)
+    except Exception as _e:  # noqa: BLE001  分组清理失败不阻断项目删除
+        logger.warning("清理项目内分组失败（忽略）: %s", _e)
+    _projects.delete_project(project_id)
+    logger.info("删除项目: %s（随之删除分组 %d 个）", project_id, removed_groups)
+    return jsonify({"ok": True, "removed_groups": removed_groups})
+
+
+# ════════════════════════════════════════════════════════════
 #  会话分组 API（按项目/用途归类会话；存储 groups.json）
 # ════════════════════════════════════════════════════════════
 
 @bp.route("/api/session-groups")
 def api_session_groups_list():
-    """列出全部分组及 会话→分组 归属表"""
+    """列出分组及 会话→分组 归属表；?project_id= 只返回该项目下的分组"""
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _session_groups
-    return jsonify(_session_groups.list_groups())
+    project_id = request.args.get("project_id") or None
+    return jsonify(_session_groups.list_groups(project_id=project_id))
 
 
 @bp.route("/api/session-groups", methods=["POST"])
 @_require_token
 def api_session_groups_create():
-    """新建分组（name 缺省为「新分组」）"""
+    """新建分组：body {name?, project_id?}（分组归属项目；name 缺省「新分组」）"""
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _session_groups, logger
+    from app_server import _session_groups, _projects, logger
     data = request.get_json(silent=True) or {}
-    group = _session_groups.create_group(name=data.get("name", ""))
-    logger.info("创建会话分组: %s — %s", group["id"], group["name"])
+    project_id = data.get("project_id") or None
+    if project_id is not None and not _projects.get_project(project_id):
+        return jsonify({"error": "项目不存在"}), 404
+    group = _session_groups.create_group(name=data.get("name", ""), project_id=project_id)
+    logger.info("创建会话分组: %s — %s（项目 %s）", group["id"], group["name"], project_id or "无")
     return jsonify(group), 201
 
 

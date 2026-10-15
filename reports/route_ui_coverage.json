@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-15T01:51:03",
+  "generated_at": "2026-10-15T12:13:03",
   "totals": {
-    "routes": 457,
-    "live": 234,
+    "routes": 459,
+    "live": 236,
     "dead_copy": 223,
     "ui": 137,
     "cli_script": 19,
     "runtime_only": 24,
-    "unreferenced": 277,
+    "unreferenced": 279,
     "live_by_category": {
       "ui": 69,
       "cli_script": 8,
       "runtime_only": 22,
-      "unreferenced": 135
+      "unreferenced": 137
     },
     "by_intent": {
       "should_be_in_ui": 7,
       "should_not_be_in_ui": 6,
-      "unclassified": 221
+      "unclassified": 223
     }
   },
   "frontend_endpoints": 142,
@@ -42,7 +42,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "app_server.py:2098"
+        "app_server.py:2100"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -1019,7 +1019,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:2221"
+        "plugins/chat.py:2326"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1040,7 +1040,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:175",
-        "plugins/chat.py:955"
+        "plugins/chat.py:1060"
       ],
       "description": "会话管理 API 路由",
       "description_source": "module",
@@ -2784,7 +2784,6 @@
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
-        "scripts/_t08_http_stress.py",
         "scripts/deployment_drill.py",
         "scripts/probe_prefix_cache_interaction.py"
       ],
@@ -2963,7 +2962,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1776"
+        "app_server.py:1778"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -3154,7 +3153,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:153",
-        "plugins/chat.py:933"
+        "plugins/chat.py:1038"
       ],
       "description": "会话管理 API 路由",
       "description_source": "module",
@@ -3175,7 +3174,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:208",
-        "plugins/chat.py:989"
+        "plugins/chat.py:1094"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
@@ -3196,7 +3195,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:191",
-        "plugins/chat.py:969"
+        "plugins/chat.py:1074"
       ],
       "description": "搜索历史记录",
       "description_source": "handler",
@@ -3968,7 +3967,7 @@
         "scripts/verify_topology_view.py"
       ],
       "where": [
-        "agent/modules_api.py:407"
+        "agent/modules_api.py:408"
       ],
       "description": "统一干预入口（写操作，FLASK_API_TOKEN 启用时需认证）",
       "description_source": "handler",
@@ -3990,7 +3989,7 @@
         "scripts/verify_topology_view.py"
       ],
       "where": [
-        "agent/modules_api.py:381"
+        "agent/modules_api.py:382"
       ],
       "description": "节点详情：状态/指标/可执行动作/近期审计",
       "description_source": "handler",
@@ -4784,7 +4783,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1460"
+        "app_server.py:1462"
       ],
       "description": "插件元信息 manifest（插件化机制 T1.1）",
       "description_source": "handler",
@@ -4808,7 +4807,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1466"
+        "app_server.py:1468"
       ],
       "description": "刷新插件清单（动态装载 T4.1）：扫描 plugins/ 目录重建注册表，无需重启进程。",
       "description_source": "handler",
@@ -5010,6 +5009,50 @@
       "ui_pending": false
     },
     {
+      "path": "/api/projects",
+      "norm": "/api/projects",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:884",
+        "plugins/chat.py:892"
+      ],
+      "description": "列出全部项目（id / name / workspace_root / created_at / updated_at）",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
+    },
+    {
+      "path": "/api/projects/<project_id>",
+      "norm": "/api/projects/*",
+      "methods": [
+        "DELETE",
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:917",
+        "plugins/chat.py:946"
+      ],
+      "description": "改名 / 改工作空间：body {name?, path|workspace_root?, create?}（只改传了的字段）",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
+    },
+    {
       "path": "/api/prompt-lab/llm-preview",
       "norm": "/api/prompt-lab/llm-preview",
       "methods": [
@@ -5022,7 +5065,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2180"
+        "plugins/chat.py:2285"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -5845,10 +5888,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:871",
-        "plugins/chat.py:879"
+        "plugins/chat.py:972",
+        "plugins/chat.py:981"
       ],
-      "description": "列出全部分组及 会话→分组 归属表",
+      "description": "列出分组及 会话→分组 归属表；?project_id= 只返回该项目下的分组",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -5867,10 +5910,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:891",
-        "plugins/chat.py:906"
+        "plugins/chat.py:1011",
+        "plugins/chat.py:996"
       ],
-      "description": "重命名分组",
+      "description": "删除分组（组内会话自动变为未分组，不删除会话）",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -5937,7 +5980,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:917"
+        "plugins/chat.py:1022"
       ],
       "description": "把会话移入/移出分组：body {group_id: string|null}；null = 未分组",
       "description_source": "handler",
@@ -8199,7 +8242,7 @@
       ],
       "where": [
         "agent/server_routes/routes_monitoring.py:239",
-        "app_server.py:2240"
+        "app_server.py:2242"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -8222,7 +8265,7 @@
       ],
       "where": [
         "agent/server_routes/routes_monitoring.py:225",
-        "app_server.py:2216"
+        "app_server.py:2218"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -8245,7 +8288,7 @@
       ],
       "where": [
         "agent/server_routes/routes_monitoring.py:232",
-        "app_server.py:2229"
+        "app_server.py:2231"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -9329,9 +9372,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:818",
-        "plugins/chat.py:826",
-        "plugins/chat.py:855"
+        "plugins/chat.py:844",
+        "plugins/chat.py:852",
+        "plugins/chat.py:868"
       ],
       "description": "列出已添加的工作区（路径/名称/添加时间）",
       "description_source": "handler",
@@ -9481,7 +9524,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2134"
+        "app_server.py:2136"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -9744,7 +9787,6 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
-        "scripts/_t08_http_stress.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
         "scripts/exporter_link_cache.py",
@@ -9753,7 +9795,8 @@
         "scripts/monitoring_longrun/c2_harness.py",
         "scripts/monitoring_longrun/gen_derived_config.py",
         "scripts/probe_prefix_cache_interaction.py",
-        "scripts/simulate_prometheus_restart.py"
+        "scripts/simulate_prometheus_restart.py",
+        "scripts/surge_metrics_template.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1138"
@@ -9778,7 +9821,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2195"
+        "app_server.py:2197"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -9800,7 +9843,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2187"
+        "app_server.py:2189"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -9823,7 +9866,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2171"
+        "app_server.py:2173"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -9833,5 +9876,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "56182ae7f8a97161"
+  "content_hash": "cd876354b6fb40f5"
 }

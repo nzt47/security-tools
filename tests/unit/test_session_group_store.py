@@ -183,3 +183,39 @@ class TestConcurrency:
         assert membership["sess-1"] in (g1["id"], g2["id"])
         # 文件仍为合法 JSON
         assert json.loads(store._groups_path.read_text(encoding="utf-8"))["membership"] == membership
+
+
+class TestProjectScoping:
+    """分组按项目归属（项目 → 分组 → 会话 三段树的存储层口径）。"""
+
+    def test_create_group_with_project(self, store):
+        g = store.create_group("P1 组", project_id="proj_1")
+        assert g["project_id"] == "proj_1"
+        assert g["id"].startswith("grp_")
+
+    def test_group_without_project_has_none(self, store):
+        assert store.create_group("无项目")["project_id"] is None
+
+    def test_list_filters_by_project(self, store):
+        store.create_group("P1", project_id="proj_1")
+        store.create_group("P2", project_id="proj_2")
+        store.create_group("无项目")
+        assert [g["name"] for g in store.list_groups(project_id="proj_1")["groups"]] == ["P1"]
+        assert len(store.list_groups()["groups"]) == 3
+
+    def test_delete_groups_for_project_cascades_membership(self, store):
+        g1 = store.create_group("P1", project_id="proj_1")
+        g2 = store.create_group("P2", project_id="proj_2")
+        store.assign("s1", g1["id"])
+        store.assign("s2", g2["id"])
+
+        assert store.delete_groups_for_project("proj_1") == 1
+        data = store.list_groups()
+        assert [g["id"] for g in data["groups"]] == [g2["id"]]
+        # 组内会话不删除，只失去分组归属
+        assert "s1" not in data["membership"]
+        assert data["membership"].get("s2") == g2["id"]
+
+    def test_delete_groups_for_project_noop(self, store):
+        assert store.delete_groups_for_project("proj_nope") == 0
+        assert store.delete_groups_for_project("") == 0
