@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-15T18:04:28",
+  "generated_at": "2026-10-15T19:02:34",
   "totals": {
-    "routes": 460,
-    "live": 237,
+    "routes": 461,
+    "live": 238,
     "dead_copy": 223,
     "ui": 137,
     "cli_script": 19,
     "runtime_only": 24,
-    "unreferenced": 280,
+    "unreferenced": 281,
     "live_by_category": {
       "ui": 69,
       "cli_script": 8,
       "runtime_only": 22,
-      "unreferenced": 138
+      "unreferenced": 139
     },
     "by_intent": {
       "should_be_in_ui": 7,
       "should_not_be_in_ui": 6,
-      "unclassified": 224
+      "unclassified": 225
     }
   },
   "frontend_endpoints": 142,
@@ -1019,7 +1019,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:2360"
+        "plugins/chat.py:2488"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1040,7 +1040,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:175",
-        "plugins/chat.py:1094"
+        "plugins/chat.py:1142"
       ],
       "description": "会话管理 API 路由",
       "description_source": "module",
@@ -2758,7 +2758,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:248",
-        "plugins/chat.py:700"
+        "plugins/chat.py:748"
       ],
       "description": "生成交接文档 — LLM 压缩当前会话为 Markdown，保存到 OS 临时目录",
       "description_source": "handler",
@@ -3153,7 +3153,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:153",
-        "plugins/chat.py:1072"
+        "plugins/chat.py:1120"
       ],
       "description": "会话管理 API 路由",
       "description_source": "module",
@@ -3174,7 +3174,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:208",
-        "plugins/chat.py:1128"
+        "plugins/chat.py:1176"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
@@ -3195,7 +3195,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:191",
-        "plugins/chat.py:1108"
+        "plugins/chat.py:1156"
       ],
       "description": "搜索历史记录",
       "description_source": "handler",
@@ -5020,8 +5020,8 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:909",
-        "plugins/chat.py:917"
+        "plugins/chat.py:957",
+        "plugins/chat.py:965"
       ],
       "description": "列出全部项目（id / name / workspace_root / created_at / updated_at）",
       "description_source": "handler",
@@ -5042,10 +5042,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:942",
-        "plugins/chat.py:971"
+        "plugins/chat.py:1019",
+        "plugins/chat.py:990"
       ],
-      "description": "改名 / 改工作空间：body {name?, path|workspace_root?, create?}（只改传了的字段）",
+      "description": "删除项目；项目内分组随项目删除、会话解除项目归属（会话本体都不删）。",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -5065,7 +5065,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2319"
+        "plugins/chat.py:2447"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -5888,8 +5888,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1006",
-        "plugins/chat.py:1015"
+        "plugins/chat.py:1054",
+        "plugins/chat.py:1063"
       ],
       "description": "列出分组及 会话→分组 归属表；?project_id= 只返回该项目下的分组",
       "description_source": "handler",
@@ -5910,8 +5910,8 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1030",
-        "plugins/chat.py:1045"
+        "plugins/chat.py:1078",
+        "plugins/chat.py:1093"
       ],
       "description": "重命名分组",
       "description_source": "handler",
@@ -5939,7 +5939,7 @@
         "agent/server_routes/routes_sessions.py:77",
         "agent/server_routes/routes_sessions.py:87",
         "plugins/chat.py:536",
-        "plugins/chat.py:549"
+        "plugins/chat.py:567"
       ],
       "description": "获取会话列表",
       "description_source": "handler",
@@ -5960,9 +5960,29 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:98",
-        "plugins/chat.py:565"
+        "plugins/chat.py:589"
       ],
       "description": "删除会话",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
+    },
+    {
+      "path": "/api/sessions/<session_id>/agent",
+      "norm": "/api/sessions/*/agent",
+      "methods": [
+        "PUT"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:646"
+      ],
+      "description": "设置/清除会话级智能体：body {agent: string|null}；null/空 = 母体。",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -5980,7 +6000,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1056"
+        "plugins/chat.py:1104"
       ],
       "description": "把会话移入/移出分组：body {group_id: string|null}；null = 未分组",
       "description_source": "handler",
@@ -6002,8 +6022,8 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:144",
-        "plugins/chat.py:651",
-        "plugins/chat.py:661"
+        "plugins/chat.py:699",
+        "plugins/chat.py:709"
       ],
       "description": "获取会话消息",
       "description_source": "handler",
@@ -6023,7 +6043,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:600"
+        "plugins/chat.py:624"
       ],
       "description": "把会话归入/移出项目：body {project_id: string|null}；null = 未归属项目。",
       "description_source": "handler",
@@ -6044,7 +6064,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:108",
-        "plugins/chat.py:585"
+        "plugins/chat.py:609"
       ],
       "description": "重命名会话",
       "description_source": "handler",
@@ -6064,7 +6084,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:744"
+        "plugins/chat.py:792"
       ],
       "description": "列出会话工作空间文件树（会话不存在 404）",
       "description_source": "handler",
@@ -6085,8 +6105,8 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:767",
-        "plugins/chat.py:793"
+        "plugins/chat.py:815",
+        "plugins/chat.py:841"
       ],
       "description": "绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区）",
       "description_source": "handler",
@@ -6106,7 +6126,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:805"
+        "plugins/chat.py:853"
       ],
       "description": "在系统文件管理器中打开该会话的工作空间目录（本机桌面应用场景）",
       "description_source": "handler",
@@ -6129,7 +6149,7 @@
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_sessions.py:120",
-        "plugins/chat.py:622"
+        "plugins/chat.py:670"
       ],
       "description": "切换当前会话",
       "description_source": "handler",
@@ -9392,9 +9412,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:869",
-        "plugins/chat.py:877",
-        "plugins/chat.py:893"
+        "plugins/chat.py:917",
+        "plugins/chat.py:925",
+        "plugins/chat.py:941"
       ],
       "description": "列出已添加的工作区（路径/名称/添加时间）",
       "description_source": "handler",
@@ -9896,5 +9916,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "4f9036cbc0b5647c"
+  "content_hash": "32d876ebe35cb899"
 }

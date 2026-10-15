@@ -546,6 +546,24 @@ def api_sessions_list():
     })
 
 
+def _agent_exists(name: str) -> str | None:
+    """校验分身存在：存在返回 None，否则返回错误文案（不抛）。
+
+    【为什么提出来】创建会话与"设置会话智能体"两个入口都要校验，各写一份必然漂移。
+    分身系统未启用时按"不可用"拒绝 —— 不放行一个注定跑不起来的绑定。
+    """
+    try:
+        from app_server import _Yunshu
+    except Exception as _e:  # noqa: BLE001
+        return f"核心系统不可用：{_e}"
+    mgr = getattr(_Yunshu, "_subagent_mgr", None)
+    if mgr is None or not callable(getattr(mgr, "get", None)):
+        return "分身系统未启用（subagent.enabled=False 或核心系统未初始化）"
+    if mgr.get(name) is None:
+        return f"分身不存在: {name}"
+    return None
+
+
 @bp.route("/api/sessions", methods=["POST"])
 @_require_token
 def api_sessions_create():
@@ -557,8 +575,14 @@ def api_sessions_create():
     project_id = data.get("project_id") or None
     if project_id is not None and not _projects.get_project(project_id):
         return jsonify({"error": "项目不存在"}), 404
-    session = _session_mgr.create_session(title=title, project_id=project_id)
-    logger.info("通过 Web 界面创建新会话: %s（项目 %s）", session["id"], project_id or "无")
+    agent = (data.get("agent") or "").strip() or None
+    if agent is not None:
+        _err = _agent_exists(agent)
+        if _err:
+            return jsonify({"error": _err}), 404
+    session = _session_mgr.create_session(title=title, project_id=project_id, agent=agent)
+    logger.info("通过 Web 界面创建新会话: %s（项目 %s，智能体 %s）",
+                session["id"], project_id or "无", agent or "母体")
     return jsonify(session), 201
 
 
@@ -617,6 +641,30 @@ def api_sessions_set_project(session_id):
         return jsonify({"error": "会话不存在"}), 404
     logger.info("会话 %s 归属项目: %s", session_id, project_id or "无")
     return jsonify({"ok": True, "project_id": project_id})
+
+
+@bp.route("/api/sessions/<session_id>/agent", methods=["PUT"])
+@_require_token
+def api_sessions_set_agent(session_id):
+    """设置/清除会话级智能体：body {agent: string|null}；null/空 = 母体。
+
+    【语义 A】整段会话都由该分身回答：模型与角色按 agent/subagent 的受控模板解析
+    （见 _workbench_real_stream），不是"把某一条任务派给它"。
+    """
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_mgr, logger
+    if not _session_mgr.get_session(session_id):
+        return jsonify({"error": "会话不存在"}), 404
+    data = request.get_json(silent=True) or {}
+    agent = (data.get("agent") or "").strip() or None
+    if agent is not None:
+        _err = _agent_exists(agent)
+        if _err:
+            return jsonify({"error": _err}), 404
+    if not _session_mgr.set_session_agent(session_id, agent):
+        return jsonify({"error": "会话不存在"}), 404
+    logger.info("会话 %s 智能体: %s", session_id, agent or "母体")
+    return jsonify({"ok": True, "agent": agent})
 
 
 @bp.route("/api/sessions/current", methods=["POST"])
@@ -1671,16 +1719,91 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
         except Exception as _e:
             logger.debug("[workbench][SSE] 用户消息落盘失败（忽略）: %s", _e)
 
+    # ── 会话级智能体（语义 A：整段会话都由该分身回答）──────────────────
+    # 绑定在该会话上的分身决定这次（以及之后每次）回答的**模型与角色**：与具名委派
+    # 端点同源地用 resolve_subagent_llm / resolve_subagent_role，不另造一套"分身怎么
+    # 选模型、怎么拼提示词"的口径。任何一步失败都**如实上屏并回退母体**——
+    # 本仓纪律：换了模型必须看得见，绝不静默。
+    agent_name = ""
+    agent_role_prompt = ""
+    agent_llm = None
+    if session_id:
+        try:
+            from app_server import _session_mgr as _sm_agent
+            agent_name = str((_sm_agent.get_session_metadata(session_id) or {}).get("agent") or "")
+        except Exception as _e:
+            logger.debug("[workbench][SSE] 会话智能体读取失败（按母体回答）: %s", _e)
+            agent_name = ""
+    if agent_name:
+        try:
+            from app_server import _Yunshu as _core
+            _mgr = getattr(_core, "_subagent_mgr", None)
+            _container = (
+                _mgr.get(agent_name)
+                if _mgr is not None and callable(getattr(_mgr, "get", None))
+                else None
+            )
+            if _container is None:
+                yield _sse({"type": "thinking", "id": "agent", "title": "会话智能体",
+                            "detail": f"绑定的分身「{agent_name}」不存在，本次回退母体回答",
+                            "status": "error"})
+                agent_name = ""
+            else:
+                _cfg = getattr(_container, "config", None)
+                from agent.subagent.role_templates import resolve_subagent_role
+                from agent.subagent.llm_factory import resolve_subagent_llm
+
+                _role = resolve_subagent_role(
+                    getattr(_cfg, "role_template", ""),
+                    getattr(_cfg, "role_text", ""),
+                    getattr(_cfg, "role_mode", "template"))
+                if _role.error:
+                    yield _sse({"type": "thinking", "id": "agent", "title": "会话智能体",
+                                "detail": f"角色配置无效：{_role.error}（本次仍用母体提示词）",
+                                "status": "error"})
+                else:
+                    agent_role_prompt = _role.system_prompt or ""
+
+                _resolution = resolve_subagent_llm(
+                    getattr(_cfg, "model_id", ""),
+                    parent_llm=getattr(_core, "_llm", None),
+                    temperature=getattr(_cfg, "llm_temperature", None))
+                if _resolution.source == "fallback-after-error":
+                    yield _sse({"type": "thinking", "id": "agent", "title": "会话智能体",
+                                "detail": f"指定模型未生效（已回退母体）：{_resolution.error}",
+                                "status": "error"})
+                agent_llm = _resolution.llm
+                _detail = (f"由分身「{agent_name}」回答（模型 {_resolution.model or '未指定'}"
+                           f"，来源 {_resolution.source}）")
+                if agent_role_prompt:
+                    _detail += "；角色模板已注入系统提示词"
+                yield _sse({"type": "thinking", "id": "agent", "title": "会话智能体",
+                            "detail": _detail, "status": "done"})
+        except Exception as _e:  # noqa: BLE001  解析失败按母体回答，不阻断本轮
+            logger.warning("[workbench][SSE] 会话智能体解析失败（按母体回答）: %s", _e)
+            agent_name = ""
+            agent_role_prompt = ""
+            agent_llm = None
+
     # ── 完整模式：委托编排器全链路（意图分层 / 检索 / 规划 / 工具）──
     # 【2026-10-02】由用户在工具栏「对话模式」里选择。委托而非复刻：编排器那条路是 async
     #   且步骤多，复刻就是第二套实现。代价是**非流式**（已在 UI 选项说明里写明）。
     #   【为什么放在这里】用户消息刚落盘、还没构造本路径的 LLMService、更没向模型发请求 ⇒
     #   完整模式既不白建客户端，也不会走工作台自己的工具选择与预算（那些都是另一条链路的活）。
     if mode == "full":
+        # 「完整」模式是用户显式选择的编排器链路，优先于会话智能体；两者同时设置时
+        # 以 full 为准，并在时间线上如实标注（不让界面声称的与实际跑的对不上）。
+        if agent_name:
+            yield _sse({"type": "thinking", "id": "agent", "title": "会话智能体",
+                        "detail": (f"当前为「完整」模式（显式委托编排器），本次不按分身"
+                                   f"「{agent_name}」的模型/角色回答"),
+                        "status": "done"})
         yield from _full_pipeline_events(question, session_id)
         return
 
-    llm = LLMService(
+    # 会话绑定了智能体且模型解析成功 ⇒ 用该分身的实例（与具名委派端点同源）；
+    # 否则按 .env 部署配置构建母体实例（与会话未绑定智能体时逐字一致）。
+    llm = agent_llm or LLMService(
         provider=provider, api_key=api_key, model=model,
         timeout=60, base_url=base_url,
     )
@@ -1731,6 +1854,11 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 "detail": "模型流式输出中…", "status": "running"})
 
     SYSTEM_PROMPT = "你是云枢（Yunshu），一个拥有完整感知-认知-行动闭环的数字生命体。请以简洁、自然的语言回答用户。需要时可以使用提供的工具获取实时信息或执行操作。"
+
+    # 会话级智能体（语义 A）：把该分身的受控角色模板注入系统提示词。模板正文来自
+    # role_templates.resolve_subagent_role（与委派端点同一口径），此处不拼自由文本。
+    if agent_role_prompt:
+        SYSTEM_PROMPT = agent_role_prompt + "\n\n" + SYSTEM_PROMPT
 
     # ── 检索模式：注入检索到的记忆/知识片段（2026-10-02，用户在工具栏「对话模式」里选）──
     # 口径只有一份：直接调编排器的 `_context_assembler_extra()`（见其 docstring）。
