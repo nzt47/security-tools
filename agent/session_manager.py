@@ -91,6 +91,7 @@ class SessionManager:
         device_type: str | None = None,
         locale: str | None = None,
         project_id: str | None = None,
+        agent: str | None = None,
         session_id: str | None = None,
     ) -> dict:
         """创建新会话
@@ -103,6 +104,8 @@ class SessionManager:
             locale: 语言环境（如 "zh-CN"），来自 Accept-Language
             project_id: 所属项目 ID（None = 未归属项目）；工作空间解析见
                 get_session_workspace_dir 的优先级
+            agent: 会话级智能体（分身名；空 = 母体）。语义 A：整段会话都由该分身回答
+                （模型与角色按 agent/subagent 的受控模板解析，见 _workbench_real_stream）
             session_id: 【2026-08-15 并发修复】显式指定会话 ID（请求级会话隔离，
                 外部调用方可通过该参数传入自定义 ID）。默认 None 自动生成。
 
@@ -138,6 +141,7 @@ class SessionManager:
             "device_type": device_type,
             "locale": locale,
             "project_id": project_id,
+            "agent": agent,
         }
 
         session_dir = self._sessions_dir / session_id
@@ -317,6 +321,28 @@ class SessionManager:
             self._write_index(index)
         # 锁外调用（update_session_metadata 内部再取 self._lock，非重入锁）
         self.update_session_metadata(session_id, project_id=project_id)
+        return True
+
+    def set_session_agent(self, session_id: str, agent: str | None) -> bool:
+        """设置/清除会话级智能体（空串 = 母体）。
+
+        与 set_session_project 同款：索引 + meta 同步写（list_sessions 读索引、
+        get_session_metadata 以 meta 优先，只写一处会让两处对不上）。
+        """
+        agent = (agent or "").strip() or None
+        with self._lock:
+            index = self._read_index()
+            found = False
+            for s in index:
+                if s.get("id") == session_id:
+                    s["agent"] = agent
+                    s["updated_at"] = datetime.now(timezone.utc).isoformat()
+                    found = True
+                    break
+            if not found:
+                return False
+            self._write_index(index)
+        self.update_session_metadata(session_id, agent=agent)
         return True
 
     def set_project_root_resolver(self, resolver) -> None:
