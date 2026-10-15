@@ -1023,6 +1023,9 @@ _session_groups = SessionGroupStore(sessions_dir="./data/sessions")
 _workspace_registry = WorkspaceRegistry(sessions_dir="./data/sessions")
 # 「项目」存储（项目自带工作空间根目录；projects.json，见 ProjectStore）
 _projects = ProjectStore(sessions_dir="./data/sessions")
+# 工作空间解析接线：会话未自绑工作区时，落到所属项目的工作空间根目录
+# （见 SessionManager.get_session_workspace_dir 的优先级；存储层之间不互相 import）
+_session_mgr.set_project_root_resolver(_projects.workspace_root_for)
 
 # 用于全景视图等旧功能的向后兼容缓存
 _CHAT_HISTORY = []

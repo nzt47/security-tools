@@ -41,6 +41,9 @@ class SessionManager:
         self._sessions_dir = Path(sessions_dir)
         self._index_path = self._sessions_dir / "sessions.json"
         self._current_id: str | None = None
+        # 【工作空间解析】会话未自绑 workspace_root 时，回落到所属项目的工作空间根。
+        # 由 app_server 注入（存储层之间不互相 import，见 ProjectStore 的职责边界说明）。
+        self._project_root_resolver = None  # Callable[[str], str | None] | None
         self._lock = threading.Lock()
         # [2026-08-13 并发审计 B] 消息文件追加/清空专用锁：Windows 上 open("a")
         # 的 O_APPEND 是 seek+write 组合（非原子），多线程并发追加会交错覆盖丢行；
@@ -87,6 +90,7 @@ class SessionManager:
         timezone: str | None = None,
         device_type: str | None = None,
         locale: str | None = None,
+        project_id: str | None = None,
         session_id: str | None = None,
     ) -> dict:
         """创建新会话
@@ -97,6 +101,8 @@ class SessionManager:
             timezone: 用户时区（如 "Asia/Shanghai"），用于调整说话风格与临场感
             device_type: 设备类型（如 "mobile"/"desktop"），来自 User-Agent 启发式
             locale: 语言环境（如 "zh-CN"），来自 Accept-Language
+            project_id: 所属项目 ID（None = 未归属项目）；工作空间解析见
+                get_session_workspace_dir 的优先级
             session_id: 【2026-08-15 并发修复】显式指定会话 ID（请求级会话隔离，
                 外部调用方可通过该参数传入自定义 ID）。默认 None 自动生成。
 
@@ -131,6 +137,7 @@ class SessionManager:
             "timezone": timezone,
             "device_type": device_type,
             "locale": locale,
+            "project_id": project_id,
         }
 
         session_dir = self._sessions_dir / session_id
@@ -288,6 +295,47 @@ class SessionManager:
                     logger.info("会话已重命名: %s → %s", session_id, title)
                     return True
         return False
+
+    def set_session_project(self, session_id: str, project_id: str | None) -> bool:
+        """把会话归入/移出项目（None = 未归属项目）。
+
+        【为什么索引和 meta 都要写】list_sessions 读索引（sessions.json）、
+        get_session_metadata 以 meta.json 优先 —— 只写一处会让"会话列表里的项目"
+        与"会话详情里的项目"对不上（本仓对这类两份口径有多次记录）。
+        """
+        with self._lock:
+            index = self._read_index()
+            found = False
+            for s in index:
+                if s.get("id") == session_id:
+                    s["project_id"] = project_id
+                    s["updated_at"] = datetime.now(timezone.utc).isoformat()
+                    found = True
+                    break
+            if not found:
+                return False
+            self._write_index(index)
+        # 锁外调用（update_session_metadata 内部再取 self._lock，非重入锁）
+        self.update_session_metadata(session_id, project_id=project_id)
+        return True
+
+    def set_project_root_resolver(self, resolver) -> None:
+        """注入"项目 ID → 工作空间根目录"解析器（app_server 用 ProjectStore 接线）。
+
+        存储层之间不互相 import：SessionManager 只接受一个可调用对象，
+        避免 session_manager ↔ project_store 的循环依赖。
+        """
+        self._project_root_resolver = resolver
+
+    def _project_workspace_root(self, project_id) -> str | None:
+        """解析项目的工作空间根（未接线/未归属/项目不存在一律 None）。"""
+        if not project_id or self._project_root_resolver is None:
+            return None
+        try:
+            return self._project_root_resolver(project_id)
+        except Exception as e:  # noqa: BLE001  解析失败按"未绑定"处理，不阻断工作区读取
+            logger.warning("项目工作空间解析失败（按未绑定处理）: %s", e)
+            return None
 
     def set_current(self, session_id: str) -> bool:
         """设置当前会话（UI 选中态）
@@ -452,13 +500,18 @@ class SessionManager:
     def get_session_workspace_dir(self, session_id: str):
         """返回该会话应使用的工作空间根目录（可能不存在，不创建）。
 
-        绑定自定义根（meta.workspace_root）时返回该路径，否则返回默认
-        data/sessions/{session_id}/workspace。
+        解析优先级（高 → 低）：
+          1. 会话自绑目录 meta.workspace_root（单会话临时覆盖）；
+          2. 所属项目的工作空间根（meta.project_id → 注入的 ProjectStore 解析器）；
+          3. 默认 data/sessions/{session_id}/workspace。
         """
         meta = self.get_session_metadata(session_id) or {}
         custom = meta.get("workspace_root")
         if custom:
             return Path(str(custom))
+        project_root = self._project_workspace_root(meta.get("project_id"))
+        if project_root:
+            return Path(str(project_root))
         return self._sessions_dir / session_id / "workspace"
 
     def workspace_id_for(self, session_id: str) -> str:
@@ -588,7 +641,15 @@ class SessionManager:
         """
         root = self.get_session_workspace_dir(session_id)
         meta = self.get_session_metadata(session_id) or {}
-        custom = bool(meta.get("workspace_root"))
+        # source: 这份工作空间从哪来（session 自绑 / project 项目 / default 默认）——
+        # 前端据此提示"随项目"还是"本会话临时覆盖"，不再只靠一个 custom 布尔。
+        if meta.get("workspace_root"):
+            source = "session"
+        elif self._project_workspace_root(meta.get("project_id")):
+            source = "project"
+        else:
+            source = "default"
+        custom = source != "default"
         try:
             root_exists = root.exists() and root.is_dir()
         except OSError:
@@ -596,6 +657,7 @@ class SessionManager:
         if not root_exists:
             return {
                 "exists": False, "root": str(root), "custom": custom,
+                "source": source, "project_id": meta.get("project_id"),
                 "files": [], "truncated": False,
             }
 
@@ -650,6 +712,7 @@ class SessionManager:
         _walk(root, 0)
         return {
             "exists": True, "root": str(root), "custom": custom,
+            "source": source, "project_id": meta.get("project_id"),
             "files": files, "truncated": truncated,
         }
 

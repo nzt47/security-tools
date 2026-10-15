@@ -549,13 +549,16 @@ def api_sessions_list():
 @bp.route("/api/sessions", methods=["POST"])
 @_require_token
 def api_sessions_create():
-    """创建新会话"""
+    """创建新会话：body {title?, project_id?}（project_id 校验存在性）"""
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _session_mgr, logger
+    from app_server import _session_mgr, _projects, logger
     data = request.get_json() or {}
     title = data.get("title", "")
-    session = _session_mgr.create_session(title=title)
-    logger.info("通过 Web 界面创建新会话: %s", session["id"])
+    project_id = data.get("project_id") or None
+    if project_id is not None and not _projects.get_project(project_id):
+        return jsonify({"error": "项目不存在"}), 404
+    session = _session_mgr.create_session(title=title, project_id=project_id)
+    logger.info("通过 Web 界面创建新会话: %s（项目 %s）", session["id"], project_id or "无")
     return jsonify(session), 201
 
 
@@ -592,6 +595,28 @@ def api_sessions_rename(session_id):
     if _session_mgr.rename_session(session_id, title):
         return jsonify({"ok": True})
     return jsonify({"error": "会话不存在"}), 404
+
+
+@bp.route("/api/sessions/<session_id>/project", methods=["PUT"])
+@_require_token
+def api_sessions_set_project(session_id):
+    """把会话归入/移出项目：body {project_id: string|null}；null = 未归属项目。
+
+    会话的工作空间解析随之变化：未自绑 workspace_root 时会自动落到项目的工作空间
+    （见 SessionManager.get_session_workspace_dir 的优先级）。
+    """
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_mgr, _projects, logger
+    if not _session_mgr.get_session(session_id):
+        return jsonify({"error": "会话不存在"}), 404
+    data = request.get_json(silent=True) or {}
+    project_id = data.get("project_id") or None
+    if project_id is not None and not _projects.get_project(project_id):
+        return jsonify({"error": "项目不存在"}), 404
+    if not _session_mgr.set_session_project(session_id, project_id):
+        return jsonify({"error": "会话不存在"}), 404
+    logger.info("会话 %s 归属项目: %s", session_id, project_id or "无")
+    return jsonify({"ok": True, "project_id": project_id})
 
 
 @bp.route("/api/sessions/current", methods=["POST"])
@@ -946,23 +971,32 @@ def api_projects_update(project_id):
 @bp.route("/api/projects/<project_id>", methods=["DELETE"])
 @_require_token
 def api_projects_delete(project_id):
-    """删除项目；项目内的分组随项目一同删除（会话本体不删）。
+    """删除项目；项目内分组随项目删除、会话解除项目归属（会话本体都不删）。
 
-    【级联口径】分组只在项目内有意义 ⇒ 随项目删除（delete_groups_for_project）；
-    组内会话不删除，只是失去分组归属。
+    【级联口径】分组只在项目内有意义 ⇒ 随项目删除；会话只失去项目归属（消息与本
+    体保留），未自绑 workspace_root 的会话其工作空间解析随之回落到默认目录。
     """
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _projects, _session_groups, logger
+    from app_server import _projects, _session_mgr, _session_groups, logger
     if not _projects.get_project(project_id):
         return jsonify({"error": "项目不存在"}), 404
+    # 1) 会话解除项目归属（会话本体与消息都不删）
+    detached = 0
+    try:
+        for s in _session_mgr.list_sessions(limit=100000):
+            if s.get("project_id") == project_id and _session_mgr.set_session_project(s["id"], None):
+                detached += 1
+    except Exception as _e:  # noqa: BLE001  解绑失败不阻断项目删除
+        logger.warning("解除会话项目归属失败（忽略）: %s", _e)
+    # 2) 项目内分组随项目删除
     removed_groups = 0
     try:
         removed_groups = _session_groups.delete_groups_for_project(project_id)
     except Exception as _e:  # noqa: BLE001  分组清理失败不阻断项目删除
         logger.warning("清理项目内分组失败（忽略）: %s", _e)
     _projects.delete_project(project_id)
-    logger.info("删除项目: %s（随之删除分组 %d 个）", project_id, removed_groups)
-    return jsonify({"ok": True, "removed_groups": removed_groups})
+    logger.info("删除项目: %s（解除会话 %d 个，随之删除分组 %d 个）", project_id, detached, removed_groups)
+    return jsonify({"ok": True, "detached_sessions": detached, "removed_groups": removed_groups})
 
 
 # ════════════════════════════════════════════════════════════
