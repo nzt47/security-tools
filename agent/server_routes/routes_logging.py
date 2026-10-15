@@ -933,11 +933,14 @@ def register_routes(app, state):
                 else:
                     log_query = f"service={service}"
             
+            # 本地回退的窗口/文件诊断信息由 loki.py 填入（空结果时前端要如实说明"扫了哪儿"）
+            window_meta = {}
             logs = query_loki_logs(
                 query=log_query if log_query else ".+",
                 start_time=start_time,
                 end_time=end_time,
-                limit=limit
+                limit=limit,
+                meta=window_meta,
             )
 
             # 对日志进行敏感数据过滤
@@ -956,7 +959,9 @@ def register_routes(app, state):
                 "logs": filtered_logs,
                 "total": len(filtered_logs),
                 "limit": limit,
-                "timestamp": time.time()
+                "timestamp": time.time(),
+                # 实际扫描的本地窗口（仅本地回退时有值）；前端用它把"空结果"讲清楚
+                "window": window_meta,
             })
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'查询日志失败: {e}'}))
