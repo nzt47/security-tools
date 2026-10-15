@@ -14,7 +14,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   MessageSquare, LayoutDashboard, Brain, Wrench, Globe, Database,
   Activity, FileText, Server, Monitor,
-  HeartPulse, CalendarClock, Users, Copy, Hammer,
+  HeartPulse, CalendarClock, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
 } from 'lucide-react'
@@ -42,8 +42,9 @@ const ToolsPage = lazy(() => import('@/pages/hub/tools'))
 const EngineHeartbeat = lazy(() => import('@/pages/hub/engine/heartbeat'))
 const EngineScheduler = lazy(() => import('@/pages/hub/engine/scheduler'))
 const NetworkPage = lazy(() => import('@/pages/hub/network'))
+// 分身创建与组装：本页含 5 个视图（分身 / 组装台 / 带走·自复制 / 主线档案 / 主线 × 四面）；
+// 原独立叶子 workshop/replicate（系统自我复制）已于 2026-10-15 并入本页第 3 视图
 const WorkshopAgents = lazy(() => import('@/pages/hub/workshop/agents'))
-const WorkshopReplicate = lazy(() => import('@/pages/hub/workshop/replicate'))
 const AssetsPage = lazy(() => import('@/pages/hub/assets'))
 const HubAdminDashboard = lazy(() => import('@/pages/hub/admin/dashboard'))
 const HubAdminUsers = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminUsers })))
@@ -89,10 +90,11 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
       // 工具调用：原 5 个子项已在页面内收敛为 Tab（pages/hub/tools/index.tsx）。
       { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
-      // 【第三轮 IA】装配车间并入「会话与配置」：分身创建与组装 = 对话侧配置；
-      // 系统自我复制 = 配置的可带走导出/导入，同属「配置」语义（原顶层 2 项分组随之消失）。
+      // 【第三轮 IA】装配车间并入「会话与配置」：分身创建与组装 = 对话侧配置（原顶层 2 项分组消失）。
+      // 【2026-10-15 IA】「系统自我复制」并入本页第 3 视图「带走 / 自复制」——后端契约本就是
+      // /api/subagent/<name>/bundle（按分身打包），与「分身」是同一条主线的两端；独立叶子
+      // workshop/replicate 移除 ⇒ 旧深链经 LEGACY_NAV_KEY_MAP 落到本页（禁止双入口）。
       { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
-      { key: 'workshop/replicate', label: '系统自我复制', icon: Copy, component: WorkshopReplicate },
       // 【第四轮 IA · 2026-10-14】「记忆与资产」整桶并入本桶（顶层再少一个桶）；
       // 「插件与扩展」「网络配置」从被取消的「系统组件」桶迁入。叶子 key 一律不变
       // ⇒ 旧深链 ?panel=memory / ?panel=assets / ?panel=components/plugins / ?panel=network 仍有效。
@@ -265,6 +267,9 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   'engine': 'engine/heartbeat',
   // 【第三轮 IA】装配车间并入会话与配置：组 key 消失，落到其原第一个子项
   'workshop': 'workshop/agents',
+  // 【2026-10-15 IA】「系统自我复制」并入「分身创建与组装」第 3 视图（带走 / 自复制）：
+  //   独立叶子消失 ⇒ 深链落到本页（页内视图记忆会接续用户上次看的视图）
+  'workshop/replicate': 'workshop/agents',
   // 【第四轮 IA · 2026-10-14】「记忆与资产」「系统组件」两个桶被取消：
   //   组 key 消失 ⇒ 落到各自的原第一个子项（叶子 key 不变，深链继续有效）。
   'memory-assets': 'memory',

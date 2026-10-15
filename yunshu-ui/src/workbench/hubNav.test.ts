@@ -5,7 +5,7 @@
  * 单一来源：key 即参数语义，避免在导航配置里重复声明导致漂移。
  */
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_NAV_KEY, derivePanelParams, findNavItem, flattenNav, HUB_NAV } from './hubNav'
+import { DEFAULT_NAV_KEY, derivePanelParams, findNavItem, flattenNav, HUB_NAV, resolveNavKey } from './hubNav'
 
 describe('hubNav derivePanelParams（第二轮 IA：assets/memory 收敛为叶子）', () => {
   it('assets 与 memory 已是叶子项，不再推导 initialCategory / mode', () => {
@@ -80,7 +80,7 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
       'session', 'prompt-lab', 'skills-center', 'tools',
-      'workshop/agents', 'workshop/replicate',
+      'workshop/agents',
       'memory', 'assets', 'components/plugins', 'network',
     ])
     expect(topKeys.indexOf('workspace')).toBeLessThan(topKeys.indexOf('panorama'))
@@ -140,11 +140,14 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     expect(findNavItem('network')?.component).toBeDefined()
   })
 
-  it('「装配车间」两个子项并入「会话与配置」，顶层不再有 workshop 分组', () => {
+  it('「装配车间」并入「会话与配置」；「系统自我复制」已作页内视图（旧深链仍归一）', () => {
     const keys = flattenNav(HUB_NAV).map((i) => i.key)
     expect(keys).toContain('workshop/agents')
-    expect(keys).toContain('workshop/replicate')
+    // 2026-10-15：系统自我复制并入「分身创建与组装」第 3 视图（带走 / 自复制），
+    // 导航树不再有独立叶子；旧的 ?panel=workshop/replicate 由兼容层落到本页。
+    expect(keys).not.toContain('workshop/replicate')
     expect(HUB_NAV.map((i) => i.key)).not.toContain('workshop')
+    expect(resolveNavKey('workshop/replicate')).toBe('workshop/agents')
   })
 
   it('桶内子项全部为叶子（不再有嵌套分组，NavPanel 一级展开即可见全部叶子）', () => {

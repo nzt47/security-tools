@@ -1,7 +1,7 @@
 /**
- * 装配车间 —— 四视图容器守卫（2026-10-08 组装台并入后）
+ * 装配车间 —— 五视图容器守卫（2026-10-08 组装台并入；2026-10-15 系统自我复制并入）
  * ------------------------------------------------------------------
- * 四个视图：① 分身 / ② 组装台 / ③ 主线档案 / ④ 主线 × 四面。
+ * 五个视图：① 分身 / ② 组装台 / ③ 带走·自复制 / ④ 主线档案 / ⑤ 主线 × 四面。
  * 锁死：四 Tab 顺序、点击即渲染、localStorage 记忆、非法值回落；
  * 以及"创建入口收敛到组装台"（本页不再有创建表单）。
  */
@@ -87,12 +87,16 @@ const { WORKSHOP_VIEWS, WORKSHOP_VIEW_STORAGE_KEY } = mod
 beforeEach(() => { localStorage.clear(); fetchMock.mockClear(); postCalls.length = 0 })
 afterEach(cleanup)
 
-describe('装配车间 · 四视图容器', () => {
-  it('四个视图 Tab 并列且顺序正确', () => {
+describe('装配车间 · 五视图容器', () => {
+  it('五个视图 Tab 并列且顺序正确', () => {
     render(<WorkshopAgents />)
     expect(screen.getByRole('tablist', { name: '分身装配视图' })).toBeInTheDocument()
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['分身', '组装台', '主线档案', '主线 × 四面'])
-    expect(WORKSHOP_VIEWS.map((v) => v.id)).toEqual(['agents', 'assembly', 'lines', 'line-assembly'])
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(
+      ['分身', '组装台', '带走 / 自复制', '主线档案', '主线 × 四面'],
+    )
+    expect(WORKSHOP_VIEWS.map((v) => v.id)).toEqual(
+      ['agents', 'assembly', 'replicate', 'lines', 'line-assembly'],
+    )
   })
 
   it('默认「分身」视图：只列分身 + 前往组装台（无创建表单）', async () => {
@@ -135,6 +139,13 @@ describe('装配车间 · 四视图容器', () => {
     fireEvent.click(screen.getByRole('tab', { name: /主线 × 四面/ }))
     await waitFor(() => expect(container.querySelector('[data-testid="line-assembly-overview"]')).toBeTruthy())
     expect(localStorage.getItem(WORKSHOP_VIEW_STORAGE_KEY)).toBe('line-assembly')
+  })
+
+  it('点「带走 / 自复制」⇒ 渲染 bundle 导出视图（原独立叶子「系统自我复制」已并入）', async () => {
+    render(<WorkshopAgents />)
+    fireEvent.click(screen.getByRole('tab', { name: /带走/ }))
+    await waitFor(() => expect(screen.getByTestId('replicate-export')).toBeInTheDocument())
+    expect(localStorage.getItem(WORKSHOP_VIEW_STORAGE_KEY)).toBe('replicate')
   })
 
   it('记忆值合法 ⇒ 重开回到上次视图；非法 ⇒ 回落「分身」', async () => {

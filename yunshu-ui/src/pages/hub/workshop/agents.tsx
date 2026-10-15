@@ -1,12 +1,15 @@
 /**
  * 装配车间 —— 分身创建与组装（多 agent 设计系统）
  * ------------------------------------------------------------------
- * 【2026-10-08 组装台：本页成为「分身装配」的唯一入口】四个视图：
+ * 【2026-10-08 组装台：本页成为「分身装配」的唯一入口】五个视图：
  *   ① 分身        —— 存活分身列表 / 销毁 + 生效徽章（`/api/subagent/*`）；
  *   ② 组装台      —— 六步拼装 + **主权清单**（后端三态投影）+ 装配预览（真实请求体），
  *                     取代原「创建分身」四格弹表单（**唯一创建入口**）；
- *   ③ 主线档案    —— 能力平面档案（权重/保底/效果上限/技能包/提示词）+ 实时装配预览；
- *   ④ 主线 × 四面 —— 一条主线在「工具 / 技能 / 提示词 / 分身」四个面上的横向对比。
+ *   ③ 带走/自复制 —— 把一个分身打包导出 bundle / 从包导入（原独立导航项「系统自我复制」，
+ *                     2026-10-15 并入本页 —— 后端契约本就是 `/api/subagent/<name>/bundle`，
+ *                     讲的是同一件事的两端："装一个"与"把它带走"）；
+ *   ④ 主线档案    —— 能力平面档案（权重/保底/效果上限/技能包/提示词）+ 实时装配预览；
+ *   ⑤ 主线 × 四面 —— 一条主线在「工具 / 技能 / 提示词 / 分身」四个面上的横向对比。
  *
  * 【为什么把"创建"搬进组装台】原创建表单把"主权二十面"压成四个输入框，其中
  * `memory_provider` / `tool_sources` **没有任何运行时消费者**（只进状态与热更新日志）。
@@ -22,7 +25,7 @@
  */
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Hammer, Layers, Loader2, Route, Trash2, Users } from 'lucide-react'
+import { Hammer, Layers, Loader2, Package, Route, Trash2, Users } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubPost } from '../components/ui'
 
 import {
@@ -130,7 +133,7 @@ function RoleBadge({ role }: { role?: SubagentRole }) {
 }
 
 /** 视图键（= 原导航/Tab 身份，便于对照历史记录） */
-export type WorkshopView = 'agents' | 'assembly' | 'lines' | 'line-assembly'
+export type WorkshopView = 'agents' | 'assembly' | 'replicate' | 'lines' | 'line-assembly'
 
 export interface WorkshopViewDef {
   id: WorkshopView
@@ -139,10 +142,11 @@ export interface WorkshopViewDef {
   hint: string
 }
 
-/** 四个视图：顺序 = 「先有分身 → 再装一个 → 再看它拿到什么 → 再看四个面」 */
+/** 五个视图：顺序 = 「先有分身 → 再装一个 → 装好带走 → 再看它拿到什么 → 再看四个面」 */
 export const WORKSHOP_VIEWS: WorkshopViewDef[] = [
   { id: 'agents', label: '分身', icon: Users, hint: '存活分身列表与销毁（生效模型 / 角色来源见表中徽章）' },
   { id: 'assembly', label: '组装台', icon: Hammer, hint: '六步拼装一个主权分身：主权清单（三态）+ 装配预览（真实请求体）' },
+  { id: 'replicate', label: '带走 / 自复制', icon: Package, hint: '把一个分身打包导出 bundle，或从包导入（真实端点，过密钥闸）' },
   { id: 'lines', label: '主线档案', icon: Route, hint: '能力平面档案（权重 / 核心工具 / 效果上限 / 技能包 / 提示词）与实时装配预览' },
   { id: 'line-assembly', label: '主线 × 四面', icon: Layers, hint: '一条主线在工具 / 技能 / 提示词 / 分身四个面上的横向对比' },
 ]
@@ -165,6 +169,8 @@ function readSavedView(): WorkshopView {
 }
 
 const AssemblyConsole = lazy(() => import('./assembly'))
+// 带走/自复制：原独立导航项「系统自我复制」（pages/hub/workshop/replicate）并入本页第 3 视图
+const ReplicateView = lazy(() => import('./replicate'))
 const AgentLinesView = lazy(() => import('./agent-lines'))
 const LineAssemblyView = lazy(() => import('./line-assembly'))
 
@@ -360,6 +366,7 @@ export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
             </div>
           )}
           {view === 'assembly' && <AssemblyConsole key="assembly" onShowAgents={() => setView('agents')} />}
+          {view === 'replicate' && <ReplicateView key="replicate" />}
           {view === 'lines' && <AgentLinesView key="lines" />}
           {view === 'line-assembly' && <LineAssemblyView key="line-assembly" />}
         </Suspense>
