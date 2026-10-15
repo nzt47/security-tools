@@ -28,7 +28,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import type { SessionGroup, SessionMeta } from '../../../lib/sessionApi';
+import type { Project, SessionGroup, SessionMeta } from '../../../lib/sessionApi';
 
 export interface SessionRailProps {
   sessions: SessionMeta[];
@@ -47,6 +47,19 @@ export interface SessionRailProps {
   onRenameGroup: (id: string, name: string) => void | Promise<void>;
   onDeleteGroup: (id: string) => void | Promise<void>;
   onAssignGroup: (sessionId: string, groupId: string | null) => void | Promise<void>;
+  /** 已建项目（项目选择条；不传 = 无项目可选） */
+  projects?: Project[];
+  /** 当前项目 id；null = 「未归属项目」视图 */
+  activeProjectId?: string | null;
+  onSelectProject?: (projectId: string | null) => void;
+  /** 新建项目（弹窗提交）；resolve 出项目时自动选中它 */
+  onCreateProject?: (input: {
+    name: string;
+    path: string;
+    create: boolean;
+  }) => Promise<Project | void> | Project | void;
+  /** 把会话移到项目（projectId=null → 未归属项目） */
+  onMoveProject?: (sessionId: string, projectId: string | null) => void | Promise<void>;
 }
 
 /** 未分组分区专用 key */
@@ -88,6 +101,11 @@ export function SessionRail({
   onRenameGroup,
   onDeleteGroup,
   onAssignGroup,
+  projects = [],
+  activeProjectId = null,
+  onSelectProject,
+  onCreateProject,
+  onMoveProject,
 }: SessionRailProps) {
   const [query, setQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -104,6 +122,14 @@ export function SessionRail({
   const [confirmGroupId, setConfirmGroupId] = useState<string | null>(null);
   const [moveFor, setMoveFor] = useState<string | null>(null);
 
+  // 新建项目弹窗（项目名 + 工作空间绝对路径 + 是否自动创建）
+  const [projectOpen, setProjectOpen] = useState(false);
+  const [projectName, setProjectName] = useState('');
+  const [projectPath, setProjectPath] = useState('');
+  const [projectCreate, setProjectCreate] = useState(false);
+  const [projectBusy, setProjectBusy] = useState(false);
+  const [projectError, setProjectError] = useState<string | null>(null);
+
   useEffect(() => () => {
     if (confirmTimer.current) clearTimeout(confirmTimer.current);
   }, []);
@@ -119,11 +145,13 @@ export function SessionRail({
     return () => window.removeEventListener('mousedown', onDown);
   }, [moveFor]);
 
+  // 三段树第一段：只显示当前项目（activeProjectId=null =「未归属项目」）下的会话
+  const scoped = sessions.filter((s) => (s.project_id ?? null) === (activeProjectId ?? null));
   const filtered = query.trim()
-    ? sessions.filter((s) =>
+    ? scoped.filter((s) =>
         `${s.title} ${s.updated_at ?? ''}`.toLowerCase().includes(query.trim().toLowerCase()),
       )
-    : sessions;
+    : scoped;
 
   const hasGroups = groups.length > 0;
   const groupOf = (id: string) => membership[id] ?? null;
@@ -203,12 +231,57 @@ export function SessionRail({
     void onAssignGroup(sessionId, groupId);
   };
 
+  // ── 项目操作 ───────────────────────────────────────────────
+
+  const moveProject = (sessionId: string, projectId: string | null) => {
+    setMoveFor(null);
+    void onMoveProject?.(sessionId, projectId);
+  };
+
+  const openProjectModal = () => {
+    setProjectName('');
+    setProjectPath('');
+    setProjectCreate(false);
+    setProjectError(null);
+    setProjectOpen(true);
+  };
+
+  const closeProjectModal = () => {
+    if (projectBusy) return;
+    setProjectOpen(false);
+    setProjectError(null);
+  };
+
+  /** 提交新建项目；成功后由父层刷新项目列表并自动选中该项目 */
+  const submitCreateProject = async () => {
+    const name = projectName.trim();
+    const path = projectPath.trim();
+    if (!name || !path) return;
+    setProjectBusy(true);
+    setProjectError(null);
+    try {
+      const created = await onCreateProject?.({ name, path, create: projectCreate });
+      setProjectOpen(false);
+      setProjectName('');
+      setProjectPath('');
+      setProjectCreate(false);
+      if (created && typeof created === 'object' && 'id' in created) {
+        onSelectProject?.(created.id);
+      }
+    } catch (e) {
+      setProjectError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setProjectBusy(false);
+    }
+  };
+
   // 会话行（会话列表内联工厂，分区复用）
   const renderSessionRow = (s: SessionMeta) => {
     const active = s.id === activeId;
     const editing = editingId === s.id;
     const armed = confirmId === s.id;
     const currentGroup = groupOf(s.id);
+    const currentProject = s.project_id ?? null;
 
     return (
       <div
@@ -256,6 +329,7 @@ export function SessionRail({
               </div>
               <div className="mt-0.5 truncate text-[9.5px] text-slate-500">
                 {formatRelTime(s.updated_at)} · {s.message_count ?? 0} 条
+                {s.agent ? ` · ${s.agent}` : ''}
               </div>
             </>
           )}
@@ -346,6 +420,45 @@ export function SessionRail({
             {groups.length === 0 && (
               <div className="px-2 pb-1 pt-0.5 text-[10px] text-slate-600">
                 暂无分组：点击上方「＋ 新建分组」创建后即可归类
+              </div>
+            )}
+
+            {/* 移到项目：把已有会话归到项目（调用 sessionApi.setProject） */}
+            <div className="my-1 border-t border-slate-800" />
+            <div className="px-2 py-1 text-[9.5px] uppercase tracking-[0.14em] text-slate-500">
+              移动到项目
+            </div>
+            <button
+              type="button"
+              onClick={() => moveProject(s.id, null)}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors hover:bg-slate-800 ${
+                currentProject === null ? 'text-cyan-300' : 'text-slate-300'
+              }`}
+            >
+              <span className="flex h-4 w-4 items-center justify-center">
+                {currentProject === null && <Check size={12} />}
+              </span>
+              未归属项目
+            </button>
+            {projects.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => moveProject(s.id, p.id)}
+                title={p.workspace_root}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors hover:bg-slate-800 ${
+                  currentProject === p.id ? 'text-cyan-300' : 'text-slate-300'
+                }`}
+              >
+                <span className="flex h-4 w-4 items-center justify-center">
+                  {currentProject === p.id && <Check size={12} />}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{p.name}</span>
+              </button>
+            ))}
+            {projects.length === 0 && (
+              <div className="px-2 pb-1 pt-0.5 text-[10px] text-slate-600">
+                暂无项目：点击顶部「新建项目」创建后即可归类
               </div>
             )}
           </div>
@@ -451,7 +564,7 @@ export function SessionRail({
           <MessageSquare size={13} className="text-cyan-400" />
           <span className="text-[12.5px] font-semibold text-slate-100">会话</span>
           <span className="rounded-full bg-slate-800 px-1.5 py-0.5 font-mono text-[9.5px] text-slate-500">
-            {sessions.length}
+            {scoped.length}
           </span>
         </div>
         <button
@@ -463,6 +576,36 @@ export function SessionRail({
         >
           <Plus size={14} />
         </button>
+      </div>
+
+      {/* 项目选择条：当前项目（null = 未归属项目）+ 新建项目 */}
+      <div className="shrink-0 border-b border-slate-800/70 px-3 py-2" data-project-bar>
+        <div className="flex items-center gap-1.5">
+          <Folder size={12} className="shrink-0 text-violet-300/80" />
+          <select
+            aria-label="项目"
+            title="切换项目：只看该项目下的会话与分组"
+            value={activeProjectId ?? ''}
+            onChange={(e) => onSelectProject?.(e.target.value || null)}
+            className="min-w-0 flex-1 rounded-md border border-slate-700/80 bg-slate-900/80 px-1.5 py-1 text-[11.5px] text-slate-200 outline-none transition-colors focus:border-violet-600/70"
+          >
+            <option value="">未归属项目</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={openProjectModal}
+            title="新建项目（项目名 + 工作空间绝对路径；可自动创建目录）"
+            aria-label="新建项目"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-violet-600/50 bg-violet-500/10 text-violet-300 transition-colors hover:bg-violet-500/25 hover:text-violet-200"
+          >
+            <FolderPlus size={13} />
+          </button>
+        </div>
       </div>
 
       {/* 搜索 */}
@@ -542,14 +685,14 @@ export function SessionRail({
             {error}
           </div>
         )}
-        {busy && sessions.length === 0 ? (
+        {busy && scoped.length === 0 ? (
           <div className="flex flex-col items-center gap-2 pt-10 text-slate-500">
             <Loader2 size={15} className="animate-spin text-cyan-400/70" />
             <span className="text-[11px]">加载会话…</span>
           </div>
         ) : filtered.length === 0 ? (
           <div className="px-2 pt-10 text-center text-[11px] text-slate-500">
-            {query ? '无匹配会话' : sessions.length === 0 ? '还没有会话，点击「＋」新建一个' : '—'}
+            {query ? '无匹配会话' : scoped.length === 0 ? '还没有会话，点击「＋」新建一个' : '—'}
           </div>
         ) : hasGroups ? (
           <div className="space-y-1">
@@ -598,8 +741,105 @@ export function SessionRail({
 
       {/* 底部提示 */}
       <div className="shrink-0 border-t border-slate-800 px-3 py-2 text-[9.5px] leading-relaxed text-slate-600">
-        每个会话 = 一个任务工作空间（自动创建）；用「分组」把多个会话归到一个项目
+        每个会话 = 一个任务工作空间（自动创建）；用「项目」归类会话与分组
       </div>
+
+      {/* 新建项目弹窗 */}
+      {projectOpen && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="新建项目"
+        >
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[1px]" onClick={closeProjectModal} />
+          <div className="relative w-[360px] max-w-full rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-slate-100">新建项目</span>
+              <button
+                type="button"
+                onClick={closeProjectModal}
+                aria-label="关闭新建项目"
+                className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200"
+              >
+                <X size={13} />
+              </button>
+            </div>
+
+            <label className="mb-2 block text-[10.5px] text-slate-400">
+              项目名
+              <input
+                autoFocus
+                type="text"
+                aria-label="项目名"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !projectBusy) {
+                    e.preventDefault();
+                    void submitCreateProject();
+                  }
+                }}
+                placeholder="例如：云枢前端"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-[11.5px] text-slate-200 outline-none placeholder:text-slate-600 focus:border-violet-600/70"
+              />
+            </label>
+
+            <label className="mb-2 block text-[10.5px] text-slate-400">
+              工作空间绝对路径
+              <input
+                type="text"
+                aria-label="工作空间绝对路径"
+                value={projectPath}
+                onChange={(e) => setProjectPath(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !projectBusy) {
+                    e.preventDefault();
+                    void submitCreateProject();
+                  }
+                }}
+                placeholder="例如：C:\Users\you\myproject"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-none placeholder:text-slate-600 focus:border-violet-600/70"
+              />
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-1.5 text-[10.5px] text-slate-400">
+              <input
+                type="checkbox"
+                checked={projectCreate}
+                onChange={(e) => setProjectCreate(e.target.checked)}
+                className="accent-violet-500"
+              />
+              目录不存在时自动创建
+            </label>
+
+            {projectError && (
+              <div className="mt-2 rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[10.5px] text-rose-200">
+                {projectError}
+              </div>
+            )}
+
+            <div className="mt-3 flex items-center justify-end gap-1.5">
+              <button
+                type="button"
+                onClick={closeProjectModal}
+                className="rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:bg-slate-800"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitCreateProject()}
+                disabled={projectBusy || !projectName.trim() || !projectPath.trim()}
+                className="flex items-center gap-1.5 rounded-md border border-violet-600/60 bg-violet-500/15 px-2.5 py-1 text-[11px] text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-40"
+              >
+                {projectBusy && <Loader2 size={11} className="animate-spin" />}
+                创建项目
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

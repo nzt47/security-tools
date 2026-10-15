@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-10-15T19:02:34",
+  "generated_at": "2026-10-15T19:56:40",
   "totals": {
     "routes": 461,
     "live": 238,
     "dead_copy": 223,
-    "ui": 137,
+    "ui": 138,
     "cli_script": 19,
     "runtime_only": 24,
-    "unreferenced": 281,
+    "unreferenced": 280,
     "live_by_category": {
-      "ui": 69,
+      "ui": 70,
       "cli_script": 8,
       "runtime_only": 22,
-      "unreferenced": 139
+      "unreferenced": 138
     },
     "by_intent": {
       "should_be_in_ui": 7,
@@ -20,7 +20,7 @@
       "unclassified": 225
     }
   },
-  "frontend_endpoints": 142,
+  "frontend_endpoints": 143,
   "frontend_unmatched": [
     "/api/approval",
     "/api/assets",
@@ -5015,9 +5015,11 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:957",
@@ -9916,5 +9918,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "32d876ebe35cb899"
+  "content_hash": "c03ba0d2e0609f2e"
 }

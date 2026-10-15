@@ -203,6 +203,15 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
   const dirCount = (data?.files ?? []).filter((f) => f.type === 'dir').length;
   const customBound = data?.custom ?? false;
   const rootMissing = !!data && !data.exists;
+  /** 工作空间来源：本会话自绑 / 随项目 / 默认（旧后端无 source 时按 custom 回退） */
+  const workspaceSource: 'session' | 'project' | 'default' =
+    data?.source ?? (customBound ? 'session' : 'default');
+  const sourceBadge =
+    workspaceSource === 'project'
+      ? { text: '随项目的工作空间', cls: 'border border-violet-500/40 bg-violet-500/10 text-violet-300' }
+      : customBound
+        ? { text: '已绑定自定义工作区', cls: 'border border-amber-500/40 bg-amber-500/10 text-amber-300' }
+        : { text: '默认工作空间', cls: 'border border-slate-700 bg-slate-800/70 text-slate-400' };
 
   return (
     <div
@@ -301,14 +310,8 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
 
               {/* 绑定状态 + 添加/切换工作区 */}
               <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] ${
-                    customBound
-                      ? 'border border-amber-500/40 bg-amber-500/10 text-amber-300'
-                      : 'border border-slate-700 bg-slate-800/70 text-slate-400'
-                  }`}
-                >
-                  {customBound ? '已绑定自定义工作区' : '默认工作空间'}
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] ${sourceBadge.cls}`}>
+                  {sourceBadge.text}
                 </span>
                 <button
                   type="button"
@@ -331,6 +334,18 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                   </button>
                 )}
               </div>
+
+              {/* 来源说明：随项目 / 本会话自绑（与「恢复默认」语义对齐） */}
+              {workspaceSource === 'project' && (
+                <p className="text-[10px] leading-relaxed text-slate-500">
+                  随项目的工作空间（{data.root}）：点「添加工作区」可为本会话临时覆盖其他目录，解除后回到项目工作空间。
+                </p>
+              )}
+              {workspaceSource === 'session' && (
+                <p className="text-[10px] leading-relaxed text-slate-500">
+                  当前为本会话自绑工作区；解除后回到项目工作空间（若属项目）或默认工作空间。
+                </p>
+              )}
 
               {/* 添加/切换工作区表单 */}
               {bindOpen && (
