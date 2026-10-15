@@ -42,7 +42,9 @@ describe('filterNav —— 侧栏搜索', () => {
     const tree = filterNav(HUB_NAV, '治理')
     const keys = flattenNav(tree).map((i) => i.key)
 
-    for (const child of ['governance/pipeline', 'governance/approvals', 'governance/settings']) {
+    // 「审计导出 / 开关中心」2026-10-15 已移到「全景看板」桶（运行时运维），
+    // 命中「治理」不再包含它们；这里用仍在治理面板的 route-coverage 代替。
+    for (const child of ['governance/pipeline', 'governance/approvals', 'governance/route-coverage']) {
       expect(keys).toContain(child)
     }
     expect(keys).not.toContain('memory/manual')
@@ -138,6 +140,17 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
 
     expect(childKeys).toContain('governance/route-coverage')
     expect(HUB_NAV.map((i) => i.key)).not.toContain('route-coverage')
+  })
+
+  it('运行时运维子项（审计导出 / 开关中心）挂在「全景看板」桶；路由覆盖仍在治理面板（2026-10-15 IA）', () => {
+    const panoKeys = (HUB_NAV.find((i) => i.key === 'panorama')?.children ?? []).map((c) => c.key)
+    expect(panoKeys).toContain('governance/audit')
+    expect(panoKeys).toContain('governance/settings')
+
+    const govKeys = (HUB_NAV.find((i) => i.key === 'governance')?.children ?? []).map((c) => c.key)
+    expect(govKeys).toContain('governance/route-coverage')
+    expect(govKeys).not.toContain('governance/audit')
+    expect(govKeys).not.toContain('governance/settings')
   })
 })
 
