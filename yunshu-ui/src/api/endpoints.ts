@@ -295,6 +295,11 @@ export const PLUGINS_RELOAD = '/api/plugins/reload';
 export const ROUTE_UI_COVERAGE = '/api/audit/route-ui-coverage';
 export const HEARTBEAT = '/api/heartbeat';
 export const HEARTBEAT_HISTORY = '/api/heartbeat/history';
+// 心跳概览（total_checks / healthy_checks / latest）——健康仪表盘状态条与「检查次数」用
+export const HEARTBEAT_STATUS = '/api/heartbeat/status';
+// 定时任务：任务列表与执行历史（健康仪表盘「系统健康·心跳检测」卡的 legacy 口径）
+export const SCHEDULER_TASKS = '/api/scheduler/tasks';
+export const SCHEDULER_HISTORY = '/api/scheduler/history';
 export const DIAGNOSTICS_METRICS = '/api/diagnostics/metrics';
 export const DIAGNOSTICS_LLM_CHECK = '/api/diagnostics/llm-check';
 export const OBSERVABILITY_ALERTS = '/api/observability/alerts';
