@@ -2,13 +2,14 @@
 
 【为什么需要这个文件】曾有一版守卫在 EnvConfigManager.set() 里**硬拒绝** UUID 形态
 变量名，而 network_config._save_secure（:405-409）把异常吞成一条 error 日志、
-路由（agent/server_routes/routes_config.py:270）仍返回 {"ok": true} ⇒
+路由（当时在 agent/server_routes/routes_config.py:270；该未接线模块已于 2026-10-15
+退役删除，活体提供方为 plugins/admin.py）仍返回 {"ok": true} ⇒
 **用户看到"添加成功"，Key 却没进 .env**（静默丢失）。
 
 而"UUID 是合法实例 id"是既有数据模型（agent/data/network_config.json 现存 3 个
 search_instances 的 id 全为 UUID），且 validate_llm_instance 不要求 id
 （network_config.py:1616-1619）、POST /api/llm/instances 也不注入 id
-（routes_config.py:263-267）。
+（当初的 routes_config.py:263-267；现由 plugins/admin.py 提供）。
 
 本文件的断言就是那条契约：**只要调用返回成功，Key 就必须能在 .env 里读到**。
 全部使用 tmp 目录的独立 dotenv 文件，绝不触碰仓库根 .env。

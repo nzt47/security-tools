@@ -205,10 +205,11 @@ class Test生产接线与死副本:
         assert getattr(status, "PLUGIN", None) is not None, "plugins.status 没有 PLUGIN"
         assert status.PLUGIN.blueprint is status.bp, "PLUGIN.blueprint 与模块级 bp 不是同一个对象"
 
-    def test_死副本仍在且仍是旧形态(self):
-        dead = (ROOT / "agent" / "server_routes" / "routes_personality.py").read_text(encoding="utf-8")
-        assert "def api_personality_reset" in dead, "死副本不见了 —— 复核活体是否换文件"
-        assert "return jsonify(result)" in dead, (
-            "死副本的返回形态变了 —— 本批只迁了活体 plugins/status.py；"
-            "若死副本也被迁了信封，说明它可能已被接线，请复核活体到底是谁"
+    def test_死副本已退役(self):
+        """【2026-10-15】原 routes_personality.py 死副本已随未接线模块退役删除，
+        /api/personality 只剩 plugins/status.py 一份活体实现。"""
+        dead = ROOT / "agent" / "server_routes" / "routes_personality.py"
+        assert not dead.exists(), (
+            "routes_personality.py 又出现了 —— 它是已退役的未接线死副本，"
+            "活体在 plugins/status.py；请勿恢复。"
         )

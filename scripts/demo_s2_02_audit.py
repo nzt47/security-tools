@@ -150,7 +150,8 @@ def build_ui_app(chain: AuditChain, facade) -> dict:
     from types import SimpleNamespace
 
     from agent.audit.ui_middleware import UIAuditRecorder
-    from agent.server_routes import routes_config, routes_skills_mgmt
+    from agent.server_routes import routes_skills_mgmt
+    from plugins import admin as admin_plugin
 
     app = Flask("s2_02_ui_audit_demo")
     UIAuditRecorder(facade=facade, skip_prefixes=()).register(app)
@@ -201,10 +202,20 @@ def build_ui_app(chain: AuditChain, facade) -> dict:
         def clear():
             return None
 
-    state = SimpleNamespace(Yunshu=_FakeYunshu, session_mgr=_FakeSessionMgr,
-                            network_config_mgr=_FakeNCM, search_engine=None,
-                            chat_history=_FakeHistory())
-    routes_config.register_routes(app, state)
+    # 【2026-10-15】/api/config 的活体提供方是 plugins/admin.py（原 routes_config.py
+    # 未接线已退役）。它以 `from app_server import _Yunshu, _session_mgr, _CHAT_HISTORY,
+    # _get_current_session_id` 延迟取依赖；演示里注入一个**假 app_server 模块**（不 import
+    # 真实入口，避免拉起调度器/单例）。
+    import sys
+    import types
+    fake_app_server = types.ModuleType("app_server")
+    fake_app_server._Yunshu = _FakeYunshu
+    fake_app_server._session_mgr = _FakeSessionMgr
+    fake_app_server._CHAT_HISTORY = _FakeHistory
+    fake_app_server._get_current_session_id = lambda: "demo-session"
+    fake_app_server._network_config_mgr = _FakeNCM
+    sys.modules["app_server"] = fake_app_server
+    app.register_blueprint(admin_plugin.bp)
     return {"app": app, "chain": chain, "facade": facade}
 
 

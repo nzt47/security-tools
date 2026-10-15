@@ -605,7 +605,8 @@ class TestDeadRouteGuard:
     #:   真正的风险是**陷阱**而非「路由失效」：按该函数新增模块会以为生效、实际 404，
     #:   本仓历史上真的发生过两次（routes_approval、routes_agent_lines）。
 
-    #: 该函数引用的 8 个「陈旧模块」—— 若被接线会与 plugins/* 重复注册同名路径
+    #: 【2026-10-15 退役】该聚合器引用的 8 个「陈旧模块」从未接线、端点由 plugins/* 提供，
+    #:   已整体删除。清单保留在此，既拦「误把旧版模块接回去」，也钉「文件确实不在」。
     STALE_MODULES = (
         "routes_chat", "routes_sessions", "routes_panorama", "routes_config",
         "routes_personality", "routes_permission", "routes_workspace", "routes_monitoring",
@@ -624,7 +625,12 @@ class TestDeadRouteGuard:
     #:   涨了就必须显式面对（要么接线、要么登记进上面的 RESCUED_PATHS 说明原因）。
     KNOWN_ORPHAN_PATHS: tuple = ()
 
-    def test_死代码仍然无调用方_若有则必须同步本守卫(self):
+    def test_陈旧聚合器已退役(self):
+        """register_all_routes 已于 2026-10-15 随未接线模块退役删除。
+
+        它从未被调用，只会让人误以为「只改本文件就生效」；若有人恢复它，
+        这里会转红，提醒同步更新本守卫与交付报告。
+        """
         root = _repo_root()
         hits = []
         for base, dirs, files in os.walk(os.path.join(root, "agent")):
@@ -637,19 +643,20 @@ class TestDeadRouteGuard:
                     for i, line in enumerate(fh, 1):
                         if "register_all_routes" in line:
                             hits.append((os.path.relpath(path, root), i, line.strip()))
-        callers = [h for h in hits
-                   if not h[2].startswith("def ") and "无调用方" not in h[2]
-                   and h[0] != os.path.join("agent", "server_routes", "__init__.py")]
-        assert len(hits) >= 1, "register_all_routes 的定义应仍然存在（否则请更新本守卫）"
-        _msg = ("register_all_routes 出现了调用方 ⇒ 该陈旧注册路径被启用，"
-                "会与 plugins/* 重复注册同名路由。请先更新本守卫与交付报告：%r" % (callers,))
-        assert callers == [], _msg
+        # 只拦「真定义 / 真调用」；文档与注释里提到该名字（如 __init__.py 的退役说明、
+        # 其它模块的「它是死代码」注记）不算恢复。
+        defs = [h for h in hits if h[2].startswith("def register_all_routes")]
+        calls = [h for h in hits if "register_all_routes(" in h[2]]
+        assert defs == [] and calls == [], (
+            "register_all_routes 又被定义或调用 —— 该陈旧聚合注册路径已随未接线模块退役删除，"
+            "请勿恢复（真实注册位置是 app_server.py 的显式注册）：defs=%r calls=%r"
+            % (defs, calls))
 
-    def test_陈旧模块集合未被接线(self):
-        """拦「误把旧版模块接上去」这一具体动作。
+    def test_陈旧模块集合已退役(self):
+        """这 8 个模块从未接线、路径由 plugins/* 与新路由模块提供；2026-10-15 已删除。
 
-        这 8 个模块的路径已由 plugins/* 与新路由模块提供；一旦被 app_server 再注册一遍，
-        同名路径会重复挂载（Flask 允许但语义歧义），且会让人误以为旧模块仍是权威。
+        既拦「误把旧版模块接回去」（会重复挂载同名路径），也钉「旧文件确实不在」
+        （防止被误恢复后重新成为沉默的第二真相源）。
         """
         root = _repo_root()
         with open(os.path.join(root, "app_server.py"), encoding="utf-8",
@@ -657,9 +664,15 @@ class TestDeadRouteGuard:
             src = fh.read()
         wired = [m for m in self.STALE_MODULES
                  if ("server_routes.%s import" % m) in src]
+        resurrected = [m for m in self.STALE_MODULES
+                       if os.path.isfile(os.path.join(
+                           root, "agent", "server_routes", m + ".py"))]
         _msg2 = ("app_server.py 接上了陈旧路由模块 %r —— 它们的路径已由 plugins/* 提供，"
                  "请确认这不是重复注册；确认无误后请更新本守卫与交付报告。" % (wired,))
         assert wired == [], _msg2
+        assert resurrected == [], (
+            "陈旧的未接线路由模块被恢复：%r —— 它们已随 2026-10-15 退役删除，"
+            "请勿恢复；若确需恢复，先接线并同步本守卫与交付报告。" % (resurrected,))
 
     def test_已救回的两条路由确实落在会自动加载的插件里(self):
         """把「救回后的归属」固化成可核对的清单，防止**悄悄退回**未接线状态。

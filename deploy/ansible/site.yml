@@ -224,7 +224,7 @@
           ansible.builtin.shell: |
             set -e
             {{ venv_path }}/bin/python - <<'PYEOF'
-            from agent.server_routes.routes_config import validate_search_instance
+            from agent.config_validation import validate_search_instance
             cases = [
                 ({'name':'test','engine_type':'tavily','timeout':30}, [], '合法配置'),
                 ({'engine_type':'tavily'}, ['名称不能为空'], '空名称'),

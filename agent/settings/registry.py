@@ -561,7 +561,9 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        owner="agent/subagent/credentials.py", validator=Validator("float")),
     _b("YUNSHU_FEATURE_SANDBOX", CAT_SELF_HEALING, False,
        "工作区沙箱特性开关；关闭沙箱即放宽文件/命令隔离",
-       owner="agent/server_routes/routes_workspace.py"),
+       # 【2026-10-15】原 owner 指向 routes_workspace.py；该未接线模块已退役，
+       # 开关的活体读取点在 plugins/system_tools.py（沙箱访问拒绝分支）。
+       owner="plugins/system_tools.py"),
 
     # 【2026-10-03 登记 · 由 settings-registry-gap-guard 在 PR CI 上检出】
     # 本批新增了两个运行期姿态开关，但漏了登记 —— 该门禁当场报「缺口 2 条」并阻断。

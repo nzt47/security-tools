@@ -118,10 +118,10 @@ class TestTraceRouteCoverage:
 class TestKeyRoutesCoverage:
     """关键路由文件必须含 @trace_route 装饰器"""
 
+    # 【2026-10-15】routes_chat.py / routes_panorama.py 未接线已退役删除，
+    # 从「关键路由文件」清单中移除（活体分别在 plugins/chat.py、plugins/status.py）。
     @pytest.mark.parametrize("route_file", [
-        "routes_chat.py",
         "routes_dashboard.py",
-        "routes_panorama.py",
         "routes_business_dashboard.py",
         "routes_health.py",
     ])

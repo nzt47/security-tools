@@ -147,19 +147,15 @@ class Test生产接线与死副本:
             "plugins/status.py 里的 /api/personality 路由不见了 —— 同上。"
         )
 
-    def test_死副本仍在且未接线(self):
-        """agent/server_routes/routes_personality.py 仍是死副本。
+    def test_死副本已退役(self):
+        """agent/server_routes/routes_personality.py 已随未接线模块退役删除。
 
-        【为什么单钉这一条】它和活体**同名同路径**：若哪天有人把它接线，
-        /api/personality 的活体就换了实现（本批的信封迁移随之失效，且不报错）。
-        本断言只看「死副本还在、且还是旧形态」这个事实；真要接线，请同时改本文件与迁移。
+        【2026-10-15】它和活体**同名同路径**（活体在 plugins/status.py）；删掉死副本后
+        /api/personality 只剩一份实现。本断言从「死副本仍在」翻成「死副本确实不在」，
+        防止旧文件被误恢复成第二实现。
         """
         dead = ROOT / "agent" / "server_routes" / "routes_personality.py"
-        src = dead.read_text(encoding="utf-8")
-        assert "def api_personality_get" in src, (
-            "死副本里的同名视图不见了 —— 若它被删/被接线，请同步更新本文件的活体断言。"
-        )
-        assert "return jsonify(personality_mgr.get())" in src, (
-            "死副本的返回形态变了 —— 本批只迁了活体（plugins/status.py）；"
-            "若死副本也被迁了信封，说明它可能已被接线，请复核活体到底是谁。"
+        assert not dead.exists(), (
+            "routes_personality.py 又出现了 —— 它是已退役的未接线死副本，"
+            "活体在 plugins/status.py；请勿恢复。"
         )

@@ -145,17 +145,10 @@ EXEMPT_SITES: Dict[str, Dict[str, Any]] = {
                    "（`tools/list` / `tools/call`）与 `HttpClient` 的网页请求契约不同，"
                    "**判定口径仍复用同一个 `ssrf_guard.check_url`**（D1）。"),
     },
-    "agent/server_routes/routes_config.py": {
-        "target_source": "runtime",
-        "llm_reachable": False,
-        "reason": ("配置页的「测试连接」按钮：目标是**人在 UI 里填的地址**，"
-                   "属运维显式动作（且受 UI 鉴权与审计约束）。"
-                   "待办：该动作也应过出站判定，登记为 TASK-07 遗留。"),
-    },
     "agent/server_routes/routes_logging.py": {
         "target_source": "runtime",
         "llm_reachable": False,
-        "reason": "日志后端「测试连接」，同 `routes_config.py`。",
+        "reason": "日志后端「测试连接」的联通性自检。",
     },
     "agent/skills_mgmt/creator.py": {
         "target_source": "config",

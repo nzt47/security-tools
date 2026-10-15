@@ -24,7 +24,19 @@ from flask import Blueprint, request, jsonify
 from .plugin_api import Plugin, register_plugin
 from agent.server_auth import require_token, log_request
 from agent.network_config import _DEFAULT_SEARCH_INSTANCE
-from agent.server_routes.routes_config import validate_search_instance as _validate_search_instance
+from agent.config_validation import validate_search_instance as _validate_search_instance
+
+# S2-02 审计平权：设置类写路由的语义化审计（不可用时退化为 no-op）
+# 【2026-10-15】原 routes_config.py 的 /api/config 带 @audit_action("config.write")，
+# 但该模块从未接线；退役后把语义化审计补到活体 plugins/admin.py 上，
+# 否则线上 POST /api/config 会丢掉 "config.write" 这个显式动作（只剩全局包装的兜底）。
+try:
+    from agent.audit.ui_middleware import audit_action
+except Exception:  # noqa: BLE001 审计模块不可用 → 路由功能不受影响
+    def audit_action(*_a, **_kw):  # type: ignore[misc]
+        def _decorator(func):
+            return func
+        return _decorator
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +81,8 @@ def api_auth_token_check():
 
 
 @bp.route("/api/config", methods=["GET", "POST"])
+@audit_action("config.write", payload_keys=("provider", "model", "base_url",
+                                            "api_endpoint"))
 @require_token
 @log_request()
 def api_config():

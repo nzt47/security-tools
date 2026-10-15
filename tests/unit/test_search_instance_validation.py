@@ -7,12 +7,10 @@
 """
 import pytest
 from agent.config_validation import (
+    BUILTIN_ENGINES,
     SEARCH_INSTANCE_VALIDATION_RULES,
     ValidationRule,
     validate_dict_against_rules,
-)
-from agent.server_routes.routes_config import (
-    BUILTIN_ENGINES,
     validate_search_instance,
 )
 
