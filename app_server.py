@@ -121,7 +121,7 @@ from agent.system_tools import (
     WORKSPACE_DIR,
 )
 from agent.web import HttpClient, Scraper, SearchEngine, DataProcessor, CrawlerController
-from agent.session_manager import SessionManager, SessionGroupStore, WorkspaceRegistry
+from agent.session_manager import SessionManager, SessionGroupStore, WorkspaceRegistry, ProjectStore
 from agent.log_system.dashboard import register_log_system
 
 logging.basicConfig(level=logging.INFO, encoding="utf-8", force=True)
@@ -1021,6 +1021,8 @@ _session_mgr = SessionManager(sessions_dir="./data/sessions")
 _session_groups = SessionGroupStore(sessions_dir="./data/sessions")
 # 「已添加的工作区」记忆（仿 DSH 添加工作区；workspaces.json）
 _workspace_registry = WorkspaceRegistry(sessions_dir="./data/sessions")
+# 「项目」存储（项目自带工作空间根目录；projects.json，见 ProjectStore）
+_projects = ProjectStore(sessions_dir="./data/sessions")
 
 # 用于全景视图等旧功能的向后兼容缓存
 _CHAT_HISTORY = []

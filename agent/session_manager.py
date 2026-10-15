@@ -696,23 +696,34 @@ class SessionGroupStore:
     def _gen_id() -> str:
         return f"grp_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
 
-    def list_groups(self) -> dict:
-        """返回 {groups: [{id,name,created_at,count}], membership: {sid: gid}}"""
+    def list_groups(self, project_id: str | None = None) -> dict:
+        """返回 {groups: [{id,name,project_id,created_at,count}], membership: {sid: gid}}
+
+        project_id 非空时只返回该项目下的分组（membership 仍全量返回 —— 会话→分组的
+        归属是会话属性，前端按分组过滤即可）。
+        """
         with self._lock:
             data = self._read()
         counts: dict[str, int] = {}
         for gid in data["membership"].values():
             counts[gid] = counts.get(gid, 0) + 1
-        groups = [dict(g, count=counts.get(g["id"], 0)) for g in data["groups"]]
-        return {"groups": groups, "membership": dict(data["membership"])}
+        groups = data["groups"]
+        if project_id is not None:
+            groups = [g for g in groups if g.get("project_id") == project_id]
+        return {
+            "groups": [dict(g, count=counts.get(g["id"], 0)) for g in groups],
+            "membership": dict(data["membership"]),
+        }
 
-    def create_group(self, name: str = "") -> dict:
+    def create_group(self, name: str = "", project_id: str | None = None) -> dict:
+        """新建分组；project_id 非空时分组归属该项目（分组只在项目内有意义）。"""
         name = (name or "").strip() or "新分组"
         with self._lock:
             data = self._read()
             group = {
                 "id": self._gen_id(),
                 "name": name[:40],
+                "project_id": project_id or None,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
             data["groups"].append(group)
@@ -753,6 +764,27 @@ class SessionGroupStore:
                 }
                 self._write(data)
         return removed
+
+    def delete_groups_for_project(self, project_id: str) -> int:
+        """删除某项目下的全部分组（级联清理；返回删除个数）。
+
+        【为什么由存储层提供】"项目内分组随项目消失"的判定与写入都在 groups.json
+        内；让路由层自己遍历再逐个删除会多一次读-改-写竞态。组内会话不删除，
+        只是失去分组归属（与 delete_group 同语义）。
+        """
+        if not project_id:
+            return 0
+        with self._lock:
+            data = self._read()
+            doomed = [g["id"] for g in data["groups"] if g.get("project_id") == project_id]
+            if not doomed:
+                return 0
+            data["groups"] = [g for g in data["groups"] if g.get("project_id") != project_id]
+            data["membership"] = {
+                sid: gid for sid, gid in data["membership"].items() if gid not in doomed
+            }
+            self._write(data)
+        return len(doomed)
 
     def assign(self, session_id: str, group_id: str | None) -> bool:
         """把会话归入分组；group_id 为 None/空串 = 移出分组（未分组）。
@@ -860,3 +892,116 @@ class WorkspaceRegistry:
             if removed:
                 self._write(data)
         return removed
+
+
+class ProjectStore:
+    """「项目」存储（2026-10-15：会话按项目归类，项目自带工作空间根目录）。
+
+    持久化位置：data/sessions/projects.json，结构：
+      {"projects": [{"id","name","workspace_root","created_at","updated_at"}]}
+
+    【职责边界】本类只做"项目 → 工作空间根目录"的登记与解析，**不碰文件系统**
+    （除自建索引文件）。目录是否存在 / 是否要自动创建，一律由调用方（路由层）用
+    与 /api/workspaces 同一套判定（plugins/chat.py::_resolve_workspace_dir）先校验，
+    再把归一化后的绝对路径传进来 —— 校验只留一份口径。
+    【删除语义】会话/分组与项目的解绑由路由层级联处理（本类不做跨存储操作），
+    避免存储层之间互相 import。
+    """
+
+    def __init__(self, sessions_dir: str = "./data/sessions"):
+        self._path = Path(sessions_dir) / "projects.json"
+        self._lock = threading.Lock()
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._ensure()
+
+    def _ensure(self):
+        if not self._path.exists():
+            self._write({"projects": []})
+
+    def _read(self) -> dict:
+        try:
+            data = json.loads(self._path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            data = {}
+        projects = data.get("projects") if isinstance(data.get("projects"), list) else []
+        return {"projects": [p for p in projects if isinstance(p, dict) and p.get("id")]}
+
+    def _write(self, payload: dict):
+        self._path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    @staticmethod
+    def _gen_id() -> str:
+        return f"proj_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+
+    def list_projects(self) -> list[dict]:
+        with self._lock:
+            data = self._read()
+        return [dict(p) for p in data["projects"]]
+
+    def get_project(self, project_id: str) -> dict | None:
+        with self._lock:
+            data = self._read()
+        for p in data["projects"]:
+            if p.get("id") == project_id:
+                return dict(p)
+        return None
+
+    def create_project(self, name: str, workspace_root: str) -> dict:
+        """新建项目（name 缺省为「新项目」；workspace_root 由调用方校验后传入）"""
+        name = (name or "").strip() or "新项目"
+        now = datetime.now(timezone.utc).isoformat()
+        project = {
+            "id": self._gen_id(),
+            "name": name[:40],
+            "workspace_root": str(workspace_root),
+            "created_at": now,
+            "updated_at": now,
+        }
+        with self._lock:
+            data = self._read()
+            data["projects"].append(project)
+            self._write(data)
+        return dict(project)
+
+    def update_project(
+        self,
+        project_id: str,
+        *,
+        name: str | None = None,
+        workspace_root: str | None = None,
+    ) -> dict | None:
+        """改名 / 改工作空间（只改传了的字段；项目不存在返回 None）"""
+        with self._lock:
+            data = self._read()
+            for p in data["projects"]:
+                if p.get("id") != project_id:
+                    continue
+                if name is not None:
+                    p["name"] = (name or "").strip()[:40] or p.get("name") or "新项目"
+                if workspace_root is not None:
+                    p["workspace_root"] = str(workspace_root)
+                p["updated_at"] = datetime.now(timezone.utc).isoformat()
+                self._write(data)
+                return dict(p)
+        return None
+
+    def delete_project(self, project_id: str) -> bool:
+        with self._lock:
+            data = self._read()
+            before = len(data["projects"])
+            data["projects"] = [p for p in data["projects"] if p.get("id") != project_id]
+            removed = len(data["projects"]) != before
+            if removed:
+                self._write(data)
+        return removed
+
+    def workspace_root_for(self, project_id: str) -> str | None:
+        """项目的工作空间根目录（项目不存在/未设返回 None）"""
+        project = self.get_project(project_id)
+        if not project:
+            return None
+        root = project.get("workspace_root")
+        return str(root) if root else None
