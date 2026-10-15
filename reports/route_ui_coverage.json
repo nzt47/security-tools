@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-15T23:04:39",
+  "generated_at": "2026-10-15T23:46:32",
   "totals": {
     "routes": 461,
     "live": 461,
     "dead_copy": 110,
     "dead_definitions": 121,
-    "ui": 138,
+    "ui": 141,
     "cli_script": 19,
-    "runtime_only": 24,
-    "unreferenced": 280,
+    "runtime_only": 23,
+    "unreferenced": 278,
     "live_by_category": {
-      "ui": 138,
+      "ui": 141,
       "cli_script": 19,
-      "runtime_only": 24,
-      "unreferenced": 280
+      "runtime_only": 23,
+      "unreferenced": 278
     },
     "by_intent": {
       "should_be_in_ui": 7,
@@ -21,7 +21,7 @@
       "unclassified": 448
     }
   },
-  "frontend_endpoints": 143,
+  "frontend_endpoints": 146,
   "frontend_unmatched": [
     "/api/approval",
     "/api/assets",
@@ -3482,13 +3482,15 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": true,
       "dead_defs": [
         "agent/server_routes/routes_monitoring.py:56"
       ],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_monitoring.py:56",
@@ -6121,13 +6123,15 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": true,
       "dead_defs": [
         "agent/server_routes/routes_monitoring.py:134"
       ],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_monitoring.py:134",
@@ -6146,13 +6150,15 @@
       "methods": [
         "GET"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": true,
       "dead_defs": [
         "agent/server_routes/routes_monitoring.py:77"
       ],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_api.py"
       ],
@@ -11072,5 +11078,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "3145c95028405be9"
+  "content_hash": "27ad86d3ad3b1615"
 }
