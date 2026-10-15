@@ -10,7 +10,7 @@
 """
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from agent.monitoring import loki
 
@@ -113,12 +113,22 @@ class TestQueryLocalLogs:
         assert [e["message"] for e in out] == ["boom"]
 
     def test_default_window_is_not_one_hour(self, tmp_path):
-        """修复 ③：两天前的日志在默认窗口内；40 天前的不在。"""
-        two_days = time.time() - 2 * 86400
-        old = time.time() - 40 * 86400
-        _write(tmp_path, datetime.fromtimestamp(two_days).strftime("%Y-%m-%d"),
+        """修复 ③：两天前的日志在默认窗口内；40 天前的不在。
+
+        时钟口径（刻意）：文件日历日与条目时间戳都由同一个 datetime.now()
+        派生（与 _today()、以及被测算默认窗口的产品侧同源）；不用
+        time.time() + fromtimestamp().strftime() —— 该形状会命中
+        tests/unit/test_date_shift_blindspots_guard.py 的盲区 #3 守卫
+        （time 模块不被日期平移工具替换，用它推「今天是哪天」平移法测不出）。
+        """
+        now = datetime.now()
+        two_days_ago = now - timedelta(days=2)
+        forty_days_ago = now - timedelta(days=40)
+        two_days = two_days_ago.timestamp()
+        old = forty_days_ago.timestamp()
+        _write(tmp_path, two_days_ago.strftime("%Y-%m-%d"),
                [_entry(two_days, "INFO", "two-days-ago")])
-        _write(tmp_path, datetime.fromtimestamp(old).strftime("%Y-%m-%d"),
+        _write(tmp_path, forty_days_ago.strftime("%Y-%m-%d"),
                [_entry(old, "INFO", "forty-days-ago")])
         out = _client(tmp_path)._query_local_logs("")
         assert [e["message"] for e in out] == ["two-days-ago"]
