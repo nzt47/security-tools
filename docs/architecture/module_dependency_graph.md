@@ -66,7 +66,6 @@ flowchart LR
         agent_circuit_breaker["agent.circuit_breaker"]:::crosslayer
         agent_code_review["agent.code_review"]:::crosslayer
         agent_compression_tools["agent.compression_tools"]:::crosslayer
-        agent_config_validation["agent.config_validation"]:::crosslayer
         agent_data_analytics["agent.data_analytics"]
         agent_data_process_tools["agent.data_process_tools"]:::crosslayer
         agent_diagram_tools["agent.diagram_tools"]:::crosslayer
@@ -108,7 +107,7 @@ flowchart LR
         agent_safety_guard["agent.safety_guard"]
         agent_scheduling["agent.scheduling"]:::crosslayer
         agent_search_aggregator["agent.search_aggregator"]:::crosslayer
-        agent_search_performance_monitor["agent.search_performance_monitor"]:::crosslayer
+        agent_search_performance_monitor["agent.search_performance_monitor"]
         agent_security_utils["agent.security_utils"]
         agent_server_auth["agent.server_auth"]:::crosslayer
         agent_server_port_guard["agent.server_port_guard"]
@@ -223,7 +222,7 @@ flowchart LR
         agent_guardrails_untrusted_ingest["agent.guardrails.untrusted_ingest"]:::crosslayer
     end
     subgraph handoff [handoff]
-        agent_handoff_handoff_generator["agent.handoff.handoff_generator"]:::crosslayer
+        agent_handoff_handoff_generator["agent.handoff.handoff_generator"]
     end
     subgraph health [health]
         agent_health_assessor["agent.health.assessor"]:::crosslayer
@@ -495,7 +494,6 @@ flowchart LR
     end
     subgraph server_routes [server_routes]
         agent_server_routes["agent.server_routes"]
-        agent_server_routes_extensions["agent.server_routes.extensions"]
         agent_server_routes_observability["agent.server_routes.observability"]
         agent_server_routes_routes_agent_lines["agent.server_routes.routes_agent_lines"]
         agent_server_routes_routes_approval["agent.server_routes.routes_approval"]:::crosslayer
@@ -503,22 +501,15 @@ flowchart LR
         agent_server_routes_routes_background["agent.server_routes.routes_background"]
         agent_server_routes_routes_business_dashboard["agent.server_routes.routes_business_dashboard"]
         agent_server_routes_routes_capabilities["agent.server_routes.routes_capabilities"]
-        agent_server_routes_routes_chat["agent.server_routes.routes_chat"]
-        agent_server_routes_routes_config["agent.server_routes.routes_config"]
         agent_server_routes_routes_dashboard["agent.server_routes.routes_dashboard"]
         agent_server_routes_routes_feedback["agent.server_routes.routes_feedback"]
         agent_server_routes_routes_health["agent.server_routes.routes_health"]
         agent_server_routes_routes_knowledge["agent.server_routes.routes_knowledge"]
         agent_server_routes_routes_llm_monitor["agent.server_routes.routes_llm_monitor"]
         agent_server_routes_routes_logging["agent.server_routes.routes_logging"]
-        agent_server_routes_routes_monitoring["agent.server_routes.routes_monitoring"]
-        agent_server_routes_routes_panorama["agent.server_routes.routes_panorama"]
-        agent_server_routes_routes_permission["agent.server_routes.routes_permission"]
-        agent_server_routes_routes_personality["agent.server_routes.routes_personality"]
         agent_server_routes_routes_process_distill["agent.server_routes.routes_process_distill"]
         agent_server_routes_routes_replay["agent.server_routes.routes_replay"]
         agent_server_routes_routes_semantic_config["agent.server_routes.routes_semantic_config"]
-        agent_server_routes_routes_sessions["agent.server_routes.routes_sessions"]
         agent_server_routes_routes_settings["agent.server_routes.routes_settings"]
         agent_server_routes_routes_skills_mgmt["agent.server_routes.routes_skills_mgmt"]
         agent_server_routes_routes_subagent["agent.server_routes.routes_subagent"]
@@ -526,7 +517,6 @@ flowchart LR
         agent_server_routes_routes_ui_panels["agent.server_routes.routes_ui_panels"]
         agent_server_routes_routes_visual_workflows["agent.server_routes.routes_visual_workflows"]
         agent_server_routes_routes_workflow_learning["agent.server_routes.routes_workflow_learning"]
-        agent_server_routes_routes_workspace["agent.server_routes.routes_workspace"]
         agent_server_routes_tracing_decorator["agent.server_routes.tracing_decorator"]
         agent_server_routes_tracing_middleware["agent.server_routes.tracing_middleware"]
     end
@@ -1881,7 +1871,6 @@ flowchart LR
     agent_server_auth -.-> agent_security_identity
     agent_server_auth --> agent_api_envelope
     agent_server_port_guard --> agent_logging_utils
-    agent_server_routes_extensions -.-> agent_server_auth
     agent_server_routes_observability -.-> agent_logging_utils
     agent_server_routes_observability -.-> agent_monitoring_business_metrics
     agent_server_routes_routes_agent_lines -.-> agent_lines
@@ -1924,22 +1913,6 @@ flowchart LR
     agent_server_routes_routes_capabilities -.-> agent_security_tenant
     agent_server_routes_routes_capabilities -.-> agent_server_auth
     agent_server_routes_routes_capabilities -.-> agent_capregistry_skillsearch
-    agent_server_routes_routes_chat -.-> agent_server_auth
-    agent_server_routes_routes_chat --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_chat -.-> agent_logging_utils
-    agent_server_routes_routes_chat -.-> agent_monitoring_tracing
-    agent_server_routes_routes_chat --> agent_server_routes_observability
-    agent_server_routes_routes_chat -.-> agent_system_tools
-    agent_server_routes_routes_chat --> agent_server_routes_routes_sessions
-    agent_server_routes_routes_chat -.-> agent_web
-    agent_server_routes_routes_chat -.-> agent_web
-    agent_server_routes_routes_config -.-> agent_server_auth
-    agent_server_routes_routes_config -.-> agent_network_config
-    agent_server_routes_routes_config --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_config -.-> agent_logging_utils
-    agent_server_routes_routes_config -.-> agent_config_validation
-    agent_server_routes_routes_config -.-> agent_audit_ui_middleware
-    agent_server_routes_routes_config -.-> agent_tools
     agent_server_routes_routes_dashboard -.-> agent_server_auth
     agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_dashboard -.-> agent_monitoring_metrics
@@ -1995,28 +1968,6 @@ flowchart LR
     agent_server_routes_routes_logging -.-> agent_monitoring_loki
     agent_server_routes_routes_logging -.-> agent_monitoring_tracing
     agent_server_routes_routes_logging -.-> agent_monitoring_tracing
-    agent_server_routes_routes_monitoring -.-> agent_server_auth
-    agent_server_routes_routes_monitoring -.-> agent_task_scheduler
-    agent_server_routes_routes_monitoring -.-> agent_system_tools
-    agent_server_routes_routes_monitoring --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_panorama -.-> agent_server_auth
-    agent_server_routes_routes_panorama -.-> agent_tools
-    agent_server_routes_routes_panorama --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_panorama -.-> agent_server_auth
-    agent_server_routes_routes_panorama -.-> agent_server_auth
-    agent_server_routes_routes_permission -.-> agent_server_auth
-    agent_server_routes_routes_permission -.-> agent_tools
-    agent_server_routes_routes_permission -.-> agent_tools
-    agent_server_routes_routes_permission --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_personality -.-> agent_server_auth
-    agent_server_routes_routes_personality --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_personality -.-> agent_logging_utils
     agent_server_routes_routes_process_distill -.-> agent_server_auth
     agent_server_routes_routes_process_distill --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_process_distill -.-> agent_process_distill_service
@@ -2030,10 +1981,6 @@ flowchart LR
     agent_server_routes_routes_semantic_config -.-> agent_orchestrator_orchestrator
     agent_server_routes_routes_semantic_config -.-> agent_monitoring_metrics
     agent_server_routes_routes_semantic_config -.-> agent_monitoring_metrics
-    agent_server_routes_routes_sessions -.-> agent_server_auth
-    agent_server_routes_routes_sessions --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_sessions -.-> agent_logging_utils
-    agent_server_routes_routes_sessions -.-> agent_handoff_handoff_generator
     agent_server_routes_routes_settings -.-> agent_security
     agent_server_routes_routes_settings -.-> agent_security_actor_matrix
     agent_server_routes_routes_settings -.-> agent_server_auth
@@ -2134,10 +2081,6 @@ flowchart LR
     agent_server_routes_routes_workflow_learning -.-> agent_capregistry_invoke
     agent_server_routes_routes_workflow_learning -.-> agent_state_manager
     agent_server_routes_routes_workflow_learning -.-> agent_state_manager
-    agent_server_routes_routes_workspace -.-> agent_server_auth
-    agent_server_routes_routes_workspace -.-> agent_system_tools
-    agent_server_routes_routes_workspace --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_workspace -.-> agent_system_tools
     agent_server_routes_tracing_decorator -.-> agent_monitoring_tracing
     agent_server_routes_tracing_decorator -.-> agent_logging_utils
     agent_server_routes_tracing_middleware -.-> agent_monitoring_tracing
@@ -2703,9 +2646,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 668
-- 模块节点数: 598
-- 依赖边数: 1985
-- 跨层调用数: 1250
+- 扫描文件数: 657
+- 模块节点数: 588
+- 依赖边数: 1938
+- 跨层调用数: 1213
 - 违规调用数: 0
 - 动态 import 数: 1
