@@ -1,23 +1,24 @@
 {
-  "generated_at": "2026-10-15T19:56:40",
+  "generated_at": "2026-10-15T21:16:46",
   "totals": {
     "routes": 461,
-    "live": 238,
-    "dead_copy": 223,
+    "live": 461,
+    "dead_copy": 110,
+    "dead_definitions": 121,
     "ui": 138,
     "cli_script": 19,
     "runtime_only": 24,
     "unreferenced": 280,
     "live_by_category": {
-      "ui": 70,
-      "cli_script": 8,
-      "runtime_only": 22,
-      "unreferenced": 138
+      "ui": 138,
+      "cli_script": 19,
+      "runtime_only": 24,
+      "unreferenced": 280
     },
     "by_intent": {
       "should_be_in_ui": 7,
       "should_not_be_in_ui": 6,
-      "unclassified": 225
+      "unclassified": 448
     }
   },
   "frontend_endpoints": 143,
@@ -39,6 +40,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -63,6 +66,8 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/api_gateway_flask.py"
@@ -85,7 +90,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -110,7 +117,9 @@
         "PUT"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -132,7 +141,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -152,7 +163,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -174,7 +187,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -196,7 +211,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -219,6 +236,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:190"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -241,7 +262,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -261,7 +284,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -281,7 +306,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -301,7 +328,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -325,7 +354,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -345,7 +376,9 @@
         "GET"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/approve_tool_call.ps1"
@@ -367,7 +400,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -392,7 +427,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -417,7 +454,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -438,7 +477,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -459,7 +500,9 @@
         "DELETE"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -479,7 +522,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -501,7 +546,9 @@
         "DELETE"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -521,7 +568,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -543,7 +592,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -563,7 +614,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -585,7 +638,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -606,6 +661,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/audit.ts"
       ],
@@ -628,6 +685,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -650,6 +709,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/user.ts"
       ],
@@ -672,6 +733,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/user.ts"
       ],
@@ -694,6 +757,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:185"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -714,7 +781,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -734,7 +803,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -754,7 +825,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -774,7 +847,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -795,6 +870,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:225"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -818,6 +897,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:206"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -841,6 +924,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:217"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -863,7 +950,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -883,7 +972,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -903,7 +994,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -923,7 +1016,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -943,7 +1038,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -963,7 +1060,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -986,6 +1085,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:258"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1014,6 +1117,8 @@
       ],
       "category": "cli_script",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/probe_prefix_cache_interaction.py"
@@ -1036,6 +1141,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:175"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1058,6 +1167,11 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:294",
+        "agent/server_routes/routes_workspace.py:301"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1083,6 +1197,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1103,6 +1219,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1125,6 +1243,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_panorama.py:237"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1149,6 +1271,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1170,6 +1294,10 @@
       ],
       "category": "cli_script",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:87"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py",
@@ -1194,6 +1322,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:679"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1217,6 +1349,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1241,6 +1375,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1263,6 +1399,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1284,7 +1422,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1304,7 +1444,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1324,7 +1466,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1344,7 +1488,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1364,7 +1510,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1384,7 +1532,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1404,7 +1554,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1424,7 +1576,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1444,7 +1598,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1464,7 +1620,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1484,7 +1642,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1504,7 +1664,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1524,7 +1686,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1544,7 +1708,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1564,7 +1730,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1584,7 +1752,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1604,7 +1774,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1624,7 +1796,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1644,7 +1818,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1664,7 +1840,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1685,7 +1863,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1708,7 +1888,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1728,7 +1910,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1748,7 +1932,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1769,6 +1955,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/dashboard.ts"
       ],
@@ -1790,7 +1978,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1810,7 +2000,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1832,6 +2024,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1853,6 +2047,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1872,7 +2068,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1892,7 +2090,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1912,7 +2112,9 @@
         "GET"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/health_check.py",
@@ -1935,7 +2137,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1957,7 +2161,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -1977,7 +2183,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1999,7 +2207,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2019,7 +2229,9 @@
         "GET"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/observability_post_deploy.py"
@@ -2041,7 +2253,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2061,7 +2275,9 @@
         "GET"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/observability_post_deploy.py"
@@ -2084,6 +2300,8 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/api_gateway_flask.py"
@@ -2106,6 +2324,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2126,6 +2346,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2146,6 +2368,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2166,6 +2390,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -2188,6 +2414,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -2210,6 +2438,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -2232,6 +2462,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -2254,6 +2486,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/user.ts"
       ],
@@ -2276,6 +2510,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:156"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2297,6 +2535,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:85"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2318,6 +2560,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:101"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2339,6 +2585,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:38"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2360,6 +2610,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:28"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2381,6 +2635,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:17"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2402,6 +2660,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:128"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2423,6 +2685,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:140"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2444,6 +2710,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:115"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2465,6 +2735,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:69"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -2488,6 +2762,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/extensions.py:54"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2508,7 +2786,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2528,7 +2808,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2548,7 +2830,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2568,7 +2852,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2588,7 +2874,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2608,7 +2896,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2628,7 +2918,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2649,6 +2941,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:144"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2670,6 +2966,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:135"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2691,6 +2991,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:98"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2712,6 +3016,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:153"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2733,6 +3041,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:118"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2754,6 +3066,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:248"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2775,6 +3091,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_panorama.py:169"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -2805,7 +3125,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2826,6 +3148,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_panorama.py:176"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2847,6 +3173,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -2872,7 +3200,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2892,7 +3222,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2913,6 +3245,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -2936,7 +3270,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -2957,6 +3293,8 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py"
@@ -2978,7 +3316,9 @@
         "GET"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/verify_loader_degradation_startup.py"
@@ -3000,7 +3340,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3020,7 +3362,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3040,7 +3384,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3061,7 +3407,9 @@
         "PUT"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3082,6 +3430,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:25"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3105,6 +3457,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:37"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3128,6 +3484,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:56"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3149,6 +3509,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:153"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3170,6 +3534,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:208"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3191,6 +3559,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:191"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3212,6 +3584,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3232,7 +3606,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3260,7 +3636,9 @@
         "PATCH"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3282,7 +3660,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3304,7 +3684,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3326,7 +3708,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3348,7 +3732,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3371,6 +3757,8 @@
       ],
       "category": "cli_script",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/learning_metrics_api.py",
@@ -3393,7 +3781,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3415,7 +3805,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3439,7 +3831,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3459,7 +3853,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3481,7 +3877,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3505,6 +3903,11 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:232",
+        "agent/server_routes/routes_config.py:256"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3530,6 +3933,12 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:243",
+        "agent/server_routes/routes_config.py:276",
+        "agent/server_routes/routes_config.py:295"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3553,6 +3962,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:310"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3574,6 +3987,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:325"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3595,6 +4012,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:470"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3619,6 +4040,11 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:398",
+        "agent/server_routes/routes_config.py:422"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3646,6 +4072,12 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:409",
+        "agent/server_routes/routes_config.py:440",
+        "agent/server_routes/routes_config.py:457"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3669,6 +4101,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3689,6 +4123,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3709,6 +4145,8 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -3731,6 +4169,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3755,6 +4195,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3778,6 +4220,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3798,6 +4242,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3818,6 +4264,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3839,6 +4287,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3859,6 +4309,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3879,6 +4331,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3899,6 +4353,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3919,6 +4375,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/menu.ts"
       ],
@@ -3941,6 +4399,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_panorama.py:220"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -3962,6 +4424,8 @@
       ],
       "category": "cli_script",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/verify_topology_view.py"
@@ -3984,6 +4448,8 @@
       ],
       "category": "cli_script",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/verify_topology_view.py"
@@ -4006,6 +4472,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4032,6 +4500,11 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:133",
+        "agent/server_routes/routes_config.py:140"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4059,6 +4532,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:161"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4080,6 +4557,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:172"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4101,6 +4582,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:153"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4124,6 +4609,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4144,6 +4631,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4164,6 +4653,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/notification.ts"
       ],
@@ -4186,6 +4677,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/notification.ts"
       ],
@@ -4208,6 +4701,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/notification.ts"
       ],
@@ -4229,7 +4724,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4249,7 +4746,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4270,7 +4769,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4294,7 +4795,9 @@
         "PUT"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4315,7 +4818,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4336,7 +4841,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4357,7 +4864,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4377,7 +4886,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4397,7 +4908,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4417,7 +4930,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4437,7 +4952,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4458,7 +4975,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4480,6 +4999,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_panorama.py:256"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4505,6 +5028,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_permission.py:166"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4526,6 +5053,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_permission.py:175"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -4549,6 +5080,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_permission.py:107"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4570,6 +5105,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_permission.py:122"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4591,6 +5130,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_permission.py:76"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4612,6 +5155,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_permission.py:207"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -4635,6 +5182,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/role.ts"
       ],
@@ -4657,6 +5206,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_personality.py:23"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4680,6 +5233,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_personality.py:29"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4703,6 +5260,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_personality.py:39"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4728,6 +5289,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_personality.py:49"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4753,6 +5318,8 @@
       ],
       "category": "cli_script",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py",
@@ -4776,6 +5343,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4800,6 +5369,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4824,6 +5395,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4843,7 +5416,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4863,7 +5438,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4884,6 +5461,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:237"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4907,6 +5488,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:267"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -4930,6 +5515,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:279"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -4953,6 +5542,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:243"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4974,6 +5567,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:249"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -4995,6 +5592,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:258"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5017,6 +5618,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5041,6 +5644,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5062,6 +5667,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5083,7 +5690,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5103,7 +5712,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5123,7 +5734,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5143,7 +5756,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5163,7 +5778,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5183,7 +5800,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5206,6 +5825,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/role.ts"
       ],
@@ -5229,6 +5850,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5250,6 +5873,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5270,6 +5895,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5290,6 +5917,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/role.ts"
       ],
@@ -5312,6 +5941,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_permission.py:46"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5333,6 +5966,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_permission.py:36"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5355,6 +5992,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_permission.py:54"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -5378,6 +6019,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:167"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5399,6 +6044,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:83"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5420,6 +6069,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:100"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -5443,6 +6096,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:119"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -5466,6 +6123,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:134"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5487,6 +6148,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:77"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_api.py"
@@ -5510,6 +6175,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:109"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -5534,6 +6203,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5557,6 +6228,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5577,6 +6250,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5597,6 +6272,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5617,6 +6294,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5637,6 +6316,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:186"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5658,6 +6341,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:198"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5679,6 +6366,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:160"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -5702,6 +6393,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:149"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5723,6 +6418,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:174"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -5746,6 +6445,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:210"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5768,6 +6471,11 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:489",
+        "agent/server_routes/routes_config.py:501"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5792,6 +6500,11 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:540",
+        "agent/server_routes/routes_config.py:574"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5815,6 +6528,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:601"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5836,6 +6553,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_config.py:633"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5857,6 +6578,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_panorama.py:198"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5885,6 +6610,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5909,6 +6636,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5931,6 +6660,11 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:77",
+        "agent/server_routes/routes_sessions.py:87"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5958,6 +6692,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:98"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5979,6 +6717,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -5999,6 +6739,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6020,6 +6762,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:144"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6042,6 +6788,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6062,6 +6810,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:108"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6083,6 +6835,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6104,6 +6858,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6125,6 +6881,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6145,6 +6903,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_sessions.py:120"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6168,6 +6930,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6189,7 +6953,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6215,7 +6981,9 @@
         "PATCH"
       ],
       "category": "runtime_only",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/audit/ui_middleware.py"
@@ -6239,7 +7007,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6259,7 +7029,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6279,7 +7051,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6300,7 +7074,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6321,7 +7097,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6341,7 +7119,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6361,7 +7141,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6381,7 +7163,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6401,7 +7185,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6421,7 +7207,9 @@
         "POST"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/audit/contract_diff.py"
@@ -6443,7 +7231,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6463,7 +7253,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6483,7 +7275,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6503,7 +7297,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6523,7 +7319,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6543,7 +7341,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6563,7 +7363,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6583,7 +7385,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6603,7 +7407,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6623,7 +7429,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6643,7 +7451,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6665,7 +7475,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6687,7 +7499,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6709,7 +7523,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6731,7 +7547,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6753,7 +7571,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6775,7 +7595,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6797,7 +7619,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6819,7 +7643,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6839,7 +7665,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6861,7 +7689,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6883,7 +7713,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6905,7 +7737,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6925,7 +7759,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6945,7 +7781,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -6965,7 +7803,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6987,7 +7827,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7009,7 +7851,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7029,7 +7873,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7049,7 +7895,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7069,7 +7917,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7089,7 +7939,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7109,7 +7961,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7129,7 +7983,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7149,7 +8005,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7169,7 +8027,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7189,7 +8049,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7211,7 +8073,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7235,7 +8099,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7255,7 +8121,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7277,7 +8145,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7299,7 +8169,9 @@
         "POST"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/verify_observability_metrics.py"
@@ -7321,7 +8193,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7341,7 +8215,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7363,7 +8239,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7385,7 +8263,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7407,7 +8287,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7430,7 +8312,9 @@
         "PUT"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7452,7 +8336,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7474,7 +8360,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7496,7 +8384,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7516,7 +8406,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7536,7 +8428,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7557,6 +8451,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7577,6 +8473,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7599,6 +8497,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7619,6 +8519,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7639,6 +8541,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7659,6 +8563,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7681,6 +8587,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7701,6 +8609,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7725,6 +8635,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_panorama.py:204"
+      ],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7751,6 +8665,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7771,7 +8687,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7791,7 +8709,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7811,7 +8731,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7831,7 +8753,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7851,7 +8775,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7871,7 +8797,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7891,7 +8819,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7911,7 +8841,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -7931,7 +8863,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7953,7 +8887,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7975,7 +8911,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -7997,7 +8935,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8019,7 +8959,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8041,7 +8983,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8065,6 +9009,8 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
@@ -8088,7 +9034,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8111,7 +9059,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8133,7 +9083,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8155,7 +9107,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8178,6 +9132,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8197,7 +9153,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8218,6 +9176,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8238,6 +9198,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8258,6 +9220,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8278,6 +9242,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:239"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py"
@@ -8301,6 +9269,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:225"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py"
@@ -8324,6 +9296,10 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_monitoring.py:232"
+      ],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py"
@@ -8347,6 +9323,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8367,6 +9345,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8389,6 +9369,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8410,6 +9392,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8431,6 +9415,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8451,6 +9437,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8471,6 +9459,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8491,6 +9481,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8515,6 +9507,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/user.ts"
       ],
@@ -8538,6 +9532,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8559,6 +9555,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/user.ts"
       ],
@@ -8581,6 +9579,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts",
         "yunshu-ui/src/api/user.ts"
@@ -8604,6 +9604,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8624,6 +9626,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8644,6 +9648,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8664,6 +9670,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8684,6 +9692,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8704,6 +9714,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8726,6 +9738,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8748,7 +9762,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8772,7 +9788,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8794,6 +9812,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:157"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8815,6 +9837,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:237"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8836,6 +9862,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:576"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8857,6 +9887,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:521"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8878,6 +9912,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:597"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8899,6 +9937,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:452"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8920,6 +9962,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:482"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8941,6 +9987,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:544"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -8962,6 +10012,10 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:620"
+      ],
       "ui_refs": [
         "templates/search-status.html"
       ],
@@ -8985,6 +10039,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:609"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9006,6 +10064,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_chat.py:499"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9027,6 +10089,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9046,7 +10110,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -9068,7 +10134,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -9090,7 +10158,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9110,7 +10180,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9130,7 +10202,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -9152,7 +10226,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -9174,7 +10250,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -9196,7 +10274,9 @@
         "POST"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -9218,7 +10298,9 @@
         "GET"
       ],
       "category": "ui",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -9241,7 +10323,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9262,7 +10346,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9282,7 +10368,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9302,7 +10390,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9323,6 +10413,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:27"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9344,6 +10438,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:59"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9365,6 +10463,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:74"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9386,6 +10488,10 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": true,
+      "dead_defs": [
+        "agent/server_routes/routes_workspace.py:40"
+      ],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9409,6 +10515,8 @@
       ],
       "category": "ui",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -9432,7 +10540,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9452,7 +10562,9 @@
         "GET"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9472,7 +10584,9 @@
         "GET"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/verify_loader_degradation_startup.py"
@@ -9494,7 +10608,9 @@
         "POST"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/verify_llm_off_entrypoints.py"
@@ -9516,7 +10632,9 @@
         "POST"
       ],
       "category": "unreferenced",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9536,7 +10654,9 @@
         "GET"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "scripts/verify_llm_off_entrypoints.py",
@@ -9560,6 +10680,8 @@
       ],
       "category": "cli_script",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py",
@@ -9582,7 +10704,9 @@
         "GET"
       ],
       "category": "runtime_only",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/log_system/dashboard.py"
@@ -9605,6 +10729,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9625,6 +10751,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9645,6 +10773,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9665,6 +10795,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9685,6 +10817,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9705,6 +10839,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9725,6 +10861,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9745,6 +10883,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9765,6 +10905,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9785,6 +10927,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9805,6 +10949,8 @@
       ],
       "category": "unreferenced",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
@@ -9824,7 +10970,9 @@
         "GET"
       ],
       "category": "cli_script",
-      "live": false,
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
@@ -9858,6 +11006,8 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py"
@@ -9880,6 +11030,8 @@
       ],
       "category": "runtime_only",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py"
@@ -9902,6 +11054,8 @@
       ],
       "category": "cli_script",
       "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py",
@@ -9918,5 +11072,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "c03ba0d2e0609f2e"
+  "content_hash": "3145c95028405be9"
 }

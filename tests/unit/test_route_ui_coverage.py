@@ -51,7 +51,16 @@ class Test分类:
         t = payload["totals"]
         assert t["routes"] > 100, "路由数太少，不像全仓"
         assert t["routes"] == t["ui"] + t["cli_script"] + t["runtime_only"] + t["unreferenced"]
-        assert t["live"] + t["dead_copy"] == t["routes"]
+        # 活体（线上会被服务）与死副本（该路径还有未接线定义）是**两个正交事实**：
+        # 同一路径可以既 live、又 dead_copy（活体在 plugins/x.py、死副本在未接线的
+        # agent/server_routes/y.py）。故不再要求 live + dead_copy == routes。
+        assert t["live"] <= t["routes"], "活体数不得超过路由总数"
+        assert t["dead_copy"] <= t["routes"], "死副本数不得超过路由总数"
+        entries = payload["entries"]
+        assert t["live"] == sum(1 for e in entries if e["live"])
+        assert t["dead_copy"] == sum(1 for e in entries if e["dead_copy"])
+        assert t["dead_definitions"] == sum(len(e["dead_defs"]) for e in entries) or \
+            t["dead_definitions"] >= t["dead_copy"], "死副本定义位点应不少于死副本路径数"
         # 活体分类之和 == 活体数；且 ui 里活体只是一部分（死副本与活体同路径时也会被前端引用）
         assert sum(t["live_by_category"].values()) == t["live"]
         assert 0 <= t["live_by_category"]["ui"] <= t["ui"]
@@ -81,6 +90,39 @@ class Test分类:
         assert old.get("content_hash") == m.classify()["content_hash"], (
             "路由↔UI 分类已漂移：运行 python scripts/audit/route_ui_coverage.py 重新派生并提交"
         )
+
+
+class Test活体判定:
+    """回归：where 带 ":行号"，判活必须先剥行号。
+
+    历史缺陷：旧实现拿 "agent/server_routes/routes_x.py:123" 直接取模块名，得到
+    "routes_x.py:123"，永远命不中 registered_mods ⇒ 所有 server_routes 定义被判死，
+    实测 457 条路由里 223 条假死（dead_copy 虚高）。
+    """
+
+    def test_定义文件判活必须先剥行号(self):
+        m = _mod()
+        registered = {"routes_skills_mgmt"}
+        assert m._is_live_where(
+            "agent/server_routes/routes_skills_mgmt.py:166", registered) is True
+        assert m._is_live_where(
+            "agent/server_routes/routes_personality.py:23", registered) is False
+        assert m._is_live_where("plugins/status.py:665", set()) is True
+        assert m._is_live_where("app_server.py:2098", set()) is True
+
+    def test_已接线模块的路由不再被判死(self):
+        m = _mod()
+        entries = {e["norm"]: e for e in m.classify()["entries"]}
+        # 只定义在已接线的 routes_skills_mgmt.py 里 ⇒ 活体、且无死副本
+        e = entries["/api/skills-mgmt"]
+        assert e["live"] is True, "已接线模块的路由被误判为死副本"
+        assert e["dead_copy"] is False
+        assert e["dead_defs"] == []
+        # 活体在 plugins/status.py、死副本在未接线的 routes_personality.py ⇒ 两个事实都记下
+        p = entries["/api/personality"]
+        assert p["live"] is True, "plugins/status.py 提供了它，应判活"
+        assert p["dead_copy"] is True, "该路径还有未接线定义，应记死副本"
+        assert any("routes_personality.py" in x for x in p["dead_defs"])
 
 
 class Test说明:
