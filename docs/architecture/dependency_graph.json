@@ -23396,7 +23396,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 526,
+      "line": 552,
       "source_file": "agent/session_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
