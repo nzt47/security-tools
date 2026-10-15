@@ -17,7 +17,7 @@ import RouteCoveragePanel from './route-coverage'
 const PAYLOAD = {
   generated_at: '2026-10-11T00:00:00',
   totals: {
-    routes: 3, live: 3, dead_copy: 0,
+    routes: 4, live: 4, dead_copy: 1,
     by_intent: { should_be_in_ui: 1, should_not_be_in_ui: 1, unclassified: 1 },
   },
   frontend_endpoints: 1,
@@ -27,6 +27,8 @@ const PAYLOAD = {
     { path: '/api/x', norm: '/api/x', methods: ['GET'], category: 'unreferenced', live: true, ui_refs: [], non_ui_refs: [], where: [], intent: 'should_be_in_ui', ui_pending: true, description: '创建一条 X 记录', description_source: 'handler' },
     { path: '/api/y', norm: '/api/y', methods: ['GET'], category: 'ui', live: true, ui_refs: ['a.ts'], non_ui_refs: [], where: [], intent: 'unclassified', ui_pending: false },
     { path: '/api/z', norm: '/api/z', methods: ['POST'], category: 'unreferenced', live: true, ui_refs: [], non_ui_refs: [], where: [], intent: 'should_not_be_in_ui', ui_pending: false, description: 'Z 模块：处理 Z 族请求', description_source: 'module' },
+    // 活体在 plugins/status.py、死副本在未接线的 routes_personality.py ⇒ live 与 dead_copy 同时为真
+    { path: '/api/dead', norm: '/api/dead', methods: ['GET'], category: 'ui', live: true, dead_copy: true, dead_defs: ['agent/server_routes/routes_personality.py:23'], ui_refs: ['a.ts'], non_ui_refs: [], where: ['plugins/status.py:665', 'agent/server_routes/routes_personality.py:23'], intent: 'unclassified', ui_pending: false, description: '死副本示例', description_source: 'handler' },
   ],
 }
 
@@ -65,6 +67,20 @@ describe('RouteCoveragePanel · 意图标注', () => {
     expect(screen.getByTestId('route-desc-/api/z').textContent).toContain('模块')
     // 无说明时不留空白
     expect(screen.getByTestId('route-desc-/api/y').textContent).toContain('—')
+  })
+
+  it('活体但含死副本的行标「含死副本」，且「只看无死副本」能把它滤掉', async () => {
+    envMock.mockResolvedValue(PAYLOAD)
+    render(<RouteCoveragePanel />)
+    await screen.findByText('/api/dead')
+
+    // live=true 不是「是」：该路径还有未接线定义，必须如实标出
+    expect(screen.getByTestId('route-live-/api/dead').textContent).toContain('含死副本')
+    expect(screen.getByTestId('route-live-/api/x').textContent).toBe('是')
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(screen.queryByText('/api/dead')).toBeNull()
+    expect(screen.getByText('/api/x')).toBeTruthy()
   })
 
   it('「该进却未进」过滤只留 ui_pending 行', async () => {

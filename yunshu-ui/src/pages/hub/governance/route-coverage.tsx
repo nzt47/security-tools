@@ -25,6 +25,10 @@ interface Entry {
   methods: string[]
   category: string
   live: boolean
+  /** 该路径是否还存在未接线定义（死副本）；与 live 正交：活体在 plugins/x.py、死副本在未接线的 agent/server_routes/y.py */
+  dead_copy?: boolean
+  /** 未接线的定义位点（file:line），用于说明死副本在哪 */
+  dead_defs?: string[]
   ui_refs: string[]
   non_ui_refs: string[]
   where: string[]
@@ -95,7 +99,7 @@ export default function RouteCoveragePanel() {
     const needle = q.trim().toLowerCase()
     return list.filter((e) =>
       (cat === 'all' || e.category === cat)
-      && (!liveOnly || e.live)
+      && (!liveOnly || !e.dead_copy)
       && (!pendingOnly || e.ui_pending)
       && (!needle || e.path.toLowerCase().includes(needle)),
     )
@@ -126,7 +130,7 @@ export default function RouteCoveragePanel() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {[
-          ['静态路由', t.routes], ['活体', t.live], ['死副本', t.dead_copy], ['前端端点', data?.frontend_endpoints],
+          ['静态路由', t.routes], ['活体', t.live], ['含死副本', t.dead_copy], ['前端端点', data?.frontend_endpoints],
           ['该进却未进', (data?.pending_ui ?? []).length],
         ].map(([label, v]) => (
           <div key={String(label)} className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3">
@@ -149,7 +153,7 @@ export default function RouteCoveragePanel() {
           该进却未进 <span className="ml-1 text-slate-500">{(data?.pending_ui ?? []).length}</span>
         </button>
         <label className="ml-2 flex items-center gap-1 text-slate-300">
-          <input type="checkbox" checked={liveOnly} onChange={(e) => setLiveOnly(e.target.checked)} /> 只看活体
+          <input type="checkbox" checked={liveOnly} onChange={(e) => setLiveOnly(e.target.checked)} /> 只看无死副本
         </label>
         <span className="ml-auto flex items-center gap-1 rounded-lg border border-slate-700 px-2 py-1">
           <Search size={12} className="text-slate-500" />
@@ -167,7 +171,7 @@ export default function RouteCoveragePanel() {
               <th className="px-3 py-2">方法</th>
               <th className="px-3 py-2">分类</th>
               <th className="px-3 py-2">意图</th>
-              <th className="px-3 py-2">活体</th>
+              <th className="px-3 py-2">活体 / 死副本</th>
               <th className="px-3 py-2">引用</th>
             </tr>
           </thead>
@@ -194,7 +198,11 @@ export default function RouteCoveragePanel() {
                   {INTENT_LABEL[e.intent ?? 'unclassified'] ?? e.intent}
                   {e.ui_pending && <span className="ml-1 rounded bg-amber-950/50 px-1 text-[10px] text-amber-300">待办</span>}
                 </td>
-                <td className="px-3 py-1.5">{e.live ? '是' : <span className="text-slate-600">死副本</span>}</td>
+                <td className="px-3 py-1.5" data-testid={'route-live-' + e.norm}>
+                  {e.dead_copy
+                    ? <span className="text-amber-400" title={(e.dead_defs ?? []).join('\n')}>含死副本</span>
+                    : (e.live ? '是' : <span className="text-slate-600">死副本</span>)}
+                </td>
                 <td className="px-3 py-1.5 text-slate-500">{(e.ui_refs ?? []).length} 前端 / {(e.non_ui_refs ?? []).length} 非前端</td>
               </tr>
             ))}

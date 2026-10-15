@@ -10,6 +10,14 @@
   · runtime_only ：只在 app_server / agent 的非路由模块里出现（进程内 provider、探针、看门狗）；
   · unreferenced ：以上都没找到引用（可能是纯内部、已废弃，或由动态拼接调用）。
 
+  另注「活体 / 死副本」（两个**正交**的事实）：
+    · 活体 = 该路径至少有一个定义文件已接线，线上会被服务；
+    · 死副本 = 该路径**还存在**未接线的 agent/server_routes/*.py 定义
+      （见 tests/unit/test_server_routes_registration_inventory.py 的 KNOWN_UNREGISTERED），
+      改那一条不生效、也不报错 —— 在 dead_defs 里记下未接线的定义位点。
+  判据与 docs/closeout/契约治理重构_第五轮_P1front推进_20261005.md §4.3 的
+  「路径 → 活体 → 死副本」表同源。
+
   另附每条的 description：处理函数 docstring 首个非空行（"这个路由做什么"）。**不进 content_hash**：
   说明文字随注释编辑漂移，算进门禁会让 --check 为改一句文档假红（与 refs 同理）。
 
@@ -82,8 +90,17 @@ def _registered_server_route_modules() -> set:
     return mods
 
 
-def _is_live_where(rel: str, registered_mods: set) -> bool:
-    rel = rel.replace("\\", "/")
+def _is_live_where(where: str, registered_mods: set) -> bool:
+    """一个 where 定义位点（形如 "agent/server_routes/routes_x.py:123"）是否已接线。
+
+    【必须先剥 ":行号" —— 历史缺陷】collect_routes_static 往 where 里拼了 ":行号"
+    （contract_diff.py:245）。旧实现直接拿带行号的串取模块名，得到 "routes_x.py:123"，
+    永远命不中 registered_mods ⇒ 所有 agent/server_routes 的定义一律被判死，
+    dead_copy 虚高（实测 457 条路由里 223 条假死）。回归见
+    tests/unit/test_route_ui_coverage.py::Test活体判定。
+    """
+    rel = str(where).replace("\\", "/")
+    rel = rel.rsplit(":", 1)[0]  # where 一律是仓库相对路径 + ":行号"
     if rel.startswith("plugins/") or rel in ("app_server.py", "main.py"):
         return True
     if rel.startswith("agent/server_routes/"):
@@ -282,6 +299,7 @@ def classify() -> dict:
     registered_mods = _registered_server_route_modules()
     entries = []
     live_totals = {"ui": 0, "cli_script": 0, "runtime_only": 0, "unreferenced": 0}
+    dead_def_total = 0
     for path in sorted(routes):
         meta = routes[path]
         np = norm(path)
@@ -297,9 +315,19 @@ def classify() -> dict:
         else:
             cat = "unreferenced"
         where = sorted(meta.get("where") or [])
-        live = any(_is_live_where(x, registered_mods) for x in where)
+        # 活体（线上会被服务）与死副本（有未接线定义）是**两个正交事实**：
+        # 同一路径可能「活体在 plugins/x.py、死副本在未接线的 agent/server_routes/y.py」，
+        # 此时它既 live、又 dead_copy —— 早年判活只认 where 里有没有已接线文件，
+        # 却把死副本完全藏掉；本报告要的正是把这条同时标出来。判据见
+        # docs/closeout/契约治理重构_第五轮_P1front推进_20261005.md §4.3 的
+        # 「路径 → 活体 → 死副本」表；未接线模块清单见
+        # tests/unit/test_server_routes_registration_inventory.py::KNOWN_UNREGISTERED。
+        wired = [_is_live_where(x, registered_mods) for x in where]
+        live = any(wired)                       # 有任一已接线定义 ⇒ 线上会被服务
+        dead_defs = [x for x, ok in zip(where, wired) if not ok]  # 未接线定义 = 死副本
         if live:
             live_totals[cat] += 1
+        dead_def_total += len(dead_defs)
         desc, desc_src = _route_doc(where)
         entries.append({
             "path": path,
@@ -307,6 +335,10 @@ def classify() -> dict:
             "methods": sorted(meta.get("methods") or []),
             "category": cat,
             "live": live,
+            # 该路径是否存在未接线定义（死副本）；与 live 正交，见上
+            "dead_copy": bool(dead_defs),
+            # 未接线的定义位点（死副本）。只放前 4 条、**不进 content_hash**（与 where/refs 同理）
+            "dead_defs": dead_defs[:4],
             "ui_refs": ui,
             "non_ui_refs": sorted(set(cli) | set(rt))[:12],
             "where": where[:4],
@@ -325,7 +357,9 @@ def classify() -> dict:
         e["ui_pending"] = bool(e["intent"] == "should_be_in_ui" and e["live"] and e["category"] != "ui")
 
     live_n = sum(1 for e in entries if e["live"])
-    totals = {"routes": len(entries), "live": live_n, "dead_copy": len(entries) - live_n,
+    dead_copy_n = sum(1 for e in entries if e["dead_copy"])
+    totals = {"routes": len(entries), "live": live_n, "dead_copy": dead_copy_n,
+              "dead_definitions": dead_def_total,
               "ui": 0, "cli_script": 0, "runtime_only": 0, "unreferenced": 0}
     for e in entries:
         totals[e["category"]] += 1
@@ -369,6 +403,7 @@ def _content_hash(payload: dict) -> str:
         "entries": [
             {"path": e["path"], "methods": e["methods"],
              "category": e["category"], "live": e["live"],
+             "dead_copy": e["dead_copy"],
              "intent": e["intent"], "ui_pending": e["ui_pending"]}
             for e in payload["entries"]
         ],
@@ -388,7 +423,8 @@ def _summary(payload: dict) -> str:
         "== 路由 ↔ UI 覆盖盘点 ==",
         "路由总数（静态）  : " + str(t["routes"]),
         "  其中活体        : " + str(t["live"]),
-        "  其中死副本      : " + str(t["dead_copy"]),
+        "  含死副本        : " + str(t["dead_copy"])
+        + "（未接线定义位点 " + str(t.get("dead_definitions", 0)) + "）",
         "  ui（前端引用）  : " + str(t["ui"]),
         "  cli_script      : " + str(t["cli_script"]),
         "  runtime_only    : " + str(t["runtime_only"]),
