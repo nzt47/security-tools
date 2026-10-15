@@ -66,19 +66,12 @@ pytestmark = pytest.mark.timeout(900)
 
 #: 已确认**未注册**（端点由别处提供或已迁移）的路由模块 → 原因。
 #: 每条都必须能在 `app_server.py` 里找不到接线、且文件仍存在；否则本测试会失败。
-KNOWN_UNREGISTERED: dict[str, str] = {
-    "routes_chat": "未接线；聊天端点由 plugins/chat.py 提供（url_map 中为 chat.* 命名空间）",
-    "routes_monitoring": "未接线；监控端点由 plugins/status.py 与 routes_dashboard.py 提供",
-    "routes_panorama": "未接线；全景面板端点由其它已注册模块提供",
-    "routes_permission": "未接线；权限端点由 plugins/* 与 routes_ui_panels.py 提供",
-    "routes_personality": "未接线；人格端点由 plugins/status.py 提供",
-    "routes_workspace": "未接线；工作区端点由已注册模块提供",
-    "extensions": "未接线；扩展端点由 plugins/* 提供（注意：本文件名不带 routes_ 前缀）",
-    "routes_cli": "未接线；本文件仅 9 行占位（只打一条 info 日志）",
-    "routes_computer_use": "未接线；本文件仅占位实现",
-    "routes_config": "未接线；27/29 条端点由其他模块提供，语义层热更两条（/api/orchestrator/semantic-config）已单独接线",
-    "routes_sessions": "未接线（**故意**）；会话 API 由 plugins/chat.py 提供。原 `/api/handoff` 于 2026-10-01 迁入 plugins/chat.py:api_handoff（此前是「声明了却没接线 ⇒ 线上 404」的孤儿，见 app_server.py:1719 的 T7 注记）",
-}
+#: 【2026-10-15】清空：11 个未接线模块（routes_chat / routes_config / routes_monitoring /
+#: routes_panorama / routes_permission / routes_personality / routes_sessions /
+#: routes_workspace / extensions / routes_cli / routes_computer_use）已整体退役删除，
+#: 端点均由 plugins/* 或已接线模块提供。这份清单从「沉默状态的唯一记录」归零 ——
+#: 新模块仍必须走「接线 或 登记」二选一。
+KNOWN_UNREGISTERED: dict[str, str] = {}
 
 
 def _registered_in_app_server() -> set[str]:

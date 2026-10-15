@@ -467,16 +467,37 @@ class FakeState:
 
 @pytest.fixture
 def flask_app():
-    """创建带 extensions 路由的 Flask 测试应用"""
+    """创建带 extensions 路由的 Flask 测试应用
+
+    【2026-10-15】活体扩展端点在 plugins/skills.py；原 agent/server_routes/extensions.py
+    未接线已退役。插件视图延迟 `from app_server import _extension_mgr / _extension_market`，
+    故注入假 app_server 模块（不 import 真实入口）。
+    """
+    import sys
+    import types
+
     app = Flask(__name__)
     app.config["TESTING"] = True
     state = FakeState()
+
+    import plugins.skills as skills_plugin
+
+    fake_app_server = types.ModuleType("app_server")
+    fake_app_server._extension_mgr = state.extension_mgr
+    fake_app_server._extension_market = state.extension_market
+    saved = sys.modules.get("app_server")
+    sys.modules["app_server"] = fake_app_server
     # Mock require_token 装饰器 - 让它直接通过
     with mock.patch("agent.server_auth.require_token", lambda f: f), \
          mock.patch("agent.server_auth.log_request", lambda **kw: lambda f: f):
-        from agent.server_routes import extensions
-        extensions.register_routes(app, state)
-    return app, state
+        app.register_blueprint(skills_plugin.bp)
+    try:
+        yield app, state
+    finally:
+        if saved is not None:
+            sys.modules["app_server"] = saved
+        else:
+            sys.modules.pop("app_server", None)
 
 
 class TestExtensionsListRoute:

@@ -36,7 +36,7 @@ print("STEP 1: 构造带元数据的 Mock 请求")
 print("=" * 56)
 
 from flask import Flask, request
-from agent.server_routes.routes_sessions import _extract_session_meta
+from agent.session_manager import _extract_session_meta
 
 app = Flask(__name__)
 mock_headers = {

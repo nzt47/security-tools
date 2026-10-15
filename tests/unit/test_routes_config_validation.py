@@ -1,6 +1,6 @@
 """路由配置验证函数测试"""
 import pytest
-from agent.server_routes.routes_config import validate_search_instance, BUILTIN_ENGINES
+from agent.config_validation import validate_search_instance, BUILTIN_ENGINES
 
 
 class TestValidateSearchInstance:

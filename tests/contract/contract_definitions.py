@@ -8,8 +8,8 @@
 3. /api/dashboard  - 仪表盘（GET，/api/dashboard/quality 质量监控数据）
 
 【契约来源】
-- agent/server_routes/routes_chat.py
-- agent/server_routes/routes_panorama.py
+- plugins/chat.py    （/api/chat 的活体提供方；原 routes_chat.py 未接线，2026-10-15 退役删除）
+- plugins/status.py  （/api/health 的活体提供方；原 routes_panorama.py 未接线，2026-10-15 退役删除）
 - agent/server_routes/routes_dashboard.py
 """
 

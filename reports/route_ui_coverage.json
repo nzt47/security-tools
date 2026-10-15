@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-15T23:46:32",
+  "generated_at": "2026-10-16T00:21:50",
   "totals": {
     "routes": 461,
     "live": 461,
-    "dead_copy": 110,
-    "dead_definitions": 121,
+    "dead_copy": 0,
+    "dead_definitions": 0,
     "ui": 141,
     "cli_script": 19,
     "runtime_only": 23,
@@ -236,17 +236,14 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:190"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:190",
-        "plugins/admin.py:286"
+        "plugins/admin.py:300"
       ],
       "description": "应用网络配置到应用实例（即时生效）",
       "description_source": "handler",
@@ -668,7 +665,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:784"
+        "plugins/admin.py:798"
       ],
       "description": "获取结构化审计日志（只读查询 Append-only 审计日志）",
       "description_source": "handler",
@@ -757,15 +754,12 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:185"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:185",
-        "plugins/admin.py:58"
+        "plugins/admin.py:70"
       ],
       "description": "检查令牌是否有效（前端用）",
       "description_source": "handler",
@@ -870,16 +864,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:225"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:225",
         "plugins/system_tools.py:305"
       ],
       "description": "关闭浏览器",
@@ -897,16 +888,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:206"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:206",
         "plugins/system_tools.py:284"
       ],
       "description": "浏览器导航到 URL",
@@ -924,16 +912,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:217"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:217",
         "plugins/system_tools.py:296"
       ],
       "description": "浏览器截图",
@@ -1085,10 +1070,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:258"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -1099,10 +1082,9 @@
         "scripts/verify_zh_scenarios_20260815.py"
       ],
       "where": [
-        "agent/server_routes/routes_chat.py:258",
         "plugins/chat.py:141"
       ],
-      "description": "对话 & 语音 & Web 工具 API 路由",
+      "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -1141,17 +1123,14 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:175"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:175",
         "plugins/chat.py:1142"
       ],
-      "description": "会话管理 API 路由",
+      "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -1167,18 +1146,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:294",
-        "agent/server_routes/routes_workspace.py:301"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:294",
-        "agent/server_routes/routes_workspace.py:301",
         "plugins/system_tools.py:383",
         "plugins/system_tools.py:391"
       ],
@@ -1243,20 +1217,17 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_panorama.py:237"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_panorama.py:237",
         "cognitive/flask_adapter.py:33",
         "plugins/status.py:353"
       ],
-      "description": "全景 & 健康 & 状态 API 路由",
+      "description": "元认知 API 路由：把 PromptInjector 的注入 / 翻译 / 拒答暴露为 Flask 端点。",
       "description_source": "module",
       "intent": "should_be_in_ui",
       "intent_area": "全景看板",
@@ -1294,20 +1265,17 @@
       ],
       "category": "cli_script",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:87"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py",
         "scripts/demo_s2_02_audit.py"
       ],
       "where": [
-        "agent/server_routes/routes_config.py:87",
-        "plugins/admin.py:71"
+        "plugins/admin.py:83"
       ],
-      "description": "LLM 配置读写（S2-02：POST 写操作显式审计 config.write；api_key 内容不入链）",
+      "description": "获取或设置 LLM 配置",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -1322,17 +1290,14 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:679"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:679",
-        "plugins/admin.py:768"
+        "plugins/admin.py:782"
       ],
       "description": "获取配置变更日志",
       "description_source": "handler",
@@ -2510,14 +2475,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:156"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:156",
         "plugins/skills.py:818"
       ],
       "description": "通过通道发送消息",
@@ -2535,14 +2497,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:85"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:85",
         "plugins/skills.py:732"
       ],
       "description": "配置扩展参数",
@@ -2560,14 +2519,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:101"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:101",
         "plugins/skills.py:754"
       ],
       "description": "发现所有可用扩展",
@@ -2585,14 +2541,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:38"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:38",
         "plugins/skills.py:664"
       ],
       "description": "安装扩展",
@@ -2610,14 +2563,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:28"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:28",
         "plugins/skills.py:650"
       ],
       "description": "按类型分组获取已安装扩展",
@@ -2635,14 +2585,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:17"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:17",
         "plugins/skills.py:635"
       ],
       "description": "列出所有已安装扩展",
@@ -2660,14 +2607,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:128"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:128",
         "plugins/skills.py:786"
       ],
       "description": "获取推荐扩展",
@@ -2685,14 +2629,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:140"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:140",
         "plugins/skills.py:802"
       ],
       "description": "刷新社区扩展索引",
@@ -2710,14 +2651,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:115"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:115",
         "plugins/skills.py:768"
       ],
       "description": "搜索扩展市场",
@@ -2735,16 +2673,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:69"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/extensions.py:69",
         "plugins/skills.py:710"
       ],
       "description": "启用/禁用扩展",
@@ -2762,14 +2697,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/extensions.py:54"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/extensions.py:54",
         "plugins/skills.py:686"
       ],
       "description": "卸载扩展",
@@ -2941,14 +2873,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:144"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:144",
         "plugins/system_tools.py:198"
       ],
       "description": "获取文件/目录信息",
@@ -2966,14 +2895,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:135"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:135",
         "plugins/system_tools.py:187"
       ],
       "description": "列出目录内容",
@@ -2991,14 +2917,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:98"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:98",
         "plugins/system_tools.py:141"
       ],
       "description": "读取本地文件内容",
@@ -3016,14 +2939,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:153"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:153",
         "plugins/system_tools.py:209"
       ],
       "description": "搜索文件",
@@ -3041,14 +2961,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:118"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:118",
         "plugins/system_tools.py:165"
       ],
       "description": "写入本地文件",
@@ -3066,17 +2983,14 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:248"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:248",
         "plugins/chat.py:748"
       ],
-      "description": "生成交接文档 — LLM 压缩当前会话为 Markdown，保存到 OS 临时目录",
+      "description": "生成会话交接文档 —— LLM 把当前会话压缩成 Markdown，落盘到 OS 临时目录。",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -3091,10 +3005,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_panorama.py:169"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -3108,10 +3020,9 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "agent/server_routes/routes_panorama.py:169",
         "plugins/status.py:234"
       ],
-      "description": "全景 & 健康 & 状态 API 路由",
+      "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -3148,14 +3059,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_panorama.py:176"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_panorama.py:176",
         "plugins/status.py:242"
       ],
       "description": "鉴权配置状态（**只读**；TASK-06 §3 第 5 步第 2 项第 ① 步）",
@@ -3430,16 +3338,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:25"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_monitoring.py:25",
         "plugins/status.py:789"
       ],
       "description": "心跳检测接口 — 全维度健康检查（**已迁移到统一信封**）。",
@@ -3457,16 +3362,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:37"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_monitoring.py:37",
         "plugins/status.py:815"
       ],
       "description": "获取心跳历史（**已迁移到统一信封**）。",
@@ -3484,16 +3386,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:56"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_monitoring.py:56",
         "plugins/status.py:844"
       ],
       "description": "获取心跳概览（**已迁移到统一信封**）。",
@@ -3511,17 +3410,14 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:153"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:153",
         "plugins/chat.py:1120"
       ],
-      "description": "会话管理 API 路由",
+      "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -3536,14 +3432,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:208"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:208",
         "plugins/chat.py:1176"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
@@ -3561,14 +3454,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:191"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:191",
         "plugins/chat.py:1156"
       ],
       "description": "搜索历史记录",
@@ -3905,18 +3795,13 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:232",
-        "agent/server_routes/routes_config.py:256"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:232",
-        "agent/server_routes/routes_config.py:256",
-        "plugins/admin.py:337",
-        "plugins/admin.py:365"
+        "plugins/admin.py:351",
+        "plugins/admin.py:379"
       ],
       "description": "获取所有 LLM 实例",
       "description_source": "handler",
@@ -3935,19 +3820,14 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:243",
-        "agent/server_routes/routes_config.py:276",
-        "agent/server_routes/routes_config.py:295"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:243",
-        "agent/server_routes/routes_config.py:276",
-        "agent/server_routes/routes_config.py:295",
-        "plugins/admin.py:350"
+        "plugins/admin.py:364",
+        "plugins/admin.py:402",
+        "plugins/admin.py:422"
       ],
       "description": "获取单个 LLM 实例",
       "description_source": "handler",
@@ -3964,15 +3844,12 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:310"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:310",
-        "plugins/admin.py:423"
+        "plugins/admin.py:437"
       ],
       "description": "设置默认 LLM 实例",
       "description_source": "handler",
@@ -3989,17 +3866,14 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:325"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:325",
-        "plugins/admin.py:438"
+        "plugins/admin.py:452"
       ],
-      "description": "测试 LLM 实例连通性",
+      "description": "测试 LLM 实例连接",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -4014,16 +3888,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:470"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:470",
         "plugins/mcp_scheduler.py:143"
       ],
       "description": "启用/禁用 MCP 服务",
@@ -4042,18 +3913,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:398",
-        "agent/server_routes/routes_config.py:422"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:398",
-        "agent/server_routes/routes_config.py:422",
         "plugins/mcp_scheduler.py:51",
         "plugins/mcp_scheduler.py:85"
       ],
@@ -4074,19 +3940,14 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:409",
-        "agent/server_routes/routes_config.py:440",
-        "agent/server_routes/routes_config.py:457"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:409",
-        "agent/server_routes/routes_config.py:440",
-        "agent/server_routes/routes_config.py:457",
-        "plugins/mcp_scheduler.py:108"
+        "plugins/mcp_scheduler.py:108",
+        "plugins/mcp_scheduler.py:128",
+        "plugins/mcp_scheduler.py:70"
       ],
       "description": "更新 MCP 服务",
       "description_source": "handler",
@@ -4401,17 +4262,14 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_panorama.py:220"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_panorama.py:220",
         "plugins/status.py:311"
       ],
-      "description": "全景 & 健康 & 状态 API 路由",
+      "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -4502,11 +4360,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:133",
-        "agent/server_routes/routes_config.py:140"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -4514,10 +4369,8 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_config.py:133",
-        "agent/server_routes/routes_config.py:140",
-        "plugins/admin.py:196",
-        "plugins/admin.py:205"
+        "plugins/admin.py:210",
+        "plugins/admin.py:219"
       ],
       "description": "获取网络配置",
       "description_source": "handler",
@@ -4534,15 +4387,12 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:161"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:161",
-        "plugins/admin.py:251"
+        "plugins/admin.py:265"
       ],
       "description": "导出网络配置（脱敏）",
       "description_source": "handler",
@@ -4559,15 +4409,12 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:172"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:172",
-        "plugins/admin.py:264"
+        "plugins/admin.py:278"
       ],
       "description": "导入网络配置",
       "description_source": "handler",
@@ -4584,17 +4431,14 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:153"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:153",
-        "plugins/admin.py:241"
+        "plugins/admin.py:255"
       ],
       "description": "重置网络配置为默认值",
       "description_source": "handler",
@@ -5001,10 +4845,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_panorama.py:256"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5012,10 +4854,9 @@
         "app_server.py"
       ],
       "where": [
-        "agent/server_routes/routes_panorama.py:256",
         "plugins/status.py:373"
       ],
-      "description": "获取全景页面所需的所有数据（单次调用）",
+      "description": "获取全景页面所需的所有数据（单次调用，**已迁移到统一信封**）。",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -5030,14 +4871,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_permission.py:166"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_permission.py:166",
         "plugins/safety.py:280"
       ],
       "description": "获取数据访问记录",
@@ -5055,16 +4893,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_permission.py:175"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_permission.py:175",
         "plugins/safety.py:291"
       ],
       "description": "紧急控制 — 暂停/停止/重置",
@@ -5082,14 +4917,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_permission.py:107"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_permission.py:107",
         "plugins/safety.py:211"
       ],
       "description": "获取权限操作日志",
@@ -5107,14 +4939,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_permission.py:122"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_permission.py:122",
         "plugins/safety.py:231"
       ],
       "description": "获取聚合统计",
@@ -5132,14 +4961,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_permission.py:76"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_permission.py:76",
         "plugins/safety.py:172"
       ],
       "description": "获取权限控制面板状态 — 当前操作 + 总览统计",
@@ -5157,16 +4983,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_permission.py:207"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_permission.py:207",
         "plugins/safety.py:326"
       ],
       "description": "切换权限开关",
@@ -5208,16 +5031,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_personality.py:23"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_personality.py:23",
         "plugins/status.py:665"
       ],
       "description": "读取人格配置（**已迁移到统一信封**）。",
@@ -5235,19 +5055,16 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_personality.py:29"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_personality.py:29",
         "plugins/status.py:684"
       ],
-      "description": "人格配置 API 路由",
+      "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -5262,10 +5079,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_personality.py:39"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5273,10 +5088,9 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_personality.py:39",
         "plugins/status.py:694"
       ],
-      "description": "人格配置 API 路由",
+      "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -5291,10 +5105,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_personality.py:49"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -5302,10 +5114,9 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_personality.py:49",
         "plugins/status.py:704"
       ],
-      "description": "人格配置 API 路由",
+      "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -5463,16 +5274,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:237"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:237",
         "plugins/system_tools.py:318"
       ],
       "description": "列出白名单进程",
@@ -5490,16 +5298,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:267"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_workspace.py:267",
         "plugins/system_tools.py:354"
       ],
       "description": "启动白名单程序",
@@ -5517,16 +5322,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:279"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_workspace.py:279",
         "plugins/system_tools.py:367"
       ],
       "description": "终止进程（仅限白名单）",
@@ -5544,14 +5346,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:243"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:243",
         "plugins/system_tools.py:326"
       ],
       "description": "获取进程白名单详情",
@@ -5569,14 +5368,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:249"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:249",
         "plugins/system_tools.py:334"
       ],
       "description": "添加自定义白名单条目",
@@ -5594,14 +5390,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:258"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:258",
         "plugins/system_tools.py:344"
       ],
       "description": "移除自定义白名单条目",
@@ -5943,14 +5736,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_permission.py:46"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_permission.py:46",
         "plugins/safety.py:137"
       ],
       "description": "获取最近的告警通知",
@@ -5968,14 +5758,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_permission.py:36"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_permission.py:36",
         "plugins/safety.py:125"
       ],
       "description": "检查文本是否包含危险操作",
@@ -5994,16 +5781,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_permission.py:54"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_permission.py:54",
         "plugins/safety.py:147"
       ],
       "description": "获取或添加危险关键词",
@@ -6021,14 +5805,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:167"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:167",
         "plugins/system_tools.py:225"
       ],
       "description": "在受限沙盒中执行 Python 代码（受 features.sandbox 开关控制）",
@@ -6046,14 +5827,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:83"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_monitoring.py:83",
         "plugins/mcp_scheduler.py:174"
       ],
       "description": "创建定时任务",
@@ -6071,16 +5849,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:100"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_monitoring.py:100",
         "plugins/mcp_scheduler.py:195"
       ],
       "description": "删除定时任务",
@@ -6098,16 +5873,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:119"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_monitoring.py:119",
         "plugins/mcp_scheduler.py:218"
       ],
       "description": "立即执行指定任务",
@@ -6125,16 +5897,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:134"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_monitoring.py:134",
         "plugins/mcp_scheduler.py:235"
       ],
       "description": "获取任务执行历史",
@@ -6152,10 +5921,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:77"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6163,7 +5930,6 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "agent/server_routes/routes_monitoring.py:77",
         "plugins/mcp_scheduler.py:166"
       ],
       "description": "列出所有定时任务",
@@ -6181,16 +5947,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:109"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_monitoring.py:109",
         "plugins/mcp_scheduler.py:206"
       ],
       "description": "启用/禁用定时任务",
@@ -6322,15 +6085,12 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:186"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_monitoring.py:186",
-        "plugins/admin.py:889"
+        "plugins/admin.py:903"
       ],
       "description": "手动执行一次性能检测",
       "description_source": "handler",
@@ -6347,15 +6107,12 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:198"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_monitoring.py:198",
-        "plugins/admin.py:903"
+        "plugins/admin.py:917"
       ],
       "description": "获取性能检测历史记录",
       "description_source": "handler",
@@ -6372,17 +6129,14 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:160"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_monitoring.py:160",
-        "plugins/admin.py:859"
+        "plugins/admin.py:873"
       ],
       "description": "启动搜索引擎性能监控",
       "description_source": "handler",
@@ -6399,15 +6153,12 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:149"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_monitoring.py:149",
-        "plugins/admin.py:846"
+        "plugins/admin.py:860"
       ],
       "description": "获取搜索引擎性能监控状态",
       "description_source": "handler",
@@ -6424,17 +6175,14 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:174"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
       "where": [
-        "agent/server_routes/routes_monitoring.py:174",
-        "plugins/admin.py:875"
+        "plugins/admin.py:889"
       ],
       "description": "停止搜索引擎性能监控",
       "description_source": "handler",
@@ -6451,15 +6199,12 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:210"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_monitoring.py:210",
-        "plugins/admin.py:917"
+        "plugins/admin.py:931"
       ],
       "description": "获取性能摘要",
       "description_source": "handler",
@@ -6477,20 +6222,15 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:489",
-        "agent/server_routes/routes_config.py:501"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:489",
-        "agent/server_routes/routes_config.py:501",
-        "plugins/admin.py:491",
-        "plugins/admin.py:503"
+        "plugins/admin.py:505",
+        "plugins/admin.py:517"
       ],
-      "description": "配置 & 网络配置 & LLM & MCP API 路由",
+      "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -6506,20 +6246,15 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:540",
-        "agent/server_routes/routes_config.py:574"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:540",
-        "agent/server_routes/routes_config.py:574",
-        "plugins/admin.py:563",
-        "plugins/admin.py:623"
+        "plugins/admin.py:577",
+        "plugins/admin.py:637"
       ],
-      "description": "配置 & 网络配置 & LLM & MCP API 路由",
+      "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -6534,17 +6269,14 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:601"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:601",
-        "plugins/admin.py:685"
+        "plugins/admin.py:699"
       ],
-      "description": "配置 & 网络配置 & LLM & MCP API 路由",
+      "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
@@ -6559,18 +6291,15 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_config.py:633"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_config.py:633",
-        "plugins/admin.py:733"
+        "plugins/admin.py:747"
       ],
-      "description": "测试搜索实例连通性",
-      "description_source": "handler",
+      "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
+      "description_source": "module",
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
@@ -6584,10 +6313,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_panorama.py:198"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6597,7 +6324,6 @@
         "scripts/quick_flask_test.py"
       ],
       "where": [
-        "agent/server_routes/routes_panorama.py:198",
         "plugins/status.py:270"
       ],
       "description": "传感器读数列表（**已迁移到统一信封**）。",
@@ -6666,11 +6392,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:77",
-        "agent/server_routes/routes_sessions.py:87"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -6678,8 +6401,6 @@
         "scripts/dev/verify_prompt_injection_mock.py"
       ],
       "where": [
-        "agent/server_routes/routes_sessions.py:77",
-        "agent/server_routes/routes_sessions.py:87",
         "plugins/chat.py:536",
         "plugins/chat.py:567"
       ],
@@ -6698,14 +6419,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:98"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:98",
         "plugins/chat.py:589"
       ],
       "description": "删除会话",
@@ -6768,14 +6486,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:144"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:144",
         "plugins/chat.py:699",
         "plugins/chat.py:709"
       ],
@@ -6816,14 +6531,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:108"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:108",
         "plugins/chat.py:609"
       ],
       "description": "重命名会话",
@@ -6909,16 +6621,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_sessions.py:120"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_sessions.py:120",
         "plugins/chat.py:670"
       ],
       "description": "切换当前会话",
@@ -8641,10 +8350,8 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_panorama.py:204"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
@@ -8652,7 +8359,6 @@
         "app_server.py"
       ],
       "where": [
-        "agent/server_routes/routes_panorama.py:204",
         "plugins/status.py:283"
       ],
       "description": "运行状态总览（TASK-06：状态面**增量**暴露鉴权模式）",
@@ -9022,8 +8728,8 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/admin.py:110",
-        "plugins/admin.py:143"
+        "plugins/admin.py:124",
+        "plugins/admin.py:157"
       ],
       "description": "获取系统提示词模板及预览信息",
       "description_source": "handler",
@@ -9143,7 +8849,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:180"
+        "plugins/admin.py:194"
       ],
       "description": "重置系统提示词为默认",
       "description_source": "handler",
@@ -9248,16 +8954,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:239"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py"
       ],
       "where": [
-        "agent/server_routes/routes_monitoring.py:239",
         "app_server.py:2245"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
@@ -9275,16 +8978,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:225"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py"
       ],
       "where": [
-        "agent/server_routes/routes_monitoring.py:225",
         "app_server.py:2221"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
@@ -9302,16 +9002,13 @@
       ],
       "category": "runtime_only",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_monitoring.py:232"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py"
       ],
       "where": [
-        "agent/server_routes/routes_monitoring.py:232",
         "app_server.py:2234"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
@@ -9818,14 +9515,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:157"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:157",
         "plugins/chat.py:83"
       ],
       "description": "语音识别接口 - 从麦克风捕获语音并转换为文本",
@@ -9843,14 +9537,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:237"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:237",
         "plugins/chat.py:120"
       ],
       "description": "获取语音系统状态",
@@ -9868,14 +9559,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:576"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:576",
         "plugins/system_tools.py:518"
       ],
       "description": "数据清洗",
@@ -9893,14 +9581,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:521"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:521",
         "plugins/system_tools.py:469"
       ],
       "description": "CSS 选择器提取",
@@ -9918,14 +9603,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:597"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:597",
         "plugins/system_tools.py:541"
       ],
       "description": "下载文件",
@@ -9943,14 +9625,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:452"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:452",
         "plugins/system_tools.py:405"
       ],
       "description": "HTTP GET 请求",
@@ -9968,14 +9647,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:482"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:482",
         "plugins/system_tools.py:423"
       ],
       "description": "HTTP POST 请求",
@@ -9993,14 +9669,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:544"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:544",
         "plugins/system_tools.py:497"
       ],
       "description": "搜索互联网",
@@ -10018,16 +9691,13 @@
       ],
       "category": "ui",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:620"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [
         "templates/search-status.html"
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:620",
         "plugins/system_tools.py:567"
       ],
       "description": "获取当前搜索引擎状态和切换日志（用于前端显示）",
@@ -10045,14 +9715,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:609"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:609",
         "plugins/system_tools.py:554"
       ],
       "description": "Web 模块统计",
@@ -10070,14 +9737,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_chat.py:499"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_chat.py:499",
         "plugins/system_tools.py:442"
       ],
       "description": "XPath 提取",
@@ -10419,14 +10083,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:27"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:27",
         "plugins/system_tools.py:61"
       ],
       "description": "列出工作区内容",
@@ -10444,14 +10105,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:59"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:59",
         "plugins/system_tools.py:98"
       ],
       "description": "删除工作区文件",
@@ -10469,14 +10127,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:74"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:74",
         "plugins/system_tools.py:114"
       ],
       "description": "工作区信息",
@@ -10494,14 +10149,11 @@
       ],
       "category": "unreferenced",
       "live": true,
-      "dead_copy": true,
-      "dead_defs": [
-        "agent/server_routes/routes_workspace.py:40"
-      ],
+      "dead_copy": false,
+      "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workspace.py:40",
         "plugins/system_tools.py:76"
       ],
       "description": "写入工作区文件",
@@ -11078,5 +10730,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "27ad86d3ad3b1615"
+  "content_hash": "7550909bb488f003"
 }

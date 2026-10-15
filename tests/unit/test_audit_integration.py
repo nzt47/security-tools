@@ -240,18 +240,22 @@ class _FakeSvc:
 
 
 def _build_real_ui_app(chain, facade=None):
-    """真实路由（skills_mgmt DELETE + config POST）+ 全局写路由审计包装
+    """真实路由（skills_mgmt DELETE + plugins/admin 的 config POST）+ 全局写路由审计包装
 
     说明：`@audit_action` 显式审计走**进程级门面**（与全局包装同一台账），
     故测试里必须先绑定进程门面（`bound` 夹具），两条路径才落同一条链。
+
+    【2026-10-15】/api/config 的活体提供方是 plugins/admin.py；原
+    agent/server_routes/routes_config.py 未接线已退役删除。
     """
-    from agent.server_routes import routes_config, routes_skills_mgmt
+    from agent.server_routes import routes_skills_mgmt
+    from plugins import admin as admin_plugin
 
     app = Flask("s2_02_real_ui")
     app.config["PROPAGATE_EXCEPTIONS"] = False
     facade = facade or AuditFacade(chain=chain, enabled=True, db_path=chain.db_path)
     UIAuditRecorder(facade=facade, skip_prefixes=()).register(app)
-    return app, facade, routes_config, routes_skills_mgmt
+    return app, facade, admin_plugin, routes_skills_mgmt
 
 
 class _FakeYunshu:
@@ -307,12 +311,21 @@ class TestUIAuditEquality:
         assert rows[0].source == "ui"
         assert rows[0].actor == "admin@yunshu"
 
-    def test_config_write_route_audited_and_key_not_stored(self, bound, chain):
-        app, _facade, cfg_mod, _skills = _build_real_ui_app(chain, bound)
-        state = SimpleNamespace(Yunshu=_FakeYunshu, session_mgr=_FakeSessionMgr,
-                                network_config_mgr=_FakeNCM, search_engine=None,
-                                chat_history=_FakeHistory())
-        cfg_mod.register_routes(app, state)
+    def test_config_write_route_audited_and_key_not_stored(self, bound, chain,
+                                                           monkeypatch):
+        app, _facade, admin_plugin, _skills = _build_real_ui_app(chain, bound)
+        # plugins/admin 视图延迟 `from app_server import _Yunshu, _session_mgr,
+        # _CHAT_HISTORY, _get_current_session_id`；注入假 app_server 模块
+        # （不 import 真实入口，避免拉起调度器/单例）。
+        import sys
+        import types
+        fake_app_server = types.ModuleType("app_server")
+        fake_app_server._Yunshu = _FakeYunshu
+        fake_app_server._session_mgr = _FakeSessionMgr
+        fake_app_server._CHAT_HISTORY = _FakeHistory
+        fake_app_server._get_current_session_id = lambda: "s-1"
+        monkeypatch.setitem(sys.modules, "app_server", fake_app_server)
+        app.register_blueprint(admin_plugin.bp)
         secret = "sk-test-CONFIG-LEAK-CHECK"
         r = app.test_client().post("/api/config", json={"provider": "deepseek",
                                                         "api_key": secret})

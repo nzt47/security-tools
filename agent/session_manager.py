@@ -34,6 +34,52 @@ class SessionNotFoundError(Exception):
     pass
 
 
+def _extract_device_type(user_agent: str) -> str | None:
+    """从 User-Agent 启发式提取设备类型（mobile/desktop）
+
+    Returns:
+        "mobile"/"desktop"，UA 为空时返回 None
+    """
+    if not user_agent:
+        return None
+    ua = user_agent.lower()
+    if any(marker in ua for marker in ("mobile", "android", "iphone", "ipad", "ipod")):
+        return "mobile"
+    return "desktop"
+
+
+def _extract_session_meta(request) -> dict:
+    """从 HTTP 请求提取会话元数据（时区/设备/语言）
+
+    优先级：请求体显式字段 > 请求头（X-Timezone / Accept-Language / User-Agent）。
+
+    【2026-10-15 迁入】原位于 agent/server_routes/routes_sessions.py；该模块未接线
+    （会话端点由 plugins/chat.py 提供）已退役，但该纯函数是活体依赖（会话创建元数据），
+    故迁入会话域模块。
+
+    Returns:
+        {timezone, device_type, locale}（缺失项为 None）
+    """
+    data = request.get_json(silent=True) or {}
+    timezone = data.get("timezone")
+    locale = data.get("locale")
+    device_type = data.get("device_type")
+
+    if not timezone:
+        timezone = request.headers.get("X-Timezone")
+    if not locale:
+        accept_lang = request.headers.get("Accept-Language", "")
+        locale = accept_lang.split(",")[0].strip() or None
+    if not device_type:
+        device_type = _extract_device_type(request.headers.get("User-Agent", ""))
+
+    return {
+        "timezone": timezone,
+        "device_type": device_type,
+        "locale": locale,
+    }
+
+
 class SessionManager:
     """多会话管理器"""
 

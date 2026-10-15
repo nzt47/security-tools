@@ -147,21 +147,22 @@ class Test生产确实挂上了这些路由:
         assert getattr(m, "PLUGIN", None) is not None, "mcp_scheduler 没有 PLUGIN"
         assert m.PLUGIN.blueprint is m.bp, "PLUGIN.blueprint 与模块级 bp 不是同一个对象"
 
-    def test_活体实现不是_dead_copy(self):
-        """`/api/mcp/services` 必须由 mcp_scheduler 提供，而不是 routes_config 那份死代码。
+    def test_死副本已退役_活体只在插件(self):
+        """`/api/mcp/services` 的活体由 plugins/mcp_scheduler.py 提供。
 
-        【为什么这条要紧】本仓已两次出现"同一路径两份实现，活体在其中一份"：
-        `/api/heartbeat*`（status 插件 vs routes_monitoring）与本条。改错不生效也不报错。
-        这里断言的是**模块级事实**（运行期 url_map 已在线上核对），
-        若哪天活体换成 routes_config，本断言会红，提醒迁移者换文件。
+        【2026-10-15 退役】原 routes_config.py 里的同名死副本已随未接线模块删除；
+        本断言从「死副本仍在」翻成「死副本确实不在」，防止旧文件被误恢复成第二实现
+        （本仓已两次出现"同一路径两份实现，活体在其中一份"）。
         """
         if str(ROOT) not in sys.path:
             sys.path.insert(0, str(ROOT))
-        import agent.server_routes.routes_config as rc
-        # routes_config 里仍留着同名视图（死副本）；它不应带信封 ——
-        # 若它先被接线上线，两条断言会一起红。
-        src = (ROOT / "agent" / "server_routes" / "routes_config.py").read_text(encoding="utf-8")
-        assert "def api_mcp_services_get" in src, (
-            "routes_config.py 里的同名视图不见了 —— 若它被删/被接线，请同步更新本文件的活体断言。"
+        dead = ROOT / "agent" / "server_routes" / "routes_config.py"
+        assert not dead.exists(), (
+            "routes_config.py 又出现了 —— 它是已退役的未接线死副本，"
+            "活体在 plugins/mcp_scheduler.py；请勿恢复。"
         )
-        assert hasattr(rc, "register_routes"), "routes_config 结构变了"
+        live_src = (ROOT / "plugins" / "mcp_scheduler.py").read_text(encoding="utf-8")
+        assert '@bp.route("/api/mcp/services", methods=["GET"])' in live_src, (
+            "plugins/mcp_scheduler.py 里的 /api/mcp/services 路由不见了 —— "
+            "活体换了文件，请同步更新本断言。"
+        )

@@ -1,5 +1,10 @@
 # 未接线（死副本）路由模块清单
 
+> **【2026-10-15 已退役】** 本清单登记的 11 个模块已整体删除（重派生后 dead_copy 110→0、
+> dead_definitions 121→0），端点均由 plugins/* 或已接线模块提供。本文件保留为**历史快照**，
+> 供追溯「这些路径的活体到底在哪」；当前口径见 reports/route_ui_coverage.json（dead_copy=0）
+> 与 agent/server_routes/__init__.py 的退役说明。
+
 > 生成：2026-10-15T21:38:28　数据源：app_server.py 接线清单 + agent/server_routes/*.py 的 AST + reports/route_ui_coverage.json
 > 口径：这些模块定义了 register_routes，但 app_server.py 没有接线（见 tests/unit/test_server_routes_registration_inventory.py 的 KNOWN_UNREGISTERED）；其路径由别处（plugins / 已接线模块）提供，改这些死副本不生效也不报错。
 

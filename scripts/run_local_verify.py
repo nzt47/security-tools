@@ -56,7 +56,7 @@ def _check_import() -> VerifyResult:
 def _check_validate_search_instance() -> VerifyResult:
     """步骤2: validate_search_instance 5 个边界用例"""
     try:
-        from agent.server_routes.routes_config import validate_search_instance
+        from agent.config_validation import validate_search_instance
     except Exception as e:
         return ("FAIL", f"validate_search_instance 导入失败: {e}")
 

@@ -1,6 +1,7 @@
 """声明式配置校验基础设施"""
 import logging
 import os
+import time
 from dataclasses import dataclass
 from typing import Any, Callable, List
 
@@ -99,6 +100,39 @@ SEARCH_INSTANCE_VALIDATION_RULES = [
         required=False,
     ),
 ]
+
+
+#: 已知的内置搜索引擎类型（原 agent/server_routes/routes_config.py，模块退役后迁入）
+BUILTIN_ENGINES = {'tavily', 'firecrawl', 'bing', 'google', 'brave',
+                   'duckduckgo', 'baidu', 'sogou', 'so360'}
+
+
+def validate_search_instance(instance: dict) -> List[str]:
+    """验证搜索实例配置
+
+    使用 SEARCH_INSTANCE_VALIDATION_RULES 声明式规则集校验 name 和 timeout，
+    条件逻辑（engine_type 枚举/自定义、api_endpoint 条件必填）在包装函数中处理。
+
+    【2026-10-15 迁入】原实现位于 agent/server_routes/routes_config.py；该模块
+    未接线（端点由 plugins/admin.py 提供）已退役，但校验函数是活体依赖，故迁到
+    本基础设施模块。
+    """
+    t0 = time.perf_counter()
+    errors = validate_dict_against_rules(instance, SEARCH_INSTANCE_VALIDATION_RULES)
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+
+    engine_type = instance.get('engine_type', '')
+    if not engine_type:
+        errors.append('引擎类型不能为空')
+    elif engine_type != 'custom' and engine_type not in BUILTIN_ENGINES:
+        errors.append(f'未知的内置引擎类型: {engine_type}')
+
+    if engine_type == 'custom' and not instance.get('api_endpoint'):
+        errors.append('自定义引擎必须提供 API 端点 URL')
+
+    logger.debug("搜索实例校验完成: 声明式校验耗时=%.3fms, 错误数=%d, 错误详情=%s",
+                 elapsed_ms, len(errors), errors if errors else "无")
+    return errors
 
 
 # 三级熔断器配置校验规则（SESSION/USER/GLOBAL 各 4 项，共 12 项）

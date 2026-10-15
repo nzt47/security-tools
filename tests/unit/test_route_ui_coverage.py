@@ -118,11 +118,13 @@ class Test活体判定:
         assert e["live"] is True, "已接线模块的路由被误判为死副本"
         assert e["dead_copy"] is False
         assert e["dead_defs"] == []
-        # 活体在 plugins/status.py、死副本在未接线的 routes_personality.py ⇒ 两个事实都记下
+        # 【2026-10-15 退役后】活体在 plugins/status.py；原未接线的 routes_personality.py
+        # 已删除 ⇒ 该路径不再有死副本。这条断言从 dead_copy=True 翻成 False，
+        # 正是本轮「退役未接线模块」的可验证结果（dead_copy 归零）。
         p = entries["/api/personality"]
         assert p["live"] is True, "plugins/status.py 提供了它，应判活"
-        assert p["dead_copy"] is True, "该路径还有未接线定义，应记死副本"
-        assert any("routes_personality.py" in x for x in p["dead_defs"])
+        assert p["dead_copy"] is False, "未接线死副本已退役，不应再记死副本"
+        assert p["dead_defs"] == []
 
 
 class Test说明:

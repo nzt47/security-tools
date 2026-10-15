@@ -20,7 +20,12 @@ from unittest.mock import Mock, MagicMock, patch
 from flask import Flask
 from flask.testing import FlaskClient
 
-from agent.server_routes.extensions import register_routes
+# 【2026-10-15】活体扩展端点在 plugins/skills.py（原 agent/server_routes/extensions.py
+# 未接线已退役）。插件视图内部延迟 `from app_server import _extension_mgr / _extension_market`，
+# 测试改为注册插件蓝图 + 注入假 app_server 模块。
+import types
+
+import plugins.skills as skills_plugin
 from agent.extensions.manager import ExtensionManager
 from agent.extensions.market import ExtensionMarket
 
@@ -69,18 +74,33 @@ class TestExtensionsAPI(unittest.TestCase):
         # 创建 Flask 应用
         self.app = Flask(__name__)
         self.app.config['TESTING'] = True
-        
+
         # 创建 mock state
         self.state = MockState()
-        
-        # 注册路由
-        register_routes(self.app, self.state)
-        
+
+        # 注册活体扩展路由（plugins/skills.py 蓝图）
+        self.app.register_blueprint(skills_plugin.bp)
+
+        # 插件视图延迟 `from app_server import _extension_mgr / _extension_market`；
+        # 注入假 app_server 模块（不 import 真实入口，避免拉起调度器/单例）。
+        fake_app_server = types.ModuleType("app_server")
+        fake_app_server._extension_mgr = self.state.extension_mgr
+        fake_app_server._extension_market = self.state.extension_market
+        self._saved_app_server = sys.modules.get("app_server")
+        sys.modules["app_server"] = fake_app_server
+
         # 创建测试客户端
         self.client = self.app.test_client()
-        
+
         # 设置 mock 返回值
         self._setup_mocks()
+
+    def tearDown(self):
+        """还原被注入的 app_server 模块"""
+        if self._saved_app_server is not None:
+            sys.modules["app_server"] = self._saved_app_server
+        else:
+            sys.modules.pop("app_server", None)
 
     def _setup_mocks(self):
         """设置 mock 对象的返回值"""
@@ -195,7 +215,9 @@ class TestExtensionsAPI(unittest.TestCase):
         
         self.assertEqual(response.status_code, 200)
         self.assertTrue(data["ok"])
-        self.state.extension_mgr.uninstall.assert_called_once_with("skill", "self_reflection")
+        # 活体插件显式传 force（fail-closed 布尔默认 False）
+        self.state.extension_mgr.uninstall.assert_called_once_with(
+            "skill", "self_reflection", force=False)
         print("[测试] test_uninstall_extension_success - 通过")
 
     def test_toggle_extension(self):

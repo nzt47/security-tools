@@ -274,16 +274,30 @@ class MetricCollector:
         return coverage
 
     def _count_health_endpoints(self) -> int:
-        """统计健康检查端点数"""
+        """统计健康检查端点数
+
+        【2026-10-15】健康端点既可能在 agent/（已接线路由模块），也可能在 plugins/*
+        （插件蓝图，如 plugins/status.py 的 /api/health）。原实现只扫 agent/；退役未接线的
+        agent/server_routes/routes_panorama.py（它带着 /api/health 与 /api/status 两份死副本）
+        后计数归零 ⇒ 补扫 plugins/，口径对齐「线上真实的健康端点」。
+        """
         agent_dir = self.project_root / "agent"
-        count = 0
         if not agent_dir.exists():
             return 0
+        # 匹配 /api/health 或 /health 或 /status 端点
+        pattern = r'route\(["\'](?:/api/health|/health|/api/status|/status)["\']'
         # 优化：使用共享缓存，避免与 _calc_structured_log_coverage / _calc_track_coverage 重复 IO
         file_cache = self._scan_agent_files()
-        for content in file_cache.values():
-            # 匹配 /api/health 或 /health 或 /status 端点
-            count += len(re.findall(r'route\(["\'](?:/api/health|/health|/api/status|/status)["\']', content))
+        count = sum(len(re.findall(pattern, content)) for content in file_cache.values())
+
+        plugins_dir = self.project_root / "plugins"
+        if plugins_dir.exists():
+            for py_file in plugins_dir.rglob("*.py"):
+                try:
+                    content = py_file.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    continue
+                count += len(re.findall(pattern, content))
         return count
 
     # ── 第二层：验证过程可见 ──
