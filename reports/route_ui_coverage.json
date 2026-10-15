@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-15T21:16:46",
+  "generated_at": "2026-10-15T23:04:39",
   "totals": {
     "routes": 461,
     "live": 461,
@@ -4730,7 +4730,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1459"
+        "agent/server_routes/routes_logging.py:1464"
       ],
       "description": "获取可观测性端点访问日志（需要认证）",
       "description_source": "handler",
@@ -4752,7 +4752,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1504"
+        "agent/server_routes/routes_logging.py:1509"
       ],
       "description": "获取访问统计信息（需要认证）",
       "description_source": "handler",
@@ -4777,8 +4777,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1172",
-        "agent/server_routes/routes_logging.py:1191"
+        "agent/server_routes/routes_logging.py:1177",
+        "agent/server_routes/routes_logging.py:1196"
       ],
       "description": "获取告警规则列表（需要认证）",
       "description_source": "handler",
@@ -4801,8 +4801,8 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1247",
-        "agent/server_routes/routes_logging.py:1296"
+        "agent/server_routes/routes_logging.py:1252",
+        "agent/server_routes/routes_logging.py:1301"
       ],
       "description": "更新告警规则（需要认证）",
       "description_source": "handler",
@@ -4824,7 +4824,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1320"
+        "agent/server_routes/routes_logging.py:1325"
       ],
       "description": "验证告警规则表达式（需要认证）",
       "description_source": "handler",
@@ -4847,10 +4847,10 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:877",
-        "agent/server_routes/routes_logging.py:995"
+        "agent/server_routes/routes_logging.py:1000",
+        "agent/server_routes/routes_logging.py:877"
       ],
-      "description": "查询日志（需要认证）",
+      "description": "推送日志（需要认证）",
       "description_source": "handler",
       "intent": "unclassified",
       "intent_area": "",
@@ -4870,7 +4870,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:965"
+        "agent/server_routes/routes_logging.py:970"
       ],
       "description": "获取日志标签列表（需要认证）",
       "description_source": "handler",
@@ -4892,7 +4892,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1074"
+        "agent/server_routes/routes_logging.py:1079"
       ],
       "description": "实时日志流（需要认证）",
       "description_source": "handler",
@@ -4914,7 +4914,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1041"
+        "agent/server_routes/routes_logging.py:1046"
       ],
       "description": "获取可观测性状态（需要认证）",
       "description_source": "handler",
@@ -4936,7 +4936,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1350"
+        "agent/server_routes/routes_logging.py:1355"
       ],
       "description": "获取追踪数据列表（需要认证）",
       "description_source": "handler",
@@ -4958,7 +4958,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1389"
+        "agent/server_routes/routes_logging.py:1394"
       ],
       "description": "获取追踪详情（需要认证）",
       "description_source": "handler",
@@ -10712,7 +10712,7 @@
         "agent/log_system/dashboard.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:1419"
+        "agent/server_routes/routes_logging.py:1424"
       ],
       "description": "可观测性仪表盘：重定向到统一工作台（2026-10-03 legacy 收敛续作）。",
       "description_source": "handler",
@@ -10989,7 +10989,7 @@
         "scripts/surge_metrics_template.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:1138"
+        "agent/server_routes/routes_logging.py:1143"
       ],
       "description": "Prometheus 格式指标导出",
       "description_source": "handler",

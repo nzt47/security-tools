@@ -115,6 +115,13 @@ export const HUB_NAV: HubNavItem[] = [
       // 子项 key 保留 engine/* ⇒ 旧深链 ?panel=engine/heartbeat 仍有效；组 key engine 走兼容映射。
       { key: 'engine/heartbeat', label: '心跳监测', icon: HeartPulse, component: EngineHeartbeat },
       { key: 'engine/scheduler', label: '定时任务', icon: CalendarClock, component: EngineScheduler },
+      // 【2026-10-15 IA】治理面板 → 全景看板：这两个是**运行时运维视图**，与全景看板的
+      // 运行时观测同类 —— 审计导出读**活的**链式台账 DB（实测 chain_head.count≈7.8 万），
+      // 开关中心读实时登记表（实测 547 项、含 overridden）。键保持不变 ⇒ 旧深链
+      // ?panel=governance/audit|settings 仍有效（derivePanelParams 按 'governance/' 前缀
+      // 推导 panel，与它挂在哪个分组无关；禁止双入口）。
+      { key: 'governance/audit', label: '审计导出', icon: ScrollText, component: GovernancePanels },
+      { key: 'governance/settings', label: '开关中心', icon: SlidersHorizontal, component: GovernancePanels },
     ],
   },
   {
@@ -132,12 +139,11 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/roi', label: '成本 ROI', icon: TrendingUp, component: GovernancePanels },
       { key: 'governance/incidents', label: '自愈事故', icon: HeartPulse, component: GovernancePanels },
       { key: 'governance/memory', label: '记忆技能库', icon: Brain, component: GovernancePanels },
-      { key: 'governance/audit', label: '审计导出', icon: ScrollText, component: GovernancePanels },
-      // TASK-S7-01「开关中心」：登记表全量（分类分组 + 搜索 + 风险分级 + 生效来源）
-      { key: 'governance/settings', label: '开关中心', icon: SlidersHorizontal, component: GovernancePanels },
       // 【阶段 2】路由覆盖归位：数据是构建期审计产物（提交物 + 新鲜度守卫 + 棘轮），
-      // 与全景看板的运行时运维视图语义不匹配；与「能力地图 / 审计导出」同类，故入治理面板。
+      // 与全景看板的运行时运维视图语义不匹配，故**留在治理面板**（与「能力地图」同类）。
       // 原为 features/route-coverage 自动发现项（顶层），现已删除 manifest（禁止双入口）。
+      // 【2026-10-15 IA】原同在这里的「审计导出 / 开关中心」是**运行时**视图，已上移到
+      // 全景看板（见该桶内说明）；键不变，旧深链照旧生效。
       { key: 'governance/route-coverage', label: '路由覆盖', icon: Route, component: GovernancePanels },
     ],
   },
