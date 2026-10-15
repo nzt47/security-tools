@@ -20,6 +20,7 @@ import {
   SESSIONS_CURRENT,
   SESSION_GROUPS,
   WORKSPACES,
+  PROJECTS,
   sessionById,
   sessionRename,
   sessionMessages,
@@ -28,6 +29,9 @@ import {
   sessionWorkspaceRoot,
   sessionGroupSet,
   sessionGroupById,
+  sessionProject,
+  sessionAgent,
+  projectById,
 } from '@/api/endpoints';
 
 export interface SessionMeta {
@@ -40,6 +44,38 @@ export interface SessionMeta {
   timezone?: string | null;
   device_type?: string | null;
   locale?: string | null;
+  /** 归属项目 id（null/缺失 = 未归属项目） */
+  project_id?: string | null;
+  /** 本会话使用的分身名（null/缺失 = 母体） */
+  agent?: string | null;
+}
+
+/** 项目：会话/分组的工作空间归属容器 */
+export interface Project {
+  id: string;
+  name: string;
+  /** 项目工作空间根目录（后端绝对路径） */
+  workspace_root: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProjectListResponse {
+  projects: Project[];
+}
+
+/** 新建/更新项目的输入（path 为本地绝对路径） */
+export interface ProjectInput {
+  name?: string;
+  path?: string;
+  /** 路径不存在时是否自动创建 */
+  create?: boolean;
+}
+
+export interface ProjectRemoveResult {
+  ok: boolean;
+  detached_sessions?: number;
+  removed_groups?: number;
 }
 
 export interface SessionListResponse {
@@ -63,6 +99,10 @@ export interface SessionWorkspace {
   exists: boolean;
   files: WorkspaceEntry[];
   truncated?: boolean;
+  /** 工作空间来源：本会话自绑 / 随项目 / 默认 */
+  source?: 'session' | 'project' | 'default';
+  /** source='project' 时所属项目 id */
+  project_id?: string | null;
 }
 
 export interface KnownWorkspace {
@@ -83,6 +123,8 @@ export interface SessionGroup {
   name: string;
   created_at?: string;
   count?: number;
+  /** 归属项目 id（null/缺失 = 无项目分组） */
+  project_id?: string | null;
 }
 
 export interface SessionGroupsResponse {
@@ -95,9 +137,30 @@ export const sessionApi = {
   /** 会话列表（按 updated_at 降序） */
   list: () => request<SessionListResponse>(SESSIONS),
 
-  /** 新建会话（可选指定标题） */
-  create: (title = '') =>
-    request<SessionMeta>(SESSIONS, { method: 'POST', body: { title } }),
+  /** 新建会话（可选标题 / 归属项目 / 绑定分身；projectId、agent 为空时按后端默认） */
+  create: (title = '', projectId?: string | null, agent?: string | null) =>
+    request<SessionMeta>(SESSIONS, {
+      method: 'POST',
+      body: {
+        title,
+        ...(projectId ? { project_id: projectId } : {}),
+        ...(agent ? { agent } : {}),
+      },
+    }),
+
+  /** 设置会话归属项目（projectId 传 null 解除归属 → 未归属项目） */
+  setProject: (id: string, projectId: string | null) =>
+    request<{ ok: boolean; project_id: string | null }>(
+      sessionProject(id),
+      { method: 'PUT', body: { project_id: projectId } },
+    ),
+
+  /** 设置会话使用的分身（agent 传 null 回到母体） */
+  setAgent: (id: string, agent: string | null) =>
+    request<{ ok: boolean; agent: string | null }>(
+      sessionAgent(id),
+      { method: 'PUT', body: { agent } },
+    ),
 
   /** 删除会话（后端同时删除会话目录与工作空间） */
   remove: (id: string) =>
@@ -161,12 +224,22 @@ export const sessionApi = {
 
   // ── 会话分组（按项目/用途归类） ─────────────────────────────
 
-  /** 全部分组 + 会话归属表 */
-  groups: () => request<SessionGroupsResponse>(SESSION_GROUPS),
+  /**
+   * 分组 + 会话归属表。
+   * @param projectId 传入时只取该项目的分组（后端 ?project_id=）；
+   *                  不传则取全部分组（「未归属项目」视图由调用方筛掉带 project_id 的）
+   */
+  groups: (projectId?: string | null) =>
+    request<SessionGroupsResponse>(
+      projectId ? `${SESSION_GROUPS}?project_id=${encodeURIComponent(projectId)}` : SESSION_GROUPS,
+    ),
 
-  /** 新建分组 */
-  createGroup: (name: string) =>
-    request<SessionGroup>(SESSION_GROUPS, { method: 'POST', body: { name } }),
+  /** 新建分组（可归属到项目） */
+  createGroup: (name = '', projectId?: string | null) =>
+    request<SessionGroup>(SESSION_GROUPS, {
+      method: 'POST',
+      body: { name, ...(projectId ? { project_id: projectId } : {}) },
+    }),
 
   /** 重命名分组 */
   renameGroup: (id: string, name: string) =>
@@ -185,6 +258,27 @@ export const sessionApi = {
       sessionGroupSet(sessionId),
       { method: 'PUT', body: { group_id: groupId } },
     ),
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  项目（会话/分组的工作空间归属容器；/api/projects）
+// ═══════════════════════════════════════════════════════════════
+
+export const projectApi = {
+  /** 项目列表 */
+  list: () => request<ProjectListResponse>(PROJECTS),
+
+  /** 新建项目（path 为本地绝对路径；create=路径不存在则自动创建） */
+  create: (name: string, path: string, create = false) =>
+    request<Project>(PROJECTS, { method: 'POST', body: { name, path, create } }),
+
+  /** 更新项目（改名 / 改工作空间路径 / 是否自动创建） */
+  update: (id: string, patch: ProjectInput) =>
+    request<Project>(projectById(id), { method: 'PUT', body: patch }),
+
+  /** 删除项目（后端把其下会话解除归属、分组一并清理） */
+  remove: (id: string) =>
+    request<ProjectRemoveResult>(projectById(id), { method: 'DELETE' }),
 };
 
 /** 会话列表刷新后，"当前应激活的会话"选择策略：后端 current_id → 最近一次 → 列表首个 */

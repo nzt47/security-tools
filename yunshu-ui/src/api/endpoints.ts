@@ -73,6 +73,8 @@ export const SESSIONS = '/api/sessions';
 export const SESSIONS_CURRENT = '/api/sessions/current';
 export const SESSION_GROUPS = '/api/session-groups';
 export const WORKSPACES = '/api/workspaces';
+/** 项目（工作空间归属容器；GET 列表 / POST 新建） */
+export const PROJECTS = '/api/projects';
 
 export const sessionById = (id: string) => `/api/sessions/${encodeURIComponent(id)}`;
 export const sessionRename = (id: string) => `/api/sessions/${encodeURIComponent(id)}/rename`;
@@ -82,6 +84,12 @@ export const sessionWorkspaceReveal = (id: string) => `/api/sessions/${encodeURI
 export const sessionWorkspaceRoot = (id: string) => `/api/sessions/${encodeURIComponent(id)}/workspace-root`;
 export const sessionGroupSet = (sessionId: string) => `/api/sessions/${encodeURIComponent(sessionId)}/group`;
 export const sessionGroupById = (id: string) => `/api/session-groups/${encodeURIComponent(id)}`;
+/** 单个项目：GET 详情 / PUT 更新 / DELETE 删除（同一路径） */
+export const projectById = (id: string) => `/api/projects/${encodeURIComponent(id)}`;
+/** 会话归属的项目（PUT 设置 / 传 null 解除归属） */
+export const sessionProject = (id: string) => `/api/sessions/${encodeURIComponent(id)}/project`;
+/** 会话使用的分身（PUT 设置 / 传 null 回到母体） */
+export const sessionAgent = (id: string) => `/api/sessions/${encodeURIComponent(id)}/agent`;
 
 // ═══════════════════════════════════════════════════════════════
 //  知识库（/api/knowledge）

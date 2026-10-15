@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import WorkbenchChatPage from './WorkbenchChatPage';
 import { useLayoutStore } from '../stores/useLayoutStore';
-import type { SessionGroup, SessionMeta } from '../lib/sessionApi';
+import type { Project, SessionGroup, SessionMeta } from '../lib/sessionApi';
 
 function jsonResponse(body: unknown, ok = true, status = 200) {
   return {
@@ -59,6 +59,8 @@ function createFetchMock() {
   let groupSeq = 0;
   const boundRoots: Record<string, string> = {};
   let knownWorkspaces: Array<{ path: string; name: string; added_at: string }> = [];
+  let projects: Project[] = [];
+  let projectSeq = 0;
 
   return {
     fetchMock: vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -66,9 +68,28 @@ function createFetchMock() {
       const method = (init?.method ?? 'GET').toUpperCase();
       const body = init?.body ? JSON.parse(String(init.body)) : undefined;
 
-      // ── 会话分组 ──
-      if (url === '/api/session-groups' && method === 'GET') {
-        return jsonResponse({ groups, membership: { ...membership } });
+      // ── 项目 ──
+      if (url === '/api/projects' && method === 'GET') {
+        return jsonResponse({ projects: [...projects] });
+      }
+      if (url === '/api/projects' && method === 'POST') {
+        projectSeq += 1;
+        const p: Project = {
+          id: `proj-${projectSeq}`,
+          name: String(body?.name ?? '新项目'),
+          workspace_root: String(body?.path ?? ''),
+          created_at: new Date().toISOString(),
+        };
+        projects = [...projects, p];
+        return jsonResponse(p, true, 201);
+      }
+
+      // ── 会话分组（支持 ?project_id= 过滤） ──
+      if (url.startsWith('/api/session-groups') && method === 'GET') {
+        const qs = new URLSearchParams(url.split('?')[1] ?? '');
+        const pid = qs.get('project_id');
+        const scoped = pid ? groups.filter((g) => g.project_id === pid) : groups;
+        return jsonResponse({ groups: scoped, membership: { ...membership } });
       }
       if (url === '/api/session-groups' && method === 'POST') {
         groupSeq += 1;
@@ -76,6 +97,7 @@ function createFetchMock() {
           id: `grp-${groupSeq}`,
           name: String(body?.name ?? '新分组'),
           created_at: new Date().toISOString(),
+          project_id: (body?.project_id as string | null) ?? null,
         };
         groups = [...groups, g];
         return jsonResponse(g, true, 201);
@@ -110,17 +132,43 @@ function createFetchMock() {
       if (url === '/api/sessions' && method === 'GET') {
         return jsonResponse({ sessions, current_id: currentId });
       }
-      // 新建
+      // 新建（沿用请求里的 project_id / agent）
       if (url === '/api/sessions' && method === 'POST') {
         const created = {
           id: 'sess-new',
           title: String(body?.title ?? '新会话'),
           updated_at: new Date().toISOString(),
           message_count: 0,
+          project_id: (body?.project_id as string | null) ?? null,
+          agent: (body?.agent as string | null) ?? null,
         };
         sessions = [created, ...sessions];
         currentId = created.id;
         return jsonResponse(created, true, 201);
+      }
+      // 会话归属项目 / 会话智能体
+      const projectAssign = url.match(/^\/api\/sessions\/([^/]+)\/project$/);
+      if (projectAssign && method === 'PUT') {
+        const pid = (body?.project_id as string | null) ?? null;
+        sessions = sessions.map((s) => (s.id === projectAssign[1] ? { ...s, project_id: pid } : s));
+        return jsonResponse({ ok: true, project_id: pid });
+      }
+      const agentAssign = url.match(/^\/api\/sessions\/([^/]+)\/agent$/);
+      if (agentAssign && method === 'PUT') {
+        const agent = (body?.agent as string | null) ?? null;
+        sessions = sessions.map((s) => (s.id === agentAssign[1] ? { ...s, agent } : s));
+        return jsonResponse({ ok: true, agent });
+      }
+      // 分身列表（本会话智能体选择器）
+      if (url === '/api/subagent/list') {
+        return jsonResponse({
+          ok: true,
+          count: 2,
+          subagents: [
+            { name: 'sa-1', model_id: 'deepseek-v4-flash' },
+            { name: 'sa-2', model_id: 'deepseek-v4-pro' },
+          ],
+        });
       }
       // 切换当前
       if (url === '/api/sessions/current' && method === 'POST') {
@@ -602,5 +650,107 @@ describe('WorkbenchChatPage · DSH 式会话界面', () => {
     await waitFor(() => {
       expect(input.value).toBe('C:/picked/project');
     });
+  });
+
+  it('新建项目后自动选中：只显示该项目会话，新建会话带上 project_id', async () => {
+    const { container } = render(<WorkbenchChatPage />);
+    await waitFor(() => {
+      expect(container.querySelector('[data-session-id="sess-b"]')).not.toBeNull();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '新建项目' }));
+    fireEvent.change(screen.getByLabelText('项目名'), { target: { value: '项目甲' } });
+    fireEvent.change(screen.getByLabelText('工作空间绝对路径'), { target: { value: 'C:/work/alpha' } });
+    fireEvent.click(screen.getByRole('button', { name: '创建项目' }));
+
+    await waitFor(() => {
+      expect(state.fetchMock).toHaveBeenCalledWith(
+        '/api/projects',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+    // 成功后自动选中新项目 → 无项目会话（sess-a/sess-b）不再显示
+    await waitFor(() => {
+      expect((screen.getByLabelText('项目') as HTMLSelectElement).value).toBe('proj-1');
+    });
+    await waitFor(() => {
+      expect(container.querySelector('[data-session-id="sess-b"]')).toBeNull();
+    });
+
+    // 新建会话沿用当前项目
+    fireEvent.click(screen.getByRole('button', { name: '新建会话' }));
+    await waitFor(() => {
+      const call = state.fetchMock.mock.calls.find(([u, i]) => {
+        const init = i as RequestInit | undefined;
+        return (
+          u === '/api/sessions' &&
+          init?.method === 'POST' &&
+          JSON.parse(String(init.body)).project_id === 'proj-1'
+        );
+      });
+      expect(call).toBeTruthy();
+    });
+    await waitFor(() => {
+      expect(container.querySelector('[data-session-id="sess-new"]')).not.toBeNull();
+    });
+  });
+
+  it('会话行「移动到项目」→ PUT setProject，会话移出未归属视图', async () => {
+    const { container } = render(<WorkbenchChatPage />);
+    await waitFor(() => {
+      expect(container.querySelector('[data-session-id="sess-a"]')).not.toBeNull();
+    });
+
+    // 先建一个项目（自动选中），再切回「未归属项目」看 sess-a
+    fireEvent.click(screen.getByRole('button', { name: '新建项目' }));
+    fireEvent.change(screen.getByLabelText('项目名'), { target: { value: '项目甲' } });
+    fireEvent.change(screen.getByLabelText('工作空间绝对路径'), { target: { value: 'C:/work/alpha' } });
+    fireEvent.click(screen.getByRole('button', { name: '创建项目' }));
+    await waitFor(() => {
+      expect((screen.getByLabelText('项目') as HTMLSelectElement).value).toBe('proj-1');
+    });
+
+    fireEvent.change(screen.getByLabelText('项目'), { target: { value: '' } });
+    await waitFor(() => {
+      expect(container.querySelector('[data-session-id="sess-a"]')).not.toBeNull();
+    });
+
+    const rowA = container.querySelector('[data-session-id="sess-a"]') as HTMLElement;
+    fireEvent.click(within(rowA).getByRole('button', { name: '移动到分组' }));
+    const menu = container.querySelector('[data-move-menu]') as HTMLElement;
+    fireEvent.click(within(menu).getByRole('button', { name: /项目甲/ }));
+
+    await waitFor(() => {
+      expect(state.fetchMock).toHaveBeenCalledWith(
+        '/api/sessions/sess-a/project',
+        expect.objectContaining({ method: 'PUT' }),
+      );
+    });
+    await waitFor(() => {
+      expect(container.querySelector('[data-session-id="sess-a"]')).toBeNull();
+    });
+  });
+
+  it('本会话智能体：选择分身 → PUT /agent，会话列表本地同步显示', async () => {
+    const { container } = render(<WorkbenchChatPage />);
+    await waitFor(() => {
+      expect(useLayoutStore.getState().activeSessionId).toBe('sess-b');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '智能体：母体' }));
+    await waitFor(() => expect(screen.getByText('sa-1')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('sa-1'));
+
+    await waitFor(() => {
+      expect(state.fetchMock).toHaveBeenCalledWith(
+        '/api/sessions/sess-b/agent',
+        expect.objectContaining({ method: 'PUT' }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '智能体：sa-1' })).toBeInTheDocument();
+    });
+    const rowB = container.querySelector('[data-session-id="sess-b"]') as HTMLElement;
+    await waitFor(() => expect(within(rowB).getByText(/sa-1/)).toBeInTheDocument());
   });
 });

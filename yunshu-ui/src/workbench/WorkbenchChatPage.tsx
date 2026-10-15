@@ -21,13 +21,16 @@ import { ChatPanel } from '../components/workbench/panels/ChatPanel'
 import { ContextManagerBar } from '../components/workbench/panels/ContextManagerBar'
 import { HistoryDrawer } from '../components/workbench/panels/HistoryDrawer'
 import { SubagentMenu } from '../components/workbench/chat/SubagentMenu'
+import { SessionAgentMenu } from '../components/workbench/chat/SessionAgentMenu'
 import { BackgroundTasksMenu } from '../components/workbench/chat/BackgroundTasksMenu'
 import { LlmHealthMenu } from '../components/workbench/chat/LlmHealthMenu'
 import { SessionRail } from '../components/workbench/sessions/SessionRail'
 import { WorkspaceDrawer } from '../components/workbench/sessions/WorkspaceDrawer'
 import {
   pickSessionId,
+  projectApi,
   sessionApi,
+  type Project,
   type SessionGroup,
   type SessionMeta,
 } from '../lib/sessionApi'
@@ -74,6 +77,9 @@ export default function WorkbenchChatPage() {
   const [sessionId, setSessionId] = useState('')
   const [groups, setGroups] = useState<SessionGroup[]>([])
   const [membership, setMembership] = useState<Record<string, string>>({})
+  const [projects, setProjects] = useState<Project[]>([])
+  /** 当前项目；null =「未归属项目」视图（只显示无项目会话与无项目分组） */
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [listBusy, setListBusy] = useState(true)
   const [listError, setListError] = useState<string | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -104,14 +110,28 @@ export default function WorkbenchChatPage() {
     errorTimer.current = setTimeout(() => setListError(null), 3200)
   }, [])
 
-  /** 拉取分组 + 归属表（分组数据非关键，失败静默，下次窗口再同步） */
-  const syncGroupsState = useCallback(async () => {
+  /**
+   * 拉取当前项目下的分组 + 归属表（分组数据非关键，失败静默，下次窗口再同步）。
+   * projectId=null 时后端不筛项目，由前端只保留「无项目」分组。
+   */
+  const syncGroupsState = useCallback(async (projectId: string | null) => {
     try {
-      const resp = await sessionApi.groups()
-      setGroups(Array.isArray(resp.groups) ? resp.groups : [])
+      const resp = await sessionApi.groups(projectId)
+      const all = Array.isArray(resp.groups) ? resp.groups : []
+      setGroups(projectId ? all : all.filter((g) => !g.project_id))
       setMembership(
         resp.membership && typeof resp.membership === 'object' ? resp.membership : {},
       )
+    } catch {
+      /* 静默 */
+    }
+  }, [])
+
+  /** 拉取项目列表（项目选择条；失败静默，新建项目时会重试） */
+  const syncProjects = useCallback(async () => {
+    try {
+      const resp = await projectApi.list()
+      setProjects(Array.isArray(resp?.projects) ? resp.projects : [])
     } catch {
       /* 静默 */
     }
@@ -184,7 +204,7 @@ export default function WorkbenchChatPage() {
         } else {
           setActiveSession(null)
         }
-        void syncGroupsState()
+        void syncProjects()
       } catch (e) {
         if (!cancelled) setListError(e instanceof Error ? e.message : '会话列表加载失败')
       } finally {
@@ -195,7 +215,12 @@ export default function WorkbenchChatPage() {
     return () => {
       cancelled = true
     }
-  }, [clearConversation, loadSessionHistory, setActiveSession, syncGroupsState])
+  }, [clearConversation, loadSessionHistory, setActiveSession, syncProjects])
+
+  // 项目切换：重新拉取该项目的分组（「未归属项目」只保留无项目分组）
+  useEffect(() => {
+    void syncGroupsState(activeProjectId)
+  }, [activeProjectId, syncGroupsState])
 
   // 流结束（流式 → 空闲）后刷新会话列表：标题自动命名 / 消息数 / 活跃时间回显
   useEffect(() => {
@@ -223,14 +248,16 @@ export default function WorkbenchChatPage() {
 
   const handleCreateSession = useCallback(async () => {
     try {
-      const created = await sessionApi.create('新会话')
-      setSessions((prev) => [created, ...prev.filter((s) => s.id !== created.id)])
-      activateSession(created.id)
-      void syncGroupsState()
+      // 新会话沿用当前项目（「未归属项目」时不带 project_id）
+      const created = await sessionApi.create('新会话', activeProjectId)
+      const normalized = { ...created, project_id: created.project_id ?? activeProjectId }
+      setSessions((prev) => [normalized, ...prev.filter((s) => s.id !== normalized.id)])
+      activateSession(normalized.id)
+      void syncGroupsState(activeProjectId)
     } catch (e) {
       flashError(toHumanError(e))
     }
-  }, [activateSession, flashError, syncGroupsState])
+  }, [activateSession, activeProjectId, flashError, syncGroupsState])
 
   const handleRenameSession = useCallback(
     async (id: string, title: string) => {
@@ -262,7 +289,7 @@ export default function WorkbenchChatPage() {
       const remaining = sessions.filter((s) => s.id !== id)
       setSessions(remaining)
       // 后端已清理该会话的分组归属，同步本地 membership
-      void syncGroupsState()
+      void syncGroupsState(activeProjectId)
       if (id === sessionId) {
         setSessionId('')
         const next = remaining[0]?.id ?? null
@@ -271,8 +298,8 @@ export default function WorkbenchChatPage() {
         } else {
           // 全部删光 → 自动新建一个空白会话（保持可对话）
           try {
-            const created = await sessionApi.create('新会话')
-            setSessions([created])
+            const created = await sessionApi.create('新会话', activeProjectId)
+            setSessions([{ ...created, project_id: created.project_id ?? activeProjectId }])
             activateSession(created.id)
           } catch (e2) {
             flashError(toHumanError(e2))
@@ -282,6 +309,7 @@ export default function WorkbenchChatPage() {
     },
     [
       activateSession,
+      activeProjectId,
       clearConversation,
       flashError,
       sessionId,
@@ -317,13 +345,15 @@ export default function WorkbenchChatPage() {
   const handleCreateGroup = useCallback(
     async (name: string) => {
       try {
-        const g = await sessionApi.createGroup(name)
-        setGroups((prev) => (prev.some((x) => x.id === g.id) ? prev : [...prev, g]))
+        // 分组归属当前项目（「未归属项目」时建的是无项目分组）
+        const g = await sessionApi.createGroup(name, activeProjectId)
+        const normalized = { ...g, project_id: g.project_id ?? activeProjectId }
+        setGroups((prev) => (prev.some((x) => x.id === normalized.id) ? prev : [...prev, normalized]))
       } catch (e) {
         flashError(toHumanError(e))
       }
     },
-    [flashError],
+    [activeProjectId, flashError],
   )
 
   const handleRenameGroup = useCallback(
@@ -377,6 +407,49 @@ export default function WorkbenchChatPage() {
     [flashError],
   )
 
+  // ── 项目操作 ──────────────────────────────────────────────
+
+  /** 切换当前项目（分组随 activeProjectId effect 重新拉取） */
+  const handleSelectProject = useCallback((projectId: string | null) => {
+    setActiveProjectId(projectId)
+  }, [])
+
+  /** 新建项目（失败抛出交给弹窗上屏；成功后刷新列表并回传给弹窗选中） */
+  const handleCreateProject = useCallback(
+    async (input: { name: string; path: string; create: boolean }) => {
+      const created = await projectApi.create(input.name, input.path, input.create)
+      setProjects((prev) =>
+        prev.some((p) => p.id === created.id)
+          ? prev.map((p) => (p.id === created.id ? created : p))
+          : [...prev, created],
+      )
+      return created
+    },
+    [],
+  )
+
+  /** 把已有会话移到项目（projectId=null → 未归属项目） */
+  const handleMoveSessionProject = useCallback(
+    async (id: string, projectId: string | null) => {
+      try {
+        await sessionApi.setProject(id, projectId)
+      } catch (e) {
+        flashError(toHumanError(e))
+        return
+      }
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, project_id: projectId } : s)))
+    },
+    [flashError],
+  )
+
+  /** 会话智能体切换成功 → 同步会话列表本地状态（与后端 GET /api/sessions 对齐） */
+  const handleAgentChange = useCallback(
+    (agent: string | null) => {
+      setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, agent } : s)))
+    },
+    [sessionId],
+  )
+
   // 右键选中文本 → 「生成技能要求」
   const openFromSelection = () => {
     if (!ctx) return
@@ -400,7 +473,8 @@ export default function WorkbenchChatPage() {
     }
   }, [ctx])
 
-  const activeTitle = sessions.find((s) => s.id === sessionId)?.title ?? (sessionId ? '…' : '未选择会话')
+  const activeSession = sessions.find((s) => s.id === sessionId) ?? null
+  const activeTitle = activeSession?.title ?? (sessionId ? '…' : '未选择会话')
 
   return (
     <div
@@ -430,6 +504,11 @@ export default function WorkbenchChatPage() {
         onRenameGroup={(id, name) => void handleRenameGroup(id, name)}
         onDeleteGroup={(id) => void handleDeleteGroup(id)}
         onAssignGroup={(sid, gid) => void handleAssignGroup(sid, gid)}
+        projects={projects}
+        activeProjectId={activeProjectId}
+        onSelectProject={handleSelectProject}
+        onCreateProject={handleCreateProject}
+        onMoveProject={(sid, pid) => void handleMoveSessionProject(sid, pid)}
       />
 
       {/* ═══ 右栏：对话区 ═══ */}
@@ -446,6 +525,12 @@ export default function WorkbenchChatPage() {
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {/* 本会话智能体：选母体或某个分身承接这段对话（写入 session.agent） */}
+            <SessionAgentMenu
+              sessionId={sessionId || null}
+              agent={activeSession?.agent ?? null}
+              onChanged={handleAgentChange}
+            />
             {/* 子代理：展示并选择当前任务委托的子代理 */}
             <SubagentMenu defaultTask={lastUserMsg} />
             {/* 后台任务：查看/管理系统后台运行的任务 */}
