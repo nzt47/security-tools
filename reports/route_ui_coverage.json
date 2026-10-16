@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-16T08:12:14",
+  "generated_at": "2026-10-16T22:07:27",
   "totals": {
     "routes": 462,
     "live": 462,
@@ -7,13 +7,13 @@
     "dead_definitions": 0,
     "ui": 141,
     "cli_script": 20,
-    "runtime_only": 23,
-    "unreferenced": 278,
+    "runtime_only": 30,
+    "unreferenced": 271,
     "live_by_category": {
       "ui": 141,
       "cli_script": 20,
-      "runtime_only": 23,
-      "unreferenced": 278
+      "runtime_only": 30,
+      "unreferenced": 271
     },
     "by_intent": {
       "should_be_in_ui": 7,
@@ -45,7 +45,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "app_server.py:2103"
+        "app_server.py:2113"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -1369,7 +1369,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/memory.py:169"
       ],
@@ -2583,12 +2585,14 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "runtime_only",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/skills.py:635"
       ],
@@ -3016,6 +3020,7 @@
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
+        "scripts/deploy_workbench.py",
         "scripts/deployment_drill.py",
         "scripts/probe_prefix_cache_interaction.py"
       ],
@@ -3208,7 +3213,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1781"
+        "app_server.py:1791"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -3582,7 +3587,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "agent/server_routes/routes_knowledge.py:338"
       ],
@@ -3793,12 +3800,14 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "runtime_only",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/admin.py:351",
         "plugins/admin.py:379"
@@ -3918,7 +3927,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/mcp_scheduler.py:51",
         "plugins/mcp_scheduler.py:85"
@@ -4063,7 +4074,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/memory.py:401"
       ],
@@ -4291,7 +4304,7 @@
         "scripts/verify_topology_view.py"
       ],
       "where": [
-        "agent/modules_api.py:408"
+        "agent/modules_api.py:475"
       ],
       "description": "统一干预入口（写操作，FLASK_API_TOKEN 启用时需认证）",
       "description_source": "handler",
@@ -4315,7 +4328,7 @@
         "scripts/verify_topology_view.py"
       ],
       "where": [
-        "agent/modules_api.py:382"
+        "agent/modules_api.py:449"
       ],
       "description": "节点详情：状态/指标/可执行动作/近期审计",
       "description_source": "handler",
@@ -4342,7 +4355,7 @@
         "scripts/verify_topology_view.py"
       ],
       "where": [
-        "agent/modules_api.py:340"
+        "agent/modules_api.py:407"
       ],
       "description": "六域模块树 + 实时状态 + 指标（拓扑视图数据源）。",
       "description_source": "handler",
@@ -4366,6 +4379,7 @@
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [
+        "agent/modules_api.py",
         "agent/modules_registry.py"
       ],
       "where": [
@@ -4851,6 +4865,7 @@
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [
+        "agent/modules_api.py",
         "app_server.py"
       ],
       "where": [
@@ -4959,12 +4974,14 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "runtime_only",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/safety.py:172"
       ],
@@ -5036,7 +5053,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/status.py:665"
       ],
@@ -5165,7 +5184,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1465"
+        "app_server.py:1475"
       ],
       "description": "插件元信息 manifest（插件化机制 T1.1）",
       "description_source": "handler",
@@ -5191,7 +5210,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1471"
+        "app_server.py:1481"
       ],
       "description": "刷新插件清单（动态装载 T4.1）：扫描 plugins/ 目录重建注册表，无需重启进程。",
       "description_source": "handler",
@@ -5279,7 +5298,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/system_tools.py:318"
       ],
@@ -5734,12 +5755,14 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "runtime_only",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/safety.py:137"
       ],
@@ -6151,12 +6174,14 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "runtime_only",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/admin.py:860"
       ],
@@ -6650,7 +6675,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/skills.py:152"
       ],
@@ -8356,6 +8383,7 @@
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [
+        "agent/modules_api.py",
         "app_server.py"
       ],
       "where": [
@@ -8725,6 +8753,7 @@
       "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
+        "agent/modules_api.py",
         "agent/modules_registry.py"
       ],
       "where": [
@@ -8961,7 +8990,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2245"
+        "app_server.py:2255"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -8985,7 +9014,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2221"
+        "app_server.py:2231"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -9009,7 +9038,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2234"
+        "app_server.py:2244"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -9070,12 +9099,14 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "runtime_only",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "plugins/skills.py:955"
       ],
@@ -10367,10 +10398,11 @@
       "ui_refs": [],
       "non_ui_refs": [
         "app_server.py",
+        "scripts/deploy_workbench.py",
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2139"
+        "app_server.py:2149"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -10563,12 +10595,14 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "runtime_only",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/modules_api.py"
+      ],
       "where": [
         "agent/log_system/dashboard.py:112"
       ],
@@ -10695,7 +10729,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2200"
+        "app_server.py:2210"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -10719,7 +10753,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2192"
+        "app_server.py:2202"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -10744,7 +10778,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2176"
+        "app_server.py:2186"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -10754,5 +10788,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "802015c982c1c864"
+  "content_hash": "56eef31d44fbebfc"
 }

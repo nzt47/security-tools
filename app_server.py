@@ -519,7 +519,11 @@ except Exception as _be:  # noqa: BLE001 绑定失败不阻断启动，但必须
 # 说明: provider 用模块级 def 延迟解析 _Yunshu（_Yunshu 在文件后部初始化），
 #       注册动作本身不执行采集，运行时才调用，避免注册时序依赖。
 try:
-    from agent.modules_api import register_modules_api, register_status_provider
+    from agent.modules_api import (
+        register_client_status_providers,
+        register_modules_api,
+        register_status_provider,
+    )
 
     def _provider_sensors():
         try:
@@ -561,7 +565,13 @@ try:
         from agent.server_auth import current_api_token
         return current_api_token() or None
     register_modules_api(app, api_token_provider=_runtime_api_token)
-    logger.info("[启动] 模块聚合 API 路由已注册 (/api/modules/*)")
+    # 【2026-10-16】把"已有真实 GET 路由、但没有专用 provider"的状态源接上：
+    #   此前只有上面 3 个源被注入，其余 api: 源一律按"未接线 ⇒ 离线（无数据）"呈现，
+    #   实测 17 个节点长期显示离线、其中 14 个对应路由其实是 200（拓扑图在说谎）。
+    #   统一用进程内 client 采集；非 200 / 异常仍如实离线（见 modules_api 的常量注释）。
+    _client_sources = register_client_status_providers()
+    logger.info("[启动] 模块聚合 API 路由已注册 (/api/modules/*)；client 兜底状态源 %d 条",
+                _client_sources)
 except Exception as e:
     logger.warning(f"[启动] 模块聚合 API 注册失败: {e}")
 

@@ -14,7 +14,10 @@
 
 【变易】状态源采用 provider 注册表：默认内置 health/config/scheduler 三个
 可独立运行的采集器；依赖 _Yunshu 等运行上下文的源（如 /api/sensors）由
-app_server 接线时通过 register_status_provider() 注入，未注入的节点显示离线。
+app_server 接线时通过 register_status_provider() 注入；其余"已有真实 GET 路由"的
+源由 register_client_status_providers() 用进程内 test_client 兜底（200 才算有数据）。
+**未覆盖**的 api: 源仍显示离线 —— 这是有意的诚实口径，并由
+tests/unit/test_modules_registry_selfcheck.py 守"不存在未覆盖的声明"。
 
 【简易】复用 Flask test_client 进程内转发（无需网络/token 配置），
 blueprint 视图函数与既有 app_server 路由互不干扰。
@@ -29,7 +32,7 @@ import time
 import uuid
 from collections import deque
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 from flask import Blueprint, current_app, jsonify, request
 
@@ -187,6 +190,70 @@ _default_providers: Dict[str, Callable[[], Optional[dict]]] = {
     "/api/health/dashboard": _default_provider_health,
     "/api/scheduler/tasks": _default_provider_scheduler,
 }
+
+
+# ── 进程内 client 兜底 provider（2026-10-16）────────────────────────
+# 【解决什么】拓扑图长期把 17 个节点画成"离线（无数据）"，实测其中 14 个对应的路由
+#   其实是 200 —— 它们只是没有专用 provider。status_source 声明的是"状态该从哪取"，
+#   而聚合器只认已注册的采集器；没注册就如实说"无数据"，于是拓扑图说了与事实不符的
+#   "离线"（由 tests/unit/test_modules_registry_selfcheck.py 的接线覆盖守卫防复发）。
+# 【怎么做】对**已有真实 GET 路由、不需要专用运行上下文**的源，统一用进程内 test_client
+#   取一次：200 → 交给 _classify_status（信封 dict 无 value/overall 时按"运行中"）；
+#   非 200 / 异常 → None（仍如实离线，不假满分），并留 WARNING 痕迹。
+# 【为什么不再写 14 个专用函数】与统一干预入口 _forward 同源：复用真实视图
+#   （含鉴权/信封/降级），不在聚合层重写业务逻辑。
+CLIENT_STATUS_SOURCES: Dict[str, str] = {
+    # 声明源 -> 实际 GET 的路径（通配声明取该片下最轻的真实路由）
+    "/api/system-prompt": "/api/system-prompt",
+    "/api/memory/overview": "/api/memory/overview",
+    "/api/context/status": "/api/context/status",
+    "/api/permission/status": "/api/permission/status",
+    "/api/tools/health": "/api/tools/health",
+    "/api/skills": "/api/skills",
+    "/api/extensions/list": "/api/extensions/list",
+    "/api/process/list": "/api/process/list",
+    "/api/llm/instances": "/api/llm/instances",
+    "/api/mcp/services": "/api/mcp/services",
+    "/api/network-config": "/api/network-config",
+    "/api/safety/alerts": "/api/safety/alerts",
+    "/api/personality": "/api/personality",
+    "/api/search-performance/status": "/api/search-performance/status",
+    "/api/knowledge/*": "/api/knowledge/index",
+    # 【已知非 200】日志看板未就绪时 /logs/api/stats 返回 503：仍登记，让它以
+    # "非 200 ⇒ 无数据"如实离线并留痕，而不是靠"没注册"来碰巧离线。
+    "/logs/api/stats": "/logs/api/stats",
+}
+
+#: 由 app_server 注入**专用** provider 的状态源（走 register_status_provider，不走 client 兜底）
+INJECTED_STATUS_SOURCES: Tuple[str, ...] = ("/api/sensors", "/api/status", "/api/panorama")
+
+
+def make_client_provider(api_path: str) -> Callable[[], Optional[dict]]:
+    """造一个"进程内 GET api_path、200 才算有数据"的状态采集器。"""
+    def _provider() -> Optional[dict]:
+        try:
+            client = current_app.test_client()
+            headers: Dict[str, str] = {}
+            token = _api_token_provider() if _api_token_provider else None
+            if token:
+                headers["X-API-Token"] = token
+            resp = client.get(api_path, headers=headers)
+        except Exception as e:  # noqa: BLE001 - 采集失败降级为离线（但必须留痕）
+            logger.warning("[模块聚合] %s 采集异常: %s", api_path, e)
+            return None
+        if resp.status_code != 200:
+            logger.warning("[模块聚合] %s 返回 %s，节点按离线处理", api_path, resp.status_code)
+            return None
+        return resp.get_json(silent=True)
+    return _provider
+
+
+def register_client_status_providers(sources: Optional[Dict[str, str]] = None) -> int:
+    """为 CLIENT_STATUS_SOURCES 注册 client 采集器；返回注册条数（app_server 启动时调用）。"""
+    mapping = CLIENT_STATUS_SOURCES if sources is None else sources
+    for declared, fetch_path in mapping.items():
+        register_status_provider(declared, make_client_provider(fetch_path))
+    return len(mapping)
 
 
 def _collect_status(source: str) -> dict:

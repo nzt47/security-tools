@@ -168,3 +168,98 @@ class Test启动自检确实接线:
             "自检未做异常保护 —— 它一旦抛异常会把服务挡在启动之外，"
             "而它守的只是「声明准不准」"
         )
+
+
+class Test状态源接线覆盖:
+    """守卫：不允许存在"声明了 api: 状态源、却永远不会被采集"的节点（会永久离线）。
+
+    【本用例的由来】2026-10-16 实测：拓扑页 32 个节点里 17 个长期显示"离线（无数据）"，
+    其中 14 个对应的路由其实是 200 —— 它们只是没有专用 provider，而聚合器只认已注册的
+    采集器。声明与接线一旦再次脱节，本用例会红在"未覆盖清单"上。
+    """
+
+    def test_所有api状态源都有provider覆盖(self):
+        import agent.modules_api as ma
+
+        declared = {
+            n.status_source.strip()[len("api:"):]
+            for d in DOMAINS for n in d.nodes
+            if (n.status_source or "").strip().startswith("api:")
+        }
+        covered = (
+            set(ma.INJECTED_STATUS_SOURCES)
+            | set(ma.CLIENT_STATUS_SOURCES)
+            | set(ma._default_providers)
+        )
+        missing = sorted(declared - covered)
+        assert not missing, (
+            "以下 api: 状态源既无专用 provider 也未登记 client 兜底，节点会永远显示离线："
+            + repr(missing)
+        )
+
+    def test_每个config状态源都能在config_yaml解析(self):
+        import agent.modules_api as ma
+
+        bad = []
+        for d in DOMAINS:
+            for n in d.nodes:
+                src = (n.status_source or "").strip()
+                if src.startswith("config:"):
+                    if ma._read_config_path(src[len("config:"):]) is None:
+                        bad.append(n.module_id + " -> " + src)
+        assert not bad, (
+            "config: 状态源在 config.yaml 里解析不到（节点会永久离线，且没有任何请求失败）："
+            + repr(bad)
+        )
+
+
+class TestClientStatusProvider:
+    """运行期行为：client 兜底 provider 对 200 判"运行中"、对非 200 仍判离线。"""
+
+    @staticmethod
+    def _app_with(routes):
+        from flask import Flask
+
+        import agent.modules_api as ma
+        app = Flask(__name__)
+        app.register_blueprint(ma.modules_bp)
+        for path, resp in routes.items():
+            def _view(r=resp):
+                return r()
+            app.add_url_rule(path, "ep_" + path.replace("/", "_"), _view, methods=["GET"])
+        return app
+
+    @staticmethod
+    def _node(data, module_id):
+        return next(n for d in data["domains"] for n in d["nodes"] if n["module_id"] == module_id)
+
+    def test_200路由采集为非离线(self, monkeypatch):
+        from flask import jsonify
+        import agent.modules_api as ma
+
+        monkeypatch.setattr(ma, "_api_token_provider", None)
+        app = self._app_with({"/api/personality": lambda: jsonify({"ok": True})})
+        ma.register_client_status_providers({"/api/personality": "/api/personality"})
+        try:
+            data = app.test_client().get("/api/modules/topology").get_json()["data"]
+        finally:
+            ma.reset_status_providers()
+        node = self._node(data, "ops.personality")
+        assert node["status"] == "healthy", node
+        assert node["status_detail"] == "运行中", node
+
+    def test_非200仍如实离线(self, monkeypatch):
+        from flask import jsonify
+        import agent.modules_api as ma
+
+        monkeypatch.setattr(ma, "_api_token_provider", None)
+        app = self._app_with({"/api/personality": lambda: (jsonify({"error": "down"}), 503)})
+        ma.register_client_status_providers({"/api/personality": "/api/personality"})
+        try:
+            data = app.test_client().get("/api/modules/topology").get_json()["data"]
+        finally:
+            ma.reset_status_providers()
+        node = self._node(data, "ops.personality")
+        assert node["status"] == "offline", node
+        assert node["status_detail"] == "无数据", node
+
