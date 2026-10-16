@@ -1,24 +1,24 @@
 {
-  "generated_at": "2026-10-16T00:21:50",
+  "generated_at": "2026-10-16T08:12:14",
   "totals": {
-    "routes": 461,
-    "live": 461,
+    "routes": 462,
+    "live": 462,
     "dead_copy": 0,
     "dead_definitions": 0,
     "ui": 141,
-    "cli_script": 19,
+    "cli_script": 20,
     "runtime_only": 23,
     "unreferenced": 278,
     "live_by_category": {
       "ui": 141,
-      "cli_script": 19,
+      "cli_script": 20,
       "runtime_only": 23,
       "unreferenced": 278
     },
     "by_intent": {
       "should_be_in_ui": 7,
       "should_not_be_in_ui": 6,
-      "unclassified": 448
+      "unclassified": 449
     }
   },
   "frontend_endpoints": 146,
@@ -9458,6 +9458,30 @@
       "ui_pending": false
     },
     {
+      "path": "/api/version",
+      "norm": "/api/version",
+      "methods": [
+        "GET"
+      ],
+      "category": "cli_script",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [],
+      "non_ui_refs": [
+        "scripts/deploy_workbench.py"
+      ],
+      "where": [
+        "plugins/version_info.py:37"
+      ],
+      "description": "返回本进程加载的后端版本 + 线上前端产物 + 进程信息（只读）。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false
+    },
+    {
       "path": "/api/visual-workflows",
       "norm": "/api/visual-workflows",
       "methods": [
@@ -10730,5 +10754,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "7550909bb488f003"
+  "content_hash": "802015c982c1c864"
 }
