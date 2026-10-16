@@ -1121,8 +1121,12 @@ def _save_conversation_record(user_input, response, mode="normal", health_data=N
 # ── 初始化 DigitalLife ──
 from config import Config
 from agent import DigitalLife
+from agent.subagent.persistence import load_subagent_config_overrides
 
-_cfg = Config()
+# 【2026-10-17 P3】config.py 的 Config 不解析 YAML；把 config.yaml 的 subagent 段并入
+#   overrides，否则 _Yunshu._config 里没有 subagent 键 ⇒ persist_definitions 永远读不到，
+#   分身定义落盘/重启恢复形同虚设（真机实测过）。
+_cfg = Config(overrides=load_subagent_config_overrides())
 _Yunshu = DigitalLife(_cfg.merged)
 _Yunshu.start()
 

@@ -108,3 +108,32 @@ class TestManagerWiring:
         assert pd.load_definition("gone") is not None
         sm.destroy("gone")
         assert pd.load_definition("gone") is None
+
+
+class TestConfigOverrides:
+    """config.yaml → Config(overrides=) 的接线（P3 真机 bug 的回归守卫）。"""
+
+    def test_reads_subagent_block(self, tmp_path):
+        p = tmp_path / "config.yaml"
+        p.write_text("subagent:\n  persist_definitions: true\n  max_subagents: 7\n", encoding="utf-8")
+        assert pd.load_subagent_config_overrides(p) == {
+            "subagent": {"persist_definitions": True, "max_subagents": 7}
+        }
+
+    def test_missing_or_non_dict_returns_empty(self, tmp_path):
+        assert pd.load_subagent_config_overrides(tmp_path / "nope.yaml") == {}
+        bad = tmp_path / "bad.yaml"
+        bad.write_text("subagent: [1, 2]\n", encoding="utf-8")
+        assert pd.load_subagent_config_overrides(bad) == {}
+
+    def test_real_repo_config_enables_persistence(self):
+        # 仓库自带的 config.yaml 必须开着 persist_definitions（否则真机又静默失效）
+        ov = pd.load_subagent_config_overrides()
+        assert ov.get("subagent", {}).get("persist_definitions") is True
+
+    def test_config_retains_subagent_through_validation(self):
+        # Config() 不解析 YAML，但 overrides 会被 _merge 保留（验证一下，防止再退回静默失效）
+        from config import Config
+        merged = Config(overrides=pd.load_subagent_config_overrides()).merged
+        assert merged["subagent"]["persist_definitions"] is True
+
