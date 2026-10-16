@@ -43,6 +43,25 @@ export type ModuleLoader = (url: string) => Promise<unknown>
 
 const defaultLoader: ModuleLoader = (url) => import(/* @vite-ignore */ url)
 
+/**
+ * 把插件声明的客户端模块 URL 解析成"当前运行形态下真的能加载"的 URL。
+ *
+ * 【为什么需要】(2026-10-16 实测) 插件按约定把原生 ES 模块放
+ * `yunshu-ui/public/plugins/<name>.js`，并声明 `module: "/plugins/<name>.js"` ——
+ * 这在 Vite 开发态成立（public/ 挂根路径）。但 Flask 生产态由 `build:flask` 把产物
+ * 复制到 `static/plugins/`、经 `/static/*` 托管；`/plugins/*` 既没有路由、又不在
+ * `CP_API_AUTH_ALLOW` 里，会被全局鉴权闸门（enforce_all）拦成 **401**，动态 import
+ * 直接报 "Failed to fetch dynamically imported module"。
+ *
+ * 故生产构建（`import.meta.env.DEV === false`）把 `/plugins/` 归一到
+ * `/static/plugins/`；开发态保持原样。旧的 `importClientModule` 回退逻辑随 legacy
+ * 插件宿主在 9b4aa8f5 被删除，这里按同一意图在新宿主上重建。
+ */
+export function resolvePluginModuleUrl(url: string, isDev: boolean = import.meta.env.DEV): string {
+  if (!isDev && url.startsWith('/plugins/')) return '/static' + url
+  return url
+}
+
 /** 造一个 per-plugin 的门面：mountToSlot 把条目收进 entries（不认识 slotId 也照收）。 */
 export function createSlotFacade(
   plugin: string,
@@ -61,11 +80,12 @@ export function createSlotFacade(
 export async function registerPluginModule(
   plugin: string,
   moduleUrl: string,
-  opts: { onOpen?: (id: string) => void; load?: ModuleLoader } = {},
+  opts: { onOpen?: (id: string) => void; load?: ModuleLoader; isDev?: boolean } = {},
 ): Promise<MountResult> {
   const entries: SlotEntry[] = []
+  const resolvedUrl = resolvePluginModuleUrl(moduleUrl, opts.isDev)
   try {
-    const mod = (await (opts.load ?? defaultLoader)(moduleUrl)) as {
+    const mod = (await (opts.load ?? defaultLoader)(resolvedUrl)) as {
       register?: (r: SlotRegistryFacade) => void
       default?: (r: SlotRegistryFacade) => void
     }
@@ -74,11 +94,11 @@ export async function registerPluginModule(
       throw new Error('模块未导出 register(registry) —— 约定见 public/plugins/demo-ui.js')
     }
     register(createSlotFacade(plugin, entries, opts.onOpen))
-    return { plugin, module: moduleUrl, state: 'ok', entries }
+    return { plugin, module: resolvedUrl, state: 'ok', entries }
   } catch (e) {
     return {
       plugin,
-      module: moduleUrl,
+      module: resolvedUrl,
       state: 'error',
       entries: [],
       error: e instanceof Error ? e.message : String(e),
