@@ -15,6 +15,11 @@ from scripts.deploy_workbench import (
     overwrites,
     parse_porcelain,
     read_env_token,
+    read_json,
+    run_smoke,
+    stamp_matches,
+    write_build_stamp,
+    write_json_atomic,
 )
 
 
@@ -113,3 +118,81 @@ class TestNpmCommand:
             assert cmd[:3] == ["cmd", "/c", r"C:\nodejs\npm.cmd"], cmd
         else:
             assert cmd[0] == r"C:\nodejs\npm", cmd
+
+
+class TestJsonAtomic:
+    def test_roundtrip_and_no_tmp_left(self, tmp_path):
+        path = tmp_path / "sub" / "deploy_last.json"
+        assert write_json_atomic(path, {"a": 1}) is True
+        assert read_json(path) == {"a": 1}
+        assert list(path.parent.glob("*.tmp")) == []
+
+    def test_missing_or_garbage_is_none(self, tmp_path):
+        assert read_json(tmp_path / "nope.json") is None
+        bad = tmp_path / "bad.json"
+        bad.write_text("{not json", encoding="utf-8")
+        assert read_json(bad) is None
+
+
+class TestBuildStamp:
+    def test_write_then_match(self, tmp_path):
+        stamp = tmp_path / ".build-stamp.json"
+        assert write_build_stamp(stamp, "a" * 40, built_at="2026-10-16T12:00:00+08:00") is True
+        data = read_json(stamp)
+        assert data["commit"] == "a" * 40
+        assert data["built_at"] == "2026-10-16T12:00:00+08:00"
+        assert stamp_matches(data, "a" * 40) is True
+
+    def test_prefix_and_mismatch(self):
+        assert stamp_matches({"commit": "a" * 40}, "a" * 12) is True
+        assert stamp_matches({"commit": "a" * 12}, "a" * 40) is True
+        assert stamp_matches({"commit": "a" * 40}, "b" * 40) is False
+        assert stamp_matches(None, "a" * 40) is False
+        # 过短的 sha 不参与前缀互认，避免误判
+        assert stamp_matches({"commit": "abcd"}, "a" * 40) is False
+
+
+class TestFrontendNeedsRebuildWithStamp:
+    def _html(self, tmp_path):
+        html = tmp_path / "yunshu.html"
+        html.write_text("x", encoding="utf-8")
+        return html
+
+    def test_missing_stamp_needs_build(self, tmp_path):
+        assert frontend_needs_rebuild(
+            [], self._html(tmp_path), tmp_path / "no-src",
+            stamp_path=tmp_path / "no-stamp.json", expected_commit="a" * 40) is True
+
+    def test_matching_stamp_skips_build(self, tmp_path):
+        stamp = tmp_path / "stamp.json"
+        write_build_stamp(stamp, "a" * 40)
+        assert frontend_needs_rebuild(
+            [], self._html(tmp_path), tmp_path / "no-src",
+            stamp_path=stamp, expected_commit="a" * 40) is False
+
+    def test_mismatched_stamp_needs_build(self, tmp_path):
+        stamp = tmp_path / "stamp.json"
+        write_build_stamp(stamp, "a" * 40)
+        assert frontend_needs_rebuild(
+            [], self._html(tmp_path), tmp_path / "no-src",
+            stamp_path=stamp, expected_commit="b" * 40) is True
+
+    def test_source_mtime_still_triggers_without_stamp_signal(self, tmp_path):
+        """有匹配构建戳，但源码 mtime 比产物新（未走本脚本的构建）仍要重建。"""
+        import os
+        stamp = tmp_path / "stamp.json"
+        write_build_stamp(stamp, "a" * 40)
+        html = self._html(tmp_path)
+        os.utime(html, (1_600_000_000, 1_600_000_000))
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "a.tsx").write_text("x", encoding="utf-8")
+        os.utime(src / "a.tsx", (1_700_000_000, 1_700_000_000))
+        assert frontend_needs_rebuild(
+            [], html, src, stamp_path=stamp, expected_commit="a" * 40) is True
+
+
+class TestSmoke:
+    def test_unreachable_reports_no_response(self):
+        results = run_smoke(59999, None, ["/api/health"], timeout=0.5)
+        assert results == [{"path": "/api/health", "status": None, "ok": False}]
