@@ -95,4 +95,13 @@ describe('RouteCoveragePanel · 意图标注', () => {
     expect(screen.queryByText('/api/y')).toBeNull()
     expect(screen.queryByText('/api/z')).toBeNull()
   })
+
+  it('口径注明：路径级去重、含其它 Flask app、非 url_map 规则数', async () => {
+    envMock.mockResolvedValue(PAYLOAD)
+    render(<RouteCoveragePanel />)
+    const note = await screen.findByTestId('route-coverage-scope-note')
+    expect(note.textContent).toContain('归一化路径')
+    expect(note.textContent).toContain('url_map')
+    expect(note.textContent).toContain('sensor_server')
+  })
 })

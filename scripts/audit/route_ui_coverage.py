@@ -29,6 +29,13 @@
   3. runtime_only / cli_script 的扫描会让**注释里提到端点的行**也计入 refs；清单里带 refs
      供人工复核。这是「宁可多留不可少留」口径，**不用于门禁**：门禁只钉 content_hash 是否
      与提交产物一致（排除 generated_at）。
+  4. 【数字口径：勿与 url_map 规则数混淆】routes / live 数的是**归一化路径**去重
+     （<id>、<int:id>、${x} 都折成 *），不是运行期 url_map 的规则条数 —— 同一路径的
+     GET/POST/PUT 是 3 条规则、1 条路径；扫描范围是 agent/plugins/sensor/cognitive/memory
+     的静态源码，因此**包含其它 Flask app**（如 sensor_server 的 cognitive 端点）的装饰器，
+     也**不含**动态注册（如 /api/open/*）与 Flask 静态路由。判活/死副本仍只看「定义所在
+     模块是否已接线」。2026-10-16 实测：本脚本 461 条 vs workbench url_map 459 个归一化
+     路径（506 条规则）。此说明是**文案**，不进 content_hash。
 """
 from __future__ import annotations
 
@@ -436,6 +443,7 @@ def _summary(payload: dict) -> str:
         "该进却未进 UI     : " + str(len(payload.get("pending_ui", []))),
         "前端端点（去重）  : " + str(payload["frontend_endpoints"]),
         "前端引用但无路由  : " + str(len(payload["frontend_unmatched"])),
+        "口径              : 归一化路径去重（非 url_map 规则数）；含其它 Flask app 的装饰器，不含动态注册/静态路由",
         "content_hash      : " + payload["content_hash"],
     ]
     return "\n".join(lines)
