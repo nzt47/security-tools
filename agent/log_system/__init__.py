@@ -15,7 +15,7 @@ from .models import (
     Insight, ActionItem, KnowledgeFinding,
     LogQuery, LogStats,
 )
-from .storage import LogStorage, get_storage
+from .storage import LogStorage, ensure_global_storage, get_storage
 from .collectors import (
     OperationCollector, PerformanceCollector,
     ErrorCollector, BehaviorCollector, SystemEventCollector,
@@ -31,6 +31,7 @@ __all__ = [
     'Insight', 'ActionItem', 'KnowledgeFinding',
     'LogQuery', 'LogStats',
     'LogStorage',
+    'ensure_global_storage',
     'OperationCollector', 'PerformanceCollector',
     'ErrorCollector', 'BehaviorCollector', 'SystemEventCollector',
     'log_operation',

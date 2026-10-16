@@ -578,3 +578,32 @@ class LogStorage:
         with self._cursor() as c:
             c.execute("VACUUM")
         logger.info(log_dict({'module_name': 'storage', 'action': 'log', 'msg': '[LogSystem] 数据库压缩完成'}))
+
+
+# ════════════════════════════════════════════════════════════
+# 全局存储初始化（生产入口用）
+# ════════════════════════════════════════════════════════════
+
+_storage_init_lock = threading.Lock()
+
+
+def ensure_global_storage() -> bool:
+    """确保全局 LogStorage 已初始化（幂等）；本次新建返回 True，已存在返回 False。
+
+    【为什么需要】LogStorage 实例此前**只在测试里**用 _set_storage 注入；生产入口
+    dashboard.register_log_system() 只注册蓝图 + 起内省循环，从不初始化 ⇒
+    get_storage() 恒为 None，所有 /logs/api/* 一律 503「日志系统未初始化」
+    （2026-10-16 实测 /logs/api/stats 503，拓扑图 ops.logs 节点因此长期离线），
+    采集器也因同一原因为空转。本函数把「注册日志系统」与「存储就绪」绑在一起。
+    """
+    global _global_storage
+    if _global_storage is not None:
+        return False
+    with _storage_init_lock:
+        # 双检：并发首调也只创建一个实例（与同族单例一致）
+        if _global_storage is not None:
+            return False
+        storage = LogStorage()
+        storage.initialize()
+        _set_storage(storage)
+        return True

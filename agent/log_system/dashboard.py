@@ -301,6 +301,18 @@ def register_log_system(app, metrics_obj=None):
         from agent.log_system.dashboard import register_log_system
         register_log_system(app, metrics)
     """
+    # 【2026-10-17】先把全局 LogStorage 初始化，再注册蓝图：否则 /logs/api/* 端点
+    #   全部 503「日志系统未初始化」（实测 /logs/api/stats；拓扑图 ops.logs 因此长期
+    #   离线），采集器也一起空转。失败只告警不阻断 —— 蓝图仍注册，端点如实 503，
+    #   不让"存储没起来"把整个日志系统装配吞掉。
+    try:
+        from .storage import ensure_global_storage
+        if ensure_global_storage():
+            logger.info(log_dict({'module_name': 'dashboard', 'action': 'init',
+                                  'msg': '[LogSystem] 全局存储已初始化'}))
+    except Exception as e:  # noqa: BLE001 - 存储失败不阻断蓝图注册
+        logger.warning("[LogSystem] 全局存储初始化失败（/logs/api/* 将返回 503）: %s", e)
+
     app.register_blueprint(log_system_bp)
 
     # 注册 Prometheus 指标
