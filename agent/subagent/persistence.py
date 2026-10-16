@@ -110,6 +110,25 @@ def load_definitions() -> List[Dict[str, Any]]:
     return out
 
 
+def load_subagent_config_overrides(config_path: Optional[Path] = None) -> Dict[str, Any]:
+    """从 config.yaml 读 `subagent` 段，产出 `Config(overrides=...)` 用的字典。
+
+    【为什么需要】`config.py` 的 Config **从不解析 YAML**（取值链 = DEFAULT + 环境变量
+    + overrides）；而 lifecycle_manager 与 SubagentManager 都按 `_config["subagent"]` 读
+    开关。若只把开关写进 config.yaml，`_config` 里根本没有这个键 ⇒ P3 的落盘/恢复
+    永远不生效（2026-10-17 真机实测：创建 ttl=0 分身却无 data/subagents/ 产物）。
+    故 app_server 启动时用本函数把 config.yaml 的 subagent 段并入 Config overrides。
+    """
+    path = Path(config_path) if config_path is not None else (REPO_ROOT / "config.yaml")
+    try:
+        import yaml
+        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, ValueError):
+        return {}
+    sub = raw.get("subagent") if isinstance(raw, dict) else None
+    return {"subagent": sub} if isinstance(sub, dict) else {}
+
+
 def restore_into(mgr: Any, name: Optional[str] = None) -> List[Any]:
     """把落盘定义恢复成容器：给了 name 只恢复它，否则恢复全部。
 
