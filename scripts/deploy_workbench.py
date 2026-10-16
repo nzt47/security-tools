@@ -105,8 +105,18 @@ def npm_command(npm: str, npm_args: Sequence[str]) -> List[str]:
     走 cmd /c 才能执行 .cmd。
     """
     exe = shutil.which(npm) or npm
-    if os.name == "nt" and exe.lower().endswith((".cmd", ".bat")):
-        return ["cmd", "/c", exe, *npm_args]
+    if os.name == "nt":
+        # Windows 上 shutil.which("npm") 可能先命中**无扩展名**的 sh shim
+        # （本机实测返回 C:\Program Files\nodejs\npm），直接 Popen 会
+        # OSError WinError 193「不是有效的 Win32 应用程序」。必须显式优先 .cmd/.exe/.bat。
+        if not exe.lower().endswith((".exe", ".cmd", ".bat")):
+            for ext in (".cmd", ".exe", ".bat"):
+                cand = shutil.which(exe + ext)
+                if cand:
+                    exe = cand
+                    break
+        if exe.lower().endswith((".cmd", ".bat")):
+            return ["cmd", "/c", exe, *npm_args]
     return [exe, *npm_args]
 
 
