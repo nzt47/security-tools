@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -92,14 +93,60 @@ def overwrites(dirty: Sequence[str], incoming: Sequence[str]) -> List[str]:
     return sorted(set(dirty) & set(incoming))
 
 
-def frontend_needs_rebuild(incoming: Sequence[str], index_html: Path = INDEX_HTML) -> bool:
-    """index 缺失，或本次更新动了前端源码/产物时，需要重建。"""
-    if not Path(index_html).exists():
+FRONTEND_SRC_DIR = REPO_ROOT / "yunshu-ui" / "src"
+_FRONTEND_SUFFIXES = (".ts", ".tsx", ".css")
+
+
+def npm_command(npm: str, npm_args: Sequence[str]) -> List[str]:
+    """把 npm 调用包成 Windows 也能直接跑的形式。
+
+    【为什么必须包】Windows 上 npm 实际是 npm.cmd；subprocess 以列表方式直调 "npm"
+    会 FileNotFoundError（2026-10-16 真机实测：deploy 走到重建前端就失败）。
+    走 cmd /c 才能执行 .cmd。
+    """
+    exe = shutil.which(npm) or npm
+    if os.name == "nt" and exe.lower().endswith((".cmd", ".bat")):
+        return ["cmd", "/c", exe, *npm_args]
+    return [exe, *npm_args]
+
+
+def _newest_mtime(root: Path) -> Optional[float]:
+    """目录下前端源码（.ts/.tsx/.css）的最新 mtime；读不到返回 None。"""
+    newest: Optional[float] = None
+    try:
+        for p in Path(root).rglob("*"):
+            if p.suffix.lower() not in _FRONTEND_SUFFIXES:
+                continue
+            try:
+                m = p.stat().st_mtime
+            except OSError:
+                continue
+            if newest is None or m > newest:
+                newest = m
+    except OSError:
+        return None
+    return newest
+
+
+def frontend_needs_rebuild(incoming: Sequence[str], index_html: Path = INDEX_HTML,
+                           src_dir: Path = FRONTEND_SRC_DIR) -> bool:
+    """三种情形需要重建：index 缺失；本次更新动了前端源码/产物；产物比前端源码旧。
+
+    第三种是**上次构建失败/被中断后的残留**（2026-10-16 真机实测：ff 成功、构建失败 ⇒
+    之后没有 yunshu-ui 变更就永远不会再重建，线上一直停在旧 bundle）。
+    """
+    html = Path(index_html)
+    if not html.exists():
         return True
     for p in incoming:
         if p.startswith(FRONTEND_SRC_PREFIX) or p == "templates/yunshu.html":
             return True
-    return False
+    try:
+        html_mtime = html.stat().st_mtime
+    except OSError:
+        return True
+    newest = _newest_mtime(src_dir)
+    return newest is not None and newest > html_mtime
 
 
 def read_env_token(repo_root: Path = REPO_ROOT) -> Optional[str]:
@@ -293,12 +340,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         ui = repo / "yunshu-ui"
         if not (ui / "node_modules").exists():
             log("yunshu-ui/node_modules 不存在，先 npm ci ...")
-            rc, out, err = run([args.npm, "ci", "--prefer-offline"], cwd=ui, timeout=1800.0)
+            rc, out, err = run(npm_command(args.npm, ["ci", "--prefer-offline"]), cwd=ui, timeout=1800.0)
             if rc != 0:
                 log("npm ci 失败: " + err[-500:])
                 return 4
         log("重建前端：npm run build:flask ...")
-        rc, out, err = run([args.npm, "run", "build:flask"], cwd=ui, timeout=1800.0)
+        rc, out, err = run(npm_command(args.npm, ["run", "build:flask"]), cwd=ui, timeout=1800.0)
         if rc != 0:
             log("前端重建失败: " + err[-500:])
             return 4
