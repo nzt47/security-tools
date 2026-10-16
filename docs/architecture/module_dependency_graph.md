@@ -574,7 +574,7 @@ flowchart LR
         agent_skills_mgmt_vector_adapter["agent.skills_mgmt.vector_adapter"]
     end
     subgraph subagent [subagent]
-        agent_subagent["agent.subagent"]
+        agent_subagent["agent.subagent"]:::crosslayer
         agent_subagent_assembly["agent.subagent.assembly"]:::crosslayer
         agent_subagent_autonomy_gate["agent.subagent.autonomy_gate"]:::crosslayer
         agent_subagent_barrier["agent.subagent.barrier"]:::crosslayer
@@ -603,6 +603,7 @@ flowchart LR
         agent_subagent_offline_pack["agent.subagent.offline_pack"]:::crosslayer
         agent_subagent_peer_local_handler["agent.subagent.peer_local_handler"]
         agent_subagent_peers["agent.subagent.peers"]:::crosslayer
+        agent_subagent_persistence["agent.subagent.persistence"]
         agent_subagent_role_templates["agent.subagent.role_templates"]:::crosslayer
         agent_subagent_rounds["agent.subagent.rounds"]:::crosslayer
         agent_subagent_runtime_tool_decls["agent.subagent.runtime_tool_decls"]
@@ -1546,6 +1547,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_subagent_lifecycle
     agent_orchestrator_lifecycle_manager -.-> agent_extensions_manager
     agent_orchestrator_lifecycle_manager --> agent
+    agent_orchestrator_lifecycle_manager -.-> agent_subagent
     agent_orchestrator_lifecycle_manager -.-> agent_tool_calling
     agent_orchestrator_lifecycle_manager -.-> agent_web
     agent_orchestrator_message_handler -.-> agent_logging_utils
@@ -1622,6 +1624,8 @@ flowchart LR
     agent_orchestrator_status_reporter --> agent
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
+    agent_orchestrator_subagent_manager -.-> agent_subagent
+    agent_orchestrator_subagent_manager -.-> agent_subagent
     agent_orchestrator_task_dispatcher --> agent
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
@@ -2325,6 +2329,7 @@ flowchart LR
     agent_subagent_peers --> agent_subagent_callback_outbox
     agent_subagent_peers --> agent_subagent_callback_channel
     agent_subagent_peers -.-> agent_task_scheduler
+    agent_subagent_persistence --> agent_subagent_container
     agent_subagent_role_templates -.-> agent_prompt_manager_roles
     agent_subagent_runtime_tool_decls -.-> agent_lines_models
     agent_subagent_runtime_tool_decls -.-> agent_lines_models
@@ -2646,9 +2651,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 658
-- 模块节点数: 588
-- 依赖边数: 1938
-- 跨层调用数: 1213
+- 扫描文件数: 659
+- 模块节点数: 589
+- 依赖边数: 1942
+- 跨层调用数: 1216
 - 违规调用数: 0
 - 动态 import 数: 1
