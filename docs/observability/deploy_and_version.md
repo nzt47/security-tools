@@ -30,7 +30,7 @@
 
 默认流程：git fetch → 解析 origin/master → 若本地脏路径与待更新文件相交则**拒绝**
 （不 hard reset、不 stash）→ git merge --ff-only → 前端按需重建
-（index 缺失，或本次更新动了 yunshu-ui/ 或 templates/yunshu.html）→ 与看护进程协作重启
+（index 缺失，或本次更新动了 yunshu-ui/ 或 templates/yunshu.html，或产物比 yunshu-ui/src 下最新源码旧 —— 后者覆盖「上次构建失败/中断」的残留）→ 与看护进程协作重启
 → 等 /api/health → 读 /api/version 报告实际运行的 commit 与前端 bundle。
 
     python scripts/deploy_workbench.py --check        # 干跑，只报告将做什么

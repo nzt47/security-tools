@@ -2,6 +2,7 @@
 """scripts/deploy_workbench.py 的纯函数单测（不触发真实部署/重启）。"""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ from scripts.deploy_workbench import (
     fetch_version,
     frontend_needs_rebuild,
     listening_pids,
+    npm_command,
     overwrites,
     parse_porcelain,
     read_env_token,
@@ -51,7 +53,21 @@ class TestFrontendNeedsRebuild:
     def test_unrelated_change_skips_build(self, tmp_path):
         html = tmp_path / "yunshu.html"
         html.write_text("x", encoding="utf-8")
-        assert frontend_needs_rebuild(["agent/foo.py", "tests/unit/x.py"], html) is False
+        src = tmp_path / "src"  # 不存在 ⇒ 没有「源码比产物新」的信号
+        assert frontend_needs_rebuild(["agent/foo.py", "tests/unit/x.py"], html, src) is False
+
+    def test_stale_index_triggers_rebuild(self, tmp_path):
+        """上次构建失败/中断：产物比源码旧 ⇒ 即使本次没动前端也必须重建。"""
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "a.tsx").write_text("x", encoding="utf-8")
+        os.utime(src / "a.tsx", (1_700_000_000, 1_700_000_000))
+        html = tmp_path / "yunshu.html"
+        html.write_text("x", encoding="utf-8")
+        os.utime(html, (1_600_000_000, 1_600_000_000))
+        assert frontend_needs_rebuild([], html, src) is True
+        os.utime(html, (1_800_000_000, 1_800_000_000))
+        assert frontend_needs_rebuild([], html, src) is False
 
 
 class TestReadEnvToken:
@@ -71,3 +87,10 @@ class TestPortAndVersion:
 
     def test_fetch_version_unreachable_returns_none(self):
         assert fetch_version(59999, None, timeout=0.5) is None
+
+
+class TestNpmCommand:
+    def test_returns_runnable_argv(self):
+        cmd = npm_command("npm", ["run", "build:flask"])
+        assert isinstance(cmd, list) and all(isinstance(x, str) for x in cmd)
+        assert cmd[-2:] == ["run", "build:flask"]
