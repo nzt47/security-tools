@@ -135,7 +135,12 @@ DOMAINS: List[Domain] = [
                    metrics=["cpu_usage", "memory_usage"],
                    description="环境/行为活动/系统状态/进程感知"),
         ModuleNode("sensor.file", "文件与事件监控", "sensor/file_watcher.py",
-                   type="service", status_source="config:sensor_learning.enabled",
+                   type="service", status_source="api:/api/sensors",
+                   # 【2026-10-16】原声明 config:sensor_learning.enabled —— config.yaml
+                   # 根本没有这个键（真键是 learning.sensor_learning.enabled，且那只管
+                   # 感知侧学习的采集管道，不管文件监听）。FileWatcher 由 BodySensor
+                   # 按 watch_dirs 懒加载（sensor/body_sensor.py:281），故状态与
+                   # sensor.body 同源，取 /api/sensors。
                    description="文件变动监听、变更检测、事件监控"),
         ModuleNode("sensor.ext", "扩展感知", "sensor/ocr_sensor.py 等 3 个",
                    type="sensor", status_source="api:/api/panorama",
