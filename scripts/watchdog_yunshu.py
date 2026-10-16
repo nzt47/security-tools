@@ -61,6 +61,34 @@ DEFAULT_LOCK_PATH = os.path.join(REPO_ROOT, "logs", "watchdog_yunshu.lock")
 BACKEND_ARGV = ["app_server.py"]
 
 
+def read_repo_head(repo_root: str = REPO_ROOT) -> Optional[str]:
+    """尽力读取当前仓库 HEAD（先 git，失败退回 .git/HEAD 文件解析）；绝不抛异常。
+
+    【为什么记这个】看护进程**只保活、不换代码**：它能在旧 commit 上无限自愈。
+    把每次探活/重启时的 HEAD 写进 JSONL，重启是否"又回到了旧代码"就可 grep 可对账
+    （见 docs/observability/deploy_and_version.md）。本函数刻意只用标准库 + 外部 git。
+    """
+    try:
+        out = subprocess.run(["git", "-C", repo_root, "rev-parse", "HEAD"],
+                             capture_output=True, text=True, timeout=5).stdout.strip()
+        if out:
+            return out
+    except Exception:  # noqa: BLE001 无 git / 超时都退回文件解析
+        pass
+    try:
+        with open(os.path.join(repo_root, ".git", "HEAD"), "r",
+                  encoding="utf-8", errors="replace") as f:
+            txt = (f.read() or "").strip()
+        if txt.startswith("ref:"):
+            ref = txt.split("ref:", 1)[1].strip()
+            with open(os.path.join(repo_root, ".git", *ref.split("/")), "r",
+                      encoding="utf-8", errors="replace") as f:
+                return (f.read() or "").strip() or None
+        return txt or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def now_iso() -> str:
     """本地时区 ISO 时间戳（秒精度）。"""
     return datetime.now().astimezone().isoformat(timespec="seconds")
@@ -265,6 +293,7 @@ def check_once(
         "reason": "healthy" if healthy else "health_unreachable",
         "action": "none",
         "dry_run": bool(dry_run),
+        "repo_head": read_repo_head(),
         "watchdog_pid": os.getpid(),
     }
 
@@ -301,6 +330,7 @@ def check_once(
         "ready": bool(ready),
         "waited_s": waited,
         "dry_run": False,
+        "repo_head": read_repo_head(),
         "watchdog_pid": os.getpid(),
     })
     return record
@@ -333,7 +363,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             "ts": now_iso(), "event": "watchdog_start", "reason": "startup",
             "old_pid": None, "new_pid": None, "dry_run": bool(args.dry_run),
             "interval_s": args.interval, "fail_threshold": args.fail_threshold,
-            "url": args.url, "log": args.log, "watchdog_pid": os.getpid(),
+            "url": args.url, "log": args.log,
+            "repo_head": read_repo_head(), "watchdog_pid": os.getpid(),
         })
 
         if args.once:
