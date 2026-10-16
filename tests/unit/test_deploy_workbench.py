@@ -94,3 +94,22 @@ class TestNpmCommand:
         cmd = npm_command("npm", ["run", "build:flask"])
         assert isinstance(cmd, list) and all(isinstance(x, str) for x in cmd)
         assert cmd[-2:] == ["run", "build:flask"]
+
+    def test_windows_prefers_cmd_over_extensionless_shim(self, monkeypatch):
+        """shutil.which("npm") 先命中无扩展名 shim 时，必须改选 npm.cmd（否则 WinError 193）。"""
+        from scripts import deploy_workbench as dw
+
+        def fake_which(name):
+            low = str(name).lower()
+            if low.endswith("npm.cmd"):
+                return r"C:\nodejs\npm.cmd"
+            if low.endswith("npm"):
+                return r"C:\nodejs\npm"
+            return None
+
+        monkeypatch.setattr(dw.shutil, "which", fake_which)
+        cmd = dw.npm_command("npm", ["run", "build:flask"])
+        if dw.os.name == "nt":
+            assert cmd[:3] == ["cmd", "/c", r"C:\nodejs\npm.cmd"], cmd
+        else:
+            assert cmd[0] == r"C:\nodejs\npm", cmd
