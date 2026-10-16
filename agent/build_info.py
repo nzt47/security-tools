@@ -10,13 +10,16 @@
 【口径】
 - backend：**进程导入本模块那一刻**解析的 git commit（不是每次请求现查工作树）——
   这才代表"本进程加载的代码"；工作树之后被改动不应改变本进程的答案。用 refresh=True 可强制重查。
-- frontend：读 templates/yunshu.html（build:flask 的产物）里引用的主 bundle 文件名 + 该文件 mtime。
+- frontend：读 templates/yunshu.html（build:flask 的产物）里引用的主 bundle 文件名；built_at
+  优先取 static/assets/.build-stamp.json（deploy_workbench.py 构建成功后写入），无戳时退回该文件 mtime。
+- 构建戳还记录构建时的源码 commit（build_commit），可用于核对前后端是否同版；无戳则为 None。
 - 全部 best-effort：没有 git / 没有产物 / 命令失败都不抛异常，字段为 None 并带 error。
 
 本模块**不 import Flask / app_server**，可被插件、脚本、测试自由导入。
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -33,6 +36,9 @@ PROCESS_STARTED_AT = datetime.now(timezone.utc).astimezone().isoformat(timespec=
 
 #: 主 bundle 形如 src="/static/assets/index-BjKvrIBE.js"
 _MAIN_BUNDLE = re.compile(r'src="/static/assets/(index-[^"]+\.js)"')
+
+#: 前端构建戳（deploy_workbench.py 构建成功后写入；static/assets/ 不入库）
+_BUILD_STAMP_REL = ("static", "assets", ".build-stamp.json")
 
 _BACKEND_CACHE: Optional[Dict[str, Any]] = None
 
@@ -80,12 +86,27 @@ def backend_info(repo_root: Path = REPO_ROOT, *, refresh: bool = False) -> Dict[
     return dict(info)
 
 
+def _read_build_stamp(repo_root: Path) -> Optional[Dict[str, Any]]:
+    """读前端构建戳（deploy_workbench.py 构建成功后写入）；没有/损坏返回 None。"""
+    path = Path(repo_root).joinpath(*_BUILD_STAMP_REL)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
 def frontend_info(repo_root: Path = REPO_ROOT) -> Dict[str, Any]:
-    """线上前端产物信息（templates/yunshu.html 引用的主 bundle）。"""
+    """线上前端产物信息（templates/yunshu.html 引用的主 bundle）。
+
+    built_at 优先取构建戳（构建成功那一刻），无戳时退回产物文件 mtime（built_at_source
+    标明来源）；build_commit 是构建戳记录的源码 commit，用于核对前后端是否同版。
+    """
     html = Path(repo_root) / "templates" / "yunshu.html"
     out: Dict[str, Any] = {
         "index_html": str(html), "index_html_present": html.exists(),
-        "bundle": None, "built_at": None, "error": None,
+        "bundle": None, "built_at": None, "built_at_source": None,
+        "build_commit": None, "error": None,
     }
     if not html.exists():
         return out
@@ -94,11 +115,24 @@ def frontend_info(repo_root: Path = REPO_ROOT) -> Dict[str, Any]:
         m = _MAIN_BUNDLE.search(text)
         if m:
             out["bundle"] = m.group(1)
-        out["built_at"] = datetime.fromtimestamp(
-            html.stat().st_mtime, tz=timezone.utc
-        ).astimezone().isoformat(timespec="seconds")
     except OSError as e:  # noqa: PERF203 读不到就如实报错
         out["error"] = str(e)
+    stamp = _read_build_stamp(repo_root)
+    if stamp:
+        if isinstance(stamp.get("commit"), str) and stamp.get("commit"):
+            out["build_commit"] = stamp["commit"]
+        if isinstance(stamp.get("built_at"), str) and stamp["built_at"]:
+            out["built_at"] = stamp["built_at"]
+            out["built_at_source"] = "build-stamp"
+    if out["built_at"] is None:
+        try:
+            out["built_at"] = datetime.fromtimestamp(
+                html.stat().st_mtime, tz=timezone.utc
+            ).astimezone().isoformat(timespec="seconds")
+            out["built_at_source"] = "mtime"
+        except OSError as e:
+            if not out["error"]:
+                out["error"] = str(e)
     return out
 
 

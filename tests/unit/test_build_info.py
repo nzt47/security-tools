@@ -91,3 +91,29 @@ class TestCollect:
         data = bi.collect(bi.REPO_ROOT)
         commit = data["backend"]["commit"]
         assert commit is None or (isinstance(commit, str) and len(commit) >= 7)
+
+
+class TestFrontendBuildStamp:
+    def test_stamp_supplies_build_commit_and_time(self, tmp_path):
+        html = tmp_path / "templates" / "yunshu.html"
+        html.parent.mkdir(parents=True)
+        html.write_text('x', encoding="utf-8")
+        stamp = tmp_path / "static" / "assets" / ".build-stamp.json"
+        stamp.parent.mkdir(parents=True)
+        stamp.write_text(
+            '{"commit": "' + "a" * 40 + '", "built_at": "2026-10-16T12:00:00+08:00"}',
+            encoding="utf-8",
+        )
+        info = bi.frontend_info(tmp_path)
+        assert info["build_commit"] == "a" * 40
+        assert info["built_at"] == "2026-10-16T12:00:00+08:00"
+        assert info["built_at_source"] == "build-stamp"
+
+    def test_no_stamp_falls_back_to_mtime(self, tmp_path):
+        html = tmp_path / "templates" / "yunshu.html"
+        html.parent.mkdir(parents=True)
+        html.write_text("x", encoding="utf-8")
+        info = bi.frontend_info(tmp_path)
+        assert info["build_commit"] is None
+        assert info["built_at"]
+        assert info["built_at_source"] == "mtime"
