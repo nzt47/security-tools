@@ -136,6 +136,26 @@ def _first_doc_line(doc) -> str:
     return ""
 
 
+def _first_doc_paragraph(doc, limit: int = 220) -> str:
+    """取 docstring 的**首个段落**（到第一个空行为止），压平空白并截断。
+
+    【与 _first_doc_line 的分工】首行版只保留一句话，遇到"先一句摘要、再分点说明"
+    的 docstring 会把真正有用的细节全丢掉（页面「说明」列因此大量雷同）。本版取首段，
+    让说明更具体；仍设上限，避免把整篇 docstring 塞进表格。
+    """
+    if not doc:
+        return ""
+    parts = []
+    for raw in str(doc).splitlines():
+        line = " ".join(raw.split())
+        if not line:
+            if parts:
+                break
+            continue
+        parts.append(line)
+    return " ".join(parts)[:limit]
+
+
 def _doc_index(rel: str) -> dict:
     """文件 -> {路由装饰器行号: 处理函数首行说明}（按需解析并缓存）。"""
     cached = _DOC_CACHE.get(rel)
@@ -148,11 +168,11 @@ def _doc_index(rel: str) -> dict:
         _DOC_CACHE[rel] = idx
         return idx
     # 模块级兜底：处理函数没写 docstring 时，至少给出「这个模块管什么」
-    idx["__module__"] = _first_doc_line(ast.get_docstring(tree))
+    idx["__module__"] = _first_doc_paragraph(ast.get_docstring(tree), limit=140)
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
-        first = _first_doc_line(ast.get_docstring(node))
+        first = _first_doc_paragraph(ast.get_docstring(node))
         if not first:
             continue
         for dec in node.decorator_list:
@@ -285,6 +305,29 @@ def _load_intents() -> dict:
     return out
 
 
+def _intent_for(nrm: str, intents: dict):
+    """按归一化路径取意图标注：**精确优先，其次最长前缀族**。
+
+    【为什么支持前缀族】逐条标注 462 条路由不现实；而同一业务族的"该不该进 UI"通常
+    一致。键以 /* 结尾即视为前缀族（如某族前缀匹配其下任一子路径）。精确键永远优先于
+    前缀，最长前缀优先于短前缀。
+
+    【注意】本文件会被 collect_frontend_literals 的同类扫描计入 cli_script refs
+    （注释里出现真实端点路径也算引用）—— 故示例一律用占位符，不写真实路由。
+    """
+    meta = intents.get(nrm)
+    if meta is not None:
+        return meta
+    best = None
+    best_len = -1
+    for key, m in intents.items():
+        if not key.endswith("/*"):
+            continue
+        if nrm.startswith(key[:-1]) and len(key) > best_len:
+            best, best_len = m, len(key)
+    return best
+
+
 def classify() -> dict:
     routes = collect_routes_static()
     ui_refs = _refs_from_frontend(collect_frontend_literals())
@@ -357,7 +400,7 @@ def classify() -> dict:
     # 人工意图标注：只**增**字段，不改机械分类；ui_pending = 该进 UI 却没进
     intents = _load_intents()
     for e in entries:
-        meta = intents.get(e["norm"])
+        meta = _intent_for(e["norm"], intents)
         e["intent"] = meta["intent"] if meta else _UNCLASSIFIED
         e["intent_area"] = meta["area"] if meta else ""
         e["intent_note"] = meta["note"] if meta else ""

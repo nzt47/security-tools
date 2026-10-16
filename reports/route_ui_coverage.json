@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-16T22:07:27",
+  "generated_at": "2026-10-17T00:48:42",
   "totals": {
     "routes": 462,
     "live": 462,
@@ -16,9 +16,9 @@
       "unreferenced": 271
     },
     "by_intent": {
-      "should_be_in_ui": 7,
-      "should_not_be_in_ui": 6,
-      "unclassified": 449
+      "should_be_in_ui": 22,
+      "should_not_be_in_ui": 12,
+      "unclassified": 428
     }
   },
   "frontend_endpoints": 146,
@@ -669,9 +669,9 @@
       ],
       "description": "获取结构化审计日志（只读查询 Append-only 审计日志）",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -693,9 +693,9 @@
       ],
       "description": "路由↔UI 覆盖盘点（只读，读提交产物）。",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -899,9 +899,9 @@
       ],
       "description": "浏览器导航到 URL",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -1327,9 +1327,9 @@
       ],
       "description": "手动触发上下文压缩（**已迁移到统一信封**）。",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -1351,9 +1351,9 @@
       ],
       "description": "更新上下文控制参数（**已迁移到统一信封**）。",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -1377,9 +1377,9 @@
       ],
       "description": "获取当前上下文使用状态（**已迁移到统一信封**）。",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -2464,9 +2464,9 @@
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -3378,9 +3378,9 @@
       ],
       "description": "获取心跳历史（**已迁移到统一信封**）。",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -3402,9 +3402,9 @@
       ],
       "description": "获取心跳概览（**已迁移到统一信封**）。",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -4262,9 +4262,9 @@
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -5085,9 +5085,9 @@
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -5111,9 +5111,9 @@
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -5137,9 +5137,9 @@
       ],
       "description": "status 插件：系统状态、感知与性格域（T1.4，迁移自 app_server.py）。",
       "description_source": "module",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -5214,9 +5214,9 @@
       ],
       "description": "刷新插件清单（动态装载 T4.1）：扫描 plugins/ 目录重建注册表，无需重启进程。",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -5494,9 +5494,9 @@
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
-      "intent": "unclassified",
+      "intent": "should_be_in_ui",
       "intent_area": "",
-      "intent_note": "",
+      "intent_note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）",
       "ui_pending": false
     },
     {
@@ -8994,9 +8994,9 @@
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
-      "intent": "unclassified",
-      "intent_area": "",
-      "intent_note": "",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "机器/内部面",
+      "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
       "ui_pending": false
     },
     {
@@ -9018,9 +9018,9 @@
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
-      "intent": "unclassified",
-      "intent_area": "",
-      "intent_note": "",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "机器/内部面",
+      "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
       "ui_pending": false
     },
     {
@@ -9042,9 +9042,9 @@
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
-      "intent": "unclassified",
-      "intent_area": "",
-      "intent_note": "",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "机器/内部面",
+      "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
       "ui_pending": false
     },
     {
@@ -9507,9 +9507,9 @@
       ],
       "description": "返回本进程加载的后端版本 + 线上前端产物 + 进程信息（只读）。",
       "description_source": "handler",
-      "intent": "unclassified",
-      "intent_area": "",
-      "intent_note": "",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "机器/内部面",
+      "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
       "ui_pending": false
     },
     {
@@ -10709,9 +10709,9 @@
       ],
       "description": "Prometheus 格式指标导出",
       "description_source": "handler",
-      "intent": "unclassified",
-      "intent_area": "",
-      "intent_note": "",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "机器/内部面",
+      "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
       "ui_pending": false
     },
     {
@@ -10782,11 +10782,11 @@
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
-      "intent": "unclassified",
-      "intent_area": "",
-      "intent_note": "",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "机器/内部面",
+      "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
       "ui_pending": false
     }
   ],
-  "content_hash": "56eef31d44fbebfc"
+  "content_hash": "1628839b34f61f80"
 }

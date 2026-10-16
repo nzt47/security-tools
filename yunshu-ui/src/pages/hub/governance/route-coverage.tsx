@@ -41,6 +41,8 @@ interface Entry {
   description?: string
   /** handler = 处理函数自述；module = 处理函数没写、退到模块首行（非该路由专述） */
   description_source?: string
+  /** 人工意图标注的理由（config/route_ui_intent.json 的 note） */
+  intent_note?: string
 }
 interface Payload {
   generated_at: string
@@ -56,7 +58,16 @@ const CAT_LABEL: Record<string, string> = {
   ui: '已进 UI',
   cli_script: '仅 CLI·脚本',
   runtime_only: '仅运行时',
-  unreferenced: '未分类',
+  unreferenced: '未接线（无引用）',
+}
+/** 分类按钮/单元格的悬浮说明：把机械口径讲清楚，避免被读成"待人工分类" */
+const CAT_TIP: Record<string, string> = {
+  ui: '有前端引用：这条路由已经被页面调用',
+  cli_script: '没有前端引用，但被 CLI / 脚本引用',
+  runtime_only: '没有前端引用，但被运行期代码引用（如模块聚合 provider）',
+  unreferenced:
+    '全仓既没有前端引用，也没有 CLI/脚本/运行时引用。这是机械口径，不代表"待人工分类"；' +
+    '要离开这一档，需把路由接进 UI/CLI，或用「意图」标注它的归属。',
 }
 const CAT_CLASS: Record<string, string> = {
   ui: 'text-emerald-400',
@@ -151,7 +162,7 @@ export default function RouteCoveragePanel() {
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {(['all', 'ui', 'cli_script', 'runtime_only', 'unreferenced'] as const).map((c) => (
-          <button key={c} onClick={() => setCat(c)}
+          <button key={c} onClick={() => setCat(c)} title={c === 'all' ? undefined : CAT_TIP[c]}
             className={'rounded-lg border px-3 py-1.5 ' + (cat === c ? 'border-cyan-700 bg-cyan-950/40 text-cyan-300' : 'border-slate-700 text-slate-300 hover:bg-slate-800')}>
             {c === 'all' ? '全部' : CAT_LABEL[c]}
             {c !== 'all' && <span className="ml-1 text-slate-500">活体 {liveByCat[c] ?? 0} / 总 {t[c] ?? 0}</span>}
@@ -185,7 +196,7 @@ export default function RouteCoveragePanel() {
             </tr>
           </thead>
           <tbody>
-            {rows.slice(0, 400).map((e) => (
+            {rows.map((e) => (
               <tr key={e.path} className="border-t border-slate-800/60">
                 <td className="px-3 py-1.5 font-mono text-slate-200">{e.path}</td>
                 <td className="max-w-[380px] px-3 py-1.5 text-slate-400" data-testid={`route-desc-${e.norm}`}>
@@ -196,15 +207,21 @@ export default function RouteCoveragePanel() {
                         <span className="ml-1 rounded bg-slate-800 px-1 text-[10px] text-slate-500"
                           title="该路由处理函数未写说明，此处取所在模块的说明">模块</span>
                       )}
+                      {(e.where ?? [])[0] && (
+                        <span className="ml-1 font-mono text-[10px] text-slate-600" title={(e.where ?? []).join('\n')}>
+                          {(e.where ?? [])[0]}
+                        </span>
+                      )}
                     </>
                   ) : (
                     <span className="text-slate-600">—</span>
                   )}
                 </td>
                 <td className="px-3 py-1.5 text-slate-500">{(e.methods ?? []).join(',')}</td>
-                <td className={'px-3 py-1.5 ' + (CAT_CLASS[e.category] ?? '')}>{CAT_LABEL[e.category] ?? e.category}</td>
-                <td className={'px-3 py-1.5 ' + (INTENT_CLASS[e.intent ?? 'unclassified'] ?? '')} data-testid={`route-intent-${e.norm}`}>
+                <td className={'px-3 py-1.5 ' + (CAT_CLASS[e.category] ?? '')} title={CAT_TIP[e.category]}>{CAT_LABEL[e.category] ?? e.category}</td>
+                <td className={'px-3 py-1.5 ' + (INTENT_CLASS[e.intent ?? 'unclassified'] ?? '')} data-testid={`route-intent-${e.norm}`} title={e.intent_note || undefined}>
                   {INTENT_LABEL[e.intent ?? 'unclassified'] ?? e.intent}
+                  {e.intent_area && <span className="ml-1 text-[10px] text-slate-500">· {e.intent_area}</span>}
                   {e.ui_pending && <span className="ml-1 rounded bg-amber-950/50 px-1 text-[10px] text-amber-300">待办</span>}
                 </td>
                 <td className="px-3 py-1.5" data-testid={'route-live-' + e.norm}>
@@ -217,7 +234,7 @@ export default function RouteCoveragePanel() {
             ))}
           </tbody>
         </table>
-        {rows.length > 400 && <div className="px-3 py-2 text-xs text-slate-500">仅显示前 400 条（共 {rows.length} 条），请用过滤缩小范围。</div>}
+        {rows.length > 0 && <div className="px-3 py-2 text-xs text-slate-500">共 {rows.length} 条（全部显示）。</div>}
       </div>
     </div>
   )

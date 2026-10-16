@@ -1,20 +1,202 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-11",
-  "note": "路由「该进 UI / 不该进」的人工意图标注（方案 docs/proposals/ui_information_architecture_review_20261011.md §7）。未标注 = unclassified；本文件只增判断，不改机械分类，也不放宽「未分类活体路由只允许收缩」的棘轮。",
+  "updated": "2026-10-17",
+  "note": "路由「该进 UI / 不该进」的人工意图标注（方案 docs/proposals/ui_information_architecture_review_20261011.md §7）。未标注 = unclassified；本文件只增判断，不改机械分类，也不放宽「未分类活体路由只允许收缩」的棘轮。 【2026-10-17 族级标注 + 前缀机制】支持「前缀族」键（/* 结尾，最长前缀优先、精确键优先，见 scripts/audit/route_ui_coverage.py::_intent_for）。本轮只做两件无争议的事：① 机器/调试/度量/静态族 → 不该进；② 整族已全部进 UI 的业务族 → 该进 UI。带未接线路由的业务族暂不批量标「该进 UI」—— 本仓守卫 test_该进未进待办已清空 要求 pending_ui 为空；批量标会制造待办，属策略变更，需单独决策；其余保持未标注，逐条人工判断。",
   "intents": {
-    "/api/browser/screenshot": {"intent": "should_be_in_ui", "area": "会话侧/工作区", "note": "工作区能力，可做成会话侧面板"},
-    "/api/browser/close": {"intent": "should_be_in_ui", "area": "会话侧/工作区", "note": "与截图同一能力"},
-    "/api/clipboard": {"intent": "should_be_in_ui", "area": "会话侧/工作区", "note": "剪贴板读写，工作区面板"},
-    "/api/cognitive/status": {"intent": "should_be_in_ui", "area": "全景看板", "note": "认知闭环状态；已在「全景感知 → 认知闭环」面板落地"},
-    "/api/cognitive/prompt": {"intent": "should_not_be_in_ui", "area": "认知闭环（调试面）", "note": "原始注入提示词文本，属开发/调试面，不作为用户 UI"},
-    "/api/cognitive/reject": {"intent": "should_be_in_ui", "area": "认知闭环", "note": "任务接受度裁决；已在「全景感知 → 认知闭环」面板落地"},
-    "/api/cognitive/translate/*": {"intent": "should_not_be_in_ui", "area": "认知闭环（调试面）", "note": "按传感器名翻译读数，调试面；无稳定用户入口"},
-    "/api/config/logs": {"intent": "should_be_in_ui", "area": "系统管理·日志", "note": "与系统日志同屏"},
-    "/api/dashboard/summary": {"intent": "should_be_in_ui", "area": "管理仪表盘", "note": ""},
-    "/api/demo/config": {"intent": "should_not_be_in_ui", "area": "开发 mock", "note": "仅 dev mock，永不上屏"},
-    "/api/demo/probe": {"intent": "should_not_be_in_ui", "area": "开发 mock", "note": "仅 dev mock，永不上屏"},
-    "/api/auth/token-check": {"intent": "should_not_be_in_ui", "area": "内部鉴权", "note": "令牌校验，编排层调用"},
-    "/api/health/auth": {"intent": "should_not_be_in_ui", "area": "探针", "note": "健康探针，给编排器而非人"}
+    "/api/browser/screenshot": {
+      "intent": "should_be_in_ui",
+      "area": "会话侧/工作区",
+      "note": "工作区能力，可做成会话侧面板"
+    },
+    "/api/browser/close": {
+      "intent": "should_be_in_ui",
+      "area": "会话侧/工作区",
+      "note": "与截图同一能力"
+    },
+    "/api/clipboard": {
+      "intent": "should_be_in_ui",
+      "area": "会话侧/工作区",
+      "note": "剪贴板读写，工作区面板"
+    },
+    "/api/cognitive/status": {
+      "intent": "should_be_in_ui",
+      "area": "全景看板",
+      "note": "认知闭环状态；已在「全景感知 → 认知闭环」面板落地"
+    },
+    "/api/cognitive/prompt": {
+      "intent": "should_not_be_in_ui",
+      "area": "认知闭环（调试面）",
+      "note": "原始注入提示词文本，属开发/调试面，不作为用户 UI"
+    },
+    "/api/cognitive/reject": {
+      "intent": "should_be_in_ui",
+      "area": "认知闭环",
+      "note": "任务接受度裁决；已在「全景感知 → 认知闭环」面板落地"
+    },
+    "/api/cognitive/translate/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "认知闭环（调试面）",
+      "note": "按传感器名翻译读数，调试面；无稳定用户入口"
+    },
+    "/api/config/logs": {
+      "intent": "should_be_in_ui",
+      "area": "系统管理·日志",
+      "note": "与系统日志同屏"
+    },
+    "/api/dashboard/summary": {
+      "intent": "should_be_in_ui",
+      "area": "管理仪表盘",
+      "note": ""
+    },
+    "/api/demo/config": {
+      "intent": "should_not_be_in_ui",
+      "area": "开发 mock",
+      "note": "仅 dev mock，永不上屏"
+    },
+    "/api/demo/probe": {
+      "intent": "should_not_be_in_ui",
+      "area": "开发 mock",
+      "note": "仅 dev mock，永不上屏"
+    },
+    "/api/auth/token-check": {
+      "intent": "should_not_be_in_ui",
+      "area": "内部鉴权",
+      "note": "令牌校验，编排层调用"
+    },
+    "/api/health/auth": {
+      "intent": "should_not_be_in_ui",
+      "area": "探针",
+      "note": "健康探针，给编排器而非人"
+    },
+    "/api/test": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/api/test/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/metrics": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/metrics/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/static": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/static/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/api/version": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/api/version/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/api/demo": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/api/demo/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "机器/内部面",
+      "note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。"
+    },
+    "/api/apply-network-config/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/audit/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/browser/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/capability-manifest/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/clipboard/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/context/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/export/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/heartbeat/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/menu/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/panorama/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/permissions/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/personality/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/plugins/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/prompt-lab/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/sensors/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    },
+    "/api/workspaces/*": {
+      "intent": "should_be_in_ui",
+      "area": "",
+      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+    }
   }
 }

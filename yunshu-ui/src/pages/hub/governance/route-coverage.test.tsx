@@ -24,7 +24,7 @@ const PAYLOAD = {
   frontend_unmatched: [],
   pending_ui: [{ norm: '/api/x', path: '/api/x' }],
   entries: [
-    { path: '/api/x', norm: '/api/x', methods: ['GET'], category: 'unreferenced', live: true, ui_refs: [], non_ui_refs: [], where: [], intent: 'should_be_in_ui', ui_pending: true, description: '创建一条 X 记录', description_source: 'handler' },
+    { path: '/api/x', norm: '/api/x', methods: ['GET'], category: 'unreferenced', live: true, ui_refs: [], non_ui_refs: [], where: [], intent: 'should_be_in_ui', intent_area: '测试域', intent_note: '示例理由', ui_pending: true, description: '创建一条 X 记录', description_source: 'handler' },
     { path: '/api/y', norm: '/api/y', methods: ['GET'], category: 'ui', live: true, ui_refs: ['a.ts'], non_ui_refs: [], where: [], intent: 'unclassified', ui_pending: false },
     { path: '/api/z', norm: '/api/z', methods: ['POST'], category: 'unreferenced', live: true, ui_refs: [], non_ui_refs: [], where: [], intent: 'should_not_be_in_ui', ui_pending: false, description: 'Z 模块：处理 Z 族请求', description_source: 'module' },
     // 活体在 plugins/status.py、死副本在未接线的 routes_personality.py ⇒ live 与 dead_copy 同时为真
@@ -50,6 +50,8 @@ describe('RouteCoveragePanel · 意图标注', () => {
     await screen.findByTestId('route-intent-/api/x')
     expect(screen.getByTestId('route-intent-/api/x').textContent).toContain('该进 UI')
     expect(screen.getByTestId('route-intent-/api/x').textContent).toContain('待办')
+    // 意图标注的归属必须上屏（标了却看不到归属 = 标注白做）
+    expect(screen.getByTestId('route-intent-/api/x').textContent).toContain('测试域')
     expect(screen.getByTestId('route-intent-/api/y').textContent).toContain('未标注')
     expect(screen.getByTestId('route-intent-/api/z').textContent).toContain('不该进')
   })
@@ -65,6 +67,8 @@ describe('RouteCoveragePanel · 意图标注', () => {
     expect(screen.getByTestId('route-desc-/api/x').textContent).not.toContain('模块')
     // 模块级兜底如实标注，不能冒充处理函数自述
     expect(screen.getByTestId('route-desc-/api/z').textContent).toContain('模块')
+    // 说明下带定义位点，避免同文件多条路由文案相同时无法区分
+    expect(screen.getByTestId('route-desc-/api/dead').textContent).toContain('plugins/status.py:665')
     // 无说明时不留空白
     expect(screen.getByTestId('route-desc-/api/y').textContent).toContain('—')
   })
@@ -94,6 +98,15 @@ describe('RouteCoveragePanel · 意图标注', () => {
     expect(screen.getByText('/api/x')).toBeTruthy()
     expect(screen.queryByText('/api/y')).toBeNull()
     expect(screen.queryByText('/api/z')).toBeNull()
+  })
+
+  it('分类列的「未接线（无引用）」口径上屏（不再叫含糊的「未分类」）', async () => {
+    envMock.mockResolvedValue(PAYLOAD)
+    render(<RouteCoveragePanel />)
+    await screen.findByTestId('route-pending-filter')
+    expect(screen.getAllByText(/未接线（无引用）/).length).toBeGreaterThan(0)
+    expect(screen.queryByText('未分类')).toBeNull()
+    expect(screen.getAllByTitle(/全仓既没有前端引用/).length).toBeGreaterThan(0)
   })
 
   it('口径注明：路径级去重、含其它 Flask app、非 url_map 规则数', async () => {
