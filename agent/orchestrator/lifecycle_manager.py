@@ -459,6 +459,16 @@ class LifecycleManager:
                     max_subagents=subagent_cfg.get("max_subagents", 20),
                 )
             logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.subagentlifecyclemanager', 'message': '[ok] 分身系统（SubagentLifecycleManager）已激活，最大分身数: %d' % (self._subagent_mgr._max_subagents,)}))
+            # 【P3 持久化】把显式创建（ttl=0）的分身定义恢复成容器：否则重启后
+            #   会话绑定的智能体全部"分身不存在"，只能回退母体。由
+            #   subagent.persist_definitions 门控（默认关；config.yaml 打开）。
+            #   best-effort：恢复失败不阻断启动。
+            if subagent_cfg.get("persist_definitions", False):
+                try:
+                    from agent.subagent import persistence as _subagent_defs
+                    _subagent_defs.restore_into(self._subagent_mgr)
+                except Exception as _re:  # noqa: BLE001
+                    logger.warning(log_dict({'module_name': 'lifecycle_manager', 'action': 'subagent_defs.restore', 'message': '[warn] 分身定义恢复失败: %s' % _re}))
         else:
             logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.skip', 'message': '[skip] 分身系统未启用（subagent.enabled=False）'}))
 

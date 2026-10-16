@@ -560,6 +560,14 @@ def _agent_exists(name: str) -> str | None:
     if mgr is None or not callable(getattr(mgr, "get", None)):
         return "分身系统未启用（subagent.enabled=False 或核心系统未初始化）"
     if mgr.get(name) is None:
+        # 【P3】容器可能已回收 / 重启丢失：只要有落盘定义就允许绑定，
+        #   聊天时会按定义就地恢复（见 SSE 路径）；否则才是真的不存在。
+        try:
+            from agent.subagent import persistence as _subagent_defs
+            if _subagent_defs.load_definition(name) is not None:
+                return None
+        except Exception as _le:  # noqa: BLE001 读定义失败按不存在处理（不静默放行）
+            logger.debug("[workbench] 分身定义读取失败 %s: %s", name, _le)
         return f"分身不存在: {name}"
     return None
 
@@ -1743,6 +1751,16 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 if _mgr is not None and callable(getattr(_mgr, "get", None))
                 else None
             )
+            if _container is None and _mgr is not None:
+                # 【P3】容器可能因重启 / 回收不在内存：按落盘定义就地恢复一个，
+                #   而不是直接回退母体（这是"重启后会话智能体失效"的主因）。
+                try:
+                    from agent.subagent import persistence as _subagent_defs
+                    _restored = _subagent_defs.restore_into(_mgr, agent_name)
+                    if _restored:
+                        _container = _restored[0]
+                except Exception as _re:  # noqa: BLE001 恢复失败仍走下面的如实回退
+                    logger.debug("[workbench][SSE] 会话智能体恢复失败 %s: %s", agent_name, _re)
             if _container is None:
                 yield _sse({"type": "thinking", "id": "agent", "title": "会话智能体",
                             "detail": f"绑定的分身「{agent_name}」不存在，本次回退母体回答",

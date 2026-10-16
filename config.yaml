@@ -962,3 +962,12 @@ retention:
   #     cold_days: 90
 
 
+# === 分身系统（P3：定义落盘 + 重启恢复）===
+# persist_definitions=true 时：POST /api/subagent/create 成功且 ttl_seconds=0（永久档）
+# 的分身定义写入 data/subagents/；进程启动时、以及聊天取不到容器时按定义就地恢复，
+# 使"会话级智能体"绑定不再因重启而失效。缺此键（默认 false）不落盘 —— 单测大量用
+# FakeYunshu 走同一 create 端点，靠这个门控避免把测试分身写进真机 data/。
+subagent:
+  persist_definitions: true
+
+

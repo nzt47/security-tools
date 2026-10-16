@@ -21,6 +21,46 @@ class SubagentManager:
         """
         self._o = orchestrator
 
+    def _persist_enabled(self) -> bool:
+        """是否落盘分身定义（P3）。
+
+        【为什么用一个显式开关】本仓单测大量用 FakeYunshu / mock orchestrator 走
+        /api/subagent/create（见 test_subagent_delegate_route 等）；若无门控，测试
+        会把 '测试分身' 之类写进 data/subagents/，进而在真机重启时被恢复成容器。
+        故默认**关**，由 config.yaml 的 subagent.persist_definitions 打开。
+        mock orchestrator 通常没有 _config（或不是 dict）⇒ 恒关，测试零副作用。
+        """
+        cfg = getattr(self._o, "_config", None)
+        if not isinstance(cfg, dict):
+            return False
+        return bool((cfg.get("subagent") or {}).get("persist_definitions", False))
+
+    def _maybe_persist(self, config, raw_dict) -> None:
+        """ttl=0（永久档）的显式创建落盘，供重启/回收后按定义恢复。best-effort。"""
+        if not self._persist_enabled():
+            return
+        if int(getattr(config, "ttl_seconds", 0) or 0) != 0:
+            return
+        try:
+            from dataclasses import asdict
+
+            from agent.subagent import persistence
+            payload = raw_dict if raw_dict is not None else asdict(config)
+            persistence.persist_definition(payload)
+        except Exception as e:  # noqa: BLE001 落盘失败不阻断创建
+            logger.warning("[Subagent:%s] 定义持久化失败（重启后不会自动恢复）: %s",
+                           getattr(config, "name", "?"), e)
+
+    def _maybe_remove_definition(self, name: str) -> None:
+        """destroy 时同步删定义，避免"销毁后重启又复活"。best-effort。"""
+        if not self._persist_enabled():
+            return
+        try:
+            from agent.subagent import persistence
+            persistence.remove_definition(name)
+        except Exception as e:  # noqa: BLE001 删除失败不阻断销毁
+            logger.warning("[Subagent:%s] 定义删除失败（重启后可能复活）: %s", name, e)
+
     def create(self, config) -> object:
         """创建一个新分身"""
         if not self._o._subagent_mgr:
@@ -28,6 +68,7 @@ class SubagentManager:
 
         from agent.subagent.container import SubagentConfig
 
+        raw_dict = dict(config) if isinstance(config, dict) else None
         if isinstance(config, dict):
             config = SubagentConfig(**config)
         elif not isinstance(config, SubagentConfig):
@@ -37,6 +78,7 @@ class SubagentManager:
         container = self._o._subagent_mgr.create(config)
         elapsed = (time.time() - start) * 1000
         logger.info("[Subagent:%s] 创建完成 (%.1fms)", container.id, elapsed)
+        self._maybe_persist(config, raw_dict)
         return container
 
     def destroy(self, name: str) -> dict:
@@ -49,6 +91,7 @@ class SubagentManager:
             raise ValueError(f"分身不存在: {name}")
 
         report = self._o._subagent_mgr.destroy(container)
+        self._maybe_remove_definition(name)
 
         if report.get("memory_delta_keys"):
             logger.info("[Subagent:%s] 记忆增量待持久化: %s",
