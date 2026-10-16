@@ -492,7 +492,29 @@ def _summary(payload: dict) -> str:
     return "\n".join(lines)
 
 
+def _force_utf8_stdio() -> None:
+    """把 stdout/stderr 切到 UTF-8。
+
+    【解决什么】本脚本会打印 `↔`（U+2194）等**不在 GBK/cp936 里**的字符；在中文
+    Windows 上以管道/重定向方式运行（如 CI 工具/harness 捕获输出）时，Python 默认按
+    locale（cp936）编码 stdout ⇒ `UnicodeEncodeError: 'gbk' codec can't encode
+    character '\u2194'`，`--check` 在**打印摘要**时就崩，看起来像门禁红
+    （2026-10-16 实测：交接稿命令 `python scripts/audit/route_ui_coverage.py --check`
+    原样执行必崩，必须显式 `PYTHONUTF8=1` 才过）。
+    reconfigure 不可用（非 TextIOWrapper / 老 Python）时静默跳过，不阻断功能。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
+
+
 def main(argv=None) -> int:
+    _force_utf8_stdio()
     ap = argparse.ArgumentParser(description="路由 ↔ UI 覆盖盘点")
     ap.add_argument("--json-out", default=str(DEFAULT_JSON))
     ap.add_argument("--check", action="store_true",
