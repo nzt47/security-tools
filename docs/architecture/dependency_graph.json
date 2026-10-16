@@ -25885,7 +25885,7 @@
       "source_layer": "subagent",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 120,
+      "line": 139,
       "source_file": "agent/subagent/persistence.py",
       "is_cross_layer": false,
       "is_violation": false,
