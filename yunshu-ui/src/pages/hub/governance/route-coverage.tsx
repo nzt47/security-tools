@@ -118,6 +118,15 @@ export default function RouteCoveragePanel() {
           <p className="mt-1 text-xs text-slate-500">
             后端路由 → 前端 UI 的机械盘点。数据源为提交产物，生成时间 {data?.generated_at ?? '—'}。
           </p>
+          <p
+            className="mt-1 max-w-3xl text-[11px] leading-relaxed text-slate-500"
+            data-testid="route-coverage-scope-note"
+          >
+            口径：每条 = 一个归一化路径（&lt;id&gt; / &lt;int:id&gt; 折成 *），不是运行期 url_map 的规则数；
+            扫描范围含 agent / plugins / sensor / cognitive / memory，因此也会计入其它 Flask app
+            （如 sensor_server）的装饰器，而动态注册（如 /api/open/*）与 Flask 静态路由不在其中；
+            判活 = 该路径存在任一已接线定义，含死副本 = 还存在未接线定义。
+          </p>
         </div>
         <button onClick={load}
           className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
@@ -130,7 +139,7 @@ export default function RouteCoveragePanel() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {[
-          ['静态路由', t.routes], ['活体', t.live], ['含死副本', t.dead_copy], ['前端端点', data?.frontend_endpoints],
+          ['静态路由(路径)', t.routes], ['活体', t.live], ['含死副本', t.dead_copy], ['前端端点', data?.frontend_endpoints],
           ['该进却未进', (data?.pending_ui ?? []).length],
         ].map(([label, v]) => (
           <div key={String(label)} className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3">
