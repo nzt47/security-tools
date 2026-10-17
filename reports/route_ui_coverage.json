@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-18T05:13:13",
+  "generated_at": "2026-10-18T05:53:55",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 350,
+    "ui": 360,
     "cli_script": 17,
     "runtime_only": 12,
-    "unreferenced": 85,
+    "unreferenced": 75,
     "live_by_category": {
-      "ui": 350,
+      "ui": 360,
       "cli_script": 17,
       "runtime_only": 12,
-      "unreferenced": 85
+      "unreferenced": 75
     },
     "by_intent": {
-      "should_be_in_ui": 390,
-      "should_not_be_in_ui": 73,
+      "should_be_in_ui": 385,
+      "should_not_be_in_ui": 78,
       "unclassified": 1
     },
     "by_domain": {
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 356,
+  "frontend_endpoints": 366,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -74,54 +74,6 @@
       ]
     },
     {
-      "path": "/api/assets/backup/<backup_id>",
-      "norm": "/api/assets/backup/*",
-      "methods": [
-        "DELETE"
-      ],
-      "category": "unreferenced",
-      "area": "资产管理",
-      "where": [
-        "agent/server_routes/routes_assets.py:377"
-      ]
-    },
-    {
-      "path": "/api/assets/export",
-      "norm": "/api/assets/export",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "资产管理",
-      "where": [
-        "agent/server_routes/routes_assets.py:429"
-      ]
-    },
-    {
-      "path": "/api/assets/restore",
-      "norm": "/api/assets/restore",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "资产管理",
-      "where": [
-        "agent/server_routes/routes_assets.py:393"
-      ]
-    },
-    {
-      "path": "/api/chat/stream",
-      "norm": "/api/chat/stream",
-      "methods": [
-        "POST"
-      ],
-      "category": "cli_script",
-      "area": "对话",
-      "where": [
-        "plugins/chat.py:2506"
-      ]
-    },
-    {
       "path": "/api/clear",
       "norm": "/api/clear",
       "methods": [
@@ -131,19 +83,6 @@
       "area": "对话",
       "where": [
         "plugins/chat.py:1150"
-      ]
-    },
-    {
-      "path": "/api/config",
-      "norm": "/api/config",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "cli_script",
-      "area": "模型实例",
-      "where": [
-        "plugins/admin.py:83"
       ]
     },
     {
@@ -267,42 +206,6 @@
       ]
     },
     {
-      "path": "/api/network-config/export",
-      "norm": "/api/network-config/export",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "网络配置",
-      "where": [
-        "plugins/admin.py:265"
-      ]
-    },
-    {
-      "path": "/api/network-config/import",
-      "norm": "/api/network-config/import",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "网络配置",
-      "where": [
-        "plugins/admin.py:278"
-      ]
-    },
-    {
-      "path": "/api/news",
-      "norm": "/api/news",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "对话",
-      "where": [
-        "plugins/chat.py:454"
-      ]
-    },
-    {
       "path": "/api/notification/<int:notif_id>/read",
       "norm": "/api/notification/*/read",
       "methods": [
@@ -362,66 +265,6 @@
       "area": "过程蒸馏",
       "where": [
         "agent/server_routes/routes_process_distill.py:58"
-      ]
-    },
-    {
-      "path": "/api/replay/<replay_id>",
-      "norm": "/api/replay/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "回放中心",
-      "where": [
-        "agent/server_routes/routes_replay.py:195"
-      ]
-    },
-    {
-      "path": "/api/replay/<replay_id>/data",
-      "norm": "/api/replay/*/data",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "回放中心",
-      "where": [
-        "agent/server_routes/routes_replay.py:223"
-      ]
-    },
-    {
-      "path": "/api/replay/cleanup",
-      "norm": "/api/replay/cleanup",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "回放中心",
-      "where": [
-        "agent/server_routes/routes_replay.py:286"
-      ]
-    },
-    {
-      "path": "/api/replay/list",
-      "norm": "/api/replay/list",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "回放中心",
-      "where": [
-        "agent/server_routes/routes_replay.py:142"
-      ]
-    },
-    {
-      "path": "/api/replay/stats",
-      "norm": "/api/replay/stats",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "回放中心",
-      "where": [
-        "agent/server_routes/routes_replay.py:258"
       ]
     },
     {
@@ -535,18 +378,6 @@
       ]
     },
     {
-      "path": "/api/skills/describe",
-      "norm": "/api/skills/describe",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能管理",
-      "where": [
-        "plugins/skills.py:441"
-      ]
-    },
-    {
       "path": "/api/skills/params",
       "norm": "/api/skills/params",
       "methods": [
@@ -618,18 +449,6 @@
       "area": "分身/子代理",
       "where": [
         "agent/server_routes/routes_subagent.py:1229"
-      ]
-    },
-    {
-      "path": "/api/subagent/callback",
-      "norm": "/api/subagent/callback",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "分身/子代理",
-      "where": [
-        "agent/server_routes/routes_subagent.py:800"
       ]
     },
     {
@@ -1225,11 +1044,13 @@
       "methods": [
         "DELETE"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/assets/MigrationPanel.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:377"
@@ -1239,7 +1060,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -1273,11 +1094,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:429"
@@ -1287,7 +1110,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -1321,11 +1144,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:393"
@@ -1335,7 +1160,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -1835,10 +1660,10 @@
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "对话",
-      "intent_note": "对话：消息、流式。",
-      "ui_pending": true,
+      "intent_note": "legacy SSE 流式通道：非 UI 引用已含 scripts/probe_prefix_cache_interaction.py；工作台对话走 /api/chat。给它做界面等于把旧通道重新变成产品面。",
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -2009,10 +1834,10 @@
       ],
       "description": "获取或设置 LLM 配置",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "模型实例",
-      "intent_note": "LLM 配置读写。",
-      "ui_pending": true,
+      "intent_note": "旧 LLM 配置面：已被 /api/llm/instances（实例管理页）取代；仍被 agent/modules_registry.py 读取，属运行期配置而非 UI 编辑面。",
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5429,11 +5254,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:265"
@@ -5443,7 +5270,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "网络配置",
       "intent_note": "网络配置：读取/重置/导入/导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5452,11 +5279,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:278"
@@ -5466,7 +5295,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "网络配置",
       "intent_note": "网络配置：读取/重置/导入/导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5511,10 +5340,10 @@
       ],
       "description": "新闻直通接口 — 搜索+翻译+格式化，绕过 LLM",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "对话",
-      "intent_note": "新闻直通。",
-      "ui_pending": true,
+      "intent_note": "新闻直通接口（搜索+翻译+格式化，绕过 LLM）：供 news 工具直连的工具面，不是工作台界面；界面侧该走对话或知识库。",
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -6620,11 +6449,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/replay/index.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:195"
@@ -6634,7 +6465,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -6643,11 +6474,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/replay/index.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:223"
@@ -6657,7 +6490,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -6666,11 +6499,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:286"
@@ -6680,7 +6515,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -6689,11 +6524,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:142"
@@ -6703,7 +6540,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -6712,11 +6549,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_replay.py:258"
@@ -6726,7 +6565,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -9703,10 +9542,10 @@
       ],
       "description": "【G1-B / M0 已冻结】原「手工补写某个运行时技能的中文说明到覆盖层」",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能管理",
-      "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true,
+      "intent_note": "后端 docstring 明写【G1-B / M0 已冻结】：原「手工补写运行时技能中文说明到覆盖层」，已有 /api/skills/describe/auto 替代。冻结功能不接界面。",
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10021,10 +9860,10 @@
       ],
       "description": "接收分身/远端的委派结果回调（**只落账，不执行任何工具、不建/改容器**）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "分身/子代理",
-      "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true,
+      "intent_note": "远端/分身委派结果回调（后端明写\"只落账，不执行任何工具、不建改容器\"）：机器链路，无人工操作语义。",
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -12393,5 +12232,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "ef08c16995c90dc0"
+  "content_hash": "eb45eb3d0560fd1e"
 }

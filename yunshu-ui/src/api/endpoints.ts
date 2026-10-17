@@ -455,6 +455,19 @@ export const asyncTaskCancel = (id: string) => `/api/tasks/${encodeURIComponent(
 //  回放 / 子智能体（/api/replay、/api/subagent）
 // ===============================================================
 export const REPLAY_UPLOAD = '/api/replay/upload';
+// 回放中心（列表 / 元数据 / 数据 / 统计 / 清理）
+export const REPLAY_LIST = '/api/replay/list';
+export const REPLAY_STATS = '/api/replay/stats';
+export const REPLAY_CLEANUP = '/api/replay/cleanup';
+export const replayById = (id: string) => `/api/replay/${encodeURIComponent(id)}`;
+export const replayData = (id: string) => `/api/replay/${encodeURIComponent(id)}/data`;
+// 资产备份（删除 / 恢复 / 导出）
+export const ASSETS_EXPORT = '/api/assets/export';
+export const ASSETS_RESTORE = '/api/assets/restore';
+export const assetBackupById = (id: string) => `/api/assets/backup/${encodeURIComponent(id)}`;
+// 网络配置（导出 / 导入）
+export const NETWORK_CONFIG_EXPORT = '/api/network-config/export';
+export const NETWORK_CONFIG_IMPORT = '/api/network-config/import';
 export const SUBAGENT_LIST = '/api/subagent/list';
 export const SUBAGENT_CREATE = '/api/subagent/create';
 export const SUBAGENT_DELEGATE = '/api/subagent/delegate';

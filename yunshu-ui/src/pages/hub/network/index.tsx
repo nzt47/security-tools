@@ -2,6 +2,7 @@
  * 网络配置 —— 网络参数配置界面
  * 数据源：/api/network-config、/api/apply-network-config、/api/llm/instances
  */
+import NetworkTransfer from './TransferPanel'
 import { useEffect, useState } from 'react'
 import { Globe, Save, RotateCcw } from 'lucide-react'
 import { Card, Loading, ErrorBox, PageHeader, hubGet, hubPost, unwrap } from '../components/ui'
@@ -119,6 +120,7 @@ export default function NetworkPage() {
           </Card>
         </div>
       )}
+      <NetworkTransfer />
     </div>
   )
 }

@@ -7,6 +7,7 @@
  * 由导航 key（assets/<category>）推导的 initialCategory 决定初始分类，
  * 点击不同菜单即可渲染对应分类内容（配合 ContentPanel 的 key 重挂载）。
  */
+import AssetsMigration from './MigrationPanel'
 import { useEffect, useState } from 'react'
 import { Archive, Plus, Trash2 } from 'lucide-react'
 import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, hubDelete } from '../components/ui'
@@ -261,6 +262,7 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
           )}
         </Card>
       </div>
+      <AssetsMigration />
     </div>
   )
 }
