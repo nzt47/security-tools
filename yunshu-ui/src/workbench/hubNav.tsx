@@ -17,6 +17,7 @@ import {
   HeartPulse, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
+  BarChart3, Cpu,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -56,6 +57,11 @@ const HubAdminNotifications = lazy(() => import('@/pages/hub/admin/index').then(
 const HubAdminLogs = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminLogs })))
 // 数据导出：复用管理后台 Export 页（原 /export 路由已随第二套外壳摘除，收敛到系统管理栏目）
 const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
+// 2026-10-18 新增：反馈中心（7 条 /api/feedback）与 业务看板（业务指标 + 系统仪表盘 10 条）、
+// 实例管理（LLM 实例 + 搜索实例 9 条）。三者此前在后端存在、前端零引用。
+const FeedbackCenter = lazy(() => import('@/pages/hub/governance/feedback'))
+const BusinessBoard = lazy(() => import('@/pages/hub/governance/business'))
+const InstancesPanel = lazy(() => import('@/pages/hub/admin/instances'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 // 插件与扩展：原「插件管理」与「扩展中心」合并为一个导航项；2026-10-15 进一步取消 Tab，
 // 插件自带 UI 直接挂在清单卡片里（extensionHost.registerPluginModule 链路保留），
@@ -147,6 +153,8 @@ export const HUB_NAV: HubNavItem[] = [
       // 【2026-10-15 IA】原同在这里的「审计导出 / 开关中心」是**运行时**视图，已上移到
       // 全景看板（见该桶内说明）；键不变，旧深链照旧生效。
       { key: 'governance/route-coverage', label: '路由覆盖', icon: Route, component: GovernancePanels },
+      { key: 'governance/feedback', label: '反馈中心', icon: MessageSquare, component: FeedbackCenter },
+      { key: 'governance/business', label: '业务看板', icon: BarChart3, component: BusinessBoard },
     ],
   },
   // 【第三轮 IA】原顶层叶子「资产管理」已并入上面的「记忆与资产」桶；
@@ -155,6 +163,7 @@ export const HUB_NAV: HubNavItem[] = [
     key: 'admin', label: '系统管理', icon: Settings,
     children: [
       { key: 'admin/dashboard', label: '仪表盘', icon: LayoutDashboard, component: HubAdminDashboard },
+      { key: 'admin/instances', label: '实例管理', icon: Cpu, component: InstancesPanel },
       { key: 'admin/export', label: '数据导出', icon: FileDown, component: HubAdminExport },
       { key: 'admin/users', label: '用户列表', icon: Users, component: HubAdminUsers },
       { key: 'admin/roles', label: '角色权限', icon: Shield, component: HubAdminRoles },

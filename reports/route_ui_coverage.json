@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-18T02:17:07",
+  "generated_at": "2026-10-18T03:05:55",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 278,
+    "ui": 303,
     "cli_script": 17,
-    "runtime_only": 25,
-    "unreferenced": 144,
+    "runtime_only": 24,
+    "unreferenced": 120,
     "live_by_category": {
-      "ui": 278,
+      "ui": 303,
       "cli_script": 17,
-      "runtime_only": 25,
-      "unreferenced": 144
+      "runtime_only": 24,
+      "unreferenced": 120
     },
     "by_intent": {
       "should_be_in_ui": 390,
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 284,
+  "frontend_endpoints": 309,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -158,66 +158,6 @@
       ]
     },
     {
-      "path": "/api/business/dashboard",
-      "norm": "/api/business/dashboard",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "业务看板",
-      "where": [
-        "agent/server_routes/routes_business_dashboard.py:283"
-      ]
-    },
-    {
-      "path": "/api/business/definitions",
-      "norm": "/api/business/definitions",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "业务看板",
-      "where": [
-        "agent/server_routes/routes_business_dashboard.py:367"
-      ]
-    },
-    {
-      "path": "/api/business/health",
-      "norm": "/api/business/health",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "业务看板",
-      "where": [
-        "agent/server_routes/routes_business_dashboard.py:259"
-      ]
-    },
-    {
-      "path": "/api/business/metrics/<metric_name>",
-      "norm": "/api/business/metrics/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "业务看板",
-      "where": [
-        "agent/server_routes/routes_business_dashboard.py:325"
-      ]
-    },
-    {
-      "path": "/api/business/prometheus",
-      "norm": "/api/business/prometheus",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "业务看板",
-      "where": [
-        "agent/server_routes/routes_business_dashboard.py:355"
-      ]
-    },
-    {
       "path": "/api/chat/stream",
       "norm": "/api/chat/stream",
       "methods": [
@@ -252,150 +192,6 @@
       "area": "模型实例",
       "where": [
         "plugins/admin.py:83"
-      ]
-    },
-    {
-      "path": "/api/dashboard/health",
-      "norm": "/api/dashboard/health",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "仪表盘",
-      "where": [
-        "agent/server_routes/routes_dashboard.py:680"
-      ]
-    },
-    {
-      "path": "/api/dashboard/memory",
-      "norm": "/api/dashboard/memory",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "仪表盘",
-      "where": [
-        "agent/server_routes/routes_dashboard.py:855"
-      ]
-    },
-    {
-      "path": "/api/dashboard/quality",
-      "norm": "/api/dashboard/quality",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "仪表盘",
-      "where": [
-        "agent/server_routes/routes_dashboard.py:702"
-      ]
-    },
-    {
-      "path": "/api/dashboard/traces",
-      "norm": "/api/dashboard/traces",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "仪表盘",
-      "where": [
-        "agent/server_routes/routes_dashboard.py:780"
-      ]
-    },
-    {
-      "path": "/api/dashboard/traces/<trace_id>",
-      "norm": "/api/dashboard/traces/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "仪表盘",
-      "where": [
-        "agent/server_routes/routes_dashboard.py:833"
-      ]
-    },
-    {
-      "path": "/api/feedback/<feedback_id>",
-      "norm": "/api/feedback/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "反馈中心",
-      "where": [
-        "agent/server_routes/routes_feedback.py:165"
-      ]
-    },
-    {
-      "path": "/api/feedback/<feedback_id>/resolve",
-      "norm": "/api/feedback/*/resolve",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "反馈中心",
-      "where": [
-        "agent/server_routes/routes_feedback.py:193"
-      ]
-    },
-    {
-      "path": "/api/feedback/list",
-      "norm": "/api/feedback/list",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "反馈中心",
-      "where": [
-        "agent/server_routes/routes_feedback.py:113"
-      ]
-    },
-    {
-      "path": "/api/feedback/quality-cases",
-      "norm": "/api/feedback/quality-cases",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "反馈中心",
-      "where": [
-        "agent/server_routes/routes_feedback.py:264"
-      ]
-    },
-    {
-      "path": "/api/feedback/report",
-      "norm": "/api/feedback/report",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "反馈中心",
-      "where": [
-        "agent/server_routes/routes_feedback.py:305"
-      ]
-    },
-    {
-      "path": "/api/feedback/submit",
-      "norm": "/api/feedback/submit",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "反馈中心",
-      "where": [
-        "agent/server_routes/routes_feedback.py:33"
-      ]
-    },
-    {
-      "path": "/api/feedback/summary",
-      "norm": "/api/feedback/summary",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "反馈中心",
-      "where": [
-        "agent/server_routes/routes_feedback.py:236"
       ]
     },
     {
@@ -540,60 +336,6 @@
       "area": "LLM 监控",
       "where": [
         "agent/server_routes/routes_llm_monitor.py:56"
-      ]
-    },
-    {
-      "path": "/api/llm/instances",
-      "norm": "/api/llm/instances",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "模型实例",
-      "where": [
-        "plugins/admin.py:351",
-        "plugins/admin.py:379"
-      ]
-    },
-    {
-      "path": "/api/llm/instances/<string:instance_id>",
-      "norm": "/api/llm/instances/*",
-      "methods": [
-        "DELETE",
-        "GET",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "模型实例",
-      "where": [
-        "plugins/admin.py:364",
-        "plugins/admin.py:402",
-        "plugins/admin.py:422"
-      ]
-    },
-    {
-      "path": "/api/llm/instances/<string:instance_id>/default",
-      "norm": "/api/llm/instances/*/default",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "模型实例",
-      "where": [
-        "plugins/admin.py:437"
-      ]
-    },
-    {
-      "path": "/api/llm/instances/<string:instance_id>/test",
-      "norm": "/api/llm/instances/*/test",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "模型实例",
-      "where": [
-        "plugins/admin.py:452"
       ]
     },
     {
@@ -1115,58 +857,6 @@
       "area": "搜索性能",
       "where": [
         "plugins/admin.py:931"
-      ]
-    },
-    {
-      "path": "/api/search/instances",
-      "norm": "/api/search/instances",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "搜索实例",
-      "where": [
-        "plugins/admin.py:505",
-        "plugins/admin.py:517"
-      ]
-    },
-    {
-      "path": "/api/search/instances/<string:instance_id>",
-      "norm": "/api/search/instances/*",
-      "methods": [
-        "DELETE",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "搜索实例",
-      "where": [
-        "plugins/admin.py:577",
-        "plugins/admin.py:637"
-      ]
-    },
-    {
-      "path": "/api/search/instances/<string:instance_id>/default",
-      "norm": "/api/search/instances/*/default",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "搜索实例",
-      "where": [
-        "plugins/admin.py:699"
-      ]
-    },
-    {
-      "path": "/api/search/instances/<string:instance_id>/test",
-      "norm": "/api/search/instances/*/test",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "搜索实例",
-      "where": [
-        "plugins/admin.py:747"
       ]
     },
     {
@@ -2513,11 +2203,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:283"
@@ -2527,7 +2219,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -2536,11 +2228,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:367"
@@ -2550,7 +2244,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -2559,11 +2253,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:259"
@@ -2573,7 +2269,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -2582,11 +2278,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/governance/business.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:325"
@@ -2596,7 +2294,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -2605,11 +2303,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_business_dashboard.py:355"
@@ -2619,7 +2319,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -3515,11 +3215,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:680"
@@ -3529,7 +3231,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -3538,11 +3240,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:855"
@@ -3552,7 +3256,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -3561,11 +3265,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:702"
@@ -3575,7 +3281,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -3609,11 +3315,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:780"
@@ -3623,7 +3331,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -3632,11 +3340,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/governance/business.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_dashboard.py:833"
@@ -3646,7 +3356,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -4460,11 +4170,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/governance/feedback.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:165"
@@ -4474,7 +4186,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -4483,11 +4195,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/governance/feedback.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:193"
@@ -4497,7 +4211,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -4506,11 +4220,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:113"
@@ -4520,7 +4236,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -4529,11 +4245,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:264"
@@ -4543,7 +4261,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -4552,11 +4270,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:305"
@@ -4566,7 +4286,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -4575,11 +4295,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:33"
@@ -4589,7 +4311,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -4598,11 +4320,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_feedback.py:236"
@@ -4612,7 +4336,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "业务与评估"
     },
     {
@@ -5604,11 +5328,13 @@
         "GET",
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_api.py"
       ],
@@ -5621,7 +5347,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "模型实例",
       "intent_note": "模型实例：列表/详情/默认/连通性测试。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5632,11 +5358,13 @@
         "GET",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/admin/instances.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:364",
@@ -5648,7 +5376,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "模型实例",
       "intent_note": "模型实例：列表/详情/默认/连通性测试。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5657,11 +5385,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/admin/instances.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:437"
@@ -5671,7 +5401,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "模型实例",
       "intent_note": "模型实例：列表/详情/默认/连通性测试。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5680,11 +5410,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/admin/instances.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:452"
@@ -5694,7 +5426,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "模型实例",
       "intent_note": "模型实例：列表/详情/默认/连通性测试。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -8243,11 +7975,13 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:505",
@@ -8258,7 +7992,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索实例",
       "intent_note": "搜索实例：列表/详情/默认/测试。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -8268,11 +8002,13 @@
         "DELETE",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/admin/instances.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:577",
@@ -8283,7 +8019,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索实例",
       "intent_note": "搜索实例：列表/详情/默认/测试。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -8292,11 +8028,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/admin/instances.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:699"
@@ -8306,7 +8044,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索实例",
       "intent_note": "搜索实例：列表/详情/默认/测试。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -8315,11 +8053,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/admin/instances.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin.py:747"
@@ -8329,7 +8069,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索实例",
       "intent_note": "搜索实例：列表/详情/默认/测试。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -13128,5 +12868,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "a1092c74d67c8f79"
+  "content_hash": "5bd206feb9faa26c"
 }
