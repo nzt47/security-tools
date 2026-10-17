@@ -56,7 +56,12 @@ describe('SecurityPanel', () => {
     gets()
     api.hubPost.mockResolvedValue({ ok: true })
     render(<SecurityPanel />)
-    await screen.findByText('权限开关（切换后回读，界面只说后端真实状态）')
+    // 【CI 实测】只看标题会与 status 的返回赛跑：标题先渲染，开关行还是空态，
+    // 于是点下去会按「当前=false」算出 enabled=true。必须等这一行反映已加载状态
+    // （file_write 默认开 ⇒ 按钮写"关闭"）再点。
+    await waitFor(() => expect(
+      screen.getByRole('button', { name: '切换开关 file_write' }).textContent,
+    ).toContain('关闭'))
     const before = api.hubGet.mock.calls.filter((c) => c[0] === '/api/permission/status').length
 
     fireEvent.click(screen.getByRole('button', { name: '切换开关 file_write' }))
