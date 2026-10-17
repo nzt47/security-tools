@@ -14,7 +14,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   MessageSquare, LayoutDashboard, Brain, Wrench, Globe, Database,
   Activity, FileText, Server, Monitor,
-  HeartPulse, CalendarClock, Users, Hammer,
+  HeartPulse, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
 } from 'lucide-react'
@@ -39,8 +39,9 @@ const MemoryHub = lazy(() => import('@/pages/hub/memory/hub'))
 // 其中「主线管理」= 能力平面档案（四平面权重 + 保底 + 效果上限）+ 实时装配预览，
 // 数据源 data/agent_lines/*.yaml；后端 agent/server_routes/routes_agent_lines.py
 const ToolsPage = lazy(() => import('@/pages/hub/tools'))
-const EngineHeartbeat = lazy(() => import('@/pages/hub/engine/heartbeat'))
-const EngineScheduler = lazy(() => import('@/pages/hub/engine/scheduler'))
+// 引擎：心跳监测 / 定时任务 / 执行历史 收敛为一页三 Tab（2026-10-17 IA）。
+// 页面内默认落在只读的心跳视图，写操作只在「定时任务」Tab 内。
+const EngineHub = lazy(() => import('@/pages/hub/engine/hub'))
 const NetworkPage = lazy(() => import('@/pages/hub/network'))
 // 分身创建与组装：本页含 5 个视图（分身 / 组装台 / 带走·自复制 / 主线档案 / 主线 × 四面）；
 // 原独立叶子 workshop/replicate（系统自我复制）已于 2026-10-15 并入本页第 3 视图
@@ -111,10 +112,10 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'panorama/sensors', label: '全景感知', icon: Activity, component: PanoramaSensors },
       { key: 'panorama/monitor', label: '系统监控', icon: Server, component: PanoramaMonitor },
       { key: 'panorama/logs', label: '日志查看', icon: FileText, component: PanoramaLogs },
-      // 【阶段 3】原顶层「循环工程」并入全景看板（方案 §5 备选：循环工程也可并入全景看板）。
-      // 子项 key 保留 engine/* ⇒ 旧深链 ?panel=engine/heartbeat 仍有效；组 key engine 走兼容映射。
-      { key: 'engine/heartbeat', label: '心跳监测', icon: HeartPulse, component: EngineHeartbeat },
-      { key: 'engine/scheduler', label: '定时任务', icon: CalendarClock, component: EngineScheduler },
+      // 【2026-10-17 IA】心跳监测 + 定时任务 + 执行历史 → 单一叶子「引擎」（页内三 Tab）。
+      // 旧 key engine/heartbeat、engine/scheduler 经 LEGACY_NAV_KEY_MAP 落到本页，
+      // 并保留初始 Tab 语义（组件读原始 hash 决定）。
+      { key: 'engine', label: '引擎', icon: Activity, component: EngineHub },
       // 【2026-10-15 IA】治理面板 → 全景看板：这两个是**运行时运维视图**，与全景看板的
       // 运行时观测同类 —— 审计导出读**活的**链式台账 DB（实测 chain_head.count≈7.8 万），
       // 开关中心读实时登记表（实测 547 项、含 overridden）。键保持不变 ⇒ 旧深链
@@ -269,8 +270,10 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   'experience': 'memory',
   // 扩展中心并入系统组件 · 插件管理（阶段 1.2）
   'extensions': 'components/plugins',
-  // 循环工程并入全景看板（阶段 3）：组 key 消失，落到其原第一个子项
-  'engine': 'engine/heartbeat',
+  // 【2026-10-17 IA】引擎三合一：心跳/定时任务/执行历史 → 叶子 engine。
+  // 旧子项 key 落到本页；engine 自身已是真实叶子，无需再映射。
+  'engine/heartbeat': 'engine',
+  'engine/scheduler': 'engine',
   // 【第三轮 IA】装配车间并入会话与配置：组 key 消失，落到其原第一个子项
   'workshop': 'workshop/agents',
   // 【2026-10-15 IA】「系统自我复制」并入「分身创建与组装」第 3 视图（带走 / 自复制）：
