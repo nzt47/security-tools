@@ -14,7 +14,11 @@
  *
  * 前置：后端 5678 运行（python app_server.py）+ 已 build:flask；本机 Edge/Chrome。
  * 用法：
- *   node scripts/dev/workbench_acceptance_smoke.mjs [--url http://127.0.0.1:5678/chat#/workbench] [--edge "..."]
+ *   node scripts/dev/workbench_acceptance_smoke.mjs [--url http://127.0.0.1:5678/chat#/workbench]
+ *        [--edge "..."] [--token <FLASK_API_TOKEN>]
+ *   --token 也可用环境变量 YUNSHU_API_TOKEN 提供；令牌只写进页面的
+ *   localStorage['yunshu_api_token']（应用启动前注入），不落盘、不打印。
+ *   不传 token 时行为与旧版一致（未开鉴权的工作台仍可跑）。
  * 退出码：全 PASS → 0；任一 FAIL → 1。
  */
 import { spawn } from 'node:child_process';
@@ -38,11 +42,17 @@ const freePort = () => new Promise((resolve, reject) => {
   srv.on('error', reject);
 });
 function parseArgs(argv) {
-  const a = { url: 'http://127.0.0.1:5678/chat#/workbench', edge: process.env.EDGE_PATH || null };
+  const a = {
+    url: 'http://127.0.0.1:5678/chat#/workbench',
+    edge: process.env.EDGE_PATH || null,
+    token: process.env.YUNSHU_API_TOKEN || '', // 令牌也可由环境变量提供，便于 CI
+  };
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--url') a.url = argv[++i] ?? a.url;
     else if (argv[i] === '--edge') a.edge = argv[++i] ?? a.edge;
+    else if (argv[i] === '--token') a.token = argv[++i] ?? a.token;
   }
+  a.token = String(a.token).trim();
   return a;
 }
 const resolveBrowser = (explicit) => [
@@ -103,6 +113,32 @@ async function main() {
     };
     const send = (method, params = {}) => new Promise((res) => { const id = ++msgId; pending.set(id, res); ws.send(JSON.stringify({ id, method, params })); });
     await send('Runtime.enable');
+
+    // 令牌注入：以 CDP 的**参数值**写进 localStorage，随后 re-navigate 让应用带着令牌重启。
+    // 【为什么不拼进脚本字符串】把令牌拼进 source 会被 CodeQL 判成
+    //   js/bad-code-sanitization；而打印与令牌相关的任何派生值会命中
+    //   js/clear-text-logging。故这里只按「键/值」两个参数传，且不输出令牌。
+    if (args.token) {
+      await send('Page.enable');
+      const lsHandle = await send('Runtime.evaluate', { expression: 'window.localStorage' });
+      const objectId = lsHandle && lsHandle.result && lsHandle.result.result && lsHandle.result.result.objectId;
+      if (!objectId) throw new Error('取不到 localStorage 句柄，无法注入令牌');
+      await send('Runtime.callFunctionOn', {
+        objectId,
+        functionDeclaration: 'function(k,v){try{this.setItem(k,v)}catch(e){}}',
+        arguments: [{ value: 'yunshu_api_token' }, { value: args.token }],
+      });
+      const applied = await send('Runtime.evaluate', {
+        expression: '!!localStorage.getItem("yunshu_api_token")', returnByValue: true,
+      });
+      if (!applied || !applied.result || !applied.result.result || applied.result.result.value !== true) {
+        throw new Error('令牌写入 localStorage 失败');
+      }
+      consoleErrors.length = 0; // 注入前首屏的 401 不属于「带令牌」验收范围
+      await send('Page.navigate', { url: args.url });
+      console.log('  已注入 API 令牌（localStorage yunshu_api_token）');
+    }
+
     const ev = async (expression) => {
       const r = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
       if (r.result?.exceptionDetails) throw new Error('页面脚本异常: ' + JSON.stringify(r.result.exceptionDetails).slice(0, 200));
@@ -116,8 +152,11 @@ async function main() {
       }
       return false;
     };
+    // 按可见文本点击：先精确匹配，再退化为包含匹配。
+    // 【Why】2026-10-15 工作台 IA 重构后，导航项/页内 Tab 常带图标或角标，
+    // textContent 不再是纯标签文本，纯 === 匹配会大面积 miss。
     const clickText = (label) => ev(
-      `(()=>{const bs=[...document.querySelectorAll('button')];const b=bs.find(x=>x.textContent.trim()===${JSON.stringify(label)});if(b){b.click();return true}return false})()`);
+      `(()=>{const els=[...document.querySelectorAll('button,a,[role=tab]')];const t=(x)=>(x.textContent||'').trim();const L=${JSON.stringify(label)};const b=els.find(x=>t(x)===L)||els.find(x=>t(x).includes(L));if(b){b.click();return true}return false})()`);
     const bodyText = () => ev(`document.body.innerText`);
 
     // ═══ A. DevConsole FAB ═══
@@ -151,24 +190,34 @@ async function main() {
     }
 
     // ═══ C. 栏目渲染抽查 ═══
+    // 当前 IA 是「分组 + 子项 / 页内 Tab」两层，故每个用例给一条点击路径。
     const navCases = [
-      ['可视化编辑', '节点'],           // 画布区应有节点面板字样
-      ['数据导出', '导出格式'],
-      ['插件管理', '插件'],
-      ['知识库系统', '卡片总数'],
+      { path: ['技能中心', '可视化编辑'], expect: '节点' }, // 画布区应有节点面板字样
+      { path: ['数据导出'], expect: '导出格式' },
+      { path: ['插件与扩展'], expect: '插件' },          // 原名「插件管理」，2026-10-15 合并为「插件与扩展」
+      { path: ['记忆管理', '知识库系统'], expect: '卡片总数' },
     ];
-    for (const [nav, expect] of navCases) {
-      check(`点击导航「${nav}」`, await clickText(nav));
-      check(`「${nav}」页渲染（含「${expect}」）`, await waitFor(`document.body.innerText.includes(${JSON.stringify(expect)})`, 20000));
-      await ev(`(()=>{const s=document.querySelector('.devconsole-fab');return true})()`);
+    for (const navCase of navCases) {
+      const nav = navCase.path.join(' → ');
+      let clicked = true;
+      for (const label of navCase.path) {
+        if (!(await clickText(label))) { clicked = false; break; }
+        await sleep(1200);
+      }
+      check(`点击导航「${nav}」`, clicked);
+      check(`「${nav}」页渲染（含「${navCase.expect}」）`, await waitFor(`document.body.innerText.includes(${JSON.stringify(navCase.expect)})`, 20000));
     }
 
     // ═══ D. 资产管理分类联动（点「提示词库」应显示 prompts 分类而非默认记忆）═══
+    check('点击导航「资产管理」', await clickText('资产管理'));
+    await sleep(1200);
     check('点击资产「提示词库」', await clickText('提示词库'));
     const promptsActive = await waitFor(`(()=>{const t=document.body.innerText;return t.includes('提示词')&&(t.includes('分类')||t.includes('创建')||t.includes('备份'))})()`, 12000);
     check('提示词库分类激活（非默认记忆分类）', promptsActive);
 
     // ═══ F. 知识库 CRUD 冒烟（新建→验证→删除）═══
+    check('点击导航「记忆管理」', await clickText('记忆管理'));
+    await sleep(1200);
     check('切到知识库系统', await clickText('知识库系统'));
     const kbReady = await waitFor(`document.body.innerText.includes('新建卡片')`, 20000);
     check('知识库页就绪（含新建卡片入口）', kbReady);
