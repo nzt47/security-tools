@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-17T22:12:44",
+  "generated_at": "2026-10-17T22:14:58",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 216,
+    "ui": 224,
     "cli_script": 19,
     "runtime_only": 29,
-    "unreferenced": 200,
+    "unreferenced": 192,
     "live_by_category": {
-      "ui": 216,
+      "ui": 224,
       "cli_script": 19,
       "runtime_only": 29,
-      "unreferenced": 200
+      "unreferenced": 192
     },
     "by_intent": {
       "should_be_in_ui": 403,
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 222,
+  "frontend_endpoints": 230,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -1652,102 +1652,6 @@
       "area": "搜索实例",
       "where": [
         "plugins/admin.py:747"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/abstract-from-memory",
-      "norm": "/api/skills-mgmt/abstract-from-memory",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1312"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/auto-merge",
-      "norm": "/api/skills-mgmt/auto-merge",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1200"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/cleanup/orphans",
-      "norm": "/api/skills-mgmt/cleanup/orphans",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:83"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/cleanup/report",
-      "norm": "/api/skills-mgmt/cleanup/report",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:72"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/cleanup/unused",
-      "norm": "/api/skills-mgmt/cleanup/unused",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:100"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/merge",
-      "norm": "/api/skills-mgmt/merge",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1141"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/three-layer/summary",
-      "norm": "/api/skills-mgmt/three-layer/summary",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1240"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/upload",
-      "norm": "/api/skills-mgmt/upload",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:292"
       ]
     },
     {
@@ -9945,11 +9849,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1312"
@@ -9959,7 +9865,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10198,11 +10104,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1200"
@@ -10212,7 +10120,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10296,11 +10204,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:83"
@@ -10310,7 +10220,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10319,11 +10229,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:72"
@@ -10333,7 +10245,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10342,11 +10254,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:100"
@@ -10356,7 +10270,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10774,11 +10688,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1141"
@@ -10788,7 +10704,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -11000,11 +10916,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1240"
@@ -11014,7 +10932,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -11023,11 +10941,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:292"
@@ -11037,7 +10957,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -13777,5 +13697,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "a80b586f9211b5b8"
+  "content_hash": "40af4548db9da27d"
 }
