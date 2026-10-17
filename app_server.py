@@ -2856,6 +2856,18 @@ if __name__ == "__main__":
                 print(f"ℹ️ 对端心跳未注册: {_peer_hb.get('reason')}")
         except Exception as e:
             print(f"⚠️ 对端心跳接线失败（不阻断主流程）: {e}")
+        # 数据保留策略 dry-run（零 token）：只出清单与体积，不落盘/不删除。
+        # 【为什么在 app_server 注册】retention -> task_scheduler 已有依赖，
+        # 若改由 task_scheduler 反向 import retention 就会成环（架构规则校验会红）。
+        try:
+            from agent.retention import register_retention_job
+
+            _ret = register_retention_job(
+                scheduler, enabled=True, dry_run=True, hour=15, minute=20)
+            print(f"✅ 保留策略 dry-run 已排程: {_ret.get('status')}")
+        except Exception as e:  # noqa: BLE001 注册失败不阻断主流程
+            print(f"⚠️ 保留策略 dry-run 注册失败（不阻断）: {e}")
+
         scheduler.start_daemon(check_interval=10)
         print("✅ 定时任务调度器已启动 (daemon)")
     except Exception as e:

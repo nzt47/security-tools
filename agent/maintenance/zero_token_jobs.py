@@ -46,8 +46,8 @@ BASE_URL = "http://127.0.0.1:5678"
 #: 令牌只从环境/.env 读，绝不打印
 TOKEN_ENV = "FLASK_API_TOKEN"
 
-#: 工作时段（左闭右开）：09:00-18:00
-WORK_WINDOW_START = 9
+#: 工作时段（左闭右开）：05:00-18:00（2026-10-17 用户口径）
+WORK_WINDOW_START = 5
 WORK_WINDOW_END = 18
 
 #: 单条作业的超时（秒）
@@ -57,13 +57,14 @@ HTTP_TIMEOUT = 120
 #: 端点分段（拼装后才是完整路径；理由见模块头）
 EP_MEMORY_REVIEW = ("api", "memory", "review")
 EP_HEALTH = ("api", "health")
+EP_SKILLS_CLASSIFY = ("api", "skills", "classify", "run-auto")
 EP_TOPOLOGY = ("api", "modules", "topology")
 
 JOBS: List[Dict[str, Any]] = [
     {
         "key": "memory_review",
         "name": "维护·记忆库审查",
-        "hour": 9,
+        "hour": 5,
         "minute": 20,
         "kind": "http",
         "method": "POST",
@@ -73,7 +74,7 @@ JOBS: List[Dict[str, Any]] = [
     {
         "key": "knowledge_audit",
         "name": "维护·知识库巡检",
-        "hour": 10,
+        "hour": 6,
         "minute": 20,
         "kind": "shell",
         "argv": [
@@ -85,7 +86,7 @@ JOBS: List[Dict[str, Any]] = [
     {
         "key": "route_coverage_check",
         "name": "维护·路由覆盖自检",
-        "hour": 11,
+        "hour": 7,
         "minute": 20,
         "kind": "shell",
         "argv": [sys.executable, "scripts/audit/route_ui_coverage.py", "--check"],
@@ -94,16 +95,26 @@ JOBS: List[Dict[str, Any]] = [
     {
         "key": "capability_manifest_check",
         "name": "维护·能力清单自检",
-        "hour": 13,
-        "minute": 30,
+        "hour": 8,
+        "minute": 20,
         "kind": "shell",
         "argv": [sys.executable, "scripts/sync_capability_manifest.py", "--check"],
         "note": "清单与权威数据是否一致；只读",
     },
     {
+        "key": "skills_classify",
+        "name": "维护·技能自动分类",
+        "hour": 9,
+        "minute": 20,
+        "kind": "http",
+        "method": "POST",
+        "endpoint": EP_SKILLS_CLASSIFY,
+        "note": "纯规则分类（无 LLM）：为未归类技能补分类，可自动建类",
+    },
+    {
         "key": "health_snapshot",
         "name": "维护·健康快照",
-        "hour": 17,
+        "hour": 14,
         "minute": 20,
         "kind": "http",
         "method": "GET",
@@ -222,6 +233,9 @@ def _run_http_job(job: Dict[str, Any]) -> Tuple[bool, str]:
     if job["key"] == "memory_review":
         return _job_memory_review()
     r = _http_json(job.get("method", "GET"), tuple(job["endpoint"]))
+    body = r.get("body") or {}
+    if isinstance(body, dict) and body.get("code") not in (None, 200):
+        return False, "服务端返回 code=" + str(body.get("code")) + " " + _tail(str(body.get("message", "")), 160)
     return True, "status=" + str(r.get("status"))
 
 

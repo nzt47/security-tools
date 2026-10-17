@@ -797,13 +797,17 @@ def _create_scheduler(config=None):
         day_of_week=0,
         hour=9,
         minute=0,
+        # 已核：run_weekly_report 只是聚合 + 渲染，链路无 LLM 调用
+        zero_token=True,
+        owner="agent/task_scheduler.py",
     )
     sched.add_cron_task(
         name="清理旧日志",
         func=cleanup_old_logs,
         day_of_week=None,
-        hour=2,
-        minute=0,
+        # 2026-10-17：工作时段改为 05:00-18:00，从 02:00 挪进窗口
+        hour=5,
+        minute=10,
         zero_token=True,
         owner="agent/task_scheduler.py",
     )

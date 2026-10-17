@@ -113,7 +113,10 @@ def register_retention_job(scheduler: Any = None, *,
     try:
         kwargs: Dict[str, Any] = {"name": TASK_NAME, "func": _tick,
                                   "hour": schedule["hour"],
-                                  "minute": schedule["minute"]}
+                                  "minute": schedule["minute"],
+                                  # UI 标注：保留策略 dry-run 不调 LLM
+                                  "zero_token": True,
+                                  "owner": "agent/retention/scheduler.py"}
         # add_cron_task 的 day_of_week 支持 None（每日）；仅当有值时才传
         if schedule.get("day_of_week") is not None:
             kwargs["day_of_week"] = schedule["day_of_week"]
