@@ -293,3 +293,38 @@ class Test端点:
         resp = client.get("/api/audit/route-ui-coverage")
         assert resp.status_code == 404, "产物缺失应 404，不得静默返回空对象"
         assert resp.headers.get("X-Envelope") == "v2", "错误路径同样带信封（本仓统一模型）"
+
+
+class Test功能区:
+    """路由的「功能区」归属（config/route_domains.json；与意图正交）。"""
+
+    def test_每条活体路由都有功能区(self):
+        m = _mod()
+        payload = m.classify()
+        missing = sorted(e["norm"] for e in payload["entries"]
+                         if e["live"] and e["domain"] == "未归类")
+        assert missing == [], "存在未归类路由：" + repr(missing[:10])
+
+    def test_前缀按段边界匹配(self):
+        m = _mod()
+        rules = [("/api/skills", "甲"), ("/api/skills-mgmt", "乙")]
+        rules.sort(key=lambda x: -len(x[0]))
+        assert m._domain_for("/api/skills-mgmt/x", rules) == "乙"
+        assert m._domain_for("/api/skills/x", rules) == "甲"
+        assert m._domain_for("/api/skills-mgmt", rules) == "乙"
+        assert m._domain_for("/api/other", rules) == "未归类"
+
+    def test_映射文件可被消费且最长前缀在前(self):
+        m = _mod()
+        rules = m._load_domains()
+        assert rules and len(rules) >= 50
+        assert all(isinstance(item, tuple) and len(item) == 2 for item in rules)
+        assert len(rules[0][0]) >= len(rules[-1][0])
+
+    def test_功能区计入门禁哈希(self):
+        """改功能区必须重派生产物，--check 才会红（否则标签漂移无人发现）。"""
+        m = _mod()
+        payload = m.classify()
+        before = m._content_hash(payload)
+        payload["entries"][0]["domain"] = "被篡改"
+        assert m._content_hash(payload) != before

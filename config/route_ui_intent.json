@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "updated": "2026-10-17",
-  "note": "路由「该进 UI / 不该进」的人工意图标注（方案 docs/proposals/ui_information_architecture_review_20261011.md §7）。未标注 = unclassified；本文件只增判断，不改机械分类，也不放宽「未分类活体路由只允许收缩」的棘轮。 【2026-10-17 族级标注 + 前缀机制】支持「前缀族」键（/* 结尾，最长前缀优先、精确键优先，见 scripts/audit/route_ui_coverage.py::_intent_for）。本轮按用户拍板的口径 (a) 做了族级标注：对 87 个路径族逐一给出「该进 / 不该进」，把 428 条未标注收敛到仅剩 1 条（开放端点通配入口，因其归一化后为通配、无法用族键表达，保持未标注并在此说明）。族级「该进」会产生待办，待办清空不再作为硬守卫，改由 reports/route_ui_pending_backlog.json 台账承载：每个待办必须在台账里、台账里不得有已消解的陈旧项、总数不得超过台账 ceiling（只允许收缩）。",
+  "note": "路由「该进 UI / 不该进」的人工意图标注（方案 docs/proposals/ui_information_architecture_review_20261011.md §7）。未标注 = unclassified；本文件只增判断，不改机械分类，也不放宽「未分类活体路由只允许收缩」的棘轮。 【2026-10-17 族级标注 + 前缀机制】支持「前缀族」键（/* 结尾，最长前缀优先、精确键优先，见 scripts/audit/route_ui_coverage.py::_intent_for）。本轮按用户拍板的口径 (a) 做了族级标注：对 87 个路径族逐一给出「该进 / 不该进」，把 428 条未标注收敛到仅剩 1 条（开放端点通配入口，因其归一化后为通配、无法用族键表达，保持未标注并在此说明）。族级「该进」会产生待办，待办清空不再作为硬守卫，改由 reports/route_ui_pending_backlog.json 台账承载：每个待办必须在台账里、台账里不得有已消解的陈旧项、总数不得超过台账 ceiling（只允许收缩）。 【2026-10-17 复审收紧】族级标注把业务族整族判为「该进」时，会把族内的机器/内部子路由一起带进来。本轮对 19 个精确键/子族改判「不该进」（审批控制台/链接、诊断追踪、健康探针、可观测日志推送、调度创建删除、技能评审链别名与匹配注入等），pending 相应下调；理由逐条写在各条 note。",
   "intents": {
     "/api/browser/screenshot": {
       "intent": "should_be_in_ui",
@@ -972,6 +972,101 @@
       "intent": "should_be_in_ui",
       "area": "网页工具",
       "note": "搜索引擎状态面板（已接线）。"
+    },
+    "/api/approval/console": {
+      "intent": "should_not_be_in_ui",
+      "area": "审批中心",
+      "note": "机器/内部面：程序化/嵌入式调用方的控制台入口，不是人机界面"
+    },
+    "/api/approval/link/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "审批中心",
+      "note": "机器/内部面：分享链接校验（不消费），机器链路"
+    },
+    "/api/approval/pending": {
+      "intent": "should_not_be_in_ui",
+      "area": "审批中心",
+      "note": "机器/内部面：轮询面，供编排器/脚本取待办"
+    },
+    "/api/approval/whoami": {
+      "intent": "should_not_be_in_ui",
+      "area": "审批中心",
+      "note": "机器/内部面：身份查询，程序化调用"
+    },
+    "/api/diagnostics/trace": {
+      "intent": "should_not_be_in_ui",
+      "area": "诊断面板",
+      "note": "机器/内部面：追踪上下文读取（CLI 用）"
+    },
+    "/api/diagnostics/trace/extract": {
+      "intent": "should_not_be_in_ui",
+      "area": "诊断面板",
+      "note": "机器/内部面：从请求头提取追踪上下文，机器链路"
+    },
+    "/api/diagnostics/trace/inject": {
+      "intent": "should_not_be_in_ui",
+      "area": "诊断面板",
+      "note": "机器/内部面：生成追踪上下文请求头，机器链路"
+    },
+    "/api/health/retrieval": {
+      "intent": "should_not_be_in_ui",
+      "area": "健康看板",
+      "note": "机器/内部面：embedding worker 的只读探针，给编排器而非人"
+    },
+    "/api/health/score/calculate": {
+      "intent": "should_not_be_in_ui",
+      "area": "健康看板",
+      "note": "机器/内部面：手动提交指标计算，程序化入口"
+    },
+    "/api/observability/alerts/validate": {
+      "intent": "should_not_be_in_ui",
+      "area": "可观测性",
+      "note": "机器/内部面：告警规则表达式校验，机器链路"
+    },
+    "/api/observability/logs": {
+      "intent": "should_not_be_in_ui",
+      "area": "可观测性",
+      "note": "机器/内部面：日志推送面（服务端写入），不是查看界面"
+    },
+    "/api/observability/logs/labels": {
+      "intent": "should_not_be_in_ui",
+      "area": "可观测性",
+      "note": "机器/内部面：日志标签枚举，配合推送使用"
+    },
+    "/api/observability/logs/stream": {
+      "intent": "should_not_be_in_ui",
+      "area": "可观测性",
+      "note": "机器/内部面：实时日志流，供采集器消费"
+    },
+    "/api/scheduler/create": {
+      "intent": "should_not_be_in_ui",
+      "area": "定时任务",
+      "note": "机器/内部面：API 创建命令任务（旧程序化入口）"
+    },
+    "/api/scheduler/delete": {
+      "intent": "should_not_be_in_ui",
+      "area": "定时任务",
+      "note": "机器/内部面：API 删除命令任务（旧程序化入口）"
+    },
+    "/api/skills-mgmt/digest/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "技能中心",
+      "note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）"
+    },
+    "/api/skills-mgmt/inject": {
+      "intent": "should_not_be_in_ui",
+      "area": "技能中心",
+      "note": "机器/内部面：构建 LLM 上下文（Layer1+2），机器链路"
+    },
+    "/api/skills-mgmt/match": {
+      "intent": "should_not_be_in_ui",
+      "area": "技能中心",
+      "note": "机器/内部面：意图匹配（Layer1），脚本调用"
+    },
+    "/api/skills-mgmt/slash/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "技能中心",
+      "note": "机器/内部面：Slash 命令解析器，机器链路"
     }
   }
 }
