@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-17T21:09:47",
+  "generated_at": "2026-10-17T22:07:12",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 164,
-    "cli_script": 20,
-    "runtime_only": 30,
-    "unreferenced": 250,
+    "ui": 209,
+    "cli_script": 19,
+    "runtime_only": 29,
+    "unreferenced": 207,
     "live_by_category": {
-      "ui": 164,
-      "cli_script": 20,
-      "runtime_only": 30,
-      "unreferenced": 250
+      "ui": 209,
+      "cli_script": 19,
+      "runtime_only": 29,
+      "unreferenced": 207
     },
     "by_intent": {
       "should_be_in_ui": 403,
@@ -37,9 +37,10 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 169,
+  "frontend_endpoints": 215,
   "frontend_unmatched": [
     "/api/approval",
+    "/api/approval/*/*",
     "/api/assets",
     "/api/cp",
     "/api/demo/validate-email",
@@ -48,22 +49,6 @@
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
   "pending_ui": [
-    {
-      "path": "/api/agent-lines/<line_id>",
-      "norm": "/api/agent-lines/*",
-      "methods": [
-        "DELETE",
-        "GET",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "主线装配台",
-      "where": [
-        "agent/server_routes/routes_agent_lines.py:567",
-        "agent/server_routes/routes_agent_lines.py:672",
-        "agent/server_routes/routes_agent_lines.py:698"
-      ]
-    },
     {
       "path": "/api/approval/<record_id>/approve",
       "norm": "/api/approval/*/approve",
@@ -86,32 +71,6 @@
       "area": "审批中心",
       "where": [
         "agent/server_routes/routes_approval.py:365"
-      ]
-    },
-    {
-      "path": "/api/assets/<category>",
-      "norm": "/api/assets/*",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "资产管理",
-      "where": [
-        "agent/server_routes/routes_assets.py:244",
-        "agent/server_routes/routes_assets.py:297"
-      ]
-    },
-    {
-      "path": "/api/assets/<category>/<item_id>",
-      "norm": "/api/assets/*/*",
-      "methods": [
-        "DELETE"
-      ],
-      "category": "unreferenced",
-      "area": "资产管理",
-      "where": [
-        "agent/server_routes/routes_assets.py:271"
       ]
     },
     {
@@ -413,42 +372,6 @@
       "area": "诊断面板",
       "where": [
         "agent/server_routes/routes_logging.py:571"
-      ]
-    },
-    {
-      "path": "/api/experience/<sid>",
-      "norm": "/api/experience/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "经验库",
-      "where": [
-        "plugins/experience.py:250"
-      ]
-    },
-    {
-      "path": "/api/experience/<sid>/review",
-      "norm": "/api/experience/*/review",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "经验库",
-      "where": [
-        "plugins/experience.py:315"
-      ]
-    },
-    {
-      "path": "/api/experience/batch/<batch_id>/rollback",
-      "norm": "/api/experience/batch/*/rollback",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "经验库",
-      "where": [
-        "plugins/experience.py:339"
       ]
     },
     {
@@ -885,22 +808,6 @@
       ]
     },
     {
-      "path": "/api/knowledge/cards/<slug>",
-      "norm": "/api/knowledge/cards/*",
-      "methods": [
-        "DELETE",
-        "GET",
-        "PATCH"
-      ],
-      "category": "unreferenced",
-      "area": "知识库",
-      "where": [
-        "agent/server_routes/routes_knowledge.py:209",
-        "agent/server_routes/routes_knowledge.py:255",
-        "agent/server_routes/routes_knowledge.py:317"
-      ]
-    },
-    {
       "path": "/api/learning/metrics",
       "norm": "/api/learning/metrics",
       "methods": [
@@ -976,22 +883,6 @@
       "area": "模型实例",
       "where": [
         "plugins/admin.py:452"
-      ]
-    },
-    {
-      "path": "/api/mcp/services/<string:service_id>",
-      "norm": "/api/mcp/services/*",
-      "methods": [
-        "DELETE",
-        "GET",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "MCP 服务",
-      "where": [
-        "plugins/mcp_scheduler.py:108",
-        "plugins/mcp_scheduler.py:128",
-        "plugins/mcp_scheduler.py:70"
       ]
     },
     {
@@ -1469,20 +1360,6 @@
       ]
     },
     {
-      "path": "/api/projects/<project_id>",
-      "norm": "/api/projects/*",
-      "methods": [
-        "DELETE",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "项目/分组",
-      "where": [
-        "plugins/chat.py:1027",
-        "plugins/chat.py:998"
-      ]
-    },
-    {
       "path": "/api/replay/<replay_id>",
       "norm": "/api/replay/*",
       "methods": [
@@ -1642,42 +1519,6 @@
       ]
     },
     {
-      "path": "/api/schedules/<task_id>",
-      "norm": "/api/schedules/*",
-      "methods": [
-        "DELETE"
-      ],
-      "category": "unreferenced",
-      "area": "定时任务",
-      "where": [
-        "plugins/mcp_scheduler.py:381"
-      ]
-    },
-    {
-      "path": "/api/schedules/<task_id>/pause",
-      "norm": "/api/schedules/*/pause",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "定时任务",
-      "where": [
-        "plugins/mcp_scheduler.py:393"
-      ]
-    },
-    {
-      "path": "/api/schedules/<task_id>/resume",
-      "norm": "/api/schedules/*/resume",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "定时任务",
-      "where": [
-        "plugins/mcp_scheduler.py:405"
-      ]
-    },
-    {
       "path": "/api/schedules/history",
       "norm": "/api/schedules/history",
       "methods": [
@@ -1814,148 +1655,6 @@
       ]
     },
     {
-      "path": "/api/session-groups/<group_id>",
-      "norm": "/api/session-groups/*",
-      "methods": [
-        "DELETE",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "项目/分组",
-      "where": [
-        "plugins/chat.py:1086",
-        "plugins/chat.py:1101"
-      ]
-    },
-    {
-      "path": "/api/sessions/<session_id>",
-      "norm": "/api/sessions/*",
-      "methods": [
-        "DELETE"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:597"
-      ]
-    },
-    {
-      "path": "/api/sessions/<session_id>/agent",
-      "norm": "/api/sessions/*/agent",
-      "methods": [
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:654"
-      ]
-    },
-    {
-      "path": "/api/sessions/<session_id>/group",
-      "norm": "/api/sessions/*/group",
-      "methods": [
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:1112"
-      ]
-    },
-    {
-      "path": "/api/sessions/<session_id>/messages",
-      "norm": "/api/sessions/*/messages",
-      "methods": [
-        "DELETE",
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:707",
-        "plugins/chat.py:717"
-      ]
-    },
-    {
-      "path": "/api/sessions/<session_id>/project",
-      "norm": "/api/sessions/*/project",
-      "methods": [
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:632"
-      ]
-    },
-    {
-      "path": "/api/sessions/<session_id>/rename",
-      "norm": "/api/sessions/*/rename",
-      "methods": [
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:617"
-      ]
-    },
-    {
-      "path": "/api/sessions/<session_id>/workspace",
-      "norm": "/api/sessions/*/workspace",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:800"
-      ]
-    },
-    {
-      "path": "/api/sessions/<session_id>/workspace-root",
-      "norm": "/api/sessions/*/workspace-root",
-      "methods": [
-        "DELETE",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:823",
-        "plugins/chat.py:849"
-      ]
-    },
-    {
-      "path": "/api/sessions/<session_id>/workspace/reveal",
-      "norm": "/api/sessions/*/workspace/reveal",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:861"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/<skill_id>",
-      "norm": "/api/skills-mgmt/*",
-      "methods": [
-        "DELETE",
-        "GET",
-        "PATCH"
-      ],
-      "category": "runtime_only",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:181",
-        "agent/server_routes/routes_skills_mgmt.py:736",
-        "agent/server_routes/routes_skills_mgmt.py:751"
-      ]
-    },
-    {
       "path": "/api/skills-mgmt/<skill_id>/duplicates",
       "norm": "/api/skills-mgmt/*/duplicates",
       "methods": [
@@ -1980,18 +1679,6 @@
       ]
     },
     {
-      "path": "/api/skills-mgmt/<skill_id>/execution",
-      "norm": "/api/skills-mgmt/*/execution",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:869"
-      ]
-    },
-    {
       "path": "/api/skills-mgmt/<skill_id>/feedback",
       "norm": "/api/skills-mgmt/*/feedback",
       "methods": [
@@ -2006,18 +1693,6 @@
       ]
     },
     {
-      "path": "/api/skills-mgmt/<skill_id>/fix-auto",
-      "norm": "/api/skills-mgmt/*/fix-auto",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:584"
-      ]
-    },
-    {
       "path": "/api/skills-mgmt/<skill_id>/instruction",
       "norm": "/api/skills-mgmt/*/instruction",
       "methods": [
@@ -2027,18 +1702,6 @@
       "area": "技能中心",
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1294"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/<skill_id>/optimize",
-      "norm": "/api/skills-mgmt/*/optimize",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:855"
       ]
     },
     {
@@ -2066,42 +1729,6 @@
       ]
     },
     {
-      "path": "/api/skills-mgmt/<skill_id>/publish",
-      "norm": "/api/skills-mgmt/*/publish",
-      "methods": [
-        "POST"
-      ],
-      "category": "cli_script",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:682"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/<skill_id>/redraft",
-      "norm": "/api/skills-mgmt/*/redraft",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:554"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/<skill_id>/review",
-      "norm": "/api/skills-mgmt/*/review",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:335"
-      ]
-    },
-    {
       "path": "/api/skills-mgmt/<skill_id>/scripts",
       "norm": "/api/skills-mgmt/*/scripts",
       "methods": [
@@ -2114,66 +1741,6 @@
       ]
     },
     {
-      "path": "/api/skills-mgmt/<skill_id>/suggest-fix",
-      "norm": "/api/skills-mgmt/*/suggest-fix",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:570"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/<skill_id>/toggle",
-      "norm": "/api/skills-mgmt/*/toggle",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:766"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/<skill_id>/versions",
-      "norm": "/api/skills-mgmt/*/versions",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:786"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/<skill_id>/versions/bump",
-      "norm": "/api/skills-mgmt/*/versions/bump",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:802"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/<skill_id>/versions/rollback",
-      "norm": "/api/skills-mgmt/*/versions/rollback",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:830"
-      ]
-    },
-    {
       "path": "/api/skills-mgmt/abstract-from-memory",
       "norm": "/api/skills-mgmt/abstract-from-memory",
       "methods": [
@@ -2183,18 +1750,6 @@
       "area": "技能中心",
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1312"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/assess/<skill_id>",
-      "norm": "/api/skills-mgmt/assess/*",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:610"
       ]
     },
     {
@@ -2365,42 +1920,6 @@
       "area": "分身/子代理",
       "where": [
         "agent/server_routes/routes_subagent.py:634"
-      ]
-    },
-    {
-      "path": "/api/subagent/<name>/bundle",
-      "norm": "/api/subagent/*/bundle",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "分身/子代理",
-      "where": [
-        "agent/server_routes/routes_subagent.py:651"
-      ]
-    },
-    {
-      "path": "/api/subagent/<name>/delegate",
-      "norm": "/api/subagent/*/delegate",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "分身/子代理",
-      "where": [
-        "agent/server_routes/routes_subagent.py:995"
-      ]
-    },
-    {
-      "path": "/api/subagent/<name>/destroy",
-      "norm": "/api/subagent/*/destroy",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "分身/子代理",
-      "where": [
-        "agent/server_routes/routes_subagent.py:941"
       ]
     },
     {
@@ -2674,20 +2193,6 @@
       ]
     },
     {
-      "path": "/api/visual-workflows/<vid>",
-      "norm": "/api/visual-workflows/*",
-      "methods": [
-        "DELETE",
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "可视化工作流",
-      "where": [
-        "agent/server_routes/routes_visual_workflows.py:219",
-        "agent/server_routes/routes_visual_workflows.py:275"
-      ]
-    },
-    {
       "path": "/api/voice/listen",
       "norm": "/api/voice/listen",
       "methods": [
@@ -2733,68 +2238,6 @@
       "area": "工作流学习",
       "where": [
         "agent/server_routes/routes_workflow_learning.py:308"
-      ]
-    },
-    {
-      "path": "/api/workflow-learning/execute/<wf_id>",
-      "norm": "/api/workflow-learning/execute/*",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "工作流学习",
-      "where": [
-        "agent/server_routes/routes_workflow_learning.py:150"
-      ]
-    },
-    {
-      "path": "/api/workflow-learning/workflows/<wf_id>",
-      "norm": "/api/workflow-learning/workflows/*",
-      "methods": [
-        "DELETE",
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "工作流学习",
-      "where": [
-        "agent/server_routes/routes_workflow_learning.py:201",
-        "agent/server_routes/routes_workflow_learning.py:213"
-      ]
-    },
-    {
-      "path": "/api/workflow-learning/workflows/<wf_id>/convert-to-skill",
-      "norm": "/api/workflow-learning/workflows/*/convert-to-skill",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "工作流学习",
-      "where": [
-        "agent/server_routes/routes_workflow_learning.py:260"
-      ]
-    },
-    {
-      "path": "/api/workflow-learning/workflows/<wf_id>/priority",
-      "norm": "/api/workflow-learning/workflows/*/priority",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "工作流学习",
-      "where": [
-        "agent/server_routes/routes_workflow_learning.py:241"
-      ]
-    },
-    {
-      "path": "/api/workflow-learning/workflows/<wf_id>/toggle",
-      "norm": "/api/workflow-learning/workflows/*/toggle",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "工作流学习",
-      "where": [
-        "agent/server_routes/routes_workflow_learning.py:226"
       ]
     },
     {
@@ -3067,11 +2510,13 @@
         "GET",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/agentLinesApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_agent_lines.py:567",
@@ -3083,7 +2528,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "主线装配台",
       "intent_note": "主线装配台：档案/装配预览/校验/激活/工具目录。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -3442,11 +2887,13 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/assets/index.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:244",
@@ -3457,7 +2904,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -3466,11 +2913,13 @@
       "methods": [
         "DELETE"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/assets/index.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_assets.py:271"
@@ -3480,7 +2929,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -5379,11 +4828,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/experienceApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:250"
@@ -5393,7 +4844,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -5402,11 +4853,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/experienceApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:315"
@@ -5416,7 +4869,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -5425,11 +4878,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/experienceApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/experience.py:339"
@@ -5439,7 +4894,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6679,11 +6134,13 @@
         "GET",
         "PATCH"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/knowledge.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_knowledge.py:209",
@@ -6695,7 +6152,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "知识库",
       "intent_note": "知识库：卡片/图谱/index/lint/融合检索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -7113,11 +6570,13 @@
         "GET",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/tools/mcp.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:108",
@@ -7129,7 +6588,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "MCP 服务",
       "intent_note": "MCP 服务：列表/更新/启停。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -8686,11 +8145,13 @@
         "DELETE",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:1027",
@@ -8701,7 +8162,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "项目/分组",
       "intent_note": "项目：列表/删除。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9320,11 +8781,13 @@
       "methods": [
         "DELETE"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/engine/scheduler.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:381"
@@ -9334,7 +8797,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -9343,11 +8806,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/engine/scheduler.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:393"
@@ -9357,7 +8822,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -9366,11 +8831,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/engine/scheduler.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:405"
@@ -9380,7 +8847,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -9710,11 +9177,13 @@
         "DELETE",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:1086",
@@ -9725,7 +9194,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "项目/分组",
       "intent_note": "会话分组：列表/重命名。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9763,11 +9232,13 @@
       "methods": [
         "DELETE"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:597"
@@ -9777,7 +9248,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9786,11 +9257,13 @@
       "methods": [
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:654"
@@ -9800,7 +9273,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9809,11 +9282,13 @@
       "methods": [
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:1112"
@@ -9823,7 +9298,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9833,11 +9308,13 @@
         "DELETE",
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:707",
@@ -9848,7 +9325,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9857,11 +9334,13 @@
       "methods": [
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:632"
@@ -9871,7 +9350,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9880,11 +9359,13 @@
       "methods": [
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:617"
@@ -9894,7 +9375,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9903,11 +9384,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:800"
@@ -9917,7 +9400,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9927,11 +9410,13 @@
         "DELETE",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:823",
@@ -9942,7 +9427,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9951,11 +9436,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/sessionApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:861"
@@ -9965,7 +9452,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -10055,11 +9542,14 @@
         "GET",
         "PATCH"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [
         "agent/audit/ui_middleware.py"
       ],
@@ -10073,7 +9563,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10128,11 +9618,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:869"
@@ -10142,7 +9634,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10176,11 +9668,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:584"
@@ -10190,7 +9684,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10222,11 +9716,14 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:855"
@@ -10236,7 +9733,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10291,11 +9788,13 @@
       "methods": [
         "POST"
       ],
-      "category": "cli_script",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [
         "scripts/audit/contract_diff.py"
       ],
@@ -10307,7 +9806,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10316,11 +9815,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:554"
@@ -10330,7 +9831,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10339,11 +9840,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:335"
@@ -10353,7 +9856,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10385,11 +9888,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:570"
@@ -10399,7 +9904,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10408,11 +9913,14 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:766"
@@ -10422,7 +9930,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10431,11 +9939,14 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:786"
@@ -10445,7 +9956,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10454,11 +9965,14 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:802"
@@ -10468,7 +9982,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10477,11 +9991,14 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:830"
@@ -10491,7 +10008,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10523,11 +10040,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:610"
@@ -10537,7 +10056,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -11528,11 +11047,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1504"
@@ -11865,11 +11386,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/workshop/replicate.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:651"
@@ -11879,7 +11402,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -11888,11 +11411,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/components/workbench/chat/SubagentMenu.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:995"
@@ -11902,7 +11427,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -11911,11 +11436,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/workshop/agents.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:941"
@@ -11925,7 +11452,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -13010,11 +12537,13 @@
         "DELETE",
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/visualWorkflowApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_visual_workflows.py:219",
@@ -13025,7 +12554,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "可视化工作流",
       "intent_note": "可视化工作流：保存/草稿。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -13385,11 +12914,14 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts",
+        "yunshu-ui/src/pages/hub/memory/workflow.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:150"
@@ -13399,7 +12931,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -13535,11 +13067,13 @@
         "DELETE",
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:201",
@@ -13550,7 +13084,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -13559,11 +13093,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/workflow.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:260"
@@ -13573,7 +13109,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -13582,11 +13118,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:241"
@@ -13596,7 +13134,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -13605,11 +13143,14 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/skillsApi.ts",
+        "yunshu-ui/src/pages/hub/memory/workflow.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:226"
@@ -13619,7 +13160,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -14308,5 +13849,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "ff6a70e46a06913c"
+  "content_hash": "c5c24f70e271b012"
 }
