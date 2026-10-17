@@ -352,6 +352,38 @@ export const OBSERVABILITY_ACCESS_STATS = '/api/observability/access_stats';
 export const observabilityTrace = (traceId: string) => `/api/observability/traces/${encodeURIComponent(traceId)}`;
 export const observabilityAlert = (name: string) => `/api/observability/alerts/${encodeURIComponent(name)}`;
 
+// ═══════════════════════════════════════════════════════════════
+//  反馈中心 / 业务看板 / 系统仪表盘 / 实例管理
+// ═══════════════════════════════════════════════════════════════
+export const FEEDBACK_LIST = '/api/feedback/list';
+export const FEEDBACK_SUMMARY = '/api/feedback/summary';
+export const FEEDBACK_REPORT = '/api/feedback/report';
+export const FEEDBACK_QUALITY_CASES = '/api/feedback/quality-cases';
+export const FEEDBACK_SUBMIT = '/api/feedback/submit';
+export const feedbackById = (id: string) => `/api/feedback/${encodeURIComponent(id)}`;
+export const feedbackResolve = (id: string) => `/api/feedback/${encodeURIComponent(id)}/resolve`;
+
+export const BUSINESS_DASHBOARD = '/api/business/dashboard';
+export const BUSINESS_DEFINITIONS = '/api/business/definitions';
+export const BUSINESS_HEALTH = '/api/business/health';
+export const BUSINESS_PROMETHEUS = '/api/business/prometheus';
+export const businessMetric = (name: string) => `/api/business/metrics/${encodeURIComponent(name)}`;
+
+export const DASHBOARD_HEALTH = '/api/dashboard/health';
+export const DASHBOARD_MEMORY = '/api/dashboard/memory';
+export const DASHBOARD_QUALITY = '/api/dashboard/quality';
+export const DASHBOARD_TRACES = '/api/dashboard/traces';
+export const dashboardTrace = (id: string) => `/api/dashboard/traces/${encodeURIComponent(id)}`;
+
+export const LLM_INSTANCES = '/api/llm/instances';
+export const llmInstance = (id: string) => `/api/llm/instances/${encodeURIComponent(id)}`;
+export const llmInstanceDefault = (id: string) => `/api/llm/instances/${encodeURIComponent(id)}/default`;
+export const llmInstanceTest = (id: string) => `/api/llm/instances/${encodeURIComponent(id)}/test`;
+export const SEARCH_INSTANCES = '/api/search/instances';
+export const searchInstance = (id: string) => `/api/search/instances/${encodeURIComponent(id)}`;
+export const searchInstanceDefault = (id: string) => `/api/search/instances/${encodeURIComponent(id)}/default`;
+export const searchInstanceTest = (id: string) => `/api/search/instances/${encodeURIComponent(id)}/test`;
+
 // ===============================================================
 //  智能体线 / 工具（/api/agent-lines、/api/tools）
 // ===============================================================
