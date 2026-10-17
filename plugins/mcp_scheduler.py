@@ -171,6 +171,91 @@ def api_scheduler_list():
     return jsonify(list_scheduled_tasks())
 
 
+@bp.route("/api/scheduler/overview")
+@_log_request(show_response=False)
+def api_scheduler_overview():
+    """调度器全量任务（含内存里的 cron/interval python 任务）。
+
+    【为什么新增】`/api/scheduler/tasks` 只读文件登记的 system_command 任务，
+    真正跑 cron 的 python 任务（周报、日志清理、零 token 维护…）从来不在列表里，
+    「定时任务」页因此长期空白。本接口把 TaskScheduler 的**运行态**如实吐出来，
+    供 UI 展示与启停/改时刻。
+    """
+    from agent.task_scheduler import get_scheduler
+
+    scheduler = get_scheduler()
+    tasks = []
+    for item in scheduler.list_tasks():
+        cron = item.get("cron") if isinstance(item.get("cron"), dict) else None
+        tasks.append({
+            "name": item.get("name", ""),
+            "task_id": item.get("task_id", ""),
+            "type": item.get("type", ""),
+            "enabled": bool(item.get("enabled", True)),
+            "last_run": item.get("last_run"),
+            "schedule_text": item.get("schedule_text", "-"),
+            "kind": "cron" if cron else ("interval" if "interval_sec" in item else "command"),
+            "hour": (cron or {}).get("hour"),
+            "minute": (cron or {}).get("minute"),
+            "day_of_week": (cron or {}).get("day_of_week"),
+            "zero_token": item.get("zero_token"),
+            "owner": item.get("owner", ""),
+            "editable_time": bool(cron),
+        })
+    return _ok({"tasks": tasks, "count": len(tasks)})
+
+
+@bp.route("/api/scheduler/configure", methods=["POST"])
+@_require_token
+@_log_request()
+def api_scheduler_configure():
+    """改任务：启停（enabled）与每日时刻（hour/minute）。
+
+    以**任务名**为键（id 每次启动重生成）；改动即时生效并落
+    `data/scheduler_overrides.json`，重启后仍按用户改过的样子注册。
+    """
+    from agent.task_scheduler import get_scheduler
+
+    data = request.get_json() or {}
+    name = str(data.get("name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "缺少 name"}), 400
+
+    scheduler = get_scheduler()
+    if scheduler.find_task_by_name(name) is None:
+        return jsonify({"ok": False, "error": "任务不存在: " + name}), 404
+
+    changed = {}
+    if "enabled" in data:
+        changed["enabled"] = scheduler.set_task_enabled_by_name(name, bool(data["enabled"]))
+
+    if "hour" in data or "minute" in data:
+        try:
+            hour = int(data.get("hour"))
+            minute = int(data.get("minute"))
+        except (TypeError, ValueError):
+            return jsonify({"ok": False, "error": "hour/minute 必须是整数"}), 400
+        if not (0 <= hour <= 23 and 0 <= minute <= 59):
+            return jsonify({"ok": False, "error": "hour 需 0-23、minute 需 0-59"}), 400
+        changed["schedule"] = scheduler.update_task_schedule(name, hour, minute)
+
+    if not changed:
+        return jsonify({"ok": False, "error": "没有可改的字段（enabled / hour+minute）"}), 400
+
+    task = scheduler.find_task_by_name(name) or {}
+    cron = task.get("cron") if isinstance(task.get("cron"), dict) else {}
+    return _ok({
+        "ok": all(changed.values()),
+        "changed": changed,
+        "task": {
+            "name": name,
+            "enabled": bool(task.get("enabled", True)),
+            "hour": cron.get("hour"),
+            "minute": cron.get("minute"),
+        },
+    })
+
+
 @bp.route("/api/scheduler/create", methods=["POST"])
 @_require_token
 @_log_request()

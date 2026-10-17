@@ -43,14 +43,28 @@ python -m agent.maintenance.zero_token_jobs --all           # 顺序全跑
 令牌来源：先 `FLASK_API_TOKEN` 环境变量，再回退仓库 `.env`（与服务端同源），
 只进请求头，**不打印**。
 
-## 4. 开关与边界
+## 4. 在 UI 上管理（启停 / 改时刻）
+
+「全景看板 → 定时任务」页新增「调度器任务（真实执行）」卡片，数据来自
+`GET /api/scheduler/overview`（`TaskScheduler` 运行态，含 cron/interval 的 python 任务）：
+
+- 每行标注**是否零 token**（零 token / 含 LLM / 未标注）与归属模块；
+- 「暂停 / 恢复」即时生效；
+- 选中任务填「时」「分」保存，即改「每天 时:分」；
+- 改动写入 `data/scheduler_overrides.json`（按任务名），**重启后仍按你改过的样子注册**。
+
+> 为什么之前看不到：旧页面读 `/api/schedules`（另一套「动作任务」调度器，长期为空），
+> 而真正跑 cron 的是 `TaskScheduler`；`/api/scheduler/tasks` 又只列文件登记的命令任务，
+> 所以 python 任务（含周报、日志清理）一直不在任何列表里。
+
+## 5. 开关与边界
 
 - 整体开关：`ZERO_TOKEN_JOBS_ENABLED=0`（false/no/off 亦可）后启动，不注册任何作业。
 - 单条超时：shell 600s / http 120s；任一作业异常只记日志，**不会拖垮调度线程**。
 - **不做删除**：保留策略只跑 dry-run；记忆只审不删；知识库只巡检不改卡。
 - **不改受版本控制的产物**：两个 `--check` 都不重写报告，避免把工作树弄脏。
 
-## 5. 同样是零 token，但**故意没排程**的
+## 6. 同样是零 token，但**故意没排程**的
 
 排程 = 无人值守。下面这些有确定性入口，但会改数据或跨语义边界，留人工触发：
 
