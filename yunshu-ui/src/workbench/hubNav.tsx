@@ -86,16 +86,17 @@ export const HUB_NAV: HubNavItem[] = [
     key: 'workspace', label: '会话与配置', icon: MessageSquare,
     children: [
       { key: 'session', label: '会话任务', icon: MessageSquare, component: WorkbenchChatPage },
+      // 【2026-10-17 IA】用户口径：分身创建与组装紧跟「会话任务」（先对话、再配分身）。
+      // 【第三轮 IA】装配车间并入「会话与配置」：分身创建与组装 = 对话侧配置。
+      // 【2026-10-15 IA】「系统自我复制」并入本页第 3 视图「带走 / 自复制」——后端契约本就是
+      // /api/subagent/<name>/bundle（按分身打包），与「分身」是同一条主线的两端；独立叶子
+      // workshop/replicate 移除 ⇒ 旧深链经 LEGACY_NAV_KEY_MAP 落到本页（禁止双入口）。
+      { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
       // 技能中心：LLM 技能 = 模型执行，工作流技能 = 本地执行，与提示词实验室并列（分 Tab 管理）。
       { key: 'prompt-lab', label: '提示词实验室', icon: FlaskConical, component: PromptLab },
       { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
       // 工具调用：原 5 个子项已在页面内收敛为 Tab（pages/hub/tools/index.tsx）。
       { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
-      // 【第三轮 IA】装配车间并入「会话与配置」：分身创建与组装 = 对话侧配置（原顶层 2 项分组消失）。
-      // 【2026-10-15 IA】「系统自我复制」并入本页第 3 视图「带走 / 自复制」——后端契约本就是
-      // /api/subagent/<name>/bundle（按分身打包），与「分身」是同一条主线的两端；独立叶子
-      // workshop/replicate 移除 ⇒ 旧深链经 LEGACY_NAV_KEY_MAP 落到本页（禁止双入口）。
-      { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
       // 【第四轮 IA · 2026-10-14】「记忆与资产」整桶并入本桶（顶层再少一个桶）；
       // 「插件与扩展」「网络配置」从被取消的「系统组件」桶迁入。叶子 key 一律不变
       // ⇒ 旧深链 ?panel=memory / ?panel=assets / ?panel=components/plugins / ?panel=network 仍有效。
