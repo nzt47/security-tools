@@ -62,6 +62,16 @@ export const skillFeedback = (skillId: string) => `/api/skills-mgmt/${encodeURIC
 export const skillOptimizeWithFeedback = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/optimize-with-feedback`;
 export const skillDuplicates = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/duplicates`;
 
+// 技能中心 · 维护 Tab（批量运维：清理 / 合并 / 上传 / 从记忆抽象）
+export const SKILLS_MGMT_THREE_LAYER_SUMMARY = '/api/skills-mgmt/three-layer/summary';
+export const SKILLS_MGMT_CLEANUP_REPORT = '/api/skills-mgmt/cleanup/report';
+export const SKILLS_MGMT_CLEANUP_ORPHANS = '/api/skills-mgmt/cleanup/orphans';
+export const SKILLS_MGMT_CLEANUP_UNUSED = '/api/skills-mgmt/cleanup/unused';
+export const SKILLS_MGMT_AUTO_MERGE = '/api/skills-mgmt/auto-merge';
+export const SKILLS_MGMT_MERGE = '/api/skills-mgmt/merge';
+export const SKILLS_MGMT_UPLOAD = '/api/skills-mgmt/upload';
+export const SKILLS_MGMT_ABSTRACT_FROM_MEMORY = '/api/skills-mgmt/abstract-from-memory';
+
 // ═══════════════════════════════════════════════════════════════
 //  工作流学习（/api/workflow-learning）
 // ═══════════════════════════════════════════════════════════════
