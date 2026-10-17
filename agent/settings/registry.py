@@ -2376,6 +2376,15 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
         owner_module="agent/monitoring/slo_report_scheduler.py"),
 
     # ────────────────────────────────────────────────────────
+    #  零 token 维护作业（2026-10-17）
+    # ────────────────────────────────────────────────────────
+    _a("ZERO_TOKEN_JOBS_ENABLED", CAT_OBSERVABILITY, True,
+       "零 token 维护作业总开关（默认开；=0/false/no/off 时不注册 09:00-18:00 的"
+       "只读维护作业：记忆审查/知识库巡检/覆盖自检/清单自检/健康快照）",
+       owner="agent/maintenance/zero_token_jobs.py",
+       config_path="", needs_restart=True),
+
+    # ────────────────────────────────────────────────────────
     #  数据生命周期治理（TASK-S8-01，2026-09-13）
     # ────────────────────────────────────────────────────────
     _a("CP_RETENTION_ENABLED", CAT_OBSERVABILITY, False,
