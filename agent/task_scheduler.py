@@ -678,6 +678,15 @@ def _create_scheduler(config=None):
         hour=2,
         minute=0,
     )
+    # 零 token 维护作业（09:00-18:00 工作时段内，只读巡检/自洽校验）。
+    # 见 agent/maintenance/zero_token_jobs.py；失败只记日志，不阻断主调度。
+    try:
+        from agent.maintenance.zero_token_jobs import register_zero_token_jobs
+
+        register_zero_token_jobs(sched)
+    except Exception as e:  # noqa: BLE001
+        logger.error(log_dict({'module_name': 'task_scheduler', 'action': 'zero_token',
+                               'msg': f'[TaskScheduler] 零 token 维护作业注册失败: {e}'}))
     return sched
 
 
