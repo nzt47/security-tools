@@ -351,3 +351,81 @@ class Test前端模板串扫描:
         from scripts.audit.contract_diff import _fold_template
 
         assert _fold_template("/api/skills-mgmt/$" + "{sid}/review") == "/api/skills-mgmt/*/review"
+
+
+class Test前端箭头函数常量:
+    """常量层里「值是函数」的端点：export const f = (id) => `模板串`。
+
+    它是第三种写法，此前整族漏计：FRONTEND_CONST 只认 `= "字符串"`；
+    TEMPLATE_WITH_BASE 只认 ```\`\${BASE}/x\``` 这种「常量当前缀」的模板；
+    而调用点 `f(id)` 既不是字面量也不是模板串。于是前端明明在调，
+    台账仍记「未接线」（2026-10-17 实测 44 条）。
+
+    【为什么这类假阴性必须修，而不是记进「已知漏检」】
+    它让接线进度看起来比实际差，且会诱导人去**重复开发已经接好的界面** ——
+    代价不是数字难看，是做错事。
+    """
+
+    def _repo(self, tmp_path, monkeypatch, endpoints_src, page_src):
+        from scripts.audit import contract_diff as cd
+
+        src = tmp_path / "yunshu-ui" / "src"
+        (src / "api").mkdir(parents=True)
+        (src / "pages").mkdir(parents=True)
+        (src / "api" / "endpoints.ts").write_text(endpoints_src, encoding="utf-8")
+        (src / "pages" / "demo.tsx").write_text(page_src, encoding="utf-8")
+        monkeypatch.setattr(cd, "ROOT", tmp_path)
+        monkeypatch.setattr(cd, "_ENDPOINT_FNS", {})
+        monkeypatch.setattr(cd, "_ENDPOINT_CONSTS", {})
+        return cd.collect_frontend_literals()["react"]
+
+    def test_导入并调用才算引用(self, tmp_path, monkeypatch):
+        react = self._repo(
+            tmp_path, monkeypatch,
+            "export const usedOne = (id: string) => `/api/demo/$" + "{encodeURIComponent(id)}/used`;\n"
+            "export const neverCalled = (id: string) => `/api/demo/$" + "{id}/never`;\n",
+            "import { usedOne } from '@/api/endpoints';\n"
+            "export const go = () => fetch(usedOne('a'));\n",
+        )
+        assert "/api/demo/*/used" in react, "导入且调用了的箭头函数端点应算前端在用"
+        assert "/api/demo/*/never" not in react, "只定义没调用，不该算"
+
+    def test_只导入不调用不算引用(self, tmp_path, monkeypatch):
+        react = self._repo(
+            tmp_path, monkeypatch,
+            "export const usedOne = (id: string) => `/api/demo/$" + "{id}/used`;\n",
+            "import { usedOne } from '@/api/endpoints';\n"
+            "export const label = typeof usedOne;\n",
+        )
+        assert "/api/demo/*/used" not in react
+
+    def test_同名的本地函数不算引用(self, tmp_path, monkeypatch):
+        """同名但不是从常量层导入 ⇒ 与那个端点毫无关系。
+
+        不问来处按名字匹配，一个本地 helper 就能"证明"某端点已接线 ——
+        这正是假阳性的典型长相。
+        """
+        react = self._repo(
+            tmp_path, monkeypatch,
+            "export const pick = (id: string) => `/api/demo/$" + "{id}/pick`;\n",
+            "const pick = (x: string) => x;\n"
+            "export const go = () => pick('a');\n",
+        )
+        assert "/api/demo/*/pick" not in react
+
+    def test_技能中心与子代理族已恢复接线(self):
+        from scripts.audit.contract_diff import collect_frontend_literals
+
+        react = collect_frontend_literals()["react"]
+        for probe in (
+            "/api/skills-mgmt/*/versions",
+            "/api/skills-mgmt/*/review",
+            "/api/skills-mgmt/assess/*",
+            "/api/sessions/*/rename",
+            "/api/subagent/*/delegate",
+        ):
+            assert probe in react, probe
+        refs = react["/api/skills-mgmt/*/versions"]
+        assert "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx" in refs, (
+            "引用应落到真正调用它的页面，而不是常量层自己"
+        )

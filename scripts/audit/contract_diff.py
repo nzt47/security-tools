@@ -83,6 +83,15 @@ _IMPORT_FROM_ENDPOINTS = re.compile(
 )
 #: 同文件里的常量别名：const PREFIX = CP（右值必须是标识符）
 _CONST_ALIAS = re.compile(r"(?m)^\s*(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\s*$")
+#: 常量层里的**箭头函数式**端点：export const skillById = (id: string) => \`/api/skills-mgmt/\${...}\`
+#  【为什么单列一条】它是常量层里唯一"值是函数"的形态：FRONTEND_CONST 要求 \`= "..."\`，
+#  认不出箭头函数；调用点 \`skillById(id)\` 也不是模板串，TEMPLATE_WITH_BASE 也认不出。
+#  于是整族在源码里明明在用、却被记成「未接线」（2026-10-17 实测 43 条假阴性）。
+#  取值时只认**函数体就是模板串**的那种，其余（body 里再拼、或走 fetch）一律不猜。
+FRONTEND_FN_CONST = re.compile(
+    r"export\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*\([^)]*\)\s*"
+    r"(?::\s*[^=\n]{1,60}?)?=>\s*\x60([^\x60]*)\x60"
+)
 
 
 def _real_route_decorator_lines(tree):
@@ -403,6 +412,52 @@ def _endpoint_consts() -> dict:
     return _ENDPOINT_CONSTS
 
 
+def _load_endpoint_fns() -> dict:
+    """常量层里的箭头函数式端点：{NAME: '/api/.../*'}（模板已折成星号）。
+
+    【为什么不复用 _load_endpoint_consts】那个函数的正则要求 `= "字符串"`；
+    箭头函数的值是**一个函数**，形态不同，硬塞进同一条正则只会两边都认不准。
+    """
+    path = ROOT / "yunshu-ui" / "src" / "api" / "endpoints.ts"
+    try:
+        text = strip_comments(path.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return {}
+    out = {}
+    for m in FRONTEND_FN_CONST.finditer(text):
+        name, body = m.group(1), m.group(2)
+        if not body.startswith("/api"):
+            continue
+        folded = _fold_template(body)
+        # 与 collect_frontend_literals 同口径：空白/过短视为没解析出路径
+        if len(folded) > 2 and " " not in folded:
+            out[name] = folded
+    return out
+
+
+_ENDPOINT_FNS: dict = {}
+
+
+def _endpoint_fns() -> dict:
+    """懒加载（同 _endpoint_consts 的理由）。"""
+    global _ENDPOINT_FNS
+    if not _ENDPOINT_FNS:
+        _ENDPOINT_FNS = _load_endpoint_fns()
+    return _ENDPOINT_FNS
+
+
+_CALL_RE_CACHE: dict = {}
+
+
+def _call_site_re(name: str):
+    """`name(` 的调用点正则（按名字缓存：同一文件里会反复问同一个名字）。"""
+    pat = _CALL_RE_CACHE.get(name)
+    if pat is None:
+        pat = re.compile(r"\b" + re.escape(name) + r"\s*\(")
+        _CALL_RE_CACHE[name] = pat
+    return pat
+
+
 def collect_frontend_literals():
     """两套前端分别统计：React（yunshu-ui/src）与 legacy（templates + static）。"""
     out = {}
@@ -431,6 +486,7 @@ def collect_frontend_literals():
             for m in FRONTEND_LITERAL.finditer(stripped):
                 hits.setdefault(m.group(1), []).append(rel)
             # 常量前缀模板：同文件字面量 / 同文件别名 / 从常量层 import 的名字，三跳以内解析
+            # （第四种形态「常量层里的箭头函数」在下面单独处理 —— 它的值是函数，不是字符串）
             local = {m.group(1): m.group(2) for m in FRONTEND_CONST.finditer(stripped)}
             alias = {m.group(1): m.group(2) for m in _CONST_ALIAS.finditer(stripped)}
             imported = {}
@@ -467,6 +523,20 @@ def collect_frontend_literals():
                     candidate = candidate[:cut]
                 if len(candidate) > 2 and " " not in candidate:
                     hits.setdefault(candidate, []).append(rel)
+
+            # 常量层的**箭头函数式**端点：导入名 + 有调用点 name( 才算引用。
+            # 【为什么不看 import 就记】只 import 不调用（备用导出、类型引用）不是
+            # "前端在用这个端点"，记进去会把未接线的地方算成已接线 —— 那是假阳性。
+            # 【为什么必须校验 import】同名函数到处都是；不问来处地按名字匹配，
+            # 一个本地 helper 就能"证明"某端点已接线。
+            fn_paths = _endpoint_fns()
+            if fn_paths:
+                for local_name, original in imported.items():
+                    target = fn_paths.get(original)
+                    if not target:
+                        continue
+                    if _call_site_re(local_name).search(stripped):
+                        hits.setdefault(target, []).append(rel)
         out[label] = hits
     return out
 
