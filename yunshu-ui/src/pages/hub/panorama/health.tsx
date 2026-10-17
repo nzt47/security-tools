@@ -54,6 +54,8 @@ import {
 import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
+import HealthVitals from './health-vitals'
+import OpsDiagnostics from './ops-diagnostics'
 import {
   DIAGNOSTICS_METRICS,
   HEALTH_PROBE_TREND,
@@ -1216,6 +1218,8 @@ export default function PanoramaHealth() {
           )}
         </>
       )}
+      <HealthVitals />
+      <OpsDiagnostics />
     </div>
   )
 }

@@ -18,7 +18,7 @@
  */
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { BookOpen, Brain, Layers, Loader2, Search } from 'lucide-react'
+import { BookOpen, Brain, Layers, Loader2, Search, Wrench } from 'lucide-react'
 
 // MemoryPage 同时承载「手动记忆 / 自动记忆」（由 mode 参数区分）
 const MemoryPage = lazy(() => import('./index'))
@@ -26,8 +26,9 @@ const MemoryKnowledge = lazy(() => import('./knowledge'))
 const ExperiencePanel = lazy(() => import('../experience'))
 const MemorySearch = lazy(() => import('./search'))
 const MemoryStructure = lazy(() => import('./structure'))
+const MemoryMaintenance = lazy(() => import('./memory-maintenance'))
 
-export type MemoryTab = 'vector' | 'structure' | 'knowledge' | 'experience' | 'search'
+export type MemoryTab = 'vector' | 'structure' | 'knowledge' | 'experience' | 'search' | 'maintenance'
 
 export interface MemoryTabDef {
   id: MemoryTab
@@ -45,6 +46,7 @@ export const MEMORY_TABS: MemoryTabDef[] = [
   { id: 'knowledge', label: '知识库系统', icon: BookOpen, hint: '知识卡片编辑 / 双链图谱 / 融合检索' },
   { id: 'experience', label: '经验库', icon: BookOpen, hint: '从历史会话提炼的任务经验（审查台）' },
   { id: 'search', label: '全库检索', icon: Search, hint: '一个入口，分面检索：向量记忆 / 知识库 / 经验库' },
+  { id: 'maintenance', label: '记忆运维', icon: Wrench, hint: '审查 / 压缩 / 长期摘要 / 窗口监控 / 向量维护（改写类动作一律先确认）' },
 ]
 
 /** Tab 选择记忆（会话级偏好，刷新不跳回第一个 Tab） */
@@ -167,6 +169,10 @@ export default function MemoryHub({ initialTab }: MemoryHubProps) {
             <MemoryKnowledge />
           ) : tab === 'experience' ? (
             <ExperiencePanel />
+          ) : tab === 'maintenance' ? (
+            <div className="p-5">
+              <MemoryMaintenance />
+            </div>
           ) : (
             <MemorySearch />
           )}

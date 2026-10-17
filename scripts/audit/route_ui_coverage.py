@@ -261,6 +261,11 @@ def _refs_from_api_client_dir() -> dict:
             token = norm(m.group(1))
             if not token or token == "/" or token.startswith("/api/"):
                 continue
+            # 【2026-10-18 实测】/logs/* 是同源**另一个应用**的绝对路径，不是 baseURL
+            # 相对路径。拼成 /api/logs/... 会凭空造出 10 条「前端引用但无路由」的幽灵，
+            # 反过来把真实的 /logs 路由登记推错位置。
+            if token.startswith("/logs/"):
+                continue
             extra.setdefault("/api" + token, set()).add(rel)
     return extra
 

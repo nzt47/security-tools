@@ -13,6 +13,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { Card, Loading, ErrorBox, PageHeader, hubGet, unwrap } from '../components/ui'
+import LogCenterPanel from './log-center-panel'
 
 interface LogEntry {
   timestamp?: string | number
@@ -181,6 +182,7 @@ export default function PanoramaLogs() {
           </div>
         </Card>
       )}
+      <LogCenterPanel />
     </div>
   )
 }

@@ -90,6 +90,20 @@ export const EXTENSIONS_CHANNELS_SEND = '/api/extensions/channels/send';
 // ═══════════════════════════════════════════════════════════════
 //  工作流学习（/api/workflow-learning）
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  日志中心（独立 /logs 日志应用；不受 /api 前缀约束）
+// ═══════════════════════════════════════════════════════════════
+export const LOGS_DASHBOARD = '/logs/dashboard';
+export const LOGS_API_STATS = '/logs/api/stats';
+export const LOGS_API_TRENDS = '/logs/api/trends';
+export const LOGS_API_ERRORS = '/logs/api/errors';
+export const LOGS_API_INSIGHTS = '/logs/api/insights';
+export const LOGS_API_KNOWLEDGE = '/logs/api/knowledge';
+export const LOGS_API_ACTIONS = '/logs/api/actions';
+export const LOGS_API_QUERY = '/logs/api/query';
+export const LOGS_API_INTROSPECTION_STATUS = '/logs/api/introspection/status';
+export const LOGS_API_INTROSPECTION_RUN = '/logs/api/introspection/run';
+
 export const WORKFLOW_LEARNING_HEALTH = '/api/workflow-learning/health';
 export const WORKFLOW_LEARNING_LEARN = '/api/workflow-learning/learn';
 export const WORKFLOW_LEARNING_MATCH = '/api/workflow-learning/match';
@@ -286,6 +300,21 @@ export const MEMORY_OVERVIEW = '/api/memory/overview';
 export const VECTOR_SEARCH = '/api/vector/search';
 /** 向量库统计（count / total_memories / backend；尚未迁到统一信封） */
 export const VECTOR_STATS = '/api/vector/stats';
+// 记忆运维（审查 / 压缩 / 长期摘要 / 窗口监控 / 向量维护）
+export const MEMORY_REVIEW = '/api/memory/review';
+export const MEMORY_COMPRESS = '/api/memory/compress';
+export const MEMORY_SUMMARY = '/api/memory/summary';
+export const MEMORY_CLEAR_SUMMARY = '/api/memory/clear-summary';
+export const MEMORY_WINDOWS_CURRENT = '/api/memory/windows/current';
+export const MEMORY_WINDOWS_STATS = '/api/memory/windows/stats';
+export const MEMORY_WINDOWS_EVENTS = '/api/memory/windows/events';
+export const MEMORY_WINDOWS_CONFIG = '/api/memory/windows/config';
+export const MEMORY_WINDOWS_CLEAR = '/api/memory/windows/clear';
+export const VECTOR_ADD = '/api/vector/add';
+export const VECTOR_BATCH_ADD = '/api/vector/batch_add';
+export const VECTOR_CLEAR = '/api/vector/clear';
+export const VECTOR_RECENT = '/api/vector/recent';
+export const vectorItem = (itemId: string) => `/api/vector/item/${encodeURIComponent(itemId)}`;
 
 // ===============================================================
 //  健康 / 模块拓扑 / 状态 / 全景 / 传感器
@@ -297,6 +326,31 @@ export const MODULES_TOPOLOGY = '/api/modules/topology';
 export const STATUS = '/api/status';
 export const PANORAMA = '/api/panorama';
 export const SENSORS = '/api/sensors';
+
+// 健康体检（评分 / 趋势 / 历史 / 告警 / 权重 / 快速检查 / 导出）
+export const HEALTH_SCORE = '/api/health/score';
+export const HEALTH_SUMMARY = '/api/health/summary';
+export const HEALTH_TREND = '/api/health/trend';
+export const HEALTH_HISTORY = '/api/health/history';
+export const HEALTH_ALERTS = '/api/health/alerts';
+export const HEALTH_QUICK_CHECK = '/api/health/quick-check';
+export const HEALTH_WEIGHTS = '/api/health/weights';
+export const HEALTH_EXPORT = '/api/health/export';
+
+// 诊断
+export const DIAGNOSTICS_CONFIG = '/api/diagnostics/config';
+export const DIAGNOSTICS_HEALTH = '/api/diagnostics/health';
+export const DIAGNOSTICS_LOGS = '/api/diagnostics/logs';
+export const DIAGNOSTICS_TOOLS = '/api/diagnostics/tools';
+export const DIAGNOSTICS_ERROR_CORRELATION = '/api/diagnostics/error_correlation';
+
+// 可观测（追踪 / 访问日志 / 状态 / 告警规则）
+export const OBSERVABILITY_STATE = '/api/observability/state';
+export const OBSERVABILITY_TRACES = '/api/observability/traces';
+export const OBSERVABILITY_ACCESS_LOGS = '/api/observability/access_logs';
+export const OBSERVABILITY_ACCESS_STATS = '/api/observability/access_stats';
+export const observabilityTrace = (traceId: string) => `/api/observability/traces/${encodeURIComponent(traceId)}`;
+export const observabilityAlert = (name: string) => `/api/observability/alerts/${encodeURIComponent(name)}`;
 
 // ===============================================================
 //  智能体线 / 工具（/api/agent-lines、/api/tools）

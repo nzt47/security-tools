@@ -221,6 +221,28 @@ export async function hubDelete<T = unknown>(url: string, token?: string | null)
   return res.json() as Promise<T>
 }
 
+/**
+ * PUT JSON。
+ *
+ * 【为什么新增】记忆长期摘要、健康维度权重、告警规则、角色/用户、数据范围等一批
+ * 后端端点只接受 **PUT**（语义是"整体替换这一份状态"）。此前页面要么干脆不接、
+ * 要么借 hubPost 打成 POST —— 后者运行时必 405。helper 缺席时，作者只能凑；
+ * 补一个能如实表达 PUT 的入口，比在每处写裸 fetch 更不容易写错。
+ */
+export async function hubPut<T = unknown>(url: string, body?: unknown, token?: string | null): Promise<T> {
+  const headers: Record<string, string> = {}
+  if (body !== undefined && body !== null) headers['Content-Type'] = 'application/json'
+  const auth = token !== undefined && token !== null ? token : getApiToken()
+  if (auth) headers.Authorization = `Bearer ${auth}`
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers,
+    body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json() as Promise<T>
+}
+
 /** 将后端 {ok:true,data:...} 或 {code:200,data:...} 统一解包为 data */
 export function unwrap<T>(resp: Record<string, unknown>): T {
   const r = resp as { ok?: boolean; data?: T; code?: number }

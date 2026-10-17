@@ -429,3 +429,44 @@ class Test前端箭头函数常量:
         assert "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx" in refs, (
             "引用应落到真正调用它的页面，而不是常量层自己"
         )
+
+
+class Test非API前缀的logs应用:
+    """`/logs/*` 是同源**另一个应用**的绝对路径，两头都不能错：
+
+    · 漏计：扫描器的字面量正则锚在 `/api/`，于是 11 条 `/logs` 路由全被记成未接线；
+    · 多算：`_refs_from_api_client_dir` 会把 `src/api/` 下的相对字面量拼上 `/api`
+      前缀（那些确实经 baseURL=/api），而 `/logs/...` 本来就是绝对路径，拼完会凭空
+      造出 `/api/logs/api/stats` 这类幽灵 —— 它们不可能命中任何路由，
+      于是「前端引用但无路由」从 5 变 16（2026-10-18 实测）。
+
+    两条都钉住：一条守"要看得见"，一条守"别看见不存在的东西"。
+    """
+
+    def test_logs应用字面量被计入react(self):
+        from scripts.audit.contract_diff import collect_frontend_literals
+
+        react = collect_frontend_literals()["react"]
+        assert "/logs/api/stats" in react
+        assert "/logs/dashboard" in react
+
+    def test_legacy侧口径不被放开(self):
+        from scripts.audit.contract_diff import collect_frontend_literals
+
+        legacy = collect_frontend_literals()["legacy"]
+        assert not [k for k in legacy if k.startswith("/logs/")], (
+            "legacy 侧有独立的计数口径与 stray 基线，不该被这条新规则带进去"
+        )
+
+    def test_src_api下的绝对路径不被拼成api前缀(self):
+        m = _mod()
+        extra = m._refs_from_api_client_dir()
+        ghosts = [k for k in extra if k.startswith("/api/logs/")]
+        assert ghosts == [], "绝对路径被当成 baseURL 相对路径，会造出不存在的路由引用"
+
+    def test_logs路由的机械分类为ui(self):
+        m = _mod()
+        entries = {e["norm"]: e for e in m.classify()["entries"]}
+        e = entries["/logs/api/stats"]
+        assert e["category"] == "ui"
+        assert e["ui_pending"] is False

@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-18T01:04:05",
+  "generated_at": "2026-10-18T02:17:07",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 235,
-    "cli_script": 19,
-    "runtime_only": 27,
-    "unreferenced": 183,
+    "ui": 278,
+    "cli_script": 17,
+    "runtime_only": 25,
+    "unreferenced": 144,
     "live_by_category": {
-      "ui": 235,
-      "cli_script": 19,
-      "runtime_only": 27,
-      "unreferenced": 183
+      "ui": 278,
+      "cli_script": 17,
+      "runtime_only": 25,
+      "unreferenced": 144
     },
     "by_intent": {
-      "should_be_in_ui": 403,
-      "should_not_be_in_ui": 60,
+      "should_be_in_ui": 390,
+      "should_not_be_in_ui": 73,
       "unclassified": 1
     },
     "by_domain": {
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 241,
+  "frontend_endpoints": 284,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -315,66 +315,6 @@
       ]
     },
     {
-      "path": "/api/diagnostics/config",
-      "norm": "/api/diagnostics/config",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "诊断面板",
-      "where": [
-        "agent/server_routes/routes_logging.py:635"
-      ]
-    },
-    {
-      "path": "/api/diagnostics/error_correlation",
-      "norm": "/api/diagnostics/error_correlation",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "诊断面板",
-      "where": [
-        "agent/server_routes/routes_logging.py:693"
-      ]
-    },
-    {
-      "path": "/api/diagnostics/health",
-      "norm": "/api/diagnostics/health",
-      "methods": [
-        "GET"
-      ],
-      "category": "cli_script",
-      "area": "诊断面板",
-      "where": [
-        "agent/server_routes/routes_logging.py:665"
-      ]
-    },
-    {
-      "path": "/api/diagnostics/logs",
-      "norm": "/api/diagnostics/logs",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "诊断面板",
-      "where": [
-        "agent/server_routes/routes_logging.py:851"
-      ]
-    },
-    {
-      "path": "/api/diagnostics/tools",
-      "norm": "/api/diagnostics/tools",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "诊断面板",
-      "where": [
-        "agent/server_routes/routes_logging.py:571"
-      ]
-    },
-    {
       "path": "/api/feedback/<feedback_id>",
       "norm": "/api/feedback/*",
       "methods": [
@@ -531,103 +471,6 @@
       ]
     },
     {
-      "path": "/api/health/alerts",
-      "norm": "/api/health/alerts",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "健康看板",
-      "where": [
-        "agent/server_routes/routes_health.py:309"
-      ]
-    },
-    {
-      "path": "/api/health/export",
-      "norm": "/api/health/export",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "健康看板",
-      "where": [
-        "agent/server_routes/routes_health.py:421"
-      ]
-    },
-    {
-      "path": "/api/health/history",
-      "norm": "/api/health/history",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "健康看板",
-      "where": [
-        "agent/server_routes/routes_health.py:219"
-      ]
-    },
-    {
-      "path": "/api/health/quick-check",
-      "norm": "/api/health/quick-check",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "健康看板",
-      "where": [
-        "agent/server_routes/routes_health.py:346"
-      ]
-    },
-    {
-      "path": "/api/health/score",
-      "norm": "/api/health/score",
-      "methods": [
-        "GET"
-      ],
-      "category": "cli_script",
-      "area": "健康看板",
-      "where": [
-        "agent/server_routes/routes_health.py:147"
-      ]
-    },
-    {
-      "path": "/api/health/summary",
-      "norm": "/api/health/summary",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "健康看板",
-      "where": [
-        "agent/server_routes/routes_health.py:285"
-      ]
-    },
-    {
-      "path": "/api/health/trend",
-      "norm": "/api/health/trend",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "健康看板",
-      "where": [
-        "agent/server_routes/routes_health.py:199"
-      ]
-    },
-    {
-      "path": "/api/health/weights",
-      "norm": "/api/health/weights",
-      "methods": [
-        "GET",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "健康看板",
-      "where": [
-        "agent/server_routes/routes_health.py:245"
-      ]
-    },
-    {
       "path": "/api/history",
       "norm": "/api/history",
       "methods": [
@@ -754,128 +597,6 @@
       ]
     },
     {
-      "path": "/api/memory/<int:index>",
-      "norm": "/api/memory/*",
-      "methods": [
-        "DELETE"
-      ],
-      "category": "unreferenced",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:469"
-      ]
-    },
-    {
-      "path": "/api/memory/clear-summary",
-      "norm": "/api/memory/clear-summary",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:477"
-      ]
-    },
-    {
-      "path": "/api/memory/compress",
-      "norm": "/api/memory/compress",
-      "methods": [
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:453"
-      ]
-    },
-    {
-      "path": "/api/memory/review",
-      "norm": "/api/memory/review",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:506"
-      ]
-    },
-    {
-      "path": "/api/memory/summary",
-      "norm": "/api/memory/summary",
-      "methods": [
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:489"
-      ]
-    },
-    {
-      "path": "/api/memory/windows/clear",
-      "norm": "/api/memory/windows/clear",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:804"
-      ]
-    },
-    {
-      "path": "/api/memory/windows/config",
-      "norm": "/api/memory/windows/config",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:787"
-      ]
-    },
-    {
-      "path": "/api/memory/windows/current",
-      "norm": "/api/memory/windows/current",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:777"
-      ]
-    },
-    {
-      "path": "/api/memory/windows/events",
-      "norm": "/api/memory/windows/events",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:719"
-      ]
-    },
-    {
-      "path": "/api/memory/windows/stats",
-      "norm": "/api/memory/windows/stats",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "记忆库",
-      "where": [
-        "plugins/memory.py:735"
-      ]
-    },
-    {
       "path": "/api/mode",
       "norm": "/api/mode",
       "methods": [
@@ -957,80 +678,6 @@
       "area": "通知中心",
       "where": [
         "plugins/admin_api.py:681"
-      ]
-    },
-    {
-      "path": "/api/observability/access_logs",
-      "norm": "/api/observability/access_logs",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:1464"
-      ]
-    },
-    {
-      "path": "/api/observability/access_stats",
-      "norm": "/api/observability/access_stats",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:1509"
-      ]
-    },
-    {
-      "path": "/api/observability/alerts/<alert_name>",
-      "norm": "/api/observability/alerts/*",
-      "methods": [
-        "DELETE",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:1252",
-        "agent/server_routes/routes_logging.py:1301"
-      ]
-    },
-    {
-      "path": "/api/observability/state",
-      "norm": "/api/observability/state",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:1046"
-      ]
-    },
-    {
-      "path": "/api/observability/traces",
-      "norm": "/api/observability/traces",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:1355"
-      ]
-    },
-    {
-      "path": "/api/observability/traces/<trace_id>",
-      "norm": "/api/observability/traces/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:1394"
       ]
     },
     {
@@ -1819,66 +1466,6 @@
       ]
     },
     {
-      "path": "/api/vector/add",
-      "norm": "/api/vector/add",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "向量记忆",
-      "where": [
-        "plugins/memory.py:584"
-      ]
-    },
-    {
-      "path": "/api/vector/batch_add",
-      "norm": "/api/vector/batch_add",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "向量记忆",
-      "where": [
-        "plugins/memory.py:607"
-      ]
-    },
-    {
-      "path": "/api/vector/clear",
-      "norm": "/api/vector/clear",
-      "methods": [
-        "DELETE"
-      ],
-      "category": "unreferenced",
-      "area": "向量记忆",
-      "where": [
-        "plugins/memory.py:665"
-      ]
-    },
-    {
-      "path": "/api/vector/item/<item_id>",
-      "norm": "/api/vector/item/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "向量记忆",
-      "where": [
-        "plugins/memory.py:629"
-      ]
-    },
-    {
-      "path": "/api/vector/recent",
-      "norm": "/api/vector/recent",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "向量记忆",
-      "where": [
-        "plugins/memory.py:644"
-      ]
-    },
-    {
       "path": "/api/voice/listen",
       "norm": "/api/voice/listen",
       "methods": [
@@ -1972,138 +1559,6 @@
       "area": "工作区",
       "where": [
         "plugins/system_tools.py:76"
-      ]
-    },
-    {
-      "path": "/logs/api/actions",
-      "norm": "/logs/api/actions",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:189"
-      ]
-    },
-    {
-      "path": "/logs/api/errors",
-      "norm": "/logs/api/errors",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:160"
-      ]
-    },
-    {
-      "path": "/logs/api/insights",
-      "norm": "/logs/api/insights",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:176"
-      ]
-    },
-    {
-      "path": "/logs/api/introspection/run",
-      "norm": "/logs/api/introspection/run",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:259"
-      ]
-    },
-    {
-      "path": "/logs/api/introspection/status",
-      "norm": "/logs/api/introspection/status",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:252"
-      ]
-    },
-    {
-      "path": "/logs/api/knowledge",
-      "norm": "/logs/api/knowledge",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:213"
-      ]
-    },
-    {
-      "path": "/logs/api/query",
-      "norm": "/logs/api/query",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:134"
-      ]
-    },
-    {
-      "path": "/logs/api/stats",
-      "norm": "/logs/api/stats",
-      "methods": [
-        "GET"
-      ],
-      "category": "runtime_only",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:112"
-      ]
-    },
-    {
-      "path": "/logs/api/trends",
-      "norm": "/logs/api/trends",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:226"
-      ]
-    },
-    {
-      "path": "/logs/dashboard",
-      "norm": "/logs/dashboard",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:63"
-      ]
-    },
-    {
-      "path": "/logs/dashboard/data",
-      "norm": "/logs/dashboard/data",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "日志中心",
-      "where": [
-        "agent/log_system/dashboard.py:69"
       ]
     }
   ],
@@ -4248,11 +3703,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:635"
@@ -4262,7 +3719,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -4271,11 +3728,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:693"
@@ -4285,7 +3744,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -4294,11 +3753,13 @@
       "methods": [
         "GET"
       ],
-      "category": "cli_script",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "scripts/health_check.py",
         "scripts/verify_loader_degradation_startup.py"
@@ -4311,7 +3772,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -4345,11 +3806,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:851"
@@ -4359,7 +3822,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -4393,11 +3856,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:571"
@@ -4407,7 +3872,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5328,11 +4793,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:309"
@@ -5342,7 +4809,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5403,11 +4870,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:421"
@@ -5417,7 +4886,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5426,11 +4895,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:219"
@@ -5440,7 +4911,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5476,11 +4947,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:346"
@@ -5490,7 +4963,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5524,11 +4997,13 @@
       "methods": [
         "GET"
       ],
-      "category": "cli_script",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "scripts/verify_loader_degradation_startup.py"
       ],
@@ -5540,7 +5015,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5572,11 +5047,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:285"
@@ -5586,7 +5063,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5595,11 +5072,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:199"
@@ -5609,7 +5088,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5619,11 +5098,13 @@
         "GET",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_health.py:245"
@@ -5633,7 +5114,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -6316,10 +5797,10 @@
       ],
       "description": "删除指定索引的记忆",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6328,21 +5809,23 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:477"
       ],
       "description": "清空长期摘要",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6351,11 +5834,13 @@
       "methods": [
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
@@ -6364,10 +5849,10 @@
       ],
       "description": "触发记忆压缩",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6391,9 +5876,9 @@
       ],
       "description": "手动添加记忆",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
       "ui_pending": false,
       "domain": "记忆与知识"
     },
@@ -6418,9 +5903,9 @@
       ],
       "description": "获取记忆概览",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
       "ui_pending": false,
       "domain": "记忆与知识"
     },
@@ -6431,21 +5916,23 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:506"
       ],
       "description": "记忆库审查接口（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6454,21 +5941,23 @@
       "methods": [
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:489"
       ],
       "description": "更新长期摘要内容",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6477,21 +5966,23 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:804"
       ],
       "description": "清空窗口事件记录",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6501,21 +5992,23 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:787"
       ],
       "description": "获取或更新窗口监控配置",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6524,21 +6017,23 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:777"
       ],
       "description": "获取当前活跃窗口",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6547,21 +6042,23 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:719"
       ],
       "description": "获取窗口切换事件",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6570,21 +6067,23 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:735"
       ],
       "description": "获取窗口使用统计",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
-      "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true,
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -6941,11 +6440,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1464"
@@ -6955,7 +6456,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -6964,11 +6465,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1509"
@@ -6978,7 +6481,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -7015,11 +6518,13 @@
         "DELETE",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/panorama/ops-diagnostics.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1252",
@@ -7030,7 +6535,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -7133,11 +6638,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1046"
@@ -7147,7 +6654,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -7156,11 +6663,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1355"
@@ -7170,7 +6679,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -7179,11 +6688,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/panorama/ops-diagnostics.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1394"
@@ -7193,7 +6704,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -12057,11 +11568,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:584"
@@ -12071,7 +11584,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -12080,11 +11593,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:607"
@@ -12094,7 +11609,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -12103,11 +11618,13 @@
       "methods": [
         "DELETE"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:665"
@@ -12117,7 +11634,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -12126,11 +11643,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/memory-maintenance.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:629"
@@ -12140,7 +11659,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -12149,11 +11668,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:644"
@@ -12163,7 +11684,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -13225,11 +12746,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:189"
@@ -13239,7 +12762,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13248,11 +12771,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:160"
@@ -13262,7 +12787,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13271,11 +12796,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:176"
@@ -13285,7 +12812,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13294,11 +12821,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:259"
@@ -13308,7 +12837,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13317,11 +12846,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:252"
@@ -13331,7 +12862,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13340,11 +12871,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:213"
@@ -13354,7 +12887,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13363,11 +12896,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:134"
@@ -13377,7 +12912,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13386,11 +12921,13 @@
       "methods": [
         "GET"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_api.py"
       ],
@@ -13402,7 +12939,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13411,11 +12948,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:226"
@@ -13425,7 +12964,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13434,11 +12973,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/log_system/dashboard.py:63"
@@ -13448,7 +12989,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志仪表盘页面与实时数据（legacy 页面，待并入统一工作台）。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13468,10 +13009,10 @@
       ],
       "description": "仪表盘实时数据 API",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "日志中心",
-      "intent_note": "日志仪表盘页面与实时数据（legacy 页面，待并入统一工作台）。",
-      "ui_pending": true,
+      "intent_note": "该页面的内部数据接口（/logs/dashboard 自身消费）：工作台已改为直接读 /logs/api/*，不再复用这层聚合，故不该进工作台 UI。",
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -13587,5 +13128,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "d69681b2ab17f677"
+  "content_hash": "a1092c74d67c8f79"
 }

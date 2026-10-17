@@ -96,6 +96,8 @@ describe('日志查看 · 失败上屏', () => {
   it('接口 500 显示错误框', async () => {
     fetchMock = vi.fn(async () => json({ error: 'boom' }, 500))
     render(<LogsPage />)
-    await waitFor(() => expect(screen.getByText(/HTTP 500/)).toBeTruthy())
+    // 2026-10-18 起本页下方还有「日志中心」面板，它同样会打 500 并各自上屏错误框
+    // （两套数据源、两条独立的失败路径）—— 故这里按"至少一条"断言，而不是唯一匹配。
+    await waitFor(() => expect(screen.getAllByText(/HTTP 500/).length).toBeGreaterThan(0))
   })
 })
