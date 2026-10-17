@@ -186,13 +186,35 @@ class Test意图标注:
             e["ui_pending"] for e in payload["entries"] if e["intent"] == "should_not_be_in_ui"
         )
 
-    def test_该进未进待办已清空(self):
-        """分批接入完成：所有标注 should_be_in_ui 的活体路由都已进 UI。"""
+    def test_该进未进待办与台账一致(self):
+        """族级标注（口径 a）：待办集合必须与提交台账逐条对齐。
+
+        族级标注会一次产生一批待办，因此「待办必须为空」不再是守卫；
+        取而代之的是**台账**：新增待办要在 reports/route_ui_pending_backlog.json 登记，
+        接入后要从台账移除。两个方向都查——漏登记与陈旧项都会红。
+        """
         m = _mod()
-        payload = m.classify()
-        pending = sorted(e["norm"] for e in payload["entries"] if e["ui_pending"])
-        assert pending == [], "仍有该进却未进的路由：" + repr(pending)
-        assert payload["pending_ui"] == []
+        ledger = json.loads(
+            (ROOT / "reports" / "route_ui_pending_backlog.json").read_text(encoding="utf-8")
+        )
+        allowed = set(ledger["pending"])
+        pending = {e["norm"] for e in m.classify()["entries"] if e["ui_pending"]}
+        untracked = sorted(pending - allowed)
+        stale = sorted(allowed - pending)
+        assert not untracked, "新增了未登记的待办（先标记/接线，或显式登记）：" + repr(untracked[:20])
+        assert not stale, "台账里留有已消解的陈旧待办（接入后请移除）：" + repr(stale[:20])
+
+    def test_待办总数不超过台账上限(self):
+        """只允许收缩：上限写在**独立提交文件**里，重派生产物不会顺手抬高它。"""
+        m = _mod()
+        ledger = json.loads(
+            (ROOT / "reports" / "route_ui_pending_backlog.json").read_text(encoding="utf-8")
+        )
+        current = sum(1 for e in m.classify()["entries"] if e["ui_pending"])
+        assert current <= ledger["ceiling"], (
+            "待办数超过台账上限：" + str(current) + " > " + str(ledger["ceiling"])
+            + "。接线后请调低 ceiling；先别抬高。"
+        )
 
     def test_已接入的路由不再是待办(self):
         """分批接入的回环：接入后 category=ui 且 ui_pending=False。"""

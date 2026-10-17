@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "updated": "2026-10-17",
-  "note": "路由「该进 UI / 不该进」的人工意图标注（方案 docs/proposals/ui_information_architecture_review_20261011.md §7）。未标注 = unclassified；本文件只增判断，不改机械分类，也不放宽「未分类活体路由只允许收缩」的棘轮。 【2026-10-17 族级标注 + 前缀机制】支持「前缀族」键（/* 结尾，最长前缀优先、精确键优先，见 scripts/audit/route_ui_coverage.py::_intent_for）。本轮只做两件无争议的事：① 机器/调试/度量/静态族 → 不该进；② 整族已全部进 UI 的业务族 → 该进 UI。带未接线路由的业务族暂不批量标「该进 UI」—— 本仓守卫 test_该进未进待办已清空 要求 pending_ui 为空；批量标会制造待办，属策略变更，需单独决策；其余保持未标注，逐条人工判断。",
+  "note": "路由「该进 UI / 不该进」的人工意图标注（方案 docs/proposals/ui_information_architecture_review_20261011.md §7）。未标注 = unclassified；本文件只增判断，不改机械分类，也不放宽「未分类活体路由只允许收缩」的棘轮。 【2026-10-17 族级标注 + 前缀机制】支持「前缀族」键（/* 结尾，最长前缀优先、精确键优先，见 scripts/audit/route_ui_coverage.py::_intent_for）。本轮按用户拍板的口径 (a) 做了族级标注：对 87 个路径族逐一给出「该进 / 不该进」，把 428 条未标注收敛到仅剩 1 条（开放端点通配入口，因其归一化后为通配、无法用族键表达，保持未标注并在此说明）。族级「该进」会产生待办，待办清空不再作为硬守卫，改由 reports/route_ui_pending_backlog.json 台账承载：每个待办必须在台账里、台账里不得有已消解的陈旧项、总数不得超过台账 ceiling（只允许收缩）。",
   "intents": {
     "/api/browser/screenshot": {
       "intent": "should_be_in_ui",
@@ -120,83 +120,858 @@
     },
     "/api/apply-network-config/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "网络配置",
+      "note": "应用网络配置到实例。"
     },
     "/api/audit/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "审计",
+      "note": "审计日志查询/导出。"
     },
     "/api/browser/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "会话侧/工作区",
+      "note": "浏览器操作族。"
     },
     "/api/capability-manifest/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "能力清单",
+      "note": "工具/技能可调用清单。"
     },
     "/api/clipboard/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "会话侧/工作区",
+      "note": "剪贴板读写。"
     },
     "/api/context/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "会话侧/工作区",
+      "note": "上下文管理。"
     },
     "/api/export/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "导出",
+      "note": "导出能力。"
     },
     "/api/heartbeat/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "健康看板",
+      "note": "心跳健康检查。"
     },
     "/api/menu/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "管理后台",
+      "note": "菜单树。"
     },
     "/api/panorama/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "全景看板",
+      "note": "全景页数据。"
     },
     "/api/permissions/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "权限面板",
+      "note": "管理后台权限列表。"
     },
     "/api/personality/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "人格配置",
+      "note": "人格配置。"
     },
     "/api/plugins/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "插件管理",
+      "note": "插件元信息。"
     },
     "/api/prompt-lab/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "提示词实验室",
+      "note": "提示词实验。"
     },
     "/api/sensors/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "全景看板",
+      "note": "传感器读数。"
     },
     "/api/workspaces/*": {
       "intent": "should_be_in_ui",
-      "area": "",
-      "note": "族级标注：该族全部路由都已在前端 UI，整体按「该进 UI」。（族级仅在整族已接线时才用，避免制造「该进却未进」待办。）"
+      "area": "工作区",
+      "note": "工作区列表。"
+    },
+    "/api/skills-mgmt": {
+      "intent": "should_be_in_ui",
+      "area": "技能中心",
+      "note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。"
+    },
+    "/api/skills-mgmt/*": {
+      "intent": "should_be_in_ui",
+      "area": "技能中心",
+      "note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。"
+    },
+    "/api/cp": {
+      "intent": "should_be_in_ui",
+      "area": "治理中心",
+      "note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。"
+    },
+    "/api/cp/*": {
+      "intent": "should_be_in_ui",
+      "area": "治理中心",
+      "note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。"
+    },
+    "/api/subagent": {
+      "intent": "should_be_in_ui",
+      "area": "分身/子代理",
+      "note": "分身装配台：创建/导入/销毁/委派/导出/热更新。"
+    },
+    "/api/subagent/*": {
+      "intent": "should_be_in_ui",
+      "area": "分身/子代理",
+      "note": "分身装配台：创建/导入/销毁/委派/导出/热更新。"
+    },
+    "/api/health": {
+      "intent": "should_be_in_ui",
+      "area": "健康看板",
+      "note": "健康看板：告警/趋势/导出/权重/评分。"
+    },
+    "/api/health/*": {
+      "intent": "should_be_in_ui",
+      "area": "健康看板",
+      "note": "健康看板：告警/趋势/导出/权重/评分。"
+    },
+    "/api/workflow-learning": {
+      "intent": "should_be_in_ui",
+      "area": "工作流学习",
+      "note": "工作流学习：工作流列表/优先级/启停/转换技能。"
+    },
+    "/api/workflow-learning/*": {
+      "intent": "should_be_in_ui",
+      "area": "工作流学习",
+      "note": "工作流学习：工作流列表/优先级/启停/转换技能。"
+    },
+    "/api/memory": {
+      "intent": "should_be_in_ui",
+      "area": "记忆库",
+      "note": "记忆库：概览/手工添加/摘要/窗口事件与配置。"
+    },
+    "/api/memory/*": {
+      "intent": "should_be_in_ui",
+      "area": "记忆库",
+      "note": "记忆库：概览/手工添加/摘要/窗口事件与配置。"
+    },
+    "/api/extensions": {
+      "intent": "should_be_in_ui",
+      "area": "扩展市场",
+      "note": "扩展市场：发现/安装/卸载/配置/市场搜索。"
+    },
+    "/api/extensions/*": {
+      "intent": "should_be_in_ui",
+      "area": "扩展市场",
+      "note": "扩展市场：发现/安装/卸载/配置/市场搜索。"
+    },
+    "/api/observability": {
+      "intent": "should_be_in_ui",
+      "area": "可观测性",
+      "note": "可观测性面板：访问日志、告警规则、追踪、日志流。"
+    },
+    "/api/observability/*": {
+      "intent": "should_be_in_ui",
+      "area": "可观测性",
+      "note": "可观测性面板：访问日志、告警规则、追踪、日志流。"
+    },
+    "/api/sessions": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理",
+      "note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。"
+    },
+    "/api/sessions/*": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理",
+      "note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。"
+    },
+    "/api/diagnostics": {
+      "intent": "should_be_in_ui",
+      "area": "诊断面板",
+      "note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。"
+    },
+    "/api/diagnostics/*": {
+      "intent": "should_be_in_ui",
+      "area": "诊断面板",
+      "note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。"
+    },
+    "/api/approval": {
+      "intent": "should_be_in_ui",
+      "area": "审批中心",
+      "note": "审批中心：待办/裁决/第二因素/分享链接/控制台。"
+    },
+    "/api/approval/*": {
+      "intent": "should_be_in_ui",
+      "area": "审批中心",
+      "note": "审批中心：待办/裁决/第二因素/分享链接/控制台。"
+    },
+    "/api/skills": {
+      "intent": "should_be_in_ui",
+      "area": "技能管理",
+      "note": "运行时技能：添加/删除/内容/参数/启停。"
+    },
+    "/api/skills/*": {
+      "intent": "should_be_in_ui",
+      "area": "技能管理",
+      "note": "运行时技能：添加/删除/内容/参数/启停。"
+    },
+    "/logs/api": {
+      "intent": "should_be_in_ui",
+      "area": "日志中心",
+      "note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。"
+    },
+    "/logs/api/*": {
+      "intent": "should_be_in_ui",
+      "area": "日志中心",
+      "note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。"
+    },
+    "/api/assets": {
+      "intent": "should_be_in_ui",
+      "area": "资产管理",
+      "note": "资产管理：分类浏览/备份/恢复/导出。"
+    },
+    "/api/assets/*": {
+      "intent": "should_be_in_ui",
+      "area": "资产管理",
+      "note": "资产管理：分类浏览/备份/恢复/导出。"
+    },
+    "/api/tools": {
+      "intent": "should_be_in_ui",
+      "area": "工具管理",
+      "note": "工具管理：分类/关键词/批量状态/启停。"
+    },
+    "/api/tools/*": {
+      "intent": "should_be_in_ui",
+      "area": "工具管理",
+      "note": "工具管理：分类/关键词/批量状态/启停。"
+    },
+    "/api/experience": {
+      "intent": "should_be_in_ui",
+      "area": "经验库",
+      "note": "经验库：入库/列表/检索/统计/复核。"
+    },
+    "/api/experience/*": {
+      "intent": "should_be_in_ui",
+      "area": "经验库",
+      "note": "经验库：入库/列表/检索/统计/复核。"
+    },
+    "/api/feedback": {
+      "intent": "should_be_in_ui",
+      "area": "反馈中心",
+      "note": "反馈中心：提交/列表/详情/汇总/分析报告。"
+    },
+    "/api/feedback/*": {
+      "intent": "should_be_in_ui",
+      "area": "反馈中心",
+      "note": "反馈中心：提交/列表/详情/汇总/分析报告。"
+    },
+    "/api/knowledge": {
+      "intent": "should_be_in_ui",
+      "area": "知识库",
+      "note": "知识库：卡片/图谱/index/lint/融合检索。"
+    },
+    "/api/knowledge/*": {
+      "intent": "should_be_in_ui",
+      "area": "知识库",
+      "note": "知识库：卡片/图谱/index/lint/融合检索。"
+    },
+    "/api/system-prompt": {
+      "intent": "should_be_in_ui",
+      "area": "系统提示词",
+      "note": "系统提示词配置：组件/预览/应用/重置/同步。"
+    },
+    "/api/system-prompt/*": {
+      "intent": "should_be_in_ui",
+      "area": "系统提示词",
+      "note": "系统提示词配置：组件/预览/应用/重置/同步。"
+    },
+    "/api/vector": {
+      "intent": "should_be_in_ui",
+      "area": "向量记忆",
+      "note": "向量记忆：增删查/最近/统计/语义检索。"
+    },
+    "/api/vector/*": {
+      "intent": "should_be_in_ui",
+      "area": "向量记忆",
+      "note": "向量记忆：增删查/最近/统计/语义检索。"
+    },
+    "/api/agent-lines": {
+      "intent": "should_be_in_ui",
+      "area": "主线装配台",
+      "note": "主线装配台：档案/装配预览/校验/激活/工具目录。"
+    },
+    "/api/agent-lines/*": {
+      "intent": "should_be_in_ui",
+      "area": "主线装配台",
+      "note": "主线装配台：档案/装配预览/校验/激活/工具目录。"
+    },
+    "/api/permission": {
+      "intent": "should_be_in_ui",
+      "area": "权限面板",
+      "note": "权限控制面板：状态/统计/日志/开关/紧急控制。"
+    },
+    "/api/permission/*": {
+      "intent": "should_be_in_ui",
+      "area": "权限面板",
+      "note": "权限控制面板：状态/统计/日志/开关/紧急控制。"
+    },
+    "/api/process": {
+      "intent": "should_be_in_ui",
+      "area": "进程管控",
+      "note": "进程管控：白名单浏览/增删/启停。"
+    },
+    "/api/process/*": {
+      "intent": "should_be_in_ui",
+      "area": "进程管控",
+      "note": "进程管控：白名单浏览/增删/启停。"
+    },
+    "/api/replay": {
+      "intent": "should_be_in_ui",
+      "area": "回放中心",
+      "note": "回放中心：上传/列表/详情/数据/清理/统计。"
+    },
+    "/api/replay/*": {
+      "intent": "should_be_in_ui",
+      "area": "回放中心",
+      "note": "回放中心：上传/列表/详情/数据/清理/统计。"
+    },
+    "/api/scheduler": {
+      "intent": "should_be_in_ui",
+      "area": "定时任务",
+      "note": "定时任务：列表/历史/创建/启停/立即执行。"
+    },
+    "/api/scheduler/*": {
+      "intent": "should_be_in_ui",
+      "area": "定时任务",
+      "note": "定时任务：列表/历史/创建/启停/立即执行。"
+    },
+    "/api/search-performance": {
+      "intent": "should_be_in_ui",
+      "area": "搜索性能",
+      "note": "搜索性能面板：检测/历史/摘要/监控启停。"
+    },
+    "/api/search-performance/*": {
+      "intent": "should_be_in_ui",
+      "area": "搜索性能",
+      "note": "搜索性能面板：检测/历史/摘要/监控启停。"
+    },
+    "/api/business": {
+      "intent": "should_be_in_ui",
+      "area": "业务看板",
+      "note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。"
+    },
+    "/api/business/*": {
+      "intent": "should_be_in_ui",
+      "area": "业务看板",
+      "note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。"
+    },
+    "/api/dashboard": {
+      "intent": "should_be_in_ui",
+      "area": "仪表盘",
+      "note": "仪表盘：健康/Memory/质量/追踪。"
+    },
+    "/api/dashboard/*": {
+      "intent": "should_be_in_ui",
+      "area": "仪表盘",
+      "note": "仪表盘：健康/Memory/质量/追踪。"
+    },
+    "/api/filesystem": {
+      "intent": "should_be_in_ui",
+      "area": "文件浏览",
+      "note": "文件浏览：目录/信息/读/写/搜索。"
+    },
+    "/api/filesystem/*": {
+      "intent": "should_be_in_ui",
+      "area": "文件浏览",
+      "note": "文件浏览：目录/信息/读/写/搜索。"
+    },
+    "/api/llm-monitor": {
+      "intent": "should_be_in_ui",
+      "area": "LLM 监控",
+      "note": "LLM 监控：记录/详情/统计/清空/开关。"
+    },
+    "/api/llm-monitor/*": {
+      "intent": "should_be_in_ui",
+      "area": "LLM 监控",
+      "note": "LLM 监控：记录/详情/统计/清空/开关。"
+    },
+    "/api/role": {
+      "intent": "should_be_in_ui",
+      "area": "管理后台",
+      "note": "管理后台：角色列表/详情/权限/数据范围。"
+    },
+    "/api/role/*": {
+      "intent": "should_be_in_ui",
+      "area": "管理后台",
+      "note": "管理后台：角色列表/详情/权限/数据范围。"
+    },
+    "/api/schedules": {
+      "intent": "should_be_in_ui",
+      "area": "定时任务",
+      "note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。"
+    },
+    "/api/schedules/*": {
+      "intent": "should_be_in_ui",
+      "area": "定时任务",
+      "note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。"
+    },
+    "/api/background": {
+      "intent": "should_be_in_ui",
+      "area": "后台任务",
+      "note": "后台任务：列表/状态/取消/结果。"
+    },
+    "/api/background/*": {
+      "intent": "should_be_in_ui",
+      "area": "后台任务",
+      "note": "后台任务：列表/状态/取消/结果。"
+    },
+    "/api/llm": {
+      "intent": "should_be_in_ui",
+      "area": "模型实例",
+      "note": "模型实例：列表/详情/默认/连通性测试。"
+    },
+    "/api/llm/*": {
+      "intent": "should_be_in_ui",
+      "area": "模型实例",
+      "note": "模型实例：列表/详情/默认/连通性测试。"
+    },
+    "/api/network-config": {
+      "intent": "should_be_in_ui",
+      "area": "网络配置",
+      "note": "网络配置：读取/重置/导入/导出。"
+    },
+    "/api/network-config/*": {
+      "intent": "should_be_in_ui",
+      "area": "网络配置",
+      "note": "网络配置：读取/重置/导入/导出。"
+    },
+    "/api/notification": {
+      "intent": "should_be_in_ui",
+      "area": "通知中心",
+      "note": "通知中心：列表/已读/全部已读/未读数。"
+    },
+    "/api/notification/*": {
+      "intent": "should_be_in_ui",
+      "area": "通知中心",
+      "note": "通知中心：列表/已读/全部已读/未读数。"
+    },
+    "/api/search": {
+      "intent": "should_be_in_ui",
+      "area": "搜索实例",
+      "note": "搜索实例：列表/详情/默认/测试。"
+    },
+    "/api/search/*": {
+      "intent": "should_be_in_ui",
+      "area": "搜索实例",
+      "note": "搜索实例：列表/详情/默认/测试。"
+    },
+    "/api/user": {
+      "intent": "should_be_in_ui",
+      "area": "管理后台",
+      "note": "管理后台：用户列表/详情/信息。"
+    },
+    "/api/user/*": {
+      "intent": "should_be_in_ui",
+      "area": "管理后台",
+      "note": "管理后台：用户列表/详情/信息。"
+    },
+    "/api/workspace": {
+      "intent": "should_be_in_ui",
+      "area": "工作区",
+      "note": "工作区文件：列表/信息/写入/删除。"
+    },
+    "/api/workspace/*": {
+      "intent": "should_be_in_ui",
+      "area": "工作区",
+      "note": "工作区文件：列表/信息/写入/删除。"
+    },
+    "/api/history": {
+      "intent": "should_be_in_ui",
+      "area": "历史记录",
+      "note": "历史记录：列表/删除/搜索。"
+    },
+    "/api/history/*": {
+      "intent": "should_be_in_ui",
+      "area": "历史记录",
+      "note": "历史记录：列表/删除/搜索。"
+    },
+    "/api/mcp": {
+      "intent": "should_be_in_ui",
+      "area": "MCP 服务",
+      "note": "MCP 服务：列表/更新/启停。"
+    },
+    "/api/mcp/*": {
+      "intent": "should_be_in_ui",
+      "area": "MCP 服务",
+      "note": "MCP 服务：列表/更新/启停。"
+    },
+    "/api/modules": {
+      "intent": "should_be_in_ui",
+      "area": "拓扑面板",
+      "note": "模块拓扑：六域树/节点详情/干预动作。"
+    },
+    "/api/modules/*": {
+      "intent": "should_be_in_ui",
+      "area": "拓扑面板",
+      "note": "模块拓扑：六域树/节点详情/干预动作。"
+    },
+    "/api/safety": {
+      "intent": "should_be_in_ui",
+      "area": "安全设置",
+      "note": "安全设置：危险词/告警/文本检查。"
+    },
+    "/api/safety/*": {
+      "intent": "should_be_in_ui",
+      "area": "安全设置",
+      "note": "安全设置：危险词/告警/文本检查。"
+    },
+    "/api/tasks": {
+      "intent": "should_be_in_ui",
+      "area": "任务中心",
+      "note": "任务中心：列表/状态/取消。"
+    },
+    "/api/tasks/*": {
+      "intent": "should_be_in_ui",
+      "area": "任务中心",
+      "note": "任务中心：列表/状态/取消。"
+    },
+    "/api/auth": {
+      "intent": "should_be_in_ui",
+      "area": "登录/菜单",
+      "note": "登录与菜单：登录、菜单树。"
+    },
+    "/api/auth/*": {
+      "intent": "should_be_in_ui",
+      "area": "登录/菜单",
+      "note": "登录与菜单：登录、菜单树。"
+    },
+    "/api/chat": {
+      "intent": "should_be_in_ui",
+      "area": "对话",
+      "note": "对话：消息、流式。"
+    },
+    "/api/chat/*": {
+      "intent": "should_be_in_ui",
+      "area": "对话",
+      "note": "对话：消息、流式。"
+    },
+    "/api/process-distill": {
+      "intent": "should_be_in_ui",
+      "area": "过程蒸馏",
+      "note": "过程蒸馏：健康/蒸馏动作。"
+    },
+    "/api/process-distill/*": {
+      "intent": "should_be_in_ui",
+      "area": "过程蒸馏",
+      "note": "过程蒸馏：健康/蒸馏动作。"
+    },
+    "/api/projects": {
+      "intent": "should_be_in_ui",
+      "area": "项目/分组",
+      "note": "项目：列表/删除。"
+    },
+    "/api/projects/*": {
+      "intent": "should_be_in_ui",
+      "area": "项目/分组",
+      "note": "项目：列表/删除。"
+    },
+    "/api/session-groups": {
+      "intent": "should_be_in_ui",
+      "area": "项目/分组",
+      "note": "会话分组：列表/重命名。"
+    },
+    "/api/session-groups/*": {
+      "intent": "should_be_in_ui",
+      "area": "项目/分组",
+      "note": "会话分组：列表/重命名。"
+    },
+    "/api/status": {
+      "intent": "should_be_in_ui",
+      "area": "运行状态",
+      "note": "运行状态：总览/配置。"
+    },
+    "/api/status/*": {
+      "intent": "should_be_in_ui",
+      "area": "运行状态",
+      "note": "运行状态：总览/配置。"
+    },
+    "/api/visual-workflows": {
+      "intent": "should_be_in_ui",
+      "area": "可视化工作流",
+      "note": "可视化工作流：保存/草稿。"
+    },
+    "/api/visual-workflows/*": {
+      "intent": "should_be_in_ui",
+      "area": "可视化工作流",
+      "note": "可视化工作流：保存/草稿。"
+    },
+    "/api/voice": {
+      "intent": "should_be_in_ui",
+      "area": "语音",
+      "note": "语音：识别/状态。"
+    },
+    "/api/voice/*": {
+      "intent": "should_be_in_ui",
+      "area": "语音",
+      "note": "语音：识别/状态。"
+    },
+    "/logs/dashboard": {
+      "intent": "should_be_in_ui",
+      "area": "日志中心",
+      "note": "日志仪表盘页面与实时数据（legacy 页面，待并入统一工作台）。"
+    },
+    "/logs/dashboard/*": {
+      "intent": "should_be_in_ui",
+      "area": "日志中心",
+      "note": "日志仪表盘页面与实时数据（legacy 页面，待并入统一工作台）。"
+    },
+    "/api/apply-network-config": {
+      "intent": "should_be_in_ui",
+      "area": "网络配置",
+      "note": "应用网络配置。"
+    },
+    "/api/capability-manifest": {
+      "intent": "should_be_in_ui",
+      "area": "能力清单",
+      "note": "工具/技能可调用清单。"
+    },
+    "/api/clear": {
+      "intent": "should_be_in_ui",
+      "area": "对话",
+      "note": "清空对话。"
+    },
+    "/api/clear/*": {
+      "intent": "should_be_in_ui",
+      "area": "对话",
+      "note": "清空对话。"
+    },
+    "/api/config": {
+      "intent": "should_be_in_ui",
+      "area": "模型实例",
+      "note": "LLM 配置读写。"
+    },
+    "/api/config/*": {
+      "intent": "should_be_in_ui",
+      "area": "模型实例",
+      "note": "LLM 配置读写。"
+    },
+    "/api/handoff": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理",
+      "note": "生成会话交接文档。"
+    },
+    "/api/handoff/*": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理",
+      "note": "生成会话交接文档。"
+    },
+    "/api/heartbeat": {
+      "intent": "should_be_in_ui",
+      "area": "健康看板",
+      "note": "心跳健康检查。"
+    },
+    "/api/learning": {
+      "intent": "should_be_in_ui",
+      "area": "学习度量",
+      "note": "学习有效性度量查询。"
+    },
+    "/api/learning/*": {
+      "intent": "should_be_in_ui",
+      "area": "学习度量",
+      "note": "学习有效性度量查询。"
+    },
+    "/api/mode": {
+      "intent": "should_be_in_ui",
+      "area": "运行状态",
+      "note": "系统模式切换。"
+    },
+    "/api/mode/*": {
+      "intent": "should_be_in_ui",
+      "area": "运行状态",
+      "note": "系统模式切换。"
+    },
+    "/api/news": {
+      "intent": "should_be_in_ui",
+      "area": "对话",
+      "note": "新闻直通。"
+    },
+    "/api/news/*": {
+      "intent": "should_be_in_ui",
+      "area": "对话",
+      "note": "新闻直通。"
+    },
+    "/api/orchestrator": {
+      "intent": "should_be_in_ui",
+      "area": "编排配置",
+      "note": "语义层配置查询。"
+    },
+    "/api/orchestrator/*": {
+      "intent": "should_be_in_ui",
+      "area": "编排配置",
+      "note": "语义层配置查询。"
+    },
+    "/api/panorama": {
+      "intent": "should_be_in_ui",
+      "area": "全景看板",
+      "note": "全景页数据。"
+    },
+    "/api/permissions": {
+      "intent": "should_be_in_ui",
+      "area": "权限面板",
+      "note": "管理后台权限列表。"
+    },
+    "/api/personality": {
+      "intent": "should_be_in_ui",
+      "area": "人格配置",
+      "note": "人格配置。"
+    },
+    "/api/planning": {
+      "intent": "should_be_in_ui",
+      "area": "编排配置",
+      "note": "规划引擎开关。"
+    },
+    "/api/planning/*": {
+      "intent": "should_be_in_ui",
+      "area": "编排配置",
+      "note": "规划引擎开关。"
+    },
+    "/api/plugins": {
+      "intent": "should_be_in_ui",
+      "area": "插件管理",
+      "note": "插件元信息 manifest。"
+    },
+    "/api/privacy": {
+      "intent": "should_be_in_ui",
+      "area": "隐私",
+      "note": "数据采集透明度信息。"
+    },
+    "/api/privacy/*": {
+      "intent": "should_be_in_ui",
+      "area": "隐私",
+      "note": "数据采集透明度信息。"
+    },
+    "/api/sensors": {
+      "intent": "should_be_in_ui",
+      "area": "全景看板",
+      "note": "传感器读数。"
+    },
+    "/api/window": {
+      "intent": "should_be_in_ui",
+      "area": "隐私",
+      "note": "窗口监控授权。"
+    },
+    "/api/window/*": {
+      "intent": "should_be_in_ui",
+      "area": "隐私",
+      "note": "窗口监控授权。"
+    },
+    "/api/workspaces": {
+      "intent": "should_be_in_ui",
+      "area": "工作区",
+      "note": "已添加工作区列表。"
+    },
+    "/api/web": {
+      "intent": "should_not_be_in_ui",
+      "area": "工具执行面",
+      "note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。"
+    },
+    "/api/web/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "工具执行面",
+      "note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。"
+    },
+    "/api/sandbox": {
+      "intent": "should_not_be_in_ui",
+      "area": "工具执行面",
+      "note": "受限沙盒执行 Python，编程调用面。"
+    },
+    "/api/sandbox/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "工具执行面",
+      "note": "受限沙盒执行 Python，编程调用面。"
+    },
+    "/api/docs": {
+      "intent": "should_not_be_in_ui",
+      "area": "开发面",
+      "note": "OpenAPI 文档，开发者只读文档面。"
+    },
+    "/api/docs/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "开发面",
+      "note": "OpenAPI 文档，开发者只读文档面。"
+    },
+    "/": {
+      "intent": "should_not_be_in_ui",
+      "area": "入口重定向",
+      "note": "首页重定向到统一工作台，不是独立界面。"
+    },
+    "/approval-console": {
+      "intent": "should_not_be_in_ui",
+      "area": "页面入口",
+      "note": "独立审批页面入口（页面已存在），非 SPA 数据面板。"
+    },
+    "/approval-console/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "页面入口",
+      "note": "独立审批页面入口（页面已存在），非 SPA 数据面板。"
+    },
+    "/chat": {
+      "intent": "should_not_be_in_ui",
+      "area": "页面入口",
+      "note": "SPA 入口页面，本身即 UI。"
+    },
+    "/chat/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "页面入口",
+      "note": "SPA 入口页面，本身即 UI。"
+    },
+    "/dashboard": {
+      "intent": "should_not_be_in_ui",
+      "area": "入口重定向",
+      "note": "重定向到统一工作台。"
+    },
+    "/dashboard/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "入口重定向",
+      "note": "重定向到统一工作台。"
+    },
+    "/replay-viewer": {
+      "intent": "should_not_be_in_ui",
+      "area": "页面入口",
+      "note": "legacy 独立回放页面（页面已存在）；并入统一工作台另立任务。"
+    },
+    "/replay-viewer/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "页面入口",
+      "note": "legacy 独立回放页面（页面已存在）；并入统一工作台另立任务。"
+    },
+    "/search-status": {
+      "intent": "should_not_be_in_ui",
+      "area": "页面入口",
+      "note": "legacy 独立搜索状态页面（页面已存在）。"
+    },
+    "/search-status/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "页面入口",
+      "note": "legacy 独立搜索状态页面（页面已存在）。"
+    },
+    "/capabilities": {
+      "intent": "should_not_be_in_ui",
+      "area": "能力层",
+      "note": "能力层 HTTP 面（非 LLM 入口），编排/脚本调用面。"
+    },
+    "/capabilities/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "能力层",
+      "note": "能力层 HTTP 面（非 LLM 入口），编排/脚本调用面。"
+    },
+    "/api/web/search/status": {
+      "intent": "should_be_in_ui",
+      "area": "网页工具",
+      "note": "搜索引擎状态面板（已接线）。"
     }
   }
 }
