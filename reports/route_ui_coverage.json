@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-17T22:14:58",
+  "generated_at": "2026-10-18T01:04:05",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 224,
+    "ui": 235,
     "cli_script": 19,
-    "runtime_only": 29,
-    "unreferenced": 192,
+    "runtime_only": 27,
+    "unreferenced": 183,
     "live_by_category": {
-      "ui": 224,
+      "ui": 235,
       "cli_script": 19,
-      "runtime_only": 29,
-      "unreferenced": 192
+      "runtime_only": 27,
+      "unreferenced": 183
     },
     "by_intent": {
       "should_be_in_ui": 403,
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 230,
+  "frontend_endpoints": 241,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -372,138 +372,6 @@
       "area": "诊断面板",
       "where": [
         "agent/server_routes/routes_logging.py:571"
-      ]
-    },
-    {
-      "path": "/api/extensions/channels/send",
-      "norm": "/api/extensions/channels/send",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:818"
-      ]
-    },
-    {
-      "path": "/api/extensions/configure",
-      "norm": "/api/extensions/configure",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:732"
-      ]
-    },
-    {
-      "path": "/api/extensions/discover",
-      "norm": "/api/extensions/discover",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:754"
-      ]
-    },
-    {
-      "path": "/api/extensions/install",
-      "norm": "/api/extensions/install",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:664"
-      ]
-    },
-    {
-      "path": "/api/extensions/installed",
-      "norm": "/api/extensions/installed",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:650"
-      ]
-    },
-    {
-      "path": "/api/extensions/list",
-      "norm": "/api/extensions/list",
-      "methods": [
-        "GET"
-      ],
-      "category": "runtime_only",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:635"
-      ]
-    },
-    {
-      "path": "/api/extensions/market/recommend",
-      "norm": "/api/extensions/market/recommend",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:786"
-      ]
-    },
-    {
-      "path": "/api/extensions/market/refresh",
-      "norm": "/api/extensions/market/refresh",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:802"
-      ]
-    },
-    {
-      "path": "/api/extensions/market/search",
-      "norm": "/api/extensions/market/search",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:768"
-      ]
-    },
-    {
-      "path": "/api/extensions/toggle",
-      "norm": "/api/extensions/toggle",
-      "methods": [
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:710"
-      ]
-    },
-    {
-      "path": "/api/extensions/uninstall",
-      "norm": "/api/extensions/uninstall",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "扩展市场",
-      "where": [
-        "plugins/skills.py:686"
       ]
     },
     {
@@ -4848,11 +4716,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:818"
@@ -4862,7 +4732,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -4871,11 +4741,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:732"
@@ -4885,7 +4757,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -4894,11 +4766,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:754"
@@ -4908,7 +4782,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -4917,11 +4791,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:664"
@@ -4931,7 +4807,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -4940,11 +4816,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:650"
@@ -4954,7 +4832,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -4963,11 +4841,13 @@
       "methods": [
         "GET"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_api.py"
       ],
@@ -4979,7 +4859,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -4988,11 +4868,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:786"
@@ -5002,7 +4884,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5011,11 +4893,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:802"
@@ -5025,7 +4909,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5034,11 +4918,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:768"
@@ -5048,7 +4934,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5057,11 +4943,13 @@
       "methods": [
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
@@ -5073,7 +4961,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5082,11 +4970,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:686"
@@ -5096,7 +4986,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -13697,5 +13587,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "40af4548db9da27d"
+  "content_hash": "d69681b2ab17f677"
 }

@@ -73,6 +73,21 @@ export const SKILLS_MGMT_UPLOAD = '/api/skills-mgmt/upload';
 export const SKILLS_MGMT_ABSTRACT_FROM_MEMORY = '/api/skills-mgmt/abstract-from-memory';
 
 // ═══════════════════════════════════════════════════════════════
+//  扩展市场（/api/extensions）
+// ═══════════════════════════════════════════════════════════════
+export const EXTENSIONS_LIST = '/api/extensions/list';
+export const EXTENSIONS_INSTALLED = '/api/extensions/installed';
+export const EXTENSIONS_INSTALL = '/api/extensions/install';
+export const EXTENSIONS_UNINSTALL = '/api/extensions/uninstall';
+export const EXTENSIONS_TOGGLE = '/api/extensions/toggle';
+export const EXTENSIONS_CONFIGURE = '/api/extensions/configure';
+export const EXTENSIONS_DISCOVER = '/api/extensions/discover';
+export const EXTENSIONS_MARKET_SEARCH = '/api/extensions/market/search';
+export const EXTENSIONS_MARKET_RECOMMEND = '/api/extensions/market/recommend';
+export const EXTENSIONS_MARKET_REFRESH = '/api/extensions/market/refresh';
+export const EXTENSIONS_CHANNELS_SEND = '/api/extensions/channels/send';
+
+// ═══════════════════════════════════════════════════════════════
 //  工作流学习（/api/workflow-learning）
 // ═══════════════════════════════════════════════════════════════
 export const WORKFLOW_LEARNING_HEALTH = '/api/workflow-learning/health';
