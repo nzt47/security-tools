@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-17T12:29:51",
+  "generated_at": "2026-10-17T19:45:21",
   "totals": {
     "routes": 464,
     "live": 464,
@@ -16,9 +16,25 @@
       "unreferenced": 271
     },
     "by_intent": {
-      "should_be_in_ui": 430,
-      "should_not_be_in_ui": 33,
+      "should_be_in_ui": 403,
+      "should_not_be_in_ui": 60,
       "unclassified": 1
+    },
+    "by_domain": {
+      "页面入口": 7,
+      "分身与主线": 20,
+      "系统与配置": 43,
+      "治理与审批": 42,
+      "资产与文件": 19,
+      "管理与后台": 17,
+      "调度与任务": 26,
+      "对话与会话": 32,
+      "业务与评估": 18,
+      "技能与工具": 113,
+      "认知与学习": 6,
+      "观测与诊断": 74,
+      "开发与内部": 14,
+      "记忆与知识": 33
     }
   },
   "frontend_endpoints": 148,
@@ -30,6 +46,7 @@
     "/api/menu"
   ],
   "intent_file": "config/route_ui_intent.json",
+  "domain_file": "config/route_domains.json",
   "pending_ui": [
     {
       "path": "/api/agent-lines/<line_id>",
@@ -81,54 +98,6 @@
       "area": "审批中心",
       "where": [
         "agent/server_routes/routes_approval.py:365"
-      ]
-    },
-    {
-      "path": "/api/approval/console",
-      "norm": "/api/approval/console",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "审批中心",
-      "where": [
-        "agent/server_routes/routes_approval.py:372"
-      ]
-    },
-    {
-      "path": "/api/approval/link/<token>",
-      "norm": "/api/approval/link/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "审批中心",
-      "where": [
-        "agent/server_routes/routes_approval.py:316"
-      ]
-    },
-    {
-      "path": "/api/approval/pending",
-      "norm": "/api/approval/pending",
-      "methods": [
-        "GET"
-      ],
-      "category": "cli_script",
-      "area": "审批中心",
-      "where": [
-        "agent/server_routes/routes_approval.py:235"
-      ]
-    },
-    {
-      "path": "/api/approval/whoami",
-      "norm": "/api/approval/whoami",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "审批中心",
-      "where": [
-        "agent/server_routes/routes_approval.py:174"
       ]
     },
     {
@@ -699,42 +668,6 @@
       ]
     },
     {
-      "path": "/api/diagnostics/trace",
-      "norm": "/api/diagnostics/trace",
-      "methods": [
-        "GET"
-      ],
-      "category": "cli_script",
-      "area": "诊断面板",
-      "where": [
-        "agent/server_routes/routes_logging.py:716"
-      ]
-    },
-    {
-      "path": "/api/diagnostics/trace/extract",
-      "norm": "/api/diagnostics/trace/extract",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "诊断面板",
-      "where": [
-        "agent/server_routes/routes_logging.py:741"
-      ]
-    },
-    {
-      "path": "/api/diagnostics/trace/inject",
-      "norm": "/api/diagnostics/trace/inject",
-      "methods": [
-        "GET"
-      ],
-      "category": "cli_script",
-      "area": "诊断面板",
-      "where": [
-        "agent/server_routes/routes_logging.py:794"
-      ]
-    },
-    {
       "path": "/api/experience/<sid>",
       "norm": "/api/experience/*",
       "methods": [
@@ -1107,18 +1040,6 @@
       ]
     },
     {
-      "path": "/api/health/retrieval",
-      "norm": "/api/health/retrieval",
-      "methods": [
-        "GET"
-      ],
-      "category": "runtime_only",
-      "area": "健康看板",
-      "where": [
-        "app_server.py:1795"
-      ]
-    },
-    {
       "path": "/api/health/score",
       "norm": "/api/health/score",
       "methods": [
@@ -1128,18 +1049,6 @@
       "area": "健康看板",
       "where": [
         "agent/server_routes/routes_health.py:147"
-      ]
-    },
-    {
-      "path": "/api/health/score/calculate",
-      "norm": "/api/health/score/calculate",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "健康看板",
-      "where": [
-        "agent/server_routes/routes_health.py:173"
       ]
     },
     {
@@ -1582,56 +1491,6 @@
       ]
     },
     {
-      "path": "/api/observability/alerts/validate",
-      "norm": "/api/observability/alerts/validate",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:1325"
-      ]
-    },
-    {
-      "path": "/api/observability/logs",
-      "norm": "/api/observability/logs",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:1000",
-        "agent/server_routes/routes_logging.py:877"
-      ]
-    },
-    {
-      "path": "/api/observability/logs/labels",
-      "norm": "/api/observability/logs/labels",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:970"
-      ]
-    },
-    {
-      "path": "/api/observability/logs/stream",
-      "norm": "/api/observability/logs/stream",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "可观测性",
-      "where": [
-        "agent/server_routes/routes_logging.py:1079"
-      ]
-    },
-    {
       "path": "/api/observability/state",
       "norm": "/api/observability/state",
       "methods": [
@@ -2008,30 +1867,6 @@
       "area": "安全设置",
       "where": [
         "plugins/safety.py:147"
-      ]
-    },
-    {
-      "path": "/api/scheduler/create",
-      "norm": "/api/scheduler/create",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "定时任务",
-      "where": [
-        "plugins/mcp_scheduler.py:259"
-      ]
-    },
-    {
-      "path": "/api/scheduler/delete",
-      "norm": "/api/scheduler/delete",
-      "methods": [
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "定时任务",
-      "where": [
-        "plugins/mcp_scheduler.py:280"
       ]
     },
     {
@@ -2663,138 +2498,6 @@
       ]
     },
     {
-      "path": "/api/skills-mgmt/digest/<skill_id>",
-      "norm": "/api/skills-mgmt/digest/*",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:611"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/digest/curate",
-      "norm": "/api/skills-mgmt/digest/curate",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:389"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/digest/events",
-      "norm": "/api/skills-mgmt/digest/events",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:649"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/digest/feed",
-      "norm": "/api/skills-mgmt/digest/feed",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:440"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/digest/merge-backups",
-      "norm": "/api/skills-mgmt/digest/merge-backups",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:426"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/digest/merge-safe",
-      "norm": "/api/skills-mgmt/digest/merge-safe",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:407"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/digest/merge-undo",
-      "norm": "/api/skills-mgmt/digest/merge-undo",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:538"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/digest/run-all",
-      "norm": "/api/skills-mgmt/digest/run-all",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:376"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/digest/stream",
-      "norm": "/api/skills-mgmt/digest/stream",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:663"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/inject",
-      "norm": "/api/skills-mgmt/inject",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1465"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/match",
-      "norm": "/api/skills-mgmt/match",
-      "methods": [
-        "POST"
-      ],
-      "category": "cli_script",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1254"
-      ]
-    },
-    {
       "path": "/api/skills-mgmt/merge",
       "norm": "/api/skills-mgmt/merge",
       "methods": [
@@ -2804,18 +2507,6 @@
       "area": "技能中心",
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:1141"
-      ]
-    },
-    {
-      "path": "/api/skills-mgmt/slash/<skill_id>",
-      "norm": "/api/skills-mgmt/slash/*",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1504"
       ]
     },
     {
@@ -3560,7 +3251,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "入口重定向",
       "intent_note": "首页重定向到统一工作台，不是独立界面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "页面入口"
     },
     {
       "path": "/<path:subpath>",
@@ -3588,7 +3280,8 @@
       "intent": "unclassified",
       "intent_area": "",
       "intent_note": "",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "页面入口"
     },
     {
       "path": "/api/agent-lines",
@@ -3614,7 +3307,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "主线装配台",
       "intent_note": "主线装配台：档案/装配预览/校验/激活/工具目录。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/agent-lines/<line_id>",
@@ -3640,7 +3334,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "主线装配台",
       "intent_note": "主线装配台：档案/装配预览/校验/激活/工具目录。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/agent-lines/active",
@@ -3662,7 +3357,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "主线装配台",
       "intent_note": "主线装配台：档案/装配预览/校验/激活/工具目录。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/agent-lines/planes",
@@ -3686,7 +3382,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "主线装配台",
       "intent_note": "主线装配台：档案/装配预览/校验/激活/工具目录。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/agent-lines/preview",
@@ -3710,7 +3407,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "主线装配台",
       "intent_note": "主线装配台：档案/装配预览/校验/激活/工具目录。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/agent-lines/validate",
@@ -3734,7 +3432,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "主线装配台",
       "intent_note": "主线装配台：档案/装配预览/校验/激活/工具目录。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/apply-network-config",
@@ -3758,7 +3457,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "网络配置",
       "intent_note": "应用网络配置。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/approval/<record_id>/approve",
@@ -3780,7 +3480,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "审批中心",
       "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/approval/<record_id>/reject",
@@ -3802,7 +3503,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "审批中心",
       "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/approval/console",
@@ -3821,10 +3523,11 @@
       ],
       "description": "审批控制台（程序化/嵌入式调用方；**仍受 require_token 约束**）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "审批中心",
-      "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：程序化/嵌入式调用方的控制台入口，不是人机界面",
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/approval/link",
@@ -3850,7 +3553,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "审批中心",
       "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/approval/link/<token>",
@@ -3869,10 +3573,11 @@
       ],
       "description": "校验链接（**不消费**）：分享式链接在此即暴露 `session_mismatch`",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "审批中心",
-      "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：分享链接校验（不消费），机器链路",
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/approval/pending",
@@ -3893,10 +3598,11 @@
       ],
       "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "审批中心",
-      "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：轮询面，供编排器/脚本取待办",
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/approval/second-factor",
@@ -3922,7 +3628,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "审批中心",
       "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/approval/session",
@@ -3950,7 +3657,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "审批中心",
       "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/approval/whoami",
@@ -3969,10 +3677,11 @@
       ],
       "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "审批中心",
-      "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：身份查询，程序化调用",
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/assets/<category>",
@@ -3996,7 +3705,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/assets/<category>/<item_id>",
@@ -4018,7 +3728,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/assets/backup",
@@ -4042,7 +3753,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/assets/backup/<backup_id>",
@@ -4064,7 +3776,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/assets/backup/list",
@@ -4088,7 +3801,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/assets/export",
@@ -4110,7 +3824,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/assets/overview",
@@ -4134,7 +3849,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/assets/restore",
@@ -4156,7 +3872,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "资产管理",
       "intent_note": "资产管理：分类浏览/备份/恢复/导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/audit/logs",
@@ -4180,7 +3897,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "审计",
       "intent_note": "审计日志查询/导出。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/audit/route-ui-coverage",
@@ -4204,7 +3922,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "审计",
       "intent_note": "审计日志查询/导出。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/auth/login",
@@ -4228,7 +3947,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "登录/菜单",
       "intent_note": "登录与菜单：登录、菜单树。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/auth/menus",
@@ -4252,7 +3972,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "登录/菜单",
       "intent_note": "登录与菜单：登录、菜单树。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/auth/token-check",
@@ -4274,7 +3995,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "内部鉴权",
       "intent_note": "令牌校验，编排层调用",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/background/tasks",
@@ -4296,7 +4018,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "后台任务",
       "intent_note": "后台任务：列表/状态/取消/结果。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/background/tasks/<task_id>",
@@ -4318,7 +4041,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "后台任务",
       "intent_note": "后台任务：列表/状态/取消/结果。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/background/tasks/<task_id>/cancel",
@@ -4340,7 +4064,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "后台任务",
       "intent_note": "后台任务：列表/状态/取消/结果。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/background/tasks/<task_id>/result",
@@ -4362,7 +4087,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "后台任务",
       "intent_note": "后台任务：列表/状态/取消/结果。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/browser/close",
@@ -4386,7 +4112,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "与截图同一能力",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/browser/navigate",
@@ -4410,7 +4137,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "浏览器操作族。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/browser/screenshot",
@@ -4434,7 +4162,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "工作区能力，可做成会话侧面板",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/business/dashboard",
@@ -4456,7 +4185,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/business/definitions",
@@ -4478,7 +4208,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/business/health",
@@ -4500,7 +4231,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/business/metrics/<metric_name>",
@@ -4522,7 +4254,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/business/prometheus",
@@ -4544,7 +4277,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "业务看板",
       "intent_note": "业务看板：总览/指标定义/健康/详情/Prometheus 导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/capability-manifest",
@@ -4568,7 +4302,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "能力清单",
       "intent_note": "工具/技能可调用清单。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/chat",
@@ -4597,7 +4332,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "对话",
       "intent_note": "对话：消息、流式。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/chat/stream",
@@ -4621,7 +4357,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "对话",
       "intent_note": "对话：消息、流式。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/clear",
@@ -4643,7 +4380,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "对话",
       "intent_note": "清空对话。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/clipboard",
@@ -4669,7 +4407,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "剪贴板读写，工作区面板",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/cognitive/prompt",
@@ -4691,7 +4430,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "认知闭环（调试面）",
       "intent_note": "原始注入提示词文本，属开发/调试面，不作为用户 UI",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "认知与学习"
     },
     {
       "path": "/api/cognitive/reject",
@@ -4715,7 +4455,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "认知闭环",
       "intent_note": "任务接受度裁决；已在「全景感知 → 认知闭环」面板落地",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "认知与学习"
     },
     {
       "path": "/api/cognitive/status",
@@ -4740,7 +4481,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "全景看板",
       "intent_note": "认知闭环状态；已在「全景感知 → 认知闭环」面板落地",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "认知与学习"
     },
     {
       "path": "/api/cognitive/translate/<sensor_name>",
@@ -4762,7 +4504,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "认知闭环（调试面）",
       "intent_note": "按传感器名翻译读数，调试面；无稳定用户入口",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "认知与学习"
     },
     {
       "path": "/api/config",
@@ -4788,7 +4531,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "模型实例",
       "intent_note": "LLM 配置读写。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/config/logs",
@@ -4812,7 +4556,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "系统管理·日志",
       "intent_note": "与系统日志同屏",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/context/compress",
@@ -4838,7 +4583,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "上下文管理。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/context/config",
@@ -4862,7 +4608,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "上下文管理。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/context/status",
@@ -4888,7 +4635,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "上下文管理。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/cp/actions/<action>",
@@ -4910,7 +4658,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/approvals/batch",
@@ -4932,7 +4681,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/approvals/batch/link",
@@ -4954,7 +4704,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/approvals/inbox",
@@ -4976,7 +4727,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/audit/export",
@@ -4998,7 +4750,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/audit/export.csv",
@@ -5020,7 +4773,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/confirmations/<action>",
@@ -5042,7 +4796,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/descriptors/map",
@@ -5064,7 +4819,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/digestion/pipeline",
@@ -5086,7 +4842,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/healing/incidents",
@@ -5108,7 +4865,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/memory/skills",
@@ -5130,7 +4888,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/observability/stream",
@@ -5152,7 +4911,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/panels",
@@ -5174,7 +4934,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/roi",
@@ -5196,7 +4957,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/security/authz-alerts",
@@ -5218,7 +4980,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/security/render-state",
@@ -5240,7 +5003,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/settings",
@@ -5262,7 +5026,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/settings/<key>",
@@ -5284,7 +5049,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/settings/<key>/confirm",
@@ -5306,7 +5072,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/settings/<key>/reset",
@@ -5328,7 +5095,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/cp/tool-exemptions",
@@ -5354,7 +5122,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/dashboard/health",
@@ -5376,7 +5145,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/dashboard/memory",
@@ -5398,7 +5168,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/dashboard/quality",
@@ -5420,7 +5191,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/dashboard/summary",
@@ -5444,7 +5216,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理仪表盘",
       "intent_note": "",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/dashboard/traces",
@@ -5466,7 +5239,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/dashboard/traces/<trace_id>",
@@ -5488,7 +5262,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "仪表盘",
       "intent_note": "仪表盘：健康/Memory/质量/追踪。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/demo/config",
@@ -5512,7 +5287,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "开发 mock",
       "intent_note": "仅 dev mock，永不上屏",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/api/demo/probe",
@@ -5534,7 +5310,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "开发 mock",
       "intent_note": "仅 dev mock，永不上屏",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/api/diagnostics/config",
@@ -5556,7 +5333,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/diagnostics/error_correlation",
@@ -5578,7 +5356,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/diagnostics/health",
@@ -5603,7 +5382,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/diagnostics/llm-check",
@@ -5627,7 +5407,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/diagnostics/logs",
@@ -5649,7 +5430,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/diagnostics/metrics",
@@ -5673,7 +5455,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/diagnostics/tools",
@@ -5695,7 +5478,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "诊断面板",
       "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/diagnostics/trace",
@@ -5716,10 +5500,11 @@
       ],
       "description": "获取当前追踪上下文",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "诊断面板",
-      "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：追踪上下文读取（CLI 用）",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/diagnostics/trace/extract",
@@ -5738,10 +5523,11 @@
       ],
       "description": "从请求头提取追踪上下文",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "诊断面板",
-      "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：从请求头提取追踪上下文，机器链路",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/diagnostics/trace/inject",
@@ -5762,10 +5548,11 @@
       ],
       "description": "生成追踪上下文请求头",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "诊断面板",
-      "intent_note": "诊断面板：配置摘要、日志、工具清单、追踪上下文、异常关联。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：生成追踪上下文请求头，机器链路",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/docs",
@@ -5789,7 +5576,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "开发面",
       "intent_note": "OpenAPI 文档，开发者只读文档面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/api/experience/<sid>",
@@ -5811,7 +5599,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/experience/<sid>/review",
@@ -5833,7 +5622,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/experience/batch/<batch_id>/rollback",
@@ -5855,7 +5645,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/experience/ingest",
@@ -5879,7 +5670,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/experience/list",
@@ -5903,7 +5695,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/experience/search",
@@ -5927,7 +5720,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/experience/stats",
@@ -5951,7 +5745,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "经验库",
       "intent_note": "经验库：入库/列表/检索/统计/复核。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/export/users",
@@ -5975,7 +5770,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "导出",
       "intent_note": "导出能力。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/extensions/channels/send",
@@ -5997,7 +5793,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/configure",
@@ -6019,7 +5816,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/discover",
@@ -6041,7 +5839,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/install",
@@ -6063,7 +5862,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/installed",
@@ -6085,7 +5885,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/list",
@@ -6109,7 +5910,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/market/recommend",
@@ -6131,7 +5933,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/market/refresh",
@@ -6153,7 +5956,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/market/search",
@@ -6175,7 +5979,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/toggle",
@@ -6199,7 +6004,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/extensions/uninstall",
@@ -6221,7 +6027,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "扩展市场",
       "intent_note": "扩展市场：发现/安装/卸载/配置/市场搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/feedback/<feedback_id>",
@@ -6243,7 +6050,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/feedback/<feedback_id>/resolve",
@@ -6265,7 +6073,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/feedback/list",
@@ -6287,7 +6096,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/feedback/quality-cases",
@@ -6309,7 +6119,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/feedback/report",
@@ -6331,7 +6142,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/feedback/submit",
@@ -6353,7 +6165,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/feedback/summary",
@@ -6375,7 +6188,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "反馈中心",
       "intent_note": "反馈中心：提交/列表/详情/汇总/分析报告。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/filesystem/info",
@@ -6397,7 +6211,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/filesystem/list",
@@ -6419,7 +6234,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/filesystem/read",
@@ -6441,7 +6257,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/filesystem/search",
@@ -6463,7 +6280,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/filesystem/write",
@@ -6485,7 +6303,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/handoff",
@@ -6507,7 +6326,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "生成会话交接文档。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/health",
@@ -6540,7 +6360,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/alerts",
@@ -6562,7 +6383,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/auth",
@@ -6584,7 +6406,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "探针",
       "intent_note": "健康探针，给编排器而非人",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/dashboard",
@@ -6612,7 +6435,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/export",
@@ -6634,7 +6458,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/history",
@@ -6656,7 +6481,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/probe-trend",
@@ -6682,7 +6508,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/quick-check",
@@ -6704,7 +6531,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/retrieval",
@@ -6725,10 +6553,11 @@
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "健康看板",
-      "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：embedding worker 的只读探针，给编排器而非人",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/score",
@@ -6752,7 +6581,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/score/calculate",
@@ -6771,10 +6601,11 @@
       ],
       "description": "手动提交指标计算健康度",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "健康看板",
-      "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：手动提交指标计算，程序化入口",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/summary",
@@ -6796,7 +6627,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/trend",
@@ -6818,7 +6650,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/health/weights",
@@ -6841,7 +6674,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "健康看板：告警/趋势/导出/权重/评分。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/heartbeat",
@@ -6865,7 +6699,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "心跳健康检查。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/heartbeat/history",
@@ -6889,7 +6724,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "心跳健康检查。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/heartbeat/status",
@@ -6913,7 +6749,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "健康看板",
       "intent_note": "心跳健康检查。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/history",
@@ -6935,7 +6772,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "历史记录",
       "intent_note": "历史记录：列表/删除/搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/history/<int:index>",
@@ -6957,7 +6795,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "历史记录",
       "intent_note": "历史记录：列表/删除/搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/history/search",
@@ -6979,7 +6818,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "历史记录",
       "intent_note": "历史记录：列表/删除/搜索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/knowledge/add",
@@ -7001,7 +6841,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "知识库",
       "intent_note": "知识库：卡片/图谱/index/lint/融合检索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/knowledge/cards",
@@ -7030,7 +6871,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "知识库",
       "intent_note": "知识库：卡片/图谱/index/lint/融合检索。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/knowledge/cards/<slug>",
@@ -7056,7 +6898,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "知识库",
       "intent_note": "知识库：卡片/图谱/index/lint/融合检索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/knowledge/graph",
@@ -7080,7 +6923,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "知识库",
       "intent_note": "知识库：卡片/图谱/index/lint/融合检索。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/knowledge/index",
@@ -7106,7 +6950,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "知识库",
       "intent_note": "知识库：卡片/图谱/index/lint/融合检索。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/knowledge/lint",
@@ -7130,7 +6975,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "知识库",
       "intent_note": "知识库：卡片/图谱/index/lint/融合检索。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/knowledge/query",
@@ -7154,7 +7000,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "知识库",
       "intent_note": "知识库：卡片/图谱/index/lint/融合检索。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/learning/metrics",
@@ -7179,7 +7026,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "学习度量",
       "intent_note": "学习有效性度量查询。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "认知与学习"
     },
     {
       "path": "/api/llm-monitor/clear",
@@ -7203,7 +7051,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "LLM 监控",
       "intent_note": "LLM 监控：记录/详情/统计/清空/开关。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/llm-monitor/records",
@@ -7229,7 +7078,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "LLM 监控",
       "intent_note": "LLM 监控：记录/详情/统计/清空/开关。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/llm-monitor/records/<record_id>",
@@ -7251,7 +7101,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "LLM 监控",
       "intent_note": "LLM 监控：记录/详情/统计/清空/开关。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/llm-monitor/stats",
@@ -7275,7 +7126,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "LLM 监控",
       "intent_note": "LLM 监控：记录/详情/统计/清空/开关。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/llm-monitor/toggle",
@@ -7299,7 +7151,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "LLM 监控",
       "intent_note": "LLM 监控：记录/详情/统计/清空/开关。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/llm/instances",
@@ -7325,7 +7178,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "模型实例",
       "intent_note": "模型实例：列表/详情/默认/连通性测试。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/llm/instances/<string:instance_id>",
@@ -7351,7 +7205,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "模型实例",
       "intent_note": "模型实例：列表/详情/默认/连通性测试。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/llm/instances/<string:instance_id>/default",
@@ -7373,7 +7228,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "模型实例",
       "intent_note": "模型实例：列表/详情/默认/连通性测试。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/llm/instances/<string:instance_id>/test",
@@ -7395,7 +7251,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "模型实例",
       "intent_note": "模型实例：列表/详情/默认/连通性测试。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/mcp/enable",
@@ -7419,7 +7276,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "MCP 服务",
       "intent_note": "MCP 服务：列表/更新/启停。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/mcp/services",
@@ -7447,7 +7305,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "MCP 服务",
       "intent_note": "MCP 服务：列表/更新/启停。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/mcp/services/<string:service_id>",
@@ -7473,7 +7332,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "MCP 服务",
       "intent_note": "MCP 服务：列表/更新/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/memory/<int:index>",
@@ -7495,7 +7355,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/clear-summary",
@@ -7517,7 +7378,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/compress",
@@ -7541,7 +7403,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/manual",
@@ -7567,7 +7430,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/overview",
@@ -7593,7 +7457,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/review",
@@ -7616,7 +7481,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/summary",
@@ -7638,7 +7504,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/windows/clear",
@@ -7660,7 +7527,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/windows/config",
@@ -7683,7 +7551,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/windows/current",
@@ -7705,7 +7574,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/windows/events",
@@ -7727,7 +7597,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/memory/windows/stats",
@@ -7749,7 +7620,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
       "intent_note": "记忆库：概览/手工添加/摘要/窗口事件与配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/menu/tree",
@@ -7773,7 +7645,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "菜单树。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/mode",
@@ -7795,7 +7668,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "运行状态",
       "intent_note": "系统模式切换。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/modules/<module_id>/actions",
@@ -7819,7 +7693,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "拓扑面板",
       "intent_note": "模块拓扑：六域树/节点详情/干预动作。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/modules/<module_id>/detail",
@@ -7843,7 +7718,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "拓扑面板",
       "intent_note": "模块拓扑：六域树/节点详情/干预动作。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/modules/topology",
@@ -7870,7 +7746,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "拓扑面板",
       "intent_note": "模块拓扑：六域树/节点详情/干预动作。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/network-config",
@@ -7899,7 +7776,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "网络配置",
       "intent_note": "网络配置：读取/重置/导入/导出。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/network-config/export",
@@ -7921,7 +7799,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "网络配置",
       "intent_note": "网络配置：读取/重置/导入/导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/network-config/import",
@@ -7943,7 +7822,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "网络配置",
       "intent_note": "网络配置：读取/重置/导入/导出。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/network-config/reset",
@@ -7967,7 +7847,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "网络配置",
       "intent_note": "网络配置：读取/重置/导入/导出。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/news",
@@ -7989,7 +7870,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "对话",
       "intent_note": "新闻直通。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/notification/<int:notif_id>/read",
@@ -8011,7 +7893,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "通知中心",
       "intent_note": "通知中心：列表/已读/全部已读/未读数。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/notification/list",
@@ -8035,7 +7918,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "通知中心",
       "intent_note": "通知中心：列表/已读/全部已读/未读数。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/notification/read-all",
@@ -8059,7 +7943,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "通知中心",
       "intent_note": "通知中心：列表/已读/全部已读/未读数。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/notification/unread-count",
@@ -8083,7 +7968,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "通知中心",
       "intent_note": "通知中心：列表/已读/全部已读/未读数。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/observability/access_logs",
@@ -8105,7 +7991,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/access_stats",
@@ -8127,7 +8014,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/alerts",
@@ -8153,7 +8041,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/alerts/<alert_name>",
@@ -8177,7 +8066,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/alerts/validate",
@@ -8196,10 +8086,11 @@
       ],
       "description": "验证告警规则表达式（需要认证）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "可观测性",
-      "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：告警规则表达式校验，机器链路",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/logs",
@@ -8220,10 +8111,11 @@
       ],
       "description": "推送日志（需要认证）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "可观测性",
-      "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：日志推送面（服务端写入），不是查看界面",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/logs/labels",
@@ -8242,10 +8134,11 @@
       ],
       "description": "获取日志标签列表（需要认证）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "可观测性",
-      "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：日志标签枚举，配合推送使用",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/logs/stream",
@@ -8264,10 +8157,11 @@
       ],
       "description": "实时日志流（需要认证）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "可观测性",
-      "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：实时日志流，供采集器消费",
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/state",
@@ -8289,7 +8183,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/traces",
@@ -8311,7 +8206,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/observability/traces/<trace_id>",
@@ -8333,7 +8229,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "可观测性",
       "intent_note": "可观测性面板：访问日志、告警规则、追踪、日志流。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/orchestrator/semantic-config",
@@ -8357,7 +8254,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "编排配置",
       "intent_note": "语义层配置查询。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/panorama",
@@ -8384,7 +8282,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "全景看板",
       "intent_note": "全景页数据。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/permission/access-log",
@@ -8406,7 +8305,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/permission/emergency",
@@ -8430,7 +8330,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/permission/log",
@@ -8452,7 +8353,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/permission/stats",
@@ -8474,7 +8376,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/permission/status",
@@ -8498,7 +8401,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/permission/toggle",
@@ -8522,7 +8426,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/permissions",
@@ -8546,7 +8451,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "管理后台权限列表。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/personality",
@@ -8572,7 +8478,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "人格配置",
       "intent_note": "人格配置。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/personality/params",
@@ -8596,7 +8503,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "人格配置",
       "intent_note": "人格配置。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/personality/profile",
@@ -8622,7 +8530,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "人格配置",
       "intent_note": "人格配置。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/personality/reset",
@@ -8648,7 +8557,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "人格配置",
       "intent_note": "人格配置。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/planning/toggle",
@@ -8673,7 +8583,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "编排配置",
       "intent_note": "规划引擎开关。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "认知与学习"
     },
     {
       "path": "/api/plugins",
@@ -8699,7 +8610,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "插件管理",
       "intent_note": "插件元信息 manifest。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/plugins/reload",
@@ -8725,7 +8637,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "插件管理",
       "intent_note": "插件元信息。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/privacy/info",
@@ -8747,7 +8660,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "隐私",
       "intent_note": "数据采集透明度信息。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/process-distill/distill",
@@ -8769,7 +8683,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "过程蒸馏",
       "intent_note": "过程蒸馏：健康/蒸馏动作。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/process-distill/health",
@@ -8791,7 +8706,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "过程蒸馏",
       "intent_note": "过程蒸馏：健康/蒸馏动作。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/process/list",
@@ -8817,7 +8733,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/process/start",
@@ -8841,7 +8758,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/process/stop",
@@ -8865,7 +8783,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/process/whitelist",
@@ -8887,7 +8806,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/process/whitelist/add",
@@ -8909,7 +8829,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/process/whitelist/remove",
@@ -8931,7 +8852,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/projects",
@@ -8957,7 +8879,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "项目/分组",
       "intent_note": "项目：列表/删除。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/projects/<project_id>",
@@ -8981,7 +8904,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "项目/分组",
       "intent_note": "项目：列表/删除。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/prompt-lab/llm-preview",
@@ -9005,7 +8929,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "提示词实验室",
       "intent_note": "提示词实验。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/replay/<replay_id>",
@@ -9027,7 +8952,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/replay/<replay_id>/data",
@@ -9049,7 +8975,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/replay/cleanup",
@@ -9071,7 +8998,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/replay/list",
@@ -9093,7 +9021,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/replay/stats",
@@ -9115,7 +9044,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/replay/upload",
@@ -9139,7 +9069,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "回放中心",
       "intent_note": "回放中心：上传/列表/详情/数据/清理/统计。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "业务与评估"
     },
     {
       "path": "/api/role",
@@ -9163,7 +9094,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：角色列表/详情/权限/数据范围。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/role/<int:role_id>",
@@ -9187,7 +9119,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：角色列表/详情/权限/数据范围。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/role/<int:role_id>/data-scope",
@@ -9209,7 +9142,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：角色列表/详情/权限/数据范围。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/role/<int:role_id>/permissions",
@@ -9231,7 +9165,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：角色列表/详情/权限/数据范围。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/role/list",
@@ -9255,7 +9190,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：角色列表/详情/权限/数据范围。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/safety/alerts",
@@ -9279,7 +9215,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "安全设置",
       "intent_note": "安全设置：危险词/告警/文本检查。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/safety/check",
@@ -9301,7 +9238,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "安全设置",
       "intent_note": "安全设置：危险词/告警/文本检查。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/safety/keywords",
@@ -9326,7 +9264,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "安全设置",
       "intent_note": "安全设置：危险词/告警/文本检查。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "治理与审批"
     },
     {
       "path": "/api/sandbox/run",
@@ -9348,7 +9287,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "工具执行面",
       "intent_note": "受限沙盒执行 Python，编程调用面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/api/scheduler/configure",
@@ -9372,7 +9312,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/scheduler/create",
@@ -9391,10 +9332,11 @@
       ],
       "description": "创建定时任务",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "定时任务",
-      "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：API 创建命令任务（旧程序化入口）",
+      "ui_pending": false,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/scheduler/delete",
@@ -9415,10 +9357,11 @@
       ],
       "description": "删除定时任务",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "定时任务",
-      "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：API 删除命令任务（旧程序化入口）",
+      "ui_pending": false,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/scheduler/execute-now",
@@ -9442,7 +9385,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/scheduler/history",
@@ -9466,7 +9410,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/scheduler/overview",
@@ -9490,7 +9435,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/scheduler/tasks",
@@ -9516,7 +9462,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/scheduler/toggle",
@@ -9540,7 +9487,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/schedules",
@@ -9566,7 +9514,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/schedules/<task_id>",
@@ -9588,7 +9537,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/schedules/<task_id>/pause",
@@ -9610,7 +9560,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/schedules/<task_id>/resume",
@@ -9632,7 +9583,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/schedules/history",
@@ -9654,7 +9606,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/search-performance/check",
@@ -9676,7 +9629,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索性能",
       "intent_note": "搜索性能面板：检测/历史/摘要/监控启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/search-performance/history",
@@ -9698,7 +9652,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索性能",
       "intent_note": "搜索性能面板：检测/历史/摘要/监控启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/search-performance/start",
@@ -9722,7 +9677,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索性能",
       "intent_note": "搜索性能面板：检测/历史/摘要/监控启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/search-performance/status",
@@ -9746,7 +9702,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索性能",
       "intent_note": "搜索性能面板：检测/历史/摘要/监控启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/search-performance/stop",
@@ -9770,7 +9727,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索性能",
       "intent_note": "搜索性能面板：检测/历史/摘要/监控启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/search-performance/summary",
@@ -9792,7 +9750,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索性能",
       "intent_note": "搜索性能面板：检测/历史/摘要/监控启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/search/instances",
@@ -9816,7 +9775,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索实例",
       "intent_note": "搜索实例：列表/详情/默认/测试。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/search/instances/<string:instance_id>",
@@ -9840,7 +9800,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索实例",
       "intent_note": "搜索实例：列表/详情/默认/测试。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/search/instances/<string:instance_id>/default",
@@ -9862,7 +9823,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索实例",
       "intent_note": "搜索实例：列表/详情/默认/测试。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/search/instances/<string:instance_id>/test",
@@ -9884,7 +9846,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "搜索实例",
       "intent_note": "搜索实例：列表/详情/默认/测试。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/sensors",
@@ -9912,7 +9875,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "全景看板",
       "intent_note": "传感器读数。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/session-groups",
@@ -9938,7 +9902,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "项目/分组",
       "intent_note": "会话分组：列表/重命名。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/session-groups/<group_id>",
@@ -9962,7 +9927,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "项目/分组",
       "intent_note": "会话分组：列表/重命名。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions",
@@ -9990,7 +9956,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/<session_id>",
@@ -10012,7 +9979,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/<session_id>/agent",
@@ -10034,7 +10002,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/<session_id>/group",
@@ -10056,7 +10025,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/<session_id>/messages",
@@ -10080,7 +10050,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/<session_id>/project",
@@ -10102,7 +10073,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/<session_id>/rename",
@@ -10124,7 +10096,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/<session_id>/workspace",
@@ -10146,7 +10119,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/<session_id>/workspace-root",
@@ -10170,7 +10144,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/<session_id>/workspace/reveal",
@@ -10192,7 +10167,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/sessions/current",
@@ -10216,7 +10192,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/skills",
@@ -10242,7 +10219,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt",
@@ -10268,7 +10246,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>",
@@ -10296,7 +10275,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/duplicates",
@@ -10318,7 +10298,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/execute",
@@ -10340,7 +10321,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/execution",
@@ -10362,7 +10344,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/feedback",
@@ -10386,7 +10369,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/fix-auto",
@@ -10408,7 +10392,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/instruction",
@@ -10430,7 +10415,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/optimize",
@@ -10452,7 +10438,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/optimize-with-feedback",
@@ -10474,7 +10461,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/param-stats",
@@ -10496,7 +10484,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/publish",
@@ -10520,7 +10509,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/redraft",
@@ -10542,7 +10532,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/review",
@@ -10564,7 +10555,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/scripts",
@@ -10586,7 +10578,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/suggest-fix",
@@ -10608,7 +10601,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/toggle",
@@ -10630,7 +10624,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/versions",
@@ -10652,7 +10647,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/versions/bump",
@@ -10674,7 +10670,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/<skill_id>/versions/rollback",
@@ -10696,7 +10693,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/abstract-from-memory",
@@ -10718,7 +10716,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/assess/<skill_id>",
@@ -10740,7 +10739,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/assess/curate",
@@ -10764,7 +10764,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/assess/events",
@@ -10788,7 +10789,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/assess/feed",
@@ -10812,7 +10814,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/assess/merge-backups",
@@ -10836,7 +10839,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/assess/merge-safe",
@@ -10860,7 +10864,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/assess/merge-undo",
@@ -10884,7 +10889,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/assess/run-all",
@@ -10908,7 +10914,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/assess/stream",
@@ -10932,7 +10939,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/auto-merge",
@@ -10954,7 +10962,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/classes",
@@ -10978,7 +10987,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/classes/move",
@@ -11002,7 +11012,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/classes/run-auto",
@@ -11026,7 +11037,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/cleanup/orphans",
@@ -11048,7 +11060,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/cleanup/report",
@@ -11070,7 +11083,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/cleanup/unused",
@@ -11092,7 +11106,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/create/ai",
@@ -11116,7 +11131,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/create/manual",
@@ -11140,7 +11156,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/digest/<skill_id>",
@@ -11159,10 +11176,11 @@
       ],
       "description": "对单个技能执行权威评审（完整审核链 + 扩展评估）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/digest/curate",
@@ -11181,10 +11199,11 @@
       ],
       "description": "老技能一键体检/整理：补齐说明、归档停用零使用、给出合并/拆分建议。",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/digest/events",
@@ -11203,10 +11222,11 @@
       ],
       "description": "读取最近评估结果事件（轻量推送/通知源；最新在前）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/digest/feed",
@@ -11225,10 +11245,11 @@
       ],
       "description": "“全部动态”聚合流：评估事件 + 人工复核审计（时间倒序，支持分页与按技能过滤）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/digest/merge-backups",
@@ -11247,10 +11268,11 @@
       ],
       "description": "列出最近的安全合并备份（供可视化/批量撤销选择）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/digest/merge-safe",
@@ -11269,10 +11291,11 @@
       ],
       "description": "安全合并：先写两侧快照(merge_id) 再执行合并，可一键撤销",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/digest/merge-undo",
@@ -11291,10 +11314,11 @@
       ],
       "description": "按 merge_id 撤销安全合并（恢复被删技能 + 回滚保留方）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/digest/run-all",
@@ -11313,10 +11337,11 @@
       ],
       "description": "批量自动评估所有尚无审核结果的技能（不改技能状态）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/digest/stream",
@@ -11335,10 +11360,11 @@
       ],
       "description": "评估事件实时推送（长轮询）：返回 ts > since 的新增事件，超时返回空。",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：评审链内部别名族（与 assess/* 同实现，不外露）",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/duplicates",
@@ -11362,7 +11388,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/health",
@@ -11388,7 +11415,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/inject",
@@ -11407,10 +11435,11 @@
       ],
       "description": "一站式构建 LLM 上下文 (Layer 1 + Layer 2)",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：构建 LLM 上下文（Layer1+2），机器链路",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/install",
@@ -11434,7 +11463,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/install/precheck",
@@ -11458,7 +11488,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/match",
@@ -11479,10 +11510,11 @@
       ],
       "description": "Layer 1: 意图匹配 — 在元数据索引上做快速检索",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：意图匹配（Layer1），脚本调用",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/merge",
@@ -11504,7 +11536,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/meta/categories",
@@ -11528,7 +11561,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/queue",
@@ -11552,7 +11586,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/review/audit",
@@ -11576,7 +11611,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/review/batch",
@@ -11600,7 +11636,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/review/thresholds",
@@ -11625,7 +11662,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/search",
@@ -11649,7 +11687,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/slash-commands",
@@ -11673,7 +11712,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/slash/<skill_id>",
@@ -11692,10 +11732,11 @@
       ],
       "description": "Slash 命令解析器 — 统一技能操作入口",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能中心",
-      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "intent_note": "机器/内部面：Slash 命令解析器，机器链路",
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/three-layer/summary",
@@ -11717,7 +11758,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills-mgmt/upload",
@@ -11739,7 +11781,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills/add",
@@ -11761,7 +11804,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills/classify/run-auto",
@@ -11785,7 +11829,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills/content",
@@ -11807,7 +11852,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills/delete",
@@ -11829,7 +11875,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills/describe",
@@ -11851,7 +11898,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills/describe/auto",
@@ -11875,7 +11923,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills/params",
@@ -11897,7 +11946,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/skills/toggle",
@@ -11923,7 +11973,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/status",
@@ -11950,7 +12001,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "运行状态",
       "intent_note": "运行状态：总览/配置。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/status/config",
@@ -11974,7 +12026,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "运行状态",
       "intent_note": "运行状态：总览/配置。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/subagent/<name>",
@@ -11996,7 +12049,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/<name>/bundle",
@@ -12018,7 +12072,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/<name>/delegate",
@@ -12040,7 +12095,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/<name>/destroy",
@@ -12062,7 +12118,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/<name>/execute",
@@ -12084,7 +12141,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/<name>/offline_pack",
@@ -12106,7 +12164,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/<name>/reload",
@@ -12128,7 +12187,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/callback",
@@ -12150,7 +12210,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/capabilities",
@@ -12174,7 +12235,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/create",
@@ -12198,7 +12260,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/delegate",
@@ -12222,7 +12285,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/history",
@@ -12246,7 +12310,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/import",
@@ -12270,7 +12335,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/subagent/list",
@@ -12294,7 +12360,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "分身与主线"
     },
     {
       "path": "/api/system-prompt",
@@ -12321,7 +12388,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
       "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/system-prompt/config",
@@ -12347,7 +12415,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
       "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/system-prompt/config/apply",
@@ -12371,7 +12440,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
       "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/system-prompt/config/preview",
@@ -12395,7 +12465,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
       "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/system-prompt/config/reset",
@@ -12419,7 +12490,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
       "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/system-prompt/reset",
@@ -12441,7 +12513,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
       "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/system-prompt/sync-status",
@@ -12463,7 +12536,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "系统提示词",
       "intent_note": "系统提示词配置：组件/预览/应用/重置/同步。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/tasks",
@@ -12485,7 +12559,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "任务中心",
       "intent_note": "任务中心：列表/状态/取消。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/tasks/<task_id>",
@@ -12507,7 +12582,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "任务中心",
       "intent_note": "任务中心：列表/状态/取消。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/tasks/<task_id>/cancel",
@@ -12529,7 +12605,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "任务中心",
       "intent_note": "任务中心：列表/状态/取消。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "调度与任务"
     },
     {
       "path": "/api/test/division",
@@ -12553,7 +12630,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "机器/内部面",
       "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/api/test/error",
@@ -12577,7 +12655,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "机器/内部面",
       "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/api/test/null",
@@ -12601,7 +12680,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "机器/内部面",
       "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/api/tools/categories",
@@ -12623,7 +12703,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工具管理",
       "intent_note": "工具管理：分类/关键词/批量状态/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/tools/config",
@@ -12647,7 +12728,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工具管理",
       "intent_note": "工具管理：分类/关键词/批量状态/启停。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/tools/health",
@@ -12671,7 +12753,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工具管理",
       "intent_note": "工具管理：分类/关键词/批量状态/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/tools/keywords",
@@ -12695,7 +12778,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工具管理",
       "intent_note": "工具管理：分类/关键词/批量状态/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/tools/keywords/reset",
@@ -12717,7 +12801,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工具管理",
       "intent_note": "工具管理：分类/关键词/批量状态/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/tools/keywords/update",
@@ -12739,7 +12824,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工具管理",
       "intent_note": "工具管理：分类/关键词/批量状态/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/tools/status-batch",
@@ -12761,7 +12847,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工具管理",
       "intent_note": "工具管理：分类/关键词/批量状态/启停。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/tools/toggle",
@@ -12787,7 +12874,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工具管理",
       "intent_note": "工具管理：分类/关键词/批量状态/启停。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/user",
@@ -12811,7 +12899,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：用户列表/详情/信息。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/user/<int:user_id>",
@@ -12835,7 +12924,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：用户列表/详情/信息。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/user/info",
@@ -12859,7 +12949,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：用户列表/详情/信息。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/user/list",
@@ -12884,7 +12975,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：用户列表/详情/信息。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "管理与后台"
     },
     {
       "path": "/api/vector/add",
@@ -12906,7 +12998,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/vector/batch_add",
@@ -12928,7 +13021,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/vector/clear",
@@ -12950,7 +13044,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/vector/item/<item_id>",
@@ -12972,7 +13067,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/vector/recent",
@@ -12994,7 +13090,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/vector/search",
@@ -13018,7 +13115,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/vector/stats",
@@ -13042,7 +13140,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "向量记忆",
       "intent_note": "向量记忆：增删查/最近/统计/语义检索。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "记忆与知识"
     },
     {
       "path": "/api/version",
@@ -13066,7 +13165,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "机器/内部面",
       "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "观测与诊断"
     },
     {
       "path": "/api/visual-workflows",
@@ -13092,7 +13192,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "可视化工作流",
       "intent_note": "可视化工作流：保存/草稿。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/visual-workflows/<vid>",
@@ -13116,7 +13217,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "可视化工作流",
       "intent_note": "可视化工作流：保存/草稿。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/voice/listen",
@@ -13138,7 +13240,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "语音",
       "intent_note": "语音：识别/状态。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/voice/status",
@@ -13160,7 +13263,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "语音",
       "intent_note": "语音：识别/状态。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "对话与会话"
     },
     {
       "path": "/api/web/clean",
@@ -13182,7 +13286,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "工具执行面",
       "intent_note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/web/css",
@@ -13204,7 +13309,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "工具执行面",
       "intent_note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/web/download",
@@ -13226,7 +13332,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "工具执行面",
       "intent_note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/web/get",
@@ -13248,7 +13355,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "工具执行面",
       "intent_note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/web/post",
@@ -13270,7 +13378,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "工具执行面",
       "intent_note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/web/search",
@@ -13292,7 +13401,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "工具执行面",
       "intent_note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/web/search/status",
@@ -13316,7 +13426,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "网页工具",
       "intent_note": "搜索引擎状态面板（已接线）。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/web/stats",
@@ -13338,7 +13449,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "工具执行面",
       "intent_note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/web/xpath",
@@ -13360,7 +13472,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "工具执行面",
       "intent_note": "网页工具执行面（抓取/提取/下载/搜索），供 agent 调用；仅搜索引擎状态子路由属人机界面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/window/consent",
@@ -13382,7 +13495,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "隐私",
       "intent_note": "窗口监控授权。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "系统与配置"
     },
     {
       "path": "/api/workflow-learning/batch-convert-external-skills",
@@ -13406,7 +13520,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/convert-external-skill",
@@ -13430,7 +13545,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/convertible",
@@ -13452,7 +13568,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/execute/<wf_id>",
@@ -13474,7 +13591,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/health",
@@ -13498,7 +13616,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/learn",
@@ -13522,7 +13641,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/match",
@@ -13546,7 +13666,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/try-execute",
@@ -13570,7 +13691,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/workflows",
@@ -13594,7 +13716,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/workflows/<wf_id>",
@@ -13618,7 +13741,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/workflows/<wf_id>/convert-to-skill",
@@ -13640,7 +13764,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/workflows/<wf_id>/priority",
@@ -13662,7 +13787,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workflow-learning/workflows/<wf_id>/toggle",
@@ -13684,7 +13810,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/workspace",
@@ -13706,7 +13833,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
       "intent_note": "工作区文件：列表/信息/写入/删除。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/workspace/delete",
@@ -13728,7 +13856,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
       "intent_note": "工作区文件：列表/信息/写入/删除。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/workspace/info",
@@ -13750,7 +13879,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
       "intent_note": "工作区文件：列表/信息/写入/删除。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/workspace/write",
@@ -13772,7 +13902,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
       "intent_note": "工作区文件：列表/信息/写入/删除。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "资产与文件"
     },
     {
       "path": "/api/workspaces",
@@ -13800,7 +13931,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
       "intent_note": "已添加工作区列表。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "资产与文件"
     },
     {
       "path": "/approval-console",
@@ -13822,7 +13954,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "页面入口",
       "intent_note": "独立审批页面入口（页面已存在），非 SPA 数据面板。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "页面入口"
     },
     {
       "path": "/capabilities/<name>",
@@ -13844,7 +13977,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "能力层",
       "intent_note": "能力层 HTTP 面（非 LLM 入口），编排/脚本调用面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/capabilities/health",
@@ -13868,7 +14002,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "能力层",
       "intent_note": "能力层 HTTP 面（非 LLM 入口），编排/脚本调用面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/capabilities/invoke",
@@ -13892,7 +14027,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "能力层",
       "intent_note": "能力层 HTTP 面（非 LLM 入口），编排/脚本调用面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/capabilities/skills/search",
@@ -13914,7 +14050,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "能力层",
       "intent_note": "能力层 HTTP 面（非 LLM 入口），编排/脚本调用面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/capabilities/tools",
@@ -13939,7 +14076,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "能力层",
       "intent_note": "能力层 HTTP 面（非 LLM 入口），编排/脚本调用面。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/chat",
@@ -13965,7 +14103,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "页面入口",
       "intent_note": "SPA 入口页面，本身即 UI。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "页面入口"
     },
     {
       "path": "/dashboard",
@@ -13989,7 +14128,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "入口重定向",
       "intent_note": "重定向到统一工作台。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "页面入口"
     },
     {
       "path": "/logs/api/actions",
@@ -14011,7 +14151,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/api/errors",
@@ -14033,7 +14174,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/api/insights",
@@ -14055,7 +14197,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/api/introspection/run",
@@ -14077,7 +14220,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/api/introspection/status",
@@ -14099,7 +14243,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/api/knowledge",
@@ -14121,7 +14266,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/api/query",
@@ -14143,7 +14289,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/api/stats",
@@ -14167,7 +14314,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/api/trends",
@@ -14189,7 +14337,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志中心：查询/错误/趋势/洞察/知识/行动建议。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/dashboard",
@@ -14211,7 +14360,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志仪表盘页面与实时数据（legacy 页面，待并入统一工作台）。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/logs/dashboard/data",
@@ -14233,7 +14383,8 @@
       "intent": "should_be_in_ui",
       "intent_area": "日志中心",
       "intent_note": "日志仪表盘页面与实时数据（legacy 页面，待并入统一工作台）。",
-      "ui_pending": true
+      "ui_pending": true,
+      "domain": "观测与诊断"
     },
     {
       "path": "/metrics",
@@ -14268,7 +14419,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "机器/内部面",
       "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     },
     {
       "path": "/replay-viewer",
@@ -14292,7 +14444,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "页面入口",
       "intent_note": "legacy 独立回放页面（页面已存在）；并入统一工作台另立任务。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "页面入口"
     },
     {
       "path": "/search-status",
@@ -14316,7 +14469,8 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "页面入口",
       "intent_note": "legacy 独立搜索状态页面（页面已存在）。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "页面入口"
     },
     {
       "path": "/static/<path:subpath>",
@@ -14341,8 +14495,9 @@
       "intent": "should_not_be_in_ui",
       "intent_area": "机器/内部面",
       "intent_note": "族级标注：机器/调试/度量/静态端点，不作独立用户 UI。",
-      "ui_pending": false
+      "ui_pending": false,
+      "domain": "开发与内部"
     }
   ],
-  "content_hash": "28dcc2424a76a6cc"
+  "content_hash": "fddbfd695441a9e6"
 }

@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "updated": "2026-10-17",
+  "note": "路由的「功能区」归属（与意图标注正交：意图回答该不该进 UI，功能区回答它属于哪块业务）。前缀匹配、最长优先、按段边界（/api/skills 不会误匹配 /api/skills-mgmt）；未命中记为「未归类」。所有 464 条活体路由必须命中，守卫见 tests/unit/test_route_ui_coverage.py::test_每条路由都有功能区。",
+  "domains": [
+    {
+      "domain": "对话与会话",
+      "prefixes": [
+        "/api/browser",
+        "/api/chat",
+        "/api/clear",
+        "/api/clipboard",
+        "/api/context",
+        "/api/handoff",
+        "/api/history",
+        "/api/news",
+        "/api/projects",
+        "/api/session-groups",
+        "/api/sessions",
+        "/api/voice"
+      ]
+    },
+    {
+      "domain": "技能与工具",
+      "prefixes": [
+        "/api/capability-manifest",
+        "/api/mcp",
+        "/api/process-distill",
+        "/api/prompt-lab",
+        "/api/skills",
+        "/api/skills-mgmt",
+        "/api/tools",
+        "/api/visual-workflows",
+        "/api/web",
+        "/api/workflow-learning"
+      ]
+    },
+    {
+      "domain": "记忆与知识",
+      "prefixes": [
+        "/api/experience",
+        "/api/knowledge",
+        "/api/memory",
+        "/api/vector"
+      ]
+    },
+    {
+      "domain": "分身与主线",
+      "prefixes": [
+        "/api/agent-lines",
+        "/api/subagent"
+      ]
+    },
+    {
+      "domain": "观测与诊断",
+      "prefixes": [
+        "/api/dashboard",
+        "/api/diagnostics",
+        "/api/health",
+        "/api/heartbeat",
+        "/api/llm-monitor",
+        "/api/modules",
+        "/api/observability",
+        "/api/panorama",
+        "/api/search-performance",
+        "/api/sensors",
+        "/api/status",
+        "/api/version",
+        "/logs/api",
+        "/logs/dashboard"
+      ]
+    },
+    {
+      "domain": "治理与审批",
+      "prefixes": [
+        "/api/approval",
+        "/api/audit",
+        "/api/cp",
+        "/api/permission",
+        "/api/permissions",
+        "/api/safety"
+      ]
+    },
+    {
+      "domain": "调度与任务",
+      "prefixes": [
+        "/api/background",
+        "/api/process",
+        "/api/scheduler",
+        "/api/schedules",
+        "/api/tasks"
+      ]
+    },
+    {
+      "domain": "系统与配置",
+      "prefixes": [
+        "/api/apply-network-config",
+        "/api/config",
+        "/api/extensions",
+        "/api/llm",
+        "/api/mode",
+        "/api/network-config",
+        "/api/orchestrator",
+        "/api/personality",
+        "/api/plugins",
+        "/api/privacy",
+        "/api/search",
+        "/api/system-prompt",
+        "/api/window"
+      ]
+    },
+    {
+      "domain": "管理与后台",
+      "prefixes": [
+        "/api/auth",
+        "/api/menu",
+        "/api/notification",
+        "/api/role",
+        "/api/user"
+      ]
+    },
+    {
+      "domain": "资产与文件",
+      "prefixes": [
+        "/api/assets",
+        "/api/export",
+        "/api/filesystem",
+        "/api/workspace",
+        "/api/workspaces"
+      ]
+    },
+    {
+      "domain": "业务与评估",
+      "prefixes": [
+        "/api/business",
+        "/api/feedback",
+        "/api/replay"
+      ]
+    },
+    {
+      "domain": "认知与学习",
+      "prefixes": [
+        "/api/cognitive",
+        "/api/learning",
+        "/api/planning"
+      ]
+    },
+    {
+      "domain": "开发与内部",
+      "prefixes": [
+        "/api/demo",
+        "/api/docs",
+        "/api/sandbox",
+        "/api/test",
+        "/capabilities",
+        "/metrics",
+        "/static"
+      ]
+    },
+    {
+      "domain": "页面入口",
+      "prefixes": [
+        "/",
+        "/*",
+        "/approval-console",
+        "/chat",
+        "/dashboard",
+        "/replay-viewer",
+        "/search-status"
+      ]
+    }
+  ]
+}

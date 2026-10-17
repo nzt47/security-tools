@@ -43,6 +43,8 @@ interface Entry {
   description_source?: string
   /** 人工意图标注的理由（config/route_ui_intent.json 的 note） */
   intent_note?: string
+  /** 功能区归属（config/route_domains.json；与意图正交，所有路由都有） */
+  domain?: string
 }
 interface Payload {
   generated_at: string
@@ -93,6 +95,7 @@ export default function RouteCoveragePanel() {
   const [cat, setCat] = useState<string>('all')
   const [liveOnly, setLiveOnly] = useState(false)
   const [pendingOnly, setPendingOnly] = useState(false)
+  const [domain, setDomain] = useState<string>('all')
   const [q, setQ] = useState('')
 
   const load = useCallback(() => {
@@ -110,11 +113,19 @@ export default function RouteCoveragePanel() {
     const needle = q.trim().toLowerCase()
     return list.filter((e) =>
       (cat === 'all' || e.category === cat)
+      && (domain === 'all' || e.domain === domain)
       && (!liveOnly || !e.dead_copy)
       && (!pendingOnly || e.ui_pending)
       && (!needle || e.path.toLowerCase().includes(needle)),
     )
-  }, [data, cat, liveOnly, pendingOnly, q])
+  }, [data, cat, domain, liveOnly, pendingOnly, q])
+
+  // 功能区下拉选项：只列产物里真实出现过的（含「未归类」，缺映射时一眼可见）
+  const domains = useMemo(() => {
+    const set = new Set<string>()
+    for (const e of data?.entries ?? []) if (e.domain) set.add(e.domain)
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
+  }, [data])
 
   const t = (data?.totals ?? {}) as Record<string, number>
   const liveByCat = (t.live_by_category ?? {}) as Record<string, number>
@@ -172,6 +183,15 @@ export default function RouteCoveragePanel() {
           className={'ml-2 rounded-lg border px-3 py-1.5 ' + (pendingOnly ? 'border-amber-700 bg-amber-950/40 text-amber-300' : 'border-slate-700 text-slate-300 hover:bg-slate-800')}>
           该进却未进 <span className="ml-1 text-slate-500">{(data?.pending_ui ?? []).length}</span>
         </button>
+        <select
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          data-testid="route-domain-filter"
+          className="ml-2 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-200 outline-none"
+        >
+          <option value="all">全部功能区</option>
+          {domains.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
         <label className="ml-2 flex items-center gap-1 text-slate-300">
           <input type="checkbox" checked={liveOnly} onChange={(e) => setLiveOnly(e.target.checked)} /> 只看无死副本
         </label>
@@ -187,6 +207,7 @@ export default function RouteCoveragePanel() {
           <thead className="bg-slate-900/60 text-slate-400">
             <tr>
               <th className="px-3 py-2">路径</th>
+              <th className="px-3 py-2">功能区</th>
               <th className="px-3 py-2">说明</th>
               <th className="px-3 py-2">方法</th>
               <th className="px-3 py-2">分类</th>
@@ -199,6 +220,7 @@ export default function RouteCoveragePanel() {
             {rows.map((e) => (
               <tr key={e.path} className="border-t border-slate-800/60">
                 <td className="px-3 py-1.5 font-mono text-slate-200">{e.path}</td>
+                <td className="whitespace-nowrap px-3 py-1.5 text-slate-400" data-testid={`route-domain-${e.norm}`}>{e.domain ?? '—'}</td>
                 <td className="max-w-[380px] px-3 py-1.5 text-slate-400" data-testid={`route-desc-${e.norm}`}>
                   {e.description ? (
                     <>

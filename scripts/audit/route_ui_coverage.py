@@ -63,6 +63,9 @@ DEFAULT_JSON = ROOT / "reports" / "route_ui_coverage.json"
 INTENT_FILE = ROOT / "config" / "route_ui_intent.json"
 INTENT_VALUES = {"should_be_in_ui", "should_not_be_in_ui"}
 _UNCLASSIFIED = "unclassified"
+#: 路由的「功能区」映射（与意图标注正交：意图管该不该进 UI，功能区管它属于哪块业务）
+DOMAIN_FILE = ROOT / "config" / "route_domains.json"
+_UNCLASSIFIED_DOMAIN = "未归类"
 
 #: 归一化：Flask 变量段 <int:x>/<x> 与 JS 模板 ${x} 都折成 *
 _PARAM_RE = re.compile(r"<[^>]+>")
@@ -305,6 +308,43 @@ def _load_intents() -> dict:
     return out
 
 
+def _load_domains() -> list:
+    """读取功能区映射 config/route_domains.json，返回按前缀长度降序的 (prefix, domain)。
+
+    【fail-closed】文件缺失 / 解析失败 ⇒ 空表（全部记为「未归类」），不抛错 ——
+    与意图标注同口径：映射是人工维护的增量数据，缺了它脚本仍能按机械分类工作。
+    """
+    if not DOMAIN_FILE.exists():
+        return []
+    try:
+        data = json.loads(DOMAIN_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print("[WARN] 功能区映射无法解析：" + str(DOMAIN_FILE) + " -> " + str(exc), file=sys.stderr)
+        return []
+    rules = []
+    for group in data.get("domains") or []:
+        if not isinstance(group, dict):
+            continue
+        domain = str(group.get("domain") or "").strip()
+        if not domain:
+            continue
+        for prefix in group.get("prefixes") or []:
+            text = str(prefix).strip()
+            if text:
+                rules.append((text, domain))
+    # 最长前缀优先：/api/skills 与 /api/skills-mgmt 必须能区分
+    rules.sort(key=lambda item: -len(item[0]))
+    return rules
+
+
+def _domain_for(nrm: str, rules: list) -> str:
+    """按「最长前缀 + 段边界」取功能区；/api/skills 不得误匹配 /api/skills-mgmt。"""
+    for prefix, domain in rules:
+        if nrm == prefix or nrm.startswith(prefix + "/"):
+            return domain
+    return _UNCLASSIFIED_DOMAIN
+
+
 def _intent_for(nrm: str, intents: dict):
     """按归一化路径取意图标注：**精确优先，其次最长前缀族**。
 
@@ -406,6 +446,11 @@ def classify() -> dict:
         e["intent_note"] = meta["note"] if meta else ""
         e["ui_pending"] = bool(e["intent"] == "should_be_in_ui" and e["live"] and e["category"] != "ui")
 
+    # 功能区归属（与意图正交，所有路由都要有）
+    domain_rules = _load_domains()
+    for e in entries:
+        e["domain"] = _domain_for(e["norm"], domain_rules)
+
     live_n = sum(1 for e in entries if e["live"])
     dead_copy_n = sum(1 for e in entries if e["dead_copy"])
     totals = {"routes": len(entries), "live": live_n, "dead_copy": dead_copy_n,
@@ -419,6 +464,11 @@ def classify() -> dict:
         if e["live"]:
             by_intent[e["intent"]] += 1
     totals["by_intent"] = by_intent
+    by_domain: Dict[str, int] = {}
+    for e in entries:
+        if e["live"]:
+            by_domain[e["domain"]] = by_domain.get(e["domain"], 0) + 1
+    totals["by_domain"] = by_domain
 
     route_norms = {e["norm"] for e in entries}
     unmatched = sorted(p for p in ui_refs if p not in route_norms)
@@ -428,6 +478,7 @@ def classify() -> dict:
         "frontend_endpoints": len(ui_refs),
         "frontend_unmatched": unmatched[:50],
         "intent_file": str(INTENT_FILE.relative_to(ROOT)).replace("\\", "/"),
+        "domain_file": str(DOMAIN_FILE.relative_to(ROOT)).replace("\\", "/"),
         "pending_ui": [
             {"path": e["path"], "norm": e["norm"], "methods": e["methods"],
              "category": e["category"], "area": e["intent_area"], "where": e["where"]}
@@ -454,7 +505,8 @@ def _content_hash(payload: dict) -> str:
             {"path": e["path"], "methods": e["methods"],
              "category": e["category"], "live": e["live"],
              "dead_copy": e["dead_copy"],
-             "intent": e["intent"], "ui_pending": e["ui_pending"]}
+             "intent": e["intent"], "ui_pending": e["ui_pending"],
+             "domain": e["domain"]}
             for e in payload["entries"]
         ],
     }
