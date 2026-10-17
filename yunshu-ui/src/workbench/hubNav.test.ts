@@ -81,7 +81,7 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
     // 【2026-10-17 IA】分身创建与组装紧跟「会话任务」（先对话、再配分身）
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
       'session', 'workshop/agents', 'prompt-lab', 'skills-center', 'tools',
-      'memory', 'assets', 'components/plugins', 'network', 'local',
+      'memory', 'assets', 'components/plugins', 'network', 'local', 'replay',
     ])
     expect(topKeys.indexOf('workspace')).toBeLessThan(topKeys.indexOf('panorama'))
   })
