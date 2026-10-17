@@ -21,6 +21,7 @@ import GenerateRequirementModal from './generate-requirement-modal'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
 import SkillContentModal from './skill-content-modal'
+import SkillDetailDrawer from './skill-detail-drawer'
 
 import {
   SKILLS_MGMT,
@@ -113,6 +114,8 @@ export default function SkillAssessManager() {
   const [curateOpen, setCurateOpen] = useState(false)
   const [feedOpen, setFeedOpen] = useState(false)
   const [cmdTarget, setCmdTarget] = useState<SkillItem | null>(null)
+  /** 详情抽屉的目标（运行 / 脚本 / 参数统计 / 反馈 / 重复 五件事都在抽屉里做） */
+  const [detailTarget, setDetailTarget] = useState<SkillItem | null>(null)
   interface AssessmentEv { ts?: string; kind?: string; skill_id?: string; verdict?: string; summary?: string }
   const [events, setEvents] = useState<AssessmentEv[]>([])
   const loadEvents = useCallback(async () => {
@@ -402,6 +405,9 @@ export default function SkillAssessManager() {
             <button type="button" className={BTN} onClick={() => setContentTarget(it)} disabled={busy !== ''} title="查看该技能的具体内容（正文 / 参数 / 标签）">
               <Eye size={11} /> 查看内容
             </button>
+            <button type="button" className={BTN} onClick={() => setDetailTarget(it)} disabled={busy !== ''} title="详情：使用说明 / 脚本与沙箱执行 / 参数统计 / 反馈 / 重复技能">
+              <ScrollText size={11} /> 详情
+            </button>
             <button type="button" className={BTN_EM} onClick={() => void assessOne(it.id)} disabled={busy !== ''} title="执行完整评审-评估（三审+扩展评估）">
               <Zap size={11} /> 评审-评估
             </button>
@@ -686,6 +692,9 @@ export default function SkillAssessManager() {
       )}
       {contentTarget && (
         <SkillContentModal skill={contentTarget} onClose={() => setContentTarget(null)} />
+      )}
+      {detailTarget && (
+        <SkillDetailDrawer skill={detailTarget} onClose={() => setDetailTarget(null)} />
       )}
 
       {/* 发布审计（人工复核/强制发布记录）可视化 */}

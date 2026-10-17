@@ -52,6 +52,16 @@ export const skillVersions = (skillId: string) => `/api/skills-mgmt/${encodeURIC
 export const skillVersionsBump = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/versions/bump`;
 export const skillVersionsRollback = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/versions/rollback`;
 
+// 技能详情抽屉（详情页按需加载的运行/反馈面；与上面「评审-版本」族分开命名，
+// 便于在 endpoints.ts 里一眼看出它们是「点开某个技能才用」的接口）
+export const skillInstruction = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/instruction`;
+export const skillScripts = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/scripts`;
+export const skillExecute = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/execute`;
+export const skillParamStats = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/param-stats`;
+export const skillFeedback = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/feedback`;
+export const skillOptimizeWithFeedback = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/optimize-with-feedback`;
+export const skillDuplicates = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/duplicates`;
+
 // ═══════════════════════════════════════════════════════════════
 //  工作流学习（/api/workflow-learning）
 // ═══════════════════════════════════════════════════════════════
