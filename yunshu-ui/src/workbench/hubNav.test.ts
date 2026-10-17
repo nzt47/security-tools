@@ -162,7 +162,7 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     const keys = flattenNav(HUB_NAV).map((i) => i.key)
     for (const k of [
       'session', 'prompt-lab', 'skills-center', 'tools',
-      'panorama/health', 'panorama/logs', 'engine/heartbeat', 'engine/scheduler',
+      'panorama/health', 'panorama/logs', 'engine',
       'governance/approvals', 'governance/route-coverage',
       'memory', 'assets',
       'workshop/agents', 'components/plugins', 'network',
@@ -172,9 +172,14 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     }
   })
 
-  it('「循环工程」组 key 已消失（走 engine → engine/heartbeat 兼容映射）', () => {
-    expect(HUB_NAV.map((i) => i.key)).not.toContain('engine')
-    expect(flattenNav(HUB_NAV).some((i) => i.key === 'engine')).toBe(false)
+  it('引擎三合一：单一叶子 engine，旧子项 key 落到它', () => {
+    // 2026-10-17 IA：心跳监测 + 定时任务 + 执行历史 → 一页三 Tab
+    expect(findNavItem('engine')?.component).toBeDefined()
+    expect(flattenNav(HUB_NAV).some((i) => i.key === 'engine/heartbeat')).toBe(false)
+    expect(flattenNav(HUB_NAV).some((i) => i.key === 'engine/scheduler')).toBe(false)
+    // 旧深链仍可解析（否则收藏/文档里的链接会落回默认页）
+    expect(resolveNavKey('engine/heartbeat')).toBe('engine')
+    expect(resolveNavKey('engine/scheduler')).toBe('engine')
   })
 
   it('DEFAULT_NAV_KEY 指向第一个叶子（分组无 component，不能作为默认选中）', () => {

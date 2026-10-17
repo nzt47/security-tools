@@ -155,11 +155,15 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
 })
 
 describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
-  it('映射表覆盖方案 §6 三组旧 key + 阶段 3 的 engine → engine/heartbeat', () => {
+  it('映射表覆盖方案 §6 三组旧 key + 2026-10-17 引擎三合一', () => {
     expect(LEGACY_NAV_KEY_MAP['persona/personality']).toBe('prompt-lab')
     expect(LEGACY_NAV_KEY_MAP['experience']).toBe('memory')
     expect(LEGACY_NAV_KEY_MAP['extensions']).toBe('components/plugins')
-    expect(LEGACY_NAV_KEY_MAP['engine']).toBe('engine/heartbeat')
+    // 【2026-10-17 IA】心跳/定时任务/执行历史 → 叶子 engine；
+    // 旧子项 key 一并落到本页，engine 自身已是真实叶子（无需自映射）
+    expect(LEGACY_NAV_KEY_MAP['engine/heartbeat']).toBe('engine')
+    expect(LEGACY_NAV_KEY_MAP['engine/scheduler']).toBe('engine')
+    expect(LEGACY_NAV_KEY_MAP['engine']).toBeUndefined()
     // 第三轮 IA：装配车间并入会话与配置 ⇒ 组 key 落到其原第一个子项
     expect(LEGACY_NAV_KEY_MAP['workshop']).toBe('workshop/agents')
     // 【第四轮 IA】「记忆与资产」「系统组件」两个桶取消 ⇒ 组 key 也落到其原第一个子项
@@ -176,7 +180,9 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(resolveNavKey('persona/personality')).toBe('prompt-lab')
     expect(resolveNavKey('experience')).toBe('memory')
     expect(resolveNavKey('extensions')).toBe('components/plugins')
-    expect(resolveNavKey('engine')).toBe('engine/heartbeat')
+    expect(resolveNavKey('engine')).toBe('engine')
+    expect(resolveNavKey('engine/heartbeat')).toBe('engine')
+    expect(resolveNavKey('engine/scheduler')).toBe('engine')
     expect(resolveNavKey('workshop')).toBe('workshop/agents')
     expect(navKeyFromSearch('?panel=workshop')).toBe('workshop/agents')
     expect(navKeyFromSearch('?panel=experience')).toBe('memory')
