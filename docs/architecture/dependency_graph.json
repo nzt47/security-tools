@@ -687,7 +687,7 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 22,
-      "out_degree": 15
+      "out_degree": 16
     },
     {
       "path": "agent.monitoring.cost_brake",
@@ -4512,6 +4512,14 @@
       "file_path": "agent/task_planner/planner.py",
       "in_degree": 0,
       "out_degree": 1
+    },
+    {
+      "path": "agent.maintenance.zero_token_jobs",
+      "name": "zero_token_jobs",
+      "layer": "maintenance",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.weekly_report_generator",
@@ -22895,7 +22903,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3002,
+      "line": 3011,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22908,7 +22916,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3122,
+      "line": 3131,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -26414,11 +26422,24 @@
     },
     {
       "source": "agent.task_scheduler",
+      "target": "agent.maintenance.zero_token_jobs",
+      "source_layer": "core",
+      "target_layer": "maintenance",
+      "import_type": "from_import",
+      "line": 684,
+      "source_file": "agent/task_scheduler.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.task_scheduler",
       "target": "agent.weekly_report_generator",
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 721,
+      "line": 730,
       "source_file": "agent/task_scheduler.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -29963,10 +29984,10 @@
     }
   ],
   "stats": {
-    "total_files": 659,
-    "total_nodes": 589,
-    "total_edges": 1942,
-    "cross_layer_edges": 1216,
+    "total_files": 661,
+    "total_nodes": 590,
+    "total_edges": 1943,
+    "cross_layer_edges": 1217,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -30023,7 +30044,8 @@
       "settings": 8,
       "ui_panels": 3,
       "feedback_collector": 1,
-      "task_planner": 5
+      "task_planner": 5,
+      "maintenance": 1
     }
   }
 }

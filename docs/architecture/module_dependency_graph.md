@@ -300,6 +300,9 @@ flowchart LR
         agent_log_system_safe_logger["agent.log_system.safe_logger"]
         agent_log_system_storage["agent.log_system.storage"]:::crosslayer
     end
+    subgraph maintenance [maintenance]
+        agent_maintenance_zero_token_jobs["agent.maintenance.zero_token_jobs"]:::crosslayer
+    end
     subgraph memory [memory]
         agent_memory["agent.memory"]
         agent_memory_adapters["agent.memory.adapters"]
@@ -2370,6 +2373,7 @@ flowchart LR
     agent_task_scheduler --> agent_tool_gate
     agent_task_scheduler --> agent_tool_gate
     agent_task_scheduler --> agent_tool_gate
+    agent_task_scheduler -.-> agent_maintenance_zero_token_jobs
     agent_task_scheduler --> agent_weekly_report_generator
     agent_task_scheduler -.-> agent_monitoring_observability_config
     agent_task_scheduler -.-> agent_monitoring_observability_config
@@ -2651,9 +2655,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 659
-- 模块节点数: 589
-- 依赖边数: 1942
-- 跨层调用数: 1216
+- 扫描文件数: 661
+- 模块节点数: 590
+- 依赖边数: 1943
+- 跨层调用数: 1217
 - 违规调用数: 0
 - 动态 import 数: 1
