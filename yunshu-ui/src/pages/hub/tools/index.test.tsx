@@ -34,7 +34,7 @@ describe('工具调用 · Tab 结构', () => {
   })
   afterEach(cleanup)
 
-  it('4 个子项作为 Tab 并列（名称与顺序与原子模块一致；主线管理已迁出）', () => {
+  it('5 个子项作为 Tab 并列（名称与顺序与原子模块一致；主线管理已迁出）', () => {
     render(<ToolsPage />)
     const tabs = screen.getAllByRole('tab')
     expect(tabs.map((t) => t.textContent)).toEqual([
@@ -42,12 +42,14 @@ describe('工具调用 · Tab 结构', () => {
       'CLI 软件',
       'MCP 系统',
       'Computer Use',
+      '工具治理',
     ])
     expect(TOOLS_TABS.map((t) => t.id)).toEqual([
       'toolset',
       'cli',
       'mcp',
       'computer-use',
+      'governance',
     ])
     expect(TOOLS_TABS.map((t) => t.id)).not.toContain('lines')
     expect(screen.queryByRole('tab', { name: /主线管理/ })).toBeNull()

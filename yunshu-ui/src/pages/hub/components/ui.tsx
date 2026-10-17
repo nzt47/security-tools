@@ -243,6 +243,29 @@ export async function hubPut<T = unknown>(url: string, body?: unknown, token?: s
   return res.json() as Promise<T>
 }
 
+/**
+ * 带 JSON body 的 DELETE。
+ *
+ * 【为什么不能直接用 hubDelete】Flask 的 DELETE 也可以读 body（request.get_json()），
+ * 而 /api/tools/keywords 的删除正是**靠 body 指定要删哪一条**
+ * （{category, keyword}）。hubDelete 只发 URL，调用它会得到一个必然 400 的请求。
+ * 【为什么不改 hubDelete 签名】现有三个调用方都是 hubDelete(url)，
+ * 给第二个位置加 body 会让"传 token"的老写法静默变成"传 body"—— 这类静默错位最难查。
+ */
+export async function hubDeleteJson<T = unknown>(url: string, body?: unknown, token?: string | null): Promise<T> {
+  const headers: Record<string, string> = {}
+  if (body !== undefined && body !== null) headers['Content-Type'] = 'application/json'
+  const auth = token !== undefined && token !== null ? token : getApiToken()
+  if (auth) headers.Authorization = `Bearer ${auth}`
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers,
+    body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json() as Promise<T>
+}
+
 /** 将后端 {ok:true,data:...} 或 {code:200,data:...} 统一解包为 data */
 export function unwrap<T>(resp: Record<string, unknown>): T {
   const r = resp as { ok?: boolean; data?: T; code?: number }

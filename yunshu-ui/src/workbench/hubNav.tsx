@@ -60,7 +60,9 @@ const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
 // 安全与权限 / 本地资源。此前都只有后端、前端零入口。
 const FeedbackCenter = lazy(() => import('@/pages/hub/governance/feedback'))
 const BusinessBoard = lazy(() => import('@/pages/hub/governance/business'))
-const InstancesPanel = lazy(() => import('@/pages/hub/admin/instances'))
+// 2026-10-18：实例管理 + 搜索性能 合并为一个导航叶子（两 Tab），
+// 避免"配完引擎不知道去哪看效果"。
+const InstancesPanel = lazy(() => import('@/pages/hub/admin/instances-hub'))
 const SecurityPanel = lazy(() => import('@/pages/hub/governance/security'))
 const LocalResources = lazy(() => import('@/pages/hub/local'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))

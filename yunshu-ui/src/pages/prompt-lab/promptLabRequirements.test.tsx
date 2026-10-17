@@ -216,7 +216,8 @@ describe('需求③：LLM 通信监控位于主内容区并以 TAB 并列', () =
       .getAllByRole('tab')
       .map((t) => (t.textContent ?? '').trim())
     // 阶段 1.1：人格并入成为第 3 个 Tab（原两 Tab 顺序不变）
-    expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控', '人格'])
+    // 2026-10-18：系统提示词模板成为第 4 个 Tab（与"模型侧配置"同类）
+    expect(labels).toEqual(['提示词影响因素实验室', 'LLM 通信监控', '人格', '系统提示词'])
 
     // 默认在影响因素实验室：监控面板未挂载（不在页面最底部）
     expect(screen.queryByText('发送 Tokens')).toBeNull()

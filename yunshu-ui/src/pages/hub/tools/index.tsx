@@ -19,15 +19,16 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Boxes, Loader2, Monitor, Plug, Terminal, Wrench } from 'lucide-react'
+import { Boxes, Loader2, Monitor, Plug, Tags, Terminal, Wrench } from 'lucide-react'
 
 const ToolsToolset = lazy(() => import('./toolset'))
 const ToolsCli = lazy(() => import('./cli'))
 const ToolsMcp = lazy(() => import('./mcp'))
 const ToolsComputerUse = lazy(() => import('./computer-use'))
+const ToolsGovernance = lazy(() => import('./governance'))
 
 /** 子模块 Tab 键（= 原导航 key 的尾段，便于对照历史记录） */
-export type ToolsTab = 'toolset' | 'cli' | 'mcp' | 'computer-use'
+export type ToolsTab = 'toolset' | 'cli' | 'mcp' | 'computer-use' | 'governance'
 
 export interface ToolsTabDef {
   id: ToolsTab
@@ -43,6 +44,7 @@ export const TOOLS_TABS: ToolsTabDef[] = [
   { id: 'cli', label: 'CLI 软件', icon: Terminal, hint: '命令行工具与系统进程管理', component: ToolsCli },
   { id: 'mcp', label: 'MCP 系统', icon: Plug, hint: 'MCP 服务连接与外部能力接入', component: ToolsMcp },
   { id: 'computer-use', label: 'Computer Use', icon: Monitor, hint: '浏览器自动化与屏幕操作', component: ToolsComputerUse },
+  { id: 'governance', label: '工具治理', icon: Tags, hint: '分类 / 健康 / 路由关键词 / 启用总览（关键词决定哪类工具被选中）', component: ToolsGovernance },
 ]
 
 /** Tab 选择记忆（会话级偏好，刷新不跳回第一个 Tab） */
