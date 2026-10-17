@@ -13,7 +13,8 @@ import { HeartPulse, CalendarClock, History as HistoryIcon } from 'lucide-react'
 
 import { Card, Loading, ErrorBox, DataTable, Badge } from '../components/ui'
 import { SCHEDULER_HISTORY } from '@/api/endpoints'
-import { getEnvelope } from '@/api/envelope'
+import { authHeader } from '@/lib/apiToken'
+import { BOOT_PANEL } from '@/workbench/hubNav'
 
 const HeartbeatPanel = lazy(() => import('./heartbeat'))
 const SchedulerPanel = lazy(() => import('./scheduler'))
@@ -36,16 +37,24 @@ interface HistoryRow {
   [k: string]: unknown
 }
 
-/** 从地址栏原始 hash 读初始 Tab（导航 key 归一后已丢失 engine/* 信息） */
+/**
+ * 初始 Tab：优先用**启动瞬间**的 panel（BOOT_PANEL）。
+ *
+ * 【为什么不能用当前 hash】导航层会把 `engine/scheduler` 归一成 `engine` 并同步地址栏，
+ * 本组件是懒加载的，挂载时原始 hash 往往已被改写 ⇒ 旧深链会丢掉 Tab 意图。
+ */
 function initialTab(): Tab {
-  try {
-    const raw = window.location.hash || ''
-    const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : ''
-    const panel = new URLSearchParams(q).get('panel') || ''
-    return panel === 'engine/scheduler' ? 'scheduler' : 'heartbeat'
-  } catch {
-    return 'heartbeat'
+  let panel = BOOT_PANEL
+  if (!panel) {
+    try {
+      const raw = window.location.hash || ''
+      const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : ''
+      panel = new URLSearchParams(q).get('panel') || ''
+    } catch {
+      panel = ''
+    }
   }
+  return panel === 'engine/scheduler' ? 'scheduler' : 'heartbeat'
 }
 
 export default function EngineHub() {
@@ -58,8 +67,19 @@ export default function EngineHub() {
     if (tab !== 'history') return
     setLoading(true)
     setError('')
-    getEnvelope<{ history?: HistoryRow[] }>(SCHEDULER_HISTORY)
-      .then((d) => setHistory(d?.history ?? []))
+    // 【为什么不走 getEnvelope】/api/scheduler/history 尚未迁移到统一信封，
+    // 显式解析会直接抛 EnvelopeError。这里按原始形状取，并容忍将来迁移成 {data:{history}}。
+    fetch(SCHEDULER_HISTORY, { headers: authHeader() })
+      .then((res) => {
+        if (!res.ok) throw new Error('HTTP ' + res.status)
+        return res.json()
+      })
+      .then((body: unknown) => {
+        const b = body as { history?: HistoryRow[]; data?: { history?: HistoryRow[] } }
+        const list = Array.isArray(b?.history) ? b.history
+          : Array.isArray(b?.data?.history) ? b.data.history : []
+        setHistory(list)
+      })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
   }, [tab])

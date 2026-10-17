@@ -250,6 +250,22 @@ export function filterNav(items: HubNavItem[], query: string): HubNavItem[] {
 /** 深链参数名：`#/workbench?panel=governance/approvals` */
 export const NAV_PANEL_PARAM = 'panel'
 
+/**
+ * **启动瞬间**的深链 panel（在导航层改写地址栏之前捕获）。
+ *
+ * 【为什么必须在模块加载期取】引擎页是懒加载组件，挂载时 `engine/scheduler` 已被
+ * 归一成 `engine`；页内再读 hash 只能拿到归一后的值 ⇒ 旧深链会丢掉 Tab 意图。
+ */
+export const BOOT_PANEL: string = (() => {
+  try {
+    const raw = typeof window !== 'undefined' ? window.location.hash : ''
+    const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : ''
+    return new URLSearchParams(q).get(NAV_PANEL_PARAM) || ''
+  } catch {
+    return ''
+  }
+})()
+
 // ════════════════════════════════════════════════════════════
 //  旧深链兼容层（2026-10-11 UI 信息架构整合 · 阶段 0）
 // ════════════════════════════════════════════════════════════
