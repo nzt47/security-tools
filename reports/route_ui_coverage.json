@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-18T03:05:55",
+  "generated_at": "2026-10-18T03:54:19",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 303,
+    "ui": 328,
     "cli_script": 17,
-    "runtime_only": 24,
-    "unreferenced": 120,
+    "runtime_only": 17,
+    "unreferenced": 102,
     "live_by_category": {
-      "ui": 303,
+      "ui": 328,
       "cli_script": 17,
-      "runtime_only": 24,
-      "unreferenced": 120
+      "runtime_only": 17,
+      "unreferenced": 102
     },
     "by_intent": {
       "should_be_in_ui": 390,
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 309,
+  "frontend_endpoints": 334,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -192,66 +192,6 @@
       "area": "模型实例",
       "where": [
         "plugins/admin.py:83"
-      ]
-    },
-    {
-      "path": "/api/filesystem/info",
-      "norm": "/api/filesystem/info",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "文件浏览",
-      "where": [
-        "plugins/system_tools.py:198"
-      ]
-    },
-    {
-      "path": "/api/filesystem/list",
-      "norm": "/api/filesystem/list",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "文件浏览",
-      "where": [
-        "plugins/system_tools.py:187"
-      ]
-    },
-    {
-      "path": "/api/filesystem/read",
-      "norm": "/api/filesystem/read",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "文件浏览",
-      "where": [
-        "plugins/system_tools.py:141"
-      ]
-    },
-    {
-      "path": "/api/filesystem/search",
-      "norm": "/api/filesystem/search",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "文件浏览",
-      "where": [
-        "plugins/system_tools.py:209"
-      ]
-    },
-    {
-      "path": "/api/filesystem/write",
-      "norm": "/api/filesystem/write",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "文件浏览",
-      "where": [
-        "plugins/system_tools.py:165"
       ]
     },
     {
@@ -437,78 +377,6 @@
       ]
     },
     {
-      "path": "/api/permission/access-log",
-      "norm": "/api/permission/access-log",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "权限面板",
-      "where": [
-        "plugins/safety.py:280"
-      ]
-    },
-    {
-      "path": "/api/permission/emergency",
-      "norm": "/api/permission/emergency",
-      "methods": [
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "权限面板",
-      "where": [
-        "plugins/safety.py:291"
-      ]
-    },
-    {
-      "path": "/api/permission/log",
-      "norm": "/api/permission/log",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "权限面板",
-      "where": [
-        "plugins/safety.py:211"
-      ]
-    },
-    {
-      "path": "/api/permission/stats",
-      "norm": "/api/permission/stats",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "权限面板",
-      "where": [
-        "plugins/safety.py:231"
-      ]
-    },
-    {
-      "path": "/api/permission/status",
-      "norm": "/api/permission/status",
-      "methods": [
-        "GET"
-      ],
-      "category": "runtime_only",
-      "area": "权限面板",
-      "where": [
-        "plugins/safety.py:172"
-      ]
-    },
-    {
-      "path": "/api/permission/toggle",
-      "norm": "/api/permission/toggle",
-      "methods": [
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "权限面板",
-      "where": [
-        "plugins/safety.py:326"
-      ]
-    },
-    {
       "path": "/api/planning/toggle",
       "norm": "/api/planning/toggle",
       "methods": [
@@ -518,18 +386,6 @@
       "area": "编排配置",
       "where": [
         "plugins/status.py:329"
-      ]
-    },
-    {
-      "path": "/api/privacy/info",
-      "norm": "/api/privacy/info",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "隐私",
-      "where": [
-        "plugins/safety.py:54"
       ]
     },
     {
@@ -554,66 +410,6 @@
       "area": "过程蒸馏",
       "where": [
         "agent/server_routes/routes_process_distill.py:58"
-      ]
-    },
-    {
-      "path": "/api/process/start",
-      "norm": "/api/process/start",
-      "methods": [
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "进程管控",
-      "where": [
-        "plugins/system_tools.py:354"
-      ]
-    },
-    {
-      "path": "/api/process/stop",
-      "norm": "/api/process/stop",
-      "methods": [
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "进程管控",
-      "where": [
-        "plugins/system_tools.py:367"
-      ]
-    },
-    {
-      "path": "/api/process/whitelist",
-      "norm": "/api/process/whitelist",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "进程管控",
-      "where": [
-        "plugins/system_tools.py:326"
-      ]
-    },
-    {
-      "path": "/api/process/whitelist/add",
-      "norm": "/api/process/whitelist/add",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "进程管控",
-      "where": [
-        "plugins/system_tools.py:334"
-      ]
-    },
-    {
-      "path": "/api/process/whitelist/remove",
-      "norm": "/api/process/whitelist/remove",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "进程管控",
-      "where": [
-        "plugins/system_tools.py:344"
       ]
     },
     {
@@ -712,43 +508,6 @@
       "area": "管理后台",
       "where": [
         "plugins/admin_api.py:582"
-      ]
-    },
-    {
-      "path": "/api/safety/alerts",
-      "norm": "/api/safety/alerts",
-      "methods": [
-        "GET"
-      ],
-      "category": "runtime_only",
-      "area": "安全设置",
-      "where": [
-        "plugins/safety.py:137"
-      ]
-    },
-    {
-      "path": "/api/safety/check",
-      "norm": "/api/safety/check",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "安全设置",
-      "where": [
-        "plugins/safety.py:125"
-      ]
-    },
-    {
-      "path": "/api/safety/keywords",
-      "norm": "/api/safety/keywords",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "安全设置",
-      "where": [
-        "plugins/safety.py:147"
       ]
     },
     {
@@ -1180,18 +939,6 @@
       ]
     },
     {
-      "path": "/api/window/consent",
-      "norm": "/api/window/consent",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "隐私",
-      "where": [
-        "plugins/safety.py:91"
-      ]
-    },
-    {
       "path": "/api/workflow-learning/convertible",
       "norm": "/api/workflow-learning/convertible",
       "methods": [
@@ -1201,54 +948,6 @@
       "area": "工作流学习",
       "where": [
         "agent/server_routes/routes_workflow_learning.py:308"
-      ]
-    },
-    {
-      "path": "/api/workspace",
-      "norm": "/api/workspace",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "工作区",
-      "where": [
-        "plugins/system_tools.py:61"
-      ]
-    },
-    {
-      "path": "/api/workspace/delete",
-      "norm": "/api/workspace/delete",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "工作区",
-      "where": [
-        "plugins/system_tools.py:98"
-      ]
-    },
-    {
-      "path": "/api/workspace/info",
-      "norm": "/api/workspace/info",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "工作区",
-      "where": [
-        "plugins/system_tools.py:114"
-      ]
-    },
-    {
-      "path": "/api/workspace/write",
-      "norm": "/api/workspace/write",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "工作区",
-      "where": [
-        "plugins/system_tools.py:76"
       ]
     }
   ],
@@ -4345,11 +4044,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:198"
@@ -4359,7 +4060,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -4368,11 +4069,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:187"
@@ -4382,7 +4085,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -4391,11 +4094,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:141"
@@ -4405,7 +4110,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -4414,11 +4119,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:209"
@@ -4428,7 +4135,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -4437,11 +4144,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:165"
@@ -4451,7 +4160,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "文件浏览",
       "intent_note": "文件浏览：目录/信息/读/写/搜索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -6498,11 +6207,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/safety.py:280"
@@ -6512,7 +6223,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -6521,11 +6232,13 @@
       "methods": [
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
@@ -6537,7 +6250,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -6546,11 +6259,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/safety.py:211"
@@ -6560,7 +6275,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -6569,11 +6284,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/safety.py:231"
@@ -6583,7 +6300,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -6592,11 +6309,13 @@
       "methods": [
         "GET"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_api.py"
       ],
@@ -6608,7 +6327,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -6617,11 +6336,13 @@
       "methods": [
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
@@ -6633,7 +6354,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "权限面板",
       "intent_note": "权限控制面板：状态/统计/日志/开关/紧急控制。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -6853,11 +6574,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/safety.py:54"
@@ -6867,7 +6590,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "隐私",
       "intent_note": "数据采集透明度信息。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -6949,11 +6672,13 @@
       "methods": [
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
@@ -6965,7 +6690,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -6974,11 +6699,13 @@
       "methods": [
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
@@ -6990,7 +6717,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -6999,11 +6726,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:326"
@@ -7013,7 +6742,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -7022,11 +6751,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:334"
@@ -7036,7 +6767,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -7045,11 +6776,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:344"
@@ -7059,7 +6792,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "进程管控",
       "intent_note": "进程管控：白名单浏览/增删/启停。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -7408,11 +7141,13 @@
       "methods": [
         "GET"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_api.py"
       ],
@@ -7424,7 +7159,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "安全设置",
       "intent_note": "安全设置：危险词/告警/文本检查。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -7433,11 +7168,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/safety.py:125"
@@ -7447,7 +7184,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "安全设置",
       "intent_note": "安全设置：危险词/告警/文本检查。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -7457,11 +7194,13 @@
         "GET",
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
@@ -7473,7 +7212,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "安全设置",
       "intent_note": "安全设置：危险词/告警/文本检查。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -11817,11 +11556,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/safety.py:91"
@@ -11831,7 +11572,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "隐私",
       "intent_note": "窗口监控授权。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -12168,11 +11909,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:61"
@@ -12182,7 +11925,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
       "intent_note": "工作区文件：列表/信息/写入/删除。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -12191,11 +11934,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:98"
@@ -12205,7 +11950,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
       "intent_note": "工作区文件：列表/信息/写入/删除。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -12214,11 +11959,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:114"
@@ -12228,7 +11975,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
       "intent_note": "工作区文件：列表/信息/写入/删除。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -12237,11 +11984,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:76"
@@ -12251,7 +12000,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作区",
       "intent_note": "工作区文件：列表/信息/写入/删除。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "资产与文件"
     },
     {
@@ -12868,5 +12617,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "5bd206feb9faa26c"
+  "content_hash": "9c79ab1b7d74a944"
 }

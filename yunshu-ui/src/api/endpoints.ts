@@ -349,6 +349,37 @@ export const OBSERVABILITY_STATE = '/api/observability/state';
 export const OBSERVABILITY_TRACES = '/api/observability/traces';
 export const OBSERVABILITY_ACCESS_LOGS = '/api/observability/access_logs';
 export const OBSERVABILITY_ACCESS_STATS = '/api/observability/access_stats';
+
+// ═══════════════════════════════════════════════════════════════
+//  安全与权限 / 本地资源（文件 · 工作区 · 进程）
+// ═══════════════════════════════════════════════════════════════
+export const PERMISSION_STATUS = '/api/permission/status';
+export const PERMISSION_STATS = '/api/permission/stats';
+export const PERMISSION_LOG = '/api/permission/log';
+export const PERMISSION_ACCESS_LOG = '/api/permission/access-log';
+export const PERMISSION_TOGGLE = '/api/permission/toggle';
+export const PERMISSION_EMERGENCY = '/api/permission/emergency';
+export const SAFETY_ALERTS = '/api/safety/alerts';
+export const SAFETY_CHECK = '/api/safety/check';
+export const SAFETY_KEYWORDS = '/api/safety/keywords';
+export const PRIVACY_INFO = '/api/privacy/info';
+export const WINDOW_CONSENT = '/api/window/consent';
+
+export const FILESYSTEM_LIST = '/api/filesystem/list';
+export const FILESYSTEM_INFO = '/api/filesystem/info';
+export const FILESYSTEM_SEARCH = '/api/filesystem/search';
+export const FILESYSTEM_READ = '/api/filesystem/read';
+export const FILESYSTEM_WRITE = '/api/filesystem/write';
+/** 工作区根（注意与 /api/workspaces 不是同一个面） */
+export const WORKSPACE_ROOT = '/api/workspace';
+export const WORKSPACE_INFO = '/api/workspace/info';
+export const WORKSPACE_WRITE = '/api/workspace/write';
+export const WORKSPACE_DELETE = '/api/workspace/delete';
+export const PROCESS_WHITELIST = '/api/process/whitelist';
+export const PROCESS_WHITELIST_ADD = '/api/process/whitelist/add';
+export const PROCESS_WHITELIST_REMOVE = '/api/process/whitelist/remove';
+export const PROCESS_START = '/api/process/start';
+export const PROCESS_STOP = '/api/process/stop';
 export const observabilityTrace = (traceId: string) => `/api/observability/traces/${encodeURIComponent(traceId)}`;
 export const observabilityAlert = (name: string) => `/api/observability/alerts/${encodeURIComponent(name)}`;
 
