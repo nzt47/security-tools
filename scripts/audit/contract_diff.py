@@ -68,6 +68,21 @@ ROUTE_DECORATOR = re.compile(
 )
 PATH_LITERAL = re.compile(r'''["'](/[A-Za-z0-9_\-./{}<>:$]*)["']''')
 FRONTEND_LITERAL = re.compile(r'''["'\x60](/api/[A-Za-z0-9_\-./{}<>:$]*)["'\x60]''')
+#: 前端同文件模块级路径常量：const PREFIX = '/api/cp'
+#  （用于展开「常量前缀 + 路径」的模板串，见 TEMPLATE_WITH_BASE）
+FRONTEND_CONST = re.compile(
+    r'''(?m)^\s*(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*["'](/[^"'\n]{2,})["']'''
+)
+#: 以常量开头的模板串：`${PREFIX}/panels` —— FRONTEND_LITERAL 只认紧接 /api 的模板，
+#: 这类会整批漏掉（2026-10-17 实测：治理面板 20 条 /api/cp/* 明明在用却被记为未接线）。
+TEMPLATE_WITH_BASE = re.compile(r'\x60\$\{([A-Za-z_$][\w$]*)\}([^\x60\n]*)\x60')
+_TMPL_SEG = re.compile(r"\$\{[^}]*\}")
+#: 从常量层（src/api/endpoints.ts）import 的名字：import { CP, X as Y } from '@/api/endpoints'
+_IMPORT_FROM_ENDPOINTS = re.compile(
+    r"""import\s*\{([^}]*)\}\s*from\s*['"][^'"]*api/endpoints['"]"""
+)
+#: 同文件里的常量别名：const PREFIX = CP（右值必须是标识符）
+_CONST_ALIAS = re.compile(r"(?m)^\s*(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*([A-Za-z_$][\w$]*)\s*$")
 
 
 def _real_route_decorator_lines(tree):
@@ -346,6 +361,48 @@ def _is_frontend_build_artifact(rel: str) -> bool:
 _BUILD_HASH_RE = re.compile(r"-[A-Za-z0-9_-]{8}\.[A-Za-z0-9]+$")
 
 
+def _fold_template(path: str) -> str:
+    """把模板里的插值折成星号；**非段边界的插值一律截断**（多半是查询串拼接）。
+
+    规则：插值紧跟在 / 之后 ⇒ 视为路径参数，折成 *；否则视为拼接后缀，就地截断。
+    """
+    out = []
+    last = 0
+    for m in _TMPL_SEG.finditer(path):
+        out.append(path[last:m.start()])
+        if path[:m.start()].endswith("/"):
+            out.append("*")
+        else:
+            return "".join(out)
+        last = m.end()
+    out.append(path[last:])
+    return "".join(out)
+
+
+def _load_endpoint_consts() -> dict:
+    """常量层（src/api/endpoints.ts）里的导出路径常量：{NAME: '/api/...'}。
+
+    只在模块加载后首次调用时解析一次（文件很小，无缓存失效问题）。
+    """
+    path = ROOT / "yunshu-ui" / "src" / "api" / "endpoints.ts"
+    try:
+        text = strip_comments(path.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return {}
+    return {m.group(1): m.group(2) for m in FRONTEND_CONST.finditer(text)}
+
+
+_ENDPOINT_CONSTS: dict = {}
+
+
+def _endpoint_consts() -> dict:
+    """懒加载：strip_comments 定义在本函数之后，导入期不能先调用。"""
+    global _ENDPOINT_CONSTS
+    if not _ENDPOINT_CONSTS:
+        _ENDPOINT_CONSTS = _load_endpoint_consts()
+    return _ENDPOINT_CONSTS
+
+
 def collect_frontend_literals():
     """两套前端分别统计：React（yunshu-ui/src）与 legacy（templates + static）。"""
     out = {}
@@ -370,8 +427,46 @@ def collect_frontend_literals():
                 continue
             # 【必须先剥注释】否则注释里描述端点的那类反引号代码跨会被当成真实调用
             # （实测 4 处），既虚高计数，又会在该路由被删时产生假警报。
-            for m in FRONTEND_LITERAL.finditer(strip_comments(txt)):
+            stripped = strip_comments(txt)
+            for m in FRONTEND_LITERAL.finditer(stripped):
                 hits.setdefault(m.group(1), []).append(rel)
+            # 常量前缀模板：同文件字面量 / 同文件别名 / 从常量层 import 的名字，三跳以内解析
+            local = {m.group(1): m.group(2) for m in FRONTEND_CONST.finditer(stripped)}
+            alias = {m.group(1): m.group(2) for m in _CONST_ALIAS.finditer(stripped)}
+            imported = {}
+            for m in _IMPORT_FROM_ENDPOINTS.finditer(stripped):
+                for part in m.group(1).split(","):
+                    piece = part.split(" as ")
+                    if len(piece) == 2:
+                        imported[piece[1].strip()] = piece[0].strip()
+                    else:
+                        name = piece[0].strip()
+                        imported[name] = name
+
+            def _resolve(name):
+                seen = set()
+                while name and name not in seen:
+                    seen.add(name)
+                    if name in local:
+                        return local[name]
+                    if name in alias:
+                        name = alias[name]
+                        continue
+                    if name in imported:
+                        return _endpoint_consts().get(imported[name])
+                    return None
+                return None
+
+            for m in TEMPLATE_WITH_BASE.finditer(stripped):
+                base = _resolve(m.group(1))
+                if not base:
+                    continue
+                candidate = _fold_template(base + m.group(2))
+                cut = candidate.find("${")
+                if cut > 0:
+                    candidate = candidate[:cut]
+                if len(candidate) > 2 and " " not in candidate:
+                    hits.setdefault(candidate, []).append(rel)
         out[label] = hits
     return out
 

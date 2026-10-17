@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-17T19:45:21",
+  "generated_at": "2026-10-17T21:09:47",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 143,
+    "ui": 164,
     "cli_script": 20,
     "runtime_only": 30,
-    "unreferenced": 271,
+    "unreferenced": 250,
     "live_by_category": {
-      "ui": 143,
+      "ui": 164,
       "cli_script": 20,
       "runtime_only": 30,
-      "unreferenced": 271
+      "unreferenced": 250
     },
     "by_intent": {
       "should_be_in_ui": 403,
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 148,
+  "frontend_endpoints": 169,
   "frontend_unmatched": [
     "/api/approval",
     "/api/assets",
@@ -62,18 +62,6 @@
         "agent/server_routes/routes_agent_lines.py:567",
         "agent/server_routes/routes_agent_lines.py:672",
         "agent/server_routes/routes_agent_lines.py:698"
-      ]
-    },
-    {
-      "path": "/api/agent-lines/active",
-      "norm": "/api/agent-lines/active",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "主线装配台",
-      "where": [
-        "agent/server_routes/routes_agent_lines.py:721"
       ]
     },
     {
@@ -305,246 +293,6 @@
       "area": "模型实例",
       "where": [
         "plugins/admin.py:83"
-      ]
-    },
-    {
-      "path": "/api/cp/actions/<action>",
-      "norm": "/api/cp/actions/*",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:462"
-      ]
-    },
-    {
-      "path": "/api/cp/approvals/batch",
-      "norm": "/api/cp/approvals/batch",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:875"
-      ]
-    },
-    {
-      "path": "/api/cp/approvals/batch/link",
-      "norm": "/api/cp/approvals/batch/link",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:798"
-      ]
-    },
-    {
-      "path": "/api/cp/approvals/inbox",
-      "norm": "/api/cp/approvals/inbox",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:267"
-      ]
-    },
-    {
-      "path": "/api/cp/audit/export",
-      "norm": "/api/cp/audit/export",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:370"
-      ]
-    },
-    {
-      "path": "/api/cp/audit/export.csv",
-      "norm": "/api/cp/audit/export.csv",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:394"
-      ]
-    },
-    {
-      "path": "/api/cp/confirmations/<action>",
-      "norm": "/api/cp/confirmations/*",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:420"
-      ]
-    },
-    {
-      "path": "/api/cp/descriptors/map",
-      "norm": "/api/cp/descriptors/map",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:249"
-      ]
-    },
-    {
-      "path": "/api/cp/digestion/pipeline",
-      "norm": "/api/cp/digestion/pipeline",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:233"
-      ]
-    },
-    {
-      "path": "/api/cp/healing/incidents",
-      "norm": "/api/cp/healing/incidents",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:307"
-      ]
-    },
-    {
-      "path": "/api/cp/memory/skills",
-      "norm": "/api/cp/memory/skills",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:322"
-      ]
-    },
-    {
-      "path": "/api/cp/observability/stream",
-      "norm": "/api/cp/observability/stream",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:293"
-      ]
-    },
-    {
-      "path": "/api/cp/panels",
-      "norm": "/api/cp/panels",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:199"
-      ]
-    },
-    {
-      "path": "/api/cp/roi",
-      "norm": "/api/cp/roi",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:280"
-      ]
-    },
-    {
-      "path": "/api/cp/security/authz-alerts",
-      "norm": "/api/cp/security/authz-alerts",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:345"
-      ]
-    },
-    {
-      "path": "/api/cp/security/render-state",
-      "norm": "/api/cp/security/render-state",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_ui_panels.py:359"
-      ]
-    },
-    {
-      "path": "/api/cp/settings",
-      "norm": "/api/cp/settings",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_settings.py:274"
-      ]
-    },
-    {
-      "path": "/api/cp/settings/<key>",
-      "norm": "/api/cp/settings/*",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_settings.py:284"
-      ]
-    },
-    {
-      "path": "/api/cp/settings/<key>/confirm",
-      "norm": "/api/cp/settings/*/confirm",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_settings.py:314"
-      ]
-    },
-    {
-      "path": "/api/cp/settings/<key>/reset",
-      "norm": "/api/cp/settings/*/reset",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "治理中心",
-      "where": [
-        "agent/server_routes/routes_settings.py:339"
       ]
     },
     {
@@ -3295,7 +3043,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/agentLinesApi.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -3343,11 +3092,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/agentLinesApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_agent_lines.py:721"
@@ -3357,7 +3108,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "主线装配台",
       "intent_note": "主线装配台：档案/装配预览/校验/激活/工具目录。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -3371,7 +3122,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/agentLinesApi.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -4545,7 +4297,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/system/ConfigChangeLogPanel.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -4644,11 +4397,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:462"
@@ -4658,7 +4413,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4667,11 +4422,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:875"
@@ -4681,7 +4438,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4690,11 +4447,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:798"
@@ -4704,7 +4463,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4713,11 +4472,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:267"
@@ -4727,7 +4488,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4736,11 +4497,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:370"
@@ -4750,7 +4513,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4759,11 +4522,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:394"
@@ -4773,7 +4538,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4782,11 +4547,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:420"
@@ -4796,7 +4563,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4805,11 +4572,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:249"
@@ -4819,7 +4588,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4828,11 +4597,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:233"
@@ -4842,7 +4613,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4851,11 +4622,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:307"
@@ -4865,7 +4638,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4874,11 +4647,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:322"
@@ -4888,7 +4663,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4897,11 +4672,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:293"
@@ -4911,7 +4688,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4920,11 +4697,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:199"
@@ -4934,7 +4713,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4943,11 +4722,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:280"
@@ -4957,7 +4738,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4966,11 +4747,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:345"
@@ -4980,7 +4763,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -4989,11 +4772,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_ui_panels.py:359"
@@ -5003,7 +4788,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -5012,11 +4797,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_settings.py:274"
@@ -5026,7 +4813,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -5035,11 +4822,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_settings.py:284"
@@ -5049,7 +4838,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -5058,11 +4847,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_settings.py:314"
@@ -5072,7 +4863,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -5081,11 +4872,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/cpPanelsApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_settings.py:339"
@@ -5095,7 +4888,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "治理中心",
       "intent_note": "治理面板面：审批收件箱、开关中心、可观测、ROI；面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -5110,7 +4903,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/toolExemptionsApi.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -5684,7 +5478,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/experienceApi.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -5709,7 +5504,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/experienceApi.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -6856,7 +6652,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/api/knowledge.ts"
       ],
       "non_ui_refs": [
         "scripts/dev/e2e_knowledge_409.py",
@@ -9890,7 +9687,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/sessionApi.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -10753,7 +10551,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -10778,7 +10577,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -10803,7 +10603,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -10828,7 +10629,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -10928,7 +10730,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -11377,7 +11180,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -11477,7 +11281,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -11600,7 +11405,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -11676,7 +11482,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/skillsApi.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -12299,7 +12106,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/components/workbench/chat/SubagentMenu.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -13705,7 +13513,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/lib/skillsApi.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -14499,5 +14308,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "fddbfd695441a9e6"
+  "content_hash": "ff6a70e46a06913c"
 }

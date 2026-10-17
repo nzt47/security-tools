@@ -328,3 +328,26 @@ class Test功能区:
         before = m._content_hash(payload)
         payload["entries"][0]["domain"] = "被篡改"
         assert m._content_hash(payload) != before
+
+
+class Test前端模板串扫描:
+    """前端模板串（常量前缀）此前被整体漏计，导致「明明在用的端点」被误判未接线。"""
+
+    def test_常量前缀模板被识别(self):
+        from scripts.audit.contract_diff import collect_frontend_literals
+
+        react = collect_frontend_literals().get("react", {})
+        # 治理面板实际调用写在 `${PREFIX}/panels` 里（PREFIX 由 endpoints.ts 的 CP 转入）
+        assert "/api/cp/panels" in react
+        assert "/api/cp/roi" in react
+
+    def test_非段边界插值被截断(self):
+        from scripts.audit.contract_diff import _fold_template
+
+        assert _fold_template("/api/x/$" + "{id}/y") == "/api/x/*/y"
+        assert _fold_template("/api/x/list$" + "{q}") == "/api/x/list"
+
+    def test_段边界插值折成星号(self):
+        from scripts.audit.contract_diff import _fold_template
+
+        assert _fold_template("/api/skills-mgmt/$" + "{sid}/review") == "/api/skills-mgmt/*/review"
