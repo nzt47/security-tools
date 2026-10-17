@@ -16,8 +16,7 @@ import {
   Activity, FileText, Server, Monitor,
   HeartPulse, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
-  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
-  BarChart3, Cpu,
+  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -57,11 +56,13 @@ const HubAdminNotifications = lazy(() => import('@/pages/hub/admin/index').then(
 const HubAdminLogs = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminLogs })))
 // 数据导出：复用管理后台 Export 页（原 /export 路由已随第二套外壳摘除，收敛到系统管理栏目）
 const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
-// 2026-10-18 新增：反馈中心（7 条 /api/feedback）与 业务看板（业务指标 + 系统仪表盘 10 条）、
-// 实例管理（LLM 实例 + 搜索实例 9 条）。三者此前在后端存在、前端零引用。
+// 2026-10-18 新增（两批合并）：反馈中心 / 业务看板 / 实例管理；
+// 安全与权限 / 本地资源。此前都只有后端、前端零入口。
 const FeedbackCenter = lazy(() => import('@/pages/hub/governance/feedback'))
 const BusinessBoard = lazy(() => import('@/pages/hub/governance/business'))
 const InstancesPanel = lazy(() => import('@/pages/hub/admin/instances'))
+const SecurityPanel = lazy(() => import('@/pages/hub/governance/security'))
+const LocalResources = lazy(() => import('@/pages/hub/local'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 // 插件与扩展：原「插件管理」与「扩展中心」合并为一个导航项；2026-10-15 进一步取消 Tab，
 // 插件自带 UI 直接挂在清单卡片里（extensionHost.registerPluginModule 链路保留），
@@ -110,6 +111,7 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'assets', label: '资产管理', icon: Database, component: AssetsPage },
       { key: 'components/plugins', label: '插件与扩展', icon: Puzzle, component: PluginsPage },
       { key: 'network', label: '网络配置', icon: Globe, component: NetworkPage },
+      { key: 'local', label: '本地资源', icon: HardDrive, component: LocalResources },
     ],
   },
   {
@@ -155,6 +157,7 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/route-coverage', label: '路由覆盖', icon: Route, component: GovernancePanels },
       { key: 'governance/feedback', label: '反馈中心', icon: MessageSquare, component: FeedbackCenter },
       { key: 'governance/business', label: '业务看板', icon: BarChart3, component: BusinessBoard },
+      { key: 'governance/security', label: '安全与权限', icon: ShieldAlert, component: SecurityPanel },
     ],
   },
   // 【第三轮 IA】原顶层叶子「资产管理」已并入上面的「记忆与资产」桶；
