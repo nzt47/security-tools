@@ -259,6 +259,9 @@ def register_zero_token_jobs(scheduler: Any) -> List[str]:
             day_of_week=None,
             hour=job["hour"],
             minute=job["minute"],
+            # UI 上标注「零 token」，并记录归属模块（谁注册的、出问题找谁）
+            zero_token=True,
+            owner="agent/maintenance/zero_token_jobs.py",
         )
         registered.append(job["key"])
     logger.info("[zero-token] 已注册 %d 条维护作业（09:00-18:00）", len(registered))

@@ -300,6 +300,10 @@ export const HEARTBEAT_STATUS = '/api/heartbeat/status';
 // 定时任务：任务列表与执行历史（健康仪表盘「系统健康·心跳检测」卡的 legacy 口径）
 export const SCHEDULER_TASKS = '/api/scheduler/tasks';
 export const SCHEDULER_HISTORY = '/api/scheduler/history';
+// 调度器**运行态**全量任务（含 cron/interval 的 python 任务；旧 tasks 只列文件型命令任务）
+export const SCHEDULER_OVERVIEW = '/api/scheduler/overview';
+// 按任务名启停 / 改「每天 时:分」（改动即时生效并落 data/scheduler_overrides.json）
+export const SCHEDULER_CONFIGURE = '/api/scheduler/configure';
 export const DIAGNOSTICS_METRICS = '/api/diagnostics/metrics';
 export const DIAGNOSTICS_LLM_CHECK = '/api/diagnostics/llm-check';
 export const OBSERVABILITY_ALERTS = '/api/observability/alerts';

@@ -56,6 +56,83 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 SCHEDULED_TASKS_FILE = DATA_DIR / "scheduled_tasks.json"
 TASK_HISTORY_FILE = DATA_DIR / "task_history.jsonl"
 HEARTBEAT_HISTORY_FILE = DATA_DIR / "heartbeat_history.json"
+#: 人工在 UI 上改过的「启停 / 时刻」覆盖（按任务名索引；任务 id 每次启动重生成，不能当键）
+OVERRIDES_FILE = DATA_DIR / "scheduler_overrides.json"
+
+
+def _load_overrides() -> Dict[str, Dict[str, Any]]:
+    """读人工覆盖；坏文件/不存在一律当空，绝不抛。"""
+    try:
+        with open(OVERRIDES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:  # noqa: BLE001 覆盖文件坏了不能影响启动
+        return {}
+
+
+def _save_overrides(data: Dict[str, Dict[str, Any]]) -> bool:
+    """写人工覆盖（best-effort；失败只记日志，不回滚内存态）。"""
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        with open(OVERRIDES_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:  # noqa: BLE001
+        logger.error("[TaskScheduler] 保存调度覆盖失败: %s", e)
+        return False
+
+
+def _schedule_text(task: Dict[str, Any]) -> str:
+    """人读的排程文案：cron → '每天 09:20' / '每周一 09:00'；interval → '每 300 秒'。"""
+    cron = task.get("cron")
+    if isinstance(cron, dict):
+        try:
+            hour = int(cron.get("hour", 0))
+            minute = int(cron.get("minute", 0))
+        except (TypeError, ValueError):
+            return "-"
+        dow = cron.get("day_of_week")
+        if dow is None:
+            prefix = "每天"
+        elif isinstance(dow, int) and 0 <= dow <= 6:
+            prefix = "每周" + "一二三四五六日"[dow]
+        else:
+            prefix = "每周"
+        return "%s %02d:%02d" % (prefix, hour, minute)
+    if task.get("type") == "system_command":
+        try:
+            return "每 %d 秒（命令）" % int(task.get("interval", 60))
+        except (TypeError, ValueError):
+            return "每 ? 秒（命令）"
+    if "interval" in task:
+        try:
+            return "每 %d 秒" % int(task["interval"])
+        except (TypeError, ValueError):
+            return "每 ? 秒"
+    return "-"
+
+
+def _apply_override(task: Dict[str, Any]) -> Dict[str, Any]:
+    """把 UI 上的覆盖（启停 / cron 时刻）套到新注册的任务上。
+
+    【为什么在注册处套，而不是启动后统一改】各模块（digestion / skills_mgmt /
+    subagent / knowledge …）都自己 add_cron_task，注册点分散；在 add_* 里套用
+    才能保证"重启后仍然是用户改过的样子"。
+    """
+    name = str(task.get("name") or "")
+    ov = _load_overrides().get(name) if name else None
+    if not isinstance(ov, dict):
+        return task
+    if isinstance(ov.get("enabled"), bool):
+        task["enabled"] = ov["enabled"]
+    cron = task.get("cron")
+    if isinstance(cron, dict):
+        hour, minute = ov.get("hour"), ov.get("minute")
+        if isinstance(hour, int) and 0 <= hour <= 23:
+            cron["hour"] = hour
+        if isinstance(minute, int) and 0 <= minute <= 59:
+            cron["minute"] = minute
+    return task
 
 # 默认配置（向后兼容常量，实际值应通过便捷函数从 Config 读取）
 DEFAULT_CHECK_INTERVAL = 10    # 向后兼容别名，实际值通过 get_scheduler_check_interval() 读取
@@ -178,9 +255,10 @@ class TaskScheduler:
         logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'log', 'msg': '[TaskScheduler] 初始化完成'}))
 
     def add_cron_task(self, name: str, func: Callable, day_of_week: int = None,
-                      hour: int = 0, minute: int = 0) -> None:
-        """添加 Python 函数 cron 任务"""
-        task = {
+                      hour: int = 0, minute: int = 0,
+                      zero_token: Optional[bool] = None, owner: str = "") -> None:
+        """添加 Python 函数 cron 任务（会套用 UI 上的覆盖：启停 / 时刻）"""
+        task = _apply_override({
             "name": name,
             "type": "python_func",
             "func": func,
@@ -188,13 +266,16 @@ class TaskScheduler:
             "last_run": None,
             "enabled": True,
             "task_id": self._generate_task_id("py"),
-        }
+            "zero_token": zero_token,
+            "owner": owner,
+        })
         self.tasks.append(task)
         logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'name.cron', 'msg': f'[TaskScheduler] 添加任务: {name} (cron)'}))
 
-    def add_interval_task(self, name: str, func: Callable, interval_seconds: int) -> None:
-        """添加 Python 函数间隔任务"""
-        task = {
+    def add_interval_task(self, name: str, func: Callable, interval_seconds: int,
+                          zero_token: Optional[bool] = None, owner: str = "") -> None:
+        """添加 Python 函数间隔任务（同样套用 UI 覆盖：启停）"""
+        task = _apply_override({
             "name": name,
             "type": "python_func",
             "func": func,
@@ -202,7 +283,9 @@ class TaskScheduler:
             "last_run": None,
             "enabled": True,
             "task_id": self._generate_task_id("py"),
-        }
+            "zero_token": zero_token,
+            "owner": owner,
+        })
         self.tasks.append(task)
         logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'name.interval_seconds', 'msg': f'[TaskScheduler] 添加任务: {name} (每{interval_seconds}秒)'}))
 
@@ -238,6 +321,46 @@ class TaskScheduler:
                 t["enabled"] = enabled
                 return True
         return False
+
+    def find_task_by_name(self, name: str) -> Optional[Dict]:
+        """按任务名查找（UI 的稳定键；id 每次启动都会重生成）"""
+        for t in self.tasks:
+            if t.get("name") == name:
+                return t
+        return None
+
+    def set_task_enabled_by_name(self, name: str, enabled: bool) -> bool:
+        """按名启停，并把结果持久化到覆盖文件（重启后仍生效）。"""
+        task = self.find_task_by_name(name)
+        if task is None:
+            return False
+        task["enabled"] = bool(enabled)
+        overrides = _load_overrides()
+        entry = overrides.setdefault(name, {})
+        if isinstance(entry, dict):
+            entry["enabled"] = bool(enabled)
+            _save_overrides(overrides)
+        return True
+
+    def update_task_schedule(self, name: str, hour: int, minute: int) -> bool:
+        """改「每天 时:分」型任务的时刻；持久化并清掉 last_run（当日可再跑一次）。"""
+        task = self.find_task_by_name(name)
+        if task is None or not isinstance(task.get("cron"), dict):
+            return False
+        if not (isinstance(hour, int) and 0 <= hour <= 23):
+            return False
+        if not (isinstance(minute, int) and 0 <= minute <= 59):
+            return False
+        task["cron"]["hour"] = hour
+        task["cron"]["minute"] = minute
+        task["last_run"] = None
+        overrides = _load_overrides()
+        entry = overrides.setdefault(name, {})
+        if isinstance(entry, dict):
+            entry["hour"] = hour
+            entry["minute"] = minute
+            _save_overrides(overrides)
+        return True
 
     def get_task(self, task_id: str) -> Optional[Dict]:
         """按 ID 查找任务"""
@@ -636,6 +759,10 @@ class TaskScheduler:
                 "type": t["type"],
                 "enabled": t.get("enabled", True),
                 "last_run": t["last_run"].isoformat() if t.get("last_run") else None,
+                # UI 用：零 token 三态（True/False/None=未标注）与归属模块
+                "zero_token": t.get("zero_token"),
+                "owner": t.get("owner", ""),
+                "schedule_text": _schedule_text(t),
             }
             if t["type"] == "system_command":
                 entry["command"] = t.get("command", "")
@@ -677,6 +804,8 @@ def _create_scheduler(config=None):
         day_of_week=None,
         hour=2,
         minute=0,
+        zero_token=True,
+        owner="agent/task_scheduler.py",
     )
     # 零 token 维护作业（09:00-18:00 工作时段内，只读巡检/自洽校验）。
     # 见 agent/maintenance/zero_token_jobs.py；失败只记日志，不阻断主调度。

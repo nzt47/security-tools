@@ -1,27 +1,27 @@
 {
-  "generated_at": "2026-10-17T09:48:29",
+  "generated_at": "2026-10-17T12:29:51",
   "totals": {
-    "routes": 462,
-    "live": 462,
+    "routes": 464,
+    "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 141,
+    "ui": 143,
     "cli_script": 20,
     "runtime_only": 30,
     "unreferenced": 271,
     "live_by_category": {
-      "ui": 141,
+      "ui": 143,
       "cli_script": 20,
       "runtime_only": 30,
       "unreferenced": 271
     },
     "by_intent": {
-      "should_be_in_ui": 428,
+      "should_be_in_ui": 430,
       "should_not_be_in_ui": 33,
       "unclassified": 1
     }
   },
-  "frontend_endpoints": 146,
+  "frontend_endpoints": 148,
   "frontend_unmatched": [
     "/api/approval",
     "/api/assets",
@@ -2019,7 +2019,7 @@
       "category": "unreferenced",
       "area": "定时任务",
       "where": [
-        "plugins/mcp_scheduler.py:174"
+        "plugins/mcp_scheduler.py:259"
       ]
     },
     {
@@ -2031,7 +2031,7 @@
       "category": "runtime_only",
       "area": "定时任务",
       "where": [
-        "plugins/mcp_scheduler.py:195"
+        "plugins/mcp_scheduler.py:280"
       ]
     },
     {
@@ -2043,7 +2043,7 @@
       "category": "runtime_only",
       "area": "定时任务",
       "where": [
-        "plugins/mcp_scheduler.py:218"
+        "plugins/mcp_scheduler.py:303"
       ]
     },
     {
@@ -2055,7 +2055,7 @@
       "category": "runtime_only",
       "area": "定时任务",
       "where": [
-        "plugins/mcp_scheduler.py:206"
+        "plugins/mcp_scheduler.py:291"
       ]
     },
     {
@@ -2067,7 +2067,7 @@
       "category": "unreferenced",
       "area": "定时任务",
       "where": [
-        "plugins/mcp_scheduler.py:296"
+        "plugins/mcp_scheduler.py:381"
       ]
     },
     {
@@ -2079,7 +2079,7 @@
       "category": "unreferenced",
       "area": "定时任务",
       "where": [
-        "plugins/mcp_scheduler.py:308"
+        "plugins/mcp_scheduler.py:393"
       ]
     },
     {
@@ -2091,7 +2091,7 @@
       "category": "unreferenced",
       "area": "定时任务",
       "where": [
-        "plugins/mcp_scheduler.py:320"
+        "plugins/mcp_scheduler.py:405"
       ]
     },
     {
@@ -2103,7 +2103,7 @@
       "category": "unreferenced",
       "area": "定时任务",
       "where": [
-        "plugins/mcp_scheduler.py:332"
+        "plugins/mcp_scheduler.py:417"
       ]
     },
     {
@@ -3059,7 +3059,7 @@
       "category": "unreferenced",
       "area": "任务中心",
       "where": [
-        "plugins/mcp_scheduler.py:346"
+        "plugins/mcp_scheduler.py:431"
       ]
     },
     {
@@ -3071,7 +3071,7 @@
       "category": "unreferenced",
       "area": "任务中心",
       "where": [
-        "plugins/mcp_scheduler.py:355"
+        "plugins/mcp_scheduler.py:440"
       ]
     },
     {
@@ -3083,7 +3083,7 @@
       "category": "unreferenced",
       "area": "任务中心",
       "where": [
-        "plugins/mcp_scheduler.py:364"
+        "plugins/mcp_scheduler.py:449"
       ]
     },
     {
@@ -9351,6 +9351,30 @@
       "ui_pending": false
     },
     {
+      "path": "/api/scheduler/configure",
+      "norm": "/api/scheduler/configure",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:208"
+      ],
+      "description": "改任务：启停（enabled）与每日时刻（hour/minute）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "定时任务",
+      "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
+      "ui_pending": false
+    },
+    {
       "path": "/api/scheduler/create",
       "norm": "/api/scheduler/create",
       "methods": [
@@ -9363,7 +9387,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:174"
+        "plugins/mcp_scheduler.py:259"
       ],
       "description": "创建定时任务",
       "description_source": "handler",
@@ -9387,7 +9411,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/mcp_scheduler.py:195"
+        "plugins/mcp_scheduler.py:280"
       ],
       "description": "删除定时任务",
       "description_source": "handler",
@@ -9411,7 +9435,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/mcp_scheduler.py:218"
+        "plugins/mcp_scheduler.py:303"
       ],
       "description": "立即执行指定任务",
       "description_source": "handler",
@@ -9435,9 +9459,33 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:235"
+        "plugins/mcp_scheduler.py:320"
       ],
       "description": "获取任务执行历史",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "定时任务",
+      "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
+      "ui_pending": false
+    },
+    {
+      "path": "/api/scheduler/overview",
+      "norm": "/api/scheduler/overview",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/mcp_scheduler.py:174"
+      ],
+      "description": "调度器全量任务（含内存里的 cron/interval python 任务）。",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
@@ -9485,7 +9533,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/mcp_scheduler.py:206"
+        "plugins/mcp_scheduler.py:291"
       ],
       "description": "启用/禁用定时任务",
       "description_source": "handler",
@@ -9510,8 +9558,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:254",
-        "plugins/mcp_scheduler.py:266"
+        "plugins/mcp_scheduler.py:339",
+        "plugins/mcp_scheduler.py:351"
       ],
       "description": "获取所有定时任务（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -9533,7 +9581,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:296"
+        "plugins/mcp_scheduler.py:381"
       ],
       "description": "删除定时任务",
       "description_source": "handler",
@@ -9555,7 +9603,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:308"
+        "plugins/mcp_scheduler.py:393"
       ],
       "description": "暂停定时任务",
       "description_source": "handler",
@@ -9577,7 +9625,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:320"
+        "plugins/mcp_scheduler.py:405"
       ],
       "description": "恢复定时任务",
       "description_source": "handler",
@@ -9599,7 +9647,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:332"
+        "plugins/mcp_scheduler.py:417"
       ],
       "description": "获取执行历史",
       "description_source": "handler",
@@ -12430,7 +12478,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:346"
+        "plugins/mcp_scheduler.py:431"
       ],
       "description": "列出所有异步任务",
       "description_source": "handler",
@@ -12452,7 +12500,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:355"
+        "plugins/mcp_scheduler.py:440"
       ],
       "description": "获取单个异步任务状态",
       "description_source": "handler",
@@ -12474,7 +12522,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/mcp_scheduler.py:364"
+        "plugins/mcp_scheduler.py:449"
       ],
       "description": "取消异步任务",
       "description_source": "handler",
@@ -14296,5 +14344,5 @@
       "ui_pending": false
     }
   ],
-  "content_hash": "1bdce7b3395f79f8"
+  "content_hash": "28dcc2424a76a6cc"
 }
