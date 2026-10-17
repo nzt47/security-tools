@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-18T05:53:55",
+  "generated_at": "2026-10-18T07:28:11",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 360,
+    "ui": 365,
     "cli_script": 17,
     "runtime_only": 12,
-    "unreferenced": 75,
+    "unreferenced": 70,
     "live_by_category": {
-      "ui": 360,
+      "ui": 365,
       "cli_script": 17,
       "runtime_only": 12,
-      "unreferenced": 75
+      "unreferenced": 70
     },
     "by_intent": {
       "should_be_in_ui": 385,
@@ -37,14 +37,15 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 366,
+  "frontend_endpoints": 372,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
     "/api/assets",
     "/api/cp",
     "/api/demo/validate-email",
-    "/api/menu"
+    "/api/menu",
+    "/api/menu/*"
   ],
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
@@ -206,18 +207,6 @@
       ]
     },
     {
-      "path": "/api/notification/<int:notif_id>/read",
-      "norm": "/api/notification/*/read",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "通知中心",
-      "where": [
-        "plugins/admin_api.py:681"
-      ]
-    },
-    {
       "path": "/api/orchestrator/semantic-config",
       "norm": "/api/orchestrator/semantic-config",
       "methods": [
@@ -265,44 +254,6 @@
       "area": "过程蒸馏",
       "where": [
         "agent/server_routes/routes_process_distill.py:58"
-      ]
-    },
-    {
-      "path": "/api/role/<int:role_id>",
-      "norm": "/api/role/*",
-      "methods": [
-        "DELETE",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "管理后台",
-      "where": [
-        "plugins/admin_api.py:609",
-        "plugins/admin_api.py:623"
-      ]
-    },
-    {
-      "path": "/api/role/<int:role_id>/data-scope",
-      "norm": "/api/role/*/data-scope",
-      "methods": [
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "管理后台",
-      "where": [
-        "plugins/admin_api.py:597"
-      ]
-    },
-    {
-      "path": "/api/role/<int:role_id>/permissions",
-      "norm": "/api/role/*/permissions",
-      "methods": [
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "管理后台",
-      "where": [
-        "plugins/admin_api.py:582"
       ]
     },
     {
@@ -449,20 +400,6 @@
       "area": "分身/子代理",
       "where": [
         "agent/server_routes/routes_subagent.py:1229"
-      ]
-    },
-    {
-      "path": "/api/user/<int:user_id>",
-      "norm": "/api/user/*",
-      "methods": [
-        "DELETE",
-        "PUT"
-      ],
-      "category": "unreferenced",
-      "area": "管理后台",
-      "where": [
-        "plugins/admin_api.py:496",
-        "plugins/admin_api.py:529"
       ]
     },
     {
@@ -5352,11 +5289,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/notification.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:681"
@@ -5366,7 +5305,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "通知中心",
       "intent_note": "通知中心：列表/已读/全部已读/未读数。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "管理与后台"
     },
     {
@@ -6625,11 +6564,13 @@
         "DELETE",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/role.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:609",
@@ -6640,7 +6581,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：角色列表/详情/权限/数据范围。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "管理与后台"
     },
     {
@@ -6649,11 +6590,13 @@
       "methods": [
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/menu.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:597"
@@ -6663,7 +6606,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：角色列表/详情/权限/数据范围。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "管理与后台"
     },
     {
@@ -6672,11 +6615,13 @@
       "methods": [
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/role.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:582"
@@ -6686,7 +6631,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：角色列表/详情/权限/数据范围。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "管理与后台"
     },
     {
@@ -10587,11 +10532,13 @@
         "DELETE",
         "PUT"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/user.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/admin_api.py:496",
@@ -10602,7 +10549,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "管理后台",
       "intent_note": "管理后台：用户列表/详情/信息。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "管理与后台"
     },
     {
@@ -12232,5 +12179,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "eb45eb3d0560fd1e"
+  "content_hash": "e8925d817b800927"
 }

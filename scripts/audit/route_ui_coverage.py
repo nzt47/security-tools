@@ -239,7 +239,34 @@ def _refs_from_files(files):
 
 #: 客户端 baseURL=/api 的相对字面量所在目录（collect_frontend_literals 只认 "/api/" 字面量）
 _API_CLIENT_DIR = "yunshu-ui/src/api"
-_RELATIVE_API_LITERAL = re.compile(r"""['"](/[A-Za-z0-9_./{}<>:$%-]+)['"]""")
+#: 【2026-10-18 扩到模板串】原先只认单/双引号，于是 `/role/${id}` 这类**模板串**
+#: 整批漏掉：/api/role/<id>、/api/user/<id>、/api/history/<index> 明明被管理后台调用，
+#: 却被记成 unreferenced（实测 4 条）。模板串里的插值按「紧跟 / 即路径段」折成 *，
+#: 与 contract_diff._fold_template 同口径。
+_RELATIVE_API_LITERAL = re.compile(r"""['"\x60](/[A-Za-z0-9_./{}<>:$%*\-]+)['"\x60]""")
+#: 模板串里的插值片段：${...}
+_RELATIVE_TMPL_SEG = re.compile(r"\$\{[^}]*\}")
+
+
+def _fold_relative_template(token: str) -> str:
+    """把模板串相对路径里的插值折成 *（紧跟 / 的算路径段；否则视为拼接后缀，截断）。
+
+    与 contract_diff._fold_template 同口径：`/role/${id}/permissions` → `/role/*/permissions`，
+    而 `/logs/list${q}` 这种「后缀拼接」只保留 `/logs/list`，绝不把查询串当路径。
+    折完仍含 `${'` 的一律丢弃（宁可漏，不猜）。
+    """
+    out = []
+    last = 0
+    for m in _RELATIVE_TMPL_SEG.finditer(token):
+        out.append(token[last:m.start()])
+        if token[:m.start()].endswith("/"):
+            out.append("*")
+        else:
+            return "".join(out)
+        last = m.end()
+    out.append(token[last:])
+    folded = "".join(out)
+    return "" if "$" + "{" in folded else folded
 
 
 def _refs_from_api_client_dir() -> dict:
@@ -261,6 +288,13 @@ def _refs_from_api_client_dir() -> dict:
             token = norm(m.group(1))
             if not token or token == "/" or token.startswith("/api/"):
                 continue
+            # baseURL 本身（`'/api'`）不是端点：拼前缀会造出 `/api/api` 幽灵
+            if token == "/api":
+                continue
+            if "$" + "{" in token:
+                token = _fold_relative_template(token)
+                if not token:
+                    continue
             # 【2026-10-18 实测】/logs/* 是同源**另一个应用**的绝对路径，不是 baseURL
             # 相对路径。拼成 /api/logs/... 会凭空造出 10 条「前端引用但无路由」的幽灵，
             # 反过来把真实的 /logs 路由登记推错位置。

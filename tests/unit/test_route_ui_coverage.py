@@ -464,6 +464,54 @@ class Test非API前缀的logs应用:
         ghosts = [k for k in extra if k.startswith("/api/logs/")]
         assert ghosts == [], "绝对路径被当成 baseURL 相对路径，会造出不存在的路由引用"
 
+    def test_src_api模板串相对路径被折成星号(self):
+        """`/role/${id}/permissions` 这类模板串此前整批漏掉（正则只认单/双引号）。
+
+        后果：/api/role/<id>、/api/user/<id>、/api/history/<index> 被管理后台真的在调，
+        却被记成 unreferenced（2026-10-18 实测 5 条）。折叠口径与
+        contract_diff._fold_template 一致：紧跟 / 的插值算路径段，否则截断。
+        """
+        from scripts.audit.route_ui_coverage import _fold_relative_template
+
+        assert _fold_relative_template("/role/$" + "{id}/permissions") == "/role/*/permissions"
+        assert _fold_relative_template("/user/$" + "{id}") == "/user/*"
+        assert _fold_relative_template("/history/list$" + "{q}") == "/history/list"
+
+    def test_src_api模板串被登记为api前缀(self):
+        m = _mod()
+        extra = m._refs_from_api_client_dir()
+        for key in ("/api/role/*", "/api/role/*/permissions", "/api/user/*", "/api/role/*/data-scope"):
+            assert key in extra, key
+
+    def test_baseURL本身不被当成端点(self):
+        m = _mod()
+        extra = m._refs_from_api_client_dir()
+        assert "/api/api" not in extra, "baseURL 字面量 '/api' 不是端点，拼前缀会造幽灵"
+
+    def test_src_api模板串相对路径被折成星号(self):
+        """模板串相对路径（/role/*/permissions 这种）此前整批漏掉（正则只认单/双引号）。
+
+        后果：/api/role/<id>、/api/user/<id>、/api/history/<index> 被管理后台真的在调，
+        却被记成 unreferenced（2026-10-18 实测 5 条）。折叠口径与
+        contract_diff._fold_template 一致：紧跟 / 的插值算路径段，否则截断。
+        """
+        from scripts.audit.route_ui_coverage import _fold_relative_template
+
+        assert _fold_relative_template("/role/$" + "{id}/permissions") == "/role/*/permissions"
+        assert _fold_relative_template("/user/$" + "{id}") == "/user/*"
+        assert _fold_relative_template("/history/list$" + "{q}") == "/history/list"
+
+    def test_src_api模板串被登记为api前缀(self):
+        m = _mod()
+        extra = m._refs_from_api_client_dir()
+        for key in ("/api/role/*", "/api/role/*/permissions", "/api/user/*", "/api/role/*/data-scope"):
+            assert key in extra, key
+
+    def test_baseURL本身不被当成端点(self):
+        m = _mod()
+        extra = m._refs_from_api_client_dir()
+        assert "/api/api" not in extra, "baseURL 字面量 '/api' 不是端点，拼前缀会造幽灵"
+
     def test_logs路由的机械分类为ui(self):
         m = _mod()
         entries = {e["norm"]: e for e in m.classify()["entries"]}
