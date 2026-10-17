@@ -20,17 +20,30 @@
 | 技能再定义（redraft） | 需要生成说明与展示名 | `agent/skills_mgmt/` |
 | 自我反思 / 案例生成 | 需要生成式评审 | `agent/evolution/` |
 
-## 2. 已排程（每天，时:分，全部在 09:00–18:00 内）
+## 2. 已排程（每天，时:分，全部在 **05:00–18:00** 内）
 
-| 时间 | 作业 key | 做什么 | 写到哪里 |
-|---|---|---|---|
-| 09:20 | `memory_review` | 记忆库审查：陈旧 / 重复 / 健康条目 + 建议（**不删除**） | 内存 + 日志 |
-| 10:20 | `knowledge_audit` | 知识库巡检：孤儿 / 断链 / index 漂移 / 过期声明 | `data/maintenance/knowledge/` |
-| 11:20 | `route_coverage_check` | 路由↔UI 覆盖产物与工作树是否一致（`--check`） | 只读 |
-| 13:30 | `capability_manifest_check` | 能力清单与权威数据是否一致（`--check`） | 只读 |
-| 17:20 | `health_snapshot` | 健康端点 + 六域拓扑节点状态计数 | 日志一行 |
+| 时间 | 作业 | 做什么 | 写到哪里 | 零 token |
+|---|---|---|---|---|
+| 05:10 | 清理旧日志 | 删 30 天前黑匣子日志 | 日志目录 | ✅ |
+| 05:20 | `memory_review` | 记忆库审查：陈旧 / 重复 / 健康条目 + 建议（**不删除**） | 内存 + 日志 | ✅ |
+| 06:20 | `knowledge_audit` | 知识库巡检：孤儿 / 断链 / index 漂移 / 过期声明 | `data/maintenance/knowledge/` | ✅ |
+| 07:20 | `route_coverage_check` | 路由↔UI 覆盖产物与工作树是否一致（`--check`） | 只读 | ✅ |
+| 08:20 | `capability_manifest_check` | 能力清单与权威数据是否一致（`--check`） | 只读 | ✅ |
+| 09:00（周一） | 生成周报 | 聚合 + 渲染周报 | `data/reports/` | ✅ |
+| 09:20 | `skills_classify` | 技能自动分类（**纯规则**，为未归类技能补类） | 分类数据 | ✅ |
+| 14:20 | `health_snapshot` | 健康端点 + 六域拓扑节点状态计数 | 日志一行 | ✅ |
+| 15:20 | 保留策略 dry-run | `Archiver.plan()`：只出清单与体积，**不删除** | 只读 | ✅ |
+| 16:20（周一） | SLO 指标周报 | 指标聚合 + 报告 | `data/` | ✅ |
 
 时刻刻意错开，避免同一分钟并发读写。
+
+**注册但默认关闭**（需要 token 或未核实，想用时在页面上点「恢复」）：
+
+| 任务 | 原因 |
+|---|---|
+| 反馈建议执行 | 疑似生成式，未核实 |
+| 周期进化 | 疑似生成式，未核实 |
+| 生命周期检查 | 未核实 |
 
 ## 3. 手工触发
 
@@ -68,12 +81,13 @@ python -m agent.maintenance.zero_token_jobs --all           # 顺序全跑
 
 排程 = 无人值守。下面这些有确定性入口，但会改数据或跨语义边界，留人工触发：
 
-| 能力 | 入口 | 为什么不排程 |
+| 能力 | 入口 | 现状 |
 |---|---|---|
-| 遗忘 / TTL 清理 | `agent/memory/forgetting.py` | 会改记忆数据，需人工确认降级与快照 |
-| 技能自动分类 | `agent/skills_mgmt/categorizer.py`（纯规则） | 会写分类，分类体系变更前不宜盲跑 |
-| 记忆 ↔ Markdown 同步 | `agent/memory/markdown_syncer.py` | 写文件，需人工看 diff |
-| 保留策略 dry-run / 正式执行 | `agent/retention/`（默认 dry-run） | 会归档/删除，必须显式确认；且从调度器侧导入 retention 会构成循环依赖 |
-| 向量重建 / 重排 | `agent/capregistry/skillsearch.py` | 要调 embedding / rerank 模型，非零成本 |
-| 周报生成 | 已有：周一 09:00 | 已在调度器里 |
-| 清理旧日志 | 已有：每天 02:00 | 在工作时段外，维持原样 |
+| 遗忘 / TTL 清理 | `agent/memory/forgetting.py` | **仍人工**：会改记忆数据（TTL 降级），需人工确认；且构造需要存储与质量源实例 |
+| 记忆 ↔ Markdown 同步 | `agent/memory/markdown_syncer.py` | **仍人工**：需要绑定的 adapter 实例，且会写文件（要看 diff） |
+| 向量重建 / 重排 | `agent/capregistry/skillsearch.py` | **仍人工**：要调 embedding / rerank 模型，非零成本 |
+| 技能自动分类 | `agent/skills_mgmt/categorizer.py`（纯规则） | **已排程** 09:20（走 `/api/skills/classify/run-auto`） |
+| 保留策略 dry-run | `agent/retention/` | **已排程** 15:20（dry-run，只出清单） |
+| 保留策略正式执行 | `agent/retention/`（需显式确认） | **仍人工**：会归档/删除 |
+| 周报生成 | 已有 cron | **已排程** 周一 09:00 |
+| 清理旧日志 | 已有 cron | **已排程** 05:10（原 02:00，已挪进窗口） |

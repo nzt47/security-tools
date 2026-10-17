@@ -31,10 +31,14 @@ class FakeScheduler:
     def __init__(self):
         self.tasks = []
 
-    def add_cron_task(self, name, func, day_of_week=None, hour=0, minute=0):
+    def add_cron_task(self, name, func, day_of_week=None, hour=0, minute=0,
+                      zero_token=None, owner=""):
+        # 2026-10-17：TaskScheduler.add_cron_task 新增 zero_token/owner（UI 标注用），
+        # 替身必须同步，否则注册期 TypeError。
         self.tasks.append({"name": name, "func": func, "task_id": f"py-{len(self.tasks)}",
                            "cron": {"day_of_week": day_of_week, "hour": hour,
-                                    "minute": minute}})
+                                    "minute": minute},
+                           "zero_token": zero_token, "owner": owner})
 
 
 class BrokenScheduler:
