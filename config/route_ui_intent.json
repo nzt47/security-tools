@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-17",
+  "updated": "2026-10-18",
   "note": "路由「该进 UI / 不该进」的人工意图标注（方案 docs/proposals/ui_information_architecture_review_20261011.md §7）。未标注 = unclassified；本文件只增判断，不改机械分类，也不放宽「未分类活体路由只允许收缩」的棘轮。 【2026-10-17 族级标注 + 前缀机制】支持「前缀族」键（/* 结尾，最长前缀优先、精确键优先，见 scripts/audit/route_ui_coverage.py::_intent_for）。本轮按用户拍板的口径 (a) 做了族级标注：对 87 个路径族逐一给出「该进 / 不该进」，把 428 条未标注收敛到仅剩 1 条（开放端点通配入口，因其归一化后为通配、无法用族键表达，保持未标注并在此说明）。族级「该进」会产生待办，待办清空不再作为硬守卫，改由 reports/route_ui_pending_backlog.json 台账承载：每个待办必须在台账里、台账里不得有已消解的陈旧项、总数不得超过台账 ceiling（只允许收缩）。 【2026-10-17 复审收紧】族级标注把业务族整族判为「该进」时，会把族内的机器/内部子路由一起带进来。本轮对 19 个精确键/子族改判「不该进」（审批控制台/链接、诊断追踪、健康探针、可观测日志推送、调度创建删除、技能评审链别名与匹配注入等），pending 相应下调；理由逐条写在各条 note。",
   "intents": {
     "/api/browser/screenshot": {
@@ -1067,6 +1067,16 @@
       "intent": "should_not_be_in_ui",
       "area": "技能中心",
       "note": "机器/内部面：Slash 命令解析器，机器链路"
+    },
+    "/logs/dashboard/data": {
+      "intent": "should_not_be_in_ui",
+      "area": "日志中心",
+      "note": "该页面的内部数据接口（/logs/dashboard 自身消费）：工作台已改为直接读 /logs/api/*，不再复用这层聚合，故不该进工作台 UI。"
+    },
+    "/api/memory/<int:index>": {
+      "intent": "should_not_be_in_ui",
+      "area": "记忆库",
+      "note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。"
     }
   }
 }

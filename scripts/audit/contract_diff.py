@@ -93,6 +93,14 @@ FRONTEND_FN_CONST = re.compile(
     r"(?::\s*[^=\n]{1,60}?)?=>\s*\x60([^\x60]*)\x60"
 )
 
+#: 非 /api 前缀的前端字面量：`/logs/...`（独立的日志仪表盘应用）。
+#  【为什么要单独一条】FRONTEND_LITERAL 锚在 "/api/" 上，于是 /logs/api/* 这类
+#  真实调用整批看不见（2026-10-18 实测：11 条 /logs 路由全被记成「未接线」）。
+#  【为什么只对 React 源码生效】legacy 侧（templates/static）另有口径与 stray 基线，
+#  把它们一起放开会动到「常量层之外还剩多少处」的收敛进度，与本条目的无关。
+#  前缀收窄到 /logs/ —— 不放开到"所有根路径"，避免把 /static、/favicon 之类算进来。
+LOGS_LITERAL = re.compile(r'''["'\x60](/logs/[A-Za-z0-9_\-./{}<>:$]*)["'\x60]''')
+
 
 def _real_route_decorator_lines(tree):
     # 返回 {行号: 方法名}，只含**真实**函数装饰器。
@@ -537,6 +545,11 @@ def collect_frontend_literals():
                         continue
                     if _call_site_re(local_name).search(stripped):
                         hits.setdefault(target, []).append(rel)
+
+            # 非 /api 前缀的 /logs 应用字面量（只对 React 源码生效，见 LOGS_LITERAL 注释）
+            if label == "react":
+                for m in LOGS_LITERAL.finditer(stripped):
+                    hits.setdefault(m.group(1), []).append(rel)
         out[label] = hits
     return out
 
