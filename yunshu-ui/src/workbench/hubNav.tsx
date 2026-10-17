@@ -16,7 +16,7 @@ import {
   Activity, FileText, Server, Monitor,
   HeartPulse, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
-  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive,
+  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive, Film,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -65,6 +65,8 @@ const BusinessBoard = lazy(() => import('@/pages/hub/governance/business'))
 const InstancesPanel = lazy(() => import('@/pages/hub/admin/instances-hub'))
 const SecurityPanel = lazy(() => import('@/pages/hub/governance/security'))
 const LocalResources = lazy(() => import('@/pages/hub/local'))
+// 2026-10-18：回放中心（5 条 /api/replay/*）—— 此前前端只有上传，没有列表/详情/清理。
+const ReplayCenter = lazy(() => import('@/pages/hub/replay'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 // 插件与扩展：原「插件管理」与「扩展中心」合并为一个导航项；2026-10-15 进一步取消 Tab，
 // 插件自带 UI 直接挂在清单卡片里（extensionHost.registerPluginModule 链路保留），
@@ -114,6 +116,7 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'components/plugins', label: '插件与扩展', icon: Puzzle, component: PluginsPage },
       { key: 'network', label: '网络配置', icon: Globe, component: NetworkPage },
       { key: 'local', label: '本地资源', icon: HardDrive, component: LocalResources },
+      { key: 'replay', label: '回放中心', icon: Film, component: ReplayCenter },
     ],
   },
   {
