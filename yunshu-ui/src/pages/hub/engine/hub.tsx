@@ -9,7 +9,7 @@
  * LEGACY_NAV_KEY_MAP 归一为 `engine`；本组件再读一次原始 hash 决定初始 Tab。
  */
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { HeartPulse, CalendarClock, History as HistoryIcon } from 'lucide-react'
+import { HeartPulse, CalendarClock, History as HistoryIcon, ListChecks } from 'lucide-react'
 
 import { Card, Loading, ErrorBox, DataTable, Badge } from '../components/ui'
 import { SCHEDULER_HISTORY } from '@/api/endpoints'
@@ -18,13 +18,15 @@ import { BOOT_PANEL } from '@/workbench/hubNav'
 
 const HeartbeatPanel = lazy(() => import('./heartbeat'))
 const SchedulerPanel = lazy(() => import('./scheduler'))
+const TaskQueuePanel = lazy(() => import('./tasks'))
 
-type Tab = 'heartbeat' | 'scheduler' | 'history'
+type Tab = 'heartbeat' | 'scheduler' | 'history' | 'tasks'
 
 const TABS: Array<{ key: Tab; label: string; icon: typeof HeartPulse }> = [
   { key: 'heartbeat', label: '心跳监测', icon: HeartPulse },
   { key: 'scheduler', label: '定时任务', icon: CalendarClock },
   { key: 'history', label: '执行历史', icon: HistoryIcon },
+  { key: 'tasks', label: '任务队列', icon: ListChecks },
 ]
 
 interface HistoryRow {
@@ -147,6 +149,10 @@ export default function EngineHub() {
             </Card>
           )}
         </div>
+      ) : tab === 'tasks' ? (
+        <Suspense fallback={<Loading />}>
+          <TaskQueuePanel />
+        </Suspense>
       ) : (
         <Suspense fallback={<Loading />}>
           {tab === 'heartbeat' ? <HeartbeatPanel /> : <SchedulerPanel />}

@@ -421,6 +421,35 @@ export const searchInstanceTest = (id: string) => `/api/search/instances/${encod
 export const AGENT_LINES_PLANES = '/api/agent-lines/planes';
 export const TOOLS_CONFIG = '/api/tools/config';
 export const TOOLS_TOGGLE = '/api/tools/toggle';
+// 工具治理（分类 / 健康 / 路由关键词 / 启用总览）
+export const TOOLS_CATEGORIES = '/api/tools/categories';
+export const TOOLS_HEALTH = '/api/tools/health';
+export const TOOLS_KEYWORDS = '/api/tools/keywords';
+export const TOOLS_KEYWORDS_UPDATE = '/api/tools/keywords/update';
+export const TOOLS_KEYWORDS_RESET = '/api/tools/keywords/reset';
+export const TOOLS_STATUS_BATCH = '/api/tools/status-batch';
+
+// 搜索性能监控
+export const SEARCH_PERF_STATUS = '/api/search-performance/status';
+export const SEARCH_PERF_SUMMARY = '/api/search-performance/summary';
+export const SEARCH_PERF_HISTORY = '/api/search-performance/history';
+export const SEARCH_PERF_CHECK = '/api/search-performance/check';
+export const SEARCH_PERF_START = '/api/search-performance/start';
+export const SEARCH_PERF_STOP = '/api/search-performance/stop';
+
+// 系统提示词（模板读写 / 重置 / 同步状态）
+export const SYSTEM_PROMPT = '/api/system-prompt';
+export const SYSTEM_PROMPT_RESET = '/api/system-prompt/reset';
+export const SYSTEM_PROMPT_SYNC_STATUS = '/api/system-prompt/sync-status';
+
+// 后台任务与异步任务（引擎 · 任务队列）
+export const BACKGROUND_TASKS = '/api/background/tasks';
+export const backgroundTask = (id: string) => `/api/background/tasks/${encodeURIComponent(id)}`;
+export const backgroundTaskCancel = (id: string) => `/api/background/tasks/${encodeURIComponent(id)}/cancel`;
+export const backgroundTaskResult = (id: string) => `/api/background/tasks/${encodeURIComponent(id)}/result`;
+export const ASYNC_TASKS = '/api/tasks';
+export const asyncTask = (id: string) => `/api/tasks/${encodeURIComponent(id)}`;
+export const asyncTaskCancel = (id: string) => `/api/tasks/${encodeURIComponent(id)}/cancel`;
 
 // ===============================================================
 //  回放 / 子智能体（/api/replay、/api/subagent）

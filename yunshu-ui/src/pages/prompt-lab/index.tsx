@@ -18,7 +18,7 @@
  * CustomFactorForm / PreviewPanel / IdentityPromptPanel / LlmMonitorPanel。
  */
 import { useEffect, useMemo, useState } from 'react';
-import { FlaskConical, Plus, Radio, RotateCcw, Smile } from 'lucide-react';
+import { FileCode2, FlaskConical, Plus, Radio, RotateCcw, Smile } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
 import { downloadFile } from '../../utils/system';
 import {
@@ -41,6 +41,9 @@ import CustomFactorForm from './CustomFactorForm';
 import PreviewPanel, { type PreviewMode } from './PreviewPanel';
 import IdentityPromptPanel, { toIdentityPromptPanelProps } from './IdentityPromptPanel';
 import LlmMonitorPanel from './LlmMonitorPanel';
+// 2026-10-18：系统提示词模板（3 条 /api/system-prompt*）并入本页 Tab ——
+// 它与"影响因素/人格"同属"模型侧配置"，此前只有后端与手改文件。
+import SystemPromptPanel from './SystemPromptPanel';
 // 人格配置（原「人格与提示词 → 人格配置」独立页）并入本页第 3 个 Tab（阶段 1.1）
 import PersonalityPage from '../hub/personality';
 import { useIdentityPrompt } from './identityPrompt';
@@ -49,7 +52,7 @@ import '../PromptLab.css';
 type Filter = 'all' | FactorCategory;
 
 /** 主内容区模块 Tab（并列展示）：影响因素实验室 / LLM 通信监控 / 人格 */
-type LabTab = 'factors' | 'llm-monitor' | 'personality';
+type LabTab = 'factors' | 'llm-monitor' | 'personality' | 'system-prompt';
 
 const LAB_TABS: { id: LabTab; label: string; icon: typeof FlaskConical; hint: string }[] = [
   { id: 'factors', label: '提示词影响因素实验室', icon: FlaskConical, hint: '5 类影响因素调节 + 身份提示词线上配置 + 实时预览' },
@@ -57,6 +60,7 @@ const LAB_TABS: { id: LabTab; label: string; icon: typeof FlaskConical; hint: st
   // 阶段 1.1：原「人格与提示词 → 人格配置」独立页并入本页 Tab。
   // 语义：人格是"它是谁"（画像），因素实验室是"它怎么答"（行为），同属"模型侧配置"。
   { id: 'personality', label: '人格', icon: Smile, hint: '云枢的语气体征（语气/情感/简练/主动/幽默/同理心）+ 预设人格' },
+  { id: 'system-prompt', label: '系统提示词', icon: FileCode2, hint: '系统提示词模板：占位符、预览、保存与重置（写错占位符会被后端拒绝）' },
 ];
 
 /** 记住上次所在 Tab（会话级偏好，刷新不跳回） */
@@ -299,6 +303,10 @@ export default function PromptLab() {
         /* LLM 通信监控：主内容区整屏（原页面底部并入 → 提为主 Tab） */
         <div className="pl-tab-body">
           <LlmMonitorPanel />
+        </div>
+      ) : tab === 'system-prompt' ? (
+        <div className="pl-tab-body">
+          <SystemPromptPanel />
         </div>
       ) : (
         /* 人格：原「人格与提示词 → 人格配置」独立页并入（阶段 1.1） */
