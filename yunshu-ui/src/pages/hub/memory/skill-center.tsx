@@ -14,6 +14,7 @@ import { Hammer, PenTool, Sparkles, Wrench, Workflow } from 'lucide-react'
 import { MemorySkillsTable } from './skills'
 import { MemoryWorkflowTable } from './workflow'
 import MemoryWorkflowVisual from './workflow-visual'
+import ConvertibleWorkflows from './ConvertibleWorkflows'
 import SkillAssessManager from './skill-assess-manager'
 import SkillMaintenance from './skill-maintenance'
 
@@ -109,6 +110,10 @@ export default function SkillCenter() {
               </button>
             </div>
             <MemoryWorkflowTable />
+            {/* 2026-10-18：可转换工作流（GET /api/workflow-learning/convertible）。
+                原来挂在 workflow.tsx 的默认页组件上 —— 那个组件**没人路由**（本页只取
+                MemoryWorkflowTable 具名导出），等于把功能装进一扇不存在的门。 */}
+            <ConvertibleWorkflows />
           </div>
         )}
 

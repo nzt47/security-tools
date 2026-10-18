@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const api = vi.hoisted(() => ({ hubPost: vi.fn() }))
-vi.mock('../components/ui', async (importOriginal) => ({
+vi.mock('../../pages/hub/components/ui', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   hubPost: api.hubPost,
 }))
