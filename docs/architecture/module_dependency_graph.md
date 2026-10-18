@@ -1011,6 +1011,7 @@ flowchart LR
     agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
     agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
     agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
+    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
     agent_extensions_store --> agent_extensions_base
     agent_extensions_store -.-> agent_logging_utils
     agent_feedback --> agent_logging_utils
@@ -2657,7 +2658,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 661
 - 模块节点数: 590
-- 依赖边数: 1943
-- 跨层调用数: 1217
+- 依赖边数: 1944
+- 跨层调用数: 1218
 - 违规调用数: 0
 - 动态 import 数: 1

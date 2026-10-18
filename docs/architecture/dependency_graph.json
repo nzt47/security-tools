@@ -958,7 +958,7 @@
       "name": "registry",
       "layer": "skills_mgmt",
       "file_path": "",
-      "in_degree": 11,
+      "in_degree": 12,
       "out_degree": 3
     },
     {
@@ -1231,7 +1231,7 @@
       "layer": "extensions",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 10
+      "out_degree": 11
     },
     {
       "path": "agent.extensions.mcp_installer",
@@ -8708,6 +8708,19 @@
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
       "line": 272,
+      "source_file": "agent/extensions/skills_installer.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.extensions.skills_installer",
+      "target": "agent.skills_mgmt.registry",
+      "source_layer": "extensions",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 460,
       "source_file": "agent/extensions/skills_installer.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -29986,8 +29999,8 @@
   "stats": {
     "total_files": 661,
     "total_nodes": 590,
-    "total_edges": 1943,
-    "cross_layer_edges": 1217,
+    "total_edges": 1944,
+    "cross_layer_edges": 1218,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
