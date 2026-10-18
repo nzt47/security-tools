@@ -267,6 +267,8 @@ class AlertManager:
         # 发送通知
         if new_state == AlertState.FIRING:
             self._send_alert_notification(alert)
+            # 【2026-10-19】扩展通道接线：告警触发 → 已装通道（消息中心里的 webhook/SMTP…）
+            self._dispatch_to_extension_channels(alert, "firing")
 
             # 触发自愈检查
             self._check_heal_action(alert)
@@ -274,6 +276,8 @@ class AlertManager:
         elif new_state == AlertState.INACTIVE and previous_state == AlertState.FIRING:
             # 告警恢复
             self._send_recovery_notification(alert)
+            # 恢复事件同样出站：只有"触发"没有"恢复"，外部通道上会留下永远开着的红点
+            self._dispatch_to_extension_channels(alert, "resolved")
 
         # 调用外部回调
         if self._on_alert_callback:
@@ -282,13 +286,44 @@ class AlertManager:
             except Exception as e:
                 logger.error(f"[AlertManager] 告警回调失败: {e}")
 
+    def _dispatch_to_extension_channels(self, alert: Alert, transition: str):
+        """把告警状态变化接到「扩展通道」（技能中心之外的另一条发送链路）
+
+        【为什么放在 AlertManager】它是告警状态变化的**唯一汇合点**
+        （`_evaluator.set_on_state_change(self._on_evaluator_state_change)`），
+        在这里接线才能覆盖"规则触发"与"自愈后恢复"两条路径。
+
+        【为什么整段 try/except】通道是外部 I/O（webhook/SMTP），
+        失败绝不能反过来影响告警判定、通知与自愈 —— 接线层的价值是"多一条路"，
+        不是"把主链路绑在外网上"。桥接层内部另有冷却、脱敏与重试。
+        """
+        try:
+            from agent.extensions.channel_bridge import dispatch_alert
+            result = dispatch_alert(alert, transition)
+            if result.get("failed"):
+                logger.warning(log_dict({
+                    'module_name': 'alert_manager',
+                    'action': 'extension_channel_dispatch_partial',
+                    'alert': getattr(alert, 'name', ''),
+                    'transition': transition,
+                    'failed': result.get('failed'),
+                }))
+        except Exception as e:  # noqa: BLE001 通道故障不得影响告警主流程
+            logger.warning(log_dict({
+                'module_name': 'alert_manager',
+                'action': 'extension_channel_dispatch_error',
+                'alert': getattr(alert, 'name', ''),
+                'transition': transition,
+                'error': f'{type(e).__name__}: {e}',
+            }))
+
     def _on_alert_state_change(
         self,
         alert: Alert,
         previous_state: AlertState,
         new_state: AlertState
     ):
-        """告警状态变化处理"""
+        """告警状态变化处理（保留空实现：历史回调位，接线改走 _dispatch_to_extension_channels）"""
         pass
 
     def _on_heal_executed(self, record):

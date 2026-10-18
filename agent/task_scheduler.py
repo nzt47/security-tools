@@ -493,11 +493,52 @@ class TaskScheduler:
             _enter_scheduled_execution_identity()
             if str(trigger) == "schedule" else None
         )
+        result = None
         try:
-            return self._run_task_body(task)
+            result = self._run_task_body(task)
         finally:
             _exit_scheduled_session_source(_source_handle)
             _exit_scheduled_execution_identity(_ident_handle)
+        # 【2026-10-19】任务完成/失败 → 扩展通道（消息中心里装的 webhook/SMTP…）
+        # 放 finally 之后：先还原会话来源/身份，再出站，避免把"发送"算进任务执行期。
+        self._dispatch_task_event(task, result)
+        return result
+
+    def _dispatch_task_event(self, task: Dict[str, Any], result: Optional[Dict[str, Any]]) -> None:
+        """把任务执行结果接到扩展通道（**默认只在失败时发**）
+
+        【为什么默认只发失败】心跳类任务每 30s 一次、零 token 作业每小时一次 ——
+        成功也发会把通道变成日志倾倒口，运维第一件事就是静音它。
+        需要"每次都发"的任务在自身配置里写 `notify_on_complete: true`。
+        【失败为什么不发全量 error】**桥接层**负责脱敏与截断；这里只传 task_id 与
+        `_tail(error, 160)`，不传 output（可能含路径/内容）。
+        """
+        try:
+            if not isinstance(result, dict):
+                return
+            ok = result.get("status") == "success"
+            if ok and not task.get("notify_on_complete"):
+                return
+            from agent.extensions.channel_bridge import dispatch_event
+            task_id = str(task.get("task_id") or task.get("name") or "")
+            dispatch_event(
+                "task.completed" if ok else "task.failed",
+                f"{task.get('name', '')} {result.get('status', '')}",
+                severity="info" if ok else "warning",
+                fields={
+                    "task": task_id,
+                    "duration_ms": result.get("duration_ms", 0),
+                    "error": str(result.get("error") or "")[:160],
+                },
+                dedup_key=task_id,
+            )
+        except Exception as e:  # noqa: BLE001 通道故障不得影响调度主循环
+            logger.warning(log_dict({
+                'module_name': 'task_scheduler',
+                'action': 'extension_channel_dispatch_error',
+                'task': task.get('name', '') if isinstance(task, dict) else '',
+                'error': f'{type(e).__name__}: {e}',
+            }))
 
     def _run_task_body(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """任务体（原 ``run_task`` 实现逐字未改；执行期的会话来源由 ``run_task`` 包裹）"""
