@@ -21,12 +21,11 @@ schema:
       type: string
       enum:
       - skill
-      - claude_skill
       - mcp
       - channel
       - plugin
       - auto
-      description: 扩展类型：skill=应用层技能, claude_skill=Claude Code技能, mcp=MCP服务, channel=通信通道, plugin=插件, auto=按 tool_id/source 从内置注册表自动判别类型安装
+      description: 扩展类型：skill=应用层技能, mcp=MCP服务, channel=通信通道, plugin=插件, auto=按 tool_id/source 从内置注册表自动判别类型安装
     source:
       type: string
       description: 扩展来源。格式：内置ID(如 self_reflection / filesystem)，github:user/repo，url:https://...，local:/path，npm:package，pip:package；type=auto 且未给 tool_id 时此值即为待安装的工具/扩展ID

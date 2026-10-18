@@ -1,21 +1,21 @@
-"""技能安装器 — 管理应用层技能和 Claude Code 技能
+"""技能安装器 — 管理应用层技能
 
-应用层技能：存储在 data/skills.json 中，由 SkillsManager 管理
-Claude Code 技能：存储在 .claude/skills/ 中，是独立的技能包
+应用层技能的**数据主轨**是技能注册表（SkillRegistry：主轨 JSON + 文件轨 skill.md）。
 
 支持：
   - 从内置注册表安装技能
-  - 从 GitHub 安装自定义技能
-  - 从本地目录安装技能
+  - 从 GitHub / 本地目录安装自定义技能
   - 启用/禁用/配置技能
-  - 发现 Claude Code 技能
+  - 发现可用技能（含内置注册表 + 注册表当前启用态）
+
+【2026-10-18】原「Claude Code 技能」三分支（list/install/uninstall_claude_skill）
+已删除：它只把包拷进 ~/.claude/skills/ 并登记一条扩展记录，云枢自身从不读该目录。
+外部 Claude 技能包改走 技能中心 · 维护 →「从 .claude/skills 导入」
+（POST /api/skills-mgmt/import/claude → agent/skills_mgmt/claude_import.py）。
 """
 
-import json
 import uuid
 import logging
-import os
-import shutil
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
@@ -36,9 +36,6 @@ def _trace_id():
 
 # 应用层技能配置文件（统一使用根目录 data/skills.json 作为唯一数据源）
 _SKILLS_FILE = Path(__file__).parents[2] / "data" / "skills.json"
-
-# Claude Code 技能目录
-_CLAUDE_SKILLS_DIR = Path.home() / ".claude" / "skills"
 
 
 class SkillsInstaller:
@@ -280,163 +277,6 @@ class SkillsInstaller:
         except Exception as e:  # noqa: BLE001
             return False, f"更新失败: {e}"
 
-    # ── Claude Code 技能管理 ──
-
-    def list_claude_skills(self) -> List[Dict]:
-        """列出磁盘上所有 Claude Code 技能文件（不等于已注册为扩展）"""
-        skills_dir = Path(_CLAUDE_SKILLS_DIR)
-        if not skills_dir.exists():
-            return []
-
-        # 获取已在扩展商店中注册的 Claude 技能 ID
-        registered_ids = set()
-        try:
-            for m in self._store.list_all(ExtensionType.CLAUDE_SKILL):
-                registered_ids.add(m.ext_id)
-        except Exception:
-            pass
-
-        result = []
-        for item in skills_dir.iterdir():
-            if item.is_dir() or item.is_symlink():
-                skill_info = self._read_claude_skill_info(item)
-                if skill_info:
-                    skill_info["registered"] = skill_info["id"] in registered_ids
-                    result.append(skill_info)
-
-        return result
-
-    def _read_claude_skill_info(self, skill_path: Path) -> Optional[Dict]:
-        """读取 Claude Code 技能信息"""
-        info = {
-            "id": skill_path.name,
-            "name": skill_path.name,
-            "path": str(skill_path),
-            "description": "",
-            "type": "claude_skill",
-        }
-
-        # 尝试从 README.md 获取描述
-        readme = skill_path / "README.md"
-        if readme.exists():
-            try:
-                import re
-                content = readme.read_text(encoding="utf-8", errors="replace")
-                # 取第一段作为描述
-                match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
-                if match:
-                    info["name"] = match.group(1).strip()
-                # 取第一段非标题文本
-                paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
-                for p in paragraphs:
-                    if not p.startswith("#"):
-                        info["description"] = p[:200]
-                        break
-            except Exception:
-                pass
-
-        # 尝试从 frontmatter 获取
-        meta_file = skill_path / "meta.json"  # Claude Code skills 没有固定标准
-        if meta_file.exists():
-            try:
-                meta = json.loads(meta_file.read_text())
-                info.update(meta)
-            except Exception:
-                pass
-
-        return info
-
-    def install_claude_skill(self, source: str, skill_name: str = None) -> Tuple[bool, str]:
-        """安装 Claude Code 技能
-
-        source 格式: github:user/repo, url:https://..., local:/path
-        skill_name: 可选，指定技能目录名（默认从 source 推断）
-
-        如果技能文件已存在于磁盘上，自动注册到扩展商店。
-        """
-        logger.info(log_dict({'module_name': 'skills_installer', 'action': 'claude.code.source', 'msg': f'[技能安装器] 安装 Claude Code 技能: source={source}, name={skill_name}'}))
-
-        ext_type, location, subpath = self._engine.parse_source(source)
-        skills_dir = _CLAUDE_SKILLS_DIR
-        skills_dir.mkdir(parents=True, exist_ok=True)
-
-        # 确定目标目录名
-        target_name = skill_name or location.split("/")[-1].replace(".git", "")
-        target_dir = skills_dir / target_name
-
-        # 如果目录已存在，直接注册到商店（视为已安装）
-        if target_dir.exists():
-            # 检查是否已在商店中注册
-            existing = self._store.get(ExtensionType.CLAUDE_SKILL, target_name)
-            if existing:
-                return True, f"Claude Code 技能已安装: {target_name}"
-
-            # 目录存在但未注册 → 注册到商店
-            skill_info = self._read_claude_skill_info(target_dir)
-            meta = ExtensionMetadata(
-                ext_id=target_name,
-                ext_type=ExtensionType.CLAUDE_SKILL,
-                name=skill_info.get("name", target_name),
-                description=skill_info.get("description", ""),
-                source=source,
-                source_url=source,
-                install_path=str(target_dir),
-                status=ExtensionStatus.INSTALLED,
-            )
-            meta.touch()
-            meta.installed_at = meta.created_at
-            self._store.add(meta)
-            logger.info(log_dict({'module_name': 'skills_installer', 'action': 'claude.code.target_name', 'msg': f'[技能安装器] 已注册本地 Claude Code 技能: {target_name}'}))
-            return True, f"已注册 Claude Code 技能: {target_name}（文件已存在）"
-
-        success = False
-        if ext_type == "github":
-            success = self._engine.download_from_github(location, subpath, target_dir)
-        elif ext_type == "url":
-            success = self._engine.download_from_url(location, target_dir)
-        elif ext_type == "local":
-            success = self._engine.copy_from_local(location, target_dir)
-
-        if not success:
-            return False, f"安装失败: 无法从 {source} 获取技能包"
-
-        # 检查是否包含技能文件
-        if not list(target_dir.iterdir()):
-            shutil.rmtree(target_dir, ignore_errors=True)
-            return False, "安装失败: 技能包为空"
-
-        skill_info = self._read_claude_skill_info(target_dir)
-
-        # 记录到扩展存储
-        meta = ExtensionMetadata(
-            ext_id=target_name,
-            ext_type=ExtensionType.CLAUDE_SKILL,
-            name=skill_info.get("name", target_name),
-            description=skill_info.get("description", ""),
-            source=source,
-            source_url=source,
-            install_path=str(target_dir),
-            status=ExtensionStatus.INSTALLED,
-        )
-        meta.touch()
-        meta.installed_at = meta.created_at
-        self._store.add(meta)
-
-        logger.info(log_dict({'module_name': 'skills_installer', 'action': 'claude.code.target_name', 'msg': f'[技能安装器] Claude Code 技能安装完成: {target_name}'}))
-        return True, f"已安装 Claude Code 技能: {target_name}"
-
-    def uninstall_claude_skill(self, skill_name: str) -> Tuple[bool, str]:
-        """卸载 Claude Code 技能"""
-        target_dir = _CLAUDE_SKILLS_DIR / skill_name
-        if not target_dir.exists():
-            return False, f"技能不存在: {skill_name}"
-
-        shutil.rmtree(target_dir, ignore_errors=True)
-        self._store.remove(ExtensionType.CLAUDE_SKILL, skill_name)
-
-        logger.info(log_dict({'module_name': 'skills_installer', 'action': 'claude.code.skill_name', 'msg': f'[技能安装器] 已卸载 Claude Code 技能: {skill_name}'}))
-        return True, f"已卸载 Claude Code 技能: {skill_name}"
-
     # ── 发现 ──
 
     def discover_available_skills(self) -> Dict[str, List[Dict]]:
@@ -481,5 +321,4 @@ class SkillsInstaller:
         return {
             "builtin_skills": available,
             "installed_skills": installed,
-            "claude_skills": self.list_claude_skills(),
         }

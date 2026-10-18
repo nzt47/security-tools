@@ -37,7 +37,7 @@ function baseGets() {
       }
     }
     if (url === '/api/extensions/installed') {
-      return { ok: true, skills: [1, 2], plugins: [], channels: [], mcp_services: [], claude_skills: [1] }
+      return { ok: true, skills: [1, 2], plugins: [], channels: [], mcp_services: [] }
     }
     if (url === '/api/extensions/discover') {
       return {
@@ -86,7 +86,7 @@ describe('ExtensionsMarket', () => {
     // 但扩展存储可能没有安装记录 ⇒ 旧 UI 会显示"安装"。启用态改为读后端 enabled 字段。
     api.hubGet.mockImplementation(async (url: string) => {
       if (url === '/api/extensions/list') return { ok: true, extensions: [] }
-      if (url === '/api/extensions/installed') return { ok: true, skills: [], plugins: [], channels: [], mcp_services: [], claude_skills: [] }
+      if (url === '/api/extensions/installed') return { ok: true, skills: [], plugins: [], channels: [], mcp_services: [] }
       if (url === '/api/extensions/discover') {
         return {
           ok: true,
@@ -184,5 +184,17 @@ describe('ExtensionsMarket', () => {
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/extensions/channels/send', {
       channel_id: 'webhook', message: 'hello',
     }))
+  })
+
+  it('不再有「Claude 技能」类型：改成指路技能中心的导入入口（不能只删组）', async () => {
+    baseGets()
+    render(<ExtensionsMarket />)
+    await screen.findByText('self_reflection')
+
+    // 类型下拉/统计卡里都不该再出现"Claude 技能"
+    expect(screen.queryByText('Claude 技能')).toBeNull()
+    expect(screen.queryByRole('option', { name: 'Claude 技能' })).toBeNull()
+    // 替代入口必须可发现：指到 技能中心 → 维护 → 从 .claude/skills 导入
+    expect(screen.getByText(/技能中心 → 维护 →「从 \.claude\/skills 导入」/)).toBeTruthy()
   })
 })

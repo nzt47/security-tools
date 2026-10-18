@@ -21,7 +21,6 @@ schema:
       type: string
       enum:
       - skill
-      - claude_skill
       - mcp
       - channel
       - plugin

@@ -75,10 +75,9 @@ interface MarketRow {
   recommended?: boolean
 }
 
-const TYPES = ['skill', 'claude_skill', 'mcp', 'channel', 'plugin'] as const
+const TYPES = ['skill', 'mcp', 'channel', 'plugin'] as const
 const TYPE_LABEL: Record<string, string> = {
   skill: '技能',
-  claude_skill: 'Claude 技能',
   mcp: 'MCP 服务',
   channel: '通道',
   plugin: '插件包',
@@ -123,8 +122,8 @@ export default function ExtensionsMarket() {
       const r = await hubGet<Record<string, unknown>>(EXTENSIONS_INSTALLED)
       if ((r as { ok?: boolean })?.ok === false) { bad('读取扩展分类统计失败', r as { error?: string }); return }
       const next: Record<string, number> = {}
-      for (const key of ['skills', 'plugins', 'channels', 'mcp_services', 'claude_skills',
-        'store_skills', 'store_plugins', 'store_channels', 'store_mcp', 'store_claude_skills']) {
+      for (const key of ['skills', 'plugins', 'channels', 'mcp_services',
+        'store_skills', 'store_plugins', 'store_channels', 'store_mcp']) {
         const v = r?.[key]
         next[key] = Array.isArray(v) ? v.length : 0
       }
@@ -267,7 +266,7 @@ export default function ExtensionsMarket() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold text-slate-100">扩展市场</h2>
         <span className="text-[11px] text-slate-500">
-          技能 / Claude 技能 / MCP 服务 / 通道 / 插件包 —— 内置包与社区索引都在这里装
+          技能 / MCP 服务 / 通道 / 插件包 —— 内置包与社区索引都在这里装
         </span>
         <div className="ml-auto flex items-center gap-1.5">
           <button type="button" className={BTN} onClick={() => { void loadList(); void loadInstalled(); void loadDiscover(); void loadRecommend() }} disabled={loading} aria-label="刷新扩展概览">
@@ -286,11 +285,18 @@ export default function ExtensionsMarket() {
         </div>
       )}
 
+      {/* 【2026-10-18】Claude 技能包不再单独占一个扩展类型：它只有 SKILL.md、没有
+          manifest.json，装进 ~/.claude/skills 后云枢自身从不读 ⇒ 装了等于没装。
+          替代入口在技能中心（维护 Tab），这里只留一句指路，避免用户以为"没地方装"。 */}
+      <div className="mb-3 rounded-md border border-slate-800 bg-slate-900/40 px-2.5 py-1.5 text-[10px] text-slate-500">
+        Claude 技能包（只有 SKILL.md、没有 manifest.json）不在这里装：请到 <span className="text-cyan-400">技能中心 → 维护 →「从 .claude/skills 导入」</span>，
+        由服务端生成 manifest.json 后落进技能仓库。
+      </div>
+
       {/* ── 分类统计 ── */}
-      <div className="mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+      <div className="mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
           ['技能', counts.skills],
-          ['Claude 技能', counts.claude_skills],
           ['MCP 服务', counts.mcp_services],
           ['通道', counts.channels],
           ['插件包', counts.plugins],

@@ -141,7 +141,6 @@ class ExtensionMarket:
         """
         topic_map = {
             "skill": "yunshu-skill",
-            "claude_skill": "claude-code-skill",
             "mcp": "yunshu-mcp",
             "channel": "yunshu-channel",
             "plugin": "yunshu-plugin",

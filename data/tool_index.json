@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-14T00:04:53",
+  "generated_at": "2026-10-18T22:49:49",
   "tool_count": 90,
   "categories": [
     "async",
@@ -375,7 +375,7 @@
     {
       "name": "ext_discover",
       "category": "extension",
-      "description": "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。type 为扩展类型（含 tool 与 claude_skill/channel）；命中市场时同时返回扁平 results（每项带 _market_source）与内置/社区/GitHub 嵌套字段。",
+      "description": "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。type 为扩展类型（含 tool 与 channel）；命中市场时同时返回扁平 results（每项带 _market_source）与内置/社区/GitHub 嵌套字段。",
       "version": "1.0.0",
       "deprecated": false,
       "parameter_names": [

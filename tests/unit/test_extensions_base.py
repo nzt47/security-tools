@@ -16,10 +16,20 @@ class TestExtensionType:
     def test_extension_type_values(self):
         """测试扩展类型值"""
         assert ExtensionType.SKILL.value == "skill"
-        assert ExtensionType.CLAUDE_SKILL.value == "claude_skill"
         assert ExtensionType.MCP.value == "mcp"
         assert ExtensionType.CHANNEL.value == "channel"
         assert ExtensionType.PLUGIN.value == "plugin"
+
+    def test_claude_skill_type_removed(self):
+        """[2026-10-18] claude_skill 扩展类型已取消
+
+        【为什么删】旧类型只是把包拷进 ~/.claude/skills/ 再登记一条扩展记录，
+        云枢自身从不读该目录；替代方案是技能中心的「从 .claude/skills 导入」
+        （agent/skills_mgmt/claude_import.py）。回归点：枚举与内置注册表都不得
+        再出现这个类型，否则市场会重新长出"能装但装了没用"的第三个入口。
+        """
+        assert "claude_skill" not in {t.value for t in ExtensionType}
+        assert "claude_skill" not in BUILTIN_EXTENSIONS
 
 
 class TestExtensionStatus:

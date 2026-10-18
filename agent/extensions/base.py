@@ -20,7 +20,6 @@ def _trace_id():
 class ExtensionType(str, enum.Enum):
     """扩展类型枚举"""
     SKILL = "skill"              # 应用层技能（SkillsManager）
-    CLAUDE_SKILL = "claude_skill"  # Claude Code 技能
     MCP = "mcp"                  # MCP 服务
     CHANNEL = "channel"          # 通信通道
     PLUGIN = "plugin"            # 通用插件
@@ -139,10 +138,6 @@ BUILTIN_EXTENSIONS: Dict[str, List[Dict[str, Any]]] = {
             "description": "通过语音与用户进行交互",
             "builtin": True,
         },
-    ],
-    "claude_skill": [
-        # Claude Code 技能 — 来自 .claude/skills/ 的技能
-        # 这些由云枢通过 GitHub 或文件系统发现
     ],
     "mcp": [
         # 内置 MCP 服务模板

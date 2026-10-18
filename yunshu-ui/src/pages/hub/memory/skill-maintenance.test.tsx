@@ -167,4 +167,69 @@ describe('SkillMaintenance', () => {
     expect((init.body as FormData).get('file')).toBeTruthy()
     expect(await screen.findByText(/已安装：s9/)).toBeTruthy()
   })
+
+  it('Claude 导入：先扫描（只读 GET），再按需导入（POST）', async () => {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt/three-layer/summary') return { ok: true, summary: {} }
+      if (url === '/api/skills-mgmt/cleanup/report') return { ok: true, total_skills: 0, orphans: [], unused: [] }
+      if (url === '/api/skills-mgmt/import/claude') {
+        return {
+          ok: true, base_dir: 'C:/Users/x/.claude/skills', total: 2, ready: 1,
+          items: [
+            { id: 'pdf-toolkit', name: 'PDF Toolkit', description: 'read pdf', ready: true },
+            { id: 'bad', dir_name: '!!!', ready: false, error: '目录名无法转换为合法技能 ID（kebab_case）' },
+          ],
+        }
+      }
+      return { ok: true }
+    })
+    api.hubPost.mockResolvedValue({ ok: true, total: 1, imported: [{ id: 'pdf-toolkit' }], failed: [] })
+    render(<SkillMaintenance />)
+    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
+
+    // 没扫描前没有候选 ⇒ 不允许"全部导入"（空列表点一下毫无意义）
+    const allBtn = screen.getByRole('button', { name: '导入全部 Claude 技能' }) as HTMLButtonElement
+    expect(allBtn.disabled).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: '扫描 .claude/skills' }))
+    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/import/claude'))
+    expect(await screen.findByText('pdf-toolkit')).toBeTruthy()
+    // 不可导入的候选要显示原因，而不是静默消失
+    expect(screen.getByText(/kebab_case/)).toBeTruthy()
+    expect((screen.getByRole('button', { name: '导入 Claude 技能 bad' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: '导入全部 Claude 技能' }) as HTMLButtonElement).disabled).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: '导入 Claude 技能 pdf-toolkit' }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/import/claude', {
+      ids: ['pdf-toolkit'],
+    }))
+    expect(await screen.findByText(/已落库：pdf-toolkit/)).toBeTruthy()
+  })
+
+  it('Claude 导入：部分失败要逐条列出，不能当全绿', async () => {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt/three-layer/summary') return { ok: true, summary: {} }
+      if (url === '/api/skills-mgmt/cleanup/report') return { ok: true, total_skills: 0, orphans: [], unused: [] }
+      if (url === '/api/skills-mgmt/import/claude') {
+        return { ok: true, total: 1, ready: 1, items: [{ id: 'boom', name: 'Boom', ready: true }] }
+      }
+      return { ok: true }
+    })
+    api.hubPost.mockResolvedValue({
+      ok: false,
+      imported: [{ id: 'ok-skill' }],
+      failed: [{ id: 'boom', error: 'RuntimeError: 磁盘满了' }],
+    })
+    render(<SkillMaintenance />)
+    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
+
+    fireEvent.click(screen.getByRole('button', { name: '扫描 .claude/skills' }))
+    await screen.findByText('boom')
+    fireEvent.click(screen.getByRole('button', { name: '导入全部 Claude 技能' }))
+
+    // 全量导入不带 ids（后端按全部可导入候选处理）
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/import/claude', {}))
+    expect(await screen.findByText(/boom：RuntimeError/)).toBeTruthy()
+    expect(screen.getByText(/已落库：ok-skill/)).toBeTruthy()
+  })
 })

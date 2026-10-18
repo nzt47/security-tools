@@ -409,7 +409,7 @@ class DigitalLifePersonaMixin:
                 from agent.extensions.store import ExtensionStore
                 from agent.extensions.base import ExtensionType
                 ext_store = ExtensionStore()
-                for ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+                for ext_type in (ExtensionType.SKILL,):
                     for ext in ext_store.list_all(ext_type):
                         eid = ext.get("ext_id", "")
                         if eid and eid not in all_skills:

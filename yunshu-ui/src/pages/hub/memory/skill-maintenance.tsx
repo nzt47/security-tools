@@ -8,6 +8,8 @@
  *   auto-merge          (POST)  自动合并高相似对（Jaccard ≥ 阈值）
  *   merge               (POST)  合并指定两个技能（可回滚，走备份）
  *   upload              (POST)  上传 zip 技能包（multipart）
+ *   import/claude       (GET)   扫描 ~/.claude/skills（只读预览）
+ *   import/claude       (POST)  Claude 技能包 → manifest.json + skill.md → 落库
  *   abstract-from-memory(POST)  从记忆里抽象新技能草稿
  *
  * 【为什么删除类动作默认 dry_run，且真删要点两下】
@@ -18,14 +20,15 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  AlertTriangle, Boxes, CheckCircle2, FileUp, Loader2, RefreshCw, Sparkles,
-  Trash2, Wand2,
+  AlertTriangle, Boxes, CheckCircle2, Download, FileUp, Loader2, RefreshCw,
+  Sparkles, Trash2, Wand2,
 } from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import {
   SKILLS_MGMT_ABSTRACT_FROM_MEMORY,
   SKILLS_MGMT_AUTO_MERGE,
+  SKILLS_MGMT_IMPORT_CLAUDE,
   SKILLS_MGMT_CLEANUP_ORPHANS,
   SKILLS_MGMT_CLEANUP_REPORT,
   SKILLS_MGMT_CLEANUP_UNUSED,
@@ -98,6 +101,35 @@ interface AbstractResult {
   drafts?: DraftRow[]
 }
 
+/** Claude 技能包候选（GET /api/skills-mgmt/import/claude 的 items[]） */
+interface ClaudeSkillRow {
+  id?: string
+  dir_name?: string
+  name?: string
+  description?: string
+  ready?: boolean
+  error?: string
+  warnings?: string[]
+  body_chars?: number
+}
+
+interface ClaudeScan {
+  ok?: boolean
+  error?: string
+  base_dir?: string
+  total?: number
+  ready?: number
+  items?: ClaudeSkillRow[]
+}
+
+interface ClaudeImportResult {
+  ok?: boolean
+  error?: string
+  total?: number
+  imported?: { id?: string; name?: string; scripts_count?: number }[]
+  failed?: { id?: string; error?: string }[]
+}
+
 function Section({ title, desc, children, extra }: {
   title: string; desc?: string; children: React.ReactNode; extra?: React.ReactNode
 }) {
@@ -137,6 +169,8 @@ export default function SkillMaintenance() {
   const [mergeResult, setMergeResult] = useState<MergeResult | null>(null)
   const [abstractResult, setAbstractResult] = useState<AbstractResult | null>(null)
   const [uploadInfo, setUploadInfo] = useState('')
+  const [claudeScan, setClaudeScan] = useState<ClaudeScan | null>(null)
+  const [claudeResult, setClaudeResult] = useState<ClaudeImportResult | null>(null)
 
   // 真删确认（两条独立的勾选：孤儿与无用是两把不同的扫帚）
   const [confirmOrphans, setConfirmOrphans] = useState(false)
@@ -247,6 +281,32 @@ export default function SkillMaintenance() {
       setMsg('技能包上传成功')
       await loadReport()
     } catch (e) { fail('上传失败', e) } finally { setBusy('') }
+  }
+
+  /**
+   * 扫描 ~/.claude/skills —— **只读预览**：先看清有哪些、哪些不可导入，再决定导什么。
+   * Claude 包只有 SKILL.md，落库前由服务端补 manifest.json（见 claude_import.py）。
+   */
+  const scanClaude = async () => {
+    setBusy('claude-scan'); setErr(''); setMsg(''); setClaudeScan(null); setClaudeResult(null)
+    try {
+      const r = await hubGet<ClaudeScan>(SKILLS_MGMT_IMPORT_CLAUDE)
+      if (r?.ok === false) { bad('扫描 .claude/skills 失败', r); return }
+      setClaudeScan(r)
+      setMsg('扫描完成：' + (r.items?.length ?? 0) + ' 个技能包（可导入 ' + (r.ready ?? 0) + '）')
+    } catch (e) { fail('扫描 .claude/skills 失败', e) } finally { setBusy('') }
+  }
+
+  const importClaude = async (ids?: string[]) => {
+    setBusy('claude-import'); setErr(''); setMsg(''); setClaudeResult(null)
+    try {
+      const r = await hubPost<ClaudeImportResult>(SKILLS_MGMT_IMPORT_CLAUDE, ids ? { ids } : {})
+      // ok=false 但确有导入 ⇒ 是"部分失败"，不能整块当失败吞掉（要能看到哪条坏了）
+      if (r?.ok === false && (r.imported?.length ?? 0) === 0) { bad('导入 Claude 技能失败', r); return }
+      setClaudeResult(r)
+      setMsg('导入完成：成功 ' + (r.imported?.length ?? 0) + ' 个，失败 ' + (r.failed?.length ?? 0) + ' 个')
+      await loadReport()
+    } catch (e) { fail('导入 Claude 技能失败', e) } finally { setBusy('') }
   }
 
   const runAbstract = async () => {
@@ -461,6 +521,83 @@ export default function SkillMaintenance() {
           </button>
           {uploadInfo && <span className="text-[11px] text-emerald-300">{uploadInfo}</span>}
         </div>
+      </Section>
+
+      {/* ── 从 .claude/skills 导入 ── */}
+      <Section
+        title="从 .claude/skills 导入"
+        desc="读 ~/.claude/skills/*/SKILL.md → 生成 manifest.json + skill.md → 落进技能仓库（源目录只读）"
+        extra={
+          <button type="button" className={BTN} onClick={() => void scanClaude()} disabled={loading} aria-label="扫描 .claude/skills">
+            {busy === 'claude-scan' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 扫描
+          </button>
+        }
+      >
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] text-slate-500">目录：{claudeScan?.base_dir ?? '~/.claude/skills'}</span>
+          <button
+            type="button"
+            className={BTN_EM}
+            onClick={() => void importClaude()}
+            disabled={loading || (claudeScan?.ready ?? 0) === 0}
+            aria-label="导入全部 Claude 技能"
+          >
+            {busy === 'claude-import' ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 全部导入
+          </button>
+        </div>
+        {!claudeScan && busy !== 'claude-scan' && (
+          <div className="text-[11px] text-slate-500">
+            先点「扫描」—— 只读，不会写入或删除 ~/.claude/skills。
+          </div>
+        )}
+        {(claudeScan?.items?.length ?? 0) > 0 && (
+          <div className="flex flex-col gap-1">
+            {(claudeScan?.items ?? []).map((c) => (
+              <div key={c.id ?? c.dir_name} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                <span className="font-mono text-[10px] text-cyan-300">{c.id}</span>
+                <span className="text-slate-300">{c.name ?? ''}</span>
+                <span className="truncate text-[10px] text-slate-500">{c.description ?? ''}</span>
+                <span className="ml-auto flex items-center gap-1.5">
+                  {c.ready
+                    ? <span className="text-[10px] text-emerald-400">可导入</span>
+                    : <span className="text-[10px] text-amber-400">{c.error ?? '不可导入'}</span>}
+                  <button
+                    type="button"
+                    className={BTN}
+                    onClick={() => void importClaude([c.id ?? ''])}
+                    disabled={loading || !c.ready}
+                    aria-label={'导入 Claude 技能 ' + (c.id ?? '')}
+                  >
+                    <Download size={10} /> 导入
+                  </button>
+                </span>
+                {(c.warnings?.length ?? 0) > 0 && (
+                  <div className="w-full text-[10px] text-amber-400/80">{(c.warnings ?? []).join('；')}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {claudeScan && (claudeScan.items?.length ?? 0) === 0 && (
+          <div className="text-[11px] text-slate-500">没有找到技能包（目录不存在或没有 SKILL.md）。</div>
+        )}
+        {claudeResult && (
+          <div className="mt-2 text-[11px] text-slate-400">
+            成功 {(claudeResult.imported ?? []).length} · 失败 {(claudeResult.failed ?? []).length}
+            {(claudeResult.imported ?? []).length > 0 && (
+              <div className="mt-1 text-[10px] text-emerald-300">
+                已落库：{(claudeResult.imported ?? []).map((i) => i.id).join('、')}
+              </div>
+            )}
+            {(claudeResult.failed ?? []).length > 0 && (
+              <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-red-300">
+                {(claudeResult.failed ?? []).map((f) => (
+                  <span key={f.id}>{(f.id ?? '?') + '：' + (f.error ?? '未知错误')}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Section>
 
       {/* ── 从记忆抽象 ── */}

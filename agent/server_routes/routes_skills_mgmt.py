@@ -329,6 +329,72 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     # ═══════════════════════════════════════════════════
+    #  Claude 技能导入（~/.claude/skills → 技能仓库）
+    #
+    #  【为什么放在本文件】转换后仍走 `_svc().install_from_zip`（同一个落库链路），
+    #  本组只是"读 Claude 目录 → 生成 manifest.json/skill.md → 调 install_from_zip"，
+    #  不是第二套安装实现（见 agent/skills_mgmt/claude_import.py 头注释）。
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/import/claude", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_import_claude_preview():
+        """扫描 ~/.claude/skills/*/SKILL.md，返回可导入候选（**只读**，不落库）
+
+        【为什么不接受 base_dir 参数】扫描目录**只认** ~/.claude/skills：
+        允许请求指定任意目录，等于给「读本机任意路径」开了一个 HTTP 入口
+        （CodeQL py/path-injection 实测拦下）。测试要用临时目录时直接调
+        agent.skills_mgmt.claude_import.scan_claude_skills(tmp_path)。
+        """
+        try:
+            from agent.skills_mgmt.claude_import import (
+                DEFAULT_CLAUDE_SKILLS_DIR, scan_claude_skills,
+            )
+            items = scan_claude_skills()
+            return jsonify({
+                "ok": True,
+                "base_dir": str(DEFAULT_CLAUDE_SKILLS_DIR),
+                "total": len(items),
+                "ready": sum(1 for i in items if i.get("ready")),
+                "items": items,
+            })
+        except Exception as e:  # noqa: BLE001 不外泄异常文本（可能含路径/内部细节）
+            logger.exception("[SkillsMgmt] 扫描 .claude/skills 失败: %s", e)
+            return jsonify({"ok": False, "error": "扫描失败，详见服务端日志"}), 500
+
+    @app.route("/api/skills-mgmt/import/claude", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_import_claude():
+        """把 Claude 技能包转成云枢技能资产并落库
+
+        Body: {ids?: string[]}
+          · ids 省略/为空 ⇒ 导入全部可导入候选；
+          · 逐条返回 imported/failed：某一条格式怪不影响其它条。
+          · 扫描目录固定 ~/.claude/skills（理由见上方 GET 的注释）。
+        """
+        try:
+            from agent.skills_mgmt.claude_import import import_claude_skills
+            data = request.get_json(silent=True) or {}
+            ids = data.get("ids")
+            if ids is not None and not isinstance(ids, list):
+                return jsonify({"ok": False,
+                                "error": "ids 必须是字符串数组"}), 400
+            result = import_claude_skills(
+                _svc(),
+                ids=[str(i) for i in ids] if ids else None,
+            )
+            return jsonify(result)
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001 不外泄异常文本（可能含路径/内部细节）
+            logger.exception("[SkillsMgmt] 导入 Claude 技能失败: %s", e)
+            return jsonify({"ok": False, "error": "导入失败，详见服务端日志"}), 500
+
+    # ═══════════════════════════════════════════════════
     #  审核
     # ═══════════════════════════════════════════════════
 
