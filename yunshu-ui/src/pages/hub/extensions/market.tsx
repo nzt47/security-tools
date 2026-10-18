@@ -3,8 +3,9 @@
  * ------------------------------------------------------------------
  * 与「插件清单」的区别（同一导航项下的两个 Tab，不建第二个入口）：
  *   · 插件清单 = /api/plugins 的 manifest 与 schema 配置（我们自己的插件体系）；
- *   · 扩展市场 = /api/extensions 的**可安装扩展**（技能 / MCP / 通道 / 插件包），
- *     含内置包与社区索引，是「从外部装东西进来」的那一面。
+ *   · 扩展市场 = /api/extensions 的**可安装扩展**（技能 / MCP / 通道 / 插件包）：
+ *     **发现**（内置/社区/GitHub 索引）+ **从外部安装**（社区条目）。
+ *     内置项本身不在这里装/启停 —— 它们各自的归属页见页面顶部的指路文案。
  *
  * 这 11 条端点此前在前端一条都没接线（2026-10-18 实测），故整页新建。
  *
@@ -14,13 +15,12 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import {
-  CheckCircle2, Download, Loader2, Package, Plug, RefreshCw, Search,
+  CheckCircle2, Download, Loader2, Plug, RefreshCw, Search,
   Trash2, TriangleAlert,
 } from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   EXTENSIONS_CONFIGURE,
-  EXTENSIONS_DISCOVER,
   EXTENSIONS_INSTALL,
   EXTENSIONS_INSTALLED,
   EXTENSIONS_LIST,
@@ -46,21 +46,6 @@ interface ExtRow {
   status?: string
   source?: string
   config?: Record<string, unknown>
-}
-
-interface BuiltinRow {
-  id?: string
-  name?: string
-  description?: string
-  type?: string
-  installed?: boolean
-  /** 启用态事实源＝SkillRegistry（后端 discover 补的字段）；仅 builtin_skills 有意义 */
-  enabled?: boolean
-  /** 该内置项的"管理归属"（如 skill → skill-center） */
-  managed_in?: string
-  builtin?: boolean
-  command?: string
-  args?: string[]
 }
 
 interface MarketRow {
@@ -89,7 +74,6 @@ export default function ExtensionsMarket() {
 
   const [list, setList] = useState<ExtRow[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
-  const [discover, setDiscover] = useState<Record<string, BuiltinRow[]>>({})
   const [recs, setRecs] = useState<MarketRow[]>([])
   const [results, setResults] = useState<Record<string, MarketRow[]>>({})
 
@@ -127,19 +111,6 @@ export default function ExtensionsMarket() {
     } catch (e) { fail('读取扩展分类统计失败', e) } finally { setBusy('') }
   }, [])
 
-  const loadDiscover = useCallback(async () => {
-    setBusy('discover'); setErr('')
-    try {
-      const r = await hubGet<Record<string, unknown>>(EXTENSIONS_DISCOVER)
-      if ((r as { ok?: boolean })?.ok === false) { bad('读取可安装清单失败', r as { error?: string }); return }
-      const out: Record<string, BuiltinRow[]> = {}
-      for (const key of ['builtin_skills']) {
-        out[key] = Array.isArray(r?.[key]) ? (r[key] as BuiltinRow[]) : []
-      }
-      setDiscover(out)
-    } catch (e) { fail('读取可安装清单失败', e) } finally { setBusy('') }
-  }, [])
-
   const loadRecommend = useCallback(async () => {
     setBusy('recommend'); setErr('')
     try {
@@ -150,8 +121,8 @@ export default function ExtensionsMarket() {
   }, [])
 
   useEffect(() => {
-    void loadList(); void loadInstalled(); void loadDiscover(); void loadRecommend()
-  }, [loadList, loadInstalled, loadDiscover, loadRecommend])
+    void loadList(); void loadInstalled(); void loadRecommend()
+  }, [loadList, loadInstalled, loadRecommend])
 
   const search = async () => {
     setBusy('search'); setErr(''); setMsg('')
@@ -183,7 +154,7 @@ export default function ExtensionsMarket() {
       const r = await hubPost<{ ok?: boolean; error?: string; message?: string }>(EXTENSIONS_INSTALL, { type, source: id })
       if (r?.ok === false) { bad('安装失败', r); return }
       setMsg('已安装 ' + id + '（' + (TYPE_LABEL[type] ?? type) + '）')
-      await Promise.all([loadList(), loadInstalled(), loadDiscover()])
+      await Promise.all([loadList(), loadInstalled()])
     } catch (e) { fail('安装失败', e) } finally { setBusy('') }
   }
 
@@ -252,7 +223,7 @@ export default function ExtensionsMarket() {
           技能 / MCP 服务 / 通道 / 插件包 —— 发现与浏览（安装入口按类型在各自页面，插件包在「插件清单」）
         </span>
         <div className="ml-auto flex items-center gap-1.5">
-          <button type="button" className={BTN} onClick={() => { void loadList(); void loadInstalled(); void loadDiscover(); void loadRecommend() }} disabled={loading} aria-label="刷新扩展概览">
+          <button type="button" className={BTN} onClick={() => { void loadList(); void loadInstalled(); void loadRecommend() }} disabled={loading} aria-label="刷新扩展概览">
             {loading && busy !== 'search' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
           </button>
           <button type="button" className={BTN_EM} onClick={() => void refreshIndex()} disabled={loading} aria-label="刷新社区索引">
@@ -355,57 +326,17 @@ export default function ExtensionsMarket() {
         </div>
       </div>
 
-      {/* ── 可安装（内置） ── */}
-      {/* 【2026-10-18】内置 MCP 服务的发现与安装已并入「工具调用 · MCP 系统」：
-          那边装完立即出现在服务表里，市场这边只留一句指路（避免"少了一组"的错觉）。 */}
-      <div className="mb-2 text-[10px] text-slate-500">
-        内置 MCP 服务的发现与安装已并入 <span className="text-cyan-400">工具调用 · MCP 系统</span>（装完就地出现在服务表）。
-      </div>
-      {/* 【2026-10-18】内置通道已并入「系统管理 · 消息中心」：通道是**消息发送**通道，
-          语义在那里；不并入网络配置（那是代理/网络环境）。 */}
-      <div className="mb-2 text-[10px] text-slate-500">
-        内置通道的安装与发送已并入 <span className="text-cyan-400">系统管理 · 消息中心</span>（那里标注了"未接线"）。
-      </div>
-      <div className="mb-3 grid gap-2 lg:grid-cols-2">
-        {([
-          // 【2026-10-18】改叫"内置行为"：它们是随仓库分发的 persona 提示片段（注入 system prompt +
-          // 少量运行期门），状态事实源是 SkillRegistry（技能中心），不是扩展的安装记录 ——
-          // 叫"内置技能"会与技能中心里的 skill.md 资产混淆（"两个都叫技能"那次的结论）。
-          ['builtin_skills', '内置行为（技能中心管理）'],
-        ] as const).map(([key, label]) => (
-          <div key={key} className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-            <div className="mb-2 flex items-center gap-2">
-              <Package size={12} className="text-cyan-400" />
-              <h3 className="text-xs font-semibold text-slate-200">{label}（{discover[key]?.length ?? 0}）</h3>
-            </div>
-            <div className="flex flex-col gap-1">
-              {(discover[key] ?? []).map((b) => {
-                const type = 'skill'
-                const id = b.id ?? ''
-                const busyKey = 'install:' + type + ':' + id
-                return (
-                  <div key={type + id} className="flex items-center gap-1.5 rounded border border-slate-800 bg-slate-950/60 px-2 py-1">
-                    <span className="font-mono text-[10px] text-cyan-300">{id}</span>
-                    <span className="truncate text-[11px] text-slate-300">{b.name ?? ''}</span>
-                    <span className="ml-auto flex items-center gap-1.5">
-                      {/* 启用态以 SkillRegistry 为准（后端 enabled 字段）：已启用者不给"安装"按钮，
-                          否则会出现"明明在注入、界面却说可安装"的自相矛盾 */}
-                      {b.enabled
-                        ? <span className="text-[10px] text-emerald-400">已启用</span>
-                        : b.installed
-                          ? <span className="text-[10px] text-slate-400">已装（未启用）</span>
-                          : (
-                            <button type="button" className={BTN} onClick={() => void install(type, id)} disabled={loading} aria-label={'安装 ' + id}>
-                              {busy === busyKey ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
-                            </button>
-                          )}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ))}
+      {/* ── 内置项归属（三条指路；市场里不再有任何"安装内置项"的动作） ── */}
+      {/* 【2026-10-19】最后一个内置分组（内置行为 = 随仓库分发的 persona 提示片段）也收走了：
+          它的状态事实源是 SkillRegistry，启停入口在「技能中心 · LLM 技能」Tab（同一份数据、
+          同一个事实源）。至此内置项全部回到各自的功能页；市场只剩两件事：
+          **发现**（内置/社区/GitHub 索引）与**从外部安装**（搜索结果/推荐里的社区条目）。 */}
+      <div className="mb-3 rounded-md border border-slate-800 bg-slate-900/40 px-2.5 py-1.5 text-[10px] leading-relaxed text-slate-500">
+        内置项的安装/启停都在各自功能页：
+        <span className="text-cyan-400"> 内置行为（persona 技能）→ 技能中心 · LLM 技能</span>、
+        <span className="text-cyan-400"> 内置 MCP → 工具调用 · MCP 系统</span>、
+        <span className="text-cyan-400"> 内置通道 → 系统管理 · 消息中心</span>。
+        市场只负责发现与从外部安装（社区/GitHub 条目）。
       </div>
 
       {/* ── 市场搜索 ── */}
