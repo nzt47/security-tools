@@ -158,6 +158,11 @@
       "area": "健康看板",
       "note": "心跳健康检查。"
     },
+    "/api/menu": {
+      "intent": "should_be_in_ui",
+      "area": "管理后台",
+      "note": "菜单管理：新增 / 编辑 / 删除（读的那条 /api/menu/tree 由下面的族规则覆盖）。"
+    },
     "/api/menu/*": {
       "intent": "should_be_in_ui",
       "area": "管理后台",

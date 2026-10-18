@@ -1,7 +1,8 @@
 /**
  * 菜单与数据权限管理接口
  * 契约：标准 REST（/api/menu*、/api/role/:id/data-scope）。
- * 说明：真实后端尚未实现本组接口，devMock（src/mocks/devMock.ts）提供同构 mock。
+ * 后端：plugins/admin_api.py「菜单管理」节（树 / 新增 / 编辑 / 删除）；
+ *       devMock（src/mocks/devMock.ts）提供同构 mock，仅 dev server 生效。
  */
 import request from '@/utils/request'
 import type { RoleItem } from './role'
