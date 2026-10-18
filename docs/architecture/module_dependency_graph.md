@@ -539,6 +539,7 @@ flowchart LR
         agent_skills_mgmt_assessor["agent.skills_mgmt.assessor"]:::crosslayer
         agent_skills_mgmt_bm25_searcher["agent.skills_mgmt.bm25_searcher"]
         agent_skills_mgmt_categorizer["agent.skills_mgmt.categorizer"]:::crosslayer
+        agent_skills_mgmt_claude_import["agent.skills_mgmt.claude_import"]:::crosslayer
         agent_skills_mgmt_cleanup["agent.skills_mgmt.cleanup"]
         agent_skills_mgmt_cleanup_scheduler["agent.skills_mgmt.cleanup_scheduler"]
         agent_skills_mgmt_context_injector["agent.skills_mgmt.context_injector"]
@@ -2007,6 +2008,8 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_reviewer
     agent_server_routes_routes_skills_mgmt -.-> agent_audit_ui_middleware
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_enhancer
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_models
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_memory_abstractor
@@ -2129,6 +2132,7 @@ flowchart LR
     agent_skills_mgmt_assessor -.-> agent_code_review
     agent_skills_mgmt_assessor -.-> agent_extensions_security_checker
     agent_skills_mgmt_bm25_searcher -.-> agent_logging_utils
+    agent_skills_mgmt_claude_import -.-> agent_logging_utils
     agent_skills_mgmt_cleanup -.-> agent_logging_utils
     agent_skills_mgmt_cleanup -.-> agent_extensions_base
     agent_skills_mgmt_cleanup -.-> agent_extensions_store
@@ -2656,9 +2660,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 661
-- 模块节点数: 590
-- 依赖边数: 1944
-- 跨层调用数: 1218
+- 扫描文件数: 662
+- 模块节点数: 591
+- 依赖边数: 1947
+- 跨层调用数: 1221
 - 违规调用数: 0
 - 动态 import 数: 1
