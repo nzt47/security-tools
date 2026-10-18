@@ -16,10 +16,13 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { FolderOpen, History, Lightbulb, MessageSquare, RotateCcw } from 'lucide-react'
+import { FileText, FolderOpen, History, Lightbulb, MessageSquare, RotateCcw } from 'lucide-react'
 import { ChatPanel } from '../components/workbench/panels/ChatPanel'
 import { ContextManagerBar } from '../components/workbench/panels/ContextManagerBar'
 import { HistoryDrawer } from '../components/workbench/panels/HistoryDrawer'
+// 2026-10-18：会话交接文档（POST /api/handoff）—— generate_handoff 的唯一 HTTP 入口。
+// 放在**真正被路由的**会话页（本页），不是 pages/hub/session（那个组件没有被任何导航指向）。
+import HandoffPanel from './panels/HandoffPanel'
 import { SubagentMenu } from '../components/workbench/chat/SubagentMenu'
 import { SessionAgentMenu } from '../components/workbench/chat/SessionAgentMenu'
 import { BackgroundTasksMenu } from '../components/workbench/chat/BackgroundTasksMenu'
@@ -83,6 +86,8 @@ export default function WorkbenchChatPage() {
   const [listBusy, setListBusy] = useState(true)
   const [listError, setListError] = useState<string | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
+  /** 交接文档面板（就地展开，不新开抽屉：它只产出一份 Markdown，不需要遮蔽对话） */
+  const [handoffOpen, setHandoffOpen] = useState(false)
   const [wsSession, setWsSession] = useState<SessionMeta | null>(null)
   const [skillGenOpen, setSkillGenOpen] = useState(false)
   const [genIntent, setGenIntent] = useState<string>('')
@@ -571,6 +576,16 @@ export default function WorkbenchChatPage() {
               <History size={11} />
               历史问话
             </button>
+            <button
+              type="button"
+              onClick={() => setHandoffOpen((v) => !v)}
+              title="把当前会话压缩成交接文档（Markdown，含脱敏，落盘到临时目录）"
+              aria-expanded={handoffOpen}
+              className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300"
+            >
+              <FileText size={11} />
+              交接文档
+            </button>
           </div>
         </div>
 
@@ -582,6 +597,13 @@ export default function WorkbenchChatPage() {
         {/* 上下文管理器（从 legacy 对话移植） */}
         <ContextManagerBar />
       </div>
+
+      {/* 交接文档：就地展开（只产出一份 Markdown，不遮蔽对话） */}
+      {handoffOpen && (
+        <div className="border-t border-slate-800 bg-slate-950/60 px-4 py-3">
+          <HandoffPanel sessionId={sessionId ?? ''} />
+        </div>
+      )}
 
       {/* 历史问话侧滑面板 */}
       <AnimatePresence>
