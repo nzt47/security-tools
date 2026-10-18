@@ -249,7 +249,7 @@ export default function ExtensionsMarket() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold text-slate-100">扩展市场</h2>
         <span className="text-[11px] text-slate-500">
-          技能 / MCP 服务 / 通道 / 插件包 —— 发现与浏览（安装入口按类型在各自页面）
+          技能 / MCP 服务 / 通道 / 插件包 —— 发现与浏览（安装入口按类型在各自页面，插件包在「插件清单」）
         </span>
         <div className="ml-auto flex items-center gap-1.5">
           <button type="button" className={BTN} onClick={() => { void loadList(); void loadInstalled(); void loadDiscover(); void loadRecommend() }} disabled={loading} aria-label="刷新扩展概览">
@@ -448,9 +448,14 @@ export default function ExtensionsMarket() {
                     <span className="truncate text-[10px] text-slate-500">{m.description ?? ''}</span>
                     <span className="ml-auto flex items-center gap-1">
                       <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400">{TYPE_LABEL[type] ?? type}</span>
-                      <button type="button" className={BTN} onClick={() => void install(type, id)} disabled={loading} aria-label={'安装 ' + id}>
-                        {busy === busyKey ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
-                      </button>
+                      {/* 插件包安装入口已收敛到「插件与扩展 · 插件清单」：市场只发现/浏览 */}
+                      {type === 'plugin'
+                        ? <span className="text-[10px] text-slate-500">到插件清单安装</span>
+                        : (
+                          <button type="button" className={BTN} onClick={() => void install(type, id)} disabled={loading} aria-label={'安装 ' + id}>
+                            {busy === busyKey ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
+                          </button>
+                        )}
                     </span>
                   </div>
                 )
@@ -465,6 +470,14 @@ export default function ExtensionsMarket() {
             {recs.map((r) => {
               const type = r.ext_type ?? 'skill'
               const id = r.id ?? ''
+              // 插件包不在这里装：安装入口收敛到「插件与扩展 · 插件清单」
+              if (type === 'plugin') {
+                return (
+                  <span key={'rec-' + type + id} className="rounded-md border border-slate-800 px-2 py-1 text-[11px] text-slate-500" title="插件包安装入口在「插件与扩展 · 插件清单」">
+                    {r.name ?? id}<span className="ml-1 text-[9px]">（到插件清单安装）</span>
+                  </span>
+                )
+              }
               return (
                 <button
                   key={'rec-' + type + id}

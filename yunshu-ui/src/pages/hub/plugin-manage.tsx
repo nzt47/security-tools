@@ -21,9 +21,13 @@
  *    「请在『API 令牌』中填入 FLASK_API_TOKEN 后重试」（文案与 legacy PluginPanel
  *    一致）；ApiTokenField 输入后经 lib/apiToken 持久化，apiClient.request 自动注入
  *    Authorization 头，无需重复输入。
+ * 4. 【2026-10-18】「从市场安装插件包」收敛到本页：插件包的安装入口只在这里
+ *    （抽屉内搜索 /api/extensions/market/search?type=plugin → POST
+ *    /api/extensions/install {type:'plugin', source:id}）。扩展市场只保留发现/浏览 ——
+ *    同一件事两个入口，迟早会出现"在 A 装完去 B 看不见"的分裂。
  */
 import { createElement, useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronDown, RefreshCw, Server, Settings2 } from 'lucide-react'
+import { ChevronDown, Loader2, PackagePlus, RefreshCw, Search, Server, Settings2, X } from 'lucide-react'
 import { Card, Badge, PageHeader, Loading, ErrorBox } from './components/ui'
 import { SchemaRenderer } from '@/plugins/schema'
 import { ApiTokenField } from '@/plugins/ApiTokenField'
@@ -31,6 +35,8 @@ import { ApiError, request } from '@/lib/apiClient'
 import { registerPluginModule, type SlotEntry } from '@/plugins/extensionHost'
 
 import {
+  EXTENSIONS_INSTALL,
+  EXTENSIONS_MARKET_SEARCH,
   PLUGINS,
   PLUGINS_RELOAD,
 } from '@/api/endpoints';
@@ -51,6 +57,16 @@ interface PluginInfo {
 interface Notice {
   kind: 'ok' | 'err'
   text: string
+}
+
+/** 市场搜索命中的插件包（/api/extensions/market/search?type=plugin） */
+interface MarketPluginRow {
+  id?: string
+  name?: string
+  description?: string
+  ext_type?: string
+  source?: string
+  market_type?: string
 }
 
 /** 把单个 manifest 条目归一化为 PluginInfo（wire snake_case → 前端 camelCase） */
@@ -119,6 +135,13 @@ export default function PluginManagePage() {
 
   /** 插件自带 UI 的挂载结果（client_slot → registerPluginModule；原「扩展呈现」能力） */
   const [mounted, setMounted] = useState<Record<string, { state: string; error?: string; entries: SlotEntry[] }>>({})
+
+  // 「从市场安装插件包」抽屉（2026-10-18：插件包安装入口收敛到本页）
+  const [marketOpen, setMarketOpen] = useState(false)
+  const [marketQ, setMarketQ] = useState('')
+  const [marketRows, setMarketRows] = useState<MarketPluginRow[]>([])
+  const [marketBusy, setMarketBusy] = useState('')
+  const [marketNotice, setMarketNotice] = useState<Notice | null>(null)
 
   // 当前配置面板的表单态
   const [values, setValues] = useState<Json>({})
@@ -267,6 +290,63 @@ export default function PluginManagePage() {
     [config, loadCurrentValues],
   )
 
+  /** 市场搜索插件包（type=plugin）——只搜不装，安装是下一步的显式动作 */
+  const searchMarketPlugins = useCallback(async (q: string) => {
+    setMarketBusy('search')
+    setMarketNotice(null)
+    try {
+      const params = '?type=plugin' + (q.trim() ? '&q=' + encodeURIComponent(q.trim()) : '')
+      const res = await request<{
+        ok?: boolean
+        error?: string
+        builtin?: MarketPluginRow[]
+        community?: MarketPluginRow[]
+        github?: MarketPluginRow[]
+      }>(EXTENSIONS_MARKET_SEARCH + params)
+      if (res && res.ok === false) {
+        setMarketRows([])
+        setMarketNotice({ kind: 'err', text: `搜索失败：${res.error ?? '后端返回 ok=false'}` })
+        return
+      }
+      const rows = [...(res?.builtin ?? []), ...(res?.community ?? []), ...(res?.github ?? [])]
+      setMarketRows(rows)
+      if (rows.length === 0) setMarketNotice({ kind: 'ok', text: '市场里没有匹配的插件包' })
+    } catch (e) {
+      setMarketRows([])
+      setMarketNotice({ kind: 'err', text: `搜索失败：${e instanceof Error ? e.message : String(e)}` })
+    } finally {
+      setMarketBusy('')
+    }
+  }, [])
+
+  const openMarket = () => {
+    setMarketOpen(true)
+    setMarketNotice(null)
+    void searchMarketPlugins('')
+  }
+
+  /** 装插件包：{type:'plugin', source:id}；成功后重载清单（新插件要等 manifest 重建） */
+  const installMarketPlugin = async (id: string) => {
+    setMarketBusy('install:' + id)
+    setMarketNotice(null)
+    try {
+      const r = await request<{ ok?: boolean; error?: string; message?: string }>(EXTENSIONS_INSTALL, {
+        method: 'POST',
+        body: { type: 'plugin', source: id },
+      })
+      if (r && r.ok === false) {
+        setMarketNotice({ kind: 'err', text: `安装失败：${r.error ?? r.message ?? '后端返回 ok=false'}` })
+        return
+      }
+      setMarketNotice({ kind: 'ok', text: `已安装插件包 ${id}；清单稍后自动刷新` })
+      window.setTimeout(load, 300)
+    } catch (e) {
+      setMarketNotice({ kind: 'err', text: `安装失败：${e instanceof Error ? e.message : String(e)}` })
+    } finally {
+      setMarketBusy('')
+    }
+  }
+
   const renderConfigBody = (plugin: PluginInfo) => {
     if (!plugin.schema) {
       return (
@@ -336,6 +416,13 @@ export default function PluginManagePage() {
               className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
             >
               <RefreshCw size={12} /> 刷新列表
+            </button>
+            <button
+              onClick={openMarket}
+              data-testid="plugin-market-open"
+              className="flex items-center gap-1.5 rounded-lg border border-cyan-800 px-3 py-1.5 text-xs text-cyan-300 hover:bg-cyan-950/40"
+            >
+              <PackagePlus size={12} /> 从市场安装插件包
             </button>
             <button
               onClick={reload}
@@ -457,6 +544,87 @@ export default function PluginManagePage() {
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* ── 从市场安装插件包（插件包安装的唯一入口；市场只发现/浏览） ── */}
+      {marketOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-6" onClick={() => setMarketOpen(false)}>
+          <div
+            className="w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 p-4"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="plugin-market-drawer"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <PackagePlus size={14} className="text-cyan-400" />
+              <h3 className="text-sm font-semibold text-slate-100">从市场安装插件包</h3>
+              <span className="text-[10px] text-slate-500">只列 `type=plugin`；装完自动刷新清单</span>
+              <button
+                type="button"
+                onClick={() => setMarketOpen(false)}
+                className="ml-auto rounded-md border border-slate-700 p-1 text-slate-400 hover:bg-slate-800"
+                aria-label="关闭插件市场抽屉"
+              >
+                <X size={12} />
+              </button>
+            </div>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <input
+                className="w-64 rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600"
+                placeholder="关键词（留空 = 全部插件包）"
+                value={marketQ}
+                onChange={(e) => setMarketQ(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') void searchMarketPlugins(marketQ) }}
+                aria-label="插件市场搜索关键词"
+              />
+              <button
+                type="button"
+                onClick={() => void searchMarketPlugins(marketQ)}
+                disabled={marketBusy !== ''}
+                className="flex items-center gap-1 rounded-md border border-cyan-800 px-2 py-1.5 text-xs text-cyan-300 hover:bg-cyan-950/40 disabled:opacity-40"
+                aria-label="搜索插件包"
+              >
+                {marketBusy === 'search' ? <Loader2 size={11} className="animate-spin" /> : <Search size={11} />} 搜索
+              </button>
+            </div>
+            {marketNotice && (
+              <div
+                className={`mb-2 rounded-md border px-2 py-1.5 text-[11px] ${marketNotice.kind === 'ok' ? 'border-slate-700 bg-slate-950 text-cyan-300' : 'border-red-900/60 bg-red-950/40 text-red-300'}`}
+                role={marketNotice.kind === 'err' ? 'alert' : undefined}
+              >
+                {marketNotice.text}
+              </div>
+            )}
+            {marketRows.length === 0 && marketBusy !== 'search' && (
+              <div className="py-6 text-center text-[11px] text-slate-500">没有可安装的插件包。</div>
+            )}
+            <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
+              {marketRows.map((m) => {
+                const id = m.id ?? ''
+                return (
+                  <div key={'market-plugin-' + id} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                    <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+                    <span className="text-slate-300">{m.name ?? ''}</span>
+                    <span className="truncate text-[10px] text-slate-500">{m.description ?? ''}</span>
+                    <span className="ml-auto flex items-center gap-1.5">
+                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400">
+                        {m.market_type ?? m.source ?? 'plugin'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void installMarketPlugin(id)}
+                        disabled={marketBusy !== ''}
+                        aria-label={'安装插件包 ' + id}
+                        className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800 disabled:opacity-40"
+                      >
+                        {marketBusy === 'install:' + id ? <Loader2 size={11} className="animate-spin" /> : <PackagePlus size={11} />} 安装
+                      </button>
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>
