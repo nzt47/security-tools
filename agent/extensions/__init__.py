@@ -4,7 +4,6 @@
 
 扩展类型：
   - skill:      应用层技能（自省反思、记忆摘要等行为特征）
-  - claude_skill: Claude Code 技能（.claude/skills/ 中的技能包）
   - mcp:        MCP 服务（外部网络服务接入）
   - channel:    通信通道（Slack、Discord、邮件等输出渠道）
   - plugin:     通用插件（扩展新功能的 Python 代码包）

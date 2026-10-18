@@ -49,7 +49,6 @@ class ExtensionStore:
             else:
                 self._cache = {
                     "skills": [],
-                    "claude_skills": [],
                     "mcps": [],
                     "channels": [],
                     "plugins": [],
@@ -59,7 +58,7 @@ class ExtensionStore:
         except (json.JSONDecodeError, OSError) as e:
             logger.warning(log_dict({'module_name': 'store', 'action': 'log', 'msg': f'[扩展存储] 加载失败: {e}，使用空数据'}))
             self._cache = {
-                "skills": [], "claude_skills": [], "mcps": [],
+                "skills": [], "mcps": [],
                 "channels": [], "plugins": [],
             }
 
@@ -75,7 +74,6 @@ class ExtensionStore:
         """扩展类型到存储键的映射"""
         mapping = {
             ExtensionType.SKILL: "skills",
-            ExtensionType.CLAUDE_SKILL: "claude_skills",
             ExtensionType.MCP: "mcps",
             ExtensionType.CHANNEL: "channels",
             ExtensionType.PLUGIN: "plugins",
@@ -89,7 +87,7 @@ class ExtensionStore:
             key = self._get_key(ext_type)
             return data.get(key, [])
         result = []
-        for key in ["skills", "claude_skills", "mcps", "channels", "plugins"]:
+        for key in ["skills", "mcps", "channels", "plugins"]:
             result.extend(data.get(key, []))
         return result
 

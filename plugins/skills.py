@@ -162,12 +162,12 @@ def api_skills_get():
     installed = _skills_mgr.get_all()
     installed_ids = {s["id"] for s in installed}
 
-    # 从扩展存储获取额外已安装的扩展（通过 ext_install 安装的技能和 claude_skill）
+    # 从扩展存储获取额外已安装的扩展（通过 ext_install 安装的技能）
     try:
         from agent.extensions.store import ExtensionStore
         from agent.extensions.base import ExtensionType
         ext_store = ExtensionStore()
-        for ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+        for ext_type in (ExtensionType.SKILL,):
             for ext in ext_store.list_all(ext_type):
                 ext_id = ext.get("ext_id", "")
                 if ext_id and ext_id not in installed_ids:
@@ -270,7 +270,7 @@ def api_skills_content():
     逐级解析（谁命中用谁）：
       1. 技能资产库（skills-mgmt）同 id/同名资产 → 资产正文（最权威）；
       2. data/skills_repo/<id>/skill.md → 技能仓库正文；
-      3. 扩展注册表（ExtensionStore skills/claude_skills）；
+      3. 扩展注册表（ExtensionStore skills）；
       4. 内置技能注册表（BUILTIN_EXTENSIONS）；
       5. 兜底仅返回运行时元数据（描述/参数/启停）——「skill」这类无正文的
          残留行也能如实展示出「没有指令正文」。
@@ -350,12 +350,12 @@ def api_skills_content():
     except Exception:  # noqa: BLE001
         pass
 
-    # 3) 扩展注册表（ExtensionStore skills/claude_skills）
+    # 3) 扩展注册表（ExtensionStore skills）
     try:
         from agent.extensions.store import ExtensionStore
         from agent.extensions.base import ExtensionType
         ext_store = ExtensionStore()
-        for ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+        for ext_type in (ExtensionType.SKILL,):
             ext = ext_store.get(ext_type, skill_id)
             if ext:
                 return _hit(
@@ -418,7 +418,7 @@ def api_skills_toggle():
             with open(ext_file, 'r', encoding='utf-8') as f:
                 ext_data = _json.load(f)
         else:
-            ext_data = {"skills": [], "claude_skills": [], "mcps": [],
+            ext_data = {"skills": [], "mcps": [],
                         "channels": [], "plugins": []}
         skills = ext_data.setdefault("skills", [])
         e = next((x for x in skills if x.get("ext_id") == skill_id), None)
@@ -518,7 +518,7 @@ def api_skills_classify_run_auto():
         from agent.extensions.store import ExtensionStore
         from agent.extensions.base import ExtensionType
         ext_store = ExtensionStore()
-        for ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+        for ext_type in (ExtensionType.SKILL,):
             for ext in ext_store.list_all(ext_type):
                 ext_id = ext.get("ext_id", "")
                 if ext_id and ext_id not in seen:
@@ -599,27 +599,21 @@ def api_skills_delete():
     # 拒绝（result["refused"]）：直接回传其可读原因，**且不再走下方扩展存储清理** ——
     # 否则 ext_store.remove() 会把「目录仍在」的一次拒绝翻成 ok=True 的假成功，
     # 调用方会以为技能已删除。注意只对**显式拒绝**短路：「未找到」等其它失败仍走
-    # 下方逻辑，以保留 Claude Code 技能卸载等既有行为。
+    # 下方逻辑（先删 registry 记录，再尝试扩展存储记录）。
     if result.get("refused"):
         return jsonify({
             "ok": False,
             "error": result.get("error") or f"已拒绝删除: {skill_id}",
         })
 
-    # 尝试从扩展存储删除（覆盖 Claude Code 技能等）
+    # 尝试从扩展存储删除（扩展安装产物的登记记录）
     try:
         from agent.extensions.store import ExtensionStore
         from agent.extensions.base import ExtensionType
         ext_store = ExtensionStore()
-        for ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+        for ext_type in (ExtensionType.SKILL,):
             if ext_store.remove(ext_type, skill_id):
                 deleted = True
-                # 如果是 Claude Code 技能，清理磁盘文件
-                if ext_type == ExtensionType.CLAUDE_SKILL:
-                    import shutil
-                    claude_dir = os.path.join(os.path.expanduser("~"), ".claude", "skills", skill_id)
-                    if os.path.exists(claude_dir):
-                        shutil.rmtree(claude_dir, ignore_errors=True)
     except Exception:
         pass
 

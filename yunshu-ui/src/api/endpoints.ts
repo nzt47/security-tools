@@ -70,6 +70,8 @@ export const SKILLS_MGMT_CLEANUP_UNUSED = '/api/skills-mgmt/cleanup/unused';
 export const SKILLS_MGMT_AUTO_MERGE = '/api/skills-mgmt/auto-merge';
 export const SKILLS_MGMT_MERGE = '/api/skills-mgmt/merge';
 export const SKILLS_MGMT_UPLOAD = '/api/skills-mgmt/upload';
+/** Claude 技能包导入：GET=扫描 `~/.claude/skills`（只读预览），POST=转换并落库 */
+export const SKILLS_MGMT_IMPORT_CLAUDE = '/api/skills-mgmt/import/claude';
 export const SKILLS_MGMT_ABSTRACT_FROM_MEMORY = '/api/skills-mgmt/abstract-from-memory';
 
 // ═══════════════════════════════════════════════════════════════

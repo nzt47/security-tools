@@ -7,12 +7,12 @@ logger = logging.getLogger(__name__)
 # ── 扩展市场类型别名 ──────────────────────────────────────────────
 # 【为什么需要】吸收 market_search 时暴露的真实缺陷（评估报告 §6.3-a）：
 #   两者都调 ExtensionMarket.search_all，但枚举互不兼容 ——
-#   ext_discover 用 skill/claude_skill/mcp/channel/plugin，
+#   ext_discover 用 skill/mcp/channel/plugin，
 #   market_search 用 tool/skill/mcp/plugin，
-#   ⇒ 经 market_search 永远查不到 claude_skill/channel；
+#   ⇒ 经 market_search 永远查不到 channel；
 #     经 ext_discover 永远查不到 tool。
 #   统一为**并集** enum 后，tool 归一到 plugin：市场的内置注册表按
-#   ExtensionType 建键（skill/claude_skill/mcp/channel/plugin），并无 tool 键，
+#   ExtensionType 建键（skill/mcp/channel/plugin），并无 tool 键，
 #   而"工具"在市场里就是以插件形式分发的（原 install_tool 兜底也判为 plugin）。
 _MARKET_TYPE_ALIAS = {"tool": "plugin"}
 
@@ -29,8 +29,8 @@ def register_all(dl):
         "properties": {
             "type": {
                 "type": "string",
-                "enum": ["skill", "claude_skill", "mcp", "channel", "plugin", "auto"],
-                "description": "扩展类型：skill=应用层技能, claude_skill=Claude Code技能, mcp=MCP服务, channel=通信通道, plugin=插件, auto=按 tool_id/source 从内置注册表自动判别类型安装",
+                "enum": ["skill", "mcp", "channel", "plugin", "auto"],
+                "description": "扩展类型：skill=应用层技能, mcp=MCP服务, channel=通信通道, plugin=插件, auto=按 tool_id/source 从内置注册表自动判别类型安装",
             },
             "source": {
                 "type": "string",
@@ -115,7 +115,7 @@ def register_all(dl):
         "properties": {
             "type": {
                 "type": "string",
-                "enum": ["skill", "claude_skill", "mcp", "channel", "plugin"],
+                "enum": ["skill", "mcp", "channel", "plugin"],
                 "description": "扩展类型",
             },
             "id": {
@@ -139,7 +139,7 @@ def register_all(dl):
         "properties": {
             "type": {
                 "type": "string",
-                "enum": ["skill", "claude_skill", "mcp", "channel", "plugin", ""],
+                "enum": ["skill", "mcp", "channel", "plugin", ""],
                 "description": "按类型筛选（留空列出全部）",
             },
         },
@@ -175,7 +175,7 @@ def register_all(dl):
                     "status": "enabled" if s.get("enabled", True) else "disabled",
                     "enabled": s.get("enabled", True),
                 })
-            for key in ["claude_skills", "mcp_services", "channels", "plugins"]:
+            for key in ["mcp_services", "channels", "plugins"]:
                 all_extensions.extend(all_types.get(key, []))
             return {"ok": True, "extensions": all_extensions}
         except Exception as e:
@@ -210,7 +210,7 @@ def register_all(dl):
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
-    @_tools.register("ext_discover", "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。type 为扩展类型（含 tool 与 claude_skill/channel）；命中市场时同时返回扁平 results（每项带 _market_source）与内置/社区/GitHub 嵌套字段。", schema={
+    @_tools.register("ext_discover", "发现可用的扩展。搜索内置注册表、社区市场和GitHub上有什么新能力可以安装。type 为扩展类型（含 tool 与 channel）；命中市场时同时返回扁平 results（每项带 _market_source）与内置/社区/GitHub 嵌套字段。", schema={
         "type": "object",
         "properties": {
             "query": {
@@ -219,8 +219,8 @@ def register_all(dl):
             },
             "type": {
                 "type": "string",
-                "enum": ["skill", "claude_skill", "mcp", "channel", "plugin", "tool", "all", ""],
-                "description": "按类型筛选（可选）：skill/claude_skill/mcp/channel/plugin/tool/all；tool 为工具类扩展（市场中以 plugin 分发），all 或留空表示不筛选",
+                "enum": ["skill", "mcp", "channel", "plugin", "tool", "all", ""],
+                "description": "按类型筛选（可选）：skill/mcp/channel/plugin/tool/all；tool 为工具类扩展（市场中以 plugin 分发），all 或留空表示不筛选",
             },
         },
     })

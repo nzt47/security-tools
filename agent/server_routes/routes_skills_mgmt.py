@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 import logging
+from pathlib import Path
 from typing import Any, Dict
 
 from flask import request, jsonify
@@ -323,6 +324,69 @@ def register_routes(app, state):
                     os.unlink(tmp_path)
                 except OSError:
                     pass
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    # ═══════════════════════════════════════════════════
+    #  Claude 技能导入（~/.claude/skills → 技能仓库）
+    #
+    #  【为什么放在本文件】转换后仍走 `_svc().install_from_zip`（同一个落库链路），
+    #  本组只是"读 Claude 目录 → 生成 manifest.json/skill.md → 调 install_from_zip"，
+    #  不是第二套安装实现（见 agent/skills_mgmt/claude_import.py 头注释）。
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/import/claude", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_import_claude_preview():
+        """扫描 ~/.claude/skills/*/SKILL.md，返回可导入候选（**只读**，不落库）
+
+        Query: ?base_dir=…（可选，默认 ~/.claude/skills）
+        """
+        try:
+            from agent.skills_mgmt.claude_import import (
+                DEFAULT_CLAUDE_SKILLS_DIR, scan_claude_skills,
+            )
+            base = (request.args.get("base_dir") or "").strip() or None
+            items = scan_claude_skills(base)
+            return jsonify({
+                "ok": True,
+                "base_dir": str(Path(base) if base else DEFAULT_CLAUDE_SKILLS_DIR),
+                "total": len(items),
+                "ready": sum(1 for i in items if i.get("ready")),
+                "items": items,
+            })
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/import/claude", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_import_claude():
+        """把 Claude 技能包转成云枢技能资产并落库
+
+        Body: {ids?: string[], base_dir?: str}
+          · ids 省略/为空 ⇒ 导入全部可导入候选；
+          · 逐条返回 imported/failed：某一条格式怪不影响其它条。
+        """
+        try:
+            from agent.skills_mgmt.claude_import import import_claude_skills
+            data = request.get_json(silent=True) or {}
+            ids = data.get("ids")
+            if ids is not None and not isinstance(ids, list):
+                return jsonify({"ok": False,
+                                "error": "ids 必须是字符串数组"}), 400
+            base = (data.get("base_dir") or "").strip() or None
+            result = import_claude_skills(
+                _svc(),
+                ids=[str(i) for i in ids] if ids else None,
+                base_dir=base,
+            )
+            return jsonify(result)
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001

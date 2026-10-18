@@ -64,7 +64,7 @@ class ExtensionManager:
     def _get_installer(self, ext_type: ExtensionType):
         """获取或创建指定类型的安装器"""
         if ext_type not in self._installers:
-            if ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+            if ext_type == ExtensionType.SKILL:
                 self._installers[ext_type] = SkillsInstaller(self._store)
             elif ext_type == ExtensionType.MCP:
                 inst = McpInstaller(self._store, self._network_config_mgr)
@@ -98,7 +98,7 @@ class ExtensionManager:
         """安装扩展（统一入口）
 
         Args:
-            ext_type: 扩展类型 ("skill", "claude_skill", "mcp", "channel", "plugin")
+            ext_type: 扩展类型 ("skill", "mcp", "channel", "plugin")
             ext_id_or_source: 扩展 ID 或安装来源
             **kwargs: 类型特定的额外参数
 
@@ -129,13 +129,6 @@ class ExtensionManager:
                         )
                     # 未提供名称时保留 add_builtin_skill 返回的错误信息
                 return {"ok": success, "message": message, "type": "skill"}
-
-            elif etype == ExtensionType.CLAUDE_SKILL:
-                success, message = installer.install_claude_skill(
-                    ext_id_or_source,
-                    skill_name=kwargs.get("name"),
-                )
-                return {"ok": success, "message": message, "type": "claude_skill"}
 
             elif etype == ExtensionType.MCP:
                 # 先尝试内置 MCP
@@ -190,8 +183,6 @@ class ExtensionManager:
         try:
             if etype == ExtensionType.SKILL:
                 success, msg = installer.remove_skill(ext_id, force=force)
-            elif etype == ExtensionType.CLAUDE_SKILL:
-                success, msg = installer.uninstall_claude_skill(ext_id)
             elif etype == ExtensionType.MCP:
                 success, msg = installer.uninstall_mcp(ext_id)
             elif etype == ExtensionType.CHANNEL:
@@ -218,9 +209,6 @@ class ExtensionManager:
         try:
             if etype == ExtensionType.SKILL:
                 success, msg, state = installer.toggle_skill(ext_id, enabled)
-            elif etype == ExtensionType.CLAUDE_SKILL:
-                # Claude 技能通过文件系统管理，暂不支持运行时切换
-                return {"ok": False, "message": "Claude Code 技能暂不支持运行时切换"}
             elif etype == ExtensionType.MCP:
                 success, msg, state = installer.toggle_mcp(ext_id, enabled)
             elif etype == ExtensionType.CHANNEL:
@@ -291,19 +279,16 @@ class ExtensionManager:
     def get_installed_by_type(self) -> Dict[str, List[Dict]]:
         """按类型分组获取所有已安装扩展"""
         skills_inst = self._get_installer(ExtensionType.SKILL)
-        claude_inst = self._get_installer(ExtensionType.CLAUDE_SKILL)
         mcp_inst = self._get_installer(ExtensionType.MCP)
         channel_inst = self._get_installer(ExtensionType.CHANNEL)
         plugin_inst = self._get_installer(ExtensionType.PLUGIN)
 
         return {
             "skills": skills_inst.list_installed_skills(),
-            "claude_skills": claude_inst.list_claude_skills(),
             "mcp_services": mcp_inst.list_installed_mcp(),
             "channels": channel_inst.list_installed_channels(),
             "plugins": plugin_inst.list_installed_plugins(),
             "store_skills": self._store.list_all(ExtensionType.SKILL),
-            "store_claude_skills": self._store.list_all(ExtensionType.CLAUDE_SKILL),
             "store_mcp": self._store.list_all(ExtensionType.MCP),
             "store_channels": self._store.list_all(ExtensionType.CHANNEL),
             "store_plugins": self._store.list_all(ExtensionType.PLUGIN),
