@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-10-18T11:54:05",
+  "generated_at": "2026-10-18T13:24:55",
   "totals": {
-    "routes": 464,
-    "live": 464,
+    "routes": 466,
+    "live": 466,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 389,
+    "ui": 391,
     "cli_script": 13,
     "runtime_only": 10,
     "unreferenced": 52,
     "live_by_category": {
-      "ui": 389,
+      "ui": 391,
       "cli_script": 13,
       "runtime_only": 10,
       "unreferenced": 52
     },
     "by_intent": {
-      "should_be_in_ui": 373,
+      "should_be_in_ui": 375,
       "should_not_be_in_ui": 90,
       "unclassified": 1
     },
@@ -26,7 +26,7 @@
       "系统与配置": 43,
       "治理与审批": 42,
       "资产与文件": 19,
-      "管理与后台": 17,
+      "管理与后台": 19,
       "调度与任务": 26,
       "对话与会话": 32,
       "业务与评估": 18,
@@ -43,9 +43,7 @@
     "/api/approval/*/*",
     "/api/assets",
     "/api/cp",
-    "/api/demo/validate-email",
-    "/api/menu",
-    "/api/menu/*"
+    "/api/demo/validate-email"
   ],
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
@@ -2113,7 +2111,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:699"
+        "plugins/admin_api.py:817"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -2691,7 +2689,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:714"
+        "plugins/admin_api.py:832"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -4656,6 +4654,58 @@
       "domain": "记忆与知识"
     },
     {
+      "path": "/api/menu",
+      "norm": "/api/menu",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/menu.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:712"
+      ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
+      "intent": "should_be_in_ui",
+      "intent_area": "管理后台",
+      "intent_note": "菜单管理：新增 / 编辑 / 删除（读的那条 /api/menu/tree 由下面的族规则覆盖）。",
+      "ui_pending": false,
+      "domain": "管理与后台"
+    },
+    {
+      "path": "/api/menu/<int:menu_id>",
+      "norm": "/api/menu/*",
+      "methods": [
+        "DELETE",
+        "PUT"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/menu.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/admin_api.py:739",
+        "plugins/admin_api.py:766"
+      ],
+      "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
+      "description_source": "module",
+      "intent": "should_be_in_ui",
+      "intent_area": "管理后台",
+      "intent_note": "菜单树。",
+      "ui_pending": false,
+      "domain": "管理与后台"
+    },
+    {
       "path": "/api/menu/tree",
       "norm": "/api/menu/tree",
       "methods": [
@@ -4670,7 +4720,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:655"
+        "plugins/admin_api.py:706"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -4930,7 +4980,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:681"
+        "plugins/admin_api.py:799"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -4955,7 +5005,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:667"
+        "plugins/admin_api.py:785"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -4980,7 +5030,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:691"
+        "plugins/admin_api.py:809"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5005,7 +5055,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:675"
+        "plugins/admin_api.py:793"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -11842,5 +11892,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "f8e3bc4a5eab5217"
+  "content_hash": "d572b91876bf590f"
 }

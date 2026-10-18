@@ -636,9 +636,20 @@ def admin_role_delete(role_id):
 
 # ════════════════════════════════════════════════════════════════════════════
 #  菜单管理
+#  【2026-10-18 · 契约缺口修补】前端 yunshu-ui/src/api/menu.ts 按标准 REST 调
+#  POST /api/menu、PUT/DELETE /api/menu/<id>，而本插件原先只注册了 GET /api/menu/tree
+#  ⇒ 「菜单管理」页的新增/编辑/删除全部 404（能读、不能写）。
+#  【决定补后端而不是把前端改成只读】核查过全仓没有第二条注册（plugins/*.py 里
+#  /api/menu 仅此一处；app_server 无运行期 add_url_rule；dev server 只有 devMock）；
+#  而且 devMock 里这三条本来就是通的 —— 前端没有写错，缺的是后端。
 # ════════════════════════════════════════════════════════════════════════════
 
-_MENU_TABLE = [
+#: 首启种子（与 yunshu-ui/src/mocks/devMock.ts 的 MOCK_MENUS 同构）。
+#: 【存储口径】内存态演示数据，与 _NOTIFICATIONS / _AUDIT_LOGS 同族：**不**写
+#: data/admin_rbac.json —— 那份文件的 schema 是 {"users","roles"}，被
+#: tests/unit/test_admin_rbac_persistence.py 的结构断言钉住；把菜单并进去属于另一个
+#: 裁决（M-31 只管用户/角色）。重启回到种子，与 devMock 行为一致。
+_MENU_SEED = [
     {"id": 1, "parentId": 0, "title": "仪表盘", "path": "/dashboard", "icon": "LayoutDashboard",
      "authority": "", "order": 1, "hideInMenu": False},
     {"id": 2, "parentId": 0, "title": "工作台", "path": "/workbench", "icon": "Workflow",
@@ -650,12 +661,119 @@ _MENU_TABLE = [
     {"id": 5, "parentId": 3, "title": "角色权限", "path": "/system/role", "icon": "ShieldCheck",
      "authority": "system:role:view", "order": 2, "hideInMenu": False},
 ]
+_MENU_TABLE = [dict(m) for m in _MENU_SEED]
+
+#: 读端点组装树、写端点改表 —— waitress 是多线程，同一张表会被并发读/写。
+#: 与 _RBAC_LOCK 分开：菜单不落盘，两个临界区没有交集，合锁只会无谓拉长 RBAC 写路径。
+_MENU_LOCK = threading.RLock()
+
+
+def _menu_int(value, default: int = 0) -> int:
+    """宽松整数（前端可能发字符串）；非法值回落默认，与 devMock 的 `Number(...) || 0` 同口径。"""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _menu_bool(value) -> bool:
+    """只认 True / 'true'（与 devMock 的 `=== true || === 'true'` 同口径）。"""
+    return value is True or (isinstance(value, str) and value.strip().lower() == "true")
+
+
+def _menu_snapshot() -> list:
+    with _MENU_LOCK:
+        return [dict(m) for m in _MENU_TABLE]
+
+
+def _menu_tree() -> list:
+    """扁平表 → 树：按 parentId 归并、同级 order 升序、父节点已不存在的按根处理。
+
+    与 devMock.buildMenuTree 同口径 —— 前端 MenuList 渲染的是 `item.children`；早先
+    直接回扁平表，于是「系统管理」下的子菜单永远不显示（读端点有**同一个**缺口，
+    只是它返回 200，不像写端点 404 那样刺眼）。
+    """
+    rows = sorted(_menu_snapshot(), key=lambda m: m.get("order") or 0)
+    nodes = {m["id"]: dict(m, children=[]) for m in rows}
+    roots = []
+    for m in rows:
+        node = nodes[m["id"]]
+        parent = nodes.get(m.get("parentId") or 0)
+        (parent["children"] if parent is not None else roots).append(node)
+    return roots
 
 
 @bp.route("/api/menu/tree", methods=["GET"])
 @_require_admin
 def admin_menu_tree():
-    return _ok(_MENU_TABLE)
+    return _ok(_menu_tree())
+
+
+@bp.route("/api/menu", methods=["POST"])
+@_require_admin
+def admin_menu_create():
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    path = (data.get("path") or "").strip()
+    if not title or not path:
+        return _fail(400, "菜单名与路径不能为空")
+    parent_id = _menu_int(data.get("parentId"), 0)
+    with _MENU_LOCK:
+        if parent_id and not any(m["id"] == parent_id for m in _MENU_TABLE):
+            return _fail(400, "父菜单不存在")
+        menu = {
+            "id": max((m["id"] for m in _MENU_TABLE), default=0) + 1,
+            "parentId": parent_id,
+            "title": title,
+            "path": path,
+            "icon": str(data.get("icon") or "").strip(),
+            "authority": str(data.get("authority") or "").strip(),
+            "order": _menu_int(data.get("order"), 0),
+            "hideInMenu": _menu_bool(data.get("hideInMenu")),
+        }
+        _MENU_TABLE.append(menu)
+        created = dict(menu)
+    return _ok(created)
+
+
+@bp.route("/api/menu/<int:menu_id>", methods=["PUT"])
+@_require_admin
+def admin_menu_update(menu_id):
+    data = request.get_json(silent=True) or {}
+    with _MENU_LOCK:
+        menu = next((m for m in _MENU_TABLE if m["id"] == menu_id), None)
+        if menu is None:
+            return _fail(404, "菜单不存在")
+        # 只改可见属性：parentId 不在本端点改 —— 前端编辑弹窗沿用的是原 parentId
+        # （MenuFormDialog.tsx:63），devMock 也不处理它；「移动菜单」是独立动作，
+        # 让它在这里静默生效等于给前端一个它没打算用的能力。
+        if "title" in data:
+            menu["title"] = str(data.get("title") or "").strip()
+        if "path" in data:
+            menu["path"] = str(data.get("path") or "").strip()
+        if "icon" in data:
+            menu["icon"] = str(data.get("icon") or "").strip()
+        if "authority" in data:
+            menu["authority"] = str(data.get("authority") or "").strip()
+        if "order" in data:
+            menu["order"] = _menu_int(data.get("order"), 0)
+        if "hideInMenu" in data:
+            menu["hideInMenu"] = _menu_bool(data.get("hideInMenu"))
+        updated = dict(menu)
+    return _ok(updated)
+
+
+@bp.route("/api/menu/<int:menu_id>", methods=["DELETE"])
+@_require_admin
+def admin_menu_delete(menu_id):
+    with _MENU_LOCK:
+        if not any(m["id"] == menu_id for m in _MENU_TABLE):
+            return _fail(404, "菜单不存在")
+        if any(m.get("parentId") == menu_id for m in _MENU_TABLE):
+            return _fail(400, "请先删除子菜单")
+        # 原地切片赋值：不重绑定模块级名字，避免别处旧引用看到「删了又回来」的幻象。
+        _MENU_TABLE[:] = [m for m in _MENU_TABLE if m["id"] != menu_id]
+    return _ok()
 
 
 # ════════════════════════════════════════════════════════════════════════════
