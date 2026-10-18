@@ -156,8 +156,15 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
   it('技能指令启用 → {skill_instructions} 显示在提示词区域；停用 → 不再显示（联动）', async () => {
     render(<PromptLab />)
 
-    // 载入完成且后端模板已回填：启用态 ⇒ 提示词区域出现该节发出内容
-    await waitFor(() => {
+    // 载入完成且后端模板已回填：启用态 ⇒ 提示词区域出现该节发出内容。
+    // 【为什么用 vi.waitFor 而不是 RTL 的 waitFor】这一步等的是**真实 fetch 链**（GET 配置 →
+    // POST 预览 → setTemplate），下一步等的是组件内 600ms 防抖（用假定时器推进）。两段各自
+    // 用对的时序工具：这里让 vitest 用真实定时器轮询"DOM 出现这段文案"，不把它塞进 act；
+    // 下一步由测试显式推进假定时器。没有任何一段是固定预算的 sleep。
+    //   代价（明写，免得后人当新问题查）：本文件这些异步更新不再被 act 包住，会多出一条
+    //   "not wrapped in act" 警告（全量跑已有 240 条同类）；换来的是这一步的等待与后面的
+    //   假定时器段互不牵扯。
+    await vi.waitFor(() => {
       expect(promptArea()?.textContent ?? '').toContain('{skill_instructions}')
     })
     // 面板项卡片内也同步显示「发出内容」（IdentityPromptPanel.tsx:209）
@@ -180,6 +187,17 @@ describe('需求②：提示词实验室（顶栏 / 身份提示词联动）', (
     vi.useFakeTimers()
     try {
       fireEvent.click(toggle)
+      // 【判据前移：点击必须**当场**生效】点击 → onToggle → setSections 是同步链路，act 会把它
+      // 冲刷掉，所以这里不需要任何等待：`aria-pressed` 必须立刻翻成 false。放在推进定时器
+      // **之前**断言，是为了把"点击被吞掉"和"防抖没重建"两种坏法分开 ——
+      // 2026-10-18 的 CI flake（run 39083064797 attempt 1，红在下面的模板断言）实际是前者：
+      // onToggle 读到尚未被 passive effect 同步的 sectionsRef（空对象）后静默早退，于是模板
+      // 仍是全启用；失败信息却指向"模板没重建"，把人往防抖那条线上带。根因已修在
+      // identityPrompt.ts（ref 改用 useLayoutEffect 同步），这条断言负责**钉住它不再回来**。
+      expect(
+        toggle.getAttribute('aria-pressed'),
+        '点击没有生效：开关状态仍为启用（onToggle 早退 / 事件被吞），后面的模板断言会因此误报',
+      ).toBe('false')
       await act(async () => {
         await vi.advanceTimersByTimeAsync(2000)
       })
