@@ -9,7 +9,7 @@
  * 预览/真实输出所注入的 system message 由服务端模板引擎生成（本地不再维护
  * 一套与线上脱节的「7 段沙箱组件」——深度数据合并）。
  */
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
 import { hubGet, hubPost } from '../hub/components/ui'
 
 import {
@@ -264,7 +264,16 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mountedRef = useRef(true)
   const sectionsRef = useRef(sections)
-  useEffect(() => {
+  // 【为什么是 useLayoutEffect 而不是 useEffect】sectionsRef 是「最新配置」的镜像，供
+  // onToggle / onEditContent 在**不重建回调**的前提下读当前值（回调要稳定，否则每次输入
+  // 都会重建整张卡片的 handler）。passive effect 在提交**之后**才跑，于是存在一段
+  // 「配置刚到、卡片已渲染、effect 还没跑」的窗口：此时第一次点击进入 onToggle 会读到空
+  // ref（cur 为 undefined）而**静默早退** —— 不报错、不发请求，开关也不翻。
+  //   实证（2026-10-18）：CI run 39083064797 attempt 1 在 promptLabRequirements 的
+  //   「技能指令联动」上红，失败形态是"模板仍是全启用"；本机加探针复现到同一形态，日志
+  //   为 `key=skill_instructions refKeys=[] found=false` —— 即点击进了 handler，但 ref
+  //   仍是空对象。layout effect 在提交阶段同步执行，该窗口不复存在。
+  useLayoutEffect(() => {
     sectionsRef.current = sections
   }, [sections])
 
