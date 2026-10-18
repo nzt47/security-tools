@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react'
 import { BookOpen, Brain, Database, Lightbulb, RefreshCw } from 'lucide-react'
 import { Card, PageHeader, StatCard, hubGet } from '../components/ui'
+import { MemoryGovernancePanel } from './memory-governance'
 import { getEnvelope } from '@/api/envelope'
 import { EXPERIENCE_STATS, KNOWLEDGE_CARDS, MEMORY_OVERVIEW, VECTOR_STATS } from '@/api/endpoints'
 
@@ -191,6 +192,17 @@ export default function MemoryStructure() {
           压缩与窗口水位见「会话与配置 · 会话任务」底部的上下文面板。
         </p>
       </Card>
+
+      {/* ── 治理视图（只读）：原「治理面板 · 记忆技能库」，2026-10-18 并入 ────── */}
+      <div className="mt-6">
+        <h3 className="text-[13px] font-medium text-slate-200">治理视图（只读）· 召回优先级与四层清单</h3>
+        <p className="mb-3 mt-1 text-[11px] text-slate-500">
+          从「治理面板」并入这里：四层记忆（策略/事实/偏好/工作）的跨层清单（<b>内容已脱敏</b>）+
+          U5 召回优先级契约，走审计口径 /api/cp/memory/skills。此处<b>只呈现</b>，不改变召回结果；
+          写入 / 压缩 / 遗忘候选的处置仍在「向量记忆」「记忆运维」两个 Tab。
+        </p>
+        <MemoryGovernancePanel />
+      </div>
     </div>
   )
 }
