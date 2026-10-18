@@ -127,6 +127,24 @@ class TestBuiltinExtensions:
         assert "memory_summary" in skill_ids
         assert "emotion_expression" in skill_ids
 
+    def test_discover_builtin_skills_reports_registry_state(self):
+        """内置技能的"启用态"必须来自 SkillRegistry（与运行时同一个事实源）。
+
+        【回归什么】2026-10-18 实测：这 7 个 persona 技能在文件轨 enabled=true、运行时
+        一直在注入，但扩展存储没有安装记录 ⇒ 市场把它们显示成"可安装"（自相矛盾）。
+        修法：discover_available_skills 补 enabled / managed_in，UI 据此显示"已启用"。
+        """
+        import agent.extensions.skills_installer as mod
+
+        # discover 只读 registry 与 ~/.claude/skills，不碰扩展存储 ⇒ store 可为 None（鸭子类型）
+        inst = mod.SkillsInstaller(store=None)
+        data = inst.discover_available_skills()
+        rows = {r["id"]: r for r in data["builtin_skills"]}
+        assert rows, "内置技能清单不应为空"
+        for row in rows.values():
+            assert "enabled" in row and isinstance(row["enabled"], bool)
+            assert row.get("managed_in") == "skill-center"
+
     def test_builtin_mcp(self):
         """测试内置 MCP"""
         mcps = BUILTIN_EXTENSIONS["mcp"]

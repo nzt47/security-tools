@@ -55,6 +55,10 @@ interface BuiltinRow {
   description?: string
   type?: string
   installed?: boolean
+  /** 启用态事实源＝SkillRegistry（后端 discover 补的字段）；仅 builtin_skills 有意义 */
+  enabled?: boolean
+  /** 该内置项的"管理归属"（如 skill → skill-center） */
+  managed_in?: string
   builtin?: boolean
   command?: string
   args?: string[]
@@ -365,7 +369,10 @@ export default function ExtensionsMarket() {
       {/* ── 可安装（内置） ── */}
       <div className="mb-3 grid gap-2 lg:grid-cols-3">
         {([
-          ['builtin_skills', '内置技能'],
+          // 【2026-10-18】改叫"内置行为"：它们是随仓库分发的 persona 提示片段（注入 system prompt +
+          // 少量运行期门），状态事实源是 SkillRegistry（技能中心），不是扩展的安装记录 ——
+          // 叫"内置技能"会与技能中心里的 skill.md 资产混淆（"两个都叫技能"那次的结论）。
+          ['builtin_skills', '内置行为（技能中心管理）'],
           ['builtin_mcp', '内置 MCP 服务'],
           ['builtin_channels', '内置通道'],
         ] as const).map(([key, label]) => (
@@ -383,14 +390,18 @@ export default function ExtensionsMarket() {
                   <div key={type + id} className="flex items-center gap-1.5 rounded border border-slate-800 bg-slate-950/60 px-2 py-1">
                     <span className="font-mono text-[10px] text-cyan-300">{id}</span>
                     <span className="truncate text-[11px] text-slate-300">{b.name ?? ''}</span>
-                    <span className="ml-auto">
-                      {b.installed
-                        ? <span className="text-[10px] text-emerald-400">已装</span>
-                        : (
-                          <button type="button" className={BTN} onClick={() => void install(type, id)} disabled={loading} aria-label={'安装 ' + id}>
-                            {busy === busyKey ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
-                          </button>
-                        )}
+                    <span className="ml-auto flex items-center gap-1.5">
+                      {/* 启用态以 SkillRegistry 为准（后端 enabled 字段）：已启用者不给"安装"按钮，
+                          否则会出现"明明在注入、界面却说可安装"的自相矛盾 */}
+                      {b.enabled
+                        ? <span className="text-[10px] text-emerald-400">已启用</span>
+                        : b.installed
+                          ? <span className="text-[10px] text-slate-400">已装（未启用）</span>
+                          : (
+                            <button type="button" className={BTN} onClick={() => void install(type, id)} disabled={loading} aria-label={'安装 ' + id}>
+                              {busy === busyKey ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
+                            </button>
+                          )}
                     </span>
                   </div>
                 )
