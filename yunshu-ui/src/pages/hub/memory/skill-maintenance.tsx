@@ -7,6 +7,9 @@
  *   cleanup/unused      (POST)  物理删除无用技能（dry_run 默认 true）
  *   auto-merge          (POST)  自动合并高相似对（Jaccard ≥ 阈值）
  *   merge               (POST)  合并指定两个技能（可回滚，走备份）
+ *   queue               (GET)   外部导入·待人工放行队列
+ *   <id>/review         (POST)  对一条外来草稿跑审核（重复/安全/质量）
+ *   <id>/publish        (POST)  放行（强制审核链；阻断需先解除）
  *   upload              (POST)  上传 zip 技能包（multipart）
  *   import/claude       (GET)   扫描 ~/.claude/skills（只读预览）
  *   import/claude       (POST)  Claude 技能包 → manifest.json + skill.md → 落库
@@ -20,8 +23,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  AlertTriangle, Boxes, CheckCircle2, Download, FileUp, Loader2, RefreshCw,
-  Sparkles, Trash2, Wand2,
+  AlertTriangle, Boxes, CheckCircle2, Download, FileUp, Inbox, Loader2,
+  RefreshCw, Sparkles, Trash2, Wand2,
 } from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import { authHeader } from '../../../lib/apiToken'
@@ -33,8 +36,11 @@ import {
   SKILLS_MGMT_CLEANUP_REPORT,
   SKILLS_MGMT_CLEANUP_UNUSED,
   SKILLS_MGMT_MERGE,
+  SKILLS_MGMT_QUEUE,
   SKILLS_MGMT_THREE_LAYER_SUMMARY,
   SKILLS_MGMT_UPLOAD,
+  skillPublish,
+  skillReview,
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -130,6 +136,28 @@ interface ClaudeImportResult {
   failed?: { id?: string; error?: string }[]
 }
 
+/** 外部导入·待放行队列的一行（GET /api/skills-mgmt/queue） */
+interface QueueRow {
+  id?: string
+  name?: string
+  description?: string
+  source?: string
+  status?: string
+  created_at?: string
+  review?: {
+    auto_assessed?: boolean
+    review_verdict?: string
+    blocked?: boolean
+  } | null
+}
+
+interface QueueResult {
+  ok?: boolean
+  error?: string
+  total?: number
+  items?: QueueRow[]
+}
+
 function Section({ title, desc, children, extra }: {
   title: string; desc?: string; children: React.ReactNode; extra?: React.ReactNode
 }) {
@@ -171,6 +199,7 @@ export default function SkillMaintenance() {
   const [uploadInfo, setUploadInfo] = useState('')
   const [claudeScan, setClaudeScan] = useState<ClaudeScan | null>(null)
   const [claudeResult, setClaudeResult] = useState<ClaudeImportResult | null>(null)
+  const [queue, setQueue] = useState<QueueResult | null>(null)
 
   // 真删确认（两条独立的勾选：孤儿与无用是两把不同的扫帚）
   const [confirmOrphans, setConfirmOrphans] = useState(false)
@@ -208,7 +237,38 @@ export default function SkillMaintenance() {
     } catch (e) { fail('读取清理总览失败', e) } finally { setBusy('') }
   }, [])
 
-  useEffect(() => { void loadLayers(); void loadReport() }, [loadLayers, loadReport])
+  const loadQueue = useCallback(async () => {
+    setBusy('queue'); setErr('')
+    try {
+      const r = await hubGet<QueueResult>(SKILLS_MGMT_QUEUE + '?limit=100')
+      if (r?.ok === false) { bad('读取待放行队列失败', r); setQueue(null) } else setQueue(r)
+    } catch (e) { fail('读取待放行队列失败', e) } finally { setBusy('') }
+  }, [])
+
+  useEffect(() => { void loadLayers(); void loadReport(); void loadQueue() }, [loadLayers, loadReport, loadQueue])
+
+  /** 对一条外来草稿跑审核（重复/安全/质量）；结果直接反映在队列行的评审列上 */
+  const reviewQueued = async (id: string) => {
+    setBusy('queue-review:' + id); setErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string }>(skillReview(id), {})
+      if (r?.ok === false) { bad('审核失败', r); return }
+      setMsg('已审核 ' + id + '（评审结果见队列）')
+      await loadQueue()
+    } catch (e) { fail('审核失败', e) } finally { setBusy('') }
+  }
+
+  /** 放行：走强制审核链（阻断的条目按钮不可点，不做"强制豁免"的默认路径） */
+  const publishQueued = async (id: string) => {
+    setBusy('queue-publish:' + id); setErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string }>(skillPublish(id))
+      if (r?.ok === false) { bad('放行失败', r); return }
+      setMsg('已放行 ' + id)
+      await loadQueue()
+      await loadReport()
+    } catch (e) { fail('放行失败', e) } finally { setBusy('') }
+  }
 
   const runOrphans = async (dryRun: boolean) => {
     setBusy('orphans'); setErr(''); setMsg(''); setOrphanResult(null)
@@ -594,6 +654,69 @@ export default function SkillMaintenance() {
                 {(claudeResult.failed ?? []).map((f) => (
                   <span key={f.id}>{(f.id ?? '?') + '：' + (f.error ?? '未知错误')}</span>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Section>
+
+      {/* ── 外部导入 · 待放行 ── */}
+      <Section
+        title={'外部导入 · 待放行（' + (queue?.items?.length ?? 0) + '）'}
+        desc="github / url / local / registry / external_agent 来的技能先落成 draft，人工审核通过后才能发布"
+        extra={
+          <button type="button" className={BTN} onClick={() => void loadQueue()} disabled={loading} aria-label="刷新待放行队列">
+            {busy === 'queue' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
+          </button>
+        }
+      >
+        {!queue && busy !== 'queue' && <div className="text-[11px] text-slate-500">未取到队列。</div>}
+        {queue && (queue.items?.length ?? 0) === 0 && (
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            <Inbox size={11} /> 队列为空 —— 没有待放行的外来技能。
+          </div>
+        )}
+        {(queue?.items?.length ?? 0) > 0 && (
+          <div className="flex flex-col gap-1">
+            {(queue?.items ?? []).map((q) => {
+              const id = q.id ?? ''
+              const blocked = q.review?.blocked === true
+              const verdict = q.review?.review_verdict || ''
+              return (
+                <div key={'queue-' + id} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                  <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+                  <span className="text-slate-300">{q.name ?? ''}</span>
+                  <span className="truncate text-[10px] text-slate-500">{q.source ?? ''}</span>
+                  <span className={'text-[10px] ' + (blocked ? 'text-red-300' : verdict ? 'text-emerald-300' : 'text-slate-400')}>
+                    {blocked ? '评审阻断' : verdict ? '评审：' + verdict : '未审核'}
+                  </span>
+                  <span className="ml-auto flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      className={BTN_EM}
+                      onClick={() => void reviewQueued(id)}
+                      disabled={loading}
+                      aria-label={'审核外来技能 ' + id}
+                    >
+                      {busy === 'queue-review:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 审核
+                    </button>
+                    <button
+                      type="button"
+                      className={BTN}
+                      onClick={() => void publishQueued(id)}
+                      disabled={loading || blocked}
+                      aria-label={'放行外来技能 ' + id}
+                      title={blocked ? '评审阻断：先处理评审问题再放行（UI 不提供 force 豁免）' : '走强制审核链发布'}
+                    >
+                      {busy === 'queue-publish:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 放行
+                    </button>
+                  </span>
+                </div>
+              )
+            })}
+            {(queue?.items ?? []).some((q) => q.review?.blocked) && (
+              <div className="text-[10px] text-red-300/80">
+                阻断项不放行：先在技能详情里处理评审问题；`force` 豁免不在 UI 默认路径上（避免"点一下绕过安全闸"）。
               </div>
             )}
           </div>
