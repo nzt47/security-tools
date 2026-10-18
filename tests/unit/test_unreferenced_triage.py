@@ -14,9 +14,19 @@ import importlib
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+
+# 【2026-10-19 CI 实测超时】本模块的用例会走 `route_ui_coverage.classify()` 全仓扫描
+# （662 个 py 文件逐个 ast.parse 取 docstring）：CI 上实测 **54.2s 通过 / 60.1s 超时**，
+# 正好压在全局 `--timeout=60` 边界上 ⇒ 同一份代码两次 run 一次绿一次红。
+# 按 pytest.ini 的既定约定「极慢测试应显式 @pytest.mark.timeout(N) 覆盖」把本模块放宽到 180s：
+# 断言一字未动，只是给"扫描型"测试留出与机器负载无关的余量。
+pytestmark = pytest.mark.timeout(180)
 
 
 def _mod():

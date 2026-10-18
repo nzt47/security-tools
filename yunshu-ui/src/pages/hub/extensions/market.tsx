@@ -14,12 +14,11 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import {
-  CheckCircle2, Download, Loader2, Package, Plug, RefreshCw, Search, Send,
+  CheckCircle2, Download, Loader2, Package, Plug, RefreshCw, Search,
   Trash2, TriangleAlert,
 } from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
-  EXTENSIONS_CHANNELS_SEND,
   EXTENSIONS_CONFIGURE,
   EXTENSIONS_DISCOVER,
   EXTENSIONS_INSTALL,
@@ -100,9 +99,6 @@ export default function ExtensionsMarket() {
   const [configTarget, setConfigTarget] = useState<ExtRow | null>(null)
   const [configText, setConfigText] = useState('')
 
-  const [channelId, setChannelId] = useState('')
-  const [channelMsg, setChannelMsg] = useState('')
-
   const fail = (label: string, e: unknown) => setErr(label + '：' + (e instanceof Error ? e.message : String(e)))
   const bad = (label: string, r?: { error?: string; message?: string }) =>
     setErr(label + '：' + (r?.error || r?.message || '后端返回 ok=false'))
@@ -137,7 +133,7 @@ export default function ExtensionsMarket() {
       const r = await hubGet<Record<string, unknown>>(EXTENSIONS_DISCOVER)
       if ((r as { ok?: boolean })?.ok === false) { bad('读取可安装清单失败', r as { error?: string }); return }
       const out: Record<string, BuiltinRow[]> = {}
-      for (const key of ['builtin_skills', 'builtin_channels']) {
+      for (const key of ['builtin_skills']) {
         out[key] = Array.isArray(r?.[key]) ? (r[key] as BuiltinRow[]) : []
       }
       setDiscover(out)
@@ -246,19 +242,6 @@ export default function ExtensionsMarket() {
     } catch (e) { fail('保存配置失败', e) } finally { setBusy('') }
   }
 
-  const sendChannel = async () => {
-    setBusy('send'); setErr(''); setMsg('')
-    try {
-      const r = await hubPost<{ ok?: boolean; error?: string; message?: string }>(EXTENSIONS_CHANNELS_SEND, {
-        channel_id: channelId.trim(),
-        message: channelMsg.trim(),
-      })
-      if (r?.ok === false) { bad('发送失败', r); return }
-      setMsg('已发送' + (r?.message ? '：' + r.message : ''))
-      setChannelMsg('')
-    } catch (e) { fail('发送失败', e) } finally { setBusy('') }
-  }
-
   const loading = busy !== ''
 
   return (
@@ -266,7 +249,7 @@ export default function ExtensionsMarket() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold text-slate-100">扩展市场</h2>
         <span className="text-[11px] text-slate-500">
-          技能 / MCP 服务 / 通道 / 插件包 —— 内置包与社区索引都在这里装
+          技能 / MCP 服务 / 通道 / 插件包 —— 发现与浏览（安装入口按类型在各自页面）
         </span>
         <div className="ml-auto flex items-center gap-1.5">
           <button type="button" className={BTN} onClick={() => { void loadList(); void loadInstalled(); void loadDiscover(); void loadRecommend() }} disabled={loading} aria-label="刷新扩展概览">
@@ -378,13 +361,17 @@ export default function ExtensionsMarket() {
       <div className="mb-2 text-[10px] text-slate-500">
         内置 MCP 服务的发现与安装已并入 <span className="text-cyan-400">工具调用 · MCP 系统</span>（装完就地出现在服务表）。
       </div>
+      {/* 【2026-10-18】内置通道已并入「系统管理 · 消息中心」：通道是**消息发送**通道，
+          语义在那里；不并入网络配置（那是代理/网络环境）。 */}
+      <div className="mb-2 text-[10px] text-slate-500">
+        内置通道的安装与发送已并入 <span className="text-cyan-400">系统管理 · 消息中心</span>（那里标注了"未接线"）。
+      </div>
       <div className="mb-3 grid gap-2 lg:grid-cols-2">
         {([
           // 【2026-10-18】改叫"内置行为"：它们是随仓库分发的 persona 提示片段（注入 system prompt +
           // 少量运行期门），状态事实源是 SkillRegistry（技能中心），不是扩展的安装记录 ——
           // 叫"内置技能"会与技能中心里的 skill.md 资产混淆（"两个都叫技能"那次的结论）。
           ['builtin_skills', '内置行为（技能中心管理）'],
-          ['builtin_channels', '内置通道'],
         ] as const).map(([key, label]) => (
           <div key={key} className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
             <div className="mb-2 flex items-center gap-2">
@@ -393,7 +380,7 @@ export default function ExtensionsMarket() {
             </div>
             <div className="flex flex-col gap-1">
               {(discover[key] ?? []).map((b) => {
-                const type = key === 'builtin_skills' ? 'skill' : 'channel'
+                const type = 'skill'
                 const id = b.id ?? ''
                 const busyKey = 'install:' + type + ':' + id
                 return (
@@ -495,28 +482,6 @@ export default function ExtensionsMarket() {
             })}
             {recs.length === 0 && <span className="text-[10px] text-slate-600">—</span>}
           </div>
-        </div>
-      </div>
-
-      {/* ── 通道发送 ── */}
-      <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
-        <div className="mb-2 flex items-center gap-2">
-          <Send size={12} className="text-cyan-400" />
-          <h3 className="text-xs font-semibold text-slate-200">通过通道发消息</h3>
-          <span className="text-[10px] text-slate-500">需要已安装并启用的通道（webhook / SMTP 等）</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <input className={INPUT + ' w-52'} placeholder="channel_id" value={channelId} onChange={(e) => setChannelId(e.target.value)} aria-label="通道 id" />
-          <input className={INPUT + ' w-72'} placeholder="消息内容" value={channelMsg} onChange={(e) => setChannelMsg(e.target.value)} aria-label="通道消息内容" />
-          <button
-            type="button"
-            className={BTN_EM}
-            onClick={() => void sendChannel()}
-            disabled={loading || channelId.trim() === '' || channelMsg.trim() === ''}
-            aria-label="发送通道消息"
-          >
-            {busy === 'send' ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} 发送
-          </button>
         </div>
       </div>
 

@@ -43,7 +43,6 @@ function baseGets() {
       return {
         ok: true,
         builtin_skills: [{ id: 'memory_summary', name: '记忆摘要', installed: false }],
-        builtin_channels: [{ id: 'webhook', name: 'Webhook 通道', installed: true }],
       }
     }
     if (url.startsWith('/api/extensions/market/recommend')) {
@@ -90,7 +89,6 @@ describe('ExtensionsMarket', () => {
         return {
           ok: true,
           builtin_skills: [{ id: 'memory_summary', name: '记忆摘要', installed: false, enabled: true, managed_in: 'skill-center' }],
-          builtin_channels: [],
         }
       }
       if (url.startsWith('/api/extensions/market/recommend')) return { ok: true, recommendations: [] }
@@ -168,21 +166,17 @@ describe('ExtensionsMarket', () => {
     expect(await screen.findByText(/社区索引已刷新：12/)).toBeTruthy()
   })
 
-  it('通道发送：缺 id 或内容时按钮不可用', async () => {
+  it('内置通道与发送框已迁出市场，改成指路消息中心（禁止双入口）', async () => {
     baseGets()
-    api.hubPost.mockResolvedValue({ ok: true })
     render(<ExtensionsMarket />)
     await screen.findByText('self_reflection')
 
-    const send = screen.getByRole('button', { name: '发送通道消息' }) as HTMLButtonElement
-    expect(send.disabled).toBe(true)
-    fireEvent.change(screen.getByLabelText('通道 id'), { target: { value: 'webhook' } })
-    fireEvent.change(screen.getByLabelText('通道消息内容'), { target: { value: 'hello' } })
-    expect(send.disabled).toBe(false)
-    fireEvent.click(send)
-    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/extensions/channels/send', {
-      channel_id: 'webhook', message: 'hello',
-    }))
+    // 分组标题（"内置通道（n）"）与发送框都不该再出现在市场
+    expect(screen.queryByText(/^内置通道（/)).toBeNull()
+    expect(screen.queryByRole('button', { name: '发送通道消息' })).toBeNull()
+    expect(screen.queryByLabelText('通道 id')).toBeNull()
+    // 替代入口必须可发现：指到 系统管理 · 消息中心
+    expect(screen.getByText(/系统管理 · 消息中心/)).toBeTruthy()
   })
 
   it('不再有「Claude 技能」类型：改成指路技能中心的导入入口（不能只删组）', async () => {
