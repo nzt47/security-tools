@@ -1,0 +1,16 @@
+fix(skills): 关闭新入口的 4 条 CodeQL 告警（路径注入 / 异常文本外泄）
+
+PR #1211 的 CodeQL 检查报 4 条 new alert（1 high + 3 medium），全部来自新代码：
+
+1) py/path-injection @ claude_import.py:121（high）
+   根因：GET/POST 接受 ?base_dir= / body.base_dir，等于给「读本机任意路径」
+   开了一个 HTTP 入口。改为**固定** ~/.claude/skills（扫描目录不来自请求），
+   base_dir 参数只保留给测试/内部调用。
+
+2) py/stack-trace-exposure ×3 @ routes_skills_mgmt.py（363/389/393）
+   根因：新增的两个 handler 用 {"error": str(e)} 回写异常文本。
+   改为 logger.exception(...) + 固定文案（"扫描/导入失败，详见服务端日志"）。
+   注：同文件既有路由是同一写法（历史告警），但门禁只算本次新增行，
+   故新代码按"不外泄异常文本"的规范写。
+
+测试：test_claude_skill_import.py 10 passed 不变。

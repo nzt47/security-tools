@@ -16,6 +16,8 @@ Claude 技能包只有 `SKILL.md`，也没有 manifest —— 直接把目录丢
 
 【边界（如实标注）】
 · 只读 `<base>/<skill-dir>/SKILL.md`，对源目录**只读不写**（不删、不改名）；
+· HTTP 路由**不接受**目录参数（固定 ~/.claude/skills）；`base_dir` 仅供测试/内部调用，
+  否则等于开一个「读本机任意路径」的入口（CodeQL py/path-injection 实测拦过）；
 · 只带 `scripts/*.py`（与 install_from_zip 的收集口径一致），其余文件不搬；
 · 逐条返回 ok/error：单个技能失败不影响其它技能。
 """
