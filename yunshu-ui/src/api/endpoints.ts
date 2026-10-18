@@ -108,6 +108,8 @@ export const WORKFLOW_LEARNING_HEALTH = '/api/workflow-learning/health';
 export const WORKFLOW_LEARNING_LEARN = '/api/workflow-learning/learn';
 export const WORKFLOW_LEARNING_MATCH = '/api/workflow-learning/match';
 export const WORKFLOW_LEARNING_TRY_EXECUTE = '/api/workflow-learning/try-execute';
+// 可转换成 Skill 的工作流（满足质量门控且未转换过）
+export const WORKFLOW_LEARNING_CONVERTIBLE = '/api/workflow-learning/convertible';
 export const WORKFLOW_LEARNING_WORKFLOWS = '/api/workflow-learning/workflows';
 
 export const workflowLearnExecute = (wfId: string) => `/api/workflow-learning/execute/${encodeURIComponent(wfId)}`;
@@ -119,6 +121,8 @@ export const workflowLearnPriority = (wfId: string) => `/api/workflow-learning/w
 //  会话 / 工作区（/api/sessions*）
 // ═══════════════════════════════════════════════════════════════
 export const SESSIONS = '/api/sessions';
+// 会话交接文档（LLM 压缩成 Markdown + 脱敏，落盘临时目录）
+export const HANDOFF = '/api/handoff';
 export const SESSIONS_CURRENT = '/api/sessions/current';
 export const SESSION_GROUPS = '/api/session-groups';
 export const WORKSPACES = '/api/workspaces';
@@ -143,6 +147,8 @@ export const sessionAgent = (id: string) => `/api/sessions/${encodeURIComponent(
 // ═══════════════════════════════════════════════════════════════
 //  知识库（/api/knowledge）
 // ═══════════════════════════════════════════════════════════════
+// 新增知识文档（legacy 记忆/向量域端点；content 必填）
+export const KNOWLEDGE_ADD = '/api/knowledge/add';
 export const KNOWLEDGE_CARDS = '/api/knowledge/cards';
 export const KNOWLEDGE_GRAPH = '/api/knowledge/graph';
 export const KNOWLEDGE_INDEX = '/api/knowledge/index';
@@ -327,6 +333,10 @@ export const MODULES_TOPOLOGY = '/api/modules/topology';
 export const modulesDetail = (id: string) => `/api/modules/${encodeURIComponent(id)}/detail`;
 export const MODULES_ACTIONS = (id: string) => `/api/modules/${encodeURIComponent(id)}/actions`;
 export const STATUS = '/api/status';
+// 运行模式（label / description / can_accept_tasks）
+export const MODE = '/api/mode';
+// 学习有效性度量（评估样本 + KPI）
+export const LEARNING_METRICS = '/api/learning/metrics';
 export const PANORAMA = '/api/panorama';
 export const SENSORS = '/api/sensors';
 

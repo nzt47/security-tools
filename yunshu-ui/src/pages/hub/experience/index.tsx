@@ -11,6 +11,7 @@
  * 【UI 纪律】工作台内扩展，不建独立 Web App；复用 pages/hub/components/ui 的
  * Card / StatCard / PageHeader / Loading / ErrorBox / Badge。
  */
+import LearningMetrics from './LearningMetrics'
 import { useCallback, useEffect, useState } from 'react'
 import { Search, RefreshCw, Undo2, CheckCircle2, XCircle, Archive } from 'lucide-react'
 import { Badge, Card, ErrorBox, Loading, PageHeader, StatCard } from '../components/ui'
@@ -276,6 +277,7 @@ export default function ExperiencePanel() {
           )}
         </Card>
       </div>
+      <LearningMetrics />
     </div>
   )
 }

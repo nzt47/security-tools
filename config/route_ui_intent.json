@@ -1132,6 +1132,26 @@
       "intent": "should_not_be_in_ui",
       "area": "LLM 监控",
       "note": "与列表端点同构：列表返回的就是 asdict(record)（scripts/probe_prefix_cache_interaction.py:20 亦记此点），详情只按 id 取同一个对象，界面拿不到额外信息；记录被环形缓冲淘汰后前端也无从知道 id。该端点的实际消费方是脚本/命令行。"
+    },
+    "/api/approval/<record_id>/approve": {
+      "intent": "should_not_be_in_ui",
+      "area": "审批中心",
+      "note": "审批不是工作台的一页，而是**刻意隔离的独立控制台**：routes_approval.py 的模块注释写明「会话绑定（禁分享式链接）／destructive 二次认证／前端 DOM 隔离」三条设计，页面壳由 GET /api/approval/console + templates/approval_console.html + static/js/approval_console.js 承担，approve 只在那个隔离上下文里被调用。把它搬进 React 工作台会拆掉这三条隔离。"
+    },
+    "/api/approval/<record_id>/reject": {
+      "intent": "should_not_be_in_ui",
+      "area": "审批中心",
+      "note": "同上：拒绝与批准同属隔离控制台（DOM 隔离 + 会话绑定 + 二次认证），页面壳 templates/approval_console.html 与 static/js/approval_console.js 是它唯一的 UI 消费方。"
+    },
+    "/api/voice/listen": {
+      "intent": "should_not_be_in_ui",
+      "area": "语音",
+      "note": "它录的是**服务器那台机器的麦克风**：api_voice_listen 直接调 _voice_manager.listen(duration)，用宿主 SpeechRecognition。浏览器里点一下等于让服务器录音，既不是用户的声音、也是隐私事故。网页侧要采音只能走 MediaRecorder/Web Speech 并配套上传端点（当前不存在）。"
+    },
+    "/api/voice/status": {
+      "intent": "should_not_be_in_ui",
+      "area": "语音",
+      "note": "与 listen 同一套**宿主侧**语音栈的就绪状态（stt/tts 引擎在服务器上）。工作台是浏览器应用，展示\"服务器麦克风/扬声器可用性\"对使用者没有可操作含义，只会让人以为页面上能说话。"
     }
   }
 }

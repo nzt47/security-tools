@@ -14,6 +14,7 @@
  * 组件：复用 src/components/Knowledge/{StatusBadge,CardDetail,CardForm}（自带深色 kb- 样式），
  *   页面外壳按工作台惯例（p-6 + hub 通用组件，外层 ContentPanel 已提供滚动区）。
  */
+import KnowledgeAddPanel from './KnowledgeAddPanel'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BookOpen, Plus, RefreshCw, Search } from 'lucide-react'
 import type { Card, CardDetail, CardInput, HealthReport, KnowledgeHit } from '../../../api/knowledge-types'
@@ -682,6 +683,7 @@ function LintSection({ title, children }: { title: string; children: ReactNode }
     <div className="mt-4">
       <div className="mb-1.5 text-xs font-semibold text-slate-400">{title}</div>
       <div className="space-y-1 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">{children}</div>
+      <KnowledgeAddPanel />
     </div>
   )
 }

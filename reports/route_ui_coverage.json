@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-18T10:12:25",
+  "generated_at": "2026-10-18T11:02:17",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 384,
-    "cli_script": 14,
+    "ui": 389,
+    "cli_script": 13,
     "runtime_only": 10,
-    "unreferenced": 56,
+    "unreferenced": 52,
     "live_by_category": {
-      "ui": 384,
-      "cli_script": 14,
+      "ui": 389,
+      "cli_script": 13,
       "runtime_only": 10,
-      "unreferenced": 56
+      "unreferenced": 52
     },
     "by_intent": {
-      "should_be_in_ui": 377,
-      "should_not_be_in_ui": 86,
+      "should_be_in_ui": 373,
+      "should_not_be_in_ui": 90,
       "unclassified": 1
     },
     "by_domain": {
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 391,
+  "frontend_endpoints": 396,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -49,116 +49,7 @@
   ],
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
-  "pending_ui": [
-    {
-      "path": "/api/approval/<record_id>/approve",
-      "norm": "/api/approval/*/approve",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "审批中心",
-      "where": [
-        "agent/server_routes/routes_approval.py:360"
-      ]
-    },
-    {
-      "path": "/api/approval/<record_id>/reject",
-      "norm": "/api/approval/*/reject",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "审批中心",
-      "where": [
-        "agent/server_routes/routes_approval.py:365"
-      ]
-    },
-    {
-      "path": "/api/handoff",
-      "norm": "/api/handoff",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "会话管理",
-      "where": [
-        "plugins/chat.py:756"
-      ]
-    },
-    {
-      "path": "/api/knowledge/add",
-      "norm": "/api/knowledge/add",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "知识库",
-      "where": [
-        "plugins/memory.py:690"
-      ]
-    },
-    {
-      "path": "/api/learning/metrics",
-      "norm": "/api/learning/metrics",
-      "methods": [
-        "GET"
-      ],
-      "category": "cli_script",
-      "area": "学习度量",
-      "where": [
-        "agent/learning_metrics_api.py:27"
-      ]
-    },
-    {
-      "path": "/api/mode",
-      "norm": "/api/mode",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "运行状态",
-      "where": [
-        "plugins/status.py:311"
-      ]
-    },
-    {
-      "path": "/api/voice/listen",
-      "norm": "/api/voice/listen",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "语音",
-      "where": [
-        "plugins/chat.py:83"
-      ]
-    },
-    {
-      "path": "/api/voice/status",
-      "norm": "/api/voice/status",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "语音",
-      "where": [
-        "plugins/chat.py:120"
-      ]
-    },
-    {
-      "path": "/api/workflow-learning/convertible",
-      "norm": "/api/workflow-learning/convertible",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "工作流学习",
-      "where": [
-        "agent/server_routes/routes_workflow_learning.py:308"
-      ]
-    }
-  ],
+  "pending_ui": [],
   "entries": [
     {
       "path": "/",
@@ -412,10 +303,10 @@
       ],
       "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "审批中心",
-      "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": true,
+      "intent_note": "审批不是工作台的一页，而是**刻意隔离的独立控制台**：routes_approval.py 的模块注释写明「会话绑定（禁分享式链接）／destructive 二次认证／前端 DOM 隔离」三条设计，页面壳由 GET /api/approval/console + templates/approval_console.html + static/js/approval_console.js 承担，approve 只在那个隔离上下文里被调用。把它搬进 React 工作台会拆掉这三条隔离。",
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -435,10 +326,10 @@
       ],
       "description": "审批 HTTP 面（v7.2 §5.7⑦ + §7.0）— TASK-S4-01",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "审批中心",
-      "intent_note": "审批中心：待办/裁决/第二因素/分享链接/控制台。",
-      "ui_pending": true,
+      "intent_note": "同上：拒绝与批准同属隔离控制台（DOM 隔离 + 会话绑定 + 二次认证），页面壳 templates/approval_console.html 与 static/js/approval_console.js 是它唯一的 UI 消费方。",
+      "ui_pending": false,
       "domain": "治理与审批"
     },
     {
@@ -3395,11 +3286,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:756"
@@ -3409,7 +3302,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "生成会话交接文档。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -3930,11 +3823,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/memory.py:690"
@@ -3944,7 +3839,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "知识库",
       "intent_note": "知识库：卡片/图谱/index/lint/融合检索。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "记忆与知识"
     },
     {
@@ -4115,11 +4010,13 @@
       "methods": [
         "GET"
       ],
-      "category": "cli_script",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/learning_metrics_api.py",
         "scripts/demo_learning_metrics.py"
@@ -4132,7 +4029,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "学习度量",
       "intent_note": "学习有效性度量查询。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "认知与学习"
     },
     {
@@ -4789,11 +4686,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/status.py:311"
@@ -4803,7 +4702,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "运行状态",
       "intent_note": "系统模式切换。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -10634,10 +10533,10 @@
       ],
       "description": "语音识别接口 - 从麦克风捕获语音并转换为文本",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "语音",
-      "intent_note": "语音：识别/状态。",
-      "ui_pending": true,
+      "intent_note": "它录的是**服务器那台机器的麦克风**：api_voice_listen 直接调 _voice_manager.listen(duration)，用宿主 SpeechRecognition。浏览器里点一下等于让服务器录音，既不是用户的声音、也是隐私事故。网页侧要采音只能走 MediaRecorder/Web Speech 并配套上传端点（当前不存在）。",
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -10657,10 +10556,10 @@
       ],
       "description": "获取语音系统状态",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "语音",
-      "intent_note": "语音：识别/状态。",
-      "ui_pending": true,
+      "intent_note": "与 listen 同一套**宿主侧**语音栈的就绪状态（stt/tts 引擎在服务器上）。工作台是浏览器应用，展示\"服务器麦克风/扬声器可用性\"对使用者没有可操作含义，只会让人以为页面上能说话。",
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -10955,11 +10854,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_workflow_learning.py:308"
@@ -10969,7 +10870,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "工作流学习",
       "intent_note": "工作流学习：工作流列表/优先级/启停/转换技能。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -11941,5 +11842,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "a22dbe3ce21e5828"
+  "content_hash": "f8e3bc4a5eab5217"
 }

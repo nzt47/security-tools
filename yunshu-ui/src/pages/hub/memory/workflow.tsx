@@ -6,6 +6,7 @@
  * 命中后本地直接执行（skipped_llm），不消耗 LLM。与「LLM 技能」分开管理，
  * 见技能中心（LLM 技能 / 工作流技能 / 可视化编辑三个 Tab）。
  */
+import ConvertibleWorkflows from './ConvertibleWorkflows'
 import { useEffect, useState } from 'react'
 import { Play } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubPost } from '../components/ui'
@@ -143,6 +144,7 @@ export default function MemoryWorkflow() {
     <div className="p-6">
       <PageHeader title="工作流技能" description="从历史交互中学习、本地确定性执行的工作流" />
       <MemoryWorkflowTable />
+      <ConvertibleWorkflows />
     </div>
   )
 }

@@ -6,6 +6,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Loader2 } from 'lucide-react'
 import { hubGet, hubPost } from '../components/ui'
+// 2026-10-18：会话交接文档（POST /api/handoff）—— generate_handoff 的唯一 HTTP 入口，此前零 UI
+import HandoffPanel from './HandoffPanel'
 
 import {
   CHAT,
@@ -79,6 +81,10 @@ export default function SessionPage() {
             <option key={s.id} value={s.id}>{s.title}</option>
           ))}
         </select>
+      </div>
+
+      <div className="border-b border-slate-800 px-6 py-3">
+        <HandoffPanel sessionId={sessionId} />
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
