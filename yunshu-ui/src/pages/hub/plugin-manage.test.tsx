@@ -213,3 +213,70 @@ describe('PluginManagePage：刷新清单的 401 令牌指引', () => {
     expect(alert).toHaveTextContent('请在「API 令牌」中填入 FLASK_API_TOKEN 后重试')
   })
 })
+
+describe('PluginManagePage：从市场安装插件包（插件包安装入口收敛到本页）', () => {
+  const SEARCH_BODY = {
+    ok: true,
+    builtin: [{ id: 'demo-plugin', name: '演示插件包', description: '可安装的插件包', ext_type: 'plugin' }],
+    community: [],
+    github: [],
+  }
+  const isMarketSearch = (u: string) => u.startsWith('/api/extensions/market/search')
+  const isInstall = (u: string, init?: RequestInit) => u === '/api/extensions/install' && isPost(init)
+
+  it('入口在插件清单；打开即搜 type=plugin 并列出结果（市场那边不再有安装按钮）', async () => {
+    const fetchMock = installFetch([
+      { match: isGetPlugins, body: MANIFEST },
+      { match: isMarketSearch, body: SEARCH_BODY },
+    ])
+    render(<PluginManagePage />)
+    await screen.findByTestId('plugin-config-toggle-memory')
+
+    fireEvent.click(screen.getByTestId('plugin-market-open'))
+    expect(await screen.findByTestId('plugin-market-drawer')).toBeInTheDocument()
+    expect(await screen.findByText('演示插件包')).toBeInTheDocument()
+    // 默认只搜 plugin 类型（不带 q）
+    expect(fetchMock.mock.calls.some(([u]) => String(u) === '/api/extensions/market/search?type=plugin')).toBe(true)
+  })
+
+  it('安装：POST {type:plugin, source:id}，成功后提示并重载清单', async () => {
+    const fetchMock = installFetch([
+      { match: isGetPlugins, body: MANIFEST },
+      { match: isMarketSearch, body: SEARCH_BODY },
+      { match: isInstall, body: { ok: true, message: '已安装' } },
+    ])
+    render(<PluginManagePage />)
+    await screen.findByTestId('plugin-config-toggle-memory')
+    fireEvent.click(screen.getByTestId('plugin-market-open'))
+    await screen.findByText('演示插件包')
+
+    fireEvent.click(screen.getByRole('button', { name: '安装插件包 demo-plugin' }))
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([u]) => String(u) === '/api/extensions/install')
+      expect(call).toBeTruthy()
+      expect(JSON.parse(String(call?.[1]?.body))).toEqual({ type: 'plugin', source: 'demo-plugin' })
+    })
+    expect(await screen.findByText(/已安装插件包 demo-plugin/)).toBeInTheDocument()
+  })
+
+  it('关键词带进搜索（回车触发，q 走 encodeURIComponent）', async () => {
+    const fetchMock = installFetch([
+      { match: isGetPlugins, body: MANIFEST },
+      { match: isMarketSearch, body: SEARCH_BODY },
+    ])
+    render(<PluginManagePage />)
+    await screen.findByTestId('plugin-config-toggle-memory')
+    fireEvent.click(screen.getByTestId('plugin-market-open'))
+    await screen.findByText('演示插件包')
+
+    const box = screen.getByLabelText('插件市场搜索关键词')
+    fireEvent.change(box, { target: { value: '演示 插件' } })
+    fireEvent.keyDown(box, { key: 'Enter' })
+
+    await waitFor(() => expect(fetchMock.mock.calls.some(
+      ([u]) => String(u) === '/api/extensions/market/search?type=plugin&q=' + encodeURIComponent('演示 插件'),
+    )).toBe(true))
+  })
+})
+

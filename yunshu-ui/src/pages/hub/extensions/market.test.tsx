@@ -166,6 +166,28 @@ describe('ExtensionsMarket', () => {
     expect(await screen.findByText(/社区索引已刷新：12/)).toBeTruthy()
   })
 
+  it('插件包只发现/浏览：安装按钮不给，指到「插件清单」（禁止双入口）', async () => {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/extensions/list') return { ok: true, extensions: [] }
+      if (url === '/api/extensions/installed') return { ok: true }
+      if (url === '/api/extensions/discover') return { ok: true, builtin_skills: [] }
+      if (url.startsWith('/api/extensions/market/recommend')) {
+        return { ok: true, recommendations: [{ ext_type: 'plugin', id: 'demo-plugin', name: '演示插件包' }] }
+      }
+      if (url.startsWith('/api/extensions/market/search')) {
+        return { ok: true, builtin: [{ id: 'demo-plugin', name: '演示插件包', ext_type: 'plugin' }], community: [], github: [] }
+      }
+      return { ok: true }
+    })
+    render(<ExtensionsMarket />)
+    fireEvent.click(screen.getByRole('button', { name: '搜索扩展市场' }))
+
+    await waitFor(() => expect(screen.getAllByText('演示插件包').length).toBeGreaterThan(0))
+    expect(screen.queryByRole('button', { name: '安装 demo-plugin' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '安装推荐 demo-plugin' })).toBeNull()
+    expect(screen.getAllByText(/到插件清单安装/).length).toBeGreaterThan(0)
+  })
+
   it('内置通道与发送框已迁出市场，改成指路消息中心（禁止双入口）', async () => {
     baseGets()
     render(<ExtensionsMarket />)
