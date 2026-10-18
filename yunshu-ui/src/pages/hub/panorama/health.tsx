@@ -42,6 +42,7 @@
  * navigator.hardwareConcurrency 兜 CPU 核心数、用 probe 分冒充 error-rate，本页不沿用）。
  * 任何数据源失败都上屏（顶栏数据源故障卡 + 各分区内联错误），不用空数组静默吞掉。
  */
+import ModeCard from './ModeCard'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
@@ -1218,6 +1219,7 @@ export default function PanoramaHealth() {
           )}
         </>
       )}
+      <ModeCard />
       <HealthVitals />
       <OpsDiagnostics />
     </div>
