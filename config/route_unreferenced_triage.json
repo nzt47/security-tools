@@ -1,10 +1,6 @@
 {
   "note": "「活体但无静态引用」路由的人工判定台账（2026-10-18，D 项走②按族静态复查）。与 reports/route_ui_coverage.json 双向一致：新增 unreferenced 必须在这里登记，接好线/删掉端点后必须把登记也删掉 —— scripts/audit/unreferenced_triage.py --check 两个方向都查。verdict：keep=仓库内可指认的消费者；keep-ops=无仓库内消费者但有文档化的运维/外部契约；deprecate=已被新端点取代、处于兼容窗口；retire=无消费者、无文档契约。",
   "entries": {
-    "/": {
-      "verdict": "keep",
-      "evidence": "app_server.py:2117 首页重定向；它是入口而不是功能端点（浏览器/CI 直接访问）"
-    },
     "/api/approval/*/approve": {
       "verdict": "keep",
       "evidence": "static/js/approval_console.js:193 —— 拼接调用 API + '/' + id + '/approve'（扫描器只认完整字面量）"
@@ -74,10 +70,6 @@
       "evidence": "UI 的 memory 常量都是 GET/POST 其他路径（endpoints.ts:304-313）；DELETE 无调用方",
       "action": "删 DELETE 端点"
     },
-    "/api/news": {
-      "verdict": "keep",
-      "evidence": "scripts/verify_key_revocation.ps1:278 用绝对 URL 调用（扫描器只认以 / 开头的字面量）"
-    },
     "/api/observability/alerts/validate": {
       "verdict": "keep-ops",
       "evidence": "运维手册与集成测试（docs/OBSERVABILITY_OPERATION_MANUAL.md、tests/integration/test_routes_logging_integration.py）"
@@ -89,10 +81,6 @@
     "/api/observability/logs/stream": {
       "verdict": "keep-ops",
       "evidence": "实时日志 SSE；运维手册 + tests/integration/test_observability_security.py"
-    },
-    "/api/sandbox/run": {
-      "verdict": "keep",
-      "evidence": "scripts/docker_sandbox.ps1:55/84/127 绝对 URL 调用"
     },
     "/api/scheduler/create": {
       "verdict": "retire",
@@ -215,10 +203,6 @@
     "/api/web/xpath": {
       "verdict": "keep-ops",
       "evidence": "同上"
-    },
-    "/approval-console": {
-      "verdict": "keep-ops",
-      "evidence": "人工入口页（routes_approval.py:380）；docs 让人收藏该地址（不经 require_token 的静态外壳）"
     },
     "/capabilities/*": {
       "verdict": "keep-ops",

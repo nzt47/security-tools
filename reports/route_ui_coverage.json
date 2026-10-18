@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-18T13:24:55",
+  "generated_at": "2026-10-18T17:55:13",
   "totals": {
     "routes": 466,
     "live": 466,
     "dead_copy": 0,
     "dead_definitions": 0,
     "ui": 391,
-    "cli_script": 13,
-    "runtime_only": 10,
-    "unreferenced": 52,
+    "cli_script": 16,
+    "runtime_only": 11,
+    "unreferenced": 48,
     "live_by_category": {
       "ui": 391,
-      "cli_script": 13,
-      "runtime_only": 10,
-      "unreferenced": 52
+      "cli_script": 16,
+      "runtime_only": 11,
+      "unreferenced": 48
     },
     "by_intent": {
       "should_be_in_ui": 375,
@@ -55,12 +55,15 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "cli_script",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "scripts/_check_page.py",
+        "scripts/configure_branch_protection.py"
+      ],
       "where": [
         "app_server.py:2117"
       ],
@@ -3324,7 +3327,11 @@
         "app_server.py",
         "scripts/deploy_workbench.py",
         "scripts/deployment_drill.py",
-        "scripts/probe_prefix_cache_interaction.py"
+        "scripts/dev/graceful_shutdown_persist_probe.py",
+        "scripts/full_alert_verify.py",
+        "scripts/probe_prefix_cache_interaction.py",
+        "scripts/rollback.ps1",
+        "scripts/rotate_grafana_password.ps1"
       ],
       "where": [
         "plugins/status.py:234"
@@ -3478,7 +3485,8 @@
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [
-        "agent/health/dashboard.py"
+        "agent/health/dashboard.py",
+        "scripts/setup_health_schedule.py"
       ],
       "where": [
         "agent/health/dashboard.py:103"
@@ -3555,6 +3563,7 @@
         "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [
+        "scripts/persist_health_tasks.py",
         "scripts/verify_loader_degradation_startup.py"
       ],
       "where": [
@@ -4948,12 +4957,14 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "cli_script",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "scripts/verify_key_revocation.ps1"
+      ],
       "where": [
         "plugins/chat.py:454"
       ],
@@ -6437,12 +6448,14 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "cli_script",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "scripts/docker_sandbox.ps1"
+      ],
       "where": [
         "plugins/system_tools.py:225"
       ],
@@ -11313,12 +11326,14 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "runtime_only",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/tool_gate.py"
+      ],
       "where": [
         "agent/server_routes/routes_approval.py:380"
       ],
@@ -11793,16 +11808,16 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
+        "scripts/baseline_loadtest_py.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
         "scripts/exporter_link_cache.py",
+        "scripts/full_alert_verify.py",
+        "scripts/mock_intent_layer_traffic.py",
         "scripts/mock_metrics_server.py",
         "scripts/mock_service_standalone.py",
         "scripts/monitoring_longrun/c2_harness.py",
-        "scripts/monitoring_longrun/gen_derived_config.py",
-        "scripts/probe_prefix_cache_interaction.py",
-        "scripts/simulate_prometheus_restart.py",
-        "scripts/surge_metrics_template.py"
+        "scripts/monitoring_longrun/gen_derived_config.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1143"
@@ -11892,5 +11907,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "d572b91876bf590f"
+  "content_hash": "a820695df57c3048"
 }
