@@ -68,6 +68,19 @@ ROUTE_DECORATOR = re.compile(
 )
 PATH_LITERAL = re.compile(r'''["'](/[A-Za-z0-9_\-./{}<>:$]*)["']''')
 FRONTEND_LITERAL = re.compile(r'''["'\x60](/api/[A-Za-z0-9_\-./{}<>:$]*)["'\x60]''')
+#: 带查询串的字面量/模板串：`/api/skills/content?id=...`。
+#  【为什么要单列】FRONTEND_LITERAL 要求路径之后**紧跟引号**，而 ? 与 = 都不在路径
+#  字符集里 ⇒ 整条匹配失败，于是这类调用被记成「未接线」（2026-10-18 实测：
+#  /api/skills/content 明明被 SkillContentModal 在用）。这里只取 ? 之前的路径部分，
+#  查询串一律丢弃（它不参与路由匹配）。
+FRONTEND_LITERAL_QUERY = re.compile(r'''["'\x60](/api/[A-Za-z0-9_\-./{}<>:$]*)\?''')
+#: 以 /api 开头、但带插值的模板串：`/api/history${cond ? '?...' : ''}`。
+#  【为什么要单列】FRONTEND_LITERAL 要求路径后紧跟引号，带 `${...}` 的模板串匹配不上；
+#  而这类写法常见于"路径固定、查询串条件拼接"的客户端封装（lib/historyApi.ts 就是），
+#  于是 /api/history、/api/history/<index> 明明被会话任务页的历史抽屉在用，
+#  却被记成「未接线」（2026-10-18 实测，并因此误改判过两条标注）。
+#  取值时按 _fold_template 折叠：紧跟 / 的插值折成 *，其余就地截断。
+TEMPLATE_API_PREFIX = re.compile(r"\x60(/api/[^\x60\n]*)\x60")
 #: 前端同文件模块级路径常量：const PREFIX = '/api/cp'
 #  （用于展开「常量前缀 + 路径」的模板串，见 TEMPLATE_WITH_BASE）
 FRONTEND_CONST = re.compile(
@@ -493,6 +506,29 @@ def collect_frontend_literals():
             stripped = strip_comments(txt)
             for m in FRONTEND_LITERAL.finditer(stripped):
                 hits.setdefault(m.group(1), []).append(rel)
+            # 带查询串的路径：只取 `?` 之前的部分（查询串不参与路由匹配）。
+            # 含插值的候选一律跳过 —— 那种交给下面的 TEMPLATE_API_PREFIX 折叠，
+            # 否则 `/api/history${opts?.session ? ...}` 会被截成 `/api/history${opts` 这种幽灵。
+            for m in FRONTEND_LITERAL_QUERY.finditer(stripped):
+                cand = m.group(1)
+                if "$" + "{" in cand or "}" in cand:
+                    continue
+                hits.setdefault(cand, []).append(rel)
+            # /api 开头但带插值的模板串：折叠后按路径登记。
+            # ⚠ **src/api/ 下的不折**：那是端点常量层，箭头函数常量的纪律是
+            # 「必须被 import 且确实有调用点」才算引用（见 FRONTEND_FN_CONST）；
+            # 在这里折会把「定义即引用」放回来，等于把有效性判据降级。
+            if not rel.startswith("yunshu-ui/src/api/"):
+                for m in TEMPLATE_API_PREFIX.finditer(stripped):
+                    body = m.group(1)
+                    if "$" + "{" not in body:
+                        continue
+                    folded = _fold_template(body)
+                    cut = folded.find("$" + "{")
+                    if cut > 0:
+                        folded = folded[:cut]
+                    if len(folded) > 2 and " " not in folded and "$" + "{" not in folded:
+                        hits.setdefault(folded, []).append(rel)
             # 常量前缀模板：同文件字面量 / 同文件别名 / 从常量层 import 的名字，三跳以内解析
             # （第四种形态「常量层里的箭头函数」在下面单独处理 —— 它的值是函数，不是字符串）
             local = {m.group(1): m.group(2) for m in FRONTEND_CONST.finditer(stripped)}

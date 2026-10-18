@@ -15,6 +15,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, RefreshCw, Search, Server } from 'lucide-react'
 import { Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader } from '../components/ui'
+// 2026-10-18：节点下钻 + 干预（/api/modules/<id>/detail 与 /actions）此前零入口
+import ModuleDetail from './ModuleDetail'
 import { getEnvelope } from '@/api/envelope'
 import { HEALTH_DASHBOARD, MODULES_TOPOLOGY } from '@/api/endpoints'
 
@@ -81,6 +83,8 @@ export default function PanoramaMonitor() {
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  /** 展开详情/干预的模块（同一时刻只开一个，避免一屏几十个面板同时拉详情） */
+  const [openModule, setOpenModule] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -235,21 +239,34 @@ export default function PanoramaMonitor() {
             >
               <div className="grid gap-2 md:grid-cols-2">
                 {dm.nodes.map((m) => (
-                  <div key={m.module_id} className="flex items-start justify-between gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2.5">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium text-slate-200">{m.name}</span>
-                        <span className="shrink-0 font-mono text-[10px] text-slate-600">{m.module_id}</span>
+                  <div key={m.module_id} className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-medium text-slate-200">{m.name}</span>
+                          <span className="shrink-0 font-mono text-[10px] text-slate-600">{m.module_id}</span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
+                          <span className="rounded bg-slate-800 px-1.5 py-0.5">{TYPE_LABEL[m.type ?? 'module'] ?? m.type}</span>
+                          {m.path && <span className="truncate font-mono">{m.path}</span>}
+                        </div>
                       </div>
-                      <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
-                        <span className="rounded bg-slate-800 px-1.5 py-0.5">{TYPE_LABEL[m.type ?? 'module'] ?? m.type}</span>
-                        {m.path && <span className="truncate font-mono">{m.path}</span>}
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <Badge color={STATUS_COLOR[m.status ?? ''] ?? 'slate'}>{m.status ?? '?'}</Badge>
+                        {m.status_detail && <span className="text-[10px] text-slate-600">{m.status_detail}</span>}
+                        <button
+                          type="button"
+                          onClick={() => setOpenModule(openModule === m.module_id ? '' : m.module_id)}
+                          className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
+                          aria-label={'模块详情 ' + m.module_id}
+                        >
+                          {openModule === m.module_id ? '收起' : '详情 / 干预'}
+                        </button>
                       </div>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <Badge color={STATUS_COLOR[m.status ?? ''] ?? 'slate'}>{m.status ?? '?'}</Badge>
-                      {m.status_detail && <span className="text-[10px] text-slate-600">{m.status_detail}</span>}
-                    </div>
+                    {openModule === m.module_id && (
+                      <ModuleDetail moduleId={m.module_id} onClose={() => setOpenModule('')} />
+                    )}
                   </div>
                 ))}
               </div>
