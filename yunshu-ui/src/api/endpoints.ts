@@ -503,6 +503,17 @@ export const SCHEDULER_TASKS = '/api/scheduler/tasks';
 export const SCHEDULER_HISTORY = '/api/scheduler/history';
 // 调度器**运行态**全量任务（含 cron/interval 的 python 任务；旧 tasks 只列文件型命令任务）
 export const SCHEDULER_OVERVIEW = '/api/scheduler/overview';
+// 采集器运行期操作（id 基）：立即执行 / 启停（与 overview 同一族：agent.task_scheduler）
+export const SCHEDULER_TOGGLE = '/api/scheduler/toggle';
+export const SCHEDULER_EXECUTE_NOW = '/api/scheduler/execute-now';
+// 另一族调度器（agent.scheduling）的执行历史 —— 与上面的 task_scheduler 不是同一个调度器
+export const SCHEDULES_HISTORY = '/api/schedules/history';
+// 编排与蒸馏
+export const ORCHESTRATOR_SEMANTIC_CONFIG = '/api/orchestrator/semantic-config';
+export const PLANNING_TOGGLE = '/api/planning/toggle';
+export const PROCESS_DISTILL = '/api/process-distill/distill';
+export const PROCESS_DISTILL_HEALTH = '/api/process-distill/health';
+export const LLM_MONITOR_RECORD = (id: string) => `/api/llm-monitor/records/${encodeURIComponent(id)}`;
 // 按任务名启停 / 改「每天 时:分」（改动即时生效并落 data/scheduler_overrides.json）
 export const SCHEDULER_CONFIGURE = '/api/scheduler/configure';
 export const DIAGNOSTICS_METRICS = '/api/diagnostics/metrics';

@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-18T09:22:23",
+  "generated_at": "2026-10-18T10:12:25",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 377,
-    "cli_script": 15,
-    "runtime_only": 12,
-    "unreferenced": 60,
+    "ui": 384,
+    "cli_script": 14,
+    "runtime_only": 10,
+    "unreferenced": 56,
     "live_by_category": {
-      "ui": 377,
-      "cli_script": 15,
-      "runtime_only": 12,
-      "unreferenced": 60
+      "ui": 384,
+      "cli_script": 14,
+      "runtime_only": 10,
+      "unreferenced": 56
     },
     "by_intent": {
-      "should_be_in_ui": 379,
-      "should_not_be_in_ui": 84,
+      "should_be_in_ui": 377,
+      "should_not_be_in_ui": 86,
       "unclassified": 1
     },
     "by_domain": {
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 384,
+  "frontend_endpoints": 391,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -111,18 +111,6 @@
       ]
     },
     {
-      "path": "/api/llm-monitor/records/<record_id>",
-      "norm": "/api/llm-monitor/records/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "LLM 监控",
-      "where": [
-        "agent/server_routes/routes_llm_monitor.py:56"
-      ]
-    },
-    {
       "path": "/api/mode",
       "norm": "/api/mode",
       "methods": [
@@ -132,92 +120,6 @@
       "area": "运行状态",
       "where": [
         "plugins/status.py:311"
-      ]
-    },
-    {
-      "path": "/api/orchestrator/semantic-config",
-      "norm": "/api/orchestrator/semantic-config",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "编排配置",
-      "where": [
-        "agent/server_routes/routes_semantic_config.py:42",
-        "agent/server_routes/routes_semantic_config.py:60"
-      ]
-    },
-    {
-      "path": "/api/planning/toggle",
-      "norm": "/api/planning/toggle",
-      "methods": [
-        "POST"
-      ],
-      "category": "cli_script",
-      "area": "编排配置",
-      "where": [
-        "plugins/status.py:329"
-      ]
-    },
-    {
-      "path": "/api/process-distill/distill",
-      "norm": "/api/process-distill/distill",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "过程蒸馏",
-      "where": [
-        "agent/server_routes/routes_process_distill.py:67"
-      ]
-    },
-    {
-      "path": "/api/process-distill/health",
-      "norm": "/api/process-distill/health",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "过程蒸馏",
-      "where": [
-        "agent/server_routes/routes_process_distill.py:58"
-      ]
-    },
-    {
-      "path": "/api/scheduler/execute-now",
-      "norm": "/api/scheduler/execute-now",
-      "methods": [
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "定时任务",
-      "where": [
-        "plugins/mcp_scheduler.py:303"
-      ]
-    },
-    {
-      "path": "/api/scheduler/toggle",
-      "norm": "/api/scheduler/toggle",
-      "methods": [
-        "POST"
-      ],
-      "category": "runtime_only",
-      "area": "定时任务",
-      "where": [
-        "plugins/mcp_scheduler.py:291"
-      ]
-    },
-    {
-      "path": "/api/schedules/history",
-      "norm": "/api/schedules/history",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "定时任务",
-      "where": [
-        "plugins/mcp_scheduler.py:417"
       ]
     },
     {
@@ -4303,10 +4205,10 @@
       ],
       "description": "获取单条 LLM 通信记录详情",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "LLM 监控",
-      "intent_note": "LLM 监控：记录/详情/统计/清空/开关。",
-      "ui_pending": true,
+      "intent_note": "与列表端点同构：列表返回的就是 asdict(record)（scripts/probe_prefix_cache_interaction.py:20 亦记此点），详情只按 id 取同一个对象，界面拿不到额外信息；记录被环形缓冲淘汰后前端也无从知道 id。该端点的实际消费方是脚本/命令行。",
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5496,11 +5398,13 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_semantic_config.py:42",
@@ -5511,7 +5415,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "编排配置",
       "intent_note": "语义层配置查询。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "系统与配置"
     },
     {
@@ -5835,11 +5739,13 @@
       "methods": [
         "POST"
       ],
-      "category": "cli_script",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py",
         "scripts/verify_modules_api.py"
@@ -5852,7 +5758,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "编排配置",
       "intent_note": "规划引擎开关。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "认知与学习"
     },
     {
@@ -5940,11 +5846,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_process_distill.py:67"
@@ -5954,7 +5862,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "过程蒸馏",
       "intent_note": "过程蒸馏：健康/蒸馏动作。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -5963,11 +5871,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_process_distill.py:58"
@@ -5977,7 +5887,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "过程蒸馏",
       "intent_note": "过程蒸馏：健康/蒸馏动作。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -6674,11 +6584,13 @@
       "methods": [
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
@@ -6690,7 +6602,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -6776,11 +6688,13 @@
       "methods": [
         "POST"
       ],
-      "category": "runtime_only",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "agent/modules_registry.py"
       ],
@@ -6789,10 +6703,10 @@
       ],
       "description": "启用/禁用定时任务",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "定时任务",
-      "intent_note": "定时任务：列表/历史/创建/启停/立即执行。",
-      "ui_pending": true,
+      "intent_note": "与已接线的 SCHEDULER_CONFIGURE 同效：两者都翻同一个调度器任务的 enabled，只是一个按 id、一个按名。界面已有「暂停/恢复」（按名，且能顺带改时刻），再放一条 id 基通道只会让人以为两者行为不同。",
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -6903,11 +6817,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:417"
@@ -6917,7 +6833,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "定时任务",
       "intent_note": "定时任务（另一套）：列表/删除/暂停/恢复/历史。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "调度与任务"
     },
     {
@@ -12025,5 +11941,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "f0ceee47d6bf106b"
+  "content_hash": "a22dbe3ce21e5828"
 }

@@ -1122,6 +1122,16 @@
       "intent": "should_not_be_in_ui",
       "area": "技能管理",
       "note": "与资产库重复：SkillsManager.update_params() 落的就是 skills-mgmt 的 default_params（svc.update），资产库详情/调参面板已覆盖；再做一个入口会产生两份\"同一参数\"的编辑面。"
+    },
+    "/api/scheduler/toggle": {
+      "intent": "should_not_be_in_ui",
+      "area": "定时任务",
+      "note": "与已接线的 SCHEDULER_CONFIGURE 同效：两者都翻同一个调度器任务的 enabled，只是一个按 id、一个按名。界面已有「暂停/恢复」（按名，且能顺带改时刻），再放一条 id 基通道只会让人以为两者行为不同。"
+    },
+    "/api/llm-monitor/records/<record_id>": {
+      "intent": "should_not_be_in_ui",
+      "area": "LLM 监控",
+      "note": "与列表端点同构：列表返回的就是 asdict(record)（scripts/probe_prefix_cache_interaction.py:20 亦记此点），详情只按 id 取同一个对象，界面拿不到额外信息；记录被环形缓冲淘汰后前端也无从知道 id。该端点的实际消费方是脚本/命令行。"
     }
   }
 }
