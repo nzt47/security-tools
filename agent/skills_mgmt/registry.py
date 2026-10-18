@@ -123,6 +123,21 @@ class SkillRegistry:
             pass
         return ""
 
+    def get_persona(self, skill_id: str) -> str:
+        """技能的 persona 注入文本（系统提示词里的"技能段"）：文件轨 front matter → 空串。
+
+        【口径与 is_enabled 一致】persona 只在文件轨（skill.md）里维护 —— 主轨 Skill
+        模型没有该字段，也不该有：注入文本是**内容**，不是管理元数据。
+        """
+        svc = self._svc()
+        try:
+            meta = svc.file_store.get_metadata(skill_id)
+            if meta is not None:
+                return str(meta.get("persona") or "")
+        except Exception:  # noqa: BLE001 读不到就当没有（调用方回退到内置表）
+            pass
+        return ""
+
     def list_skill_ids(self) -> Set[str]:
         """全部已知技能 id：主轨 ∪ 文件轨。"""
         svc = self._svc()
