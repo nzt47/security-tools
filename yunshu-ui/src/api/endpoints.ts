@@ -474,6 +474,10 @@ export const SUBAGENT_DELEGATE = '/api/subagent/delegate';
 export const SUBAGENT_HISTORY = '/api/subagent/history';
 // 主权分身能力投影（六层二十面三态 + 证据）：组装台「主权清单」的数据源
 export const SUBAGENT_CAPABILITIES = '/api/subagent/capabilities';
+// 分身行操作：详情 / 热更新 / 离线包（执行是占位骨架，故不接）
+export const subagentByName = (name: string) => `/api/subagent/${encodeURIComponent(name)}`;
+export const subagentReload = (name: string) => `/api/subagent/${encodeURIComponent(name)}/reload`;
+export const subagentOfflinePack = (name: string) => `/api/subagent/${encodeURIComponent(name)}/offline_pack`;
 export const subagentDelegateByName = (name: string) => `/api/subagent/${encodeURIComponent(name)}/delegate`;
 export const subagentDestroyByName = (name: string) => `/api/subagent/${encodeURIComponent(name)}/destroy`;
 // 可带走 bundle（S5）：GET 导出一个分身的包 / POST 从包导入（见 agent/subagent/bundle.py）

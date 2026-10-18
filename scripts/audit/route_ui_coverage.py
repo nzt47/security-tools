@@ -407,9 +407,36 @@ def _intent_for(nrm: str, intents: dict):
     return best
 
 
+#: 插件 manifest 里声明的「schema 驱动提交端点」：submit_url="..."
+#  【为什么它算 UI 引用】工作台的「插件与扩展」页对声明了 schema 的插件渲染通用表单，
+#  展开时 GET submit_url 预填、提交时 POST submit_url —— 这个 URL 来自后端 manifest，
+#  前端源码里**不会出现字面量**。于是 /api/status/config 这类端点明明被界面在用，
+#  却被静态扫描记成「未接线」（2026-10-18 实测）。故按"谁消费它"补一条引用，
+#  归属固定为插件表单所在页（唯一消费方）。
+_PLUGIN_SUBMIT_URL = re.compile(r"""submit_url\s*=\s*["'](/api/[^"'\s]+)["']""")
+_PLUGIN_FORM_PAGE = "yunshu-ui/src/pages/hub/plugin-manage.tsx"
+
+
+def _plugin_submit_urls() -> dict:
+    """{归一化路径: 声明它的插件文件}（只读 plugins/*.py 的 submit_url 声明）。"""
+    out: dict = {}
+    for f in sorted((ROOT / "plugins").glob("*.py")):
+        try:
+            txt = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for m in _PLUGIN_SUBMIT_URL.finditer(txt):
+            out.setdefault(norm(m.group(1)), str(f.relative_to(ROOT)).replace("\\", "/"))
+    return out
+
+
 def classify() -> dict:
     routes = collect_routes_static()
     ui_refs = _refs_from_frontend(collect_frontend_literals())
+    ui_refs = _refs_from_frontend(collect_frontend_literals())
+    # 插件 schema 表单的提交端点：由后端 manifest 声明，前端通用表单消费（见 _PLUGIN_SUBMIT_URL 注释）
+    for _url in _plugin_submit_urls():
+        ui_refs.setdefault(_url, set()).add(_PLUGIN_FORM_PAGE)
 
     cli_files = list(_iter_files({".py", ".ps1", ".yml", ".yaml"}, ["scripts", "tools", ".github"]))
     main_py = ROOT / "main.py"
