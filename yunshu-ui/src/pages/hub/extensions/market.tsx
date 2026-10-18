@@ -137,7 +137,7 @@ export default function ExtensionsMarket() {
       const r = await hubGet<Record<string, unknown>>(EXTENSIONS_DISCOVER)
       if ((r as { ok?: boolean })?.ok === false) { bad('读取可安装清单失败', r as { error?: string }); return }
       const out: Record<string, BuiltinRow[]> = {}
-      for (const key of ['builtin_skills', 'builtin_mcp', 'builtin_channels']) {
+      for (const key of ['builtin_skills', 'builtin_channels']) {
         out[key] = Array.isArray(r?.[key]) ? (r[key] as BuiltinRow[]) : []
       }
       setDiscover(out)
@@ -373,13 +373,17 @@ export default function ExtensionsMarket() {
       </div>
 
       {/* ── 可安装（内置） ── */}
-      <div className="mb-3 grid gap-2 lg:grid-cols-3">
+      {/* 【2026-10-18】内置 MCP 服务的发现与安装已并入「工具调用 · MCP 系统」：
+          那边装完立即出现在服务表里，市场这边只留一句指路（避免"少了一组"的错觉）。 */}
+      <div className="mb-2 text-[10px] text-slate-500">
+        内置 MCP 服务的发现与安装已并入 <span className="text-cyan-400">工具调用 · MCP 系统</span>（装完就地出现在服务表）。
+      </div>
+      <div className="mb-3 grid gap-2 lg:grid-cols-2">
         {([
           // 【2026-10-18】改叫"内置行为"：它们是随仓库分发的 persona 提示片段（注入 system prompt +
           // 少量运行期门），状态事实源是 SkillRegistry（技能中心），不是扩展的安装记录 ——
           // 叫"内置技能"会与技能中心里的 skill.md 资产混淆（"两个都叫技能"那次的结论）。
           ['builtin_skills', '内置行为（技能中心管理）'],
-          ['builtin_mcp', '内置 MCP 服务'],
           ['builtin_channels', '内置通道'],
         ] as const).map(([key, label]) => (
           <div key={key} className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
@@ -389,7 +393,7 @@ export default function ExtensionsMarket() {
             </div>
             <div className="flex flex-col gap-1">
               {(discover[key] ?? []).map((b) => {
-                const type = key === 'builtin_skills' ? 'skill' : key === 'builtin_mcp' ? 'mcp' : 'channel'
+                const type = key === 'builtin_skills' ? 'skill' : 'channel'
                 const id = b.id ?? ''
                 const busyKey = 'install:' + type + ':' + id
                 return (

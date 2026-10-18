@@ -43,7 +43,6 @@ function baseGets() {
       return {
         ok: true,
         builtin_skills: [{ id: 'memory_summary', name: '记忆摘要', installed: false }],
-        builtin_mcp: [{ id: 'filesystem', name: '文件系统 MCP', installed: false }],
         builtin_channels: [{ id: 'webhook', name: 'Webhook 通道', installed: true }],
       }
     }
@@ -91,7 +90,7 @@ describe('ExtensionsMarket', () => {
         return {
           ok: true,
           builtin_skills: [{ id: 'memory_summary', name: '记忆摘要', installed: false, enabled: true, managed_in: 'skill-center' }],
-          builtin_mcp: [], builtin_channels: [],
+          builtin_channels: [],
         }
       }
       if (url.startsWith('/api/extensions/market/recommend')) return { ok: true, recommendations: [] }
@@ -196,5 +195,17 @@ describe('ExtensionsMarket', () => {
     expect(screen.queryByRole('option', { name: 'Claude 技能' })).toBeNull()
     // 替代入口必须可发现：指到 技能中心 → 维护 → 从 .claude/skills 导入
     expect(screen.getByText(/技能中心 → 维护 →「从 \.claude\/skills 导入」/)).toBeTruthy()
+  })
+
+  it('「内置 MCP 服务」组已迁出市场，改成指路 MCP 系统（禁止双入口）', async () => {
+    baseGets()
+    render(<ExtensionsMarket />)
+    await screen.findByText('self_reflection')
+
+    // 分组标题（"内置 MCP 服务（n）"）必须消失；只剩一句指路文案
+    expect(screen.queryByText(/^内置 MCP 服务（/)).toBeNull()
+    expect(screen.queryByRole('button', { name: '安装 filesystem' })).toBeNull()
+    // 市场里仍会提到"MCP 系统"（指路文案），但不再有该分组的标题与安装按钮
+    expect(screen.getByText(/工具调用 · MCP 系统/)).toBeTruthy()
   })
 })

@@ -1,12 +1,22 @@
 /**
- * MCP 系统 —— MCP 服务 CRUD / 启停
- * 数据源：/api/mcp/services、/api/mcp/enable
+ * MCP 系统 —— MCP 服务 CRUD / 启停 + 内置服务发现与安装
+ * 数据源：/api/mcp/services、/api/mcp/enable、
+ *         /api/extensions/discover（内置清单）、/api/extensions/install（就地安装）
+ *
+ * 【2026-10-18 为什么把"内置 MCP 服务"搬进来】它原来在「扩展市场」里单独一组，
+ * 与"发现—安装—管理"的完整动线割裂：在那边点安装，安装结果要回本页才看得到。
+ * 现在合并到一处 —— 发现与安装就地完成，装完立即出现在服务表里。
  */
-import { useEffect, useState } from 'react'
-import { Plus, Trash2, Power } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubDelete, hubPost } from '../components/ui'
+import { useCallback, useEffect, useState } from 'react'
+import { Download, Loader2, Plus, Trash2, Power } from 'lucide-react'
+import {
+  Card, Loading, ErrorBox, DataTable, Badge, PageHeader,
+  hubDelete, hubGet, hubPost,
+} from '../components/ui'
 
 import {
+  EXTENSIONS_DISCOVER,
+  EXTENSIONS_INSTALL,
   MCP_ENABLE,
   MCP_SERVICES,
   mcpServiceById,
@@ -26,6 +36,21 @@ interface McpService {
   [k: string]: unknown
 }
 
+/** `GET /api/extensions/discover` 里的内置 MCP 模板（builtin_mcp[]） */
+interface BuiltinMcp {
+  id?: string
+  name?: string
+  description?: string
+  installed?: boolean
+  enabled?: boolean
+}
+
+interface DiscoverPayload {
+  ok?: boolean
+  error?: string
+  builtin_mcp?: BuiltinMcp[]
+}
+
 /** `GET /api/mcp/services` 的业务载荷（后端：`{ok, services}`）。 */
 interface McpServiceList {
   ok?: boolean
@@ -39,6 +64,8 @@ export default function ToolsMcp() {
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [cmd, setCmd] = useState('')
+  const [builtin, setBuiltin] = useState<BuiltinMcp[]>([])
+  const [installing, setInstalling] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -49,6 +76,25 @@ export default function ToolsMcp() {
   }
 
   useEffect(load, [])
+
+  const loadBuiltin = useCallback(() => {
+    hubGet<DiscoverPayload>(EXTENSIONS_DISCOVER)
+      .then((d) => { if (d?.ok !== false) setBuiltin(d?.builtin_mcp ?? []) })
+      .catch((e) => setError(String(e)))
+  }, [])
+
+  useEffect(loadBuiltin, [loadBuiltin])
+
+  /** 就地安装内置模板：装完立刻重拉服务表（不必回扩展市场看结果） */
+  const installBuiltin = async (id: string) => {
+    setInstalling(id)
+    setError('')
+    try {
+      await hubPost(EXTENSIONS_INSTALL, { type: 'mcp', source: id })
+      load()
+      loadBuiltin()
+    } catch (e) { setError(String(e)) } finally { setInstalling('') }
+  }
 
   const add = async () => {
     try {
@@ -119,6 +165,43 @@ export default function ToolsMcp() {
           />
         </Card>
       )}
+
+      {/* ── 内置 MCP 服务：发现 → 就地安装（原「扩展市场 · 内置 MCP 服务」组） ── */}
+      <Card title={'内置 MCP 服务（可安装）' + (builtin.length ? '（' + builtin.length + '）' : '')} className="mt-4">
+        <p className="mb-2 text-[10px] text-slate-500">
+          来自内置模板；安装后立即出现在上方服务表（不必回扩展市场看结果）。
+        </p>
+        {builtin.length === 0 && <div className="text-[11px] text-slate-500">没有可安装的内置模板。</div>}
+        <div className="flex flex-col gap-1">
+          {builtin.map((b) => {
+            const id = b.id ?? ''
+            return (
+              <div key={'builtin-mcp-' + id} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+                <span className="text-slate-300">{b.name ?? ''}</span>
+                <span className="truncate text-[10px] text-slate-500">{b.description ?? ''}</span>
+                <span className="ml-auto flex items-center gap-1.5">
+                  {b.enabled
+                    ? <span className="text-[10px] text-emerald-400">已启用</span>
+                    : b.installed
+                      ? <span className="text-[10px] text-slate-400">已装（未启用）</span>
+                      : (
+                        <button
+                          type="button"
+                          onClick={() => void installBuiltin(id)}
+                          disabled={installing !== ''}
+                          aria-label={'安装内置 MCP ' + id}
+                          className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {installing === id ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
+                        </button>
+                      )}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </Card>
     </div>
   )
 }
