@@ -589,9 +589,9 @@
       "note": "工作区文件：列表/信息/写入/删除。"
     },
     "/api/history": {
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "area": "历史记录",
-      "note": "历史记录：列表/删除/搜索。"
+      "note": "legacy 对话历史（plugins/chat.py）：全仓仅 scripts/_smoke_history_drawer.py 消费，工作台的会话历史走 /api/sessions/*；给它做界面会变成第二套历史。"
     },
     "/api/history/*": {
       "intent": "should_be_in_ui",
@@ -739,9 +739,9 @@
       "note": "工具/技能可调用清单。"
     },
     "/api/clear": {
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "area": "对话",
-      "note": "清空对话。"
+      "note": "legacy「清空对话」：工作台的重置走会话级接口（/api/sessions/*），全仓无任何 UI/脚本引用该端点。"
     },
     "/api/clear/*": {
       "intent": "should_be_in_ui",
@@ -1092,6 +1092,21 @@
       "intent": "should_not_be_in_ui",
       "area": "分身/子代理",
       "note": "远端/分身委派结果回调（后端明写\"只落账，不执行任何工具、不建改容器\"）：机器链路，无人工操作语义。"
+    },
+    "/api/history/search": {
+      "intent": "should_not_be_in_ui",
+      "area": "历史记录",
+      "note": "同上：legacy 对话历史检索，仅冒烟脚本使用；工作台用 /api/sessions/<id>/messages + 全库检索。"
+    },
+    "/api/history/<int:index>": {
+      "intent": "should_not_be_in_ui",
+      "area": "历史记录",
+      "note": "同上：legacy 按索引删历史；工作台删会话走 /api/sessions/<id>。"
+    },
+    "/api/subagent/<name>/execute": {
+      "intent": "should_not_be_in_ui",
+      "area": "分身/子代理",
+      "note": "后端 docstring 明写：该端点走 SubagentContainer.execute() 是**占位骨架**（不调 LLM、不做委派协议），只回占位文案供集成测试；真执行用 /delegate（已接线）。给占位骨架做按钮等于让用户以为分身真的干了活。"
     }
   }
 }

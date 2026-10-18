@@ -512,6 +512,23 @@ class Test非API前缀的logs应用:
         extra = m._refs_from_api_client_dir()
         assert "/api/api" not in extra, "baseURL 字面量 '/api' 不是端点，拼前缀会造幽灵"
 
+    def test_插件submit_url被算作ui引用(self):
+        """插件 schema 表单的提交端点由后端 manifest 声明，前端通用表单消费。
+
+        前端源码里**不会出现** submit_url 的字面量（它来自 /api/plugins 的 manifest），
+        于是 /api/status/config 明明被「插件与扩展」页的 schema 表单在用，却被记成未接线
+        （2026-10-18 实测）。判据是"谁消费它"：声明了 submit_url 的插件，其表单由
+        pages/hub/plugin-manage.tsx 统一渲染。
+        """
+        m = _mod()
+        urls = m._plugin_submit_urls()
+        assert "/api/status/config" in urls, urls
+        entries = {e["norm"]: e for e in m.classify()["entries"]}
+        e = entries["/api/status/config"]
+        assert e["category"] == "ui"
+        assert e["ui_pending"] is False
+        assert m._PLUGIN_FORM_PAGE in e["ui_refs"]
+
     def test_logs路由的机械分类为ui(self):
         m = _mod()
         entries = {e["norm"]: e for e in m.classify()["entries"]}

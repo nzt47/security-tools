@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-18T07:28:11",
+  "generated_at": "2026-10-18T08:28:57",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 365,
+    "ui": 370,
     "cli_script": 17,
     "runtime_only": 12,
-    "unreferenced": 70,
+    "unreferenced": 65,
     "live_by_category": {
-      "ui": 365,
+      "ui": 370,
       "cli_script": 17,
       "runtime_only": 12,
-      "unreferenced": 70
+      "unreferenced": 65
     },
     "by_intent": {
-      "should_be_in_ui": 385,
-      "should_not_be_in_ui": 78,
+      "should_be_in_ui": 380,
+      "should_not_be_in_ui": 83,
       "unclassified": 1
     },
     "by_domain": {
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 372,
+  "frontend_endpoints": 377,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -75,18 +75,6 @@
       ]
     },
     {
-      "path": "/api/clear",
-      "norm": "/api/clear",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "对话",
-      "where": [
-        "plugins/chat.py:1150"
-      ]
-    },
-    {
       "path": "/api/handoff",
       "norm": "/api/handoff",
       "methods": [
@@ -96,42 +84,6 @@
       "area": "会话管理",
       "where": [
         "plugins/chat.py:756"
-      ]
-    },
-    {
-      "path": "/api/history",
-      "norm": "/api/history",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "历史记录",
-      "where": [
-        "plugins/chat.py:1128"
-      ]
-    },
-    {
-      "path": "/api/history/<int:index>",
-      "norm": "/api/history/*",
-      "methods": [
-        "DELETE"
-      ],
-      "category": "unreferenced",
-      "area": "历史记录",
-      "where": [
-        "plugins/chat.py:1184"
-      ]
-    },
-    {
-      "path": "/api/history/search",
-      "norm": "/api/history/search",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "历史记录",
-      "where": [
-        "plugins/chat.py:1164"
       ]
     },
     {
@@ -338,68 +290,6 @@
       "area": "技能管理",
       "where": [
         "plugins/skills.py:540"
-      ]
-    },
-    {
-      "path": "/api/status/config",
-      "norm": "/api/status/config",
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "运行状态",
-      "where": [
-        "plugins/status.py:716",
-        "plugins/status.py:732"
-      ]
-    },
-    {
-      "path": "/api/subagent/<name>",
-      "norm": "/api/subagent/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "分身/子代理",
-      "where": [
-        "agent/server_routes/routes_subagent.py:634"
-      ]
-    },
-    {
-      "path": "/api/subagent/<name>/execute",
-      "norm": "/api/subagent/*/execute",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "分身/子代理",
-      "where": [
-        "agent/server_routes/routes_subagent.py:963"
-      ]
-    },
-    {
-      "path": "/api/subagent/<name>/offline_pack",
-      "norm": "/api/subagent/*/offline_pack",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "分身/子代理",
-      "where": [
-        "agent/server_routes/routes_subagent.py:701"
-      ]
-    },
-    {
-      "path": "/api/subagent/<name>/reload",
-      "norm": "/api/subagent/*/reload",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "分身/子代理",
-      "where": [
-        "agent/server_routes/routes_subagent.py:1229"
       ]
     },
     {
@@ -1620,10 +1510,10 @@
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "对话",
-      "intent_note": "清空对话。",
-      "ui_pending": true,
+      "intent_note": "legacy「清空对话」：工作台的重置走会话级接口（/api/sessions/*），全仓无任何 UI/脚本引用该端点。",
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -2567,11 +2457,13 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/plugin-manage.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/demo_plugin.py:35",
@@ -4144,10 +4036,10 @@
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "历史记录",
-      "intent_note": "历史记录：列表/删除/搜索。",
-      "ui_pending": true,
+      "intent_note": "legacy 对话历史（plugins/chat.py）：全仓仅 scripts/_smoke_history_drawer.py 消费，工作台的会话历史走 /api/sessions/*；给它做界面会变成第二套历史。",
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -4167,10 +4059,10 @@
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "历史记录",
-      "intent_note": "历史记录：列表/删除/搜索。",
-      "ui_pending": true,
+      "intent_note": "同上：legacy 按索引删历史；工作台删会话走 /api/sessions/<id>。",
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -4190,10 +4082,10 @@
       ],
       "description": "搜索历史记录",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "历史记录",
-      "intent_note": "历史记录：列表/删除/搜索。",
-      "ui_pending": true,
+      "intent_note": "同上：legacy 对话历史检索，仅冒烟脚本使用；工作台用 /api/sessions/<id>/messages + 全库检索。",
+      "ui_pending": false,
       "domain": "对话与会话"
     },
     {
@@ -9603,11 +9495,13 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/plugin-manage.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/status.py:716",
@@ -9618,7 +9512,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "运行状态",
       "intent_note": "运行状态：总览/配置。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -9627,11 +9521,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/workshop/SubagentRowActions.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:634"
@@ -9641,7 +9537,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -9736,10 +9632,10 @@
       ],
       "description": "在指定分身中执行任务",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "分身/子代理",
-      "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true,
+      "intent_note": "后端 docstring 明写：该端点走 SubagentContainer.execute() 是**占位骨架**（不调 LLM、不做委派协议），只回占位文案供集成测试；真执行用 /delegate（已接线）。给占位骨架做按钮等于让用户以为分身真的干了活。",
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -9748,11 +9644,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/workshop/SubagentRowActions.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:701"
@@ -9762,7 +9660,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -9771,11 +9669,13 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/workshop/SubagentRowActions.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_subagent.py:1229"
@@ -9785,7 +9685,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "分身/子代理",
       "intent_note": "分身装配台：创建/导入/销毁/委派/导出/热更新。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "分身与主线"
     },
     {
@@ -12179,5 +12079,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "e8925d817b800927"
+  "content_hash": "c37cf68b50d81eba"
 }
