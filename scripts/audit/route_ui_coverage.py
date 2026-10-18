@@ -72,6 +72,15 @@ _PARAM_RE = re.compile(r"<[^>]+>")
 _TMPL_RE = re.compile(r"\$\{[^}]*\}")
 #: 带引号的候选路径字面量（Python / JS / PowerShell / YAML 通用）
 _QUOTED = re.compile(r"""['"](/[^'"\s]{2,})['"]""")
+#: 绝对 URL 里的路径（运维/验证脚本常见：http://127.0.0.1:<port>/api/<端点>?<query>）
+#  【为什么必须收】2026-10-18 按族复查实测两处**真调用**被记成 unreferenced（假阴性）：
+#    · scripts/verify_key_revocation.ps1:278 —— Invoke-RestMethod -Uri 一条带 scheme 的绝对 URL；
+#    · scripts/docker_sandbox.ps1:55/84/127 —— 同上（端口是变量）。
+#  _QUOTED 只认「以 / 开头的字面量」，带 scheme 的绝对 URL 整条漏掉。
+#  只取 URL 的 path 部分（host/port 段丢弃），交给 norm() 做既有归一化。
+#  【注意】示例一律写占位符：本文件自己也在 cli 扫描范围内，写真实端点会把自己算成消费者
+#  （与 _intent_for docstring 里那条纪律同源）。
+_ABSOLUTE_URL = re.compile(r"""['"](https?://[^'"\s]+)['"]""")
 _EXCLUDE_DIRS = {"node_modules", "dist", "__pycache__", "htmlcov", ".venv", "venv", ".git"}
 
 
@@ -234,7 +243,18 @@ def _refs_from_files(files):
             continue
         for m in _QUOTED.finditer(txt):
             refs.setdefault(norm(m.group(1)), set()).add(rel)
+        for m in _ABSOLUTE_URL.finditer(txt):
+            path = _url_path(m.group(1))
+            if path:
+                refs.setdefault(norm(path), set()).add(rel)
     return refs
+
+
+def _url_path(url: str) -> str:
+    """绝对 URL 只取 path：http://host:port/api/x?q=1 → /api/x?q=1（无 path 返回空串）。"""
+    rest = url.split("://", 1)[1] if "://" in url else url
+    idx = rest.find("/")
+    return rest[idx:] if idx >= 0 else ""
 
 
 #: 客户端 baseURL=/api 的相对字面量所在目录（collect_frontend_literals 只认 "/api/" 字面量）

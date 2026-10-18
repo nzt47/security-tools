@@ -70,17 +70,28 @@ class Test判定合法:
 
 
 class Test证伪留痕:
-    """本轮复查的实际价值：三类"扫描器看不见"的真消费者必须留在台账证据里。"""
+    """本轮复查的实际价值：两类仍未被扫描器覆盖的消费者必须留在台账证据里，
+    已被扫描器接管的那个（绝对 URL）则用"已不再是 unreferenced"来钉。"""
 
     def test_legacy_js拼接被记录(self):
         m = _mod()
         ev = " ".join(str(e.get("evidence") or "") for e in m.load_ledger().values())
         assert "static/js/approval_console.js" in ev, "base 常量 + 拼接的消费者必须留痕"
 
-    def test_脚本绝对URL被记录(self):
-        m = _mod()
-        ev = " ".join(str(e.get("evidence") or "") for e in m.load_ledger().values())
-        assert "verify_key_revocation.ps1" in ev or "docker_sandbox.ps1" in ev
+    def test_脚本绝对URL已由扫描器接管(self):
+        """绝对 URL 的假阴性本轮修进了扫描器（不再只写在台账里）。
+
+        台账只该记**仍未判定**的项：一旦 /api/news、/api/sandbox/run 被扫描器看见，它们
+        就从 unreferenced 消失、台账也必须删登记（否则双向校核报陈旧项）。断言"已接管"
+        比断言"写过证据"更接近事实。
+        """
+        import importlib
+
+        coverage = importlib.import_module("scripts.audit.route_ui_coverage")
+        entries = {e["norm"]: e for e in coverage.classify()["entries"]}
+        for norm in ("/api/news", "/api/sandbox/run"):
+            assert entries[norm]["category"] != "unreferenced", norm
+            assert entries[norm]["non_ui_refs"], norm
 
     def test_模板串调用被记录(self):
         m = _mod()

@@ -431,6 +431,43 @@ class Test前端箭头函数常量:
         )
 
 
+class Test绝对URL的路径:
+    """运维/验证脚本常用带 scheme 的绝对 URL 调端点。
+
+    【实测（2026-10-18 按族复查）】_QUOTED 只认「以 / 开头的字面量」，于是两处**真调用**
+    被记成 unreferenced：
+      · scripts/verify_key_revocation.ps1:278 —— "http://localhost:5678/api/news?..."
+      · scripts/docker_sandbox.ps1:55 —— "http://127.0.0.1:$Port/api/sandbox/run"
+    这类假阴性会让"没人用"的账虚高，进而诱导人去退役仍在用的端点。
+    """
+
+    def test_url只取path段(self):
+        m = _mod()
+        assert m._url_path("http://127.0.0.1:5678/api/news?topic=x") == "/api/news?topic=x"
+        assert m._url_path("https://example.com") == ""
+        assert m.norm(m._url_path("http://127.0.0.1:$Port/api/sandbox/run")) == "/api/sandbox/run"
+
+    def test_绝对URL被收进refs(self, tmp_path, monkeypatch):
+        m = _mod()
+        monkeypatch.setattr(m, "ROOT", tmp_path)
+        p = tmp_path / "verify.ps1"
+        p.write_text(
+            'Invoke-RestMethod -Uri "http://localhost:5678/api/news?topic=test&max=1"\n'
+            'Invoke-RestMethod -Uri "http://127.0.0.1:$Port/api/sandbox/run" -Method POST\n',
+            encoding="utf-8",
+        )
+        refs = m._refs_from_files([p])
+        assert "/api/news" in refs, "带 query 的绝对 URL 也要归一化后命中"
+        assert "/api/sandbox/run" in refs
+
+    def test_真实仓库里的两条已不再是unreferenced(self):
+        m = _mod()
+        entries = {e["norm"]: e for e in m.classify()["entries"]}
+        for norm in ("/api/news", "/api/sandbox/run"):
+            assert entries[norm]["category"] != "unreferenced", norm
+            assert entries[norm]["non_ui_refs"], norm
+
+
 class Test非API前缀的logs应用:
     """`/logs/*` 是同源**另一个应用**的绝对路径，两头都不能错：
 
