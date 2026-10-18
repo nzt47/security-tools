@@ -1,0 +1,88 @@
+# -*- coding: utf-8 -*-
+"""「活体但无静态引用」台账的守卫（2026-10-18 · D 项走②）。
+
+【锁死四件事】
+  1. 双向一致：52 条 unreferenced 必须全部有判定；台账里不能留已消解的陈旧项；
+  2. 判定合法：只允许 keep / keep-ops / deprecate / retire，且 evidence 非空；
+  3. 待办可执行：deprecate / retire 必须写 action（否则这本账只是形容词）；
+  4. **证伪过**：台账里必须留下这三类"扫描器看不见的真消费者"的证据
+     —— legacy JS 拼接、脚本绝对 URL、模板串。它们就是本轮复查的目的。
+"""
+from __future__ import annotations
+
+import importlib
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+
+def _mod():
+    return importlib.import_module("scripts.audit.unreferenced_triage")
+
+
+class Test双向一致:
+    def test_当前仓库台账与扫描结果完全一致(self):
+        m = _mod()
+        targets = m.unreferenced_norms()
+        ledger = m.load_ledger()
+        assert m.check(targets, ledger) == []
+
+    def test_未登记的unreferenced会被抓到(self):
+        m = _mod()
+        problems = m.check(["/api/new", "/api/old"], {"/api/old": {"verdict": "keep", "evidence": "x"}})
+        assert any("未登记" in p and "/api/new" in p for p in problems)
+
+    def test_陈旧项会被抓到(self):
+        m = _mod()
+        problems = m.check([], {"/api/gone": {"verdict": "retire", "evidence": "x", "action": "删"}})
+        assert any("陈旧" in p and "/api/gone" in p for p in problems)
+
+
+class Test判定合法:
+    def test_非法verdict与空证据都被拒(self):
+        m = _mod()
+        problems = m.check(
+            ["/api/a", "/api/b"],
+            {"/api/a": {"verdict": "maybe", "evidence": "x", "action": "y"},
+             "/api/b": {"verdict": "keep", "evidence": "   "}},
+        )
+        assert any("/api/a" in p and "verdict 非法" in p for p in problems)
+        assert any("/api/b" in p and "evidence" in p for p in problems)
+
+    def test_retire与deprecate必须写action(self):
+        m = _mod()
+        problems = m.check(
+            ["/api/a", "/api/b"],
+            {"/api/a": {"verdict": "retire", "evidence": "x"},
+             "/api/b": {"verdict": "deprecate", "evidence": "x"}},
+        )
+        assert any("/api/a" in p and "action" in p for p in problems)
+        assert any("/api/b" in p and "action" in p for p in problems)
+
+    def test_四类判定都有实例(self):
+        m = _mod()
+        counts = m.summarize(m.load_ledger())
+        assert set(counts) == set(m.VERDICTS)
+        assert all(n > 0 for n in counts.values()), counts
+
+
+class Test证伪留痕:
+    """本轮复查的实际价值：三类"扫描器看不见"的真消费者必须留在台账证据里。"""
+
+    def test_legacy_js拼接被记录(self):
+        m = _mod()
+        ev = " ".join(str(e.get("evidence") or "") for e in m.load_ledger().values())
+        assert "static/js/approval_console.js" in ev, "base 常量 + 拼接的消费者必须留痕"
+
+    def test_脚本绝对URL被记录(self):
+        m = _mod()
+        ev = " ".join(str(e.get("evidence") or "") for e in m.load_ledger().values())
+        assert "verify_key_revocation.ps1" in ev or "docker_sandbox.ps1" in ev
+
+    def test_模板串调用被记录(self):
+        m = _mod()
+        ev = " ".join(str(e.get("evidence") or "") for e in m.load_ledger().values())
+        assert "log_dashboard.html" in ev

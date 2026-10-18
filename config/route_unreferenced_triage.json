@@ -1,0 +1,236 @@
+{
+  "note": "「活体但无静态引用」路由的人工判定台账（2026-10-18，D 项走②按族静态复查）。与 reports/route_ui_coverage.json 双向一致：新增 unreferenced 必须在这里登记，接好线/删掉端点后必须把登记也删掉 —— scripts/audit/unreferenced_triage.py --check 两个方向都查。verdict：keep=仓库内可指认的消费者；keep-ops=无仓库内消费者但有文档化的运维/外部契约；deprecate=已被新端点取代、处于兼容窗口；retire=无消费者、无文档契约。",
+  "entries": {
+    "/": {
+      "verdict": "keep",
+      "evidence": "app_server.py:2117 首页重定向；它是入口而不是功能端点（浏览器/CI 直接访问）"
+    },
+    "/api/approval/*/approve": {
+      "verdict": "keep",
+      "evidence": "static/js/approval_console.js:193 —— 拼接调用 API + '/' + id + '/approve'（扫描器只认完整字面量）"
+    },
+    "/api/approval/*/reject": {
+      "verdict": "keep",
+      "evidence": "static/js/approval_console.js:193 —— 拼接调用 API + '/' + id + '/approve'（扫描器只认完整字面量）"
+    },
+    "/api/approval/console": {
+      "verdict": "keep-ops",
+      "evidence": "程序化/嵌入式外壳（routes_approval.py:375）；浏览器人工入口是 /approval-console（同文件 :380）"
+    },
+    "/api/approval/link/*": {
+      "verdict": "retire",
+      "evidence": "static/js/approval_console.js:157 只 POST /link；GET 校验链接无任何调用方（tests 只测端点自身）",
+      "action": "删 GET 校验链接端点；若外部分享链接流程要用，先补调用方再留"
+    },
+    "/api/approval/whoami": {
+      "verdict": "keep",
+      "evidence": "static/js/approval_console.js:125 —— request('GET', '/whoami')（同上拼接口径）"
+    },
+    "/api/auth/token-check": {
+      "verdict": "retire",
+      "evidence": "全仓无调用方（仅 docs/yunshu-pluginization 的历史任务文档）；前端登录态校验走 /api/user/info",
+      "action": "删端点"
+    },
+    "/api/clear": {
+      "verdict": "keep-ops",
+      "evidence": "开发检查页 scripts/ld_check.html:396/701、render_check.html、smoke.html 调用（legacy 页面，非主 UI）"
+    },
+    "/api/cognitive/prompt": {
+      "verdict": "keep-ops",
+      "evidence": "调试面：docstring 自述给调试/回放用、不接 UI；intent 已标不该进 UI"
+    },
+    "/api/cognitive/translate/*": {
+      "verdict": "keep-ops",
+      "evidence": "调试面（同上）；docs 仅设计文档"
+    },
+    "/api/demo/probe": {
+      "verdict": "keep-ops",
+      "evidence": "插件演示 probe（plugins/demo_plugin.py:29）；UI 只在测试 mock 里出现"
+    },
+    "/api/diagnostics/trace/extract": {
+      "verdict": "keep-ops",
+      "evidence": "运维文档 curl 入口（docs/OBSERVABILITY_OPERATION_MANUAL.md 等 6 篇）"
+    },
+    "/api/health/auth": {
+      "verdict": "keep-ops",
+      "evidence": "授权矩阵的公开路径清单（app_server.py）里登记；供运维探针"
+    },
+    "/api/health/score/calculate": {
+      "verdict": "keep-ops",
+      "evidence": "运维脚本 scripts/inject_health_anomaly.py、verify_alert_fire.py、verify_health_alerts.py 调用"
+    },
+    "/api/history/search": {
+      "verdict": "retire",
+      "evidence": "无调用方；会话历史走 /api/history*（HistoryDrawer → lib/historyApi.ts）",
+      "action": "删端点"
+    },
+    "/api/llm-monitor/records/*": {
+      "verdict": "retire",
+      "evidence": "UI 只调列表（LlmMonitorPanel.tsx:149）；endpoints.ts:526 的 LLM_MONITOR_RECORD 常量无人使用",
+      "action": "删单条记录端点与死常量"
+    },
+    "/api/memory/*": {
+      "verdict": "retire",
+      "evidence": "UI 的 memory 常量都是 GET/POST 其他路径（endpoints.ts:304-313）；DELETE 无调用方",
+      "action": "删 DELETE 端点"
+    },
+    "/api/news": {
+      "verdict": "keep",
+      "evidence": "scripts/verify_key_revocation.ps1:278 用绝对 URL 调用（扫描器只认以 / 开头的字面量）"
+    },
+    "/api/observability/alerts/validate": {
+      "verdict": "keep-ops",
+      "evidence": "运维手册与集成测试（docs/OBSERVABILITY_OPERATION_MANUAL.md、tests/integration/test_routes_logging_integration.py）"
+    },
+    "/api/observability/logs/labels": {
+      "verdict": "keep-ops",
+      "evidence": "运维手册与集成测试（同上）"
+    },
+    "/api/observability/logs/stream": {
+      "verdict": "keep-ops",
+      "evidence": "实时日志 SSE；运维手册 + tests/integration/test_observability_security.py"
+    },
+    "/api/sandbox/run": {
+      "verdict": "keep",
+      "evidence": "scripts/docker_sandbox.ps1:55/84/127 绝对 URL 调用"
+    },
+    "/api/scheduler/create": {
+      "verdict": "retire",
+      "evidence": "无调用方（定时任务 UI 走 /api/schedules*）；plugins/mcp_scheduler.py 只有定义",
+      "action": "删端点"
+    },
+    "/api/skills-mgmt/digest/*": {
+      "verdict": "deprecate",
+      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
+      "action": "兼容窗口后删双注册"
+    },
+    "/api/skills-mgmt/digest/curate": {
+      "verdict": "deprecate",
+      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
+      "action": "兼容窗口后删双注册"
+    },
+    "/api/skills-mgmt/digest/events": {
+      "verdict": "deprecate",
+      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
+      "action": "兼容窗口后删双注册"
+    },
+    "/api/skills-mgmt/digest/feed": {
+      "verdict": "deprecate",
+      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
+      "action": "兼容窗口后删双注册"
+    },
+    "/api/skills-mgmt/digest/merge-backups": {
+      "verdict": "deprecate",
+      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
+      "action": "兼容窗口后删双注册"
+    },
+    "/api/skills-mgmt/digest/merge-safe": {
+      "verdict": "deprecate",
+      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
+      "action": "兼容窗口后删双注册"
+    },
+    "/api/skills-mgmt/digest/merge-undo": {
+      "verdict": "deprecate",
+      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
+      "action": "兼容窗口后删双注册"
+    },
+    "/api/skills-mgmt/digest/run-all": {
+      "verdict": "deprecate",
+      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
+      "action": "兼容窗口后删双注册"
+    },
+    "/api/skills-mgmt/digest/stream": {
+      "verdict": "deprecate",
+      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
+      "action": "兼容窗口后删双注册"
+    },
+    "/api/skills-mgmt/inject": {
+      "verdict": "retire",
+      "evidence": "无调用方；上下文注入走 agent 内部注入链（guardrails/injection_defense）",
+      "action": "删端点"
+    },
+    "/api/skills/add": {
+      "verdict": "deprecate",
+      "evidence": "被 /api/skills-mgmt 的资产新增取代；docs 是 T1.5 历史设计",
+      "action": "兼容窗口后删"
+    },
+    "/api/skills/delete": {
+      "verdict": "deprecate",
+      "evidence": "同上",
+      "action": "兼容窗口后删"
+    },
+    "/api/skills/describe": {
+      "verdict": "deprecate",
+      "evidence": "被 /api/skills/describe/auto（UI 在用的 SKILLS_DESCRIBE_AUTO）+ skills-mgmt assess 取代",
+      "action": "兼容窗口后删"
+    },
+    "/api/skills/params": {
+      "verdict": "deprecate",
+      "evidence": "skills.tsx 注释里的旧数据源；实际未再调用",
+      "action": "兼容窗口后删"
+    },
+    "/api/subagent/*/execute": {
+      "verdict": "retire",
+      "evidence": "自述「容器占位骨架，不调 LLM」（routes_subagent.py:6），无调用方",
+      "action": "删端点"
+    },
+    "/api/subagent/callback": {
+      "verdict": "keep",
+      "evidence": "容器回调：agent/subagent/ 引用 + tests"
+    },
+    "/api/voice/listen": {
+      "verdict": "retire",
+      "evidence": "无调用方；voice 只有设计文档、未接线",
+      "action": "删端点（连同 voice/status）"
+    },
+    "/api/voice/status": {
+      "verdict": "retire",
+      "evidence": "同上",
+      "action": "删端点"
+    },
+    "/api/web/clean": {
+      "verdict": "keep-ops",
+      "evidence": "工具面：工具名 web_* 在 agent/tool_calling.py、guardrails 登记；HTTP 形态供外部工具客户端"
+    },
+    "/api/web/css": {
+      "verdict": "keep-ops",
+      "evidence": "同上"
+    },
+    "/api/web/download": {
+      "verdict": "keep-ops",
+      "evidence": "同上"
+    },
+    "/api/web/get": {
+      "verdict": "keep-ops",
+      "evidence": "同上"
+    },
+    "/api/web/post": {
+      "verdict": "keep-ops",
+      "evidence": "同上"
+    },
+    "/api/web/stats": {
+      "verdict": "keep-ops",
+      "evidence": "同上"
+    },
+    "/api/web/xpath": {
+      "verdict": "keep-ops",
+      "evidence": "同上"
+    },
+    "/approval-console": {
+      "verdict": "keep-ops",
+      "evidence": "人工入口页（routes_approval.py:380）；docs 让人收藏该地址（不经 require_token 的静态外壳）"
+    },
+    "/capabilities/*": {
+      "verdict": "keep-ops",
+      "evidence": "能力详情（routes_capabilities.py:14 表格化文档）；registry 文档化入口"
+    },
+    "/capabilities/skills/search": {
+      "verdict": "keep-ops",
+      "evidence": "语义召回入口（routes_capabilities.py:13），文档化"
+    },
+    "/logs/dashboard/data": {
+      "verdict": "keep",
+      "evidence": "templates/log_dashboard.html:244 用模板串 fetch 调用"
+    }
+  }
+}
