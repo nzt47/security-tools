@@ -8,13 +8,15 @@
  *   - ROI：★ U8 两个延迟口径并列展示且标注不可混用
  *   - 自愈事故：有 open 事故自动展开；MTTD/MTTR 缺位渲染 "—"
  *   - 审计导出：验签摘要（ok / first_bad_seq）
- *   - 记忆面板：★ U5 召回优先级契约来自后端
+ *   - 记忆治理视图（原「记忆技能库」）：★ U5 召回优先级契约来自后端 —— 2026-10-18 起
+ *     该面板由记忆管理的「记忆结构」Tab 渲染（治理面板不再有 memory 项）
  *   - 七动作 + 五类确认：类别来自后端常量；60s 倒计时；**不声明 actor_type**
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { GovernancePanels } from './index'
+import { MemoryGovernancePanel } from '../memory/memory-governance'
 import { resetSecurityStateCache } from './usePanel'
 
 const api = vi.hoisted(() => ({
@@ -386,7 +388,7 @@ describe('5. 自愈事故面板', () => {
   })
 })
 
-describe('6. 记忆技能库面板（★ U5 优先级契约）', () => {
+describe('6. 记忆治理视图（★ U5 优先级契约；2026-10-18 并入记忆管理）', () => {
   const memory = {
     ok: true, panel: { ...PANEL, panel: 'memory_skills', priority: 'P2' }, generated_at: 't',
     recall_priority: { source: 'agent/memory/taxonomy.py::recall_priority_key()',
@@ -403,7 +405,7 @@ describe('6. 记忆技能库面板（★ U5 优先级契约）', () => {
 
   it('优先级契约来自后端并上屏（策略 > 事实 > 偏好）', async () => {
     api.fetchMemorySkills.mockResolvedValue(memory)
-    render(<GovernancePanels panel="memory" />)
+    render(<MemoryGovernancePanel />)
     expect(await screen.findByText(/recall_priority_key\(\)/)).toBeInTheDocument()
     expect(screen.getByText('strategy')).toBeInTheDocument()
     expect(screen.getByText(/组装注入（P7.2-10）/)).toBeInTheDocument()
@@ -411,7 +413,7 @@ describe('6. 记忆技能库面板（★ U5 优先级契约）', () => {
 
   it('条目显示脱敏文本（不显示原文）', async () => {
     api.fetchMemorySkills.mockResolvedValue(memory)
-    render(<GovernancePanels panel="memory" />)
+    render(<MemoryGovernancePanel />)
     expect(await screen.findByText('脱敏后的内容')).toBeInTheDocument()
   })
 })

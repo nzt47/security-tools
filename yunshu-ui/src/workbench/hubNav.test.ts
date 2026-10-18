@@ -140,6 +140,20 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     expect(findNavItem('network')?.component).toBeDefined()
   })
 
+  it('「记忆技能库」并入「记忆管理」：导航叶子消失、旧深链落到 memory（禁止双入口）', () => {
+    const keys = flattenNav(HUB_NAV).map((i) => i.key)
+    // 2026-10-18 IA：治理面板的 memory 面板只剩"四层记忆只读清单 + U5 优先级契约"，
+    // 早就不含技能（技能中心已上提顶层）⇒ 并入记忆管理的「记忆结构」Tab。
+    expect(keys).not.toContain('governance/memory')
+    expect(resolveNavKey('governance/memory')).toBe('memory')
+    // 只读治理视图仍可达：记忆管理叶子存在（旧深链因此不会落到空白页）
+    expect(findNavItem('memory')?.component).toBeDefined()
+    // 治理面板其余叶子不受影响
+    for (const k of ['governance/pipeline', 'governance/approvals', 'governance/incidents', 'governance/route-coverage']) {
+      expect(keys).toContain(k)
+    }
+  })
+
   it('「装配车间」并入「会话与配置」；「系统自我复制」已作页内视图（旧深链仍归一）', () => {
     const keys = flattenNav(HUB_NAV).map((i) => i.key)
     expect(keys).toContain('workshop/agents')

@@ -7,7 +7,9 @@
  * 面板优先级（§7 逐字）：
  *   P0 展开：消化流水线 / 审批收件箱
  *   P1 折叠：能力地图 / 成本 ROI / 自愈事故（**有事故自动展开**）
- *   P2 折叠：记忆技能库
+ *   （2026-10-18 IA）原 P2「记忆技能库」并入「记忆管理 · 记忆结构」——它早就不含"技能"
+ *   （技能中心已上提为顶层导航），只剩四层记忆只读清单 + U5 优先级契约，与记忆结构同域。
+ *   旧深链 ?panel=governance/memory 由 hubNav 的 LEGACY_NAV_KEY_MAP 落到 memory。
  *
  * 口径纪律（§0.3）：所有数字走 `MetricValue`（带来源/公式/样本量入口）；
  *   缺位渲染"—"不渲染 0；样本 <20 带"仅披露"角标。
@@ -26,7 +28,6 @@ import {
   fetchAuditExport,
   fetchCapabilityMap,
   fetchIncidents,
-  fetchMemorySkills,
   fetchPipeline,
   fetchRoi,
 } from '@/lib/cpPanelsApi'
@@ -39,7 +40,6 @@ import type {
   CapabilityMapView,
   DecisionCard,
   IncidentsView,
-  MemorySkillsView,
   ObservabilityStreamView,
   PipelineView,
   RoiView,
@@ -83,7 +83,7 @@ import RouteCoveragePanel from './route-coverage'
 
 export type GovernancePanelId =
   | 'pipeline' | 'capabilities' | 'approvals'
-  | 'roi' | 'incidents' | 'memory' | 'audit'
+  | 'roi' | 'incidents' | 'audit'
   // TASK-S7-01「开关中心」：登记表全量 + 生效来源 + 风险分级 + B 级二次确认
   | 'settings'
   // 阶段 2「路由覆盖」：构建期路由→UI 覆盖审计（原顶层自动发现项）
@@ -109,8 +109,6 @@ export function GovernancePanels({ panel = 'pipeline' }: { panel?: GovernancePan
       return <RoiPanel />
     case 'incidents':
       return <IncidentsPanel />
-    case 'memory':
-      return <MemorySkillsPanel />
     case 'audit':
       return <AuditExportPanel />
     case 'settings':
@@ -1137,87 +1135,6 @@ function BackupHealthCard({ health }: { health: Record<string, unknown> }) {
 // ═══════════════════════════════════════════════════════════
 //  6. 记忆 / 技能库（P2 折叠）
 // ═══════════════════════════════════════════════════════════
-
-export function MemorySkillsPanel() {
-  const { data, loading, error, reload } = usePanel<MemorySkillsView>(
-    () => fetchMemorySkills({ limit: 100 }),
-    [],
-  )
-  const layers = data?.layers as { by_layer?: Record<string, number>; entries?: MemorySkillsView['layers'] extends infer _ ? import('@/lib/cpPanelsTypes').MemoryCardData[] : never; available?: boolean; reason?: string } | undefined
-  const rp = data?.recall_priority
-  return (
-    <PanelShell loading={loading} error={error} reload={reload}>
-      {data && (
-        <>
-          <PanelHeader
-            title="记忆 / 技能库"
-            description="四层记忆（策略/事实/偏好/工作）· 技能中心已上提为顶层导航项（与「提示词实验室」并列）"
-            priority={data.panel?.priority}
-            datasources={data.panel?.datasources}
-          />
-          {/* ★ U5：召回优先级契约（单一来源＝后端 taxonomy） */}
-          <Collapsible title="召回优先级契约（U5：策略 > 事实 > 偏好）" defaultOpen>
-            {rp && (rp as { available?: boolean }).available === false ? (
-              <AbsentBox label="优先级口径不可用" reason={(rp as { reason?: string }).reason} />
-            ) : (
-              <div className="space-y-1 text-xs text-slate-300">
-                <div className="flex flex-wrap items-center gap-2">
-                  {(rp as { order?: string[] })?.order?.map((o, i) => (
-                    <span key={o} className="flex items-center gap-1">
-                      <StatusBadge tone={i === 0 ? 'green' : i === 1 ? 'blue' : 'gray'}>{o}</StatusBadge>
-                      {i < ((rp as { order?: string[] })?.order?.length ?? 1) - 1 && <span className="text-slate-600">›</span>}
-                    </span>
-                  ))}
-                </div>
-                <div className="font-mono text-[10px] text-slate-500">来源：{(rp as { source?: string })?.source}</div>
-                <div className="text-[11px] text-slate-500">公式：{(rp as { formula?: string })?.formula}</div>
-                <div className="text-[11px] text-amber-400/80">{(rp as { contract?: string })?.contract}</div>
-              </div>
-            )}
-          </Collapsible>
-
-          <div className="mt-3">
-            {layers?.available === false ? (
-              <AbsentBox label="记忆存储不可用" reason={layers.reason} />
-            ) : (
-              <>
-                <div className="mb-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                  <MetricValue metric={(layers as { total?: never })?.total} label="召回条目" />
-                  {Object.entries(layers?.by_layer || {}).map(([k, v]) => (
-                    <span key={k} className="text-slate-500">{k}:{v}</span>
-                  ))}
-                </div>
-                <VirtualList
-                  items={(layers?.entries || []) as import('@/lib/cpPanelsTypes').MemoryCardData[]}
-                  itemHeight={56}
-                  height={480}
-                  className="rounded-lg border border-slate-800"
-                  keyOf={(m) => m.memory_id}
-                  renderItem={(m) => (
-                    <div className="flex items-center gap-2 border-b border-slate-800/60 px-3 text-xs">
-                      <StatusBadge tone={m.layer === 'strategy' ? 'green' : m.layer === 'fact' ? 'blue' : 'gray'}>
-                        {m.layer}
-                      </StatusBadge>
-                      <span className="w-24 shrink-0 truncate font-mono text-[10px] text-slate-500" title={m.memory_id}>
-                        {m.memory_id}
-                      </span>
-                      {/* content_redacted 已是脱敏文本（§3.4 脱敏先于哈希） */}
-                      <span className="min-w-0 flex-1 truncate text-slate-300">{m.content_redacted}</span>
-                      {m.org_level && <StatusBadge tone="blue">org 级</StatusBadge>}
-                      {m.degraded && <StatusBadge tone="yellow">降级</StatusBadge>}
-                      {m.forget_candidate && <StatusBadge tone="red">遗忘候选</StatusBadge>}
-                      <span className="shrink-0 text-[10px] text-slate-600">{m.scope}</span>
-                    </div>
-                  )}
-                />
-              </>
-            )}
-          </div>
-        </>
-      )}
-    </PanelShell>
-  )
-}
 
 // ═══════════════════════════════════════════════════════════
 //  7. 审计导出（含验签摘要）

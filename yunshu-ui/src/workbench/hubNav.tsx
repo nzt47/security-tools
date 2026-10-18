@@ -153,7 +153,9 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/capabilities', label: '能力地图', icon: Layers, component: GovernancePanels },
       { key: 'governance/roi', label: '成本 ROI', icon: TrendingUp, component: GovernancePanels },
       { key: 'governance/incidents', label: '自愈事故', icon: HeartPulse, component: GovernancePanels },
-      { key: 'governance/memory', label: '记忆技能库', icon: Brain, component: GovernancePanels },
+      // 【2026-10-18 IA】原「记忆技能库」并入「记忆管理 · 记忆结构」：该面板早就不含"技能"
+      // （技能中心已上提为顶层导航），只剩四层记忆只读清单 + U5 召回优先级契约，与记忆结构同域。
+      // 旧深链 ?panel=governance/memory 经 LEGACY_NAV_KEY_MAP 落到 memory（禁止双入口）。
       // 【阶段 2】路由覆盖归位：数据是构建期审计产物（提交物 + 新鲜度守卫 + 棘轮），
       // 与全景看板的运行时运维视图语义不匹配，故**留在治理面板**（与「能力地图」同类）。
       // 原为 features/route-coverage 自动发现项（顶层），现已删除 manifest（禁止双入口）。
@@ -196,9 +198,9 @@ export interface HubPanelParams {
   initialCategory?: string
   /** memory/manual | memory/auto：记忆页初始模式 */
   mode?: 'manual' | 'auto'
-  /** governance/<panel>：治理面板栏目（六面板 + 审计导出 + 开关中心；单组件按参数渲染） */
+  /** governance/<panel>：治理面板栏目（五面板 + 审计导出 + 开关中心；单组件按参数渲染） */
   panel?: 'pipeline' | 'capabilities' | 'approvals' | 'roi' | 'incidents'
-    | 'memory' | 'audit' | 'settings' | 'route-coverage'
+    | 'audit' | 'settings' | 'route-coverage'
 }
 
 /** 由导航 key 推导复用页面的初始参数；其余导航项无需参数（返回空对象，组件自带默认视图） */
@@ -323,6 +325,9 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   //   不再有 Tab 切换），旧深链仍落到本页。
   'components': 'panorama/monitor',
   'components/modules': 'panorama/monitor',
+  // 【2026-10-18 IA】治理面板的「记忆技能库」并入「记忆管理 · 记忆结构」（只读治理视图）：
+  //   独立叶子消失 ⇒ 旧深链落到 memory（Tab 记忆会接续用户上次看的子模块）
+  'governance/memory': 'memory',
   // 【第二轮 IA】记忆管理子项 → 页内 Tab（落到「记忆管理」页，Tab 记忆接续上次选择）
   'memory/manual': 'memory',
   'memory/auto': 'memory',
