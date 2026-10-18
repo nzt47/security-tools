@@ -81,6 +81,29 @@ describe('ExtensionsMarket', () => {
     }))
   })
 
+  it('已启用的内置技能显示"已启用"且不给安装按钮（状态以 SkillRegistry 为准）', async () => {
+    // 2026-10-18：这 7 个 persona 技能在文件轨 enabled=true、运行时一直在注入，
+    // 但扩展存储可能没有安装记录 ⇒ 旧 UI 会显示"安装"。启用态改为读后端 enabled 字段。
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/extensions/list') return { ok: true, extensions: [] }
+      if (url === '/api/extensions/installed') return { ok: true, skills: [], plugins: [], channels: [], mcp_services: [], claude_skills: [] }
+      if (url === '/api/extensions/discover') {
+        return {
+          ok: true,
+          builtin_skills: [{ id: 'memory_summary', name: '记忆摘要', installed: false, enabled: true, managed_in: 'skill-center' }],
+          builtin_mcp: [], builtin_channels: [],
+        }
+      }
+      if (url.startsWith('/api/extensions/market/recommend')) return { ok: true, recommendations: [] }
+      return { ok: true }
+    })
+    render(<ExtensionsMarket />)
+    expect(await screen.findByText('已启用')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '安装 memory_summary' })).toBeNull()
+    // 分组改名：与技能中心里的 skill.md 资产区分开
+    expect(screen.getByText(/内置行为（技能中心管理）/)).toBeTruthy()
+  })
+
   it('卸载是两步：先展开确认条，再点确认才发请求', async () => {
     baseGets()
     api.hubPost.mockResolvedValue({ ok: true, message: '已卸载' })

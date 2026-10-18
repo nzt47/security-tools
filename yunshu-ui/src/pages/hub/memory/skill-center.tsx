@@ -43,6 +43,9 @@ export default function SkillCenter() {
             <h1 className="text-[15px] font-semibold text-slate-100">技能中心</h1>
             <p className="text-[11px] text-slate-500">
               LLM 技能（模型执行）与工作流技能（本地执行）分开管理 —— 工作流命中时跳过 LLM，省调用省延迟
+              <span className="ml-2 text-slate-600">
+                · 这里管 skill.md 资产；「扩展市场」里的内置 persona 行为（自省/情感等）也在这里启停
+              </span>
             </p>
           </div>
         </div>

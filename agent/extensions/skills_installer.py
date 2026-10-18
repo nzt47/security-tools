@@ -442,17 +442,39 @@ class SkillsInstaller:
     def discover_available_skills(self) -> Dict[str, List[Dict]]:
         """发现所有可用的技能
 
-        返回内置和已安装的合并列表
+        返回内置和已安装的合并列表。
+
+        【2026-10-18 · 状态口径统一】每条内置技能额外带 `enabled`（**事实源是
+        SkillRegistry**，不是扩展存储）与 `managed_in="skill-center"`。
+        【为什么必须补】这 7 个内置 persona 技能在文件轨里是 `enabled: true`（随仓库
+        分发、早已参与注入），而扩展存储里可能没有安装记录 ⇒ 市场会把它们显示成
+        "可安装"，用户以为没启用。运行时（digital_life_persona._is_skill_enabled /
+        _build_skill_instructions）只认 SkillRegistry，故这里也以它为准。
         """
         builtin_skills = BUILTIN_EXTENSIONS.get("skill", [])
         installed = self.list_installed_skills()
         installed_ids = {s["id"] for s in installed}
 
+        reg = None
+        try:
+            from agent.skills_mgmt.registry import SkillRegistry
+            reg = SkillRegistry()
+        except Exception:  # noqa: BLE001 注册表不可用 ⇒ enabled 一律 False（不假装已启用）
+            reg = None
+
         available = []
         for s in builtin_skills:
+            enabled = False
+            if reg is not None:
+                try:
+                    enabled = bool(reg.is_enabled(s["id"]))
+                except Exception:  # noqa: BLE001
+                    enabled = False
             available.append({
                 **s,
                 "installed": s["id"] in installed_ids,
+                "enabled": enabled,
+                "managed_in": "skill-center",
                 "type": "skill",
             })
 
