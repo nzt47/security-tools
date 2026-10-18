@@ -529,6 +529,32 @@ class Test非API前缀的logs应用:
         assert e["ui_pending"] is False
         assert m._PLUGIN_FORM_PAGE in e["ui_refs"]
 
+    def test_带插值的api模板串折叠后算引用(self):
+        """`/api/history${cond ? '?...' : ''}` 这类模板串此前整条匹配不上。
+
+        后果：/api/history、/api/history/<index> 被会话任务页的历史抽屉
+        （HistoryDrawer → lib/historyApi.ts）真实使用，却被记成未接线，
+        2026-10-18 因此**误改判过两条标注**（已在同一次提交里撤回）。
+        """
+        from scripts.audit import contract_diff as cd
+
+        assert cd._fold_template("/api/history$" + "{cond ? '?s=1' : ''}") == "/api/history"
+        assert cd._fold_template("/api/history/$" + "{index}") == "/api/history/*"
+
+    def test_带查询串的api字面量算引用(self):
+        """`/api/skills/content?id=...`：? 与 = 不在路径字符集，旧正则整条漏掉。"""
+        from scripts.audit import contract_diff as cd
+
+        hits = cd.FRONTEND_LITERAL_QUERY.findall("`/api/skills/content?id=" + "$" + "{id}`")
+        assert hits == ["/api/skills/content"]
+
+    def test_两个真实用例已恢复为已接线(self):
+        m = _mod()
+        entries = {e["norm"]: e for e in m.classify()["entries"]}
+        for norm in ("/api/history", "/api/history/*", "/api/skills/content"):
+            assert entries[norm]["category"] == "ui", norm
+            assert entries[norm]["ui_pending"] is False, norm
+
     def test_logs路由的机械分类为ui(self):
         m = _mod()
         entries = {e["norm"]: e for e in m.classify()["entries"]}

@@ -589,9 +589,9 @@
       "note": "工作区文件：列表/信息/写入/删除。"
     },
     "/api/history": {
-      "intent": "should_not_be_in_ui",
+      "intent": "should_be_in_ui",
       "area": "历史记录",
-      "note": "legacy 对话历史（plugins/chat.py）：全仓仅 scripts/_smoke_history_drawer.py 消费，工作台的会话历史走 /api/sessions/*；给它做界面会变成第二套历史。"
+      "note": "会话任务页「历史问话」抽屉（HistoryDrawer → lib/historyApi.ts）真实在用。此前判为\"不该进\"是误判：URL 由模板串条件拼接，旧扫描器看不到。2026-10-18 扫描器补模板前缀折叠后恢复为\"该进\"。"
     },
     "/api/history/*": {
       "intent": "should_be_in_ui",
@@ -1099,14 +1099,29 @@
       "note": "同上：legacy 对话历史检索，仅冒烟脚本使用；工作台用 /api/sessions/<id>/messages + 全库检索。"
     },
     "/api/history/<int:index>": {
-      "intent": "should_not_be_in_ui",
+      "intent": "should_be_in_ui",
       "area": "历史记录",
-      "note": "同上：legacy 按索引删历史；工作台删会话走 /api/sessions/<id>。"
+      "note": "会话任务页「历史问话」抽屉（HistoryDrawer → lib/historyApi.ts）真实在用。此前判为\"不该进\"是误判：URL 由模板串条件拼接，旧扫描器看不到。2026-10-18 扫描器补模板前缀折叠后恢复为\"该进\"。"
     },
     "/api/subagent/<name>/execute": {
       "intent": "should_not_be_in_ui",
       "area": "分身/子代理",
       "note": "后端 docstring 明写：该端点走 SubagentContainer.execute() 是**占位骨架**（不调 LLM、不做委派协议），只回占位文案供集成测试；真执行用 /delegate（已接线）。给占位骨架做按钮等于让用户以为分身真的干了活。"
+    },
+    "/api/skills/add": {
+      "intent": "should_not_be_in_ui",
+      "area": "技能管理",
+      "note": "与资产库重复：app_server.SkillsManager.add() 直接转调 skills_mgmt 的 create_manual，而工作台的「新建技能（手写）」已走 /api/skills-mgmt/create/manual。两个入口改同一份数据。"
+    },
+    "/api/skills/delete": {
+      "intent": "should_not_be_in_ui",
+      "area": "技能管理",
+      "note": "与资产库重复：SkillsManager.delete() 转调同一个 skills-mgmt 删除路径，技能资产库行的「删除」已接线（DELETE /api/skills-mgmt/<id>）。"
+    },
+    "/api/skills/params": {
+      "intent": "should_not_be_in_ui",
+      "area": "技能管理",
+      "note": "与资产库重复：SkillsManager.update_params() 落的就是 skills-mgmt 的 default_params（svc.update），资产库详情/调参面板已覆盖；再做一个入口会产生两份\"同一参数\"的编辑面。"
     }
   }
 }

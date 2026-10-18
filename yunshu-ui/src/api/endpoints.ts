@@ -323,6 +323,9 @@ export const HEALTH = '/api/health';
 export const HEALTH_DASHBOARD = '/api/health/dashboard';
 export const HEALTH_PROBE_TREND = '/api/health/probe-trend';
 export const MODULES_TOPOLOGY = '/api/modules/topology';
+// 模块节点下钻与干预（拓扑面板）
+export const modulesDetail = (id: string) => `/api/modules/${encodeURIComponent(id)}/detail`;
+export const MODULES_ACTIONS = (id: string) => `/api/modules/${encodeURIComponent(id)}/actions`;
 export const STATUS = '/api/status';
 export const PANORAMA = '/api/panorama';
 export const SENSORS = '/api/sensors';

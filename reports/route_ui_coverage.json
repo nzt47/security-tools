@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-18T08:28:57",
+  "generated_at": "2026-10-18T09:22:23",
   "totals": {
     "routes": 464,
     "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 370,
-    "cli_script": 17,
+    "ui": 377,
+    "cli_script": 15,
     "runtime_only": 12,
-    "unreferenced": 65,
+    "unreferenced": 60,
     "live_by_category": {
-      "ui": 370,
-      "cli_script": 17,
+      "ui": 377,
+      "cli_script": 15,
       "runtime_only": 12,
-      "unreferenced": 65
+      "unreferenced": 60
     },
     "by_intent": {
-      "should_be_in_ui": 380,
-      "should_not_be_in_ui": 83,
+      "should_be_in_ui": 379,
+      "should_not_be_in_ui": 84,
       "unclassified": 1
     },
     "by_domain": {
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 377,
+  "frontend_endpoints": 384,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -135,30 +135,6 @@
       ]
     },
     {
-      "path": "/api/modules/<module_id>/actions",
-      "norm": "/api/modules/*/actions",
-      "methods": [
-        "POST"
-      ],
-      "category": "cli_script",
-      "area": "拓扑面板",
-      "where": [
-        "agent/modules_api.py:475"
-      ]
-    },
-    {
-      "path": "/api/modules/<module_id>/detail",
-      "norm": "/api/modules/*/detail",
-      "methods": [
-        "GET"
-      ],
-      "category": "cli_script",
-      "area": "拓扑面板",
-      "where": [
-        "agent/modules_api.py:449"
-      ]
-    },
-    {
       "path": "/api/orchestrator/semantic-config",
       "norm": "/api/orchestrator/semantic-config",
       "methods": [
@@ -242,54 +218,6 @@
       "area": "定时任务",
       "where": [
         "plugins/mcp_scheduler.py:417"
-      ]
-    },
-    {
-      "path": "/api/skills/add",
-      "norm": "/api/skills/add",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能管理",
-      "where": [
-        "plugins/skills.py:550"
-      ]
-    },
-    {
-      "path": "/api/skills/content",
-      "norm": "/api/skills/content",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能管理",
-      "where": [
-        "plugins/skills.py:265"
-      ]
-    },
-    {
-      "path": "/api/skills/delete",
-      "norm": "/api/skills/delete",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能管理",
-      "where": [
-        "plugins/skills.py:559"
-      ]
-    },
-    {
-      "path": "/api/skills/params",
-      "norm": "/api/skills/params",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能管理",
-      "where": [
-        "plugins/skills.py:540"
       ]
     },
     {
@@ -1124,7 +1052,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/components/workbench/chat/BackgroundTasksMenu.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -1174,6 +1103,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
+        "yunshu-ui/src/components/workbench/chat/BackgroundTasksMenu.tsx",
         "yunshu-ui/src/pages/hub/engine/tasks.tsx"
       ],
       "non_ui_refs": [],
@@ -4025,20 +3955,22 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/historyApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:1128"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
-      "intent": "should_not_be_in_ui",
+      "intent": "should_be_in_ui",
       "intent_area": "历史记录",
-      "intent_note": "legacy 对话历史（plugins/chat.py）：全仓仅 scripts/_smoke_history_drawer.py 消费，工作台的会话历史走 /api/sessions/*；给它做界面会变成第二套历史。",
+      "intent_note": "会话任务页「历史问话」抽屉（HistoryDrawer → lib/historyApi.ts）真实在用。此前判为\"不该进\"是误判：URL 由模板串条件拼接，旧扫描器看不到。2026-10-18 扫描器补模板前缀折叠后恢复为\"该进\"。",
       "ui_pending": false,
       "domain": "对话与会话"
     },
@@ -4048,20 +3980,22 @@
       "methods": [
         "DELETE"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/historyApi.ts"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/chat.py:1184"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
-      "intent": "should_not_be_in_ui",
+      "intent": "should_be_in_ui",
       "intent_area": "历史记录",
-      "intent_note": "同上：legacy 按索引删历史；工作台删会话走 /api/sessions/<id>。",
+      "intent_note": "会话任务页「历史问话」抽屉（HistoryDrawer → lib/historyApi.ts）真实在用。此前判为\"不该进\"是误判：URL 由模板串条件拼接，旧扫描器看不到。2026-10-18 扫描器补模板前缀折叠后恢复为\"该进\"。",
       "ui_pending": false,
       "domain": "对话与会话"
     },
@@ -4335,7 +4269,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/prompt-lab/LlmMonitorPanel.tsx"
       ],
       "non_ui_refs": [
         "scripts/probe_prefix_cache_interaction.py"
@@ -4975,11 +4910,13 @@
       "methods": [
         "POST"
       ],
-      "category": "cli_script",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/panorama/ModuleDetail.tsx"
+      ],
       "non_ui_refs": [
         "scripts/verify_topology_view.py"
       ],
@@ -4991,7 +4928,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "拓扑面板",
       "intent_note": "模块拓扑：六域树/节点详情/干预动作。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5000,11 +4937,13 @@
       "methods": [
         "GET"
       ],
-      "category": "cli_script",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/panorama/ModuleDetail.tsx"
+      ],
       "non_ui_refs": [
         "scripts/verify_topology_view.py"
       ],
@@ -5016,7 +4955,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "拓扑面板",
       "intent_note": "模块拓扑：六域树/节点详情/干预动作。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "观测与诊断"
     },
     {
@@ -5409,11 +5348,13 @@
         "GET",
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/panorama/logs.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_logging.py:1000",
@@ -7439,7 +7380,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/lib/sessionApi.ts"
+        "yunshu-ui/src/lib/sessionApi.ts",
+        "yunshu-ui/src/stores/useLayoutStore.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -9285,10 +9227,10 @@
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能管理",
-      "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true,
+      "intent_note": "与资产库重复：app_server.SkillsManager.add() 直接转调 skills_mgmt 的 create_manual，而工作台的「新建技能（手写）」已走 /api/skills-mgmt/create/manual。两个入口改同一份数据。",
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -9322,11 +9264,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/skill-content-modal.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/skills.py:265"
@@ -9336,7 +9280,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能管理",
       "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -9356,10 +9300,10 @@
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能管理",
-      "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true,
+      "intent_note": "与资产库重复：SkillsManager.delete() 转调同一个 skills-mgmt 删除路径，技能资产库行的「删除」已接线（DELETE /api/skills-mgmt/<id>）。",
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -9427,10 +9371,10 @@
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "技能管理",
-      "intent_note": "运行时技能：添加/删除/内容/参数/启停。",
-      "ui_pending": true,
+      "intent_note": "与资产库重复：SkillsManager.update_params() 落的就是 skills-mgmt 的 default_params（svc.update），资产库详情/调参面板已覆盖；再做一个入口会产生两份\"同一参数\"的编辑面。",
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -10924,11 +10868,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "templates/search-status.html"
+      ],
       "non_ui_refs": [],
       "where": [
         "plugins/system_tools.py:497"
@@ -12079,5 +12025,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "c37cf68b50d81eba"
+  "content_hash": "f0ceee47d6bf106b"
 }
