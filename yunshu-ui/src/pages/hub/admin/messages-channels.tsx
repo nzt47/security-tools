@@ -13,19 +13,30 @@
  * 注意区分：`POST /api/extensions/channels/send` 仍只供本页「手动发送（调试）」，
  * 产品事件走的是桥接层的进程内调用，不经过这个 HTTP 端点。
  *
+ * 【2026-10-20 通道自管】已装通道的**配置 / 启停 / 卸载**从「扩展市场」搬到这里 ——
+ * 市场页是跨类型的"已装扩展"列表，而通道的 webhook URL / SMTP 口令只有本页的语境能改对；
+ * 等四类页面都补齐这三个动作后，市场页整体下线（下一轮）。
+ *
  * 数据源：/api/extensions/discover（内置模板）、/api/extensions/list（已装通道）、
- *         /api/extensions/install {type:'channel'}、/api/extensions/channels/send（仅手动调试）
+ *         /api/extensions/install {type:'channel'}、/api/extensions/configure（通道配置）、
+ *         /api/extensions/toggle（启停）、/api/extensions/uninstall（卸载，force 只在二次确认后传 true）、
+ *         /api/extensions/channels/send（仅手动调试）
  */
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, Download, Loader2, PlugZap, Send, SlidersHorizontal } from 'lucide-react'
+import {
+  CheckCircle2, Download, Loader2, PlugZap, Send, Settings2, SlidersHorizontal, Trash2,
+} from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   CP_SETTINGS,
   cpSetting,
   EXTENSIONS_CHANNELS_SEND,
+  EXTENSIONS_CONFIGURE,
   EXTENSIONS_DISCOVER,
   EXTENSIONS_INSTALL,
   EXTENSIONS_LIST,
+  EXTENSIONS_TOGGLE,
+  EXTENSIONS_UNINSTALL,
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
@@ -45,6 +56,8 @@ interface ExtRow {
   ext_type?: string
   name?: string
   enabled?: boolean
+  /** 通道配置（webhook URL / SMTP 口令等）；/api/extensions/list 原样返回 */
+  config?: Record<string, unknown>
 }
 
 /** 「开关中心」条目里本卡片用到的字段（GET /api/cp/settings 的 items[]） */
@@ -82,6 +95,10 @@ export default function HubChannelsPanel() {
   // 事件出站开关（读开关中心同一份登记表；失败单独提示，不拖垮通道列表）
   const [eventItems, setEventItems] = useState<Record<string, SettingItem>>({})
   const [eventErr, setEventErr] = useState('')
+  // 已装通道的三个自管动作（原「扩展市场」的 configure / toggle / uninstall）
+  const [confirmUninstall, setConfirmUninstall] = useState('')
+  const [configTarget, setConfigTarget] = useState<ExtRow | null>(null)
+  const [configText, setConfigText] = useState('')
 
   const load = useCallback(async () => {
     setBusy('load'); setErr('')
@@ -115,6 +132,63 @@ export default function HubChannelsPanel() {
   }, [])
 
   useEffect(() => { void load(); void loadEventSettings() }, [load, loadEventSettings])
+
+  /** 启停一条已装通道（发往哪些通道由 enabled 决定；禁用后事件不再发给它） */
+  const toggleInstalled = async (row: ExtRow) => {
+    const id = row.ext_id ?? ''
+    setBusy('toggle:' + id); setErr(''); setMsg('')
+    try {
+      const next = !row.enabled
+      const r = await hubPost<{ ok?: boolean; error?: string; message?: string }>(EXTENSIONS_TOGGLE, {
+        type: 'channel', id, enabled: next,
+      })
+      if (r?.ok === false) { setErr('切换失败：' + (r.error || r.message || '后端返回 ok=false')); return }
+      setMsg((next ? '已启用 ' : '已禁用 ') + id)
+      await load()
+    } catch (ev) { setErr('切换失败：' + (ev instanceof Error ? ev.message : String(ev))) } finally { setBusy('') }
+  }
+
+  /** 卸载一条已装通道（两步确认；force=true 只在第二次点击时传） */
+  const uninstallInstalled = async (row: ExtRow) => {
+    const id = row.ext_id ?? ''
+    setBusy('uninstall:' + id); setErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string; message?: string }>(EXTENSIONS_UNINSTALL, {
+        type: 'channel', id, force: true,
+      })
+      if (r?.ok === false) { setErr('卸载失败：' + (r.error || r.message || '后端返回 ok=false')); return }
+      setMsg('已卸载 ' + id)
+      setConfirmUninstall('')
+      await load()
+    } catch (ev) { setErr('卸载失败：' + (ev instanceof Error ? ev.message : String(ev))) } finally { setBusy('') }
+  }
+
+  /** 打开通道配置（JSON 文本编辑；坏 JSON 不发请求） */
+  const openConfig = (row: ExtRow) => {
+    setConfigTarget(row)
+    setConfigText(JSON.stringify(row.config ?? {}, null, 2))
+  }
+
+  const saveConfig = async () => {
+    if (!configTarget) return
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(configText || '{}')
+    } catch {
+      setErr('配置不是合法 JSON —— 没有提交')
+      return
+    }
+    setBusy('configure'); setErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string; message?: string }>(EXTENSIONS_CONFIGURE, {
+        type: 'channel', id: configTarget.ext_id, config: parsed,
+      })
+      if (r?.ok === false) { setErr('保存配置失败：' + (r.error || r.message || '后端返回 ok=false')); return }
+      setMsg('配置已保存：' + (configTarget.ext_id ?? ''))
+      setConfigTarget(null)
+      await load()
+    } catch (ev) { setErr('保存配置失败：' + (ev instanceof Error ? ev.message : String(ev))) } finally { setBusy('') }
+  }
 
   /** 切换一个事件开关（A 级设置 ⇒ 服务端落到进程环境变量，热生效，无需重启） */
   const toggleEvent = async (key: string, next: boolean) => {
@@ -276,15 +350,91 @@ export default function HubChannelsPanel() {
       </div>
 
       <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Settings2 size={12} className="text-cyan-400" />
+          <h3 className="text-xs font-semibold text-slate-200">已装通道（{installed.length}）</h3>
+          <span className="text-[10px] text-slate-500">配置 / 启停 / 卸载 都在这里（原「扩展市场」的三个动作已搬来）</span>
+        </div>
+        {installed.length === 0 && <div className="text-[11px] text-slate-500">还没有已装通道。</div>}
+        <div className="flex flex-col gap-1">
+          {installed.map((row) => {
+            const id = row.ext_id ?? ''
+            const isConfirm = confirmUninstall === id
+            const editing = configTarget?.ext_id === id
+            return (
+              <div key={'installed-' + id} className="flex flex-col gap-1 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[10px] text-cyan-300">{id}</span>
+                  <span className="text-slate-300">{row.name ?? ''}</span>
+                  <span className={'text-[10px] ' + (row.enabled ? 'text-emerald-400' : 'text-slate-500')}>
+                    {row.enabled ? '启用' : '停用'}
+                  </span>
+                  <span className="ml-auto flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      className={BTN}
+                      onClick={() => (editing ? setConfigTarget(null) : openConfig(row))}
+                      disabled={loading}
+                      aria-label={'配置通道 ' + id}
+                    >
+                      <Settings2 size={11} /> {editing ? '收起配置' : '配置'}
+                    </button>
+                    <button type="button" className={BTN} onClick={() => void toggleInstalled(row)} disabled={loading} aria-label={'切换通道 ' + id}>
+                      {busy === 'toggle:' + id ? <Loader2 size={11} className="animate-spin" /> : null} {row.enabled ? '停用' : '启用'}
+                    </button>
+                    <button type="button" className={BTN} onClick={() => setConfirmUninstall(isConfirm ? '' : id)} disabled={loading} aria-label={'卸载通道 ' + id}>
+                      <Trash2 size={11} /> 卸载
+                    </button>
+                  </span>
+                </div>
+                {isConfirm && (
+                  <div className="flex flex-wrap items-center gap-2 rounded border border-red-900/50 bg-red-500/5 px-2 py-1">
+                    <span className="text-[10px] text-red-300">
+                      卸载对「文件轨独占」的扩展是不可逆删除（force=true 才允许）。确定？
+                    </span>
+                    <button
+                      type="button"
+                      className={BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'}
+                      onClick={() => void uninstallInstalled(row)}
+                      disabled={loading}
+                      aria-label={'确认卸载通道 ' + id}
+                    >
+                      {busy === 'uninstall:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 确认卸载
+                    </button>
+                    <button type="button" className={BTN} onClick={() => setConfirmUninstall('')}>取消</button>
+                  </div>
+                )}
+                {editing && (
+                  <div className="flex flex-col gap-1">
+                    <textarea
+                      className={INPUT + ' h-40 font-mono text-[11px]'}
+                      value={configText}
+                      onChange={(ev) => setConfigText(ev.target.value)}
+                      aria-label={'通道配置 ' + id}
+                    />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button type="button" className={BTN_EM} onClick={() => void saveConfig()} disabled={loading} aria-label={'保存通道配置 ' + id}>
+                        {busy === 'configure' ? <Loader2 size={11} className="animate-spin" /> : null} 保存配置
+                      </button>
+                      <button type="button" className={BTN} onClick={() => setConfigTarget(null)} disabled={loading}>取消</button>
+                      <span className="text-[10px] text-slate-500">webhook URL / SMTP 口令等都在这里；坏 JSON 不会提交</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
         <div className="mb-2 flex items-center gap-2">
           <Send size={12} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">手动发送（调试）</h3>
           <span className="text-[10px] text-slate-500">需要已安装并启用的通道</span>
         </div>
         <div className="mb-2 text-[10px] text-slate-500">
-          已装通道：{installed.length === 0
-            ? '—'
-            : installed.map((c) => (c.ext_id ?? '') + (c.enabled ? '(启用)' : '(停用)')).join('、')}
+          已装通道 {installed.filter((c) => c.enabled).length} 条启用（配置 / 启停 / 卸载见上方「已装通道」卡片）
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input className={INPUT + ' w-52'} placeholder="channel_id" value={channelId} onChange={(e) => setChannelId(e.target.value)} aria-label="通道 id" />
