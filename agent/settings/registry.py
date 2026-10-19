@@ -2388,10 +2388,24 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     #  扩展通道事件接线（2026-10-19）
     # ────────────────────────────────────────────────────────
     _a("CP_CHANNEL_EVENTS", CAT_OBSERVABILITY, True,
-       "扩展通道事件接线总开关（默认开；=0/false/no/off 时告警触发/恢复与任务失败"
-       "不再发往「消息中心」里已启用的通道）",
+       "扩展通道事件接线总开关（默认开；=0/false/no/off 时告警触发/恢复与任务完成/失败"
+       "都不再发往「消息中心」里已启用的通道）",
        owner="agent/extensions/channel_bridge.py",
-       config_path="", needs_restart=True),
+       config_path="", needs_restart=False),
+    _a("CP_CHANNEL_EVENT_ALERTS", CAT_OBSERVABILITY, True,
+       "通道事件细分：监控告警触发/恢复是否出站（默认开；总开关关闭时本项无效）。"
+       "改完热生效，消息中心「事件出站」卡片可切换",
+       owner="agent/extensions/channel_bridge.py",
+       config_path="", needs_restart=False),
+    _a("CP_CHANNEL_EVENT_TASK_FAILED", CAT_OBSERVABILITY, True,
+       "通道事件细分：定时任务失败是否出站（默认开；总开关关闭时本项无效）",
+       owner="agent/extensions/channel_bridge.py",
+       config_path="", needs_restart=False),
+    _a("CP_CHANNEL_EVENT_TASK_COMPLETED", CAT_OBSERVABILITY, True,
+       "通道事件细分：定时任务完成是否出站（默认开；任务自身 notify_on_complete "
+       "仍是一道前置门，本项只用于「全局静音成功通知」）",
+       owner="agent/extensions/channel_bridge.py",
+       config_path="", needs_restart=False),
 
     # ────────────────────────────────────────────────────────
     #  数据生命周期治理（TASK-S8-01，2026-09-13）

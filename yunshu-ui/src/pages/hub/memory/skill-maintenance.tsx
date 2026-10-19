@@ -33,6 +33,8 @@ import {
   SKILLS_MGMT_ABSTRACT_FROM_MEMORY,
   SKILLS_MGMT_AUTO_MERGE,
   SKILLS_MGMT_IMPORT_CLAUDE,
+  SKILLS_MGMT_INSTALL,
+  SKILLS_MGMT_INSTALL_PREPRECHECK,
   SKILLS_MGMT_CLEANUP_ORPHANS,
   SKILLS_MGMT_CLEANUP_REPORT,
   SKILLS_MGMT_CLEANUP_UNUSED,
@@ -154,6 +156,28 @@ interface QueueRow {
   } | null
 }
 
+/** 外来安装预检结果（GET /api/skills-mgmt/install/precheck） */
+interface InstallPrecheck {
+  ok?: boolean
+  error?: string
+  scheme?: string
+  source?: string
+  skill_id?: string
+  skill_name?: string
+  blocked?: boolean
+  overlap_action?: string
+  native_dups?: { id?: string; name?: string }[]
+  findings?: { code?: string; severity?: string; message?: string }[]
+  compatibility_score?: number
+}
+
+/** 外来安装结果（POST /api/skills-mgmt/install） */
+interface InstallResult {
+  ok?: boolean
+  error?: string
+  skill?: { id?: string; name?: string; status?: string }
+}
+
 interface QueueResult {
   ok?: boolean
   error?: string
@@ -214,6 +238,10 @@ export default function SkillMaintenance() {
   const [claudeResult, setClaudeResult] = useState<ClaudeImportResult | null>(null)
   const [queue, setQueue] = useState<QueueResult | null>(null)
   // 批量放行：只认逐条勾选（不提供全选），阻断项要另勾豁免 + 填原因
+  // 按来源安装（从「扩展市场」收敛过来的技能安装入口）
+  const [installSource, setInstallSource] = useState('')
+  const [installPrecheck, setInstallPrecheck] = useState<InstallPrecheck | null>(null)
+  const [installResult, setInstallResult] = useState<InstallResult | null>(null)
   const [queueSel, setQueueSel] = useState<string[]>([])
   const [batchOpen, setBatchOpen] = useState(false)
   const [batchForce, setBatchForce] = useState(false)
@@ -340,6 +368,34 @@ export default function SkillMaintenance() {
       setQueueSel([]); setBatchOpen(false); setBatchForce(false); setBatchReason('')
       await loadQueue(); await loadReport()
     } catch (e) { fail('批量放行失败', e) } finally { setBusy('') }
+  }
+
+  /** 预检：只拉取 + 评估，不落库；blocked ⇒ 安装按钮置灰 */
+  const precheckInstall = async () => {
+    const source = installSource.trim()
+    setBusy('precheck'); setErr(''); setMsg('')
+    setInstallPrecheck(null); setInstallResult(null)
+    try {
+      const r = await hubGet<InstallPrecheck>(
+        SKILLS_MGMT_INSTALL_PREPRECHECK + '?source=' + encodeURIComponent(source))
+      if (r?.ok === false) { bad('预检失败', r); return }
+      setInstallPrecheck(r)
+      setMsg(r?.blocked ? '预检发现阻断项：先处理再安装' : '预检通过（安装后会先落草稿）')
+    } catch (ev) { fail('预检失败', ev) } finally { setBusy('') }
+  }
+
+  /** 安装：与 zip 上传 / .claude 导入同一个落库链路；装完进「待放行」队列 */
+  const installSourceSkill = async () => {
+    const source = installSource.trim()
+    setBusy('install'); setErr(''); setMsg(''); setInstallResult(null)
+    try {
+      const r = await hubPost<InstallResult>(SKILLS_MGMT_INSTALL, { source })
+      if (r?.ok === false) { bad('安装失败', r); return }
+      setInstallResult(r)
+      setMsg('已安装 ' + (r?.skill?.id ?? source) + '（已落草稿，去下面队列放行）')
+      setInstallPrecheck(null)
+      await loadQueue(); await loadReport()
+    } catch (ev) { fail('安装失败', ev) } finally { setBusy('') }
   }
 
   const runOrphans = async (dryRun: boolean) => {
@@ -735,6 +791,80 @@ export default function SkillMaintenance() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+      </Section>
+
+      {/* ── 按来源安装（外来技能）：从「扩展市场」收敛过来的唯一安装入口 ── */}
+      <Section
+        title="按来源安装（外来技能）"
+        desc="github:user/repo · url:https://… · registry:id · local:路径 —— 先预检再安装；装完落草稿，放行仍在下面队列"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            className={INPUT + ' w-96'}
+            value={installSource}
+            onChange={(ev) => {
+              setInstallSource(ev.target.value)
+              setInstallPrecheck(null); setInstallResult(null)
+            }}
+            placeholder="github:user/repo 或 url:https://… 或 registry:id"
+            aria-label="外部技能来源"
+          />
+          <button
+            type="button"
+            className={BTN}
+            onClick={() => void precheckInstall()}
+            disabled={loading || !installSource.trim()}
+            aria-label="预检外部技能"
+          >
+            {busy === 'precheck' ? <Loader2 size={11} className="animate-spin" /> : null} 预检
+          </button>
+          <button
+            type="button"
+            className={BTN_EM}
+            onClick={() => void installSourceSkill()}
+            disabled={loading || !installSource.trim() || installPrecheck?.blocked === true}
+            aria-label="安装外部技能"
+            title={installPrecheck?.blocked
+              ? '预检有阻断项：先处理再安装（安装按钮已置灰）'
+              : '安装后先落草稿，放行在下面队列'}
+          >
+            {busy === 'install' ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
+          </button>
+        </div>
+        {installPrecheck && (
+          <div className="mt-2 text-[11px] text-slate-400">
+            <div>
+              预检：<span className="font-mono text-cyan-300">{installPrecheck.skill_id ?? '?'}</span>
+              {' · '}
+              {installPrecheck.blocked
+                ? <span className="text-red-300">有阻断项</span>
+                : <span className="text-emerald-300">无阻断</span>}
+              {typeof installPrecheck.compatibility_score === 'number' && (
+                <> · 兼容分 {installPrecheck.compatibility_score}</>
+              )}
+            </div>
+            {(installPrecheck.native_dups ?? []).length > 0 && (
+              <div className="text-[10px] text-amber-300">
+                与已有能力重叠（按增量吸收，不阻断）：
+                {(installPrecheck.native_dups ?? []).map((d) => d.id).join('、')}
+              </div>
+            )}
+            {(installPrecheck.findings ?? []).length > 0 && (
+              <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-slate-500">
+                {(installPrecheck.findings ?? []).slice(0, 6).map((f, i) => (
+                  <span key={(f.code ?? '') + i}>
+                    {'[' + (f.severity ?? '') + '] ' + (f.message ?? '')}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {installResult?.skill && (
+          <div className="mt-1 text-[10px] text-emerald-300">
+            已落库：{installResult.skill.id}（{installResult.skill.status ?? 'draft'}）
           </div>
         )}
       </Section>

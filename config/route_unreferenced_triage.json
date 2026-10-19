@@ -16,7 +16,8 @@
     "/api/approval/link/*": {
       "verdict": "retire",
       "evidence": "static/js/approval_console.js:157 只 POST /link；GET 校验链接无任何调用方（tests 只测端点自身）",
-      "action": "删 GET 校验链接端点；若外部分享链接流程要用，先补调用方再留"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：GET 是\"外部分享链接\"的校验入口，仓库内确实无调用方（审批台只 POST /link）。若要启用分享链接流程，应由 approval_console 在打开链接时调用它，而不是现在删掉。",
+      "decided_at": "2026-10-19"
     },
     "/api/approval/whoami": {
       "verdict": "keep",
@@ -25,7 +26,8 @@
     "/api/auth/token-check": {
       "verdict": "retire",
       "evidence": "全仓无调用方（仅 docs/yunshu-pluginization 的历史任务文档）；前端登录态校验走 /api/user/info",
-      "action": "删端点"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：前端登录态校验走 /api/user/info。若要做\"令牌体检/吊销验证\"，应补一个运维脚本或文档化契约，再把它从 unreferenced 里摘出去。",
+      "decided_at": "2026-10-19"
     },
     "/api/clear": {
       "verdict": "keep-ops",
@@ -58,17 +60,20 @@
     "/api/history/search": {
       "verdict": "retire",
       "evidence": "无调用方；会话历史走 /api/history*（HistoryDrawer → lib/historyApi.ts）",
-      "action": "删端点"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：会话历史列表走 /api/history*，但\"历史全文搜索\"没有替代端点。若要上屏，入口应在会话历史抽屉；在那之前保留，不删。",
+      "decided_at": "2026-10-19"
     },
     "/api/llm-monitor/records/*": {
       "verdict": "retire",
       "evidence": "UI 只调列表（LlmMonitorPanel.tsx:149）；endpoints.ts:526 的 LLM_MONITOR_RECORD 常量无人使用",
-      "action": "删单条记录端点与死常量"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：列表端点已在用，单条记录端点没有。若要做\"点开看单条调用详情\"，应在 LlmMonitorPanel 行展开时调用（endpoints.ts 的死常量也应随之复活或删除）。",
+      "decided_at": "2026-10-19"
     },
     "/api/memory/*": {
       "verdict": "retire",
       "evidence": "UI 的 memory 常量都是 GET/POST 其他路径（endpoints.ts:304-313）；DELETE 无调用方",
-      "action": "删 DELETE 端点"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：DELETE 单条记忆没有替代端点（UI 只用 GET/POST 其他路径）。若要给\"删除单条记忆\"上 UI，应在记忆管理列表行内提供入口并走这条端点。",
+      "decided_at": "2026-10-19"
     },
     "/api/observability/alerts/validate": {
       "verdict": "keep-ops",
@@ -85,7 +90,8 @@
     "/api/scheduler/create": {
       "verdict": "retire",
       "evidence": "无调用方（定时任务 UI 走 /api/schedules*）；plugins/mcp_scheduler.py 只有定义",
-      "action": "删端点"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：定时任务 UI 走 /api/schedules*，这条属于 plugins/mcp_scheduler 的定义。若保留 MCP 调度器，它就是其对外契约；不保留则应连同插件一起下线，而不是只删路由。",
+      "decided_at": "2026-10-19"
     },
     "/api/skills-mgmt/digest/*": {
       "verdict": "deprecate",
@@ -135,7 +141,8 @@
     "/api/skills-mgmt/inject": {
       "verdict": "retire",
       "evidence": "无调用方；上下文注入走 agent 内部注入链（guardrails/injection_defense）",
-      "action": "删端点"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：上下文注入走 agent 内部注入链（guardrails/injection_defense）。若开放给外部集成，需要先有鉴权与契约文档，再谈\"补调用方\"。",
+      "decided_at": "2026-10-19"
     },
     "/api/skills/add": {
       "verdict": "deprecate",
@@ -160,7 +167,8 @@
     "/api/subagent/*/execute": {
       "verdict": "retire",
       "evidence": "自述「容器占位骨架，不调 LLM」（routes_subagent.py:6），无调用方",
-      "action": "删端点"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复，但也不是可用能力：routes_subagent 自述\"容器占位骨架，不调 LLM\"。保留会误导使用者 —— 建议下一轮二选一：真实现，或明确返回 501 并标注设计态。",
+      "decided_at": "2026-10-19"
     },
     "/api/subagent/callback": {
       "verdict": "keep",
@@ -169,12 +177,14 @@
     "/api/voice/listen": {
       "verdict": "retire",
       "evidence": "无调用方；voice 只有设计文档、未接线",
-      "action": "删端点（连同 voice/status）"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：voice 只有设计文档、未接线。保留作设计锚点；真要上线再补实现与 UI。",
+      "decided_at": "2026-10-19"
     },
     "/api/voice/status": {
       "verdict": "retire",
       "evidence": "同上",
-      "action": "删端点"
+      "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：同上（voice 设计态）。",
+      "decided_at": "2026-10-19"
     },
     "/api/web/clean": {
       "verdict": "keep-ops",

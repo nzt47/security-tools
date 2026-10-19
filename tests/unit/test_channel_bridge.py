@@ -48,7 +48,9 @@ def _alert(**kw):
 
 @pytest.fixture(autouse=True)
 def _clean_state(monkeypatch):
-    monkeypatch.delenv("CP_CHANNEL_EVENTS", raising=False)
+    for _env in ("CP_CHANNEL_EVENTS", "CP_CHANNEL_EVENT_ALERTS",
+                 "CP_CHANNEL_EVENT_TASK_FAILED", "CP_CHANNEL_EVENT_TASK_COMPLETED"):
+        monkeypatch.delenv(_env, raising=False)
     bridge._reset_state_for_tests()
     yield
     bridge._reset_state_for_tests()
@@ -136,6 +138,49 @@ class TestDispatch:
         out = bridge.dispatch_alert(_alert(), "firing", installer=inst)
 
         assert out["reason"] == "disabled_by_env"
+        assert inst.sent == []
+
+    # ── 事件细分开关（总开关之外的那一层）──
+
+    def test_alert_switch_off_blocks_only_alerts(self, monkeypatch):
+        monkeypatch.setenv("CP_CHANNEL_EVENT_ALERTS", "0")
+        inst = _FakeInstaller([{"ext_id": "on", "enabled": True}])
+
+        out = bridge.dispatch_alert(_alert(), "firing", installer=inst)
+
+        assert out["reason"] == "disabled_by_event_switch"
+        assert out["switch"] == "CP_CHANNEL_EVENT_ALERTS"
+        assert inst.sent == []
+
+    def test_task_failed_switch_off_does_not_block_task_completed(self, monkeypatch):
+        monkeypatch.setenv("CP_CHANNEL_EVENT_TASK_FAILED", "0")
+        inst = _FakeInstaller([{"ext_id": "on", "enabled": True}])
+
+        failed = bridge.dispatch_event("task.failed", "boom", installer=inst)
+        done = bridge.dispatch_event("task.completed", "ok", installer=inst)
+
+        assert failed["reason"] == "disabled_by_event_switch"
+        assert failed["switch"] == "CP_CHANNEL_EVENT_TASK_FAILED"
+        assert done["sent"] == ["on"]
+
+    def test_unknown_event_type_only_obeys_master(self, monkeypatch):
+        """未知事件类型不得被某个细分开关误关（只受总开关约束）。"""
+        monkeypatch.setenv("CP_CHANNEL_EVENT_ALERTS", "0")
+        inst = _FakeInstaller([{"ext_id": "on", "enabled": True}])
+
+        out = bridge.dispatch_event("pipeline.custom", "x", installer=inst)
+
+        assert out["sent"] == ["on"]
+
+    def test_master_off_wins_over_event_switch(self, monkeypatch):
+        monkeypatch.setenv("CP_CHANNEL_EVENTS", "0")
+        monkeypatch.setenv("CP_CHANNEL_EVENT_ALERTS", "1")
+        inst = _FakeInstaller([{"ext_id": "on", "enabled": True}])
+
+        out = bridge.dispatch_alert(_alert(), "firing", installer=inst)
+
+        assert out["reason"] == "disabled_by_env"
+        assert "switch" not in out
         assert inst.sent == []
 
     def test_installer_errors_are_swallowed(self):

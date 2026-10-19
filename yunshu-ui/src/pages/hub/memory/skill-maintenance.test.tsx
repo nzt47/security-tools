@@ -367,4 +367,72 @@ describe('SkillMaintenance', () => {
     expect((f.mock.calls[0][1] as { method?: string }).method).toBe('DELETE')
     expect(await screen.findByText(/已驳回 ext-ok/)).toBeTruthy()
   })
+
+  // ── 按来源安装（#1223）：从扩展市场收敛过来的技能安装入口 ──
+
+  it('按来源安装：预检命中阻断时安装按钮置灰（不靠后端兜底）', async () => {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt/three-layer/summary') return { ok: true, summary: {} }
+      if (url === '/api/skills-mgmt/cleanup/report') return { ok: true, total_skills: 0, orphans: [], unused: [] }
+      if (url.startsWith('/api/skills-mgmt/queue')) return { ok: true, total: 0, items: [] }
+      if (url.startsWith('/api/skills-mgmt/install/precheck')) {
+        return {
+          ok: true, skill_id: 'ext-demo', blocked: true,
+          findings: [{ severity: 'error', code: 'SEC_SCRIPT', message: '脚本含可疑下载' }],
+        }
+      }
+      return { ok: true }
+    })
+    render(<SkillMaintenance />)
+
+    // 等初始的 layers/report/queue 三次加载都收尾（它们共用 busy，加载中按钮是 disabled）
+    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
+    await waitFor(() => expect(
+      (screen.getByRole('button', { name: '预检外部技能' }) as HTMLButtonElement).disabled,
+    ).toBe(true), { timeout: 2000 })
+
+    const install = () => screen.getByRole('button', { name: '安装外部技能' }) as HTMLButtonElement
+    expect(install().disabled, '没有来源就不该能点').toBe(true)
+
+    fireEvent.change(screen.getByLabelText('外部技能来源'), { target: { value: 'github:u/r' } })
+    await waitFor(() => expect(install().disabled).toBe(false))
+
+    fireEvent.click(screen.getByRole('button', { name: '预检外部技能' }))
+    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith(
+      '/api/skills-mgmt/install/precheck?source=github%3Au%2Fr',
+    ))
+    expect(await screen.findByText(/有阻断项/)).toBeTruthy()
+    expect((screen.getByRole('button', { name: '安装外部技能' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText(/可疑下载/)).toBeTruthy()
+  })
+
+  it('按来源安装：预检通过后安装走 /api/skills-mgmt/install，装完提示落草稿', async () => {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt/three-layer/summary') return { ok: true, summary: {} }
+      if (url === '/api/skills-mgmt/cleanup/report') return { ok: true, total_skills: 0, orphans: [], unused: [] }
+      if (url.startsWith('/api/skills-mgmt/queue')) return { ok: true, total: 0, items: [] }
+      if (url.startsWith('/api/skills-mgmt/install/precheck')) {
+        return { ok: true, skill_id: 'ext-demo', blocked: false, native_dups: [{ id: 'self_reflection' }] }
+      }
+      return { ok: true }
+    })
+    api.hubPost.mockResolvedValue({ ok: true, skill: { id: 'ext-demo', status: 'draft' } })
+    render(<SkillMaintenance />)
+
+    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
+    fireEvent.change(screen.getByLabelText('外部技能来源'), { target: { value: 'url:https://x/pkg.zip' } })
+    await waitFor(() => expect(
+      (screen.getByRole('button', { name: '预检外部技能' }) as HTMLButtonElement).disabled,
+    ).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: '预检外部技能' }))
+    expect(await screen.findByText(/无阻断/)).toBeTruthy()
+    expect(screen.getByText(/按增量吸收/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '安装外部技能' }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/install', {
+      source: 'url:https://x/pkg.zip',
+    }))
+    expect(await screen.findByText(/已安装 ext-demo/)).toBeTruthy()
+    expect(screen.getByText(/已落草稿/)).toBeTruthy()
+  })
 })
