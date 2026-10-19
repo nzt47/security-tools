@@ -898,6 +898,7 @@ flowchart LR
     agent_digital_life_persona --> agent_behavior_controller
     agent_digital_life_persona --> agent_tools_prompt_guard
     agent_digital_life_persona -.-> agent_skills_mgmt_registry
+    agent_digital_life_persona -.-> agent_skills_mgmt_registry
     agent_digital_life_persona -.-> agent_lines_integration
     agent_digital_life_persona -.-> agent_skills_mgmt_registry
     agent_digital_life_persona -.-> agent_tools
@@ -2670,7 +2671,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 663
 - 模块节点数: 592
-- 依赖边数: 1954
-- 跨层调用数: 1224
+- 依赖边数: 1955
+- 跨层调用数: 1225
 - 违规调用数: 0
 - 动态 import 数: 1
