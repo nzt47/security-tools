@@ -5,7 +5,7 @@
     `skills:`，`agent/server_routes/routes_agent_lines.py` 也把 L2 描述成
     「含技能包」，但**运行时没有任何消费方** —— 哪些技能生效完全由全局
     `SkillRegistry().list_enabled_ids()` 与
-    `DigitalLifePersonaMixin._SKILL_PROMPTS` 求交决定，档案里的声明写了等于
+    `DigitalLifePersonaMixin._PERSONA_SKILL_IDS` 求交决定，档案里的声明写了等于
     没写（写错技能 id 也只是静默失效）。本模块把这份声明变成一条**可判定的
     事实**：`SkillPack`（本线允许注入哪些技能）。
 
@@ -176,7 +176,7 @@ class SkillPack:
         """按本包过滤 id 序列：**保序**（保持入参顺序，不重排）
 
         保序的理由：调用方（`_build_skill_instructions`）拿的是
-        `_SKILL_PROMPTS` 的声明顺序，注入文本的顺序必须可复现。
+        `_PERSONA_SKILL_IDS` 的声明顺序，注入文本的顺序必须可复现。
         """
         if self.unrestricted:
             return [str(i) for i in ids]

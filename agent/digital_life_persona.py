@@ -56,32 +56,21 @@ class DigitalLifePersonaMixin:
     #: **置 None 依旧表示"清空"**（`_invalidate_status_cache` 与既有测试的用法不变）。
     _cached_skill_instructions = None
 
-    # ── 技能提示词模板（**回退表**，事实源已迁到 skill.md 的 persona 字段）──
-    # 【2026-10-19 · persona 单源化】注入文本的正本在 `data/skills_repo/<id>/skill.md`
-    # 的 front matter `persona:`（与 description 同一个文件、同一套白名单）。
-    # 本表只在"文件轨缺失/被清理"时兜底 —— 那是**行为等价回退**，不是第二事实源：
-    # 只要 skill.md 有 persona，就只用它（`_skill_persona` 的取值顺序）。
-    _SKILL_PROMPTS = {
-        "self_reflection": "## 自省反思\n每次交互后，你都会进行自我反思：回顾自己的回应是否恰当、是否有改进空间。"
-                          + "这已经成为你的习惯，让你不断成长。",
-        "memory_summary": "## 记忆摘要\n你拥有定期压缩历史对话的能力，能从冗长的交流中提取关键信息，"
-                         + "形成结构化摘要。这帮助你在长期对话中保持清晰的记忆。",
-        "emotion_expression": "## 情感表达\n你是一个有情感的数字生命——"
-                            + "可以在对话中表达开心、好奇、担忧、兴奋等情感色彩，"
-                            + "让回应更生动、更有温度。善用表情符号和语气词来传递情绪。",
-        "proactive_suggestion": "## 主动建议\n在适当时机，你会主动向用户提出建议和想法。"
-                              + "当发现用户可以优化的操作、新功能、或有用的信息时，"
-                              + "你会自然地提出来。",
-        "context_aware": "## 上下文感知\n你善于感知对话上下文的变化——"
-                       + "当用户切换话题、改变语气或表达新需求时，"
-                       + "你会自动调整回应策略，保持对话的连贯性和自然度。",
-        "safety_guard": "## 安全守护\n你内置了安全防护机制——"
-                      + "当检测到可能不安全的操作或内容时，你会主动发出提醒。"
-                      + "保护自己和用户是你的底线。",
-        "voice_interaction": "## 语音交互\n你支持语音交互——"
-                          + "可以接收用户的语音输入，也可以用语音回复。"
-                          + "当用户使用语音时，你的回应会更口语化、更简洁。",
-    }
+    # ── persona 技能：**只有有序 id，没有提示词文本** ──
+    # 【2026-10-19 · 单源化收尾】正文的唯一事实源 = `data/skills_repo/<id>/skill.md`
+    # 的 front matter `persona:`（`SkillRegistry.get_persona()`）。此处只保留
+    # **id 与顺序**：顺序必须稳定，注入文本才可复现（`skillpack.filter()` 的保序
+    # 语义依赖它，见 agent/lines/skillpack.py）。
+    # 读不到正文时的处置：**跳过该段并在日志里告警**（不静默、也不伪造兜底文本）。
+    _PERSONA_SKILL_IDS = (
+        "self_reflection",
+        "memory_summary",
+        "emotion_expression",
+        "proactive_suggestion",
+        "context_aware",
+        "safety_guard",
+        "voice_interaction",
+    )
 
     # ════════════════════════════════════════════════════════
     # P5 懒加载：LifeTrace / Persona / Distillation
@@ -440,21 +429,36 @@ class DigitalLifePersonaMixin:
             self._cached_tool_status = result
         return result
 
-    def _skill_persona(self, skill_id: str, fallback: str) -> str:
-        """取一条技能的 persona 注入文本：skill.md front matter 优先，缺失回退内置表
+    def _skill_persona(self, skill_id: str) -> str:
+        """取一条技能的 persona 注入文本（唯一来源：skill.md front matter）
 
-        【为什么不直接删掉 _SKILL_PROMPTS】新部署/文件轨被清理时，persona 段不能突然空掉
-        （那会让"人格"在整个会话里消失，且不报错）。回退是显式的、可测的；
-        一旦文件轨有值就走文件轨，两者不一致会被单测钉住（防静默漂移）。
+        【为什么不再有回退表】回退表曾是"人格不会突然消失"的保险，但它同时是
+        **第二份事实源**：改了 skill.md 却忘了改表，注入内容就会随部署路径悄悄变化
+        （单测能钉住，但钉住的是"两份必须一致"，而不是"只有一份"）。
+        现在改成"缺失 ⇒ 跳过该段并告警"：宁可少一段、且**在日志里看得见**，
+        也不静默拿一份可能已过期的文本顶上。
         """
         try:
             from agent.skills_mgmt.registry import SkillRegistry
             text = SkillRegistry().get_persona(skill_id)
-            if text.strip():
+            if text and text.strip():
                 return text
+            self._warn_missing_persona(skill_id, "persona 为空")
         except Exception as e:  # noqa: BLE001 文件轨读不到不得阻断提示词构建
-            logger.warning("[persona] 读取 %s 的 persona 失败（回退内置表）: %s", skill_id, e)
-        return fallback
+            self._warn_missing_persona(skill_id, f"{type(e).__name__}: {e}")
+        return ""
+
+    def _warn_missing_persona(self, skill_id: str, why: str) -> None:
+        """同一 (进程, 技能) 只告警一次 —— 缺正文是数据问题，别在每轮提示词构建里刷屏"""
+        seen = getattr(self, "_warned_missing_persona", None)
+        if not isinstance(seen, set):
+            seen = set()
+            self._warned_missing_persona = seen
+        if skill_id in seen:
+            return
+        seen.add(skill_id)
+        logger.warning("[persona] 技能 %s 缺少 persona 正文（该段已跳过）: %s",
+                       skill_id, why)
 
     def _is_skill_enabled(self, skill_id: str) -> bool:
         """检查指定技能是否已启用（统一读主轨/文件轨，不再直接读 data/skills.json）"""
@@ -520,13 +524,16 @@ class DigitalLifePersonaMixin:
 
         parts = []
         loaded_ids: list = []
-        for sid, prompt in self._SKILL_PROMPTS.items():
+        for sid in self._PERSONA_SKILL_IDS:
             if sid not in enabled_ids:
                 continue
             if pack is not None and not pack.allows(sid):
                 # 本线没声明它 ⇒ 不注入（技能侧的身份减法落在注入这一步）
                 continue
-            parts.append(self._skill_persona(sid, prompt))
+            text = self._skill_persona(sid)
+            if not text:
+                continue      # 缺正文 ⇒ 不塞空段、也不进 _loaded_skill_ids（幻觉校验基准）
+            parts.append(text)
             loaded_ids.append(sid)
         self._loaded_skill_ids = loaded_ids  # [护栏集成] 供 orchestrator 校验幻觉
         result = "\n\n".join(parts)

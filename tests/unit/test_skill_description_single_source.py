@@ -308,44 +308,42 @@ class TestG3CuratedRemoved:
 # ────────────────────────────────────────────────────────────
 
 class TestG4PersonaPrompts:
-    """G-4：_SKILL_PROMPTS 的 key 必须每个都在 skills_repo 里有实体。
+    """G-4：_PERSONA_SKILL_IDS 的每个 id 必须都在 skills_repo 里有实体。
 
-    红路：给 _SKILL_PROMPTS 加一个不存在的 id（monkeypatch）⇒ 红灯。
-    这条守的是"改名/删目录后 persona 段**静默消失**、无任何日志"的老问题。
+    红路：给 _PERSONA_SKILL_IDS 加一个不存在的 id（monkeypatch）⇒ 红灯。
+    这条守的是"改名/删目录后 persona 段**消失**"的老问题（现在至少会告警）。
     """
 
     @staticmethod
     def _persona_cls():
-        # 实测：模块里定义的是 `DigitalLifePersonaMixin`（`agent/digital_life_persona.py:34`），
-        # 不是 `DigitalLifePersona` —— 后者不存在，import 会 ImportError。
+        # 模块里定义的是 `DigitalLifePersonaMixin`，不是 `DigitalLifePersona`。
         from agent.digital_life_persona import DigitalLifePersonaMixin
         return DigitalLifePersonaMixin
 
     @classmethod
-    def _prompts(cls):
-        return cls._persona_cls()._SKILL_PROMPTS
+    def _ids(cls):
+        return cls._persona_cls()._PERSONA_SKILL_IDS
 
-    def test_prompt_keys_subset_of_repo_ids(self, repo_ids):
-        missing = sorted(k for k in self._prompts() if k not in repo_ids)
+    def test_persona_ids_subset_of_repo_ids(self, repo_ids):
+        missing = sorted(k for k in self._ids() if k not in repo_ids)
         assert missing == [], (
-            f"persona 提示词引用了不存在的技能 id: {missing}"
-            "（该段会被静默跳过、无日志）")
+            f"persona 技能引用了不存在的 id: {missing}"
+            "（该段会被跳过、只有一条告警日志）")
 
     def test_deliberate_fork_turns_red(self, repo_ids, monkeypatch):
         """红路自证：注入一个假 id ⇒ 同一断言必须变红"""
         cls = self._persona_cls()
-        patched = dict(cls._SKILL_PROMPTS)
-        patched["g1b-nonexistent-skill"] = "## 幻觉段"
-        monkeypatch.setattr(cls, "_SKILL_PROMPTS", patched)
-        missing = sorted(k for k in cls._SKILL_PROMPTS
+        monkeypatch.setattr(cls, "_PERSONA_SKILL_IDS",
+                            tuple(cls._PERSONA_SKILL_IDS) + ("g1b-nonexistent-skill",))
+        missing = sorted(k for k in cls._PERSONA_SKILL_IDS
                          if k not in repo_ids)
         assert missing == ["g1b-nonexistent-skill"], (
             "红路失效：注入假 id 后断言仍然通过 ⇒ 这条守卫是空转的")
 
-    def test_enabled_prompt_is_actually_injected(self):
-        """每个 key（在 enabled 时）必须真的产出非空提示段"""
+    def test_enabled_persona_is_actually_injected(self):
+        """每个 id（enabled 时）必须真的产出非空提示段（正文注入链路）"""
         cls = self._persona_cls()
-        prompts = dict(cls._SKILL_PROMPTS)
+        ids = list(cls._PERSONA_SKILL_IDS)
         persona = cls.__new__(cls)
         persona._cached_skill_instructions = None
         persona._loaded_skill_ids = []
@@ -353,7 +351,11 @@ class TestG4PersonaPrompts:
         class _Reg:
             @staticmethod
             def list_enabled_ids():
-                return list(prompts)
+                return list(ids)
+
+            @staticmethod
+            def get_persona(skill_id):
+                return "## %s 段" % skill_id
 
         import agent.skills_mgmt.registry as reg_mod
         real = reg_mod.SkillRegistry
@@ -362,8 +364,8 @@ class TestG4PersonaPrompts:
             text = cls._build_skill_instructions(persona)
         finally:
             reg_mod.SkillRegistry = real
-        for sid, prompt in prompts.items():
-            assert prompt in text, f"技能 {sid} 的提示段没有被注入"
+        for sid in ids:
+            assert "## %s 段" % sid in text, f"技能 {sid} 的提示段没有被注入"
 
 
 class TestG5BuiltinExtensions:
