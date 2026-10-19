@@ -13,6 +13,7 @@ import functools
 import json
 import logging
 import os
+import re
 import time
 from typing import Optional
 
@@ -1430,7 +1431,41 @@ def _resolve_stream_max_tokens(model: str) -> int:
 #:              （那需要整套意图路由），也**不**委托非流式链路 —— 这一点在事件里如实声明。
 #:   口径依据（实测，2026-10-03）：同一长答问题上 full 首字=完成=8.80s（全程无输出），
 #:   而 plain 首字 2.61s / retrieval 2.94s ⇒ 差距全在"要等编排器整段跑完"。
-CHAT_STREAM_MODES = ("plain", "retrieval", "full", "full_stream")
+#:   auto      自动（2026-10-20 新增）：按**输入本身**选档 —— 能本地直答就直答；
+#:             任务型/长输入升到 full_stream；其余落 plain。**永不**选 full（最贵且非流式）。
+CHAT_STREAM_MODES = ("plain", "retrieval", "full", "full_stream", "auto")
+
+#: 档位中文名（事件文案用；与前端 CHAT_MODES 的 label 对齐）
+_MODE_LABELS = {"plain": "轻量", "retrieval": "检索",
+                "full": "完整", "full_stream": "完整·流式"}
+
+#: 「自动」档的任务型线索：命中即升到 full_stream。
+#: 刻意**窄**——宁可把复杂问题误判成轻量（用户还能手动切档），也不要让"自动"随手把成本抬上去。
+_AUTO_TASK_RE = re.compile(
+    r"(帮我|帮忙|请帮|分析|排查|诊断|重构|实现|写一个|写个|生成|修复|优化|设计|对比|"
+    r"总结|提取|整理|迁移|部署|跑一遍|测试一下|评审)")
+
+
+def _auto_route(question: str):
+    """「自动」档选路：返回 (实际档位, 人读原因)。
+
+    纯函数（零 IO / 零模型调用），规则刻意保守：
+      - 含代码块或多行 ⇒ full_stream（多半是"看这段代码"类任务）；
+      - 长输入（≥40 字）⇒ full_stream（短问答不需要语义层+检索）；
+      - 命中任务型动词 ⇒ full_stream；
+      - 其余（含问候/道谢/时间/日期）⇒ plain（随后由 fast_reply 本地直答）。
+    `full` 永不自动选中：它非流式且最贵，必须由用户显式选择。
+    """
+    text = (question or "").strip()
+    if not text:
+        return "plain", "空输入"
+    if "```" in text or text.count("\n") >= 3:
+        return "full_stream", "含代码块或多行"
+    if len(text) >= 40:
+        return "full_stream", "长输入（≥40 字）"
+    if _AUTO_TASK_RE.search(text):
+        return "full_stream", "命中任务型动词"
+    return "plain", "短问答"
 
 
 def _sse_event(evt: dict) -> str:
@@ -1682,6 +1717,17 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
 
     def _sse(evt):
         return "data: " + json.dumps(evt, ensure_ascii=False) + "\n\n"
+
+    # ── 「自动」档：按输入选路，并**如实告知选了哪档**（2026-10-20）──
+    # 【为什么在函数最前面】选路决定后面跑哪条链路（本地直答 / 轻量 / 完整·流式），
+    #   必须早于 LLM 客户端构造与检索；用户也要能在时间线上看到这次自动选了什么。
+    if mode == "auto":
+        _auto_mode, _auto_why = _auto_route(question)
+        yield _sse({"type": "thinking", "id": "auto-mode", "title": "自动档",
+                    "detail": "按「%s」选择「%s」"
+                              % (_auto_why, _MODE_LABELS.get(_auto_mode, _auto_mode)),
+                    "status": "done"})
+        mode = _auto_mode
 
     # ── 从配置构建 LLMService ──
     provider = os.environ.get("LLM_PROVIDER", "deepseek").strip().lower()

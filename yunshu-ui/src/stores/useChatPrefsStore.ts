@@ -25,7 +25,9 @@ export const CHAT_FORMATS: Record<ChatFormat, { label: string; hint: string }> =
 }
 
 // ─── 对话模式（后端 /api/chat/stream 的 mode 参数） ──────────────
-// 【为什么做成三档可选而不是替他定档】三档对应**行为与成本的三种取舍**（见各 hint）：
+// 【为什么做成可选而不是替他定档】每档对应一种**行为与成本的取舍**（见各 hint）：
+//   auto      = 按输入自动选（2026-10-20 新增）：确定性输入本地直答；任务型/长输入升 full_stream；
+//               其余落 plain。**永不**自动选 full（非流式且最贵，必须用户显式选）
 //   plain     = 现状（真流式、1 次模型调用、不查记忆/知识库）
 //   retrieval = 在 plain 之上注入检索到的记忆/知识片段（+≤3k token/轮，仍是真流式）
 //   full      = 走编排器全链路（意图分层 + 检索 + 规划 + 工具）—— 最准，但**非流式**且最贵
@@ -34,9 +36,14 @@ export const CHAT_FORMATS: Record<ChatFormat, { label: string; hint: string }> =
 //                 plain 首字 2.61s / retrieval 2.94s ⇒ 于是补这一档，兼顾"编排前段"与首字延迟。
 // 默认 plain：与"改这一行之前"的行为逐字一致；想要更准由用户自己按场景切换。
 
-export type ChatMode = 'plain' | 'retrieval' | 'full' | 'full_stream'
+export type ChatMode = 'auto' | 'plain' | 'retrieval' | 'full' | 'full_stream'
 
 export const CHAT_MODES: Record<ChatMode, { label: string; icon: string; hint: string }> = {
+  auto: {
+    label: '自动',
+    icon: '🤖',
+    hint: '按输入自动选档：问候/道谢/时间本地直答（0 调用）；任务型、长输入或含代码块升「完整·流式」；其余走「轻量」——选中哪档会用「自动档」事件如实告诉你',
+  },
   plain: {
     label: '轻量',
     icon: '⚡',
