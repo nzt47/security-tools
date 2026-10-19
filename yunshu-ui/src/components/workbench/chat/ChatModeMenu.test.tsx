@@ -1,7 +1,8 @@
 /**
  * ChatModeMenu 测试 —— 「对话模式」下拉（在工具栏「输出格式」右侧）
  * ------------------------------------------------------------------
- * 三档是**取舍**：轻量（默认，1 次模型调用）/ 检索（+≤3k token/轮）/ 完整（非流式、可能多轮调用）。
+ * 每档是**取舍**：自动（按输入选路）/ 轻量（默认，1 次模型调用）/ 检索（+≤3k token/轮）/
+ * 完整（非流式、可能多轮调用）。
  * 本测试钉死两件事：
  *   ① 选档真的写进 store，并**随请求体发出**（后端据此选链路）；
  *   ② 持久化生效（刷新后仍是所选档）——否则用户每次开页面都要重选。
@@ -17,7 +18,7 @@ function resetStore() {
   useChatPrefsStore.setState({ mode: 'plain' })
 }
 
-describe('ChatModeMenu · 对话模式三档', () => {
+describe('ChatModeMenu · 对话模式各档', () => {
   beforeEach(resetStore)
   afterEach(() => {
     cleanup()
@@ -29,9 +30,10 @@ describe('ChatModeMenu · 对话模式三档', () => {
     expect(screen.getByRole('button')).toHaveTextContent('模式：轻量')
   })
 
-  it('展开后列出三档，且每档都写明代价', () => {
+  it('展开后列出各档，且每档都写明代价', () => {
     render(<ChatModeMenu />)
     fireEvent.click(screen.getByRole('button'))
+    expect(screen.getByText('自动')).toBeInTheDocument()
     expect(screen.getByText('轻量')).toBeInTheDocument()
     expect(screen.getByText('检索')).toBeInTheDocument()
     expect(screen.getByText('完整')).toBeInTheDocument()
@@ -51,6 +53,17 @@ describe('ChatModeMenu · 对话模式三档', () => {
     // 持久化：LocalStorage 里带了 mode（刷新后不丢）
     const raw = localStorage.getItem(CHAT_PREFS_STORAGE_KEY) ?? ''
     expect(raw).toContain('"mode":"retrieval"')
+  })
+
+  it('选「自动」→ store 变更 + 持久化 + 按钮回显', () => {
+    render(<ChatModeMenu />)
+    fireEvent.click(screen.getByRole('button'))
+    fireEvent.click(screen.getByText('自动'))
+
+    expect(useChatPrefsStore.getState().mode).toBe('auto')
+    expect(screen.getByRole('button')).toHaveTextContent('模式：自动')
+    const raw = localStorage.getItem(CHAT_PREFS_STORAGE_KEY) ?? ''
+    expect(raw).toContain('"mode":"auto"')
   })
 
   it('选「完整」→ 按钮转为醒目态（提醒这是重档）', () => {

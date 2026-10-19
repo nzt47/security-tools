@@ -347,10 +347,63 @@ class TestFullStreamMode:
         assert [e["type"] for e in _events(body) if e["type"] == "chunk"] == ["chunk", "chunk"]
         assert "检索片段" in FakeLLM.instances[-1].seen["system_prompt"]
 
-    def test_模式清单含四档(self):
+    def test_模式清单含五档(self):
         from plugins.chat import CHAT_STREAM_MODES
 
-        assert CHAT_STREAM_MODES == ("plain", "retrieval", "full", "full_stream")
+        assert CHAT_STREAM_MODES == (
+            "plain", "retrieval", "full", "full_stream", "auto")
+
+
+class TestAutoMode:
+    """「自动」档（#1228）：按输入选路，并把选择如实外发。
+
+    规则见 plugins.chat._auto_route：代码块/多行、≥40 字、任务型动词 ⇒ full_stream；
+    其余（含问候）⇒ plain（随后由 fast_reply 本地直答）。永不选 full。
+    """
+
+    def test_问候在自动档本地直答且不发模型请求(self, env):
+        client, _fake = env(_Yunshu())
+        body = _body(client.post("/api/chat/stream",
+                                 json={"message": "你好", "session_id": "s1",
+                                       "mode": "auto"}))
+        assert not FakeLLM.instances
+        evs = _events(body)
+        auto = [e for e in evs if e.get("id") == "auto-mode"]
+        assert auto and "轻量" in auto[0]["detail"], "自动档必须告知选了哪档"
+        assert [e for e in evs if e.get("id") == "local-reply"]
+
+    def test_短问答在自动档按轻量走且不跑检索(self, env):
+        y = _Yunshu(extra="不该被注入")
+        client, _fake = env(y)
+        body = _body(client.post("/api/chat/stream",
+                                 json={"message": "今天有什么安排", "session_id": "s1",
+                                       "mode": "auto"}))
+        assert FakeLLM.instances, "普通短问答仍应调用模型"
+        evs = _events(body)
+        assert not [e for e in evs if e.get("id") == "retrieval"]
+        assert not [e for e in evs if e.get("id") == "prestage"]
+        assert not hasattr(y, "last_extra_call")
+
+    def test_任务型输入在自动档升到完整流式(self, env):
+        y = _Yunshu(extra="【记忆】片段")
+        client, _fake = env(y)
+        body = _body(client.post("/api/chat/stream",
+                                 json={"message": "帮我分析这段代码有什么问题并给出修复方案",
+                                       "session_id": "s1", "mode": "auto"}))
+        assert FakeLLM.instances
+        evs = _events(body)
+        auto = [e for e in evs if e.get("id") == "auto-mode"]
+        assert auto and "完整·流式" in auto[0]["detail"]
+        assert [e for e in evs if e.get("id") == "prestage"], "完整·流式应跑编排前段"
+        assert [e for e in evs if e.get("id") == "retrieval"]
+        assert y.last_extra_call[0] == "帮我分析这段代码有什么问题并给出修复方案"
+
+    def test_自动档永不选完整非流式(self):
+        from plugins.chat import _auto_route
+
+        for q in ("你好", "帮我分析这段代码有什么问题并给出修复方案",
+                  "x" * 80, "第一行\n第二行\n第三行\n第四行"):
+            assert _auto_route(q)[0] in ("plain", "full_stream")
 
 
 class TestLocalFastReply:
