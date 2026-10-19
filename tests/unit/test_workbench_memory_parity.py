@@ -138,14 +138,14 @@ class TestNormalCompletion:
     def test_正常收尾_写入记忆与会话(self, env):
         client, memory, yunshu, sessions = env
         resp = client.post("/api/chat/stream",
-                           json={"message": "你好", "session_id": "sess-1"})
+                           json={"message": "帮我看一下日志", "session_id": "sess-1"})
         assert resp.status_code == 200
         body = _drain(resp)
         assert "云枢" in body and "回答" in body
 
         # ① 记忆：与 /api/chat 同口径（user + assistant，顺序一致）
         assert [r for r, _ in memory.writes] == ["user", "assistant"]
-        assert memory.writes[0][1] == "你好"
+        assert memory.writes[0][1] == "帮我看一下日志"
         assert memory.writes[1][1] == "云枢回答"
         # ② 会话存储照旧（既有行为）
         rows = sessions.get_messages("sess-1", limit=0)
@@ -154,7 +154,7 @@ class TestNormalCompletion:
     def test_本轮状态写入_且只带真实工具步骤(self, env):
         client, _mem, yunshu, _sessions = env
         _drain(client.post("/api/chat/stream",
-                           json={"message": "你好", "session_id": "sess-1"}))
+                           json={"message": "帮我看一下日志", "session_id": "sess-1"}))
         st = yunshu.turn_state
         assert st.get("session_id") == "sess-1"
         # 推理内容来自真实的 reasoning 事件（不是拟态文案）
@@ -168,7 +168,7 @@ class TestClientDisconnect:
         """残缺回复进长期记忆会污染召回，故只落会话存储"""
         client, memory, _yunshu, _sessions = env
         resp = client.post("/api/chat/stream",
-                           json={"message": "你好", "session_id": "sess-2"},
+                           json={"message": "帮我看一下日志", "session_id": "sess-2"},
                            buffered=False)
         # 只读一个事件就断开（模拟前端点"停止生成"/关标签页）
         next(resp.response)
@@ -188,7 +188,7 @@ class TestFailurePathMemoryHygiene:
         client, memory, _yunshu, sessions = env
         monkeypatch.setattr(FakeLLM, "mode", "boom", raising=False)
         body = _drain(client.post("/api/chat/stream",
-                                  json={"message": "你好", "session_id": "sess-boom"}))
+                                  json={"message": "帮我看一下日志", "session_id": "sess-boom"}))
         assert "LLM 调用失败" in body, "用户仍应看到失败原因"
         assert memory.writes == [], "兜底文案不得写入长期记忆（会污染压缩与召回）"
         rows = sessions.get_messages("sess-boom", limit=0)
@@ -198,14 +198,14 @@ class TestFailurePathMemoryHygiene:
         client, memory, _yunshu, _sessions = env
         monkeypatch.setattr(FakeLLM, "mode", "empty", raising=False)
         _drain(client.post("/api/chat/stream",
-                           json={"message": "你好", "session_id": "sess-empty"}))
+                           json={"message": "帮我看一下日志", "session_id": "sess-empty"}))
         assert memory.writes == [], "占位文案（模型未返回内容）不得进记忆"
 
     def test_正常收尾仍写记忆_防过度收紧(self, env, monkeypatch):
         client, memory, _yunshu, _sessions = env
         monkeypatch.setattr(FakeLLM, "mode", "ok", raising=False)
         _drain(client.post("/api/chat/stream",
-                           json={"message": "你好", "session_id": "sess-ok"}))
+                           json={"message": "帮我看一下日志", "session_id": "sess-ok"}))
         assert [r for r, _ in memory.writes] == ["user", "assistant"]
 
 
@@ -214,7 +214,7 @@ class TestFailSoft:
         client, _mem, yunshu, _sessions = env
         yunshu._memory = _Memory(boom=True)  # add_message 抛异常
         body = _drain(client.post("/api/chat/stream",
-                                  json={"message": "你好", "session_id": "sess-3"}))
+                                  json={"message": "帮我看一下日志", "session_id": "sess-3"}))
         assert "云枢" in body and "回答" in body, "记忆写失败不得打断已经生成的内容"
         assert '"type": "done"' in body
 
@@ -222,13 +222,13 @@ class TestFailSoft:
         client, _mem, _yunshu, _sessions = env
         sys.modules["app_server"]._Yunshu = None
         body = _drain(client.post("/api/chat/stream",
-                                  json={"message": "你好", "session_id": "sess-4"}))
+                                  json={"message": "帮我看一下日志", "session_id": "sess-4"}))
         assert "云枢" in body
 
     def test_编排器没有_set_turn_state_也不炸(self, env):
         client, _mem, _yunshu, _sessions = env
         sys.modules["app_server"]._Yunshu = _Yunshu(_Memory(), with_setter=False)
         body = _drain(client.post("/api/chat/stream",
-                                  json={"message": "你好", "session_id": "sess-5"}))
+                                  json={"message": "帮我看一下日志", "session_id": "sess-5"}))
         assert "云枢" in body
         assert sys.modules["app_server"]._Yunshu._memory.writes, "记忆仍应写入"
