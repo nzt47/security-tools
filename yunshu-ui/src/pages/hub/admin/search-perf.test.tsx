@@ -54,10 +54,17 @@ describe('SearchPerformance', () => {
     render(<SearchPerformance />)
     await screen.findByText('未运行')
 
-    fireEvent.click(screen.getByRole('button', { name: '启动性能监控' }))
+    // 【2026-10-19 去 flake】初始取数期间按钮 disabled（disabled={loading}）：
+    // CI 慢机上"渲染后立刻 click"会落在 disabled 上被**静默吞掉**，随后断言等不到 POST
+    // （本用例在 #1211/#1216 各红一次，重跑即绿）。先等按钮可点，再点。
+    const startBtn = screen.getByRole('button', { name: '启动性能监控' }) as HTMLButtonElement
+    await waitFor(() => expect(startBtn.disabled).toBe(false))
+    fireEvent.click(startBtn)
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/search-performance/start', {}))
 
-    fireEvent.click(screen.getByRole('button', { name: '立刻检测一次' }))
+    const checkBtn = screen.getByRole('button', { name: '立刻检测一次' }) as HTMLButtonElement
+    await waitFor(() => expect(checkBtn.disabled).toBe(false))
+    fireEvent.click(checkBtn)
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/search-performance/check', {}))
   })
 })

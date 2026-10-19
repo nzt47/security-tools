@@ -39,12 +39,6 @@ function baseGets() {
     if (url === '/api/extensions/installed') {
       return { ok: true, skills: [1, 2], plugins: [], channels: [], mcp_services: [] }
     }
-    if (url === '/api/extensions/discover') {
-      return {
-        ok: true,
-        builtin_skills: [{ id: 'memory_summary', name: '记忆摘要', installed: false }],
-      }
-    }
     if (url.startsWith('/api/extensions/market/recommend')) {
       return { ok: true, recommendations: [{ ext_type: 'skill', id: 'emotion_expression', name: '情感表达' }] }
     }
@@ -56,49 +50,29 @@ function baseGets() {
 }
 
 describe('ExtensionsMarket', () => {
-  it('打开即拉 list / installed / discover / recommend 四个只读面', async () => {
+  it('打开即拉 list / installed / recommend 三个只读面（不再拉 discover）', async () => {
     baseGets()
     render(<ExtensionsMarket />)
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/extensions/list'))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/extensions/installed'))
-    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/extensions/discover'))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/extensions/market/recommend?limit=6'))
     expect(await screen.findByText('self_reflection')).toBeTruthy()
     expect(screen.getByText('自省反思')).toBeTruthy()
+    // 内置项清单已不在市场拉取（分组整体迁走）
+    expect(api.hubGet).not.toHaveBeenCalledWith('/api/extensions/discover')
   })
 
-  it('安装内置技能带 {type, source}', async () => {
+  it('内置行为（persona 技能）不再在市场安装：改成指路技能中心', async () => {
+    // 2026-10-19：内置项的启停事实源是 SkillRegistry，入口在「技能中心 · LLM 技能」；
+    // 市场里既不该有"安装 memory_summary"，也不该再出现「内置行为」分组标题。
     baseGets()
-    api.hubPost.mockResolvedValue({ ok: true, message: '已安装' })
     render(<ExtensionsMarket />)
-    await screen.findByText('自省反思')
+    await screen.findByText('self_reflection')
 
-    fireEvent.click(screen.getByRole('button', { name: '安装 memory_summary' }))
-    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/extensions/install', {
-      type: 'skill', source: 'memory_summary',
-    }))
-  })
-
-  it('已启用的内置技能显示"已启用"且不给安装按钮（状态以 SkillRegistry 为准）', async () => {
-    // 2026-10-18：这 7 个 persona 技能在文件轨 enabled=true、运行时一直在注入，
-    // 但扩展存储可能没有安装记录 ⇒ 旧 UI 会显示"安装"。启用态改为读后端 enabled 字段。
-    api.hubGet.mockImplementation(async (url: string) => {
-      if (url === '/api/extensions/list') return { ok: true, extensions: [] }
-      if (url === '/api/extensions/installed') return { ok: true, skills: [], plugins: [], channels: [], mcp_services: [] }
-      if (url === '/api/extensions/discover') {
-        return {
-          ok: true,
-          builtin_skills: [{ id: 'memory_summary', name: '记忆摘要', installed: false, enabled: true, managed_in: 'skill-center' }],
-        }
-      }
-      if (url.startsWith('/api/extensions/market/recommend')) return { ok: true, recommendations: [] }
-      return { ok: true }
-    })
-    render(<ExtensionsMarket />)
-    expect(await screen.findByText('已启用')).toBeTruthy()
     expect(screen.queryByRole('button', { name: '安装 memory_summary' })).toBeNull()
-    // 分组改名：与技能中心里的 skill.md 资产区分开
-    expect(screen.getByText(/内置行为（技能中心管理）/)).toBeTruthy()
+    // 分组标题（h3）不再存在；只剩指路文案里的同一串字
+    expect(screen.queryByRole('heading', { name: /内置行为（/ })).toBeNull()
+    expect(screen.getByText(/技能中心 · LLM 技能/)).toBeTruthy()
   })
 
   it('卸载是两步：先展开确认条，再点确认才发请求', async () => {
