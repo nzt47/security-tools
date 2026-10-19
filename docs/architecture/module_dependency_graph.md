@@ -187,6 +187,7 @@ flowchart LR
     subgraph extensions [extensions]
         agent_extensions["agent.extensions"]
         agent_extensions_base["agent.extensions.base"]:::crosslayer
+        agent_extensions_channel_bridge["agent.extensions.channel_bridge"]:::crosslayer
         agent_extensions_channels_installer["agent.extensions.channels_installer"]
         agent_extensions_dependency_manager["agent.extensions.dependency_manager"]
         agent_extensions_installer["agent.extensions.installer"]
@@ -968,6 +969,11 @@ flowchart LR
     agent_extensions --> agent_extensions_manager
     agent_extensions --> agent_extensions_store
     agent_extensions_base -.-> agent_logging_utils
+    agent_extensions_channel_bridge -.-> agent_logging_utils
+    agent_extensions_channel_bridge --> agent_extensions_channels_installer
+    agent_extensions_channel_bridge --> agent_extensions_store
+    agent_extensions_channel_bridge --> agent_extensions_channels_installer
+    agent_extensions_channel_bridge --> agent_extensions_store
     agent_extensions_channels_installer --> agent_extensions_base
     agent_extensions_channels_installer --> agent_extensions_installer
     agent_extensions_channels_installer --> agent_extensions_store
@@ -1365,6 +1371,7 @@ flowchart LR
     agent_monitoring_alert_manager -.-> agent_human_in_the_loop_takeover_queue
     agent_monitoring_alert_manager -.-> agent_self_healing_policy
     agent_monitoring_alert_manager --> agent_monitoring_observability_config
+    agent_monitoring_alert_manager -.-> agent_extensions_channel_bridge
     agent_monitoring_alert_notifier --> agent_monitoring_tracing
     agent_monitoring_alert_notifier -.-> agent_logging_utils
     agent_monitoring_alert_notifier -.-> agent_utils_singleton_manager
@@ -2380,6 +2387,7 @@ flowchart LR
     agent_task_scheduler --> agent_tool_gate
     agent_task_scheduler -.-> agent_maintenance_zero_token_jobs
     agent_task_scheduler --> agent_weekly_report_generator
+    agent_task_scheduler -.-> agent_extensions_channel_bridge
     agent_task_scheduler -.-> agent_monitoring_observability_config
     agent_task_scheduler -.-> agent_monitoring_observability_config
     agent_task_scheduler -.-> agent_monitoring_observability_config
@@ -2660,9 +2668,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 662
-- 模块节点数: 591
-- 依赖边数: 1947
-- 跨层调用数: 1221
+- 扫描文件数: 663
+- 模块节点数: 592
+- 依赖边数: 1954
+- 跨层调用数: 1224
 - 违规调用数: 0
 - 动态 import 数: 1
