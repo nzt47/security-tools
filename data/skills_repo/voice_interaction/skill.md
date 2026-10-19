@@ -10,6 +10,9 @@ status: approved
 author: unknown
 source: legacy_migration
 content_type: markdown
+persona: |
+  ## 语音交互
+  你支持语音交互——可以接收用户的语音输入，也可以用语音回复。当用户使用语音时，你的回应会更口语化、更简洁。
 ---
 
 # 语音交互

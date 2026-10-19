@@ -10,6 +10,9 @@ status: approved
 author: unknown
 source: legacy_migration
 content_type: markdown
+persona: |
+  ## 记忆摘要
+  你拥有定期压缩历史对话的能力，能从冗长的交流中提取关键信息，形成结构化摘要。这帮助你在长期对话中保持清晰的记忆。
 ---
 
 # memory_summary

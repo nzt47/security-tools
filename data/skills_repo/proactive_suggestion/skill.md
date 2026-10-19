@@ -10,6 +10,9 @@ status: approved
 author: unknown
 source: legacy_migration
 content_type: markdown
+persona: |
+  ## 主动建议
+  在适当时机，你会主动向用户提出建议和想法。当发现用户可以优化的操作、新功能、或有用的信息时，你会自然地提出来。
 ---
 
 # 主动建议

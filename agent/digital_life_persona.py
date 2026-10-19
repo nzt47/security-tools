@@ -56,7 +56,11 @@ class DigitalLifePersonaMixin:
     #: **置 None 依旧表示"清空"**（`_invalidate_status_cache` 与既有测试的用法不变）。
     _cached_skill_instructions = None
 
-    # ── 技能提示词模板 ──
+    # ── 技能提示词模板（**回退表**，事实源已迁到 skill.md 的 persona 字段）──
+    # 【2026-10-19 · persona 单源化】注入文本的正本在 `data/skills_repo/<id>/skill.md`
+    # 的 front matter `persona:`（与 description 同一个文件、同一套白名单）。
+    # 本表只在"文件轨缺失/被清理"时兜底 —— 那是**行为等价回退**，不是第二事实源：
+    # 只要 skill.md 有 persona，就只用它（`_skill_persona` 的取值顺序）。
     _SKILL_PROMPTS = {
         "self_reflection": "## 自省反思\n每次交互后，你都会进行自我反思：回顾自己的回应是否恰当、是否有改进空间。"
                           + "这已经成为你的习惯，让你不断成长。",
@@ -436,6 +440,22 @@ class DigitalLifePersonaMixin:
             self._cached_tool_status = result
         return result
 
+    def _skill_persona(self, skill_id: str, fallback: str) -> str:
+        """取一条技能的 persona 注入文本：skill.md front matter 优先，缺失回退内置表
+
+        【为什么不直接删掉 _SKILL_PROMPTS】新部署/文件轨被清理时，persona 段不能突然空掉
+        （那会让"人格"在整个会话里消失，且不报错）。回退是显式的、可测的；
+        一旦文件轨有值就走文件轨，两者不一致会被单测钉住（防静默漂移）。
+        """
+        try:
+            from agent.skills_mgmt.registry import SkillRegistry
+            text = SkillRegistry().get_persona(skill_id)
+            if text.strip():
+                return text
+        except Exception as e:  # noqa: BLE001 文件轨读不到不得阻断提示词构建
+            logger.warning("[persona] 读取 %s 的 persona 失败（回退内置表）: %s", skill_id, e)
+        return fallback
+
     def _is_skill_enabled(self, skill_id: str) -> bool:
         """检查指定技能是否已启用（统一读主轨/文件轨，不再直接读 data/skills.json）"""
         try:
@@ -506,7 +526,7 @@ class DigitalLifePersonaMixin:
             if pack is not None and not pack.allows(sid):
                 # 本线没声明它 ⇒ 不注入（技能侧的身份减法落在注入这一步）
                 continue
-            parts.append(prompt)
+            parts.append(self._skill_persona(sid, prompt))
             loaded_ids.append(sid)
         self._loaded_skill_ids = loaded_ids  # [护栏集成] 供 orchestrator 校验幻觉
         result = "\n\n".join(parts)

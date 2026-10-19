@@ -88,6 +88,10 @@ _META_FIELDS = {
     # 【为什么 description 不改成中文】G1-B0 实测：技能侧「含典型触发句式」覆盖会从 17/23 掉到 13/23，
     # 因为 `Use when ...` 正是这批**英文**描述的触发句式载体 ⇒ 中文只能另存一列。
     "description_zh",
+    # [2026-10-19 · persona 单源化] 技能注入系统提示词的**persona 段**（多行文本）。
+    # 【为什么必须在白名单里】同 description_zh：不在 ⇒ parse() 读不到、update_meta 写不进，
+    # 「persona 从 skill.md 读」这件事在数据层根本落不了地（会静默回退到硬编码表）。
+    "persona",
 }
 
 
