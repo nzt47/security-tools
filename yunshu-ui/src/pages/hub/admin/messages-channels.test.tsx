@@ -103,4 +103,58 @@ describe('HubChannelsPanel', () => {
       channel_id: 'webhook', message: 'hello',
     }))
   })
+
+  // ── 事件出站开关（#1221）：就地切换，写的是开关中心同一个 POST 端点 ──
+
+  it('事件出站：勾选态来自后端登记表；切换即 POST /api/cp/settings/<key> {value}', async () => {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/cp/settings') {
+        return {
+          ok: true,
+          items: [
+            { key: 'CP_CHANNEL_EVENTS', value: true, editable: true },
+            { key: 'CP_CHANNEL_EVENT_ALERTS', value: false, editable: true },
+            { key: 'CP_CHANNEL_EVENT_TASK_FAILED', value: true, editable: true },
+            { key: 'CP_CHANNEL_EVENT_TASK_COMPLETED', value: true, editable: true },
+          ],
+        }
+      }
+      if (url === '/api/extensions/discover') return { ok: true, builtin_channels: [] }
+      if (url === '/api/extensions/list') return { ok: true, extensions: [] }
+      return { ok: true }
+    })
+    api.hubPost.mockResolvedValue({ ok: true })
+    render(<HubChannelsPanel />)
+
+    const alerts = (await screen.findByLabelText('事件出站 CP_CHANNEL_EVENT_ALERTS')) as HTMLInputElement
+    // 勾选态必须来自后端值（不是前端默认 true）
+    expect(alerts.checked).toBe(false)
+    expect((screen.getByLabelText('事件出站 CP_CHANNEL_EVENTS') as HTMLInputElement).checked).toBe(true)
+
+    fireEvent.click(alerts)
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith(
+      '/api/cp/settings/CP_CHANNEL_EVENT_ALERTS', { value: true },
+    ))
+  })
+
+  it('事件出站：被环境变量锁定的项置灰，并把原因显示出来', async () => {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/cp/settings') {
+        return {
+          ok: true,
+          items: [
+            { key: 'CP_CHANNEL_EVENTS', value: true, editable: false, locked_reason: '被环境变量锁定（CP_CHANNEL_EVENTS）' },
+          ],
+        }
+      }
+      if (url === '/api/extensions/discover') return { ok: true, builtin_channels: [] }
+      if (url === '/api/extensions/list') return { ok: true, extensions: [] }
+      return { ok: true }
+    })
+    render(<HubChannelsPanel />)
+
+    const master = (await screen.findByLabelText('事件出站 CP_CHANNEL_EVENTS')) as HTMLInputElement
+    expect(master.disabled).toBe(true)
+    expect(screen.getByText(/被环境变量锁定/)).toBeTruthy()
+  })
 })

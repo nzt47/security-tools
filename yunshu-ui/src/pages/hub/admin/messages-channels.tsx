@@ -7,7 +7,9 @@
  *
  * 【2026-10-19 已接线】告警状态变化（触发/恢复）经 `agent/extensions/channel_bridge.py`
  * 发往**已安装且启用**的通道：AlertManager 的状态回调 → 桥接层（摘要脱敏 / 同告警 60s
- * 冷却 / 失败重试 1 次 / `CP_CHANNEL_EVENTS=0` 可整体关闭）。
+ * 冷却 / 失败重试 1 次）。开关分两层：总开关 `CP_CHANNEL_EVENTS` + 三个事件细分
+ * `CP_CHANNEL_EVENT_ALERTS` / `_TASK_FAILED` / `_TASK_COMPLETED`，都在本页「事件出站」
+ * 卡片里就地切换（与「开关中心」同一份登记表，改完热生效）。
  * 注意区分：`POST /api/extensions/channels/send` 仍只供本页「手动发送（调试）」，
  * 产品事件走的是桥接层的进程内调用，不经过这个 HTTP 端点。
  *
@@ -15,9 +17,11 @@
  *         /api/extensions/install {type:'channel'}、/api/extensions/channels/send（仅手动调试）
  */
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, Download, Loader2, PlugZap, Send } from 'lucide-react'
+import { CheckCircle2, Download, Loader2, PlugZap, Send, SlidersHorizontal } from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
+  CP_SETTINGS,
+  cpSetting,
   EXTENSIONS_CHANNELS_SEND,
   EXTENSIONS_DISCOVER,
   EXTENSIONS_INSTALL,
@@ -43,6 +47,30 @@ interface ExtRow {
   enabled?: boolean
 }
 
+/** 「开关中心」条目里本卡片用到的字段（GET /api/cp/settings 的 items[]） */
+interface SettingItem {
+  key?: string
+  value?: unknown
+  display_value?: string
+  editable?: boolean
+  locked_reason?: string
+  needs_restart?: boolean
+}
+
+/**
+ * 事件出站四个开关（总开关 + 三种事件）。
+ *
+ * 【为什么卡片放在这里而不是只靠开关中心】通道装在本页、发不发也在本页决定；
+ * 让运维去另一个页面找 500 条里的 4 条，等于把"能关"变成"理论上能关"。
+ * 开关中心仍然是同一份登记表（同一 POST 端点），这里只是**就地**入口。
+ */
+const EVENT_ROWS: { key: string; label: string; hint: string }[] = [
+  { key: 'CP_CHANNEL_EVENTS', label: '总开关', hint: '关掉后告警与任务事件全部不出站（手动发送不受影响）' },
+  { key: 'CP_CHANNEL_EVENT_ALERTS', label: '监控告警 · 触发/恢复', hint: 'AlertManager 的状态变化' },
+  { key: 'CP_CHANNEL_EVENT_TASK_FAILED', label: '定时任务失败', hint: '任务失败摘要（不带 output）' },
+  { key: 'CP_CHANNEL_EVENT_TASK_COMPLETED', label: '定时任务完成', hint: '任务自身 notify_on_complete 仍是一道前置门' },
+]
+
 export default function HubChannelsPanel() {
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
@@ -51,6 +79,9 @@ export default function HubChannelsPanel() {
   const [installed, setInstalled] = useState<ExtRow[]>([])
   const [channelId, setChannelId] = useState('')
   const [channelMsg, setChannelMsg] = useState('')
+  // 事件出站开关（读开关中心同一份登记表；失败单独提示，不拖垮通道列表）
+  const [eventItems, setEventItems] = useState<Record<string, SettingItem>>({})
+  const [eventErr, setEventErr] = useState('')
 
   const load = useCallback(async () => {
     setBusy('load'); setErr('')
@@ -68,7 +99,38 @@ export default function HubChannelsPanel() {
     } finally { setBusy('') }
   }, [])
 
-  useEffect(() => { void load() }, [load])
+  const loadEventSettings = useCallback(async () => {
+    setEventErr('')
+    try {
+      const r = await hubGet<{ ok?: boolean; items?: SettingItem[] }>(CP_SETTINGS)
+      if (r?.ok === false) { setEventErr('读取事件开关失败：后端返回 ok=false'); return }
+      const map: Record<string, SettingItem> = {}
+      for (const it of r?.items ?? []) {
+        if (it?.key) map[it.key] = it
+      }
+      setEventItems(map)
+    } catch (e) {
+      setEventErr('读取事件开关失败：' + (e instanceof Error ? e.message : String(e)))
+    }
+  }, [])
+
+  useEffect(() => { void load(); void loadEventSettings() }, [load, loadEventSettings])
+
+  /** 切换一个事件开关（A 级设置 ⇒ 服务端落到进程环境变量，热生效，无需重启） */
+  const toggleEvent = async (key: string, next: boolean) => {
+    setBusy('event:' + key); setEventErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ ok?: boolean; message?: string; code?: string }>(cpSetting(key), { value: next })
+      if (r?.ok === false) {
+        setEventErr('切换失败：' + (r.message || r.code || '后端返回 ok=false'))
+        return
+      }
+      setMsg((next ? '已开启 ' : '已关闭 ') + key + '（热生效）')
+      await loadEventSettings()
+    } catch (e) {
+      setEventErr('切换失败：' + (e instanceof Error ? e.message : String(e)))
+    } finally { setBusy('') }
+  }
 
   const install = async (id: string) => {
     setBusy('install:' + id); setErr(''); setMsg('')
@@ -116,6 +178,52 @@ export default function HubChannelsPanel() {
           （只带告警名/级别/指标与阈值/白名单标签；同一告警 60s 冷却；失败重试 1 次）。
           <code className="font-mono">POST /api/extensions/channels/send</code> 仍只供本页「手动发送（调试）」，
           产品事件走进程内桥接、不经过该 HTTP 端点。
+        </div>
+      </div>
+
+      {/* 事件出站开关：与「开关中心」同一份登记表、同一个 POST 端点，只是就地给入口 */}
+      <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <SlidersHorizontal size={12} className="text-cyan-400" />
+          <h3 className="text-xs font-semibold text-slate-200">事件出站（总开关 + 3 类事件）</h3>
+          <span className="text-[10px] text-slate-500">改完热生效（不用重启）；数据源与「开关中心」同一份登记表</span>
+        </div>
+        {eventErr && <div className="mb-1 text-[10px] text-red-300">{eventErr}</div>}
+        <div className="flex flex-col gap-1">
+          {EVENT_ROWS.map((row) => {
+            const it = eventItems[row.key]
+            const on = it ? Boolean(it.value) : true
+            const master = eventItems['CP_CHANNEL_EVENTS']
+            const masterOff = row.key !== 'CP_CHANNEL_EVENTS' && !!master && !master.value
+            return (
+              <div key={row.key} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                <label className="flex items-center gap-1.5 text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    disabled={loading || !it || it.editable === false}
+                    onChange={() => void toggleEvent(row.key, !on)}
+                    aria-label={'事件出站 ' + row.key}
+                  />
+                  {row.label}
+                </label>
+                <span className={'text-[10px] ' + (on ? 'text-emerald-400' : 'text-slate-500')}>
+                  {on ? '出站' : '不出站'}
+                </span>
+                <span className="truncate text-[10px] text-slate-500">{row.hint}</span>
+                <span className="ml-auto flex items-center gap-2">
+                  {masterOff && <span className="text-[10px] text-amber-300">总开关已关</span>}
+                  {it?.needs_restart && <span className="text-[10px] text-amber-300">需重启</span>}
+                  {it && it.editable === false && (
+                    <span className="text-[10px] text-slate-500" title={it.locked_reason}>
+                      {it.locked_reason || '不可改'}
+                    </span>
+                  )}
+                  {!it && <span className="text-[10px] text-slate-600">未取到</span>}
+                </span>
+              </div>
+            )
+          })}
         </div>
       </div>
 
