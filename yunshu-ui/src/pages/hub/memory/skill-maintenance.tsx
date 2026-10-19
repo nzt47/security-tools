@@ -10,6 +10,7 @@
  *   queue               (GET)   外部导入·待人工放行队列
  *   <id>/review         (POST)  对一条外来草稿跑审核（重复/安全/质量）
  *   <id>/publish        (POST)  放行（强制审核链；阻断需先解除）
+ *   queue/publish-batch (POST)  批量放行（显式 ids；阻断项要另勾 force 豁免 + 填原因）
  *   upload              (POST)  上传 zip 技能包（multipart）
  *   import/claude       (GET)   扫描 ~/.claude/skills（只读预览）
  *   import/claude       (POST)  Claude 技能包 → manifest.json + skill.md → 落库
@@ -37,6 +38,7 @@ import {
   SKILLS_MGMT_CLEANUP_UNUSED,
   SKILLS_MGMT_MERGE,
   SKILLS_MGMT_QUEUE,
+  SKILLS_MGMT_QUEUE_PUBLISH_BATCH,
   SKILLS_MGMT_THREE_LAYER_SUMMARY,
   SKILLS_MGMT_UPLOAD,
   skillPublish,
@@ -158,6 +160,16 @@ interface QueueResult {
   items?: QueueRow[]
 }
 
+/** 批量放行的逐条结果（POST /api/skills-mgmt/queue/publish-batch） */
+interface BatchResult {
+  ok?: boolean
+  error?: string
+  total?: number
+  force?: boolean
+  published?: string[]
+  failed?: { id?: string; error?: string; code?: string }[]
+}
+
 function Section({ title, desc, children, extra }: {
   title: string; desc?: string; children: React.ReactNode; extra?: React.ReactNode
 }) {
@@ -200,6 +212,12 @@ export default function SkillMaintenance() {
   const [claudeScan, setClaudeScan] = useState<ClaudeScan | null>(null)
   const [claudeResult, setClaudeResult] = useState<ClaudeImportResult | null>(null)
   const [queue, setQueue] = useState<QueueResult | null>(null)
+  // 批量放行：只认逐条勾选（不提供全选），阻断项要另勾豁免 + 填原因
+  const [queueSel, setQueueSel] = useState<string[]>([])
+  const [batchOpen, setBatchOpen] = useState(false)
+  const [batchForce, setBatchForce] = useState(false)
+  const [batchReason, setBatchReason] = useState('')
+  const [batchResult, setBatchResult] = useState<BatchResult | null>(null)
 
   // 真删确认（两条独立的勾选：孤儿与无用是两把不同的扫帚）
   const [confirmOrphans, setConfirmOrphans] = useState(false)
@@ -241,7 +259,13 @@ export default function SkillMaintenance() {
     setBusy('queue'); setErr('')
     try {
       const r = await hubGet<QueueResult>(SKILLS_MGMT_QUEUE + '?limit=100')
-      if (r?.ok === false) { bad('读取待放行队列失败', r); setQueue(null) } else setQueue(r)
+      if (r?.ok === false) {
+        bad('读取待放行队列失败', r); setQueue(null); setQueueSel([])
+      } else {
+        setQueue(r)
+        // 刷新后剪掉已不在队列里的勾选（否则「批量放行（n）」的计数会虚高）
+        setQueueSel((prev) => prev.filter((id) => (r?.items ?? []).some((q) => q.id === id)))
+      }
     } catch (e) { fail('读取待放行队列失败', e) } finally { setBusy('') }
   }, [])
 
@@ -268,6 +292,39 @@ export default function SkillMaintenance() {
       await loadQueue()
       await loadReport()
     } catch (e) { fail('放行失败', e) } finally { setBusy('') }
+  }
+
+  /** 勾选/取消一条待放行条目（批量放行只认显式勾选） */
+  const toggleQueueSel = (id: string) => setQueueSel((prev) => (
+    prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+  ))
+
+  /** 打开批量放行面板 —— 这是第一次确认，面板里的「确认放行」是第二次 */
+  const openBatchPanel = () => {
+    setBatchResult(null); setBatchForce(false); setBatchReason(''); setBatchOpen(true)
+  }
+
+  /**
+   * 提交批量放行。
+   *
+   * 【为什么 force 只在面板里给】阻断项 = 安全审查未过；单条按钮永远不放行阻断项，
+   * 豁免只能走「勾选 → 勾豁免 → 填原因 → 确认」这条多步路径，且服务端还会
+   * 再校验一次原因长度（不依赖前端把关）。
+   */
+  const submitBatch = async () => {
+    const ids = selectedRows.map((r) => r.id as string)
+    setBusy('queue-batch'); setErr(''); setMsg(''); setBatchResult(null)
+    try {
+      const body: Record<string, unknown> = { ids }
+      if (hasBlocked) { body.force = true; body.reason = batchReason.trim() }
+      const r = await hubPost<BatchResult>(SKILLS_MGMT_QUEUE_PUBLISH_BATCH, body)
+      setBatchResult(r)
+      const okN = (r?.published ?? []).length
+      const badN = (r?.failed ?? []).length
+      setMsg(badN === 0 ? `已放行 ${okN} 条` : `已放行 ${okN} 条，失败 ${badN} 条（见下方明细）`)
+      setQueueSel([]); setBatchOpen(false); setBatchForce(false); setBatchReason('')
+      await loadQueue(); await loadReport()
+    } catch (e) { fail('批量放行失败', e) } finally { setBusy('') }
   }
 
   const runOrphans = async (dryRun: boolean) => {
@@ -385,6 +442,13 @@ export default function SkillMaintenance() {
   }
 
   const loading = busy !== ''
+  const queueRows = queue?.items ?? []
+  const selectedRows = queueRows.filter((q) => q.id && queueSel.includes(q.id))
+  const selectedBlocked = selectedRows.filter((q) => q.review?.blocked === true)
+  const hasBlocked = selectedBlocked.length > 0
+  // 与服务端 WAIVER_MIN_REASON_LEN 同口径（服务端仍会二次校验，前端只负责不给错按钮）
+  const reasonReady = batchReason.trim().length >= 4
+  const canSubmitBatch = selectedRows.length > 0 && (!hasBlocked || (batchForce && reasonReady))
 
   return (
     <div className="space-y-3">
@@ -662,28 +726,125 @@ export default function SkillMaintenance() {
 
       {/* ── 外部导入 · 待放行 ── */}
       <Section
-        title={'外部导入 · 待放行（' + (queue?.items?.length ?? 0) + '）'}
+        title={'外部导入 · 待放行（' + queueRows.length + '）'}
         desc="github / url / local / registry / external_agent 来的技能先落成 draft，人工审核通过后才能发布"
         extra={
-          <button type="button" className={BTN} onClick={() => void loadQueue()} disabled={loading} aria-label="刷新待放行队列">
-            {busy === 'queue' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
-          </button>
+          <>
+            <button
+              type="button"
+              className={BTN}
+              onClick={openBatchPanel}
+              disabled={loading || queueSel.length === 0}
+              aria-label="批量放行所选技能"
+              title={queueSel.length === 0
+                ? '先逐条勾选要放行的条目（不提供全选 / 一键全放）'
+                : '打开批量放行确认面板（第二步确认）'}
+            >
+              批量放行（{queueSel.length}）
+            </button>
+            <button type="button" className={BTN} onClick={() => void loadQueue()} disabled={loading} aria-label="刷新待放行队列">
+              {busy === 'queue' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
+            </button>
+          </>
         }
       >
         {!queue && busy !== 'queue' && <div className="text-[11px] text-slate-500">未取到队列。</div>}
-        {queue && (queue.items?.length ?? 0) === 0 && (
+        {queue && queueRows.length === 0 && (
           <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
             <Inbox size={11} /> 队列为空 —— 没有待放行的外来技能。
           </div>
         )}
-        {(queue?.items?.length ?? 0) > 0 && (
+
+        {/* 批量放行确认面板：第一次确认=点「批量放行」，这里换到第二次确认 */}
+        {batchOpen && (
+          <div className="mb-2 rounded border border-amber-800/60 bg-amber-950/20 p-2 text-[11px] text-slate-300">
+            <div>
+              将放行 {selectedRows.length} 条：
+              <span className="font-mono text-[10px] text-cyan-300">
+                {selectedRows.map((r) => r.id).join('、')}
+              </span>
+            </div>
+            {hasBlocked && (
+              <>
+                <div className="mt-1 text-red-300">
+                  其中 {selectedBlocked.length} 条被评审阻断（{selectedBlocked.map((r) => r.id).join('、')}）：
+                  强行放行会绕过强制审核链，并写入 review_waiver_publish 审计。
+                </div>
+                <label className="mt-1 flex items-center gap-1 text-[10px] text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={batchForce}
+                    onChange={(e) => setBatchForce(e.target.checked)}
+                    aria-label="确认对阻断项使用 force 豁免"
+                  />
+                  我确认对上述阻断项使用 force 豁免（写审计，可追溯）
+                </label>
+                <label className="mt-1 flex flex-col gap-1 text-[10px] text-slate-400">
+                  force 豁免原因（至少 4 字，写入审计；不是走过场）
+                  <textarea
+                    className={INPUT}
+                    rows={2}
+                    value={batchReason}
+                    onChange={(e) => setBatchReason(e.target.value)}
+                    aria-label="force 豁免原因"
+                  />
+                </label>
+              </>
+            )}
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                className={BTN_EM}
+                onClick={() => void submitBatch()}
+                disabled={loading || !canSubmitBatch}
+                aria-label="确认批量放行"
+              >
+                {busy === 'queue-batch' ? <Loader2 size={11} className="animate-spin" /> : null} 确认放行
+              </button>
+              <button
+                type="button"
+                className={BTN}
+                onClick={() => setBatchOpen(false)}
+                disabled={loading}
+                aria-label="取消批量放行"
+              >
+                取消
+              </button>
+              {hasBlocked && !canSubmitBatch && (
+                <span className="text-[10px] text-amber-300">先勾选豁免并填写原因，而不是直接点确认</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {batchResult && ((batchResult.failed ?? []).length > 0) && (
+          <div className="mb-2 flex flex-col gap-0.5 text-[10px] text-red-300">
+            {(batchResult.failed ?? []).map((f) => (
+              <span key={'batch-fail-' + (f.id ?? '')}>{(f.id ?? '?') + '：' + (f.error ?? '未知错误')}</span>
+            ))}
+          </div>
+        )}
+        {batchResult && (batchResult.failed ?? []).length === 0 && (
+          <div className="mb-2 text-[10px] text-emerald-300">
+            已放行：{(batchResult.published ?? []).join('、') || '(无)'}
+          </div>
+        )}
+
+        {queueRows.length > 0 && (
           <div className="flex flex-col gap-1">
-            {(queue?.items ?? []).map((q) => {
+            {queueRows.map((q) => {
               const id = q.id ?? ''
               const blocked = q.review?.blocked === true
               const verdict = q.review?.review_verdict || ''
               return (
                 <div key={'queue-' + id} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                  <input
+                    type="checkbox"
+                    checked={queueSel.includes(id)}
+                    onChange={() => toggleQueueSel(id)}
+                    disabled={loading}
+                    aria-label={'选择外来技能 ' + id}
+                  />
                   <span className="font-mono text-[10px] text-cyan-300">{id}</span>
                   <span className="text-slate-300">{q.name ?? ''}</span>
                   <span className="truncate text-[10px] text-slate-500">{q.source ?? ''}</span>
@@ -706,7 +867,9 @@ export default function SkillMaintenance() {
                       onClick={() => void publishQueued(id)}
                       disabled={loading || blocked}
                       aria-label={'放行外来技能 ' + id}
-                      title={blocked ? '评审阻断：先处理评审问题再放行（UI 不提供 force 豁免）' : '走强制审核链发布'}
+                      title={blocked
+                        ? '评审阻断：单条不放行；如需豁免请勾选后走「批量放行」并填写原因'
+                        : '走强制审核链发布'}
                     >
                       {busy === 'queue-publish:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 放行
                     </button>
@@ -714,9 +877,10 @@ export default function SkillMaintenance() {
                 </div>
               )
             })}
-            {(queue?.items ?? []).some((q) => q.review?.blocked) && (
+            {queueRows.some((q) => q.review?.blocked) && (
               <div className="text-[10px] text-red-300/80">
-                阻断项不放行：先在技能详情里处理评审问题；`force` 豁免不在 UI 默认路径上（避免"点一下绕过安全闸"）。
+                阻断项单条不放行：先在技能详情里处理评审问题；确需豁免只能「勾选 → 勾豁免 → 填原因 → 二次确认」，
+                不提供一键全放。
               </div>
             )}
           </div>

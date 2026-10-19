@@ -223,6 +223,8 @@ export const SKILLS_MGMT_CLASSES = '/api/skills-mgmt/classes';
 export const SKILLS_MGMT_CLASSES_RUN_AUTO = '/api/skills-mgmt/classes/run-auto';
 export const SKILLS_MGMT_CLASSES_MOVE = '/api/skills-mgmt/classes/move';
 export const SKILLS_MGMT_QUEUE = '/api/skills-mgmt/queue';
+// 批量放行（显式 ids；force 豁免必须带原因 —— 服务端二次校验，见 publish_batch）
+export const SKILLS_MGMT_QUEUE_PUBLISH_BATCH = '/api/skills-mgmt/queue/publish-batch';
 export const SKILLS_MGMT_DUPLICATES = '/api/skills-mgmt/duplicates';
 export const SKILLS_MGMT_REVIEW_AUDIT = '/api/skills-mgmt/review/audit';
 export const SKILLS_MGMT_INSTALL_PREPRECHECK = '/api/skills-mgmt/install/precheck';
