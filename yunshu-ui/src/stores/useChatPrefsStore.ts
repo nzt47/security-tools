@@ -40,12 +40,12 @@ export const CHAT_MODES: Record<ChatMode, { label: string; icon: string; hint: s
   plain: {
     label: '轻量',
     icon: '⚡',
-    hint: '只用本会话历史（默认）：最快最省，但不会去查长期记忆/知识库',
+    hint: '只用本会话历史（默认）：最快最省，但不会去查长期记忆/知识库；纯问候/道谢本地直答、不调用模型',
   },
   retrieval: {
     label: '检索',
     icon: '🔎',
-    hint: '在轻量之上注入检索到的记忆/知识片段（约 +3k token/轮，仍是真流式）',
+    hint: '在轻量之上注入检索到的记忆/知识片段（约 +3k token/轮，仍是真流式）；纯问候/道谢同样本地直答',
   },
   full: {
     label: '完整',

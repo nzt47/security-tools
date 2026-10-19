@@ -166,7 +166,7 @@ class TestPlainMode:
     def test_缺省即轻量_且是真流式(self, env):
         client, _fake = env(_Yunshu())
         body = _body(client.post("/api/chat/stream",
-                                 json={"message": "你好", "session_id": "s1"}))
+                                 json={"message": "帮我看一下今天的日志", "session_id": "s1"}))
         assert FakeLLM.instances, "轻量模式应当调用模型（真流式）"
         assert [e["type"] for e in _events(body) if e["type"] == "chunk"] == ["chunk", "chunk"]
         # 默认路径不得出现检索/完整链路阶段
@@ -176,7 +176,7 @@ class TestPlainMode:
     def test_未知模式回落为轻量且不报错(self, env):
         client, _fake = env(_Yunshu())
         resp = client.post("/api/chat/stream",
-                           json={"message": "你好", "session_id": "s1", "mode": "随便写的"})
+                           json={"message": "帮我看一下今天的日志", "session_id": "s1", "mode": "随便写的"})
         assert resp.status_code == 200
         assert FakeLLM.instances, "回落轻量后仍应正常调用模型"
 
@@ -203,7 +203,7 @@ class TestRetrievalMode:
         client, _fake = env(y)
         before = None
         body = _body(client.post("/api/chat/stream",
-                                 json={"message": "你好", "session_id": "s1",
+                                 json={"message": "帮我看一下今天的日志", "session_id": "s1",
                                        "mode": "retrieval"}))
         ev = [e for e in _events(body) if e.get("id") == "retrieval"]
         assert ev and "未命中" in ev[0]["detail"]
@@ -217,7 +217,7 @@ class TestRetrievalMode:
 
         client, _fake = env(Boom())
         resp = client.post("/api/chat/stream",
-                           json={"message": "你好", "session_id": "s1", "mode": "retrieval"})
+                           json={"message": "帮我看一下今天的日志", "session_id": "s1", "mode": "retrieval"})
         assert resp.status_code == 200
         assert FakeLLM.instances, "检索失败必须回落轻量，而不是让对话失败"
 
@@ -324,7 +324,7 @@ class TestFullStreamMode:
         client, _fake = env(yunshu)
 
         body = _body(client.post("/api/chat/stream",
-                                json={"message": "你好", "session_id": "s1",
+                                json={"message": "帮我看一下今天的日志", "session_id": "s1",
                                       "mode": "full_stream"}))
 
         detail = " ".join("%s %s" % (e.get("title", ""), e.get("detail", ""))
@@ -342,7 +342,7 @@ class TestFullStreamMode:
         yunshu._semantic_layer_match = _boom
         client, _fake = env(yunshu)
         body = _body(client.post("/api/chat/stream",
-                                json={"message": "你好", "session_id": "s1",
+                                json={"message": "帮我看一下今天的日志", "session_id": "s1",
                                       "mode": "full_stream"}))
         assert [e["type"] for e in _events(body) if e["type"] == "chunk"] == ["chunk", "chunk"]
         assert "检索片段" in FakeLLM.instances[-1].seen["system_prompt"]
@@ -351,4 +351,55 @@ class TestFullStreamMode:
         from plugins.chat import CHAT_STREAM_MODES
 
         assert CHAT_STREAM_MODES == ("plain", "retrieval", "full", "full_stream")
+
+
+class TestLocalFastReply:
+    """零 token 直答（#1227）：整句问候/道谢在轻量/检索档**不再调用模型**。
+
+    此前编排器的模板漏斗只在「完整」模式生效 —— 同一句"你好"，
+    完整模式 0 次模型调用，轻量却发一次请求，检索档还多注入约 3k token。
+    """
+
+    def test_问候在轻量档本地直答且不发模型请求(self, env):
+        client, _fake = env(_Yunshu())
+        body = _body(client.post("/api/chat/stream",
+                                 json={"message": "你好", "session_id": "s1"}))
+
+        assert not FakeLLM.instances, "整句问候不该再调用模型"
+        evs = _events(body)
+        thinking = [e for e in evs if e.get("id") == "local-reply"]
+        assert thinking, "本地直答必须有可见的阶段事件（不能让用户以为模型答的）"
+        assert "未调用模型" in thinking[0]["detail"]
+        text = "".join(e["text"] for e in evs if e["type"] == "chunk")
+        assert text, "本地直答也要真的流式外发文本"
+        assert any(e["type"] == "done" for e in evs)
+        ids = {e.get("id") for e in evs if e["type"] == "thinking"}
+        assert "retrieval" not in ids and "full-pipeline" not in ids
+
+    def test_道谢在检索档也本地直答且不触发检索(self, env):
+        y = _Yunshu(extra="不该被注入")
+        client, _fake = env(y)
+        body = _body(client.post("/api/chat/stream",
+                                 json={"message": "谢谢", "session_id": "s1",
+                                       "mode": "retrieval"}))
+
+        assert not FakeLLM.instances
+        text = "".join(e["text"] for e in _events(body) if e["type"] == "chunk")
+        assert "不客气" in text
+        assert not hasattr(y, "last_extra_call"), "本地直答不该先跑一遍检索（省 3k token）"
+
+    def test_带附加内容的问候仍交给模型(self, env):
+        client, _fake = env(_Yunshu())
+        client.post("/api/chat/stream",
+                    json={"message": "你好，帮我写个脚本", "session_id": "s1"})
+        assert FakeLLM.instances, "带附加内容的问候必须交给模型（整句白名单，不做前缀匹配）"
+
+    def test_纯函数口径_整句才命中(self):
+        from agent.response_workflows import fast_reply
+
+        assert fast_reply("你好") and "帮" in fast_reply("你好")
+        assert fast_reply("hello!") and fast_reply("谢谢")
+        assert fast_reply("你好，帮我写个脚本") is None
+        assert fast_reply("今天天气怎么样") is None
+        assert fast_reply("x" * 40) is None
 

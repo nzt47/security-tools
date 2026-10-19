@@ -1819,6 +1819,35 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
         yield from _full_pipeline_events(question, session_id)
         return
 
+    # ── 零 token 直答：与编排器**同一条**模板层（2026-10-20）──
+    # 【解决什么】编排器的漏斗第一层（WorkflowEngine / IntentRouter 模板）此前只在「完整」
+    #   模式生效：同一句「你好」，完整模式 0 次模型调用，轻量/检索却各发一次请求
+    #   （检索档还会多注入约 3k token 的检索片段）。
+    # 【口径只有一份】判断收敛在 agent.response_workflows.fast_reply()（整句白名单），
+    #   本处只负责"命中就本地流式外发 + 如实标注未调用模型"。
+    # 【为什么不直答带附加内容的问候】"你好，帮我写个脚本" 必须交给模型 ——
+    #   IntentRouter 的 greeting 是前缀匹配，那类句子会命中；fast_reply 的整句白名单不会。
+    # 【为什么绑定分身时不直答】模板里的"我是云枢 / 分时问候"是母体口径，
+    #   会话绑了分身就该由分身回答（否则界面说的与答的对不上）。
+    if not agent_name:
+        try:
+            from agent.response_workflows import fast_reply as _fast_reply
+            _local_reply = _fast_reply(question)
+        except Exception as _fe:  # noqa: BLE001 模板层故障 ⇒ 回落模型，不阻断对话
+            _local_reply = None
+            logger.debug("[workbench][SSE] 本地直答判定失败（回落模型）: %s", _fe)
+        if _local_reply:
+            yield _sse({"type": "thinking", "id": "local-reply", "title": "本地直答",
+                        "detail": "命中零 token 模板（本轮未调用模型）",
+                        "status": "done"})
+            _lseq = 0
+            for _i in range(0, len(_local_reply), 8):
+                _lseq += 1
+                yield _sse({"type": "chunk", "text": _local_reply[_i:_i + 8],
+                            "seq": _lseq})
+            yield _sse({"type": "done"})
+            return
+
     # 会话绑定了智能体且模型解析成功 ⇒ 用该分身的实例（与具名委派端点同源）；
     # 否则按 .env 部署配置构建母体实例（与会话未绑定智能体时逐字一致）。
     llm = agent_llm or LLMService(

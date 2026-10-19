@@ -356,6 +356,47 @@ class ResponseTemplates:
 
 
 # ════════════════════════════════════════════════════════════
+#  零 token 直答（跨入口共用：编排器漏斗 + 工作台流式各档）
+# ════════════════════════════════════════════════════════════
+
+#: **整句**问候白名单（不做前缀匹配："你好，帮我写脚本" 不算）
+_FAST_GREETING_RE = re.compile(
+    r"(?i)^\s*(你好|您好|大家好|hi|hello|hey|嗨|哈喽|早上好|上午好|中午好|下午好|晚上好|"
+    r"凌晨好|在吗|在不在)[\s!！。,.，?？~～]*$")
+#: **整句**道谢/确认白名单
+_FAST_ACK_RE = re.compile(
+    r"(?i)^\s*(谢谢|多谢|感谢|谢谢你|好的|好|ok|okay|嗯|嗯嗯|行|可以)[\s!！。,.，?？~～]*$")
+
+#: 道谢/确认的固定回复（不调用模型；比问候更"轻"，不值得走生成）
+_FAST_ACK_REPLY = "不客气，有需要随时说。"
+
+
+def fast_reply(user_input: str) -> Optional[str]:
+    """零 token 直答：整句问候/道谢直接出模板文本，命中返回文本，否则 None。
+
+    【为什么单独抽出来】编排器的漏斗第一层（WorkflowEngine / IntentRouter 模板）只在
+    「完整」模式生效；工作台「轻量 / 检索」两档此前**直接进模型** —— 同一句「你好」，
+    完整模式 0 次模型调用，轻量却发一次请求（检索档还多注入约 3k token）。
+    这里把判断收成一个函数，两个入口共用同一份规则，避免第二套"什么算问候"。
+
+    【为什么必须**整句**匹配】IntentRouter 的 greeting 规则是 ^ 前缀匹配，
+    "你好，帮我写个脚本" 也会命中 —— 那种句子必须交给模型。故此处另用整句白名单，
+    且拒绝过长输入（>24 字符一律不直答）。
+    """
+    text = (user_input or "").strip()
+    if not text or len(text) > 24:
+        return None
+    try:
+        if _FAST_GREETING_RE.match(text):
+            return ResponseTemplates.for_intent(INTENT_GREETING, Confidence.HIGH)
+        if _FAST_ACK_RE.match(text):
+            return _FAST_ACK_REPLY
+    except Exception:  # noqa: BLE001 模板层异常一律回落模型，不阻断对话
+        logger.debug("fast_reply 失败（回落模型）", exc_info=True)
+    return None
+
+
+# ════════════════════════════════════════════════════════════
 #  日志 helper（避免循环依赖 logging_utils）
 # ════════════════════════════════════════════════════════════
 
