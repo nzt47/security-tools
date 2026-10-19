@@ -42,6 +42,15 @@ function baseGets() {
         unused: [{ id: 'stale-1', usage_count: 0, idle_days: 40, reason: '零使用且停用闲置 40 天' }],
       }
     }
+    if (url.startsWith('/api/skills-mgmt/queue')) {
+      return {
+        ok: true, total: 2,
+        items: [
+          { id: 'ext-ok', name: '外来技能A', source: 'github:u/r', review: { review_verdict: 'pass', blocked: false } },
+          { id: 'ext-blocked', name: '外来技能B', source: 'url:https://x', review: { review_verdict: 'block', blocked: true } },
+        ],
+      }
+    }
     return { ok: true }
   })
 }
@@ -231,5 +240,23 @@ describe('SkillMaintenance', () => {
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/import/claude', {}))
     expect(await screen.findByText(/boom：RuntimeError/)).toBeTruthy()
     expect(screen.getByText(/已落库：ok-skill/)).toBeTruthy()
+  })
+
+  it('外部导入待放行：队列上屏；阻断项不给放行；审核/放行走各自端点', async () => {
+    baseGets()
+    api.hubPost.mockResolvedValue({ ok: true })
+    render(<SkillMaintenance />)
+
+    expect(await screen.findByText('外来技能A')).toBeTruthy()
+    expect(await screen.findByText('外来技能B')).toBeTruthy()
+    // 阻断项：放行按钮不可点（UI 不提供 force 豁免）
+    expect((screen.getByRole('button', { name: '放行外来技能 ext-blocked' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: '放行外来技能 ext-ok' }) as HTMLButtonElement).disabled).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: '审核外来技能 ext-ok' }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/ext-ok/review', {}))
+
+    fireEvent.click(screen.getByRole('button', { name: '放行外来技能 ext-ok' }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/ext-ok/publish'))
   })
 })
