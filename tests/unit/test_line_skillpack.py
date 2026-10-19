@@ -79,7 +79,7 @@ def _write_line_raw(profile: LineProfile) -> None:
 def force_enabled(monkeypatch):
     """把「全局启用集合」钉住（**环境输入**，不是被测逻辑）
 
-    _build_skill_instructions 的被测部分 = 「本线技能包 ∩ 全局启用 ∩ _SKILL_PROMPTS」。
+    _build_skill_instructions 的被测部分 = 「本线技能包 ∩ 全局启用 ∩ _PERSONA_SKILL_IDS」。
     这里只钉住中间那一项，两侧都走真实实现。
     """
     from agent.skills_mgmt.registry import SkillRegistry
@@ -406,9 +406,9 @@ class TestValidateSkills:
         """**行为回退守门**：persona 技能段必须对每条线都还在
 
         Why 这条必须存在（不是形式主义）：
-          `_SKILL_PROMPTS` 里的 7 个 persona 技能在接线之前是**每轮都注入**的
+          `_PERSONA_SKILL_IDS` 里的 7 个 persona 技能在接线之前是**每轮都注入**的
           （全部 known 且全部 enabled，与是哪条线无关）。技能包接上注入侧之后，
-          语义变成「本线 skills 声明 ∩ 全局启用 ∩ _SKILL_PROMPTS」⇒ 只要某条线
+          语义变成「本线 skills 声明 ∩ 全局启用 ∩ _PERSONA_SKILL_IDS」⇒ 只要某条线
           漏声明一个 persona id，该线的这段提示词就**静默消失**。
           接线类改动必须行为逐字一致（与工具侧"未装线 = 旧行为"同一纪律），
           所以"某条线少一个 persona 段"只能在**显式改数据 + 改本用例 + 改文档**
@@ -416,9 +416,9 @@ class TestValidateSkills:
         """
         from agent.digital_life_persona import DigitalLifePersonaMixin
 
-        persona = set(DigitalLifePersonaMixin._SKILL_PROMPTS)
+        persona = set(DigitalLifePersonaMixin._PERSONA_SKILL_IDS)
         assert len(persona) == 7, (
-            f"_SKILL_PROMPTS 的成员变了（{sorted(persona)}）—— 本用例的口径要跟着重新确认")
+            f"_PERSONA_SKILL_IDS 的成员变了（{sorted(persona)}）—— 本用例的口径要跟着重新确认")
         for line_id in get_line_registry().list_ids():
             profile = get_line_registry().load(line_id)
             assert profile is not None
@@ -527,15 +527,15 @@ class TestSkillInjection:
         return _P()
 
     def test_未装线时注入全局启用的全部_persona_技能(self, tmp_lines, force_enabled):
-        """未装线 ⇒ 与「接上技能包之前」完全一样：全局启用 ∩ _SKILL_PROMPTS"""
+        """未装线 ⇒ 与「接上技能包之前」完全一样：全局启用 ∩ _PERSONA_SKILL_IDS"""
         force_enabled(["self_reflection", "voice_interaction", "memory_summary"])
         p = self._mix()
         text = p._build_skill_instructions()
         assert set(p._loaded_skill_ids) == {
             "self_reflection", "memory_summary", "voice_interaction"}
-        # 顺序 = _SKILL_PROMPTS 的声明顺序（注入文本必须可复现）
+        # 顺序 = _PERSONA_SKILL_IDS 的声明顺序（注入文本必须可复现）
         assert p._loaded_skill_ids == [
-            sid for sid in p._SKILL_PROMPTS
+            sid for sid in p._PERSONA_SKILL_IDS
             if sid in {"self_reflection", "memory_summary", "voice_interaction"}]
         assert "自省反思" in text and "语音交互" in text
 
@@ -599,11 +599,15 @@ class TestSkillInjection:
         p = self._mix()
         text = p._build_skill_instructions()
         assert p._loaded_skill_ids == ["voice_interaction"]
+        from agent.skills_mgmt.registry import SkillRegistry
+        reg = SkillRegistry()
         for sid in p._loaded_skill_ids:
-            assert p._SKILL_PROMPTS[sid] in text
-        for sid, prompt in p._SKILL_PROMPTS.items():
+            assert reg.get_persona(sid).strip() in text
+        for sid in p._PERSONA_SKILL_IDS:
             if sid not in p._loaded_skill_ids:
-                assert prompt not in text, f"{sid} 没进列表却进了文本"
+                persona_text = (reg.get_persona(sid) or "").strip()
+                assert not persona_text or persona_text not in text, (
+                    f"{sid} 没进列表却进了文本")
 
     def test_声明了不存在的技能时该线技能段为空(self, tmp_lines, force_enabled):
         """typo 的后果是「本轮不注入」，而不是「注入全部」（不限制只在空声明时）"""

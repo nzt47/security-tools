@@ -1,18 +1,19 @@
-"""persona 单源化：注入文本的正本在 skill.md front matter
+"""persona 单源化（收尾）：注入文本只剩 skill.md front matter 一份
 
-【背景】`DigitalLifePersonaMixin._SKILL_PROMPTS` 曾是 persona 段的**唯一**来源，
-与 skill.md（描述、启停、内容都在那儿）分家。2026-10-19 把正文写进 front matter
-`persona:`，代码改为「front matter 优先、内置表兜底」。
+【背景】#1218 把正文写进 front matter，但代码里仍留着 `_SKILL_PROMPTS` 当兜底。
+兜底即第二事实源：改了 skill.md 却忘了改表，注入内容会随部署路径悄悄变化。
+本 PR 删掉兜底表，只保留**有序 id 列表** `_PERSONA_SKILL_IDS`。
 
-本测试钉三件事：
+本测试钉四件事：
 
-1. **不漂移**：7 个内置技能的 front matter persona 必须与兜底表逐字一致
-   （否则"改了一边忘了另一边"，注入内容会随部署路径悄悄变化）；
-2. **文件轨优先**：persona 有值时，注入的就是文件轨内容（不是兜底表）；
-3. **兜底可用**：文件轨读不到时回退兜底表（新部署/文件被清理也不至于人格消失）。
+1. **只有一份真相**：类上不得再有 `_SKILL_PROMPTS`（防止兜底表被顺手加回来）；
+2. **数据前置**：7 个 persona 技能的 skill.md 必须有**非空** front matter persona；
+3. **注入来源**：注入正文就是 front matter（换掉文件轨，注入跟着变）；
+4. **缺失可观测**：正文缺失/读失败 ⇒ 跳过该段并告警，不静默塞替代文本。
 """
 from __future__ import annotations
 
+import logging
 import pathlib
 
 import pytest
@@ -37,21 +38,30 @@ def _read_persona(skill_id: str) -> str:
     return str(meta.get("persona") or "")
 
 
-class TestFrontMatterIsTheSource:
+class TestSingleSource:
+    def test_no_fallback_table_left(self):
+        assert not hasattr(DigitalLifePersonaMixin, "_SKILL_PROMPTS"), (
+            "兜底表又回来了：单源化要求正文只从 skill.md 的 persona 字段读")
+
     def test_persona_is_in_meta_whitelist(self):
-        # 不在白名单 ⇒ parse() 看不见、update_meta 写不进（会静默回退硬编码表）
+        # 不在白名单 ⇒ parse() 看不见、update_meta 写不进（注入会静默少一段）
         assert "persona" in _META_FIELDS
 
-    @pytest.mark.parametrize("sid", sorted(DigitalLifePersonaMixin._SKILL_PROMPTS))
-    def test_front_matter_matches_fallback_text(self, sid):
+    def test_ids_are_unique_and_ordered(self):
+        ids = DigitalLifePersonaMixin._PERSONA_SKILL_IDS
+        assert len(ids) == 7 and len(set(ids)) == 7, ids
+        assert ids[0] == "self_reflection", (
+            "顺序是注入文本可复现性的一部分（skillpack.filter 保序依赖它），不要随意改")
+
+    @pytest.mark.parametrize("sid", DigitalLifePersonaMixin._PERSONA_SKILL_IDS)
+    def test_every_persona_skill_has_front_matter_text(self, sid):
         assert (REPO / sid / "skill.md").is_file(), f"缺少 {sid}/skill.md"
-        assert _read_persona(sid).strip() == DigitalLifePersonaMixin._SKILL_PROMPTS[sid].strip(), (
-            f"{sid} 的 front matter persona 与兜底表不一致 —— 单源化要求两者逐字相同"
-        )
+        assert _read_persona(sid).strip(), (
+            f"{sid} 的 skill.md 没有 persona 正文 —— 该段会被跳过（日志里会有告警）")
 
 
 class TestInjection:
-    def test_file_track_persona_wins(self, monkeypatch):
+    def test_front_matter_is_what_gets_injected(self, monkeypatch):
         import agent.skills_mgmt.registry as reg_mod
 
         class _FakeRegistry:
@@ -59,37 +69,39 @@ class TestInjection:
                 return ["self_reflection"]
 
             def get_persona(self, skill_id):
-                return "## 自省反思（来自 skill.md）\n自定义注入正文。" if skill_id == "self_reflection" else ""
+                return "## 自省反思（来自 skill.md）\n自定义注入正文。"
 
         monkeypatch.setattr(reg_mod, "SkillRegistry", _FakeRegistry)
-
         host = _Persona()
         host._cached_skill_instructions = None
         text = host._build_skill_instructions()
 
         assert "来自 skill.md" in text
-        assert DigitalLifePersonaMixin._SKILL_PROMPTS["self_reflection"] not in text
         assert host._loaded_skill_ids == ["self_reflection"]
 
-    def test_falls_back_when_file_track_missing(self, monkeypatch):
+    def test_missing_persona_skips_segment_and_warns(self, monkeypatch, caplog):
         import agent.skills_mgmt.registry as reg_mod
 
         class _EmptyRegistry:
             def list_enabled_ids(self):
-                return ["self_reflection"]
+                return ["self_reflection", "voice_interaction"]
 
             def get_persona(self, skill_id):
-                return ""
+                return "" if skill_id == "self_reflection" else "## 语音交互\n有正文。"
 
         monkeypatch.setattr(reg_mod, "SkillRegistry", _EmptyRegistry)
-
         host = _Persona()
         host._cached_skill_instructions = None
-        text = host._build_skill_instructions()
+        with caplog.at_level(logging.WARNING):
+            text = host._build_skill_instructions()
 
-        assert DigitalLifePersonaMixin._SKILL_PROMPTS["self_reflection"] in text
+        assert "语音交互" in text
+        assert "自省反思" not in text, "缺正文时不得注入任何替代文本"
+        assert host._loaded_skill_ids == ["voice_interaction"], (
+            "没注入的 id 不得进 _loaded_skill_ids（否则幻觉校验会拿错的基准）")
+        assert "self_reflection" in caplog.text, "缺 persona 必须在日志里看得见（不得静默）"
 
-    def test_registry_failure_still_falls_back(self, monkeypatch):
+    def test_registry_failure_skips_segment_without_raising(self, monkeypatch):
         import agent.skills_mgmt.registry as reg_mod
 
         class _BoomRegistry:
@@ -100,9 +112,8 @@ class TestInjection:
                 raise RuntimeError("file track broken")
 
         monkeypatch.setattr(reg_mod, "SkillRegistry", _BoomRegistry)
-
         host = _Persona()
         host._cached_skill_instructions = None
-        text = host._build_skill_instructions()
 
-        assert DigitalLifePersonaMixin._SKILL_PROMPTS["self_reflection"] in text
+        assert host._build_skill_instructions() == ""
+        assert host._loaded_skill_ids == []
