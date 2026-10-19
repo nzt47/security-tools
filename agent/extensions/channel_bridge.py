@@ -18,7 +18,12 @@
    告警抖动时宁可少发，也不能把外部通道打爆（那会让运维直接静音整个通道）。
 3. **失败只重试 1 次**，随后放弃并记日志；整条链路 try/except 包住，
    **绝不允许通道故障影响告警判定与自愈主流程**。
-4. **可整体关闭**：`CP_CHANNEL_EVENTS=0`（或 false/no/off）⇒ 直接 return，零副作用。
+4. **可关闭，且分两层**：总开关 `CP_CHANNEL_EVENTS=0`（或 false/no/off）⇒ 直接
+   return，零副作用；总开关开着时，还能按事件类型单独关（`EVENT_SWITCHES`：
+   `CP_CHANNEL_EVENT_ALERTS` / `CP_CHANNEL_EVENT_TASK_FAILED` /
+   `CP_CHANNEL_EVENT_TASK_COMPLETED`，默认都开）。四个键都在
+   `agent/settings/registry.py` 登记，可在「开关中心」或「消息中心 · 事件出站」改，
+   **热生效**（resolver 直接写进程环境变量，桥接层每次调用现读）。
 5. 没有 enabled 通道 ⇒ 什么都不做（不缓存"待发"，不补发历史事件）。
 """
 from __future__ import annotations
@@ -53,12 +58,68 @@ _state_lock = threading.Lock()
 _last_sent: Dict[str, float] = {}
 
 
-def events_enabled() -> bool:
-    """事件接线总开关（默认开；`CP_CHANNEL_EVENTS=0` 关闭）"""
-    raw = os.environ.get("CP_CHANNEL_EVENTS")
+#: 事件类型 → 独立开关的环境变量名（总开关之外的细分；默认全开）
+#:
+#: 【为什么要有这一层】总开关只能"全关"：运维想留任务失败告警、只关告警抖动，
+#: 或反过来，都得去改代码里的调用点。细分开关让"哪些事件出站"成为可配置事实。
+EVENT_SWITCHES: Dict[str, str] = {
+    "alert": "CP_CHANNEL_EVENT_ALERTS",
+    "task.failed": "CP_CHANNEL_EVENT_TASK_FAILED",
+    "task.completed": "CP_CHANNEL_EVENT_TASK_COMPLETED",
+}
+
+
+def _truthy(raw: Optional[str], default: bool = True) -> bool:
+    """把环境变量原文解释成布尔（缺省/空串 ⇒ default；只认 0/false/no/off 为关）"""
     if raw is None or str(raw).strip() == "":
-        return True
+        return default
     return str(raw).strip().lower() not in ("0", "false", "no", "off")
+
+
+def _master_enabled() -> bool:
+    return _truthy(os.environ.get("CP_CHANNEL_EVENTS"))
+
+
+def _event_enabled(event_kind: str) -> bool:
+    """该事件类型的细分开关（**逐个字面量**读，不做"变量名查 env"）
+
+    【为什么不用 {kind: ENV} 映射后按变量读】本仓的「开关零缺口」门禁用 AST 机械
+    提取所有 env 读取点（scripts/scan_settings.py）。`os.environ.get(变量)` 会被
+    记成未声明的动态家族 `<unresolved>*`，让 `test_zero_gap_between_scan_and_registry`
+    直接红。故这里三个分支各写一次字面量；映射表只用于回报"被哪个键关的"。
+    """
+    if event_kind == "alert":
+        return _truthy(os.environ.get("CP_CHANNEL_EVENT_ALERTS"))
+    if event_kind == "task.failed":
+        return _truthy(os.environ.get("CP_CHANNEL_EVENT_TASK_FAILED"))
+    if event_kind == "task.completed":
+        return _truthy(os.environ.get("CP_CHANNEL_EVENT_TASK_COMPLETED"))
+    return True          # 未知事件类型只受总开关约束
+
+
+def events_enabled(event_kind: str = "") -> bool:
+    """事件接线开关（总开关 + 该事件类型的细分开关；默认都开）
+
+    Args:
+        event_kind: "alert" / "task.failed" / "task.completed"；空串或未知类型
+            只看总开关（未知事件不会被"细分开关缺失"误关）。
+    """
+    if not _master_enabled():
+        return False
+    return _event_enabled(event_kind)
+
+
+def disabled_reason(event_kind: str = "") -> str:
+    """被哪个开关关掉 ⇒ 返回原因串；没关 ⇒ 空串
+
+    两个原因串与既有单测/前端文案同源：总开关 = disabled_by_env，
+    细分开关 = disabled_by_event_switch（并附 `switch` 字段给出具体键）。
+    """
+    if not _master_enabled():
+        return "disabled_by_env"
+    if not _event_enabled(event_kind):
+        return "disabled_by_event_switch"
+    return ""
 
 
 def _reset_state_for_tests() -> None:
@@ -207,8 +268,11 @@ def dispatch_alert(alert: Any, transition: str, *,
     """
     result: Dict[str, Any] = {"ok": False, "enabled": 0, "sent": [],
                               "skipped": [], "failed": []}
-    if not events_enabled():
-        result["reason"] = "disabled_by_env"
+    reason = disabled_reason("alert")
+    if reason:
+        result["reason"] = reason
+        if reason == "disabled_by_event_switch":
+            result["switch"] = EVENT_SWITCHES["alert"]
         return result
 
     try:
@@ -275,8 +339,11 @@ def dispatch_event(event_type: str, summary: str, *,
     """
     result: Dict[str, Any] = {"ok": False, "enabled": 0, "sent": [],
                               "skipped": [], "failed": []}
-    if not events_enabled():
-        result["reason"] = "disabled_by_env"
+    reason = disabled_reason(event_type)
+    if reason:
+        result["reason"] = reason
+        if reason == "disabled_by_event_switch":
+            result["switch"] = EVENT_SWITCHES.get(event_type, "")
         return result
     try:
         if installer is None:

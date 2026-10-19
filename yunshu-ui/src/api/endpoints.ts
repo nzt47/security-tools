@@ -207,6 +207,10 @@ export const agentLineById = (lineId: string) =>
 // ═══════════════════════════════════════════════════════════════
 export const CP = '/api/cp';
 export const CP_TOOL_EXEMPTIONS = '/api/cp/tool-exemptions';
+/** 开关中心：一次拿全量登记表（items 里带 value/editable/locked_reason/needs_restart） */
+export const CP_SETTINGS = '/api/cp/settings';
+/** 改单个开关（A 级直接生效；B 级返回 202 待第二位人工确认） */
+export const cpSetting = (key: string) => `/api/cp/settings/${encodeURIComponent(key)}`;
 // ===============================================================
 //  技能评审 / 评估（/api/skills-mgmt/assess|classes|queue|review）
 // ===============================================================
