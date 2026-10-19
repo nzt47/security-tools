@@ -40,7 +40,6 @@ import {
   SKILLS_MGMT_DUPLICATES,
   SKILLS_MGMT_INSTALL,
   SKILLS_MGMT_INSTALL_PREPRECHECK,
-  SKILLS_MGMT_QUEUE,
   SKILLS_MGMT_REVIEW_AUDIT,
   SKILLS_MGMT_REVIEW_BATCH,
   WORKFLOW_LEARNING_BATCH_CONVERT,
@@ -222,24 +221,9 @@ export default function SkillAssessManager() {
     }
   }
 
-  // ── 外部导入 · 待放行队列（先存草稿 → 人工逐个放行/驳回）──
-  interface QueueItem {
-    id: string; name?: string; description?: string; source?: string
-    content_type?: string; enabled?: boolean; status?: string; created_at?: string
-    review?: { auto_assessed?: boolean; review_verdict?: string; blocked?: boolean }
-  }
-  const [queueOpen, setQueueOpen] = useState(false)
-  const [queue, setQueue] = useState<QueueItem[]>([])
-  const [qLoading, setQLoading] = useState(false)
-  const refreshQueue = useCallback(async () => {
-    setQLoading(true)
-    try {
-      const r = await hubGet<{ items?: QueueItem[] }>(SKILLS_MGMT_QUEUE)
-      setQueue(Array.isArray(r.items) ? r.items : [])
-    } catch { setQueue([]) }
-    finally { setQLoading(false) }
-  }, [])
-
+  // 【2026-10-19 · 队列去重】「外部导入 · 待放行」不再在本页重复实现：
+  // 队列 + 审核 + 批量放行 + 驳回 统一在「技能中心 · 维护」Tab（同一份 GET /api/skills-mgmt/queue）。
+  // 本页保留单技能生命周期（评估/评审/发布/删除）与分类浏览。
   const load = useCallback(async () => {
     setError('')
     try {
@@ -249,12 +233,10 @@ export default function SkillAssessManager() {
       setError(`技能资产加载失败：${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setLoading(false)
-      void refreshQueue()
     }
-  }, [refreshQueue])
+  }, [])
 
   useEffect(() => { void load() }, [load])
-  useEffect(() => { void refreshQueue() }, [refreshQueue])
 
   const act = async (label: string, fn: () => Promise<unknown>) => {
     setBusy(label); setError(''); setMsg(''); setNeedAuth(false)
@@ -553,7 +535,7 @@ export default function SkillAssessManager() {
 
       {error && <p className="mb-2 text-[11px] text-red-400">{error}</p>}
       {msg && <p className="mb-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{msg}</p>}
-      {needAuth && <ApiTokenPrompt onSaved={() => { setNeedAuth(false); void load(); void refreshQueue() }} />}
+      {needAuth && <ApiTokenPrompt onSaved={() => { setNeedAuth(false); void load() }} />}
 
       {loading ? (
         <div className="flex items-center gap-2 py-6 text-xs text-slate-500">
@@ -584,67 +566,13 @@ export default function SkillAssessManager() {
         </div>
       )}
 
-      {/* ── 外部导入 · 待放行队列（先存草稿 → 人工逐个放行/驳回）── */}
-      <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/30">
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2">
-          <ScrollText size={12} className="text-amber-400" />
-          <span className="text-xs font-medium text-slate-200">外部导入 · 待放行队列</span>
-          <span className={`rounded-full px-1.5 text-[10px] ${queue.length > 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>{queue.length}</span>
-          <span className="text-[10px] text-slate-600">批量「先存草稿」的外部技能（含自动评审-评估结论）——人工逐个 放行（发布复核）或 驳回</span>
-          <div className="ml-auto flex items-center gap-1.5">
-            <button type="button" className={BTN} onClick={() => void refreshQueue()} disabled={qLoading} title="刷新队列">
-              <RefreshCw size={11} /> 刷新
-            </button>
-            <button type="button" className={BTN} onClick={() => setQueueOpen(!queueOpen)} title={queueOpen ? '收起' : '展开'}>
-              {queueOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />} {queueOpen ? '收起' : '展开'}
-            </button>
-          </div>
-        </div>
-        {queueOpen && (
-          qLoading ? (
-            <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 加载队列…</div>
-          ) : queue.length === 0 ? (
-            <p className="px-3 pb-3 text-[11px] text-slate-500">队列为空。「批量导入评估」勾选「先存草稿·人工逐个放行」后，外部技能会先到这里等人工放行。</p>
-          ) : (
-            <ul className="divide-y divide-slate-800/60 border-t border-slate-800/60">
-              {queue.map((q) => {
-                const full = items.find((i) => i.id === q.id) ?? null
-                const part = (full ?? { id: q.id, name: q.name ?? q.id }) as SkillItem
-                const b = q.review?.blocked
-                return (
-                  <li key={q.id} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2">
-                    <div className="min-w-0 max-w-[20rem] flex-1">
-                      <div className="truncate text-xs font-medium text-slate-200">{q.name || q.id}</div>
-                      <div className="truncate text-[10px] text-slate-500">{q.description ?? ''}</div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1">
-                      {chip(`源:${q.source ?? '-'}`, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50')}
-                      {b === true
-                        ? chip('阻断·放行需人工复核', 'bg-red-500/15 text-red-400 border-red-800')
-                        : q.review?.auto_assessed
-                          ? chip('已自动评估', 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')
-                          : chip('未评估', 'bg-slate-500/10 text-slate-400 border-slate-700')}
-                      {chip('草稿', 'bg-slate-500/10 text-slate-400 border-slate-700')}
-                      {q.created_at && <span className="font-mono text-[9px] text-slate-600">{q.created_at.slice(0, 16).replace('T', ' ')}</span>}
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      <button type="button" className={BTN} onClick={() => void assessOne(part.id)} disabled={busy !== '' || !full} title={full ? '执行权威评审-评估' : '技能已被移除，先刷新'}>
-                        <Zap size={11} /> 评审-评估
-                      </button>
-                      <button type="button" className={BTN_EM} onClick={() => full && setPublishTarget(full)} disabled={busy !== '' || !full}
-                        title={b ? '阻断项：放行需人工复核（通过/强制并写审计）' : '放行 = 人工复核后发布为运行时能力'}>
-                        <Rocket size={11} /> 放行
-                      </button>
-                      <button type="button" className={BTN_RED} onClick={() => void remove(part)} disabled={busy !== '' || !full} title="驳回并删除该草稿">
-                        <Trash2 size={11} /> 驳回
-                      </button>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          )
-        )}
+      {/* 【2026-10-19 · 队列去重】待放行队列只在「技能中心 · 维护」Tab 一处：
+          那里有审核 / 批量放行 / 受控 force 豁免 / 驳回，数据源同为 GET /api/skills-mgmt/queue。
+          本页不再重复一套（两处各自刷新会各自过期，用户也不知道该信哪个）。 */}
+      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/30 px-3 py-2 text-[11px] text-slate-400">
+        <ScrollText size={12} className="text-amber-400" />
+        <span className="text-slate-200">外部导入 · 待放行队列已统一到「维护」Tab</span>
+        <span className="text-slate-500">审核 / 批量放行 / force 豁免 / 驳回 都在那里（同一份队列数据）</span>
       </div>
 
       {items.map((it) => expanded[it.id] && (
@@ -666,7 +594,7 @@ export default function SkillAssessManager() {
       )}
       {adviceTarget && (
         <AdviceModal item={adviceTarget} onClose={() => setAdviceTarget(null)}
-          onDone={() => { void load(); void refreshQueue() }} />
+          onDone={() => { void load() }} />
       )}
       {versionsTarget && (
         <VersionsModal item={versionsTarget} onClose={() => setVersionsTarget(null)}
