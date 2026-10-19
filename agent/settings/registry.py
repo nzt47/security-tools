@@ -2385,6 +2385,15 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        config_path="", needs_restart=True),
 
     # ────────────────────────────────────────────────────────
+    #  扩展通道事件接线（2026-10-19）
+    # ────────────────────────────────────────────────────────
+    _a("CP_CHANNEL_EVENTS", CAT_OBSERVABILITY, True,
+       "扩展通道事件接线总开关（默认开；=0/false/no/off 时告警触发/恢复与任务失败"
+       "不再发往「消息中心」里已启用的通道）",
+       owner="agent/extensions/channel_bridge.py",
+       config_path="", needs_restart=True),
+
+    # ────────────────────────────────────────────────────────
     #  数据生命周期治理（TASK-S8-01，2026-09-13）
     # ────────────────────────────────────────────────────────
     _a("CP_RETENTION_ENABLED", CAT_OBSERVABILITY, False,

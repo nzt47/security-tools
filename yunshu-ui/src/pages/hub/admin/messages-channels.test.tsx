@@ -2,8 +2,8 @@
  * 消息中心 · 消息通道面板
  * ------------------------------------------------------------------
  * 锁三件事：
- *   1. 「当前无发送调用方（未接线）」必须**上屏**（这是本轮迁移的唯一理由说明，
- *      少了它用户会以为"装好通道就自动能发通知"）；
+ *   1. 接线状态必须**上屏**：告警（触发/恢复）会经已启用通道发送摘要，
+ *      而 `/channels/send` 只供手动调试 —— 两句话都不能少；
  *   2. 内置模板来自 /api/extensions/discover，安装走 POST /api/extensions/install
  *      {type:'channel', source:id}；
  *   3. 手动发送的按钮门禁（缺 id/内容不可点），提交 /api/extensions/channels/send。
@@ -51,15 +51,16 @@ function setup() {
 }
 
 describe('HubChannelsPanel', () => {
-  it('内置模板上屏；未接线提示必须可见；已装通道按启用态展示', async () => {
+  it('内置模板上屏；接线状态提示必须可见；已装通道按启用态展示', async () => {
     setup()
     render(<HubChannelsPanel />)
 
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/extensions/discover'))
     expect(await screen.findByText('Webhook 通道')).toBeTruthy()
-    // 未接线：必须说清"装了也不会自己发"
-    expect(screen.getByText(/当前无发送调用方（未接线）/)).toBeTruthy()
-    expect(screen.getByText(/不会自己发出任何消息/)).toBeTruthy()
+    // 接线状态：说清"什么事件会发、发到哪里、send 端点仍只供调试"
+    expect(screen.getByText(/已接线/)).toBeTruthy()
+    expect(screen.getByText(/监控告警（触发 \/ 恢复）/)).toBeTruthy()
+    expect(screen.getByText(/只供本页「手动发送（调试）」/)).toBeTruthy()
     // 已装通道来自 /api/extensions/list 且只取 ext_type=channel
     expect(screen.getByText(/email_smtp\(停用\)/)).toBeTruthy()
     expect(screen.queryByText(/self_reflection/)).toBeNull()

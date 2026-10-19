@@ -5,16 +5,17 @@
  * Discord / Telegram），语义属于「消息中心」而不是「扩展市场」，也不属于「网络配置」
  * （后者是代理/网络环境）。原在市场里单独一组，导致"装通道"和"发消息"两件事离得很远。
  *
- * 【为什么必须标注"未接线"】
- * `POST /api/extensions/channels/send` 在仓库内**没有产品调用方**：除测试与本页这个
- * 手动调试框外，没有任何流程会在事件发生时发消息。装好通道 ≠ 会收到通知 ——
- * 不写清楚，用户会以为"装了就通了"。接线（例如审计告警触发通道发送）是另一轮的事。
+ * 【2026-10-19 已接线】告警状态变化（触发/恢复）经 `agent/extensions/channel_bridge.py`
+ * 发往**已安装且启用**的通道：AlertManager 的状态回调 → 桥接层（摘要脱敏 / 同告警 60s
+ * 冷却 / 失败重试 1 次 / `CP_CHANNEL_EVENTS=0` 可整体关闭）。
+ * 注意区分：`POST /api/extensions/channels/send` 仍只供本页「手动发送（调试）」，
+ * 产品事件走的是桥接层的进程内调用，不经过这个 HTTP 端点。
  *
  * 数据源：/api/extensions/discover（内置模板）、/api/extensions/list（已装通道）、
- *         /api/extensions/install {type:'channel'}、/api/extensions/channels/send
+ *         /api/extensions/install {type:'channel'}、/api/extensions/channels/send（仅手动调试）
  */
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, Download, Loader2, Send, TriangleAlert } from 'lucide-react'
+import { CheckCircle2, Download, Loader2, PlugZap, Send } from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
   EXTENSIONS_CHANNELS_SEND,
@@ -107,12 +108,14 @@ export default function HubChannelsPanel() {
         </div>
       )}
 
-      {/* 未接线提示：贴在组标题旁，不折叠、不灰掉 */}
-      <div className="flex items-start gap-2 rounded-md border border-amber-800/60 bg-amber-500/10 px-2.5 py-1.5">
-        <TriangleAlert size={12} className="mt-0.5 shrink-0 text-amber-400" />
-        <div className="text-[11px] text-amber-200/90">
-          当前无发送调用方（未接线）：仓库内没有产品流程会调用 <code className="font-mono">POST /api/extensions/channels/send</code>
-          —— 除本页这个手动调试框与测试外，装好的通道不会自己发出任何消息。
+      {/* 接线状态：贴在组标题旁，不折叠、不灰掉 —— 用户必须一眼看到"现在会发什么" */}
+      <div className="flex items-start gap-2 rounded-md border border-cyan-800/60 bg-cyan-500/10 px-2.5 py-1.5">
+        <PlugZap size={12} className="mt-0.5 shrink-0 text-cyan-400" />
+        <div className="text-[11px] text-cyan-100/90">
+          已接线：<span className="text-cyan-300">监控告警（触发 / 恢复）</span> 会经**已启用**的通道自动发送摘要
+          （只带告警名/级别/指标与阈值/白名单标签；同一告警 60s 冷却；失败重试 1 次）。
+          <code className="font-mono">POST /api/extensions/channels/send</code> 仍只供本页「手动发送（调试）」，
+          产品事件走进程内桥接、不经过该 HTTP 端点。
         </div>
       </div>
 
