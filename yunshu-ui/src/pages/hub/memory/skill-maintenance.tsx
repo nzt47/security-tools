@@ -43,6 +43,7 @@ import {
   SKILLS_MGMT_QUEUE_PUBLISH_BATCH,
   SKILLS_MGMT_THREE_LAYER_SUMMARY,
   SKILLS_MGMT_UPLOAD,
+  skillById,
   skillPublish,
   skillReview,
 } from '@/api/endpoints'
@@ -320,6 +321,20 @@ export default function SkillMaintenance() {
       await loadQueue()
       await loadReport()
     } catch (e) { fail('放行失败', e) } finally { setBusy('') }
+  }
+
+  /** 驳回：删除这条外来草稿（不可逆 ⇒ 先确认；与评估 Tab 原先的「驳回」同一语义） */
+  const rejectQueued = async (id: string) => {
+    if (!window.confirm('确定驳回并删除草稿「' + id + '」？删除后不可恢复。')) return
+    setBusy('queue-reject:' + id); setErr(''); setMsg('')
+    try {
+      const res = await fetch(skillById(id), { method: 'DELETE', headers: authHeader() })
+      const body = await res.json().catch(() => null)
+      if (!res.ok) { setErr('驳回失败：' + (body?.error ?? ('HTTP ' + res.status))); return }
+      setMsg('已驳回 ' + id)
+      setQueueSel((prev) => prev.filter((x) => x !== id))
+      await loadQueue(); await loadReport()
+    } catch (ev) { fail('驳回失败', ev) } finally { setBusy('') }
   }
 
   /** 勾选/取消一条待放行条目（批量放行只认显式勾选） */
@@ -1002,6 +1017,16 @@ export default function SkillMaintenance() {
                         : '走强制审核链发布'}
                     >
                       {busy === 'queue-publish:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 放行
+                    </button>
+                    <button
+                      type="button"
+                      className={BTN_RED}
+                      onClick={() => void rejectQueued(id)}
+                      disabled={loading}
+                      aria-label={'驳回外来技能 ' + id}
+                      title="驳回 = 删除这条草稿（不可恢复；与评估 Tab 原先的「驳回」同语义）"
+                    >
+                      {busy === 'queue-reject:' + id ? <Loader2 size={11} className="animate-spin" /> : null} 驳回
                     </button>
                   </span>
                 </div>

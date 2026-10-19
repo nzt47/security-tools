@@ -343,6 +343,31 @@ describe('SkillMaintenance', () => {
     expect(await screen.findByText(/ext-blocked：未通过审核/)).toBeTruthy()
   })
 
+  // ── 队列去重（#1224）：驳回从评估 Tab 搬到维护 Tab，语义不变 ──
+
+  it('驳回：取消确认不发请求；确认后 DELETE /api/skills-mgmt/<id>', async () => {
+    baseGets()
+    const f = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
+    vi.stubGlobal('fetch', f)
+    const confirmSpy = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirmSpy)
+    render(<SkillMaintenance />)
+    await screen.findByText('外来技能A')
+
+    const reject = () => screen.getByRole('button', { name: '驳回外来技能 ext-ok' }) as HTMLButtonElement
+    await waitFor(() => expect(reject().disabled).toBe(false))
+
+    fireEvent.click(reject())
+    expect(f, '取消确认就不该动数据').not.toHaveBeenCalled()
+
+    confirmSpy.mockReturnValue(true)
+    fireEvent.click(reject())
+    await waitFor(() => expect(f).toHaveBeenCalled())
+    expect(f.mock.calls[0][0]).toBe('/api/skills-mgmt/ext-ok')
+    expect((f.mock.calls[0][1] as { method?: string }).method).toBe('DELETE')
+    expect(await screen.findByText(/已驳回 ext-ok/)).toBeTruthy()
+  })
+
   // ── 按来源安装（#1223）：从扩展市场收敛过来的技能安装入口 ──
 
   it('按来源安装：预检命中阻断时安装按钮置灰（不靠后端兜底）', async () => {
