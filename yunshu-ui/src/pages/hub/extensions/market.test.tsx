@@ -198,4 +198,44 @@ describe('ExtensionsMarket', () => {
     // 市场里仍会提到"MCP 系统"（指路文案），但不再有该分组的标题与安装按钮
     expect(screen.getByText(/工具调用 · MCP 系统/)).toBeTruthy()
   })
+
+  it('技能安装入口已收敛到技能中心：市场只发现/浏览，非技能类型仍在市场装', async () => {
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/extensions/list') return { ok: true, extensions: [] }
+      if (url === '/api/extensions/installed') {
+        return { ok: true, skills: [], plugins: [], channels: [], mcp_services: [] }
+      }
+      if (url.startsWith('/api/extensions/market/recommend')) {
+        return {
+          ok: true,
+          recommendations: [
+            { ext_type: 'skill', id: 'community-skill', name: '社区技能' },
+            { ext_type: 'mcp', id: 'mcp-remote', name: '远程 MCP' },
+          ],
+        }
+      }
+      if (url.startsWith('/api/extensions/market/search')) {
+        return {
+          ok: true, builtin: [], github: [],
+          community: [
+            { id: 'community-skill', name: '社区技能', ext_type: 'skill' },
+            { id: 'mcp-remote', name: '远程 MCP', ext_type: 'mcp' },
+          ],
+        }
+      }
+      return { ok: true }
+    })
+    api.hubPost.mockResolvedValue({ ok: true })
+    render(<ExtensionsMarket />)
+    await screen.findByText('社区技能')
+
+    fireEvent.click(screen.getByRole('button', { name: '搜索扩展市场' }))
+    // 技能：搜索结果与推荐都只给指路，不再给安装按钮
+    await waitFor(() => expect(screen.queryByRole('button', { name: '安装 community-skill' })).toBeNull())
+    expect(screen.queryByRole('button', { name: '安装推荐 community-skill' })).toBeNull()
+    expect(screen.getAllByText('到技能中心安装').length).toBeGreaterThan(0)
+    // 非技能类型（MCP）仍在市场里装
+    expect(screen.getByRole('button', { name: '安装 mcp-remote' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '安装推荐 mcp-remote' })).toBeTruthy()
+  })
 })

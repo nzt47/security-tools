@@ -4,7 +4,8 @@
  * 与「插件清单」的区别（同一导航项下的两个 Tab，不建第二个入口）：
  *   · 插件清单 = /api/plugins 的 manifest 与 schema 配置（我们自己的插件体系）；
  *   · 扩展市场 = /api/extensions 的**可安装扩展**（技能 / MCP / 通道 / 插件包）：
- *     **发现**（内置/社区/GitHub 索引）+ **从外部安装**（社区条目）。
+ *     **发现**（内置/社区/GitHub 索引）+ **已安装管理（含卸载）**；安装入口按类型收敛：
+ *     技能 → 技能中心「按来源安装」，插件 → 插件清单，MCP/通道 → 各自页面。
  *     内置项本身不在这里装/启停 —— 它们各自的归属页见页面顶部的指路文案。
  *
  * 这 11 条端点此前在前端一条都没接线（2026-10-18 实测），故整页新建。
@@ -336,7 +337,7 @@ export default function ExtensionsMarket() {
         <span className="text-cyan-400"> 内置行为（persona 技能）→ 技能中心 · LLM 技能</span>、
         <span className="text-cyan-400"> 内置 MCP → 工具调用 · MCP 系统</span>、
         <span className="text-cyan-400"> 内置通道 → 系统管理 · 消息中心</span>。
-        市场只负责发现与从外部安装（社区/GitHub 条目）。
+        市场只负责发现与已安装管理；技能从外部安装 → <span className="text-cyan-400">技能中心 · 维护 · 按来源安装</span>。
       </div>
 
       {/* ── 市场搜索 ── */}
@@ -379,14 +380,16 @@ export default function ExtensionsMarket() {
                     <span className="truncate text-[10px] text-slate-500">{m.description ?? ''}</span>
                     <span className="ml-auto flex items-center gap-1">
                       <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400">{TYPE_LABEL[type] ?? type}</span>
-                      {/* 插件包安装入口已收敛到「插件与扩展 · 插件清单」：市场只发现/浏览 */}
+                      {/* 安装入口按类型收敛：插件→插件清单、技能→技能中心；市场只发现/浏览 */}
                       {type === 'plugin'
                         ? <span className="text-[10px] text-slate-500">到插件清单安装</span>
-                        : (
-                          <button type="button" className={BTN} onClick={() => void install(type, id)} disabled={loading} aria-label={'安装 ' + id}>
-                            {busy === busyKey ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
-                          </button>
-                        )}
+                        : type === 'skill'
+                          ? <span className="text-[10px] text-slate-500">到技能中心安装</span>
+                          : (
+                            <button type="button" className={BTN} onClick={() => void install(type, id)} disabled={loading} aria-label={'安装 ' + id}>
+                              {busy === busyKey ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} 安装
+                            </button>
+                          )}
                     </span>
                   </div>
                 )
@@ -401,11 +404,20 @@ export default function ExtensionsMarket() {
             {recs.map((r) => {
               const type = r.ext_type ?? 'skill'
               const id = r.id ?? ''
-              // 插件包不在这里装：安装入口收敛到「插件与扩展 · 插件清单」
-              if (type === 'plugin') {
+              // 安装入口按类型收敛：插件→插件清单、技能→技能中心
+              if (type === 'plugin' || type === 'skill') {
                 return (
-                  <span key={'rec-' + type + id} className="rounded-md border border-slate-800 px-2 py-1 text-[11px] text-slate-500" title="插件包安装入口在「插件与扩展 · 插件清单」">
-                    {r.name ?? id}<span className="ml-1 text-[9px]">（到插件清单安装）</span>
+                  <span
+                    key={'rec-' + type + id}
+                    className="rounded-md border border-slate-800 px-2 py-1 text-[11px] text-slate-500"
+                    title={type === 'plugin'
+                      ? '插件包安装入口在「插件与扩展 · 插件清单」'
+                      : '技能安装入口在「技能中心 · 维护 · 按来源安装」'}
+                  >
+                    {r.name ?? id}
+                    <span className="ml-1 text-[9px]">
+                      {type === 'plugin' ? '（到插件清单安装）' : '（到技能中心安装）'}
+                    </span>
                   </span>
                 )
               }
