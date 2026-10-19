@@ -402,4 +402,9 @@ class TestLocalFastReply:
         assert fast_reply("你好，帮我写个脚本") is None
         assert fast_reply("今天天气怎么样") is None
         assert fast_reply("x" * 40) is None
+        # 时间/日期/告别：与完整模式的 WorkflowEngine 规则同口径（0 次模型调用）
+        assert fast_reply("现在几点").startswith("现在是 ")
+        assert fast_reply("今天几号").startswith("今天是 20")
+        assert "再见" in fast_reply("拜拜")
+        assert fast_reply("现在几点开会") is None
 

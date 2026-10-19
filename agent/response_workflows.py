@@ -370,6 +370,15 @@ _FAST_ACK_RE = re.compile(
 #: 道谢/确认的固定回复（不调用模型；比问候更"轻"，不值得走生成）
 _FAST_ACK_REPLY = "不客气，有需要随时说。"
 
+#: 时间 / 日期 / 告别：与 WorkflowEngine 内置规则同一口径，但**整句**匹配才命中
+_FAST_TIME_RE = re.compile(
+    r"(?i)^\s*(现在几点|几点了|现在时间|当前时间|什么时间)[\s?？!！。~～]*$")
+_FAST_DATE_RE = re.compile(
+    r"(?i)^\s*(今天几号|今天日期|今天星期几|今天周几|什么日子)[\s?？!！。~～]*$")
+_FAST_FAREWELL_RE = re.compile(
+    r"(?i)^\s*(再见|拜拜|bye|goodbye|下次见|明天见)[\s!！。,.，?？~～]*$")
+_FAST_FAREWELL_REPLY = "再见！有需要随时找我 😊"
+
 
 def fast_reply(user_input: str) -> Optional[str]:
     """零 token 直答：整句问候/道谢直接出模板文本，命中返回文本，否则 None。
@@ -391,6 +400,14 @@ def fast_reply(user_input: str) -> Optional[str]:
             return ResponseTemplates.for_intent(INTENT_GREETING, Confidence.HIGH)
         if _FAST_ACK_RE.match(text):
             return _FAST_ACK_REPLY
+        if _FAST_TIME_RE.match(text):
+            return "现在是 " + datetime.now().strftime("%H:%M")
+        if _FAST_DATE_RE.match(text):
+            _now = datetime.now()
+            return ("今天是 " + _now.strftime("%Y-%m-%d")
+                    + " 星期" + "一二三四五六日"[_now.weekday()])
+        if _FAST_FAREWELL_RE.match(text):
+            return _FAST_FAREWELL_REPLY
     except Exception:  # noqa: BLE001 模板层异常一律回落模型，不阻断对话
         logger.debug("fast_reply 失败（回落模型）", exc_info=True)
     return None
