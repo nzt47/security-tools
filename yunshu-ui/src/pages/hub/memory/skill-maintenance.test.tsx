@@ -259,4 +259,87 @@ describe('SkillMaintenance', () => {
     fireEvent.click(screen.getByRole('button', { name: '放行外来技能 ext-ok' }))
     await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/ext-ok/publish'))
   })
+
+  // ── 批量放行（#1219）：逐条勾选 + 阻断项受控 force 豁免 ──
+
+  it('批量放行：未勾选时按钮不可点，且不提供全选/一键全放', async () => {
+    baseGets()
+    render(<SkillMaintenance />)
+    await screen.findByText('外来技能A')
+
+    const batch = screen.getByRole('button', { name: '批量放行所选技能' }) as HTMLButtonElement
+    expect(batch.disabled).toBe(true)
+    // 显式钉住"没有一键全放"：整块面板不应出现"全选"入口
+    expect(screen.queryByRole('button', { name: /全选/ })).toBeNull()
+    expect(screen.queryByLabelText(/全选/)).toBeNull()
+
+    fireEvent.click(screen.getByLabelText('选择外来技能 ext-ok'))
+    await waitFor(() => expect((screen.getByRole('button', { name: '批量放行所选技能' }) as HTMLButtonElement).disabled).toBe(false))
+  })
+
+  it('批量放行：未选阻断项 → 面板不带 force，提交只传 ids', async () => {
+    baseGets()
+    api.hubPost.mockResolvedValue({ ok: true, published: ['ext-ok'], failed: [] })
+    render(<SkillMaintenance />)
+    await screen.findByText('外来技能A')
+
+    fireEvent.click(screen.getByLabelText('选择外来技能 ext-ok'))
+    fireEvent.click(screen.getByRole('button', { name: '批量放行所选技能' }))
+
+    // 没有阻断项 ⇒ 不该出现豁免勾选/原因框
+    expect(screen.queryByLabelText('确认对阻断项使用 force 豁免')).toBeNull()
+    expect(screen.queryByLabelText('force 豁免原因')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: '确认批量放行' }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith(
+      '/api/skills-mgmt/queue/publish-batch', { ids: ['ext-ok'] },
+    ))
+  })
+
+  it('批量放行：阻断项必须勾豁免 + 填原因，才允许带 force 提交', async () => {
+    baseGets()
+    api.hubPost.mockResolvedValue({ ok: true, published: ['ext-blocked'], failed: [] })
+    render(<SkillMaintenance />)
+    await screen.findByText('外来技能B')
+
+    fireEvent.click(screen.getByLabelText('选择外来技能 ext-blocked'))
+    fireEvent.click(screen.getByRole('button', { name: '批量放行所选技能' }))
+
+    const confirm = () => screen.getByRole('button', { name: '确认批量放行' }) as HTMLButtonElement
+    expect(confirm().disabled, '没勾豁免就允许放行阻断项，等于没有闸门').toBe(true)
+    expect(api.hubPost).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByLabelText('确认对阻断项使用 force 豁免'))
+    expect(confirm().disabled, '勾了豁免但没填原因仍不可提交').toBe(true)
+
+    fireEvent.change(screen.getByLabelText('force 豁免原因'), { target: { value: '安全评估已人工复核，同意豁免' } })
+    await waitFor(() => expect(confirm().disabled).toBe(false))
+    fireEvent.click(confirm())
+
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith(
+      '/api/skills-mgmt/queue/publish-batch',
+      { ids: ['ext-blocked'], force: true, reason: '安全评估已人工复核，同意豁免' },
+    ))
+  })
+
+  it('批量放行：部分失败逐条列出，不当成全绿', async () => {
+    baseGets()
+    api.hubPost.mockResolvedValue({
+      ok: false,
+      published: ['ext-ok'],
+      failed: [{ id: 'ext-blocked', error: '未通过审核，禁止发布', code: 'SKILL_REVIEW_REJECTED' }],
+    })
+    render(<SkillMaintenance />)
+    await screen.findByText('外来技能A')
+
+    fireEvent.click(screen.getByLabelText('选择外来技能 ext-ok'))
+    fireEvent.click(screen.getByLabelText('选择外来技能 ext-blocked'))
+    fireEvent.click(screen.getByRole('button', { name: '批量放行所选技能' }))
+    fireEvent.click(screen.getByLabelText('确认对阻断项使用 force 豁免'))
+    fireEvent.change(screen.getByLabelText('force 豁免原因'), { target: { value: '人工复核后豁免' } })
+    await waitFor(() => expect((screen.getByRole('button', { name: '确认批量放行' }) as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: '确认批量放行' }))
+
+    expect(await screen.findByText(/ext-blocked：未通过审核/)).toBeTruthy()
+  })
 })

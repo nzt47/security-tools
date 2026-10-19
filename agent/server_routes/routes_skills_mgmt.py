@@ -766,6 +766,39 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 400
 
+    @app.route("/api/skills-mgmt/queue/publish-batch", methods=["POST"])
+    @audit_action("skill.publish.batch", payload_keys=("force", "reason"))
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_queue_publish_batch():
+        """批量放行待放行队列（显式 ids；force 豁免必须带原因）
+
+        Body: {ids: [str], force?: bool, reason?: str}
+
+        【为什么没有"全部"入参】队列里有评审阻断项（安全审查未过）；
+        本接口只接受**显式 ids**，服务层对空 ids / 超上限 / force 无原因一律 400。
+        【为什么部分失败仍回 200】逐条原因要带回 UI 展示；4xx 会被前端 hubPost
+        直接丢掉 body，故 4xx 只用于请求本身不合法。
+        【为什么错误不 str(e) 回写】新路由遵守本仓 CodeQL 口径：内部异常只进日志，
+        对外给固定文案 + 错误码（业务异常走 `_err`，其 message 是给人看的）。
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            result = _svc().publish_batch(
+                data.get("ids"),
+                force=bool(data.get("force", False)),
+                reason=str(data.get("reason") or ""),
+                actor="api",
+            )
+            return jsonify(result)
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception:  # noqa: BLE001
+            logger.exception("批量放行失败")
+            return jsonify({"ok": False, "error": "批量放行失败，请查看服务日志",
+                            "code": "SKILL_INTERNAL_ERROR"}), 500
+
     @app.route("/api/skills-mgmt/review/thresholds", methods=["GET", "PUT"])
     @trace_route("SkillsMgmt")
     @require_token

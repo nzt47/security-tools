@@ -45,6 +45,11 @@ from .executor import SkillExecutor, ExecutionResult
 from .context_injector import ContextInjector
 from .output_guard import SkillOutputGuard
 
+#: 批量放行单次上限（超出就要求分批：也顺带压住超长请求体）
+PUBLISH_BATCH_MAX = 50
+#: force 豁免原因的最小长度（"w" 这类占位在审计里没有复核价值）
+WAIVER_MIN_REASON_LEN = 4
+
 
 class SkillsMgmtService:
     """技能管理总服务 (单例建议)"""
@@ -1628,6 +1633,69 @@ class SkillsMgmtService:
         logger.info("[Service] 技能已发布: %s (force=%s, actor=%s)",
                     skill_id, force, actor)
         return skill
+
+    # ─── 批量放行（待放行队列；与单条 publish 同一条审核链）───
+
+    def publish_batch(self, skill_ids: Any, *, force: bool = False,
+                      reason: str = "", actor: str = "api") -> Dict[str, Any]:
+        """批量放行待放行队列里的条目（逐条走 ``publish`` 的同一条审核链）。
+
+        【为什么必须显式给 ids】本方法刻意**没有**"全部"语义：待放行队列里含
+        评审阻断项（安全审查未过），"一键全放"等于把安全闸门拆掉。调用方（UI）
+        只提供逐条勾选，不提供全选。
+
+        【为什么 force 必须带原因】``force=True`` 会绕过 ``enforce_before_publish``，
+        只留下 ``review_waiver_publish`` 审计。若这里允许空原因并回落到
+        ``"explicit_waiver"``，审计就分不清"人忘了填"和"人明确豁免"。
+
+        部分失败不中断：返回 ``{"ok", "total", "force", "published", "failed"}``。
+        单条的失败原因只取业务异常（``SkillMgmtError``）的 message —— 未经净化的
+        内部异常文本不回写（新路由同样遵守这条）。
+        """
+        from .exceptions import SkillValidationError
+
+        if isinstance(skill_ids, str) or not isinstance(skill_ids, (list, tuple)):
+            raise SkillValidationError("ids 必须是字符串数组（批量放行不接受「全部」语义）")
+        ids: List[str] = []
+        for raw in skill_ids:
+            if not isinstance(raw, str):
+                raise SkillValidationError("ids 必须是字符串数组")
+            sid = raw.strip()
+            if sid and sid not in ids:   # 去重保序：同一条被勾两次只放行一次
+                ids.append(sid)
+        if not ids:
+            raise SkillValidationError("ids 不能为空：请显式勾选要放行的条目")
+        if len(ids) > PUBLISH_BATCH_MAX:
+            raise SkillValidationError(
+                "一次最多放行 %d 条（当前 %d 条），请分批处理"
+                % (PUBLISH_BATCH_MAX, len(ids)))
+        reason_text = reason.strip() if isinstance(reason, str) else ""
+        if force and len(reason_text) < WAIVER_MIN_REASON_LEN:
+            raise SkillValidationError(
+                "force 豁免必须填写原因（至少 %d 字），否则无法写入审计"
+                % WAIVER_MIN_REASON_LEN)
+
+        published: List[str] = []
+        failed: List[Dict[str, str]] = []
+        for sid in ids:
+            try:
+                self.publish(sid, force=force, actor=actor, reason=reason_text)
+                published.append(sid)
+            except SkillMgmtError as e:
+                failed.append({"id": sid, "error": e.message, "code": e.code})
+            except Exception:  # noqa: BLE001 单条内部错误不拖垮整批
+                logger.exception("[Service] 批量放行单条失败 skill=%s", sid)
+                failed.append({"id": sid, "error": "发布失败（内部错误）",
+                               "code": ErrorCode.INTERNAL_ERROR})
+        logger.info("[Service] 批量放行 force=%s 成功=%d 失败=%d",
+                    force, len(published), len(failed))
+        return {
+            "ok": not failed,
+            "total": len(ids),
+            "force": bool(force),
+            "published": published,
+            "failed": failed,
+        }
 
     # ─── 搜索 ───
 
