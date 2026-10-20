@@ -8,7 +8,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Play } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubPost } from '../components/ui'
+import { Card, Loading, ErrorBox, DataTable, Badge, hubPost } from '../components/ui'
 
 import {
   WORKFLOW_LEARNING_WORKFLOWS,
@@ -134,15 +134,6 @@ export function MemoryWorkflowTable() {
           />
         </Card>
       )}
-    </div>
-  )
-}
-
-export default function MemoryWorkflow() {
-  return (
-    <div className="p-6">
-      <PageHeader title="工作流技能" description="从历史交互中学习、本地确定性执行的工作流" />
-      <MemoryWorkflowTable />
     </div>
   )
 }

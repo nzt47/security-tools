@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-20T13:22:19",
+  "generated_at": "2026-10-20T21:18:54",
   "totals": {
     "routes": 455,
     "live": 455,
@@ -37,13 +37,12 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 397,
+  "frontend_endpoints": 396,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
     "/api/assets",
-    "/api/cp",
-    "/api/demo/validate-email"
+    "/api/cp"
   ],
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
@@ -65,7 +64,7 @@
         "scripts/configure_branch_protection.py"
       ],
       "where": [
-        "app_server.py:2117"
+        "app_server.py:1991"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -1207,7 +1206,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:2581"
+        "plugins/chat.py:2675"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -3541,7 +3540,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1795"
+        "app_server.py:1669"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -5738,7 +5737,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1479"
+        "app_server.py:1353"
       ],
       "description": "插件元信息 manifest（插件化机制 T1.1）",
       "description_source": "handler",
@@ -5765,7 +5764,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1485"
+        "app_server.py:1359"
       ],
       "description": "刷新插件清单（动态装载 T4.1）：扫描 plugins/ 目录重建注册表，无需重启进程。",
       "description_source": "handler",
@@ -6075,7 +6074,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2540"
+        "plugins/chat.py:2634"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -9712,7 +9711,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2259"
+        "app_server.py:2133"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -9737,7 +9736,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2235"
+        "app_server.py:2109"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -9762,7 +9761,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2248"
+        "app_server.py:2122"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11240,7 +11239,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2153"
+        "app_server.py:2027"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -11601,7 +11600,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2214"
+        "app_server.py:2088"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -11626,7 +11625,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2206"
+        "app_server.py:2080"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -11652,7 +11651,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2190"
+        "app_server.py:2064"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -11663,5 +11662,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "b8cf75e2d1aa04ad"
+  "content_hash": "ad8a61fdac88c25c"
 }

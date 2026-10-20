@@ -1,21 +1,4 @@
 {
-  "note": "前端页面「可达性」告警的人工处置台账（2026-10-18 新增）。与 reports/ui_reachability.json 双向一致：新告警必须在这里登记（status: keep=故意如此 / todo=待清理），告警修好或文件删掉后必须把这里也删掉 —— scripts/audit/ui_reachability.py --check 两个方向都查。",
-  "entries": {
-    "yunshu-ui/src/pages/Demo/index.tsx": {
-      "status": "todo",
-      "note": "组件演示页；旧的 /demo 路由随第二套外壳一起摘除后再没有入口。保留是因为它仍是控件用法参考 —— 删除前先确认没人在读，属独立清理动作。"
-    },
-    "yunshu-ui/src/pages/hub/session/index.tsx": {
-      "status": "todo",
-      "note": "上一轮（#1202）把「会话交接文档」从这个页面搬走后留下的空壳：导航里的 session 叶子指向的是 WorkbenchChatPage，本文件 122 行的轻量聊天实现没有任何入口。待删。"
-    },
-    "yunshu-ui/src/pages/hub/memory/skills.tsx": {
-      "status": "todo",
-      "note": "skill-center.tsx 只 import 它的具名导出，default 无人消费（死代码）。删 default 前先确认没有测试/文档按默认导出引用。"
-    },
-    "yunshu-ui/src/pages/hub/memory/workflow.tsx": {
-      "status": "todo",
-      "note": "同上：skill-center.tsx 用的是 MemoryWorkflowTable 具名导出；default 页面就是上一轮「可转换工作流点不到」的那个壳。"
-    }
-  }
+  "note": "前端页面「可达性」告警的人工处置台账（2026-10-18 新增）。与 reports/ui_reachability.json 双向一致：新告警必须在这里登记（status: keep=故意如此 / todo=待清理），告警修好或文件删掉后必须把这里也删掉 —— scripts/audit/ui_reachability.py --check 两个方向都查。【2026-10-20 清零】4 条 todo 全部处理：Demo 演示页 / hub/session 空壳页删除；skills.tsx、workflow.tsx 的无人消费 default 导出删除。",
+  "entries": {}
 }
