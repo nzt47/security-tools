@@ -1022,7 +1022,9 @@ def _snapshot_golden_methods():
     global _GOLDEN_METHODS
     try:
         from agent.orchestrator.message_handler import MessageHandler
-        for _m in ("parse", "is_simple_query", "detect_dissatisfaction",
+        # 【2026-10-20】"is_simple_query" 已删除（生产零调用方；问候/道谢由
+        # agent.response_workflows.fast_reply 的零 token 直答承接，见 #1227）。
+        for _m in ("parse", "detect_dissatisfaction",
                    "is_follow_up", "extract_keywords"):
             _GOLDEN_METHODS[("MessageHandler", _m)] = getattr(MessageHandler, _m)
     except Exception:

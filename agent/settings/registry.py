@@ -1529,6 +1529,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     _a("LLM_CACHE_CONTROL_ENABLED", CAT_ORCHESTRATION, True,
        "LLM 响应缓存控制开关",
        owner="agent/tool_calling.py"),
+    _a("CHAT_RESPONSE_CACHE", CAT_ORCHESTRATION, False,
+       "工作台响应缓存（默认关）：同一问题在「轻量档 + 单轮无历史 + 无检索注入 + "
+       "该轮无工具调用」下第二次起直接回放上次答案、整轮不调模型；进程级 + TTL 1h。"
+       "检索/完整/多轮/带工具的轮次一律不读不写（结果依赖会话状态）"
+       "（plugins/chat.py::workbench_sse）",
+       owner="plugins/chat.py"),
 
     # ── TASK-08 子工作流 D：超时上界与重试预算 ──
     # 【为什么这几条归 B】把它们调到 0 就等于**关掉一道防护**

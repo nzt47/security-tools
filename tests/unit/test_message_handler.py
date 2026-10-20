@@ -12,12 +12,6 @@ class TestMessageHandler:
         assert result["cleaned"] == "hello"
         assert result["length"] == 9
 
-    def test_is_simple_query(self):
-        assert MessageHandler.is_simple_query("你好")
-        assert MessageHandler.is_simple_query("hi")
-        assert MessageHandler.is_simple_query("谢谢")
-        assert not MessageHandler.is_simple_query("今天天气怎么样")
-
     def test_detect_dissatisfaction(self):
         # 匹配: (回答|回复|答案)(错误|不对|错的|不准确)
         assert MessageHandler.detect_dissatisfaction("回答错误")

@@ -28,8 +28,14 @@ CREATIVE_KEYWORDS = ["写一首诗", "创作", "写故事", "写诗", "作曲", 
 
 
 class TaskType(str, enum.Enum):
-    """任务类型枚举（按复杂度分级）"""
-    SIMPLE = "simple"        # 简单问候/确认类
+    """任务类型枚举（按复杂度分级）
+
+    【2026-10-20 删除 SIMPLE 档】问候/确认类短句在生产链路里已由**零 token 直答**
+    （`agent.response_workflows.fast_reply`，#1227/#1228）在进入模型之前承接，
+    永远到不了本选择器 ⇒ SIMPLE 只在 analyze_task 与测试之间自循环，属死代码。
+    短文本现归 NORMAL；`ROUTING_TABLE` 里 "simple" 那一组仍供 `ModelRouter.route`
+    做「关键词 → 模型串」映射（route 不返回 TaskType），故保留。
+    """
     NORMAL = "normal"        # 常规翻译/总结类
     COMPLEX = "complex"      # 分析/设计/架构类
     CREATIVE = "creative"    # 创意写作类
@@ -43,7 +49,6 @@ class ModelSelector:
     """
 
     _TYPE_MODEL_MAP = {
-        TaskType.SIMPLE: "gpt-3.5-turbo",
         TaskType.NORMAL: "gpt-4o-mini",
         TaskType.COMPLEX: "gpt-4",
         TaskType.CREATIVE: "gpt-4",
@@ -57,13 +62,9 @@ class ModelSelector:
         if any(kw in text for kw in COMPLEX_KEYWORDS):
             return TaskType.COMPLEX
         for level, model, keywords in ROUTING_TABLE:
-            if level == "simple" and any(kw in text for kw in keywords):
-                return TaskType.SIMPLE
             if level == "normal" and any(kw in text for kw in keywords):
                 return TaskType.NORMAL
-        if len(input_text) < 30:
-            return TaskType.SIMPLE
-        elif len(input_text) < 200:
+        if len(input_text) < 200:
             return TaskType.NORMAL
         return TaskType.COMPLEX
 

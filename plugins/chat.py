@@ -2187,6 +2187,30 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                        "阈值可在「上下文」面板调整") % (_input_tokens_est, _send_limit),
             "status": "done"})
 
+    # ── 响应缓存（可选；默认关）───────────────────────────────────────
+    # 【为什么默认关】这是"同一问题重复问"的加速器，不是正确性机制：只有
+    #   「轻量档 + 单轮无历史 + 未注入检索 + 本轮没有工具调用」的纯文本答案才会被
+    #   写入；命中时整轮跳过模型调用。其余路径（检索 / 完整 / 多轮 / 带工具）一律
+    #   不读不写 —— 它们的结果依赖会话状态，缓存即错答。
+    #   缓存是进程级、TTL 1h，跨测试会互相污染，故必须显式 CHAT_RESPONSE_CACHE=1。
+    _cache_key = None
+    _cache_hit_text = None
+    try:
+        _cache_on = str(os.environ.get("CHAT_RESPONSE_CACHE", "0")).strip().lower() in (
+            "1", "true", "yes", "on")
+    except Exception:  # noqa: BLE001 环境变量异常按关闭处理
+        _cache_on = False
+    if _cache_on and mode == "plain" and len(loop_messages) == 1 and not _retrieval_text:
+        try:
+            import hashlib as _hl
+            _sp_digest = _hl.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest()[:8]
+            # 键含：模式 / 模型 / 系统提示指纹 / 工具集大小 / 问题原文。
+            # 工具集大小进键：同一问题在不同工具集下答案可能不同（模型会据此决定是否调工具）。
+            _cache_key = "workbench|%s|%s|%s|%d|%s" % (
+                mode, model, _sp_digest, len(tool_defs or []), question.strip())
+        except Exception:  # noqa: BLE001 键构造失败 ⇒ 不缓存（不影响对话）
+            _cache_key = None
+
     # 【2026-10-13】原为 4、后 8：大任务（如"修评估集"）往往要十几轮只读勘察才动手，
     #   8 轮仍是"做一半被硬停"，用户看到的就是"继续不下去"。参照 DSH：**做够为止**，
     #   只保留一个很高的安全上限 + 墙钟预算（见下），不再用个小数字卡住真任务。
@@ -2282,7 +2306,30 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                 stream_kwargs["on_reasoning"] = _on_reasoning
             _llm_t0 = time.time()
             _llm_first_piece_at = None
-            for text_piece in llm.chat_stream(**stream_kwargs):
+            # 命中缓存 ⇒ 整轮不调模型，把缓存文本按片外发（下游事件/落库流程不变）
+            _cache_used = False
+            if _cache_key and round_idx == 0:
+                try:
+                    from agent.llm_response_cache import llm_cache as _llm_cache
+                    _cached_text = _llm_cache.get(_cache_key)
+                except Exception as _ce:  # noqa: BLE001 缓存故障不得挡住对话
+                    _cached_text = None
+                    logger.debug("[workbench][SSE] 响应缓存读取失败: %s", _ce)
+                if _cached_text:
+                    _cache_hit_text = _cached_text
+                    _cache_used = True
+                    yield _sse({
+                        "type": "thinking", "id": "cache",
+                        "title": "命中本地响应缓存",
+                        "detail": ("同一问题（轻量档 / 单轮 / 无检索 / 无工具）此前已答过，"
+                                   "本轮未调用模型"),
+                        "status": "done"})
+            if _cache_used:
+                _pieces = (_cache_hit_text[i:i + 80]
+                           for i in range(0, len(_cache_hit_text), 80))
+            else:
+                _pieces = llm.chat_stream(**stream_kwargs)
+            for text_piece in _pieces:
                 if text_piece and _llm_first_piece_at is None:
                     _llm_first_piece_at = time.time()
                 # 先把新增的推理增量作为 thinking 事件推给前端（思考过程可见）
@@ -2330,6 +2377,15 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             # 无工具调用 → 生成完成，退出循环
             if not collected_tools:
                 _last_round_had_tools = False
+                # 写缓存：只有「首轮就自然结束」的纯文本答案值得存（有工具调用的轮次
+                # 结果依赖工具当时返回什么，缓存它会给出过期事实）。
+                if (_cache_key and not _cache_used and round_idx == 0
+                        and "".join(_round_text_parts).strip()):
+                    try:
+                        from agent.llm_response_cache import llm_cache as _llm_cache
+                        _llm_cache.put(_cache_key, "".join(_round_text_parts))
+                    except Exception as _ce:  # noqa: BLE001 缓存写入失败不影响回答
+                        logger.debug("[workbench][SSE] 响应缓存写入失败: %s", _ce)
                 break
             _last_round_had_tools = True
             _saw_tool_calls = True

@@ -12,13 +12,16 @@ from agent.model_router.adapters import ModelAdapterFactory
 class TestModelSelector(unittest.TestCase):
     """测试模型选择器"""
     
-    def test_analyze_task_simple(self):
-        """测试分析简单任务"""
+    def test_analyze_task_short_text_ci_normal(self):
+        """短问候/确认不再有 SIMPLE 档（零 token 直答在前面承接），归 NORMAL
+
+        2026-10-20：SIMPLE 档删除，理由见 agent/model_router/router.py::TaskType。
+        """
         selector = ModelSelector()
-        
-        self.assertEqual(selector.analyze_task("你好"), TaskType.SIMPLE)
-        self.assertEqual(selector.analyze_task("谢谢"), TaskType.SIMPLE)
-        self.assertEqual(selector.analyze_task("hi"), TaskType.SIMPLE)
+
+        self.assertEqual(selector.analyze_task("你好"), TaskType.NORMAL)
+        self.assertEqual(selector.analyze_task("谢谢"), TaskType.NORMAL)
+        self.assertEqual(selector.analyze_task("hi"), TaskType.NORMAL)
     
     def test_analyze_task_complex(self):
         """测试分析复杂任务"""
@@ -43,7 +46,7 @@ class TestModelSelector(unittest.TestCase):
         """测试选择模型"""
         selector = ModelSelector()
 
-        model = selector.select_model(TaskType.SIMPLE)
+        model = selector.select_model(TaskType.NORMAL)
         self.assertIsNotNone(model)
         self.assertIn("name", model)
 
