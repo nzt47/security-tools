@@ -15,6 +15,12 @@
  *   import/claude       (GET)   扫描 ~/.claude/skills（只读预览）
  *   import/claude       (POST)  Claude 技能包 → manifest.json + skill.md → 落库
  *   abstract-from-memory(POST)  从记忆里抽象新技能草稿
+ *   install/precheck    (GET)   外部来源预检（阻断项/兼容分/能力重叠）
+ *   install             (POST)  按来源安装（github: / url: / registry: / local:）
+ *
+ * 【2026-10-20「导入」区合并】上传 zip / 从 .claude 导入 / 按来源安装 原本是三张并列
+ * 卡片，但三者走的是**同一条落库链路**（安装 → 评审-评估 → 草稿 → 下面「待放行」）。
+ * 合并为一个「导入技能」区 + 方式切换（默认按来源安装）：入口只剩一个，方式只是参数。
  *
  * 【为什么删除类动作默认 dry_run，且真删要点两下】
  *   这四条里只有 report/summary 是只读。其余一旦真删就是**物理删除**
@@ -195,6 +201,14 @@ interface BatchResult {
   failed?: { id?: string; error?: string; code?: string }[]
 }
 
+/** 「导入」区的方式切换：三条入口同一条落库链路，方式只是参数 */
+const IMPORT_KINDS = [
+  { key: 'source', label: '按来源安装', hint: 'github:user/repo · url:https://… · registry:id · local:路径' },
+  { key: 'zip', label: '上传 zip', hint: '本地 .zip 技能包（安装到文件仓库）' },
+  { key: 'claude', label: '从 .claude 导入', hint: '读 ~/.claude/skills（源目录只读）' },
+] as const
+type ImportKind = (typeof IMPORT_KINDS)[number]['key']
+
 function Section({ title, desc, children, extra }: {
   title: string; desc?: string; children: React.ReactNode; extra?: React.ReactNode
 }) {
@@ -233,6 +247,8 @@ export default function SkillMaintenance() {
   const [autoMergeResult, setAutoMergeResult] = useState<AutoMergeResult | null>(null)
   const [mergeResult, setMergeResult] = useState<MergeResult | null>(null)
   const [abstractResult, setAbstractResult] = useState<AbstractResult | null>(null)
+  // 「导入技能」区当前方式：默认按来源安装（最常用）；三条入口共用同一个落库链路
+  const [importKind, setImportKind] = useState<ImportKind>('source')
   const [uploadInfo, setUploadInfo] = useState('')
   const [claudeScan, setClaudeScan] = useState<ClaudeScan | null>(null)
   const [claudeResult, setClaudeResult] = useState<ClaudeImportResult | null>(null)
@@ -696,8 +712,39 @@ export default function SkillMaintenance() {
         </div>
       </Section>
 
-      {/* ── 上传 zip ── */}
-      <Section title="上传技能包" desc="zip 包 → 安装到三层架构文件仓库（会走评审-评估链）">
+      {/* ── 导入技能：三条入口合成一个区 ──
+          上传 zip / 从 .claude/skills / 按来源安装 走的是同一条落库链路（都会走
+          评审-评估并落草稿 → 下面「待放行」队列）。三块分开放时，"把一个外部技能
+          弄进来"要在页面上找三处；合并为一个区 + 方式切换后，入口只有一个，方式只是参数。 */}
+      <Section
+        title="导入技能"
+        desc="三条入口同一条落库链路：zip 包 / ~/.claude/skills / 外部来源（github: · url: · registry: · local:）—— 装完进「待放行」队列"
+      >
+        <div className="mb-2 flex flex-wrap items-center gap-1.5" role="tablist" aria-label="技能的导入方式">
+          {IMPORT_KINDS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={importKind === t.key}
+              title={t.hint}
+              onClick={() => setImportKind(t.key)}
+              className={'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors ' + (
+                importKind === t.key
+                  ? 'bg-cyan-500/15 font-medium text-cyan-300'
+                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+          <span className="ml-auto hidden font-mono text-[10px] text-slate-600 md:inline">
+            {IMPORT_KINDS.find((t) => t.key === importKind)?.hint}
+          </span>
+        </div>
+
+        {importKind === 'zip' && (
+          <>
         <input
           ref={fileRef}
           type="file"
@@ -716,19 +763,15 @@ export default function SkillMaintenance() {
           </button>
           {uploadInfo && <span className="text-[11px] text-emerald-300">{uploadInfo}</span>}
         </div>
-      </Section>
+          </>
+        )}
 
-      {/* ── 从 .claude/skills 导入 ── */}
-      <Section
-        title="从 .claude/skills 导入"
-        desc="读 ~/.claude/skills/*/SKILL.md → 生成 manifest.json + skill.md → 落进技能仓库（源目录只读）"
-        extra={
+        {importKind === 'claude' && (
+          <>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <button type="button" className={BTN} onClick={() => void scanClaude()} disabled={loading} aria-label="扫描 .claude/skills">
             {busy === 'claude-scan' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 扫描
           </button>
-        }
-      >
-        <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="text-[10px] text-slate-500">目录：{claudeScan?.base_dir ?? '~/.claude/skills'}</span>
           <button
             type="button"
@@ -793,13 +836,11 @@ export default function SkillMaintenance() {
             )}
           </div>
         )}
-      </Section>
+          </>
+        )}
 
-      {/* ── 按来源安装（外来技能）：从「扩展市场」收敛过来的唯一安装入口 ── */}
-      <Section
-        title="按来源安装（外来技能）"
-        desc="github:user/repo · url:https://… · registry:id · local:路径 —— 先预检再安装；装完落草稿，放行仍在下面队列"
-      >
+        {importKind === 'source' && (
+          <>
         <div className="flex flex-wrap items-center gap-2">
           <input
             className={INPUT + ' w-96'}
@@ -866,6 +907,8 @@ export default function SkillMaintenance() {
           <div className="mt-1 text-[10px] text-emerald-300">
             已落库：{installResult.skill.id}（{installResult.skill.status ?? 'draft'}）
           </div>
+        )}
+          </>
         )}
       </Section>
 

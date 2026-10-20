@@ -165,6 +165,8 @@ describe('SkillMaintenance', () => {
     render(<SkillMaintenance />)
     await screen.findByText('orphan-1')
 
+    // 2026-10-20：三种导入方式合并为一个「导入技能」区，先切到「上传 zip」
+    fireEvent.click(screen.getByRole('tab', { name: '上传 zip' }))
     const file = new File(['zip-bytes'], 'demo.zip', { type: 'application/zip' })
     fireEvent.change(screen.getByLabelText('选择技能 zip 包'), { target: { files: [file] } })
 
@@ -196,6 +198,8 @@ describe('SkillMaintenance', () => {
     render(<SkillMaintenance />)
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
 
+    // 2026-10-20：先切到「从 .claude 导入」方式
+    fireEvent.click(screen.getByRole('tab', { name: '从 .claude 导入' }))
     // 没扫描前没有候选 ⇒ 不允许"全部导入"（空列表点一下毫无意义）
     const allBtn = screen.getByRole('button', { name: '导入全部 Claude 技能' }) as HTMLButtonElement
     expect(allBtn.disabled).toBe(true)
@@ -232,6 +236,7 @@ describe('SkillMaintenance', () => {
     render(<SkillMaintenance />)
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
 
+    fireEvent.click(screen.getByRole('tab', { name: '从 .claude 导入' }))
     fireEvent.click(screen.getByRole('button', { name: '扫描 .claude/skills' }))
     await screen.findByText('boom')
     fireEvent.click(screen.getByRole('button', { name: '导入全部 Claude 技能' }))
@@ -366,6 +371,26 @@ describe('SkillMaintenance', () => {
     expect(f.mock.calls[0][0]).toBe('/api/skills-mgmt/ext-ok')
     expect((f.mock.calls[0][1] as { method?: string }).method).toBe('DELETE')
     expect(await screen.findByText(/已驳回 ext-ok/)).toBeTruthy()
+  })
+
+  // ── 导入区（2026-10-20）：三条入口合成一个区 ──
+
+  it('导入区：默认按来源安装，可切到上传 zip / 从 .claude 导入（同一区三种方式）', async () => {
+    baseGets()
+    render(<SkillMaintenance />)
+    await screen.findByText('orphan-1')
+
+    // 默认 = 按来源安装（最常用），同区只有一个导入入口
+    expect(screen.getByRole('tab', { name: '按来源安装' }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByLabelText('外部技能来源')).toBeTruthy()
+    expect(screen.queryByLabelText('选择技能 zip 包')).toBeNull()
+
+    fireEvent.click(screen.getByRole('tab', { name: '上传 zip' }))
+    expect(screen.getByLabelText('选择技能 zip 包')).toBeTruthy()
+    expect(screen.queryByLabelText('外部技能来源')).toBeNull()
+
+    fireEvent.click(screen.getByRole('tab', { name: '从 .claude 导入' }))
+    expect(screen.getByRole('button', { name: '扫描 .claude/skills' })).toBeTruthy()
   })
 
   // ── 按来源安装（#1223）：从扩展市场收敛过来的技能安装入口 ──
