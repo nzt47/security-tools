@@ -461,3 +461,61 @@ class TestLocalFastReply:
         assert "再见" in fast_reply("拜拜")
         assert fast_reply("现在几点开会") is None
 
+
+
+class TestResponseCache:
+    """响应缓存（默认关，CHAT_RESPONSE_CACHE=1 才启用）。
+
+    口径：只服务「轻量档 + 单轮无历史 + 未注入检索 + 本轮无工具调用」的重复提问；
+    任一条件不满足都**不读不写** —— 缓存依赖会话状态的结果就是错答。
+    """
+
+    @staticmethod
+    def _clear():
+        from agent.llm_response_cache import llm_cache
+        llm_cache.clear()
+
+    def test_默认关闭_相同问题两次都调用模型(self, env):
+        self._clear()
+        client, _fake = env(_Yunshu())
+        client.post("/api/chat/stream",
+                    json={"message": "帮我核对一下台账", "session_id": "s1"})
+        client.post("/api/chat/stream",
+                    json={"message": "帮我核对一下台账", "session_id": "s2"})
+        assert len(FakeLLM.instances) == 2, "默认不启用缓存：两次都应调用模型"
+
+    def test_启用后第二次命中缓存_不再调用模型(self, env, monkeypatch):
+        self._clear()
+        monkeypatch.setenv("CHAT_RESPONSE_CACHE", "1")
+        client, _fake = env(_Yunshu())
+        first = _events(_body(client.post("/api/chat/stream", json={
+            "message": "帮我核对一下台账", "session_id": "s1"})))
+        second = _events(_body(client.post("/api/chat/stream", json={
+            "message": "帮我核对一下台账", "session_id": "s2"})))
+
+        # 客户端对象在缓存判定之前就已创建（构造不花钱）；这里钉的是**没有发生模型调用**
+        assert len([i for i in FakeLLM.instances if i.seen]) == 1, "第二次应直接走缓存，不再调用模型"
+        text = lambda evs: "".join(e["text"] for e in evs if e["type"] == "chunk")
+        assert text(first) == text(second) == "轻量回答"
+        assert any(e.get("id") == "cache" for e in second if e["type"] == "thinking"),             "命中缓存必须有可见阶段事件（不能让用户以为模型答的）"
+
+    def test_多轮历史不读不写缓存(self, env, monkeypatch):
+        self._clear()
+        monkeypatch.setenv("CHAT_RESPONSE_CACHE", "1")
+        client, _fake = env(_Yunshu())
+        client.post("/api/chat/stream",
+                    json={"message": "帮我核对一下台账", "session_id": "s1"})
+        client.post("/api/chat/stream",
+                    json={"message": "帮我核对一下台账", "session_id": "s1"})
+        assert len(FakeLLM.instances) == 2, "同一会话第二轮已带历史，不得命中缓存"
+
+    def test_检索档不参与缓存(self, env, monkeypatch):
+        self._clear()
+        monkeypatch.setenv("CHAT_RESPONSE_CACHE", "1")
+        y = _Yunshu(extra="【长期记忆】阈值 60。")
+        client, _fake = env(y)
+        client.post("/api/chat/stream", json={
+            "message": "审核阈值是多少", "session_id": "s1", "mode": "retrieval"})
+        client.post("/api/chat/stream", json={
+            "message": "审核阈值是多少", "session_id": "s2", "mode": "retrieval"})
+        assert len(FakeLLM.instances) == 2, "检索档的答案依赖注入片段，不得走缓存"

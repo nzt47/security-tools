@@ -158,11 +158,6 @@ class TestInvalidBoundary:
         with pytest.raises(AttributeError):
             MessageHandler.parse(123)
 
-    def test_invalid_is_simple_query_none(self):
-        """None 输入 — is_simple_query 抛 AttributeError"""
-        with pytest.raises(AttributeError):
-            MessageHandler.is_simple_query(None)
-
     def test_invalid_detect_dissatisfaction_none(self):
         """None 输入 — detect_dissatisfaction 抛 TypeError（re.search(None)）"""
         with pytest.raises(TypeError):

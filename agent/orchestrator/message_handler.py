@@ -33,13 +33,6 @@ FOLLOW_UP_PATTERNS = [
     re.compile(r"(?i)(具[体]?[一]?点|详细|解释|说说|继续|接着说)"),
 ]
 
-# ── 简单查询检测 ────────────────────────────────────────────────────
-SIMPLE_QUERY_PATTERNS = [
-    re.compile(r"(?i)^(你好|hi|hello|hey|在吗|在不在|早上好|下午好|晚上好)"),
-    re.compile(r"(?i)^(好的|好[的嘛]|ok|嗯|行|可以|谢谢|感谢)"),
-]
-
-
 class MessageHandler:
     """消息解析与意图识别"""
 
@@ -52,12 +45,6 @@ class MessageHandler:
             "length": len(text),
             "is_empty": not text or not text.strip(),
         }
-
-    @staticmethod
-    def is_simple_query(text: str) -> bool:
-        """判断是否为简单问候/礼貌用语"""
-        text = text.strip()
-        return any(p.match(text) for p in SIMPLE_QUERY_PATTERNS)
 
     @staticmethod
     def detect_dissatisfaction(text: str) -> bool:
