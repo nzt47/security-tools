@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-20T12:26:27",
+  "generated_at": "2026-10-20T13:22:19",
   "totals": {
     "routes": 455,
     "live": 455,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 393,
+    "ui": 392,
     "cli_script": 16,
     "runtime_only": 11,
-    "unreferenced": 35,
+    "unreferenced": 36,
     "live_by_category": {
-      "ui": 393,
+      "ui": 392,
       "cli_script": 16,
       "runtime_only": 11,
-      "unreferenced": 35
+      "unreferenced": 36
     },
     "by_intent": {
-      "should_be_in_ui": 377,
-      "should_not_be_in_ui": 77,
+      "should_be_in_ui": 376,
+      "should_not_be_in_ui": 78,
       "unclassified": 1
     },
     "by_domain": {
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 398,
+  "frontend_endpoints": 397,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -4337,13 +4337,11 @@
         "GET",
         "PUT"
       ],
-      "category": "ui",
+      "category": "unreferenced",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [
-        "yunshu-ui/src/pages/hub/tools/mcp.tsx"
-      ],
+      "ui_refs": [],
       "non_ui_refs": [],
       "where": [
         "plugins/mcp_scheduler.py:108",
@@ -4352,9 +4350,9 @@
       ],
       "description": "更新 MCP 服务",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
+      "intent": "should_not_be_in_ui",
       "intent_area": "MCP 服务",
-      "intent_note": "MCP 服务：列表/更新/启停。",
+      "intent_note": "机器/运维面：单条 MCP 服务 CRUD（GET/PUT/DELETE）。列表页只调 GET /api/mcp/services 与 POST 新建；启停/卸载走 /api/extensions/{toggle,uninstall}（同一份配置），故单条路由不再有 UI 调用点。文档化的外部契约见 docs/network_config_guide.md:351-354。",
       "ui_pending": false,
       "domain": "技能与工具"
     },
@@ -11665,5 +11663,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "1e2fac893897d064"
+  "content_hash": "b8cf75e2d1aa04ad"
 }

@@ -17,6 +17,7 @@ import MemoryWorkflowVisual from './workflow-visual'
 import ConvertibleWorkflows from './ConvertibleWorkflows'
 import SkillAssessManager from './skill-assess-manager'
 import SkillMaintenance from './skill-maintenance'
+import InstalledExtensions from '../extensions/installed-extensions'
 
 type CenterTab = 'llm' | 'workflow' | 'visual' | 'maintenance'
 
@@ -89,6 +90,18 @@ export default function SkillCenter() {
               </span>
             </div>
             <MemorySkillsTable />
+            {/* 扩展系统安装的技能：启停 / 配置 / 卸载。
+                原在「扩展市场」页的已安装管理；市场整页删除（2026-10-20）后回到技能归属页。
+                与上方运行时技能表的区别：这里是**扩展登记**（ext_type=skill），
+                卸载会同时删技能目录与登记 —— 故走二次确认。 */}
+            <div className="mt-3">
+              <InstalledExtensions
+                types={['skill']}
+                title="扩展系统安装的技能（启停 / 卸载）"
+                hint="从 .claude / 扩展市场 / 外部来源安装后登记的技能。启停与上方运行时技能同一份状态；卸载会删除技能目录与登记，不可逆（二次确认）。"
+                emptyText="还没有通过扩展系统安装的技能；「维护 · 按来源安装」是唯一安装入口。"
+              />
+            </div>
             {/* 技能资产库 · 评审-评估管线：新建/外来安装/评估/发布 全生命周期 */}
             <SkillAssessManager />
           </div>

@@ -1,6 +1,9 @@
 /**
- * MCP 系统 —— MCP 服务 CRUD / 启停 + 内置服务发现与安装
- * 数据源：/api/mcp/services、/api/mcp/enable、
+ * MCP 系统 —— MCP 服务 CRUD / 启停 / 卸载 + 内置服务发现与安装
+ * 数据源：/api/mcp/services（增删改查）、
+ *         /api/extensions/toggle + /api/extensions/uninstall（启停/卸载，同一份 MCP 配置
+ *         与扩展登记一起收敛；原先的 /api/mcp/enable 是**全局开关**，按行调用会把整个
+ *         MCP 子系统关掉 —— 2026-10-20 修）、
  *         /api/extensions/discover（内置清单）、/api/extensions/install（就地安装）
  *
  * 【2026-10-18 为什么把"内置 MCP 服务"搬进来】它原来在「扩展市场」里单独一组，
@@ -11,15 +14,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { Download, Loader2, Plus, Trash2, Power } from 'lucide-react'
 import {
   Card, Loading, ErrorBox, DataTable, Badge, PageHeader,
-  hubDelete, hubGet, hubPost,
+  hubGet, hubPost,
 } from '../components/ui'
 
 import {
   EXTENSIONS_DISCOVER,
   EXTENSIONS_INSTALL,
-  MCP_ENABLE,
+  EXTENSIONS_TOGGLE,
+  EXTENSIONS_UNINSTALL,
   MCP_SERVICES,
-  mcpServiceById,
 } from '@/api/endpoints';
 // 【P1-front 第三批】后端 GET 已带 X-Envelope: v2，改用显式信封解析。
 // 注意：同路径的 POST（新建服务）是另一个端点，仍是普通 JSON。
@@ -66,6 +69,10 @@ export default function ToolsMcp() {
   const [cmd, setCmd] = useState('')
   const [builtin, setBuiltin] = useState<BuiltinMcp[]>([])
   const [installing, setInstalling] = useState('')
+  // 卸载二次确认（不可逆动作不能一点就走；force 只认布尔 true）
+  const [confirmUninstall, setConfirmUninstall] = useState('')
+  // 行内错误（启停/卸载）：与页面级 error 分开，避免一次失败把所有内容顶掉
+  const [rowError, setRowError] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -106,18 +113,27 @@ export default function ToolsMcp() {
     } catch (e) { setError(String(e)) }
   }
 
-  const del = async (id: string) => {
+  /** 卸载：删服务配置 + 扩展登记（uninstall_mcp 两条一起收敛） */
+  const uninstall = async (id: string) => {
+    setRowError('')
     try {
-      await hubDelete(mcpServiceById(id))
+      const r = await hubPost<{ ok?: boolean; message?: string; error?: string }>(
+        EXTENSIONS_UNINSTALL, { type: 'mcp', id })
+      if (r?.ok === false) { setRowError('卸载失败：' + (r.error || r.message || '未知错误')); return }
+      setConfirmUninstall('')
       load()
-    } catch (e) { setError(String(e)) }
+    } catch (e) { setRowError('卸载失败：' + String(e)) }
   }
 
-  const toggle = async (id: string) => {
+  /** 启停：按行切换该服务的 enabled（不是全局 MCP 开关） */
+  const toggle = async (r: McpService) => {
+    setRowError('')
     try {
-      await hubPost(MCP_ENABLE, { service_id: id })
+      const res = await hubPost<{ ok?: boolean; message?: string; error?: string }>(
+        EXTENSIONS_TOGGLE, { type: 'mcp', id: sid(r), enabled: !r.enabled })
+      if (res?.ok === false) { setRowError('切换失败：' + (res.error || res.message || '未知错误')); return }
       load()
-    } catch (e) { setError(String(e)) }
+    } catch (e) { setRowError('切换失败：' + String(e)) }
   }
 
   const sid = (s: McpService) => String(s.service_id ?? s.id ?? '')
@@ -130,6 +146,7 @@ export default function ToolsMcp() {
         actions={<button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500"><Plus size={12} /> 新增服务</button>}
       />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
+      {rowError && <div className="mb-4"><ErrorBox message={rowError} /></div>}
       {showForm && (
         <Card className="mb-4">
           <div className="flex gap-2">
@@ -150,16 +167,41 @@ export default function ToolsMcp() {
               { key: 'enabled', title: '状态', render: (r) => <Badge color={r.enabled ? 'green' : 'slate'}>{r.enabled ? '启用' : '停用'}</Badge> },
               {
                 key: 'actions', title: '操作',
-                render: (r) => (
-                  <div className="flex gap-2">
-                    <button onClick={() => toggle(sid(r))} className="flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800">
-                      <Power size={11} /> 切换
-                    </button>
-                    <button onClick={() => del(sid(r))} className="flex items-center gap-1 rounded-md border border-red-900/60 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-950">
-                      <Trash2 size={11} /> 删除
-                    </button>
-                  </div>
-                ),
+                render: (r) => {
+                  const id = sid(r)
+                  const armed = confirmUninstall === id
+                  return (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => void toggle(r)}
+                        aria-label={'启停 ' + id}
+                        className="flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                      >
+                        <Power size={11} /> {r.enabled ? '停用' : '启用'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmUninstall(armed ? '' : id)}
+                        aria-label={'卸载 ' + id}
+                        className="flex items-center gap-1 rounded-md border border-red-900/60 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-950"
+                      >
+                        <Trash2 size={11} /> {armed ? '确认卸载' : '卸载'}
+                      </button>
+                      {armed && (
+                        <span className="flex items-center gap-1 text-[10px] text-red-300">
+                          不可逆（服务配置 + 扩展登记一并删除）
+                          <button
+                            onClick={() => void uninstall(id)}
+                            aria-label={'确认卸载 MCP ' + id}
+                            className="rounded border border-red-800/70 px-2 py-1 text-[10px] text-red-200 hover:bg-red-500/10"
+                          >
+                            确定
+                          </button>
+                          <button onClick={() => setConfirmUninstall('')} className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800">取消</button>
+                        </span>
+                      )}
+                    </div>
+                  )
+                },
               },
             ]}
           />

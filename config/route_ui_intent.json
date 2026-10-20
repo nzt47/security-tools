@@ -613,6 +613,11 @@
       "area": "MCP 服务",
       "note": "MCP 服务：列表/更新/启停。"
     },
+    "/api/mcp/services/*": {
+      "intent": "should_not_be_in_ui",
+      "area": "MCP 服务",
+      "note": "机器/运维面：单条 MCP 服务 CRUD（GET/PUT/DELETE）。列表页只调 GET /api/mcp/services 与 POST 新建；启停/卸载走 /api/extensions/{toggle,uninstall}（同一份配置），故单条路由不再有 UI 调用点。文档化的外部契约见 docs/network_config_guide.md:351-354。"
+    },
     "/api/modules": {
       "intent": "should_be_in_ui",
       "area": "拓扑面板",
