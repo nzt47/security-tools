@@ -167,19 +167,20 @@ class Test真实仓库:
         assert stale == [], "台账里留有已消解的陈旧项：" + repr(stale)
         assert all((v or {}).get("status") in m.TRIAGE_STATUSES for v in triage.values())
 
-    def test_上一轮的两个坑仍被同一条判据看见(self):
-        """#1202 的两个教训：没人路由的页面 / 只被具名引用的 default。
+    def test_历史两条告警已清零且不会被报回来(self):
+        """#1202 的两个坑（hub/session 无人路由、workflow.tsx 死 default）已于 2026-10-20 删除。
 
-        这条用例的价值不在"现在有 2 条"，而在于**判据真的能看见那两种形态** ——
-        它们当时都是扫描器全绿、用户点不到。
+        判据本身由 `Test判据` 的两条合成用例钉住（闭包外页面 / default 无人消费），
+        与具体文件无关；本用例只守"删掉之后不得再被报回来"，防止文件/导出被误恢复
+        却没人发现。台账清零由 `test_告警台账双向一致` + `ui_reachability.py --check` 守。
         """
         m = _mod()
         payload = m.classify()
         unreachable = {e["path"] for e in payload["unreachable"]}
         orphans = {e["path"] for e in payload["orphan_default"]}
-        assert "yunshu-ui/src/pages/hub/session/index.tsx" in unreachable, (
-            "会话叶子渲染的是 WorkbenchChatPage，这个页面没有任何入口 —— 审计必须报出来"
+        assert "yunshu-ui/src/pages/hub/session/index.tsx" not in unreachable, (
+            "该空壳页已删除，不应再出现在可达性报告里"
         )
-        assert "yunshu-ui/src/pages/hub/memory/workflow.tsx" in orphans, (
-            "skill-center 只取 MemoryWorkflowTable 具名导出，default 是死代码 —— 审计必须报出来"
+        assert "yunshu-ui/src/pages/hub/memory/workflow.tsx" not in orphans, (
+            "workflow.tsx 的死 default 已删除，不应再被报成孤儿 default"
         )

@@ -1,39 +1,16 @@
 {
-  "generated_at": "2026-10-20T13:22:34",
+  "generated_at": "2026-10-20T21:18:51",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 276,
+    "source_modules": 273,
     "reachable_modules": 257,
-    "page_files": 106
+    "page_files": 104
   },
-  "unreachable": [
-    {
-      "path": "yunshu-ui/src/pages/Demo/index.tsx",
-      "default_export": true
-    },
-    {
-      "path": "yunshu-ui/src/pages/hub/session/index.tsx",
-      "default_export": true
-    }
-  ],
-  "orphan_default": [
-    {
-      "path": "yunshu-ui/src/pages/hub/memory/skills.tsx",
-      "importers": [
-        "yunshu-ui/src/pages/hub/memory/skill-center.tsx"
-      ]
-    },
-    {
-      "path": "yunshu-ui/src/pages/hub/memory/workflow.tsx",
-      "importers": [
-        "yunshu-ui/src/pages/hub/memory/skill-center.tsx"
-      ]
-    }
-  ],
-  "content_hash": "d3949c8f1399733c",
+  "unreachable": [],
+  "orphan_default": [],
+  "content_hash": "fe8444ae39bd3c9b",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
-    "yunshu-ui/src/pages/Demo/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
     "yunshu-ui/src/pages/Login/index.tsx",
     "yunshu-ui/src/pages/Profile.tsx",
@@ -103,7 +80,6 @@
     "yunshu-ui/src/pages/hub/plugin-manage.tsx",
     "yunshu-ui/src/pages/hub/plugins/index.tsx",
     "yunshu-ui/src/pages/hub/replay/index.tsx",
-    "yunshu-ui/src/pages/hub/session/index.tsx",
     "yunshu-ui/src/pages/hub/tools/cli.tsx",
     "yunshu-ui/src/pages/hub/tools/computer-use.tsx",
     "yunshu-ui/src/pages/hub/tools/governance.tsx",

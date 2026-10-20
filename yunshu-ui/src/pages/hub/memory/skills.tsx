@@ -15,7 +15,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Eye, Layers, Loader2, Power } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, PageHeader, hubGet, hubPost } from '../components/ui'
+import { Card, Loading, ErrorBox, DataTable, Badge, CallabilityBadge, hubGet, hubPost } from '../components/ui'
 // 【P1-front 第七批】GET /api/skills 已带 X-Envelope: v2，改用显式信封解析。
 // 同页其余调用（/api/skills-mgmt/classes、/api/skills/toggle、改类、补说明）尚未迁移，继续走 hubGet/hubPost。
 import { getEnvelope } from '@/api/envelope'
@@ -420,15 +420,6 @@ export function MemorySkillsTable() {
       )}
 
       {viewSkill && <SkillContentModal skill={viewSkill} onClose={() => setViewSkill(null)} />}
-    </div>
-  )
-}
-
-export default function MemorySkills() {
-  return (
-    <div className="p-6">
-      <PageHeader title="LLM 技能库" description="提示/行为/扩展类技能（由 LLM 执行）的启用、停用与参数配置" />
-      <MemorySkillsTable />
     </div>
   )
 }

@@ -1323,8 +1323,11 @@ logger.info(f"受保护工作区: {_workspace_path}")
 # ── 技能配置管理器 ──
 # 【legacy 迁移】SkillsManager 数据源从 data/skills.json 切换到统一技能
 # 注册表（SkillRegistry：主轨 JSON + 文件轨 skill.md），data/skills.json 不再
-# 是权威/写入目标。保留 get_all/toggle/add/delete 旧接口兼容 /api/assets 与
-# 旧 /api/skills 路由，行为不变但状态落到主轨/文件轨。
+# 是权威/写入目标。现只剩 /api/assets 与 /api/skills 仍在用的 get_all/toggle。
+# 【2026-10-20 死代码清理】add / update_params / delete 随旧 /api/skills/* 路由
+# 到期删除（PR #1230）失去全部调用方，连同内部 _load/_save 与 delete 的
+# force 门禁一起移除；新建/改参数/删除分别走 /api/skills-mgmt/create/manual、
+# PATCH /api/skills-mgmt/<id>、DELETE /api/skills-mgmt/<id>。
 
 class SkillsManager:
     """管理云枢的技能配置（基于 SkillRegistry，legacy 迁移后）"""
@@ -1333,140 +1336,11 @@ class SkillsManager:
         from agent.skills_mgmt.registry import SkillRegistry
         return SkillRegistry()
 
-    def _load(self) -> dict:
-        return {"skills": self._reg().as_legacy_rows()}
-
-    def _save(self, data: dict):
-        # 迁移后：skills.json 不再是权威写入目标。行内 enabled 变更由
-        # toggle/add/delete 直接落主轨/文件轨；此处保留为 no-op 兼容。
-        pass
-
     def get_all(self) -> list:
         return self._reg().as_legacy_rows()
 
     def toggle(self, skill_id: str) -> dict:
         return self._reg().toggle(skill_id)
-
-    def update_params(self, skill_id: str, params: dict) -> dict:
-        # params 仅主轨技能有（default_params）；文件轨技能无 params 概念
-        from agent.skills_mgmt.registry import SkillRegistry
-        return SkillRegistry()._svc().update(
-            skill_id, {"default_params": params})
-
-    def add(self, skill: dict) -> dict:
-        from agent.skills_mgmt.registry import SkillRegistry
-        svc = SkillRegistry()._svc()
-        try:
-            svc.create_manual({
-                "id": skill.get("id", ""),
-                "name": skill.get("name", skill.get("id", "")),
-                "content": skill.get("content", "# " + skill.get("name", "")),
-                "content_type": skill.get("content_type", "markdown"),
-                "description": skill.get("description", ""),
-                "enabled": skill.get("enabled", True),
-            })
-            return {"ok": True, "id": skill.get("id")}
-        except Exception as e:  # noqa: BLE001
-            return {"ok": False, "error": str(e)}
-
-    def _has_extension_record(self, skill_id: str) -> bool:
-        """该技能在扩展存储中是否有记录（**仅用于留痕**，不参与门禁判定）
-
-        取不到（扩展存储不可用）时报 False 并继续 —— 门禁只认「主轨有无记录」，
-        留痕字段的成败绝不改变删除与否。
-        """
-        try:
-            from agent.extensions.base import ExtensionType
-            from agent.extensions.store import ExtensionStore
-            return ExtensionStore().get(ExtensionType.SKILL, skill_id) is not None
-        except Exception:  # noqa: BLE001
-            return False
-
-    def _warn_structured(self, payload: dict, fallback: str) -> None:
-        """结构化 warning 留痕；log_dict 不可用时退化为纯文本
-
-        【不易】留痕是**观测**不是**门禁**：无论留痕成功与否，删除路径行为不变
-        （故此处吞异常；该 import 也绝不放在 delete 的既有 try 之外，免得留痕
-        失败反过来改变删除结果）。
-        """
-        try:
-            from agent.logging_utils import log_dict
-            logger.warning(log_dict(payload))
-        except Exception:  # noqa: BLE001
-            logger.warning(fallback)
-
-    def delete(self, skill_id: str, force: bool = False) -> dict:
-        """删除技能（主轨有记录 → 多轨删除；文件轨独占 → 须显式 force=True）
-
-        【加固 · 与 agent/extensions/skills_installer.py::remove_skill 同型】
-        可达条件（实测）：主轨 svc.store.get(skill_id) 为 None **且** 文件轨
-        svc.file_store.get_metadata(skill_id) 非 None ⇒ 原实现直接走
-        svc.file_store.delete() → agent/skills_mgmt/file_store.py::delete 的
-        shutil.rmtree，把 data/skills_repo/<id>/ 整棵树（含 scripts/ 与 temp/）
-        **不可逆**删除。
-
-        这类「文件轨独占」技能是**技能仓库/内置 persona 技能**（front matter 提供），
-        不是扩展安装产物。而其 HTTP 入口 POST /api/skills/delete
-        （plugins/skills.py:539）**可由网络直达**，原来的唯一守卫是「内置技能白名单」，
-        实测只覆盖 data/skills_repo 下 25 个技能中的 7 个 ⇒ 其余 18 个真实技能可被
-        不可逆删除。
-        ⇒ 本方法对「文件轨独占」技能默认**拒绝删除**（写结构化 warning 留痕 +
-        返回可读原因）；确需删除必须显式 force=True。
-
-        Args:
-            skill_id: 技能 ID
-            force: True 时允许删除「文件轨独占」技能（默认 False）；
-                主轨存在的既有删除路径与 force 无关，**一字未改**
-
-        Returns:
-            dict：成功为 {"ok": True}；拒绝为
-            {"ok": False, "refused": True, "error": <可读原因>}
-            （refused 供路由区分「显式拒绝」与「未找到」，以免路由下方的扩展存储
-            清理把一次拒绝翻成 ok=True 的假成功）
-        """
-        from agent.skills_mgmt.registry import SkillRegistry
-        svc = SkillRegistry()._svc()
-        try:
-            # 主轨有→删主轨；否则文件轨有→删文件轨；否则报未知
-            if svc.store.get(skill_id) is not None:
-                # ── 既有删除路径（多轨同步）：与 force 无关，一字未改 ──
-                svc.delete(skill_id)
-                return {"ok": True}
-            meta = svc.file_store.get_metadata(skill_id)
-            if meta is None:
-                return {"ok": False, "error": f"未知技能: {skill_id}"}
-            # ── 加固：文件轨独占 ⇒ 默认拒绝（除非显式 force=True）──
-            has_ext = self._has_extension_record(skill_id)
-            if not force:
-                self._warn_structured({
-                    'module_name': 'app_server',
-                    'action': 'skills_manager.delete.refused_file_track_only',
-                    'skill_id': skill_id,
-                    'has_extension_record': has_ext,
-                    'msg': ('[技能管理器] 拒绝删除文件轨独占技能 %s：'
-                            '主轨无记录 ⇒ 该目录不是扩展安装产物'
-                            '（确认删除请显式 force=True）' % skill_id),
-                }, f'[技能管理器] 拒绝删除文件轨独占技能: {skill_id}')
-                return {
-                    "ok": False,
-                    "refused": True,
-                    "error": (
-                        f"拒绝删除: 技能 {skill_id} 仅存在于文件轨（主轨无记录），"
-                        f"其目录由技能仓库/内置技能提供，删除不可逆；"
-                        f"如确需删除请显式 force=True"
-                    ),
-                }
-            self._warn_structured({
-                'module_name': 'app_server',
-                'action': 'skills_manager.delete.force_file_track_only',
-                'skill_id': skill_id,
-                'has_extension_record': has_ext,
-                'msg': '[技能管理器] 显式 force=True 删除文件轨独占技能: %s' % skill_id,
-            }, f'[技能管理器] 显式 force=True 删除文件轨独占技能: {skill_id}')
-            svc.file_store.delete(skill_id)
-            return {"ok": True}
-        except Exception as e:  # noqa: BLE001
-            return {"ok": False, "error": str(e)}
 
 _skills_mgr = SkillsManager()
 
