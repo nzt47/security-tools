@@ -50,24 +50,6 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     # ═══════════════════════════════════════════════════
-    #  获取单条记录详情
-    # ═══════════════════════════════════════════════════
-
-    @app.route("/api/llm-monitor/records/<record_id>", methods=["GET"])
-    @trace_route("LLMMonitor")
-    def api_llm_monitor_record_detail(record_id):
-        """获取单条 LLM 通信记录详情"""
-        try:
-            monitor = _get_monitor()
-            record = monitor.get_record(record_id)
-            if not record:
-                return jsonify({"ok": False, "error": "记录不存在"}), 404
-            return jsonify(record)
-        except Exception as e:
-            logger.error("获取 LLM 记录详情失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
-
-    # ═══════════════════════════════════════════════════
     #  获取统计概览
     # ═══════════════════════════════════════════════════
 

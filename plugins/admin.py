@@ -67,19 +67,6 @@ def _log_struct(action: str, message: str, duration_ms: int = 0, **extra):
 #  认证 & 全局配置 API
 # ════════════════════════════════════════════════════════════
 
-@bp.route("/api/auth/token-check")
-@log_request(show_response=False)
-def api_auth_token_check():
-    """检查令牌是否有效（前端用）
-
-    【2026-10-01】改报**运行期真相**：原读导入期 `_API_TOKEN_ENABLED`，
-    在 `.env` 热重载配上令牌后会报 `enabled=false` —— 而本端点的用途正是让前端判断
-    "到底要不要带令牌"，报错方向会直接导致前端不带令牌、随后被 401。
-    """
-    from agent.server_auth import current_api_token
-    return jsonify({"enabled": bool(current_api_token()), "valid": True})
-
-
 @bp.route("/api/config", methods=["GET", "POST"])
 @audit_action("config.write", payload_keys=("provider", "model", "base_url",
                                             "api_endpoint"))

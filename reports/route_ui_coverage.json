@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-20T21:18:54",
+  "generated_at": "2026-10-20T23:58:28",
   "totals": {
-    "routes": 455,
-    "live": 455,
+    "routes": 449,
+    "live": 449,
     "dead_copy": 0,
     "dead_definitions": 0,
     "ui": 392,
     "cli_script": 16,
     "runtime_only": 11,
-    "unreferenced": 36,
+    "unreferenced": 30,
     "live_by_category": {
       "ui": 392,
       "cli_script": 16,
       "runtime_only": 11,
-      "unreferenced": 36
+      "unreferenced": 30
     },
     "by_intent": {
       "should_be_in_ui": 376,
-      "should_not_be_in_ui": 78,
+      "should_not_be_in_ui": 72,
       "unclassified": 1
     },
     "by_domain": {
@@ -26,13 +26,13 @@
       "系统与配置": 43,
       "治理与审批": 42,
       "资产与文件": 19,
-      "管理与后台": 19,
+      "管理与后台": 18,
       "调度与任务": 26,
-      "对话与会话": 32,
+      "对话与会话": 29,
       "业务与评估": 18,
-      "技能与工具": 102,
+      "技能与工具": 101,
       "认知与学习": 6,
-      "观测与诊断": 74,
+      "观测与诊断": 73,
       "开发与内部": 14,
       "记忆与知识": 33
     }
@@ -276,7 +276,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:300"
+        "plugins/admin.py:287"
       ],
       "description": "应用网络配置到应用实例（即时生效）",
       "description_source": "handler",
@@ -726,7 +726,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:798"
+        "plugins/admin.py:785"
       ],
       "description": "获取结构化审计日志（只读查询 Append-only 审计日志）",
       "description_source": "handler",
@@ -808,29 +808,6 @@
       "intent": "should_be_in_ui",
       "intent_area": "登录/菜单",
       "intent_note": "登录与菜单：登录、菜单树。",
-      "ui_pending": false,
-      "domain": "管理与后台"
-    },
-    {
-      "path": "/api/auth/token-check",
-      "norm": "/api/auth/token-check",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "live": true,
-      "dead_copy": false,
-      "dead_defs": [],
-      "ui_refs": [],
-      "non_ui_refs": [],
-      "where": [
-        "plugins/admin.py:70"
-      ],
-      "description": "检查令牌是否有效（前端用）",
-      "description_source": "handler",
-      "intent": "should_not_be_in_ui",
-      "intent_area": "内部鉴权",
-      "intent_note": "令牌校验，编排层调用",
       "ui_pending": false,
       "domain": "管理与后台"
     },
@@ -1181,7 +1158,7 @@
         "scripts/verify_zh_scenarios_20260815.py"
       ],
       "where": [
-        "plugins/chat.py:142"
+        "plugins/chat.py:83"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1206,7 +1183,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:2675"
+        "plugins/chat.py:2596"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1229,7 +1206,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1151"
+        "plugins/chat.py:1092"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1380,7 +1357,7 @@
         "scripts/demo_s2_02_audit.py"
       ],
       "where": [
-        "plugins/admin.py:83"
+        "plugins/admin.py:70"
       ],
       "description": "获取或设置 LLM 配置",
       "description_source": "handler",
@@ -1406,7 +1383,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:782"
+        "plugins/admin.py:769"
       ],
       "description": "获取配置变更日志",
       "description_source": "handler",
@@ -3297,7 +3274,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:757"
+        "plugins/chat.py:698"
       ],
       "description": "生成会话交接文档 —— LLM 把当前会话压缩成 Markdown，落盘到 OS 临时目录。",
       "description_source": "handler",
@@ -3767,7 +3744,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1129"
+        "plugins/chat.py:1070"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -3792,36 +3769,13 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1185"
+        "plugins/chat.py:1106"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "历史记录",
       "intent_note": "会话任务页「历史问话」抽屉（HistoryDrawer → lib/historyApi.ts）真实在用。此前判为\"不该进\"是误判：URL 由模板串条件拼接，旧扫描器看不到。2026-10-18 扫描器补模板前缀折叠后恢复为\"该进\"。",
-      "ui_pending": false,
-      "domain": "对话与会话"
-    },
-    {
-      "path": "/api/history/search",
-      "norm": "/api/history/search",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "live": true,
-      "dead_copy": false,
-      "dead_defs": [],
-      "ui_refs": [],
-      "non_ui_refs": [],
-      "where": [
-        "plugins/chat.py:1165"
-      ],
-      "description": "搜索历史记录",
-      "description_source": "handler",
-      "intent": "should_not_be_in_ui",
-      "intent_area": "历史记录",
-      "intent_note": "同上：legacy 对话历史检索，仅冒烟脚本使用；工作台用 /api/sessions/<id>/messages + 全库检索。",
       "ui_pending": false,
       "domain": "对话与会话"
     },
@@ -4055,7 +4009,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_llm_monitor.py:112"
+        "agent/server_routes/routes_llm_monitor.py:94"
       ],
       "description": "清除所有记录",
       "description_source": "handler",
@@ -4094,29 +4048,6 @@
       "domain": "观测与诊断"
     },
     {
-      "path": "/api/llm-monitor/records/<record_id>",
-      "norm": "/api/llm-monitor/records/*",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "live": true,
-      "dead_copy": false,
-      "dead_defs": [],
-      "ui_refs": [],
-      "non_ui_refs": [],
-      "where": [
-        "agent/server_routes/routes_llm_monitor.py:56"
-      ],
-      "description": "获取单条 LLM 通信记录详情",
-      "description_source": "handler",
-      "intent": "should_not_be_in_ui",
-      "intent_area": "LLM 监控",
-      "intent_note": "与列表端点同构：列表返回的就是 asdict(record)（scripts/probe_prefix_cache_interaction.py:20 亦记此点），详情只按 id 取同一个对象，界面拿不到额外信息；记录被环形缓冲淘汰后前端也无从知道 id。该端点的实际消费方是脚本/命令行。",
-      "ui_pending": false,
-      "domain": "观测与诊断"
-    },
-    {
       "path": "/api/llm-monitor/stats",
       "norm": "/api/llm-monitor/stats",
       "methods": [
@@ -4131,7 +4062,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_llm_monitor.py:74"
+        "agent/server_routes/routes_llm_monitor.py:56"
       ],
       "description": "获取 LLM 通信统计概览（含会话快照持久化信息）",
       "description_source": "handler",
@@ -4156,7 +4087,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_llm_monitor.py:98"
+        "agent/server_routes/routes_llm_monitor.py:80"
       ],
       "description": "启用或禁用监控",
       "description_source": "handler",
@@ -4184,8 +4115,8 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/admin.py:351",
-        "plugins/admin.py:379"
+        "plugins/admin.py:338",
+        "plugins/admin.py:366"
       ],
       "description": "获取所有 LLM 实例",
       "description_source": "handler",
@@ -4212,9 +4143,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:364",
-        "plugins/admin.py:402",
-        "plugins/admin.py:422"
+        "plugins/admin.py:351",
+        "plugins/admin.py:389",
+        "plugins/admin.py:409"
       ],
       "description": "获取单个 LLM 实例",
       "description_source": "handler",
@@ -4239,7 +4170,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:437"
+        "plugins/admin.py:424"
       ],
       "description": "设置默认 LLM 实例",
       "description_source": "handler",
@@ -4264,7 +4195,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:452"
+        "plugins/admin.py:439"
       ],
       "description": "测试 LLM 实例连接",
       "description_source": "handler",
@@ -4864,8 +4795,8 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/admin.py:210",
-        "plugins/admin.py:219"
+        "plugins/admin.py:197",
+        "plugins/admin.py:206"
       ],
       "description": "获取网络配置",
       "description_source": "handler",
@@ -4890,7 +4821,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:265"
+        "plugins/admin.py:252"
       ],
       "description": "导出网络配置（脱敏）",
       "description_source": "handler",
@@ -4915,7 +4846,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:278"
+        "plugins/admin.py:265"
       ],
       "description": "导入网络配置",
       "description_source": "handler",
@@ -4940,7 +4871,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:255"
+        "plugins/admin.py:242"
       ],
       "description": "重置网络配置为默认值",
       "description_source": "handler",
@@ -4965,7 +4896,7 @@
         "scripts/verify_key_revocation.ps1"
       ],
       "where": [
-        "plugins/chat.py:455"
+        "plugins/chat.py:396"
       ],
       "description": "新闻直通接口 — 搜索+翻译+格式化，绕过 LLM",
       "description_source": "handler",
@@ -6021,8 +5952,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:966",
-        "plugins/chat.py:974"
+        "plugins/chat.py:907",
+        "plugins/chat.py:915"
       ],
       "description": "列出全部项目（id / name / workspace_root / created_at / updated_at）",
       "description_source": "handler",
@@ -6048,10 +5979,10 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1028",
-        "plugins/chat.py:999"
+        "plugins/chat.py:940",
+        "plugins/chat.py:969"
       ],
-      "description": "删除项目；项目内分组随项目删除、会话解除项目归属（会话本体都不删）。",
+      "description": "改名 / 改工作空间：body {name?, path|workspace_root?, create?}（只改传了的字段）",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "项目/分组",
@@ -6074,7 +6005,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2634"
+        "plugins/chat.py:2555"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -6812,7 +6743,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:903"
+        "plugins/admin.py:890"
       ],
       "description": "手动执行一次性能检测",
       "description_source": "handler",
@@ -6837,7 +6768,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:917"
+        "plugins/admin.py:904"
       ],
       "description": "获取性能检测历史记录",
       "description_source": "handler",
@@ -6864,7 +6795,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/admin.py:873"
+        "plugins/admin.py:860"
       ],
       "description": "启动搜索引擎性能监控",
       "description_source": "handler",
@@ -6891,7 +6822,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/admin.py:860"
+        "plugins/admin.py:847"
       ],
       "description": "获取搜索引擎性能监控状态",
       "description_source": "handler",
@@ -6918,7 +6849,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/admin.py:889"
+        "plugins/admin.py:876"
       ],
       "description": "停止搜索引擎性能监控",
       "description_source": "handler",
@@ -6943,7 +6874,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:931"
+        "plugins/admin.py:918"
       ],
       "description": "获取性能摘要",
       "description_source": "handler",
@@ -6969,8 +6900,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:505",
-        "plugins/admin.py:517"
+        "plugins/admin.py:492",
+        "plugins/admin.py:504"
       ],
       "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
@@ -6996,8 +6927,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:577",
-        "plugins/admin.py:637"
+        "plugins/admin.py:564",
+        "plugins/admin.py:624"
       ],
       "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
@@ -7022,7 +6953,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:699"
+        "plugins/admin.py:686"
       ],
       "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
@@ -7047,7 +6978,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:747"
+        "plugins/admin.py:734"
       ],
       "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
@@ -7103,8 +7034,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1063",
-        "plugins/chat.py:1072"
+        "plugins/chat.py:1004",
+        "plugins/chat.py:1013"
       ],
       "description": "列出分组及 会话→分组 归属表；?project_id= 只返回该项目下的分组",
       "description_source": "handler",
@@ -7130,8 +7061,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1087",
-        "plugins/chat.py:1102"
+        "plugins/chat.py:1028",
+        "plugins/chat.py:1043"
       ],
       "description": "重命名分组",
       "description_source": "handler",
@@ -7159,8 +7090,8 @@
         "scripts/dev/verify_prompt_injection_mock.py"
       ],
       "where": [
-        "plugins/chat.py:537",
-        "plugins/chat.py:576"
+        "plugins/chat.py:478",
+        "plugins/chat.py:517"
       ],
       "description": "获取会话列表",
       "description_source": "handler",
@@ -7185,7 +7116,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:598"
+        "plugins/chat.py:539"
       ],
       "description": "删除会话",
       "description_source": "handler",
@@ -7210,7 +7141,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:655"
+        "plugins/chat.py:596"
       ],
       "description": "设置/清除会话级智能体：body {agent: string|null}；null/空 = 母体。",
       "description_source": "handler",
@@ -7235,7 +7166,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1113"
+        "plugins/chat.py:1054"
       ],
       "description": "把会话移入/移出分组：body {group_id: string|null}；null = 未分组",
       "description_source": "handler",
@@ -7262,8 +7193,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:708",
-        "plugins/chat.py:718"
+        "plugins/chat.py:649",
+        "plugins/chat.py:659"
       ],
       "description": "获取会话消息",
       "description_source": "handler",
@@ -7288,7 +7219,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:633"
+        "plugins/chat.py:574"
       ],
       "description": "把会话归入/移出项目：body {project_id: string|null}；null = 未归属项目。",
       "description_source": "handler",
@@ -7313,7 +7244,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:618"
+        "plugins/chat.py:559"
       ],
       "description": "重命名会话",
       "description_source": "handler",
@@ -7338,7 +7269,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:801"
+        "plugins/chat.py:742"
       ],
       "description": "列出会话工作空间文件树（会话不存在 404）",
       "description_source": "handler",
@@ -7364,8 +7295,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:824",
-        "plugins/chat.py:850"
+        "plugins/chat.py:765",
+        "plugins/chat.py:791"
       ],
       "description": "绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区）",
       "description_source": "handler",
@@ -7390,7 +7321,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:862"
+        "plugins/chat.py:803"
       ],
       "description": "在系统文件管理器中打开该会话的工作空间目录（本机桌面应用场景）",
       "description_source": "handler",
@@ -7415,7 +7346,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:679"
+        "plugins/chat.py:620"
       ],
       "description": "切换当前会话",
       "description_source": "handler",
@@ -8534,29 +8465,6 @@
       "domain": "技能与工具"
     },
     {
-      "path": "/api/skills-mgmt/inject",
-      "norm": "/api/skills-mgmt/inject",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "live": true,
-      "dead_copy": false,
-      "dead_defs": [],
-      "ui_refs": [],
-      "non_ui_refs": [],
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1557"
-      ],
-      "description": "一站式构建 LLM 上下文 (Layer 1 + Layer 2)",
-      "description_source": "handler",
-      "intent": "should_not_be_in_ui",
-      "intent_area": "技能中心",
-      "intent_note": "机器/内部面：构建 LLM 上下文（Layer1+2），机器链路",
-      "ui_pending": false,
-      "domain": "技能与工具"
-    },
-    {
       "path": "/api/skills-mgmt/install",
       "norm": "/api/skills-mgmt/install",
       "methods": [
@@ -8875,7 +8783,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1596"
+        "agent/server_routes/routes_skills_mgmt.py:1560"
       ],
       "description": "Slash 命令解析器 — 统一技能操作入口",
       "description_source": "handler",
@@ -9458,8 +9366,8 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/admin.py:124",
-        "plugins/admin.py:157"
+        "plugins/admin.py:111",
+        "plugins/admin.py:144"
       ],
       "description": "获取系统提示词模板及预览信息",
       "description_source": "handler",
@@ -9586,7 +9494,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:194"
+        "plugins/admin.py:181"
       ],
       "description": "重置系统提示词为默认",
       "description_source": "handler",
@@ -10335,52 +10243,6 @@
       "domain": "技能与工具"
     },
     {
-      "path": "/api/voice/listen",
-      "norm": "/api/voice/listen",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "live": true,
-      "dead_copy": false,
-      "dead_defs": [],
-      "ui_refs": [],
-      "non_ui_refs": [],
-      "where": [
-        "plugins/chat.py:84"
-      ],
-      "description": "语音识别接口 - 从麦克风捕获语音并转换为文本",
-      "description_source": "handler",
-      "intent": "should_not_be_in_ui",
-      "intent_area": "语音",
-      "intent_note": "它录的是**服务器那台机器的麦克风**：api_voice_listen 直接调 _voice_manager.listen(duration)，用宿主 SpeechRecognition。浏览器里点一下等于让服务器录音，既不是用户的声音、也是隐私事故。网页侧要采音只能走 MediaRecorder/Web Speech 并配套上传端点（当前不存在）。",
-      "ui_pending": false,
-      "domain": "对话与会话"
-    },
-    {
-      "path": "/api/voice/status",
-      "norm": "/api/voice/status",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "live": true,
-      "dead_copy": false,
-      "dead_defs": [],
-      "ui_refs": [],
-      "non_ui_refs": [],
-      "where": [
-        "plugins/chat.py:121"
-      ],
-      "description": "获取语音系统状态",
-      "description_source": "handler",
-      "intent": "should_not_be_in_ui",
-      "intent_area": "语音",
-      "intent_note": "与 listen 同一套**宿主侧**语音栈的就绪状态（stt/tts 引擎在服务器上）。工作台是浏览器应用，展示\"服务器麦克风/扬声器可用性\"对使用者没有可操作含义，只会让人以为页面上能说话。",
-      "ui_pending": false,
-      "domain": "对话与会话"
-    },
-    {
       "path": "/api/web/clean",
       "norm": "/api/web/clean",
       "methods": [
@@ -11063,9 +10925,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:926",
-        "plugins/chat.py:934",
-        "plugins/chat.py:950"
+        "plugins/chat.py:867",
+        "plugins/chat.py:875",
+        "plugins/chat.py:891"
       ],
       "description": "列出已添加的工作区（路径/名称/添加时间）",
       "description_source": "handler",
@@ -11662,5 +11524,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "ad8a61fdac88c25c"
+  "content_hash": "2a7e3825aa1aa76d"
 }

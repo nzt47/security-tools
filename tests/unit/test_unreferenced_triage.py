@@ -81,9 +81,11 @@ class Test判定合法:
         m = _mod()
         counts = m.summarize(m.load_ledger())
         assert set(counts) == set(m.VERDICTS)
-        for verdict in ("keep", "keep-ops", "retire"):
+        # keep / keep-ops 必有实例（在用的台账条目）；retire / deprecate 允许为 0 ——
+        # 那正是清理完成后的正常终态（2026-10-20：6 条 retire 删除、4 条复核改判 keep）。
+        for verdict in ("keep", "keep-ops"):
             assert counts[verdict] > 0, counts
-        assert counts["deprecate"] >= 0
+        assert counts["retire"] >= 0 and counts["deprecate"] >= 0
 
 
 class Test证伪留痕:

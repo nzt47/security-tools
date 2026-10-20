@@ -1554,42 +1554,6 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    @app.route("/api/skills-mgmt/inject", methods=["POST"])
-    @trace_route("SkillsMgmt")
-    @require_token
-    @log_request(show_response=False)
-    def api_skills_mgmt_inject():
-        """一站式构建 LLM 上下文 (Layer 1 + Layer 2)
-
-        Body: {intent: str, max_tokens?: int=6000, top_k?: int=5,
-               auto_load_instruction?: bool=false, skill_id?: str}
-
-        Returns:
-            {ok, prompt, matches, instruction?, estimated_tokens, layers_used}
-        """
-        try:
-            data = request.get_json(silent=True) or {}
-            intent = (data.get("intent") or "").strip()
-            if not intent:
-                return jsonify({"ok": False,
-                                "error": "缺少 intent 参数",
-                                "code": "SKILL_VALIDATION_ERROR"}), 400
-            ctx = _svc().build_skill_context(
-                intent,
-                max_tokens=int(data.get("max_tokens", 6000)),
-                top_k=int(data.get("top_k", 5)),
-                auto_load_instruction=bool(data.get("auto_load_instruction", False)),
-                skill_id=data.get("skill_id"),
-            )
-            return jsonify({"ok": True, **ctx})
-        except ValueError as e:
-            return jsonify({"ok": False, "error": f"参数错误: {e}"}), 400
-        except SkillMgmtError as e:
-            return _err(e)
-        except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
-
-    # ═══════════════════════════════════════════════════
     #  P1.5 Slash 命令解析器 — 统一入口
     # ═══════════════════════════════════════════════════
 

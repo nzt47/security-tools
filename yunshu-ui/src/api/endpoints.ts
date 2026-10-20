@@ -531,7 +531,6 @@ export const ORCHESTRATOR_SEMANTIC_CONFIG = '/api/orchestrator/semantic-config';
 export const PLANNING_TOGGLE = '/api/planning/toggle';
 export const PROCESS_DISTILL = '/api/process-distill/distill';
 export const PROCESS_DISTILL_HEALTH = '/api/process-distill/health';
-export const LLM_MONITOR_RECORD = (id: string) => `/api/llm-monitor/records/${encodeURIComponent(id)}`;
 // 按任务名启停 / 改「每天 时:分」（改动即时生效并落 data/scheduler_overrides.json）
 export const SCHEDULER_CONFIGURE = '/api/scheduler/configure';
 export const DIAGNOSTICS_METRICS = '/api/diagnostics/metrics';
