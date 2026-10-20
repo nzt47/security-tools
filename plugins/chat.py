@@ -80,65 +80,6 @@ def _json_safe_metadata(metadata):
 _context_limit_info = context_limit_info
 
 
-# ── 语音输入 API ──
-@bp.route("/api/voice/listen", methods=["POST"])
-@_require_token
-@_log_request()
-def api_voice_listen():
-    """语音识别接口 - 从麦克风捕获语音并转换为文本"""
-    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _Yunshu, logger
-    try:
-        data = request.get_json() or {}
-        duration = min(data.get("duration", 5), 30)  # 最大30秒
-        
-        if not hasattr(_Yunshu, '_voice_manager') or _Yunshu._voice_manager is None:
-            return jsonify({"ok": False, "error": "语音管理器未初始化"}), 500
-        
-        stt_available = _Yunshu._voice_manager.stt.available
-        if not stt_available:
-            return jsonify({"ok": False, "error": "语音识别引擎不可用，请检查SpeechRecognition库"}), 500
-        
-        logger.info(f"[VOICE] 开始语音识别，时长: {duration}秒")
-        result = _Yunshu._voice_manager.listen(duration=duration)
-        
-        if result.success:
-            logger.info(f"[VOICE] 语音识别成功: {result.text[:50]}...")
-            return jsonify({
-                "ok": True,
-                "text": result.text,
-                "duration": duration
-            })
-        else:
-            logger.warning(f"[VOICE] 语音识别失败: {result.error}")
-            return jsonify({"ok": False, "error": result.error}), 400
-            
-    except Exception as e:
-        logger.error(f"[VOICE] 语音识别异常: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-
-@bp.route("/api/voice/status")
-@_log_request(show_response=False)
-def api_voice_status():
-    """获取语音系统状态"""
-    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _Yunshu
-    try:
-        if not hasattr(_Yunshu, '_voice_manager') or _Yunshu._voice_manager is None:
-            return jsonify({
-                "tts_available": False,
-                "stt_available": False,
-                "engine": "none",
-                "non_blocking": False
-            })
-        
-        status = _Yunshu._voice_manager.get_status()
-        return jsonify(status)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @bp.route("/api/chat", methods=["POST"])
 @_require_token
 def api_chat():
@@ -1161,27 +1102,7 @@ def api_clear():
     return jsonify({"ok": True})
 
 
-# ── 历史记录 API ──
-@bp.route("/api/history/search")
-@_log_request(show_response=False)
-def api_history_search():
-    """搜索历史记录"""
-    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _session_mgr, _get_current_session_id
-    q = request.args.get("q", "").strip().lower()
-    session_id = request.args.get("session") or _get_current_session_id()
-    messages = _session_mgr.get_messages(session_id, limit=500)
-    if not q:
-        return jsonify(messages[-50:])
-    results = [
-        {"index": i, **m}
-        for i, m in enumerate(messages)
-        if m.get("role") == "user" and q in m.get("content", "").lower()
-        or m.get("role") == "assistant" and q in m.get("content", "").lower()
-    ]
-    return jsonify(results)
-
-
+# ── 历史记录 API（只剩单条删除；全文搜索端点 /api/history/search 于 2026-10-20 删除）──
 @bp.route("/api/history/<int:index>", methods=["DELETE"])
 @_require_token
 @_log_request()
