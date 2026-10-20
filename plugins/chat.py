@@ -1439,6 +1439,22 @@ CHAT_STREAM_MODES = ("plain", "retrieval", "full", "full_stream", "auto")
 _MODE_LABELS = {"plain": "轻量", "retrieval": "检索",
                 "full": "完整", "full_stream": "完整·流式"}
 
+
+def _plain_tool_subset(whitelist, boost):
+    """轻量档工具减法：取「本线全量 ∩ 本线 boost（核心链路）」。
+
+    【为什么取交集而不是另写白名单】boost 是主线档案自己的声明（改 YAML 即生效），
+    另写一份名单会与档案漂移 —— 本仓已有"两份规则对齐而非共用"的前科。
+
+    【空交集必须回退原样】若档案的 boost 全被 mute/平面 floors 剔掉，交集为空：
+    此时保持原白名单。轻量档的定位是"少发一点"，不是"一个工具都不给"。
+    """
+    if not whitelist:
+        return list(whitelist or [])
+    allowed = set(boost or [])
+    subset = [t for t in whitelist if t in allowed]
+    return subset or list(whitelist)
+
 #: 「自动」档的任务型线索：命中即升到 full_stream。
 #: 刻意**窄**——宁可把复杂问题误判成轻量（用户还能手动切档），也不要让"自动"随手把成本抬上去。
 _AUTO_TASK_RE = re.compile(
@@ -2034,6 +2050,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     #   选择链出故障时"多给工具"远比"用户发不出任何工具调用"可接受。
     tool_defs = None
     _sel_note = "全量(回退)"
+    _line_assembled = False
     try:
         from agent.tools import get_tool_defs as _get_defs
         _whitelist = None
@@ -2042,6 +2059,7 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
             _line_tools, _line_res = _line_wl(None)
             if _line_tools:
                 _whitelist = _line_tools
+                _line_assembled = True
                 _sel_note = f"主线:{_line_res.line_id}({len(_line_tools)})"
         except Exception as _le:  # noqa: BLE001 主线不可用不影响后续选择
             logger.debug("[workbench][SSE] 主线装配不可用: %s", _le)
@@ -2060,6 +2078,26 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
                     _sel_note = f"智能选择({len(_smart)})"
             except Exception as _se:  # noqa: BLE001
                 logger.debug("[workbench][SSE] 智能工具选择不可用: %s", _se)
+
+        # ── 轻量档工具集减法（2026-10-20）──────────────────────────────
+        # plain 是「快速对话」档（默认档）：此前与检索/完整档一样下发本线全量
+        # （engineering 实测 **26 个 / 6,889 token**，每轮都算进窗口）。本档收敛到
+        # 本线的 `boost`（档案自己声明的核心链路）子集：**17 个 / 3,799 token**（−45%）。
+        # 被减掉的 9 个是支撑层工具（apply_patch / arch_diagram / compress / decompress /
+        # fan_out / git / run_lint / run_sandbox / run_tests）—— 需要它们时切「检索」或
+        # 「完整」档，那两档保持全量。减法失败一律保持原样（宁可多下发，不静默剥夺能力）。
+        if mode == "plain" and _line_assembled and _whitelist:
+            try:
+                from agent.lines.integration import resolve_line_id as _resolve_lid
+                from agent.lines.registry import get_line_registry as _get_lines
+                _prof = _get_lines().load(_resolve_lid(None))
+                _boost = list(getattr(_prof, "boost", None) or [])
+                _sub = _plain_tool_subset(_whitelist, _boost)
+                if len(_sub) < len(_whitelist):
+                    _sel_note += "→轻量档boost(%d)" % len(_sub)
+                    _whitelist = _sub
+            except Exception as _pe:  # noqa: BLE001 减法失败保持原样
+                logger.debug("[workbench][SSE] 轻量档工具减法不可用: %s", _pe)
 
         tool_defs = _get_defs(whitelist=_whitelist)
         try:
