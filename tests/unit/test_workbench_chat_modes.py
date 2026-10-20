@@ -519,3 +519,28 @@ class TestResponseCache:
         client.post("/api/chat/stream", json={
             "message": "审核阈值是多少", "session_id": "s2", "mode": "retrieval"})
         assert len(FakeLLM.instances) == 2, "检索档的答案依赖注入片段，不得走缓存"
+
+
+class TestPlainToolSubset:
+    """轻量档工具减法（2026-10-20）：只在本线 boost 内保留；空交集回退原样。
+
+    纯函数口径，不依赖工具注册表：线上由 workbench_sse 用「主线装配结果 + 档案 boost」
+    调它，engineering 档实测 26 个 / 6,889 token → 17 个 / 3,799 token。
+    """
+
+    def test_交集保留且保持白名单顺序(self):
+        from plugins.chat import _plain_tool_subset
+        assert _plain_tool_subset(
+            ["read_file", "git", "grep"], ["read_file", "grep", "web"],
+        ) == ["read_file", "grep"]
+        assert _plain_tool_subset(["b", "a"], ["a", "b"]) == ["b", "a"]
+
+    def test_空交集回退原样_不静默剥夺能力(self):
+        from plugins.chat import _plain_tool_subset
+        assert _plain_tool_subset(["a", "b"], []) == ["a", "b"]
+        assert _plain_tool_subset(["a", "b"], ["x"]) == ["a", "b"]
+
+    def test_空白名单(self):
+        from plugins.chat import _plain_tool_subset
+        assert _plain_tool_subset([], ["a"]) == []
+        assert _plain_tool_subset(None, ["a"]) == []
