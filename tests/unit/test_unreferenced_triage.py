@@ -72,11 +72,18 @@ class Test判定合法:
         assert any("/api/a" in p and "action" in p for p in problems)
         assert any("/api/b" in p and "action" in p for p in problems)
 
-    def test_四类判定都有实例(self):
+    def test_判定取值都必须能被汇总(self):
+        """四类判定都要有汇总口径；deprecate 允许为 0（兼容窗口到期后的正常终态）。
+
+        2026-10-20：13 条 deprecate 路由到期删除后 deprecate=0 —— 这正是该类的
+        预期终点，故不再要求它恒 >0；将来新增 deprecate 时应重新出现。
+        """
         m = _mod()
         counts = m.summarize(m.load_ledger())
         assert set(counts) == set(m.VERDICTS)
-        assert all(n > 0 for n in counts.values()), counts
+        for verdict in ("keep", "keep-ops", "retire"):
+            assert counts[verdict] > 0, counts
+        assert counts["deprecate"] >= 0
 
 
 class Test证伪留痕:

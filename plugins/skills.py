@@ -112,7 +112,9 @@ _DESC_OVERLAY_FILE = os.path.normpath(
 #     `data/skills_repo/<id>/skill.md` 的 front matter（`description` 英文 /
 #     `description_zh` 中文）。
 #
-# 写路径冻结见同文件 `POST /api/skills/describe` 与 `/api/skills/describe/auto`（M0）。
+# 写路径冻结见同文件 `POST /api/skills/describe/auto`（M0，仍为冻结 no-op）。
+# `POST /api/skills/describe` 已于 2026-10-20 到期删除（兼容窗口结束；描述唯一事实源
+# 是 skill.md front matter，见 data/skills_repo/<id>/skill.md）。
 
 
 def _load_desc_overlay() -> dict:
@@ -438,39 +440,6 @@ def api_skills_toggle():
     return jsonify(result)
 
 
-@bp.route("/api/skills/describe", methods=["POST"])
-@_require_token
-@_log_request()
-def api_skills_describe():
-    """【G1-B / M0 已冻结】原「手工补写某个运行时技能的中文说明到覆盖层」
-
-    [不易] **本路由自 2026-09-26 起不再写任何数据**（G1-B 的 M0「先冻写路径再删
-    数据」，依据 G1-B0 §2.7 E-2 / §4.5 H-4）。
-
-    为什么必须冻：它是**可写任意 id** 的第二条 overlay 写路径
-    （overlay[skill_id] = {...}，无 id 存在性校验）。只删
-    data/skills_descriptions_overlay.json 而不冻它 ⇒ **下次调用就把键写回来**
-    （G1-A 风险 R11 的同族问题）。
-
-    为什么不是「直接删路由」：删除会让前端 skills.tsx 的调用点收到 404/405，
-    与「能力面变更」无法区分；保留路由 + 显式拒绝，运维可见原因。
-
-    替代路径（唯一事实源）：技能描述写在 data/skills_repo/<id>/skill.md 的
-    front matter —— description = 英文（检索 + 模型可见），
-    description_zh = 中文（UI 展示）。
-    """
-    data = request.get_json(silent=True) or {}
-    skill_id = str(data.get("id", "") or "")
-    return jsonify({
-        "ok": False,
-        "frozen": True,
-        "id": skill_id,
-        "error": "描述写路径已冻结（G1-B/M0）：技能描述唯一事实源为 "
-                 "data/skills_repo/<id>/skill.md 的 front matter —— 请改 "
-                 "description / description_zh，不要再写 "
-                 "data/skills_descriptions_overlay.json",
-    }), 409
-
 
 @bp.route("/api/skills/describe/auto", methods=["POST"])
 @_require_token
@@ -535,91 +504,6 @@ def api_skills_classify_run_auto():
     reg = SkillClassRegistry()
     result = reg.run_auto(installed, ns="rt", force_unclassified=True)
     return jsonify({"ok": True, **result})
-
-
-@bp.route("/api/skills/params", methods=["POST"])
-@_require_token
-@_log_request()
-def api_skills_params():
-    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _skills_mgr
-    data = request.get_json(silent=True) or {}
-    return jsonify(_skills_mgr.update_params(data.get("id", ""), data.get("params", {})))
-
-
-@bp.route("/api/skills/add", methods=["POST"])
-@_require_token
-@_log_request()
-def api_skills_add():
-    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _skills_mgr
-    return jsonify(_skills_mgr.add(request.get_json(silent=True) or {}))
-
-
-@bp.route("/api/skills/delete", methods=["POST"])
-@_require_token
-@_log_request()
-def api_skills_delete():
-    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _skills_mgr
-    data = request.get_json(silent=True) or {}
-    skill_id = data.get("id", "")
-    # 【加固 · force 透传】文件轨独占技能的删除必须显式 force=True
-    # （SkillsManager.delete 默认拒绝，见其 docstring）：本路由把请求体的 force
-    # 原样透传，前端日后只要多带一个 force 字段即可保留删除能力。
-    # 【不易】只认 JSON 布尔字面量 true（fail-closed）：字符串 "0"/"false" 等
-    # 若被 bool() 判真，会变成"意外的 authorize"——安全开关不得自行放宽。
-    force = data.get("force") is True
-
-    # 内置技能不可删除
-    # 【L34 加固 · fail-closed】原实现把整段守卫包在 `except Exception: pass` 里 ——
-    # 即一旦 BUILTIN_EXTENSIONS 导入失败（该 import 由于函数内延迟、规避循环导入，
-    # 确有可能失败），守卫就**静默失效**、删除照常往下走；而下方的
-    # _skills_mgr.delete → svc.file_store.delete → file_store.py:694-712 shutil.rmtree
-    # 是**不可逆**的整树删除。
-    # 【不易】安全守卫不得自行静默关闭：加载不了清单时**宁可拒绝删除**，
-    # 也不能把「保护消失」与「允许删除」等同起来。故改为**失败即拒绝**并给出可读原因。
-    try:
-        from agent.extensions.base import BUILTIN_EXTENSIONS
-    except Exception as e:  # noqa: BLE001
-        return jsonify({
-            "ok": False,
-            "error": f"内置技能清单加载失败，已拒绝删除以保护不可逆数据: {e}",
-        })
-    for s in BUILTIN_EXTENSIONS.get("skill", []):
-        s_id = s.get("id", "")
-        if s_id == skill_id and s.get("builtin", False):
-            return jsonify({"ok": False, "error": "内置技能不可删除"})
-
-    # 从 skills.json 删除
-    result = _skills_mgr.delete(skill_id, force=force)
-    deleted = result.get("ok", False)
-
-    # 【加固 · 拒绝必须原样回传】文件轨独占且未显式 force ⇒ SkillsManager 已
-    # 拒绝（result["refused"]）：直接回传其可读原因，**且不再走下方扩展存储清理** ——
-    # 否则 ext_store.remove() 会把「目录仍在」的一次拒绝翻成 ok=True 的假成功，
-    # 调用方会以为技能已删除。注意只对**显式拒绝**短路：「未找到」等其它失败仍走
-    # 下方逻辑（先删 registry 记录，再尝试扩展存储记录）。
-    if result.get("refused"):
-        return jsonify({
-            "ok": False,
-            "error": result.get("error") or f"已拒绝删除: {skill_id}",
-        })
-
-    # 尝试从扩展存储删除（扩展安装产物的登记记录）
-    try:
-        from agent.extensions.store import ExtensionStore
-        from agent.extensions.base import ExtensionType
-        ext_store = ExtensionStore()
-        for ext_type in (ExtensionType.SKILL,):
-            if ext_store.remove(ext_type, skill_id):
-                deleted = True
-    except Exception:
-        pass
-
-    if deleted:
-        return jsonify({"ok": True})
-    return jsonify({"ok": False, "error": f"未找到技能: {skill_id}"})
 
 
 # ════════════════════════════════════════════════════════════

@@ -934,8 +934,12 @@ class TestRenameCompat:
         assert both["primary"].name == la.ASSESSMENT_EVENTS_BASENAME
         assert both["legacy"].name == la.LEGACY_DIGEST_EVENTS_BASENAME
 
-    def test_route_surface_dual_registration(self):
-        """旧 /digest/* 与新 /assess/* 路由并存（同 handler，评审语义）。"""
+    def test_route_surface_legacy_digest_removed(self):
+        """旧 /digest/* 已于 2026-10-20 到期移除；新 /assess/* 仍在（同 handler，评审语义）。
+
+        兼容窗口自 2026-09-09（ed319344，S0-01 术语更名）起 ≥1 minor，
+        依据 config/route_unreferenced_triage.json 的 deprecate 判定。
+        """
         from flask import Flask
         from agent.server_routes import routes_skills_mgmt as rsm
         app = Flask(__name__)
@@ -953,7 +957,7 @@ class TestRenameCompat:
             ("/api/skills-mgmt/assess/<skill_id>", "/api/skills-mgmt/digest/<skill_id>"),
         ):
             assert new in rules, new
-            assert old in rules, old
+            assert old not in rules, old
 
 
 # ═══════════════════════════════════════════════════════════════════
