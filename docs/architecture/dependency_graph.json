@@ -21853,7 +21853,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1662,
+      "line": 1626,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
