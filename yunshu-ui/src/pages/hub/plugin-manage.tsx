@@ -29,6 +29,7 @@
 import { createElement, useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, Loader2, PackagePlus, RefreshCw, Search, Server, Settings2, X } from 'lucide-react'
 import { Card, Badge, PageHeader, Loading, ErrorBox } from './components/ui'
+import InstalledExtensions from './extensions/installed-extensions'
 import { SchemaRenderer } from '@/plugins/schema'
 import { ApiTokenField } from '@/plugins/ApiTokenField'
 import { ApiError, request } from '@/lib/apiClient'
@@ -546,6 +547,17 @@ export default function PluginManagePage() {
           ))}
         </div>
       )}
+
+      {/* ── 已安装插件包（扩展系统）：启停 / 配置 / 卸载 ──
+          原在「扩展市场」页的已安装管理；市场整页删除（2026-10-20）后回到插件包归属页。 */}
+      <div className="mt-4">
+        <InstalledExtensions
+          types={['plugin']}
+          title="已安装插件包（扩展系统）"
+          hint="从市场/外部安装的插件包。启停只影响该包；卸载会删除扩展登记，不可逆（二次确认）。"
+          emptyText="还没有通过扩展系统安装的插件包；上方「从市场安装插件包」是唯一安装入口。"
+        />
+      </div>
 
       {/* ── 从市场安装插件包（插件包安装的唯一入口；市场只发现/浏览） ── */}
       {marketOpen && (

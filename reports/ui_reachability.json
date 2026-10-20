@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-19T01:29:11",
+  "generated_at": "2026-10-20T13:22:34",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
     "source_modules": 276,
@@ -30,7 +30,7 @@
       ]
     }
   ],
-  "content_hash": "73b3183934e20aeb",
+  "content_hash": "d3949c8f1399733c",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Demo/index.tsx",
@@ -56,7 +56,7 @@
     "yunshu-ui/src/pages/hub/engine/tasks.tsx",
     "yunshu-ui/src/pages/hub/experience/LearningMetrics.tsx",
     "yunshu-ui/src/pages/hub/experience/index.tsx",
-    "yunshu-ui/src/pages/hub/extensions/market.tsx",
+    "yunshu-ui/src/pages/hub/extensions/installed-extensions.tsx",
     "yunshu-ui/src/pages/hub/governance/actions.tsx",
     "yunshu-ui/src/pages/hub/governance/business.tsx",
     "yunshu-ui/src/pages/hub/governance/components.tsx",

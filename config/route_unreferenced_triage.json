@@ -69,6 +69,10 @@
       "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：列表端点已在用，单条记录端点没有。若要做\"点开看单条调用详情\"，应在 LlmMonitorPanel 行展开时调用（endpoints.ts 的死常量也应随之复活或删除）。",
       "decided_at": "2026-10-19"
     },
+    "/api/mcp/services/*": {
+      "verdict": "keep-ops",
+      "evidence": "docs/network_config_guide.md:351-354 文档化的 MCP 服务单条 CRUD 契约（GET/PUT/DELETE）；2026-10-20 起前端只用列表 + 新建，启停/卸载改走 /api/extensions/{toggle,uninstall}"
+    },
     "/api/memory/*": {
       "verdict": "retire",
       "evidence": "UI 的 memory 常量都是 GET/POST 其他路径（endpoints.ts:304-313）；DELETE 无调用方",
