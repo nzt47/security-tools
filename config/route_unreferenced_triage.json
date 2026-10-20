@@ -93,76 +93,11 @@
       "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：定时任务 UI 走 /api/schedules*，这条属于 plugins/mcp_scheduler 的定义。若保留 MCP 调度器，它就是其对外契约；不保留则应连同插件一起下线，而不是只删路由。",
       "decided_at": "2026-10-19"
     },
-    "/api/skills-mgmt/digest/*": {
-      "verdict": "deprecate",
-      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
-      "action": "兼容窗口后删双注册"
-    },
-    "/api/skills-mgmt/digest/curate": {
-      "verdict": "deprecate",
-      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
-      "action": "兼容窗口后删双注册"
-    },
-    "/api/skills-mgmt/digest/events": {
-      "verdict": "deprecate",
-      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
-      "action": "兼容窗口后删双注册"
-    },
-    "/api/skills-mgmt/digest/feed": {
-      "verdict": "deprecate",
-      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
-      "action": "兼容窗口后删双注册"
-    },
-    "/api/skills-mgmt/digest/merge-backups": {
-      "verdict": "deprecate",
-      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
-      "action": "兼容窗口后删双注册"
-    },
-    "/api/skills-mgmt/digest/merge-safe": {
-      "verdict": "deprecate",
-      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
-      "action": "兼容窗口后删双注册"
-    },
-    "/api/skills-mgmt/digest/merge-undo": {
-      "verdict": "deprecate",
-      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
-      "action": "兼容窗口后删双注册"
-    },
-    "/api/skills-mgmt/digest/run-all": {
-      "verdict": "deprecate",
-      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
-      "action": "兼容窗口后删双注册"
-    },
-    "/api/skills-mgmt/digest/stream": {
-      "verdict": "deprecate",
-      "evidence": "agent/server_routes/routes_skills_mgmt.py:367 —— 注释写明「旧名 /digest/* 双注册兼容（≤1 minor）」；新名 /assess/* 在同文件 :375 起",
-      "action": "兼容窗口后删双注册"
-    },
     "/api/skills-mgmt/inject": {
       "verdict": "retire",
       "evidence": "无调用方；上下文注入走 agent 内部注入链（guardrails/injection_defense）",
       "action": "暂不删除（2026-10-19 决定）：先标注保留。非重复：上下文注入走 agent 内部注入链（guardrails/injection_defense）。若开放给外部集成，需要先有鉴权与契约文档，再谈\"补调用方\"。",
       "decided_at": "2026-10-19"
-    },
-    "/api/skills/add": {
-      "verdict": "deprecate",
-      "evidence": "被 /api/skills-mgmt 的资产新增取代；docs 是 T1.5 历史设计",
-      "action": "兼容窗口后删"
-    },
-    "/api/skills/delete": {
-      "verdict": "deprecate",
-      "evidence": "同上",
-      "action": "兼容窗口后删"
-    },
-    "/api/skills/describe": {
-      "verdict": "deprecate",
-      "evidence": "被 /api/skills/describe/auto（UI 在用的 SKILLS_DESCRIBE_AUTO）+ skills-mgmt assess 取代",
-      "action": "兼容窗口后删"
-    },
-    "/api/skills/params": {
-      "verdict": "deprecate",
-      "evidence": "skills.tsx 注释里的旧数据源；实际未再调用",
-      "action": "兼容窗口后删"
     },
     "/api/subagent/*/execute": {
       "verdict": "retire",

@@ -430,8 +430,10 @@ def register_routes(app, state):
 
     # ═══════════════════════════════════════════════════
     #  评审-评估（自动评估钩子路由）——术语纪律（TASK-S0-01）：
-    #  路由组新名 /assess/* 为主；旧名 /digest/* 双注册兼容（≤1 minor，
-    #  评审语义，与 v7.2 七态内化语义无关）。
+    #  路由组新名 /assess/* 为主；旧名 /digest/* 的**双注册已于 2026-10-20 到期移除**
+    #  （兼容窗口自 2026-09-09 起 ≥1 minor；评审语义，与 v7.2 七态内化语义无关）。
+    #  删除依据：config/route_unreferenced_triage.json 的 deprecate 判定 + 全仓
+    #  无调用方实查（前端/脚本/合入测试均无引用）。
     #  - assess/<skill_id>: 对单个技能执行权威「评审」（三审+扩展评估），
     #    扩展评估含：权限校验 / 攻击面 / 数据合规 + 原生冲突 / 操作重叠 /
     #    资源竞争 / 交互冲突 / 重复合并建议；
@@ -439,7 +441,6 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/skills-mgmt/assess/run-all", methods=["POST"])
-    @app.route("/api/skills-mgmt/digest/run-all", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
@@ -452,7 +453,6 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/assess/curate", methods=["POST"])
-    @app.route("/api/skills-mgmt/digest/curate", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
@@ -470,7 +470,6 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/assess/merge-safe", methods=["POST"])
-    @app.route("/api/skills-mgmt/digest/merge-safe", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
@@ -489,7 +488,6 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 400
 
     @app.route("/api/skills-mgmt/assess/merge-backups", methods=["GET"])
-    @app.route("/api/skills-mgmt/digest/merge-backups", methods=["GET"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request(show_response=False)
@@ -503,7 +501,6 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/assess/feed", methods=["GET"])
-    @app.route("/api/skills-mgmt/digest/feed", methods=["GET"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request(show_response=False)
@@ -601,7 +598,6 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 400
 
     @app.route("/api/skills-mgmt/assess/merge-undo", methods=["POST"])
-    @app.route("/api/skills-mgmt/digest/merge-undo", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
@@ -674,7 +670,6 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/assess/<skill_id>", methods=["POST"])
-    @app.route("/api/skills-mgmt/digest/<skill_id>", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
@@ -712,7 +707,6 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/assess/events", methods=["GET"])
-    @app.route("/api/skills-mgmt/digest/events", methods=["GET"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request(show_response=False)
@@ -726,7 +720,6 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/assess/stream", methods=["GET"])
-    @app.route("/api/skills-mgmt/digest/stream", methods=["GET"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request(show_response=False)
