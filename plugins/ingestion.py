@@ -74,6 +74,31 @@ def _plan_payload(plan: Any) -> Dict[str, Any]:
     return {"plan": plan.to_dict()}
 
 
+def _resolve_llm_client() -> Any:
+    """运行时 LLM 客户端（P2）。
+
+    【为什么在插件层解析】app_server 的 `_Yunshu._llm` 是进程内真实实例；
+    域模块不应 import app_server（循环/分层红线）。插件层允许**首次请求时**
+    延迟 import app_server（与 plugin_api 的 require_token 回退同一做法），
+    取不到再回退域模块的 `default_llm_client()`；两者都取不到 = None，
+    preview(rewrite=true) 会如实失败并写存档，绝不伪造。
+    """
+    try:
+        import app_server  # noqa: PLC0415 首次请求时 app_server 已加载
+        yunshu = getattr(app_server, "_Yunshu", None)
+        for attr in ("_llm", "llm", "llm_service"):
+            client = getattr(yunshu, attr, None) if yunshu is not None else None
+            if client is not None:
+                return client
+    except Exception:  # noqa: BLE001 app_server 未加载/未就绪不致命
+        pass
+    try:
+        from agent.ingestion import service
+        return service._default_llm_client()  # noqa: SLF001 同包域入口
+    except Exception:  # noqa: BLE001
+        return None
+
+
 @bp.route("/api/ingestion/preview", methods=["POST"])
 @_require_token
 def api_ingestion_preview():
@@ -83,7 +108,8 @@ def api_ingestion_preview():
         source = _source_from_body(body)
         rewrite = body.get("rewrite") is True
         from agent.ingestion import service
-        plan = service.preview(source, rewrite=rewrite)
+        plan = service.preview(source, rewrite=rewrite,
+                               llm_client=_resolve_llm_client() if rewrite else None)
     except IngestionError as exc:
         return _fail(exc)
     if rewrite and plan.archive_id:
