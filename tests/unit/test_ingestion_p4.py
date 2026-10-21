@@ -1,0 +1,243 @@
+# -*- coding: utf-8 -*-
+"""吞噬 P4：tool/workflow 草稿生成 + digestion borrowed 入轨（不自动启用）。"""
+from __future__ import annotations
+
+import json
+import zipfile
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+import yaml
+
+from agent.ingestion import service
+from agent.ingestion.models import InvalidSource, RewriteRequired
+
+PLAN = SimpleNamespace(source_ref="path:C:/tmp/source", plan_id="ig_test")
+
+
+class FakeInstaller:
+    def __init__(self):
+        self.calls = []
+        self.assessed = []
+        self.absorbed = []
+
+    def install_from_zip(self, zip_path: str):
+        self.calls.append(zip_path)
+        with zipfile.ZipFile(zip_path) as zf:
+            manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
+            count = len([n for n in zf.namelist() if n.startswith("scripts/")])
+        return {"skill_id": manifest["id"], "name": manifest["name"],
+                "version": manifest.get("version", "1.0.0"), "scripts_count": count}
+
+    def _advisory_assess(self, skill_id: str):
+        self.assessed.append(skill_id)
+
+    def _auto_classify(self, skill_id: str):
+        pass
+
+    def absorb_overlap(self, skill_id: str, overlap: str = "", source: str = ""):
+        self.absorbed.append(skill_id)
+
+
+@pytest.fixture(autouse=True)
+def _no_audit(monkeypatch):
+    monkeypatch.setattr(service, "_audit", lambda payload: None)
+
+
+@pytest.fixture()
+def tool_skill(tmp_path):
+    d = tmp_path / "p4-tool-smoke"
+    d.mkdir()
+    (d / "SKILL.md").write_text(
+        "---\nname: P4 Tool Smoke\ndescription: 把输入整理成报告\n---\n\n"
+        "# P4 Tool\n\n读取输入并输出报告。\n",
+        encoding="utf-8")
+    (d / "scripts").mkdir()
+    (d / "scripts" / "run.py").write_text("print('x')\n", encoding="utf-8")
+    return d
+
+
+@pytest.fixture()
+def workflow_skill(tmp_path):
+    d = tmp_path / "p4-flow-smoke"
+    d.mkdir()
+    (d / "SKILL.md").write_text(
+        "---\nname: P4 Flow Smoke\ndescription: 固定步骤流程\n---\n\n"
+        "# P4 Flow\n\n## 步骤\n1. 读取输入\n2. 整理字段\n3. 输出报告\n4. 归档\n",
+        encoding="utf-8")
+    return d
+
+
+@pytest.fixture()
+def plain_skill(tmp_path):
+    d = tmp_path / "p4-plain-smoke"
+    d.mkdir()
+    (d / "SKILL.md").write_text(
+        "---\nname: P4 Plain Smoke\ndescription: 需要判断的说明型技能\n---\n\n"
+        "# P4 Plain\n\n按情况给出建议。\n",
+        encoding="utf-8")
+    return d
+
+
+class TestRecommendation:
+    def test_有脚本推荐_tool(self, tool_skill):
+        plan = service.preview(tool_skill)
+        assert plan.recommendation.form == "tool"
+        assert any("form=tool" in a for a in plan.actions)
+
+    def test_稳定步骤推荐_workflow(self, workflow_skill):
+        plan = service.preview(workflow_skill)
+        assert plan.recommendation.form == "workflow"
+        assert any("form=workflow" in a for a in plan.actions)
+
+    def test_无证据仍推荐_skill(self, plain_skill):
+        plan = service.preview(plain_skill)
+        assert plan.recommendation.form == "skill"
+
+
+class TestDraftCommit:
+    def test_tool_草稿只写草稿目录且不安装(self, tool_skill, tmp_path):
+        plan = service.preview(tool_skill)
+        fake = FakeInstaller()
+        result = service.commit(tool_skill, plan_id=plan.plan_id, confirm=True,
+                                form="tool", draft_dir=tmp_path / "drafts",
+                                installer=fake)
+        assert result.draft is True
+        assert result.installed is False
+        assert result.form == "tool"
+        assert result.queued is False
+        assert fake.calls == []
+        root = Path(result.draft_dir)
+        assert (root / "manifest.json").exists()
+        tool_py = root / "agent" / "tools" / "p4_tool_smoke.py"
+        tool_yaml = root / "data" / "tool_definitions" / "p4_tool_smoke.yaml"
+        test_py = root / "tests" / "unit" / "test_p4_tool_smoke.py"
+        assert tool_py.exists() and tool_yaml.exists() and test_py.exists()
+        tool_text = tool_py.read_text(encoding="utf-8")
+        assert "NotImplementedError" in tool_text
+        compile(tool_text, str(tool_py), "exec")  # 草稿自身必须是合法 Python
+        meta = yaml.safe_load(tool_yaml.read_text(encoding="utf-8"))
+        assert meta["status"] == "draft"
+        assert meta["enabled"] is False
+        assert not (Path(__file__).resolve().parents[2] / "agent" / "tools" / "p4_tool_smoke.py").exists()
+
+    def test_workflow_草稿带步骤且未启用(self, workflow_skill, tmp_path):
+        plan = service.preview(workflow_skill)
+        result = service.commit(workflow_skill, plan_id=plan.plan_id, confirm=True,
+                                form="workflow", draft_dir=tmp_path / "drafts",
+                                installer=FakeInstaller())
+        assert result.draft is True
+        root = Path(result.draft_dir)
+        wf_files = list((root / "workflows").glob("*.json"))
+        assert wf_files
+        workflow = json.loads(wf_files[0].read_text(encoding="utf-8"))
+        assert workflow["status"] == "draft"
+        assert workflow["enabled"] is False
+        assert workflow["requires_binding"] is True
+        assert len(workflow["steps"]) >= 3
+
+    def test_默认_form_skill_仍安装(self, tool_skill, tmp_path):
+        plan = service.preview(tool_skill)
+        fake = FakeInstaller()
+        result = service.commit(tool_skill, plan_id=plan.plan_id, confirm=True,
+                                draft_dir=tmp_path / "drafts", installer=fake)
+        assert result.draft is False
+        assert result.installed is True
+        assert result.form == "skill"
+        assert len(fake.calls) == 1
+
+    def test_未知_form_被拒(self, plain_skill):
+        plan = service.preview(plain_skill)
+        with pytest.raises(InvalidSource):
+            service.commit(plain_skill, plan_id=plan.plan_id, confirm=True,
+                           form="video", installer=FakeInstaller())
+
+    def test_草稿形态拒绝_merge_into(self, tool_skill):
+        plan = service.preview(tool_skill)
+        with pytest.raises(InvalidSource):
+            service.commit(tool_skill, plan_id=plan.plan_id, confirm=True,
+                           form="tool", merge_into="target",
+                           installer=FakeInstaller())
+
+    def test_L2_未重写不能出草稿(self, tmp_path):
+        d = tmp_path / "doc"
+        d.mkdir()
+        (d / "README.md").write_text("# 文档\n\n普通文档。\n", encoding="utf-8")
+        plan = service.preview(d)
+        with pytest.raises(RewriteRequired):
+            service.commit(d, plan_id=plan.plan_id, confirm=True,
+                           form="workflow", installer=FakeInstaller())
+
+
+class TestBorrowedStage:
+    def test_安装后调用_borrowed_入轨(self, plain_skill, monkeypatch):
+        calls = {}
+
+        def fake_stage(skill_id, plan):
+            calls["skill_id"] = skill_id
+            calls["source_ref"] = plan.source_ref
+            return SimpleNamespace(applied=True, verdict="applied", reasons=[])
+
+        monkeypatch.setattr(service, "_stage_migrate_borrowed", fake_stage)
+        plan = service.preview(plain_skill)
+        result = service.commit(plain_skill, plan_id=plan.plan_id, confirm=True,
+                                installer=FakeInstaller())
+        assert calls["skill_id"] == "p4-plain-smoke"
+        assert result.stage == "borrowed"
+        assert result.stage_verdict == "applied"
+
+    def test_入轨未应用如实告警(self, plain_skill, monkeypatch):
+        monkeypatch.setattr(service, "_stage_migrate_borrowed",
+                            lambda skill_id, plan: SimpleNamespace(
+                                applied=False, verdict="not_found",
+                                reasons=["descriptor 不存在"]))
+        plan = service.preview(plain_skill)
+        result = service.commit(plain_skill, plan_id=plan.plan_id, confirm=True,
+                                installer=FakeInstaller())
+        assert result.stage == ""
+        assert result.stage_verdict == "not_found"
+        assert any("not_found" in w for w in result.warnings)
+
+    def test_草稿不进入_borrowed(self, tool_skill, tmp_path, monkeypatch):
+        called = []
+        monkeypatch.setattr(service, "_stage_migrate_borrowed",
+                            lambda skill_id, plan: called.append(skill_id))
+        plan = service.preview(tool_skill)
+        service.commit(tool_skill, plan_id=plan.plan_id, confirm=True,
+                       form="tool", draft_dir=tmp_path / "drafts",
+                       installer=FakeInstaller())
+        assert called == []
+
+    def test_borrowed_助手证据含真实台账引用(self, monkeypatch):
+        captured = {}
+
+        def fake_stage(cid, to_stage, evidence, **kwargs):
+            captured.update({"cid": cid, "to": to_stage, "evidence": evidence, **kwargs})
+            return SimpleNamespace(applied=True, verdict="applied", reasons=[])
+
+        monkeypatch.setattr("agent.digestion.stage.stage_migrate", fake_stage)
+        migration = service._stage_migrate_borrowed("p4-tool-smoke", PLAN)
+        assert migration.applied is True
+        assert captured["cid"] == "cp.skill.p4-tool-smoke"
+        assert captured["to"] == "borrowed"
+        assert captured["evidence"]["first_entry"] is True
+        assert "capability_id=cp.skill.p4-tool-smoke" in captured["evidence"]["trace_policy"]
+        assert captured["actor"] == "agent.ingestion"
+
+    def test_borrowed_门控证据可直接评估(self):
+        from agent.digestion.stage import evaluate_migration
+        verdict, reasons = evaluate_migration(
+            capability_id="cp.skill.p4-tool-smoke", from_stage=None,
+            to_stage="borrowed",
+            evidence={"first_entry": True,
+                      "trace_policy": "trace:skill-import:ledger=x#capability_id=cp.skill.p4-tool-smoke"})
+        assert verdict == "applied", reasons
+
+    def test_ledger_trace_policy_含能力键(self):
+        from agent.descriptors.bridge import ledger_trace_policy
+        policy = ledger_trace_policy(source="skill-import",
+                                     capability_id="cp.skill.p4-tool-smoke",
+                                     route="import-ledger")
+        assert "capability_id=cp.skill.p4-tool-smoke" in policy
+        assert "ledger=" in policy and "read=" in policy

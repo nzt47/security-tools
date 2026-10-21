@@ -150,15 +150,17 @@ def api_ingestion_commit():
             archive_id=str(body.get("archive_id") or "").strip(),
             rewrite=body.get("rewrite") is True,
             merge_into=str(body.get("merge_into") or "").strip(),
+            form=str(body.get("form") or "skill").strip().lower(),
         )
     except IngestionError as exc:
         return _fail(exc)
-    return _ok({"result": result.to_dict()}, message="已安装为云枢技能")
+    message = "已生成草稿（未安装/未启用）" if result.draft else "已安装为云枢技能"
+    return _ok({"result": result.to_dict()}, message=message)
 
 
 PLUGIN = register_plugin(Plugin(
     name="ingestion",
-    version="0.4.0",
-    description="吞噬：外来资产（技能包/文档/提示词/JS 插件包）→ 可预览/可重写/可合并的云枢技能计划（sources/preview/commit）",
+    version="0.5.0",
+    description="吞噬：外来资产（技能包/文档/提示词/JS 插件包）→ 可预览/可重写/可合并/可生成工具或工作流草稿的能力计划（sources/preview/commit）",
     blueprint=bp,
 ))

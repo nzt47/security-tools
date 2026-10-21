@@ -35,6 +35,8 @@ from . import registry as registry_mod
 from .adapters import ExtractedAsset
 from .models import (
     FORM_SKILL,
+    FORM_TOOL,
+    FORM_WORKFLOW,
     LEVEL_L0,
     LEVEL_L1,
     LEVEL_L2,
@@ -463,7 +465,34 @@ def normalize(source: IngestSource, asset: ExtractedAsset) -> Tuple[NormalizedSk
 # ════════════════════════════════════════════════════════════
 
 
-def recommend(conformance: Conformance) -> Recommendation:
+def recommend(conformance: Conformance, *, skill: Optional[NormalizedSkill] = None,
+              asset: Optional[ExtractedAsset] = None) -> Recommendation:
+    """吸收形态建议：默认 skill；只有证据充分才升级 workflow/tool。
+
+    P4 证据：
+    - 有 scripts/*.py ⇒ tool（确定性执行面；仍需人工实现/测试/审批）；
+    - 正文有 ≥3 个稳定编号步骤（无脚本）⇒ workflow（步骤固定、可编排）；
+    - 其余 ⇒ skill。
+    建议只是建议：commit 必须显式 form=tool/workflow 才生成草稿，不自动启用。
+    """
+    if skill is not None:
+        if skill.scripts:
+            return Recommendation(
+                form=FORM_TOOL,
+                reason="来源含 scripts/*.py，具备确定性执行面；可生成代码工具骨架（需人工实现/测试/审批）。",
+                confidence=0.6,
+            )
+        try:
+            from .drafts import extract_steps
+            steps = extract_steps(skill.body)
+        except Exception:  # noqa: BLE001
+            steps = []
+        if len(steps) >= 3:
+            return Recommendation(
+                form=FORM_WORKFLOW,
+                reason=f"正文有 {len(steps)} 个稳定编号步骤且无脚本；可生成工作流骨架（需人工绑定工具）。",
+                confidence=0.55,
+            )
     if conformance.level == LEVEL_L0:
         return Recommendation(
             form=FORM_SKILL,
@@ -803,6 +832,14 @@ def preview(source: Any, *, registry: Optional[registry_mod.AdapterRegistry] = N
     if conformance.level != LEVEL_L2 and rewrite:
         warnings.append("来源已是 L0/L1，忽略 rewrite=true（不调用 LLM）")
 
+    # P4：按证据重算吸收形态建议（scripts→tool；≥3 稳定步骤→workflow；否则 skill）
+    recommendation = recommend(conformance, skill=skill, asset=asset)
+    if skill is not None and recommendation.form != FORM_SKILL:
+        actions = list(actions) + [
+            f"推荐形态 {recommendation.form}：可用 commit form={recommendation.form} "
+            "生成骨架（落本地草稿目录，不自动启用）"
+        ]
+
     dedupe_items: List[Dict[str, Any]] = []
     merge_suggestion: Optional[Dict[str, Any]] = None
     if dedupe:
@@ -934,6 +971,37 @@ def _finalize_import(svc: Any, skill: NormalizedSkill, skill_id: str) -> None:
                 logger.warning("[ingestion] absorb_overlap(%s) 失败(advisory): %s", skill_id, exc)
 
 
+def _stage_migrate_borrowed(skill_id: str, plan: IngestPlan) -> Any:
+    """外来技能安装后以 borrowed 入 digestion 阶段机（复用 `(None,"borrowed")` 边）。
+
+    证据：first_entry=True + 真实台账 trace_policy（ledger_trace_policy 生成，
+    四要素：表/库/能力 join 键/读接口）。门控、审计、事件全部由
+    `agent.digestion.stage.stage_migrate` 负责，本函数不另造门槛。
+    """
+    try:
+        from agent.descriptors.bridge import ledger_trace_policy, sanitize_id_part
+        from agent.digestion.stage import stage_migrate
+        cid = "cp.skill." + (sanitize_id_part(skill_id) or "unknown")
+        trace_policy = ledger_trace_policy(
+            source="skill-import", capability_id=cid, route="import-ledger")
+        return stage_migrate(
+            cid, "borrowed",
+            {
+                "first_entry": True,
+                "trace_policy": trace_policy,
+                "scope": "ingestion",
+                "source_ref": plan.source_ref,
+                "actor": "agent.ingestion",
+                "reason": "外来资产吞噬入轨（P4 borrowed）",
+            },
+            actor="agent.ingestion",
+            reason="ingestion",
+        )
+    except Exception as exc:  # noqa: BLE001 入轨失败不阻断安装，但必须可见
+        logger.warning("[ingestion] digestion borrowed 入轨失败(advisory): %s", exc)
+        return None
+
+
 def _install_plan(plan: IngestPlan, *, installer: Any = None,
                   rewritten: bool = False, archive_id: str = "",
                   merge_into: str = "") -> IngestResult:
@@ -1035,6 +1103,20 @@ def _install_plan(plan: IngestPlan, *, installer: Any = None,
         return result
 
     _finalize_import(svc, skill, skill_id)
+    migration = _stage_migrate_borrowed(skill_id, plan)
+    stage = ""
+    stage_verdict = ""
+    stage_warnings: List[str] = []
+    if migration is None:
+        stage_verdict = "error"
+        stage_warnings.append("digestion borrowed 入轨失败（advisory）；技能已安装但 stage 未入轨")
+    else:
+        stage_verdict = str(getattr(migration, "verdict", "") or "")
+        if bool(getattr(migration, "applied", False)):
+            stage = "borrowed"
+        else:
+            reasons = "；".join(str(r) for r in (getattr(migration, "reasons", []) or [])[:3])
+            stage_warnings.append(f"digestion borrowed 入轨未应用（{stage_verdict}）：{reasons}")
     result = IngestResult(
         plan_id=plan.plan_id,
         skill_id=skill_id,
@@ -1043,11 +1125,14 @@ def _install_plan(plan: IngestPlan, *, installer: Any = None,
         scripts_count=int(raw.get("scripts_count") or len(skill.scripts)),
         adapter=plan.adapter,
         conformance=plan.conformance.level,
-        warnings=list(plan.warnings),
+        warnings=list(plan.warnings) + stage_warnings,
         installed=True,
         rewritten=bool(rewritten or plan.rewritten),
         archive_id=str(archive_id or plan.archive_id),
         queued=True,
+        form="skill",
+        stage=stage,
+        stage_verdict=stage_verdict,
     )
     _audit({
         "plan_id": result.plan_id,
@@ -1098,11 +1183,66 @@ def _plan_from_archive(prepared: IngestSource, archive: Dict[str, Any],
     )
 
 
+def _write_draft_result(plan: IngestPlan, *, form: str,
+                        archive_id: str = "", draft_dir: Any = None) -> IngestResult:
+    """P4：只生成 tool/workflow 骨架草稿，不安装、不注册、不启用。"""
+    if plan.skill is None:
+        raise RewriteRequired("计划中没有可生成草稿的 skill（需要先重写）")
+    from . import drafts
+    try:
+        data = drafts.write_draft(plan.skill, plan, form, draft_dir=draft_dir)
+    except Exception as exc:  # noqa: BLE001 草稿写入失败要带原因
+        logger.exception("[ingestion] draft write failed plan=%s form=%s", plan.plan_id, form)
+        raise IngestionError(
+            "草稿生成失败",
+            detail=f"{type(exc).__name__}: {exc}",
+            status=500,
+            code="draft-failed",
+            title="草稿生成失败",
+        ) from exc
+    skill = plan.skill
+    result = IngestResult(
+        plan_id=plan.plan_id,
+        skill_id=skill.id,
+        name=skill.name,
+        version=skill.version,
+        scripts_count=len(skill.scripts),
+        adapter=plan.adapter,
+        conformance=plan.conformance.level,
+        warnings=list(plan.warnings) + list(data.get("warnings") or []),
+        installed=False,
+        rewritten=bool(plan.rewritten),
+        archive_id=str(archive_id or plan.archive_id),
+        queued=False,
+        form=form,
+        draft=True,
+        draft_dir=str(data.get("draft_dir") or ""),
+        stage="",
+        stage_verdict="",
+    )
+    _audit({
+        "plan_id": result.plan_id,
+        "skill_id": result.skill_id,
+        "adapter": result.adapter,
+        "conformance": result.conformance,
+        "source_ref": plan.source_ref,
+        "rewritten": result.rewritten,
+        "archive_id": result.archive_id,
+        "form": form,
+        "draft": True,
+        "draft_dir": result.draft_dir,
+    })
+    logger.info("[ingestion] draft plan=%s form=%s dir=%s",
+                result.plan_id, form, result.draft_dir)
+    return result
+
+
 def commit(source: Any, *, plan_id: str, confirm: bool = False,
            registry: Optional[registry_mod.AdapterRegistry] = None,
            installer: Any = None, archive_id: str = "", rewrite: bool = False,
            llm_client: Any = None, archive_dir: Optional[Any] = None,
-           merge_into: str = "") -> IngestResult:
+           merge_into: str = "", form: str = "skill",
+           draft_dir: Optional[Any] = None) -> IngestResult:
     """按**已预览的计划**落库（复用 install_from_zip）。
 
     P2：L2 来源必须先用 preview(rewrite=true) 生成存档，再带 archive_id 提交；
@@ -1123,6 +1263,11 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
     if not str(plan_id or "").strip():
         raise InvalidSource("commit 需要 plan_id（先调用 preview）")
     plan_id = str(plan_id).strip()
+    form = str(form or "skill").strip().lower()
+    if form not in ("skill", "tool", "workflow"):
+        raise InvalidSource(f"未知 form：{form!r}（只支持 skill/tool/workflow）")
+    if form != "skill" and merge_into:
+        raise InvalidSource("tool/workflow 草稿形态不支持 merge_into（合并只对技能生效）")
 
     if archive_id:
         from . import rewrite as rewrite_mod
@@ -1159,6 +1304,9 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
                 detail="请重新 preview(rewrite=true) 生成通过校验的草稿。",
             )
         plan = _plan_from_archive(prepared, archive, aid, skill)
+        if form != "skill":
+            return _write_draft_result(plan, form=form, archive_id=aid,
+                                       draft_dir=draft_dir)
         return _install_plan(plan, installer=installer, rewritten=True,
                              archive_id=aid, merge_into=merge_into)
 
@@ -1176,6 +1324,8 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
             "该来源不符合云枢 schema（L2），需要先 LLM 重写并人工预览",
             detail="请 preview(rewrite=true) 生成草稿与 archive_id，再带 archive_id 提交。",
         )
+    if form != "skill":
+        return _write_draft_result(plan, form=form, draft_dir=draft_dir)
     return _install_plan(plan, installer=installer, merge_into=merge_into)
 
 
