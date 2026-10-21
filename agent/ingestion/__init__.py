@@ -14,11 +14,13 @@
 `agent.state_manager`、`agent.skills_mgmt`、`agent.audit` 等重依赖一律在
 函数体内懒加载（见 `service._default_installer` / `service._audit`）。
 
-P0 模块清单：
+模块清单：
 
 - `models`：来源 / 三级判定 / 建议 / 计划 / 结果 / 领域错误；
 - `registry`：按 `sniff()` 打分选适配器（内容特征优先，不按生态名硬编码）；
-- `adapters/`：skill_json / skill_md / docs 三个内置适配器（P1 追加生态与 zip）；
+- `adapters/`：skill_json / skill_md / docs（P0）+ claude / openclaw / trae / zip /
+  JS 插件包（P1）；
+- `sources`：本机默认扫描根与候选探测（`INGEST_SCAN_ROOTS` 可覆盖）；
 - `service`：`preview()` / `commit()`（commit 复用既有 install_from_zip）。
 
 设计文档：交接单 `C:/Users/Administrator/yunshu_ingestion_handoff.md` §2-§4。
@@ -61,6 +63,7 @@ from .registry import (  # noqa: F401
     reset_registry,
     select,
 )
+from .sources import discover_sources, parse_scan_roots  # noqa: F401
 
 __all__ = [
     "AdapterRegistry",
@@ -90,7 +93,9 @@ __all__ = [
     "SourceNotFound",
     "SourceTooLarge",
     "UnsupportedSource",
+    "discover_sources",
     "get_registry",
+    "parse_scan_roots",
     "register",
     "reset_registry",
     "select",

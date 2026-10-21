@@ -1117,6 +1117,11 @@
       "intent": "should_be_in_ui",
       "area": "技能中心·吞噬",
       "note": "P0 后端契约；P5 前端 ingestion 叶子接入后从待办台账移除。预览确认后的落库入口（必须带 plan_id + confirm）。"
+    },
+    "/api/ingestion/sources": {
+      "intent": "should_be_in_ui",
+      "area": "技能中心·吞噬",
+      "note": "P1 后端源探测；P5 前端 ingestion 叶子接入后从待办台账移除。列出 claude/openclaw/trae 等默认扫描根与可预览候选。"
     }
   }
 }

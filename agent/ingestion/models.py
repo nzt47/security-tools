@@ -161,6 +161,9 @@ class IngestSource:
     path: str = ""
     text: str = ""
     label: str = ""
+    #: 可选的生态提示（claude/openclaw/trae/...）。默认空 = 由路径推断；
+    #: 自定义扫描根（INGEST_SCAN_ROOTS 的 label=path）下由前端把 label 带回来。
+    ecosystem: str = ""
 
     def __post_init__(self) -> None:
         kind = str(self.kind or "").strip().lower()
@@ -178,6 +181,7 @@ class IngestSource:
                 raise ValueError("text 来源必须提供非空 text")
             object.__setattr__(self, "text", str(self.text))
         object.__setattr__(self, "label", str(self.label or "").strip())
+        object.__setattr__(self, "ecosystem", str(self.ecosystem or "").strip().lower())
 
     @classmethod
     def from_mapping(cls, raw: Any) -> "IngestSource":
@@ -193,15 +197,18 @@ class IngestSource:
         if isinstance(raw, (str, os.PathLike)):
             return cls(kind=SOURCE_KIND_PATH, path=os.fspath(raw))
         if not isinstance(raw, dict):
-            raise InvalidSource("source 必须是路径字符串或 {path|text, label} 对象")
+            raise InvalidSource("source 必须是路径字符串或 {path|text, label, ecosystem} 对象")
+        ecosystem = str(raw.get("ecosystem") or raw.get("ecosystem_hint") or "")
         path = raw.get("path")
         text = raw.get("text")
         if path and text:
             raise InvalidSource("source.path 与 source.text 不能同时提供")
         if path:
-            return cls(kind=SOURCE_KIND_PATH, path=str(path), label=str(raw.get("label") or ""))
+            return cls(kind=SOURCE_KIND_PATH, path=str(path),
+                       label=str(raw.get("label") or ""), ecosystem=ecosystem)
         if text is not None:
-            return cls(kind=SOURCE_KIND_TEXT, text=str(text), label=str(raw.get("label") or ""))
+            return cls(kind=SOURCE_KIND_TEXT, text=str(text),
+                       label=str(raw.get("label") or ""), ecosystem=ecosystem)
         raise InvalidSource("source 必须包含 path 或 text")
 
     @property
@@ -217,20 +224,23 @@ class IngestSource:
         return hashlib.sha256(self.text.encode("utf-8", errors="replace")).hexdigest()
 
     def to_public(self) -> Dict[str, Any]:
+        common = {"ecosystem": self.ecosystem} if self.ecosystem else {}
         if self.kind == SOURCE_KIND_PATH:
-            return {"kind": self.kind, "path": self.path, "label": self.display_name}
+            return {"kind": self.kind, "path": self.path,
+                    "label": self.display_name, **common}
         return {
             "kind": self.kind,
             "label": self.display_name,
             "chars": len(self.text),
             "sha256": self.text_digest()[:16],
+            **common,
         }
 
     def identity(self) -> Dict[str, Any]:
         """来源身份（不含内容指纹；内容指纹由 service 叠加）。"""
         if self.kind == SOURCE_KIND_PATH:
-            return {"kind": self.kind, "path": self.path}
-        return {"kind": self.kind, "sha256": self.text_digest()}
+            return {"kind": self.kind, "path": self.path, "ecosystem": self.ecosystem}
+        return {"kind": self.kind, "sha256": self.text_digest(), "ecosystem": self.ecosystem}
 
 
 # ════════════════════════════════════════════════════════════

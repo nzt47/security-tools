@@ -2890,6 +2890,12 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        owner="app_server.py",
        impact="影响面：每增加一个前缀，其下全部变更型接口即免鉴权"),
 
+    # 吞噬（ingestion）本机源探测
+    _c("INGEST_SCAN_ROOTS", CAT_SKILLS, None,
+       "吞噬源探测根（os.pathsep 分隔；每项可写 label=path，label 用于生态归属）。"
+       "缺位时使用默认 claude/openclaw/trae 目录；只读扫描，不写来源",
+       owner="agent/ingestion/sources.py"),
+
     # 经验库检索与注入
     _c("CP_EXPERIENCE_DIR", CAT_SKILLS, None,
        "经验库运行期目录（samples/reviews/batches 落于此）；缺位时由代码默认 data/experience",

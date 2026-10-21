@@ -107,7 +107,12 @@ def _prepare_source(raw: Any) -> IngestSource:
         ) from exc
     if not resolved.exists():
         raise SourceNotFound(f"来源不存在：{source.path}")
-    return IngestSource(kind="path", path=str(resolved), label=source.label)
+    return IngestSource(
+        kind="path",
+        path=str(resolved),
+        label=source.label,
+        ecosystem=source.ecosystem,
+    )
 
 
 def _sha256_text(text: str) -> str:
@@ -261,19 +266,32 @@ def classify(asset: ExtractedAsset) -> Conformance:
         and _filled(manifest, "name")
         and (_filled(manifest, "content") or has_body)
     )
+    packaging = str((asset.meta or {}).get("packaging") or "")
+    # zip 内 manifest.json + skill.md 已是既有 install_from_zip 的安装包结构 ⇒ L0。
+    # 【为什么 zip 的单文件 SKILL.md 不算 L0】它缺 manifest，仍需适配器补写（L1）。
+    zip_canonical = (
+        packaging == "zip"
+        and asset.manifest_kind == "manifest_json"
+        and _filled(manifest, "id")
+        and _filled(manifest, "name")
+        and has_body
+    )
     canonical_front = (
-        bool(asset.canonical_layout)
+        packaging != "zip"
+        and bool(asset.canonical_layout)
         and _filled_any(fm, _ALIASES["id"])
         and _filled_any(fm, _ALIASES["name"])
         and _filled_any(fm, _ALIASES["description"])
         and has_body
     )
-    if canonical_manifest or canonical_front:
+    if canonical_manifest or canonical_front or zip_canonical:
         reasons: List[str] = []
         if canonical_manifest:
             reasons.append("skill.json 含 id/name/content")
         if canonical_front:
             reasons.append("SKILL.md front matter 含 id/name/description 且目录结构合规")
+        if zip_canonical:
+            reasons.append("zip 内 manifest.json + skill.md 已是云枢安装包结构")
         return Conformance(level=LEVEL_L0, reasons=tuple(reasons), missing=())
 
     missing: List[str] = []
@@ -305,7 +323,9 @@ def classify(asset: ExtractedAsset) -> Conformance:
                            missing=tuple(dict.fromkeys(missing)))
 
     reasons = ["没有任何技能清单/入口标记（无 skill.json、SKILL.md front matter、manifest.json）"]
-    if asset.source_kind == "text":
+    if (asset.meta or {}).get("js_plugin"):
+        reasons.append("JS 插件包只抽取 README/commands/tools 清单，不能执行，需要重写")
+    elif asset.source_kind == "text":
         reasons.append("纯文本/提示词原文，需要重写为云枢 skill.md")
     else:
         reasons.append("文档/说明集合，需要重写为云枢 skill.md")
@@ -406,6 +426,7 @@ def normalize(source: IngestSource, asset: ExtractedAsset) -> Tuple[NormalizedSk
     author = _as_text(take("author"), 120)
     content_type = _as_text(take("content_type"), 40) or "markdown"
 
+    meta = asset.meta or {}
     extra = {
         "adapter": asset.adapter,
         "manifest_kind": asset.manifest_kind,
@@ -414,6 +435,10 @@ def normalize(source: IngestSource, asset: ExtractedAsset) -> Tuple[NormalizedSk
         "front_matter_keys": sorted(str(k) for k in (asset.front_matter or {})),
         "mapped_keys": dict(mapped),
         "primary_file": asset.primary_file,
+        "ecosystem": str(meta.get("ecosystem") or ""),
+        "packaging": str(meta.get("packaging") or ""),
+        "js_plugin": bool(meta.get("js_plugin")),
+        "clawhub_meta": meta.get("clawhub_meta") or {},
     }
     skill = NormalizedSkill(
         id=skill_id,
@@ -499,11 +524,17 @@ def _actions(source: IngestSource, asset: ExtractedAsset, conformance: Conforman
 
 def _raw_summary(asset: ExtractedAsset) -> Dict[str, Any]:
     body = str(asset.body or "")
+    meta = asset.meta or {}
     return {
         "chars": len(body),
         "files": sorted(asset.files),
-        "doc_files": list((asset.meta or {}).get("doc_files") or []),
+        "doc_files": list(meta.get("doc_files") or []),
         "manifest_kind": asset.manifest_kind,
+        "ecosystem": str(meta.get("ecosystem") or ""),
+        "packaging": str(meta.get("packaging") or ""),
+        "js_plugin": bool(meta.get("js_plugin")),
+        "commands": list(meta.get("commands") or []),
+        "skills": list(meta.get("skills") or []),
         "excerpt": body[:RAW_EXCERPT_LIMIT],
         "excerpt_truncated": len(body) > RAW_EXCERPT_LIMIT,
     }

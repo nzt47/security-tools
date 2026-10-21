@@ -84,6 +84,39 @@ def read_json_file(path: Path) -> Tuple[Optional[Any], List[str]]:
         return None, warnings
 
 
+def _tolerant_front_matter(text: str) -> Tuple[Dict[str, Any], str, List[str]]:
+    """坏 YAML 的按行容错解析（只取顶层 `key: value`，不猜嵌套结构）。
+
+    实测（2026-10-21）：trae/openclaw 的 `code-refactor` 技能 description 里
+    含未加引号的 `Chinese triggers: 重构、...` ⇒ PyYAML ScannerError，整段
+    front matter 被丢弃。按行恢复至少能保住 name/description/license 等标量，
+    比"整段忽略"更接近原文；嵌套 metadata 等复杂结构仍交给 YAML 解析器。
+    """
+    lines = str(text or "").splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}, str(text or ""), []
+    end_idx = None
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            end_idx = i
+            break
+    if end_idx is None:
+        return {}, str(text or ""), []
+    meta: Dict[str, Any] = {}
+    for line in lines[1:end_idx]:
+        match = re.match(r"^([A-Za-z0-9_][A-Za-z0-9_\-.]*)\s*:\s*(.*)$", line)
+        if not match:
+            continue
+        key, value = match.group(1), match.group(2).strip()
+        if not value:
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        meta[key] = value
+    body = "\n".join(lines[end_idx + 1:]).strip()
+    return meta, body, []
+
+
 def split_front_matter(text: str) -> Tuple[Dict[str, Any], str, List[str]]:
     """拆 SKILL.md 的 YAML front matter。
 
@@ -98,7 +131,15 @@ def split_front_matter(text: str) -> Tuple[Dict[str, Any], str, List[str]]:
     except Exception as exc:  # noqa: BLE001 解析器不可用时如实降级，不阻断
         return {}, str(text or ""), [f"front matter 解析器不可用（{type(exc).__name__}），按纯正文处理"]
     meta, body, warnings = _split_front_matter(str(text))
-    return dict(meta or {}), body, list(warnings or [])
+    meta = dict(meta or {})
+    warnings = list(warnings or [])
+    if not meta and any("解析失败" in warning for warning in warnings):
+        tolerant, tolerant_body, _ = _tolerant_front_matter(str(text))
+        if tolerant:
+            meta = tolerant
+            body = tolerant_body
+            warnings.append(f"front matter YAML 解析失败，已按行容错恢复 {len(tolerant)} 个字段")
+    return meta, body, warnings
 
 
 def first_heading(body: str) -> str:
@@ -115,6 +156,35 @@ def first_paragraph(body: str, limit: int = 200) -> str:
         if para and not para.startswith("#"):
             return re.sub(r"\s+", " ", para)[:limit]
     return ""
+
+
+def path_ecosystem(path: Path) -> str:
+    """从路径推断生态（仅作**默认扫描位置**的提示，不替代内容特征）。
+
+    实测（2026-10-21）：
+      - `~/.claude/skills/<id>/SKILL.md`：front matter 只有 name/description；
+      - `~/.openclaw/workspace/skills/<id>/SKILL.md`：可能带 `metadata.openclaw`、
+        `homepage`、`license`，并带 `_meta.json` / `skill-card.md`；
+      - `~/.trae-cn/skills/<id>/SKILL.md`：同样带 `_meta.json` / `skill-card.md`
+        （ClawHub 形态），无独立 front matter 键；
+      - `~/Clawdbot/moltbot/skills/<id>`：openclaw 系。
+    """
+    parts = [part.lower() for part in Path(path).parts]
+    if ".claude" in parts:
+        return "claude"
+    if ".openclaw" in parts or "moltbot" in parts:
+        return "openclaw"
+    if ".trae" in parts or ".trae-cn" in parts or ".trae-aicc" in parts:
+        return "trae"
+    if ".hermes" in parts:
+        return "hermes"
+    return ""
+
+
+def source_ecosystem(source: Any, path: Path) -> str:
+    """生态提示：显式 `source.ecosystem` 优先，其次路径推断。"""
+    hint = str(getattr(source, "ecosystem", "") or "").strip().lower()
+    return hint or path_ecosystem(path)
 
 
 def find_skill_md(root: Path) -> Optional[Path]:
