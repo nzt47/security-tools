@@ -77,14 +77,24 @@ def _plan_payload(plan: Any) -> Dict[str, Any]:
 @bp.route("/api/ingestion/preview", methods=["POST"])
 @_require_token
 def api_ingestion_preview():
-    """吞噬预览：识别来源并生成可预览的 L0/L1/L2 计划，不落库、不执行来源脚本。"""
+    """吞噬预览：识别来源并生成 L0/L1/L2 计划；rewrite=true 时额外生成重写草稿与存档。"""
     try:
-        source = _source_from_body(_json_body())
+        body = _json_body()
+        source = _source_from_body(body)
+        rewrite = body.get("rewrite") is True
         from agent.ingestion import service
-        plan = service.preview(source)
+        plan = service.preview(source, rewrite=rewrite)
     except IngestionError as exc:
         return _fail(exc)
-    return _ok(_plan_payload(plan), message="预览已生成（未写任何文件）")
+    if rewrite and plan.archive_id:
+        message = ("重写草稿已生成并写存档（请人工预览后带 archive_id 提交）"
+                   if plan.rewritten else
+                   "重写未通过校验，原文/输出已存档（见 rewrite_errors）")
+    elif rewrite:
+        message = "来源已是 L0/L1，已忽略 rewrite（未调用 LLM、未写存档）"
+    else:
+        message = "预览已生成（未写任何文件）"
+    return _ok(_plan_payload(plan), message=message)
 
 
 @bp.route("/api/ingestion/sources", methods=["GET"])
@@ -99,7 +109,7 @@ def api_ingestion_sources():
 @bp.route("/api/ingestion/commit", methods=["POST"])
 @_require_token
 def api_ingestion_commit():
-    """吞噬落库：按已预览的 plan_id 安装；L2 需 P2 重写，P0 明确拒绝。"""
+    """吞噬落库：按 plan_id 安装；L2 需带 preview(rewrite=true) 生成的 archive_id。"""
     try:
         body = _json_body()
         source = _source_from_body(body)
@@ -107,7 +117,13 @@ def api_ingestion_commit():
         if not plan_id:
             raise InvalidSource("缺少 plan_id（先调用 /api/ingestion/preview）")
         from agent.ingestion import service
-        result = service.commit(source, plan_id=plan_id, confirm=body.get("confirm") is True)
+        result = service.commit(
+            source,
+            plan_id=plan_id,
+            confirm=body.get("confirm") is True,
+            archive_id=str(body.get("archive_id") or "").strip(),
+            rewrite=body.get("rewrite") is True,
+        )
     except IngestionError as exc:
         return _fail(exc)
     return _ok({"result": result.to_dict()}, message="已安装为云枢技能")
@@ -115,7 +131,7 @@ def api_ingestion_commit():
 
 PLUGIN = register_plugin(Plugin(
     name="ingestion",
-    version="0.2.0",
-    description="吞噬：外来资产（技能包/文档/提示词/JS 插件包）→ 可预览的云枢技能计划（sources/preview/commit）",
+    version="0.3.0",
+    description="吞噬：外来资产（技能包/文档/提示词/JS 插件包）→ 可预览/可重写的云枢技能计划（sources/preview/commit）",
     blueprint=bp,
 ))

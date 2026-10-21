@@ -255,7 +255,7 @@ class TestPreviewConformance:
         assert plan.conformance.level == LEVEL_L2
         assert plan.requires_rewrite is True
         assert plan.skill is None
-        assert "P0 未接入 LLM" in " ".join(plan.warnings)
+        assert "尚未触发 LLM 重写" in " ".join(plan.warnings)
         with pytest.raises(RewriteRequired):
             service.commit(l2_doc, plan_id=plan.plan_id, confirm=True,
                            installer=FakeInstaller())
