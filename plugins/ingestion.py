@@ -158,9 +158,68 @@ def api_ingestion_commit():
     return _ok({"result": result.to_dict()}, message=message)
 
 
+@bp.route("/api/ingestion/governance/scan", methods=["POST"])
+@_require_token
+def api_ingestion_governance_scan():
+    """存量资产治理盘点（只读）：技能/重复/孤儿/无用 + 结构化问题。"""
+    from agent.ingestion import governance
+    try:
+        body = _json_body()
+        try:
+            limit = int(body.get("limit") or 500)
+        except (TypeError, ValueError):
+            limit = 500
+        data = governance.scan(limit=max(1, min(limit, 500)))
+    except IngestionError as exc:
+        return _fail(exc)
+    return _ok({"scan": data}, message="治理盘点完成（只读）")
+
+
+@bp.route("/api/ingestion/governance/plan", methods=["POST"])
+@_require_token
+def api_ingestion_governance_plan():
+    """生成确定性治理计划：merge / archive / split / refactor / delete_orphans。"""
+    from agent.ingestion import governance
+    try:
+        body = _json_body()
+        try:
+            limit = int(body.get("limit") or 500)
+        except (TypeError, ValueError):
+            limit = 500
+        data = governance.plan(limit=max(1, min(limit, 500)))
+    except IngestionError as exc:
+        return _fail(exc)
+    return _ok({"plan": data}, message="治理计划已生成（未执行）")
+
+
+@bp.route("/api/ingestion/governance/apply", methods=["POST"])
+@_require_token
+def api_ingestion_governance_apply():
+    """执行一条治理动作：默认 dry-run；真执行必须 confirm=true。"""
+    from agent.ingestion import governance
+    try:
+        body = _json_body()
+        plan_id = str(body.get("plan_id") or "").strip()
+        action = str(body.get("action") or "").strip()
+        target = str(body.get("target") or "").strip()
+        if not plan_id or not action or not target:
+            raise InvalidSource("缺少 plan_id / action / target（先调用 governance/plan）")
+        data = governance.apply(
+            plan_id=plan_id, action=action, target=target,
+            confirm=body.get("confirm") is True,
+            dry_run=body.get("dry_run") is not False,
+        )
+    except IngestionError as exc:
+        return _fail(exc)
+    except ValueError as exc:
+        return _fail(InvalidSource(str(exc)))
+    message = "dry-run：未改任何数据" if data.get("dry_run") else "治理动作已执行并审计"
+    return _ok({"result": data}, message=message)
+
+
 PLUGIN = register_plugin(Plugin(
     name="ingestion",
-    version="0.5.0",
-    description="吞噬：外来资产（技能包/文档/提示词/JS 插件包）→ 可预览/可重写/可合并/可生成工具或工作流草稿的能力计划（sources/preview/commit）",
+    version="0.6.0",
+    description="吞噬：外来资产获取（sources/preview/commit）+ 存量资产治理（governance/scan|plan|apply）",
     blueprint=bp,
 ))

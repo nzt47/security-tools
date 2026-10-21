@@ -10,9 +10,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle, ArrowRight, CheckCircle2, FileText, FolderOpen, GitBranch,
-  Layers, Loader2, RefreshCw, Search, ShieldCheck,
+  Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
 import { Badge, Card, ErrorBox, PageHeader } from '../components/ui'
+import GovernancePanel from './governance'
 import {
   commitIngestion,
   fetchIngestionSources,
@@ -56,7 +57,25 @@ function dedupeTone(item: DedupeItem): 'green' | 'amber' | 'red' | 'cyan' | 'sla
   return 'slate'
 }
 
+type IngestionTab = 'acquire' | 'governance'
+
+function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: IngestionTab) => void }) {
+  return (
+    <div className="mb-3 flex items-center gap-1.5" role="tablist" aria-label="吞噬子模块">
+      <button type="button" role="tab" aria-selected={tab === 'acquire'}
+        className={tab === 'acquire' ? BTN_EM : BTN} onClick={() => onChange('acquire')}>
+        <PackagePlus size={12} /> 获取外来能力
+      </button>
+      <button type="button" role="tab" aria-selected={tab === 'governance'}
+        className={tab === 'governance' ? BTN_EM : BTN} onClick={() => onChange('governance')}>
+        <Layers size={12} /> 存量治理
+      </button>
+    </div>
+  )
+}
+
 export default function IngestionPage() {
+  const [tab, setTab] = useState<IngestionTab>('acquire')
   const [mode, setMode] = useState<'path' | 'text'>('path')
   const [pathInput, setPathInput] = useState('')
   const [textInput, setTextInput] = useState('')
@@ -140,8 +159,20 @@ export default function IngestionPage() {
     ? (mergeInto.trim() ? '合并进 ' + mergeInto.trim() : '安装为技能')
     : (form === 'tool' ? '生成工具草稿' : '生成工作流草稿')
 
+  const tabs = <IngestionTabs tab={tab} onChange={setTab} />
+
+  if (tab === 'governance') {
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
+        {tabs}
+        <GovernancePanel />
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
+      {tabs}
       <PageHeader
         title="吞噬"
         description="外来技能 / 文档 / 提示词 / 插件包 → 可预览、可重写、可合并、可生成草稿的云枢能力。只在显式确认后落库。"

@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-10-22T00:07:29",
+  "generated_at": "2026-10-22T00:25:21",
   "totals": {
-    "routes": 452,
-    "live": 452,
+    "routes": 455,
+    "live": 455,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 395,
+    "ui": 398,
     "cli_script": 16,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 395,
+      "ui": 398,
       "cli_script": 16,
       "runtime_only": 11,
       "unreferenced": 30
     },
     "by_intent": {
-      "should_be_in_ui": 379,
+      "should_be_in_ui": 382,
       "should_not_be_in_ui": 72,
       "unclassified": 1
     },
@@ -30,14 +30,14 @@
       "调度与任务": 26,
       "对话与会话": 29,
       "业务与评估": 18,
-      "技能与工具": 104,
+      "技能与工具": 107,
       "认知与学习": 6,
       "观测与诊断": 73,
       "开发与内部": 14,
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 399,
+  "frontend_endpoints": 402,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -3790,7 +3790,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/ingestion/api.ts"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -3805,6 +3805,81 @@
       "domain": "技能与工具"
     },
     {
+      "path": "/api/ingestion/governance/apply",
+      "norm": "/api/ingestion/governance/apply",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:195"
+      ],
+      "description": "执行一条治理动作：默认 dry-run；真执行必须 confirm=true。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "P6 存量治理 Tab（scan/plan/apply）",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
+      "path": "/api/ingestion/governance/plan",
+      "norm": "/api/ingestion/governance/plan",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:178"
+      ],
+      "description": "生成确定性治理计划：merge / archive / split / refactor / delete_orphans。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "P6 存量治理 Tab（scan/plan/apply）",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
+      "path": "/api/ingestion/governance/scan",
+      "norm": "/api/ingestion/governance/scan",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:161"
+      ],
+      "description": "存量资产治理盘点（只读）：技能/重复/孤儿/无用 + 结构化问题。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "P6 存量治理 Tab（scan/plan/apply）",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
       "path": "/api/ingestion/preview",
       "norm": "/api/ingestion/preview",
       "methods": [
@@ -3815,7 +3890,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/ingestion/api.ts"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -3840,7 +3915,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/ingestion/api.ts"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -11598,5 +11673,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "91e16020582bb714"
+  "content_hash": "b2ded06a16d75966"
 }
