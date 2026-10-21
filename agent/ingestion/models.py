@@ -396,6 +396,12 @@ class IngestPlan:
     warnings: List[str] = field(default_factory=list)
     requires_rewrite: bool = False
     requires_confirm: bool = True
+    #: P2：是否已由 LLM 重写成云枢 skill.md（L2 经 rewrite 后才可能为 True）
+    rewritten: bool = False
+    #: P2：原文/重写结果存档 id（`data/ingestion/<archive_id>.json`）
+    archive_id: str = ""
+    #: P2：重写失败原因（schema/LLM）；空 = 未尝试或成功
+    rewrite_errors: List[str] = field(default_factory=list)
     dedupe: List[Dict[str, Any]] = field(default_factory=list)
     merge_suggestion: Optional[Dict[str, Any]] = None
     raw: Dict[str, Any] = field(default_factory=dict)
@@ -414,6 +420,9 @@ class IngestPlan:
             "warnings": list(self.warnings),
             "requires_rewrite": bool(self.requires_rewrite),
             "requires_confirm": bool(self.requires_confirm),
+            "rewritten": bool(self.rewritten),
+            "archive_id": self.archive_id,
+            "rewrite_errors": list(self.rewrite_errors),
             "dedupe": list(self.dedupe),
             "merge_suggestion": dict(self.merge_suggestion) if self.merge_suggestion else None,
             "raw": dict(self.raw),
@@ -433,6 +442,9 @@ class IngestResult:
     conformance: str
     warnings: List[str] = field(default_factory=list)
     installed: bool = True
+    #: P2：本次安装的是否为 LLM 重写产物 + 存档 id
+    rewritten: bool = False
+    archive_id: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -445,6 +457,8 @@ class IngestResult:
             "conformance": self.conformance,
             "warnings": list(self.warnings),
             "installed": bool(self.installed),
+            "rewritten": bool(self.rewritten),
+            "archive_id": self.archive_id,
         }
 
 

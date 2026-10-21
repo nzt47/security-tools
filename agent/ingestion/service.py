@@ -570,8 +570,43 @@ def _extract(selection: registry_mod.Selection, source: IngestSource) -> Extract
     return asset
 
 
-def preview(source: Any, *, registry: Optional[registry_mod.AdapterRegistry] = None) -> IngestPlan:
-    """生成可预览的吞噬计划（dry-run；不落库、不执行来源脚本）。"""
+def _default_llm_client() -> Any:
+    """生产 LLM 客户端：复用运行中云枢实例（函数体内导入，保持叶子包）。"""
+    from . import rewrite as rewrite_mod
+    return rewrite_mod.default_llm_client()
+
+
+def _rewritten_plan_id(source: IngestSource, archive_id: str) -> str:
+    """重写计划的 id：只由来源指纹 + archive_id 决定（不依赖再次调 LLM）。"""
+    return plan_fingerprint({
+        "source": {"identity": source.identity(),
+                   "fingerprint": _source_fingerprint(source)},
+        "archive_id": archive_id,
+        "rewritten": True,
+    })
+
+
+def _rewrite_actions(archive_id: str, scripts: List[str]) -> List[str]:
+    actions = [
+        "已由 LLM 重写为云枢 skill.md（请先人工预览草稿）",
+        "原文/重写结果已存档：" + archive_id,
+    ]
+    if scripts:
+        shown = "、".join(scripts[:5]) + (f" 等 {len(scripts)} 个" if len(scripts) > 5 else "")
+        actions.append(f"附带 scripts/*.py：{shown}（只搬运，不执行）")
+    return actions
+
+
+def preview(source: Any, *, registry: Optional[registry_mod.AdapterRegistry] = None,
+            rewrite: bool = False, llm_client: Any = None,
+            archive_dir: Optional[Any] = None) -> IngestPlan:
+    """生成可预览的吞噬计划（dry-run；不落库、不执行来源脚本）。
+
+    Args:
+        rewrite: L2 来源是否调用 LLM 重写（默认 False = 只预览原料）。
+        llm_client: 测试/调用方注入的 LLM 客户端；None = 运行时云枢实例。
+        archive_dir: 原文/重写结果存档目录（默认 data/ingestion）。
+    """
     prepared = _prepare_source(source)
     reg = registry or registry_mod.get_registry()
     selection = reg.select(prepared)
@@ -585,18 +620,60 @@ def preview(source: Any, *, registry: Optional[registry_mod.AdapterRegistry] = N
         skill, mapped, normalize_warnings = normalize(prepared, asset)
 
     warnings = list(dict.fromkeys(list(asset.warnings or []) + normalize_warnings))
-    if conformance.level == LEVEL_L2:
-        warnings.append("P0 未接入 LLM 重写层：该来源只能预览，不能 commit")
-
+    archive_id = ""
+    rewrite_errors: List[str] = []
+    rewritten = False
+    requires_rewrite = conformance.level == LEVEL_L2
     recommendation = recommend(conformance)
     actions = _actions(prepared, asset, conformance, skill, mapped)
+
+    if conformance.level == LEVEL_L2 and rewrite:
+        from . import rewrite as rewrite_mod
+        client = llm_client if llm_client is not None else _default_llm_client()
+        result = rewrite_mod.rewrite_asset(
+            prepared, asset,
+            source_ref=_source_ref(prepared),
+            source_fingerprint=_source_fingerprint(prepared),
+            llm_client=client,
+            archive_dir=archive_dir,
+        )
+        archive_id = result.archive_id
+        warnings = list(dict.fromkeys(warnings + list(result.warnings or [])))
+        rewrite_errors = list(result.errors or [])
+        if result.ok and result.skill is not None:
+            skill = result.skill
+            rewritten = True
+            requires_rewrite = False
+            recommendation = Recommendation(
+                form=FORM_SKILL,
+                reason="L2 来源已由 LLM 重写并通过 schema 校验；请人工预览草稿后确认。",
+                confidence=0.5,
+            )
+            actions = _rewrite_actions(archive_id, sorted(skill.scripts))
+        else:
+            requires_rewrite = True
+            warnings.append("LLM 重写未通过校验：保持 L2，commit 会被拒绝（原文已存档）")
+            actions = [
+                "LLM 重写未通过 schema 校验，需修正后重新 preview(rewrite=true)",
+                "原文已存档：" + archive_id,
+                "不对未通过校验的草稿执行安装",
+            ]
+    elif conformance.level == LEVEL_L2:
+        warnings.append("尚未触发 LLM 重写：先 preview(rewrite=true) 生成草稿并人工预览")
+
+    if conformance.level != LEVEL_L2 and rewrite:
+        warnings.append("来源已是 L0/L1，忽略 rewrite=true（不调用 LLM）")
+
     fingerprint = {
         "source": {"identity": prepared.identity(), "fingerprint": _source_fingerprint(prepared)},
         "adapter": selection.name,
         "extraction": _extraction_digest(asset),
         "conformance": conformance.level,
     }
-    plan_id = plan_fingerprint(fingerprint)
+    if archive_id:
+        plan_id = _rewritten_plan_id(prepared, archive_id)
+    else:
+        plan_id = plan_fingerprint(fingerprint)
     plan = IngestPlan(
         plan_id=plan_id,
         source=prepared.to_public(),
@@ -608,14 +685,17 @@ def preview(source: Any, *, registry: Optional[registry_mod.AdapterRegistry] = N
         skill=skill,
         actions=actions,
         warnings=warnings,
-        requires_rewrite=conformance.level == LEVEL_L2,
+        requires_rewrite=requires_rewrite,
         requires_confirm=True,
+        rewritten=rewritten,
+        archive_id=archive_id,
+        rewrite_errors=rewrite_errors,
         dedupe=[],  # P3
         merge_suggestion=None,  # P3
         raw=_raw_summary(asset),
     )
-    logger.info("[ingestion] preview plan=%s adapter=%s level=%s id=%s",
-                plan.plan_id, plan.adapter, conformance.level,
+    logger.info("[ingestion] preview plan=%s adapter=%s level=%s rewritten=%s id=%s",
+                plan.plan_id, plan.adapter, conformance.level, plan.rewritten,
                 skill.id if skill else "-")
     return plan
 
@@ -667,37 +747,16 @@ def _audit(payload: Dict[str, Any]) -> None:
         logger.warning("[ingestion] 审计留痕失败(advisory): %s", exc)
 
 
-def commit(source: Any, *, plan_id: str, confirm: bool = False,
-           registry: Optional[registry_mod.AdapterRegistry] = None,
-           installer: Any = None) -> IngestResult:
-    """按**已预览的计划**落库（复用 install_from_zip）。
+def _fingerprint_key(fingerprint: Any) -> str:
+    return json.dumps(fingerprint, ensure_ascii=False, sort_keys=True, default=str)
 
-    Raises:
-        ConfirmationRequired: 未显式 `confirm=True`
-        PlanStale: 来源在预览后变化（plan_id 不匹配）
-        RewriteRequired: L2 来源（P0 不接 LLM）
-        InstallFailed: 既有安装链路失败
-    """
-    if confirm is not True:
-        raise ConfirmationRequired(
-            "commit 需要显式 confirm=true（必须先看预览计划）",
-            detail="未确认的请求不会写任何文件；请先调用 preview 并把 plan_id 原样带回。",
-        )
-    if not str(plan_id or "").strip():
-        raise InvalidSource("commit 需要 plan_id（先调用 preview）")
-    plan = preview(source, registry=registry)
-    if plan.plan_id != str(plan_id):
-        raise PlanStale(
-            "来源在预览后已变化，计划已失效",
-            detail=f"预览 plan_id={plan_id}，当前 plan_id={plan.plan_id}；请重新 preview。",
-        )
-    if plan.requires_rewrite or plan.skill is None:
-        raise RewriteRequired(
-            "该来源不符合云枢 schema（L2），需要 LLM 重写后才能安装",
-            detail="P0 未接入重写层；请等待 P2，或先把来源整理成 SKILL.md/skill.json。",
-        )
 
+def _install_plan(plan: IngestPlan, *, installer: Any = None,
+                  rewritten: bool = False, archive_id: str = "") -> IngestResult:
+    """把计划里的 NormalizedSkill 拼包并复用 install_from_zip。"""
     skill = plan.skill
+    if skill is None:
+        raise RewriteRequired("计划中没有可安装的 skill（需要先重写）")
     with tempfile.TemporaryDirectory(prefix="yunshu_ingest_") as tmp:
         zip_path = _build_zip(skill, Path(tmp))
         try:
@@ -723,6 +782,8 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
         conformance=plan.conformance.level,
         warnings=list(plan.warnings),
         installed=True,
+        rewritten=bool(rewritten or plan.rewritten),
+        archive_id=str(archive_id or plan.archive_id),
     )
     _audit({
         "plan_id": result.plan_id,
@@ -731,10 +792,121 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
         "conformance": result.conformance,
         "source_ref": plan.source_ref,
         "scripts_count": result.scripts_count,
+        "rewritten": result.rewritten,
+        "archive_id": result.archive_id,
     })
-    logger.info("[ingestion] commit plan=%s skill=%s adapter=%s",
-                result.plan_id, result.skill_id, result.adapter)
+    logger.info("[ingestion] commit plan=%s skill=%s adapter=%s rewritten=%s",
+                result.plan_id, result.skill_id, result.adapter, result.rewritten)
     return result
+
+
+def _plan_from_archive(prepared: IngestSource, archive: Dict[str, Any],
+                       archive_id: str, skill: NormalizedSkill) -> IngestPlan:
+    validation = archive.get("validation") or {}
+    model = archive.get("model") or {}
+    return IngestPlan(
+        plan_id=_rewritten_plan_id(prepared, archive_id),
+        source=prepared.to_public(),
+        source_ref=_source_ref(prepared),
+        adapter=str(archive.get("adapter") or "rewrite"),
+        adapter_scores={},
+        conformance=Conformance(LEVEL_L2, reasons=("LLM 重写存档",)),
+        recommendation=Recommendation(
+            form=FORM_SKILL,
+            reason="从已通过 schema 校验的重写存档安装（不再调用 LLM）。",
+            confidence=0.5,
+        ),
+        skill=skill,
+        actions=[
+            "从重写存档安装：" + archive_id,
+            "模型：" + str(model.get("name") or ""),
+            "原文/重写结果存档：" + archive_id,
+        ],
+        warnings=list(validation.get("warnings") or []),
+        requires_rewrite=False,
+        requires_confirm=True,
+        rewritten=True,
+        archive_id=archive_id,
+        raw={"archive_id": archive_id, "model": model.get("name", "")},
+    )
+
+
+def commit(source: Any, *, plan_id: str, confirm: bool = False,
+           registry: Optional[registry_mod.AdapterRegistry] = None,
+           installer: Any = None, archive_id: str = "", rewrite: bool = False,
+           llm_client: Any = None, archive_dir: Optional[Any] = None) -> IngestResult:
+    """按**已预览的计划**落库（复用 install_from_zip）。
+
+    P2：L2 来源必须先用 preview(rewrite=true) 生成存档，再带 archive_id 提交；
+    commit 只读存档，不重新调 LLM，保证"预览的就是安装的"。
+
+    Raises:
+        ConfirmationRequired: 未显式 confirm=True
+        PlanStale: 来源变化 / 存档缺失 / plan_id 不匹配
+        RewriteRequired: L2 未重写或重写未通过 schema 校验
+        InstallFailed: 既有安装链路失败
+    """
+    if confirm is not True:
+        raise ConfirmationRequired(
+            "commit 需要显式 confirm=true（必须先看预览计划）",
+            detail="未确认的请求不会写任何文件；请先调用 preview 并把 plan_id 原样带回。",
+        )
+    if not str(plan_id or "").strip():
+        raise InvalidSource("commit 需要 plan_id（先调用 preview）")
+    plan_id = str(plan_id).strip()
+
+    if archive_id:
+        from . import rewrite as rewrite_mod
+        aid = str(archive_id).strip()
+        archive = rewrite_mod.load_archive(aid, archive_dir=archive_dir)
+        if archive is None:
+            raise PlanStale(
+                "重写存档不存在或已失效",
+                detail="请重新 preview(rewrite=true) 生成新的 archive_id；旧存档不会复用。",
+            )
+        prepared = _prepare_source(source)
+        archived_fp = (archive.get("source") or {}).get("fingerprint")
+        if _fingerprint_key(archived_fp) != _fingerprint_key(_source_fingerprint(prepared)):
+            raise PlanStale(
+                "来源在重写后已变化，重写存档不再对应当前内容",
+                detail="请重新 preview(rewrite=true)；旧 archive_id 不会被安装。",
+            )
+        expected = _rewritten_plan_id(prepared, aid)
+        if expected != plan_id:
+            raise PlanStale(
+                "plan_id 与重写存档不匹配",
+                detail=f"期望 plan_id={expected}，收到 {plan_id}；请重新 preview(rewrite=true)。",
+            )
+        validation = archive.get("validation") or {}
+        if not validation.get("ok"):
+            raise RewriteRequired(
+                "重写结果未通过 schema 校验，不能安装",
+                detail="；".join(validation.get("errors") or []) or "请重新 preview(rewrite=true)",
+            )
+        skill = rewrite_mod.skill_from_archive(archive)
+        if skill is None:
+            raise RewriteRequired(
+                "重写存档里没有可安装的 skill",
+                detail="请重新 preview(rewrite=true) 生成通过校验的草稿。",
+            )
+        plan = _plan_from_archive(prepared, archive, aid, skill)
+        return _install_plan(plan, installer=installer, rewritten=True, archive_id=aid)
+
+    if rewrite:
+        raise InvalidSource("commit 的 rewrite=true 必须同时带 archive_id（先 preview(rewrite=true)）")
+
+    plan = preview(source, registry=registry)
+    if plan.plan_id != plan_id:
+        raise PlanStale(
+            "来源在预览后已变化，计划已失效",
+            detail=f"预览 plan_id={plan_id}，当前 plan_id={plan.plan_id}；请重新 preview。",
+        )
+    if plan.requires_rewrite or plan.skill is None:
+        raise RewriteRequired(
+            "该来源不符合云枢 schema（L2），需要先 LLM 重写并人工预览",
+            detail="请 preview(rewrite=true) 生成草稿与 archive_id，再带 archive_id 提交。",
+        )
+    return _install_plan(plan, installer=installer)
 
 
 __all__ = [
