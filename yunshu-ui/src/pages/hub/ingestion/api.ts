@@ -5,6 +5,7 @@
  * 不做 pickObj 式猜测；计划/结果字段与 agent/ingestion/models.py 一一对应。
  */
 import { getEnvelope, postEnvelope } from '@/api/envelope'
+import { INGESTION_COMMIT, INGESTION_PREVIEW, INGESTION_SOURCES } from '@/api/endpoints'
 
 export type IngestForm = 'skill' | 'tool' | 'workflow'
 
@@ -121,12 +122,12 @@ export interface SourcesView {
 }
 
 export async function fetchIngestionSources(): Promise<SourcesView> {
-  const data = await getEnvelope<{ sources: SourcesView }>('/api/ingestion/sources')
+  const data = await getEnvelope<{ sources: SourcesView }>(INGESTION_SOURCES)
   return data.sources
 }
 
 export async function previewIngestion(source: IngestSourceInput, rewrite = false): Promise<IngestPlan> {
-  const data = await postEnvelope<{ plan: IngestPlan }>('/api/ingestion/preview', { source, rewrite })
+  const data = await postEnvelope<{ plan: IngestPlan }>(INGESTION_PREVIEW, { source, rewrite })
   return data.plan
 }
 
@@ -138,6 +139,6 @@ export async function commitIngestion(body: {
   archive_id?: string
   merge_into?: string
 }): Promise<IngestResult> {
-  const data = await postEnvelope<{ result: IngestResult }>('/api/ingestion/commit', body)
+  const data = await postEnvelope<{ result: IngestResult }>(INGESTION_COMMIT, body)
   return data.result
 }
