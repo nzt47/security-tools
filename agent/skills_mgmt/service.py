@@ -554,8 +554,13 @@ class SkillsMgmtService:
                            "skill=%s: %s", skill_id, e)
 
     def import_queue(self, limit: int = 200) -> List[Dict[str, Any]]:
-        """外部导入·待人工放行队列：外来源（external_agent / scheme:…）的草稿，最新在前。"""
-        prefixes = ("github:", "url:", "local:", "registry:", "http:", "https:")
+        """外部导入·待人工放行队列：外来源（external_agent / scheme:…）的草稿，最新在前。
+
+        P3：`ingestion:` 也属于外来源（吞噬链落库的草稿），必须进同一队列，
+        否则「吞噬 → 草稿 → 人工放行」会断在队列这一环。
+        """
+        prefixes = ("github:", "url:", "local:", "registry:", "http:", "https:",
+                    "ingestion:")
         rows = []
         for s in self.store.list_all():
             status = getattr(s.status, "value", s.status)

@@ -108,7 +108,7 @@ def api_ingestion_preview():
         source = _source_from_body(body)
         rewrite = body.get("rewrite") is True
         from agent.ingestion import service
-        plan = service.preview(source, rewrite=rewrite,
+        plan = service.preview(source, rewrite=rewrite, dedupe=True,
                                llm_client=_resolve_llm_client() if rewrite else None)
     except IngestionError as exc:
         return _fail(exc)
@@ -149,6 +149,7 @@ def api_ingestion_commit():
             confirm=body.get("confirm") is True,
             archive_id=str(body.get("archive_id") or "").strip(),
             rewrite=body.get("rewrite") is True,
+            merge_into=str(body.get("merge_into") or "").strip(),
         )
     except IngestionError as exc:
         return _fail(exc)
@@ -157,7 +158,7 @@ def api_ingestion_commit():
 
 PLUGIN = register_plugin(Plugin(
     name="ingestion",
-    version="0.3.0",
-    description="吞噬：外来资产（技能包/文档/提示词/JS 插件包）→ 可预览/可重写的云枢技能计划（sources/preview/commit）",
+    version="0.4.0",
+    description="吞噬：外来资产（技能包/文档/提示词/JS 插件包）→ 可预览/可重写/可合并的云枢技能计划（sources/preview/commit）",
     blueprint=bp,
 ))
