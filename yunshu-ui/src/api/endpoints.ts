@@ -552,6 +552,10 @@ export const COGNITIVE_REJECT = '/api/cognitive/reject';
 export const INGESTION_PREVIEW = '/api/ingestion/preview';
 export const INGESTION_COMMIT = '/api/ingestion/commit';
 export const INGESTION_SOURCES = '/api/ingestion/sources';
+// P6 存量治理（scan/plan/apply）：同样只在常量层出现字面量
+export const INGESTION_GOVERNANCE_SCAN = '/api/ingestion/governance/scan';
+export const INGESTION_GOVERNANCE_PLAN = '/api/ingestion/governance/plan';
+export const INGESTION_GOVERNANCE_APPLY = '/api/ingestion/governance/apply';
 
 // ===============================================================
 //  资产管理（/api/assets/*）

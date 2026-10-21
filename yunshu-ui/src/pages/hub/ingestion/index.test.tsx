@@ -72,6 +72,14 @@ async function previewPlan(p = plan()) {
 }
 
 describe('IngestionPage', () => {
+  it('可切到存量治理 Tab', async () => {
+    setup()
+    await waitFor(() => expect(api.fetchIngestionSources).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole('tab', { name: '存量治理' }))
+    expect(screen.getByText('存量资产治理')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '盘点并生成计划' })).toBeTruthy()
+  })
+
   it('首屏显示唯一获取入口与来源方式', async () => {
     setup()
     expect(screen.getByRole('heading', { name: '吞噬' })).toBeTruthy()

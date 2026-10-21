@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-22T00:08:33",
+  "generated_at": "2026-10-22T00:33:52",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 275,
-    "reachable_modules": 259,
-    "page_files": 105
+    "source_modules": 277,
+    "reachable_modules": 261,
+    "page_files": 106
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "8e2b13176b3a8b80",
+  "content_hash": "6ea61650610429f6",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -43,6 +43,7 @@
     "yunshu-ui/src/pages/hub/governance/route-coverage.tsx",
     "yunshu-ui/src/pages/hub/governance/security.tsx",
     "yunshu-ui/src/pages/hub/governance/settings.tsx",
+    "yunshu-ui/src/pages/hub/ingestion/governance.tsx",
     "yunshu-ui/src/pages/hub/ingestion/index.tsx",
     "yunshu-ui/src/pages/hub/local/index.tsx",
     "yunshu-ui/src/pages/hub/memory/ConvertibleWorkflows.tsx",
