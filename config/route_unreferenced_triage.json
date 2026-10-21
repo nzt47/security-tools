@@ -124,21 +124,6 @@
     "/logs/dashboard/data": {
       "verdict": "keep",
       "evidence": "templates/log_dashboard.html:244 用模板串 fetch 调用"
-    },
-    "/api/ingestion/preview": {
-      "verdict": "keep",
-      "evidence": "tests/unit/test_ingestion_registry.py::TestHttpContract 契约测试调用（P0）；P5 前端 ingestion 叶子接入后删除本登记",
-      "decided_at": "2026-10-21"
-    },
-    "/api/ingestion/commit": {
-      "verdict": "keep",
-      "evidence": "tests/unit/test_ingestion_registry.py::TestHttpContract 契约测试调用（P0）；P5 前端 ingestion 叶子接入后删除本登记",
-      "decided_at": "2026-10-21"
-    },
-    "/api/ingestion/sources": {
-      "verdict": "keep",
-      "evidence": "tests/unit/test_ingestion_adapters.py::TestSourcesHttp 契约测试调用（P1）；P5 前端 ingestion 叶子接入后删除本登记",
-      "decided_at": "2026-10-21"
     }
   }
 }

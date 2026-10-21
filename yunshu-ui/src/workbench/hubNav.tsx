@@ -17,6 +17,7 @@ import {
   HeartPulse, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive, Film,
+  PackagePlus,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -31,6 +32,8 @@ const PanoramaSensors = lazy(() => import('@/pages/hub/panorama/sensors'))
 const PanoramaMonitor = lazy(() => import('@/pages/hub/panorama/monitor'))
 const PanoramaLogs = lazy(() => import('@/pages/hub/panorama/logs'))
 const SkillCenter = lazy(() => import('@/pages/hub/memory/skill-center'))
+// 吞噬：全系统唯一的外来能力获取入口（P5）；技能中心/维护/工具调用不再提供导入控件。
+const IngestionPage = lazy(() => import('@/pages/hub/ingestion'))
 // 【第二轮 IA】记忆管理 = 主内容区 Tab 容器（手动 / 自动 / 知识库 / 经验库 / 全库检索）；
 // 导航树只保留单一叶子项「记忆管理」（见 pages/hub/memory/hub.tsx）。
 const MemoryHub = lazy(() => import('@/pages/hub/memory/hub'))
@@ -106,6 +109,7 @@ export const HUB_NAV: HubNavItem[] = [
       // 技能中心：LLM 技能 = 模型执行，工作流技能 = 本地执行，与提示词实验室并列（分 Tab 管理）。
       { key: 'prompt-lab', label: '提示词实验室', icon: FlaskConical, component: PromptLab },
       { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
+      { key: 'ingestion', label: '吞噬', icon: PackagePlus, component: IngestionPage },
       // 工具调用：原 5 个子项已在页面内收敛为 Tab（pages/hub/tools/index.tsx）。
       { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
       // 【第四轮 IA · 2026-10-14】「记忆与资产」整桶并入本桶（顶层再少一个桶）；

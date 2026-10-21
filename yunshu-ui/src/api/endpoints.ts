@@ -548,6 +548,10 @@ export const CLIPBOARD = '/api/clipboard';
 // 认知闭环（元认知）状态 / 任务接受度裁决（方案 §7 第三批接入）
 export const COGNITIVE_STATUS = '/api/cognitive/status';
 export const COGNITIVE_REJECT = '/api/cognitive/reject';
+// 吞噬（P5）：外来能力获取的唯一入口。常量层是 React 侧唯一允许出现 /api 字面量的地方。
+export const INGESTION_PREVIEW = '/api/ingestion/preview';
+export const INGESTION_COMMIT = '/api/ingestion/commit';
+export const INGESTION_SOURCES = '/api/ingestion/sources';
 
 // ===============================================================
 //  资产管理（/api/assets/*）

@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-10-21T18:22:35",
+  "generated_at": "2026-10-22T00:07:29",
   "totals": {
     "routes": 452,
     "live": 452,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 392,
+    "ui": 395,
     "cli_script": 16,
     "runtime_only": 11,
-    "unreferenced": 33,
+    "unreferenced": 30,
     "live_by_category": {
-      "ui": 392,
+      "ui": 395,
       "cli_script": 16,
       "runtime_only": 11,
-      "unreferenced": 33
+      "unreferenced": 30
     },
     "by_intent": {
       "should_be_in_ui": 379,
@@ -37,7 +37,7 @@
       "记忆与知识": 33
     }
   },
-  "frontend_endpoints": 396,
+  "frontend_endpoints": 399,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -46,44 +46,7 @@
   ],
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
-  "pending_ui": [
-    {
-      "path": "/api/ingestion/commit",
-      "norm": "/api/ingestion/commit",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心·吞噬",
-      "where": [
-        "plugins/ingestion.py:99"
-      ]
-    },
-    {
-      "path": "/api/ingestion/preview",
-      "norm": "/api/ingestion/preview",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心·吞噬",
-      "where": [
-        "plugins/ingestion.py:77"
-      ]
-    },
-    {
-      "path": "/api/ingestion/sources",
-      "norm": "/api/ingestion/sources",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心·吞噬",
-      "where": [
-        "plugins/ingestion.py:90"
-      ]
-    }
-  ],
+  "pending_ui": [],
   "entries": [
     {
       "path": "/",
@@ -3822,21 +3785,23 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/api.ts"
+      ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:99"
+        "plugins/ingestion.py:135"
       ],
-      "description": "吞噬落库：按已预览的 plan_id 安装；L2 需 P2 重写，P0 明确拒绝。",
+      "description": "吞噬落库：按 plan_id 安装；L2 需带 preview(rewrite=true) 生成的 archive_id。",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "技能中心·吞噬",
       "intent_note": "P0 后端契约；P5 前端 ingestion 叶子接入后从待办台账移除。预览确认后的落库入口（必须带 plan_id + confirm）。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -3845,21 +3810,23 @@
       "methods": [
         "POST"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/api.ts"
+      ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:77"
+        "plugins/ingestion.py:102"
       ],
-      "description": "吞噬预览：识别来源并生成可预览的 L0/L1/L2 计划，不落库、不执行来源脚本。",
+      "description": "吞噬预览：识别来源并生成 L0/L1/L2 计划；rewrite=true 时额外生成重写草稿与存档。",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "技能中心·吞噬",
       "intent_note": "P0 后端契约；P5 前端 ingestion 叶子接入后从待办台账移除。吞噬页的预览入口（三级判定/去重/推荐形态）。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -3868,21 +3835,23 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/api.ts"
+      ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:90"
+        "plugins/ingestion.py:126"
       ],
       "description": "吞噬源探测：列出配置根（默认 claude/openclaw/trae）下的可预览候选，只读不写。",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "技能中心·吞噬",
       "intent_note": "P1 后端源探测；P5 前端 ingestion 叶子接入后从待办台账移除。列出 claude/openclaw/trae 等默认扫描根与可预览候选。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -8606,8 +8575,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts",
-        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -11630,5 +11598,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "1cfaccdf71cda455"
+  "content_hash": "91e16020582bb714"
 }
