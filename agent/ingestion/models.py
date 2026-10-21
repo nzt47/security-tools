@@ -456,6 +456,13 @@ class IngestResult:
     merged_into: str = ""
     removed_id: str = ""
     queued: bool = False
+    #: P4：本次产物形态（skill/tool/workflow）/ 是否只生成骨架草稿 / 草稿目录
+    form: str = "skill"
+    draft: bool = False
+    draft_dir: str = ""
+    #: P4：borrowed 入轨结果（stage 为空 = 未入轨；verdict 取自 stage_migrate）
+    stage: str = ""
+    stage_verdict: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -474,6 +481,11 @@ class IngestResult:
             "merged_into": self.merged_into,
             "removed_id": self.removed_id,
             "queued": bool(self.queued),
+            "form": self.form,
+            "draft": bool(self.draft),
+            "draft_dir": self.draft_dir,
+            "stage": self.stage,
+            "stage_verdict": self.stage_verdict,
         }
 
 
