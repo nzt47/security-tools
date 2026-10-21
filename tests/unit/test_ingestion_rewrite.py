@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import zipfile
 
 import pytest
@@ -274,6 +275,21 @@ class TestSchemaAndCache:
         assert list((_isolated_archive / "cache").glob("*.json"))
 
 
+class TestPluginLlmResolver:
+    def test_优先使用_app_server_的_llm(self, monkeypatch):
+        sentinel = object()
+        fake_yunshu = type("Y", (), {"_llm": sentinel})()
+        fake_app = type("A", (), {"_Yunshu": fake_yunshu})()
+        monkeypatch.setitem(sys.modules, "app_server", fake_app)
+        assert ingestion_plugin._resolve_llm_client() is sentinel
+
+    def test_app_server_不可用时回退域模块(self, monkeypatch):
+        sentinel = object()
+        monkeypatch.delitem(sys.modules, "app_server", raising=False)
+        monkeypatch.setattr(service, "_default_llm_client", lambda: sentinel)
+        assert ingestion_plugin._resolve_llm_client() is sentinel
+
+
 @pytest.fixture()
 def client(monkeypatch):
     monkeypatch.setenv("FLASK_API_TOKEN", "test-token")
@@ -290,7 +306,8 @@ AUTH = {"Authorization": "Bearer test-token"}
 
 class TestRewriteHttp:
     def test_preview_rewrite_返回草稿与_archive(self, client, doc, monkeypatch):
-        monkeypatch.setattr(service, "_default_llm_client", lambda: FakeLLM(VALID_OUTPUT))
+        monkeypatch.setattr(ingestion_plugin, "_resolve_llm_client",
+                            lambda: FakeLLM(VALID_OUTPUT))
         r = client.post("/api/ingestion/preview",
                         json={"source": str(doc), "rewrite": True}, headers=AUTH)
         assert r.status_code == 200
@@ -303,7 +320,7 @@ class TestRewriteHttp:
     def test_commit_archive_走假安装器(self, client, doc, monkeypatch):
         fake_llm = FakeLLM(VALID_OUTPUT)
         fake_installer = FakeInstaller()
-        monkeypatch.setattr(service, "_default_llm_client", lambda: fake_llm)
+        monkeypatch.setattr(ingestion_plugin, "_resolve_llm_client", lambda: fake_llm)
         monkeypatch.setattr(service, "_default_installer", lambda: fake_installer)
         plan = client.post("/api/ingestion/preview",
                            json={"source": str(doc), "rewrite": True},
@@ -319,7 +336,8 @@ class TestRewriteHttp:
         assert len(fake_installer.calls) == 1
 
     def test_preview_rewrite_失败仍是_200_但_requires_rewrite(self, client, doc, monkeypatch):
-        monkeypatch.setattr(service, "_default_llm_client", lambda: FakeLLM("# 太短"))
+        monkeypatch.setattr(ingestion_plugin, "_resolve_llm_client",
+                            lambda: FakeLLM("# 太短"))
         plan = client.post("/api/ingestion/preview",
                            json={"source": str(doc), "rewrite": True},
                            headers=AUTH).get_json()["data"]["plan"]
@@ -328,7 +346,8 @@ class TestRewriteHttp:
         assert plan["rewrite_errors"]
 
     def test_commit_未通过校验返回_409(self, client, doc, monkeypatch):
-        monkeypatch.setattr(service, "_default_llm_client", lambda: FakeLLM("# 太短"))
+        monkeypatch.setattr(ingestion_plugin, "_resolve_llm_client",
+                            lambda: FakeLLM("# 太短"))
         plan = client.post("/api/ingestion/preview",
                            json={"source": str(doc), "rewrite": True},
                            headers=AUTH).get_json()["data"]["plan"]
