@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-17",
+  "updated": "2026-10-21",
   "note": "路由的「功能区」归属（与意图标注正交：意图回答该不该进 UI，功能区回答它属于哪块业务）。前缀匹配、最长优先、按段边界（/api/skills 不会误匹配 /api/skills-mgmt）；未命中记为「未归类」。所有 464 条活体路由必须命中，守卫见 tests/unit/test_route_ui_coverage.py::test_每条路由都有功能区。",
   "domains": [
     {
@@ -32,7 +32,8 @@
         "/api/tools",
         "/api/visual-workflows",
         "/api/web",
-        "/api/workflow-learning"
+        "/api/workflow-learning",
+        "/api/ingestion"
       ]
     },
     {

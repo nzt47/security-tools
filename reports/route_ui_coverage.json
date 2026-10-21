@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-10-20T23:58:28",
+  "generated_at": "2026-10-21T12:37:28",
   "totals": {
-    "routes": 449,
-    "live": 449,
+    "routes": 451,
+    "live": 451,
     "dead_copy": 0,
     "dead_definitions": 0,
     "ui": 392,
     "cli_script": 16,
     "runtime_only": 11,
-    "unreferenced": 30,
+    "unreferenced": 32,
     "live_by_category": {
       "ui": 392,
       "cli_script": 16,
       "runtime_only": 11,
-      "unreferenced": 30
+      "unreferenced": 32
     },
     "by_intent": {
-      "should_be_in_ui": 376,
+      "should_be_in_ui": 378,
       "should_not_be_in_ui": 72,
       "unclassified": 1
     },
@@ -30,7 +30,7 @@
       "调度与任务": 26,
       "对话与会话": 29,
       "业务与评估": 18,
-      "技能与工具": 101,
+      "技能与工具": 103,
       "认知与学习": 6,
       "观测与诊断": 73,
       "开发与内部": 14,
@@ -46,7 +46,32 @@
   ],
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
-  "pending_ui": [],
+  "pending_ui": [
+    {
+      "path": "/api/ingestion/commit",
+      "norm": "/api/ingestion/commit",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "area": "技能中心·吞噬",
+      "where": [
+        "plugins/ingestion.py:89"
+      ]
+    },
+    {
+      "path": "/api/ingestion/preview",
+      "norm": "/api/ingestion/preview",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "area": "技能中心·吞噬",
+      "where": [
+        "plugins/ingestion.py:76"
+      ]
+    }
+  ],
   "entries": [
     {
       "path": "/",
@@ -3778,6 +3803,52 @@
       "intent_note": "会话任务页「历史问话」抽屉（HistoryDrawer → lib/historyApi.ts）真实在用。此前判为\"不该进\"是误判：URL 由模板串条件拼接，旧扫描器看不到。2026-10-18 扫描器补模板前缀折叠后恢复为\"该进\"。",
       "ui_pending": false,
       "domain": "对话与会话"
+    },
+    {
+      "path": "/api/ingestion/commit",
+      "norm": "/api/ingestion/commit",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:89"
+      ],
+      "description": "吞噬落库：按已预览的 plan_id 安装；L2 需 P2 重写，P0 明确拒绝。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "技能中心·吞噬",
+      "intent_note": "P0 后端契约；P5 前端 ingestion 叶子接入后从待办台账移除。预览确认后的落库入口（必须带 plan_id + confirm）。",
+      "ui_pending": true,
+      "domain": "技能与工具"
+    },
+    {
+      "path": "/api/ingestion/preview",
+      "norm": "/api/ingestion/preview",
+      "methods": [
+        "POST"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:76"
+      ],
+      "description": "吞噬预览：识别来源并生成可预览的 L0/L1/L2 计划，不落库、不执行来源脚本。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "技能中心·吞噬",
+      "intent_note": "P0 后端契约；P5 前端 ingestion 叶子接入后从待办台账移除。吞噬页的预览入口（三级判定/去重/推荐形态）。",
+      "ui_pending": true,
+      "domain": "技能与工具"
     },
     {
       "path": "/api/knowledge/add",
@@ -11524,5 +11595,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "2a7e3825aa1aa76d"
+  "content_hash": "c17f293c7d5bc7c0"
 }
