@@ -158,95 +158,6 @@ describe('SkillMaintenance', () => {
     expect(await screen.findByText('每日对账')).toBeTruthy()
   })
 
-  it('上传 zip：走 multipart，令牌来自 authHeader（不能走 hubPost）', async () => {
-    baseGets()
-    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true, skill: { skill_id: 's9' } }) }))
-    vi.stubGlobal('fetch', fetchMock)
-    render(<SkillMaintenance />)
-    await screen.findByText('orphan-1')
-
-    // 2026-10-20：三种导入方式合并为一个「导入技能」区，先切到「上传 zip」
-    fireEvent.click(screen.getByRole('tab', { name: '上传 zip' }))
-    const file = new File(['zip-bytes'], 'demo.zip', { type: 'application/zip' })
-    fireEvent.change(screen.getByLabelText('选择技能 zip 包'), { target: { files: [file] } })
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toBe('/api/skills-mgmt/upload')
-    expect(init.method).toBe('POST')
-    expect(init.body instanceof FormData).toBe(true)
-    expect((init.body as FormData).get('file')).toBeTruthy()
-    expect(await screen.findByText(/已安装：s9/)).toBeTruthy()
-  })
-
-  it('Claude 导入：先扫描（只读 GET），再按需导入（POST）', async () => {
-    api.hubGet.mockImplementation(async (url: string) => {
-      if (url === '/api/skills-mgmt/three-layer/summary') return { ok: true, summary: {} }
-      if (url === '/api/skills-mgmt/cleanup/report') return { ok: true, total_skills: 0, orphans: [], unused: [] }
-      if (url === '/api/skills-mgmt/import/claude') {
-        return {
-          ok: true, base_dir: 'C:/Users/x/.claude/skills', total: 2, ready: 1,
-          items: [
-            { id: 'pdf-toolkit', name: 'PDF Toolkit', description: 'read pdf', ready: true },
-            { id: 'bad', dir_name: '!!!', ready: false, error: '目录名无法转换为合法技能 ID（kebab_case）' },
-          ],
-        }
-      }
-      return { ok: true }
-    })
-    api.hubPost.mockResolvedValue({ ok: true, total: 1, imported: [{ id: 'pdf-toolkit' }], failed: [] })
-    render(<SkillMaintenance />)
-    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
-
-    // 2026-10-20：先切到「从 .claude 导入」方式
-    fireEvent.click(screen.getByRole('tab', { name: '从 .claude 导入' }))
-    // 没扫描前没有候选 ⇒ 不允许"全部导入"（空列表点一下毫无意义）
-    const allBtn = screen.getByRole('button', { name: '导入全部 Claude 技能' }) as HTMLButtonElement
-    expect(allBtn.disabled).toBe(true)
-
-    fireEvent.click(screen.getByRole('button', { name: '扫描 .claude/skills' }))
-    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/import/claude'))
-    expect(await screen.findByText('pdf-toolkit')).toBeTruthy()
-    // 不可导入的候选要显示原因，而不是静默消失
-    expect(screen.getByText(/kebab_case/)).toBeTruthy()
-    expect((screen.getByRole('button', { name: '导入 Claude 技能 bad' }) as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByRole('button', { name: '导入全部 Claude 技能' }) as HTMLButtonElement).disabled).toBe(false)
-
-    fireEvent.click(screen.getByRole('button', { name: '导入 Claude 技能 pdf-toolkit' }))
-    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/import/claude', {
-      ids: ['pdf-toolkit'],
-    }))
-    expect(await screen.findByText(/已落库：pdf-toolkit/)).toBeTruthy()
-  })
-
-  it('Claude 导入：部分失败要逐条列出，不能当全绿', async () => {
-    api.hubGet.mockImplementation(async (url: string) => {
-      if (url === '/api/skills-mgmt/three-layer/summary') return { ok: true, summary: {} }
-      if (url === '/api/skills-mgmt/cleanup/report') return { ok: true, total_skills: 0, orphans: [], unused: [] }
-      if (url === '/api/skills-mgmt/import/claude') {
-        return { ok: true, total: 1, ready: 1, items: [{ id: 'boom', name: 'Boom', ready: true }] }
-      }
-      return { ok: true }
-    })
-    api.hubPost.mockResolvedValue({
-      ok: false,
-      imported: [{ id: 'ok-skill' }],
-      failed: [{ id: 'boom', error: 'RuntimeError: 磁盘满了' }],
-    })
-    render(<SkillMaintenance />)
-    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
-
-    fireEvent.click(screen.getByRole('tab', { name: '从 .claude 导入' }))
-    fireEvent.click(screen.getByRole('button', { name: '扫描 .claude/skills' }))
-    await screen.findByText('boom')
-    fireEvent.click(screen.getByRole('button', { name: '导入全部 Claude 技能' }))
-
-    // 全量导入不带 ids（后端按全部可导入候选处理）
-    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/import/claude', {}))
-    expect(await screen.findByText(/boom：RuntimeError/)).toBeTruthy()
-    expect(screen.getByText(/已落库：ok-skill/)).toBeTruthy()
-  })
-
   it('外部导入待放行：队列上屏；阻断项不给放行；审核/放行走各自端点', async () => {
     baseGets()
     api.hubPost.mockResolvedValue({ ok: true })
@@ -373,91 +284,16 @@ describe('SkillMaintenance', () => {
     expect(await screen.findByText(/已驳回 ext-ok/)).toBeTruthy()
   })
 
-  // ── 导入区（2026-10-20）：三条入口合成一个区 ──
-
-  it('导入区：默认按来源安装，可切到上传 zip / 从 .claude 导入（同一区三种方式）', async () => {
+  it('导入入口已收敛：不再提供上传/扫描/按来源安装控件，只指向吞噬', async () => {
     baseGets()
     render(<SkillMaintenance />)
     await screen.findByText('orphan-1')
 
-    // 默认 = 按来源安装（最常用），同区只有一个导入入口
-    expect(screen.getByRole('tab', { name: '按来源安装' }).getAttribute('aria-selected')).toBe('true')
-    expect(screen.getByLabelText('外部技能来源')).toBeTruthy()
-    expect(screen.queryByLabelText('选择技能 zip 包')).toBeNull()
-
-    fireEvent.click(screen.getByRole('tab', { name: '上传 zip' }))
-    expect(screen.getByLabelText('选择技能 zip 包')).toBeTruthy()
+    expect(screen.queryByRole('tab', { name: '上传 zip' })).toBeNull()
+    expect(screen.queryByRole('tab', { name: '从 .claude 导入' })).toBeNull()
     expect(screen.queryByLabelText('外部技能来源')).toBeNull()
-
-    fireEvent.click(screen.getByRole('tab', { name: '从 .claude 导入' }))
-    expect(screen.getByRole('button', { name: '扫描 .claude/skills' })).toBeTruthy()
-  })
-
-  // ── 按来源安装（#1223）：从扩展市场收敛过来的技能安装入口 ──
-
-  it('按来源安装：预检命中阻断时安装按钮置灰（不靠后端兜底）', async () => {
-    api.hubGet.mockImplementation(async (url: string) => {
-      if (url === '/api/skills-mgmt/three-layer/summary') return { ok: true, summary: {} }
-      if (url === '/api/skills-mgmt/cleanup/report') return { ok: true, total_skills: 0, orphans: [], unused: [] }
-      if (url.startsWith('/api/skills-mgmt/queue')) return { ok: true, total: 0, items: [] }
-      if (url.startsWith('/api/skills-mgmt/install/precheck')) {
-        return {
-          ok: true, skill_id: 'ext-demo', blocked: true,
-          findings: [{ severity: 'error', code: 'SEC_SCRIPT', message: '脚本含可疑下载' }],
-        }
-      }
-      return { ok: true }
-    })
-    render(<SkillMaintenance />)
-
-    // 等初始的 layers/report/queue 三次加载都收尾（它们共用 busy，加载中按钮是 disabled）
-    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
-    await waitFor(() => expect(
-      (screen.getByRole('button', { name: '预检外部技能' }) as HTMLButtonElement).disabled,
-    ).toBe(true), { timeout: 2000 })
-
-    const install = () => screen.getByRole('button', { name: '安装外部技能' }) as HTMLButtonElement
-    expect(install().disabled, '没有来源就不该能点').toBe(true)
-
-    fireEvent.change(screen.getByLabelText('外部技能来源'), { target: { value: 'github:u/r' } })
-    await waitFor(() => expect(install().disabled).toBe(false))
-
-    fireEvent.click(screen.getByRole('button', { name: '预检外部技能' }))
-    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith(
-      '/api/skills-mgmt/install/precheck?source=github%3Au%2Fr',
-    ))
-    expect(await screen.findByText(/有阻断项/)).toBeTruthy()
-    expect((screen.getByRole('button', { name: '安装外部技能' }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText(/可疑下载/)).toBeTruthy()
-  })
-
-  it('按来源安装：预检通过后安装走 /api/skills-mgmt/install，装完提示落草稿', async () => {
-    api.hubGet.mockImplementation(async (url: string) => {
-      if (url === '/api/skills-mgmt/three-layer/summary') return { ok: true, summary: {} }
-      if (url === '/api/skills-mgmt/cleanup/report') return { ok: true, total_skills: 0, orphans: [], unused: [] }
-      if (url.startsWith('/api/skills-mgmt/queue')) return { ok: true, total: 0, items: [] }
-      if (url.startsWith('/api/skills-mgmt/install/precheck')) {
-        return { ok: true, skill_id: 'ext-demo', blocked: false, native_dups: [{ id: 'self_reflection' }] }
-      }
-      return { ok: true }
-    })
-    api.hubPost.mockResolvedValue({ ok: true, skill: { id: 'ext-demo', status: 'draft' } })
-    render(<SkillMaintenance />)
-
-    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/cleanup/report'))
-    fireEvent.change(screen.getByLabelText('外部技能来源'), { target: { value: 'url:https://x/pkg.zip' } })
-    await waitFor(() => expect(
-      (screen.getByRole('button', { name: '预检外部技能' }) as HTMLButtonElement).disabled,
-    ).toBe(false))
-    fireEvent.click(screen.getByRole('button', { name: '预检外部技能' }))
-    expect(await screen.findByText(/无阻断/)).toBeTruthy()
-    expect(screen.getByText(/按增量吸收/)).toBeTruthy()
-
-    fireEvent.click(screen.getByRole('button', { name: '安装外部技能' }))
-    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/install', {
-      source: 'url:https://x/pkg.zip',
-    }))
-    expect(await screen.findByText(/已安装 ext-demo/)).toBeTruthy()
-    expect(screen.getByText(/已落草稿/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '扫描 .claude/skills' })).toBeNull()
+    const link = screen.getByRole('link', { name: '去吞噬获取' }) as HTMLAnchorElement
+    expect(link.getAttribute('href')).toBe('#/workbench?panel=ingestion')
   })
 })

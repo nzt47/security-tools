@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-20T21:18:51",
+  "generated_at": "2026-10-22T00:08:33",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 273,
-    "reachable_modules": 257,
-    "page_files": 104
+    "source_modules": 275,
+    "reachable_modules": 259,
+    "page_files": 105
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "fe8444ae39bd3c9b",
+  "content_hash": "8e2b13176b3a8b80",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -43,6 +43,7 @@
     "yunshu-ui/src/pages/hub/governance/route-coverage.tsx",
     "yunshu-ui/src/pages/hub/governance/security.tsx",
     "yunshu-ui/src/pages/hub/governance/settings.tsx",
+    "yunshu-ui/src/pages/hub/ingestion/index.tsx",
     "yunshu-ui/src/pages/hub/local/index.tsx",
     "yunshu-ui/src/pages/hub/memory/ConvertibleWorkflows.tsx",
     "yunshu-ui/src/pages/hub/memory/KnowledgeAddPanel.tsx",
