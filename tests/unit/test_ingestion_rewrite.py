@@ -104,6 +104,9 @@ def _isolated_archive(tmp_path, monkeypatch):
     monkeypatch.setattr(rewrite, "DEFAULT_ARCHIVE_DIR", tmp_path / "archive")
     monkeypatch.delenv("CHAT_RESPONSE_CACHE", raising=False)
     monkeypatch.setattr(service, "_audit", lambda payload: None)
+    # P3：插件 preview(dedupe=True) 默认会读真实技能库；P2 测试只关心重写，
+    # 这里显式关闭目录读取，保留原生重叠检测（无需真实库）。
+    monkeypatch.setattr(service, "_get_skills_service", lambda: None)
     return tmp_path / "archive"
 
 

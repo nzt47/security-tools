@@ -141,6 +141,12 @@ class InstallFailed(IngestionError):
     title = "技能安装失败"
 
 
+class MergeFailed(IngestionError):
+    status = 409
+    code = "merge-failed"
+    title = "合并失败"
+
+
 # ════════════════════════════════════════════════════════════
 #  来源
 # ════════════════════════════════════════════════════════════
@@ -445,6 +451,11 @@ class IngestResult:
     #: P2：本次安装的是否为 LLM 重写产物 + 存档 id
     rewritten: bool = False
     archive_id: str = ""
+    #: P3：是否合并进既有技能 / 合并目标 / 被合并掉的来源 id / 是否进待放行队列
+    merged: bool = False
+    merged_into: str = ""
+    removed_id: str = ""
+    queued: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -459,6 +470,10 @@ class IngestResult:
             "installed": bool(self.installed),
             "rewritten": bool(self.rewritten),
             "archive_id": self.archive_id,
+            "merged": bool(self.merged),
+            "merged_into": self.merged_into,
+            "removed_id": self.removed_id,
+            "queued": bool(self.queued),
         }
 
 

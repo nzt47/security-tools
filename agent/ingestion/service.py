@@ -46,6 +46,7 @@ from .models import (
     IngestionError,
     InstallFailed,
     InvalidSource,
+    MergeFailed,
     NormalizedSkill,
     PlanStale,
     Recommendation,
@@ -570,6 +571,141 @@ def _extract(selection: registry_mod.Selection, source: IngestSource) -> Extract
     return asset
 
 
+def _get_skills_service() -> Any:
+    """读取技能库服务（dedupe 用；失败返回 None，不阻断预览）。"""
+    try:
+        from agent.state_manager import get_skills_mgmt_service
+        return get_skills_mgmt_service()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[ingestion] 技能库服务不可用，跳过去重分析: %s", exc)
+        return None
+
+
+def _analyze_duplicates(*, skill_id: str, name: str, description: str,
+                        content: str, skills_service: Any = None
+                        ) -> Tuple[List[Dict[str, Any]], Optional[Dict[str, Any]], List[str]]:
+    """P3 去重/合并建议（复用 assessor / SkillReviewer，不另造口径）。
+
+    Returns:
+        (dedupe, merge_suggestion, warnings)
+    """
+    dedupe: List[Dict[str, Any]] = []
+    warnings: List[str] = []
+    existing: List[Dict[str, Any]] = []
+    svc = skills_service if skills_service is not None else _get_skills_service()
+    target_id = skill_id if is_valid_skill_id(skill_id) else "incoming-skill"
+    others: List[Any] = []
+    if svc is not None:
+        try:
+            others = list(svc.store.list_all())
+        except Exception as exc:  # noqa: BLE001
+            warnings.append(f"技能库读取失败，去重仅含原生重叠：{type(exc).__name__}")
+            others = []
+
+    # 同名 id / 同名 name（不依赖 Jaccard，优先提示）
+    for other in others:
+        other_id = str(getattr(other, "id", "") or "")
+        if not other_id:
+            continue
+        if other_id == target_id:
+            existing.append({
+                "kind": "existing", "id": other_id,
+                "name": str(getattr(other, "name", "") or other_id),
+                "similarity": 1.0, "action": "overwrite", "strong": True,
+                "matched": [], "match": "id",
+                "reason": "同名技能 id 已存在；commit 会覆盖原技能（或选择 merge_into 其他目标）",
+            })
+            warnings.append(f"技能 id 已存在：{other_id}；本次 commit 将覆盖")
+        elif name and (str(getattr(other, "name", "") or "").strip().lower()
+                       == str(name).strip().lower()):
+            existing.append({
+                "kind": "existing", "id": other_id,
+                "name": str(getattr(other, "name", "") or other_id),
+                "similarity": 0.0, "action": "review", "strong": True,
+                "matched": [], "match": "name",
+                "reason": "技能名称完全相同；建议人工确认是否合并",
+            })
+
+    # Jaccard / 内容哈希（复用 SkillReviewer.find_duplicates_for）
+    if svc is not None and others and hasattr(svc, "reviewer"):
+        try:
+            from agent.skills_mgmt.models import Skill
+            target = Skill(id=target_id, name=name or target_id,
+                           description=description or "", content=content or "")
+            dups = svc.reviewer.find_duplicates_for(
+                target, [o for o in others if str(getattr(o, "id", "")) != target_id],
+                min_jaccard=0.7)
+        except Exception as exc:  # noqa: BLE001
+            dups = []
+            warnings.append(f"既有技能去重失败（advisory）：{type(exc).__name__}")
+        by_id = {item["id"]: item for item in existing}
+        for dup in dups:
+            other_id = str(dup.get("other_id") or "")
+            if not other_id:
+                continue
+            sim = float(dup.get("jaccard") or 0.0)
+            action = str(dup.get("recommend_action") or "review")
+            reason = ("内容哈希完全一致（重复）" if dup.get("content_hash_match")
+                      else f"Jaccard {sim:.2f} ≥ 0.70")
+            if other_id in by_id:
+                item = by_id[other_id]
+                # 同名但内容也高度相似：把 review 升级为 merge；同 id 的 overwrite 保持
+                if item.get("action") == "review" and sim >= float(item.get("similarity") or 0):
+                    item.update({"similarity": round(sim, 4), "action": action,
+                                 "strong": bool(dup.get("content_hash_match")),
+                                 "match": "content", "reason": reason})
+                continue
+            existing.append({
+                "kind": "existing", "id": other_id,
+                "name": str(dup.get("other_name") or other_id),
+                "similarity": round(sim, 4), "action": action,
+                "strong": bool(dup.get("content_hash_match")),
+                "matched": [], "match": "content",
+                "reason": reason,
+            })
+
+    dedupe.extend(existing)
+
+    # 原生能力重叠（detect_native_duplicates；只做吸收提示，不建议 merge）
+    try:
+        from agent.skills_mgmt.assessor import detect_native_duplicates
+        for nat in detect_native_duplicates(name or "", description or "", content or ""):
+            dedupe.append({
+                "kind": "native", "id": str(nat.get("id") or ""),
+                "name": str(nat.get("name") or nat.get("id") or ""),
+                "similarity": 0.0, "action": "absorb",
+                "strong": bool(nat.get("strong")),
+                "matched": list(nat.get("matched") or []), "match": "native",
+                "reason": "与云枢原生能力重叠；按增量吸收保留，不整包拒绝",
+            })
+    except Exception as exc:  # noqa: BLE001
+        warnings.append(f"原生能力重叠检测失败（advisory）：{type(exc).__name__}")
+
+    # 合并建议：只指向「既有的其他技能」，同 id 不能 merge 到自身
+    candidates = [d for d in existing
+                  if d["id"] != target_id and d["action"] in ("merge", "review")]
+    merge_suggestion: Optional[Dict[str, Any]] = None
+    if candidates:
+        top = max(candidates, key=lambda d: (d["similarity"], d["match"] == "name"))
+        merge_suggestion = {
+            "target_id": top["id"],
+            "target_name": top["name"],
+            "jaccard": top["similarity"],
+            "action": top["action"],
+            "reason": top["reason"],
+        }
+    return dedupe, merge_suggestion, warnings
+
+
+def _native_overlap_text(skill: NormalizedSkill) -> str:
+    try:
+        from agent.skills_mgmt.assessor import detect_native_duplicates
+        hits = detect_native_duplicates(skill.name or "", skill.description or "", skill.body or "")
+    except Exception:  # noqa: BLE001
+        return ""
+    return "、".join(f"「{h['name']}」({h['id']})" for h in hits)
+
+
 def _default_llm_client() -> Any:
     """生产 LLM 客户端：复用运行中云枢实例（函数体内导入，保持叶子包）。"""
     from . import rewrite as rewrite_mod
@@ -599,13 +735,16 @@ def _rewrite_actions(archive_id: str, scripts: List[str]) -> List[str]:
 
 def preview(source: Any, *, registry: Optional[registry_mod.AdapterRegistry] = None,
             rewrite: bool = False, llm_client: Any = None,
-            archive_dir: Optional[Any] = None) -> IngestPlan:
+            archive_dir: Optional[Any] = None, dedupe: bool = False,
+            skills_service: Any = None) -> IngestPlan:
     """生成可预览的吞噬计划（dry-run；不落库、不执行来源脚本）。
 
     Args:
         rewrite: L2 来源是否调用 LLM 重写（默认 False = 只预览原料）。
         llm_client: 测试/调用方注入的 LLM 客户端；None = 运行时云枢实例。
         archive_dir: 原文/重写结果存档目录（默认 data/ingestion）。
+        dedupe: 是否分析既有技能/原生能力重复（默认 False；HTTP 层传 True）。
+        skills_service: 去重分析用的技能库服务；None = 运行时单例（测试可注入）。
     """
     prepared = _prepare_source(source)
     reg = registry or registry_mod.get_registry()
@@ -664,6 +803,18 @@ def preview(source: Any, *, registry: Optional[registry_mod.AdapterRegistry] = N
     if conformance.level != LEVEL_L2 and rewrite:
         warnings.append("来源已是 L0/L1，忽略 rewrite=true（不调用 LLM）")
 
+    dedupe_items: List[Dict[str, Any]] = []
+    merge_suggestion: Optional[Dict[str, Any]] = None
+    if dedupe:
+        use_name = skill.name if skill else prepared.display_name
+        use_desc = skill.description if skill else first_paragraph(asset.body, 500)
+        use_content = skill.body if skill else str(asset.body or "")
+        use_id = skill.id if skill else (slugify(prepared.display_name) or "")
+        dedupe_items, merge_suggestion, dedupe_warnings = _analyze_duplicates(
+            skill_id=use_id, name=use_name, description=use_desc,
+            content=use_content, skills_service=skills_service)
+        warnings = list(dict.fromkeys(warnings + dedupe_warnings))
+
     fingerprint = {
         "source": {"identity": prepared.identity(), "fingerprint": _source_fingerprint(prepared)},
         "adapter": selection.name,
@@ -690,8 +841,8 @@ def preview(source: Any, *, registry: Optional[registry_mod.AdapterRegistry] = N
         rewritten=rewritten,
         archive_id=archive_id,
         rewrite_errors=rewrite_errors,
-        dedupe=[],  # P3
-        merge_suggestion=None,  # P3
+        dedupe=dedupe_items,
+        merge_suggestion=merge_suggestion,
         raw=_raw_summary(asset),
     )
     logger.info("[ingestion] preview plan=%s adapter=%s level=%s rewritten=%s id=%s",
@@ -751,16 +902,75 @@ def _fingerprint_key(fingerprint: Any) -> str:
     return json.dumps(fingerprint, ensure_ascii=False, sort_keys=True, default=str)
 
 
+def _safe_delete(svc: Any, skill_id: str) -> None:
+    deleter = getattr(svc, "delete", None)
+    if callable(deleter):
+        try:
+            deleter(skill_id)
+        except Exception:  # noqa: BLE001 回滚失败不掩盖原始合并错误
+            pass
+
+
+def _finalize_import(svc: Any, skill: NormalizedSkill, skill_id: str) -> None:
+    """安装后衔接既有技能域：advisory 评审 / 自动归类 / 原生重叠吸收标记。
+
+    `install_from_zip` 是"落文件"的底层通道，不会跑 `install()` 的评审钩子；
+    P3 的队列/吸收需要这些标记，故在此补跑（全部 advisory，失败不阻断安装）。
+    """
+    for name in ("_advisory_assess", "_auto_classify"):
+        fn = getattr(svc, name, None)
+        if callable(fn):
+            try:
+                fn(skill_id)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("[ingestion] %s(%s) 失败(advisory): %s", name, skill_id, exc)
+    overlap = _native_overlap_text(skill)
+    if overlap:
+        fn = getattr(svc, "absorb_overlap", None)
+        if callable(fn):
+            try:
+                fn(skill_id, overlap=overlap, source="ingestion")
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("[ingestion] absorb_overlap(%s) 失败(advisory): %s", skill_id, exc)
+
+
 def _install_plan(plan: IngestPlan, *, installer: Any = None,
-                  rewritten: bool = False, archive_id: str = "") -> IngestResult:
-    """把计划里的 NormalizedSkill 拼包并复用 install_from_zip。"""
+                  rewritten: bool = False, archive_id: str = "",
+                  merge_into: str = "") -> IngestResult:
+    """把计划里的 NormalizedSkill 拼包并复用 install_from_zip。
+
+    P3：`merge_into` 非空时，先安装得到来源 skill_id，再复用
+    `SkillsMgmtService.merge_duplicate_skills(src, target)`；失败会回滚新装技能。
+    否则安装后进草稿队列（`import_queue` 已识别 `ingestion:` 来源）。
+    """
     skill = plan.skill
     if skill is None:
         raise RewriteRequired("计划中没有可安装的 skill（需要先重写）")
+    svc = installer if installer is not None else _default_installer()
+    merge_into = str(merge_into or "").strip()
+    if merge_into:
+        if not is_valid_skill_id(merge_into):
+            raise MergeFailed("merge_into 不是合法技能 id", detail=repr(merge_into))
+        if merge_into == skill.id:
+            raise MergeFailed(
+                "merge_into 不能等于来源生成的技能 id",
+                detail="安装会覆盖目标技能；请换一个目标 id，或去掉 merge_into 走草稿队列。",
+            )
+        getter = getattr(svc, "get", None)
+        if callable(getter):
+            try:
+                target = getter(merge_into)
+            except Exception as exc:  # noqa: BLE001
+                raise MergeFailed(
+                    f"merge_into 目标不存在：{merge_into}",
+                    detail=f"{type(exc).__name__}: {exc}",
+                ) from exc
+            if target is None:
+                raise MergeFailed(f"merge_into 目标不存在：{merge_into}")
+
     with tempfile.TemporaryDirectory(prefix="yunshu_ingest_") as tmp:
         zip_path = _build_zip(skill, Path(tmp))
         try:
-            svc = installer if installer is not None else _default_installer()
             raw = svc.install_from_zip(str(zip_path))
         except Exception as exc:  # noqa: BLE001 安装链路失败要带原因
             logger.exception("[ingestion] install failed plan=%s", plan.plan_id)
@@ -772,6 +982,59 @@ def _install_plan(plan: IngestPlan, *, installer: Any = None,
     if not isinstance(raw, dict):
         raw = {}
     skill_id = str(raw.get("skill_id") or skill.id)
+
+    if merge_into:
+        merger = getattr(svc, "merge_duplicate_skills", None)
+        if not callable(merger):
+            _safe_delete(svc, skill_id)
+            raise MergeFailed("安装器不支持合并（缺少 merge_duplicate_skills）")
+        try:
+            merged = merger(skill_id, merge_into, strategy="auto")
+        except Exception as exc:  # noqa: BLE001 合并失败回滚新装技能
+            logger.exception("[ingestion] merge failed src=%s dst=%s", skill_id, merge_into)
+            _safe_delete(svc, skill_id)
+            raise MergeFailed(
+                f"合并进 {merge_into} 失败",
+                detail=f"{type(exc).__name__}: {exc}",
+            ) from exc
+        merged = merged if isinstance(merged, dict) else {}
+        merged_id = str(merged.get("merged_id") or merge_into)
+        result = IngestResult(
+            plan_id=plan.plan_id,
+            skill_id=merged_id,
+            name=str(merged.get("merged_name") or merge_into),
+            version=str(merged.get("version") or skill.version),
+            scripts_count=int(raw.get("scripts_count") or 0),
+            adapter=plan.adapter,
+            conformance=plan.conformance.level,
+            warnings=list(plan.warnings) + [f"已合并进 {merge_into}（来源 {skill_id} 已删除）"],
+            installed=True,
+            rewritten=bool(rewritten or plan.rewritten),
+            archive_id=str(archive_id or plan.archive_id),
+            merged=True,
+            merged_into=merge_into,
+            removed_id=skill_id,
+            queued=False,
+        )
+        _audit({
+            "plan_id": result.plan_id,
+            "skill_id": result.skill_id,
+            "adapter": result.adapter,
+            "conformance": result.conformance,
+            "source_ref": plan.source_ref,
+            "scripts_count": result.scripts_count,
+            "rewritten": result.rewritten,
+            "archive_id": result.archive_id,
+            "merged": True,
+            "merged_into": merge_into,
+            "removed_id": skill_id,
+            "queued": False,
+        })
+        logger.info("[ingestion] merge plan=%s src=%s dst=%s",
+                    plan.plan_id, skill_id, merge_into)
+        return result
+
+    _finalize_import(svc, skill, skill_id)
     result = IngestResult(
         plan_id=plan.plan_id,
         skill_id=skill_id,
@@ -784,6 +1047,7 @@ def _install_plan(plan: IngestPlan, *, installer: Any = None,
         installed=True,
         rewritten=bool(rewritten or plan.rewritten),
         archive_id=str(archive_id or plan.archive_id),
+        queued=True,
     )
     _audit({
         "plan_id": result.plan_id,
@@ -794,9 +1058,12 @@ def _install_plan(plan: IngestPlan, *, installer: Any = None,
         "scripts_count": result.scripts_count,
         "rewritten": result.rewritten,
         "archive_id": result.archive_id,
+        "merged": False,
+        "queued": True,
     })
-    logger.info("[ingestion] commit plan=%s skill=%s adapter=%s rewritten=%s",
-                result.plan_id, result.skill_id, result.adapter, result.rewritten)
+    logger.info("[ingestion] commit plan=%s skill=%s adapter=%s rewritten=%s queued=%s",
+                result.plan_id, result.skill_id, result.adapter,
+                result.rewritten, result.queued)
     return result
 
 
@@ -834,7 +1101,8 @@ def _plan_from_archive(prepared: IngestSource, archive: Dict[str, Any],
 def commit(source: Any, *, plan_id: str, confirm: bool = False,
            registry: Optional[registry_mod.AdapterRegistry] = None,
            installer: Any = None, archive_id: str = "", rewrite: bool = False,
-           llm_client: Any = None, archive_dir: Optional[Any] = None) -> IngestResult:
+           llm_client: Any = None, archive_dir: Optional[Any] = None,
+           merge_into: str = "") -> IngestResult:
     """按**已预览的计划**落库（复用 install_from_zip）。
 
     P2：L2 来源必须先用 preview(rewrite=true) 生成存档，再带 archive_id 提交；
@@ -844,6 +1112,7 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
         ConfirmationRequired: 未显式 confirm=True
         PlanStale: 来源变化 / 存档缺失 / plan_id 不匹配
         RewriteRequired: L2 未重写或重写未通过 schema 校验
+        MergeFailed: merge_into 目标不存在/合并失败（新装技能会回滚）
         InstallFailed: 既有安装链路失败
     """
     if confirm is not True:
@@ -890,7 +1159,8 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
                 detail="请重新 preview(rewrite=true) 生成通过校验的草稿。",
             )
         plan = _plan_from_archive(prepared, archive, aid, skill)
-        return _install_plan(plan, installer=installer, rewritten=True, archive_id=aid)
+        return _install_plan(plan, installer=installer, rewritten=True,
+                             archive_id=aid, merge_into=merge_into)
 
     if rewrite:
         raise InvalidSource("commit 的 rewrite=true 必须同时带 archive_id（先 preview(rewrite=true)）")
@@ -906,7 +1176,7 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
             "该来源不符合云枢 schema（L2），需要先 LLM 重写并人工预览",
             detail="请 preview(rewrite=true) 生成草稿与 archive_id，再带 archive_id 提交。",
         )
-    return _install_plan(plan, installer=installer)
+    return _install_plan(plan, installer=installer, merge_into=merge_into)
 
 
 __all__ = [
