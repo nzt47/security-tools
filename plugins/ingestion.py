@@ -63,7 +63,8 @@ def _source_from_body(body: Dict[str, Any]) -> IngestSource:
     if raw is None:
         if "path" in body or "text" in body:
             raw = {"path": body.get("path"), "text": body.get("text"),
-                   "label": body.get("label")}
+                   "label": body.get("label"),
+                   "ecosystem": body.get("ecosystem") or body.get("ecosystem_hint")}
         else:
             raise InvalidSource("缺少 source（或顶层 path / text）")
     return IngestSource.from_mapping(raw)
@@ -86,6 +87,15 @@ def api_ingestion_preview():
     return _ok(_plan_payload(plan), message="预览已生成（未写任何文件）")
 
 
+@bp.route("/api/ingestion/sources", methods=["GET"])
+@_require_token
+def api_ingestion_sources():
+    """吞噬源探测：列出配置根（默认 claude/openclaw/trae）下的可预览候选，只读不写。"""
+    from agent.ingestion import sources
+    data = sources.discover_sources()
+    return _ok({"sources": data}, message="已探测本机吞噬源（只读）")
+
+
 @bp.route("/api/ingestion/commit", methods=["POST"])
 @_require_token
 def api_ingestion_commit():
@@ -105,7 +115,7 @@ def api_ingestion_commit():
 
 PLUGIN = register_plugin(Plugin(
     name="ingestion",
-    version="0.1.0",
-    description="吞噬：外来资产（技能包/文档/提示词）→ 可预览的云枢技能计划（preview/commit）",
+    version="0.2.0",
+    description="吞噬：外来资产（技能包/文档/提示词/JS 插件包）→ 可预览的云枢技能计划（sources/preview/commit）",
     blueprint=bp,
 ))
