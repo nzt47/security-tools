@@ -1110,7 +1110,11 @@ flowchart LR
     agent_ingestion_rewrite -.-> agent_state_manager
     agent_ingestion_service -.-> agent_state_manager
     agent_ingestion_service -.-> agent_skills_mgmt_file_store
+    agent_ingestion_service -.-> agent_state_manager
+    agent_ingestion_service -.-> agent_skills_mgmt_assessor
+    agent_ingestion_service -.-> agent_skills_mgmt_assessor
     agent_ingestion_service -.-> agent_audit_facade
+    agent_ingestion_service -.-> agent_skills_mgmt_models
     agent_knowledge --> agent_knowledge_schema
     agent_knowledge --> agent_knowledge_lifecycle
     agent_knowledge --> agent_knowledge_logbook
@@ -2681,7 +2685,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 680
 - 模块节点数: 595
-- 依赖边数: 1960
-- 跨层调用数: 1230
+- 依赖边数: 1964
+- 跨层调用数: 1234
 - 违规调用数: 0
 - 动态 import 数: 1
