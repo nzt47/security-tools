@@ -241,6 +241,10 @@ flowchart LR
         agent_human_in_the_loop_observability["agent.human_in_the_loop.observability"]
         agent_human_in_the_loop_takeover_queue["agent.human_in_the_loop.takeover_queue"]:::crosslayer
     end
+    subgraph ingestion [ingestion]
+        agent_ingestion_adapters_base["agent.ingestion.adapters.base"]
+        agent_ingestion_service["agent.ingestion.service"]
+    end
     subgraph knowledge [knowledge]
         agent_knowledge["agent.knowledge"]:::crosslayer
         agent_knowledge___main__["agent.knowledge.__main__"]
@@ -1101,6 +1105,10 @@ flowchart LR
     agent_human_in_the_loop_hitl -.-> agent_lines
     agent_human_in_the_loop_observability -.-> agent_logging_utils
     agent_human_in_the_loop_observability -.-> agent_monitoring_business_metrics
+    agent_ingestion_adapters_base -.-> agent_skills_mgmt_claude_import
+    agent_ingestion_service -.-> agent_state_manager
+    agent_ingestion_service -.-> agent_skills_mgmt_file_store
+    agent_ingestion_service -.-> agent_audit_facade
     agent_knowledge --> agent_knowledge_schema
     agent_knowledge --> agent_knowledge_lifecycle
     agent_knowledge --> agent_knowledge_logbook
@@ -2669,9 +2677,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 663
-- 模块节点数: 592
-- 依赖边数: 1955
-- 跨层调用数: 1225
+- 扫描文件数: 672
+- 模块节点数: 594
+- 依赖边数: 1959
+- 跨层调用数: 1229
 - 违规调用数: 0
 - 动态 import 数: 1
