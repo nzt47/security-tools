@@ -159,7 +159,7 @@ flowchart LR
         agent_digestion_sandbox["agent.digestion.sandbox"]:::crosslayer
         agent_digestion_service["agent.digestion.service"]
         agent_digestion_shadow["agent.digestion.shadow"]:::crosslayer
-        agent_digestion_stage["agent.digestion.stage"]
+        agent_digestion_stage["agent.digestion.stage"]:::crosslayer
         agent_digestion_takeover["agent.digestion.takeover"]
     end
     subgraph eval [eval]
@@ -1114,6 +1114,8 @@ flowchart LR
     agent_ingestion_service -.-> agent_skills_mgmt_assessor
     agent_ingestion_service -.-> agent_skills_mgmt_assessor
     agent_ingestion_service -.-> agent_audit_facade
+    agent_ingestion_service -.-> agent_descriptors_bridge
+    agent_ingestion_service -.-> agent_digestion_stage
     agent_ingestion_service -.-> agent_skills_mgmt_models
     agent_knowledge --> agent_knowledge_schema
     agent_knowledge --> agent_knowledge_lifecycle
@@ -2683,9 +2685,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 680
+- 扫描文件数: 681
 - 模块节点数: 595
-- 依赖边数: 1964
-- 跨层调用数: 1234
+- 依赖边数: 1966
+- 跨层调用数: 1236
 - 违规调用数: 0
 - 动态 import 数: 1
