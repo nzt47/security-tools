@@ -62,7 +62,8 @@ export const skillFeedback = (skillId: string) => `/api/skills-mgmt/${encodeURIC
 export const skillOptimizeWithFeedback = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/optimize-with-feedback`;
 export const skillDuplicates = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/duplicates`;
 
-// 技能中心 · 维护 Tab（批量运维：清理 / 合并 / 上传 / 从记忆抽象）
+// 技能治理端点（「技能中心 · 维护」Tab 已于 2026-10-22 退役：清理/合并归「吞噬 · 存量治理」，
+// 草稿队列/放行归「吞噬 · 草稿评审」；此处保留常量供上述两个入口与旧链接调用）
 export const SKILLS_MGMT_THREE_LAYER_SUMMARY = '/api/skills-mgmt/three-layer/summary';
 export const SKILLS_MGMT_CLEANUP_REPORT = '/api/skills-mgmt/cleanup/report';
 export const SKILLS_MGMT_CLEANUP_ORPHANS = '/api/skills-mgmt/cleanup/orphans';
