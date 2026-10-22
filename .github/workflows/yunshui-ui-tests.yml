@@ -3,7 +3,7 @@
 # =============================================================================
 # 优化参数（从 nodejs-auth-p0-security.yml 沉淀的最佳实践）:
 #   1. npm ci --prefer-offline     — 优先用本地缓存，减少网络等待
-#   2. --poolOptions.threads.maxThreads=2 — 限制 vitest 线程数（runner 2 核，降内存 ~40%）
+#   2. --maxWorkers=2 — 限制 vitest worker 数（runner 2 核，降内存 ~40%；vitest 5 起替代 --poolOptions）
 #
 # 触发条件: yunshu-ui/ 目录下的源码、测试、配置文件变更时自动触发
 # =============================================================================
@@ -102,11 +102,12 @@ jobs:
           cd yunshu-ui
           echo "=== 运行 vitest 单元测试 ==="
           mkdir -p test_reports
-          # --poolOptions.threads.maxThreads=2: 限制线程数（runner 2 核，降低内存 ~40%，时间 ~30%）
+          # --maxWorkers=2: 限制 worker 数（runner 2 核，降低内存 ~40%，时间 ~30%）
+          # 【vitest 5】CLI 移除了 --poolOptions.*；等价开关是 --maxWorkers
           # --reporter=junit: 生成 JUnit XML 报告
           # --coverage: 覆盖率报告（vitest.config.ts 配置了 80% 门槛）
           npx vitest run \
-            --poolOptions.threads.maxThreads=2 \
+            --maxWorkers=2 \
             --reporter=verbose \
             --reporter=junit \
             --outputFile=test_reports/vitest-junit.xml \
