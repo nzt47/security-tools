@@ -1,7 +1,8 @@
 /**
  * Vitest 全局测试 setup
  */
-import '@testing-library/jest-dom';
+// vitest 5：走 /vitest 入口，否则 jest-dom 的 Assertion 扩展类型挂不到 vitest 断言上
+import '@testing-library/jest-dom/vitest';
 import { createMemoryStorage } from './utils/memoryStorage';
 
 // 确保 import.meta.env.DEV 在测试中为 true（vitest 默认即如此，显式声明便于理解）
