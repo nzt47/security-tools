@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T00:25:21",
+  "generated_at": "2026-10-22T12:21:26",
   "totals": {
     "routes": 455,
     "live": 455,
@@ -7574,8 +7574,8 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/lib/skillsApi.ts",
-        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx",
-        "yunshu-ui/src/pages/hub/memory/skill-maintenance.tsx"
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [
         "agent/audit/ui_middleware.py"
@@ -7832,8 +7832,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx",
-        "yunshu-ui/src/pages/hub/memory/skill-maintenance.tsx"
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx",
+        "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx"
       ],
       "non_ui_refs": [
         "scripts/audit/contract_diff.py"
@@ -7886,7 +7886,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/lib/skillsApi.ts",
-        "yunshu-ui/src/pages/hub/memory/skill-maintenance.tsx"
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
       ],
       "non_ui_refs": [],
       "where": [

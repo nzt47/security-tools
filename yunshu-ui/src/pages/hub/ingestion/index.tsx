@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 import { Badge, Card, ErrorBox, PageHeader } from '../components/ui'
 import GovernancePanel from './governance'
+import ReviewPanel from './ReviewPanel'
+import MemoryDraftPanel from './MemoryDraftPanel'
 import {
   commitIngestion,
   fetchIngestionSources,
@@ -57,7 +59,7 @@ function dedupeTone(item: DedupeItem): 'green' | 'amber' | 'red' | 'cyan' | 'sla
   return 'slate'
 }
 
-type IngestionTab = 'acquire' | 'governance'
+type IngestionTab = 'acquire' | 'review' | 'governance'
 
 function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: IngestionTab) => void }) {
   return (
@@ -65,6 +67,10 @@ function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: Ing
       <button type="button" role="tab" aria-selected={tab === 'acquire'}
         className={tab === 'acquire' ? BTN_EM : BTN} onClick={() => onChange('acquire')}>
         <PackagePlus size={12} /> 获取外来能力
+      </button>
+      <button type="button" role="tab" aria-selected={tab === 'review'}
+        className={tab === 'review' ? BTN_EM : BTN} onClick={() => onChange('review')}>
+        <ShieldCheck size={12} /> 草稿评审
       </button>
       <button type="button" role="tab" aria-selected={tab === 'governance'}
         className={tab === 'governance' ? BTN_EM : BTN} onClick={() => onChange('governance')}>
@@ -160,6 +166,15 @@ export default function IngestionPage() {
     : (form === 'tool' ? '生成工具草稿' : '生成工作流草稿')
 
   const tabs = <IngestionTabs tab={tab} onChange={setTab} />
+
+  if (tab === 'review') {
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
+        {tabs}
+        <ReviewPanel />
+      </div>
+    )
+  }
 
   if (tab === 'governance') {
     return (
@@ -278,6 +293,7 @@ export default function IngestionPage() {
               </>
             )}
           </Card>
+          <MemoryDraftPanel />
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
