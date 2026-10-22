@@ -96,6 +96,8 @@ export default function GovernancePanel() {
         <p className="text-[11px] leading-relaxed text-slate-500">
           扫描现有技能，给出合并 / 归档 / 拆分 / 补描述 / 清理孤儿建议。默认 dry-run；
           归档不删除、拆分只写子草稿，真执行需勾确认并留审计。
+          原「技能中心 · 维护」的清理/淘汰/合并已并入本页：重复走 merge、孤儿走 delete_orphans、
+          停用零使用走 archive；「从记忆抽象」在「获取外来能力」页。
         </p>
         {error && <div className="mt-2"><ErrorBox message={error} /></div>}
         {msg && <div className="mt-2 rounded border border-cyan-900/60 bg-cyan-950/20 px-2 py-1 text-[11px] text-cyan-300">{msg}</div>}

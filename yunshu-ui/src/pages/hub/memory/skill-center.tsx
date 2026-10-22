@@ -10,22 +10,20 @@
  * 可视化编辑 = 工作流技能的画布编排入口（第三 Tab，与后端 /api/visual-workflows 联动）。
  */
 import { useState } from 'react'
-import { Hammer, PenTool, Sparkles, Wrench, Workflow } from 'lucide-react'
+import { Hammer, PenTool, Sparkles, Workflow } from 'lucide-react'
 import { MemorySkillsTable } from './skills'
 import { MemoryWorkflowTable } from './workflow'
 import MemoryWorkflowVisual from './workflow-visual'
 import ConvertibleWorkflows from './ConvertibleWorkflows'
 import SkillAssessManager from './skill-assess-manager'
-import SkillMaintenance from './skill-maintenance'
 import InstalledExtensions from '../extensions/installed-extensions'
 
-type CenterTab = 'llm' | 'workflow' | 'visual' | 'maintenance'
+type CenterTab = 'llm' | 'workflow' | 'visual'
 
 const TABS: { key: CenterTab; label: string; icon: typeof Hammer; desc: string }[] = [
   { key: 'llm', label: 'LLM 技能', icon: Sparkles, desc: '提示/行为/扩展类技能 · 每次调用由 LLM 执行' },
   { key: 'workflow', label: '工作流技能', icon: Workflow, desc: '本地确定性执行 · 命中即跳过 LLM（skipped_llm）' },
   { key: 'visual', label: '可视化编辑', icon: PenTool, desc: '拖拽编排工作流（保存到 /api/visual-workflows）' },
-  { key: 'maintenance', label: '维护', icon: Wrench, desc: '清理孤儿/无用 · 重复合并 · 上传 · 从记忆抽象（删除类默认先预览）' },
 ]
 
 export default function SkillCenter() {
@@ -99,7 +97,7 @@ export default function SkillCenter() {
                 types={['skill']}
                 title="扩展系统安装的技能（启停 / 卸载）"
                 hint="从 .claude / 扩展市场 / 外部来源安装后登记的技能。启停与上方运行时技能同一份状态；卸载会删除技能目录与登记，不可逆（二次确认）。"
-                emptyText="还没有通过扩展系统安装的技能；「维护 · 按来源安装」是唯一安装入口。"
+                emptyText="还没有通过扩展系统安装的技能；外部技能请从「吞噬」获取，扩展安装的技能仍在这里启停/卸载。"
               />
             </div>
             {/* 技能资产库 · 评审-评估管线：新建/外来安装/评估/发布 全生命周期 */}
@@ -139,20 +137,6 @@ export default function SkillCenter() {
           </div>
         )}
 
-        {tab === 'maintenance' && (
-          <div className="h-full overflow-y-auto p-4">
-            <div className="mb-3 flex items-start gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2.5 text-xs text-slate-400">
-              <Wrench size={13} className="mt-0.5 shrink-0 text-cyan-400" />
-              <span>
-                这里是<strong className="text-slate-200"> 批量运维</strong>：只在「清理 / 合并 / 导入 / 抽象」这类
-                一次动很多技能的场景用。单技能的运行、反馈、重复检查在技能行的「详情」抽屉里。
-                删除类动作一律<strong className="text-slate-200">先预览（dry_run）</strong>，
-                要真删必须再勾一次确认。
-              </span>
-            </div>
-            <SkillMaintenance />
-          </div>
-        )}
       </div>
     </div>
   )
