@@ -15,16 +15,20 @@ import {
   ChevronDown, ChevronRight, Download, Eye, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
-import { hubGet, hubPost } from '../components/ui'
-import { authHeader } from '../../../lib/apiToken'
-import GenerateRequirementModal from '../memory/generate-requirement-modal'
-import ClassIcon from '../memory/class-icon'
-import ApiTokenPrompt from '../memory/api-token-prompt'
-import SkillContentModal from '../memory/skill-content-modal'
-import SkillDetailDrawer from '../memory/skill-detail-drawer'
+import { CallabilityBadge, hubGet, hubPost } from '../components/ui'
+import { authHeader, getApiToken } from '../../../lib/apiToken'
+import GenerateRequirementModal from './generate-requirement-modal'
+import ClassIcon from './class-icon'
+import ApiTokenPrompt from './api-token-prompt'
+import SkillContentModal from './skill-content-modal'
+import SkillDetailDrawer from './skill-detail-drawer'
+import { fetchCapabilityManifest, indexCallability, type CallabilityInfo } from '@/lib/callability'
+import { getEnvelope } from '@/api/envelope'
 
 import {
+  SKILLS,
   SKILLS_MGMT,
+  SKILLS_TOGGLE,
   SKILLS_MGMT_ASSESS_EVENTS,
   SKILLS_MGMT_ASSESS_FEED,
   SKILLS_MGMT_ASSESS_RUN_ALL,
@@ -61,9 +65,15 @@ interface ReviewLike {
   auto_assessed?: boolean; summary?: string; findings?: Finding[]
 }
 interface SkillItem {
-  id: string; name: string; description?: string; status?: string; enabled?: boolean
+  id: string; name: string; description?: string; description_zh?: string; status?: string; enabled?: boolean
   content_type?: string; category?: string; version?: string; review?: ReviewLike
   tags?: string[]; is_sensitive?: boolean; isolation_strategy?: string; source?: string
+  class_name?: string; class_auto?: boolean; runtime_only?: boolean; callability?: CallabilityInfo
+}
+
+interface RuntimeSkill {
+  id: string; name: string; enabled?: boolean; description?: string; description_zh?: string
+  class_name?: string; class_auto?: boolean
 }
 
 const SEV: Record<string, string> = {
@@ -86,6 +96,7 @@ const statusChip = (s?: string) => chip(
 
 export default function SkillAssessManager() {
   const [items, setItems] = useState<SkillItem[]>([])
+  const [callability, setCallability] = useState<Record<string, CallabilityInfo>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
@@ -215,8 +226,40 @@ export default function SkillAssessManager() {
   const load = useCallback(async () => {
     setError('')
     try {
-      const r = await hubGet<{ items?: SkillItem[] }>(SKILLS_MGMT)
-      setItems(Array.isArray(r.items) ? r.items : [])
+      const [assetR, runtimeR, manifestR] = await Promise.allSettled([
+        hubGet<{ items?: SkillItem[] }>(SKILLS_MGMT),
+        getEnvelope<{ installed?: RuntimeSkill[]; available?: RuntimeSkill[] }>(SKILLS),
+        fetchCapabilityManifest(),
+      ])
+      const assets = assetR.status === 'fulfilled' && Array.isArray(assetR.value?.items)
+        ? assetR.value.items : []
+      const runtime = runtimeR.status === 'fulfilled'
+        ? (runtimeR.value?.installed?.length ? runtimeR.value.installed : (runtimeR.value?.available ?? []))
+        : []
+      const rmap = new Map(runtime.map((r) => [r.id, r]))
+      const assetIds = new Set(assets.map((a) => a.id))
+      const merged: SkillItem[] = assets.map((a) => {
+        const r = rmap.get(a.id)
+        return {
+          ...a,
+          description_zh: a.description_zh ?? r?.description_zh,
+          class_name: r?.class_name,
+          class_auto: r?.class_auto,
+          enabled: r?.enabled ?? a.enabled,
+        }
+      })
+      for (const r of runtime) {
+        if (assetIds.has(r.id)) continue
+        merged.push({
+          id: r.id, name: r.name, description: r.description, description_zh: r.description_zh,
+          enabled: r.enabled, status: 'runtime_only', runtime_only: true,
+          class_name: r.class_name, class_auto: r.class_auto,
+        })
+      }
+      setItems(merged)
+      if (manifestR.status === 'fulfilled') {
+        setCallability(indexCallability(manifestR.value?.runtime_skills, manifestR.value?.manifest?.skills))
+      }
     } catch (e) {
       setError(`技能资产加载失败：${e instanceof Error ? e.message : String(e)}`)
     } finally {
@@ -253,6 +296,10 @@ export default function SkillAssessManager() {
         : hubPost(skillPublish(it.id)))
   }
   const toggle = (it: SkillItem) => act('启停', () => hubPost(skillToggle(it.id), { enabled: !it.enabled }))
+  /** 仅运行时技能没有资产记录，启停走 /api/skills/toggle（不是资产库 toggle） */
+  const toggleRuntime = (it: SkillItem) => act('启停', () =>
+    hubPost(SKILLS_TOGGLE, { id: it.id, enabled: !it.enabled }, getApiToken()))
+
   const remove = async (it: SkillItem) => {
     if (!window.confirm(`确定从资产库删除技能「${it.name || it.id}」？`)) return
     setBusy('删除'); setError(''); setMsg('')
@@ -333,14 +380,24 @@ export default function SkillAssessManager() {
           </button>
         </td>
         <td className="max-w-[24rem] px-2 py-2">
-          <div className="truncate font-medium text-slate-200">{it.name || it.id}</div>
-          <div className="truncate text-[10px] text-slate-500">{it.description ?? ''}</div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="truncate font-medium text-slate-200">{it.name || it.id}</span>
+            {it.class_name && (
+              <span className="inline-flex items-center gap-0.5 rounded-full border border-cyan-800/50 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-300">
+                <ClassIcon name={it.class_name} size={8} /> {it.class_name}
+              </span>
+            )}
+            <CallabilityBadge info={it.callability ?? callability[it.id]} name={it.name || it.id} />
+          </div>
+          <div className="truncate text-[10px] text-slate-500">{it.description_zh || it.description || ''}</div>
           {/* 触发条件：发布+启用才参与运行时注入；命中方式=语义匹配(描述/标签/内容) */}
           <div className="mt-1 flex flex-wrap items-center gap-1">
-            {it.enabled && (it.status === 'published' || it.status === 'approved')
-              ? chip('触发·注入生效', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
-              : chip(it.enabled ? '已启用·待发布不触发' : '停用·不触发', 'bg-slate-500/10 text-slate-400 border-slate-700')}
-            {chip(['python', 'javascript', 'shell', 'js'].includes(String(it.content_type ?? '').toLowerCase())
+            {it.runtime_only
+              ? chip('仅运行时·无资产记录', 'bg-violet-500/10 text-violet-300 border-violet-800/50')
+              : it.enabled && (it.status === 'published' || it.status === 'approved')
+                ? chip('触发·注入生效', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
+                : chip(it.enabled ? '已启用·待发布不触发' : '停用·不触发', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+            {!it.runtime_only && chip(['python', 'javascript', 'shell', 'js'].includes(String(it.content_type ?? '').toLowerCase())
               ? '脚本型·命中后执行脚本'
               : `指令型·命中后注入提示`, 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
             {it.is_sensitive && chip('敏感·隔离注入', 'bg-amber-500/10 text-amber-400 border-amber-800/60')}
@@ -349,59 +406,69 @@ export default function SkillAssessManager() {
         </td>
         <td className="px-2 py-2">
           <div className="flex flex-wrap gap-1">
-            {statusChip(it.status)}
+            {it.runtime_only ? chip('仅运行时', 'bg-violet-500/10 text-violet-300 border-violet-800/50') : statusChip(it.status)}
             {it.enabled ? chip('启用', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : chip('停用', 'bg-slate-500/10 text-slate-400 border-slate-700')}
           </div>
         </td>
         <td className="px-2 py-2">
-          {rv?.auto_assessed
-            ? (rv.review_verdict === 'block'
-              ? chip('阻断·待复核', 'bg-red-500/15 text-red-400 border-red-800')
-              : chip('已自动评估', 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60'))
-            : chip('未评估', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+          {it.runtime_only
+            ? chip('无资产记录', 'bg-slate-500/10 text-slate-400 border-slate-700')
+            : rv?.auto_assessed
+              ? (rv.review_verdict === 'block'
+                ? chip('阻断·待复核', 'bg-red-500/15 text-red-400 border-red-800')
+                : chip('已自动评估', 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60'))
+              : chip('未评估', 'bg-slate-500/10 text-slate-400 border-slate-700')}
         </td>
         <td className="px-2 py-2 font-mono text-[10px] text-slate-400">
-          {Math.round(rv?.security_score ?? 0)}/{Math.round(rv?.quality_score ?? 0)}/{Math.round(rv?.compatibility_score ?? 0)}
+          {it.runtime_only ? '—' : `${Math.round(rv?.security_score ?? 0)}/${Math.round(rv?.quality_score ?? 0)}/${Math.round(rv?.compatibility_score ?? 0)}`}
         </td>
         <td className="px-2 py-2">
           <div className="flex flex-wrap items-center gap-1">
-            {grouped && classOptions.length > 0 && (
-              <select value={cur} onChange={(e) => void moveClass(it, e.target.value)}
-                title="人工移动到其它分类（之后自动重判不再覆盖人工选择）"
-                className="max-w-[7.5rem] rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[10px] text-slate-300 outline-none focus:border-cyan-600">
-                {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
-            )}
             <button type="button" className={BTN} onClick={() => setContentTarget(it)} disabled={busy !== ''} title="查看该技能的具体内容（正文 / 参数 / 标签）">
               <Eye size={11} /> 查看内容
             </button>
-            <button type="button" className={BTN} onClick={() => setDetailTarget(it)} disabled={busy !== ''} title="详情：使用说明 / 脚本与沙箱执行 / 参数统计 / 反馈 / 重复技能">
-              <ScrollText size={11} /> 详情
-            </button>
-            <button type="button" className={BTN_EM} onClick={() => void assessOne(it.id)} disabled={busy !== ''} title="执行完整评审-评估（三审+扩展评估）">
-              <Zap size={11} /> 评审-评估
-            </button>
-            <button type="button" className={BTN} onClick={() => setAdviceTarget(it)} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
-              <Lightbulb size={11} /> 建议
-            </button>
-            <button type="button" className={BTN} onClick={() => setVersionsTarget(it)} disabled={busy !== ''} title="版本历史：升级小/中版本、一键回滚到任意版本">
-              版本
-            </button>
-            <button type="button" className={BTN} onClick={() => setRedraftTarget(it)} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
-              再定义
-            </button>
-            <button type="button" className={BTN} onClick={() => setCmdTarget(it)} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
-              命令
-            </button>
-            <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
-              <Rocket size={11} /> 发布
-            </button>
-            <button type="button" className={BTN} onClick={() => toggle(it)} disabled={busy !== ''}>
-              {it.enabled ? '停用' : '启用'}
-            </button>
-            <button type="button" className={BTN_RED} onClick={() => void remove(it)} disabled={busy !== ''} title="从资产库删除">
-              <Trash2 size={11} />
-            </button>
+            {it.runtime_only ? (
+              <button type="button" className={BTN} onClick={() => void toggleRuntime(it)} disabled={busy !== ''}>
+                {it.enabled ? '停用' : '启用'}
+              </button>
+            ) : (
+              <>
+                {grouped && classOptions.length > 0 && (
+                  <select value={cur} onChange={(e) => void moveClass(it, e.target.value)}
+                    title="人工移动到其它分类（之后自动重判不再覆盖人工选择）"
+                    className="max-w-[7.5rem] rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[10px] text-slate-300 outline-none focus:border-cyan-600">
+                    {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                )}
+                <button type="button" className={BTN} onClick={() => setDetailTarget(it)} disabled={busy !== ''} title="详情：使用说明 / 脚本与沙箱执行 / 参数统计 / 反馈 / 重复技能">
+                  <ScrollText size={11} /> 详情
+                </button>
+                <button type="button" className={BTN_EM} onClick={() => void assessOne(it.id)} disabled={busy !== ''} title="执行完整评审-评估（三审+扩展评估）">
+                  <Zap size={11} /> 评审-评估
+                </button>
+                <button type="button" className={BTN} onClick={() => setAdviceTarget(it)} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
+                  <Lightbulb size={11} /> 建议
+                </button>
+                <button type="button" className={BTN} onClick={() => setVersionsTarget(it)} disabled={busy !== ''} title="版本历史：升级小/中版本、一键回滚到任意版本">
+                  版本
+                </button>
+                <button type="button" className={BTN} onClick={() => setRedraftTarget(it)} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
+                  再定义
+                </button>
+                <button type="button" className={BTN} onClick={() => setCmdTarget(it)} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
+                  命令
+                </button>
+                <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
+                  <Rocket size={11} /> 发布
+                </button>
+                <button type="button" className={BTN} onClick={() => toggle(it)} disabled={busy !== ''}>
+                  {it.enabled ? '停用' : '启用'}
+                </button>
+                <button type="button" className={BTN_RED} onClick={() => void remove(it)} disabled={busy !== ''} title="从资产库删除">
+                  <Trash2 size={11} />
+                </button>
+              </>
+            )}
           </div>
         </td>
       </tr>
@@ -503,8 +570,8 @@ export default function SkillAssessManager() {
               重新自动分类
             </button>
           )}
-          <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="全部动态：评估事件 + 人工复核审计 聚合时间线">
-            全部动态
+          <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="评审动态：评估事件 + 人工复核/发布审计聚合时间线">
+            评审动态
           </button>
           <button type="button" className={BTN} onClick={() => void load()} disabled={busy !== ''}>
             <RefreshCw size={12} /> 刷新
@@ -594,8 +661,6 @@ export default function SkillAssessManager() {
         <SkillDetailDrawer skill={detailTarget} onClose={() => setDetailTarget(null)} />
       )}
 
-      {/* 发布审计（人工复核/强制发布记录）可视化 */}
-      <AuditPanel />
 
       {/* 评估结果动态（轻量推送源：轮询 + 未读角标 + 原生通知） */}
       <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/30">
@@ -645,144 +710,6 @@ export default function SkillAssessManager() {
   )
 }
 
-// ── 发布审计记录面板 ──────────────────────────────────────────────
-interface AuditRec { ts?: string; event?: string; skill_id?: string; actor?: string; reason?: string }
-function AuditPanel() {
-  const [records, setRecords] = useState<AuditRec[]>([])
-  const [loading, setLoading] = useState(true)
-  const [hasMore, setHasMore] = useState(false)
-  const [error, setError] = useState('')
-  const [open, setOpen] = useState(false)
-  const [filterText, setFilterText] = useState('')
-  const [timeSel, setTimeSel] = useState('all')
-  const baseRef = useRef<AuditRec[]>([])
-  const PAGE = 100
-
-  const merge = (a: AuditRec[], b: AuditRec[]) => {
-    const seen = new Set(a.map((x) => `${x.ts ?? ''}|${x.skill_id ?? ''}`))
-    return [...a, ...b.filter((x) => !seen.has(`${x.ts ?? ''}|${x.skill_id ?? ''}`))]
-  }
-
-  const load = useCallback(async (offset: number, append: boolean) => {
-    setError('')
-    if (!append) setLoading(true)
-    try {
-      const r = await hubGet<{ records?: AuditRec[] }>(`${SKILLS_MGMT_REVIEW_AUDIT}?limit=${PAGE}&offset=${offset}`)
-      const recs = Array.isArray(r.records) ? r.records : []
-      const next = append ? merge(baseRef.current, recs) : recs
-      baseRef.current = next
-      setRecords(next)
-      setHasMore(recs.length === PAGE)
-    } catch (e) {
-      setError(`发布审计读取失败：${e instanceof Error ? e.message : String(e)}`)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { void load(0, false) }, [load])
-
-  const cutoff = timeSel === 'all' ? 0 : Date.now() - (timeSel === 'day' ? 864e5 : 7 * 864e5)
-  const shown = records.filter((r) => {
-    const t = new Date(r.ts ?? '').getTime()
-    if (!Number.isFinite(t) || t < cutoff) return false
-    if (!filterText.trim()) return true
-    return [r.skill_id, r.actor, r.reason, r.ts].some((v) =>
-      String(v ?? '').toLowerCase().includes(filterText.trim().toLowerCase()))
-  })
-
-  const exportCsv = () => {
-    const esc = (s?: string) => `"${String(s ?? '').replace(/"/g, '""')}"`
-    const head = ['ts', 'event', 'skill_id', 'actor', 'reason'].join(',')
-    const rows = shown.map((r) => [r.ts, r.event, r.skill_id, r.actor, r.reason].map(esc).join(','))
-    const blob = new Blob([`\uFEFF${head}\n${rows.join('\n')}`], { type: 'text/csv;charset=utf-8' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `review-audit-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`
-    a.click()
-    URL.revokeObjectURL(a.href)
-  }
-
-  return (
-    <div className="mt-5 rounded-lg border border-slate-800 bg-slate-900/30">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left"
-      >
-        <ScrollText size={13} className="text-slate-400" />
-        <span className="text-xs font-medium text-slate-200">发布审计（人工复核 / 强制发布记录）</span>
-        <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">
-          {filterText || timeSel !== 'all' ? `${shown.length}/${records.length}` : records.length}
-        </span>
-        <span className="ml-auto flex items-center gap-1.5">
-          <button type="button" className={BTN} onClick={(e) => { e.stopPropagation(); void load(0, false) }} title="刷新审计记录">
-            <RefreshCw size={11} /> 刷新
-          </button>
-          {open ? <ChevronDown size={13} className="text-slate-500" /> : <ChevronRight size={13} className="text-slate-500" />}
-        </span>
-      </button>
-      {open && (
-        <div className="border-t border-slate-800 px-3 pb-2 pt-2">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <input
-              className="w-44 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-none placeholder:text-slate-600"
-              placeholder="按 技能/复核人/说明 筛选…"
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
-            />
-            <select
-              className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-none"
-              value={timeSel}
-              onChange={(e) => setTimeSel(e.target.value)}
-              title="时间段筛选"
-            >
-              <option value="all">全部时间</option>
-              <option value="day">近 24 小时</option>
-              <option value="week">近 7 天</option>
-            </select>
-            <button type="button" className={BTN} onClick={exportCsv} disabled={shown.length === 0} title="导出当前筛选记录为 CSV">
-              <Download size={11} /> 导出 CSV
-            </button>
-            {hasMore && (
-              <button type="button" className={BTN} onClick={() => void load(baseRef.current.length, true)} disabled={loading} title="加载更早的审计记录">
-                {loading ? <Loader2 size={11} className="animate-spin" /> : <ChevronRight size={11} />} 加载更多
-              </button>
-            )}
-          </div>
-          {error && <p className="mb-1 text-[11px] text-red-400">{error}</p>}
-          {loading ? (
-            <div className="flex items-center gap-2 py-2 text-[11px] text-slate-500">
-              <Loader2 size={12} className="animate-spin" /> 加载中…
-            </div>
-          ) : shown.length === 0 ? (
-            <p className="py-2 text-[11px] text-slate-500">
-              {records.length === 0
-                ? '暂无人工强制发布记录（未通过评审的发布会被记入 data/skills_mgmt_review_audit.jsonl）。'
-                : '没有符合筛选条件的记录。'}
-            </p>
-          ) : (
-            <ul className="max-h-64 space-y-1 overflow-y-auto pr-1">
-              {shown.map((r, i) => (
-                <li key={`${r.ts}-${i}`} className="rounded-md border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5 text-[11px] leading-relaxed">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-[10px] text-slate-500">{r.ts ?? ''}</span>
-                    {chip('强制发布', 'bg-amber-500/10 text-amber-400 border-amber-800/60')}
-                    <span className="font-medium text-slate-200">{r.skill_id ?? '-'}</span>
-                    <span className="text-slate-500">复核人：{r.actor ?? '-'}</span>
-                  </div>
-                  <div className="mt-0.5 text-slate-400">说明：{r.reason ?? '-'}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── 发布前人工复核弹窗 ────────────────────────────────────────────
 function PublishModal({ item, onClose, onConfirm }: {
   item: SkillItem; onClose: () => void; onConfirm: (reason?: string) => void
 }) {
@@ -1265,7 +1192,7 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
   useEffect(() => { void load(0, false) }, [load])
   const applyFilter = () => setFilterId(draft.trim())
   return (
-    <ModalShell title="全部动态（评估 + 人工复核/发布审计）" onClose={onClose}>
+    <ModalShell title="评审动态（评估 + 发布审计）" onClose={onClose}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-slate-500">已加载 {items.length} 条（时间倒序，分页加载）</span>
         <input
