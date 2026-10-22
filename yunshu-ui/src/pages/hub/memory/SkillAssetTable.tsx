@@ -10,7 +10,7 @@
  * 说明：与上方「运行时注入启停」表互补——这里是资产库（skills-mgmt 数据），
  * 通过（发布+启用）的资产会进入运行时能力集（上下文注入层消费）。
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChevronDown, ChevronRight, Download, Eye, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
@@ -22,11 +22,13 @@ import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
 import SkillContentModal from './skill-content-modal'
 import SkillDetailDrawer from './skill-detail-drawer'
+import InstalledExtensions from '../extensions/installed-extensions'
 import { fetchCapabilityManifest, indexCallability, type CallabilityInfo } from '@/lib/callability'
 import { getEnvelope } from '@/api/envelope'
 
 import {
   SKILLS,
+  SKILLS_CLASSIFY_RUN_AUTO,
   SKILLS_MGMT,
   SKILLS_TOGGLE,
   SKILLS_MGMT_ASSESS_EVENTS,
@@ -76,14 +78,18 @@ interface RuntimeSkill {
   class_name?: string; class_auto?: boolean
 }
 
+/** 「仅运行时·无资产记录」的成因说明（悬停可见，避免用户以为是坏数据） */
+const RUNTIME_ONLY_TIP = '该技能只存在于运行时注册表 / 文件轨（data/skills_repo/<id>/skill.md），未登记进技能资产库（skills_mgmt）：'
+  + '所以没有评审、版本、发布记录，也不会被资产库的发布门禁约束；启停走 /api/skills/toggle。'
+
 const SEV: Record<string, string> = {
   critical: 'bg-red-500/15 text-red-400 border-red-800',
   error: 'bg-orange-500/15 text-orange-400 border-orange-800',
   warn: 'bg-amber-500/15 text-amber-400 border-amber-800',
   info: 'bg-slate-500/15 text-slate-400 border-slate-700',
 }
-const chip = (txt: string, cls: string) => (
-  <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] ${cls}`}>{txt}</span>
+const chip = (txt: string, cls: string, title?: string) => (
+  <span title={title} className={`inline-flex items-center whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] ${cls}`}>{txt}</span>
 )
 const statusChip = (s?: string) => chip(
   s ?? '-',
@@ -96,6 +102,8 @@ const statusChip = (s?: string) => chip(
 
 export default function SkillAssessManager() {
   const [items, setItems] = useState<SkillItem[]>([])
+  /** 两个数据源的条数（统一表 = 运行时 ∪ 资产，仅运行时 = 差集），显示在表头便于对账 */
+  const [counts, setCounts] = useState<{ runtime: number; assets: number }>({ runtime: 0, assets: 0 })
   const [callability, setCallability] = useState<Record<string, CallabilityInfo>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -220,9 +228,9 @@ export default function SkillAssessManager() {
     }
   }
 
-  // 【2026-10-19 · 队列去重】「外部导入 · 待放行」不再在本页重复实现：
-  // 队列 + 审核 + 批量放行 + 驳回 统一在「技能中心 · 维护」Tab（同一份 GET /api/skills-mgmt/queue）。
-  // 本页保留单技能生命周期（评估/评审/发布/删除）与分类浏览。
+  // 【2026-10-19 · 队列去重；2026-10-22 维护 Tab 退役】「外部导入 · 待放行」不在本页重复实现：
+  // 队列 + 审核 + 批量放行 + 驳回 统一在「吞噬 · 草稿评审」（同一份 GET /api/skills-mgmt/queue）。
+  // 本页只保留统一表（运行时 + 资产）与单技能生命周期（评估/评审/发布/删除）。
   const load = useCallback(async () => {
     setError('')
     try {
@@ -257,6 +265,7 @@ export default function SkillAssessManager() {
         })
       }
       setItems(merged)
+      setCounts({ runtime: runtime.length, assets: assets.length })
       if (manifestR.status === 'fulfilled') {
         setCallability(indexCallability(manifestR.value?.runtime_skills, manifestR.value?.manifest?.skills))
       }
@@ -333,15 +342,31 @@ export default function SkillAssessManager() {
     setGrouped(next)
     if (next) void loadClasses()
   }
+  /**
+   * 一键自动归类：同时驱动**运行时**（/api/skills/classify/run-auto，覆盖 仅运行时 行）
+   * 与**资产**（/api/skills-mgmt/classes/run-auto）两个命名空间 —— 统一表把两者并在一张表里，
+   * 只跑一侧会留下"点了没反应"的未分类行。两侧都失败才算失败，单侧失败如实报。
+   */
   const rerunAutoClassify = async () => {
     setBusy('自动分类'); setMsg(''); setError('')
-    try {
-      const r = await hubPost<{ classified?: number; created_classes?: number }>(SKILLS_MGMT_CLASSES_RUN_AUTO)
-      setMsg(`自动分类完成：新归类 ${r?.classified ?? 0} 项，自动新建类 ${r?.created_classes ?? 0} 个。`)
-      await Promise.all([load(), loadClasses()])
-    } catch (e) {
-      setMsg(`自动分类失败：${e instanceof Error ? e.message : String(e)}`)
-    } finally { setBusy('') }
+    type ClassifyResult = { classified?: number; created_classes?: number }
+    const [assetR, rtR] = await Promise.allSettled([
+      hubPost<ClassifyResult>(SKILLS_MGMT_CLASSES_RUN_AUTO),
+      hubPost<ClassifyResult>(SKILLS_CLASSIFY_RUN_AUTO),
+    ])
+    const part = (label: string, r: PromiseSettledResult<ClassifyResult>) =>
+      r.status === 'fulfilled'
+        ? `${label} ${r.value?.classified ?? 0} 项`
+        : `${label} 失败（${r.reason instanceof Error ? r.reason.message : String(r.reason)}）`
+    if (assetR.status === 'rejected' && rtR.status === 'rejected') {
+      setMsg(`自动归类失败：${part('资产', assetR)}；${part('运行时', rtR)}`)
+    } else {
+      const created = (assetR.status === 'fulfilled' ? assetR.value?.created_classes ?? 0 : 0)
+        + (rtR.status === 'fulfilled' ? rtR.value?.created_classes ?? 0 : 0)
+      setMsg(`自动归类完成：${part('资产', assetR)} / ${part('运行时', rtR)}，自动新建类 ${created} 个。`)
+    }
+    await Promise.all([load(), loadClasses()])
+    setBusy('')
   }
   /** 行内移动技能到其它分类（人工选择；后续自动重判不再覆盖） */
   const moveClass = async (it: SkillItem, cls: string) => {
@@ -358,6 +383,23 @@ export default function SkillAssessManager() {
     return names
   }, [classView])
   const toggleCls = (name: string) => setCollapsedCls((p) => ({ ...p, [name]: !p[name] }))
+  /** 技能 id → 分类名（分类视图为准；视图里没有 = 未分类） */
+  const idCls = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const g of classView ?? []) for (const s of g.skills ?? []) if (s?.id) m.set(s.id, g.name)
+    return m
+  }, [classView])
+  /** 折叠视图里实际会出现的组名（分类组 + 有未分类成员时的「未分类」组） */
+  const groupNames = useMemo(() => {
+    const names = (classView ?? []).map((g) => g.name)
+    if (items.some((it) => !idCls.has(it.id))) names.push('未分类')
+    return names
+  }, [classView, items, idCls])
+  const allCollapsed = grouped && groupNames.length > 0 && groupNames.every((n) => collapsedCls[n])
+  const foldAll = (fold: boolean) => setCollapsedCls(Object.fromEntries(groupNames.map((n) => [n, fold])))
+  /** 未分类行数（运行时侧）——工具栏「一键归类未分类(N)」的 N */
+  const uncCount = items.filter((it) => !it.class_name || it.class_name === '未分类').length
+  const runtimeOnlyCount = items.filter((it) => it.runtime_only).length
 
   const toggleRow = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }))
 
@@ -373,14 +415,15 @@ export default function SkillAssessManager() {
       }
     }
     return (
-      <tr key={it.id} id={`skill-row-${it.id}`} className={`border-b border-slate-800/60 transition-colors hover:bg-slate-900/40 ${open ? 'bg-slate-900/60' : ''}`}>
+      <Fragment key={it.id}>
+      <tr id={`skill-row-${it.id}`} className={`border-b border-slate-800/60 transition-colors hover:bg-slate-900/40 ${open ? 'bg-slate-900/60' : ''}`}>
         <td className="px-2 py-2">
           <button type="button" onClick={() => toggleRow(it.id)} className="text-slate-500 hover:text-slate-300" title={open ? '收起报告' : '展开评审-评估报告'}>
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         </td>
-        <td className="max-w-[24rem] px-2 py-2">
-          <div className="flex flex-wrap items-center gap-1.5">
+        <td className="w-[26%] min-w-[12rem] max-w-[26rem] px-2 py-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="truncate font-medium text-slate-200">{it.name || it.id}</span>
             {it.class_name && (
               <span className="inline-flex items-center gap-0.5 rounded-full border border-cyan-800/50 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-300">
@@ -389,11 +432,12 @@ export default function SkillAssessManager() {
             )}
             <CallabilityBadge info={it.callability ?? callability[it.id]} name={it.name || it.id} />
           </div>
-          <div className="truncate text-[10px] text-slate-500">{it.description_zh || it.description || ''}</div>
+          {/* line-clamp 而非 truncate：truncate 的 nowrap 会把表格最小内容宽度顶到 max-w，窄屏白白多出横向滚动 */}
+          <div className="line-clamp-1 text-[10px] text-slate-500">{it.description_zh || it.description || ''}</div>
           {/* 触发条件：发布+启用才参与运行时注入；命中方式=语义匹配(描述/标签/内容) */}
           <div className="mt-1 flex flex-wrap items-center gap-1">
             {it.runtime_only
-              ? chip('仅运行时·无资产记录', 'bg-violet-500/10 text-violet-300 border-violet-800/50')
+              ? chip('仅运行时·无资产记录', 'bg-violet-500/10 text-violet-300 border-violet-800/50', RUNTIME_ONLY_TIP)
               : it.enabled && (it.status === 'published' || it.status === 'approved')
                 ? chip('触发·注入生效', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
                 : chip(it.enabled ? '已启用·待发布不触发' : '停用·不触发', 'bg-slate-500/10 text-slate-400 border-slate-700')}
@@ -406,13 +450,13 @@ export default function SkillAssessManager() {
         </td>
         <td className="px-2 py-2">
           <div className="flex flex-wrap gap-1">
-            {it.runtime_only ? chip('仅运行时', 'bg-violet-500/10 text-violet-300 border-violet-800/50') : statusChip(it.status)}
+            {it.runtime_only ? chip('仅运行时', 'bg-violet-500/10 text-violet-300 border-violet-800/50', RUNTIME_ONLY_TIP) : statusChip(it.status)}
             {it.enabled ? chip('启用', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : chip('停用', 'bg-slate-500/10 text-slate-400 border-slate-700')}
           </div>
         </td>
         <td className="px-2 py-2">
           {it.runtime_only
-            ? chip('无资产记录', 'bg-slate-500/10 text-slate-400 border-slate-700')
+            ? chip('无资产记录', 'bg-slate-500/10 text-slate-400 border-slate-700', RUNTIME_ONLY_TIP)
             : rv?.auto_assessed
               ? (rv.review_verdict === 'block'
                 ? chip('阻断·待复核', 'bg-red-500/15 text-red-400 border-red-800')
@@ -422,7 +466,7 @@ export default function SkillAssessManager() {
         <td className="px-2 py-2 font-mono text-[10px] text-slate-400">
           {it.runtime_only ? '—' : `${Math.round(rv?.security_score ?? 0)}/${Math.round(rv?.quality_score ?? 0)}/${Math.round(rv?.compatibility_score ?? 0)}`}
         </td>
-        <td className="px-2 py-2">
+        <td className="min-w-[19rem] px-2 py-2">
           <div className="flex flex-wrap items-center gap-1">
             <button type="button" className={BTN} onClick={() => setContentTarget(it)} disabled={busy !== ''} title="查看该技能的具体内容（正文 / 参数 / 标签）">
               <Eye size={11} /> 查看内容
@@ -472,6 +516,15 @@ export default function SkillAssessManager() {
           </div>
         </td>
       </tr>
+      {/* 报告必须紧跟本行（原来渲染在表格外，展开后报告飘到页尾，看不出属于哪一行） */}
+      {open && (
+        <tr className="bg-slate-950/40">
+          <td colSpan={6} className="px-2 pb-2">
+            <ReportPanel item={it} onClose={() => toggleRow(it.id)} />
+          </td>
+        </tr>
+      )}
+      </Fragment>
     )
   }
 
@@ -485,8 +538,6 @@ export default function SkillAssessManager() {
         </td></tr>
       )
     }
-    const idCls = new Map<string, string>()
-    for (const g of classView) for (const s of g.skills ?? []) if (s?.id) idCls.set(s.id, g.name)
     const out: React.ReactElement[] = []
     const pushGroup = (name: string, members: SkillItem[]) => {
       if (members.length === 0) return
@@ -540,10 +591,14 @@ export default function SkillAssessManager() {
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-200">
           <ShieldCheck size={14} className="text-emerald-400" />
-          技能资产库 · 评审-评估管线（skills-mgmt）
+          LLM 技能 · 统一表（运行时 + 资产）
         </h3>
         <span className="text-[11px] text-slate-500">
-          新建/外来技能自动评估（权限 · 攻击面 · 数据合规 + 兼容性/重叠/资源/交互），通过发布即成为运行时能力
+          运行时技能与技能资产按 id 合并：资产行带评审/评分/版本/发布，仅运行时行标注「无资产记录」，仍可查看内容与启停
+        </span>
+        <span className="rounded-full border border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-slate-400"
+          title="运行时条数来自 /api/skills，资产条数来自 /api/skills-mgmt；两者差集即「仅运行时·无资产记录」">
+          运行时 {counts.runtime} · 资产 {counts.assets} · 仅运行时 {runtimeOnlyCount}
         </span>
         <div className="ml-auto flex flex-wrap gap-1.5">
           <button type="button" className={BTN_EM} onClick={() => setCreateOpen(true)}>
@@ -564,12 +619,17 @@ export default function SkillAssessManager() {
             <Layers size={12} /> {grouped ? '按分类折叠中' : '按分类折叠'}
           </button>
           {grouped && (
-            <button type="button" className={BTN} onClick={() => void rerunAutoClassify()} disabled={busy !== ''}
-              title="为尚未归类的技能自动判定（含自动新建类；人工移动过的保留）">
-              {busy === '自动分类' ? <Loader2 size={12} className="animate-spin" /> : <Folder size={12} />}
-              重新自动分类
+            <button type="button" className={BTN} onClick={() => foldAll(!allCollapsed)} disabled={busy !== ''}
+              title={allCollapsed ? '展开全部分类' : '折叠全部分类（只留组头）'}>
+              {allCollapsed ? '全部展开' : '全部折叠'}
             </button>
           )}
+          <button type="button" className={uncCount > 0 ? `${BTN} border-violet-700/60 text-violet-300 hover:bg-violet-500/10` : BTN}
+            onClick={() => void rerunAutoClassify()} disabled={busy !== ''}
+            title="为尚未归类的技能自动判定（含自动新建类；人工移动过的保留）。同时驱动运行时与资产两个命名空间">
+            {busy === '自动分类' ? <Loader2 size={12} className="animate-spin" /> : <Folder size={12} />}
+            {uncCount > 0 ? `一键归类未分类(${uncCount})` : '重新自动分类'}
+          </button>
           <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="评审动态：评估事件 + 人工复核/发布审计聚合时间线">
             评审动态
           </button>
@@ -589,20 +649,21 @@ export default function SkillAssessManager() {
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-800 px-4 py-8 text-center text-xs leading-relaxed text-slate-500">
-          资产库暂无技能。用「新建技能」沉淀新生能力，或到「获取外来能力」把外来技能/文档/插件包带进来——
+          统一表暂无技能。用「新建技能」沉淀新生能力，或到「吞噬 · 获取外来能力」把外来技能/文档/插件包带进来——
           二者都会自动进入评审-评估，通过后发布即为自身能力。
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-800">
-          <table className="w-full text-left text-xs">
+        // 窄屏不压扁 6 列（会挤成不可读的一团）：给表一个最小宽度，横向滚动看全列
+        <div className="overflow-x-auto rounded-lg border border-slate-800">
+          <table className="w-full min-w-[760px] text-left text-xs">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-500">
-                <th className="w-7 px-2 py-1.5" />
-                <th className="px-2 py-1.5 font-medium">技能</th>
-                <th className="px-2 py-1.5 font-medium">状态</th>
-                <th className="px-2 py-1.5 font-medium">评审</th>
-                <th className="px-2 py-1.5 font-medium">安全/质量/兼容</th>
-                <th className="px-2 py-1.5 font-medium">操作</th>
+                <th className="w-8 px-2 py-1.5" />
+                <th className="w-[26%] min-w-[12rem] px-2 py-1.5 font-medium">技能</th>
+                <th className="w-[7rem] px-2 py-1.5 font-medium">状态</th>
+                <th className="w-[6rem] px-2 py-1.5 font-medium">评审</th>
+                <th className="w-[6.5rem] px-2 py-1.5 font-medium">安全/质量/兼容</th>
+                <th className="min-w-[19rem] px-2 py-1.5 font-medium">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -612,18 +673,21 @@ export default function SkillAssessManager() {
         </div>
       )}
 
-      {/* 【2026-10-19 · 队列去重】待放行队列只在「技能中心 · 维护」Tab 一处：
-          那里有审核 / 批量放行 / 受控 force 豁免 / 驳回，数据源同为 GET /api/skills-mgmt/queue。
-          本页不再重复一套（两处各自刷新会各自过期，用户也不知道该信哪个）。 */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/30 px-3 py-2 text-[11px] text-slate-400">
-        <ScrollText size={12} className="text-amber-400" />
-        <span className="text-slate-200">外部导入 · 待放行队列已统一到「维护」Tab</span>
-        <span className="text-slate-500">审核 / 批量放行 / force 豁免 / 驳回 都在那里（同一份队列数据）</span>
-      </div>
-
-      {items.map((it) => expanded[it.id] && (
-        <ReportPanel key={`report-${it.id}`} item={it} onClose={() => toggleRow(it.id)} />
-      ))}
+      {/* 扩展登记：只显示「统一表里没有」的游离条目（目录已删/漏登记），
+          表里已有的同 id 条目不再重复列一遍（否则同一技能在一页出现两次，用户不知道该点哪个）。
+          队列/放行不在本页：唯一入口是「吞噬 · 草稿评审」。 */}
+      {!loading && (
+        <div className="mt-3">
+          <InstalledExtensions
+            types={['skill']}
+            title="扩展登记（统一表之外的游离条目）"
+            hint="扩展系统登记为 skill、但统一表里没有对应行的条目（多为目录已删的残留登记）。已入表的技能不在此重复出现；这里可启停或卸载清理。"
+            emptyText="没有游离的扩展登记：统一表已覆盖全部扩展注册。"
+            excludeIds={items.map((it) => it.id)}
+            hideWhenEmpty
+          />
+        </div>
+      )}
 
       {createOpen && (
         <CreateModal onClose={() => setCreateOpen(false)} onDone={() => { setCreateOpen(false); void load() }} />

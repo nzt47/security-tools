@@ -38,7 +38,7 @@ const TABS: { key: Tab; label: string; icon: typeof FileCode; hint: string }[] =
   { key: 'scripts', label: '脚本 / 执行', icon: FileCode, hint: '脚本清单 + 沙箱执行（代码不进上下文，只有结果进）' },
   { key: 'params', label: '参数统计', icon: Gauge, hint: '参数级执行统计 · 需要回避的参数 · 按反馈一键调参' },
   { key: 'feedback', label: '反馈', icon: MessageSquare, hint: '满意度聚合 + 提交一条反馈（需 trace_id）' },
-  { key: 'duplicates', label: '重复', icon: Copy, hint: '与其它技能的 Jaccard 相似度（只报告，合并去「维护」）' },
+  { key: 'duplicates', label: '重复', icon: Copy, hint: '与其它技能的 Jaccard 相似度（只报告；合并/归档到「吞噬 · 存量治理」）' },
 ]
 
 export interface DrawerSkill {

@@ -15,7 +15,6 @@ import SkillAssetTable from './SkillAssetTable'
 import { MemoryWorkflowTable } from './workflow'
 import MemoryWorkflowVisual from './workflow-visual'
 import ConvertibleWorkflows from './ConvertibleWorkflows'
-import InstalledExtensions from '../extensions/installed-extensions'
 
 type CenterTab = 'llm' | 'workflow' | 'visual'
 
@@ -42,7 +41,7 @@ export default function SkillCenter() {
             <p className="text-[11px] text-slate-500">
               LLM 技能（模型执行）与工作流技能（本地执行）分开管理 —— 工作流命中时跳过 LLM，省调用省延迟
               <span className="ml-2 text-slate-600">
-                · 这里管 skill.md 资产；「扩展市场」里的内置 persona 行为（自省/情感等）也在这里启停
+                · 统一表 = 运行时技能（/api/skills）+ 技能资产（/api/skills-mgmt）按 id 合并
               </span>
             </p>
           </div>
@@ -82,28 +81,14 @@ export default function SkillCenter() {
               <Sparkles size={13} className="mt-0.5 shrink-0 text-cyan-400" />
               <span>
                 这里管理<strong className="text-slate-200"> LLM 技能</strong>（提示/行为/扩展类：情感表达、主动建议、安全守护、
-                email-helper 等），其内容会注入每次 LLM 调用。确定性、可本地执行的重复任务请到
-                「工作流技能」Tab（命中即本地执行、不消耗 LLM）。
+                email-helper 等），其内容会注入每次 LLM 调用。表格把运行时技能与技能资产按 id 合并：
+                只有运行时注册的技能标「仅运行时·无资产记录」（无评审/版本/发布记录，仍可查看内容与启停）。
+                确定性、可本地执行的重复任务请到「工作流技能」Tab；外来技能/文档的获取入口在「吞噬」。
               </span>
             </div>
+            {/* 统一表已包含「扩展系统登记为 skill」的运行时行（按 ext_id 与运行时 id 同源），
+                SkillAssetTable 内部只列「表里没有」的游离登记 —— 不在本页再画一份重复清单。 */}
             <SkillAssetTable />
-            {/* 扩展系统安装的技能：启停 / 配置 / 卸载。
-                原在「扩展市场」页的已安装管理；市场整页删除（2026-10-20）后回到技能归属页。
-                与上方运行时技能表的区别：这里是**扩展登记**（ext_type=skill），
-                卸载会同时删技能目录与登记 —— 故走二次确认。 */}
-            <div className="mt-3">
-              <InstalledExtensions
-                types={['skill']}
-                title="扩展系统安装的技能（启停 / 卸载）"
-                hint="从 .claude / 扩展市场 / 外部来源安装后登记的技能。启停与上方运行时技能同一份状态；卸载会删除技能目录与登记，不可逆（二次确认）。"
-                emptyText="还没有通过扩展系统安装的技能；外部技能请从「吞噬」获取，扩展安装的技能仍在这里启停/卸载。"
-              />
-            </div>
-            {/* 资产库 / 评审-评估 / 发布已迁到吞噬；这里只保留运行时技能与扩展登记 */}
-            <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2.5 text-xs text-slate-400">
-              技能资产库、评审-评估、版本/内容/发布已迁到「吞噬 · 资产评审」；外部获取也统一走吞噬。
-              <a className="ml-2 text-cyan-300 hover:text-cyan-200" href="#/workbench?panel=ingestion">去吞噬</a>
-            </div>
           </div>
         )}
 

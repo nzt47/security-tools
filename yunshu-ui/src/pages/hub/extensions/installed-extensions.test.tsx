@@ -75,6 +75,22 @@ describe('InstalledExtensions', () => {
     ))
   })
 
+  it('excludeIds：已在上层展示的同 id 条目不再重复列出，去重后为空则整块隐藏', async () => {
+    api.hubGet.mockResolvedValue({
+      ok: true,
+      extensions: [
+        { ext_id: 'self_reflection', ext_type: 'skill', name: '自省反思', enabled: true },
+        { ext_id: 'memory_summary', ext_type: 'skill', name: '记忆摘要', enabled: true },
+      ],
+    })
+    const { container } = render(
+      <InstalledExtensions types={['skill']} title="扩展登记" excludeIds={['self_reflection', 'memory_summary']} hideWhenEmpty />,
+    )
+    await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/extensions/list'))
+    await waitFor(() => expect(container.querySelector('[data-testid="installed-ext-skill"]')).toBeNull())
+    expect(screen.queryByText('self_reflection')).toBeNull()
+  })
+
   it('配置不是合法 JSON 时不发请求', async () => {
     rows()
     render(<InstalledExtensions types={['plugin']} title="已安装插件包" />)
