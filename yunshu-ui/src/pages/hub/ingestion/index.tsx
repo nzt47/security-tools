@@ -9,13 +9,14 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import {
-  AlertTriangle, ArrowRight, CheckCircle2, FileText, FolderOpen, GitBranch,
+  AlertTriangle, ArrowRight, CheckCircle2, FileText, FolderOpen, GitBranch, Hammer,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
 import { Badge, Card, ErrorBox, PageHeader } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
+import AssetReviewPanel from './AssetReviewPanel'
 import {
   commitIngestion,
   fetchIngestionSources,
@@ -59,7 +60,7 @@ function dedupeTone(item: DedupeItem): 'green' | 'amber' | 'red' | 'cyan' | 'sla
   return 'slate'
 }
 
-type IngestionTab = 'acquire' | 'review' | 'governance'
+type IngestionTab = 'acquire' | 'review' | 'assets' | 'governance'
 
 function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: IngestionTab) => void }) {
   return (
@@ -71,6 +72,10 @@ function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: Ing
       <button type="button" role="tab" aria-selected={tab === 'review'}
         className={tab === 'review' ? BTN_EM : BTN} onClick={() => onChange('review')}>
         <ShieldCheck size={12} /> 草稿评审
+      </button>
+      <button type="button" role="tab" aria-selected={tab === 'assets'}
+        className={tab === 'assets' ? BTN_EM : BTN} onClick={() => onChange('assets')}>
+        <Hammer size={12} /> 资产评审
       </button>
       <button type="button" role="tab" aria-selected={tab === 'governance'}
         className={tab === 'governance' ? BTN_EM : BTN} onClick={() => onChange('governance')}>
@@ -172,6 +177,15 @@ export default function IngestionPage() {
       <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
         {tabs}
         <ReviewPanel />
+      </div>
+    )
+  }
+
+  if (tab === 'assets') {
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
+        {tabs}
+        <AssetReviewPanel />
       </div>
     )
   }
