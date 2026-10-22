@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T12:21:32",
+  "generated_at": "2026-10-22T13:25:17",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
     "source_modules": 278,
@@ -8,7 +8,7 @@
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "bb9c127387c47e93",
+  "content_hash": "d53b9150a26ec6a4",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -43,6 +43,7 @@
     "yunshu-ui/src/pages/hub/governance/route-coverage.tsx",
     "yunshu-ui/src/pages/hub/governance/security.tsx",
     "yunshu-ui/src/pages/hub/governance/settings.tsx",
+    "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx",
     "yunshu-ui/src/pages/hub/ingestion/MemoryDraftPanel.tsx",
     "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx",
     "yunshu-ui/src/pages/hub/ingestion/governance.tsx",
@@ -59,7 +60,6 @@
     "yunshu-ui/src/pages/hub/memory/memory-governance.tsx",
     "yunshu-ui/src/pages/hub/memory/memory-maintenance.tsx",
     "yunshu-ui/src/pages/hub/memory/search.tsx",
-    "yunshu-ui/src/pages/hub/memory/skill-assess-manager.tsx",
     "yunshu-ui/src/pages/hub/memory/skill-center.tsx",
     "yunshu-ui/src/pages/hub/memory/skill-content-modal.tsx",
     "yunshu-ui/src/pages/hub/memory/skill-detail-drawer.tsx",

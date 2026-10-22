@@ -15,7 +15,6 @@ import { MemorySkillsTable } from './skills'
 import { MemoryWorkflowTable } from './workflow'
 import MemoryWorkflowVisual from './workflow-visual'
 import ConvertibleWorkflows from './ConvertibleWorkflows'
-import SkillAssessManager from './skill-assess-manager'
 import InstalledExtensions from '../extensions/installed-extensions'
 
 type CenterTab = 'llm' | 'workflow' | 'visual'
@@ -100,8 +99,11 @@ export default function SkillCenter() {
                 emptyText="还没有通过扩展系统安装的技能；外部技能请从「吞噬」获取，扩展安装的技能仍在这里启停/卸载。"
               />
             </div>
-            {/* 技能资产库 · 评审-评估管线：新建/外来安装/评估/发布 全生命周期 */}
-            <SkillAssessManager />
+            {/* 资产库 / 评审-评估 / 发布已迁到吞噬；这里只保留运行时技能与扩展登记 */}
+            <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2.5 text-xs text-slate-400">
+              技能资产库、评审-评估、版本/内容/发布已迁到「吞噬 · 资产评审」；外部获取也统一走吞噬。
+              <a className="ml-2 text-cyan-300 hover:text-cyan-200" href="#/workbench?panel=ingestion">去吞噬</a>
+            </div>
           </div>
         )}
 

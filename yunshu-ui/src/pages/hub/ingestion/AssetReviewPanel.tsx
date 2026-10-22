@@ -12,32 +12,27 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ListTree, ChevronDown, ChevronRight, Download, Eye, Filter, Folder, Lightbulb, Loader2, Layers, PackagePlus, Plus,
+  ChevronDown, ChevronRight, Download, Eye, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
-import { hubGet, hubPost } from '../../hub/components/ui'
+import { hubGet, hubPost } from '../components/ui'
 import { authHeader } from '../../../lib/apiToken'
-import GenerateRequirementModal from './generate-requirement-modal'
-import ClassIcon from './class-icon'
-import ApiTokenPrompt from './api-token-prompt'
-import SkillContentModal from './skill-content-modal'
-import SkillDetailDrawer from './skill-detail-drawer'
+import GenerateRequirementModal from '../memory/generate-requirement-modal'
+import ClassIcon from '../memory/class-icon'
+import ApiTokenPrompt from '../memory/api-token-prompt'
+import SkillContentModal from '../memory/skill-content-modal'
+import SkillDetailDrawer from '../memory/skill-detail-drawer'
 
 import {
   SKILLS_MGMT,
-  SKILLS_MGMT_ASSESS_CURATE,
   SKILLS_MGMT_ASSESS_EVENTS,
   SKILLS_MGMT_ASSESS_FEED,
-  SKILLS_MGMT_ASSESS_MERGE_BACKUPS,
-  SKILLS_MGMT_ASSESS_MERGE_SAFE,
-  SKILLS_MGMT_ASSESS_MERGE_UNDO,
   SKILLS_MGMT_ASSESS_RUN_ALL,
   SKILLS_MGMT_ASSESS_STREAM,
   SKILLS_MGMT_CLASSES,
   SKILLS_MGMT_CLASSES_MOVE,
   SKILLS_MGMT_CLASSES_RUN_AUTO,
   SKILLS_MGMT_CREATE_MANUAL,
-  SKILLS_MGMT_DUPLICATES,
   SKILLS_MGMT_REVIEW_AUDIT,
   SKILLS_MGMT_REVIEW_BATCH,
   skillAssess,
@@ -104,7 +99,6 @@ export default function SkillAssessManager() {
   const [adviceTarget, setAdviceTarget] = useState<SkillItem | null>(null)
   const [versionsTarget, setVersionsTarget] = useState<SkillItem | null>(null)
   const [redraftTarget, setRedraftTarget] = useState<SkillItem | null>(null)
-  const [curateOpen, setCurateOpen] = useState(false)
   const [feedOpen, setFeedOpen] = useState(false)
   const [cmdTarget, setCmdTarget] = useState<SkillItem | null>(null)
   /** 详情抽屉的目标（运行 / 脚本 / 参数统计 / 反馈 / 重复 五件事都在抽屉里做） */
@@ -488,9 +482,6 @@ export default function SkillAssessManager() {
           <button type="button" className={BTN_EM} onClick={() => setCreateOpen(true)}>
             <Plus size={12} /> 新建技能
           </button>
-          <a className={BTN_EM} href="#/workbench?panel=ingestion" title="外来技能/文档/插件包的唯一获取入口">
-            <PackagePlus size={12} /> 去吞噬获取
-          </a>
           <button type="button" className={BTN_EM} onClick={() => setGenOpen(true)} title="把对话提示词中的能力要求自动写成技能草稿（生成后自动评审-评估，可再审核）">
             <Lightbulb size={12} /> 从对话要求生成
           </button>
@@ -500,9 +491,6 @@ export default function SkillAssessManager() {
           </button>
           <button type="button" className={BTN} onClick={() => void batchReview()} disabled={busy !== ''}>
             批量审核
-          </button>
-          <button type="button" className={BTN} onClick={() => setCurateOpen(true)} disabled={busy !== ''} title="对存量老技能一键体检：补齐中文说明/归档停用零使用/给出合并与拆分建议（可自动整理）">
-            <ListTree size={12} /> 整理老技能
           </button>
           <button type="button" className={grouped ? BTN_EM : BTN} onClick={toggleGrouped} disabled={busy !== ''}
             title="按自动分类分组，同类可折叠；新技能自动归类（不匹配时自动新建类）">
@@ -534,7 +522,7 @@ export default function SkillAssessManager() {
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-800 px-4 py-8 text-center text-xs leading-relaxed text-slate-500">
-          资产库暂无技能。用「新建技能」沉淀新生能力，或用「去吞噬获取」把外来技能/文档/插件包带进来——
+          资产库暂无技能。用「新建技能」沉淀新生能力，或到「获取外来能力」把外来技能/文档/插件包带进来——
           二者都会自动进入评审-评估，通过后发布即为自身能力。
         </div>
       ) : (
@@ -594,9 +582,6 @@ export default function SkillAssessManager() {
       )}
       {genOpen && (
         <GenerateRequirementModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
-      )}
-      {curateOpen && (
-        <CurateModal onClose={() => setCurateOpen(false)} onDone={() => { setCurateOpen(false); void load() }} />
       )}
       {feedOpen && <FeedModal onClose={() => setFeedOpen(false)} onPick={handlePickSkill} />}
       {cmdTarget && (
@@ -972,185 +957,6 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 }
 
 // ── 外来安装模态 ─────────────────────────────────────────────────
-function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [res, setRes] = useState<{
-    issues?: number; plan?: { id: string; name?: string; issues?: string[] }[]
-    applied_count?: number; applied?: { id?: string; action?: string; detail?: string }[]
-  } | null>(null)
-  const [busy, setBusy] = useState('')
-  const [runMsg, setRunMsg] = useState('')
-  const [dups, setDups] = useState<{ skill_a?: string; skill_b?: string; name_a?: string; name_b?: string; jaccard?: number }[]>([])
-  const [backs, setBacks] = useState<{ merge_id?: string; ts?: string; src_id?: string; dst_id?: string; src_name?: string; dst_name?: string; src_content_len?: number; dst_content_len?: number }[]>([])
-
-  const loadDups = async () => {
-    try {
-      const r = await hubGet<{ duplicates?: { skill_a?: string; skill_b?: string; name_a?: string; name_b?: string; jaccard?: number }[] }>(`${SKILLS_MGMT_DUPLICATES}?min_jaccard=0.7`)
-      setDups(Array.isArray(r.duplicates) ? r.duplicates : [])
-    } catch { setDups([]) }
-  }
-
-  const loadBacks = async () => {
-    try {
-      const r = await hubGet<{ backups?: typeof backs }>(`${SKILLS_MGMT_ASSESS_MERGE_BACKUPS}?limit=50`)
-      setBacks(Array.isArray(r.backups) ? r.backups : [])
-    } catch { setBacks([]) }
-  }
-
-  const safeMerge = async (srcId: string, dstId: string) => {
-    if (!window.confirm(`安全合并：先备份快照，再删除「${srcId}」并入「${dstId}」？（可随时撤销）`)) return
-    setBusy('3'); setRunMsg('')
-    try {
-      const r = await hubPost<{ merge_id?: string; merged_id?: string }>(SKILLS_MGMT_ASSESS_MERGE_SAFE, { src_id: srcId, dst_id: dstId, strategy: 'auto' })
-      setRunMsg(`已安全合并：${srcId} → ${dstId}${r?.merge_id ? `（备份 ${r.merge_id}）` : ''}。可在下方「合并备份」中撤销。`)
-      onDone()
-      void loadDups()
-      void loadBacks()
-    } catch (e) {
-      setRunMsg(`合并失败：${e instanceof Error ? e.message : String(e)}`)
-    } finally { setBusy('') }
-  }
-
-  const undoOne = async (mid: string) => {
-    if (!mid) return
-    if (!window.confirm('撤销该次安全合并？（恢复被删技能并回滚保留方）')) return
-    setBusy('4'); setRunMsg('')
-    try {
-      const r = await hubPost<{ restored?: string[] }>(SKILLS_MGMT_ASSESS_MERGE_UNDO, { merge_id: mid })
-      setRunMsg(`已撤销合并（${mid}），恢复：${(r?.restored ?? []).join('、') || '-'}。`)
-      onDone()
-      void loadDups()
-      void loadBacks()
-    } catch (e) {
-      setRunMsg(`撤销失败：${e instanceof Error ? e.message : String(e)}`)
-    } finally { setBusy('') }
-  }
-
-  const plan = async () => {
-    setBusy('1'); setRunMsg('')
-    try { setRes(await hubPost(`${SKILLS_MGMT_ASSESS_CURATE}?dry_run=1`)) }
-    catch (e) { setRunMsg(`体检失败：${e instanceof Error ? e.message : String(e)}`) }
-    finally { setBusy('') }
-  }
-  const apply = async () => {
-    setBusy('2'); setRunMsg('')
-    try {
-      const r = await hubPost<{ applied_count?: number; applied?: { id?: string; action?: string }[] }>(`${SKILLS_MGMT_ASSESS_CURATE}?dry_run=0&auto_clean=1`)
-      setRes(r)
-      setRunMsg(`已自动整理 ${r?.applied_count ?? 0} 项：${(r?.applied ?? []).map((a) => `${a.id ?? ''}·${a.action ?? ''}`).join('；') || '无'}。合并/拆分需人工决策，见体检计划。`)
-      onDone()
-    } catch (e) { setRunMsg(`执行失败：${e instanceof Error ? e.message : String(e)}`) }
-    finally { setBusy('') }
-  }
-
-  useEffect(() => {
-    void plan()
-    void loadDups()
-    void loadBacks()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  return (
-    <ModalShell title="老技能整理（体检 / 自动整理）" onClose={onClose}>
-      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
-        对存量技能自动体检：<strong>缺中文说明</strong>（从内容自动补全）、<strong>停用且零使用</strong>（可归档）、
-        <strong>内容重复</strong>（建议合并）、<strong>内容过大</strong>（建议拆分）。安全动作可一键执行，合并/拆分保留建议由你决策。
-      </p>
-      {busy === '1' && <div className="flex items-center gap-2 py-2 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 体检中…</div>}
-      {res && (
-        <>
-          <div className="mb-2 text-[11px] text-slate-400">
-            共发现 <span className="font-semibold text-amber-300">{res.issues ?? 0}</span> 项问题
-            {res.applied_count != null && res.applied_count > 0 && <span> · 本次已自动处理 {res.applied_count} 项</span>}
-          </div>
-          {((res.plan ?? []).length === 0) ? (
-            <p className="py-3 text-[11px] text-emerald-400">体检通过：未发现需要整理的技能。</p>
-          ) : (
-            <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
-              {(res.plan ?? []).slice(0, 14).map((p) => (
-                <li key={p.id} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
-                  <div className="font-medium text-slate-200">{p.name ?? p.id}</div>
-                  <ul className="mt-0.5 space-y-0.5 text-[10px] text-slate-400">
-                    {(p.issues ?? []).map((t, i) => <li key={i}>· {t}</li>)}
-                  </ul>
-                </li>
-              ))}
-              {(res.plan?.length ?? 0) > 14 && <li className="text-[10px] text-slate-500">…其余 {((res.plan?.length ?? 0) - 14)} 项略</li>}
-            </ul>
-          )}
-        </>
-      )}
-      {runMsg && <p className="mt-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{runMsg}</p>}
-
-      {backs.length > 0 && (
-        <div className="mt-2 rounded-md border border-slate-800 bg-slate-950/40 p-2">
-          <div className="mb-1 flex items-center gap-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">合并备份（可撤销，{backs.length}）</span>
-            <button type="button" className={BTN} onClick={() => void loadBacks()} disabled={busy !== ''}>
-              <RefreshCw size={10} /> 刷新
-            </button>
-          </div>
-          <ul className="max-h-40 space-y-1 overflow-y-auto pr-1">
-            {backs.map((b) => (
-              <li key={b.merge_id} className="flex flex-wrap items-center gap-1.5 rounded-md border border-slate-800/70 bg-slate-900/40 px-2 py-1 text-[11px]">
-                <span className="font-mono text-[9px] text-slate-600">{b.ts ?? ''}</span>
-                <span className="text-slate-300">{b.src_name ?? b.src_id}</span>
-                <span className="text-slate-600">→</span>
-                <span className="text-slate-300">{b.dst_name ?? b.dst_id}</span>
-                <span className="font-mono text-[9px] text-slate-600">{b.merge_id}</span>
-                <button type="button" className={BTN_EM} disabled={busy !== ''}
-                  onClick={() => void undoOne(b.merge_id ?? '')} title="恢复被删技能并回滚保留方">
-                  撤销
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* 重复技能对：一键合并（删除被合并方并入保留方，含反馈回填与版本记录） */}
-      {dups.length > 0 && (
-        <div className="mt-2 rounded-md border border-slate-800 bg-slate-950/40 p-2">
-          <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">
-            检测到重复技能对（{dups.length}）——合并前请确认保留方
-          </div>
-          <ul className="max-h-40 space-y-1 overflow-y-auto pr-1">
-            {dups.map((d, i) => {
-              const a = d.skill_a ?? ''
-              const b = d.skill_b ?? ''
-              const la = d.name_a || a
-              const lb = d.name_b || b
-              return (
-                <li key={`${a}-${b}-${i}`} className="flex flex-wrap items-center gap-1.5 rounded-md border border-slate-800/70 bg-slate-900/40 px-2 py-1 text-[11px]">
-                  <span className="max-w-[14rem] truncate text-slate-200">{la}</span>
-                  <span className="text-slate-600">⇄</span>
-                  <span className="max-w-[14rem] truncate text-slate-200">{lb}</span>
-                  <span className="font-mono text-[10px] text-amber-300">{(d.jaccard ?? 0).toFixed(0)}%</span>
-                  <span className="ml-auto flex gap-1">
-                    <button type="button" className={BTN} disabled={busy !== ''} title={`安全合并：备份后删除 ${b} 并入 ${a}`}
-                      onClick={() => void safeMerge(b, a)}>保留左 · 合并右</button>
-                    <button type="button" className={BTN} disabled={busy !== ''} title={`安全合并：备份后删除 ${a} 并入 ${b}`}
-                      onClick={() => void safeMerge(a, b)}>保留右 · 合并左</button>
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
-      <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <button type="button" className={BTN} onClick={onClose}>关闭</button>
-        <button type="button" className={BTN} onClick={() => void plan()} disabled={busy !== ''} title="重新体检">
-          <RefreshCw size={11} /> 重新体检
-        </button>
-        <button type="button" className={BTN_EM} onClick={() => void apply()} disabled={busy !== ''} title="执行安全自动整理：补全中文说明 + 归档停用零使用技能">
-          {busy === '2' ? <Loader2 size={11} className="animate-spin" /> : <ListTree size={11} />} 执行自动整理
-        </button>
-      </div>
-    </ModalShell>
-  )
-}
-
-// ── 学习/迭代建议弹窗（参数优化 + 评审改进意见 + 自动修复建议）────────────────────────
 function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () => void; onDone?: () => void }) {
   const [sug, setSug] = useState<string[]>([])
   const [busy, setBusy] = useState(true)
