@@ -10,7 +10,7 @@ import { hubPost } from '../components/ui'
 import { SKILLS_MGMT_ABSTRACT_FROM_MEMORY } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2.5 py-1.5 text-xs text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface DraftRow {
   draft_name?: string
@@ -81,7 +81,7 @@ export default function MemoryDraftPanel() {
       </div>
       {err && <p className="mt-2 text-[11px] text-red-400">{err}</p>}
       {result && (
-        <div className="mt-2 rounded border border-slate-800 bg-slate-950/60 p-2 text-[11px] text-slate-300">
+        <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2 text-[11px] text-slate-300">
           <div className="text-[10px] text-slate-500">
             聚类 {result.total_clusters ?? 0} · 过闸 {result.passed_clusters ?? 0} · 注册 {result.registered_count ?? 0}
           </div>

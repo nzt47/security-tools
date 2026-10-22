@@ -85,7 +85,7 @@ export default function ConfigChangeLogPanel() {
       )}
 
       {rows.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
           <table className="min-w-full divide-y divide-border text-sm" data-testid="config-change-log-table">
             <thead className="bg-muted/50">
               <tr>

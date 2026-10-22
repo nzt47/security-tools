@@ -46,7 +46,7 @@ export default class PanelErrorBoundary extends Component<Props, State> {
           <AlertTriangle size={16} />
           该面板渲染失败（已拦截，避免整块空白）
         </div>
-        <pre className="mt-3 max-h-40 overflow-auto rounded bg-slate-950/60 p-3 text-[11px] text-red-200">
+        <pre className="mt-3 max-h-40 overflow-auto rounded-sm bg-slate-950/60 p-3 text-[11px] text-red-200">
           {String(error.message || error)}
         </pre>
         <button

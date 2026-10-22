@@ -368,7 +368,7 @@ export function WorkspaceDrawer({ session, onClose }: WorkspaceDrawerProps) {
                         }
                       }}
                       placeholder="输入工作区绝对路径，如 C:\Users\you\myproject"
-                      className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-none placeholder:text-slate-600 focus:border-cyan-600/70"
+                      className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-hidden placeholder:text-slate-600 focus:border-cyan-600/70"
                     />
                     {isElectron() && window.electronAPI && (
                       <button

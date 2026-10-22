@@ -174,7 +174,7 @@ export default function MemoryWorkflowVisual() {
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <input
-            className="w-44 rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-200 outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-600"
+            className="w-44 rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-200 outline-hidden transition-colors placeholder:text-slate-600 focus:border-cyan-600"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="工作流名称（保存时使用）"
@@ -212,7 +212,7 @@ export default function MemoryWorkflowVisual() {
 
             {listOpen && (
               <div
-                className="absolute right-0 top-full z-50 mt-1.5 max-h-80 w-[21rem] overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 p-1.5 shadow-2xl"
+                className="absolute right-0 top-full z-50 mt-1.5 max-h-80 w-84 overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 p-1.5 shadow-2xl"
                 data-testid="ve-save-list"
               >
                 <div className="flex items-center justify-between px-2 pb-1.5 pt-1">
@@ -256,7 +256,7 @@ export default function MemoryWorkflowVisual() {
                         </button>
                         <button
                           type="button"
-                          className="shrink-0 rounded p-1 text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                          className="shrink-0 rounded-sm p-1 text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
                           onClick={() => void handleDelete(d.id)}
                           title="从后端删除"
                           data-testid={`ve-delete-${d.id}`}

@@ -125,7 +125,7 @@ export default function ToolsComputerUse() {
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && navigate()}
               placeholder="输入 URL（如 https://example.com）"
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-600"
+              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
             />
             <button onClick={navigate} disabled={busy}
               className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:opacity-40">
@@ -173,7 +173,7 @@ export default function ToolsComputerUse() {
               onChange={(e) => setClipDraft(e.target.value)}
               placeholder="要写入剪贴板的文本"
               aria-label="剪贴板写入内容"
-              className="h-20 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-600"
+              className="h-20 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
             />
             <button onClick={writeClipboard} disabled={busyClip || !clipDraft}
               className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:opacity-40">

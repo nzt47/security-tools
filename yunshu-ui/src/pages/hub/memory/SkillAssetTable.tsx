@@ -58,7 +58,7 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const BTN_RED = `${BTN} hover:bg-red-500/10 hover:text-red-400`
 
 interface Finding { severity: string; category: string; code: string; message: string; location?: string }
@@ -471,7 +471,7 @@ export default function SkillAssessManager() {
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         </td>
-        <td className="w-[30%] min-w-[12rem] max-w-[26rem] px-2 py-2">
+        <td className="w-[30%] min-w-48 max-w-104 px-2 py-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="truncate font-medium text-slate-200">{it.name || it.id}</span>
             {it.class_name && (
@@ -529,7 +529,7 @@ export default function SkillAssessManager() {
                 {grouped && classOptions.length > 0 && (
                   <select value={cur} onChange={(e) => void moveClass(it, e.target.value)}
                     title="人工移动到其它分类（之后自动重判不再覆盖人工选择）"
-                    className="max-w-[7.5rem] rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[10px] text-slate-300 outline-none focus:border-cyan-600">
+                    className="max-w-30 rounded-sm border border-slate-700 bg-slate-950 px-1 py-0.5 text-[10px] text-slate-300 outline-hidden focus:border-cyan-600">
                     {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 )}
@@ -604,7 +604,7 @@ export default function SkillAssessManager() {
       out.push(
         <tr key={`g-${name}`} className="bg-slate-900/85">
           <td colSpan={6} className="px-1.5 py-1">
-            <button type="button" onClick={() => toggleCls(name)} className="flex w-full items-center gap-2 rounded px-1.5 py-1 text-left hover:bg-slate-800/60" title={isOpen ? '折叠该类' : '展开该类'}>
+            <button type="button" onClick={() => toggleCls(name)} className="flex w-full items-center gap-2 rounded-sm px-1.5 py-1 text-left hover:bg-slate-800/60" title={isOpen ? '折叠该类' : '展开该类'}>
               {isOpen ? <ChevronDown size={13} className="shrink-0 text-slate-400" /> : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
               <ClassIcon name={name} size={13} className="shrink-0 text-cyan-400" />
               <span className="text-[11px] font-medium text-slate-100">{name}</span>
@@ -724,10 +724,10 @@ export default function SkillAssessManager() {
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-500">
                 <th className="w-8 px-2 py-1.5" />
-                <th className="w-[30%] min-w-[12rem] px-2 py-1.5 font-medium">技能</th>
-                <th className="w-[6.5rem] px-2 py-1.5 font-medium">状态</th>
-                <th className="w-[5.5rem] px-2 py-1.5 font-medium">评审</th>
-                <th className="w-[6rem] px-2 py-1.5 font-medium">安全/质量/兼容</th>
+                <th className="w-[30%] min-w-48 px-2 py-1.5 font-medium">技能</th>
+                <th className="w-26 px-2 py-1.5 font-medium">状态</th>
+                <th className="w-22 px-2 py-1.5 font-medium">评审</th>
+                <th className="w-24 px-2 py-1.5 font-medium">安全/质量/兼容</th>
                 <th className="w-[18rem] px-2 py-1.5 font-medium">操作</th>
               </tr>
             </thead>
@@ -830,13 +830,13 @@ export default function SkillAssessManager() {
           <div className="border-t border-slate-800 px-3 pb-2 pt-2">
             <div className="flex flex-col gap-1">
               {events.slice(0, 8).map((e, i) => (
-                <div key={`${e.ts}-${i}`} className="flex flex-wrap items-center gap-1.5 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[10px] text-slate-400">
+                <div key={`${e.ts}-${i}`} className="flex flex-wrap items-center gap-1.5 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[10px] text-slate-400">
                   <span className="font-mono text-[9px] text-slate-600">{e.kind ?? ''}</span>
                   <span className="text-cyan-300">{e.skill_id ?? ''}</span>
                   <span className={e.verdict === 'block' ? 'text-red-400' : 'text-emerald-400'}>
                     {e.verdict === 'block' ? '阻断' : e.verdict === 'ok' ? '通过' : e.verdict ?? ''}
                   </span>
-                  <span className="max-w-[28rem] truncate text-slate-500">{e.summary}</span>
+                  <span className="max-w-md truncate text-slate-500">{e.summary}</span>
                   <span className="ml-auto font-mono text-[9px] text-slate-600">{e.ts ?? ''}</span>
                 </div>
               ))}
@@ -1379,7 +1379,7 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-slate-500">已加载 {items.length} 条（时间倒序，分页加载）</span>
         <input
-          className={`${INPUT} !mb-0 w-44`}
+          className={`${INPUT} mb-0! w-44`}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') applyFilter() }}
@@ -1404,14 +1404,14 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
       ) : items.length === 0 ? (
         <p className="py-4 text-[11px] text-slate-500">暂无动态。</p>
       ) : (
-        <ul className="max-h-[26rem] space-y-1 overflow-y-auto pr-1">
+        <ul className="max-h-104 space-y-1 overflow-y-auto pr-1">
           {items.map((r, i) => (
             <li key={`${r.ts}-${i}`} className="flex items-start gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
               {chip(r.kind === 'audit' ? '审计' : '评估', r.kind === 'audit' ? 'bg-amber-500/10 text-amber-400 border-amber-800/60' : 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
               {onPick && r.skill_id ? (
                 <button type="button"
                   onClick={() => onPick(r.skill_id ?? '')}
-                  className="shrink-0 rounded border border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-cyan-300 transition-colors hover:border-cyan-600 hover:bg-cyan-500/10"
+                  className="shrink-0 rounded-sm border border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-cyan-300 transition-colors hover:border-cyan-600 hover:bg-cyan-500/10"
                   title="在下方资产表中定位该技能（存在则展开报告并滚动定位）">
                   {r.skill_id}
                 </button>

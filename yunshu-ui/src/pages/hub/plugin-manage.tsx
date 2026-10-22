@@ -505,7 +505,7 @@ export default function PluginManagePage() {
                     {(p.routes ?? []).map((rt) => (
                       <div
                         key={rt}
-                        className="flex items-center gap-2 rounded px-2 py-0.5 font-mono text-[10.5px] text-slate-500 hover:bg-slate-800/50"
+                        className="flex items-center gap-2 rounded-sm px-2 py-0.5 font-mono text-[10.5px] text-slate-500 hover:bg-slate-800/50"
                       >
                         <Server size={9} className="shrink-0 text-slate-700" />
                         {rt}
@@ -582,7 +582,7 @@ export default function PluginManagePage() {
             </div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <input
-                className="w-64 rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600"
+                className="w-64 rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600"
                 placeholder="关键词（留空 = 全部插件包）"
                 value={marketQ}
                 onChange={(e) => setMarketQ(e.target.value)}
@@ -614,12 +614,12 @@ export default function PluginManagePage() {
               {marketRows.map((m) => {
                 const id = m.id ?? ''
                 return (
-                  <div key={'market-plugin-' + id} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                  <div key={'market-plugin-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                     <span className="font-mono text-[10px] text-cyan-300">{id}</span>
                     <span className="text-slate-300">{m.name ?? ''}</span>
                     <span className="truncate text-[10px] text-slate-500">{m.description ?? ''}</span>
                     <span className="ml-auto flex items-center gap-1.5">
-                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400">
+                      <span className="rounded-sm bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-400">
                         {m.market_type ?? m.source ?? 'plugin'}
                       </span>
                       <button

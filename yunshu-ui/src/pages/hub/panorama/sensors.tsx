@@ -313,7 +313,7 @@ export default function PanoramaSensors() {
                       <div className="mb-2 text-xs font-medium text-slate-300">{dim.label}</div>
                       <div className="flex flex-wrap gap-1.5">
                         {dim.values.map((v) => (
-                          <span key={v} className="rounded border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[11px] text-slate-400">{v}</span>
+                          <span key={v} className="rounded-sm border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[11px] text-slate-400">{v}</span>
                         ))}
                       </div>
                     </div>

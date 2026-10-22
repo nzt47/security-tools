@@ -378,7 +378,7 @@ export function ChatPanel() {
                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-cyan-500/10 ${idx === hiSafe ? 'bg-cyan-500/15 ring-1 ring-cyan-600/50' : ''}`}
               >
                 <span className="shrink-0 font-mono text-[11px] text-cyan-300">{c.token}</span>
-                <span className="shrink-0 rounded border border-cyan-800/50 bg-cyan-500/10 px-1 text-[9px] font-medium text-cyan-300" title={`类型 ${c.content_type ?? ''}`}>{typeLabel(c)}</span>
+                <span className="shrink-0 rounded-sm border border-cyan-800/50 bg-cyan-500/10 px-1 text-[9px] font-medium text-cyan-300" title={`类型 ${c.content_type ?? ''}`}>{typeLabel(c)}</span>
                 <span className="min-w-0 flex-1 truncate text-[11px] text-slate-200">{c.name}</span>
                 <span className="shrink-0 text-[9px] text-slate-600">{c.version ? `v${c.version}` : ''}</span>
                 <span className="shrink-0 text-[9px] text-slate-600">{c.category ? `[${c.category}]` : ''}</span>

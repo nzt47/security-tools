@@ -72,13 +72,13 @@ export function ChatStyleMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-[70] w-[286px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 shadow-2xl backdrop-blur">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[286px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[11.5px] font-medium text-slate-200">🎨 对话风格</span>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+              className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               aria-label="关闭风格设置"
             >
               <X size={12} />

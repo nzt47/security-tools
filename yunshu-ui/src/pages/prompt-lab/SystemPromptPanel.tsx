@@ -21,8 +21,8 @@ import { SYSTEM_PROMPT, SYSTEM_PROMPT_RESET, SYSTEM_PROMPT_SYNC_STATUS } from '@
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 interface PromptResp {
   template?: string
@@ -112,7 +112,7 @@ export default function SystemPromptPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
 
       <div className="grid gap-2 lg:grid-cols-2">
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
@@ -150,7 +150,7 @@ export default function SystemPromptPanel() {
                   type="button"
                   onClick={() => setDraft((d) => d + '{' + k + '}')}
                   title="点一下插入到模板末尾"
-                  className="flex items-start gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-left text-[11px] hover:bg-slate-800/50"
+                  className="flex items-start gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-left text-[11px] hover:bg-slate-800/50"
                 >
                   <span className="font-mono text-[10px] text-cyan-300">{'{' + k + '}'}</span>
                   <span className="text-[10px] text-slate-500">{v}</span>

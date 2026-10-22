@@ -100,7 +100,7 @@ export default function GovernancePanel() {
           停用零使用走 archive；「从记忆抽象」在「获取外来能力」页。
         </p>
         {error && <div className="mt-2"><ErrorBox message={error} /></div>}
-        {msg && <div className="mt-2 rounded border border-cyan-900/60 bg-cyan-950/20 px-2 py-1 text-[11px] text-cyan-300">{msg}</div>}
+        {msg && <div className="mt-2 rounded-sm border border-cyan-900/60 bg-cyan-950/20 px-2 py-1 text-[11px] text-cyan-300">{msg}</div>}
         {scan && (
           <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
             {[
@@ -111,7 +111,7 @@ export default function GovernancePanel() {
               ['缺描述', scan.summary.refactor ?? 0],
               ['孤儿', scan.summary.orphan ?? 0],
             ].map(([label, value]) => (
-              <div key={String(label)} className="rounded border border-slate-800 bg-slate-950/50 px-2 py-1.5">
+              <div key={String(label)} className="rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1.5">
                 <div className="text-[10px] text-slate-500">{label}</div>
                 <div className="font-mono text-sm text-cyan-300">{value}</div>
               </div>
@@ -147,7 +147,7 @@ export default function GovernancePanel() {
                 </button>
                 {picked && <span className="font-mono text-[10px] text-cyan-300">{picked}</span>}
               </div>
-              <div className="flex flex-col divide-y divide-slate-800 overflow-hidden rounded border border-slate-800">
+              <div className="flex flex-col divide-y divide-slate-800 overflow-hidden rounded-sm border border-slate-800">
                 {plan.actions.map((a) => {
                   const m = meta(a.action)
                   const Icon = m.icon
@@ -183,7 +183,7 @@ export default function GovernancePanel() {
           <div className="text-[11px] text-slate-300">
             <span className="font-mono text-cyan-300">{preview.action}</span> / {preview.target}
           </div>
-          <pre className="mt-2 max-h-48 overflow-auto rounded border border-slate-800 bg-slate-950 p-2 text-[10px] text-slate-400">
+          <pre className="mt-2 max-h-48 overflow-auto rounded-sm border border-slate-800 bg-slate-950 p-2 text-[10px] text-slate-400">
             {JSON.stringify(preview.would ?? {}, null, 2)}
           </pre>
         </Card>
@@ -195,7 +195,7 @@ export default function GovernancePanel() {
             <span className="font-mono text-cyan-300">{applied.action}</span> / {applied.target}
             {applied.audit?.seq ? <span className="ml-2 text-slate-500">audit seq {applied.audit.seq}</span> : null}
           </div>
-          <pre className="mt-2 max-h-48 overflow-auto rounded border border-slate-800 bg-slate-950 p-2 text-[10px] text-slate-400">
+          <pre className="mt-2 max-h-48 overflow-auto rounded-sm border border-slate-800 bg-slate-950 p-2 text-[10px] text-slate-400">
             {JSON.stringify(applied.result ?? {}, null, 2)}
           </pre>
         </Card>

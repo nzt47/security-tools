@@ -40,8 +40,8 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 interface ReviewStats {
   total_entries?: number
@@ -77,7 +77,7 @@ interface VectorItem {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-      <span className="min-w-[7rem]">{label}</span>
+      <span className="min-w-28">{label}</span>
       {children}
     </label>
   )
@@ -306,7 +306,7 @@ export default function MemoryMaintenance() {
             ['最近审查', review?.last_review ?? '—'],
             ['向量表', stats.vec_table ?? '—'],
           ].map(([k, v]) => (
-            <div key={String(k)} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+            <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
               <div className="text-[10px] text-slate-500">{String(k)}</div>
               <div className="truncate font-mono text-[12px] text-cyan-300">{String(v ?? 0)}</div>
             </div>
@@ -367,20 +367,20 @@ export default function MemoryMaintenance() {
         </div>
 
         <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-          <div className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
             <div className="text-[10px] text-slate-500">当前窗口</div>
             <div className="truncate text-[11px] text-cyan-300">{current?.title ?? (current?.is_idle ? '（空闲）' : '—')}</div>
             <div className="truncate text-[10px] text-slate-500">{current?.process ?? ''}</div>
           </div>
-          <div className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
             <div className="text-[10px] text-slate-500">停留</div>
             <div className="font-mono text-[12px] text-cyan-300">{Math.round(current?.elapsed_sec ?? 0)}s</div>
           </div>
-          <div className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
             <div className="text-[10px] text-slate-500">总切换</div>
             <div className="font-mono text-[12px] text-cyan-300">{winTotal.switches ?? 0}</div>
           </div>
-          <div className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
             <div className="text-[10px] text-slate-500">总时长</div>
             <div className="font-mono text-[12px] text-cyan-300">{Math.round(winTotal.duration ?? 0)}s</div>
           </div>
@@ -389,7 +389,7 @@ export default function MemoryMaintenance() {
         {winStats.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1 font-mono text-[10px] text-slate-400">
             {winStats.slice(0, 12).map((s, i) => (
-              <span key={i} className="rounded bg-slate-800/60 px-1.5 py-0.5">
+              <span key={i} className="rounded-sm bg-slate-800/60 px-1.5 py-0.5">
                 {String(s.app ?? s.name ?? '?')} {Math.round(Number(s.duration_sec ?? s.total_sec ?? 0))}s
               </span>
             ))}
@@ -451,7 +451,7 @@ export default function MemoryMaintenance() {
 
         <div className="mb-2 flex flex-col gap-1">
           {recent.slice(0, 8).map((it, i) => (
-            <div key={(it.id ?? '') + i} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+            <div key={(it.id ?? '') + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-[10px] text-cyan-300">{it.id ?? ''}</span>
                 <span className="font-mono text-[10px] text-slate-600">{it.timestamp ?? ''}</span>
@@ -493,7 +493,7 @@ export default function MemoryMaintenance() {
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 rounded border border-red-900/40 bg-red-500/5 p-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-900/40 bg-red-500/5 p-2">
           <span className="text-[10px] text-red-300">清空向量库不可撤销（整库删除）。</span>
           <label className="flex items-center gap-1 text-[10px] text-slate-400">
             <input type="checkbox" checked={confirmClearVector} onChange={(e) => setConfirmClearVector(e.target.checked)} aria-label="确认清空向量库" />

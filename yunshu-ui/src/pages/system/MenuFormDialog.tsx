@@ -147,7 +147,7 @@ export default function MenuFormDialog({
             type="checkbox"
             checked={hideInMenu}
             onChange={(e) => setHideInMenu(e.target.checked)}
-            className="h-4 w-4 rounded accent-primary"
+            className="h-4 w-4 rounded-sm accent-primary"
           />
           在菜单中隐藏
         </label>

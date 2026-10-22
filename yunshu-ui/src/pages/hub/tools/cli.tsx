@@ -42,7 +42,7 @@ export default function ToolsCli() {
           {procs.length > 0 ? (
             <div className="max-h-96 space-y-1 overflow-y-auto font-mono text-xs">
               {procs.map((p, i) => (
-                <div key={i} className="flex gap-3 rounded px-2 py-1 hover:bg-slate-800/40">
+                <div key={i} className="flex gap-3 rounded-sm px-2 py-1 hover:bg-slate-800/40">
                   <span className="w-16 text-slate-500">{p.pid}</span>
                   <span className="text-slate-300">{String(p.name)}</span>
                 </div>
@@ -56,7 +56,7 @@ export default function ToolsCli() {
         </Card>
         <Card title="CLI 扩展">
           <p className="text-sm leading-6 text-slate-400">
-            CLI 软件管理后端接口（<code className="rounded bg-slate-800 px-1.5 py-0.5 text-cyan-400">/api/cli/*</code>）当前为占位实现。
+            CLI 软件管理后端接口（<code className="rounded-sm bg-slate-800 px-1.5 py-0.5 text-cyan-400">/api/cli/*</code>）当前为占位实现。
             后续可在此接入软件安装、版本管理与命令行工具注册能力。
           </p>
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-slate-500">

@@ -176,7 +176,7 @@ export function toneForStage(stage: string | null | undefined): StatusTone {
       return 'gray'
     case 'mirrored':
       return 'blue'
-    case 'shadow':
+    case 'shadow-sm':
       return 'yellow'
     case 'internalized':
       return 'green'
@@ -290,7 +290,7 @@ export function MetricValue({
       {metric.insufficient_sample && (
         <span
           title={`${metric.note || '样本不足'}（样本 ${metric.sample_size ?? 0} < ${metric.min_sample ?? 20}）`}
-          className="rounded border border-amber-800 bg-amber-500/10 px-1 text-[10px] text-amber-300"
+          className="rounded-sm border border-amber-800 bg-amber-500/10 px-1 text-[10px] text-amber-300"
         >
           仅披露
         </span>
@@ -304,7 +304,7 @@ export function MetricValue({
         <Info size={11} />
       </button>
       {open && (
-        <span className="ml-1 block w-full rounded border border-slate-800 bg-slate-950/80 px-2 py-1 font-mono text-[10px] leading-relaxed text-slate-400">
+        <span className="ml-1 block w-full rounded-sm border border-slate-800 bg-slate-950/80 px-2 py-1 font-mono text-[10px] leading-relaxed text-slate-400">
           <span className="block">来源：{metric.source || '（未标注，禁止上屏）'}</span>
           {metric.formula && <span className="block">公式：{metric.formula}</span>}
           {metric.dataset && <span className="block">数据集：{metric.dataset}</span>}
@@ -508,7 +508,7 @@ export function TaintBadge({ source, label }: { source?: string; label?: string 
   if (!badge) return null // 常量缺位 ⇒ 不渲染（U1）
   return (
     <span
-      className={`${badge.class} ${badge.base_class} inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px]`}
+      className={`${badge.class} ${badge.base_class} inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px]`}
       {...{ [badge.attr]: source || 'foreign' }}
       title={`外来内容（不可信来源）：${source || '未标注'}`}
     >

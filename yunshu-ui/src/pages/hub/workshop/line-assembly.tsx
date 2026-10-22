@@ -63,7 +63,7 @@ function Chip({ children, tone = 'slate' }: { children: ReactNode; tone?: string
     green: 'border-emerald-800 bg-emerald-950/40 text-emerald-300',
   }
   return (
-    <span className={`inline-block rounded border px-1.5 py-0.5 font-mono text-[11px] ${cls[tone] ?? cls.slate}`}>
+    <span className={`inline-block rounded-sm border px-1.5 py-0.5 font-mono text-[11px] ${cls[tone] ?? cls.slate}`}>
       {children}
     </span>
   )
@@ -165,7 +165,7 @@ export default function LineAssemblyOverview() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="按 id / 名称过滤"
-            className="w-48 bg-transparent text-xs text-slate-200 outline-none"
+            className="w-48 bg-transparent text-xs text-slate-200 outline-hidden"
           />
         </span>
         <span className="text-slate-500">

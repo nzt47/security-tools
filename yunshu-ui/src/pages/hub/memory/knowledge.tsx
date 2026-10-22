@@ -63,9 +63,9 @@ function errText(e: unknown): string {
 }
 
 const inputCls =
-  'rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-600'
+  'rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600'
 const selectCls =
-  'rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-cyan-600'
+  'rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-300 outline-hidden focus:border-cyan-600'
 
 export default function MemoryKnowledge() {
   // ── 列表与统计 ──
@@ -423,7 +423,7 @@ export default function MemoryKnowledge() {
                             {(r.tags ?? []).slice(0, 4).map((t, i) => (
                               <span
                                 key={i}
-                                className="rounded bg-slate-800 px-1.5 py-0.5 text-xs text-slate-400"
+                                className="rounded-sm bg-slate-800 px-1.5 py-0.5 text-xs text-slate-400"
                               >
                                 #{t}
                               </span>
@@ -439,7 +439,7 @@ export default function MemoryKnowledge() {
                             <button
                               type="button"
                               title="编辑"
-                              className="rounded px-1.5 py-0.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                              className="rounded-sm px-1.5 py-0.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                               onClick={() => { setEditing(r); setFormError(''); setFormOpen(true) }}
                             >
                               ✏️
@@ -447,7 +447,7 @@ export default function MemoryKnowledge() {
                             <button
                               type="button"
                               title="删除"
-                              className="rounded px-1.5 py-0.5 text-xs text-red-400/80 hover:bg-red-950/50 hover:text-red-300"
+                              className="rounded-sm px-1.5 py-0.5 text-xs text-red-400/80 hover:bg-red-950/50 hover:text-red-300"
                               onClick={() => handleDelete(r.slug)}
                             >
                               🗑
@@ -632,7 +632,7 @@ export default function MemoryKnowledge() {
 
       {/* ── 详情抽屉（复用 legacy CardDetail 组件）── */}
       {detailLoading && (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center">
+        <div className="fixed inset-0 z-1100 flex items-center justify-center">
           <div className="rounded-lg border border-slate-700 bg-slate-900 px-5 py-3 text-sm text-slate-300 shadow-2xl">
             加载详情中…
           </div>
@@ -649,7 +649,7 @@ export default function MemoryKnowledge() {
       {/* ── 新建/编辑弹层（表单复用 legacy CardForm 组件）── */}
       {formOpen && (
         <div
-          className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/50"
+          className="fixed inset-0 z-1050 flex items-center justify-center bg-black/50"
           onClick={() => { if (!submitting) { setFormOpen(false); setEditing(null) } }}
         >
           <div

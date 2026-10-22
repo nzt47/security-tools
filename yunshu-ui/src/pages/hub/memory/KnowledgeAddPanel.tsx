@@ -12,7 +12,7 @@ import { hubPost } from '../components/ui'
 import { KNOWLEDGE_ADD } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 export default function KnowledgeAddPanel() {
   const [content, setContent] = useState('')
@@ -46,9 +46,9 @@ export default function KnowledgeAddPanel() {
         <h3 className="text-xs font-semibold text-slate-200">新增知识文档</h3>
         <span className="text-[10px] text-slate-500">直接写入向量知识库（内容必填）</span>
       </div>
-      {err && <div className="mb-2 rounded border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
+      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
       {ok && (
-        <div className="mb-2 flex items-center gap-1 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">
+        <div className="mb-2 flex items-center gap-1 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">
           <CheckCircle2 size={11} /> {ok}
         </div>
       )}

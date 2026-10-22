@@ -34,7 +34,7 @@ export default function AdminGuard({ children }: { children: ReactNode }) {
         <div className="mb-4 flex items-center justify-between rounded-lg border border-amber-800/60 bg-amber-950/40 px-4 py-3">
           <div className="flex items-center gap-2 text-sm text-amber-300">
             <Lock size={14} />
-            <span>管理后台需要登录：<code className="rounded bg-amber-900/40 px-1.5 py-0.5 text-xs">admin / 123456</code></span>
+            <span>管理后台需要登录：<code className="rounded-sm bg-amber-900/40 px-1.5 py-0.5 text-xs">admin / 123456</code></span>
           </div>
           <Link
             to="/login"

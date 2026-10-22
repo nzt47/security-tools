@@ -135,7 +135,7 @@ export default function NotificationCenter() {
             type="checkbox"
             checked={unreadOnlyInput}
             onChange={(e) => setUnreadOnlyInput(e.target.checked)}
-            className="h-4 w-4 rounded accent-primary"
+            className="h-4 w-4 rounded-sm accent-primary"
           />
           仅看未读
         </label>

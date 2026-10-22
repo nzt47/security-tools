@@ -33,8 +33,8 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 interface ToolRow { name?: string; category?: string; enabled?: boolean; description?: string }
 interface TraceRow { trace_id?: string; name?: string; duration_ms?: number; status?: string; start_time?: string }
@@ -188,11 +188,11 @@ export default function OpsDiagnostics() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
 
       {tab === 'diag' && (
         <div className="space-y-2">
-          <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
               <AlertTriangle size={11} className="text-amber-400" /> 配置摘要
               {diagConfig && 'error' in diagConfig && (
@@ -202,21 +202,21 @@ export default function OpsDiagnostics() {
             <pre className={PRE}>{JSON.stringify(diagConfig ?? {}, null, 2)}</pre>
           </div>
 
-          <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
               <Activity size={11} className="text-cyan-400" /> 综合健康检查
             </div>
             <pre className={PRE}>{JSON.stringify(diagHealth ?? {}, null, 2)}</pre>
           </div>
 
-          <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
               <AlertTriangle size={11} className="text-amber-400" /> 异常关联
             </div>
             <pre className={PRE}>{JSON.stringify(diagCorr ?? {}, null, 2)}</pre>
           </div>
 
-          <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
               <Wrench size={11} className="text-cyan-400" /> 已注册工具（{tools.length}）
               <span className="text-[10px] text-slate-600">
@@ -228,7 +228,7 @@ export default function OpsDiagnostics() {
                 <span
                   key={(t.name ?? '') + i}
                   title={t.description}
-                  className={'rounded px-1.5 py-0.5 font-mono text-[10px] ' + (t.enabled ? 'bg-slate-800/70 text-slate-300' : 'bg-red-500/10 text-red-300')}
+                  className={'rounded-sm px-1.5 py-0.5 font-mono text-[10px] ' + (t.enabled ? 'bg-slate-800/70 text-slate-300' : 'bg-red-500/10 text-red-300')}
                 >
                   {t.name ?? '?'}
                 </span>
@@ -237,7 +237,7 @@ export default function OpsDiagnostics() {
             </div>
           </div>
 
-          <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
               <FileText size={11} className="text-cyan-400" /> 最近日志（{diagLogs.length}）
             </div>
@@ -255,14 +255,14 @@ export default function OpsDiagnostics() {
               ['平均耗时', Math.round((accessStats?.avg_response_time_ms as number) ?? 0) + 'ms'],
               ['独立端点', (accessStats?.unique_endpoints as number) ?? 0],
             ].map(([k, v]) => (
-              <div key={String(k)} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+              <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
                 <div className="text-[10px] text-slate-500">{String(k)}</div>
                 <div className="font-mono text-[12px] text-cyan-300">{String(v)}</div>
               </div>
             ))}
           </div>
 
-          <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
               <FileText size={11} className="text-cyan-400" /> 访问日志（{accessLogs.length}）
             </div>
@@ -297,7 +297,7 @@ export default function OpsDiagnostics() {
             </div>
           </div>
 
-          <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
               <Activity size={11} className="text-cyan-400" /> 追踪（{traces.length}）
             </div>
@@ -314,7 +314,7 @@ export default function OpsDiagnostics() {
                     key={(t.trace_id ?? '') + i}
                     type="button"
                     onClick={() => setTraceId(t.trace_id ?? '')}
-                    className="flex items-center gap-2 rounded border border-slate-800 bg-slate-900/40 px-2 py-1 text-left text-[11px] hover:bg-slate-800/50"
+                    className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-900/40 px-2 py-1 text-left text-[11px] hover:bg-slate-800/50"
                   >
                     <span className="font-mono text-[10px] text-cyan-300">{t.trace_id ?? ''}</span>
                     <span className="text-slate-400">{t.name ?? ''}</span>
@@ -326,7 +326,7 @@ export default function OpsDiagnostics() {
             {traceDetail && <pre className={PRE + ' mt-1'}>{JSON.stringify(traceDetail, null, 2)}</pre>}
           </div>
 
-          <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+          <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
             <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
               <Save size={11} className="text-cyan-400" /> 告警规则（PUT 覆盖 / DELETE 删除）
             </div>
@@ -354,7 +354,7 @@ export default function OpsDiagnostics() {
           </div>
 
           {state && (
-            <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+            <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
               <div className="mb-1 text-[11px] text-slate-400">可观测总状态</div>
               <pre className={PRE}>{JSON.stringify(state, null, 2)}</pre>
             </div>

@@ -61,7 +61,7 @@ export function ApiTokenField() {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="输入 FLASK_API_TOKEN"
-            className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600 outline-none focus:border-cyan-500"
+            className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600 outline-hidden focus:border-cyan-500"
           />
           <div className="mt-1.5 flex items-center gap-2">
             <button

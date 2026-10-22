@@ -28,7 +28,7 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface Dimension { score?: number; weight?: number; indicators?: Record<string, number>; issues?: unknown[] }
 interface ScoreResp {
@@ -146,7 +146,7 @@ export default function HealthVitals() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
@@ -155,7 +155,7 @@ export default function HealthVitals() {
           ['趋势', (trend?.trend?.trend ?? '—') + (trend?.trend?.change !== undefined ? ' (' + trend.trend.change + ')' : '')],
           ['历史快照', history.length],
         ].map(([k, v]) => (
-          <div key={String(k)} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+          <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
             <div className="text-[10px] text-slate-500">{String(k)}</div>
             <div className="truncate font-mono text-[12px] text-cyan-300">{String(v)}</div>
           </div>
@@ -163,14 +163,14 @@ export default function HealthVitals() {
       </div>
 
       {quick && (
-        <div className="mb-2 rounded border border-slate-800 bg-slate-950/60 p-2">
+        <div className="mb-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2">
           <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
             <Activity size={11} className="text-cyan-400" /> 快速体检 · {quick.level ?? '-'} · {quick.score ?? '-'} 分
             <span className="ml-auto font-mono text-[10px] text-slate-600">{Math.round(quick.elapsed_ms ?? 0)}ms</span>
           </div>
           <div className="flex flex-wrap gap-1 font-mono text-[10px] text-slate-400">
             {Object.entries(quick.metrics ?? {}).map(([k, v]) => (
-              <span key={k} className="rounded bg-slate-800/60 px-1.5 py-0.5">{k}={Math.round(v)}</span>
+              <span key={k} className="rounded-sm bg-slate-800/60 px-1.5 py-0.5">{k}={Math.round(v)}</span>
             ))}
           </div>
           {(quick.issues?.length ?? 0) > 0 && (
@@ -213,7 +213,7 @@ export default function HealthVitals() {
           </div>
           <div className="flex flex-col gap-1">
             {alerts?.map((a, i) => (
-              <div key={(a.name ?? '') + i} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={(a.name ?? '') + i} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <span className="font-mono text-[10px] text-cyan-300">{a.name ?? '?'}</span>
                 <span className="text-slate-400">{a.condition ?? ''}</span>
                 <span className="ml-auto text-[10px] text-slate-500">{a.severity ?? ''}</span>
@@ -223,7 +223,7 @@ export default function HealthVitals() {
         </div>
       )}
 
-      <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+      <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
         <div className="mb-1 flex items-center gap-2 text-[11px] text-slate-400">
           <Gauge size={11} className="text-cyan-400" /> 维度权重（改它会改变所有人看到的健康度）
         </div>

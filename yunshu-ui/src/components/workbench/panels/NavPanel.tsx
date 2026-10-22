@@ -91,7 +91,7 @@ export function NavPanel() {
     <div className="flex h-full min-h-0 flex-col bg-slate-900/80">
       {/* 品牌区 */}
       <div className="flex items-center gap-2 border-b border-slate-800 px-4 pb-3 pt-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-cyan-500 to-blue-600">
           <Cloud size={15} className="text-white" />
         </div>
         <div>
@@ -119,7 +119,7 @@ export function NavPanel() {
             placeholder="搜索功能（如：审批）"
             aria-label="搜索功能"
             data-cp-nav-search
-            className="w-full rounded-md border border-slate-800 bg-slate-950/60 py-1 pl-6 pr-6 text-[12px] text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-none"
+            className="w-full rounded-md border border-slate-800 bg-slate-950/60 py-1 pl-6 pr-6 text-[12px] text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
           />
           {searching && (
             <button
@@ -127,7 +127,7 @@ export function NavPanel() {
               aria-label="清空搜索"
               data-cp-nav-search-clear
               onClick={() => setQuery('')}
-              className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-500 hover:text-slate-200"
+              className="absolute right-1 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-slate-500 hover:text-slate-200"
             >
               <X size={12} />
             </button>

@@ -717,8 +717,8 @@ export default function PanoramaHealth() {
                     <div className={'mt-1 text-2xl font-semibold ' + (lv === 'excellent' || lv === 'good' ? 'text-emerald-400' : lv === 'fair' || lv === 'warning' ? 'text-amber-400' : lv === 'critical' ? 'text-red-400' : 'text-slate-600')}>
                       {score == null ? NO_PROBE_DATA : score.toFixed(0)}
                     </div>
-                    <div className="mt-2 h-1 overflow-hidden rounded bg-slate-800">
-                      <div className="h-full rounded" style={{ width: (score ?? 0) + '%', background: l.color }} />
+                    <div className="mt-2 h-1 overflow-hidden rounded-sm bg-slate-800">
+                      <div className="h-full rounded-sm" style={{ width: (score ?? 0) + '%', background: l.color }} />
                     </div>
                     {d?.detail && <div className="mt-2 truncate text-[10px] text-slate-600" title={d.detail}>{d.detail}</div>}
                   </div>

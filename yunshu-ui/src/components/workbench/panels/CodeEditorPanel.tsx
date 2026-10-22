@@ -162,12 +162,12 @@ export function CodeEditorPanel() {
           ))}
         </select>
         <div className="ml-auto flex items-center gap-1.5">
-          <button type="button" className="wb-chip !py-1" onClick={loadSample}>
+          <button type="button" className="wb-chip py-1!" onClick={loadSample}>
             示例代码
           </button>
           <button
             type="button"
-            className="wb-chip !py-1"
+            className="wb-chip py-1!"
             onClick={clearAll}
             title="清空内容"
           >
@@ -189,7 +189,7 @@ export function CodeEditorPanel() {
         />
         <div className="wb-editor-preview">
           <div className="wb-editor-preview-title">高亮预览</div>
-          <pre className="!m-0 wb-editor-pre">
+          <pre className="m-0! wb-editor-pre">
             <span dangerouslySetInnerHTML={{ __html: html }} />
           </pre>
         </div>

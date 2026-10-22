@@ -13,7 +13,7 @@ import {
   SKILLS_MGMT_CREATE_AI,
 } from '@/api/endpoints';
 
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface Props {
   initialIntent?: string

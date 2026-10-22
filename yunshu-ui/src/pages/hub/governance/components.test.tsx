@@ -161,7 +161,7 @@ describe('§7 状态灯五态', () => {
   it('stage / risk / severity 映射到五态（只做展示映射）', () => {
     expect(toneForStage('borrowed')).toBe('gray')
     expect(toneForStage('mirrored')).toBe('blue')
-    expect(toneForStage('shadow')).toBe('yellow')
+    expect(toneForStage('shadow-sm')).toBe('yellow')
     expect(toneForStage('internalized')).toBe('green')
     expect(toneForStage('deprecated')).toBe('red')
     expect(toneForRisk('destructive')).toBe('red')

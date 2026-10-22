@@ -91,7 +91,7 @@ export default function Toaster() {
   }, [])
 
   return (
-    <div className="pointer-events-none fixed right-4 top-4 z-[9999] flex w-80 flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 top-4 z-9999 flex w-80 flex-col gap-2">
       {list.map((t) => (
         <div
           key={t.id}

@@ -156,7 +156,7 @@ interface SchemaFieldsProps {
 function SchemaFields({ properties, required, value, onChange, depth }: SchemaFieldsProps) {
   const entries = Object.entries(properties);
   if (entries.length === 0) {
-    return <p className="text-xs text-[var(--text-muted)]">（该分组暂无字段）</p>;
+    return <p className="text-xs text-(--text-muted)">（该分组暂无字段）</p>;
   }
   return (
     <div className="flex flex-col gap-4">
@@ -266,11 +266,11 @@ export function SchemaRenderer({ schema, value, onChange, onSubmit }: SchemaRend
     return (
       <div className="flex flex-col gap-2" data-testid="schema-renderer-degraded">
         {schema && typeof schema === 'object' && (schema as SchemaField).title && (
-          <h3 className="text-base font-semibold text-[var(--text-primary)]">
+          <h3 className="text-base font-semibold text-(--text-primary)">
             {(schema as SchemaField).title}
           </h3>
         )}
-        <p className="text-xs text-[var(--text-muted)]">
+        <p className="text-xs text-(--text-muted)">
           无法识别的 Schema（缺少 properties 或 type 不是 object），已降级为 JSON 编辑。
         </p>
         <JsonFallbackField
@@ -296,10 +296,10 @@ export function SchemaRenderer({ schema, value, onChange, onSubmit }: SchemaRend
   return (
     <div className="flex flex-col gap-4" data-testid="schema-renderer">
       {schema.title && (
-        <h3 className="text-base font-semibold text-[var(--text-primary)]">{schema.title}</h3>
+        <h3 className="text-base font-semibold text-(--text-primary)">{schema.title}</h3>
       )}
       {schema.description && (
-        <p className="text-sm text-[var(--text-muted)]">{schema.description}</p>
+        <p className="text-sm text-(--text-muted)">{schema.description}</p>
       )}
       <SchemaFields
         properties={schema.properties}
@@ -309,7 +309,7 @@ export function SchemaRenderer({ schema, value, onChange, onSubmit }: SchemaRend
         depth={1}
       />
       {submitError && (
-        <p role="alert" className="text-sm text-[var(--mascot-error)]">
+        <p role="alert" className="text-sm text-(--mascot-error)">
           {submitError}
         </p>
       )}
@@ -318,7 +318,7 @@ export function SchemaRenderer({ schema, value, onChange, onSubmit }: SchemaRend
           <button
             type="button"
             onClick={handleSubmit}
-            className="rounded-md bg-[var(--mascot-primary)] px-4 py-1.5 text-sm font-medium text-[var(--bg-deep)] transition-colors hover:bg-[var(--mascot-secondary)]"
+            className="rounded-md bg-(--mascot-primary) px-4 py-1.5 text-sm font-medium text-(--bg-deep) transition-colors hover:bg-(--mascot-secondary)"
           >
             提交
           </button>

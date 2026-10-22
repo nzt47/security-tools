@@ -30,7 +30,7 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const FORM_LABEL: Record<IngestForm, string> = {
   skill: '技能（默认）',
   tool: '代码工具草稿',
@@ -263,7 +263,7 @@ export default function IngestionPage() {
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {sources.roots.map((r) => (
                     <span key={r.ecosystem + r.path}
-                      className={'rounded border px-2 py-1 text-[10px] ' + (r.exists
+                      className={'rounded-sm border px-2 py-1 text-[10px] ' + (r.exists
                         ? 'border-slate-700 text-slate-400'
                         : 'border-amber-900/60 text-amber-400')}
                       title={r.path}>
@@ -274,7 +274,7 @@ export default function IngestionPage() {
                 {sources.candidates.length === 0 ? (
                   <p className="text-xs text-slate-500">配置根下没有可预览候选。</p>
                 ) : (
-                  <div className="max-h-[300px] overflow-auto rounded border border-slate-800">
+                  <div className="max-h-[300px] overflow-auto rounded-sm border border-slate-800">
                     {sources.candidates.slice(0, 60).map((c) => (
                       <button key={c.path} type="button"
                         className="flex w-full items-center gap-2 border-b border-slate-800/60 px-2 py-1.5 text-left text-[11px] text-slate-300 last:border-b-0 hover:bg-slate-800/50"
@@ -315,7 +315,7 @@ export default function IngestionPage() {
                 </div>
 
                 {plan.skill && (
-                  <div className="rounded border border-slate-800 bg-slate-950/60 p-2">
+                  <div className="rounded-sm border border-slate-800 bg-slate-950/60 p-2">
                     <div className="text-xs font-medium text-slate-200">{plan.skill.name}</div>
                     <div className="mt-0.5 text-[10px] text-slate-500">
                       <span className="font-mono text-cyan-300">{plan.skill.id}</span>
@@ -326,7 +326,7 @@ export default function IngestionPage() {
                   </div>
                 )}
 
-                <div className="rounded border border-cyan-900/50 bg-cyan-950/20 p-2">
+                <div className="rounded-sm border border-cyan-900/50 bg-cyan-950/20 p-2">
                   <div className="flex flex-wrap items-center gap-2 text-[11px] text-cyan-200">
                     <Layers size={12} /> 推荐形态：{plan.recommendation.form}
                     <span className="text-[10px] text-slate-500">置信度 {plan.recommendation.confidence}</span>
@@ -341,7 +341,7 @@ export default function IngestionPage() {
                 </div>
 
                 {plan.requires_rewrite && (
-                  <div className="rounded border border-amber-900/60 bg-amber-950/20 p-2">
+                  <div className="rounded-sm border border-amber-900/60 bg-amber-950/20 p-2">
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-amber-200">
                       <AlertTriangle size={12} /> L2 来源不能直接安装，需要 LLM 重写并人工预览。
                       <button type="button" className={BTN_EM + ' ml-auto'}
@@ -361,13 +361,13 @@ export default function IngestionPage() {
                   </div>
                 )}
                 {plan.rewrite_errors.length > 0 && (
-                  <div className="rounded border border-red-900/60 bg-red-950/20 p-2 text-[10px] text-red-300">
+                  <div className="rounded-sm border border-red-900/60 bg-red-950/20 p-2 text-[10px] text-red-300">
                     重写未通过：{plan.rewrite_errors.join('；')}
                   </div>
                 )}
 
                 {plan.warnings.length > 0 && (
-                  <div className="rounded border border-amber-900/50 bg-amber-950/10 p-2 text-[10px] text-amber-300">
+                  <div className="rounded-sm border border-amber-900/50 bg-amber-950/10 p-2 text-[10px] text-amber-300">
                     {plan.warnings.map((w, i) => <div key={i}>· {w}</div>)}
                   </div>
                 )}
@@ -382,7 +382,7 @@ export default function IngestionPage() {
                     <div className="flex flex-col gap-1">
                       {plan.dedupe.map((d) => (
                         <div key={d.kind + ':' + d.id}
-                          className="flex flex-wrap items-center gap-1.5 rounded border border-slate-800 bg-slate-950/50 px-2 py-1 text-[10px]">
+                          className="flex flex-wrap items-center gap-1.5 rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1 text-[10px]">
                           <Badge color={dedupeTone(d)}>{dedupeLabel(d)}</Badge>
                           <span className="font-mono text-slate-300">{d.id}</span>
                           <span className="text-slate-500">{d.name}</span>
@@ -394,7 +394,7 @@ export default function IngestionPage() {
                     </div>
                   )}
                   {plan.merge_suggestion && (
-                    <div className="mt-1 flex flex-wrap items-center gap-2 rounded border border-emerald-900/50 bg-emerald-950/20 px-2 py-1 text-[10px] text-emerald-200">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 rounded-sm border border-emerald-900/50 bg-emerald-950/20 px-2 py-1 text-[10px] text-emerald-200">
                       <ArrowRight size={12} /> 建议合并到
                       <span className="font-mono">{plan.merge_suggestion.target_id}</span>
                       <span className="text-slate-500">{plan.merge_suggestion.reason}</span>
@@ -494,12 +494,12 @@ export default function IngestionPage() {
                   {result.stage && <span>stage={result.stage} ({result.stage_verdict})</span>}
                 </div>
                 {result.draft_dir && (
-                  <div className="break-all rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400">
+                  <div className="break-all rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400">
                     草稿目录：{result.draft_dir}
                   </div>
                 )}
                 {result.warnings.length > 0 && (
-                  <div className="rounded border border-amber-900/50 p-2 text-[10px] text-amber-300">
+                  <div className="rounded-sm border border-amber-900/50 p-2 text-[10px] text-amber-300">
                     {result.warnings.map((w, i) => <div key={i}>· {w}</div>)}
                   </div>
                 )}

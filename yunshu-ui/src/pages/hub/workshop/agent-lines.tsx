@@ -254,7 +254,7 @@ function Field({ label, hint, children }: {
 }
 
 const INPUT_CLASS =
-  'w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-700'
+  'w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-700'
 
 function Toggle({ on, label, hint, onChange }: {
   on: boolean; label: string; hint?: string; onChange: (v: boolean) => void
@@ -291,7 +291,7 @@ function ToolChips({ names, meta, reasons, color = 'slate' }: {
         <span
           key={n}
           title={reasons?.[n] || meta?.[n]?.description || n}
-          className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] ${CHIP_CLASS[color]}`}
+          className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[11px] ${CHIP_CLASS[color]}`}
         >
           <span className="font-mono">{n}</span>
           {meta?.[n] && (
@@ -348,7 +348,7 @@ function ToolPicker({ title, hint, tone, tools, selected, exemptions, onToggle, 
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="搜索工具名 / 分类 / 平面 / 标签"
-          className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-600 outline-none"
+          className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-600 outline-hidden"
         />
         {q && (
           <button onClick={() => setQ('')} className="shrink-0 text-[11px] text-slate-500 hover:text-slate-300">
@@ -586,7 +586,7 @@ export function SubagentAssemblyBlock({ assembly, meta }: {
         </div>
       ) : (
         <div
-          className="rounded border border-red-900/60 bg-red-950/30 px-2 py-1.5 text-[11px] text-red-300"
+          className="rounded-sm border border-red-900/60 bg-red-950/30 px-2 py-1.5 text-[11px] text-red-300"
           data-testid="line-subagent-unavailable"
         >
           {assembly.reason || '装配单不可用（后端未给出原因）'}
@@ -675,7 +675,7 @@ function PreviewPanel({ preview, skills, promptFragments, promptFragmentsNote,
                             : '本线未激活：激活并保存后才会注入')}
                     </span>
                   </div>
-                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-300">{f.content}</pre>
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-300">{f.content}</pre>
                 </div>
               ))}
             </div>
@@ -1168,7 +1168,7 @@ export default function ToolsAgentLines() {
                         {active !== l.id && (
                           <span
                             onClick={(e) => { e.stopPropagation(); void doActivate(l.id) }}
-                            className="ml-auto rounded border border-slate-700 px-1.5 py-0.5 text-[11px] text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+                            className="ml-auto rounded-sm border border-slate-700 px-1.5 py-0.5 text-[11px] text-slate-400 hover:bg-slate-700 hover:text-slate-200"
                           >
                             设为当前
                           </span>
@@ -1317,7 +1317,7 @@ export default function ToolsAgentLines() {
                         // 后端 `int(raw.get("max_tools") or 20)` 会把 0 当成"未填"回落 20，
                         // 故此处就地夹到 ≥1，避免输入框显示 0 而预览显示 20 的自相矛盾
                         onChange={(e) => patch({ max_tools: Math.max(1, num(e.target.value, 20)) })}
-                        className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 outline-none"
+                        className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 outline-hidden"
                       />
                     </Field>
                   </div>
@@ -1351,14 +1351,14 @@ export default function ToolsAgentLines() {
                               type="number" min={0} max={3} step={0.1} value={w}
                               disabled={disabled}
                               onChange={(e) => setWeight(plane, num(e.target.value))}
-                              className="w-20 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-none disabled:opacity-40"
+                              className="w-20 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-hidden disabled:opacity-40"
                             />
                             <span className="shrink-0 text-[11px] text-slate-500">保底</span>
                             <input
                               type="number" min={0} max={50} value={floor}
                               disabled={disabled}
                               onChange={(e) => setFloor(plane, num(e.target.value))}
-                              className="w-20 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-none disabled:opacity-40"
+                              className="w-20 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-hidden disabled:opacity-40"
                             />
                           </div>
                         )

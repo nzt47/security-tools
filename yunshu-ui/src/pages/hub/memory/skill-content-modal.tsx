@@ -70,7 +70,7 @@ export default function SkillContentModal({ skill, onClose }: { skill: ContentSk
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-semibold text-slate-100">{title}</h3>
-              <code className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">{skill.id}</code>
+              <code className="rounded-sm bg-slate-800/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">{skill.id}</code>
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1">
               <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${enabled ? 'border-emerald-800/70 bg-emerald-500/10 text-emerald-400' : 'border-slate-700 bg-slate-500/10 text-slate-400'}`}>
@@ -107,7 +107,7 @@ export default function SkillContentModal({ skill, onClose }: { skill: ContentSk
               {content.trim() ? (
                 <div>
                   <div className="mb-1 text-[11px] font-medium text-slate-500">技能内容（注入正文 / 指令）</div>
-                  <pre className="max-h-[24rem] overflow-auto whitespace-pre-wrap break-words rounded-md border border-slate-800 bg-slate-950/70 p-3 font-mono text-[11px] leading-relaxed text-slate-300">{content}</pre>
+                  <pre className="max-h-96 overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950/70 p-3 font-mono text-[11px] leading-relaxed text-slate-300">{content}</pre>
                 </div>
               ) : (
                 <div className="rounded-md border border-dashed border-amber-800/60 bg-amber-950/20 px-3 py-2.5 text-[11px] leading-relaxed text-amber-200/90">
@@ -119,7 +119,7 @@ export default function SkillContentModal({ skill, onClose }: { skill: ContentSk
               {params && (
                 <div>
                   <div className="mb-1 text-[11px] font-medium text-slate-500">参数（default_params / params）</div>
-                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md border border-slate-800 bg-slate-950/70 p-3 font-mono text-[11px] text-slate-300">{JSON.stringify(params, null, 2)}</pre>
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950/70 p-3 font-mono text-[11px] text-slate-300">{JSON.stringify(params, null, 2)}</pre>
                 </div>
               )}
             </div>

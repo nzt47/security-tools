@@ -31,8 +31,8 @@ import {
 } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 interface MetricDef {
   name?: string
@@ -174,7 +174,7 @@ export default function BusinessBoard() {
               ['指标定义', defs.length],
               ['指标分类', Object.keys(cats).length],
             ].map(([k, v]) => (
-              <div key={String(k)} className="rounded border border-slate-800 bg-slate-900/50 px-2 py-1.5">
+              <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
                 <div className="text-[10px] text-slate-500">{String(k)}</div>
                 <div className="font-mono text-[13px] text-cyan-300">{String(v ?? '—')}</div>
               </div>
@@ -251,7 +251,7 @@ export default function BusinessBoard() {
               ['评审样本', (quality as { critic_scores?: { total_evaluations?: number } })?.critic_scores?.total_evaluations],
               ['追踪数', traces.length],
             ].map(([k, v]) => (
-              <div key={String(k)} className="rounded border border-slate-800 bg-slate-900/50 px-2 py-1.5">
+              <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
                 <div className="text-[10px] text-slate-500">{String(k)}</div>
                 <div className="truncate font-mono text-[13px] text-cyan-300">{String(v ?? '—')}</div>
               </div>
@@ -296,7 +296,7 @@ export default function BusinessBoard() {
                     key={(t.trace_id ?? '') + i}
                     type="button"
                     onClick={() => setTraceId(t.trace_id ?? '')}
-                    className="flex items-center gap-2 rounded border border-slate-800 bg-slate-900/40 px-2 py-1 text-left text-[11px] hover:bg-slate-800/50"
+                    className="flex items-center gap-2 rounded-sm border border-slate-800 bg-slate-900/40 px-2 py-1 text-left text-[11px] hover:bg-slate-800/50"
                   >
                     <span className="font-mono text-[10px] text-cyan-300">{t.trace_id ?? ''}</span>
                     <span className="text-slate-400">{t.name ?? ''}</span>

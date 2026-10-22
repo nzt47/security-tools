@@ -121,7 +121,7 @@ export function LlmHealthMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-[70] w-[420px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[420px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">🩺 LLM 连通性自检</span>
             <div className="flex items-center gap-1">
@@ -130,7 +130,7 @@ export function LlmHealthMenu() {
                 onClick={() => void run()}
                 disabled={loading}
                 title="重新自检（会向 LLM 端点发一次极小的真实请求）"
-                className="rounded px-1.5 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                className="rounded-sm px-1.5 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
               >
                 {loading ? <Loader2 size={11} className="animate-spin" /> : '重新自检'}
               </button>
@@ -138,7 +138,7 @@ export function LlmHealthMenu() {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="关闭 LLM 自检"
-                className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 <X size={12} />
               </button>
@@ -160,9 +160,9 @@ export function LlmHealthMenu() {
                 }`}
               >
                 {healthy ? (
-                  <CheckCircle2 size={13} className="mt-[1px] shrink-0 text-emerald-400" />
+                  <CheckCircle2 size={13} className="mt-px shrink-0 text-emerald-400" />
                 ) : (
-                  <AlertTriangle size={13} className="mt-[1px] shrink-0 text-rose-400" />
+                  <AlertTriangle size={13} className="mt-px shrink-0 text-rose-400" />
                 )}
                 <span className={healthy ? 'text-emerald-200' : 'text-rose-200'}>
                   {healthy ? 'LLM 可用：对话/子代理/后台任务都能走真实模型' : 'LLM 不可用或工作台会走演示模式'}
@@ -202,7 +202,7 @@ export function LlmHealthMenu() {
                     {probe.model ? ` · ${probe.model}` : ''}
                   </div>
                   {probe.raw_message && (
-                    <div className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap break-words text-rose-300">
+                    <div className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap wrap-break-word text-rose-300">
                       {probe.raw_message}
                     </div>
                   )}

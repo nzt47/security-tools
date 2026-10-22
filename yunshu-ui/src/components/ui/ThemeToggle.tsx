@@ -39,7 +39,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
       className={cn(
         'inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-foreground',
         'transition-colors hover:bg-muted',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+        'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary/40',
         className,
       )}
     >

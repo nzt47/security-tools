@@ -47,7 +47,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
         onChange={(e) => onChange?.(e.target.value)}
         className={cn(
           'h-9 w-full rounded-md border bg-card px-3 text-sm text-foreground',
-          'transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40',
+          'transition-colors focus:outline-hidden focus:ring-2 focus:ring-primary/40',
           error ? 'border-danger' : 'border-border hover:border-foreground/20',
         )}
         {...props}

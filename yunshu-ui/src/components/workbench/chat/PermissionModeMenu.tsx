@@ -70,7 +70,7 @@ export function PermissionModeMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] z-[80] w-[340px] rounded-xl border border-slate-700 bg-slate-900/98 p-2 text-[11.5px] shadow-2xl backdrop-blur"
+          className="absolute right-0 top-[calc(100%+6px)] z-80 w-[340px] rounded-xl border border-slate-700 bg-slate-900/98 p-2 text-[11.5px] shadow-2xl backdrop-blur-sm"
         >
           <div className="mb-1.5 px-1 text-[10px] uppercase tracking-wider text-slate-500">权限档位</div>
           {(Object.keys(PERMISSION_MODES) as PermissionMode[]).map((m) => {

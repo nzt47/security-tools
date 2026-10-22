@@ -112,7 +112,7 @@ export function ImplicitEntryLog({
         <button
           type="button"
           onClick={clear}
-          className="ml-auto rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400 hover:text-cyan-300"
+          className="ml-auto rounded-sm border border-slate-700 px-2 py-0.5 text-[10px] text-slate-400 hover:text-cyan-300"
         >
           清空
         </button>
@@ -130,7 +130,7 @@ export function ImplicitEntryLog({
                 onClick={() => onReplay?.(r)}
                 disabled={!onReplay}
                 data-cp-implicit-entry={r.entry}
-                className="flex w-full items-center gap-2 rounded border border-slate-800 bg-slate-950/50 px-2 py-1 text-left text-[11px] disabled:cursor-default hover:border-cyan-800"
+                className="flex w-full items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/50 px-2 py-1 text-left text-[11px] disabled:cursor-default hover:border-cyan-800"
               >
                 <span
                   className={

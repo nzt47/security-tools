@@ -36,7 +36,7 @@ export function SwitchField({
           <span className={labelClass}>
             {label}
             {required && (
-              <span className="ml-1 text-[var(--mascot-error)]" aria-label="必填">
+              <span className="ml-1 text-(--mascot-error)" aria-label="必填">
                 *
               </span>
             )}
@@ -56,8 +56,8 @@ export function SwitchField({
         aria-hidden="true"
         className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
           value
-            ? 'border-[var(--mascot-primary)] bg-[var(--mascot-primary)]'
-            : 'border-[var(--border-color)] bg-[var(--bg-elevated)]'
+            ? 'border-(--mascot-primary) bg-(--mascot-primary)'
+            : 'border-(--border-color) bg-(--bg-elevated)'
         }`}
       >
         <span
