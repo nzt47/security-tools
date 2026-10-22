@@ -178,6 +178,27 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/backfill", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_backfill():
+        """把「文件轨有 skill.md、主轨未登记」的技能补登记为资产行（默认 dry-run）
+
+        UI：技能中心 · LLM 统一表工具栏「登记仅运行时技能(N)」。
+        边界：只补主轨登记（读 skill.md → 建资产行 + 咨询性评估），
+        不写 skills_repo、不改 front matter、不发布、不启停。
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            dry_run = data.get("dry_run", True)
+            if isinstance(dry_run, str):  # 容忍 "false"/"0" 这类字符串
+                dry_run = dry_run.strip().lower() not in ("0", "false", "no", "")
+            result = _svc().backfill_file_track(dry_run=bool(dry_run))
+            return jsonify({"ok": True, **result})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/<skill_id>", methods=["GET"])
     @trace_route("SkillsMgmt")
     @log_request(show_response=False)
