@@ -422,7 +422,7 @@ export default function SkillAssessManager() {
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         </td>
-        <td className="w-[32%] min-w-[15rem] max-w-[26rem] px-2 py-2">
+        <td className="w-[26%] min-w-[12rem] max-w-[26rem] px-2 py-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="truncate font-medium text-slate-200">{it.name || it.id}</span>
             {it.class_name && (
@@ -432,7 +432,8 @@ export default function SkillAssessManager() {
             )}
             <CallabilityBadge info={it.callability ?? callability[it.id]} name={it.name || it.id} />
           </div>
-          <div className="truncate text-[10px] text-slate-500">{it.description_zh || it.description || ''}</div>
+          {/* line-clamp 而非 truncate：truncate 的 nowrap 会把表格最小内容宽度顶到 max-w，窄屏白白多出横向滚动 */}
+          <div className="line-clamp-1 text-[10px] text-slate-500">{it.description_zh || it.description || ''}</div>
           {/* 触发条件：发布+启用才参与运行时注入；命中方式=语义匹配(描述/标签/内容) */}
           <div className="mt-1 flex flex-wrap items-center gap-1">
             {it.runtime_only
@@ -658,10 +659,10 @@ export default function SkillAssessManager() {
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-500">
                 <th className="w-8 px-2 py-1.5" />
-                <th className="w-[30%] min-w-[15rem] px-2 py-1.5 font-medium">技能</th>
-                <th className="w-[8.5rem] px-2 py-1.5 font-medium">状态</th>
-                <th className="w-[7.5rem] px-2 py-1.5 font-medium">评审</th>
-                <th className="w-[7rem] px-2 py-1.5 font-medium">安全/质量/兼容</th>
+                <th className="w-[26%] min-w-[12rem] px-2 py-1.5 font-medium">技能</th>
+                <th className="w-[7rem] px-2 py-1.5 font-medium">状态</th>
+                <th className="w-[6rem] px-2 py-1.5 font-medium">评审</th>
+                <th className="w-[6.5rem] px-2 py-1.5 font-medium">安全/质量/兼容</th>
                 <th className="min-w-[19rem] px-2 py-1.5 font-medium">操作</th>
               </tr>
             </thead>
