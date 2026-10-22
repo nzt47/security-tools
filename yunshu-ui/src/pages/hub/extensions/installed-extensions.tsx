@@ -50,9 +50,16 @@ export interface InstalledExtensionsProps {
   hint?: string
   /** 空列表文案 */
   emptyText?: string
+  /**
+   * 已在上层页面展示过的条目 id（如技能中心统一表里的同一技能）。
+   * 传了就**不再重复列出**——同一条目在一页里出现两次，用户无法判断该点哪个。
+   */
+  excludeIds?: string[]
+  /** 去重/过滤后一条不剩时整块隐藏（默认仍显示空态文案，供「唯一入口」类页面提示） */
+  hideWhenEmpty?: boolean
 }
 
-export default function InstalledExtensions({ types, title, hint, emptyText }: InstalledExtensionsProps) {
+export default function InstalledExtensions({ types, title, hint, emptyText, excludeIds, hideWhenEmpty }: InstalledExtensionsProps) {
   const [rows, setRows] = useState<ExtRow[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState('')
@@ -63,6 +70,8 @@ export default function InstalledExtensions({ types, title, hint, emptyText }: I
   const [configText, setConfigText] = useState('')
 
   const typeSet = types.join(',')
+  // 依赖用 join 后的稳定字符串：父级每次渲染都会新建数组，直接进 deps 会无限重载
+  const excludedKey = (excludeIds ?? []).join(',')
 
   const fail = (label: string, e: unknown) =>
     setErr(label + '：' + (e instanceof Error ? e.message : String(e)))
@@ -75,9 +84,12 @@ export default function InstalledExtensions({ types, title, hint, emptyText }: I
       const r = await hubGet<{ ok?: boolean; error?: string; extensions?: ExtRow[] }>(EXTENSIONS_LIST)
       if (r?.ok === false) { bad('读取已安装扩展失败', r); return }
       const allowed = new Set(typeSet.split(','))
-      setRows((r?.extensions ?? []).filter((x) => allowed.has(String(x.ext_type ?? ''))))
+      const excluded = new Set(excludedKey ? excludedKey.split(',') : [])
+      setRows((r?.extensions ?? []).filter(
+        (x) => allowed.has(String(x.ext_type ?? '')) && !excluded.has(String(x.ext_id ?? '')),
+      ))
     } catch (e) { fail('读取已安装扩展失败', e) } finally { setLoading(false) }
-  }, [typeSet])
+  }, [typeSet, excludedKey])
 
   useEffect(() => { void load() }, [load])
 
@@ -135,6 +147,9 @@ export default function InstalledExtensions({ types, title, hint, emptyText }: I
       await load()
     } catch (e) { fail('保存配置失败', e) } finally { setBusy('') }
   }
+
+  // 去重后一条不剩：整块不渲染（调用方已要求隐藏时）
+  if (hideWhenEmpty && !loading && !err && rows.length === 0) return null
 
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3" data-testid={'installed-ext-' + typeSet}>
