@@ -30,6 +30,7 @@ import {
   SKILLS,
   SKILLS_CLASSIFY_RUN_AUTO,
   SKILLS_MGMT,
+  SKILLS_MGMT_BACKFILL,
   SKILLS_TOGGLE,
   SKILLS_MGMT_ASSESS_EVENTS,
   SKILLS_MGMT_ASSESS_FEED,
@@ -71,6 +72,17 @@ interface SkillItem {
   content_type?: string; category?: string; version?: string; review?: ReviewLike
   tags?: string[]; is_sensitive?: boolean; isolation_strategy?: string; source?: string
   class_name?: string; class_auto?: boolean; runtime_only?: boolean; callability?: CallabilityInfo
+}
+
+/** 文件轨补登记：dry-run 返回候选，确认后返回 created/skipped */
+interface BackfillCandidate {
+  id: string; name?: string; description?: string; source?: string; category?: string; has_scripts?: boolean
+}
+interface BackfillResult {
+  dry_run?: boolean
+  candidates?: BackfillCandidate[]
+  created?: { id: string; name?: string; status?: string; scripts?: number }[]
+  skipped?: { id: string; error?: string }[]
 }
 
 interface RuntimeSkill {
@@ -122,6 +134,8 @@ export default function SkillAssessManager() {
   const [cmdTarget, setCmdTarget] = useState<SkillItem | null>(null)
   /** 详情抽屉的目标（运行 / 脚本 / 参数统计 / 反馈 / 重复 五件事都在抽屉里做） */
   const [detailTarget, setDetailTarget] = useState<SkillItem | null>(null)
+  /** 文件轨补登记弹窗：null=关闭；loading 时按钮转圈；data 为 dry-run 候选 */
+  const [backfill, setBackfill] = useState<{ loading: boolean; error: string; data: BackfillResult | null } | null>(null)
   interface AssessmentEv { ts?: string; kind?: string; skill_id?: string; verdict?: string; summary?: string }
   const [events, setEvents] = useState<AssessmentEv[]>([])
   const loadEvents = useCallback(async () => {
@@ -368,6 +382,36 @@ export default function SkillAssessManager() {
     await Promise.all([load(), loadClasses()])
     setBusy('')
   }
+
+  /** 打开「登记仅运行时技能」弹窗：先 dry-run 拿候选（不写库） */
+  const openBackfill = async () => {
+    setBackfill({ loading: true, error: '', data: null })
+    try {
+      const r = await hubPost<BackfillResult & { ok?: boolean; error?: string }>(SKILLS_MGMT_BACKFILL, { dry_run: true })
+      if (r?.ok === false) { setBackfill({ loading: false, error: r.error ?? '读取候选失败', data: null }); return }
+      setBackfill({ loading: false, error: '', data: r })
+    } catch (e) {
+      setBackfill({ loading: false, error: `读取候选失败：${e instanceof Error ? e.message : String(e)}`, data: null })
+    }
+  }
+  /** 确认登记：文件轨技能 → 资产主轨（不写 skills_repo、不改 front matter、不发布） */
+  const applyBackfill = async () => {
+    setBackfill((p) => (p ? { ...p, loading: true, error: '' } : p))
+    try {
+      const r = await hubPost<BackfillResult & { ok?: boolean; error?: string }>(SKILLS_MGMT_BACKFILL, { dry_run: false })
+      if (r?.ok === false) {
+        setBackfill((p) => (p ? { ...p, loading: false, error: r.error ?? '登记失败' } : p))
+        return
+      }
+      setMsg(`已登记 ${r?.created?.length ?? 0} 条仅运行时技能为资产`
+        + (r?.skipped?.length ? `，跳过 ${r.skipped.length} 条（原因见服务日志）` : '')
+        + '；已自动做咨询性评估，正式评审仍需单独执行')
+      setBackfill(null)
+      await Promise.all([load(), loadClasses()])
+    } catch (e) {
+      setBackfill((p) => (p ? { ...p, loading: false, error: `登记失败：${e instanceof Error ? e.message : String(e)}` } : p))
+    }
+  }
   /** 行内移动技能到其它分类（人工选择；后续自动重判不再覆盖） */
   const moveClass = async (it: SkillItem, cls: string) => {
     try {
@@ -403,6 +447,11 @@ export default function SkillAssessManager() {
 
   const toggleRow = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }))
 
+  /** 点「更多」里的动作后收起菜单（<details> 不会自动关） */
+  const closeRowMenu = (e: React.MouseEvent<HTMLElement>) => {
+    e.currentTarget.closest('details')?.removeAttribute('open')
+  }
+
   /** 资产行渲染（表格模式逐行；分类折叠模式下由分组头包裹） */
   const renderAssetRow = (it: SkillItem) => {
     const rv = it.review
@@ -422,7 +471,7 @@ export default function SkillAssessManager() {
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         </td>
-        <td className="w-[26%] min-w-[12rem] max-w-[26rem] px-2 py-2">
+        <td className="w-[30%] min-w-[12rem] max-w-[26rem] px-2 py-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="truncate font-medium text-slate-200">{it.name || it.id}</span>
             {it.class_name && (
@@ -466,7 +515,7 @@ export default function SkillAssessManager() {
         <td className="px-2 py-2 font-mono text-[10px] text-slate-400">
           {it.runtime_only ? '—' : `${Math.round(rv?.security_score ?? 0)}/${Math.round(rv?.quality_score ?? 0)}/${Math.round(rv?.compatibility_score ?? 0)}`}
         </td>
-        <td className="min-w-[19rem] px-2 py-2">
+        <td className="w-[18rem] px-2 py-2">
           <div className="flex flex-wrap items-center gap-1">
             <button type="button" className={BTN} onClick={() => setContentTarget(it)} disabled={busy !== ''} title="查看该技能的具体内容（正文 / 参数 / 标签）">
               <Eye size={11} /> 查看内容
@@ -490,18 +539,27 @@ export default function SkillAssessManager() {
                 <button type="button" className={BTN_EM} onClick={() => void assessOne(it.id)} disabled={busy !== ''} title="执行完整评审-评估（三审+扩展评估）">
                   <Zap size={11} /> 评审-评估
                 </button>
-                <button type="button" className={BTN} onClick={() => setAdviceTarget(it)} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
-                  <Lightbulb size={11} /> 建议
-                </button>
-                <button type="button" className={BTN} onClick={() => setVersionsTarget(it)} disabled={busy !== ''} title="版本历史：升级小/中版本、一键回滚到任意版本">
-                  版本
-                </button>
-                <button type="button" className={BTN} onClick={() => setRedraftTarget(it)} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
-                  再定义
-                </button>
-                <button type="button" className={BTN} onClick={() => setCmdTarget(it)} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
-                  命令
-                </button>
+                {/* 低频动作收进「更多」：一排 10 个按钮会把行撑到 160px，且窄列换行后更难扫 */}
+                <details className="inline-block">
+                  <summary className={`${BTN} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+                    title="更多操作：建议 / 版本 / 再定义 / 命令">
+                    <ChevronDown size={11} /> 更多
+                  </summary>
+                  <div className="mt-1 grid grid-cols-2 gap-1 rounded-md border border-slate-700 bg-slate-950/70 p-1">
+                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setAdviceTarget(it) }} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
+                      <Lightbulb size={11} /> 建议
+                    </button>
+                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setVersionsTarget(it) }} disabled={busy !== ''} title="版本历史：升级小/中版本、一键回滚到任意版本">
+                      版本
+                    </button>
+                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setRedraftTarget(it) }} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
+                      再定义
+                    </button>
+                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setCmdTarget(it) }} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
+                      命令
+                    </button>
+                  </div>
+                </details>
                 <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
                   <Rocket size={11} /> 发布
                 </button>
@@ -614,6 +672,13 @@ export default function SkillAssessManager() {
           <button type="button" className={BTN} onClick={() => void batchReview()} disabled={busy !== ''}>
             批量审核
           </button>
+          {runtimeOnlyCount > 0 && (
+            <button type="button" className={`${BTN} border-violet-700/60 text-violet-300 hover:bg-violet-500/10`}
+              onClick={() => void openBackfill()} disabled={busy !== ''}
+              title="把只存在于文件轨（data/skills_repo/<id>/skill.md）的技能补登记为资产行：只补主轨登记、不写文件、不发布；登记后自动做咨询性评估">
+              <Layers size={12} /> 登记仅运行时技能({runtimeOnlyCount})
+            </button>
+          )}
           <button type="button" className={grouped ? BTN_EM : BTN} onClick={toggleGrouped} disabled={busy !== ''}
             title="按自动分类分组，同类可折叠；新技能自动归类（不匹配时自动新建类）">
             <Layers size={12} /> {grouped ? '按分类折叠中' : '按分类折叠'}
@@ -659,11 +724,11 @@ export default function SkillAssessManager() {
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-500">
                 <th className="w-8 px-2 py-1.5" />
-                <th className="w-[26%] min-w-[12rem] px-2 py-1.5 font-medium">技能</th>
-                <th className="w-[7rem] px-2 py-1.5 font-medium">状态</th>
-                <th className="w-[6rem] px-2 py-1.5 font-medium">评审</th>
-                <th className="w-[6.5rem] px-2 py-1.5 font-medium">安全/质量/兼容</th>
-                <th className="min-w-[19rem] px-2 py-1.5 font-medium">操作</th>
+                <th className="w-[30%] min-w-[12rem] px-2 py-1.5 font-medium">技能</th>
+                <th className="w-[6.5rem] px-2 py-1.5 font-medium">状态</th>
+                <th className="w-[5.5rem] px-2 py-1.5 font-medium">评审</th>
+                <th className="w-[6rem] px-2 py-1.5 font-medium">安全/质量/兼容</th>
+                <th className="w-[18rem] px-2 py-1.5 font-medium">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -715,6 +780,15 @@ export default function SkillAssessManager() {
         <GenerateRequirementModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
       )}
       {feedOpen && <FeedModal onClose={() => setFeedOpen(false)} onPick={handlePickSkill} />}
+      {backfill && (
+        <BackfillModal
+          data={backfill.data}
+          busy={backfill.loading}
+          error={backfill.error}
+          onCancel={() => setBackfill(null)}
+          onConfirm={() => void applyBackfill()}
+        />
+      )}
       {cmdTarget && (
         <CommandModal item={cmdTarget} onClose={() => setCmdTarget(null)} onDone={() => void load()} />
       )}
@@ -842,6 +916,51 @@ function PublishModal({ item, onClose, onConfirm }: {
             <Rocket size={12} /> 强制发布（人工复核通过，写审计）
           </button>
         )}
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 仅运行时技能 → 资产补登记（dry-run 预览 → 确认）─────────────────
+function BackfillModal({ data, busy, error, onCancel, onConfirm }: {
+  data: BackfillResult | null; busy: boolean; error: string; onCancel: () => void; onConfirm: () => void
+}) {
+  const cands = data?.candidates ?? []
+  return (
+    <ModalShell title="登记仅运行时技能为资产" onClose={onCancel}>
+      <p className="mb-2 text-[11px] leading-relaxed text-slate-400">
+        这些技能只存在于文件轨（<code>data/skills_repo/&lt;id&gt;/skill.md</code>），没有资产记录。
+        登记只补<strong className="text-slate-200">主轨</strong>（资产行 + 咨询性评估）——
+        <strong className="text-slate-200">不写入文件轨、不改 front matter、不发布</strong>；
+        登记后才会被评审/版本/发布门禁覆盖。
+      </p>
+      {busy && !data ? (
+        <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500">
+          <Loader2 size={12} className="animate-spin" /> 读取候选…
+        </div>
+      ) : cands.length === 0 ? (
+        <p className="py-3 text-[11px] text-slate-500">没有需要登记的技能。</p>
+      ) : (
+        <ul className="max-h-72 space-y-1 overflow-y-auto pr-1">
+          {cands.map((c) => (
+            <li key={c.id} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-mono text-cyan-300">{c.id}</span>
+                <span className="text-slate-300">{c.name}</span>
+                {c.has_scripts && chip('含脚本', 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50')}
+                {c.source && <span className="ml-auto font-mono text-[9px] text-slate-600">{c.source}</span>}
+              </div>
+              {c.description && <div className="mt-0.5 line-clamp-1 text-[10px] text-slate-500">{c.description}</div>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p className="mt-2 text-[11px] text-red-400">{error}</p>}
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <button type="button" className={BTN} onClick={onCancel} disabled={busy}>取消</button>
+        <button type="button" className={BTN_EM} onClick={onConfirm} disabled={busy || cands.length === 0}>
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <Layers size={12} />} 确认登记({cands.length})
+        </button>
       </div>
     </ModalShell>
   )

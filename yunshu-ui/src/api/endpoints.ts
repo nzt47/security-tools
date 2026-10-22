@@ -33,6 +33,8 @@
 //  技能管理（/api/skills-mgmt）
 // ═══════════════════════════════════════════════════════════════
 export const SKILLS_MGMT = '/api/skills-mgmt';
+/** 文件轨 → 资产主轨补登记（dry_run 默认 true；只补主轨登记，不改 skills_repo） */
+export const SKILLS_MGMT_BACKFILL = '/api/skills-mgmt/backfill';
 export const SKILLS_MGMT_HEALTH = '/api/skills-mgmt/health';
 export const SKILLS_MGMT_SEARCH = '/api/skills-mgmt/search';
 export const SKILLS_MGMT_CREATE_AI = '/api/skills-mgmt/create/ai';

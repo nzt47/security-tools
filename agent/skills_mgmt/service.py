@@ -625,6 +625,98 @@ class SkillsMgmtService:
         self._sync_descriptor_advisory(skill_id, source="zip")
         return result
 
+    # ─── 文件轨登记（统一表「仅运行时」行补资产记录）───
+
+    #: 主轨 category 允许值（与 models.SkillCategory 对齐；文件轨 front matter 可能写别的，
+    #: 例如示例技能写 example —— 直接透传会让 Skill 校验失败，故显式归一）
+    _BACKFILL_CATEGORIES = {"builtin", "custom", "claude", "community", "mcp", "ai_generated"}
+
+    def backfill_file_track(self, *, dry_run: bool = True) -> Dict[str, Any]:
+        """把「文件轨有 skill.md、主轨未登记」的技能补登记为资产行（不碰文件轨）。
+
+        【为什么需要】统一表 = 运行时（文件轨 + 主轨）左连接资产（主轨）。文件轨独有的
+        内置 persona 与手工拷入的技能没有主轨行 ⇒ 没有评审/版本/发布记录，也绕过发布门禁；
+        UI 只能把它们标成「仅运行时·无资产记录」。本方法只补**主轨登记**：
+        读 skill.md 的 front matter + 正文，按文件轨现状建行（status 取 front matter，
+        缺省 approved —— 它们本来就在运行时注入/执行），再跑咨询性评估与自动归类。
+
+        边界（不变）：不写 skills_repo、不改 front matter、不发布、不启停；
+        status 仅为「如实镜像运行时现状」，正式评审仍需走 review / 全量评估。
+        单条失败只跳过该条（记 skipped），不拖垮整批；dry_run 默认 True。
+
+        Args:
+            dry_run: True 只返回候选，False 才落库。
+
+        Returns:
+            {dry_run, candidates, created, skipped}
+        """
+        try:
+            meta_idx = self.file_store.load_metadata_index(refresh=True) or {}
+        except Exception as e:  # noqa: BLE001 索引读失败 ⇒ 视为无候选（不猜）
+            logger.warning("[Backfill] 读取文件轨索引失败: %s", e)
+            meta_idx = {}
+        known = {s.id for s in self.store.list_all()}
+        candidates: List[Dict[str, Any]] = []
+        for sid in sorted(meta_idx):
+            if sid in known:
+                continue
+            meta = meta_idx.get(sid) or {}
+            try:
+                has_scripts = bool(self.file_store.list_scripts(sid))
+            except Exception:  # noqa: BLE001 脚本列不出不影响登记
+                has_scripts = False
+            candidates.append({
+                "id": sid,
+                "name": str(meta.get("name") or sid),
+                "description": str(meta.get("description") or "")[:160],
+                "source": str(meta.get("source") or ""),
+                "category": str(meta.get("category") or ""),
+                "has_scripts": has_scripts,
+            })
+        if dry_run or not candidates:
+            return {"dry_run": dry_run, "candidates": candidates,
+                    "created": [], "skipped": []}
+
+        created: List[Dict[str, Any]] = []
+        skipped: List[Dict[str, Any]] = []
+        for c in candidates:
+            sid = c["id"]
+            try:
+                meta, body, scripts, _tpl = self.file_store.read(sid)
+                category = str(meta.get("category") or "custom")
+                if category not in self._BACKFILL_CATEGORIES:
+                    category = "custom"
+                payload = {
+                    "id": sid,
+                    "name": str(meta.get("name") or sid),
+                    "description": str(meta.get("description") or ""),
+                    "content": body or "",
+                    "content_type": str(meta.get("content_type") or "markdown"),
+                    "version": str(meta.get("version") or "0.1.0"),
+                    "category": category,
+                    "tags": [str(t) for t in (meta.get("tags") or []) if str(t).strip()],
+                    "author": str(meta.get("author") or "unknown"),
+                    "source": "file_track_backfill",
+                    "status": str(meta.get("status") or "approved"),
+                    "enabled": bool(meta.get("enabled", True)),
+                }
+                # create_manual 会：建版本快照、落主轨、同步 legacy、咨询性评估、自动归类
+                skill = self.create_manual(payload)
+                self._sync_descriptor_advisory(sid, source="file_track_backfill", skill=skill)
+                self._emit_assessment_event(
+                    sid, "backfill", "ok",
+                    f"从文件轨登记为资产（scripts={len(scripts)}，status={skill.status}）；"
+                    "未改动 skills_repo，正式评审仍需单独执行")
+                created.append({"id": sid, "name": skill.name,
+                                "status": skill.status, "scripts": len(scripts)})
+            except Exception as e:  # noqa: BLE001 单条失败不拖垮整批
+                logger.warning("[Backfill] 登记失败 %s: %s", sid, e)
+                skipped.append({"id": sid, "error": str(e)})
+        logger.info("[Backfill] 文件轨登记完成: created=%d skipped=%d",
+                    len(created), len(skipped))
+        return {"dry_run": False, "candidates": candidates,
+                "created": created, "skipped": skipped}
+
     # ─── 审核 ───
 
     def review(self, skill_id: str) -> ReviewResult:

@@ -87,6 +87,38 @@ describe('SkillAssetTable（LLM 统一表）', () => {
     expect(api.hubPost).toHaveBeenCalledWith('/api/skills/classify/run-auto')
   })
 
+  it('登记仅运行时技能：先 dry-run 预览候选，确认后带 dry_run=false 落库', async () => {
+    setup()
+    await screen.findByText('Alpha')
+    api.hubPost.mockImplementation(async (url: string, body?: { dry_run?: boolean }) => {
+      if (url === '/api/skills-mgmt/backfill') {
+        return body?.dry_run === false
+          ? { ok: true, dry_run: false, candidates: [], created: [{ id: 'runtime-only' }], skipped: [] }
+          : {
+            ok: true, dry_run: true,
+            candidates: [{ id: 'runtime-only', name: '仅运行时分身', source: 'legacy_migration' }],
+            created: [], skipped: [],
+          }
+      }
+      return { ok: true }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /登记仅运行时技能/ }))
+    expect(await screen.findByText('登记仅运行时技能为资产')).toBeTruthy()
+    expect(screen.getByText('legacy_migration')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /确认登记/ }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith('/api/skills-mgmt/backfill', { dry_run: false }))
+  })
+
+  it('低频动作收进「更多」菜单（建议/版本/再定义/命令仍有入口）', async () => {
+    setup()
+    await screen.findByText('Alpha')
+    const menu = document.querySelector('table details')
+    expect(menu).toBeTruthy()
+    for (const label of ['建议', '版本', '再定义', '命令']) {
+      expect(menu?.textContent).toContain(label)
+    }
+  })
+
   it('全部折叠：分组视图下一键收起所有分类行', async () => {
     setup()
     await screen.findByText('Alpha')
