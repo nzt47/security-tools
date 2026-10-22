@@ -146,7 +146,7 @@ export default function ExperiencePanel() {
             onKeyDown={(e) => e.key === 'Enter' && void onSearch()}
             placeholder="输入一个真实问题，看能否命中…"
             aria-label="检索预览输入"
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-600"
+            className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
           />
           <button onClick={() => void onSearch()} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500">
             <Search size={14} /> 预览
@@ -176,7 +176,7 @@ export default function ExperiencePanel() {
             onChange={(e) => setBatchId(e.target.value)}
             placeholder="batch_id"
             aria-label="批次 ID"
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-600"
+            className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
           />
           <button onClick={() => void onRollback()} disabled={!batchId.trim()} className="flex items-center gap-2 rounded-lg border border-red-900 px-4 py-2 text-sm text-red-400 hover:bg-red-950/40 disabled:opacity-40">
             <Undo2 size={14} /> 回滚
@@ -191,7 +191,7 @@ export default function ExperiencePanel() {
           <div className="mb-3 flex items-center gap-2">
             <span className="text-sm font-medium text-slate-300">样本（{total}）</span>
             <select value={lang} onChange={(e) => setLang(e.target.value)} aria-label="语言筛选"
-              className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300">
+              className="rounded-sm border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300">
               <option value="">全部语言</option>
               <option value="python">python</option>
               <option value="typescript">typescript</option>
@@ -199,7 +199,7 @@ export default function ExperiencePanel() {
               <option value="yaml">yaml</option>
             </select>
             <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="状态筛选"
-              className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300">
+              className="rounded-sm border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300">
               <option value="">全部状态</option>
               <option value="pending">待审</option>
               <option value="accept">已入库</option>

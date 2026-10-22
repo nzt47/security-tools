@@ -354,7 +354,7 @@ function SourceLine({ item }: { item: SettingsItem }) {
   return (
     <span className="flex flex-wrap items-center gap-1.5">
       <span
-        className="rounded border border-slate-700 bg-slate-950/60 px-1.5 py-0.5 text-[10px] text-slate-300"
+        className="rounded-sm border border-slate-700 bg-slate-950/60 px-1.5 py-0.5 text-[10px] text-slate-300"
         data-cp-setting-source={item.source}
         title={`生效来源 ${item.source}`}
       >
@@ -365,7 +365,7 @@ function SourceLine({ item }: { item: SettingsItem }) {
       {/* L4：生效来源是代码默认值时，如实说明配置层给没给这个键（文案来自后端） */}
       {item.source === CONFIG_STATE_HINT_SOURCE && item.config_state_label && (
         <span
-          className="rounded border border-slate-800 bg-slate-900/60 px-1.5 py-0.5 text-[10px] text-slate-400"
+          className="rounded-sm border border-slate-800 bg-slate-900/60 px-1.5 py-0.5 text-[10px] text-slate-400"
           data-cp-setting-config-state={item.config_state || 'unknown'}
         >
           {item.config_state_label}
@@ -373,7 +373,7 @@ function SourceLine({ item }: { item: SettingsItem }) {
       )}
       {shadowed.length > 0 && (
         <span
-          className="rounded border border-amber-900 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
+          className="rounded-sm border border-amber-900 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
           data-cp-shadowed-note={item.key}
         >
           当前被 {item.source_label || item.source}（{item.source}）覆盖：
@@ -452,7 +452,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
           value={ctx.drafts[item.key] ?? String(item.display_value ?? '')}
           onChange={(e) => ctx.onDraft(item.key, e.target.value)}
           disabled={busy || confirmFirst}
-          className="w-40 rounded border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200 disabled:opacity-50"
+          className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200 disabled:opacity-50"
         />
       </div>
     )
@@ -479,7 +479,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             <SourceLine item={item} />
             {item.needs_restart && (
               <span
-                className="rounded border border-amber-800 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
+                className="rounded-sm border border-amber-800 bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300"
                 data-cp-needs-restart={item.key}
               >
                 需重启
@@ -487,7 +487,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             )}
             {item.env_only && (
               <span
-                className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400"
+                className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400"
                 data-cp-env-only={item.key}
               >
                 仅支持环境变量
@@ -495,7 +495,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             )}
             {item.locked && (
               <span
-                className="inline-flex items-center gap-1 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400"
+                className="inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400"
                 data-cp-locked={item.key}
               >
                 <Lock size={9} /> 已锁定
@@ -503,7 +503,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
             )}
             {item.secret && (
               <span
-                className="inline-flex items-center gap-1 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400"
+                className="inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400"
                 data-cp-secret={item.key}
               >
                 <KeyRound size={9} /> 只读脱敏
@@ -554,7 +554,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                 type="button"
                 onClick={() => (editing ? ctx.onCloseConfirm() : ctx.onOpenConfirm(item))}
                 disabled={busy}
-                className="rounded border border-amber-800 px-1.5 py-0.5 text-[10px] text-amber-200 hover:bg-amber-500/10 disabled:opacity-50"
+                className="rounded-sm border border-amber-800 px-1.5 py-0.5 text-[10px] text-amber-200 hover:bg-amber-500/10 disabled:opacity-50"
                 data-cp-open-confirm={item.key}
               >
                 {editing ? '收起确认' : '修改（需确认）'}
@@ -568,7 +568,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
               type="button"
               onClick={() => ctx.onReset(item)}
               disabled={busy || !item.editable}
-              className="mt-1 inline-flex items-center gap-1 rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:text-cyan-300 disabled:opacity-40"
+              className="mt-1 inline-flex items-center gap-1 rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:text-cyan-300 disabled:opacity-40"
               data-cp-reset={item.key}
             >
               <RotateCcw size={9} />
@@ -578,7 +578,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
 
           {error && (
             <div
-              className="mt-1 rounded border border-red-900/60 bg-red-950/40 px-2 py-1 text-[11px] text-red-300"
+              className="mt-1 rounded-sm border border-red-900/60 bg-red-950/40 px-2 py-1 text-[11px] text-red-300"
               data-cp-error={item.key}
             >
               {error}
@@ -587,7 +587,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
 
           {feedback && feedback.pending && (
             <div
-              className="mt-1 rounded border border-amber-800 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200"
+              className="mt-1 rounded-sm border border-amber-800 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200"
               data-cp-pending={item.key}
             >
               <div className="flex items-center gap-1 font-medium">
@@ -606,7 +606,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   value={ctx.secondFactor}
                   onChange={(e) => ctx.onSecondFactor(e.target.value)}
                   placeholder="另一位人工的二次认证码"
-                  className="w-40 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
+                  className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
                 />
                 <input
                   type="text"
@@ -615,13 +615,13 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   value={ctx.reason}
                   onChange={(e) => ctx.onReason(e.target.value)}
                   placeholder="确认理由"
-                  className="w-40 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
+                  className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
                 />
                 <button
                   type="button"
                   onClick={() => ctx.onConfirmPending(item, feedback.pending_id || '')}
                   disabled={busy || !feedback.pending_id}
-                  className="inline-flex items-center gap-1 rounded border border-amber-700 px-2 py-0.5 text-[10px] text-amber-100 hover:bg-amber-500/10 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-sm border border-amber-700 px-2 py-0.5 text-[10px] text-amber-100 hover:bg-amber-500/10 disabled:opacity-50"
                   data-cp-confirm-submit={item.key}
                 >
                   <Unlock size={10} /> 由另一位人工确认并生效
@@ -632,7 +632,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
 
           {feedback && feedback.applied && (
             <div
-              className="mt-1 rounded border border-emerald-900 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300"
+              className="mt-1 rounded-sm border border-emerald-900 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300"
               data-cp-applied={item.key}
             >
               已生效：{item.key} → {outcomeDisplayValue(feedback, item)}
@@ -644,7 +644,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
 
           {feedback && isResetOutcome(feedback) && (
             <div
-              className="mt-1 rounded border border-sky-900 bg-sky-500/10 px-2 py-1 text-[11px] text-sky-300"
+              className="mt-1 rounded-sm border border-sky-900 bg-sky-500/10 px-2 py-1 text-[11px] text-sky-300"
               data-cp-reset-done={item.key}
             >
               已重置为默认：{item.key} → {outcomeDisplayValue(feedback, item)}
@@ -655,7 +655,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
           {/* 未生效但成功的回执（如"该开关没有覆盖层记录，无需重置"）——后端原文 */}
           {feedback && !feedback.pending && !feedback.applied && !isResetOutcome(feedback) && (
             <div
-              className="mt-1 rounded border border-slate-700 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300"
+              className="mt-1 rounded-sm border border-slate-700 bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300"
               data-cp-noop={item.key}
             >
               {feedback.message || '后端未返回可读回执'}
@@ -665,7 +665,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
           {/* ⑤ 提交前确认块（影响面 / 回滚方式 / 生效方式 + 二次认证） */}
           {editing && (
             <div
-              className="mt-2 space-y-1 rounded border border-amber-900/70 bg-slate-950/70 px-2 py-2"
+              className="mt-2 space-y-1 rounded-sm border border-amber-900/70 bg-slate-950/70 px-2 py-2"
               data-cp-confirm-panel={item.key}
             >
               <div className="text-[11px] font-medium text-amber-200">
@@ -705,7 +705,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                     data-cp-confirm-value={item.key}
                     value={ctx.drafts[item.key] ?? String(item.display_value ?? '')}
                     onChange={(e) => ctx.onDraft(item.key, e.target.value)}
-                    className="w-40 rounded border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200"
+                    className="w-40 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200"
                   />
                 )}
                 <input
@@ -715,7 +715,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   value={ctx.secondFactor}
                   onChange={(e) => ctx.onSecondFactor(e.target.value)}
                   placeholder="二次认证码"
-                  className="w-36 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
+                  className="w-36 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
                 />
                 <input
                   type="text"
@@ -724,13 +724,13 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   value={ctx.reason}
                   onChange={(e) => ctx.onReason(e.target.value)}
                   placeholder="变更理由（审计留痕）"
-                  className="w-44 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
+                  className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200"
                 />
                 <button
                   type="button"
                   onClick={() => ctx.onSubmitConfirm(item)}
                   disabled={busy}
-                  className="rounded bg-cyan-800 px-2 py-1 text-[11px] text-cyan-50 hover:bg-cyan-700 disabled:opacity-50"
+                  className="rounded-sm bg-cyan-800 px-2 py-1 text-[11px] text-cyan-50 hover:bg-cyan-700 disabled:opacity-50"
                   data-cp-submit={item.key}
                 >
                   提交变更
@@ -739,7 +739,7 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
                   type="button"
                   onClick={ctx.onCloseConfirm}
                   disabled={busy}
-                  className="rounded border border-slate-700 px-2 py-1 text-[11px] text-slate-300 disabled:opacity-50"
+                  className="rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-300 disabled:opacity-50"
                   data-cp-cancel={item.key}
                 >
                   取消
@@ -1026,7 +1026,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
                   commitSearch(e.target.value)
                 }}
                 placeholder="搜索 key / 描述 / 分类 / 归属模块"
-                className="w-72 rounded border border-slate-700 bg-slate-950 py-1 pl-6 pr-6 text-xs text-slate-200 placeholder:text-slate-600"
+                className="w-72 rounded-sm border border-slate-700 bg-slate-950 py-1 pl-6 pr-6 text-xs text-slate-200 placeholder:text-slate-600"
               />
               {query !== '' && (
                 <button
@@ -1106,7 +1106,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
                     setRisk('all')
                     setOnlyOverride(false)
                   }}
-                  className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:text-cyan-300"
+                  className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:text-cyan-300"
                   data-cp-clear-filters="true"
                 >
                   清除筛选

@@ -41,7 +41,7 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface BuiltinChannel {
   id?: string
@@ -270,7 +270,7 @@ export default function HubChannelsPanel() {
             const master = eventItems['CP_CHANNEL_EVENTS']
             const masterOff = row.key !== 'CP_CHANNEL_EVENTS' && !!master && !master.value
             return (
-              <div key={row.key} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={row.key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <label className="flex items-center gap-1.5 text-slate-300">
                   <input
                     type="checkbox"
@@ -322,7 +322,7 @@ export default function HubChannelsPanel() {
           {builtin.map((b) => {
             const id = b.id ?? ''
             return (
-              <div key={'channel-' + id} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={'channel-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <span className="font-mono text-[10px] text-cyan-300">{id}</span>
                 <span className="text-slate-300">{b.name ?? ''}</span>
                 <span className="truncate text-[10px] text-slate-500">{b.description ?? ''}</span>
@@ -362,7 +362,7 @@ export default function HubChannelsPanel() {
             const isConfirm = confirmUninstall === id
             const editing = configTarget?.ext_id === id
             return (
-              <div key={'installed-' + id} className="flex flex-col gap-1 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={'installed-' + id} className="flex flex-col gap-1 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-[10px] text-cyan-300">{id}</span>
                   <span className="text-slate-300">{row.name ?? ''}</span>
@@ -388,7 +388,7 @@ export default function HubChannelsPanel() {
                   </span>
                 </div>
                 {isConfirm && (
-                  <div className="flex flex-wrap items-center gap-2 rounded border border-red-900/50 bg-red-500/5 px-2 py-1">
+                  <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-900/50 bg-red-500/5 px-2 py-1">
                     <span className="text-[10px] text-red-300">
                       卸载对「文件轨独占」的扩展是不可逆删除（force=true 才允许）。确定？
                     </span>

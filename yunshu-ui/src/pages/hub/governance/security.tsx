@@ -36,8 +36,8 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-52 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-52 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 const TOGGLE_LABEL: Record<string, string> = {
   dangerous_ops: '危险操作',
@@ -186,7 +186,7 @@ export default function SecurityPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
 
       {/* 紧急控制：出事时第一个要按的 */}
       <div className="mb-3 rounded-lg border border-red-900/50 bg-red-500/5 p-3">
@@ -223,7 +223,7 @@ export default function SecurityPanel() {
           </div>
         </div>
         {confirmEmergency === 'stop' && (
-          <div className="flex flex-wrap items-center gap-2 rounded border border-red-800/60 bg-red-500/10 px-2 py-1.5">
+          <div className="flex flex-wrap items-center gap-2 rounded-sm border border-red-800/60 bg-red-500/10 px-2 py-1.5">
             <span className="text-[10px] text-red-200">紧急停止会中止正在进行的操作并锁定危险动作。确定？</span>
             <button type="button" className={BTN_RED} onClick={() => void emergency('stop')} disabled={loading} aria-label="确认紧急停止">
               {busy === 'emergency:stop' ? <Loader2 size={11} className="animate-spin" /> : null} 确认停止
@@ -258,7 +258,7 @@ export default function SecurityPanel() {
               ['拦截', st.blocked],
               ['告警', st.total_alerts],
             ].map(([k, v]) => (
-              <div key={String(k)} className="rounded border border-slate-800 bg-slate-900/50 px-2 py-1.5">
+              <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
                 <div className="text-[10px] text-slate-500">{String(k)}</div>
                 <div className="font-mono text-[13px] text-cyan-300">{String(v ?? 0)}</div>
               </div>
@@ -273,7 +273,7 @@ export default function SecurityPanel() {
               {Object.keys(TOGGLE_LABEL).map((key) => {
                 const on = toggles[key] === true
                 return (
-                  <div key={key} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                  <div key={key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                     <span className="text-slate-300">{TOGGLE_LABEL[key]}</span>
                     <span className="font-mono text-[10px] text-slate-600">{key}</span>
                     <span className={on ? 'text-emerald-400' : 'text-slate-500'}>{on ? '开' : '关'}</span>

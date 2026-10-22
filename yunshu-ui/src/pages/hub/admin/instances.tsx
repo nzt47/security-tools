@@ -30,7 +30,7 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface Instance {
   id?: string
@@ -203,7 +203,7 @@ export default function InstancesPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
 
       <div className="mb-2 flex items-center gap-1">
         {([['llm', 'LLM 实例'], ['search', '搜索实例']] as const).map(([id, label]) => (
@@ -232,7 +232,7 @@ export default function InstancesPanel() {
             const id = it.id ?? ''
             const isOpen = confirmDelete === tab + ':' + id
             return (
-              <div key={id} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px]">
+              <div key={id} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-slate-200">{it.name ?? '(未命名)'}</span>
                   <span className="font-mono text-[10px] text-slate-500">{tab === 'llm' ? (it.provider ?? '') + '/' + (it.model ?? '') : (it.engine_type ?? '')}</span>
@@ -258,7 +258,7 @@ export default function InstancesPanel() {
                   </span>
                 </div>
                 {isOpen && (
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded border border-red-900/50 bg-red-500/5 px-2 py-1.5">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-sm border border-red-900/50 bg-red-500/5 px-2 py-1.5">
                     <span className="text-[10px] text-red-300">
                       删除后该实例立即不可用{it.is_default ? '，且它当前是默认实例' : ''}。确定？
                     </span>

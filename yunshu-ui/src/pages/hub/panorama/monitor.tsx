@@ -160,7 +160,7 @@ export default function PanoramaMonitor() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="搜索模块…"
-                className="w-32 bg-transparent text-xs text-slate-300 placeholder-slate-600 outline-none"
+                className="w-32 bg-transparent text-xs text-slate-300 placeholder-slate-600 outline-hidden"
               />
             </div>
             <select
@@ -247,7 +247,7 @@ export default function PanoramaMonitor() {
                           <span className="shrink-0 font-mono text-[10px] text-slate-600">{m.module_id}</span>
                         </div>
                         <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
-                          <span className="rounded bg-slate-800 px-1.5 py-0.5">{TYPE_LABEL[m.type ?? 'module'] ?? m.type}</span>
+                          <span className="rounded-sm bg-slate-800 px-1.5 py-0.5">{TYPE_LABEL[m.type ?? 'module'] ?? m.type}</span>
                           {m.path && <span className="truncate font-mono">{m.path}</span>}
                         </div>
                       </div>
@@ -257,7 +257,7 @@ export default function PanoramaMonitor() {
                         <button
                           type="button"
                           onClick={() => setOpenModule(openModule === m.module_id ? '' : m.module_id)}
-                          className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
+                          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
                           aria-label={'模块详情 ' + m.module_id}
                         >
                           {openModule === m.module_id ? '收起' : '详情 / 干预'}

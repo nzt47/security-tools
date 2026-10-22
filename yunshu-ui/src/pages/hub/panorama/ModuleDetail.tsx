@@ -19,8 +19,8 @@ import { MODULES_ACTIONS, modulesDetail } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_DANGER = BTN + ' border-amber-800/70 text-amber-300 hover:bg-amber-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 interface NodeAction {
   action?: string
@@ -100,8 +100,8 @@ export default function ModuleDetail({ moduleId, onClose }: { moduleId: string; 
         </div>
       </div>
 
-      {err && <div className="mb-1.5 rounded border border-red-900/60 bg-red-500/10 px-2 py-1 text-[10px] text-red-300">{err}</div>}
-      {msg && <div className="mb-1.5 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{msg}</div>}
+      {err && <div className="mb-1.5 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[10px] text-red-300">{err}</div>}
+      {msg && <div className="mb-1.5 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">{msg}</div>}
 
       {data?.description && <div className="mb-1.5 text-[11px] text-slate-400">{data.description}</div>}
       {data?.status_detail && (
@@ -139,7 +139,7 @@ export default function ModuleDetail({ moduleId, onClose }: { moduleId: string; 
       </div>
 
       {pending && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 rounded border border-amber-900/50 bg-amber-500/5 px-2 py-1.5">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 rounded-sm border border-amber-900/50 bg-amber-500/5 px-2 py-1.5">
           <span className="text-[10px] text-amber-300">执行 {pending} 会写入审计；请确认，并可选填原因。</span>
           <input
             className={INPUT + ' w-56'}

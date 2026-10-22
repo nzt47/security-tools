@@ -67,19 +67,19 @@ export default function Profile() {
           value={form.username}
           onChange={(e) => setForm({ ...form, username: e.target.value })}
           placeholder="用户名"
-          className="w-full rounded border border-gray-300 px-3 py-2"
+          className="w-full rounded-sm border border-gray-300 px-3 py-2"
         />
         <input
           type="password"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           placeholder="密码"
-          className="w-full rounded border border-gray-300 px-3 py-2"
+          className="w-full rounded-sm border border-gray-300 px-3 py-2"
         />
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded bg-blue-500 px-4 py-2 text-white disabled:opacity-50"
+          className="w-full rounded-sm bg-blue-500 px-4 py-2 text-white disabled:opacity-50"
         >
           {loading ? '登录中...' : '登录'}
         </button>
@@ -89,13 +89,13 @@ export default function Profile() {
         {loading ? (
           <p className="text-gray-500">加载中...</p>
         ) : userInfo ? (
-          <div className="rounded border border-green-200 bg-green-50 p-4">
+          <div className="rounded-sm border border-green-200 bg-green-50 p-4">
             <p>欢迎，{userInfo.nickname}（{userInfo.username}）</p>
             <p className="mt-1 text-sm text-gray-500">{userInfo.email}</p>
             <button
               type="button"
               onClick={handleLogout}
-              className="mt-3 rounded border border-gray-300 px-3 py-1 text-sm"
+              className="mt-3 rounded-sm border border-gray-300 px-3 py-1 text-sm"
             >
               退出登录
             </button>

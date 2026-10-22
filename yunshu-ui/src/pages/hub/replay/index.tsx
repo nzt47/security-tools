@@ -28,8 +28,8 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 interface ReplayRow {
   replay_id?: string
@@ -127,7 +127,7 @@ export default function ReplayCenter() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
@@ -136,7 +136,7 @@ export default function ReplayCenter() {
           ['完全关联', (stats?.fully_correlated as number) ?? 0],
           ['带 trace', (stats?.with_trace_id as number) ?? 0],
         ].map(([k, v]) => (
-          <div key={String(k)} className="rounded border border-slate-800 bg-slate-900/50 px-2 py-1.5">
+          <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
             <div className="text-[10px] text-slate-500">{String(k)}</div>
             <div className="font-mono text-[13px] text-cyan-300">{String(v ?? 0)}</div>
           </div>
@@ -151,7 +151,7 @@ export default function ReplayCenter() {
           {rows.map((r) => {
             const id = (r.replay_id ?? r.id ?? '') as string
             return (
-              <div key={id} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <span className="font-mono text-[10px] text-cyan-300">{id}</span>
                 <span className="text-slate-300">{String(r.url ?? '')}</span>
                 <span className="font-mono text-[10px] text-slate-600">{String(r.created_at ?? '')}</span>

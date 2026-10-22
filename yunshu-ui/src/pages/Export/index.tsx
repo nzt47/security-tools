@@ -251,9 +251,9 @@ export default function DataExport() {
               {progress}/{users.length} 条
             </span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded bg-muted">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-sm bg-muted">
             <div
-              className="h-full rounded bg-cyan-500 transition-all duration-200"
+              className="h-full rounded-sm bg-cyan-500 transition-all duration-200"
               style={{ width: `${users.length ? (progress / users.length) * 100 : 0}%` }}
             />
           </div>
@@ -291,7 +291,7 @@ export default function DataExport() {
                     <td className="px-4 py-2 text-foreground">{u.username}</td>
                     <td className="px-4 py-2 text-muted-foreground">{u.email}</td>
                     <td className="px-4 py-2">
-                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{u.role}</span>
+                      <span className="rounded-sm bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{u.role}</span>
                     </td>
                     <td className="px-4 py-2">
                       <span

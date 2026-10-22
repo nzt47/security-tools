@@ -28,7 +28,7 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-hidden focus:border-cyan-600'
 
 export interface ExtRow {
   ext_id?: string
@@ -168,7 +168,7 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
       </div>
       {hint && <p className="mb-2 text-[10px] leading-relaxed text-slate-500">{hint}</p>}
       {err && <div className="mb-2"><ErrorBox message={err} /></div>}
-      {msg && <div className="mb-2 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-cyan-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-cyan-300">{msg}</div>}
 
       {loading && rows.length === 0 && (
         <div className="py-3 text-center text-[11px] text-slate-500"><Loader2 size={12} className="mr-1 inline animate-spin" />读取中…</div>
@@ -184,7 +184,7 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
           const confirming = confirm === key
           const editingConfig = configKey === id
           return (
-            <div key={key} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+            <div key={key} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
               <div className="flex flex-wrap items-center gap-2 text-[11px]">
                 <span className="font-mono text-cyan-300">{id}</span>
                 <span className="text-slate-300">{row.name ?? ''}</span>
@@ -226,7 +226,7 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
               {row.description && <div className="mt-0.5 text-[10px] text-slate-500">{row.description}</div>}
 
               {editingConfig && (
-                <div className="mt-1.5 rounded border border-slate-700 bg-slate-950 px-2 py-1.5">
+                <div className="mt-1.5 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1.5">
                   <div className="mb-1 text-[10px] text-slate-500">配置（JSON）</div>
                   <textarea
                     className={INPUT + ' h-24 resize-y'}
@@ -250,7 +250,7 @@ export default function InstalledExtensions({ types, title, hint, emptyText, exc
               )}
 
               {confirming && (
-                <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded border border-red-900/50 bg-red-500/5 px-2 py-1.5">
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-sm border border-red-900/50 bg-red-500/5 px-2 py-1.5">
                   <TriangleAlert size={12} className="text-red-400" />
                   <span className="text-[10px] text-red-300">
                     卸载对「文件轨独占」的扩展是不可逆删除（force=true 才允许）。确定？

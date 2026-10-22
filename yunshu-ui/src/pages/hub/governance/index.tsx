@@ -171,7 +171,7 @@ export function DigestionPipelinePanel() {
                   height={360}
                   keyOf={(e) => e.event_id}
                   renderItem={(e) => (
-                    <div className="mb-1 rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+                    <div className="mb-1 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
                       <div className="truncate font-mono text-[10px] text-cyan-300">{e.capability_id || '(无能力)'}</div>
                       <div className="mt-0.5 flex items-center gap-1">
                         <StatusBadge tone={toneForStage(e.to_stage)}>{e.to_stage || '—'}</StatusBadge>
@@ -239,7 +239,7 @@ export function DistillAsSkillEntry({ capabilityId }: { capabilityId: string }) 
   return (
     <button
       type="button"
-      className="rounded border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:border-cyan-700"
+      className="rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:border-cyan-700"
       onClick={() => {
         recordImplicitEntry({
           entry: 'context-menu:distill-as-skill',
@@ -399,7 +399,7 @@ export function CapabilityMapPanel() {
             datasources={data.panel?.datasources}
           />
           {data.load_error && (
-            <div className="mb-2 rounded border border-red-900/60 bg-red-950/30 px-3 py-2 text-xs text-red-300">
+            <div className="mb-2 rounded-sm border border-red-900/60 bg-red-950/30 px-3 py-2 text-xs text-red-300">
               台账读取失败：{data.load_error}
             </div>
           )}
@@ -409,15 +409,15 @@ export function CapabilityMapPanel() {
             <input
               value={q} onChange={(e) => { setQ(e.target.value); setOffset(0) }}
               placeholder="搜索能力/描述"
-              className="ml-2 w-44 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200 placeholder:text-slate-600"
+              className="ml-2 w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200 placeholder:text-slate-600"
             />
             <select value={stage} onChange={(e) => { setStage(e.target.value); setOffset(0) }}
-              className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200">
+              className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200">
               <option value="">全部 stage</option>
               {Object.keys(data.distribution.by_stage).map((k) => <option key={k} value={k}>{k}</option>)}
             </select>
             <select value={risk} onChange={(e) => { setRisk(e.target.value); setOffset(0) }}
-              className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200">
+              className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-slate-200">
               <option value="">全部风险</option>
               {Object.keys(data.distribution.by_risk).map((k) => <option key={k} value={k}>{k}</option>)}
             </select>
@@ -459,11 +459,11 @@ export function CapabilityMapPanel() {
           <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
             <button type="button" disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - 500))}
-              className="rounded border border-slate-700 px-2 py-0.5 disabled:opacity-40">上一页</button>
+              className="rounded-sm border border-slate-700 px-2 py-0.5 disabled:opacity-40">上一页</button>
             <span>{offset + 1}–{Math.min(offset + 500, data.pagination.total)} / {data.pagination.total}</span>
             <button type="button" disabled={!data.pagination.has_more}
               onClick={() => setOffset(offset + 500)}
-              className="rounded border border-slate-700 px-2 py-0.5 disabled:opacity-40">下一页</button>
+              className="rounded-sm border border-slate-700 px-2 py-0.5 disabled:opacity-40">下一页</button>
           </div>
         </>
       )}
@@ -641,16 +641,16 @@ export function ApprovalInboxPanel() {
               <input
                 value={reason} onChange={(e) => setReason(e.target.value)}
                 placeholder="批准备注 / 驳回理由（驳回必填）"
-                className="w-64 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600"
+                className="w-64 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600"
               />
               <button type="button" disabled={!selectedIds.length || busy !== ''}
                 onClick={approveBatch}
-                className="rounded bg-cyan-700 px-3 py-1 text-xs text-white disabled:opacity-40">
+                className="rounded-sm bg-cyan-700 px-3 py-1 text-xs text-white disabled:opacity-40">
                 {busy === 'approve' ? '提交中…' : `批准所选（${selectedIds.length}）`}
               </button>
               <button type="button" disabled={!selectedIds.length || busy !== ''}
                 onClick={rejectBatch}
-                className="rounded border border-red-800 px-3 py-1 text-xs text-red-300 disabled:opacity-40">
+                className="rounded-sm border border-red-800 px-3 py-1 text-xs text-red-300 disabled:opacity-40">
                 {busy === 'reject' ? '提交中…' : `驳回所选（${selectedIds.length}）`}
               </button>
               {selectedIds.length === 0 && (
@@ -661,7 +661,7 @@ export function ApprovalInboxPanel() {
             {errMsg && (
               <div
                 data-cp-approval-error="true"
-                className="mt-2 break-all rounded border border-red-900/60 bg-red-950/40 px-2 py-1 text-[11px] text-red-300"
+                className="mt-2 break-all rounded-sm border border-red-900/60 bg-red-950/40 px-2 py-1 text-[11px] text-red-300"
               >
                 {errMsg}
               </div>
@@ -863,11 +863,11 @@ export function RoiPanel() {
           {/* ★ U8：策略延迟两个口径并列（不得混用） */}
           <Collapsible title="策略延迟口径（U8：本体 vs 全量埋点，不得混用）" defaultOpen>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <div className="rounded border border-slate-800 bg-slate-950/50 p-3">
+              <div className="rounded-sm border border-slate-800 bg-slate-950/50 p-3">
                 <div className="text-xs text-slate-400">决策本体 p99（不含埋点）</div>
                 <div className="mt-1 text-lg"><MetricValue metric={data.policy_latency.decision_body} format="ms" /></div>
               </div>
-              <div className="rounded border border-slate-800 bg-slate-950/50 p-3">
+              <div className="rounded-sm border border-slate-800 bg-slate-950/50 p-3">
                 <div className="text-xs text-slate-400">全量埋点端到端（命中 / 未命中）</div>
                 <div className="mt-1 font-mono text-sm text-slate-200">
                   {data.policy_latency.full_instrumentation.hit_ms} ms / {data.policy_latency.full_instrumentation.miss_ms} ms
@@ -1004,7 +1004,7 @@ export function IncidentsPanel() {
             datasources={data.panel?.datasources}
             actions={
               <button type="button" onClick={() => setExpanded(!autoOpen)}
-                className="rounded border border-slate-700 px-2 py-1 text-[11px] text-slate-400">
+                className="rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-400">
                 {autoOpen ? '折叠' : '展开'}
               </button>
             }
@@ -1175,7 +1175,7 @@ export function AuditExportPanel() {
             datasources={data.panel?.datasources}
             actions={
               <button type="button" onClick={onExport}
-                className="flex items-center gap-1 rounded bg-cyan-700 px-2 py-1 text-[11px] text-white">
+                className="flex items-center gap-1 rounded-sm bg-cyan-700 px-2 py-1 text-[11px] text-white">
                 <FileDown size={12} /> 导出 CSV
               </button>
             }
@@ -1219,13 +1219,13 @@ export function AuditExportPanel() {
 
           <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
             <select value={scope} onChange={(e) => setScope(e.target.value as typeof scope)}
-              className="rounded border border-slate-700 bg-slate-950 px-2 py-1">
+              className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1">
               <option value="exported">验签：导出区间</option>
               <option value="head">验签：链尾窗口</option>
               <option value="full">验签：全链（慢）</option>
             </select>
             <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}
-              className="rounded border border-slate-700 bg-slate-950 px-2 py-1">
+              className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1">
               {[50, 200, 500, 1000, 2000].map((n) => <option key={n} value={n}>{n} 条</option>)}
             </select>
           </div>
@@ -1259,7 +1259,7 @@ export function AuditExportPanel() {
                   const { fetchObservabilityStream: f } = await import('@/lib/cpPanelsApi')
                   setObs(await f({ days: 30 }))
                 }}
-                className="mb-2 rounded border border-slate-700 px-2 py-1 text-[11px] text-slate-300">
+                className="mb-2 rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-300">
                 加载事件流聚合
               </button>
               {obs && <EventStreamView view={obs} />}
@@ -1270,7 +1270,7 @@ export function AuditExportPanel() {
                   const { fetchAuthzAlerts: f } = await import('@/lib/cpPanelsApi')
                   setAlerts(await f({ days: 30, limit: 50 }))
                 }}
-                className="mb-2 rounded border border-slate-700 px-2 py-1 text-[11px] text-slate-300">
+                className="mb-2 rounded-sm border border-slate-700 px-2 py-1 text-[11px] text-slate-300">
                 加载越权告警
               </button>
               {alerts && <AuthzAlertsViewBox view={alerts} />}
@@ -1299,7 +1299,7 @@ function EventStreamView({ view }: { view: ObservabilityStreamView }) {
       {degrade?.edges && Object.keys(degrade.edges).length > 0 && (
         <div className="flex flex-wrap gap-2">
           {Object.entries(degrade.edges).map(([edge, n]) => (
-            <span key={edge} className="rounded border border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-amber-300">
+            <span key={edge} className="rounded-sm border border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-amber-300">
               {edge} × {n}
             </span>
           ))}
@@ -1330,7 +1330,7 @@ function AuthzAlertsViewBox({ view }: { view: AuthzAlertsView }) {
   const du = view.durable
   return (
     <div className="space-y-2 text-xs">
-      <div className="rounded border border-amber-900/50 bg-amber-950/20 px-2 py-1 text-[10px] text-amber-300">
+      <div className="rounded-sm border border-amber-900/50 bg-amber-950/20 px-2 py-1 text-[10px] text-amber-300">
         {view.realtime.note}（volatile={String(view.realtime.volatile)}）
       </div>
       <div className="flex flex-wrap items-center gap-3 text-slate-400">

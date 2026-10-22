@@ -15,8 +15,8 @@ import { hubPost } from '../../pages/hub/components/ui'
 import { HANDOFF } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-64 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 export default function HandoffPanel({ sessionId }: { sessionId: string }) {
   const [intent, setIntent] = useState('')
@@ -49,7 +49,7 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
         <h3 className="text-xs font-semibold text-slate-200">会话交接文档</h3>
         <span className="text-[10px] text-slate-500">把当前会话压缩成 Markdown（含脱敏），落盘到临时目录</span>
       </div>
-      {err && <div className="mb-2 rounded border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
+      {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
       <div className="flex flex-wrap items-center gap-2">
         <input
           className={INPUT + ' w-72'}

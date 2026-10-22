@@ -112,7 +112,7 @@ describe('1. 消化流水线面板（P0 展开）', () => {
       p99_wall_candidate_ms: M(420, 'ms'), p99_wall_upstream_ms: M(380, 'ms'),
       pass_rate: M(0.9649, 'ratio') }],
     internalize: [{ capability_id: 'cp.fs.write', pr_id: 'pr_1', pr_dir: '/tmp', verdict: 'promote',
-      blocker: '', stage: 'shadow', passport_id: 'psp', rank_score: 3.5, promotable: true,
+      blocker: '', stage: 'shadow-sm', passport_id: 'psp', rank_score: 3.5, promotable: true,
       manual_required: false, manual_label: '', veto_failed: [], rank_failed: [],
       generated_at: 1, engine_version: 's3-03.1', audit_seq: 9, audit_hash: 'h',
       conditions: [{ name: 'roi_positive', dimension: 'rank', passed: true, actual: 340,
@@ -173,7 +173,7 @@ describe('2. 能力地图面板', () => {
     items: [
       { capability_id: 'cp.a', name: 'a', description: '', source_type: 'builtin', source_id: 'builtin',
         provenance: 'native', risk_level: 'low', data_class: 'public', requires_approval: false,
-        stage: 'shadow', audit_level: 'full', has_undo_hint: true, has_compensating_action: false,
+        stage: 'shadow-sm', audit_level: 'full', has_undo_hint: true, has_compensating_action: false,
         idempotent: true, timeout_ms: 1000, external_endpoint: false, variant_count: 0, aliases: [],
         platform: 'builtin', updated_at: 't', success_rate: M(0.97, 'rate'),
         sample_count: 57, sample_discipline: { sample_size: 57, min_sample: 20, insufficient_sample: false, disclosure_only: false, note: '' },

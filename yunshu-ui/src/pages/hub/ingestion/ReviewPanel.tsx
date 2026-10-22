@@ -19,7 +19,7 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 interface QueueRow {
   id?: string
@@ -126,14 +126,14 @@ export default function ReviewPanel() {
       </div>
 
       {err && <div className="mb-2"><ErrorBox message={err} /></div>}
-      {msg && <div className="mb-2 flex items-center gap-1.5 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300"><CheckCircle2 size={12} /> {msg}</div>}
+      {msg && <div className="mb-2 flex items-center gap-1.5 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300"><CheckCircle2 size={12} /> {msg}</div>}
       {!queue && busy !== 'queue' && <div className="text-[11px] text-slate-500">未取到队列。</div>}
       {queue && rows.length === 0 && (
         <div className="flex items-center gap-1.5 text-[11px] text-slate-500"><Inbox size={11} /> 队列为空 —— 没有待评审/放行的外来技能。</div>
       )}
 
       {batchOpen && (
-        <div className="mb-2 rounded border border-amber-800/60 bg-amber-950/20 p-2 text-[11px] text-slate-300">
+        <div className="mb-2 rounded-sm border border-amber-800/60 bg-amber-950/20 p-2 text-[11px] text-slate-300">
           <div>将放行 {selected.length} 条：<span className="font-mono text-[10px] text-cyan-300">{selected.map((r) => r.id).join('、')}</span></div>
           {hasBlocked && (
             <>
@@ -179,7 +179,7 @@ export default function ReviewPanel() {
             const isBlocked = q.review?.blocked === true
             const verdict = q.review?.review_verdict || ''
             return (
-              <div key={'q-' + id} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={'q-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <input type="checkbox" checked={sel.includes(id)} onChange={() => setSel((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])}
                   disabled={loading} aria-label={'选择外来技能 ' + id} />
                 <span className="font-mono text-[10px] text-cyan-300">{id}</span>

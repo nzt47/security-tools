@@ -172,10 +172,10 @@ export default function EngineScheduler() {
       {showForm && (
         <Card className="mb-4">
           <div className="grid gap-2 md:grid-cols-5">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称 *" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
-            <input value={action} onChange={(e) => setAction(e.target.value)} placeholder="动作 (action)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
-            <input value={interval} onChange={(e) => setInterval(e.target.value)} placeholder="间隔(分钟)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
-            <input value={cron} onChange={(e) => setCron(e.target.value)} placeholder="cron 表达式(可选)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称 *" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
+            <input value={action} onChange={(e) => setAction(e.target.value)} placeholder="动作 (action)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
+            <input value={interval} onChange={(e) => setInterval(e.target.value)} placeholder="间隔(分钟)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
+            <input value={cron} onChange={(e) => setCron(e.target.value)} placeholder="cron 表达式(可选)" className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
             <button onClick={create} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500">创建</button>
           </div>
         </Card>
@@ -268,15 +268,15 @@ export default function EngineScheduler() {
           <select
             value={editName}
             onChange={(e) => pickTask(e.target.value)}
-            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 outline-none"
+            className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 outline-hidden"
           >
             <option value="">选择要改时刻的任务…</option>
             {sched.filter((t) => t.editable_time).map((t) => (
               <option key={t.name} value={t.name}>{t.name}（{t.schedule_text}）</option>
             ))}
           </select>
-          <input value={editHour} onChange={(e) => setEditHour(e.target.value)} placeholder="时 0-23" className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none" />
-          <input value={editMinute} onChange={(e) => setEditMinute(e.target.value)} placeholder="分 0-59" className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none" />
+          <input value={editHour} onChange={(e) => setEditHour(e.target.value)} placeholder="时 0-23" className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-hidden" />
+          <input value={editMinute} onChange={(e) => setEditMinute(e.target.value)} placeholder="分 0-59" className="w-24 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-hidden" />
           <button onClick={saveSchedule} className="rounded-lg bg-cyan-600 px-3 py-2 text-xs text-white hover:bg-cyan-500">保存时刻</button>
         </div>
       </Card>
@@ -301,7 +301,7 @@ export default function EngineScheduler() {
         {histOpen && (
           <div className="flex flex-col gap-1">
             {histRows.map((h, i) => (
-              <div key={String(h.id ?? h.task_id ?? i)} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={String(h.id ?? h.task_id ?? i)} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <span className="font-mono text-[10px] text-slate-500">{String(h.finished_at ?? h.timestamp ?? h.started_at ?? '')}</span>
                 <span className="text-slate-300">{String(h.name ?? h.task_name ?? h.task_id ?? '')}</span>
                 <Badge color={h.ok === false || h.success === false ? 'red' : 'green'}>

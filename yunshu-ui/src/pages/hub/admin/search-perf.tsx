@@ -28,7 +28,7 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 interface PerfStatus {
   running?: boolean
@@ -116,7 +116,7 @@ export default function SearchPerformance() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
@@ -125,7 +125,7 @@ export default function SearchPerformance() {
           ['最近状态', summary?.last_status ?? '—'],
           ['成功率', ((summary?.tavily_success_rate ?? 0) * 100).toFixed(1) + '%'],
         ].map(([k, v]) => (
-          <div key={String(k)} className="rounded border border-slate-800 bg-slate-900/50 px-2 py-1.5">
+          <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
             <div className="text-[10px] text-slate-500">{String(k)}</div>
             <div className="truncate font-mono text-[12px] text-cyan-300">{String(v)}</div>
           </div>
@@ -143,7 +143,7 @@ export default function SearchPerformance() {
         <div className="mb-1 text-[11px] text-slate-400">检测历史（{history.length}）</div>
         <div className="flex flex-col gap-1">
           {history.slice(0, 10).map((h, i) => (
-            <div key={i} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+            <div key={i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-[10px] text-slate-500">{String(h.timestamp ?? '')}</span>
                 <span className={(h.status === 'ok' ? 'text-emerald-400' : 'text-amber-400')}>{String(h.status ?? '')}</span>

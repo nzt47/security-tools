@@ -29,8 +29,8 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 interface CatRow { key?: string; label?: string; icon?: string; description?: string; always?: boolean; tools?: string[] }
 interface StatusRow { name?: string; enabled?: boolean; description?: string }
@@ -139,7 +139,7 @@ export default function ToolsGovernance() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
         {[
@@ -148,7 +148,7 @@ export default function ToolsGovernance() {
           ['整体评分', ((health?.overall_score as number) ?? '—')],
           ['分类数', cats.length],
         ].map(([k, v]) => (
-          <div key={String(k)} className="rounded border border-slate-800 bg-slate-900/50 px-2 py-1.5">
+          <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
             <div className="text-[10px] text-slate-500">{String(k)}</div>
             <div className="font-mono text-[13px] text-cyan-300">{String(v)}</div>
           </div>
@@ -161,11 +161,11 @@ export default function ToolsGovernance() {
         </div>
         <div className="flex flex-col gap-1">
           {cats.map((c) => (
-            <div key={c.key ?? ''} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+            <div key={c.key ?? ''} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-slate-300">{c.icon ?? ''} {c.label ?? c.key}</span>
                 <span className="font-mono text-[10px] text-slate-600">{c.key}</span>
-                {c.always && <span className="rounded bg-cyan-500/10 px-1 text-[9px] text-cyan-300">常驻</span>}
+                {c.always && <span className="rounded-sm bg-cyan-500/10 px-1 text-[9px] text-cyan-300">常驻</span>}
                 <span className="ml-auto text-[10px] text-slate-600">{(c.tools ?? []).length} 个工具</span>
               </div>
               <div className="text-[10px] text-slate-500">{c.description ?? ''}</div>
@@ -213,11 +213,11 @@ export default function ToolsGovernance() {
 
         <div className="flex flex-col gap-1">
           {Object.entries(keywords).map(([k, list]) => (
-            <div key={k} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1">
+            <div key={k} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1">
               <div className="text-[11px] text-slate-300">{k}（{list.length}）</div>
               <div className="mt-0.5 flex flex-wrap gap-1">
                 {list.map((w) => (
-                  <span key={w} className="flex items-center gap-1 rounded bg-slate-800/70 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">
+                  <span key={w} className="flex items-center gap-1 rounded-sm bg-slate-800/70 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">
                     {w}
                     <button
                       type="button"

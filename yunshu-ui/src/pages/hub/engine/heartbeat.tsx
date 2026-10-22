@@ -110,7 +110,7 @@ export default function EngineHeartbeat() {
               <div className="max-h-96 space-y-1 overflow-y-auto font-mono text-xs">
                 {history.length === 0 && <div className="py-6 text-center text-slate-600">暂无历史</div>}
                 {history.map((h, i) => (
-                  <div key={i} className="flex gap-3 rounded px-2 py-1 hover:bg-slate-800/40">
+                  <div key={i} className="flex gap-3 rounded-sm px-2 py-1 hover:bg-slate-800/40">
                     <span className="shrink-0 text-slate-600">{String(h.timestamp ?? '')}</span>
                     <Badge color={String(h.status) === 'ok' ? 'green' : 'slate'}>{String(h.status ?? '')}</Badge>
                   </div>

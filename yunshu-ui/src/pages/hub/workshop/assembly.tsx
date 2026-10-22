@@ -211,13 +211,13 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 onChange={(e) => set('name', e.target.value)}
                 data-testid="assembly-name"
                 placeholder="分身名称 *（唯一）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
               <select
                 value={form.roleTemplate}
                 onChange={(e) => set('roleTemplate', e.target.value)}
                 data-testid="assembly-role-template"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden"
               >
                 <option value="">角色：未装（旧行为）</option>
                 {extraTemplate && <option value={form.roleTemplate}>{form.roleTemplate}（目录外）</option>}
@@ -229,7 +229,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 value={form.roleMode}
                 onChange={(e) => set('roleMode', e.target.value)}
                 data-testid="assembly-role-mode"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden"
               >
                 {roleTiers.map((t) => (
                   <option key={String(t.value)} value={String(t.value)}>{t.red ? '⚠ ' : ''}
@@ -241,7 +241,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 onChange={(e) => set('roleText', e.target.value)}
                 data-testid="assembly-role-text"
                 placeholder="角色自由文本（仅显式选 template+text / full-system 档生效）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
             </div>
             {/* 自由文本 + 默认档 = 会被后端 400；提前说清，不让使用者白提交（不静默吞掉） */}
@@ -260,7 +260,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 list="assembly-model-options"
                 data-testid="assembly-model"
                 placeholder={llmCatalog?.model ? '留空 = 跟随母体（' + llmCatalog.model + '）' : '留空 = 跟随母体'}
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
               <datalist id="assembly-model-options">
                 {(llmCatalog?.options ?? []).map((o) => (
@@ -274,7 +274,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 inputMode="decimal"
                 data-testid="assembly-temperature"
                 placeholder="生成温度 0.0–2.0（留空 = 默认，不是 0）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
             </div>
             <p className="mt-2 text-[11px] text-slate-500">
@@ -290,7 +290,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 onChange={(e) => set('memoryProvider', e.target.value)}
                 data-testid="assembly-memory"
                 placeholder="记忆提供商（声明字段）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
             </div>
             <p className="mt-2 text-[11px] text-slate-500" data-testid="assembly-memory-note">
@@ -321,7 +321,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
               onChange={(e) => set('toolSources', e.target.value)}
               data-testid="assembly-tools"
               placeholder="工具源（逗号分隔；声明字段，尚未接线）"
-              className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+              className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
             />
           </Card>
 
@@ -350,7 +350,7 @@ export default function AssemblyConsole({ onShowAgents }: AssemblyConsoleProps) 
                 inputMode="numeric"
                 data-testid="assembly-ttl"
                 placeholder="TTL 秒（留空 = 永久；委派时后端按契约⑦收敛）"
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
               />
               <p className="text-[11px] text-slate-500">
                 权限交给容器沙箱（Sandbox.allowed_permissions）；自主权 L1–L5 与审批在派发侧生效，

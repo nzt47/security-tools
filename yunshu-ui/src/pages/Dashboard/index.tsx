@@ -33,7 +33,7 @@ interface StatCardConfig {
 function StatCard({ config }: { config: StatCardConfig }) {
   const Icon = config.icon
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-xs">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-muted-foreground">{config.title}</p>
@@ -132,7 +132,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-xs">
         <h2 className="text-base font-semibold text-foreground">系统状态</h2>
         <p className="mt-0.5 text-xs text-muted-foreground">来自 /api/dashboard/summary 的 systemStatus</p>
         <div className="mt-3 flex items-center gap-2">

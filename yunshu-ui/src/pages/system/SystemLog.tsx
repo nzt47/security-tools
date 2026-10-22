@@ -66,7 +66,7 @@ export default function SystemLog() {
         示例页面：路由 /system/log（权限码 system:view，可见性由后端菜单树 /api/auth/menus 下发控制）。
       </p>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
         <table className="min-w-full divide-y divide-border text-sm">
           <thead className="bg-muted/50">
             <tr>

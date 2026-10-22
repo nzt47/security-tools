@@ -620,7 +620,7 @@ export default function WorkbenchChatPage() {
       {/* 右键菜单：选中文本 → 生成技能要求 */}
       {ctx && (
         <div
-          className="fixed z-[80] w-56 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-2xl"
+          className="fixed z-80 w-56 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-2xl"
           style={{
             left: Math.min(ctx.x, window.innerWidth - 232),
             top: Math.min(ctx.y, window.innerHeight - 96),

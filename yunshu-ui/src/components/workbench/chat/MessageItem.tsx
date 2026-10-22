@@ -196,7 +196,7 @@ export function MessageItem({
 
         <div className={`wb-bubble ${isUser ? 'wb-bubble-user' : 'wb-bubble-bot'}`}>
           {isUser ? (
-            <p className="whitespace-pre-wrap break-words text-[13.5px] leading-relaxed">
+            <p className="whitespace-pre-wrap wrap-break-word text-[13.5px] leading-relaxed">
               {message.content}
             </p>
           ) : (

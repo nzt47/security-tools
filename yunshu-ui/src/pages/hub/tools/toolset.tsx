@@ -184,12 +184,12 @@ export default function ToolsToolset() {
             {/* 可调用性标识：mark 缺失时该组件不渲染任何东西 */}
             <CallabilityBadge info={r.callability} name={String(r.name)} />
             {r.needs_approval && (
-              <span className="inline-flex items-center gap-1 rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-300">
+              <span className="inline-flex items-center gap-1 rounded-sm bg-red-500/15 px-1.5 py-0.5 text-[10px] text-red-300">
                 <ShieldAlert size={10} /> 需审批
               </span>
             )}
             {r.internal && (
-              <span className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">内部</span>
+              <span className="rounded-sm bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">内部</span>
             )}
           </div>
           {r.description && <div className="max-w-lg text-xs text-slate-500">{String(r.description)}</div>}

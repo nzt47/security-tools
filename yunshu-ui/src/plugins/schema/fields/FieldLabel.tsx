@@ -8,15 +8,15 @@ import React from 'react';
 
 /** 通用控件（input/select/textarea）样式 */
 export const controlClass =
-  'w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-elevated)] px-2.5 py-1.5 ' +
-  'text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none ' +
-  'transition-colors focus:border-[var(--mascot-primary)] disabled:cursor-not-allowed disabled:opacity-60';
+  'w-full rounded-md border border-(--border-color) bg-(--bg-elevated) px-2.5 py-1.5 ' +
+  'text-sm text-(--text-primary) placeholder:text-(--text-muted) outline-hidden ' +
+  'transition-colors focus:border-(--mascot-primary) disabled:cursor-not-allowed disabled:opacity-60';
 
 /** 标签样式 */
-export const labelClass = 'text-sm font-medium text-[var(--text-primary)]';
+export const labelClass = 'text-sm font-medium text-(--text-primary)';
 
 /** 说明文字样式 */
-export const descClass = 'text-xs text-[var(--text-muted)]';
+export const descClass = 'text-xs text-(--text-muted)';
 
 export interface FieldLabelProps {
   /** 关联控件 id（htmlFor） */
@@ -40,7 +40,7 @@ export function FieldLabel({ id, title, required, description }: FieldLabelProps
           </label>
         )}
         {required && (
-          <span className="text-sm leading-none text-[var(--mascot-error)]" aria-label="必填">
+          <span className="text-sm leading-none text-(--mascot-error)" aria-label="必填">
             *
           </span>
         )}

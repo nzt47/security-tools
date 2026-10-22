@@ -55,17 +55,17 @@ export function TagsField({
   return (
     <div className="flex flex-col gap-1.5">
       <FieldLabel title={label} required={required} description={description} />
-      <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border border-[var(--border-color)] bg-[var(--bg-elevated)] px-2 py-1.5">
+      <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border border-(--border-color) bg-(--bg-elevated) px-2 py-1.5">
         {tags.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--border-hover)] bg-[var(--bg-secondary)] px-2 py-0.5 text-xs text-[var(--text-primary)]"
+            className="inline-flex items-center gap-1 rounded-full border border-(--border-hover) bg-(--bg-secondary) px-2 py-0.5 text-xs text-(--text-primary)"
           >
             {tag}
             <button
               type="button"
               aria-label={`移除${tag}`}
-              className="text-[var(--text-muted)] transition-colors hover:text-[var(--mascot-error)]"
+              className="text-(--text-muted) transition-colors hover:text-(--mascot-error)"
               onClick={() => removeTag(tag)}
               disabled={disabled}
             >
@@ -74,7 +74,7 @@ export function TagsField({
           </span>
         ))}
         <input
-          className="min-w-24 flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
+          className="min-w-24 flex-1 bg-transparent text-sm text-(--text-primary) placeholder:text-(--text-muted) outline-hidden"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {

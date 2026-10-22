@@ -289,7 +289,7 @@ export function SessionRail({
         data-session-id={s.id}
         className={`group/sess relative flex items-center gap-1 rounded-lg border pr-1 transition-colors ${
           active
-            ? 'border-cyan-500/30 bg-cyan-500/[0.12]'
+            ? 'border-cyan-500/30 bg-cyan-500/12'
             : 'border-transparent hover:border-slate-700/60 hover:bg-slate-800/50'
         }`}
       >
@@ -298,7 +298,7 @@ export function SessionRail({
           type="button"
           onClick={() => onSelect(s.id)}
           title={s.title}
-          className="min-w-0 flex-1 py-1.5 pl-2.5 text-left outline-none focus-visible:ring-1 focus-visible:ring-cyan-500/60"
+          className="min-w-0 flex-1 py-1.5 pl-2.5 text-left outline-hidden focus-visible:ring-1 focus-visible:ring-cyan-500/60"
         >
           {editing ? (
             <input
@@ -316,7 +316,7 @@ export function SessionRail({
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded border border-cyan-600/60 bg-slate-950 px-1.5 py-0.5 text-[12px] text-cyan-100 outline-none"
+              className="w-full rounded-sm border border-cyan-600/60 bg-slate-950 px-1.5 py-0.5 text-[12px] text-cyan-100 outline-hidden"
             />
           ) : (
             <>
@@ -480,7 +480,7 @@ export function SessionRail({
             type="button"
             onClick={() => toggleCollapse(g.id)}
             title={isCollapsed ? '展开分组' : '收起分组'}
-            className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 text-left outline-none"
+            className="flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 text-left outline-hidden"
           >
             <ChevronRight
               size={11}
@@ -505,7 +505,7 @@ export function SessionRail({
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full min-w-0 rounded border border-cyan-600/60 bg-slate-950 px-1.5 py-0.5 text-[11.5px] text-cyan-100 outline-none"
+                className="w-full min-w-0 rounded-sm border border-cyan-600/60 bg-slate-950 px-1.5 py-0.5 text-[11.5px] text-cyan-100 outline-hidden"
               />
             ) : (
               <>
@@ -587,7 +587,7 @@ export function SessionRail({
             title="切换项目：只看该项目下的会话与分组"
             value={activeProjectId ?? ''}
             onChange={(e) => onSelectProject?.(e.target.value || null)}
-            className="min-w-0 flex-1 rounded-md border border-slate-700/80 bg-slate-900/80 px-1.5 py-1 text-[11.5px] text-slate-200 outline-none transition-colors focus:border-violet-600/70"
+            className="min-w-0 flex-1 rounded-md border border-slate-700/80 bg-slate-900/80 px-1.5 py-1 text-[11.5px] text-slate-200 outline-hidden transition-colors focus:border-violet-600/70"
           >
             <option value="">未归属项目</option>
             {projects.map((p) => (
@@ -620,14 +620,14 @@ export function SessionRail({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="搜索会话…"
-            className="w-full rounded-md border border-slate-700/80 bg-slate-900/80 py-1.5 pl-7 pr-6 text-[11.5px] text-slate-200 outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-600/70"
+            className="w-full rounded-md border border-slate-700/80 bg-slate-900/80 py-1.5 pl-7 pr-6 text-[11.5px] text-slate-200 outline-hidden transition-colors placeholder:text-slate-600 focus:border-cyan-600/70"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
               title="清空搜索"
-              className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-500 hover:text-slate-200"
+              className="absolute right-1 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-slate-500 hover:text-slate-200"
             >
               <X size={11} />
             </button>
@@ -672,7 +672,7 @@ export function SessionRail({
                 }
               }}
               placeholder="分组名称，回车创建"
-              className="w-full rounded-md border border-amber-500/50 bg-slate-950 px-2 py-1 text-[11.5px] text-slate-200 outline-none placeholder:text-slate-600"
+              className="w-full rounded-md border border-amber-500/50 bg-slate-950 px-2 py-1 text-[11.5px] text-slate-200 outline-hidden placeholder:text-slate-600"
             />
           </div>
         )}
@@ -708,7 +708,7 @@ export function SessionRail({
                     type="button"
                     onClick={() => toggleCollapse(UNGROUPED_KEY)}
                     title={ungroupedCollapsed ? '展开未分组' : '收起未分组'}
-                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left outline-none"
+                    className="flex min-w-0 flex-1 items-center gap-1.5 text-left outline-hidden"
                   >
                     <ChevronRight
                       size={11}
@@ -747,7 +747,7 @@ export function SessionRail({
       {/* 新建项目弹窗 */}
       {projectOpen && (
         <div
-          className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+          className="fixed inset-0 z-90 flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
           aria-label="新建项目"
@@ -781,7 +781,7 @@ export function SessionRail({
                   }
                 }}
                 placeholder="例如：云枢前端"
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-[11.5px] text-slate-200 outline-none placeholder:text-slate-600 focus:border-violet-600/70"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-[11.5px] text-slate-200 outline-hidden placeholder:text-slate-600 focus:border-violet-600/70"
               />
             </label>
 
@@ -799,7 +799,7 @@ export function SessionRail({
                   }
                 }}
                 placeholder="例如：C:\Users\you\myproject"
-                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-none placeholder:text-slate-600 focus:border-violet-600/70"
+                className="mt-1 w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 font-mono text-[11px] text-slate-200 outline-hidden placeholder:text-slate-600 focus:border-violet-600/70"
               />
             </label>
 

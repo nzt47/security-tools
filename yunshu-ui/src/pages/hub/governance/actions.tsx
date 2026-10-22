@@ -100,9 +100,9 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <input value={reason} onChange={(e) => setReason(e.target.value)}
           placeholder="reason（强制推进/摘除来源必填）"
-          className="w-56 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
+          className="w-56 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
         <select value={risk} onChange={(e) => setRisk(e.target.value)}
-          className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200">
+          className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200">
           <option value="">风险未标注</option>
           <option value="low">low</option>
           <option value="medium">medium</option>
@@ -111,7 +111,7 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
         </select>
         <input value={secondFactor} onChange={(e) => setSecondFactor(e.target.value)}
           placeholder="二次认证码（destructive 必填）"
-          className="w-44 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
+          className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
       </div>
 
       {/* ★ U2：七动作按钮区同样在 Shadow DOM 自治单元内（固定 z-index） */}
@@ -159,7 +159,7 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
       )}
 
       {error && (
-        <div className="mt-2 rounded border border-red-900/60 bg-red-950/30 px-2 py-1 text-[11px] text-red-300">
+        <div className="mt-2 rounded-sm border border-red-900/60 bg-red-950/30 px-2 py-1 text-[11px] text-red-300">
           {error}
         </div>
       )}
@@ -170,7 +170,7 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
 
 function ActionResultBox({ result }: { result: ActionResponse }) {
   return (
-    <div className="mt-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-300">
+    <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px] text-slate-300">
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone={result.ok === false ? 'red' : 'green'}>
           {result.ok === false ? (result.code || '被拒') : '已受理'}
@@ -283,20 +283,20 @@ function NeverAutomatedPanel({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <select value={category} onChange={(e) => { setCategory(e.target.value); setToken(''); setExpiresAt(0) }}
-          className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200">
+          className="rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200">
           {categories.map((c) => (
             <option key={c} value={c}>{labels[c] || c}（{c}）</option>
           ))}
         </select>
         <input value={actionText} onChange={(e) => setActionText(e.target.value)}
           placeholder={`可判定文本（缺省示例：${NEVER_TEXT_TEMPLATE[category] || '—'}）`}
-          className="w-72 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
+          className="w-72 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600" />
         <button type="button" onClick={doIssue} disabled={busy}
-          className="rounded border border-slate-600 px-2 py-1 text-[11px] text-slate-200 disabled:opacity-40">
+          className="rounded-sm border border-slate-600 px-2 py-1 text-[11px] text-slate-200 disabled:opacity-40">
           {busy ? '处理中…' : '1) 显式确认（签发单次凭据）'}
         </button>
         <button type="button" onClick={doExecute} disabled={busy || !token || expired}
-          className="rounded bg-red-800 px-2 py-1 text-[11px] text-white disabled:opacity-40">
+          className="rounded-sm bg-red-800 px-2 py-1 text-[11px] text-white disabled:opacity-40">
           2) 提交（转审批提案）
         </button>
         {expiresAt > 0 && (

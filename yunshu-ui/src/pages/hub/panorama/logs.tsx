@@ -128,7 +128,7 @@ export default function PanoramaLogs() {
               value={query} onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && load()}
               placeholder="关键字过滤"
-              className="w-40 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 placeholder-slate-600 outline-none"
+              className="w-40 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 placeholder-slate-600 outline-hidden"
             />
             <select value={limit} onChange={(e) => setLimit(Number(e.target.value))} className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300">
               <option value={50}>50 条</option>
@@ -169,7 +169,7 @@ export default function PanoramaLogs() {
               const logger = fieldOf(l, 'logger', 'module', 'app')
               const msg = fieldOf(l, 'message', 'msg') || JSON.stringify(l)
               return (
-                <div key={i} data-testid={`log-row-${i}`} className="flex gap-3 rounded px-2 py-1 hover:bg-slate-800/40">
+                <div key={i} data-testid={`log-row-${i}`} className="flex gap-3 rounded-sm px-2 py-1 hover:bg-slate-800/40">
                   <span className="shrink-0 text-slate-600">{ts}</span>
                   <span className={`w-16 shrink-0 font-semibold ${LEVEL_COLOR[lvl] ?? 'text-slate-400'}`}>
                     {lvl}

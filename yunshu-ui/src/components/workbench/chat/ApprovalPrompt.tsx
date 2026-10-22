@@ -51,7 +51,7 @@ export function ApprovalPrompt() {
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-120 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs"
       data-testid="approval-prompt"
       role="dialog"
       aria-modal="true"
@@ -78,7 +78,7 @@ export function ApprovalPrompt() {
           onChange={(e) => setNote(e.target.value)}
           placeholder="备注（批准可留空；驳回必填原因）"
           data-testid="approval-note"
-          className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-amber-600"
+          className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-hidden focus:border-amber-600"
         />
         {err && <div className="mt-2 text-[11px] text-red-400">{err}</div>}
 

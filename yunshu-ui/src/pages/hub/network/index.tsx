@@ -83,7 +83,7 @@ export default function NetworkPage() {
                   <input
                     value={String(config?.[key] ?? '')}
                     onChange={(e) => setVal(key, e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden focus:border-cyan-600"
                   />
                 </div>
               ))}
@@ -94,7 +94,7 @@ export default function NetworkPage() {
                   onChange={(e) => setVal('api_key', e.target.value)}
                   type="password"
                   placeholder="sk-…"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden focus:border-cyan-600"
                 />
               </div>
             </div>
@@ -108,7 +108,7 @@ export default function NetworkPage() {
                   <input
                     value={String(config?.[key] ?? '')}
                     onChange={(e) => setVal(key, e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-600"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-hidden focus:border-cyan-600"
                   />
                 </div>
               ))}

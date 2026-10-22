@@ -337,7 +337,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-[70] w-[380px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[380px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">🤖 当前任务委托的子代理</span>
             <div className="flex items-center gap-1">
@@ -346,7 +346,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 onClick={() => void load()}
                 disabled={loading}
                 title="刷新子代理列表"
-                className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               </button>
@@ -354,7 +354,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="关闭子代理菜单"
-                className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 <X size={12} />
               </button>
@@ -396,7 +396,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                         : 'border-slate-800 hover:bg-slate-800/60'
                     }`}
                   >
-                    <span className="mt-[1px] w-3 shrink-0 text-emerald-400">
+                    <span className="mt-px w-3 shrink-0 text-emerald-400">
                       {active ? <Check size={12} /> : null}
                     </span>
                     <span className="min-w-0 flex-1">
@@ -436,7 +436,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 <button
                   type="button"
                   onClick={clearDelegate}
-                  className="shrink-0 rounded border border-amber-700/60 px-1.5 text-[10px] hover:bg-amber-500/10"
+                  className="shrink-0 rounded-sm border border-amber-700/60 px-1.5 text-[10px] hover:bg-amber-500/10"
                 >
                   清除选择
                 </button>
@@ -452,7 +452,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
             )}
 
             <textarea
-              className="mb-1.5 h-14 w-full resize-none rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-none focus:border-cyan-600"
+              className="mb-1.5 h-14 w-full resize-none rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-hidden focus:border-cyan-600"
               placeholder={defaultTask ? '留空则使用当前会话最近一条用户消息' : '输入要委托的任务（①目标，≥8 字符）…'}
               value={task}
               onChange={(e) => setTask(e.target.value)}
@@ -472,7 +472,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 <label className="block text-[10px] text-slate-500">
                   ②约束（逗号或换行分隔；缺省「只读为主，不得修改仓库文件」）
                   <input
-                    className="mt-0.5 w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-none focus:border-cyan-600"
+                    className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
                     value={constraints}
                     onChange={(e) => setConstraints(e.target.value)}
                     placeholder="例如：只读仓库，不得修改任何文件"
@@ -481,7 +481,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 <label className="block text-[10px] text-slate-500">
                   ④禁止事项（缺省「不得对外发送数据」；可留空列表）
                   <input
-                    className="mt-0.5 w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-none focus:border-cyan-600"
+                    className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
                     value={prohibitions}
                     onChange={(e) => setProhibitions(e.target.value)}
                     placeholder="例如：不得删除任何文件, 不得访问网络"
@@ -491,7 +491,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                   <label className="flex-1 text-[10px] text-slate-500">
                     ⑤产物格式
                     <input
-                      className="mt-0.5 w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-none focus:border-cyan-600"
+                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
                       value={artifactFormat}
                       onChange={(e) => setArtifactFormat(e.target.value)}
                       placeholder="文本要点"
@@ -500,7 +500,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                   <label className="w-20 text-[10px] text-slate-500">
                     ⑥预算 tok
                     <input
-                      className="mt-0.5 w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-none focus:border-cyan-600"
+                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
                       value={budgetTokens}
                       onChange={(e) => setBudgetTokens(e.target.value)}
                       placeholder="4000"
@@ -509,7 +509,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                   <label className="w-16 text-[10px] text-slate-500">
                     ⑦超时 s
                     <input
-                      className="mt-0.5 w-full rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-none focus:border-cyan-600"
+                      className="mt-0.5 w-full rounded-sm border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[10.5px] text-slate-200 outline-hidden focus:border-cyan-600"
                       value={timeoutSeconds}
                       onChange={(e) => setTimeoutSeconds(e.target.value)}
                       placeholder="120"
@@ -567,7 +567,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                   {result.sub_reason ? `（${result.sub_reason}）` : ''}
                 </p>
               )}
-              <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-mono text-[10.5px] text-slate-300">
+              <pre className="max-h-32 overflow-auto whitespace-pre-wrap wrap-break-word font-mono text-[10.5px] text-slate-300">
                 {result.result || (result.ok ? '（无输出）' : '（未产出交付物）')}
               </pre>
               {result.trace_id && (
@@ -595,7 +595,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                 type="button"
                 onClick={() => void loadHistory()}
                 title="刷新委派记录"
-                className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 <RefreshCw size={10} />
               </button>
@@ -647,14 +647,14 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                           type="button"
                           onClick={() => setTask(r.goal || '')}
                           title="把这条记录的目标回填到输入框"
-                          className="ml-auto shrink-0 rounded border border-slate-700 px-1 text-[9.5px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                          className="ml-auto shrink-0 rounded-sm border border-slate-700 px-1 text-[9.5px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                         >
                           复用目标
                         </button>
                       )}
                     </div>
                     {r.error && (
-                      <div className="mt-0.5 break-words text-[9.5px] leading-relaxed text-rose-400">
+                      <div className="mt-0.5 wrap-break-word text-[9.5px] leading-relaxed text-rose-400">
                         {r.error_code ? `${r.error_code} · ` : ''}
                         {r.error}
                       </div>

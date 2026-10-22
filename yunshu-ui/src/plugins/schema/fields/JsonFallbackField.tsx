@@ -87,7 +87,7 @@ export function JsonFallbackField({
         spellCheck={false}
       />
       {error && (
-        <p role="alert" className="text-xs text-[var(--mascot-error)]">
+        <p role="alert" className="text-xs text-(--mascot-error)">
           {error}
         </p>
       )}

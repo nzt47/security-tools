@@ -32,7 +32,7 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 
 type Tab = 'overview' | 'errors' | 'insights' | 'query' | 'introspection'
 
@@ -259,7 +259,7 @@ export default function LogCenterPanel() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {note && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{note}</div>}
+      {note && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{note}</div>}
 
       {tab === 'overview' && (
         <div className="space-y-2">
@@ -272,7 +272,7 @@ export default function LogCenterPanel() {
                   ['P95 耗时', (stats.p95_duration_ms ?? 0) + 'ms'],
                   ['P99 耗时', (stats.p99_duration_ms ?? 0) + 'ms'],
                 ].map(([k, v]) => (
-                  <div key={String(k)} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+                  <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
                     <div className="text-[10px] text-slate-500">{String(k)}</div>
                     <div className="font-mono text-sm text-cyan-300">{String(v)}</div>
                   </div>
@@ -296,7 +296,7 @@ export default function LogCenterPanel() {
               {(trends.performance_trend?.length ?? 0) > 0 && (
                 <div className="mt-1 flex flex-wrap gap-1 font-mono text-[10px] text-slate-500">
                   {trends.performance_trend?.slice(0, 24).map((p, i) => (
-                    <span key={i} className="rounded bg-slate-800/60 px-1" title={p.hour}>
+                    <span key={i} className="rounded-sm bg-slate-800/60 px-1" title={p.hour}>
                       {p.hour?.slice(5, 13) ?? ''}={Math.round(p.avg_ms ?? 0)}ms
                     </span>
                   ))}
@@ -311,7 +311,7 @@ export default function LogCenterPanel() {
         <div className="flex flex-col gap-1">
           {errors.length === 0 && <div className="text-[11px] text-slate-500">窗口内没有错误记录。</div>}
           {errors.map((r, i) => (
-            <div key={(r.id ?? '') + '-' + i} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+            <div key={(r.id ?? '') + '-' + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-[10px] text-slate-500">{r.created_at ?? ''}</span>
                 <span className="text-red-400">{r.level ?? 'error'}</span>
@@ -331,8 +331,8 @@ export default function LogCenterPanel() {
             </div>
             <div className="flex flex-col gap-1">
               {insights.slice(0, 12).map((r, i) => (
-                <div key={(r.id ?? '') + '-' + i} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
-                  <span className="mr-2 rounded bg-slate-800 px-1.5 text-[9px] text-slate-400">{r.type ?? r.source ?? '?'}</span>
+                <div key={(r.id ?? '') + '-' + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                  <span className="mr-2 rounded-sm bg-slate-800 px-1.5 text-[9px] text-slate-400">{r.type ?? r.source ?? '?'}</span>
                   <span className="text-slate-300">{r.summary ?? ''}</span>
                   <span className="ml-2 font-mono text-[10px] text-slate-600">conf={r.confidence ?? '-'}</span>
                 </div>
@@ -347,8 +347,8 @@ export default function LogCenterPanel() {
             </div>
             <div className="flex flex-col gap-1">
               {knowledge.slice(0, 12).map((r, i) => (
-                <div key={(r.id ?? '') + '-k' + i} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
-                  <span className="mr-2 rounded bg-slate-800 px-1.5 text-[9px] text-slate-400">{r.domain ?? '?'}</span>
+                <div key={(r.id ?? '') + '-k' + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                  <span className="mr-2 rounded-sm bg-slate-800 px-1.5 text-[9px] text-slate-400">{r.domain ?? '?'}</span>
                   <span className="text-slate-300">{r.finding ?? ''}</span>
                   <span className="ml-2 font-mono text-[10px] text-slate-600">{r.created_at_iso ?? ''}</span>
                 </div>
@@ -363,9 +363,9 @@ export default function LogCenterPanel() {
             </div>
             <div className="flex flex-col gap-1">
               {actions.slice(0, 12).map((r, i) => (
-                <div key={(r.id ?? '') + '-a' + i} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                <div key={(r.id ?? '') + '-a' + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                   <span className="text-slate-300">{r.title ?? r.summary ?? '(无标题)'}</span>
-                  <span className="ml-2 rounded bg-slate-800 px-1.5 text-[9px] text-slate-400">{r.priority ?? r.status ?? ''}</span>
+                  <span className="ml-2 rounded-sm bg-slate-800 px-1.5 text-[9px] text-slate-400">{r.priority ?? r.status ?? ''}</span>
                 </div>
               ))}
               {actions.length === 0 && <div className="text-[10px] text-slate-600">—</div>}
@@ -439,7 +439,7 @@ export default function LogCenterPanel() {
                 ['累计轮次', insight.total_cycles ?? 0],
                 ['上次运行', insight.last_run ?? 'never'],
               ].map(([k, v]) => (
-                <div key={String(k)} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+                <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5">
                   <div className="text-[10px] text-slate-500">{String(k)}</div>
                   <div className="font-mono text-[12px] text-cyan-300">{String(v)}</div>
                 </div>

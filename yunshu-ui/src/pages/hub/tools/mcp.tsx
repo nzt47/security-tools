@@ -150,8 +150,8 @@ export default function ToolsMcp() {
       {showForm && (
         <Card className="mb-4">
           <div className="flex gap-2">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="服务名称" className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
-            <input value={cmd} onChange={(e) => setCmd(e.target.value)} placeholder="启动命令 (command)" className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="服务名称" className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
+            <input value={cmd} onChange={(e) => setCmd(e.target.value)} placeholder="启动命令 (command)" className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden" />
             <button onClick={add} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500">保存</button>
           </div>
         </Card>
@@ -192,11 +192,11 @@ export default function ToolsMcp() {
                           <button
                             onClick={() => void uninstall(id)}
                             aria-label={'确认卸载 MCP ' + id}
-                            className="rounded border border-red-800/70 px-2 py-1 text-[10px] text-red-200 hover:bg-red-500/10"
+                            className="rounded-sm border border-red-800/70 px-2 py-1 text-[10px] text-red-200 hover:bg-red-500/10"
                           >
                             确定
                           </button>
-                          <button onClick={() => setConfirmUninstall('')} className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800">取消</button>
+                          <button onClick={() => setConfirmUninstall('')} className="rounded-sm border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800">取消</button>
                         </span>
                       )}
                     </div>
@@ -218,7 +218,7 @@ export default function ToolsMcp() {
           {builtin.map((b) => {
             const id = b.id ?? ''
             return (
-              <div key={'builtin-mcp-' + id} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={'builtin-mcp-' + id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <span className="font-mono text-[10px] text-cyan-300">{id}</span>
                 <span className="text-slate-300">{b.name ?? ''}</span>
                 <span className="truncate text-[10px] text-slate-500">{b.description ?? ''}</span>

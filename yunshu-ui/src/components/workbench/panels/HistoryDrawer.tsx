@@ -281,14 +281,14 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="搜索问话…"
-              className="w-full rounded-md border border-slate-700/80 bg-slate-900/80 py-1.5 pl-8 pr-7 text-[12px] text-slate-200 outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-600/70"
+              className="w-full rounded-md border border-slate-700/80 bg-slate-900/80 py-1.5 pl-8 pr-7 text-[12px] text-slate-200 outline-hidden transition-colors placeholder:text-slate-600 focus:border-cyan-600/70"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch('')}
                 title="清空搜索"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-500 hover:text-slate-200"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-slate-500 hover:text-slate-200"
               >
                 <X size={11} />
               </button>
@@ -338,10 +338,10 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
                           void jumpTo(ordinal);
                         }
                       }}
-                      className="group cursor-pointer rounded-lg border border-slate-800/80 bg-slate-900/40 px-2.5 py-2 outline-none transition-colors hover:border-cyan-500/35 hover:bg-slate-800/50 focus-visible:border-cyan-500/60"
+                      className="group cursor-pointer rounded-lg border border-slate-800/80 bg-slate-900/40 px-2.5 py-2 outline-hidden transition-colors hover:border-cyan-500/35 hover:bg-slate-800/50 focus-visible:border-cyan-500/60"
                     >
                       <div className="flex items-start gap-2">
-                        <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-[12px] leading-relaxed text-slate-200 group-hover:text-slate-100">
+                        <p className="min-w-0 flex-1 whitespace-pre-wrap wrap-break-word text-[12px] leading-relaxed text-slate-200 group-hover:text-slate-100">
                           {preview}
                         </p>
                         <span
@@ -384,7 +384,7 @@ export function HistoryDrawer({ sessionId, onClose }: HistoryDrawerProps) {
                               void handleDelete(entry._real_index);
                             }
                           }}
-                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-500 opacity-0 transition-colors group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-400"
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-slate-500 opacity-0 transition-colors group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-400"
                         >
                           <Trash2 size={11} />
                         </span>

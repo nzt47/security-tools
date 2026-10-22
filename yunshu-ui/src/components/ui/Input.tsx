@@ -41,7 +41,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           className={cn(
             'h-9 w-full rounded-md border bg-card px-3 text-sm text-foreground',
             'placeholder:text-muted-foreground transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-primary/40',
+            'focus:outline-hidden focus:ring-2 focus:ring-primary/40',
             error ? 'border-danger' : 'border-border hover:border-foreground/20',
             'disabled:cursor-not-allowed disabled:opacity-60',
             loading && 'pr-9',

@@ -17,7 +17,7 @@ import { hubGet, hubPost } from '../components/ui'
 import { subagentByName, subagentOfflinePack, subagentReload } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[10px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 export default function SubagentRowActions({ name }: { name: string }) {
   const [busy, setBusy] = useState('')
@@ -70,7 +70,7 @@ export default function SubagentRowActions({ name }: { name: string }) {
       </div>
 
       {confirmReload && (
-        <div className="flex flex-wrap items-center justify-end gap-1 rounded border border-amber-900/50 bg-amber-500/5 px-1.5 py-1">
+        <div className="flex flex-wrap items-center justify-end gap-1 rounded-sm border border-amber-900/50 bg-amber-500/5 px-1.5 py-1">
           <span className="text-[10px] text-amber-300">热更新会重载该分身的配置（进行中的任务不受影响）。确定？</span>
           <button type="button" className={BTN} onClick={() => void reload()} disabled={loading} aria-label={'确认热更新 ' + name}>
             {busy === 'reload' ? <Loader2 size={10} className="animate-spin" /> : null} 确认
@@ -79,8 +79,8 @@ export default function SubagentRowActions({ name }: { name: string }) {
         </div>
       )}
 
-      {err && <div className="rounded border border-red-900/60 bg-red-500/10 px-1.5 py-1 text-[10px] text-red-300">{err}</div>}
-      {msg && <div className="rounded border border-emerald-800/60 bg-emerald-500/10 px-1.5 py-1 text-[10px] text-emerald-300">{msg}</div>}
+      {err && <div className="rounded-sm border border-red-900/60 bg-red-500/10 px-1.5 py-1 text-[10px] text-red-300">{err}</div>}
+      {msg && <div className="rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-1.5 py-1 text-[10px] text-emerald-300">{msg}</div>}
       {detail && (
         <div>
           <div className="mb-1 flex items-center justify-end">

@@ -28,8 +28,8 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-slate-800 bg-slate-950 p-2.5 font-mono text-[11px] leading-relaxed text-slate-300'
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-72 overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950 p-2.5 font-mono text-[11px] leading-relaxed text-slate-300'
 
 type Tab = 'instruction' | 'scripts' | 'params' | 'feedback' | 'duplicates'
 
@@ -342,7 +342,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                     <span>{'Layer ' + (instruction.layer ?? 2)}</span>
                     <span>约 {instruction.estimated_tokens ?? 0} tokens</span>
                   </div>
-                  <pre className={PRE + ' max-h-[26rem]'}>{instruction.instruction || '（空）'}</pre>
+                  <pre className={PRE + ' max-h-104'}>{instruction.instruction || '（空）'}</pre>
                 </>
               )}
               {!instruction && !loading && <div className="text-[11px] text-slate-500">没有取到说明正文。</div>}
@@ -373,7 +373,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                           type="button"
                           onClick={() => setScriptName(name)}
                           title="选它作为「要执行的脚本」"
-                          className={'flex items-center gap-2 rounded border px-2 py-1 text-left text-[11px] transition-colors ' + (
+                          className={'flex items-center gap-2 rounded-sm border px-2 py-1 text-left text-[11px] transition-colors ' + (
                             scriptName === name
                               ? 'border-cyan-700/70 bg-cyan-500/10 text-cyan-200'
                               : 'border-slate-800 bg-slate-950/60 text-slate-300 hover:bg-slate-800/60'
@@ -454,7 +454,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                 {params && Object.keys(params.param_stats ?? {}).length > 0 && (
                   <div className="flex flex-col gap-1">
                     {Object.entries(params.param_stats ?? {}).map(([name, stat]) => (
-                      <div key={name} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1">
+                      <div key={name} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1">
                         <div className="font-mono text-[11px] text-cyan-300">{name}</div>
                         <div className="font-mono text-[10px] text-slate-400">{asJson(stat)}</div>
                       </div>
@@ -531,13 +531,13 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                       ['满意度', feedback.satisfaction_rate_percent],
                       ['均分', feedback.avg_rating],
                     ].map(([k, v]) => (
-                      <div key={String(k)} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1">
+                      <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1">
                         <div className="text-[10px] text-slate-500">{String(k)}</div>
                         <div className="font-mono text-cyan-300">{v ?? '-'}</div>
                       </div>
                     ))}
                     {feedback.recommended_action && (
-                      <div className="col-span-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 sm:col-span-4">
+                      <div className="col-span-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 sm:col-span-4">
                         <div className="text-[10px] text-slate-500">建议动作</div>
                         <div className="text-slate-300">{feedback.recommended_action}</div>
                       </div>
@@ -617,7 +617,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                   {(dups?.duplicates ?? []).map((d, i) => {
                     const key = d.skill_id || d.id || ('dup-' + i)
                     return (
-                      <div key={key} className="flex flex-wrap items-center gap-2 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                      <div key={key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                         <span className="font-mono text-cyan-300">{key}</span>
                         <span className="truncate text-slate-300">{d.name ?? ''}</span>
                         <span className="ml-auto font-mono text-[10px] text-amber-300">

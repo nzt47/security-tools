@@ -79,8 +79,8 @@ function EnvFlag({ ok, text }: { ok: boolean; text: string }) {
   return (
     <span
       className={ok
-        ? 'rounded bg-emerald-950/40 px-2 py-0.5 text-[11px] text-emerald-300'
-        : 'rounded bg-amber-950/40 px-2 py-0.5 text-[11px] text-amber-300'}
+        ? 'rounded-sm bg-emerald-950/40 px-2 py-0.5 text-[11px] text-emerald-300'
+        : 'rounded-sm bg-amber-950/40 px-2 py-0.5 text-[11px] text-amber-300'}
     >{text}</span>
   )
 }
@@ -202,7 +202,7 @@ export default function WorkshopReplicate() {
       <Card title="导出可带走 bundle">
         <p className="text-sm leading-6 text-slate-400">
           把一个分身的身份、装配、引用式密钥与启动协议导出为一个 JSON 包
-          （<code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">GET /api/subagent/&lt;name&gt;/bundle</code>）。
+          （<code className="rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">GET /api/subagent/&lt;name&gt;/bundle</code>）。
           导出前整包过一次密钥闸：任何长期密钥形态都会被**拒绝导出**（只存引用，不存值）。
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -212,7 +212,7 @@ export default function WorkshopReplicate() {
             onKeyDown={onEnter}
             data-testid="replicate-name"
             placeholder="分身名称（如 sa-1）"
-            className="w-64 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none"
+            className="w-64 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden"
           />
           <button
             type="button"
@@ -276,7 +276,7 @@ export default function WorkshopReplicate() {
         <Card title="导入可带走 bundle">
           <p className="text-sm leading-6 text-slate-400">
             选择或粘贴一个 bundle JSON → 调
-            <code className="mx-1 rounded bg-slate-800 px-1 text-xs text-cyan-400">POST {SUBAGENT_IMPORT}</code>
+            <code className="mx-1 rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">POST {SUBAGENT_IMPORT}</code>
             。bundle 的合法性（结构 / 版本 / 引用式密钥 / 后端词表）**一律由后端裁定**：
             非法即 400 且不建容器，前端只如实展示错误与 problems。
           </p>
@@ -303,7 +303,7 @@ export default function WorkshopReplicate() {
             onChange={(e) => setImportText(e.target.value)}
             data-testid="replicate-import-text"
             placeholder="或直接粘贴 bundle JSON 文本"
-            className="mt-3 h-28 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 font-mono text-[11px] leading-5 text-slate-200 placeholder-slate-600 outline-none"
+            className="mt-3 h-28 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 font-mono text-[11px] leading-5 text-slate-200 placeholder-slate-600 outline-hidden"
           />
           {importError && (
             <div className="mt-3" data-testid="replicate-import-error"><ErrorBox message={importError} /></div>
@@ -345,15 +345,15 @@ export default function WorkshopReplicate() {
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-500/15 text-slate-400"><RefreshCw size={18} /></div>
             <p className="text-sm leading-6 text-slate-400">
-              bundle 的 <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">runtime.backend</code>
-              现映射四档：<code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">inproc</code> /
-              <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">subprocess</code> /
-              <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">local</code>（断网可跑，需本机 Ollama）/ 
-              <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">container</code>（隔离运行，镜像内对端见
-              <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">docker/subagent-peer</code>），
+              bundle 的 <code className="rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">runtime.backend</code>
+              现映射四档：<code className="rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">inproc</code> /
+              <code className="rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">subprocess</code> /
+              <code className="rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">local</code>（断网可跑，需本机 Ollama）/ 
+              <code className="rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">container</code>（隔离运行，镜像内对端见
+              <code className="rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">docker/subagent-peer</code>），
               共用同一份 task_file-jsonl 协议。wheelhouse 需运维在联网机用
-              <code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">scripts/build_offline_pack.py</code>
-              预构建，<code className="rounded bg-slate-800 px-1 text-xs text-cyan-400">environment.offline_ready</code>
+              <code className="rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">scripts/build_offline_pack.py</code>
+              预构建，<code className="rounded-sm bg-slate-800 px-1 text-xs text-cyan-400">environment.offline_ready</code>
               为**覆盖判定**（声明依赖缺 wheel 即 false）。
             </p>
           </div>

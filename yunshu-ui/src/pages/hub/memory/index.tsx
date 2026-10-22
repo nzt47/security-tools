@@ -133,7 +133,7 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
               onChange={(e) => setManualText(e.target.value)}
               rows={5}
               placeholder="输入要记住的内容…"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-600"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
             />
             <button
               onClick={saveManual}
@@ -152,7 +152,7 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
               onChange={(e) => setSearchQ(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && doSearch()}
               placeholder="搜索记忆 / 知识…"
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-600"
+              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
             />
             <button onClick={doSearch} className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">
               <Search size={14} /> 搜索

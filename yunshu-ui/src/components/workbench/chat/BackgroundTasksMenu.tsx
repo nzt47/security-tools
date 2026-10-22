@@ -166,7 +166,7 @@ export function BackgroundTasksMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-[70] w-[420px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[420px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">
               ⚡ 后台任务
@@ -181,7 +181,7 @@ export function BackgroundTasksMenu() {
                 onClick={() => void load()}
                 disabled={loading}
                 title="立即刷新"
-                className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               </button>
@@ -189,7 +189,7 @@ export function BackgroundTasksMenu() {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="关闭后台任务菜单"
-                className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 <X size={12} />
               </button>
@@ -279,7 +279,7 @@ export function BackgroundTasksMenu() {
                         <div>完成：{fmtTime(t.completed_at) || '-'}</div>
                         {t.timeout != null && <div>超时：{t.timeout}s</div>}
                         {t.has_result && <div className="text-emerald-400">已有结果（可在任务结果接口查看）</div>}
-                        {t.error && <div className="mt-1 whitespace-pre-wrap break-words text-rose-400">{t.error}</div>}
+                        {t.error && <div className="mt-1 whitespace-pre-wrap wrap-break-word text-rose-400">{t.error}</div>}
                       </div>
                     )}
                   </div>

@@ -187,7 +187,7 @@ export default function RouteCoveragePanel() {
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
           data-testid="route-domain-filter"
-          className="ml-2 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-200 outline-none"
+          className="ml-2 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-200 outline-hidden"
         >
           <option value="all">全部功能区</option>
           {domains.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -198,7 +198,7 @@ export default function RouteCoveragePanel() {
         <span className="ml-auto flex items-center gap-1 rounded-lg border border-slate-700 px-2 py-1">
           <Search size={12} className="text-slate-500" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="按路径过滤"
-            className="w-48 bg-transparent text-xs text-slate-200 outline-none" />
+            className="w-48 bg-transparent text-xs text-slate-200 outline-hidden" />
         </span>
       </div>
 
@@ -226,7 +226,7 @@ export default function RouteCoveragePanel() {
                     <>
                       <span title={e.description}>{e.description}</span>
                       {e.description_source === 'module' && (
-                        <span className="ml-1 rounded bg-slate-800 px-1 text-[10px] text-slate-500"
+                        <span className="ml-1 rounded-sm bg-slate-800 px-1 text-[10px] text-slate-500"
                           title="该路由处理函数未写说明，此处取所在模块的说明">模块</span>
                       )}
                       {(e.where ?? [])[0] && (
@@ -244,7 +244,7 @@ export default function RouteCoveragePanel() {
                 <td className={'px-3 py-1.5 ' + (INTENT_CLASS[e.intent ?? 'unclassified'] ?? '')} data-testid={`route-intent-${e.norm}`} title={e.intent_note || undefined}>
                   {INTENT_LABEL[e.intent ?? 'unclassified'] ?? e.intent}
                   {e.intent_area && <span className="ml-1 text-[10px] text-slate-500">· {e.intent_area}</span>}
-                  {e.ui_pending && <span className="ml-1 rounded bg-amber-950/50 px-1 text-[10px] text-amber-300">待办</span>}
+                  {e.ui_pending && <span className="ml-1 rounded-sm bg-amber-950/50 px-1 text-[10px] text-amber-300">待办</span>}
                 </td>
                 <td className="px-3 py-1.5" data-testid={'route-live-' + e.norm}>
                   {e.dead_copy

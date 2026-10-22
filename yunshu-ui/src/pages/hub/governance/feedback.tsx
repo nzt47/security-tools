@@ -33,8 +33,8 @@ import {
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
-const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
-const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
+const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+const PRE = 'max-h-56 overflow-auto whitespace-pre-wrap wrap-break-word rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400'
 
 interface FeedbackRow {
   feedback_id?: string
@@ -205,7 +205,7 @@ export default function FeedbackCenter() {
       </div>
 
       {err && <ErrorBox message={err} />}
-      {msg && <div className="mb-2 rounded border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
+      {msg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{msg}</div>}
 
       <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
         {[
@@ -215,7 +215,7 @@ export default function FeedbackCenter() {
           ['满意度', (summary?.satisfaction_rate_percent ?? 0) + '%'],
           ['优质案例', summary?.quality_cases_count],
         ].map(([k, v]) => (
-          <div key={String(k)} className="rounded border border-slate-800 bg-slate-900/50 px-2 py-1.5">
+          <div key={String(k)} className="rounded-sm border border-slate-800 bg-slate-900/50 px-2 py-1.5">
             <div className="text-[10px] text-slate-500">{String(k)}</div>
             <div className="font-mono text-[13px] text-cyan-300">{String(v ?? 0)}</div>
           </div>
@@ -264,9 +264,9 @@ export default function FeedbackCenter() {
             {rows.map((r, i) => {
               const id = r.feedback_id ?? r.id ?? ''
               return (
-                <div key={id + i} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px]">
+                <div key={id + i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1.5 text-[11px]">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded bg-slate-800 px-1.5 text-[9px] text-slate-400">{r.feedback_type ?? '?'}</span>
+                    <span className="rounded-sm bg-slate-800 px-1.5 text-[9px] text-slate-400">{r.feedback_type ?? '?'}</span>
                     <span className="text-slate-300">{r.category ?? ''}</span>
                     <span className={'text-[10px] ' + (r.status === 'resolved' ? 'text-emerald-400' : 'text-amber-400')}>{r.status ?? ''}</span>
                     <span className="font-mono text-[10px] text-slate-600">{r.created_at_iso ?? ''}</span>
@@ -301,7 +301,7 @@ export default function FeedbackCenter() {
           <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
             <FileText size={11} className="text-cyan-400" /> 近 7 天分析报告
           </div>
-          {report ? <pre className={PRE + ' max-h-[28rem]'}>{JSON.stringify(report, null, 2)}</pre>
+          {report ? <pre className={PRE + ' max-h-112'}>{JSON.stringify(report, null, 2)}</pre>
             : <div className="text-[11px] text-slate-500">加载中…</div>}
         </div>
       )}
@@ -313,7 +313,7 @@ export default function FeedbackCenter() {
           </div>
           <div className="flex flex-col gap-1">
             {cases.map((c, i) => (
-              <div key={i} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+              <div key={i} className="rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-slate-300">{String(c.title ?? c.case_id ?? '案例')}</span>
                   <span className="ml-auto font-mono text-[10px] text-amber-300">score={String(c.quality_score ?? '-')}</span>

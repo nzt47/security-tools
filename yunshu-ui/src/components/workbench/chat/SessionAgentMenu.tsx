@@ -152,7 +152,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-[70] w-[300px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur">
+        <div className="absolute right-0 top-[calc(100%+6px)] z-70 w-[300px] rounded-xl border border-slate-700 bg-slate-900/98 p-3 text-[11.5px] shadow-2xl backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between">
             <span className="font-medium text-slate-200">🧠 本会话智能体</span>
             <div className="flex items-center gap-1">
@@ -161,7 +161,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                 onClick={() => void load()}
                 disabled={loading}
                 title="刷新分身列表"
-                className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               </button>
@@ -169,7 +169,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="关闭智能体菜单"
-                className="rounded p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
+                className="rounded-sm p-0.5 text-slate-500 hover:bg-slate-800 hover:text-slate-300"
               >
                 <X size={12} />
               </button>
@@ -195,7 +195,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                 !current ? 'border-cyan-600/60 bg-cyan-500/10' : 'border-slate-800 hover:bg-slate-800/60'
               }`}
             >
-              <span className="mt-[1px] w-3 shrink-0 text-cyan-400">
+              <span className="mt-px w-3 shrink-0 text-cyan-400">
                 {!current ? <Check size={12} /> : null}
               </span>
               <span className="min-w-0 flex-1">
@@ -216,7 +216,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                 disabled={saving}
                 className="mb-1 flex w-full items-start gap-2 rounded-lg border border-cyan-600/60 bg-cyan-500/10 px-2 py-1.5 text-left"
               >
-                <span className="mt-[1px] w-3 shrink-0 text-cyan-400">
+                <span className="mt-px w-3 shrink-0 text-cyan-400">
                   <Check size={12} />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -252,7 +252,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
                         : 'border-slate-800 hover:bg-slate-800/60'
                     }`}
                   >
-                    <span className="mt-[1px] w-3 shrink-0 text-cyan-400">
+                    <span className="mt-px w-3 shrink-0 text-cyan-400">
                       {active ? <Check size={12} /> : null}
                     </span>
                     <span className="min-w-0 flex-1">

@@ -108,7 +108,7 @@ export default function PermissionAssignDialog({
                       type="checkbox"
                       checked={checked.has(p.code)}
                       onChange={() => toggle(p.code)}
-                      className="h-4 w-4 rounded accent-primary"
+                      className="h-4 w-4 rounded-sm accent-primary"
                     />
                     {p.label}
                     <span className="ml-auto font-mono text-xs text-muted-foreground">{p.code}</span>
