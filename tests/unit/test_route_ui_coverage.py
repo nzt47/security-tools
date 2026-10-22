@@ -426,7 +426,7 @@ class Test前端箭头函数常量:
         ):
             assert probe in react, probe
         refs = react["/api/skills-mgmt/*/versions"]
-        assert "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx" in refs, (
+        assert "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx" in refs, (
             "引用应落到真正调用它的页面，而不是常量层自己"
         )
 

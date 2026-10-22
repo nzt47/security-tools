@@ -11,7 +11,7 @@
  */
 import { useState } from 'react'
 import { Hammer, PenTool, Sparkles, Workflow } from 'lucide-react'
-import { MemorySkillsTable } from './skills'
+import SkillAssetTable from './SkillAssetTable'
 import { MemoryWorkflowTable } from './workflow'
 import MemoryWorkflowVisual from './workflow-visual'
 import ConvertibleWorkflows from './ConvertibleWorkflows'
@@ -86,7 +86,7 @@ export default function SkillCenter() {
                 「工作流技能」Tab（命中即本地执行、不消耗 LLM）。
               </span>
             </div>
-            <MemorySkillsTable />
+            <SkillAssetTable />
             {/* 扩展系统安装的技能：启停 / 配置 / 卸载。
                 原在「扩展市场」页的已安装管理；市场整页删除（2026-10-20）后回到技能归属页。
                 与上方运行时技能表的区别：这里是**扩展登记**（ext_type=skill），

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T13:25:15",
+  "generated_at": "2026-10-22T18:46:02",
   "totals": {
     "routes": 455,
     "live": 455,
@@ -7574,8 +7574,8 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/lib/skillsApi.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx",
-        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx",
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [
         "agent/audit/ui_middleware.py"
@@ -7706,7 +7706,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -7757,7 +7757,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/lib/skillsApi.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -7832,8 +7832,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx",
-        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx",
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [
         "scripts/audit/contract_diff.py"
@@ -7860,7 +7860,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -7936,7 +7936,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -7962,7 +7962,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/lib/skillsApi.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -7988,7 +7988,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/lib/skillsApi.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -8014,7 +8014,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/lib/skillsApi.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -8040,7 +8040,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/lib/skillsApi.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -8090,7 +8090,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -8141,7 +8141,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -8167,7 +8167,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -8293,7 +8293,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -8798,7 +8798,7 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts",
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -8925,7 +8925,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/ingestion/AssetReviewPanel.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
       ],
       "non_ui_refs": [],
       "where": [
