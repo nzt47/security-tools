@@ -24,6 +24,12 @@ from .models import ConfirmationRequired
 
 DEFAULT_SPLIT_DIR = Path(__file__).resolve().parents[2] / "data" / "ingestion" / "splits"
 _HEADING_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
+# 【不易】围栏内的 "##" 不是章节边界：
+#   2026-10-23 P6 拆分复盘：_content_sections 逐行匹配 ^##、不跟踪围栏状态，
+#   把 ```markdown 代码块里的示例标题（如 "## Skill routing"）当成章节切点，
+#   37 份草稿中有 4 份因此变成「上半截开口围栏 + 下半截孤立内容」。
+#   围栏行本身不参与标题匹配；闭合围栏要求同字符、且长度不短于开启围栏（CommonMark）。
+_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 
 
 def _now_iso() -> str:
@@ -49,19 +55,44 @@ def _usage(skill: Any) -> int:
         return 0
 
 
+def _fence_after(line: str, fence: str) -> str:
+    """返回处理完本行后的围栏标记；空串表示不在围栏内。"""
+    m = _FENCE_RE.match(line)
+    if not m:
+        return fence
+    marker = m.group(1)
+    if not fence:
+        return marker
+    if marker[0] == fence[0] and len(marker) >= len(fence):
+        return ""
+    return fence
+
+
 def _headings(content: str) -> List[str]:
-    return [m.group(1).strip() for m in _HEADING_RE.finditer(str(content or ""))
-            if m.group(1).strip()]
+    fence = ""
+    out: List[str] = []
+    for line in str(content or "").splitlines():
+        in_fence = bool(fence)
+        fence = _fence_after(line, fence)
+        if in_fence:
+            continue
+        m = _HEADING_RE.match(line)
+        if m and m.group(1).strip():
+            out.append(m.group(1).strip())
+    return out
 
 
 def _content_sections(content: str) -> List[Dict[str, str]]:
-    """按 H2 切正文；无 H2 时整篇作为一节。保留原文（不重写）。"""
+    """按 H2 切正文；围栏内的 ## 不算章节；无 H2 时整篇作为一节。保留原文（不重写）。"""
     lines = str(content or "").splitlines()
     sections: List[Dict[str, str]] = []
     title = "正文"
     body: List[str] = []
+    fence = ""
     for line in lines:
-        m = _HEADING_RE.match(line)
+        in_fence = bool(fence)
+        fence = _fence_after(line, fence)
+        m = None if in_fence else _HEADING_RE.match(line)
         if m:
             if body:
                 sections.append({"title": title, "body": "\n".join(body).strip()})
