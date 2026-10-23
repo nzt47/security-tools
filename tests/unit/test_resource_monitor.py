@@ -533,9 +533,13 @@ class TestBackgroundThread:
         status = monitor.get_status()
         assert status["running"] is True
         # 【不易】后台采样线程首次写入存在调度延迟，固定 sleep(1.5) 在 CI 共享
-        # runner 高负载下偶发竞态（history 仍为空）。改为轮询等待（最多 5s），
-        # 契约不变：启动后至少完成一次采样。
-        deadline = time.time() + 5.0
+        # runner 高负载下偶发竞态（history 仍为空）。改为轮询等待，契约不变：
+        # 启动后至少完成一次采样。
+        # 【2026-10-23】5s 在 CI 仍会偶发不够：Shard 2 实测 _do_sample 首轮在
+        # -n 2 + 共享 runner 争用下可超过 5s（junit 全绿但该断言 FAILED，三次 PR
+        # 各中一次、rerun 才过）。放宽到 15s：不改变"必须有采样"的契约，只给
+        # 调度延迟留出与 CI 负载相称的余量。
+        deadline = time.time() + 15.0
         while time.time() < deadline and len(monitor.get_history()) == 0:
             time.sleep(0.1)
         monitor.stop()
