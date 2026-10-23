@@ -125,7 +125,7 @@ dependencies = [
   "jsonschema>=4.0.0,<5.0.0",
   # pypdf 上限原为 <6.0.0，但本机生产实装 6.14.2（audit 的 [4] 类）
   #   ⇒ 旧上限把正在跑的版本排除在外。下限抬到实装值。
-  "pypdf>=6.14.2,<7.0.0",
+  "pypdf>=6.21.1,<7.0.0",
   "cssselect>=1.2.0,<2.0.0",
   "pdfplumber>=0.10.0,<0.12.0",
   # Windows-only 依赖（pyttsx3 的间接依赖）。
