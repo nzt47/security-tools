@@ -99,7 +99,8 @@ export default function SkillCenter() {
                 <Workflow size={13} className="mt-0.5 shrink-0 text-emerald-400" />
                 <span>
                   工作流技能由历史交互自动学习（或经可视化编排），命中任务描述即
-                  <strong className="text-slate-200"> 本地执行并跳过 LLM</strong>（skipped_llm）。可启停 / 执行 / 测试匹配。
+                  <strong className="text-slate-200"> 本地执行并跳过 LLM</strong>（skipped_llm）。
+                  列表已给出「说明 / 步骤链 / 类型 / 执行统计」，点<strong className="text-slate-200">「查看」</strong>可看完整说明、触发词与每步的工具与参数。
                 </span>
               </div>
               <button
