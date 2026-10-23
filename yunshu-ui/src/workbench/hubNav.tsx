@@ -17,7 +17,7 @@ import {
   HeartPulse, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive, Film,
-  PackagePlus,
+  PackagePlus, Workflow,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -32,6 +32,10 @@ const PanoramaSensors = lazy(() => import('@/pages/hub/panorama/sensors'))
 const PanoramaMonitor = lazy(() => import('@/pages/hub/panorama/monitor'))
 const PanoramaLogs = lazy(() => import('@/pages/hub/panorama/logs'))
 const SkillCenter = lazy(() => import('@/pages/hub/memory/skill-center'))
+// 工作流（2026-10-24 IA）：从技能中心拆出的独立叶子 ——
+//   工作流技能（本地 DAG、skip LLM）+ 可视化编辑（画布编排，产物即工作流）同域；
+//   技能中心回归「单一 LLM 表」。页内 Tab 写进 URL：?panel=workflow&tab=visual。
+const WorkflowHub = lazy(() => import('@/pages/hub/memory/workflow-hub'))
 // 吞噬：全系统唯一的外来能力获取入口（P5）；技能中心/维护/工具调用不再提供导入控件。
 const IngestionPage = lazy(() => import('@/pages/hub/ingestion'))
 // 【第二轮 IA】记忆管理 = 主内容区 Tab 容器（手动 / 自动 / 知识库 / 经验库 / 全库检索）；
@@ -106,9 +110,11 @@ export const HUB_NAV: HubNavItem[] = [
       // /api/subagent/<name>/bundle（按分身打包），与「分身」是同一条主线的两端；独立叶子
       // workshop/replicate 移除 ⇒ 旧深链经 LEGACY_NAV_KEY_MAP 落到本页（禁止双入口）。
       { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
-      // 技能中心：LLM 技能 = 模型执行，工作流技能 = 本地执行，与提示词实验室并列（分 Tab 管理）。
+      // 技能中心 = 单一 LLM 表（模型执行）；工作流 = 独立叶子（本地执行 + 可视化编排），
+      // 2026-10-24 IA 拆出，避免两类执行模型在同一页用 Tab 混装。
       { key: 'prompt-lab', label: '提示词实验室', icon: FlaskConical, component: PromptLab },
       { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
+      { key: 'workflow', label: '工作流', icon: Workflow, component: WorkflowHub },
       { key: 'ingestion', label: '吞噬', icon: PackagePlus, component: IngestionPage },
       // 工具调用：原 5 个子项已在页面内收敛为 Tab（pages/hub/tools/index.tsx）。
       { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
@@ -332,6 +338,11 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   // 【2026-10-18 IA】治理面板的「记忆技能库」并入「记忆管理 · 记忆结构」（只读治理视图）：
   //   独立叶子消失 ⇒ 旧深链落到 memory（Tab 记忆会接续用户上次看的子模块）
   'governance/memory': 'memory',
+  // 【2026-10-24 IA】工作流从技能中心拆成独立叶子：旧页内 Tab 的深链（若有人按
+  //   ?panel=skills-center&tab=workflow 收藏）统一落到新叶子；技能中心自身仍落 LLM 表。
+  'workflow-skills': 'workflow',
+  'workflow/visual': 'workflow',
+  'visual-workflows': 'workflow',
   // 【第二轮 IA】记忆管理子项 → 页内 Tab（落到「记忆管理」页，Tab 记忆接续上次选择）
   'memory/manual': 'memory',
   'memory/auto': 'memory',

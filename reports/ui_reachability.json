@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-24T00:01:37",
+  "generated_at": "2026-10-24T00:44:52",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 278,
-    "reachable_modules": 262,
-    "page_files": 107
+    "source_modules": 279,
+    "reachable_modules": 263,
+    "page_files": 108
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "02b22416255c5979",
+  "content_hash": "fb95ee3e5ba10b3c",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -65,6 +65,7 @@
     "yunshu-ui/src/pages/hub/memory/skill-detail-drawer.tsx",
     "yunshu-ui/src/pages/hub/memory/structure.tsx",
     "yunshu-ui/src/pages/hub/memory/workflow-detail.tsx",
+    "yunshu-ui/src/pages/hub/memory/workflow-hub.tsx",
     "yunshu-ui/src/pages/hub/memory/workflow-visual.tsx",
     "yunshu-ui/src/pages/hub/memory/workflow.tsx",
     "yunshu-ui/src/pages/hub/network/TransferPanel.tsx",

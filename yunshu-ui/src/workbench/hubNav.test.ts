@@ -65,6 +65,24 @@ describe('hubNav 导航结构（技能中心与提示词实验室同属「会话
   })
 })
 
+describe('hubNav 导航结构（2026-10-24：工作流从技能中心拆成独立叶子）', () => {
+  it('「工作流」是「会话与配置」桶内的叶子，且紧跟在「技能中心」之后', () => {
+    const workspace = HUB_NAV.find((i) => i.key === 'workspace')
+    const keys = (workspace?.children ?? []).map((c) => c.key)
+    expect(keys).toContain('workflow')
+    expect(keys.indexOf('workflow')).toBe(keys.indexOf('skills-center') + 1)
+    const item = findNavItem('workflow')
+    expect(item?.children).toBeUndefined()
+    expect(item?.component).toBeDefined()
+  })
+
+  it('旧 key 经 LEGACY_NAV_KEY_MAP 落到 workflow（深链不 404 回默认页）', () => {
+    expect(resolveNavKey('workflow-skills')).toBe('workflow')
+    expect(resolveNavKey('workflow/visual')).toBe('workflow')
+    expect(resolveNavKey('visual-workflows')).toBe('workflow')
+  })
+})
+
 describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', () => {
   it('「工具调用」是叶子项（5 个子项不再各占一条导航项）', () => {
     const tools = findNavItem('tools')
@@ -80,7 +98,7 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     // 【2026-10-17 IA】分身创建与组装紧跟「会话任务」（先对话、再配分身）
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
-      'session', 'workshop/agents', 'prompt-lab', 'skills-center', 'ingestion',
+      'session', 'workshop/agents', 'prompt-lab', 'skills-center', 'workflow', 'ingestion',
       'tools', 'memory', 'assets', 'components/plugins', 'network', 'local', 'replay',
     ])
     expect(topKeys.indexOf('workspace')).toBeLessThan(topKeys.indexOf('panorama'))
@@ -175,7 +193,7 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
   it('叶子 key 全部保留（旧深链仍可解析）', () => {
     const keys = flattenNav(HUB_NAV).map((i) => i.key)
     for (const k of [
-      'session', 'prompt-lab', 'skills-center', 'tools',
+      'session', 'prompt-lab', 'skills-center', 'workflow', 'tools',
       'panorama/health', 'panorama/logs', 'engine',
       'governance/approvals', 'governance/route-coverage',
       'memory', 'assets',
