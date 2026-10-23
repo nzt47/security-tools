@@ -17,6 +17,19 @@ import { mockApiPlugin, mockDemoPlugin } from './src/mocks/devMock';
  *
  * 本地 Mock：.env 中 VITE_MOCK_API=true 时启用，拦截登录/用户信息接口（仅 dev）。
  */
+/**
+ * 【vite 8 / rolldown】manualChunks 只能用函数：这里仍是"同一批依赖抽同名 chunk"的语义，
+ * 按 `/node_modules/<包名>/` 精确匹配，避免 react 误吞 react-dom / react-router 之类的前缀歧义。
+ */
+const VENDOR_CHUNKS: Record<string, string[]> = {
+  'vendor-react': ['react', 'react-dom', 'react-router-dom', 'zustand'],
+  'vendor-mosaic': ['react-mosaic-component'],
+  'vendor-markdown': ['react-markdown', 'remark-gfm', 'rehype-highlight', 'highlight.js'],
+  'vendor-anim': ['framer-motion'],
+  'vendor-charts': ['recharts'],
+  'vendor-http': ['axios'],
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -33,15 +46,16 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: 'hidden',
       // Code Splitting：第三方大库抽独立 vendor chunk，利用浏览器长期缓存
+      // 【vite 8 / rolldown】manualChunks 只接受函数（对象形式会报 "manualChunks is not a function"）。
+      // 语义保持不变：仍按「包目录精确匹配」把同一批依赖抽到同名 chunk，其余交给打包器。
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom', 'zustand'],
-            'vendor-mosaic': ['react-mosaic-component'],
-            'vendor-markdown': ['react-markdown', 'remark-gfm', 'rehype-highlight', 'highlight.js'],
-            'vendor-anim': ['framer-motion'],
-            'vendor-charts': ['recharts'],
-            'vendor-http': ['axios'],
+          manualChunks(id: string) {
+            const p = id.replace(/\\/g, "/")
+            for (const [name, deps] of Object.entries(VENDOR_CHUNKS)) {
+              if (deps.some((dep) => p.includes('/node_modules/' + dep + '/'))) return name
+            }
+            return undefined
           },
         },
       },
