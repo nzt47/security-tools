@@ -1,8 +1,9 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import tsconfigPaths from "vite-tsconfig-paths";
 import electron from 'vite-plugin-electron/simple';
-import { mockApiPlugin, mockDemoPlugin } from './src/mocks/devMock';
+// 【vite 8】configLoader 原生化的要求：配置里的相对 import 必须带扩展名；
+// tsconfig 的 baseUrl/paths 改用 Vite 原生 resolve.tsconfigPaths（不再需要插件）
+import { mockApiPlugin, mockDemoPlugin } from './src/mocks/devMock.ts';
 
 /**
  * 云枢 · 双模式构建（Electron 模式自 2026-09-07 接入 master）
@@ -37,6 +38,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: isElectron ? './' : '/static/',
+    // 【vite 8】原生支持 tsconfig paths（替代 vite-tsconfig-paths 插件，减少一个构建期依赖）
+    resolve: { tsconfigPaths: true },
     // 构建标记：注入构建时刻，供界面显示「当前页面跑的是哪一次构建」——
     // 前端修复上线后用户若未刷新页面，会一直跑旧 bundle（表现为"改了没用/还是老问题"），
     // 有构建戳即可一眼分辨（展示位置见 WorkbenchApp 顶栏 + window.__YUNSHU_BUILD__）。
@@ -75,7 +78,6 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
-      tsconfigPaths(),
       // 管理后台本地接口 Mock（mock 中间件先于 proxy 执行，命中 /auth/login、/user/info
       // 等管理 API 时不再转发后端）：VITE_MOCK_API=true 时启用；false 走真实后端
       ...(env.VITE_MOCK_API === 'true' ? [mockApiPlugin({ loginReturnUser: env.VITE_MOCK_LOGIN_RETURN_USER !== 'false' })] : []),
