@@ -1,13 +1,13 @@
 /**
  * 工作流技能管理 —— 学习到的工作流列表与启停（本地确定性执行）
- * 数据源：/api/workflow-learning/workflows
+ * 数据源：/api/workflow-learning/workflows（返回完整 model_dump）
  *
- * 说明：工作流技能 = 从历史交互学习/可视化编排的确定性工具步骤；
- * 命中后本地直接执行（skipped_llm），不消耗 LLM。与「LLM 技能」分开管理，
- * 见技能中心（LLM 技能 / 工作流技能 / 可视化编辑三个 Tab）。
+ * 2026-10-23：与「LLM 技能」对齐信息密度 —— 列表补「说明 / 步骤链 / 类型 / 执行统计」，
+ * 并新增「查看」弹窗（workflow-detail.tsx）把 description、触发词、步骤定义完整展示出来。
+ * 此前这张表只有 名称 / 匹配数（该字段后端并不存在，恒为 -）/ 状态 / 操作。
  */
 import { useEffect, useState } from 'react'
-import { Play } from 'lucide-react'
+import { Eye, Play } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, hubPost } from '../components/ui'
 
 import {
@@ -19,14 +19,10 @@ import {
 // 【P1-front 第二批】后端该端点已带 X-Envelope: v2，故改用显式信封解析，
 // 不再用 pickList 在候选键里"找数组"（那种写法换包法时会静默返回空列表）。
 import { getEnvelope } from '@/api/envelope';
+import { WorkflowDetailModal, type WorkflowDetail, type WorkflowStep } from './workflow-detail'
 
-interface Workflow {
-  id: string
-  name?: string
-  pattern?: string
-  enabled?: boolean
+interface Workflow extends WorkflowDetail {
   match_count?: number
-  converted_to_skill_id?: string
   [k: string]: unknown
 }
 
@@ -37,12 +33,28 @@ interface WorkflowList {
   total?: number
 }
 
+/** 一句话说明：优先 description，其次来源任务，最后用步骤链兜底（不留空列）。 */
+export function workflowSummary(wf: Workflow): string {
+  if (wf.description && wf.description.trim()) return wf.description.trim()
+  if (wf.source_user_input && wf.source_user_input.trim()) return wf.source_user_input.trim()
+  const tools = (wf.steps ?? []).map((s) => s.tool_name || (s.need_llm ? 'LLM' : '')).filter(Boolean)
+  return tools.length ? `工具链：${tools.slice(0, 4).join(' → ')}` : '（无说明）'
+}
+
+/** 步骤链（工具名 → 工具名），用于列表里的「步骤」列。 */
+export function workflowChain(steps?: WorkflowStep[]): string {
+  const tools = (steps ?? []).map((s) => s.tool_name || (s.need_llm ? 'LLM' : '')).filter(Boolean)
+  if (!tools.length) return '—'
+  return tools.slice(0, 5).join(' → ') + (tools.length > 5 ? ' → …' : '')
+}
+
 /** 列表体（技能中心「工作流技能」Tab 复用；页面/中心各自提供外壳） */
 export function MemoryWorkflowTable() {
   const [items, setItems] = useState<Workflow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [execMsg, setExecMsg] = useState('')
+  const [detail, setDetail] = useState<Workflow | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -102,14 +114,65 @@ export function MemoryWorkflowTable() {
           <DataTable
             data={items}
             keyField="id"
+            empty="暂无工作流。工作流由历史交互自动学习，或在「可视化编辑」里编排。"
             columns={[
-              { key: 'name', title: '工作流', render: (r) => <span className="text-slate-200">{String(r.name ?? r.pattern ?? r.id)}</span> },
-              { key: 'match_count', title: '匹配数', render: (r) => <span className="font-mono">{String(r.match_count ?? '-')}</span> },
-              { key: 'enabled', title: '状态', render: (r) => <Badge color={r.enabled ? 'green' : 'slate'}>{r.enabled ? '启用' : '停用'}</Badge> },
+              {
+                key: 'name', title: '工作流',
+                render: (r) => (
+                  <div className="min-w-0">
+                    <div className="truncate text-slate-200" title={String(r.name ?? r.id)}>{String(r.name ?? r.id)}</div>
+                    <div className="font-mono text-[10px] text-slate-500">{r.id}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'description', title: '说明',
+                render: (r) => (
+                  <div className="max-w-[360px] truncate text-slate-400" title={workflowSummary(r)}>{workflowSummary(r)}</div>
+                ),
+              },
+              {
+                key: 'steps', title: '步骤',
+                render: (r) => (
+                  <div className="min-w-0">
+                    <div className="text-slate-300">{(r.steps ?? []).length} 步</div>
+                    <div className="max-w-[220px] truncate font-mono text-[10px] text-slate-500" title={workflowChain(r.steps)}>{workflowChain(r.steps)}</div>
+                  </div>
+                ),
+              },
+              {
+                key: 'workflow_type', title: '类型',
+                render: (r) => (
+                  <Badge color={r.workflow_type === 'hybrid' ? 'amber' : 'cyan'}>
+                    {r.workflow_type === 'hybrid' ? '含 LLM 步骤' : '免 LLM 工具链'}
+                  </Badge>
+                ),
+              },
+              {
+                key: 'enabled', title: '状态',
+                render: (r) => (
+                  <div className="flex flex-col items-start gap-1">
+                    <Badge color={r.enabled ? 'green' : 'slate'}>{r.enabled ? '启用' : '停用'}</Badge>
+                    {r.status && r.status !== 'active' ? <span className="font-mono text-[10px] text-slate-500">{r.status}</span> : null}
+                  </div>
+                ),
+              },
+              {
+                key: 'stats', title: '执行',
+                render: (r) => (
+                  <div className="whitespace-nowrap font-mono text-[11px] text-slate-400">
+                    成功 {r.success_count ?? 0} · 失败 {r.failure_count ?? 0}
+                    {typeof r.confidence === 'number' ? <div className="text-[10px] text-slate-500">置信 {r.confidence.toFixed(2)}</div> : null}
+                  </div>
+                ),
+              },
               {
                 key: 'actions', title: '操作',
                 render: (r) => (
                   <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setDetail(r)} className="flex items-center gap-1 rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800" title="查看说明、触发词与步骤定义">
+                      <Eye size={11} /> 查看
+                    </button>
                     <button onClick={() => exec(r.id, String(r.source_user_input ?? r.name ?? r.id ?? ''))} className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500" title="立即执行该工作流">
                       <Play size={11} /> 执行
                     </button>
@@ -134,6 +197,7 @@ export function MemoryWorkflowTable() {
           />
         </Card>
       )}
+      {detail && <WorkflowDetailModal wf={detail} onClose={() => setDetail(null)} />}
     </div>
   )
 }
