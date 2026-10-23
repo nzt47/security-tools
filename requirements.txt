@@ -33,7 +33,7 @@ bcrypt==5.0.0
     # via chromadb
 build==1.5.0
     # via chromadb
-certifi==2026.10.19
+certifi==2026.10.23
     # via
     #   httpcore
     #   httpx
@@ -465,7 +465,7 @@ prometheus-flask-exporter==0.23.2
     # via Yunshu (pyproject.toml)
 pyarrow==24.0.0
     # via Yunshu (pyproject.toml)
-pypdf==6.21.1
+pypdf==6.21.2
     # via Yunshu (pyproject.toml)
 waitress==3.0.2
     # via Yunshu (pyproject.toml)
