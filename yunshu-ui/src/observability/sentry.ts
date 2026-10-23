@@ -112,6 +112,50 @@ function logJson(
 }
 
 // ════════════════════════════════════════════════════════════════
+//  本地 DSN 可达性（loopback GlitchTip 未起时不刷屏）
+// ════════════════════════════════════════════════════════════════
+
+/** 是否 loopback DSN（本地 GlitchTip）。远端 DSN 不做探活，避免多一次请求与误判。 */
+export function isLoopbackDsn(dsn: string): boolean {
+  try {
+    const host = new URL(dsn).hostname.toLowerCase()
+    return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]"
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 探活结果未知（null）时放行：宁可漏一次，也不把可用的 Sentry 关掉。
+ * 明确不可达（false）时丢弃事件——否则每个事件都会在控制台留一条 ERR_CONNECTION_REFUSED。
+ */
+export function shouldReport(reachable: boolean | null): boolean {
+  return reachable !== false
+}
+
+/** 最近一次探活结论；由 probeDsn 在后台更新（未知 = null）。 */
+let dsnReachable: boolean | null = null
+
+/** 后台探活一次（3s 超时，失败不影响主流程）。 */
+function probeDsn(origin: string): void {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 3000)
+    fetch(`${origin}/api/0/`, { method: "HEAD", mode: "no-cors", cache: "no-store", signal: ctrl.signal })
+      .then(() => { dsnReachable = true })
+      .catch(() => { dsnReachable = false })
+      .finally(() => clearTimeout(timer))
+  } catch {
+    dsnReachable = false
+  }
+}
+
+/** 仅供测试：重置探活缓存。 */
+export function resetDsnReachableForTest(): void {
+  dsnReachable = null
+}
+
+// ════════════════════════════════════════════════════════════════
 //  全局错误处理器（转发到 Sentry）
 // ════════════════════════════════════════════════════════════════
 
@@ -170,6 +214,9 @@ export function initSentry(): boolean {
     throw err
   }
 
+  // 本地 GlitchTip：先探活；未起服务时既不发会话包也不发事件，避免每页 2 条 ERR_CONNECTION_REFUSED
+  if (isLoopbackDsn(dsn)) probeDsn(new URL(dsn).origin)
+
   try {
     Sentry.init({
       dsn,
@@ -181,6 +228,11 @@ export function initSentry(): boolean {
       // 发生错误时 100% 上传回放（由 Sentry replay 集成消费；rrweb 为独立回放通道）
       replaysOnErrorSampleRate: 1.0,
       release: APP_VERSION,
+      // 2026-10-23：本地 GlitchTip 未起时，自动会话包每个页面都会发一次 → 控制台刷屏。
+      // 本项目未用 release health 会话统计，错误事件已足够，直接关掉。
+      autoSessionTracking: false,
+      // 探活明确失败时丢弃事件（未知则放行，避免把可用的 Sentry 误关）
+      beforeSend: (event) => (shouldReport(dsnReachable) ? event : null),
     })
 
     // 安装全局错误处理器转发到 Sentry
