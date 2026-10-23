@@ -1,33 +1,14 @@
 /**
- * 技能中心 —— LLM 技能 / 工作流技能 / 可视化编辑 统一管理页（分 Tab）
+ * 技能中心 —— 只保留 LLM 技能（2026-10-24 IA 调整）
  * ------------------------------------------------------------------
- * 原工作台「记忆管理」下的 技能库管理 / 工作流管理 / 可视化编辑 三个入口
- * 收拢为单页三个 Tab，并明确两类技能的定位差异：
- *   - LLM 技能：提示/行为/扩展类技能（内容注入每次 LLM 调用 → 模型执行）
- *   - 工作流技能：学习/编排得到的确定性工具步骤（命中即本地执行，
- *     skipped_llm=true，省 LLM 调用）——管理维度（版本/审核/启停）本就不同，
- *     故分开呈现。
- * 可视化编辑 = 工作流技能的画布编排入口（第三 Tab，与后端 /api/visual-workflows 联动）。
+ * 工作流技能 / 可视化编辑已拆成独立叶子「工作流」（pages/hub/memory/workflow-hub.tsx）：
+ * 两者执行模型不同（模型执行 vs 本地 DAG），页面不再用 Tab 混装。
+ * 本页因此只留「统一 LLM 表」——运行时技能 + 技能资产按 id 合并，符合既有契约「单一 LLM 表」。
  */
-import { useState } from 'react'
-import { Hammer, PenTool, Sparkles, Workflow } from 'lucide-react'
+import { Hammer, Sparkles } from 'lucide-react'
 import SkillAssetTable from './SkillAssetTable'
-import { MemoryWorkflowTable } from './workflow'
-import MemoryWorkflowVisual from './workflow-visual'
-import ConvertibleWorkflows from './ConvertibleWorkflows'
-
-type CenterTab = 'llm' | 'workflow' | 'visual'
-
-const TABS: { key: CenterTab; label: string; icon: typeof Hammer; desc: string }[] = [
-  { key: 'llm', label: 'LLM 技能', icon: Sparkles, desc: '提示/行为/扩展类技能 · 每次调用由 LLM 执行' },
-  { key: 'workflow', label: '工作流技能', icon: Workflow, desc: '本地确定性执行 · 命中即跳过 LLM（skipped_llm）' },
-  { key: 'visual', label: '可视化编辑', icon: PenTool, desc: '拖拽编排工作流（保存到 /api/visual-workflows）' },
-]
 
 export default function SkillCenter() {
-  const [tab, setTab] = useState<CenterTab>('llm')
-  const active = TABS.find((t) => t.key === tab)!
-
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       {/* ─── 页头 ─── */}
@@ -39,92 +20,27 @@ export default function SkillCenter() {
           <div>
             <h1 className="text-[15px] font-semibold text-slate-100">技能中心</h1>
             <p className="text-[11px] text-slate-500">
-              LLM 技能（模型执行）与工作流技能（本地执行）分开管理 —— 工作流命中时跳过 LLM，省调用省延迟
-              <span className="ml-2 text-slate-600">
-                · 统一表 = 运行时技能（/api/skills）+ 技能资产（/api/skills-mgmt）按 id 合并
-              </span>
+              LLM 技能（提示/行为注入，模型执行）—— 统一表 = 运行时技能（/api/skills）+ 技能资产（/api/skills-mgmt）按 id 合并
+              <span className="ml-2 text-slate-600">· 本地确定性执行的工作流在「工作流」叶子</span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* ─── Tab 栏 ─── */}
-      <div className="flex items-center gap-1.5 border-b border-slate-800 px-5 py-2">
-        {TABS.map((t) => {
-          const Icon = t.icon
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              aria-selected={tab === t.key}
-              title={t.desc}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors ${
-                tab === t.key
-                  ? 'bg-cyan-500/15 font-medium text-cyan-300'
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
-              }`}
-            >
-              <Icon size={13} />
-              {t.label}
-            </button>
-          )
-        })}
-        <span className="ml-auto hidden font-mono text-[10px] text-slate-600 md:inline">{active.desc}</span>
-      </div>
-
-      {/* ─── Tab 内容 ─── */}
-      <div className="min-h-0 flex-1">
-        {tab === 'llm' && (
-          <div className="h-full overflow-y-auto p-4">
-            <div className="mb-3 flex items-start gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2.5 text-xs text-slate-400">
-              <Sparkles size={13} className="mt-0.5 shrink-0 text-cyan-400" />
-              <span>
-                这里管理<strong className="text-slate-200"> LLM 技能</strong>（提示/行为/扩展类：情感表达、主动建议、安全守护、
-                email-helper 等），其内容会注入每次 LLM 调用。表格把运行时技能与技能资产按 id 合并：
-                只有运行时注册的技能标「仅运行时·无资产记录」（无评审/版本/发布记录，仍可查看内容与启停）。
-                确定性、可本地执行的重复任务请到「工作流技能」Tab；外来技能/文档的获取入口在「吞噬」。
-              </span>
-            </div>
-            {/* 统一表已包含「扩展系统登记为 skill」的运行时行（按 ext_id 与运行时 id 同源），
-                SkillAssetTable 内部只列「表里没有」的游离登记 —— 不在本页再画一份重复清单。 */}
-            <SkillAssetTable />
-          </div>
-        )}
-
-        {tab === 'workflow' && (
-          <div className="h-full overflow-y-auto p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2.5">
-              <div className="flex items-start gap-2 text-xs text-slate-400">
-                <Workflow size={13} className="mt-0.5 shrink-0 text-emerald-400" />
-                <span>
-                  工作流技能由历史交互自动学习（或经可视化编排），命中任务描述即
-                  <strong className="text-slate-200"> 本地执行并跳过 LLM</strong>（skipped_llm）。
-                  列表已给出「说明 / 步骤链 / 类型 / 执行统计」，点<strong className="text-slate-200">「查看」</strong>可看完整说明、触发词与每步的工具与参数。
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setTab('visual')}
-                className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-cyan-500"
-              >
-                <PenTool size={12} /> 可视化编辑 / 新建
-              </button>
-            </div>
-            <MemoryWorkflowTable />
-            {/* 2026-10-18：可转换工作流（GET /api/workflow-learning/convertible）。
-                原来挂在 workflow.tsx 的默认页组件上 —— 那个组件**没人路由**（本页只取
-                MemoryWorkflowTable 具名导出），等于把功能装进一扇不存在的门。 */}
-            <ConvertibleWorkflows />
-          </div>
-        )}
-
-        {tab === 'visual' && (
-          <div className="h-full min-h-0 overflow-hidden">
-            <MemoryWorkflowVisual />
-          </div>
-        )}
-
+      {/* ─── 内容 ─── */}
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3.5 py-2.5 text-xs text-slate-400">
+          <Sparkles size={13} className="mt-0.5 shrink-0 text-cyan-400" />
+          <span>
+            这里管理<strong className="text-slate-200"> LLM 技能</strong>（提示/行为/扩展类：情感表达、主动建议、安全守护、
+            email-helper 等），其内容会注入每次 LLM 调用。表格把运行时技能与技能资产按 id 合并：
+            只有运行时注册的技能标「仅运行时·无资产记录」（无评审/版本/发布记录，仍可查看内容与启停）。
+            确定性、可本地执行的重复任务请到「工作流」叶子；外来技能/文档的获取入口在「吞噬」。
+          </span>
+        </div>
+        {/* 统一表已包含「扩展系统登记为 skill」的运行时行（按 ext_id 与运行时 id 同源），
+            SkillAssetTable 内部只列「表里没有」的游离登记 —— 不在本页再画一份重复清单。 */}
+        <SkillAssetTable />
       </div>
     </div>
   )
