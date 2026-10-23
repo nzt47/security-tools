@@ -50,6 +50,18 @@
   }
 }
 
+@layer base {
+  /*
+    2026-10-23：Tailwind v4 下工作台大量原生 <button> 只有 UA 焦点环（Chromium 计算值近黑 1px），
+    深色底上辨识度低，且与 components/ui/Button 的品牌色 ring 不一致。
+    这里统一成品牌色 2px 环；带 outline-hidden / focus:outline-hidden 的元素由 utilities 层覆盖，不会重复描边。
+  */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   line-height: 1.5;
