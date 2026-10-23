@@ -6,10 +6,11 @@
  */
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
-  plugins: [react(), tsconfigPaths()],
+  plugins: [react()],
+  // 【vite 8】与 vite.config.ts 保持一致：tsconfig paths 用原生解析
+  resolve: { tsconfigPaths: true },
   test: {
     globals: true,
     environment: 'jsdom',

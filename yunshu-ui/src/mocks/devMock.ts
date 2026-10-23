@@ -6,7 +6,7 @@
  */
 import type { Plugin } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { EXPORT_MOCK_USERS } from './exportMock'
+import { EXPORT_MOCK_USERS } from './exportMock.ts'
 
 interface MockUser {
   id: number
