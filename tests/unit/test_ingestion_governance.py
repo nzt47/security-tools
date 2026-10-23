@@ -201,6 +201,39 @@ class TestApply:
         import shutil
         shutil.rmtree(root.parent, ignore_errors=True)
 
+    def test_围栏内的二级标题不当章节(self):
+        content = "\n".join([
+            "## 甲", "正文甲",
+            "```markdown", "## 示例标题（围栏内）", "内容", "```",
+            "## 乙", "正文乙",
+        ])
+        secs = governance._content_sections(content)
+        assert [s["title"] for s in secs] == ["甲", "乙"]
+        assert "## 示例标题（围栏内）" in secs[0]["body"]
+        assert secs[0]["body"].count("```") == 2
+        assert governance._headings(content) == ["甲", "乙"]
+
+    def test_波浪线围栏与未闭合围栏(self):
+        content = "## 甲\n~~~\n## 假\n~~~\n## 乙\n乙正文\n"
+        assert [s["title"] for s in governance._content_sections(content)] == ["甲", "乙"]
+        # 未闭合围栏：其后的 ## 属于代码块，不得外溢成新章节
+        content2 = "## 甲\n正文\n```\n## 假\n仍在代码块\n"
+        secs2 = governance._content_sections(content2)
+        assert [s["title"] for s in secs2] == ["甲"]
+        assert "## 假" in secs2[0]["body"]
+
+    def test_切分产物不产生断裂围栏(self, tmp_path):
+        skill = FakeSkill("delta", "Delta", content=
+                          "## 一\n正文一\n```bash\n## 假\n```\n## 二\n正文二\n")
+        out = governance._write_split(skill, plan_id="gp_test_fence", draft_dir=tmp_path)
+        assert out["count"] == 2
+        root = Path(out["draft_dir"])
+        for name in out["parts"]:
+            body = (root / name).read_text(encoding="utf-8")
+            assert body.count("```") % 2 == 0
+        import shutil
+        shutil.rmtree(root.parent, ignore_errors=True)
+
     def test_refactor_写说明并重跑评审(self):
         svc = build_service()
         data = setup_plan(svc)
