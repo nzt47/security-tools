@@ -460,7 +460,8 @@ class TestActuallyRecallable:
         from agent.capregistry import build_registry
         mf = build_manifest()
         skills = [e for e in mf["entries"] if e.get("kind") == "skill"]
-        assert len(skills) == len(meta_index) == 28, (
+        # 【2026-10-24】28 → 36：8 个技能目录补回文件轨；两侧必须相等
+        assert len(skills) == len(meta_index) == 36, (
             f"清单 skill 条数 {len(skills)} != 文件轨 {len(meta_index)}")
         byid = {e["tool_name"]: e for e in skills}
         bad = [sid for sid in MIGRATED
