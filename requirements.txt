@@ -41,9 +41,11 @@ certifi==2026.10.23
     #   requests
     #   selenium
 cffi==2.0.0
-    # via trio
-cryptography==44.0.0
-    # via config_secure (AES-GCM 加密)
+    # via
+    #   cryptography
+    #   trio
+cryptography==50.0.2
+    # via Yunshu (pyproject.toml)
 charset-normalizer==3.4.7
     # via requests
 chromadb==1.5.9

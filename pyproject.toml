@@ -121,7 +121,17 @@ dependencies = [
   #   docs/closeout/DEAD_CONFIG_20260918.md 登记为待判定债务。
   "gunicorn>=21.2.0,<24.0.0",
   "waitress>=3.0.0,<4.0.0",
-  "cryptography>=42.0.0",
+  # cryptography：42 → 50（跨 6 个大版本，按"major 单独 PR"受控升级）。
+  #   用法面很小且全是稳定 API（逐个核对过 import 点）：
+  #     Fernet（agent/security_utils.py:21、agent/security/service_account.py:563）、
+  #     Ed25519 + serialization（agent/audit/chain.py:728/806、agent/policy/signing.py）、
+  #     InvalidSignature（agent/policy/signing.py:328）。
+  #   旧注释里的 "config_secure (AES-GCM)" 已失效：agent/config_secure.py 在
+  #   2026-07-19 的 P2 清理中**整文件删除**（全仓 0 引用，见
+  #   docs/CHANGELOG_P2_SECURE_CONFIG_CLEANUP_20260719.md:48）。
+  #   上限 <51.0.0：安全敏感库不接"无上限"，否则某天会静默拉到不兼容的大版本
+  #   （同本文件 flask/waitress/gunicorn 的"无上限依赖"处置口径）。
+  "cryptography>=50.0.0,<51.0.0",
   "jsonschema>=4.0.0,<5.0.0",
   # pypdf 上限原为 <6.0.0，但本机生产实装 6.14.2（audit 的 [4] 类）
   #   ⇒ 旧上限把正在跑的版本排除在外。下限抬到实装值。
