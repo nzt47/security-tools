@@ -12,7 +12,9 @@ source: claude-skills
 tags:
 - claude-skills
 content_type: markdown
----# Planning with Files
+---
+
+# Planning with Files
 
 Work like Manus: Use persistent markdown files as your "working memory on disk."
 
