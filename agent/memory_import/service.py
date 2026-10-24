@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -179,9 +180,37 @@ def _count_reasons(dropped: Iterable[Any]) -> Dict[str, int]:
     return out
 
 
+#: plan_id / batch_id 的合法形态（**路径安全闸门**）
+#:
+#: 【不易】这两个 id 会直接拼进文件路径。plan_id 来自 HTTP 请求体，未校验时
+#: "../.." 一类取值可让读/写越出 data/ingestion/memory_import（CodeQL
+#: "Uncontrolled data used in path expression"，本 PR 的 CI 实测告警）。
+#: 格式是确定性的（见 models.plan_id_for / Batch 的 _batch_id），故用白名单正则。
+PLAN_ID_RE = re.compile(r"^mp_[0-9a-f]{24}$")
+BATCH_ID_RE = re.compile(r"^mb_[0-9a-f]{12}$")
+
+
+def _plan_path(plan_id: str, root: Optional[Path] = None) -> Path:
+    """plan_id -> 快照路径（先过格式闸门，不合法即视为不存在）。"""
+    if not PLAN_ID_RE.match(str(plan_id or "")):
+        raise PlanNotFound(
+            f"plan_id 格式非法: {str(plan_id)[:40]!r}",
+            detail="plan_id 应形如 mp_<24 位十六进制>（由 preview 生成）")
+    return plan_dir(root) / f"{plan_id}.json"
+
+
+def _batch_manifest(batch_id: str, root: Optional[Path] = None) -> Path:
+    """batch_id -> 批次清单路径（同样先过格式闸门）。"""
+    if not BATCH_ID_RE.match(str(batch_id or "")):
+        raise UnknownBatch(
+            f"batch_id 格式非法: {str(batch_id)[:40]!r}",
+            detail="batch_id 应形如 mb_<12 位十六进制>（由 preview 生成）")
+    return batch_dir(root) / f"{batch_id}.json"
+
+
 def load_plan(plan_id: str, *, root: Optional[Path] = None) -> Dict[str, Any]:
     """读回计划快照；缺失即 PlanNotFound（commit 必须基于真实 preview）。"""
-    path = plan_dir(root) / f"{plan_id}.json"
+    path = _plan_path(plan_id, root)
     if not path.is_file():
         raise PlanNotFound(
             f"找不到预览计划 {plan_id}，请先运行 preview",
@@ -333,7 +362,7 @@ def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
     【边界】长期记忆没有按 id 删除的稳定入口，回滚只做"能确证删除"的载体，
     其余如实报出"需要人工处理"，绝不假装删掉了。
     """
-    manifest = batch_dir(root) / f"{batch_id}.json"
+    manifest = _batch_manifest(batch_id, root)
     if not manifest.is_file():
         raise UnknownBatch(f"没有批次清单: {batch_id}", detail=str(manifest))
     entry = json.loads(manifest.read_text(encoding="utf-8"))

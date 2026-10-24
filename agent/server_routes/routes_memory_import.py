@@ -146,9 +146,12 @@ def register_routes(app, state) -> None:
             )
         except MemoryImportError as exc:
             return _error(exc)
-        except Exception as exc:  # noqa: BLE001 解析失败要如实报，不吞
+        except Exception:  # noqa: BLE001 解析失败要如实报，但不把栈信息回给客户端
+            # 【不易】detail 只给人读的下一步，不塞异常文本：异常可能带路径/键名，
+            # 回显即"信息暴露"（CodeQL: information exposure through an exception）。
             logger.exception("外部记忆导入预览失败")
-            return problem(500, title="预览失败", detail=str(exc)[:300],
+            return problem(500, title="预览失败",
+                           detail="解析来源时出错，详见服务日志（本次未写入任何记忆）",
                            type_slug="preview-failed")
         finally:
             _PREVIEW_LOCK.release()
@@ -185,9 +188,10 @@ def register_routes(app, state) -> None:
             )
         except MemoryImportError as exc:
             return _error(exc)
-        except Exception as exc:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
             logger.exception("外部记忆导入提交失败")
-            return problem(500, title="写入失败", detail=str(exc)[:300],
+            return problem(500, title="写入失败",
+                           detail="写入过程中出错，详见服务日志；已成功的批次见批次清单",
                            type_slug="commit-failed")
         return ok(result)
 

@@ -110,6 +110,28 @@ def test_commit_requires_plan_id(client, auth):
     assert resp.get_json()["type"].endswith("missing-plan-id")
 
 
+@pytest.mark.parametrize("bad_plan", ["../../etc/passwd", "mp_../x", ""])
+def test_commit_rejects_path_like_plan_id(client, auth, bad_plan):
+    """plan_id 来自请求体：非法格式一律 400/409，绝不被拼进文件路径。"""
+    resp = client.post("/api/memory-import/commit",
+                       json={"plan_id": bad_plan, "batch_ids": ["mb_card"]},
+                       headers=auth)
+    assert resp.status_code in (400, 409)
+
+
+def test_internal_error_does_not_leak_exception_text(client, auth, monkeypatch):
+    """500 的 detail 不能带异常文本（可能含路径/键名）。"""
+    def boom(**_kwargs):
+        raise RuntimeError("secret-internal-path C:/very/private")
+
+    monkeypatch.setattr(routes.import_service, "preview", boom)
+    resp = client.post("/api/memory-import/preview", json={"sources": ["trae"]}, headers=auth)
+    assert resp.status_code == 500
+    detail = resp.get_json()["detail"]
+    assert "secret-internal-path" not in detail
+    assert "详见服务日志" in detail
+
+
 def test_commit_defaults_to_dry_run(client, auth, monkeypatch):
     seen = {}
 
