@@ -270,7 +270,7 @@ flowchart LR
         agent_knowledge_observability["agent.knowledge.observability"]
         agent_knowledge_prompts["agent.knowledge.prompts"]
         agent_knowledge_reporting["agent.knowledge.reporting"]
-        agent_knowledge_schema["agent.knowledge.schema"]
+        agent_knowledge_schema["agent.knowledge.schema"]:::crosslayer
         agent_knowledge_search["agent.knowledge.search"]:::crosslayer
         agent_knowledge_skill_bridge["agent.knowledge.skill_bridge"]
         agent_knowledge_tools["agent.knowledge.tools"]:::crosslayer
@@ -334,6 +334,11 @@ flowchart LR
         agent_memory_short_term_memory["agent.memory.short_term_memory"]:::crosslayer
         agent_memory_taxonomy["agent.memory.taxonomy"]:::crosslayer
         agent_memory_tenancy["agent.memory.tenancy"]
+    end
+    subgraph memory_import [memory_import]
+        agent_memory_import_redact["agent.memory_import.redact"]
+        agent_memory_import_service["agent.memory_import.service"]
+        agent_memory_import_targets["agent.memory_import.targets"]
     end
     subgraph model_router [model_router]
         agent_model_router_adapters["agent.model_router.adapters"]:::crosslayer
@@ -1361,6 +1366,14 @@ flowchart LR
     agent_memory_tenancy -.-> agent_observability_trace_v2
     agent_memory_tenancy -.-> agent_observability_trace_v2
     agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_import_redact -.-> agent_subagent_credentials
+    agent_memory_import_service -.-> agent_audit_facade
+    agent_memory_import_service -.-> agent_audit_facade
+    agent_memory_import_service -.-> agent_knowledge_card
+    agent_memory_import_service -.-> agent_audit_facade
+    agent_memory_import_targets -.-> agent_knowledge_card
+    agent_memory_import_targets -.-> agent_knowledge_schema
+    agent_memory_import_targets -.-> agent_knowledge_card
     agent_memory_optimized --> agent_logging_utils
     agent_model_router_adapters -.-> agent_logging_utils
     agent_model_router_cost_tracker -.-> agent_observability_events
@@ -2689,9 +2702,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 682
-- 模块节点数: 596
-- 依赖边数: 1969
-- 跨层调用数: 1239
+- 扫描文件数: 692
+- 模块节点数: 599
+- 依赖边数: 1977
+- 跨层调用数: 1247
 - 违规调用数: 0
 - 动态 import 数: 1

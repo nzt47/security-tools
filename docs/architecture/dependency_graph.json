@@ -110,7 +110,7 @@
       "name": "facade",
       "layer": "audit",
       "file_path": "agent/audit/facade.py",
-      "in_degree": 52,
+      "in_degree": 55,
       "out_degree": 2
     },
     {
@@ -1614,7 +1614,7 @@
       "name": "schema",
       "layer": "knowledge",
       "file_path": "",
-      "in_degree": 9,
+      "in_degree": 10,
       "out_degree": 0
     },
     {
@@ -1646,7 +1646,7 @@
       "name": "card",
       "layer": "knowledge",
       "file_path": "",
-      "in_degree": 10,
+      "in_degree": 13,
       "out_degree": 8
     },
     {
@@ -2302,7 +2302,7 @@
       "name": "credentials",
       "layer": "subagent",
       "file_path": "",
-      "in_degree": 8,
+      "in_degree": 9,
       "out_degree": 0
     },
     {
@@ -2312,6 +2312,30 @@
       "file_path": "agent/memory/short_term_memory.py",
       "in_degree": 1,
       "out_degree": 2
+    },
+    {
+      "path": "agent.memory_import.redact",
+      "name": "redact",
+      "layer": "memory_import",
+      "file_path": "agent/memory_import/redact.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.memory_import.service",
+      "name": "service",
+      "layer": "memory_import",
+      "file_path": "agent/memory_import/service.py",
+      "in_degree": 0,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.memory_import.targets",
+      "name": "targets",
+      "layer": "memory_import",
+      "file_path": "agent/memory_import/targets.py",
+      "in_degree": 0,
+      "out_degree": 3
     },
     {
       "path": "agent.memory_optimized",
@@ -13209,6 +13233,110 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.memory_import.redact",
+      "target": "agent.subagent.credentials",
+      "source_layer": "memory_import",
+      "target_layer": "subagent",
+      "import_type": "from_import",
+      "line": 89,
+      "source_file": "agent/memory_import/redact.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory_import.service",
+      "target": "agent.audit.facade",
+      "source_layer": "memory_import",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 209,
+      "source_file": "agent/memory_import/service.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory_import.service",
+      "target": "agent.audit.facade",
+      "source_layer": "memory_import",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 222,
+      "source_file": "agent/memory_import/service.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory_import.service",
+      "target": "agent.knowledge.card",
+      "source_layer": "memory_import",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 353,
+      "source_file": "agent/memory_import/service.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory_import.service",
+      "target": "agent.audit.facade",
+      "source_layer": "memory_import",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 358,
+      "source_file": "agent/memory_import/service.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory_import.targets",
+      "target": "agent.knowledge.card",
+      "source_layer": "memory_import",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 58,
+      "source_file": "agent/memory_import/targets.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory_import.targets",
+      "target": "agent.knowledge.schema",
+      "source_layer": "memory_import",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 59,
+      "source_file": "agent/memory_import/targets.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory_import.targets",
+      "target": "agent.knowledge.card",
+      "source_layer": "memory_import",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 62,
+      "source_file": "agent/memory_import/targets.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.memory_optimized",
       "target": "agent.logging_utils",
       "source_layer": "core",
@@ -14137,7 +14265,7 @@
       "source_layer": "monitoring",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 1145,
+      "line": 1166,
       "source_file": "agent/monitoring/observability_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -14150,7 +14278,7 @@
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 773,
+      "line": 794,
       "source_file": "agent/monitoring/observability_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -23263,7 +23391,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3046,
+      "line": 3054,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -23276,7 +23404,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3166,
+      "line": 3174,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -30370,10 +30498,10 @@
     }
   ],
   "stats": {
-    "total_files": 682,
-    "total_nodes": 596,
-    "total_edges": 1969,
-    "cross_layer_edges": 1239,
+    "total_files": 692,
+    "total_nodes": 599,
+    "total_edges": 1977,
+    "cross_layer_edges": 1247,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -30418,6 +30546,7 @@
       "log_system": 10,
       "common": 1,
       "memory": 23,
+      "memory_import": 3,
       "network": 3,
       "workflow_engine": 5,
       "verification": 1,
