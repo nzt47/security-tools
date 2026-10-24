@@ -314,6 +314,8 @@ export const LLM_MONITOR_RECORDS = '/api/llm-monitor/records';
 // ===============================================================
 export const MEMORY_MANUAL = '/api/memory/manual';
 export const MEMORY_OVERVIEW = '/api/memory/overview';
+/** 按 id 删除一条长期记忆（默认 dry-run；confirm=true 才真删）。动态段统一在此编码。 */
+export const memoryMessage = (msgId: string) => `/api/memory/messages/${encodeURIComponent(msgId)}`;
 export const VECTOR_SEARCH = '/api/vector/search';
 /** 向量库统计（count / total_memories / backend；尚未迁到统一信封） */
 export const VECTOR_STATS = '/api/vector/stats';
