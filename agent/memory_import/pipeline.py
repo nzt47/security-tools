@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .models import (
     CARRIER_CARD, CARRIER_MEMORY, KIND_MESSAGE, KIND_PREFERENCE, KIND_PROMPT,
@@ -210,8 +210,15 @@ def _batch_id(carrier: str, source: str, scope: str, period: str) -> str:
 
 
 def build_batches(records: Sequence[MemoryRecord], *,
-                  max_items: int = 8, digest_chars: int = 6000) -> List[Batch]:
-    """把记录分批：偏好->卡片；提问轨迹/会话->长期记忆（按项目+周期）。"""
+                  max_items: int = 8, digest_chars: int = 6000,
+                  digest_fn: Optional[Callable[..., Dict[str, Any]]] = None) -> List[Batch]:
+    """把记录分批：偏好->卡片；提问轨迹/会话->长期记忆（按项目+周期）。
+
+    digest_fn 是**可选**的摘要注入点（见 agent/memory_import/summarize.py）：
+    只有 carrier=memory_note 且非 prompts 的批次会被交给它；它返回空 digest 时
+    一律回退 `_compose_digest`（规则式），并把原因码留在 batch.digest_meta。
+    digest_fn=None 时输出与历史版本逐字节相同（默认路径零变化）。
+    """
     groups: Dict[Tuple[str, str, str, str], List[MemoryRecord]] = {}
     for record in records:
         if record.kind == KIND_PREFERENCE:
@@ -225,8 +232,23 @@ def build_batches(records: Sequence[MemoryRecord], *,
     batches: List[Batch] = []
     for (carrier, source, scope, period), items in sorted(groups.items()):
         items = sorted(items, key=lambda r: (r.ts or "", r.record_id))
-        digest = _compose_digest(carrier, source, scope, period, items,
-                                 limit=digest_chars)
+        digest = ""
+        digest_source = "rule"
+        digest_meta: Dict[str, Any] = {}
+        if digest_fn is not None:
+            produced = digest_fn(carrier=carrier, source=source, scope=scope,
+                                 period=period, items=items, limit=digest_chars) or {}
+            digest = str(produced.get("digest") or "")
+            if digest:
+                digest_source = str(produced.get("source") or "llm")
+                digest_meta = dict(produced.get("meta") or {})
+            else:
+                # 降级必须留痕：预览里要能回答"为什么这批不是 LLM 摘要"
+                digest_meta = {"reason": str(produced.get("reason") or "llm_unavailable"),
+                               **dict(produced.get("meta") or {})}
+        if not digest:
+            digest = _compose_digest(carrier, source, scope, period, items,
+                                     limit=digest_chars)
         role_mix: Dict[str, int] = {}
         for record in items:
             role_mix[record.role] = role_mix.get(record.role, 0) + 1
@@ -247,6 +269,8 @@ def build_batches(records: Sequence[MemoryRecord], *,
                    "messages": sum(1 for r in items if r.kind == KIND_MESSAGE),
                    "preferences": sum(1 for r in items if r.kind == KIND_PREFERENCE)},
             tags=[source, carrier, scope, period],
+            digest_source=digest_source,
+            digest_meta=digest_meta,
         ))
     return batches
 
@@ -304,7 +328,8 @@ class PipelineResult:
     redaction: Dict[str, object] = field(default_factory=dict)
 
 
-def run(records: Sequence[MemoryRecord]) -> PipelineResult:
+def run(records: Sequence[MemoryRecord], *,
+        digest_fn: Optional[Callable[..., Dict[str, Any]]] = None) -> PipelineResult:
     """完整流水线（去噪 -> 去重 -> 脱敏 -> 分批）。"""
     stats = PipelineStats(scanned=len(records))
     denoised, dropped_noise, reasons = denoise(records)
@@ -324,7 +349,7 @@ def run(records: Sequence[MemoryRecord]) -> PipelineResult:
     stats.redaction_hits = dict(redaction.get("hits") or {})
     stats.chars_kept = sum(r.chars for r in kept)
     blocked = [r for r in unique if r.is_blocked]
-    batches = build_batches(kept)
+    batches = build_batches(kept, digest_fn=digest_fn)
     return PipelineResult(kept=kept, blocked=blocked, dropped=dropped,
                           batches=batches, stats=stats, redaction=redaction)
 

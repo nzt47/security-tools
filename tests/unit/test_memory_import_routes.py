@@ -77,12 +77,45 @@ def test_preview_passes_sources_and_trims_items(client, auth, monkeypatch):
                        json={"sources": ["trae"], "include_transcripts": False},
                        headers=auth)
     assert resp.status_code == 200
-    assert calls == {"sources": ["trae"], "include_transcripts": False, "save": True}
+    # use_llm 默认 False：LLM 摘要有成本，必须由调用方显式打开
+    assert calls == {"sources": ["trae"], "include_transcripts": False,
+                     "save": True, "use_llm": False}
     data = resp.get_json()["data"]
     assert data["plan_id"] == "mp_test"
     assert len(data["batches"][0]["items"]) <= routes._PREVIEW_ITEMS
     # 快照里有 record_ids，但预览响应不回传（界面只需要条数）
     assert "record_ids" not in data["batches"][0]
+
+
+def test_preview_forwards_use_llm_flag(client, auth, monkeypatch):
+    """use_llm=true 必须原样交给 service（判据不在路由层，但参数不能丢）。"""
+    calls = {}
+
+    def fake_preview(**kwargs):
+        calls.update(kwargs)
+        return dict(PLAN, digest={"requested": True, "mode": "llm",
+                                  "llm_available": True, "llm_batches": 1,
+                                  "rule_batches": 0, "reason": ""})
+
+    monkeypatch.setattr(routes.import_service, "preview", fake_preview)
+    resp = client.post("/api/memory-import/preview",
+                       json={"sources": ["trae"], "use_llm": True}, headers=auth)
+    assert resp.status_code == 200
+    assert calls["use_llm"] is True
+    assert resp.get_json()["data"]["digest"]["mode"] == "llm"
+
+
+def test_sources_reports_llm_availability(client, auth, monkeypatch):
+    """面板要靠这个布尔值决定「用 LLM 摘要」能不能勾（未配置时必须如实说）。"""
+    from agent.memory_import import summarize
+
+    monkeypatch.setattr(summarize, "llm_available", lambda: (False, "llm_unconfigured"))
+    body = client.get("/api/memory-import/sources", headers=auth).get_json()
+    assert body["data"]["digest_llm"] == {"available": False, "reason": "llm_unconfigured"}
+
+    monkeypatch.setattr(summarize, "llm_available", lambda: (True, ""))
+    body = client.get("/api/memory-import/sources", headers=auth).get_json()
+    assert body["data"]["digest_llm"] == {"available": True, "reason": ""}
 
 
 def test_preview_rejects_unknown_source(client, auth):

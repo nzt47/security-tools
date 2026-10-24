@@ -27,11 +27,37 @@ function errText(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
 
+/** 降级原因码 -> 人话（后端只回白名单码，不回异常原文） */
+function digestReasonText(reason?: string): string {
+  switch (reason) {
+    case 'llm_unconfigured':
+      return '未配置 LLM（.env 里没有 LLM_API_KEY / DEEPSEEK_API_KEY），本次用规则式摘要'
+    case 'llm_budget_exhausted':
+      return 'LLM 调用次数已达上限（CP_MEMORY_IMPORT_LLM_MAX_BATCHES），其余批次用规则式'
+    case 'llm_input_too_large':
+      return '部分批次内容超过单次输入上限（CP_MEMORY_IMPORT_LLM_MAX_CHARS），已用规则式'
+    case 'llm_no_message_batch':
+      return '本次没有会话批次（只有规则/提问轨迹），LLM 摘要未参与'
+    case 'llm_error':
+      return 'LLM 调用失败，已回退规则式（详见服务日志）'
+    case 'llm_empty_output':
+      return 'LLM 返回空摘要，已回退规则式'
+    case 'llm_fallback':
+      return '部分批次回退为规则式摘要（原因见各批次的摘要元数据）'
+    default:
+      return ''
+  }
+}
+
 export default function MemoryImportPanel() {
   const [sources, setSources] = useState<MemoryImportSource[]>([])
   const [note, setNote] = useState('')
   const [pickedSources, setPickedSources] = useState<string[]>(['claude', 'trae'])
   const [includeTranscripts, setIncludeTranscripts] = useState(true)
+  // LLM 摘要默认关闭：它要花钱、且改写过的正文不能当原话核对
+  const [useLlm, setUseLlm] = useState(false)
+  const [llmAvailable, setLlmAvailable] = useState(false)
+  const [llmReason, setLlmReason] = useState('')
   const [plan, setPlan] = useState<MemoryImportPlan | null>(null)
   const [pickedBatches, setPickedBatches] = useState<string[]>([])
   const [confirmed, setConfirmed] = useState(false)
@@ -58,6 +84,8 @@ export default function MemoryImportPanel() {
         if (!alive) return
         setSources(d?.sources ?? [])
         setNote(d?.note ?? '')
+        setLlmAvailable(Boolean(d?.digest_llm?.available))
+        setLlmReason(d?.digest_llm?.reason ?? '')
         const available = (d?.sources ?? []).filter((s) => s.available).map((s) => s.id)
         if (available.length) setPickedSources(available)
       })
@@ -93,11 +121,16 @@ export default function MemoryImportPanel() {
     if (!pickedSources.length) { setErr('请至少选择一个来源'); return }
     setBusy('preview'); setErr(''); setMsg(''); setResult(null)
     try {
-      const d = await previewMemoryImport({ sources: pickedSources, include_transcripts: includeTranscripts })
+      const d = await previewMemoryImport({
+        sources: pickedSources, include_transcripts: includeTranscripts, use_llm: useLlm,
+      })
       setPlan(d)
       setPickedBatches([])
       setConfirmed(false)
-      setMsg('预览已生成（' + (d?.batches?.length ?? 0) + ' 个批次，未写入任何记忆）')
+      const llmN = d?.digest?.llm_batches ?? 0
+      const ruleN = d?.digest?.rule_batches ?? (d?.batches?.length ?? 0)
+      const mix = d?.digest?.requested ? '；LLM 摘要 ' + llmN + ' 批 / 规则 ' + ruleN + ' 批' : ''
+      setMsg('预览已生成（' + (d?.batches?.length ?? 0) + ' 个批次' + mix + '，未写入任何记忆）')
     } catch (e) {
       setErr('预览失败：' + errText(e))
     } finally { setBusy('') }
@@ -169,10 +202,30 @@ export default function MemoryImportPanel() {
           />
           解析会话转录（51 MB，约 10 秒）
         </label>
+        <label
+          className={'inline-flex items-center gap-1 ' + (llmAvailable ? '' : 'opacity-40')}
+          title={llmAvailable ? '只作用于会话批次；规则/提问轨迹不会被改写' : '未配置 LLM_API_KEY / DEEPSEEK_API_KEY'}
+        >
+          <input
+            type="checkbox"
+            checked={useLlm}
+            disabled={busy !== '' || !llmAvailable}
+            onChange={(e) => setUseLlm(e.target.checked)}
+            aria-label="用 LLM 摘要"
+          />
+          用 LLM 摘要（会话批次）
+          {!llmAvailable && <span className="text-[10px] text-slate-500">（未配置）</span>}
+        </label>
         <button type="button" className={BTN} onClick={() => void doPreview()} disabled={busy !== ''} aria-label="生成预览">
           {busy === 'preview' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 生成预览
         </button>
       </div>
+      {useLlm && plan?.digest?.reason && (
+        <div className="mb-2 text-[11px] text-amber-400/90">{digestReasonText(plan.digest.reason)}</div>
+      )}
+      {!llmAvailable && llmReason === 'llm_unconfigured' && (
+        <div className="mb-2 text-[10px] text-slate-500">LLM 摘要不可用：.env 未配置 LLM_API_KEY / DEEPSEEK_API_KEY（不影响规则式导入）</div>
+      )}
       {note && <div className="mb-2 text-[11px] text-slate-500">{note}</div>}
 
       {err && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{err}</div>}
@@ -228,6 +281,16 @@ export default function MemoryImportPanel() {
                       <td className="px-2 py-1 text-slate-400">{b.chars}</td>
                       <td className="px-2 py-1 text-slate-400">
                         <div>{b.title}</div>
+                        <span
+                          className={'mt-1 inline-block rounded px-1 text-[9px] ' + (b.digest_source === 'llm'
+                            ? 'bg-violet-500/15 text-violet-300'
+                            : 'bg-slate-700/40 text-slate-400')}
+                          title={b.digest_source === 'llm'
+                            ? 'LLM 改写：可能漏项，原文仍在批次记录里可核对'
+                            : '规则式：原句按天汇总，未改写'}
+                        >
+                          {b.digest_source === 'llm' ? 'LLM' : '规则'}
+                        </span>
                         <details className="mt-1">
                           <summary className="cursor-pointer text-[10px] text-cyan-500">看摘要</summary>
                           <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-slate-950 p-2 text-[10px] leading-5 text-slate-400">{b.digest.slice(0, 600)}</pre>
