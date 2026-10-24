@@ -364,6 +364,18 @@ def test_commit_rejects_unknown_batch_and_missing_plan(trae_env, monkeypatch):
         service.load_plan("mp_missing", root=store)
 
 
+@pytest.mark.parametrize("bad", ["../../etc/passwd", "mp_../../x", "mp_x", "", "mp_" + "z" * 24])
+def test_plan_id_must_match_format(bad, tmp_path):
+    """plan_id 会拼进文件路径 ⇒ 必须先过格式闸门（CodeQL 路径注入）。"""
+    with pytest.raises(PlanNotFound):
+        service.load_plan(bad, root=tmp_path)
+
+
+def test_rollback_rejects_bad_batch_id(tmp_path):
+    with pytest.raises(UnknownBatch):
+        service.rollback("../../x", root=tmp_path)
+
+
 def test_memory_manual_route_targets_real_memory_manager(monkeypatch):
     """载体可用性回归：/api/memory/manual 必须调 MemoryManager 的真实方法。
 

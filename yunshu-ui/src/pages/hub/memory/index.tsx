@@ -12,6 +12,7 @@ import { Card, StatCard, Loading, ErrorBox, PageHeader } from '../components/ui'
 // 【P1-front 第六批】三个端点都已带 X-Envelope: v2（overview 是 GET，另两个是 POST），
 // 改用显式信封解析：GET 走 getEnvelope、POST 走 postEnvelope（后者的请求头语义与 hubPost 逐条对齐）。
 import { getEnvelope, postEnvelope } from '@/api/envelope'
+import MemoryImportPanel from './MemoryImportPanel'
 
 import {
   MEMORY_MANUAL,
@@ -168,6 +169,11 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
             ))}
           </div>
         </Card>
+      </div>
+
+      {/* 外部记忆导入：与「手动/自动记忆」并列的第三个入口（形态不同，故不塞进吞噬） */}
+      <div className="mt-4">
+        <MemoryImportPanel />
       </div>
     </div>
   )

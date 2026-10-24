@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-24T00:44:52",
+  "generated_at": "2026-10-24T14:24:17",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 279,
-    "reachable_modules": 263,
-    "page_files": 108
+    "source_modules": 281,
+    "reachable_modules": 265,
+    "page_files": 109
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "fb95ee3e5ba10b3c",
+  "content_hash": "4990ed61caf4f732",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -50,6 +50,7 @@
     "yunshu-ui/src/pages/hub/local/index.tsx",
     "yunshu-ui/src/pages/hub/memory/ConvertibleWorkflows.tsx",
     "yunshu-ui/src/pages/hub/memory/KnowledgeAddPanel.tsx",
+    "yunshu-ui/src/pages/hub/memory/MemoryImportPanel.tsx",
     "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx",
     "yunshu-ui/src/pages/hub/memory/api-token-prompt.tsx",
     "yunshu-ui/src/pages/hub/memory/class-icon.tsx",

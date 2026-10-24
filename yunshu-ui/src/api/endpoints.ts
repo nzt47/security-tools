@@ -331,6 +331,10 @@ export const VECTOR_ADD = '/api/vector/add';
 export const VECTOR_BATCH_ADD = '/api/vector/batch_add';
 export const VECTOR_CLEAR = '/api/vector/clear';
 export const VECTOR_RECENT = '/api/vector/recent';
+// 外部记忆导入（记忆管理页「导入外部记忆」；commit 默认 dry-run，confirm=true 才真写）
+export const MEMORY_IMPORT_SOURCES = '/api/memory-import/sources';
+export const MEMORY_IMPORT_PREVIEW = '/api/memory-import/preview';
+export const MEMORY_IMPORT_COMMIT = '/api/memory-import/commit';
 export const vectorItem = (itemId: string) => `/api/vector/item/${encodeURIComponent(itemId)}`;
 
 // ===============================================================

@@ -21,7 +21,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,6 +38,8 @@ from .models import (
 from .readers import claude as claude_reader
 from .readers import trae as trae_reader
 from .targets import default_writers
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[2] / "data" / "ingestion" / "memory_import"
 
@@ -179,9 +183,61 @@ def _count_reasons(dropped: Iterable[Any]) -> Dict[str, int]:
     return out
 
 
+#: plan_id / batch_id 的合法形态（**路径安全闸门**）
+#:
+#: 【不易】这两个 id 会直接拼进文件路径。plan_id 来自 HTTP 请求体，未校验时
+#: "../.." 一类取值可让读/写越出 data/ingestion/memory_import（CodeQL
+#: "Uncontrolled data used in path expression"，本 PR 的 CI 实测告警）。
+#: 格式是确定性的（见 models.plan_id_for / Batch 的 _batch_id），故用白名单正则。
+PLAN_ID_RE = re.compile(r"^mp_[0-9a-f]{24}$")
+BATCH_ID_RE = re.compile(r"^mb_[0-9a-f]{12}$")
+
+
+def _find_by_stem(directory: Path, pattern: str, stem: str) -> Optional[Path]:
+    """在目录里按文件名主干精确匹配 —— **不把调用方字符串拼进路径**。
+
+    【为什么用"列目录 + 比较"而不是 base / f"{id}.json"】id 来自 HTTP 请求体。
+    正则白名单 + resolve 前缀校验在语义上足够，但静态分析（CodeQL
+    py/path-injection）不认这两种 sanitizer，会持续报"用户输入参与路径构造"。
+    改成"路径来自 glob、用户输入只做等值比较"后，用户输入**不进入**路径表达式，
+    语义也更强：只有真实存在的快照才会被打开。
+    """
+    if not directory.is_dir():
+        return None
+    for candidate in sorted(directory.glob(pattern)):
+        if candidate.is_file() and candidate.stem == stem:
+            return candidate
+    return None
+
+
+def _plan_path(plan_id: str, root: Optional[Path] = None) -> Path:
+    """plan_id -> 快照路径（格式闸门 + 目录内精确匹配；不存在即 PlanNotFound）。"""
+    if not PLAN_ID_RE.match(str(plan_id or "")):
+        raise PlanNotFound(
+            f"plan_id 格式非法: {str(plan_id)[:40]!r}",
+            detail="plan_id 应形如 mp_<24 位十六进制>（由 preview 生成）")
+    found = _find_by_stem(plan_dir(root), "mp_*.json", str(plan_id))
+    if found is None:
+        raise PlanNotFound(f"找不到预览计划 {plan_id}，请先运行 preview",
+                           detail="计划快照不存在（可能已清理）")
+    return found
+
+
+def _batch_manifest(batch_id: str, root: Optional[Path] = None) -> Path:
+    """batch_id -> 批次清单路径（格式闸门 + 目录内精确匹配）。"""
+    if not BATCH_ID_RE.match(str(batch_id or "")):
+        raise UnknownBatch(
+            f"batch_id 格式非法: {str(batch_id)[:40]!r}",
+            detail="batch_id 应形如 mb_<12 位十六进制>（由 preview 生成）")
+    found = _find_by_stem(batch_dir(root), "mb_*.json", str(batch_id))
+    if found is None:
+        raise UnknownBatch(f"没有批次清单: {batch_id}", detail="批次清单不存在")
+    return found
+
+
 def load_plan(plan_id: str, *, root: Optional[Path] = None) -> Dict[str, Any]:
     """读回计划快照；缺失即 PlanNotFound（commit 必须基于真实 preview）。"""
-    path = plan_dir(root) / f"{plan_id}.json"
+    path = _plan_path(plan_id, root)
     if not path.is_file():
         raise PlanNotFound(
             f"找不到预览计划 {plan_id}，请先运行 preview",
@@ -189,7 +245,9 @@ def load_plan(plan_id: str, *, root: Optional[Path] = None) -> Dict[str, Any]:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        raise PlanNotFound(f"预览计划读取失败: {exc}", detail=str(path))
+        # 异常原文只进日志：HTTP 层会把它当"栈信息暴露"（CodeQL）看
+        logger.warning("预览计划读取失败 %s: %s", path.name, exc)
+        raise PlanNotFound("预览计划读取失败", detail="快照文件损坏或不可读")
 
 
 # ════════════════════════════════════════════════════════════
@@ -243,7 +301,8 @@ def commit(plan_id: str, batch_ids: Optional[Sequence[str]] = None, *,
            confirm: bool = False, dry_run: bool = True,
            writers: Optional[Mapping[str, Callable[[Batch], Dict[str, Any]]]] = None,
            root: Optional[Path] = None,
-           status_note: str = "") -> Dict[str, Any]:
+           status_note: str = "",
+           explain_errors: bool = True) -> Dict[str, Any]:
     """写入选定批次：默认 dry-run；真写必须 confirm=True 并写审计。"""
     snapshot = load_plan(plan_id, root=root)
     all_batches = [Batch.from_dict(item) for item in snapshot.get("batches") or []]
@@ -287,8 +346,15 @@ def commit(plan_id: str, batch_ids: Optional[Sequence[str]] = None, *,
             outcome = handler(batch) or {}
             outcome = {"ok": True, **dict(outcome)}
         except Exception as exc:  # noqa: BLE001 单批失败不阻断其余批次
-            failed.append({"batch_id": batch.batch_id, "carrier": batch.carrier,
-                           "error": f"{type(exc).__name__}: {exc}"})
+            # explain_errors=False：HTTP 层用，避免把异常文本（可能含路径/键名）
+            # 回给客户端（CodeQL: information exposure through an exception）；
+            # 完整原因进服务日志。CLI 保留原文，排障需要。
+            logger.exception("批次写入失败 batch=%s", batch.batch_id)
+            failed.append({
+                "batch_id": batch.batch_id, "carrier": batch.carrier,
+                "error": (f"{type(exc).__name__}: {exc}" if explain_errors
+                          else f"{type(exc).__name__}（详见服务日志）"),
+            })
             continue
         if not outcome.get("ok"):
             failed.append({"batch_id": batch.batch_id, "carrier": batch.carrier,
@@ -333,7 +399,7 @@ def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
     【边界】长期记忆没有按 id 删除的稳定入口，回滚只做"能确证删除"的载体，
     其余如实报出"需要人工处理"，绝不假装删掉了。
     """
-    manifest = batch_dir(root) / f"{batch_id}.json"
+    manifest = _batch_manifest(batch_id, root)
     if not manifest.is_file():
         raise UnknownBatch(f"没有批次清单: {batch_id}", detail=str(manifest))
     entry = json.loads(manifest.read_text(encoding="utf-8"))
