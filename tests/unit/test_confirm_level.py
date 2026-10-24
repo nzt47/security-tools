@@ -360,8 +360,9 @@ class TestConsistencyWithPermissionLevel:
         【G1-C 2026-09-26】23 → 28：H-3 迁移的 5 条技能进入清单（技能侧）。断言语义
         （"技能条目不携带 confirm_level""permission_level 恒为 public/restricted"）不变。
         """
+        # 【2026-10-24】28 → 36：8 个技能目录补回文件轨（能力面 +8 条技能）
         skills = [e for e in _manifest_entries() if e.get("kind") == "skill"]
-        assert len(skills) == 28, len(skills)
+        assert len(skills) == 36, len(skills)
         for e in skills:
             assert "confirm_level" not in e, (
                 f"技能 {e.get('tool_name')} 不该有工具侧的 confirm_level 字段")
@@ -378,8 +379,12 @@ class TestConsistencyWithPermissionLevel:
         # 而工具侧派生会给出 internal —— 差异因此是**规则不同**，不是数据漂移。
         for name, got, base in diff:
             assert got in ("public", "restricted"), (name, got)
-        assert all(got == "public" for _n, got, _b in diff), \
-            "本部署 28 条技能全部启用且不敏感 ⇒ 全是 public（与声明一致）"
+        # 【2026-10-24】gstack 以 enabled=false 回到文件轨 ⇒ 按"未启用 ⇒ restricted"
+        # 规则，允许恰好这一条 restricted；其余仍必须 public。
+        restricted = sorted(n for n, got, _b in diff if got == "restricted")
+        assert restricted in ([], ["gstack"]), restricted
+        assert all(got in ("public", "restricted") for _n, got, _b in diff), \
+            "技能侧 permission_level 只能是 public / restricted"
         # 至少有一条在"工具侧口径"下会得出 internal ⇒ 证明两组口径确实不同
         assert any(base == "internal" for _n, _got, base in diff), \
             "若两组口径完全一致，本例外说明就站不住，需重新核验"
