@@ -32,7 +32,8 @@ from ..models import (
 MAX_LINE_CHARS = 8 * 1024 * 1024
 #: 单条消息正文上限（超长正文截断并记 meta；超长多半是日志堆栈）
 MAX_MESSAGE_CHARS = 20000
-#: 记录上限（防意外把整台机器的转录吃进内存）
+#: 记录上限默认值（防意外把整台机器的转录吃进内存）。
+#: 可被 CP_MEMORY_IMPORT_MAX_RECORDS 覆盖（规则 memory_import.record_cap）。
 MAX_RECORDS = 200000
 
 _SECTION_RE = re.compile(r"^##\s+(.+?)\s*$")
@@ -197,7 +198,7 @@ class ClaudeReadResult:
 
 
 def iter_transcript(path: Path, *, stats: Dict[str, Any],
-                    max_records: int = MAX_RECORDS) -> Iterator[MemoryRecord]:
+                    max_records: int = 0) -> Iterator[MemoryRecord]:
     """逐行读一份会话转录，产出 kind=message 记录（只取 text 块）。"""
     session_id = Path(path).stem
     project = Path(path).parent.name
@@ -252,14 +253,20 @@ def iter_transcript(path: Path, *, stats: Dict[str, Any],
                 origin=str(path),
                 meta={"truncated": truncated, "cwd": str(obj.get("cwd") or "")},
             )
-            if stats["messages"] >= max_records:
+            if max_records and stats["messages"] >= max_records:
                 stats["warnings"].append(f"达到记录上限 {max_records}")
                 return
 
 
 def read_claude(*, claude_dir: Optional[Path] = None, include_transcripts: bool = True,
-                max_records: int = MAX_RECORDS) -> ClaudeReadResult:
-    """读 Claude 全部本地记忆（CLAUDE.md + history + 会话转录）。"""
+                max_records: Optional[int] = None) -> ClaudeReadResult:
+    """读 Claude 全部本地记忆（CLAUDE.md + history + 会话转录）。
+
+    max_records 缺省时取 record_cap()（环境变量可调，见 readers/__init__）。
+    """
+    from . import record_cap
+
+    cap = record_cap(MAX_RECORDS) if max_records is None else int(max_records)
     root = Path(claude_dir) if claude_dir else default_claude_dir()
     report: Dict[str, Any] = {
         "root": str(root), "exists": root.is_dir(), "warnings": [],
@@ -292,14 +299,14 @@ def read_claude(*, claude_dir: Optional[Path] = None, include_transcripts: bool 
         project = path.parent.name
         sessions["projects"][project] = sessions["projects"].get(project, 0) + 1
         try:
-            for record in iter_transcript(path, stats=sessions, max_records=max_records):
+            for record in iter_transcript(path, stats=sessions, max_records=cap):
                 records.append(record)
-                if len(records) >= max_records:
+                if len(records) >= cap:
                     break
         except OSError as exc:
             sessions["warnings"].append(f"读取失败（{path.name}）：{exc}")
-        if len(records) >= max_records:
-            sessions["warnings"].append(f"总记录达到上限 {max_records}，停止")
+        if len(records) >= cap:
+            sessions["warnings"].append(f"总记录达到上限 {cap}，停止")
             break
     report["total_records"] = len(records)
     return ClaudeReadResult(records, report)

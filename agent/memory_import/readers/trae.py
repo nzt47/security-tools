@@ -45,7 +45,8 @@ QUERY_KEY_PREFIX = "ai-chat.chatQueryCompletion.v1."
 SESSION_INDEX_KEY = "chat.ChatSessionStore.index"
 #: 单个 state.vscdb 值最多读 8 MiB（防止异常大 BLOB 拖垮盘点）
 MAX_VALUE_BYTES = 8 * 1024 * 1024
-#: 单次扫描产出的记录上限（防"扫到一堆垃圾"把预览撑爆）
+#: 单次扫描产出的记录上限默认值（防"扫到一堆垃圾"把预览撑爆）。
+#: 可被 CP_MEMORY_IMPORT_MAX_RECORDS 覆盖（规则 memory_import.record_cap）。
 MAX_RECORDS = 5000
 
 _TS_RE = re.compile(r"^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})")
@@ -164,7 +165,7 @@ class TraeReadResult:
     report: Dict[str, Any] = field(default_factory=dict)
 
 
-def read_trae(*, appdata: Optional[Path] = None, max_records: int = MAX_RECORDS,
+def read_trae(*, appdata: Optional[Path] = None, max_records: Optional[int] = None,
               scan_leveldb_dirs: bool = True) -> TraeReadResult:
     """读 Trae 本地记忆（prompt 轨迹 + 兜底消息通路）。
 
@@ -177,6 +178,9 @@ def read_trae(*, appdata: Optional[Path] = None, max_records: int = MAX_RECORDS,
         "session_index_entries": 0, "leveldb": [], "chat_like_values": 0,
         "messages": 0, "ts_first": "", "ts_last": "",
     }
+    from . import record_cap
+
+    cap = min(record_cap(MAX_RECORDS), MAX_RECORDS) if max_records is None else int(max_records)
     records: List[MemoryRecord] = []
     roots = find_trae_roots(appdata)
     report["roots"] = [str(r) for r in roots]
@@ -230,10 +234,10 @@ def read_trae(*, appdata: Optional[Path] = None, max_records: int = MAX_RECORDS,
                         report["ts_first"] = ts
                     if not report["ts_last"] or ts > report["ts_last"]:
                         report["ts_last"] = ts
-                if len(records) >= max_records:
-                    report["warnings"].append(f"达到记录上限 {max_records}，提前停止")
+                if len(records) >= cap:
+                    report["warnings"].append(f"达到记录上限 {cap}，提前停止")
                     break
-            if len(records) >= max_records:
+            if len(records) >= cap:
                 break
 
         if not scan_leveldb_dirs:
@@ -272,7 +276,7 @@ def read_trae(*, appdata: Optional[Path] = None, max_records: int = MAX_RECORDS,
                             kind=KIND_MESSAGE, project=root.name,
                             origin=f"{sub}:{db_dir.name}",
                         ))
-                        if len(records) >= max_records:
+                        if len(records) >= cap:
                             break
                 report["chat_like_values"] += chat_like
                 report["messages"] += messages

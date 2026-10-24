@@ -3029,6 +3029,14 @@ _OC_MERGE: Dict[str, Tuple[str, Validator, str, str, str]] = {
     "subagent.callback_max_retries": ("CP_SUBAGENT_CALLBACK_MAX_RETRIES",
                                       Validator("int"),
                                       CAT_OBSERVABILITY, RISK_A, ""),
+    # 【外部记忆导入】导入器是只读盘点工具，上限/超时按环境变量可调；
+    # 这两条同时让硬编码边界扫描把 memory_import/ 视为「已配置化模块」。
+    "memory_import.record_cap": ("CP_MEMORY_IMPORT_MAX_RECORDS",
+                                 Validator("int"),
+                                 CAT_OBSERVABILITY, RISK_A, ""),
+    "memory_import.http_timeout_sec": ("CP_MEMORY_IMPORT_HTTP_TIMEOUT",
+                                       Validator("float"),
+                                       CAT_OBSERVABILITY, RISK_A, ""),
 }
 
 #: takeon.timeout_sec 亦在规则表内（写法与 _OC_MERGE 的键保持一致）

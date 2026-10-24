@@ -89,6 +89,26 @@ def write_knowledge_card(batch: Batch, *, store: Any = None,
     raise RuntimeError(f"卡片 slug 连续冲突，放弃写入：{last_error}")
 
 
+#: 写入长期记忆的 HTTP 超时默认值（秒）；可被 CP_MEMORY_IMPORT_HTTP_TIMEOUT 覆盖
+#: （规则 memory_import.http_timeout_sec，见 agent/monitoring/observability_config.py）
+HTTP_TIMEOUT_SEC = 30.0
+HTTP_TIMEOUT_ENV = "CP_MEMORY_IMPORT_HTTP_TIMEOUT"
+
+
+def http_timeout(default: float = HTTP_TIMEOUT_SEC) -> float:
+    """读 HTTP 超时：非法/越界回退默认值（合法区间 1-300 秒）。"""
+    import os
+
+    raw = str(os.environ.get(HTTP_TIMEOUT_ENV, "") or "").strip()
+    if not raw:
+        return float(default)
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return float(default)
+    return value if 1.0 <= value <= 300.0 else float(default)
+
+
 def read_api_token(*, root: Optional[Any] = None) -> str:
     """取云枢 API 令牌：先环境变量，再仓库 .env（与 deploy 脚本同源）。
 
@@ -118,7 +138,7 @@ def read_api_token(*, root: Optional[Any] = None) -> str:
 
 def _default_memory_sink(content: str, *, priority: str = "low",
                         base_url: str = "http://127.0.0.1:5678",
-                        timeout: float = 30.0) -> Dict[str, Any]:
+                        timeout: Optional[float] = None) -> Dict[str, Any]:
     """默认写入长期记忆：走**运行中服务**的 /api/memory/manual。
 
     【为什么走 HTTP 而不是直接 import app_server】app_server 在模块级构造
@@ -131,6 +151,7 @@ def _default_memory_sink(content: str, *, priority: str = "low",
     import urllib.request
 
     token = read_api_token()
+    timeout = http_timeout() if timeout is None else float(timeout)
     body = json.dumps({"content": content, "priority": priority},
                       ensure_ascii=False).encode("utf-8")
     headers = {"Content-Type": "application/json"}

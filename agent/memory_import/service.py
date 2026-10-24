@@ -78,7 +78,7 @@ def collect(*, sources: Sequence[str] = SOURCES,
             claude_dir: Optional[Path] = None,
             appdata: Optional[Path] = None,
             include_transcripts: bool = True,
-            max_records: int = 200000) -> CollectResult:
+            max_records: Optional[int] = None) -> CollectResult:
     """只读采集（不写任何文件、不写任何记忆）。"""
     wanted = [str(s).strip().lower() for s in (sources or SOURCES)]
     unknown = [s for s in wanted if s not in SOURCES]
@@ -138,7 +138,7 @@ def preview(*, sources: Sequence[str] = SOURCES,
             include_transcripts: bool = True,
             root: Optional[Path] = None,
             save: bool = True,
-            max_records: int = 200000) -> Dict[str, Any]:
+            max_records: Optional[int] = None) -> Dict[str, Any]:
     """只读预览：采集 -> 去噪/去重/脱敏/分批 -> 计划快照。"""
     collected = collect(sources=sources, claude_dir=claude_dir, appdata=appdata,
                         include_transcripts=include_transcripts,
