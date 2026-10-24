@@ -135,8 +135,9 @@ def test_internal_error_does_not_leak_exception_text(client, auth, monkeypatch):
 def test_commit_defaults_to_dry_run(client, auth, monkeypatch):
     seen = {}
 
-    def fake_commit(plan_id, batch_ids, *, confirm, dry_run):
-        seen.update(plan_id=plan_id, batch_ids=batch_ids, confirm=confirm, dry_run=dry_run)
+    def fake_commit(plan_id, batch_ids, *, confirm, dry_run, explain_errors=True):
+        seen.update(plan_id=plan_id, batch_ids=batch_ids, confirm=confirm,
+                    dry_run=dry_run, explain_errors=explain_errors)
         return {"dry_run": True, "plan_id": plan_id, "would": [], "requires_confirm": True}
 
     monkeypatch.setattr(routes.import_service, "commit", fake_commit)
@@ -145,7 +146,7 @@ def test_commit_defaults_to_dry_run(client, auth, monkeypatch):
                        headers=auth)
     assert resp.status_code == 200
     assert seen == {"plan_id": "mp_test", "batch_ids": ["mb_card"],
-                    "confirm": False, "dry_run": True}
+                    "confirm": False, "dry_run": True, "explain_errors": False}
 
 
 def test_commit_without_confirm_is_rejected_before_service(client, auth, monkeypatch):
@@ -163,8 +164,9 @@ def test_commit_without_confirm_is_rejected_before_service(client, auth, monkeyp
 def test_commit_confirmed_writes(client, auth, monkeypatch):
     seen = {}
 
-    def fake_commit(plan_id, batch_ids, *, confirm, dry_run):
-        seen.update(confirm=confirm, dry_run=dry_run, batch_ids=batch_ids)
+    def fake_commit(plan_id, batch_ids, *, confirm, dry_run, explain_errors=True):
+        seen.update(confirm=confirm, dry_run=dry_run, batch_ids=batch_ids,
+                    explain_errors=explain_errors)
         return {"dry_run": False, "plan_id": plan_id,
                 "committed": [{"batch_id": "mb_card", "carrier": "knowledge_card",
                                "records": 4, "chars": 300, "ref": "slug-1",
@@ -177,7 +179,8 @@ def test_commit_confirmed_writes(client, auth, monkeypatch):
                              "dry_run": False, "confirm": True},
                        headers=auth)
     assert resp.status_code == 200
-    assert seen == {"confirm": True, "dry_run": False, "batch_ids": ["mb_card"]}
+    assert seen == {"confirm": True, "dry_run": False, "batch_ids": ["mb_card"],
+                    "explain_errors": False}
     data = resp.get_json()["data"]
     assert data["committed"][0]["audit"]["seq"] == 900
     assert data["dry_run"] is False

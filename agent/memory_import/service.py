@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -37,6 +38,8 @@ from .models import (
 from .readers import claude as claude_reader
 from .readers import trae as trae_reader
 from .targets import default_writers
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[2] / "data" / "ingestion" / "memory_import"
 
@@ -190,13 +193,27 @@ PLAN_ID_RE = re.compile(r"^mp_[0-9a-f]{24}$")
 BATCH_ID_RE = re.compile(r"^mb_[0-9a-f]{12}$")
 
 
+def _safe_child(base: Path, name: str, exc_type: type) -> Path:
+    """base/name 的安全拼接：**解析后**再校验仍在 base 之内。
+
+    【为什么要两道闸门】正则白名单挡住"形态不对"的值，但静态分析（CodeQL
+    py/path-injection）不把正则当 sanitizer，且未来若有代码绕过正则，前缀校验
+    仍是最后一道。两道都留，成本是一次 resolve()。
+    """
+    base_resolved = base.resolve()
+    candidate = (base_resolved / name).resolve()
+    if not str(candidate).startswith(str(base_resolved) + os.sep):
+        raise exc_type("路径越界，已拒绝", detail="目标不在计划目录内")
+    return candidate
+
+
 def _plan_path(plan_id: str, root: Optional[Path] = None) -> Path:
-    """plan_id -> 快照路径（先过格式闸门，不合法即视为不存在）。"""
+    """plan_id -> 快照路径（格式闸门 + 目录前缀闸门，不合法即视为不存在）。"""
     if not PLAN_ID_RE.match(str(plan_id or "")):
         raise PlanNotFound(
             f"plan_id 格式非法: {str(plan_id)[:40]!r}",
             detail="plan_id 应形如 mp_<24 位十六进制>（由 preview 生成）")
-    return plan_dir(root) / f"{plan_id}.json"
+    return _safe_child(plan_dir(root), f"{plan_id}.json", PlanNotFound)
 
 
 def _batch_manifest(batch_id: str, root: Optional[Path] = None) -> Path:
@@ -205,7 +222,7 @@ def _batch_manifest(batch_id: str, root: Optional[Path] = None) -> Path:
         raise UnknownBatch(
             f"batch_id 格式非法: {str(batch_id)[:40]!r}",
             detail="batch_id 应形如 mb_<12 位十六进制>（由 preview 生成）")
-    return batch_dir(root) / f"{batch_id}.json"
+    return _safe_child(batch_dir(root), f"{batch_id}.json", UnknownBatch)
 
 
 def load_plan(plan_id: str, *, root: Optional[Path] = None) -> Dict[str, Any]:
@@ -272,7 +289,8 @@ def commit(plan_id: str, batch_ids: Optional[Sequence[str]] = None, *,
            confirm: bool = False, dry_run: bool = True,
            writers: Optional[Mapping[str, Callable[[Batch], Dict[str, Any]]]] = None,
            root: Optional[Path] = None,
-           status_note: str = "") -> Dict[str, Any]:
+           status_note: str = "",
+           explain_errors: bool = True) -> Dict[str, Any]:
     """写入选定批次：默认 dry-run；真写必须 confirm=True 并写审计。"""
     snapshot = load_plan(plan_id, root=root)
     all_batches = [Batch.from_dict(item) for item in snapshot.get("batches") or []]
@@ -316,8 +334,15 @@ def commit(plan_id: str, batch_ids: Optional[Sequence[str]] = None, *,
             outcome = handler(batch) or {}
             outcome = {"ok": True, **dict(outcome)}
         except Exception as exc:  # noqa: BLE001 单批失败不阻断其余批次
-            failed.append({"batch_id": batch.batch_id, "carrier": batch.carrier,
-                           "error": f"{type(exc).__name__}: {exc}"})
+            # explain_errors=False：HTTP 层用，避免把异常文本（可能含路径/键名）
+            # 回给客户端（CodeQL: information exposure through an exception）；
+            # 完整原因进服务日志。CLI 保留原文，排障需要。
+            logger.exception("批次写入失败 batch=%s", batch.batch_id)
+            failed.append({
+                "batch_id": batch.batch_id, "carrier": batch.carrier,
+                "error": (f"{type(exc).__name__}: {exc}" if explain_errors
+                          else f"{type(exc).__name__}（详见服务日志）"),
+            })
             continue
         if not outcome.get("ok"):
             failed.append({"batch_id": batch.batch_id, "carrier": batch.carrier,

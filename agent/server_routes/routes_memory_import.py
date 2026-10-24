@@ -185,6 +185,7 @@ def register_routes(app, state) -> None:
             result = import_service.commit(
                 plan_id, list(batch_ids) or None,
                 confirm=confirm, dry_run=dry_run,
+                explain_errors=False,  # 异常文本只进日志，不进响应体
             )
         except MemoryImportError as exc:
             return _error(exc)
