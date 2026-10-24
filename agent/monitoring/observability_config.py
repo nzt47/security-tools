@@ -621,6 +621,26 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         description="外部记忆写入长期记忆的 HTTP 超时秒数，用于 memory_import/targets.py 的"
                     " _default_memory_sink(timeout=)（可被 CP_MEMORY_IMPORT_HTTP_TIMEOUT 覆盖）",
     ),
+    # 【可选 LLM 摘要的成本闸门】这两条是**钱**的上限，不是性能调参：
+    # 一次误勾「用 LLM 摘要」就能对 14 个批次各发一次请求，故次数与输入量都必须可配。
+    ValidationRule(
+        path="memory_import.llm_max_batches",
+        validator=_range_validator(1, 20),
+        default=3,
+        error_message="memory_import.llm_max_batches 必须在 1-20 之间",
+        description="一轮预览里最多调用几次 LLM 摘要（超出即回退规则式），用于"
+                    " memory_import/summarize.py 的 DEFAULT_MAX_BATCHES"
+                    "（可被 CP_MEMORY_IMPORT_LLM_MAX_BATCHES 覆盖）",
+    ),
+    ValidationRule(
+        path="memory_import.llm_max_chars",
+        validator=_range_validator(500, 60000),
+        default=12000,
+        error_message="memory_import.llm_max_chars 必须在 500-60000 之间",
+        description="单次 LLM 摘要的输入字符上限（超出即跳过该批次、回退规则式），用于"
+                    " memory_import/summarize.py 的 DEFAULT_MAX_INPUT_CHARS"
+                    "（可被 CP_MEMORY_IMPORT_LLM_MAX_CHARS 覆盖）",
+    ),
 ]
 
 

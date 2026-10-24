@@ -3037,6 +3037,13 @@ _OC_MERGE: Dict[str, Tuple[str, Validator, str, str, str]] = {
     "memory_import.http_timeout_sec": ("CP_MEMORY_IMPORT_HTTP_TIMEOUT",
                                        Validator("float"),
                                        CAT_OBSERVABILITY, RISK_A, ""),
+    # 【可选 LLM 摘要】次数与输入字符两个成本闸门（默认 3 次 / 12000 字符）
+    "memory_import.llm_max_batches": ("CP_MEMORY_IMPORT_LLM_MAX_BATCHES",
+                                      Validator("int"),
+                                      CAT_OBSERVABILITY, RISK_A, ""),
+    "memory_import.llm_max_chars": ("CP_MEMORY_IMPORT_LLM_MAX_CHARS",
+                                    Validator("int"),
+                                    CAT_OBSERVABILITY, RISK_A, ""),
 }
 
 #: takeon.timeout_sec 亦在规则表内（写法与 _OC_MERGE 的键保持一致）

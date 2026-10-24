@@ -142,13 +142,22 @@ def preview(*, sources: Sequence[str] = SOURCES,
             include_transcripts: bool = True,
             root: Optional[Path] = None,
             save: bool = True,
-            max_records: Optional[int] = None) -> Dict[str, Any]:
-    """只读预览：采集 -> 去噪/去重/脱敏/分批 -> 计划快照。"""
+            max_records: Optional[int] = None,
+            use_llm: bool = False,
+            llm: Optional[Any] = None) -> Dict[str, Any]:
+    """只读预览：采集 -> 去噪/去重/脱敏/分批 -> 计划快照。
+
+    use_llm=True 时尝试用 LLM 改写**会话批次**的 digest（失败/超预算一律回退规则式，
+    原因写进快照的 digest.reason 与每个批次的 digest_meta）。默认 False：不产生任何
+    外部调用与费用，输出与历史版本逐字节相同。
+    """
     collected = collect(sources=sources, claude_dir=claude_dir, appdata=appdata,
                         include_transcripts=include_transcripts,
                         max_records=max_records)
-    result = pipeline.run(collected.records)
+    digest_fn, digest_info = _build_digest_fn(use_llm=use_llm, llm=llm)
+    result = pipeline.run(collected.records, digest_fn=digest_fn)
     batches = result.batches
+    digest_info = _finish_digest_info(digest_info, batches)
     plan_id = plan_id_for(_source_digest(collected.reports, result.kept), batches)
     generated = _now_iso()
     snapshot = {
@@ -161,6 +170,7 @@ def preview(*, sources: Sequence[str] = SOURCES,
         "dropped": {"total": len(result.dropped),
                     "by_reason": _count_reasons(result.dropped)},
         "batches": [b.to_dict() for b in batches],
+        "digest": digest_info,
         "requires_confirm": True,
         "dry_run": True,
         "note": "快照只含已脱敏 digest 与记录 id，不含记录原文",
@@ -173,6 +183,65 @@ def preview(*, sources: Sequence[str] = SOURCES,
     public = dict(snapshot)
     public["plan_path"] = path
     return public
+
+
+def _build_digest_fn(*, use_llm: bool,
+                     llm: Optional[Any] = None) -> tuple:
+    """按需构造 LLM 摘要器：返回 (digest_fn|None, digest_info)。
+
+    【为什么把「未配置」也算正常返回】预览的首要职责是"能把东西摆出来给人看"，
+    LLM 只是可选的加工方式；缺配置不是错误，但**必须如实告知**（reason 进快照）。
+    """
+    info: Dict[str, Any] = {"requested": bool(use_llm), "mode": "rule",
+                            "llm_available": False, "reason": "",
+                            "llm_batches": 0, "rule_batches": 0, "budget": {}}
+    if not use_llm:
+        return None, info
+    from . import summarize  # 惰性：不在包初始化时牵出 LLM 依赖
+
+    client = llm
+    if client is None:
+        available, reason = summarize.llm_available()
+        info["llm_available"] = bool(available or llm is not None)
+        if not available:
+            info["reason"] = reason
+            return None, info
+        client = summarize.build_default_llm()
+        if client is None:
+            info["reason"] = summarize.REASON_UNCONFIGURED
+            return None, info
+    info["llm_available"] = True
+    fn = summarize.make_digest_fn(client, budget=summarize.budget_from_env())
+    # 预算是**活对象**：调用次数要等批次跑完才准，故先挂在 info 上，
+    # 由 _finish_digest_info 统一转成可 JSON 的 dict 后移除。
+    info["_budget"] = getattr(fn, "budget", None)
+    return fn, info
+
+
+def _finish_digest_info(info: Dict[str, Any], batches: Sequence[Batch]) -> Dict[str, Any]:
+    """补齐摘要统计：几批走了 LLM、几批回退、预算用了多少。"""
+    llm_batches = sum(1 for b in batches if getattr(b, "digest_source", "rule") == "llm")
+    out = dict(info)
+    budget = out.pop("_budget", None)
+    if budget is not None and hasattr(budget, "to_dict"):
+        out["budget"] = budget.to_dict()
+    out["llm_batches"] = int(llm_batches)
+    out["rule_batches"] = int(len(batches) - llm_batches)
+    out["mode"] = "llm" if llm_batches else "rule"
+    if out.get("requested") and not llm_batches and not out.get("reason"):
+        # 请求了但没有一批用上：给出可执行的下一步（不是内部错误码堆砌）
+        reasons = {str((getattr(b, "digest_meta", {}) or {}).get("reason") or "")
+                   for b in batches}
+        reasons.discard("")
+        if not reasons:
+            out["reason"] = "llm_no_message_batch"
+        elif "llm_budget_exhausted" in reasons:
+            out["reason"] = "llm_budget_exhausted"
+        elif "llm_input_too_large" in reasons:
+            out["reason"] = "llm_input_too_large"
+        else:
+            out["reason"] = "llm_fallback"
+    return out
 
 
 def _count_reasons(dropped: Iterable[Any]) -> Dict[str, int]:
@@ -323,7 +392,9 @@ def commit(plan_id: str, batch_ids: Optional[Sequence[str]] = None, *,
             "would": [{"batch_id": b.batch_id, "carrier": b.carrier,
                        "carrier_label": CARRIER_LABELS.get(b.carrier, b.carrier),
                        "title": b.title, "records": len(b.record_ids),
-                       "chars": b.chars} for b in selected],
+                       "chars": b.chars,
+                       "digest_source": getattr(b, "digest_source", "rule")}
+                      for b in selected],
             "requires_confirm": True,
             "applied": False,
         }
@@ -369,6 +440,10 @@ def commit(plan_id: str, batch_ids: Optional[Sequence[str]] = None, *,
             "detail": dict(outcome.get("detail") or {}),
             "audit": audit_ref, "committed_at": _now_iso(),
             "plan_id": plan_id, "note": status_note,
+            # 摘要来源随批次清单一起落盘：几个月后回看"这条记忆是谁写的"，
+            # 必须能区分"用户原话汇总"与"LLM 改写"，否则无法追责/复核。
+            "digest_source": getattr(batch, "digest_source", "rule"),
+            "digest_meta": dict(getattr(batch, "digest_meta", {}) or {}),
         }
         committed.append(entry)
         manifest = batch_dir(root) / f"{batch.batch_id}.json"
@@ -424,6 +499,7 @@ def list_batches(*, root: Optional[Path] = None) -> List[Dict[str, Any]]:
             "audit_seq": int((entry.get("audit") or {}).get("seq") or 0),
             # 只有卡片能自动回滚；长期记忆没有按 id 删除的稳定入口
             "rollback": "auto" if (carrier == CARRIER_CARD and entry.get("ref")) else "manual",
+            "digest_source": str(entry.get("digest_source") or "rule"),
         })
     out.sort(key=lambda item: item.get("committed_at") or "", reverse=True)
     return out

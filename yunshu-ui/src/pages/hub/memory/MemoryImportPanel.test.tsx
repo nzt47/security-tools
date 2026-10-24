@@ -67,11 +67,64 @@ describe('MemoryImportPanel', () => {
     render(<MemoryImportPanel />)
 
     fireEvent.click(await screen.findByRole('button', { name: '生成预览' }))
-    await waitFor(() => expect(api.preview).toHaveBeenCalledWith({ sources: ['claude', 'trae'], include_transcripts: true }))
+    await waitFor(() => expect(api.preview).toHaveBeenCalledWith({
+      sources: ['claude', 'trae'], include_transcripts: true, use_llm: false,
+    }))
     expect(await screen.findByText('mb_card')).toBeTruthy()
     expect(screen.getByText(/已选 0 \/ 2/)).toBeTruthy()
     // 未勾选批次 + 未确认 ⇒ 真写按钮禁用
     expect((screen.getByRole('button', { name: '写入云枢' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('未配置 LLM 时开关不可勾选，且不把 use_llm 传成 true', async () => {
+    api.fetchSources.mockResolvedValue({
+      sources: [{ id: 'trae', label: 'Trae', available: true, detail: 'x', has_transcripts: false }],
+      digest_llm: { available: false, reason: 'llm_unconfigured' },
+    })
+    api.preview.mockResolvedValue(PLAN)
+    render(<MemoryImportPanel />)
+
+    const toggle = (await screen.findByLabelText('用 LLM 摘要')) as HTMLInputElement
+    expect(toggle.disabled).toBe(true)
+    expect(await screen.findByText(/LLM 摘要不可用/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '生成预览' }))
+    await waitFor(() => expect(api.preview).toHaveBeenCalledWith({
+      sources: ['trae'], include_transcripts: true, use_llm: false,
+    }))
+  })
+
+  it('配置了 LLM 时勾选开关会传 use_llm=true，并按批次标出来源', async () => {
+    api.fetchSources.mockResolvedValue({
+      sources: [{ id: 'trae', label: 'Trae', available: true, detail: 'x', has_transcripts: false }],
+      digest_llm: { available: true, reason: '' },
+    })
+    api.preview.mockResolvedValue({
+      ...PLAN,
+      batches: [
+        { ...PLAN.batches[0], digest_source: 'rule' },
+        { ...PLAN.batches[1], digest_source: 'llm', digest_meta: { model: 'deepseek-v4-flash' } },
+      ],
+      digest: {
+        requested: true, mode: 'llm', llm_available: true,
+        llm_batches: 1, rule_batches: 1,
+        budget: { max_batches: 3, max_input_chars: 12000, calls: 1, chars_used: 800 },
+      },
+    })
+    render(<MemoryImportPanel />)
+
+    const toggle = (await screen.findByLabelText('用 LLM 摘要')) as HTMLInputElement
+    expect(toggle.disabled).toBe(false)
+    fireEvent.click(toggle)
+    fireEvent.click(screen.getByRole('button', { name: '生成预览' }))
+
+    await waitFor(() => expect(api.preview).toHaveBeenCalledWith({
+      sources: ['trae'], include_transcripts: true, use_llm: true,
+    }))
+    expect(await screen.findByText(/LLM 摘要 1 批 \/ 规则 1 批/)).toBeTruthy()
+    // 徽章：LLM 那一批与规则那一批各一个
+    expect(screen.getAllByText('LLM').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('规则').length).toBeGreaterThanOrEqual(1)
   })
 
   it('勾选批次与确认后才真写（confirm=true, dry_run=false）', async () => {
