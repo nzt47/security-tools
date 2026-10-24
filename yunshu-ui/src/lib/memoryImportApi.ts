@@ -1,0 +1,140 @@
+/**
+ * 外部记忆导入 API（记忆管理页「导入外部记忆」）
+ * ---------------------------------------------------------------
+ * 契约全部来自后端 agent/server_routes/routes_memory_import.py：
+ *   GET  /api/memory-import/sources        探测本机来源（只读）
+ *   POST /api/memory-import/preview        生成预览（只读，**不写记忆**）
+ *   POST /api/memory-import/commit         按批次写入（默认 dry-run；confirm=true 才真写）
+ *
+ * 【为什么自己发请求而不复用 postEnvelope】错误侧要能读到 RFC 9457 的 detail：
+ * 例如 409 plan-not-found / 400 confirmation-required 的文案对用户有用，而
+ * postEnvelope 在非 2xx 时只抛 "HTTP 409"（它的 docstring 明确把错误侧留给另一条线）。
+ * 这里只解析**已声明信封**的成功体 + 尽力读 problem 的 detail，不猜形态。
+ */
+
+import { authHeader } from './apiToken'
+import {
+  ENVELOPE_HEADER, ENVELOPE_VERSION, unwrapEnvelopeBody,
+} from '../api/envelope'
+import {
+  MEMORY_IMPORT_COMMIT, MEMORY_IMPORT_PREVIEW, MEMORY_IMPORT_SOURCES,
+} from '../api/endpoints'
+
+export interface MemoryImportSource {
+  id: string
+  label: string
+  available: boolean
+  detail: string
+  has_transcripts: boolean
+}
+
+export interface MemoryImportBatch {
+  batch_id: string
+  carrier: string
+  carrier_label: string
+  title: string
+  source: string
+  project?: string
+  date?: string
+  chars: number
+  records: number
+  digest: string
+  items?: Array<{ record_id: string; role: string; ts: string; chars: number; text: string }>
+}
+
+export interface MemoryImportPlan {
+  plan_id: string
+  generated_at: string
+  plan_path?: string
+  stats: Record<string, number | Record<string, number>>
+  redaction: { hits?: Record<string, number>; masked_records?: number; blocked?: number }
+  batches: MemoryImportBatch[]
+  requires_confirm: boolean
+}
+
+export interface MemoryImportCommitItem {
+  batch_id: string
+  carrier: string
+  carrier_label?: string
+  title?: string
+  records: number
+  chars: number
+  ref?: string
+  audit?: { seq?: number }
+}
+
+export interface MemoryImportCommitResult {
+  dry_run: boolean
+  plan_id: string
+  committed?: MemoryImportCommitItem[]
+  failed?: Array<{ batch_id: string; carrier: string; error: string }>
+  would?: MemoryImportCommitItem[]
+}
+
+/** 业务错误：带上 HTTP 状态与 problem 的 detail，便于界面直接展示。 */
+export class MemoryImportApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'MemoryImportApiError'
+    this.status = status
+  }
+}
+
+function headersFor(json: boolean): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (json) headers['Content-Type'] = 'application/json'
+  Object.assign(headers, authHeader())
+  return headers
+}
+
+/** 读 problem 体（RFC 9457）：detail > title > 状态码兜底。 */
+async function problemMessage(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { detail?: string; title?: string }
+    return body?.detail || body?.title || ('HTTP ' + res.status)
+  } catch {
+    return 'HTTP ' + res.status
+  }
+}
+
+async function readSuccess<T>(res: Response, endpoint: string): Promise<T> {
+  if (!res.ok) throw new MemoryImportApiError(await problemMessage(res), res.status)
+  const version = res.headers.get(ENVELOPE_HEADER)
+  if (version !== ENVELOPE_VERSION) {
+    throw new MemoryImportApiError(endpoint + ' 未声明统一信封（实测 ' + ENVELOPE_HEADER + '=' + version + '）', res.status)
+  }
+  return unwrapEnvelopeBody<T>(await res.json(), endpoint)
+}
+
+export async function fetchMemoryImportSources(signal?: AbortSignal): Promise<{ sources: MemoryImportSource[]; note?: string }> {
+  const res = await fetch(MEMORY_IMPORT_SOURCES, { headers: headersFor(false), signal })
+  return readSuccess<{ sources: MemoryImportSource[]; note?: string }>(res, MEMORY_IMPORT_SOURCES)
+}
+
+export async function previewMemoryImport(
+  input: { sources: string[]; include_transcripts: boolean },
+  signal?: AbortSignal,
+): Promise<MemoryImportPlan> {
+  const res = await fetch(MEMORY_IMPORT_PREVIEW, {
+    method: 'POST',
+    headers: headersFor(true),
+    body: JSON.stringify(input),
+    signal,
+  })
+  return readSuccess<MemoryImportPlan>(res, MEMORY_IMPORT_PREVIEW)
+}
+
+export async function commitMemoryImport(input: {
+  plan_id: string
+  batch_ids: string[]
+  confirm: boolean
+  dry_run?: boolean
+}): Promise<MemoryImportCommitResult> {
+  const res = await fetch(MEMORY_IMPORT_COMMIT, {
+    method: 'POST',
+    headers: headersFor(true),
+    body: JSON.stringify({ dry_run: true, ...input }),
+  })
+  return readSuccess<MemoryImportCommitResult>(res, MEMORY_IMPORT_COMMIT)
+}

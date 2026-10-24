@@ -42,6 +42,7 @@
         "/api/experience",
         "/api/knowledge",
         "/api/memory",
+        "/api/memory-import",
         "/api/vector"
       ]
     },

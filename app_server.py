@@ -1460,6 +1460,18 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  外部记忆导入路由（/api/memory-import/*，记忆管理页入口）
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_memory_import import register_routes as reg_memory_import
+    reg_memory_import(app, lambda: None)
+    logger.info("外部记忆导入路由已注册 (/api/memory-import/*)")
+except Exception as e:
+    _record_route_failure("外部记忆导入路由", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  过程蒸馏路由（/api/process-distill/*）
 #  知识库/素材 → 子代理蒸馏 → workflow/skill 固化
 # ════════════════════════════════════════════════════════════
