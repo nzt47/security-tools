@@ -392,6 +392,43 @@ def commit(plan_id: str, batch_ids: Optional[Sequence[str]] = None, *,
 # ════════════════════════════════════════════════════════════
 
 
+def list_batches(*, root: Optional[Path] = None) -> List[Dict[str, Any]]:
+    """列出已写入批次（读 batches/*.json 清单，按提交时间倒序）。
+
+    【为什么单独有这个视图】回滚必须以"批次清单"为依据：清单里有 ref、载体、
+    条数、审计 seq 与 plan_id，界面据此展示"这条到底写了什么、能不能自动回滚"。
+    目录不存在时返回空列表（从未导入过是正常态，不是错误）。
+    """
+    directory = batch_dir(root)
+    out: List[Dict[str, Any]] = []
+    if not directory.is_dir():
+        return out
+    for path in sorted(directory.glob("mb_*.json")):
+        if not path.is_file() or not BATCH_ID_RE.match(path.stem):
+            continue
+        try:
+            entry = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        carrier = str(entry.get("carrier") or "")
+        out.append({
+            "batch_id": str(entry.get("batch_id") or path.stem),
+            "carrier": carrier,
+            "carrier_label": CARRIER_LABELS.get(carrier, carrier),
+            "title": str(entry.get("title") or ""),
+            "records": int(entry.get("records") or 0),
+            "chars": int(entry.get("chars") or 0),
+            "ref": str(entry.get("ref") or ""),
+            "plan_id": str(entry.get("plan_id") or ""),
+            "committed_at": str(entry.get("committed_at") or ""),
+            "audit_seq": int((entry.get("audit") or {}).get("seq") or 0),
+            # 只有卡片能自动回滚；长期记忆没有按 id 删除的稳定入口
+            "rollback": "auto" if (carrier == CARRIER_CARD and entry.get("ref")) else "manual",
+        })
+    out.sort(key=lambda item: item.get("committed_at") or "", reverse=True)
+    return out
+
+
 def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
              store: Any = None, root: Optional[Path] = None) -> Dict[str, Any]:
     """撤销一个批次的写入（当前只覆盖知识卡片；长期记忆需人工删）。
@@ -437,5 +474,6 @@ def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
 
 __all__ = [
     "DEFAULT_ROOT", "CollectResult", "batch_dir", "collect", "commit",
-    "load_plan", "plan_dir", "preview", "preview_dir", "rollback",
+    "list_batches", "load_plan", "plan_dir", "preview", "preview_dir",
+    "rollback",
 ]

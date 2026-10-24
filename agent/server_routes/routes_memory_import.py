@@ -159,6 +159,43 @@ def register_routes(app, state) -> None:
             _PREVIEW_LOCK.release()
         return ok(_public_plan(plan))
 
+    @app.route("/api/memory-import/batches", methods=["GET"])
+    @trace_route("MemoryImport")
+    @require_token
+    @log_request(show_response=False)
+    def api_memory_import_batches():
+        """已写入批次清单（回滚界面的数据源；只读）。"""
+        return ok({"batches": import_service.list_batches()})
+
+    @app.route("/api/memory-import/rollback", methods=["POST"])
+    @trace_route("MemoryImport")
+    @require_token
+    @log_request()
+    def api_memory_import_rollback():
+        """按批次回滚：默认 dry-run；真删必须 confirm=true。
+
+        长期记忆没有按 id 删除的稳定入口 ⇒ 服务层返回 ok=false + manual=true，
+        界面如实展示"需人工处理"，绝不假装删掉了。
+        """
+        body = request.get_json(silent=True) or {}
+        batch_id = str(body.get("batch_id") or "").strip()
+        if not batch_id:
+            return problem(400, title="缺少 batch_id",
+                           detail="回滚必须指明一个批次（见 /api/memory-import/batches）",
+                           type_slug="missing-batch-id")
+        dry_run = bool(body.get("dry_run", True))
+        confirm = body.get("confirm") is True
+        try:
+            result = import_service.rollback(batch_id, confirm=confirm, dry_run=dry_run)
+        except MemoryImportError as exc:
+            return _error(exc)
+        except Exception:  # noqa: BLE001
+            logger.exception("外部记忆导入回滚失败")
+            return problem(500, title="回滚失败",
+                           detail="回滚过程中出错，详见服务日志",
+                           type_slug="rollback-failed")
+        return ok(result)
+
     @app.route("/api/memory-import/commit", methods=["POST"])
     @trace_route("MemoryImport")
     @require_token

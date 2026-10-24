@@ -376,6 +376,66 @@ def test_rollback_rejects_bad_batch_id(tmp_path):
         service.rollback("../../x", root=tmp_path)
 
 
+def test_list_batches_reads_manifests_and_marks_rollback(tmp_path):
+    """批次清单：卡片 auto、长期记忆 manual；非法文件名忽略；按提交时间倒序。"""
+    directory = tmp_path / "batches"
+    directory.mkdir(parents=True)
+    (directory / "mb_aaaaaaaaaaaa.json").write_text(json.dumps({
+        "batch_id": "mb_aaaaaaaaaaaa", "carrier": "knowledge_card",
+        "title": "卡片", "records": 4, "chars": 300, "ref": "slug-1",
+        "plan_id": "mp_x", "committed_at": "2026-10-24T10:00:00+08:00",
+        "audit": {"seq": 1},
+    }), encoding="utf-8")
+    (directory / "mb_bbbbbbbbbbbb.json").write_text(json.dumps({
+        "batch_id": "mb_bbbbbbbbbbbb", "carrier": "memory_note",
+        "title": "记忆", "records": 20, "chars": 800, "ref": "memory/manual",
+        "plan_id": "mp_x", "committed_at": "2026-10-24T11:00:00+08:00",
+        "audit": {"seq": 2},
+    }), encoding="utf-8")
+    (directory / "not-a-batch.json").write_text("{}", encoding="utf-8")
+
+    rows = service.list_batches(root=tmp_path)
+    assert [r["batch_id"] for r in rows] == ["mb_bbbbbbbbbbbb", "mb_aaaaaaaaaaaa"]
+    assert rows[0]["rollback"] == "manual"
+    assert rows[1]["rollback"] == "auto"
+    assert rows[1]["audit_seq"] == 1
+
+
+def test_list_batches_empty_when_never_imported(tmp_path):
+    assert service.list_batches(root=tmp_path) == []
+
+
+def test_rollback_card_deletes_and_removes_manifest(tmp_path):
+    directory = tmp_path / "batches"
+    directory.mkdir(parents=True)
+    manifest = directory / "mb_cccccccccccc.json"
+    manifest.write_text(json.dumps({
+        "batch_id": "mb_cccccccccccc", "carrier": "knowledge_card",
+        "title": "卡片", "records": 4, "chars": 300, "ref": "slug-2",
+        "plan_id": "mp_x", "committed_at": "2026-10-24T10:00:00+08:00",
+        "audit": {"seq": 3},
+    }), encoding="utf-8")
+
+    class FakeStore:
+        def __init__(self):
+            self.deleted = []
+
+        def delete(self, slug):
+            self.deleted.append(slug)
+            return True
+
+    store = FakeStore()
+    dry = service.rollback("mb_cccccccccccc", root=tmp_path, store=store)
+    assert dry["dry_run"] is True and dry["would_delete"] == "slug-2"
+    assert store.deleted == []
+
+    done = service.rollback("mb_cccccccccccc", confirm=True, dry_run=False,
+                            root=tmp_path, store=store)
+    assert done["ok"] is True and done["deleted"] == "slug-2"
+    assert store.deleted == ["slug-2"]
+    assert not manifest.exists()
+
+
 def test_memory_manual_route_targets_real_memory_manager(monkeypatch):
     """载体可用性回归：/api/memory/manual 必须调 MemoryManager 的真实方法。
 

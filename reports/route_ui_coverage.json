@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-10-24T14:24:16",
+  "generated_at": "2026-10-24T18:33:32",
   "totals": {
-    "routes": 459,
-    "live": 459,
+    "routes": 461,
+    "live": 461,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 402,
+    "ui": 404,
     "cli_script": 16,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 402,
+      "ui": 404,
       "cli_script": 16,
       "runtime_only": 11,
       "unreferenced": 30
     },
     "by_intent": {
-      "should_be_in_ui": 386,
+      "should_be_in_ui": 388,
       "should_not_be_in_ui": 72,
       "unclassified": 1
     },
@@ -34,10 +34,10 @@
       "认知与学习": 6,
       "观测与诊断": 73,
       "开发与内部": 14,
-      "记忆与知识": 36
+      "记忆与知识": 38
     }
   },
-  "frontend_endpoints": 406,
+  "frontend_endpoints": 408,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -4437,6 +4437,31 @@
       "domain": "技能与工具"
     },
     {
+      "path": "/api/memory-import/batches",
+      "norm": "/api/memory-import/batches",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_memory_import.py:162"
+      ],
+      "description": "已写入批次清单（回滚界面的数据源；只读）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆库",
+      "intent_note": "外部记忆导入（Claude/Trae → 知识卡片/长期记忆）：预览只读；commit 默认 dry-run、confirm=true 才写并写审计。已在记忆管理页「导入外部记忆」落地。",
+      "ui_pending": false,
+      "domain": "记忆与知识"
+    },
+    {
       "path": "/api/memory-import/commit",
       "norm": "/api/memory-import/commit",
       "methods": [
@@ -4451,7 +4476,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:157"
+        "agent/server_routes/routes_memory_import.py:199"
       ],
       "description": "按批次写入：默认 dry-run；confirm=true 才真写（并写审计）。",
       "description_source": "handler",
@@ -4479,6 +4504,31 @@
         "agent/server_routes/routes_memory_import.py:124"
       ],
       "description": "只读预览：返回分批清单与统计（**不写任何记忆**）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆库",
+      "intent_note": "外部记忆导入（Claude/Trae → 知识卡片/长期记忆）：预览只读；commit 默认 dry-run、confirm=true 才写并写审计。已在记忆管理页「导入外部记忆」落地。",
+      "ui_pending": false,
+      "domain": "记忆与知识"
+    },
+    {
+      "path": "/api/memory-import/rollback",
+      "norm": "/api/memory-import/rollback",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_memory_import.py:170"
+      ],
+      "description": "按批次回滚：默认 dry-run；真删必须 confirm=true。",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "记忆库",
@@ -11771,5 +11821,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "1ad85b68f8ebd484"
+  "content_hash": "863f64975e42e4f8"
 }

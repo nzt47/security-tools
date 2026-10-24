@@ -1,11 +1,13 @@
 /** 导入外部记忆 —— 预览只读；勾选批次 + 勾确认后才能真写（判据仍在后端） */
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const api = vi.hoisted(() => ({
   fetchSources: vi.fn(),
   preview: vi.fn(),
   commit: vi.fn(),
+  fetchBatches: vi.fn(),
+  rollback: vi.fn(),
 }))
 
 vi.mock('@/lib/memoryImportApi', async (importOriginal) => ({
@@ -13,6 +15,8 @@ vi.mock('@/lib/memoryImportApi', async (importOriginal) => ({
   fetchMemoryImportSources: api.fetchSources,
   previewMemoryImport: api.preview,
   commitMemoryImport: api.commit,
+  fetchMemoryImportBatches: api.fetchBatches,
+  rollbackMemoryImport: api.rollback,
 }))
 
 import MemoryImportPanel from './MemoryImportPanel'
@@ -37,11 +41,17 @@ const PLAN = {
   requires_confirm: true,
 }
 
+beforeEach(() => {
+  api.fetchBatches.mockResolvedValue({ batches: [] })
+})
+
 afterEach(() => {
   cleanup()
   api.fetchSources.mockReset()
   api.preview.mockReset()
   api.commit.mockReset()
+  api.fetchBatches.mockReset()
+  api.rollback.mockReset()
 })
 
 describe('MemoryImportPanel', () => {
@@ -109,5 +119,47 @@ describe('MemoryImportPanel', () => {
       plan_id: 'mp_test', batch_ids: ['mb_card'], confirm: false, dry_run: true,
     }))
     expect(await screen.findByText(/回放完成：将写入 1 个批次/)).toBeTruthy()
+  })
+
+  it('已写入批次可回滚：先二次确认，再真删；长期记忆标"需人工"', async () => {
+    api.fetchSources.mockResolvedValue({ sources: [{ id: 'trae', label: 'Trae', available: true, detail: 'x', has_transcripts: false }] })
+    api.fetchBatches.mockResolvedValue({
+      batches: [
+        {
+          batch_id: 'mb_card', carrier: 'knowledge_card', carrier_label: '知识卡片',
+          title: 'claude 偏好', records: 4, chars: 300, ref: 'slug-1',
+          plan_id: 'mp_test', committed_at: '2026-10-24T10:40:35+08:00',
+          audit_seq: 79470, rollback: 'auto',
+        },
+        {
+          batch_id: 'mb_mem', carrier: 'memory_note', carrier_label: '长期记忆',
+          title: 'trae 提问', records: 46, chars: 2005, ref: 'memory/manual',
+          plan_id: 'mp_test', committed_at: '2026-10-24T10:44:24+08:00',
+          audit_seq: 79474, rollback: 'manual',
+        },
+      ],
+    })
+    api.rollback.mockResolvedValue({
+      ok: true, dry_run: false, batch_id: 'mb_card', deleted: 'slug-1', audit: { seq: 901 },
+    })
+
+    render(<MemoryImportPanel />)
+
+    // 长期记忆那行不给回滚按钮，而是"需人工"
+    expect(await screen.findByText('需人工')).toBeTruthy()
+    const rollbackBtn = screen.getByRole('button', { name: '回滚 mb_card' }) as HTMLButtonElement
+    expect(rollbackBtn.disabled).toBe(false)
+
+    // 第一下只是进入二次确认，不发请求
+    fireEvent.click(rollbackBtn)
+    expect(api.rollback).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '确认回滚 mb_card' }))
+
+    await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
+      batch_id: 'mb_card', confirm: true, dry_run: false,
+    }))
+    expect(await screen.findByText(/已回滚 mb_card/)).toBeTruthy()
+    // 回滚后会刷新批次清单（写入前的空列表 + 回滚后的刷新 = 至少 2 次）
+    await waitFor(() => expect(api.fetchBatches.mock.calls.length).toBeGreaterThanOrEqual(2))
   })
 })

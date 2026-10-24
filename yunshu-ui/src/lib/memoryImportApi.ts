@@ -17,7 +17,8 @@ import {
   ENVELOPE_HEADER, ENVELOPE_VERSION, unwrapEnvelopeBody,
 } from '../api/envelope'
 import {
-  MEMORY_IMPORT_COMMIT, MEMORY_IMPORT_PREVIEW, MEMORY_IMPORT_SOURCES,
+  MEMORY_IMPORT_BATCHES, MEMORY_IMPORT_COMMIT, MEMORY_IMPORT_PREVIEW,
+  MEMORY_IMPORT_ROLLBACK, MEMORY_IMPORT_SOURCES,
 } from '../api/endpoints'
 
 export interface MemoryImportSource {
@@ -69,6 +70,33 @@ export interface MemoryImportCommitResult {
   committed?: MemoryImportCommitItem[]
   failed?: Array<{ batch_id: string; carrier: string; error: string }>
   would?: MemoryImportCommitItem[]
+}
+
+export interface MemoryImportBatchEntry {
+  batch_id: string
+  carrier: string
+  carrier_label: string
+  title: string
+  records: number
+  chars: number
+  ref: string
+  plan_id: string
+  committed_at: string
+  audit_seq: number
+  rollback: 'auto' | 'manual'
+}
+
+export interface MemoryImportRollbackResult {
+  ok: boolean
+  dry_run: boolean
+  batch_id: string
+  carrier?: string
+  ref?: string
+  deleted?: string
+  would_delete?: string
+  manual?: boolean
+  error?: string
+  audit?: { seq?: number }
 }
 
 /** 业务错误：带上 HTTP 状态与 problem 的 detail，便于界面直接展示。 */
@@ -123,6 +151,24 @@ export async function previewMemoryImport(
     signal,
   })
   return readSuccess<MemoryImportPlan>(res, MEMORY_IMPORT_PREVIEW)
+}
+
+export async function fetchMemoryImportBatches(signal?: AbortSignal): Promise<{ batches: MemoryImportBatchEntry[] }> {
+  const res = await fetch(MEMORY_IMPORT_BATCHES, { headers: headersFor(false), signal })
+  return readSuccess<{ batches: MemoryImportBatchEntry[] }>(res, MEMORY_IMPORT_BATCHES)
+}
+
+export async function rollbackMemoryImport(input: {
+  batch_id: string
+  confirm: boolean
+  dry_run?: boolean
+}): Promise<MemoryImportRollbackResult> {
+  const res = await fetch(MEMORY_IMPORT_ROLLBACK, {
+    method: 'POST',
+    headers: headersFor(true),
+    body: JSON.stringify({ dry_run: true, ...input }),
+  })
+  return readSuccess<MemoryImportRollbackResult>(res, MEMORY_IMPORT_ROLLBACK)
 }
 
 export async function commitMemoryImport(input: {
