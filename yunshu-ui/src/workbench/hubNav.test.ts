@@ -37,11 +37,13 @@ describe('hubNav derivePanelParams（第二轮 IA：assets/memory 收敛为叶�
 })
 
 describe('hubNav 导航结构（技能中心与提示词实验室同属「会话与配置」桶）', () => {
-  it('「技能中心」是「会话与配置」桶内的叶子项，且紧跟在「提示词实验室」之后', () => {
+  it('「技能中心」是「会话与配置」桶内的叶子项，且紧跟在「吞噬」之后（获取在前、管理在后）', () => {
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     const childKeys = (workspace?.children ?? []).map((c) => c.key)
     expect(childKeys).toContain('skills-center')
-    expect(childKeys.indexOf('skills-center')).toBe(childKeys.indexOf('prompt-lab') + 1)
+    expect(childKeys).toContain('ingestion')
+    expect(childKeys.indexOf('skills-center')).toBe(childKeys.indexOf('ingestion') + 1)
+    expect(childKeys.indexOf('ingestion')).toBeLessThan(childKeys.indexOf('skills-center'))
     const item = workspace?.children?.find((c) => c.key === 'skills-center')
     expect(item?.children).toBeUndefined()
     expect(item?.component).toBeDefined()
@@ -98,7 +100,7 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     // 【2026-10-17 IA】分身创建与组装紧跟「会话任务」（先对话、再配分身）
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
-      'session', 'workshop/agents', 'prompt-lab', 'skills-center', 'workflow', 'ingestion',
+      'session', 'workshop/agents', 'prompt-lab', 'ingestion', 'skills-center', 'workflow',
       'tools', 'memory', 'assets', 'components/plugins', 'network', 'local', 'replay',
     ])
     expect(topKeys.indexOf('workspace')).toBeLessThan(topKeys.indexOf('panorama'))
