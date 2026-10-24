@@ -130,8 +130,10 @@ def register_routes(app, state) -> None:
         body = request.get_json(silent=True) or {}
         try:
             sources = _parse_sources(body.get("sources"))
-        except ValueError as exc:
-            return problem(400, title="来源参数无效", detail=str(exc),
+        except ValueError as exc:  # noqa: BLE001 参数错误：只给可执行提示，不回显异常原文
+            logger.info("外部记忆导入：来源参数无效（%s）", exc)
+            return problem(400, title="来源参数无效",
+                           detail="sources 只能取 claude / trae（数组或逗号分隔字符串）",
                            type_slug="invalid-source")
         include_transcripts = body.get("include_transcripts", True)
         if not _PREVIEW_LOCK.acquire(blocking=False):

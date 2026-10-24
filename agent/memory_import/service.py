@@ -193,36 +193,46 @@ PLAN_ID_RE = re.compile(r"^mp_[0-9a-f]{24}$")
 BATCH_ID_RE = re.compile(r"^mb_[0-9a-f]{12}$")
 
 
-def _safe_child(base: Path, name: str, exc_type: type) -> Path:
-    """base/name 的安全拼接：**解析后**再校验仍在 base 之内。
+def _find_by_stem(directory: Path, pattern: str, stem: str) -> Optional[Path]:
+    """在目录里按文件名主干精确匹配 —— **不把调用方字符串拼进路径**。
 
-    【为什么要两道闸门】正则白名单挡住"形态不对"的值，但静态分析（CodeQL
-    py/path-injection）不把正则当 sanitizer，且未来若有代码绕过正则，前缀校验
-    仍是最后一道。两道都留，成本是一次 resolve()。
+    【为什么用"列目录 + 比较"而不是 base / f"{id}.json"】id 来自 HTTP 请求体。
+    正则白名单 + resolve 前缀校验在语义上足够，但静态分析（CodeQL
+    py/path-injection）不认这两种 sanitizer，会持续报"用户输入参与路径构造"。
+    改成"路径来自 glob、用户输入只做等值比较"后，用户输入**不进入**路径表达式，
+    语义也更强：只有真实存在的快照才会被打开。
     """
-    base_resolved = base.resolve()
-    candidate = (base_resolved / name).resolve()
-    if not str(candidate).startswith(str(base_resolved) + os.sep):
-        raise exc_type("路径越界，已拒绝", detail="目标不在计划目录内")
-    return candidate
+    if not directory.is_dir():
+        return None
+    for candidate in sorted(directory.glob(pattern)):
+        if candidate.is_file() and candidate.stem == stem:
+            return candidate
+    return None
 
 
 def _plan_path(plan_id: str, root: Optional[Path] = None) -> Path:
-    """plan_id -> 快照路径（格式闸门 + 目录前缀闸门，不合法即视为不存在）。"""
+    """plan_id -> 快照路径（格式闸门 + 目录内精确匹配；不存在即 PlanNotFound）。"""
     if not PLAN_ID_RE.match(str(plan_id or "")):
         raise PlanNotFound(
             f"plan_id 格式非法: {str(plan_id)[:40]!r}",
             detail="plan_id 应形如 mp_<24 位十六进制>（由 preview 生成）")
-    return _safe_child(plan_dir(root), f"{plan_id}.json", PlanNotFound)
+    found = _find_by_stem(plan_dir(root), "mp_*.json", str(plan_id))
+    if found is None:
+        raise PlanNotFound(f"找不到预览计划 {plan_id}，请先运行 preview",
+                           detail="计划快照不存在（可能已清理）")
+    return found
 
 
 def _batch_manifest(batch_id: str, root: Optional[Path] = None) -> Path:
-    """batch_id -> 批次清单路径（同样先过格式闸门）。"""
+    """batch_id -> 批次清单路径（格式闸门 + 目录内精确匹配）。"""
     if not BATCH_ID_RE.match(str(batch_id or "")):
         raise UnknownBatch(
             f"batch_id 格式非法: {str(batch_id)[:40]!r}",
             detail="batch_id 应形如 mb_<12 位十六进制>（由 preview 生成）")
-    return _safe_child(batch_dir(root), f"{batch_id}.json", UnknownBatch)
+    found = _find_by_stem(batch_dir(root), "mb_*.json", str(batch_id))
+    if found is None:
+        raise UnknownBatch(f"没有批次清单: {batch_id}", detail="批次清单不存在")
+    return found
 
 
 def load_plan(plan_id: str, *, root: Optional[Path] = None) -> Dict[str, Any]:
@@ -235,7 +245,9 @@ def load_plan(plan_id: str, *, root: Optional[Path] = None) -> Dict[str, Any]:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        raise PlanNotFound(f"预览计划读取失败: {exc}", detail=str(path))
+        # 异常原文只进日志：HTTP 层会把它当"栈信息暴露"（CodeQL）看
+        logger.warning("预览计划读取失败 %s: %s", path.name, exc)
+        raise PlanNotFound("预览计划读取失败", detail="快照文件损坏或不可读")
 
 
 # ════════════════════════════════════════════════════════════

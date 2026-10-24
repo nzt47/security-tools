@@ -90,7 +90,7 @@ def test_preview_rejects_unknown_source(client, auth):
     assert resp.status_code == 400
     body = resp.get_json()
     assert body["status"] == 400
-    assert "不支持的来源" in body["detail"]
+    assert "claude" in body["detail"] and "trae" in body["detail"]
     assert resp.mimetype == "application/problem+json"
 
 
