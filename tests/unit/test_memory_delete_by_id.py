@@ -135,8 +135,16 @@ def client(monkeypatch, tmp_path):
     monkeypatch.setitem(sys.modules, "app_server", fake_app_server)
 
     # 审计替身：单测不写真实审计库（同时断言"删除会写审计"）
+    # 【口径】真实门面是 AuditFacade 实例，调用方式是 audit.record(...)、**不是** audit(...)；
+    # 替身必须同形，否则会掩盖"调错方法被 except 吞掉"这类缺陷（交接单 §8 陷阱 10）。
     fake_audit = types.ModuleType("agent.audit.facade")
-    fake_audit.audit = lambda *a, **k: types.SimpleNamespace(seq=4242)
+
+    class _Facade:
+        @staticmethod
+        def record(action, **kwargs):
+            return types.SimpleNamespace(seq=4242)
+
+    fake_audit.audit = _Facade()
     monkeypatch.setitem(sys.modules, "agent.audit.facade", fake_audit)
 
     from flask import Flask

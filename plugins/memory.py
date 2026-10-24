@@ -568,12 +568,15 @@ def api_memory_delete_message(msg_id):
                         type_slug="memory-delete-failed")
     audit_ref = {}
     try:
+        # 【不易】门面实例的调用方式是 audit.record(...)，**不是** audit(...)：
+        # 直接 audit(...) 会抛 TypeError 并被下面的 except 吞掉，表现成"删了但没审计"。
+        # 活体验证时就是这样发现的（响应里 audit.seq 为 None），见交接单 §8 陷阱 25。
         from agent.audit.facade import audit
-        entry = audit("memory.delete_message", actor="agent.plugins.memory",
-                      subject=f"msg:{target}",
-                      payload={"chars": chars, "role": str(found.get("role") or ""),
-                               "deleted": bool(deleted)},
-                      source="agent")
+        entry = audit.record("memory.delete_message", actor="agent.plugins.memory",
+                             subject=f"msg:{target}",
+                             payload={"chars": chars, "role": str(found.get("role") or ""),
+                                      "deleted": bool(deleted)},
+                             source="agent")
         if entry is not None:
             audit_ref = {"seq": int(getattr(entry, "seq", 0) or 0)}
     except Exception:  # noqa: BLE001 审计失败不掩盖业务结果
