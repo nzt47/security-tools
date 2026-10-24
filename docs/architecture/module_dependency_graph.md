@@ -341,6 +341,7 @@ flowchart LR
         agent_memory_import_readers["agent.memory_import.readers"]:::crosslayer
         agent_memory_import_redact["agent.memory_import.redact"]
         agent_memory_import_service["agent.memory_import.service"]
+        agent_memory_import_summarize["agent.memory_import.summarize"]
         agent_memory_import_targets["agent.memory_import.targets"]
     end
     subgraph model_router [model_router]
@@ -1375,6 +1376,7 @@ flowchart LR
     agent_memory_import_service -.-> agent_audit_facade
     agent_memory_import_service -.-> agent_knowledge_card
     agent_memory_import_service -.-> agent_audit_facade
+    agent_memory_import_summarize -.-> agent_env_config_manager
     agent_memory_import_targets -.-> agent_knowledge_card
     agent_memory_import_targets -.-> agent_knowledge_schema
     agent_memory_import_targets -.-> agent_knowledge_card
@@ -2029,6 +2031,7 @@ flowchart LR
     agent_server_routes_routes_memory_import --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_memory_import -.-> agent_memory_import_readers
     agent_server_routes_routes_memory_import -.-> agent_memory_import_readers
+    agent_server_routes_routes_memory_import -.-> agent_memory_import
     agent_server_routes_routes_process_distill -.-> agent_server_auth
     agent_server_routes_routes_process_distill --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_process_distill -.-> agent_process_distill_service
@@ -2713,9 +2716,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 693
-- 模块节点数: 603
-- 依赖边数: 1984
-- 跨层调用数: 1253
+- 扫描文件数: 694
+- 模块节点数: 604
+- 依赖边数: 1986
+- 跨层调用数: 1255
 - 违规调用数: 0
 - 动态 import 数: 1
