@@ -533,6 +533,41 @@ class MemoryManager:
 
         return msg_id
 
+    def find_message(self, msg_id: str) -> dict | None:
+        """按 id 查一条长期记忆（先内存窗口，再落盘文件）；找不到返回 None。"""
+        target = str(msg_id or "").strip()
+        if not target:
+            return None
+        for message in self._message_window:
+            if str(message.get("timestamp") or "") == target:
+                return dict(message)
+        return self._storage.find_message(target)
+
+    def delete_message(self, msg_id: str) -> bool:
+        """按 id 物理删除一条长期记忆（**不可恢复**；调用方负责 dry-run/confirm）。
+
+        【为什么必须同时清窗口】窗口是"最近 200 条"的内存副本，供 `get_context`
+        零 IO 取用。只删文件不清窗口，会让**已删除的内容继续出现在上下文里**——
+        这是"删了但没删干净"的典型形态，比不删更危险（用户以为没了）。
+        """
+        target = str(msg_id or "").strip()
+        if not target:
+            return False
+        deleted = self._storage.delete_message(target)
+        if not deleted:
+            return False
+        # 重建 deque 以保持 maxlen（deque 不支持有条件删除）
+        self._message_window = collections.deque(
+            (m for m in self._message_window
+             if str(m.get("timestamp") or "") != target),
+            maxlen=self._message_window.maxlen,
+        )
+        try:
+            self._black_box.log("message_deleted", {"msg_id": target})
+        except Exception as exc:  # noqa: BLE001 黑匣子失败不掩盖删除结果
+            logger.warning("[MemoryManager] 删除记忆后写黑匣子失败: %s", exc)
+        return True
+
     def score_and_save_message(self, role: str, content: str) -> str:
         """评分并保存消息
 

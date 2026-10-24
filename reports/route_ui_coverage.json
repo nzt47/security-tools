@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-24T18:33:32",
+  "generated_at": "2026-10-25T00:38:43",
   "totals": {
-    "routes": 461,
-    "live": 461,
+    "routes": 462,
+    "live": 462,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 404,
+    "ui": 405,
     "cli_script": 16,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 404,
+      "ui": 405,
       "cli_script": 16,
       "runtime_only": 11,
       "unreferenced": 30
     },
     "by_intent": {
       "should_be_in_ui": 388,
-      "should_not_be_in_ui": 72,
+      "should_not_be_in_ui": 73,
       "unclassified": 1
     },
     "by_domain": {
@@ -34,10 +34,10 @@
       "认知与学习": 6,
       "观测与诊断": 73,
       "开发与内部": 14,
-      "记忆与知识": 38
+      "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 408,
+  "frontend_endpoints": 409,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -1410,7 +1410,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/memory.py:374"
+        "plugins/memory.py:379"
       ],
       "description": "手动触发上下文压缩（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -1435,7 +1435,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:313"
+        "plugins/memory.py:318"
       ],
       "description": "更新上下文控制参数（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -1462,7 +1462,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/memory.py:169"
+        "plugins/memory.py:174"
       ],
       "description": "获取当前上下文使用状态（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -3944,7 +3944,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:699"
+        "plugins/memory.py:802"
       ],
       "description": "添加知识文档（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -4451,7 +4451,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:162"
+        "agent/server_routes/routes_memory_import.py:172"
       ],
       "description": "已写入批次清单（回滚界面的数据源；只读）。",
       "description_source": "handler",
@@ -4476,7 +4476,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:199"
+        "agent/server_routes/routes_memory_import.py:209"
       ],
       "description": "按批次写入：默认 dry-run；confirm=true 才真写（并写审计）。",
       "description_source": "handler",
@@ -4501,7 +4501,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:124"
+        "agent/server_routes/routes_memory_import.py:131"
       ],
       "description": "只读预览：返回分批清单与统计（**不写任何记忆**）。",
       "description_source": "handler",
@@ -4526,7 +4526,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:170"
+        "agent/server_routes/routes_memory_import.py:180"
       ],
       "description": "按批次回滚：默认 dry-run；真删必须 confirm=true。",
       "description_source": "handler",
@@ -4551,7 +4551,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_memory_import.py:91"
+        "agent/server_routes/routes_memory_import.py:94"
       ],
       "description": "探测本机可解析的来源（只读；不解析内容，秒回）。",
       "description_source": "handler",
@@ -4574,9 +4574,9 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:478"
+        "plugins/memory.py:492"
       ],
-      "description": "删除指定索引的记忆",
+      "description": "【2026-10-25 修正】按序号删除**未实现**，此前恒返回 ok:true 却没删任何东西。",
       "description_source": "handler",
       "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
@@ -4599,7 +4599,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:486"
+        "plugins/memory.py:589"
       ],
       "description": "清空长期摘要",
       "description_source": "handler",
@@ -4626,7 +4626,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/memory.py:462"
+        "plugins/memory.py:470"
       ],
       "description": "触发记忆压缩",
       "description_source": "handler",
@@ -4654,9 +4654,34 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/memory.py:433"
+        "plugins/memory.py:438"
       ],
       "description": "手动添加记忆",
+      "description_source": "handler",
+      "intent": "should_not_be_in_ui",
+      "intent_area": "记忆库",
+      "intent_note": "后端为占位实现（api_memory_delete_index 只回 ok，不落删除）。给「删除」做按钮等于对用户撒谎，故先不接；待后端补全真删除后再改判并接线。",
+      "ui_pending": false,
+      "domain": "记忆与知识"
+    },
+    {
+      "path": "/api/memory/messages/<msg_id>",
+      "norm": "/api/memory/messages/*",
+      "methods": [
+        "DELETE"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/lib/memoryDeleteApi.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/memory.py:513"
+      ],
+      "description": "按 id 删除一条长期记忆：**默认 dry-run**，真删必须 confirm=true。",
       "description_source": "handler",
       "intent": "should_not_be_in_ui",
       "intent_area": "记忆库",
@@ -4681,7 +4706,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/memory.py:401"
+        "plugins/memory.py:406"
       ],
       "description": "获取记忆概览",
       "description_source": "handler",
@@ -4707,7 +4732,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:515"
+        "plugins/memory.py:618"
       ],
       "description": "记忆库审查接口（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -4732,7 +4757,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:498"
+        "plugins/memory.py:601"
       ],
       "description": "更新长期摘要内容",
       "description_source": "handler",
@@ -4757,7 +4782,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:813"
+        "plugins/memory.py:916"
       ],
       "description": "清空窗口事件记录",
       "description_source": "handler",
@@ -4783,7 +4808,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:796"
+        "plugins/memory.py:899"
       ],
       "description": "获取或更新窗口监控配置",
       "description_source": "handler",
@@ -4808,7 +4833,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:786"
+        "plugins/memory.py:889"
       ],
       "description": "获取当前活跃窗口",
       "description_source": "handler",
@@ -4833,7 +4858,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:728"
+        "plugins/memory.py:831"
       ],
       "description": "获取窗口切换事件",
       "description_source": "handler",
@@ -4858,7 +4883,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:744"
+        "plugins/memory.py:847"
       ],
       "description": "获取窗口使用统计",
       "description_source": "handler",
@@ -10300,7 +10325,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:593"
+        "plugins/memory.py:696"
       ],
       "description": "添加单条向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -10325,7 +10350,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:616"
+        "plugins/memory.py:719"
       ],
       "description": "批量添加向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -10350,7 +10375,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:674"
+        "plugins/memory.py:777"
       ],
       "description": "清空向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -10375,7 +10400,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:638"
+        "plugins/memory.py:741"
       ],
       "description": "按 ID 获取记忆项（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -10400,7 +10425,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:653"
+        "plugins/memory.py:756"
       ],
       "description": "获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -10425,7 +10450,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:552"
+        "plugins/memory.py:655"
       ],
       "description": "语义搜索向量记忆",
       "description_source": "handler",
@@ -10450,7 +10475,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:579"
+        "plugins/memory.py:682"
       ],
       "description": "获取向量记忆统计（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11821,5 +11846,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "863f64975e42e4f8"
+  "content_hash": "ebe23ad2a0eef4cb"
 }

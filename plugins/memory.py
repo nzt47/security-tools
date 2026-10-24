@@ -22,13 +22,16 @@ legacy 端点接线（2026 修复 404）：
 """
 import functools
 import json
+import logging
 import os
+import re
 from flask import Blueprint, request, jsonify
 from .plugin_api import Plugin, context_limit_info, register_plugin
 
 # 【P1-front 第六批 · 2026-10-05】统一响应信封（阶段 2 / R3）。
 # 只依赖 stdlib + flask，不会把 app_server 拉进本模块的导入期。
 from agent.api_envelope import ok as _ok
+from agent.api_envelope import problem as _problem
 
 # 【2026-10-03 审计 P2-5】值域与默认值不再在本文件里抄一份：改 config.py 常量时这里跟着变，
 #   否则"面板能设的范围/展示的默认值"会与实际生效的口径悄悄分叉。
@@ -41,6 +44,8 @@ from config import (  # noqa: E402
     PER_MESSAGE_RECV_LIMIT_DEFAULT,
     PER_MESSAGE_RECV_LIMIT_MAX,
 )
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("memory", __name__)
 
@@ -448,13 +453,16 @@ def api_memory_manual():
         #   或 add_message（不评分）。保留最后一条分支仅为兼容测试/旧实现。
         memory = _Yunshu._memory
         text = f"[手动记忆·优先级:{priority}] {content}"
+        # 【2026-10-25】把 msg_id 回给调用方：没有它就**没有任何办法**定位并删除
+        # 这条记忆（交接单 §9 T3 的根因）。msg_id 就是落盘的 timestamp。
+        msg_id = ""
         if hasattr(memory, "score_and_save_message"):
-            memory.score_and_save_message("user", text)
+            msg_id = memory.score_and_save_message("user", text)
         elif hasattr(memory, "add_message"):
-            memory.add_message("user", text)
+            msg_id = memory.add_message("user", text)
         else:
             memory.add_memory({"role": "user", "content": text})
-        return _ok({"ok": True})
+        return _ok({"ok": True, "msg_id": str(msg_id or "")})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -475,12 +483,110 @@ def api_memory_compress():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+#: msg_id 形态：落盘 timestamp 是 ISO-8601（UTC，含微秒）。
+#: 【为什么只做形态校验】msg_id 会进**响应**与**审计**,不进任何文件路径；
+#: 这里拒绝超长/控制字符即可（不做白名单式过度约束，免得将来换 id 形态就废）。
+_MSG_ID_RE = re.compile(r"^[0-9A-Za-z:.+-]{16,64}$")
+
+
 @bp.route("/api/memory/<int:index>", methods=["DELETE"])
 @_view(auth=True, log=True)
 def api_memory_delete_index(index):
-    """删除指定索引的记忆"""
-    # 标记删除操作已接收（简化实现）
-    return jsonify({"ok": True})
+    """【2026-10-25 修正】按序号删除**未实现**，此前恒返回 ok:true 却没删任何东西。
+
+    【为什么不再"假装成功"】消息文件是追加写 JSONL，序号会随每次写入漂移：
+    界面上"第 3 条"下一次请求可能已是另一条。按序号删 = 删错数据的概率极高。
+    与其返回一个看起来成功的空操作，不如明确拒绝并指出正确入口
+    （本项目对"假绿/假成功"的既有口径：会漏报的门禁比会误报的更危险）。
+    """
+    logger.info("[memory] 拒绝按序号删除 index=%s（该接口未实现）", index)
+    return _problem(
+        501,
+        title="按序号删除未实现",
+        detail=("消息文件是追加写 JSONL，序号会随每次写入漂移，按序号删会删错数据。"
+                "请改用 DELETE /api/memory/messages/<msg_id>"
+                "（msg_id 由 POST /api/memory/manual 的返回体给出）"),
+        type_slug="delete-by-index-unsupported",
+    )
+
+
+@bp.route("/api/memory/messages/<msg_id>", methods=["DELETE"])
+@_view(auth=True, log=True)
+def api_memory_delete_message(msg_id):
+    """按 id 删除一条长期记忆：**默认 dry-run**，真删必须 confirm=true。
+
+    判据在后端（与外部记忆导入的 commit 同一口径），前端勾选只是二次确认的界面表达。
+    """
+    from app_server import _Yunshu
+    body = request.get_json(silent=True) or {}
+    dry_run = bool(body.get("dry_run", True))
+    confirm = body.get("confirm") is True
+    target = str(msg_id or "").strip()
+    if not _MSG_ID_RE.match(target):
+        return _problem(400, title="msg_id 形态非法",
+                        detail="msg_id 形如 2026-10-25T00:12:33.123456+00:00"
+                               "（由 POST /api/memory/manual 的返回体给出）",
+                        type_slug="invalid-msg-id")
+    memory = _Yunshu._memory
+    try:
+        found = memory.find_message(target)
+    except Exception:  # noqa: BLE001 异常原文只进日志（py/stack-trace-exposure）
+        logger.exception("[memory] 查询记忆失败")
+        return _problem(500, title="查询记忆失败",
+                        detail="详见服务日志（本次未删除任何内容）",
+                        type_slug="memory-lookup-failed")
+    if not found:
+        return _problem(404, title="找不到该记忆",
+                        detail="可能已被删除，或 msg_id 抄错（先 dry_run=true 查一次）",
+                        type_slug="message-not-found")
+    preview = str(found.get("content") or "")
+    chars = len(preview)
+    result = {
+        "ok": True,
+        "dry_run": dry_run,
+        "msg_id": target,
+        "found": True,
+        "role": str(found.get("role") or ""),
+        "chars": chars,
+        # 只回前 80 字：够人确认"是不是这一条"，又不把整段记忆再吐一遍
+        "preview": preview[:80] + ("…" if chars > 80 else ""),
+        "note": ("只删除 messages.jsonl 里的这一行；滚动摘要里可能仍留有压缩过的痕迹，"
+                 "如需彻底清除请再清空摘要（POST /api/memory/clear-summary）"),
+    }
+    if dry_run:
+        return _ok(result)
+    if not confirm:
+        return _problem(400, title="需要显式确认",
+                        detail="物理删除不可恢复：先 dry_run=true 看 preview，再传 confirm=true",
+                        type_slug="confirmation-required")
+    try:
+        deleted = memory.delete_message(target)
+    except Exception:  # noqa: BLE001 同上：错误文本不进响应
+        logger.exception("[memory] 删除记忆失败")
+        return _problem(500, title="删除记忆失败",
+                        detail="详见服务日志（删除可能未生效，可重试）",
+                        type_slug="memory-delete-failed")
+    audit_ref = {}
+    try:
+        # 【不易】门面实例的调用方式是 audit.record(...)，**不是** audit(...)：
+        # 直接 audit(...) 会抛 TypeError 并被下面的 except 吞掉，表现成"删了但没审计"。
+        # 活体验证时就是这样发现的（响应里 audit.seq 为 None），见交接单 §8 陷阱 25。
+        from agent.audit.facade import audit
+        entry = audit.record("memory.delete_message", actor="agent.plugins.memory",
+                             subject=f"msg:{target}",
+                             payload={"chars": chars, "role": str(found.get("role") or ""),
+                                      "deleted": bool(deleted)},
+                             source="agent")
+        if entry is not None:
+            audit_ref = {"seq": int(getattr(entry, "seq", 0) or 0)}
+    except Exception:  # noqa: BLE001 审计失败不掩盖业务结果
+        audit_ref = {}
+    if not deleted:
+        return _problem(404, title="删除时该记忆已不存在",
+                        detail="可能已被并发删除（本次未写入任何内容）",
+                        type_slug="message-not-found")
+    result.update({"deleted": True, "audit": audit_ref})
+    return _ok(result)
 
 
 @bp.route("/api/memory/clear-summary", methods=["POST"])
