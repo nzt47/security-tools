@@ -600,6 +600,27 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="subagent.callback_max_retries 必须在 0-1 之间（0 表示不重试）",
         description="子代理回调 HTTP 出站重试次数上界，用于 subagent/callback_channel.py 的 MAX_RETRIES",
     ),
+
+    # ── 24. 外部记忆导入（memory_import，只读盘点的安全上限） ──
+    # 【为什么这两条要配置化】导入器是"读别人机器上的转录"的工具，单源记录上限
+    # 与写入超时都属于**边界策略**而非实现细节：不同机器/不同来源需要不同的安全阀。
+    # 规则同时让硬编码边界扫描把 memory_import/ 视为「已配置化模块」。
+    ValidationRule(
+        path="memory_import.record_cap",
+        validator=_range_validator(100, 1000000),
+        default=200000,
+        error_message="memory_import.record_cap 必须在 100-1000000 之间",
+        description="外部记忆导入单源记录上限，用于 memory_import/readers/claude.py 的 MAX_RECORDS"
+                    "（可被 CP_MEMORY_IMPORT_MAX_RECORDS 覆盖）",
+    ),
+    ValidationRule(
+        path="memory_import.http_timeout_sec",
+        validator=_range_validator(1, 300),
+        default=30.0,
+        error_message="memory_import.http_timeout_sec 必须在 1-300 秒之间",
+        description="外部记忆写入长期记忆的 HTTP 超时秒数，用于 memory_import/targets.py 的"
+                    " _default_memory_sink(timeout=)（可被 CP_MEMORY_IMPORT_HTTP_TIMEOUT 覆盖）",
+    ),
 ]
 
 

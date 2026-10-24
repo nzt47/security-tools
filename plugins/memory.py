@@ -441,10 +441,19 @@ def api_memory_manual():
     if not content:
         return jsonify({"ok": False, "error": "内容不能为空"}), 400
     try:
-        _Yunshu._memory.add_memory({
-            "role": "user",
-            "content": f"[手动记忆·优先级:{priority}] {content}"
-        })
+        # 【2026-10-24 修复】MemoryManager 从来没有 add_memory 这个方法：本路由
+        #   在生成环境稳定 500（'MemoryManager' object has no attribute
+        #   'add_memory'），只是被 test_envelope_batch6 里同名 stub 掩盖了。
+        #   真实写路径是 score_and_save_message（先评分再落盘，压缩时按分数保留）
+        #   或 add_message（不评分）。保留最后一条分支仅为兼容测试/旧实现。
+        memory = _Yunshu._memory
+        text = f"[手动记忆·优先级:{priority}] {content}"
+        if hasattr(memory, "score_and_save_message"):
+            memory.score_and_save_message("user", text)
+        elif hasattr(memory, "add_message"):
+            memory.add_message("user", text)
+        else:
+            memory.add_memory({"role": "user", "content": text})
         return _ok({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

@@ -72,6 +72,12 @@ _MANUAL_CONFIGURED_MODULES: Set[str] = {
     # （subagent.callback_timeout_sec / subagent.callback_max_retries）；
     # 本脚本以脚本目录为 sys.path[0] 运行，agent.monitoring 导入失败时走本表。
     "subagent/callback_channel.py",
+    # 外部记忆导入：记录上限与写入超时已接入 observability_config
+    # （memory_import.record_cap / memory_import.http_timeout_sec），读取点见
+    # readers/__init__.py 的 record_cap() 与 targets.py 的 http_timeout()。
+    "memory_import/readers/claude.py",
+    "memory_import/readers/trae.py",
+    "memory_import/targets.py",
 }
 
 # 从 description 中提取 .py 模块路径的正则
