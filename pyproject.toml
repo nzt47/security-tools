@@ -62,17 +62,17 @@ dependencies = [
   #   这正是本任务要修的问题本身（"CI 测的依赖 ≠ 生产跑的依赖"）—— 用大版本上界
   #   会把它原样搬回来。torchvision 0.29 会**钉住 torch==2.14**，是升级的传导源。
   #   代价：torch 2.14 发布后 CI 不会自动用上，需要一次显式改版（可接受，且是好事）。
-  "torch>=2.12.0,<2.14.0",
+  "torch>=2.13.0,<2.14.0",
   "torchvision>=0.27.0,<0.29.0",
   "torchaudio>=2.11.0,<2.13.0",
   "opencv-python-headless>=4.8.0,<5.0.0",
   "chromadb>=1.5.9,<2.0.0",
-  "sentence-transformers>=5.5.1,<6.0.0",
+  "sentence-transformers>=5.6.0,<6.0.0",
   # transformers：此前**完全未声明**，只作为 sentence-transformers 的传递依赖
   #   出现在 requirements.txt:383。Why 必须显式声明：agent/ 与 memory/ 直接
   #   `import transformers`，把它交给传递闭包等于"上游改一次依赖树就静默失效"。
   #   下限取 requirements.txt 钉的 5.9.0；本机实装 5.13.1 落在区间内。
-  "transformers>=5.9.0,<6.0.0",
+  "transformers>=5.10.1,<6.0.0",
   "numpy>=2.0.0,<3.0.0",
   # 【S11-10 · R9-e】原生栈四件套显式声明（此前是"未声明但被依赖"的隐式件）。
   # Why 必须声明：`agent/utils/native_preimport.py` 的原生栈固化顺序是
@@ -121,7 +121,7 @@ dependencies = [
   #   docs/closeout/DEAD_CONFIG_20260918.md 登记为待判定债务。
   "gunicorn>=21.2.0,<24.0.0",
   "waitress>=3.0.0,<4.0.0",
-  "cryptography>=42.0.0",
+  "cryptography>=50.0.0",
   "jsonschema>=4.0.0,<5.0.0",
   # pypdf 上限原为 <6.0.0，但本机生产实装 6.14.2（audit 的 [4] 类）
   #   ⇒ 旧上限把正在跑的版本排除在外。下限抬到实装值。
