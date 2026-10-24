@@ -266,6 +266,13 @@ class Batch:
     items: List[Dict[str, Any]] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
     tags: List[str] = field(default_factory=list)
+    #: digest 的来源：rule（规则式，默认）/ llm（可选 LLM 摘要）
+    #: 【为什么必须是字段而不是"推断"】用户要在预览里一眼看出"这段是机器改写过的
+    #: 还是原句汇总"；靠正文里的一句话去猜，等于把可用性交给文案。
+    digest_source: str = "rule"
+    #: 摘要元数据（模型名、输入/输出字符数、降级原因码）——只放**可对外**的键，
+    #: 异常原文一律只进日志（py/stack-trace-exposure）
+    digest_meta: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.carrier not in CARRIERS:
@@ -292,6 +299,8 @@ class Batch:
             "tags": list(self.tags),
             "stats": dict(self.stats),
             "digest": self.digest,
+            "digest_source": self.digest_source,
+            "digest_meta": dict(self.digest_meta),
             "items": items,
         }
 
@@ -310,6 +319,8 @@ class Batch:
             items=list(data.get("items") or []),
             stats=dict(data.get("stats") or {}),
             tags=[str(t) for t in (data.get("tags") or [])],
+            digest_source=str(data.get("digest_source") or "rule"),
+            digest_meta=dict(data.get("digest_meta") or {}),
         )
 
 

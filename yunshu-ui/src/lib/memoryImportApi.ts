@@ -40,7 +40,22 @@ export interface MemoryImportBatch {
   chars: number
   records: number
   digest: string
+  /** 摘要来源：rule（规则式原句汇总）/ llm（可选 LLM 改写，可能漏项） */
+  digest_source?: 'rule' | 'llm'
+  /** 摘要元数据：模型名、输入/输出字符数；降级时带 reason 原因码 */
+  digest_meta?: Record<string, unknown>
   items?: Array<{ record_id: string; role: string; ts: string; chars: number; text: string }>
+}
+
+/** 本次预览的摘要方式与预算消耗（后端 service.preview 的 digest 字段） */
+export interface MemoryImportDigestInfo {
+  requested: boolean
+  mode: 'rule' | 'llm'
+  llm_available: boolean
+  reason?: string
+  llm_batches?: number
+  rule_batches?: number
+  budget?: { max_batches?: number; max_input_chars?: number; calls?: number; chars_used?: number }
 }
 
 export interface MemoryImportPlan {
@@ -50,6 +65,7 @@ export interface MemoryImportPlan {
   stats: Record<string, number | Record<string, number>>
   redaction: { hits?: Record<string, number>; masked_records?: number; blocked?: number }
   batches: MemoryImportBatch[]
+  digest?: MemoryImportDigestInfo
   requires_confirm: boolean
 }
 
@@ -135,13 +151,17 @@ async function readSuccess<T>(res: Response, endpoint: string): Promise<T> {
   return unwrapEnvelopeBody<T>(await res.json(), endpoint)
 }
 
-export async function fetchMemoryImportSources(signal?: AbortSignal): Promise<{ sources: MemoryImportSource[]; note?: string }> {
+export async function fetchMemoryImportSources(
+  signal?: AbortSignal,
+): Promise<{ sources: MemoryImportSource[]; digest_llm?: { available: boolean; reason?: string }; note?: string }> {
   const res = await fetch(MEMORY_IMPORT_SOURCES, { headers: headersFor(false), signal })
-  return readSuccess<{ sources: MemoryImportSource[]; note?: string }>(res, MEMORY_IMPORT_SOURCES)
+  return readSuccess<{ sources: MemoryImportSource[]; digest_llm?: { available: boolean; reason?: string }; note?: string }>(
+    res, MEMORY_IMPORT_SOURCES,
+  )
 }
 
 export async function previewMemoryImport(
-  input: { sources: string[]; include_transcripts: boolean },
+  input: { sources: string[]; include_transcripts: boolean; use_llm?: boolean },
   signal?: AbortSignal,
 ): Promise<MemoryImportPlan> {
   const res = await fetch(MEMORY_IMPORT_PREVIEW, {
