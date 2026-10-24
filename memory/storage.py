@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -85,6 +86,88 @@ class Storage:
         except (OSError, json.JSONDecodeError) as e:
             logger.error(f"[Storage.load_recent_messages] 加载失败: {e}")
             raise StorageError(f"读取消息失败: {e}") from e
+
+    def find_message(self, msg_id: str) -> dict | None:
+        """按 id 查一条消息（只读；找不到返回 None）。
+
+        id 就是 `save_message` 写入的 `timestamp`（UTC ISO，含微秒）：
+        本模块是**追加写 JSONL**，没有单独主键，时间戳实际上是唯一可用的稳定标识。
+        """
+        target = str(msg_id or "").strip()
+        if not target or not self.messages_file.exists():
+            return None
+        try:
+            with open(self.messages_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    text = line.strip()
+                    if not text:
+                        continue
+                    try:
+                        record = json.loads(text)
+                    except json.JSONDecodeError:
+                        continue  # 坏行跳过：不能因为一行脏数据就整库查不了
+                    if str(record.get("timestamp") or "") == target:
+                        return record
+        except OSError as e:
+            logger.error(f"[Storage.find_message] 查询失败: {e}")
+            raise StorageError(f"查询消息失败: {e}") from e
+        return None
+
+    def delete_message(self, msg_id: str) -> bool:
+        """按 id **物理删除**一条消息（原子重写 JSONL；不可恢复）。
+
+        【为什么是物理删而不是标记删】messages.jsonl 是**明文**落盘（本模块不加密）。
+        标记删会把用户要求删掉的正文继续留在磁盘上——那等于"假删"，
+        而这正是本次要修的缺陷形态（旧 `/api/memory/<index>` 恒返回 ok:true）。
+        代价是不可恢复，因此 HTTP 层默认 dry-run、真删必须 confirm。
+
+        【原子性】写 `messages.jsonl.tmp` 后 `os.replace` 覆盖；中途失败不会留下半截文件。
+        未命中的行**原样按行写回**（不重新序列化），避免顺手改动别人的历史格式。
+        """
+        target = str(msg_id or "").strip()
+        if not target:
+            return False
+        self._ensure_dir()
+        with self._write_lock:
+            if not self.messages_file.exists():
+                return False
+            try:
+                with open(self.messages_file, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+            except OSError as e:
+                logger.error(f"[Storage.delete_message] 读取失败: {e}")
+                raise StorageError(f"读取消息失败: {e}") from e
+            kept: list[str] = []
+            removed = 0
+            for line in lines:
+                if not line.strip():
+                    kept.append(line)
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    kept.append(line)  # 坏行不删：删除只针对可识别的目标
+                    continue
+                if str(record.get("timestamp") or "") == target:
+                    removed += 1
+                    continue
+                kept.append(line)
+            if not removed:
+                return False
+            tmp = self.messages_file.with_name(self.messages_file.name + ".tmp")
+            try:
+                with open(tmp, "w", encoding="utf-8") as f:
+                    f.writelines(kept)
+                os.replace(tmp, self.messages_file)
+            except OSError as e:
+                logger.error(f"[Storage.delete_message] 重写失败: {e}")
+                try:
+                    tmp.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                raise StorageError(f"删除消息失败: {e}") from e
+            logger.info(f"[Storage.delete_message] 已删除 {removed} 条 id={target}")
+            return True
 
     def save_summary(self, summary: str, version: int):
         """保存摘要（线程安全）"""

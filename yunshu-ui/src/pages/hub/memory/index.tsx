@@ -13,6 +13,10 @@ import { Card, StatCard, Loading, ErrorBox, PageHeader } from '../components/ui'
 // 改用显式信封解析：GET 走 getEnvelope、POST 走 postEnvelope（后者的请求头语义与 hubPost 逐条对齐）。
 import { getEnvelope, postEnvelope } from '@/api/envelope'
 import MemoryImportPanel from './MemoryImportPanel'
+import {
+  MemoryDeleteError, checkMemoryDelete, confirmMemoryDelete,
+  type MemoryDeleteCheck,
+} from '@/lib/memoryDeleteApi'
 
 import {
   MEMORY_MANUAL,
@@ -50,6 +54,12 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
+  // 「按 id 删除长期记忆」：两段式（先 dry-run 看 preview，再 confirm 真删）
+  const [delId, setDelId] = useState('')
+  const [delCheck, setDelCheck] = useState<MemoryDeleteCheck | null>(null)
+  const [delBusy, setDelBusy] = useState<'' | 'check' | 'delete'>('')
+  const [delMsg, setDelMsg] = useState('')
+  const [delErr, setDelErr] = useState('')
 
   useEffect(() => {
     // 显式信封解析：data 就是概览对象本身
@@ -66,13 +76,52 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
     try {
       // 迁移前这里直接把**整个响应体**塞进提示文案；现在响应体是信封，
       // 故取 data（业务体）再序列化 —— 提示里不再出现 code/message 这些传输层字段。
-      const d = await postEnvelope<{ ok?: boolean }>(MEMORY_MANUAL, { content: manualText.trim() })
-      setMsg(`已保存手动记忆：${JSON.stringify(d).slice(0, 80)}`)
+      const d = await postEnvelope<{ ok?: boolean; msg_id?: string }>(MEMORY_MANUAL, { content: manualText.trim() })
+      // 把 msg_id 直接展示出来：它是"事后能删掉这一条"的唯一凭据
+      setMsg(d?.msg_id
+        ? `已保存手动记忆 · msg_id ${d.msg_id}`
+        : `已保存手动记忆：${JSON.stringify(d).slice(0, 80)}`)
       setManualText('')
     } catch (e) {
       setMsg(`保存失败：${e instanceof Error ? e.message : e}`)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const errText = (e: unknown) => (e instanceof MemoryDeleteError || e instanceof Error
+    ? e.message
+    : String(e))
+
+  const checkDel = async () => {
+    if (!delId.trim()) { setDelErr('先填 msg_id'); return }
+    setDelBusy('check'); setDelErr(''); setDelMsg(''); setDelCheck(null)
+    try {
+      const d = await checkMemoryDelete(delId.trim())
+      setDelCheck(d)
+      setDelMsg('查到了这一条（仅预览，未删除）：' + d.chars + ' 字符')
+    } catch (e) {
+      setDelErr('查询失败：' + errText(e))
+    } finally {
+      setDelBusy('')
+    }
+  }
+
+  const doDelete = async () => {
+    if (!delCheck) { setDelErr('先点「查一下」确认是不是这一条'); return }
+    setDelBusy('delete'); setDelErr(''); setDelMsg('')
+    try {
+      const r = await confirmMemoryDelete(delCheck.msg_id)
+      setDelMsg('已删除 ' + r.msg_id
+        + (typeof r.audit?.seq === 'number' ? ' · 审计 seq ' + r.audit.seq : ''))
+      setDelCheck(null)
+      setDelId('')
+      // 删除后刷新概览（消息数应当减少）
+      getEnvelope<MemoryOverview | null>(MEMORY_OVERVIEW).then((d) => setOverview(d ?? {})).catch(() => {})
+    } catch (e) {
+      setDelErr('删除失败：' + errText(e))
+    } finally {
+      setDelBusy('')
     }
   }
 
@@ -168,6 +217,49 @@ export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
               </div>
             ))}
           </div>
+        </Card>
+
+        <Card title="按 id 删除长期记忆">
+          <p className="mb-3 text-xs leading-6 text-slate-500">
+            只删除 <span className="font-mono">messages.jsonl</span> 里的一条原始消息（
+            <span className="text-amber-400">物理删除、不可恢复</span>）。
+            msg_id 在「保存记忆」的提示里给出，也可从外部记忆导入的批次清单里取。
+            先「查一下」看清内容，再「确认删除」。
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={delId}
+              onChange={(e) => { setDelId(e.target.value); setDelCheck(null); setDelMsg('') }}
+              onKeyDown={(e) => e.key === 'Enter' && void checkDel()}
+              placeholder="msg_id，例如 2026-10-25T00:12:33.123456+00:00"
+              aria-label="msg_id"
+              className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-slate-200 placeholder-slate-600 outline-hidden focus:border-cyan-600"
+            />
+            <button
+              onClick={() => void checkDel()}
+              disabled={delBusy !== '' || !delId.trim()}
+              className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-40"
+            >
+              查一下
+            </button>
+          </div>
+
+          {delCheck && (
+            <div className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-200/90">
+              <div className="font-mono text-[11px] text-amber-300">{delCheck.msg_id}</div>
+              <div className="mt-1 text-slate-300">{delCheck.preview}</div>
+              <div className="mt-1 text-[11px] leading-5 text-slate-500">{delCheck.note}</div>
+              <button
+                onClick={() => void doDelete()}
+                disabled={delBusy !== ''}
+                className="mt-2 rounded-lg bg-red-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-red-500 disabled:opacity-40"
+              >
+                {delBusy === 'delete' ? '删除中…' : '确认删除（不可恢复）'}
+              </button>
+            </div>
+          )}
+          {delErr && <div className="mt-2 text-[11px] text-red-300">{delErr}</div>}
+          {delMsg && <div className="mt-2 text-[11px] text-emerald-300">{delMsg}</div>}
         </Card>
       </div>
 
