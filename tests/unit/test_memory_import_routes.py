@@ -132,6 +132,86 @@ def test_internal_error_does_not_leak_exception_text(client, auth, monkeypatch):
     assert "详见服务日志" in detail
 
 
+def test_batches_lists_committed_entries(client, auth, monkeypatch):
+    """批次清单是回滚界面的数据源：只读、走信封。"""
+    rows = [{"batch_id": "mb_card", "carrier": "knowledge_card",
+             "carrier_label": "知识卡片", "title": "claude 偏好",
+             "records": 4, "chars": 300, "ref": "slug-1",
+             "plan_id": "mp_test", "committed_at": "2026-10-24T10:40:35+08:00",
+             "audit_seq": 79470, "rollback": "auto"}]
+    monkeypatch.setattr(routes.import_service, "list_batches", lambda **_: rows)
+    resp = client.get("/api/memory-import/batches", headers=auth)
+    assert resp.status_code == 200
+    assert resp.headers.get(ENVELOPE_HEADER) == ENVELOPE_VERSION
+    assert resp.get_json()["data"]["batches"][0]["batch_id"] == "mb_card"
+
+
+def test_rollback_requires_batch_id(client, auth):
+    resp = client.post("/api/memory-import/rollback", json={}, headers=auth)
+    assert resp.status_code == 400
+    assert resp.get_json()["type"].endswith("missing-batch-id")
+
+
+def test_rollback_defaults_to_dry_run(client, auth, monkeypatch):
+    seen = {}
+
+    def fake_rollback(batch_id, *, confirm, dry_run):
+        seen.update(batch_id=batch_id, confirm=confirm, dry_run=dry_run)
+        return {"ok": True, "dry_run": True, "batch_id": batch_id,
+                "would_delete": "slug-1", "carrier": "knowledge_card"}
+
+    monkeypatch.setattr(routes.import_service, "rollback", fake_rollback)
+    resp = client.post("/api/memory-import/rollback", json={"batch_id": "mb_card"}, headers=auth)
+    assert resp.status_code == 200
+    assert seen == {"batch_id": "mb_card", "confirm": False, "dry_run": True}
+    assert resp.get_json()["data"]["would_delete"] == "slug-1"
+
+
+def test_rollback_confirmed_deletes(client, auth, monkeypatch):
+    seen = {}
+
+    def fake_rollback(batch_id, *, confirm, dry_run):
+        seen.update(confirm=confirm, dry_run=dry_run)
+        return {"ok": True, "dry_run": False, "batch_id": batch_id,
+                "deleted": "slug-1", "audit": {"seq": 901}}
+
+    monkeypatch.setattr(routes.import_service, "rollback", fake_rollback)
+    resp = client.post("/api/memory-import/rollback",
+                       json={"batch_id": "mb_card", "dry_run": False, "confirm": True},
+                       headers=auth)
+    assert resp.status_code == 200
+    assert seen == {"confirm": True, "dry_run": False}
+    assert resp.get_json()["data"]["deleted"] == "slug-1"
+
+
+def test_rollback_manual_carrier_reports_honestly(client, auth, monkeypatch):
+    """长期记忆无法自动回滚：200 + ok=false + manual=true（不假装删掉了）。"""
+    monkeypatch.setattr(routes.import_service, "rollback",
+                        lambda batch_id, **_: {"ok": False, "dry_run": False,
+                                               "batch_id": batch_id, "manual": True,
+                                               "error": "需人工删除"})
+    resp = client.post("/api/memory-import/rollback",
+                       json={"batch_id": "mb_mem", "dry_run": False, "confirm": True},
+                       headers=auth)
+    assert resp.status_code == 200
+    data = resp.get_json()["data"]
+    assert data["manual"] is True and data["ok"] is False
+
+
+def test_rollback_maps_unknown_batch(client, auth, monkeypatch):
+    from agent.memory_import.models import UnknownBatch
+
+    def boom(batch_id, **_kwargs):
+        raise UnknownBatch("没有批次清单", detail="x")
+
+    monkeypatch.setattr(routes.import_service, "rollback", boom)
+    resp = client.post("/api/memory-import/rollback",
+                       json={"batch_id": "mb_nope", "dry_run": False, "confirm": True},
+                       headers=auth)
+    assert resp.status_code == 400
+    assert resp.get_json()["type"].endswith("unknown-batch")
+
+
 def test_commit_defaults_to_dry_run(client, auth, monkeypatch):
     seen = {}
 

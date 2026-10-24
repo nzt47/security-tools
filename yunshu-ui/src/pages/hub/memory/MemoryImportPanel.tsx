@@ -10,12 +10,13 @@
  * 二次确认的界面表达，不能、也不应该成为唯一防线。
  */
 import { useEffect, useState } from 'react'
-import { DownloadCloud, Loader2, RefreshCw, ShieldCheck } from 'lucide-react'
+import { DownloadCloud, Loader2, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react'
 import { Card } from '../components/ui'
 import {
-  MemoryImportApiError, commitMemoryImport, fetchMemoryImportSources,
-  previewMemoryImport, type MemoryImportCommitResult, type MemoryImportPlan,
-  type MemoryImportSource,
+  MemoryImportApiError, commitMemoryImport, fetchMemoryImportBatches,
+  fetchMemoryImportSources, previewMemoryImport, rollbackMemoryImport,
+  type MemoryImportBatchEntry, type MemoryImportCommitResult,
+  type MemoryImportPlan, type MemoryImportSource,
 } from '@/lib/memoryImportApi'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
@@ -38,6 +39,17 @@ export default function MemoryImportPanel() {
   const [err, setErr] = useState('')
   const [msg, setMsg] = useState('')
   const [result, setResult] = useState<MemoryImportCommitResult | null>(null)
+  const [batches, setBatches] = useState<MemoryImportBatchEntry[]>([])
+  const [batchBusy, setBatchBusy] = useState('')
+  const [batchMsg, setBatchMsg] = useState('')
+  const [batchErr, setBatchErr] = useState('')
+  const [pendingRollback, setPendingRollback] = useState('')
+
+  const loadBatches = () => {
+    fetchMemoryImportBatches()
+      .then((d) => setBatches(d?.batches ?? []))
+      .catch((e) => setBatchErr('读取已写入批次失败：' + errText(e)))
+  }
 
   useEffect(() => {
     let alive = true
@@ -52,6 +64,26 @@ export default function MemoryImportPanel() {
       .catch((e) => { if (alive) setErr('探测来源失败：' + errText(e)) })
     return () => { alive = false }
   }, [])
+
+  useEffect(() => { loadBatches() }, [])
+
+  const doRollback = async (batchId: string) => {
+    setBatchBusy(batchId); setBatchErr(''); setBatchMsg(''); setPendingRollback('')
+    try {
+      const r = await rollbackMemoryImport({ batch_id: batchId, confirm: true, dry_run: false })
+      if (r.manual) {
+        setBatchErr('该批次需人工回滚：' + (r.error || '长期记忆没有按 id 删除的稳定入口'))
+      } else if (r.ok) {
+        setBatchMsg('已回滚 ' + batchId + (r.deleted ? '（已删除 ' + r.deleted + '）' : '')
+          + (typeof r.audit?.seq === 'number' ? ' · 审计 seq ' + r.audit.seq : ''))
+        loadBatches()
+      } else {
+        setBatchErr('回滚未生效：' + (r.error || '未知原因'))
+      }
+    } catch (e) {
+      setBatchErr('回滚失败：' + errText(e))
+    } finally { setBatchBusy('') }
+  }
 
   const toggleSource = (id: string) => {
     setPickedSources((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -88,6 +120,7 @@ export default function MemoryImportPanel() {
         if (okCount) {
           const seqs = (r?.committed ?? []).map((c) => c.audit?.seq).filter((s) => typeof s === 'number')
           if (seqs.length) setMsg((prev) => prev + '（审计 seq ' + seqs[0] + '-' + seqs[seqs.length - 1] + '）')
+          loadBatches()  // 写入后刷新"已写入批次"，回滚入口立刻可见
         }
       }
     } catch (e) {
@@ -254,6 +287,64 @@ export default function MemoryImportPanel() {
           )}
         </div>
       )}
+
+      <div className="mt-5 border-t border-slate-800 pt-3">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Undo2 size={13} className="text-cyan-400" />
+          <h3 className="text-xs font-semibold text-slate-200">已写入批次（可回滚）</h3>
+          <span className="text-[10px] text-slate-500">知识卡片可自动回滚；长期记忆没有按 id 删除的入口，需人工处理</span>
+          <button type="button" className={BTN} onClick={() => loadBatches()} disabled={batchBusy !== ''} aria-label="刷新批次">
+            <RefreshCw size={11} /> 刷新
+          </button>
+        </div>
+        {batchErr && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{batchErr}</div>}
+        {batchMsg && <div className="mb-2 rounded-sm border border-emerald-800/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300">{batchMsg}</div>}
+        {batches.length === 0 ? (
+          <div className="py-3 text-center text-[11px] text-slate-600">还没有导入批次</div>
+        ) : (
+          <div className="max-h-64 overflow-auto rounded-lg border border-slate-800">
+            <table className="w-full text-left text-[11px]">
+              <thead className="sticky top-0 bg-slate-900 text-slate-400">
+                <tr>
+                  <th className="px-2 py-1">批次</th>
+                  <th className="px-2 py-1">载体</th>
+                  <th className="px-2 py-1">条数</th>
+                  <th className="px-2 py-1">提交时间</th>
+                  <th className="px-2 py-1">ref</th>
+                  <th className="px-2 py-1">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {batches.map((b) => (
+                  <tr key={b.batch_id} className="border-t border-slate-800/70">
+                    <td className="px-2 py-1 font-mono text-slate-400">{b.batch_id}</td>
+                    <td className="px-2 py-1 text-slate-300">{b.carrier_label}</td>
+                    <td className="px-2 py-1 text-slate-300">{b.records}</td>
+                    <td className="px-2 py-1 text-slate-500">{b.committed_at || '-'}</td>
+                    <td className="px-2 py-1 text-slate-500">{b.ref || '-'}</td>
+                    <td className="px-2 py-1">
+                      {b.rollback === 'manual' ? (
+                        <span className="text-[10px] text-slate-500" title="长期记忆没有按 id 删除的稳定入口">需人工</span>
+                      ) : pendingRollback === b.batch_id ? (
+                        <span className="inline-flex items-center gap-1">
+                          <button type="button" className={BTN} onClick={() => void doRollback(b.batch_id)} disabled={batchBusy !== ''} aria-label={'确认回滚 ' + b.batch_id}>
+                            {batchBusy === b.batch_id ? <Loader2 size={11} className="animate-spin" /> : <Undo2 size={11} />} 确认回滚
+                          </button>
+                          <button type="button" className={BTN} onClick={() => setPendingRollback('')} aria-label={'取消回滚 ' + b.batch_id}>取消</button>
+                        </span>
+                      ) : (
+                        <button type="button" className={BTN} onClick={() => setPendingRollback(b.batch_id)} disabled={batchBusy !== ''} aria-label={'回滚 ' + b.batch_id}>
+                          <Undo2 size={11} /> 回滚
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </Card>
   )
 }

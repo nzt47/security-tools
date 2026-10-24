@@ -335,6 +335,8 @@ export const VECTOR_RECENT = '/api/vector/recent';
 export const MEMORY_IMPORT_SOURCES = '/api/memory-import/sources';
 export const MEMORY_IMPORT_PREVIEW = '/api/memory-import/preview';
 export const MEMORY_IMPORT_COMMIT = '/api/memory-import/commit';
+export const MEMORY_IMPORT_BATCHES = '/api/memory-import/batches';
+export const MEMORY_IMPORT_ROLLBACK = '/api/memory-import/rollback';
 export const vectorItem = (itemId: string) => `/api/vector/item/${encodeURIComponent(itemId)}`;
 
 // ===============================================================
