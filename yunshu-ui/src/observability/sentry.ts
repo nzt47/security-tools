@@ -141,7 +141,10 @@ function probeDsn(origin: string): void {
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 3000)
-    fetch(`${origin}/api/0/`, { method: "HEAD", mode: "no-cors", cache: "no-store", signal: ctrl.signal })
+    // 【2026-10-25 · 交接单 T6】原来用 HEAD：GlitchTip 对 HEAD /api/0/ 回 405，
+    // 控制台每次多一条噪音（不致命，但会把真错误淹掉）。改 GET 后 200/401/403 都算
+    // "服务在"（no-cors 下拿不到状态码，只有"连不连得上"这一层结论，正好够用）。
+    fetch(`${origin}/api/0/`, { method: "GET", mode: "no-cors", cache: "no-store", signal: ctrl.signal })
       .then(() => { dsnReachable = true })
       .catch(() => { dsnReachable = false })
       .finally(() => clearTimeout(timer))
