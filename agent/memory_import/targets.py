@@ -188,6 +188,13 @@ def delete_memory_note(msg_id: str, *,
 
     【判据】真删必须在请求体里显式 `dry_run=False & confirm=True`；
     这里不接受"只给 msg_id 就删"，避免调用方忘记确认语义。
+
+    【404 = 已经不在了，不是失败】msg_id 就是落盘 timestamp，而**时间戳可能撞**：
+    实测 2026-10-24 那批里 mb_c1624e74c7dd 与 mb_02fde7f96c1b 共用同一条 timestamp，
+    按 id 删除会一次删掉两行 —— 后一个调用必然 404。把它当异常抛出来，调用方
+    （迁移器）就会"补偿删除刚写的向量"，结果那一批的正文**两边都没了**（真实事故，
+    2026-10-25 首次迁移时发生并用计划快照 digest 恢复）。故这里与 delete_vector_item
+    同口径：404 返回 `missing=True`（目标状态已达成），只有真失败才抛。
     """
     import json
     import urllib.error
@@ -211,6 +218,10 @@ def delete_memory_note(msg_id: str, *,
         with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8", "replace") or "{}")
     except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            # 已经被删掉了（含"同 timestamp 的另一条把它一起删了"）⇒ 目标状态已达成
+            return {"ok": True, "deleted": False, "missing": True, "msg_id": target,
+                    "dry_run": False, "audit": {}}
         detail = exc.read().decode("utf-8", "replace")[:200]
         raise RuntimeError(f"删除长期记忆被拒绝（HTTP {exc.code}）：{detail}") from exc
     data = payload.get("data") if isinstance(payload, dict) else None

@@ -167,3 +167,19 @@ def test_list_batches_marks_memory_with_msg_id_as_auto(tmp_path):
     assert rows["mb_ffffffffffff"]["rollback"] == "manual"
     assert rows["mb_000000000000"]["rollback"] == "auto"
 
+
+def test_delete_memory_note_404_is_missing_not_failure(monkeypatch):
+    """msg_id 撞车时后一个 DELETE 必然 404：那是"已经不在了"，不是失败。
+
+    2026-10-25 首次存量迁移的真实事故：这里抛异常 ⇒ 迁移器补偿删掉刚写的向量
+    ⇒ 那一批的正文两边都没了（后来用计划快照 digest 才恢复）。
+    """
+    import urllib.error
+
+    def boom(request, timeout=None):
+        raise urllib.error.HTTPError(request.full_url, 404, "not found", {},
+                                     io.BytesIO(b'{"title":"\u627e\u4e0d\u5230"}'))
+
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    out = targets.delete_memory_note("2026-10-24T02:44:37.547745+00:00")
+    assert out["ok"] is True and out["deleted"] is False and out["missing"] is True

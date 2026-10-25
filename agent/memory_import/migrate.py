@@ -313,8 +313,11 @@ def migrate(*, commit: bool = False, confirm: bool = False,
         migrated.append({
             "batch_id": batch["batch_id"], "vector_ids": vector_ids,
             "msg_id": batch["msg_id"],
-            # deleted=False 多半是"同一 timestamp 已被别的批次删掉"（见模块 docstring）
-            "deleted": deleted_ok, "audit": audit_ref,
+            # deleted=False 多半是"同一 timestamp 已被别的批次删掉"（见模块 docstring）。
+            # 这不是失败：正文确实已不在消息流里；单独记 shared_timestamp 便于事后核对
+            "deleted": deleted_ok,
+            "shared_timestamp": (not deleted_ok),
+            "audit": audit_ref,
         })
     flushed()
     return {
