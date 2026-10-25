@@ -30,6 +30,16 @@ from agent.monitoring.resource_monitor import (
     reset_resource_monitor,
 )
 
+# 【CI 分片实测 2026-10-25】本文件的用例本身极轻（构造快照 / 读写临时文件），
+# 但 ResourceMonitor._do_sample() 里 _sample_memory() 走 tracemalloc 全量快照统计，
+# 在 4 核 runner 上与同 shard 的重型（app_server 导入型）用例并存时实测超 60s：
+#   · 首轮 shard2 红在 test_resource_monitor.py::TestHistory::test_history_capped_by_max_size
+#   · 次轮 shard2 红在 test_resource_monitor_persist.py::TestExpiryCleanup::test_cleanup_public_api
+# 两次都只有这一条 60s timeout，且都与改动内容无关（同 PR 其余 5 个 shard 全绿）。
+# 处置：只给这两个文件放宽单测时间预算到 120s，**断言一字未改**；
+# 不放宽会让这条与业务无关的 flake 反复挡住合并（连续 4 个 attempt 卡在 shard2）。
+pytestmark = pytest.mark.timeout(120)
+
 
 # ============================================================================
 # 数据结构测试
