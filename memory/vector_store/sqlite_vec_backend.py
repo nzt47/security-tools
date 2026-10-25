@@ -304,6 +304,37 @@ class SqliteVecBackend:
         finally:
             conn.close()
 
+    def delete(self, item_id: str) -> bool:
+        """按 ID 删除一条向量记忆（vec0 与 meta 两张表都删）。
+
+        【为什么必须有这个口】`clear()` 只能全清；只要"按 id 删除"缺席，
+        任何"导入/写入后又想撤"的链路就只能假装成功（本仓 2026-10-25 刚修过
+        同类缺陷：`DELETE /api/memory/<index>` 恒返回 ok:true 却不删数据）。
+        向量与元数据分开存放，故必须**同事务**删两处，否则会出现
+        "向量还在、正文没了"或反之的残影。
+
+        Returns:
+            True 表示确实删掉了；False 表示本来就没有这条
+        """
+        with self._lock:
+            conn = self._get_conn()
+            try:
+                exists = conn.execute(
+                    f"SELECT 1 FROM {self._meta_table} WHERE id = ?", (item_id,)
+                ).fetchone()
+                if not exists:
+                    return False
+                conn.execute(f"DELETE FROM {self._vec_table} WHERE id = ?", (item_id,))
+                conn.execute(f"DELETE FROM {self._meta_table} WHERE id = ?", (item_id,))
+                conn.commit()
+                return True
+            except Exception as e:
+                logger.error("[SqliteVecBackend] delete 失败: id=%s, error=%s", item_id, e)
+                conn.rollback()
+                return False
+            finally:
+                conn.close()
+
     def get_recent(self, limit: int = 10) -> List[Dict[str, Any]]:
         """获取最近添加的记忆"""
         conn = self._get_conn()

@@ -958,6 +958,51 @@ class VectorStore:
             return self._items[idx]
         return None
 
+    # ── 按 id 删除 ──
+
+    def delete(self, item_id: str) -> bool:
+        """按 id 删除一条向量记忆（三种后端都覆盖，失败返回 False）。
+
+        【口径】"删掉了"与"本来就没有"必须可区分：调用方（回滚/审计）要能如实报出
+        是哪一种，而不是一律 ok。故：真删 → True；不存在/失败 → False。
+        """
+        target = str(item_id or "").strip()
+        if not target:
+            return False
+        # 失效查询缓存：否则刚删掉的内容还可能被上一次查询结果命中
+        if self._query_cache:
+            self._query_cache.invalidate()
+
+        if self._backend == "sqlite_vec":
+            deleted = bool(self._sqlite_vec_backend.delete(target))
+            if deleted:
+                logger.info(f"🗑️ 已删除记忆 [sqlite-vec]: {target}")
+            return deleted
+
+        if self._use_chroma:
+            try:
+                self._chroma_collection.delete(ids=[target])
+                logger.info(f"🗑️ 已删除记忆 [Chroma]: {target}")
+                return True
+            except Exception as e:
+                logger.warning(f"ChromaDB 删除失败: {e}")
+                return False
+
+        idx = self._id_to_index.get(target)
+        if idx is None:
+            return False
+        try:
+            self._items.pop(idx)
+        except IndexError:
+            return False
+        # 重建 id→下标（列表位移后旧下标全部失效）
+        self._id_to_index = {item.id: i for i, item in enumerate(self._items)}
+        if self._inverted_index:
+            self._inverted_index = InvertedIndex()
+        self._save_to_file()
+        logger.info(f"🗑️ 已删除记忆 [json]: {target}")
+        return True
+
     # ── 获取最近 ──
 
     def get_recent(self, limit: int = 10) -> List[MemoryItem]:
