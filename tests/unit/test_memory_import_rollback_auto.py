@@ -183,3 +183,17 @@ def test_delete_memory_note_404_is_missing_not_failure(monkeypatch):
     monkeypatch.setattr("urllib.request.urlopen", boom)
     out = targets.delete_memory_note("2026-10-24T02:44:37.547745+00:00")
     assert out["ok"] is True and out["deleted"] is False and out["missing"] is True
+
+
+def test_rollback_memory_already_gone_reports_missing_not_deleted(tmp_path, monkeypatch):
+    """按 msg_id 回滚时若那条已经不在了：目标状态已达成，但**不能**回"刚删掉"。"""
+    _manifest(tmp_path, "mb_999999999999", carrier=CARRIER_MEMORY, msg_id="m9")
+    monkeypatch.setattr(targets, "delete_memory_note",
+                        lambda *a, **k: {"ok": True, "deleted": False, "missing": True})
+    monkeypatch.setattr(service, "_audit", lambda *a, **k: {})
+    monkeypatch.setattr(service, "_flush_audit", lambda: True)
+    out = service.rollback("mb_999999999999", confirm=True, dry_run=False, root=tmp_path)
+    assert out["ok"] is True
+    assert out["deleted"] == "", "没删到任何东西就不能写 deleted"
+    assert out["missing"] == ["m9"]
+    assert not (service.batch_dir(tmp_path) / "mb_999999999999.json").exists()

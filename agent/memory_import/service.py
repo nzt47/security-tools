@@ -608,8 +608,12 @@ def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
         if outcome.get("ok"):
             manifest.unlink(missing_ok=True)
         _flush_audit()
+        # 404 现在是"已经不在了"：目标状态已达成，但不能写成"刚删掉"
+        missing = bool(outcome.get("missing"))
         return {"ok": bool(outcome.get("ok")), "dry_run": False, "batch_id": batch_id,
-                "carrier": carrier, "deleted": "memory:" + msg_id,
+                "carrier": carrier,
+                "deleted": "" if missing else "memory:" + msg_id,
+                "missing": [msg_id] if missing else [],
                 "audit": audit_ref}
     if carrier != CARRIER_CARD or not ref:
         return {"ok": False, "dry_run": dry_run, "batch_id": batch_id,
