@@ -688,7 +688,12 @@ class VectorStore:
             ):
                 logger.info(f"✅ 添加记忆 [sqlite-vec]: {item_id}")
             else:
+                # 【2026-10-25 修正"假成功"】此前这里只记日志、**照旧返回 item_id**：
+                # 调用方（外部记忆导入 / 记忆工具）会拿到一个库里查不到的 id，
+                # 一旦据此删掉源数据，这一条就等于两边都没了（导入器正是先写向量再删原消息）。
+                # 真实 VectorStore 的插入失败表现为 ID 查不到，故此处如实抛错，让上层失败可见。
                 logger.error(f"sqlite-vec 添加失败: {item_id}")
+                raise RuntimeError(f"向量写入失败（sqlite-vec 未落库）: {item_id}")
         elif self._backend == "chromadb":
             try:
                 embedding = self._encoder.encode([content]).tolist()

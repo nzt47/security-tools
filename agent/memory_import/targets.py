@@ -295,7 +295,45 @@ def _default_vector_sink(content: str, *, metadata: Optional[Dict[str, Any]] = N
     item_id = str(data.get("item_id") or "").strip()
     if not item_id:
         raise RuntimeError("向量写入未返回 item_id（无法事后按 id 回滚）")
+    # 【2026-10-25 回读校验】写入回执之后必须能按 id 查回来：真实 VectorStore 在
+    # sqlite-vec 插入失败时曾"假成功"（返回 id 但库里没有），而导入器紧接着会删原消息
+    # ⇒ 唯一副本丢失。这里多花一次 GET，把"写进去了"从"接口说 ok"变成"确实查得到"。
+    verify_vector_item(item_id, base_url=base_url, timeout=timeout)
     return {"ok": True, "ref": "vector/" + item_id, "detail": {"vector_ids": [item_id]}}
+
+
+def verify_vector_item(item_id: str, *,
+                       base_url: str = "http://127.0.0.1:5678",
+                       timeout: Optional[float] = None) -> Dict[str, Any]:
+    """按 id 回读一条向量（写入后自证用）：404 即"没落库"，抛错让上层失败可见。"""
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    target = str(item_id or "").strip()
+    if not target:
+        raise ValueError("item_id 不能为空")
+    token = read_api_token()
+    timeout = http_timeout() if timeout is None else float(timeout)
+    headers = {}
+    if token:
+        headers["X-API-Token"] = token
+    url = (base_url.rstrip("/") + "/api/vector/item/"
+           + urllib.parse.quote(target, safe=""))
+    request = urllib.request.Request(url, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = json.loads(response.read().decode("utf-8", "replace") or "{}")
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            raise RuntimeError(f"向量写入回执的 id 查不到（未落库）：{target}") from exc
+        detail = exc.read().decode("utf-8", "replace")[:200]
+        raise RuntimeError(f"回读向量被拒绝（HTTP {exc.code}）：{detail}") from exc
+    item = raw.get("data") if isinstance(raw, dict) and isinstance(raw.get("data"), dict) else raw
+    if not isinstance(item, dict) or str(item.get("id") or "") != target:
+        raise RuntimeError(f"回读向量的响应与 id 不符：{str(raw)[:120]}")
+    return {"ok": True, "item_id": target, "char_count": len(str(item.get("content") or ""))}
 
 
 def delete_vector_item(item_id: str, *,
