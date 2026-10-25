@@ -107,6 +107,8 @@ export interface MemoryImportBatchEntry {
   /** 外部来源（claude / trae）与周期（2026-07 / static） */
   origin?: string
   period?: string
+  /** 摘要方式：rule（规则式）/ llm（LLM 改写） */
+  digest_source?: string
 }
 
 export interface MemoryImportRollbackResult {
@@ -117,6 +119,13 @@ export interface MemoryImportRollbackResult {
   ref?: string
   deleted?: string
   would_delete?: string
+  /** dry-run 时的逐条内容预览（回滚 = 物理删除，先看清再确认） */
+  items_preview?: Array<{
+    id: string
+    chars: number
+    preview: string
+    metadata?: Record<string, unknown>
+  }>
   /** 删除前就已不存在的向量 id（404 不算失败，也不冒充删除成功） */
   missing?: string[]
   /** 真正删除失败的向量 id（附异常类名）；非空时批次清单不会被删 */

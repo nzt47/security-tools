@@ -538,8 +538,23 @@ def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
         # 【2026-10-25 · §10 第 2 步】导入改走向量记忆后，回滚就是按 id 真删这些向量。
         # 404（本来就不在）算"目标状态已达成"，单独记进 missing，不冒充"删掉了"。
         if dry_run:
+            # 【2026-10-25】回滚是物理删除：dry-run 必须让人**看得见内容**再确认。
+            # 逐条只读回读（GET /api/vector/item/<id>）；预览失败不阻断 dry-run。
+            from . import targets as _targets
+
+            previews = []
+            for item_id in vector_ids:
+                try:
+                    info = _targets.read_vector_item(item_id, limit=160)
+                    previews.append({"id": item_id, "chars": int(info.get("chars") or 0),
+                                     "preview": str(info.get("preview") or ""),
+                                     "metadata": dict(info.get("metadata") or {})})
+                except Exception:  # noqa: BLE001 预览失败不阻断 dry-run
+                    previews.append({"id": item_id, "chars": 0, "preview": "",
+                                     "metadata": {}})
             return {"ok": True, "dry_run": True, "batch_id": batch_id,
                     "carrier": carrier, "vector_ids": vector_ids,
+                    "items_preview": previews,
                     "would_delete": "vector:" + ",".join(vector_ids)}
         if confirm is not True:
             raise ConfirmationRequired(
