@@ -13286,7 +13286,7 @@
       "source_layer": "memory_import",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 349,
+      "line": 380,
       "source_file": "agent/memory_import/migrate.py",
       "is_cross_layer": true,
       "is_violation": false,
