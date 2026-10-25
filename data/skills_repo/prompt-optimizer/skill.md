@@ -12,6 +12,7 @@ source: claude-skills
 tags:
 - claude-skills
 content_type: markdown
+enabled: true
 ---
 
 # Prompt Optimizer
