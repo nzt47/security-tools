@@ -100,6 +100,13 @@ export interface MemoryImportBatchEntry {
   committed_at: string
   audit_seq: number
   rollback: 'auto' | 'manual'
+  /** 向量记忆的 id 列表（§10 第 2 步起：回滚按它真删） */
+  vector_ids?: string[]
+  /** 该批次是从消息流迁到向量库的（§10 第 3 步标记） */
+  migrated?: boolean
+  /** 外部来源（claude / trae）与周期（2026-07 / static） */
+  origin?: string
+  period?: string
 }
 
 export interface MemoryImportRollbackResult {
@@ -110,6 +117,11 @@ export interface MemoryImportRollbackResult {
   ref?: string
   deleted?: string
   would_delete?: string
+  /** 删除前就已不存在的向量 id（404 不算失败，也不冒充删除成功） */
+  missing?: string[]
+  /** 真正删除失败的向量 id（附异常类名）；非空时批次清单不会被删 */
+  failed?: string[]
+  vector_ids?: string[]
   manual?: boolean
   error?: string
   audit?: { seq?: number }

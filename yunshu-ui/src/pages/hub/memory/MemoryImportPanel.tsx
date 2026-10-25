@@ -100,9 +100,12 @@ export default function MemoryImportPanel() {
     try {
       const r = await rollbackMemoryImport({ batch_id: batchId, confirm: true, dry_run: false })
       if (r.manual) {
-        setBatchErr('该批次需人工回滚：' + (r.error || '缺少 msg_id，无法按 id 删除'))
+        setBatchErr('该批次需人工回滚：' + (r.error || '没有可删的凭据（vector_ids / msg_id 都没有）'))
       } else if (r.ok) {
+        // 404（本来就不在）单独说清楚：不把它算成"刚删掉"，也不当成失败
+        const missing = (r.missing ?? []).length
         setBatchMsg('已回滚 ' + batchId + (r.deleted ? '（已删除 ' + r.deleted + '）' : '')
+          + (missing ? '（' + missing + ' 条在删除前已不存在）' : '')
           + (typeof r.audit?.seq === 'number' ? ' · 审计 seq ' + r.audit.seq : ''))
         loadBatches()
       } else {
@@ -173,7 +176,7 @@ export default function MemoryImportPanel() {
   return (
     <Card title="导入外部记忆">
       <p className="mb-3 text-xs leading-6 text-slate-500">
-        把 Claude / Trae 的规则与会话轨迹导入云枢：规则进知识卡片，会话/提问进长期记忆。
+        把 Claude / Trae 的规则与会话轨迹导入云枢：规则进知识卡片，会话/提问进<span className="text-slate-300">向量记忆</span>（可语义检索、可按批回滚）。
         <span className="text-slate-400">预览是只读的</span>，勾选批次并确认后才会写入；每次写入都会写审计，可按批次回滚。
       </p>
 
@@ -355,7 +358,7 @@ export default function MemoryImportPanel() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Undo2 size={13} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">已写入批次（可回滚）</h3>
-          <span className="text-[10px] text-slate-500">知识卡片凭 ref 回滚；长期记忆凭写入时记下的 msg_id 按 id 物理删除（老批次无 msg_id 需人工）</span>
+          <span className="text-[10px] text-slate-500">知识卡片凭 ref 回滚；向量记忆凭写入时记下的 vector_ids 按 id 物理删除（迁移前的老批次才用 msg_id，两者都没有则需人工）</span>
           <button type="button" className={BTN} onClick={() => loadBatches()} disabled={batchBusy !== ''} aria-label="刷新批次">
             <RefreshCw size={11} /> 刷新
           </button>
@@ -387,7 +390,7 @@ export default function MemoryImportPanel() {
                     <td className="px-2 py-1 text-slate-500">{b.ref || '-'}</td>
                     <td className="px-2 py-1">
                       {b.rollback === 'manual' ? (
-                        <span className="text-[10px] text-slate-500" title="该批次写入时没有记下 msg_id（老批次），无法按 id 自动删除">需人工</span>
+                        <span className="text-[10px] text-slate-500" title="该批次没有 vector_ids / msg_id 可删（老批次），无法按 id 自动删除">需人工</span>
                       ) : pendingRollback === b.batch_id ? (
                         <span className="inline-flex items-center gap-1">
                           <button type="button" className={BTN} onClick={() => void doRollback(b.batch_id)} disabled={batchBusy !== ''} aria-label={'确认回滚 ' + b.batch_id}>

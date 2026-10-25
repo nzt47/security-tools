@@ -47,7 +47,9 @@ CARRIER_MEMORY = "memory_note"
 CARRIERS: Tuple[str, ...] = (CARRIER_CARD, CARRIER_MEMORY)
 CARRIER_LABELS: Dict[str, str] = {
     CARRIER_CARD: "知识卡片",
-    CARRIER_MEMORY: "长期记忆",
+    # 【2026-10-25 · §10 第 2 步】载体不变（仍叫 memory_note，老批次清单继续可读），
+    # 但落点已从"长期记忆消息流"改为**向量记忆**：既不伪装成本机对话，也能按 id 回滚。
+    CARRIER_MEMORY: "向量记忆",
 }
 
 #: 记录处置状态

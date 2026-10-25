@@ -618,8 +618,9 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         validator=_range_validator(1, 300),
         default=30.0,
         error_message="memory_import.http_timeout_sec 必须在 1-300 秒之间",
-        description="外部记忆写入长期记忆的 HTTP 超时秒数，用于 memory_import/targets.py 的"
-                    " _default_memory_sink(timeout=)（可被 CP_MEMORY_IMPORT_HTTP_TIMEOUT 覆盖）",
+        description="外部记忆写入载体的 HTTP 超时秒数，用于 memory_import/targets.py 的"
+                    " _default_vector_sink(timeout=) / _default_memory_sink(timeout=)"
+                    "（可被 CP_MEMORY_IMPORT_HTTP_TIMEOUT 覆盖）",
     ),
     # 【可选 LLM 摘要的成本闸门】这两条是**钱**的上限，不是性能调参：
     # 一次误勾「用 LLM 摘要」就能对 14 个批次各发一次请求，故次数与输入量都必须可配。

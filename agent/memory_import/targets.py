@@ -221,24 +221,141 @@ def delete_memory_note(msg_id: str, *,
             "dry_run": bool(data.get("dry_run")), "audit": data.get("audit") or {}}
 
 
+#: 向量记忆 metadata 的来源标记（导入的向量一律带它，检索/回滚/审计都靠它辨认）
+VECTOR_SOURCE = "memory_import"
+
+
+def vector_metadata(batch: Batch) -> Dict[str, Any]:
+    """批次 -> 向量 memory metadata（**可过滤、可回读、可追责**的最小子集）。
+
+    【为什么是这五个键】来源（source）、哪一批（batch_id）、哪个外部来源（origin）、
+    哪段时间（period）、摘要方式（digest_source）—— 少一个就无法回答
+    "这条向量是谁写的、能不能按批回滚、是不是 LLM 改写的"。
+    title/records 只是方便人读，不参与判据。
+    """
+    return {
+        "source": VECTOR_SOURCE,
+        "batch_id": str(batch.batch_id or ""),
+        "origin": str(batch.source or ""),
+        "period": str(batch.date or ""),
+        "digest_source": str(getattr(batch, "digest_source", "rule") or "rule"),
+        "title": str(batch.title or ""),
+        "records": len(batch.record_ids),
+    }
+
+
+def _default_vector_sink(content: str, *, metadata: Optional[Dict[str, Any]] = None,
+                         base_url: str = "http://127.0.0.1:5678",
+                         timeout: Optional[float] = None) -> Dict[str, Any]:
+    """默认写入向量记忆：走**运行中服务**的 POST /api/vector/add。
+
+    【为什么改走向量记忆（交接单 §10）】此前写的是长期记忆消息流：落盘 role=user，
+    会被 get_context / 压缩器当成本机对话折进滚动摘要 —— 外部转录悄悄混进本机记忆，
+    而且事后查不出来（实测 /api/vector/search 搜不到，等于既不真实也检索不到）。
+    向量记忆只被语义检索读到，可按 metadata 过滤、可按 id 删除。
+
+    【为什么走 HTTP 而不是 import app_server】与 `_default_memory_sink` 同源：
+    app_server 模块级构造 DigitalLife（实测 80-100s），CLI 进程里再造一份会与
+    正在服务的进程产生第二份状态。HTTP 写路径与界面"手动添加"完全同源。
+    """
+    import json
+    import urllib.error
+    import urllib.request
+
+    token = read_api_token()
+    timeout = http_timeout() if timeout is None else float(timeout)
+    payload = {"content": content, "metadata": dict(metadata or {})}
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["X-API-Token"] = token
+    request = urllib.request.Request(base_url.rstrip("/") + "/api/vector/add",
+                                     data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = json.loads(response.read().decode("utf-8", "replace") or "{}")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:200]
+        raise RuntimeError(f"向量写入被拒绝（HTTP {exc.code}）：{detail}") from exc
+    # 该端点是 legacy 形状（{ok, item_id}），不是统一信封；两种都认，免得换壳就废
+    data = raw.get("data") if isinstance(raw, dict) and isinstance(raw.get("data"), dict) else raw
+    if not isinstance(data, dict) or data.get("ok") is False:
+        raise RuntimeError(f"向量写入失败：{str(raw)[:160]}")
+    item_id = str(data.get("item_id") or "").strip()
+    if not item_id:
+        raise RuntimeError("向量写入未返回 item_id（无法事后按 id 回滚）")
+    return {"ok": True, "ref": "vector/" + item_id, "detail": {"vector_ids": [item_id]}}
+
+
+def delete_vector_item(item_id: str, *,
+                       base_url: str = "http://127.0.0.1:5678",
+                       timeout: Optional[float] = None) -> Dict[str, Any]:
+    """按 id 删除一条向量记忆：走 DELETE /api/vector/item/<id>（#1299）。
+
+    【判据】"本来就没有"与"删掉了"分开报：HTTP 404 说明它已经不在库里，
+    对**回滚**而言目标状态已达成，故 missing=True + ok=True；真正失败
+    （5xx/网络）才抛异常，由调用方如实回 manual 且**不删清单**。
+    """
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    target = str(item_id or "").strip()
+    if not target:
+        raise ValueError("item_id 不能为空")
+    token = read_api_token()
+    timeout = http_timeout() if timeout is None else float(timeout)
+    headers = {}
+    if token:
+        headers["X-API-Token"] = token
+    url = (base_url.rstrip("/") + "/api/vector/item/"
+           + urllib.parse.quote(target, safe=""))
+    request = urllib.request.Request(url, headers=headers, method="DELETE")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = json.loads(response.read().decode("utf-8", "replace") or "{}")
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return {"ok": True, "deleted": False, "missing": True, "item_id": target}
+        detail = exc.read().decode("utf-8", "replace")[:200]
+        raise RuntimeError(f"删除向量记忆被拒绝（HTTP {exc.code}）：{detail}") from exc
+    data = raw.get("data") if isinstance(raw, dict) else None
+    if not isinstance(data, dict):
+        raise RuntimeError(f"删除向量记忆的响应不是统一信封：{str(raw)[:120]}")
+    return {"ok": bool(data.get("deleted")), "deleted": bool(data.get("deleted")),
+            "missing": False, "item_id": target, "audit": data.get("audit") or {}}
+
+
 def write_memory_note(batch: Batch, *, sink: Optional[Callable[..., Any]] = None,
                       priority: str = "low") -> Dict[str, Any]:
-    """把批次写成一条长期记忆（规则式摘要，不做 LLM 改写）。"""
+    """把批次写成一条**向量记忆**（规则式摘要，不做 LLM 改写）。
+
+    【单一载体，不双写】正文只进向量库；metadata 带
+    {source: memory_import, batch_id, origin, period, digest_source}，
+    回滚凭写入回执里的 vector_ids 按 id 真删（见 service.rollback）。
+    """
     if batch.carrier != CARRIER_MEMORY:
         raise ValueError(f"载体不匹配: {batch.carrier!r} != {CARRIER_MEMORY!r}")
     body = str(batch.digest or "").strip()
     if not body:
         raise ValueError("批次正文为空，拒绝写入")
     body = f"[外部记忆导入 {batch.batch_id} | {batch.title}]\n{body}"
-    writer = sink or _default_memory_sink
-    result = writer(body, priority=priority) or {}
+    meta = vector_metadata(batch)
+    writer = sink or _default_vector_sink
+    result = writer(body, metadata=meta) or {}
     if isinstance(result, dict) and result.get("ok") is False:
-        raise RuntimeError(str(result.get("error") or "长期记忆写入失败"))
+        raise RuntimeError(str(result.get("error") or "向量记忆写入失败"))
+    detail = dict((result or {}).get("detail") or {}) if isinstance(result, dict) else {}
+    vector_ids = [str(v) for v in (detail.get("vector_ids") or []) if str(v)]
+    if not vector_ids:
+        # 没有 id 就没有回滚入口 —— 宁可当场失败，也不要写进一条删不掉的向量
+        raise RuntimeError("向量写入未留下 vector_ids（回滚将无据可依）")
     ref = str((result or {}).get("ref") or "") if isinstance(result, dict) else ""
-    return {"ok": True, "carrier": CARRIER_MEMORY, "ref": ref or batch.batch_id,
+    return {"ok": True, "carrier": CARRIER_MEMORY, "ref": ref or vector_ids[0],
             "detail": {"chars": len(body), "priority": priority,
-                       "records": len(batch.record_ids)}}
-
+                       "records": len(batch.record_ids),
+                       "vector_ids": vector_ids, "metadata": meta}}
 
 def default_writers() -> Dict[str, Any]:
     """默认载体写入器（commit 用；测试应替换成假函数）。"""
