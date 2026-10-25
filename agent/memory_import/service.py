@@ -497,8 +497,12 @@ def list_batches(*, root: Optional[Path] = None) -> List[Dict[str, Any]]:
             "plan_id": str(entry.get("plan_id") or ""),
             "committed_at": str(entry.get("committed_at") or ""),
             "audit_seq": int((entry.get("audit") or {}).get("seq") or 0),
-            # 只有卡片能自动回滚；长期记忆没有按 id 删除的稳定入口
-            "rollback": "auto" if (carrier == CARRIER_CARD and entry.get("ref")) else "manual",
+            # 卡片凭 ref 可删；长期记忆凭写入时记下的 msg_id 可删（#1295 之后才有）
+            "rollback": ("auto"
+                         if (carrier == CARRIER_CARD and entry.get("ref"))
+                         or (carrier == CARRIER_MEMORY
+                             and (entry.get("detail") or {}).get("msg_id"))
+                         else "manual"),
             "digest_source": str(entry.get("digest_source") or "rule"),
         })
     out.sort(key=lambda item: item.get("committed_at") or "", reverse=True)
@@ -518,10 +522,43 @@ def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
     entry = json.loads(manifest.read_text(encoding="utf-8"))
     ref = str(entry.get("ref") or "")
     carrier = str(entry.get("carrier") or "")
+    detail = dict(entry.get("detail") or {})
+    msg_id = str(detail.get("msg_id") or "")
+    if carrier == CARRIER_MEMORY and msg_id:
+        # 【2026-10-25 · T3 遗留收口】长期记忆现在也能自动回了：写入时若记下了
+        # msg_id（#1295 之后 `/api/memory/manual` 会回），就能按 id 物理删。
+        # 老批次没有 msg_id（写入时该能力还不存在）⇒ 仍然如实报 manual，不假装能删。
+        if dry_run:
+            return {"ok": True, "dry_run": True, "batch_id": batch_id,
+                    "carrier": carrier, "would_delete": "memory:" + msg_id}
+        if confirm is not True:
+            raise ConfirmationRequired(
+                "回滚长期记忆需要显式 confirm=true",
+                detail="dry_run=true 可先看将删除哪条记忆（按 msg_id）")
+        from . import targets
+
+        try:
+            outcome = targets.delete_memory_note(msg_id)
+        except Exception as exc:  # noqa: BLE001 失败要如实报，不假装删掉了
+            return {"ok": False, "dry_run": False, "batch_id": batch_id,
+                    "carrier": carrier, "manual": True,
+                    "error": f"按 id 删除长期记忆失败：{type(exc).__name__}"}
+        audit_ref = _audit(Batch(batch_id=batch_id, carrier=carrier,
+                                 title=str(entry.get("title") or ""),
+                                 source=str(detail.get("source") or ""),
+                                 digest="", record_ids=[]),
+                          {"ok": bool(outcome.get("ok")), "ref": "memory:" + msg_id},
+                          str(entry.get("plan_id") or ""))
+        if outcome.get("ok"):
+            manifest.unlink(missing_ok=True)
+        _flush_audit()
+        return {"ok": bool(outcome.get("ok")), "dry_run": False, "batch_id": batch_id,
+                "carrier": carrier, "deleted": "memory:" + msg_id,
+                "audit": audit_ref}
     if carrier != CARRIER_CARD or not ref:
         return {"ok": False, "dry_run": dry_run, "batch_id": batch_id,
                 "carrier": carrier, "manual": True,
-                "error": "该批次的载体无法自动回滚（长期记忆需人工删除）"}
+                "error": "该批次无法自动回滚：长期记忆缺少 msg_id（写入时还没有该能力），需人工删除"}
     if dry_run:
         return {"ok": True, "dry_run": True, "batch_id": batch_id,
                 "would_delete": ref, "carrier": carrier}
