@@ -100,7 +100,7 @@ export default function MemoryImportPanel() {
     try {
       const r = await rollbackMemoryImport({ batch_id: batchId, confirm: true, dry_run: false })
       if (r.manual) {
-        setBatchErr('该批次需人工回滚：' + (r.error || '长期记忆没有按 id 删除的稳定入口'))
+        setBatchErr('该批次需人工回滚：' + (r.error || '缺少 msg_id，无法按 id 删除'))
       } else if (r.ok) {
         setBatchMsg('已回滚 ' + batchId + (r.deleted ? '（已删除 ' + r.deleted + '）' : '')
           + (typeof r.audit?.seq === 'number' ? ' · 审计 seq ' + r.audit.seq : ''))
@@ -355,7 +355,7 @@ export default function MemoryImportPanel() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Undo2 size={13} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">已写入批次（可回滚）</h3>
-          <span className="text-[10px] text-slate-500">知识卡片可自动回滚；长期记忆没有按 id 删除的入口，需人工处理</span>
+          <span className="text-[10px] text-slate-500">知识卡片凭 ref 回滚；长期记忆凭写入时记下的 msg_id 按 id 物理删除（老批次无 msg_id 需人工）</span>
           <button type="button" className={BTN} onClick={() => loadBatches()} disabled={batchBusy !== ''} aria-label="刷新批次">
             <RefreshCw size={11} /> 刷新
           </button>
@@ -387,7 +387,7 @@ export default function MemoryImportPanel() {
                     <td className="px-2 py-1 text-slate-500">{b.ref || '-'}</td>
                     <td className="px-2 py-1">
                       {b.rollback === 'manual' ? (
-                        <span className="text-[10px] text-slate-500" title="长期记忆没有按 id 删除的稳定入口">需人工</span>
+                        <span className="text-[10px] text-slate-500" title="该批次写入时没有记下 msg_id（老批次），无法按 id 自动删除">需人工</span>
                       ) : pendingRollback === b.batch_id ? (
                         <span className="inline-flex items-center gap-1">
                           <button type="button" className={BTN} onClick={() => void doRollback(b.batch_id)} disabled={batchBusy !== ''} aria-label={'确认回滚 ' + b.batch_id}>

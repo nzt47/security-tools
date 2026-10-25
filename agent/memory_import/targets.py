@@ -170,7 +170,55 @@ def _default_memory_sink(content: str, *, priority: str = "low",
     data = payload.get("data") if isinstance(payload, dict) else None
     if isinstance(data, dict) and data.get("ok") is False:
         raise RuntimeError(str(data.get("error") or "记忆写入失败"))
-    return {"ok": True, "ref": "memory/manual"}
+    # 【2026-10-25 · 交接单 T3 遗留】把服务端返回的 msg_id 落进 detail：
+    # 没有它，这条长期记忆**事后就没有任何稳定入口可删**（按序号删已明确 501）。
+    msg_id = str((data or {}).get("msg_id") or "") if isinstance(data, dict) else ""
+    return {"ok": True, "ref": "memory/manual",
+            "detail": {"msg_id": msg_id} if msg_id else {}}
+
+
+def delete_memory_note(msg_id: str, *,
+                       base_url: str = "http://127.0.0.1:5678",
+                       timeout: Optional[float] = None,
+                       dry_run: bool = False) -> Dict[str, Any]:
+    """按 id 删除一条长期记忆：走**运行中服务**的 DELETE /api/memory/messages/<id>。
+
+    与写入同源（HTTP），理由见 `_default_memory_sink`：CLI 进程里再造一个
+    DigitalLife 既慢又会与线上进程产生第二份状态。
+
+    【判据】真删必须在请求体里显式 `dry_run=False & confirm=True`；
+    这里不接受"只给 msg_id 就删"，避免调用方忘记确认语义。
+    """
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    target = str(msg_id or "").strip()
+    if not target:
+        raise ValueError("msg_id 不能为空")
+    token = read_api_token()
+    timeout = http_timeout() if timeout is None else float(timeout)
+    body = json.dumps({"dry_run": bool(dry_run), "confirm": not dry_run},
+                      ensure_ascii=False).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["X-API-Token"] = token
+    url = (base_url.rstrip("/") + "/api/memory/messages/"
+           + urllib.parse.quote(target, safe=""))
+    request = urllib.request.Request(url, data=body, headers=headers, method="DELETE")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8", "replace") or "{}")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:200]
+        raise RuntimeError(f"删除长期记忆被拒绝（HTTP {exc.code}）：{detail}") from exc
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, dict):
+        raise RuntimeError(f"删除长期记忆的响应不是统一信封：{str(payload)[:120]}")
+    return {"ok": bool(data.get("ok")) and (bool(data.get("deleted")) or bool(dry_run)),
+            "deleted": bool(data.get("deleted")), "msg_id": target,
+            "dry_run": bool(data.get("dry_run")), "audit": data.get("audit") or {}}
 
 
 def write_memory_note(batch: Batch, *, sink: Optional[Callable[..., Any]] = None,
