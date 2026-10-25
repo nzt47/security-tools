@@ -100,11 +100,14 @@ def test_delete_memory_note_rejects_empty_id():
 
 
 def _manifest(root: Path, batch_id: str, *, carrier: str, ref: str = "",
-              msg_id: str = "") -> None:
+              msg_id: str = "", vector_ids=None) -> None:
     service.batch_dir(root).mkdir(parents=True, exist_ok=True)
+    detail = {"msg_id": msg_id} if msg_id else {}
+    if vector_ids:
+        detail["vector_ids"] = list(vector_ids)
     entry = {"batch_id": batch_id, "carrier": carrier, "title": "t",
              "records": 2, "chars": 10, "ref": ref,
-             "detail": ({"msg_id": msg_id} if msg_id else {}),
+             "detail": detail,
              "plan_id": "mp_x", "committed_at": "2026-10-25T00:00:00+08:00",
              "audit": {"seq": 1}}
     (service.batch_dir(root) / f"{batch_id}.json").write_text(
@@ -197,3 +200,38 @@ def test_rollback_memory_already_gone_reports_missing_not_deleted(tmp_path, monk
     assert out["deleted"] == "", "没删到任何东西就不能写 deleted"
     assert out["missing"] == ["m9"]
     assert not (service.batch_dir(tmp_path) / "mb_999999999999.json").exists()
+
+
+def test_rollback_dry_run_includes_content_preview(tmp_path, monkeypatch):
+    """回滚是物理删除：dry-run 必须把"将删掉什么"摆出来（只读回读，不删）。"""
+    _manifest(tmp_path, "mb_777777777777", carrier=CARRIER_MEMORY,
+              vector_ids=["mem_a", "mem_b"])
+
+    def fake_read(item_id, limit=160, **kwargs):
+        return {"id": item_id, "chars": 42,
+                "preview": f"{item_id}: 外部记忆导入的正文片段",
+                "metadata": {"batch_id": "mb_777777777777", "origin": "claude"}}
+
+    monkeypatch.setattr(targets, "read_vector_item", fake_read)
+    deleted = []
+    monkeypatch.setattr(targets, "delete_vector_item",
+                        lambda *a, **k: deleted.append(a) or {"ok": True})
+    out = service.rollback("mb_777777777777", root=tmp_path)
+    assert out["dry_run"] is True
+    assert [p["id"] for p in out["items_preview"]] == ["mem_a", "mem_b"]
+    assert out["items_preview"][0]["preview"].startswith("mem_a:")
+    assert out["items_preview"][0]["metadata"]["origin"] == "claude"
+    assert deleted == [], "dry-run 绝不能真删"
+
+
+def test_rollback_dry_run_preview_failure_does_not_block(tmp_path, monkeypatch):
+    """预览读不到（比如并发删了）也要能 dry-run，至少把 id 摆出来。"""
+    _manifest(tmp_path, "mb_888888888888", carrier=CARRIER_MEMORY, vector_ids=["mem_x"])
+
+    def boom(item_id, limit=160, **kwargs):
+        raise RuntimeError("HTTP 500")
+
+    monkeypatch.setattr(targets, "read_vector_item", boom)
+    out = service.rollback("mb_888888888888", root=tmp_path)
+    assert out["dry_run"] is True
+    assert out["items_preview"] == [{"id": "mem_x", "chars": 0, "preview": "", "metadata": {}}]

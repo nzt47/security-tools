@@ -306,10 +306,14 @@ def _default_vector_sink(content: str, *, metadata: Optional[Dict[str, Any]] = N
     return {"ok": True, "ref": "vector/" + item_id, "detail": {"vector_ids": [item_id]}}
 
 
-def verify_vector_item(item_id: str, *,
-                       base_url: str = "http://127.0.0.1:5678",
-                       timeout: Optional[float] = None) -> Dict[str, Any]:
-    """按 id 回读一条向量（写入后自证用）：404 即"没落库"，抛错让上层失败可见。"""
+def read_vector_item(item_id: str, *, limit: int = 160,
+                     base_url: str = "http://127.0.0.1:5678",
+                     timeout: Optional[float] = None) -> Dict[str, Any]:
+    """按 id 读一条向量（**只读**；用于回滚预览与写入自证）。
+
+    【为什么回滚要先读】回滚是**物理删除**、不可恢复；只给一个 mem_id 让人确认，
+    等于让人对着看不懂的字符串签字。故 dry-run 时把每条要删的内容截一段回来。
+    """
     import json
     import urllib.error
     import urllib.parse
@@ -331,13 +335,30 @@ def verify_vector_item(item_id: str, *,
             raw = json.loads(response.read().decode("utf-8", "replace") or "{}")
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            raise RuntimeError(f"向量写入回执的 id 查不到（未落库）：{target}") from exc
+            raise RuntimeError(f"向量 id 查不到（可能已被删除）：{target}") from exc
         detail = exc.read().decode("utf-8", "replace")[:200]
         raise RuntimeError(f"回读向量被拒绝（HTTP {exc.code}）：{detail}") from exc
     item = raw.get("data") if isinstance(raw, dict) and isinstance(raw.get("data"), dict) else raw
     if not isinstance(item, dict) or str(item.get("id") or "") != target:
         raise RuntimeError(f"回读向量的响应与 id 不符：{str(raw)[:120]}")
-    return {"ok": True, "item_id": target, "char_count": len(str(item.get("content") or ""))}
+    content = str(item.get("content") or "")
+    cut = max(0, int(limit or 0))
+    return {"id": target, "chars": len(content),
+            "preview": content[:cut] + ("…" if cut and len(content) > cut else ""),
+            "metadata": dict(item.get("metadata") or {})}
+
+
+def verify_vector_item(item_id: str, *,
+                       base_url: str = "http://127.0.0.1:5678",
+                       timeout: Optional[float] = None) -> Dict[str, Any]:
+    """按 id 回读一条向量（写入后自证用）：404 即"没落库"，抛错让上层失败可见。"""
+    try:
+        # limit=0：只取存在性与字符数，不把正文搬进日志/异常
+        info = read_vector_item(item_id, limit=0, base_url=base_url, timeout=timeout)
+    except RuntimeError as exc:
+        # 保留原始原因（404「查不到」/ 5xx / id 不符），只在前面加一句"回执不可用"
+        raise RuntimeError(f"向量写入回执不可用：{exc}") from exc
+    return {"ok": True, "item_id": info["id"], "char_count": info["chars"]}
 
 
 def delete_vector_item(item_id: str, *,

@@ -18,6 +18,7 @@ import {
   rollbackMemoryImport,
   type ImportedVectorDoc, type MemoryImportBatchEntry,
   type MemoryImportCommitResult, type MemoryImportPlan, type MemoryImportSource,
+  type MemoryImportRollbackResult,
 } from '@/lib/memoryImportApi'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
@@ -75,6 +76,9 @@ export default function MemoryImportPanel() {
   const [vectors, setVectors] = useState<ImportedVectorDoc[]>([])
   const [vecErr, setVecErr] = useState('')
   const [vecBusy, setVecBusy] = useState(false)
+  // 回滚前预览：点「回滚」先拉 dry-run，把将删掉的向量正文摆出来再让人确认
+  const [rollbackPreview, setRollbackPreview] = useState<MemoryImportRollbackResult | null>(null)
+  const [previewBusy, setPreviewBusy] = useState('')
 
   const loadBatches = () => {
     fetchMemoryImportBatches()
@@ -108,8 +112,24 @@ export default function MemoryImportPanel() {
 
   useEffect(() => { loadBatches(); loadVectors() }, [])
 
+  const beginRollback = async (batchId: string) => {
+    // 第一下只做"看清要删什么"：dry-run 会逐条回读向量正文（服务端只读，不删任何东西）
+    setPendingRollback(batchId)
+    setRollbackPreview(null)
+    setBatchErr(''); setBatchMsg('')
+    setPreviewBusy(batchId)
+    try {
+      const r = await rollbackMemoryImport({ batch_id: batchId, confirm: false, dry_run: true })
+      setRollbackPreview(r)
+    } catch (e) {
+      setBatchErr('读取回滚预览失败：' + errText(e))
+    } finally { setPreviewBusy('') }
+  }
+
+  const cancelRollback = () => { setPendingRollback(''); setRollbackPreview(null) }
+
   const doRollback = async (batchId: string) => {
-    setBatchBusy(batchId); setBatchErr(''); setBatchMsg(''); setPendingRollback('')
+    setBatchBusy(batchId); setBatchErr(''); setBatchMsg(''); setPendingRollback(''); setRollbackPreview(null)
     try {
       const r = await rollbackMemoryImport({ batch_id: batchId, confirm: true, dry_run: false })
       if (r.manual) {
@@ -405,16 +425,9 @@ export default function MemoryImportPanel() {
                     <td className="px-2 py-1">
                       {b.rollback === 'manual' ? (
                         <span className="text-[10px] text-slate-500" title="该批次没有 vector_ids / msg_id 可删（老批次），无法按 id 自动删除">需人工</span>
-                      ) : pendingRollback === b.batch_id ? (
-                        <span className="inline-flex items-center gap-1">
-                          <button type="button" className={BTN} onClick={() => void doRollback(b.batch_id)} disabled={batchBusy !== ''} aria-label={'确认回滚 ' + b.batch_id}>
-                            {batchBusy === b.batch_id ? <Loader2 size={11} className="animate-spin" /> : <Undo2 size={11} />} 确认回滚
-                          </button>
-                          <button type="button" className={BTN} onClick={() => setPendingRollback('')} aria-label={'取消回滚 ' + b.batch_id}>取消</button>
-                        </span>
                       ) : (
-                        <button type="button" className={BTN} onClick={() => setPendingRollback(b.batch_id)} disabled={batchBusy !== ''} aria-label={'回滚 ' + b.batch_id}>
-                          <Undo2 size={11} /> 回滚
+                        <button type="button" className={BTN} onClick={() => void beginRollback(b.batch_id)} disabled={batchBusy !== '' || previewBusy !== ''} aria-label={'回滚 ' + b.batch_id} title="先看将删除的内容，再确认（物理删除、不可恢复）">
+                          <Undo2 size={11} /> 回滚（先看内容）
                         </button>
                       )}
                     </td>
@@ -425,6 +438,61 @@ export default function MemoryImportPanel() {
           </div>
         )}
       </div>
+
+
+      {/* 回滚前预览：两个入口（已写入批次 / 向量文档）共用同一条预览条 */}
+      {pendingRollback && (
+        <div className="mt-4 rounded-lg border border-red-900/60 bg-red-500/5 px-3 py-2 text-[11px]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-red-300">即将物理删除批次 {pendingRollback}</span>
+            <span className="text-slate-500">不可恢复：向量按 id 真删，批次清单同时摘除</span>
+          </div>
+          {previewBusy === pendingRollback ? (
+            <div className="mt-2 flex items-center gap-1 text-slate-400">
+              <Loader2 size={11} className="animate-spin" /> 正在读取将删除的内容…
+            </div>
+          ) : rollbackPreview ? (
+            <>
+              <div className="mt-1 text-slate-400">
+                {rollbackPreview.items_preview?.length ? (
+                  <>将删除 <b className="text-red-300">{rollbackPreview.items_preview.length}</b> 条向量，共{' '}
+                    <b className="text-red-300">{rollbackPreview.items_preview.reduce((n, it) => n + (it.chars || 0), 0)}</b> 字符</>
+                ) : (
+                  <>将删除：<span className="font-mono text-slate-300">{rollbackPreview.would_delete || '-'}</span></>
+                )}
+              </div>
+              {(rollbackPreview.items_preview ?? []).map((it) => (
+                <div key={it.id} className="mt-2 rounded border border-slate-800 bg-slate-950/60 p-2">
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+                    <span className="font-mono text-slate-400">{it.id}</span>
+                    <span>{it.chars} 字符</span>
+                    {it.metadata?.origin ? (
+                      <span className="rounded bg-sky-500/15 px-1 text-sky-300">{String(it.metadata.origin)}</span>
+                    ) : null}
+                  </div>
+                  <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-[10px] leading-5 text-slate-300">
+                    {it.preview || '（内容为空或读取失败）'}
+                  </pre>
+                </div>
+              ))}
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  className={BTN_PRIMARY + ' !bg-red-600 hover:!bg-red-500'}
+                  onClick={() => void doRollback(pendingRollback)}
+                  disabled={batchBusy !== ''}
+                  aria-label={'确认回滚 ' + pendingRollback}
+                >
+                  {batchBusy === pendingRollback
+                    ? <Loader2 size={11} className="animate-spin" />
+                    : <Undo2 size={11} />} 确认删除（不可恢复）
+                </button>
+                <button type="button" className={BTN} onClick={cancelRollback} aria-label={'取消回滚 ' + pendingRollback}>取消</button>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
 
       {/* §10 第 3 步：外部导入的向量文档（按 metadata.source 过滤 + 来源徽章） */}
       <div className="mt-5 border-t border-slate-800 pt-3">
@@ -487,36 +555,18 @@ export default function MemoryImportPanel() {
                     <td className="px-2 py-1 text-slate-400">{v.char_count}</td>
                     <td className="px-2 py-1 font-mono text-slate-500">{v.id}</td>
                     <td className="px-2 py-1">
-                      {/* 【2026-10-25 修正】此处原先是"一键真删"：点一下就把这一批的向量物理删掉、
-                          清单摘除（用户实测误点过）。与批次区统一成两步：先点"回滚"，再点"确认回滚"。 */}
-                      {pendingRollback === v.batch_id ? (
-                        <span className="inline-flex items-center gap-1">
-                          <button
-                            type="button"
-                            className={BTN}
-                            onClick={() => { setPendingRollback(''); void doRollback(v.batch_id) }}
-                            disabled={batchBusy !== '' || !v.batch_id}
-                            aria-label={'确认回滚向量批次 ' + v.batch_id}
-                            title="确认后**物理删除**这些向量（不可恢复），并摘除批次清单"
-                          >
-                            {batchBusy === v.batch_id ? <Loader2 size={11} className="animate-spin" /> : <Undo2 size={11} />} 确认回滚（真删）
-                          </button>
-                          <button type="button" className={BTN} onClick={() => setPendingRollback('')} aria-label={'取消回滚向量批次 ' + v.batch_id}>
-                            取消
-                          </button>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          className={BTN}
-                          onClick={() => setPendingRollback(v.batch_id)}
-                          disabled={batchBusy !== '' || !v.batch_id}
-                          aria-label={'回滚向量批次 ' + v.batch_id}
-                          title="回滚 = 物理删除（不可恢复）：先点这里，再点确认"
-                        >
-                          <Undo2 size={11} /> 回滚（真删）
-                        </button>
-                      )}
+                      {/* 【2026-10-25 修正】此处原先是"一键真删"（用户实测误点过）。
+                          现在与批次区统一：点一下 → 拉 dry-run 预览内容 → 在预览条里确认/取消。 */}
+                      <button
+                        type="button"
+                        className={BTN}
+                        onClick={() => void beginRollback(v.batch_id)}
+                        disabled={batchBusy !== '' || previewBusy !== '' || !v.batch_id}
+                        aria-label={'回滚向量批次 ' + v.batch_id}
+                        title="回滚 = 物理删除（不可恢复）：先看将删除的内容，再确认"
+                      >
+                        <Undo2 size={11} /> 回滚（先看内容）
+                      </button>
                     </td>
                   </tr>
                 ))}

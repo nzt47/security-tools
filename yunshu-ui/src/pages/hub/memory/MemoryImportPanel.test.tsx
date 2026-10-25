@@ -197,9 +197,11 @@ describe('MemoryImportPanel', () => {
         },
       ],
     })
-    api.rollback.mockResolvedValue({
-      ok: true, dry_run: false, batch_id: 'mb_card', deleted: 'slug-1', audit: { seq: 901 },
-    })
+    api.rollback.mockImplementation(({ dry_run }: { dry_run?: boolean }) => Promise.resolve(
+      dry_run
+        ? { ok: true, dry_run: true, batch_id: 'mb_card', would_delete: 'slug-1' }
+        : { ok: true, dry_run: false, batch_id: 'mb_card', deleted: 'slug-1', audit: { seq: 901 } },
+    ))
 
     render(<MemoryImportPanel />)
 
@@ -208,9 +210,14 @@ describe('MemoryImportPanel', () => {
     const rollbackBtn = screen.getByRole('button', { name: '回滚 mb_card' }) as HTMLButtonElement
     expect(rollbackBtn.disabled).toBe(false)
 
-    // 第一下只是进入二次确认，不发请求
+    // 第一下 = 拉 dry-run 预览（只读，不删）：必须能看到"将删除什么"
     fireEvent.click(rollbackBtn)
-    expect(api.rollback).not.toHaveBeenCalled()
+    await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
+      batch_id: 'mb_card', confirm: false, dry_run: true,
+    }))
+    expect(await screen.findByText(/即将物理删除批次 mb_card/)).toBeTruthy()
+    // slug-1 会同时出现在表格 ref 列与预览条里
+    expect(screen.getAllByText(/slug-1/).length).toBeGreaterThanOrEqual(1)
     fireEvent.click(screen.getByRole('button', { name: '确认回滚 mb_card' }))
 
     await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
@@ -237,7 +244,8 @@ describe('MemoryImportPanel', () => {
     })
     render(<MemoryImportPanel />)
     fireEvent.click(await screen.findByRole('button', { name: '回滚 mb_vec' }))
-    fireEvent.click(screen.getByRole('button', { name: '确认回滚 mb_vec' }))
+    // 预览条是异步出现的（先 dry-run 再渲染确认按钮）
+    fireEvent.click(await screen.findByRole('button', { name: '确认回滚 mb_vec' }))
     // 404 不算失败，也不能冒充“刚删掉”：单独说明有一条在删除前已不存在
     expect(await screen.findByText(/1 条在删除前已不存在/)).toBeTruthy()
     expect(screen.getByText(/审计 seq 902/)).toBeTruthy()
@@ -256,7 +264,17 @@ describe('MemoryImportPanel', () => {
         period: '2026-05', digest_source: 'llm', title: 'trae 提问轨迹',
       },
     ])
-    api.rollback.mockResolvedValue({ ok: true, dry_run: false, batch_id: 'mb_vec', deleted: 'vector:mem_1' })
+    api.rollback.mockImplementation(({ dry_run }: { dry_run?: boolean }) => Promise.resolve(
+      dry_run
+        ? {
+          ok: true, dry_run: true, batch_id: 'mb_vec', would_delete: 'vector:mem_1',
+          items_preview: [{
+            id: 'mem_1', chars: 12, preview: '这是即将被删掉的正文',
+            metadata: { origin: 'claude', batch_id: 'mb_vec' },
+          }],
+        }
+        : { ok: true, dry_run: false, batch_id: 'mb_vec', deleted: 'vector:mem_1' },
+    ))
     render(<MemoryImportPanel />)
     // 来源徽章：claude / trae 各一条，迁移来的额外带「迁移」
     expect(await screen.findByText('claude')).toBeTruthy()
@@ -265,12 +283,15 @@ describe('MemoryImportPanel', () => {
     expect(screen.getByText('mem_1')).toBeTruthy()
     // 【2026-10-25】这里是"物理删除"，必须两步：第一下只进入确认态，不发请求
     const first = screen.getByRole('button', { name: '回滚向量批次 mb_vec' })
-    expect(first.textContent).toContain('真删')
+    expect(first.textContent).toContain('先看内容')
     fireEvent.click(first)
-    expect(api.rollback).not.toHaveBeenCalled()
-    // 确认态下出现「确认回滚（真删）」与「取消」
-    expect(screen.getByRole('button', { name: '取消回滚向量批次 mb_vec' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: '确认回滚向量批次 mb_vec' }))
+    // 第一下只拉预览：既不发 confirm，也必须把正文摆出来
+    await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
+      batch_id: 'mb_vec', confirm: false, dry_run: true,
+    }))
+    expect(await screen.findByText('这是即将被删掉的正文')).toBeTruthy()
+    expect(screen.getByText(/将删除/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '确认回滚 mb_vec' }))
     await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
       batch_id: 'mb_vec', confirm: true, dry_run: false,
     }))
