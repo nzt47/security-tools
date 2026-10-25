@@ -756,6 +756,51 @@ def api_vector_get_item(item_id):
     return jsonify(item.to_dict())
 
 
+@bp.route("/api/vector/item/<item_id>", methods=["DELETE"])
+@_view(auth=True, log=True)
+def api_vector_delete_item(item_id):
+    """按 id 删除一条向量记忆（默认真删；不存在如实 404，不假装成功）。
+
+    【为什么先有它】外部记忆导入将要改走"向量记忆"（交接单 §9 后续计划）：
+    只要向量侧没有按 id 删除，回滚就只能 `/api/vector/clear` 全清 —— 那会连带
+    删掉本机真实对话的向量。故本接口先落地，作为导入批次回滚的最小依赖。
+    """
+    from app_server import _Yunshu
+
+    target = str(item_id or "").strip()
+    if not target or len(target) > 128 or any(ord(ch) < 32 for ch in target):
+        return _problem(400, title="item_id 形态非法",
+                        detail="item_id 是向量记忆的 id（形如 mem_xxx），不接受空值/控制字符",
+                        type_slug="invalid-item-id")
+    vs = getattr(_Yunshu, '_vector_memory', None)
+    if not vs:
+        return _problem(503, title="向量系统未初始化",
+                        detail="记忆检索/向量库未启动，本次未删除任何内容",
+                        type_slug="vector-unavailable")
+    try:
+        deleted = bool(vs.delete(target))
+    except Exception:  # noqa: BLE001 异常原文只进日志（py/stack-trace-exposure）
+        logger.exception("[memory] 删除向量记忆失败 id=%s", target)
+        return _problem(500, title="删除向量记忆失败",
+                        detail="详见服务日志（删除可能未生效，可重试）",
+                        type_slug="vector-delete-failed")
+    if not deleted:
+        return _problem(404, title="找不到该向量记忆",
+                        detail="可能已被删除，或 item_id 抄错（先 GET /api/vector/item/<id> 查一次）",
+                        type_slug="vector-item-not-found")
+    audit_ref = {}
+    try:
+        from agent.audit.facade import audit
+        entry = audit.record("memory.vector_delete", actor="agent.plugins.memory",
+                             subject=f"vec:{target}", payload={"deleted": True},
+                             source="agent")
+        if entry is not None:
+            audit_ref = {"seq": int(getattr(entry, "seq", 0) or 0)}
+    except Exception:  # noqa: BLE001 审计失败不掩盖业务结果
+        audit_ref = {}
+    return _ok({"ok": True, "deleted": True, "item_id": target, "audit": audit_ref})
+
+
 @bp.route("/api/vector/recent")
 @_view(log=False)
 def api_vector_recent():

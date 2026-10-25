@@ -31,6 +31,35 @@ from agent.monitoring.resource_monitor import (
 )
 
 
+#: 【根因，2026-10-25 用 CI 日志定位】不止是「预算太紧」：ResourceMonitor
+#: ._init_tracemalloc() 调用 tracemalloc.start(10)，这是**进程级**开关且从不关闭。
+#: shard 里跑过重型用例（app_server 导入 / torch 等）后 trace 表可达百万级，
+#: 此后 _sample_memory() 里的 take_snapshot().statistics('lineno') 要遍历全表且
+#: **持有 GIL**（失败栈实测就在这一行）：
+#:   · 首轮 60s 超时：test_resource_monitor.py::TestHistory::test_history_capped_by_max_size
+#:   · 次轮 60s 超时：test_resource_monitor_persist.py::TestExpiryCleanup::test_cleanup_public_api
+#:   · 第 3 轮直接挂住 >30min（聚合线程持 GIL，主线程连 5s join 超时都跑不到）
+#: 这两个文件验证的是采样/持久化/清理逻辑，与 top_allocations 明细无关，
+#: 故用例内关掉聚合入口，并在前后 stop 掉别人打开的 tracing。
+#: 处置：① 用例内关掉聚合（根治，见下方 fixture）；② 时间预算同步放宽到 120s
+#: 兜住残留慢路径 —— 两者都**不改任何断言**。
+pytestmark = pytest.mark.timeout(120)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_global_tracemalloc(monkeypatch):
+    """关掉本模块用例里的 tracemalloc 聚合（原因见上方注释）。"""
+    import tracemalloc as _tracemalloc
+
+    from agent.monitoring.resource_monitor import ResourceMonitor as _ResourceMonitor
+
+    # 直接短路初始化入口：实例仍会构造，但不会打开进程级 tracing
+    monkeypatch.setattr(_ResourceMonitor, "_init_tracemalloc", lambda self: None, raising=True)
+    _tracemalloc.stop()
+    yield
+    _tracemalloc.stop()
+
+
 # ============================================================================
 # 数据结构测试
 # ============================================================================
