@@ -8,6 +8,7 @@ const api = vi.hoisted(() => ({
   commit: vi.fn(),
   fetchBatches: vi.fn(),
   rollback: vi.fn(),
+  fetchVectors: vi.fn(),
 }))
 
 vi.mock('@/lib/memoryImportApi', async (importOriginal) => ({
@@ -17,6 +18,7 @@ vi.mock('@/lib/memoryImportApi', async (importOriginal) => ({
   commitMemoryImport: api.commit,
   fetchMemoryImportBatches: api.fetchBatches,
   rollbackMemoryImport: api.rollback,
+  fetchImportedVectorDocs: api.fetchVectors,
 }))
 
 import MemoryImportPanel from './MemoryImportPanel'
@@ -43,6 +45,7 @@ const PLAN = {
 
 beforeEach(() => {
   api.fetchBatches.mockResolvedValue({ batches: [] })
+  api.fetchVectors.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -52,6 +55,7 @@ afterEach(() => {
   api.commit.mockReset()
   api.fetchBatches.mockReset()
   api.rollback.mockReset()
+  api.fetchVectors.mockReset()
 })
 
 describe('MemoryImportPanel', () => {
@@ -238,4 +242,33 @@ describe('MemoryImportPanel', () => {
     expect(await screen.findByText(/1 条在删除前已不存在/)).toBeTruthy()
     expect(screen.getByText(/审计 seq 902/)).toBeTruthy()
   })
+
+  it('向量文档列表带来源徽章，且能按批次回滚', async () => {
+    api.fetchSources.mockResolvedValue({ sources: [] })
+    api.fetchVectors.mockResolvedValue([
+      {
+        id: 'mem_1', char_count: 900, origin: 'claude', batch_id: 'mb_vec',
+        period: '2026-07', digest_source: 'rule', title: 'claude 会话摘要',
+        migrated_from: 'messages.jsonl',
+      },
+      {
+        id: 'mem_2', char_count: 120, origin: 'trae', batch_id: 'mb_vec2',
+        period: '2026-05', digest_source: 'llm', title: 'trae 提问轨迹',
+      },
+    ])
+    api.rollback.mockResolvedValue({ ok: true, dry_run: false, batch_id: 'mb_vec', deleted: 'vector:mem_1' })
+    render(<MemoryImportPanel />)
+    // 来源徽章：claude / trae 各一条，迁移来的额外带「迁移」
+    expect(await screen.findByText('claude')).toBeTruthy()
+    expect(screen.getByText('trae')).toBeTruthy()
+    expect(screen.getByText('迁移')).toBeTruthy()
+    expect(screen.getByText('mem_1')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '回滚向量批次 mb_vec' }))
+    await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
+      batch_id: 'mb_vec', confirm: true, dry_run: false,
+    }))
+    // 回滚后要刷新向量列表（否则界面上还留着已删的那条）
+    await waitFor(() => expect(api.fetchVectors.mock.calls.length).toBeGreaterThanOrEqual(2))
+  })
+
 })

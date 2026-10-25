@@ -10,13 +10,14 @@
  * 二次确认的界面表达，不能、也不应该成为唯一防线。
  */
 import { useEffect, useState } from 'react'
-import { DownloadCloud, Loader2, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react'
+import { Brain, DownloadCloud, Loader2, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react'
 import { Card } from '../components/ui'
 import {
-  MemoryImportApiError, commitMemoryImport, fetchMemoryImportBatches,
-  fetchMemoryImportSources, previewMemoryImport, rollbackMemoryImport,
-  type MemoryImportBatchEntry, type MemoryImportCommitResult,
-  type MemoryImportPlan, type MemoryImportSource,
+  MemoryImportApiError, commitMemoryImport, fetchImportedVectorDocs,
+  fetchMemoryImportBatches, fetchMemoryImportSources, previewMemoryImport,
+  rollbackMemoryImport,
+  type ImportedVectorDoc, type MemoryImportBatchEntry,
+  type MemoryImportCommitResult, type MemoryImportPlan, type MemoryImportSource,
 } from '@/lib/memoryImportApi'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-cyan-700/70 px-2 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-50'
@@ -70,6 +71,10 @@ export default function MemoryImportPanel() {
   const [batchMsg, setBatchMsg] = useState('')
   const [batchErr, setBatchErr] = useState('')
   const [pendingRollback, setPendingRollback] = useState('')
+  // §10 第 3 步：向量文档列表（来源徽章 = 一眼看出这条是外部记忆、哪个来源）
+  const [vectors, setVectors] = useState<ImportedVectorDoc[]>([])
+  const [vecErr, setVecErr] = useState('')
+  const [vecBusy, setVecBusy] = useState(false)
 
   const loadBatches = () => {
     fetchMemoryImportBatches()
@@ -93,7 +98,15 @@ export default function MemoryImportPanel() {
     return () => { alive = false }
   }, [])
 
-  useEffect(() => { loadBatches() }, [])
+  const loadVectors = () => {
+    setVecBusy(true); setVecErr('')
+    fetchImportedVectorDocs()
+      .then((rows) => setVectors(rows))
+      .catch((e) => setVecErr('读取向量文档失败：' + errText(e)))
+      .finally(() => setVecBusy(false))
+  }
+
+  useEffect(() => { loadBatches(); loadVectors() }, [])
 
   const doRollback = async (batchId: string) => {
     setBatchBusy(batchId); setBatchErr(''); setBatchMsg(''); setPendingRollback('')
@@ -108,6 +121,7 @@ export default function MemoryImportPanel() {
           + (missing ? '（' + missing + ' 条在删除前已不存在）' : '')
           + (typeof r.audit?.seq === 'number' ? ' · 审计 seq ' + r.audit.seq : ''))
         loadBatches()
+        loadVectors()  // 回滚删掉的是向量 ⇒ 列表必须跟着消失，而不是留一条幽灵记录
       } else {
         setBatchErr('回滚未生效：' + (r.error || '未知原因'))
       }
@@ -403,6 +417,86 @@ export default function MemoryImportPanel() {
                           <Undo2 size={11} /> 回滚
                         </button>
                       )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* §10 第 3 步：外部导入的向量文档（按 metadata.source 过滤 + 来源徽章） */}
+      <div className="mt-5 border-t border-slate-800 pt-3">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Brain size={13} className="text-emerald-400" />
+          <h3 className="text-xs font-semibold text-slate-200">向量文档（外部导入）</h3>
+          <span className="text-[10px] text-slate-500">
+            只列 metadata.source=memory_import 的那些；徽章标来源与摘要方式，按批次可回滚
+          </span>
+          <button type="button" className={BTN} onClick={() => loadVectors()} disabled={vecBusy} aria-label="刷新向量文档">
+            {vecBusy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
+          </button>
+        </div>
+        {vecErr && <div className="mb-2 rounded-sm border border-red-900/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-300">{vecErr}</div>}
+        {vectors.length === 0 ? (
+          <div className="py-3 text-center text-[11px] text-slate-600">
+            还没有外部导入的向量文档（写入或迁移完成后会出现在这里）
+          </div>
+        ) : (
+          <div className="max-h-64 overflow-auto rounded-lg border border-slate-800">
+            <table className="w-full text-left text-[11px]">
+              <thead className="sticky top-0 bg-slate-900 text-slate-400">
+                <tr>
+                  <th className="px-2 py-1">来源</th>
+                  <th className="px-2 py-1">批次</th>
+                  <th className="px-2 py-1">周期</th>
+                  <th className="px-2 py-1">摘要</th>
+                  <th className="px-2 py-1">字符</th>
+                  <th className="px-2 py-1">向量 id</th>
+                  <th className="px-2 py-1">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vectors.map((v) => (
+                  <tr key={v.id} className="border-t border-slate-800/70">
+                    <td className="px-2 py-1">
+                      <span
+                        className={'rounded px-1 text-[9px] ' + (v.origin === 'trae'
+                          ? 'bg-violet-500/15 text-violet-300'
+                          : 'bg-sky-500/15 text-sky-300')}
+                        title={'外部来源：' + (v.origin || '未知')}
+                      >
+                        {v.origin || '未知'}
+                      </span>
+                      {v.migrated_from && (
+                        <span className="ml-1 rounded bg-amber-500/15 px-1 text-[9px] text-amber-300" title={'从 ' + v.migrated_from + ' 迁移而来'}>
+                          迁移
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2 py-1 font-mono text-slate-400">{v.batch_id || '-'}</td>
+                    <td className="px-2 py-1 text-slate-400">{v.period || '-'}</td>
+                    <td className="px-2 py-1">
+                      <span className={'rounded px-1 text-[9px] ' + (v.digest_source === 'llm'
+                        ? 'bg-violet-500/15 text-violet-300'
+                        : 'bg-slate-700/40 text-slate-400')}>
+                        {v.digest_source === 'llm' ? 'LLM' : '规则'}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1 text-slate-400">{v.char_count}</td>
+                    <td className="px-2 py-1 font-mono text-slate-500">{v.id}</td>
+                    <td className="px-2 py-1">
+                      <button
+                        type="button"
+                        className={BTN}
+                        onClick={() => { setPendingRollback(''); void doRollback(v.batch_id) }}
+                        disabled={batchBusy !== '' || !v.batch_id}
+                        aria-label={'回滚向量批次 ' + v.batch_id}
+                        title="按批次真删这些向量（含二次确认由批次区承担；此处直接执行并写审计）"
+                      >
+                        <Undo2 size={11} /> 回滚该批次
+                      </button>
                     </td>
                   </tr>
                 ))}

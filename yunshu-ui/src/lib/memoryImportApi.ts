@@ -18,7 +18,7 @@ import {
 } from '../api/envelope'
 import {
   MEMORY_IMPORT_BATCHES, MEMORY_IMPORT_COMMIT, MEMORY_IMPORT_PREVIEW,
-  MEMORY_IMPORT_ROLLBACK, MEMORY_IMPORT_SOURCES,
+  MEMORY_IMPORT_ROLLBACK, MEMORY_IMPORT_SOURCES, VECTOR_RECENT,
 } from '../api/endpoints'
 
 export interface MemoryImportSource {
@@ -216,3 +216,53 @@ export async function commitMemoryImport(input: {
   })
   return readSuccess<MemoryImportCommitResult>(res, MEMORY_IMPORT_COMMIT)
 }
+
+/** 一条外部导入的向量文档（GET /api/vector/recent 里 metadata.source=memory_import 的那些）。 */
+export interface ImportedVectorDoc {
+  id: string
+  char_count: number
+  /** 外部来源：claude / trae（取自写入口径的 origin） */
+  origin: string
+  batch_id: string
+  period: string
+  digest_source: string
+  title: string
+  /** 迁移标记（§10 第 3 步：从消息流搬到向量库） */
+  migrated_from?: string
+  created_at?: string
+}
+
+/**
+ * 读「外部导入的向量文档」。
+ *
+ * 【为什么不用 readSuccess】/api/vector/recent 是 legacy 端点（{`items`} 裸体、
+ * 不带 X-Envelope）；它不在本次改动范围内，故这里单独解析，并**只挑出**
+ * metadata.source === 'memory_import' 的那些 —— 界面要是把所有本机向量都列出来，
+ * 就分不清哪条是外部记忆了。
+ */
+export async function fetchImportedVectorDocs(limit = 100, signal?: AbortSignal): Promise<ImportedVectorDoc[]> {
+  const res = await fetch(VECTOR_RECENT + '?limit=' + limit, { headers: headersFor(false), signal })
+  if (!res.ok) throw new MemoryImportApiError(await problemMessage(res), res.status)
+  const body = (await res.json()) as { items?: Array<Record<string, unknown>> }
+  const items = body?.items ?? []
+  return items
+    .filter((it) => {
+      const meta = (it?.metadata ?? {}) as Record<string, unknown>
+      return String(meta.source ?? '') === 'memory_import'
+    })
+    .map((it) => {
+      const meta = (it?.metadata ?? {}) as Record<string, unknown>
+      return {
+        id: String(it.id ?? ''),
+        char_count: String(it.content ?? '').length,
+        origin: String(meta.origin ?? ''),
+        batch_id: String(meta.batch_id ?? ''),
+        period: String(meta.period ?? ''),
+        digest_source: String(meta.digest_source ?? 'rule'),
+        title: String(meta.title ?? ''),
+        migrated_from: meta.migrated_from ? String(meta.migrated_from) : undefined,
+        created_at: it.timestamp ? String(it.timestamp) : undefined,
+      }
+    })
+}
+
