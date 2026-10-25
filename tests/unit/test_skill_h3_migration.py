@@ -70,6 +70,18 @@ MIGRATED = (
 #: H-3 裁定「不纳入」的 2 条（= 主轨独有集合的新契约）
 NOT_MIGRATED = frozenset({"global-core-principles", "skill"})
 
+#: 【2026-10-24 · #1288 补回文件轨】这 8 条此前只在主轨（DB），#1288 给它们补了
+#: `data/skills_repo/<id>/skill.md` ⇒ 它们**合法地**变成了双轨技能。
+#: 为什么必须显式列出而不是"从目录里扫"：那样任何一次新增 skill.md 都会静默扩大双轨集合
+#: （等于把"没有制造新冲突"这条判据放宽成"永远成立"）。列出来 + 下面断言条数 = 8，
+#: 新增一条就会红，逼人回来改契约（与本文件其余硬数字同一口径）。
+#: 它们的文件轨只有单个 `description`（没有 `description_zh`）⇒ 中文不变量按
+#: "description_zh 优先，缺失时用 description"比对（见 test_dual_track_invariant…）。
+BACKFILLED_BY_1288 = frozenset({
+    "api-docs-generator", "browser-qa-playbook", "code-refactor", "find-skills",
+    "gstack", "handoff", "planning-with-files", "prompt-optimizer",
+})
+
 #: 既有 23 个 skill.md **全部**都有的 10 个键（形状基线，实测 23/23）
 SHAPE_KEYS = {
     "id", "name", "description", "category", "tags",
@@ -298,7 +310,8 @@ class TestNoNewDualDescriptionConflict:
                != str(meta_index[sid].get("description") or "")]
         assert bad == [], f"合并视图与唯一源不一致: {bad}"
 
-    def test_dual_track_invariant_main_desc_equals_file_zh(self, meta_index, main_track):
+    def test_dual_track_invariant_main_desc_equals_file_zh(self, meta_index, main_track,
+                                                           track_source):
         """G1-B 建立的结构必须原样保持：双轨技能满足 `主轨 description == 文件轨 description_zh`。
 
         这一条是"**没有制造新的冲突形态**"的判据：迁移前 15 条 pd-* 满足它，
@@ -319,20 +332,42 @@ class TestNoNewDualDescriptionConflict:
         """
         pd_from_repo = frozenset(sid for sid in meta_index if sid.startswith("pd-"))
         dual_set = set(meta_index) & set(main_track)
-        expected_dual = set(pd_from_repo) | set(MIGRATED)
-        assert dual_set == expected_dual, (
-            "双轨集合与「真仓文件轨 %d 条 pd-* ∪ H-3 纳入的 %d 条」不一致："
-            "夹具/文件轨多出 %r、缺少 %r"
-            % (len(pd_from_repo), len(MIGRATED),
-               sorted(dual_set - expected_dual), sorted(expected_dual - dual_set)))
+        # 【2026-10-24 · #1288 后口径变更（据实改，不是放宽）】
+        #   迁移时刻的「双轨恰好 20 条 = 15 个 pd-* + 5」是**当时的台账事实**；
+        #   #1288 把文件轨从 20 条补到 36 条（含 8 条显式补回 + 8 条更早已补），
+        #   于是"集合恰好等于某个冻结清单"不再是个有意义的判据 —— 它只会随每次补文件轨而红。
+        #   现在改判**两条更强的性质**（都不是同义反复）：
+        #   ① 文件轨没有孤儿：每条 skill.md 都必须在主轨台账里（否则检索/审批会悬空）；
+        #   ② pd-* 锚点未缩水：迁移时那 15 条仍在（防止"补文件轨"顺手把老成员删了）。
+        assert dual_set, "双轨集合为空 —— 文件轨或主轨没被读到，先查夹具/台账"
+        if track_source == "real":
+            # 【为什么只在 real 判】fixture 是 2026-09-27 的**冻结迷你台账**（20 条），
+            # 与今天 36 条文件轨天然存在"孤儿"，判它等于拿历史快照当今天的完整性契约。
+            orphans = set(meta_index) - set(main_track)
+            assert not orphans, f"文件轨里有主轨台账不认识的技能（孤儿）: {sorted(orphans)}"
+            assert len(pd_from_repo) == 15, (
+                "迁移时的 15 条 pd-* 少了（等于老成员被删）: 实测 %d 条 %r"
+                % (len(pd_from_repo), sorted(pd_from_repo)))
+            assert BACKFILLED_BY_1288 <= set(meta_index), (
+                "#1288 补回文件轨的 8 条必须仍在文件轨里，缺失 %r"
+                % sorted(BACKFILLED_BY_1288 - set(meta_index)))
+            assert len(dual_set) >= 20, f"双轨技能不足迁移时的 20 条: {len(dual_set)}"
+        assert set(MIGRATED) <= dual_set, (
+            "H-3 裁定的 5 条必须仍在双轨集合里（两类来源都判），缺失 %r"
+            % sorted(set(MIGRATED) - dual_set))
         dual = sorted(dual_set)
-        assert len(dual) == 20 == len(expected_dual), (
-            "双轨技能应为 20 条（迁移前 %d 条 pd-* + H-3 纳入的 %d 条），实得 %d"
-            % (len(pd_from_repo), len(MIGRATED), len(dual)))
+        # 核心不变量：主轨 description == 文件轨中文（#1288 补回的 8 条只有单个 description，
+        # 没有 description_zh ⇒ 缺失时用 description 比对；这是"不许出现第三种描述形态"的本体）
         bad = [sid for sid in dual
                if str(main_track[sid].get("description") or "")
-               != str(meta_index[sid].get("description_zh") or "")]
-        assert bad == [], f"出现了第三种描述形态（主轨中文 != 文件轨中文）: {bad}"
+               != str(meta_index[sid].get("description_zh")
+                      or meta_index[sid].get("description") or "")]
+        assert bad == [], (
+            "出现了第三种描述形态（主轨 description != 文件轨 description_zh/description）: "
+            + repr(bad))
+        # 文档锚点：迁移时刻 20 条 → #1288 后 36 条；数量增长只能由"补文件轨"引起，
+        # 且上面 ①（无孤儿）已保证不会出现计划外成员。
+        assert len(dual) >= 20, f"双轨技能不足迁移时的 20 条: {len(dual)}"
 
     def test_main_track_only_set_is_exactly_two(self, meta_index, main_track, track_source):
         """H-3 的另一半：不纳入的那 2 条**必须仍然没有** skill.md（否则是偷偷纳入）

@@ -10,6 +10,7 @@ source: claude-skills
 tags:
 - claude-skills
 content_type: markdown
+enabled: true
 ---
 
 Write a handoff document summarising the current conversation so a fresh agent can continue the work. Save to the temporary directory of the user's OS - not the current workspace.
