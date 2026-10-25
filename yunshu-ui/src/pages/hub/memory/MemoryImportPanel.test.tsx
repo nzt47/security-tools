@@ -8,6 +8,7 @@ const api = vi.hoisted(() => ({
   commit: vi.fn(),
   fetchBatches: vi.fn(),
   rollback: vi.fn(),
+  fetchVectors: vi.fn(),
 }))
 
 vi.mock('@/lib/memoryImportApi', async (importOriginal) => ({
@@ -17,6 +18,7 @@ vi.mock('@/lib/memoryImportApi', async (importOriginal) => ({
   commitMemoryImport: api.commit,
   fetchMemoryImportBatches: api.fetchBatches,
   rollbackMemoryImport: api.rollback,
+  fetchImportedVectorDocs: api.fetchVectors,
 }))
 
 import MemoryImportPanel from './MemoryImportPanel'
@@ -33,7 +35,7 @@ const PLAN = {
       digest: '# 规则\n一律中文',
     },
     {
-      batch_id: 'mb_mem', carrier: 'memory_note', carrier_label: '长期记忆',
+      batch_id: 'mb_mem', carrier: 'memory_note', carrier_label: '向量记忆',
       title: 'trae 提问轨迹 2026-06', source: 'trae', chars: 800, records: 20,
       digest: '# 提问\n- 09:00 帮我修脚本',
     },
@@ -43,6 +45,7 @@ const PLAN = {
 
 beforeEach(() => {
   api.fetchBatches.mockResolvedValue({ batches: [] })
+  api.fetchVectors.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -52,6 +55,7 @@ afterEach(() => {
   api.commit.mockReset()
   api.fetchBatches.mockReset()
   api.rollback.mockReset()
+  api.fetchVectors.mockReset()
 })
 
 describe('MemoryImportPanel', () => {
@@ -174,7 +178,7 @@ describe('MemoryImportPanel', () => {
     expect(await screen.findByText(/回放完成：将写入 1 个批次/)).toBeTruthy()
   })
 
-  it('已写入批次可回滚：先二次确认，再真删；长期记忆标"需人工"', async () => {
+  it('已写入批次可回滚：先二次确认，再真删；没有 vector_ids/msg_id 的批次标"需人工"', async () => {
     api.fetchSources.mockResolvedValue({ sources: [{ id: 'trae', label: 'Trae', available: true, detail: 'x', has_transcripts: false }] })
     api.fetchBatches.mockResolvedValue({
       batches: [
@@ -185,7 +189,8 @@ describe('MemoryImportPanel', () => {
           audit_seq: 79470, rollback: 'auto',
         },
         {
-          batch_id: 'mb_mem', carrier: 'memory_note', carrier_label: '长期记忆',
+          batch_id: 'mb_mem', carrier: 'memory_note', carrier_label: '向量记忆',
+          vector_ids: [], origin: 'trae', period: '2026-06',
           title: 'trae 提问', records: 46, chars: 2005, ref: 'memory/manual',
           plan_id: 'mp_test', committed_at: '2026-10-24T10:44:24+08:00',
           audit_seq: 79474, rollback: 'manual',
@@ -215,4 +220,55 @@ describe('MemoryImportPanel', () => {
     // 回滚后会刷新批次清单（写入前的空列表 + 回滚后的刷新 = 至少 2 次）
     await waitFor(() => expect(api.fetchBatches.mock.calls.length).toBeGreaterThanOrEqual(2))
   })
+
+  it('向量记忆批次回滚：按 vector_ids 真删，missing 如实提示已不存在', async () => {
+    api.fetchSources.mockResolvedValue({ sources: [] })
+    api.fetchBatches.mockResolvedValue({
+      batches: [{
+        batch_id: 'mb_vec', carrier: 'memory_note', carrier_label: '向量记忆',
+        title: 'claude 会话摘要 2026-07', records: 12, chars: 900, ref: 'vector/mem_1',
+        plan_id: 'mp_test', committed_at: '2026-10-25T10:00:00+08:00', audit_seq: 9,
+        rollback: 'auto', vector_ids: ['mem_1', 'mem_2'], origin: 'claude', period: '2026-07',
+      }],
+    })
+    api.rollback.mockResolvedValue({
+      ok: true, dry_run: false, batch_id: 'mb_vec', deleted: 'vector:mem_1',
+      missing: ['mem_2'], audit: { seq: 902 },
+    })
+    render(<MemoryImportPanel />)
+    fireEvent.click(await screen.findByRole('button', { name: '回滚 mb_vec' }))
+    fireEvent.click(screen.getByRole('button', { name: '确认回滚 mb_vec' }))
+    // 404 不算失败，也不能冒充“刚删掉”：单独说明有一条在删除前已不存在
+    expect(await screen.findByText(/1 条在删除前已不存在/)).toBeTruthy()
+    expect(screen.getByText(/审计 seq 902/)).toBeTruthy()
+  })
+
+  it('向量文档列表带来源徽章，且能按批次回滚', async () => {
+    api.fetchSources.mockResolvedValue({ sources: [] })
+    api.fetchVectors.mockResolvedValue([
+      {
+        id: 'mem_1', char_count: 900, origin: 'claude', batch_id: 'mb_vec',
+        period: '2026-07', digest_source: 'rule', title: 'claude 会话摘要',
+        migrated_from: 'messages.jsonl',
+      },
+      {
+        id: 'mem_2', char_count: 120, origin: 'trae', batch_id: 'mb_vec2',
+        period: '2026-05', digest_source: 'llm', title: 'trae 提问轨迹',
+      },
+    ])
+    api.rollback.mockResolvedValue({ ok: true, dry_run: false, batch_id: 'mb_vec', deleted: 'vector:mem_1' })
+    render(<MemoryImportPanel />)
+    // 来源徽章：claude / trae 各一条，迁移来的额外带「迁移」
+    expect(await screen.findByText('claude')).toBeTruthy()
+    expect(screen.getByText('trae')).toBeTruthy()
+    expect(screen.getByText('迁移')).toBeTruthy()
+    expect(screen.getByText('mem_1')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '回滚向量批次 mb_vec' }))
+    await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
+      batch_id: 'mb_vec', confirm: true, dry_run: false,
+    }))
+    // 回滚后要刷新向量列表（否则界面上还留着已删的那条）
+    await waitFor(() => expect(api.fetchVectors.mock.calls.length).toBeGreaterThanOrEqual(2))
+  })
+
 })

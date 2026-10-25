@@ -486,6 +486,9 @@ def list_batches(*, root: Optional[Path] = None) -> List[Dict[str, Any]]:
         except (OSError, ValueError):
             continue
         carrier = str(entry.get("carrier") or "")
+        detail = dict(entry.get("detail") or {})
+        vector_ids = [str(v) for v in (detail.get("vector_ids") or []) if str(v)]
+        msg_id = str(detail.get("msg_id") or "")
         out.append({
             "batch_id": str(entry.get("batch_id") or path.stem),
             "carrier": carrier,
@@ -497,12 +500,17 @@ def list_batches(*, root: Optional[Path] = None) -> List[Dict[str, Any]]:
             "plan_id": str(entry.get("plan_id") or ""),
             "committed_at": str(entry.get("committed_at") or ""),
             "audit_seq": int((entry.get("audit") or {}).get("seq") or 0),
-            # 卡片凭 ref 可删；长期记忆凭写入时记下的 msg_id 可删（#1295 之后才有）
+            # 卡片凭 ref 可删；向量记忆凭写入回执里的 vector_ids 可删（§10 第 2 步）；
+            # 老批次只有 msg_id（写进消息流的那些）⇒ 迁移前仍按 msg_id 删
             "rollback": ("auto"
                          if (carrier == CARRIER_CARD and entry.get("ref"))
-                         or (carrier == CARRIER_MEMORY
-                             and (entry.get("detail") or {}).get("msg_id"))
+                         or (carrier == CARRIER_MEMORY and (vector_ids or msg_id))
                          else "manual"),
+            "vector_ids": vector_ids,
+            # migrated=True：这一批本来是消息流，§10 第 3 步把它迁到了向量库
+            "migrated": bool(entry.get("migrated")),
+            "origin": str(detail.get("origin") or ""),
+            "period": str(detail.get("period") or ""),
             "digest_source": str(entry.get("digest_source") or "rule"),
         })
     out.sort(key=lambda item: item.get("committed_at") or "", reverse=True)
@@ -511,10 +519,11 @@ def list_batches(*, root: Optional[Path] = None) -> List[Dict[str, Any]]:
 
 def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
              store: Any = None, root: Optional[Path] = None) -> Dict[str, Any]:
-    """撤销一个批次的写入（当前只覆盖知识卡片；长期记忆需人工删）。
+    """撤销一个批次的写入（知识卡片按 ref / 向量记忆按 vector_ids / 老批次按 msg_id）。
 
-    【边界】长期记忆没有按 id 删除的稳定入口，回滚只做"能确证删除"的载体，
-    其余如实报出"需要人工处理"，绝不假装删掉了。
+    【边界】只做"能确证删除"的载体，其余如实报出"需要人工处理"，绝不假装删掉了。
+    §10 之后新写入的批次把向量 id 记在 detail.vector_ids；删除失败时**不删清单**，
+    否则界面会立刻"看不见"这条还没回滚成功的批次。
     """
     manifest = _batch_manifest(batch_id, root)
     if not manifest.is_file():
@@ -524,6 +533,53 @@ def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
     carrier = str(entry.get("carrier") or "")
     detail = dict(entry.get("detail") or {})
     msg_id = str(detail.get("msg_id") or "")
+    vector_ids = [str(v) for v in (detail.get("vector_ids") or []) if str(v)]
+    if carrier == CARRIER_MEMORY and vector_ids:
+        # 【2026-10-25 · §10 第 2 步】导入改走向量记忆后，回滚就是按 id 真删这些向量。
+        # 404（本来就不在）算"目标状态已达成"，单独记进 missing，不冒充"删掉了"。
+        if dry_run:
+            return {"ok": True, "dry_run": True, "batch_id": batch_id,
+                    "carrier": carrier, "vector_ids": vector_ids,
+                    "would_delete": "vector:" + ",".join(vector_ids)}
+        if confirm is not True:
+            raise ConfirmationRequired(
+                "回滚向量记忆需要显式 confirm=true",
+                detail="dry_run=true 可先看将删除哪些向量（按 vector_ids）")
+        from . import targets
+
+        deleted: List[str] = []
+        missing: List[str] = []
+        failed: List[str] = []
+        for item_id in vector_ids:
+            try:
+                outcome = targets.delete_vector_item(item_id)
+            except Exception as exc:  # noqa: BLE001 失败要如实报，不假装删掉了
+                logger.warning("向量回滚删除失败 batch=%s id=%s", batch_id, item_id,
+                               exc_info=True)
+                failed.append(f"{item_id}({type(exc).__name__})")
+                continue
+            (deleted if outcome.get("deleted") else missing).append(item_id)
+        ok = not failed
+        audit_ref = _audit(Batch(batch_id=batch_id, carrier=carrier,
+                                 title=str(entry.get("title") or ""),
+                                 source=str(detail.get("origin") or ""),
+                                 digest="", record_ids=[]),
+                          {"ok": ok, "ref": "vector:" + ",".join(deleted or vector_ids)},
+                          str(entry.get("plan_id") or ""))
+        if ok:
+            manifest.unlink(missing_ok=True)
+        _flush_audit()
+        result: Dict[str, Any] = {
+            "ok": ok, "dry_run": False, "batch_id": batch_id, "carrier": carrier,
+            "deleted": ("vector:" + ",".join(deleted)) if deleted else "",
+            "missing": missing, "failed": failed, "vector_ids": vector_ids,
+            "audit": audit_ref,
+        }
+        if not ok:
+            result["manual"] = True
+            result["error"] = (f"{len(failed)} 条向量删除失败；批次清单已保留，可重试"
+                               "（失败的 id 见 failed）")
+        return result
     if carrier == CARRIER_MEMORY and msg_id:
         # 【2026-10-25 · T3 遗留收口】长期记忆现在也能自动回了：写入时若记下了
         # msg_id（#1295 之后 `/api/memory/manual` 会回），就能按 id 物理删。
@@ -558,7 +614,8 @@ def rollback(batch_id: str, *, confirm: bool = False, dry_run: bool = True,
     if carrier != CARRIER_CARD or not ref:
         return {"ok": False, "dry_run": dry_run, "batch_id": batch_id,
                 "carrier": carrier, "manual": True,
-                "error": "该批次无法自动回滚：长期记忆缺少 msg_id（写入时还没有该能力），需人工删除"}
+                "error": "该批次无法自动回滚：清单里既没有 vector_ids 也没有 msg_id"
+                         "（§10 之前的老批次），需人工删除"}
     if dry_run:
         return {"ok": True, "dry_run": True, "batch_id": batch_id,
                 "would_delete": ref, "carrier": carrier}
