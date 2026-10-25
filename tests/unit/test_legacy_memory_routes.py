@@ -132,12 +132,22 @@ def test_no_duplicate_registration_for_migrated_paths(real_app):
     同一规则多条 endpoint（Flask 行为不可预期），本用例立刻失败。
     """
     rules = _rule_map(real_app)
-    duplicated = {
-        path: providers
-        for path, providers in rules.items()
-        if len(providers) > 1 and path in (set(LEGACY_ENDPOINTS) | ALREADY_LIVE_ENDPOINTS)
-    }
-    assert not duplicated, f"这些路径被重复注册：{duplicated}"
+    # 【2026-10-25 口径修正】"重复注册"的判据是 **同一个 (路径, 方法)** 被两个 endpoint 抢，
+    # 而不是"同一路径出现两个 endpoint"：Flask 允许同路径按方法拆成多条规则
+    # （例如 `/api/vector/item/<id>` 的 GET 匿名 + DELETE 需鉴权，本就该分开挂）。
+    # 旧写法把这种合法拆分也判成重复，2026-10-25 实测被 `DELETE /api/vector/item` 触发。
+    tracked = set(LEGACY_ENDPOINTS) | ALREADY_LIVE_ENDPOINTS
+    duplicated = {}
+    for path, providers in rules.items():
+        if path not in tracked:
+            continue
+        seen_methods: set = set()
+        for _endpoint, methods in providers:
+            if seen_methods & methods:
+                duplicated[path] = providers
+                break
+            seen_methods |= methods
+    assert not duplicated, f"这些 (路径, 方法) 被重复注册：{duplicated}"
 
     for path in ALREADY_LIVE_ENDPOINTS:
         assert path in rules, f"既有活体 {path} 消失了（不该被本次改动波及）"
