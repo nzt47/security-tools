@@ -263,7 +263,14 @@ describe('MemoryImportPanel', () => {
     expect(screen.getByText('trae')).toBeTruthy()
     expect(screen.getByText('迁移')).toBeTruthy()
     expect(screen.getByText('mem_1')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: '回滚向量批次 mb_vec' }))
+    // 【2026-10-25】这里是"物理删除"，必须两步：第一下只进入确认态，不发请求
+    const first = screen.getByRole('button', { name: '回滚向量批次 mb_vec' })
+    expect(first.textContent).toContain('真删')
+    fireEvent.click(first)
+    expect(api.rollback).not.toHaveBeenCalled()
+    // 确认态下出现「确认回滚（真删）」与「取消」
+    expect(screen.getByRole('button', { name: '取消回滚向量批次 mb_vec' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '确认回滚向量批次 mb_vec' }))
     await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
       batch_id: 'mb_vec', confirm: true, dry_run: false,
     }))

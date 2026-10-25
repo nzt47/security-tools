@@ -372,7 +372,7 @@ export default function MemoryImportPanel() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <Undo2 size={13} className="text-cyan-400" />
           <h3 className="text-xs font-semibold text-slate-200">已写入批次（可回滚）</h3>
-          <span className="text-[10px] text-slate-500">知识卡片凭 ref 回滚；向量记忆凭写入时记下的 vector_ids 按 id 物理删除（迁移前的老批次才用 msg_id，两者都没有则需人工）</span>
+          <span className="text-[10px] text-slate-500">回滚 = 物理删除，不可恢复：知识卡片凭 ref，向量记忆凭 vector_ids 按 id 真删（迁移前老批次才用 msg_id；两者都没有则需人工）</span>
           <button type="button" className={BTN} onClick={() => loadBatches()} disabled={batchBusy !== ''} aria-label="刷新批次">
             <RefreshCw size={11} /> 刷新
           </button>
@@ -432,7 +432,7 @@ export default function MemoryImportPanel() {
           <Brain size={13} className="text-emerald-400" />
           <h3 className="text-xs font-semibold text-slate-200">向量文档（外部导入）</h3>
           <span className="text-[10px] text-slate-500">
-            只列 metadata.source=memory_import 的那些；徽章标来源与摘要方式，按批次可回滚
+            只列 metadata.source=memory_import 的那些；徽章标来源与摘要方式。回滚 = 物理删除（先点一次，再确认）
           </span>
           <button type="button" className={BTN} onClick={() => loadVectors()} disabled={vecBusy} aria-label="刷新向量文档">
             {vecBusy ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
@@ -487,16 +487,36 @@ export default function MemoryImportPanel() {
                     <td className="px-2 py-1 text-slate-400">{v.char_count}</td>
                     <td className="px-2 py-1 font-mono text-slate-500">{v.id}</td>
                     <td className="px-2 py-1">
-                      <button
-                        type="button"
-                        className={BTN}
-                        onClick={() => { setPendingRollback(''); void doRollback(v.batch_id) }}
-                        disabled={batchBusy !== '' || !v.batch_id}
-                        aria-label={'回滚向量批次 ' + v.batch_id}
-                        title="按批次真删这些向量（含二次确认由批次区承担；此处直接执行并写审计）"
-                      >
-                        <Undo2 size={11} /> 回滚该批次
-                      </button>
+                      {/* 【2026-10-25 修正】此处原先是"一键真删"：点一下就把这一批的向量物理删掉、
+                          清单摘除（用户实测误点过）。与批次区统一成两步：先点"回滚"，再点"确认回滚"。 */}
+                      {pendingRollback === v.batch_id ? (
+                        <span className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            className={BTN}
+                            onClick={() => { setPendingRollback(''); void doRollback(v.batch_id) }}
+                            disabled={batchBusy !== '' || !v.batch_id}
+                            aria-label={'确认回滚向量批次 ' + v.batch_id}
+                            title="确认后**物理删除**这些向量（不可恢复），并摘除批次清单"
+                          >
+                            {batchBusy === v.batch_id ? <Loader2 size={11} className="animate-spin" /> : <Undo2 size={11} />} 确认回滚（真删）
+                          </button>
+                          <button type="button" className={BTN} onClick={() => setPendingRollback('')} aria-label={'取消回滚向量批次 ' + v.batch_id}>
+                            取消
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={BTN}
+                          onClick={() => setPendingRollback(v.batch_id)}
+                          disabled={batchBusy !== '' || !v.batch_id}
+                          aria-label={'回滚向量批次 ' + v.batch_id}
+                          title="回滚 = 物理删除（不可恢复）：先点这里，再点确认"
+                        >
+                          <Undo2 size={11} /> 回滚（真删）
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
