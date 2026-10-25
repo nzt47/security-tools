@@ -219,6 +219,7 @@ def migrate(*, commit: bool = False, confirm: bool = False,
             vector_sink: Optional[Callable[..., Any]] = None,
             delete_message: Optional[Callable[..., Any]] = None,
             delete_vector: Optional[Callable[[str], Any]] = None,
+            probe_message: Optional[Callable[[str], Any]] = None,
             audit_fn: Optional[Callable[..., Any]] = None,
             flush: Optional[Callable[[], Any]] = None) -> Dict[str, Any]:
     """执行迁移。默认 dry-run；真迁必须 `commit=True` 且 `confirm=True`。
@@ -245,6 +246,9 @@ def migrate(*, commit: bool = False, confirm: bool = False,
     sink = vector_sink or targets._default_vector_sink
     deleter = delete_message or targets.delete_memory_note
     vector_eraser = delete_vector or targets.delete_vector_item
+    # 探针 = 只读的按 id 查找（DELETE 的 dry-run 形态），用于补偿删向量前确认
+    # "原消息到底还在不在"。默认复用 delete_memory_note(dry_run=True)。
+    prober = probe_message or (lambda msg_id: targets.delete_memory_note(msg_id, dry_run=True))
     audited = audit_fn or _default_audit
     flushed = flush or service._flush_audit
 
@@ -288,6 +292,33 @@ def migrate(*, commit: bool = False, confirm: bool = False,
             deleted = deleter(batch["msg_id"])
         except Exception as exc:  # noqa: BLE001 删除失败要补偿，不许留双写
             logger.warning("迁移：删原消息失败 batch=%s", batch["batch_id"], exc_info=True)
+            # 【补偿前必须确认原消息是否还在】DELETE 可能"已生效但响应超时/断连"，
+            # 此时消息已经消失；若照旧补偿删掉向量，这一批的正文就两边都没了
+            # （2026-10-25 首次迁移就是这样丢了一条，见模块 docstring 与 §8 陷阱 28）。
+            still_there = True
+            try:
+                probe = prober(batch["msg_id"]) or {}
+                still_there = (bool(probe.get("found", True))
+                               if isinstance(probe, dict) else True)
+            except Exception:  # noqa: BLE001 探不到按"还在"处理（宁可留双写，也不删唯一副本）
+                logger.warning("迁移：探测原消息失败 batch=%s（按仍在处理）",
+                               batch["batch_id"], exc_info=True)
+                still_there = True
+            if not still_there:
+                # 消息其实已经没了 ⇒ 目标状态达成：保留向量、按完成收尾，不补偿
+                entry["migrated"] = True
+                entry["migration_state"] = "done"
+                entry["migrated_at"] = _now_iso()
+                entry["ref"] = "vector/" + vector_ids[0]
+                detail["note"] = (f"delete_uncertain_but_gone: {type(exc).__name__}；"
+                                  "原消息已不在，保留向量")
+                entry["detail"] = detail
+                _atomic_write(entry_path, json.dumps(entry, ensure_ascii=False, indent=2))
+                audit_ref = audited(batch, vector_ids, False)
+                migrated.append({"batch_id": batch["batch_id"], "vector_ids": vector_ids,
+                                 "msg_id": batch["msg_id"], "deleted": False,
+                                 "shared_timestamp": True, "audit": audit_ref})
+                continue
             compensated = _compensate(vector_ids, vector_eraser)
             failed.append({"batch_id": batch["batch_id"],
                            "error": (f"删除原消息失败：{type(exc).__name__}；"

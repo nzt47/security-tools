@@ -801,22 +801,56 @@ def api_vector_delete_item(item_id):
     return _ok({"ok": True, "deleted": True, "item_id": target, "audit": audit_ref})
 
 
+#: 「按来源过滤」时单次扫描的物理上限。
+#: 【为什么需要它】外部记忆导入的 13 条向量会被后续本机对话向量淹没：只取最近
+#: limit 条再在前端过滤，导入条目多了就"看不见"（但它们确实还在库里、仍可按批次回滚）。
+#: 故按 source 过滤时先扫一个更大的窗口再筛，返回条数仍受 limit 约束。
+_VECTOR_SOURCE_SCAN_LIMIT = 2000
+
+
 @bp.route("/api/vector/recent")
 @_view(log=False)
 def api_vector_recent():
-    """获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）"""
+    """获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）
+
+    【2026-10-25 新增 ?source=】按 metadata.source 过滤（如 `?source=memory_import`）。
+    只加查询参数、不新增路由：既不改 URL 契约，也不触发 route_ui_intent/coverage 重派生。
+    """
     from app_server import _Yunshu, logger
-    limit = min(int(request.args.get("limit", 20)), 100)
+
+    try:
+        limit = int(request.args.get("limit", 20))
+    except (TypeError, ValueError):
+        limit = -1
+    if limit < 1:
+        # 显式拒绝而不是"夹到 1"：limit=0/-3 是调用方写错了，静默纠正会让它一直错下去
+        return _problem(400, title="limit 参数无效",
+                        detail="limit 必须是正整数（默认 20，上限 100）",
+                        type_slug="invalid-limit")
+    limit = min(limit, 100)
+    source = str(request.args.get("source") or "").strip()
+    if len(source) > 64 or any(ord(ch) < 32 for ch in source):
+        return _problem(400, title="source 参数形态非法",
+                        detail="source 是 metadata.source（如 memory_import），不接受超长/控制字符",
+                        type_slug="invalid-source")
     vs = getattr(_Yunshu, '_vector_memory', None)
     if not vs:
         return jsonify({"available": False, "items": []}), 503
 
     try:
-        items = vs.get_recent(limit=limit)
-        return jsonify({
+        if not source:
+            items = vs.get_recent(limit=limit)
+        else:
+            scan = min(max(limit * 10, 200), _VECTOR_SOURCE_SCAN_LIMIT)
+            items = [item for item in vs.get_recent(limit=scan)
+                     if str((item.metadata or {}).get("source") or "") == source][:limit]
+        payload = {
             "items": [item.to_dict() for item in items],
             "count": len(items),
-        })
+        }
+        if source:
+            payload["source"] = source
+        return jsonify(payload)
     except Exception as e:
         logger.error("获取最近向量记忆失败: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
