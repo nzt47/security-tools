@@ -107,6 +107,8 @@ export interface MemoryImportBatchEntry {
   /** 外部来源（claude / trae）与周期（2026-07 / static） */
   origin?: string
   period?: string
+  /** 摘要方式：rule（规则式）/ llm（LLM 改写） */
+  digest_source?: string
 }
 
 export interface MemoryImportRollbackResult {

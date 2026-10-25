@@ -251,8 +251,19 @@ describe('MemoryImportPanel', () => {
     expect(screen.getByText(/审计 seq 902/)).toBeTruthy()
   })
 
-  it('向量文档列表带来源徽章，且能按批次回滚', async () => {
+  it('合并表：批次行带来源徽章/迁移标记，回滚先看内容；无清单的向量只做脚注', async () => {
     api.fetchSources.mockResolvedValue({ sources: [] })
+    // 批次（主键）——来源/周期/摘要来自清单 detail（迁移时写入）
+    api.fetchBatches.mockResolvedValue({
+      batches: [{
+        batch_id: 'mb_vec', carrier: 'memory_note', carrier_label: '向量记忆',
+        title: 'claude 会话摘要 2026-07', records: 12, chars: 900, ref: 'vector/mem_1',
+        plan_id: 'mp_test', committed_at: '2026-10-25T10:00:00+08:00', audit_seq: 9,
+        rollback: 'auto', vector_ids: ['mem_1'], origin: 'claude', period: '2026-07',
+        digest_source: 'rule', migrated: true,
+      }],
+    })
+    // 向量只补展示信息；mem_9 没有批次清单 ⇒ 只出现在脚注里
     api.fetchVectors.mockResolvedValue([
       {
         id: 'mem_1', char_count: 900, origin: 'claude', batch_id: 'mb_vec',
@@ -260,8 +271,8 @@ describe('MemoryImportPanel', () => {
         migrated_from: 'messages.jsonl',
       },
       {
-        id: 'mem_2', char_count: 120, origin: 'trae', batch_id: 'mb_vec2',
-        period: '2026-05', digest_source: 'llm', title: 'trae 提问轨迹',
+        id: 'mem_9', char_count: 60, origin: 'trae', batch_id: 'mb_ghost',
+        period: '2026-05', digest_source: 'rule', title: '无清单的向量',
       },
     ])
     api.rollback.mockImplementation(({ dry_run }: { dry_run?: boolean }) => Promise.resolve(
@@ -276,16 +287,17 @@ describe('MemoryImportPanel', () => {
         : { ok: true, dry_run: false, batch_id: 'mb_vec', deleted: 'vector:mem_1' },
     ))
     render(<MemoryImportPanel />)
-    // 来源徽章：claude / trae 各一条，迁移来的额外带「迁移」
+    // 一行批次：来源徽章 + 迁移标记 + 向量 ref
     expect(await screen.findByText('claude')).toBeTruthy()
-    expect(screen.getByText('trae')).toBeTruthy()
     expect(screen.getByText('迁移')).toBeTruthy()
-    expect(screen.getByText('mem_1')).toBeTruthy()
-    // 【2026-10-25】这里是"物理删除"，必须两步：第一下只进入确认态，不发请求
-    const first = screen.getByRole('button', { name: '回滚向量批次 mb_vec' })
+    expect(screen.getAllByText(/vector\/mem_1/).length).toBeGreaterThanOrEqual(1)
+    // 没有批次清单的向量只做脚注（不单独开表）
+    expect(screen.getByText(/没有批次清单/)).toBeTruthy()
+    expect(screen.getByText(/mem_9/)).toBeTruthy()
+    // 回滚：第一下只拉 dry-run 预览，第二下才真删
+    const first = screen.getByRole('button', { name: '回滚 mb_vec' })
     expect(first.textContent).toContain('先看内容')
     fireEvent.click(first)
-    // 第一下只拉预览：既不发 confirm，也必须把正文摆出来
     await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
       batch_id: 'mb_vec', confirm: false, dry_run: true,
     }))
@@ -295,7 +307,6 @@ describe('MemoryImportPanel', () => {
     await waitFor(() => expect(api.rollback).toHaveBeenCalledWith({
       batch_id: 'mb_vec', confirm: true, dry_run: false,
     }))
-    // 回滚后要刷新向量列表（否则界面上还留着已删的那条）
     await waitFor(() => expect(api.fetchVectors.mock.calls.length).toBeGreaterThanOrEqual(2))
   })
 
