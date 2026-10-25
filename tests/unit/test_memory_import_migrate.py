@@ -131,6 +131,7 @@ def test_delete_failure_compensates_vector_and_keeps_manifest_unmigrated(tmp_pat
                           vector_sink=lambda c, metadata=None: {"detail": {"vector_ids": ["mem_9"]}},
                           delete_message=boom,
                           delete_vector=lambda i: compensated.append(i),
+                          probe_message=lambda i: {"found": True},  # 消息还在 ⇒ 才允许补偿
                           audit_fn=lambda *a, **k: {"seq": 0}, flush=lambda: True)
     assert out["ok"] is False and out["failed"]
     assert "删除原消息失败" in out["failed"][0]["error"]
@@ -184,3 +185,54 @@ def test_already_migrated_batches_are_skipped(tmp_path):
     plan = migrate.scan(root=root, messages_path=msgs)
     assert plan["pending"] == []
     assert plan["messages_without_manifest"] == [], "已有 vector_ids 的批次不算孤儿"
+
+
+def test_delete_uncertain_but_message_gone_keeps_vector(tmp_path):
+    """DELETE 抛异常但消息其实已被删掉（超时/断连）：**不能**补偿删向量。
+
+    2026-10-25 首次迁移的丢数据形态：若这里照旧补偿，这一批的正文两边都没了。
+    正确行为：保留向量、按完成收尾（deleted=False + shared_timestamp），不进 failed。
+    """
+    root = tmp_path / "mi"
+    path = _manifest(root, MB_A)
+    msgs = _messages(tmp_path / "messages.jsonl", [_row(MB_A, "ts-a")])
+
+    def boom(msg_id):
+        raise RuntimeError("HTTP 502（但删除其实已生效）")
+
+    out = migrate.migrate(root=root, messages_path=msgs, commit=True, confirm=True,
+                          vector_sink=lambda c, metadata=None: {"detail": {"vector_ids": ["mem_keep"]}},
+                          delete_message=boom,
+                          probe_message=lambda i: {"found": False},
+                          delete_vector=lambda i: (_ for _ in ()).throw(AssertionError("不该补偿")),
+                          audit_fn=lambda *a, **k: {"seq": 11}, flush=lambda: True)
+    assert out["ok"] is True and out["failed"] == []
+    assert out["migrated"][0]["deleted"] is False
+    assert out["migrated"][0]["shared_timestamp"] is True
+    assert out["migrated"][0]["vector_ids"] == ["mem_keep"]
+    entry = json.loads(path.read_text(encoding="utf-8"))
+    assert entry["migrated"] is True and entry["migration_state"] == "done"
+    assert entry["detail"]["vector_ids"] == ["mem_keep"]
+    assert "delete_uncertain_but_gone" in entry["detail"]["note"]
+
+
+def test_probe_failure_falls_back_to_conservative_compensation(tmp_path):
+    """探针本身失败时按「消息仍在」处理：宁可留双写，也不删掉唯一副本。"""
+    root = tmp_path / "mi"
+    _manifest(root, MB_A)
+    msgs = _messages(tmp_path / "messages.jsonl", [_row(MB_A, "ts-a")])
+    compensated = []
+
+    def boom(msg_id):
+        raise RuntimeError("HTTP 500")
+
+    def bad_probe(msg_id):
+        raise RuntimeError("probe down")
+
+    out = migrate.migrate(root=root, messages_path=msgs, commit=True, confirm=True,
+                          vector_sink=lambda c, metadata=None: {"detail": {"vector_ids": ["mem_x"]}},
+                          delete_message=boom, probe_message=bad_probe,
+                          delete_vector=lambda i: compensated.append(i),
+                          audit_fn=lambda *a, **k: {"seq": 0}, flush=lambda: True)
+    assert out["ok"] is False and out["failed"]
+    assert compensated == ["mem_x"], "探不到就必须保守补偿，不能留两处都写"

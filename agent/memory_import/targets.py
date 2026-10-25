@@ -229,7 +229,11 @@ def delete_memory_note(msg_id: str, *,
         raise RuntimeError(f"删除长期记忆的响应不是统一信封：{str(payload)[:120]}")
     return {"ok": bool(data.get("ok")) and (bool(data.get("deleted")) or bool(dry_run)),
             "deleted": bool(data.get("deleted")), "msg_id": target,
-            "dry_run": bool(data.get("dry_run")), "audit": data.get("audit") or {}}
+            "dry_run": bool(data.get("dry_run")), "audit": data.get("audit") or {},
+            # dry_run=true 时服务端会回 found/preview ⇒ 可当"这条还在不在"的探针用
+            # （迁移器在补偿删向量前必须先确认原消息是否还在，见 migrate.migrate）
+            "found": bool(data.get("found", True)),
+            "preview": str(data.get("preview") or "")}
 
 
 #: 向量记忆 metadata 的来源标记（导入的向量一律带它，检索/回滚/审计都靠它辨认）

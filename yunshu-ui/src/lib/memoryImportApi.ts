@@ -241,7 +241,10 @@ export interface ImportedVectorDoc {
  * 就分不清哪条是外部记忆了。
  */
 export async function fetchImportedVectorDocs(limit = 100, signal?: AbortSignal): Promise<ImportedVectorDoc[]> {
-  const res = await fetch(VECTOR_RECENT + '?limit=' + limit, { headers: headersFor(false), signal })
+  // 服务端按 metadata.source 过滤（单次最多 100 条），避免导入条目被本机向量挤出窗口；
+  // 前端仍保留一次过滤：老版本后端不认 source 参数时行为不退化。
+  const res = await fetch(VECTOR_RECENT + '?source=memory_import&limit=' + limit,
+    { headers: headersFor(false), signal })
   if (!res.ok) throw new MemoryImportApiError(await problemMessage(res), res.status)
   const body = (await res.json()) as { items?: Array<Record<string, unknown>> }
   const items = body?.items ?? []
