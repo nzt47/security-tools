@@ -303,6 +303,8 @@ def migrate(*, commit: bool = False, confirm: bool = False,
         entry["migrated"] = True
         entry["migration_state"] = "done"
         entry["migrated_at"] = _now_iso()
+        # ref 也跟着搬家：界面要知道"这条批次现在落在哪"，不能还指向已删的消息流
+        entry["ref"] = "vector/" + vector_ids[0]
         _atomic_write(entry_path, json.dumps(entry, ensure_ascii=False, indent=2))
         # 删除回执可能是信封 dict，也可能只是布尔；两种都认，未知按"已删"记
         deleted_ok = (bool(deleted.get("deleted")) if isinstance(deleted, dict)
