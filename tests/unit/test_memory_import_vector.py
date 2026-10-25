@@ -56,14 +56,17 @@ def test_vector_sink_posts_to_vector_add_with_metadata(monkeypatch):
 
     def fake_urlopen(request, timeout=None):
         seen["url"] = request.full_url
-        seen["method"] = request.get_method()
-        seen["body"] = json.loads(request.data.decode("utf-8"))
-        return _FakeResponse({"ok": True, "item_id": "mem_abc123"})
+        seen.setdefault("methods", []).append(request.get_method())
+        if request.get_method() == "POST":
+            seen["body"] = json.loads(request.data.decode("utf-8"))
+            return _FakeResponse({"ok": True, "item_id": "mem_abc123"})
+        # 写入后回读校验（PR：向量写入不许假成功）
+        return _FakeResponse({"id": "mem_abc123", "content": "正文"})
 
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
     out = targets._default_vector_sink("正文", metadata={"source": "memory_import"})
-    assert seen["method"] == "POST"
-    assert seen["url"].endswith("/api/vector/add")
+    assert seen["methods"] == ["POST", "GET"], "写入后必须回读一次（不许假成功）"
+    assert seen["url"].startswith("http://127.0.0.1:5678/api/vector/")
     assert seen["body"]["metadata"] == {"source": "memory_import"}
     assert out["detail"]["vector_ids"] == ["mem_abc123"]
     assert out["ref"] == "vector/mem_abc123"
