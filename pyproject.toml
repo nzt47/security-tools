@@ -81,11 +81,13 @@ dependencies = [
   # transformers：此前**完全未声明**，只作为 sentence-transformers 的传递依赖
   #   出现在 requirements.txt:383。Why 必须显式声明：agent/ 与 memory/ 直接
   #   `import transformers`，把它交给传递闭包等于"上游改一次依赖树就静默失效"。
-  #   下限取 requirements.txt 钉的版本（本次 5.9.0 → 5.10.1）；本机实装 5.13.1 落在区间内。
-  #   ⚠ 已知漂移（不在本 PR 范围）：锁文件仍落后于实装（5.10.1 vs 5.13.1），
-  #     意味着照锁文件 `pip install -r` 会把生产**降级**。对齐锁文件与实装需要
-  #     单独一次"锁文件刷新"，且必须先在 CI 上验证 5.13.1（CI 目前从未跑过它）。
-  "transformers>=5.10.1,<6.0.0",
+  #   下限取 requirements.txt 钉的版本（本次 5.10.1 → **5.13.1**）；本机实装 5.13.1。
+  #   【2026-10-25 锁文件刷新】此前锁 5.10.1 / 实装 5.13.1，照锁装会把生产**降级**。
+  #   本次用 `pip-compile --upgrade-package transformers==5.13.1` 把锁对齐到实装，
+  #   并顺带补回锁里缺失的 7 个依赖（flask 侧 blinker/itsdangerous/werkzeug、
+  #   pdfminer-six/pypdfium2、sqlite-vec、tzdata）——它们此前只在本机实装里，
+  #   属于"锁文件残缺"（见 §8 陷阱 24）。CI 会在本轮真正跑一遍 5.13.1。
+  "transformers>=5.13.1,<6.0.0",
   "numpy>=2.0.0,<3.0.0",
   # 【S11-10 · R9-e】原生栈四件套显式声明（此前是"未声明但被依赖"的隐式件）。
   # Why 必须声明：`agent/utils/native_preimport.py` 的原生栈固化顺序是
