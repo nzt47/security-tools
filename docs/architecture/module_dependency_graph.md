@@ -337,6 +337,7 @@ flowchart LR
     end
     subgraph memory_import [memory_import]
         agent_memory_import["agent.memory_import"]:::crosslayer
+        agent_memory_import_migrate["agent.memory_import.migrate"]
         agent_memory_import_models["agent.memory_import.models"]:::crosslayer
         agent_memory_import_readers["agent.memory_import.readers"]:::crosslayer
         agent_memory_import_redact["agent.memory_import.redact"]
@@ -1371,6 +1372,7 @@ flowchart LR
     agent_memory_tenancy -.-> agent_observability_trace_v2
     agent_memory_tenancy -.-> agent_observability_trace_v2
     agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_import_migrate -.-> agent_audit_facade
     agent_memory_import_redact -.-> agent_subagent_credentials
     agent_memory_import_service -.-> agent_audit_facade
     agent_memory_import_service -.-> agent_audit_facade
@@ -2716,9 +2718,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 694
-- 模块节点数: 604
-- 依赖边数: 1986
-- 跨层调用数: 1255
+- 扫描文件数: 695
+- 模块节点数: 605
+- 依赖边数: 1987
+- 跨层调用数: 1256
 - 违规调用数: 0
 - 动态 import 数: 1

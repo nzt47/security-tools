@@ -110,7 +110,7 @@
       "name": "facade",
       "layer": "audit",
       "file_path": "agent/audit/facade.py",
-      "in_degree": 55,
+      "in_degree": 56,
       "out_degree": 2
     },
     {
@@ -2312,6 +2312,14 @@
       "file_path": "agent/memory/short_term_memory.py",
       "in_degree": 1,
       "out_degree": 2
+    },
+    {
+      "path": "agent.memory_import.migrate",
+      "name": "migrate",
+      "layer": "memory_import",
+      "file_path": "agent/memory_import/migrate.py",
+      "in_degree": 0,
+      "out_degree": 1
     },
     {
       "path": "agent.memory_import.redact",
@@ -13273,6 +13281,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.memory_import.migrate",
+      "target": "agent.audit.facade",
+      "source_layer": "memory_import",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 346,
+      "source_file": "agent/memory_import/migrate.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.memory_import.redact",
       "target": "agent.subagent.credentials",
       "source_layer": "memory_import",
@@ -13317,7 +13338,7 @@
       "source_layer": "memory_import",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 569,
+      "line": 626,
       "source_file": "agent/memory_import/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -13330,7 +13351,7 @@
       "source_layer": "memory_import",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 574,
+      "line": 631,
       "source_file": "agent/memory_import/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -14318,7 +14339,7 @@
       "source_layer": "monitoring",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 1186,
+      "line": 1187,
       "source_file": "agent/monitoring/observability_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -14331,7 +14352,7 @@
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 814,
+      "line": 815,
       "source_file": "agent/monitoring/observability_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -30655,10 +30676,10 @@
     }
   ],
   "stats": {
-    "total_files": 694,
-    "total_nodes": 604,
-    "total_edges": 1986,
-    "cross_layer_edges": 1255,
+    "total_files": 695,
+    "total_nodes": 605,
+    "total_edges": 1987,
+    "cross_layer_edges": 1256,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -30703,7 +30724,7 @@
       "log_system": 10,
       "common": 1,
       "memory": 23,
-      "memory_import": 7,
+      "memory_import": 8,
       "network": 3,
       "workflow_engine": 5,
       "verification": 1,
