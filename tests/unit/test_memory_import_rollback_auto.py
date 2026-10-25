@@ -167,3 +167,33 @@ def test_list_batches_marks_memory_with_msg_id_as_auto(tmp_path):
     assert rows["mb_ffffffffffff"]["rollback"] == "manual"
     assert rows["mb_000000000000"]["rollback"] == "auto"
 
+
+def test_delete_memory_note_404_is_missing_not_failure(monkeypatch):
+    """msg_id 撞车时后一个 DELETE 必然 404：那是"已经不在了"，不是失败。
+
+    2026-10-25 首次存量迁移的真实事故：这里抛异常 ⇒ 迁移器补偿删掉刚写的向量
+    ⇒ 那一批的正文两边都没了（后来用计划快照 digest 才恢复）。
+    """
+    import urllib.error
+
+    def boom(request, timeout=None):
+        raise urllib.error.HTTPError(request.full_url, 404, "not found", {},
+                                     io.BytesIO(b'{"title":"\u627e\u4e0d\u5230"}'))
+
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    out = targets.delete_memory_note("2026-10-24T02:44:37.547745+00:00")
+    assert out["ok"] is True and out["deleted"] is False and out["missing"] is True
+
+
+def test_rollback_memory_already_gone_reports_missing_not_deleted(tmp_path, monkeypatch):
+    """按 msg_id 回滚时若那条已经不在了：目标状态已达成，但**不能**回"刚删掉"。"""
+    _manifest(tmp_path, "mb_999999999999", carrier=CARRIER_MEMORY, msg_id="m9")
+    monkeypatch.setattr(targets, "delete_memory_note",
+                        lambda *a, **k: {"ok": True, "deleted": False, "missing": True})
+    monkeypatch.setattr(service, "_audit", lambda *a, **k: {})
+    monkeypatch.setattr(service, "_flush_audit", lambda: True)
+    out = service.rollback("mb_999999999999", confirm=True, dry_run=False, root=tmp_path)
+    assert out["ok"] is True
+    assert out["deleted"] == "", "没删到任何东西就不能写 deleted"
+    assert out["missing"] == ["m9"]
+    assert not (service.batch_dir(tmp_path) / "mb_999999999999.json").exists()

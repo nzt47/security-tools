@@ -162,6 +162,7 @@ def test_shared_timestamp_second_batch_counts_as_migrated(tmp_path):
                           audit_fn=lambda *a, **k: {"seq": 0}, flush=lambda: True)
     assert out["ok"] is True
     assert [m["deleted"] for m in out["migrated"]] == [True, False]
+    assert [m["shared_timestamp"] for m in out["migrated"]] == [False, True]
     assert all(json.loads((service.batch_dir(root) / f"{m['batch_id']}.json")
                           .read_text(encoding="utf-8"))["migrated"] for m in out["migrated"])
 
