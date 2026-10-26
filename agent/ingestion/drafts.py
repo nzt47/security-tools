@@ -295,8 +295,20 @@ def list_drafts(draft_dir: Any = None) -> List[Dict[str, Any]]:
             continue
         if not isinstance(manifest, dict):
             continue
+        bound = total = 0
+        wf_path = _workflow_file(child)
+        if wf_path is not None:
+            try:
+                wf = json.loads(wf_path.read_text(encoding="utf-8"))
+                steps = wf.get("steps") or []
+                total = len(steps)
+                bound = sum(1 for s in steps if str(s.get("tool_name") or "").strip())
+            except (OSError, ValueError):
+                pass
         out.append({
             "draft_id": str(manifest.get("draft_id") or child.name),
+            "bound_steps": bound,
+            "total_steps": total,
             "form": str(manifest.get("form") or ""),
             "status": str(manifest.get("status") or "draft"),
             "enabled": bool(manifest.get("enabled")),
@@ -311,6 +323,70 @@ def list_drafts(draft_dir: Any = None) -> List[Dict[str, Any]]:
         })
     out.sort(key=lambda d: d.get("created_at") or "", reverse=True)
     return out
+
+
+def _workflow_file(root: Path) -> Any:
+    wf_dir = root / "workflows"
+    if not wf_dir.is_dir():
+        return None
+    files = sorted(wf_dir.glob("*.json"))
+    return files[0] if files else None
+
+
+def _find_draft(draft_id: str, base: Path) -> Any:
+    """按目录 listing 等值匹配草稿（不把用户输入拼进路径）。"""
+    if not base.is_dir():
+        return None
+    for child in base.iterdir():
+        if child.is_dir() and child.name == draft_id and (child / "manifest.json").is_file():
+            return child
+    return None
+
+
+def load_manifest(draft_id: str, *, draft_dir: Any = None) -> Dict[str, Any]:
+    """读取草稿 manifest（不存在则抛 FileNotFoundError）。"""
+    base = Path(draft_dir) if draft_dir else Path(DEFAULT_DRAFT_DIR)
+    root = _find_draft(draft_id, base)
+    if root is None:
+        raise FileNotFoundError("草稿不存在: " + str(draft_id))
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    return {"root": root, "manifest": manifest}
+
+
+def load_workflow(draft_id: str, *, draft_dir: Any = None) -> Dict[str, Any]:
+    """读取草稿的 workflow JSON 与 manifest（不存在则抛 FileNotFoundError）。"""
+    base = Path(draft_dir) if draft_dir else Path(DEFAULT_DRAFT_DIR)
+    root = _find_draft(draft_id, base)
+    if root is None:
+        raise FileNotFoundError("草稿不存在: " + str(draft_id))
+    path = _workflow_file(root)
+    if path is None:
+        raise FileNotFoundError("该草稿不是工作流形态（没有 workflows/*.json）")
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    workflow = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(workflow, dict):
+        raise ValueError("workflow JSON 根节点必须是对象")
+    return {"root": root, "manifest": manifest, "workflow": workflow, "path": path}
+
+
+def save_workflow(draft_id: str, workflow: Dict[str, Any], *, warnings: Any = None,
+                  draft_dir: Any = None) -> Dict[str, Any]:
+    """把绑定后的 workflow 写回草稿，并同步 manifest（requires_binding / warnings / meta）。"""
+    data = load_workflow(draft_id, draft_dir=draft_dir)
+    root, manifest, path = data["root"], data["manifest"], data["path"]
+    steps = workflow.get("steps") or []
+    bound = sum(1 for s in steps if str(s.get("tool_name") or "").strip())
+    total = len(steps)
+    workflow["requires_binding"] = bound < total
+    path.write_text(json.dumps(workflow, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    manifest["requires_binding"] = bound < total
+    manifest["binding"] = {"bound": bound, "total": total,
+                           "model": (workflow.get("binding_meta") or {}).get("model", "")}
+    if warnings is not None:
+        manifest["warnings"] = [str(w) for w in warnings]
+    (root / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {"draft_dir": str(root), "bound": bound, "total": total}
 
 
 def delete_draft(draft_id: str, *, draft_dir: Any = None) -> bool:
@@ -352,6 +428,9 @@ __all__ = [
     "draft_id_for",
     "extract_steps",
     "list_drafts",
+    "load_manifest",
+    "load_workflow",
+    "save_workflow",
     "write_draft",
     "write_tool_draft",
     "write_workflow_draft",

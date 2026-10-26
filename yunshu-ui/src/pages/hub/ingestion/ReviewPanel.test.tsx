@@ -63,6 +63,61 @@ describe('ReviewPanel', () => {
     expect(screen.getByRole('button', { name: '删除骨架草稿 ing_abc123' })).toBeTruthy()
   })
 
+  it('AI 绑定：先预览建议，应用后自动登记为工作流', async () => {
+    api.hubGet.mockImplementation((url: string) => url === '/api/ingestion/drafts'
+      ? Promise.resolve({ data: { items: [{
+        draft_id: 'ing_ai', form: 'workflow', skill_name: '自动绑定演示',
+        created_at: '2026-10-26T19:00:00+08:00', warnings: ['骨架'],
+        draft_dir: 'C:/repo/data/ingestion/drafts/ing_ai',
+        source_ref: 'path:C:/skills/demo', bound_steps: 0, total_steps: 2,
+      }] } })
+      : Promise.resolve({ ok: true, total: 0, items: [] }))
+    const f = vi.fn(async (url: string, init: RequestInit) => {
+      if (url.endsWith('/autobind')) {
+        const body = JSON.parse(String(init.body))
+        return body.apply
+          ? { ok: true, json: async () => ({ data: { report: { bound: 2, total: 2, model: 'fake' }, saved: {} } }) }
+          : { ok: true, json: async () => ({ data: { report: { bound: 2, total: 2, model: 'fake', unbound: [] }, workflow: {} } }) }
+      }
+      if (url.endsWith('/register')) {
+        return { ok: true, json: async () => ({ data: { workflow_id: 'wf-demo' } }) }
+      }
+      return { ok: false, json: async () => ({ detail: 'unexpected' }) }
+    })
+    vi.stubGlobal('fetch', f)
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    render(<ReviewPanel />)
+    await screen.findByText('ing_ai')
+    const registerBtn = screen.getByRole('button', { name: '登记为工作流 ing_ai' }) as HTMLButtonElement
+    expect(registerBtn.disabled, '未绑定时不允许登记').toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'AI 绑定 ing_ai' }))
+    expect(await screen.findByText(/AI 建议：绑定/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '应用绑定 ing_ai' }))
+    await waitFor(() => expect(screen.getByText(/已登记为工作流 wf-demo/)).toBeTruthy())
+    expect(f.mock.calls.some((call) => String(call[0]).endsWith('/autobind'))).toBe(true)
+    expect(f.mock.calls.some((call) => String(call[0]).endsWith('/register'))).toBe(true)
+  })
+
+  it('按技能安装：调 install-skill 并给出结果', async () => {
+    api.hubGet.mockImplementation((url: string) => url === '/api/ingestion/drafts'
+      ? Promise.resolve({ data: { items: [{
+        draft_id: 'ing_sk', form: 'workflow', skill_id: 'code-refactor', skill_name: '代码重构',
+        source_ref: 'path:C:/skills/code-refactor', bound_steps: 0, total_steps: 18,
+      }] } })
+      : Promise.resolve({ ok: true, total: 0, items: [] }))
+    const f = vi.fn(async (_url: string, _init?: RequestInit) => ({
+      ok: true, json: async () => ({ data: { result: { skill_id: 'code-refactor' } } }),
+    }))
+    vi.stubGlobal('fetch', f)
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    render(<ReviewPanel />)
+    await screen.findByText('ing_sk')
+    fireEvent.click(screen.getByRole('button', { name: '按技能安装 ing_sk' }))
+    await waitFor(() => expect(screen.getByText(/已按技能安装：code-refactor/)).toBeTruthy())
+    expect(String(f.mock.calls[0][0])).toContain('/api/ingestion/drafts/ing_sk/install-skill')
+  })
+
   it('审核 / 放行走各自端点', async () => {
     setup()
     await screen.findByText('外来技能A')

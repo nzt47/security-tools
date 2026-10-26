@@ -64,8 +64,10 @@ def workflow_skill(tmp_path):
     d = tmp_path / "p4-flow-smoke"
     d.mkdir()
     (d / "SKILL.md").write_text(
+        # 步骤里必须点名真实工具（data/tool_definitions），否则 2026-10-26 起推荐为 skill
         "---\nname: P4 Flow Smoke\ndescription: 固定步骤流程\n---\n\n"
-        "# P4 Flow\n\n## 步骤\n1. 读取输入\n2. 整理字段\n3. 输出报告\n4. 归档\n",
+        "# P4 Flow\n\n## 步骤\n1. 用 search_files 读取输入\n2. 用 read_file 整理字段\n"
+        "3. 用 write_file 输出报告\n4. 用 run_tests 归档\n",
         encoding="utf-8")
     return d
 
@@ -91,6 +93,22 @@ class TestRecommendation:
         plan = service.preview(workflow_skill)
         assert plan.recommendation.form == "workflow"
         assert any("form=workflow" in a for a in plan.actions)
+
+    def test_步骤没点名工具时降级为技能(self, tmp_path):
+        """只有编号步骤、没有真实工具名 ⇒ 技能（避免生成无法执行的工作流骨架）。
+
+        2026-10-26 实测：code-refactor 的 18 步是 Claude 的 Grep/Count/Replace，
+        照旧规则会被推荐成 workflow，用户拿到的是 18 步全空的骨架。
+        """
+        d = tmp_path / "p4-prose"
+        d.mkdir()
+        (d / "SKILL.md").write_text(
+            "---\nname: P4 Prose\ndescription: 操作说明\n---\n\n"
+            "## 步骤\n1. 读取输入\n2. 整理字段\n3. 输出报告\n4. 归档\n",
+            encoding="utf-8")
+        plan = service.preview(d)
+        assert plan.recommendation.form == "skill"
+        assert "对应到云枢工具" in plan.recommendation.reason
 
     def test_无证据仍推荐_skill(self, plain_skill):
         plan = service.preview(plain_skill)
