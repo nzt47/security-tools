@@ -197,6 +197,147 @@ def api_ingestion_draft_delete(draft_id: str):
     return _ok({"deleted": draft_id})
 
 
+@bp.route("/api/ingestion/drafts/<draft_id>/install-skill", methods=["POST"])
+@_require_token
+def api_ingestion_draft_install_skill(draft_id: str):
+    """把草稿的来源**按技能形态**重新安装（技能才有评审/放行链路）。
+
+    Why：workflow/tool 草稿是骨架，不能直接执行，也不进技能评审队列；
+    对"本来就是说明型技能"的来源（如 Claude SKILL.md），按技能安装才是正确出口。
+    """
+    from agent.audit.facade import audit
+    from agent.ingestion import drafts, service
+    try:
+        body = _json_body()
+    except IngestionError as exc:
+        return _fail(exc)
+    if body.get("confirm") is not True:
+        return _problem(400, title="需要显式确认", detail="安装技能会写真实技能库；请带 confirm=true",
+                        type_slug="confirm-required")
+    try:
+        data = drafts.load_manifest(draft_id)
+    except FileNotFoundError as exc:
+        return _problem(404, title="草稿不存在", detail=str(exc), type_slug="draft-not-found")
+    ref = str(data["manifest"].get("source_ref") or "")
+    if not ref.startswith("path:"):
+        return _problem(400, title="来源不可重装",
+                        detail="该草稿来源不是本机路径（文本来源没有保留原文），无法按技能重装",
+                        type_slug="source-not-path")
+    path = ref[5:].strip()
+    try:
+        plan = service.preview(path)
+        existing = [d for d in (plan.dedupe or []) if d.get("match") in ("id", "name")]
+        if existing and body.get("overwrite") is not True:
+            names = "、".join(str(d.get("id") or d.get("name")) for d in existing[:3])
+            return _problem(409, title="技能已存在", detail="已存在同 id/同名技能：" + names +
+                            "；确认覆盖请带 overwrite=true", type_slug="skill-exists")
+        result = service.commit(path, plan_id=plan.plan_id, confirm=True, form="skill")
+    except IngestionError as exc:
+        return _fail(exc)
+    except Exception as exc:  # noqa: BLE001 安装链路异常：只回类型名（原文进日志）
+        return _problem(500, title="按技能安装失败", detail=type(exc).__name__,
+                        type_slug="install-skill-failed")
+    try:
+        audit.record("ingestion.draft_install_skill", subject=draft_id,
+                     payload={"draft_id": draft_id, "skill_id": result.skill_id,
+                              "source_ref": ref, "overwrite": body.get("overwrite") is True})
+    except Exception:  # noqa: BLE001 审计失败不回滚安装
+        pass
+    return _ok({"result": result.to_dict()})
+
+
+@bp.route("/api/ingestion/drafts/<draft_id>/autobind", methods=["POST"])
+@_require_token
+def api_ingestion_draft_autobind(draft_id: str):
+    """AI 自动绑定：把步骤描述映射到真实工具 + 参数模板（默认 dry-run）。
+
+    - apply=false：只回提议（写盘前先给人看）；
+    - apply=true 且 confirm=true：写回草稿 JSON 与 manifest（不注册、不启用）。
+    """
+    from agent.audit.facade import audit
+    from agent.ingestion import autobind, drafts
+    try:
+        body = _json_body()
+    except IngestionError as exc:
+        return _fail(exc)
+    try:
+        data = drafts.load_workflow(draft_id)
+    except FileNotFoundError as exc:
+        return _problem(404, title="草稿不存在或不是工作流", detail=str(exc),
+                        type_slug="draft-not-found")
+    except ValueError as exc:
+        return _problem(400, title="草稿内容非法", detail=str(exc), type_slug="draft-invalid")
+    try:
+        workflow, report = autobind.propose(data["workflow"], _resolve_llm_client())
+    except autobind.BindError as exc:
+        return _problem(int(exc.status), title="自动绑定失败", detail=exc.detail,
+                        type_slug="autobind-failed")
+    saved = None
+    if body.get("apply") is True:
+        if body.get("confirm") is not True:
+            return _problem(400, title="需要显式确认",
+                            detail="写回绑定结果需要 confirm=true（会改草稿 JSON）",
+                            type_slug="confirm-required")
+        saved = drafts.save_workflow(draft_id, workflow,
+                                     warnings=autobind.binding_warnings(report))
+        try:
+            audit.record("ingestion.draft_autobind", subject=draft_id,
+                         payload={"draft_id": draft_id, "bound": report["bound"],
+                                  "total": report["total"], "model": report.get("model", "")})
+        except Exception:  # noqa: BLE001
+            pass
+    return _ok({"report": report, "workflow": workflow, "saved": saved})
+
+
+@bp.route("/api/ingestion/drafts/<draft_id>/register", methods=["POST"])
+@_require_token
+def api_ingestion_draft_register(draft_id: str):
+    """把已全部绑定工具的草稿登记为工作流（默认停用；需 confirm）。"""
+    from agent.audit.facade import audit
+    from agent.ingestion import autobind, drafts
+    try:
+        body = _json_body()
+    except IngestionError as exc:
+        return _fail(exc)
+    if body.get("confirm") is not True:
+        return _problem(400, title="需要显式确认", detail="登记会写工作流仓库；请带 confirm=true",
+                        type_slug="confirm-required")
+    try:
+        data = drafts.load_workflow(draft_id)
+    except FileNotFoundError as exc:
+        return _problem(404, title="草稿不存在或不是工作流", detail=str(exc),
+                        type_slug="draft-not-found")
+    except ValueError as exc:
+        return _problem(400, title="草稿内容非法", detail=str(exc), type_slug="draft-invalid")
+    try:
+        wf = autobind.build_learned_workflow(data["workflow"], draft_id=draft_id)
+    except autobind.BindError as exc:
+        return _problem(int(exc.status), title="还不能登记", detail=exc.detail,
+                        type_slug="register-rejected")
+    except ValueError as exc:  # 工作流 id/字段不合法（pydantic 校验）
+        return _problem(400, title="工作流信息不合法", detail=str(exc),
+                        type_slug="register-invalid")
+    from agent.workflow_learning.repository import WorkflowRepository
+    try:
+        repo = WorkflowRepository()
+        if repo.get(wf.id) is not None:
+            return _problem(409, title="工作流 id 已存在",
+                            detail="工作流仓库里已有 " + wf.id + "；请改名或先删除旧工作流",
+                            type_slug="workflow-exists")
+        repo.upsert(wf)
+    except Exception as exc:  # noqa: BLE001 写仓库失败：只回类型名
+        return _problem(500, title="登记失败", detail=type(exc).__name__,
+                        type_slug="register-failed")
+    try:
+        audit.record("ingestion.draft_register", subject=draft_id,
+                     payload={"draft_id": draft_id, "workflow_id": wf.id,
+                              "steps": len(wf.steps), "enabled": wf.enabled})
+    except Exception:  # noqa: BLE001
+        pass
+    return _ok({"workflow_id": wf.id, "name": wf.name, "steps": len(wf.steps),
+                "enabled": wf.enabled, "status": wf.status})
+
+
 @bp.route("/api/ingestion/governance/scan", methods=["POST"])
 @_require_token
 def api_ingestion_governance_scan():

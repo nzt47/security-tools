@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-10-26T18:27:56",
+  "generated_at": "2026-10-26T19:45:53",
   "totals": {
-    "routes": 464,
-    "live": 464,
+    "routes": 467,
+    "live": 467,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 407,
+    "ui": 410,
     "cli_script": 16,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 407,
+      "ui": 410,
       "cli_script": 16,
       "runtime_only": 11,
       "unreferenced": 30
     },
     "by_intent": {
-      "should_be_in_ui": 390,
+      "should_be_in_ui": 393,
       "should_not_be_in_ui": 73,
       "unclassified": 1
     },
@@ -30,14 +30,14 @@
       "调度与任务": 26,
       "对话与会话": 29,
       "业务与评估": 18,
-      "技能与工具": 110,
+      "技能与工具": 113,
       "认知与学习": 6,
       "观测与诊断": 73,
       "开发与内部": 14,
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 411,
+  "frontend_endpoints": 414,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -3855,6 +3855,81 @@
       "domain": "技能与工具"
     },
     {
+      "path": "/api/ingestion/drafts/<draft_id>/autobind",
+      "norm": "/api/ingestion/drafts/*/autobind",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:249"
+      ],
+      "description": "AI 自动绑定：把步骤描述映射到真实工具 + 参数模板（默认 dry-run）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "草稿评审 Tab 的「AI 绑定」：LLM 把步骤映射到 data/tool_definitions 里的真实工具；默认 dry-run，apply 需 confirm，只写草稿目录。",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
+      "path": "/api/ingestion/drafts/<draft_id>/install-skill",
+      "norm": "/api/ingestion/drafts/*/install-skill",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:200"
+      ],
+      "description": "把草稿的来源**按技能形态**重新安装（技能才有评审/放行链路）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "草稿评审 Tab 的「按技能安装」：把草稿来源按技能形态重装（技能才有审核/放行链路）；已存在同 id 技能需显式 overwrite。",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
+      "path": "/api/ingestion/drafts/<draft_id>/register",
+      "norm": "/api/ingestion/drafts/*/register",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:292"
+      ],
+      "description": "把已全部绑定工具的草稿登记为工作流（默认停用；需 confirm）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "草稿评审 Tab 的「登记」：全部步骤绑定真实工具后登记为工作流（enabled=false，去工作流页启用）；校验不过即拒绝。",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
       "path": "/api/ingestion/governance/apply",
       "norm": "/api/ingestion/governance/apply",
       "methods": [
@@ -3869,7 +3944,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:234"
+        "plugins/ingestion.py:368"
       ],
       "description": "执行一条治理动作：默认 dry-run；真执行必须 confirm=true。",
       "description_source": "handler",
@@ -3894,7 +3969,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:217"
+        "plugins/ingestion.py:351"
       ],
       "description": "生成确定性治理计划：merge / archive / split / refactor / delete_orphans。",
       "description_source": "handler",
@@ -3919,7 +3994,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:200"
+        "plugins/ingestion.py:334"
       ],
       "description": "存量资产治理盘点（只读）：技能/重复/孤儿/无用 + 结构化问题。",
       "description_source": "handler",
@@ -11903,5 +11978,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "0ef4c90107c2d372"
+  "content_hash": "a952a69bee942c6f"
 }

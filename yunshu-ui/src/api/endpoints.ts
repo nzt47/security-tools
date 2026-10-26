@@ -120,6 +120,12 @@ export const WORKFLOW_LEARNING_WORKFLOWS = '/api/workflow-learning/workflows';
 /** 吞噬生成的骨架草稿（tool/workflow；隔离区，不进技能队列） */
 export const INGESTION_DRAFTS = '/api/ingestion/drafts';
 export const ingestionDraft = (draftId: string) => `/api/ingestion/drafts/${encodeURIComponent(draftId)}`;
+export const ingestionDraftInstallSkill = (draftId: string) =>
+  `/api/ingestion/drafts/${encodeURIComponent(draftId)}/install-skill`;
+export const ingestionDraftAutobind = (draftId: string) =>
+  `/api/ingestion/drafts/${encodeURIComponent(draftId)}/autobind`;
+export const ingestionDraftRegister = (draftId: string) =>
+  `/api/ingestion/drafts/${encodeURIComponent(draftId)}/register`;
 
 export const workflowLearnExecute = (wfId: string) => `/api/workflow-learning/execute/${encodeURIComponent(wfId)}`;
 export const workflowLearnWorkflows = (wfId: string) => `/api/workflow-learning/workflows/${encodeURIComponent(wfId)}`;

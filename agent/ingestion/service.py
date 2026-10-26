@@ -488,14 +488,31 @@ def recommend(conformance: Conformance, *, skill: Optional[NormalizedSkill] = No
         except Exception:  # noqa: BLE001
             steps = []
         if len(steps) >= 3:
+            # 证据门槛（2026-10-26 修正）：只数"编号步骤"会把操作说明误判成工作流 ——
+            # 实测 code-refactor 的 18 步全是 Claude 的 Grep/Count/Replace，没有一个云枢工具，
+            # 用户照推荐生成后拿到的是无法执行的骨架。现在要求**至少一半步骤点名真实工具**
+            # （data/tool_definitions 里的名字），否则按技能吸收（可直接安装、可检索）。
+            try:
+                from .tool_catalog import steps_referencing_tools
+                matched = steps_referencing_tools(steps)
+            except Exception:  # noqa: BLE001 目录缺失/解析失败 → 证据不足
+                matched = 0
+            if matched >= 2 and matched * 2 >= len(steps):
+                return Recommendation(
+                    form=FORM_WORKFLOW,
+                    reason=(
+                        f"正文有 {len(steps)} 个编号步骤，其中 {matched} 个点名了真实工具；"
+                        "可生成工作流骨架（建议用 AI 自动绑定确认工具与参数）。"
+                    ),
+                    confidence=0.6,
+                )
             return Recommendation(
-                form=FORM_WORKFLOW,
+                form=FORM_SKILL,
                 reason=(
-                    f"正文有 {len(steps)} 个稳定编号步骤且无脚本；可生成工作流骨架。"
-                    "注意：工作流草稿不注册、不启用，步骤未绑定工具时不能执行；"
-                    "只想把这份说明变成可用能力，选「技能」形态可直接安装。"
+                    f"正文有 {len(steps)} 个编号步骤，但只有 {matched} 个能对应到云枢工具；"
+                    "按技能吸收更合适（工作流需要工具绑定，可稍后在草稿上用 AI 绑定）。"
                 ),
-                confidence=0.55,
+                confidence=0.45,
             )
     if conformance.level == LEVEL_L0:
         return Recommendation(
