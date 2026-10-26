@@ -327,11 +327,14 @@ def list_drafts(draft_dir: Any = None) -> List[Dict[str, Any]]:
         bound = total = 0
         implemented = None
         if str(manifest.get("form") or "") == "tool":
-            tool_name = str(manifest.get("skill_id") or "")
-            tool_file = child / "agent" / "tools" / (tool_name + ".py")
+            tool_dir = child / "agent" / "tools"
             try:
-                implemented = tool_file.is_file() and "NotImplementedError" not in tool_file.read_text(
-                    encoding="utf-8", errors="replace")
+                implemented = False
+                if tool_dir.is_dir():
+                    for f in sorted(tool_dir.glob("*.py")):
+                        if "NotImplementedError" not in f.read_text(encoding="utf-8", errors="replace"):
+                            implemented = True
+                            break
             except OSError:
                 implemented = False
         wf_path = _workflow_file(child)

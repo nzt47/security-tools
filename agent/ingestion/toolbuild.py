@@ -21,7 +21,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from . import drafts
 
 MAX_PROMPT_CHARS = 32000
-MAX_TOKENS = 4000
+# deepseek-flash 先消耗推理 token：实测 4000 时 content 为空、16000 被截断；32000 才 finish=stop
+MAX_TOKENS = 32000
 MAX_SCRIPT_CHARS = 6000
 
 FORBIDDEN_SNIPPETS = ("eval(", "exec(", "__import__", "shell=True", "os.system(", "pickle.loads")
@@ -59,13 +60,21 @@ def _call_llm(client: Any, prompt: str) -> str:
     return str(client.complete(prompt))
 
 
+def safe_name(raw: str) -> str:
+    """把 skill_id（可能含 - . 等）归一成合法 Python 标识符（与 drafts._tool_name 同口径）。"""
+    base = re.sub(r"[^0-9A-Za-z_]", "_", str(raw or "").strip())
+    base = re.sub(r"_+", "_", base).strip("_") or "ingested_tool"
+    return base if base[0].isalpha() else "t_" + base
+
+
 def load_materials(draft_id: str, *, draft_dir: Any = None) -> Dict[str, Any]:
     """读取草稿 + 来源材料（SKILL.md / scripts / 现有骨架）。"""
     data = drafts.load_manifest(draft_id, draft_dir=draft_dir)
     root, manifest = data["root"], data["manifest"]
-    name = str(manifest.get("skill_id") or "")
-    if not name:
+    raw_id = str(manifest.get("skill_id") or "")
+    if not raw_id:
         raise BuildError("草稿缺少 skill_id，无法实现")
+    name = safe_name(raw_id)
     skill_md = ""
     scripts: List[Tuple[str, str]] = []
     ref = str(manifest.get("source_ref") or "")
@@ -91,7 +100,13 @@ def load_materials(draft_id: str, *, draft_dir: Any = None) -> Dict[str, Any]:
                         scripts.append((f.name, f.read_text(encoding="utf-8", errors="replace")))
                     except OSError:
                         continue
-    tool_file = root / "agent" / "tools" / (name + ".py")
+    tool_dir = root / "agent" / "tools"
+    tool_file = tool_dir / (name + ".py")
+    if not tool_file.is_file() and tool_dir.is_dir():
+        candidates = sorted(tool_dir.glob("*.py"))
+        if candidates:
+            tool_file = candidates[0]
+            name = tool_file.stem
     skeleton = tool_file.read_text(encoding="utf-8", errors="replace") if tool_file.is_file() else ""
     return {"root": root, "manifest": manifest, "name": name,
             "description": str(manifest.get("skill_name") or name),
@@ -116,7 +131,8 @@ def build_prompt(materials: Dict[str, Any]) -> str:
         "要求：\n"
         "1. 只输出一个 python 代码块，不要解释；\n"
         "2. 顶层只允许 import / 简单赋值 / 函数定义；不要 from __future__；\n"
-        "3. 必须定义 TOOL_SCHEMA（type=object，properties 写出真实参数与说明，required 合理）；\n"
+        "3. 必须定义 TOOL_SCHEMA（type=object，properties 写出真实参数与说明，required 合理）；"
+        "schema 必须是纯字面量（enum 直接写数组，不要引用常量）；\n"
         "4. 必须定义函数 " + name + "(**kwargs) -> dict，缺参返回 {\"ok\": false, \"error\": \"...\"}；\n"
         "5. 返回统一结构 {\"ok\": bool, \"data\": ..., \"error\": \"\"}；不要 print / sys.exit；\n"
         "6. 优先调用来源脚本（subprocess 列表参数、shell=False、timeout），"
@@ -142,6 +158,29 @@ def _extract_code(text: str) -> str:
     return raw
 
 
+def _literal_with_names(node: ast.AST, env: Dict[str, Any]) -> Any:
+    """安全求值"字面量 + 已知常量名"表达式（不执行代码）。"""
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Name):
+        if node.id in env:
+            return env[node.id]
+        raise ValueError("unknown name: " + node.id)
+    if isinstance(node, ast.List):
+        return [_literal_with_names(e, env) for e in node.elts]
+    if isinstance(node, ast.Tuple):
+        return tuple(_literal_with_names(e, env) for e in node.elts)
+    if isinstance(node, ast.Dict):
+        if any(k is None for k in node.keys):
+            raise ValueError("dict unpacking not supported")
+        return {_literal_with_names(k, env): _literal_with_names(v, env)
+                for k, v in zip(node.keys, node.values)}
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
+        value = _literal_with_names(node.operand, env)
+        return -value if isinstance(node.op, ast.USub) else +value
+    raise ValueError("not a literal: " + type(node).__name__)
+
+
 def validate_code(code: str, name: str) -> Dict[str, Any]:
     """静态校验：语法 / 顶层语句 / 函数 / TOOL_SCHEMA / 危险调用 / 密钥。"""
     errors: List[str] = []
@@ -161,15 +200,40 @@ def validate_code(code: str, name: str) -> Dict[str, Any]:
     if not any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name
                for n in tree.body):
         errors.append("缺少函数 " + name)
+    # 先收集"纯字面量"的模块常量（如 _ACTIONS = [...]），schema 里允许引用它们
+    const_env: Dict[str, Any] = {}
+    for _ in range(3):  # 允许常量互相引用，最多 3 层
+        for node in tree.body:
+            pairs = []
+            if isinstance(node, ast.Assign):
+                pairs = [(t.id, node.value) for t in node.targets if isinstance(t, ast.Name)]
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                pairs = [(node.target.id, node.value)]
+            for const_name, value_node in pairs:
+                if const_name in const_env or value_node is None:
+                    continue
+                try:
+                    const_env[const_name] = _literal_with_names(value_node, const_env)
+                except (ValueError, TypeError):
+                    continue
     schema = None
     for node in tree.body:
+        target_name = None
+        value_node = None
         if isinstance(node, ast.Assign):
             for target in node.targets:
                 if isinstance(target, ast.Name) and target.id == "TOOL_SCHEMA":
-                    try:
-                        schema = ast.literal_eval(node.value)
-                    except Exception:  # noqa: BLE001
-                        errors.append("TOOL_SCHEMA 必须是字面量 dict")
+                    target_name = target.id
+                    value_node = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) \
+                and node.target.id == "TOOL_SCHEMA":
+            target_name = node.target.id
+            value_node = node.value
+        if target_name and value_node is not None:
+            try:
+                schema = _literal_with_names(value_node, const_env)
+            except (ValueError, TypeError):
+                errors.append("TOOL_SCHEMA 必须是字面量 dict（可引用纯字面量常量）")
     if not isinstance(schema, dict) or schema.get("type") != "object":
         errors.append("TOOL_SCHEMA 必须是 type=object 的对象")
     else:
@@ -208,13 +272,17 @@ def build(draft_id: str, llm: Any, *, draft_dir: Any = None) -> Dict[str, Any]:
         raise BuildError("LLM 调用失败", status=502, detail=type(exc).__name__) from exc
     code = _extract_code(text)
     validation = validate_code(code, materials["name"])
+    if not code.strip():
+        validation = {**validation, "ok": False,
+                      "errors": list(validation.get("errors") or []) +
+                      ["模型没有输出代码（若为推理模型，token 预算可能被 reasoning 占满）"]}
     try:
         from . import rewrite
         model = rewrite.model_name(llm)
     except Exception:  # noqa: BLE001
         model = ""
     return {"code": code, "validation": validation, "model": model,
-            "prompt_chars": len(prompt)}
+            "prompt_chars": len(prompt), "raw_chars": len(text)}
 
 
 def apply(draft_id: str, code: str, validation: Dict[str, Any], *,
@@ -222,7 +290,7 @@ def apply(draft_id: str, code: str, validation: Dict[str, Any], *,
     """把实现写回草稿（工具文件 / YAML schema / 测试骨架 / manifest 警告）。"""
     data = drafts.load_manifest(draft_id, draft_dir=draft_dir)
     root, manifest = data["root"], data["manifest"]
-    name = str(manifest.get("skill_id") or "")
+    name = safe_name(str(manifest.get("skill_id") or ""))
     if not name:
         raise BuildError("草稿缺少 skill_id")
     (root / "agent" / "tools" / (name + ".py")).write_text(code.rstrip() + "\n", encoding="utf-8")
