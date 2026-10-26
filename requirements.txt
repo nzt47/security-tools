@@ -201,7 +201,6 @@ numpy==2.4.6
     #   scikit-learn
     #   scipy
     #   sentence-transformers
-    #   torchvision
     #   transformers
 nvidia-ml-py==13.610.43
     # via pynvml
@@ -258,9 +257,7 @@ pdfminer-six==20260107
 pdfplumber==0.11.10
     # via Yunshu (pyproject.toml)
 pillow==13.0.0
-    # via
-    #   pdfplumber
-    #   torchvision
+    # via pdfplumber
 prometheus-client==0.22.0
     # via
     #   Yunshu (pyproject.toml)
@@ -431,11 +428,6 @@ torch==2.13.0
     # via
     #   Yunshu (pyproject.toml)
     #   sentence-transformers
-    #   torchvision
-torchaudio==2.11.0
-    # via Yunshu (pyproject.toml)
-torchvision==0.28.0
-    # via Yunshu (pyproject.toml)
 tqdm==4.67.3
     # via
     #   chromadb

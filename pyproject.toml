@@ -53,28 +53,22 @@ dependencies = [
   #   与 sentence-transformers 2.x → 5.x 是跨大版本迁移，历史上已经咬过人
   #   （仓库存有 chromadb_windows_compatibility_migration_guide.md 与
   #   "chromadb 0.5.x downgrade" 文档），且重装 torch 需重新验证数 GB 权重加载。
-  # Why 这三个的上界只收到「下一**小**版本」而不是「下一大版本」（与本文件其余项不同）：
-  #   实测 `pip install --dry-run -e .` 的结果差异 ——
-  #     上界 <3.0.0 / <1.0.0 / <3.0.0 → 解析器选 **torch 2.14.0 + torchvision 0.29.0**，
-  #        即比生产锁定/实装的 torch 2.13.0 **新一个大版本**；
-  #     上界 <2.14.0 / <0.29.0 / <2.13.0 → **torch 保持 2.13.0 不变**，
-  #        只新增 torchvision 0.28.0 + torchaudio 2.11.0。
-  #   这正是本任务要修的问题本身（"CI 测的依赖 ≠ 生产跑的依赖"）—— 用大版本上界
-  #   会把它原样搬回来。torchvision 0.29 会**钉住 torch==2.14**，是升级的传导源。
-  #   代价：torch 2.14 发布后 CI 不会自动用上，需要一次显式改版（可接受，且是好事）。
+  # Why torch 的上界只收到「下一**小**版本」而不是「下一大版本」（与本文件其余项不同）：
+  #   实测 `pip install --dry-run -e .`：上界 <3.0.0 会解析到 **torch 2.14.0**（比生产锁定/
+  #   实装的 2.13.0 新一个版本），上界 <2.14.0 才保持 2.13.0 不变 —— 这正是本任务要修的
+  #   "CI 测的依赖 ≠ 生产跑的依赖"。代价：torch 2.14 发布后 CI 不会自动用上，需要显式改版。
   #
   # 【2026-10-24 · 拆自 dependabot #1289】torch 2.12.0 → 2.13.0（本机生产实装 2.13.0+cpu）。
-  #   传导源必须**一起**抬：torchvision 0.27.0 的 wheel METADATA 是 `torch==2.12.0` 硬钉，
-  #   只升 torch 会让 `pip install -r requirements.txt` 直接解析冲突——dependabot 原 PR
-  #   就是这样（torch==2.13.0 + torchvision==0.27.0，装不上），故此处把 torchvision
-  #   下界一并抬到 0.28.0（其 METADATA 为 `torch==2.13.0`），上界仍 <0.29.0
-  #   （0.29 会钉 torch==2.14，是下一次升级的传导源）。
-  #   torchaudio 保持 2.11.0：PyPI 上**没有** 2.12/2.13（最新即 2.11.0），且其 wheel
-  #   METADATA 未声明 torch 依赖 ⇒ 不构成解析冲突；仓库 0 处 `import torchaudio`
-  #   （仅 scripts/ 两条安装提示），属"配套但不用"，故不声明一个不存在的版本。
+  #   原 PR 装不上的根因是 torchvision 0.27 的 wheel METADATA 硬钉 `torch==2.12.0`：
+  #   只升 torch 不升 torchvision，`pip install -r requirements.txt` 直接解析冲突。
+  #
+  # 【2026-10-26】删除 torchvision / torchaudio 的声明（此前是"配套但不用"的解析约束）：
+  #   仓库 0 处 import；`pip show sentence-transformers` 的 Requires 里也没有它们
+  #   （torch / transformers / numpy / scikit-learn / scipy / tqdm / huggingface-hub /
+  #   typing_extensions）；而 requirements.txt 要求安装、本机从未安装，本身就是漂移。
+  #   删掉后 `torch>=2.13,<2.14` 仍能把解析钉在 2.13，且升级时少一个"必须成对抬"的传导源。
+  #   若将来真要用（例如 CLIP 视觉塔），按 torch 配套版本加回，并补一条 import 用例。
   "torch>=2.13.0,<2.14.0",
-  "torchvision>=0.28.0,<0.29.0",
-  "torchaudio>=2.11.0,<2.13.0",
   "opencv-python-headless>=4.8.0,<5.0.0",
   "chromadb>=1.5.9,<2.0.0",
   "sentence-transformers>=5.6.0,<6.0.0",
