@@ -1136,6 +1136,7 @@ flowchart LR
     agent_ingestion_service -.-> agent_digestion_stage
     agent_ingestion_service -.-> agent_skills_mgmt_models
     agent_ingestion_toolbuild -.-> agent_tools_persistence
+    agent_ingestion_toolbuild -.-> agent_tools_persistence
     agent_ingestion_toolbuild -.-> agent_tools_tool_generator
     agent_knowledge --> agent_knowledge_schema
     agent_knowledge --> agent_knowledge_lifecycle
@@ -2725,7 +2726,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 698
 - 模块节点数: 607
-- 依赖边数: 1990
-- 跨层调用数: 1259
+- 依赖边数: 1991
+- 跨层调用数: 1260
 - 违规调用数: 0
 - 动态 import 数: 1

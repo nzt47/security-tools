@@ -1615,14 +1615,14 @@
       "layer": "ingestion",
       "file_path": "agent/ingestion/toolbuild.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.tools.persistence",
       "name": "persistence",
       "layer": "tools",
       "file_path": "",
-      "in_degree": 4,
+      "in_degree": 5,
       "out_degree": 2
     },
     {
@@ -10195,7 +10195,20 @@
       "source_layer": "ingestion",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 381,
+      "line": 136,
+      "source_file": "agent/ingestion/toolbuild.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ingestion.toolbuild",
+      "target": "agent.tools.persistence",
+      "source_layer": "ingestion",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 447,
       "source_file": "agent/ingestion/toolbuild.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10208,7 +10221,7 @@
       "source_layer": "ingestion",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 376,
+      "line": 441,
       "source_file": "agent/ingestion/toolbuild.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -29357,7 +29370,7 @@
       "source_layer": "tools",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 408,
+      "line": 413,
       "source_file": "agent/tools/persistence.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -30733,8 +30746,8 @@
   "stats": {
     "total_files": 698,
     "total_nodes": 607,
-    "total_edges": 1990,
-    "cross_layer_edges": 1259,
+    "total_edges": 1991,
+    "cross_layer_edges": 1260,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
