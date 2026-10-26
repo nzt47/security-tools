@@ -247,6 +247,7 @@ flowchart LR
         agent_ingestion_governance["agent.ingestion.governance"]
         agent_ingestion_rewrite["agent.ingestion.rewrite"]
         agent_ingestion_service["agent.ingestion.service"]
+        agent_ingestion_toolbuild["agent.ingestion.toolbuild"]
     end
     subgraph knowledge [knowledge]
         agent_knowledge["agent.knowledge"]:::crosslayer
@@ -662,7 +663,7 @@ flowchart LR
         agent_tools_notify_tools["agent.tools.notify_tools"]:::crosslayer
         agent_tools_observability["agent.tools.observability"]
         agent_tools_pdf_tools["agent.tools.pdf_tools"]:::crosslayer
-        agent_tools_persistence["agent.tools.persistence"]
+        agent_tools_persistence["agent.tools.persistence"]:::crosslayer
         agent_tools_plan_tools["agent.tools.plan_tools"]:::crosslayer
         agent_tools_process_tools["agent.tools.process_tools"]:::crosslayer
         agent_tools_search_tools["agent.tools.search_tools"]:::crosslayer
@@ -671,7 +672,7 @@ flowchart LR
         agent_tools_system_tools["agent.tools.system_tools"]:::crosslayer
         agent_tools_task_tools["agent.tools.task_tools"]:::crosslayer
         agent_tools_test_tools["agent.tools.test_tools"]:::crosslayer
-        agent_tools_tool_generator["agent.tools.tool_generator"]
+        agent_tools_tool_generator["agent.tools.tool_generator"]:::crosslayer
         agent_tools_web_tools["agent.tools.web_tools"]:::crosslayer
         agent_tools_workspace_tools["agent.tools.workspace_tools"]:::crosslayer
     end
@@ -1134,6 +1135,8 @@ flowchart LR
     agent_ingestion_service -.-> agent_descriptors_bridge
     agent_ingestion_service -.-> agent_digestion_stage
     agent_ingestion_service -.-> agent_skills_mgmt_models
+    agent_ingestion_toolbuild -.-> agent_tools_persistence
+    agent_ingestion_toolbuild -.-> agent_tools_tool_generator
     agent_knowledge --> agent_knowledge_schema
     agent_knowledge --> agent_knowledge_lifecycle
     agent_knowledge --> agent_knowledge_logbook
@@ -2720,9 +2723,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 697
-- 模块节点数: 606
-- 依赖边数: 1988
-- 跨层调用数: 1257
+- 扫描文件数: 698
+- 模块节点数: 607
+- 依赖边数: 1990
+- 跨层调用数: 1259
 - 违规调用数: 0
 - 动态 import 数: 1

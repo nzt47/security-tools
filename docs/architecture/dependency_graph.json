@@ -1610,6 +1610,30 @@
       "out_degree": 2
     },
     {
+      "path": "agent.ingestion.toolbuild",
+      "name": "toolbuild",
+      "layer": "ingestion",
+      "file_path": "agent/ingestion/toolbuild.py",
+      "in_degree": 0,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.tools.persistence",
+      "name": "persistence",
+      "layer": "tools",
+      "file_path": "",
+      "in_degree": 4,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.tools.tool_generator",
+      "name": "tool_generator",
+      "layer": "tools",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 2
+    },
+    {
       "path": "agent.knowledge",
       "name": "knowledge",
       "layer": "knowledge",
@@ -4698,14 +4722,6 @@
       "out_degree": 5
     },
     {
-      "path": "agent.tools.persistence",
-      "name": "persistence",
-      "layer": "tools",
-      "file_path": "",
-      "in_degree": 3,
-      "out_degree": 2
-    },
-    {
       "path": "agent.diagram_tools",
       "name": "diagram_tools",
       "layer": "core",
@@ -4727,14 +4743,6 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 2
-    },
-    {
-      "path": "agent.tools.tool_generator",
-      "name": "tool_generator",
-      "layer": "tools",
-      "file_path": "",
-      "in_degree": 2,
       "out_degree": 2
     },
     {
@@ -10176,6 +10184,32 @@
       "import_type": "from_import",
       "line": 682,
       "source_file": "agent/ingestion/service.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ingestion.toolbuild",
+      "target": "agent.tools.persistence",
+      "source_layer": "ingestion",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 284,
+      "source_file": "agent/ingestion/toolbuild.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ingestion.toolbuild",
+      "target": "agent.tools.tool_generator",
+      "source_layer": "ingestion",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 279,
+      "source_file": "agent/ingestion/toolbuild.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -30697,10 +30731,10 @@
     }
   ],
   "stats": {
-    "total_files": 697,
-    "total_nodes": 606,
-    "total_edges": 1988,
-    "cross_layer_edges": 1257,
+    "total_files": 698,
+    "total_nodes": 607,
+    "total_edges": 1990,
+    "cross_layer_edges": 1259,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -30738,7 +30772,7 @@
       "handoff": 1,
       "health": 7,
       "human_in_the_loop": 5,
-      "ingestion": 5,
+      "ingestion": 6,
       "knowledge": 28,
       "lazy_loader": 3,
       "learning": 2,
