@@ -61,6 +61,17 @@ def draft(tmp_path):
     return root
 
 
+@pytest.fixture(autouse=True)
+def _isolate_custom_tools_dir(monkeypatch, tmp_path):
+    """register 会把来源脚本复制进 custom/；测试必须落在 tmp_path，禁止写进工作树。
+
+    2026-10-27 实测：两条既有 register 用例没隔离 CUSTOM_TOOLS_DIR，
+    直接在 agent/tools/custom/ingested/ 下留下 demo_tool / demo-tool 两个目录。
+    """
+    monkeypatch.setattr("agent.tools.persistence.CUSTOM_TOOLS_DIR",
+                        str(tmp_path / "custom"))
+
+
 class TestValidate:
     def test_good_code_passes(self):
         v = toolbuild.validate_code(GOOD, "demo_tool")
