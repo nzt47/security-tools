@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-10-26T19:45:53",
+  "generated_at": "2026-10-26T22:02:35",
   "totals": {
-    "routes": 467,
-    "live": 467,
+    "routes": 469,
+    "live": 469,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 410,
+    "ui": 412,
     "cli_script": 16,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 410,
+      "ui": 412,
       "cli_script": 16,
       "runtime_only": 11,
       "unreferenced": 30
     },
     "by_intent": {
-      "should_be_in_ui": 393,
+      "should_be_in_ui": 395,
       "should_not_be_in_ui": 73,
       "unclassified": 1
     },
@@ -30,14 +30,14 @@
       "调度与任务": 26,
       "对话与会话": 29,
       "业务与评估": 18,
-      "技能与工具": 113,
+      "技能与工具": 115,
       "认知与学习": 6,
       "观测与诊断": 73,
       "开发与内部": 14,
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 414,
+  "frontend_endpoints": 416,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -3880,6 +3880,31 @@
       "domain": "技能与工具"
     },
     {
+      "path": "/api/ingestion/drafts/<draft_id>/implement",
+      "norm": "/api/ingestion/drafts/*/implement",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:343"
+      ],
+      "description": "tool 草稿：AI 生成实现 + 静态校验（默认 dry-run，apply 需 confirm）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "tool 草稿的「AI 实现」：LLM 读来源 SKILL.md/脚本生成实现，静态校验后写回草稿；默认 dry-run，apply 需 confirm。",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
       "path": "/api/ingestion/drafts/<draft_id>/install-skill",
       "norm": "/api/ingestion/drafts/*/install-skill",
       "methods": [
@@ -3930,6 +3955,31 @@
       "domain": "技能与工具"
     },
     {
+      "path": "/api/ingestion/drafts/<draft_id>/register-tool",
+      "norm": "/api/ingestion/drafts/*/register-tool",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:388"
+      ],
+      "description": "tool 草稿：登记为动态工具（custom/ + 台账 + 治理 YAML），需 confirm。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "tool 草稿的「登记为工具」：走动态工具链路（custom/ + 台账 + 治理 YAML），风险默认 critical；需 confirm，同名需 overwrite。",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
       "path": "/api/ingestion/governance/apply",
       "norm": "/api/ingestion/governance/apply",
       "methods": [
@@ -3944,7 +3994,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:368"
+        "plugins/ingestion.py:468"
       ],
       "description": "执行一条治理动作：默认 dry-run；真执行必须 confirm=true。",
       "description_source": "handler",
@@ -3969,7 +4019,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:351"
+        "plugins/ingestion.py:451"
       ],
       "description": "生成确定性治理计划：merge / archive / split / refactor / delete_orphans。",
       "description_source": "handler",
@@ -3994,7 +4044,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:334"
+        "plugins/ingestion.py:434"
       ],
       "description": "存量资产治理盘点（只读）：技能/重复/孤儿/无用 + 结构化问题。",
       "description_source": "handler",
@@ -11978,5 +12028,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "a952a69bee942c6f"
+  "content_hash": "e1f71064d0aa271a"
 }

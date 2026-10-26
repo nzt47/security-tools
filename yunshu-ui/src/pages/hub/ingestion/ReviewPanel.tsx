@@ -12,8 +12,10 @@ import {
   INGESTION_DRAFTS,
   ingestionDraft,
   ingestionDraftAutobind,
+  ingestionDraftImplement,
   ingestionDraftInstallSkill,
   ingestionDraftRegister,
+  ingestionDraftRegisterTool,
   SKILLS_MGMT_QUEUE,
   SKILLS_MGMT_QUEUE_PUBLISH_BATCH,
   skillById,
@@ -47,6 +49,7 @@ interface DraftRow {
   source_ref?: string
   bound_steps?: number
   total_steps?: number
+  implemented?: boolean
 }
 
 interface BindReport {
@@ -65,6 +68,11 @@ export default function ReviewPanel() {
   const [drafts, setDrafts] = useState<DraftRow[]>([])
   const [draftErr, setDraftErr] = useState('')
   const [bind, setBind] = useState<{ id: string; report: BindReport } | null>(null)
+  const [impl, setImpl] = useState<{
+    id: string
+    validation: { ok?: boolean; errors?: string[]; warnings?: string[] }
+    code: string
+  } | null>(null)
   const [sel, setSel] = useState<string[]>([])
   const [batchOpen, setBatchOpen] = useState(false)
   const [batchForce, setBatchForce] = useState(false)
@@ -180,6 +188,49 @@ export default function ReviewPanel() {
       setBind(null); await loadDrafts()
     } catch (e) {
       setDraftErr('应用绑定失败：' + (e instanceof Error ? e.message : String(e)))
+    } finally { setBusy('') }
+  }
+
+  /** tool 草稿：AI 生成实现（先 dry-run 看校验，再写回）。 */
+  const implementDraft = async (d: DraftRow) => {
+    setBusy('impl:' + d.draft_id); setDraftErr(''); setMsg('')
+    try {
+      const r = await postJson<{
+        validation: { ok?: boolean; errors?: string[]; warnings?: string[] }
+        code: string
+      }>(ingestionDraftImplement(d.draft_id), { apply: false })
+      setImpl({ id: d.draft_id, validation: r.validation, code: r.code })
+    } catch (e) {
+      setDraftErr('AI 实现失败：' + (e instanceof Error ? e.message : String(e)))
+    } finally { setBusy('') }
+  }
+
+  const applyImpl = async (d: DraftRow) => {
+    if (!impl || impl.id !== d.draft_id) return
+    if (!impl.validation.ok) {
+      setDraftErr('校验未通过，不能写回：' + (impl.validation.errors || []).join('；'))
+      return
+    }
+    if (!window.confirm('把 AI 实现写回草稿（工具文件 / schema / 测试），不登记、不启用。继续？')) return
+    setBusy('impl-apply:' + d.draft_id); setDraftErr(''); setMsg('')
+    try {
+      await postJson(ingestionDraftImplement(d.draft_id), { apply: true, confirm: true })
+      setMsg('已写回实现草稿；复核后点「登记为工具」才会进入注册表')
+      setImpl(null); await loadDrafts()
+    } catch (e) {
+      setDraftErr('写回实现失败：' + (e instanceof Error ? e.message : String(e)))
+    } finally { setBusy('') }
+  }
+
+  const registerTool = async (d: DraftRow) => {
+    if (!window.confirm('登记为动态工具？会写入 agent/tools/custom/ 与治理 YAML；风险默认 critical。')) return
+    setBusy('tool-reg:' + d.draft_id); setDraftErr(''); setMsg('')
+    try {
+      const r = await postJson<{ tool_name: string }>(ingestionDraftRegisterTool(d.draft_id), { confirm: true })
+      setMsg('已登记为工具 ' + r.tool_name + '（工具调用页可见；重启后仍在）')
+      await loadDrafts()
+    } catch (e) {
+      setDraftErr('登记工具失败：' + (e instanceof Error ? e.message : String(e)))
     } finally { setBusy('') }
   }
 
@@ -413,6 +464,22 @@ export default function ReviewPanel() {
                         {busy === 'register:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} 登记
                       </button>
                     )}
+                    {!isWorkflow && (
+                      <button type="button" className={BTN_EM} disabled={loading}
+                        onClick={() => void implementDraft(d)}
+                        title="用 LLM 读取来源 SKILL.md/脚本并生成实现（先校验，不写盘）"
+                        aria-label={'AI 实现 ' + d.draft_id}>
+                        {busy === 'impl:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} AI 实现
+                      </button>
+                    )}
+                    {!isWorkflow && (
+                      <button type="button" className={BTN_EM} disabled={loading || !d.implemented}
+                        onClick={() => void registerTool(d)}
+                        title={d.implemented ? '登记为动态工具（写 custom/ + 治理 YAML，风险 critical）' : '先写回实现才能登记'}
+                        aria-label={'登记为工具 ' + d.draft_id}>
+                        {busy === 'tool-reg:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} 登记为工具
+                      </button>
+                    )}
                     <button type="button" className={BTN_RED} disabled={loading}
                       onClick={() => void removeDraft(d.draft_id)}
                       aria-label={'删除骨架草稿 ' + d.draft_id}>
@@ -438,6 +505,33 @@ export default function ReviewPanel() {
                           {bind.report.total > 0 && bind.report.bound >= bind.report.total ? '应用并登记' : '仅写回'}
                         </button>
                         <button type="button" className={BTN} disabled={loading} onClick={() => setBind(null)}>取消</button>
+                      </div>
+                    </div>
+                  )}
+                  {impl?.id === d.draft_id && (
+                    <div className="mt-1 flex w-full flex-col gap-1 rounded-sm border border-cyan-900/60 bg-cyan-950/20 p-2 text-[10px] text-slate-300">
+                      <div>
+                        AI 实现：
+                        <b className={impl.validation.ok ? 'text-emerald-300' : 'text-red-300'}>
+                          {impl.validation.ok ? '静态校验通过' : '校验未通过'}
+                        </b>
+                        {impl.validation.ok ? '（写回后仍需点「登记为工具」）' : ''}
+                      </div>
+                      {(impl.validation.errors ?? []).length > 0 && (
+                        <div className="text-red-300">
+                          {(impl.validation.errors ?? []).slice(0, 5).join('；')}
+                        </div>
+                      )}
+                      {(impl.validation.warnings ?? []).length > 0 && (
+                        <div className="text-amber-300">{(impl.validation.warnings ?? []).slice(0, 3).join('；')}</div>
+                      )}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button type="button" className={BTN_EM} disabled={loading || !impl.validation.ok}
+                          onClick={() => void applyImpl(d)} aria-label={'应用实现 ' + d.draft_id}>
+                          {busy === 'impl-apply:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null}
+                          应用实现
+                        </button>
+                        <button type="button" className={BTN} disabled={loading} onClick={() => setImpl(null)}>取消</button>
                       </div>
                     </div>
                   )}

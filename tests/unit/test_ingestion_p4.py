@@ -136,6 +136,15 @@ class TestDraftCommit:
         tool_text = tool_py.read_text(encoding="utf-8")
         assert "NotImplementedError" in tool_text
         compile(tool_text, str(tool_py), "exec")  # 草稿自身必须是合法 Python
+        # 2026-10-26 修复的回归：测试骨架此前把换行写成字面量 "\n"，py_compile 直接 SyntaxError
+        test_src_path = root / "tests" / "unit" / "test_p4_tool_smoke.py"
+        test_src = test_src_path.read_text(encoding="utf-8")
+        compile(test_src, str(test_src_path), "exec")
+        assert "\nimport pytest" not in test_src, "换行必须是真换行，不能是字面量 \\n"
+        # 来源 scripts 复制进草稿（实现材料），不会执行
+        assert (root / "source" / "scripts" / "run.py").is_file()
+        manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+        assert "source/scripts/run.py" in manifest["files"]
         meta = yaml.safe_load(tool_yaml.read_text(encoding="utf-8"))
         assert meta["status"] == "draft"
         assert meta["enabled"] is False

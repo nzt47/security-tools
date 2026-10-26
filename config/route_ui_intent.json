@@ -1167,6 +1167,16 @@
       "intent": "should_be_in_ui",
       "area": "记忆与资产/吞噬",
       "note": "草稿评审 Tab 的「登记」：全部步骤绑定真实工具后登记为工作流（enabled=false，去工作流页启用）；校验不过即拒绝。"
+    },
+    "/api/ingestion/drafts/<draft_id>/implement": {
+      "intent": "should_be_in_ui",
+      "area": "记忆与资产/吞噬",
+      "note": "tool 草稿的「AI 实现」：LLM 读来源 SKILL.md/脚本生成实现，静态校验后写回草稿；默认 dry-run，apply 需 confirm。"
+    },
+    "/api/ingestion/drafts/<draft_id>/register-tool": {
+      "intent": "should_be_in_ui",
+      "area": "记忆与资产/吞噬",
+      "note": "tool 草稿的「登记为工具」：走动态工具链路（custom/ + 台账 + 治理 YAML），风险默认 critical；需 confirm，同名需 overwrite。"
     }
   }
 }

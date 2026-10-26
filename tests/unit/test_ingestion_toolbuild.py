@@ -1,0 +1,144 @@
+# -*- coding: utf-8 -*-
+"""工具草稿 AI 实现：校验、写回、登记（不执行外部动作）。"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+import yaml
+
+from agent.ingestion import toolbuild
+
+GOOD = '''"""demo"""
+from typing import Any, Dict
+
+TOOL_SCHEMA = {
+    "type": "object",
+    "properties": {"path": {"type": "string", "description": "目录"}},
+    "required": ["path"],
+}
+
+
+def demo_tool(**kwargs: Any) -> Dict[str, Any]:
+    path = str(kwargs.get("path") or "")
+    if not path:
+        return {"ok": False, "data": None, "error": "missing path"}
+    return {"ok": True, "data": {"path": path}, "error": ""}
+'''
+
+
+class FakeLLM:
+    def __init__(self, text: str):
+        self.text = text
+        self.calls = []
+
+    def chat(self, messages, **kwargs):
+        self.calls.append((messages, kwargs))
+        return self.text
+
+
+@pytest.fixture()
+def draft(tmp_path):
+    root = tmp_path / "drafts" / "ing_tool"
+    (root / "agent" / "tools").mkdir(parents=True)
+    (root / "data" / "tool_definitions").mkdir(parents=True)
+    (root / "tests" / "unit").mkdir(parents=True)
+    (root / "source" / "scripts").mkdir(parents=True)
+    (root / "source" / "scripts" / "deploy.sh").write_text("echo hi\n", encoding="utf-8")
+    (root / "manifest.json").write_text(json.dumps({
+        "schema_version": 1, "draft_id": "ing_tool", "form": "tool", "status": "draft",
+        "enabled": False, "skill_id": "demo_tool", "skill_name": "Demo Tool",
+        "source_ref": "", "warnings": ["骨架"],
+    }), encoding="utf-8")
+    (root / "agent" / "tools" / "demo_tool.py").write_text(
+        "TOOL_SCHEMA = {\"type\": \"object\", \"properties\": {\"x\": {\"type\": \"string\"}}}\n\n"
+        "def demo_tool(**kwargs):\n    raise NotImplementedError()\n", encoding="utf-8")
+    (root / "data" / "tool_definitions" / "demo_tool.yaml").write_text(
+        yaml.safe_dump({"name": "demo_tool", "tags": ["draft"],
+                        "schema": {"type": "object", "properties": {"x": {"type": "string"}}}}),
+        encoding="utf-8")
+    return root
+
+
+class TestValidate:
+    def test_good_code_passes(self):
+        v = toolbuild.validate_code(GOOD, "demo_tool")
+        assert v["ok"] is True, v["errors"]
+        assert v["schema"]["properties"]["path"]
+
+    def test_missing_function_and_bad_schema(self):
+        code = "TOOL_SCHEMA = []\n"
+        v = toolbuild.validate_code(code, "demo_tool")
+        assert v["ok"] is False
+        assert any("缺少函数" in e for e in v["errors"])
+
+    def test_dangerous_and_secret_rejected(self):
+        code = GOOD.replace("return {\"ok\": True", "import os\n    os.system('x')\n    key = 'sk-ABCDEFGH12345678'\n    return {\"ok\": True")
+        v = toolbuild.validate_code(code, "demo_tool")
+        assert v["ok"] is False
+        assert any("os.system" in e for e in v["errors"])
+        assert any("密钥" in e for e in v["errors"])
+
+    def test_skeleton_still_not_implemented(self):
+        v = toolbuild.validate_code("def demo_tool(**kwargs):\n    raise NotImplementedError()\n", "demo_tool")
+        assert v["ok"] is False
+
+
+class TestBuildApply:
+    def test_build_and_apply(self, draft):
+        llm = FakeLLM("~~~python\n" + GOOD + "\n~~~")
+        out = toolbuild.build("ing_tool", llm, draft_dir=draft.parent)
+        assert out["validation"]["ok"] is True
+        assert llm.calls, "必须调用 LLM"
+        saved = toolbuild.apply("ing_tool", out["code"], out["validation"], draft_dir=draft.parent)
+        assert saved["ok"] is True
+        tool_file = draft / "agent" / "tools" / "demo_tool.py"
+        assert "return {\"ok\": True" in tool_file.read_text(encoding="utf-8")
+        meta = yaml.safe_load((draft / "data" / "tool_definitions" / "demo_tool.yaml").read_text(encoding="utf-8"))
+        assert meta["schema"]["properties"]["path"]
+        assert "ai_implemented" in meta["tags"]
+        test_src = (draft / "tests" / "unit" / "test_demo_tool.py").read_text(encoding="utf-8")
+        compile(test_src, "test_demo_tool.py", "exec")
+        manifest = json.loads((draft / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["implemented"] is True
+
+    def test_materials_include_source_scripts(self, draft):
+        m = toolbuild.load_materials("ing_tool", draft_dir=draft.parent)
+        assert m["name"] == "demo_tool"
+        assert [n for n, _ in m["scripts"]] == ["deploy.sh"]
+
+    def test_build_rejects_invalid_output(self, draft):
+        llm = FakeLLM("~~~python\n" + "def demo_tool(**kwargs):\n    raise NotImplementedError()\n" + "\n~~~")
+        out = toolbuild.build("ing_tool", llm, draft_dir=draft.parent)
+        assert out["validation"]["ok"] is False
+
+
+class TestRegister:
+    def test_register_requires_implementation(self, draft):
+        with pytest.raises(toolbuild.BuildError) as ei:
+            toolbuild.register("ing_tool", draft_dir=draft.parent)
+        assert "NotImplementedError" in ei.value.detail
+
+    def test_register_uses_generator_and_persist(self, draft, monkeypatch):
+        saved = toolbuild.apply("ing_tool", GOOD,
+                                toolbuild.validate_code(GOOD, "demo_tool"),
+                                draft_dir=draft.parent)
+        assert saved["ok"] is True
+
+        class FakeGen:
+            def __init__(self):
+                self.calls = []
+
+            def generate_persistent(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return True
+
+        gen = FakeGen()
+        persisted = []
+        monkeypatch.setattr("agent.tools.persistence.persist_dynamic_tool",
+                            lambda *a, **k: persisted.append((a, k)) or True)
+        out = toolbuild.register("ing_tool", draft_dir=draft.parent, generator=gen)
+        assert out["tool_name"] == "demo_tool"
+        assert gen.calls and gen.calls[0][0][0] == "demo_tool"
+        assert persisted, "必须写台账/治理 YAML"

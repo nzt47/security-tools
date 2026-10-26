@@ -118,6 +118,51 @@ describe('ReviewPanel', () => {
     expect(String(f.mock.calls[0][0])).toContain('/api/ingestion/drafts/ing_sk/install-skill')
   })
 
+  it('tool 草稿：AI 实现 → 校验 → 写回 → 登记为工具', async () => {
+    let implemented = false
+    api.hubGet.mockImplementation((url: string) => url === '/api/ingestion/drafts'
+      ? Promise.resolve({ data: { items: [{
+        draft_id: 'ing_tool', form: 'tool', skill_id: 'demo_tool', skill_name: '演示工具',
+        created_at: '2026-10-26T21:44:22+08:00', warnings: ['骨架'],
+        draft_dir: 'C:/repo/data/ingestion/drafts/ing_tool',
+        source_ref: 'path:C:/skills/demo', implemented,
+      }] } })
+      : Promise.resolve({ ok: true, total: 0, items: [] }))
+    const f = vi.fn(async (url: string, init: RequestInit) => {
+      if (url.endsWith('/implement')) {
+        const body = JSON.parse(String(init.body))
+        if (body.apply) {
+          implemented = true
+          return { ok: true, json: async () => ({ data: { saved: { ok: true } } }) }
+        }
+        return { ok: true, json: async () => ({ data: {
+          validation: { ok: true, errors: [], warnings: [] }, code: 'def demo_tool(**kwargs): pass' } }) }
+      }
+      if (url.endsWith('/register-tool')) {
+        return { ok: true, json: async () => ({ data: { tool_name: 'demo_tool' } }) }
+      }
+      return { ok: false, json: async () => ({ detail: 'unexpected' }) }
+    })
+    vi.stubGlobal('fetch', f)
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    render(<ReviewPanel />)
+    await screen.findByText('ing_tool')
+    const regBtn = screen.getByRole('button', { name: '登记为工具 ing_tool' }) as HTMLButtonElement
+    expect(regBtn.disabled, '未写回实现前不能登记').toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'AI 实现 ing_tool' }))
+    expect(await screen.findByText(/静态校验通过/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '应用实现 ing_tool' }))
+    await waitFor(() => expect(screen.getByText(/已写回实现草稿/)).toBeTruthy())
+    await waitFor(() => expect(
+      (screen.getByRole('button', { name: '登记为工具 ing_tool' }) as HTMLButtonElement).disabled,
+    ).toBe(false))
+
+    fireEvent.click(screen.getByRole('button', { name: '登记为工具 ing_tool' }))
+    await waitFor(() => expect(screen.getByText(/已登记为工具 demo_tool/)).toBeTruthy())
+    expect(f.mock.calls.some((call) => String(call[0]).endsWith('/register-tool'))).toBe(true)
+  })
+
   it('审核 / 放行走各自端点', async () => {
     setup()
     await screen.findByText('外来技能A')

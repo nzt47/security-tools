@@ -340,6 +340,97 @@ def api_ingestion_draft_register(draft_id: str):
                 "enabled": wf.enabled, "status": wf.status})
 
 
+@bp.route("/api/ingestion/drafts/<draft_id>/implement", methods=["POST"])
+@_require_token
+def api_ingestion_draft_implement(draft_id: str):
+    """tool 草稿：AI 生成实现 + 静态校验（默认 dry-run，apply 需 confirm）。"""
+    from agent.audit.facade import audit
+    from agent.ingestion import drafts, toolbuild
+    try:
+        body = _json_body()
+    except IngestionError as exc:
+        return _fail(exc)
+    try:
+        manifest = drafts.load_manifest(draft_id)["manifest"]
+    except FileNotFoundError as exc:
+        return _problem(404, title="草稿不存在", detail=str(exc), type_slug="draft-not-found")
+    if str(manifest.get("form") or "") != "tool":
+        return _problem(400, title="形态不支持",
+                        detail="只有 tool 草稿支持 AI 实现；workflow 请用 AI 绑定",
+                        type_slug="form-mismatch")
+    try:
+        result = toolbuild.build(draft_id, _resolve_llm_client())
+    except toolbuild.BuildError as exc:
+        return _problem(int(exc.status), title="AI 实现失败", detail=exc.detail,
+                        type_slug="implement-failed")
+    saved = None
+    if body.get("apply") is True:
+        if body.get("confirm") is not True:
+            return _problem(400, title="需要显式确认",
+                            detail="写回实现需要 confirm=true（会改草稿文件）",
+                            type_slug="confirm-required")
+        try:
+            saved = toolbuild.apply(draft_id, result["code"], result["validation"])
+        except toolbuild.BuildError as exc:
+            return _problem(int(exc.status), title="写回失败", detail=exc.detail,
+                            type_slug="implement-apply-failed")
+        try:
+            audit.record("ingestion.draft_implement", subject=draft_id,
+                         payload={"draft_id": draft_id, "ok": bool(result["validation"].get("ok")),
+                                  "model": result.get("model", "")})
+        except Exception:  # noqa: BLE001
+            pass
+    return _ok({"validation": result["validation"], "model": result.get("model", ""),
+                "prompt_chars": result.get("prompt_chars", 0),
+                "code": result.get("code", ""), "saved": saved})
+
+
+@bp.route("/api/ingestion/drafts/<draft_id>/register-tool", methods=["POST"])
+@_require_token
+def api_ingestion_draft_register_tool(draft_id: str):
+    """tool 草稿：登记为动态工具（custom/ + 台账 + 治理 YAML），需 confirm。"""
+    from agent.audit.facade import audit
+    from agent.ingestion import drafts, toolbuild
+    try:
+        body = _json_body()
+    except IngestionError as exc:
+        return _fail(exc)
+    if body.get("confirm") is not True:
+        return _problem(400, title="需要显式确认",
+                        detail="登记会写动态工具目录与治理声明；请带 confirm=true",
+                        type_slug="confirm-required")
+    try:
+        manifest = drafts.load_manifest(draft_id)["manifest"]
+    except FileNotFoundError as exc:
+        return _problem(404, title="草稿不存在", detail=str(exc), type_slug="draft-not-found")
+    if str(manifest.get("form") or "") != "tool":
+        return _problem(400, title="形态不支持",
+                        detail="只有 tool 草稿支持登记为工具；workflow 请用登记为工作流",
+                        type_slug="form-mismatch")
+    name = str(manifest.get("skill_id") or "")
+    try:
+        from agent.tools import list_tools
+        exists = any(str(t.get("name")) == name for t in (list_tools() or []))
+    except Exception:  # noqa: BLE001 注册表不可用时不阻断，交给 generate_persistent 校验
+        exists = False
+    if exists and body.get("overwrite") is not True:
+        return _problem(409, title="工具已存在",
+                        detail="注册表里已有 " + name + "；确认覆盖请带 overwrite=true",
+                        type_slug="tool-exists")
+    try:
+        data = toolbuild.register(draft_id)
+    except toolbuild.BuildError as exc:
+        return _problem(int(exc.status), title="登记工具失败", detail=exc.detail,
+                        type_slug="register-tool-failed")
+    try:
+        audit.record("ingestion.draft_register_tool", subject=draft_id,
+                     payload={"draft_id": draft_id, "tool_name": data["tool_name"],
+                              "module": data["module"]})
+    except Exception:  # noqa: BLE001
+        pass
+    return _ok(data)
+
+
 @bp.route("/api/ingestion/governance/scan", methods=["POST"])
 @_require_token
 def api_ingestion_governance_scan():
