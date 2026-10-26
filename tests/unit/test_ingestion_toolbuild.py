@@ -233,3 +233,64 @@ class TestRegister:
         assert out["tool_name"] == "demo_tool"
         assert gen.calls and gen.calls[0][0][0] == "demo_tool"
         assert persisted, "必须写台账/治理 YAML"
+
+    def test_register_copies_source_scripts_into_custom_dir(self, draft, monkeypatch, tmp_path):
+        """登记要把来源脚本一起落盘（§11.1）：换机/清空 custom 后仍能找到 deploy.sh。
+
+        生成代码按 custom/<category>/<source_id>/scripts 探测脚本；此前 register
+        只写 <name>.py，实测靠人工复制才没炸。台账同时记 assets，便于自省。
+        """
+        toolbuild.apply("ing_tool", GOOD, toolbuild.validate_code(GOOD, "demo_tool"),
+                        draft_dir=draft.parent)
+        custom = tmp_path / "custom"
+        monkeypatch.setattr("agent.tools.persistence.CUSTOM_TOOLS_DIR", str(custom))
+
+        class FakeGen:
+            def generate_persistent(self, *args, **kwargs):
+                return True
+
+        captured = {}
+        monkeypatch.setattr("agent.tools.persistence.persist_dynamic_tool",
+                            lambda *a, **k: captured.update(k) or True)
+        out = toolbuild.register("ing_tool", draft_dir=draft.parent, generator=FakeGen())
+        copied = custom / "ingested" / "demo_tool" / "scripts" / "deploy.sh"
+        assert copied.is_file()
+        assert copied.read_text(encoding="utf-8") == "echo hi\n"
+        assert captured["assets"] == out["scripts"]
+        assert out["scripts"][0].replace("\\", "/").endswith("demo_tool/scripts/deploy.sh")
+
+    def test_register_without_source_scripts_leaves_no_dir(self, draft, monkeypatch, tmp_path):
+        import shutil
+
+        shutil.rmtree(draft / "source")
+        toolbuild.apply("ing_tool", GOOD, toolbuild.validate_code(GOOD, "demo_tool"),
+                        draft_dir=draft.parent)
+        custom = tmp_path / "custom"
+        monkeypatch.setattr("agent.tools.persistence.CUSTOM_TOOLS_DIR", str(custom))
+        captured = {}
+        monkeypatch.setattr("agent.tools.persistence.persist_dynamic_tool",
+                            lambda *a, **k: captured.update(k) or True)
+
+        class FakeGen:
+            def generate_persistent(self, *args, **kwargs):
+                return True
+
+        out = toolbuild.register("ing_tool", draft_dir=draft.parent, generator=FakeGen())
+        assert out["scripts"] == []
+        assert captured["assets"] == []
+        assert not (custom / "ingested").exists()
+
+
+def test_persist_dynamic_tool_records_assets(monkeypatch, tmp_path):
+    """台账要能记随工具落盘的来源脚本（assets 只在有值时出现）。"""
+    from agent.tools import persistence
+
+    monkeypatch.setattr(persistence, "_read_ledger", lambda: {"version": 1, "tools": {}})
+    written = {}
+    monkeypatch.setattr(persistence, "_write_ledger", lambda data: written.update(data))
+    monkeypatch.setattr(persistence, "TOOL_DEFS_DIR", str(tmp_path))
+    assets = ["agent/tools/custom/ingested/demo/scripts/deploy.sh"]
+    assert persistence.persist_dynamic_tool(
+        "demo_tool", "demo", {"type": "object"}, assets=assets) is True
+    assert written["tools"]["demo_tool"]["assets"] == assets
+

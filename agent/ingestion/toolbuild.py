@@ -15,6 +15,7 @@ from __future__ import annotations
 import ast
 import json
 import re
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -24,6 +25,9 @@ MAX_PROMPT_CHARS = 32000
 # deepseek-flash 先消耗推理 token：实测 4000 时 content 为空、16000 被截断；32000 才 finish=stop
 MAX_TOKENS = 32000
 MAX_SCRIPT_CHARS = 6000
+#: 随工具落盘的来源脚本上限（.sh/.py 等；防止把产物目录/大文件带进仓）
+MAX_SOURCE_SCRIPTS = 50
+MAX_SOURCE_SCRIPT_BYTES = 2 * 1024 * 1024
 #: 生成整段代码可能跑 1-3 分钟；LLMService 默认 30s 会超时（实测 502）
 LLM_TIMEOUT_SEC = 600
 
@@ -89,6 +93,67 @@ def safe_name(raw: str) -> str:
     base = re.sub(r"[^0-9A-Za-z_]", "_", str(raw or "").strip())
     base = re.sub(r"_+", "_", base).strip("_") or "ingested_tool"
     return base if base[0].isalpha() else "t_" + base
+
+
+def _safe_dir_name(raw: str) -> str:
+    """来源 id → 安全目录名（只留字母数字与 _- .，拒掉路径分隔符与 ..）。"""
+    name = re.sub(r"[^0-9A-Za-z_.-]", "_", str(raw or "").strip())
+    name = name.replace("..", "_").strip("._-")
+    return name or "ingested_source"
+
+
+def source_script_files(root: Path, manifest: Dict[str, Any]) -> List[Path]:
+    """草稿的**来源脚本**：优先 manifest.source_ref 指向的来源目录，其次草稿内 source/scripts。
+
+    与 load_materials 同源同序（先 sdir.glob → 再草稿兜底），保证"喂给 LLM 的脚本"
+    和"登记时落盘的脚本"是同一批。
+    """
+    dirs: List[Path] = []
+    ref = str(manifest.get("source_ref") or "")
+    if ref.startswith("path:"):
+        dirs.append(Path(ref[5:].strip()) / "scripts")
+    dirs.append(Path(root) / "source" / "scripts")
+    for sdir in dirs:
+        if not sdir.is_dir():
+            continue
+        files = [f for f in sorted(sdir.iterdir()) if f.is_file() and not f.name.startswith(".")]
+        if files:
+            return files
+    return []
+
+
+def copy_source_scripts(root: Path, manifest: Dict[str, Any], *,
+                        category: str = "ingested") -> List[str]:
+    """把来源脚本复制到 custom/<category>/<source_id>/scripts/，返回可进台账的相对路径。
+
+    【为什么需要】生成代码按「本文件所在目录上溯 + <source_id>/scripts」探测脚本；
+    登记原先只写 <name>.py，换机/清空 custom 后工具会报「未找到 deploy.sh」。
+    目标目录用**原始 skill_id**（可能带连字符），与生成代码的探测路径一致。
+    """
+    files = source_script_files(root, manifest)
+    if not files:
+        return []
+    from agent.tools.persistence import CUSTOM_TOOLS_DIR
+
+    source_id = _safe_dir_name(str(manifest.get("skill_id") or ""))
+    target = Path(CUSTOM_TOOLS_DIR) / category / source_id / "scripts"
+    target.mkdir(parents=True, exist_ok=True)
+    repo_root = Path(CUSTOM_TOOLS_DIR).parents[2]
+    out: List[str] = []
+    for src in files[:MAX_SOURCE_SCRIPTS]:
+        try:
+            if src.stat().st_size > MAX_SOURCE_SCRIPT_BYTES:
+                continue
+            dst = target / src.name
+            if not dst.is_file() or dst.read_bytes() != src.read_bytes():
+                shutil.copyfile(src, dst)
+        except OSError:
+            continue
+        try:
+            out.append(dst.relative_to(repo_root).as_posix())
+        except ValueError:
+            out.append(str(dst))
+    return out
 
 
 def load_materials(draft_id: str, *, draft_dir: Any = None) -> Dict[str, Any]:
@@ -378,8 +443,12 @@ def register(draft_id: str, *, draft_dir: Any = None, generator: Any = None) -> 
     ok = bool(generator.generate_persistent(name, description, code, schema, category="ingested"))
     if not ok:
         raise BuildError("动态工具注册失败（AST/子进程校验未通过）", status=500)
+    scripts = copy_source_scripts(root, manifest)
     from agent.tools.persistence import persist_dynamic_tool
-    persist_dynamic_tool(name, description, schema, module_path=str(tool_file),
-                         source="ingestion", category="ingested", verify=False)
+    persisted = persist_dynamic_tool(name, description, schema, module_path=str(tool_file),
+                                     source="ingestion", category="ingested", verify=False,
+                                     assets=scripts)
+    if not persisted:
+        raise BuildError("动态工具台账写入失败（台账/治理 YAML 不可写）", status=500)
     return {"tool_name": name, "module": str(tool_file), "schema": schema,
-            "validation": validation}
+            "validation": validation, "scripts": scripts}

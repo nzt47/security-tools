@@ -282,6 +282,7 @@ def persist_dynamic_tool(
     sample_args: Optional[Dict[str, Any]] = None,
     verify: bool = True,
     force: bool = False,
+    assets: Optional[List[str]] = None,
 ) -> bool:
     """把动态工具登记进台账，并补写治理声明 YAML
 
@@ -290,6 +291,7 @@ def persist_dynamic_tool(
         sample_args: 调用探针参数（可选）
         verify: 是否过验证门（默认开）
         force: 验证失败时是否仍然持久化（默认 False ⇒ 拒绝）
+        assets: 随工具落盘的文件（如来源脚本）相对路径；有值才写进台账 assets 键
 
     【不易】验证不通过时**默认拒绝持久化**：不写台账、不写治理 YAML。
             理由见 verify_generated_tool 上方注释——坏工具被静默接纳，
@@ -317,7 +319,7 @@ def persist_dynamic_tool(
 
     with _LOCK:
         data = _read_ledger()
-        data.setdefault("tools", {})[name] = {
+        record = {
             "name": name,
             "description": description,
             "source": source,
@@ -329,6 +331,9 @@ def persist_dynamic_tool(
             "registered_at": time.time(),
             _VERIFY_NOTE: verification,
         }
+        if assets:
+            record["assets"] = [str(a) for a in assets]
+        data.setdefault("tools", {})[name] = record
         try:
             _write_ledger(data)
         except OSError as e:
