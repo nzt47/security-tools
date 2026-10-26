@@ -163,6 +163,26 @@ class TestRegister:
         assert "未知工具" in ei.value.detail
 
 
+class TestServiceRegister:
+    def test_register_workflow_is_visible_in_running_service(self, tmp_path, tool_dir):
+        """登记必须走 service 单例：另起 repo 写盘时运行中的缓存看不到（2026-10-26 E2E 实测）。
+
+        锁住：register_workflow 后同一 service 的 list_workflows / repo.get 立刻可见。
+        """
+        from agent.workflow_learning.service import WorkflowLearningService
+        svc = WorkflowLearningService(repo_path=str(tmp_path / "wf.json"))
+        names = tool_catalog.tool_names(str(tool_dir))
+        wf, _ = autobind.apply_bindings(_workflow(2), [
+            {"step_id": "step_1", "tool_name": "search_files", "params_template": {"pattern": "x"}},
+            {"step_id": "step_2", "tool_name": "write_file", "params_template": {"path": "y"}},
+        ], names=names)
+        learned = autobind.build_learned_workflow(wf, draft_id="ing_x", names=names)
+        svc.register_workflow(learned)
+        assert "demo-flow" in [w.id for w in svc.list_workflows()]
+        assert svc.repo.get("demo-flow") is not None
+        assert learned.enabled is False
+
+
 class TestDraftIO:
     def test_save_workflow_updates_manifest(self, tmp_path):
         root = tmp_path / "drafts" / "ing_demo"

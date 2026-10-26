@@ -317,14 +317,16 @@ def api_ingestion_draft_register(draft_id: str):
     except ValueError as exc:  # 工作流 id/字段不合法（pydantic 校验）
         return _problem(400, title="工作流信息不合法", detail=str(exc),
                         type_slug="register-invalid")
-    from agent.workflow_learning.repository import WorkflowRepository
+    # 必须走运行中的 service 单例（仓库带内存缓存；另起 repo 写盘服务看不到，
+    # 2026-10-26 E2E 实测：登记 200 但列表查不到、删除 404）
+    from agent.state_manager import get_workflow_learning_service
     try:
-        repo = WorkflowRepository()
-        if repo.get(wf.id) is not None:
+        svc = get_workflow_learning_service()
+        if svc.repo.get(wf.id) is not None:
             return _problem(409, title="工作流 id 已存在",
                             detail="工作流仓库里已有 " + wf.id + "；请改名或先删除旧工作流",
                             type_slug="workflow-exists")
-        repo.upsert(wf)
+        svc.register_workflow(wf)
     except Exception as exc:  # noqa: BLE001 写仓库失败：只回类型名
         return _problem(500, title="登记失败", detail=type(exc).__name__,
                         type_slug="register-failed")

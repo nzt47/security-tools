@@ -290,6 +290,17 @@ class WorkflowLearningService:
             raise WorkflowNotFoundError(wf_id)
         return wf
 
+    def register_workflow(self, wf: LearnedWorkflow) -> LearnedWorkflow:
+        """登记外部来源的工作流（吞噬草稿）：写仓库 + 注册匹配索引。
+
+        【必须走这条入口】WorkflowRepository 每个实例自带内存缓存：另起一个
+        WorkflowRepository() 写盘，运行中的服务看不到（2026-10-26 E2E 实测：
+        登记返回 200，但 GET /api/workflow-learning/workflows 查不到、删除 404）。
+        """
+        self.repo.upsert(wf)
+        self.matcher.register(wf)
+        return wf
+
     def search(self, task_text: str, *, top_k: int = 5) -> List[Dict[str, Any]]:
         """模拟匹配，返回候选列表 (不执行)
 
