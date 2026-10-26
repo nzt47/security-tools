@@ -10,6 +10,7 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
+from agent.ingestion import drafts as drafts_mod
 from agent.ingestion import service
 from agent.ingestion.models import InvalidSource, RewriteRequired
 
@@ -136,6 +137,44 @@ class TestDraftCommit:
         assert workflow["enabled"] is False
         assert workflow["requires_binding"] is True
         assert len(workflow["steps"]) >= 3
+        # 2026-10-26：警告从一句"未绑定/不自动加载"拆成三条可操作提示
+        # （是什么问题 → 下一步改哪个文件 → 不登记的后果），避免用户照推荐选了工作流却卡住
+        joined = "\n".join(result.warnings)
+        assert "草稿只是骨架" in joined and "不能直接执行" in joined
+        assert "下一步：编辑 workflows/" in joined and "tool_name" in joined
+        assert "不会被任何加载器扫描" in joined and "不登记" in joined
+        assert all(len(w) > 0 for w in result.warnings)
+
+    def test_草稿可被评审页列出并可安全删除(self, workflow_skill, tmp_path):
+        """草稿不在技能队列里，必须能被「草稿评审」列出（含警告与目录），并可清理。
+
+        2026-10-26 实测：生成后去评审页一片空白（那里只读 /api/skills-mgmt/queue），
+        用户因此以为草稿没生成。list_drafts 把隔离区的真实产物摊开。
+        """
+        plan = service.preview(workflow_skill)
+        result = service.commit(workflow_skill, plan_id=plan.plan_id, confirm=True,
+                                form="workflow", draft_dir=tmp_path / "drafts",
+                                installer=FakeInstaller())
+        base = tmp_path / "drafts"
+        rogue = base / "not_a_draft"
+        rogue.mkdir()
+        (rogue / "x.txt").write_text("x", encoding="utf-8")
+
+        rows = drafts_mod.list_drafts(base)
+        assert len(rows) == 1 and rows[0]["draft_id"] == Path(result.draft_dir).name
+        row = rows[0]
+        assert row["form"] == "workflow"
+        assert row["status"] == "draft" and row["enabled"] is False
+        assert any("草稿只是骨架" in w for w in row["warnings"])
+        assert row["draft_dir"].endswith(row["draft_id"])
+
+        # 名字必须与 listing 等值（防路径注入），且必须有 manifest.json
+        assert drafts_mod.delete_draft("../drafts", draft_dir=base) is False
+        assert drafts_mod.delete_draft("not_a_draft", draft_dir=base) is False
+        assert drafts_mod.delete_draft("ing_not_exist", draft_dir=base) is False
+        assert drafts_mod.delete_draft(row["draft_id"], draft_dir=base) is True
+        assert drafts_mod.list_drafts(base) == []
+        assert rogue.exists(), "非草稿目录不得被删除"
 
     def test_默认_form_skill_仍安装(self, tool_skill, tmp_path):
         plan = service.preview(tool_skill)

@@ -11,7 +11,8 @@ import { lazy, Suspense, useCallback } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useFlowStore } from './stores/useFlowStore';
-import { ComponentPalette } from './components/ComponentPalette';
+import { ComponentPalette, type PaletteItem } from './components/ComponentPalette';
+import type { NodeType } from './types';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { YamlPreview } from './components/YamlPreview';
 import { generateYaml } from './generator/CodeGenerator';
@@ -31,6 +32,18 @@ export function VisualEditor() {
   const clearCanvas = useFlowStore((s) => s.clearCanvas);
   const nodes = useFlowStore((s) => s.nodes);
   const edges = useFlowStore((s) => s.edges);
+
+  const addNode = useFlowStore((s) => s.addNode);
+
+  /** 点击面板项 → 在画布上错位添加节点（4 列排布，避免全叠在原点）。拖拽仍按落点精确放置。 */
+  const handlePick = useCallback((item: PaletteItem) => {
+    const count = useFlowStore.getState().nodes.length;
+    addNode(
+      item.type as NodeType,
+      { x: 80 + (count % 4) * 240, y: 64 + Math.floor(count / 4) * 150 },
+      item.label,
+    );
+  }, [addNode]);
 
   const handleExport = useCallback(() => {
     const yaml = generateYaml(nodes, edges);
@@ -80,8 +93,11 @@ export function VisualEditor() {
           </button>
         </div>
         <div className="ve-main">
-          <ComponentPalette />
+          <ComponentPalette onPick={handlePick} />
           <div className="ve-canvas-area">
+            {nodes.length === 0 && (
+              <div className="ve-empty-hint">画布为空 —— 点击左侧组件即可添加（也可拖拽到任意位置）</div>
+            )}
             <Suspense fallback={<div className="ve-canvas-loading">加载画布…</div>}>
               <FlowCanvas />
             </Suspense>

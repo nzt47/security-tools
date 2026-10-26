@@ -5,10 +5,12 @@
  * 批量放行只认显式勾选；驳回 = 删除草稿，先 window.confirm。
  */
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, Inbox, Loader2, RefreshCw } from 'lucide-react'
-import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import { CheckCircle2, Inbox, Loader2, RefreshCw, Trash2 } from 'lucide-react'
+import { Badge, ErrorBox, hubDelete, hubGet, hubPost } from '../components/ui'
 import { authHeader } from '../../../lib/apiToken'
 import {
+  INGESTION_DRAFTS,
+  ingestionDraft,
   SKILLS_MGMT_QUEUE,
   SKILLS_MGMT_QUEUE_PUBLISH_BATCH,
   skillById,
@@ -28,6 +30,18 @@ interface QueueRow {
   review?: { blocked?: boolean; review_verdict?: string } | null
 }
 interface QueueResult { ok?: boolean; error?: string; total?: number; items?: QueueRow[] }
+/** 吞噬骨架草稿（GET /api/ingestion/drafts）：隔离区，不注册、不进技能队列。 */
+interface DraftRow {
+  draft_id: string
+  form?: string
+  status?: string
+  enabled?: boolean
+  skill_id?: string
+  skill_name?: string
+  created_at?: string
+  warnings?: string[]
+  draft_dir?: string
+}
 interface BatchResult { ok?: boolean; error?: string; published?: string[]; failed?: { id?: string; error?: string }[] }
 
 export default function ReviewPanel() {
@@ -35,6 +49,8 @@ export default function ReviewPanel() {
   const [err, setErr] = useState('')
   const [msg, setMsg] = useState('')
   const [queue, setQueue] = useState<QueueResult | null>(null)
+  const [drafts, setDrafts] = useState<DraftRow[]>([])
+  const [draftErr, setDraftErr] = useState('')
   const [sel, setSel] = useState<string[]>([])
   const [batchOpen, setBatchOpen] = useState(false)
   const [batchForce, setBatchForce] = useState(false)
@@ -54,7 +70,32 @@ export default function ReviewPanel() {
     } catch (e) { fail('读取待放行队列失败', e) } finally { setBusy('') }
   }, [])
 
+  /** 骨架草稿不走技能队列（那只是技能草稿），必须单独列 —— 否则生成完看起来像"没生成"。 */
+  const loadDrafts = useCallback(async () => {
+    setBusy('drafts'); setDraftErr('')
+    try {
+      const r = await hubGet<{ data?: { items?: DraftRow[] }; items?: DraftRow[] }>(INGESTION_DRAFTS)
+      const items = r?.data?.items ?? r?.items ?? []
+      setDrafts(items.filter((d) => d && d.draft_id))
+    } catch (e) {
+      setDraftErr('读取骨架草稿失败：' + (e instanceof Error ? e.message : String(e)))
+    } finally { setBusy('') }
+  }, [])
+
   useEffect(() => { void loadQueue() }, [loadQueue])
+  useEffect(() => { void loadDrafts() }, [loadDrafts])
+
+  const removeDraft = async (id: string) => {
+    if (!window.confirm('确定删除骨架草稿「' + id + '」？整个目录会删除，不可恢复。')) return
+    setBusy('draft-del:' + id); setDraftErr(''); setMsg('')
+    try {
+      await hubDelete(ingestionDraft(id))
+      setMsg('已删除骨架草稿 ' + id)
+      await loadDrafts()
+    } catch (e) {
+      setDraftErr('删除骨架草稿失败：' + (e instanceof Error ? e.message : String(e)))
+    } finally { setBusy('') }
+  }
 
   const review = async (id: string) => {
     setBusy('review:' + id); setErr(''); setMsg('')
@@ -209,6 +250,50 @@ export default function ReviewPanel() {
           )}
         </div>
       )}
+
+      {/* 吞噬骨架草稿：tool/workflow 形态的产物不进上面的技能队列，单独列出来 */}
+      <div className="mt-4 border-t border-slate-800 pt-3">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <h3 className="text-sm font-medium text-slate-200">吞噬生成的骨架草稿</h3>
+          <span className="text-[10px] text-slate-500">
+            工具 / 工作流形态：写到隔离目录，不注册、不启用，所以不会出现在上面的技能队列里
+          </span>
+          <button type="button" className={BTN + ' ml-auto'} onClick={() => void loadDrafts()} disabled={loading}
+            aria-label="刷新骨架草稿">
+            {busy === 'drafts' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
+          </button>
+        </div>
+        {draftErr && <div className="mb-2"><ErrorBox message={draftErr} /></div>}
+        {drafts.length === 0 ? (
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            <Inbox size={11} /> 还没有骨架草稿。在「吞噬」里选「工具 / 工作流」形态生成后会出现在这里；选「技能」则直接进上面的技能队列。
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {drafts.map((d) => (
+              <div key={'d-' + d.draft_id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
+                <span className="font-mono text-[10px] text-cyan-300">{d.draft_id}</span>
+                <Badge color="cyan">{d.form === 'workflow' ? '工作流' : '工具'}</Badge>
+                <span className="text-slate-300">{d.skill_name || d.skill_id || '—'}</span>
+                <span className="text-[10px] text-slate-500">{d.created_at || ''}</span>
+                {(d.warnings ?? []).length > 0 && (
+                  <span className="text-[10px] text-amber-300" title={(d.warnings ?? []).join('\n')}>
+                    警告 {(d.warnings ?? []).length} 条
+                  </span>
+                )}
+                <span className="ml-auto flex items-center gap-1.5">
+                  <span className="max-w-[420px] truncate font-mono text-[10px] text-slate-500" title={d.draft_dir}>{d.draft_dir}</span>
+                  <button type="button" className={BTN_RED} disabled={loading}
+                    onClick={() => void removeDraft(d.draft_id)}
+                    aria-label={'删除骨架草稿 ' + d.draft_id}>
+                    {busy === 'draft-del:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />} 删除
+                  </button>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

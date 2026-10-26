@@ -134,6 +134,26 @@ describe('IngestionPage', () => {
     expect(await screen.findByText('已合并')).toBeTruthy()
   })
 
+  it('推荐工作流时解释"骨架草稿"，并可一键改为按技能安装', async () => {
+    setup()
+    await previewPlan(plan({
+      recommendation: { form: 'workflow', reason: '正文有 3 个稳定编号步骤且无脚本', confidence: 0.55 },
+    }))
+    // 预览后表单默认仍是技能；工作流推荐只作为建议 + 明确后果说明
+    expect((screen.getByLabelText('落库形态') as HTMLSelectElement).value).toBe('skill')
+    expect(screen.getByText(/只产出/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '采用（生成骨架草稿）' }))
+    await waitFor(() => expect((screen.getByLabelText('落库形态') as HTMLSelectElement).value).toBe('workflow'))
+    fireEvent.click(screen.getByRole('button', { name: '改为按技能安装' }))
+    await waitFor(() => expect((screen.getByLabelText('落库形态') as HTMLSelectElement).value).toBe('skill'))
+  })
+
+  it('未勾确认时给出可读的原因（不是死的灰按钮）', async () => {
+    setup()
+    await previewPlan()
+    expect(screen.getByText(/先勾选上方「我已核对预览计划」/)).toBeTruthy()
+  })
+
   it('切到 tool 形态后只提交草稿，不带 merge_into', async () => {
     setup()
     await previewPlan()

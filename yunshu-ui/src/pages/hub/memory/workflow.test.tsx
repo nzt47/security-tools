@@ -60,6 +60,17 @@ describe('MemoryWorkflowTable（工作流技能）', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
+  it('同名工作流标「同名重复」（不自动合并，交给人工删）', async () => {
+    env.getEnvelope.mockResolvedValue({
+      ok: true,
+      total: 2,
+      items: [WF, { ...WF, id: 'weekly-report-2', success_count: 1 }],
+    })
+    render(<MemoryWorkflowTable />)
+    await screen.findAllByText('周报生成')
+    expect(screen.getAllByText('同名重复')).toHaveLength(2)
+  })
+
   it('没有 description 时用来源任务兜底，不留空列', async () => {
     env.getEnvelope.mockResolvedValue({ ok: true, total: 1, items: [{ ...WF, description: '' }] })
     render(<MemoryWorkflowTable />)

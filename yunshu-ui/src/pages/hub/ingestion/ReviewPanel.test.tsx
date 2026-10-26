@@ -44,6 +44,25 @@ describe('ReviewPanel', () => {
     expect((screen.getByRole('button', { name: '放行外来技能 ext-ok' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
+  it('列出吞噬骨架草稿（它们不在技能队列里，必须在评审页可见）', async () => {
+    api.hubGet.mockImplementation((url: string) => url === '/api/ingestion/drafts'
+      ? Promise.resolve({ data: { items: [{
+        draft_id: 'ing_abc123', form: 'workflow', skill_name: '代码重构',
+        created_at: '2026-10-26T11:57:55+08:00', warnings: ['a', 'b', 'c'],
+        draft_dir: 'C:/repo/data/ingestion/drafts/ing_abc123',
+      }] } })
+      : Promise.resolve({ ok: true, total: 1, items: [{
+        id: 'ext-ok', name: '外来技能A', source: 'github:u/r', review: { review_verdict: 'pass', blocked: false },
+      }] }))
+    render(<ReviewPanel />)
+
+    expect(await screen.findByText('ing_abc123')).toBeTruthy()
+    expect(screen.getByText('工作流')).toBeTruthy()
+    expect(screen.getByText('代码重构')).toBeTruthy()
+    expect(screen.getByText('警告 3 条')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '删除骨架草稿 ing_abc123' })).toBeTruthy()
+  })
+
   it('审核 / 放行走各自端点', async () => {
     setup()
     await screen.findByText('外来技能A')

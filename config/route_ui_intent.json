@@ -1142,6 +1142,16 @@
       "intent": "should_be_in_ui",
       "area": "记忆与资产/吞噬",
       "note": "P6 存量治理 Tab（scan/plan/apply）"
+    },
+    "/api/ingestion/drafts": {
+      "intent": "should_be_in_ui",
+      "area": "记忆与资产/吞噬",
+      "note": "草稿评审 Tab 的「吞噬生成的骨架草稿」区块：tool/workflow 草稿不注册、不进技能队列，必须单独列出，否则生成后看起来像没生成（2026-10-26 实测）。"
+    },
+    "/api/ingestion/drafts/<draft_id>": {
+      "intent": "should_be_in_ui",
+      "area": "记忆与资产/吞噬",
+      "note": "草稿评审 Tab 的「删除」按钮：只删 data/ingestion/drafts/ 隔离区里的骨架草稿，按目录 listing 等值匹配（不可恢复，前端先 confirm）。"
     }
   }
 }

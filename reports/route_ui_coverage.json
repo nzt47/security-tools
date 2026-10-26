@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-10-25T12:36:34",
+  "generated_at": "2026-10-26T18:27:56",
   "totals": {
-    "routes": 462,
-    "live": 462,
+    "routes": 464,
+    "live": 464,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 405,
+    "ui": 407,
     "cli_script": 16,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 405,
+      "ui": 407,
       "cli_script": 16,
       "runtime_only": 11,
       "unreferenced": 30
     },
     "by_intent": {
-      "should_be_in_ui": 388,
+      "should_be_in_ui": 390,
       "should_not_be_in_ui": 73,
       "unclassified": 1
     },
@@ -30,14 +30,14 @@
       "调度与任务": 26,
       "对话与会话": 29,
       "业务与评估": 18,
-      "技能与工具": 108,
+      "技能与工具": 110,
       "认知与学习": 6,
       "观测与诊断": 73,
       "开发与内部": 14,
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 409,
+  "frontend_endpoints": 411,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -3805,6 +3805,56 @@
       "domain": "技能与工具"
     },
     {
+      "path": "/api/ingestion/drafts",
+      "norm": "/api/ingestion/drafts",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:161"
+      ],
+      "description": "列出吞噬生成的骨架草稿（隔离区）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "草稿评审 Tab 的「吞噬生成的骨架草稿」区块：tool/workflow 草稿不注册、不进技能队列，必须单独列出，否则生成后看起来像没生成（2026-10-26 实测）。",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
+      "path": "/api/ingestion/drafts/<draft_id>",
+      "norm": "/api/ingestion/drafts/*",
+      "methods": [
+        "DELETE"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/pages/hub/ingestion/ReviewPanel.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/ingestion.py:178"
+      ],
+      "description": "删除一个骨架草稿目录（不可恢复；只删隔离区，按目录 listing 等值匹配）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "记忆与资产/吞噬",
+      "intent_note": "草稿评审 Tab 的「删除」按钮：只删 data/ingestion/drafts/ 隔离区里的骨架草稿，按目录 listing 等值匹配（不可恢复，前端先 confirm）。",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
       "path": "/api/ingestion/governance/apply",
       "norm": "/api/ingestion/governance/apply",
       "methods": [
@@ -3819,7 +3869,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:195"
+        "plugins/ingestion.py:234"
       ],
       "description": "执行一条治理动作：默认 dry-run；真执行必须 confirm=true。",
       "description_source": "handler",
@@ -3844,7 +3894,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:178"
+        "plugins/ingestion.py:217"
       ],
       "description": "生成确定性治理计划：merge / archive / split / refactor / delete_orphans。",
       "description_source": "handler",
@@ -3869,7 +3919,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:161"
+        "plugins/ingestion.py:200"
       ],
       "description": "存量资产治理盘点（只读）：技能/重复/孤儿/无用 + 结构化问题。",
       "description_source": "handler",
@@ -3944,7 +3994,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:850"
+        "plugins/memory.py:884"
       ],
       "description": "添加知识文档（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -4782,7 +4832,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:964"
+        "plugins/memory.py:998"
       ],
       "description": "清空窗口事件记录",
       "description_source": "handler",
@@ -4808,7 +4858,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:947"
+        "plugins/memory.py:981"
       ],
       "description": "获取或更新窗口监控配置",
       "description_source": "handler",
@@ -4833,7 +4883,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:937"
+        "plugins/memory.py:971"
       ],
       "description": "获取当前活跃窗口",
       "description_source": "handler",
@@ -4858,7 +4908,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:879"
+        "plugins/memory.py:913"
       ],
       "description": "获取窗口切换事件",
       "description_source": "handler",
@@ -4883,7 +4933,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:895"
+        "plugins/memory.py:929"
       ],
       "description": "获取窗口使用统计",
       "description_source": "handler",
@@ -8496,7 +8546,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "scripts/check_skills_dual_track.py"
+      ],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:181"
       ],
@@ -10323,7 +10375,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "agent/memory_import/targets.py"
+      ],
       "where": [
         "plugins/memory.py:699"
       ],
@@ -10375,7 +10429,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:825"
+        "plugins/memory.py:859"
       ],
       "description": "清空向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -10427,7 +10481,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:804"
+        "plugins/memory.py:811"
       ],
       "description": "获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11041,7 +11095,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/lib/skillsApi.ts"
+        "yunshu-ui/src/lib/skillsApi.ts",
+        "yunshu-ui/src/pages/hub/memory/workflow.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -11848,5 +11903,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "f8bfecdd0dae0ca8"
+  "content_hash": "0ef4c90107c2d372"
 }

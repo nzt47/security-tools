@@ -6,7 +6,7 @@
 import type { DragEvent } from 'react';
 import type { NodeType } from '../types';
 
-interface PaletteItem {
+export interface PaletteItem {
   type: NodeType;
   label: string;
   icon: string;
@@ -28,10 +28,13 @@ function onDragStart(e: DragEvent<HTMLDivElement>, item: PaletteItem) {
   e.dataTransfer.effectAllowed = 'move';
 }
 
-export function ComponentPalette() {
+/** onPick：点击（或键盘 Enter/空格）直接把节点加到画布 —— 拖拽之外的第二条路。
+ *  2026-10-26：此前只有 draggable，点一下没有任何反应，用户以为编辑器坏了。 */
+export function ComponentPalette({ onPick }: { onPick?: (item: PaletteItem) => void }) {
   return (
     <aside className="ve-palette" data-testid="ve-palette">
       <div className="ve-palette-header">组件面板</div>
+      <div className="ve-palette-hint">点击添加，或拖拽到画布指定位置</div>
       {GROUP_ORDER.map((group) => {
         const items = PALETTE_ITEMS.filter((i) => i.group === group);
         if (items.length === 0) return null;
@@ -43,7 +46,17 @@ export function ComponentPalette() {
                 key={item.type}
                 className="ve-palette-item"
                 draggable
+                role="button"
+                tabIndex={0}
+                onClick={() => onPick?.(item)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onPick?.(item);
+                  }
+                }}
                 onDragStart={(e) => onDragStart(e, item)}
+                title={`点击添加到画布，或拖拽到指定位置：${item.label}`}
                 data-testid={`palette-item-${item.type}`}
               >
                 <span className="ve-palette-icon">{item.icon}</span>
