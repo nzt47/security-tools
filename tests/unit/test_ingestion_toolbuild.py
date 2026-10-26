@@ -187,6 +187,30 @@ class TestRegister:
             toolbuild.register("ing_tool", draft_dir=draft.parent)
         assert "NotImplementedError" in ei.value.detail
 
+    def test_register_handles_hyphenated_skill_id(self, draft, monkeypatch):
+        """manifest.skill_id 带连字符（byted-bp-...），实际文件是下划线命名。
+
+        2026-10-27 活体实测：apply 成功但 register 报"还没有实现文件"——
+        register 仍用原始 skill_id 拼路径。锁住归一化后的查找。
+        """
+        saved = toolbuild.apply("ing_tool", GOOD,
+                                toolbuild.validate_code(GOOD, "demo_tool"),
+                                draft_dir=draft.parent)
+        assert saved["ok"] is True
+        manifest_path = draft / "manifest.json"
+        meta = json.loads(manifest_path.read_text(encoding="utf-8"))
+        meta["skill_id"] = "demo-tool"
+        manifest_path.write_text(json.dumps(meta), encoding="utf-8")
+
+        class FakeGen:
+            def generate_persistent(self, *args, **kwargs):
+                return True
+
+        monkeypatch.setattr("agent.tools.persistence.persist_dynamic_tool",
+                            lambda *a, **k: True)
+        out = toolbuild.register("ing_tool", draft_dir=draft.parent, generator=FakeGen())
+        assert out["tool_name"] == "demo_tool"
+
     def test_register_uses_generator_and_persist(self, draft, monkeypatch):
         saved = toolbuild.apply("ing_tool", GOOD,
                                 toolbuild.validate_code(GOOD, "demo_tool"),
