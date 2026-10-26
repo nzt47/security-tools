@@ -24,6 +24,8 @@ MAX_PROMPT_CHARS = 32000
 # deepseek-flash 先消耗推理 token：实测 4000 时 content 为空、16000 被截断；32000 才 finish=stop
 MAX_TOKENS = 32000
 MAX_SCRIPT_CHARS = 6000
+#: 生成整段代码可能跑 1-3 分钟；LLMService 默认 30s 会超时（实测 502）
+LLM_TIMEOUT_SEC = 600
 
 FORBIDDEN_SNIPPETS = ("eval(", "exec(", "__import__", "shell=True", "os.system(", "pickle.loads")
 SECRET_RE = re.compile(r"(sk-[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{12,}|password\s*=\s*['\"])")
@@ -45,19 +47,41 @@ class BuildError(Exception):
 
 
 def _call_llm(client: Any, prompt: str) -> str:
+    """长文本生成：优先直连底层 OpenAI 客户端（绕开 LLMService 的两个坑）。
+
+    【为什么不用 client.chat】实测（2026-10-27）：
+    1. `LLMService` 客户端 timeout 默认 30s，32k token 生成会超时 → LLMServiceError；
+    2. `_do_chat` 直接 `message.content.strip()`，content=None（token 全被 reasoning
+       吃掉）时抛 AttributeError，同样变成 LLMServiceError。
+    这里在**不修改共享 LLMService** 的前提下，用它的底层客户端 + 600s 超时；失败再回退
+    chat()（保持对非 OpenAI 兼容后端的兼容）。
+    """
     messages = [{"role": "user", "content": prompt}]
+    try:
+        if (hasattr(client, "_get_client") and hasattr(client, "model")
+                and hasattr(client, "_is_openai_compat") and client._is_openai_compat()):
+            raw = client._get_client().chat.completions.create(  # noqa: SLF001 仅取底层客户端
+                model=client.model,
+                messages=[{"role": "system", "content": SYSTEM_PROMPT}] + messages,
+                max_tokens=MAX_TOKENS,
+                temperature=0.1,
+                timeout=LLM_TIMEOUT_SEC,
+            )
+            return str(raw.choices[0].message.content or "")
+    except Exception:  # noqa: BLE001 回退到通用 chat
+        pass
     if hasattr(client, "chat"):
         try:
             return str(client.chat(messages, system_prompt=SYSTEM_PROMPT,
-                                   max_tokens=MAX_TOKENS, temperature=0.1))
+                                   max_tokens=MAX_TOKENS, temperature=0.1) or "")
         except TypeError:
             pass
         try:
-            return str(client.chat(prompt, max_tokens=MAX_TOKENS))
+            return str(client.chat(prompt, max_tokens=MAX_TOKENS) or "")
         except TypeError:
             pass
-        return str(client.chat(messages))
-    return str(client.complete(prompt))
+        return str(client.chat(messages) or "")
+    return str(client.complete(prompt) or "")
 
 
 def safe_name(raw: str) -> str:
