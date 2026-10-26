@@ -146,6 +146,29 @@ def _readme(draft_id: str, form: str, plan: IngestPlan, skill: NormalizedSkill,
     return "\n".join(lines)
 
 
+def _copy_source_scripts(root: Path, plan: IngestPlan) -> List[str]:
+    """把来源目录的 scripts/* 复制进草稿的 source/scripts/（只读来源、只写隔离区）。
+
+    Why：tool 骨架只有签名，没有实现材料；来源脚本（.sh/.py）才是人类的实现依据。
+    复制不是执行，也不改变"未实现/未启用"的判定。
+    """
+    ref = str(getattr(plan, "source_ref", "") or "")
+    if not ref.startswith("path:"):
+        return []
+    src = Path(ref[5:].strip()) / "scripts"
+    if not src.is_dir():
+        return []
+    out: List[str] = []
+    for f in sorted(src.glob("*")):
+        if not f.is_file():
+            continue
+        dst = root / "source" / "scripts" / f.name
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(f, dst)
+        out.append(f"source/scripts/{f.name}")
+    return out
+
+
 def write_tool_draft(skill: NormalizedSkill, plan: IngestPlan, *,
                      draft_dir: Any = None) -> Dict[str, Any]:
     base = Path(draft_dir) if draft_dir else Path(DEFAULT_DRAFT_DIR)
@@ -186,14 +209,16 @@ def write_tool_draft(skill: NormalizedSkill, plan: IngestPlan, *,
         "enabled": False,
         "schema": schema,
     }
+    # 注意：这里是真正的换行（"\n"），不是字面量 "\\n"。
+    # 2026-10-26 修复：此前用成了 "\\n"，生成的测试文件是一行且 py_compile 直接 SyntaxError。
     test_py = (
-        "import pytest\\n"
-        f"from agent.tools.{name} import {name}, TOOL_SCHEMA\\n\\n\\n"
-        "def test_tool_schema_is_object():\\n"
-        "    assert TOOL_SCHEMA.get('type') == 'object'\\n\\n\\n"
-        "@pytest.mark.skip(reason='P4 skeleton: implement behavior before enabling')\\n"
-        "def test_tool_behavior():\\n"
-        f"    assert {name}() is not None\\n"
+        "import pytest\n"
+        f"from agent.tools.{name} import {name}, TOOL_SCHEMA\n\n\n"
+        "def test_tool_schema_is_object():\n"
+        "    assert TOOL_SCHEMA.get('type') == 'object'\n\n\n"
+        "@pytest.mark.skip(reason='P4 skeleton: implement behavior before enabling')\n"
+        "def test_tool_behavior():\n"
+        f"    assert {name}() is not None\n"
     )
 
     files = [
@@ -207,6 +232,10 @@ def write_tool_draft(skill: NormalizedSkill, plan: IngestPlan, *,
         "工具骨架未实现：调用会抛 NotImplementedError",
         "本目录不会被工具加载器扫描；启用前必须人工实现/测试/审批",
     ]
+    copied = _copy_source_scripts(root, plan)
+    if copied:
+        files.extend(copied)
+        warnings.append("来源 scripts 已复制到 source/scripts/（供实现时参考/包装；不会自动执行）")
     _write(root / f"agent/tools/{name}.py", tool_py)
     _write(root / f"data/tool_definitions/{name}.yaml",
            yaml.safe_dump(tool_yaml, allow_unicode=True, sort_keys=False))
@@ -296,6 +325,15 @@ def list_drafts(draft_dir: Any = None) -> List[Dict[str, Any]]:
         if not isinstance(manifest, dict):
             continue
         bound = total = 0
+        implemented = None
+        if str(manifest.get("form") or "") == "tool":
+            tool_name = str(manifest.get("skill_id") or "")
+            tool_file = child / "agent" / "tools" / (tool_name + ".py")
+            try:
+                implemented = tool_file.is_file() and "NotImplementedError" not in tool_file.read_text(
+                    encoding="utf-8", errors="replace")
+            except OSError:
+                implemented = False
         wf_path = _workflow_file(child)
         if wf_path is not None:
             try:
@@ -309,6 +347,7 @@ def list_drafts(draft_dir: Any = None) -> List[Dict[str, Any]]:
             "draft_id": str(manifest.get("draft_id") or child.name),
             "bound_steps": bound,
             "total_steps": total,
+            "implemented": implemented,
             "form": str(manifest.get("form") or ""),
             "status": str(manifest.get("status") or "draft"),
             "enabled": bool(manifest.get("enabled")),

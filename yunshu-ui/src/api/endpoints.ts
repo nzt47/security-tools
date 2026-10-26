@@ -126,6 +126,10 @@ export const ingestionDraftAutobind = (draftId: string) =>
   `/api/ingestion/drafts/${encodeURIComponent(draftId)}/autobind`;
 export const ingestionDraftRegister = (draftId: string) =>
   `/api/ingestion/drafts/${encodeURIComponent(draftId)}/register`;
+export const ingestionDraftImplement = (draftId: string) =>
+  `/api/ingestion/drafts/${encodeURIComponent(draftId)}/implement`;
+export const ingestionDraftRegisterTool = (draftId: string) =>
+  `/api/ingestion/drafts/${encodeURIComponent(draftId)}/register-tool`;
 
 export const workflowLearnExecute = (wfId: string) => `/api/workflow-learning/execute/${encodeURIComponent(wfId)}`;
 export const workflowLearnWorkflows = (wfId: string) => `/api/workflow-learning/workflows/${encodeURIComponent(wfId)}`;
