@@ -106,6 +106,52 @@ def demo_tool(**kwargs: Any) -> Dict[str, Any]:
         assert v["ok"] is False
 
 
+class TestLLMCall:
+    def test_uses_raw_client_with_long_timeout(self):
+        from types import SimpleNamespace
+        calls = {}
+
+        def create(**kwargs):
+            calls.update(kwargs)
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="code"))])
+
+        class Client:
+            model = "deepseek-flash"
+
+            def _is_openai_compat(self):
+                return True
+
+            def _get_client(self):
+                return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+
+        assert toolbuild._call_llm(Client(), "p") == "code"
+        assert calls["max_tokens"] == toolbuild.MAX_TOKENS
+        assert calls["timeout"] == toolbuild.LLM_TIMEOUT_SEC
+
+    def test_none_content_returns_empty(self):
+        from types import SimpleNamespace
+
+        class Client:
+            model = "m"
+
+            def _is_openai_compat(self):
+                return True
+
+            def _get_client(self):
+                return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(
+                    create=lambda **kw: SimpleNamespace(choices=[SimpleNamespace(
+                        message=SimpleNamespace(content=None))]))))
+
+        assert toolbuild._call_llm(Client(), "p") == ""
+
+    def test_chat_fallback_when_raw_client_unavailable(self):
+        class Client:
+            def chat(self, messages, **kwargs):
+                return "fallback-code"
+
+        assert toolbuild._call_llm(Client(), "p") == "fallback-code"
+
+
 class TestBuildApply:
     def test_build_and_apply(self, draft):
         llm = FakeLLM("~~~python\n" + GOOD + "\n~~~")
