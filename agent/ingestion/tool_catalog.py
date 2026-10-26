@@ -62,7 +62,7 @@ def _parse_one(path: Path) -> Optional[ToolInfo]:
     )
 
 
-@functools.lru_cache(maxsize=8)
+@functools.lru_cache(maxsize=None)
 def load_catalog(tool_dir: Optional[str] = None) -> Tuple[ToolInfo, ...]:
     """读取工具目录（按目录缓存；工具定义是静态文件）。"""
     base = Path(tool_dir) if tool_dir else DEFAULT_TOOL_DIR
@@ -81,7 +81,7 @@ def tool_names(tool_dir: Optional[str] = None) -> frozenset:
     return frozenset(t.name for t in load_catalog(tool_dir))
 
 
-@functools.lru_cache(maxsize=8)
+@functools.lru_cache(maxsize=None)
 def _name_regex(names: Tuple[str, ...]) -> re.Pattern:
     """一次性编译的"是否提到某个工具名"正则（前后不允许字母数字下划线）。"""
     if not names:
