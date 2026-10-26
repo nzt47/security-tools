@@ -356,8 +356,13 @@ def register(draft_id: str, *, draft_dir: Any = None, generator: Any = None) -> 
     """登记为动态工具（写 custom/ + 台账 + 治理 YAML），失败抛 BuildError。"""
     data = drafts.load_manifest(draft_id, draft_dir=draft_dir)
     root, manifest = data["root"], data["manifest"]
-    name = str(manifest.get("skill_id") or "")
+    name = safe_name(str(manifest.get("skill_id") or ""))
     tool_file = root / "agent" / "tools" / (name + ".py")
+    if not tool_file.is_file():
+        candidates = sorted((root / "agent" / "tools").glob("*.py"))
+        if candidates:
+            tool_file = candidates[0]
+            name = tool_file.stem
     if not tool_file.is_file():
         raise BuildError("还没有实现文件，先生成实现")
     code = tool_file.read_text(encoding="utf-8", errors="replace")
