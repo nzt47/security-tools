@@ -80,6 +80,27 @@ class TestValidate:
         assert any("os.system" in e for e in v["errors"])
         assert any("密钥" in e for e in v["errors"])
 
+    def test_schema_with_module_constants_and_annassign(self):
+        """LLM 常写 TOOL_SCHEMA: Dict[str, Any] = {...} 且 enum 引用模块常量。
+
+        2026-10-27 实测：deepseek-flash 生成的 schema 用 AnnAssign + _ACTIONS 常量，
+        旧校验只认 Assign + ast.literal_eval ⇒ 误报"必须是字面量 dict"。
+        """
+        code = """
+from typing import Any, Dict
+_ACTIONS = ["deploy", "list"]
+TOOL_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "properties": {"action": {"type": "string", "enum": _ACTIONS}},
+    "required": ["action"],
+}
+def demo_tool(**kwargs: Any) -> Dict[str, Any]:
+    return {"ok": True, "data": None, "error": ""}
+"""
+        v = toolbuild.validate_code(code, "demo_tool")
+        assert v["ok"] is True, v["errors"]
+        assert v["schema"]["properties"]["action"]["enum"] == ["deploy", "list"]
+
     def test_skeleton_still_not_implemented(self):
         v = toolbuild.validate_code("def demo_tool(**kwargs):\n    raise NotImplementedError()\n", "demo_tool")
         assert v["ok"] is False

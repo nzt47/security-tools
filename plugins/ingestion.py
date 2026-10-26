@@ -407,7 +407,7 @@ def api_ingestion_draft_register_tool(draft_id: str):
         return _problem(400, title="形态不支持",
                         detail="只有 tool 草稿支持登记为工具；workflow 请用登记为工作流",
                         type_slug="form-mismatch")
-    name = str(manifest.get("skill_id") or "")
+    name = toolbuild.safe_name(str(manifest.get("skill_id") or ""))
     try:
         from agent.tools import list_tools
         exists = any(str(t.get("name")) == name for t in (list_tools() or []))
