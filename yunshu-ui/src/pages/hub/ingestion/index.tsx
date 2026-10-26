@@ -331,13 +331,27 @@ export default function IngestionPage() {
                     <Layers size={12} /> 推荐形态：{plan.recommendation.form}
                     <span className="text-[10px] text-slate-500">置信度 {plan.recommendation.confidence}</span>
                     {plan.recommendation.form !== 'skill' && (
-                      <button type="button" className={BTN + ' ml-auto'}
-                        onClick={() => { setForm(plan.recommendation.form as IngestForm); setConfirmed(false) }}>
-                        采用推荐
-                      </button>
+                      <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                        <button type="button" className={BTN}
+                          onClick={() => { setForm(plan.recommendation.form as IngestForm); setConfirmed(false) }}
+                          title="采用后只生成骨架草稿：不注册、不启用，步骤需人工绑定工具">
+                          采用（生成骨架草稿）
+                        </button>
+                        <button type="button" className={BTN + ' border-emerald-800/70 text-emerald-300'}
+                          onClick={() => { setForm('skill'); setConfirmed(false) }}
+                          title="按技能形态直接安装，可被检索/注入，无需绑定工具">
+                          改为按技能安装
+                        </button>
+                      </div>
                     )}
                   </div>
                   <p className="mt-1 text-[10px] leading-relaxed text-slate-400">{plan.recommendation.reason}</p>
+                  {plan.recommendation.form !== 'skill' && (
+                    <p className="mt-1.5 rounded-sm border border-amber-900/50 bg-amber-950/20 p-2 text-[10px] leading-relaxed text-amber-200">
+                      推荐的工作流/工具形态只产出<b>骨架草稿</b>：写到隔离目录、不注册、不启用，步骤没绑定工具就不能执行。
+                      若你只是想把这份内容变成可检索、可注入的能力，点「改为按技能安装」更省事。
+                    </p>
+                  )}
                 </div>
 
                 {plan.requires_rewrite && (
@@ -465,8 +479,14 @@ export default function IngestionPage() {
                     {committing ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                     {commitLabel}
                   </button>
-                  {plan.requires_rewrite && <span className="text-[10px] text-amber-400">先完成 LLM 重写并重新预览</span>}
-                  {!confirmed && <span className="text-[10px] text-slate-500">未勾选确认时按钮不可用</span>}
+                  {plan.requires_rewrite && (
+                    <span className="text-[10px] text-amber-400">
+                      L2 来源被卡在这里：先在「2. 预览计划」点「LLM 重写并预览」，回来才能生成
+                    </span>
+                  )}
+                  {!confirmed && !plan.requires_rewrite && (
+                    <span className="text-[10px] text-amber-400">先勾选上方「我已核对预览计划」，按钮才会启用</span>
+                  )}
                 </div>
               </div>
             )}
@@ -496,6 +516,12 @@ export default function IngestionPage() {
                 {result.draft_dir && (
                   <div className="break-all rounded-sm border border-slate-800 bg-slate-950 p-2 font-mono text-[10px] text-slate-400">
                     草稿目录：{result.draft_dir}
+                  </div>
+                )}
+                {result.draft && (
+                  <div className="text-[10px] leading-relaxed text-slate-500">
+                    它<b>不在</b>「草稿评审」的技能队列里（那里只收技能草稿）；到「草稿评审」页底部的
+                    「吞噬生成的骨架草稿」可以查看与删除，路径就是上面这个目录。
                   </div>
                 )}
                 {result.warnings.length > 0 && (

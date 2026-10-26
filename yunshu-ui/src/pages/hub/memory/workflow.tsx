@@ -6,15 +6,16 @@
  * 并新增「查看」弹窗（workflow-detail.tsx）把 description、触发词、步骤定义完整展示出来。
  * 此前这张表只有 名称 / 匹配数（该字段后端并不存在，恒为 -）/ 状态 / 操作。
  */
-import { useEffect, useState } from 'react'
-import { Eye, Play } from 'lucide-react'
-import { Card, Loading, ErrorBox, DataTable, Badge, hubPost } from '../components/ui'
+import { useEffect, useMemo, useState } from 'react'
+import { Eye, Play, Trash2 } from 'lucide-react'
+import { Card, Loading, ErrorBox, DataTable, Badge, hubPost, hubDelete } from '../components/ui'
 
 import {
   WORKFLOW_LEARNING_WORKFLOWS,
   workflowLearnConvertToSkill,
   workflowLearnExecute,
   workflowLearnToggle,
+  workflowLearnWorkflows,
 } from '@/api/endpoints';
 // 【P1-front 第二批】后端该端点已带 X-Envelope: v2，故改用显式信封解析，
 // 不再用 pickList 在候选键里"找数组"（那种写法换包法时会静默返回空列表）。
@@ -66,11 +67,34 @@ export function MemoryWorkflowTable() {
 
   useEffect(load, [])
 
+  /** 同名工作流（自动学习常把同一任务学成多条）→ 列表标「同名重复」提醒人工清理。
+      不做自动合并：步骤可能不同，合并语义不安全；先让人看清楚，再决定删哪条。 */
+  const dupNames = useMemo(() => {
+    const count = new Map<string, number>()
+    items.forEach((w) => {
+      const key = String(w.name ?? '').trim()
+      if (key) count.set(key, (count.get(key) ?? 0) + 1)
+    })
+    return new Set([...count.entries()].filter(([, n]) => n > 1).map(([name]) => name))
+  }, [items])
+
   const toggle = async (id: string) => {
     try {
       await hubPost(workflowLearnToggle(id))
       load()
     } catch (e) { setError(String(e)) }
+  }
+
+  const remove = async (wf: Workflow) => {
+    const label = String(wf.name ?? wf.id)
+    if (!window.confirm(`确定删除工作流「${label}」？步骤定义会一并删除，且不可恢复。`)) return
+    try {
+      await hubDelete(workflowLearnWorkflows(wf.id))
+      setExecMsg(`已删除「${label}」`)
+      load()
+    } catch (e) {
+      setExecMsg(`删除失败：${e instanceof Error ? e.message : e}`)
+    }
   }
 
   const exec = async (id: string, fallbackTask?: string) => {
@@ -120,7 +144,10 @@ export function MemoryWorkflowTable() {
                 key: 'name', title: '工作流',
                 render: (r) => (
                   <div className="min-w-0">
-                    <div className="truncate text-slate-200" title={String(r.name ?? r.id)}>{String(r.name ?? r.id)}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-slate-200" title={String(r.name ?? r.id)}>{String(r.name ?? r.id)}</span>
+                      {dupNames.has(String(r.name ?? '').trim()) && <Badge color="amber">同名重复</Badge>}
+                    </div>
                     <div className="font-mono text-[10px] text-slate-500">{r.id}</div>
                   </div>
                 ),
@@ -178,6 +205,11 @@ export function MemoryWorkflowTable() {
                     </button>
                     <button onClick={() => toggle(r.id)} className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800" title={r.enabled ? '停用该工作流' : '启用该工作流'}>
                       {r.enabled ? '停用' : '启用'}
+                    </button>
+                    <button onClick={() => void remove(r)}
+                      className="flex items-center gap-1 rounded-md border border-red-900/60 px-3 py-1.5 text-xs text-red-300 hover:bg-red-950/40"
+                      title="删除该工作流（不可恢复）；自动学习产生的同名重复项可用它清理">
+                      <Trash2 size={11} /> 删除
                     </button>
                     <button
                       onClick={() => convert(r)}

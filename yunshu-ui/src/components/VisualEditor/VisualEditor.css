@@ -51,6 +51,29 @@
   color: #64748b;
 }
 
+/* 2026-10-26：空画布提示 + 面板"点击也能加"的说明（此前只有拖拽，点了没反应像坏了） */
+.ve-empty-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+  padding: 6px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #475569;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ve-palette-hint {
+  padding: 0 12px 8px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
 /* ─── 组件面板 ─── */
 .ve-palette {
   width: 200px;

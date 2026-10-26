@@ -158,6 +158,45 @@ def api_ingestion_commit():
     return _ok({"result": result.to_dict()}, message=message)
 
 
+@bp.route("/api/ingestion/drafts", methods=["GET"])
+@_require_token
+def api_ingestion_drafts():
+    """列出吞噬生成的骨架草稿（隔离区）。
+
+    Why 单独一个端点：tool/workflow 草稿**不注册、不进 /api/skills-mgmt/queue**，
+    用户生成后去「草稿评审」看不到任何东西。评审页据此展示真实产物 + 目录 + 警告。
+    """
+    from agent.ingestion import drafts
+    try:
+        items = drafts.list_drafts()
+    except Exception as exc:  # noqa: BLE001 读取失败要如实报错，不静默返回空列表
+        return _problem(500, title="读取草稿失败", detail=type(exc).__name__,
+                        type_slug="draft-list-failed")
+    return _ok({"items": items, "total": len(items)})
+
+
+@bp.route("/api/ingestion/drafts/<draft_id>", methods=["DELETE"])
+@_require_token
+def api_ingestion_draft_delete(draft_id: str):
+    """删除一个骨架草稿目录（不可恢复；只删隔离区，按目录 listing 等值匹配）。"""
+    from agent.audit.facade import audit
+    from agent.ingestion import drafts
+    try:
+        ok = drafts.delete_draft(draft_id)
+    except Exception as exc:  # noqa: BLE001
+        return _problem(500, title="删除草稿失败", detail=type(exc).__name__,
+                        type_slug="draft-delete-failed")
+    if not ok:
+        return _problem(404, title="草稿不存在", detail="按 draft_id 未找到可删除的草稿目录",
+                        type_slug="draft-not-found")
+    try:
+        audit.record("ingestion.draft_delete", subject=draft_id,
+                     payload={"draft_id": draft_id})
+    except Exception:  # noqa: BLE001 删除已生效，审计失败不回滚（只丢失一条记录）
+        pass
+    return _ok({"deleted": draft_id})
+
+
 @bp.route("/api/ingestion/governance/scan", methods=["POST"])
 @_require_token
 def api_ingestion_governance_scan():

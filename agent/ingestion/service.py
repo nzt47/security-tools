@@ -490,7 +490,11 @@ def recommend(conformance: Conformance, *, skill: Optional[NormalizedSkill] = No
         if len(steps) >= 3:
             return Recommendation(
                 form=FORM_WORKFLOW,
-                reason=f"正文有 {len(steps)} 个稳定编号步骤且无脚本；可生成工作流骨架（需人工绑定工具）。",
+                reason=(
+                    f"正文有 {len(steps)} 个稳定编号步骤且无脚本；可生成工作流骨架。"
+                    "注意：工作流草稿不注册、不启用，步骤未绑定工具时不能执行；"
+                    "只想把这份说明变成可用能力，选「技能」形态可直接安装。"
+                ),
                 confidence=0.55,
             )
     if conformance.level == LEVEL_L0:

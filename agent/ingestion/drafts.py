@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
@@ -252,7 +253,13 @@ def write_workflow_draft(skill: NormalizedSkill, plan: IngestPlan, *,
             for i, text in enumerate(steps, start=1)
         ],
     }
-    warnings.append("工作流步骤的 tool_name/参数未绑定；本目录不会被自动加载")
+    warnings.extend([
+        f"草稿只是骨架：{len(steps)} 个步骤的 tool_name / params_template 都是空的"
+        "（requires_binding=true），不能直接执行。",
+        f"下一步：编辑 workflows/{workflow['id']}.json，给每步填 tool_name 与 params_template"
+        "（可引用上一步的 output_key），补测试跑通后再登记到工作流加载目录。",
+        "本目录（data/ingestion/drafts/）不会被任何加载器扫描：不登记就不会出现在技能/工作流列表里。",
+    ])
     files = ["manifest.json", "README.md", f"workflows/{workflow['id']}.json"]
     _write(root / f"workflows/{workflow['id']}.json",
            json.dumps(workflow, ensure_ascii=False, indent=2) + "\n")
@@ -263,6 +270,67 @@ def write_workflow_draft(skill: NormalizedSkill, plan: IngestPlan, *,
     return {"draft_id": did, "draft_dir": str(root), "form": "workflow",
             "files": files, "warnings": warnings,
             "workflow": workflow}
+
+
+def list_drafts(draft_dir: Any = None) -> List[Dict[str, Any]]:
+    """列出隔离区里已生成的骨架草稿（只读 manifest，按 created_at 倒序）。
+
+    为什么需要它：tool/workflow 草稿**不注册、不进技能队列**，用户生成后去「草稿评审」
+    看不到任何东西（那里读的是 /api/skills-mgmt/queue），会误以为生成失败。
+    这里把隔离区的真实内容摊开给界面，附带 warnings 与目录，避免"看不见 = 没生成"。
+    """
+    base = Path(draft_dir) if draft_dir else Path(DEFAULT_DRAFT_DIR)
+    if not base.is_dir():
+        return []
+    out: List[Dict[str, Any]] = []
+    for child in sorted(base.iterdir()):
+        if not child.is_dir():
+            continue
+        manifest_path = child / "manifest.json"
+        if not manifest_path.is_file():
+            continue
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(manifest, dict):
+            continue
+        out.append({
+            "draft_id": str(manifest.get("draft_id") or child.name),
+            "form": str(manifest.get("form") or ""),
+            "status": str(manifest.get("status") or "draft"),
+            "enabled": bool(manifest.get("enabled")),
+            "skill_id": str(manifest.get("skill_id") or ""),
+            "skill_name": str(manifest.get("skill_name") or ""),
+            "plan_id": str(manifest.get("plan_id") or ""),
+            "source_ref": str(manifest.get("source_ref") or ""),
+            "created_at": str(manifest.get("created_at") or ""),
+            "warnings": [str(w) for w in (manifest.get("warnings") or []) if str(w).strip()],
+            "files": [str(f) for f in (manifest.get("files") or [])],
+            "draft_dir": str(child),
+        })
+    out.sort(key=lambda d: d.get("created_at") or "", reverse=True)
+    return out
+
+
+def delete_draft(draft_id: str, *, draft_dir: Any = None) -> bool:
+    """删除一个骨架草稿目录（仅隔离区，且只接受 listing 里真实存在的名字）。
+
+    安全：**不把用户输入拼进路径** —— 先列目录、再按等值比较选目标（同 #1283 的
+    CodeQL 收口口径），删除对象因此只可能是 data/ingestion/drafts/ 下的子目录。
+    """
+    base = Path(draft_dir) if draft_dir else Path(DEFAULT_DRAFT_DIR)
+    if not base.is_dir():
+        return False
+    target = None
+    for child in base.iterdir():
+        if child.is_dir() and child.name == draft_id and (child / "manifest.json").is_file():
+            target = child
+            break
+    if target is None:
+        return False
+    shutil.rmtree(target)
+    return True
 
 
 def write_draft(skill: NormalizedSkill, plan: IngestPlan, form: str, *,
@@ -280,8 +348,10 @@ extract_steps = _extract_steps
 
 __all__ = [
     "DEFAULT_DRAFT_DIR",
+    "delete_draft",
     "draft_id_for",
     "extract_steps",
+    "list_drafts",
     "write_draft",
     "write_tool_draft",
     "write_workflow_draft",
