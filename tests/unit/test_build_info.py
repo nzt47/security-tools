@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -17,7 +19,53 @@ def _clear_cache():
     bi._BACKEND_CACHE = None
 
 
+class TestPorcelainPath:
+    """`git status --porcelain` 行的路径解析（2026-10-26 线上首字符丢失的回归点）。
+
+    porcelain 是 `XY<space>PATH`，路径从下标 3 开始；但 `_run()` 对整体 stdout 做了
+    `.strip()`，首行的前导空格会被削掉。两种形态都必须取到完整路径。
+    """
+
+    @pytest.mark.parametrize("line,expected", [
+        (" M data/x.json", "data/x.json"),   # 未 strip 的正常形态
+        ("M data/x.json", "data/x.json"),    # 被 _run().strip() 削掉前导空格后的首行
+        ("?? .ciart/", ".ciart/"),
+        ("?? data/_shots/", "data/_shots/"),
+        ("R  old.py -> new.py", "old.py -> new.py"),
+        ("", ""),
+    ])
+    def test_path_parsing(self, line, expected):
+        assert bi._porcelain_path(line) == expected
+
+
 class TestBackendInfo:
+    def test_real_git_repo_first_dirty_path_keeps_first_char(self, tmp_path):
+        """真实 git 链路：首行 " M data/x.json" 经 _run().strip() 后仍须是 data/x.json。
+
+        修复前 `ln[3:]` 会得到 "ata/x.json"（线上 /api/version 的实际症状）。
+        """
+        git = shutil.which("git")
+        if not git:
+            pytest.skip("git 不在 PATH")
+        (tmp_path / "data").mkdir()
+        target = tmp_path / "data" / "x.json"
+        target.write_text("{}", encoding="utf-8")
+
+        def git_run(*args):
+            subprocess.run([git, *args], cwd=str(tmp_path), check=True,
+                           capture_output=True)
+
+        git_run("init", "-q")
+        git_run("config", "user.email", "test@example.com")
+        git_run("config", "user.name", "test")
+        git_run("add", ".")
+        git_run("commit", "-q", "-m", "init")
+        target.write_text('{"a": 1}', encoding="utf-8")
+
+        info = bi.backend_info(tmp_path, refresh=True)
+        assert info["dirty"] is True
+        assert info["dirty_files"] == ["data/x.json"]
+
     def test_parses_git_outputs(self, monkeypatch):
         def fake_run(cmd, cwd, timeout=10.0):
             if "rev-parse" in cmd:

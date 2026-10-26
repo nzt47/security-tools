@@ -57,6 +57,17 @@ def _run(cmd, cwd: Path, timeout: float = 10.0) -> Tuple[Optional[str], str]:
     return (proc.stdout or "").strip(), ""
 
 
+def _porcelain_path(line: str) -> str:
+    """从 `git status --porcelain` 的一行里取路径。
+
+    porcelain 形态是 `XY<space>PATH`（路径从下标 3 开始），但 `_run()` 会对整体
+    stdout 做 `.strip()`，于是**首行**的前导空格被削掉（` M data/x` → `M data/x`）；
+    此时再按固定偏移 `line[3:]` 切就会吃掉路径首字符（线上实测 `data/logs/...`
+    被显示成 `ata/logs/...`）。先剥掉 1 位状态码再 strip，两种形态都能取到完整路径。
+    """
+    return line[2:].strip() if len(line) > 2 else ""
+
+
 def backend_info(repo_root: Path = REPO_ROOT, *, refresh: bool = False) -> Dict[str, Any]:
     """后端 git 信息（默认缓存：代表本进程加载的代码）。"""
     global _BACKEND_CACHE
@@ -79,7 +90,7 @@ def backend_info(repo_root: Path = REPO_ROOT, *, refresh: bool = False) -> Dict[
     info["committed_at"] = committed_at
     porcelain, _ = _run(["git", "status", "--porcelain"], repo_root)
     if porcelain is not None:
-        files = [ln[3:].strip() for ln in porcelain.splitlines() if ln.strip()]
+        files = [_porcelain_path(ln) for ln in porcelain.splitlines() if ln.strip()]
         info["dirty_files"] = files
         info["dirty"] = bool(files)
     _BACKEND_CACHE = info
