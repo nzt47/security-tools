@@ -243,6 +243,7 @@ flowchart LR
     end
     subgraph ingestion [ingestion]
         agent_ingestion_adapters_base["agent.ingestion.adapters.base"]
+        agent_ingestion_autobind["agent.ingestion.autobind"]
         agent_ingestion_governance["agent.ingestion.governance"]
         agent_ingestion_rewrite["agent.ingestion.rewrite"]
         agent_ingestion_service["agent.ingestion.service"]
@@ -1119,6 +1120,7 @@ flowchart LR
     agent_human_in_the_loop_observability -.-> agent_logging_utils
     agent_human_in_the_loop_observability -.-> agent_monitoring_business_metrics
     agent_ingestion_adapters_base -.-> agent_skills_mgmt_claude_import
+    agent_ingestion_autobind -.-> agent_workflow_learning_models
     agent_ingestion_governance -.-> agent_state_manager
     agent_ingestion_governance -.-> agent_audit_facade
     agent_ingestion_governance -.-> agent_skills_mgmt_models
@@ -2718,9 +2720,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 695
-- 模块节点数: 605
-- 依赖边数: 1987
-- 跨层调用数: 1256
+- 扫描文件数: 697
+- 模块节点数: 606
+- 依赖边数: 1988
+- 跨层调用数: 1257
 - 违规调用数: 0
 - 动态 import 数: 1
