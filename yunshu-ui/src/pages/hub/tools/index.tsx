@@ -1,5 +1,6 @@
 /**
- * 工具调用 —— 主内容区 Tab 容器（工具集 / CLI 软件 / MCP 系统 / Computer Use）
+ * 工具与接入（2026-10-28 由「工具调用」改名）—— 主内容区 Tab 容器：
+ * 工具集 / 插件与扩展 / MCP 系统 / CLI 软件 / Computer Use / 工具治理
  * ------------------------------------------------------------------
  * 导航结构调整（与「提示词实验室」同款处理）：原「工具调用」是左侧导航树的**分组**，
  * 5 个子项各自占一条导航项，层级深且容易迷路。现收敛为：
@@ -19,16 +20,19 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import type { ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Boxes, Loader2, Monitor, Plug, Tags, Terminal, Wrench } from 'lucide-react'
+import { Boxes, Loader2, Monitor, Plug, Puzzle, Tags, Terminal, Wrench } from 'lucide-react'
 
 const ToolsToolset = lazy(() => import('./toolset'))
 const ToolsCli = lazy(() => import('./cli'))
 const ToolsMcp = lazy(() => import('./mcp'))
 const ToolsComputerUse = lazy(() => import('./computer-use'))
+// 【2026-10-28 IA · 方案 A】插件与扩展并入本页（原 hubNav 的 components/plugins 叶子）：
+// 插件包（manifest + 自带界面）是「能力从哪接进来」的另一类宿主，与 MCP/CLI/Computer Use 同族。
+const ToolsPlugins = lazy(() => import('@/pages/hub/plugins'))
 const ToolsGovernance = lazy(() => import('./governance'))
 
 /** 子模块 Tab 键（= 原导航 key 的尾段，便于对照历史记录） */
-export type ToolsTab = 'toolset' | 'cli' | 'mcp' | 'computer-use' | 'governance'
+export type ToolsTab = 'toolset' | 'plugins' | 'mcp' | 'cli' | 'computer-use' | 'governance'
 
 export interface ToolsTabDef {
   id: ToolsTab
@@ -38,11 +42,13 @@ export interface ToolsTabDef {
   component: ComponentType
 }
 
-/** 4 个子项（顺序 = 导航原顺序：工具集 → CLI → MCP → Computer Use） */
+/** 6 个子项（可调用面在前，接入/宿主随后：工具集 → 插件与扩展 → MCP → CLI → Computer Use → 治理） */
 export const TOOLS_TABS: ToolsTabDef[] = [
   { id: 'toolset', label: '工具集', icon: Boxes, hint: '按四能力平面分组的工具配置 / 启停（含「可被 LLM 调用」标注）', component: ToolsToolset },
-  { id: 'cli', label: 'CLI 软件', icon: Terminal, hint: '命令行工具与系统进程管理', component: ToolsCli },
+  // 【2026-10-28 IA · 方案 A】接入类 Tab 聚在一起：插件包 → MCP → CLI → Computer Use。
+  { id: 'plugins', label: '插件与扩展', icon: Puzzle, hint: '插件包清单 / schema 配置 / 插件自带界面（/api/plugins）', component: ToolsPlugins },
   { id: 'mcp', label: 'MCP 系统', icon: Plug, hint: 'MCP 服务连接与外部能力接入', component: ToolsMcp },
+  { id: 'cli', label: 'CLI 软件', icon: Terminal, hint: '命令行工具与系统进程管理', component: ToolsCli },
   { id: 'computer-use', label: 'Computer Use', icon: Monitor, hint: '浏览器自动化与屏幕操作', component: ToolsComputerUse },
   { id: 'governance', label: '工具治理', icon: Tags, hint: '分类 / 健康 / 路由关键词 / 启用总览（关键词决定哪类工具被选中）', component: ToolsGovernance },
 ]
@@ -91,6 +97,13 @@ export function readUrlTab(rawSearch?: string): ToolsTab | null {
     const value = new URLSearchParams(source).get('tab')
     if (isToolsTab(value)) return value
   }
+  // 【2026-10-28】旧深链 ?panel=components/plugins（插件与扩展曾是独立叶子）落到本页时，
+  // 要直接打开「插件与扩展」Tab —— 否则人看到的是「工具集」，会以为插件页没了。
+  // ?tab= 优先（tab 是页内显式意图）；panel 只在没有 tab 时兜底。
+  for (const source of sources) {
+    const panel = new URLSearchParams(source).get('panel')
+    if (panel === 'components/plugins' || panel === 'extensions') return 'plugins'
+  }
   return null
 }
 
@@ -136,15 +149,15 @@ export default function ToolsPage({ initialTab }: ToolsPageProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* 顶栏：模块标题 + Tab 条（5 个子项并列） */}
+      {/* 顶栏：模块标题 + Tab 条（6 个子项并列） */}
       <header className="shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4">
         <div className="mb-3 flex items-center gap-2">
           <Wrench size={14} className="text-cyan-400" />
-          <h1 className="text-[15px] font-semibold text-slate-100">工具调用</h1>
+          <h1 className="text-[15px] font-semibold text-slate-100">工具与接入</h1>
           <span className="text-[11px] text-slate-500">{active.hint}</span>
         </div>
 
-        <nav className="-mb-px flex flex-wrap gap-1" role="tablist" aria-label="工具调用子模块">
+        <nav className="-mb-px flex flex-wrap gap-1" role="tablist" aria-label="工具与接入子模块">
           {TOOLS_TABS.map((t) => {
             const Icon = t.icon
             const selected = tab === t.id

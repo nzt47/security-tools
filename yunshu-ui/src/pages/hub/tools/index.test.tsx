@@ -37,20 +37,23 @@ describe('工具调用 · Tab 结构', () => {
   })
   afterEach(cleanup)
 
-  it('5 个子项作为 Tab 并列（名称与顺序与原子模块一致；主线管理已迁出）', () => {
+  it('6 个子项作为 Tab 并列（工具集 → 接入类 4 个 → 工具治理；主线管理仍不得出现）', () => {
     render(<ToolsPage />)
     const tabs = screen.getAllByRole('tab')
+    // 【2026-10-28 IA · 方案 A】插件与扩展并入本页第 2 个 Tab；接入类（插件/MCP/CLI/CU）聚在一起
     expect(tabs.map((t) => t.textContent)).toEqual([
       '工具集',
-      'CLI 软件',
+      '插件与扩展',
       'MCP 系统',
+      'CLI 软件',
       'Computer Use',
       '工具治理',
     ])
     expect(TOOLS_TABS.map((t) => t.id)).toEqual([
       'toolset',
-      'cli',
+      'plugins',
       'mcp',
+      'cli',
       'computer-use',
       'governance',
     ])
@@ -62,7 +65,7 @@ describe('工具调用 · Tab 结构', () => {
     render(<ToolsPage />)
     const toolsetTab = screen.getByRole('tab', { name: /工具集/ })
     expect(toolsetTab).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('工具调用')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('工具与接入')
     // 子模块懒加载：等待其挂载后应出现该模块自己的 PageHeader 标题
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
   })
@@ -82,7 +85,7 @@ describe('工具调用 · Tab 结构', () => {
     expect(screen.queryByRole('tab', { name: /主线管理/ })).toBeNull()
     // 【为什么按 name 取】子模块懒加载完成后自己也有一个 h1（各子模块自带 PageHeader），
     // 故这里必须点名容器标题，而不是"页面里唯一那个 h1"。
-    expect(screen.getByRole('heading', { level: 1, name: /工具调用/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: /工具与接入/ })).toBeInTheDocument()
   })
 
   it('initialTab 优先于记忆值，非法值回落「工具集」', () => {
@@ -117,9 +120,23 @@ describe('工具调用 · Tab 结构', () => {
     expect(screen.queryByRole('tab', { name: /主线管理/ })).toBeNull()
   })
 
+  it('旧深链 ?panel=components/plugins 落到本页时直接打开「插件与扩展」Tab', () => {
+    // 插件与扩展曾是独立叶子（?panel=components/plugins）；2026-10-28 并入本页后，
+    // 这条收藏若只落到「工具集」，人会以为插件页没了 ⇒ readUrlTab 要认这个 panel 兜底。
+    window.history.replaceState({}, '', '/?panel=components/plugins')
+    render(<ToolsPage />)
+    expect(screen.getByRole('tab', { name: /插件与扩展/ })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('?tab= 优先于旧 panel（页内显式意图优先于兜底）', () => {
+    window.history.replaceState({}, '', '/?panel=components/plugins&tab=mcp')
+    render(<ToolsPage />)
+    expect(screen.getByRole('tab', { name: /MCP 系统/ })).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('Tab 条提供无障碍语义（tablist + 每项 title 提示）', () => {
     render(<ToolsPage />)
-    expect(screen.getByRole('tablist', { name: '工具调用子模块' })).toBeInTheDocument()
+    expect(screen.getByRole('tablist', { name: '工具与接入子模块' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /工具集/ })).toHaveAttribute('title', TOOLS_TABS[0].hint)
   })
 })

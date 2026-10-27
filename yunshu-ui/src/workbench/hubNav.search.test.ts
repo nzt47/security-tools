@@ -158,7 +158,9 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
   it('映射表覆盖方案 §6 三组旧 key + 2026-10-17 引擎三合一', () => {
     expect(LEGACY_NAV_KEY_MAP['persona/personality']).toBe('prompt-lab')
     expect(LEGACY_NAV_KEY_MAP['experience']).toBe('memory')
-    expect(LEGACY_NAV_KEY_MAP['extensions']).toBe('components/plugins')
+    // 【2026-10-28 IA · 方案 A】插件并入「工具与接入」⇒ 旧 key 落到 tools
+    expect(LEGACY_NAV_KEY_MAP['extensions']).toBe('tools')
+    expect(LEGACY_NAV_KEY_MAP['components/plugins']).toBe('tools')
     // 【2026-10-17 IA】心跳/定时任务/执行历史 → 叶子 engine；
     // 旧子项 key 一并落到本页，engine 自身已是真实叶子（无需自映射）
     expect(LEGACY_NAV_KEY_MAP['engine/heartbeat']).toBe('engine')
@@ -179,7 +181,7 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
   it('迁移已落地 ⇒ 全部旧 key 落到新 key（深链不断）', () => {
     expect(resolveNavKey('persona/personality')).toBe('prompt-lab')
     expect(resolveNavKey('experience')).toBe('memory')
-    expect(resolveNavKey('extensions')).toBe('components/plugins')
+    expect(resolveNavKey('extensions')).toBe('tools')
     expect(resolveNavKey('engine')).toBe('engine')
     expect(resolveNavKey('engine/heartbeat')).toBe('engine')
     expect(resolveNavKey('engine/scheduler')).toBe('engine')
@@ -187,7 +189,7 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(navKeyFromSearch('?panel=workshop')).toBe('workshop/agents')
     expect(navKeyFromSearch('?panel=experience')).toBe('memory')
     expect(navKeyFromSearch('?panel=persona/personality')).toBe('prompt-lab')
-    expect(navKeyFromSearch('?panel=extensions')).toBe('components/plugins')
+    expect(navKeyFromSearch('?panel=extensions')).toBe('tools')
   })
 
   it('旧 key 已移除但新 key 在树里 ⇒ 落到新 key（深链不断）', () => {
@@ -196,11 +198,11 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
       { key: 'prompt-lab', label: '提示词实验室', icon },
       { key: 'memory', label: '记忆管理', icon },
       { key: 'assets', label: '资产管理', icon },
-      { key: 'components/plugins', label: '插件与扩展', icon },
+      { key: 'tools', label: '工具与接入', icon },
     ]
     expect(resolveNavKey('persona/personality', afterMigration)).toBe('prompt-lab')
     expect(resolveNavKey('experience', afterMigration)).toBe('memory')
-    expect(resolveNavKey('extensions', afterMigration)).toBe('components/plugins')
+    expect(resolveNavKey('extensions', afterMigration)).toBe('tools')
     // 第二轮 IA：memory/<x> 与 assets/<x> 都落到叶子
     expect(resolveNavKey('memory/experience', afterMigration)).toBe('memory')
     expect(resolveNavKey('assets/interactions', afterMigration)).toBe('assets')
