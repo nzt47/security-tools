@@ -859,9 +859,30 @@ def _non_callable_names() -> frozenset:
     return names
 
 
+def _declared_disabled_names() -> frozenset:
+    """声明层 `enabled: false` 的工具（"停用观察"必须真的从模型可见集里消失）
+
+    【为什么必须补这一层（实测）】UI 的「停用」只写 `data/tools_config.json`，
+    而 `get_tool_defs()` 只看 internal / llm_callable，**根本不读它** ⇒ 停用是装饰性的：
+    页面显示"停用"，模型照样看得见、照样会调用。把 YAML 的 `enabled: false` 接进来后，
+    "停用"才是一个可观察、可回滚的动作（改回 true 即恢复）。
+    """
+    try:
+        from agent.lines.callability import load_tool_docs
+        docs = load_tool_docs()
+    except Exception as e:  # noqa: BLE001 声明读不到时不得让工具面整体消失
+        logger.debug("[工具] 停用声明加载失败（不额外隐藏工具）: %s", e)
+        return frozenset()
+    return frozenset(
+        str(name) for name, doc in docs.items()
+        if isinstance(doc, dict) and doc.get("enabled") is False
+    )
+
+
 def _hidden_tool_names() -> frozenset:
-    """不给模型看的工具名 = 内部工具 ∪ 声明为不可被 LLM 调用的工具"""
-    return _internal_tool_names() | _non_callable_names()
+    """不给模型看的工具名 = 内部工具 ∪ 声明为不可被 LLM 调用的工具 ∪ 声明停用的工具"""
+    return (_internal_tool_names() | _non_callable_names()
+            | _declared_disabled_names())
 
 
 def registry_facts() -> dict[str, dict]:
