@@ -1047,3 +1047,27 @@ class TestConfigYamlCache:
             "env 优先级被 yaml 解析缓存盖住了"
         monkeypatch.delenv("SKILLS_ASSESS_BLOCKING_SEVERITIES")
         assert assessor.blocking_severities() == {"critical"}
+
+
+# ════════════════════════════════════════════════════════════
+#  再定义草稿：规则草稿的质量（2026-10-27 用户实测「点了没反应」）
+
+
+def test_first_prose_line_skips_template_comment_and_commands():
+    from agent.skills_mgmt.service import _first_prose_line
+
+    content = (
+        "<!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->\n"
+        "# 标题\n"
+        'touch ~/.gstack/sessions/"$PPID"\n'
+        "if [ -f CLAUDE.md ] && grep -q x; then\n"
+        "这是一个用于 QA 的浏览器工具，支持截图与交互。\n"
+    )
+    assert _first_prose_line(content) == "这是一个用于 QA 的浏览器工具，支持截图与交互。"
+
+
+def test_rules_draft_uses_first_sentence_of_existing_description():
+    from agent.skills_mgmt.service import _rules_draft_description
+
+    desc = "Fast headless browser for QA testing. Also supports screenshots."
+    assert _rules_draft_description(desc, "") == "Fast headless browser for QA testing."

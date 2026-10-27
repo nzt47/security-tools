@@ -9,6 +9,8 @@
 """
 
 from __future__ import annotations
+import os
+import re
 from typing import Any, Callable, Dict, List, Optional
 
 from .lineage import (
@@ -49,6 +51,108 @@ from .output_guard import SkillOutputGuard
 PUBLISH_BATCH_MAX = 50
 #: force 豁免原因的最小长度（"w" 这类占位在审计里没有复核价值）
 WAIVER_MIN_REASON_LEN = 4
+
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+#: 明显不是「说明」的行首（模板标记 / 代码 / URL / 表格）
+_NOT_PROSE_PREFIXES = ("---", "```", "<", "{", "}", "import ", "from ", "def ",
+                       "class ", "const ", "let ", "export ", "npm ", "$ ",
+                       "http://", "https://",
+                       # 命令/脚本行（实测正文里有 touch/curl 之类示例）
+                       "touch ", "cd ", "mkdir ", "rm ", "cp ", "mv ", "echo ",
+                       "export ", "python ", "pip ", "git ", "bash ", "sh ",
+                       "node ", "yarn ", "pnpm ", "curl ", "wget ", "./",
+                       "if ", "for ", "while ", "then ", "do ", "done", "fi")
+
+
+def _build_default_llm() -> Any:
+    """按 .env 构建默认 LLMService（与 process_distill / memory_import 同口径）。
+
+    【为什么不用 agent.state_manager.get_llm_client】那个名字**不存在**
+    （2026-10-27 实测 ImportError），而调用点外面包着 except Exception ⇒ 勾选
+    「起草时用 LLM」永远**静默回退**规则草稿，用户看到的就是"打钩没用"。
+    """
+    try:
+        from memory.llm_service import LLMService
+        key = (os.environ.get("LLM_API_KEY", "")
+               or os.environ.get("DEEPSEEK_API_KEY", "")).strip()
+        if not key:
+            # 独立脚本/工具进程里 .env 可能还没进 os.environ（与 process_distill 同款兜底）
+            try:
+                from agent.env_config_manager import get_env_config_manager
+                get_env_config_manager().reload()
+            except Exception:  # noqa: BLE001 .env 加载失败不阻断
+                pass
+            key = (os.environ.get("LLM_API_KEY", "")
+                   or os.environ.get("DEEPSEEK_API_KEY", "")).strip()
+        if not key:
+            return None
+        return LLMService(
+            provider=os.environ.get("LLM_PROVIDER", "deepseek").strip().lower(),
+            api_key=key,
+            model=os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
+            base_url=(os.environ.get("LLM_BASE_URL", "")
+                      or os.environ.get("DEEPSEEK_BASE_URL", "")),
+        )
+    except Exception as exc:  # noqa: BLE001 构建失败 ⇒ 规则草稿（不阻断）
+        logger.warning("[Service] 默认 LLM 构建失败，再定义走规则草稿: %s", exc)
+        return None
+
+
+def _front_matter_description(content: str) -> str:
+    """技能正文 front matter 的 description（优先 description，再次 description_zh）。"""
+    m = re.match(r"^---\s*\n(.*?)\n---", content or "", re.S)
+    if not m:
+        return ""
+    try:
+        import yaml
+        fm = yaml.safe_load(m.group(1)) or {}
+    except Exception:  # noqa: BLE001
+        return ""
+    if not isinstance(fm, dict):
+        return ""
+    return str(fm.get("description") or fm.get("description_zh") or "").strip()
+
+
+def _first_prose_line(content: str) -> str:
+    """正文里第一条「像说明」的行（跳过 HTML 注释 / 标题符号 / 代码 / 表格）。
+
+    【为什么必须过滤】实测 gstack 这类自动生成的 SKILL.md 首行是
+    <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->，
+    旧实现直接把它当草稿说明 ⇒ 点「规则起草」看起来「什么都没发生」。
+    """
+    text = _HTML_COMMENT_RE.sub("", content or "")
+    fallback = ""
+    for raw in text.splitlines():
+        line = raw.strip().lstrip("#>-*• \t").strip()
+        if len(line) < 8:
+            continue
+        if line.lower().startswith(_NOT_PROSE_PREFIXES):
+            continue
+        if line.count("|") >= 2 or "$" in line:
+            continue
+        if not fallback:
+            fallback = line
+        has_cjk = any("\u4e00" <= ch <= "\u9fff" for ch in line)
+        # 「像说明」= 中文且不太短 / 英文整句（≥30 字符或带句末标点）；
+        # 像 "Preamble (run first)" 这种章节小标题留作兜底，不优先。
+        if (has_cjk and len(line) >= 10) or len(line) >= 30 \
+                or line.endswith(("。", "！", "？", "；", ";", ".", "!", "?")):
+            return line
+    return fallback
+
+
+def _rules_draft_description(desc: str, content: str) -> str:
+    """规则草稿的说明：优先「已有说明的首句」，空说明才从正文里挖首条散文行。
+
+    【为什么不再无脑取正文首行】实测 gstack 的正文里有 shell 示例
+    （touch / if [ -f ... ]），旧实现会把命令行当草稿说明。已有 description
+    本身就是作者写过的说明，取首句既稳定又不会更差。
+    """
+    text = (desc or "").strip()
+    if len(text) >= 20:
+        first = re.split(r"(?<=[。！？.!?])\s+", text, maxsplit=1)[0].strip()
+        return (first or text)[:160]
+    return (_front_matter_description(content) or _first_prose_line(content))[:160]
 
 
 class SkillsMgmtService:
@@ -1542,14 +1646,7 @@ class SkillsMgmtService:
         skill = self._require(skill_id)
         name = skill.name or skill.id
         desc = (skill.description or "").strip()
-        lines = (skill.content or "").strip().splitlines()
-        meaningful = [l.strip() for l in lines
-                      if l.strip() and not l.strip().startswith(("#", "-", "```", "```"))]
-        draft_desc = ""
-        for l in meaningful:
-            if len(l) >= 6:
-                draft_desc = l
-                break
+        draft_desc = _rules_draft_description(desc, skill.content)
         if not draft_desc:
             draft_desc = f"（自动再定义说明）{name}：基于内容重写的技能，请人工修订。"
         draft_desc = draft_desc[:160]
@@ -1558,40 +1655,45 @@ class SkillsMgmtService:
         if not has_cjk:
             draft_name = f"{name}（{name}）" if len(name) > 16 else f"{name}（自动整理）"
         source = "rules"
+        llm_error = ""
 
         if use_llm:
-            try:
-                from agent.state_manager import get_llm_client
-                llm = get_llm_client()
-                if llm is not None:
+            llm = _build_default_llm()
+            if llm is None:
+                llm_error = "未配置 LLM（LLM_API_KEY / DEEPSEEK_API_KEY 为空或构建失败），已回退规则草稿"
+            else:
+                try:
                     prompt = (
                         "你是技能资产整理器。请依据技能内容把其整理为云枢中文技能说明，"
                         "只返回 JSON：{\"name\":\"中文展示名\",\"description\":\"中文说明(≤160字,含用途与触发时机)\"}\n"
                         f"当前 name={name}\ndescription={desc[:200]}\ncontent前600字:\n{(skill.content or '')[:600]}"
                     )
-                    method = next((m for m in ("chat", "invoke", "complete", "generate")
-                                  if hasattr(llm, m)), None)
-                    if method:
-                        resp = getattr(llm, method)(prompt)
-                        import re as _re
-                        m = _re.search(r"\{.*\}", str(resp), _re.S)
-                        if m:
-                            import json as _json
-                            parsed = _json.loads(m.group(0))
-                            nd = str(parsed.get("description", "") or "").strip()[:160]
-                            nn = str(parsed.get("name", "") or "").strip()[:60]
-                            if nd:
-                                draft_desc = nd
-                                source = "llm"
-                            if nn and nn.lower() != name.lower():
-                                draft_name = nn
-            except Exception as e:  # noqa: BLE001 LLM 不可用/失败 → 规则草稿
-                logger.info("[Service] redraft LLM 失败，回退规则草稿 skill=%s: %s",
-                            skill_id, e)
+                    # LLMService.chat 要的是 messages 列表：旧实现传字符串，
+                    # 即使客户端可用也会把字符串逐字符 extend 进 messages ⇒ 必炸。
+                    resp = llm.chat([{"role": "user", "content": prompt}],
+                                    max_tokens=600, temperature=0.2)
+                    m = re.search(r"\{.*\}", str(resp), re.S)
+                    if m:
+                        import json as _json
+                        parsed = _json.loads(m.group(0))
+                        nd = str(parsed.get("description", "") or "").strip()[:160]
+                        nn = str(parsed.get("name", "") or "").strip()[:60]
+                        if nd:
+                            draft_desc = nd
+                            source = "llm"
+                        if nn and nn.lower() != name.lower():
+                            draft_name = nn
+                    else:
+                        llm_error = "LLM 返回内容里没有 JSON，已回退规则草稿"
+                except Exception as e:  # noqa: BLE001 LLM 不可用/失败 → 规则草稿
+                    llm_error = "%s: %s" % (type(e).__name__, str(e)[:160])
+                    logger.warning("[Service] redraft LLM 失败，回退规则草稿 skill=%s: %s",
+                                   skill_id, e)
 
         return {
             "skill_id": skill_id,
             "source": source,
+            "llm_error": llm_error,
             "current": {"name": name, "description": desc},
             "proposed": {"name": draft_name, "description": draft_desc},
             "note": "草稿需确认后应用：写回并自动重新评审-评估。",
