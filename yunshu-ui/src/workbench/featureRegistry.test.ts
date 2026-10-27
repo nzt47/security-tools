@@ -18,8 +18,10 @@ describe('featureRegistry：真实 features 目录（两个原实例均已归位
   it('extensions 并入「插件与扩展」页，不再自动发现/不再单列导航', () => {
     expect(DISCOVERED_FEATURES.map((f) => f.key)).not.toContain('extensions')
     expect(flattenNav(HUB_NAV).some((i) => i.key === 'extensions')).toBe(false)
-    // 合并后的唯一入口：系统组件 → 插件与扩展
-    expect(flattenNav(HUB_NAV).some((i) => i.key === 'components/plugins')).toBe(true)
+    // 【2026-10-28 IA · 方案 A】唯一入口改为「工具与接入」页的「插件与扩展」Tab
+    // （树里不再有 components/plugins 叶子；旧深链落到 tools 并由页内 panel 打开该 Tab）
+    expect(flattenNav(HUB_NAV).some((i) => i.key === 'components/plugins')).toBe(false)
+    expect(flattenNav(HUB_NAV).find((i) => i.key === 'tools')?.label).toBe('工具与接入')
   })
 
   it('route-coverage 归入治理面板，不再自动发现/不再单列导航', () => {

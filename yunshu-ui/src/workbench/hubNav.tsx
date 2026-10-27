@@ -9,6 +9,9 @@
  * 【2026-10-27 IA】两批搬迁（叶子 key 一律不变 ⇒ 旧深链照旧）：
  *   ① 网络配置并入「系统管理 · 实例与网络」第三 Tab（独立叶子 network 移除）；
  *   ② 「本地资源」→ 系统管理、「回放中心」→ 全景看板（?panel=local|replay 仍有效）。
+ * 【2026-10-28 IA · 方案 A】「插件与扩展」并入「工具与接入」（原「工具调用」）第 2 个 Tab：
+ *   侧栏少一个叶子，接入（插件包 / MCP / CLI / Computer Use）与可调用面同页 ⇒ 诊断闭环；
+ *   旧深链 ?panel=components/plugins 与 ?panel=extensions 都落到 tools（页内打开 plugins Tab）。
  * ContentPanel 根据当前选中导航项，从此处取组件渲染。
  * 所有既有功能（Hub 8 栏目 + 管理后台）统一挂载到工作台。
  */
@@ -18,7 +21,7 @@ import {
   MessageSquare, LayoutDashboard, Brain, Wrench, Database,
   Activity, FileText, Server, Monitor,
   HeartPulse, Users, Hammer,
-  Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
+  Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive, Film,
   PackagePlus, Workflow,
 } from 'lucide-react'
@@ -79,10 +82,10 @@ const LocalResources = lazy(() => import('@/pages/hub/local'))
 // 【2026-10-27 IA · §11.12】回放中心挂到「全景看板」桶（原在「会话与配置」）；组件不动。
 const ReplayCenter = lazy(() => import('@/pages/hub/replay'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
-// 插件与扩展：原「插件管理」与「扩展中心」合并为一个导航项；2026-10-15 进一步取消 Tab，
-// 插件自带 UI 直接挂在清单卡片里（extensionHost.registerPluginModule 链路保留），
-// 见 pages/hub/plugins/index.tsx 与 pages/hub/plugin-manage.tsx。
-const PluginsPage = lazy(() => import('@/pages/hub/plugins'))
+// 【2026-10-28 IA · 方案 A】「插件与扩展」不再是导航叶子：并入「工具与接入」页第 2 个 Tab
+// （pages/hub/tools/index.tsx 的 ToolsPlugins）。页面组件不动（pages/hub/plugins），
+// 旧深链 ?panel=components/plugins 经 LEGACY_NAV_KEY_MAP 落到 tools，并由工具页按
+// panel=components/plugins 打开「插件与扩展」Tab（禁止双入口：树里只留 tools 一个 key）。
 // 治理面板（v7.2 §7 六面板 + 审计导出）：**工作台内扩展，不建独立 Web App**（UI 五坑④）。
 // 单一组件 + `panel` 参数（同 ContentPanel 的"key 即参数语义"约定，见 derivePanelParams）。
 const GovernancePanels = lazy(() => import('@/pages/hub/governance'))
@@ -122,14 +125,16 @@ export const HUB_NAV: HubNavItem[] = [
       // 2026-10-24 IA 拆出，避免两类执行模型在同一页用 Tab 混装。
       { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
       { key: 'workflow', label: '工作流', icon: Workflow, component: WorkflowHub },
-      // 工具调用：原 5 个子项已在页面内收敛为 Tab（pages/hub/tools/index.tsx）。
-      { key: 'tools', label: '工具调用', icon: Wrench, component: ToolsPage },
+      // 工具与接入（2026-10-28 由「工具调用」改名）：可调用面 + 各类接入/宿主同页 6 个 Tab
+      // （工具集 / 插件与扩展 / MCP 系统 / CLI 软件 / Computer Use / 工具治理）。
+      // 【为什么把插件并进来】四类都是「能力从哪接进来」，又各自决定工具为什么不可调用 ——
+      // 同页才有诊断闭环；插件包的定义/清单与 MCP/CLI/Computer Use 的启停/健康在同一处。
+      { key: 'tools', label: '工具与接入', icon: Wrench, component: ToolsPage },
       // 【第四轮 IA · 2026-10-14】「记忆与资产」整桶并入本桶（顶层再少一个桶）；
       // 「插件与扩展」「网络配置」从被取消的「系统组件」桶迁入。叶子 key 一律不变
       // ⇒ 旧深链 ?panel=memory / ?panel=assets / ?panel=components/plugins / ?panel=network 仍有效。
       { key: 'memory', label: '记忆管理', icon: Brain, component: MemoryHub },
       { key: 'assets', label: '资产管理', icon: Database, component: AssetsPage },
-      { key: 'components/plugins', label: '插件与扩展', icon: Puzzle, component: PluginsPage },
       // 2026-10-27 IA：网络配置并入「系统管理 · 实例与网络」第三 Tab（同一组系统级配置），
       // 本桶不再保留独立叶子；旧深链 ?panel=network 经 LEGACY_NAV_KEY_MAP 落到 admin/instances。
       // 2026-10-27 IA 第二批（§11.12）：「本地资源」迁到「系统管理」（本机文件/进程是系统级配置），
@@ -330,7 +335,10 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   // 经验库先移入记忆管理（阶段 1.3），第二轮再随记忆管理收敛为页内 Tab
   'experience': 'memory',
   // 扩展中心并入系统组件 · 插件管理（阶段 1.2）
-  'extensions': 'components/plugins',
+  // 【2026-10-28 IA · 方案 A】「插件与扩展」并入「工具与接入」页第一个接入 Tab：
+  //   叶子消失 ⇒ 两条旧 key 都落到 tools（页内按 panel 打开 plugins Tab，见 tools/index.tsx）。
+  'components/plugins': 'tools',
+  'extensions': 'tools',
   // 【2026-10-17 IA】引擎三合一：心跳/定时任务/执行历史 → 叶子 engine。
   // 旧子项 key 落到本页；engine 自身已是真实叶子，无需再映射。
   'engine/heartbeat': 'engine',

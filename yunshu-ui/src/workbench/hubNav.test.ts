@@ -5,7 +5,7 @@
  * 单一来源：key 即参数语义，避免在导航配置里重复声明导致漂移。
  */
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_NAV_KEY, derivePanelParams, findNavItem, flattenNav, HUB_NAV, navKeyFromSearch, resolveNavKey } from './hubNav'
+import { DEFAULT_NAV_KEY, derivePanelParams, findNavItem, flattenNav, HUB_NAV, LEGACY_NAV_KEY_MAP, navKeyFromSearch, resolveNavKey } from './hubNav'
 
 describe('hubNav derivePanelParams（第二轮 IA：assets/memory 收敛为叶子）', () => {
   it('assets 与 memory 已是叶子项，不再推导 initialCategory / mode', () => {
@@ -100,9 +100,10 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     // 【2026-10-17 IA】分身创建与组装紧跟「会话任务」（先对话、再配分身）
     // 【2026-10-27 IA · §11.12】local / replay 已迁出本桶（见下方「两个叶子的 IA 搬迁」用例）
+    // 【2026-10-28 IA · 方案 A】components/plugins 已并入 tools（页内第 2 个 Tab）
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
       'session', 'workshop/agents', 'prompt-lab', 'ingestion', 'skills-center', 'workflow',
-      'tools', 'memory', 'assets', 'components/plugins',
+      'tools', 'memory', 'assets',
     ])
     expect(topKeys.indexOf('workspace')).toBeLessThan(topKeys.indexOf('panorama'))
   })
@@ -145,7 +146,7 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
   it('【第四轮+第五轮 IA】记忆/资产/插件/网络 并入「会话与配置」；模块列表并入「系统监控」；「系统组件」桶取消', () => {
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     const childKeys = (workspace?.children ?? []).map((c) => c.key)
-    for (const k of ['memory', 'assets', 'components/plugins']) {
+    for (const k of ['memory', 'assets', 'tools']) {
       expect(childKeys).toContain(k)
     }
     const topKeys = HUB_NAV.map((i) => i.key)
@@ -203,7 +204,7 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
       'panorama/health', 'panorama/logs', 'engine',
       'governance/approvals', 'governance/route-coverage',
       'memory', 'assets',
-      'workshop/agents', 'components/plugins',
+      'workshop/agents', 'tools',
       'admin/dashboard', 'admin/logs',
     ]) {
       expect(keys).toContain(k)
@@ -271,5 +272,31 @@ describe('hubNav 导航结构（2026-10-27 · §11.12 两个叶子的 IA 搬迁�
       const hits = flattenNav(HUB_NAV).filter((i) => i.key === key)
       expect(hits).toHaveLength(1)
     }
+  })
+})
+
+describe('hubNav 导航结构（2026-10-28 · 方案 A：插件与扩展并入「工具与接入」）', () => {
+  it('「工具与接入」是会话与配置桶里的叶子，名称已从「工具调用」改名', () => {
+    const item = findNavItem('tools')
+    expect(item?.label).toBe('工具与接入')
+    expect(item?.children).toBeUndefined()
+    expect(item?.component).toBeDefined()
+    const workspace = HUB_NAV.find((i) => i.key === 'workspace')
+    expect((workspace?.children ?? []).map((c) => c.key)).toContain('tools')
+  })
+
+  it('「插件与扩展」不再是导航叶子（树里只剩一个入口，禁止双入口）', () => {
+    const keys = flattenNav(HUB_NAV).map((i) => i.key)
+    expect(keys).not.toContain('components/plugins')
+    expect(keys).not.toContain('extensions')
+  })
+
+  it('两条旧深链都落到 tools（页内按 panel 打开「插件与扩展」Tab）', () => {
+    expect(LEGACY_NAV_KEY_MAP['components/plugins']).toBe('tools')
+    expect(LEGACY_NAV_KEY_MAP['extensions']).toBe('tools')
+    expect(resolveNavKey('components/plugins')).toBe('tools')
+    expect(resolveNavKey('extensions')).toBe('tools')
+    expect(navKeyFromSearch('?panel=components/plugins')).toBe('tools')
+    expect(navKeyFromSearch('?panel=extensions')).toBe('tools')
   })
 })
