@@ -221,6 +221,10 @@ class ToolMeta:
     #: 为什么需要它：`call()` 要求名字在 `_registry` 中，所以"内部执行体"不能注销，
     #: 只能从 `get_tool_defs()` 里隐藏。
     internal: bool = False
+    #: 声明层启用状态（YAML `enabled: false` = 停用观察）。
+    #: 【为什么必须有】前端用 `/api/agent-lines/planes` 的行合并 `/api/tools/config`，
+    #: 没有这个字段时"停用"只存在于 tools_config.json 里，页面永远显示"启用"。
+    enabled: bool = True
 
     # ── 「可被 LLM 调用」声明（见 agent/lines/callability.py）──
     #: 能力形态：tool | skill | api | script
@@ -401,6 +405,7 @@ class ToolMeta:
             "tags": list(self.tags),
             "needs_approval": self.needs_approval,
             "internal": bool(self.internal),
+            "enabled": bool(self.enabled),
             "tool_type": self.tool_type,
             "llm_callable": bool(self.llm_callable),
             "callable_mode": self.callable_mode,
@@ -628,6 +633,7 @@ def load_tool_meta(defs_dir: Optional[str] = None, force: bool = False) -> Dict[
             tags=tags,
             description=str(doc.get("description") or "")[:200],
             internal=bool(doc.get("internal", False)),
+            enabled=_as_bool(doc.get("enabled"), True),
             tool_type=_norm(doc.get("tool_type"), TOOL_TYPES, "tool"),
             llm_callable=_as_bool(doc.get("llm_callable"), True),
             callable_mode=_norm(doc.get("callable_mode"), CALLABLE_MODES, "auto"),

@@ -89,6 +89,20 @@ def test_govern_plane_is_the_modification_surface():
         assert meta[n].needs_approval, f"{n} 在治理平面但未要求确认"
 
 
+def test_disabled_tools_are_marked_in_meta():
+    """YAML `enabled: false` 必须体现在 ToolMeta 上（否则页面永远显示"启用"）。
+
+    2026-10-27：第一批「停用观察」把 scheduled_task 家族设为 enabled: false；
+    前端用 /planes 的 meta.enabled 覆盖 /tools/config 的 enabled 才显示"停用"。
+    """
+    meta = load_tool_meta()
+    disabled = {n for n, m in meta.items() if not m.enabled}
+    assert {"schedule_task", "list_scheduled_tasks", "cancel_scheduled_task",
+            "pause_scheduled_task", "resume_scheduled_task"} <= disabled
+    # 默认必须仍是启用（缺键 ≠ 停用）
+    assert meta["read_file"].enabled is True
+
+
 def test_internal_tools_declared():
     meta = load_tool_meta()
     internal = {n for n, m in meta.items() if m.internal}

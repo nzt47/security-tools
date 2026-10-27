@@ -877,7 +877,6 @@ _DISABLED_NAMES_CACHE: dict = {"key": None, "data": frozenset()}
 
 
 def _declared_disabled_names() -> frozenset:
-    global _DISABLED_NAMES_CACHE
     """声明层 `enabled: false` 的工具（"停用观察"必须真的从模型可见集里消失）
 
     【为什么必须补这一层（实测）】UI 的「停用」只写 `data/tools_config.json`，
@@ -885,19 +884,23 @@ def _declared_disabled_names() -> frozenset:
     页面显示"停用"，模型照样看得见、照样会调用。把 YAML 的 `enabled: false` 接进来后，
     "停用"才是一个可观察、可回滚的动作（改回 true 即恢复）。
     """
+    global _DISABLED_NAMES_CACHE
     try:
-        from agent.tools.persistence import TOOL_DEFS_DIR
-        st = os.stat(TOOL_DEFS_DIR)
-        key = (_registry_version, st.st_mtime_ns, st.st_size)
+        from agent.lines import callability as _call
+        root = _call.TOOL_DEFS_DIR
+        st = os.stat(root)
+        # 键里必须带 root：测试会把 callability.TOOL_DEFS_DIR 指到 tmp，若只按
+        # persistence.TOOL_DEFS_DIR 的 stat 建键，就会出现"另一套目录的缓存命中"。
+        key = (_registry_version, str(root), st.st_mtime_ns, st.st_size)
         if _DISABLED_NAMES_CACHE["key"] == key:
             return _DISABLED_NAMES_CACHE["data"]
-    except OSError:
-        key = None
+    except (OSError, ImportError):
+        root, key = None, None
     try:
         # 用 callability 里按"逐文件指纹"缓存的集合（命中只需 94 次 stat）：
         # 这是 `get_tool_defs(whitelist=...)` 的每轮热路径，不能每次 deepcopy 94 份文档。
         from agent.lines.callability import disabled_tool_names
-        data = disabled_tool_names()
+        data = disabled_tool_names(root)
         _DISABLED_NAMES_CACHE = {"key": key, "data": data}
         return data
     except Exception as e:  # noqa: BLE001 声明读不到时不得让工具面整体消失
