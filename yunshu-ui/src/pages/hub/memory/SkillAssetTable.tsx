@@ -1269,18 +1269,23 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
   const [draftName, setDraftName] = useState('')
   const [draftDesc, setDraftDesc] = useState('')
   const [source, setSource] = useState('')
+  const [genAt, setGenAt] = useState('')
+  const [llmHint, setLlmHint] = useState('')
   const [err, setErr] = useState('')
   const [msg, setMsg] = useState('')
 
   const gen = async (useLlm: boolean) => {
-    setBusy(true); setErr(''); setMsg('')
+    setBusy(true); setErr(''); setMsg(''); setLlmHint('')
     try {
-      const r = await hubPost<{ current?: { name?: string; description?: string }; proposed?: { name?: string; description?: string }; source?: string }>(
+      const r = await hubPost<{ current?: { name?: string; description?: string }; proposed?: { name?: string; description?: string }; source?: string; llm_error?: string }>(
         skillRedraft(item.id), { llm: useLlm })
       setCur(r?.current ?? null)
       setDraftName(r?.proposed?.name ?? item.name ?? '')
       setDraftDesc(r?.proposed?.description ?? '')
       setSource(r?.source ?? 'rules')
+      // 即使草稿内容与当前一致，也要有可见反馈（否则看起来"点了没反应"）
+      setGenAt(new Date().toLocaleTimeString())
+      setLlmHint(r?.llm_error ?? '')
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
     finally { setBusy(false) }
   }
@@ -1315,11 +1320,17 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
         <button type="button" className={BTN} onClick={() => void gen(false)} disabled={busy} title="规则起草（快、确定）">规则起草</button>
         <button type="button" className={BTN_EM} onClick={() => void gen(true)} disabled={busy} title="尝试用 LLM 起草（失败回退规则）">LLM 起草</button>
         {source && <span className="text-[10px] text-slate-600">来源：{source === 'llm' ? 'LLM' : '规则'}</span>}
+        {genAt && <span className="text-[10px] text-slate-600">· 最近生成 {genAt}</span>}
         <label className="ml-auto flex items-center gap-1 text-[11px] text-slate-400">
           <input type="checkbox" checked={llm} onChange={(e) => { setLlm(e.target.checked); void gen(e.target.checked) }} />
           起草时用 LLM
         </label>
       </div>
+      {llmHint && (
+        <p className="mb-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2 py-1 text-[11px] text-amber-300">
+          LLM 起草未生效：{llmHint}
+        </p>
+      )}
       {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
       {msg && <p className="mb-2 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1 text-[11px] text-emerald-300">{msg}</p>}
       <div className="mb-2 grid gap-2 md:grid-cols-2">
