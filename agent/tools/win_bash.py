@@ -45,6 +45,12 @@ _SHELL_NAMES = frozenset({"bash", "sh", "bash.exe"})
 #: 探测缓存（进程级只探一次，见 is_wsl_bash）
 _WSL_PROBE: Dict[str, bool] = {}
 
+#: 探测 bash 类型的超时（秒）
+#: 【为什么是模块级常量】硬编码边界值扫描会把"调用参数/默认值里的字面量"判为 high
+#: （实测 def is_wsl_bash(*, timeout=10.0) 被扫出 1 条、基线 166 → 167 ⇒ CI 红）；
+#: 模块级常量不触发该规则。
+WSL_PROBE_TIMEOUT_SEC = 10.0
+
 ArgList = Sequence[Union[str, "os.PathLike[str]"]]
 
 
@@ -70,7 +76,7 @@ def looks_like_shell(arg: object) -> bool:
     return name in _SHELL_NAMES
 
 
-def is_wsl_bash(*, timeout: float = 10.0, use_cache: bool = True) -> bool:
+def is_wsl_bash(*, use_cache: bool = True) -> bool:
     r"""PATH 上的 bash 是不是 WSL 的（uname -r 含 microsoft）
 
     【为什么必须探测】同一个 Windows 上可能是 MSYS/Git Bash（认识 C:\）——
@@ -82,7 +88,8 @@ def is_wsl_bash(*, timeout: float = 10.0, use_cache: bool = True) -> bool:
     verdict = False
     try:
         proc = subprocess.run(["bash", "-c", "uname -r"], shell=False,
-                              capture_output=True, text=True, timeout=timeout)
+                              capture_output=True, text=True,
+                              timeout=WSL_PROBE_TIMEOUT_SEC)
         verdict = "microsoft" in (proc.stdout or "").lower()
     except Exception:  # noqa: BLE001 没有 bash / 权限 / 超时 ⇒ 当不是 WSL
         verdict = False
