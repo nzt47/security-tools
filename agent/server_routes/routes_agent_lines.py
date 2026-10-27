@@ -34,6 +34,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from flask import jsonify, request
@@ -230,6 +231,33 @@ def _runtime_executors() -> Dict[str, str]:
         return {}
 
 
+#: 运行时补算缓存：清单戳 / 声明文件戳 / 注册表版本任一变化即失效。
+#: 【为什么必须缓存】`runtime_only_tool_entries()` 每次要重扫全部 YAML 并做 AST 执行器扫描
+#: （实测数百毫秒）；`/preview` 与 `/planes` 都是高频读端点，不缓存会把"看徽章"变成慢操作。
+_RUNTIME_CALLABILITY_CACHE: Dict[str, Any] = {"key": None, "data": {}}
+
+
+def _runtime_entry_key(missing: List[str]) -> Any:
+    """运行时补算的失效键 = 清单戳 + 缺标注的工具名 + 这些 YAML 的 mtime/size + 注册表版本"""
+    stamps: List[Tuple[str, Any]] = []
+    try:
+        from agent.tools.persistence import TOOL_DEFS_DIR
+        for name in missing:
+            try:
+                st = os.stat(os.path.join(TOOL_DEFS_DIR, name + ".yaml"))
+                stamps.append((name, (st.st_mtime_ns, st.st_size)))
+            except OSError:
+                stamps.append((name, None))
+    except Exception:  # noqa: BLE001
+        stamps = [(n, None) for n in missing]
+    try:
+        from agent import tools as _T
+        version = int(getattr(_T, "_registry_version", 0))
+    except Exception:  # noqa: BLE001
+        version = 0
+    return (_CALLABILITY_CACHE.get("stamp"), tuple(sorted(missing)), tuple(stamps), version)
+
+
 def _callability_with_runtime(names: Iterable[str]) -> Dict[str, Dict[str, Any]]:
     """清单标注 + **运行时新登记工具**的即时标注
 
@@ -240,13 +268,19 @@ def _callability_with_runtime(names: Iterable[str]) -> Dict[str, Dict[str, Any]]
     missing = [str(n) for n in names if str(n) not in index]
     if not missing:
         return index
-    try:
-        from agent.lines.callability import runtime_only_tool_entries
-        extra = {e["tool_name"]: e for e in
-                 runtime_only_tool_entries(missing, executors=_runtime_executors())}
-    except Exception as e:  # noqa: BLE001 标注补算失败 ⇒ 退回"无徽章"，不影响主链
-        logger.debug("[AgentLines] 运行时标注补算失败: %s", e)
-        extra = {}
+    key = _runtime_entry_key(missing)
+    if _RUNTIME_CALLABILITY_CACHE["key"] == key:
+        extra = _RUNTIME_CALLABILITY_CACHE["data"]
+    else:
+        try:
+            from agent.lines.callability import runtime_only_tool_entries
+            extra = {e["tool_name"]: e for e in
+                     runtime_only_tool_entries(missing, executors=_runtime_executors())}
+        except Exception as e:  # noqa: BLE001 标注补算失败 ⇒ 退回"无徽章"，不影响主链
+            logger.debug("[AgentLines] 运行时标注补算失败: %s", e)
+            extra = {}
+        _RUNTIME_CALLABILITY_CACHE["key"] = key
+        _RUNTIME_CALLABILITY_CACHE["data"] = extra
     return {**index, **extra} if extra else index
 
 

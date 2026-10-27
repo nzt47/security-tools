@@ -1211,9 +1211,20 @@ def runtime_only_tool_entries(names: Iterable[str], *,
     wanted = {str(n) for n in (names or ()) if str(n).strip()}
     if not wanted:
         return []
-    docs = load_tool_docs(defs_dir)
-    ex = dict(static_executors())
-    ex.update({str(k): str(v) for k, v in (executors or {}).items() if v})
+    # 只读"缺标注的这几份"：load_tool_docs() 会读 94 份 YAML 并 deepcopy（实测 ~0.3s），
+    # 在 /planes、/preview 这种读路径上没必要为 3 个工具付全量代价。
+    root = defs_dir or TOOL_DEFS_DIR
+    docs: Dict[str, Dict[str, Any]] = {}
+    for name in wanted:
+        doc = _read_yaml(os.path.join(root, name + ".yaml"))
+        if isinstance(doc, dict):
+            doc.setdefault("name", name)
+            docs[name] = doc
+    provided = {str(k): str(v) for k, v in (executors or {}).items() if v}
+    # 调用方已经给了执行器（REST 侧对动态工具就是这么做的）时不再做 AST 全量扫描：
+    # static_executors() 要解析 40+ 个源文件，在 HTTP 读路径上是纯浪费。
+    ex = dict(static_executors()) if (wanted - set(provided)) else {}
+    ex.update(provided)
     denied, deny_all = denied_tool_names()
     out: List[Dict[str, Any]] = []
     for name in sorted(wanted):
