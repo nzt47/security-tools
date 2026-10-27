@@ -601,6 +601,37 @@ class TestRuntimeFilter:
         finally:
             T.clear()
 
+    def test_ui_switch_and_yaml_enabled_share_one_state(self, tmp_path, monkeypatch):
+        """UI 开关（tools_config.json）与 YAML enabled 合成同一份生效状态。
+
+        2026-10-27 收口：UI「停用」写 JSON、声明「停用」写 YAML，此前两套口径
+        （JSON 只影响列表显示、YAML 才影响模型可见集）。现在 UI 优先、YAML 兜底：
+        界面点停用立即生效，点启用也能把 YAML 停用的工具恢复。
+        """
+        from agent import tools as T
+        _write_tool(tmp_path, "yaml_off", enabled=False)
+        _write_tool(tmp_path, "json_off")
+        cfg = tmp_path / "tools_config.json"
+        cfg.write_text('{"tool_states": {"json_off": false, "yaml_off": true}}',
+                       encoding="utf-8")
+        monkeypatch.setattr(C, "TOOL_DEFS_DIR", str(tmp_path))
+        monkeypatch.setattr(T, "TOOLS_CONFIG_PATH", str(cfg))
+        monkeypatch.setattr(T, "_TOOL_STATES_CACHE", {"key": None, "data": {}})
+        monkeypatch.setattr(T, "_DISABLED_NAMES_CACHE", {"key": None, "data": frozenset()})
+        monkeypatch.delenv("CP_TOOL_CALLABILITY_ENFORCE", raising=False)
+        T.clear()
+        try:
+            T.register("yaml_off", "A", schema={"type": "object", "properties": {}},
+                       handler=lambda **k: None)
+            T.register("json_off", "B", schema={"type": "object", "properties": {}},
+                       handler=lambda **k: None)
+            assert T.tool_enabled("yaml_off", False) is True    # UI 显式恢复
+            assert T.tool_enabled("json_off", True) is False    # UI 显式停用
+            names = {d["function"]["name"] for d in T.get_tool_defs()}
+            assert names == {"yaml_off"}, names
+        finally:
+            T.clear()
+
     def test_registry_facts_报告_schema_与执行器(self):
         from agent import tools as T
         T.clear()

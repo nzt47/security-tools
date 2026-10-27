@@ -71,12 +71,56 @@ function readSavedTab(): ToolsTab {
 }
 
 export interface ToolsPageProps {
-  /** 初始 Tab（缺省用 localStorage 记忆的值；非法值回落「工具集」） */
+  /** 初始 Tab（缺省用 URL `?tab=`，再缺省用 localStorage 记忆；非法值回落「工具集」） */
   initialTab?: ToolsTab
 }
 
+/**
+ * 从 URL 读 Tab（`?tab=cli` / hash 里的 `?tab=cli`）——深链入口。
+ *
+ * 【为什么补这个】以前 Tab 只记在 localStorage：想直接给某人「CLI 软件」的链接做不到，
+ * 手册/工单里只能写"点工具调用再点第二个 Tab"。URL 与 localStorage 同时存在时 **URL 优先**
+ * （分享出去的链接应当落在作者指的位置），非法值返回 null 让调用方回退。
+ */
+export function readUrlTab(rawSearch?: string): ToolsTab | null {
+  if (typeof window === 'undefined' && rawSearch === undefined) return null
+  const sources = rawSearch !== undefined
+    ? [rawSearch]
+    : [window.location.search.replace(/^\?/, ''), (window.location.hash.split('?')[1] ?? '')]
+  for (const source of sources) {
+    const value = new URLSearchParams(source).get('tab')
+    if (isToolsTab(value)) return value
+  }
+  return null
+}
+
+/** 把当前 Tab 写回 URL（replaceState，不产生历史记录；尽量保留 hash 路由的形状） */
+export function writeUrlTab(tab: ToolsTab): void {
+  if (typeof window === 'undefined') return
+  try {
+    const hash = window.location.hash || ''
+    if (hash.includes('?')) {
+      const [path, query = ''] = hash.split('?')
+      const params = new URLSearchParams(query)
+      if (params.get('tab') === tab) return
+      params.set('tab', tab)
+      window.history.replaceState({}, '', path + '?' + params.toString())
+      return
+    }
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('tab') === tab) return
+    url.searchParams.set('tab', tab)
+    window.history.replaceState({}, '', url.toString())
+  } catch {
+    /* 无 history / 非法 URL 时只保留内存态 */
+  }
+}
+
 export default function ToolsPage({ initialTab }: ToolsPageProps) {
-  const [tab, setTab] = useState<ToolsTab>(() => (isToolsTab(initialTab) ? initialTab : readSavedTab()))
+  const [tab, setTab] = useState<ToolsTab>(() => {
+    if (isToolsTab(initialTab)) return initialTab
+    return readUrlTab() ?? readSavedTab()
+  })
 
   useEffect(() => {
     try {
@@ -84,6 +128,7 @@ export default function ToolsPage({ initialTab }: ToolsPageProps) {
     } catch {
       /* localStorage 不可用时仅内存态 */
     }
+    writeUrlTab(tab)
   }, [tab])
 
   const active = TOOLS_TABS.find((t) => t.id === tab) ?? TOOLS_TABS[0]

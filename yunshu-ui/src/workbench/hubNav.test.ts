@@ -101,7 +101,7 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
     // 【2026-10-17 IA】分身创建与组装紧跟「会话任务」（先对话、再配分身）
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
       'session', 'workshop/agents', 'prompt-lab', 'ingestion', 'skills-center', 'workflow',
-      'tools', 'memory', 'assets', 'components/plugins', 'network', 'local', 'replay',
+      'tools', 'memory', 'assets', 'components/plugins', 'local', 'replay',
     ])
     expect(topKeys.indexOf('workspace')).toBeLessThan(topKeys.indexOf('panorama'))
   })
@@ -144,7 +144,7 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
   it('【第四轮+第五轮 IA】记忆/资产/插件/网络 并入「会话与配置」；模块列表并入「系统监控」；「系统组件」桶取消', () => {
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     const childKeys = (workspace?.children ?? []).map((c) => c.key)
-    for (const k of ['memory', 'assets', 'components/plugins', 'network']) {
+    for (const k of ['memory', 'assets', 'components/plugins']) {
       expect(childKeys).toContain(k)
     }
     const topKeys = HUB_NAV.map((i) => i.key)
@@ -154,10 +154,13 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     //   /api/modules/topology（双入口）⇒ 合并为系统监控页内的「模块明细」Tab。
     expect(flattenNav(HUB_NAV).some((i) => i.key === 'components/modules')).toBe(false)
     expect(findNavItem('panorama/monitor')?.component).toBeDefined()
-    // 叶子 key 不变 ⇒ 旧深链 ?panel=memory / ?panel=assets / ?panel=network 仍解析
+    // 叶子 key 不变 ⇒ 旧深链 ?panel=memory / ?panel=assets 仍解析
     expect(findNavItem('memory')?.component).toBeDefined()
     expect(findNavItem('assets')?.component).toBeDefined()
-    expect(findNavItem('network')?.component).toBeDefined()
+    // 2026-10-27 IA：网络配置并入「系统管理 · 实例与网络」第三 Tab
+    expect(findNavItem('network')).toBeUndefined()
+    expect(resolveNavKey('network')).toBe('admin/instances')
+    expect(findNavItem('admin/instances')?.component).toBeDefined()
   })
 
   it('「记忆技能库」并入「记忆管理」：导航叶子消失、旧深链落到 memory（禁止双入口）', () => {
@@ -199,7 +202,7 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
       'panorama/health', 'panorama/logs', 'engine',
       'governance/approvals', 'governance/route-coverage',
       'memory', 'assets',
-      'workshop/agents', 'components/plugins', 'network',
+      'workshop/agents', 'components/plugins',
       'admin/dashboard', 'admin/logs',
     ]) {
       expect(keys).toContain(k)

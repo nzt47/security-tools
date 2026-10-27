@@ -12,7 +12,7 @@
 import { lazy, type ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
-  MessageSquare, LayoutDashboard, Brain, Wrench, Globe, Database,
+  MessageSquare, LayoutDashboard, Brain, Wrench, Database,
   Activity, FileText, Server, Monitor,
   HeartPulse, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Puzzle, Route,
@@ -49,7 +49,6 @@ const ToolsPage = lazy(() => import('@/pages/hub/tools'))
 // 引擎：心跳监测 / 定时任务 / 执行历史 收敛为一页三 Tab（2026-10-17 IA）。
 // 页面内默认落在只读的心跳视图，写操作只在「定时任务」Tab 内。
 const EngineHub = lazy(() => import('@/pages/hub/engine/hub'))
-const NetworkPage = lazy(() => import('@/pages/hub/network'))
 // 分身创建与组装：本页含 5 个视图（分身 / 组装台 / 带走·自复制 / 主线档案 / 主线 × 四面）；
 // 原独立叶子 workshop/replicate（系统自我复制）已于 2026-10-15 并入本页第 3 视图
 const WorkshopAgents = lazy(() => import('@/pages/hub/workshop/agents'))
@@ -126,7 +125,8 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'memory', label: '记忆管理', icon: Brain, component: MemoryHub },
       { key: 'assets', label: '资产管理', icon: Database, component: AssetsPage },
       { key: 'components/plugins', label: '插件与扩展', icon: Puzzle, component: PluginsPage },
-      { key: 'network', label: '网络配置', icon: Globe, component: NetworkPage },
+      // 2026-10-27 IA：网络配置并入「系统管理 · 实例与网络」第三 Tab（同一组系统级配置），
+      // 本桶不再保留独立叶子；旧深链 ?panel=network 经 LEGACY_NAV_KEY_MAP 落到 admin/instances。
       { key: 'local', label: '本地资源', icon: HardDrive, component: LocalResources },
       { key: 'replay', label: '回放中心', icon: Film, component: ReplayCenter },
     ],
@@ -185,7 +185,7 @@ export const HUB_NAV: HubNavItem[] = [
     key: 'admin', label: '系统管理', icon: Settings,
     children: [
       { key: 'admin/dashboard', label: '仪表盘', icon: LayoutDashboard, component: HubAdminDashboard },
-      { key: 'admin/instances', label: '实例管理', icon: Cpu, component: InstancesPanel },
+      { key: 'admin/instances', label: '实例与网络', icon: Cpu, component: InstancesPanel },
       { key: 'admin/export', label: '数据导出', icon: FileDown, component: HubAdminExport },
       { key: 'admin/users', label: '用户列表', icon: Users, component: HubAdminUsers },
       { key: 'admin/roles', label: '角色权限', icon: Shield, component: HubAdminRoles },
@@ -345,6 +345,9 @@ export const LEGACY_NAV_KEY_MAP: Readonly<Record<string, string>> = Object.freez
   'workflow-skills': 'workflow',
   'workflow/visual': 'workflow',
   'visual-workflows': 'workflow',
+  // 【2026-10-27 IA】网络配置并入「系统管理 · 实例与网络」（第三 Tab）：
+  //   独立叶子消失 ⇒ 旧深链 ?panel=network 落到 admin/instances（页内按 panel 识别 Tab）
+  'network': 'admin/instances',
   // 【第二轮 IA】记忆管理子项 → 页内 Tab（落到「记忆管理」页，Tab 记忆接续上次选择）
   'memory/manual': 'memory',
   'memory/auto': 'memory',
