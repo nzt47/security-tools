@@ -859,7 +859,13 @@ def _non_callable_names() -> frozenset:
     return names
 
 
+#: 声明层停用集合缓存（键 = 注册表版本 + 工具目录 mtime/size）
+#: 停止/恢复停用要改 YAML，YAML 改动不碰注册表版本 ⇒ 与"停用后需重启"的约定一致。
+_DISABLED_NAMES_CACHE: dict = {"key": None, "data": frozenset()}
+
+
 def _declared_disabled_names() -> frozenset:
+    global _DISABLED_NAMES_CACHE
     """声明层 `enabled: false` 的工具（"停用观察"必须真的从模型可见集里消失）
 
     【为什么必须补这一层（实测）】UI 的「停用」只写 `data/tools_config.json`，
@@ -868,15 +874,23 @@ def _declared_disabled_names() -> frozenset:
     "停用"才是一个可观察、可回滚的动作（改回 true 即恢复）。
     """
     try:
-        from agent.lines.callability import load_tool_docs
-        docs = load_tool_docs()
+        from agent.tools.persistence import TOOL_DEFS_DIR
+        st = os.stat(TOOL_DEFS_DIR)
+        key = (_registry_version, st.st_mtime_ns, st.st_size)
+        if _DISABLED_NAMES_CACHE["key"] == key:
+            return _DISABLED_NAMES_CACHE["data"]
+    except OSError:
+        key = None
+    try:
+        # 用 callability 里按"逐文件指纹"缓存的集合（命中只需 94 次 stat）：
+        # 这是 `get_tool_defs(whitelist=...)` 的每轮热路径，不能每次 deepcopy 94 份文档。
+        from agent.lines.callability import disabled_tool_names
+        data = disabled_tool_names()
+        _DISABLED_NAMES_CACHE = {"key": key, "data": data}
+        return data
     except Exception as e:  # noqa: BLE001 声明读不到时不得让工具面整体消失
         logger.debug("[工具] 停用声明加载失败（不额外隐藏工具）: %s", e)
         return frozenset()
-    return frozenset(
-        str(name) for name, doc in docs.items()
-        if isinstance(doc, dict) and doc.get("enabled") is False
-    )
 
 
 def _hidden_tool_names() -> frozenset:

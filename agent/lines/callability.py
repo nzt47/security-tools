@@ -1609,6 +1609,36 @@ def non_callable_tool_names(*, defs_dir: Optional[str] = None,
     return frozenset(out)
 
 
+#: 声明层「停用」缓存（键 = 目录 + 逐文件指纹；与 load_tool_docs 同口径）
+_DISABLED_CACHE: Dict[Any, FrozenSet[str]] = {}
+
+
+def disabled_tool_names(defs_dir: Optional[str] = None) -> FrozenSet[str]:
+    """声明层 `enabled: false` 的工具名（供 `get_tool_defs` 从模型可见集剔除）
+
+    【为什么不复用 load_tool_docs】那个函数命中缓存时也会 `deepcopy` 94 份文档
+        （实测 ~0.3s）；本函数是 `get_tool_defs(whitelist=...)` 的每轮热路径，
+        只需要每份 YAML 的 `enabled` 一个字段，故单独按"逐文件指纹"缓存集合本身
+        （命中成本 = 94 次 stat，约 1-2ms）。
+    """
+    root = defs_dir or TOOL_DEFS_DIR
+    if not os.path.isdir(root):
+        return frozenset()
+    names = [fname for fname in sorted(os.listdir(root)) if fname.endswith(".yaml")]
+    key = (os.path.abspath(root), _defs_fingerprint(root, names))
+    hit = _DISABLED_CACHE.get(key)
+    if hit is not None:
+        return hit
+    out: set = set()
+    for fname in names:
+        doc = _read_yaml(os.path.join(root, fname))
+        if isinstance(doc, dict) and doc.get("enabled") is False:
+            out.add(str(doc.get("name") or os.path.splitext(fname)[0]))
+    _DISABLED_CACHE.clear()          # 长驻进程只留最近一份
+    _DISABLED_CACHE[key] = frozenset(out)
+    return _DISABLED_CACHE[key]
+
+
 __all__ = [
     "TOOL_TYPES", "CALLABLE_MODES", "PERMISSION_LEVELS", "REQUIRED_DECL_FIELDS",
     "TRIGGERS", "REASON_KINDS",
@@ -1620,6 +1650,6 @@ __all__ = [
     "static_registration_sources", "static_registry_variants",
     "denied_tool_names", "parse_declaration", "load_tool_docs",
     "load_skill_declarations", "effective_permission_level", "judge",
-    "build_manifest", "summarize", "non_callable_tool_names",
+    "build_manifest", "summarize", "non_callable_tool_names", "disabled_tool_names",
     "runtime_only_skill_entries", "has_caller", "main_line_facts",
 ]
