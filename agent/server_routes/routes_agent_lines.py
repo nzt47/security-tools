@@ -34,7 +34,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+import os
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from flask import jsonify, request
 
@@ -208,6 +209,81 @@ def _callability_index() -> Dict[str, Dict[str, Any]]:
     return index
 
 
+def _runtime_executors() -> Dict[str, str]:
+    """运行时注册表里的执行器事实 → {工具名: "模块:函数"}
+
+    为什么需要：动态工具（吞噬登记的自生成工具）由 `register_all()` 在运行时注册，
+    没有 `@tools.register(...)` 装饰器 ⇒ `static_executors()` 的 AST 扫描找不到它们；
+    不注入的话，新登记的工具会被判成「无执行器 ❌ 不可调用」，比"没有徽章"更误导。
+    """
+    try:
+        from agent import tools as T
+        out: Dict[str, str] = {}
+        for t in T.list_tools():
+            name = str(t.get("name") or "")
+            handler = T.get_handler(name) if name and hasattr(T, "get_handler") else None
+            if name and callable(handler):
+                out[name] = "%s:%s" % (getattr(handler, "__module__", ""),
+                                       getattr(handler, "__name__", ""))
+        return out
+    except Exception as e:  # noqa: BLE001 注册表不可用不得让页面 500
+        logger.debug("[AgentLines] 运行时执行器读取失败: %s", e)
+        return {}
+
+
+#: 运行时补算缓存：清单戳 / 声明文件戳 / 注册表版本任一变化即失效。
+#: 【为什么必须缓存】`runtime_only_tool_entries()` 每次要重扫全部 YAML 并做 AST 执行器扫描
+#: （实测数百毫秒）；`/preview` 与 `/planes` 都是高频读端点，不缓存会把"看徽章"变成慢操作。
+_RUNTIME_CALLABILITY_CACHE: Dict[str, Any] = {"key": None, "data": {}}
+
+
+def _runtime_entry_key(missing: List[str]) -> Any:
+    """运行时补算的失效键 = 清单戳 + 缺标注的工具名 + 这些 YAML 的 mtime/size + 注册表版本"""
+    stamps: List[Tuple[str, Any]] = []
+    try:
+        from agent.tools.persistence import TOOL_DEFS_DIR
+        for name in missing:
+            try:
+                st = os.stat(os.path.join(TOOL_DEFS_DIR, name + ".yaml"))
+                stamps.append((name, (st.st_mtime_ns, st.st_size)))
+            except OSError:
+                stamps.append((name, None))
+    except Exception:  # noqa: BLE001
+        stamps = [(n, None) for n in missing]
+    try:
+        from agent import tools as _T
+        version = int(getattr(_T, "_registry_version", 0))
+    except Exception:  # noqa: BLE001
+        version = 0
+    return (_CALLABILITY_CACHE.get("stamp"), tuple(sorted(missing)), tuple(stamps), version)
+
+
+def _callability_with_runtime(names: Iterable[str]) -> Dict[str, Dict[str, Any]]:
+    """清单标注 + **运行时新登记工具**的即时标注
+
+    清单是提交产物（快照），登记工具不会触发重派生；缺标注时按 `runtime_only_tool_entries`
+    现算一条 `scope=runtime` 的标注，界面才不会出现"新工具没有徽章"的空洞。
+    """
+    index = _callability_index()
+    missing = [str(n) for n in names if str(n) not in index]
+    if not missing:
+        return index
+    key = _runtime_entry_key(missing)
+    if _RUNTIME_CALLABILITY_CACHE["key"] == key:
+        extra = _RUNTIME_CALLABILITY_CACHE["data"]
+    else:
+        try:
+            from agent.lines.callability import runtime_only_tool_entries
+            extra = {e["tool_name"]: e for e in
+                     runtime_only_tool_entries(missing, executors=_runtime_executors())}
+        except Exception as e:  # noqa: BLE001 标注补算失败 ⇒ 退回"无徽章"，不影响主链
+            logger.debug("[AgentLines] 运行时标注补算失败: %s", e)
+            extra = {}
+        _RUNTIME_CALLABILITY_CACHE["key"] = key
+        _RUNTIME_CALLABILITY_CACHE["data"] = extra
+    return {**index, **extra} if extra else index
+
+
 def _preview_dict(profile: LineProfile, meta: Dict[str, Any],
                   available: List[str]) -> Dict[str, Any]:
     """跑一次装配并给出可解释 trace（前端直接上屏，不做二次计算）
@@ -224,7 +300,6 @@ def _preview_dict(profile: LineProfile, meta: Dict[str, Any],
     """
     result = assemble(profile, available, meta=meta)
     payload = result.to_dict()
-    callability = _callability_index()
 
     names: set = set(result.tools)
     for key in ("by_plane", "denied_by_effect", "denied_unknown",
@@ -236,6 +311,7 @@ def _preview_dict(profile: LineProfile, meta: Dict[str, Any],
         elif isinstance(value, list):
             names.update(value)
 
+    callability = _callability_with_runtime(names)
     payload["tools_meta"] = {
         name: {**meta[name].to_dict(), "callability": callability.get(name, {})}
         for name in sorted(names)
@@ -463,7 +539,7 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
         """
         try:
             meta, available, source = _meta_and_available()
-            callability = _callability_index()
+            callability = _callability_with_runtime(meta.keys())
             counts: Dict[str, int] = {p: 0 for p in PLANES}
             tools: List[Dict[str, Any]] = []
             for name in sorted(meta.keys()):

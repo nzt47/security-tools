@@ -1190,6 +1190,54 @@ def _skill_entry(sid: str, facts: Dict[str, Any], decl: Dict[str, Any],
     }
 
 
+def runtime_only_tool_entries(names: Iterable[str], *,
+                               defs_dir: Optional[str] = None,
+                               executors: Optional[Dict[str, str]] = None
+                               ) -> List[Dict[str, Any]]:
+    """**只在运行时**登记的工具标注（供 REST 层补进界面，不进提交产物）
+
+    【为什么需要它（用户可见后果）】`data/capability_manifest.json` 是从
+        `data/tool_definitions/*.yaml` 派生的**提交产物**，只在跑
+        `scripts/sync_capability_manifest.py` 时刷新；吞噬新登记的工具（AI 实现 +
+        register-tool）落在同一个目录，但清单不会自动重派生 ⇒
+        `/api/agent-lines/planes` 给那几行的 `callability` 是空对象 ⇒ 工具页
+        **没有 ✅/⚠️/❌ 徽章**（实测 2026-10-27：adaptive_skill_stack、byted_* 三个工具）。
+    【边界】与 `runtime_only_skill_entries` 同款：只读运行时文件、**不写**清单；
+        `scope=runtime` 把两类来源分开，CI 的 `--check` 不受影响。
+    【executors】动态工具的执行器只在运行时注册表里（它们不在 `agent/tools/*.py`
+        的静态注册点内，`static_executors()` 的 AST 扫描扫不到）⇒ 由 REST 侧注入
+        `{name: "模块:函数"}`；缺省时如实按"无执行器"判 ❌。
+    """
+    wanted = {str(n) for n in (names or ()) if str(n).strip()}
+    if not wanted:
+        return []
+    # 只读"缺标注的这几份"：load_tool_docs() 会读 94 份 YAML 并 deepcopy（实测 ~0.3s），
+    # 在 /planes、/preview 这种读路径上没必要为 3 个工具付全量代价。
+    root = defs_dir or TOOL_DEFS_DIR
+    docs: Dict[str, Dict[str, Any]] = {}
+    for name in wanted:
+        doc = _read_yaml(os.path.join(root, name + ".yaml"))
+        if isinstance(doc, dict):
+            doc.setdefault("name", name)
+            docs[name] = doc
+    provided = {str(k): str(v) for k, v in (executors or {}).items() if v}
+    # 调用方已经给了执行器（REST 侧对动态工具就是这么做的）时不再做 AST 全量扫描：
+    # static_executors() 要解析 40+ 个源文件，在 HTTP 读路径上是纯浪费。
+    ex = dict(static_executors()) if (wanted - set(provided)) else {}
+    ex.update(provided)
+    denied, deny_all = denied_tool_names()
+    out: List[Dict[str, Any]] = []
+    for name in sorted(wanted):
+        doc = docs.get(name)
+        if not doc:
+            continue
+        entry = _tool_entry(name, doc, executors=ex, denied=denied, deny_all=deny_all,
+                            location_fact={"location": "local", "source": "runtime_registry"})
+        entry["scope"] = "runtime"
+        out.append(entry)
+    return out
+
+
 def runtime_only_skill_entries(*, skill_decl_path: Optional[str] = None,
                                existing_names: Optional[Iterable[str]] = None
                                ) -> List[Dict[str, Any]]:
