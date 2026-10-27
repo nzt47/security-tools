@@ -1952,6 +1952,7 @@ flowchart LR
     agent_server_routes_routes_agent_lines -.-> agent_prompt_manager_roles
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
+    agent_server_routes_routes_agent_lines --> agent
     agent_server_routes_routes_approval -.-> agent_security
     agent_server_routes_routes_approval -.-> agent_security
     agent_server_routes_routes_approval -.-> agent_security_actor_matrix
@@ -2734,7 +2735,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 698
 - 模块节点数: 607
-- 依赖边数: 1999
+- 依赖边数: 2000
 - 跨层调用数: 1265
 - 违规调用数: 0
 - 动态 import 数: 1
