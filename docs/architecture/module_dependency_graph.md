@@ -2535,7 +2535,7 @@ flowchart LR
     agent_tools -.-> agent_self_healing_saga
     agent_tools -.-> agent_tool_gate
     agent_tools -.-> agent_lines_models
-    agent_tools --> agent_tools_persistence
+    agent_tools -.-> agent_lines
     agent_tools -.-> agent_lines_callability
     agent_tools -.-> agent_descriptors_registry
     agent_tools -.-> agent_lines_callability
@@ -2735,6 +2735,6 @@ flowchart LR
 - 扫描文件数: 698
 - 模块节点数: 607
 - 依赖边数: 1999
-- 跨层调用数: 1264
+- 跨层调用数: 1265
 - 违规调用数: 0
 - 动态 import 数: 1
