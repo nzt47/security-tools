@@ -72,7 +72,10 @@ def to_wsl_path(path: str) -> str:
 
 def looks_like_shell(arg: object) -> bool:
     r"""第一个参数是不是要交给 WSL 的 shell（bash / sh / ...\bash.exe）。"""
-    name = os.path.basename(str(arg or "")).lower()
+    # 【坑】不能用 os.path.basename：Linux 上它只认 "/"，`C:\Windows\...\bash.exe`
+    # 会整串返回 ⇒ 判定为 False（2026-10-28 CI Shard 3 实测：该用例在 Linux 上红）。
+    # 两种分隔符都按分隔符处理，才能跨平台判同一件事。
+    name = str(arg or "").replace("\\", "/").rsplit("/", 1)[-1].lower()
     return name in _SHELL_NAMES
 
 
