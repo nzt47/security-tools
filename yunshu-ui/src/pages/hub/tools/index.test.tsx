@@ -31,6 +31,9 @@ describe('工具调用 · Tab 结构', () => {
   beforeEach(() => {
     localStorage.clear()
     fetchMock.mockClear()
+    // URL 深链（?tab=）优先于 memory：每个用例都从"无参数"开始，
+    // 否则上一个用例写回的 ?tab=toolset 会盖住 localStorage 的断言。
+    window.history.replaceState({}, '', '/')
   })
   afterEach(cleanup)
 
@@ -91,6 +94,7 @@ describe('工具调用 · Tab 结构', () => {
 
     // 无记忆 + 非法 initialTab → 回落第一个 Tab「工具集」
     localStorage.clear()
+    window.history.replaceState({}, '', '/')   // 上一次 render 会把 ?tab=cli 写回 URL
     render(<ToolsPage initialTab={'nope' as never} />)
     expect(screen.getByRole('tab', { name: /工具集/ })).toHaveAttribute('aria-selected', 'true')
   })

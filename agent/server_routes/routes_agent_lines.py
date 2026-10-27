@@ -548,14 +548,21 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
                 row = m.to_dict()
                 row["description"] = m.description[:120]
                 row["callability"] = callability.get(name, {})
-                # 声明层停用（enabled: false）⇒ 模型不可见，徽章必须如实说"不可调用"，
-                # 否则会出现"状态=停用、徽章=✅ 可调用"的自相矛盾（清单派生不看 enabled）。
-                if getattr(m, "enabled", True) is False:
+                # 生效的启停 = UI 开关（tools_config.json）优先，其次 YAML enabled。
+                # 停用时徽章必须如实说"不可调用"，否则会出现"状态=停用、徽章=✅"的自相矛盾
+                # （能力清单的派生不看 enabled，UI 开关也不在清单里）。
+                try:
+                    from agent import tools as _T
+                    enabled = _T.tool_enabled(name, getattr(m, "enabled", True))
+                except Exception:  # noqa: BLE001
+                    enabled = getattr(m, "enabled", True)
+                row["enabled"] = bool(enabled)
+                if not enabled:
                     row["callability"] = {
                         **(row["callability"] or {}),
                         "mark": "❌ 不可调用",
                         "llm_callable": False,
-                        "reason": "已停用（enabled: false），模型不可见",
+                        "reason": "已停用（enabled: false 或界面开关），模型不可见",
                     }
                 tools.append(row)
             # 运行时存在、但没有 plane/effect 声明 ⇒ 装配时 fail-closed 拒绝

@@ -4,6 +4,7 @@
 工具按照 MCP（Model Context Protocol）风格设计，拥有统一接口。
 """
 
+import json
 import logging
 import os
 import time
@@ -874,6 +875,47 @@ def _non_callable_names() -> frozenset:
 #: 声明层停用集合缓存（键 = 注册表版本 + 工具目录 mtime/size）
 #: 停止/恢复停用要改 YAML，YAML 改动不碰注册表版本 ⇒ 与"停用后需重启"的约定一致。
 _DISABLED_NAMES_CACHE: dict = {"key": None, "data": frozenset()}
+#: UI「启用/停用」开关的落盘位置（plugins/skills.py 写、本模块读）
+TOOLS_CONFIG_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "data", "tools_config.json")
+_TOOL_STATES_CACHE: dict = {"key": None, "data": {}}
+
+
+def runtime_tool_states() -> dict:
+    """UI 开关的运行时状态（工具名 → 是否启用；按文件 mtime 缓存）。
+
+    【为什么由 agent.tools 自己读】写入口在 plugins/skills.py（data/tools_config.json），
+    而「模型可见集」在 get_tool_defs() —— 两边各自为政时，UI 停用就是**装饰性的**
+    （2026-10-27 实测：页面显示停用、模型照样看得见）。这里读同一份文件，口径对齐。
+    """
+    global _TOOL_STATES_CACHE
+    try:
+        st = os.stat(TOOLS_CONFIG_PATH)
+    except OSError:
+        return {}
+    key = (st.st_mtime_ns, st.st_size)
+    if _TOOL_STATES_CACHE["key"] == key:
+        return _TOOL_STATES_CACHE["data"]
+    try:
+        with open(TOOLS_CONFIG_PATH, "r", encoding="utf-8") as fh:
+            raw = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    states = raw.get("tool_states") if isinstance(raw, dict) else {}
+    data = {str(k): bool(v) for k, v in (states or {}).items()}
+    _TOOL_STATES_CACHE = {"key": key, "data": data}
+    return data
+
+
+def tool_enabled(name: str, declared: bool = True) -> bool:
+    """**生效**的启用状态：UI 开关优先，其次 YAML 声明。
+
+    停用观察的两种写法都支持：
+      · YAML enabled: false（声明层默认值，入库）；
+      · UI 开关写 data/tools_config.json（运行期覆盖，不改仓库）。
+    """
+    return runtime_tool_states().get(str(name), bool(declared))
 
 
 def _declared_disabled_names() -> frozenset:
@@ -891,7 +933,13 @@ def _declared_disabled_names() -> frozenset:
         st = os.stat(root)
         # 键里必须带 root：测试会把 callability.TOOL_DEFS_DIR 指到 tmp，若只按
         # persistence.TOOL_DEFS_DIR 的 stat 建键，就会出现"另一套目录的缓存命中"。
-        key = (_registry_version, str(root), st.st_mtime_ns, st.st_size)
+        # 还要带 UI 开关文件的 mtime：否则在界面点「停用」要重启才生效。
+        try:
+            _cfg = os.stat(TOOLS_CONFIG_PATH)
+            cfg_key = (_cfg.st_mtime_ns, _cfg.st_size)
+        except OSError:
+            cfg_key = None
+        key = (_registry_version, str(root), st.st_mtime_ns, st.st_size, cfg_key)
         if _DISABLED_NAMES_CACHE["key"] == key:
             return _DISABLED_NAMES_CACHE["data"]
     except (OSError, ImportError):
@@ -900,7 +948,12 @@ def _declared_disabled_names() -> frozenset:
         # 用 callability 里按"逐文件指纹"缓存的集合（命中只需 94 次 stat）：
         # 这是 `get_tool_defs(whitelist=...)` 的每轮热路径，不能每次 deepcopy 94 份文档。
         from agent.lines.callability import disabled_tool_names
-        data = disabled_tool_names(root)
+        yaml_disabled = set(disabled_tool_names(root) or ())
+        states = runtime_tool_states()
+        # YAML 停用可被 UI 显式 re-enable（true）；UI 显式停用（false）也生效。
+        out = {n for n in yaml_disabled if states.get(n) is not True}
+        out |= {n for n, enabled in states.items() if not enabled}
+        data = frozenset(out)
         _DISABLED_NAMES_CACHE = {"key": key, "data": data}
         return data
     except Exception as e:  # noqa: BLE001 声明读不到时不得让工具面整体消失
