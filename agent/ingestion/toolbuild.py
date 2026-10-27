@@ -308,7 +308,12 @@ def build_prompt(materials: Dict[str, Any]) -> str:
         "或使用材料中出现的 HTTP 端点/签名；材料里没有的 API 不要编造；\n"
         "7. 凭据只从环境变量（BYTEPLUS_ACCESS_KEY / BYTEPLUS_SECRET_KEY）或 secrets 文件读，"
         "禁止写进代码；网络调用必须设 timeout；\n"
-        "8. 对写操作/部署类动作，先校验输入（如目录存在、含 index.html），失败要回可读错误。\n"
+        "8. 对写操作/部署类动作，先校验输入（如目录存在、含 index.html），失败要回可读错误；\n"
+        "9. 若来源脚本是 bash/sh：**Windows 上 bash 由 WSL 提供、看不到 C:\\ 绝对路径**"
+        "（实测 exit=127 \"No such file or directory\"）⇒ 构造 argv 时必须走 "
+        "agent.tools.win_bash.bash_argv([...]) 把 Windows 路径翻成 /mnt/<盘>/... "
+        "（非 Windows 平台逐字返回，零影响）；另外**不要**指望环境变量跨进 WSL"
+        "（AK/SK 要在 WSL 里 nest config set，或按来源脚本约定走 argv）。\n"
     )
     prompt = "".join(parts)
     if len(prompt) > MAX_PROMPT_CHARS:

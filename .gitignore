@@ -670,3 +670,9 @@ data/context_session_compress_base.json
 # 防止它再被 git add 带回来（本仓库对此已有先例记录，见本文件 TASK-03 段）。
 data/replays/replay_meta.db
 
+# 【2026-10-28】凭据目录：secrets/ 下放 AK/SK 类 JSON（如 byteplus.json）。
+# 工具侧默认探测路径之一就是 <cwd>/secrets/byteplus.json（见 byted_bp 生成工具说明），
+# 此前仓库没有这条规则 —— 一次 git add -A 就会把明文 AK/SK 送进历史。
+# 只放个 .gitkeep 让目录可建，其余一律忽略。
+secrets/
+!secrets/.gitkeep
