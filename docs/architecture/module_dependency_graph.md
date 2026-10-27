@@ -2287,8 +2287,8 @@ flowchart LR
     agent_skills_mgmt_service -.-> agent_extensions_security_checker
     agent_skills_mgmt_service -.-> agent_audit
     agent_skills_mgmt_service -.-> agent_feedback
+    agent_skills_mgmt_service -.-> agent_env_config_manager
     agent_skills_mgmt_service -.-> agent_audit
-    agent_skills_mgmt_service -.-> agent_state_manager
     agent_skills_mgmt_service -.-> agent_feedback
     agent_skills_mgmt_skill_manager -.-> agent_logging_utils
     agent_skills_mgmt_store --> agent_skills_mgmt_registry
