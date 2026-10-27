@@ -1137,6 +1137,7 @@ flowchart LR
     agent_ingestion_service -.-> agent_skills_mgmt_models
     agent_ingestion_toolbuild -.-> agent_tools_persistence
     agent_ingestion_toolbuild -.-> agent_tools_persistence
+    agent_ingestion_toolbuild -.-> agent_tools_persistence
     agent_ingestion_toolbuild -.-> agent_tools_tool_generator
     agent_knowledge --> agent_knowledge_schema
     agent_knowledge --> agent_knowledge_lifecycle
@@ -1600,6 +1601,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager --> agent
     agent_orchestrator_lifecycle_manager -.-> agent_process_distill_tools
     agent_orchestrator_lifecycle_manager -.-> agent_knowledge_tools
+    agent_orchestrator_lifecycle_manager --> agent
     agent_orchestrator_lifecycle_manager -.-> agent_memory_short_term_memory
     agent_orchestrator_lifecycle_manager -.-> agent_memory_long_term_memory
     agent_orchestrator_lifecycle_manager -.-> agent_memory_reviewer
@@ -1943,8 +1945,12 @@ flowchart LR
     agent_server_routes_routes_agent_lines -.-> agent_subagent_assembly
     agent_server_routes_routes_agent_lines --> agent
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
+    agent_server_routes_routes_agent_lines --> agent
+    agent_server_routes_routes_agent_lines -.-> agent_tools_persistence
+    agent_server_routes_routes_agent_lines --> agent
     agent_server_routes_routes_agent_lines -.-> agent_orchestrator_prompt_builder
     agent_server_routes_routes_agent_lines -.-> agent_prompt_manager_roles
+    agent_server_routes_routes_agent_lines -.-> agent_lines_callability
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
     agent_server_routes_routes_approval -.-> agent_security
     agent_server_routes_routes_approval -.-> agent_security
@@ -2529,6 +2535,8 @@ flowchart LR
     agent_tools -.-> agent_self_healing_saga
     agent_tools -.-> agent_tool_gate
     agent_tools -.-> agent_lines_models
+    agent_tools --> agent_tools_persistence
+    agent_tools -.-> agent_lines_callability
     agent_tools -.-> agent_descriptors_registry
     agent_tools -.-> agent_lines_callability
     agent_tools -.-> agent_timeout_budget
@@ -2726,7 +2734,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 698
 - 模块节点数: 607
-- 依赖边数: 1991
-- 跨层调用数: 1260
+- 依赖边数: 1999
+- 跨层调用数: 1264
 - 违规调用数: 0
 - 动态 import 数: 1
