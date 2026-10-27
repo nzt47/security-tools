@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import re
 import shutil
 from pathlib import Path
@@ -154,6 +155,85 @@ def copy_source_scripts(root: Path, manifest: Dict[str, Any], *,
         except ValueError:
             out.append(str(dst))
     return out
+
+
+def _yaml_description(path: Path) -> str:
+    """读 YAML 里的 description（文件不存在/解析失败返回空串）。"""
+    try:
+        import yaml
+        meta = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    except Exception:  # noqa: BLE001 缺 yaml / 坏文件都只影响说明，不该阻断登记
+        return ""
+    return str(meta.get("description") or "").strip() if isinstance(meta, dict) else ""
+
+
+def _skill_md_description(manifest: Dict[str, Any]) -> str:
+    """读来源 SKILL.md front matter 的 description（中文说明通常在这里）。"""
+    ref = str(manifest.get("source_ref") or "")
+    if not ref.startswith("path:"):
+        return ""
+    md = Path(ref[5:].strip()) / "SKILL.md"
+    try:
+        text = md.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    m = re.match(r"^---\s*\n(.*?)\n---", text, re.DOTALL)
+    if not m:
+        return ""
+    try:
+        import yaml
+        fm = yaml.safe_load(m.group(1)) or {}
+    except Exception:  # noqa: BLE001
+        return ""
+    if not isinstance(fm, dict):
+        return ""
+    return str(fm.get("description") or fm.get("description_zh") or "").strip()
+
+
+def resolve_description(root: Path, manifest: Dict[str, Any], name: str) -> str:
+    """登记用的工具说明：草稿工具 YAML → 来源 SKILL.md → skill_name。
+
+    【为什么不直接用 skill_name】实测（2026-10-27，adaptive_skill_stack / byted_*）：
+    吞噬在草稿的 data/tool_definitions/<name>.yaml 里已抄好 SKILL.md 的中文 description，
+    而 register 只认 manifest.skill_name（= 英文 id）⇒ 工具页「说明」列显示
+    `adaptive-skill-stack`、台账与治理 YAML 也跟着是英文 id。
+    """
+    for cand in (_yaml_description(root / "data" / "tool_definitions" / (name + ".yaml")),
+                 _skill_md_description(manifest)):
+        if cand:
+            return cand
+    return str(manifest.get("skill_name") or name)
+
+
+def update_persisted_description(name: str, description: str) -> None:
+    """把说明写回已落盘的 data/tool_definitions/<name>.yaml（只改 description）。
+
+    【为什么必须单独写】`ensure_yaml_definition(overwrite=False)` 遇到已存在文件直接
+    返回，重新登记时说明永远是第一次写进去的那个（英文 id）；只改这一个键，
+    人工调过的 tags/plane 等其它声明保持不动。
+    """
+    try:
+        import yaml
+        from agent.tools.persistence import TOOL_DEFS_DIR
+    except Exception:  # noqa: BLE001
+        return
+    path = Path(TOOL_DEFS_DIR) / (name + ".yaml")
+    try:
+        meta = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, ValueError, yaml.YAMLError):
+        return
+    if not isinstance(meta, dict) or str(meta.get("description") or "") == description:
+        return
+    meta["description"] = description
+    tmp = path.with_suffix(".yaml.tmp")
+    try:
+        tmp.write_text(yaml.safe_dump(meta, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
 
 
 def load_materials(draft_id: str, *, draft_dir: Any = None) -> Dict[str, Any]:
@@ -436,7 +516,7 @@ def register(draft_id: str, *, draft_dir: Any = None, generator: Any = None) -> 
         raise BuildError("实现未通过静态校验，拒绝登记",
                          detail="；".join(validation.get("errors") or []))
     schema = validation.get("schema") or {}
-    description = str(manifest.get("skill_name") or name)
+    description = resolve_description(root, manifest, name)
     if generator is None:
         from agent.tools.tool_generator import ToolGenEngine
         generator = ToolGenEngine()
@@ -450,5 +530,6 @@ def register(draft_id: str, *, draft_dir: Any = None, generator: Any = None) -> 
                                      assets=scripts)
     if not persisted:
         raise BuildError("动态工具台账写入失败（台账/治理 YAML 不可写）", status=500)
+    update_persisted_description(name, description)
     return {"tool_name": name, "module": str(tool_file), "schema": schema,
-            "validation": validation, "scripts": scripts}
+            "validation": validation, "scripts": scripts, "description": description}

@@ -372,7 +372,11 @@ def _iter_custom_modules() -> List[str]:
     out: List[str] = []
     if not os.path.isdir(CUSTOM_TOOLS_DIR):
         return out
-    for dirpath, _dirnames, filenames in os.walk(CUSTOM_TOOLS_DIR):
+    for dirpath, dirnames, filenames in os.walk(CUSTOM_TOOLS_DIR):
+        # `<source_id>/scripts/` 是登记时复制进来的**来源脚本**（deploy.sh 等），
+        # 不是工具模块：扫进来只会得到「未导出 register_all」的误导性 warning
+        # （实测 custom/ingested/byted-bp-cdn-pagesdeploy/scripts/subscribe_cdn.py）。
+        dirnames[:] = [d for d in dirnames if d != "scripts"]
         for fn in sorted(filenames):
             if fn.endswith(".py") and not fn.startswith("__"):
                 out.append(os.path.join(dirpath, fn))
@@ -409,6 +413,12 @@ def load_dynamic_tools() -> int:
     newly_registered: List[str] = []
     for path in files:
         name = os.path.splitext(os.path.basename(path))[0]
+        with _LOCK:
+            if name in _loaded_modules:
+                # 启动期与 `_get_ext_manager` 都会调本函数；不加这道判断会把同一批
+                # 工具再注册一遍，名字被自动加后缀（name_2），工具集出现重复项。
+                logger.info("[动态工具] %s 已加载，跳过重复调用", name)
+                continue
         try:
             from agent import tools as _treg
             _before = set(_treg._registry.keys())

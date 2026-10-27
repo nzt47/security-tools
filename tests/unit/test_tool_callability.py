@@ -797,3 +797,35 @@ class TestGateScripts:
                            cwd=str(_PROJECT_ROOT), capture_output=True, text=True,
                            encoding="utf-8", errors="replace")
         assert r.returncode == 0, f"清单守门失败：{r.stdout}\n{r.stderr}"
+
+
+# ════════════════════════════════════════════════════════════
+#  运行时补算：清单是快照，新登记工具也要有徽章
+# ════════════════════════════════════════════════════════════
+
+def test_runtime_only_tool_entries_cover_newly_registered_tools(tmp_path):
+    """清单里没有、但工具目录/注册表里有的工具，REST 侧要能现算标注。
+
+    2026-10-27 用户实测：吞噬生成并登记的 `adaptive_skill_stack` / `byted_*` 在
+    工具页没有 ✅/⚠️/❌ 徽章 —— `/api/agent-lines/planes` 的 callability 是空对象
+    （清单生成于 10-25，登记发生在之后，没人重派生）。
+    """
+    defs = tmp_path / "defs"
+    defs.mkdir()
+    (defs / "demo_gen.yaml").write_text(yaml.safe_dump({
+        "name": "demo_gen", "description": "演示工具：生成演示",
+        "plane": "act", "effect": "execute", "risk": "critical",
+        "schema": {"type": "object", "properties": {"x": {"type": "string"}}},
+    }, allow_unicode=True), encoding="utf-8")
+
+    blocked = C.runtime_only_tool_entries(["demo_gen"], defs_dir=str(defs))
+    assert blocked and blocked[0]["scope"] == "runtime"
+    assert blocked[0]["mark"] == C.MARK_BLOCKED      # 没执行器 ⇒ 如实标不可调用
+    assert "无执行器" in blocked[0]["reason"]
+
+    ok = C.runtime_only_tool_entries(
+        ["demo_gen"], defs_dir=str(defs),
+        executors={"demo_gen": "agent.tools.custom.x:demo_gen"})
+    assert ok[0]["mark"] == C.MARK_CONDITIONAL        # risk=critical ⇒ 需审批
+    assert ok[0]["llm_callable"] is True
+    assert ok[0]["description"] == "演示工具：生成演示"

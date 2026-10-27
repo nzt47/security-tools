@@ -1041,7 +1041,10 @@ class LifecycleManager:
         # 初始化动态工具持久化
         try:
             from agent import tools as _tpersist
-            _data_dir = os.path.join(os.path.dirname(__file__), "..", "data")
+            # 注意：本文件在 agent/orchestrator/ 下，仓库根的 data/ 要上溯两级。
+            # 原写法（只上溯一级）会指向 agent/data/dynamic_tools.json —— 一旦扩展工具
+            # 触发加载，台账被写到另一个目录，与 registration 写的那份分叉。
+            _data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
             _tpersist.init_dynamic_tools_persistence(
                 os.path.abspath(os.path.join(_data_dir, "dynamic_tools.json"))
             )
@@ -1154,6 +1157,19 @@ class LifecycleManager:
         reg_notify(self)
         reg_db(self)
         reg_lint(self)
+
+        # 动态工具（吞噬登记的自生成工具）属于工具集的一部分，必须随启动加载。
+        # 【为什么放在这里】此前只有 `_get_ext_manager` 会调 load_dynamic_tools，而它只被
+        # ext_tools / notify_tools 触发 ⇒ 重启后 /api/tools/config 少 3 个工具、工具页整行消失，
+        # 直到模型恰好调用一次扩展工具才"回来"（实测 2026-10-27：91 vs 94）。
+        try:
+            from agent import tools as _tpersist
+            _data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+            _tpersist.init_dynamic_tools_persistence(os.path.join(_data_dir, "dynamic_tools.json"))
+            _n = _tpersist.load_dynamic_tools()
+            logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._register_builtin_tools.log', 'message': '[动态工具] 启动加载 %d 个（已含内置工具之后再注册）' % (_n,)}))
+        except Exception as _dyn_e:  # noqa: BLE001 单点失败不得阻断内置工具
+            logger.warning(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._register_builtin_tools.log', 'message': '[动态工具] 启动加载失败: %s' % (_dyn_e,)}))
 
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._register_builtin_tools.log', 'message': '全部内置工具注册完成（模块化加载）'}))
 

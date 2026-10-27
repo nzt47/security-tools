@@ -61,6 +61,19 @@ def draft(tmp_path):
     return root
 
 
+@pytest.fixture(autouse=True)
+def _isolate_tool_write_dirs(monkeypatch, tmp_path):
+    """register 会写 custom/ 与治理 YAML；测试必须落在 tmp_path，禁止写进工作树。
+
+    2026-10-27 实测：不隔离时 register 用例会在 agent/tools/custom/ingested/ 下留下
+    demo_tool / demo-tool，并把说明写进真实的 data/tool_definitions/。
+    """
+    monkeypatch.setattr("agent.tools.persistence.CUSTOM_TOOLS_DIR",
+                        str(tmp_path / "custom"))
+    monkeypatch.setattr("agent.tools.persistence.TOOL_DEFS_DIR",
+                        str(tmp_path / "tool_defs"))
+
+
 class TestValidate:
     def test_good_code_passes(self):
         v = toolbuild.validate_code(GOOD, "demo_tool")
@@ -279,6 +292,40 @@ class TestRegister:
         assert out["scripts"] == []
         assert captured["assets"] == []
         assert not (custom / "ingested").exists()
+
+
+    def test_register_uses_source_description(self, draft, monkeypatch, tmp_path):
+        """说明取草稿 YAML（吞噬已抄好 SKILL.md 的中文说明），不再用英文 skill_name。
+
+        2026-10-27 用户实测：工具页「说明」显示 adaptive-skill-stack、没有中文。
+        """
+        yaml_path = draft / "data" / "tool_definitions" / "demo_tool.yaml"
+        meta = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+        meta["description"] = "演示工具：把路径写进返回体"
+        yaml_path.write_text(yaml.safe_dump(meta, allow_unicode=True), encoding="utf-8")
+        toolbuild.apply("ing_tool", GOOD, toolbuild.validate_code(GOOD, "demo_tool"),
+                        draft_dir=draft.parent)
+
+        class FakeGen:
+            def generate_persistent(self, *args, **kwargs):
+                return True
+
+        # 模拟"第一次登记已落盘 YAML、说明还是英文 id"的状态
+        defs = tmp_path / "tool_defs"
+        defs.mkdir(exist_ok=True)
+        (defs / "demo_tool.yaml").write_text(
+            yaml.safe_dump({"name": "demo_tool", "description": "demo_tool",
+                            "plane": "act", "effect": "execute", "risk": "critical"},
+                           allow_unicode=True), encoding="utf-8")
+
+        persisted = {}
+        monkeypatch.setattr("agent.tools.persistence.persist_dynamic_tool",
+                            lambda *a, **k: persisted.update({"args": a}) or True)
+        out = toolbuild.register("ing_tool", draft_dir=draft.parent, generator=FakeGen())
+        assert out["description"] == "演示工具：把路径写进返回体"
+        assert persisted["args"][1] == "演示工具：把路径写进返回体"
+        saved = yaml.safe_load((tmp_path / "tool_defs" / "demo_tool.yaml").read_text(encoding="utf-8"))
+        assert saved["description"] == "演示工具：把路径写进返回体"
 
 
 def test_persist_dynamic_tool_records_assets(monkeypatch, tmp_path):

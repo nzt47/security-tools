@@ -775,6 +775,18 @@ def list_tools() -> list[dict]:
     return _list_tools_cache["data"]
 
 
+def get_handler(name: str):
+    """取已注册工具的处理函数（未注册返回 None）。
+
+    【为什么需要】`list_tools()` 只投影 name/description（缓存友好，也不把可调用对象
+    泄漏出去）；但可调用性标注要知道"这个工具到底有没有执行器"。动态工具（吞噬登记）
+    没有静态注册点、只有运行时 handler，标注侧必须能取到它，否则新工具一律被判
+    「无执行器 ❌ 不可调用」——比"没有徽章"更误导。
+    """
+    entry = _registry.get(str(name or ""))
+    return entry.get("handler") if entry else None
+
+
 def list_tools_by_source(source: str) -> list[dict]:
     """按来源列出工具
 
