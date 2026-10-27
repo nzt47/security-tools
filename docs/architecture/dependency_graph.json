@@ -10208,7 +10208,7 @@
       "source_layer": "ingestion",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 527,
+      "line": 532,
       "source_file": "agent/ingestion/toolbuild.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10234,7 +10234,7 @@
       "source_layer": "ingestion",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 521,
+      "line": 526,
       "source_file": "agent/ingestion/toolbuild.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -30861,7 +30861,7 @@
     }
   ],
   "stats": {
-    "total_files": 698,
+    "total_files": 699,
     "total_nodes": 607,
     "total_edges": 2000,
     "cross_layer_edges": 1265,
