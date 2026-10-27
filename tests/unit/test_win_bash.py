@@ -1,15 +1,18 @@
 r"""Windows 上调用 bash 脚本的适配层（agent/tools/win_bash.py）
 
-回归对象：2026-10-28 实测的**真实缺陷** —— 吞噬生成的工具把 Windows 绝对路径交给
-`bash`，而 Windows 的 bash 是 WSL，看不到 `C:\...`：
+回归对象：2026-10-28 实测的**真实缺陷** —— 吞噬生成的工具把 Windows 绝对路径交给 bash，
+而本机 PATH 上的 bash 是 WSL（C:\Windows\System32\bash.exe），WSL 看不到 C:\ 路径：
 
     bash "C:\\Users\\...\\scripts\\manage.sh" list
-    → /bin/bash: C:UsersAdministrator...scriptsmanage.sh: No such file or directory (exit=127)
+    -> /bin/bash: C:UsersAdministrator...scriptsmanage.sh: No such file or directory (exit=127)
 
-表现为"工具登记成功、一调就失败"，且报错像"脚本不存在"，最容易误判成"没装 CLI"。
-本文件只测**纯函数**（不发子进程、不依赖 WSL 在跑），两条平台分支都用 monkeypatch 覆盖。
+表现为"工具登记成功、一调就失败"，报错还像"脚本不存在"，最易误判成"没装 CLI"。
+本文件只测**纯函数**（不发真实子进程、不要求 WSL 在跑）：平台分支用 monkeypatch 覆盖，
+bash 类型（WSL / MSYS）用 wsl= 参数或 monkeypatch is_wsl_bash 覆盖。
 """
 from __future__ import annotations
+
+import subprocess
 
 import pytest
 
@@ -47,25 +50,73 @@ class TestBashArgv:
         out.append("x")
         assert src == ["bash", "C:\\a\\b.sh", "list"], "不得修改入参"
 
-    def test_windows_翻译路径_其余原样(self, monkeypatch):
+    def test_windows_且_bash_是_WSL_翻译路径_其余原样(self, monkeypatch):
         monkeypatch.setattr(W, "is_windows", lambda: True)
         argv = W.bash_argv([
             "bash", "C:\\Users\\Administrator\\a b\\manage.sh",
             "list", "--pages", "p-123", "--domain", "www.example.com",
-        ])
+        ], wsl=True)
         assert argv[0] == "bash"
         assert argv[1] == "/mnt/c/Users/Administrator/a b/manage.sh"
         assert argv[2:] == ["list", "--pages", "p-123", "--domain", "www.example.com"], (
             "非路径参数（含域名，形似 a.b 但无盘符）必须逐字保留")
 
+    def test_windows_但_bash_是_Git_Bash_不翻译(self, monkeypatch):
+        r"""MSYS/Git Bash 本来就认 C:\ 路径 —— 翻了反而坏（这是本函数必须探测 bash 类型的原因）"""
+        monkeypatch.setattr(W, "is_windows", lambda: True)
+        argv = W.bash_argv(["bash", "C:\\a\\b.sh", "list"], wsl=False)
+        assert argv == ["bash", "C:\\a\\b.sh", "list"]
+
     def test_windows_相对路径不翻(self, monkeypatch):
         monkeypatch.setattr(W, "is_windows", lambda: True)
-        assert W.bash_argv(["bash", "scripts/manage.sh", "list"]) == [
+        assert W.bash_argv(["bash", "scripts/manage.sh", "list"], wsl=True) == [
             "bash", "scripts/manage.sh", "list"]
 
     def test_空入参安全(self):
         assert W.bash_argv([]) == []
         assert W.bash_argv(None) == []   # type: ignore[arg-type]
+
+
+class TestIsWslBash:
+    def _fake_run(self, monkeypatch, stdout=None, raises=False):
+        def fake(argv, **kw):
+            if raises:
+                raise FileNotFoundError("bash")
+
+            class P:
+                returncode = 0
+            p = P()
+            p.stdout = stdout
+            return p
+        monkeypatch.setattr(subprocess, "run", fake)
+
+    def test_wsl2_内核名被识别(self, monkeypatch):
+        self._fake_run(monkeypatch, "6.18.40.1-microsoft-standard-WSL2\n")
+        assert W.is_wsl_bash(use_cache=False) is True
+
+    def test_git_bash_不算_wsl(self, monkeypatch):
+        self._fake_run(monkeypatch, "MINGW64_NT-10.0-19045\n")
+        assert W.is_wsl_bash(use_cache=False) is False
+
+    def test_没有_bash_当不是_wsl(self, monkeypatch):
+        self._fake_run(monkeypatch, raises=True)
+        assert W.is_wsl_bash(use_cache=False) is False
+
+    def test_结果按进程缓存(self, monkeypatch):
+        calls = {"n": 0}
+
+        def fake(argv, **kw):
+            calls["n"] += 1
+
+            class P:
+                stdout = "6.18.40.1-microsoft-standard-WSL2\n"
+            return P()
+
+        monkeypatch.setattr(subprocess, "run", fake)
+        monkeypatch.setattr(W, "_WSL_PROBE", {})
+        assert W.is_wsl_bash() is True
+        assert W.is_wsl_bash() is True
+        assert calls["n"] == 1, "探测只该跑一次（每次都 spawn 会拖慢工具调用）"
 
 
 class TestLooksLikeShell:
@@ -79,7 +130,7 @@ class TestLooksLikeShell:
 
 
 def test_生成器必须提醒这条_否则新工具会重犯():
-    """提示词里必须保留 win_bash 指引（否则下次 AI 生成又会写裸 `bash <C:\\...>`）"""
+    r"""提示词里必须保留 win_bash 指引（否则下次 AI 生成又会写裸 bash <C:\...>）"""
     from pathlib import Path
     src = (Path(__file__).resolve().parents[2] / "agent" / "ingestion" / "toolbuild.py"
            ).read_text(encoding="utf-8")
