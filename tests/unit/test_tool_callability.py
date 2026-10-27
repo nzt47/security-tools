@@ -578,6 +578,29 @@ class TestRuntimeFilter:
         finally:
             T.clear()
 
+    def test_get_tool_defs_隐藏声明停用的工具(self, tmp_path, monkeypatch):
+        """YAML 里 `enabled: false` 的工具必须从模型可见集消失（停用观察要真的停用）。
+
+        2026-10-27 实测：UI 的「停用」只写 data/tools_config.json，get_tool_defs() 不看它
+        ⇒ 页面显示停用、模型照样能调用。第一批 scheduled_task 家族就是按这个口径停用的。
+        """
+        from agent import tools as T
+        _write_tool(tmp_path, "enabled_a")
+        _write_tool(tmp_path, "disabled_b", enabled=False)
+        monkeypatch.setattr(C, "TOOL_DEFS_DIR", str(tmp_path))
+        monkeypatch.delenv("CP_TOOL_CALLABILITY_ENFORCE", raising=False)
+        T.clear()
+        try:
+            T.register("enabled_a", "A", schema={"type": "object", "properties": {}},
+                       handler=lambda **k: None)
+            T.register("disabled_b", "B", schema={"type": "object", "properties": {}},
+                       handler=lambda **k: None)
+            assert T._declared_disabled_names() == frozenset({"disabled_b"})
+            names = {d["function"]["name"] for d in T.get_tool_defs()}
+            assert names == {"enabled_a"}, "声明停用的工具仍在模型可见集里"
+        finally:
+            T.clear()
+
     def test_registry_facts_报告_schema_与执行器(self):
         from agent import tools as T
         T.clear()
