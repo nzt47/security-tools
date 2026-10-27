@@ -5,7 +5,7 @@
  * 单一来源：key 即参数语义，避免在导航配置里重复声明导致漂移。
  */
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_NAV_KEY, derivePanelParams, findNavItem, flattenNav, HUB_NAV, resolveNavKey } from './hubNav'
+import { DEFAULT_NAV_KEY, derivePanelParams, findNavItem, flattenNav, HUB_NAV, navKeyFromSearch, resolveNavKey } from './hubNav'
 
 describe('hubNav derivePanelParams（第二轮 IA：assets/memory 收敛为叶子）', () => {
   it('assets 与 memory 已是叶子项，不再推导 initialCategory / mode', () => {
@@ -99,9 +99,10 @@ describe('hubNav 导航结构（工具调用子项收敛为页面内 Tab）', ()
     expect(topKeys).toEqual(['workspace', 'panorama', 'governance', 'admin'])
     const workspace = HUB_NAV.find((i) => i.key === 'workspace')
     // 【2026-10-17 IA】分身创建与组装紧跟「会话任务」（先对话、再配分身）
+    // 【2026-10-27 IA · §11.12】local / replay 已迁出本桶（见下方「两个叶子的 IA 搬迁」用例）
     expect((workspace?.children ?? []).map((c) => c.key)).toEqual([
       'session', 'workshop/agents', 'prompt-lab', 'ingestion', 'skills-center', 'workflow',
-      'tools', 'memory', 'assets', 'components/plugins', 'local', 'replay',
+      'tools', 'memory', 'assets', 'components/plugins',
     ])
     expect(topKeys.indexOf('workspace')).toBeLessThan(topKeys.indexOf('panorama'))
   })
@@ -223,5 +224,52 @@ describe('hubNav 顶层收敛（阶段 3 → 第三轮 IA 6 桶 → 第四轮 IA
     // 回归：HUB_NAV[0] 是「会话与配置」分组；默认选中必须是可渲染的叶子「会话任务」
     expect(DEFAULT_NAV_KEY).toBe('session')
     expect(findNavItem(DEFAULT_NAV_KEY)?.component).toBeDefined()
+  })
+})
+
+describe('hubNav 导航结构（2026-10-27 · §11.12 两个叶子的 IA 搬迁）', () => {
+  it('「本地资源」搬到「系统管理」，与「实例与网络 / 数据导出」同列', () => {
+    const admin = HUB_NAV.find((i) => i.key === 'admin')
+    const adminKeys = (admin?.children ?? []).map((c) => c.key)
+    expect(adminKeys).toContain('local')
+    // 与系统级配置同列（紧跟在 实例与网络 → 数据导出 之后）
+    expect(adminKeys.indexOf('local')).toBeGreaterThan(adminKeys.indexOf('admin/instances'))
+    expect(adminKeys.indexOf('local')).toBeGreaterThan(adminKeys.indexOf('admin/export'))
+    expect(adminKeys.indexOf('local')).toBeLessThan(adminKeys.indexOf('admin/users'))
+    // 原桶不再有它（禁止双入口）
+    const workspace = HUB_NAV.find((i) => i.key === 'workspace')
+    expect((workspace?.children ?? []).map((c) => c.key)).not.toContain('local')
+  })
+
+  it('「回放中心」搬到「全景看板」，与健康/日志/审计同类', () => {
+    const panorama = HUB_NAV.find((i) => i.key === 'panorama')
+    const panoKeys = (panorama?.children ?? []).map((c) => c.key)
+    expect(panoKeys).toContain('replay')
+    expect(panoKeys.indexOf('replay')).toBeGreaterThan(panoKeys.indexOf('panorama/logs'))
+    // 运行时观测三项仍在同一桶（同类归并的依据）
+    for (const k of ['panorama/health', 'panorama/logs', 'governance/audit']) {
+      expect(panoKeys).toContain(k)
+    }
+    const workspace = HUB_NAV.find((i) => i.key === 'workspace')
+    expect((workspace?.children ?? []).map((c) => c.key)).not.toContain('replay')
+  })
+
+  it('两处 key 不变 ⇒ 旧深链 ?panel=local|replay 仍解析到同一叶子（组件也还在）', () => {
+    expect(resolveNavKey('local')).toBe('local')
+    expect(resolveNavKey('replay')).toBe('replay')
+    expect(navKeyFromSearch('?panel=local')).toBe('local')
+    expect(navKeyFromSearch('?panel=replay')).toBe('replay')
+    expect(findNavItem('local')?.component).toBeDefined()
+    expect(findNavItem('replay')?.component).toBeDefined()
+    // 搬迁只换所属分组，叶子 key 与组件引用都不改
+    expect(findNavItem('local')?.label).toBe('本地资源')
+    expect(findNavItem('replay')?.label).toBe('回放中心')
+  })
+
+  it('搬迁后每个叶子在树中仍然唯一（findNavItem 只命中一处）', () => {
+    for (const key of ['local', 'replay']) {
+      const hits = flattenNav(HUB_NAV).filter((i) => i.key === key)
+      expect(hits).toHaveLength(1)
+    }
   })
 })

@@ -6,6 +6,9 @@
  * 模块列表并入「全景看板」，「系统组件」桶取消。
  * 第五轮（2026-10-14）：模块列表与系统监控同读 /api/modules/topology（双入口）⇒
  * 合并为「系统监控」的页内「模块明细」Tab，独立叶子 components/modules 移除。
+ * 【2026-10-27 IA】两批搬迁（叶子 key 一律不变 ⇒ 旧深链照旧）：
+ *   ① 网络配置并入「系统管理 · 实例与网络」第三 Tab（独立叶子 network 移除）；
+ *   ② 「本地资源」→ 系统管理、「回放中心」→ 全景看板（?panel=local|replay 仍有效）。
  * ContentPanel 根据当前选中导航项，从此处取组件渲染。
  * 所有既有功能（Hub 8 栏目 + 管理后台）统一挂载到工作台。
  */
@@ -70,8 +73,10 @@ const BusinessBoard = lazy(() => import('@/pages/hub/governance/business'))
 // 避免"配完引擎不知道去哪看效果"。
 const InstancesPanel = lazy(() => import('@/pages/hub/admin/instances-hub'))
 const SecurityPanel = lazy(() => import('@/pages/hub/governance/security'))
+// 【2026-10-27 IA · §11.12】本地资源挂到「系统管理」桶（原在「会话与配置」）；组件不动。
 const LocalResources = lazy(() => import('@/pages/hub/local'))
 // 2026-10-18：回放中心（5 条 /api/replay/*）—— 此前前端只有上传，没有列表/详情/清理。
+// 【2026-10-27 IA · §11.12】回放中心挂到「全景看板」桶（原在「会话与配置」）；组件不动。
 const ReplayCenter = lazy(() => import('@/pages/hub/replay'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 // 插件与扩展：原「插件管理」与「扩展中心」合并为一个导航项；2026-10-15 进一步取消 Tab，
@@ -127,8 +132,9 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'components/plugins', label: '插件与扩展', icon: Puzzle, component: PluginsPage },
       // 2026-10-27 IA：网络配置并入「系统管理 · 实例与网络」第三 Tab（同一组系统级配置），
       // 本桶不再保留独立叶子；旧深链 ?panel=network 经 LEGACY_NAV_KEY_MAP 落到 admin/instances。
-      { key: 'local', label: '本地资源', icon: HardDrive, component: LocalResources },
-      { key: 'replay', label: '回放中心', icon: Film, component: ReplayCenter },
+      // 2026-10-27 IA 第二批（§11.12）：「本地资源」迁到「系统管理」（本机文件/进程是系统级配置），
+      // 「回放中心」迁到「全景看板」（与健康/日志/审计同为运行时观测视图）。
+      // 两处 key 都保持不变 ⇒ 旧深链 ?panel=local / ?panel=replay 继续有效（无需 LEGACY 映射）。
     ],
   },
   {
@@ -138,6 +144,9 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'panorama/sensors', label: '全景感知', icon: Activity, component: PanoramaSensors },
       { key: 'panorama/monitor', label: '系统监控', icon: Server, component: PanoramaMonitor },
       { key: 'panorama/logs', label: '日志查看', icon: FileText, component: PanoramaLogs },
+      // 【2026-10-27 IA · §11.12】回放中心从「会话与配置」迁入：会话回放是**运行时观测**产物
+      // （列表/详情/清理读 /api/replay/*），与健康/日志/审计同类；key 不变 ⇒ ?panel=replay 仍有效。
+      { key: 'replay', label: '回放中心', icon: Film, component: ReplayCenter },
       // 【2026-10-17 IA】心跳监测 + 定时任务 + 执行历史 → 单一叶子「引擎」（页内三 Tab）。
       // 旧 key engine/heartbeat、engine/scheduler 经 LEGACY_NAV_KEY_MAP 落到本页，
       // 并保留初始 Tab 语义（组件读原始 hash 决定）。
@@ -187,6 +196,10 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'admin/dashboard', label: '仪表盘', icon: LayoutDashboard, component: HubAdminDashboard },
       { key: 'admin/instances', label: '实例与网络', icon: Cpu, component: InstancesPanel },
       { key: 'admin/export', label: '数据导出', icon: FileDown, component: HubAdminExport },
+      // 【2026-10-27 IA · §11.12】本地资源从「会话与配置」迁入系统管理：文件浏览 / 工作区 / 进程
+      // 都是**系统级**能力，与「实例与网络」「数据导出」同列（长期可与「工具调用 · CLI 软件」的
+      // 进程管理合并为「本机资源」，本轮先搬不合并）。key 不变 ⇒ ?panel=local 仍有效。
+      { key: 'local', label: '本地资源', icon: HardDrive, component: LocalResources },
       { key: 'admin/users', label: '用户列表', icon: Users, component: HubAdminUsers },
       { key: 'admin/roles', label: '角色权限', icon: Shield, component: HubAdminRoles },
       { key: 'admin/menus', label: '菜单管理', icon: ListTree, component: HubAdminMenus },
