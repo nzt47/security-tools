@@ -53,6 +53,21 @@ from agent.lines.models import (CONFIRM_LEVELS, derive_confirm_level)
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _MANIFEST = _PROJECT_ROOT / "data" / "capability_manifest.json"
 
+
+def _committed_metas() -> dict:
+    """**入库口径**的工具声明（排除本机"运行时登记"的工具）
+
+    【为什么需要（2026-10-27 实测）】`load_tool_meta()` 读 `data/tool_definitions/` 全目录；
+    吞噬"登记为工具"把 YAML 写到同一个目录（并把名字记进 `data/dynamic_tools.json` 台账），
+    这两份都是 .gitignore 的运行时状态。本文件钉的是**入库基线**（91 条、L2+L3 恰好 20），
+    不排除的后果是"本机红 4 条、CI 全绿"—— 与清单口径同一条判据
+    （见 `build_manifest(exclude_runtime_tools=...)`）。
+    """
+    from agent.lines import load_tool_meta
+    from agent.lines.callability import runtime_registered_tool_names
+    runtime_only = runtime_registered_tool_names()
+    return {k: v for k, v in load_tool_meta().items() if k not in runtime_only}
+
 #: TASK-06 §2 实测的 13 个 `risk: high` 工具（**名单必须逐字来自 YAML，不手抄**）
 EXPECTED_HIGH: tuple = (
     "apply_patch", "connect_mcp", "decompress", "edit", "ext_install",
@@ -262,8 +277,7 @@ class TestL0StaysFree:
     """E2：**若把所有工具都变成 L2 即视为不通过**（TASK-06 §5 的"不通过"第 1 条）"""
 
     def test_全量分布不是一刀切(self):
-        from agent.lines import load_tool_meta
-        metas = load_tool_meta()
+        metas = _committed_metas()
         dist = {}
         for m in metas.values():
             dist[m.effective_confirm_level] = dist.get(m.effective_confirm_level, 0) + 1
@@ -1083,8 +1097,7 @@ class TestNoYamlWritesNeeded:
 
     def test_91_个_YAML_仍然零声明(self):
         """本裁决的可复核形式：YAML 侧不写该字段，且这不影响任何判定"""
-        from agent.lines import load_tool_meta
-        metas = load_tool_meta()
+        metas = _committed_metas()
         assert len(metas) == 91, len(metas)
         declared = {k: v.confirm_level for k, v in metas.items() if v.confirm_level}
         assert declared == {}, f"若要写进 YAML 就属于口径变更，必须同时更新本裁决：{declared}"

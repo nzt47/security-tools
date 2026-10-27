@@ -35,6 +35,29 @@ from agent.capregistry import modelcaps  # noqa: E402
 from agent.capregistry import view as _view  # noqa: E402
 
 
+def _runtime_registered_tools() -> set:
+    """本机"运行时登记"且 YAML 确实在目录里的工具名（`data/dynamic_tools.json` 台账）
+
+    两者都是 .gitignore 的运行时状态：干净 checkout 与 CI 里都不存在。
+    """
+    from agent.lines.callability import runtime_registered_tool_names
+    defs = _ROOT / "data" / "tool_definitions"
+    return {n for n in runtime_registered_tool_names() if (defs / f"{n}.yaml").exists()}
+
+
+_RUNTIME_ONLY = _runtime_registered_tools()
+
+#: 本文件有 6 条用例钉的是**提交基线**（127 条 / 91 工具 / 126 enabled / 索引 127）。
+#: 能力注册表是**实时视图**（读 data/tool_definitions/ 全目录）⇒ 本机登记过运行时工具后，
+#: 这些精确数值必然 = 基线 + 登记数（实测 130/94/129），而 CI（无这些文件）仍是基线。
+#: 这类"只对干净环境成立"的数值断言在本机 skip，理由写清楚；CI 照旧全跑
+#: （与 T4「skip 已登记的真实台账漂移项」同一取舍）。
+_SKIP_COMMITTED_BASELINE = pytest.mark.skipif(
+    bool(_RUNTIME_ONLY),
+    reason=("本机登记了运行时工具（%s）：能力注册表 = 提交基线 + 运行时登记，"
+            "精确数值断言只在干净 checkout / CI 成立" % ", ".join(sorted(_RUNTIME_ONLY))))
+
+
 @pytest.fixture(scope="module")
 def real_registry() -> CapabilityRegistry:
     """真实清单构建的 Registry（只读；模块级复用避免重复构建）"""
@@ -134,6 +157,7 @@ class TestReadOnlyDerivedView:
 
 
 class TestQuery:
+    @_SKIP_COMMITTED_BASELINE
     def test_真实清单规模与分布与清单一致(self, real_registry):
         st = real_registry.stats()
         # 【G1-C 2026-09-26】114/23 → 119/28、local 93 → 98：H-3 迁移的 5 条技能
@@ -152,6 +176,7 @@ class TestQuery:
         assert spec.tenant_id == "default"
         assert real_registry.get("definitely_not_a_tool") is None
 
+    @_SKIP_COMMITTED_BASELINE
     def test_过滤查询按_kind_与_location(self, real_registry):
         tools = real_registry.query(kind="tool")
         skills = real_registry.query(kind="skill")
@@ -168,6 +193,7 @@ class TestQuery:
         assert all("llm" in s.callable_by for s in llm_only)
         assert len(llm_only) < real_registry.stats()["total"]
 
+    @_SKIP_COMMITTED_BASELINE
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
         assert idx["primary"] == 127
@@ -212,6 +238,7 @@ class TestCapabilitySpecDerivation:
 class TestModelCapabilityProbe:
     """E7 · 模型能力探测有效（不支持 tool calling ⇒ 返回裁剪后清单）"""
 
+    @_SKIP_COMMITTED_BASELINE
     def test_未指定模型不裁剪(self, real_registry):
         env = real_registry.list_envelope()
         # 【2026-10-24】envelope 走 query(enabled_only=True) ⇒ 126（不含 gstack）；
@@ -220,6 +247,7 @@ class TestModelCapabilityProbe:
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
+    @_SKIP_COMMITTED_BASELINE
     def test_哨兵值返回裁剪后的清单(self, real_registry, sentinel):
         env = real_registry.list_envelope(model=sentinel)
         assert env["data"]["model_capability"]["supports_tool_calling"] is False

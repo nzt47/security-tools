@@ -101,6 +101,11 @@ SKILL_CALLABILITY_PATH = os.path.join(_REPO_ROOT, "data", "skill_callability.yam
 MANIFEST_PATH = os.path.join(_REPO_ROOT, "data", "capability_manifest.json")
 #: RBAC/ABAC 策略（只读 `roles[*].denied_tools` 的并集，与 agent/tool_gate.py 同口径）
 PERMISSION_POLICIES_PATH = os.path.join(_REPO_ROOT, "data", "permission_policies.json")
+#: 动态工具台账（**运行时状态**，被 .gitignore 排除）：由 agent/tools/persistence.py 在
+#: "登记动态工具"时写入 `{"version": N, "tools": {名称: {...}}}`。它标记的是
+#: "**这台机器上登记过**的工具"，不是"仓库里可复现的工具" ⇒ 清单口径必须排除它们
+#: （否则干净 checkout / CI 里重算必然与提交产物不一致，2026-10-27 实测 8 条本地常态红）。
+DYNAMIC_TOOLS_LEDGER = os.path.join(_REPO_ROOT, "data", "dynamic_tools.json")
 #: 技能实体目录 / 运行时技能目录 / 技能管理台账
 SKILLS_REPO_DIR = os.path.join(_REPO_ROOT, "data", "skills_repo")
 SKILLS_JSON_PATH = os.path.join(_REPO_ROOT, "data", "skills.json")
@@ -588,8 +593,14 @@ def _defs_fingerprint(root: str, names: List[str]) -> Tuple[Tuple[str, int, int]
     return tuple(out)
 
 
-def load_tool_docs(defs_dir: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+def load_tool_docs(defs_dir: Optional[str] = None, *,
+                   skip_names: Iterable[str] = ()) -> Dict[str, Dict[str, Any]]:
     """读取全部工具定义 YAML → {工具名: 文档}
+
+    Args:
+        skip_names: 要在结果里剔除的工具名（**只影响返回视图**，缓存仍按目录全量存）。
+            当前唯一用途：清单口径排除 `runtime_registered_tool_names()` 登记过的工具
+            （见 `build_manifest(exclude_runtime_tools=...)`）。
 
     【不易·按"目录 + 逐文件指纹"缓存】原实现每次调用都重新 `yaml.safe_load` 91 次
     ——cProfile 实测（热调用、含插桩开销）单次 1.15s、**未插桩实测单次 0.178s**，而
@@ -606,9 +617,16 @@ def load_tool_docs(defs_dir: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
         return out
     names = [fname for fname in sorted(os.listdir(root)) if fname.endswith(".yaml")]
     key = (os.path.abspath(root), _defs_fingerprint(root, names))
+    skip = {str(n) for n in (skip_names or ()) if str(n).strip()}
+
+    def _drop(docs: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        if not skip:
+            return docs
+        return {k: v for k, v in docs.items() if k not in skip}
+
     hit = _TOOL_DOCS_CACHE.get(key)
     if hit is not None:
-        return copy.deepcopy(hit)
+        return copy.deepcopy(_drop(hit))
     for fname in names:
         doc = _read_yaml(os.path.join(root, fname))
         if isinstance(doc, dict):
@@ -619,7 +637,7 @@ def load_tool_docs(defs_dir: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
             out[name] = doc
     _TOOL_DOCS_CACHE.clear()          # 长驻进程只留最近一份（同 cost_brake 取舍）
     _TOOL_DOCS_CACHE[key] = out
-    return copy.deepcopy(out)
+    return copy.deepcopy(_drop(out))
 
 
 def load_skill_declarations(path: Optional[str] = None) -> Tuple[Dict[str, Any], Dict[str, Dict[str, Any]]]:
@@ -1190,6 +1208,38 @@ def _skill_entry(sid: str, facts: Dict[str, Any], decl: Dict[str, Any],
     }
 
 
+def runtime_registered_tool_names(ledger_path: Optional[str] = None) -> FrozenSet[str]:
+    """动态工具台账里"**运行时登记**"的工具名（清单 / 声明守卫要排除的口径）
+
+    【为什么需要它（2026-10-27 实测，根因不是"测试写错了"）】
+        吞噬登记的工具由生产写路径落盘：`data/tool_definitions/<name>.yaml` 新文件 +
+        `data/dynamic_tools.json` 台账一行。这两个都是**运行时状态**（.gitignore 排除），
+        而 `data/capability_manifest.json` 是**提交产物**、必须能从干净 checkout 复算。
+        此前没有"忽略运行时 YAML"的机制 ⇒ 本机每登记一个工具，
+        `test_tool_callability` 的清单一致性/声明完整性用例就红一批（实测 8 条），
+        CI 却是绿的（CI 里那些文件不存在）。长期表现就是"本地必红、红了没人看"。
+
+    【口径】清单 = 仓库可复现的能力面；运行时登记的工具只在 REST 侧现算标注
+        （`runtime_only_tool_entries`，scope=runtime，见 #1322）。
+        所以"排除"不是放宽判据，而是**把两种来源分开**：提交产物只描述仓库里的东西。
+
+    【边界】只读运行时文件，**不写任何东西**；文件缺失/JSON 坏/结构不符一律当空集
+        （干净 checkout、CI、新机器都是这种情形 ⇒ 行为与改造前逐字节相同）。
+        台账里若误列了一个**已入库**的工具，`--check` 会在本机红、CI 绿 —— 这个
+        "只在有台账的机器上红"正是提醒去清台账的信号，不要反过来放宽 `--check`。
+    """
+    path = ledger_path or DYNAMIC_TOOLS_LEDGER
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return frozenset()
+    tools = data.get("tools") if isinstance(data, dict) else None
+    if not isinstance(tools, dict):
+        return frozenset()
+    return frozenset(str(k) for k in tools if str(k).strip())
+
+
 def runtime_only_tool_entries(names: Iterable[str], *,
                                defs_dir: Optional[str] = None,
                                executors: Optional[Dict[str, str]] = None
@@ -1380,7 +1430,8 @@ def build_manifest(*, defs_dir: Optional[str] = None,
                    skill_decl_path: Optional[str] = None,
                    policies_path: Optional[str] = None,
                    executor_facts: Optional[Dict[str, str]] = None,
-                   include_runtime_catalog: bool = False) -> Dict[str, Any]:
+                   include_runtime_catalog: bool = False,
+                   exclude_runtime_tools: bool = False) -> Dict[str, Any]:
     """构建统一可调用性清单（工具 + 技能，八字段同构）
 
     Args:
@@ -1391,8 +1442,16 @@ def build_manifest(*, defs_dir: Optional[str] = None,
             `data/skills_mgmt.json`，两者都被 .gitignore 忽略）。**默认 False**：
             提交的清单必须只依赖入库数据，否则干净 checkout / CI 里重算必然"不一致"
             （见 `_skill_sources` 的说明）。要提交产物就别开这个开关。
+        exclude_runtime_tools: 是否排除"运行时登记"的工具（`runtime_registered_tool_names()`，
+            即 `data/dynamic_tools.json` 台账里的名字）。**默认 False = 不读运行时台账**
+            （模块级纯函数口径不变）；`scripts/sync_capability_manifest.py` 默认传 True
+            （提交口径），`--runtime` 传 False（本机看全貌）。与 `include_runtime_catalog`
+            是一对：工具侧与技能侧各自的"运行时来源"必须能显式分开。
     """
-    docs = load_tool_docs(defs_dir)
+    # 【不易】"排除"只能在**入口**做：docs 之后被 `_tool_entry` 逐条判定，
+    # 若在结果里删条目，`counts` / `main_line` / `same_name_conflicts` 会各算一份口径。
+    runtime_tools = runtime_registered_tool_names() if exclude_runtime_tools else frozenset()
+    docs = load_tool_docs(defs_dir, skip_names=runtime_tools)
     executors: Dict[str, str] = static_executors()
     if executor_facts:
         executors.update({str(k): str(v) for k, v in executor_facts.items() if v})
@@ -1697,6 +1756,7 @@ __all__ = [
     "schema_is_registered", "static_executors", "runtime_executors",
     "static_registration_sources", "static_registry_variants",
     "denied_tool_names", "parse_declaration", "load_tool_docs",
+    "runtime_registered_tool_names", "DYNAMIC_TOOLS_LEDGER",
     "load_skill_declarations", "effective_permission_level", "judge",
     "build_manifest", "summarize", "non_callable_tool_names", "disabled_tool_names",
     "runtime_only_skill_entries", "has_caller", "main_line_facts",

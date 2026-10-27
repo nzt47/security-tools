@@ -23,6 +23,12 @@
     - **不并入运行时技能目录/台账**（`data/skills.json`、`data/skills_mgmt.json`，两者被
       .gitignore 忽略）：干净 checkout / CI 里它们不存在 ⇒ 提交前若读了它们，CI 重算必然
       与提交产物不一致（实测 CI 报 23 处差异）。清单口径 = 仓库可复现的能力面。
+    - **排除运行时登记的工具**（`data/dynamic_tools.json` 台账里的名字，2026-10-27 补）：
+      吞噬"登记为工具"会把 YAML 写进同一个 `data/tool_definitions/`，但那是运行时状态
+      （.gitignore 排除）。不排除的话，本机每登记一个工具 `--check` 就红一次，
+      而 CI（无这些文件）是绿的 —— 本地常态红、红了没人看。它们由 REST 侧
+      `runtime_only_tool_entries(scope=runtime)` 现算标注，不进提交产物。
+      台账缺失/坏 JSON 一律当空集 ⇒ 干净 checkout 与 CI 的行为与改造前逐字节相同。
     - `--check` 只比结构不比 `generated_at`（时间戳必然不同）。
     - 校验不过 ⇒ 非零退出码（CI/pre-commit 守门）。
 【简易】
@@ -54,6 +60,7 @@ from agent.lines.callability import (  # noqa: E402
     MARK_CALLABLE,
     MARK_CONDITIONAL,
     build_manifest,
+    runtime_registered_tool_names,
 )
 
 _FIELD_SPEC = ("tool_name", "tool_type", "llm_callable", "callable_mode",
@@ -444,7 +451,18 @@ def main() -> int:
 
     manifest = build_manifest(
         executor_facts=_runtime_executor_facts() if args.runtime else None,
-        include_runtime_catalog=args.runtime)
+        include_runtime_catalog=args.runtime,
+        # 【2026-10-27】提交口径要排除"运行时登记的工具"（吞噬登记写在同一个目录，但
+        # 台账 data/dynamic_tools.json 与那些 YAML 都是 .gitignore 的运行时状态）：
+        # 否则本机每登记一个工具，--check 就红一次，而 CI（无这些文件）是绿的。
+        # --runtime 反过来：本机想看全貌时把它们算进来（产物勿提交）。
+        exclude_runtime_tools=not args.runtime)
+
+    if not args.runtime:
+        skipped_runtime = sorted(runtime_registered_tool_names())
+        if skipped_runtime:
+            print(f"[INFO] 清单口径排除 {len(skipped_runtime)} 个运行时登记工具"
+                  f"（不在提交产物里；--runtime 可看全貌）：{', '.join(skipped_runtime)}")
 
     errs = validate(manifest)
     if errs:

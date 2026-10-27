@@ -146,8 +146,14 @@ class TestCapabilitySpecFields:
 
     def test_91_条_YAML_都能解析且无一条崩溃(self):
         metas = M.load_tool_meta(force=True)
-        assert len(metas) == 91, f"工具 YAML 数量变了（实测应为 91）：{len(metas)}"
-        for name, meta in metas.items():
+        # 【2026-10-27】"91 条"是**入库口径**的哨兵：吞噬"登记为工具"会把 YAML 写进
+        # 同一个目录（+ data/dynamic_tools.json 台账），那两份都是 .gitignore 的运行时
+        # 状态。不排除的话，本机每登记一个工具这条哨兵就红（实测 94 != 91），
+        # 而 CI（无这些文件）恒绿 —— 与清单口径同一条判据（见 build_manifest）。
+        runtime_only = C.runtime_registered_tool_names()
+        committed = {n: m for n, m in metas.items() if n not in runtime_only}
+        assert len(committed) == 91, f"入库工具 YAML 数量变了（实测应为 91）：{len(committed)}"
+        for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"
             assert d["location"] in M.LOCATIONS, f"{name}: location 非法"
@@ -309,7 +315,8 @@ class TestThreeLayerCheck:
     def test_清单与权威数据一致(self, manifest):
         """手改清单/盘点表会被拦住（两者都是派生物）"""
         import scripts.sync_capability_manifest as S
-        fresh = C.build_manifest()
+        # 提交口径 = 排除运行时登记的工具（否则本机登记过工具就必红，CI 却绿）
+        fresh = C.build_manifest(exclude_runtime_tools=True)
         assert S._diff(manifest, fresh) == [], (
             "清单与权威数据不一致；运行 python scripts/sync_capability_manifest.py 重新派生")
 

@@ -90,8 +90,20 @@ MARKS = (C.MARK_CALLABLE, C.MARK_CONDITIONAL, C.MARK_BLOCKED)
 
 
 def _tool_docs() -> dict:
+    """入库口径的工具声明（**排除运行时登记的工具**）
+
+    【为什么排除（2026-10-27 实测）】吞噬"登记为工具"会把 YAML 写进同一个
+    `data/tool_definitions/`，同时写 `data/dynamic_tools.json` 台账；两者都是
+    .gitignore 的运行时状态。清单产物与 CI 守卫只看**入库**声明，运行时工具由
+    REST 侧 `runtime_only_tool_entries(scope=runtime)` 现算标注（#1322）。
+    不排除的后果：本机每登记一个工具，本文件就有 8 条用例红，而 CI 全绿 ——
+    "本地常态红"就是这么来的（判据/断言本身没有错）。
+    """
+    skip = C.runtime_registered_tool_names()
     out = {}
     for f in sorted(_DEFS_DIR.glob("*.yaml")):
+        if f.stem in skip:
+            continue
         out[f.stem] = yaml.safe_load(f.read_text(encoding="utf-8"))
     return out
 
@@ -314,7 +326,8 @@ class TestManifest:
     @pytest.mark.serial
     def test_清单与权威数据一致(self, on_disk):
         """手改清单必须被拦住（清单是派生物）"""
-        fresh = C.build_manifest()
+        # exclude_runtime_tools=True = 提交口径（本机登记过工具也不影响，见 _tool_docs 说明）
+        fresh = C.build_manifest(exclude_runtime_tools=True)
         assert sync_manifest_mod._diff(on_disk, fresh) == [], (
             "清单与 data/tool_definitions/*.yaml + data/skill_callability.yaml 不一致；"
             "运行 python scripts/sync_capability_manifest.py 重新派生")
@@ -336,7 +349,7 @@ class TestManifest:
         """
         monkeypatch.setattr(C, "SKILLS_JSON_PATH", str(tmp_path / "no" / "skills.json"))
         monkeypatch.setattr(C, "SKILLS_MGMT_PATH", str(tmp_path / "no" / "skills_mgmt.json"))
-        fresh = C.build_manifest()
+        fresh = C.build_manifest(exclude_runtime_tools=True)
         assert sync_manifest_mod._diff(on_disk, fresh) == [], (
             "清单依赖了 .gitignore 里的运行时文件 ⇒ 干净 checkout 下复算不一致；"
             "运行时技能目录/台账只能通过 include_runtime_catalog=True 显式并入（产物不提交）")
@@ -883,3 +896,74 @@ def test_runtime_only_tool_entries_cover_newly_registered_tools(tmp_path):
     assert ok[0]["mark"] == C.MARK_CONDITIONAL        # risk=critical ⇒ 需审批
     assert ok[0]["llm_callable"] is True
     assert ok[0]["description"] == "演示工具：生成演示"
+
+# ════════════════════════════════════════════════════════════
+#  运行时登记 vs 入库口径（2026-10-27：本地 8 条常态红的根因）
+# ════════════════════════════════════════════════════════════
+
+class TestRuntimeRegisteredScope:
+    """`runtime_registered_tool_names()` 与 `exclude_runtime_tools`
+
+    背景：吞噬"登记为工具"写 `data/tool_definitions/<name>.yaml` + `data/dynamic_tools.json`
+    台账，两者都是 .gitignore 的运行时状态；而 `data/capability_manifest.json` 是提交产物。
+    清单口径必须只有入库数据，否则本机 `--check` 必红、CI 必绿（长期"红了没人看"）。
+    """
+
+    def test_台账缺失或损坏都当空集(self, tmp_path):
+        assert C.runtime_registered_tool_names(str(tmp_path / "nope.json")) == frozenset()
+        bad = tmp_path / "bad.json"
+        bad.write_text("{ not json", encoding="utf-8")
+        assert C.runtime_registered_tool_names(str(bad)) == frozenset()
+        # 结构不符（tools 不是 dict）也算空集，不抛
+        weird = tmp_path / "weird.json"
+        weird.write_text(json.dumps({"tools": ["x"]}), encoding="utf-8")
+        assert C.runtime_registered_tool_names(str(weird)) == frozenset()
+
+    def test_台账里的工具名被读出(self, tmp_path):
+        led = tmp_path / "dynamic_tools.json"
+        led.write_text(json.dumps({"version": 1, "tools": {
+            "demo_gen": {"name": "demo_gen"}, "": {"x": 1}}}), encoding="utf-8")
+        assert C.runtime_registered_tool_names(str(led)) == frozenset({"demo_gen"})
+
+    def _defs(self, tmp_path):
+        defs = tmp_path / "defs"
+        defs.mkdir()
+        for name in ("committed_tool", "runtime_tool"):
+            (defs / f"{name}.yaml").write_text(yaml.safe_dump({
+                "name": name, "description": "演示",
+                "plane": "act", "effect": "read", "risk": "low",
+                "tool_type": "tool", "llm_callable": True, "callable_mode": "auto",
+                "permission_level": "public", "sandbox_allowed": True,
+                "schema": {"type": "object", "properties": {}},
+            }, allow_unicode=True), encoding="utf-8")
+        return defs
+
+    def test_默认口径不读运行时台账(self, tmp_path, monkeypatch):
+        """默认 `exclude_runtime_tools=False` ⇒ 台账不影响结果（模块级纯函数语义不变）"""
+        defs = self._defs(tmp_path)
+        led = tmp_path / "dynamic_tools.json"
+        led.write_text(json.dumps({"version": 1, "tools": {"runtime_tool": {}}}),
+                       encoding="utf-8")
+        monkeypatch.setattr(C, "DYNAMIC_TOOLS_LEDGER", str(led))
+        names = {e["tool_name"] for e in C.build_manifest(defs_dir=str(defs))["entries"]}
+        assert {"committed_tool", "runtime_tool"} <= names
+
+    def test_提交口径排除运行时工具且其余不变(self, tmp_path, monkeypatch):
+        defs = self._defs(tmp_path)
+        led = tmp_path / "dynamic_tools.json"
+        led.write_text(json.dumps({"version": 1, "tools": {"runtime_tool": {}}}),
+                       encoding="utf-8")
+        monkeypatch.setattr(C, "DYNAMIC_TOOLS_LEDGER", str(led))
+        mf = C.build_manifest(defs_dir=str(defs), exclude_runtime_tools=True)
+        names = {e["tool_name"] for e in mf["entries"]}
+        assert "runtime_tool" not in names, "运行时登记的工具不该进提交清单"
+        assert "committed_tool" in names, "入库工具必须仍在（排除不能误伤）"
+        assert mf["counts"]["total"] == len(mf["entries"]), "counts 必须与排除后的条目同源"
+
+    def test_清单口径与声明守卫共用同一份排除集(self):
+        """两处口径必须同源：否则一套说"清单有 94 条"、另一套说"91 条" """
+        listed = {e["tool_name"] for e in
+                  C.build_manifest(exclude_runtime_tools=True)["entries"]
+                  if e["tool_type"] == "tool"}
+        assert listed == set(_tool_docs()), (
+            "清单工具集与声明守卫的 YAML 集不一致：运行 python scripts/sync_capability_manifest.py")

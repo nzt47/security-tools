@@ -44,6 +44,7 @@ from agent.lines.callability import (  # noqa: E402
     PERMISSION_LEVELS,
     TOOL_TYPES,
     effective_permission_level,
+    runtime_registered_tool_names,
 )
 from agent.lines.models import needs_approval_for  # noqa: E402
 
@@ -158,6 +159,16 @@ def main() -> int:
     args = ap.parse_args()
 
     yamls = sorted(f for f in os.listdir(args.defs_dir) if f.endswith(".yaml"))
+    # 【2026-10-27】运行时登记的工具（`data/dynamic_tools.json`）不参与本守卫：
+    # 它们的 YAML 是生产写路径现场生成的运行时状态、不是入库声明；清单口径同样排除
+    # （见 `build_manifest(exclude_runtime_tools=...)` 与 `sync_capability_manifest.py`）。
+    # 不排除的后果：本机登记一个工具，`--check` 就报"缺可调用性字段"——CI 却全绿。
+    runtime_only = {n for n in runtime_registered_tool_names()
+                    if os.path.exists(os.path.join(args.defs_dir, n + ".yaml"))}
+    yamls = [f for f in yamls if os.path.splitext(f)[0] not in runtime_only]
+    if runtime_only:
+        print(f"[INFO] 跳过 {len(runtime_only)} 个运行时登记工具（不进入库声明口径）："
+              f"{', '.join(sorted(runtime_only))}")
     changed, skipped, missing, invalid, drifted = [], [], [], [], []
 
     for fname in yamls:
