@@ -1,5 +1,14 @@
 """摘要生成与压缩 — 判断压缩时机、执行压缩、管理摘要链"""
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+#: 首次压缩的 token 预算。推理型模型会把预算大量花在 reasoning 上（实测
+#: completion=500 / reasoning=500、content 为空），故失败时用 RETRY_TOKENS 重试一次。
+FIRST_TRY_TOKENS = 500
+RETRY_TOKENS = 2000
+
 
 class Summarizer:
     """对话摘要器
@@ -49,7 +58,16 @@ class Summarizer:
         # 将策略指令作为首条消息注入
         instruction = self.STRATEGIES.get(strategy, self.STRATEGIES["default"])
         augmented = [{"role": "system", "content": instruction}, *messages]
-        return self._llm.summarize(augmented, max_tokens=500)
+        text = self._llm.summarize(augmented, max_tokens=FIRST_TRY_TOKENS)
+        if (text or "").strip():
+            return text
+        # 【2026-10-28】空摘要不能当成功：生产实测 30 次压缩里 22 次（73%）返回 0 字符，
+        # 且全部是 completion_tokens == reasoning_tokens（500/500）—— 预算被推理吃满。
+        # 这里放大预算重试一次；仍为空则由调用方拒绝落盘（见 memory_manager 的空值守卫）。
+        logger.warning("[Summarizer] 首次压缩返回空摘要，放大 max_tokens 到 %d 重试一次",
+                       RETRY_TOKENS)
+        text = self._llm.summarize(augmented, max_tokens=RETRY_TOKENS)
+        return text or ""
 
     def merge_summaries(self, old_summary: str, new_summary: str) -> str:
         """合并新旧摘要
