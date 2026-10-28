@@ -758,8 +758,20 @@ class TestCLI:
 #  真实项目集成测试
 # ═══════════════════════════════════════════════════════════════
 
+@pytest.mark.serial
 class TestRealProjectIntegration:
-    """与真实项目结构联动测试（验证脚本可在当前项目下运行）"""
+    """与真实项目结构联动测试（验证脚本可在当前项目下运行）
+
+    【2026-10-29 · 必须串行】这组用例会**递归扫描真实仓库**（agent/ 全量 AST +
+    端点/路由），实测单条 13.4s（空闲机）/ 中位 62s（CI）/ 峰值 496s（并行争用）——
+    它就是「全项目测试覆盖率 Shard 3 从 62s 抖到 1505s」的直接来源（§11.10）。
+    标 `serial` 后只在**无 xdist 的串行段**执行（ci.yml 的 `-m "not serial"` 并行段
+    会自动跳过），不再与同 runner 的并行用例抢 CPU/IO；不影响分片归属与用例数。
+    """
+
+    def test_scan_heavy_cases_stay_serial(self):
+        """守门：全仓扫描必须留在串行段（删标记 = CI 分片再次抖动）"""
+        assert any(getattr(m, "name", "") == "serial" for m in type(self).pytestmark)
 
     def test_real_project_collect_all_layers(self):
         """真实项目能采集四层指标"""
