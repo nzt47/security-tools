@@ -253,6 +253,8 @@ export const skillPublish = (id: string) => `/api/skills-mgmt/${encodeURICompone
 export const skillSuggestFix = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/suggest-fix`;
 export const skillFixAuto = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/fix-auto`;
 export const skillRedraft = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/redraft`;
+// 再定义落地：写 skill.md 的 description_zh/name（PATCH 白名单不含这两个字段）
+export const skillRedraftApply = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/redraft/apply`;
 export const skillSlash = (id: string) => `/api/skills-mgmt/slash/${encodeURIComponent(id)}`;
 
 // ===============================================================

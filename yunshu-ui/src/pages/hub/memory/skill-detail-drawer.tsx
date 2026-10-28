@@ -54,6 +54,9 @@ interface InstructionResp {
   instruction?: string
   estimated_tokens?: number
   layer?: number
+  /** file = 来自 skill.md；main_track = 该技能没有文件轨，回退主轨正文 */
+  source?: string
+  hint?: string
 }
 
 interface ScriptRow { name?: string; path?: string; size?: number; size_bytes?: number; modified?: string }
@@ -328,7 +331,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
 
           {tab === 'instruction' && (
             <Section
-              title="使用说明（skill.md 正文）"
+              title={instruction?.source === 'main_track' ? '使用说明（主轨正文 · 该技能没有 skill.md）' : '使用说明（skill.md 正文）'}
               extra={
                 <button type="button" className={BTN} onClick={() => void loadInstruction()} disabled={loading} aria-label="刷新使用说明">
                   {busy === 'instruction' ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />} 刷新
@@ -341,7 +344,11 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                   <div className="mb-1.5 flex flex-wrap gap-2 font-mono text-[10px] text-slate-500">
                     <span>{'Layer ' + (instruction.layer ?? 2)}</span>
                     <span>约 {instruction.estimated_tokens ?? 0} tokens</span>
+                    {instruction.source === 'main_track' && <span className="text-amber-400">来源：主轨回退</span>}
                   </div>
+                  {instruction.hint && (
+                    <p className="mb-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2 py-1 text-[11px] text-amber-300">{instruction.hint}</p>
+                  )}
                   <pre className={PRE + ' max-h-104'}>{instruction.instruction || '（空）'}</pre>
                 </>
               )}

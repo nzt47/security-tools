@@ -48,6 +48,7 @@ import {
   skillOptimize,
   skillPublish,
   skillRedraft,
+  skillRedraftApply,
   skillSlash,
   skillSuggestFix,
   skillToggle,
@@ -774,7 +775,10 @@ export default function SkillAssessManager() {
       )}
       {redraftTarget && (
         <RedraftModal item={redraftTarget} onClose={() => setRedraftTarget(null)}
-          onDone={() => { setRedraftTarget(null); void load(); void loadEvents() }} />
+          // 【2026-10-28 修】应用成功**不再自动关窗**：关掉就把「写入了哪些字段」的
+          // 反馈一起关掉，用户只看到说明还是老样子（所以之前以为「没保存」）。
+          // 现在只刷新背后的列表，窗口留着显示结果，由用户自己点关闭。
+          onDone={() => { void load(); void loadEvents() }} />
       )}
       {genOpen && (
         <GenerateRequirementModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
@@ -1264,7 +1268,6 @@ function VersionsModal({ item, onClose, onDone }: { item: SkillItem; onClose: ()
 // ── 再定义草稿（LLM/规则起草 + 差异预览 + 应用）────────────────────────
 function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () => void; onDone: () => void }) {
   const [busy, setBusy] = useState(false)
-  const [llm, setLlm] = useState(false)
   const [cur, setCur] = useState<{ name?: string; description?: string } | null>(null)
   const [draftName, setDraftName] = useState('')
   const [draftDesc, setDraftDesc] = useState('')
@@ -1294,18 +1297,22 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
   const apply = async () => {
     setBusy(true); setErr(''); setMsg('')
     try {
-      const r = await fetch(skillById(item.id), {
-        method: 'PATCH',
-        // 同文件 245 行的 DELETE 已带 authHeader；此处 PATCH 此前漏了
-        headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify({ name: draftName.trim(), description: draftDesc.trim() }),
-      })
-      if (!r.ok) {
-        const b = await r.json().catch(() => null)
-        throw new Error(b?.error ?? `HTTP ${r.status}`)
-      }
+      // 【2026-10-28 修】此前这里 PATCH /api/skills-mgmt/<id>，而该接口的白名单
+      // 自 G1-B/M0 起**不含** description/description_zh ⇒ 后端 200、界面提示成功、
+      // 说明却一字未变（用户实测）。再定义的合法写路径是 skill.md front matter：
+      // 走专用 redraft/apply（没有文件轨时后端 409 并给出补轨指引）。
+      const r = await hubPost<{ ok?: boolean; applied?: string[]; error?: string }>(
+        skillRedraftApply(item.id),
+        { name: draftName.trim(), description_zh: draftDesc.trim(), source: source || 'rules' },
+      )
+      if (r?.ok === false) throw new Error(r.error ?? '应用失败')
+      // 应用后仍自动重新评审-评估（与旧行为一致；旧行为只是写错了落库字段）
       await hubPost(skillAssess(item.id))
-      setMsg('已应用再定义草稿并重新评审-评估。')
+      const label = (f: string) => (f === 'description_zh' ? '中文说明' : f === 'name' ? '展示名' : f)
+      const applied = (r?.applied ?? []).map(label)
+      setMsg(applied.length
+        ? '已写入 ' + applied.join(' / ') + '（skill.md）并重新评审-评估。'
+        : '草稿与当前内容一致，没有字段被写入。')
       onDone()
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
     finally { setBusy(false) }
@@ -1321,10 +1328,7 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
         <button type="button" className={BTN_EM} onClick={() => void gen(true)} disabled={busy} title="尝试用 LLM 起草（失败回退规则）">LLM 起草</button>
         {source && <span className="text-[10px] text-slate-600">来源：{source === 'llm' ? 'LLM' : '规则'}</span>}
         {genAt && <span className="text-[10px] text-slate-600">· 最近生成 {genAt}</span>}
-        <label className="ml-auto flex items-center gap-1 text-[11px] text-slate-400">
-          <input type="checkbox" checked={llm} onChange={(e) => { setLlm(e.target.checked); void gen(e.target.checked) }} />
-          起草时用 LLM
-        </label>
+        <span className="ml-auto text-[10px] text-slate-600">LLM 不可用会自动回退规则草稿</span>
       </div>
       {llmHint && (
         <p className="mb-2 rounded-md border border-amber-800/60 bg-amber-950/20 px-2 py-1 text-[11px] text-amber-300">

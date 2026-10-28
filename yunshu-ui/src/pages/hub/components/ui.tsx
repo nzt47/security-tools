@@ -176,6 +176,18 @@ export function PageHeader({ title, description, actions }: { title: string; des
   )
 }
 
+/** 把非 2xx 响应转成带后端原因的 Error（只抛 HTTP 状态会把后端的中文原因丢掉） */
+async function _hubError(res: Response): Promise<Error> {
+  let detail = ''
+  try {
+    const body = (await res.json()) as { error?: unknown; message?: unknown }
+    const raw = body?.error ?? body?.message
+    if (typeof raw === 'string' && raw.trim()) detail = raw.trim()
+  } catch { /* 非 JSON 响应（HTML 错误页等）：保留状态码 */ }
+  // 保留 "HTTP <code>" 作为子串：既有调用方/用例按它判读，不能改口径
+  return new Error(detail ? detail + '（HTTP ' + res.status + '）' : 'HTTP ' + res.status)
+}
+
 /** 通用请求 hook：GET JSON，返回 {data, loading, error, reload} */
 export async function hubGet<T = unknown>(url: string, token?: string | null): Promise<T> {
   const headers: Record<string, string> = {}
@@ -183,7 +195,7 @@ export async function hubGet<T = unknown>(url: string, token?: string | null): P
   const auth = token !== undefined && token !== null ? token : getApiToken()
   if (auth) headers.Authorization = `Bearer ${auth}`
   const res = await fetch(url, { headers })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) throw await _hubError(res)
   return res.json() as Promise<T>
 }
 
@@ -198,7 +210,7 @@ export async function hubPost<T = unknown>(url: string, body?: unknown, token?: 
     headers,
     body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) throw await _hubError(res)
   return res.json() as Promise<T>
 }
 
@@ -217,7 +229,7 @@ export async function hubDelete<T = unknown>(url: string, token?: string | null)
   const auth = token !== undefined && token !== null ? token : getApiToken()
   if (auth) headers.Authorization = `Bearer ${auth}`
   const res = await fetch(url, { method: 'DELETE', headers })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) throw await _hubError(res)
   return res.json() as Promise<T>
 }
 
@@ -239,7 +251,7 @@ export async function hubPut<T = unknown>(url: string, body?: unknown, token?: s
     headers,
     body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) throw await _hubError(res)
   return res.json() as Promise<T>
 }
 
@@ -262,7 +274,7 @@ export async function hubDeleteJson<T = unknown>(url: string, body?: unknown, to
     headers,
     body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) throw await _hubError(res)
   return res.json() as Promise<T>
 }
 

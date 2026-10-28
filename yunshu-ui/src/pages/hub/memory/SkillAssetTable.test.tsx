@@ -119,6 +119,34 @@ describe('SkillAssetTable（LLM 统一表）', () => {
     }
   })
 
+
+  it('再定义：应用草稿走 redraft/apply 写 skill.md（不再 PATCH 主轨），且不再有重复的 LLM 勾选', async () => {
+    setup()
+    await screen.findByText('Alpha')
+    api.hubPost.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt/alpha/redraft') {
+        return { ok: true, source: 'rules', current: { name: 'Alpha', description: '资产技能' },
+          proposed: { name: 'Alpha 中文名', description: '把资产整理成可复用的技能说明。' } }
+      }
+      if (url === '/api/skills-mgmt/alpha/redraft/apply') return { ok: true, applied: ['description_zh'] }
+      return { ok: true }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /再定义/ }))
+    expect(await screen.findByText(/再定义草稿/)).toBeTruthy()
+    // 起草按钮已经区分 LLM/规则，额外的勾选是重复入口（用户要求去掉）
+    expect(screen.queryByLabelText('起草时用 LLM')).toBeNull()
+    await waitFor(() => expect(screen.getByDisplayValue(/把资产整理成/)).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /应用草稿并评审/ }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith(
+      '/api/skills-mgmt/alpha/redraft/apply',
+      { name: 'Alpha 中文名', description_zh: '把资产整理成可复用的技能说明。', source: 'rules' },
+    ))
+    // 不能再用 PATCH（那条白名单不含 description/description_zh，必然「200 但没改」）
+    const calls = (globalThis.fetch as unknown as { mock?: { calls: unknown[][] } }).mock?.calls ?? []
+    expect(calls.some((c) => (c[1] as { method?: string } | undefined)?.method === 'PATCH')).toBe(false)
+    expect(await screen.findByText(/已写入 中文说明/)).toBeTruthy()
+  })
+
   it('全部折叠：分组视图下一键收起所有分类行', async () => {
     setup()
     await screen.findByText('Alpha')
