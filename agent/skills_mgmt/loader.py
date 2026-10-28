@@ -725,6 +725,37 @@ class SkillLoader:
     def match(self, intent: str, *, top_k: int = 5,
               enabled_only: bool = True,
               min_score: float = 0.01,
+              use_vector: Optional[bool] = None,
+              use_bm25: Optional[bool] = None,
+              use_reranker: Optional[bool] = None,
+              retrieval_weights: Optional[Dict[str, float]] = None,
+              fusion_mode: Optional[str] = None,
+              use_inverted_index: Optional[bool] = None,
+              candidate_limit: Optional[int] = None,
+              ) -> MatchResult:
+        """第一层匹配入口（薄包装）：拿到结果先记一条使用台账，再原样返回。
+
+        【为什么在这里记】2026-10-28 实测：技能命中只散落在 stderr 日志与进程内存指标里
+        （L1 指标甚至没有 skill_id）⇒「某技能最近命中几次 / 命中率多少」答不出来，
+        离线进化也选不出候选。台账写入是 best-effort（usage_log 内部吞异常），
+        不改变匹配语义与返回对象。
+        """
+        result = self._match_inner(
+            intent, top_k=top_k, enabled_only=enabled_only, min_score=min_score,
+            use_vector=use_vector, use_bm25=use_bm25, use_reranker=use_reranker,
+            retrieval_weights=retrieval_weights, fusion_mode=fusion_mode,
+            use_inverted_index=use_inverted_index, candidate_limit=candidate_limit,
+        )
+        try:
+            from .usage_log import record_match
+            record_match(result, intent=intent)
+        except Exception:  # noqa: BLE001 观测失败不影响匹配
+            pass
+        return result
+
+    def _match_inner(self, intent: str, *, top_k: int = 5,
+              enabled_only: bool = True,
+              min_score: float = 0.01,
               # 以下为预留扩展点，当前不实现，仅占位（默认 False 保证向后兼容）
               # 【2026-10-02 · §10 D-1】以下六个旋钮的默认值改为 None = "未指定"，
               # 由函数体顶部的 _resolve_* 落到对应的 SKILLS_* 环境变量；未设 env 时
@@ -2491,6 +2522,12 @@ class SkillLoader:
         emit_metric("yunshu_skill_instruction_tokens",
                     value=est_tokens, kind="histogram",
                     labels={"skill_id": skill_id, "layer": "2"})
+        # 使用台账（L2）：与指标同一口径；写失败不影响返回
+        try:
+            from .usage_log import record
+            record("load", skill_id, latency_ms=elapsed, source="loader")
+        except Exception:  # noqa: BLE001
+            pass
 
         return {
             "skill_id": skill_id,

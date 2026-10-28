@@ -42,6 +42,7 @@ import {
   SKILLS_MGMT_CREATE_MANUAL,
   SKILLS_MGMT_REVIEW_AUDIT,
   SKILLS_MGMT_REVIEW_BATCH,
+  SKILLS_MGMT_USAGE_STATS,
   skillAssess,
   skillById,
   skillFixAuto,
@@ -65,9 +66,9 @@ const BTN_RED = `${BTN} hover:bg-red-500/10 hover:text-red-400`
 // ── 列宽（可拖动）+ 说明全文弹窗 ──────────────────────────────────────
 // 中文说明长短差异极大（有的 20 字、有的 400 字），固定列宽要么截断要么把表撑爆；
 // 这里给「技能 / 说明 / 徽章 / 操作」四个内容列加拖动手柄，宽度存 localStorage。
-type ColKey = 'name' | 'desc' | 'badges' | 'status' | 'review' | 'score' | 'ops'
+type ColKey = 'name' | 'desc' | 'badges' | 'status' | 'review' | 'score' | 'usage' | 'ops'
 const DEFAULT_COLS: Record<ColKey, number> = {
-  name: 260, desc: 340, badges: 220, status: 88, review: 88, score: 92, ops: 320,
+  name: 260, desc: 340, badges: 220, status: 88, review: 88, score: 92, usage: 112, ops: 320,
 }
 const COL_STORE = 'yunshu.skills.table.cols.v1'
 
@@ -113,6 +114,10 @@ interface RuntimeSkill {
   class_name?: string; class_auto?: boolean
 }
 
+/** 近 7 日使用台账（/api/skills-mgmt/usage/stats） */
+interface UsageRow { hits?: number; loads?: number; execs?: number; exec_ok?: number; exec_fail?: number; last_used_at?: string }
+interface UsageStatsResp { ok?: boolean; error?: string; days?: number; skills?: Record<string, UsageRow>; totals?: Record<string, number> }
+
 /** 「仅运行时·无资产记录」的成因说明（悬停可见，避免用户以为是坏数据） */
 const RUNTIME_ONLY_TIP = '该技能只存在于运行时注册表 / 文件轨（data/skills_repo/<id>/skill.md），未登记进技能资产库（skills_mgmt）：'
   + '所以没有评审、版本、发布记录，也不会被资产库的发布门禁约束；启停走 /api/skills/toggle。'
@@ -139,6 +144,8 @@ export default function SkillAssessManager() {
   const [items, setItems] = useState<SkillItem[]>([])
   /** 两个数据源的条数（统一表 = 运行时 ∪ 资产，仅运行时 = 差集），显示在表头便于对账 */
   const [counts, setCounts] = useState<{ runtime: number; assets: number }>({ runtime: 0, assets: 0 })
+  // 近 7 日使用台账（命中/加载/执行），由 loader/executor 写入
+  const [usage, setUsage] = useState<UsageStatsResp | null>(null)
   const [callability, setCallability] = useState<Record<string, CallabilityInfo>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -271,10 +278,11 @@ export default function SkillAssessManager() {
   const load = useCallback(async () => {
     setError('')
     try {
-      const [assetR, runtimeR, manifestR] = await Promise.allSettled([
+      const [assetR, runtimeR, manifestR, usageR] = await Promise.allSettled([
         hubGet<{ items?: SkillItem[] }>(SKILLS_MGMT),
         getEnvelope<{ installed?: RuntimeSkill[]; available?: RuntimeSkill[] }>(SKILLS),
         fetchCapabilityManifest(),
+        hubGet<UsageStatsResp>(`${SKILLS_MGMT_USAGE_STATS}?days=7`),
       ])
       const assets = assetR.status === 'fulfilled' && Array.isArray(assetR.value?.items)
         ? assetR.value.items : []
@@ -306,6 +314,7 @@ export default function SkillAssessManager() {
       if (manifestR.status === 'fulfilled') {
         setCallability(indexCallability(manifestR.value?.runtime_skills, manifestR.value?.manifest?.skills))
       }
+      if (usageR.status === 'fulfilled') setUsage(usageR.value ?? null)
     } catch (e) {
       setError(`技能资产加载失败：${e instanceof Error ? e.message : String(e)}`)
     } finally {
@@ -592,6 +601,30 @@ export default function SkillAssessManager() {
         <td className="px-2 py-2 font-mono text-[10px] text-slate-400">
           {it.runtime_only ? '—' : `${Math.round(rv?.security_score ?? 0)}/${Math.round(rv?.quality_score ?? 0)}/${Math.round(rv?.compatibility_score ?? 0)}`}
         </td>
+        {/* 近 7 日使用（来自 /api/skills-mgmt/usage/stats，台账由 loader/executor 写） */}
+        <td className="px-2 py-2 align-top">
+          {(() => {
+            const u = usage?.skills?.[it.id]
+            if (it.runtime_only) return <span className="text-[10px] text-slate-600">—</span>
+            if (!u) {
+              return (
+                <span className="text-[10px] text-slate-600" title="近 7 天没有任何命中/加载/执行记录">0/0/0</span>
+              )
+            }
+            const hits = u.hits ?? 0
+            const loads = u.loads ?? 0
+            const execs = u.execs ?? 0
+            const ok = u.exec_ok ?? 0
+            const bad = u.exec_fail ?? 0
+            const tone = hits > 0 ? 'text-emerald-300' : (it.enabled ? 'text-amber-300' : 'text-slate-500')
+            return (
+              <span className={`font-mono text-[10px] ${tone}`}
+                title={`近 7 日 命中 ${hits} · 加载 ${loads} · 执行 ${execs}（成功 ${ok} / 失败 ${bad}）`}>
+                {hits}/{loads}/{execs}
+              </span>
+            )
+          })()}
+        </td>
         <td className="w-[18rem] px-2 py-2">
           <div className="flex flex-wrap items-center gap-1">
             <button type="button" className={BTN} onClick={() => setContentTarget(it)} disabled={busy !== ''} title="查看该技能的具体内容（正文 / 参数 / 标签）">
@@ -654,7 +687,7 @@ export default function SkillAssessManager() {
       {/* 报告必须紧跟本行（原来渲染在表格外，展开后报告飘到页尾，看不出属于哪一行） */}
       {open && (
         <tr className="bg-slate-950/40">
-          <td colSpan={8} className="px-2 pb-2">
+          <td colSpan={9} className="px-2 pb-2">
             <ReportPanel item={it} onClose={() => toggleRow(it.id)} />
           </td>
         </tr>
@@ -668,7 +701,7 @@ export default function SkillAssessManager() {
     if (!grouped) return items.map(renderAssetRow)
     if (!classView) {
       return (
-        <tr><td colSpan={8} className="px-2 py-4 text-[11px] text-slate-500">
+        <tr><td colSpan={9} className="px-2 py-4 text-[11px] text-slate-500">
           <Loader2 size={12} className="mr-1 inline animate-spin" /> 分类视图加载中…
         </td></tr>
       )
@@ -680,7 +713,7 @@ export default function SkillAssessManager() {
       const g = classView.find((x) => x.name === name)
       out.push(
         <tr key={`g-${name}`} className="bg-slate-900/85">
-          <td colSpan={8} className="px-1.5 py-1">
+          <td colSpan={9} className="px-1.5 py-1">
             <button type="button" onClick={() => toggleCls(name)} className="flex w-full items-center gap-2 rounded-sm px-1.5 py-1 text-left hover:bg-slate-800/60" title={isOpen ? '折叠该类' : '展开该类'}>
               {isOpen ? <ChevronDown size={13} className="shrink-0 text-slate-400" /> : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
               <ClassIcon name={name} size={13} className="shrink-0 text-cyan-400" />
@@ -800,7 +833,7 @@ export default function SkillAssessManager() {
           <table className="w-full table-fixed text-left text-xs" style={{ minWidth: 980 }}>
             <colgroup>
               <col style={{ width: 32 }} />
-              {(['name', 'desc', 'badges', 'status', 'review', 'score', 'ops'] as ColKey[]).map((k) => (
+              {(['name', 'desc', 'badges', 'status', 'review', 'score', 'usage', 'ops'] as ColKey[]).map((k) => (
                 <col key={k} style={{ width: cols[k] }} />
               ))}
             </colgroup>
@@ -813,6 +846,7 @@ export default function SkillAssessManager() {
                 <th className="px-2 py-1.5 font-medium">状态</th>
                 <th className="px-2 py-1.5 font-medium">评审</th>
                 <th className="px-2 py-1.5 font-medium">安全/质量/兼容</th>
+                <th className="px-2 py-1.5 font-medium" title="近 7 天：命中（语义层 top1）/ 加载说明 / 脚本执行">近 7 日<ColResizer onStart={startColDrag('usage')} onReset={() => resetCol('usage')} /></th>
                 <th className="px-2 py-1.5 font-medium">操作<ColResizer onStart={startColDrag('ops')} onReset={() => resetCol('ops')} /></th>
               </tr>
             </thead>

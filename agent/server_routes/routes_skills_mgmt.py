@@ -1437,6 +1437,25 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/usage/stats", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    # 只读聚合，与同一页的 GET /api/skills-mgmt 一致：不加令牌（否则表格列恒定 0）
+    @log_request(show_response=False)
+    def api_skills_mgmt_usage_stats():
+        """技能使用台账聚合（match / load / exec，默认近 7 天）
+
+        台账由 SkillLoader.match / load_instruction / SkillExecutor.execute 写入
+        data/skill_usage_events.jsonl（见 agent/skills_mgmt/usage_log.py）；
+        本接口只读聚合，供技能中心表格与「工作状况」页消费。
+        """
+        try:
+            days = max(1, min(request.args.get("days", 7, type=int), 90))
+            from agent.skills_mgmt import usage_log
+            data = usage_log.stats(days)
+            return jsonify({"ok": True, **data})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/<skill_id>/instruction", methods=["GET"])
     @trace_route("SkillsMgmt")
     @log_request(show_response=False)

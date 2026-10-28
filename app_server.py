@@ -1448,6 +1448,17 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  功能单位监控路由（/api/system/units）—— 只读快照
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.server_routes.routes_units import register_routes as reg_units
+    reg_units(app, lambda: None)
+    logger.info("功能单位监控路由已注册 (/api/system/units)")
+except Exception as e:
+    _record_route_failure("功能单位监控路由", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  工作流学习系统路由（/api/workflow-learning/*）
 # ════════════════════════════════════════════════════════════
 

@@ -1,24 +1,24 @@
 {
-  "generated_at": "2026-10-28T19:26:38",
+  "generated_at": "2026-10-28T22:54:40",
   "totals": {
-    "routes": 470,
-    "live": 470,
+    "routes": 473,
+    "live": 473,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 413,
+    "ui": 415,
     "cli_script": 16,
     "runtime_only": 11,
-    "unreferenced": 30,
+    "unreferenced": 31,
     "live_by_category": {
-      "ui": 413,
+      "ui": 415,
       "cli_script": 16,
       "runtime_only": 11,
-      "unreferenced": 30
+      "unreferenced": 31
     },
     "by_intent": {
-      "should_be_in_ui": 396,
+      "should_be_in_ui": 397,
       "should_not_be_in_ui": 73,
-      "unclassified": 1
+      "unclassified": 3
     },
     "by_domain": {
       "页面入口": 7,
@@ -30,14 +30,14 @@
       "调度与任务": 26,
       "对话与会话": 29,
       "业务与评估": 18,
-      "技能与工具": 116,
+      "技能与工具": 117,
       "认知与学习": 6,
-      "观测与诊断": 73,
+      "观测与诊断": 75,
       "开发与内部": 14,
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 417,
+  "frontend_endpoints": 419,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -65,7 +65,7 @@
         "scripts/configure_branch_protection.py"
       ],
       "where": [
-        "app_server.py:2003"
+        "app_server.py:2014"
       ],
       "description": "首页：重定向到统一工作台（2026-10-03 R0-b legacy 收敛）。",
       "description_source": "handler",
@@ -3518,7 +3518,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:1681"
+        "app_server.py:1692"
       ],
       "description": "混合检索器（embedding worker）健康状态（**只读**；永不 500）。",
       "description_source": "handler",
@@ -7960,7 +7960,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1572"
+        "agent/server_routes/routes_skills_mgmt.py:1591"
       ],
       "description": "Layer 3: 沙箱执行技能脚本",
       "description_source": "handler",
@@ -8062,7 +8062,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1440"
+        "agent/server_routes/routes_skills_mgmt.py:1459"
       ],
       "description": "Layer 2: 按需加载技能使用说明 (skill.md 正文)",
       "description_source": "handler",
@@ -8267,7 +8267,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1558"
+        "agent/server_routes/routes_skills_mgmt.py:1577"
       ],
       "description": "Layer 3: 列出技能的脚本文件 (元信息，不加载代码)",
       "description_source": "handler",
@@ -8421,7 +8421,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1458"
+        "agent/server_routes/routes_skills_mgmt.py:1477"
       ],
       "description": "从云枢记忆中自动抽象新技能草稿",
       "description_source": "handler",
@@ -9308,7 +9308,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1614"
+        "agent/server_routes/routes_skills_mgmt.py:1633"
       ],
       "description": "Slash 命令解析器 — 统一技能操作入口",
       "description_source": "handler",
@@ -9361,6 +9361,32 @@
         "agent/server_routes/routes_skills_mgmt.py:316"
       ],
       "description": "上传 zip 技能包并安装到三层架构文件仓库",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "技能中心",
+      "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
+      "ui_pending": false,
+      "domain": "技能与工具"
+    },
+    {
+      "path": "/api/skills-mgmt/usage/stats",
+      "norm": "/api/skills-mgmt/usage/stats",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_skills_mgmt.py:1440"
+      ],
+      "description": "技能使用台账聚合（match / load / exec，默认近 7 天）",
       "description_source": "handler",
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
@@ -10055,6 +10081,54 @@
       "domain": "系统与配置"
     },
     {
+      "path": "/api/system/units",
+      "norm": "/api/system/units",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_units.py:26"
+      ],
+      "description": "功能单位工作状况快照",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "观测与诊断"
+    },
+    {
+      "path": "/api/system/units/families",
+      "norm": "/api/system/units/families",
+      "methods": [
+        "GET"
+      ],
+      "category": "unreferenced",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_units.py:51"
+      ],
+      "description": "已登记的家族清单（供前端筛选器，避免前端硬编码）。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "观测与诊断"
+    },
+    {
       "path": "/api/tasks",
       "norm": "/api/tasks",
       "methods": [
@@ -10144,7 +10218,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2145"
+        "app_server.py:2156"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -10169,7 +10243,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2121"
+        "app_server.py:2132"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -10194,7 +10268,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2134"
+        "app_server.py:2145"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -11631,7 +11705,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2039"
+        "app_server.py:2050"
       ],
       "description": "云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。",
       "description_source": "handler",
@@ -11992,7 +12066,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2100"
+        "app_server.py:2111"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -12017,7 +12091,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2092"
+        "app_server.py:2103"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
@@ -12043,7 +12117,7 @@
         "scripts/dev/cp_panel_evidence_server.py"
       ],
       "where": [
-        "app_server.py:2076"
+        "app_server.py:2087"
       ],
       "description": "云枢 Web 应用 — 感知底座 + 数字生命对话",
       "description_source": "module",
@@ -12054,5 +12128,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "bba99364a1b59277"
+  "content_hash": "e3ca21f583600807"
 }

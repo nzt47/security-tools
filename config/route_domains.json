@@ -67,6 +67,7 @@
         "/api/search-performance",
         "/api/sensors",
         "/api/status",
+        "/api/system",
         "/api/version",
         "/logs/api",
         "/logs/dashboard"
