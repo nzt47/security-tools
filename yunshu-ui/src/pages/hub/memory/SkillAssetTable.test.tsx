@@ -170,6 +170,23 @@ describe('SkillAssetTable（LLM 统一表）', () => {
     expect(screen.getByText(/强发理由/)).toBeTruthy()
   })
 
+  it('近 7 日使用列：命中/加载/执行来自台账统计（无记录显示 0/0/0）', async () => {
+    api.getEnvelope.mockResolvedValue({ installed: [{ id: 'alpha', name: 'Alpha', enabled: true }], available: [] })
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt') {
+        return { items: [{ id: 'alpha', name: 'Alpha', status: 'published', enabled: true }] }
+      }
+      if (url.startsWith('/api/skills-mgmt/usage/stats')) {
+        return { ok: true, skills: { alpha: { hits: 3, loads: 2, execs: 1, exec_ok: 1, exec_fail: 0 } } }
+      }
+      if (url === '/api/skills-mgmt/classes') return { groups: [] }
+      return { ok: true, records: [] }
+    })
+    render(<SkillAssetTable />)
+    expect(await screen.findByRole('columnheader', { name: /近 7 日/ })).toBeTruthy()
+    expect(await screen.findByText('3/2/1')).toBeTruthy()
+  })
+
   it('说明独立成列：长说明 3 行截断 + 「查看全文」弹窗（不再被压成一行）', async () => {
     const longDesc = '把外部技能吸收进云枢时，先做安全与兼容性评估，再按增量吸收并入；'
       + '这句话故意写得很长，用来验证表格不会把它压成一行导致看不全。'

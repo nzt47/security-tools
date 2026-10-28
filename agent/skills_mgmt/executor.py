@@ -290,6 +290,14 @@ class SkillExecutor:
                         value=1, kind="counter",
                         labels={"skill_id": skill_id,
                                 "status": validation_status})
+            # 使用台账（L3）：与 yunshu_skill_exec_total 同一口径（含 schema 校验失败）
+            try:
+                from .usage_log import record
+                record("exec", skill_id, success=bool(success),
+                       latency_ms=elapsed, source="executor",
+                       extra={"script": script_name, "reason": validation_status})
+            except Exception:  # noqa: BLE001 观测失败不影响执行结果
+                pass
 
             if not success:
                 error_msg = f"脚本退出码 {proc.returncode}"

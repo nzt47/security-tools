@@ -285,6 +285,27 @@ def _isolate_healing_incidents(tmp_path_factory):
         os.environ[_levels.ENV_INCIDENTS_DIR] = prev
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _isolate_skill_usage_log(tmp_path_factory):
+    """把技能使用台账隔离到临时文件（**绝不写 data/skill_usage_events.jsonl**）
+
+    Why（2026-10-28 实测）：台账由 SkillLoader.match / load_instruction /
+    SkillExecutor.execute 直接写入默认路径；测试跑一轮就会把 149 条假「命中」写进
+    生产台账，把「技能使用状况」的真实统计冲掉。usage_log.usage_path() 的优先级是
+    「环境变量 > 默认」，所以在会话级设 CP_SKILL_USAGE_LOG 即可覆盖全部调用点。
+    """
+    from agent.skills_mgmt import usage_log
+
+    target = tmp_path_factory.mktemp("skill_usage") / "skill_usage_events.jsonl"
+    prev = os.environ.get(usage_log._ENV_PATH)
+    os.environ[usage_log._ENV_PATH] = str(target)
+    yield target
+    if prev is None:
+        os.environ.pop(usage_log._ENV_PATH, None)
+    else:
+        os.environ[usage_log._ENV_PATH] = prev
+
+
 @pytest.fixture(autouse=True)
 def _reassert_approval_isolation(_isolate_approval_stores, monkeypatch):
     """逐用例**重新施加**审批落盘隔离（防中途 `import app_server` 把它冲掉）

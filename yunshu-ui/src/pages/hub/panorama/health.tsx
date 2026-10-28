@@ -56,6 +56,7 @@ import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet } from '../component
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
 import HealthVitals from './health-vitals'
+import UnitStatus from './unit-status'
 import OpsDiagnostics from './ops-diagnostics'
 import {
   DIAGNOSTICS_METRICS,
@@ -687,6 +688,9 @@ export default function PanoramaHealth() {
           ))}
         </div>
       )}
+
+      {/* 功能单位工作状况：技能/工具/工作流/调度/记忆…每个单位在不在工作、有没有红 */}
+      <UnitStatus />
 
       {loading && points.length === 0 && Object.keys(data).length === 0 ? <Loading /> : (
         <>

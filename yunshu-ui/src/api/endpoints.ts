@@ -266,6 +266,12 @@ export const SKILLS_DESCRIBE_AUTO = '/api/skills/describe/auto';
 export const SKILLS_CLASSIFY_RUN_AUTO = '/api/skills/classify/run-auto';
 
 // ===============================================================
+//  功能单位监控 / 技能使用台账（只读）
+// ===============================================================
+export const SYSTEM_UNITS = '/api/system/units';
+export const SKILLS_MGMT_USAGE_STATS = '/api/skills-mgmt/usage/stats';
+
+// ===============================================================
 //  系统提示词（/api/system-prompt）
 // ===============================================================
 export const SYSTEM_PROMPT_CONFIG = '/api/system-prompt/config';
