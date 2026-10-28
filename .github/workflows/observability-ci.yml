@@ -1035,6 +1035,10 @@ jobs:
           # 【变易·TASK-06 路线3】--by=time：按实测耗时均衡（权重表
           #   scripts/shard_time_weights.json，来源即本 job 的 junit artifact）。
           #   回退 --by=count。
+          # 【变易·2026-10-28】该表由 scripts/regen_shard_time_weights.py 从**多次**
+          #   run 的 artifact 取中位数机械重生成（--check 可与 junit 逐字节对拍）；
+          #   本 job 的挡位与单元/集成 job 不同，故各 job 各有自己的表
+          #   （WEIGHTS_BY_ROOT），改这张表不会动到另外两个 job 的分片成员口径。
           # 【变易·P3】serial 日志断言测试拆为串行段：pytest-xdist 并行时全局 logging
           #   状态竞争导致 assertLogs 偶发失败（2026-08-09 Shard5/6 六例），故分两段执行。
           # 【变易·2026-08-29】并行段单次重试吸收轮转 flaky：确定性失败（log_dict 断言、

@@ -111,13 +111,32 @@ SERIAL_DIRS = (
 #     变成 400+ 行常量，且每次重标定都会产生大块无意义 diff；
 #   · 表缺失/损坏时**不报错**，退回旧启发式并告警（CI 不能因缺数据而崩）。
 WEIGHTS_FILENAME = "shard_time_weights.json"
+# 【变易·2026-10-28】分片模式专属权重表：integration job 的 pytest -m 过滤
+#   （not slow/e2e/requires_llm/skip_ci）与单元测试/全项目 job 不同 —— 同一批
+#   文件的「实测秒数」不是同一个量。用同一张表会把在该 job 里被 marker 过滤掉的
+#   慢文件当成真实成本，贪心为了均衡把它们各自单独放进一个分片；一旦该分片的
+#   文件全被过滤，pytest 收集到 0 条用例、退出码 5 ⇒ job 假红。
+#   ⇒ 按 --root 选表；专属表缺失时回退到通用表（不报错，CI 不能因缺数据而崩）。
+WEIGHTS_BY_ROOT = {
+    "tests/unit": "shard_time_weights.json",
+    "tests": "shard_time_weights.json",
+    "tests/integration": "shard_time_weights_integration.json",
+}
 # 表缺失时的兜底单位耗时（秒/条）：取表中标定值，避免两处不一致
 FALLBACK_SECONDS_PER_TEST = 0.129475
 
 
-def load_time_weights(root: Path) -> tuple[dict[str, float], float]:
-    """读取实测耗时权重表；失败时返回空表 + 兜底单位耗时（不抛异常）。"""
-    path = root / "scripts" / WEIGHTS_FILENAME
+def load_time_weights(root: Path, test_root: str = "tests") -> tuple[dict[str, float], float]:
+    """读取实测耗时权重表；失败时返回空表 + 兜底单位耗时（不抛异常）。
+
+    【变易·2026-10-28】按 test_root 选专属表（WEIGHTS_BY_ROOT）：integration
+    job 的 marker 过滤与其它 job 不同，权重必须在同一过滤条件下实测。
+    专属表不存在时回退通用表，两者都不存在才退回按条数均衡。
+    """
+    name = WEIGHTS_BY_ROOT.get(test_root, WEIGHTS_FILENAME)
+    path = root / "scripts" / name
+    if not path.exists() and name != WEIGHTS_FILENAME:
+        path = root / "scripts" / WEIGHTS_FILENAME
     try:
         doc = json.loads(path.read_text(encoding="utf-8"))
         table = {str(k): float(v) for k, v in doc.get("files", {}).items()}
@@ -271,7 +290,7 @@ def main() -> int:
     else:
         # 【变易·TASK-06 路线3】新行为：按实测秒数贪心，未实测者按旧启发式
         # 形状等比定标到同一量纲（详见 time_weights 的说明）。
-        table, rate = load_time_weights(ROOT)
+        table, rate = load_time_weights(ROOT, args.root)
         raw_counts = ({f: count_tests(ROOT, f, use_lines=False) for f in files}
                       if use_lines else counts)
         weights = time_weights(files, counts, raw_counts, table, rate)
