@@ -439,6 +439,12 @@ export interface IncidentsView {
   auto_expand_rule: string;
   open_count: Metric;
   total_count: Metric;
+  /** 未闭合里"六要素不齐、按 §3 契约不可 resolve"的张数（2026-10-28） */
+  open_blocked_count?: Metric;
+  /** 未闭合里"可 resolve"的张数 */
+  open_resolvable_count?: Metric;
+  /** 处置指引（补齐 / 归档） */
+  resolve_hint?: string;
   incidents: IncidentCardData[];
   mttd_ms: HealingLatency;
   backup_health: Record<string, unknown> | Absent;

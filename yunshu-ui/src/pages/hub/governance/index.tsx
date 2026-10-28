@@ -1010,6 +1010,12 @@ export function IncidentsPanel() {
             }
           />
           {data.auto_expand && <div className="mb-3"><IncidentBanner count={data.open_count.value ?? 0} note={data.auto_expand_rule} /></div>}
+          {(data.open_blocked_count?.value ?? 0) > 0 && (
+            <div className="mb-2 rounded-sm border border-amber-900/60 bg-amber-950/20 px-2 py-1 text-[11px] text-amber-300">
+              其中 {data.open_blocked_count?.value} 张缺要素，按 §3 契约**不可 resolve**（不是待办事故）：
+              补齐用 complete_incident()，或处置（归档）用 scripts/heal_incidents.py（默认 dry-run）。
+            </div>
+          )}
           <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
             <KpiTile label="未闭合事故" metric={data.open_count} icon={<Siren size={13} />} />
             <KpiTile label="事故卡总数" metric={data.total_count} />

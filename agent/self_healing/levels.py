@@ -693,6 +693,9 @@ def raise_incident(
     signal: str = "",
     root_cause: str = "",
     fatal_change: str = "",
+    evasion_rule: str = "",
+    in_strategy_memory: Optional[Dict[str, Any]] = None,
+    regression_case_added: Optional[Dict[str, Any]] = None,
     trace_ids: Optional[Sequence[str]] = None,
     tenant_id: str = "default",
     directory: Optional[str] = None,
@@ -715,6 +718,13 @@ def raise_incident(
         severity=parsed,
         root_cause=root_cause,
         fatal_change=fatal_change,
+        # 【2026-10-28 修】此前这三个六要素字段**没有入参**，而 IncidentCard.resolve()
+        # 要求六要素齐备 ⇒ 除 digestion/probe 直接赋值外，任何来源的事故卡都永远
+        # 无法 resolved（面板"未闭合"只增不减）。现在开卡时就能填，也能事后补齐
+        # （见 complete_incident）。
+        evasion_rule=evasion_rule,
+        in_strategy_memory=in_strategy_memory,
+        regression_case_added=regression_case_added,
         trace_ids=list(trace_ids or []),
         tenant_id=str(tenant_id or "default"),
         mttd_ms=mttd_ms,
@@ -734,6 +744,70 @@ def raise_incident(
     )
     if parsed == HealLevel.L5:
         _raise_max_alert(card, signal=signal)
+    return card
+
+
+def complete_incident(
+    incident_id: str,
+    *,
+    fatal_change: str = "",
+    evasion_rule: str = "",
+    in_strategy_memory: Optional[Dict[str, Any]] = None,
+    regression_case_added: Optional[Dict[str, Any]] = None,
+    trace_ids: Optional[Sequence[str]] = None,
+    resolve: bool = False,
+    directory: Optional[str] = None,
+    actor: str = "ops",
+) -> IncidentCard:
+    """补齐事故卡六要素（可选随后 resolve）——「六要素齐才可 resolved」的唯一补齐入口
+
+    【为什么需要（2026-10-28 实测）】`resolve()` 要求六要素齐备，而 `raise_incident()`
+    原先只能填 root_cause/fatal_change/trace_ids ⇒ 出域链、接管等来源的卡天生不可闭合，
+    面板「未闭合」只增不减。「六要素」是防止「不可追溯的 97%」的机制，不该因为**没有补齐
+    入口**而退化成「永远关不掉」。本函数就是那个入口：只填**显式给的非空值**，绝不清空既有字段。
+
+    Args:
+        resolve: True → 补齐后立刻尝试 resolve（仍缺要素则抛 `LevelError`，绝不静默降级）。
+        actor: 写进审计 payload（谁补的）。
+
+    Raises:
+        LevelError: 卡不存在；或 `resolve=True` 但补齐后仍有缺项。
+    """
+    card = load_incident(incident_id, directory=directory)
+    if card is None:
+        raise LevelError("事故卡不存在: %s" % incident_id)
+    filled: List[str] = []
+    if str(fatal_change or "").strip():
+        card.fatal_change = str(fatal_change)
+        filled.append("fatal_change")
+    if str(evasion_rule or "").strip():
+        card.evasion_rule = str(evasion_rule)
+        filled.append("evasion_rule")
+    if in_strategy_memory:
+        card.in_strategy_memory = dict(in_strategy_memory)
+        filled.append("in_strategy_memory")
+    if regression_case_added:
+        card.regression_case_added = dict(regression_case_added)
+        filled.append("regression_case_added")
+    if trace_ids:
+        merged = list(card.trace_ids or [])
+        for t in trace_ids:
+            if str(t).strip() and str(t) not in merged:
+                merged.append(str(t))
+        card.trace_ids = merged
+        filled.append("trace_ids")
+    resolved = False
+    if resolve:
+        card.resolve()          # 缺要素就在这里抛，不静默
+        resolved = True
+    save_incident(card, directory=directory, writer="self_healing.levels")
+    record_healing_audit(
+        card.severity, action="healing.incident.complete",
+        subject="incident:" + card.incident_id,
+        payload={"incident_id": card.incident_id, "filled": filled,
+                 "resolved": resolved, "actor": str(actor or ""),
+                 "missing_elements": card.missing_elements()},
+    )
     return card
 
 
@@ -863,7 +937,7 @@ __all__ = [
     "level_of", "spec_for", "next_level", "escalate", "resolve_level",
     "TRIGGER_SIGNALS", "assert_no_level_confusion",
     # 事故卡
-    "IncidentCard", "save_incident", "load_incident", "list_incidents",
+    "IncidentCard", "save_incident", "load_incident", "list_incidents", "complete_incident",
     "incidents_dir", "incident_path", "raise_incident",
     # 单写者
     "register_incident_writer", "release_incident_writer", "reset_incident_writers",

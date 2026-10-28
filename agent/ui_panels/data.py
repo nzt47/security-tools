@@ -1070,6 +1070,11 @@ def incidents_view(*, incidents_dir: Optional[str] = None, limit: int = 100,
         err = f"{type(e).__name__}: {e}"
     cards.sort(key=lambda c: str(c.get("created_at") or ""), reverse=True)
     open_cards = [c for c in cards if str(c.get("status")) == "open"]
+    # 【2026-10-28】把"未闭合"拆成可闭合 / 缺要素不可闭合：
+    # 缺要素的卡按 §3 契约 resolve() 会抛 LevelError ⇒ 它们不是"待办事故"，而是"待补齐或待归档"。
+    # 不拆的话操作者会把 14 张测试产物当成 14 起待处理事故（本轮实测）。
+    open_blocked = [c for c in open_cards if c.get("missing_elements")]
+    open_resolvable = [c for c in open_cards if not c.get("missing_elements")]
 
     mtt = _healing_latency(events_dir=events_dir, days=days)
     auto_expand = len(open_cards) > 0
@@ -1088,6 +1093,16 @@ def incidents_view(*, incidents_dir: Optional[str] = None, limit: int = 100,
             len(cards), source="agent/self_healing/levels.py::list_incidents",
             formula="事故卡总数（<incidents_dir>/inc-*.json）", unit="count",
             sample_size=len(cards)),
+        "open_blocked_count": metric(
+            len(open_blocked), source="agent/self_healing/levels.py::list_incidents",
+            formula="status=open 且六要素不齐（按 §3 契约不可 resolve）", unit="count",
+            sample_size=len(cards)),
+        "open_resolvable_count": metric(
+            len(open_resolvable), source="agent/self_healing/levels.py::list_incidents",
+            formula="status=open 且六要素齐备（可 resolve）", unit="count",
+            sample_size=len(cards)),
+        "resolve_hint": ("缺要素的卡不可 resolved：补齐走 agent.self_healing.levels.complete_incident()，"
+                         "归档/处置走 scripts/heal_incidents.py（默认 dry-run）"),
         "incidents": cards[:limit],
         "mttd_ms": mtt,
         "backup_health": _backup_health(),
