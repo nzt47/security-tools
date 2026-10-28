@@ -62,6 +62,15 @@ CHAIN_LEVEL = "L4"
 #: 链路命中的事故卡信号名（与 `levels.resolve_level` 的信号表对齐由调用方保证）
 CHAIN_SIGNAL = "secret_egress_chain"
 
+#: 事故卡去重窗口（秒）：同一 (scope, target_host) 在窗口内只开一张
+#: 【为什么需要（2026-10-28 实测）】同一进程里连续两次出站会各开一张卡 —— 生产目录里
+#: 14 张卡恰好是 7 组、每组相差 ~0.5s 的重复对。审计/面板看的是"事故起数"，重复计数会
+#: 把 1 起误报放大成 2 起（也会让 MTTD/MTTR 的样本数虚高）。
+CARD_DEDUPE_WINDOW_SEC = 60.0
+
+#: 去重索引容量上限（防长跑进程里无限增长）
+CARD_DEDUPE_MAX_KEYS = 128
+
 #: 链路账容量上限（作用域数）
 DEFAULT_MAX_SCOPES = 500
 
@@ -163,6 +172,8 @@ class EgressChainMonitor:
         self._scopes: Dict[str, ScopeChainState] = {}
         self._lock = threading.RLock()
         self._hits = 0
+        # 事故卡去重索引：key = "<scope>|<target_host>" → (monotonic_ts, incident_id)
+        self._card_seen: Dict[str, Tuple[float, str]] = {}
 
     @property
     def enabled(self) -> bool:
@@ -392,7 +403,24 @@ class EgressChainMonitor:
     def _raise_card(self, verdict: ChainVerdict, *, source_refs: Sequence[str],
                     trace_id: str, tenant_id: str,
                     incident_dir: Optional[str]) -> str:
-        """开事故卡（走 `levels.raise_incident`；best-effort）"""
+        """开事故卡（走 `levels.raise_incident`；best-effort；同 scope+host 窗口内去重）"""
+        key = "%s|%s" % (verdict.scope, verdict.target_host)
+        now = time.monotonic()
+        with self._lock:
+            prev = self._card_seen.get(key)
+            if prev and (now - prev[0]) <= CARD_DEDUPE_WINDOW_SEC:
+                return prev[1]          # 同一作用域 + 同一外部目标：窗口内只开一张
+            if len(self._card_seen) >= CARD_DEDUPE_MAX_KEYS:
+                oldest = min(self._card_seen.items(), key=lambda kv: kv[1][0])[0]
+                self._card_seen.pop(oldest, None)
+        # 【2026-10-28】trace_id 缺省时从趋势上下文取 —— 卡里 trace_ids 为空时
+        # `IncidentCard.resolve()` 永远不满足六要素（实测 14/14 全是空 trace）。
+        if not str(trace_id or "").strip():
+            try:
+                from agent.observability.events import trace_fields
+                trace_id = str(trace_fields().get("trace_id") or "")
+            except Exception:  # noqa: BLE001
+                trace_id = ""
         try:
             from agent.self_healing.levels import HealLevel, raise_incident
             card = raise_incident(
@@ -408,6 +436,8 @@ class EgressChainMonitor:
                         "secret_source_refs": list(source_refs)[:20],
                         "breaker": CHAIN_BREAKER_NAME},
             )
+            with self._lock:
+                self._card_seen[key] = (now, card.incident_id)
             return card.incident_id
         except Exception as exc:  # noqa: BLE001
             logger.warning("出域链路事故卡开出失败: %s: %s", type(exc).__name__, exc)

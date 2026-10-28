@@ -376,6 +376,27 @@ describe('5. 自愈事故面板', () => {
     expect(screen.queryByText(/面板自动展开/)).toBeNull()
   })
 
+  it('缺要素的未闭合卡有专门提示（不可 resolve，不是待办事故）', async () => {
+    // 2026-10-28：14 张出域链"误报卡"五项全缺 ⇒ 按 §3 契约 resolve() 必抛；
+    // 面板必须把这事说清楚，否则操作者会把它们当 14 起待处理事故。
+    api.fetchIncidents.mockResolvedValue({
+      ...incidents,
+      open_count: M(2),
+      open_blocked_count: M(1),
+      open_resolvable_count: M(1),
+      resolve_hint: '缺要素的卡不可 resolved：补齐走 complete_incident()',
+      incidents: [
+        { ...incidents.incidents[0], id: 'inc-ready', missing_elements: [] },
+        { ...incidents.incidents[0], id: 'inc-blocked',
+          missing_elements: ['fatal_change', 'evasion_rule', 'trace_ids'] },
+      ],
+    })
+    render(<GovernancePanels panel="incidents" />)
+    expect(await screen.findByText(/张缺要素/)).toBeInTheDocument()
+    expect(await screen.findByText('缺要素 3')).toBeInTheDocument()
+    expect(await screen.findByText('六要素齐备')).toBeInTheDocument()
+  })
+
   it('MTTD/MTTR 缺位渲染 "—"（不补 0）', async () => {
     api.fetchIncidents.mockResolvedValue({
       ...incidents,

@@ -259,6 +259,32 @@ def _isolate_llm_monitor_snapshot(tmp_path_factory):
         _lm.PERSIST_FILE = _saved
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _isolate_healing_incidents(tmp_path_factory):
+    """把自愈事故卡目录隔离到会话级临时目录（**绝不写 data/healing_incidents/**）
+
+    Why（2026-10-28 实测，有真实后果）：面板「治理面板 · 自愈事故」长期显示 14 起未闭合，
+    全是出域链监测在**测试进程**里命中的卡 —— `target_host=api.example.com`（占位域）、
+    `trace_ids` 空、`missing_elements` 五项全缺，由 2026-10-01/10-03 的调试过程写入生产目录。
+    这些卡按 §3 契约**不可 resolve**（六要素不齐），只能人工归档 ⇒ 面板一直红、还自动展开。
+
+    `agent.self_healing.levels.incidents_dir()` 的优先级是「显式 > 环境变量 > 默认」，
+    所以这里只要设 `CP_HEALING_INCIDENTS_DIR`，任何**没有显式传目录**的调用都会落到临时目录。
+    想验证某个用例是否显式传目录（而不是靠本夹具兜底），见
+    `tests/unit/test_heal_incident_scope.py::test_生产事故目录在测试期间不被写入`。
+    """
+    import agent.self_healing.levels as _levels
+
+    target = tmp_path_factory.mktemp("healing_incidents")
+    prev = os.environ.get(_levels.ENV_INCIDENTS_DIR)
+    os.environ[_levels.ENV_INCIDENTS_DIR] = str(target)
+    yield target
+    if prev is None:
+        os.environ.pop(_levels.ENV_INCIDENTS_DIR, None)
+    else:
+        os.environ[_levels.ENV_INCIDENTS_DIR] = prev
+
+
 @pytest.fixture(autouse=True)
 def _reassert_approval_isolation(_isolate_approval_stores, monkeypatch):
     """逐用例**重新施加**审批落盘隔离（防中途 `import app_server` 把它冲掉）
