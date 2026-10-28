@@ -123,4 +123,29 @@ describe('SkillDetailDrawer', () => {
     fireEvent.click(screen.getByRole('button', { name: '刷新重复技能' }))
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt/s1/duplicates?min_jaccard=0.9'))
   })
+
+  it('重复：可就地合并到本技能（带备份），并可用 merge_id 撤销', async () => {
+    api.hubGet.mockResolvedValue({ ok: true, total: 1, duplicates: [{ skill_id: 'dup1', name: 'email-helper-2', jaccard: 0.93 }] })
+    api.hubPost.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt/assess/merge-safe') return { ok: true, merge_id: 'mg_1' }
+      if (url === '/api/skills-mgmt/assess/merge-undo') return { ok: true }
+      return { ok: true }
+    })
+    render(<SkillDetailDrawer skill={SKILL} onClose={() => {}} />)
+
+    openTab(/^重复$/)
+    await screen.findByText('dup1')
+    fireEvent.click(screen.getByRole('button', { name: '合并到本技能' }))
+    fireEvent.click(screen.getByRole('button', { name: '确认合并' }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith(
+      '/api/skills-mgmt/assess/merge-safe', { src_id: 'dup1', dst_id: 's1', strategy: 'auto' },
+    ))
+    expect(await screen.findByText(/合并进本技能/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /撤销合并/ }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith(
+      '/api/skills-mgmt/assess/merge-undo', { merge_id: 'mg_1' },
+    ))
+    expect(await screen.findByText(/已撤销合并/)).toBeTruthy()
+  })
 })

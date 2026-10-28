@@ -22,6 +22,8 @@ import {
 } from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
+  SKILLS_MGMT_ASSESS_MERGE_SAFE,
+  SKILLS_MGMT_ASSESS_MERGE_UNDO,
   skillDuplicates, skillExecute, skillFeedback, skillInstruction,
   skillOptimizeWithFeedback, skillParamStats, skillScripts,
 } from '@/api/endpoints'
@@ -113,6 +115,8 @@ interface DupRow { skill_id?: string; id?: string; name?: string; jaccard?: numb
 
 interface DupsResp { ok?: boolean; error?: string; duplicates?: DupRow[]; total?: number }
 
+interface MergeResp { ok?: boolean; error?: string; merge_id?: string; src_id?: string; dst_id?: string }
+
 /** JSON 兜底序列化：面板只负责「如实地显示」，不猜后端字段。 */
 function asJson(v: unknown): string {
   if (v === undefined || v === null) return ''
@@ -146,6 +150,10 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
   const [dups, setDups] = useState<DupsResp | null>(null)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState('')
+  // ── 合并（带备份/可撤销）：此前该动作只在已退役的「维护」Tab，重复列表只提示不给出口 ──
+  const [mergePending, setMergePending] = useState('')
+  const [mergeMsg, setMergeMsg] = useState('')
+  const [mergeId, setMergeId] = useState('')
 
   // ── 执行表单 ──
   const [scriptName, setScriptName] = useState('main.py')
@@ -201,6 +209,33 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
       if (r?.ok === false) { bad('读取反馈统计失败', r); setFeedback(null) } else setFeedback(r?.summary ?? null)
     } catch (e) { fail('读取反馈统计失败', e) } finally { setBusy('') }
   }, [id, fbDays])
+
+  /** 合并到本技能（dst=当前技能）：后端先写两侧快照，返回 merge_id 可撤销 */
+  const mergeInto = async (srcId: string) => {
+    setBusy('merge'); setErr(''); setMergeMsg('')
+    try {
+      const r = await hubPost<MergeResp>(SKILLS_MGMT_ASSESS_MERGE_SAFE,
+        { src_id: srcId, dst_id: id, strategy: 'auto' })
+      if (r?.ok === false) { setErr('合并失败：' + (r.error || '后端返回 ok=false')); return }
+      setMergeId(r?.merge_id ?? '')
+      setMergePending('')
+      setMergeMsg('已把「' + srcId + '」合并进本技能（已写备份，可用「撤销合并」回滚）。')
+      await loadDups()
+    } catch (e) { setErr('合并失败：' + (e instanceof Error ? e.message : String(e))) }
+    finally { setBusy('') }
+  }
+  const undoMerge = async () => {
+    if (!mergeId) return
+    setBusy('merge'); setErr(''); setMergeMsg('')
+    try {
+      const r = await hubPost<MergeResp>(SKILLS_MGMT_ASSESS_MERGE_UNDO, { merge_id: mergeId })
+      if (r?.ok === false) { setErr('撤销失败：' + (r.error || '后端返回 ok=false')); return }
+      setMergeMsg('已撤销合并 ' + mergeId + '（被合并的技能已恢复）。')
+      setMergeId('')
+      await loadDups()
+    } catch (e) { setErr('撤销失败：' + (e instanceof Error ? e.message : String(e))) }
+    finally { setBusy('') }
+  }
 
   const loadDups = useCallback(async (mj = minJaccard) => {
     setBusy('duplicates'); setErr('')
@@ -630,13 +665,34 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
                         <span className="ml-auto font-mono text-[10px] text-amber-300">
                           {d.jaccard !== undefined ? Number(d.jaccard).toFixed(3) : ''}
                         </span>
+                        {mergePending === key ? (
+                          <span className="flex flex-wrap items-center gap-1">
+                            <span className="text-[10px] text-amber-300">确认合并？会删除它并写备份</span>
+                            <button type="button" className={BTN} onClick={() => void mergeInto(key)} disabled={busy === 'merge'}>确认合并</button>
+                            <button type="button" className={BTN} onClick={() => setMergePending('')}>取消</button>
+                          </span>
+                        ) : (
+                          <button type="button" className={BTN} onClick={() => setMergePending(key)}
+                            disabled={busy !== ''} title="把该技能合并进本技能：先写两侧快照（可撤销），再删源技能">
+                            合并到本技能
+                          </button>
+                        )}
                       </div>
                     )
                   })}
                 </div>
               )}
+              {mergeMsg && (
+                <p className="mt-2 rounded-md border border-emerald-800/60 bg-emerald-950/20 px-2 py-1 text-[11px] text-emerald-300">{mergeMsg}</p>
+              )}
+              {mergeId && (
+                <button type="button" className={BTN + ' mt-2'} onClick={() => void undoMerge()} disabled={busy === 'merge'}>
+                  撤销合并（{mergeId}）
+                </button>
+              )}
               <p className="mt-2 text-[10px] text-slate-600">
-                这里只报告；真正合并（含回滚备份）在「技能中心 · 维护」里做。
+                合并 = 保留本技能、把对方内容作为一条版本并入并删除对方（**先写两侧快照**，可在这里撤销）。
+                这里按 Jaccard 阈值筛候选；「操作面重叠 / 共享触发面」的提示在报告面板里，两套口径互相独立。
               </p>
             </Section>
           )}

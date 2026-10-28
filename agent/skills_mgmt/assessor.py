@@ -573,11 +573,24 @@ def detect_native_duplicates(name: str = "", description: str = "",
 _TRIGGER_RE = re.compile(r"(?:^|\s)(?:slash|命令|tool|工具|函数|调用)[：:\s]*([a-z][a-z0-9_\-]{2,})", re.I)
 
 
+# 【2026-10-28 去噪】来源/内容类型标签**不是**触发面：它们描述「这技能从哪来、是什么形态」，
+# 不是「命中什么词就触发」。此前把它们算进触发词 ⇒ 实测 44 个技能里 349 对「共享触发词」，
+# 其中 340 对只共享 external/imported/markdown/distilled/from_knowledge/claude-skills 这类标签，
+# 而真正共享 slash 命令/工具名的 0 对 ⇒ 提示几乎全是噪音，用户只能整体忽略。
+_TRIGGER_TAG_IGNORE = {
+    "external", "imported", "markdown", "distilled", "from_knowledge",
+    "claude-skills", "claude_skills", "absorbed", "native-overlap",
+    "python", "javascript", "shell", "js",
+}
+
+
 def _claimed_triggers(skill: Skill) -> set:
     text = f"{skill.name} {skill.description or ''} {skill.content or ''}"
     out = set(m.group(1).lower() for m in _TRIGGER_RE.finditer(text))
     if skill.tags:
-        out.update(t.lower() for t in skill.tags if re.match(r"^[a-z][a-z0-9_\-]{2,}$", t))
+        out.update(t.lower() for t in skill.tags
+                   if re.match(r"^[a-z][a-z0-9_\-]{2,}$", t)
+                   and t.lower() not in _TRIGGER_TAG_IGNORE)
     return out
 
 
@@ -603,8 +616,8 @@ def _assess_compatibility(skill: Skill, others: List[Skill],
             findings.append(_finding(
                 "warn", "compatibility", "DUP_NATIVE_FUNC",
                 f"与云枢自身功能「{nat['name']}」（{nat['id']}）重叠"
-                f"（命中: {', '.join(nat['matched'])}）——原生未覆盖的增量内容仍会保留，"
-                f"按「增量吸收」并入使用（不再整包拒绝）；若确无增量建议停用或删除",
+                f"（命中: {', '.join(nat['matched'])}）——系统**未判定**是否有增量："
+                f"确认有增量则按「增量吸收」并入（打标保留），确无增量请停用或删除",
                 "name"))
 
     # 2) 与已装技能名称冲突 / 操作重叠 / 交互冲突
@@ -636,12 +649,12 @@ def _assess_compatibility(skill: Skill, others: List[Skill],
     if overlap_ids:
         findings.append(_finding(
             "warn", "compatibility", "OVL_OPERATION_OVERLAP",
-            f"与以下技能操作面重叠：{', '.join(overlap_ids[:5])}——可能让用户困惑或触发不稳定",
+            f"与以下技能操作面重叠（共 {len(overlap_ids)} 个，按名称+说明相似度 ≥45%）：{', '.join(overlap_ids[:5])}——可能让用户困惑或触发不稳定",
             "description"))
     if share_ids:
         findings.append(_finding(
             "warn", "compatibility", "INT_SHARED_TRIGGER",
-            f"与已启用技能共享触发词/工具声明：{', '.join(share_ids[:5])}——存在交互抢占冲突风险",
+            f"与 {len(share_ids)} 个已启用技能共享触发面（显式命令/工具名/语义标签，已排除来源标记）：{', '.join(share_ids[:5])}——存在交互抢占冲突风险",
             "content"))
 
     # 3) 资源竞争/性能（仅代码内容）

@@ -62,6 +62,28 @@ const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
 const BTN_RED = `${BTN} hover:bg-red-500/10 hover:text-red-400`
 
+// ── 列宽（可拖动）+ 说明全文弹窗 ──────────────────────────────────────
+// 中文说明长短差异极大（有的 20 字、有的 400 字），固定列宽要么截断要么把表撑爆；
+// 这里给「技能 / 说明 / 徽章 / 操作」四个内容列加拖动手柄，宽度存 localStorage。
+type ColKey = 'name' | 'desc' | 'badges' | 'status' | 'review' | 'score' | 'ops'
+const DEFAULT_COLS: Record<ColKey, number> = {
+  name: 260, desc: 340, badges: 220, status: 88, review: 88, score: 92, ops: 320,
+}
+const COL_STORE = 'yunshu.skills.table.cols.v1'
+
+function ColResizer({ onStart, onReset }: { onStart: (e: React.MouseEvent) => void; onReset: () => void }) {
+  return (
+    <span
+      role="separator"
+      aria-label="拖动调整列宽"
+      title="拖动调整列宽（双击恢复默认）"
+      onMouseDown={onStart}
+      onDoubleClick={onReset}
+      className="ml-1 inline-block h-3 w-1 cursor-col-resize rounded-sm bg-slate-700 align-middle hover:bg-cyan-500"
+    />
+  )
+}
+
 interface Finding { severity: string; category: string; code: string; message: string; location?: string }
 interface ReviewLike {
   status?: string; score?: number; security_score?: number; quality_score?: number
@@ -453,6 +475,41 @@ export default function SkillAssessManager() {
     e.currentTarget.closest('details')?.removeAttribute('open')
   }
 
+  // ── 可拖动列宽（持久化到 localStorage；双击手柄恢复默认）──────────────
+  const [cols, setCols] = useState<Record<ColKey, number>>(() => {
+    try {
+      const raw = localStorage.getItem(COL_STORE)
+      const parsed = raw ? (JSON.parse(raw) as Partial<Record<ColKey, number>>) : null
+      return { ...DEFAULT_COLS, ...(parsed ?? {}) }
+    } catch { return DEFAULT_COLS }
+  })
+  const dragRef = useRef<{ key: ColKey; x: number; w: number } | null>(null)
+  const startColDrag = (key: ColKey) => (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation()
+    dragRef.current = { key, x: e.clientX, w: cols[key] }
+    const move = (ev: MouseEvent) => {
+      const d = dragRef.current
+      if (!d) return
+      const next = Math.max(80, Math.min(720, d.w + (ev.clientX - d.x)))
+      setCols((prev) => ({ ...prev, [d.key]: next }))
+    }
+    const up = () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+      dragRef.current = null
+      setCols((prev) => { try { localStorage.setItem(COL_STORE, JSON.stringify(prev)) } catch { /* 隐私模式忽略 */ } return prev })
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
+  const resetCol = (key: ColKey) => setCols((prev) => {
+    const next = { ...prev, [key]: DEFAULT_COLS[key] }
+    try { localStorage.setItem(COL_STORE, JSON.stringify(next)) } catch { /* 忽略 */ }
+    return next
+  })
+  /** 说明全文弹窗：中文说明可达 400 字，列窄时用弹窗看全文而不是把表撑开 */
+  const [descTarget, setDescTarget] = useState<{ id: string; name: string; text: string } | null>(null)
+
   /** 资产行渲染（表格模式逐行；分类折叠模式下由分组头包裹） */
   const renderAssetRow = (it: SkillItem) => {
     const rv = it.review
@@ -472,7 +529,7 @@ export default function SkillAssessManager() {
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         </td>
-        <td className="w-[30%] min-w-48 max-w-104 px-2 py-2">
+        <td className="px-2 py-2 align-top">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="truncate font-medium text-slate-200">{it.name || it.id}</span>
             {it.class_name && (
@@ -482,10 +539,28 @@ export default function SkillAssessManager() {
             )}
             <CallabilityBadge info={it.callability ?? callability[it.id]} name={it.name || it.id} />
           </div>
-          {/* line-clamp 而非 truncate：truncate 的 nowrap 会把表格最小内容宽度顶到 max-w，窄屏白白多出横向滚动 */}
-          <div className="line-clamp-1 text-[10px] text-slate-500">{it.description_zh || it.description || ''}</div>
-          {/* 触发条件：发布+启用才参与运行时注入；命中方式=语义匹配(描述/标签/内容) */}
-          <div className="mt-1 flex flex-wrap items-center gap-1">
+          <div className="mt-0.5 truncate font-mono text-[9px] text-slate-600" title={`id: ${it.id}`}>{it.id}</div>
+        </td>
+        {/* 【2026-10-28】说明独立成列：3 行截断 + 悬浮看摘要 + 「查看全文」弹窗；不再和徽章挤一格 */}
+        <td className="px-2 py-2 align-top">
+          {(() => {
+            const text = String(it.description_zh || it.description || '').trim()
+            if (!text) return <span className="text-[10px] text-slate-600">（无说明）</span>
+            return (
+              <>
+                <div className="line-clamp-3 wrap-break-word text-[11px] leading-relaxed text-slate-400" title={text}>{text}</div>
+                {text.length > 60 && (
+                  <button type="button" className="mt-1 text-[10px] text-cyan-400 hover:text-cyan-300"
+                    onClick={() => setDescTarget({ id: it.id, name: it.name || it.id, text })}
+                    title="在弹窗里看完整说明（列宽不会被撑开）">查看全文</button>
+                )}
+              </>
+            )
+          })()}
+        </td>
+        {/* 徽章列：触发条件 / 指令型·脚本型 / 敏感 / 标签 */}
+        <td className="px-2 py-2 align-top">
+          <div className="flex flex-wrap items-center gap-1">
             {it.runtime_only
               ? chip('仅运行时·无资产记录', 'bg-violet-500/10 text-violet-300 border-violet-800/50', RUNTIME_ONLY_TIP)
               : it.enabled && (it.status === 'published' || it.status === 'approved')
@@ -495,10 +570,11 @@ export default function SkillAssessManager() {
               ? '脚本型·命中后执行脚本'
               : `指令型·命中后注入提示`, 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
             {it.is_sensitive && chip('敏感·隔离注入', 'bg-amber-500/10 text-amber-400 border-amber-800/60')}
-            {(it.tags ?? []).slice(0, 3).map((t) => chip(`#${t}`, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50'))}
+            {(it.tags ?? []).slice(0, 3).map((t) => <Fragment key={t}>{chip(`#${t}`, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50')}</Fragment>)}
+            {(it.tags ?? []).length > 3 && <span className="text-[9px] text-slate-600" title={(it.tags ?? []).slice(3).join(", ")}>+{(it.tags ?? []).length - 3}</span>}
           </div>
         </td>
-        <td className="px-2 py-2">
+        <td className="px-2 py-2 align-top">
           <div className="flex flex-wrap gap-1">
             {it.runtime_only ? chip('仅运行时', 'bg-violet-500/10 text-violet-300 border-violet-800/50', RUNTIME_ONLY_TIP) : statusChip(it.status)}
             {it.enabled ? chip('启用', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : chip('停用', 'bg-slate-500/10 text-slate-400 border-slate-700')}
@@ -578,7 +654,7 @@ export default function SkillAssessManager() {
       {/* 报告必须紧跟本行（原来渲染在表格外，展开后报告飘到页尾，看不出属于哪一行） */}
       {open && (
         <tr className="bg-slate-950/40">
-          <td colSpan={6} className="px-2 pb-2">
+          <td colSpan={8} className="px-2 pb-2">
             <ReportPanel item={it} onClose={() => toggleRow(it.id)} />
           </td>
         </tr>
@@ -592,7 +668,7 @@ export default function SkillAssessManager() {
     if (!grouped) return items.map(renderAssetRow)
     if (!classView) {
       return (
-        <tr><td colSpan={6} className="px-2 py-4 text-[11px] text-slate-500">
+        <tr><td colSpan={8} className="px-2 py-4 text-[11px] text-slate-500">
           <Loader2 size={12} className="mr-1 inline animate-spin" /> 分类视图加载中…
         </td></tr>
       )
@@ -604,7 +680,7 @@ export default function SkillAssessManager() {
       const g = classView.find((x) => x.name === name)
       out.push(
         <tr key={`g-${name}`} className="bg-slate-900/85">
-          <td colSpan={6} className="px-1.5 py-1">
+          <td colSpan={8} className="px-1.5 py-1">
             <button type="button" onClick={() => toggleCls(name)} className="flex w-full items-center gap-2 rounded-sm px-1.5 py-1 text-left hover:bg-slate-800/60" title={isOpen ? '折叠该类' : '展开该类'}>
               {isOpen ? <ChevronDown size={13} className="shrink-0 text-slate-400" /> : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
               <ClassIcon name={name} size={13} className="shrink-0 text-cyan-400" />
@@ -696,8 +772,8 @@ export default function SkillAssessManager() {
             {busy === '自动分类' ? <Loader2 size={12} className="animate-spin" /> : <Folder size={12} />}
             {uncCount > 0 ? `一键归类未分类(${uncCount})` : '重新自动分类'}
           </button>
-          <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="评审动态：评估事件 + 人工复核/发布审计聚合时间线">
-            评审动态
+          <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="动态中心：评估事件 + 人工复核/发布审计（按数据源分 TAB，不再有第二个同名入口）">
+            动态中心
           </button>
           <button type="button" className={BTN} onClick={() => void load()} disabled={busy !== ''}>
             <RefreshCw size={12} /> 刷新
@@ -721,15 +797,23 @@ export default function SkillAssessManager() {
       ) : (
         // 窄屏不压扁 6 列（会挤成不可读的一团）：给表一个最小宽度，横向滚动看全列
         <div className="overflow-x-auto rounded-lg border border-slate-800">
-          <table className="w-full min-w-[760px] text-left text-xs">
+          <table className="w-full table-fixed text-left text-xs" style={{ minWidth: 980 }}>
+            <colgroup>
+              <col style={{ width: 32 }} />
+              {(['name', 'desc', 'badges', 'status', 'review', 'score', 'ops'] as ColKey[]).map((k) => (
+                <col key={k} style={{ width: cols[k] }} />
+              ))}
+            </colgroup>
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-500">
-                <th className="w-8 px-2 py-1.5" />
-                <th className="w-[30%] min-w-48 px-2 py-1.5 font-medium">技能</th>
-                <th className="w-26 px-2 py-1.5 font-medium">状态</th>
-                <th className="w-22 px-2 py-1.5 font-medium">评审</th>
-                <th className="w-24 px-2 py-1.5 font-medium">安全/质量/兼容</th>
-                <th className="w-[18rem] px-2 py-1.5 font-medium">操作</th>
+                <th className="px-2 py-1.5" />
+                <th className="px-2 py-1.5 font-medium">技能<ColResizer onStart={startColDrag('name')} onReset={() => resetCol('name')} /></th>
+                <th className="px-2 py-1.5 font-medium">说明<ColResizer onStart={startColDrag('desc')} onReset={() => resetCol('desc')} /></th>
+                <th className="px-2 py-1.5 font-medium">徽章<ColResizer onStart={startColDrag('badges')} onReset={() => resetCol('badges')} /></th>
+                <th className="px-2 py-1.5 font-medium">状态</th>
+                <th className="px-2 py-1.5 font-medium">评审</th>
+                <th className="px-2 py-1.5 font-medium">安全/质量/兼容</th>
+                <th className="px-2 py-1.5 font-medium">操作<ColResizer onStart={startColDrag('ops')} onReset={() => resetCol('ops')} /></th>
               </tr>
             </thead>
             <tbody>
@@ -796,6 +880,16 @@ export default function SkillAssessManager() {
       {cmdTarget && (
         <CommandModal item={cmdTarget} onClose={() => setCmdTarget(null)} onDone={() => void load()} />
       )}
+      {descTarget && (
+        <ModalShell title={`说明 · ${descTarget.name}`} onClose={() => setDescTarget(null)}>
+          <p className="mb-2 font-mono text-[10px] text-slate-500">技能 id：{descTarget.id} · {descTarget.text.length} 字</p>
+          <div className="max-h-96 overflow-y-auto whitespace-pre-wrap wrap-break-word rounded-md border border-slate-800 bg-slate-950 p-2.5 text-[12px] leading-relaxed text-slate-300">{descTarget.text}</div>
+          <div className="mt-3 flex justify-end gap-2">
+            <button type="button" className={BTN} onClick={() => { void navigator.clipboard?.writeText(descTarget.text) }}>复制说明</button>
+            <button type="button" className={BTN} onClick={() => setDescTarget(null)}>关闭</button>
+          </div>
+        </ModalShell>
+      )}
       {contentTarget && (
         <SkillContentModal skill={contentTarget} onClose={() => setContentTarget(null)} />
       )}
@@ -804,25 +898,29 @@ export default function SkillAssessManager() {
       )}
 
 
-      {/* 评估结果动态（轻量推送源：轮询 + 未读角标 + 原生通知） */}
+      {/* 评估通知（轻量推送源：未读角标 + 原生通知）。全量时间线在「动态中心」一处， */}
+      {/* 本卡片只做「有新结果」的提示，不再重复展示同一事件流的长列表（2026-10-28）。 */}
       <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/30">
         <div className="flex flex-wrap items-center gap-2 px-3 py-2">
           <Zap size={12} className="text-cyan-400" />
-          <span className="text-xs font-medium text-slate-200">评估动态</span>
+          <span className="text-xs font-medium text-slate-200">评估通知</span>
           <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{events.length}</span>
           {unread > 0 && (
-            <span className="rounded-full bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300" title={`${unread} 条未读（在技能中心内每 15s 轮询；授权后新结果会发系统通知）`}>
+            <span className="rounded-full bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300" title={`${unread} 条未读（长轮询；授权后新结果会发系统通知）`}>
               {unread} 新
             </span>
           )}
-          <span className="text-[10px] text-slate-600">评估结果推送 · 未读角标与浏览器通知（需授权）</span>
+          <span className="text-[10px] text-slate-600">只显示最新 3 条 · 未读角标与浏览器通知（需授权）</span>
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
             {unread > 0 && (
               <button type="button" className={BTN} onClick={markEventsSeen} title="把当前全部事件标记为已读">
                 全部已读
               </button>
             )}
-            <button type="button" className={BTN} onClick={() => void exportOverview()} title="导出审计(人工复核)+评估动态 合并 CSV">
+            <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="打开完整时间线（评估 / 人工复核 TAB + 分页 + 按技能过滤）">
+              打开动态中心
+            </button>
+            <button type="button" className={BTN} onClick={() => void exportOverview()} title="导出审计(人工复核)+评估事件 合并 CSV">
               <Download size={11} /> 导出总览(审计+动态)
             </button>
             <button type="button" className={BTN} onClick={() => void loadEvents()} title="刷新 评估事件">
@@ -833,7 +931,7 @@ export default function SkillAssessManager() {
         {events.length > 0 && (
           <div className="border-t border-slate-800 px-3 pb-2 pt-2">
             <div className="flex flex-col gap-1">
-              {events.slice(0, 8).map((e, i) => (
+              {events.slice(0, 3).map((e, i) => (
                 <div key={`${e.ts}-${i}`} className="flex flex-wrap items-center gap-1.5 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[10px] text-slate-400">
                   <span className="font-mono text-[9px] text-slate-600">{e.kind ?? ''}</span>
                   <span className="text-cyan-300">{e.skill_id ?? ''}</span>
@@ -1389,10 +1487,30 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
   }, [filterId])
   useEffect(() => { void load(0, false) }, [load])
   const applyFilter = () => setFilterId(draft.trim())
+  // 【2026-10-28】「评估动态」与「评审动态」不是两套数据（feed = 评估事件 + 复核审计），
+  // 只是同一事件流的两个入口。这里按数据源拆 3 个 TAB，把两个入口收成一个「动态中心」；
+  // 默认「全部」保持旧行为，kind 由 feed 自带（assess/audit），不需要后端改动。
+  const [kindTab, setKindTab] = useState<'all' | 'assess' | 'audit'>('all')
+  const assessCount = items.filter((r) => r.kind !== 'audit').length
+  const auditCount = items.length - assessCount
+  const shown = kindTab === 'all' ? items : items.filter((r) => (kindTab === 'audit') === (r.kind === 'audit'))
   return (
-    <ModalShell title="评审动态（评估 + 发布审计）" onClose={onClose}>
+    <ModalShell title="动态中心（评估 + 人工复核）" onClose={onClose}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-slate-500">已加载 {items.length} 条（时间倒序，分页加载）</span>
+        <div className="flex items-center gap-1" role="tablist" aria-label="动态类型">
+          {([
+            ['all', '全部', items.length],
+            ['assess', '评估', assessCount],
+            ['audit', '人工复核', auditCount],
+          ] as const).map(([key, label, n]) => (
+            <button key={key} type="button" role="tab" aria-selected={kindTab === key}
+              onClick={() => setKindTab(key)}
+              className={kindTab === key ? BTN_EM : BTN}>
+              {label}（{n}）
+            </button>
+          ))}
+        </div>
         <input
           className={`${INPUT} mb-0! w-44`}
           value={draft}
@@ -1416,11 +1534,11 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
       {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
       {busy ? (
         <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 加载中…</div>
-      ) : items.length === 0 ? (
-        <p className="py-4 text-[11px] text-slate-500">暂无动态。</p>
+      ) : shown.length === 0 ? (
+        <p className="py-4 text-[11px] text-slate-500">{items.length === 0 ? '暂无动态。' : '该类型暂无记录（切到「全部」看看）。'}</p>
       ) : (
         <ul className="max-h-104 space-y-1 overflow-y-auto pr-1">
-          {items.map((r, i) => (
+          {shown.map((r, i) => (
             <li key={`${r.ts}-${i}`} className="flex items-start gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
               {chip(r.kind === 'audit' ? '审计' : '评估', r.kind === 'audit' ? 'bg-amber-500/10 text-amber-400 border-amber-800/60' : 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
               {onPick && r.skill_id ? (
