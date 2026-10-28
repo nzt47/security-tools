@@ -1,0 +1,122 @@
+{
+ "schema": 1,
+ "title": "按实测耗时均衡分片用的每文件耗时权重（秒）",
+ "generated_at": "2026-10-28",
+ "generator": "python scripts/regen_shard_time_weights.py --mode integration --shards 4 --junit-dir <运行时目录> --run 40636453338 40654228754 40561856022 --date 2026-10-28",
+ "unit": "seconds (pytest junit time 属性累加；跨 3 次 CI run 取中位数)",
+ "measurement_context": {
+  "mode": "integration",
+  "workflow": "ci.yml / integration-tests",
+  "runs": [
+   "40636453338",
+   "40654228754",
+   "40561856022"
+  ],
+  "test_root": "tests/integration",
+  "command": "pytest <split_unit_tests.py --root tests/integration --shards 4 --by=time> -m \"not slow and not e2e and not requires_llm and not skip_ci\" --timeout=300",
+  "env": "SKILLS_OFFLINE=1 AGENT_HYBRID_EMBEDDING=0",
+  "runner": "ubuntu-22.04"
+ },
+ "calibration": {
+  "measured_seconds_total": 164.132,
+  "measured_tests_total": 1907,
+  "measured_files": 59,
+  "default_seconds_per_test": 0.086068,
+  "default_derivation": "本表未覆盖的文件按「条数 x 该单位耗时」定标；单位耗时 = 各文件中位数合计 / 用例合计",
+  "parallel_throughput": 0.87974,
+  "parallel_throughput_derivation": "各 run 的「实测秒数合计 / 各 shard 测试步骤墙钟合计」取均值；含每 shard 固定开销，故是并行度下界",
+  "observed_shards": {
+   "1": {
+    "tests": 158,
+    "junit_s": 13.893,
+    "step_s": 18.0
+   },
+   "2": {
+    "tests": 612,
+    "junit_s": 35.698,
+    "step_s": 39.0
+   },
+   "3": {
+    "tests": 540,
+    "junit_s": 72.402,
+    "step_s": 79.0
+   },
+   "4": {
+    "tests": 597,
+    "junit_s": 40.694,
+    "step_s": 46.0
+   }
+  }
+ },
+ "sources": {
+  "ci_junit": "Artifact full-project-tests-results-shard*/junit.xml（manifest 见 measurement_context.runs）",
+  "unmeasured_files": [
+   "tests/integration/test_alert_chain.py",
+   "tests/integration/test_context_engineering_demo.py",
+   "tests/integration/test_context_engineering_verify.py",
+   "tests/integration/test_task_scheduler_integration.py"
+  ],
+  "unmeasured_count": 4
+ },
+ "files": {
+  "tests/integration/test_ab_testing_integration.py": 0.181,
+  "tests/integration/test_adapters_integration.py": 1.797,
+  "tests/integration/test_agent_integration.py": 0.056,
+  "tests/integration/test_agent_lines_http_real_server.py": 1.5,
+  "tests/integration/test_alert_notifier_integration.py": 3.316,
+  "tests/integration/test_arch_rules_integration.py": 0.408,
+  "tests/integration/test_audit_trace.py": 0.048,
+  "tests/integration/test_auto_tuner_integration.py": 0.454,
+  "tests/integration/test_chaos_injector_integration.py": 8.012,
+  "tests/integration/test_chat_full_pipeline.py": 19.107,
+  "tests/integration/test_circuit_breaker_degrade_flow.py": 3.943,
+  "tests/integration/test_cognitive_workflow.py": 0.017,
+  "tests/integration/test_crawler_control_integration.py": 0.617,
+  "tests/integration/test_digital_life_integration.py": 11.947,
+  "tests/integration/test_disaster_recovery_e2e.py": 0.345,
+  "tests/integration/test_evolution_integration.py": 0.636,
+  "tests/integration/test_feedback_integration.py": 0.078,
+  "tests/integration/test_git_sync_e2e.py": 1.23,
+  "tests/integration/test_guardrails_orchestrator.py": 0.015,
+  "tests/integration/test_health_score_integration.py": 0.407,
+  "tests/integration/test_hitl_tools.py": 0.014,
+  "tests/integration/test_impact_analysis.py": 0.227,
+  "tests/integration/test_imports.py": 0.597,
+  "tests/integration/test_knowledge_audit_ci_edge.py": 0.669,
+  "tests/integration/test_lifecycle_manager_memory_router.py": 0.06,
+  "tests/integration/test_memory_abstractor_integration.py": 0.445,
+  "tests/integration/test_memory_consistency.py": 0.274,
+  "tests/integration/test_memory_reviewer_integration.py": 0.126,
+  "tests/integration/test_model_router_cost.py": 0.015,
+  "tests/integration/test_observability_security.py": 0.015,
+  "tests/integration/test_orchestrator三层路由_e2e.py": 1.268,
+  "tests/integration/test_performance_optimization_integration.py": 0.375,
+  "tests/integration/test_permission_gateway_e2e.py": 0.186,
+  "tests/integration/test_planning_budget_degrade_concurrency.py": 1.423,
+  "tests/integration/test_planning_cancel_concurrency.py": 0.677,
+  "tests/integration/test_planning_core.py": 8.765,
+  "tests/integration/test_planning_failure_reflection_e2e.py": 0.021,
+  "tests/integration/test_planning_state_machine_flow.py": 7.364,
+  "tests/integration/test_rate_limit_api_gateway.py": 2.517,
+  "tests/integration/test_replay_storage_integration.py": 0.48,
+  "tests/integration/test_resource_monitor_integration.py": 13.893,
+  "tests/integration/test_routes_logging_integration.py": 1.753,
+  "tests/integration/test_routes_memory_review.py": 0.197,
+  "tests/integration/test_routes_skills_mgmt_integration.py": 0.37,
+  "tests/integration/test_scheduling_integration.py": 7.254,
+  "tests/integration/test_self_healer_integration.py": 5.36,
+  "tests/integration/test_serialization_integration.py": 0.033,
+  "tests/integration/test_short_term_memory_integration.py": 0.042,
+  "tests/integration/test_skill_converter_integration.py": 0.056,
+  "tests/integration/test_skill_install_loop.py": 5.553,
+  "tests/integration/test_skills_workflow_flow.py": 0.458,
+  "tests/integration/test_snapshot_integration.py": 0.799,
+  "tests/integration/test_task7_alert_escalation.py": 0.094,
+  "tests/integration/test_tlm_bidirectional_sync.py": 4.672,
+  "tests/integration/test_tlm_embedding_search_e2e.py": 0.526,
+  "tests/integration/test_tlm三层路由_e2e.py": 0.164,
+  "tests/integration/test_trace_integration.py": 0.155,
+  "tests/integration/test_verification_flow.py": 0.043,
+  "tests/integration/test_visibility_report.py": 43.078
+ }
+}

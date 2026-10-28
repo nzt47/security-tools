@@ -1022,10 +1022,17 @@ jobs:
         run: |
           mkdir -p test-results
           echo "=== 运行集成测试（Shard ${{ matrix.shard }}/4）==="
-          # 【变易·TASK-06 路线3 2026-09-21】--by=time：与单元测试分片同口径（按实测
-          #   耗时均衡）。集成测试只有 13/63 个文件在权重表内有 CI 实测值，其余按
-          #   实测标定的单位耗时定标；本 job 的耗时口径属"待下一轮 CI 确认"项。
-          #   回退：--by=count。
+          # 【变易·TASK-06 路线3 2026-09-21】--by=time：与单元测试分片同口径
+          #   （按实测耗时均衡）。回退：--by=count。
+          # 【变易·2026-10-28】本 job 改用**自己的**权重表
+          #   scripts/shard_time_weights_integration.json：本 job 带
+          #   -m "not slow and not e2e and not requires_llm and not skip_ci"，
+          #   同一批文件的实测秒数与全项目/单元 job 不是同一个量。此前共用通用表时
+          #   63 个文件里只有 13 个有本 job 口径的实测值；若按通用表（全项目口径）
+          #   分配，会把在本 job 被过滤掉的慢文件（test_digital_life_integration
+          #   等）为均衡而各自单独压成一个分片，一旦该分片收集到 0 条用例，
+          #   pytest 退出码 5 ⇒ job 假红。选表逻辑见 split_unit_tests.WEIGHTS_BY_ROOT
+          #   （专属表缺失时回退通用表，不报错）。
           pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 4 --root tests/integration --by=time) \
             -v \
             --tb=short \
