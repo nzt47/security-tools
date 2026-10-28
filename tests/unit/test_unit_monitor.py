@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import datetime, timezone
 
 import pytest
 
@@ -129,3 +130,46 @@ def test_probe_workflows_never_when_empty(tmp_path, monkeypatch):
     (tmp_path / "data" / "learned_workflows.json").write_text(json.dumps({"workflows": []}), encoding="utf-8")
     r = up.probe_workflows()
     assert r["status"] == "never"
+
+
+def _usage_fixture(tmp_path, monkeypatch, *, enabled, hits):
+    """写一份技能主轨 + 使用台账：enabled=启用技能 id，hits=每条 match 事件命中的技能 id。"""
+    monkeypatch.setattr(up, "_ROOT", tmp_path)
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "skills_mgmt.json").write_text(
+        json.dumps({"skills": {sid: {"enabled": True} for sid in enabled}}), encoding="utf-8")
+    log = tmp_path / "usage.jsonl"
+    monkeypatch.setenv("CP_SKILL_USAGE_LOG", str(log))
+    now = datetime.now(timezone.utc).isoformat()
+    log.write_text("".join(json.dumps({"ts": now, "stage": "match", "skill_id": sid}) + "\n"
+                           for sid in hits), encoding="utf-8")
+
+
+def test_probe_skills_usage_small_sample_is_not_warned(tmp_path, monkeypatch):
+    # 1 次 miss 属样本不足：不能在「43 个启用技能」上判 0 命中（2026-10-29 线上误报）。
+    _usage_fixture(tmp_path, monkeypatch, enabled=["a", "b", "c"], hits=[""])
+    r = up.probe_skills_usage()
+    assert r["status"] == "ok"
+    assert r["issues"] == []
+    assert r["metrics"]["sample_sufficient"] is False
+    assert "样本不足" in r["summary"]
+
+
+def test_probe_skills_usage_warns_when_zero_hit_share_high(tmp_path, monkeypatch):
+    enabled = ["s%d" % i for i in range(10)]
+    # 20 次 match 只命中 1 个技能 ⇒ 0 命中占比 90% > 80% 阈值。
+    _usage_fixture(tmp_path, monkeypatch, enabled=enabled, hits=["s0"] * 20)
+    r = up.probe_skills_usage()
+    assert r["status"] == "warn"
+    assert r["metrics"]["zero_hit_ratio"] > up.USAGE_WARN_ZERO_HIT_RATIO
+    assert r["issues"] and "90%" in r["issues"][0]
+
+
+def test_probe_skills_usage_ok_when_most_skills_get_hit(tmp_path, monkeypatch):
+    enabled = ["s%d" % i for i in range(10)]
+    hits = ["s0"] * 5 + ["s1"] * 5 + ["s2"] * 5 + ["s3"] * 5
+    _usage_fixture(tmp_path, monkeypatch, enabled=enabled, hits=hits)
+    r = up.probe_skills_usage()
+    assert r["status"] == "ok"
+    assert r["issues"] == []
+    assert r["metrics"]["zero_hit_ratio"] < up.USAGE_WARN_ZERO_HIT_RATIO

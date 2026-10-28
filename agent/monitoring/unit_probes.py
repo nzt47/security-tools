@@ -123,6 +123,14 @@ def probe_skills_registry() -> Dict[str, Any]:
             "issues": issues, "last_activity": _mtime(_p("data/skills_mgmt.json"))}
 
 
+#: 「0 命中」告警的最小样本量：match 次数太少时，0 命中是噪声而不是缺陷
+#: （2026-10-29 实测：1 次 miss 就让「43 个启用技能 0 命中」变 warn）。
+#: 放模块常量而不是调用点字面量 —— 硬编码边界门禁只认字面量。
+USAGE_WARN_MIN_MATCH_CALLS = 20
+#: 启用技能里「近 7 天 0 命中」的占比阈值，超过才 warn（少量冷门技能不命中是常态）。
+USAGE_WARN_ZERO_HIT_RATIO = 0.8
+
+
 def probe_skills_usage() -> Dict[str, Any]:
     try:
         from agent.skills_mgmt import usage_log
@@ -130,26 +138,39 @@ def probe_skills_usage() -> Dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         return {"status": "error", "summary": "台账读取失败: %s" % exc}
     tot = s["totals"]
+    match_calls = int(tot["match_calls"])
     skills = _skill_registry()
     enabled_ids = {sid for sid, row in skills.items()
                    if isinstance(row, dict) and row.get("enabled", True)}
     hit_ids = {sid for sid, row in s["skills"].items() if row.get("hits")}
     zero_hit = sorted(enabled_ids - hit_ids)
+    enabled_total = len(enabled_ids)
+    zero_ratio = (len(zero_hit) / enabled_total) if enabled_total else 0.0
+    sample_ok = match_calls >= USAGE_WARN_MIN_MATCH_CALLS
     issues: List[str] = []
-    if tot["match_calls"] == 0:
+    if match_calls == 0:
         status = "never"
         issues.append("近 7 天没有任何命中记录（语义层没跑过或台账未接上）")
-    elif zero_hit:
+    elif not sample_ok:
+        # 小样本下「0 命中」是噪声：1 次 miss 不能证明 43 个技能都没用（2026-10-29 实测误报）。
+        status = "ok"
+    elif zero_ratio > USAGE_WARN_ZERO_HIT_RATIO:
         status = "warn"
-        issues.append("%d 个启用技能近 7 天 0 命中（例：%s）"
-                      % (len(zero_hit), "、".join(zero_hit[:3])))
+        issues.append("启用技能中 %d/%d（%.0f%%）近 7 天 0 命中（例：%s）"
+                      % (len(zero_hit), enabled_total, zero_ratio * 100,
+                         "、".join(zero_hit[:3])))
     else:
         status = "ok"
     summary = "近 7 天：命中 %d 次（命中率 %.0f%%）· 加载 %d · 执行 %d 成功/%d 失败" % (
         tot["hit_calls"], tot["hit_rate"] * 100, tot["load_calls"],
         tot["exec_ok"], tot["exec_fail"])
+    if 0 < match_calls < USAGE_WARN_MIN_MATCH_CALLS:
+        summary += " · 样本不足（match %d<%d），暂不判定 0 命中" % (
+            match_calls, USAGE_WARN_MIN_MATCH_CALLS)
     return {"status": status, "summary": summary,
             "metrics": dict(tot, zero_hit_enabled=len(zero_hit),
+                            zero_hit_ratio=round(zero_ratio, 3),
+                            sample_sufficient=sample_ok,
                             zero_hit_sample=zero_hit[:10]),
             "issues": issues, "last_activity": _mtime(usage_log.usage_path())}
 
