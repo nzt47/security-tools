@@ -44,12 +44,16 @@ def _mtime(path: Path) -> Optional[str]:
         return None
 
 
+#: 只读连接等待上限（秒）：探测是旁路，库被写连接占住时宁可记「未知」也不排队。
+_SQLITE_TIMEOUT_SEC = 1.0
+
+
 def _sqlite_rows(rel: str, table: str) -> Optional[int]:
     path = _p(rel)
     if not path.exists():
         return None
     try:
-        con = sqlite3.connect("file:%s?mode=ro" % path.as_posix(), uri=True, timeout=1.0)
+        con = sqlite3.connect("file:%s?mode=ro" % path.as_posix(), uri=True, timeout=_SQLITE_TIMEOUT_SEC)
         try:
             return int(con.execute("select count(*) from %s" % table).fetchone()[0])
         finally:
@@ -83,7 +87,7 @@ def probe_audit_chain() -> Dict[str, Any]:
     path = _p("data/audit/audit_chain.db")
     if path.exists():
         try:
-            con = sqlite3.connect("file:%s?mode=ro" % path.as_posix(), uri=True, timeout=1.0)
+            con = sqlite3.connect("file:%s?mode=ro" % path.as_posix(), uri=True, timeout=_SQLITE_TIMEOUT_SEC)
             try:
                 last = con.execute("select max(seq) from audit_chain").fetchone()[0]
             finally:

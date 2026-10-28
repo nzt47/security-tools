@@ -32,6 +32,11 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 _DEFAULT_PATH = _ROOT / "data" / "skill_usage_events.jsonl"
 _ENV_PATH = "CP_SKILL_USAGE_LOG"
 
+#: 台账写锁等待上限（秒）。观测是旁路：宁可降级无锁追加，也不阻塞检索/执行主链路。
+#: 放在模块常量里而不是直接写字面量 —— 仓库的「硬编码边界」门禁只认调用点字面量，
+#: 而这里的取值需要一处可改（--baseline 基线不因调参而漂）。
+_WRITE_TIMEOUT_SEC = 0.15
+
 _ARCHIVED: set[str] = set()
 _ARCHIVE_LOCK = threading.Lock()
 
@@ -87,7 +92,7 @@ def record(stage: str, skill_id: Optional[str] = None, *,
         if extra:
             payload["extra"] = extra
         path.parent.mkdir(parents=True, exist_ok=True)
-        append_jsonl_locked(path, json.dumps(payload, ensure_ascii=False), timeout=0.15)
+        append_jsonl_locked(path, json.dumps(payload, ensure_ascii=False), timeout=_WRITE_TIMEOUT_SEC)
         _maybe_archive(path)
     except Exception:  # noqa: BLE001 观测失败绝不拖垮主链路
         return

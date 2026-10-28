@@ -2728,6 +2728,14 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "回到改动前）[G1C-U1；agent/skills_mgmt/loader.py:88,132,383]",
        owner="agent/skills_mgmt/loader.py"),
 
+    # · 2026-10-28：技能使用台账落盘路径（测试隔离 / 需要换盘位时覆盖）
+    _c("CP_SKILL_USAGE_LOG", CAT_SKILLS, None,
+       "技能使用台账（data/skill_usage_events.jsonl）的路径覆盖；缺省 None ⇒ 用默认路径。"
+       "台账记录 match/load/exec 三阶段的按技能使用情况，供技能中心「近 7 日」列与"
+       "「功能单位工作状况」看板消费；测试用它隔离到临时文件，避免假数据写进生产台账"
+       "[2026-10-28；agent/skills_mgmt/usage_log.py:41]",
+       owner="agent/skills_mgmt/usage_log.py", needs_restart=True),
+
     # · P0-1 补（2026-09-29）：向量腿预热 + CI 离线否决
     _a("CP_SKILL_VECTOR_PREWARM", CAT_SKILLS, True,
        "启动期是否**后台预热技能检索的向量腿**（默认开）。Why：SkillLoader 默认不初始化向量"
