@@ -562,6 +562,20 @@ def _wire_complexity_meets(message: str, min_complexity: str) -> bool:
     return _WIRE_COMPLEXITY_LEVELS.get(_judge_wire_complexity(message), 0) >= min_level
 
 
+def _reflection_note_from_lesson(it: dict) -> str:
+    """把 planning/reflector 写的反思条目拼成可注入文本（空 → 空串）。
+
+    兼容写入侧真实键 task_description / failure_point / solution；只取非空字段，
+    避免把 "None / None / None" 注进上下文。
+    """
+    parts = []
+    for key in ("task_description", "failure_point", "solution"):
+        val = str(it.get(key) or "").strip()
+        if val:
+            parts.append(val)
+    return " / ".join(parts)
+
+
 class Orchestrator:
     """云枢主编排器
 
@@ -4065,6 +4079,13 @@ class Orchestrator:
                     if not isinstance(it, dict):
                         continue
                     note = it.get("note") or it.get("content") or it.get("lesson") or it.get("experience")
+                    if not note:
+                        # 【2026-10-28】读写契约对不上：planning/reflector.py 写的是
+                        # task_description / failure_point / solution，而这里只认
+                        # note/content/lesson/experience ⇒ data/reflection/lessons.json
+                        # 唯一一条永远读不出来，装配侧「反思经验」长期 0 注入（实测）。
+                        # 按写入侧真实键拼一条可读经验，而不是静默跳过。
+                        note = _reflection_note_from_lesson(it)
                     if not note:
                         continue
                     chunks.append({

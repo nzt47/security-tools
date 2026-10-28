@@ -395,6 +395,29 @@ class MemoryManager:
             step_elapsed = (time.time() - step_start) * 1000
             logger.warning("│   └─ ✓ LLM 返回摘要长度: %d 字符, 耗时: %.2fms", len(summary) if summary else 0, step_elapsed)
 
+            # 【2026-10-28】空摘要守卫：LLM 返回 0 字符时**不得落盘**。
+            # 生产实测 30 次压缩里 22 次 0 字符（推理型模型把 max_tokens 吃满），
+            # 旧代码照样 save_summary 并把版本号 +1 ⇒ summary.txt 0 字节、版本到 88；
+            # 还顺手清掉 _need_compress，要再攒满 100 条消息才会重试。
+            if not (summary or "").strip():
+                streak = getattr(self, "_empty_compress_streak", 0) + 1
+                self._empty_compress_streak = streak
+                logger.error("│   └─ ✗ 摘要为空，拒绝落盘（版本保持 %d 不变，连续第 %d 次）",
+                             old_version, streak)
+                try:
+                    self._black_box.log("memory_compress_empty", {
+                        "old_version": old_version,
+                        "messages_count": len(recent_messages),
+                        "execution_time_ms": (time.time() - total_start) * 1000,
+                    })
+                except Exception:  # noqa: BLE001 观测失败不影响压缩决策
+                    pass
+                if streak >= 3:
+                    # 连续空摘要说明当前模型/预算组合不可用：先放弃本轮，别每分钟烧 LLM
+                    logger.error("│   └─ 连续 %d 次空摘要，本轮放弃（保留消息，等下一次触发）", streak)
+                    self._need_compress = False
+                return False
+
             step_start = time.time()
             if old_summary:
                 old_text, old_version = old_summary
@@ -410,6 +433,7 @@ class MemoryManager:
             step_start = time.time()
             logger.warning("├─ [步骤5] 保存摘要 (版本 %d)", new_version)
             self._storage.save_summary(summary, new_version)
+            self._empty_compress_streak = 0
             # [2026-08-15 并发修复] 写入后同步刷新摘要缓存，避免请求线程
             # 读到一帧旧摘要（compress_rounds / get_context 使用）
             self._summary_cache = (summary, new_version)
