@@ -2562,7 +2562,10 @@ class Orchestrator:
             # 加载 top1 技能的 instruction（Layer 2）— 命中后短路返回的关键
             # 【不易】load_instruction 失败或返回空 → 降级 LLM（不抛异常）
             try:
-                instr_data = svc.loader.load_instruction(top1.skill_id)
+                # 【2026-10-28】改用 service 入口：它带「无文件轨 → 回退主轨 content」的兜底。
+                # 直接用 svc.loader 时，8 个只有主轨的技能（external_agent 运行期导入的那批）
+                # 即使 L1 命中也会 instruction_failed ⇒ 静默降级 LLM，等于这些技能永远不生效。
+                instr_data = svc.load_skill_instruction(top1.skill_id)
                 if isinstance(instr_data, dict):
                     instruction = instr_data.get("instruction", "") or ""
                 else:

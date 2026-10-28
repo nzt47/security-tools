@@ -213,10 +213,15 @@ def _make_mock_skills_mgmt_service(matches=None, instruction="",
 
     if instr_exc is not None:
         svc.loader.load_instruction = MagicMock(side_effect=instr_exc)
+        # 编排层走 service 门面（2026-10-28 起），异常同样从这层冒出来
+        svc.load_skill_instruction = MagicMock(side_effect=instr_exc)
     else:
         svc.loader.load_instruction = MagicMock(
             return_value={"skill_id": "x", "instruction": instruction,
                           "estimated_tokens": 100, "layer": 2})
+        svc.load_skill_instruction = MagicMock(
+            return_value={"skill_id": "x", "instruction": instruction,
+                          "estimated_tokens": 100, "layer": 2, "source": "file"})
 
     return svc
 

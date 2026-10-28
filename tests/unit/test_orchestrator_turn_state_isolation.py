@@ -146,6 +146,11 @@ def _mock_skills_service(matches, instruction):
     svc.loader.load_instruction = MagicMock(
         return_value={"skill_id": "x", "instruction": instruction,
                       "estimated_tokens": 100, "layer": 2})
+    # 编排层自 2026-10-28 起走 service 入口（带「无文件轨 → 主轨回退」兜底），
+    # 假 svc 必须镜像真实 SkillsMgmtService 的这层门面，否则测的是不存在的路径。
+    svc.load_skill_instruction = MagicMock(
+        return_value={"skill_id": "x", "instruction": instruction,
+                      "estimated_tokens": 100, "layer": 2, "source": "file"})
     return svc
 
 
