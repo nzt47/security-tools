@@ -384,6 +384,7 @@ flowchart LR
         agent_monitoring_tracing_config["agent.monitoring.tracing_config"]
         agent_monitoring_tracing_perf["agent.monitoring.tracing_perf"]
         agent_monitoring_tracing_sampling["agent.monitoring.tracing_sampling"]
+        agent_monitoring_unit_probes["agent.monitoring.unit_probes"]
         agent_monitoring_utils["agent.monitoring.utils"]
     end
     subgraph network [network]
@@ -538,6 +539,7 @@ flowchart LR
         agent_server_routes_routes_subagent["agent.server_routes.routes_subagent"]
         agent_server_routes_routes_system_prompt["agent.server_routes.routes_system_prompt"]
         agent_server_routes_routes_ui_panels["agent.server_routes.routes_ui_panels"]
+        agent_server_routes_routes_units["agent.server_routes.routes_units"]
         agent_server_routes_routes_visual_workflows["agent.server_routes.routes_visual_workflows"]
         agent_server_routes_routes_workflow_learning["agent.server_routes.routes_workflow_learning"]
         agent_server_routes_tracing_decorator["agent.server_routes.tracing_decorator"]
@@ -1518,6 +1520,8 @@ flowchart LR
     agent_monitoring_tracing_config --> agent_monitoring_observability_config
     agent_monitoring_tracing_perf -.-> agent_logging_utils
     agent_monitoring_tracing_sampling -.-> agent_utils_singleton_manager
+    agent_monitoring_unit_probes -.-> agent_skills_mgmt
+    agent_monitoring_unit_probes -.-> agent_task_scheduler
     agent_multi_tenant -.-> agent_monitoring_tracing
     agent_network -.-> agent_network_config
     agent_network --> agent_network_config_validator
@@ -2084,6 +2088,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_enhancer
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_models
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_memory_abstractor
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_categorizer
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_offline_evolver
@@ -2153,6 +2158,8 @@ flowchart LR
     agent_server_routes_routes_ui_panels -.-> agent_security
     agent_server_routes_routes_ui_panels --> agent_server_routes
     agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_units --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_units -.-> agent_monitoring
     agent_server_routes_routes_visual_workflows -.-> agent_server_auth
     agent_server_routes_routes_visual_workflows --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_workflow_learning -.-> agent_server_auth
@@ -2736,9 +2743,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 699
-- 模块节点数: 607
-- 依赖边数: 2003
-- 跨层调用数: 1268
+- 扫描文件数: 703
+- 模块节点数: 609
+- 依赖边数: 2008
+- 跨层调用数: 1272
 - 违规调用数: 0
 - 动态 import 数: 1

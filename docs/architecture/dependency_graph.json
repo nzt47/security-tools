@@ -686,7 +686,7 @@
       "name": "task_scheduler",
       "layer": "core",
       "file_path": "",
-      "in_degree": 22,
+      "in_degree": 23,
       "out_degree": 17
     },
     {
@@ -926,7 +926,7 @@
       "name": "monitoring",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 2,
       "out_degree": 1
     },
     {
@@ -2658,6 +2658,22 @@
       "out_degree": 1
     },
     {
+      "path": "agent.monitoring.unit_probes",
+      "name": "unit_probes",
+      "layer": "monitoring",
+      "file_path": "agent/monitoring/unit_probes.py",
+      "in_degree": 0,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.skills_mgmt",
+      "name": "skills_mgmt",
+      "layer": "skills_mgmt",
+      "file_path": "",
+      "in_degree": 5,
+      "out_degree": 0
+    },
+    {
       "path": "agent.multi_tenant",
       "name": "multi_tenant",
       "layer": "core",
@@ -3354,14 +3370,6 @@
       "out_degree": 0
     },
     {
-      "path": "agent.skills_mgmt",
-      "name": "skills_mgmt",
-      "layer": "skills_mgmt",
-      "file_path": "",
-      "in_degree": 3,
-      "out_degree": 0
-    },
-    {
       "path": "agent.process_distill.sources",
       "name": "sources",
       "layer": "process_distill",
@@ -3750,7 +3758,7 @@
       "name": "tracing_decorator",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 16,
+      "in_degree": 17,
       "out_degree": 2
     },
     {
@@ -3991,7 +3999,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_skills_mgmt.py",
       "in_degree": 0,
-      "out_degree": 14
+      "out_degree": 15
     },
     {
       "path": "agent.skills_mgmt.enhancer",
@@ -4192,6 +4200,14 @@
       "file_path": "",
       "in_degree": 2,
       "out_degree": 0
+    },
+    {
+      "path": "agent.server_routes.routes_units",
+      "name": "routes_units",
+      "layer": "server_routes",
+      "file_path": "agent/server_routes/routes_units.py",
+      "in_degree": 0,
+      "out_degree": 2
     },
     {
       "path": "agent.server_routes.routes_visual_workflows",
@@ -15169,6 +15185,32 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.monitoring.unit_probes",
+      "target": "agent.skills_mgmt",
+      "source_layer": "monitoring",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 128,
+      "source_file": "agent/monitoring/unit_probes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.unit_probes",
+      "target": "agent.task_scheduler",
+      "source_layer": "monitoring",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 185,
+      "source_file": "agent/monitoring/unit_probes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.multi_tenant",
       "target": "agent.monitoring.tracing",
       "source_layer": "core",
@@ -22528,11 +22570,24 @@
     },
     {
       "source": "agent.server_routes.routes_skills_mgmt",
+      "target": "agent.skills_mgmt",
+      "source_layer": "server_routes",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 1453,
+      "source_file": "agent/server_routes/routes_skills_mgmt.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_skills_mgmt",
       "target": "agent.skills_mgmt.memory_abstractor",
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1486,
+      "line": 1505,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22558,7 +22613,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1680,
+      "line": 1699,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -23424,6 +23479,32 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.server_routes.routes_units",
+      "target": "agent.server_routes.tracing_decorator",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 13,
+      "source_file": "agent/server_routes/routes_units.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_units",
+      "target": "agent.monitoring",
+      "source_layer": "server_routes",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 19,
+      "source_file": "agent/server_routes/routes_units.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.server_routes.routes_visual_workflows",
       "target": "agent.server_auth",
       "source_layer": "server_routes",
@@ -23754,7 +23835,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3061,
+      "line": 3069,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -23767,7 +23848,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3181,
+      "line": 3189,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24365,7 +24446,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 435,
+      "line": 443,
       "source_file": "agent/skills_mgmt/executor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24378,7 +24459,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 436,
+      "line": 444,
       "source_file": "agent/skills_mgmt/executor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24391,7 +24472,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 468,
+      "line": 476,
       "source_file": "agent/skills_mgmt/executor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -30900,16 +30981,16 @@
     }
   ],
   "stats": {
-    "total_files": 699,
-    "total_nodes": 607,
-    "total_edges": 2003,
-    "cross_layer_edges": 1268,
+    "total_files": 703,
+    "total_nodes": 609,
+    "total_edges": 2008,
+    "cross_layer_edges": 1272,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
       "core": 78,
       "utils": 11,
-      "monitoring": 31,
+      "monitoring": 32,
       "tools": 29,
       "audit": 8,
       "observability": 13,
@@ -30958,7 +31039,7 @@
       "quality": 1,
       "repair": 13,
       "retention": 9,
-      "server_routes": 27,
+      "server_routes": 28,
       "settings": 8,
       "ui_panels": 3,
       "feedback_collector": 1,
