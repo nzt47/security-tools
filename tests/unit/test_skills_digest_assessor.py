@@ -146,6 +146,32 @@ class TestCompatibilityAssess:
         a = SkillAssessor().assess(target, others=[other])
         assert "INT_SHARED_TRIGGER" in _codes(a)
 
+    def test_source_tags_do_not_count_as_trigger_conflict(self):
+        """来源/内容类型标签不是触发面：否则 35/44 个技能互相「共享触发词」。
+
+        2026-10-28 实测：44 个技能里 349 对命中「共享触发词」，其中 340 对只共享
+        external / imported / markdown / distilled / from_knowledge / claude-skills
+        这类导入渠道标签，真正共享 slash 命令/工具名的 **0 对** —— 提示全是噪音。
+        """
+        target = _skill(id="imp-a", tags=["external", "imported", "markdown"], content="整理文档")
+        other = _skill(id="imp-b", tags=["external", "imported", "markdown"], content="另一份文档整理",
+                       enabled=True)
+        a = SkillAssessor().assess(target, others=[other])
+        assert "INT_SHARED_TRIGGER" not in _codes(a), "来源标记不应算触发面"
+        # 反过来：真正的语义标签（不是来源标记）仍要报
+        target2 = _skill(id="sem-a", tags=["invoice", "ocr"], content="识别发票")
+        other2 = _skill(id="sem-b", tags=["invoice", "translate"], content="翻译发票", enabled=True)
+        a2 = SkillAssessor().assess(target2, others=[other2])
+        assert "INT_SHARED_TRIGGER" in _codes(a2)
+
+    def test_native_dup_message_does_not_pretend_increment_was_judged(self):
+        """文案必须诚实：系统没有判定「有没有增量」，不能写成已经保留增量。"""
+        a = SkillAssessor().assess(_skill(id="mem-dup", name="记忆摘要器",
+                                          description="压缩对话历史为摘要", tags=[]))
+        hit = next(f for f in a.findings if f.code == "DUP_NATIVE_FUNC")
+        assert "未判定" in hit.message
+        assert "增量吸收" in hit.message  # 仍给出两条可执行出口
+
     def test_duplicate_merge_recommendation(self):
         content = "# 解析PDF\n提取正文与元数据\n代码片段略"
         target = _skill(id="dup-a", content=content, description="解析 PDF 的工具技能")

@@ -21,6 +21,9 @@ from agent.skills_mgmt import (
     SkillNotFoundError,
     SkillSearchParams,
 )
+# SkillFileError 不在 agent.skills_mgmt 的惰性导出表里（只有包内直接引用），
+# 「没有文件轨」要映射 409 而不是 500，故显式从 exceptions 引入。
+from agent.skills_mgmt.exceptions import SkillFileError
 from agent.skills_mgmt.reviewer import ReviewThresholds
 
 # S2-02 审计平权：关键写路由的语义化审计装饰器（不可用时退化为 no-op，不阻断路由注册）
@@ -645,6 +648,36 @@ def register_routes(app, state):
             use_llm = bool(data.get("llm", False))
             result = _svc().suggest_redraft(skill_id, use_llm=use_llm)
             return jsonify({"ok": True, **result})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/redraft/apply", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_redraft_apply(skill_id: str):
+        """把「再定义」草稿写回 skill.md（中文说明/展示名），供 UI 确认后应用。
+
+        Body: {name?, description_zh?|description?, source?} —— 至少一项且与现值不同。
+
+        【为什么不复用 PATCH /api/skills-mgmt/<id>】那条路的白名单自 G1-B/M0
+        （2026-09-26）起不含 description / description_zh ⇒ 走它必然「200 但没改」，
+        用户看到的就是「应用后说明还是老」。本路由走 file_store.update_meta()。
+        没有文件轨的技能返回 409（无处落地），由 UI 明确提示补文件轨。
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            result = _svc().apply_redraft(
+                skill_id,
+                name=data.get("name"),
+                description_zh=data.get("description_zh") or data.get("description"),
+                source=str(data.get("source") or "rules"),
+            )
+            return jsonify({"ok": True, **result})
+        except SkillFileError as e:
+            return jsonify(e.to_dict()), 409
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001

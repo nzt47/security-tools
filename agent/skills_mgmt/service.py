@@ -32,6 +32,8 @@ from .models import (
 from .exceptions import (
     SkillNotFoundError,
     SkillMgmtError,
+    SkillValidationError,
+    SkillFileError,
     ErrorCode,
 )
 from .observability import logger, traced_action, emit_metric
@@ -1699,6 +1701,99 @@ class SkillsMgmtService:
             "note": "草稿需确认后应用：写回并自动重新评审-评估。",
         }
 
+    # ─── 「再定义」草稿的落地（写 skill.md，不走主轨白名单）───
+
+    def _file_description_zh(self, skill_id: str) -> str:
+        """读 skill.md front matter 里的中文展示文案（缺失/解析失败 → 空串）。"""
+        try:
+            meta = self.file_store.load_metadata_index().get(skill_id) or {}
+        except Exception:  # noqa: BLE001 读取失败按「没有」处理，由调用方比较
+            return ""
+        return str(meta.get("description_zh") or "")
+
+    def _record_redraft_audit(self, skill_id: str, changed: List[str],
+                              source: str) -> None:
+        """再定义落地审计（best-effort；只记字段名与来源，不记正文）"""
+        try:
+            from agent.audit import audit as _audit_facade
+            entry = _audit_facade.record(
+                "skill.redraft.apply", subject="skill:" + skill_id,
+                payload={"skill_id": skill_id, "changed": changed,
+                         "source": source, "origin": "skills_mgmt.redraft"},
+                source="agent", status="ok")
+        except Exception as e:  # noqa: BLE001 审计失败不得影响落地
+            logger.warning("[Service] 再定义落地审计留痕失败（已生效）skill=%s: %s",
+                           skill_id, e)
+            return
+        if entry is None:
+            logger.warning("[Service] 再定义落地审计未落链（门面返回 None）skill=%s",
+                           skill_id)
+
+    def apply_redraft(self, skill_id: str, *,
+                      name: Optional[str] = None,
+                      description_zh: Optional[str] = None,
+                      source: str = "rules") -> Dict[str, Any]:
+        """把「再定义」草稿真正落地：写 skill.md front matter（中文说明/展示名）。
+
+        【为什么必须单开一条写路径】update() 的白名单自 G1-B/M0（2026-09-26）起
+        **不含** description / description_zh —— 它们是 skill.md 的字段，主轨只留
+        历史副本。所以「应用草稿」若走 PATCH，会 200、UI 提示成功、说明却一字未变
+        （2026-10-28 用户实测原话：应用后说明还是老）。唯一合法写路径是
+        file_store.update_meta()；本方法还负责把**没有文件轨**的技能显式报错
+        （当前 8 个只在主轨的技能），而不是再一次静默成功。
+
+        Args:
+            name: 中文展示名（≤60 字）；与当前一致则不写。
+            description_zh: 中文说明（≤400 字）；与文件里现有值一致则不写。
+            source: 草稿来源（rules/llm），只进审计。
+
+        Raises:
+            SkillNotFoundError: 技能不存在
+            SkillValidationError: 没有可写字段 / 字段超长
+            SkillFileError: 技能没有文件轨（skill.md），无处落地
+        """
+        skill = self._require(skill_id)
+        patch: Dict[str, Any] = {}
+        new_name = (name or "").strip()
+        new_desc = (description_zh or "").strip()
+        if new_name:
+            if len(new_name) > 60:
+                raise SkillValidationError(
+                    "展示名过长：≤60 字", fields={"field": "name", "max": 60})
+            if new_name != (skill.name or ""):
+                patch["name"] = new_name
+        if new_desc:
+            if len(new_desc) > 400:
+                raise SkillValidationError(
+                    "中文说明过长：≤400 字",
+                    fields={"field": "description_zh", "max": 400})
+            if new_desc != self._file_description_zh(skill_id):
+                patch["description_zh"] = new_desc
+        if not patch:
+            raise SkillValidationError(
+                "草稿与当前内容一致，没有需要写入的字段",
+                fields={"fields": ["name", "description_zh"]})
+        md_path = self.file_store.repo_path / skill_id / "skill.md"
+        if not md_path.is_file():
+            raise SkillFileError(
+                "技能 " + skill_id + " 没有文件轨（data/skills_repo/" + skill_id
+                + "/skill.md），中文说明无处落地；请先用工具栏「登记仅运行时技能」补齐文件轨")
+        # 文件轨是唯一事实源：先写 skill.md（最小侵入改写，保留其余字段与注释）
+        self.file_store.update_meta(skill_id, patch)
+        if "name" in patch:
+            # 主轨展示名仍走白名单内的 update()（不绕过既有审计/同步口径）
+            self.update(skill_id, {"name": patch["name"]})
+        self._record_redraft_audit(skill_id, sorted(patch), source)
+        return {
+            "skill_id": skill_id,
+            "applied": sorted(patch),
+            "source": source,
+            "description_zh": patch.get("description_zh",
+                                        self._file_description_zh(skill_id)),
+            "name": patch.get("name", skill.name),
+            "skill": self.get(skill_id).model_dump(),
+        }
+
     # ─── 脚本文件全维度审查并入评估（第三层 scripts/*.py）───
 
     def _merge_script_review(self, skill: Skill,
@@ -2562,7 +2657,33 @@ class SkillsMgmtService:
             SkillFileError: skill.md 读取失败
         """
         with traced_action("svc_load_instruction", skill_id=skill_id, layer=2):
-            return self.loader.load_instruction(skill_id)
+            try:
+                out = self.loader.load_instruction(skill_id)
+                out["source"] = "file"
+                return out
+            except SkillNotFoundError:
+                pass
+        # 【2026-10-28】文件轨缺失不等于「技能不存在」：当前有 8 个技能只有主轨
+        # （adaptation / agent / boundaries / global-core-principles / san_yi_skills-py /
+        #  skill / skill-card / templates），它们的正文在 main-track content 里。
+        # 旧实现把「没有 skill.md」直接冒泡成 SkillNotFoundError ⇒ UI 详情页显示
+        # 「读取使用说明失败：HTTP 404」，看起来像后端故障，实际技能是可用的。
+        # ⇒ 回退主轨正文，并用 source/hint 明确告诉调用方「这是回退，不是文件轨」。
+        skill = self._require(skill_id)
+        body = str(getattr(skill, "content", "") or "").strip()
+        if not body:
+            raise SkillNotFoundError(skill_id)
+        from .loader import estimate_tokens
+        return {
+            "skill_id": skill_id,
+            "instruction": body,
+            "estimated_tokens": estimate_tokens(body),
+            "instruction_chars": len(body),
+            "layer": 2,
+            "source": "main_track",
+            "hint": ("该技能没有文件轨 skill.md，正文来自主轨 content"
+                     "（只读回退；补文件轨后可获得完整正文与 scripts）"),
+        }
 
     def execute_skill_script(self, skill_id: str,
                              script_name: str = "main.py",

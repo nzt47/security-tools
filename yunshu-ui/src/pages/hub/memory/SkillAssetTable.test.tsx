@@ -50,12 +50,12 @@ function setup() {
 }
 
 describe('SkillAssetTable（LLM 统一表）', () => {
-  it('资产行显示状态/评审/评分，并保留评审动态入口', async () => {
+  it('资产行显示状态/评审/评分，并保留动态中心入口', async () => {
     setup()
     expect(await screen.findByText('Alpha')).toBeTruthy()
     expect(screen.getByText('已自动评估')).toBeTruthy()
     expect(screen.getByText('90/80/70')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '评审动态' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '动态中心' })).toBeTruthy()
     await waitFor(() => expect(api.hubGet).toHaveBeenCalledWith('/api/skills-mgmt'))
   })
 
@@ -117,6 +117,77 @@ describe('SkillAssetTable（LLM 统一表）', () => {
     for (const label of ['建议', '版本', '再定义', '命令']) {
       expect(menu?.textContent).toContain(label)
     }
+  })
+
+
+  it('再定义：应用草稿走 redraft/apply 写 skill.md（不再 PATCH 主轨），且不再有重复的 LLM 勾选', async () => {
+    setup()
+    await screen.findByText('Alpha')
+    api.hubPost.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt/alpha/redraft') {
+        return { ok: true, source: 'rules', current: { name: 'Alpha', description: '资产技能' },
+          proposed: { name: 'Alpha 中文名', description: '把资产整理成可复用的技能说明。' } }
+      }
+      if (url === '/api/skills-mgmt/alpha/redraft/apply') return { ok: true, applied: ['description_zh'] }
+      return { ok: true }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /再定义/ }))
+    expect(await screen.findByText(/再定义草稿/)).toBeTruthy()
+    // 起草按钮已经区分 LLM/规则，额外的勾选是重复入口（用户要求去掉）
+    expect(screen.queryByLabelText('起草时用 LLM')).toBeNull()
+    await waitFor(() => expect(screen.getByDisplayValue(/把资产整理成/)).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: /应用草稿并评审/ }))
+    await waitFor(() => expect(api.hubPost).toHaveBeenCalledWith(
+      '/api/skills-mgmt/alpha/redraft/apply',
+      { name: 'Alpha 中文名', description_zh: '把资产整理成可复用的技能说明。', source: 'rules' },
+    ))
+    // 不能再用 PATCH（那条白名单不含 description/description_zh，必然「200 但没改」）
+    const calls = (globalThis.fetch as unknown as { mock?: { calls: unknown[][] } }).mock?.calls ?? []
+    expect(calls.some((c) => (c[1] as { method?: string } | undefined)?.method === 'PATCH')).toBe(false)
+    expect(await screen.findByText(/已写入 中文说明/)).toBeTruthy()
+  })
+
+  it('动态中心：按数据源分 TAB（全部 / 评估 / 人工复核），不再有第二个同名入口', async () => {
+    setup()
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt') return { items: [{ id: 'alpha', name: 'Alpha', description: '资产技能', status: 'published', enabled: true }] }
+      if (url.includes('/assess/events')) return { records: [] }
+      if (url.startsWith('/api/skills-mgmt/assess/feed')) {
+        return { records: [
+          { kind: 'assess', skill_id: 'alpha', tag: 'ok', detail: '自动评估通过', ts: '2026-10-28T10:00:00+08:00' },
+          { kind: 'audit', skill_id: 'alpha', tag: '强制发布', detail: '强发理由', ts: '2026-10-28T09:00:00+08:00' },
+        ] }
+      }
+      if (url === '/api/skills-mgmt/classes') return { groups: [] }
+      return { ok: true, records: [] }
+    })
+    fireEvent.click(await screen.findByRole('button', { name: '动态中心' }))
+    expect(await screen.findByRole('tab', { name: /全部（2）/ })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: /评估（1）/ })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: /人工复核（1）/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: /人工复核（1）/ }))
+    await waitFor(() => expect(screen.queryByText(/自动评估通过/)).toBeNull())
+    expect(screen.getByText(/强发理由/)).toBeTruthy()
+  })
+
+  it('说明独立成列：长说明 3 行截断 + 「查看全文」弹窗（不再被压成一行）', async () => {
+    const longDesc = '把外部技能吸收进云枢时，先做安全与兼容性评估，再按增量吸收并入；'
+      + '这句话故意写得很长，用来验证表格不会把它压成一行导致看不全。'
+    api.getEnvelope.mockResolvedValue({ installed: [{ id: 'alpha', name: 'Alpha', enabled: true }], available: [] })
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt') {
+        return { items: [{ id: 'alpha', name: 'Alpha', description_zh: longDesc, status: 'published', enabled: true, tags: ['demo'] }] }
+      }
+      if (url === '/api/skills-mgmt/classes') return { groups: [{ name: '未分类', skills: [{ id: 'alpha' }] }] }
+      return { ok: true, records: [] }
+    })
+    render(<SkillAssetTable />)
+    expect(await screen.findByRole('columnheader', { name: /说明/ })).toBeTruthy()
+    expect(screen.getByRole('columnheader', { name: /徽章/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '查看全文' }))
+    await waitFor(() => expect(document.body.textContent).toContain('说明 ·'))
+    // 表格里的 3 行截断 + 弹窗里的全文都会命中，故用 getAllByText 断言两处都在
+    expect((await screen.findAllByText(/故意写得很长/)).length).toBeGreaterThanOrEqual(2)
   })
 
   it('全部折叠：分组视图下一键收起所有分类行', async () => {
