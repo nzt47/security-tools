@@ -298,7 +298,10 @@ class TestOrchestratorNoLongerReJudgesWithTheSameThreshold:
         ld = SkillLoader(file_store=SkillFileStore())   # 与生产同形态：向量腿不可用
 
         class _Svc:
-            pass
+            # 编排层自 2026-10-28 起走 service 门面（带「无文件轨 → 主轨回退」兜底），
+            # 假 svc 必须镜像真实 SkillsMgmtService 的这层入口，否则测的是不存在的路径。
+            def load_skill_instruction(self, skill_id):
+                return ld.load_instruction(skill_id)
 
         svc = _Svc()
         svc.loader = ld
