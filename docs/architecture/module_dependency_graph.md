@@ -2077,6 +2077,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_skills_mgmt -.-> agent_state_manager
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_exceptions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_reviewer
     agent_server_routes_routes_skills_mgmt -.-> agent_audit_ui_middleware
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
@@ -2285,6 +2286,7 @@ flowchart LR
     agent_skills_mgmt_service --> agent_skills_mgmt_cleanup
     agent_skills_mgmt_service -.-> agent_descriptors_backfill
     agent_skills_mgmt_service -.-> agent_descriptors_backfill
+    agent_skills_mgmt_service -.-> agent_audit
     agent_skills_mgmt_service -.-> agent_code_review
     agent_skills_mgmt_service -.-> agent_extensions_security_checker
     agent_skills_mgmt_service -.-> agent_audit
@@ -2736,7 +2738,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 699
 - 模块节点数: 607
-- 依赖边数: 2001
-- 跨层调用数: 1266
+- 依赖边数: 2003
+- 跨层调用数: 1268
 - 违规调用数: 0
 - 动态 import 数: 1
