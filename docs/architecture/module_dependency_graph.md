@@ -1060,6 +1060,7 @@ flowchart LR
     agent_guardrails_egress_chain -.-> agent_audit_facade
     agent_guardrails_egress_chain -.-> agent_circuit_breaker
     agent_guardrails_egress_chain -.-> agent_observability_events
+    agent_guardrails_egress_chain -.-> agent_observability_events
     agent_guardrails_egress_guard -.-> agent_policy_egress
     agent_guardrails_egress_guard --> agent_guardrails_egress_chain
     agent_guardrails_egress_guard -.-> agent_audit_facade
@@ -2735,7 +2736,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 699
 - 模块节点数: 607
-- 依赖边数: 2000
-- 跨层调用数: 1265
+- 依赖边数: 2001
+- 跨层调用数: 1266
 - 违规调用数: 0
 - 动态 import 数: 1
