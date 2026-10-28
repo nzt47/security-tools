@@ -13,9 +13,14 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from pathlib import Path
 
 import pytest
+
+# 同 test_novelty_pipeline：显式声明导入根，不依赖 conftest 的 sys.path 插入顺序
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 import agent.learning.behavior_drift as bd
 from sensor.behavior_sensor import ActivityBehaviorSensor

@@ -13,9 +13,17 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from pathlib import Path
 
 import pytest
+
+# 【2026-10-28】显式把仓库根加进 sys.path：本文件 import 的是**顶层包** sensor，
+# 此前依赖 tests/conftest.py 的插入。CI 的「单元测试 Shard 6」两次实测
+# ModuleNotFoundError: No module named 'sensor'（本地/其它分片正常），
+# 与「谁先 import 谁负责路径」的隐式依赖有关 —— 测试自己声明导入根，别再赌顺序。
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from sensor.change_detector import ChangeDetector
 from sensor.novelty import (
