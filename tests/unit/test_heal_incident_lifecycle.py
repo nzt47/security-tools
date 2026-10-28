@@ -170,4 +170,3 @@ class TestOpsScript:
         picked = mod._select(cards, [], "api.example.com", "")
         assert [c.incident_id for c in picked] == [a.incident_id]
         assert [c.incident_id for c in mod._select(cards, [b.incident_id], "", "")] == [b.incident_id]
-
