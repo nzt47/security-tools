@@ -48,13 +48,3 @@ def register_routes(app, state=None):
             logger.warning("[units] 采集失败: %s", exc)
             return jsonify({"ok": False, "error": str(exc)}), 500
 
-    @app.route("/api/system/units/families", methods=["GET"])
-    @trace_route("SystemUnits")
-    def api_system_units_families():
-        """已登记的家族清单（供前端筛选器，避免前端硬编码）。"""
-        try:
-            units = unit_monitor.registered()
-            fams = sorted({u.family for u in units})
-            return jsonify({"ok": True, "families": fams})
-        except Exception as exc:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(exc)}), 500

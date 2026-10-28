@@ -1,24 +1,24 @@
 {
-  "generated_at": "2026-10-28T22:54:40",
+  "generated_at": "2026-10-28T23:31:52",
   "totals": {
-    "routes": 473,
-    "live": 473,
+    "routes": 472,
+    "live": 472,
     "dead_copy": 0,
     "dead_definitions": 0,
     "ui": 415,
     "cli_script": 16,
     "runtime_only": 11,
-    "unreferenced": 31,
+    "unreferenced": 30,
     "live_by_category": {
       "ui": 415,
       "cli_script": 16,
       "runtime_only": 11,
-      "unreferenced": 31
+      "unreferenced": 30
     },
     "by_intent": {
       "should_be_in_ui": 397,
       "should_not_be_in_ui": 73,
-      "unclassified": 3
+      "unclassified": 2
     },
     "by_domain": {
       "页面入口": 7,
@@ -32,7 +32,7 @@
       "业务与评估": 18,
       "技能与工具": 117,
       "认知与学习": 6,
-      "观测与诊断": 75,
+      "观测与诊断": 74,
       "开发与内部": 14,
       "记忆与知识": 39
     }
@@ -10106,29 +10106,6 @@
       "domain": "观测与诊断"
     },
     {
-      "path": "/api/system/units/families",
-      "norm": "/api/system/units/families",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "live": true,
-      "dead_copy": false,
-      "dead_defs": [],
-      "ui_refs": [],
-      "non_ui_refs": [],
-      "where": [
-        "agent/server_routes/routes_units.py:51"
-      ],
-      "description": "已登记的家族清单（供前端筛选器，避免前端硬编码）。",
-      "description_source": "handler",
-      "intent": "unclassified",
-      "intent_area": "",
-      "intent_note": "",
-      "ui_pending": false,
-      "domain": "观测与诊断"
-    },
-    {
       "path": "/api/tasks",
       "norm": "/api/tasks",
       "methods": [
@@ -12128,5 +12105,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "e3ca21f583600807"
+  "content_hash": "dc09662484c7aa11"
 }
