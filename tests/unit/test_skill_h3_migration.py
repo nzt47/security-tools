@@ -505,9 +505,13 @@ class TestActuallyRecallable:
         from agent.capregistry import build_registry
         mf = build_manifest()
         skills = [e for e in mf["entries"] if e.get("kind") == "skill"]
-        # 【2026-10-24】28 → 36：8 个技能目录补回文件轨；两侧必须相等
-        assert len(skills) == len(meta_index) == 36, (
+        # 【2026-10-30】36 → 动态相等：6 个「只在主轨」的技能补齐文件轨后为 42 条
+        # （另 2 个 H-3 禁止补的误操作目录已删）。锚点从写死的 36 改成「两侧必须相等」，
+        # 再加一条 >= 36 的下限保住原判据的意图：数量只会因「补文件轨」增加，删补回的文件轨会红。
+        assert len(skills) == len(meta_index), (
             f"清单 skill 条数 {len(skills)} != 文件轨 {len(meta_index)}")
+        assert len(skills) >= 36, (
+            f"文件轨回落到 36 条以下（{len(skills)}）：像是把补回的文件轨删了")
         byid = {e["tool_name"]: e for e in skills}
         bad = [sid for sid in MIGRATED
                if str(byid.get(sid, {}).get("description") or "")
