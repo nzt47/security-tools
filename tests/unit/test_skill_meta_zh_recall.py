@@ -336,9 +336,7 @@ class TestEscapeHatch:
         spec.loader.exec_module(mod)
         rep = mod.evaluate()
         assert rep["overall"]["precision"] == pytest.approx(PRE_CHANGE_PRECISION_AT_3, abs=1e-4)
-        # 同上：语料变大后 Recall@3 也掉了一条（1.0 → 0.9667，CI 实测；本机仍 1.0），
-        # 容差放到 0.05 —— 「关掉开关就回到改前水平」的判据不变，0.8 量级退化仍会红。
-        assert rep["overall"]["recall"] == pytest.approx(PRE_CHANGE_RECALL_AT_3, abs=5e-2)
+        assert rep["overall"]["recall"] == pytest.approx(PRE_CHANGE_RECALL_AT_3, abs=1e-4)
 
 
 # ════════════════════════════════════════════════════════════
