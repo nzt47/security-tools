@@ -124,6 +124,12 @@
     "/logs/dashboard/data": {
       "verdict": "keep",
       "evidence": "templates/log_dashboard.html:244 用模板串 fetch 调用"
+    },
+    "/api/skills/content": {
+      "verdict": "deprecate",
+      "evidence": "唯一 UI 消费者 skill-content-modal.tsx 已于 2026-10-30 并入「详情 · 使用说明」（PR #1345，详情改走 GET /api/skills-mgmt/skill/instruction）；端点保留兼容窗口（plugins/skills.py:286，legacy /api/skills 面与外部脚本仍可读）",
+      "decided_at": "2026-10-30",
+      "action": "兼容窗口至 2026-11-13：到期后删除 plugins/skills.py 的 /api/skills/content 路由与 docs 里的引用，并同步从本台账移除"
     }
   }
 }
