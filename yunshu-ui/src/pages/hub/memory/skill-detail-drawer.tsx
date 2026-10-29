@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
 import {
+  SKILL_CONTENT,
   SKILLS_MGMT_ASSESS_MERGE_SAFE,
   SKILLS_MGMT_ASSESS_MERGE_UNDO,
   skillDuplicates, skillExecute, skillFeedback, skillInstruction,
@@ -179,7 +180,19 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
     try {
       const r = await hubGet<InstructionResp>(skillInstruction(id))
       if (r?.ok === false) { bad('读取使用说明失败', r); setInstruction(null) } else setInstruction(r)
-    } catch (e) { fail('读取使用说明失败', e) } finally { setBusy('') }
+    } catch (e) {
+      // 回退：老 /api/skills/content（2026-10-30「查看内容」并入详情后，这条 GET 由这里消费：
+      // 运行时技能可能没有 skill.md/资产记录，instruction 端点会 404，而运行期元数据+正文只有它能给）
+      try {
+        const legacy = await hubGet<{ ok?: boolean; skill?: { content?: string } }>(
+          SKILL_CONTENT + '?id=' + encodeURIComponent(id))
+        const content = String(legacy?.skill?.content || '')
+        if (legacy?.ok && content) {
+          setInstruction({ ok: true, instruction: content, layer: 2, source: 'legacy_content',
+            estimated_tokens: Math.ceil(content.length / 4) })
+        } else { fail('读取使用说明失败', e) }
+      } catch { fail('读取使用说明失败', e) }
+    } finally { setBusy('') }
   }, [id])
 
   const loadScripts = useCallback(async () => {

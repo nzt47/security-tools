@@ -267,6 +267,7 @@ export const skillSlash = (id: string) => `/api/skills-mgmt/slash/${encodeURICom
 // ===============================================================
 //  技能检索（/api/skills，与 /api/skills-mgmt 是两套）
 // ===============================================================
+export const SKILL_CONTENT = '/api/skills/content';
 export const SKILLS = '/api/skills';
 export const SKILLS_TOGGLE = '/api/skills/toggle';
 export const SKILLS_DESCRIBE_AUTO = '/api/skills/describe/auto';
