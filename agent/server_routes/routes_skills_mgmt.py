@@ -199,6 +199,9 @@ def register_routes(app, state):
                 dry_run = dry_run.strip().lower() not in ("0", "false", "no", "")
             return jsonify({"ok": True, **_svc().materialize_file_track(
                 skill_id, dry_run=bool(dry_run))})
+        except SkillFileError as e:
+            # 已有文件轨/目录已存在 ⇒ 409（与 redraft/apply 同一语义：不覆盖、不静默成功）
+            return jsonify(e.to_dict()), 409
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
