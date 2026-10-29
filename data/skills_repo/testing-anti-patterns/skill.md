@@ -9,6 +9,7 @@ description: Use when writing or changing tests, adding mocks (test doubles), or
 content_type: markdown
 category: custom
 tags:
+- 反模式
 - external
 - imported
 - markdown
