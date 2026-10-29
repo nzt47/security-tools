@@ -912,6 +912,9 @@ class OfflineEvolver:
             day_of_week=parsed["day_of_week"],
             hour=parsed["hour"] if parsed["hour"] is not None else 0,
             minute=parsed["minute"] if parsed["minute"] is not None else 0,
+            # 进化会生成变异体并评估 ⇒ 调 LLM；本任务没有 dry_run 开关，开启即烧 token
+            zero_token=False, owner="agent/skills_mgmt/offline_evolver.py",
+            zero_token_note="进化生成/评估会调 LLM（该任务无 dry_run 开关），开启即产生 token 成本",
         )
         self._scheduled_task_id = (
             sched.tasks[-1]["task_id"] if sched.tasks else "skill-evolution")

@@ -163,7 +163,10 @@ class PrecipitateScheduler:
 
         sched.add_interval_task(
             TASK_NAME, func=self._scheduled_run,
-            interval_seconds=self._interval_hours * 3600)
+            interval_seconds=self._interval_hours * 3600,
+            # 抽象沉淀是聚类+质量门控，不调 LLM
+            zero_token=True, owner="agent/skills_mgmt/precipitate.py",
+            zero_token_note="抽象沉淀（聚类+质量门控），不调 LLM")
         self._scheduled_task_id = (
             sched.tasks[-1]["task_id"] if sched.tasks else "precipitate")
         logger.info(log_dict({'module_name': 'precipitate', 'action': 'precipitate', 'msg': "[Precipitate] 定时沉淀已注册 interval_hours=%d task_id=%s" % (self._interval_hours, self._scheduled_task_id)}))

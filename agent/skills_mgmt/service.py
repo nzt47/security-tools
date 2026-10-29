@@ -1777,7 +1777,9 @@ class SkillsMgmtService:
         if not md_path.is_file():
             raise SkillFileError(
                 "技能 " + skill_id + " 没有文件轨（data/skills_repo/" + skill_id
-                + "/skill.md），中文说明无处落地；请先用工具栏「登记仅运行时技能」补齐文件轨")
+                + "/skill.md），中文说明无处落地；请先点该行「更多 → 生成文件轨」"
+                "（POST /api/skills-mgmt/" + skill_id + "/materialize，dry_run=false）"
+                "新建文件轨，再应用草稿")
         # 文件轨是唯一事实源：先写 skill.md（最小侵入改写，保留其余字段与注释）
         self.file_store.update_meta(skill_id, patch)
         if "name" in patch:
@@ -1793,6 +1795,84 @@ class SkillsMgmtService:
             "name": patch.get("name", skill.name),
             "skill": self.get(skill_id).model_dump(),
         }
+
+    def materialize_file_track(self, skill_id: str, *,
+                               dry_run: bool = True) -> Dict[str, Any]:
+        """给「只在主轨」的技能补文件轨（skill.md），**默认 dry-run**。
+
+        【为什么需要】apply_redraft 要把 name/description_zh 写进 skill.md，而主轨独有的
+        技能（当前 8 个，如 templates）没有文件轨 ⇒ 409。原 409 文案让人去点「登记仅运行时
+        技能」，但那个按钮做的是**反方向**（文件轨→主轨）——2026-10-29 用户实测找不到入口。
+
+        边界：只**新建**缺失的 skill.md；文件或目录已存在一律拒绝（不覆盖、不移动、不删）；
+        不写主轨、不改启停、不发布。正文取主轨 content，front matter 由主轨元数据映射。
+
+        Raises:
+            SkillNotFoundError: 技能不存在
+            SkillFileError: 已有 skill.md / 目录已存在（拒绝覆盖）
+        """
+        skill = self._require(skill_id)
+        repo_dir = self.file_store.repo_path / skill_id
+        md_path = repo_dir / "skill.md"
+        if md_path.is_file():
+            raise SkillFileError(
+                "技能 " + skill_id + " 已有文件轨（" + str(md_path) + "），拒绝覆盖")
+        if repo_dir.exists():
+            raise SkillFileError(
+                "技能目录已存在但没有 skill.md（" + str(repo_dir)
+                + "），请人工确认后再补齐（本操作不移动/不覆盖目录）")
+
+        def _val(v: Any) -> Any:
+            return getattr(v, "value", v)
+
+        body = (skill.content or "").strip()
+        meta: Dict[str, Any] = {
+            "id": skill_id,
+            "name": skill.name,
+            "description": skill.description,
+            "category": _val(skill.category),
+            "tags": list(skill.tags or []),
+            "version": skill.version,
+            "enabled": bool(skill.enabled),
+            "status": _val(skill.status),
+            "author": skill.author,
+            "source": skill.source,
+            "content_type": _val(skill.content_type),
+        }
+        if skill.default_params:
+            meta["default_params"] = dict(skill.default_params)
+        if skill.dependencies:
+            meta["dependencies"] = list(skill.dependencies)
+
+        result: Dict[str, Any] = {
+            "skill_id": skill_id,
+            "dry_run": bool(dry_run),
+            "path": str(md_path),
+            "body_chars": len(body),
+            "front_matter_keys": sorted(meta.keys()),
+        }
+        if dry_run:
+            result["action"] = "would_create"
+            return result
+
+        # 生产写路径：file_store.create（锁内写 + 写钩子 + 索引失效），不手写文件
+        self.file_store.create(skill_id, meta, instruction=body)
+        try:
+            from agent.audit import audit as _audit_facade
+            _audit_facade.record(
+                "skill.file_track.materialize", subject="skill:" + skill_id,
+                payload={"skill_id": skill_id, "path": str(md_path),
+                         "body_chars": len(body)},
+                source="agent", status="ok")
+        except Exception as e:  # noqa: BLE001 审计失败不得回滚已落盘的文件轨
+            logger.warning("[Service] 生成文件轨审计留痕失败（文件已创建）skill=%s: %s",
+                           skill_id, e)
+        result["action"] = "created"
+        try:
+            result["bytes"] = md_path.stat().st_size
+        except OSError:
+            result["bytes"] = None
+        return result
 
     # ─── 脚本文件全维度审查并入评估（第三层 scripts/*.py）───
 

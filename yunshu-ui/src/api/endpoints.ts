@@ -255,6 +255,8 @@ export const skillFixAuto = (id: string) => `/api/skills-mgmt/${encodeURICompone
 export const skillRedraft = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/redraft`;
 // 再定义落地：写 skill.md 的 description_zh/name（PATCH 白名单不含这两个字段）
 export const skillRedraftApply = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/redraft/apply`;
+// 给「只在主轨」的技能**新建**文件轨（skill.md）：dry_run 预览 → dry_run=false 落盘
+export const skillMaterialize = (id: string) => `/api/skills-mgmt/${encodeURIComponent(id)}/materialize`;
 export const skillSlash = (id: string) => `/api/skills-mgmt/slash/${encodeURIComponent(id)}`;
 
 // ===============================================================

@@ -818,9 +818,9 @@ class TestScheduler:
             def __init__(self):
                 self.tasks = []
 
-            def add_interval_task(self, name, *, func, interval_seconds):
+            def add_interval_task(self, name, *, func, interval_seconds, **kwargs):
                 self.tasks.append({"task_id": f"t{len(self.tasks)}", "name": name,
-                                   "func": func, "interval": interval_seconds})
+                                   "func": func, "interval": interval_seconds, **kwargs})
 
         sched = Scheduler()
         eng, _reg = engine()
@@ -834,8 +834,8 @@ class TestScheduler:
             def __init__(self):
                 self.tasks = []
 
-            def add_interval_task(self, name, *, func, interval_seconds):
-                self.tasks.append({"task_id": "t", "func": func})
+            def add_interval_task(self, name, *, func, interval_seconds, **kwargs):
+                self.tasks.append({"task_id": "t", "func": func, **kwargs})
 
         sched = Scheduler()
         eng, _reg = engine()

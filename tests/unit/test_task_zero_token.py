@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
-"""调度任务的「零 token」声明口径。
+"""调度任务的「零 token」声明口径（全仓）。
 
-用户 2026-10-29：引擎页里「未标注」的任务要全部标注（不能让人靠猜）。
-这里锁三件事：
-① `list_tasks()` 如实带出三态 + 判据说明 + 条件性（UI 直接消费）；
-② 本轮补声明的六个注册点**源码级**都显式传了 `zero_token`（新任务漏声明时这条会红）；
-③ 条件性的任务必须同时给 `zero_token_conditional=True` —— 否则「零 token」会被读成永远成立。
+用户 2026-10-29：引擎页里「未标注」的任务要全部标注，而且**其它任务也要跟进** ——
+新加的任务不许再漏；把 dry_run 关了会烧 token 的，必须写明。
+
+锁四件事：
+① `list_tasks()` 如实带出三态 + 判据说明 + 条件性（UI 直接消费，不再有「未标注」）；
+② **全仓**所有 `add_cron_task / add_interval_task` 调用都必须显式传 `zero_token`
+   （不是白名单式的几个文件 —— 新增注册点漏声明会直接红）；
+③ 条件性的（`zero_token_conditional=True`）必须写 `zero_token_note`，说明"关掉 dry_run 会怎样"；
+④ 没声明就是 None（UI 显示「未声明」），不能被默认成 True/False。
 """
 from __future__ import annotations
 
@@ -15,16 +19,21 @@ from pathlib import Path
 from agent.task_scheduler import TaskScheduler
 
 ROOT = Path(__file__).resolve().parents[2]
+_REG_ATTRS = ("add_cron_task", "add_interval_task")
 
-#: 本轮补声明/已有的注册点（都必须是显式声明）
-DECLARED_SITES = (
-    "app_server.py",
-    "agent/skills_mgmt/feedback_agent.py",
-    "agent/skills_mgmt/evolution_scheduler.py",
-    "agent/skills_mgmt/lifecycle.py",
-    "agent/monitoring/slo_report_scheduler.py",
-    "agent/subagent/peers.py",
-)
+
+def _registration_calls():
+    """全仓注册点：(路径, 调用节点)。"""
+    files = [ROOT / "app_server.py", *sorted((ROOT / "agent").rglob("*.py"))]
+    for path in files:
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except (OSError, SyntaxError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) \
+                    and node.func.attr in _REG_ATTRS:
+                yield path, node
 
 
 def test_list_tasks_serializes_zero_token_metadata():
@@ -49,32 +58,26 @@ def test_undeclared_task_stays_none():
     assert row["zero_token_conditional"] is False
 
 
-def _add_task_calls(path: Path):
-    tree = ast.parse(path.read_text(encoding="utf-8"))
-    return [n for n in ast.walk(tree)
-            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
-            and n.func.attr in ("add_cron_task", "add_interval_task")]
-
-
-def test_declared_registration_sites_pass_zero_token():
+def test_every_registration_declares_zero_token():
+    """全仓守卫：任何一个注册点没写 zero_token，这条就红。"""
     missing = []
-    for rel in DECLARED_SITES:
-        calls = _add_task_calls(ROOT / rel)
-        assert calls, rel + " 里没找到 add_*_task 调用（守卫失效？）"
-        for call in calls:
-            kws = {k.arg for k in call.keywords if k.arg}
-            if "zero_token" not in kws:
-                missing.append("%s:%d" % (rel, call.lineno))
+    for path, call in _registration_calls():
+        kws = {k.arg for k in call.keywords if k.arg}
+        if "zero_token" not in kws:
+            missing.append("%s:%d" % (path.relative_to(ROOT), call.lineno))
     assert missing == [], "这些注册点没声明 zero_token：" + "、".join(missing)
 
 
-def test_conditional_sites_mark_conditional():
-    """带 dry_run 开关的学习任务：条件性必须显式标记，否则 UI 会读成永远零 token。"""
-    for rel in ("agent/skills_mgmt/feedback_agent.py",
-                "agent/skills_mgmt/evolution_scheduler.py"):
-        for call in _add_task_calls(ROOT / rel):
-            kws = {k.arg: k.value for k in call.keywords if k.arg}
-            assert "zero_token_conditional" in kws, rel + " 缺少 zero_token_conditional"
-            note = kws.get("zero_token_note")
-            assert isinstance(note, ast.Constant) and str(note.value or "").strip(), \
-                rel + " 缺少判据说明（zero_token_note）"
+def test_conditional_tasks_explain_what_disabling_dry_run_does():
+    """条件性任务必须写明"关掉 dry_run 会怎样"（用户明确要求）。"""
+    bad = []
+    for path, call in _registration_calls():
+        kws = {k.arg: k.value for k in call.keywords if k.arg}
+        flag = kws.get("zero_token_conditional")
+        if not (isinstance(flag, ast.Constant) and flag.value is True):
+            continue
+        note = kws.get("zero_token_note")
+        text = note.value if isinstance(note, ast.Constant) else ""
+        if not str(text or "").strip() or "dry_run" not in str(text):
+            bad.append("%s:%d" % (path.relative_to(ROOT), call.lineno))
+    assert bad == [], "条件性任务缺少「dry_run 关掉会怎样」的说明：" + "、".join(bad)

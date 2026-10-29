@@ -1421,7 +1421,10 @@ def register_liveness_job(scheduler: Any = None, *,
             return {"status": "error", "error": str(exc)}
 
     scheduler.add_interval_task(LIVENESS_TASK_NAME, func=_tick,
-                                interval_seconds=float(interval_seconds))
+                                interval_seconds=float(interval_seconds),
+                                # 执行能力探针并判定存活，不调 LLM
+                                zero_token=True, owner="agent/digestion/probe.py",
+                                zero_token_note="能力探活（执行+判定），不调 LLM")
     task_id = ""
     tasks = getattr(scheduler, "tasks", None)
     if tasks is not None:

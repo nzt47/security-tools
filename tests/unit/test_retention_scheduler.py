@@ -32,13 +32,13 @@ class FakeScheduler:
         self.tasks = []
 
     def add_cron_task(self, name, func, day_of_week=None, hour=0, minute=0,
-                      zero_token=None, owner=""):
-        # 2026-10-17：TaskScheduler.add_cron_task 新增 zero_token/owner（UI 标注用），
-        # 替身必须同步，否则注册期 TypeError。
+                      zero_token=None, owner="", **kwargs):
+        # 【陷阱 10】替身照真实类的方法集写：TaskScheduler.add_cron_task 现在还多
+        # zero_token_note / zero_token_conditional，少写就 TypeError（2026-10-29 实测）。
         self.tasks.append({"name": name, "func": func, "task_id": f"py-{len(self.tasks)}",
                            "cron": {"day_of_week": day_of_week, "hour": hour,
                                     "minute": minute},
-                           "zero_token": zero_token, "owner": owner})
+                           "zero_token": zero_token, "owner": owner, **kwargs})
 
 
 class BrokenScheduler:

@@ -1237,7 +1237,10 @@ def register_reprobe_job(
             return {"status": "error", "error": str(e)}
 
     scheduler.add_interval_task(REPROBE_TASK_NAME, func=_tick,
-                                interval_seconds=days * DAY_SECONDS)
+                                interval_seconds=days * DAY_SECONDS,
+                                # 重探 = 重新执行探针并判定，不调 LLM
+                                zero_token=True, owner="agent/digestion/gate.py",
+                                zero_token_note="漂移重探（执行探针+判定），不调 LLM")
     task_id = ""
     tasks = getattr(scheduler, "tasks", None)
     if tasks:
