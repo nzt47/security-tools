@@ -239,6 +239,11 @@ export const SKILLS_MGMT_ASSESS_MERGE_BACKUPS = '/api/skills-mgmt/assess/merge-b
 export const SKILLS_MGMT_ASSESS_MERGE_SAFE = '/api/skills-mgmt/assess/merge-safe';
 export const SKILLS_MGMT_ASSESS_MERGE_UNDO = '/api/skills-mgmt/assess/merge-undo';
 export const SKILLS_MGMT_ASSESS_CURATE = '/api/skills-mgmt/assess/curate';
+// 冲突自动处置（只停用不删除；apply/undo 都要 confirm=true）
+export const SKILLS_MGMT_CONFLICTS_PLAN = '/api/skills-mgmt/conflicts/plan';
+export const SKILLS_MGMT_CONFLICTS_APPLY = '/api/skills-mgmt/conflicts/apply';
+export const SKILLS_MGMT_CONFLICTS_UNDO = '/api/skills-mgmt/conflicts/undo';
+export const SKILLS_MGMT_CONFLICTS_DECISIONS = '/api/skills-mgmt/conflicts/decisions';
 export const skillAssess = (id: string) => `/api/skills-mgmt/assess/${encodeURIComponent(id)}`;
 export const SKILLS_MGMT_CLASSES = '/api/skills-mgmt/classes';
 export const SKILLS_MGMT_CLASSES_RUN_AUTO = '/api/skills-mgmt/classes/run-auto';

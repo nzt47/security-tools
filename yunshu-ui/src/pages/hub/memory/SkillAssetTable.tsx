@@ -35,6 +35,10 @@ import {
   SKILLS_MGMT_ASSESS_EVENTS,
   SKILLS_MGMT_ASSESS_FEED,
   SKILLS_MGMT_ASSESS_RUN_ALL,
+  SKILLS_MGMT_CONFLICTS_APPLY,
+  SKILLS_MGMT_CONFLICTS_DECISIONS,
+  SKILLS_MGMT_CONFLICTS_PLAN,
+  SKILLS_MGMT_CONFLICTS_UNDO,
   SKILLS_MGMT_ASSESS_STREAM,
   SKILLS_MGMT_CLASSES,
   SKILLS_MGMT_CLASSES_MOVE,
@@ -162,6 +166,7 @@ export default function SkillAssessManager() {
   const [versionsTarget, setVersionsTarget] = useState<SkillItem | null>(null)
   const [redraftTarget, setRedraftTarget] = useState<SkillItem | null>(null)
   const [feedOpen, setFeedOpen] = useState(false)
+  const [conflictOpen, setConflictOpen] = useState(false)
   const [cmdTarget, setCmdTarget] = useState<SkillItem | null>(null)
   /** 详情抽屉的目标（运行 / 脚本 / 参数统计 / 反馈 / 重复 五件事都在抽屉里做） */
   const [detailTarget, setDetailTarget] = useState<SkillItem | null>(null)
@@ -810,6 +815,10 @@ export default function SkillAssessManager() {
             {busy === '全量自动评审-评估' ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
             全量自动评审-评估
           </button>
+          <button type="button" className={BTN} onClick={() => setConflictOpen(true)} disabled={busy !== ''}
+            title="把「交互抢占冲突 / 原生重叠无增量」两句提示变成可预览、可回滚的停用动作（只停用，不删除；有使用记录的一律保持）">
+            <ShieldCheck size={12} /> 自动处置冲突
+          </button>
           <button type="button" className={BTN} onClick={() => void batchReview()} disabled={busy !== ''}>
             批量审核
           </button>
@@ -957,6 +966,9 @@ export default function SkillAssessManager() {
       )}
       {contentTarget && (
         <SkillContentModal skill={contentTarget} onClose={() => setContentTarget(null)} />
+      )}
+      {conflictOpen && (
+        <ConflictModal onClose={() => setConflictOpen(false)} onDone={() => void load()} />
       )}
       {detailTarget && (
         <SkillDetailDrawer skill={detailTarget} onClose={() => setDetailTarget(null)} />
@@ -1133,6 +1145,130 @@ function BackfillModal({ data, busy, error, onCancel, onConfirm }: {
   )
 }
 
+// ── 冲突自动处置（2026-10-30）────────────────────────────────────────
+// 「存在交互抢占冲突风险」「原生未覆盖的增量内容仍会保留…若确无增量建议停用或删除」
+// 这两句以前只能人工处理。这里把后端 conflict_auto 的计划变成一次点击：
+//   ① 打开即拉计划（只读，不写状态）；② 勾选建议停用的行；③ 确认停用（写审计+台账）；
+//   ④ 随时「撤销最近一次」。动作只有「停用」，删除永远留给人工。
+interface ConflictItem {
+  skill_id: string; name: string; kind: string; action: string
+  score?: number; reason?: string; evidence?: string; usage?: { hits?: number; loads?: number; execs?: number }
+}
+interface ConflictPlan { ok?: boolean; items?: ConflictItem[]; summary?: Record<string, number>; error?: string }
+const KIND_ZH: Record<string, string> = {
+  trigger_collision: '交互抢占冲突', native_overlap: '原生重叠·无增量',
+}
+const ACTION_ZH: Record<string, string> = { disable: '建议停用', keep: '保持启用', escalate: '待人工确认' }
+
+function ConflictModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [plan, setPlan] = useState<ConflictPlan | null>(null)
+  const [picked, setPicked] = useState<Record<string, boolean>>({})
+  const [busy, setBusy] = useState('')
+  const [err, setErr] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const loadPlan = useCallback(async () => {
+    setBusy('plan'); setErr('')
+    try {
+      const r = await hubPost<ConflictPlan>(SKILLS_MGMT_CONFLICTS_PLAN, {})
+      setPlan(r)
+      const sel: Record<string, boolean> = {}
+      for (const it of r.items ?? []) if (it.action === 'disable') sel[it.skill_id] = true
+      setPicked(sel)
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)) } finally { setBusy('') }
+  }, [])
+
+  useEffect(() => { void loadPlan() }, [loadPlan])
+
+  const disableItems = (plan?.items ?? []).filter((i) => i.action === 'disable')
+  const chosen = disableItems.filter((i) => picked[i.skill_id])
+
+  const apply = async () => {
+    if (chosen.length === 0) return
+    setBusy('apply'); setErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ ok?: boolean; count?: number; error?: string }>(
+        SKILLS_MGMT_CONFLICTS_APPLY, { confirm: true, items: chosen })
+      if (r?.ok === false) setErr(r.error || '执行失败')
+      else { setMsg(`已停用 ${r?.count ?? 0} 个技能（可在下方「撤销最近一次」恢复）`); onDone(); await loadPlan() }
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)) } finally { setBusy('') }
+  }
+
+  const undoLast = async () => {
+    setBusy('undo'); setErr(''); setMsg('')
+    try {
+      const d = await hubGet<{ records?: { decision_id?: string; skill_id?: string }[] }>(SKILLS_MGMT_CONFLICTS_DECISIONS)
+      const last = (d.records ?? [])[0]
+      if (!last?.decision_id) { setErr('没有可撤销的自动处置记录'); return }
+      const r = await hubPost<{ ok?: boolean; skill_id?: string; error?: string }>(
+        SKILLS_MGMT_CONFLICTS_UNDO, { decision_id: last.decision_id, confirm: true })
+      if (r?.ok === false) setErr(r.error || '撤销失败')
+      else { setMsg(`已恢复 ${r?.skill_id ?? last.skill_id} 为启用`); onDone(); await loadPlan() }
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)) } finally { setBusy('') }
+  }
+
+  return (
+    <ModalShell title="自动处置冲突（只停用，不删除）" onClose={onClose}>
+      <p className="text-[11px] leading-relaxed text-slate-400">
+        判据：评估里的「交互抢占冲突 / 原生重叠」+ 近 7 天使用台账。
+        <strong className="text-slate-300"> 有使用记录的技能一律保持</strong>（不拿正在用的东西冒险）；
+        无使用且评分 &lt; 85 才建议停用；高分但无使用的交人工确认。停用动作写审计与决策台账，可一键撤销。
+      </p>
+      {plan?.summary && (
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+          {chip(`扫描 ${plan.summary.scanned ?? 0}`, 'bg-slate-500/10 text-slate-300 border-slate-700')}
+          {chip(`建议停用 ${plan.summary.disable ?? 0}`, 'bg-amber-500/10 text-amber-300 border-amber-800/60')}
+          {chip(`保持 ${plan.summary.keep ?? 0}`, 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')}
+          {chip(`待人工 ${plan.summary.escalate ?? 0}`, 'bg-slate-500/10 text-slate-400 border-slate-700')}
+        </div>
+      )}
+      {busy === 'plan' ? (
+        <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500">
+          <Loader2 size={12} className="animate-spin" /> 正在读使用台账并生成计划…
+        </div>
+      ) : (plan?.items ?? []).length === 0 ? (
+        <p className="py-3 text-[11px] text-slate-500">没有需要处置的冲突（评估里没有「交互抢占 / 原生重叠」发现项）。</p>
+      ) : (
+        <ul className="max-h-72 mt-2 space-y-1 overflow-y-auto pr-1">
+          {(plan?.items ?? []).map((it) => (
+            <li key={it.skill_id} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {it.action === 'disable' && (
+                  <input type="checkbox" checked={!!picked[it.skill_id]}
+                    onChange={(e) => setPicked({ ...picked, [it.skill_id]: e.target.checked })} />
+                )}
+                <span className="font-mono text-cyan-300">{it.skill_id}</span>
+                <span className="text-slate-300">{it.name}</span>
+                {chip(KIND_ZH[it.kind] ?? it.kind, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50')}
+                {chip(ACTION_ZH[it.action] ?? it.action,
+                  it.action === 'disable' ? 'bg-amber-500/10 text-amber-300 border-amber-800/60'
+                    : it.action === 'keep' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60'
+                      : 'bg-slate-500/10 text-slate-400 border-slate-700')}
+                {it.score != null && <span className="font-mono text-[10px] text-slate-500">评分 {it.score}</span>}
+              </div>
+              {it.reason && <div className="mt-0.5 text-[10px] text-slate-500">{it.reason}</div>}
+              {it.evidence && <div className="truncate text-[10px] text-slate-600" title={it.evidence}>依据：{it.evidence}</div>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {err && <p className="mt-2 text-[11px] text-red-400">{err}</p>}
+      {msg && <p className="mt-2 text-[11px] text-cyan-300">{msg}</p>}
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <button type="button" className={BTN} onClick={onClose} disabled={busy !== ''}>关闭</button>
+        <button type="button" className={BTN} onClick={() => void undoLast()} disabled={busy !== ''}
+          title="把最近一次自动停用的技能恢复为启用（写审计）">撤销最近一次</button>
+        <button type="button" className={BTN} onClick={() => void loadPlan()} disabled={busy !== ''}>重新生成计划</button>
+        <button type="button" className={BTN_EM} onClick={() => void apply()}
+          disabled={busy !== '' || chosen.length === 0}
+          title="只停用勾选项（写审计 + 决策台账，可撤销）；不会删除任何技能">
+          {busy === 'apply' ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
+          确认停用({chosen.length})
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
 // ── 评审-评估报告面板 ──────────────────────────────────────────────
 function ReportPanel({ item, onClose }: { item: SkillItem; onClose: () => void }) {
   const rv = item.review

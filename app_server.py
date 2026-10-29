@@ -2694,6 +2694,12 @@ if __name__ == "__main__":
             print(f"✅ TASK-05 学习类定时任务注册: {learning_tasks}")
         except Exception as e:
             print(f"⚠️ TASK-05 学习类定时任务注册失败（不阻断主流程）: {e}")
+        # 技能冲突自动处置：每日产一份「建议停用 / 保持 / 待人工」计划（只写计划，不动手）
+        try:
+            from agent.skills_mgmt.conflict_auto import register_scheduler as _reg_conflict
+            print(f"✅ 技能冲突自动处置任务注册: {_reg_conflict()}")
+        except Exception as e:
+            print(f"⚠️ 技能冲突自动处置任务注册失败（不阻断主流程）: {e}")
         # 技能清理周期任务（孤儿扫描 / 无用淘汰；默认关闭 + dry-run，见
         # skills_mgmt.cleanup_scheduler 配置说明）
         try:
