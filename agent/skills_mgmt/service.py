@@ -1011,7 +1011,10 @@ class SkillsMgmtService:
                 assessed += 1
                 if r.review_verdict == "block":
                     blocked += 1
-        return {"total": total, "assessed": assessed, "blocked": blocked}
+        # skipped：已有评估记录（本次**刻意不重跑**，避免覆盖人工/正式审核结论）。
+        # 没有这一位时，界面只能说「完成」，而实际可能是 0 个 —— 用户看到的就是「按钮没反应」。
+        return {"total": total, "assessed": assessed, "blocked": blocked,
+                "skipped": total - assessed}
 
     def digest_all(self) -> Dict[str, Any]:
         """已废弃兼容别名（旧名 digest_all，评审语义，与 v7.2 内化语义无关）。
@@ -1857,6 +1860,16 @@ class SkillsMgmtService:
 
         # 生产写路径：file_store.create（锁内写 + 写钩子 + 索引失效），不手写文件
         self.file_store.create(skill_id, meta, instruction=body)
+        # 与「新建 / 外来安装」一致：补齐文件轨后立刻做一次咨询性评审-评估。
+        # 否则展开「评审-评估报告」只有 0 分 + 「未发现评估问题」——
+        # 用户看到的是「没有内容」，而不是「还没评估」（2026-10-29 反馈）。
+        assessed = False
+        try:
+            assessed = self._advisory_assess(skill_id) is not None
+        except Exception as e:  # noqa: BLE001 评估失败不得回滚已落盘的文件轨
+            logger.warning("[Service] 生成文件轨后自动评估失败（文件已创建）skill=%s: %s",
+                           skill_id, e)
+        result["assessed"] = assessed
         try:
             from agent.audit import audit as _audit_facade
             _audit_facade.record(
@@ -2100,6 +2113,18 @@ class SkillsMgmtService:
 
     def list_all(self) -> List[Skill]:
         return self.store.list_all()
+
+    def file_track_ids(self) -> set:
+        """有文件轨的技能 id 集合（`data/skills_repo/<id>/skill.md` 真实存在）。
+
+        供 REST/UI 判断「生成文件轨」是否还可点：没有这一位，界面只能让用户点了
+        再吃一次 409（2026-10-29 实测：8 个技能点过之后按钮仍然亮着）。
+        """
+        try:
+            repo = self.file_store.repo_path
+            return {p.name for p in repo.iterdir() if (p / "skill.md").is_file()}
+        except OSError:
+            return set()
 
     def get(self, skill_id: str) -> Skill:
         return self._require(skill_id)

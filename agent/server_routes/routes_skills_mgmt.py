@@ -173,9 +173,19 @@ def register_routes(app, state):
         """列出所有技能 (不分页)"""
         try:
             items = _svc().list_all()
+            # has_file_track：UI 用它把「生成文件轨」置灰（已有文件轨再点只会 409）
+            try:
+                tracks = _svc().file_track_ids()
+            except Exception:  # noqa: BLE001 读不到文件轨不影响主列表
+                tracks = set()
+            rows = []
+            for s in items:
+                row = s.model_dump()
+                row["has_file_track"] = s.id in tracks
+                rows.append(row)
             return jsonify({
                 "ok": True,
-                "items": [s.model_dump() for s in items],
+                "items": rows,
                 "total": len(items),
             })
         except Exception as e:  # noqa: BLE001

@@ -12,7 +12,7 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Download, Eye, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
+  ChevronDown, ChevronRight, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { CallabilityBadge, hubGet, hubPost } from '../components/ui'
@@ -20,7 +20,6 @@ import { authHeader, getApiToken } from '../../../lib/apiToken'
 import GenerateRequirementModal from './generate-requirement-modal'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
-import SkillContentModal from './skill-content-modal'
 import SkillDetailDrawer from './skill-detail-drawer'
 import InstalledExtensions from '../extensions/installed-extensions'
 import { fetchCapabilityManifest, indexCallability, type CallabilityInfo } from '@/lib/callability'
@@ -97,6 +96,8 @@ interface SkillItem {
   content_type?: string; category?: string; version?: string; review?: ReviewLike
   tags?: string[]; is_sensitive?: boolean; isolation_strategy?: string; source?: string
   class_name?: string; class_auto?: boolean; runtime_only?: boolean; callability?: CallabilityInfo
+  /** 已有文件轨（data/skills_repo/<id>/skill.md）：为 true 时「生成文件轨」应置灰 */
+  has_file_track?: boolean
 }
 
 /** 文件轨补登记：dry-run 返回候选，确认后返回 created/skipped */
@@ -132,13 +133,21 @@ const SEV: Record<string, string> = {
 const chip = (txt: string, cls: string, title?: string) => (
   <span title={title} className={`inline-flex items-center whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] ${cls}`}>{txt}</span>
 )
+/** 状态 → 中文（此前直接把英文枚举名当徽章文案，用户看不出「发布」到底有没有发生） */
+const STATUS_ZH: Record<string, string> = {
+  published: '已发布', approved: '已通过（未发布）', pending_review: '待评审',
+  rejected: '已驳回', draft: '草稿', archived: '已归档', runtime_only: '仅运行时',
+}
 const statusChip = (s?: string) => chip(
-  s ?? '-',
+  s ? (STATUS_ZH[s] ?? s) : '-',
   s === 'published' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-800'
     : s === 'approved' ? 'bg-cyan-500/15 text-cyan-400 border-cyan-800'
       : s === 'pending_review' ? 'bg-amber-500/15 text-amber-400 border-amber-800'
         : s === 'rejected' ? 'bg-red-500/15 text-red-400 border-red-800'
           : 'bg-slate-500/15 text-slate-400 border-slate-700',
+  s === 'published' ? '已发布：过了评审闸门、进入放行队列终态'
+    : s === 'approved' ? '已通过评审但未发布（仍会被注入，区别只在治理状态）'
+      : undefined,
 )
 
 export default function SkillAssessManager() {
@@ -156,7 +165,6 @@ export default function SkillAssessManager() {
   const [createOpen, setCreateOpen] = useState(false)
   const [genOpen, setGenOpen] = useState(false)
   const [publishTarget, setPublishTarget] = useState<SkillItem | null>(null)
-  const [contentTarget, setContentTarget] = useState<SkillItem | null>(null)
   const [needAuth, setNeedAuth] = useState(false)
   const [adviceTarget, setAdviceTarget] = useState<SkillItem | null>(null)
   const [versionsTarget, setVersionsTarget] = useState<SkillItem | null>(null)
@@ -340,7 +348,26 @@ export default function SkillAssessManager() {
   }
 
   const assessOne = (id: string) => act('评审-评估', () => hubPost(skillAssess(id)))
-  const runAll = () => act('全量自动评审-评估', () => hubPost(SKILLS_MGMT_ASSESS_RUN_ALL))
+  /**
+   * 全量自动评审-评估：只评估**尚无记录**的技能（已有记录不重跑，避免覆盖人工结论）。
+   * 旧实现只说「完成」，而实际常常是 0 个 —— 用户看到的就是「按钮没反应」。
+   */
+  const runAll = async () => {
+    setBusy('全量自动评审-评估'); setError(''); setMsg(''); setNeedAuth(false)
+    try {
+      const r = await hubPost<{ ok?: boolean; total?: number; assessed?: number; blocked?: number; skipped?: number; error?: string }>(SKILLS_MGMT_ASSESS_RUN_ALL)
+      if (r?.ok === false) setMsg(`全量自动评审-评估未完成：${r.error || '接口返回失败'}`)
+      else if ((r?.assessed ?? 0) === 0)
+        setMsg(`全量自动评审-评估完成：${r?.total ?? 0} 个技能都已有评估记录，本次 0 个需要评估（已有记录不重跑，避免覆盖人工结论）`)
+      else
+        setMsg(`全量自动评审-评估完成：本次评估 ${r?.assessed ?? 0} 个，已有记录跳过 ${r?.skipped ?? 0} 个，共 ${r?.total ?? 0} 个${(r?.blocked ?? 0) > 0 ? `（其中 ${r.blocked} 个存在阻断项）` : ''}`)
+      await load()
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e)
+      if (m.includes('401') || m.includes('未授权')) setNeedAuth(true)
+      setMsg(`全量自动评审-评估失败：${m}`)
+    } finally { setBusy(''); void loadEvents() }
+  }
   const batchReview = () => act('批量审核', () => hubPost(SKILLS_MGMT_REVIEW_BATCH))
   /** 发布（先经「人工复核」弹窗确认；未通过评审时须填原因强制发布并写入审计） */
   const confirmPublish = (it: SkillItem, reason?: string) => {
@@ -601,8 +628,14 @@ export default function SkillAssessManager() {
             {it.runtime_only
               ? chip('仅运行时·无资产记录', 'bg-violet-500/10 text-violet-300 border-violet-800/50', RUNTIME_ONLY_TIP)
               : it.enabled && (it.status === 'published' || it.status === 'approved')
-                ? chip('触发·注入生效', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
-                : chip(it.enabled ? '已启用·待发布不触发' : '停用·不触发', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+                ? chip(it.status === 'published' ? '已发布·注入生效' : '已通过·注入生效（未发布）',
+                  'bg-emerald-500/10 text-emerald-400 border-emerald-800/60',
+                  '运行时注入只看「启用」+ 状态属于 approved/published；发布不改注入，改的是治理状态与放行队列')
+                : chip(it.enabled
+                  ? `已启用·状态「${STATUS_ZH[it.status ?? ''] ?? it.status ?? '-'}」不注入`
+                  : '停用·不触发',
+                  'bg-slate-500/10 text-slate-400 border-slate-700',
+                  '只有启用且状态为 approved/published 的技能会被注入；停用或待评审/驳回一律不注入')}
             {!it.runtime_only && chip(['python', 'javascript', 'shell', 'js'].includes(String(it.content_type ?? '').toLowerCase())
               ? '脚本型·命中后执行脚本'
               : `指令型·命中后注入提示`, 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
@@ -636,7 +669,10 @@ export default function SkillAssessManager() {
             if (it.runtime_only) return <span className="text-[10px] text-slate-600">—</span>
             if (!u) {
               return (
-                <span className="text-[10px] text-slate-600" title="近 7 天没有任何命中/加载/执行记录">0/0/0</span>
+                <span className="flex flex-wrap items-center gap-1">
+                  {chip('未调用', 'bg-slate-500/10 text-slate-400 border-slate-700', '近 7 天没有命中/加载/执行记录')}
+                  <span className="font-mono text-[9px] text-slate-600">0/0/0</span>
+                </span>
               )
             }
             const hits = u.hits ?? 0
@@ -646,18 +682,20 @@ export default function SkillAssessManager() {
             const bad = u.exec_fail ?? 0
             const tone = hits > 0 ? 'text-emerald-300' : (it.enabled ? 'text-amber-300' : 'text-slate-500')
             return (
-              <span className={`font-mono text-[10px] ${tone}`}
+              <span className="flex flex-wrap items-center gap-1"
                 title={`近 7 日 命中 ${hits} · 加载 ${loads} · 执行 ${execs}（成功 ${ok} / 失败 ${bad}）`}>
-                {hits}/{loads}/{execs}
+                {hits > 0
+                  ? chip(`已调用·命中 ${hits}`, 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
+                  : chip(loads > 0 ? '已加载·未命中' : '未调用',
+                    loads > 0 ? 'bg-amber-500/10 text-amber-300 border-amber-800/60'
+                      : 'bg-slate-500/10 text-slate-400 border-slate-700')}
+                <span className={`font-mono text-[9px] ${tone}`}>{hits}/{loads}/{execs}</span>
               </span>
             )
           })()}
         </td>
         <td className="w-[18rem] px-2 py-2">
           <div className="flex flex-wrap items-center gap-1">
-            <button type="button" className={BTN} onClick={() => setContentTarget(it)} disabled={busy !== ''} title="查看该技能的具体内容（正文 / 参数 / 标签）">
-              <Eye size={11} /> 查看内容
-            </button>
             {it.runtime_only ? (
               <button type="button" className={BTN} onClick={() => void toggleRuntime(it)} disabled={busy !== ''}>
                 {it.enabled ? '停用' : '启用'}
@@ -696,13 +734,21 @@ export default function SkillAssessManager() {
                     <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setCmdTarget(it) }} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
                       命令
                     </button>
-                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); void materializeFileTrack(it) }} disabled={busy !== ''} title="只在主轨的技能（没有 skill.md）：新建文件轨后才能写中文说明/展示名；已有文件轨会拒绝覆盖">
+                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); void materializeFileTrack(it) }}
+                      disabled={busy !== '' || it.has_file_track === true}
+                      title={it.has_file_track === true
+                        ? '已有文件轨（data/skills_repo/<id>/skill.md 存在）：无需再生成（接口会 409 拒绝覆盖）'
+                        : '只在主轨的技能（没有 skill.md）：新建文件轨后才能写中文说明/展示名；已有文件轨会拒绝覆盖'}>
                       <FilePlus size={11} /> 生成文件轨
                     </button>
                   </div>
                 </details>
-                <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
-                  <Rocket size={11} /> 发布
+                <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)}
+                  disabled={busy !== '' || ['published', 'archived', 'rejected'].includes(String(it.status ?? ''))}
+                  title={['published', 'archived', 'rejected'].includes(String(it.status ?? ''))
+                    ? `当前状态「${STATUS_ZH[String(it.status)] ?? it.status}」不可再发布（发布是终态动作）`
+                    : '发布 = 过评审闸门并置为已发布终态（未通过评审需填原因强制发布并写审计）'}>  
+                  <Rocket size={11} /> {it.status === 'published' ? '已发布' : '发布'}
                 </button>
                 <button type="button" className={BTN} onClick={() => toggle(it)} disabled={busy !== ''}>
                   {it.enabled ? '停用' : '启用'}
@@ -955,9 +1001,6 @@ export default function SkillAssessManager() {
           </div>
         </ModalShell>
       )}
-      {contentTarget && (
-        <SkillContentModal skill={contentTarget} onClose={() => setContentTarget(null)} />
-      )}
       {detailTarget && (
         <SkillDetailDrawer skill={detailTarget} onClose={() => setDetailTarget(null)} />
       )}
@@ -1137,6 +1180,23 @@ function BackfillModal({ data, busy, error, onCancel, onConfirm }: {
 function ReportPanel({ item, onClose }: { item: SkillItem; onClose: () => void }) {
   const rv = item.review
   const findings = rv?.findings ?? []
+  // 【2026-10-30 反馈】没有评估记录时，旧实现照样渲染 0 分 + 「未发现评估问题」，
+  // 看起来像「报告是空的」。这里改成明确的「尚未评估 + 怎么生成」。
+  if (!rv) {
+    return (
+      <div className="mt-1.5 rounded-lg border border-slate-800 bg-slate-900/50 p-3" data-testid="assess-report-empty">
+        <div className="mb-1 flex items-center gap-2 text-xs font-medium text-slate-200">
+          <ShieldCheck size={13} className="text-slate-500" />
+          评审-评估报告 · {item.name || item.id}
+          {chip('尚未评估', 'bg-slate-500/15 text-slate-400 border-slate-700')}
+        </div>
+        <p className="text-[11px] leading-relaxed text-slate-500">
+          该技能还没有评估记录（新建 / 外来安装 / 生成文件轨会自动评估一次）。
+          点行内「评审-评估」生成报告：综合/安全/质量/兼容四项分数 + 发现项（重复、安全、质量、兼容）。
+        </p>
+      </div>
+    )
+  }
   const stat = (label: string, v?: number) => (
     <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-1 text-center">
       <div className="text-[9px] uppercase tracking-wider text-slate-500">{label}</div>

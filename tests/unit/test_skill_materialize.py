@@ -81,3 +81,37 @@ def test_redraft_works_after_materialize(tmp_path):
     assert out["applied"] == ["description_zh"]
     meta, _body, _s, _t = svc.file_store.read("templates")
     assert meta["description_zh"].startswith("智能体身份模板")
+
+
+def test_materialize_runs_advisory_assess(tmp_path):
+    """补齐文件轨后立刻评估一次：否则展开「评审-评估报告」只有 0 分（看起来像空报告）。"""
+    svc = _svc(tmp_path)
+    _seed(svc)
+    assert svc.get("templates").review is None
+    out = svc.materialize_file_track("templates", dry_run=False)
+    assert out["assessed"] is True
+    rv = svc.get("templates").review
+    assert rv is not None and rv.auto_assessed is True
+    assert {"score", "security_score", "quality_score", "compatibility_score"} <= set(rv.model_dump().keys())
+
+
+def test_file_track_ids_lists_only_real_tracks(tmp_path):
+    """REST 用 file_track_ids 给「生成文件轨」置灰：只认 <id>/skill.md 真实存在。"""
+    svc = _svc(tmp_path)
+    _seed(svc, "templates")
+    _seed(svc, "no-track")
+    assert svc.file_track_ids() == set()
+    svc.materialize_file_track("templates", dry_run=False)
+    assert svc.file_track_ids() == {"templates"}
+
+
+def test_assess_all_reports_skipped(tmp_path):
+    """全量评估要能说清「这次评估了几个、跳过几个」——否则 0 个时看起来像按钮没反应。"""
+    svc = _svc(tmp_path)
+    _seed(svc, "a1")
+    _seed(svc, "a2")
+    first = svc.assess_all()
+    assert first == {"total": 2, "assessed": 2, "blocked": 0, "skipped": 0}
+    second = svc.assess_all()
+    assert second["assessed"] == 0 and second["skipped"] == 2 and second["total"] == 2
+
