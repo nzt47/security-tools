@@ -961,6 +961,17 @@ def _declared_disabled_names() -> frozenset:
         return frozenset()
 
 
+def declared_disabled_tool_names() -> frozenset:
+    """声明层 `enabled: false` 的工具名（**公开入口**，供 REST/UI 复用）。
+
+    【为什么需要公开】工具集页的「启用/停用」必须与「模型可见集」同一口径，
+    否则「停用观察」是装饰性的。2026-10-29 实测：`schedule_task` 的 YAML 是
+    `enabled: false`（模型已看不见），但 `/api/tools/config` 仍报 `enabled: true`
+    —— 页面显示「启用」，与真实生效状态相反。REST 侧改读这份集合即对齐。
+    """
+    return _declared_disabled_names()
+
+
 def _hidden_tool_names() -> frozenset:
     """不给模型看的工具名 = 内部工具 ∪ 声明为不可被 LLM 调用的工具 ∪ 声明停用的工具"""
     return (_internal_tool_names() | _non_callable_names()
