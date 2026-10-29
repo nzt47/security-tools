@@ -183,8 +183,20 @@ def probe_tools() -> Dict[str, Any]:
     dyn = dyn_doc.get("tools") if isinstance(dyn_doc, dict) else None
     dynamic = len(dyn) if isinstance(dyn, (dict, list)) else 0
     status = "ok" if static else "never"
-    return {"status": status, "summary": "静态 %d · 动态登记 %d" % (static, dynamic),
-            "metrics": {"static": static, "dynamic": dynamic},
+    # 工具使用（2026-10-29）：与技能台账同源，stage=tool；读失败只降级 summary，不改状态。
+    calls = fails = 0
+    try:
+        from agent.skills_mgmt import usage_log
+        t = usage_log.stats(7)["totals"]
+        calls, fails = int(t.get("tool_calls", 0)), int(t.get("tool_fail", 0))
+    except Exception:  # noqa: BLE001 台账读不到不影响「登记了多少工具」这个事实
+        calls = fails = 0
+    usage_note = (" · 近 7 天调用 %d 次（失败 %d）" % (calls, fails)) if calls else \
+        " · 近 7 天无工具调用记录"
+    return {"status": status,
+            "summary": "静态 %d · 动态登记 %d%s" % (static, dynamic, usage_note),
+            "metrics": {"static": static, "dynamic": dynamic,
+                        "calls_7d": calls, "fails_7d": fails},
             "last_activity": _mtime(_p("data/dynamic_tools.json"))}
 
 

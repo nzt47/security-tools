@@ -1148,6 +1148,26 @@ class ToolCallingService:
         except Exception:  # noqa: BLE001 埋点失败绝不阻断工具执行
             pass
 
+        # ── 工具使用台账（stage=tool，2026-10-29）─────────────────────
+        #  为什么在这里：本方法是四条终态（成功 / ToolError / 未捕获异常 / 重试耗尽）的
+        #  唯一收口，所以「工具被调用几次、成功率多少、慢在哪」只需一条写入点，
+        #  不会重复也不会漏。与技能台账同一份文件（agent/skills_mgmt/usage_log.py），
+        #  查询见 GET /api/skills-mgmt/usage/stats 的 tools 段。
+        try:
+            from agent.skills_mgmt import usage_log
+            _ok_tool = bool(result.get("ok", True)) if isinstance(result, dict) else True
+            _err_tool = ""
+            if not _ok_tool and isinstance(result, dict):
+                _err_tool = str(result.get("error_code") or result.get("error") or "")
+            usage_log.record_tool(
+                func_name,
+                success=_ok_tool,
+                latency_ms=(time.perf_counter() - started_mono) * 1000,
+                error_code=_err_tool,
+            )
+        except Exception:  # noqa: BLE001 观测失败绝不阻断工具执行
+            pass
+
         try:
             from agent.observability.trace_v2 import TraceContext, TraceFacade
             if TraceContext.current() is None:

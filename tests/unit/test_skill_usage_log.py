@@ -87,3 +87,39 @@ def test_record_match_extracts_top_ids():
 
     # 只验形状：record_match 不抛异常即可（实际写入已在上面的用例覆盖）
     usage_log.record_match(_R())
+
+
+# ── 工具级使用台账（stage=tool，2026-10-29）─────────────────────────
+def test_record_tool_and_aggregate(log_path):
+    usage_log.record_tool("read_file", success=True, latency_ms=10)
+    usage_log.record_tool("read_file", success=True, latency_ms=30)
+    usage_log.record_tool("shell_execute", success=False, latency_ms=100,
+                          error_code="ToolError: 找不到命令")
+
+    s = usage_log.stats(7)
+    tot = s["totals"]
+    assert (tot["tool_calls"], tot["tool_ok"], tot["tool_fail"]) == (3, 2, 1)
+    assert tot["tool_ok_rate"] == pytest.approx(2 / 3, abs=1e-3)
+    rf = s["tools"]["read_file"]
+    assert (rf["calls"], rf["ok"], rf["fail"]) == (2, 2, 0)
+    assert rf["avg_ms"] == pytest.approx(20.0) and rf["max_ms"] == pytest.approx(30.0)
+    sh = s["tools"]["shell_execute"]
+    assert sh["fail"] == 1 and "找不到命令" in sh["last_error"]
+    assert sh["last_used_at"]
+
+
+def test_tool_and_skill_events_do_not_mix(log_path):
+    """工具事件不能污染技能聚合（反之亦然）—— 两段共用一次扫描但各自成账。"""
+    usage_log.record("match", "alpha", extra={"top_ids": ["alpha"], "count": 1})
+    usage_log.record_tool("read_file", success=True, latency_ms=5)
+
+    s = usage_log.stats(7)
+    assert set(s["skills"]) == {"alpha"}
+    assert set(s["tools"]) == {"read_file"}
+    assert s["totals"]["match_calls"] == 1 and s["totals"]["tool_calls"] == 1
+
+
+def test_record_tool_ignores_empty_name(log_path):
+    usage_log.record_tool("", success=True)
+    usage_log.record_tool(None, success=True)
+    assert usage_log.stats(7)["tools"] == {}
