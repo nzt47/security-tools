@@ -164,10 +164,11 @@ class TestQuery:
         # 从「只在运行时台账里」变为仓库内 skill.md 实体 ⇒ 计入清单的能力面。
         # 断言仍是"精确等于"，只是基线随能力面变化而刷新。
         # 【2026-10-24】119/28 → 127/36、local 98 → 106：8 个技能目录补回文件轨
+    # 【2026-10-30】127/36 → 133/42、local 106 → 112：A 方案把 6 个主轨独有技能入库（+6 local）
         # （此前只在运行时台账里，仓库可复现口径因此少算 8 条）。
-        assert st["total"] == 127, f"能力总数应为 127，实际 {st['total']}"
-        assert st["by_kind"] == {"skill": 36, "tool": 91}
-        assert st["by_location"] == {"local": 106, "remote": 21}
+        assert st["total"] == 133, f"能力总数应为 133，实际 {st['total']}"
+        assert st["by_kind"] == {"skill": 42, "tool": 91}
+        assert st["by_location"] == {"local": 112, "remote": 21}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -182,7 +183,7 @@ class TestQuery:
         skills = real_registry.query(kind="skill")
         # 【2026-10-24】36 → 35：query 默认 enabled_only=True，gstack 以 enabled=false
         # 回到文件轨后被排除（stats 里仍是 36，两者口径不同，见下一条用例注释）
-        assert len(tools) == 91 and len(skills) == 35
+        assert len(tools) == 91 and len(skills) == 41
         remote = real_registry.query(location="remote")
         assert len(remote) == 21
 
@@ -196,7 +197,7 @@ class TestQuery:
     @_SKIP_COMMITTED_BASELINE
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
-        assert idx["primary"] == 127
+        assert idx["primary"] == 133
         assert idx["facet"] >= 1
 
 
@@ -243,7 +244,7 @@ class TestModelCapabilityProbe:
         env = real_registry.list_envelope()
         # 【2026-10-24】envelope 走 query(enabled_only=True) ⇒ 126（不含 gstack）；
         # stats().total 是 127 —— 两个数含义不同，别混
-        assert env["data"]["returned"] == env["data"]["total"] == 126
+        assert env["data"]["returned"] == env["data"]["total"] == 132
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
@@ -255,7 +256,7 @@ class TestModelCapabilityProbe:
         assert env["data"]["items"] == []
         # **total 仍然如实报告**：裁剪的是"给这个模型看的清单"，
         # 不是"注册表里有多少能力"。两个数含义不同，不许混。
-        assert env["data"]["total"] == 126
+        assert env["data"]["total"] == 132
 
     def test_不支持前缀被识别(self):
         ok, why = modelcaps.supports_tool_calling("text-davinci-003")
