@@ -1521,6 +1521,7 @@ flowchart LR
     agent_monitoring_tracing_perf -.-> agent_logging_utils
     agent_monitoring_tracing_sampling -.-> agent_utils_singleton_manager
     agent_monitoring_unit_probes -.-> agent_skills_mgmt
+    agent_monitoring_unit_probes -.-> agent_skills_mgmt
     agent_monitoring_unit_probes -.-> agent_task_scheduler
     agent_multi_tenant -.-> agent_monitoring_tracing
     agent_network -.-> agent_network_config
@@ -2487,6 +2488,7 @@ flowchart LR
     agent_tool_calling --> agent_timeout_budget
     agent_tool_calling --> agent_tools_prompt_guard
     agent_tool_calling -.-> agent_monitoring_business_metrics
+    agent_tool_calling -.-> agent_skills_mgmt
     agent_tool_calling -.-> agent_observability_trace_v2
     agent_tool_calling -.-> agent_observability_tool_trace
     agent_tool_calling --> agent_response_workflows
@@ -2745,7 +2747,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 704
 - 模块节点数: 609
-- 依赖边数: 2008
-- 跨层调用数: 1272
+- 依赖边数: 2010
+- 跨层调用数: 1274
 - 违规调用数: 0
 - 动态 import 数: 1

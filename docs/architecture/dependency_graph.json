@@ -2095,7 +2095,7 @@
       "layer": "core",
       "file_path": "",
       "in_degree": 4,
-      "out_degree": 21
+      "out_degree": 22
     },
     {
       "path": "agent.log_system.models",
@@ -2663,14 +2663,14 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/unit_probes.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.skills_mgmt",
       "name": "skills_mgmt",
       "layer": "skills_mgmt",
       "file_path": "",
-      "in_degree": 5,
+      "in_degree": 7,
       "out_degree": 0
     },
     {
@@ -15199,11 +15199,24 @@
     },
     {
       "source": "agent.monitoring.unit_probes",
+      "target": "agent.skills_mgmt",
+      "source_layer": "monitoring",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 189,
+      "source_file": "agent/monitoring/unit_probes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.unit_probes",
       "target": "agent.task_scheduler",
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 206,
+      "line": 218,
       "source_file": "agent/monitoring/unit_probes.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27631,7 +27644,7 @@
       "source_layer": "core",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 1420,
+      "line": 1440,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -27657,7 +27670,7 @@
       "source_layer": "core",
       "target_layer": "capregistry",
       "import_type": "from_import",
-      "line": 1188,
+      "line": 1208,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27670,7 +27683,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1193,
+      "line": 1213,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -27757,11 +27770,24 @@
     },
     {
       "source": "agent.tool_calling",
+      "target": "agent.skills_mgmt",
+      "source_layer": "core",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 1157,
+      "source_file": "agent/tool_calling.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tool_calling",
       "target": "agent.observability.trace_v2",
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 1152,
+      "line": 1172,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27774,7 +27800,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 1175,
+      "line": 1195,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -27787,7 +27813,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1203,
+      "line": 1223,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -30983,8 +31009,8 @@
   "stats": {
     "total_files": 704,
     "total_nodes": 609,
-    "total_edges": 2008,
-    "cross_layer_edges": 1272,
+    "total_edges": 2010,
+    "cross_layer_edges": 1274,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
