@@ -778,6 +778,73 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    # ── 冲突自动处置（2026-10-30）：把「交互抢占冲突 / 原生重叠无增量」两句提示变成可预览、可回滚的动作 ──
+    @app.route("/api/skills-mgmt/conflicts/plan", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_conflicts_plan():
+        """只读：给出「建议停用 / 保持 / 待人工」清单（不写任何状态、不调 LLM）。"""
+        try:
+            from agent.skills_mgmt import conflict_auto
+            data = request.get_json(silent=True) or {}
+            days = int(data.get("usage_days", 7) or 7)
+            return jsonify({"ok": True, **conflict_auto.plan(_svc(), usage_days=max(1, min(days, 90)))})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/conflicts/apply", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_conflicts_apply():
+        """执行计划里 action=disable 的项：**只停用 + 打 auto_dormant 标签**，从不删除。"""
+        try:
+            from agent.skills_mgmt import conflict_auto
+            data = request.get_json(silent=True) or {}
+            if data.get("confirm") is not True:
+                return jsonify({"ok": False, "error": "apply 需要 confirm=true（先看计划再执行）"}), 400
+            items = data.get("items")
+            if not isinstance(items, list):
+                items = conflict_auto.plan(_svc())["items"]
+            return jsonify(conflict_auto.apply(_svc(), items, confirm=True,
+                                              actor=str(data.get("actor") or "ui_conflict_auto")))
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/conflicts/undo", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_conflicts_undo():
+        """撤销一次自动停用（恢复 enabled 与标签，写审计）。"""
+        try:
+            from agent.skills_mgmt import conflict_auto
+            data = request.get_json(silent=True) or {}
+            decision_id = str(data.get("decision_id") or "").strip()
+            if not decision_id:
+                return jsonify({"ok": False, "error": "缺少 decision_id"}), 400
+            if data.get("confirm") is not True:
+                return jsonify({"ok": False, "error": "undo 需要 confirm=true"}), 400
+            return jsonify(conflict_auto.undo(_svc(), decision_id, confirm=True))
+        except KeyError as e:
+            return jsonify({"ok": False, "error": str(e)}), 404
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/conflicts/decisions", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_conflicts_decisions():
+        """最近 N 次自动处置（最新在前，供界面「撤销」用）。"""
+        try:
+            from agent.skills_mgmt import conflict_auto
+            limit = max(1, min(request.args.get("limit", 20, type=int), 500))
+            rows = conflict_auto.read_decisions(limit=limit)
+            return jsonify({"ok": True, "records": rows, "total": len(rows)})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
     @app.route("/api/skills-mgmt/review/audit", methods=["GET"])
     @trace_route("SkillsMgmt")
     @require_token

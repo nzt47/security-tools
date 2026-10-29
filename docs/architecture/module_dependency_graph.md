@@ -564,6 +564,7 @@ flowchart LR
         agent_skills_mgmt_claude_import["agent.skills_mgmt.claude_import"]:::crosslayer
         agent_skills_mgmt_cleanup["agent.skills_mgmt.cleanup"]
         agent_skills_mgmt_cleanup_scheduler["agent.skills_mgmt.cleanup_scheduler"]
+        agent_skills_mgmt_conflict_auto["agent.skills_mgmt.conflict_auto"]
         agent_skills_mgmt_context_injector["agent.skills_mgmt.context_injector"]
         agent_skills_mgmt_creator["agent.skills_mgmt.creator"]:::crosslayer
         agent_skills_mgmt_enhancer["agent.skills_mgmt.enhancer"]:::crosslayer
@@ -2087,6 +2088,10 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_audit_ui_middleware
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_enhancer
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_models
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
@@ -2221,6 +2226,11 @@ flowchart LR
     agent_skills_mgmt_cleanup_scheduler -.-> agent_config
     agent_skills_mgmt_cleanup_scheduler -.-> agent_scheduling
     agent_skills_mgmt_cleanup_scheduler -.-> agent_scheduling
+    agent_skills_mgmt_conflict_auto -.-> agent_logging_utils
+    agent_skills_mgmt_conflict_auto --> agent_skills_mgmt
+    agent_skills_mgmt_conflict_auto --> agent_skills_mgmt_service
+    agent_skills_mgmt_conflict_auto -.-> agent_task_scheduler
+    agent_skills_mgmt_conflict_auto -.-> agent_audit
     agent_skills_mgmt_context_injector -.-> agent_logging_utils
     agent_skills_mgmt_creator -.-> agent_error_handler
     agent_skills_mgmt_creator -.-> agent_extensions_market
@@ -2746,9 +2756,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 704
-- 模块节点数: 609
-- 依赖边数: 2011
-- 跨层调用数: 1275
+- 扫描文件数: 705
+- 模块节点数: 610
+- 依赖边数: 2020
+- 跨层调用数: 1282
 - 违规调用数: 0
 - 动态 import 数: 1
