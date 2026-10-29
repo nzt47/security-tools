@@ -50,8 +50,9 @@ import {
 } from 'recharts'
 import {
   Activity, Bell, Boxes, Download, History, LayoutDashboard,
-  RefreshCw, Server, ShieldCheck, Sparkles, Zap,
+  RefreshCw, Server, ShieldCheck, Sparkles, UserCog, Zap,
 } from 'lucide-react'
+import { getDashboardSummary, validateDashboardSummary, type DashboardSummaryData } from '@/api/dashboard'
 import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet } from '../components/ui'
 import { getEnvelope } from '@/api/envelope'
 import { downloadFile } from '../../../utils/system'
@@ -468,6 +469,10 @@ const TABS = [
   { key: 'quality', label: '质量', Icon: Sparkles },
   { key: 'alerts', label: '告警', Icon: Bell },
   { key: 'history', label: '历史', Icon: History },
+  // 2026-10-29（用户选方案 A）：把「系统管理 · 仪表盘」的**只读汇总**搬进来一个 Tab，
+  // 明细（用户/角色/通知列表）仍留在系统管理；数据源同一份 /api/dashboard/summary，
+  // 服务端 _require_admin 鉴权，本页只负责"没权限时给明确提示"。
+  { key: 'admin', label: '管理概览', Icon: UserCog },
 ] as const
 type TabKey = (typeof TABS)[number]['key']
 
@@ -485,6 +490,10 @@ export default function PanoramaHealth() {
   const [metricSearch, setMetricSearch] = useState('')
   const [metricType, setMetricType] = useState('')
   const [historyLevel, setHistoryLevel] = useState('')
+  /** 管理概览（/api/dashboard/summary，服务端 _require_admin）：切到该 Tab 才拉一次 */
+  const [adminSummary, setAdminSummary] = useState<DashboardSummaryData | null>(null)
+  const [adminErr, setAdminErr] = useState('')
+  const [adminLoaded, setAdminLoaded] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -517,6 +526,18 @@ export default function PanoramaHealth() {
   }, [hours])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (tab !== 'admin' || adminLoaded) return
+    setAdminLoaded(true)
+    getDashboardSummary().then((d) => {
+      const issues = validateDashboardSummary(d)
+      if (issues.length) { setAdminErr('接口返回结构与页面不匹配：' + issues.join('；')); return }
+      setAdminSummary(d as DashboardSummaryData)
+    }).catch((e: unknown) => {
+      setAdminErr(e instanceof Error ? e.message : String(e))
+    })
+  }, [tab, adminLoaded])
   // 监控场景 60s 自动刷新（保留原页行为）
   useEffect(() => {
     const timer = setInterval(() => { load() }, 60000)
@@ -1160,6 +1181,40 @@ export default function PanoramaHealth() {
               <div className="mt-2 text-[11px] text-slate-600">
                 共 {alerts?.groups?.length ?? 0} 个告警组 / {alertRules.length} 条规则；状态与触发时间字段端点未返回。
               </div>
+            </div>
+          )}
+
+          {/* ══════════ 管理概览（方案 A：只读汇总，明细仍在系统管理） ══════════ */}
+          {tab === 'admin' && (
+            <div data-testid="panel-admin">
+              <Card title="管理概览（数据源 /api/dashboard/summary · 需管理后台登录或 API 令牌）"
+                actions={<span className="text-[11px] text-slate-500">明细（用户/角色/通知/审计）仍在「系统管理 · 仪表盘」</span>}
+              >
+                {adminErr ? (
+                  <ErrorBox message={'取不到管理概览：' + adminErr + '（该接口由服务端 _require_admin 校验，未登录/无权限属正常降级）'} />
+                ) : !adminSummary ? <Loading /> : (
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    {([
+                      ['用户总数', adminSummary.totalUsers],
+                      ['启用用户', adminSummary.activeUsers],
+                      ['角色数', adminSummary.totalRoles],
+                      ['通知总数', adminSummary.totalNotifications],
+                      ['未读通知', adminSummary.unreadNotifications],
+                      ['今日审计', adminSummary.todayAuditCount],
+                      ['传感器', adminSummary.sensorCount],
+                    ] as const).map(([label, value]) => (
+                      <div key={label} className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                        <div className="text-xs text-slate-500">{label}</div>
+                        <div className="mt-1 text-2xl font-semibold text-slate-200">{value ?? MISSING}</div>
+                      </div>
+                    ))}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <div className="text-xs text-slate-500">系统状态</div>
+                      <div className="mt-1 text-lg font-semibold text-emerald-400">{adminSummary.systemStatus || MISSING}</div>
+                    </div>
+                  </div>
+                )}
+              </Card>
             </div>
           )}
 

@@ -11,6 +11,7 @@ tags:
 - claude-skills
 content_type: markdown
 enabled: true
+description_zh: 将当前对话压缩成一份交接文档，供其他代理人员接手。
 ---
 
 ## When to Use

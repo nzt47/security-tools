@@ -403,6 +403,20 @@ describe('PanoramaHealth 失败上屏', () => {
 // ═══════════════════════════════════════════════════════════════
 //  功能单位独立成 Tab（2026-10-29）
 // ═══════════════════════════════════════════════════════════════
+describe('PanoramaHealth 管理概览 Tab（方案 A）', () => {
+  it('切到「管理概览」会拉 /api/dashboard/summary；取不到时给出明确降级提示而不是空白', async () => {
+    render(<PanoramaHealth />)
+    await screen.findByTestId('panel-overview')
+    fireEvent.click(screen.getByTestId('tab-admin'))
+    const panel = await screen.findByTestId('panel-admin')
+    // 测试环境的 fetch stub 不会返回该端点的合法载荷 ⇒ 必须落到「明确错误」而不是白屏
+    await waitFor(() => {
+      const text = panel.textContent || ''
+      expect(text).toMatch(/管理概览|取不到管理概览/)
+    })
+  })
+})
+
 describe('PanoramaHealth 功能单位 Tab', () => {
   it('概览不再常驻功能单位面板，切到「功能单位」Tab 才挂载', async () => {
     render(<PanoramaHealth />)

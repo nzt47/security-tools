@@ -13,6 +13,7 @@ tags:
 - claude-skills
 content_type: markdown
 enabled: true
+description_zh: 执行批量代码重构操作，例如跨文件重命名变量/函数、替换代码模式以及更新API调用。当用户请求重命名标识符、替换过时的代码模式、更新方法调用或在多个位置进行一致更改时使用。
 ---
 
 # Code Refactor

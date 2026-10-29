@@ -356,15 +356,25 @@ class TestNoNewDualDescriptionConflict:
             "H-3 裁定的 5 条必须仍在双轨集合里（两类来源都判），缺失 %r"
             % sorted(set(MIGRATED) - dual_set))
         dual = sorted(dual_set)
-        # 核心不变量：主轨 description == 文件轨中文（#1288 补回的 8 条只有单个 description，
-        # 没有 description_zh ⇒ 缺失时用 description 比对；这是"不许出现第三种描述形态"的本体）
-        bad = [sid for sid in dual
-               if str(main_track[sid].get("description") or "")
-               != str(meta_index[sid].get("description_zh")
-                      or meta_index[sid].get("description") or "")]
+        # 核心不变量：主轨 description == 文件轨的**权威描述**。
+        # 【2026-10-29 据实拆分口径（不是放宽）】再定义现在允许给英文技能单独写中文说明
+        # （description_zh 是展示层翻译，英文 description 仍是检索/触发用的权威文本）：
+        #   · MIGRATED（H-3 纳入的 5 条）+ pd-*（蒸馏件）：权威文本就是中文 ⇒ 比 description_zh；
+        #   · 其余双轨技能：权威文本是英文 description ⇒ 比 description（zh 只作展示，允许不同）。
+        # 原来的"一刀切比 zh"在用户给 7 个英文技能补中文说明后必然红，那是口径过期，不是数据错。
+        canonical_zh = set(MIGRATED) | {sid for sid in meta_index if sid.startswith("pd-")}
+        bad = []
+        for sid in dual:
+            main_desc = str(main_track[sid].get("description") or "")
+            if sid in canonical_zh:
+                want = str(meta_index[sid].get("description_zh")
+                           or meta_index[sid].get("description") or "")
+            else:
+                want = str(meta_index[sid].get("description") or "")
+            if main_desc != want:
+                bad.append(sid)
         assert bad == [], (
-            "出现了第三种描述形态（主轨 description != 文件轨 description_zh/description）: "
-            + repr(bad))
+            "主轨 description 与文件轨权威描述不一致（zh 仅展示层）: " + repr(bad))
         # 文档锚点：迁移时刻 20 条 → #1288 后 36 条；数量增长只能由"补文件轨"引起，
         # 且上面 ①（无孤儿）已保证不会出现计划外成员。
         assert len(dual) >= 20, f"双轨技能不足迁移时的 20 条: {len(dual)}"

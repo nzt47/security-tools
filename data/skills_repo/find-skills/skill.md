@@ -13,6 +13,7 @@ tags:
 - claude-skills
 content_type: markdown
 enabled: true
+description_zh: 帮助用户在询问诸如“如何做X”、“查找X的技能”、“有没有能做X的技能”或者表达扩展功能兴趣时发现并安装代理技能。当用户寻找可能作为可安装技能存在的功能时，应使用此技能。
 ---
 
 # Find Skills

@@ -13,6 +13,7 @@ tags:
 - claude-skills
 content_type: markdown
 enabled: true
+description_zh: 实现Manus风格的基于文件的规划，以组织和跟踪复杂任务的进展。创建task_plan.md、findings.md和progress.md文件。当被要求规划、分解或组织多步骤项目、研究任务或任何需要5次以上工具调用的工作时使用。支持在执行/clear后自动恢复会话。
 ---
 
 # Planning with Files
