@@ -173,3 +173,33 @@ def test_probe_skills_usage_ok_when_most_skills_get_hit(tmp_path, monkeypatch):
     assert r["status"] == "ok"
     assert r["issues"] == []
     assert r["metrics"]["zero_hit_ratio"] < up.USAGE_WARN_ZERO_HIT_RATIO
+
+
+def test_probe_tools_reports_tool_usage(tmp_path, monkeypatch):
+    """工具单位要能回答「工具被调用几次」（2026-10-29 补的 stage=tool 台账）。"""
+    monkeypatch.setattr(up, "_ROOT", tmp_path)
+    (tmp_path / "data" / "tool_definitions").mkdir(parents=True)
+    (tmp_path / "data" / "tool_definitions" / "read_file.yaml").write_text("name: read_file\n",
+                                                                          encoding="utf-8")
+    log = tmp_path / "usage.jsonl"
+    monkeypatch.setenv("CP_SKILL_USAGE_LOG", str(log))
+    now = datetime.now(timezone.utc).isoformat()
+    log.write_text(
+        json.dumps({"ts": now, "stage": "tool", "tool": "read_file", "success": True}) + "\n" +
+        json.dumps({"ts": now, "stage": "tool", "tool": "read_file", "success": False}) + "\n",
+        encoding="utf-8")
+    r = up.probe_tools()
+    assert r["metrics"]["calls_7d"] == 2
+    assert r["metrics"]["fails_7d"] == 1
+    assert "近 7 天调用 2 次（失败 1）" in r["summary"]
+
+
+def test_probe_tools_without_usage_is_still_ok(tmp_path, monkeypatch):
+    monkeypatch.setattr(up, "_ROOT", tmp_path)
+    (tmp_path / "data" / "tool_definitions").mkdir(parents=True)
+    (tmp_path / "data" / "tool_definitions" / "read_file.yaml").write_text("name: read_file\n",
+                                                                          encoding="utf-8")
+    monkeypatch.setenv("CP_SKILL_USAGE_LOG", str(tmp_path / "empty.jsonl"))
+    r = up.probe_tools()
+    assert r["status"] == "ok"
+    assert "近 7 天无工具调用记录" in r["summary"]

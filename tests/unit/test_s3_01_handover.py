@@ -313,6 +313,27 @@ class TestL1ToolChainLedgerPoint:
         [row] = facade.list_by_capability("cp.builtin.read_file")
         assert ledger.get(row.capability_id) is not None
 
+    def test_execute_safe_writes_tool_usage_event(self, tmp_path, monkeypatch):
+        """`_execute_safe` 是四条终态的唯一收口 ⇒ 成功/失败各写一条工具台账事件。
+
+        口径：stage=tool、工具名在 `tools` 段、失败带 last_error；
+        与技能台账同一份文件（不是第二真相源）。
+        """
+        from agent.skills_mgmt import usage_log
+        from agent.tool_calling import ToolCallingService
+
+        monkeypatch.setenv(usage_log._ENV_PATH, str(tmp_path / "usage.jsonl"))
+        svc = ToolCallingService.__new__(ToolCallingService)
+        svc._execute_safe_core = MagicMock(return_value={"ok": True})
+        assert svc._execute_safe("read_file", {"path": "x.py"})["ok"] is True
+        svc._execute_safe_core = MagicMock(return_value={"ok": False, "error": "bad input"})
+        assert svc._execute_safe("write_file", {"path": "y"})["ok"] is False
+
+        s = usage_log.stats(7)
+        assert s["tools"]["read_file"]["ok"] == 1
+        assert s["tools"]["write_file"]["fail"] == 1
+        assert "bad input" in s["tools"]["write_file"]["last_error"]
+
 
 # ════════════════════════════════════════════════════════════
 #  【L2】orchestrator wire 规划成功分支的任务级 Trace

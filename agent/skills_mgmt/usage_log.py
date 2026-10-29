@@ -7,10 +7,13 @@
 
 【口径】
 - 一行一个事件：{ts, stage, skill_id, success, latency_ms, trace_id, source, extra}；
-- stage 只取 match / load / exec：
+- stage 取 match / load / exec / tool：
   · match：一次 L1 检索（skill_id = top1，extra.top_ids 记前 5 名，用于算命中率）；
   · load：一次 L2 说明加载（skill_id 必须非空）；
-  · exec：一次 L3 脚本执行（success 必填）。
+  · exec：一次 L3 脚本执行（success 必填）；
+  · tool：一次**工具**调用（2026-10-29 补：工具名放 `tool` 字段，success/latency_ms 必填，
+    extra.effect / extra.error_code 可选）。写入点是 `ToolCalling._record_unified_tool_trace`
+    —— 它是成功 / ToolError / 未捕获异常 / 重试耗尽**四条终态的唯一收口**，一次调用恰好一条。
 - 按日归档复用 log_archiver 的跨进程锁与 <stem>-<YYYY-MM-DD><ext> 命名，
   读端同时扫活动文件与分片，保证「历史不丢」。
 
@@ -40,7 +43,7 @@ _WRITE_TIMEOUT_SEC = 0.15
 _ARCHIVED: set[str] = set()
 _ARCHIVE_LOCK = threading.Lock()
 
-STAGES = ("match", "load", "exec")
+STAGES = ("match", "load", "exec", "tool")
 
 
 def usage_path() -> Path:
@@ -89,6 +92,45 @@ def record(stage: str, skill_id: Optional[str] = None, *,
             payload["latency_ms"] = round(float(latency_ms), 3)
         if trace_id:
             payload["trace_id"] = str(trace_id)
+        if extra:
+            payload["extra"] = extra
+        path.parent.mkdir(parents=True, exist_ok=True)
+        append_jsonl_locked(path, json.dumps(payload, ensure_ascii=False), timeout=_WRITE_TIMEOUT_SEC)
+        _maybe_archive(path)
+    except Exception:  # noqa: BLE001 观测失败绝不拖垮主链路
+        return
+
+
+def record_tool(tool_name: str, *, success: Optional[bool] = None,
+                latency_ms: Optional[float] = None,
+                effect: str = "", error_code: str = "",
+                source: str = "tool_calling") -> None:
+    """记一条**工具**调用事件（stage=tool；工具名放 `tool`，不占用 `skill_id`）。
+
+    与技能事件共用同一文件/锁/按日归档：读端只扫一遍就能同时算技能与工具的使用量，
+    不必再开第二份台账（第二份 = 第二真相源，迟早对不上）。
+    best-effort：写失败永不抛，观测不能拖垮工具执行主路径。
+    """
+    name = str(tool_name or "").strip()
+    if not name:
+        return
+    try:
+        path = usage_path()
+        payload: Dict[str, Any] = {
+            "ts": _now(),
+            "stage": "tool",
+            "tool": name,
+            "source": str(source or ""),
+        }
+        if success is not None:
+            payload["success"] = bool(success)
+        if latency_ms is not None:
+            payload["latency_ms"] = round(float(latency_ms), 3)
+        extra: Dict[str, Any] = {}
+        if effect:
+            extra["effect"] = str(effect)
+        if error_code:
+            extra["error_code"] = str(error_code)[:120]
         if extra:
             payload["extra"] = extra
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -160,10 +202,17 @@ def _iter_events(days: int) -> Iterable[Dict[str, Any]]:
 
 
 def stats(days: int = 7) -> Dict[str, Any]:
-    """按技能聚合最近 N 天：hits / loads / execs / exec_ok / exec_fail / last_used_at。"""
+    """按技能与工具聚合最近 N 天。
+
+    技能：hits / loads / execs / exec_ok / exec_fail / last_used_at；
+    工具（stage=tool）：calls / ok / fail / avg_ms / max_ms / last_error / last_used_at。
+    两段共用同一次文件扫描 —— 工具台账不是第二份文件，避免两份口径漂移。
+    """
     per: Dict[str, Dict[str, Any]] = {}
+    tools: Dict[str, Dict[str, Any]] = {}
     totals = {"match_calls": 0, "hit_calls": 0, "load_calls": 0,
-              "exec_calls": 0, "exec_ok": 0, "exec_fail": 0}
+              "exec_calls": 0, "exec_ok": 0, "exec_fail": 0,
+              "tool_calls": 0, "tool_ok": 0, "tool_fail": 0}
 
     def _row(sid: str) -> Dict[str, Any]:
         return per.setdefault(sid, {"skill_id": sid, "hits": 0, "loads": 0, "execs": 0,
@@ -196,9 +245,38 @@ def stats(days: int = 7) -> Dict[str, Any]:
                 totals["exec_fail"] += 1
                 r["exec_fail"] += 1
             r["last_used_at"] = max(r["last_used_at"], ts)
+        elif stage == "tool":
+            name = str(ev.get("tool") or "")
+            if not name:
+                continue
+            totals["tool_calls"] += 1
+            r = tools.setdefault(name, {"tool": name, "calls": 0, "ok": 0, "fail": 0,
+                                        "avg_ms": None, "max_ms": None,
+                                        "last_error": "", "last_used_at": ""})
+            r["calls"] += 1
+            ok = bool(ev.get("success"))
+            if ok:
+                totals["tool_ok"] += 1
+                r["ok"] += 1
+            else:
+                totals["tool_fail"] += 1
+                r["fail"] += 1
+            ms = ev.get("latency_ms")
+            if isinstance(ms, (int, float)):
+                prev_avg = float(r["avg_ms"] or 0.0)
+                r["avg_ms"] = round((prev_avg * (r["calls"] - 1) + float(ms)) / r["calls"], 3)
+                r["max_ms"] = round(max(float(r["max_ms"] or 0.0), float(ms)), 3)
+            r["last_used_at"] = max(r["last_used_at"], ts)
+            if not ok:
+                err = str(((ev.get("extra") or {}) or {}).get("error_code") or "")
+                if err:
+                    r["last_error"] = err[:120]
 
     hit_rate = (totals["hit_calls"] / totals["match_calls"]) if totals["match_calls"] else 0.0
-    return {"days": int(days), "skills": per, "totals": dict(totals, hit_rate=round(hit_rate, 4)),
+    tool_ok_rate = (totals["tool_ok"] / totals["tool_calls"]) if totals["tool_calls"] else 0.0
+    return {"days": int(days), "skills": per, "tools": tools,
+            "totals": dict(totals, hit_rate=round(hit_rate, 4),
+                           tool_ok_rate=round(tool_ok_rate, 4)),
             "path": str(usage_path())}
 
 

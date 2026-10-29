@@ -7,6 +7,8 @@
  *   - AGENT_LINES_PLANES  治理元数据（plane/effect/risk/needs_approval）+ 平面分类法
  *                               + 每行 `callability`（「可被 LLM 调用」统一标注）与
  *                                 `callability_marks` / `callability_note`（三档标识图例）
+ *   - SKILLS_MGMT_USAGE_STATS?days=7  工具级使用台账（`tools` 段，stage=tool，2026-10-29）
+ *                               失败独立降级：拿不到就整列显示 '-'（不假装 0 次）
  *
  * 【为什么工具行上要标"可调用性"】
  *   plane/effect/risk 回答的是"这工具能造成多大后果"，回答不了"模型到底能不能自己发起调用"：
@@ -34,6 +36,7 @@ import { getEnvelope } from '@/api/envelope'
 
 import {
   AGENT_LINES_PLANES,
+  SKILLS_MGMT_USAGE_STATS,
   TOOLS_CONFIG,
   TOOLS_TOGGLE,
 } from '@/api/endpoints';
@@ -59,6 +62,9 @@ interface MetaRow {
   /** 该工具「可被 LLM 调用」的统一标注（可能为 `{}` = 清单不可用） */
   callability?: CallabilityInfo
 }
+
+/** 工具级使用台账（GET /api/skills-mgmt/usage/stats 的 tools 段，2026-10-29） */
+interface ToolUsageRow { calls?: number; ok?: number; fail?: number; avg_ms?: number; last_error?: string }
 
 interface PlaneDef {
   key: string
@@ -94,6 +100,8 @@ export default function ToolsToolset() {
   const [callabilityNote, setCallabilityNote] = useState('')
   const [callabilityMarks, setCallabilityMarks] = useState<Record<string, number>>({})
   const [filter, setFilter] = useState<string>('all')
+  /** 近 7 天工具调用（按工具名索引；接口不可用时为空表，列显示 '-'，不影响启停） */
+  const [toolUsage, setToolUsage] = useState<Record<string, ToolUsageRow>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -106,6 +114,11 @@ export default function ToolsToolset() {
       setTools(Array.isArray(list) ? list : [])
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
+
+    // 工具使用台账（stage=tool）——独立降级：拿不到就整列显示 '-'，不影响启停
+    hubGet<{ tools?: Record<string, ToolUsageRow> }>(`${SKILLS_MGMT_USAGE_STATS}?days=7`)
+      .then((r) => setToolUsage(r?.tools ?? {}))
+      .catch(() => setToolUsage({}))
 
     // 治理元数据——独立降级：拿不到就不显示平面，不影响启停功能
     hubGet(AGENT_LINES_PLANES).then((r) => {
@@ -207,6 +220,24 @@ export default function ToolsToolset() {
     {
       key: 'category', title: '分类', render: (r: Merged) =>
         r.category ? <Badge color="cyan">{String(r.category)}</Badge> : '-',
+    },
+    {
+      key: 'usage', title: '近 7 日调用', render: (r: Merged) => {
+        // 数据来自工具使用台账（stage=tool）；旧后端/接口失败 ⇒ 该工具显示 '-'，不假装 0 次
+        const u = toolUsage[String(r.name)]
+        if (!u || !u.calls) return <span className="text-slate-600">-</span>
+        const fail = u.fail ?? 0
+        return (
+          <span
+            className={fail ? 'text-amber-300' : 'text-slate-300'}
+            title={fail
+              ? `失败 ${fail} 次；最近错误：${u.last_error || '（未记录）'}`
+              : `成功 ${u.ok ?? 0} 次`}
+          >
+            {u.calls} 次{fail ? `（失败 ${fail}）` : ''}
+          </span>
+        )
+      },
     },
     {
       key: 'enabled', title: '状态', render: (r: Merged) =>
