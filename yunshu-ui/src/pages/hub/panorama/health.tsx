@@ -4,7 +4,8 @@
  * 老页（git 历史 f0ebe904^:templates/health_dashboard.html，1211 行）结构：
  *   实时状态条 → 健康总分 + 五层维度卡 → 7 个 Tab
  *   （概览 / 指标 / 稳定性 / 性能 / 质量 / 告警 / 历史）
- *   · 概览：overview 指标卡、健康度趋势、五层探针趋势、近期摘要
+ *   · 概览：overview 指标卡、健康度趋势、五层探针趋势、近期摘要、心跳资源、计划任务
+ *     （五层探针明细 / 运行告警**不**在概览：前者在稳定性·质量 Tab、后者在告警 Tab）
  *   · 指标：/api/diagnostics/metrics 全量 + 类型/搜索筛选
  *   · 稳定性：L1/L2/L3 探针明细表   · 质量：L4/L5 探针明细表
  *   · 性能：P50/P95/P99/吞吐 + 延迟分布（老页的 canvas 从未实现，这里补上）
@@ -50,7 +51,7 @@ import {
 } from 'recharts'
 import {
   Activity, Bell, Boxes, Download, History, LayoutDashboard,
-  RefreshCw, Server, ShieldCheck, Sparkles, UserCog, Zap,
+  RefreshCw, ShieldCheck, Sparkles, UserCog, Zap,
 } from 'lucide-react'
 import { getDashboardSummary, validateDashboardSummary, type DashboardSummaryData } from '@/api/dashboard'
 import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet } from '../components/ui'
@@ -837,67 +838,10 @@ export default function PanoramaHealth() {
                 </Card>
               </div>
 
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                {/* 保留原有「五层探针明细」卡 */}
-                <Card title="五层探针明细">
-                  {!latest ? <Empty text="暂无探针数据" /> : (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">
-                        <span className="text-sm text-slate-300">综合健康度</span>
-                        <span className={'font-mono text-lg font-semibold ' + ((latest.overall ?? 0) >= 0.8 ? 'text-emerald-400' : (latest.overall ?? 0) >= 0.5 ? 'text-amber-400' : 'text-red-400')}>
-                          {latest.overall != null ? (latest.overall * 100).toFixed(0) + '%' : NO_PROBE_DATA}
-                        </span>
-                      </div>
-                      {PROBE_LAYERS.map((l) => {
-                        const pd = latest.probe_details?.[l.key]
-                        const score = pd?.score ?? latest.dimensions?.[l.key]
-                        return (
-                          <div key={l.key} className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2 text-sm text-slate-300">
-                                <span className="h-2 w-2 rounded-full" style={{ background: l.color }} />
-                                {l.label}
-                                {pd && <Badge color={pd.available ? 'green' : 'slate'}>{pd.available ? '可用' : '不可用'}</Badge>}
-                              </div>
-                              {pd?.detail && <div className="mt-0.5 truncate text-xs text-slate-500" title={pd.detail}>{pd.detail}</div>}
-                            </div>
-                            <span className="shrink-0 font-mono text-sm text-slate-300">
-                              {score == null ? NO_PROBE_DATA : probeScoreText(score) + '%'}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </Card>
-
-                {/* 保留原有「运行告警」卡（形状修正：真实是 groups[].rules[]，不是 groups[].alerts[]） */}
-                <Card title={'运行告警（' + alertRules.length + '）'}>
-                  {errors.alerts ? <InlineError text={errors.alerts} /> : alertRules.length === 0 ? (
-                    <div className="flex flex-col items-center gap-2 py-8 text-slate-600">
-                      <Server size={22} />
-                      <span className="text-sm">当前无告警规则</span>
-                    </div>
-                  ) : (
-                    <div className="max-h-[380px] space-y-2 overflow-y-auto">
-                      {alertRules.map((a, i) => {
-                        const severity = a.labels?.severity ?? 'info'
-                        return (
-                          <div key={(a.group ?? '') + (a.alert ?? '') + i} className="flex items-start justify-between rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">
-                            <div className="min-w-0">
-                              <div className="text-sm text-slate-200">{a.alert ?? '(未命名规则)'}</div>
-                              <div className="mt-0.5 truncate text-xs text-slate-500" title={a.annotations?.summary ?? a.expr ?? ''}>
-                                {a.annotations?.summary ?? a.expr ?? ''}
-                              </div>
-                            </div>
-                            <Badge color={severity === 'critical' ? 'red' : severity === 'warning' ? 'amber' : 'cyan'}>{severity}</Badge>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </Card>
-              </div>
+              {/* 概览不重复展示明细（2026-10-29 §11.21-7）：
+                  · 「五层探针明细」→ 稳定性 Tab（L1-L3 表）/ 质量 Tab（L4-L5 表）/ 下方「近期摘要」
+                  · 「运行告警」→ 告警 Tab（含级别/描述/表达式/状态的完整规则表）
+                  同源数据只留一处可交互的落点，概览只负责「现在好不好」。 */}
 
               {/* 近期摘要（老页 #summary-table） */}
               <div className="mt-4">
