@@ -14,7 +14,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 207,
+      "in_degree": 208,
       "out_degree": 2
     },
     {
@@ -606,7 +606,7 @@
       "name": "audit",
       "layer": "audit",
       "file_path": "",
-      "in_degree": 16,
+      "in_degree": 17,
       "out_degree": 0
     },
     {
@@ -686,7 +686,7 @@
       "name": "task_scheduler",
       "layer": "core",
       "file_path": "",
-      "in_degree": 23,
+      "in_degree": 24,
       "out_degree": 17
     },
     {
@@ -2670,7 +2670,7 @@
       "name": "skills_mgmt",
       "layer": "skills_mgmt",
       "file_path": "",
-      "in_degree": 7,
+      "in_degree": 12,
       "out_degree": 0
     },
     {
@@ -3999,7 +3999,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_skills_mgmt.py",
       "in_degree": 0,
-      "out_degree": 15
+      "out_degree": 19
     },
     {
       "path": "agent.skills_mgmt.enhancer",
@@ -4314,6 +4314,22 @@
       "out_degree": 0
     },
     {
+      "path": "agent.skills_mgmt.conflict_auto",
+      "name": "conflict_auto",
+      "layer": "skills_mgmt",
+      "file_path": "agent/skills_mgmt/conflict_auto.py",
+      "in_degree": 0,
+      "out_degree": 5
+    },
+    {
+      "path": "agent.skills_mgmt.service",
+      "name": "service",
+      "layer": "skills_mgmt",
+      "file_path": "",
+      "in_degree": 6,
+      "out_degree": 16
+    },
+    {
       "path": "agent.skills_mgmt.context_injector",
       "name": "context_injector",
       "layer": "skills_mgmt",
@@ -4328,14 +4344,6 @@
       "file_path": "agent/skills_mgmt/evolution_scheduler.py",
       "in_degree": 2,
       "out_degree": 4
-    },
-    {
-      "path": "agent.skills_mgmt.service",
-      "name": "service",
-      "layer": "skills_mgmt",
-      "file_path": "",
-      "in_degree": 5,
-      "out_degree": 16
     },
     {
       "path": "agent.skills_mgmt.executor",
@@ -22557,24 +22565,11 @@
     },
     {
       "source": "agent.server_routes.routes_skills_mgmt",
-      "target": "agent.skills_mgmt.enhancer",
+      "target": "agent.skills_mgmt",
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1090,
-      "source_file": "agent/server_routes/routes_skills_mgmt.py",
-      "is_cross_layer": true,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.server_routes.routes_skills_mgmt",
-      "target": "agent.skills_mgmt.models",
-      "source_layer": "server_routes",
-      "target_layer": "skills_mgmt",
-      "import_type": "from_import",
-      "line": 1242,
+      "line": 779,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22587,7 +22582,72 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1479,
+      "line": 793,
+      "source_file": "agent/server_routes/routes_skills_mgmt.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_skills_mgmt",
+      "target": "agent.skills_mgmt",
+      "source_layer": "server_routes",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 812,
+      "source_file": "agent/server_routes/routes_skills_mgmt.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_skills_mgmt",
+      "target": "agent.skills_mgmt",
+      "source_layer": "server_routes",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 832,
+      "source_file": "agent/server_routes/routes_skills_mgmt.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_skills_mgmt",
+      "target": "agent.skills_mgmt.enhancer",
+      "source_layer": "server_routes",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 1157,
+      "source_file": "agent/server_routes/routes_skills_mgmt.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_skills_mgmt",
+      "target": "agent.skills_mgmt.models",
+      "source_layer": "server_routes",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 1309,
+      "source_file": "agent/server_routes/routes_skills_mgmt.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_skills_mgmt",
+      "target": "agent.skills_mgmt",
+      "source_layer": "server_routes",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 1546,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22600,7 +22660,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1531,
+      "line": 1598,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -22626,7 +22686,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1725,
+      "line": 1792,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24292,6 +24352,71 @@
       "import_type": "from_import",
       "line": 176,
       "source_file": "agent/skills_mgmt/cleanup_scheduler.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.conflict_auto",
+      "target": "agent.logging_utils",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 27,
+      "source_file": "agent/skills_mgmt/conflict_auto.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.conflict_auto",
+      "target": "agent.skills_mgmt",
+      "source_layer": "skills_mgmt",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 77,
+      "source_file": "agent/skills_mgmt/conflict_auto.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.conflict_auto",
+      "target": "agent.skills_mgmt.service",
+      "source_layer": "skills_mgmt",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 260,
+      "source_file": "agent/skills_mgmt/conflict_auto.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.conflict_auto",
+      "target": "agent.task_scheduler",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 283,
+      "source_file": "agent/skills_mgmt/conflict_auto.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.conflict_auto",
+      "target": "agent.audit",
+      "source_layer": "skills_mgmt",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 244,
+      "source_file": "agent/skills_mgmt/conflict_auto.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -31020,10 +31145,10 @@
     }
   ],
   "stats": {
-    "total_files": 704,
-    "total_nodes": 609,
-    "total_edges": 2011,
-    "cross_layer_edges": 1275,
+    "total_files": 705,
+    "total_nodes": 610,
+    "total_edges": 2020,
+    "cross_layer_edges": 1282,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -31041,7 +31166,7 @@
       "unknown": 1,
       "web": 5,
       "guardrails": 15,
-      "skills_mgmt": 42,
+      "skills_mgmt": 43,
       "cognitive": 13,
       "config": 2,
       "orchestrator": 13,
