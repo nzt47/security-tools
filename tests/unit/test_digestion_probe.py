@@ -575,7 +575,8 @@ class FakeScheduler:
         self.tasks: dict[str, object] = {}
         self.intervals: dict[str, tuple[object, float]] = {}
 
-    def add_interval_task(self, name, *, func, interval_seconds):
+    def add_interval_task(self, name, *, func, interval_seconds, **kwargs):
+        # 【陷阱 10】替身照真实类的方法集写（zero_token / note / conditional 也要收）
         self.tasks[name] = type("Task", (), {"task_id": f"task-{name}"})()
         self.intervals[name] = (func, float(interval_seconds))
 

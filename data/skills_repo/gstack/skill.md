@@ -20,6 +20,7 @@ tags:
 content_type: markdown
 status: approved
 enabled: false
+description_zh: 快速无头浏览器，用于 QA 测试与站点自测：导航页面、与元素交互、验证状态、对比前后差异、拍摄带注释的截图、测试响应式布局、表单、上传与对话框，并留存错误证据。适用于被要求打开/测试站点、验证一次部署、走查一条用户流程，或用截图提交 bug 的场景。
 ---
 
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->

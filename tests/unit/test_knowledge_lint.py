@@ -281,15 +281,17 @@ class _FakeScheduler:
     def __init__(self):
         self.tasks = []
 
-    def add_cron_task(self, name, func, day_of_week=None, hour=0, minute=0):
-        self.tasks.append((name, func, day_of_week, hour, minute))
+    def add_cron_task(self, name, func, day_of_week=None, hour=0, minute=0, **kwargs):
+        # 【陷阱 10】替身照真实类的方法集写：真实 add_cron_task 还有
+        # zero_token / zero_token_note / zero_token_conditional（2026-10-29）。
+        self.tasks.append((name, func, day_of_week, hour, minute, kwargs))
 
 
 def test_register_audit_job_success_default_2am():
     """默认每日 02:00 执行，执行体为无参 `_audit_runner`（调度器 func() 可直接调用）。"""
     sched = _FakeScheduler()
     assert register_knowledge_audit_job(sched) is True
-    name, func, _, hour, minute = sched.tasks[0]
+    name, func, _, hour, minute, _kw = sched.tasks[0]
     assert name == "knowledge_audit"
     assert hour == 2 and minute == 0
     assert callable(func)

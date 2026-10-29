@@ -181,6 +181,32 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/<skill_id>/materialize", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_materialize(skill_id: str):
+        """给「只在主轨」的技能**新建**文件轨（skill.md），默认 dry-run。
+
+        UI：技能中心 · 统一表「更多 → 生成文件轨」。
+        边界：只新建缺失的 skill.md；已存在/目录已存在一律 409，不覆盖不移动；
+        不写主轨、不改启停、不发布。落盘走 file_store.create（生产写路径）。
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            dry_run = data.get("dry_run", True)
+            if isinstance(dry_run, str):  # 容忍 "false"/"0"
+                dry_run = dry_run.strip().lower() not in ("0", "false", "no", "")
+            return jsonify({"ok": True, **_svc().materialize_file_track(
+                skill_id, dry_run=bool(dry_run))})
+        except SkillFileError as e:
+            # 已有文件轨/目录已存在 ⇒ 409（与 redraft/apply 同一语义：不覆盖、不静默成功）
+            return jsonify(e.to_dict()), 409
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/backfill", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token

@@ -315,9 +315,11 @@ class _Scheduler:
     def __init__(self):
         self.tasks = []
 
-    def add_interval_task(self, name, func, interval_seconds):
+    def add_interval_task(self, name, func, interval_seconds, **kwargs):
+        # 【陷阱 10】替身照真实类的方法集写：真实 TaskScheduler 还有
+        # zero_token / zero_token_note / zero_token_conditional，少写就 TypeError。
         self.tasks.append({"name": name, "func": func,
-                           "interval_seconds": interval_seconds})
+                           "interval_seconds": interval_seconds, **kwargs})
 
 
 class TestG6Register:

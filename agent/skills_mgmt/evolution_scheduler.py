@@ -275,7 +275,11 @@ class EvolutionScheduler:
             return {"status": "error", "error": str(e)}
         sched.add_interval_task(
             TASK_NAME, func=self._scheduled_run,
-            interval_seconds=days * 86400)
+            interval_seconds=days * 86400,
+            # dry_run=true：只 _select_candidates() 只读预演；false 才走 evolve_batch（含 LLM）
+            zero_token=_dry_run(), owner="agent/skills_mgmt/evolution_scheduler.py",
+            zero_token_note="dry_run=true 时只筛候选（只读），不生成变异体；dry_run=false 才调 LLM",
+            zero_token_conditional=True)
         self._scheduled_task_id = (
             sched.tasks[-1]["task_id"] if sched.tasks else TASK_NAME)
         logger.info("[EvolutionScheduler] 周级进化任务已注册 interval_days=%d "

@@ -165,6 +165,13 @@ export default function BusinessBoard() {
         ))}
       </div>
 
+      {tab === 'dashboard' && (
+        <div className="mb-2 rounded-md border border-slate-800 bg-slate-900/40 px-2 py-1.5 text-[10px] text-slate-500" data-testid="dashboard-scope-note">
+          运行面口径：服务健康（/api/dashboard/health）· 记忆命中率 · 评审分数分布 · 追踪。
+          与「全景看板 · 健康仪表盘」的 L1~L5 探针、「系统管理 · 仪表盘」的用户/角色/审计计数都不是同一份数据。
+        </div>
+      )}
+
       {tab === 'business' && (
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">

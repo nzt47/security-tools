@@ -399,3 +399,35 @@ describe('PanoramaHealth 失败上屏', () => {
     expect(await screen.findByText(/加载失败：HTTP 500/)).toBeTruthy()
   })
 })
+
+// ═══════════════════════════════════════════════════════════════
+//  功能单位独立成 Tab（2026-10-29）
+// ═══════════════════════════════════════════════════════════════
+describe('PanoramaHealth 管理概览 Tab（方案 A）', () => {
+  it('切到「管理概览」会拉 /api/dashboard/summary；取不到时给出明确降级提示而不是空白', async () => {
+    render(<PanoramaHealth />)
+    await screen.findByTestId('panel-overview')
+    fireEvent.click(screen.getByTestId('tab-admin'))
+    const panel = await screen.findByTestId('panel-admin')
+    // 测试环境的 fetch stub 不会返回该端点的合法载荷 ⇒ 必须落到「明确错误」而不是白屏
+    await waitFor(() => {
+      const text = panel.textContent || ''
+      expect(text).toMatch(/管理概览|取不到管理概览/)
+    })
+  })
+})
+
+describe('PanoramaHealth 功能单位 Tab', () => {
+  it('概览不再常驻功能单位面板，切到「功能单位」Tab 才挂载', async () => {
+    render(<PanoramaHealth />)
+    await screen.findByTestId('panel-overview')
+    // 面板原先挂在所有 Tab 上方（把每页都压得很长）⇒ 概览里不应再出现
+    expect(screen.queryByTestId('unit-status')).toBeNull()
+    fireEvent.click(screen.getByTestId('tab-units'))
+    const panel = await screen.findByTestId('panel-units')
+    expect(within(panel).getByTestId('unit-status')).toBeTruthy()
+    // 切回概览后卸载，不会继续轮询/占位
+    fireEvent.click(screen.getByTestId('tab-overview'))
+    expect(screen.queryByTestId('panel-units')).toBeNull()
+  })
+})

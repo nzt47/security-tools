@@ -210,6 +210,9 @@ def register_knowledge_audit_job(
         scheduler.add_cron_task(
             "knowledge_audit", _audit_runner,
             hour=run_hour, minute=0,
+            # 审计 wiki 一致性并发邮件，不调 LLM
+            zero_token=True, owner="agent/knowledge/audit_job.py",
+            zero_token_note="知识库一致性审计 + 邮件，不调 LLM",
         )
         logger.info(
             "register_knowledge_audit_job: 已注册每日 %02d:00 审计任务",

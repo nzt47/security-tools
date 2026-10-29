@@ -256,8 +256,16 @@ class TaskScheduler:
 
     def add_cron_task(self, name: str, func: Callable, day_of_week: int = None,
                       hour: int = 0, minute: int = 0,
-                      zero_token: Optional[bool] = None, owner: str = "") -> None:
-        """添加 Python 函数 cron 任务（会套用 UI 上的覆盖：启停 / 时刻）"""
+                      zero_token: Optional[bool] = None, owner: str = "",
+                      zero_token_note: str = "",
+                      zero_token_conditional: bool = False) -> None:
+        """添加 Python 函数 cron 任务（会套用 UI 上的覆盖：启停 / 时刻）。
+
+        zero_token：调用链是否**不含 LLM**（True/False）；None = 未声明（UI 显示「未标注」）。
+        zero_token_note：一句话说明判据（UI 悬浮展示），声明时一并写，别让下一个人重新考证。
+        zero_token_conditional：True = 是否零 token **取决于运行时开关**（如 dry_run），
+        此时 zero_token 表示"当前配置下的实际行为"，UI 会标「零 token（条件）」。
+        """
         task = _apply_override({
             "name": name,
             "type": "python_func",
@@ -267,14 +275,21 @@ class TaskScheduler:
             "enabled": True,
             "task_id": self._generate_task_id("py"),
             "zero_token": zero_token,
+            "zero_token_note": zero_token_note,
+            "zero_token_conditional": bool(zero_token_conditional),
             "owner": owner,
         })
         self.tasks.append(task)
         logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'name.cron', 'msg': f'[TaskScheduler] 添加任务: {name} (cron)'}))
 
     def add_interval_task(self, name: str, func: Callable, interval_seconds: int,
-                          zero_token: Optional[bool] = None, owner: str = "") -> None:
-        """添加 Python 函数间隔任务（同样套用 UI 覆盖：启停）"""
+                          zero_token: Optional[bool] = None, owner: str = "",
+                          zero_token_note: str = "",
+                          zero_token_conditional: bool = False) -> None:
+        """添加 Python 函数间隔任务（同样套用 UI 覆盖：启停）。
+
+        zero_token / zero_token_note / zero_token_conditional 语义见 add_cron_task。
+        """
         task = _apply_override({
             "name": name,
             "type": "python_func",
@@ -284,6 +299,8 @@ class TaskScheduler:
             "enabled": True,
             "task_id": self._generate_task_id("py"),
             "zero_token": zero_token,
+            "zero_token_note": zero_token_note,
+            "zero_token_conditional": bool(zero_token_conditional),
             "owner": owner,
         })
         self.tasks.append(task)
@@ -800,8 +817,10 @@ class TaskScheduler:
                 "type": t["type"],
                 "enabled": t.get("enabled", True),
                 "last_run": t["last_run"].isoformat() if t.get("last_run") else None,
-                # UI 用：零 token 三态（True/False/None=未标注）与归属模块
+                # UI 用：零 token 三态（True/False/None=未标注）+ 判据说明 + 是否条件性
                 "zero_token": t.get("zero_token"),
+                "zero_token_note": t.get("zero_token_note", ""),
+                "zero_token_conditional": bool(t.get("zero_token_conditional", False)),
                 "owner": t.get("owner", ""),
                 "schedule_text": _schedule_text(t),
             }

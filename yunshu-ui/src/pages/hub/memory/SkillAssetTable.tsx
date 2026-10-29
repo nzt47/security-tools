@@ -12,7 +12,7 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Download, Eye, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
+  ChevronDown, ChevronRight, Download, Eye, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { CallabilityBadge, hubGet, hubPost } from '../components/ui'
@@ -48,6 +48,7 @@ import {
   skillFixAuto,
   skillOptimize,
   skillPublish,
+  skillMaterialize,
   skillRedraft,
   skillRedraftApply,
   skillSlash,
@@ -354,6 +355,33 @@ export default function SkillAssessManager() {
   /** 仅运行时技能没有资产记录，启停走 /api/skills/toggle（不是资产库 toggle） */
   const toggleRuntime = (it: SkillItem) => act('启停', () =>
     hubPost(SKILLS_TOGGLE, { id: it.id, enabled: !it.enabled }, getApiToken()))
+
+  /**
+   * 为「只在主轨」的技能新建文件轨（skill.md）。先 dry-run 看路径，确认后才落盘。
+   * 为什么要有：再定义要写 description_zh/name 到 skill.md，没有文件轨就只能 409；
+   * 此前 409 让人去找「登记仅运行时技能」，而那个按钮是反方向（文件轨→主轨）。
+   */
+  const materializeFileTrack = async (it: SkillItem) => {
+    setBusy('生成文件轨'); setError(''); setMsg('')
+    try {
+      const pre = await hubPost<{ ok?: boolean; path?: string; body_chars?: number; error?: string }>(
+        skillMaterialize(it.id), { dry_run: true })
+      if (!pre?.ok) { setMsg(`无法生成：${pre?.error || '预览失败'}`); return }
+      const yes = window.confirm(
+        `将为技能「${it.name || it.id}」新建文件轨：\n${pre.path}\n正文 ${pre.body_chars ?? 0} 字\n\n` +
+        '只新建缺失的 skill.md，不覆盖、不改主轨。继续？')
+      if (!yes) { setMsg('已取消（未写入）'); return }
+      const r = await hubPost<{ ok?: boolean; path?: string; bytes?: number; error?: string }>(
+        skillMaterialize(it.id), { dry_run: false })
+      if (!r?.ok) { setMsg(`生成失败：${r?.error || '写入失败'}`); return }
+      setMsg(`已生成文件轨：${r.path}（${r.bytes ?? 0} 字节）`)
+      await load()
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e)
+      if (m.includes('401') || m.includes('未授权')) setNeedAuth(true)
+      setMsg(`生成文件轨失败：${m}`)
+    } finally { setBusy('') }
+  }
 
   const remove = async (it: SkillItem) => {
     if (!window.confirm(`确定从资产库删除技能「${it.name || it.id}」？`)) return
@@ -667,6 +695,9 @@ export default function SkillAssessManager() {
                     </button>
                     <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setCmdTarget(it) }} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
                       命令
+                    </button>
+                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); void materializeFileTrack(it) }} disabled={busy !== ''} title="只在主轨的技能（没有 skill.md）：新建文件轨后才能写中文说明/展示名；已有文件轨会拒绝覆盖">
+                      <FilePlus size={11} /> 生成文件轨
                     </button>
                   </div>
                 </details>

@@ -29,10 +29,13 @@ class FakeScheduler:
     def __init__(self) -> None:
         self.tasks: list = []
 
-    def add_cron_task(self, name, func, day_of_week=None, hour=0, minute=0):
+    def add_cron_task(self, name, func, day_of_week=None, hour=0, minute=0, **kwargs):
+        # 【陷阱 10】替身照真实类的方法集写：TaskScheduler.add_cron_task 现在还有
+        # zero_token / zero_token_note / zero_token_conditional，少写就会 TypeError。
         self.tasks.append({
             "name": name, "func": func, "task_id": f"py-{len(self.tasks)+1}",
             "cron": {"day_of_week": day_of_week, "hour": hour, "minute": minute},
+            **kwargs,
         })
 
 

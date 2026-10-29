@@ -113,14 +113,15 @@ def register_retention_job(scheduler: Any = None, *,
     try:
         kwargs: Dict[str, Any] = {"name": TASK_NAME, "func": _tick,
                                   "hour": schedule["hour"],
-                                  "minute": schedule["minute"],
-                                  # UI 标注：保留策略 dry-run 不调 LLM
-                                  "zero_token": True,
-                                  "owner": "agent/retention/scheduler.py"}
+                                  "minute": schedule["minute"]}
         # add_cron_task 的 day_of_week 支持 None（每日）；仅当有值时才传
         if schedule.get("day_of_week") is not None:
             kwargs["day_of_week"] = schedule["day_of_week"]
-        scheduler.add_cron_task(**kwargs)
+        scheduler.add_cron_task(
+            # UI 标注：保留策略只做归档判定，dry_run 不调 LLM
+            zero_token=True, owner="agent/retention/scheduler.py",
+            zero_token_note="按保留策略归档/清理，不调 LLM（首跑强制 dry_run）",
+            **kwargs)
     except Exception as e:  # noqa: BLE001 注册失败不阻断
         logger.warning("[RetentionScheduler] 注册失败：%s", e)
         return {"status": "error", "error": str(e)}

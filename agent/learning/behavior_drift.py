@@ -81,7 +81,10 @@ class BehaviorDriftScheduler:
             logger.error("[BehaviorDrift] 调度器不可用: %s", e)
             return {"status": "error", "error": str(e)}
         sched.add_interval_task(TASK_NAME, func=self.run,
-                                interval_seconds=self._interval_hours * 3600)
+                                interval_seconds=self._interval_hours * 3600,
+                                # 漂移检测是统计口径（分布/阈值），不调 LLM
+                                zero_token=True, owner="agent/learning/behavior_drift.py",
+                                zero_token_note="行为漂移统计检测，不调 LLM")
         self._scheduled_task_id = (
             sched.tasks[-1]["task_id"] if sched.tasks else "behavior_drift")
         logger.info("[BehaviorDrift] 周级漂移检测已注册 interval_hours=%d task_id=%s",

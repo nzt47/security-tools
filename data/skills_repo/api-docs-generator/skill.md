@@ -13,6 +13,8 @@ tags:
 - claude-skills
 content_type: markdown
 enabled: true
+description_zh: 扫描代码端点并生成 OpenAPI、Markdown 或自定义格式的全面 API 文档。当被要求“文档化这个 API”、“生成 API
+  文档”、“创建 API 文档”、“为我的端点制作文档”或“为我的路由制作文档”时使用。
 ---
 
 # API Docs Generator

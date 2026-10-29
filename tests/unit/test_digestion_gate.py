@@ -645,9 +645,9 @@ class TestDriftReprobe:
             def __init__(self):
                 self.tasks = []
 
-            def add_interval_task(self, name, func, interval_seconds):
+            def add_interval_task(self, name, func, interval_seconds, **kwargs):
                 self.tasks.append({"task_id": "t1", "name": name,
-                                   "func": func, "interval": interval_seconds})
+                                   "func": func, "interval": interval_seconds, **kwargs})
 
         sched = Sched()
         payload = G.register_reprobe_job(sched, store=store, enabled=True)
@@ -658,7 +658,7 @@ class TestDriftReprobe:
 
     def test_register_reprobe_job_tolerates_scheduler_failure(self, monkeypatch):
         class Boom:
-            def add_interval_task(self, name, func, interval_seconds):
+            def add_interval_task(self, name, func, interval_seconds, **kwargs):
                 raise RuntimeError("no scheduler")
 
         with pytest.raises(RuntimeError):
@@ -670,7 +670,7 @@ class TestDriftReprobe:
                 raise RuntimeError("store down")
 
         sched = type("S", (), {"tasks": [],
-                               "add_interval_task": lambda self, n, func, interval_seconds:
+                               "add_interval_task": lambda self, n, func, interval_seconds, **kw:
                                self.tasks.append({"task_id": "t", "func": func})})()
         G.register_reprobe_job(sched, store=BoomStore(store.root), enabled=True)
         assert sched.tasks[0]["func"]()["status"] == "error"

@@ -406,7 +406,10 @@ class LifecycleManager:
             logger.error(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] 调度器不可用: %s" % e}))
             return {"status": "error", "error": str(e)}
         sched.add_interval_task(
-            TASK_NAME, func=self._scheduled_run, interval_seconds=hours * 3600)
+            TASK_NAME, func=self._scheduled_run, interval_seconds=hours * 3600,
+            # 纯本地统计：闲置天数 → 拟废弃/归档候选；模块不 import LLM
+            zero_token=True, owner="agent/skills_mgmt/lifecycle.py",
+            zero_token_note="纯本地统计（闲置天数→候选），不调 LLM；dry_run 下不迁移状态")
         self._scheduled_task_id = (
             sched.tasks[-1]["task_id"] if sched.tasks else TASK_NAME)
         logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 生命周期检查任务已注册 interval_hours=%d ""dry_run=%s" % (hours, _dry_run())}))

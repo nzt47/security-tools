@@ -599,7 +599,10 @@ def register_peer_heartbeats(scheduler: Any = None,
                            type(e).__name__)
 
     scheduler.add_interval_task(name=task_name, func=_tick,
-                                interval_seconds=interval)
+                                interval_seconds=interval,
+                                # 只是 HTTP 探活 + 写健康文件，不调 LLM
+                                zero_token=True, owner="agent/subagent/peers.py",
+                                zero_token_note="对静态对端发心跳（HTTP 探活）并写 health 文件，不调 LLM")
     return {"registered": True, "interval_seconds": interval,
             "peers": len(reg.targets), "task": task_name, "reason": ""}
 

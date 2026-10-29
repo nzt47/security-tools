@@ -2682,6 +2682,9 @@ if __name__ == "__main__":
             name="系统心跳",
             func=lambda: None,  # 占位，实际由 _heartbeat_func 处理
             interval_seconds=60,
+            # perform_heartbeat_check 只采集 CPU/内存/LLM 延迟读数并写心跳文件，不调 LLM
+            zero_token=True, owner="app_server.py",
+            zero_token_note="采集硬件/进程指标写心跳文件，不调 LLM",
         )
         # TASK-05 学习类定时任务统一注册（feedback_agent 每日 / 周级进化 / 生命周期检查）
         # 各任务按 config learning.*.enabled 独立开关（默认关闭，安全底线；调度触发默认 dry-run）

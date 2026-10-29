@@ -421,7 +421,11 @@ class FeedbackAgent:
             logger.error("[FeedbackAgent] 调度器不可用: %s", e)
             return {"status": "error", "error": str(e)}
         sched.add_interval_task(
-            TASK_NAME, func=self._scheduled_run, interval_seconds=hours * 3600)
+            TASK_NAME, func=self._scheduled_run, interval_seconds=hours * 3600,
+            # dry_run=true 时只读本地反馈汇总、不调 LLM；改成 false 才会真执行（可能含 LLM）
+            zero_token=_dry_run(), owner="agent/skills_mgmt/feedback_agent.py",
+            zero_token_note="dry_run=true 时只读本地反馈、产报告，不调 LLM；dry_run=false 才真执行",
+            zero_token_conditional=True)
         self._scheduled_task_id = (
             sched.tasks[-1]["task_id"] if sched.tasks else TASK_NAME)
         logger.info("[FeedbackAgent] 定时任务已注册 interval_hours=%d dry_run=%s",

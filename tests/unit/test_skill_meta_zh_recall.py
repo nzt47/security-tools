@@ -301,8 +301,11 @@ class TestEscapeHatch:
         assert hits() == len(PAIRS)
         monkeypatch.setenv(ENV, "0")
         got = hits()
-        assert got == 2, (
-            "置 0 后中文命中 = %d/8，期望 2/8（改前实测：只有 'Mock' 与 tags 里的中文能中）" % got)
+        # 【2026-10-29 据实更新 2 → 3】testing-anti-patterns 补了中文触发标签「反模式」
+        # （数据修正，不是判据放宽；tags 不受 CP_SKILL_META_INCLUDE_ZH 控制 ⇒ 关掉后基线 +1）。
+        # 差分仍成立：开 8/8 vs 关 3/8。
+        assert got == 3, (
+            "置 0 后中文命中 = %d/8，期望 3/8（改前 2 + 2026-10-29 补的中文 tags「反模式」）" % got)
 
     def test_flag_flip_rebuilds_inverted_index(self, monkeypatch, loader, meta_index):
         """倒排索引缓存键必须跟着开关走：否则"翻转后仍命中旧倒排" = 逃生开关假生效"""
