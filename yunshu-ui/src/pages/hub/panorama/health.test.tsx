@@ -255,13 +255,25 @@ describe('PanoramaHealth 渲染', () => {
     expect(screen.getByText('系统心跳')).toBeTruthy()
   })
 
-  it('保留原有 5 层探针明细卡与运行告警卡（按真实 groups[].rules[] 读取）', async () => {
+  it('概览不再重复：五层探针明细 / 运行告警只在对应 Tab 出现（§11.21-7）', async () => {
     render(<PanoramaHealth />)
     await screen.findByTestId('panel-overview')
-    expect(screen.getByText('五层探针明细')).toBeTruthy()
-    expect(screen.getByText('运行告警（2）')).toBeTruthy()
-    expect(screen.getAllByText('YunshuServiceDown').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('critical').length).toBeGreaterThan(0)
+    const ov = screen.getByTestId('panel-overview')
+    // 概览只回答「现在好不好」：明细卡已移出，避免与稳定性/质量/告警 Tab 三处重复
+    expect(within(ov).queryByText('五层探针明细')).toBeNull()
+    expect(within(ov).queryByText(/运行告警/)).toBeNull()
+    expect(within(ov).queryByText('YunshuServiceDown')).toBeNull()
+
+    // 告警规则（真实形状 groups[].rules[]）仍可在告警 Tab 读到
+    fireEvent.click(screen.getByTestId('tab-alerts'))
+    const alerts = await screen.findByTestId('panel-alerts')
+    expect(within(alerts).getByText('YunshuServiceDown')).toBeTruthy()
+    expect(within(alerts).getAllByText('critical').length).toBeGreaterThan(0)
+
+    // 五层探针明细同理：稳定性 Tab 有 L1-L3 表
+    fireEvent.click(screen.getByTestId('tab-stability'))
+    const stab = await screen.findByTestId('stab-probe-table')
+    expect(within(stab).getByText(/L1 进程/)).toBeTruthy()
   })
 
   it('稳定性 / 质量 Tab 分别给出 L1-L3 与 L4-L5 探针明细表', async () => {

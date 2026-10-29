@@ -298,10 +298,23 @@ def probe_vector_store() -> Dict[str, Any]:
 
 
 def probe_ingestion() -> Dict[str, Any]:
-    drafts = _p("data/ingestion/drafts")
-    n = len([d for d in drafts.iterdir() if d.is_dir()]) if drafts.exists() else 0
-    return {"status": "ok", "summary": "隔离区草稿 %d 条" % n,
-            "metrics": {"drafts": n}, "last_activity": _mtime(drafts)}
+    """隔离区待评审草稿数。
+
+    只数**真草稿**（吞噬草稿目录必有 manifest.json）：历史上别的流程也在同一父目录
+    落过单文件目录（2026-10-23 的 browser-qa-playbook/skill.md），只数子目录会把
+    它算成一条待评审草稿 ⇒ 2026-10-29 实测「探针 3 条 / GET /api/ingestion/drafts 2 条」。
+    口径以接口为准，非草稿目录单独计数（不静默丢，summary 里说明）。
+    """
+    drafts_dir = _p("data/ingestion/drafts")
+    dirs = [d for d in drafts_dir.iterdir() if d.is_dir()] if drafts_dir.exists() else []
+    real = [d for d in dirs if (d / "manifest.json").is_file()]
+    stray = len(dirs) - len(real)
+    summary = "隔离区草稿 %d 条" % len(real)
+    if stray:
+        summary += "（另有 %d 个非草稿目录无 manifest.json，已忽略）" % stray
+    return {"status": "ok", "summary": summary,
+            "metrics": {"drafts": len(real), "ignored_dirs": stray},
+            "last_activity": _mtime(drafts_dir)}
 
 
 def _all() -> List[Unit]:

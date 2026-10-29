@@ -203,3 +203,31 @@ def test_probe_tools_without_usage_is_still_ok(tmp_path, monkeypatch):
     r = up.probe_tools()
     assert r["status"] == "ok"
     assert "近 7 天无工具调用记录" in r["summary"]
+
+
+def test_probe_ingestion_counts_only_real_drafts(tmp_path, monkeypatch):
+    """吞噬草稿只数带 manifest.json 的目录（与 GET /api/ingestion/drafts 同口径）。"""
+    monkeypatch.setattr(up, "_ROOT", tmp_path)
+    root = tmp_path / "data" / "ingestion" / "drafts"
+    (root / "ing_aaa").mkdir(parents=True)
+    (root / "ing_aaa" / "manifest.json").write_text("{}", encoding="utf-8")
+    (root / "ing_bbb").mkdir()
+    (root / "ing_bbb" / "manifest.json").write_text("{}", encoding="utf-8")
+    r = up.probe_ingestion()
+    assert r["status"] == "ok"
+    assert r["metrics"] == {"drafts": 2, "ignored_dirs": 0}
+    assert r["summary"] == "隔离区草稿 2 条"
+
+
+def test_probe_ingestion_ignores_stray_dir_but_says_so(tmp_path, monkeypatch):
+    """同父目录里没有 manifest.json 的目录（历史遗留 skill.md）不算草稿，但要点明。"""
+    monkeypatch.setattr(up, "_ROOT", tmp_path)
+    root = tmp_path / "data" / "ingestion" / "drafts"
+    (root / "ing_aaa").mkdir(parents=True)
+    (root / "ing_aaa" / "manifest.json").write_text("{}", encoding="utf-8")
+    (root / "browser-qa-playbook").mkdir()
+    (root / "browser-qa-playbook" / "skill.md").write_text("# x", encoding="utf-8")
+    r = up.probe_ingestion()
+    assert r["metrics"] == {"drafts": 1, "ignored_dirs": 1}
+    assert "非草稿目录" in r["summary"]
+    assert "1 条" in r["summary"]
