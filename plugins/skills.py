@@ -65,10 +65,29 @@ def _save_tool_states(data: dict):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def _get_tool_state(name: str) -> bool:
-    """获取单个工具的启用状态，默认启用"""
-    data = _load_tool_states()
-    return data.get("tool_states", {}).get(name, True)
+def _get_tool_state(name: str, declared: bool = True) -> bool:
+    """工具有效的启用状态：**UI 开关优先，其次 YAML 声明**（默认启用）。
+
+    【为什么不能只看 tools_config.json】2026-10-29 实测：`schedule_task` 的 YAML 是
+    `enabled: false`（`agent.tools._hidden_tool_names()` 已把它从模型可见集剔除），
+    而本函数对「没出现在 UI 开关里的工具」一律返回 True ⇒ 工具集页显示「启用」、
+    `/api/tools/status-batch` 也报启用，与真实生效状态相反。停用必须可观察，
+    否则「先停用观察、再物理删」这条流程在界面上无从判断。
+    """
+    states = _load_tool_states().get("tool_states", {}) or {}
+    if name in states:
+        return bool(states[name])
+    return bool(declared)
+
+
+def _declared_disabled_tools() -> frozenset:
+    """声明层 `enabled: false` 的工具名（与模型可见集同一份集合，含缓存）。"""
+    try:
+        from agent.tools import declared_disabled_tool_names
+
+        return frozenset(declared_disabled_tool_names() or ())
+    except Exception:  # noqa: BLE001 读不到声明时按「未停用」处理（不误报停用）
+        return frozenset()
 
 
 def _set_tool_state(name: str, enabled: bool):
@@ -739,13 +758,15 @@ def api_tools_config():
     except Exception:
         perm_logs = []
     result = []
+    declared_disabled = _declared_disabled_tools()
     for t in tools:
         tool_name = t["name"]
         call_count = sum(1 for log in perm_logs if log.get("tool") == tool_name)
         result.append({
             "name": tool_name,
             "description": t.get("description", ""),
-            "enabled": _get_tool_state(tool_name),
+            # 生效状态 = UI 开关 > YAML enabled（否则「停用观察」在页面上看不出来）
+            "enabled": _get_tool_state(tool_name, declared=tool_name not in declared_disabled),
             "call_count": call_count,
             "last_used": None,
         })
@@ -847,12 +868,14 @@ def api_tools_status_batch():
     from agent.tools import list_tools
     tools = list_tools()
     result = []
+    declared_disabled = _declared_disabled_tools()
     for t in tools:
         result.append({
             "type": "tool",
             "name": t["name"],
             "description": t.get("description", ""),
-            "enabled": _get_tool_state(t["name"]),
+            # 与 /api/tools/config 同源同口径（快捷开关栏也不能把停用显示成启用）
+            "enabled": _get_tool_state(t["name"], declared=t["name"] not in declared_disabled),
         })
     # 添加技能状态
     skills = _skills_mgr.get_all()
