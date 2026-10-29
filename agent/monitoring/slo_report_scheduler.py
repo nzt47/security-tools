@@ -247,6 +247,9 @@ def register_slo_report_scheduler(scheduler: Any = None, *,
             name=TASK_NAME, func=_job,
             day_of_week=sched["day_of_week"],
             hour=sched["hour"], minute=sched["minute"],
+            # 聚合指标 + 渲染 Markdown 存档，链路无 LLM
+            zero_token=True, owner="agent/monitoring/slo_report_scheduler.py",
+            zero_token_note="聚合 SLO 指标并写周报存档，不调 LLM",
         )
         task_id = ""
         for t in reversed(getattr(scheduler, "tasks", []) or []):

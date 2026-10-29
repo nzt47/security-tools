@@ -50,6 +50,10 @@ interface SchedTask {
   hour?: number | null
   minute?: number | null
   zero_token?: boolean | null
+  /** 零 token 判据（后端声明时写，悬浮展示；空 = 没声明判据） */
+  zero_token_note?: string
+  /** true = 是否零 token 取决于运行时开关（如 dry_run），此时零 token 表示"当前配置下的实际行为" */
+  zero_token_conditional?: boolean
   owner?: string
   editable_time?: boolean
 }
@@ -217,7 +221,9 @@ export default function EngineScheduler() {
       <Card className="mt-4">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-medium text-slate-200">调度器任务（真实执行）</h3>
-          <span className="text-xs text-slate-500">「零 token」= 调用链不含 LLM；改时刻即时生效并写入 data/scheduler_overrides.json</span>
+          <span className="text-xs text-slate-500">
+            「零 token」= 调用链不含 LLM（悬浮看判据）；带「条件」= 取决于运行时开关（如 dry_run）；改时刻即时生效并写入 data/scheduler_overrides.json
+          </span>
         </div>
         {schedMsg && <div className="mb-2 text-xs text-cyan-400">{schedMsg}</div>}
         {sched.length === 0 ? <div className="text-xs text-slate-500">调度器里还没有任务</div> : (
@@ -233,11 +239,19 @@ export default function EngineScheduler() {
               { key: 'schedule_text', title: '排程', render: (r) => <span className="font-mono text-xs text-cyan-400">{r.schedule_text}</span> },
               {
                 key: 'zero_token', title: '零 token',
-                render: (r) => (
-                  r.zero_token === true
-                    ? <Badge color="green">零 token</Badge>
-                    : <Badge color="slate">{r.zero_token === false ? '含 LLM' : '未标注'}</Badge>
-                ),
+                render: (r) => {
+                  // 三态必须都有明确落点：未声明就如实标「未声明」，不猜成"零 token"
+                  const note = r.zero_token_note || (r.owner ? '来源：' + r.owner : '')
+                  if (r.zero_token === true) {
+                    return r.zero_token_conditional
+                      ? <span title={note}><Badge color="amber">零 token（条件）</Badge></span>
+                      : <span title={note}><Badge color="green">零 token</Badge></span>
+                  }
+                  if (r.zero_token === false) {
+                    return <span title={note}><Badge color="slate">含 LLM</Badge></span>
+                  }
+                  return <span title="该任务未声明调用链是否含 LLM"><Badge color="slate">未声明</Badge></span>
+                },
               },
               { key: 'enabled', title: '状态', render: (r) => <Badge color={r.enabled ? 'green' : 'slate'}>{r.enabled ? '运行中' : '已暂停'}</Badge> },
               {

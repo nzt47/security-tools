@@ -399,3 +399,21 @@ describe('PanoramaHealth 失败上屏', () => {
     expect(await screen.findByText(/加载失败：HTTP 500/)).toBeTruthy()
   })
 })
+
+// ═══════════════════════════════════════════════════════════════
+//  功能单位独立成 Tab（2026-10-29）
+// ═══════════════════════════════════════════════════════════════
+describe('PanoramaHealth 功能单位 Tab', () => {
+  it('概览不再常驻功能单位面板，切到「功能单位」Tab 才挂载', async () => {
+    render(<PanoramaHealth />)
+    await screen.findByTestId('panel-overview')
+    // 面板原先挂在所有 Tab 上方（把每页都压得很长）⇒ 概览里不应再出现
+    expect(screen.queryByTestId('unit-status')).toBeNull()
+    fireEvent.click(screen.getByTestId('tab-units'))
+    const panel = await screen.findByTestId('panel-units')
+    expect(within(panel).getByTestId('unit-status')).toBeTruthy()
+    // 切回概览后卸载，不会继续轮询/占位
+    fireEvent.click(screen.getByTestId('tab-overview'))
+    expect(screen.queryByTestId('panel-units')).toBeNull()
+  })
+})

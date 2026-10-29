@@ -49,7 +49,7 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import {
-  Activity, Bell, Download, History, LayoutDashboard,
+  Activity, Bell, Boxes, Download, History, LayoutDashboard,
   RefreshCw, Server, ShieldCheck, Sparkles, Zap,
 } from 'lucide-react'
 import { Badge, Card, ErrorBox, Loading, PageHeader, hubGet } from '../components/ui'
@@ -459,6 +459,9 @@ const AXIS = { stroke: '#64748b', fontSize: 11 }
 
 const TABS = [
   { key: 'overview', label: '概览', Icon: LayoutDashboard },
+  // 2026-10-29：功能单位面板原先是「永远挂在页面上方」的一块，把每个 Tab 都压得很长；
+  // 现在独立成 Tab（技能/工具/工作流/调度/记忆… 在不在工作，与健康概览不是同一层级的问题）。
+  { key: 'units', label: '功能单位', Icon: Boxes },
   { key: 'metrics', label: '指标', Icon: Activity },
   { key: 'stability', label: '稳定性', Icon: ShieldCheck },
   { key: 'performance', label: '性能', Icon: Zap },
@@ -689,11 +692,25 @@ export default function PanoramaHealth() {
         </div>
       )}
 
-      {/* 功能单位工作状况：技能/工具/工作流/调度/记忆…每个单位在不在工作、有没有红 */}
-      <UnitStatus />
-
       {loading && points.length === 0 && Object.keys(data).length === 0 ? <Loading /> : (
         <>
+          {/* ── Tab 导航（老页 7 个 Tab + 本轮拆出的「功能单位」）── */}
+          <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-800 pb-3" data-testid="health-tabs">
+            {TABS.map(({ key, label, Icon }) => (
+              <button
+                key={key}
+                data-testid={'tab-' + key}
+                onClick={() => setTab(key)}
+                className={'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs ' + (tab === key ? 'border-cyan-700 bg-slate-900 text-cyan-400' : 'border-transparent text-slate-400 hover:bg-slate-900')}
+              >
+                <Icon size={12} /> {label}
+              </button>
+            ))}
+          </div>
+
+          {/* ══════════ 概览 ══════════ */}
+          {tab === 'overview' && (
+            <div data-testid="panel-overview">
           {/* ── 健康总分 + 五层维度卡（老页 .health-overview）── */}
           <div className="mb-4 grid gap-4 lg:grid-cols-[200px_1fr]">
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5 text-center">
@@ -731,23 +748,6 @@ export default function PanoramaHealth() {
             </div>
           </div>
 
-          {/* ── Tab 导航（老页 7 个 Tab）── */}
-          <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-800 pb-3" data-testid="health-tabs">
-            {TABS.map(({ key, label, Icon }) => (
-              <button
-                key={key}
-                data-testid={'tab-' + key}
-                onClick={() => setTab(key)}
-                className={'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs ' + (tab === key ? 'border-cyan-700 bg-slate-900 text-cyan-400' : 'border-transparent text-slate-400 hover:bg-slate-900')}
-              >
-                <Icon size={12} /> {label}
-              </button>
-            ))}
-          </div>
-
-          {/* ══════════ 概览 ══════════ */}
-          {tab === 'overview' && (
-            <div data-testid="panel-overview">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
                 {cards.map((c) => <MetricTile key={c.key} card={c} />)}
               </div>
@@ -971,6 +971,12 @@ export default function PanoramaHealth() {
           )}
 
           {/* ══════════ 指标 ══════════ */}
+          {tab === 'units' && (
+            <div data-testid="panel-units">
+              <UnitStatus />
+            </div>
+          )}
+
           {tab === 'metrics' && (
             <div data-testid="panel-metrics">
               <div className="mb-3 flex flex-wrap items-center gap-2">
