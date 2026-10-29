@@ -164,10 +164,11 @@ class TestQuery:
         # 从「只在运行时台账里」变为仓库内 skill.md 实体 ⇒ 计入清单的能力面。
         # 断言仍是"精确等于"，只是基线随能力面变化而刷新。
         # 【2026-10-24】119/28 → 127/36、local 98 → 106：8 个技能目录补回文件轨
+    # 【2026-10-30】127/36 → 133/42、local 106 → 112：A 方案把 6 个主轨独有技能入库（+6 local）
         # （此前只在运行时台账里，仓库可复现口径因此少算 8 条）。
         assert st["total"] == 133, f"能力总数应为 133，实际 {st['total']}"
         assert st["by_kind"] == {"skill": 42, "tool": 91}
-        assert st["by_location"] == {"local": 106, "remote": 21}
+        assert st["by_location"] == {"local": 112, "remote": 21}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
