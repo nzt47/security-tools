@@ -198,7 +198,10 @@ def api_scheduler_overview():
             "hour": (cron or {}).get("hour"),
             "minute": (cron or {}).get("minute"),
             "day_of_week": (cron or {}).get("day_of_week"),
+            # 零 token 三态 + 判据 + 是否条件性（UI 四态徽章直接用；缺了会把「条件」读成「永远零」）
             "zero_token": item.get("zero_token"),
+            "zero_token_note": item.get("zero_token_note", ""),
+            "zero_token_conditional": bool(item.get("zero_token_conditional", False)),
             "owner": item.get("owner", ""),
             "editable_time": bool(cron),
         })
