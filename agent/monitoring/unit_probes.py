@@ -129,12 +129,14 @@ def probe_skills_registry() -> Dict[str, Any]:
 USAGE_WARN_MIN_MATCH_CALLS = 20
 #: 启用技能里「近 7 天 0 命中」的占比阈值，超过才 warn（少量冷门技能不命中是常态）。
 USAGE_WARN_ZERO_HIT_RATIO = 0.8
+#: 台账聚合窗口（天）：技能与工具两段共用同一窗口，避免「技能看 7 天、工具看 30 天」两套口径。
+USAGE_WINDOW_DAYS = 7
 
 
 def probe_skills_usage() -> Dict[str, Any]:
     try:
         from agent.skills_mgmt import usage_log
-        s = usage_log.stats(7)
+        s = usage_log.stats(USAGE_WINDOW_DAYS)
     except Exception as exc:  # noqa: BLE001
         return {"status": "error", "summary": "台账读取失败: %s" % exc}
     tot = s["totals"]
@@ -187,7 +189,7 @@ def probe_tools() -> Dict[str, Any]:
     calls = fails = 0
     try:
         from agent.skills_mgmt import usage_log
-        t = usage_log.stats(7)["totals"]
+        t = usage_log.stats(USAGE_WINDOW_DAYS)["totals"]
         calls, fails = int(t.get("tool_calls", 0)), int(t.get("tool_fail", 0))
     except Exception:  # noqa: BLE001 台账读不到不影响「登记了多少工具」这个事实
         calls = fails = 0

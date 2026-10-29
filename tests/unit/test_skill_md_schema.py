@@ -92,6 +92,14 @@ def test_missing_file_is_error_not_exception(tmp_path):
     assert r["ok"] is False and r["errors"]
 
 
+def test_trigger_section_counts_as_usage():
+    """`## 触发条件 / 适用场景` 也算「何时使用」（2026-10-29 实测 pd-* 用它们写触发面）。"""
+    text = GOOD.replace("## 何时使用", "## 触发条件")
+    r = schema.validate_text(text, dir_name="demo-skill")
+    assert r["ok"] is True
+    assert not any("何时使用" in w for w in r["warnings"])
+
+
 @pytest.mark.skipif(not (ROOT / "data" / "skills_repo").is_dir(), reason="本仓库无文件轨")
 def test_real_repo_has_no_schema_errors():
     report = schema.scan_root(ROOT / "data" / "skills_repo")

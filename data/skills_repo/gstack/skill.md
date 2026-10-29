@@ -288,6 +288,10 @@ fi
 _BRAIN_SYNC_BIN="~/.claude/skills/gstack/bin/gstack-brain-sync"
 _BRAIN_CONFIG_BIN="~/.claude/skills/gstack/bin/gstack-config"
 
+## When to Use
+
+- Asked to open or test a site, verify a deployment, dogfood a user flow, or file a bug with screenshots
+
 # /sync-gbrain context-load: teach the agent to use gbrain when it's available.
 # Per-worktree pin: post-spike redesign uses kubectl-style `.gbrain-source` in the
 # git toplevel to scope queries. Look for the pin in the worktree (not a global
