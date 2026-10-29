@@ -35,7 +35,10 @@ REQUIRED_KEYS = (
 RECOMMENDED_KEYS = ("status", "description_zh", "version")
 
 #: 结构小节同义词（只匹配标题行；大小写不敏感）。
-USAGE_SECTIONS = ("何时使用", "使用场景", "使用说明", "when to use", "usage")
+#: 「适用场景 / 适用条件 / 触发条件」也算 —— pd-* 技能用这几个标题写触发面，
+#: 早先只认「何时使用/使用场景」会把它们误判成缺失（2026-10-29 实测 29 条里多份有「触发条件」）。
+USAGE_SECTIONS = ("何时使用", "使用场景", "使用时机", "适用场景", "适用条件", "触发条件",
+                  "使用说明", "when to use", "usage")
 EXAMPLE_SECTIONS = ("示例", "例子", "范例", "example", "examples")
 
 #: 技能 ID 契约（与 file_store._validate_skill_id / claude_import._ID_RE 同口径）。

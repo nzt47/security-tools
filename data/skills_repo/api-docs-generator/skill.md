@@ -19,6 +19,10 @@ enabled: true
 
 Generate comprehensive API documentation from source code. Supports REST, GraphQL, and general function/method APIs.
 
+## When to Use
+
+- Asked to "document this API", "generate API docs", "create API documentation", "make docs for my endpoints", or "document my routes"
+
 ## Workflow
 
 ### Step 1: Discovery

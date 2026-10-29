@@ -19,6 +19,10 @@ enabled: true
 
 Optimize prompts with evals. Keep every instruction, example, and external context reference causal.
 
+## When to Use
+
+- Asked to improve a prompt, optimize a system prompt, rewrite an agent prompt, tune prompt wording, make a prompt more reliable, port prompts between OpenAI, Claude, or Gemini, or build prompt evals
+
 ## Load Only What You Need
 
 | Need | Read |
