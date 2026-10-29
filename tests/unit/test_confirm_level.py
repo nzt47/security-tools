@@ -376,7 +376,7 @@ class TestConsistencyWithPermissionLevel:
         """
         # 【2026-10-24】28 → 36：8 个技能目录补回文件轨（能力面 +8 条技能）
         skills = [e for e in _manifest_entries() if e.get("kind") == "skill"]
-        assert len(skills) == 36, len(skills)
+        assert len(skills) == 42, len(skills)
         for e in skills:
             assert "confirm_level" not in e, (
                 f"技能 {e.get('tool_name')} 不该有工具侧的 confirm_level 字段")
