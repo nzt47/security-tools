@@ -1,16 +1,15 @@
-"""清理评估事件台账里的「未来时间戳」脏数据（2026-10-30）。
+"""评估事件台账专用的未来时间戳清理（**兼容入口**，实现已泛化）。
 
-背景：`data/skills_assessment_events.jsonl` 里积了 190 条 2027-10-19/20 的记录
-（skill_id 形如 `s-promote` / `conc-0` / `test-skill`，来自早期未隔离的测试/演练直接写生产台账）。
-它们按时间倒序永远排在最前，于是「动态中心」的最新动态钉在 2027。
+历史：2026-10-30 先有本脚本，专门清 `data/skills_assessment_events.jsonl` 里的 190 条
+2027 污染（动态中心最新动态钉在 2027）。随后 §11.26 U2 排查发现同样的「超前本机时钟」
+行散落在 7 个台账（动态事件 / 治理写 / 策略决策 / 学习 novelty / 合并备份 / 归档），
+于是把实现泛化成 `scripts/purge_future_rows.py`。
 
-写入侧已用 `datetime.now()`（产生不了未来值），服务读侧也加了防御；本脚本只负责**清存量**：
-  1. 备份原文件（`<file>.bak.<时间戳>`，不覆盖已有备份）；
-  2. 丢掉 ts 超前本机时钟超过 300 秒的行（阈值与 service.is_future_timestamp 同一口径）；
-  3. 原子替换 + 回读自证（再扫一遍，未来行必须为 0）；
-  4. 写审计 `skills.assess.events.purge_future`（total / removed / backup）。
+本文件保留为兼容入口（旧文档、CI 用例、运维习惯命令仍可用）：
+只固定**默认文件**与**历史审计动作名** `skills.assess.events.purge_future`，
+备份 / 丢未来行 / 原子替换 / 回读自证 / 审计留痕全部委托给泛化实现。
 
-用法：
+用法（不变）：
     python scripts/purge_future_assessment_events.py            # dry-run（默认）
     python scripts/purge_future_assessment_events.py --execute  # 真删（先备份）
     python scripts/purge_future_assessment_events.py --json     # 机器可读
@@ -18,92 +17,34 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
-import os
-import shutil
 import sys
-import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from agent.skills_mgmt.service import FUTURE_TS_SKEW_SECONDS, is_future_timestamp  # noqa: E402
-
 DEFAULT_FILE = _ROOT / "data" / "skills_assessment_events.jsonl"
+#: 本入口的历史审计动作名（泛化脚本用 `purge_future_rows`）。
+LEGACY_AUDIT_ACTION = "skills.assess.events.purge_future"
+LEGACY_AUDIT_SUBJECT = "data/skills_assessment_events.jsonl"
 
 
-def scan(path: Path):
-    rows = []
-    bad = []
-    if not path.exists():
-        return rows, bad
-    with path.open("r", encoding="utf-8", errors="ignore") as fh:
-        for line in fh:
-            raw = line.strip()
-            if not raw:
-                continue
-            try:
-                rec = json.loads(raw)
-            except ValueError:
-                rows.append(raw)  # 坏行原样保留（不是本脚本的清理目标）
-                continue
-            rows.append(raw)
-            if is_future_timestamp(rec.get("ts", "") if isinstance(rec, dict) else ""):
-                bad.append(rec)
-    return rows, bad
+def _generic():
+    """按文件路径加载同级泛化实现（scripts/ 不是包，避免污染 sys.path）。"""
+    spec = importlib.util.spec_from_file_location(
+        "purge_future_rows", Path(__file__).with_name("purge_future_rows.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
-def purge(path: Path, *, execute: bool = False) -> dict:
-    rows, bad = scan(path)
-    dates = {}
-    for rec in bad:
-        d = str(rec.get("ts", ""))[:10]
-        dates[d] = dates.get(d, 0) + 1
-    result = {
-        "file": str(path),
-        "total_rows": len(rows),
-        "future_rows": len(bad),
-        "future_dates": dict(sorted(dates.items())),
-        "skew_seconds": FUTURE_TS_SKEW_SECONDS,
-        "dry_run": not execute,
-    }
-    if not execute or not bad:
-        return result
-
-    backup = path.with_name(path.name + ".bak." + time.strftime("%Y%m%d-%H%M%S"))
-    shutil.copy2(path, backup)
-    kept = []
-    with path.open("r", encoding="utf-8", errors="ignore") as fh:
-        for line in fh:
-            raw = line.strip()
-            if not raw:
-                continue
-            try:
-                rec = json.loads(raw)
-            except ValueError:
-                kept.append(raw)
-                continue
-            if isinstance(rec, dict) and is_future_timestamp(rec.get("ts", "")):
-                continue
-            kept.append(raw)
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text("".join(r + "\n" for r in kept), encoding="utf-8")
-    os.replace(tmp, path)
-
-    _rows2, bad2 = scan(path)
-    result.update({"backup": str(backup), "kept_rows": len(kept),
-                   "future_after": len(bad2)})
-    try:
-        from agent.audit import audit as _audit
-        _audit.record("skills.assess.events.purge_future", actor="ops",
-                      subject="data/skills_assessment_events.jsonl",
-                      payload={"total": result["total_rows"], "removed": len(bad),
-                               "backup": backup.name, "dates": result["future_dates"]},
-                      source="agent", status="ok")
-    except Exception as e:  # noqa: BLE001 审计失败不回滚清理（备份可追溯）
-        print("[warn] 审计写入失败：%s" % e)
-    return result
+def purge(path, *, execute: bool = False) -> dict:
+    """清一个文件的未来行（默认 dry-run）。签名与历史版本一致。"""
+    return _generic().purge(
+        path, execute=execute,
+        audit_action=LEGACY_AUDIT_ACTION, audit_subject=LEGACY_AUDIT_SUBJECT)
 
 
 def main() -> int:
