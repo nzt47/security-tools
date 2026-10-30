@@ -63,7 +63,7 @@ type IngestionTab = 'acquire' | 'review' | 'governance'
 
 function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: IngestionTab) => void }) {
   return (
-    <div className="mb-3 flex items-center gap-1.5" role="tablist" aria-label="吞噬子模块">
+    <div className="mb-3 flex items-center gap-1.5" role="tablist" aria-label="能力获取子模块">
       <button type="button" role="tab" aria-selected={tab === 'acquire'}
         className={tab === 'acquire' ? BTN_EM : BTN} onClick={() => onChange('acquire')}>
         <PackagePlus size={12} /> 获取外来能力
@@ -189,7 +189,7 @@ export default function IngestionPage() {
     <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
       {tabs}
       <PageHeader
-        title="吞噬"
+        title="能力获取"
         description="外来技能 / 文档 / 提示词 / 插件包 → 可预览、可重写、可合并、可生成草稿的云枢能力。只在显式确认后落库。"
         actions={(
           <button type="button" className={BTN} onClick={() => void discover()} disabled={discovering}>

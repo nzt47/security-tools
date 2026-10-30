@@ -384,7 +384,7 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
                   不选也能委托：没有活跃分身时走**临时分身**（现建现用、跑完即回收）。
                 </div>
                 <div className="mt-0.5 text-[10px] text-slate-600">
-                  要固定用一个分身，请到「装配车间 → 分身创建与组装」创建后再回来选择。
+                  要固定用一个分身，请到「装配车间 → 分身」创建后再回来选择。
                 </div>
               </div>
             ) : (
