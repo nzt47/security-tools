@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-30T02:10:00",
+  "generated_at": "2026-10-30T13:06:12",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 282,
-    "reachable_modules": 266,
-    "page_files": 109
+    "source_modules": 283,
+    "reachable_modules": 267,
+    "page_files": 110
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "24b1e7f409630252",
+  "content_hash": "63159d33ed9d3816",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -60,6 +60,7 @@
     "yunshu-ui/src/pages/hub/memory/knowledge.tsx",
     "yunshu-ui/src/pages/hub/memory/memory-governance.tsx",
     "yunshu-ui/src/pages/hub/memory/memory-maintenance.tsx",
+    "yunshu-ui/src/pages/hub/memory/merge-duplicates-modal.tsx",
     "yunshu-ui/src/pages/hub/memory/search.tsx",
     "yunshu-ui/src/pages/hub/memory/skill-center.tsx",
     "yunshu-ui/src/pages/hub/memory/skill-detail-drawer.tsx",
