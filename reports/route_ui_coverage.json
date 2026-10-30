@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-10-30T02:19:57",
+  "generated_at": "2026-10-31T01:48:14",
   "totals": {
     "routes": 477,
     "live": 477,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 420,
-    "cli_script": 16,
+    "ui": 421,
+    "cli_script": 15,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 420,
-      "cli_script": 16,
+      "ui": 421,
+      "cli_script": 15,
       "runtime_only": 11,
       "unreferenced": 30
     },
@@ -37,7 +37,7 @@
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 424,
+  "frontend_endpoints": 425,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -3172,7 +3172,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/api/endpoints.ts"
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/components/workbench/panels/DockPanel.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -6856,11 +6857,13 @@
       "methods": [
         "POST"
       ],
-      "category": "cli_script",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
       "non_ui_refs": [
         "scripts/docker_sandbox.ps1"
       ],
@@ -7932,6 +7935,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
+        "yunshu-ui/src/pages/hub/memory/merge-duplicates-modal.tsx",
         "yunshu-ui/src/pages/hub/memory/skill-detail-drawer.tsx"
       ],
       "non_ui_refs": [],
@@ -9961,7 +9965,8 @@
       "dead_defs": [],
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts",
-        "yunshu-ui/src/components/workbench/chat/SubagentMenu.tsx"
+        "yunshu-ui/src/components/workbench/chat/SubagentMenu.tsx",
+        "yunshu-ui/src/components/workbench/panels/DockPanel.tsx"
       ],
       "non_ui_refs": [],
       "where": [
@@ -12232,5 +12237,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "38205df0f95482a0"
+  "content_hash": "9d9afb8e4b40d265"
 }
