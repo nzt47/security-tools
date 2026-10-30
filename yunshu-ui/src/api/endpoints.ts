@@ -587,6 +587,9 @@ export const BROWSER_SCREENSHOT = '/api/browser/screenshot';
 export const BROWSER_CLOSE = '/api/browser/close';
 /** Python 沙盒执行（**不是系统 shell**；受 features.sandbox 开关控制，关闭时后端回 503） */
 export const SANDBOX_RUN = '/api/sandbox/run';
+/** 终端：白名单命令清单 / 执行（argv 由服务端常量表拼出，shell=False） */
+export const TERMINAL_COMMANDS = '/api/terminal/commands';
+export const TERMINAL_EXEC = '/api/terminal/exec';
 export const CLIPBOARD = '/api/clipboard';
 // 认知闭环（元认知）状态 / 任务接受度裁决（方案 §7 第三批接入）
 export const COGNITIVE_STATUS = '/api/cognitive/status';

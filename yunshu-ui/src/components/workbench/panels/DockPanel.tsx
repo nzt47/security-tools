@@ -20,9 +20,10 @@ import { hubGet, hubPost } from '../../../pages/hub/components/ui'
 import {
   FILESYSTEM_LIST,
   FILESYSTEM_READ,
-  SANDBOX_RUN,
   SUBAGENT_HISTORY,
   SUBAGENT_LIST,
+  TERMINAL_COMMANDS,
+  TERMINAL_EXEC,
 } from '@/api/endpoints'
 
 type DockTab = 'editor' | 'docs' | 'subagent' | 'browser' | 'terminal'
@@ -390,74 +391,145 @@ function BrowserPane() {
   )
 }
 
-/* ───────────────────────── 终端（Python 沙盒） ───────────────────────── */
-interface SandboxResult {
+/* ───────────────────────── 终端（白名单命令） ───────────────────────── */
+interface TerminalCommand {
+  id: string
+  label: string
+  description?: string
+  params?: { name: string; type: string; min?: number; max?: number; default?: number }[]
+}
+
+interface TerminalResult {
   ok?: boolean
+  argv?: string[]
+  exit_code?: number
   stdout?: string
   stderr?: string
-  error?: string
-  blocked?: boolean
-  sandbox_disabled?: boolean
   duration_ms?: number
   timed_out?: boolean
+  error?: string
 }
 
 function TerminalPane() {
-  const [code, setCode] = useState('print("hello yunshu")')
-  const [out, setOut] = useState<SandboxResult | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [commands, setCommands] = useState<TerminalCommand[]>([])
+  const [picked, setPicked] = useState('')
+  const [paramText, setParamText] = useState('10')
+  const [out, setOut] = useState<TerminalResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const r = await hubGet<{ ok?: boolean; commands?: TerminalCommand[]; error?: string }>(TERMINAL_COMMANDS)
+      if (r?.ok === false) setError(String(r.error ?? '命令清单读取失败'))
+      else {
+        const list = Array.isArray(r?.commands) ? r.commands : []
+        setCommands(list)
+        if (list.length && !picked) setPicked(list[0].id)
+      }
+    } catch (e) {
+      setError(`命令清单不可用：${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setLoading(false)
+    }
+  }, [picked])
+
+  useEffect(() => {
+    void load()
+    // 只在首次挂载拉一次清单（picked 变化不必重拉）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const current = commands.find((c) => c.id === picked)
+  const needsParam = Boolean(current?.params?.length)
 
   const run = async () => {
-    setBusy(true)
+    if (!picked) return
+    setLoading(true)
+    setError('')
     try {
-      const r = await hubPost<SandboxResult>(SANDBOX_RUN, { code, timeout: 5 })
+      const params: Record<string, unknown> = {}
+      if (needsParam) params[current!.params![0].name] = paramText
+      const r = await hubPost<TerminalResult>(TERMINAL_EXEC, { command_id: picked, params })
       setOut(r ?? {})
     } catch (e) {
-      setOut({ error: `执行失败：${e instanceof Error ? e.message : String(e)}` })
+      setError(`执行失败：${e instanceof Error ? e.message : String(e)}`)
+      setOut(null)
     } finally {
-      setBusy(false)
+      setLoading(false)
     }
   }
 
   return (
     <Pane>
       <Hint>
-        Python 沙盒（受 <code className="text-slate-400">features.sandbox</code> 开关控制；不是系统 shell）。
+        白名单执行（**不是自由 shell**）：只能选命令，参数仅支持整数；argv 由服务端常量表拼出。
       </Hint>
-      <textarea
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        aria-label="沙盒代码"
-        spellCheck={false}
-        className="h-24 shrink-0 resize-none border-b border-slate-800/60 bg-slate-950/60 px-2 py-1 font-mono text-[10.5px] text-slate-200 focus:outline-hidden"
-      />
-      <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
-        <button
-          type="button"
-          onClick={() => void run()}
-          disabled={busy}
-          className="flex items-center gap-1 rounded-sm border border-cyan-700/60 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-300 disabled:opacity-50"
-        >
-          {busy ? <Loader2 size={10} className="animate-spin" /> : <Play size={10} />} 运行
-        </button>
+      <div className="shrink-0 border-b border-slate-800/60 px-2 py-1.5">
+        <div className="flex flex-wrap gap-1">
+          {commands.map((c) => {
+            const active = c.id === picked
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => {
+                  setPicked(c.id)
+                  setOut(null)
+                }}
+                title={c.description ?? c.label}
+                className={`rounded border px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
+                  active
+                    ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
+                    : 'border-slate-800 text-slate-400 hover:bg-slate-800/60'
+                }`}
+              >
+                {c.label}
+              </button>
+            )
+          })}
+          {commands.length === 0 && !loading && <span className="text-[10px] text-slate-500">暂无可用命令</span>}
+        </div>
+        <div className="mt-1.5 flex items-center gap-1">
+          {needsParam && (
+            <input
+              value={paramText}
+              onChange={(e) => setParamText(e.target.value)}
+              aria-label="命令参数"
+              className="w-14 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 font-mono text-[10px] text-slate-200"
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => void run()}
+            disabled={!picked || loading}
+            className="flex items-center gap-1 rounded-sm border border-cyan-700/60 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-300 disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={10} className="animate-spin" /> : <Play size={10} />} 执行
+          </button>
+          <span className="ml-auto truncate font-mono text-[9px] text-slate-600">
+            {out?.argv ? out.argv.join(' ') : ''}
+          </span>
+        </div>
       </div>
+      {error && <p className="px-3 py-1 text-[10px] text-rose-300">{error}</p>}
       <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1 font-mono text-[10px] leading-relaxed">
         {!out ? (
-          <p className="text-slate-500">输出会显示在这里</p>
+          <p className="text-slate-500">选一条命令后点「执行」</p>
         ) : (
           <>
-            {out.sandbox_disabled && (
-              <p className="whitespace-pre-wrap text-amber-300">沙盒未启用：{out.error}</p>
+            {typeof out.exit_code === 'number' && (
+              <p className={out.exit_code === 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                exit {out.exit_code}
+                {out.timed_out ? '（超时）' : ''}
+                {typeof out.duration_ms === 'number' ? ` · ${out.duration_ms}ms` : ''}
+              </p>
             )}
-            {out.blocked && <p className="whitespace-pre-wrap text-rose-300">已拦截：{out.error}</p>}
-            {out.stdout && <pre className="m-0 whitespace-pre-wrap text-emerald-300">{out.stdout}</pre>}
+            {out.stdout && <pre className="m-0 whitespace-pre-wrap text-slate-300">{out.stdout}</pre>}
             {out.stderr && <pre className="m-0 whitespace-pre-wrap text-amber-300">{out.stderr}</pre>}
-            {out.error && !out.sandbox_disabled && !out.blocked && (
-              <pre className="m-0 whitespace-pre-wrap text-rose-300">{out.error}</pre>
-            )}
-            {typeof out.duration_ms === 'number' && (
-              <p className="mt-1 text-slate-600">{out.duration_ms.toFixed(1)}ms</p>
-            )}
+            {out.error && <pre className="m-0 whitespace-pre-wrap text-rose-300">{out.error}</pre>}
           </>
         )}
       </div>

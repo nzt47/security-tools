@@ -23,7 +23,7 @@ function res(body: unknown, envelope = false) {
   } as unknown as Response
 }
 
-function installFetch(opts: { sandbox?: unknown } = {}) {
+function installFetch(opts: { terminal?: unknown } = {}) {
   const fn = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input)
     if (url.includes('/api/subagent/list')) {
@@ -41,8 +41,20 @@ function installFetch(opts: { sandbox?: unknown } = {}) {
     if (url.includes('/api/filesystem/read')) {
       return res({ ok: true, content: '# 文档正文' })
     }
-    if (url.includes('/api/sandbox/run')) {
-      return res(opts.sandbox ?? { ok: true, stdout: 'hello\n', duration_ms: 2.5 })
+    if (url.includes('/api/terminal/commands')) {
+      return res({
+        ok: true,
+        commands: [
+          { id: 'git-status', label: 'git status', description: '工作区状态', params: [] },
+          { id: 'git-log', label: 'git log', description: '最近提交', params: [{ name: 'n', type: 'int', min: 1, max: 50, default: 10 }] },
+        ],
+      })
+    }
+    if (url.includes('/api/terminal/exec')) {
+      return res(opts.terminal ?? {
+        ok: true, argv: ['git', 'status', '--short'], exit_code: 0,
+        stdout: ' M a.ts\n', stderr: '', duration_ms: 1.2,
+      })
     }
     return res({ ok: true })
   })
@@ -91,22 +103,23 @@ describe('DockPanel · 右侧可切换边栏', () => {
     expect(screen.queryByTitle('浏览器')).not.toBeInTheDocument()
   })
 
-  it('终端 Tab：如实显示沙盒 stdout', async () => {
+  it('终端 Tab：执行白名单命令并显示 argv / 退出码 / 输出', async () => {
     installFetch()
     render(<DockPanel />)
     fireEvent.click(screen.getByRole('tab', { name: /终端/ }))
-    fireEvent.click(screen.getByRole('button', { name: /运行/ }))
-    await waitFor(() => expect(screen.getByText(/hello/)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'git status' })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'git status' }))
+    fireEvent.click(screen.getByRole('button', { name: /执行/ }))
+    await waitFor(() => expect(screen.getByText(/exit 0/)).toBeInTheDocument())
+    expect(screen.getByText(/M a\.ts/)).toBeInTheDocument()
+    expect(screen.getByText(/git status --short/)).toBeInTheDocument()
   })
 
-  it('终端 Tab：沙盒未启用时显示后端原因，而不是空输出', async () => {
-    installFetch({
-      sandbox: { ok: false, sandbox_disabled: true, error: '沙盒功能已关闭，设置环境变量 YUNSHU_FEATURE_SANDBOX=true 可启用' },
-    })
+  it('终端 Tab：命令清单读取失败时上屏错误（不是空白面板）', async () => {
+    const fn = vi.fn(async () => res({ ok: false, error: '未授权' }))
+    vi.stubGlobal('fetch', fn)
     render(<DockPanel />)
     fireEvent.click(screen.getByRole('tab', { name: /终端/ }))
-    fireEvent.click(screen.getByRole('button', { name: /运行/ }))
-    await waitFor(() => expect(screen.getByText(/沙盒未启用/)).toBeInTheDocument())
-    expect(screen.getByText(/YUNSHU_FEATURE_SANDBOX/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/未授权/)).toBeInTheDocument())
   })
 })
