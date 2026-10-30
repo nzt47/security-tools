@@ -24,7 +24,13 @@ import {
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
 
-interface DupRow { skill_id?: string; id?: string; name?: string; jaccard?: number }
+interface DupRow {
+  // 后端 find_duplicates_for 的字段是 other_id / other_name（不是 skill_id/name）——2026-10-30 实测踩坑：
+  // 旧代码只认 skill_id/id，取不到就回退成合成键 `dup-N`，合并时后端报「技能不存在: dup-9」（HTTP 400）。
+  other_id?: string; other_name?: string
+  skill_id?: string; id?: string; name?: string
+  jaccard?: number; content_hash_match?: boolean; recommend_action?: string
+}
 interface DupsResp { ok?: boolean; error?: string; duplicates?: DupRow[]; total?: number }
 interface MergeResp { ok?: boolean; error?: string; merge_id?: string }
 
@@ -55,6 +61,7 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
   useEffect(() => { void load() }, [load])
 
   const mergeInto = async (srcId: string) => {
+    if (!srcId) { setErr('缺少源技能 id：请「重新查重」后再试'); return }
     setBusy('merge'); setErr(''); setMsg('')
     try {
       const r = await hubPost<MergeResp>(SKILLS_MGMT_ASSESS_MERGE_SAFE,
@@ -120,16 +127,22 @@ export default function MergeDuplicatesModal({ skillId, skillName, onClose, onDo
       )}
       {rows.length > 0 && (
         <ul className="max-h-72 space-y-1 overflow-y-auto pr-1">
-          {rows.map((d, i) => {
-            const key = d.skill_id || d.id || ('dup-' + i)
+          {rows.map((d) => {
+            // 只认真实 id：合成键绝不能进合并请求（那正是 dup-9 那个 400 的来源）
+            const key = d.other_id || d.skill_id || d.id || ''
+            const label = d.other_name || d.name || ''
             return (
               <li key={key} className="flex flex-wrap items-center gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
                 <span className="font-mono text-cyan-300">{key}</span>
-                <span className="truncate text-slate-300">{d.name ?? ''}</span>
+                <span className="truncate text-slate-300">{label}</span>
+                {d.content_hash_match && <span className="rounded-full border border-emerald-800/60 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] text-emerald-300">内容完全相同</span>}
+                {d.recommend_action === 'merge' && !d.content_hash_match && <span className="rounded-full border border-cyan-800/60 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-300">建议合并</span>}
                 <span className="ml-auto font-mono text-[10px] text-amber-300">
                   {d.jaccard !== undefined ? Number(d.jaccard).toFixed(3) : ''}
                 </span>
-                {pending === key ? (
+                {!key ? (
+                  <span className="text-[10px] text-red-400" title="接口没有返回 other_id/id ⇒ 无法安全合并">缺少技能 id，无法合并</span>
+                ) : pending === key ? (
                   <span className="flex flex-wrap items-center gap-1">
                     <span className="text-[10px] text-amber-300">确认合并？会删除它并写备份</span>
                     <button type="button" className={BTN} onClick={() => void mergeInto(key)} disabled={busy !== ''}>确认合并</button>

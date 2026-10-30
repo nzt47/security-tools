@@ -37,7 +37,7 @@ function setup(items: Record<string, unknown>[]) {
     if (url.includes('/assess/events')) return { records: [] }
     if (url.includes('/review/audit')) return { records: [] }
     if (url.includes('/usage/stats')) return { skills: {}, tools: {}, totals: {} }
-    if (url.includes('/duplicates')) return { ok: true, total: 1, duplicates: [{ skill_id: 'dup-twin', name: '重复双胞胎', jaccard: 0.91 }] }
+    if (url.includes('/duplicates')) return { ok: true, total: 1, duplicates: [{ other_id: 'dup-twin', other_name: '重复双胞胎', jaccard: 0.91, recommend_action: 'merge' }] }
     return { ok: true }
   })
   api.hubPost.mockImplementation(async (url: string) => {
@@ -78,4 +78,25 @@ describe('合并重复技能入口', () => {
     fireEvent.click(btn)
     expect(await screen.findByTestId('merge-duplicates-modal')).toBeTruthy()
   })
-})
+it('接口没返回 other_id 时：不给「合并到本技能」，明确提示缺少 id（不再用 dup-N 合成键去打后端）', async () => {
+    api.getEnvelope.mockResolvedValue({ installed: [], available: [] })
+    api.hubGet.mockImplementation(async (url: string) => {
+      if (url === '/api/skills-mgmt') return { items: [{ id: 'alpha', name: 'Alpha', status: 'published', enabled: true, review: { auto_assessed: true } }], total: 1 }
+      if (url === '/api/skills-mgmt/classes') return { groups: [] }
+      if (url.includes('/assess/events')) return { records: [] }
+      if (url.includes('/review/audit')) return { records: [] }
+      if (url.includes('/usage/stats')) return { skills: {}, tools: {}, totals: {} }
+      if (url.includes('/duplicates')) return { ok: true, total: 1, duplicates: [{ other_name: '没有 id 的怪行', jaccard: 0.9 }] }
+      return { ok: true }
+    })
+    api.hubPost.mockImplementation(async () => ({ ok: true, merge_id: 'm-x' }))
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ records: [] }) })))
+    render(<SkillAssetTable />)
+    await screen.findByText('Alpha')
+    fireEvent.click(screen.getByTitle('更多操作：建议 / 版本 / 再定义 / 命令'))
+    fireEvent.click(screen.getByRole('button', { name: /合并重复…/ }))
+    const modal = await screen.findByTestId('merge-duplicates-modal')
+    expect(await within(modal).findByText(/缺少技能 id/)).toBeTruthy()
+    expect(within(modal).queryByRole('button', { name: '合并到本技能' })).toBeNull()
+  })
+});
