@@ -37,7 +37,7 @@ function setup(items: Record<string, unknown>[]) {
     if (url.includes('/assess/events')) return { records: [] }
     if (url.includes('/review/audit')) return { records: [] }
     if (url.includes('/usage/stats')) return { skills: {}, tools: {}, totals: {} }
-    if (url.includes('/duplicates')) return { ok: true, total: 1, duplicates: [{ other_id: 'dup-twin', other_name: '重复双胞胎', jaccard: 0.91, recommend_action: 'merge' }] }
+    if (url.includes('/duplicates')) return { ok: true, total: 1, duplicates: [{ other_id: 'dup-twin', other_name: '重复双胞胎', other_category: '代码与工程', other_description: '把两个技能并成一个时用的说明片段', other_content_chars: 321, jaccard: 0.91, recommend_action: 'merge' }] }
     return { ok: true }
   })
   api.hubPost.mockImplementation(async (url: string) => {
@@ -56,6 +56,11 @@ describe('合并重复技能入口', () => {
     fireEvent.click(screen.getByRole('button', { name: /合并重复…/ }))
     const modal = await screen.findByTestId('merge-duplicates-modal')
     expect(within(modal).getByText('dup-twin')).toBeTruthy()
+    // 合并前要能认出「对方是谁」：名字 + 分类 + 说明片段 + 正文规模
+    expect(within(modal).getByText('重复双胞胎')).toBeTruthy()
+    expect(within(modal).getByText('代码与工程')).toBeTruthy()
+    expect(within(modal).getByText('把两个技能并成一个时用的说明片段')).toBeTruthy()
+    expect(within(modal).getByText(/正文 321 字/)).toBeTruthy()
     fireEvent.click(within(modal).getByRole('button', { name: '合并到本技能' }))
     fireEvent.click(within(modal).getByRole('button', { name: '确认合并' }))
     await waitFor(() => {

@@ -172,6 +172,11 @@ class TestFindDuplicatesFor:
         )
         assert len(duplicates) == 1
         assert duplicates[0]["other_id"] == "o1"
+        # 【2026-10-30】合并前必须能认出「对方是谁」：分类 / 说明片段 / 正文规模都要给前端
+        row = duplicates[0]
+        assert {"other_name", "other_category", "other_description", "other_content_chars"} <= set(row)
+        assert row["other_description"] == (other1.description or "")[:160]
+        assert row["other_content_chars"] == len(other1.content or "")
 
 
 # ═══════════════════════════════════════════════════════════════════
