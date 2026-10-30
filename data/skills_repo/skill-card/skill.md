@@ -14,7 +14,7 @@ status: published
 author: unknown
 source: external_agent
 content_type: markdown
-description_zh: 用于定义智能体的身份、人格、语气、角色边界与适配行为，帮助开发者或智能体设计者打造真实而非通用的助手，并提供可复用的身份模板；在设计或调整助手人设时使用。
+description_zh: 用于定义智能体的身份、人格、语气、角色边界、适应行为及可复用身份模板，让助手更具真实感而非泛化；当需要创建、配置或优化助手人格与身份设定时使用。
 ---
 
 ## Description: <br>
