@@ -585,6 +585,8 @@ export const BROWSER_NAVIGATE = '/api/browser/navigate';
 // 浏览器截图 / 关闭 + 剪贴板（方案 §7 分批接入：browser/screenshot、browser/close、clipboard）
 export const BROWSER_SCREENSHOT = '/api/browser/screenshot';
 export const BROWSER_CLOSE = '/api/browser/close';
+/** Python 沙盒执行（**不是系统 shell**；受 features.sandbox 开关控制，关闭时后端回 503） */
+export const SANDBOX_RUN = '/api/sandbox/run';
 export const CLIPBOARD = '/api/clipboard';
 // 认知闭环（元认知）状态 / 任务接受度裁决（方案 §7 第三批接入）
 export const COGNITIVE_STATUS = '/api/cognitive/status';

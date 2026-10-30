@@ -28,7 +28,8 @@ export type PanelId = (typeof PANEL)[keyof typeof PANEL];
 export const PANEL_TITLES: Record<PanelId, string> = {
   [PANEL.NAV]: '导航',
   [PANEL.CHAT]: '主内容',
-  [PANEL.CODE]: '代码编辑器',
+  // 【2026-10-31】右栏改为可切换右坞（编辑器/文档/子代理/浏览器/终端）；id 不变
+  [PANEL.CODE]: '右栏',
 };
 
 /**

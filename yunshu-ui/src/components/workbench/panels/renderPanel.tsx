@@ -13,15 +13,19 @@ import type { ReactElement } from 'react'
 import { PANEL, type PanelId } from '../../../lib/mosaic'
 import { NavPanel } from './NavPanel'
 import { ContentPanel } from './ContentPanel'
-import { CodeEditorPanel } from './CodeEditorPanel'
+import { DockPanel } from './DockPanel'
 
-/** 渲染指定面板组件（未知/兜底一律回退主内容面板） */
+/**
+ * 【2026-10-31】右栏由"固定代码编辑器"升级为**可切换右坞**（编辑器/文档/子代理/浏览器/终端）。
+ * 面板 id 仍是 `code` ⇒ 已持久化的历史布局无需迁移；默认 Tab 仍是编辑器，
+ * 所以"只想用编辑器"的用户观感不变。
+ */
 export function renderPanel(id: PanelId): ReactElement {
   switch (id) {
     case PANEL.NAV:
       return <NavPanel />
     case PANEL.CODE:
-      return <CodeEditorPanel />
+      return <DockPanel />
     case PANEL.CHAT:
     default:
       return <ContentPanel />
