@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-10-31T01:48:14",
+  "generated_at": "2026-10-31T03:03:13",
   "totals": {
-    "routes": 477,
-    "live": 477,
+    "routes": 479,
+    "live": 479,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 421,
+    "ui": 423,
     "cli_script": 15,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 421,
+      "ui": 423,
       "cli_script": 15,
       "runtime_only": 11,
       "unreferenced": 30
@@ -18,12 +18,12 @@
     "by_intent": {
       "should_be_in_ui": 402,
       "should_not_be_in_ui": 73,
-      "unclassified": 2
+      "unclassified": 4
     },
     "by_domain": {
       "页面入口": 7,
       "分身与主线": 20,
-      "系统与配置": 43,
+      "系统与配置": 45,
       "治理与审批": 42,
       "资产与文件": 19,
       "管理与后台": 18,
@@ -37,7 +37,7 @@
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 425,
+  "frontend_endpoints": 427,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -929,7 +929,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:305"
+        "plugins/system_tools.py:306"
       ],
       "description": "关闭浏览器",
       "description_source": "handler",
@@ -954,7 +954,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:284"
+        "plugins/system_tools.py:285"
       ],
       "description": "浏览器导航到 URL",
       "description_source": "handler",
@@ -979,7 +979,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:296"
+        "plugins/system_tools.py:297"
       ],
       "description": "浏览器截图",
       "description_source": "handler",
@@ -1233,8 +1233,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:383",
-        "plugins/system_tools.py:391"
+        "plugins/system_tools.py:384",
+        "plugins/system_tools.py:392"
       ],
       "description": "读取剪贴板",
       "description_source": "handler",
@@ -3151,7 +3151,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:198"
+        "plugins/system_tools.py:199"
       ],
       "description": "获取文件/目录信息",
       "description_source": "handler",
@@ -3177,7 +3177,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:187"
+        "plugins/system_tools.py:188"
       ],
       "description": "列出目录内容",
       "description_source": "handler",
@@ -3202,7 +3202,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:141"
+        "plugins/system_tools.py:142"
       ],
       "description": "读取本地文件内容",
       "description_source": "handler",
@@ -3227,7 +3227,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:209"
+        "plugins/system_tools.py:210"
       ],
       "description": "搜索文件",
       "description_source": "handler",
@@ -3252,7 +3252,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:165"
+        "plugins/system_tools.py:166"
       ],
       "description": "写入本地文件",
       "description_source": "handler",
@@ -6276,7 +6276,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/system_tools.py:318"
+        "plugins/system_tools.py:319"
       ],
       "description": "列出白名单进程",
       "description_source": "handler",
@@ -6303,7 +6303,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/system_tools.py:354"
+        "plugins/system_tools.py:355"
       ],
       "description": "启动白名单程序",
       "description_source": "handler",
@@ -6330,7 +6330,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/system_tools.py:367"
+        "plugins/system_tools.py:368"
       ],
       "description": "终止进程（仅限白名单）",
       "description_source": "handler",
@@ -6355,7 +6355,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:326"
+        "plugins/system_tools.py:327"
       ],
       "description": "获取进程白名单详情",
       "description_source": "handler",
@@ -6380,7 +6380,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:334"
+        "plugins/system_tools.py:335"
       ],
       "description": "添加自定义白名单条目",
       "description_source": "handler",
@@ -6405,7 +6405,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:344"
+        "plugins/system_tools.py:345"
       ],
       "description": "移除自定义白名单条目",
       "description_source": "handler",
@@ -6868,7 +6868,7 @@
         "scripts/docker_sandbox.ps1"
       ],
       "where": [
-        "plugins/system_tools.py:225"
+        "plugins/system_tools.py:226"
       ],
       "description": "在受限沙盒中执行 Python 代码（受 features.sandbox 开关控制）",
       "description_source": "handler",
@@ -10313,6 +10313,56 @@
       "domain": "调度与任务"
     },
     {
+      "path": "/api/terminal/commands",
+      "norm": "/api/terminal/commands",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:672"
+      ],
+      "description": "列出可执行命令白名单（界面用它渲染按钮，**不接受自由输入**）。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "系统与配置"
+    },
+    {
+      "path": "/api/terminal/exec",
+      "norm": "/api/terminal/exec",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:744"
+      ],
+      "description": "按白名单执行一条命令（`shell=False`，cwd 锁仓库根）。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "系统与配置"
+    },
+    {
       "path": "/api/test/division",
       "norm": "/api/test/division",
       "methods": [
@@ -10967,7 +11017,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:518"
+        "plugins/system_tools.py:519"
       ],
       "description": "数据清洗",
       "description_source": "handler",
@@ -10990,7 +11040,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:469"
+        "plugins/system_tools.py:470"
       ],
       "description": "CSS 选择器提取",
       "description_source": "handler",
@@ -11013,7 +11063,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:541"
+        "plugins/system_tools.py:542"
       ],
       "description": "下载文件",
       "description_source": "handler",
@@ -11036,7 +11086,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:405"
+        "plugins/system_tools.py:406"
       ],
       "description": "HTTP GET 请求",
       "description_source": "handler",
@@ -11059,7 +11109,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:423"
+        "plugins/system_tools.py:424"
       ],
       "description": "HTTP POST 请求",
       "description_source": "handler",
@@ -11084,7 +11134,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:497"
+        "plugins/system_tools.py:498"
       ],
       "description": "搜索互联网",
       "description_source": "handler",
@@ -11109,7 +11159,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:567"
+        "plugins/system_tools.py:568"
       ],
       "description": "获取当前搜索引擎状态和切换日志（用于前端显示）",
       "description_source": "handler",
@@ -11132,7 +11182,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:554"
+        "plugins/system_tools.py:555"
       ],
       "description": "Web 模块统计",
       "description_source": "handler",
@@ -11155,7 +11205,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:442"
+        "plugins/system_tools.py:443"
       ],
       "description": "XPath 提取",
       "description_source": "handler",
@@ -11536,7 +11586,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:61"
+        "plugins/system_tools.py:62"
       ],
       "description": "列出工作区内容",
       "description_source": "handler",
@@ -11561,7 +11611,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:98"
+        "plugins/system_tools.py:99"
       ],
       "description": "删除工作区文件",
       "description_source": "handler",
@@ -11586,7 +11636,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:114"
+        "plugins/system_tools.py:115"
       ],
       "description": "工作区信息",
       "description_source": "handler",
@@ -11611,7 +11661,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:76"
+        "plugins/system_tools.py:77"
       ],
       "description": "写入工作区文件",
       "description_source": "handler",
@@ -12237,5 +12287,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "9d9afb8e4b40d265"
+  "content_hash": "65ff05fafb2a101d"
 }

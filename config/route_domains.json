@@ -109,6 +109,7 @@
         "/api/privacy",
         "/api/search",
         "/api/system-prompt",
+        "/api/terminal",
         "/api/window"
       ]
     },
