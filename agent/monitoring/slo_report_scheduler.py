@@ -1,14 +1,15 @@
-"""§6.7 SLO 指标周报的定时生成与存档（默认关闭）。
+"""§6.7 SLO 指标周报的定时生成与存档（**默认开启**，零 token）。
 
 范式对齐 `skills_mgmt/cleanup_scheduler.py` / `learning_scheduler.py`：
 
-- **开关优先级**：`CP_SLO_SCHEDULE_ENABLED` > `config.yaml slo_report.enabled` > 默认 `false`
+- **开关优先级**：`CP_SLO_SCHEDULE_ENABLED` > `config.yaml slo_report.enabled` > 默认 `true`
 - **注册方式**：注册为 `TaskScheduler` 的 cron 任务（默认**周一 09:00**，可配 day/hour/minute）
 - **每次运行**：
     1) 调用 `scripts/report_slo_weekly.py` 生成 Markdown + JSON
     2) 存档到 `docs/zh/周报存档/slo_weekly_<YYYYMMDD>.md|.json`
     3) 追加审计 `data/slo_report_audit.jsonl`
-- **安全底线**：默认关闭；失败只记录不抛（不阻断主流程）；注册失败同样不阻断
+- **安全底线**：默认开启（纯聚合 + 写存档，**零 token**，无自动化副作用）；
+  失败只记录不抛（不阻断主流程）；注册失败同样不阻断；显式置 false 才停
 
 为什么挂调度而不是手动跑：运营期需要**连续可比**的周报序列；手动跑容易漏周，
 而周报的价值在于"与 W0 基线和上周对比"。挂进云枢自身的调度器，
@@ -97,7 +98,9 @@ def _int_opt(env_key: str, cfg_key: str, default: int,
 
 
 def _enabled() -> bool:
-    return _flag("ENABLED", "enabled", False)
+    # 2026-10-30 Owner：周报是零 token 聚合任务，**默认开启**；
+    # 停用走 CP_SLO_SCHEDULE_ENABLED=false 或 config.yaml slo_report.enabled=false。
+    return _flag("ENABLED", "enabled", True)
 
 
 def _days() -> int:
@@ -218,7 +221,7 @@ def register_slo_report_scheduler(scheduler: Any = None, *,
                                   day_of_week: Optional[int] = None,
                                   hour: Optional[int] = None,
                                   minute: Optional[int] = None) -> Dict[str, Any]:
-    """把周报注册为 TaskScheduler 的 cron 任务（默认关闭，需显式开启）。
+    """把周报注册为 TaskScheduler 的 cron 任务（默认开启，可用配置/环境变量显式关闭）。
 
     Args:
         scheduler: `agent.task_scheduler.TaskScheduler` 实例（app_server 内已有）；
