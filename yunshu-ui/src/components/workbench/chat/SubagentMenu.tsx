@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, ChevronRight, Loader2, Play, RefreshCw, UserPlus, X } from 'lucide-react'
 import { hubGet } from '../../../pages/hub/components/ui'
+import { getEnvelope } from '@/api/envelope'
 import { authHeader } from '../../../lib/apiToken'
 
 import {
@@ -155,19 +156,22 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
     setLoading(true)
     setError('')
     try {
-      const r = await hubGet<{
+      // 【2026-10-30 修】同 SessionAgentMenu：该端点已迁到统一信封（X-Envelope: v2），
+      // 原 hubGet 读顶层 r.subagents 永远 undefined ⇒「暂无活跃分身」是假象；
+      // 而单测桩返回扁平 body，把缺陷盖住了。改用 getEnvelope 显式解析 data。
+      const d = await getEnvelope<{
         ok?: boolean
         subagents?: Subagent[]
         count?: number
         channel?: ChannelInfo
         error?: string
       }>(SUBAGENT_LIST)
-      if (r?.ok === false) {
-        setError(String(r.error ?? '分身列表查询失败'))
+      if (d?.ok === false) {
+        setError(String(d.error ?? '分身列表查询失败'))
         setList([])
       } else {
-        setList(Array.isArray(r?.subagents) ? r.subagents : [])
-        setChannel(r?.channel ?? null)
+        setList(Array.isArray(d?.subagents) ? d.subagents : [])
+        setChannel(d?.channel ?? null)
       }
     } catch (e) {
       // 分身系统未启用（subagent.enabled=False）时接口报错属正常，给出可执行提示
@@ -368,7 +372,9 @@ export function SubagentMenu({ defaultTask = '' }: { defaultTask?: string }) {
           {error && <p className="mb-2 rounded-md border border-rose-900/60 bg-rose-500/10 px-2 py-1 text-rose-300">{error}</p>}
 
           <div className="mb-2 max-h-56 overflow-y-auto">
-            {list.length === 0 && !loading ? (
+            {/* 【2026-10-30】有 error 时不渲染「暂无活跃子代理」：列表拉失败 ≠ 没有分身，
+                两者同时出现正是这次"已创建却提示没有"的误导来源。 */}
+            {list.length === 0 && !loading && !error ? (
               <div className="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-4 text-center text-slate-500">
                 暂无活跃子代理
                 <div className="mt-1 text-[10px] text-slate-600">

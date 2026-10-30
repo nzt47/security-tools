@@ -16,6 +16,8 @@ const { SubagentMenu } = await import('./SubagentMenu')
 interface Route {
   status: number
   body: unknown
+  /** 是否带 X-Envelope 头（默认 true；false = 模拟"端点没迁移信封"的旧响应） */
+  env?: boolean
 }
 
 /** 按 URL 分派的 fetch 桩（记录调用，供断言"打的是哪个端点"） */
@@ -32,10 +34,20 @@ function installFetch(routes: { list?: Route; delegate?: Route; history?: Route 
         ? routes.delegate
         : routes.list
     const r = route ?? { status: 200, body: { ok: true } }
+    // 【2026-10-30】/api/subagent/list 已迁到统一信封（X-Envelope: v2，载荷在 data 里）；
+    // history / delegate 仍是扁平 body。桩必须照真实契约分层，否则又把
+    // "读顶层 r.subagents" 的缺陷盖住（§8 教训）。
+    const isList = url.includes('/api/subagent/list')
+    const wire = isList ? { code: 200, data: r.body } : r.body
+    const envVersion = isList && r.env !== false ? 'v2' : null
     return {
       ok: r.status >= 200 && r.status < 300,
       status: r.status,
-      json: async () => r.body,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'x-envelope' ? envVersion : null),
+      },
+      json: async () => wire,
+      text: async () => JSON.stringify(wire),
     } as unknown as Response
   })
   vi.stubGlobal('fetch', fn)
@@ -179,6 +191,15 @@ describe('SubagentMenu · 真委派', () => {
     // 绝不允许拼出脏 URL（没有目标时曾经会走到的形态）
     expect(calls.some((c) => /\/api\/subagent\/(undefined|null)\/delegate/.test(c.url))).toBe(false)
     await waitFor(() => expect(screen.getByText(/临时分身的产出/)).toBeInTheDocument())
+  })
+
+  it('列表端点缺信封头时上屏错误，而不是静默显示「暂无活跃分身」', async () => {
+    // 2026-10-30 回归：端点已信封化，旧实现读顶层 r.subagents ⇒ 恒定空列表。
+    installFetch({ list: { status: 200, body: { ...LIST_OK.body }, env: false } })
+    render(<SubagentMenu />)
+    fireEvent.click(screen.getByRole('button', { name: /子代理/ }))
+    await waitFor(() => expect(screen.getByText(/子代理列表不可用/)).toBeInTheDocument())
+    expect(screen.queryByText(/暂无活跃子代理/)).not.toBeInTheDocument()
   })
 
   it('没有任务文本时按钮禁用（无内容可委托）', async () => {
