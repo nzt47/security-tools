@@ -18,6 +18,7 @@
     SingletonManager，见 docs/SingletonManager_Migration_Guide.md「例外与说明」）。
 """
 import functools
+import logging
 from flask import Blueprint, request, jsonify
 from .plugin_api import Plugin, register_plugin
 
@@ -589,3 +590,167 @@ PLUGIN = register_plugin(Plugin(
     description="工作区、文件系统、沙箱与系统工具",
     blueprint=bp,
 ))
+
+
+# ════════════════════════════════════════════════════════════
+#  命令执行（**白名单**，不是自由 shell）—— 2026-10-31
+# ════════════════════════════════════════════════════════════
+#
+# 【为什么是白名单而不是真 shell】本仓的必需检查里有 CodeQL，`py/command-line-injection`
+# 对「用户输入 → subprocess」直接判 high；仓内 0 处 `codeql[...]` 抑制先例（§8 陷阱 14
+# 还记过"白名单不算 sanitizer"）。所以这里走**另一条路**：用户只能**选**命令，
+# 参数只允许结构化数值/枚举，argv 由**服务端常量**拼出（`shell=False`、不拼字符串），
+# 用户输入永远不进入"命令名"。
+#
+# 安全边界：
+#   - argv 来自 _TERMINAL_SPECS 常量表；未知 command_id 一律 400；
+#   - cwd 固定为仓库根，调用方不能指定；
+#   - 单次 30s 超时、输出各截断 20KB；
+#   - 每次执行写审计 `terminal.exec`（command_id / exit_code / duration_ms，不记完整输出）。
+
+_TERMINAL_TIMEOUT_SEC = 30
+_TERMINAL_MAX_OUTPUT = 20000
+
+
+def _clamp_int(raw, lo: int, hi: int, default: int) -> int:
+    """把外部传入的参数收敛成 [lo, hi] 内的整数；非法一律回默认。"""
+    try:
+        val = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return default
+    return max(lo, min(hi, val))
+
+
+def _terminal_specs():
+    """命令白名单（id → (label, 说明, 参数说明, argv 构造函数)）。
+
+    构造函数只接收**已收敛**的参数，返回**常量字符串列表**；不要在这里拼用户文本。
+    """
+    import sys as _sys
+
+    return {
+        "git-status": (
+            "git status",
+            "工作区状态（短格式 + 分支）",
+            [],
+            lambda p: ["git", "status", "--short", "--branch"],
+        ),
+        "git-log": (
+            "git log",
+            "最近提交（1–50 条）",
+            [{"name": "n", "type": "int", "min": 1, "max": 50, "default": 10}],
+            lambda p: ["git", "log", "--oneline", "-n",
+                       str(_clamp_int(p.get("n"), 1, 50, 10))],
+        ),
+        "git-diff-stat": (
+            "git diff --stat",
+            "改动统计",
+            [],
+            lambda p: ["git", "diff", "--stat"],
+        ),
+        "python-version": (
+            "python --version",
+            "当前解释器版本",
+            [],
+            lambda p: [_sys.executable, "--version"],
+        ),
+        "pytest-purge": (
+            "pytest 清理脚本用例",
+            "跑 tests/unit/test_purge_future_rows.py（快照用例，约 2s）",
+            [],
+            lambda p: [_sys.executable, "-m", "pytest",
+                       "tests/unit/test_purge_future_rows.py", "-q"],
+        ),
+    }
+
+
+def _terminal_repo_root():
+    from pathlib import Path as _Path
+    return _Path(__file__).resolve().parents[1]
+
+
+@bp.route("/api/terminal/commands")
+@_view(auth=True, log=False)
+def api_terminal_commands():
+    """列出可执行命令白名单（界面用它渲染按钮，**不接受自由输入**）。"""
+    specs = _terminal_specs()
+    items = [
+        {"id": cid, "label": label, "description": desc, "params": params}
+        for cid, (label, desc, params, _builder) in specs.items()
+    ]
+    return jsonify({"ok": True, "commands": items, "shell": False,
+                    "note": "白名单执行：只能选命令，不能自由拼 shell"})
+
+
+def _terminal_run(command_id: str, params) -> dict:
+    """按白名单执行一条命令（纯函数，便于单测；`shell=False`、cwd 锁仓库根）。
+
+    Returns:
+        dict：`ok` 为 False 时带 `error`/`allowed`；成功时带 exit_code / stdout / stderr。
+    """
+    import subprocess
+    import time
+
+    params = params if isinstance(params, dict) else {}
+    specs = _terminal_specs()
+    spec = specs.get(command_id)
+    if spec is None:
+        return {"ok": False, "status": 400,
+                "error": "未知命令（只允许白名单内的 command_id）",
+                "allowed": sorted(specs.keys())}
+
+    label, _desc, _params, builder = spec
+    argv = builder(params)
+    started = time.time()
+    try:
+        proc = subprocess.run(  # noqa: S603 常量 argv + shell=False，不接受自由输入
+            argv, cwd=str(_terminal_repo_root()), capture_output=True,
+            text=True, encoding="utf-8", errors="replace",
+            timeout=_TERMINAL_TIMEOUT_SEC, shell=False,
+        )
+        exit_code = int(proc.returncode)
+        stdout = (proc.stdout or "")[:_TERMINAL_MAX_OUTPUT]
+        stderr = (proc.stderr or "")[:_TERMINAL_MAX_OUTPUT]
+        timed_out = False
+    except subprocess.TimeoutExpired as e:
+        exit_code = -1
+        stdout = ((e.stdout or "") if isinstance(e.stdout, str) else "")[:_TERMINAL_MAX_OUTPUT]
+        stderr = "命令超时（%ds）" % _TERMINAL_TIMEOUT_SEC
+        timed_out = True
+    except Exception as e:  # noqa: BLE001 执行失败不得 500 吞信息
+        _log = logging.getLogger(__name__)
+        _log.warning("[终端] 执行失败 command_id=%s: %s", command_id, e)
+        return {"ok": False, "status": 500,
+                "error": "命令执行失败：%s" % type(e).__name__}
+
+    duration_ms = round((time.time() - started) * 1000, 1)
+    try:
+        from agent.audit.facade import audit as _audit_facade
+        _audit_facade.record("terminal.exec", actor="ops", subject=command_id,
+                             payload={"command_id": command_id,
+                                      "exit_code": exit_code,
+                                      "duration_ms": duration_ms,
+                                      "timed_out": timed_out},
+                             source="agent", status="ok")
+    except Exception as e:  # noqa: BLE001 审计失败不影响命令结果
+        _log = logging.getLogger(__name__)
+        _log.warning("[终端] 审计写入失败: %s", e)
+
+    return {"ok": True, "command_id": command_id, "label": label,
+            "argv": argv, "exit_code": exit_code, "timed_out": timed_out,
+            "stdout": stdout, "stderr": stderr, "duration_ms": duration_ms}
+
+
+@bp.route("/api/terminal/exec", methods=["POST"])
+@_view(auth=True, log=True)
+def api_terminal_exec():
+    """按白名单执行一条命令（`shell=False`，cwd 锁仓库根）。"""
+    data = request.get_json(silent=True) or {}
+    command_id = str(data.get("command_id", "") or "")
+    params = data.get("params") or {}
+    if not isinstance(params, dict):
+        return jsonify({"ok": False, "error": "params 必须是对象"}), 400
+    result = _terminal_run(command_id, params)
+    status = int(result.get("status", 200))
+    result.pop("status", None)
+    return jsonify(result), status
