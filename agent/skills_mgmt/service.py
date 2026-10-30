@@ -11,6 +11,7 @@
 from __future__ import annotations
 import os
 import re
+from datetime import datetime as _dt_cls, timedelta as _td_cls
 from typing import Any, Callable, Dict, List, Optional
 
 from .lineage import (
@@ -37,6 +38,32 @@ from .exceptions import (
     ErrorCode,
 )
 from .observability import logger, traced_action, emit_metric
+
+#: 读侧允许的「未来时差」：超过这个秒数的时间戳视为脏数据（不是时钟漂移，是伪造/测试时间）。
+FUTURE_TS_SKEW_SECONDS = 300
+
+
+def is_future_timestamp(ts: Any) -> bool:
+    """时间戳是否**超前于本机时钟**（超过 FUTURE_TS_SKEW_SECONDS 秒）。
+
+    【为什么必须防御】2026-10-30 实测「动态中心」末尾出现 2027-10-19/20 的记录：
+    `data/skills_assessment_events.jsonl` 里积了 190 条 2027 年的历史污染
+    （skill_id 形如 `s-promote` / `conc-0` / `test-skill`，来自早期未隔离的测试/演练直接写生产台账）。
+    它们按时间倒序永远排在最前，会把「最新动态」钉在未来。
+    写入侧用的是 `datetime.now()`，产生不了未来值 ⇒ 这里只在**读侧**丢弃 + 另有 purge 脚本清存量。
+    """
+    try:
+        raw = str(ts).strip().replace("Z", "+00:00")
+        if not raw:
+            return False
+        dt = _dt_cls.fromisoformat(raw)
+    except (ValueError, TypeError):
+        return False
+    if dt.tzinfo is not None:
+        dt = dt.astimezone().replace(tzinfo=None)
+    return dt > _dt_cls.now() + _td_cls(seconds=FUTURE_TS_SKEW_SECONDS)
+
+
 from .store import SkillStore
 from .creator import SkillCreator
 from .reviewer import SkillReviewer, ReviewThresholds
@@ -1104,7 +1131,7 @@ class SkillsMgmtService:
                             rec = _json.loads(line)
                         except Exception:  # 坏行跳过
                             continue
-                        if isinstance(rec, dict):
+                        if isinstance(rec, dict) and not is_future_timestamp(rec.get("ts", "")):
                             records.append({
                                 "ts": rec.get("ts", ""),
                                 "kind": rec.get("kind", ""),
@@ -1162,6 +1189,8 @@ class SkillsMgmtService:
                                 continue
                             if since and str(rec.get("ts", "")) <= since:
                                 continue
+                            if is_future_timestamp(rec.get("ts", "")):
+                                continue  # 未来时间戳：不推给长轮询（否则会永久卡在最新）
                             recs.append({
                                 "ts": rec.get("ts", ""),
                                 "kind": rec.get("kind", ""),
@@ -1304,6 +1333,8 @@ class SkillsMgmtService:
         if skill_id:
             q = str(skill_id).strip().lower()
             feed = [r for r in feed if q in str(r.get("skill_id", "")).lower()]
+        # 读侧防御：丢掉未来时间戳（存量污染的 2027 记录见 is_future_timestamp 的说明）
+        feed = [r for r in feed if not is_future_timestamp(r.get("ts", ""))]
         feed.sort(key=lambda r: str(r.get("ts", "")), reverse=True)
         return feed[offset: offset + max(1, limit)]
 
