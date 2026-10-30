@@ -1,7 +1,7 @@
 """TASK-S8-06（周报挂调度）单测：SLO 周报定时生成与存档。
 
 覆盖：
-- 默认关闭不注册（安全底线）
+- 默认开启即注册（零 token）；显式关闭才不注册
 - 显式开启后注册为 cron 任务，且 cron 参数正确（周一/时/分）
 - 未传 scheduler 时返回明确原因（不自行创建调度器）
 - run_once 真实落盘（md/json）+ 审计追加
@@ -85,6 +85,19 @@ def test_enabled_by_config_registers(isolate, monkeypatch):
     r = mod.register_slo_report_scheduler(sched)
     assert r["registered"] is True
     assert r["schedule"] == {"day_of_week": 0, "hour": 9, "minute": 0}
+
+
+def test_enabled_by_default_when_no_config(isolate, monkeypatch):
+    """无 env、无配置段 ⇒ **默认注册**（2026-10-30 Owner：周报零 token，默认开）。
+
+    与 `test_disabled_by_config_does_not_register` 配对：默认开、显式 false 才停；
+    注册时必须带 zero_token=True（引擎页四态靠它，缺了会被「零 token 全仓扫描」判红）。
+    """
+    monkeypatch.setattr(mod, "_cfg_section", lambda: {})
+    sched = FakeScheduler()
+    r = mod.register_slo_report_scheduler(sched)
+    assert r["registered"] is True, r
+    assert sched.tasks[0]["zero_token"] is True
 
 
 def test_env_overrides_config_disabled(isolate, monkeypatch):

@@ -2348,8 +2348,9 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
     # ────────────────────────────────────────────────────────
     #  SLO 周报调度 与 成本校准件（2026-09-13）
     # ────────────────────────────────────────────────────────
-    _a("CP_SLO_SCHEDULE_ENABLED", CAT_OBSERVABILITY, False,
-       "SLO 指标周报定时生成开关（每周自动生成并存档到 docs/zh/周报存档/）",
+    _a("CP_SLO_SCHEDULE_ENABLED", CAT_OBSERVABILITY, True,
+       "SLO 指标周报定时生成开关（零 token，**默认开启**；每周自动生成并存档到 "
+       "docs/zh/周报存档/，置 false 可停）",
        owner="agent/monitoring/slo_report_scheduler.py",
        config_path="slo_report.enabled", needs_restart=True),
     _c("CP_SLO_SCHEDULE_OUT_DIR", CAT_OBSERVABILITY, "docs/zh/周报存档",
