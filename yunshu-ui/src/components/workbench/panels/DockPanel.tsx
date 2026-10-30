@@ -314,9 +314,31 @@ function SubagentPane() {
 }
 
 /* ───────────────────────── 浏览器 ───────────────────────── */
+
+/**
+ * 只接受 http(s) 绝对地址，其它一律拒绝（含 `javascript:` / `data:` / `file:`）。
+ *
+ * 【为什么必须显式校验】iframe 的 src 会按 HTML 语义解释，用户输入若带
+ * `javascript:` 就是一段可执行脚本（CodeQL: DOM text reinterpreted as HTML）。
+ * 这里用 `new URL()` 解析后**只回填协议+主机+路径**，等于把输入重新序列化，
+ * 不做字符串拼接。
+ */
+function normalizeHttpUrl(raw: string): string {
+  const text = raw.trim()
+  if (!text) return ''
+  try {
+    const u = new URL(text)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return ''
+    return u.href
+  } catch {
+    return ''
+  }
+}
+
 function BrowserPane() {
   const [url, setUrl] = useState('http://127.0.0.1:5678/')
   const [current, setCurrent] = useState('')
+  const [error, setError] = useState('')
   return (
     <Pane>
       <Hint>
@@ -327,7 +349,13 @@ function BrowserPane() {
         className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1"
         onSubmit={(e) => {
           e.preventDefault()
-          if (url.trim()) setCurrent(url.trim())
+          const next = normalizeHttpUrl(url)
+          if (!next) {
+            setError('只支持 http(s) 地址（javascript:/data:/file: 一律拒绝）')
+            return
+          }
+          setError('')
+          setCurrent(next)
         }}
       >
         <input
@@ -344,6 +372,7 @@ function BrowserPane() {
           打开
         </button>
       </form>
+      {error && <p className="px-3 py-1 text-[10px] text-rose-300">{error}</p>}
       <div className="min-h-0 flex-1">
         {current ? (
           <iframe

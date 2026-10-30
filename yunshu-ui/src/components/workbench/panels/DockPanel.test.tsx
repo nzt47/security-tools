@@ -81,6 +81,16 @@ describe('DockPanel · 右侧可切换边栏', () => {
     await waitFor(() => expect(screen.getByText(/# 文档正文/)).toBeInTheDocument())
   })
 
+  it('浏览器 Tab：拒绝 javascript: 等非 http(s) 地址（不渲染 iframe）', () => {
+    installFetch()
+    render(<DockPanel />)
+    fireEvent.click(screen.getByRole('tab', { name: /浏览器/ }))
+    fireEvent.change(screen.getByLabelText('浏览器地址'), { target: { value: 'javascript:alert(1)' } })
+    fireEvent.click(screen.getByRole('button', { name: '打开' }))
+    expect(screen.getByText(/只支持 http\(s\) 地址/)).toBeInTheDocument()
+    expect(screen.queryByTitle('浏览器')).not.toBeInTheDocument()
+  })
+
   it('终端 Tab：如实显示沙盒 stdout', async () => {
     installFetch()
     render(<DockPanel />)
