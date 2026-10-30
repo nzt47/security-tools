@@ -82,7 +82,7 @@ describe('IngestionPage', () => {
 
   it('首屏显示唯一获取入口与来源方式', async () => {
     setup()
-    expect(screen.getByRole('heading', { name: '吞噬' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '能力获取' })).toBeTruthy()
     expect(screen.getByRole('tab', { name: '本机路径' })).toBeTruthy()
     expect(screen.getByRole('tab', { name: '粘贴文本' })).toBeTruthy()
     await waitFor(() => expect(api.fetchIngestionSources).toHaveBeenCalled())

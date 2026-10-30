@@ -116,11 +116,15 @@ export const HUB_NAV: HubNavItem[] = [
       // 【2026-10-15 IA】「系统自我复制」并入本页第 3 视图「带走 / 自复制」——后端契约本就是
       // /api/subagent/<name>/bundle（按分身打包），与「分身」是同一条主线的两端；独立叶子
       // workshop/replicate 移除 ⇒ 旧深链经 LEGACY_NAV_KEY_MAP 落到本页（禁止双入口）。
-      { key: 'workshop/agents', label: '分身创建与组装', icon: Users, component: WorkshopAgents },
+      // 【2026-10-31 IA 改名】侧栏被截断的「分身创建与组装」→「分身」；页内 5 个视图
+      // （分身 / 组装台 / 带走·自复制 / 主线档案 / 主线×四面）自己会说明分工。key 不变。
+      { key: 'workshop/agents', label: '分身', icon: Users, component: WorkshopAgents },
       // 2026-10-24：吞噬前移到技能中心之前 —— 获取（获取外来能力）在前、管理（技能中心/工作流）在后，
       // 与「单一获取入口」的口径一致：先拿到东西，再谈管理与编排。
       { key: 'prompt-lab', label: '提示词实验室', icon: FlaskConical, component: PromptLab },
-      { key: 'ingestion', label: '吞噬', icon: PackagePlus, component: IngestionPage },
+      // 【2026-10-31 IA 改名】'吞噬' 是内部黑话，用户看不出是"获取外来能力" ⇒ 改「能力获取」；
+      // key 不变 ⇒ 旧深链 `?panel=ingestion` 照旧有效。
+      { key: 'ingestion', label: '能力获取', icon: PackagePlus, component: IngestionPage },
       // 技能中心 = 单一 LLM 表（模型执行）；工作流 = 独立叶子（本地执行 + 可视化编排），
       // 2026-10-24 IA 拆出，避免两类执行模型在同一页用 Tab 混装。
       { key: 'skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
