@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T02:31:23",
+  "generated_at": "2026-10-31T03:03:13",
   "totals": {
     "routes": 479,
     "live": 479,
@@ -23,7 +23,7 @@
     "by_domain": {
       "页面入口": 7,
       "分身与主线": 20,
-      "系统与配置": 43,
+      "系统与配置": 45,
       "治理与审批": 42,
       "资产与文件": 19,
       "管理与后台": 18,
@@ -34,8 +34,7 @@
       "认知与学习": 6,
       "观测与诊断": 74,
       "开发与内部": 14,
-      "记忆与知识": 39,
-      "未归类": 2
+      "记忆与知识": 39
     }
   },
   "frontend_endpoints": 427,
@@ -10336,7 +10335,7 @@
       "intent_area": "",
       "intent_note": "",
       "ui_pending": false,
-      "domain": "未归类"
+      "domain": "系统与配置"
     },
     {
       "path": "/api/terminal/exec",
@@ -10361,7 +10360,7 @@
       "intent_area": "",
       "intent_note": "",
       "ui_pending": false,
-      "domain": "未归类"
+      "domain": "系统与配置"
     },
     {
       "path": "/api/test/division",
@@ -12288,5 +12287,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "b5154d8064410204"
+  "content_hash": "65ff05fafb2a101d"
 }
