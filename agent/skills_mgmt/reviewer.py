@@ -554,6 +554,11 @@ class SkillReviewer:
             results.append({
                 "other_id": other.id,
                 "other_name": other.name,
+                # 【2026-10-30 用户反馈】合并前必须能认出「对方是谁」：补分类/说明片段/正文规模。
+                # 纯增量字段，旧调用方忽略即可。
+                "other_category": str(getattr(other.category, "value", other.category) or ""),
+                "other_description": (str(other.description or "").strip())[:160],
+                "other_content_chars": len(str(other.content or "")),
                 "jaccard": round(sim, 4),
                 "content_hash_match": hash_match,
                 "recommend_action": action,

@@ -112,7 +112,12 @@ interface FeedbackSummary {
 
 interface FeedbackResp { ok?: boolean; error?: string; summary?: FeedbackSummary }
 
-interface DupRow { skill_id?: string; id?: string; name?: string; jaccard?: number; content_type?: string }
+interface DupRow {
+  // 后端字段是 other_id / other_name（2026-10-30 实测：旧代码只认 skill_id/id，取不到就回退成
+  // 合成键 `dup-N`，合并时后端报「技能不存在: dup-9」）
+  other_id?: string; other_name?: string
+  skill_id?: string; id?: string; name?: string; jaccard?: number; content_type?: string
+}
 
 interface DupsResp { ok?: boolean; error?: string; duplicates?: DupRow[]; total?: number }
 
@@ -225,6 +230,7 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
 
   /** 合并到本技能（dst=当前技能）：后端先写两侧快照，返回 merge_id 可撤销 */
   const mergeInto = async (srcId: string) => {
+    if (!srcId) { setErr('缺少源技能 id（接口未返回 other_id）：请点「查重」重试'); return }
     setBusy('merge'); setErr(''); setMergeMsg('')
     try {
       const r = await hubPost<MergeResp>(SKILLS_MGMT_ASSESS_MERGE_SAFE,
@@ -669,12 +675,13 @@ export default function SkillDetailDrawer({ skill, onClose }: { skill: DrawerSki
               )}
               {(dups?.duplicates?.length ?? 0) > 0 && (
                 <div className="flex flex-col gap-1">
-                  {(dups?.duplicates ?? []).map((d, i) => {
-                    const key = d.skill_id || d.id || ('dup-' + i)
+                  {(dups?.duplicates ?? []).map((d) => {
+                    const key = d.other_id || d.skill_id || d.id || ''
+                    const label = d.other_name || d.name || ''
                     return (
                       <div key={key} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                         <span className="font-mono text-cyan-300">{key}</span>
-                        <span className="truncate text-slate-300">{d.name ?? ''}</span>
+                        <span className="truncate text-slate-300">{label}</span>
                         <span className="ml-auto font-mono text-[10px] text-amber-300">
                           {d.jaccard !== undefined ? Number(d.jaccard).toFixed(3) : ''}
                         </span>
