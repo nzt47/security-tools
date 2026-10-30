@@ -12,7 +12,7 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
+  ChevronDown, ChevronRight, Copy, Download, FilePlus, Filter, Folder, Lightbulb, Loader2, Layers, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { CallabilityBadge, hubGet, hubPost } from '../components/ui'
@@ -21,6 +21,7 @@ import GenerateRequirementModal from './generate-requirement-modal'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
 import SkillDetailDrawer from './skill-detail-drawer'
+import MergeDuplicatesModal from './merge-duplicates-modal'
 import InstalledExtensions from '../extensions/installed-extensions'
 import { fetchCapabilityManifest, indexCallability, type CallabilityInfo } from '@/lib/callability'
 import { getEnvelope } from '@/api/envelope'
@@ -175,6 +176,7 @@ export default function SkillAssessManager() {
   const [redraftTarget, setRedraftTarget] = useState<SkillItem | null>(null)
   const [feedOpen, setFeedOpen] = useState(false)
   const [conflictOpen, setConflictOpen] = useState(false)
+  const [mergeTarget, setMergeTarget] = useState<SkillItem | null>(null)
   const [cmdTarget, setCmdTarget] = useState<SkillItem | null>(null)
   /** 详情抽屉的目标（运行 / 脚本 / 参数统计 / 反馈 / 重复 五件事都在抽屉里做） */
   const [detailTarget, setDetailTarget] = useState<SkillItem | null>(null)
@@ -739,6 +741,10 @@ export default function SkillAssessManager() {
                     <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setCmdTarget(it) }} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
                       命令
                     </button>
+                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setMergeTarget(it) }}
+                      title="合并重复技能：把相似的对方并进本技能（先写两侧快照，可凭 merge_id 撤销）；判据是同一触发面只留一个主人">
+                      <Copy size={11} /> 合并重复…
+                    </button>
                     <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); void materializeFileTrack(it) }}
                       disabled={busy !== '' || it.has_file_track === true}
                       title={it.has_file_track === true
@@ -770,7 +776,7 @@ export default function SkillAssessManager() {
       {open && (
         <tr className="bg-slate-950/40">
           <td colSpan={9} className="px-2 pb-2">
-            <ReportPanel item={it} onClose={() => toggleRow(it.id)} />
+            <ReportPanel item={it} onClose={() => toggleRow(it.id)} onMerge={() => setMergeTarget(it)} />
           </td>
         </tr>
       )}
@@ -1009,6 +1015,9 @@ export default function SkillAssessManager() {
             <button type="button" className={BTN} onClick={() => setDescTarget(null)}>关闭</button>
           </div>
         </ModalShell>
+      )}
+      {mergeTarget && (
+        <MergeDuplicatesModal skillId={mergeTarget.id} skillName={mergeTarget.name} onClose={() => setMergeTarget(null)} onDone={() => void load()} />
       )}
       {conflictOpen && (
         <ConflictModal onClose={() => setConflictOpen(false)} onDone={() => void load()} />
@@ -1313,9 +1322,11 @@ function ConflictModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
   )
 }
 // ── 评审-评估报告面板 ──────────────────────────────────────────────
-function ReportPanel({ item, onClose }: { item: SkillItem; onClose: () => void }) {
+function ReportPanel({ item, onClose, onMerge }: { item: SkillItem; onClose: () => void; onMerge?: () => void }) {
   const rv = item.review
   const findings = rv?.findings ?? []
+  // 重复/重叠/交互冲突类发现项 ⇒ 给出「合并重复…」出口（合并语义见 merge-duplicates-modal）
+  const hasDupFinding = findings.some((x) => /^(DUP|OVL|INT_)/i.test(String(x.code || '')))
   // 【2026-10-30 反馈】没有评估记录时，旧实现照样渲染 0 分 + 「未发现评估问题」，
   // 看起来像「报告是空的」。这里改成明确的「尚未评估 + 怎么生成」。
   if (!rv) {
@@ -1350,6 +1361,12 @@ function ReportPanel({ item, onClose }: { item: SkillItem; onClose: () => void }
             : rv?.auto_assessed ? chip('无阻断项', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : null}
           {rv?.summary && <span className="text-[10px] font-normal text-slate-500">{rv.summary}</span>}
         </div>
+        {onMerge && hasDupFinding && (
+          <button type="button" className={BTN} onClick={onMerge} data-testid="report-merge-btn"
+            title="重复/重叠类发现项：把相似的对方并进本技能（先写两侧快照，可凭 merge_id 撤销）">
+            <Copy size={11} /> 合并重复…
+          </button>
+        )}
         <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-300"><X size={13} /></button>
       </div>
       <div className="mb-2 grid max-w-md grid-cols-4 gap-1.5">
