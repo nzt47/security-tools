@@ -243,7 +243,7 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
               <div className="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-3 text-center text-[10.5px] leading-relaxed text-slate-500">
                 暂无活跃分身
                 <div className="mt-1 text-[10px] text-slate-600">
-                  要固定用一个分身，请到「装配车间 → 分身创建与组装」创建后再回来选择。
+                  要固定用一个分身，请到「装配车间 → 分身」创建后再回来选择。
                 </div>
               </div>
             ) : (

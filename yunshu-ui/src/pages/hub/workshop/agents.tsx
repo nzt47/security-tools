@@ -320,7 +320,7 @@ export default function WorkshopAgents({ initialView }: WorkshopAgentsProps) {
       <header className="shrink-0 border-b border-slate-800 bg-slate-900/40 px-5 pt-4">
         <div className="mb-3 flex items-center gap-2">
           <Users size={14} className="text-cyan-400" />
-          <h1 className="text-[15px] font-semibold text-slate-100">分身创建与组装</h1>
+          <h1 className="text-[15px] font-semibold text-slate-100">分身</h1>
           <span className="text-[11px] text-slate-500">{active.hint}</span>
         </div>
 
