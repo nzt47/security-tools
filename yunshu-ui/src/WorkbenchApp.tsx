@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Mosaic, MosaicWindow, ExpandButton, RemoveButton } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
-import { Cloud, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import {
   DEFAULT_LAYOUT,
   PANEL_TITLES,
@@ -209,10 +209,8 @@ export default function WorkbenchApp() {
       {/* 顶栏 */}
       <header className="wb-topbar">
         <div className="flex items-center gap-2.5">
-          <div className="wb-logo-badge">
-            <Cloud size={15} />
-          </div>
-          <span className="wb-brand-title">云枢工作台</span>
+          {/* 2026-10-30：品牌区（logo + 「云枢工作台」字样）按 Owner 要求从导航栏移除，
+              腾出的宽度留给状态胶囊 / 当前导航 / 构建戳。 */}
           <span className="wb-status-pill">
             <span className="wb-pulse-dot" />
             {isElectron() ? '桌面模式' : 'Web 模式'}

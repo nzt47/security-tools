@@ -11,7 +11,7 @@
  * 搜索是这个问题的正面解：输入「审批」直达，无需先知道它在哪一栏下面。
  */
 import { useMemo, useState } from 'react'
-import { ChevronDown, Cloud, Search, X } from 'lucide-react'
+import { ChevronDown, Search, X } from 'lucide-react'
 import { HUB_NAV, filterNav, type HubNavItem } from '../../../workbench/hubNav'
 import { useWorkbenchNav } from '../../../workbench/navStore'
 
@@ -89,18 +89,8 @@ export function NavPanel() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-900/80">
-      {/* 品牌区 */}
-      <div className="flex items-center gap-2 border-b border-slate-800 px-4 pb-3 pt-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-cyan-500 to-blue-600">
-          <Cloud size={15} className="text-white" />
-        </div>
-        <div>
-          <div className="text-[13px] font-semibold text-white">云枢工作台</div>
-          <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-slate-500">
-            Unified Hub
-          </div>
-        </div>
-      </div>
+      {/* 2026-10-30：导航栏品牌区（logo + 「云枢工作台」+ Unified Hub）按 Owner 要求移除，
+          顶部空间让给搜索框；品牌识别由浏览器标签页图标（/static/favicon.svg）承担。 */}
 
       {/* 搜索框（Esc 清空；命中分组时整组保留，命中子项时只留该子项） */}
       <div className="border-b border-slate-800 px-2 py-2">
