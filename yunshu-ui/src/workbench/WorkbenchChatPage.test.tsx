@@ -15,12 +15,23 @@ import WorkbenchChatPage from './WorkbenchChatPage';
 import { useLayoutStore } from '../stores/useLayoutStore';
 import type { Project, SessionGroup, SessionMeta } from '../lib/sessionApi';
 
-function jsonResponse(body: unknown, ok = true, status = 200) {
+/**
+ * 构造 fetch 桩的 Response。
+ *
+ * `envelope=true`：按**真实契约**返回统一信封（`X-Envelope: v2` + `{code,data}`）。
+ * 【2026-10-30】/api/subagent/list 早已信封化；此前桩返回扁平 {ok,subagents}，
+ * 恰好把「组件读顶层 r.subagents」的缺陷盖住（§8：替身照想象写）。
+ */
+function jsonResponse(body: unknown, ok = true, status = 200, envelope = false) {
+  const wire = envelope ? { code: 200, data: body } : body
   return {
     ok,
     status,
-    json: async () => body,
-    text: async () => JSON.stringify(body),
+    headers: {
+      get: (name: string) => (envelope && name.toLowerCase() === 'x-envelope' ? 'v2' : null),
+    },
+    json: async () => wire,
+    text: async () => JSON.stringify(wire),
   } as Response;
 }
 
@@ -161,14 +172,19 @@ function createFetchMock() {
       }
       // 分身列表（本会话智能体选择器）
       if (url === '/api/subagent/list') {
-        return jsonResponse({
-          ok: true,
-          count: 2,
-          subagents: [
-            { name: 'sa-1', model_id: 'deepseek-v4-flash' },
-            { name: 'sa-2', model_id: 'deepseek-v4-pro' },
-          ],
-        });
+        return jsonResponse(
+          {
+            ok: true,
+            count: 2,
+            subagents: [
+              { name: 'sa-1', model_id: 'deepseek-v4-flash' },
+              { name: 'sa-2', model_id: 'deepseek-v4-pro' },
+            ],
+          },
+          true,
+          200,
+          true, // 信封 v2：与服务端一致
+        );
       }
       // 切换当前
       if (url === '/api/sessions/current' && method === 'POST') {

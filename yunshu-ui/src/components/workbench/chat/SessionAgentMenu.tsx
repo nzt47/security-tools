@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Check, ChevronDown, Loader2, RefreshCw, X } from 'lucide-react'
-import { hubGet } from '../../../pages/hub/components/ui'
+import { getEnvelope } from '@/api/envelope'
 import { sessionApi } from '../../../lib/sessionApi'
 import { SUBAGENT_LIST } from '@/api/endpoints'
 
@@ -49,14 +49,21 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
     setLoading(true)
     setError('')
     try {
-      const r = await hubGet<{ ok?: boolean; subagents?: Subagent[]; count?: number; error?: string }>(
-        SUBAGENT_LIST,
-      )
-      if (r?.ok === false) {
-        setError(String(r.error ?? '分身列表查询失败'))
+      // 【2026-10-30 修】该端点已迁到统一信封（X-Envelope: v2，载荷在 data 里），
+      // 原实现用 hubGet 读顶层 r.subagents ⇒ 永远 undefined ⇒ 恒定显示「暂无活跃分身」。
+      // 而单测的 fetch 桩返回的是**扁平** {ok, subagents}，正好把缺陷掩盖了（§8 教训：
+      // 替身照想象写）。改用 getEnvelope（同 workshop/agents.tsx 的解析口径）。
+      const d = await getEnvelope<{
+        ok?: boolean
+        subagents?: Subagent[]
+        count?: number
+        error?: string
+      }>(SUBAGENT_LIST)
+      if (d?.ok === false) {
+        setError(String(d.error ?? '分身列表查询失败'))
         setList([])
       } else {
-        setList(Array.isArray(r?.subagents) ? r.subagents : [])
+        setList(Array.isArray(d?.subagents) ? d.subagents : [])
       }
     } catch (e) {
       // 分身系统未启用（subagent.enabled=False）时接口报错属正常，给出可执行提示
@@ -230,7 +237,9 @@ export function SessionAgentMenu({ sessionId, agent, onChanged }: SessionAgentMe
 
             {loading && list.length === 0 ? (
               <div className="px-2 py-3 text-center text-slate-500">加载分身列表…</div>
-            ) : list.length === 0 ? (
+            ) : list.length === 0 && !error ? (
+              // 【2026-10-30】列表拉失败时不再同时显示「暂无活跃分身」——
+              // 那会把"解析失败"说成"你没有分身"，正是本次误判的根源。
               <div className="rounded-md border border-slate-800 bg-slate-950/60 px-3 py-3 text-center text-[10.5px] leading-relaxed text-slate-500">
                 暂无活跃分身
                 <div className="mt-1 text-[10px] text-slate-600">
