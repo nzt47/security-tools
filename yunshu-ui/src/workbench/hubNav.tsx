@@ -176,7 +176,9 @@ export const HUB_NAV: HubNavItem[] = [
     // 才看得见，而侧栏滚动条只有 6px / 25% 透明度，操作者实测"找不到治理面板"
     // （连带找不到审批收件箱 ⇒ 审批单据挂单后没人能批）。现上移到「全景看板」之后：
     // 治理面板是 P0 操作面（审批/开关/自愈），应当一屏可见。
-    key: 'governance', label: '治理面板', icon: Shield,
+    // 【2026-10-31 IA 第二批】桶名「治理面板」→「治理与运营」：桶里不只有面板，
+    // 还有反馈中心 / 业务看板 / 路由覆盖这些"运营"视角；key 不变 ⇒ 深链照旧。
+    key: 'governance', label: '治理与运营', icon: Shield,
     children: [
       { key: 'governance/pipeline', label: '消化流水线', icon: GitBranch, component: GovernancePanels },
       { key: 'governance/approvals', label: '审批收件箱', icon: ListChecks, component: GovernancePanels },
@@ -194,7 +196,10 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/route-coverage', label: '路由覆盖', icon: Route, component: GovernancePanels },
       { key: 'governance/feedback', label: '反馈中心', icon: MessageSquare, component: FeedbackCenter },
       { key: 'governance/business', label: '业务看板', icon: BarChart3, component: BusinessBoard },
-      { key: 'governance/security', label: '安全与权限', icon: ShieldAlert, component: SecurityPanel },
+      // 【2026-10-31 IA 第二批】「安全与权限」归入「系统管理」桶：权限开关 / 紧急控制 /
+      // 危险关键词 / 隐私是**系统级**配置（与用户、角色、审计同域），不是治理运营视图。
+      // key 仍是 governance/security ⇒ 旧深链 ?panel=governance/security 照旧有效
+      // （derivePanelParams 按 'governance/' 前缀推导 panel，与挂在哪个桶无关）。
     ],
   },
   // 【第三轮 IA】原顶层叶子「资产管理」已并入上面的「记忆与资产」桶；
@@ -215,6 +220,8 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'admin/audit', label: '操作审计', icon: History, component: HubAdminAudit },
       { key: 'admin/notifications', label: '消息中心', icon: Bell, component: HubAdminNotifications },
       { key: 'admin/logs', label: '系统日志', icon: ScrollText, component: HubAdminLogs },
+      // 【2026-10-31 IA 第二批】从「治理与运营」迁入（key 不变，深链不断）。
+      { key: 'governance/security', label: '安全与权限', icon: ShieldAlert, component: SecurityPanel },
     ],
   },
   // 【自动发现】features/<key>/index.tsx（export default + manifest）—— 新功能零清单进导航

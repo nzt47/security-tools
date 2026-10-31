@@ -26,11 +26,11 @@ function searchBox(): HTMLInputElement {
 }
 
 describe('NavPanel 搜索框', () => {
-  it('默认渲染搜索框，且「治理面板 / 审批收件箱」都在首屏侧栏里', () => {
+  it('默认渲染搜索框，且「治理与运营 / 审批收件箱」都在首屏侧栏里', () => {
     render(<NavPanel />)
 
     expect(searchBox()).toBeTruthy()
-    expect(screen.getByText('治理面板')).toBeTruthy()
+    expect(screen.getByText('治理与运营')).toBeTruthy()
     // 顶层分组默认展开（NavGroup 的 depth===0 ⇒ open=true）⇒ 子项本来就在 DOM 里；
     // 真正的障碍是分组原先排在靠底、要滚动才看得见（见 hubNav.search.test.ts 的层级断言）
     expect(screen.getByText('审批收件箱')).toBeTruthy()

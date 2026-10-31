@@ -4,7 +4,7 @@
  * 覆盖三件本次新增的能力，以及一件被修的信息架构缺陷：
  *   1. `filterNav`：侧栏搜索框的唯一实现（含"命中分组整组保留"这条易被改错的规则）
  *   2. `navKeyFromSearch` / `searchForNavKey`：深链的读与写（**必须校验合法性**）
- *   3. 「治理面板」的层级位置：本次上移是为了"滚不到就找不到"这个实测问题不回归
+ *   3. 「治理与运营」（2026-10-31 前叫「治理面板」）的层级位置：本次上移是为了"滚不到就找不到"这个实测问题不回归
  *
  * 【为什么这些是纯函数测试而不是渲染测试】判定逻辑一旦塞进组件就只能靠 DOM 断言，
  * 而"未知 ?panel= 不许写进状态"这类边界用渲染测试很难表达清楚（要造出空白页再断言）。
@@ -19,6 +19,7 @@ import {
   flattenNav,
   LEGACY_NAV_KEY_MAP,
   resolveNavKey,
+  findNavItem,
   type HubNavItem,
 } from './hubNav'
 
@@ -109,7 +110,7 @@ describe('深链：searchForNavKey（写）', () => {
   })
 })
 
-describe('信息架构：「治理面板」必须一屏可达', () => {
+describe('信息架构：「治理与运营」必须一屏可达', () => {
   it('紧跟在「全景看板」之后（本次上移的正面判据）', () => {
     const topKeys = HUB_NAV.map((i) => i.key)
 
@@ -125,7 +126,7 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     expect(topKeys).toEqual(['workspace', 'panorama', 'governance', 'admin'])
   })
 
-  it('「审批收件箱」仍是治理面板下的子项（入口没被搬走）', () => {
+  it('「审批收件箱」仍是治理与运营下的子项（入口没被搬走）', () => {
     const gov = HUB_NAV.find((i) => i.key === 'governance')
     const childKeys = (gov?.children ?? []).map((c) => c.key)
 
@@ -134,7 +135,7 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     expect(childKeys[1]).toBe('governance/approvals')
   })
 
-  it('「路由覆盖」是治理面板的子项（阶段 2 归位，不再是顶层自动发现项）', () => {
+  it('「路由覆盖」是治理与运营的子项（阶段 2 归位，不再是顶层自动发现项）', () => {
     const gov = HUB_NAV.find((i) => i.key === 'governance')
     const childKeys = (gov?.children ?? []).map((c) => c.key)
 
@@ -142,7 +143,7 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     expect(HUB_NAV.map((i) => i.key)).not.toContain('route-coverage')
   })
 
-  it('运行时运维子项（审计导出 / 开关中心）挂在「全景看板」桶；路由覆盖仍在治理面板（2026-10-15 IA）', () => {
+  it('运行时运维子项（审计导出 / 开关中心）挂在「全景看板」桶；路由覆盖仍在治理与运营（2026-10-15 IA）', () => {
     const panoKeys = (HUB_NAV.find((i) => i.key === 'panorama')?.children ?? []).map((c) => c.key)
     expect(panoKeys).toContain('governance/audit')
     expect(panoKeys).toContain('governance/settings')
@@ -151,6 +152,18 @@ describe('信息架构：「治理面板」必须一屏可达', () => {
     expect(govKeys).toContain('governance/route-coverage')
     expect(govKeys).not.toContain('governance/audit')
     expect(govKeys).not.toContain('governance/settings')
+  })
+
+  it('【2026-10-31 IA 第二批】「安全与权限」归入「系统管理」桶；key 不变 ⇒ 深链仍解析', () => {
+    const adminKeys = (HUB_NAV.find((i) => i.key === 'admin')?.children ?? []).map((c) => c.key)
+    expect(adminKeys).toContain('governance/security')
+
+    const govKeys = (HUB_NAV.find((i) => i.key === 'governance')?.children ?? []).map((c) => c.key)
+    expect(govKeys).not.toContain('governance/security')
+
+    // 深链与组件参数都按 key 推导，不认桶 ⇒ 入口照旧可达
+    expect(navKeyFromSearch('?panel=governance%2Fsecurity')).toBe('governance/security')
+    expect(findNavItem('governance/security')?.component).toBeDefined()
   })
 })
 
