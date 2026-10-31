@@ -64,6 +64,17 @@ ACTION_OPERATIONS: Dict[str, str] = {
     "switch_forge": OP_SWITCH_FORGE,             # 熔炉开关（二次认证）
 }
 
+#: 动作的中文名（只用于**给操作者看**的报错文案，不参与鉴权判定）
+_ACTION_LABELS: Dict[str, str] = {
+    "rollback": "回滚",
+    "remove_source": "摘除来源",
+    "switch_forge": "熔炉开关",
+    "circuit_break": "熔断",
+    "degrade": "降级",
+    "trace_diff": "溯源 Diff",
+}
+
+
 #: 需要 reason 的动作（与 §7.0 矩阵 requires_reason 同源，缺时由矩阵兜底拒绝）
 ACTIONS_REQUIRING_REASON = ("remove_source", "rollback")
 
@@ -531,6 +542,17 @@ def _do_action(action: str) -> Any:
         return _error("unknown_action",
                       f"未登记的动作（fail-closed）：{action}", 400,
                       known=sorted(ACTION_OPERATIONS) + list(NEVER_AUTOMATED_ACTIONS))
+
+    # ── 2.5 需要 reason 的动作：在矩阵之前用**动作名**给出准确提示 ──
+    # 【2026-11-01】rollback 与 remove_source 共用矩阵操作 OP_REMOVE_SOURCE，
+    # 矩阵的拒绝文案只会说「governance.remove_source 必须提供 reason」——
+    # 用户点的是「回滚」，看到的是另一个动作名，像 bug。这里按动作名先说清楚。
+    if key in ACTIONS_REQUIRING_REASON and not reason.strip():
+        return _error(
+            "reason_required",
+            "%s 必须先填写 reason（不可逆动作，审计要求）" % _ACTION_LABELS.get(key, key),
+            403,
+        )
 
     # ── 3. 矩阵鉴权（§7.0 单表）──
     risk = str(body.get("risk", "") or "")
