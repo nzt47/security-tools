@@ -184,6 +184,14 @@ export default function PanoramaMonitor() {
       />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
 
+      {/* 【2026-11-01】读图须知：三个服务节点同源，避免把"一个低分"看成"三处故障" */}
+      <div className="mb-3 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2 text-[11px] text-slate-400">
+        <span className="text-slate-300">读图提示：</span>
+        服务层的「Web 主服务」「API 网关」与运维层的「健康系统」都取<strong className="text-slate-200">同一个</strong>五层探针分数
+        （<code className="text-cyan-300">get_probe_overview</code>），所以一条低分会在这三处同时变黄 ——
+        这不是三个独立故障；看「健康仪表盘」里的分层明细（L1 内存 / L5 反馈）才知道是哪一层拖的。
+      </div>
+
       {loading ? <Loading /> : (
         <>
           {/* ── 摘要：模块状态 + 健康检查（与下方明细共用同一份数据）── */}
