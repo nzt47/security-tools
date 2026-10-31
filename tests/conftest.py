@@ -40,6 +40,85 @@ os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 os.environ.setdefault("OMP_NUM_THREADS", "4")
 os.environ.setdefault("MKL_NUM_THREADS", "4")
 
+# ── sysconfig / tracemalloc 的单线程预热（2026-10-31，修 shard 连坐假红）──
+# 现象：CI 分片里整片无关用例失败，junit 里每条都是
+#   AttributeError: 'userbase'（coverage 内部 sysconfig.get_paths() → _subst_vars）；
+#   pytest 最终 INTERNALERROR（xdist worker 崩）。
+# 根因（WSL 3.12 已复现）：Linux 上只要 sysconfig 的**首次**初始化落在某个把
+#   os.name 打成 'nt' 的用例窗口里，_init_config_vars 会走 _init_non_posix 并访问
+#   sys._vpath（Linux 没有）⇒ AttributeError，留下**缺 userbase 的半成品**；此后
+#   get_config_vars() 看到 _CONFIG_VARS 非 None 就不再初始化 ⇒ 整个进程的 coverage
+#   每次 should_trace 都抛同一个错。测试里 patch(os.name) 的用例有 30+ 处，
+#   第一次 sysconfig 初始化被 coverage 拖到某个 patch 窗口内就会中招。
+# 修法：conftest 导入期**单线程**先初始化（约 1ms），并预导入 tracemalloc（让 pytest
+#   warnings/unraisable 钩子里的 import 变 no-op）。pytest_configure 里另有一层自愈，
+#   覆盖“初始化发生得比导入期还晚”的窗口。
+try:
+    import sysconfig as _sysconfig
+
+    _sysconfig.get_config_vars()
+    for _scheme in ("posix_user", "nt_user", "posix_prefix"):
+        try:
+            _sysconfig.get_paths(_scheme)
+        except (KeyError, AttributeError):  # 该平台没有这个 scheme：正常
+            pass
+except Exception:  # noqa: BLE001 预热失败不应影响测试收集
+    pass
+
+try:
+    import tracemalloc as _tracemalloc  # noqa: F401  预导入见上
+except Exception:  # noqa: BLE001
+    pass
+
+def _ensure_sysconfig_guard() -> None:
+    """sysconfig 兜底：保证 userbase 一定可用（2026-10-31，见上方预热注释）。
+
+    两层保护：① 测试开跑前补键并显式标记已初始化；② 给 sysconfig.get_paths 套一层
+    只在 userbase 缺失时触发的自愈（覆盖“首次初始化发生得比本钩子还晚”的窗口）。
+
+    【为什么不是 pytest_configure】本文件**后面还有一个** pytest_configure（line ~693），
+    Python 里同名函数后者覆盖前者 ⇒ 第一个永远不会被 pytest 调起。故这里定义为唯一命名的
+    普通函数，由那个真正的 pytest_configure 调用。
+    """
+    try:
+        import sysconfig as _sc
+
+        def _repair() -> bool:
+            try:
+                vars_ = _sc.get_config_vars()
+            except Exception:  # noqa: BLE001 初始化已坏：退回模块字典
+                vars_ = getattr(_sc, "_CONFIG_VARS", None)
+            if not isinstance(vars_, dict):
+                return False
+            if "userbase" in vars_:
+                return True
+            try:
+                base = _sc._getuserbase()
+            except Exception:  # noqa: BLE001
+                base = None
+            vars_["userbase"] = base or os.path.expanduser("~")
+            _sc._CONFIG_VARS_INITIALIZED = True
+            return True
+
+        _repair()
+        if not getattr(_sc.get_paths, "_yunshu_guarded", False):
+            _orig = _sc.get_paths
+
+            def _guarded(*args, **kwargs):
+                try:
+                    return _orig(*args, **kwargs)
+                except AttributeError as exc:
+                    if 'userbase' not in str(exc):
+                        raise
+                    if not _repair():
+                        raise
+                    return _orig(*args, **kwargs)
+
+            _guarded._yunshu_guarded = True  # type: ignore[attr-defined]
+            _sc.get_paths = _guarded
+    except Exception:  # noqa: BLE001 兜底失败不应影响测试
+        pass
+
 # ════════════════════════════════════════════════════════════
 #  【TESTHYG-1 · 2026-09-26】`.env` 重定向的**会话级地板**（必须早于任何夹具）
 # ════════════════════════════════════════════════════════════
@@ -617,6 +696,9 @@ TEST_CONFIG = {
 
 def pytest_configure(config):
     """pytest配置初始化"""
+    # sysconfig 兜底（userbase 半成品自愈；见文件顶部 2026-10-31 注释）
+    _ensure_sysconfig_guard()
+
     # 注册自定义标记
     config.addinivalue_line(
         "markers", "p0: P0优先级测试用例，必须通过"
