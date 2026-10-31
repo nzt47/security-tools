@@ -252,7 +252,9 @@ def register_routes(app, state):
         """
         data = request.get_json(silent=True) or {}
 
-        def _flag(key: str, default: bool) -> bool:
+        # 注意：helper 名不能叫 _flag/_env_* —— scripts/scan_settings.py 会把它当成
+        # 「读环境开关」的辅助函数，把 "execute"/"fix_baselines" 误报成未注册开关。
+        def _as_bool(key: str, default: bool) -> bool:
             v = data.get(key, default)
             if isinstance(v, str):
                 return v.strip().lower() not in ("0", "false", "no", "")
@@ -260,8 +262,8 @@ def register_routes(app, state):
 
         try:
             from scripts.intake_skill import intake_one
-            rep = intake_one(skill_id, execute=_flag("execute", False),
-                             fix_baselines=_flag("fix_baselines", True))
+            rep = intake_one(skill_id, execute=_as_bool("execute", False),
+                             fix_baselines=_as_bool("fix_baselines", True))
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
         if not rep.get("ok"):
