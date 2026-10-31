@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from agent.browser_remote import (  # noqa: E402
+    _browser_allowlist_hit,
     MAX_SCROLL_PX,
     MAX_TEXT_CHARS,
     MAX_VIEWPORT,
@@ -34,7 +35,8 @@ class TestCheckTarget:
             ok, reason = check_target(bad)
             assert ok is False and reason, bad
 
-    def test_loopback_rejected(self):
+    def test_loopback_rejected(self, monkeypatch):
+        monkeypatch.delenv("CP_BROWSER_REMOTE_ALLOW_HOSTS", raising=False)
         ok, _reason = check_target("http://127.0.0.1:5678/")
         assert ok is False
 
@@ -99,3 +101,26 @@ class TestSessionState:
     def test_close_without_session_is_idempotent(self):
         svc = BrowserRemote()
         assert svc.close() == {"ok": True, "closed": False}
+
+class TestBrowserAllowlist:
+    """浏览器专用内网白名单（CP_BROWSER_REMOTE_ALLOW_HOSTS）：只管浏览器，不改全局 SSRF。"""
+
+    def test_loopback_allowed_when_whitelisted(self, monkeypatch):
+        monkeypatch.setenv("CP_BROWSER_REMOTE_ALLOW_HOSTS", "127.0.0.1")
+        ok, _reason = check_target("http://127.0.0.1:5678/")
+        assert ok is True
+
+    def test_cidr_matches_private_network(self, monkeypatch):
+        monkeypatch.setenv("CP_BROWSER_REMOTE_ALLOW_HOSTS", "192.168.0.0/16")
+        assert _browser_allowlist_hit("http://192.168.31.5:8080/") is True
+        assert _browser_allowlist_hit("http://10.0.0.1/") is False
+
+    def test_wildcard_suffix_matches(self, monkeypatch):
+        monkeypatch.setenv("CP_BROWSER_REMOTE_ALLOW_HOSTS", "*.corp.example")
+        assert _browser_allowlist_hit("http://wiki.corp.example/a") is True
+        assert _browser_allowlist_hit("http://corp.example/a") is False
+
+    def test_default_denies_without_whitelist(self, monkeypatch):
+        monkeypatch.delenv("CP_BROWSER_REMOTE_ALLOW_HOSTS", raising=False)
+        ok, _reason = check_target("http://127.0.0.1:5678/")
+        assert ok is False
