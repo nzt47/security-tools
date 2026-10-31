@@ -543,17 +543,6 @@ def _do_action(action: str) -> Any:
                       f"未登记的动作（fail-closed）：{action}", 400,
                       known=sorted(ACTION_OPERATIONS) + list(NEVER_AUTOMATED_ACTIONS))
 
-    # ── 2.5 需要 reason 的动作：在矩阵之前用**动作名**给出准确提示 ──
-    # 【2026-11-01】rollback 与 remove_source 共用矩阵操作 OP_REMOVE_SOURCE，
-    # 矩阵的拒绝文案只会说「governance.remove_source 必须提供 reason」——
-    # 用户点的是「回滚」，看到的是另一个动作名，像 bug。这里按动作名先说清楚。
-    if key in ACTIONS_REQUIRING_REASON and not reason.strip():
-        return _error(
-            "reason_required",
-            "%s 必须先填写 reason（不可逆动作，审计要求）" % _ACTION_LABELS.get(key, key),
-            403,
-        )
-
     # ── 3. 矩阵鉴权（§7.0 单表）──
     risk = str(body.get("risk", "") or "")
     decision, err = _authorize(
@@ -561,6 +550,17 @@ def _do_action(action: str) -> Any:
         reason=reason, risk=risk,
         second_factor_ok=bool(second_factor))
     if err:
+        # 【2026-11-01】rollback 与 remove_source 共用矩阵操作 OP_REMOVE_SOURCE，
+        # 矩阵文案只会说「governance.remove_source 必须提供 reason」——用户点的是
+        # 「回滚」，看到另一个动作名像 bug。这里**保留矩阵判定字段**（decision 必须回），
+        # 只按动作名把文案换准确。
+        if key in ACTIONS_REQUIRING_REASON and not reason.strip():
+            return _error(
+                "reason_required",
+                "%s 必须先填写 reason（不可逆动作，审计要求）" % _ACTION_LABELS.get(key, key),
+                403,
+                decision=_public_decision(decision),
+            )
         return err
 
     # ── 4. 执行 ──
