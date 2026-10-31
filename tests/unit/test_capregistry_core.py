@@ -168,9 +168,9 @@ class TestQuery:
         # （此前只在运行时台账里，仓库可复现口径因此少算 8 条）。
         # 【2026-10-31】133/42 → 135/44、local 112 → 114：autoresearch / pdf 入文件轨
         # （§11.32 C · N5；两条技能此前只在本机运行期，干净检出看不到）。
-        assert st["total"] == 135, f"能力总数应为 135，实际 {st['total']}"
-        assert st["by_kind"] == {"skill": 44, "tool": 91}
-        assert st["by_location"] == {"local": 114, "remote": 21}
+        assert st["total"] == 136, f"能力总数应为 136，实际 {st['total']}"
+        assert st["by_kind"] == {"skill": 45, "tool": 91}
+        assert st["by_location"] == {"local": 115, "remote": 21}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -186,7 +186,7 @@ class TestQuery:
         # 【2026-10-24】36 → 35：query 默认 enabled_only=True，gstack 以 enabled=false
         # 回到文件轨后被排除（stats 里仍是 36，两者口径不同，见下一条用例注释）
         # 【2026-10-31】41 -> 43：autoresearch / pdf 入文件轨（enabled_only 口径同 stats-1）
-        assert len(tools) == 91 and len(skills) == 43
+        assert len(tools) == 91 and len(skills) == 44
         remote = real_registry.query(location="remote")
         assert len(remote) == 21
 
@@ -200,7 +200,7 @@ class TestQuery:
     @_SKIP_COMMITTED_BASELINE
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
-        assert idx["primary"] == 135  # 【2026-10-31】+2：autoresearch / pdf 入文件轨
+        assert idx["primary"] == 136  # 【2026-10-31】+2：autoresearch / pdf 入文件轨
         assert idx["facet"] >= 1
 
 
@@ -248,7 +248,7 @@ class TestModelCapabilityProbe:
         # 【2026-10-24】envelope 走 query(enabled_only=True) ⇒ 126（不含 gstack）；
         # stats().total 是 127 —— 两个数含义不同，别混
         # 【2026-10-31】132 -> 134：+2 技能（envelope 仍排除 gstack，故比 stats 少 1）
-        assert env["data"]["returned"] == env["data"]["total"] == 134
+        assert env["data"]["returned"] == env["data"]["total"] == 135
         assert env["data"]["model_capability"]["supports_tool_calling"] is True
 
     @pytest.mark.parametrize("sentinel", ["none", "off", "-", "no-tools"])
@@ -260,7 +260,7 @@ class TestModelCapabilityProbe:
         assert env["data"]["items"] == []
         # **total 仍然如实报告**：裁剪的是"给这个模型看的清单"，
         # 不是"注册表里有多少能力"。两个数含义不同，不许混。
-        assert env["data"]["total"] == 134  # 【2026-10-31】+2：autoresearch / pdf 入文件轨
+        assert env["data"]["total"] == 135  # 【2026-10-31】+2：autoresearch / pdf 入文件轨
 
     def test_不支持前缀被识别(self):
         ok, why = modelcaps.supports_tool_calling("text-davinci-003")

@@ -217,6 +217,60 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    # ═══════════════════════════════════════════════════════
+    #  入轨（文件轨 → git）：界面「入轨助手」用，2026-10-31
+    # ═══════════════════════════════════════════════════════
+    #  【为什么要它】§11.32 C · N5 实测：技能文件写进 data/skills_repo 只是"本机可用"，
+    #  要进仓库还得 git add + 干净 worktree 重派生 + 刷新能力面基线 —— 全是命令行步骤，
+    #  UI 里没有入口，新人不知道有这一步（本机 47 条 vs CI 44 条的漂移就是这么来的）。
+    @app.route("/api/skills-mgmt/intake/status", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_intake_status():
+        """文件轨里每条技能：是否已提交进 git（tracked）+ 形状告警。只读。"""
+        try:
+            from scripts.intake_skill import pending_report
+            items = pending_report()
+            return jsonify({"ok": True, "items": items,
+                            "pending": [i["skill_id"] for i in items if not i["tracked"]]})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/intake", methods=["POST"])
+    @audit_action("skill.intake", subject_arg="skill_id")
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_intake(skill_id: str):
+        """把一条**已有文件轨**的技能入轨：git add + 干净 worktree 重派生 + 可选刷基线。
+
+        Body: {execute?: false, fix_baselines?: true} —— 默认干跑。
+        边界：**不 commit / 不 push / 不建 PR**（那一步永远留给人 review），
+        只把工作区与派生物准备好，并把下一步命令回给界面。
+        不建文件轨的技能（global-core-principles / skill）在这里同样被校验拦下。
+        """
+        data = request.get_json(silent=True) or {}
+
+        # 注意：helper 名不能叫 _flag/_env_* —— scripts/scan_settings.py 会把它当成
+        # 「读环境开关」的辅助函数，把 "execute"/"fix_baselines" 误报成未注册开关。
+        def _as_bool(key: str, default: bool) -> bool:
+            v = data.get(key, default)
+            if isinstance(v, str):
+                return v.strip().lower() not in ("0", "false", "no", "")
+            return bool(v)
+
+        try:
+            from scripts.intake_skill import intake_one
+            rep = intake_one(skill_id, execute=_as_bool("execute", False),
+                             fix_baselines=_as_bool("fix_baselines", True))
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+        if not rep.get("ok"):
+            code = 409 if rep.get("stage") == "validate" else 400
+            return jsonify(rep), code
+        return jsonify(rep)
+
     @app.route("/api/skills-mgmt/backfill", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token

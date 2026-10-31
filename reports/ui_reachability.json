@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-10-30T13:37:13",
+  "generated_at": "2026-11-01T00:10:08",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 283,
-    "reachable_modules": 267,
-    "page_files": 110
+    "source_modules": 285,
+    "reachable_modules": 269,
+    "page_files": 111
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "63159d33ed9d3816",
+  "content_hash": "9d68f38cecbea407",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -52,6 +52,7 @@
     "yunshu-ui/src/pages/hub/memory/KnowledgeAddPanel.tsx",
     "yunshu-ui/src/pages/hub/memory/MemoryImportPanel.tsx",
     "yunshu-ui/src/pages/hub/memory/SkillAssetTable.tsx",
+    "yunshu-ui/src/pages/hub/memory/SkillIntakeDialog.tsx",
     "yunshu-ui/src/pages/hub/memory/api-token-prompt.tsx",
     "yunshu-ui/src/pages/hub/memory/class-icon.tsx",
     "yunshu-ui/src/pages/hub/memory/generate-requirement-modal.tsx",

@@ -273,6 +273,90 @@ def rewrite_baselines(numbers: Dict[str, int], *, execute: bool,
     return changes
 
 
+# ════════════════════════════════════════════════════════════
+#  程序化入口（REST `/api/skills-mgmt/intake/status|intake` 用同一份实现）
+# ════════════════════════════════════════════════════════════
+
+def tracked_skill_ids() -> set:
+    """已提交进 git 的技能目录名（一次 `git ls-files`，argv 固定）。"""
+    proc = _run(["git", "ls-files", "--", "data/skills_repo"], ROOT)
+    ids = set()
+    if proc.returncode != 0:
+        return ids
+    for line in (proc.stdout or "").splitlines():
+        parts = line.strip().replace("\\", "/").split("/")
+        if len(parts) >= 3 and parts[0] == "data" and parts[1] == "skills_repo":
+            ids.add(parts[2])
+    return ids
+
+
+def pending_report() -> List[Dict[str, object]]:
+    """文件轨里的每条技能 + 是否已入轨 + 形状告警（给界面「入轨助手」列表用）。"""
+    if not SKILLS_REPO.is_dir():
+        return []
+    tracked = tracked_skill_ids()
+    out: List[Dict[str, object]] = []
+    for child in sorted(SKILLS_REPO.iterdir(), key=lambda p: p.name):
+        if not child.is_dir() or child.name.startswith("."):
+            continue
+        if not (child / "skill.md").is_file():
+            continue
+        info = check_skill(child)
+        out.append({
+            "skill_id": child.name,
+            "tracked": child.name in tracked,
+            "errors": list(info.get("errors") or []),
+            "warnings": list(info.get("warnings") or []),
+        })
+    return out
+
+
+def intake_one(skill_id: str, *, execute: bool = False,
+               fix_baselines: bool = False) -> Dict[str, object]:
+    """单技能入轨（界面按钮与 CLI 共用）：校验 → git add → 干净 worktree 派生 → 基线。
+
+    返回结构化报告（不 print）：`ok` / `stage` / `warnings` / `derived_changed` /
+    `baseline_changes` / `numbers`。**不做 commit/push** —— 那一步永远留给人。
+    """
+    if not _ID_RE.match(skill_id or ""):
+        return {"ok": False, "stage": "validate", "error": "非法技能 id"}
+    skill_dir = resolve_skill_dir(skill_id)
+    if skill_dir is None:
+        return {"ok": False, "stage": "validate", "error": "文件轨目录不存在"}
+    info = check_skill(skill_dir)
+    if info.get("errors"):
+        return {"ok": False, "stage": "validate", "skill_id": skill_id,
+                "errors": list(info["errors"]), "warnings": list(info.get("warnings") or [])}
+
+    tracked = is_tracked(skill_dir)
+    report: Dict[str, object] = {
+        "ok": True, "skill_id": skill_id, "tracked_before": tracked,
+        "warnings": list(info.get("warnings") or []), "mode": "execute" if execute else "dry-run",
+    }
+    if not execute:
+        return report
+
+    if not tracked:
+        ok, err = stage_skill(skill_dir)
+        if not ok:
+            return {"ok": False, "stage": "git-add", "skill_id": skill_id, "error": err}
+    derived = derive_manifest([skill_dir])
+    if not derived.get("ok"):
+        return {"ok": False, "stage": "derive", "skill_id": skill_id,
+                "error": str(derived.get("error"))}
+    numbers = compute_baselines(collect_manifest())
+    report["derived_changed"] = list(derived.get("changed") or [])
+    report["numbers"] = numbers
+    if fix_baselines:
+        report["baseline_changes"] = rewrite_baselines(numbers, execute=True)
+    report["next_steps"] = [
+        "python scripts/validate_skill_md.py && python scripts/check_skills_dual_track.py",
+        "git diff --stat && git commit -F <msg> && git push && gh pr create --base master",
+    ]
+    return report
+
+
+
 def collect_manifest() -> Dict[str, object]:
     return json.loads((ROOT / MANIFEST_REL).read_text(encoding="utf-8"))
 

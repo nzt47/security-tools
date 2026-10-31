@@ -1,9 +1,10 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-31T20:37:11",
+  "generated_at": "2026-10-31T23:48:47",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
+    "skill",
     "wf-f19dc52c-skill"
   ],
   "runtime_only_note": "以下技能在 data/skill_callability.yaml 里有声明，但仓库里没有 skill.md 实体（只在运行时目录/台账里）⇒ 不在本清单口径内，界面按「无徽章」静默退化",
@@ -205,6 +206,11 @@
       "why": "只在运行时技能目录/台账里有声明，仓库里无 data/skills_repo/<id>/skill.md 实体"
     },
     {
+      "name": "skill",
+      "entity_versioned": false,
+      "why": "只在运行时技能目录/台账里有声明，仓库里无 data/skills_repo/<id>/skill.md 实体"
+    },
+    {
       "name": "wf-f19dc52c-skill",
       "entity_versioned": false,
       "why": "只在运行时技能目录/台账里有声明，仓库里无 data/skills_repo/<id>/skill.md 实体"
@@ -367,25 +373,25 @@
   },
   "performance_note": "性能列（avg_ms / p99_ms / dpm）**一律未采集**：仓库现有实测只有一次 HTTP 压测（p50=15.84s），且进程内计时冒充压测的产物已确认不可引用（见 TASK-00 §0.2b）。清单**不提供估算值**；采集方案与 TASK-08 对接。",
   "counts": {
-    "total": 135,
+    "total": 136,
     "callable": 70,
-    "conditional": 63,
+    "conditional": 64,
     "blocked": 2,
     "model_callable": 89,
     "by_trigger": {
       "model": 89,
-      "system": 44,
+      "system": 45,
       "human": 0,
       "none": 2
     },
     "by_type": {
       "tool": 91,
-      "skill": 44,
+      "skill": 45,
       "api": 0,
       "script": 0
     },
     "by_permission_level": {
-      "public": 77,
+      "public": 78,
       "internal": 37,
       "restricted": 21
     },
@@ -394,8 +400,8 @@
       "纯提示词技能": 1
     },
     "conditional_reasons": {
-      "无 JSON Schema": 43,
-      "纯提示词技能": 38,
+      "无 JSON Schema": 44,
+      "纯提示词技能": 39,
       "指令型技能": 5,
       "内部执行体": 1,
       "带脚本技能": 1,
@@ -403,45 +409,45 @@
     },
     "by_kind": {
       "tool": 91,
-      "skill": 44
+      "skill": 45
     },
     "by_location": {
-      "local": 114,
+      "local": 115,
       "remote": 21
     },
     "by_location_source": {
       "declaration": 91,
-      "skill_chain": 44
+      "skill_chain": 45
     },
     "by_location_derived_source": {
       "executor_boundary": 91,
-      "skill_chain": 44
+      "skill_chain": 45
     },
     "by_isolation_level": {
       "none": 0,
-      "process": 135,
+      "process": 136,
       "container": 0
     },
     "by_owner": {
-      "builtin": 135,
+      "builtin": 136,
       "local-installed": 0,
       "tenant-installed": 0,
       "marketplace": 0
     },
     "by_registry_source": {
-      "global": 135,
+      "global": 136,
       "planning": 0
     },
     "by_main_line_status": {
       "not_assembled": 54,
-      "n/a": 44,
+      "n/a": 45,
       "visible": 26,
       "denied_by_effect": 8,
       "muted": 3
     },
     "location_confidence": {
       "low": 71,
-      "high": 64
+      "high": 65
     },
     "declared_location_mismatch": 0
   },
@@ -11582,6 +11588,75 @@
       "has_scripts": false,
       "skill_status": "approved",
       "description": "Compact the current conversation into a handoff document for another agent to pick up.",
+      "main_line_status": "n/a"
+    },
+    {
+      "tool_name": "humanizer-zh",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "public",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用；无 JSON Schema（缺参数契约，模型无法按 schema 填参）",
+      "capability_id": "default:yunshu:humanizer-zh@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": false,
+      "entity_versioned": true,
+      "mark": "⚠️ 条件可调用",
+      "reachable": true,
+      "trigger": "system",
+      "reason_kind": "not_model_initiated",
+      "blockers": [],
+      "blocker_codes": [],
+      "soft_blockers": [
+        "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "public",
+      "declared_in": "data/skills_repo/humanizer-zh/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": true,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "approved",
+      "description": "去除文本中的 AI 生成痕迹。适用于编辑或审阅文本，使其听起来更自然、更像人类书写。\n基于维基百科的\"AI 写作特征\"综合指南。检测并修复以下模式：夸大的象征意义、\n宣传性语言、以 -ing 结尾的肤浅分析、模糊的归因、破折号过度使用、三段式法则、\nAI 词汇、否定式排比、过多的连接性短语。",
       "main_line_status": "n/a"
     },
     {
@@ -24719,6 +24794,75 @@
       "has_scripts": false,
       "skill_status": "approved",
       "description": "Compact the current conversation into a handoff document for another agent to pick up.",
+      "main_line_status": "n/a"
+    },
+    {
+      "tool_name": "humanizer-zh",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "public",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用；无 JSON Schema（缺参数契约，模型无法按 schema 填参）",
+      "capability_id": "default:yunshu:humanizer-zh@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": false,
+      "entity_versioned": true,
+      "mark": "⚠️ 条件可调用",
+      "reachable": true,
+      "trigger": "system",
+      "reason_kind": "not_model_initiated",
+      "blockers": [],
+      "blocker_codes": [],
+      "soft_blockers": [
+        "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "public",
+      "declared_in": "data/skills_repo/humanizer-zh/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": true,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "approved",
+      "description": "去除文本中的 AI 生成痕迹。适用于编辑或审阅文本，使其听起来更自然、更像人类书写。\n基于维基百科的\"AI 写作特征\"综合指南。检测并修复以下模式：夸大的象征意义、\n宣传性语言、以 -ing 结尾的肤浅分析、模糊的归因、破折号过度使用、三段式法则、\nAI 词汇、否定式排比、过多的连接性短语。",
       "main_line_status": "n/a"
     },
     {
