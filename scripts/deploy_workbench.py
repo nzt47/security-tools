@@ -61,6 +61,8 @@ DEFAULT_REF = "origin/master"
 DEFAULT_PORT = 5678
 DEFAULT_HEALTH_URL = "http://127.0.0.1:5678/api/health"
 DEFAULT_READY_TIMEOUT = 180.0
+#: 看护回退前复查到端口已被占用时，再等它真正就绪的秒数（不叠加整轮 180s）
+FALLBACK_RECHECK_WAIT = 60.0
 VERSION_PATH = "/api/version"
 BACKEND_ARGV = ["app_server.py"]
 WATCHDOG_LOCK = REPO_ROOT / "logs" / "watchdog_yunshu.lock"
@@ -397,6 +399,16 @@ def restart_backend(repo_root: Path, python_exe: str, port: int,
         ok, waited = wait_health(timeout=ready_timeout)
         if ok:
             return "watchdog", waited
+        # 回退前必须再确认一次端口：看护的检测周期（30s × 3 次失败）叠上实测 87s 的
+        # 冷启动，总耗时可能**刚好越过** ready_timeout（2026-10-31 实测差 1 秒）。
+        # 这时若盲目 spawn，就会变成双主：两个 app_server 同时加载、后起的那个抢不到
+        # 端口却仍在后台跑（实测需要人工 kill）。见 §11.30。
+        late = listening_pids(port)
+        if late:
+            log("回退前发现端口已被 pid=%s 占用（看护已拉起），不再直接启动"
+                % ",".join(str(p) for p in late))
+            ok, waited2 = wait_health(timeout=min(FALLBACK_RECHECK_WAIT, ready_timeout))
+            return ("watchdog" if ok else "failed"), waited + waited2
         log("看护进程未在 %ss 内拉起，回退为直接启动" % int(ready_timeout))
     pid = spawn_backend(repo_root, python_exe)
     log("已直接拉起后端 pid=%s，等待就绪..." % pid)

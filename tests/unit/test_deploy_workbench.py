@@ -196,3 +196,53 @@ class TestSmoke:
     def test_unreachable_reports_no_response(self):
         results = run_smoke(59999, None, ["/api/health"], timeout=0.5)
         assert results == [{"path": "/api/health", "status": None, "ok": False}]
+
+class TestRestartBackendNoDoubleStart:
+    """2026-10-31 实测：看护恰好在 ready_timeout 差 1 秒时拉起 ⇒ 部署若盲目 spawn 会双主。
+
+    判据：回退前再看一次端口；端口已被占用就**不许** spawn，而是等它真正就绪。
+    """
+
+    def _patch(self, monkeypatch, pids, waits, events):
+        from scripts import deploy_workbench as dw
+
+        monkeypatch.setattr(dw, "kill_pid", lambda pid: events.append(("kill", pid)))
+        monkeypatch.setattr(
+            dw, "spawn_backend", lambda root, py: events.append(("spawn", None)) or 4242)
+        monkeypatch.setattr(dw, "watchdog_pid", lambda: 999)
+        monkeypatch.setattr(dw, "listening_pids", lambda port: next(pids))
+        monkeypatch.setattr(dw, "wait_health", lambda *a, **k: next(waits))
+        return dw
+
+    def test_recheck_adopts_listener_instead_of_spawning(self, monkeypatch):
+        events = []
+        dw = self._patch(
+            monkeypatch,
+            iter([[111], [222]]),
+            iter([(False, 180.0), (True, 12.5)]),
+            events,
+        )
+
+        mode, waited = dw.restart_backend(dw.REPO_ROOT, "python", 5678, 180.0)
+
+        assert mode == "watchdog"
+        assert ("spawn", None) not in events, "端口已有人监听时不许再起第二个后端"
+        assert ("kill", 111) in events, "旧监听者仍要被停掉"
+        assert waited == 192.5
+
+    def test_recheck_empty_still_falls_back_to_direct_start(self, monkeypatch):
+        events = []
+        dw = self._patch(
+            monkeypatch,
+            iter([[111], []]),
+            iter([(False, 180.0), (True, 3.0)]),
+            events,
+        )
+
+        mode, waited = dw.restart_backend(dw.REPO_ROOT, "python", 5678, 180.0)
+
+        assert mode == "direct"
+        assert ("spawn", None) in events
+        # 直接启动路径的 waited 只记「spawn 之后」的就绪耗时（既有口径）
+        assert waited == 3.0
+
