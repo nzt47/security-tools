@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-31T18:53:13",
+  "generated_at": "2026-10-31T20:37:11",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -367,25 +367,25 @@
   },
   "performance_note": "性能列（avg_ms / p99_ms / dpm）**一律未采集**：仓库现有实测只有一次 HTTP 压测（p50=15.84s），且进程内计时冒充压测的产物已确认不可引用（见 TASK-00 §0.2b）。清单**不提供估算值**；采集方案与 TASK-08 对接。",
   "counts": {
-    "total": 133,
+    "total": 135,
     "callable": 70,
-    "conditional": 61,
+    "conditional": 63,
     "blocked": 2,
     "model_callable": 89,
     "by_trigger": {
       "model": 89,
-      "system": 42,
+      "system": 44,
       "human": 0,
       "none": 2
     },
     "by_type": {
       "tool": 91,
-      "skill": 42,
+      "skill": 44,
       "api": 0,
       "script": 0
     },
     "by_permission_level": {
-      "public": 75,
+      "public": 77,
       "internal": 37,
       "restricted": 21
     },
@@ -394,8 +394,8 @@
       "纯提示词技能": 1
     },
     "conditional_reasons": {
-      "无 JSON Schema": 41,
-      "纯提示词技能": 36,
+      "无 JSON Schema": 43,
+      "纯提示词技能": 38,
       "指令型技能": 5,
       "内部执行体": 1,
       "带脚本技能": 1,
@@ -403,45 +403,45 @@
     },
     "by_kind": {
       "tool": 91,
-      "skill": 42
+      "skill": 44
     },
     "by_location": {
-      "local": 112,
+      "local": 114,
       "remote": 21
     },
     "by_location_source": {
       "declaration": 91,
-      "skill_chain": 42
+      "skill_chain": 44
     },
     "by_location_derived_source": {
       "executor_boundary": 91,
-      "skill_chain": 42
+      "skill_chain": 44
     },
     "by_isolation_level": {
       "none": 0,
-      "process": 133,
+      "process": 135,
       "container": 0
     },
     "by_owner": {
-      "builtin": 133,
+      "builtin": 135,
       "local-installed": 0,
       "tenant-installed": 0,
       "marketplace": 0
     },
     "by_registry_source": {
-      "global": 133,
+      "global": 135,
       "planning": 0
     },
     "by_main_line_status": {
       "not_assembled": 54,
-      "n/a": 42,
+      "n/a": 44,
       "visible": 26,
       "denied_by_effect": 8,
       "muted": 3
     },
     "location_confidence": {
       "low": 71,
-      "high": 62
+      "high": 64
     },
     "declared_location_mismatch": 0
   },
@@ -10748,8 +10748,77 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Scan code endpoints and generate comprehensive API documentation in OpenAPI, Markdown, or custom format. Use when asked to \"document this API\", \"generate API docs\", \"create API documentation\", \"make docs for my endpoints\", or \"document my routes\".",
+      "main_line_status": "n/a"
+    },
+    {
+      "tool_name": "autoresearch",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "public",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用；无 JSON Schema（缺参数契约，模型无法按 schema 填参）",
+      "capability_id": "default:yunshu:autoresearch@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": false,
+      "entity_versioned": true,
+      "mark": "⚠️ 条件可调用",
+      "reachable": true,
+      "trigger": "system",
+      "reason_kind": "not_model_initiated",
+      "blockers": [],
+      "blocker_codes": [],
+      "soft_blockers": [
+        "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "public",
+      "declared_in": "data/skills_repo/autoresearch/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": true,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "approved",
+      "description": "Autonomous experiment loop for AI agents. Use when the user wants to run systematic experiments — optimizing hyperparameters, searching for better configurations, ablation studies, or any task where an agent should iteratively try changes, measure results, and keep or discard based on a metric. Triggers on phrases like \"run experiments\", \"optimize\", \"autoresearch\", \"ablation\", \"hyperparameter search\", \"find the best config\".",
       "main_line_status": "n/a"
     },
     {
@@ -11024,7 +11093,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Perform bulk code refactoring operations like renaming variables/functions across files, replacing patterns, and updating API calls. Use when users request renaming identifiers, replacing deprecated code patterns, updating method calls, or making consistent changes across multiple locations.",
       "main_line_status": "n/a"
     },
@@ -11300,7 +11369,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Helps users discover and install agent skills when they ask questions like \"how do I do X\", \"find a skill for X\", \"is there a skill that can...\", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill.",
       "main_line_status": "n/a"
     },
@@ -11511,7 +11580,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Compact the current conversation into a handoff document for another agent to pick up.",
       "main_line_status": "n/a"
     },
@@ -12620,6 +12689,75 @@
       "main_line_status": "n/a"
     },
     {
+      "tool_name": "pdf",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "public",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用；无 JSON Schema（缺参数契约，模型无法按 schema 填参）",
+      "capability_id": "default:yunshu:pdf@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": false,
+      "entity_versioned": true,
+      "mark": "⚠️ 条件可调用",
+      "reachable": true,
+      "trigger": "system",
+      "reason_kind": "not_model_initiated",
+      "blockers": [],
+      "blocker_codes": [],
+      "soft_blockers": [
+        "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "public",
+      "declared_in": "data/skills_repo/pdf/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": true,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "approved",
+      "description": "Comprehensive PDF manipulation toolkit for extracting text and tables, creating new PDFs, merging/splitting documents, and handling forms. When Claude needs to fill in a PDF form or programmatically process, generate, or analyze PDF documents at scale.",
+      "main_line_status": "n/a"
+    },
+    {
       "tool_name": "planning-with-files",
       "tool_type": "skill",
       "scope": "repo",
@@ -12684,7 +12822,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Implements Manus-style file-based planning to organize and track progress on complex tasks. Creates task_plan.md, findings.md, and progress.md. Use when asked to plan out, break down, or organize a multi-step project, research task, or any work requiring 5+ tool calls. Supports automatic session recovery after /clear.",
       "main_line_status": "n/a"
     },
@@ -12822,7 +12960,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Creates, optimizes, and iteratively refines agent prompts, system prompts, developer prompts, and reusable prompt templates. Use when asked to improve a prompt, optimize a system prompt, rewrite an agent prompt, tune prompt wording, make a prompt more reliable, port prompts between OpenAI, Claude, or Gemini, or build prompt evals.",
       "main_line_status": "n/a"
     },
@@ -23747,8 +23885,77 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Scan code endpoints and generate comprehensive API documentation in OpenAPI, Markdown, or custom format. Use when asked to \"document this API\", \"generate API docs\", \"create API documentation\", \"make docs for my endpoints\", or \"document my routes\".",
+      "main_line_status": "n/a"
+    },
+    {
+      "tool_name": "autoresearch",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "public",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用；无 JSON Schema（缺参数契约，模型无法按 schema 填参）",
+      "capability_id": "default:yunshu:autoresearch@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": false,
+      "entity_versioned": true,
+      "mark": "⚠️ 条件可调用",
+      "reachable": true,
+      "trigger": "system",
+      "reason_kind": "not_model_initiated",
+      "blockers": [],
+      "blocker_codes": [],
+      "soft_blockers": [
+        "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "public",
+      "declared_in": "data/skills_repo/autoresearch/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": true,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "approved",
+      "description": "Autonomous experiment loop for AI agents. Use when the user wants to run systematic experiments — optimizing hyperparameters, searching for better configurations, ablation studies, or any task where an agent should iteratively try changes, measure results, and keep or discard based on a metric. Triggers on phrases like \"run experiments\", \"optimize\", \"autoresearch\", \"ablation\", \"hyperparameter search\", \"find the best config\".",
       "main_line_status": "n/a"
     },
     {
@@ -24023,7 +24230,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Perform bulk code refactoring operations like renaming variables/functions across files, replacing patterns, and updating API calls. Use when users request renaming identifiers, replacing deprecated code patterns, updating method calls, or making consistent changes across multiple locations.",
       "main_line_status": "n/a"
     },
@@ -24299,7 +24506,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Helps users discover and install agent skills when they ask questions like \"how do I do X\", \"find a skill for X\", \"is there a skill that can...\", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill.",
       "main_line_status": "n/a"
     },
@@ -24510,7 +24717,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Compact the current conversation into a handoff document for another agent to pick up.",
       "main_line_status": "n/a"
     },
@@ -25619,6 +25826,75 @@
       "main_line_status": "n/a"
     },
     {
+      "tool_name": "pdf",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "public",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用；无 JSON Schema（缺参数契约，模型无法按 schema 填参）",
+      "capability_id": "default:yunshu:pdf@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": false,
+      "entity_versioned": true,
+      "mark": "⚠️ 条件可调用",
+      "reachable": true,
+      "trigger": "system",
+      "reason_kind": "not_model_initiated",
+      "blockers": [],
+      "blocker_codes": [],
+      "soft_blockers": [
+        "纯提示词技能：由 ContextInjector 按意图注入，模型不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "public",
+      "declared_in": "data/skills_repo/pdf/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": true,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "approved",
+      "description": "Comprehensive PDF manipulation toolkit for extracting text and tables, creating new PDFs, merging/splitting documents, and handling forms. When Claude needs to fill in a PDF form or programmatically process, generate, or analyze PDF documents at scale.",
+      "main_line_status": "n/a"
+    },
+    {
       "tool_name": "planning-with-files",
       "tool_type": "skill",
       "scope": "repo",
@@ -25683,7 +25959,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Implements Manus-style file-based planning to organize and track progress on complex tasks. Creates task_plan.md, findings.md, and progress.md. Use when asked to plan out, break down, or organize a multi-step project, research task, or any work requiring 5+ tool calls. Supports automatic session recovery after /clear.",
       "main_line_status": "n/a"
     },
@@ -25821,7 +26097,7 @@
       "skill_in_catalog": false,
       "skill_in_mgmt": false,
       "has_scripts": false,
-      "skill_status": "",
+      "skill_status": "approved",
       "description": "Creates, optimizes, and iteratively refines agent prompts, system prompts, developer prompts, and reusable prompt templates. Use when asked to improve a prompt, optimize a system prompt, rewrite an agent prompt, tune prompt wording, make a prompt more reliable, port prompts between OpenAI, Claude, or Gemini, or build prompt evals.",
       "main_line_status": "n/a"
     },

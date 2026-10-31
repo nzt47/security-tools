@@ -168,7 +168,8 @@ class TestLocationCoverage:
     def test_127_条全部有_location(self, manifest):
         # 【2026-10-24】119 -> 127：8 个技能目录补回文件轨（此前只在 DB 里，
         # data/skills_repo/<id>/skill.md 未入仓，清单因此少算）。
-        assert len(manifest["entries"]) == 133
+        # 【2026-10-31】133 -> 135：autoresearch / pdf 入文件轨（§11.32 C · N5）。
+        assert len(manifest["entries"]) == 135
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"
