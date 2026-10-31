@@ -17,6 +17,10 @@ content_type: markdown
 description_zh: 用于定义智能体的身份、人格、语气、角色边界、适应行为及可复用身份模板，让助手更具真实感而非泛化；当需要创建、配置或优化助手人格与身份设定时使用。
 ---
 
+## When to Use
+
+- Define agent identity, personality, voice, and boundaries to create assistants that feel authentic rather than generic
+
 ## Description: <br>
 Define agent identity, personality, voice, and boundaries to create assistants that feel authentic rather than generic. <br>
 

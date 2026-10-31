@@ -20,6 +20,10 @@ description_zh: 用于整理并利用用户隐式反馈，优化智能体的偏�
 
 ## Learning Preferences
 
+## 何时使用
+
+- 智能体学习与适应：从隐式信号（用户忽略的部分、追问、纠正）里读偏好并据此调整行为，而不是只照显式指令改
+
 **Implicit signals matter more than explicit ones.**
 
 Rich preference data comes from:
