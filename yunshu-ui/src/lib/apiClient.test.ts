@@ -40,14 +40,14 @@ describe('apiClient 错误信息', () => {
 
   it('通用信封 {ok:false,error} 仍然可用（不回退）', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => mockResponse({ ok: false, error: '技能不存在' }, 404)));
-    const err = await request('/api/x').catch((e) => e as ApiError);
+    const err = (await request('/api/x').catch((e) => e)) as ApiError;
     expect(err).toBeInstanceOf(ApiError);
     expect(err.message).toBe('技能不存在');
   });
 
   it('两者都没有时才回退 HTTP 状态码', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => mockResponse({}, 500)));
-    const err = await request('/api/x').catch((e) => e as ApiError);
+    const err = (await request('/api/x').catch((e) => e)) as ApiError;
     expect(err.message).toBe('HTTP 500');
   });
 });
