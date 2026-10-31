@@ -1,9 +1,10 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-31T23:39:44",
+  "generated_at": "2026-10-31T23:48:47",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
+    "skill",
     "wf-f19dc52c-skill"
   ],
   "runtime_only_note": "以下技能在 data/skill_callability.yaml 里有声明，但仓库里没有 skill.md 实体（只在运行时目录/台账里）⇒ 不在本清单口径内，界面按「无徽章」静默退化",
@@ -201,6 +202,11 @@
   "runtime_only_entities": [
     {
       "name": "global-core-principles",
+      "entity_versioned": false,
+      "why": "只在运行时技能目录/台账里有声明，仓库里无 data/skills_repo/<id>/skill.md 实体"
+    },
+    {
+      "name": "skill",
       "entity_versioned": false,
       "why": "只在运行时技能目录/台账里有声明，仓库里无 data/skills_repo/<id>/skill.md 实体"
     },
