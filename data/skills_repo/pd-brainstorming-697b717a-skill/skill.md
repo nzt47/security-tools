@@ -119,3 +119,12 @@ You MUST use this before any creative work - creating features, building compone
 
 ## 来源
 - brainstorming
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+### 步骤 1: （纯指令）
+- Explore project context — check files, docs, recent commits
+```

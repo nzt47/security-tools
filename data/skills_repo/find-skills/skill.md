@@ -153,3 +153,11 @@ I can still help you with this task directly! Would you like me to proceed?
 If this is something you do often, you could create your own skill:
 npx skills init my-xyz-skill
 ```
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```bash
+npx skills find [query]
+```

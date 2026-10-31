@@ -94,3 +94,25 @@ When generating docs, consider:
 - For OpenAPI, include `servers` section with dev/staging/prod URLs
 - Note deprecated endpoints and suggested alternatives
 - Flag endpoints missing authentication or validation as warnings
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```yaml
+openapi: 3.0.3
+info:
+  title: Project API
+  version: 1.0.0
+paths:
+  /api/users:
+    get:
+      summary: List users
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: User list
+```

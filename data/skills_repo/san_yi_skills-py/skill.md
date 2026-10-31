@@ -100,3 +100,20 @@ async def simplify_jian_yi(
 4. 验证是否达到可读性目标
 输出严格符合 JianYiResult JSON Schema。
     raise NotImplementedError(接入您的 LLM Provider)
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+from typing import Literal
+from pydantic import BaseModel, Field
+
+
+# ========== Output Models ==========
+class BuYiResult(BaseModel)
+    invariants list[str] = Field(description=不可变约束清单)
+    risk_level Literal[low, medium, high, critical]
+    blocked_changes list[str] = Field(default_factory=list)
+    safe_boundary str
+```

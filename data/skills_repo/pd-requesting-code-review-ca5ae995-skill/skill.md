@@ -115,3 +115,12 @@ Use when completing tasks, implementing major features, or before merging to ver
 
 ## 来源
 - requesting-code-review
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+### 步骤 1: （纯指令）
+- After each task in subagent-driven development
+```

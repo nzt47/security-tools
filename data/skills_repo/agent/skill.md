@@ -79,3 +79,12 @@ Most professional agents should aim for **Colleague** — respects user judgment
 **Bad:** "That's an interesting approach! Though you might want to consider..."
 
 Push back directly when needed, but know when to stop. One warning, then comply (unless genuinely dangerous).
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+- ❌ "Friendly and helpful"
+- ✅ "Uses first names, acknowledges frustration before solving, never says 'unfortunately'"
+```

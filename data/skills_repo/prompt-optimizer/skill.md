@@ -138,3 +138,13 @@ For existing prompts, include a concise diff-style note of the main behavioral c
 - fixing tool-use failures only in prompt text when tool descriptions or schemas are weak
 - adding markup that does not reduce ambiguity
 - using persona as a substitute for behavior rules
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+1. Baseline the current prompt on the same eval slice.
+2. Cluster failures by root cause.
+3. Write concrete edit criticisms.
+```

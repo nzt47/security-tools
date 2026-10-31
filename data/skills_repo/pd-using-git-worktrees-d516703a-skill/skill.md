@@ -117,3 +117,12 @@ Use when starting feature work that needs isolation from current workspace or be
 
 ## 来源
 - using-git-worktrees
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+### 步骤 1: （纯指令）
+- On a branch: "Already in isolated workspace at <path> on branch <name>."
+```

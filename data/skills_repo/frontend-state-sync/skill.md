@@ -55,3 +55,11 @@ description_zh: 生成涉及前后端交互、状态更新、异步请求或数�
 
 ### 6. 输出要求
 在每次生成涉及数据交互的代码后，必须在注释中简要说明使用了哪种机制（如：AbortController、Request ID、Optimistic Rollback）来保证状态同步。
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+await nextTick()
+```

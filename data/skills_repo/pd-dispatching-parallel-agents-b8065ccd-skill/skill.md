@@ -121,3 +121,12 @@ Use when facing 2+ independent tasks that can be worked on without shared state 
 
 ## 来源
 - dispatching-parallel-agents
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+### 步骤 1: （纯指令）
+- 3+ test files failing with different root causes
+```

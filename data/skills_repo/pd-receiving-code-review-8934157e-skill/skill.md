@@ -123,3 +123,12 @@ Use when receiving code review feedback, before implementing suggestions, especi
 
 ## 来源
 - receiving-code-review
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+### 步骤 1: （纯指令）
+- READ: Complete feedback without reacting
+```
