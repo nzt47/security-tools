@@ -62,6 +62,7 @@ flowchart LR
         agent_auto_tuner["agent.auto_tuner"]
         agent_autonomy["agent.autonomy"]:::crosslayer
         agent_behavior_controller["agent.behavior_controller"]:::crosslayer
+        agent_browser_remote["agent.browser_remote"]
         agent_chat_limits["agent.chat_limits"]:::crosslayer
         agent_circuit_breaker["agent.circuit_breaker"]:::crosslayer
         agent_code_review["agent.code_review"]:::crosslayer
@@ -766,6 +767,7 @@ flowchart LR
     agent_auto_tuner -.-> agent_evolution_injector
     agent_autonomy -.-> agent_lines_models
     agent_behavior_controller --> agent_logging_utils
+    agent_browser_remote -.-> agent_guardrails_ssrf_guard
     agent_caching_multi_level_cache -.-> agent_logging_utils
     agent_caching_multi_level_cache -.-> agent_monitoring_observability_config
     agent_caching_observability -.-> agent_logging_utils
@@ -2756,9 +2758,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 705
-- 模块节点数: 610
-- 依赖边数: 2020
-- 跨层调用数: 1282
+- 扫描文件数: 706
+- 模块节点数: 611
+- 依赖边数: 2021
+- 跨层调用数: 1283
 - 违规调用数: 0
 - 动态 import 数: 1
