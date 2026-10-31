@@ -28,6 +28,9 @@ class BuYiResult(BaseModel)
     blocked_changes list[str] = Field(default_factory=list)
     safe_boundary str
 
+## 何时使用
+
+- 易经三义编程工具集：用「不易 / 变易 / 简易」三义做结构化输出（BuYiResult / BianYiResult / JianYiResult）与校验
 
 class BianYiResult(BaseModel)
     adaptability_score int = Field(ge=1, le=10)

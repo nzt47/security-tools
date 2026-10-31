@@ -20,6 +20,10 @@ description_zh: 用于界定智能体自主行动与必须请示的边界：在�
 
 ## Proactivity Levels
 
+## 何时使用
+
+- 智能体角色边界：把主动性分级（可直接做 / 先问再做 / 不能做）、授权范围与停手条件写清楚
+
 ### Act Without Asking
 - Technical implementation within approved scope
 - Research, documentation, internal work

@@ -20,6 +20,10 @@ description_zh: 用于生成和整理智能体身份模板，涵盖核心身份�
 
 ## Core Identity Statement
 
+## 何时使用
+
+- 智能体身份与人格模板库：提供 SOUL.md 式身份底稿（核心身份、性格、语气、角色边界与示例），用来给分身写「它是谁」
+
 ```markdown
 # SOUL.md
 

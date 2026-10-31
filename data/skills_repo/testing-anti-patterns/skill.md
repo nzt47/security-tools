@@ -26,6 +26,11 @@ version: 0.1.0
 
 **Load this reference when:** writing or changing tests, adding mocks, or tempted to add test-only methods to production code.
 
+## When to Use
+
+- Writing or changing tests, adding mocks (test doubles), or tempted to add test-only methods to production code
+- Reference guide to the anti-patterns that make tests pass while proving nothing — asserting on mock behavior, test-only production APIs, mocking without understanding dependencies, incomplete mocks — plus the TDD discip…
+
 ## Overview
 
 Tests must verify real behavior, not mock behavior. Mocks are a means to isolate, not the thing being tested.
