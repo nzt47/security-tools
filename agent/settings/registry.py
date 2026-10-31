@@ -536,6 +536,11 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _b("CP_SSRF_ALLOW_HOSTS", CAT_SELF_HEALING, None,
        "SSRF 白名单（逗号分隔的域名；支持 *.suffix）。用于确有必须访问的内网服务的部署",
        owner="agent/guardrails/ssrf_guard.py"),
+    _b("CP_BROWSER_REMOTE_ALLOW_HOSTS", CAT_SELF_HEALING, None,
+       "右坞「交互浏览器」的内网白名单（逗号分隔；host / *.suffix / IP / CIDR）。"
+       "**只影响右坞浏览器**，不改全局 SSRF 判定（web 工具/LLM 抓取仍按 CP_SSRF_* 口径）",
+       owner="agent/browser_remote.py",
+       impact="影响面：右坞「交互」浏览器可访问的内网/本机地址；其余出站判定不变"),
     _b("CP_SSRF_DNS_TIMEOUT", CAT_SELF_HEALING, None,
        "SSRF 守卫的 DNS 解析超时（秒）；过大即把出站请求的等待时间拉长",
        owner="agent/guardrails/ssrf_guard.py",

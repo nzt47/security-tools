@@ -15,6 +15,8 @@
 
 安全边界（与全站同一口径）：
     - 导航目标一律先过 `guardrails.ssrf_guard.check_url`（默认拒绝内网/元数据/非 http(s)）；
+      确有内网需求时用**浏览器专用**白名单 `CP_BROWSER_REMOTE_ALLOW_HOSTS`（host/*.suffix/IP/CIDR），
+      它只放宽本模块，不改全局出站口径；
     - 单会话（同时最多一个页面），空闲 10 分钟自动关闭；
     - 输入只接受「坐标 / 文本 / 白名单按键 / 滚动量 / 导航」，**不暴露 evaluate**（不接受任意脚本）；
     - 坐标按视口夹紧、文本 ≤2000 字符、滚动 ≤±2000px。
@@ -49,8 +51,61 @@ ALLOWED_KEYS = frozenset({
 ALLOWED_KINDS = frozenset({"click", "type", "key", "scroll", "navigate", "back", "forward", "reload"})
 
 
+#: 右坞可交互浏览器的**内网白名单**（逗号分隔；支持 host / *.suffix / IP / CIDR）。
+#: 与全局 `CP_SSRF_ALLOW_HOSTS` 分开：那条一开，所有出站（web 工具、LLM 抓取）都会放行；
+#: 这条只影响右坞浏览器——它本来就是"人点着看"的界面，风险面与自动化抓取不同。
+BROWSER_ALLOW_HOSTS_ENV = "CP_BROWSER_REMOTE_ALLOW_HOSTS"
+
+
+def _browser_allow_entries() -> Tuple[str, ...]:
+    """浏览器白名单条目（小写去空白；保留 host / *.suffix / IP / CIDR 四种形态）。"""
+    import os
+
+    raw = str(os.environ.get(BROWSER_ALLOW_HOSTS_ENV, "") or "")
+    return tuple(part.strip().lower() for part in raw.split(",") if part.strip())
+
+
+def _browser_allowlist_hit(url: str) -> bool:
+    """URL 的主机是否命中浏览器白名单（域名精确 / *.suffix / IP / CIDR）。"""
+    import ipaddress
+    from urllib.parse import urlsplit
+
+    entries = _browser_allow_entries()
+    if not entries:
+        return False
+    try:
+        host = str(urlsplit(url).hostname or "").strip("[]").lower().rstrip(".")
+    except ValueError:
+        return False
+    if not host:
+        return False
+    try:
+        host_ip = ipaddress.ip_address(host)
+    except ValueError:
+        host_ip = None
+    for entry in entries:
+        if "/" in entry:
+            try:
+                if host_ip is not None and host_ip in ipaddress.ip_network(entry, strict=False):
+                    return True
+            except ValueError:
+                continue
+            continue
+        try:
+            if host_ip is not None and host_ip == ipaddress.ip_address(entry):
+                return True
+        except ValueError:
+            pass
+        if entry.startswith("*."):
+            if host.endswith(entry[1:]):
+                return True
+        elif host == entry:
+            return True
+    return False
+
+
 def check_target(url: Any) -> Tuple[bool, str]:
-    """导航目标是否允许（与全站同一套 SSRF 判定；fail-closed）。"""
+    """导航目标是否允许（SSRF 判定 + 浏览器专用白名单；fail-closed）。"""
     text = str(url or "").strip()
     if not text.startswith(("http://", "https://")):
         return False, "只允许 http/https 地址"
@@ -60,9 +115,11 @@ def check_target(url: Any) -> Tuple[bool, str]:
         verdict = check_url(text)
     except Exception as exc:  # noqa: BLE001 判定不出来 ⇒ 拒绝（fail-closed）
         return False, "SSRF 判定失败：%s" % type(exc).__name__
-    if not bool(getattr(verdict, "allowed", False)):
-        return False, str(getattr(verdict, "reason", "") or "目标被 SSRF 守卫拒绝")
-    return True, ""
+    if bool(getattr(verdict, "allowed", False)):
+        return True, ""
+    if _browser_allowlist_hit(text):
+        return True, ""
+    return False, str(getattr(verdict, "reason", "") or "目标被 SSRF 守卫拒绝")
 
 
 def clamp_viewport(width: Any, height: Any) -> Tuple[int, int]:

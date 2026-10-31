@@ -505,7 +505,7 @@ function BrowserPane() {
           </button>
         ))}
         <span className="ml-auto truncate text-[9.5px] text-slate-600">
-          {mode === 'iframe' ? '同源内嵌 · 跨域常被 X-Frame-Options 拒绝' : '受控 Chromium · 截图流 · 仅公网 http(s)'}
+          {mode === 'iframe' ? '同源内嵌 · 跨域常被 X-Frame-Options 拒绝' : '受控 Chromium · 截图流 · 内网需 CP_BROWSER_REMOTE_ALLOW_HOSTS'}
         </span>
       </div>
       <form
