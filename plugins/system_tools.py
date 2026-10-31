@@ -19,7 +19,7 @@
 """
 import functools
 import logging
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, Response, request, jsonify
 from .plugin_api import Plugin, register_plugin
 
 bp = Blueprint("system_tools", __name__)
@@ -310,6 +310,66 @@ def api_browser_close():
     from agent.system_tools import browser_close
     browser_close()
     return jsonify({"ok": True})
+
+
+# ════════════════════════════════════════════════════════════
+#  可交互浏览器（服务端受控 Chromium + 截图流 + 输入）
+#
+#  与上面的 /api/browser/*（Selenium 无头抓取：导航 + 整页截图 + 关闭）是**两条链路**：
+#  那几个接口给"抓取"用，这组给右坞"看得见、点得动"用。共用同一套 SSRF 判定
+#  （agent.guardrails.ssrf_guard.check_url），因此内网/元数据目标一律 400。
+# ════════════════════════════════════════════════════════════
+
+@bp.route("/api/browser/session", methods=["POST"])
+@_view(auth=True, log=True)
+def api_browser_session_open():
+    """打开一个可交互浏览器会话（单会话；空 url 或非 http(s) ⇒ 400）。"""
+    from agent.browser_remote import get_browser_remote
+    data = request.get_json(silent=True) or {}
+    result = get_browser_remote().open(
+        data.get("url"), data.get("width"), data.get("height"))
+    status = int(result.pop("status", 200) or 200)
+    return jsonify(result), status
+
+
+@bp.route("/api/browser/frame")
+@_view(auth=True, log=False)
+def api_browser_frame():
+    """当前页面截图（JPEG）。二进制响应，故不走 log_request（避免把体积写进日志）。"""
+    from agent.browser_remote import get_browser_remote
+    png, err = get_browser_remote().frame(request.args.get("session_id"))
+    if png is None:
+        return jsonify({"ok": False, "error": err}), 404
+    return Response(png, mimetype="image/jpeg", headers={"Cache-Control": "no-store"})
+
+
+@bp.route("/api/browser/input", methods=["POST"])
+@_view(auth=True, log=True)
+def api_browser_input():
+    """受控输入：click / type / key / scroll / navigate / back / forward / reload。"""
+    from agent.browser_remote import get_browser_remote
+    data = request.get_json(silent=True) or {}
+    result = get_browser_remote().send_input(data.get("session_id"), data)
+    status = int(result.pop("status", 200) or 200)
+    return jsonify(result), status
+
+
+@bp.route("/api/browser/state")
+@_view(auth=True, log=False)
+def api_browser_state():
+    """会话状态（url / title / 视口），前端刷新地址栏用。"""
+    from agent.browser_remote import get_browser_remote
+    result = get_browser_remote().state(request.args.get("session_id"))
+    status = int(result.pop("status", 200) or 200)
+    return jsonify(result), status
+
+
+@bp.route("/api/browser/session/close", methods=["POST"])
+@_view(auth=True, log=True)
+def api_browser_session_close():
+    """关闭可交互会话（幂等：本来没有会话也返回 ok）。"""
+    from agent.browser_remote import get_browser_remote
+    return jsonify(get_browser_remote().close())
 
 
 # ════════════════════════════════════════════════════════════

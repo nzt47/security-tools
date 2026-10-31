@@ -17,6 +17,7 @@ import { BookOpen, Bot, Code2, Globe, Loader2, Play, RefreshCw, Terminal } from 
 import { CodeEditorPanel } from './CodeEditorPanel'
 import { getEnvelope } from '@/api/envelope'
 import { hubGet, hubPost } from '../../../pages/hub/components/ui'
+import { getApiToken } from '@/lib/apiToken'
 import {
   FILESYSTEM_LIST,
   FILESYSTEM_READ,
@@ -25,6 +26,10 @@ import {
   TERMINAL_ACTIVITY,
   TERMINAL_COMMANDS,
   TERMINAL_EXEC,
+  BROWSER_REMOTE_SESSION,
+  BROWSER_REMOTE_FRAME,
+  BROWSER_REMOTE_INPUT,
+  BROWSER_REMOTE_CLOSE,
 } from '@/api/endpoints'
 
 type DockTab = 'editor' | 'docs' | 'subagent' | 'browser' | 'terminal'
@@ -337,16 +342,172 @@ function normalizeHttpUrl(raw: string): string {
   }
 }
 
+/** 可交互浏览器的会话信息（服务端 viewport 用于把显示坐标换算回页面坐标） */
+interface RemoteSession {
+  id: string
+  width: number
+  height: number
+}
+
+/**
+ * 浏览器：两种模式
+ *   - 内嵌（默认）：同源 iframe。跨域站点常因 X-Frame-Options / CSP 拒绝被嵌入。
+ *   - 交互：服务端受控 Chromium（Playwright）出截图流，点击/键盘/滚动都发回服务端执行。
+ *     适合"同源 iframe 被 X-Frame-Options 挡住、但仍要操作"的站点；导航受 SSRF 守卫约束
+ *     （默认只允许公网 http(s)，本机/内网一律 400）。
+ */
+function modeBtnClass(active: boolean): string {
+  return 'rounded border px-1.5 py-0.5 text-[10px] transition-colors ' + (
+    active
+      ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
+      : 'border-slate-800 text-slate-400 hover:bg-slate-800/60')
+}
+
 function BrowserPane() {
   const [url, setUrl] = useState('http://127.0.0.1:5678/')
   const [current, setCurrent] = useState('')
   const [error, setError] = useState('')
+  const [mode, setMode] = useState<'iframe' | 'remote'>('iframe')
+  const [session, setSession] = useState<RemoteSession | null>(null)
+  const [frame, setFrame] = useState('')
+  const [title, setTitle] = useState('')
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const imgRef = useRef<HTMLImageElement | null>(null)
+  const frameRef = useRef('')
+  const sessionRef = useRef<RemoteSession | null>(null)
+
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
+
+  /** 换帧时释放上一张 object URL（否则每次轮询都会漏一个 Blob） */
+  const replaceFrame = useCallback((next: string) => {
+    const prev = frameRef.current
+    frameRef.current = next
+    setFrame(next)
+    if (prev) URL.revokeObjectURL(prev)
+  }, [])
+
+  const pullFrame = useCallback(async (sid: string) => {
+    const token = getApiToken()
+    const res = await fetch(BROWSER_REMOTE_FRAME + '?session_id=' + encodeURIComponent(sid), {
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+    })
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+    const blob = await res.blob()
+    replaceFrame(URL.createObjectURL(blob))
+  }, [replaceFrame])
+
+  const openRemote = useCallback(async (target: string) => {
+    setBusy(true)
+    setError('')
+    try {
+      const r = await hubPost<{
+        ok?: boolean; session_id?: string; width?: number; height?: number
+        title?: string; error?: string
+      }>(BROWSER_REMOTE_SESSION, { url: target })
+      if (!r?.ok || !r.session_id) throw new Error(r?.error || '会话创建失败')
+      const next = { id: r.session_id, width: r.width ?? 1280, height: r.height ?? 800 }
+      setSession(next)
+      setTitle(r.title || '')
+      await pullFrame(next.id)
+    } catch (e) {
+      setSession(null)
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }, [pullFrame])
+
+  const send = useCallback(async (payload: Record<string, unknown>) => {
+    const sid = sessionRef.current?.id
+    if (!sid) return
+    setError('')
+    try {
+      const r = await hubPost<{ ok?: boolean; url?: string; title?: string; error?: string }>(
+        BROWSER_REMOTE_INPUT, { session_id: sid, ...payload })
+      if (!r?.ok) throw new Error(r?.error || '操作失败')
+      if (r.title) setTitle(r.title)
+      if (r.url) setUrl(r.url)
+      await pullFrame(sid)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }, [pullFrame])
+
+  const closeRemote = useCallback(async () => {
+    const sid = sessionRef.current?.id
+    sessionRef.current = null
+    setSession(null)
+    setTitle('')
+    replaceFrame('')
+    if (!sid) return
+    try {
+      await hubPost(BROWSER_REMOTE_CLOSE, { session_id: sid })
+    } catch {
+      /* 关闭失败不阻塞界面：会话在服务端会按空闲超时回收 */
+    }
+  }, [replaceFrame])
+
+  // 交互模式轮询出帧（1.5s；服务端单会话，重复打开会替换旧会话）
+  useEffect(() => {
+    if (!session) return
+    const timer = window.setInterval(() => {
+      void pullFrame(session.id).catch(() => undefined)
+    }, 1500)
+    return () => window.clearInterval(timer)
+  }, [session, pullFrame])
+
+  // 卸载时释放 Blob 并关闭会话
+  useEffect(() => () => {
+    if (frameRef.current) URL.revokeObjectURL(frameRef.current)
+    const sid = sessionRef.current?.id
+    if (sid) void hubPost(BROWSER_REMOTE_CLOSE, { session_id: sid }).catch(() => undefined)
+  }, [])
+
+  const switchMode = (next: 'iframe' | 'remote') => {
+    setError('')
+    if (next === 'remote') {
+      setMode('remote')
+      // 已经在内嵌模式打开过页面 ⇒ 用同一地址接管；否则等用户输入
+      // （默认地址是本机，会被 SSRF 守卫拒绝，替用户先撞一次墙没有意义）
+      const target = normalizeHttpUrl(current)
+      if (target) void openRemote(target)
+      return
+    }
+    setMode('iframe')
+    void closeRemote()
+  }
+
+  const onFrameClick = (e: React.MouseEvent<HTMLImageElement>) => {
+    const img = imgRef.current
+    if (!img || !session) return
+    const rect = img.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    const x = Math.round((e.clientX - rect.left) * (session.width / rect.width))
+    const y = Math.round((e.clientY - rect.top) * (session.height / rect.height))
+    void send({ kind: 'click', x, y })
+  }
+
   return (
     <Pane>
-      <Hint>
-        同源内嵌浏览。跨域站点常因 <code className="text-slate-400">X-Frame-Options</code> /
-        CSP 拒绝被嵌入，属浏览器安全策略，不是本页故障。
-      </Hint>
+      <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
+        {(['iframe', 'remote'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => switchMode(m)}
+            aria-pressed={mode === m}
+            className={modeBtnClass(mode === m)}
+          >
+            {m === 'iframe' ? '内嵌' : '交互'}
+          </button>
+        ))}
+        <span className="ml-auto truncate text-[9.5px] text-slate-600">
+          {mode === 'iframe' ? '同源内嵌 · 跨域常被 X-Frame-Options 拒绝' : '受控 Chromium · 截图流 · 仅公网 http(s)'}
+        </span>
+      </div>
       <form
         className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1"
         onSubmit={(e) => {
@@ -358,6 +519,7 @@ function BrowserPane() {
           }
           setError('')
           setCurrent(next)
+          if (mode === 'remote') void openRemote(next)
         }}
       >
         <input
@@ -373,19 +535,76 @@ function BrowserPane() {
         >
           打开
         </button>
+        {mode === 'remote' && (
+          <>
+            <button type="button" onClick={() => void send({ kind: 'back' })} aria-label="后退"
+              className="rounded-sm border border-slate-800 px-1 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">←</button>
+            <button type="button" onClick={() => void send({ kind: 'forward' })} aria-label="前进"
+              className="rounded-sm border border-slate-800 px-1 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">→</button>
+            <button type="button" onClick={() => void send({ kind: 'reload' })} aria-label="刷新画面"
+              className="rounded-sm border border-slate-800 px-1 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800">⟳</button>
+          </>
+        )}
       </form>
+      {mode === 'remote' && (
+        <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            aria-label="键盘输入"
+            placeholder="输入文本后回车（发到当前焦点）"
+            className="min-w-0 flex-1 rounded border border-slate-800 bg-slate-950/70 px-1.5 py-0.5 text-[10px] text-slate-200 placeholder:text-slate-600 focus:border-cyan-600/60 focus:outline-hidden"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                if (text) { void send({ kind: 'type', text }); setText('') }
+              }
+            }}
+          />
+          {['Enter', 'Tab', 'Escape', 'Backspace'].map((k) => (
+            <button key={k} type="button" onClick={() => void send({ kind: 'key', key: k })}
+              className="rounded-sm border border-slate-800 px-1 py-0.5 font-mono text-[9px] text-slate-400 hover:bg-slate-800">
+              {k}
+            </button>
+          ))}
+          <button type="button" onClick={() => void closeRemote()}
+            className="rounded-sm border border-rose-900/60 px-1 py-0.5 text-[9px] text-rose-300 hover:bg-rose-950/40">
+            关闭会话
+          </button>
+        </div>
+      )}
       {error && <p className="px-3 py-1 text-[10px] text-rose-300">{error}</p>}
-      <div className="min-h-0 flex-1">
-        {current ? (
-          <iframe
-            key={current}
-            title="浏览器"
-            src={current}
-            className="h-full w-full border-0 bg-white"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"
+      <div className="relative min-h-0 flex-1">
+        {mode === 'iframe' ? (
+          current ? (
+            <iframe
+              key={current}
+              title="浏览器"
+              src={current}
+              className="h-full w-full border-0 bg-white"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"
+            />
+          ) : (
+            <p className="px-3 py-4 text-center text-[10.5px] text-slate-500">输入地址后点「打开」</p>
+          )
+        ) : session && frame ? (
+          <img
+            ref={imgRef}
+            src={frame}
+            alt="交互浏览器画面"
+            onClick={onFrameClick}
+            className="h-full w-full cursor-crosshair bg-white object-contain"
+            draggable={false}
           />
         ) : (
-          <p className="px-3 py-4 text-center text-[10.5px] text-slate-500">输入地址后点「打开」</p>
+          <p className="px-3 py-4 text-center text-[10.5px] text-slate-500">
+            {busy ? '正在启动受控浏览器…' : '输入公网地址后点「打开」，或切回内嵌模式'}
+          </p>
+        )}
+        {mode === 'remote' && title && (
+          <span className="pointer-events-none absolute bottom-1 left-1 rounded bg-slate-950/80 px-1.5 py-0.5 text-[9px] text-slate-400">
+            {title}
+          </span>
         )}
       </div>
     </Pane>

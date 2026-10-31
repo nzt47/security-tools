@@ -585,6 +585,12 @@ export const BROWSER_NAVIGATE = '/api/browser/navigate';
 // 浏览器截图 / 关闭 + 剪贴板（方案 §7 分批接入：browser/screenshot、browser/close、clipboard）
 export const BROWSER_SCREENSHOT = '/api/browser/screenshot';
 export const BROWSER_CLOSE = '/api/browser/close';
+/** 右坞「可交互浏览器」：服务端受控 Chromium 会话 / 截图流 / 受控输入（SSRF 守卫约束） */
+export const BROWSER_REMOTE_SESSION = '/api/browser/session';
+export const BROWSER_REMOTE_FRAME = '/api/browser/frame';
+export const BROWSER_REMOTE_INPUT = '/api/browser/input';
+export const BROWSER_REMOTE_STATE = '/api/browser/state';
+export const BROWSER_REMOTE_CLOSE = '/api/browser/session/close';
 /** Python 沙盒执行（**不是系统 shell**；受 features.sandbox 开关控制，关闭时后端回 503） */
 export const SANDBOX_RUN = '/api/sandbox/run';
 /** 终端：白名单命令清单 / 执行（argv 由服务端常量表拼出，shell=False） */

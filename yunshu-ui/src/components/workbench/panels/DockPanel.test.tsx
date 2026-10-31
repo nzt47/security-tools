@@ -24,7 +24,7 @@ function res(body: unknown, envelope = false) {
 }
 
 function installFetch(opts: { terminal?: unknown } = {}) {
-  const fn = vi.fn(async (input: RequestInfo | URL) => {
+  const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     if (url.includes('/api/subagent/list')) {
       return res({ ok: true, count: 1, subagents: [{ name: 'sa-x', model_id: 'deepseek-flash' }] }, true)
@@ -67,9 +67,24 @@ function installFetch(opts: { terminal?: unknown } = {}) {
         stdout: ' M a.ts\n', stderr: '', duration_ms: 1.2,
       })
     }
+    if (url.includes('/api/browser/session/close')) return res({ ok: true, closed: true })
+    if (url.includes('/api/browser/session')) {
+      return res({ ok: true, session_id: 's1', width: 1280, height: 800, title: 'Example Domain' })
+    }
+    if (url.includes('/api/browser/frame')) {
+      return {
+        ok: true, status: 200,
+        blob: async () => new Blob(['frame'], { type: 'image/jpeg' }),
+        json: async () => ({}),
+      } as unknown as Response
+    }
+    if (url.includes('/api/browser/input')) {
+      return res({ ok: true, url: 'https://example.com/', title: 'Example Domain' })
+    }
     return res({ ok: true })
   })
   vi.stubGlobal('fetch', fn)
+  return fn
 }
 
 describe('DockPanel · 右侧可切换边栏', () => {
@@ -143,5 +158,43 @@ describe('DockPanel · 右侧可切换边栏', () => {
     render(<DockPanel />)
     fireEvent.click(screen.getByRole('tab', { name: /终端/ }))
     await waitFor(() => expect(screen.getByText(/未授权/)).toBeInTheDocument())
+  })
+
+  it('浏览器 · 交互模式：建会话后出帧，点击按 viewport 换算成页面坐标', async () => {
+    const fn = installFetch()
+    Object.defineProperty(URL, 'createObjectURL', { writable: true, configurable: true, value: vi.fn(() => 'blob:frame') })
+    Object.defineProperty(URL, 'revokeObjectURL', { writable: true, configurable: true, value: vi.fn() })
+
+    render(<DockPanel />)
+    fireEvent.click(screen.getByRole('tab', { name: /浏览器/ }))
+    fireEvent.click(screen.getByRole('button', { name: '交互' }))
+    fireEvent.change(screen.getByLabelText('浏览器地址'), { target: { value: 'https://example.com/' } })
+    fireEvent.click(screen.getByRole('button', { name: '打开' }))
+
+    const img = await screen.findByAltText('交互浏览器画面')
+    // jsdom 不做布局：给一个确定的显示尺寸，验证 scale = viewport/显示宽度
+    img.getBoundingClientRect = () => ({ left: 0, top: 0, width: 640, height: 400, right: 640, bottom: 400, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect
+    fireEvent.click(img, { clientX: 320, clientY: 200 })
+
+    await waitFor(() => {
+      const call = fn.mock.calls.find(([u]) => String(u).includes('/api/browser/input'))
+      expect(call).toBeTruthy()
+    })
+    const call = fn.mock.calls.find(([u]) => String(u).includes('/api/browser/input'))
+    const body = JSON.parse(String(((call?.[1] as RequestInit) || {}).body))
+    expect(body).toMatchObject({ kind: 'click', x: 640, y: 400 })
+    expect(screen.getByText('Example Domain')).toBeInTheDocument()
+  })
+
+  it('浏览器 · 交互模式：非 http(s) 地址仍被拒（不建会话）', async () => {
+    const fn = installFetch()
+    render(<DockPanel />)
+    fireEvent.click(screen.getByRole('tab', { name: /浏览器/ }))
+    fireEvent.click(screen.getByRole('button', { name: '交互' }))
+    fireEvent.change(screen.getByLabelText('浏览器地址'), { target: { value: 'javascript:alert(1)' } })
+    fireEvent.click(screen.getByRole('button', { name: '打开' }))
+
+    expect(screen.getByText(/只支持 http\(s\) 地址/)).toBeInTheDocument()
+    expect(fn.mock.calls.some(([u]) => String(u).includes('/api/browser/session'))).toBe(false)
   })
 })

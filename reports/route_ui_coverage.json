@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-10-31T09:20:13",
+  "generated_at": "2026-10-31T12:32:00",
   "totals": {
-    "routes": 480,
-    "live": 480,
+    "routes": 485,
+    "live": 485,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 424,
+    "ui": 429,
     "cli_script": 15,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 424,
+      "ui": 429,
       "cli_script": 15,
       "runtime_only": 11,
       "unreferenced": 30
     },
     "by_intent": {
-      "should_be_in_ui": 402,
+      "should_be_in_ui": 407,
       "should_not_be_in_ui": 73,
       "unclassified": 5
     },
@@ -28,7 +28,7 @@
       "资产与文件": 19,
       "管理与后台": 18,
       "调度与任务": 26,
-      "对话与会话": 29,
+      "对话与会话": 34,
       "业务与评估": 18,
       "技能与工具": 122,
       "认知与学习": 6,
@@ -37,7 +37,7 @@
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 428,
+  "frontend_endpoints": 433,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -940,6 +940,56 @@
       "domain": "对话与会话"
     },
     {
+      "path": "/api/browser/frame",
+      "norm": "/api/browser/frame",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:335"
+      ],
+      "description": "当前页面截图（JPEG）。二进制响应，故不走 log_request（避免把体积写进日志）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话侧/工作区",
+      "intent_note": "浏览器操作族。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
+      "path": "/api/browser/input",
+      "norm": "/api/browser/input",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:346"
+      ],
+      "description": "受控输入：click / type / key / scroll / navigate / back / forward / reload。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话侧/工作区",
+      "intent_note": "浏览器操作族。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
       "path": "/api/browser/navigate",
       "norm": "/api/browser/navigate",
       "methods": [
@@ -986,6 +1036,81 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话侧/工作区",
       "intent_note": "工作区能力，可做成会话侧面板",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
+      "path": "/api/browser/session",
+      "norm": "/api/browser/session",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:323"
+      ],
+      "description": "打开一个可交互浏览器会话（单会话；空 url 或非 http(s) ⇒ 400）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话侧/工作区",
+      "intent_note": "浏览器操作族。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
+      "path": "/api/browser/session/close",
+      "norm": "/api/browser/session/close",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:367"
+      ],
+      "description": "关闭可交互会话（幂等：本来没有会话也返回 ok）。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话侧/工作区",
+      "intent_note": "浏览器操作族。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
+      "path": "/api/browser/state",
+      "norm": "/api/browser/state",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:357"
+      ],
+      "description": "会话状态（url / title / 视口），前端刷新地址栏用。",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话侧/工作区",
+      "intent_note": "浏览器操作族。",
       "ui_pending": false,
       "domain": "对话与会话"
     },
@@ -1233,8 +1358,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:384",
-        "plugins/system_tools.py:392"
+        "plugins/system_tools.py:444",
+        "plugins/system_tools.py:452"
       ],
       "description": "读取剪贴板",
       "description_source": "handler",
@@ -6276,7 +6401,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/system_tools.py:319"
+        "plugins/system_tools.py:379"
       ],
       "description": "列出白名单进程",
       "description_source": "handler",
@@ -6303,7 +6428,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/system_tools.py:355"
+        "plugins/system_tools.py:415"
       ],
       "description": "启动白名单程序",
       "description_source": "handler",
@@ -6330,7 +6455,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/system_tools.py:368"
+        "plugins/system_tools.py:428"
       ],
       "description": "终止进程（仅限白名单）",
       "description_source": "handler",
@@ -6355,7 +6480,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:327"
+        "plugins/system_tools.py:387"
       ],
       "description": "获取进程白名单详情",
       "description_source": "handler",
@@ -6380,7 +6505,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:335"
+        "plugins/system_tools.py:395"
       ],
       "description": "添加自定义白名单条目",
       "description_source": "handler",
@@ -6405,7 +6530,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:345"
+        "plugins/system_tools.py:405"
       ],
       "description": "移除自定义白名单条目",
       "description_source": "handler",
@@ -10328,7 +10453,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:759"
+        "plugins/system_tools.py:819"
       ],
       "description": "「云枢当前正在执行什么」—— 审计链尾部 + 进行中的子代理委派（只读）。",
       "description_source": "handler",
@@ -10353,7 +10478,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:672"
+        "plugins/system_tools.py:732"
       ],
       "description": "列出可执行命令白名单（界面用它渲染按钮，**不接受自由输入**）。",
       "description_source": "handler",
@@ -10378,7 +10503,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:744"
+        "plugins/system_tools.py:804"
       ],
       "description": "按白名单执行一条命令（`shell=False`，cwd 锁仓库根）。",
       "description_source": "handler",
@@ -11043,7 +11168,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:519"
+        "plugins/system_tools.py:579"
       ],
       "description": "数据清洗",
       "description_source": "handler",
@@ -11066,7 +11191,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:470"
+        "plugins/system_tools.py:530"
       ],
       "description": "CSS 选择器提取",
       "description_source": "handler",
@@ -11089,7 +11214,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:542"
+        "plugins/system_tools.py:602"
       ],
       "description": "下载文件",
       "description_source": "handler",
@@ -11112,7 +11237,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:406"
+        "plugins/system_tools.py:466"
       ],
       "description": "HTTP GET 请求",
       "description_source": "handler",
@@ -11135,7 +11260,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:424"
+        "plugins/system_tools.py:484"
       ],
       "description": "HTTP POST 请求",
       "description_source": "handler",
@@ -11160,7 +11285,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:498"
+        "plugins/system_tools.py:558"
       ],
       "description": "搜索互联网",
       "description_source": "handler",
@@ -11185,7 +11310,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:568"
+        "plugins/system_tools.py:628"
       ],
       "description": "获取当前搜索引擎状态和切换日志（用于前端显示）",
       "description_source": "handler",
@@ -11208,7 +11333,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:555"
+        "plugins/system_tools.py:615"
       ],
       "description": "Web 模块统计",
       "description_source": "handler",
@@ -11231,7 +11356,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:443"
+        "plugins/system_tools.py:503"
       ],
       "description": "XPath 提取",
       "description_source": "handler",
@@ -12313,5 +12438,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "d100cd0ff0fc5a1e"
+  "content_hash": "273224a232b8dbb7"
 }
