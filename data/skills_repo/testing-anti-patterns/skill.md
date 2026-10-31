@@ -1,6 +1,6 @@
 ---
 id: testing-anti-patterns
-name: testing-anti-patterns（testing-anti-patterns）
+name: testing-anti-patterns
 description: Use when writing or changing tests, adding mocks (test doubles), or tempted
   to add test-only methods to production code. Reference guide to the anti-patterns
   that make tests pass while proving nothing — asserting on mock behavior, test-only

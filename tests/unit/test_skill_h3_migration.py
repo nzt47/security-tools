@@ -1122,7 +1122,7 @@ _MAIN_TRACK_FIXTURE_JSON = r"""{
   "enabled": true,
   "id": "testing-anti-patterns",
   "is_sensitive": false,
-  "name": "testing-anti-patterns（testing-anti-patterns）",
+  "name": "testing-anti-patterns",
   "output_schema": {},
   "source": "external_agent",
   "status": "approved",
