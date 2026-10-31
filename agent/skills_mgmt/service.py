@@ -69,6 +69,7 @@ from .creator import SkillCreator
 from .reviewer import SkillReviewer, ReviewThresholds
 from .searcher import SkillSearcher
 from .enhancer import SkillEnhancer, VersionBump, IntegrationHook
+from .file_track_policy import no_file_track_reason
 from .file_store import SkillFileStore
 from .index_cache import SkillIndexCache
 from .loader import SkillLoader, MatchResult
@@ -1846,6 +1847,11 @@ class SkillsMgmtService:
             SkillFileError: 已有 skill.md / 目录已存在（拒绝覆盖）
         """
         skill = self._require(skill_id)
+        # 【2026-10-31 · H-3】这两条**按裁定不建文件轨**（常驻准则 / 注入型指令）：
+        # 有实体就会进检索索引与能力清单，与产品意图相反。见 file_track_policy.py。
+        reason = no_file_track_reason(skill_id)
+        if reason:
+            raise SkillFileError(reason)
         repo_dir = self.file_store.repo_path / skill_id
         md_path = repo_dir / "skill.md"
         if md_path.is_file():

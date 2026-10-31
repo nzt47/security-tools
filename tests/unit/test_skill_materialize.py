@@ -115,3 +115,43 @@ def test_assess_all_reports_skipped(tmp_path):
     second = svc.assess_all()
     assert second["assessed"] == 0 and second["skipped"] == 2 and second["total"] == 2
 
+
+
+# ════════════════════════════════════════════════════════════
+#  H-3：这两条按裁定**不建文件轨**（2026-10-31 界面实测造成的回归）
+# ════════════════════════════════════════════════════════════
+
+@pytest.mark.parametrize("sid", ["global-core-principles", "skill"])
+def test_拒绝给_h3_不纳入的技能建文件轨(tmp_path, sid):
+    """常驻准则 / 注入型指令不该有 skill.md 实体（有实体就进检索与能力清单）。
+
+    2026-10-31 实测：界面点「生成文件轨」后 .index 44→47、清单 --check 报"新增"、
+    H-3 四条不变量转红。这里把结论固化：**dry-run 也要拒**，且理由要说人话。
+    """
+    svc = _svc(tmp_path)
+    _seed(svc, skill_id=sid)
+    with pytest.raises(SkillFileError) as dry:
+        svc.materialize_file_track(sid, dry_run=True)
+    msg = str(dry.value)
+    assert "不建文件轨" in msg and "H-3" in msg, msg
+    with pytest.raises(SkillFileError):
+        svc.materialize_file_track(sid, dry_run=False)
+    assert not (tmp_path / "repo" / sid / "skill.md").exists()
+
+
+def test_普通技能不受影响(tmp_path):
+    """名单只锁两条；其余主轨独有技能照常能补文件轨（templates 是原 409 场景）。"""
+    svc = _svc(tmp_path)
+    _seed(svc, skill_id="templates")
+    out = svc.materialize_file_track("templates", dry_run=False)
+    assert out["action"] == "created"
+
+
+def test_名单本身可读且带理由():
+    from agent.skills_mgmt.file_track_policy import (
+        NO_FILE_TRACK, is_no_file_track, no_file_track_reason,
+    )
+    assert set(NO_FILE_TRACK) == {"global-core-principles", "skill"}
+    assert is_no_file_track("global-core-principles") is True
+    assert no_file_track_reason("templates") is None
+    assert all(len(v) > 30 for v in NO_FILE_TRACK.values())
