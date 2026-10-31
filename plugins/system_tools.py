@@ -754,3 +754,82 @@ def api_terminal_exec():
     status = int(result.get("status", 200))
     result.pop("status", None)
     return jsonify(result), status
+
+
+@bp.route("/api/terminal/activity")
+@_view(auth=True, log=False)
+def api_terminal_activity():
+    """「云枢当前正在执行什么」—— 审计链尾部 + 进行中的子代理委派（只读）。
+
+    参数：
+        limit      返回条数（1–100，默认 40）
+        since_seq  只返回 seq 更大的记录（前端增量轮询用；0 = 取最新一页）
+
+    为什么读审计链而不是另建"活动流"：审计链本来就记录每次工具调用 / 技能加载 /
+    调度执行 / UI 写操作（seq 单调递增），是"云枢正在做什么"的**唯一权威台账**；
+    另建一份等于第二份口径。
+    """
+    import sqlite3
+
+    try:
+        limit = _clamp_int(request.args.get("limit", "40"), 1, 100, 40)
+        since_seq = _clamp_int(request.args.get("since_seq", "0"), 0, 2**31 - 1, 0)
+    except Exception:  # noqa: BLE001 参数异常一律回默认
+        limit, since_seq = 40, 0
+
+    db_path = _terminal_repo_root() / "data" / "audit" / "audit_chain.db"
+    rows = []
+    if db_path.exists():
+        try:
+            con = sqlite3.connect("file:" + str(db_path) + "?mode=ro", uri=True, timeout=3)
+            try:
+                cur = con.cursor()
+                if since_seq > 0:
+                    cur.execute(
+                        "SELECT seq, ts, action, subject FROM audit_chain "
+                        "WHERE seq > ? ORDER BY seq ASC LIMIT ?", (since_seq, limit))
+                    rows = [{"seq": r[0], "ts": r[1], "action": r[2], "subject": r[3]}
+                            for r in cur.fetchall()]
+                else:
+                    cur.execute(
+                        "SELECT seq, ts, action, subject FROM audit_chain "
+                        "ORDER BY seq DESC LIMIT ?", (limit,))
+                    rows = [{"seq": r[0], "ts": r[1], "action": r[2], "subject": r[3]}
+                            for r in reversed(cur.fetchall())]
+            finally:
+                con.close()
+        except Exception:  # noqa: BLE001 读不到就回空，界面显示"暂无"
+            rows = []
+
+    inflight = []
+    board = _terminal_repo_root() / "data" / "subagent_task_board.jsonl"
+    if board.exists():
+        try:
+            tail = board.read_text(encoding="utf-8", errors="ignore").splitlines()[-200:]
+            import json as _json
+            for line in tail:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = _json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(rec, dict) and str(rec.get("status", "")) in ("running", "in_progress"):
+                    inflight.append({
+                        "task_id": rec.get("task_id", ""),
+                        "subagent": rec.get("subagent", ""),
+                        "goal": str(rec.get("goal", ""))[:120],
+                        "updated_at": rec.get("updated_at", ""),
+                    })
+        except Exception:  # noqa: BLE001 板子读不到不影响活动流
+            inflight = []
+
+    return jsonify({"ok": True, "rows": rows, "inflight": inflight[:10],
+                    "last_seq": rows[-1]["seq"] if rows else since_seq,
+                    "now": _now_iso()})
+
+
+def _now_iso() -> str:
+    from datetime import datetime
+    return datetime.now().isoformat(timespec="seconds")

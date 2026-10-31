@@ -12,7 +12,7 @@
  *   - 浏览器：同源 iframe（跨域站点常因 X-Frame-Options 拒绝嵌入，属浏览器行为）
  *   - 终端  ：POST /api/sandbox/run（Python 沙盒；features.sandbox 关闭时如实显示后端原因）
  */
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BookOpen, Bot, Code2, Globe, Loader2, Play, RefreshCw, Terminal } from 'lucide-react'
 import { CodeEditorPanel } from './CodeEditorPanel'
 import { getEnvelope } from '@/api/envelope'
@@ -22,6 +22,7 @@ import {
   FILESYSTEM_READ,
   SUBAGENT_HISTORY,
   SUBAGENT_LIST,
+  TERMINAL_ACTIVITY,
   TERMINAL_COMMANDS,
   TERMINAL_EXEC,
 } from '@/api/endpoints'
@@ -411,6 +412,36 @@ interface TerminalResult {
 }
 
 function TerminalPane() {
+  const [mode, setMode] = useState<'cmd' | 'activity'>('cmd')
+
+  return (
+    <Pane>
+      <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
+        {(['cmd', 'activity'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            aria-pressed={mode === m}
+            className={`rounded border px-1.5 py-0.5 text-[10px] transition-colors ${
+              mode === m
+                ? 'border-cyan-600/60 bg-cyan-500/10 text-cyan-300'
+                : 'border-slate-800 text-slate-400 hover:bg-slate-800/60'
+            }`}
+          >
+            {m === 'cmd' ? '命令' : '实时活动'}
+          </button>
+        ))}
+        <span className="ml-auto text-[9.5px] text-slate-600">
+          {mode === 'cmd' ? '白名单执行 · 不是自由 shell' : '审计链尾部 · 3s 轮询'}
+        </span>
+      </div>
+      {mode === 'cmd' ? <CommandView /> : <ActivityView />}
+    </Pane>
+  )
+}
+
+function CommandView() {
   const [commands, setCommands] = useState<TerminalCommand[]>([])
   const [picked, setPicked] = useState('')
   const [paramText, setParamText] = useState('10')
@@ -438,7 +469,7 @@ function TerminalPane() {
 
   useEffect(() => {
     void load()
-    // 只在首次挂载拉一次清单（picked 变化不必重拉）
+    // 只在首次挂载拉一次清单
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -463,7 +494,7 @@ function TerminalPane() {
   }
 
   return (
-    <Pane>
+    <>
       <Hint>
         白名单执行（**不是自由 shell**）：只能选命令，参数仅支持整数；argv 由服务端常量表拼出。
       </Hint>
@@ -533,6 +564,108 @@ function TerminalPane() {
           </>
         )}
       </div>
-    </Pane>
+    </>
+  )
+}
+
+/** 实时活动：审计链尾部（云枢正在做什么）+ 进行中的子代理委派 */
+function ActivityView() {
+  const [rows, setRows] = useState<{ seq: number; ts: string; action: string; subject: string }[]>([])
+  const [inflight, setInflight] = useState<{ task_id?: string; subagent?: string; goal?: string }[]>([])
+  const [paused, setPaused] = useState(false)
+  const [error, setError] = useState('')
+  const lastSeq = useRef(0)
+  const boxRef = useRef<HTMLDivElement>(null)
+
+  const poll = useCallback(async () => {
+    try {
+      const r = await hubGet<{
+        ok?: boolean
+        rows?: { seq: number; ts: string; action: string; subject: string }[]
+        inflight?: { task_id?: string; subagent?: string; goal?: string }[]
+        error?: string
+      }>(`${TERMINAL_ACTIVITY}?limit=60&since_seq=${lastSeq.current}`)
+      if (r?.ok === false) {
+        setError(String(r.error ?? '活动读取失败'))
+        return
+      }
+      setError('')
+      const incoming = Array.isArray(r?.rows) ? r.rows : []
+      if (incoming.length) {
+        lastSeq.current = incoming[incoming.length - 1].seq
+        setRows((prev) => [...prev, ...incoming].slice(-300))
+      }
+      setInflight(Array.isArray(r?.inflight) ? r.inflight : [])
+    } catch (e) {
+      setError(`活动不可用：${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (paused) return
+    void poll()
+    const timer = window.setInterval(() => void poll(), 3000)
+    return () => window.clearInterval(timer)
+  }, [paused, poll])
+
+  useEffect(() => {
+    const el = boxRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [rows.length])
+
+  return (
+    <>
+      <Hint>
+        审计链尾部（工具调用 / 技能加载 / 调度执行 / UI 写操作）—— 这就是“云枢此刻在做什么”。
+      </Hint>
+      <div className="flex shrink-0 items-center gap-1 border-b border-slate-800/60 px-2 py-1">
+        <button
+          type="button"
+          onClick={() => setPaused((p) => !p)}
+          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
+        >
+          {paused ? '继续' : '暂停'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setRows([])
+            lastSeq.current = 0
+          }}
+          className="rounded-sm border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400 hover:bg-slate-800"
+        >
+          清空
+        </button>
+        <span className="ml-auto font-mono text-[9px] text-slate-600">
+          seq {lastSeq.current || '—'} · {rows.length} 条
+        </span>
+      </div>
+      {inflight.length > 0 && (
+        <div className="shrink-0 border-b border-slate-800/60 bg-amber-500/5 px-2 py-1">
+          <div className="text-[9.5px] uppercase tracking-wider text-amber-300/80">进行中的委派</div>
+          {inflight.map((f, i) => (
+            <div key={f.task_id ?? i} className="truncate text-[10px] text-amber-200/90" title={f.goal ?? ''}>
+              {f.subagent ?? '—'} · {f.goal ?? ''}
+            </div>
+          ))}
+        </div>
+      )}
+      {error && <p className="px-3 py-1 text-[10px] text-rose-300">{error}</p>}
+      <div ref={boxRef} className="min-h-0 flex-1 overflow-y-auto px-2 py-1 font-mono text-[9.5px] leading-relaxed">
+        {rows.length === 0 ? (
+          <p className="text-slate-500">暂无活动（有新执行时会自动出现）</p>
+        ) : (
+          rows.map((r) => (
+            <div key={r.seq} className="flex gap-1.5 py-0.5">
+              <span className="shrink-0 text-slate-600">{r.ts.slice(11, 19)}</span>
+              <span className="shrink-0 text-cyan-400/80">{r.action}</span>
+              <span className="truncate text-slate-400" title={r.subject ?? ''}>
+                {r.subject ?? ''}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </>
   )
 }
