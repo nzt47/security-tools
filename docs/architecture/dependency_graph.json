@@ -218,6 +218,22 @@
       "out_degree": 1
     },
     {
+      "path": "agent.browser_remote",
+      "name": "browser_remote",
+      "layer": "core",
+      "file_path": "agent/browser_remote.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.guardrails.ssrf_guard",
+      "name": "ssrf_guard",
+      "layer": "guardrails",
+      "file_path": "",
+      "in_degree": 5,
+      "out_degree": 1
+    },
+    {
       "path": "agent.caching.multi_level_cache",
       "name": "multi_level_cache",
       "layer": "caching",
@@ -1400,14 +1416,6 @@
       "file_path": "agent/guardrails/output_schema.py",
       "in_degree": 0,
       "out_degree": 4
-    },
-    {
-      "path": "agent.guardrails.ssrf_guard",
-      "name": "ssrf_guard",
-      "layer": "guardrails",
-      "file_path": "agent/guardrails/ssrf_guard.py",
-      "in_degree": 4,
-      "out_degree": 1
     },
     {
       "path": "agent.guardrails.untrusted_ingest",
@@ -5373,6 +5381,19 @@
       "line": 21,
       "source_file": "agent/behavior_controller.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.browser_remote",
+      "target": "agent.guardrails.ssrf_guard",
+      "source_layer": "core",
+      "target_layer": "guardrails",
+      "import_type": "from_import",
+      "line": 58,
+      "source_file": "agent/browser_remote.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -31145,14 +31166,14 @@
     }
   ],
   "stats": {
-    "total_files": 705,
-    "total_nodes": 610,
-    "total_edges": 2020,
-    "cross_layer_edges": 1282,
+    "total_files": 706,
+    "total_nodes": 611,
+    "total_edges": 2021,
+    "cross_layer_edges": 1283,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 78,
+      "core": 79,
       "utils": 11,
       "monitoring": 32,
       "tools": 29,
@@ -31161,11 +31182,11 @@
       "security": 10,
       "evolution": 1,
       "lines": 7,
+      "guardrails": 15,
       "caching": 2,
       "capregistry": 8,
       "unknown": 1,
       "web": 5,
-      "guardrails": 15,
       "skills_mgmt": 43,
       "cognitive": 13,
       "config": 2,
