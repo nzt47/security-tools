@@ -770,3 +770,14 @@ describe('WorkbenchChatPage · DSH 式会话界面', () => {
     await waitFor(() => expect(within(rowB).getByText(/sa-1/)).toBeInTheDocument());
   });
 });
+
+describe("交接文档面板（2026-11-01 回归）", () => {
+  it("点开能关：面板在右栏内部渲染，并自带关闭按钮", async () => {
+    render(<WorkbenchChatPage />);
+    // 只有页头一个「交接文档」按钮（精确名，避免命中「生成交接文档」）
+    fireEvent.click(screen.getByRole("button", { name: "交接文档" }));
+    expect(await screen.findByText(/交接文档（Markdown，含脱敏/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "关闭交接文档" }));
+    await waitFor(() => expect(screen.queryByText(/交接文档（Markdown，含脱敏/)).toBeNull());
+  });
+});
