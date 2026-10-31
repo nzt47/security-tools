@@ -61,6 +61,14 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 
 logger = logging.getLogger("visibility_trend")
 
+#: 退避睡眠的**可替换缝**（不要直接 patch `time.sleep`）。
+#:
+#: `time` 是进程级单例模块，`patch("time.sleep")` / `patch("<模块>.time.sleep")` 命中的是**同一个**
+#: 全局函数：同一进程里审计写入线程、调度器、限流器的 sleep 都会记到同一个 mock 上。
+#: 「失败基线回归」把 2 万+ 用例放进单进程跑，实测断言值 3416 / 3737 次 ⇒ 每次假红。
+#: 测试请 patch `generate_visibility_trend._sleep`，它只会命中本模块自己的两次退避。
+_sleep = time.sleep
+
 
 def _setup_logging(verbose: bool = False) -> None:
     """配置结构化日志"""
@@ -480,7 +488,7 @@ class PrometheusClient:
                 )
                 if attempt < self.max_retries:
                     backoff = 2 ** attempt  # 1s, 2s, 4s
-                    time.sleep(backoff)
+                    _sleep(backoff)
             except (OSError, json.JSONDecodeError) as e:
                 last_error = e
                 _emit_log(
@@ -495,7 +503,7 @@ class PrometheusClient:
                 )
                 if attempt < self.max_retries:
                     backoff = 2 ** attempt
-                    time.sleep(backoff)
+                    _sleep(backoff)
 
         # 所有重试均失败
         raise TrendReportError(
