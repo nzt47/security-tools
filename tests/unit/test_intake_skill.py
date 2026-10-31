@@ -274,3 +274,41 @@ class TestArgs:
         with pytest.raises(SystemExit) as exc:
             intake.main(["demo-skill", "--fix-baselines"])
         assert exc.value.code == 2
+
+
+# ════════════════════════════════════════════════════════════
+#  6. 程序化入口（REST /api/skills-mgmt/intake/* 用的就是这两个函数）
+# ════════════════════════════════════════════════════════════
+
+class TestProgrammaticApi:
+
+    def test_intake_one_拒绝非法_id(self):
+        for bad in ["..", "../x", "", "Not-Valid"]:
+            out = intake.intake_one(bad, execute=True)
+            assert out["ok"] is False and out["stage"] == "validate", (bad, out)
+
+    def test_intake_one_目录不存在(self):
+        out = intake.intake_one("no-such-skill-xyz", execute=True)
+        assert out["ok"] is False and "不存在" in out["error"]
+
+    def test_intake_one_干跑不改动已入轨技能(self, tmp_path, monkeypatch):
+        _write_skill(tmp_path, "demo-skill", GOOD_SKILL)
+        monkeypatch.setattr(intake, "SKILLS_REPO", tmp_path)
+        monkeypatch.setattr(intake, "is_tracked", lambda d: True)
+        monkeypatch.setattr(intake, "stage_skill", lambda d: pytest.fail("已入轨不该 add"))
+        out = intake.intake_one("demo-skill", execute=False)
+        assert out["ok"] is True and out["mode"] == "dry-run" and out["tracked_before"] is True
+
+    def test_pending_report_真实仓库_字段齐全(self):
+        items = intake.pending_report()
+        assert isinstance(items, list) and items, "真实文件轨不该为空"
+        by_id = {i["skill_id"]: i for i in items}
+        assert {"tracked", "errors", "warnings"} <= set(next(iter(items)))
+        # humanizer-zh 已在 2026-10-31 入轨（本轮实测），应显示 tracked=True
+        if "humanizer-zh" in by_id:
+            assert by_id["humanizer-zh"]["tracked"] is True
+
+    def test_tracked_skill_ids_读的是_git_index(self):
+        ids = intake.tracked_skill_ids()
+        assert isinstance(ids, set) and ids, "git 里应至少有已入轨的技能"
+        assert "pdf" in ids and "humanizer-zh" in ids

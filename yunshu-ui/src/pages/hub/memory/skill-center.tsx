@@ -5,10 +5,13 @@
  * 两者执行模型不同（模型执行 vs 本地 DAG），页面不再用 Tab 混装。
  * 本页因此只留「统一 LLM 表」——运行时技能 + 技能资产按 id 合并，符合既有契约「单一 LLM 表」。
  */
-import { Hammer, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { GitBranch, Hammer, Sparkles } from 'lucide-react'
 import SkillAssetTable from './SkillAssetTable'
+import SkillIntakeDialog from './SkillIntakeDialog'
 
 export default function SkillCenter() {
+  const [intakeOpen, setIntakeOpen] = useState(false)
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       {/* ─── 页头 ─── */}
@@ -24,6 +27,14 @@ export default function SkillCenter() {
               <span className="ml-2 text-slate-600">· 本地确定性执行的工作流在「工作流」叶子</span>
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setIntakeOpen(true)}
+            title="为什么要把技能提交进 git、新技能怎么处理、一键入轨"
+            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
+          >
+            <GitBranch size={12} /> 入轨助手
+          </button>
         </div>
       </div>
 
@@ -42,6 +53,7 @@ export default function SkillCenter() {
             SkillAssetTable 内部只列「表里没有」的游离登记 —— 不在本页再画一份重复清单。 */}
         <SkillAssetTable />
       </div>
+      <SkillIntakeDialog open={intakeOpen} onClose={() => setIntakeOpen(false)} />
     </div>
   )
 }
