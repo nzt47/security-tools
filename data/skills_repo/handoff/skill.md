@@ -27,3 +27,11 @@ Do not duplicate content already captured in other artifacts (PRDs, plans, ADRs,
 Redact any sensitive information, such as API keys, passwords, or personally identifiable information.
 
 If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc accordingly.
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+- Compact the current conversation into a handoff document for another agent to pick up
+```

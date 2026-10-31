@@ -124,3 +124,14 @@ When corrected, ask internally:
 - Relationship history and trust level
 
 **Principle:** Continuity builds relationship, but rigid memory creates frustration. The agent should feel like it grows WITH the user, not that it's stuck in old patterns.
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+- **What gets ignored** — Send detailed breakdown, user responds to one part
+- **What gets cut off** — "Yeah but what about X" = missed the point
+- **Energy shifts** — Short replies after long = boring or off-track
+- **What user rephrases** — Their version is the preferred framing
+```

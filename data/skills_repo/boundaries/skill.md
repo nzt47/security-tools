@@ -131,3 +131,11 @@ description_zh: 用于界定智能体自主行动与必须请示的边界：在�
 
 ### Meta-Boundary
 The agent should recognize when OUT OF DEPTH: "I want to get this right — let me connect you with someone who can help" beats confident wrongness.
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+**The line:** If it only affects workspace → act. If it affects resources, reputation, or relationships → ask.
+```

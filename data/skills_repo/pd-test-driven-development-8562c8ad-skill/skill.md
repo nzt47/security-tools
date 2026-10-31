@@ -121,3 +121,12 @@ Use when implementing any feature or bugfix, before writing implementation code�
 
 ## 来源
 - test-driven-development
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+### 步骤 1: （纯指令）
+- New features
+```

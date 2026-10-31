@@ -969,3 +969,17 @@ Refs are invalidated on navigation — run `snapshot` again after `goto`.
 6. **Use `snapshot -C` for tricky UIs.** Finds clickable divs that the accessibility tree misses.
 7. **Check `console` after actions.** Catch JS errors that don't surface visually.
 8. **Use `chain` for long flows.** Single command, no per-step CLI overhead.
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```bash
+$B goto https://yourapp.com
+$B text                          # read the page — does it load?
+$B console                       # any JS errors?
+$B network                       # any failed requests?
+$B js "document.title"           # correct title?
+$B is visible ".hero-section"    # key elements present?
+$B screenshot /tmp/prod-check.png
+```

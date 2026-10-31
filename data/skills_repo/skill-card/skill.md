@@ -54,3 +54,14 @@ Mitigation: Define autonomy boundaries before deployment and make remembered pre
 
 ## Ethical Considerations: <br>
 Users should evaluate whether this skill is appropriate for their environment, review any generated or modified files before relying on them, and apply their organization's safety, security, and compliance requirements before deployment. <br>
+
+## 示例
+
+> 以下示例摘自上文正文（逐字引用，未新增内容）。
+
+```
+**Output Type(s):** [text, markdown, guidance, configuration] <br>
+**Output Format:** [Markdown guidance and templates] <br>
+**Output Parameters:** [1D] <br>
+**Other Properties Related to Output:** [Instruction-only skill; produces reusable identity, voice, boundary, and adaptation guidance.] <br>
+```
