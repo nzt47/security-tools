@@ -6,7 +6,7 @@ description: Scan code endpoints and generate comprehensive API documentation in
   docs", "create API documentation", "make docs for my endpoints", or "document my
   routes".
 version: 1.0.0
-author: ''
+author: unknown
 category: claude
 source: claude-skills
 tags:
@@ -15,6 +15,7 @@ content_type: markdown
 enabled: true
 description_zh: 扫描代码端点并生成 OpenAPI、Markdown 或自定义格式的全面 API 文档。当被要求“文档化这个 API”、“生成 API
   文档”、“创建 API 文档”、“为我的端点制作文档”或“为我的路由制作文档”时使用。
+status: approved
 ---
 
 # API Docs Generator

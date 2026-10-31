@@ -3,7 +3,9 @@ id: voice_interaction
 name: 语音交互
 description: 通过语音输入与输出与用户进行交互，支持语音转文字识别、文字转语音合成与语音指令路由，适用于免手操作与无障碍场景
 category: custom
-tags: []
+tags:
+- 指令型
+- 语音与多媒体
 version: 0.1.0
 enabled: true
 status: approved
@@ -13,6 +15,7 @@ content_type: markdown
 persona: |
   ## 语音交互
   你支持语音交互——可以接收用户的语音输入，也可以用语音回复。当用户使用语音时，你的回应会更口语化、更简洁。
+description_zh: 通过语音输入与输出与用户进行交互，支持语音转文字识别、文字转语音合成与语音指令路由，适用于免手操作与无障碍场景
 ---
 
 # 语音交互

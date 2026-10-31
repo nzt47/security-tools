@@ -16,6 +16,7 @@ source: knowledge_distill
 status: approved
 enabled: true
 description_zh: 在提出修复方案之前，如果遇到任何 Bug、测试失败或异常行为，请先使用（该工具/方法）。由 1 份素材蒸馏生成
+version: 0.1.0
 ---
 
 # systematic-debugging

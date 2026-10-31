@@ -6,7 +6,7 @@ description: Perform bulk code refactoring operations like renaming variables/fu
   renaming identifiers, replacing deprecated code patterns, updating method calls,
   or making consistent changes across multiple locations.
 version: 1.0.0
-author: ''
+author: unknown
 category: claude
 source: claude-skills
 tags:
@@ -14,6 +14,7 @@ tags:
 content_type: markdown
 enabled: true
 description_zh: 执行批量代码重构操作，例如跨文件重命名变量/函数、替换代码模式以及更新API调用。当用户请求重命名标识符、替换过时的代码模式、更新方法调用或在多个位置进行一致更改时使用。
+status: approved
 ---
 
 # Code Refactor

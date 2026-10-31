@@ -88,7 +88,11 @@ SHAPE_KEYS = {
     "enabled", "status", "author", "source", "content_type",
 }
 #: 迁移后还应带上中文展示键（= 既有 15 条 description_zh 的形状）
-SHAPE_KEYS_WITH_ZH = SHAPE_KEYS | {"description_zh"}
+#:
+#: 【2026-10-31 元数据补齐】把 `version` 纳入形状基线：它是 schema 的 RECOMMENDED_KEYS，
+#: 且**本轮补齐后 44 份文件轨全部都有**（此前 40/44）。这不是放宽断言 —— 仍然是
+#: 「键集合与既有语料一致」，只是语料本身现在统一带 version（本轮给这 5 条补上了主轨同值）。
+SHAPE_KEYS_WITH_ZH = SHAPE_KEYS | {"description_zh", "version"}
 
 
 # ────────────────────────────────────────────────────────────

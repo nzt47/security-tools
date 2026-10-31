@@ -10,6 +10,7 @@ tags: [browser, qa, e2e, selenium, 前端回归]
 content_type: markdown
 status: published
 enabled: true
+description_zh: 用 Selenium 4 在真实浏览器里做前端页面 QA 与回归：按元素清单定位、显式等待、断言、整页截图、采集控制台报错与失败请求，覆盖上线冒烟、改版验证与多视口布局。
 ---
 
 # 浏览器 QA 手册

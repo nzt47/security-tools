@@ -17,6 +17,7 @@ source: knowledge_distill
 status: approved
 enabled: true
 description_zh: 在实现任何新功能或修复 Bug 时，请在编写具体实现代码之前使用。由 1 份素材蒸馏生成
+version: 0.1.0
 ---
 
 # test-driven-development
