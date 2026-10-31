@@ -74,6 +74,19 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
 
   const run = useCallback(
     async (action: ActionName, body: Record<string, unknown> = {}) => {
+      // 【2026-11-01】先做**前端可判定**的前置条件，别把「缺 reason / 缺二次认证」丢给后端
+      // 再转成一句 HTTP 403：这两个条件是公开口径（§7.0 矩阵），本地就能讲清楚。
+      const needsReason = action === 'remove_source' || action === 'rollback'
+      if (needsReason && !reason.trim()) {
+        setError(action === 'rollback'
+          ? '「回滚」必须先填 reason（整包替换不可逆，审计要求）'
+          : '「摘除来源」必须先填 reason（摘除不可逆，审计要求）')
+        return
+      }
+      if (action === 'switch_forge' && !secondFactor.trim()) {
+        setError('「熔炉开关」需要二次认证码（destructive 写操作，§7.0 矩阵要求）')
+        return
+      }
       setBusy(action); setError(''); setResult(null)
       try {
         const resp = await runAction(action, { target, reason, risk, second_factor: secondFactor, ...body })
@@ -128,6 +141,12 @@ export function AbsoluteActionBar({ target, targetLabel, onDone }: ActionsBarPro
             >
               {busy === a.action ? <Loader2 size={11} className="inline animate-spin" /> : a.icon}
               <span className="ml-1">{a.label}</span>
+              {(a.action === 'remove_source' || a.action === 'rollback') && (
+                <span className="ml-1 text-[10px] text-amber-400/80" title="需先填 reason">*</span>
+              )}
+              {a.action === 'switch_forge' && (
+                <span className="ml-1 text-[10px] text-amber-400/80" title="需二次认证码">*</span>
+              )}
             </button>
           ))}
           <button

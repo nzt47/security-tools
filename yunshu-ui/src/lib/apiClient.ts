@@ -86,7 +86,10 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
     const p = (payload || {}) as Record<string, unknown>;
     throw new ApiError(
       (p.code as string) || 'API_HTTP_ERROR',
-      (p.error as string) || `HTTP ${res.status}`,
+      // 【2026-11-01】后端不同端点用不同字段名：/api/cp/* 回 {code,message,decision}，
+      // 通用信封回 {ok:false,error}。此前只认 error ⇒ 治理面板的 403 全变成
+      // 「HTTP 403」，把「缺 reason / 缺二次认证」这类**可操作提示**吞掉了（用户实测）。
+      (p.message as string) || (p.error as string) || `HTTP ${res.status}`,
       res.status,
       // 将完整错误 body 作为 details（后端错误字段如 incoming_links/violations 均在顶层）
       p,
