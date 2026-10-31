@@ -19,6 +19,7 @@ status: approved
 enabled: true
 description_zh: 在以下情况请查阅这份参考指南：编写或修改测试、添加 Mock（测试替身），或者忍不住想往生产代码里加‘仅供测试使用’的方法时。由 1
   份素材蒸馏生成
+version: 0.1.0
 ---
 
 # Testing Anti-Patterns

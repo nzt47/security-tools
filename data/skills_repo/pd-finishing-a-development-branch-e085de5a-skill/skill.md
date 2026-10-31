@@ -19,6 +19,7 @@ status: approved
 enabled: true
 description_zh: 当代码实现完毕、所有测试都通过，且你需要决定如何集成这些工作时，就可以使用它。它会为你提供合并（merge）、提交拉取请求（PR）或清理代码等结构化的选项，帮你顺利完成开发收尾。由
   1 份素材蒸馏生成
+version: 0.1.0
 ---
 
 # finishing-a-development-branch

@@ -18,6 +18,7 @@ status: approved
 enabled: true
 description_zh: 生成涉及前后端交互、状态更新、异步请求或数据展示的 Web 代码时使用。确保 UI 与后端数据"所见即所得"，覆盖竞态防御、请求取消、乐观更新回滚、防抖节流、WebSocket
   健壮性、框架对齐与防连点。
+version: 0.1.0
 ---
 
 # 前后端状态绝对同步规范

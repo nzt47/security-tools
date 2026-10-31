@@ -16,6 +16,7 @@ source: external_agent
 status: approved
 enabled: true
 description_zh: 进行界面设计或前端 UI 开发时使用。将功能说明与帮助信息直接集成到可视化界面中，通过视觉层次、图标提示、状态反馈和上下文帮助，实现零学习成本的自解释用户界面。
+version: 0.1.0
 ---
 
 # 自解释 UI 设计规范

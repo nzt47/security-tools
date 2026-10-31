@@ -12,7 +12,7 @@ description: 'Fast headless browser for QA testing and site dogfooding. Navigate
   test a site, verify a deployment, dogfood a user flow, or file a bug with screenshots.
   (gstack)'
 version: 1.1.0
-author: ''
+author: unknown
 category: claude
 source: claude-skills
 tags:

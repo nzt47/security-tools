@@ -6,7 +6,7 @@ description: Creates, optimizes, and iteratively refines agent prompts, system p
   optimize a system prompt, rewrite an agent prompt, tune prompt wording, make a prompt
   more reliable, port prompts between OpenAI, Claude, or Gemini, or build prompt evals.
 version: 1.0.0
-author: ''
+author: unknown
 category: claude
 source: claude-skills
 tags:
@@ -15,6 +15,7 @@ content_type: markdown
 enabled: true
 description_zh: 创建、优化并迭代完善代理提示、系统提示、开发者提示以及可重用的提示模板。在被要求改进提示、优化系统提示、重写代理提示、调整提示措辞、提高提示的可靠性或在
   OpenAI、Claude 或 Gemini 之间移植提示时使用。
+status: approved
 ---
 
 # Prompt Optimizer

@@ -19,6 +19,7 @@ source: manual
 status: published
 enabled: true
 description_zh: 在代码开发与生成的完整生命周期中，严格执行质量保障与过程管理规范，确保交付生产级高质量代码，并保证全流程可追溯、便于后续审查与排查。
+version: 0.1.0
 ---
 
 # 工程化测试与过程管理规范

@@ -4,7 +4,7 @@ name: 会话交接文档生成器
 description: Compact the current conversation into a handoff document for another
   agent to pick up.
 version: 1.0.0
-author: ''
+author: unknown
 category: claude
 source: claude-skills
 tags:
@@ -12,6 +12,7 @@ tags:
 content_type: markdown
 enabled: true
 description_zh: 用于将当前对话压缩整理为交接文档，供新代理继续工作；当需要转交任务、切换代理或让其他代理接手时触发。文档保存至系统临时目录，包含建议技能，并引用已有产物路径或链接，同时隐去敏感信息。
+status: approved
 ---
 
 ## When to Use

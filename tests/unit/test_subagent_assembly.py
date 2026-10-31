@@ -374,9 +374,11 @@ class TestSkills:
 
     #: 带 memory 标签 ⇒ 收紧（不下发给分身）
     MEMORY_TAGGED = "memory_summary"
-    #: tags 为空 ⇒ 取不到标签 ⇒ 按纪律**保留**并在 skills_note 里点名
-    UNTAGGED_KEPT = ("context_aware", "emotion_expression", "proactive_suggestion",
-                     "safety_guard", "voice_interaction")
+    #: 【2026-10-31 元数据补齐】原样本是 5 条 tags 为空的 persona 技能
+    #:   （context_aware / emotion_expression / proactive_suggestion / safety_guard / voice_interaction）；
+    #:   补齐后**仓库里已经没有 tags 为空的技能** ⇒ “取不到标签”这一侧改为**注入**（monkeypatch
+    #:   抹掉一条的标签），判据本身不变：取不到标签 ⇒ 保留，且 skills_note 如实点名。
+    UNTAGGED_INJECTED = "context_aware"
     #: 有标签（reflection/review/…）但不含私人语义 ⇒ 保留，且**不**进"取不到标签"清单
     TAGGED_NOT_PRIVATE = "self_reflection"
 
@@ -489,16 +491,16 @@ class TestSkills:
         assert "memory_summary" in index, "口径自检：该技能不在标签来源里"
         assert "memory" in index["memory_summary"]
 
-    def test_真实数据上收紧判据的两侧(self):
+    def test_真实数据上收紧判据的两侧(self, monkeypatch):
         """在**真实数据**上把判据的两侧同时钉住（只钉一侧会漏掉"永不收紧"的退化）
 
         上侧（收紧）：memory_summary 带 memory 标签 ⇒ 不下发给分身；
-        下侧（不收紧）：front matter tags 为空的 persona 技能 ⇒ 保留，且 skills_note
-                       里如实点名"未收紧（取不到标签）"的**就是这几个**；
+        下侧（不收紧）：**注入**一条取不到标签的技能（见 UNTAGGED_INJECTED 的说明）⇒ 保留，
+                       且 skills_note 里如实点名"未收紧（取不到标签）"；
         中间侧：self_reflection 有标签但不含私人语义 ⇒ 保留，且**不**算"取不到标签"。
 
-        为什么用 engineering：它是本次补齐 persona 技能后技能面最大的一条线
-        （4 个指令型 + 7 个 persona），两侧样本都齐。
+        为什么用 engineering：它是补齐 persona 技能后技能面最大的一条线
+        （4 个指令型 + 7 个 persona）。
         """
         profile = get_line_registry().load("engineering")
         index = _assembly._skill_tag_index()
@@ -509,25 +511,28 @@ class TestSkills:
             f"口径自检：engineering 未声明 {self.MEMORY_TAGGED}")
         assert "memory" in (index.get(self.MEMORY_TAGGED) or ()), (
             f"{self.MEMORY_TAGGED} 的 memory 标签没了 ⇒ 收紧判据会静默失效（先查数据）")
-        for sid in self.UNTAGGED_KEPT:
-            assert sid in profile.skills, f"口径自检：engineering 未声明 {sid}"
-            assert not index.get(sid), (
-                f"口径自检：{sid} 现在有标签了 ⇒ 请更新本用例的数据事实锁（不是改判据）")
+        assert self.UNTAGGED_INJECTED in profile.skills, (
+            f"口径自检：engineering 未声明注入样本 {self.UNTAGGED_INJECTED}")
+
+        # 下侧样本：把这条技能的标签**注入性抹掉**，模拟"取不到标签"（真实数据里已无空 tags）
+        monkeypatch.setattr(
+            _assembly, "_skill_tag_index",
+            lambda: {k: v for k, v in index.items() if k != self.UNTAGGED_INJECTED})
 
         asm = _resolve("engineering")
         assert asm.skills_mode == "whitelist"
         # 上侧：带 memory 标签的必须被剔除（即便本线确实声明了它）
         assert self.MEMORY_TAGGED not in asm.skills, "带 memory 标签的技能被下发给分身了"
         # 下侧：取不到标签的必须保留（不臆断剔除）
-        assert set(self.UNTAGGED_KEPT) <= set(asm.skills), (
+        assert self.UNTAGGED_INJECTED in asm.skills, (
             "取不到标签的技能被臆断剔除了（应保留并在 note 里记账）")
         # 中间侧：有标签但不含私人语义的同样保留
         assert self.TAGGED_NOT_PRIVATE in asm.skills
 
         # note 必须**点名**：解析出"未收紧（取不到标签）"那段的实际清单
         untagged = _untagged_ids_from_note(asm.skills_note)
-        assert set(self.UNTAGGED_KEPT) <= set(untagged), (
-            f"skills_note 没有点名这些未收紧的技能: {asm.skills_note}")
+        assert self.UNTAGGED_INJECTED in untagged, (
+            f"skills_note 没有点名未收紧的技能 {self.UNTAGGED_INJECTED}: {asm.skills_note}")
         assert self.MEMORY_TAGGED not in untagged, "被剔除的技能混进了'未收紧'清单"
         assert self.TAGGED_NOT_PRIVATE not in untagged, "有标签的技能被记成'取不到标签'"
         # note 与实际结果自洽：本线声明 − 实际剔除 = 授予（未收紧的那些仍在授予集里）

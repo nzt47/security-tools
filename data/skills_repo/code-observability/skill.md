@@ -16,6 +16,7 @@ source: external_agent
 status: published
 enabled: true
 description_zh: 生成功能模块代码或后端 API 时使用。遵循"存在即可见"原则，强制输出结构化日志、显性错误边界、埋点预留与健康检查接口，且不引入昂贵的第三方付费依赖。
+version: 0.1.0
 ---
 
 # 可观测性强制约束

@@ -13,6 +13,7 @@ content_type: markdown
 default_params:
   greeting: hello
   count: 3
+description_zh: 三层架构示例技能，演示 skill.md 元数据 + scripts/main.py 执行脚本 + default_params 参数注入的完整契约，作为新增带脚本技能的参考模板
 ---
 
 # 带脚本技能示例

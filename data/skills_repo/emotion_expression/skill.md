@@ -3,7 +3,9 @@ id: emotion_expression
 name: 情感表达
 description: 在对话中表达情感色彩，让回应更生动
 category: custom
-tags: []
+tags:
+- 指令型
+- 交流与人格
 version: 0.1.0
 enabled: true
 status: approved
