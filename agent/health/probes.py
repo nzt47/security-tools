@@ -31,6 +31,19 @@ CONFIGS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 # 核心配置：L2 依赖可读性检查对象（缺任一即认为依赖不可用）
 CORE_CONFIGS = ("app.yaml", "paths.yaml")
 
+#: 【2026-11-01】L1 内存判据：改用**可用内存绝对值**（本机 15GB、模型常驻 ⇒ 百分比长期 >85%）
+#: 分档（实测 01:20 avail≈1019MB，正好卡在 1GB 线上 ⇒ 硬阈值会随 GC 跳变，故分两档）：
+#:   < 512MB  → 扣 0.5（真危险：随时可能 OOM）
+#:   < 1024MB → 扣 0.2（偏紧，但可服务）
+#:   > 95%    → 再兜底扣 0.2（防 "available 虚高" 的极端情况）
+L1_CRITICAL_MEM_MB = 512
+L1_LOW_MEM_MB = 1024
+L1_EXTREME_MEM_PCT = 95.0
+
+#: 【2026-11-01】L5 语义质量的最小样本：低于它**不评分**（available=False），
+#: 否则 1 条 dislike / 2 条反馈就能把整机健康分从 1.0 拽到 0.68（2026-10-31 实测）。
+L5_MIN_FEEDBACK = 5
+
 
 @dataclass
 class ProbeResult:
@@ -71,13 +84,18 @@ def probe_l1_process() -> ProbeResult:
         threads = len(psutil.Process().threads())
         disk = psutil.disk_usage(os.path.abspath(os.sep))
         mem_pct = vm.percent
+        avail_mb = float(getattr(vm, "available", 0)) / (1024 * 1024)
         disk_free_pct = disk.free / disk.total * 100
-        detail = f"mem={mem_pct:.1f}% cpu={cpu:.1f}% threads={threads} disk_free={disk_free_pct:.1f}%"
-        # 评分：内存/CPU 越低分越高；磁盘剩余越少越低分
+        detail = (f"mem={mem_pct:.1f}% avail={avail_mb:.0f}MB cpu={cpu:.1f}%"
+                  f" threads={threads} disk_free={disk_free_pct:.1f}%")
+        # 评分：**可用内存绝对值** + CPU；磁盘剩余越少越低分。
+        # 【2026-11-01】原判据是 mem_pct > 85（百分比）：本机 15GB、模型+浏览器常驻，
+        # 91% 是常态 ⇒ 每次巡检都扣 0.5，把整体健康分压到 0.68、三个服务节点一起变黄。
+        # 百分比高但**还剩 1GB 以上**并不影响服务；真紧张时按可用内存扣分更贴近事实。
         score = 1.0
-        if mem_pct > 85 or cpu > 90:
+        if avail_mb < L1_CRITICAL_MEM_MB or cpu > 90:
             score -= 0.5
-        elif mem_pct > 70 or cpu > 75:
+        elif avail_mb < L1_LOW_MEM_MB or cpu > 75 or mem_pct > L1_EXTREME_MEM_PCT:
             score -= 0.2
         if disk_free_pct < 5:
             score -= 0.3
@@ -189,6 +207,14 @@ def probe_l5_semantic() -> ProbeResult:
         return ProbeResult("l5_semantic", None, "近 7 天无用户反馈", available=False)
 
     total = len(records)
+    # 【2026-11-01】小样本不评分：2 条反馈里 1 条 dislike 就是 50%，能把整机分拽到 0.68。
+    # 与「技能使用探针：样本 ≥ 20 才 warn」同一取舍 —— 宁可说"样本不足"，也不给-noise 打分。
+    if total < L5_MIN_FEEDBACK:
+        return ProbeResult(
+            "l5_semantic", None,
+            f"样本不足（近 7 天反馈 {total} 条，需 ≥{L5_MIN_FEEDBACK} 条才评分）",
+            available=False,
+        )
     dislikes = sum(1 for r in records if getattr(r, "feedback_type", None) == "dislike")
     likes = sum(1 for r in records if getattr(r, "feedback_type", None) == "like")
     satisfaction = likes / total if total else 0.0
