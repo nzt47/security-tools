@@ -375,8 +375,9 @@ class TestConsistencyWithPermissionLevel:
         （"技能条目不携带 confirm_level""permission_level 恒为 public/restricted"）不变。
         """
         # 【2026-10-24】28 → 36：8 个技能目录补回文件轨（能力面 +8 条技能）
+        # 【2026-10-31】42 → 44：autoresearch / pdf 入文件轨（§11.32 C · N5）
         skills = [e for e in _manifest_entries() if e.get("kind") == "skill"]
-        assert len(skills) == 42, len(skills)
+        assert len(skills) == 44, len(skills)
         for e in skills:
             assert "confirm_level" not in e, (
                 f"技能 {e.get('tool_name')} 不该有工具侧的 confirm_level 字段")
