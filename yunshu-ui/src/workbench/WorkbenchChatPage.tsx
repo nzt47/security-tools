@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { FileText, FolderOpen, History, Lightbulb, MessageSquare, RotateCcw } from 'lucide-react'
+import { FileText, FolderOpen, History, Lightbulb, MessageSquare, RotateCcw, X } from 'lucide-react'
 import { ChatPanel } from '../components/workbench/panels/ChatPanel'
 import { ContextManagerBar } from '../components/workbench/panels/ContextManagerBar'
 import { HistoryDrawer } from '../components/workbench/panels/HistoryDrawer'
@@ -596,14 +596,29 @@ export default function WorkbenchChatPage() {
 
         {/* 上下文管理器（从 legacy 对话移植） */}
         <ContextManagerBar />
-      </div>
 
-      {/* 交接文档：就地展开（只产出一份 Markdown，不遮蔽对话） */}
-      {handoffOpen && (
-        <div className="border-t border-slate-800 bg-slate-950/60 px-4 py-3">
-          <HandoffPanel sessionId={sessionId ?? ''} />
-        </div>
-      )}
+        {/* 交接文档：就地展开 **在右栏内部**。
+            2026-11-01 修：原先把这块写成右栏的**兄弟节点**，而外层是「横向 flex + h-full +
+            overflow-hidden」⇒ 面板被排到右栏右侧并被裁掉，页头那个「交接文档」按钮却还在 ⇒
+            用户看到的就是「点开了却关不掉」（其实是面板被裁得看不见）。 */}
+        {handoffOpen && (
+          <div className="border-t border-slate-800 bg-slate-950/60 px-4 py-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] text-slate-500">交接文档（Markdown，含脱敏；生成后落盘到临时目录）</span>
+              <button
+                type="button"
+                onClick={() => setHandoffOpen(false)}
+                aria-label="关闭交接文档"
+                title="关闭交接文档"
+                className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+              >
+                <X size={12} />
+              </button>
+            </div>
+            <HandoffPanel sessionId={sessionId ?? ''} />
+          </div>
+        )}
+      </div>
 
       {/* 历史问话侧滑面板 */}
       <AnimatePresence>
