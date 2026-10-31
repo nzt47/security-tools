@@ -41,6 +41,17 @@ function installFetch(opts: { terminal?: unknown } = {}) {
     if (url.includes('/api/filesystem/read')) {
       return res({ ok: true, content: '# 文档正文' })
     }
+    if (url.includes('/api/terminal/activity')) {
+      return res({
+        ok: true,
+        rows: [
+          { seq: 81503, ts: '2026-10-31T09:10:00+08:00', action: 'terminal.exec', subject: 'git-status' },
+          { seq: 81504, ts: '2026-10-31T09:10:03+08:00', action: 'skill.load', subject: 'skill:handoff' },
+        ],
+        inflight: [{ task_id: 't1', subagent: 'sa-x', goal: '抽取文档要点' }],
+        last_seq: 81504,
+      })
+    }
     if (url.includes('/api/terminal/commands')) {
       return res({
         ok: true,
@@ -113,6 +124,17 @@ describe('DockPanel · 右侧可切换边栏', () => {
     await waitFor(() => expect(screen.getByText(/exit 0/)).toBeInTheDocument())
     expect(screen.getByText(/M a\.ts/)).toBeInTheDocument()
     expect(screen.getByText(/git status --short/)).toBeInTheDocument()
+  })
+
+  it('终端 · 实时活动：显示审计链尾部的执行记录与进行中的委派', async () => {
+    installFetch()
+    render(<DockPanel />)
+    fireEvent.click(screen.getByRole('tab', { name: /终端/ }))
+    fireEvent.click(screen.getByRole('button', { name: '实时活动' }))
+    await waitFor(() => expect(screen.getByText('terminal.exec')).toBeInTheDocument())
+    expect(screen.getByText('skill.load')).toBeInTheDocument()
+    expect(screen.getByText(/进行中的委派/)).toBeInTheDocument()
+    expect(screen.getByText(/抽取文档要点/)).toBeInTheDocument()
   })
 
   it('终端 Tab：命令清单读取失败时上屏错误（不是空白面板）', async () => {

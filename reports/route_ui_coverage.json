@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-10-31T03:03:13",
+  "generated_at": "2026-10-31T09:20:13",
   "totals": {
-    "routes": 479,
-    "live": 479,
+    "routes": 480,
+    "live": 480,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 423,
+    "ui": 424,
     "cli_script": 15,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 423,
+      "ui": 424,
       "cli_script": 15,
       "runtime_only": 11,
       "unreferenced": 30
@@ -18,12 +18,12 @@
     "by_intent": {
       "should_be_in_ui": 402,
       "should_not_be_in_ui": 73,
-      "unclassified": 4
+      "unclassified": 5
     },
     "by_domain": {
       "页面入口": 7,
       "分身与主线": 20,
-      "系统与配置": 45,
+      "系统与配置": 46,
       "治理与审批": 42,
       "资产与文件": 19,
       "管理与后台": 18,
@@ -37,7 +37,7 @@
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 427,
+  "frontend_endpoints": 428,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -10313,6 +10313,32 @@
       "domain": "调度与任务"
     },
     {
+      "path": "/api/terminal/activity",
+      "norm": "/api/terminal/activity",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts",
+        "yunshu-ui/src/components/workbench/panels/DockPanel.tsx"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/system_tools.py:759"
+      ],
+      "description": "「云枢当前正在执行什么」—— 审计链尾部 + 进行中的子代理委派（只读）。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "系统与配置"
+    },
+    {
       "path": "/api/terminal/commands",
       "norm": "/api/terminal/commands",
       "methods": [
@@ -12287,5 +12313,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "65ff05fafb2a101d"
+  "content_hash": "d100cd0ff0fc5a1e"
 }

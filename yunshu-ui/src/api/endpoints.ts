@@ -590,6 +590,8 @@ export const SANDBOX_RUN = '/api/sandbox/run';
 /** 终端：白名单命令清单 / 执行（argv 由服务端常量表拼出，shell=False） */
 export const TERMINAL_COMMANDS = '/api/terminal/commands';
 export const TERMINAL_EXEC = '/api/terminal/exec';
+/** 实时活动（审计链尾部 + 进行中的子代理委派；只读，轮询用） */
+export const TERMINAL_ACTIVITY = '/api/terminal/activity';
 export const CLIPBOARD = '/api/clipboard';
 // 认知闭环（元认知）状态 / 任务接受度裁决（方案 §7 第三批接入）
 export const COGNITIVE_STATUS = '/api/cognitive/status';
