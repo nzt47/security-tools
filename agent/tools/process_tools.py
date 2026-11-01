@@ -86,20 +86,62 @@ def get_whitelist_detail() -> dict:
     }
 
 
+_MAX_ARGS = 64
+_MAX_ARG_LEN = 4096
+
+
+def _resolve_whitelisted_program(program):
+    """把用户输入的程序名**换成白名单里的那一条**（命中则返回白名单元素，否则 None）。
+
+    [不易] CodeQL py/command-line-injection（告警 #598）：直接把 program 交给
+    Popen，等于让用户字符串决定「执行哪个可执行文件」。这里改成只拿用户串做
+    **比较**，真正进 argv[0] 的是白名单元素本身（`_DEFAULT_WHITELIST` 常量，或
+    操作者经 add_whitelist_entry 显式登记过的自定义条目）—— 用户输入不进命令。
+    兼容原有两种写法：`notepad.exe` 与 `C:\Tools\notepad.exe`（按尾段等值）。
+    """
+    if not isinstance(program, str):
+        return None
+    prog_lower = program.strip().lower()
+    if not prog_lower:
+        return None
+    for w in get_process_whitelist():
+        if prog_lower == w or prog_lower.endswith("\\" + w) or prog_lower.endswith("/" + w):
+            return w
+    return None
+
+
+def _sanitize_args(args):
+    """校验参数形态；不合法返回 None。
+
+    只做「形状」约束（必须是字符串列表、长度有上界、不含 NUL），不改写内容：
+    Popen 走 shell=False 的列表形式，参数不会被 shell 解释，无需转义。
+    """
+    if args is None:
+        return []
+    if isinstance(args, str) or not isinstance(args, (list, tuple)):
+        return None
+    if len(args) > _MAX_ARGS:
+        return None
+    out = []
+    for a in args:
+        if not isinstance(a, str) or len(a) > _MAX_ARG_LEN or "\x00" in a:
+            return None
+        out.append(a)
+    return out
+
+
 def start_process(program, args=None, cwd=None):
-    """启动白名单程序"""
-    prog_lower = program.lower()
-    allowed = False
-    wl = get_process_whitelist()
-    for w in wl:
-        if prog_lower == w or prog_lower.endswith("\\" + w):
-            allowed = True
-            break
-    if not allowed:
-        return {"ok": False, "error": f"程序不在白名单中。允许: {', '.join(wl)}"}
+    """启动白名单程序（argv[0] 取白名单元素，不取用户字符串）"""
+    resolved = _resolve_whitelisted_program(program)
+    if resolved is None:
+        return {"ok": False, "error": f"程序不在白名单中。允许: {', '.join(get_process_whitelist())}"}
+
+    argv = _sanitize_args(args)
+    if argv is None:
+        return {"ok": False, "error": f"args 不合法：需为字符串列表（≤{_MAX_ARGS} 项、每项 ≤{_MAX_ARG_LEN} 字符、不含 NUL）"}
 
     try:
-        cmd = [program] + (args if args else [])
+        cmd = [resolved, *argv]
         proc = subprocess.Popen(
             cmd, cwd=cwd or WORKSPACE_DIR,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
