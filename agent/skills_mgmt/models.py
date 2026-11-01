@@ -48,7 +48,12 @@ class ReviewStatus(str, enum.Enum):
 
 
 class ContentType(str, enum.Enum):
-    """技能内容类型"""
+    """技能内容类型
+
+    REFERENCE（2026-11-02）：**参考资料型**（CLI/API 手册、命令大全）。它不是"可被模型
+    按步骤执行"的技能，所以校验器不要求「何时使用 / 示例」两节（详见
+    skill_md_schema.REFERENCE_CONTENT_TYPES）—— 硬补只会催生编造。
+    """
     MARKDOWN = "markdown"
     PYTHON = "python"
     JAVASCRIPT = "javascript"
@@ -56,6 +61,7 @@ class ContentType(str, enum.Enum):
     JSON = "json"
     SHELL = "shell"
     TEXT = "text"
+    REFERENCE = "reference"
 
 
 # ──────────────────────────────────────────────

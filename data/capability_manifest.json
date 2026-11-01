@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-10-31T23:48:47",
+  "generated_at": "2026-11-02T03:45:08",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -373,81 +373,83 @@
   },
   "performance_note": "性能列（avg_ms / p99_ms / dpm）**一律未采集**：仓库现有实测只有一次 HTTP 压测（p50=15.84s），且进程内计时冒充压测的产物已确认不可引用（见 TASK-00 §0.2b）。清单**不提供估算值**；采集方案与 TASK-08 对接。",
   "counts": {
-    "total": 136,
+    "total": 137,
     "callable": 70,
     "conditional": 64,
-    "blocked": 2,
+    "blocked": 3,
     "model_callable": 89,
     "by_trigger": {
       "model": 89,
       "system": 45,
       "human": 0,
-      "none": 2
+      "none": 3
     },
     "by_type": {
       "tool": 91,
-      "skill": 45,
+      "skill": 46,
       "api": 0,
       "script": 0
     },
     "by_permission_level": {
       "public": 78,
       "internal": 37,
-      "restricted": 21
+      "restricted": 22
     },
     "blocked_reasons": {
       "内部执行体": 1,
+      "技能状态为 draft": 1,
       "纯提示词技能": 1
     },
     "conditional_reasons": {
-      "无 JSON Schema": 44,
+      "无 JSON Schema": 45,
       "纯提示词技能": 39,
       "指令型技能": 5,
       "内部执行体": 1,
       "带脚本技能": 1,
+      "技能状态为 draft": 1,
       "空实现": 1
     },
     "by_kind": {
       "tool": 91,
-      "skill": 45
+      "skill": 46
     },
     "by_location": {
-      "local": 115,
+      "local": 116,
       "remote": 21
     },
     "by_location_source": {
       "declaration": 91,
-      "skill_chain": 45
+      "skill_chain": 46
     },
     "by_location_derived_source": {
       "executor_boundary": 91,
-      "skill_chain": 45
+      "skill_chain": 46
     },
     "by_isolation_level": {
       "none": 0,
-      "process": 136,
+      "process": 137,
       "container": 0
     },
     "by_owner": {
-      "builtin": 136,
+      "builtin": 137,
       "local-installed": 0,
       "tenant-installed": 0,
       "marketplace": 0
     },
     "by_registry_source": {
-      "global": 136,
+      "global": 137,
       "planning": 0
     },
     "by_main_line_status": {
       "not_assembled": 54,
-      "n/a": 45,
+      "n/a": 46,
       "visible": 26,
       "denied_by_effect": 8,
       "muted": 3
     },
     "location_confidence": {
       "low": 71,
-      "high": 65
+      "high": 66
     },
     "declared_location_mismatch": 0
   },
@@ -7494,6 +7496,7 @@
         "int",
         "ipaddress.ip_address",
         "ipaddress.ip_network",
+        "isinstance",
         "json.load",
         "kwargs.get",
         "len",
@@ -7502,9 +7505,10 @@
         "logger.warning",
         "max",
         "min",
+        "out.append",
         "pattern.search",
         "prog_lower.endswith",
-        "program.lower",
+        "program.strip",
         "self._browser.is_connected",
         "self._browser.new_context",
         "self._context.new_page",
@@ -11446,6 +11450,79 @@
       "has_scripts": false,
       "skill_status": "approved",
       "description": "Use when generating web code that involves frontend/backend interaction, state updates, async requests or data display. Keeps UI and server data what-you-see-is-what-you-get: race-condition defense via request ids, AbortController cancellation, optimistic-update rollback, debounce/throttle, WebSocket resilience, framework alignment (nextTick / useEffect) and double-click protection.",
+      "main_line_status": "n/a"
+    },
+    {
+      "tool_name": "gh-cli",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "restricted",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+      "capability_id": "default:yunshu:gh-cli@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": true,
+      "entity_versioned": true,
+      "mark": "❌ 不可调用",
+      "reachable": false,
+      "trigger": "none",
+      "reason_kind": "unreachable",
+      "blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用"
+      ],
+      "blocker_codes": [
+        "disabled"
+      ],
+      "soft_blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "restricted",
+      "declared_in": "data/skills_repo/gh-cli/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": false,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "draft",
+      "description": "GitHub CLI (gh) comprehensive reference for repositories, issues, pull requests, Actions, projects, releases, gists, codespaces, organizations, extensions, and all GitHub operations from the command line.",
       "main_line_status": "n/a"
     },
     {
@@ -20702,6 +20779,7 @@
         "int",
         "ipaddress.ip_address",
         "ipaddress.ip_network",
+        "isinstance",
         "json.load",
         "kwargs.get",
         "len",
@@ -20710,9 +20788,10 @@
         "logger.warning",
         "max",
         "min",
+        "out.append",
         "pattern.search",
         "prog_lower.endswith",
-        "program.lower",
+        "program.strip",
         "self._browser.is_connected",
         "self._browser.new_context",
         "self._context.new_page",
@@ -24652,6 +24731,79 @@
       "has_scripts": false,
       "skill_status": "approved",
       "description": "Use when generating web code that involves frontend/backend interaction, state updates, async requests or data display. Keeps UI and server data what-you-see-is-what-you-get: race-condition defense via request ids, AbortController cancellation, optimistic-update rollback, debounce/throttle, WebSocket resilience, framework alignment (nextTick / useEffect) and double-click protection.",
+      "main_line_status": "n/a"
+    },
+    {
+      "tool_name": "gh-cli",
+      "tool_type": "skill",
+      "scope": "repo",
+      "llm_callable": false,
+      "callable_mode": "manual",
+      "schema_registered": false,
+      "host_executor": "agent.skills_mgmt.context_injector:ContextInjector",
+      "permission_level": "restricted",
+      "sandbox_allowed": true,
+      "isolation_level": "process",
+      "reason": "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+      "capability_id": "default:yunshu:gh-cli@1.0.0",
+      "kind": "skill",
+      "location": "local",
+      "location_source": "skill_chain",
+      "location_derived_source": "skill_chain",
+      "location_evidence": [
+        "纯提示词技能：ContextInjector 在**本进程内**把内容注入提示词，无子进程/无网络调用",
+        "执行器：agent.skills_mgmt.context_injector:ContextInjector"
+      ],
+      "location_declared": "",
+      "location_consistent": true,
+      "location_confidence": "high",
+      "location_unresolved": [],
+      "location_ffi": [],
+      "owner": "builtin",
+      "version": "1.0.0",
+      "namespace": "yunshu",
+      "tenant_id": "default",
+      "registry_source": "global",
+      "aliases": [],
+      "deprecated": true,
+      "entity_versioned": true,
+      "mark": "❌ 不可调用",
+      "reachable": false,
+      "trigger": "none",
+      "reason_kind": "unreachable",
+      "blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用"
+      ],
+      "blocker_codes": [
+        "disabled"
+      ],
+      "soft_blockers": [
+        "技能状态为 draft（非 approved/published）：不会被注入，模型也不发起调用",
+        "无 JSON Schema（缺参数契约，模型无法按 schema 填参）"
+      ],
+      "soft_codes": [
+        "declared_false",
+        "no_schema"
+      ],
+      "conditions": [],
+      "notes": [],
+      "declared_llm_callable": false,
+      "declared_permission_level": "",
+      "derived_permission_level": "restricted",
+      "declared_in": "data/skills_repo/gh-cli/skill.md",
+      "category": "skill",
+      "plane": "resident",
+      "effect": "read",
+      "risk": "low",
+      "needs_approval": false,
+      "internal": false,
+      "enabled": false,
+      "skill_in_repo": true,
+      "skill_in_catalog": false,
+      "skill_in_mgmt": false,
+      "has_scripts": false,
+      "skill_status": "draft",
+      "description": "GitHub CLI (gh) comprehensive reference for repositories, issues, pull requests, Actions, projects, releases, gists, codespaces, organizations, extensions, and all GitHub operations from the command line.",
       "main_line_status": "n/a"
     },
     {

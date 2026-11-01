@@ -168,9 +168,9 @@ class TestQuery:
         # （此前只在运行时台账里，仓库可复现口径因此少算 8 条）。
         # 【2026-10-31】133/42 → 135/44、local 112 → 114：autoresearch / pdf 入文件轨
         # （§11.32 C · N5；两条技能此前只在本机运行期，干净检出看不到）。
-        assert st["total"] == 136, f"能力总数应为 136，实际 {st['total']}"
-        assert st["by_kind"] == {"skill": 45, "tool": 91}
-        assert st["by_location"] == {"local": 115, "remote": 21}
+        assert st["total"] == 137, f"能力总数应为 137，实际 {st['total']}"
+        assert st["by_kind"] == {"skill": 46, "tool": 91}
+        assert st["by_location"] == {"local": 116, "remote": 21}
         assert st["degraded"] is False
 
     def test_主键索引_tenant_name(self, real_registry):
@@ -200,7 +200,7 @@ class TestQuery:
     @_SKIP_COMMITTED_BASELINE
     def test_索引_确实被构建(self, real_registry):
         idx = real_registry.stats()["index"]
-        assert idx["primary"] == 136  # 【2026-10-31】+2：autoresearch / pdf 入文件轨
+        assert idx["primary"] == 137  # 【2026-10-31】+2：autoresearch / pdf 入文件轨
         assert idx["facet"] >= 1
 
 

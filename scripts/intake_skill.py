@@ -64,6 +64,10 @@ _ID_RE = re.compile(r"^[a-z0-9][a-z0-9_\-]*$")
 #: 回填/批量整理留下的 name 后缀（§11.21 / §11.32 C·N5 两次实测都踩过）。
 _AUTO_SUFFIX_RE = re.compile(r"[（(](?:自动整理|自动|整理)[）)]\s*$")
 
+#: 参考资料型 content_type（与 skill_md_schema.REFERENCE_CONTENT_TYPES 同源）：
+#: 这类不要求「何时使用 / 示例」，入轨时也不提示"需人补"。
+_REFERENCE_TYPES = ("reference", "manual", "handbook")
+
 #: 能力面的**精确基线**落点。每项：文件名 → (正则, 取值键)。
 #: 【为什么是硬编码表而不是全仓 grep「== 133」】这些用例钉的是"提交基线"，
 #: 口径各不相同（entries / stats.total / by_kind / by_location / enabled 子集 /
@@ -586,7 +590,9 @@ def fix_front_matter(skill_dir: Path, *, execute: bool = False) -> Dict[str, obj
 
     # 机械默认值（缺键就补；有键但值为空也补 —— tags 这类块序列有子项，值本来就为空）
     for key, default in _FM_DEFAULTS:
-        if key in keys and keys[key]:
+        # `author: ''` 这种"带引号的空值"也算空（2026-11-02 gh-cli 实测：原写法把
+        # 两个引号当成非空，于是 author 永远补不上，validate 一直留 1 条 warning）。
+        if (keys.get(key) or "").strip().strip("'\""):
             continue
         if key == "tags" and any(l.startswith("- ") for l in out_fm):
             continue
@@ -602,7 +608,11 @@ def fix_front_matter(skill_dir: Path, *, execute: bool = False) -> Dict[str, obj
         else:
             needs_human.append("description_zh：description 非中文或为空，需人写中文描述（不自动翻译）")
 
-    if not re.search(r"^##\s*(何时使用|When to Use)\s*$", text, re.MULTILINE):
+    # 参考资料型（content_type: reference/manual/handbook）不要求这一节：
+    # 它是手册、不是"可执行步骤"，硬补只会催生编造（2026-11-02，gh-cli 实证）。
+    ctype = (keys.get("content_type") or "").strip().strip("'\"").lower()
+    if ctype not in _REFERENCE_TYPES and not re.search(
+            r"^##\s*(何时使用|When to Use)\s*$", text, re.MULTILINE):
         needs_human.append("「何时使用 / When to Use」段落缺失：按 §11.33 N4 只能从正文提炼，需人补")
 
     changed = out_fm != list(fm)
