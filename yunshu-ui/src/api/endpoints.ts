@@ -54,6 +54,9 @@ export const skillTransform = (transformId: string) => `/api/skills-mgmt/transfo
 /** 反向补丁回滚：默认 dry_run 预览，落盘要 dry_run=false（全有或全无） */
 export const skillTransformRollback = (transformId: string) =>
   `/api/skills-mgmt/transforms/${encodeURIComponent(transformId)}/rollback`;
+/** P5：LLM 按原文引用重写卡片分节（默认 dry_run 预览；落盘只写 card_llm.md） */
+export const skillTransformRedraft = (transformId: string) =>
+  `/api/skills-mgmt/transforms/${encodeURIComponent(transformId)}/redraft`;
 /** 分层加载：L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单（?layer=） */
 export const skillCardLayer = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/card`;
 
