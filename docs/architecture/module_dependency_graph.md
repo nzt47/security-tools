@@ -588,6 +588,7 @@ flowchart LR
         agent_skills_mgmt_memory_abstractor["agent.skills_mgmt.memory_abstractor"]:::crosslayer
         agent_skills_mgmt_meta_editor["agent.skills_mgmt.meta_editor"]
         agent_skills_mgmt_models["agent.skills_mgmt.models"]:::crosslayer
+        agent_skills_mgmt_native_functions["agent.skills_mgmt.native_functions"]:::crosslayer
         agent_skills_mgmt_negative_intent_detector["agent.skills_mgmt.negative_intent_detector"]
         agent_skills_mgmt_observability["agent.skills_mgmt.observability"]:::crosslayer
         agent_skills_mgmt_offline_evolver["agent.skills_mgmt.offline_evolver"]:::crosslayer
@@ -2091,6 +2092,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_exceptions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_reviewer
     agent_server_routes_routes_skills_mgmt -.-> agent_audit_ui_middleware
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_native_functions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_capability_cards
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
@@ -2170,11 +2172,8 @@ flowchart LR
     agent_server_routes_routes_ui_panels -.-> agent_security
     agent_server_routes_routes_ui_panels --> agent_server_routes
     agent_server_routes_routes_ui_panels -.-> agent_security
-    agent_server_routes_routes_units -.-> agent_server_auth
     agent_server_routes_routes_units --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_units -.-> agent_monitoring
-    agent_server_routes_routes_units -.-> agent_tools
-    agent_server_routes_routes_units -.-> agent_task_scheduler
     agent_server_routes_routes_visual_workflows -.-> agent_server_auth
     agent_server_routes_routes_visual_workflows --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_workflow_learning -.-> agent_server_auth
@@ -2289,6 +2288,9 @@ flowchart LR
     agent_skills_mgmt_memory_abstractor -.-> agent_feedback_collector
     agent_skills_mgmt_memory_abstractor -.-> agent_memory_long_term_memory
     agent_skills_mgmt_meta_editor -.-> agent_logging_utils
+    agent_skills_mgmt_native_functions -.-> agent_tools
+    agent_skills_mgmt_native_functions --> agent_skills_mgmt_capability_cards
+    agent_skills_mgmt_native_functions --> agent_skills_mgmt_transform_compare
     agent_skills_mgmt_negative_intent_detector -.-> agent_logging_utils
     agent_skills_mgmt_observability -.-> agent_monitoring_business_metrics
     agent_skills_mgmt_observability -.-> agent_monitoring_tracing
@@ -2767,9 +2769,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 713
-- 模块节点数: 614
-- 依赖边数: 2027
-- 跨层调用数: 1287
+- 扫描文件数: 714
+- 模块节点数: 615
+- 依赖边数: 2028
+- 跨层调用数: 1286
 - 违规调用数: 0
 - 动态 import 数: 1
