@@ -22,6 +22,12 @@ from agent.workflow_learning.skill_converter import WorkflowConvertError
 logger = logging.getLogger(__name__)
 
 
+def _fail(e: Exception, message: str = "操作失败（详见服务日志）", status: int = 500):
+    """未预期异常收口：异常原文只进日志，不进响应体（§8 陷阱 15 / py/stack-trace-exposure）。"""
+    logger.warning("workflow-learning 路由异常: %s", e, exc_info=True)
+    return jsonify({"ok": False, "error": message}), status
+
+
 def _svc():
     svc = get_workflow_learning_service()
     # 【修复】HTTP 直调 execute 时 service 从未注入 tool_executor →
@@ -67,7 +73,7 @@ def register_routes(app, state):
         try:
             return jsonify(_svc().health())
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  学习入口
@@ -100,7 +106,7 @@ def register_routes(app, state):
         except WorkflowLearningError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  匹配 / 执行
@@ -123,7 +129,7 @@ def register_routes(app, state):
             candidates = _svc().search(task_text, top_k=int(data.get("top_k", 5)))
             return jsonify({"ok": True, "candidates": candidates})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/workflow-learning/try-execute", methods=["POST"])
     @trace_route("WorkflowLearning")
@@ -145,7 +151,7 @@ def register_routes(app, state):
         except WorkflowLearningError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/workflow-learning/execute/<wf_id>", methods=["POST"])
     @trace_route("WorkflowLearning")
@@ -166,7 +172,7 @@ def register_routes(app, state):
         except WorkflowLearningError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  仓库管理
@@ -196,7 +202,7 @@ def register_routes(app, state):
             # 不删业务键，避免"迁移信封时顺手改契约"（见 P1-front 第一批的两条判断）。
             return _ok(payload, meta={"total": len(items)})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/workflow-learning/workflows/<wf_id>", methods=["GET"])
     @trace_route("WorkflowLearning")
@@ -208,7 +214,7 @@ def register_routes(app, state):
         except WorkflowLearningError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/workflow-learning/workflows/<wf_id>", methods=["DELETE"])
     @trace_route("WorkflowLearning")
@@ -221,7 +227,7 @@ def register_routes(app, state):
         except WorkflowLearningError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/workflow-learning/workflows/<wf_id>/toggle", methods=["POST"])
     @trace_route("WorkflowLearning")
@@ -236,7 +242,7 @@ def register_routes(app, state):
         except WorkflowLearningError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/workflow-learning/workflows/<wf_id>/priority", methods=["POST"])
     @trace_route("WorkflowLearning")
@@ -251,7 +257,7 @@ def register_routes(app, state):
         except WorkflowLearningError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  工作流 → 技能 转换
@@ -303,7 +309,7 @@ def register_routes(app, state):
                 "code": "QUALITY_GATE_FAILED",
             }), 400
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/workflow-learning/convertible", methods=["GET"])
     @trace_route("WorkflowLearning")
@@ -315,7 +321,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "candidates": candidates,
                             "total": len(candidates)})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/workflow-learning/convert-external-skill", methods=["POST"])
     @trace_route("WorkflowLearning")
@@ -372,7 +378,7 @@ def register_routes(app, state):
                 "code": getattr(e, "code", "CONVERT_FAILED"),
             }), 400
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/workflow-learning/batch-convert-external-skills",
                methods=["POST"])
@@ -438,4 +444,4 @@ def register_routes(app, state):
                 "code": "VALIDATION_ERROR",
             }), 400
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)

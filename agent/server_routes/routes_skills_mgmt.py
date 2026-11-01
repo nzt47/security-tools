@@ -171,7 +171,8 @@ def register_routes(app, state):
                 "elapsed_ms": result.elapsed_ms,
             })
         except ValueError as e:
-            return jsonify({"ok": False, "error": f"参数错误: {e}"}), 400
+            logger.warning("参数错误: %s", e, exc_info=True)
+            return jsonify({"ok": False, "error": "参数错误（详见服务日志）"}), 400
         except Exception as e:  # noqa: BLE001
             return _fail(e)
 
@@ -696,6 +697,10 @@ def register_routes(app, state):
                 _svc(),
                 ids=[str(i) for i in ids] if ids else None,
             )
+            # 失败项的 error 原文可能带路径/异常串 ⇒ 只回固定文案（py/stack-trace-exposure）
+            for item in result.get("failed") or []:
+                if isinstance(item, dict) and item.get("error"):
+                    item["error"] = "导入失败（详见服务日志）"
             return jsonify(result)
         except SkillMgmtError as e:
             return _err(e)
@@ -1786,7 +1791,8 @@ def register_routes(app, state):
                 "estimated_total_tokens": result.estimated_total_tokens,
             })
         except ValueError as e:
-            return jsonify({"ok": False, "error": f"参数错误: {e}"}), 400
+            logger.warning("参数错误: %s", e, exc_info=True)
+            return jsonify({"ok": False, "error": "参数错误（详见服务日志）"}), 400
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
@@ -1923,8 +1929,8 @@ def register_routes(app, state):
                 "drafts": drafts,
             })
         except ValueError as e:
-            return jsonify({"ok": False,
-                            "error": f"参数错误: {e}"}), 400
+            logger.warning("参数错误: %s", e, exc_info=True)
+            return jsonify({"ok": False, "error": "参数错误（详见服务日志）"}), 400
         except Exception as e:  # noqa: BLE001
             return _fail(e, log="[SkillsMgmt] abstract-from-memory 失败")
 
@@ -2111,6 +2117,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except ValueError as e:
-            return jsonify({"ok": False, "error": f"参数错误: {e}"}), 400
+            logger.warning("参数错误: %s", e, exc_info=True)
+            return jsonify({"ok": False, "error": "参数错误（详见服务日志）"}), 400
         except Exception as e:  # noqa: BLE001
             return _fail(e, log="slash command failed: skill_id=%s" % skill_id)
