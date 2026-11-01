@@ -579,6 +579,7 @@ flowchart LR
         agent_skills_mgmt_few_shot_injector["agent.skills_mgmt.few_shot_injector"]
         agent_skills_mgmt_file_store["agent.skills_mgmt.file_store"]:::crosslayer
         agent_skills_mgmt_index_cache["agent.skills_mgmt.index_cache"]
+        agent_skills_mgmt_layered["agent.skills_mgmt.layered"]
         agent_skills_mgmt_learning_scheduler["agent.skills_mgmt.learning_scheduler"]
         agent_skills_mgmt_lifecycle["agent.skills_mgmt.lifecycle"]
         agent_skills_mgmt_lineage["agent.skills_mgmt.lineage"]:::crosslayer
@@ -599,7 +600,8 @@ flowchart LR
         agent_skills_mgmt_reviewer["agent.skills_mgmt.reviewer"]:::crosslayer
         agent_skills_mgmt_searcher["agent.skills_mgmt.searcher"]
         agent_skills_mgmt_service["agent.skills_mgmt.service"]:::crosslayer
-        agent_skills_mgmt_skill_manager["agent.skills_mgmt.skill_manager"]
+        agent_skills_mgmt_skill_manager["agent.skills_mgmt.skill_manager"]:::crosslayer
+        agent_skills_mgmt_skill_md_schema["agent.skills_mgmt.skill_md_schema"]
         agent_skills_mgmt_store["agent.skills_mgmt.store"]:::crosslayer
         agent_skills_mgmt_transform_compare["agent.skills_mgmt.transform.compare"]
         agent_skills_mgmt_transform_facets["agent.skills_mgmt.transform.facets"]
@@ -2092,6 +2094,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_exceptions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_reviewer
     agent_server_routes_routes_skills_mgmt -.-> agent_audit_ui_middleware
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_skill_manager
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_native_functions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_capability_cards
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
@@ -2264,6 +2267,7 @@ flowchart LR
     agent_skills_mgmt_few_shot_injector -.-> agent_logging_utils
     agent_skills_mgmt_file_store -.-> agent_logging_utils
     agent_skills_mgmt_index_cache -.-> agent_logging_utils
+    agent_skills_mgmt_layered --> agent_skills_mgmt_skill_md_schema
     agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_feedback_agent
     agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_evolution_scheduler
     agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_lifecycle
@@ -2325,6 +2329,7 @@ flowchart LR
     agent_skills_mgmt_service -.-> agent_audit
     agent_skills_mgmt_service -.-> agent_feedback
     agent_skills_mgmt_skill_manager -.-> agent_logging_utils
+    agent_skills_mgmt_skill_manager --> agent_skills_mgmt_layered
     agent_skills_mgmt_store --> agent_skills_mgmt_registry
     agent_skills_mgmt_transform_compare --> agent_skills_mgmt_capability_cards
     agent_skills_mgmt_transform_facets --> agent_skills_mgmt_capability_cards
@@ -2769,9 +2774,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 715
-- 模块节点数: 615
-- 依赖边数: 2028
-- 跨层调用数: 1286
+- 扫描文件数: 716
+- 模块节点数: 617
+- 依赖边数: 2031
+- 跨层调用数: 1287
 - 违规调用数: 0
 - 动态 import 数: 1
