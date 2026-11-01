@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, Cpu, Loader2, Search, X } from 'lucide-react'
 import { authHeader } from '../lib/apiToken'
-import { SKILLS_MGMT_CARDS, SKILLS_MGMT_NATIVE } from '../api/endpoints'
+import { SKILLS_MGMT_CARDS, SKILLS_MGMT_NATIVE, skillCardLayer } from '../api/endpoints'
 
 type Card = {
   skill_id: string
@@ -66,6 +66,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [fullText, setFullText] = useState<{ id: string; text: string; truncated: boolean; source: string } | null>(null)
 
   const loadSkills = useCallback(async () => {
     setLoading(true)
@@ -81,6 +82,22 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
       setLoading(false)
     }
   }, [])
+
+  // 分层加载：L2 全文**按需**取，不在列表里一次性拉 46 份全文
+  const loadFullText = async (id: string) => {
+    if (fullText?.id === id) {
+      setFullText(null)
+      return
+    }
+    try {
+      const r = await fetch(`${skillCardLayer(id)}?layer=L2`, { headers: authHeader() })
+      const j = await r.json()
+      if (!r.ok || j.ok === false) throw new Error(j.error || `HTTP ${r.status}`)
+      setFullText({ id, text: j.text || '', truncated: !!j.truncated, source: j.source || 'full' })
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    }
+  }
 
   const loadNative = useCallback(async () => {
     setLoading(true)
@@ -266,6 +283,25 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                           ) : null}
                           {c.sections?.length ? (
                             <div className="mt-2 text-[10px] text-slate-500">目录：{c.sections.join(' · ')}</div>
+                          ) : null}
+                          {/* 分层加载：L1 是卡，L2 全文按需拉 —— 不在列表里一次性拉 46 份全文 */}
+                          <button
+                            type="button"
+                            onClick={() => void loadFullText(c.skill_id)}
+                            className="mt-2 rounded-md border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300 hover:bg-slate-800"
+                          >
+                            {fullText?.id === c.skill_id ? '收起全文（L2）' : '按需展开全文（L2）'}
+                          </button>
+                          {fullText?.id === c.skill_id ? (
+                            <div className="mt-1">
+                              <div className="text-[10px] text-slate-500">
+                                L2 全文 · {fullText.source} · {fullText.text.length} 字符
+                                {fullText.truncated ? ' · 已截断' : ''}
+                              </div>
+                              <pre className="mt-1 max-h-64 overflow-auto rounded bg-slate-950 p-2 text-[10px] text-slate-300">
+                                {fullText.text}
+                              </pre>
+                            </div>
                           ) : null}
                         </div>
                       ) : null}
