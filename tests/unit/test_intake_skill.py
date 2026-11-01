@@ -432,3 +432,16 @@ class TestLlmSections:
         monkeypatch.setattr(intake, "_llm_available", lambda: True)
         items = [i for i in intake.pending_report()]
         assert items == []
+
+
+class TestQuotedEmpty:
+    """`author: ''` 要当成"空"，否则自动补全永远补不上（gh-cli 2026-11-02 实测）。"""
+
+    def test_带引号的空值会被补(self, tmp_path, monkeypatch):
+        text = GOOD_SKILL.replace("author: unknown", "author: ''")
+        d = _write_skill(tmp_path, "demo-skill", text)
+        monkeypatch.setattr(intake, "SKILLS_REPO", tmp_path)
+        out = intake.fix_front_matter(d, execute=True)
+        assert "author" in out["fixed"]
+        body = (d / "skill.md").read_text(encoding="utf-8")
+        assert "author: yunshu-intake" in body and "author: ''" not in body

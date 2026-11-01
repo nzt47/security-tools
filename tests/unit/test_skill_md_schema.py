@@ -106,3 +106,49 @@ def test_real_repo_has_no_schema_errors():
     assert report["checked"] >= 30, report["checked"]
     bad = [(i["skill_id"], i["errors"]) for i in report["items"] if not i["ok"]]
     assert bad == [], bad
+
+
+# ════════════════════════════════════════════════════════════
+#  参考资料型（content_type: reference）
+# ════════════════════════════════════════════════════════════
+
+REF = """---
+id: demo-ref
+name: demo-ref
+description: CLI reference manual
+author: someone
+category: ingested
+source: ingestion:trae
+tags:
+- reference
+content_type: reference
+enabled: true
+status: current
+version: 1.0.0
+---
+
+# CLI 参考手册
+
+## Installation
+
+    install it
+"""
+
+
+def test_reference_不要求何时使用与示例():
+    r = schema.validate_text(REF, dir_name="demo-ref")
+    assert r["errors"] == []
+    assert not any("何时使用" in w for w in r["warnings"]), r["warnings"]
+    assert not any("示例" in w for w in r["warnings"]), r["warnings"]
+
+
+def test_markdown_仍然要求两节():
+    r = schema.validate_text(GOOD.replace("content_type: markdown", "content_type: markdown")
+                             .replace("## 何时使用", "## 说明"), dir_name="demo-skill")
+    assert any("何时使用" in w for w in r["warnings"])
+
+
+def test_reference_的必填键照旧拦():
+    text = REF.replace("enabled: true\n", "")
+    r = schema.validate_text(text, dir_name="demo-ref")
+    assert any("enabled" in e for e in r["errors"])

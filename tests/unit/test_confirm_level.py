@@ -377,7 +377,7 @@ class TestConsistencyWithPermissionLevel:
         # 【2026-10-24】28 → 36：8 个技能目录补回文件轨（能力面 +8 条技能）
         # 【2026-10-31】42 → 44：autoresearch / pdf 入文件轨（§11.32 C · N5）
         skills = [e for e in _manifest_entries() if e.get("kind") == "skill"]
-        assert len(skills) == 45, len(skills)
+        assert len(skills) == 46, len(skills)
         for e in skills:
             assert "confirm_level" not in e, (
                 f"技能 {e.get('tool_name')} 不该有工具侧的 confirm_level 字段")
@@ -394,10 +394,14 @@ class TestConsistencyWithPermissionLevel:
         # 而工具侧派生会给出 internal —— 差异因此是**规则不同**，不是数据漂移。
         for name, got, base in diff:
             assert got in ("public", "restricted"), (name, got)
-        # 【2026-10-24】gstack 以 enabled=false 回到文件轨 ⇒ 按"未启用 ⇒ restricted"
-        # 规则，允许恰好这一条 restricted；其余仍必须 public。
+        # 【2026-10-24】gstack 以 enabled=false 回到文件轨 ⇒ 按"未启用 ⇒ restricted"。
+        # 【2026-11-02】gh-cli 以 status=draft 入轨（reference 手册，未 review）⇒ 同一条规则。
+        # 判据从**清单自身**算（blocker_codes 含 disabled = 未启用/未发布），不再硬编码名单
+        # —— 原来写死 ["gstack"]，加一条 draft 技能就得改测试，属于把数据钉进断言。
         restricted = sorted(n for n, got, _b in diff if got == "restricted")
-        assert restricted in ([], ["gstack"]), restricted
+        expected = sorted(e.get("tool_name") for e in skills
+                          if "disabled" in (e.get("blocker_codes") or []))
+        assert restricted == expected, (restricted, expected)
         assert all(got in ("public", "restricted") for _n, got, _b in diff), \
             "技能侧 permission_level 只能是 public / restricted"
         # 至少有一条在"工具侧口径"下会得出 internal ⇒ 证明两组口径确实不同

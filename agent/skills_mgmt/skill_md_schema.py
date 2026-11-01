@@ -41,6 +41,11 @@ USAGE_SECTIONS = ("何时使用", "使用场景", "使用时机", "适用场景"
                   "使用说明", "when to use", "usage")
 EXAMPLE_SECTIONS = ("示例", "例子", "范例", "example", "examples")
 
+#: 参考资料型技能的 content_type（2026-11-02）：这类是**手册/参考**，不是"可被模型执行的步骤"，
+#: 强求「何时使用 / 示例」等于把手册伪装成技能（gh-cli 实测五面全空）。
+#: 对它们只放宽这两条 warning，必填键与 id 契约照旧。
+REFERENCE_CONTENT_TYPES = ("reference", "manual", "handbook")
+
 #: 技能 ID 契约（与 file_store._validate_skill_id / claude_import._ID_RE 同口径）。
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9_\-]*$")
 
@@ -95,11 +100,15 @@ def validate_text(text: str, *, skill_id: str = "", dir_name: str = "") -> Dict[
         if value is None or (isinstance(value, str) and not value.strip()):
             warnings.append("建议补 %s（列表展示/版本核对会用到）" % key)
 
-    headings = _headings(body)
-    if not _has_section(headings, USAGE_SECTIONS):
-        warnings.append("正文缺少「何时使用 / 使用场景」小节")
-    if not _has_section(headings, EXAMPLE_SECTIONS):
-        warnings.append("正文缺少「示例」小节")
+    # 参考资料型（content_type: reference/manual/handbook）不按"技能"要求这两节
+    # —— 它们是手册，硬补只会催生编造（见 REFERENCE_CONTENT_TYPES 的注释）。
+    ctype = str((meta or {}).get("content_type") or "").strip().lower()
+    if ctype not in REFERENCE_CONTENT_TYPES:
+        headings = _headings(body)
+        if not _has_section(headings, USAGE_SECTIONS):
+            warnings.append("正文缺少「何时使用 / 使用场景」小节")
+        if not _has_section(headings, EXAMPLE_SECTIONS):
+            warnings.append("正文缺少「示例」小节")
 
     sid = skill_id or declared_id or dir_name
     return {"skill_id": sid, "errors": errors, "warnings": warnings, "ok": not errors}
