@@ -282,6 +282,29 @@ def register_routes(app, state):
             return jsonify(rep), code
         return jsonify(rep)
 
+    @app.route("/api/skills-mgmt/<skill_id>/card", methods=["GET"])
+    @require_token
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_card(skill_id: str):
+        """**按需分层加载**：L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单。
+
+        Query: layer=L0|L1|L2|L3（默认 L1）。
+        口径见 docs/rfc/技能转化器_2026-11-01.md §3：有 CARD.md 就只给卡，没有就降级成
+        「目录 + 正文前 40 行」；每层都有字符预算，超了截断并回 truncated=true（不许藏内容）。
+        """
+        layer = str(request.args.get("layer") or "L1").upper()
+        if layer not in ("L0", "L1", "L2", "L3"):
+            return jsonify({"ok": False, "error": "layer 只支持 L0/L1/L2/L3"}), 400
+        try:
+            from agent.skills_mgmt.skill_manager import SkillManager
+            rep = SkillManager().load_card(skill_id, layer)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+        if not rep.get("ok"):
+            return jsonify(rep), 404
+        return jsonify(rep)
+
     @app.route("/api/skills-mgmt/native-functions", methods=["GET"])
     # 顺序有意：require_token 在最外层，REQUIRES_TOKEN_ATTR 才挂到 Flask 最终持有的视图函数上
     # （放里层会被 trace_route 的 wrapper 吞掉，静态鉴权守卫看不见 —— 2026-11-01 实测）。

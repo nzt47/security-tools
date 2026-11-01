@@ -47,6 +47,8 @@ export const SKILLS_MGMT_META_CATEGORIES = '/api/skills-mgmt/meta/categories';
 export const SKILLS_MGMT_CARDS = '/api/skills-mgmt/cards';
 /** 元生功能：内置工具 + 常驻机制，以及「技能 × 元生功能」重叠提示 */
 export const SKILLS_MGMT_NATIVE = '/api/skills-mgmt/native-functions';
+/** 分层加载：L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单（?layer=） */
+export const skillCardLayer = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/card`;
 
 /** 单个技能：GET 详情 / PUT 更新 / DELETE 删除（同一路径） */
 export const skillById = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}`;

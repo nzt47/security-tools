@@ -384,6 +384,16 @@ class SkillManager:
         _track_event("yunshu_skill_load_instruction", {"skill_id": skill_id})
         return self.loader.load_instruction(skill_id)
 
+    def load_card(self, skill_id: str, layer: str = "L1") -> Dict[str, Any]:
+        """分层加载（L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单）。
+
+        【为什么单独一个方法】`load_instruction` 是 L2 全文，行为不能改（提示装配依赖它）；
+        分层是**额外能力**：有 CARD.md 就只给卡（L1），没有就降级成「目录 + 正文前 40 行」，
+        老技能不必先补文件。层级与预算见 agent/skills_mgmt/layered.py。
+        """
+        from agent.skills_mgmt.layered import load_layer
+        return load_layer(skill_id, layer, repo=Path(self.repo_path))
+
     # ═══════════════════════════════════════════════════════
     #  L3: 脚本沙箱执行
     # ═══════════════════════════════════════════════════════
