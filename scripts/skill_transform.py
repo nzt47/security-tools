@@ -69,12 +69,63 @@ def _print_report(plan) -> None:
     print("\n（P1 只读：没有写任何文件。应用要等 P2 的 --apply。）")
 
 
+def _run_apply(args) -> int:
+    "P2：落产物 → （可选）并入/新建技能 → （可选）commit/push/PR。"
+    from agent.skills_mgmt.transform import apply_plan
+
+    if args.pr and not (args.into or args.new):
+        print("--pr 需要配 --into 或 --new（只有落进 skills_repo 的改动才该开 PR）")
+        return 2
+    if not args.execute:
+        print("[干跑] 将落 transform 归档；加 --execute 才写盘")
+
+    rep = apply_plan(args.apply, into=args.into, new=args.new, execute=args.execute)
+    if not rep.get("ok"):
+        print("[ERR] %s" % rep.get("error"))
+        return 1
+    print("transform_id : %s" % rep["transform_id"])
+    print("transform_dir: %s" % rep["transform_dir"])
+    print("判定          : %s / 审核 %s%s"
+          % (rep["verdict"], rep["review_verdict"], "（block，转化不启动）" if rep["blocked"] else ""))
+    if rep["written"]:
+        for w in rep["written"]:
+            print("  + %s" % w)
+    else:
+        print("计划写入: %s" % ", ".join(rep["planned_files"]))
+
+    if rep["blocked"]:
+        return 1
+
+    if args.pr and args.execute:
+        sid = args.into or args.new
+        from scripts.intake_skill import intake_one, open_pr
+        ir = intake_one(sid, execute=True, fix_meta=True, fix_baselines=True)
+        if not ir.get("ok"):
+            print("[ERR] 入轨失败: %s" % (ir.get("error") or ir))
+            return 1
+        pr = open_pr(sid)
+        if not pr.get("ok"):
+            print("[ERR] 建 PR 失败(%s): %s" % (pr.get("stage"), pr.get("error")))
+            return 1
+        print("已建 PR: %s" % (pr.get("pr_url") or pr.get("branch")))
+    return 0
+
+
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="技能转化器 P1：只读计划")
-    parser.add_argument("--plan", metavar="PATH", required=True, help="artifact（.md 或目录）")
+    parser = argparse.ArgumentParser(description="技能转化器：P1 只读计划 / P2 落地")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--plan", metavar="PATH", help="只读计划：artifact（.md 或目录）")
+    group.add_argument("--apply", metavar="PATH", help="落地：写 transforms/ + CARD.md（需 --execute）")
+    parser.add_argument("--into", metavar="ID", default=None, help="并入既有技能（只写 CARD.md）")
+    parser.add_argument("--new", metavar="ID", default=None, help="新建技能目录（写 skill.md + CARD.md）")
+    parser.add_argument("--execute", action="store_true", help="真正写盘")
+    parser.add_argument("--pr", action="store_true", help="落地后 commit → push → 建 PR")
     parser.add_argument("--json", action="store_true", help="输出 JSON")
     parser.add_argument("--against", metavar="ID", default=None, help="只与指定技能对比")
     args = parser.parse_args(argv)
+
+    if args.apply:
+        return _run_apply(args)
 
     try:
         plan = build_plan(args.plan)
