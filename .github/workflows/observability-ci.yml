@@ -134,6 +134,11 @@ env:
     tests/integration/test_trace_integration.py
     tests/integration/test_audit_trace.py
 
+# 【不易】最小权限（CodeQL actions/missing-workflow-permissions）：默认只读。
+# 需要写 GITHUB_TOKEN 的 job 必须在**该 job 内**声明 permissions:（job 级会整体覆盖本块）。
+# 默认分支的 GITHUB_TOKEN 若为 read/write 全开，本块等于把这 27 个 workflow 收敛到只读。
+permissions:
+  contents: read
 jobs:
   # ============================================================================
   # 阶段1：可观测性配置文件验证
@@ -1725,6 +1730,10 @@ jobs:
   # - 失败不阻塞：continue-on-error + if: always() 保证后续步骤执行
   # ============================================================================
   visibility-trend-report:
+    # 【不易】job 级 permissions 会**整体覆盖** workflow 级的最小权限块；
+    # 趋势报告会 git push 回仓库，需要写 contents，故在此显式声明。
+    permissions:
+      contents: write
     name: 可见性趋势报告
     runs-on: ubuntu-latest
     if: >

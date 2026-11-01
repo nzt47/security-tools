@@ -51,11 +51,37 @@
 | B0 ✅ | 3 critical | 3 | 见 §2 |
 | **B1** | `py/path-injection` | 76 | 与 §8 陷阱 14 同源：**用户输入不进路径**（glob 候选 + stem 等值比较）。先 `file_tools.py`（22 条）→ `routes_assets.py`（8） |
 | **B2** | `py/stack-trace-exposure` | 337 | 与 §8 陷阱 15 同源：响应体里不能出现异常文本。**5 个文件占 178 条**（routes_skills_mgmt 75 / plugins/admin 33 / routes_subagent 26 / plugins/system_tools 24 / routes_workflow_learning 20），先做这 5 个 + 收敛到统一错误封装 |
-| **B3** | `actions/missing-workflow-permissions` | 101 | 机械但**有风险**：加 `permissions: contents: read` 会让"隐式 write"的 job 挂。须逐文件看是否需要 job 级 `permissions:`（提 PR / 发版 / 推 tag 的那些）。建议一次 5–6 个文件 |
+| B3 ✅ | `actions/missing-workflow-permissions` | 101 | **本轮已改 27 个 workflow**：一律加顶层 `permissions: contents: read`，再给 6 个确实要写的 job 补 job 级权限（见下）。复核看 master 的 `/language:actions` 结果数 101 → 0 |
 | **B4** | `py/clear-text-logging-sensitive-data` | 63 | 先 `file_tools.py`（15），再 `network_config.py`（5）；tests 里的 16 条可判 dismiss |
 | **B5** | 小规则合计 | 57 | 多数在 `scripts/dev/*.mjs`、`scripts/*.html`、`tests/`——**优先 dismiss（not_used / used_in_tests）**，别为测试脚本改生产代码 |
 
-## 4. 处置纪律
+
+## 4. B3 落地记录（2026-11-01 11:0x）
+
+改动 = **27 个 workflow 各加顶层最小权限** + **6 个确实要写的 job 显式声明**：
+
+```yaml
+# 顶层（27 个文件都有，已存在权限块的 12 个文件跳过）
+permissions:
+  contents: read
+```
+
+| job | 为什么必须写 | job 级权限 |
+|---|---|---|
+| `ci.yml` `light-loader-compat-check` | PR 评论 `issues.createComment` | `contents: read` + `pull-requests: write` |
+| `observability-ci.yml` `visibility-trend-report` | 趋势报告 `git push` 回仓库 | `contents: write` |
+| `daily_regression.yml` `test-summary` | PR 评论 | `contents: read` + `pull-requests: write` |
+| `l3-docker-tests.yml` `test-summary` | PR 评论 | 同上 |
+| `hook-failsafe-e2e.yml` `test-summary` | PR 评论 | 同上 |
+| `kwarg-conflict-check.yml` `fix-report` | PR 评论 | 同上 |
+
+已存在 job 级权限的（`ci.yml` `update-ci-dashboard`/`performance-tests`、`observability-ci.yml` 四个、
+`log-perf-guard.yml` `double-serialization-guard`、`kwarg-docker-scan.yml` `publish-image`）**原样不动**——
+job 级 permissions 会整体覆盖顶层块，这是 YAML/GitHub 的语义，不是"叠加"。
+
+**判据**：改完 `yaml.safe_load` 51 个 workflow 全通过；`scripts/lint_workflow_guard.py` 扫 51 个文件 0 反模式 0 解析错误。
+
+## 5. 处置纪律
 
 1. **先修后 dismiss**：能改的一律改；只有「测试/开发脚本、非生产路径」才 dismiss，且 comment 写清判据。
 2. **不要用路径排除糊掉生产代码**：default setup 下也没有自定义 config 可挂；迁移到 advanced setup 属于另一件事，另议。
