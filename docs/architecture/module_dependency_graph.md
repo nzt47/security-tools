@@ -605,6 +605,7 @@ flowchart LR
         agent_skills_mgmt_store["agent.skills_mgmt.store"]:::crosslayer
         agent_skills_mgmt_transform_compare["agent.skills_mgmt.transform.compare"]
         agent_skills_mgmt_transform_facets["agent.skills_mgmt.transform.facets"]
+        agent_skills_mgmt_transform_queue["agent.skills_mgmt.transform.queue"]:::crosslayer
         agent_skills_mgmt_vector_adapter["agent.skills_mgmt.vector_adapter"]
     end
     subgraph subagent [subagent]
@@ -2097,6 +2098,9 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_skill_manager
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_native_functions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_capability_cards
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_claude_import
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
@@ -2774,9 +2778,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 716
-- 模块节点数: 617
-- 依赖边数: 2031
-- 跨层调用数: 1287
+- 扫描文件数: 717
+- 模块节点数: 618
+- 依赖边数: 2034
+- 跨层调用数: 1290
 - 违规调用数: 0
 - 动态 import 数: 1
