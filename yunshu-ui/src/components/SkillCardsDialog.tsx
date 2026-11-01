@@ -100,6 +100,33 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
           </button>
         </div>
 
+        {/* 范围说明（Owner 2026-11-01 追问：「能力卡是否包括云枢自身功能的能力？」）
+            答案在这块里：本卡只覆盖「LLM 技能」；平台自身功能（服务/审计/调度/记忆/知识库/工具/工作流）
+            走各自的专门入口，不混进这张表 —— 否则「模型能加载的能力」和「平台提供的功能」会被读成同一件事。 */}
+        <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-[10px] leading-relaxed text-slate-500">
+          <p>
+            <strong className="text-slate-300">这张表覆盖什么：</strong>
+            只覆盖<strong className="text-cyan-300"> LLM 技能</strong>（
+            <code className="text-slate-400">data/skills_repo/&lt;id&gt;/skill.md</code>
+            ，模型按需加载的提示 / 行为 / 流程资产），当前 {cards.length} 条。
+            分四层加载：<span className="text-slate-400">L0 摘要</span> →
+            <strong className="text-slate-300"> L1 能力卡（本表）</strong> →
+            <span className="text-slate-400">L2 全文</span> →
+            <span className="text-slate-400">L3 脚本资源</span>。
+          </p>
+          <p className="mt-1">
+            <strong className="text-slate-300">不包含云枢平台自身功能</strong>（服务进程 / 审计链 / 调度任务 /
+            记忆库 / 知识库 / 工具登记 / 工作流 / 监控）—— 它们是<strong className="text-slate-300">平台功能</strong>，
+            不是模型加载的能力，入口分别在不同叶子：「功能单位看板」在<strong className="text-slate-300">系统监控</strong>、
+            工具在<strong className="text-slate-300">工具与接入</strong>、工作流在<strong className="text-slate-300">工作流</strong>。
+          </p>
+          <p className="mt-1">
+            也不含<strong className="text-slate-300">只留主轨</strong>的两条（
+            <code className="text-amber-300">global-core-principles</code> /
+            <code className="text-amber-300">skill</code>）—— 它们按 H-3 裁定不建文件轨，不进这个列表。
+          </p>
+        </div>
+
         <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-2">
           <Search size={12} className="text-slate-500" />
           <input
