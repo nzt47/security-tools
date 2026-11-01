@@ -32,9 +32,34 @@ from agent.skills_mgmt.skill_manager import SkillManager
 from agent.skills_mgmt.exceptions import (
     SkillExecutionError, SkillNotFoundError, ErrorCode,
 )
+# H-3 裁定的唯一事实源（不要在本脚本另抄一份名单）
+from agent.skills_mgmt.file_track_policy import no_file_track_reason
 
 LEGACY_JSON = ROOT / "data" / "skills.json"
 REPO_PATH = ROOT / "data" / "skills_repo"
+
+
+def split_h3_main_track_only(legacy: Dict[str, dict]) -> Tuple[Dict[str, dict], Dict[str, str]]:
+    """把 legacy 拆成「要验证」与「按裁定只留主轨、跳过」两拨。
+
+    [不易] `global-core-principles` / `skill` 按 H-3 裁定**永远不会有** skill.md
+    （见 `agent/skills_mgmt/file_track_policy.py`）：它们只存主轨，建了实体反而会
+    进检索索引与能力清单。旧版脚本把「文件轨没这个文件」算成 L1 MISSING、
+    L2/L3 `SkillNotFoundError` ⇒ 每次本地实跑恒红，与本项目的裁定冲突。
+    这里按裁定跳过；名单只从 policy 取，不复制第二份。
+
+    Returns:
+        (需验证的 legacy, {跳过的 id: 理由})
+    """
+    checked: Dict[str, dict] = {}
+    skipped: Dict[str, str] = {}
+    for sid, ls in legacy.items():
+        reason = no_file_track_reason(sid)
+        if reason:
+            skipped[sid] = reason
+        else:
+            checked[sid] = ls
+    return checked, skipped
 
 
 def verify_skill_l3(mgr: SkillManager, sid: str, meta: dict) -> Tuple[bool, str]:
@@ -135,7 +160,14 @@ def main() -> int:
         print("[verify] RESULT: SKIP (无 legacy 文件, 视为 PASS)")
         return 0
 
-    print(f"[setup] legacy_count={len(legacy)} repo_path={REPO_PATH}")
+    legacy_total = len(legacy)
+    # [不易] 先按 H-3 裁定剔除「只留主轨」的两条，再进 L1/L2/L3 —— 它们按设计
+    # 没有 skill.md，算 FAIL 等于用「文件轨缺文件」否定裁定本身。
+    legacy, h3_skipped = split_h3_main_track_only(legacy)
+    print(f"[setup] legacy_count={legacy_total} to_verify={len(legacy)} "
+          f"h3_main_track_only={len(h3_skipped)} repo_path={REPO_PATH}")
+    for sid, reason in h3_skipped.items():
+        print(f"[SKIP] {sid}: H-3 只留主轨（不建文件轨），不参与 L1/L2/L3；理由见 file_track_policy")
     mgr = SkillManager(repo_path=str(REPO_PATH))
 
     # ─── L1: 元数据索引 ──────────────────────────────

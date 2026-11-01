@@ -13,13 +13,17 @@
     - 每个测试用例独立使用临时仓库目录, 互不干扰
     - tearDown 清理临时目录
 """
+import io
 import os
 import sys
+import json
 import shutil
 import tempfile
 import importlib.util
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -201,6 +205,64 @@ class TestVerifySkillL3(unittest.TestCase):
         ok, msg = verify_skill_l3(self.mgr, "nonexistent-skill", {})
         self.assertTrue(ok, f"预期 ok=True (容错为无脚本), msg={msg}")
         self.assertIn("SCRIPT_NOT_FOUND", msg)
+
+
+class TestH3MainTrackOnly(unittest.TestCase):
+    """H-3「只留主轨」白名单
+
+    背景：`global-core-principles` / `skill` 按裁定**不建文件轨**（名单只在
+    `agent/skills_mgmt/file_track_policy.py`）。旧版 verify_migrated_skills 把它们
+    算成 L1 MISSING + L2/L3 SkillNotFoundError ⇒ 本地实跑恒红，与裁定冲突。
+    """
+
+    def test_split_skips_exactly_the_policy_ids(self):
+        """拆两拨：名单里的跳过，其余照常验证；名单与 policy 同源"""
+        from agent.skills_mgmt.file_track_policy import NO_FILE_TRACK
+
+        legacy = {
+            "global-core-principles": {"id": "global-core-principles", "name": "常驻准则"},
+            "skill": {"id": "skill", "name": "易之三义"},
+            "adaptation": {"id": "adaptation", "name": "自适应"},
+        }
+        checked, skipped = _VERIFY_MOD.split_h3_main_track_only(legacy)
+
+        self.assertEqual(set(checked), {"adaptation"})
+        self.assertEqual(set(skipped), set(NO_FILE_TRACK))
+        for reason in skipped.values():
+            self.assertTrue(reason.strip(), "跳过理由不能为空（要能展示给操作者）")
+
+    def test_main_passes_when_legacy_holds_only_h3_ids(self):
+        """端到端：legacy 只剩这两条时 main() 返回 0，不再报 MISSING/FAIL"""
+        tmpdir = tempfile.mkdtemp(prefix="verify_h3_")
+        try:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            legacy_path = Path(tmpdir) / "skills.json"
+            legacy_path.write_text(
+                json.dumps({"skills": [
+                    {"id": "global-core-principles", "name": "常驻准则",
+                     "enabled": True, "description": "d"},
+                    {"id": "skill", "name": "易之三义",
+                     "enabled": True, "description": "d"},
+                ]}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            buf = io.StringIO()
+            with patch.object(_VERIFY_MOD, "LEGACY_JSON", legacy_path), \
+                 patch.object(_VERIFY_MOD, "REPO_PATH", repo), \
+                 patch.object(sys, "argv", ["verify_migrated_skills.py"]), \
+                 redirect_stdout(buf):
+                code = _VERIFY_MOD.main()
+
+            text = buf.getvalue()
+            self.assertEqual(code, 0, text)
+            self.assertIn("[SKIP] global-core-principles", text)
+            self.assertIn("[SKIP] skill", text)
+            self.assertNotIn("[MISSING]", text)
+            self.assertNotIn("[FAIL]", text)
+            self.assertIn("OVERALL: PASS", text)
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 if __name__ == "__main__":
