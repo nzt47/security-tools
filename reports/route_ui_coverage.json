@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-11-01T20:01:18",
+  "generated_at": "2026-11-01T21:10:10",
   "totals": {
     "routes": 490,
     "live": 490,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 433,
+    "ui": 434,
     "cli_script": 15,
     "runtime_only": 11,
-    "unreferenced": 31,
+    "unreferenced": 30,
     "live_by_category": {
-      "ui": 433,
+      "ui": 434,
       "cli_script": 15,
       "runtime_only": 11,
-      "unreferenced": 31
+      "unreferenced": 30
     },
     "by_intent": {
       "should_be_in_ui": 412,
@@ -37,7 +37,7 @@
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 437,
+  "frontend_endpoints": 438,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -46,20 +46,7 @@
   ],
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
-  "pending_ui": [
-    {
-      "path": "/api/skills-mgmt/<skill_id>/card",
-      "norm": "/api/skills-mgmt/*/card",
-      "methods": [
-        "GET"
-      ],
-      "category": "unreferenced",
-      "area": "技能中心",
-      "where": [
-        "agent/server_routes/routes_skills_mgmt.py:285"
-      ]
-    }
-  ],
+  "pending_ui": [],
   "entries": [
     {
       "path": "/",
@@ -73,7 +60,6 @@
       "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
-        "agent/tools/custom/ingested/byted-bp-cdn-pagesdeploy/scripts/subscribe_cdn.py",
         "scripts/_check_page.py",
         "scripts/configure_branch_protection.py"
       ],
@@ -3444,13 +3430,13 @@
         "agent/server_auth.py",
         "agent/settings/registry.py",
         "app_server.py",
-        "scripts/_t08_http_stress.py",
         "scripts/deploy_workbench.py",
         "scripts/deployment_drill.py",
         "scripts/dev/graceful_shutdown_persist_probe.py",
         "scripts/full_alert_verify.py",
         "scripts/probe_prefix_cache_interaction.py",
-        "scripts/rollback.ps1"
+        "scripts/rollback.ps1",
+        "scripts/rotate_grafana_password.ps1"
       ],
       "where": [
         "plugins/status.py:234"
@@ -8068,11 +8054,13 @@
       "methods": [
         "GET"
       ],
-      "category": "unreferenced",
+      "category": "ui",
       "live": true,
       "dead_copy": false,
       "dead_defs": [],
-      "ui_refs": [],
+      "ui_refs": [
+        "yunshu-ui/src/components/SkillCardsDialog.tsx"
+      ],
       "non_ui_refs": [],
       "where": [
         "agent/server_routes/routes_skills_mgmt.py:285"
@@ -8082,7 +8070,7 @@
       "intent": "should_be_in_ui",
       "intent_area": "技能中心",
       "intent_note": "技能中心主域：列表/分类/评审/合并/安装/版本；多数子面板尚未接线。",
-      "ui_pending": true,
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -12475,7 +12463,6 @@
       "non_ui_refs": [
         "agent/audit/ui_middleware.py",
         "agent/utils/perf_monitor.py",
-        "scripts/_t08_http_stress.py",
         "scripts/baseline_loadtest_py.py",
         "scripts/check_mcp_log_level.py",
         "scripts/deployment_drill.py",
@@ -12484,7 +12471,8 @@
         "scripts/mock_intent_layer_traffic.py",
         "scripts/mock_metrics_server.py",
         "scripts/mock_service_standalone.py",
-        "scripts/monitoring_longrun/c2_harness.py"
+        "scripts/monitoring_longrun/c2_harness.py",
+        "scripts/monitoring_longrun/gen_derived_config.py"
       ],
       "where": [
         "agent/server_routes/routes_logging.py:1143"
@@ -12574,5 +12562,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "fc91aaa2fd8f49da"
+  "content_hash": "695985ca99a29eed"
 }
