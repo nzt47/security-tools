@@ -282,6 +282,27 @@ def register_routes(app, state):
             return jsonify(rep), code
         return jsonify(rep)
 
+    @app.route("/api/skills-mgmt/cards", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_cards():
+        """能力卡总览（L1 层）：每条技能一张卡，界面用来回答「我到底有什么能力」。
+
+        【为什么】统一表只有 id/描述/状态，看不出「怎么用」。转化器方案把加载分成
+        L0 摘要 / L1 能力卡 / L2 全文 / L3 资源（docs/rfc/技能转化器_2026-11-01.md §3），
+        本接口只吐 L1：有 CARD.md 就用它（layer=card），没有就从 skill.md 按标题派生
+        （layer=derived）—— 老技能不必先补文件也能看到卡。
+
+        边界：只读；派生只取正文既有小节，不编造；每面截断 600 字（卡片不是全文）。
+        """
+        try:
+            from agent.skills_mgmt.capability_cards import build_cards
+            cards = build_cards()
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": True, "count": len(cards), "cards": cards})
+
     @app.route("/api/skills-mgmt/backfill", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token

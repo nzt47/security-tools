@@ -6,12 +6,14 @@
  * 本页因此只留「统一 LLM 表」——运行时技能 + 技能资产按 id 合并，符合既有契约「单一 LLM 表」。
  */
 import { useState } from 'react'
-import { GitBranch, Hammer, Sparkles } from 'lucide-react'
+import { BookOpen, GitBranch, Hammer, Sparkles } from 'lucide-react'
 import SkillAssetTable from './SkillAssetTable'
 import SkillIntakeDialog from './SkillIntakeDialog'
+import SkillCardsDialog from '../../../components/SkillCardsDialog'
 
 export default function SkillCenter() {
   const [intakeOpen, setIntakeOpen] = useState(false)
+  const [cardsOpen, setCardsOpen] = useState(false)
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       {/* ─── 页头 ─── */}
@@ -29,9 +31,17 @@ export default function SkillCenter() {
           </div>
           <button
             type="button"
+            onClick={() => setCardsOpen(true)}
+            title="按能力卡（L1）列出现在到底有哪些能力：触发 / 步骤 / 参数 / 示例 / 约束"
+            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
+          >
+            <BookOpen size={12} /> 能力卡
+          </button>
+          <button
+            type="button"
             onClick={() => setIntakeOpen(true)}
             title="为什么要把技能提交进 git、新技能怎么处理、一键入轨"
-            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
           >
             <GitBranch size={12} /> 入轨助手
           </button>
@@ -53,6 +63,7 @@ export default function SkillCenter() {
             SkillAssetTable 内部只列「表里没有」的游离登记 —— 不在本页再画一份重复清单。 */}
         <SkillAssetTable />
       </div>
+      <SkillCardsDialog open={cardsOpen} onClose={() => setCardsOpen(false)} />
       <SkillIntakeDialog open={intakeOpen} onClose={() => setIntakeOpen(false)} />
     </div>
   )

@@ -94,10 +94,10 @@ def _resolve_whitelisted_program(program):
     """把用户输入的程序名**换成白名单里的那一条**（命中则返回白名单元素，否则 None）。
 
     [不易] CodeQL py/command-line-injection（告警 #598）：直接把 program 交给
-    Popen，等于让用户字符串决定「执行哪个可执行文件」。这里改成只拿用户串做
-    **比较**，真正进 argv[0] 的是白名单元素本身（`_DEFAULT_WHITELIST` 常量，或
+    Popen，等于让用户字符串决定「执行哪个可执行文件」。这里改成只拿用户串做**比较**，
+    真正进 argv[0] 的是白名单元素本身（`_DEFAULT_WHITELIST` 常量，或
     操作者经 add_whitelist_entry 显式登记过的自定义条目）—— 用户输入不进命令。
-    兼容原有两种写法：`notepad.exe` 与 `C:\Tools\notepad.exe`（按尾段等值）。
+    兼容原有两种写法：`notepad.exe` 与带目录的 `C:/Tools/notepad.exe`（按尾段等值匹配）。
     """
     if not isinstance(program, str):
         return None
