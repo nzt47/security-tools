@@ -302,27 +302,41 @@ def pending_report() -> List[Dict[str, object]]:
         if not (child / "skill.md").is_file():
             continue
         info = check_skill(child)
+        # 干跑算一遍「能自动补什么 / 要人补什么」，界面据此显示「可自动补全 N 项」
+        meta = fix_front_matter(child, execute=False)
         out.append({
             "skill_id": child.name,
             "tracked": child.name in tracked,
             "errors": list(info.get("errors") or []),
             "warnings": list(info.get("warnings") or []),
+            "fixable": list(meta.get("fixed") or []) if meta.get("ok") else [],
+            "needs_human": list(meta.get("needs_human") or []) if meta.get("ok") else [],
         })
     return out
 
 
 def intake_one(skill_id: str, *, execute: bool = False,
-               fix_baselines: bool = False) -> Dict[str, object]:
-    """单技能入轨（界面按钮与 CLI 共用）：校验 → git add → 干净 worktree 派生 → 基线。
+               fix_baselines: bool = False, fix_meta: bool = False) -> Dict[str, object]:
+    """单技能入轨（界面按钮与 CLI 共用）：自动补全 → 校验 → git add → 派生 → 基线。
 
-    返回结构化报告（不 print）：`ok` / `stage` / `warnings` / `derived_changed` /
-    `baseline_changes` / `numbers`。**不做 commit/push** —— 那一步永远留给人。
+    返回结构化报告（不 print）：`ok` / `stage` / `warnings` / `meta_fixed` /
+    `needs_human` / `derived_changed` / `baseline_changes` / `numbers`。
+    `commit/push/PR` 走单独的 `open_pr()`，本函数**不提交**（保持"可干跑"的性质）。
     """
     if not _ID_RE.match(skill_id or ""):
         return {"ok": False, "stage": "validate", "error": "非法技能 id"}
     skill_dir = resolve_skill_dir(skill_id)
     if skill_dir is None:
         return {"ok": False, "stage": "validate", "error": "文件轨目录不存在"}
+
+    # 自动补全（只在 fix_meta 时跑；干跑同样只算不写）
+    meta: Dict[str, object] = {}
+    if fix_meta:
+        meta = fix_front_matter(skill_dir, execute=execute)
+        if not meta.get("ok"):
+            return {"ok": False, "stage": "fix-meta", "skill_id": skill_id,
+                    "error": meta.get("error")}
+
     info = check_skill(skill_dir)
     if info.get("errors"):
         return {"ok": False, "stage": "validate", "skill_id": skill_id,
@@ -332,6 +346,8 @@ def intake_one(skill_id: str, *, execute: bool = False,
     report: Dict[str, object] = {
         "ok": True, "skill_id": skill_id, "tracked_before": tracked,
         "warnings": list(info.get("warnings") or []), "mode": "execute" if execute else "dry-run",
+        "meta_fixed": list(meta.get("fixed") or []),
+        "needs_human": list(meta.get("needs_human") or []),
     }
     if not execute:
         return report
@@ -351,10 +367,245 @@ def intake_one(skill_id: str, *, execute: bool = False,
         report["baseline_changes"] = rewrite_baselines(numbers, execute=True)
     report["next_steps"] = [
         "python scripts/validate_skill_md.py && python scripts/check_skills_dual_track.py",
-        "git diff --stat && git commit -F <msg> && git push && gh pr create --base master",
+        "python scripts/intake_skill.py %s --execute --fix-meta --fix-baselines --pr" % skill_id,
     ]
     return report
 
+
+
+
+
+# ════════════════════════════════════════════════════════════
+#  front matter 自动补全（界面「一键入轨」前的自动修/自动补）
+# ════════════════════════════════════════════════════════════
+#  【不易】自动补全的**边界**：只补"能确定性推导"的字段，绝不翻译/编造。
+#  - 机械默认值（version/status/category/author/tags/content_type/enabled/id）
+#    有唯一安全取值 ⇒ 直接补，diff 一行行看得见；
+#  - description_zh：只有当 description 本身已是中文时才**照抄**，英文描述不翻；
+#  - name 的「（自动整理）」后缀：直接清（§11.21 / §11.32 C·N5 两次踩过）；
+#  - 「何时使用」段落：**不生成**。§11.33 N4 的口径是"只从正文提炼、别编造"，
+#    自动补会把没写过的适用场景冻进仓库 ⇒ 只提示"需要人补"。
+
+#: 缺省值：key → 默认值。都是"补了不会歪曲事实"的机械字段。
+_FM_DEFAULTS: Sequence[Tuple[str, str]] = (
+    ("version", "0.1.0"),
+    ("status", "draft"),
+    ("category", "custom"),
+    ("author", "yunshu-intake"),
+    ("tags", "[]"),
+    ("content_type", "markdown"),
+    ("enabled", "true"),
+)
+
+_CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+
+
+def _split_front_matter(text: str) -> Tuple[List[str], List[str]]:
+    """切成 (front matter 行, 其余行)；没有 front matter 时返回 ([], 全部行)。"""
+    lines = text.splitlines()
+    # 没有 front matter ⇒ 返回空 tail（调用方据 "not tail" 报错；不能把正文当 front matter 补）
+    if not lines or lines[0].strip() != "---":
+        return [], []
+    for idx in range(1, len(lines)):
+        if lines[idx].strip() == "---":
+            return lines[1:idx], lines[idx:]
+    return [], lines
+
+
+def _fm_keys(fm_lines: Sequence[str]) -> Dict[str, str]:
+    """front matter 里的顶层 key → 值（不解析嵌套，够用且不误判）。"""
+    out: Dict[str, str] = {}
+    for line in fm_lines:
+        m = re.match(r"^([A-Za-z_][A-Za-z0-9_\-]*):[ \t]*(.*)$", line)
+        if m:
+            out[m.group(1)] = m.group(2).strip()
+    return out
+
+
+def fix_front_matter(skill_dir: Path, *, execute: bool = False) -> Dict[str, object]:
+    """补齐可确定性推导的 front matter 字段（默认只算不写）。
+
+    Returns:
+        {"ok": bool, "fixed": [key...], "needs_human": [说明...], "changed": bool, "error"?: str}
+    """
+    md = skill_dir / "skill.md"
+    if not md.is_file():
+        return {"ok": False, "error": "缺少 skill.md", "fixed": [], "needs_human": []}
+    text = md.read_text(encoding="utf-8", errors="replace")
+    fm, tail = _split_front_matter(text)
+    if not tail:
+        return {"ok": False, "error": "缺少 front matter（首行须为 ---）",
+                "fixed": [], "needs_human": []}
+
+    keys = _fm_keys(fm)
+    fixed: List[str] = []
+    needs_human: List[str] = []
+    out_fm = list(fm)
+
+    def _set_or_append(key: str, value: str) -> bool:
+        """有该键就改值，没该键就追加（都只碰这一行）。返回是否真的改了。"""
+        pat = re.compile(r"^%s:[ \t]*(.*)$" % re.escape(key))
+        for i, line in enumerate(out_fm):
+            m = pat.match(line)
+            if m:
+                if m.group(1).strip() == str(value):
+                    return False
+                out_fm[i] = "%s: %s" % (key, value)
+                return True
+        out_fm.append("%s: %s" % (key, value))
+        return True
+
+    # id 必须是目录名（schema 硬约束）—— 等值写入，不做"猜"
+    if _set_or_append("id", skill_dir.name):
+        fixed.append("id")
+
+    # name 的自动整理后缀：就地清掉（不是阻断项）
+    new_fm: List[str] = []
+    for line in out_fm:
+        m = re.match(r"^(name:[ \t]*)(.*)$", line)
+        if m and _AUTO_SUFFIX_RE.search(m.group(2).strip().strip("'\"")):
+            raw = m.group(2).strip().strip("'\"")
+            new_fm.append("%s%s" % (m.group(1), _AUTO_SUFFIX_RE.sub("", raw)))
+            fixed.append("name(去后缀)")
+        else:
+            new_fm.append(line)
+    out_fm = new_fm
+    keys = _fm_keys(out_fm)
+
+    # 机械默认值（缺键就补；有键但值为空也补 —— tags 这类块序列有子项，值本来就为空）
+    for key, default in _FM_DEFAULTS:
+        if key in keys and keys[key]:
+            continue
+        if key == "tags" and any(l.startswith("- ") for l in out_fm):
+            continue
+        if _set_or_append(key, default):
+            fixed.append(key)
+
+    # description_zh：只在 description 已是中文时照抄（不翻译）
+    if not (keys.get("description_zh") or "").strip():
+        desc = keys.get("description", "").strip().strip("'\"")
+        if desc and _CJK_RE.search(desc):
+            if _set_or_append("description_zh", desc):
+                fixed.append("description_zh")
+        else:
+            needs_human.append("description_zh：description 非中文或为空，需人写中文描述（不自动翻译）")
+
+    if not re.search(r"^##\s*(何时使用|When to Use)\s*$", text, re.MULTILINE):
+        needs_human.append("「何时使用 / When to Use」段落缺失：按 §11.33 N4 只能从正文提炼，需人补")
+
+    changed = out_fm != list(fm)
+    if changed and execute:
+        md.write_text("---\n" + "\n".join(out_fm) + "\n" + "\n".join(tail), encoding="utf-8")
+    return {"ok": True, "fixed": fixed, "needs_human": needs_human, "changed": changed}
+
+
+# ════════════════════════════════════════════════════════════
+#  commit / push / PR（入轨的最后一步，原先只能人肉跑）
+# ════════════════════════════════════════════════════════════
+
+def allowed_commit_paths(skill_id: str) -> List[str]:
+    """允许被入轨 PR 带上的文件：**只这些**，其余一律拒（防止把 data/_*.py 草稿带上）。"""
+    paths = [
+        "data/skills_repo/%s/" % skill_id,
+        MANIFEST_REL.as_posix(),
+        INVENTORY_REL.as_posix(),
+    ]
+    for rel, _pat, _key in _BASELINE_SPECS:
+        if rel not in paths:
+            paths.append(rel)
+    return paths
+
+
+def _is_allowed(rel_path: str, skill_id: str) -> bool:
+    p = rel_path.replace("\\", "/")
+    if p.startswith("data/skills_repo/%s/" % skill_id):
+        return True
+    return p in allowed_commit_paths(skill_id)
+
+
+def changed_paths(root: Path = ROOT) -> List[str]:
+    """读 git status --porcelain -z（-z 不做路径转义，中文名/空格都安全）。"""
+    proc = _run(["git", "status", "--porcelain", "-z", "--untracked-files=all"], root)
+    if proc.returncode != 0:
+        return []
+    out: List[str] = []
+    for item in (proc.stdout or "").split("\x00"):
+        if len(item) < 4:
+            continue
+        out.append(item[3:])
+    return out
+
+
+def open_pr(skill_id: str, *, base: str = "master", root: Path = ROOT) -> Dict[str, object]:
+    """把当前工作区里**属于该技能入轨**的改动提交、推分支、开 PR。
+
+    前置（任一不满足就拒绝，不半途而废）：
+      1. 当前分支必须是 base（默认 master）—— 不在 master 上说明有别的改动混着；
+      2. 所有改动都必须落在白名单内（技能目录 + 清单 + 盘点表 + 基线用例）。
+    """
+    if not _ID_RE.match(skill_id or ""):
+        return {"ok": False, "error": "非法技能 id"}
+    proc = _run(["git", "rev-parse", "--abbrev-ref", "HEAD"], root)
+    branch_now = (proc.stdout or "").strip()
+    if proc.returncode != 0:
+        return {"ok": False, "error": "读不到当前分支: %s" % (proc.stderr or "")[:200]}
+    if branch_now != base:
+        return {"ok": False,
+                "error": "当前分支是 %r，不是 %r；入轨 PR 必须从干净的主线开（先 checkout）"
+                         % (branch_now, base)}
+
+    paths = changed_paths(root)
+    outside = [p for p in paths if not _is_allowed(p, skill_id)]
+    if outside:
+        return {"ok": False, "error": "工作区有与本次入轨无关的改动，拒绝提交: %s"
+                                      % ", ".join(outside[:8])}
+    if not paths:
+        return {"ok": False, "error": "没有可提交的改动（先跑 --execute）"}
+
+    numbers = compute_baselines(collect_manifest())
+    branch = "intake/%s-%s" % (skill_id, time.strftime("%Y%m%d%H%M"))
+    msg = (
+        "feat(skills): 入轨 %s（能力面 %d 项）\n\n"
+        "由 scripts/intake_skill.py 生成：校验 + git add（仅该技能目录）+ 干净 worktree "
+        "重派生能力清单/盘点表 + 刷新精确基线。\n"
+        "能力面：entries=%d skill=%d tool=%d local=%d remote=%d envelope=%d"
+        % (skill_id, numbers["entries"], numbers["entries"], numbers["skill_total"],
+           numbers["tool_total"], numbers["local"], numbers["remote"], numbers["envelope_total"])
+    )
+    steps = []
+    for cmd in (["git", "checkout", "-b", branch],
+                ["git", "add", "--"] + paths,
+                ["git", "commit", "-m", msg]):
+        p = _run(cmd, root)
+        steps.append({"cmd": " ".join(cmd[:3]), "rc": p.returncode})
+        if p.returncode != 0:
+            return {"ok": False, "stage": cmd[1],
+                    "error": (p.stderr or p.stdout).strip()[:600], "steps": steps}
+
+    p = _run(["git", "push", "-u", "origin", branch], root)
+    steps.append({"cmd": "git push", "rc": p.returncode})
+    if p.returncode != 0:
+        _run(["git", "checkout", base], root)
+        return {"ok": False, "stage": "push", "error": (p.stderr or p.stdout).strip()[:600],
+                "steps": steps, "branch": branch}
+
+    body = ("## %s 入轨\n\n- 技能目录：`data/skills_repo/%s/`\n"
+            "- 派生物：`data/capability_manifest.json`、`docs/rfc/云枢能力清单盘点表.md`\n"
+            "- 基线：能力面 6 处精确基线（entries=%d）\n"
+            "- 生成方式：`python scripts/intake_skill.py %s --execute --fix-meta --fix-baselines`\n"
+            % (skill_id, skill_id, numbers["entries"], skill_id))
+    title = "feat(skills): 入轨 %s" % skill_id
+    p = _run(["gh", "pr", "create", "--base", base, "--title", title, "--body", body], root)
+    _run(["git", "checkout", base], root)  # PR 建完回主线，避免部署/deploy 脚本踩到 feature 分支
+    steps.append({"cmd": "gh pr create", "rc": p.returncode})
+    if p.returncode != 0:
+        return {"ok": False, "stage": "pr", "error": (p.stderr or p.stdout).strip()[:600],
+                "steps": steps, "branch": branch}
+    url = ""
+    for line in (p.stdout or "").splitlines():
+        if line.startswith("http"):
+            url = line.strip()
+    return {"ok": True, "branch": branch, "pr_url": url, "committed": paths, "steps": steps}
 
 
 def collect_manifest() -> Dict[str, object]:
@@ -390,7 +641,33 @@ def plan(args) -> Dict[str, object]:
     }
 
 
+def _apply_fix_meta(args) -> Dict[str, Dict[str, object]]:
+    """先补 front matter（干跑只算），返回 {id: 报告}。"""
+    metas: Dict[str, Dict[str, object]] = {}
+    for sid in args.skill_ids:
+        if not _ID_RE.match(sid):
+            continue
+        d = resolve_skill_dir(sid)
+        if d is None:
+            continue
+        metas[sid] = fix_front_matter(d, execute=bool(args.execute))
+    return metas
+
+
 def run(args) -> int:
+    metas: Dict[str, Dict[str, object]] = {}
+    if getattr(args, "fix_meta", False):
+        metas = _apply_fix_meta(args)
+        for sid, rep in metas.items():
+            if not rep.get("ok"):
+                print("[FAIL] %s 自动补全: %s" % (sid, rep.get("error")))
+                return 1
+            print("[META] %s 已补: %s%s" % (
+                sid, rep.get("fixed") or "（无可补字段）",
+                "" if args.execute else "（干跑，未写盘）"))
+            for hint in rep.get("needs_human") or []:
+                print("       ! %s" % hint)
+
     result = plan(args)
     if result.get("ok") is False and result.get("error"):
         print(result["error"])
@@ -449,11 +726,22 @@ def run(args) -> int:
                  numbers["local"], numbers["remote"], numbers["enabled_skills"],
                  numbers["envelope_total"]))
 
-    print("\n下一步（脚本不代跑，失败要人看）：")
-    print("  python scripts/validate_skill_md.py && python scripts/check_skills_dual_track.py")
-    print("  python -m pytest tests/unit/test_capability_spec.py tests/unit/test_capregistry_core.py "
-          "tests/unit/test_confirm_level.py -q")
-    print("  git diff --stat && git commit && git push && gh pr create --base master")
+    if getattr(args, "pr", False):
+        if len(items) != 1:
+            print("--pr 一次只能入轨一个技能（当前 %d 个）" % len(items))
+            return 2
+        rep = open_pr(items[0]["skill_id"])
+        if not rep.get("ok"):
+            print("建 PR 失败（stage=%s）: %s" % (rep.get("stage", "-"), rep.get("error")))
+            return 1
+        print("已提交 %d 个文件并开 PR: %s" % (len(rep["committed"]), rep.get("pr_url") or rep.get("branch")))
+    else:
+        print("\n下一步（不代跑，或加 --pr 一条龙）：")
+        print("  python scripts/validate_skill_md.py && python scripts/check_skills_dual_track.py")
+        print("  python -m pytest tests/unit/test_capability_spec.py tests/unit/test_capregistry_core.py "
+              "tests/unit/test_confirm_level.py -q")
+        print("  python scripts/intake_skill.py %s --execute --fix-meta --fix-baselines --pr"
+              % items[0]["skill_id"] if items else "  （无技能）")
     if args.json:
         print(json.dumps({"plan": result, "derived": derived}, ensure_ascii=False, indent=1))
     return 0
@@ -465,10 +753,16 @@ def main(argv=None) -> int:
     parser.add_argument("--execute", action="store_true", help="真正写入（缺省干跑）")
     parser.add_argument("--fix-baselines", action="store_true",
                         help="同时刷新能力面的精确基线（tests/unit 里的 6 处）")
+    parser.add_argument("--fix-meta", action="store_true",
+                        help="先自动补全 front matter（只补可确定性推导的字段，不翻译不编造）")
+    parser.add_argument("--pr", action="store_true",
+                        help="入轨后接着 commit → push → 建 PR（要求当前分支是 master）")
     parser.add_argument("--json", action="store_true", help="输出 JSON 摘要")
     args = parser.parse_args(argv)
     if args.fix_baselines and not args.execute:
         parser.error("--fix-baselines 需要与 --execute 一起用")
+    if args.pr and not args.execute:
+        parser.error("--pr 需要与 --execute 一起用")
     return run(args)
 
 

@@ -243,11 +243,12 @@ def register_routes(app, state):
     @require_token
     @log_request()
     def api_skills_mgmt_intake(skill_id: str):
-        """把一条**已有文件轨**的技能入轨：git add + 干净 worktree 重派生 + 可选刷基线。
+        """把一条**已有文件轨**的技能入轨：自动补全 → git add → 干净 worktree 重派生 → 基线。
 
-        Body: {execute?: false, fix_baselines?: true} —— 默认干跑。
-        边界：**不 commit / 不 push / 不建 PR**（那一步永远留给人 review），
-        只把工作区与派生物准备好，并把下一步命令回给界面。
+        Body: {execute?: false, fix_baselines?: true, fix_meta?: true, open_pr?: false}。
+        - 默认干跑；`fix_meta` 默认 true（只在 execute 时真写 front matter）；
+        - `open_pr=true` 才走 commit → push → 建 PR（要求当前在 master、且改动全在白名单内），
+          响应里回 `pr.pr_url`；不传就仍然停在「工作区已就绪」，由人 review 后提交。
         不建文件轨的技能（global-core-principles / skill）在这里同样被校验拦下。
         """
         data = request.get_json(silent=True) or {}
@@ -261,9 +262,19 @@ def register_routes(app, state):
             return bool(v)
 
         try:
-            from scripts.intake_skill import intake_one
-            rep = intake_one(skill_id, execute=_as_bool("execute", False),
-                             fix_baselines=_as_bool("fix_baselines", True))
+            from scripts.intake_skill import intake_one, open_pr
+            execute = _as_bool("execute", False)
+            rep = intake_one(skill_id, execute=execute,
+                             fix_baselines=_as_bool("fix_baselines", True),
+                             fix_meta=_as_bool("fix_meta", True))
+            # 一条龙：commit → push → PR。只在 execute 且没有 needs_human 阻塞项时跑，
+            # 且必须显式 open_pr —— 默认仍然停在"工作区已就绪"。
+            if rep.get("ok") and execute and _as_bool("open_pr", False):
+                rep["pr"] = open_pr(skill_id)
+                if not rep["pr"].get("ok"):
+                    rep["ok"] = False
+                    rep["stage"] = rep["pr"].get("stage") or "pr"
+                    rep["error"] = rep["pr"].get("error")
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
         if not rep.get("ok"):
