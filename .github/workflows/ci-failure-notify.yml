@@ -82,18 +82,25 @@ jobs:
       #       改用项目自维护 observability_dingtalk_notify.py（与 observability-ci.yml 同源，零第三方 Action 依赖）
       - name: 发送钉钉通知
         if: ${{ env.DINGTALK_WEBHOOK != '' }}
+        # 【不易·CodeQL】同 prep/docker-scan：step outputs 里是外部可控的分支名/URL，
+        # 不能再内联进 run:（会把外部字符串拼进命令行）。一律 env: + "$VAR"。
         run: |
           python -m pip install requests -q || true
           python scripts/observability_dingtalk_notify.py \
-            --webhook "${{ secrets.DINGTALK_WEBHOOK }}" \
+            --webhook "$DINGTALK_WEBHOOK" \
             --status failure \
-            --workflow "${{ steps.prep.outputs.workflow_name }}" \
-            --branch "${{ steps.prep.outputs.branch }}" \
-            --commit "${{ steps.prep.outputs.commit }}" \
-            --actor "${{ steps.prep.outputs.actor }}" \
-            --message "CI 失败告警，运行详情: ${{ steps.prep.outputs.run_url }}"
+            --workflow "$WF_NAME" \
+            --branch "$WF_BRANCH" \
+            --commit "$WF_COMMIT" \
+            --actor "$WF_ACTOR" \
+            --message "CI 失败告警，运行详情: $WF_URL"
         env:
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          WF_NAME: ${{ steps.prep.outputs.workflow_name }}
+          WF_BRANCH: ${{ steps.prep.outputs.branch }}
+          WF_COMMIT: ${{ steps.prep.outputs.commit }}
+          WF_ACTOR: ${{ steps.prep.outputs.actor }}
+          WF_URL: ${{ steps.prep.outputs.run_url }}
         continue-on-error: true
       # ── 通知渠道 2: GitHub Issue（自动创建） ──
       - name: 创建 GitHub Issue
