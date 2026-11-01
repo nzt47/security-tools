@@ -33,10 +33,6 @@
 //  技能管理（/api/skills-mgmt）
 // ═══════════════════════════════════════════════════════════════
 export const SKILLS_MGMT = '/api/skills-mgmt';
-/** 能力卡（L1）：每条 LLM 技能一张卡 —— 触发/步骤/参数/示例/约束 */
-export const SKILLS_MGMT_CARDS = '/api/skills-mgmt/cards';
-/** 平台能力卡：功能单位 / 工具 / 调度任务（云枢自身功能，与 LLM 技能分开） */
-export const SYSTEM_PLATFORM_CARDS = '/api/system/platform-cards';
 /** 文件轨 → 资产主轨补登记（dry_run 默认 true；只补主轨登记，不改 skills_repo） */
 export const SKILLS_MGMT_BACKFILL = '/api/skills-mgmt/backfill';
 export const SKILLS_MGMT_HEALTH = '/api/skills-mgmt/health';
@@ -47,6 +43,10 @@ export const SKILLS_MGMT_INSTALL = '/api/skills-mgmt/install';
 export const SKILLS_MGMT_REVIEW_BATCH = '/api/skills-mgmt/review/batch';
 export const SKILLS_MGMT_REVIEW_THRESHOLDS = '/api/skills-mgmt/review/thresholds';
 export const SKILLS_MGMT_META_CATEGORIES = '/api/skills-mgmt/meta/categories';
+/** 能力卡（L1）：每条 LLM 技能一张卡 —— 触发/步骤/参数/示例/约束 */
+export const SKILLS_MGMT_CARDS = '/api/skills-mgmt/cards';
+/** 元生功能：内置工具 + 常驻机制，以及「技能 × 元生功能」重叠提示 */
+export const SKILLS_MGMT_NATIVE = '/api/skills-mgmt/native-functions';
 
 /** 单个技能：GET 详情 / PUT 更新 / DELETE 删除（同一路径） */
 export const skillById = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}`;

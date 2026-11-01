@@ -1,18 +1,19 @@
 /**
- * 能力卡总览（两个 Tab：LLM 技能 / 平台能力）
+ * 能力卡总览（两个 Tab：LLM 技能 / 元生功能）
  * ------------------------------------------------------------------
- * Owner 2026-11-01：①「UI 界面必须列出能力卡，使我能知道自身有什么能力」
- *                  ②「能力卡是否包括云枢自身功能的能力？」→ 原来不含，本版补上第二个 Tab。
+ * Owner 2026-11-01：①「UI 界面必须列出能力卡，使我能知道自身有什么能力」；
+ *                  ②「我要的是云枢自身功能，那些可能与技能造成重叠的元生功能」
+ *                     —— 平台能力（服务/审计/调度/监控）是运维对象，另开叶子，不混进来。
  *
- * 两个 Tab 刻意分开：
- *   · LLM 技能 = 模型按需加载的能力（data/skills_repo，L1 卡片，来自 /api/skills-mgmt/cards）；
- *   · 平台能力 = 云枢自身功能（功能单位 / 工具 / 调度任务，来自 /api/system/platform-cards）。
- * 混成一张表会让「模型能加载的能力」和「平台提供的功能」互相冒充。
+ * 两个 Tab 的口径：
+ *   · LLM 技能   = 模型按需加载的能力（data/skills_repo，L1 卡）；
+ *   · 元生功能   = 智能体**天生就会做**的事（内置工具 + 常驻机制），是技能重复的来源；
+ *                  并给出「技能 × 元生功能」的疑似重叠清单，供人判断该技能是否在重复造轮子。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, BookOpen, Loader2, Search, Server, X } from 'lucide-react'
+import { AlertTriangle, BookOpen, Cpu, Loader2, Search, X } from 'lucide-react'
 import { authHeader } from '../lib/apiToken'
-import { SKILLS_MGMT_CARDS, SYSTEM_PLATFORM_CARDS } from '../api/endpoints'
+import { SKILLS_MGMT_CARDS, SKILLS_MGMT_NATIVE } from '../api/endpoints'
 
 type Card = {
   skill_id: string
@@ -30,27 +31,16 @@ type Card = {
   body_chars: number
 }
 
-type PlatformItem = {
-  id: string
-  name: string
-  summary?: string
-  status?: string
-  family?: string
-  metrics?: Record<string, unknown>
-  issues?: string[]
-  zero_token?: boolean | null
-}
-
-type PlatformGroup = { kind: string; title: string; desc?: string; count: number; items: PlatformItem[] }
+type NativeItem = { id: string; name: string; summary?: string; status?: string }
+type NativeGroup = { kind: string; title: string; desc?: string; count: number; items: NativeItem[] }
+type Overlap = { skill_id: string; name?: string; matches: { native_id: string; kind: string; score: number; reason?: string }[] }
 
 type Props = { open: boolean; onClose: () => void }
 
 const STATUS_STYLE: Record<string, string> = {
   ok: 'border-emerald-800/60 text-emerald-300',
-  warn: 'border-amber-800/60 text-amber-300',
-  never: 'border-slate-700 text-slate-400',
   off: 'border-slate-700 text-slate-500',
-  error: 'border-red-800/60 text-red-300',
+  warn: 'border-amber-800/60 text-amber-300',
 }
 
 function Section({ title, items }: { title: string; items: string[] }) {
@@ -68,9 +58,10 @@ function Section({ title, items }: { title: string; items: string[] }) {
 }
 
 export default function SkillCardsDialog({ open, onClose }: Props) {
-  const [tab, setTab] = useState<'skill' | 'platform'>('skill')
+  const [tab, setTab] = useState<'skill' | 'native'>('skill')
   const [cards, setCards] = useState<Card[]>([])
-  const [groups, setGroups] = useState<PlatformGroup[]>([])
+  const [groups, setGroups] = useState<NativeGroup[]>([])
+  const [overlaps, setOverlaps] = useState<Overlap[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
@@ -91,14 +82,15 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
     }
   }, [])
 
-  const loadPlatform = useCallback(async () => {
+  const loadNative = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const r = await fetch(SYSTEM_PLATFORM_CARDS, { headers: authHeader() })
+      const r = await fetch(SKILLS_MGMT_NATIVE, { headers: authHeader() })
       const j = await r.json()
       if (!r.ok || j.ok === false) throw new Error(j.error || `HTTP ${r.status}`)
       setGroups(Array.isArray(j.groups) ? j.groups : [])
+      setOverlaps(Array.isArray(j.overlaps) ? j.overlaps : [])
     } catch (e) {
       setError(String((e as Error).message || e))
     } finally {
@@ -109,8 +101,8 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return
     if (tab === 'skill') void loadSkills()
-    else void loadPlatform()
-  }, [open, tab, loadSkills, loadPlatform])
+    else void loadNative()
+  }, [open, tab, loadSkills, loadNative])
 
   const filtered = useMemo(() => {
     const kw = q.trim().toLowerCase()
@@ -129,14 +121,22 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
     return groups
       .map((g) => ({
         ...g,
-        items: g.items.filter((it) => `${it.id} ${it.name} ${it.summary || ''} ${it.family || ''}`.toLowerCase().includes(kw)),
+        items: g.items.filter((it) => `${it.id} ${it.name} ${it.summary || ''}`.toLowerCase().includes(kw)),
       }))
       .filter((g) => g.items.length > 0)
   }, [groups, q])
 
+  const filteredOverlaps = useMemo(() => {
+    const kw = q.trim().toLowerCase()
+    if (!kw) return overlaps
+    return overlaps.filter((o) =>
+      `${o.skill_id} ${o.name || ''} ${o.matches.map((m) => m.native_id).join(' ')}`.toLowerCase().includes(kw),
+    )
+  }, [overlaps, q])
+
   if (!open) return null
 
-  const platformTotal = groups.reduce((n, g) => n + g.count, 0)
+  const nativeTotal = groups.reduce((n, g) => n + g.count, 0)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
@@ -164,58 +164,49 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
           </button>
           <button
             type="button"
-            onClick={() => { setTab('platform'); setQ(''); setExpanded(null) }}
-            className={tab === 'platform'
-              ? 'rounded-md border border-emerald-700/70 bg-emerald-500/10 px-2.5 py-1 text-[11px] text-emerald-300'
+            onClick={() => { setTab('native'); setQ(''); setExpanded(null) }}
+            className={tab === 'native'
+              ? 'rounded-md border border-violet-700/70 bg-violet-500/10 px-2.5 py-1 text-[11px] text-violet-300'
               : 'rounded-md border border-slate-800 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800'}
           >
-            <Server size={10} className="mr-1 inline" />
-            平台能力 {platformTotal ? `(${platformTotal})` : ''}
+            <Cpu size={10} className="mr-1 inline" />
+            元生功能 {nativeTotal ? `(${nativeTotal})` : ''}
           </button>
         </div>
 
-        {tab === 'skill' ? (
-          <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-[10px] leading-relaxed text-slate-500">
+        <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-[10px] leading-relaxed text-slate-500">
+          {tab === 'skill' ? (
             <p>
-              <strong className="text-slate-300">这张表覆盖什么：</strong>
-              只覆盖<strong className="text-cyan-300"> LLM 技能</strong>（
+              <strong className="text-slate-300">只覆盖 LLM 技能</strong>（
               <code className="text-slate-400">data/skills_repo/&lt;id&gt;/skill.md</code>
-              ，模型按需加载的提示 / 行为 / 流程资产），当前 {cards.length} 条。
-              分四层加载：<span className="text-slate-400">L0 摘要</span> →
-              <strong className="text-slate-300"> L1 能力卡（本表）</strong> →
-              <span className="text-slate-400">L2 全文</span> →
-              <span className="text-slate-400">L3 脚本资源</span>。
+              ），当前 {cards.length} 条。四层加载：L0 摘要 →
+              <strong className="text-slate-300"> L1 能力卡（本表）</strong> → L2 全文 → L3 脚本资源。
+              <br />
+              平台能力（服务 / 审计 / 调度 / 监控）不在这里 —— 它们是运维对象，归「系统监控」；
+              智能体天生就会做的事在旁边的<strong className="text-violet-300">「元生功能」</strong>。
             </p>
-            <p className="mt-1">
-              <strong className="text-slate-300">云枢平台自身功能不在本 Tab</strong>（服务进程 / 审计链 / 调度 /
-              记忆库 / 知识库 / 工具登记 / 工作流 / 监控）—— 它们在旁边的
-              <strong className="text-emerald-300">「平台能力」</strong>；也不含只留主轨的两条（
-              <code className="text-amber-300">global-core-principles</code> /
-              <code className="text-amber-300">skill</code>）。
-            </p>
-          </div>
-        ) : (
-          <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-[10px] leading-relaxed text-slate-500">
+          ) : (
             <p>
-              <strong className="text-slate-300">平台能力 = 云枢自己提供的功能</strong>（不是模型加载的技能）：
-              功能单位（运行状况）+ 工具（模型可调用）+ 调度任务（定时执行）。
-              与「系统监控 → 功能单位」同源，所以面板上是黄的，这里也是黄的。
+              <strong className="text-slate-300">元生功能 = 智能体天生就会做的事</strong>（不是技能）：
+              内置工具（模型直接可调用）+ 常驻机制（不建文件轨但始终生效）。
+              下面一并列出<strong className="text-violet-300">「技能 × 元生功能」的疑似重叠</strong> ——
+              某条技能若在重复造轮子，会出现在那张清单里。
             </p>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-2">
           <Search size={12} className="text-slate-500" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={tab === 'skill' ? '按 id / 名称 / 触发条件 / 步骤 过滤…' : '按名称 / 家族 / 说明 过滤…'}
+            placeholder={tab === 'skill' ? '按 id / 名称 / 触发条件 / 步骤 过滤…' : '按工具名 / 技能 id 过滤…'}
             className="min-w-0 flex-1 bg-transparent text-[11px] text-slate-200 outline-none placeholder:text-slate-600"
           />
           <span className="shrink-0 text-[10px] text-slate-500">
             {tab === 'skill'
               ? `${filtered.length} / ${cards.length} 张`
-              : `${filteredGroups.reduce((n, g) => n + g.items.length, 0)} / ${platformTotal} 项`}
+              : `${filteredGroups.reduce((n, g) => n + g.items.length, 0)} / ${nativeTotal} 项`}
           </span>
         </div>
 
@@ -283,10 +274,32 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                 })}
               </ul>
             )
-          ) : filteredGroups.length === 0 ? (
-            <div className="py-8 text-center text-slate-500">没有匹配的平台能力</div>
           ) : (
             <div className="space-y-4">
+              {filteredOverlaps.length > 0 ? (
+                <div className="rounded-lg border border-violet-900/50 bg-violet-950/20 px-3 py-2">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-[11px] font-medium text-violet-200">疑似重叠：技能 × 元生功能</span>
+                    <span className="text-[10px] text-slate-500">{filteredOverlaps.length} 条技能</span>
+                    <span className="text-[10px] text-slate-600">· 点名工具=强信号(0.6)；其余看文本覆盖率</span>
+                  </div>
+                  <ul className="space-y-1">
+                    {filteredOverlaps.slice(0, 20).map((o) => (
+                      <li key={o.skill_id} className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <code className="text-slate-300">{o.skill_id}</code>
+                        <span className="text-slate-600">→</span>
+                        {o.matches.map((m) => (
+                          <span key={m.native_id} className="rounded border border-violet-800/60 px-1 text-violet-300">
+                            {m.native_id} {m.score}
+                            {m.reason === 'explicit_mention' ? ' ·点名' : ''}
+                          </span>
+                        ))}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
               {filteredGroups.map((g) => (
                 <div key={g.kind}>
                   <div className="mb-1 flex items-center gap-2">
@@ -299,18 +312,14 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                       <li key={`${g.kind}-${it.id}`} className="rounded-md border border-slate-800 bg-slate-950/40 px-2.5 py-1.5">
                         <div className="flex items-center gap-1.5">
                           <span className="truncate text-slate-200">{it.name}</span>
-                          <span className={`shrink-0 rounded border px-1 text-[9px] ${STATUS_STYLE[String(it.status || 'ok')] || 'border-slate-700 text-slate-400'}`}>
-                            {it.status || 'ok'}
-                          </span>
-                          {it.zero_token ? (
-                            <span className="shrink-0 rounded border border-cyan-800/60 px-1 text-[9px] text-cyan-300">0-token</span>
+                          {it.status ? (
+                            <span className={`shrink-0 rounded border px-1 text-[9px] ${STATUS_STYLE[it.status] || 'border-slate-700 text-slate-400'}`}>
+                              {it.status}
+                            </span>
                           ) : null}
                         </div>
                         {it.summary ? (
                           <div className="mt-0.5 line-clamp-2 text-[10px] text-slate-500">{it.summary}</div>
-                        ) : null}
-                        {it.issues && it.issues.length > 0 ? (
-                          <div className="mt-0.5 text-[10px] text-amber-300/80">{it.issues[0]}</div>
                         ) : null}
                       </li>
                     ))}
