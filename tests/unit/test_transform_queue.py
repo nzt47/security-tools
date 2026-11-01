@@ -180,3 +180,24 @@ def test_路由契约(base, artifact, monkeypatch):
 
     missing = client.post("/api/skills-mgmt/transforms/%s/rollback" % ("0" * 12), json={})
     assert missing.status_code == 409
+
+
+def test_路由异常不把原文写进响应体(base, monkeypatch):
+    """§8 陷阱 15：异常文本进 data = py/stack-trace-exposure（本文件 #1400 首版踩过）。"""
+    from agent.server_routes import routes_skills_mgmt
+    from agent.skills_mgmt.transform import queue as q
+
+    monkeypatch.setattr(server_auth, "authorize_request", lambda: (True, "t", "t"))
+
+    def boom(*_a, **_k):
+        raise RuntimeError("SECRET_INTERNAL_PATH=/root/.ssh/id_rsa")
+
+    monkeypatch.setattr(q, "list_transforms", boom)
+    app = Flask(__name__)
+    routes_skills_mgmt.register_routes(app, state=None)
+    resp = app.test_client().get("/api/skills-mgmt/transforms")
+    assert resp.status_code == 500
+    body = resp.get_data(as_text=True)
+    assert "SECRET_INTERNAL_PATH" not in body
+    assert "RuntimeError" not in body
+    assert resp.get_json()["ok"] is False
