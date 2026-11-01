@@ -232,6 +232,40 @@ def get_transform(transform_id: str, root: Optional[Path] = None) -> Dict[str, o
     }
 
 
+def archive_path(transform_id: str, root: Optional[Path] = None) -> Optional[Path]:
+    """按 id 取归档目录（目录名等值匹配，不做路径拼接）。"""
+    if not _TID_RE.match(transform_id or ""):
+        return None
+    return _find_child(_base(root) / TRANSFORMS, transform_id)
+
+
+def read_raw(transform_id: str, root: Optional[Path] = None) -> Optional[str]:
+    """读归档里的 raw.md（P5 重写的唯一输入：**只从原文取材**）。"""
+    tdir = archive_path(transform_id, root)
+    if tdir is None:
+        return None
+    raw = tdir / "raw.md"
+    if not raw.is_file():
+        return None
+    return raw.read_text(encoding="utf-8", errors="replace")
+
+
+def write_llm_card(transform_id: str, card_md: str,
+                   root: Optional[Path] = None) -> Optional[str]:
+    """把 LLM 重写结果写成同目录的 **card_llm.md**。
+
+    刻意**不覆盖 card.md**：P2 的卡片与回滚的 sha256 口径都锚在 card.md 上，
+    覆盖它会让"回滚拒绝/通过"的判定漂移。返回写入的相对路径。
+    """
+    base = _base(root)
+    tdir = archive_path(transform_id, root)
+    if tdir is None:
+        return None
+    target = tdir / "card_llm.md"
+    target.write_text(card_md, encoding="utf-8")
+    return str(target.relative_to(base)).replace("\\", "/")
+
+
 def rollback_transform(transform_id: str, *, execute: bool = False,
                        root: Optional[Path] = None) -> Dict[str, object]:
     """按 transform_id 反向补丁：默认**只预览**（execute=False）。

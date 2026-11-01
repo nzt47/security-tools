@@ -372,12 +372,41 @@ def pending_report() -> List[Dict[str, object]]:
             "warnings": list(info.get("warnings") or []),
             "fixable": list(meta.get("fixed") or []) if meta.get("ok") else [],
             "needs_human": list(meta.get("needs_human") or []) if meta.get("ok") else [],
+            "llm_available": _llm_available(),
         })
     return out
 
 
+def _llm_available() -> bool:
+    """只查配置（不建客户端）：界面据此决定要不要显示「LLM 补两节」按钮。"""
+    try:
+        from agent.skills_mgmt.transform.rewrite import llm_configured
+        return bool(llm_configured())
+    except Exception:  # noqa: BLE001 模块不可用就当没配
+        return False
+
+
+def llm_card_preview(skill_dir: Path) -> Dict[str, object]:
+    """P5：让 LLM 从 skill.md **摘录**能力卡分节，每条都要过严格引用校验。
+
+    只产出 `card_md`（写盘由调用方决定，且只写 CARD.md）——不改 skill.md 正文。
+    """
+    try:
+        from agent.skills_mgmt.transform.rewrite import draft_sections
+    except Exception as e:  # noqa: BLE001 模块不可用不该阻断入轨
+        return {"ok": False, "reason": "转化器模块不可用：%s" % type(e).__name__}
+    md = skill_dir / "skill.md"
+    try:
+        text = md.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        return {"ok": False, "reason": "读不到 skill.md：%s" % type(e).__name__}
+    info = check_skill(skill_dir)
+    return draft_sections(text, title=str(info.get("name") or skill_dir.name))
+
+
 def intake_one(skill_id: str, *, execute: bool = False,
-               fix_baselines: bool = False, fix_meta: bool = False) -> Dict[str, object]:
+               fix_baselines: bool = False, fix_meta: bool = False,
+               llm_sections: bool = False) -> Dict[str, object]:
     """单技能入轨（界面按钮与 CLI 共用）：自动补全 → 校验 → git add → 派生 → 基线。
 
     返回结构化报告（不 print）：`ok` / `stage` / `warnings` / `meta_fixed` /
@@ -410,6 +439,25 @@ def intake_one(skill_id: str, *, execute: bool = False,
         "meta_fixed": list(meta.get("fixed") or []),
         "needs_human": list(meta.get("needs_human") or []),
     }
+
+    # P5：可选的「LLM 补两节」——只写 CARD.md，不改正文；验不过就如实说，不硬编。
+    if llm_sections:
+        drafted = llm_card_preview(skill_dir)
+        card: Dict[str, object] = {
+            "ok": bool(drafted.get("ok")),
+            "reason": str(drafted.get("reason") or ""),
+            "stats": drafted.get("stats") or {},
+        }
+        if drafted.get("ok"):
+            if execute:
+                target = skill_dir / "CARD.md"
+                target.write_text(str(drafted.get("card_md") or ""), encoding="utf-8")
+                card["written"] = str(target.relative_to(ROOT)).replace("\\", "/")
+        else:
+            report["needs_human"] = list(report.get("needs_human") or []) + [
+                "LLM 也没能补：%s" % (drafted.get("reason") or "未知原因")]
+        report["llm_card"] = card
+
     if not execute:
         return report
 
@@ -788,6 +836,19 @@ def run(args) -> int:
         print("（干跑：没有写任何文件、没动 index。加 --execute 才真做。）")
         return 0
 
+    if getattr(args, "llm_sections", False):
+        for item in items[:1]:
+            drafted = llm_card_preview(resolve_skill_dir(item["skill_id"]))
+            if drafted.get("ok"):
+                stats = drafted.get("stats") or {}
+                print("[LLM] 卡片分节：verified %s / %s（未通过已丢弃）"
+                      % (stats.get("verified"), stats.get("total")))
+                target = resolve_skill_dir(item["skill_id"]) / "CARD.md"
+                target.write_text(str(drafted.get("card_md") or ""), encoding="utf-8")
+                print("      已写 %s（只补卡片，正文未改）" % target.relative_to(ROOT))
+            else:
+                print("[LLM] 没能补：%s" % (drafted.get("reason") or "未知原因"))
+
     changed_dirs: List[Path] = []
     for sid in result["to_add"]:
         skill_dir = resolve_skill_dir(sid)
@@ -850,6 +911,8 @@ def main(argv=None) -> int:
                         help="先自动补全 front matter（只补可确定性推导的字段，不翻译不编造）")
     parser.add_argument("--pr", action="store_true",
                         help="入轨后接着 commit → push → 建 PR（要求当前分支是 master）")
+    parser.add_argument("--llm-sections", action="store_true",
+                        help="用 LLM 摘录能力卡分节（严格引用校验）：只写 CARD.md，不改正文")
     parser.add_argument("--json", action="store_true", help="输出 JSON 摘要")
     args = parser.parse_args(argv)
     if args.fix_baselines and not args.execute:

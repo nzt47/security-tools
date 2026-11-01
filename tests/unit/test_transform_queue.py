@@ -201,3 +201,57 @@ def test_路由异常不把原文写进响应体(base, monkeypatch):
     assert "SECRET_INTERNAL_PATH" not in body
     assert "RuntimeError" not in body
     assert resp.get_json()["ok"] is False
+
+
+def test_redraft_预览不落盘(base, artifact, monkeypatch):
+    from agent.server_routes import routes_skills_mgmt
+    from agent.skills_mgmt.transform import rewrite as rw
+
+    rep = _apply(artifact, base, new="demo-queue")
+    tid = rep["transform_id"]
+    monkeypatch.setattr(server_auth, "authorize_request", lambda: (True, "t", "t"))
+    monkeypatch.setattr(rw, "draft_sections", lambda text, title="": {
+        "ok": True, "sections": {"steps": ["s"]}, "stats": {"total": 1, "verified": 1},
+        "card_md": "# 卡片", "dropped": []})
+    app = Flask(__name__)
+    routes_skills_mgmt.register_routes(app, state=None)
+    client = app.test_client()
+
+    dry = client.post("/api/skills-mgmt/transforms/%s/redraft" % tid, json={})
+    assert dry.status_code == 200
+    body = dry.get_json()
+    assert body["dry_run"] is True and body["written"] is None
+    assert not (base / tq.TRANSFORMS / tid / "card_llm.md").exists()
+
+    wet = client.post("/api/skills-mgmt/transforms/%s/redraft" % tid, json={"dry_run": False})
+    assert wet.status_code == 200 and wet.get_json()["written"].endswith("card_llm.md")
+    assert (base / tq.TRANSFORMS / tid / "card_llm.md").is_file()
+    # card.md 必须原样（回滚的 sha256 口径锚在它上面）
+    assert (base / tq.TRANSFORMS / tid / "card.md").is_file()
+    assert tq.rollback_transform(tid)["ok"] is True
+
+
+def test_redraft_验不过回_422(base, artifact, monkeypatch):
+    from agent.server_routes import routes_skills_mgmt
+    from agent.skills_mgmt.transform import rewrite as rw
+
+    rep = _apply(artifact, base, new="demo-queue")
+    tid = rep["transform_id"]
+    monkeypatch.setattr(server_auth, "authorize_request", lambda: (True, "t", "t"))
+    monkeypatch.setattr(rw, "draft_sections", lambda text, title="": {
+        "ok": False, "reason": "没有一条能对上原文（严格引用校验未通过）",
+        "stats": {"total": 3, "verified": 0}, "dropped": []})
+    app = Flask(__name__)
+    routes_skills_mgmt.register_routes(app, state=None)
+    resp = app.test_client().post("/api/skills-mgmt/transforms/%s/redraft" % tid, json={})
+    assert resp.status_code == 422
+    assert "严格引用校验" in resp.get_json()["reason"]
+
+
+def test_redraft_无记录_404(base, monkeypatch):
+    from agent.server_routes import routes_skills_mgmt
+    monkeypatch.setattr(server_auth, "authorize_request", lambda: (True, "t", "t"))
+    app = Flask(__name__)
+    routes_skills_mgmt.register_routes(app, state=None)
+    resp = app.test_client().post("/api/skills-mgmt/transforms/%s/redraft" % ("a" * 12), json={})
+    assert resp.status_code == 404

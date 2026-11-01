@@ -25,7 +25,10 @@ type IntakeItem = {
   warnings: string[]
   fixable?: string[]
   needs_human?: string[]
+  llm_available?: boolean
 }
+
+type LlmCard = { ok: boolean; reason?: string; stats?: { total?: number; verified?: number }; written?: string }
 
 type Props = { open: boolean; onClose: () => void }
 
@@ -36,6 +39,7 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [autoFix, setAutoFix] = useState(true)
+  const [useLlm, setUseLlm] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<{ id: string; text: string; prUrl?: string } | null>(null)
 
@@ -75,6 +79,7 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
           execute: true,
           fix_baselines: true,
           fix_meta: autoFix,
+          llm_sections: useLlm,
           open_pr: mode === 'pr',
         }),
       })
@@ -88,8 +93,15 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
       const base = Array.isArray(j.baseline_changes) ? j.baseline_changes.length : 0
       const fixed = (j.meta_fixed || []).join('、')
       const prUrl: string | undefined = j.pr && j.pr.ok ? j.pr.pr_url : undefined
+      const card: LlmCard | undefined = j.llm_card
+      const cardText = card
+        ? card.ok
+          ? `LLM 卡片：verified ${card.stats?.verified ?? 0}/${card.stats?.total ?? 0}（只写 CARD.md）`
+          : `LLM 没补上：${card.reason || '未知原因'}`
+        : ''
       const parts = [
         fixed ? `自动补全：${fixed}` : '',
+        cardText,
         `已 git add 并重派生：${changed}；基线更新 ${base} 处`,
         prUrl ? '已提交并开 PR' : '未提交（工作区已就绪，review 后再提交）',
       ].filter(Boolean)
@@ -136,6 +148,11 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
               </strong>「何时使用」—— 缺的会列在「需人补」里。
             </p>
             <p className="mt-2 text-slate-500">
+              勾「LLM 补两节」时：模型只能<strong className="text-slate-300">逐字引用原文</strong>（给出 quote），
+              我们按 quote 反查行号，对不上的条目<strong className="text-rose-300">整条丢弃</strong>；
+              结果只写 <code className="text-cyan-300">CARD.md</code>，<strong className="text-slate-300">不改 skill.md 正文</strong>。
+            </p>
+            <p className="mt-2 text-slate-500">
               只留主轨、不该建文件轨的技能：<code className="text-amber-300">global-core-principles</code>（常驻准则）、
               <code className="text-amber-300">skill</code>（易之三义，注入型指令）—— 服务端会直接拒绝。
             </p>
@@ -170,6 +187,15 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
                 <input type="checkbox" checked={autoFix} onChange={(e) => setAutoFix(e.target.checked)} />
                 自动补全元数据
               </label>
+              {items.some((i) => i.llm_available) ? (
+                <label
+                  className="flex items-center gap-1 text-[10px] text-slate-400"
+                  title="让 LLM 从正文摘录能力卡分节；每条必须能逐字指回原文，验不过的整条丢弃。只写 CARD.md，不改 skill.md 正文。"
+                >
+                  <input type="checkbox" checked={useLlm} onChange={(e) => setUseLlm(e.target.checked)} />
+                  LLM 补两节（带引用校验）
+                </label>
+              ) : null}
               <button
                 type="button"
                 onClick={() => void load()}
@@ -201,7 +227,12 @@ export default function SkillIntakeDialog({ open, onClose }: Props) {
                       <div className="mt-0.5 text-emerald-300/80">可自动补全：{(it.fixable || []).join('、')}</div>
                     ) : null}
                     {(it.needs_human || []).length > 0 ? (
-                      <div className="mt-0.5 text-amber-300/80">需人补：{(it.needs_human || []).join('；')}</div>
+                      <div className="mt-0.5 text-amber-300/80">
+                        需人补：{(it.needs_human || []).join('；')}
+                        {it.llm_available ? (
+                          <span className="ml-1 text-slate-500">（可勾「LLM 补两节」先生成卡片）</span>
+                        ) : null}
+                      </div>
                     ) : null}
                     {it.warnings.length > 0 ? (
                       <div className="mt-0.5 text-amber-300/80">{it.warnings.length} 条形状告警（不阻断）</div>

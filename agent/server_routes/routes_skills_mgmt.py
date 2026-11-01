@@ -245,7 +245,7 @@ def register_routes(app, state):
     def api_skills_mgmt_intake(skill_id: str):
         """把一条**已有文件轨**的技能入轨：自动补全 → git add → 干净 worktree 重派生 → 基线。
 
-        Body: {execute?: false, fix_baselines?: true, fix_meta?: true, open_pr?: false}。
+        Body: {execute?, fix_baselines?, fix_meta?, open_pr?, llm_sections?}。
         - 默认干跑；`fix_meta` 默认 true（只在 execute 时真写 front matter）；
         - `open_pr=true` 才走 commit → push → 建 PR（要求当前在 master、且改动全在白名单内），
           响应里回 `pr.pr_url`；不传就仍然停在「工作区已就绪」，由人 review 后提交。
@@ -266,7 +266,8 @@ def register_routes(app, state):
             execute = _as_bool("execute", False)
             rep = intake_one(skill_id, execute=execute,
                              fix_baselines=_as_bool("fix_baselines", True),
-                             fix_meta=_as_bool("fix_meta", True))
+                             fix_meta=_as_bool("fix_meta", True),
+                             llm_sections=_as_bool("llm_sections", False))
             # 一条龙：commit → push → PR。只在 execute 且没有 needs_human 阻塞项时跑，
             # 且必须显式 open_pr —— 默认仍然停在"工作区已就绪"。
             if rep.get("ok") and execute and _as_bool("open_pr", False):
@@ -417,6 +418,44 @@ def register_routes(app, state):
         if not rep.get("ok"):
             return jsonify(rep), 409
         return jsonify(rep)
+
+    @app.route("/api/skills-mgmt/transforms/<transform_id>/redraft", methods=["POST"])
+    @require_token
+    @audit_action("skill.transform.redraft", subject_arg="transform_id")
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_transform_redraft(transform_id: str):
+        """P5：LLM 按**原文引用**重写卡片分节（严格引用校验，验不过的整条丢弃）。
+
+        Body: {dry_run?: true} —— 默认只预览；dry_run=false 写同目录 `card_llm.md`
+        （**不动 card.md**：回滚的 sha256 口径锚在它上面；也不动 skills_repo）。
+        """
+        data = request.get_json(silent=True) or {}
+        dry_run = data.get("dry_run", True)
+        if isinstance(dry_run, str):
+            dry_run = dry_run.strip().lower() not in ("0", "false", "no", "")
+        try:
+            from agent.skills_mgmt.transform.queue import read_raw, write_llm_card
+            from agent.skills_mgmt.transform.rewrite import draft_sections
+            raw = read_raw(transform_id)
+            if raw is None:
+                return jsonify({"ok": False, "error": "没有这条转化记录（或缺 raw.md）"}), 404
+            drafted = draft_sections(raw, title="")
+            if not drafted.get("ok"):
+                return jsonify({"ok": False, "reason": drafted.get("reason"),
+                                "stats": drafted.get("stats") or {},
+                                "dropped": drafted.get("dropped") or []}), 422
+            written = None
+            if not bool(dry_run):
+                written = write_llm_card(transform_id, str(drafted.get("card_md") or ""))
+        except Exception as e:  # noqa: BLE001
+            logger.warning("LLM 重写失败: %s", e, exc_info=True)
+            return jsonify({"ok": False, "error": "重写失败（详见服务日志）"}), 500
+        return jsonify({"ok": True, "dry_run": bool(dry_run), "written": written,
+                        "stats": drafted.get("stats") or {},
+                        "sections": drafted.get("sections") or {},
+                        "card_md": drafted.get("card_md") or "",
+                        "dropped": drafted.get("dropped") or []})
 
     @app.route("/api/skills-mgmt/backfill", methods=["POST"])
     @trace_route("SkillsMgmt")

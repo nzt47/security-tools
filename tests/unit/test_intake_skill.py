@@ -397,3 +397,38 @@ class TestCmdlineHardening:
         intake._gh_pr_create("/usr/bin/gh", "master", "t", "正文 with 中文\n第二行", tmp_path)
         assert "--body" not in seen["cmd"] and "--body-file" in seen["cmd"]
         assert "第二行" in seen["body"]
+
+
+class TestLlmSections:
+    """P5：LLM 补两节只写 CARD.md，验不过就如实记 needs_human。"""
+
+    def test_干跑只预览不写盘(self, tmp_path, monkeypatch):
+        d = _write_skill(tmp_path, "demo-skill", GOOD_SKILL)
+        monkeypatch.setattr(intake, "SKILLS_REPO", tmp_path)
+        monkeypatch.setattr(intake, "is_tracked", lambda _d: True)
+        monkeypatch.setattr(intake, "llm_card_preview", lambda _d: {
+            "ok": True, "stats": {"total": 3, "verified": 2}, "card_md": "# 卡片"})
+        out = intake.intake_one("demo-skill", execute=False, llm_sections=True)
+        assert out["ok"] is True
+        assert out["llm_card"]["ok"] is True
+        assert out["llm_card"]["stats"] == {"total": 3, "verified": 2}
+        assert not (d / "CARD.md").exists(), "干跑不得写 CARD.md"
+
+    def test_验不过写进_needs_human(self, tmp_path, monkeypatch):
+        _write_skill(tmp_path, "demo-skill", GOOD_SKILL)
+        monkeypatch.setattr(intake, "SKILLS_REPO", tmp_path)
+        monkeypatch.setattr(intake, "is_tracked", lambda _d: True)
+        monkeypatch.setattr(intake, "llm_card_preview", lambda _d: {
+            "ok": False, "reason": "没有一条能对上原文（严格引用校验未通过）"})
+        out = intake.intake_one("demo-skill", execute=False, llm_sections=True)
+        assert out["ok"] is True, "补不上不该阻断入轨"
+        assert out["llm_card"]["ok"] is False
+        assert any("严格引用校验" in h for h in out["needs_human"])
+
+    def test_pending_report_带_llm_可用标记(self, monkeypatch):
+        monkeypatch.setattr(intake, "SKILLS_REPO", __import__("pathlib").Path(
+            "/nonexistent-skills-repo"))
+        assert intake.pending_report() == []
+        monkeypatch.setattr(intake, "_llm_available", lambda: True)
+        items = [i for i in intake.pending_report()]
+        assert items == []

@@ -13,9 +13,14 @@
  *   · **默认只预览**：先看清"将删除哪些文件"，再点确认（§8 陷阱 31）。
  */
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, Archive, ChevronDown, ChevronRight, Loader2, RotateCcw, X } from 'lucide-react'
+import { AlertTriangle, Archive, ChevronDown, ChevronRight, Loader2, RotateCcw, Sparkles, X } from 'lucide-react'
 import { authHeader } from '../lib/apiToken'
-import { SKILLS_MGMT_TRANSFORMS, skillTransform, skillTransformRollback } from '../api/endpoints'
+import {
+  SKILLS_MGMT_TRANSFORMS,
+  skillTransform,
+  skillTransformRedraft,
+  skillTransformRollback,
+} from '../api/endpoints'
 
 type Target = { rel: string; role: string; skill_id: string; state: string }
 
@@ -90,6 +95,14 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
   const [preview, setPreview] = useState<{ id: string; files: string[]; hints: string[] } | null>(null)
   const [busy, setBusy] = useState('')
   const [notice, setNotice] = useState('')
+  const [redraft, setRedraft] = useState<{
+    id: string
+    ok: boolean
+    reason?: string
+    card?: string
+    total?: number
+    verified?: number
+  } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -153,6 +166,38 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
         setNotice(`已回滚 ${id}：删除 ${(j.deleted || []).length} 个文件（归档保留）`)
         setOpenId(null)
         setDetail(null)
+        await load()
+      }
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const postRedraft = async (id: string, dryRun: boolean) => {
+    setBusy(id + (dryRun ? ':redraft' : ':redraft-apply'))
+    setError('')
+    try {
+      const r = await fetch(skillTransformRedraft(id), {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dry_run: dryRun }),
+      })
+      const j = await r.json()
+      if (!r.ok || j.ok === false) {
+        setRedraft({ id, ok: false, reason: j.reason || j.error || `HTTP ${r.status}` })
+        return
+      }
+      setRedraft({
+        id,
+        ok: true,
+        card: j.card_md || '',
+        total: j.stats?.total ?? 0,
+        verified: j.stats?.verified ?? 0,
+      })
+      if (!dryRun) {
+        setNotice(`已写入 ${j.written || 'card_llm.md'}（卡片归档；正文与 card.md 未改）`)
         await load()
       }
     } catch (e) {
@@ -308,7 +353,54 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
                               回滚（先预览）
                             </button>
                             {!it.revertible && it.revert_reason && <span className="text-[10px] text-slate-500">{it.revert_reason}</span>}
+                            <button
+                              type="button"
+                              disabled={!!busy}
+                              onClick={() => void postRedraft(it.transform_id, true)}
+                              title="让 LLM 只从原文摘录分节；每条必须能逐字指回原文，验不过的整条丢弃。只写 card_llm.md，不动正文与 card.md。"
+                              className="flex items-center gap-1 rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              {busy === it.transform_id + ':redraft' ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                              LLM 重写（带引用校验）
+                            </button>
                           </div>
+
+                          {redraft && redraft.id === it.transform_id && (
+                            <div className="mt-2 rounded border border-cyan-900/60 bg-cyan-950/20 p-2">
+                              {redraft.ok ? (
+                                <>
+                                  <div className="text-[11px] text-cyan-300">
+                                    verified {redraft.verified} / {redraft.total}（未通过已丢弃）
+                                  </div>
+                                  <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded border border-slate-800 bg-slate-950/60 p-2 text-[10px] leading-relaxed text-slate-400">
+                                    {redraft.card}
+                                  </pre>
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={!!busy}
+                                      onClick={() => void postRedraft(it.transform_id, false)}
+                                      className="rounded border border-cyan-800 px-2 py-1 text-[10px] text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40"
+                                    >
+                                      写入 card_llm.md
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setRedraft(null)}
+                                      className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800"
+                                    >
+                                      关闭
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex items-start gap-2 text-[10px] text-rose-300">
+                                  <AlertTriangle size={11} className="mt-0.5 shrink-0" />
+                                  <span>LLM 没补上：{redraft.reason}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {preview && preview.id === it.transform_id && (
                             <div className="mt-2 rounded border border-amber-900/60 bg-amber-950/20 p-2">
