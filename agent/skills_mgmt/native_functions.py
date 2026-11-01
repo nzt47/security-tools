@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import re
 from typing import Dict, List, Optional
 
 #: 常驻机制（不是工具，但对模型始终生效/按需注入）—— 手工维护的短清单。
@@ -87,9 +88,14 @@ def overlap_hints(skills: Optional[List[Dict[str, object]]] = None,
             # 【不易】技能正文里**点名**了某个元生工具 ⇒ 强信号：它十有八九在教「怎么用这个工具」
             # 或把工具行为又写了一遍。这条规则可解释、可复核，比调阈值更靠谱
             # （2026-11-01 实测：Jaccard/containment 在长短文本之间会被稀释到 0.3 以下）。
-            if tool_id and tool_id.lower() in body_low:
-                score = max(score, 0.6)
-                reason = "explicit_mention"
+            # 只认**有辨识度**的工具名（含 _ 或 - 的复合名）+ 整词匹配：
+            # 否则 git / edit / remember 这类普通英文词会把整份文档都判成「在讲这个工具」
+            # （2026-11-01 上线实测：3 条重叠全是这种假阳性）。
+            if tool_id and ("_" in tool_id or "-" in tool_id):
+                if re.search(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % re.escape(tool_id.lower()),
+                             body_low):
+                    score = max(score, 0.6)
+                    reason = "explicit_mention"
             if score >= OVERLAP_THRESHOLD:
                 scored.append({"native_id": tool_id, "kind": "tool",
                                "score": round(score, 3), "reason": reason})
