@@ -71,6 +71,11 @@ env:
   PYTHON_VERSION: '3.12'
   DOCKER_IMAGE_NAME: agent-test-sqlite-vec
 
+# 【不易】最小权限（CodeQL actions/missing-workflow-permissions）：默认只读。
+# 需要写 GITHUB_TOKEN 的 job 必须在**该 job 内**声明 permissions:（job 级会整体覆盖本块）。
+# 默认分支的 GITHUB_TOKEN 若为 read/write 全开，本块等于把这 27 个 workflow 收敛到只读。
+permissions:
+  contents: read
 jobs:
   # =====================================================================
   # Job 1: 构建 Docker 镜像
@@ -413,6 +418,11 @@ jobs:
   # Job 4: 测试总结与通知
   # =====================================================================
   test-summary:
+    # 【不易】job 级 permissions 会**整体覆盖** workflow 级的最小权限块；
+    # PR 评论（createComment），故在此显式声明。
+    permissions:
+      contents: read
+      pull-requests: write
     name: 测试总结与通知
     runs-on: ubuntu-latest
     needs: [build-image, l3-tests, coverage-analysis]

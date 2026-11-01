@@ -24,6 +24,11 @@ env:
   # [修复 CHG-2026-0731] GITHUB_JOB 由 GitHub Actions 自动注入，cicd_metrics_push.py
   # 的 grouping_key={run_id, ci_job} 避免同 run_id 的并行 job 指标互相覆盖
 
+# 【不易】最小权限（CodeQL actions/missing-workflow-permissions）：默认只读。
+# 需要写 GITHUB_TOKEN 的 job 必须在**该 job 内**声明 permissions:（job 级会整体覆盖本块）。
+# 默认分支的 GITHUB_TOKEN 若为 read/write 全开，本块等于把这 27 个 workflow 收敛到只读。
+permissions:
+  contents: read
 jobs:
   lint-and-typecheck:
     name: Lint and Type Check

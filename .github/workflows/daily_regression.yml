@@ -69,6 +69,11 @@ env:
   #   如团队告警策略变化，只需调整该 env，无需改 workflow 逻辑。
   LIGHT_LOADER_SEVERE_RATIO: '2.0'
 
+# 【不易】最小权限（CodeQL actions/missing-workflow-permissions）：默认只读。
+# 需要写 GITHUB_TOKEN 的 job 必须在**该 job 内**声明 permissions:（job 级会整体覆盖本块）。
+# 默认分支的 GITHUB_TOKEN 若为 read/write 全开，本块等于把这 27 个 workflow 收敛到只读。
+permissions:
+  contents: read
 jobs:
   # =====================================================================
   # Job 0: nightly 构建成功守卫(workflow_run 触发时检查上游 conclusion)
@@ -304,6 +309,11 @@ jobs:
   #   - 性能退化：功能类全过但 bench 失败（10000 卡串行耗时超阈值）→ performance 通知；
   #   - 全过：不发送任何失败通知。
   test-summary:
+    # 【不易】job 级 permissions 会**整体覆盖** workflow 级的最小权限块；
+    # PR 评论（createComment），故在此显式声明。
+    permissions:
+      contents: read
+      pull-requests: write
     name: Test Summary & Notification
     runs-on: ubuntu-latest
     needs: [unit-tests, e2e-recovery-tests, light-loader-stress, light-loader-bench]

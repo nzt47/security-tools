@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [develop, main, master]
 
+# 【不易】最小权限（CodeQL actions/missing-workflow-permissions）：默认只读。
+# 需要写 GITHUB_TOKEN 的 job 必须在**该 job 内**声明 permissions:（job 级会整体覆盖本块）。
+# 默认分支的 GITHUB_TOKEN 若为 read/write 全开，本块等于把这 27 个 workflow 收敛到只读。
+permissions:
+  contents: read
 jobs:
   scan:
     runs-on: ubuntu-latest
