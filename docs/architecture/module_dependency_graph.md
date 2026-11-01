@@ -2170,8 +2170,11 @@ flowchart LR
     agent_server_routes_routes_ui_panels -.-> agent_security
     agent_server_routes_routes_ui_panels --> agent_server_routes
     agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_units -.-> agent_server_auth
     agent_server_routes_routes_units --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_units -.-> agent_monitoring
+    agent_server_routes_routes_units -.-> agent_tools
+    agent_server_routes_routes_units -.-> agent_task_scheduler
     agent_server_routes_routes_visual_workflows -.-> agent_server_auth
     agent_server_routes_routes_visual_workflows --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_workflow_learning -.-> agent_server_auth
@@ -2766,7 +2769,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 713
 - 模块节点数: 614
-- 依赖边数: 2024
-- 跨层调用数: 1284
+- 依赖边数: 2027
+- 跨层调用数: 1287
 - 违规调用数: 0
 - 动态 import 数: 1

@@ -70,7 +70,7 @@
       "name": "tools",
       "layer": "tools",
       "file_path": "",
-      "in_degree": 12,
+      "in_degree": 13,
       "out_degree": 19
     },
     {
@@ -702,7 +702,7 @@
       "name": "task_scheduler",
       "layer": "core",
       "file_path": "",
-      "in_degree": 24,
+      "in_degree": 25,
       "out_degree": 17
     },
     {
@@ -2446,7 +2446,7 @@
       "name": "server_auth",
       "layer": "core",
       "file_path": "",
-      "in_degree": 24,
+      "in_degree": 25,
       "out_degree": 4
     },
     {
@@ -4223,7 +4223,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_units.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 5
     },
     {
       "path": "agent.server_routes.routes_visual_workflows",
@@ -23611,11 +23611,24 @@
     },
     {
       "source": "agent.server_routes.routes_units",
+      "target": "agent.server_auth",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 13,
+      "source_file": "agent/server_routes/routes_units.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_units",
       "target": "agent.server_routes.tracing_decorator",
       "source_layer": "server_routes",
       "target_layer": "server_routes",
       "import_type": "from_import",
-      "line": 13,
+      "line": 14,
       "source_file": "agent/server_routes/routes_units.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -23628,7 +23641,33 @@
       "source_layer": "server_routes",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 19,
+      "line": 20,
+      "source_file": "agent/server_routes/routes_units.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_units",
+      "target": "agent.tools",
+      "source_layer": "server_routes",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 65,
+      "source_file": "agent/server_routes/routes_units.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_units",
+      "target": "agent.task_scheduler",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 84,
       "source_file": "agent/server_routes/routes_units.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -31231,8 +31270,8 @@
   "stats": {
     "total_files": 713,
     "total_nodes": 614,
-    "total_edges": 2024,
-    "cross_layer_edges": 1284,
+    "total_edges": 2027,
+    "cross_layer_edges": 1287,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
