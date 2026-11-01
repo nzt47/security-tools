@@ -49,22 +49,24 @@
 
 结论：**12 条都属「脆弱代码未被使用（not_used）」**，不是「暂时没补丁所以险」。
 
-## 3. 处置建议
+## 3. 处置：已执行（2026-11-01 09:38）
 
-1. **dismiss 12 条，reason=`not_used`**，comment 指向本文件。命令（待 Owner 确认后执行）：
+Owner 授权「你看着办」⇒ 12 条已按 `not_used` **全部 dismiss**：当前 `state=open` = **0**，
+`state=dismissed` = **12（全部 not_used）**。命令留档（可复现 / 可逆）：
 
-   ```powershell
-   $ids = 130,129,128,108,80,79,78,58,30,29,28,8
-   foreach ($n in $ids) {
-     gh api -X PATCH "repos/nzt47/security-tools/dependabot/alerts/$n" -f state=dismissed `
-       -f dismissed_reason=not_used `
-       -f dismissed_comment="嵌入式 chromadb PersistentClient，无 Chroma 服务端/多租户/trust_remote_code；见 docs/security/dependabot_triage_2026-11-01.md"
-   }
-   ```
+```powershell
+$ids = 130,129,128,108,80,79,78,58,30,29,28,8
+foreach ($n in $ids) {
+  gh api -X PATCH "repos/nzt47/security-tools/dependabot/alerts/$n" -f state=dismissed `
+    -f dismissed_reason=not_used `
+    -f dismissed_comment="嵌入式 chromadb PersistentClient，无 Chroma 服务端/多租户/trust_remote_code；见 docs/security/dependabot_triage_2026-11-01.md"
+}
+```
 
-   可逆：`gh api -X PATCH .../alerts/<n> -f state=open`。
-2. **不要为了这几条去升 chromadb**：1.5.9 已是 PyPI 最新，且是**被声明的脆弱上界**；凭空换版本没有安全收益，只有回归风险。
-3. **不要删 `chromadb` 依赖**：它仍是技能检索的兜底后端（`vector_adapter._native_chroma`），主线向量库已迁 sqlite-vec，
+可逆：`gh api -X PATCH repos/nzt47/security-tools/dependabot/alerts/<n> -f state=open`。
+
+- **不要为了这几条去升 chromadb**：1.5.9 已是 PyPI 最新，且是**被声明的脆弱上界**；凭空换版本没有安全收益，只有回归风险。
+- **不要删 `chromadb` 依赖**：它仍是技能检索的兜底后端（`vector_adapter._native_chroma`），主线向量库已迁 sqlite-vec，
    但删除属于行为变更，得单独一轮评估。
 
 ## 4. 复核触发条件（出现任一条就必须重开这 12 条）
