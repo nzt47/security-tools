@@ -306,7 +306,7 @@ pymsgbox==2.0.1
     # via pyautogui
 pynvml==13.0.1
     # via Yunshu (pyproject.toml)
-pypdf==6.21.2
+pypdf==6.21.4
     # via Yunshu (pyproject.toml)
 pypdfium2==5.14.0
     # via pdfplumber
