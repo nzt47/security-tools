@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-11-01T14:47:00",
+  "generated_at": "2026-11-01T17:43:21",
   "totals": {
-    "routes": 488,
-    "live": 488,
+    "routes": 489,
+    "live": 489,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 432,
+    "ui": 433,
     "cli_script": 15,
     "runtime_only": 11,
     "unreferenced": 30,
     "live_by_category": {
-      "ui": 432,
+      "ui": 433,
       "cli_script": 15,
       "runtime_only": 11,
       "unreferenced": 30
@@ -18,7 +18,7 @@
     "by_intent": {
       "should_be_in_ui": 410,
       "should_not_be_in_ui": 73,
-      "unclassified": 5
+      "unclassified": 6
     },
     "by_domain": {
       "页面入口": 7,
@@ -32,12 +32,12 @@
       "业务与评估": 18,
       "技能与工具": 125,
       "认知与学习": 6,
-      "观测与诊断": 74,
+      "观测与诊断": 75,
       "开发与内部": 14,
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 436,
+  "frontend_endpoints": 437,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -8902,7 +8902,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/components/SkillCardsDialog.tsx"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -10413,6 +10413,31 @@
       "domain": "系统与配置"
     },
     {
+      "path": "/api/system/platform-cards",
+      "norm": "/api/system/platform-cards",
+      "methods": [
+        "GET"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "agent/server_routes/routes_units.py:27"
+      ],
+      "description": "**平台能力卡**：云枢自身功能（不是 LLM 技能）按同一套卡片形态吐给界面。",
+      "description_source": "handler",
+      "intent": "unclassified",
+      "intent_area": "",
+      "intent_note": "",
+      "ui_pending": false,
+      "domain": "观测与诊断"
+    },
+    {
       "path": "/api/system/units",
       "norm": "/api/system/units",
       "methods": [
@@ -10427,7 +10452,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_units.py:26"
+        "agent/server_routes/routes_units.py:105"
       ],
       "description": "功能单位工作状况快照",
       "description_source": "handler",
@@ -12513,5 +12538,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "e97ac2ffb5fa4db5"
+  "content_hash": "11192764986c3ac4"
 }
