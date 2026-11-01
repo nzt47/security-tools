@@ -282,6 +282,28 @@ def register_routes(app, state):
             return jsonify(rep), code
         return jsonify(rep)
 
+    @app.route("/api/skills-mgmt/native-functions", methods=["GET"])
+    # 顺序有意：require_token 在最外层，REQUIRES_TOKEN_ATTR 才挂到 Flask 最终持有的视图函数上
+    # （放里层会被 trace_route 的 wrapper 吞掉，静态鉴权守卫看不见 —— 2026-11-01 实测）。
+    @require_token
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_native_functions():
+        """云枢**元生功能**：内置工具 + 常驻机制，以及「技能 × 元生功能」的重叠提示。
+
+        【为什么不是「平台能力」】Owner 2026-11-01 澄清：平台能力（服务/审计/调度/监控）是运维对象，
+        该单独开叶子；这里要的是**智能体天生就会做的事** —— 它是技能重复的来源，
+        所以转化器的对比清单里必须有它（agent/skills_mgmt/native_functions.py）。
+
+        边界：只读；重叠提示用分词 Jaccard（可复现），阈值见 OVERLAP_THRESHOLD。
+        """
+        try:
+            from agent.skills_mgmt.native_functions import native_functions
+            payload = native_functions()
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": True, **payload})
+
     @app.route("/api/skills-mgmt/cards", methods=["GET"])
     @trace_route("SkillsMgmt")
     @require_token

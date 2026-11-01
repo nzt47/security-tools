@@ -35,6 +35,19 @@ def jaccard(a: str, b: str) -> float:
     return len(ta & tb) / float(len(ta | tb))
 
 
+def containment(a: str, b: str) -> float:
+    """a 的词有多少比例出现在 b 里（0–1）。
+
+    【为什么重叠检测不用 Jaccard】工具说明往往比技能正文长得多，Jaccard 会被长边稀释：
+    「技能讲的就是 read_file」这种明显重复也可能只有 0.07。判断「技能是不是在重复某个元生功能」，
+    要看**技能这一侧的词被覆盖了多少**（containment），而不是两边并集。
+    """
+    ta, tb = tokens(a), tokens(b)
+    if not ta or not tb:
+        return 0.0
+    return len(ta & tb) / float(len(ta))
+
+
 def _flatten(value) -> str:
     if isinstance(value, list):
         return "\n".join(str(x) for x in value)
