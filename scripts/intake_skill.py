@@ -392,6 +392,9 @@ _FM_DEFAULTS: Sequence[Tuple[str, str]] = (
     ("status", "draft"),
     ("category", "custom"),
     ("author", "yunshu-intake"),
+    # source 是 schema 的 9 个必填键之一（skill_md_schema.REQUIRED_KEYS），缺它门禁直接红。
+    # 补 "intake" 是**如实记录**：这条是经入轨脚本补的，不是从哪个外部源采来的。
+    ("source", "intake"),
     ("tags", "[]"),
     ("content_type", "markdown"),
     ("enabled", "true"),
@@ -536,6 +539,11 @@ def changed_paths(root: Path = ROOT) -> List[str]:
     return out
 
 
+def _gh_pr_create(gh_bin: str, base: str, title: str, body: str, root: Path):
+    """单点：调 `gh pr create`（抽出来是为了端到端测试只桩这一个外部命令）。"""
+    return _run([gh_bin, "pr", "create", "--base", base, "--title", title, "--body", body], root)
+
+
 def open_pr(skill_id: str, *, base: str = "master", root: Path = ROOT) -> Dict[str, object]:
     """把当前工作区里**属于该技能入轨**的改动提交、推分支、开 PR。
 
@@ -545,6 +553,12 @@ def open_pr(skill_id: str, *, base: str = "master", root: Path = ROOT) -> Dict[s
     """
     if not _ID_RE.match(skill_id or ""):
         return {"ok": False, "error": "非法技能 id"}
+    # 【不易】服务进程不一定继承交互式 shell 的 PATH（Windows 上尤其如此）：
+    # 明确解析一次 gh，找不到就直接报清楚，而不是等最后一步抛 FileNotFoundError。
+    gh_bin = shutil.which("gh")
+    if not gh_bin:
+        return {"ok": False, "stage": "pr",
+                "error": "找不到 gh 可执行文件（GitHub CLI）：把它加进服务进程的 PATH，或用 CLI 跑最后一步"}
     proc = _run(["git", "rev-parse", "--abbrev-ref", "HEAD"], root)
     branch_now = (proc.stdout or "").strip()
     if proc.returncode != 0:
@@ -595,7 +609,7 @@ def open_pr(skill_id: str, *, base: str = "master", root: Path = ROOT) -> Dict[s
             "- 生成方式：`python scripts/intake_skill.py %s --execute --fix-meta --fix-baselines`\n"
             % (skill_id, skill_id, numbers["entries"], skill_id))
     title = "feat(skills): 入轨 %s" % skill_id
-    p = _run(["gh", "pr", "create", "--base", base, "--title", title, "--body", body], root)
+    p = _gh_pr_create(gh_bin, base, title, body, root)
     _run(["git", "checkout", base], root)  # PR 建完回主线，避免部署/deploy 脚本踩到 feature 分支
     steps.append({"cmd": "gh pr create", "rc": p.returncode})
     if p.returncode != 0:

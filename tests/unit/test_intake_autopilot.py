@@ -24,6 +24,7 @@ enabled: true
 version: 0.1.0
 status: approved
 description_zh: 测试用技能。
+source: test
 ---
 
 # Demo Skill
