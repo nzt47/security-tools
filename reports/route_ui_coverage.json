@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-01T17:39:03",
+  "generated_at": "2026-11-01T17:43:21",
   "totals": {
     "routes": 489,
     "live": 489,
@@ -8902,7 +8902,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/components/SkillCardsDialog.tsx"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -10423,7 +10423,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/components/SkillCardsDialog.tsx"
+        "yunshu-ui/src/api/endpoints.ts"
       ],
       "non_ui_refs": [],
       "where": [
@@ -10452,7 +10452,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_units.py:103"
+        "agent/server_routes/routes_units.py:105"
       ],
       "description": "功能单位工作状况快照",
       "description_source": "handler",

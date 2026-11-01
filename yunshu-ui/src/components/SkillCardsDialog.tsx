@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BookOpen, Loader2, Search, Server, X } from 'lucide-react'
 import { authHeader } from '../lib/apiToken'
-import { SKILLS_MGMT } from '../api/endpoints'
+import { SKILLS_MGMT_CARDS, SYSTEM_PLATFORM_CARDS } from '../api/endpoints'
 
 type Card = {
   skill_id: string
@@ -80,7 +80,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
     setLoading(true)
     setError('')
     try {
-      const r = await fetch(`${SKILLS_MGMT}/cards`, { headers: authHeader() })
+      const r = await fetch(SKILLS_MGMT_CARDS, { headers: authHeader() })
       const j = await r.json()
       if (!r.ok || j.ok === false) throw new Error(j.error || `HTTP ${r.status}`)
       setCards(Array.isArray(j.cards) ? j.cards : [])
@@ -95,8 +95,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
     setLoading(true)
     setError('')
     try {
-      // 全字面量路径：路由↔UI 覆盖盘点按字面量匹配，别拆成模板拼接。
-      const r = await fetch('/api/system/platform-cards', { headers: authHeader() })
+      const r = await fetch(SYSTEM_PLATFORM_CARDS, { headers: authHeader() })
       const j = await r.json()
       if (!r.ok || j.ok === false) throw new Error(j.error || `HTTP ${r.status}`)
       setGroups(Array.isArray(j.groups) ? j.groups : [])
