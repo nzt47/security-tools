@@ -47,6 +47,13 @@ export const SKILLS_MGMT_META_CATEGORIES = '/api/skills-mgmt/meta/categories';
 export const SKILLS_MGMT_CARDS = '/api/skills-mgmt/cards';
 /** 元生功能：内置工具 + 常驻机制，以及「技能 × 元生功能」重叠提示 */
 export const SKILLS_MGMT_NATIVE = '/api/skills-mgmt/native-functions';
+/** 转化队列（P4）：data/ingestion/transforms/ 的归档 —— 判定 / 审核 / 卡片 / 落地目标 */
+export const SKILLS_MGMT_TRANSFORMS = '/api/skills-mgmt/transforms';
+/** 单条转化详情（审核发现带行号 + 卡片正文） */
+export const skillTransform = (transformId: string) => `/api/skills-mgmt/transforms/${encodeURIComponent(transformId)}`;
+/** 反向补丁回滚：默认 dry_run 预览，落盘要 dry_run=false（全有或全无） */
+export const skillTransformRollback = (transformId: string) =>
+  `/api/skills-mgmt/transforms/${encodeURIComponent(transformId)}/rollback`;
 /** 分层加载：L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单（?layer=） */
 export const skillCardLayer = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/card`;
 
