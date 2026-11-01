@@ -600,6 +600,8 @@ flowchart LR
         agent_skills_mgmt_service["agent.skills_mgmt.service"]:::crosslayer
         agent_skills_mgmt_skill_manager["agent.skills_mgmt.skill_manager"]
         agent_skills_mgmt_store["agent.skills_mgmt.store"]:::crosslayer
+        agent_skills_mgmt_transform_compare["agent.skills_mgmt.transform.compare"]
+        agent_skills_mgmt_transform_facets["agent.skills_mgmt.transform.facets"]
         agent_skills_mgmt_vector_adapter["agent.skills_mgmt.vector_adapter"]
     end
     subgraph subagent [subagent]
@@ -2319,6 +2321,8 @@ flowchart LR
     agent_skills_mgmt_service -.-> agent_feedback
     agent_skills_mgmt_skill_manager -.-> agent_logging_utils
     agent_skills_mgmt_store --> agent_skills_mgmt_registry
+    agent_skills_mgmt_transform_compare --> agent_skills_mgmt_capability_cards
+    agent_skills_mgmt_transform_facets --> agent_skills_mgmt_capability_cards
     agent_skills_mgmt_vector_adapter -.-> agent_logging_utils
     agent_state_manager --> agent_logging_utils
     agent_state_manager -.-> agent_utils_singleton_manager
@@ -2760,9 +2764,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 708
-- 模块节点数: 612
-- 依赖边数: 2022
+- 扫描文件数: 713
+- 模块节点数: 614
+- 依赖边数: 2024
 - 跨层调用数: 1284
 - 违规调用数: 0
 - 动态 import 数: 1

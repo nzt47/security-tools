@@ -4014,7 +4014,7 @@
       "name": "capability_cards",
       "layer": "skills_mgmt",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 3,
       "out_degree": 0
     },
     {
@@ -4494,6 +4494,22 @@
       "name": "skill_manager",
       "layer": "skills_mgmt",
       "file_path": "agent/skills_mgmt/skill_manager.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.skills_mgmt.transform.compare",
+      "name": "compare",
+      "layer": "skills_mgmt",
+      "file_path": "agent/skills_mgmt/transform/compare.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.skills_mgmt.transform.facets",
+      "name": "facets",
+      "layer": "skills_mgmt",
+      "file_path": "agent/skills_mgmt/transform/facets.py",
       "in_degree": 0,
       "out_degree": 1
     },
@@ -25557,6 +25573,32 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.skills_mgmt.transform.compare",
+      "target": "agent.skills_mgmt.capability_cards",
+      "source_layer": "skills_mgmt",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 88,
+      "source_file": "agent/skills_mgmt/transform/compare.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.transform.facets",
+      "target": "agent.skills_mgmt.capability_cards",
+      "source_layer": "skills_mgmt",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 12,
+      "source_file": "agent/skills_mgmt/transform/facets.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.skills_mgmt.vector_adapter",
       "target": "agent.logging_utils",
       "source_layer": "skills_mgmt",
@@ -31187,9 +31229,9 @@
     }
   ],
   "stats": {
-    "total_files": 708,
-    "total_nodes": 612,
-    "total_edges": 2022,
+    "total_files": 713,
+    "total_nodes": 614,
+    "total_edges": 2024,
     "cross_layer_edges": 1284,
     "violation_edges": 0,
     "dynamic_edges": 1,
@@ -31208,7 +31250,7 @@
       "capregistry": 8,
       "unknown": 1,
       "web": 5,
-      "skills_mgmt": 44,
+      "skills_mgmt": 46,
       "cognitive": 13,
       "config": 2,
       "orchestrator": 13,
