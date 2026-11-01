@@ -51,6 +51,18 @@ def _err(e: SkillMgmtError, default_status: int = 400):
     return jsonify(e.to_dict()), status
 
 
+def _fail(e: Exception, message: str = "操作失败（详见服务日志）", status: int = 500,
+          log: str = "skills-mgmt 路由异常"):
+    """未预期异常收口：**异常原文只进日志，不进响应体**。
+
+    §8 陷阱 15 / CodeQL py/stack-trace-exposure：把 str(e) 写进 data 就算泄漏
+    （哪怕只是 ValueError: xxx）。2026-11-02 B2 批次：本文件 78 条告警全部来自这种写法，
+    统一走这里；前端的 error 文案因此变成固定句子，细节看服务日志。
+    """
+    logger.warning("%s: %s", log, e, exc_info=True)
+    return jsonify({"ok": False, "error": message}), status
+
+
 def register_routes(app, state):
     """注册技能管理 v1 路由"""
 
@@ -66,7 +78,7 @@ def register_routes(app, state):
         try:
             return jsonify(_svc().health())
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  清理能力（技能中心：孤儿扫描 / 无用淘汰 / 一键清除）
@@ -80,8 +92,7 @@ def register_routes(app, state):
         try:
             return jsonify(_svc().cleanup_report())
         except Exception as e:  # noqa: BLE001
-            logger.exception("cleanup report failed")
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e, log="cleanup report failed")
 
     @app.route("/api/skills-mgmt/cleanup/orphans", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -97,8 +108,7 @@ def register_routes(app, state):
             dry_run = bool(data.get("dry_run", True))
             return jsonify(_svc().cleanup_orphans(dry_run=dry_run))
         except Exception as e:  # noqa: BLE001
-            logger.exception("cleanup orphans failed")
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e, log="cleanup orphans failed")
 
     @app.route("/api/skills-mgmt/cleanup/unused", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -122,8 +132,7 @@ def register_routes(app, state):
             return jsonify(
                 _svc().cleanup_unused(dry_run=dry_run, **kwargs))
         except Exception as e:  # noqa: BLE001
-            logger.exception("cleanup unused failed")
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e, log="cleanup unused failed")
 
     # ═══════════════════════════════════════════════════
     #  搜索 / 列表 / 详情
@@ -164,7 +173,7 @@ def register_routes(app, state):
         except ValueError as e:
             return jsonify({"ok": False, "error": f"参数错误: {e}"}), 400
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -189,7 +198,7 @@ def register_routes(app, state):
                 "total": len(items),
             })
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/materialize", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -215,7 +224,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════════
     #  入轨（文件轨 → git）：界面「入轨助手」用，2026-10-31
@@ -235,7 +244,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "items": items,
                             "pending": [i["skill_id"] for i in items if not i["tracked"]]})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/intake", methods=["POST"])
     @audit_action("skill.intake", subject_arg="skill_id")
@@ -277,7 +286,7 @@ def register_routes(app, state):
                     rep["stage"] = rep["pr"].get("stage") or "pr"
                     rep["error"] = rep["pr"].get("error")
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
         if not rep.get("ok"):
             code = 409 if rep.get("stage") == "validate" else 400
             return jsonify(rep), code
@@ -301,7 +310,7 @@ def register_routes(app, state):
             from agent.skills_mgmt.skill_manager import SkillManager
             rep = SkillManager().load_card(skill_id, layer)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
         if not rep.get("ok"):
             return jsonify(rep), 404
         return jsonify(rep)
@@ -325,7 +334,7 @@ def register_routes(app, state):
             from agent.skills_mgmt.native_functions import native_functions
             payload = native_functions()
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
         return jsonify({"ok": True, **payload})
 
     @app.route("/api/skills-mgmt/cards", methods=["GET"])
@@ -346,7 +355,7 @@ def register_routes(app, state):
             from agent.skills_mgmt.capability_cards import build_cards
             cards = build_cards()
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
         return jsonify({"ok": True, "count": len(cards), "cards": cards})
 
 # ═══════════════════════════════════════════════════
@@ -476,7 +485,7 @@ def register_routes(app, state):
             result = _svc().backfill_file_track(dry_run=bool(dry_run))
             return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -489,7 +498,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  创建 (AI 辅助 / 手动 / 安装)
@@ -520,7 +529,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/create/manual", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -535,7 +544,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/install", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -556,7 +565,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/install/precheck", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -574,7 +583,7 @@ def register_routes(app, state):
                                 "error": "缺少 source 查询参数"}), 400
             return jsonify(_svc().install_precheck(source))
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/queue", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -587,7 +596,7 @@ def register_routes(app, state):
             rows = _svc().import_queue(limit=limit)
             return jsonify({"ok": True, "total": len(rows), "items": rows})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/upload", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -626,7 +635,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  Claude 技能导入（~/.claude/skills → 技能仓库）
@@ -714,7 +723,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/review/batch", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -726,7 +735,7 @@ def register_routes(app, state):
             results = _svc().review_all_pending()
             return jsonify({"ok": True, "results": results})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  评审-评估（自动评估钩子路由）——术语纪律（TASK-S0-01）：
@@ -750,7 +759,7 @@ def register_routes(app, state):
             result = _svc().assess_all()
             return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/assess/curate", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -767,7 +776,7 @@ def register_routes(app, state):
             result = _svc().curate_skills(dry_run=dry_run, auto_clean=auto_clean)
             return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/assess/merge-safe", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -785,7 +794,7 @@ def register_routes(app, state):
             result = _svc().merge_with_backup(src_id, dst_id, strategy=strategy)
             return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return _fail(e, status=400)
 
     @app.route("/api/skills-mgmt/assess/merge-backups", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -798,7 +807,7 @@ def register_routes(app, state):
             records = _svc().list_merge_backups(limit=limit)
             return jsonify({"ok": True, "backups": records, "total": len(records)})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/assess/feed", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -817,7 +826,7 @@ def register_routes(app, state):
                             "offset": offset, "limit": limit,
                             "skill_id": skill_id})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/slash-commands", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -829,7 +838,7 @@ def register_routes(app, state):
             result = _svc().slash_commands()
             return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/classes", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -844,7 +853,7 @@ def register_routes(app, state):
             result = _svc().skill_classes()
             return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/classes/run-auto", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -856,7 +865,7 @@ def register_routes(app, state):
             result = _svc().run_auto_classify()
             return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/classes/move", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -895,7 +904,7 @@ def register_routes(app, state):
             result = _svc().move_class(skill_id, class_name)
             return jsonify(result)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return _fail(e, status=400)
 
     @app.route("/api/skills-mgmt/assess/merge-undo", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -911,7 +920,7 @@ def register_routes(app, state):
             result = _svc().undo_merge(merge_id)
             return jsonify(result)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return _fail(e, status=400)
 
     @app.route("/api/skills-mgmt/<skill_id>/redraft", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -927,7 +936,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/redraft/apply", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -957,7 +966,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/suggest-fix", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -971,7 +980,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/fix-auto", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -997,7 +1006,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/assess/<skill_id>", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1016,7 +1025,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ── 冲突自动处置（2026-10-30）：把「交互抢占冲突 / 原生重叠无增量」两句提示变成可预览、可回滚的动作 ──
     @app.route("/api/skills-mgmt/conflicts/plan", methods=["POST"])
@@ -1031,7 +1040,7 @@ def register_routes(app, state):
             days = int(data.get("usage_days", 7) or 7)
             return jsonify({"ok": True, **conflict_auto.plan(_svc(), usage_days=max(1, min(days, 90)))})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/conflicts/apply", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1050,7 +1059,7 @@ def register_routes(app, state):
             return jsonify(conflict_auto.apply(_svc(), items, confirm=True,
                                               actor=str(data.get("actor") or "ui_conflict_auto")))
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/conflicts/undo", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1067,10 +1076,11 @@ def register_routes(app, state):
             if data.get("confirm") is not True:
                 return jsonify({"ok": False, "error": "undo 需要 confirm=true"}), 400
             return jsonify(conflict_auto.undo(_svc(), decision_id, confirm=True))
-        except KeyError as e:
-            return jsonify({"ok": False, "error": str(e)}), 404
+        except KeyError as e:  # noqa: BLE001
+            logger.warning("决策不存在: %s", e)
+            return jsonify({"ok": False, "error": "决策不存在或已回滚"}), 404
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/conflicts/decisions", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -1084,7 +1094,7 @@ def register_routes(app, state):
             rows = conflict_auto.read_decisions(limit=limit)
             return jsonify({"ok": True, "records": rows, "total": len(rows)})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
     @app.route("/api/skills-mgmt/review/audit", methods=["GET"])
     @trace_route("SkillsMgmt")
     @require_token
@@ -1101,7 +1111,7 @@ def register_routes(app, state):
                                        offset=offset, since=since)
             return jsonify({"ok": True, "records": records, "total": len(records)})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/assess/events", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -1114,7 +1124,7 @@ def register_routes(app, state):
             records = _svc().assessment_events(limit=limit)
             return jsonify({"ok": True, "records": records, "total": len(records)})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/assess/stream", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -1133,7 +1143,7 @@ def register_routes(app, state):
                                                      timeout_ms=timeout_sec * 1000)
             return jsonify({"ok": True, "records": records, "total": len(records)})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/publish", methods=["POST"])
     @audit_action("skill.publish", subject_arg="skill_id")
@@ -1154,7 +1164,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "skill_id": skill.id,
                             "status": skill.status.value})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return _fail(e, status=400)
 
     @app.route("/api/skills-mgmt/queue/publish-batch", methods=["POST"])
     @audit_action("skill.publish.batch", payload_keys=("force", "reason"))
@@ -1216,7 +1226,7 @@ def register_routes(app, state):
                 svc.reviewer.thresholds.duplicate_max / 100.0)
             return jsonify({"ok": True})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  更新 / 删除 / 启停
@@ -1235,7 +1245,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>", methods=["DELETE"])
     @audit_action("skill.delete", subject_arg="skill_id")
@@ -1250,7 +1260,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/toggle", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1266,7 +1276,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  版本管理
@@ -1286,7 +1296,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/versions/bump", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1314,7 +1324,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/versions/rollback", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1335,7 +1345,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  参数优化 + 性能追踪
@@ -1353,7 +1363,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/execution", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1391,7 +1401,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/param-stats", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -1418,7 +1428,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  技能反馈绑定 (Feedback-Skill Binding)
@@ -1489,13 +1499,14 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except ValueError as e:
+            logger.warning("参数校验未通过: %s", e, exc_info=True)
             return jsonify({
                 "ok": False,
-                "error": str(e),
+                "error": "参数校验未通过（详见服务日志）",
                 "code": "VALIDATION_ERROR",
             }), 400
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/feedback", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -1523,7 +1534,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/optimize-with-feedback", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1544,7 +1555,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  元数据
@@ -1568,7 +1579,7 @@ def register_routes(app, state):
                 "tags": sorted(all_tags),
             })
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  重复技能检测与合并 (Jaccard≥0.7 触发)
@@ -1601,7 +1612,7 @@ def register_routes(app, state):
                 "duplicates": duplicates,
             })
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/duplicates", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -1625,7 +1636,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/merge", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1678,13 +1689,14 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except ValueError as e:
+            logger.warning("参数校验未通过: %s", e, exc_info=True)
             return jsonify({
                 "ok": False,
-                "error": str(e),
+                "error": "参数校验未通过（详见服务日志）",
                 "code": "VALIDATION_ERROR",
             }), 400
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/auto-merge", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1720,7 +1732,7 @@ def register_routes(app, state):
             )
             return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  三层架构 (Layer 1/2/3) — 分层检索 + 脚本沙箱执行
@@ -1738,7 +1750,7 @@ def register_routes(app, state):
         try:
             return jsonify({"ok": True, "summary": _svc().get_layer_summary()})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/match", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1778,7 +1790,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/usage/stats", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -1797,7 +1809,7 @@ def register_routes(app, state):
             data = usage_log.stats(days)
             return jsonify({"ok": True, **data})
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/instruction", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -1914,8 +1926,7 @@ def register_routes(app, state):
             return jsonify({"ok": False,
                             "error": f"参数错误: {e}"}), 400
         except Exception as e:  # noqa: BLE001
-            logger.exception("[SkillsMgmt] abstract-from-memory 失败")
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e, log="[SkillsMgmt] abstract-from-memory 失败")
 
     @app.route("/api/skills-mgmt/<skill_id>/scripts", methods=["GET"])
     @trace_route("SkillsMgmt")
@@ -1929,7 +1940,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/skills-mgmt/<skill_id>/execute", methods=["POST"])
     @trace_route("SkillsMgmt")
@@ -1968,7 +1979,7 @@ def register_routes(app, state):
         except SkillMgmtError as e:
             return _err(e)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     #  P1.5 Slash 命令解析器 — 统一入口
     # ═══════════════════════════════════════════════════
@@ -2102,5 +2113,4 @@ def register_routes(app, state):
         except ValueError as e:
             return jsonify({"ok": False, "error": f"参数错误: {e}"}), 400
         except Exception as e:  # noqa: BLE001
-            logger.exception("slash command failed: skill_id=%s", skill_id)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e, log="slash command failed: skill_id=%s" % skill_id)
