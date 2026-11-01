@@ -312,3 +312,88 @@ class TestProgrammaticApi:
         ids = intake.tracked_skill_ids()
         assert isinstance(ids, set) and ids, "git 里应至少有已入轨的技能"
         assert "pdf" in ids and "humanizer-zh" in ids
+
+
+# ════════════════════════════════════════════════════════════
+#  6. 命令行加固（#666 py/command-line-injection）
+# ════════════════════════════════════════════════════════════
+
+class TestCmdlineHardening:
+    """argv[0] 只认白名单；实参过形状校验；长文本不进 argv。"""
+
+    def test_程序名不在白名单直接拒(self):
+        with pytest.raises(ValueError):
+            intake._run(["powershell", "-Command", "whoami"], intake.ROOT)
+        with pytest.raises(ValueError):
+            intake._run(["cmd.exe"], intake.ROOT)
+        with pytest.raises(ValueError):
+            intake._run([], intake.ROOT)
+
+    def test_白名单认全路径与大小写(self):
+        assert intake._resolve_program("git") == "git"
+        assert intake._resolve_program(r"C:\\Program Files\\Git\\bin\\git.exe") == "git"
+        assert intake._resolve_program("/usr/bin/git") == "git"
+        assert intake._resolve_program("PYTHON.EXE") == intake.sys.executable
+        assert intake._resolve_program("curl") is None
+
+    def test_实参形状校验(self):
+        assert intake._sanitize_args(["status", "--porcelain"]) == ["status", "--porcelain"]
+        with pytest.raises(ValueError):
+            intake._sanitize_args(["a\x00b"])
+        with pytest.raises(ValueError):
+            intake._sanitize_args(["x" * (intake._MAX_ARG_LEN + 1)])
+        with pytest.raises(ValueError):
+            intake._sanitize_args(["x"] * (intake._MAX_ARGS + 1))
+        with pytest.raises(ValueError):
+            intake._sanitize_args([123])
+
+    def test_提交说明走_stdin_不进_argv(self, tmp_path, monkeypatch):
+        """open_pr 的 commit 必须用 `-F -` + stdin_text，而不是 `-m <msg>`。"""
+        calls = []
+
+        class _R:
+            returncode = 0
+            stdout = ""
+            stderr = ""
+
+        def fake_run(cmd, cwd, **kw):
+            calls.append((list(cmd), kw))
+            if list(cmd)[:2] == ["git", "rev-parse"]:
+                _R.stdout = "master\n"
+            return _R()
+
+        monkeypatch.setattr(intake, "_run", fake_run)
+        monkeypatch.setattr(intake.shutil, "which", lambda name: "/usr/bin/gh")
+        monkeypatch.setattr(intake, "changed_paths", lambda root=None: ["data/skills_repo/demo-skill/skill.md"])
+        monkeypatch.setattr(intake, "collect_manifest", lambda: {"entries": []})
+        monkeypatch.setattr(intake, "compute_baselines", lambda m: {
+            "entries": 1, "skill_total": 1, "tool_total": 0, "local": 1, "remote": 0,
+            "envelope_total": 1})
+        monkeypatch.setattr(intake, "_gh_pr_create", lambda *a, **k: _R())
+
+        out = intake.open_pr("demo-skill", root=tmp_path)
+        assert out["ok"] is True, out
+
+        commits = [c for c, _kw in calls if c[:2] == ["git", "commit"]]
+        assert commits == [["git", "commit", "-F", "-"]], commits
+        assert any(kw.get("stdin_text") for c, kw in calls if c[:2] == ["git", "commit"]), "提交说明必须经 stdin"
+        assert not any("\n" in part for c, _kw in calls for part in c), "argv 里不该出现多行文本"
+
+    def test_pr_正文走_body_file(self, tmp_path, monkeypatch):
+        seen = {}
+
+        class _R:
+            returncode = 0
+            stdout = "https://example.test/pr/1\n"
+            stderr = ""
+
+        def fake_run(cmd, cwd, **kw):
+            seen["cmd"] = list(cmd)
+            body_path = list(cmd)[list(cmd).index("--body-file") + 1]
+            seen["body"] = open(body_path, encoding="utf-8").read()
+            return _R()
+
+        monkeypatch.setattr(intake, "_run", fake_run)
+        intake._gh_pr_create("/usr/bin/gh", "master", "t", "正文 with 中文\n第二行", tmp_path)
+        assert "--body" not in seen["cmd"] and "--body-file" in seen["cmd"]
+        assert "第二行" in seen["body"]

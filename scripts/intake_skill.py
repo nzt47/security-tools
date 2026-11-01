@@ -38,10 +38,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
@@ -89,11 +91,70 @@ _BASELINE_SPECS: Sequence[Tuple[str, "re.Pattern[str]", str]] = (
 )
 
 
-def _run(cmd: Sequence[str], cwd: Path, *, timeout: int = 600) -> subprocess.CompletedProcess:
-    """跑一条**固定 argv** 的外部命令（动态部分只经 cwd 传入，不进 argv）。"""
+#: 允许被本脚本拉起的程序。**argv[0] 只取这里的字面量**，不取调用方字符串
+#: （与 agent/tools/process_tools.py 的白名单口径同源）。
+_PROGRAM_NAMES = {
+    "git": "git", "git.exe": "git",
+    "python": "python", "python.exe": "python", "python3": "python", "python3.exe": "python",
+    "gh": "gh", "gh.exe": "gh",
+}
+
+#: 实参形状上限：最长的是临时 worktree 路径与 PR 标题，8K 足够；超出直接拒。
+_MAX_ARGS = 64
+_MAX_ARG_LEN = 8192
+
+
+def _resolve_program(token: str) -> Optional[str]:
+    """把调用方给的程序名映射成**白名单里的字面量**（认不出返回 None）。
+
+    【为什么】#666（py/command-line-injection，critical）：原来 `_run` 把调用方的
+    `list(cmd)` 直接交给 subprocess，数据流上「命令行的第一个元素来自变量」。改成
+    「程序名查表 + 实参形状校验 + 现场拼新列表」后，argv[0] 不再由调用方决定。
+    """
+    name = str(token or "").replace("\\", "/").rsplit("/", 1)[-1].strip().lower()
+    key = _PROGRAM_NAMES.get(name)
+    if key == "git":
+        return "git"
+    if key == "python":
+        return sys.executable
+    if key == "gh":
+        return shutil.which("gh")   # 调用方（open_pr）已先行解析并给出明确报错
+    return None
+
+
+def _sanitize_args(args: Sequence[str]) -> List[str]:
+    """只做**形状**约束（字符串列表、项数/长度上界、不含 NUL），不改写内容。
+
+    Popen 走 shell=False 的列表形式，参数不会被 shell 解释；这里防的是「把非字符串
+    或超长内容塞进命令行」这类形态错误。
+    """
+    if len(args) > _MAX_ARGS:
+        raise ValueError("参数过多（> %d 项）" % _MAX_ARGS)
+    out: List[str] = []
+    for a in args:
+        if not isinstance(a, str) or len(a) > _MAX_ARG_LEN or "\x00" in a:
+            raise ValueError("参数不合法：需为 ≤%d 字符的字符串、不含 NUL" % _MAX_ARG_LEN)
+        out.append(a)
+    return out
+
+
+def _run(cmd: Sequence[str], cwd: Path, *, timeout: int = 600,
+         stdin_text: Optional[str] = None) -> subprocess.CompletedProcess:
+    """跑一条外部命令：**argv[0] 从白名单解析、其余实参过形状校验**。
+
+    动态数据不进 argv[0]；长文本走 stdin（`git commit -F -`）或文件
+    （`gh pr create --body-file`）—— 这是 #666 的结构修法，与 #1384 同口径。
+    """
+    if not cmd:
+        raise ValueError("空命令行")
+    program = _resolve_program(cmd[0])
+    if program is None:
+        raise ValueError("程序不在白名单里: %r" % (cmd[0],))
+    argv = _sanitize_args(cmd[1:])
     return subprocess.run(
-        list(cmd), cwd=str(cwd), capture_output=True, text=True,
+        [program, *argv], cwd=str(cwd), capture_output=True, text=True,
         encoding="utf-8", errors="replace", timeout=timeout, shell=False,
+        input=stdin_text,
     )
 
 
@@ -540,8 +601,21 @@ def changed_paths(root: Path = ROOT) -> List[str]:
 
 
 def _gh_pr_create(gh_bin: str, base: str, title: str, body: str, root: Path):
-    """单点：调 `gh pr create`（抽出来是为了端到端测试只桩这一个外部命令）。"""
-    return _run([gh_bin, "pr", "create", "--base", base, "--title", title, "--body", body], root)
+    """单点：调 `gh pr create`（抽出来是为了端到端测试只桩这一个外部命令）。
+
+    PR 正文走 **`--body-file`**：正文含技能 id / 路径 / 中文，塞进 argv 既长又是
+    注入面（#666 的同一条整改）。
+    """
+    body_path = Path(tempfile.gettempdir()) / ("yunshu-intake-pr-%d.md" % os.getpid())
+    body_path.write_text(body, encoding="utf-8")
+    try:
+        return _run([gh_bin, "pr", "create", "--base", base, "--title", title,
+                     "--body-file", str(body_path)], root)
+    finally:
+        try:
+            body_path.unlink()
+        except OSError:
+            pass
 
 
 def open_pr(skill_id: str, *, base: str = "master", root: Path = ROOT) -> Dict[str, object]:
@@ -588,13 +662,18 @@ def open_pr(skill_id: str, *, base: str = "master", root: Path = ROOT) -> Dict[s
     )
     steps = []
     for cmd in (["git", "checkout", "-b", branch],
-                ["git", "add", "--"] + paths,
-                ["git", "commit", "-m", msg]):
+                ["git", "add", "--"] + paths):
         p = _run(cmd, root)
         steps.append({"cmd": " ".join(cmd[:3]), "rc": p.returncode})
         if p.returncode != 0:
             return {"ok": False, "stage": cmd[1],
                     "error": (p.stderr or p.stdout).strip()[:600], "steps": steps}
+    # 提交说明走 stdin（-F -）：长文本不进 argv（#666 的结构修法之一）
+    p = _run(["git", "commit", "-F", "-"], root, stdin_text=msg)
+    steps.append({"cmd": "git commit", "rc": p.returncode})
+    if p.returncode != 0:
+        return {"ok": False, "stage": "commit",
+                "error": (p.stderr or p.stdout).strip()[:600], "steps": steps}
 
     p = _run(["git", "push", "-u", "origin", branch], root)
     steps.append({"cmd": "git push", "rc": p.returncode})
