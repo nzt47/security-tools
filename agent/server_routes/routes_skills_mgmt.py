@@ -370,7 +370,9 @@ def register_routes(app, state):
             from agent.skills_mgmt.transform.queue import list_transforms
             payload = list_transforms()
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            # 异常原文只进日志（§8 陷阱 15：堆栈/异常文本进响应体 = py/stack-trace-exposure）
+            logger.warning("读取转化队列失败: %s", e, exc_info=True)
+            return jsonify({"ok": False, "error": "读取转化队列失败（详见服务日志）"}), 500
         return jsonify({"ok": True, **payload})
 
     @app.route("/api/skills-mgmt/transforms/<transform_id>", methods=["GET"])
@@ -383,7 +385,8 @@ def register_routes(app, state):
             from agent.skills_mgmt.transform.queue import get_transform
             rep = get_transform(transform_id)
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            logger.warning("读取转化详情失败: %s", e, exc_info=True)
+            return jsonify({"ok": False, "error": "读取转化详情失败（详见服务日志）"}), 500
         if not rep.get("ok"):
             return jsonify(rep), 404
         return jsonify(rep)
@@ -409,7 +412,8 @@ def register_routes(app, state):
             from agent.skills_mgmt.transform.queue import rollback_transform
             rep = rollback_transform(transform_id, execute=not bool(dry_run))
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            logger.warning("回滚转化失败: %s", e, exc_info=True)
+            return jsonify({"ok": False, "error": "回滚失败（详见服务日志）"}), 500
         if not rep.get("ok"):
             return jsonify(rep), 409
         return jsonify(rep)
