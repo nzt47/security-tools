@@ -6,14 +6,16 @@
  * 本页因此只留「统一 LLM 表」——运行时技能 + 技能资产按 id 合并，符合既有契约「单一 LLM 表」。
  */
 import { useState } from 'react'
-import { BookOpen, GitBranch, Hammer, Sparkles } from 'lucide-react'
+import { Archive, BookOpen, GitBranch, Hammer, Sparkles } from 'lucide-react'
 import SkillAssetTable from './SkillAssetTable'
 import SkillIntakeDialog from './SkillIntakeDialog'
 import SkillCardsDialog from '../../../components/SkillCardsDialog'
+import TransformQueueDialog from '../../../components/TransformQueueDialog'
 
 export default function SkillCenter() {
   const [intakeOpen, setIntakeOpen] = useState(false)
   const [cardsOpen, setCardsOpen] = useState(false)
+  const [transformsOpen, setTransformsOpen] = useState(false)
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       {/* ─── 页头 ─── */}
@@ -45,6 +47,14 @@ export default function SkillCenter() {
           >
             <GitBranch size={12} /> 入轨助手
           </button>
+          <button
+            type="button"
+            onClick={() => setTransformsOpen(true)}
+            title="外来技能转化的归档：判定 / 审核 / 卡片，可按 transform_id 回滚"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
+          >
+            <Archive size={12} /> 转化队列
+          </button>
         </div>
       </div>
 
@@ -65,6 +75,7 @@ export default function SkillCenter() {
       </div>
       <SkillCardsDialog open={cardsOpen} onClose={() => setCardsOpen(false)} />
       <SkillIntakeDialog open={intakeOpen} onClose={() => setIntakeOpen(false)} />
+      <TransformQueueDialog open={transformsOpen} onClose={() => setTransformsOpen(false)} />
     </div>
   )
 }

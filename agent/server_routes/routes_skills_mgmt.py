@@ -348,6 +348,72 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
         return jsonify({"ok": True, "count": len(cards), "cards": cards})
 
+# ═══════════════════════════════════════════════════
+    #  转化队列（P4）：把 data/ingestion/transforms/ 的归档摆到界面上
+    #  + 按 transform_id 的反向补丁回滚（全有或全无，先预览再落盘）
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/transforms", methods=["GET"])
+    # require_token 放最外层：REQUIRES_TOKEN_ATTR 要挂在 Flask 最终持有的视图函数上
+    # （放里层会被 trace_route 的 wrapper 吞掉，静态鉴权守卫看不见 —— 2026-11-01 实测）。
+    @require_token
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_transforms():
+        """转化队列：每条外来技能转化的**判定 / 审核 / 卡片 / 落地目标**。
+
+        【为什么】#1398 的 P2 只把产物写到磁盘（data/ingestion/transforms/<id>/），
+        界面上看不见「上一条被判成 duplicate 还是 conflict、审核有没有 block、
+        并进了谁」—— 队列就是把这个归档面摊开。只读，不改任何状态。
+        """
+        try:
+            from agent.skills_mgmt.transform.queue import list_transforms
+            payload = list_transforms()
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": True, **payload})
+
+    @app.route("/api/skills-mgmt/transforms/<transform_id>", methods=["GET"])
+    @require_token
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_transform_detail(transform_id: str):
+        """单条转化详情：审核发现（带行号）、五面对比、卡片正文、将回滚的文件。"""
+        try:
+            from agent.skills_mgmt.transform.queue import get_transform
+            rep = get_transform(transform_id)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+        if not rep.get("ok"):
+            return jsonify(rep), 404
+        return jsonify(rep)
+
+    @app.route("/api/skills-mgmt/transforms/<transform_id>/rollback", methods=["POST"])
+    @require_token
+    @audit_action("skill.transform.rollback", subject_arg="transform_id")
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_transform_rollback(transform_id: str):
+        """按 transform_id **反向补丁回滚**：只删 P2 写进 skills_repo 的那几个文件。
+
+        Body: {dry_run: true|false} —— **默认 dry_run**（破坏性操作必须先预览，
+        见 §8 陷阱 31：任何"点了就没"的按钮都得先看见"没的是什么"）。
+        口径：目标文件内容必须与归档一致（sha256），被人改过就整体拒绝、不半删；
+        归档目录本身保留（只写 manifest.rolled_back_at），审核证据链不销毁。
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            dry_run = data.get("dry_run", True)
+            if isinstance(dry_run, str):
+                dry_run = dry_run.strip().lower() not in ("0", "false", "no", "")
+            from agent.skills_mgmt.transform.queue import rollback_transform
+            rep = rollback_transform(transform_id, execute=not bool(dry_run))
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+        if not rep.get("ok"):
+            return jsonify(rep), 409
+        return jsonify(rep)
+
     @app.route("/api/skills-mgmt/backfill", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token
