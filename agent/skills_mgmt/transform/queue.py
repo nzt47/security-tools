@@ -43,6 +43,24 @@ def _base(root: Optional[Path]) -> Path:
     return Path(root) if root else ROOT
 
 
+def _find_child(parent: Path, name: str) -> Optional[Path]:
+    """按**目录名等值匹配**取子目录（不拼路径）。
+
+    【为什么不用 `parent / name`】py/path-injection 只认「调用方字符串是否进了路径表达式」，
+    不认我们的 `_TID_RE` 校验（§8 陷阱 14 同源）。列目录再按 `child.name == name` 比，
+    与 scripts/intake_skill.resolve_skill_dir 同一口径 —— 用户输入不进路径拼接。
+    """
+    if not name or not parent.is_dir():
+        return None
+    for child in parent.iterdir():
+        try:
+            if child.is_dir() and child.name == name:
+                return child
+        except OSError:  # 竞态删除：跳过
+            continue
+    return None
+
+
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -73,15 +91,17 @@ def _targets(base: Path, tdir: Path, manifest: Dict[str, object]) -> List[Dict[s
     into = str(manifest.get("into") or "")
     new = str(manifest.get("new") or "")
     skills_root = (base / SKILLS_REPO).resolve()
-    if into:
-        out.append({"path": base / SKILLS_REPO / into / "CARD.md", "expected_sha256": card_sha,
+    skill_id = into or new
+    skill_dir = _find_child(base / SKILLS_REPO, skill_id) if skill_id else None
+    if skill_dir is not None and into:
+        out.append({"path": skill_dir / "CARD.md", "expected_sha256": card_sha,
                     "role": "card", "skill_id": into})
-    elif new:
+    elif skill_dir is not None and new:
         skill_md = tdir / "skill.md"
-        out.append({"path": base / SKILLS_REPO / new / "skill.md",
+        out.append({"path": skill_dir / "skill.md",
                     "expected_sha256": _sha(skill_md) if skill_md.is_file() else "",
                     "role": "skill", "skill_id": new})
-        out.append({"path": base / SKILLS_REPO / new / "CARD.md", "expected_sha256": card_sha,
+        out.append({"path": skill_dir / "CARD.md", "expected_sha256": card_sha,
                     "role": "card", "skill_id": new})
     for item in out:
         target = Path(item["path"])
@@ -186,8 +206,8 @@ def get_transform(transform_id: str, root: Optional[Path] = None) -> Dict[str, o
     base = _base(root)
     if not _TID_RE.match(transform_id or ""):
         return {"ok": False, "error": "非法 transform_id（应为 sha256 前 12 位十六进制）"}
-    tdir = base / TRANSFORMS / transform_id
-    if not tdir.is_dir():
+    tdir = _find_child(base / TRANSFORMS, transform_id)
+    if tdir is None:
         return {"ok": False, "error": "没有这条转化记录"}
     manifest = _read_json(tdir / "manifest.json", None)
     if not isinstance(manifest, dict):
@@ -221,8 +241,8 @@ def rollback_transform(transform_id: str, *, execute: bool = False,
     base = _base(root)
     if not _TID_RE.match(transform_id or ""):
         return {"ok": False, "error": "非法 transform_id（应为 sha256 前 12 位十六进制）"}
-    tdir = base / TRANSFORMS / transform_id
-    if not tdir.is_dir():
+    tdir = _find_child(base / TRANSFORMS, transform_id)
+    if tdir is None:
         return {"ok": False, "error": "没有这条转化记录"}
     manifest = _read_json(tdir / "manifest.json", {})
     if manifest.get("rolled_back_at"):
