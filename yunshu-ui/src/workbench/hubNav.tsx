@@ -23,7 +23,7 @@ import {
   HeartPulse, Users, Hammer,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Route,
   FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal, BarChart3, Cpu, ShieldAlert, HardDrive, Film,
-  PackagePlus, Workflow,
+  PackagePlus, Workflow, Boxes,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -36,6 +36,9 @@ import { DISCOVERED_FEATURES } from './featureRegistry'
 const PanoramaHealth = lazy(() => import('@/pages/hub/panorama/health'))
 const PanoramaSensors = lazy(() => import('@/pages/hub/panorama/sensors'))
 const PanoramaMonitor = lazy(() => import('@/pages/hub/panorama/monitor'))
+// 【2026-11-02 C-3】平台能力：运维对象（功能单位 / 工具 / 调度）单独一个叶子。
+// Owner 口径：平台能力不进「能力卡」（那边是 LLM 技能 + 元生功能），要能单独打开。
+const PlatformCapability = lazy(() => import('@/pages/hub/panorama/platform'))
 const PanoramaLogs = lazy(() => import('@/pages/hub/panorama/logs'))
 const SkillCenter = lazy(() => import('@/pages/hub/memory/skill-center'))
 // 工作流（2026-10-24 IA）：从技能中心拆出的独立叶子 ——
@@ -153,6 +156,9 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'panorama/sensors', label: '全景感知', icon: Activity, component: PanoramaSensors },
       { key: 'panorama/monitor', label: '系统监控', icon: Server, component: PanoramaMonitor },
       { key: 'panorama/logs', label: '日志查看', icon: FileText, component: PanoramaLogs },
+      // 【2026-11-02 C-3】平台能力：复用 /api/system/units + /api/tools/config +
+      // /api/scheduler/overview 三个既有只读端点（**不造** /api/system/platform-cards，§11.36 K）。
+      { key: 'panorama/platform', label: '平台能力', icon: Boxes, component: PlatformCapability },
       // 【2026-10-27 IA · §11.12】回放中心从「会话与配置」迁入：会话回放是**运行时观测**产物
       // （列表/详情/清理读 /api/replay/*），与健康/日志/审计同类；key 不变 ⇒ ?panel=replay 仍有效。
       { key: 'replay', label: '回放中心', icon: Film, component: ReplayCenter },
