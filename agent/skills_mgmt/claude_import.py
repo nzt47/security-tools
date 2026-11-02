@@ -137,9 +137,16 @@ def scan_claude_skills(base_dir: Optional[Path | str] = None) -> List[Dict[str, 
         }
         try:
             text = skill_file.read_text(encoding="utf-8", errors="replace")
-        except OSError as e:
+        except OSError as e:  # noqa: BLE001
+            # [B2-d 2026-11-03] 逐条 error 会**原样进 HTTP 响应**（routes_skills_mgmt 的
+            # jsonify(import_claude_skills(...))）⇒ 异常原文在**源头**就不写进 error 字段。
+            # 出口再套 _sanitize 不被 CodeQL 认（§11.40 D 判据），必须在返回值产生处断掉。
+            logger.warning(log_dict({'module_name': 'claude_import',
+                                     'action': 'scan.read_failed',
+                                     'dir_name': child.name,
+                                     'msg': f"[Claude 导入] 读取 SKILL.md 失败: {e}"}))
             item.update({"id": _slug(child.name) or child.name, "ready": False,
-                         "error": f"读取失败: {e}"})
+                         "error": "读取失败（详见服务日志）"})
             items.append(item)
             continue
 
@@ -265,7 +272,9 @@ def import_claude_skills(svc: Any, ids: Optional[List[str]] = None,
                                   'skill_id': result.get("skill_id", item["id"]),
                                   'msg': f"[Claude 导入] 已导入 {item['id']}"}))
         except Exception as e:  # noqa: BLE001 单条失败不阻断整批
-            failed.append({"id": item["id"], "error": f"{type(e).__name__}: {e}"})
+            # [B2-d 2026-11-03] 同 scan 侧：error 字段只回固定文案，异常类名与原文进日志
+            # （类名也算内部细节，别用它当"可用诊断"）。
+            failed.append({"id": item["id"], "error": "导入失败（详见服务日志）"})
             logger.warning(log_dict({'module_name': 'claude_import',
                                      'action': 'import.failed',
                                      'skill_id': item["id"],

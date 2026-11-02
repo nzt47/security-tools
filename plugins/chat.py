@@ -80,6 +80,18 @@ def _json_safe_metadata(metadata):
 _context_limit_info = context_limit_info
 
 
+def _console_log_summary(logs) -> str:
+    """控制台日志摘要（B2-a，2026-11-03）。
+
+    只回「时间 + 条数 + 去哪看全文」，**不回日志内容**：`logs` 的条目里含请求原文
+    与上游错误文本（语音合成失败原因常夹带供应商回显的凭据），逐条 `print` 会被
+    CodeQL 判为 py/clear-text-logging-sensitive-data（plugins/chat.py:261）。
+    全文仍可从两处取：响应体的 `logs` 字段、服务日志 logger。
+    """
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return f"📊 对话请求日志 [{stamp}] —— 共 {len(logs)} 条（详见响应 logs 字段）"
+
+
 @bp.route("/api/chat", methods=["POST"])
 @_require_token
 def api_chat():
@@ -217,7 +229,12 @@ def api_chat():
             if voice_result.get("ok"):
                 logs.append(f"[VOICE] 语音合成成功 - 耗时: {voice_time:.2f}ms")
             else:
-                logs.append(f"[VOICE] 语音合成失败 - 耗时: {voice_time:.2f}ms, 错误: {voice_result.get('error')}")
+                # [B2-a 2026-11-03] 上游错误文本可能夹带凭据（TTS 供应商常在 4xx 里回显 key），
+                # 不再写进响应 logs；原文交 logger。
+                _voice_err = voice_result.get("error")
+                if _voice_err:
+                    logger.warning("[CHAT] 语音合成失败: %s", _voice_err)
+                logs.append(f"[VOICE] 语音合成失败 - 耗时: {voice_time:.2f}ms（详见服务日志）")
         except Exception as e:
             import traceback
             voice_time = (time.time() - voice_start) * 1000
@@ -253,12 +270,14 @@ def api_chat():
     total_time = (time.time() - start_time) * 1000
     logs.append(f"[END] 请求处理完成 - 总耗时: {total_time:.2f}ms")
     
-    # 打印详细日志到控制台
+    # 打印日志摘要到控制台
+    # [B2-a 2026-11-03] 不再逐条 print(logs)：logs 的条目含请求内容与上游错误文本
+    #   （如语音合成失败原因），CodeQL 判为 py/clear-text-logging-sensitive-data 的 sink
+    #   （plugins/chat.py:261）。诊断信息仍在两个不落明文到 stdout 的位置：
+    #   ① 响应体的 `logs` 字段（同一批内容原样返回给发起方）；
+    #   ② 服务日志 logger（异常已带 exc_info）。
     print("\n" + "="*80)
-    print(f"📊 对话请求日志 [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
-    print("-"*80)
-    for log in logs:
-        print(log)
+    print(_console_log_summary(logs))
     print("="*80 + "\n")
 
     # ── 本次读数（TASK-S11-03 R3：口径统一到「本请求会话 + 真实窗口上限」）──
@@ -1857,7 +1876,9 @@ def _workbench_real_stream(question, session_id="", mode="plain"):
     _key_usable = key_usable
 
     if not _key_usable(api_key):
-        logger.warning("[workbench][SSE] LLM_API_KEY 为测试/无效 key（%s...），降级为演示流", api_key[:8] if api_key else "空")
+        # [B2-a 2026-11-03] 连前缀也不能打：取 key 前几位仍被 CodeQL 判为明文泄漏，
+        # 且真实 key 前缀足够用来识别租户。只留「有无 / 已脱敏」。
+        logger.warning("[workbench][SSE] LLM_API_KEY 为测试/无效 key（已脱敏，不打印内容），降级为演示流")
         yield _sse({"type": "thinking", "id": "degrade", "title": "演示模式",
                     "detail": "未配置有效 LLM_API_KEY，当前为演示输出。在 .env 配置真实 key 后自动切换真实 LLM。",
                     "status": "running"})

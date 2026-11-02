@@ -158,15 +158,27 @@ class TestImport:
         assert [i["id"] for i in result["imported"]] == ["good-skill"]
         assert [f["id"] for f in result["failed"]] == ["!!!"]
 
-    def test_install_failure_is_reported_per_skill(self, tmp_path):
+    def test_install_failure_is_reported_per_skill(self, tmp_path, caplog):
+        """单条失败照旧如实报（id + 固定文案），**异常原文只进日志**。
+
+        【契约变更 2026-11-03 / B2-d】此前 `error` 里带 `{type(e).__name__}: {e}`，
+        而这条 payload 会原样进 HTTP 响应（routes_skills_mgmt 的
+        `jsonify(import_claude_skills(...))`）⇒ CodeQL 判 py/stack-trace-exposure。
+        出口再套 _sanitize 不被认，只能在**返回值产生处**断掉（见 §11.40 D）。
+        """
         _write_skill(tmp_path, "boom", FRONT_MATTER_SKILL)
 
         class _BoomSvc:
             def install_from_zip(self, zip_path):
                 raise RuntimeError("磁盘满了")
 
-        result = import_claude_skills(_BoomSvc(), base_dir=tmp_path)
+        import logging as _logging
+        with caplog.at_level(_logging.WARNING, logger="agent.skills_mgmt.claude_import"):
+            result = import_claude_skills(_BoomSvc(), base_dir=tmp_path)
 
         assert result["ok"] is False
         assert result["failed"][0]["id"] == "boom"
-        assert "磁盘满了" in result["failed"][0]["error"]
+        err = result["failed"][0]["error"]
+        assert err == "导入失败（详见服务日志）"
+        assert "磁盘满了" not in err, "异常原文不得进响应侧 payload"
+        assert "磁盘满了" in caplog.text, "原文必须仍可从日志诊断"

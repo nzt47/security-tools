@@ -154,7 +154,10 @@ class TestConvertToSkillRoute:
         body = r.get_json()
         assert body.get("ok") is False
         assert body.get("code") == "QUALITY_GATE_FAILED"
-        assert "结构性准入" in body.get("error", "")
+        # 【契约变更 2026-11-03 / B2-b】4xx 不再回吐异常原文（CodeQL stack-trace-exposure）：
+        # 响应只给固定文案 + code，具体是哪道门（结构性准入 / 相似度）见服务日志。
+        assert "质量门控" in body.get("error", "")
+        assert "单步" not in body.get("error", "")
 
     def test_dirty_workflow_not_listed_as_convertible(self, dirty_client):
         """自动升格候选接口不得列出脏条目"""
