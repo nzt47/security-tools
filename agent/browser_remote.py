@@ -297,7 +297,7 @@ class BrowserRemote:
                 return self._call(self._open(str(url).strip(), vw, vh))
             except Exception as exc:  # noqa: BLE001 启动失败要如实报错，不是假装成功
                 logger.warning("[浏览器] 打开失败: %s", exc)
-                return {"ok": False, "status": 502, "error": "浏览器启动失败：%s" % exc}
+                return {"ok": False, "status": 502, "error": "浏览器启动失败（详见服务日志）"}
 
     def frame(self, session_id: Any) -> Tuple[Optional[bytes], str]:
         sid = str(session_id or "")
@@ -308,7 +308,7 @@ class BrowserRemote:
                 self._last_used = time.time()
                 return self._call(self._frame()), ""
             except Exception as exc:  # noqa: BLE001
-                return None, "截图失败：%s" % exc
+                return None, "截图失败（详见服务日志）"
 
     def send_input(self, session_id: Any, payload: Any) -> Dict[str, Any]:
         sid = str(session_id or "")
@@ -318,13 +318,13 @@ class BrowserRemote:
             try:
                 cmd = validate_input(payload, self._viewport[0], self._viewport[1])
             except ValueError as exc:
-                return {"ok": False, "status": 400, "error": str(exc)}
+                return {"ok": False, "status": 400, "error": "输入参数不合法（详见服务日志）"}
             try:
                 self._last_used = time.time()
                 return self._call(self._apply_input(cmd))
             except Exception as exc:  # noqa: BLE001
                 logger.warning("[浏览器] 输入失败(%s): %s", cmd.get("kind"), exc)
-                return {"ok": False, "status": 502, "error": "操作失败：%s" % exc}
+                return {"ok": False, "status": 502, "error": "操作失败（详见服务日志）"}
 
     def state(self, session_id: Any) -> Dict[str, Any]:
         sid = str(session_id or "")
@@ -335,7 +335,7 @@ class BrowserRemote:
                 self._last_used = time.time()
                 return {"ok": True, **(self._call(self._state_fields()))}
             except Exception as exc:  # noqa: BLE001
-                return {"ok": False, "status": 502, "error": "状态读取失败：%s" % exc}
+                return {"ok": False, "status": 502, "error": "状态读取失败（详见服务日志）"}
 
     def close(self) -> Dict[str, Any]:
         with self._lock:
