@@ -47,6 +47,12 @@ from config import (  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
+
+def _fail(e: Exception, message: str = "操作失败（详见服务日志）", status: int = 500):
+    """未预期异常收口：异常原文只进日志，不进响应体（§8 陷阱 15 / py/stack-trace-exposure）。"""
+    logger.warning("路由异常: %s", e, exc_info=True)
+    return jsonify({"ok": False, "error": message}), status
+
 bp = Blueprint("memory", __name__)
 
 #: 面板/接口保存的"配置值"重启后会回落到哪里 —— **用户可见文案，必须是事实**。
@@ -398,7 +404,7 @@ def api_context_compress():
         })
     except Exception as e:
         logger.warning(f"手动压缩失败: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 # ── 记忆操作 API ──
@@ -432,7 +438,7 @@ def api_memory_overview():
             "log_stats": log_stats,
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/memory/manual", methods=["POST"])
@@ -464,7 +470,7 @@ def api_memory_manual():
             memory.add_memory({"role": "user", "content": text})
         return _ok({"ok": True, "msg_id": str(msg_id or "")})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/memory/compress", methods=["POST"])
@@ -480,7 +486,7 @@ def api_memory_compress():
         loop.close()
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 #: msg_id 形态：落盘 timestamp 是 ISO-8601（UTC，含微秒）。
@@ -598,7 +604,7 @@ def api_memory_clear_summary():
         _Yunshu._memory.clear_summary()
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/memory/summary", methods=["PUT"])
@@ -615,7 +621,7 @@ def api_memory_update_summary():
         _Yunshu._memory._black_box.log("summary_updated", {"version": version + 1, "length": len(summary)})
         return jsonify({"ok": True, "version": version + 1})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/memory/review", methods=["GET", "POST"])
@@ -648,7 +654,7 @@ def api_memory_review():
                 loop.close()
             return jsonify({"ok": True, "result": result})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -679,7 +685,7 @@ def api_vector_search():
         })
     except Exception as e:
         logger.error("向量搜索失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/vector/stats")
@@ -716,7 +722,7 @@ def api_vector_add():
         return jsonify({"ok": True, "item_id": item_id})
     except Exception as e:
         logger.error("添加向量记忆失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/vector/batch_add", methods=["POST"])
@@ -738,7 +744,7 @@ def api_vector_batch_add():
         return jsonify({"ok": True, "item_ids": item_ids, "count": len(item_ids)})
     except Exception as e:
         logger.error("批量添加向量记忆失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/vector/item/<item_id>")
@@ -853,7 +859,7 @@ def api_vector_recent():
         return jsonify(payload)
     except Exception as e:
         logger.error("获取最近向量记忆失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/vector/clear", methods=["DELETE"])
@@ -870,7 +876,7 @@ def api_vector_clear():
         return jsonify({"ok": True})
     except Exception as e:
         logger.error("清空向量记忆失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -903,7 +909,7 @@ def api_knowledge_add():
         return jsonify({"ok": True})
     except Exception as e:
         logger.error("添加知识文档失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -923,7 +929,7 @@ def api_window_events():
         )
         return jsonify({"events": events})
     except Exception as e:
-        return jsonify({"events": [], "error": str(e)})
+        return jsonify({"events": [], "error": "读取失败（详见服务日志）"})
 
 
 @bp.route("/api/memory/windows/stats")
@@ -965,7 +971,7 @@ def api_window_stats():
             "apps": apps[:20],
         })
     except Exception as e:
-        return jsonify({"total_duration_sec": 0, "total_switches": 0, "apps": [], "error": str(e)})
+        return jsonify({"total_duration_sec": 0, "total_switches": 0, "apps": [], "error": "读取失败（详见服务日志）"})
 
 
 @bp.route("/api/memory/windows/current")
@@ -991,7 +997,7 @@ def api_window_config():
             _window_sensor.save_config(new_config)
             return jsonify({"ok": True, "config": _window_sensor.get_config()})
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return _fail(e, status=400)
     return jsonify(_window_sensor.get_config())
 
 
@@ -1002,7 +1008,7 @@ def api_window_clear():
     try:
         return jsonify({"ok": True, "message": "窗口事件将在滚动日志中自然过期"})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 PLUGIN = register_plugin(Plugin(
