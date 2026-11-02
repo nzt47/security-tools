@@ -554,7 +554,10 @@ class TestPerSubagentLlm:
         body = resp.get_json()["data"]
         rows = {r["name"]: r for r in body["subagents"]}
         assert rows["bad"]["llm"]["source"] == "fallback-after-error"
-        assert "解析器炸了" in rows["bad"]["llm"]["error"]
+        # 2026-11-02（CodeQL B2）：行内降级载荷只回**异常类名**，原文进日志
+        # （py/stack-trace-exposure：列表接口也算响应体，§8 陷阱 15）
+        assert rows["bad"]["llm"]["error"] == "RuntimeError"
+        assert "解析器炸了" not in resp.get_data(as_text=True)
         assert rows["ok"]["llm"]["source"] == "inherit", "同表另一行不受影响"
         # 温度随状态回显（0.25 必须原样带出，不能被当成缺省丢掉）
         assert rows["ok"]["llm"]["temperature"] == 0.25

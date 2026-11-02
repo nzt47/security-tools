@@ -224,8 +224,24 @@ def _subagent_with_llm(subagent: Any, parent_llm: Any) -> Dict[str, Any]:
     except Exception as e:  # noqa: BLE001
         logger.warning("[SubagentAPI] 分身 %s 的 LLM 解析失败: %s", row.get("name"), e)
         row["llm"] = {"requested": str(row.get("model_id") or ""), "model": "",
-                      "source": "fallback-after-error", "error": str(e)}
+                      "source": "fallback-after-error", "error": type(e).__name__}
     return row
+
+
+def _fail(e: Exception, message: str = "操作失败（详见服务日志）", status: int = 500,
+          log: str = "请求失败", error_code: str = "", records=None):
+    """未预期异常收口：异常原文只进日志，不进响应体（§8 陷阱 15 / py/stack-trace-exposure）。
+
+    2026-11-02（CodeQL B2）：本文件的 500 分支原先直接把 str(e) 回给前端；
+    现在统一走这里 —— 保留 error_code 契约，错误原文只落日志。
+    """
+    logger.error("[SubagentAPI] %s: %s", log, e, exc_info=True)
+    payload = {"ok": False, "error": message}
+    if error_code:
+        payload["error_code"] = error_code
+    if records is not None:
+        payload["records"] = records
+    return jsonify(payload), status
 
 
 def _role_view() -> Dict[str, Any]:
@@ -263,7 +279,7 @@ def _subagent_with_role(row: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning("[SubagentAPI] 分身 %s 的角色解析失败: %s", out.get("name"), e)
         out["role"] = {"template": "", "tier": "", "source": "", "fragment_chars": 0,
                        "constraints": 0, "audit_required": False, "red": False,
-                       "error": str(e)}
+                       "error": type(e).__name__}
     return out
 
 
@@ -548,8 +564,7 @@ def register_routes(app, state):
                 "role": _role_view(),
             })
         except Exception as e:
-            logger.error("[SubagentAPI] 列表查询失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e, log="列表查询失败")
 
     @app.route("/api/subagent/capabilities")
     @trace_route("Subagent")
@@ -571,8 +586,7 @@ def register_routes(app, state):
             report = sovereignty_report()
             return jsonify({"ok": True, "capabilities": report})
         except Exception as e:  # noqa: BLE001 投影失败不得让整页挂掉
-            logger.error("[SubagentAPI] 能力投影失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e, log="能力投影失败")
 
     @app.route("/api/subagent/history")
     @trace_route("Subagent")
@@ -628,8 +642,7 @@ def register_routes(app, state):
                 "ts": time.strftime("%H:%M:%S"),
             })
         except Exception as e:
-            logger.error("[SubagentAPI] 委派记录查询失败: %s", e)
-            return jsonify({"ok": False, "error": str(e), "records": []}), 500
+            return _fail(e, log="委派记录查询失败", records=[])
 
     @app.route("/api/subagent/<name>")
     @trace_route("Subagent")
@@ -642,7 +655,7 @@ def register_routes(app, state):
                 return jsonify({"ok": False, "error": f"分身不存在: {name}"}), 404
             return jsonify({"ok": True, "subagent": subagent})
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  可带走 bundle（S5）：导出 / 导入
@@ -694,9 +707,7 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error_code": "E_MANIFEST_SECRET_LEAK",
                             "error": str(e)}), 409
         except Exception as e:  # noqa: BLE001 导出失败要有明确错误码，不裸 500
-            logger.exception("[SubagentAPI] bundle 导出失败: %s", e)
-            return jsonify({"ok": False, "error_code": "E_BUNDLE_EXPORT_FAILED",
-                            "error": str(e)}), 500
+            return _fail(e, log="bundle 导出失败", error_code="E_BUNDLE_EXPORT_FAILED")
 
     @app.route("/api/subagent/<name>/offline_pack")
     @trace_route("Subagent")
@@ -954,7 +965,7 @@ def register_routes(app, state):
         except ValueError as e:
             return jsonify({"ok": False, "error": str(e)}), 404
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  执行 & 热更新
@@ -990,7 +1001,7 @@ def register_routes(app, state):
         except ValueError as e:
             return jsonify({"ok": False, "error": str(e)}), 404
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/subagent/<name>/delegate", methods=["POST"])
     @trace_route("Subagent")
@@ -1119,9 +1130,7 @@ def register_routes(app, state):
             payload["round"] = round_info
             return jsonify(payload)
         except Exception as e:
-            logger.exception("[SubagentAPI] 委派失败: %s", e)
-            return jsonify({"ok": False, "error_code": "E_DELEGATION_FAILED",
-                            "error": str(e)}), 500
+            return _fail(e, log="委派失败", error_code="E_DELEGATION_FAILED")
 
     @app.route("/api/subagent/delegate", methods=["POST"])
     @trace_route("Subagent")
@@ -1222,9 +1231,7 @@ def register_routes(app, state):
             payload["round"] = round_info
             return jsonify(payload)
         except Exception as e:
-            logger.exception("[SubagentAPI] 临时分身委派失败: %s", e)
-            return jsonify({"ok": False, "error_code": "E_DELEGATION_FAILED",
-                            "error": str(e)}), 500
+            return _fail(e, log="临时分身委派失败", error_code="E_DELEGATION_FAILED")
 
     @app.route("/api/subagent/<name>/reload", methods=["POST"])
     @trace_route("Subagent")
@@ -1293,4 +1300,4 @@ def register_routes(app, state):
         except ValueError as e:
             return jsonify({"ok": False, "error": str(e)}), 400
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
