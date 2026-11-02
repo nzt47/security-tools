@@ -244,6 +244,70 @@ def _fail(e: Exception, message: str = "操作失败（详见服务日志）", s
     return jsonify(payload), status
 
 
+# ══════════════════════════════════════════════════════════════════════
+#  业务拒绝的响应口径（B2-b/c，2026-11-03）
+# ----------------------------------------------------------------------
+# 口径（与工作流学习域一致）：**业务异常也回固定文案 + error_code**。
+#   · 文案只来自常量表 `_BIZ_TEXT`（按 error_code 查），不取 `str(e)`；
+#   · 需要给调用方看的**结构化细节**（problems / offenders / supported）直接取自
+#     校验函数的返回值或模块常量，不走异常文本；
+#   · 异常原文 + 参数进 logger（info 级，业务拒绝不是故障），可诊断性不降级。
+# 为什么不再"刻意保留"业务原文：CodeQL 的 py/stack-trace-exposure 无法区分
+# 「人写的业务原因」与「堆栈/内部细节」，凡 str(e) 一律 high；而 4xx 的错误码
+# 本来就是给前端做分支的稳定契约（前端按 error_code 走），字段级明细进日志
+# 对单人工作台足够。若要回显字段名，**把它做成校验结果里的字段**，不要回 str(e)。
+# ══════════════════════════════════════════════════════════════════════
+_BIZ_TEXT = {
+    "E_SUBAGENT_NOT_FOUND": "分身不存在",
+    "E_MANIFEST_SECRET_LEAK": "导出被密钥闸拦下：bundle 中出现疑似长期密钥字段（明细见服务日志）",
+    "E_OFFLINE_PACK_NOT_CONFIGURED": "离线包目录未配置（CP_SUBAGENT_OFFLINE_PACK_DIR）",
+    "E_OFFLINE_PACK_BAD_NAME": "离线包名字非法（按名精确匹配，不接受路径）",
+    "E_OFFLINE_PACK_NOT_BUILT": "离线包未预构建（先跑 scripts/build_offline_pack.py --pack-dir）",
+    "E_OFFLINE_PACK": "离线包不可用（明细见服务日志）",
+    "E_BUNDLE_INVALID": "非法 bundle：结构/版本/必需键校验未通过（明细见服务日志）",
+    "E_BUNDLE_BACKEND_UNSUPPORTED": "未知执行后端（fail-closed：不回落到默认后端）",
+    "E_BUNDLE_IMPORT_FAILED": "bundle 导入失败（详见服务日志）",
+    "E_MEMORY_CONFIG": "记忆档位配置非法（明细见服务日志）",
+    "E_ROUND_INVALID": "跟单参数非法（明细见服务日志）",
+    "E_ROUND_LIMIT": "二次派发超出轮次上限",
+    "E_ROUND_PREVIOUS_NOT_FOUND": "上一轮委派不存在",
+    "E_ROUND_SCOPE_MISMATCH": "二次派发的目标与上一轮不一致",
+    "E_DELEGATION_INVALID": "委派参数非法（字段明细见服务日志）",
+}
+
+_BIZ_FALLBACK = "请求无法受理（详见服务日志）"
+
+
+class _FieldError(ValueError):
+    """参数校验失败（B2-b/c）：字段名与规则文案都是**本仓调用点传入的常量**。
+
+    它不是"异常文本"通道：`field`/`reason` 由校验函数显式构造（例如
+    `_FieldError("llm_temperature", "越界（须在 0.0–2.0）")`），不含堆栈、
+    不含内部路径。路由只对这种异常回显字段级原因，其余 ValueError 一律固定文案。
+    """
+
+    def __init__(self, field: str, reason: str) -> None:
+        self.field = str(field)
+        self.reason = str(reason)
+        super().__init__(f"{self.field} {self.reason}")
+
+
+def _biz_fail(code: str, status: int = 400, *, log: str = "", exc=None, extra=None,
+              message: str = ""):
+    """业务拒绝：固定文案（按 error_code 查表）+ 可选结构化细节；原文只进日志。
+
+    `message` 只在**结构化校验**（`_FieldError`）时给：文案由字段名 + 规则常量拼成。
+    """
+    if exc is not None:
+        logger.info("[SubagentAPI] 业务拒绝 code=%s%s: %s", code,
+                    (" " + log) if log else "", exc)
+    payload = {"ok": False, "error_code": code,
+               "error": message or _BIZ_TEXT.get(code, _BIZ_FALLBACK)}
+    if extra:
+        payload.update(extra)
+    return jsonify(payload), status
+
+
 def _role_view() -> Dict[str, Any]:
     """部署级角色事实（受控模板词表 + 三档语义），随列表载荷一并返回（**不新增路由**）
 
@@ -409,11 +473,12 @@ def _llm_temperature(data: Dict[str, Any], default: Any = None) -> Any:
     try:
         value = float(raw)
     except (TypeError, ValueError) as e:
-        raise ValueError(f"llm_temperature 必须是数字（0.0–2.0），收到: {raw!r}") from e
+        raise _FieldError("llm_temperature",
+                          f"必须是数字（0.0–2.0），收到: {raw!r}") from e
     if value != value or value in (float("inf"), float("-inf")):  # NaN / ±inf
-        raise ValueError(f"llm_temperature 必须是有限数字，收到: {raw!r}")
+        raise _FieldError("llm_temperature", f"必须是有限数字，收到: {raw!r}")
     if value < 0.0 or value > 2.0:
-        raise ValueError(f"llm_temperature 越界（须在 0.0–2.0）：{value}")
+        raise _FieldError("llm_temperature", f"越界（须在 0.0–2.0）：{value}")
     return value
 
 
@@ -462,7 +527,7 @@ def _build_context(data: dict, task: str, *, delegation_prefix: str = "dlg-ui",
         budget_tokens = int(data.get("budget_tokens") or 4000)
         timeout_seconds = int(data.get("timeout_seconds") or 120)
     except (TypeError, ValueError) as e:
-        raise ValueError("budget_tokens / timeout_seconds 必须是整数") from e
+        raise _FieldError("budget_tokens / timeout_seconds", "必须是整数") from e
 
     return DelegationContext(
         goal=task,
@@ -704,8 +769,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "bundle": bundle})
         except ManifestSecretLeak as e:
             logger.error("[SubagentAPI] bundle 导出被密钥闸拦下 name=%s: %s", name, e)
-            return jsonify({"ok": False, "error_code": "E_MANIFEST_SECRET_LEAK",
-                            "error": str(e)}), 409
+            return _biz_fail("E_MANIFEST_SECRET_LEAK", 409)
         except Exception as e:  # noqa: BLE001 导出失败要有明确错误码，不裸 500
             return _fail(e, log="bundle 导出失败", error_code="E_BUNDLE_EXPORT_FAILED")
 
@@ -726,7 +790,7 @@ def register_routes(app, state):
             path = resolve_pack(name)
         except OfflinePackError as e:
             logger.info("[SubagentAPI] 离线包不可用 name=%s code=%s", name, e.code)
-            return jsonify({"ok": False, "error_code": e.code, "error": str(e)}), 404
+            return _biz_fail(e.code, 404)
         # 下载离线包是一次"主权交付"事件，留一条审计（best-effort，失败不阻断下载）
         try:
             from agent.audit.facade import get_audit
@@ -794,15 +858,15 @@ def register_routes(app, state):
                 "environment_check": check_against_bundle(environment),
             })
         except BundleValidationError as e:
-            return jsonify({"ok": False, "error_code": "E_BUNDLE_INVALID",
-                            "error": str(e)}), 400
+            return _biz_fail("E_BUNDLE_INVALID", 400, exc=e)
         except UnsupportedBackend as e:
-            return jsonify({"ok": False, "error_code": "E_BUNDLE_BACKEND_UNSUPPORTED",
-                            "error": str(e)}), 400
+            # 支持清单取自模块常量（不是异常文本），让调用方知道该填什么
+            from agent.subagent.bundle import SUPPORTED_BACKENDS
+            return _biz_fail("E_BUNDLE_BACKEND_UNSUPPORTED", 400, exc=e,
+                             extra={"supported_backends": list(SUPPORTED_BACKENDS)})
         except Exception as e:  # noqa: BLE001 与 create 同款：非法输入一律 400
-            logger.error("[SubagentAPI] bundle 导入失败: %s", e)
-            return jsonify({"ok": False, "error_code": "E_BUNDLE_IMPORT_FAILED",
-                            "error": str(e)}), 400
+            return _fail(e, log="bundle 导入失败", status=400,
+                         error_code="E_BUNDLE_IMPORT_FAILED")
 
     # ═══════════════════════════════════════════════════
     #  S5 通信：回调反向通道（入站）
@@ -942,12 +1006,12 @@ def register_routes(app, state):
                 "message": f"分身 '{container.config.name}' 创建成功",
             })
         except MemoryConfigError as e:
-            logger.warning("[SubagentAPI] 创建失败（记忆配置非法）: %s", e)
-            return jsonify({"ok": False, "error_code": "E_MEMORY_CONFIG",
-                            "error": str(e)}), 400
+            return _biz_fail("E_MEMORY_CONFIG", 400, exc=e, log="创建失败（记忆配置非法）")
+        except _FieldError as e:
+            return _biz_fail("E_FIELD_INVALID", 400, exc=e,
+                             message="参数不合法：%s %s" % (e.field, e.reason))
         except Exception as e:
-            logger.error("[SubagentAPI] 创建失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return _fail(e, log="创建失败", status=400)
 
     @app.route("/api/subagent/<name>/destroy", methods=["POST"])
     @trace_route("Subagent")
@@ -963,7 +1027,7 @@ def register_routes(app, state):
                 "message": f"分身 '{name}' 已销毁",
             })
         except ValueError as e:
-            return jsonify({"ok": False, "error": str(e)}), 404
+            return _biz_fail("E_SUBAGENT_NOT_FOUND", 404, exc=e)
         except Exception as e:
             return _fail(e)
 
@@ -999,7 +1063,7 @@ def register_routes(app, state):
                 "result": result,
             })
         except ValueError as e:
-            return jsonify({"ok": False, "error": str(e)}), 404
+            return _biz_fail("E_SUBAGENT_NOT_FOUND", 404, exc=e)
         except Exception as e:
             return _fail(e)
 
@@ -1081,9 +1145,12 @@ def register_routes(app, state):
                 # 二次派发：previous_delegation_id ⇒ 同 task_id 的第二轮（fail-closed）
                 ctx, round_info = _apply_follow_up(data, ctx)
             except RoundError as e:
-                return jsonify({"ok": False, "error_code": e.code, "error": str(e)}), 400
+                return _biz_fail(e.code, 400, exc=e)
+            except _FieldError as e:
+                return _biz_fail("E_FIELD_INVALID", 400, exc=e,
+                                 message="参数不合法：%s %s" % (e.field, e.reason))
             except ValueError as e:
-                return jsonify({"ok": False, "error": str(e)}), 400
+                return _biz_fail("E_DELEGATION_INVALID", 400, exc=e)
 
             # 工具子集与模型侧 delegate 工具同源（同一只读白名单，避免两套授权口径）
             granted = _granted_tools()
@@ -1176,17 +1243,19 @@ def register_routes(app, state):
             try:
                 mem_fields = _memory_fields(data, provider=mem_provider)
             except MemoryConfigError as e:
-                return jsonify({"ok": False, "error_code": "E_MEMORY_CONFIG",
-                                "error": str(e)}), 400
+                return _biz_fail("E_MEMORY_CONFIG", 400, exc=e)
 
             try:
                 ctx = _build_context(data, task, delegation_prefix="dlg-ui-tmp")
                 # 二次派发：与具名端点同一份 helper / 同一套 fail-closed 判定
                 ctx, round_info = _apply_follow_up(data, ctx)
             except RoundError as e:
-                return jsonify({"ok": False, "error_code": e.code, "error": str(e)}), 400
+                return _biz_fail(e.code, 400, exc=e)
+            except _FieldError as e:
+                return _biz_fail("E_FIELD_INVALID", 400, exc=e,
+                                 message="参数不合法：%s %s" % (e.field, e.reason))
             except ValueError as e:
-                return jsonify({"ok": False, "error": str(e)}), 400
+                return _biz_fail("E_DELEGATION_INVALID", 400, exc=e)
 
             from agent.subagent.container import SubagentConfig
             from agent.tools.subagent_tools import _model_id
@@ -1295,9 +1364,11 @@ def register_routes(app, state):
                 "message": f"分身 '{name}' 热更新完成",
             })
         except MemoryConfigError as e:
-            return jsonify({"ok": False, "error_code": "E_MEMORY_CONFIG",
-                            "error": str(e)}), 400
+            return _biz_fail("E_MEMORY_CONFIG", 400, exc=e)
+        except _FieldError as e:
+            return _biz_fail("E_FIELD_INVALID", 400, exc=e,
+                             message="参数不合法：%s %s" % (e.field, e.reason))
         except ValueError as e:
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return _biz_fail("E_SUBAGENT_NOT_FOUND", 400, exc=e)
         except Exception as e:
             return _fail(e)

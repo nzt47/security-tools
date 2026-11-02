@@ -197,7 +197,7 @@ class SearchPerformanceMonitor(StopMixin):
                     check_result['errors'].append("配置应用失败")
             except Exception as e:
                 logger.warning(log_dict({'module_name': 'search_monitor', 'action': 'config_apply_error', 'error': str(e)}))
-                check_result['errors'].append(f"配置应用异常: {e}")
+                check_result['errors'].append("配置应用异常（详见服务日志）")
 
             # 2. 测试 Tavily 搜索
             try:
@@ -226,8 +226,9 @@ class SearchPerformanceMonitor(StopMixin):
                     check_result['errors'].append(f"Tavily 搜索失败: {error}")
             except Exception as e:
                 logger.error(log_dict({'module_name': 'search_monitor', 'action': 'tavily_search_error', 'error': str(e)}))
-                check_result['engines']['tavily'] = {'status': 'error', 'error': str(e)}
-                check_result['errors'].append(f"Tavily 搜索异常: {e}")
+                check_result['engines']['tavily'] = {'status': 'error',
+                                                     'error': '搜索请求异常（详见服务日志）'}
+                check_result['errors'].append("Tavily 搜索异常（详见服务日志）")
 
             # 3. 获取搜索引擎状态
             try:
@@ -243,7 +244,7 @@ class SearchPerformanceMonitor(StopMixin):
                 check_result['engine_stats'] = stats
             except Exception as e:
                 logger.warning(log_dict({'module_name': 'search_monitor', 'action': 'get_status_error', 'error': str(e)}))
-                check_result['errors'].append(f"获取状态失败: {e}")
+                check_result['errors'].append("获取状态失败（详见服务日志）")
 
             # 4. 判断整体状态
             if check_result['errors']:
@@ -262,7 +263,7 @@ class SearchPerformanceMonitor(StopMixin):
         except Exception as e:
             logger.error(log_dict({'module_name': 'search_monitor', 'action': 'check_error', 'check_id': check_id, 'error': str(e)}))
             check_result['status'] = 'error'
-            check_result['errors'].append(f"检测异常: {e}")
+            check_result['errors'].append("检测异常（详见服务日志）")
             with self._lock:
                 self._performance_history.append(check_result)
             self._save_performance_data()

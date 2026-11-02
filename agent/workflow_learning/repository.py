@@ -158,4 +158,7 @@ class WorkflowRepository:
                 "writable": bool(writable),
             }
         except Exception as e:  # noqa: BLE001
-            return {"ok": False, "error": str(e)}
+            # [B2-b 2026-11-03] 健康载荷经 /api/workflow-learning/health 原样 jsonify，
+            # 异常原文不进响应体（CodeQL 判 stack-trace-exposure）；原文进日志。
+            logger.warning("workflow-learning 仓储健康检查失败: %s", e, exc_info=True)
+            return {"ok": False, "error": "仓储不可用（详见服务日志）"}

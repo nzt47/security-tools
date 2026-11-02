@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[2]
 #: 已经完成 B2 收口、且必须保持零 `str(e)` 的路由文件。
 CLEANED = (
     "agent/server_routes/routes_skills_mgmt.py",
+    "agent/server_routes/routes_subagent.py",
+    "agent/server_routes/routes_workflow_learning.py",
     "plugins/admin.py",
     "plugins/memory.py",
     "plugins/system_tools.py",
