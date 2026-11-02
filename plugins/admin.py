@@ -40,6 +40,12 @@ except Exception:  # noqa: BLE001 审计模块不可用 → 路由功能不受�
 
 logger = logging.getLogger(__name__)
 
+
+def _fail(e: Exception, message: str = "操作失败（详见服务日志）", status: int = 500):
+    """未预期异常收口：异常原文只进日志，不进响应体（§8 陷阱 15 / py/stack-trace-exposure）。"""
+    logger.warning("路由异常: %s", e, exc_info=True)
+    return jsonify({"ok": False, "error": message}), status
+
 bp = Blueprint("admin", __name__)
 
 
@@ -234,9 +240,9 @@ def api_network_config_update():
             'api_network_config_update.failed',
             f'更新失败: {e}',
             duration_ms=int((_time.time() - t0) * 1000),
-            error=str(e),
+            error=type(e).__name__,
         )
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/network-config/reset", methods=["POST"])
@@ -259,7 +265,7 @@ def api_network_config_export():
         json_str = _network_config_mgr.export_config()
         return jsonify({"ok": True, "config_json": json_str})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/network-config/import", methods=["POST"])
@@ -279,9 +285,9 @@ def api_network_config_import():
         _network_config_mgr.apply_to_app(_Yunshu)
         return jsonify({"ok": True, "config": result})
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return _fail(e, status=400)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/apply-network-config", methods=["POST"])
@@ -328,7 +334,7 @@ def api_apply_network_config():
         })
     except Exception as e:
         logger.error("[网络配置] 应用配置失败: %s", e, exc_info=True)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -345,7 +351,7 @@ def api_llm_instances_get():
         instances = _network_config_mgr.get_llm_instances()
         return jsonify({"ok": True, "instances": instances})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/llm/instances/<string:instance_id>", methods=["GET"])
@@ -360,7 +366,7 @@ def api_llm_instance_get(instance_id):
             return jsonify({"ok": True, "instance": instance})
         return jsonify({"ok": False, "error": "实例不存在"}), 404
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/llm/instances", methods=["POST"])
@@ -381,9 +387,9 @@ def api_llm_instance_add():
         result = _network_config_mgr.add_llm_instance(instance)
         return jsonify({"ok": True, "instance": result})
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return _fail(e, status=400)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/llm/instances/<string:instance_id>", methods=["PUT"])
@@ -401,9 +407,9 @@ def api_llm_instance_update(instance_id):
             return jsonify({"ok": True, "instance": result})
         return jsonify({"ok": False, "error": "实例不存在"}), 404
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return _fail(e, status=400)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/llm/instances/<string:instance_id>", methods=["DELETE"])
@@ -418,7 +424,7 @@ def api_llm_instance_delete(instance_id):
             return jsonify({"ok": True})
         return jsonify({"ok": False, "error": "实例不存在"}), 404
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/llm/instances/<string:instance_id>/default", methods=["POST"])
@@ -433,7 +439,7 @@ def api_llm_instance_set_default(instance_id):
             return jsonify({"ok": True, "message": "已设置为默认实例"})
         return jsonify({"ok": False, "error": "操作失败"}), 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/llm/instances/<string:instance_id>/test", methods=["POST"])
@@ -482,7 +488,7 @@ def api_llm_instance_test(instance_id):
             return jsonify({"ok": False, "error": f"连接失败: {e}"})
     except Exception as e:
         logger.error("[LLM 实例] 测试失败: %s", e, exc_info=True)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -498,7 +504,7 @@ def api_search_instances_get():
         config = _network_config_mgr.get_all()
         return jsonify({"ok": True, "instances": config.get('search_instances', [])})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search/instances", methods=["POST"])
@@ -556,9 +562,9 @@ def api_search_instance_add():
             'api_search_instance_add.failed',
             f'新增搜索实例失败: {e}',
             duration_ms=int((_time.time() - t0) * 1000),
-            error=str(e),
+            error=type(e).__name__,
         )
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search/instances/<string:instance_id>", methods=["PUT"])
@@ -616,9 +622,9 @@ def api_search_instance_update(instance_id):
             f'更新搜索实例失败: {e}',
             duration_ms=int((_time.time() - t0) * 1000),
             instance_id=instance_id,
-            error=str(e),
+            error=type(e).__name__,
         )
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search/instances/<string:instance_id>", methods=["DELETE"])
@@ -678,9 +684,9 @@ def api_search_instance_delete(instance_id):
             f'删除搜索实例失败: {e}',
             duration_ms=int((_time.time() - t0) * 1000),
             instance_id=instance_id,
-            error=str(e),
+            error=type(e).__name__,
         )
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search/instances/<string:instance_id>/default", methods=["POST"])
@@ -726,9 +732,9 @@ def api_search_instance_set_default(instance_id):
             f'设置默认搜索引擎失败: {e}',
             duration_ms=int((_time.time() - t0) * 1000),
             instance_id=instance_id,
-            error=str(e),
+            error=type(e).__name__,
         )
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search/instances/<string:instance_id>/test", methods=["POST"])
@@ -759,7 +765,7 @@ def api_search_instance_test(instance_id):
         })
     except Exception as e:
         logger.error("[搜索实例] 测试失败: %s", e, exc_info=True)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -777,7 +783,7 @@ def api_config_logs():
         logs = _network_config_mgr.get_change_log(limit)
         return jsonify({"ok": True, "logs": logs})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 # ── 审计日志查询 API（只读，T8.4 第二批灰度开放；无 require_token） ──
@@ -837,7 +843,7 @@ def api_audit_logs():
         })
     except Exception as e:
         logger.error("审计日志查询失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -854,7 +860,7 @@ def api_search_performance_status():
         return jsonify({"ok": True, "status": status})
     except Exception as e:
         logger.error("[性能监控] 获取状态失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search-performance/start", methods=["POST"])
@@ -870,7 +876,7 @@ def api_search_performance_start():
         return jsonify({"ok": True, "message": "性能监控已启动", "status": status})
     except Exception as e:
         logger.error("[性能监控] 启动失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search-performance/stop", methods=["POST"])
@@ -884,7 +890,7 @@ def api_search_performance_stop():
         return jsonify({"ok": True, "message": "性能监控已停止", "status": status})
     except Exception as e:
         logger.error("[性能监控] 停止失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search-performance/check", methods=["POST"])
@@ -898,7 +904,7 @@ def api_search_performance_check():
         return jsonify({"ok": True, "result": result})
     except Exception as e:
         logger.error("[性能监控] 手动检测失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search-performance/history")
@@ -912,7 +918,7 @@ def api_search_performance_history():
         return jsonify({"ok": True, "history": history})
     except Exception as e:
         logger.error("[性能监控] 获取历史失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/search-performance/summary")
@@ -925,7 +931,7 @@ def api_search_performance_summary():
         return jsonify({"ok": True, "summary": summary})
     except Exception as e:
         logger.error("[性能监控] 获取摘要失败: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return _fail(e)
 
 
 PLUGIN = register_plugin(Plugin(

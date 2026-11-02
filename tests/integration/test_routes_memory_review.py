@@ -217,7 +217,12 @@ class TestMemoryReviewEdgeCases:
             _cleanup_patches(patches)
 
     def test_internal_error_on_get(self):
-        """GET 时 reviewer.get_last_review 抛异常，返回 500"""
+        """GET 时 reviewer.get_last_review 抛异常，返回 500（**原文不进响应体**）
+
+        2026-11-02（CodeQL B2）：`plugins/memory.py` 的未预期异常改为 `_fail(e)` 收口，
+        响应体只回固定文案、原文进日志（§8 陷阱 15）。本用例因此断言"不泄漏原文"，
+        而不是原来的"error 里带 db locked"。
+        """
         reviewer = MagicMock()
         reviewer.get_last_review.side_effect = RuntimeError("db locked")
         client, patches = _make_app_with_reviewer(reviewer=reviewer)
@@ -225,7 +230,8 @@ class TestMemoryReviewEdgeCases:
             resp = client.get("/api/memory/review")
             assert resp.status_code == 500
             data = resp.get_json()
-            assert "db locked" in data["error"]
+            assert data["error"] == "操作失败（详见服务日志）"
+            assert "db locked" not in resp.get_data(as_text=True)
         finally:
             _cleanup_patches(patches)
 
@@ -242,7 +248,8 @@ class TestMemoryReviewEdgeCases:
             resp = client.post("/api/memory/review")
             assert resp.status_code == 500
             data = resp.get_json()
-            assert "async error" in data["error"]
+            assert data["error"] == "操作失败（详见服务日志）"
+            assert "async error" not in resp.get_data(as_text=True)
         finally:
             _cleanup_patches(patches)
 

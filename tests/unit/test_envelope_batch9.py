@@ -165,6 +165,12 @@ class Test结构断言:
         assert "jsonify(" not in seg, "api_context_config 里仍出现 jsonify"
 
     def test_compress_成功路径经_ok错误路径仍jsonify(self):
+        """成功走信封 _ok、失败走**普通错误路径**（不是信封）。
+
+        【2026-11-02 CodeQL B2】错误路径从 `return jsonify({"ok": False, "error": str(e)})`
+        收口成 `return _fail(e)`：仍然不是信封（纪律不变），只是不再把异常原文回给前端。
+        判据因此从"必须出现 jsonify"放宽成"必须出现 jsonify 或 _fail"。
+        """
         src = (ROOT / "plugins" / "memory.py").read_text(encoding="utf-8")
         tree = ast.parse(src)
         fns = {n.name: n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
@@ -172,12 +178,13 @@ class Test结构断言:
         assert fn is not None, "api_context_compress 不见了"
         names = [_ret_name(r) for r in _own_returns(fn)]
         assert "_ok" in names, "成功路径未改走 _ok"
-        assert "jsonify" in names, (
-            "错误路径的 jsonify 不见了 —— 本批按纪律**不动**错误路径；"
+        assert ("jsonify" in names or "_fail" in names), (
+            "错误路径既不是 jsonify 也不是 _fail —— 本批按纪律**不动**错误路径；"
             "若确实要迁，请连同错误模型一起改并更新本断言"
         )
         seg = ast.get_source_segment(src, fn) or ""
-        assert "return _ok({" in seg and 'return jsonify({"ok": False' in seg, (
+        error_path_ok = ('return jsonify({"ok": False' in seg) or ("return _fail(e)" in seg)
+        assert "return _ok({" in seg and error_path_ok, (
             "成功/失败两条返回的形态与预期不符"
         )
 
