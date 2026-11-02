@@ -28,6 +28,25 @@ def _fail(e: Exception, message: str = "操作失败（详见服务日志）", s
     return jsonify({"ok": False, "error": message}), status
 
 
+#: 业务拒绝的固定文案（B2-b/c，2026-11-03）。口径与 routes_subagent 一致：
+#: 4xx 只回「固定文案 + code」，异常原文进日志；前端按 code 分支，不解析文案。
+_BIZ_TEXT = {
+    "QUALITY_GATE_FAILED": "转换未通过质量门控（结构性准入/相似度等未达标，明细见服务日志）",
+    "CONVERT_FAILED": "转换失败（详见服务日志）",
+    "VALIDATION_ERROR": "请求参数不合法（明细见服务日志）",
+}
+
+
+def _biz(e: Exception, code: str, status: int = 400, message: str = ""):
+    """业务拒绝：固定文案 + code；异常原文只进日志。"""
+    logger.info("workflow-learning 业务拒绝 code=%s: %s", code, e)
+    return jsonify({
+        "ok": False,
+        "error": message or _BIZ_TEXT.get(code, "请求无法受理（详见服务日志）"),
+        "code": code,
+    }), status
+
+
 def _svc():
     svc = get_workflow_learning_service()
     # 【修复】HTTP 直调 execute 时 service 从未注入 tool_executor →
@@ -297,17 +316,9 @@ def register_routes(app, state):
             # 【修复】WorkflowConvertError 继承裸 Exception（非
             # WorkflowLearningError/ValueError），此前质量门控失败漏到
             # 末位 except → 500；前端 convert 按钮无法识别。应返回 400。
-            return jsonify({
-                "ok": False,
-                "error": str(e),
-                "code": getattr(e, "code", "QUALITY_GATE_FAILED"),
-            }), 400
+            return _biz(e, getattr(e, "code", "QUALITY_GATE_FAILED"))
         except ValueError as e:
-            return jsonify({
-                "ok": False,
-                "error": str(e),
-                "code": "QUALITY_GATE_FAILED",
-            }), 400
+            return _biz(e, "QUALITY_GATE_FAILED")
         except Exception as e:  # noqa: BLE001
             return _fail(e)
 
@@ -366,17 +377,9 @@ def register_routes(app, state):
             )
             return jsonify({"ok": True, **result})
         except ValueError as e:
-            return jsonify({
-                "ok": False,
-                "error": str(e),
-                "code": "VALIDATION_ERROR",
-            }), 400
+            return _biz(e, "VALIDATION_ERROR")
         except WorkflowConvertError as e:
-            return jsonify({
-                "ok": False,
-                "error": str(e),
-                "code": getattr(e, "code", "CONVERT_FAILED"),
-            }), 400
+            return _biz(e, getattr(e, "code", "CONVERT_FAILED"))
         except Exception as e:  # noqa: BLE001
             return _fail(e)
 
@@ -438,10 +441,6 @@ def register_routes(app, state):
             )
             return jsonify({"ok": True, **summary})
         except ValueError as e:
-            return jsonify({
-                "ok": False,
-                "error": str(e),
-                "code": "VALIDATION_ERROR",
-            }), 400
+            return _biz(e, "VALIDATION_ERROR")
         except Exception as e:  # noqa: BLE001
             return _fail(e)

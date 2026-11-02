@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 import datetime
 
@@ -135,8 +136,11 @@ def api_system_prompt_get():
         )
     except KeyError:
         preview = "（模板包含未知占位符，请检查语法）"
-    except Exception as e:
-        preview = f"（渲染错误: {e}）"
+    except Exception as e:  # noqa: BLE001
+        # [B2-c 2026-11-03] 预览里的渲染错误不再回吐异常原文（CodeQL stack-trace-exposure），
+        # 原文进日志；前端只需要知道「模板渲染不了」。
+        logger.warning("[系统提示词] 预览渲染失败: %s", e, exc_info=True)
+        preview = "（渲染错误，详见服务日志）"
 
     return jsonify({
         "template": template,
@@ -170,13 +174,19 @@ def api_system_prompt_save():
             tool_status="测试",
             skill_instructions="",
         )
-    except KeyError as e:
+    except KeyError:
+        # [B2-c 2026-11-03] 未知占位符**由我们自己扫出来**（正则 + 已知键差集），
+        # 不回吐 KeyError 的异常原文（含引号的键名只是它的副产品）。
+        known = set(get_placeholder_descriptions().keys())
+        unknown = sorted({m for m in re.findall(r"\{(\w+)\}", content)} - known)
+        hint = "、".join(unknown) if unknown else "（无法定位，详见服务日志）"
         return jsonify({
             "ok": False,
-            "error": f"模板中包含未知占位符: {e}。可用占位符: {', '.join(get_placeholder_descriptions().keys())}"
+            "error": f"模板中包含未知占位符: {hint}。可用占位符: {', '.join(sorted(known))}"
         }), 400
-    except Exception as e:
-        return jsonify({"ok": False, "error": f"模板语法错误: {e}"}), 400
+    except Exception as e:  # noqa: BLE001
+        logger.warning("[系统提示词] 模板语法校验失败: %s", e, exc_info=True)
+        return jsonify({"ok": False, "error": "模板语法错误（详见服务日志）"}), 400
 
     success = save_template(content)
     if success:
@@ -484,8 +494,11 @@ def api_llm_instance_test(instance_id):
                 "provider": provider,
                 "response": (resp or '')[:100],
             })
-        except Exception as e:
-            return jsonify({"ok": False, "error": f"连接失败: {e}"})
+        except Exception as e:  # noqa: BLE001
+            # [B2-c 2026-11-03] 连接失败的原因常夹带 base_url / key 片段（供应商 4xx 会回显），
+            # 只回固定文案，原文进日志。
+            logger.warning("[LLM 实例] 测试连接失败: %s", e)
+            return jsonify({"ok": False, "error": "连接失败（详见服务日志）"})
     except Exception as e:
         logger.error("[LLM 实例] 测试失败: %s", e, exc_info=True)
         return _fail(e)
