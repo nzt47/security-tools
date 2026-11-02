@@ -248,10 +248,17 @@ class TestSandboxExceptionHandling:
     @pytest.mark.unit
     @pytest.mark.p0
     def test_value_error_caught(self):
-        """测试 ValueError 异常被捕获"""
+        """异常被捕获，且**错误文本只含类名、不含原文**。
+
+        【2026-11-02 CodeQL B2】沙盒结果会原样回给 /api/sandbox/run，异常原文属
+        py/stack-trace-exposure（§8 陷阱 15）⇒ 现在只回 "代码执行出错（<类名>）"。
+        另外：沙盒的 safe builtins **不含 ValueError**，所以这段代码实际抛的是 NameError；
+        旧断言能过是因为错误文本里恰好带了 "ValueError" 字样的原文。
+        """
         result = run_sandbox("raise ValueError('test error')")
-        assert result["error"] is not None
-        assert "ValueError" in result["error"]
+        assert result["error"]
+        assert "代码执行出错" in result["error"]
+        assert "test error" not in result["error"], "异常原文不该出现在结果里"
 
     @pytest.mark.unit
     @pytest.mark.p0

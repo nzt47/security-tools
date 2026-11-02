@@ -21,6 +21,7 @@ CLEANED = (
     "agent/server_routes/routes_skills_mgmt.py",
     "plugins/admin.py",
     "plugins/memory.py",
+    "plugins/system_tools.py",
 )
 
 

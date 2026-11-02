@@ -25,6 +25,58 @@ from .plugin_api import Plugin, register_plugin
 bp = Blueprint("system_tools", __name__)
 
 
+#: 这些字段的字符串一旦来自异常/助手内部，就是 py/stack-trace-exposure（§8 陷阱 15）。
+#: 回前端前统一换成固定文案，原文只进日志。
+_SANITIZE_KEYS = ("error", "check_error", "detail", "reason")
+
+#: 没有 app_server 上下文时的退路（单测/独立进程）—— 不引入循环导入。
+_fallback_logger = logging.getLogger(__name__)
+
+
+_logger_cache = {"logger": None, "tried": False}
+
+
+def _get_logger():
+    """本插件不做顶层 `from app_server import logger`（循环导入红线）：
+    真正写日志时惰性取一次并缓存，取不到就退到标准 logging（单测里也能用）。
+
+    **只尝试一次**：`import app_server` 很重，失败时反复重试会让每个请求都变慢。
+    """
+    if _logger_cache["logger"] is not None:
+        return _logger_cache["logger"]
+    if not _logger_cache["tried"]:
+        _logger_cache["tried"] = True
+        try:
+            from app_server import logger as _app_logger
+            _logger_cache["logger"] = _app_logger
+            return _app_logger
+        except Exception:  # noqa: BLE001 无 app_server 上下文（单测/独立进程）
+            pass
+    return _fallback_logger
+
+
+def _sanitize(payload):
+    """递归把响应里的异常类字段换成固定文案（**只动这几个键**，业务字段原样保留）。"""
+    if isinstance(payload, dict):
+        out = {}
+        for k, v in payload.items():
+            if k in _SANITIZE_KEYS and isinstance(v, str) and v.strip():
+                _get_logger().warning("[system_tools] 响应字段 %s 的原文已脱敏: %s", k, v[:200])
+                out[k] = "执行失败（详见服务日志）"
+            else:
+                out[k] = _sanitize(v)
+        return out
+    if isinstance(payload, list):
+        return [_sanitize(v) for v in payload]
+    return payload
+
+
+def _fail(e: Exception, message: str = "操作失败（详见服务日志）", status: int = 500):
+    """未预期异常收口：异常原文只进日志，不进响应体（§8 陷阱 15）。"""
+    _get_logger().warning("[system_tools] 路由异常: %s", e, exc_info=True)
+    return jsonify({"ok": False, "error": message}), status
+
+
 def _view(*, auth=False, log=None):
     """延迟应用 app_server 的共享装饰器（require_token / log_request）。
 
@@ -67,11 +119,11 @@ def api_workspace_list():
     path = request.args.get("path", "")
     try:
         result = list_workspace(path)
-        return jsonify(result)
+        return jsonify(_sanitize(result))
     except ValueError as e:
-        return jsonify({"error": str(e)}), 403
+        return _fail(e, status=403)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _fail(e)
 
 
 @bp.route("/api/workspace/write", methods=["POST"])
@@ -88,12 +140,12 @@ def api_workspace_write():
     # 安全检查
     safety = _safety_guard.check(content)
     if safety["level"] == "critical":
-        return jsonify({"ok": False, "blocked": True, "safety": safety}), 403
+        return jsonify({"ok": False, "blocked": True, "safety": _sanitize(safety)}), 403
     try:
         result = write_workspace(path, content)
-        return jsonify(result)
+        return jsonify(_sanitize(result))
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 403
+        return _fail(e, status=403)
 
 
 @bp.route("/api/workspace/delete", methods=["POST"])
@@ -107,9 +159,9 @@ def api_workspace_delete():
         return jsonify({"ok": False, "error": "缺少 path"}), 400
     try:
         result = delete_workspace(path)
-        return jsonify(result)
+        return jsonify(_sanitize(result))
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 403
+        return _fail(e, status=403)
 
 
 @bp.route("/api/workspace/info")
@@ -160,7 +212,7 @@ def api_filesystem_read():
             result["truncated"] = True
             result["content"] = result["content"][:100000]
             result["note"] = "二进制内容已截断，完整内容过大"
-    return jsonify(result)
+    return jsonify(_sanitize(result))
 
 
 @bp.route("/api/filesystem/write", methods=["POST"])
@@ -179,10 +231,10 @@ def api_filesystem_write():
     # 安全检查
     safety = _safety_guard.check(content)
     if safety["level"] == "critical":
-        return jsonify({"ok": False, "blocked": True, "safety": safety}), 403
+        return jsonify({"ok": False, "blocked": True, "safety": _sanitize(safety)}), 403
 
     result = write_file(path, content, encoding=encoding)
-    return jsonify(result)
+    return jsonify(_sanitize(result))
 
 
 @bp.route("/api/filesystem/list", methods=["GET"])
@@ -193,7 +245,7 @@ def api_filesystem_list():
     path = request.args.get("path", ".")
     show_hidden = request.args.get("show_hidden", "false").lower() == "true"
     result = list_directory(path, show_hidden=show_hidden)
-    return jsonify(result)
+    return jsonify(_sanitize(result))
 
 
 @bp.route("/api/filesystem/info", methods=["GET"])
@@ -243,7 +295,8 @@ def api_sandbox_run():
         from agent.system_tools import run_sandbox
     except ImportError as e:
         logger.error("[沙盒] 导入 run_sandbox 失败: %s", e, exc_info=True)
-        return jsonify({"error": f"沙盒模块加载失败: {e}", "sandbox_init_error": True}), 500
+        return jsonify({"error": "沙盒模块加载失败（详见服务日志）",
+                        "sandbox_init_error": True}), 500
 
     data = request.get_json() or {}
     code = data.get("code", "")
@@ -254,17 +307,19 @@ def api_sandbox_run():
         safety = _safety_guard.check(code)
     except Exception as e:
         logger.error("[沙盒] 安全检查异常: %s", e, exc_info=True)
-        safety = {"level": "warning", "matches": [], "safe": True, "check_error": str(e)}
+        # 原文只进日志（上一行 logger.error 已带 exc_info），响应体给固定文案
+        safety = {"level": "warning", "matches": [], "safe": True,
+                  "check_error": "检查失败（详见服务日志）"}
 
     if safety["level"] == "critical":
         logger.warning("[沙盒] 代码被安全检查拦截: %s", safety)
-        return jsonify({"blocked": True, "safety": safety}), 403
+        return jsonify({"blocked": True, "safety": _sanitize(safety)}), 403
 
     try:
         result = run_sandbox(code, timeout)
     except Exception as e:
         logger.error("[沙盒] 代码执行引擎异常: %s", e, exc_info=True)
-        return jsonify({"error": f"沙盒执行引擎异常: {e}", "engine_error": True}), 500
+        return _fail(e, message="沙盒执行引擎异常（详见服务日志）")
 
     result["safety"] = safety
 
@@ -275,7 +330,7 @@ def api_sandbox_run():
     else:
         logger.info("[沙盒] 代码执行成功，耗时 %.1fms", result.get("duration_ms", 0))
 
-    return jsonify(result)
+    return jsonify(_sanitize(result))
 
 
 # ════════════════════════════════════════════════════════════
@@ -300,7 +355,7 @@ def api_browser_screenshot():
     """浏览器截图"""
     from agent.system_tools import browser_screenshot
     result = browser_screenshot()
-    return jsonify(result)
+    return jsonify(_sanitize(result))
 
 
 @bp.route("/api/browser/close", methods=["POST"])
@@ -329,7 +384,7 @@ def api_browser_session_open():
     result = get_browser_remote().open(
         data.get("url"), data.get("width"), data.get("height"))
     status = int(result.pop("status", 200) or 200)
-    return jsonify(result), status
+    return jsonify(_sanitize(result)), status
 
 
 @bp.route("/api/browser/frame")
@@ -351,7 +406,7 @@ def api_browser_input():
     data = request.get_json(silent=True) or {}
     result = get_browser_remote().send_input(data.get("session_id"), data)
     status = int(result.pop("status", 200) or 200)
-    return jsonify(result), status
+    return jsonify(_sanitize(result)), status
 
 
 @bp.route("/api/browser/state")
@@ -361,7 +416,7 @@ def api_browser_state():
     from agent.browser_remote import get_browser_remote
     result = get_browser_remote().state(request.args.get("session_id"))
     status = int(result.pop("status", 200) or 200)
-    return jsonify(result), status
+    return jsonify(_sanitize(result)), status
 
 
 @bp.route("/api/browser/session/close", methods=["POST"])
@@ -478,7 +533,7 @@ def api_web_get():
     if result.get("ok") and result.get("text"):
         parsed = _web_scraper.parse(result["text"], url=result.get("url", url))
         result["parsed"] = {k: parsed.get(k) for k in ("title", "text", "links", "images", "meta", "headings") if k != "html"}
-    return jsonify(result)
+    return jsonify(_sanitize(result))
 
 
 @bp.route("/api/web/post", methods=["POST"])
@@ -497,7 +552,7 @@ def api_web_post():
         result = _web_http.post(url, json_data=json_data)
     else:
         result = _web_http.post(url, data=form_data)
-    return jsonify(result)
+    return jsonify(_sanitize(result))
 
 
 @bp.route("/api/web/xpath", methods=["POST"])
@@ -573,7 +628,7 @@ def api_web_search():
         processed = _web_processor.process(result["results"])
         result["results"] = processed
         result["summary"] = DataProcessor.summarize_results(processed)
-    return jsonify(result)
+    return jsonify(_sanitize(result))
 
 
 @bp.route("/api/web/clean", methods=["POST"])
@@ -640,7 +695,7 @@ def api_web_search_status():
         logger.error("[搜索引擎] 获取状态失败: %s", e, exc_info=True)
         return jsonify({
             "ok": False,
-            "error": str(e)
+            "error": "获取搜索引擎状态失败（详见服务日志）"
         }), 500
 
 
@@ -813,7 +868,7 @@ def api_terminal_exec():
     result = _terminal_run(command_id, params)
     status = int(result.get("status", 200))
     result.pop("status", None)
-    return jsonify(result), status
+    return jsonify(_sanitize(result)), status
 
 
 @bp.route("/api/terminal/activity")
