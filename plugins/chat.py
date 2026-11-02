@@ -200,10 +200,10 @@ def api_chat():
         chat_time = (time.time() - chat_start) * 1000
         _chat_ok = False
         logger.error(f"Chat error: {e}", exc_info=True)
-        response = f"（处理出错: {e}）"
-        logs.append(f"[ERROR] 对话处理失败 - 耗时: {chat_time:.2f}ms, 错误: {str(e)}")
-        stack_trace = traceback.format_exc()
-        logs.append(f"[STACK TRACE] {stack_trace[:500]}")
+        response = "（处理出错，详见服务日志）"
+        logs.append(f"[ERROR] 对话处理失败 - 耗时: {chat_time:.2f}ms（详见服务日志）")
+        # 堆栈只进日志（logger.error 已带 exc_info），不进响应
+        logs.append("[STACK TRACE] 详见服务日志")
 
     # 语音合成（如果启用）
     voice_time = 0
@@ -221,9 +221,9 @@ def api_chat():
         except Exception as e:
             import traceback
             voice_time = (time.time() - voice_start) * 1000
-            logs.append(f"[ERROR] 语音合成异常 - 耗时: {voice_time:.2f}ms, 错误: {str(e)}")
-            stack_trace = traceback.format_exc()
-            logs.append(f"[STACK TRACE] {stack_trace[:500]}")
+            logs.append(f"[ERROR] 语音合成异常 - 耗时: {voice_time:.2f}ms（详见服务日志）")
+            # 堆栈只进日志（logger.error 已带 exc_info），不进响应
+            logs.append("[STACK TRACE] 详见服务日志")
 
     entry = {
         "user": user_input,
@@ -456,7 +456,7 @@ def api_news():
         return jsonify({"ok": True, "result": "\n".join(lines), "count": len(all_results)})
 
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)})
+        return jsonify({"ok": False, "error": "操作失败（详见服务日志）"})
 
 
 def _guess_source(url):
@@ -497,7 +497,7 @@ def _agent_exists(name: str) -> str | None:
     try:
         from app_server import _Yunshu
     except Exception as _e:  # noqa: BLE001
-        return f"核心系统不可用：{_e}"
+        return "核心系统不可用（详见服务日志）"
     mgr = getattr(_Yunshu, "_subagent_mgr", None)
     if mgr is None or not callable(getattr(mgr, "get", None)):
         return "分身系统未启用（subagent.enabled=False 或核心系统未初始化）"
@@ -729,9 +729,9 @@ def api_handoff():
         return jsonify(result)
     except ValueError as e:
         # 会话不存在 / 无消息 —— 调用方输入问题，非服务故障
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": "参数不合法（详见服务日志）"}), 400
     except Exception as e:  # noqa: BLE001 交接生成失败不得把端点打成未处理异常
-        return jsonify({"error": f"handoff 生成失败: {e}"}), 500
+        return jsonify({"error": "handoff 生成失败（详见服务日志）"}), 500
 
 
 # ════════════════════════════════════════════════════════════
@@ -756,7 +756,7 @@ def api_sessions_workspace(session_id):
         try:
             _session_mgr.ensure_workspace_path(session_id)
         except Exception as _e:
-            return jsonify({"error": f"工作空间初始化失败: {_e}"}), 500
+            return jsonify({"error": "工作空间初始化失败（详见服务日志）"}), 500
     result = _session_mgr.list_session_workspace(session_id)
     result["session_id"] = session_id
     return jsonify(result)
@@ -818,7 +818,7 @@ def api_sessions_workspace_reveal(session_id):
         try:
             root = _session_mgr.ensure_workspace_path(session_id)
         except Exception as _e:
-            return jsonify({"error": f"工作空间初始化失败: {_e}"}), 500
+            return jsonify({"error": "工作空间初始化失败（详见服务日志）"}), 500
     import subprocess
     import sys as _sys
     try:
@@ -831,7 +831,7 @@ def api_sessions_workspace_reveal(session_id):
         _log.info("[workspace] 已在文件管理器打开会话工作空间: %s", root)
         return jsonify({"ok": True, "root": str(root)})
     except Exception as _e:
-        return jsonify({"ok": False, "error": str(_e), "root": str(root)}), 500
+        return jsonify({"ok": False, "error": "读取工作空间失败（详见服务日志）", "root": str(root)}), 500
 
 
 # ════════════════════════════════════════════════════════════
@@ -858,7 +858,7 @@ def _resolve_workspace_dir(path: str, create: bool) -> tuple:
         try:
             _os.makedirs(resolved, exist_ok=True)
         except OSError as _e:
-            return None, f"创建目录失败：{_e}"
+            return None, "创建目录失败（详见服务日志）"
     if not _os.path.isdir(resolved):
         return None, f"路径不是文件夹：{resolved}"
     return resolved, None

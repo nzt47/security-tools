@@ -165,6 +165,16 @@ def _save_alert_rules(rules):
         return False
 
 
+#: 日志/监控类接口的固定错误文案（原文只进日志，§8 陷阱 15）。
+_ERR_TEXT = "读取失败（详见服务日志）"
+
+
+def _fail(e: Exception, message: str = "操作失败（详见服务日志）", status: int = 500):
+    """未预期异常收口：异常原文只进日志，不进响应体。"""
+    logger.warning("[routes_logging] 路由异常: %s", e, exc_info=True)
+    return jsonify({"ok": False, "error": message}), status
+
+
 def _get_tool_summary():
     """获取工具注册摘要
     
@@ -201,7 +211,7 @@ def _get_tool_summary():
         }
     except Exception as e:
         logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取工具摘要失败: {e}'}))
-        return {"error": str(e), "timestamp": time.time()}
+        return {"error": _ERR_TEXT, "timestamp": time.time()}
 
 
 def _get_config_status():
@@ -240,7 +250,7 @@ def _get_config_status():
         return filter_dict(config_status)
     except Exception as e:
         logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取配置状态失败: {e}'}))
-        return {"error": str(e), "timestamp": time.time()}
+        return {"error": _ERR_TEXT, "timestamp": time.time()}
 
 
 def _get_health_status():
@@ -274,7 +284,7 @@ def _get_health_status():
         }
     except Exception as e:
         logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取健康状态失败: {e}'}))
-        return {"error": str(e), "timestamp": time.time()}
+        return {"error": _ERR_TEXT, "timestamp": time.time()}
 
 
 def _get_error_correlation_stats(hours: int = 24) -> dict:
@@ -314,7 +324,7 @@ def _get_error_correlation_stats(hours: int = 24) -> dict:
             "fully_correlated": 0,
             "by_error_id": [],
             "window_hours": hours,
-            "error": str(e),
+            "error": _ERR_TEXT,
         }
 
     # 2. Sentry 状态（仅探测是否启用，不查询 Sentry API 避免外部依赖）
@@ -347,7 +357,7 @@ def _get_runtime_metrics():
         }
     except Exception as e:
         logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取运行时指标失败: {e}'}))
-        return {"error": str(e), "timestamp": time.time()}
+        return {"error": _ERR_TEXT, "timestamp": time.time()}
 
 
 def _get_recent_logs(limit=50):
@@ -422,7 +432,7 @@ def _get_recent_logs(limit=50):
         }
     except Exception as e:
         logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取最近日志失败: {e}'}))
-        return {"error": str(e), "timestamp": time.time()}
+        return {"error": _ERR_TEXT, "timestamp": time.time()}
 
 
 def _mask_secret(value: str) -> str:
@@ -467,6 +477,33 @@ def _llm_check_hints(status: int, body_text: str, cfg: dict) -> list:
         hints.append("请求未能建立（网络/DNS/超时）：确认本机能直连 LLM_BASE_URL，"
                      "或需要代理时配置 HTTPS_PROXY。")
     return hints
+
+
+#: LLM 自检失败的**归类表**：只按关键字判类，返回的是常量文案，
+#: 异常原文既不出现在 error 也不出现在 hints（§8 陷阱 15 / py/stack-trace-exposure）。
+_LLM_ERROR_KINDS = (
+    ("DNS 解析失败", ("dns", "name resolution", "name or service not known",
+                      "getaddrinfo", "nodename nor servname")),
+    ("连接超时", ("timeout", "timed out")),
+    ("连接被拒绝", ("refused",)),
+    ("证书校验失败", ("certificate", "ssl", "tls")),
+)
+
+
+def _classify_llm_error(e: Exception) -> str:
+    """把自检异常归类成**常量文案**（原文只进日志）。
+
+    【为什么不用 str(e) 回写】这类探针的 error 会直接上屏；异常原文（含内网地址、
+    证书路径）属泄漏。这里只用原文做**关键字判断**，输出永远是常量。
+    """
+    try:
+        text = str(e).lower()
+    except Exception:  # noqa: BLE001 异常对象的 __str__ 再抛，也不影响归类
+        text = ""
+    for label, keys in _LLM_ERROR_KINDS:
+        if any(k in text for k in keys):
+            return "自检失败：%s（详见服务日志）" % label
+    return "自检失败（%s，详见服务日志）" % type(e).__name__
 
 
 def _run_llm_probe(timeout: float = 20.0) -> dict:
@@ -524,8 +561,10 @@ def _run_llm_probe(timeout: float = 20.0) -> dict:
             result["hints"] = _llm_check_hints(int(resp.status_code), text, cfg)
     except Exception as e:  # noqa: BLE001 网络/超时/解析统一按"未能建立请求"处理
         result["latency_ms"] = round((time.time() - started) * 1000, 1)
-        result["error"] = f"{type(e).__name__}: {e}"
-        result["hints"] = _llm_check_hints(0, str(e), cfg)
+        logger.warning("[llm-check] 自检失败: %s", e, exc_info=True)
+        label = _classify_llm_error(e)
+        result["error"] = label
+        result["hints"] = _llm_check_hints(0, label, cfg)
     return result
 
 
@@ -626,7 +665,7 @@ def register_routes(app, state):
             return jsonify(_llm_self_check())
         except Exception as e:  # noqa: BLE001 自检异常也要给出可读结论
             logging.getLogger(__name__).error("LLM 自检失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  配置诊断端点
@@ -965,7 +1004,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'查询日志失败: {e}'}))
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
     
     @app.route("/api/observability/logs/labels", methods=["GET"])
     @require_token
@@ -995,7 +1034,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取日志标签失败: {e}'}))
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
     
     @app.route("/api/observability/logs", methods=["POST"])
     @require_token
@@ -1037,7 +1076,7 @@ def register_routes(app, state):
             return jsonify({"ok": True})
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'推送日志失败: {e}'}))
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
     
     # ═══════════════════════════════════════════════════
     #  可观测性状态端点
@@ -1124,7 +1163,8 @@ def register_routes(app, state):
                     
                 except Exception as e:
                     logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'日志流生成失败: {e}'}))
-                    yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+                    logger.warning("[routes_logging] SSE 错误帧: %s", e, exc_info=True)
+                    yield f"event: error\ndata: {json.dumps({'error': '操作失败（详见服务日志）'})}\n\n"
                     break
         
         return Response(
@@ -1168,7 +1208,7 @@ def register_routes(app, state):
             )
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_logging', 'action': 'prometheus', 'msg': f'导出 Prometheus 指标失败: {e}'}))
-            return f"# Error: {e}", 500
+            return "# Error: 生成失败（详见服务日志）", 500
     
     # ═══════════════════════════════════════════════════
     #  告警规则配置端点
@@ -1346,7 +1386,7 @@ def register_routes(app, state):
             parser.parse(expr)
             return jsonify({"ok": True})
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 400
+            return _fail(e, status=400)
     
     # ═══════════════════════════════════════════════════
     #  追踪可视化端点
@@ -1389,7 +1429,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取追踪数据失败: {e}'}))
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
     
     @app.route("/api/observability/traces/<trace_id>", methods=["GET"])
     @require_token
@@ -1415,7 +1455,7 @@ def register_routes(app, state):
             return jsonify({"error": "追踪不存在"}), 404
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取追踪详情失败: {e}'}))
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     # ═══════════════════════════════════════════════════
     #  可视化仪表盘端点
@@ -1504,7 +1544,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取访问日志失败: {e}'}))
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     @app.route("/api/observability/access_stats", methods=["GET"])
     @require_token
@@ -1544,6 +1584,6 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'获取访问统计失败: {e}'}))
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return _fail(e)
 
     logger.info(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': '[Routes] 运行时诊断端点已注册'}))
