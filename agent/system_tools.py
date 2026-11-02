@@ -109,7 +109,8 @@ def _sandbox_worker(code, safe_builtins, result_queue):
         exec(code, safe_globals)
     except Exception as e:
         # 不暴露异常类型（防止类遍历攻击）
-        error = f"{type(e).__name__}: {e}"
+        logger.warning("[sandbox] 执行出错: %s", e, exc_info=True)
+        error = "代码执行出错（%s，详见服务日志）" % type(e).__name__
 
     stdout_val = sys.stdout.getvalue()[:10000]
     stderr_val = sys.stderr.getvalue()[:5000]
@@ -216,7 +217,8 @@ def get_clipboard():
             )
             return {"ok": True, "content": result.stdout[:10000]}
         except Exception as e:
-            return {"ok": False, "error": f"剪贴板读取失败: {e}"}
+            logger.warning("[clipboard] 读取失败: %s", e, exc_info=True)
+            return {"ok": False, "error": "剪贴板读取失败（详见服务日志）"}
 
 
 def set_clipboard(text):
@@ -237,7 +239,8 @@ def set_clipboard(text):
             )
             return {"ok": True}
         except Exception as e:
-            return {"ok": False, "error": f"剪贴板写入失败: {e}"}
+            logger.warning("[clipboard] 写入失败: %s", e, exc_info=True)
+            return {"ok": False, "error": "剪贴板写入失败（详见服务日志）"}
 
 
 # ════════════════════════════════════════════════════════════
@@ -298,9 +301,11 @@ def get_weather(city: str = "", format: str = "text") -> dict:
     except urllib.error.URLError as e:
         return {"ok": False, "error": f"网络连接失败: {e.reason}", "city": city}
     except json.JSONDecodeError as e:
-        return {"ok": False, "error": f"JSON 解析失败: {e}", "city": city}
+        logger.warning("[weather] JSON 解析失败: %s", e)
+        return {"ok": False, "error": "天气数据解析失败（详见服务日志）", "city": city}
     except Exception as e:
-        return {"ok": False, "error": f"未知错误: {e}", "city": city}
+        logger.warning("[weather] 未知错误: %s", e)
+        return {"ok": False, "error": "天气查询失败（详见服务日志）", "city": city}
 
 
 def _memory_item_real_score(item):
@@ -365,7 +370,7 @@ def expand_context_from_memory(digital_life, query, max_items=5):
         logger.error(f"expand_context_from_memory 错误: {e}")
         return {
             "ok": False,
-            "error": str(e),
+            "error": "上下文扩展失败（详见服务日志）",
             "query": query
         }
 
