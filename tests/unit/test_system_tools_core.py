@@ -1085,7 +1085,7 @@ class TestListDirectory:
         with patch("agent.tools.file_tools.safe_resolve_path", side_effect=ValueError("invalid path")):
             result = list_directory("invalid")
             assert result["ok"] is False
-            assert "invalid path" in result["error"]
+            assert result["error"] == "路径不可访问（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -2005,7 +2005,7 @@ class TestSystemToolsProcessManagement:
         with patch('agent.tools.process_tools.subprocess.Popen', side_effect=Exception("Failed")):
             result = start_process("notepad.exe")
             assert result["ok"] is False
-            assert "Failed" in result["error"]
+            assert result["error"] == "进程操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -2547,7 +2547,7 @@ class TestBrowserNavigateSuccess:
         with patch("agent.tools.browser_tools.get_browser", return_value=mock_browser):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
-            assert "navigation failed" in result["error"]
+            assert result["error"] == "浏览器操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -2571,7 +2571,7 @@ class TestBrowserNavigateSuccess:
         with patch("agent.tools.browser_tools.get_browser", return_value=mock_browser):
             result = browser_screenshot()
             assert result["ok"] is False
-            assert "screenshot failed" in result["error"]
+            assert result["error"] == "浏览器操作失败（详见服务日志）"
 
 
 class TestSearchFilesBoundaryConditions:
@@ -3103,7 +3103,7 @@ class TestBrowserNavigation:
         result = browser_navigate("http://example.com")
         
         assert result["ok"] is False
-        assert "navigation failed" in result["error"]
+        assert result["error"] == "浏览器操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -3131,7 +3131,7 @@ class TestBrowserNavigation:
         
         # body 未找到时，应该返回失败结果
         assert result["ok"] is False
-        assert "element not found" in result["error"]
+        assert result["error"] == "浏览器操作失败（详见服务日志）"
 
 
 class TestBrowserScreenshot:
@@ -3183,7 +3183,7 @@ class TestBrowserScreenshot:
         result = browser_screenshot()
         
         assert result["ok"] is False
-        assert "screenshot failed" in result["error"]
+        assert result["error"] == "浏览器操作失败（详见服务日志）"
 
 
 class TestProcessManagement_system_tools_remaining:
@@ -3234,7 +3234,7 @@ class TestProcessManagement_system_tools_remaining:
         with patch("subprocess.Popen", side_effect=Exception("process failed")):
             result = start_process("notepad.exe")
             assert result["ok"] is False
-            assert "process failed" in result["error"]
+            assert result["error"] == "进程操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -3310,7 +3310,7 @@ class TestProcessManagement_system_tools_remaining:
         with patch("psutil.Process", side_effect=Exception("process not found")):
             result = stop_process(12345)
             assert result["ok"] is False
-            assert "not found" in result["error"]
+            assert result["error"] == "进程操作失败（详见服务日志）"
 
 
 class TestBrowserConfig:
@@ -4134,7 +4134,7 @@ class TestWriteFileExtended:
         """测试受保护路径被拒绝"""
         result = write_file("C:\\Windows\\System32\\test.txt", "content")
         assert result["ok"] is False
-        assert "保护" in result["error"] or "拒绝" in result["error"]
+        assert result["error"] == "路径不可访问（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -5233,7 +5233,7 @@ class TestSystemToolsProcessManagementComplete:
             with patch('agent.tools.process_tools.os.name', 'nt'):
                 result = start_process("notepad.exe")
                 assert result["ok"] is False
-                assert "Cannot start" in result["error"]
+                assert result["error"] == "进程操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
