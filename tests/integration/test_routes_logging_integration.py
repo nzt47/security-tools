@@ -360,7 +360,7 @@ class TestGetRecentLogs:
 
         assert "error" in result
         assert "timestamp" in result
-        assert "recorder boom" in result["error"]
+        assert result["error"] == "读取失败（详见服务日志）"
 
     def test_default_limit_is_50(self):
         """默认 limit 为 50"""
@@ -470,7 +470,7 @@ class TestGetErrorCorrelationStats:
             result = _get_error_correlation_stats()
 
         assert result["replay_stats"]["total_replays"] == 0
-        assert "boom" in result["replay_stats"]["error"]
+        assert result["replay_stats"]["error"] == "读取失败（详见服务日志）"
         assert result["sentry_enabled"] is True
 
     def test_replay_storage_get_correlation_stats_exception_fallback(self):
@@ -483,7 +483,7 @@ class TestGetErrorCorrelationStats:
             result = _get_error_correlation_stats()
 
         assert result["replay_stats"]["total_replays"] == 0
-        assert "stats boom" in result["replay_stats"]["error"]
+        assert result["replay_stats"]["error"] == "读取失败（详见服务日志）"
 
     def test_sentry_import_error_defaults_false(self):
         """Sentry 探测导入失败: sentry_enabled = False"""
@@ -601,7 +601,7 @@ class TestGetToolSummary:
             result = _get_tool_summary()
 
         assert "error" in result
-        assert "boom" in result["error"]
+        assert result["error"] == "读取失败（详见服务日志）"
         assert "timestamp" in result
 
 
@@ -664,7 +664,7 @@ class TestGetConfigStatus:
             result = _get_config_status()
 
         assert "error" in result
-        assert "config boom" in result["error"]
+        assert result["error"] == "读取失败（详见服务日志）"
 
     def test_sensitive_data_filtered(self):
         """敏感数据经过 filter_dict 过滤"""
@@ -741,7 +741,7 @@ class TestGetHealthStatus:
             result = _get_health_status()
 
         assert "error" in result
-        assert "health boom" in result["error"]
+        assert result["error"] == "读取失败（详见服务日志）"
 
     def test_empty_history(self):
         """空历史记录"""
@@ -824,7 +824,7 @@ class TestGetRuntimeMetrics:
             result = _get_runtime_metrics()
 
         assert "error" in result
-        assert "metrics boom" in result["error"]
+        assert result["error"] == "读取失败（详见服务日志）"
 
 
 # ──────────────────────────────────────────────
@@ -1667,7 +1667,7 @@ class TestAlertsValidateEndpoint:
                                json={"expr": "invalid syntax !!!"})
 
         assert resp.status_code == 400
-        assert "parse error" in resp.get_json()["error"]
+        assert resp.get_json()["error"] == "操作失败（详见服务日志）"
 
 
 # ════════════════════════════════════════════════════════════════
@@ -2212,4 +2212,4 @@ class TestObservabilityLogsStreamEndpoint:
             data = resp.data
 
         assert b"error" in data
-        assert b"stream boom" in data
+        assert b"stream boom" not in data  # 2026-11-02：异常原文不再进 SSE 帧
