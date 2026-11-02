@@ -2155,6 +2155,7 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_tools_subagent_tools
     agent_server_routes_routes_subagent -.-> agent_subagent_llm_factory
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
+    agent_server_routes_routes_subagent -.-> agent_subagent_bundle
     agent_server_routes_routes_system_prompt --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_system_prompt -.-> agent_server_auth
     agent_server_routes_routes_system_prompt -.-> agent_system_prompt_config
@@ -2785,7 +2786,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 718
 - 模块节点数: 619
-- 依赖边数: 2038
-- 跨层调用数: 1293
+- 依赖边数: 2039
+- 跨层调用数: 1294
 - 违规调用数: 0
 - 动态 import 数: 1
