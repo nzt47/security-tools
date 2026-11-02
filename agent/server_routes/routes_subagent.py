@@ -381,7 +381,9 @@ def _role_fields(data: Dict[str, Any], base: Dict[str, Any] | None = None) -> Di
     mode = data.get("role_mode", base.get("role_mode", "template"))
     plan = resolve_subagent_role(template, text, mode)
     if plan.error:
-        raise ValueError(f"角色配置无效：{plan.error}")
+        # 结构化校验异常（B2-b/c）：原因来自 resolve_subagent_role 的常量文案，
+        # 由路由回显「哪个字段 + 什么规则」（不回 str(e)）。
+        raise _FieldError("role_template", plan.error)
     return {"role_template": template, "role_text": text, "role_mode": plan.tier}
 
 
@@ -442,7 +444,7 @@ def _autonomy_field(data: Dict[str, Any], base: Dict[str, Any] | None = None) ->
     raw = data.get("autonomy_level", (base or {}).get("autonomy_level", ""))
     parsed = parse_autonomy_level(raw)
     if parsed is None:
-        raise ValueError("autonomy_level 非法（须为 L1–L5 或空串）: %r" % (raw,))
+        raise _FieldError("autonomy_level", "非法（须为 L1–L5 或空串）: %r" % (raw,))
     return parsed
 
 
