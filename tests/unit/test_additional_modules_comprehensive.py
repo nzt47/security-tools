@@ -636,13 +636,19 @@ class TestExpandContextFromMemory:
         assert result["items"][0]["content"] == "dict content"
 
     def test_expand_context_exception_handling(self):
+        """异常被兜住，且**原文不进返回体**。
+
+        【2026-11-02 CodeQL B2】返回值会被 /api/web/* 之类路由原样回给前端，
+        异常原文属 py/stack-trace-exposure（§8 陷阱 15）⇒ 现在只回固定文案，原文进日志。
+        """
         from agent.system_tools import expand_context_from_memory
         digital_life = MagicMock()
         digital_life._vector_memory = MagicMock()
         digital_life._vector_memory.search.side_effect = Exception("test error")
         result = expand_context_from_memory(digital_life, "query")
         assert result["ok"] is False
-        assert "test error" in result["error"]
+        assert result["error"] == "上下文扩展失败（详见服务日志）"
+        assert "test error" not in str(result)
 
     # ── 分值字段诚实性（2026-09-17）────────────────────────────
     # 真实 MemoryItem（memory/vector_store/vector_store.py:216）**没有** score 属性，
