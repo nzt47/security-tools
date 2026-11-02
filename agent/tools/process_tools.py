@@ -149,7 +149,7 @@ def start_process(program, args=None, cwd=None):
         )
         return {"ok": True, "pid": proc.pid, "program": program}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": "进程操作失败（详见服务日志）"}
 
 
 def list_processes():
@@ -186,7 +186,7 @@ def stop_process(pid):
     except psutil.NoSuchProcess:
         return {"ok": False, "error": "进程不存在"}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": "进程操作失败（详见服务日志）"}
 
 
 __all__ = [

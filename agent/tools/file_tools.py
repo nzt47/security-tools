@@ -192,6 +192,10 @@ def is_credential_path(path: str) -> bool:
     return False
 
 
+#: 路径校验失败时回给调用方的固定文案（原文只进日志，见 §8 陷阱 15）。
+_PATH_DENIED = "路径不可访问（详见服务日志）"
+
+
 def safe_resolve_path(path: str) -> str:
     """安全解析路径：规范化 + 保护目录检查
 
@@ -326,7 +330,7 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
         logger.info(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] 路径安全解析成功: safe_path={safe_path}'}))
     except ValueError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[read_file] 路径解析失败: path={path}, error={e}'}))
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": _PATH_DENIED}
 
     # ── 凭据文件：**标注**而不是拒读（2026-09-30 回退一次过度收紧）────────
     # 【为什么不在这里硬拦】本仓对"读到凭据"这件事有**既有且已测试**的设计：
@@ -373,7 +377,7 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
         return {"ok": False, "error": f"没有权限读取文件: {path}"}
     except OSError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] OS错误: safe_path={safe_path}, error={e}'}))
-        return {"ok": False, "error": f"读取文件失败: {e}"}
+        return {"ok": False, "error": "读取文件失败（详见服务日志）"}
 
     is_binary = _is_probably_binary(raw_data, encoding)
     logger.info(log_dict({'module_name': 'file_tools', 'action': 'is_binary.is_binary', 'msg': f'[read_file] 二进制检测结果: is_binary={is_binary}'}))
@@ -469,7 +473,7 @@ def write_file(path: str, content: str, encoding: str = "utf-8") -> dict:
         logger.info(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[write_file] 路径安全解析成功: safe_path={safe_path}'}))
     except ValueError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[write_file] 路径解析失败: path={path}, error={e}'}))
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": _PATH_DENIED}
 
     # 禁止写入可执行文件类型
     if is_executable_extension(safe_path):
@@ -510,7 +514,7 @@ def write_file(path: str, content: str, encoding: str = "utf-8") -> dict:
         logger.info(log_dict({'module_name': 'file_tools', 'action': 'log', 'msg': f'[write_file] 目录创建/确认成功'}))
     except OSError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'dir_path.dir_path.error', 'msg': f'[write_file] 创建目录失败: dir_path={dir_path}, error={e}'}))
-        return {"ok": False, "error": f"无法创建目录: {e}"}
+        return {"ok": False, "error": "无法创建目录（详见服务日志）"}
 
     # 写入文件
     logger.info(log_dict({'module_name': 'file_tools', 'action': 'log', 'msg': f'[write_file] 开始写入文件内容'}))
@@ -523,7 +527,7 @@ def write_file(path: str, content: str, encoding: str = "utf-8") -> dict:
         return {"ok": False, "error": f"没有权限写入文件: {path}"}
     except OSError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[write_file] OS错误: safe_path={safe_path}, error={e}'}))
-        return {"ok": False, "error": f"写入文件失败: {e}"}
+        return {"ok": False, "error": "写入文件失败（详见服务日志）"}
 
     result = {
         "ok": True,
@@ -559,7 +563,7 @@ def list_directory(path: str = ".", show_hidden: bool = False, max_items: int = 
         logger.info(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[list_directory] 路径安全解析成功: safe_path={safe_path}'}))
     except ValueError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[list_directory] 路径解析失败: path={path}, error={e}'}))
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": _PATH_DENIED}
 
     if not os.path.exists(safe_path):
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[list_directory] 路径不存在: safe_path={safe_path}'}))
@@ -598,7 +602,7 @@ def list_directory(path: str = ".", show_hidden: bool = False, max_items: int = 
         return {"ok": False, "error": f"没有权限列出目录: {path}"}
     except OSError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[list_directory] OS错误: safe_path={safe_path}, error={e}'}))
-        return {"ok": False, "error": f"列出目录失败: {e}"}
+        return {"ok": False, "error": "列出目录失败（详见服务日志）"}
 
     # 排序：目录优先，然后按名称
     items.sort(key=lambda x: (0 if x.get("type") == "dir" else 1, x.get("name", "")))
@@ -626,14 +630,14 @@ def get_file_info(path: str) -> dict:
     try:
         safe_path = safe_resolve_path(path)
     except ValueError as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": _PATH_DENIED}
     if not os.path.exists(safe_path):
         return {"ok": False, "error": f"路径不存在: {path}"}
     try:
         info = _get_single_file_info(safe_path)
         return {"ok": True, "path": path, "abs_path": safe_path, **info}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": _PATH_DENIED}
 
 
 def search_files(pattern: str, root_path: str = ".", max_results: int = 200,
@@ -655,7 +659,7 @@ def search_files(pattern: str, root_path: str = ".", max_results: int = 200,
         logger.info(log_dict({'module_name': 'file_tools', 'action': 'safe_root.safe_root', 'msg': f'[search_files] 路径安全解析成功: safe_root={safe_root}'}))
     except ValueError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'root_path.root_path.error', 'msg': f'[search_files] 路径解析失败: root_path={root_path}, error={e}'}))
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": _PATH_DENIED}
 
     if not os.path.exists(safe_root):
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_root.safe_root', 'msg': f'[search_files] 搜索路径不存在: safe_root={safe_root}'}))
@@ -676,7 +680,7 @@ def search_files(pattern: str, root_path: str = ".", max_results: int = 200,
         logger.debug(log_dict({'module_name': 'file_tools', 'action': 'pattern.pattern.regex', 'msg': f'[search_files] 预编译正则: pattern={pattern} -> regex={regex.pattern}'}))
     except re.error as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'pattern.pattern.error', 'msg': f'[search_files] 模式编译失败: pattern={pattern}, error={e}'}))
-        return {"ok": False, "error": f"搜索模式错误: {e}"}
+        return {"ok": False, "error": "搜索模式错误（详见服务日志）"}
 
     try:
         for dirpath, dirnames, filenames in os.walk(safe_root):
@@ -732,7 +736,7 @@ def search_files(pattern: str, root_path: str = ".", max_results: int = 200,
         pass  # 部分目录无权限，继续返回已有结果
     except OSError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_root.safe_root', 'msg': f'[search_files] OS错误: safe_root={safe_root}, error={e}'}))
-        return {"ok": False, "error": f"搜索文件失败: {e}"}
+        return {"ok": False, "error": "搜索文件失败（详见服务日志）"}
 
     logger.info(log_dict({'module_name': 'file_tools', 'action': 'total_results.len.results', 'msg': f'[search_files] 搜索完成: total_results={len(results)}, walked={walked}, truncated={len(results) >= max_results or walked >= max_walk}'}))
     return {

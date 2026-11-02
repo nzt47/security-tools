@@ -126,7 +126,7 @@ def browser_navigate(url):
         verdict = check_url(url)
     except Exception as exc:  # noqa: BLE001  守卫不可用 ⇒ fail-closed（E3）
         logger.error("[browser] SSRF 守卫不可用 ⇒ 拒绝导航: %s", exc)
-        return {"ok": False, "error": f"SSRF 守卫不可用，拒绝导航: {exc}", "blocked": True}
+        return {"ok": False, "error": "SSRF 守卫不可用，拒绝导航（详见服务日志）", "blocked": True}
     if not verdict.allowed:
         audit_block(verdict, url=url, surface="tools.browser_tools.navigate")
         # 【为什么保留"禁止访问内网地址"这条前缀】它是本接口此前的**稳定对外文案**
@@ -168,13 +168,13 @@ def browser_navigate(url):
                     }
         except Exception as exc:  # noqa: BLE001  复检自身故障不得伪造"安全"
             logger.warning("[browser] 落地地址复检失败（按拒绝处理，不交出页面内容）: %s", exc)
-            return {"ok": False, "error": f"落地地址复检失败，拒绝返回页面内容: {exc}",
+            return {"ok": False, "error": "落地地址复检失败，拒绝返回页面内容（详见服务日志）",
                     "blocked": True, "blocked_by": "guardrails.ssrf_guard"}
         title = browser.title
         text = browser.find_element("tag name", "body").text[:5000]
         return {"ok": True, "title": title, "url": browser.current_url, "text": text}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": "浏览器操作失败（详见服务日志）"}
 
 
 def browser_screenshot():
@@ -187,7 +187,7 @@ def browser_screenshot():
         screenshot = browser.get_screenshot_as_base64()
         return {"ok": True, "screenshot_base64": screenshot[:500000]}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": "浏览器操作失败（详见服务日志）"}
 
 
 def browser_close():

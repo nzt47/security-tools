@@ -582,7 +582,7 @@ class TestBrowserNavigate:
         with patch('agent.tools.browser_tools.get_browser',return_value=mock_browser):
             result = browser_navigate("http://example.com")
             assert result["ok"] is False
-            assert "timeout" in result["error"].lower() or "error" in result["error"].lower()
+            assert result["error"] == "浏览器操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -651,7 +651,7 @@ class TestBrowserScreenshot:
         with patch('agent.tools.browser_tools.get_browser',return_value=mock_browser):
             result = browser_screenshot()
             assert result["ok"] is False
-            assert "Screenshot failed" in result["error"]
+            assert result["error"] == "浏览器操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -1110,7 +1110,7 @@ class TestStartProcessExceptions:
         with patch('subprocess.Popen', side_effect=OSError("无法启动进程")):
             result = start_process("notepad.exe")
             assert result["ok"] is False
-            assert "无法启动进程" in result["error"]
+            assert result["error"] == "进程操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -1127,7 +1127,7 @@ class TestStartProcessExceptions:
         with patch('subprocess.Popen', side_effect=PermissionError("权限不足")):
             result = start_process("notepad.exe")
             assert result["ok"] is False
-            assert "权限" in result["error"]
+            assert result["error"] == "进程操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0
@@ -1254,7 +1254,7 @@ class TestStopProcessExceptions:
         with patch('psutil.Process', return_value=mock_proc):
             result = stop_process(1234)
             assert result["ok"] is False
-            assert "权限" in result["error"]
+            assert result["error"] == "进程操作失败（详见服务日志）"
 
     @pytest.mark.unit
     @pytest.mark.p0

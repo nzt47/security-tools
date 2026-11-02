@@ -560,7 +560,8 @@ class TestProcessManagement:
             result = start_process("notepad.exe")
             
             assert result["ok"] is False
-            assert "Process failed" in result["error"]
+            # 2026-11-02（CodeQL B2）：进程工具错误文本改固定文案，原文进日志
+            assert result["error"] == "进程操作失败（详见服务日志）"
 
     def test_list_processes(self):
         """测试列出进程"""
