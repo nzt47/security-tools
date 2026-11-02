@@ -479,6 +479,33 @@ def _llm_check_hints(status: int, body_text: str, cfg: dict) -> list:
     return hints
 
 
+#: LLM 自检失败的**归类表**：只按关键字判类，返回的是常量文案，
+#: 异常原文既不出现在 error 也不出现在 hints（§8 陷阱 15 / py/stack-trace-exposure）。
+_LLM_ERROR_KINDS = (
+    ("DNS 解析失败", ("dns", "name resolution", "name or service not known",
+                      "getaddrinfo", "nodename nor servname")),
+    ("连接超时", ("timeout", "timed out")),
+    ("连接被拒绝", ("refused",)),
+    ("证书校验失败", ("certificate", "ssl", "tls")),
+)
+
+
+def _classify_llm_error(e: Exception) -> str:
+    """把自检异常归类成**常量文案**（原文只进日志）。
+
+    【为什么不用 str(e) 回写】这类探针的 error 会直接上屏；异常原文（含内网地址、
+    证书路径）属泄漏。这里只用原文做**关键字判断**，输出永远是常量。
+    """
+    try:
+        text = str(e).lower()
+    except Exception:  # noqa: BLE001 异常对象的 __str__ 再抛，也不影响归类
+        text = ""
+    for label, keys in _LLM_ERROR_KINDS:
+        if any(k in text for k in keys):
+            return "自检失败：%s（详见服务日志）" % label
+    return "自检失败（%s，详见服务日志）" % type(e).__name__
+
+
 def _run_llm_probe(timeout: float = 20.0) -> dict:
     """对 LLM 端点做一次**最小真实调用**（max_tokens=5）自检
 
@@ -534,8 +561,10 @@ def _run_llm_probe(timeout: float = 20.0) -> dict:
             result["hints"] = _llm_check_hints(int(resp.status_code), text, cfg)
     except Exception as e:  # noqa: BLE001 网络/超时/解析统一按"未能建立请求"处理
         result["latency_ms"] = round((time.time() - started) * 1000, 1)
-        result["error"] = "自检失败（%s，详见服务日志）" % type(e).__name__
-        result["hints"] = _llm_check_hints(0, "详见服务日志", cfg)
+        logger.warning("[llm-check] 自检失败: %s", e, exc_info=True)
+        label = _classify_llm_error(e)
+        result["error"] = label
+        result["hints"] = _llm_check_hints(0, label, cfg)
     return result
 
 
