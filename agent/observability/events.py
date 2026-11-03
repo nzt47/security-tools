@@ -1346,7 +1346,15 @@ def iter_events(*, since: Optional[str] = None, until: Optional[str] = None,
         since = str(day)
         until = f"{day}\uffff"
     wanted = set(types) if types else None
-    paths = list(files) if files else event_files(directory)
+    known = event_files(directory)
+    if files:
+        # [C-6-B1 2026-11-03] 请求里的文件路径只当**名字**参与集合比较，
+        # 真正进文件操作的是 event_files() 列出来的那些路径（§8 陷阱 14：
+        # 用户输入不进路径表达式才被 CodeQL 认，resolve/前缀/正则都不算）。
+        wanted_names = {os.path.basename(str(f)) for f in files}
+        paths = [p for p in known if os.path.basename(p) in wanted_names]
+    else:
+        paths = known
     seen: Set[str] = set()
     out: List[EventEnvelope] = []
     for path in paths:

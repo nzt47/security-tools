@@ -77,7 +77,12 @@ def _restore_registry():
     finally:
         tools._registry.clear()
         tools._registry.update(saved)
-        tools._registry_version = saved_version
+        # 【2026-11-03 修一个跨模块污染】版本号**只增不减**：list_tools() 用它当缓存键
+        # （agent/tools/__init__.py::list_tools）。把版本号改回旧值会与之后的状态**撞号**，
+        # 于是 list_tools() 命中本文件用例期间建立的旧快照 ——
+        # 实测：本文件之后跑 tests/test_dynamic_tools.py::test_generate_simple_ok，
+        # generate_simple 成功注册了 greet，但 list_tools() 仍返回 ["probe_sink2"]，CI 红。
+        tools._registry_version = max(tools._registry_version, saved_version) + 1
 
 
 @pytest.fixture(autouse=True)
