@@ -682,8 +682,20 @@ def _append_line_bytes(path: str, data: bytes, *, ensure_dir: bool = True) -> No
 
 
 def event_files(directory: Optional[str] = None) -> List[str]:
-    """事件文件清单（活动文件 + 按日归档分片，按名升序；仅返回存在的文件）"""
-    base = Path(directory or default_events_dir())
+    """事件文件清单（活动文件 + 按日归档分片，按名升序；仅返回存在的文件）
+
+    【C-6-B1 2026-11-04】`directory` 可能来自面板查询参数：先经
+    `safe_paths.enumerate_path` 逐段列目录解析（用户输入不进路径表达式），
+    解析不到就当"没有事件文件"——**不静默回落到默认目录**（那会把"你指的目录不存在"
+    伪装成"默认目录里的事件"）。
+    """
+    if directory:
+        from agent.safe_paths import enumerate_path
+        base = enumerate_path(directory)
+        if base is None:
+            return []
+    else:
+        base = Path(default_events_dir())
     if not base.exists():
         return []
     found: List[str] = []
