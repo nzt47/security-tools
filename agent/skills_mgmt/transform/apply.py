@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Dict, Optional
 
 from .facets import extract_facets, load_text
 from .plan import build_plan
+
+logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[3]
 TRANSFORMS = Path("data") / "ingestion" / "transforms"
@@ -112,6 +115,20 @@ def apply_plan(artifact, *, into: Optional[str] = None, new: Optional[str] = Non
             content = card_md if target.name == "CARD.md" else files.get("skill.md", text)
             target.write_text(content, encoding="utf-8")
             written.append(str(target.relative_to(base)))
+        # S1：落盘后登记进**统一转化作业台账**（best-effort，台账坏了不影响落地）
+        try:
+            from . import jobs as _jobs
+            landing = into or new or ""
+            _jobs.upsert_job(
+                source="transform", source_ref=tid, form="skill",
+                title=str((plan.get("meta") or {}).get("name") or landing or tid),
+                artifacts=str(tdir),
+                target=({"kind": "skill", "id": landing} if landing else {}),
+                status=("registered" if landing else "reviewed"),
+                note=str(plan["next"] or ""),
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[transform] 作业台账登记失败 tid=%s: %s", tid, exc)
 
     return {
         "ok": True,
