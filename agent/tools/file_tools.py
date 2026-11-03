@@ -103,9 +103,14 @@ def is_protected_path(path: str) -> bool:
     """
     try:
         literal = os.path.abspath(os.path.normpath(path))
-        real = os.path.realpath(literal)
     except Exception:
         return True
+    try:
+        real = os.path.realpath(literal)
+    except (OSError, ValueError):
+        # 解析不出真实路径（典型：内嵌 NUL 的非法路径）⇒ 只按字面判定，
+        # 让它落到调用方原本的"非法字符"分支，而不是被误报成"系统保护目录"（CI 实测）。
+        real = literal
 
     # **两个视图都要看**：
     #   · literal 保住"系统目录本身"（Linux 上 realpath("/bin") = "/usr/bin"，
