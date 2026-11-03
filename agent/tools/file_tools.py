@@ -94,27 +94,50 @@ DEFAULT_MAX_WRITE_SIZE = 50 * 1024 * 1024
 
 
 def is_protected_path(path: str) -> bool:
-    """检查路径是否属于系统保护目录，禁止云枢直接访问"""
+    """检查路径是否属于系统保护目录，禁止云枢直接访问
+
+    【2026-11-04 加固】先 realpath 再判定：原实现是 abspath + startswith，
+    一个指向系统保护目录的 symlink / junction 可以整段绕过（凭据边界
+    is_credential_path 早就用了 realpath，这里一直漏着）。realpath 之后
+    「允许的子目录」同样按真实路径比较，行为不变。
+    """
     try:
-        abs_path = os.path.abspath(os.path.normpath(path))
+        literal = os.path.abspath(os.path.normpath(path))
     except Exception:
         return True
+    try:
+        real = os.path.realpath(literal)
+    except (OSError, ValueError):
+        # 解析不出真实路径（典型：内嵌 NUL 的非法路径）⇒ 只按字面判定，
+        # 让它落到调用方原本的"非法字符"分支，而不是被误报成"系统保护目录"（CI 实测）。
+        real = literal
+
+    # **两个视图都要看**：
+    #   · literal 保住"系统目录本身"（Linux 上 realpath("/bin") = "/usr/bin"，
+    #     只按 real 判会让 /bin 漏出保护名单 —— 实测 CI 红）；
+    #   · real 保住"符号链接/junction 指向保护目录"的绕过（本次加固的初衷）。
+    candidates = (literal, real)
+
+    def _under(cand: str, root: str) -> bool:
+        return cand == root or cand.startswith(root + os.sep)
 
     # Windows 系统保护目录检测
     if os.name == "nt":
-        # 先检查是否在允许列表中
-        for allowed in ALLOWED_WIN_SUBDIRS:
-            if abs_path.lower().startswith(allowed.lower() + os.sep) or abs_path.lower() == allowed.lower():
-                return False
-        # 再检查是否在保护列表中
-        for protected in PROTECTED_SYSTEM_DIRS_WIN:
-            if abs_path.lower().startswith(protected.lower() + os.sep) or abs_path.lower() == protected.lower():
-                return True
-    else:
-        # Unix 系统保护目录检测
-        for protected in PROTECTED_SYSTEM_DIRS_UNIX:
-            if abs_path.startswith(protected + os.sep) or abs_path == protected:
-                return True
+        lows = [c.lower() for c in candidates]
+        hit = any(_under(x, pr.lower()) for x in lows for pr in PROTECTED_SYSTEM_DIRS_WIN)
+        if not hit:
+            return False
+        # 命中保护目录后再看允许列表：**只有真实路径确实在允许子目录里**才放行
+        # （否则一个落在 Temp 下的链接指向 System32 会被 Temp 的豁免放进来 —— 实测踩过）
+        real_low = real.lower()
+        if any(_under(real_low, a.lower()) for a in ALLOWED_WIN_SUBDIRS):
+            return False
+        return True
+
+    # Unix 系统保护目录检测（没有允许列表）
+    for protected in PROTECTED_SYSTEM_DIRS_UNIX:
+        if any(_under(c, protected) for c in candidates):
+            return True
 
     return False
 
