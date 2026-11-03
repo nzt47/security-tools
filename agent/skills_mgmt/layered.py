@@ -18,6 +18,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from agent.skills_mgmt.capability_cards import build_card
 from agent.skills_mgmt.skill_md_schema import _split_front_matter
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -62,6 +63,27 @@ def _clip(text: str, layer: str) -> Dict[str, object]:
             "truncated": True, "chars": len(text)}
 
 
+def _render_card(card: Dict[str, object]) -> str:
+    """把能力卡渲染成 L1 文本（与能力卡页**同一份派生**，只是换了排版）。"""
+    lines = ["# %s" % (card.get("name") or card.get("skill_id") or "")]
+    summary = str(card.get("summary") or "").strip()
+    if summary:
+        lines += ["", summary]
+    for key, label in (("trigger", "何时使用"), ("steps", "步骤"),
+                       ("params", "参数"), ("guard", "约束")):
+        items = card.get(key) or []
+        if items:
+            lines += ["", "## %s" % label]
+            lines += ["- %s" % str(i).strip() for i in items if str(i).strip()]
+    example = str(card.get("example") or "").strip()
+    if example:
+        lines += ["", "## 示例", example]
+    sections = card.get("sections") or []
+    if sections:
+        lines += ["", "## 目录", " › ".join(str(s) for s in sections)]
+    return "\n".join(lines).strip()
+
+
 def load_layer(skill_id: str, layer: str = "L1", repo: Optional[Path] = None) -> Dict[str, object]:
     """取某一层的文本。返回 {ok, skill_id, layer, source, text, truncated, chars}。
 
@@ -88,7 +110,12 @@ def load_layer(skill_id: str, layer: str = "L1", repo: Optional[Path] = None) ->
         if card.is_file():
             return {"ok": True, "skill_id": skill_id, "layer": "L1", "source": "card",
                     **_clip(card.read_text(encoding="utf-8", errors="replace"), "L1")}
-        # 降级：标题骨架 + 正文前 N 行（不生成新文件，也不假装是卡片）
+        # 降级：与「技能中心 → 能力卡」**同一份派生**（五面卡片），不再用「前 40 行」——
+        # 同样是 L1 预算，五面卡片保的是"怎么用"，前 40 行常常只保住了开头。
+        card = build_card(d)
+        if card:
+            return {"ok": True, "skill_id": skill_id, "layer": "L1", "source": "derived",
+                    **_clip(_render_card(card), "L1")}
         head = "\n".join(body.splitlines()[:_DERIVED_HEAD_LINES]).strip()
         skeleton = " › ".join(_headings(body)[:12])
         text = "%s\n\n[目录] %s\n\n[正文前 %d 行]\n%s" % (

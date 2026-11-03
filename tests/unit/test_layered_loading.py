@@ -62,10 +62,14 @@ def test_有_CARD_md_走卡片层(tmp_path):
     assert r["source"] == "card" and "触发：测试" in r["text"]
 
 
-def test_降级层含目录与正文片段(tmp_path):
+def test_降级层用能力卡派生(tmp_path):
+    """【契约变更 2026-11-03 / S4】没有 CARD.md 时，L1 用**与能力卡页同一份派生**（五面卡片），
+    不再用「正文前 40 行」—— 同样预算下，五面保的是"怎么用"，前 40 行常常只保住开头。"""
     _mk(tmp_path)
     text = load_layer("demo-skill", "L1", repo=tmp_path)["text"]
-    assert "[目录]" in text and "何时使用" in text and "[正文前" in text
+    assert "何时使用" in text and "步骤" in text
+    assert "## 目录" in text
+    assert "[正文前" not in text
 
 
 def test_超预算截断并标记(tmp_path):
