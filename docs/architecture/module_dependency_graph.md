@@ -603,8 +603,10 @@ flowchart LR
         agent_skills_mgmt_skill_manager["agent.skills_mgmt.skill_manager"]:::crosslayer
         agent_skills_mgmt_skill_md_schema["agent.skills_mgmt.skill_md_schema"]
         agent_skills_mgmt_store["agent.skills_mgmt.store"]:::crosslayer
+        agent_skills_mgmt_transform["agent.skills_mgmt.transform"]:::crosslayer
         agent_skills_mgmt_transform_compare["agent.skills_mgmt.transform.compare"]
         agent_skills_mgmt_transform_facets["agent.skills_mgmt.transform.facets"]
+        agent_skills_mgmt_transform_jobs["agent.skills_mgmt.transform.jobs"]:::crosslayer
         agent_skills_mgmt_transform_queue["agent.skills_mgmt.transform.queue"]:::crosslayer
         agent_skills_mgmt_transform_rewrite["agent.skills_mgmt.transform.rewrite"]:::crosslayer
         agent_skills_mgmt_vector_adapter["agent.skills_mgmt.vector_adapter"]
@@ -1148,6 +1150,7 @@ flowchart LR
     agent_ingestion_service -.-> agent_audit_facade
     agent_ingestion_service -.-> agent_descriptors_bridge
     agent_ingestion_service -.-> agent_digestion_stage
+    agent_ingestion_service -.-> agent_skills_mgmt_transform
     agent_ingestion_service -.-> agent_skills_mgmt_models
     agent_ingestion_toolbuild -.-> agent_tools_persistence
     agent_ingestion_toolbuild -.-> agent_tools_persistence
@@ -2100,6 +2103,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_native_functions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_capability_cards
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_jobs
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
@@ -2784,9 +2788,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 718
-- 模块节点数: 619
-- 依赖边数: 2039
-- 跨层调用数: 1294
+- 扫描文件数: 719
+- 模块节点数: 621
+- 依赖边数: 2041
+- 跨层调用数: 1296
 - 违规调用数: 0
 - 动态 import 数: 1

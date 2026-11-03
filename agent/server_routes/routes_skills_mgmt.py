@@ -384,7 +384,16 @@ def register_routes(app, state):
             # 异常原文只进日志（§8 陷阱 15：堆栈/异常文本进响应体 = py/stack-trace-exposure）
             logger.warning("读取转化队列失败: %s", e, exc_info=True)
             return jsonify({"ok": False, "error": "读取转化队列失败（详见服务日志）"}), 500
-        return jsonify({"ok": True, **payload})
+        # S1b：把**统一作业台账**一并吐给界面（三套入口收敛后的同一种作业）。
+        # 它是**旁路**信息：台账不可用只降级为空表，不能拖垮转化队列本身。
+        try:
+            from agent.skills_mgmt.transform.jobs import list_jobs, summary as _jobs_summary
+            jobs = list_jobs(limit=200)
+            jobs_sum = _jobs_summary()
+        except Exception as e:  # noqa: BLE001
+            logger.warning("读取转化作业台账失败（降级为空）: %s", e)
+            jobs, jobs_sum = [], {"total": 0, "by_status": {}, "by_source": {}}
+        return jsonify({"ok": True, **payload, "jobs": jobs, "jobs_summary": jobs_sum})
 
     @app.route("/api/skills-mgmt/transforms/<transform_id>", methods=["GET"])
     @require_token

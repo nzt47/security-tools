@@ -126,6 +126,7 @@ def apply_plan(artifact, *, into: Optional[str] = None, new: Optional[str] = Non
                 target=({"kind": "skill", "id": landing} if landing else {}),
                 status=("registered" if landing else "reviewed"),
                 note=str(plan["next"] or ""),
+                root=base,   # 台账跟着产物根走（CLI --root / 单测 tmp 都不污染仓库 data/）
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning("[transform] 作业台账登记失败 tid=%s: %s", tid, exc)
