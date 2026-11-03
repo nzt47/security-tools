@@ -548,32 +548,11 @@ def save_incident(card: IncidentCard, *, directory: Optional[str] = None,
     return path
 
 
-def _incident_file(incident_id: str, *, directory: Optional[str] = None) -> Optional[Path]:
-    """id → 事故卡文件（**列目录 + 文件名等值匹配**，C-6-B1 2026-11-04）
-
-    py/path-injection 只认「调用方字符串是否进了路径表达式」：incident_id 来自接口，
-    拼 `<dir>/<id>.json` 会被判高危。这里 id 只参与比较，路径用列出来的那个名字拼。
-    """
-    if not incident_id:
-        return None
-    base = incidents_dir(directory)
-    want = "%s.json" % incident_id
-    try:
-        if not base.is_dir():
-            return None
-        for child in base.iterdir():
-            if child.name == want:
-                return child
-    except OSError:  # 目录不可读/竞态删除：当「不存在」
-        return None
-    return None
-
-
 def load_incident(incident_id: str, *, directory: Optional[str] = None) -> Optional[IncidentCard]:
     """读取事故卡（不存在/损坏返回 None）"""
-    path = _incident_file(incident_id, directory=directory)
+    path = incident_path(incident_id, directory=directory)
     try:
-        if path is None or not path.exists():
+        if not path.exists():
             return None
         return IncidentCard.from_dict(json.loads(path.read_text(encoding="utf-8")))
     except Exception as exc:  # noqa: BLE001
