@@ -94,9 +94,15 @@ DEFAULT_MAX_WRITE_SIZE = 50 * 1024 * 1024
 
 
 def is_protected_path(path: str) -> bool:
-    """检查路径是否属于系统保护目录，禁止云枢直接访问"""
+    """检查路径是否属于系统保护目录，禁止云枢直接访问
+
+    【2026-11-04 加固】先 realpath 再判定：原实现是 abspath + startswith，
+    一个指向系统保护目录的 symlink / junction 可以整段绕过（凭据边界
+    is_credential_path 早就用了 realpath，这里一直漏着）。realpath 之后
+    「允许的子目录」同样按真实路径比较，行为不变。
+    """
     try:
-        abs_path = os.path.abspath(os.path.normpath(path))
+        abs_path = os.path.realpath(os.path.abspath(os.path.normpath(path)))
     except Exception:
         return True
 

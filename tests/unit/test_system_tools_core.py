@@ -285,6 +285,18 @@ class TestPathSecurity:
 
     @pytest.mark.unit
     @pytest.mark.p3
+    @pytest.mark.skipif(os.name != "nt", reason="junction/symlink 绕过仅 Windows 可复现")
+    def test_符号链接不能绕过保护目录(self, tmp_path):
+        """【2026-11-04 加固】abspath+startswith 时代，一个指向 System32 的链接可以整段绕过。"""
+        link = tmp_path / "sneaky"
+        try:
+            os.symlink(r"C:\Windows\System32", link, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            pytest.skip("本机不允许创建目录符号链接")
+        assert is_protected_path(str(link)) is True
+
+    @pytest.mark.unit
+    @pytest.mark.p3
     def test_is_protected_path_unix_system_dirs(self):
         """测试 Unix 系统保护目录检测"""
         # 在 Windows 上，Unix 路径检查也会执行
