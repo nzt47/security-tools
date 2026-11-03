@@ -53,6 +53,12 @@ def build_plan(artifact, repo_path: Optional[Path] = None, top: int = 5) -> Dict
         actions.append("同面冲突（%s）：交人看并排 diff，选 merge / keep / variant" % best.get("skill_id"))
     else:
         actions.append("不相关：重写成新能力")
+    delta = compare.get("delta") or {}
+    if delta.get("compared_points"):
+        actions.append(
+            "增量清单：新增 %d 条 / 已被既有能力覆盖 %d 条（覆盖 %.0f%%）—— 重写只写新增部分"
+            % (len(delta.get("new") or []), len(delta.get("repeated") or []),
+               (delta.get("coverage") or 0) * 100))
     if review["verdict"] == "warn":
         actions.append("审核有 warn：人确认后才允许 --apply")
     actions.append("源技能转化后归档到 data/ingestion/transforms/，退出检索面与能力清单")
@@ -66,6 +72,7 @@ def build_plan(artifact, repo_path: Optional[Path] = None, top: int = 5) -> Dict
         "facets": {k: facets.get(k) for k in ("trigger", "steps", "params", "example", "guard")},
         "compare": compare,
         "review": review,
+        "delta": delta,
         "card_draft": _card_draft(facets),
         "next": actions,
     }

@@ -96,6 +96,39 @@ def verdict_for(scores: Dict[str, float], new: Dict[str, object], old: Dict[str,
     return "distinct"
 
 
+def delta_against(new_facets: Dict[str, object], old_text: str,
+                  *, threshold: float = 0.8) -> Dict[str, object]:
+    """新技能里哪些「步骤/要点」在既有能力里**找不到**（= 只该并入/重写的部分）。
+
+    【为什么要这一步】verdict=incremental 只回答"有新东西"，回答不了"新在哪"。
+    用户的目标是「只提取不重复的部分」，所以对比之后必须产出**增量清单**，
+    否则重写时还是把整篇外来内容塞进自家技能里（等于又抄了一遍）。
+
+    口径（确定性、不依赖向量）：
+      · 逐条取 steps（没有 steps 就退回 trigger）；
+      · 条目里的词有多少比例已被旧正文覆盖（containment 的反向用法）；
+      · ≥ threshold ⇒ 判为「旧能力已讲过」，否则算新增。
+    """
+    items = [str(s).strip() for s in (new_facets.get("steps") or []) if str(s).strip()]
+    source = "steps"
+    if not items:
+        items = [str(s).strip() for s in (new_facets.get("trigger") or []) if str(s).strip()]
+        source = "trigger"
+    fresh: List[str] = []
+    repeated: List[str] = []
+    for item in items:
+        score = containment(item, old_text)
+        (repeated if score >= threshold else fresh).append(item)
+    total = len(items)
+    return {
+        "source": source,
+        "new": fresh,
+        "repeated": repeated,
+        "coverage": round(len(repeated) / total, 3) if total else 0.0,
+        "compared_points": total,
+    }
+
+
 def load_repo_facets(repo_path: Optional[Path] = None) -> List[Dict[str, object]]:
     """把自身已有能力全部切一遍（每次跑都现算，不落缓存 —— P1 要的是可复现）。"""
     from agent.skills_mgmt.capability_cards import DEFAULT_REPO
@@ -112,6 +145,8 @@ def load_repo_facets(repo_path: Optional[Path] = None) -> List[Dict[str, object]
             continue
         facets = extract_facets(text)
         facets["skill_id"] = child.name
+        # 原文只在内存里用（算增量），**不随 candidates 序列化出去**（见 compare_with_repo）
+        facets["_text"] = text
         out.append(facets)
     return out
 
@@ -125,8 +160,15 @@ def compare_with_repo(new_facets: Dict[str, object], repo_path: Optional[Path] =
         # 跳过会让「又导了一遍」显示成 distinct，进而被重写成第二条技能。
         scores = facet_scores(new_facets, old)
         cands.append({"skill_id": old["skill_id"], "scores": scores,
-                      "verdict": verdict_for(scores, new_facets, old)})
+                      "verdict": verdict_for(scores, new_facets, old),
+                      "_text": old.get("_text", "")})
     cands.sort(key=lambda c: max(c["scores"].values()), reverse=True)
     best = cands[0] if cands else None
     overall = best["verdict"] if best else "distinct"
-    return {"candidates": cands[:top], "best": best, "verdict": overall}
+    delta = delta_against(new_facets, str(best.get("_text") or "")) if best else None
+    # 原文只在内存里参与算分/算增量：**不随响应出去**（plan/API 会整段序列化）
+    for cand in cands:
+        cand.pop("_text", None)
+    if best is not None:
+        best.pop("_text", None)
+    return {"candidates": cands[:top], "best": best, "verdict": overall, "delta": delta}

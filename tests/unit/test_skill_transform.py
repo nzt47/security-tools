@@ -92,6 +92,35 @@ class TestCompare:
         assert out["verdict"] == "duplicate"
         assert out["best"]["skill_id"] == "alpha-skill"
 
+    def test_增量清单_只留旧能力没讲过的点(self, tmp_path):
+        """S2：incremental 只回答"有新东西"，delta 回答"新在哪"（重写只写这部分）。"""
+        from agent.skills_mgmt.transform.compare import delta_against
+
+        old_text = "## 步骤\n\n1. 先拉取清单\n2. 再比对差异\n"
+        new_facets = {"steps": ["先拉取清单", "按租户汇总报表", "归档到对象存储"]}
+        out = delta_against(new_facets, old_text)
+        assert out["compared_points"] == 3
+        assert "先拉取清单" in out["repeated"]
+        assert "按租户汇总报表" in out["new"]
+        assert "归档到对象存储" in out["new"]
+        assert 0.0 < out["coverage"] < 1.0
+
+    def test_没有步骤时退回触发面(self):
+        from agent.skills_mgmt.transform.compare import delta_against
+
+        out = delta_against({"steps": [], "trigger": ["需要对账时"]}, "需要对账再做报表")
+        assert out["source"] == "trigger" and out["compared_points"] == 1
+
+    def test_compare_with_repo_带增量且不外泄原文(self, tmp_path):
+        repo = tmp_path / "repo"
+        (repo / "alpha-skill").mkdir(parents=True)
+        (repo / "alpha-skill" / "skill.md").write_text(SKILL_A, encoding="utf-8")
+        f = extract_facets(SKILL_A)
+        out = compare_with_repo(f, repo_path=repo)
+        assert out["delta"]["compared_points"] >= 1
+        assert "_text" not in out["best"]
+        assert all("_text" not in c for c in out["candidates"])
+
     def test_无关内容判_distinct(self, tmp_path):
         repo = tmp_path / "repo"
         (repo / "alpha-skill").mkdir(parents=True)
