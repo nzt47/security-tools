@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-"""S4 前置：分层覆盖率基线脚本的可测内核（只读）。
+"""S4 前置：分层保留率基线脚本的可测内核（只读）。
 
-基线存在的意义：C-8 要求「接入分层装配前先有回归基线」。这条用例锁住脚本的**判据**，
-不是锁住某个数字 —— 技能库变了，比例自然会变。
+锁的是**判据**，不是数字（技能库变了比例自然会变）：
+  · L2 里已有的面（步骤/触发），L1 必须保住；
+  · 保留率达标（≥GATE_PCT）才算「可以切 L1 装配」。
 """
 from __future__ import annotations
 
@@ -24,21 +25,32 @@ def _mk(repo: Path, name: str, body: str) -> None:
         encoding="utf-8")
 
 
-def test_可动手_需要触发与步骤两面(tmp_path):
-    _mk(tmp_path, "with-both", "## 何时使用\n- 需要时\n\n## 步骤\n- 第一步\n")
-    _mk(tmp_path, "only-trigger", "## 何时使用\n- 需要时\n")
+def test_步骤保留率_按_L2_是否真有步骤来算(tmp_path):
+    _mk(tmp_path, "with-steps", "## 何时使用\n- 需要时\n\n## 步骤\n- 第一步\n")
+    _mk(tmp_path, "no-steps", "## 何时使用\n- 需要时\n")
     data = cov.measure(tmp_path)
     assert data["skills"] == 2
-    assert data["with_card_md"] == 0 and data["derived"] == 2
-    assert data["actionable_l1"] == 1
-    assert 0 < data["actionable_pct"] < 100
+    assert data["procedural"] == 1        # 只有一条技能"本来就有步骤"
+    assert data["steps_kept"] == 1
+    assert data["steps_kept_pct"] == 100.0
 
 
-def test_省多少与_L2_长度挂钩(tmp_path):
-    _mk(tmp_path, "long", "## 何时使用\n- 需要时\n\n## 步骤\n- 第一步\n" + "\n详细内容\n" * 200)
+def test_触发保留率_英文标题也算(tmp_path):
+    _mk(tmp_path, "en-skill", "## When to Use This Skill\n- 需要时\n")
     data = cov.measure(tmp_path)
-    assert data["rows"][0]["l2_chars"] > data["rows"][0]["l1_chars"]
-    assert data["avg_saving_pct"] > 0
+    assert data["triggered"] == 1
+    assert data["trigger_kept_pct"] == 100.0
+
+
+def test_英文_Step_标题也能抽成步骤(tmp_path):
+    """实测漏点：find-skills 的步骤写在 ### Step 1..6（没有 how to 字样）。"""
+    _mk(tmp_path, "en-steps",
+        "## When to Use\n- 需要时\n\n"
+        "### Step 1: 先看需求\n- 读一遍需求\n\n"
+        "### Step 2: 再查库\n- 查能力索引\n")
+    data = cov.measure(tmp_path)
+    assert data["procedural"] == 1
+    assert data["steps_kept"] == 1
 
 
 def test_有卡片时计入_with_card_md(tmp_path):
@@ -46,3 +58,4 @@ def test_有卡片时计入_with_card_md(tmp_path):
     (tmp_path / "carded" / "CARD.md").write_text("# 卡\n", encoding="utf-8")
     data = cov.measure(tmp_path)
     assert data["with_card_md"] == 1
+    assert data["gate_pct"] == cov.GATE_PCT

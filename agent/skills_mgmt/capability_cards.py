@@ -19,8 +19,11 @@ DEFAULT_REPO = ROOT / "data" / "skills_repo"
 
 #: facet → 标题关键词（与 skill_md_schema.USAGE_SECTIONS 同源口径，另加步骤/参数/约束）
 FACETS = {
-    "trigger": ("何时使用", "使用场景", "使用时机", "适用场景", "适用条件", "触发条件", "when to use", "usage"),
-    "steps": ("步骤", "流程", "操作", "做法", "how to"),
+    "trigger": ("何时使用", "使用场景", "使用时机", "适用场景", "适用条件", "触发条件",
+                "when to use", "when to use this skill", "usage"),
+    # "step" 是给英文技能用的：实测 `find-skills` 的步骤写在 `### Step 1..6` 里，
+    # 没有"步骤/流程/how to"字样 ⇒ L1 丢掉全部步骤（2026-11-04 基线量出来的唯一漏点）。
+    "steps": ("步骤", "流程", "操作", "做法", "how to", "step"),
     "params": ("参数", "配置", "选项", "输入"),
     "example": ("示例", "例子", "范例", "example"),
     "guard": ("约束", "边界", "反例", "注意", "坑"),
