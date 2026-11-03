@@ -2279,6 +2279,7 @@ flowchart LR
     agent_skills_mgmt_few_shot_injector -.-> agent_logging_utils
     agent_skills_mgmt_file_store -.-> agent_logging_utils
     agent_skills_mgmt_index_cache -.-> agent_logging_utils
+    agent_skills_mgmt_layered --> agent_skills_mgmt_capability_cards
     agent_skills_mgmt_layered --> agent_skills_mgmt_skill_md_schema
     agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_feedback_agent
     agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_evolution_scheduler
@@ -2790,7 +2791,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 719
 - 模块节点数: 621
-- 依赖边数: 2041
+- 依赖边数: 2042
 - 跨层调用数: 1296
 - 违规调用数: 0
 - 动态 import 数: 1

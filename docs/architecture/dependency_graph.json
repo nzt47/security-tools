@@ -4038,7 +4038,7 @@
       "name": "capability_cards",
       "layer": "skills_mgmt",
       "file_path": "",
-      "in_degree": 4,
+      "in_degree": 5,
       "out_degree": 0
     },
     {
@@ -4455,7 +4455,7 @@
       "layer": "skills_mgmt",
       "file_path": "agent/skills_mgmt/layered.py",
       "in_degree": 1,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.skills_mgmt.skill_md_schema",
@@ -24993,11 +24993,24 @@
     },
     {
       "source": "agent.skills_mgmt.layered",
-      "target": "agent.skills_mgmt.skill_md_schema",
+      "target": "agent.skills_mgmt.capability_cards",
       "source_layer": "skills_mgmt",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
       "line": 21,
+      "source_file": "agent/skills_mgmt/layered.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.layered",
+      "target": "agent.skills_mgmt.skill_md_schema",
+      "source_layer": "skills_mgmt",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 22,
       "source_file": "agent/skills_mgmt/layered.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -31508,7 +31521,7 @@
   "stats": {
     "total_files": 719,
     "total_nodes": 621,
-    "total_edges": 2041,
+    "total_edges": 2042,
     "cross_layer_edges": 1296,
     "violation_edges": 0,
     "dynamic_edges": 1,
