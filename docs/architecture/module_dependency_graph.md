@@ -606,6 +606,7 @@ flowchart LR
         agent_skills_mgmt_transform["agent.skills_mgmt.transform"]:::crosslayer
         agent_skills_mgmt_transform_compare["agent.skills_mgmt.transform.compare"]
         agent_skills_mgmt_transform_facets["agent.skills_mgmt.transform.facets"]
+        agent_skills_mgmt_transform_jobs["agent.skills_mgmt.transform.jobs"]:::crosslayer
         agent_skills_mgmt_transform_queue["agent.skills_mgmt.transform.queue"]:::crosslayer
         agent_skills_mgmt_transform_rewrite["agent.skills_mgmt.transform.rewrite"]:::crosslayer
         agent_skills_mgmt_vector_adapter["agent.skills_mgmt.vector_adapter"]
@@ -2102,6 +2103,7 @@ flowchart LR
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_native_functions
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_capability_cards
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_jobs
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
     agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_transform_queue
@@ -2787,8 +2789,8 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 719
-- 模块节点数: 620
-- 依赖边数: 2040
-- 跨层调用数: 1295
+- 模块节点数: 621
+- 依赖边数: 2041
+- 跨层调用数: 1296
 - 违规调用数: 0
 - 动态 import 数: 1
