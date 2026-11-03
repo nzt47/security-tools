@@ -19,7 +19,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+import logging
+from typing import Any, Dict, Optional
 
 from flask import Blueprint, request
 
@@ -28,7 +29,31 @@ from agent.ingestion.models import IngestionError, IngestSource, InvalidSource
 
 from .plugin_api import Plugin, register_plugin, require_auth as _require_token
 
+logger = logging.getLogger(__name__)
+
 bp = Blueprint("ingestion", __name__)
+
+
+def _job_step(draft_id: str, status: str, *, form: str = "", title: str = "",
+              artifacts: str = "", target: Optional[Dict[str, str]] = None,
+              note: str = "") -> None:
+    """S1：推进**统一转化作业台账**（best-effort —— 台账坏了不许影响登记）。
+
+    新作业直接落在目标状态（导入既有草稿的路径）；已有作业按状态机前进。
+    """
+    try:
+        from agent.skills_mgmt.transform import jobs as _jobs
+
+        jid = _jobs.job_id("ingestion", draft_id)
+        if _jobs.get_job(jid) is None:
+            _jobs.upsert_job(source="ingestion", source_ref=draft_id, form=form,
+                             title=title, artifacts=artifacts, target=target,
+                             status=status, note=note)
+        else:
+            _jobs.transition(jid, status, target=target, note=note)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[ingestion] 作业台账推进失败 draft=%s status=%s: %s",
+                       draft_id, status, exc)
 
 #: 单个请求体上限（防止把超大 JSON 读进内存；正文上限另由 service 的 TEXT 限制兜底）
 _MAX_REQUEST_BYTES = 1_000_000
@@ -336,6 +361,8 @@ def api_ingestion_draft_register(draft_id: str):
                               "steps": len(wf.steps), "enabled": wf.enabled})
     except Exception:  # noqa: BLE001
         pass
+    _job_step(draft_id, "registered", form="workflow", title=wf.name,
+              target={"kind": "workflow", "id": wf.id})
     return _ok({"workflow_id": wf.id, "name": wf.name, "steps": len(wf.steps),
                 "enabled": wf.enabled, "status": wf.status})
 
@@ -380,6 +407,9 @@ def api_ingestion_draft_implement(draft_id: str):
                                   "model": result.get("model", "")})
         except Exception:  # noqa: BLE001
             pass
+        _job_step(draft_id, "normalized", form="tool",
+                  title=str(manifest.get("skill_id") or draft_id),
+                  note="AI 实现已写回")
     return _ok({"validation": result["validation"], "model": result.get("model", ""),
                 "prompt_chars": result.get("prompt_chars", 0),
                 "code": result.get("code", ""), "saved": saved})
@@ -428,6 +458,8 @@ def api_ingestion_draft_register_tool(draft_id: str):
                               "module": data["module"]})
     except Exception:  # noqa: BLE001
         pass
+    _job_step(draft_id, "registered", form="tool", title=data["tool_name"],
+              target={"kind": "tool", "id": data["tool_name"]})
     return _ok(data)
 
 

@@ -1253,6 +1253,15 @@ def _write_draft_result(plan: IngestPlan, *, form: str,
         "draft": True,
         "draft_dir": result.draft_dir,
     })
+    # S1：把草稿登记进**统一转化作业台账**（best-effort：台账不可用不得让摄取失败）
+    try:
+        from agent.skills_mgmt.transform import jobs as _jobs
+        _jobs.upsert_job(source="ingestion",
+                         source_ref=str(data.get("draft_id") or ""),
+                         form=form, title=result.name or result.skill_id,
+                         artifacts=result.draft_dir, status="candidate")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[ingestion] 作业台账登记失败（不影响草稿）: %s", exc)
     logger.info("[ingestion] draft plan=%s form=%s dir=%s",
                 result.plan_id, form, result.draft_dir)
     return result
