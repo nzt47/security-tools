@@ -92,11 +92,20 @@ def resolve_pack(name: Any, *, pack_dir: Optional[str] = None,
         raise OfflinePackError("非法分身名（拒绝路径穿越/控制字符）",
                                code="E_OFFLINE_PACK_BAD_NAME")
     base = os.path.realpath(directory)
-    target = os.path.realpath(os.path.join(base, safe + PACK_SUFFIX))
-    if os.path.dirname(target) != base:
-        raise OfflinePackError("非法分身名（解析后越出离线包目录）",
-                               code="E_OFFLINE_PACK_BAD_NAME")
-    if not os.path.isfile(target):
+    # [C-6-B1 2026-11-04] **列目录 + 文件名等值匹配**：用户输入只参与比较，不进路径表达式
+    # （realpath + dirname 校验不被 CodeQL 认，见 §8 陷阱 14；这个函数是要下发的交付物，
+    #  所以宁可用"枚举到的那个名字"来拼路径）。
+    want = safe + PACK_SUFFIX
+    target = ""
+    try:
+        if os.path.isdir(base):
+            for entry in os.listdir(base):
+                if entry == want:
+                    target = os.path.join(base, entry)
+                    break
+    except OSError:
+        target = ""
+    if not target or not os.path.isfile(target):
         # **不回显服务端绝对目录**：调用方只需要知道"没构建、怎么构建"；
         # 把配置目录打进响应体等于向任意（已鉴权）调用者泄露服务器路径布局。
         raise OfflinePackError(
