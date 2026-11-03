@@ -360,10 +360,19 @@ def api_skills_content():
 
     # 2) 技能仓库正文 data/skills_repo/<id>/skill.md
     try:
-        safe = skill_id.replace("\\", "/").rsplit("/", 1)[-1]
-        repo_md = os.path.normpath(os.path.join(
-            os.path.dirname(__file__), '..', 'data', 'skills_repo', safe, 'skill.md'))
-        if os.path.isfile(repo_md):
+        # [C-6-B1 2026-11-03] 列目录 + 目录名**等值匹配**：用户输入不进路径表达式
+        # （py/path-injection 不认 basename / 正则白名单，§8 陷阱 14）。
+        repo_root = os.path.normpath(os.path.join(
+            os.path.dirname(__file__), '..', 'data', 'skills_repo'))
+        repo_md = None
+        if os.path.isdir(repo_root):
+            for name in os.listdir(repo_root):
+                if name == (skill_id or "").strip():
+                    cand = os.path.join(repo_root, name, 'skill.md')
+                    if os.path.isfile(cand):
+                        repo_md = cand
+                    break
+        if repo_md:
             with open(repo_md, 'r', encoding='utf-8') as f:
                 text = f.read()
             if text.strip():

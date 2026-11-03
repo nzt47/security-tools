@@ -11,6 +11,8 @@ import os
 import time
 import shutil
 from pathlib import Path
+from typing import Optional
+
 from flask import request, jsonify, send_file
 from agent.server_auth import require_token
 from agent.server_routes.tracing_decorator import trace_route
@@ -43,6 +45,51 @@ NON_FILE_CATEGORIES = set(NON_FILE_CATEGORY_ORDER)
 #  「资产·记忆数据 与 记忆管理 是否同源」实测暴露（原先读旧源 ⇒ 两处对不上）。
 #: 子系统条目上屏上限（记忆实测 1600+ 条，全量上屏没有意义）
 SYSTEM_ITEMS_LIMIT = 200
+
+
+def _category_files() -> dict:
+    """类目 → 账本文件（**常量键 ↔ 常量路径**，C-6-B1 2026-11-03）
+
+    为什么用「常量键的字典」而不是 `if cat in ALL_CATEGORIES` + 拼路径：
+    py/path-injection 只认「调用方字符串是否进了路径表达式」，不认白名单判定
+    （§8 陷阱 14 三次应验）。这里路径只由常量 `ALL_CATEGORIES` 生成，
+    用户输入最多当**字典键**用：查不到就是 None。
+
+    为什么每次现算而不是模块级常量：`ASSETS_DIR` 是运行期可替换的模块全局
+    （单测把它指到 tmp_path），导入期冻结会绕开替换 —— 实测 11 条用例因此变红。
+    """
+    return {_c: ASSETS_DIR / ("%s.json" % _c) for _c in ALL_CATEGORIES}
+
+
+def _asset_file(category) -> Optional[Path]:
+    """类目 → 账本路径（未知类目 ⇒ None，调用方据此 400/404）"""
+    return _category_files().get(str(category or ""))
+
+
+def _read_ledger(category) -> list:
+    """读本地补录账本（未知类目 ⇒ 空表，与「文件不存在」同义）"""
+    path = _asset_file(category)
+    return _read_json_file(path) if path else []
+
+
+def _backup_file(backup_id) -> Optional[Path]:
+    """备份 id → data/backups/<id>.json（**列目录 + 文件名等值匹配**）
+
+    与 `agent/skills_mgmt/transform/queue.py::_find_child` 同一口径：
+    用户输入只参与比较，**不进路径表达式** —— 这是 CodeQL 认的那种断链
+    （resolve + 前缀校验、正则白名单都不被认，§8 陷阱 14）。
+    """
+    if not backup_id:
+        return None
+    try:
+        if not BACKUPS_DIR.is_dir():
+            return None
+        for child in BACKUPS_DIR.iterdir():
+            if child.name == "%s.json" % backup_id:
+                return child
+    except OSError:  # 目录不可读/竞态删除：当「不存在」
+        return None
+    return None
 
 
 def _read_json_file(filepath: Path) -> list:
@@ -180,7 +227,7 @@ def _real_items(category: str, state) -> list:
 def _local_items(category: str) -> list:
     """本地补录账本（data/assets/<cat>.json）：非文件型类别里可增删的那部分。"""
     out = []
-    for it in _read_json_file(ASSETS_DIR / f"{category}.json"):
+    for it in _read_ledger(category):
         if isinstance(it, dict):
             out.append({**it, "source": it.get("source") or "local"})
     return out
@@ -217,7 +264,7 @@ def _non_file_count(category: str, state) -> int:
         n = len(list_tools() or [])
     else:
         n = 0
-    return n + len(_read_json_file(ASSETS_DIR / f"{category}.json"))
+    return n + len(_read_ledger(category))
 
 
 def register_routes(app, state):
@@ -231,7 +278,7 @@ def register_routes(app, state):
             overview = {}
             for cat in ALL_CATEGORIES:
                 if cat in FILE_BASED_CATEGORIES:
-                    overview[cat] = len(_read_json_file(ASSETS_DIR / f"{cat}.json"))
+                    overview[cat] = len(_read_ledger(cat))
                 else:
                     # 真实子系统总数（不受上屏上限影响）+ 本地补录条数
                     overview[cat] = _non_file_count(cat, state)
@@ -247,7 +294,7 @@ def register_routes(app, state):
         """获取指定类别的资产列表"""
         try:
             if category in FILE_BASED_CATEGORIES:
-                items = _read_json_file(ASSETS_DIR / f"{category}.json")
+                items = _read_ledger(category)
                 total = len(items)
             else:
                 items = _get_non_file_items(category, state)
@@ -277,7 +324,9 @@ def register_routes(app, state):
             if category not in ALL_CATEGORIES:
                 return jsonify({"ok": False, "error": f"未知类别 {category}"}), 400
 
-            filepath = ASSETS_DIR / f"{category}.json"
+            filepath = _asset_file(category)
+            if filepath is None:
+                return jsonify({"ok": False, "error": f"未知类别 {category}"}), 400
             items = _read_json_file(filepath)
             before = len(items)
             items = [i for i in items if i.get("id") != item_id and i.get("name") != item_id and i.get("title") != item_id]
@@ -304,7 +353,9 @@ def register_routes(app, state):
                 return jsonify({"ok": False, "error": f"未知类别 {category}"}), 400
 
             data = request.get_json() or {}
-            filepath = ASSETS_DIR / f"{category}.json"
+            filepath = _asset_file(category)
+            if filepath is None:
+                return jsonify({"ok": False, "error": f"未知类别 {category}"}), 400
             items = _read_json_file(filepath)
 
             new_item = {
@@ -340,7 +391,7 @@ def register_routes(app, state):
             cats = categories if categories else LEDGER_CATEGORY_ORDER
             for cat in cats:
                 if cat in ALL_CATEGORIES:
-                    backup_data[cat] = _read_json_file(ASSETS_DIR / f"{cat}.json")
+                    backup_data[cat] = _read_ledger(cat)
 
             backup_file = BACKUPS_DIR / f"{backup_id}.json"
             backup_file.write_text(json.dumps(backup_data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -380,8 +431,8 @@ def register_routes(app, state):
     def api_assets_backup_delete(backup_id):
         """删除指定备份"""
         try:
-            backup_file = BACKUPS_DIR / f"{backup_id}.json"
-            if not backup_file.exists():
+            backup_file = _backup_file(backup_id)
+            if backup_file is None or not backup_file.exists():
                 return jsonify({"ok": False, "error": "备份不存在"}), 404
             backup_file.unlink()
             logger.info("[AssetsAPI] 备份已删除: %s", backup_id)
@@ -401,16 +452,21 @@ def register_routes(app, state):
             if not backup_id:
                 return jsonify({"ok": False, "error": "缺少 backup_id"}), 400
 
-            backup_file = BACKUPS_DIR / f"{backup_id}.json"
-            if not backup_file.exists():
+            backup_file = _backup_file(backup_id)
+            if backup_file is None or not backup_file.exists():
                 return jsonify({"ok": False, "error": "备份不存在"}), 404
 
             backup_data = json.loads(backup_file.read_text(encoding="utf-8"))
             restored = []
-            for cat, items in backup_data.items():
-                if cat in ALL_CATEGORIES:
-                    _write_json_file(ASSETS_DIR / f"{cat}.json", items)
-                    restored.append(cat)
+            # 只认**常量表里的路径**：备份文件里的键只当字典键查表，
+            # 查不到（未知类目）就跳过 —— 文件内容不进路径表达式。
+            # 迭代顺序仍是备份自己的键序（保持既有行为：restored 顺序可预期）。
+            for cat in backup_data:
+                target = _asset_file(cat)
+                if target is None:
+                    continue
+                _write_json_file(target, backup_data[cat])
+                restored.append(cat)
 
             logger.info("[AssetsAPI] 从备份 %s 恢复 %d 类资产", backup_id, len(restored))
             return jsonify({
@@ -433,7 +489,7 @@ def register_routes(app, state):
         try:
             export_data = {}
             for cat in LEDGER_CATEGORY_ORDER:   # [DET-4] 导出键序 = 声明序
-                export_data[cat] = _read_json_file(ASSETS_DIR / f"{cat}.json")
+                export_data[cat] = _read_ledger(cat)
 
             export_file = BACKUPS_DIR / f"assets_export_{int(time.time())}.json"
             BACKUPS_DIR.mkdir(parents=True, exist_ok=True)

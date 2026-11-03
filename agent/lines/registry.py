@@ -37,6 +37,28 @@ def _path_for(line_id: str) -> str:
     return os.path.join(lines_dir(), f"{line_id}.yaml")
 
 
+def _line_file(line_id: str) -> Optional[str]:
+    """主线 id →「<lines_dir>/<id>.yaml」（**列目录 + 文件名等值匹配**）
+
+    【为什么不用 _path_for】py/path-injection 只认「调用方字符串是否进了路径表达式」：
+    line_id 来自 HTTP，_ID_RE 校验不被认（§8 陷阱 14 三次应验）。
+    这里 line_id 只参与 name 的等值比较，路径由 listdir 出来的 name 拼。
+    【为什么 save 不改】新建档案时文件尚不存在，无法靠列目录找到；那一侧走
+    自带 _ID_RE 校验的 _path_for（CodeQL 未在该处报）。
+    """
+    d = lines_dir()
+    if not line_id or not os.path.isdir(d):
+        return None
+    want = "%s.yaml" % line_id
+    try:
+        for name in os.listdir(d):
+            if name == want:
+                return os.path.join(d, name)
+    except OSError:  # 目录不可读/竞态删除：当「不存在」
+        return None
+    return None
+
+
 def _active_path() -> str:
     return os.path.join(lines_dir(), _ACTIVE_FILE)
 
@@ -61,8 +83,8 @@ class LineRegistry:
         )
 
     def load(self, line_id: str) -> Optional[LineProfile]:
-        path = _path_for(line_id)
-        if not os.path.exists(path):
+        path = _line_file(line_id)
+        if not path:
             return None
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -134,9 +156,9 @@ class LineRegistry:
     def delete(self, line_id: str, *, confirm: bool = False) -> bool:
         if not confirm:
             raise LineRegistryError("删除主线需要 confirm=True")
-        path = _path_for(line_id)
+        path = _line_file(line_id)
         with _LOCK:
-            if not os.path.exists(path):
+            if not path or not os.path.exists(path):
                 return False
             os.remove(path)
             if self.get_active() == line_id:
@@ -159,7 +181,7 @@ class LineRegistry:
         """设置全局激活主线；传 None 表示回到"不装线"（全量工具）"""
         d = lines_dir()
         os.makedirs(d, exist_ok=True)
-        if line_id and not os.path.exists(_path_for(line_id)):
+        if line_id and not _line_file(line_id):
             raise LineRegistryError(f"主线不存在: {line_id}")
         with _LOCK:
             tmp = _active_path() + ".tmp"
