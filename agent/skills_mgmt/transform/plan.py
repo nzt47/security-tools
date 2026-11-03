@@ -11,7 +11,7 @@ from typing import Dict, Optional
 
 from .compare import compare_with_repo
 from .facets import extract_facets, load_text
-from .review import review_text
+from .review import review_artifact
 
 
 def _card_draft(facets: Dict[str, object]) -> Dict[str, object]:
@@ -35,7 +35,8 @@ def build_plan(artifact, repo_path: Optional[Path] = None, top: int = 5) -> Dict
     text = load_text(artifact)
     facets = extract_facets(text)
     compare = compare_with_repo(facets, repo_path=repo_path, top=top)
-    review = review_text(text, name=str(artifact))
+    # S3（2026-11-03）：**整包**审核 —— 目录里的脚本/配置一起扫，不只扫技能正文
+    review = review_artifact(artifact, name=str(artifact))
     verdict = compare["verdict"]
     best = compare.get("best") or {}
     has_substance = any((facets.get(k) or []) for k in ("trigger", "steps", "params", "guard")) or bool(facets.get("example"))
