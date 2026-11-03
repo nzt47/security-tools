@@ -7,6 +7,7 @@ block 级：凭据/密钥、危险指令；warn 级：外部脚本下载、许�
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Dict, List
 
 #: (规则名, 级别, 正则, 说明)
@@ -35,6 +36,81 @@ _LICENSE_HINTS = ("license", "licensed", "许可", "授权", "MIT", "Apache", "B
 #: 体量阈值：超过就建议「能力卡 + 原文归档」而不是整篇进库（设计文档 §1）
 _MAX_INLINE_CHARS = 8000
 
+
+
+
+#: 整包扫描的边界：跳过这些目录 / 只看这些后缀 / 单文件上限
+_SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build"}
+_SCAN_EXTS = {".py", ".sh", ".ps1", ".bat", ".cmd", ".js", ".ts", ".tsx", ".jsx",
+              ".md", ".yaml", ".yml", ".json", ".toml", ".ini", ".env"}
+_MAX_SCAN_FILES = 200
+_MAX_SCAN_BYTES = 256 * 1024
+
+
+def review_artifact(artifact, name: str = "") -> Dict[str, object]:
+    """**整包**审核：目录里的脚本/配置一起扫，不只扫技能正文（S3，2026-11-03）。
+
+    【为什么必须整包】外来插件常把真正危险的东西放在 `scripts/*.sh` / `setup.py` 里，
+    正文只是一段说明。只读 skill.md 等于「审了封面没审内容」。
+    【边界】只看文本类后缀、单文件 ≤ 256KB、最多 200 个文件；跳过 .git/node_modules 等。
+    扫描范围写进返回值（scanned / skipped），让"没扫"这件事本身可见。
+    """
+    p = Path(artifact)
+    if not p.is_dir():
+        text = p.read_text(encoding="utf-8", errors="replace") if p.is_file() else ""
+        out = review_text(text, name=name or str(artifact))
+        out["scanned"] = [p.name]
+        out["skipped"] = []
+        return out
+
+    findings: List[Dict[str, object]] = []
+    scanned: List[str] = []
+    skipped: List[str] = []
+    for child in sorted(p.rglob("*")):
+        if len(scanned) >= _MAX_SCAN_FILES:
+            skipped.append("（达到 %d 个文件上限，其余未扫）" % _MAX_SCAN_FILES)
+            break
+        if not child.is_file():
+            continue
+        if any(part in _SKIP_DIRS for part in child.parts):
+            continue
+        if child.suffix.lower() not in _SCAN_EXTS:
+            continue
+        try:
+            if child.stat().st_size > _MAX_SCAN_BYTES:
+                skipped.append("%s（超过 %dKB）" % (child.name, _MAX_SCAN_BYTES // 1024))
+                continue
+            text = child.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            skipped.append(child.name)
+            continue
+        rel = str(child.relative_to(p))
+        # 只记**相对路径**：这份 review 会落进归档 review.json 并显示在界面上，
+        # 没有理由把本机绝对路径带出去。
+        scanned.append(rel)
+        if child.suffix.lower() == ".md":
+            one = review_text(text, name=rel)
+            for f in one["findings"]:
+                f["file"] = rel       # 整包审核的证据必须能定位到**哪个文件**
+                findings.append(f)
+        else:
+            # 代码类文件不跑「许可缺失/体量」这两条（它们只对正文有意义）
+            for f in review_text(text, name=rel)["findings"]:
+                if str(f["rule"]).startswith(("compliance.", "size.")):
+                    continue
+                f["file"] = rel
+                findings.append(f)
+
+    order = {"block": 0, "warn": 1, "info": 2}
+    findings.sort(key=lambda f: (order.get(str(f["severity"]), 9), str(f.get("file") or "")))
+    if any(f["severity"] == "block" for f in findings):
+        verdict = "block"
+    elif any(f["severity"] == "warn" for f in findings):
+        verdict = "warn"
+    else:
+        verdict = "pass"
+    return {"verdict": verdict, "findings": findings, "file": name or str(artifact),
+            "scanned": scanned, "skipped": skipped}
 
 def review_text(text: str, name: str = "artifact") -> Dict[str, object]:
     """跑全部规则，返回 {verdict, findings:[{rule,severity,line,evidence,note}]}。"""

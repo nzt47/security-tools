@@ -126,6 +126,58 @@ class TestReview:
         assert any(f["rule"] == "compliance.license_missing" for f in out["findings"])
 
 
+class TestReviewArtifact:
+    """S3：审核要**整包**扫，不能只审技能正文（危险的东西常在 scripts/ 里）。"""
+
+    def test_目录里的脚本一起扫_命中带文件名与行号(self, tmp_path):
+        from agent.skills_mgmt.transform.review import review_artifact
+
+        pkg = tmp_path / "pkg"
+        (pkg / "scripts").mkdir(parents=True)
+        (pkg / "skill.md").write_text("# 技能\n\nMIT License\n\n## 步骤\n\n1. 做事\n", encoding="utf-8")
+        (pkg / "scripts" / "run.sh").write_text(
+            "#!/bin/sh\necho ok\nTOKEN=ghp_" + "A" * 30 + "\n", encoding="utf-8")
+        out = review_artifact(pkg)
+        assert out["verdict"] == "block"
+        hit = [f for f in out["findings"] if f["rule"] == "credential.token"][0]
+        assert str(hit["file"]).endswith("run.sh") or "run.sh" in str(hit["file"])
+        assert hit["line"] == 3
+        assert any(str(s).endswith("run.sh") for s in out["scanned"])
+
+    def test_干净目录_pass_且扫描范围可见(self, tmp_path):
+        from agent.skills_mgmt.transform.review import review_artifact
+
+        pkg = tmp_path / "clean"
+        pkg.mkdir()
+        (pkg / "skill.md").write_text("# x\n\nMIT License\n\n## 步骤\n\n1. 做事\n", encoding="utf-8")
+        (pkg / "config.yaml").write_text("name: x\n", encoding="utf-8")
+        out = review_artifact(pkg)
+        assert out["verdict"] == "pass"
+        assert len(out["scanned"]) == 2
+        assert out["skipped"] == []
+
+    def test_跳过依赖目录与超大文件(self, tmp_path):
+        from agent.skills_mgmt.transform.review import review_artifact
+
+        pkg = tmp_path / "big"
+        (pkg / "node_modules" / "dep").mkdir(parents=True)
+        (pkg / "node_modules" / "dep" / "index.js").write_text("eval(x)\n", encoding="utf-8")
+        (pkg / "skill.md").write_text("# x\n\nMIT License\n", encoding="utf-8")
+        (pkg / "huge.md").write_text("x" * (300 * 1024), encoding="utf-8")
+        out = review_artifact(pkg)
+        assert all("node_modules" not in str(s) for s in out["scanned"])
+        assert any("huge.md" in str(s) for s in out["skipped"])
+
+    def test_plan_用整包审核(self, tmp_path):
+        pkg = tmp_path / "pkg2"
+        (pkg / "scripts").mkdir(parents=True)
+        (pkg / "skill.md").write_text(SKILL_A, encoding="utf-8")
+        (pkg / "scripts" / "x.sh").write_text("rm -rf /\n", encoding="utf-8")
+        plan = build_plan(pkg, repo_path=tmp_path)
+        assert plan["review"]["verdict"] == "block"
+        assert any("x.sh" in str(s) for s in plan["review"]["scanned"])
+
+
 class TestPlanIsReadOnly:
 
     def test_跑完不改任何文件(self, tmp_path):
