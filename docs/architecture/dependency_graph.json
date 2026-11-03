@@ -15543,7 +15543,7 @@
       "source_layer": "observability",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 1456,
+      "line": 1464,
       "source_file": "agent/observability/events.py",
       "is_cross_layer": true,
       "is_violation": false,
