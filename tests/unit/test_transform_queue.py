@@ -62,6 +62,18 @@ def _apply(artifact, root, **kw):
     return rep
 
 
+def test_apply_同时登记统一作业台账(base, artifact):
+    """S1：落地即建作业（source=transform），台账跟着产物根走、不污染仓库 data/。"""
+    from agent.skills_mgmt.transform import jobs
+
+    rep = _apply(artifact, base, new="demo-queue")
+    job = jobs.get_job("transform:%s" % rep["transform_id"], root=base)
+    assert job is not None, "落地后必须能在统一作业台账里查到"
+    assert job["status"] == "registered"
+    assert job["target"] == {"kind": "skill", "id": "demo-queue"}
+    assert job["form"] == "skill"
+
+
 def test_空队列(base):
     rep = tq.list_transforms()
     assert rep["count"] == 0 and rep["items"] == [] and rep["broken"] == 0
@@ -171,6 +183,10 @@ def test_路由契约(base, artifact, monkeypatch):
 
     listed = client.get("/api/skills-mgmt/transforms")
     assert listed.status_code == 200 and listed.get_json()["count"] == 1
+    # S1b：队列响应里带上统一作业台账（旁路信息，缺了也不影响 items）
+    body = listed.get_json()
+    assert isinstance(body.get("jobs"), list)
+    assert isinstance(body.get("jobs_summary"), dict)
 
     detail = client.get("/api/skills-mgmt/transforms/%s" % tid)
     assert detail.status_code == 200 and detail.get_json()["ok"] is True

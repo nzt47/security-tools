@@ -56,7 +56,36 @@ type Detail = {
   texts: Record<string, string>
 }
 
+/** S1：统一转化作业（三套入口收敛后的同一种记录；后端 data/transforms/jobs.json） */
+type Job = {
+  job_id: string
+  source: string
+  source_ref: string
+  form: string
+  title: string
+  status: string
+  target?: { kind?: string; id?: string }
+  artifacts?: string
+  updated_at?: string
+}
+
 type Props = { open: boolean; onClose: () => void }
+
+const JOB_STATUS_STYLE: Record<string, string> = {
+  candidate: 'border-slate-700 text-slate-300',
+  normalized: 'border-cyan-800/60 text-cyan-300',
+  reviewed: 'border-violet-800/60 text-violet-300',
+  registered: 'border-emerald-800/60 text-emerald-300',
+  enabled: 'border-emerald-700 text-emerald-200',
+  archived: 'border-slate-700 text-slate-500',
+  failed: 'border-rose-800/60 text-rose-300',
+}
+
+const SOURCE_LABEL: Record<string, string> = {
+  ingestion: '能力获取',
+  transform: '技能转化',
+  intake: '入轨',
+}
 
 const VERDICT_STYLE: Record<string, string> = {
   duplicate: 'border-amber-800/60 bg-amber-500/10 text-amber-300',
@@ -87,6 +116,7 @@ function Badge({ text, style }: { text: string; style: string }) {
 export default function TransformQueueDialog({ open, onClose }: Props) {
   const [items, setItems] = useState<Item[]>([])
   const [broken, setBroken] = useState(0)
+  const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -113,6 +143,7 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
       if (!r.ok || j.ok === false) throw new Error(j.error || `HTTP ${r.status}`)
       setItems(Array.isArray(j.items) ? j.items : [])
       setBroken(Number(j.broken || 0))
+      setJobs(Array.isArray(j.jobs) ? j.jobs : [])
     } catch (e) {
       setError(String((e as Error).message || e))
     } finally {
@@ -241,6 +272,27 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          {jobs.length > 0 && (
+            <div className="mb-3 rounded-lg border border-slate-800 bg-slate-900/40">
+              <div className="flex items-center justify-between border-b border-slate-800 px-3 py-1.5">
+                <span className="text-[11px] text-slate-300">统一作业（S1 · 三套入口收敛）</span>
+                <span className="text-[10px] text-slate-500">{jobs.length} 条</span>
+              </div>
+              <ul className="divide-y divide-slate-800/70">
+                {jobs.map((j) => (
+                  <li key={j.job_id} className="flex flex-wrap items-center gap-1.5 px-3 py-1 text-[10px]">
+                    <Badge text={SOURCE_LABEL[j.source] || j.source} style="border-slate-700 text-slate-400" />
+                    <span className="truncate text-[11px] text-slate-200">{j.title || j.source_ref}</span>
+                    <Badge text={j.status} style={JOB_STATUS_STYLE[j.status] || 'border-slate-700 text-slate-400'} />
+                    {j.target?.id && (
+                      <span className="text-slate-500">{j.form} → {j.target.kind}:{j.target.id}</span>
+                    )}
+                    <code className="ml-auto text-slate-600">{j.job_id}</code>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {loading && (
             <div className="flex items-center gap-2 text-[11px] text-slate-400">
               <Loader2 size={12} className="animate-spin" /> 读取中…
