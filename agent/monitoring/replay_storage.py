@@ -29,6 +29,7 @@
 import base64
 import datetime
 import gzip
+import hashlib
 import json
 import logging
 import os
@@ -185,9 +186,12 @@ class ReplayStorage:
         """生成 replay 文件绝对路径"""
         date_dir = self._date_dir(ts_iso)
         suffix = ".json.gz" if compressed else ".json"
-        # 防止路径穿越：仅保留字母数字-_作为文件名
-        safe_id = re.sub(r"[^A-Za-z0-9\-_]", "_", replay_id)
-        return os.path.join(date_dir, f"{safe_id}{suffix}")
+        # [C-6-B1 2026-11-03] 文件名改用 **sha256 摘要**，replay_id 只作为哈希输入，
+        # 不进路径表达式。为什么不再靠 re.sub 白名单：CodeQL 不认「正则清洗」当 sanitizer
+        # （§8 陷阱 14，三次应验），而摘要的字符集是常量（hex）—— 穿越在构造上不可能。
+        # 兼容性：旧文件仍按 DB 里记录的 file_path 读取（get_data_by_id 不重算路径）。
+        digest = hashlib.sha256(str(replay_id).encode("utf-8")).hexdigest()[:32]
+        return os.path.join(date_dir, "%s%s" % (digest, suffix))
 
     # ── store ───────────────────────────────────────────────
 
