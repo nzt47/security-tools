@@ -487,9 +487,39 @@ def incidents_dir(directory: Optional[str] = None) -> Path:
     return Path(raw)
 
 
+def _resolve_dir(directory: Optional[str]) -> Optional[Path]:
+    """目录参数 → 真实目录（C-6-B1 2026-11-04）
+
+    `directory` 可能来自面板查询参数：经 `safe_paths.enumerate_path` 逐段列目录解析，
+    用户输入只参与比较、不进路径表达式；解析不到返回 None（调用方当「没有」处理）。
+    未传目录时走常量/环境变量（配置，不是用户输入）。
+    """
+    if not directory:
+        return Path(os.environ.get(ENV_INCIDENTS_DIR) or DEFAULT_INCIDENTS_DIR)
+    from agent.safe_paths import enumerate_path
+    return enumerate_path(directory)
+
+
 def incident_path(incident_id: str, *, directory: Optional[str] = None) -> Path:
-    """单个事故卡的路径"""
+    """单个事故卡的路径（**写入侧**：目录来自配置/显式调用，不做用户路径解析）"""
     return incidents_dir(directory) / f"{incident_id}.json"
+
+
+def _incident_file(incident_id: str, *, directory: Optional[str] = None) -> Optional[Path]:
+    """id → 事故卡文件（**列目录 + 文件名等值匹配**）"""
+    base = _resolve_dir(directory)
+    if base is None or not incident_id:
+        return None
+    want = "%s.json" % incident_id
+    try:
+        if not base.is_dir():
+            return None
+        for child in base.iterdir():
+            if child.name == want:
+                return child
+    except OSError:  # 目录不可读/竞态删除：当「不存在」
+        return None
+    return None
 
 
 def register_incident_writer(path: Any, owner: str = "") -> None:
@@ -550,9 +580,9 @@ def save_incident(card: IncidentCard, *, directory: Optional[str] = None,
 
 def load_incident(incident_id: str, *, directory: Optional[str] = None) -> Optional[IncidentCard]:
     """读取事故卡（不存在/损坏返回 None）"""
-    path = incident_path(incident_id, directory=directory)
+    path = _incident_file(incident_id, directory=directory)
     try:
-        if not path.exists():
+        if path is None or not path.exists():
             return None
         return IncidentCard.from_dict(json.loads(path.read_text(encoding="utf-8")))
     except Exception as exc:  # noqa: BLE001
@@ -563,8 +593,8 @@ def load_incident(incident_id: str, *, directory: Optional[str] = None) -> Optio
 def list_incidents(*, directory: Optional[str] = None,
                    severity: Any = None, status: str = "") -> List[IncidentCard]:
     """列出事故卡（可按 severity/status 过滤；损坏文件跳过）"""
-    base = incidents_dir(directory)
-    if not base.exists():
+    base = _resolve_dir(directory)
+    if base is None or not base.exists():
         return []
     want_level = level_of(severity) if severity else None
     out: List[IncidentCard] = []
