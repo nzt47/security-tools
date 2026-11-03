@@ -449,19 +449,31 @@ class TestHelperMethods:
         storage.close()
 
     def test_file_path_for_uncompressed(self, storage):
+        """【契约变更 2026-11-03 / C-6-B1】文件名是 replay_id 的 sha256 摘要（32 hex）。
+
+        原契约是「replay_id 经 re.sub 洗成文件名」—— CodeQL 不认正则清洗当 sanitizer
+        （§8 陷阱 14），store() 里 6 处文件操作被判 path-injection。改成摘要后
+        **用户输入不进路径表达式**，穿越在构造上不可能（hex 里没有 / 和点）。
+        """
         path = storage._file_path_for("replay-001", None, False)
-        assert path.endswith("replay-001.json")
+        assert path.endswith(".json") and not path.endswith(".json.gz")
+        stem = os.path.basename(path)[: -len(".json")]
+        assert len(stem) == 32 and all(c in "0123456789abcdef" for c in stem)
         storage.close()
 
     def test_file_path_for_compressed(self, storage):
         path = storage._file_path_for("replay-001", None, True)
-        assert path.endswith("replay-001.json.gz")
+        assert path.endswith(".json.gz")
         storage.close()
 
-    def test_file_path_sanitizes_id(self, storage):
-        path = storage._file_path_for("replay/../bad", None, False)
-        # 特殊字符被替换为 _
-        assert ".." not in path
+    def test_file_path_is_deterministic_and_collision_free(self, storage):
+        """同一 id 路径稳定；含穿越字符的 id 落到**另一个**摘要，且路径里不含两个连续点"""
+        a = storage._file_path_for("replay-001", None, False)
+        b = storage._file_path_for("replay-001", None, False)
+        c = storage._file_path_for("replay/../bad", None, False)
+        assert a == b
+        assert a != c
+        assert ".." not in c
         storage.close()
 
 
