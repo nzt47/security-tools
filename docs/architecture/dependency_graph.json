@@ -1586,6 +1586,22 @@
       "out_degree": 1
     },
     {
+      "path": "agent.ingestion.drafts",
+      "name": "drafts",
+      "layer": "ingestion",
+      "file_path": "agent/ingestion/drafts.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.skills_mgmt.transform.facets",
+      "name": "facets",
+      "layer": "skills_mgmt",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
       "path": "agent.ingestion.governance",
       "name": "governance",
       "layer": "ingestion",
@@ -1606,7 +1622,7 @@
       "name": "rewrite",
       "layer": "ingestion",
       "file_path": "agent/ingestion/rewrite.py",
-      "in_degree": 0,
+      "in_degree": 2,
       "out_degree": 1
     },
     {
@@ -4063,7 +4079,7 @@
       "layer": "skills_mgmt",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 0
+      "out_degree": 1
     },
     {
       "path": "agent.skills_mgmt.transform.rewrite",
@@ -4570,10 +4586,10 @@
       "out_degree": 1
     },
     {
-      "path": "agent.skills_mgmt.transform.facets",
-      "name": "facets",
+      "path": "agent.skills_mgmt.transform.apply",
+      "name": "apply",
       "layer": "skills_mgmt",
-      "file_path": "agent/skills_mgmt/transform/facets.py",
+      "file_path": "agent/skills_mgmt/transform/apply.py",
       "in_degree": 0,
       "out_degree": 1
     },
@@ -10180,6 +10196,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.ingestion.drafts",
+      "target": "agent.skills_mgmt.transform.facets",
+      "source_layer": "ingestion",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 336,
+      "source_file": "agent/ingestion/drafts.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.ingestion.governance",
       "target": "agent.state_manager",
       "source_layer": "ingestion",
@@ -10224,7 +10253,7 @@
       "source_layer": "ingestion",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 117,
+      "line": 119,
       "source_file": "agent/ingestion/rewrite.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10341,7 +10370,7 @@
       "source_layer": "ingestion",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1258,
+      "line": 1262,
       "source_file": "agent/ingestion/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24199,7 +24228,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3075,
+      "line": 3084,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -24212,7 +24241,7 @@
       "source_layer": "settings",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 3195,
+      "line": 3204,
       "source_file": "agent/settings/registry.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -25884,6 +25913,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.skills_mgmt.transform.apply",
+      "target": "agent.ingestion.rewrite",
+      "source_layer": "skills_mgmt",
+      "target_layer": "ingestion",
+      "import_type": "from_import",
+      "line": 54,
+      "source_file": "agent/skills_mgmt/transform/apply.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.skills_mgmt.transform.compare",
       "target": "agent.skills_mgmt.capability_cards",
       "source_layer": "skills_mgmt",
@@ -25905,6 +25947,19 @@
       "line": 12,
       "source_file": "agent/skills_mgmt/transform/facets.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.transform.jobs",
+      "target": "agent.ingestion.rewrite",
+      "source_layer": "skills_mgmt",
+      "target_layer": "ingestion",
+      "import_type": "from_import",
+      "line": 66,
+      "source_file": "agent/skills_mgmt/transform/jobs.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -31606,9 +31661,9 @@
   ],
   "stats": {
     "total_files": 720,
-    "total_nodes": 622,
-    "total_edges": 2048,
-    "cross_layer_edges": 1302,
+    "total_nodes": 624,
+    "total_edges": 2051,
+    "cross_layer_edges": 1305,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -31626,7 +31681,7 @@
       "capregistry": 8,
       "unknown": 1,
       "web": 5,
-      "skills_mgmt": 53,
+      "skills_mgmt": 54,
       "cognitive": 13,
       "config": 2,
       "orchestrator": 13,
@@ -31646,7 +31701,7 @@
       "handoff": 1,
       "health": 7,
       "human_in_the_loop": 5,
-      "ingestion": 6,
+      "ingestion": 7,
       "knowledge": 28,
       "lazy_loader": 3,
       "learning": 2,

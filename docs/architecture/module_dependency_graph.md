@@ -246,8 +246,9 @@ flowchart LR
     subgraph ingestion [ingestion]
         agent_ingestion_adapters_base["agent.ingestion.adapters.base"]
         agent_ingestion_autobind["agent.ingestion.autobind"]
+        agent_ingestion_drafts["agent.ingestion.drafts"]
         agent_ingestion_governance["agent.ingestion.governance"]
-        agent_ingestion_rewrite["agent.ingestion.rewrite"]
+        agent_ingestion_rewrite["agent.ingestion.rewrite"]:::crosslayer
         agent_ingestion_service["agent.ingestion.service"]
         agent_ingestion_toolbuild["agent.ingestion.toolbuild"]
     end
@@ -605,8 +606,9 @@ flowchart LR
         agent_skills_mgmt_skill_md_schema["agent.skills_mgmt.skill_md_schema"]
         agent_skills_mgmt_store["agent.skills_mgmt.store"]:::crosslayer
         agent_skills_mgmt_transform["agent.skills_mgmt.transform"]:::crosslayer
+        agent_skills_mgmt_transform_apply["agent.skills_mgmt.transform.apply"]
         agent_skills_mgmt_transform_compare["agent.skills_mgmt.transform.compare"]
-        agent_skills_mgmt_transform_facets["agent.skills_mgmt.transform.facets"]
+        agent_skills_mgmt_transform_facets["agent.skills_mgmt.transform.facets"]:::crosslayer
         agent_skills_mgmt_transform_jobs["agent.skills_mgmt.transform.jobs"]:::crosslayer
         agent_skills_mgmt_transform_queue["agent.skills_mgmt.transform.queue"]:::crosslayer
         agent_skills_mgmt_transform_rewrite["agent.skills_mgmt.transform.rewrite"]:::crosslayer
@@ -1140,6 +1142,7 @@ flowchart LR
     agent_human_in_the_loop_observability -.-> agent_monitoring_business_metrics
     agent_ingestion_adapters_base -.-> agent_skills_mgmt_claude_import
     agent_ingestion_autobind -.-> agent_workflow_learning_models
+    agent_ingestion_drafts -.-> agent_skills_mgmt_transform_facets
     agent_ingestion_governance -.-> agent_state_manager
     agent_ingestion_governance -.-> agent_audit_facade
     agent_ingestion_governance -.-> agent_skills_mgmt_models
@@ -2348,8 +2351,10 @@ flowchart LR
     agent_skills_mgmt_skill_manager -.-> agent_logging_utils
     agent_skills_mgmt_skill_manager --> agent_skills_mgmt_layered
     agent_skills_mgmt_store --> agent_skills_mgmt_registry
+    agent_skills_mgmt_transform_apply -.-> agent_ingestion_rewrite
     agent_skills_mgmt_transform_compare --> agent_skills_mgmt_capability_cards
     agent_skills_mgmt_transform_facets --> agent_skills_mgmt_capability_cards
+    agent_skills_mgmt_transform_jobs -.-> agent_ingestion_rewrite
     agent_skills_mgmt_transform_rewrite -.-> agent_env_config_manager
     agent_skills_mgmt_transform_rewrite --> agent_skills_mgmt_service
     agent_skills_mgmt_vector_adapter -.-> agent_logging_utils
@@ -2797,8 +2802,8 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 720
-- 模块节点数: 622
-- 依赖边数: 2048
-- 跨层调用数: 1302
+- 模块节点数: 624
+- 依赖边数: 2051
+- 跨层调用数: 1305
 - 违规调用数: 0
 - 动态 import 数: 1
