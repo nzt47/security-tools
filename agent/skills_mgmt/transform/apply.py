@@ -27,6 +27,7 @@ TRANSFORMS = Path("data") / "ingestion" / "transforms"
 SKILLS_REPO = Path("data") / "skills_repo"
 
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9_\-]*$")
+_STEP_RE = re.compile(r"^(?:\d+[.、)]|[-*])\s+")
 
 
 def transform_id(text: str) -> str:
@@ -46,6 +47,64 @@ def render_card(card: Dict[str, object]) -> str:
            _ul(card.get("params") or []), _ul(card.get("guard") or []),
            (card.get("example") or "（原文没有示例）"))
     )
+
+
+def _retain_days() -> int:
+    """隔离副本保留天数（与 ingestion.rewrite 同一开关；默认 0 = 不保留）"""
+    from agent.ingestion.rewrite import retain_quarantine_copy_days
+    return retain_quarantine_copy_days()
+
+
+def _evidence(text: str, plan: Dict[str, object]) -> Dict[str, object]:
+    """存档证据：指纹 + 抽取要点 + 逐字引用（**确定性，不改写原文**）
+
+    为什么不再写 raw.md：S5 的口径是"读完即弃" —— 外来原文不落盘，只留可核对的证据。
+    quotes 只收**能在原文逐字找到**的卡片条目，读档时能证明"这句确实来自原文"。
+    """
+    from datetime import datetime, timedelta, timezone
+
+    draft = plan.get("card_draft") or {}
+    items = []
+    for key in ("trigger", "steps", "params", "guard"):
+        for item in (draft.get(key) or []):
+            items.append(str(item).strip())
+    compact = " ".join(str(text).split())
+    quotes = []
+    for item in items:
+        if len(item) < 4:      # 中文条目短但信息密度高（"先做什么" = 4 字）
+            continue
+        if " ".join(item.split()) not in compact:
+            continue
+        if item in quotes:
+            continue
+        quotes.append(item[:200])
+        if len(quotes) >= 20:
+            break
+    key_points = []
+    for line in str(text or "").splitlines():
+        s = line.strip()
+        if s.startswith("#"):
+            point = s.lstrip("#").strip()
+        elif s[:2] in ("- ", "* ") or _STEP_RE.match(s):
+            point = _STEP_RE.sub("", s).strip()
+        else:
+            continue
+        if point and point not in key_points:
+            key_points.append(point[:120])
+        if len(key_points) >= 12:
+            break
+    days = _retain_days()
+    evidence: Dict[str, object] = {
+        "sha256": plan.get("sha256"),
+        "chars": len(str(text or "")),
+        "key_points": key_points,
+        "quotes": quotes,
+        "retained": days > 0,
+    }
+    if days > 0:
+        evidence["retain_until"] = (datetime.now(timezone.utc)
+                                    + timedelta(days=days)).replace(microsecond=0).isoformat()
+    return evidence
 
 
 def _front_matter(name: str, skill_id: str, desc: str) -> str:
@@ -70,7 +129,14 @@ def apply_plan(artifact, *, into: Optional[str] = None, new: Optional[str] = Non
     tdir = base / TRANSFORMS / tid
 
     card_md = render_card(plan["card_draft"])
+    # 【S5 2026-11-04「读完即弃」】存档拆成两半：
+    #   · evidence.json —— **永久**留存：sha256 指纹 + 抽取要点 + 逐字引用（可核对、不可还原）
+    #   · raw.md        —— **隔离副本**：只服务"候选 → 已登记"之间的 LLM 重写；
+    #                      作业进入 registered/enabled 时由 jobs 清掉（见 jobs._purge_raw_copy），
+    #                      开关 CP_RETAIN_QUARANTINE_COPY_DAYS>0 才按天保留（查纠纷用）
+    evidence = _evidence(text, plan)
     files = {
+        "evidence.json": json.dumps(evidence, ensure_ascii=False, indent=1),
         "raw.md": text,
         "card.md": card_md,
         "compare.json": json.dumps(plan["compare"], ensure_ascii=False, indent=1),
@@ -81,6 +147,8 @@ def apply_plan(artifact, *, into: Optional[str] = None, new: Optional[str] = Non
             "sha256": plan["sha256"],
             "verdict": plan["compare"]["verdict"],
             "review": plan["review"]["verdict"],
+            "retained": bool(evidence["retained"]),
+            "retain_until": evidence.get("retain_until"),
             "into": into, "new": new,
             "absorbed_into": (plan["compare"].get("best") or {}).get("skill_id"),
             "next": plan["next"],

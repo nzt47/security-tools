@@ -176,6 +176,7 @@ def api_ingestion_commit():
             rewrite=body.get("rewrite") is True,
             merge_into=str(body.get("merge_into") or "").strip(),
             form=str(body.get("form") or "skill").strip().lower(),
+            draft_only=body.get("draft_only") is True,
         )
     except IngestionError as exc:
         return _fail(exc)

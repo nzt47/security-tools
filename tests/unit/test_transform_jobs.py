@@ -56,6 +56,34 @@ def test_台账损坏时按空台账处理(tmp_path):
     assert raw["version"] == 1 and len(raw["jobs"]) == 1
 
 
+def test_登记后清掉隔离副本_raw_md(tmp_path):
+    """S5「读完即弃」：作业进入 registered/enabled 才删外来原文副本"""
+    tdir = tmp_path / "transforms" / "tid1"
+    tdir.mkdir(parents=True)
+    (tdir / "raw.md").write_text("外来原文", encoding="utf-8")
+    (tdir / "evidence.json").write_text("{}", encoding="utf-8")
+    jobs.upsert_job(source="transform", source_ref="tid1", form="skill",
+                    artifacts=str(tdir), root=tmp_path)
+    jobs.transition("transform:tid1", "normalized", root=tmp_path)
+    assert (tdir / "raw.md").exists(), "候选阶段必须保留原文（P5 重写要用）"
+    jobs.transition("transform:tid1", "reviewed", root=tmp_path)
+    jobs.transition("transform:tid1", "registered", root=tmp_path)
+    assert not (tdir / "raw.md").exists(), "登记后应清掉外来原文副本"
+    assert (tdir / "evidence.json").exists()
+
+
+def test_保留期开关打开则不清(tmp_path, monkeypatch):
+    monkeypatch.setenv("CP_RETAIN_QUARANTINE_COPY_DAYS", "7")
+    tdir = tmp_path / "transforms" / "tid2"
+    tdir.mkdir(parents=True)
+    (tdir / "raw.md").write_text("外来原文", encoding="utf-8")
+    jobs.upsert_job(source="transform", source_ref="tid2", form="skill",
+                    artifacts=str(tdir), root=tmp_path)
+    jobs.transition("transform:tid2", "normalized", root=tmp_path)
+    jobs.transition("transform:tid2", "registered", root=tmp_path)
+    assert (tdir / "raw.md").exists(), "隔离期内不得删除"
+
+
 def test_按来源与状态过滤并按更新时间倒序(tmp_path):
     jobs.upsert_job(source="ingestion", source_ref="a", form="tool", root=tmp_path)
     jobs.upsert_job(source="transform", source_ref="b", form="skill", root=tmp_path)

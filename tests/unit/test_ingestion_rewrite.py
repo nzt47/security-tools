@@ -141,7 +141,14 @@ class TestRewritePreview:
         assert archive["validation"]["ok"] is True
         assert archive["model"]["name"] == "fake-model"
         assert archive["prompt_version"] == rewrite.PROMPT_VERSION
-        assert "普通说明文档" in archive["original"]["text"]
+        # 【S5 2026-11-04】默认"读完即弃"：存档只留指纹 + 抽取要点 + 逐字引用，不落原文
+        original = archive["original"]
+        assert "text" not in original
+        assert original["retained"] is False
+        assert original["sha256"] and len(original["sha256"]) == 64
+        assert original["chars"] > 0
+        assert any("普通文档" in k for k in original["key_points"])
+        assert isinstance(original["quotes"], list)
         assert archive["skill"]["id"] == "beta-rewritten"
 
     def test_单参数_chat_客户端兼容(self, doc):
@@ -161,7 +168,30 @@ class TestRewritePreview:
         archive = rewrite.load_archive(plan.archive_id)
         assert archive["validation"]["ok"] is False
         assert archive["skill"] is None
-        assert "普通说明文档" in archive["original"]["text"]
+        # 校验失败也不落原文（只有指纹/要点），查证靠 sha256 + 要点
+        assert "text" not in archive["original"]
+        assert archive["original"]["sha256"]
+        assert any("普通文档" in k for k in archive["original"]["key_points"])
+
+    def test_保留隔离副本开关打开才落原文(self, doc, _isolated_archive, monkeypatch):
+        """S5：默认关；打开 CP_RETAIN_QUARANTINE_COPY_DAYS 才留外来原文与到期时间"""
+        monkeypatch.setenv(rewrite.RETAIN_ENV, "7")
+        assert rewrite.retain_quarantine_copy_days() == 7
+        fake = FakeLLM(VALID_OUTPUT)
+        plan = service.preview(doc, rewrite=True, llm_client=fake)
+        archive = rewrite.load_archive(plan.archive_id)
+        original = archive["original"]
+        assert original["retained"] is True
+        assert "普通说明文档" in original["text"]
+        assert original["retain_until"]
+        # 文件内容也保留（此前只存哈希）
+        assert all("text" in v for v in original["files"].values())
+
+    def test_保留开关非法值按关闭处理(self, monkeypatch):
+        monkeypatch.setenv(rewrite.RETAIN_ENV, "not-a-number")
+        assert rewrite.retain_quarantine_copy_days() == 0
+        monkeypatch.setenv(rewrite.RETAIN_ENV, "9999")
+        assert rewrite.retain_quarantine_copy_days() == 365
 
     def test_LLM_异常失败并留证(self, doc):
         fake = FakeLLM(error=RuntimeError("boom"))

@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from agent.skills_mgmt.transform import apply_plan, render_card
@@ -67,8 +68,17 @@ def test_execute_落归档与_CARD(tmp_path):
     art = _artifact(tmp_path)
     rep = apply_plan(art, new="gamma-skill", execute=True, root=root)
     tdir = Path(rep["transform_dir"])
-    for name in ("raw.md", "card.md", "compare.json", "review.json", "manifest.json"):
+    # 【S5 2026-11-04】存档拆两半：evidence.json 永久留（指纹+要点+逐字引用），
+    # raw.md 只是隔离副本（作业 registered/enabled 时由 jobs 清掉）
+    for name in ("evidence.json", "raw.md", "card.md", "compare.json", "review.json", "manifest.json"):
         assert (tdir / name).is_file(), name
+    evidence = json.loads((tdir / "evidence.json").read_text(encoding="utf-8"))
+    assert evidence["retained"] is False
+    assert evidence["sha256"] and len(evidence["sha256"]) == 64
+    assert evidence["key_points"]
+    assert evidence["quotes"], "卡片条目应能在原文逐字找到"
+    manifest = json.loads((tdir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["retained"] is False
     skill_dir = root / "data" / "skills_repo" / "gamma-skill"
     card = (skill_dir / "CARD.md").read_text(encoding="utf-8")
     assert "## 何时使用" in card and "需要落地测试时" in card

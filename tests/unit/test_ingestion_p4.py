@@ -150,6 +150,33 @@ class TestDraftCommit:
         assert meta["enabled"] is False
         assert not (Path(__file__).resolve().parents[2] / "agent" / "tools" / "p4_tool_smoke.py").exists()
 
+    def test_draft_only_技能形态只出草稿不安装(self, plain_skill, tmp_path):
+        """S5：能力获取页只产出草稿 —— skill 形态带 draft_only 时不安装、不注册"""
+        plan = service.preview(plain_skill)
+        fake = FakeInstaller()
+        result = service.commit(plain_skill, plan_id=plan.plan_id, confirm=True,
+                                form="skill", draft_only=True,
+                                draft_dir=tmp_path / "drafts", installer=fake)
+        assert result.draft is True and result.installed is False
+        assert result.queued is False and result.form == "skill"
+        assert fake.calls == [], "草稿绝不能走安装链路"
+        root = Path(result.draft_dir)
+        skill_md = (root / "SKILL.md").read_text(encoding="utf-8")
+        assert skill_md.startswith("---")
+        for key in ("id:", "name:", "description:", "status: draft", "enabled: false"):
+            assert key in skill_md, key
+        card_md = (root / "CARD.md").read_text(encoding="utf-8")
+        assert "## 何时使用" in card_md and "## 步骤" in card_md
+        manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["form"] == "skill"
+        assert manifest["status"] == "draft" and manifest["enabled"] is False
+
+    def test_draft_only_拒绝_merge_into(self, plain_skill):
+        plan = service.preview(plain_skill)
+        with pytest.raises(InvalidSource):
+            service.commit(plain_skill, plan_id=plan.plan_id, confirm=True,
+                           form="skill", draft_only=True, merge_into="alpha-old")
+
     def test_workflow_草稿带步骤且未启用(self, workflow_skill, tmp_path):
         plan = service.preview(workflow_skill)
         result = service.commit(workflow_skill, plan_id=plan.plan_id, confirm=True,
