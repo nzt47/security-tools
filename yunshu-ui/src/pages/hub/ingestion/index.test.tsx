@@ -114,37 +114,36 @@ describe('IngestionPage', () => {
     await screen.findByText('alpha')
   })
 
-  it('未勾确认不可提交；勾选后提交带 merge_into', async () => {
+  it('未勾确认不可提交；勾选后以 draft_only 生成技能草稿', async () => {
     setup()
     await previewPlan()
-    const commit = screen.getByRole('button', { name: '安装为技能' }) as HTMLButtonElement
+    const commit = screen.getByRole('button', { name: '生成技能草稿' }) as HTMLButtonElement
     expect(commit.disabled, '未确认就允许落库，是很贵的误点').toBe(true)
 
-    fireEvent.click(screen.getByRole('button', { name: '填入合并目标' }))
     fireEvent.click(screen.getByLabelText('我已核对预览计划'))
-    const mergeCommit = screen.getByRole('button', { name: '合并进 alpha-old' }) as HTMLButtonElement
-    await waitFor(() => expect(mergeCommit.disabled).toBe(false))
+    await waitFor(() => expect(commit.disabled).toBe(false))
 
-    api.commitIngestion.mockResolvedValue(result({ merged: true, merged_into: 'alpha-old', installed: true, queued: false }))
-    fireEvent.click(mergeCommit)
+    // S5：能力获取页不再安装/合并 —— 只产出草稿，登记/启用走转化队列
+    api.commitIngestion.mockResolvedValue(result({ draft: true, installed: false, queued: false, draft_dir: 'data/ingestion/drafts/ing_x' }))
+    fireEvent.click(commit)
     await waitFor(() => expect(api.commitIngestion).toHaveBeenCalledWith({
       source: { path: 'C:/alpha' }, plan_id: 'ig_1', confirm: true,
-      form: 'skill', merge_into: 'alpha-old',
+      form: 'skill', draft_only: true,
     }))
-    expect(await screen.findByText('已合并')).toBeTruthy()
+    expect(await screen.findByText('草稿')).toBeTruthy()
   })
 
-  it('推荐工作流时解释"骨架草稿"，并可一键改为按技能安装', async () => {
+  it('推荐工作流时解释"骨架草稿"，并可一键改为按技能草稿', async () => {
     setup()
     await previewPlan(plan({
       recommendation: { form: 'workflow', reason: '正文有 3 个稳定编号步骤且无脚本', confidence: 0.55 },
     }))
     // 预览后表单默认仍是技能；工作流推荐只作为建议 + 明确后果说明
     expect((screen.getByLabelText('落库形态') as HTMLSelectElement).value).toBe('skill')
-    expect(screen.getByText(/只产出/)).toBeTruthy()
+    expect(screen.getAllByText(/只产出/).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('button', { name: '采用（生成骨架草稿）' }))
     await waitFor(() => expect((screen.getByLabelText('落库形态') as HTMLSelectElement).value).toBe('workflow'))
-    fireEvent.click(screen.getByRole('button', { name: '改为按技能安装' }))
+    fireEvent.click(screen.getByRole('button', { name: '改为按技能草稿' }))
     await waitFor(() => expect((screen.getByLabelText('落库形态') as HTMLSelectElement).value).toBe('skill'))
   })
 
@@ -154,14 +153,14 @@ describe('IngestionPage', () => {
     expect(screen.getByText(/先勾选上方「我已核对预览计划」/)).toBeTruthy()
   })
 
-  it('切到 tool 形态后只提交草稿，不带 merge_into', async () => {
+  it('切到 tool 形态后也只提交草稿（draft_only，无 merge_into）', async () => {
     setup()
     await previewPlan()
     fireEvent.change(screen.getByLabelText('落库形态'), { target: { value: 'tool' } })
     fireEvent.click(screen.getByLabelText('我已核对预览计划'))
     fireEvent.click(screen.getByRole('button', { name: '生成工具草稿' }))
     await waitFor(() => expect(api.commitIngestion).toHaveBeenCalledWith({
-      source: { path: 'C:/alpha' }, plan_id: 'ig_1', confirm: true, form: 'tool',
+      source: { path: 'C:/alpha' }, plan_id: 'ig_1', confirm: true, form: 'tool', draft_only: true,
     }))
   })
 })

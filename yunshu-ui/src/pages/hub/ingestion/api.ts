@@ -138,6 +138,8 @@ export async function commitIngestion(body: {
   form: IngestForm
   archive_id?: string
   merge_into?: string
+  /** S5：只产出草稿（不安装/不注册/不启用） */
+  draft_only?: boolean
 }): Promise<IngestResult> {
   const data = await postEnvelope<{ result: IngestResult }>(INGESTION_COMMIT, body)
   return data.result

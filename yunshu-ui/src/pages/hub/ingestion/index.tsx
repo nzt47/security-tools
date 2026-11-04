@@ -90,7 +90,6 @@ export default function IngestionPage() {
   const [plan, setPlan] = useState<IngestPlan | null>(null)
   const [previewing, setPreviewing] = useState('')
   const [form, setForm] = useState<IngestForm>('skill')
-  const [mergeInto, setMergeInto] = useState('')
   const [confirmed, setConfirmed] = useState(false)
   const [committing, setCommitting] = useState(false)
   const [result, setResult] = useState<IngestResult | null>(null)
@@ -106,7 +105,6 @@ export default function IngestionPage() {
     setPlan(null)
     setConfirmed(false)
     setResult(null)
-    setMergeInto('')
   }
 
   const discover = useCallback(async () => {
@@ -132,7 +130,6 @@ export default function IngestionPage() {
       const p = await previewIngestion(source, rewrite)
       setPlan(p)
       setForm('skill')
-      setMergeInto('')
     } catch (e) {
       setError((rewrite ? 'LLM 重写预览失败：' : '预览失败：') + (e instanceof Error ? e.message : String(e)))
     } finally {
@@ -144,13 +141,15 @@ export default function IngestionPage() {
     if (!plan || !confirmed) return
     setCommitting(true); setError('')
     try {
+      // 【S5 2026-11-04】能力获取页只产出草稿：draft_only=true 走 drafts 隔离区，
+      // 不安装、不注册、不启用；登记/启用统一在「转化队列」。
       const next = await commitIngestion({
         source: currentSource(),
         plan_id: plan.plan_id,
         confirm: true,
         form,
+        draft_only: true,
         ...(plan.archive_id ? { archive_id: plan.archive_id } : {}),
-        ...(form === 'skill' && mergeInto.trim() ? { merge_into: mergeInto.trim() } : {}),
       })
       setResult(next)
       setConfirmed(false)
@@ -162,7 +161,7 @@ export default function IngestionPage() {
   }
 
   const commitLabel = form === 'skill'
-    ? (mergeInto.trim() ? '合并进 ' + mergeInto.trim() : '安装为技能')
+    ? '生成技能草稿'
     : (form === 'tool' ? '生成工具草稿' : '生成工作流草稿')
 
   const tabs = <IngestionTabs tab={tab} onChange={setTab} />
@@ -190,7 +189,7 @@ export default function IngestionPage() {
       {tabs}
       <PageHeader
         title="能力获取"
-        description="外来技能 / 文档 / 提示词 / 插件包 → 可预览、可重写、可合并、可生成草稿的云枢能力。只在显式确认后落库。"
+        description="外来技能 / 文档 / 提示词 / 插件包 → 摄取、预览、生成草稿（技能卡 / 工具 / 工作流）。这里**不安装、不注册、不启用**：登记与启用统一在「技能中心 → 转化队列」。"
         actions={(
           <button type="button" className={BTN} onClick={() => void discover()} disabled={discovering}>
             {discovering ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
@@ -339,8 +338,8 @@ export default function IngestionPage() {
                         </button>
                         <button type="button" className={BTN + ' border-emerald-800/70 text-emerald-300'}
                           onClick={() => { setForm('skill'); setConfirmed(false) }}
-                          title="按技能形态直接安装，可被检索/注入，无需绑定工具">
-                          改为按技能安装
+                          title="按技能形态生成草稿（仍不注册、不启用）">
+                          改为按技能草稿
                         </button>
                       </div>
                     )}
@@ -412,10 +411,9 @@ export default function IngestionPage() {
                       <ArrowRight size={12} /> 建议合并到
                       <span className="font-mono">{plan.merge_suggestion.target_id}</span>
                       <span className="text-slate-500">{plan.merge_suggestion.reason}</span>
-                      <button type="button" className={BTN + ' ml-auto'}
-                        onClick={() => { setForm('skill'); setMergeInto(plan.merge_suggestion!.target_id); setConfirmed(false) }}>
-                        填入合并目标
-                      </button>
+                      <span className="ml-auto text-slate-400">
+                        草稿生成后在「转化队列」里合并
+                      </span>
                     </div>
                   )}
                 </div>
@@ -444,26 +442,15 @@ export default function IngestionPage() {
                     onChange={(e) => {
                       const next = e.target.value as IngestForm
                       setForm(next); setConfirmed(false)
-                      if (next !== 'skill') setMergeInto('')
                     }}>
                     {(Object.keys(FORM_LABEL) as IngestForm[]).map((k) => (
                       <option key={k} value={k}>{FORM_LABEL[k]}</option>
                     ))}
                   </select>
                   <span className="text-[10px] text-slate-500">
-                    tool / workflow 只生成草稿（不注册、不启用）
+                    三种形态都<b>只产出草稿</b>（不注册、不启用）；登记/启用请到「技能中心 → 转化队列」
                   </span>
                 </div>
-
-                {form === 'skill' && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] text-slate-400">合并目标（可选）</span>
-                    <input className={INPUT + ' w-64'} value={mergeInto}
-                      aria-label="合并目标技能 id"
-                      placeholder="留空 = 安装为独立技能"
-                      onChange={(e) => { setMergeInto(e.target.value); setConfirmed(false) }} />
-                  </div>
-                )}
 
                 <label className="flex items-start gap-2 text-[11px] text-slate-300">
                   <input type="checkbox" className="mt-0.5" checked={confirmed}
@@ -520,8 +507,8 @@ export default function IngestionPage() {
                 )}
                 {result.draft && (
                   <div className="text-[10px] leading-relaxed text-slate-500">
-                    它<b>不在</b>「草稿评审」的技能队列里（那里只收技能草稿）；到「草稿评审」页底部的
-                    「吞噬生成的骨架草稿」可以查看与删除，路径就是上面这个目录。
+                    它<b>只是草稿</b>：不注册、不启用。到「草稿评审」页底部的「吞噬生成的骨架草稿」可以查看与删除；
+                    要登记/启用请到「技能中心 → 转化队列」。路径就是上面这个目录。
                   </div>
                 )}
                 {result.warnings.length > 0 && (

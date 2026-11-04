@@ -42,6 +42,8 @@ MAX_ARCHIVE_FILES_BYTES = 1_000_000
 CACHE_TTL_SECONDS = 3600
 DEFAULT_ARCHIVE_DIR = Path(__file__).resolve().parents[2] / "data" / "ingestion"
 _ARCHIVE_ID_RE = re.compile(r"^ir_[0-9a-f]{24}$")
+_KEY_STEP_RE = re.compile(r"^(?:\d+[.、)]|[-*])\s+")
+_WS_RE = re.compile(r"\s+")
 FENCE = "\x60\x60\x60"
 
 SYSTEM_PROMPT = """你是云枢（Yunshu）的技能整理器。把用户给的外来材料改写成一份可被
@@ -289,33 +291,122 @@ def _archive_id(source_ref: str, fingerprint: Dict[str, Any], model: str,
     return "ir_" + hashlib.sha256(material.encode("utf-8")).hexdigest()[:24]
 
 
+def _RETENTION_DELTA(days: int):
+    """保留窗口（天）→ timedelta（延迟导入以免模块顶部多一个符号）"""
+    from datetime import timedelta
+    return timedelta(days=int(days))
+
+
 def archive_dir_path(archive_dir: Optional[Any] = None) -> Path:
     return Path(archive_dir) if archive_dir else Path(DEFAULT_ARCHIVE_DIR)
 
 
-def _archive_original(asset: Any, warnings: List[str]) -> Dict[str, Any]:
+#: 隔离副本保留天数（S5「读完即弃」）——0 = 不留外来原文（默认）；>0 才保留 N 天供查纠纷。
+RETAIN_ENV = "CP_RETAIN_QUARANTINE_COPY_DAYS"
+
+
+def retain_quarantine_copy_days() -> int:
+    """隔离副本保留天数（默认 **0 = 不保留**）
+
+    为什么默认关：S5 的口径是"读完即弃" —— 存档只留**指纹 + 抽取要点 + 逐字引用**，
+    外来原文不落盘。需要查纠纷时把 CP_RETAIN_QUARANTINE_COPY_DAYS 设成正数，
+    存档里才会带 `text` / `files` 原文与 `retain_until` 到期时间。
+    """
+    raw = str(os.environ.get(RETAIN_ENV) or "").strip()
+    try:
+        days = int(float(raw)) if raw else 0
+    except ValueError:
+        return 0
+    return max(0, min(days, 365))
+
+
+def _key_points(body: str, *, max_items: int = 12, max_chars: int = 120) -> List[str]:
+    """抽取要点：标题行 + 前若干条列表项（**确定性、不改写**）"""
+    points: List[str] = []
+    for line in str(body or "").splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        if text.startswith("#"):
+            item = text.lstrip("#").strip()
+        elif text[:2] in ("- ", "* ") or _KEY_STEP_RE.match(text):
+            item = _KEY_STEP_RE.sub("", text).strip()
+        else:
+            continue
+        if not item or item in points:
+            continue
+        points.append(item[:max_chars])
+        if len(points) >= max_items:
+            break
+    return points
+
+
+def _verbatim_quotes(original: str, rewritten: str, *,
+                     max_items: int = 20, min_chars: int = 8,
+                     max_chars: int = 200) -> List[str]:
+    """逐字引用：改写稿里**能在原文逐字找到**的行（归一化空白后比较）
+
+    这就是 P5「只准引用、不准造」在存档侧的留痕：读档时能核对"这句话确实来自原文"。
+    """
+    if not original or not rewritten:
+        return []
+    haystack = _WS_RE.sub(" ", str(original))
+    quotes: List[str] = []
+    for line in str(rewritten).splitlines():
+        text = line.strip().lstrip("#").strip()
+        if len(text) < min_chars or text.startswith("```"):
+            continue
+        if _WS_RE.sub(" ", text) not in haystack:
+            continue
+        if text in quotes:
+            continue
+        quotes.append(text[:max_chars])
+        if len(quotes) >= max_items:
+            break
+    return quotes
+
+
+def _archive_original(asset: Any, warnings: List[str], *,
+                      rewritten: str = "") -> Dict[str, Any]:
+    """存档里的"原文"部分（S5：默认只留指纹/要点/引用，不落原文）
+
+    返回结构的**稳定部分**（任何时候都有）：
+      sha256 / chars / key_points / quotes / files(仅指纹+字数) / manifest / front_matter
+    `retain_quarantine_copy_days() > 0` 时才额外带：text / files 原文 / retain_until。
+    """
     body = str(getattr(asset, "body", "") or "")
+    keep = retain_quarantine_copy_days() > 0
     files: Dict[str, Any] = {}
     total = 0
     for name, text in sorted((getattr(asset, "files", None) or {}).items()):
+        payload: Dict[str, Any] = {"sha256": _sha256(str(text)), "chars": len(str(text))}
         size = len(str(text).encode("utf-8", errors="replace"))
-        if total + size <= MAX_ARCHIVE_FILES_BYTES:
-            files[name] = str(text)
+        if keep and total + size <= MAX_ARCHIVE_FILES_BYTES:
+            payload["text"] = str(text)
             total += size
-        else:
-            files[name] = {"sha256": _sha256(str(text)), "chars": len(str(text)),
-                           "truncated": True}
-    if any(isinstance(v, dict) for v in files.values()):
-        warnings.append(f"脚本内容超过存档上限 {MAX_ARCHIVE_FILES_BYTES} 字节，超出部分只存哈希")
-    return {
-        "text": body,
+        elif keep:
+            payload["truncated"] = True
+            warnings.append(
+                f"脚本内容超过存档上限 {MAX_ARCHIVE_FILES_BYTES} 字节，超出部分只存哈希")
+        files[name] = payload
+    original: Dict[str, Any] = {
+        "sha256": _sha256(body),
         "chars": len(body),
+        "key_points": _key_points(body),
+        "quotes": _verbatim_quotes(body, rewritten),
         "files": files,
         "manifest": getattr(asset, "manifest", None),
         "front_matter": getattr(asset, "front_matter", None),
         "adapter": str(getattr(asset, "adapter", "") or ""),
         "source_kind": str(getattr(asset, "source_kind", "") or ""),
+        "retained": keep,
     }
+    if keep:
+        days = retain_quarantine_copy_days()
+        original["text"] = body
+        original["retain_until"] = (datetime.now(timezone.utc)
+                                    + _RETENTION_DELTA(days)).replace(microsecond=0).isoformat()
+    return original
 
 
 def _write_archive(archive_dir: Path, payload: Dict[str, Any]) -> Path:
@@ -433,7 +524,8 @@ def rewrite_asset(source: Any, asset: Any, *,
             "cache": bool(_truthy_env("CHAT_RESPONSE_CACHE")),
             "cached_hit": bool(cached),
         },
-        "original": _archive_original(asset, warnings),
+        "original": _archive_original(asset, warnings,
+                                    rewritten=(skill.body if skill is not None else "")),
         "llm_output": output,
         "validation": {"ok": ok, "errors": list(dict.fromkeys(errors)),
                        "warnings": list(dict.fromkeys(warnings))},

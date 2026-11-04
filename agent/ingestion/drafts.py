@@ -110,12 +110,17 @@ def _manifest(draft_id: str, form: str, plan: IngestPlan, skill: NormalizedSkill
         "created_at": _now_iso(),
         "files": files,
         "warnings": warnings,
-        "review": [
-            "人工补全实现/步骤绑定与参数 schema",
-            "补测试并跑通",
-            "按需登记到 tool_definitions / workflow 加载目录",
-            "走审批后再启用（P4 不自动注册）",
-        ],
+        "review": (
+            ["人工审阅 SKILL.md / CARD.md（内容是否可内化）",
+             "补测试并跑通",
+             "按需登记到技能库（转化队列 → 登记）",
+             "走审批后再启用（本页不自动注册）"]
+            if form == "skill" else
+            ["人工补全实现/步骤绑定与参数 schema",
+             "补测试并跑通",
+             "按需登记到 tool_definitions / workflow 加载目录",
+             "走审批后再启用（P4 不自动注册）"]
+        ),
     }
 
 
@@ -301,6 +306,72 @@ def write_workflow_draft(skill: NormalizedSkill, plan: IngestPlan, *,
             "workflow": workflow}
 
 
+def _skill_front_matter(skill: NormalizedSkill) -> str:
+    """SKILL.md 的 front matter（9 个必填键齐全；status=draft / enabled=false）"""
+    tags = ", ".join(str(t) for t in (skill.tags or []) if str(t).strip())
+    return (
+        "---\n"
+        f"id: {skill.id}\n"
+        f"name: {skill.name}\n"
+        f"description: {(skill.description or skill.name).replace(chr(10), ' ')[:200]}\n"
+        f"author: {skill.author or 'yunshu-ingestion'}\n"
+        f"category: {skill.category or 'custom'}\n"
+        f"source: {skill.source or 'ingestion'}\n"
+        f"tags: [{tags}]\n"
+        f"content_type: {skill.content_type or 'markdown'}\n"
+        "enabled: false\n"
+        f"version: {skill.version or '0.1.0'}\n"
+        "status: draft\n"
+        "---\n\n"
+    )
+
+
+def write_skill_draft(skill: NormalizedSkill, plan: IngestPlan, *,
+                      draft_dir: Any = None) -> Dict[str, Any]:
+    """技能草稿：只写隔离区（SKILL.md + CARD.md + manifest），**不注册、不启用**
+
+    S5 口径：能力获取页只做「摄取 + 预览 + 生成草稿」；登记/启用统一进转化队列。
+    所以技能形态也从"直接安装"改成"先落草稿"，安装走既有 intake / 队列动作。
+    """
+    from agent.skills_mgmt.transform.facets import extract_facets
+
+    base = Path(draft_dir) if draft_dir else Path(DEFAULT_DRAFT_DIR)
+    did = draft_id_for(plan.plan_id, "skill")
+    root = base / did
+    body = str(skill.body or "")
+    skill_md = _skill_front_matter(skill) + body
+    facets = extract_facets(skill_md)
+
+    def _section(title: str, key: str) -> str:
+        text = str(facets.get(key) or "").strip()
+        return "## " + title + "\n\n" + (text or "（原文没有这一节）") + "\n\n"
+
+    card_md = ("# " + (skill.name or skill.id) + "\n\n"
+               + (skill.description or "（来源未提供说明）") + "\n\n"
+               + _section("何时使用", "trigger") + _section("步骤", "steps")
+               + _section("参数", "params") + _section("约束 / 反例", "guard")
+               + _section("示例", "example"))
+
+    warnings = [
+        "本目录（data/ingestion/drafts/）不会被任何加载器扫描：不登记就不会出现在技能列表里。",
+        "登记/启用请走「转化队列」：先人工审阅 CARD.md 与 SKILL.md，再按需登记。",
+    ]
+    files = ["manifest.json", "README.md", "SKILL.md", "CARD.md"]
+    copied = _copy_source_scripts(root, plan)
+    if copied:
+        files.extend(copied)
+        warnings.append("来源 scripts 已复制到 source/scripts/（供人工参考；不会自动执行）")
+
+    _write(root / "SKILL.md", skill_md)
+    _write(root / "CARD.md", card_md)
+    _write(root / "README.md", _readme(did, "skill", plan, skill, warnings))
+    _write(root / "manifest.json",
+           json.dumps(_manifest(did, "skill", plan, skill, files, warnings),
+                      ensure_ascii=False, indent=2) + "\n")
+    return {"draft_id": did, "draft_dir": str(root), "form": "skill",
+            "files": files, "warnings": warnings}
+
+
 def list_drafts(draft_dir: Any = None) -> List[Dict[str, Any]]:
     """列出隔离区里已生成的骨架草稿（只读 manifest，按 created_at 倒序）。
 
@@ -457,6 +528,8 @@ def write_draft(skill: NormalizedSkill, plan: IngestPlan, form: str, *,
         return write_tool_draft(skill, plan, draft_dir=draft_dir)
     if form == "workflow":
         return write_workflow_draft(skill, plan, draft_dir=draft_dir)
+    if form == "skill":
+        return write_skill_draft(skill, plan, draft_dir=draft_dir)
     raise ValueError(f"未知草稿形态: {form!r}")
 
 
@@ -474,6 +547,7 @@ __all__ = [
     "load_workflow",
     "save_workflow",
     "write_draft",
+    "write_skill_draft",
     "write_tool_draft",
     "write_workflow_draft",
 ]

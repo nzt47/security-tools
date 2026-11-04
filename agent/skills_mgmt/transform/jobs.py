@@ -51,6 +51,31 @@ _TRANSITIONS = {
 
 _LOCK = threading.RLock()
 
+#: 到达这些状态就"读完即弃"：清掉作业目录里的外来原文副本（raw.md）
+_PURGE_STATUSES = ("registered", "enabled")
+
+
+def _purge_raw_copy(job: Dict[str, Any]) -> None:
+    """作业内化后清掉**隔离副本** raw.md（S5「读完即弃」）
+
+    - 只删 raw.md（外来原文副本）；evidence.json / card.md / compare / review 保留；
+    - CP_RETAIN_QUARANTINE_COPY_DAYS > 0 时不删（查纠纷用的隔离期）；
+    - best-effort：删不掉只记日志，**绝不**让状态流转失败。
+    """
+    try:
+        from agent.ingestion.rewrite import retain_quarantine_copy_days
+        if retain_quarantine_copy_days() > 0:
+            return
+        base = str(job.get("artifacts") or "")
+        if not base:
+            return
+        raw = Path(base) / "raw.md"
+        if raw.is_file():
+            raw.unlink()
+            logger.info("[transform.jobs] 已清掉隔离副本 raw.md: %s", raw)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[transform.jobs] 清理隔离副本失败（不影响流转）: %s", exc)
+
 
 class JobError(Exception):
     """作业台账的显式失败（非法状态流转 / 找不到作业）。"""
@@ -189,6 +214,8 @@ def transition(jid: str, status: str, *, target: Optional[Dict[str, str]] = None
         job["updated_at"] = _now()
         job["rev"] = _next_rev(jobs)
         _save(path, jobs)
+        if status in _PURGE_STATUSES:
+            _purge_raw_copy(job)
         return dict(job)
 
 

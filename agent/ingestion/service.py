@@ -1206,7 +1206,11 @@ def _plan_from_archive(prepared: IngestSource, archive: Dict[str, Any],
 
 def _write_draft_result(plan: IngestPlan, *, form: str,
                         archive_id: str = "", draft_dir: Any = None) -> IngestResult:
-    """P4：只生成 tool/workflow 骨架草稿，不安装、不注册、不启用。"""
+    """只生成草稿（skill / tool / workflow），**不安装、不注册、不启用**。
+
+    S5：能力获取页只做「摄取 + 预览 + 生成草稿」；skill 形态也从"直接安装"改成
+    "先落草稿"（drafts.write_skill_draft），登记/启用统一走转化队列。
+    """
     if plan.skill is None:
         raise RewriteRequired("计划中没有可生成草稿的 skill（需要先重写）")
     from . import drafts
@@ -1272,7 +1276,8 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
            installer: Any = None, archive_id: str = "", rewrite: bool = False,
            llm_client: Any = None, archive_dir: Optional[Any] = None,
            merge_into: str = "", form: str = "skill",
-           draft_dir: Optional[Any] = None) -> IngestResult:
+           draft_dir: Optional[Any] = None,
+           draft_only: bool = False) -> IngestResult:
     """按**已预览的计划**落库（复用 install_from_zip）。
 
     P2：L2 来源必须先用 preview(rewrite=true) 生成存档，再带 archive_id 提交；
@@ -1298,6 +1303,8 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
         raise InvalidSource(f"未知 form：{form!r}（只支持 skill/tool/workflow）")
     if form != "skill" and merge_into:
         raise InvalidSource("tool/workflow 草稿形态不支持 merge_into（合并只对技能生效）")
+    if draft_only and merge_into:
+        raise InvalidSource("draft_only 只产出草稿，不能与 merge_into 同用")
 
     if archive_id:
         from . import rewrite as rewrite_mod
@@ -1334,7 +1341,7 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
                 detail="请重新 preview(rewrite=true) 生成通过校验的草稿。",
             )
         plan = _plan_from_archive(prepared, archive, aid, skill)
-        if form != "skill":
+        if draft_only or form != "skill":
             return _write_draft_result(plan, form=form, archive_id=aid,
                                        draft_dir=draft_dir)
         return _install_plan(plan, installer=installer, rewritten=True,
@@ -1354,7 +1361,7 @@ def commit(source: Any, *, plan_id: str, confirm: bool = False,
             "该来源不符合云枢 schema（L2），需要先 LLM 重写并人工预览",
             detail="请 preview(rewrite=true) 生成草稿与 archive_id，再带 archive_id 提交。",
         )
-    if form != "skill":
+    if draft_only or form != "skill":
         return _write_draft_result(plan, form=form, draft_dir=draft_dir)
     return _install_plan(plan, installer=installer, merge_into=merge_into)
 

@@ -2904,6 +2904,15 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        owner="app_server.py",
        impact="影响面：每增加一个前缀，其下全部变更型接口即免鉴权"),
 
+    # 吞噬存档：隔离副本保留天数（S5「读完即弃」）
+    _b("CP_RETAIN_QUARANTINE_COPY_DAYS", CAT_SKILLS, 0,
+       "外来原文隔离副本的保留天数：**0（默认）= 不保留**，只留 sha256 指纹 + 抽取要点 + 逐字引用；"
+       "设成正数才会在 ingest 存档与转化归档里留下原文与 retain_until（查纠纷用）。"
+       "调大即延长外来原文在本机的留存时间",
+       owner="agent/ingestion/rewrite.py",
+       impact="影响面：所有吞噬/转化归档是否落外来原文；与「读完即弃」口径相反，需显式开启",
+       validator=_range_validator(0, 365, kind="int")),
+
     # 吞噬（ingestion）本机源探测
     _c("INGEST_SCAN_ROOTS", CAT_SKILLS, None,
        "吞噬源探测根（os.pathsep 分隔；每项可写 label=path，label 用于生态归属）。"
