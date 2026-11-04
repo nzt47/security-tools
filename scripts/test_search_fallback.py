@@ -166,13 +166,15 @@ def test_fallback_mechanism():
     status = search_engine.get_current_status()
     # [C-6-B4 2026-11-04] 显式重组再打印：不让含密钥状态的整份 status 透传（同 B2 的
     # system_tools 口径 —— CodeQL 不认"出口过滤"，只认"字段来自哪里"）。
+    # [C-6-B4 2026-11-04] 只打**计数**，不打引擎名/密钥状态（它们与密钥同一股数据流）
+    stats = status.get("stats") or {}
     safe_status = {
-        "default_engine": status.get("default_engine"),
-        "engine_priority": list(status.get("engine_priority") or []),
-        "engine_enabled": dict(status.get("engine_enabled") or {}),
-        "api_keys_configured": {k: bool(v) for k, v in (status.get("api_keys_status") or {}).items()},
-        "stats": {k: (status.get("stats") or {}).get(k)
-                  for k in ("total_searches", "fallback_count", "cache_size")},
+        "engines_registered": len(status.get("engine_priority") or []),
+        "engines_enabled": sum(1 for v in (status.get("engine_enabled") or {}).values() if v),
+        "api_keys_configured": sum(1 for v in (status.get("api_keys_status") or {}).values() if v),
+        "total_searches": stats.get("total_searches"),
+        "fallback_count": stats.get("fallback_count"),
+        "cache_size": stats.get("cache_size"),
         "recent_fallbacks": len(status.get("recent_fallbacks") or []),
     }
     print(json.dumps(safe_status, indent=2, ensure_ascii=False))

@@ -22,7 +22,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import os
 import socket
 import subprocess
@@ -41,13 +40,12 @@ def run(args: list[str], timeout: int = 30) -> subprocess.CompletedProcess:
 
 
 def mask(secret: str) -> str:
-    """打码显示（C-6-B4）：只给 **sha256 前 8 位指纹**
+    """打码显示（C-6-B4）：只给**长度**，不给任何派生串
 
-    旧实现保留前 4 + 后 4 位 —— 仍是明文片段（CodeQL 也按明文泄漏判）。
-    指纹足以回答"是不是同一串授权码"，且不可还原。
+    旧实现保留前 4 + 后 4 位 —— 仍是明文片段（CodeQL 按明文泄漏判）。
+    为什么连 sha256 指纹也不打：对凭据做哈希会被判成 py/weak-sensitive-data-hashing。
     """
-    text = str(secret or "")
-    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
+    return "已隐去（%d 字符）" % len(str(secret or ""))
 
 
 def current_password(config: Path) -> str:

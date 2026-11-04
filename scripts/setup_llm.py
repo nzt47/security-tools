@@ -10,17 +10,13 @@
 - 硅基流动 (SiliconFlow)
 """
 
-import hashlib
 import os
 import sys
 import json
 from pathlib import Path
 
 
-def _key_fp(value: str) -> str:
-    """密钥指纹（C-6-B4）：sha256 前 8 位 —— 可核对"是不是同一把"，不可还原明文。"""
-    text = str(value or "")
-    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
+# 【C-6-B4 2026-11-04】不回显密钥（连指纹也不打：对凭据做 sha256 会被判成弱哈希）。
 
 class LLMConfigManager:
     """LLM 配置管理器"""
@@ -332,7 +328,8 @@ def main():
             config = json.load(f)
             print(f"  提供商: {config.get('provider')}")
             print(f"  模型: {config.get('model')}")
-            print("  API Key: " + _key_fp(config.get("api_key", "")) + "（只显示指纹）")
+            _saved_key = str(config.get("api_key", "") or "")
+            print("  API Key: " + (("已设置（%d 字符）" % len(_saved_key)) if _saved_key else "(未设置)"))
         
         choice = input("\n是否重新配置? (y/N): ").strip().lower()
         if choice != 'y':

@@ -23,7 +23,6 @@ import json
 import logging
 import uuid
 import datetime
-import hashlib
 import threading
 from copy import deepcopy
 from pathlib import Path
@@ -34,15 +33,11 @@ from agent.env_config_manager import get_env_config_manager
 logger = logging.getLogger(__name__)
 
 
-def _fp(value) -> str:
-    """标识符指纹（C-6-B4 2026-11-04）：sha256 前 8 位
-
-    配置键 / 环境变量名 / 引擎名都是**从敏感字段派生**的字符串，CodeQL 会把它们
-    与对应的 api_key 视作同一股数据流 ⇒ 直接写进日志就是明文泄漏。
-    指纹足够回答"是哪一项"，且不可还原到凭证本身。
-    """
-    text = str(value or "")
-    return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
+# 【C-6-B4 2026-11-04 口径修正】敏感字段**不派生、不打日志**：
+#   一开始写的是"打 sha256 指纹"，但 CodeQL 会报 py/weak-sensitive-data-hashing
+#   （拿口令做 SHA256 = 弱哈希，high），指纹方案在凭据上反而更糟。
+#   正确做法是把"可能是凭证的那一半"整段去掉：日志只保留**结构信息**
+#   （成功/失败、异常类名、条数），不出现值、不出现指纹。
 
 # 配置文件的**默认**路径（仓库内那份）。
 # 【2026-10-06】它**不再是构造时的取值来源** —— 生效路径一律经 default_config_file() 解析，
@@ -392,7 +387,7 @@ class NetworkConfigManager:
         for instance in self._cache.get('llm_instances', []):
             if not instance.get('id'):
                 instance["id"] = str(uuid.uuid4())
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._ensure_config_structure.instance', 'message': f'[网络配置] 已为 LLM 实例自动生成 ID: {instance["id"]}'}))
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._ensure_config_structure.instance', 'message': '[网络配置] 已为 LLM 实例自动生成 ID'}))
 
     def _save(self, data: dict):
         """保存网络配置到文件并更新缓存
@@ -446,9 +441,9 @@ class NetworkConfigManager:
         env_var = self._key_to_env_var(key)
         try:
             self._env_config.set(env_var, value)
-            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 已写入 .env（env_var 指纹 {_fp(env_var)}）'}))
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': '[网络配置] 已写入 .env（密钥类，不记录变量名与值）'}))
         except Exception as e:
-            logger.error(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 写入 .env 失败（env_var 指纹 {_fp(env_var)}）: {type(e).__name__}'}))
+            logger.error(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 写入 .env 失败: {type(e).__name__}'}))
 
     def _load_secure(self, key: str, default: Optional[str] = None, env_var: Optional[str] = None) -> str:
         """从环境变量加载敏感配置（.env 文件单一数据源）
@@ -698,9 +693,9 @@ class NetworkConfigManager:
                 for engine_name, api_key in updates["search_api_keys"].items():
                     if api_key and api_key != '***' and not str(api_key).startswith('***'):
                         secure_key = f'search_{engine_name}_key'
-                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': f'[网络配置] 检测到搜索引擎（指纹 {_fp(engine_name)}）的 API Key，准备加密保存...'}))
+                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': '[网络配置] 检测到搜索引擎的 API Key，准备加密保存...'}))
                         self._save_secure(secure_key, api_key)
-                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': f'[网络配置] 搜索引擎（指纹 {_fp(engine_name)}）API Key 已加密保存'}))
+                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': '[网络配置] 搜索引擎 API Key 已加密保存'}))
 
             # 处理 MCP 配置
             if 'mcp' in updates:

@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import subprocess
 import sys
@@ -28,10 +27,12 @@ import urllib.request
 from pathlib import Path
 
 
-def _secret_fp(value: str) -> str:
-    """授权码指纹（C-6-B4）：sha256 前 8 位 —— 可核对"是不是同一串"，不可还原明文。"""
-    text = str(value or "")
-    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
+def _secret_desc(value: str) -> str:
+    """授权码的**结构描述**（C-6-B4）：只给长度，不给任何派生串。
+
+    为什么不打指纹：对凭据做 sha256 会被 CodeQL 判成 py/weak-sensitive-data-hashing。
+    """
+    return "已隐去（%d 字符）" % len(str(value or ""))
 
 CONFIG_FILE = Path(__file__).resolve().parents[1] / "deploy" / "monitoring" / "prometheus" / "alertmanager.yml"
 ALERTMANAGER_BASE = "http://127.0.0.1:9093"
@@ -133,10 +134,10 @@ def main() -> int:
     args = parser.parse_args()
 
     orig = get_auth_password()
-    print(f"[1] 当前 smtp_auth_password 指纹: {_secret_fp(orig)} (占位符={orig == PLACEHOLDER})")
+    print(f"[1] 当前 smtp_auth_password: {_secret_desc(orig)} (占位符={orig == PLACEHOLDER})")
 
     if args.smtp_auth_code:
-        print(f"[2] 模拟填入授权码（指纹 {_secret_fp(args.smtp_auth_code)}）并重启 Alertmanager")
+        print(f"[2] 模拟填入授权码（{_secret_desc(args.smtp_auth_code)}）并重启 Alertmanager")
         set_auth_password(args.smtp_auth_code)
         if not restart_alertmanager():
             print("[ERROR] 重启后健康检查失败", file=sys.stderr)

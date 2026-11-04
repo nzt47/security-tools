@@ -3,18 +3,12 @@
 【C-6-B4 2026-11-04】原脚本把一串 tavily key 硬编码在这里并整表打印；
 现在改成 `TAVILY_API_KEY` 环境变量 + 只打印指纹/布尔状态。
 """
-import hashlib
 import os
 import sys
 sys.path.insert(0, ".")
 
 from agent.web.http_client import HttpClient
 from agent.web.search import SearchEngine
-
-
-def _fp(value: str) -> str:
-    text = str(value or "")
-    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
 
 
 api_key = (os.environ.get("TAVILY_API_KEY") or "").strip()
@@ -32,7 +26,7 @@ se.set_http_client(http)
 # 设置 API Key
 se.update_config({"tavily_api_key": api_key})
 
-print("API Keys:", {name: _fp(value) for name, value in se._api_keys.items()})
+print("API Keys configured:", {name: bool(value) for name, value in se._api_keys.items()})
 print("Config engines:", sorted((se._config or {}).keys()))
 
 # 测试搜索

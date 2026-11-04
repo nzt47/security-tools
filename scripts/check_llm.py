@@ -4,15 +4,12 @@
 快速检查 LLM 配置状态
 """
 
-import hashlib
 import os
 import sys
 
 
-def _key_fp(value: str) -> str:
-    """密钥指纹（C-6-B4）：sha256 前 8 位 —— 可核对"是不是同一把"，不可还原明文。"""
-    text = str(value or "")
-    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
+# 【C-6-B4 2026-11-04】不打印密钥的任何派生串（连指纹也不打：对凭据做 sha256
+#   会被 CodeQL 判成弱哈希实现）。只报"是否设置 + 长度"这种结构信息。
 
 
 def check_llm_config():
@@ -30,7 +27,7 @@ def check_llm_config():
     
     print("\nEnvironment Variables:")
     print(f"  LLM_PROVIDER: {provider or '(NOT SET)'}")
-    print(f"  LLM_API_KEY:  {_key_fp(api_key) if api_key else '(NOT SET)'}")
+    print("  LLM_API_KEY:  " + (("已设置（%d 字符）" % len(api_key)) if api_key else "(NOT SET)"))
     print(f"  LLM_MODEL:    {model or '(NOT SET)'}")
     print(f"  LLM_BASE_URL: {base_url or '(NOT SET)'}")
     

@@ -4,15 +4,11 @@
 快速配置 LLM API Key - 交互式脚本
 """
 
-import hashlib
 import os
 import sys
 
 
-def _key_fp(value: str) -> str:
-    """密钥指纹（C-6-B4）：sha256 前 8 位 —— 可核对"是不是同一把"，不可还原明文。"""
-    text = str(value or "")
-    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
+# 【C-6-B4 2026-11-04】不回显密钥（连指纹也不打：对凭据做 sha256 会被判成弱哈希）。
 
 
 def quick_config():
@@ -107,13 +103,13 @@ echo.\npython main.py\n'''
     print(f"  .\\{script_file}")
     print("\nOr set environment variables manually:")
     print(f"  set LLM_PROVIDER={selected['env']}")
-    print(f"  set LLM_API_KEY={_key_fp(api_key) if api_key else '(not needed)'}")
+    print("  set LLM_API_KEY=" + ("（已设置，见 .env）" if api_key else "(not needed)"))
     print(f"  set LLM_MODEL={selected['default_model']}")
     
     if api_key:
         print("\nOr add to system environment variables:")
         print(f"  LLM_PROVIDER={selected['env']}")
-        print(f"  LLM_API_KEY={_key_fp(api_key)}")
+        print("  LLM_API_KEY=（已设置，见 .env）")
         print(f"  LLM_MODEL={selected['default_model']}")
 
 if __name__ == "__main__":
