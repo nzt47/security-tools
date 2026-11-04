@@ -7,6 +7,10 @@
 import os
 import sys
 
+
+# 【C-6-B4 2026-11-04】不回显密钥（连指纹也不打：对凭据做 sha256 会被判成弱哈希）。
+
+
 def quick_config():
     """快速交互式配置"""
     
@@ -99,13 +103,13 @@ echo.\npython main.py\n'''
     print(f"  .\\{script_file}")
     print("\nOr set environment variables manually:")
     print(f"  set LLM_PROVIDER={selected['env']}")
-    print(f"  set LLM_API_KEY={api_key if api_key else '(not needed)'}")
+    print("  set LLM_API_KEY=" + ("（已设置，见 .env）" if api_key else "(not needed)"))
     print(f"  set LLM_MODEL={selected['default_model']}")
     
     if api_key:
         print("\nOr add to system environment variables:")
         print(f"  LLM_PROVIDER={selected['env']}")
-        print(f"  LLM_API_KEY={api_key}")
+        print("  LLM_API_KEY=（已设置，见 .env）")
         print(f"  LLM_MODEL={selected['default_model']}")
 
 if __name__ == "__main__":

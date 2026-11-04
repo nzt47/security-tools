@@ -118,7 +118,10 @@ def main(argv=None) -> int:
     packed = apply_artifacts_to_bundle(bundle, artifacts)
     problems = validate_bundle(packed)
     if problems:
-        print("生成包不合法：\n" + "\n".join(problems[:12]), file=sys.stderr)
+        # [C-6-B4 2026-11-04] 不打印也不落盘明细：validate_bundle 的消息可能内联包内字段值
+        # （CodeQL 会按明文泄漏/明文存储判）。要排查就在 Python 里直接调 validate_bundle。
+        print("生成包不合法：%d 项（明细请直接调用 validate_bundle 查看）" % len(problems),
+              file=sys.stderr)
         return 4
     assert_manifest_secret_free(packed)
 

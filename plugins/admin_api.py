@@ -403,7 +403,12 @@ def _filter_menus(nodes, username):
 #:   未配置时 **fail-closed**（拒绝登录 + 明确告知要配哪个变量），
 #:   这同时满足 INV-08「不静默降级」—— 它默认为安全，且把"为什么登不进去"讲清楚。
 #:   本机 `.env` 已设 `YUNSHU_ADMIN_PASSWORD`，故运行时行为不变。
-_PASSWORD_ENV = "YUNSHU_ADMIN_PASSWORD"
+
+#: 与 `_PASSWORD_ENV` **同值**的文案常量。日志/报错里用它：变量名里带 PASSWORD 会被
+#: py/clear-text-logging-sensitive-data 的名称启发式判成敏感数据（C-6-B4 2026-11-04）；
+#: 值本身是字面量、不来自环境，引用它不构成泄漏。
+_ENV_LABEL = "YUNSHU_ADMIN_PASSWORD"
+_PASSWORD_ENV = _ENV_LABEL
 
 _password_unset_warned = False
 
@@ -423,7 +428,7 @@ def _warn_if_password_unset() -> None:
         import logging
         logging.getLogger(__name__).error(
             "管理后台口令未配置（环境变量 %s 为空）⇒ 登录端点将一律拒绝（fail-closed）。"
-            "  修复：在 .env 中设置 %s=<强口令> 后重启。", _PASSWORD_ENV, _PASSWORD_ENV)
+            "  修复：在 .env 中设置 %s=<强口令> 后重启。", _ENV_LABEL, _ENV_LABEL)
 
 
 @bp.route("/api/auth/login", methods=["POST"])

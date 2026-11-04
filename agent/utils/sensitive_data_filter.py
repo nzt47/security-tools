@@ -34,6 +34,7 @@
 
 import re
 import json
+import hashlib
 import logging
 from enum import Enum
 from dataclasses import dataclass, field
@@ -41,6 +42,16 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, Union
 
 
 logger = logging.getLogger(__name__)
+
+
+def _key_fp(key) -> str:
+    """字段名指纹（C-6-B4 2026-11-04）：sha256 前 8 位
+
+    字段名里常含 password/token 等字样，CodeQL 会把它算作敏感数据本身；
+    日志只留指纹即可定位"哪一处被过滤"，不落字段名原文。
+    """
+    text = str(key or "")
+    return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
 
 # SingletonManager 统一收口（保留 fallback 变量 _default_filter 向后兼容）
 try:
@@ -483,7 +494,9 @@ class SensitiveDataFilter(logging.Filter):
                 result[key] = self.filter_list(value, full_key)
             elif self.is_sensitive_key(key):
                 result[key] = self._get_key_replacement(key, value)
-                logger.debug(f"[SensitiveFilter] 过滤敏感字段: {full_key}")
+                # [C-6-B4 2026-11-04] 字段名本身（如 user.password）与敏感值同一股数据流，
+                # 只打指纹：仍能定位"是哪一处"，不落字段名原文。
+                logger.debug(f"[SensitiveFilter] 过滤敏感字段: key_fp={_key_fp(full_key)}")
             else:
                 if isinstance(value, str):
                     result[key] = self.mask(value)

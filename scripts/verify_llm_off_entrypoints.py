@@ -48,6 +48,14 @@ import subprocess
 import sys
 from typing import Any, Dict, List, Tuple
 
+
+def _masked(value: str) -> str:
+    """值的结构描述（C-6-B4）：只给长度。
+
+    不打指纹：对凭据做 sha256 会被 CodeQL 判成 py/weak-sensitive-data-hashing。
+    """
+    return "已隐去（%d 字符）" % len(str(value or ""))
+
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
@@ -421,7 +429,7 @@ def main() -> int:
     say("E1 硬门禁 · 关掉 LLM 之后三条链路是否仍可用")
     say("=" * 78)
     say(f"① 环境级关闭：{len(_INVALID_KEYS)} 个模型密钥已置为无效值")
-    say(f"   示例：DEEPSEEK_API_KEY={os.environ['DEEPSEEK_API_KEY']!r}")
+    say(f"   示例：DEEPSEEK_API_KEY {_masked(os.environ.get('DEEPSEEK_API_KEY', ''))}")
 
     _install_stubs()
     say(f"② 代码级关闭：monkeypatch {len(_STUB_TARGETS)} 个模型调用入口")

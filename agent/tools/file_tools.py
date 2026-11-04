@@ -9,6 +9,7 @@ import json
 import uuid
 import shutil
 import base64
+import hashlib
 import logging
 import fnmatch
 from pathlib import Path
@@ -19,6 +20,18 @@ logger = logging.getLogger(__name__)
 def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
+
+
+def _path_fp(path) -> str:
+    """路径指纹（C-6-B4 2026-11-04）：sha256 前 8 位，**不落路径原文**
+
+    为什么日志里不能再写路径原文：读到凭据类文件时整条路径会被
+    py/clear-text-logging-sensitive-data 判为明文泄漏（本文件 15 条）。
+    指纹足够做"是不是同一条路径/同一个调用"的相关性排查，且不可还原；
+    要看具体路径就按 trace_id 查请求参数（审计链里有）。
+    """
+    text = str(path or "")
+    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
 
 
 # ════════════════════════════════════════════════════════════
@@ -230,16 +243,16 @@ def safe_resolve_path(path: str) -> str:
     Raises:
         ValueError: 路径非法或位于受保护的系统目录
     """
-    logger.info(log_dict({'module_name': 'file_tools', 'action': 'path.path', 'msg': f'[safe_resolve_path] 开始解析路径: path={path}'}))
+    logger.info(log_dict({'module_name': 'file_tools', 'action': 'path.path', 'msg': f'[safe_resolve_path] 开始解析路径: path_fp={_path_fp(path)}'}))
     try:
         abs_path = os.path.abspath(os.path.normpath(path))
-        logger.info(log_dict({'module_name': 'file_tools', 'action': 'abs_path.abs_path', 'msg': f'[safe_resolve_path] 路径规范化成功: abs_path={abs_path}'}))
+        logger.info(log_dict({'module_name': 'file_tools', 'action': 'abs_path.abs_path', 'msg': f'[safe_resolve_path] 路径规范化成功: abs_path_fp={_path_fp(abs_path)}'}))
     except (ValueError, OSError) as e:
-        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[safe_resolve_path] 路径解析异常: path={path}, error={type(e).__name__}: {e}'}))
+        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[safe_resolve_path] 路径解析异常: path_fp={_path_fp(path)}, error={type(e).__name__}'}))
         raise ValueError(f"路径解析失败: {e}")
 
     if is_protected_path(abs_path):
-        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'abs_path.abs_path', 'msg': f'[safe_resolve_path] 路径被保护目录拦截: abs_path={abs_path}'}))
+        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'abs_path.abs_path', 'msg': f'[safe_resolve_path] 路径被保护目录拦截: abs_path_fp={_path_fp(abs_path)}'}))
         raise ValueError(f"路径位于系统保护目录，拒绝访问: {abs_path}")
 
     # 【S-2 补漏：堵 symlink / junction 绕过】原实现只检查字面 abs_path，
@@ -262,10 +275,10 @@ def safe_resolve_path(path: str) -> str:
     except Exception:  # noqa: BLE001  解析不了 ⇒ 跳过本项检查（保持改动前行为）
         _real = ""
     if _real and _real != abs_path and is_protected_path(_real):
-        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'realpath', 'msg': f'[safe_resolve_path] 符号链接指向保护目录，已拦截: abs_path={abs_path}'}))
+        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'realpath', 'msg': f'[safe_resolve_path] 符号链接指向保护目录，已拦截: abs_path_fp={_path_fp(abs_path)}'}))
         raise ValueError(f"路径经符号链接指向系统保护目录，拒绝访问: {abs_path}")
 
-    logger.info(log_dict({'module_name': 'file_tools', 'action': 'abs_path', 'msg': f'[safe_resolve_path] 路径解析完成，返回: {abs_path}'}))
+    logger.info(log_dict({'module_name': 'file_tools', 'action': 'abs_path', 'msg': f'[safe_resolve_path] 路径解析完成: abs_path_fp={_path_fp(abs_path)}'}))
     return abs_path
 
 
@@ -347,12 +360,12 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
     Returns:
         dict: {ok, content, path, size, encoding, binary, error}
     """
-    logger.info(log_dict({'module_name': 'file_tools', 'action': 'path.path.encoding', 'msg': f'[read_file] 开始读取文件: path={path}, encoding={encoding}, max_size_mb={max_size_mb}'}))
+    logger.info(log_dict({'module_name': 'file_tools', 'action': 'path.path.encoding', 'msg': f'[read_file] 开始读取文件: path_fp={_path_fp(path)}, encoding={encoding}, max_size_mb={max_size_mb}'}))
     try:
         safe_path = safe_resolve_path(path)
-        logger.info(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] 路径安全解析成功: safe_path={safe_path}'}))
+        logger.info(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] 路径安全解析成功: safe_path_fp={_path_fp(safe_path)}'}))
     except ValueError as e:
-        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[read_file] 路径解析失败: path={path}, error={e}'}))
+        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'path.path.error', 'msg': f'[read_file] 路径解析失败: path_fp={_path_fp(path)}, error={type(e).__name__}'}))
         return {"ok": False, "error": _PATH_DENIED}
 
     # ── 凭据文件：**标注**而不是拒读（2026-09-30 回退一次过度收紧）────────
@@ -369,16 +382,16 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
     _credential_hit = is_credential_path(safe_path)
     if _credential_hit:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'credential_read',
-                                 'msg': f'[read_file] 读取的是凭据类文件，已标注并记入污点链路: path={path}'}))
+                                 'msg': f'[read_file] 读取的是凭据类文件，已标注并记入污点链路: path_fp={_path_fp(path)}'}))
 
     if not os.path.exists(safe_path):
-        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] 文件不存在: safe_path={safe_path}'}))
+        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] 文件不存在: safe_path_fp={_path_fp(safe_path)}'}))
         return {"ok": False, "error": f"文件不存在: {path}"}
     if not os.path.isfile(safe_path):
         if os.path.isdir(safe_path):
-            logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] 路径是目录而非文件: safe_path={safe_path}'}))
+            logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] 路径是目录而非文件: safe_path_fp={_path_fp(safe_path)}'}))
             return {"ok": False, "error": f"路径是目录而非文件: {path}，请使用 list_directory 工具列出目录内容"}
-        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] 路径不是文件: safe_path={safe_path}'}))
+        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] 路径不是文件: safe_path_fp={_path_fp(safe_path)}'}))
         return {"ok": False, "error": f"路径不是文件: {path}"}
 
     file_size = os.path.getsize(safe_path)
@@ -396,10 +409,10 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
             raw_data = f.read()
         logger.info(log_dict({'module_name': 'file_tools', 'action': 'raw_data_size.len.raw_data', 'msg': f'[read_file] 文件读取成功: raw_data_size={len(raw_data)}'}))
     except PermissionError as e:
-        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path.error', 'msg': f'[read_file] 权限错误: safe_path={safe_path}, error={e}'}))
+        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path.error', 'msg': f'[read_file] 权限错误: safe_path_fp={_path_fp(safe_path)}, error={type(e).__name__}'}))
         return {"ok": False, "error": f"没有权限读取文件: {path}"}
     except OSError as e:
-        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] OS错误: safe_path={safe_path}, error={e}'}))
+        logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] OS错误: safe_path_fp={_path_fp(safe_path)}, error={type(e).__name__}'}))
         return {"ok": False, "error": "读取文件失败（详见服务日志）"}
 
     is_binary = _is_probably_binary(raw_data, encoding)

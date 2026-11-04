@@ -40,10 +40,12 @@ def run(args: list[str], timeout: int = 30) -> subprocess.CompletedProcess:
 
 
 def mask(secret: str) -> str:
-    """打码显示：仅保留前 4 位 + 后 4 位。"""
-    if len(secret) <= 8:
-        return "*" * len(secret)
-    return f"{secret[:4]}****{secret[-4:]}"
+    """打码显示（C-6-B4）：只给**长度**，不给任何派生串
+
+    旧实现保留前 4 + 后 4 位 —— 仍是明文片段（CodeQL 按明文泄漏判）。
+    为什么连 sha256 指纹也不打：对凭据做哈希会被判成 py/weak-sensitive-data-hashing。
+    """
+    return "已隐去（%d 字符）" % len(str(secret or ""))
 
 
 def current_password(config: Path) -> str:

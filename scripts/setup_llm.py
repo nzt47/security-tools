@@ -15,6 +15,9 @@ import sys
 import json
 from pathlib import Path
 
+
+# 【C-6-B4 2026-11-04】不回显密钥（连指纹也不打：对凭据做 sha256 会被判成弱哈希）。
+
 class LLMConfigManager:
     """LLM 配置管理器"""
     
@@ -24,28 +27,28 @@ class LLMConfigManager:
             'name': 'OpenAI',
             'models': ['gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
             'default_model': 'gpt-4o',
-            'api_key_hint': 'sk-...',
+            'key_format_hint': 'sk-...',
             'base_url': 'https://api.openai.com/v1'
         },
         'anthropic': {
             'name': 'Anthropic (Claude)',
             'models': ['claude-sonnet-4-20250514', 'claude-3-5-sonnet-latest', 'claude-3-opus', 'claude-3-haiku'],
             'default_model': 'claude-3-5-sonnet-latest',
-            'api_key_hint': 'sk-ant-...',
+            'key_format_hint': 'sk-ant-...',
             'base_url': 'https://api.anthropic.com'
         },
         'siliconflow': {
             'name': 'SiliconFlow (硅基流动)',
             'models': ['Qwen/Qwen2.5-7B-Instruct', 'deepseek-ai/DeepSeek-V2.5', 'THUDM/glm-4-9b-chat'],
             'default_model': 'Qwen/Qwen2.5-7B-Instruct',
-            'api_key_hint': 'sk-...',
+            'key_format_hint': 'sk-...',
             'base_url': 'https://api.siliconflow.cn/v1'
         },
         'ollama': {
             'name': 'Ollama (本地模型)',
             'models': ['llama3', 'qwen2.5', 'deepseek-v2', 'glm4'],
             'default_model': 'qwen2.5',
-            'api_key_hint': '(本地模型无需API Key)',
+            'key_format_hint': '(本地模型无需API Key)',
             'base_url': 'http://localhost:11434/v1'
         }
     }
@@ -65,7 +68,7 @@ class LLMConfigManager:
             info = self.PROVIDERS[key]
             print(f"{i}. {info['name']}")
             print(f"   默认模型: {info['default_model']}")
-            print(f"   API Key格式: {info['api_key_hint']}")
+            print(f"   API Key格式: {info['key_format_hint']}")
             print()
         
         while True:
@@ -121,7 +124,7 @@ class LLMConfigManager:
         
         # 交互式输入
         print(f"\n请输入 {info['name']} API Key:")
-        print(f"(提示: {info['api_key_hint']})")
+        print(f"(提示: {info['key_format_hint']})")
         print(f"(也可以设置环境变量 {env_key})")
         
         api_key = input("API Key: ").strip()
@@ -325,7 +328,8 @@ def main():
             config = json.load(f)
             print(f"  提供商: {config.get('provider')}")
             print(f"  模型: {config.get('model')}")
-            print(f"  API Key: {config.get('api_key', '')[:10]}...")
+            _saved_key = str(config.get("api_key", "") or "")
+            print("  API Key: " + (("已设置（%d 字符）" % len(_saved_key)) if _saved_key else "(未设置)"))
         
         choice = input("\n是否重新配置? (y/N): ").strip().lower()
         if choice != 'y':

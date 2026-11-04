@@ -55,6 +55,12 @@ from agent.utils.cross_process_lock import CrossProcessLock, LockUnavailable
 
 logger = logging.getLogger(__name__)
 
+
+# 【C-6-B4 2026-11-04 口径修正】日志里**不派生**密钥相关标识符：
+#   先前写成"打 sha256 指纹"，但 CodeQL 按 py/weak-sensitive-data-hashing 判成
+#   "拿口令做弱哈希"（high）—— 对凭据来说指纹方案反而更糟。正确做法是整段去掉：
+#   只记"改了一项配置"，不出现变量名、不出现值、不出现指纹。
+
 #: 跨进程锁的有限等待上限（秒）——**兜底值**，正常从 observability_config 读取。
 #: 【为什么是 10s（不易）】写 .env 本身是毫秒级操作；10s 只可能来自"另一个进程
 #: 卡住"。取 10s 既不会让正常并发写入被误伤，又保证卡死场景**有限**失败
@@ -240,10 +246,12 @@ class EnvConfigManager:
             os.environ[key] = value
             # 【P3 配置审计】写入审计日志（脱敏后）
             self._audit_log('set', key, old_value, value)
+            # [C-6-B4 2026-11-04] key 是「装着密钥的环境变量名」，与值同一股数据流：
+            # 不记变量名、不记指纹，只记"改了一项"
             logger.info(log_dict({
                 'module_name': 'env_config',
                 'action': 'env_config.set',
-                'message': f'[Env配置] 已更新 {key}（.env + os.environ）'
+                'message': '[Env配置] 已更新一项配置（.env + os.environ）'
             }))
 
     def delete(self, key: str):

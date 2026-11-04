@@ -101,7 +101,9 @@ def main(argv=None) -> int:
         keep_env_items=args.keep_env_items, keep_metadata=args.keep_metadata)
     problems = validate_bundle(trimmed)
     if problems:
-        print("裁剪结果不合法：\n" + "\n".join(problems[:12]), file=sys.stderr)
+        # [C-6-B4 2026-11-04] 不打印也不落盘明细（理由见 build_offline_pack 同处注释）
+        print("裁剪结果不合法：%d 项（明细请直接调用 validate_bundle 查看）" % len(problems),
+              file=sys.stderr)
         return 4
     assert_manifest_secret_free(trimmed)
 
