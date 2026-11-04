@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-04T22:53:03",
+  "generated_at": "2026-11-04T23:33:25",
   "totals": {
     "routes": 496,
     "live": 496,
@@ -16,8 +16,8 @@
       "unreferenced": 33
     },
     "by_intent": {
-      "should_be_in_ui": 418,
-      "should_not_be_in_ui": 73,
+      "should_be_in_ui": 415,
+      "should_not_be_in_ui": 76,
       "unclassified": 5
     },
     "by_domain": {
@@ -46,44 +46,7 @@
   ],
   "intent_file": "config/route_ui_intent.json",
   "domain_file": "config/route_domains.json",
-  "pending_ui": [
-    {
-      "path": "/api/ingestion/drafts/<draft_id>/install-skill",
-      "norm": "/api/ingestion/drafts/*/install-skill",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "记忆与资产/吞噬",
-      "where": [
-        "plugins/ingestion.py:226"
-      ]
-    },
-    {
-      "path": "/api/ingestion/drafts/<draft_id>/register",
-      "norm": "/api/ingestion/drafts/*/register",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "记忆与资产/吞噬",
-      "where": [
-        "plugins/ingestion.py:318"
-      ]
-    },
-    {
-      "path": "/api/ingestion/drafts/<draft_id>/register-tool",
-      "norm": "/api/ingestion/drafts/*/register-tool",
-      "methods": [
-        "POST"
-      ],
-      "category": "unreferenced",
-      "area": "记忆与资产/吞噬",
-      "where": [
-        "plugins/ingestion.py:419"
-      ]
-    }
-  ],
+  "pending_ui": [],
   "entries": [
     {
       "path": "/",
@@ -4085,10 +4048,10 @@
       ],
       "description": "把草稿的来源**按技能形态**重新安装（技能才有评审/放行链路）。",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
-      "intent_area": "记忆与资产/吞噬",
-      "intent_note": "草稿评审 Tab 的「按技能安装」：把草稿来源按技能形态重装（技能才有审核/放行链路）；已存在同 id 技能需显式 overwrite。",
-      "ui_pending": true,
+      "intent": "should_not_be_in_ui",
+      "intent_area": "记忆与资产/吞噬（兼容端点）",
+      "intent_note": "【2026-11-04 S5 收口】UI 不再提供「按技能安装」：登记/启用统一走 /api/skills-mgmt/transforms/register；本端点仅留兼容窗口（台账 verdict=deprecate），不再作为用户入口。",
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -4108,10 +4071,10 @@
       ],
       "description": "把已全部绑定工具的草稿登记为工作流（默认停用；需 confirm）。",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
-      "intent_area": "记忆与资产/吞噬",
-      "intent_note": "草稿评审 Tab 的「登记」：全部步骤绑定真实工具后登记为工作流（enabled=false，去工作流页启用）；校验不过即拒绝。",
-      "ui_pending": true,
+      "intent": "should_not_be_in_ui",
+      "intent_area": "记忆与资产/吞噬（兼容端点）",
+      "intent_note": "【2026-11-04 S5 收口】UI 不再提供「登记为工作流」：改由转化队列 /api/skills-mgmt/transforms/register（工作流形态）承接；本端点仅留兼容窗口（台账 verdict=deprecate）。",
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -4131,10 +4094,10 @@
       ],
       "description": "tool 草稿：登记为动态工具（custom/ + 台账 + 治理 YAML），需 confirm。",
       "description_source": "handler",
-      "intent": "should_be_in_ui",
-      "intent_area": "记忆与资产/吞噬",
-      "intent_note": "tool 草稿的「登记为工具」：走动态工具链路（custom/ + 台账 + 治理 YAML），风险默认 critical；需 confirm，同名需 overwrite。",
-      "ui_pending": true,
+      "intent": "should_not_be_in_ui",
+      "intent_area": "记忆与资产/吞噬（兼容端点）",
+      "intent_note": "【2026-11-04 S5 收口】UI 不再提供「登记为工具」：改由转化队列 /api/skills-mgmt/transforms/register（工具形态）承接；本端点仅留兼容窗口（台账 verdict=deprecate）。",
+      "ui_pending": false,
       "domain": "技能与工具"
     },
     {
@@ -12743,5 +12706,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "9aef0852048d510a"
+  "content_hash": "f5c29736bbcc42b8"
 }

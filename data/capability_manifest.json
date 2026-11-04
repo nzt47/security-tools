@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-04T22:53:00",
+  "generated_at": "2026-11-04T23:33:31",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
