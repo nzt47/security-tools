@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-04T12:41:50",
+  "generated_at": "2026-11-04T13:25:27",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -1882,7 +1882,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.file_tools_reg:_diff_files）在 6 跳内未命中任何跨边界原语；另有 79 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.file_tools_reg:_diff_files）在 6 跳内未命中任何跨边界原语；另有 80 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -1911,6 +1911,7 @@
         "difflib.unified_diff",
         "entry.startswith",
         "f.readlines",
+        "hashlib.sha256",
         "host.endswith",
         "int",
         "ipaddress.IPv4Address",
@@ -3882,7 +3883,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.file_tools_reg:_get_file_info）在 6 跳内未命中任何跨边界原语；另有 35 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.file_tools_reg:_get_file_info）在 6 跳内未命中任何跨边界原语；另有 36 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -3900,6 +3901,7 @@
         "cand.startswith",
         "data.pop",
         "dict",
+        "hashlib.sha256",
         "kwargs.get",
         "logger.debug",
         "logger.info",
@@ -5879,7 +5881,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.file_tools_reg:_list_directory）在 6 跳内未命中任何跨边界原语；另有 48 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.file_tools_reg:_list_directory）在 6 跳内未命中任何跨边界原语；另有 49 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -5898,6 +5900,7 @@
         "cls",
         "data.pop",
         "dict",
+        "hashlib.sha256",
         "info.get",
         "items.append",
         "items.sort",
@@ -8131,7 +8134,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.file_tools_reg:_search_files）在 6 跳内未命中任何跨边界原语；另有 52 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.file_tools_reg:_search_files）在 6 跳内未命中任何跨边界原语；另有 53 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -8153,6 +8156,7 @@
         "data.pop",
         "dict",
         "fnmatch.translate",
+        "hashlib.sha256",
         "kwargs.get",
         "len",
         "line.strip",
@@ -15279,7 +15283,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.file_tools_reg:_diff_files）在 6 跳内未命中任何跨边界原语；另有 79 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.file_tools_reg:_diff_files）在 6 跳内未命中任何跨边界原语；另有 80 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -15308,6 +15312,7 @@
         "difflib.unified_diff",
         "entry.startswith",
         "f.readlines",
+        "hashlib.sha256",
         "host.endswith",
         "int",
         "ipaddress.IPv4Address",
@@ -17279,7 +17284,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.file_tools_reg:_get_file_info）在 6 跳内未命中任何跨边界原语；另有 35 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.file_tools_reg:_get_file_info）在 6 跳内未命中任何跨边界原语；另有 36 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -17297,6 +17302,7 @@
         "cand.startswith",
         "data.pop",
         "dict",
+        "hashlib.sha256",
         "kwargs.get",
         "logger.debug",
         "logger.info",
@@ -19276,7 +19282,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.file_tools_reg:_list_directory）在 6 跳内未命中任何跨边界原语；另有 48 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.file_tools_reg:_list_directory）在 6 跳内未命中任何跨边界原语；另有 49 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -19295,6 +19301,7 @@
         "cls",
         "data.pop",
         "dict",
+        "hashlib.sha256",
         "info.get",
         "items.append",
         "items.sort",
@@ -21528,7 +21535,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.tools.file_tools_reg:_search_files）在 6 跳内未命中任何跨边界原语；另有 52 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.tools.file_tools_reg:_search_files）在 6 跳内未命中任何跨边界原语；另有 53 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -21550,6 +21557,7 @@
         "data.pop",
         "dict",
         "fnmatch.translate",
+        "hashlib.sha256",
         "kwargs.get",
         "len",
         "line.strip",
