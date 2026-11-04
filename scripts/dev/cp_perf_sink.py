@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import threading
@@ -41,7 +42,11 @@ def _sink_handler(out_dir: str):
                 payload = {"raw_len": len(raw), "parse_error": True}
             name = str(payload.get("metric") or "unknown")
             os.makedirs(out_dir, exist_ok=True)
-            path = os.path.join(out_dir, f"{name}.json")
+            # [C-6-B1 2026-11-04] 文件名用 sha256 摘要：metric 来自 POST body，
+            # 只作哈希输入、不进路径表达式（CodeQL 只认摘要/等值匹配，不认正则清洗）。
+            # 原指标名仍完整保留在 JSON 的 metric 字段里，按内容检索即可定位。
+            digest = hashlib.sha256(name.encode("utf-8")).hexdigest()[:16]
+            path = os.path.join(out_dir, digest + ".json")
             with _LOCK:
                 with open(path, "w", encoding="utf-8") as fh:
                     json.dump(payload, fh, ensure_ascii=False, indent=2)

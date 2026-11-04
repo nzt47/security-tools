@@ -2,6 +2,7 @@
 """吞噬 P6：存量资产治理 scan/plan/apply（归档优先，真删二次确认）。"""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -196,7 +197,15 @@ class TestApply:
         assert result["count"] >= 3
         root = Path(result["draft_dir"])
         assert (root / "manifest.json").exists()
-        assert len(list(root.glob("alpha-part-*.md"))) == result["count"]
+        # 【契约变更 C-6-B1 2026-11-04】文件名改成常量 part-NN.md（plan_id/skill.id
+        # 不再进路径表达式，只作 sha256 摘要的输入），可读身份改由 manifest 承载：
+        # parent_id / plan_id / dir_key / skill_key / part_ids 都在里面。
+        assert len(list(root.glob("part-*.md"))) == result["count"]
+        manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["parent_id"] == "alpha"
+        assert manifest["plan_id"] == data["plan_id"]
+        assert sorted(manifest["part_ids"].values()) == sorted(result["parts"])
+        assert all(k.startswith("alpha-part-") for k in manifest["part_ids"])
         assert svc.get("alpha").touched is False
         import shutil
         shutil.rmtree(root.parent, ignore_errors=True)

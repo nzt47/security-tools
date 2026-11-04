@@ -473,12 +473,34 @@ def rewrite_asset(source: Any, asset: Any, *,
     )
 
 
+def _archive_file(archive_dir: Path, archive_id: str) -> Optional[Path]:
+    """按**文件名等值匹配**定位存档（C-6-B1 2026-11-04）
+
+    `archive_id` 来自请求：先用 `_ARCHIVE_ID_RE` 卡格式（可读的早退），
+    真正的路径由「列目录出来的真实文件名」决定 —— 用户串只参与比较、
+    不进路径表达式（CodeQL 只认这种断链，§8 陷阱 14）。
+    """
+    want = archive_id + ".json"
+    try:
+        if not archive_dir.is_dir():
+            return None
+        for child in archive_dir.iterdir():
+            if child.name == want:
+                return child
+    except OSError:          # 目录不可读/竞态删除 ⇒ 当「不存在」
+        return None
+    return None
+
+
 def load_archive(archive_id: str, archive_dir: Optional[Any] = None) -> Optional[Dict[str, Any]]:
     aid = str(archive_id or "").strip()
     if not _ARCHIVE_ID_RE.match(aid):
         return None
+    target = _archive_file(archive_dir_path(archive_dir), aid)
+    if target is None:
+        return None
     try:
-        data = json.loads((archive_dir_path(archive_dir) / (aid + ".json")).read_text(encoding="utf-8"))
+        data = json.loads(target.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     if not isinstance(data, dict) or data.get("archive_id") != aid:
