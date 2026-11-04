@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-02T03:50:38",
+  "generated_at": "2026-11-04T19:35:14",
   "totals": {
     "routes": 494,
     "live": 494,
@@ -276,7 +276,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:287"
+        "plugins/admin.py:303"
       ],
       "description": "应用网络配置到应用实例（即时生效）",
       "description_source": "handler",
@@ -525,8 +525,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_assets.py:244",
-        "agent/server_routes/routes_assets.py:297"
+        "agent/server_routes/routes_assets.py:291",
+        "agent/server_routes/routes_assets.py:346"
       ],
       "description": "获取指定类别的资产列表",
       "description_source": "handler",
@@ -551,7 +551,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_assets.py:271"
+        "agent/server_routes/routes_assets.py:318"
       ],
       "description": "删除指定资产项",
       "description_source": "handler",
@@ -576,7 +576,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_assets.py:325"
+        "agent/server_routes/routes_assets.py:376"
       ],
       "description": "创建资产备份",
       "description_source": "handler",
@@ -601,7 +601,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_assets.py:377"
+        "agent/server_routes/routes_assets.py:428"
       ],
       "description": "删除指定备份",
       "description_source": "handler",
@@ -626,7 +626,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_assets.py:353"
+        "agent/server_routes/routes_assets.py:404"
       ],
       "description": "获取备份列表",
       "description_source": "handler",
@@ -651,7 +651,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_assets.py:429"
+        "agent/server_routes/routes_assets.py:485"
       ],
       "description": "导出所有资产为 JSON 文件",
       "description_source": "handler",
@@ -676,7 +676,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_assets.py:226"
+        "agent/server_routes/routes_assets.py:273"
       ],
       "description": "获取8类资产的概览（各类数量）",
       "description_source": "handler",
@@ -701,7 +701,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_assets.py:393"
+        "agent/server_routes/routes_assets.py:444"
       ],
       "description": "从备份恢复资产数据",
       "description_source": "handler",
@@ -726,7 +726,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:785"
+        "plugins/admin.py:804"
       ],
       "description": "获取结构化审计日志（只读查询 Append-only 审计日志）",
       "description_source": "handler",
@@ -776,7 +776,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:429"
+        "plugins/admin_api.py:434"
       ],
       "description": "登录：校验口令（环境变量优先）+ 签发**带签名**的会话令牌。",
       "description_source": "handler",
@@ -801,7 +801,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:478"
+        "plugins/admin_api.py:483"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -928,7 +928,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:306"
+        "plugins/system_tools.py:361"
       ],
       "description": "关闭浏览器",
       "description_source": "handler",
@@ -953,7 +953,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:335"
+        "plugins/system_tools.py:390"
       ],
       "description": "当前页面截图（JPEG）。二进制响应，故不走 log_request（避免把体积写进日志）。",
       "description_source": "handler",
@@ -978,7 +978,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:346"
+        "plugins/system_tools.py:401"
       ],
       "description": "受控输入：click / type / key / scroll / navigate / back / forward / reload。",
       "description_source": "handler",
@@ -1003,7 +1003,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:285"
+        "plugins/system_tools.py:340"
       ],
       "description": "浏览器导航到 URL",
       "description_source": "handler",
@@ -1028,7 +1028,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:297"
+        "plugins/system_tools.py:352"
       ],
       "description": "浏览器截图",
       "description_source": "handler",
@@ -1053,7 +1053,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:323"
+        "plugins/system_tools.py:378"
       ],
       "description": "打开一个可交互浏览器会话（单会话；空 url 或非 http(s) ⇒ 400）。",
       "description_source": "handler",
@@ -1078,7 +1078,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:367"
+        "plugins/system_tools.py:422"
       ],
       "description": "关闭可交互会话（幂等：本来没有会话也返回 ok）。",
       "description_source": "handler",
@@ -1103,7 +1103,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:357"
+        "plugins/system_tools.py:412"
       ],
       "description": "会话状态（url / title / 视口），前端刷新地址栏用。",
       "description_source": "handler",
@@ -1283,7 +1283,7 @@
         "scripts/verify_zh_scenarios_20260815.py"
       ],
       "where": [
-        "plugins/chat.py:83"
+        "plugins/chat.py:95"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1308,7 +1308,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:2596"
+        "plugins/chat.py:2617"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1331,7 +1331,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1092"
+        "plugins/chat.py:1111"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1357,8 +1357,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:444",
-        "plugins/system_tools.py:452"
+        "plugins/system_tools.py:499",
+        "plugins/system_tools.py:507"
       ],
       "description": "读取剪贴板",
       "description_source": "handler",
@@ -1482,7 +1482,7 @@
         "scripts/demo_s2_02_audit.py"
       ],
       "where": [
-        "plugins/admin.py:70"
+        "plugins/admin.py:77"
       ],
       "description": "获取或设置 LLM 配置",
       "description_source": "handler",
@@ -1508,7 +1508,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:769"
+        "plugins/admin.py:788"
       ],
       "description": "获取配置变更日志",
       "description_source": "handler",
@@ -1536,7 +1536,7 @@
         "scripts/compress_memory_now.py"
       ],
       "where": [
-        "plugins/memory.py:379"
+        "plugins/memory.py:385"
       ],
       "description": "手动触发上下文压缩（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -1561,7 +1561,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:318"
+        "plugins/memory.py:324"
       ],
       "description": "更新上下文控制参数（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -1588,7 +1588,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/memory.py:174"
+        "plugins/memory.py:180"
       ],
       "description": "获取当前上下文使用状态（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -2218,7 +2218,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:817"
+        "plugins/admin_api.py:822"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -2343,7 +2343,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:635"
+        "agent/server_routes/routes_logging.py:674"
       ],
       "description": "获取配置状态摘要（需要认证）",
       "description_source": "handler",
@@ -2368,7 +2368,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:693"
+        "agent/server_routes/routes_logging.py:732"
       ],
       "description": "获取异常关联统计",
       "description_source": "handler",
@@ -2396,7 +2396,7 @@
         "scripts/verify_loader_degradation_startup.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:665"
+        "agent/server_routes/routes_logging.py:704"
       ],
       "description": "综合健康检查",
       "description_source": "handler",
@@ -2421,7 +2421,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:604"
+        "agent/server_routes/routes_logging.py:643"
       ],
       "description": "LLM 连通性自检（POST：会向 LLM 端点发起一次最小真实调用）",
       "description_source": "handler",
@@ -2446,7 +2446,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:851"
+        "agent/server_routes/routes_logging.py:890"
       ],
       "description": "获取最近日志记录（需要认证）",
       "description_source": "handler",
@@ -2471,7 +2471,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:827"
+        "agent/server_routes/routes_logging.py:866"
       ],
       "description": "获取运行时指标（需要认证）",
       "description_source": "handler",
@@ -2496,7 +2496,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:571"
+        "agent/server_routes/routes_logging.py:610"
       ],
       "description": "获取已注册工具清单",
       "description_source": "handler",
@@ -2521,7 +2521,7 @@
         "scripts/observability_post_deploy.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:716"
+        "agent/server_routes/routes_logging.py:755"
       ],
       "description": "获取当前追踪上下文",
       "description_source": "handler",
@@ -2544,7 +2544,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:741"
+        "agent/server_routes/routes_logging.py:780"
       ],
       "description": "从请求头提取追踪上下文",
       "description_source": "handler",
@@ -2569,7 +2569,7 @@
         "scripts/observability_post_deploy.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:794"
+        "agent/server_routes/routes_logging.py:833"
       ],
       "description": "生成追踪上下文请求头",
       "description_source": "handler",
@@ -2796,7 +2796,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:832"
+        "plugins/admin_api.py:837"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -2821,7 +2821,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:715"
+        "plugins/skills.py:724"
       ],
       "description": "通过通道发送消息",
       "description_source": "handler",
@@ -2846,7 +2846,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:629"
+        "plugins/skills.py:638"
       ],
       "description": "配置扩展参数",
       "description_source": "handler",
@@ -2871,7 +2871,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:651"
+        "plugins/skills.py:660"
       ],
       "description": "发现所有可用扩展",
       "description_source": "handler",
@@ -2896,7 +2896,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:561"
+        "plugins/skills.py:570"
       ],
       "description": "安装扩展",
       "description_source": "handler",
@@ -2921,7 +2921,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:547"
+        "plugins/skills.py:556"
       ],
       "description": "按类型分组获取已安装扩展",
       "description_source": "handler",
@@ -2948,7 +2948,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/skills.py:532"
+        "plugins/skills.py:541"
       ],
       "description": "列出所有已安装扩展",
       "description_source": "handler",
@@ -2973,7 +2973,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:683"
+        "plugins/skills.py:692"
       ],
       "description": "获取推荐扩展",
       "description_source": "handler",
@@ -2998,7 +2998,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:699"
+        "plugins/skills.py:708"
       ],
       "description": "刷新社区扩展索引",
       "description_source": "handler",
@@ -3023,7 +3023,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:665"
+        "plugins/skills.py:674"
       ],
       "description": "搜索扩展市场",
       "description_source": "handler",
@@ -3050,7 +3050,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/skills.py:607"
+        "plugins/skills.py:616"
       ],
       "description": "启用/禁用扩展",
       "description_source": "handler",
@@ -3075,7 +3075,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:583"
+        "plugins/skills.py:592"
       ],
       "description": "卸载扩展",
       "description_source": "handler",
@@ -3275,7 +3275,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:199"
+        "plugins/system_tools.py:251"
       ],
       "description": "获取文件/目录信息",
       "description_source": "handler",
@@ -3301,7 +3301,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:188"
+        "plugins/system_tools.py:240"
       ],
       "description": "列出目录内容",
       "description_source": "handler",
@@ -3326,7 +3326,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:142"
+        "plugins/system_tools.py:194"
       ],
       "description": "读取本地文件内容",
       "description_source": "handler",
@@ -3351,7 +3351,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:210"
+        "plugins/system_tools.py:262"
       ],
       "description": "搜索文件",
       "description_source": "handler",
@@ -3376,7 +3376,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:166"
+        "plugins/system_tools.py:218"
       ],
       "description": "写入本地文件",
       "description_source": "handler",
@@ -3401,7 +3401,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:698"
+        "plugins/chat.py:717"
       ],
       "description": "生成会话交接文档 —— LLM 把当前会话压缩成 Markdown，落盘到 OS 临时目录。",
       "description_source": "handler",
@@ -3871,7 +3871,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1070"
+        "plugins/chat.py:1089"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -3896,7 +3896,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1106"
+        "plugins/chat.py:1125"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
@@ -3921,7 +3921,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:135"
+        "plugins/ingestion.py:160"
       ],
       "description": "吞噬落库：按 plan_id 安装；L2 需带 preview(rewrite=true) 生成的 archive_id。",
       "description_source": "handler",
@@ -3946,7 +3946,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:161"
+        "plugins/ingestion.py:187"
       ],
       "description": "列出吞噬生成的骨架草稿（隔离区）。",
       "description_source": "handler",
@@ -3971,7 +3971,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:178"
+        "plugins/ingestion.py:204"
       ],
       "description": "删除一个骨架草稿目录（不可恢复；只删隔离区，按目录 listing 等值匹配）。",
       "description_source": "handler",
@@ -3996,7 +3996,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:249"
+        "plugins/ingestion.py:275"
       ],
       "description": "AI 自动绑定：把步骤描述映射到真实工具 + 参数模板（默认 dry-run）。",
       "description_source": "handler",
@@ -4021,7 +4021,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:343"
+        "plugins/ingestion.py:371"
       ],
       "description": "tool 草稿：AI 生成实现 + 静态校验（默认 dry-run，apply 需 confirm）。",
       "description_source": "handler",
@@ -4046,7 +4046,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:200"
+        "plugins/ingestion.py:226"
       ],
       "description": "把草稿的来源**按技能形态**重新安装（技能才有评审/放行链路）。",
       "description_source": "handler",
@@ -4071,7 +4071,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:292"
+        "plugins/ingestion.py:318"
       ],
       "description": "把已全部绑定工具的草稿登记为工作流（默认停用；需 confirm）。",
       "description_source": "handler",
@@ -4096,7 +4096,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:388"
+        "plugins/ingestion.py:419"
       ],
       "description": "tool 草稿：登记为动态工具（custom/ + 台账 + 治理 YAML），需 confirm。",
       "description_source": "handler",
@@ -4121,7 +4121,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:468"
+        "plugins/ingestion.py:501"
       ],
       "description": "执行一条治理动作：默认 dry-run；真执行必须 confirm=true。",
       "description_source": "handler",
@@ -4146,7 +4146,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:451"
+        "plugins/ingestion.py:484"
       ],
       "description": "生成确定性治理计划：merge / archive / split / refactor / delete_orphans。",
       "description_source": "handler",
@@ -4171,7 +4171,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:434"
+        "plugins/ingestion.py:467"
       ],
       "description": "存量资产治理盘点（只读）：技能/重复/孤儿/无用 + 结构化问题。",
       "description_source": "handler",
@@ -4196,7 +4196,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:102"
+        "plugins/ingestion.py:127"
       ],
       "description": "吞噬预览：识别来源并生成 L0/L1/L2 计划；rewrite=true 时额外生成重写草稿与存档。",
       "description_source": "handler",
@@ -4221,7 +4221,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/ingestion.py:126"
+        "plugins/ingestion.py:151"
       ],
       "description": "吞噬源探测：列出配置根（默认 claude/openclaw/trae）下的可预览候选，只读不写。",
       "description_source": "handler",
@@ -4246,7 +4246,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:884"
+        "plugins/memory.py:890"
       ],
       "description": "添加知识文档（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -4567,8 +4567,8 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/admin.py:338",
-        "plugins/admin.py:366"
+        "plugins/admin.py:354",
+        "plugins/admin.py:382"
       ],
       "description": "获取所有 LLM 实例",
       "description_source": "handler",
@@ -4595,9 +4595,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:351",
-        "plugins/admin.py:389",
-        "plugins/admin.py:409"
+        "plugins/admin.py:367",
+        "plugins/admin.py:405",
+        "plugins/admin.py:425"
       ],
       "description": "获取单个 LLM 实例",
       "description_source": "handler",
@@ -4622,7 +4622,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:424"
+        "plugins/admin.py:440"
       ],
       "description": "设置默认 LLM 实例",
       "description_source": "handler",
@@ -4647,7 +4647,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:439"
+        "plugins/admin.py:455"
       ],
       "description": "测试 LLM 实例连接",
       "description_source": "handler",
@@ -4876,7 +4876,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:492"
+        "plugins/memory.py:498"
       ],
       "description": "【2026-10-25 修正】按序号删除**未实现**，此前恒返回 ok:true 却没删任何东西。",
       "description_source": "handler",
@@ -4901,7 +4901,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:592"
+        "plugins/memory.py:598"
       ],
       "description": "清空长期摘要",
       "description_source": "handler",
@@ -4928,7 +4928,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/memory.py:470"
+        "plugins/memory.py:476"
       ],
       "description": "触发记忆压缩",
       "description_source": "handler",
@@ -4956,7 +4956,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/memory.py:438"
+        "plugins/memory.py:444"
       ],
       "description": "手动添加记忆",
       "description_source": "handler",
@@ -4981,7 +4981,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:513"
+        "plugins/memory.py:519"
       ],
       "description": "按 id 删除一条长期记忆：**默认 dry-run**，真删必须 confirm=true。",
       "description_source": "handler",
@@ -5008,7 +5008,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/memory.py:406"
+        "plugins/memory.py:412"
       ],
       "description": "获取记忆概览",
       "description_source": "handler",
@@ -5034,7 +5034,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:621"
+        "plugins/memory.py:627"
       ],
       "description": "记忆库审查接口（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -5059,7 +5059,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:604"
+        "plugins/memory.py:610"
       ],
       "description": "更新长期摘要内容",
       "description_source": "handler",
@@ -5084,7 +5084,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:998"
+        "plugins/memory.py:1004"
       ],
       "description": "清空窗口事件记录",
       "description_source": "handler",
@@ -5110,7 +5110,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:981"
+        "plugins/memory.py:987"
       ],
       "description": "获取或更新窗口监控配置",
       "description_source": "handler",
@@ -5135,7 +5135,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:971"
+        "plugins/memory.py:977"
       ],
       "description": "获取当前活跃窗口",
       "description_source": "handler",
@@ -5160,7 +5160,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:913"
+        "plugins/memory.py:919"
       ],
       "description": "获取窗口切换事件",
       "description_source": "handler",
@@ -5185,7 +5185,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:929"
+        "plugins/memory.py:935"
       ],
       "description": "获取窗口使用统计",
       "description_source": "handler",
@@ -5210,7 +5210,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:712"
+        "plugins/admin_api.py:717"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5236,8 +5236,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:739",
-        "plugins/admin_api.py:766"
+        "plugins/admin_api.py:744",
+        "plugins/admin_api.py:771"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5262,7 +5262,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:706"
+        "plugins/admin_api.py:711"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5398,8 +5398,8 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/admin.py:197",
-        "plugins/admin.py:206"
+        "plugins/admin.py:213",
+        "plugins/admin.py:222"
       ],
       "description": "获取网络配置",
       "description_source": "handler",
@@ -5424,7 +5424,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:252"
+        "plugins/admin.py:268"
       ],
       "description": "导出网络配置（脱敏）",
       "description_source": "handler",
@@ -5449,7 +5449,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:265"
+        "plugins/admin.py:281"
       ],
       "description": "导入网络配置",
       "description_source": "handler",
@@ -5474,7 +5474,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:242"
+        "plugins/admin.py:258"
       ],
       "description": "重置网络配置为默认值",
       "description_source": "handler",
@@ -5499,7 +5499,7 @@
         "scripts/verify_key_revocation.ps1"
       ],
       "where": [
-        "plugins/chat.py:396"
+        "plugins/chat.py:415"
       ],
       "description": "新闻直通接口 — 搜索+翻译+格式化，绕过 LLM",
       "description_source": "handler",
@@ -5524,7 +5524,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:799"
+        "plugins/admin_api.py:804"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5549,7 +5549,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:785"
+        "plugins/admin_api.py:790"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5574,7 +5574,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:809"
+        "plugins/admin_api.py:814"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5599,7 +5599,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:793"
+        "plugins/admin_api.py:798"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -5624,7 +5624,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1464"
+        "agent/server_routes/routes_logging.py:1504"
       ],
       "description": "获取可观测性端点访问日志（需要认证）",
       "description_source": "handler",
@@ -5649,7 +5649,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1509"
+        "agent/server_routes/routes_logging.py:1549"
       ],
       "description": "获取访问统计信息（需要认证）",
       "description_source": "handler",
@@ -5675,8 +5675,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1177",
-        "agent/server_routes/routes_logging.py:1196"
+        "agent/server_routes/routes_logging.py:1217",
+        "agent/server_routes/routes_logging.py:1236"
       ],
       "description": "获取告警规则列表（需要认证）",
       "description_source": "handler",
@@ -5702,8 +5702,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1252",
-        "agent/server_routes/routes_logging.py:1301"
+        "agent/server_routes/routes_logging.py:1292",
+        "agent/server_routes/routes_logging.py:1341"
       ],
       "description": "更新告警规则（需要认证）",
       "description_source": "handler",
@@ -5726,7 +5726,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1325"
+        "agent/server_routes/routes_logging.py:1365"
       ],
       "description": "验证告警规则表达式（需要认证）",
       "description_source": "handler",
@@ -5752,8 +5752,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1000",
-        "agent/server_routes/routes_logging.py:877"
+        "agent/server_routes/routes_logging.py:1039",
+        "agent/server_routes/routes_logging.py:916"
       ],
       "description": "推送日志（需要认证）",
       "description_source": "handler",
@@ -5776,7 +5776,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:970"
+        "agent/server_routes/routes_logging.py:1009"
       ],
       "description": "获取日志标签列表（需要认证）",
       "description_source": "handler",
@@ -5799,7 +5799,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1079"
+        "agent/server_routes/routes_logging.py:1118"
       ],
       "description": "实时日志流（需要认证）",
       "description_source": "handler",
@@ -5824,7 +5824,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1046"
+        "agent/server_routes/routes_logging.py:1085"
       ],
       "description": "获取可观测性状态（需要认证）",
       "description_source": "handler",
@@ -5849,7 +5849,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1355"
+        "agent/server_routes/routes_logging.py:1395"
       ],
       "description": "获取追踪数据列表（需要认证）",
       "description_source": "handler",
@@ -5874,7 +5874,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_logging.py:1394"
+        "agent/server_routes/routes_logging.py:1434"
       ],
       "description": "获取追踪详情（需要认证）",
       "description_source": "handler",
@@ -6110,7 +6110,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:556"
+        "plugins/admin_api.py:561"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -6400,7 +6400,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/system_tools.py:379"
+        "plugins/system_tools.py:434"
       ],
       "description": "列出白名单进程",
       "description_source": "handler",
@@ -6427,7 +6427,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/system_tools.py:415"
+        "plugins/system_tools.py:470"
       ],
       "description": "启动白名单程序",
       "description_source": "handler",
@@ -6454,7 +6454,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/system_tools.py:428"
+        "plugins/system_tools.py:483"
       ],
       "description": "终止进程（仅限白名单）",
       "description_source": "handler",
@@ -6479,7 +6479,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:387"
+        "plugins/system_tools.py:442"
       ],
       "description": "获取进程白名单详情",
       "description_source": "handler",
@@ -6504,7 +6504,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:395"
+        "plugins/system_tools.py:450"
       ],
       "description": "添加自定义白名单条目",
       "description_source": "handler",
@@ -6529,7 +6529,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:405"
+        "plugins/system_tools.py:460"
       ],
       "description": "移除自定义白名单条目",
       "description_source": "handler",
@@ -6555,8 +6555,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:907",
-        "plugins/chat.py:915"
+        "plugins/chat.py:926",
+        "plugins/chat.py:934"
       ],
       "description": "列出全部项目（id / name / workspace_root / created_at / updated_at）",
       "description_source": "handler",
@@ -6582,8 +6582,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:940",
-        "plugins/chat.py:969"
+        "plugins/chat.py:959",
+        "plugins/chat.py:988"
       ],
       "description": "改名 / 改工作空间：body {name?, path|workspace_root?, create?}（只改传了的字段）",
       "description_source": "handler",
@@ -6608,7 +6608,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2555"
+        "plugins/chat.py:2576"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -6783,7 +6783,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:562"
+        "plugins/admin_api.py:567"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -6809,8 +6809,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:609",
-        "plugins/admin_api.py:623"
+        "plugins/admin_api.py:614",
+        "plugins/admin_api.py:628"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -6835,7 +6835,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:597"
+        "plugins/admin_api.py:602"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -6860,7 +6860,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:582"
+        "plugins/admin_api.py:587"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -6885,7 +6885,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:547"
+        "plugins/admin_api.py:552"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -6992,7 +6992,7 @@
         "scripts/docker_sandbox.ps1"
       ],
       "where": [
-        "plugins/system_tools.py:226"
+        "plugins/system_tools.py:278"
       ],
       "description": "在受限沙盒中执行 Python 代码（受 features.sandbox 开关控制）",
       "description_source": "handler",
@@ -7348,7 +7348,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:890"
+        "plugins/admin.py:909"
       ],
       "description": "手动执行一次性能检测",
       "description_source": "handler",
@@ -7373,7 +7373,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:904"
+        "plugins/admin.py:923"
       ],
       "description": "获取性能检测历史记录",
       "description_source": "handler",
@@ -7400,7 +7400,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/admin.py:860"
+        "plugins/admin.py:879"
       ],
       "description": "启动搜索引擎性能监控",
       "description_source": "handler",
@@ -7427,7 +7427,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/admin.py:847"
+        "plugins/admin.py:866"
       ],
       "description": "获取搜索引擎性能监控状态",
       "description_source": "handler",
@@ -7454,7 +7454,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/admin.py:876"
+        "plugins/admin.py:895"
       ],
       "description": "停止搜索引擎性能监控",
       "description_source": "handler",
@@ -7479,7 +7479,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:918"
+        "plugins/admin.py:937"
       ],
       "description": "获取性能摘要",
       "description_source": "handler",
@@ -7505,8 +7505,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:492",
-        "plugins/admin.py:504"
+        "plugins/admin.py:511",
+        "plugins/admin.py:523"
       ],
       "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
@@ -7532,8 +7532,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:564",
-        "plugins/admin.py:624"
+        "plugins/admin.py:583",
+        "plugins/admin.py:643"
       ],
       "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
@@ -7558,7 +7558,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:686"
+        "plugins/admin.py:705"
       ],
       "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
@@ -7583,7 +7583,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:734"
+        "plugins/admin.py:753"
       ],
       "description": "配置、认证、审计与模型实例管理插件（任务 T1.6）。",
       "description_source": "module",
@@ -7639,8 +7639,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1004",
-        "plugins/chat.py:1013"
+        "plugins/chat.py:1023",
+        "plugins/chat.py:1032"
       ],
       "description": "列出分组及 会话→分组 归属表；?project_id= 只返回该项目下的分组",
       "description_source": "handler",
@@ -7666,8 +7666,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1028",
-        "plugins/chat.py:1043"
+        "plugins/chat.py:1047",
+        "plugins/chat.py:1062"
       ],
       "description": "重命名分组",
       "description_source": "handler",
@@ -7695,8 +7695,8 @@
         "scripts/dev/verify_prompt_injection_mock.py"
       ],
       "where": [
-        "plugins/chat.py:478",
-        "plugins/chat.py:517"
+        "plugins/chat.py:497",
+        "plugins/chat.py:536"
       ],
       "description": "获取会话列表",
       "description_source": "handler",
@@ -7721,7 +7721,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:539"
+        "plugins/chat.py:558"
       ],
       "description": "删除会话",
       "description_source": "handler",
@@ -7746,7 +7746,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:596"
+        "plugins/chat.py:615"
       ],
       "description": "设置/清除会话级智能体：body {agent: string|null}；null/空 = 母体。",
       "description_source": "handler",
@@ -7771,7 +7771,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1054"
+        "plugins/chat.py:1073"
       ],
       "description": "把会话移入/移出分组：body {group_id: string|null}；null = 未分组",
       "description_source": "handler",
@@ -7798,8 +7798,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:649",
-        "plugins/chat.py:659"
+        "plugins/chat.py:668",
+        "plugins/chat.py:678"
       ],
       "description": "获取会话消息",
       "description_source": "handler",
@@ -7824,7 +7824,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:574"
+        "plugins/chat.py:593"
       ],
       "description": "把会话归入/移出项目：body {project_id: string|null}；null = 未归属项目。",
       "description_source": "handler",
@@ -7849,7 +7849,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:559"
+        "plugins/chat.py:578"
       ],
       "description": "重命名会话",
       "description_source": "handler",
@@ -7874,7 +7874,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:742"
+        "plugins/chat.py:761"
       ],
       "description": "列出会话工作空间文件树（会话不存在 404）",
       "description_source": "handler",
@@ -7900,8 +7900,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:765",
-        "plugins/chat.py:791"
+        "plugins/chat.py:784",
+        "plugins/chat.py:810"
       ],
       "description": "绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区）",
       "description_source": "handler",
@@ -7926,7 +7926,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:803"
+        "plugins/chat.py:822"
       ],
       "description": "在系统文件管理器中打开该会话的工作空间目录（本机桌面应用场景）",
       "description_source": "handler",
@@ -7951,7 +7951,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:620"
+        "plugins/chat.py:639"
       ],
       "description": "切换当前会话",
       "description_source": "handler",
@@ -8005,7 +8005,7 @@
         "scripts/verify_observability_metrics.py"
       ],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:169"
+        "agent/server_routes/routes_skills_mgmt.py:179"
       ],
       "description": "列出所有技能 (不分页)",
       "description_source": "handler",
@@ -8036,9 +8036,9 @@
         "agent/audit/ui_middleware.py"
       ],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1225",
-        "agent/server_routes/routes_skills_mgmt.py:1240",
-        "agent/server_routes/routes_skills_mgmt.py:481"
+        "agent/server_routes/routes_skills_mgmt.py:1249",
+        "agent/server_routes/routes_skills_mgmt.py:1264",
+        "agent/server_routes/routes_skills_mgmt.py:500"
       ],
       "description": "部分更新技能字段 (白名单: name/description/tags/content/...)",
       "description_source": "handler",
@@ -8063,7 +8063,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:286"
+        "agent/server_routes/routes_skills_mgmt.py:296"
       ],
       "description": "**按需分层加载**：L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单。",
       "description_source": "handler",
@@ -8089,7 +8089,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1606"
+        "agent/server_routes/routes_skills_mgmt.py:1631"
       ],
       "description": "找出与指定技能重复的其他技能",
       "description_source": "handler",
@@ -8114,7 +8114,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1934"
+        "agent/server_routes/routes_skills_mgmt.py:1960"
       ],
       "description": "Layer 3: 沙箱执行技能脚本",
       "description_source": "handler",
@@ -8139,7 +8139,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1358"
+        "agent/server_routes/routes_skills_mgmt.py:1382"
       ],
       "description": "上报一次技能执行结果 (用于性能追踪)",
       "description_source": "handler",
@@ -8165,8 +8165,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1427",
-        "agent/server_routes/routes_skills_mgmt.py:1500"
+        "agent/server_routes/routes_skills_mgmt.py:1451",
+        "agent/server_routes/routes_skills_mgmt.py:1525"
       ],
       "description": "提交针对某技能的用户反馈",
       "description_source": "handler",
@@ -8191,7 +8191,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:976"
+        "agent/server_routes/routes_skills_mgmt.py:999"
       ],
       "description": "云枢自动完成评审改进（确定性补丁 + 重新评审）：",
       "description_source": "handler",
@@ -8216,7 +8216,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1802"
+        "agent/server_routes/routes_skills_mgmt.py:1829"
       ],
       "description": "Layer 2: 按需加载技能使用说明 (skill.md 正文)",
       "description_source": "handler",
@@ -8241,7 +8241,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:240"
+        "agent/server_routes/routes_skills_mgmt.py:250"
       ],
       "description": "把一条**已有文件轨**的技能入轨：自动补全 → git add → 干净 worktree 重派生 → 基线。",
       "description_source": "handler",
@@ -8266,7 +8266,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:194"
+        "agent/server_routes/routes_skills_mgmt.py:204"
       ],
       "description": "给「只在主轨」的技能**新建**文件轨（skill.md），默认 dry-run。",
       "description_source": "handler",
@@ -8292,7 +8292,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1344"
+        "agent/server_routes/routes_skills_mgmt.py:1368"
       ],
       "description": "基于使用指标推荐参数调整",
       "description_source": "handler",
@@ -8317,7 +8317,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1528"
+        "agent/server_routes/routes_skills_mgmt.py:1553"
       ],
       "description": "一键式：拉取反馈统计 + 触发参数优化",
       "description_source": "handler",
@@ -8342,7 +8342,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1396"
+        "agent/server_routes/routes_skills_mgmt.py:1420"
       ],
       "description": "获取技能的参数级执行统计 (Item 4)",
       "description_source": "handler",
@@ -8370,7 +8370,7 @@
         "scripts/audit/contract_diff.py"
       ],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1138"
+        "agent/server_routes/routes_skills_mgmt.py:1162"
       ],
       "description": "发布技能（TASK-04 Step 3 强制审核链；S2-02：显式审计动作 skill.publish）",
       "description_source": "handler",
@@ -8395,7 +8395,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:916"
+        "agent/server_routes/routes_skills_mgmt.py:939"
       ],
       "description": "生成「再定义」草稿（LLM 可选，失败回退确定性）：中文说明/展示名，供确认后应用",
       "description_source": "handler",
@@ -8420,7 +8420,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:932"
+        "agent/server_routes/routes_skills_mgmt.py:955"
       ],
       "description": "把「再定义」草稿写回 skill.md（中文说明/展示名），供 UI 确认后应用。",
       "description_source": "handler",
@@ -8446,7 +8446,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:701"
+        "agent/server_routes/routes_skills_mgmt.py:724"
       ],
       "description": "审核指定技能 (重复检测 + 安全扫描 + 质量评估)",
       "description_source": "handler",
@@ -8471,7 +8471,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1920"
+        "agent/server_routes/routes_skills_mgmt.py:1946"
       ],
       "description": "Layer 3: 列出技能的脚本文件 (元信息，不加载代码)",
       "description_source": "handler",
@@ -8496,7 +8496,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:962"
+        "agent/server_routes/routes_skills_mgmt.py:985"
       ],
       "description": "评审发现 → 自动修复建议（规则化对策，可手动应用后重新评审）",
       "description_source": "handler",
@@ -8522,7 +8522,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1255"
+        "agent/server_routes/routes_skills_mgmt.py:1279"
       ],
       "description": "切换启用状态 (防连点 — 由后端权威决定)",
       "description_source": "handler",
@@ -8548,7 +8548,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1275"
+        "agent/server_routes/routes_skills_mgmt.py:1299"
       ],
       "description": "列出技能的所有历史版本",
       "description_source": "handler",
@@ -8574,7 +8574,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1291"
+        "agent/server_routes/routes_skills_mgmt.py:1315"
       ],
       "description": "升级技能版本",
       "description_source": "handler",
@@ -8600,7 +8600,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1319"
+        "agent/server_routes/routes_skills_mgmt.py:1343"
       ],
       "description": "回滚到指定历史版本",
       "description_source": "handler",
@@ -8625,7 +8625,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1820"
+        "agent/server_routes/routes_skills_mgmt.py:1847"
       ],
       "description": "从云枢记忆中自动抽象新技能草稿",
       "description_source": "handler",
@@ -8650,7 +8650,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1002"
+        "agent/server_routes/routes_skills_mgmt.py:1025"
       ],
       "description": "对单个技能执行权威评审（完整审核链 + 扩展评估）",
       "description_source": "handler",
@@ -8675,7 +8675,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:755"
+        "agent/server_routes/routes_skills_mgmt.py:778"
       ],
       "description": "老技能一键体检/整理：补齐说明、归档停用零使用、给出合并/拆分建议。",
       "description_source": "handler",
@@ -8701,7 +8701,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1106"
+        "agent/server_routes/routes_skills_mgmt.py:1130"
       ],
       "description": "读取最近评估结果事件（轻量推送/通知源；最新在前）",
       "description_source": "handler",
@@ -8727,7 +8727,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:803"
+        "agent/server_routes/routes_skills_mgmt.py:826"
       ],
       "description": "“全部动态”聚合流：评估事件 + 人工复核审计（时间倒序，支持分页与按技能过滤）",
       "description_source": "handler",
@@ -8752,7 +8752,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:790"
+        "agent/server_routes/routes_skills_mgmt.py:813"
       ],
       "description": "列出最近的安全合并备份（供可视化/批量撤销选择）",
       "description_source": "handler",
@@ -8777,7 +8777,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:772"
+        "agent/server_routes/routes_skills_mgmt.py:795"
       ],
       "description": "安全合并：先写两侧快照(merge_id) 再执行合并，可一键撤销",
       "description_source": "handler",
@@ -8802,7 +8802,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:900"
+        "agent/server_routes/routes_skills_mgmt.py:923"
       ],
       "description": "按 merge_id 撤销安全合并（恢复被删技能 + 回滚保留方）",
       "description_source": "handler",
@@ -8827,7 +8827,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:743"
+        "agent/server_routes/routes_skills_mgmt.py:766"
       ],
       "description": "批量自动评估所有尚无审核结果的技能（不改技能状态）",
       "description_source": "handler",
@@ -8853,7 +8853,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1119"
+        "agent/server_routes/routes_skills_mgmt.py:1143"
       ],
       "description": "评估事件实时推送（长轮询）：返回 ts > since 的新增事件，超时返回空。",
       "description_source": "handler",
@@ -8878,7 +8878,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1689"
+        "agent/server_routes/routes_skills_mgmt.py:1715"
       ],
       "description": "自动合并高相似度技能对（Jaccard ≥ 阈值）",
       "description_source": "handler",
@@ -8905,7 +8905,7 @@
         "scripts/check_skills_dual_track.py"
       ],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:460"
+        "agent/server_routes/routes_skills_mgmt.py:479"
       ],
       "description": "把「文件轨有 skill.md、主轨未登记」的技能补登记为资产行（默认 dry-run）",
       "description_source": "handler",
@@ -8930,7 +8930,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:331"
+        "agent/server_routes/routes_skills_mgmt.py:341"
       ],
       "description": "能力卡总览（L1 层）：每条技能一张卡，界面用来回答「我到底有什么能力」。",
       "description_source": "handler",
@@ -8955,7 +8955,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:834"
+        "agent/server_routes/routes_skills_mgmt.py:857"
       ],
       "description": "技能分类视图：自动归类 + 按类分组（同类折叠浏览的数据源）。",
       "description_source": "handler",
@@ -8980,7 +8980,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:861"
+        "agent/server_routes/routes_skills_mgmt.py:884"
       ],
       "description": "人工移动技能到指定分类（后续自动重判不再覆盖人工选择）。",
       "description_source": "handler",
@@ -9005,7 +9005,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:849"
+        "agent/server_routes/routes_skills_mgmt.py:872"
       ],
       "description": "全量自动分类：为尚未归类的技能自动判定（可自动新建类；人工移动不受影响）。",
       "description_source": "handler",
@@ -9030,7 +9030,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:86"
+        "agent/server_routes/routes_skills_mgmt.py:97"
       ],
       "description": "清除孤儿残留技能。",
       "description_source": "handler",
@@ -9055,7 +9055,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:75"
+        "agent/server_routes/routes_skills_mgmt.py:87"
       ],
       "description": "技能中心清理总览：孤儿残留 + 无用技能候选（只报告不删除）。",
       "description_source": "handler",
@@ -9080,7 +9080,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:103"
+        "agent/server_routes/routes_skills_mgmt.py:113"
       ],
       "description": "物理删除无用技能（归档超期零使用）。",
       "description_source": "handler",
@@ -9105,7 +9105,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1036"
+        "agent/server_routes/routes_skills_mgmt.py:1059"
       ],
       "description": "执行计划里 action=disable 的项：**只停用 + 打 auto_dormant 标签**，从不删除。",
       "description_source": "handler",
@@ -9130,7 +9130,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1075"
+        "agent/server_routes/routes_skills_mgmt.py:1099"
       ],
       "description": "最近 N 次自动处置（最新在前，供界面「撤销」用）。",
       "description_source": "handler",
@@ -9155,7 +9155,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1022"
+        "agent/server_routes/routes_skills_mgmt.py:1045"
       ],
       "description": "只读：给出「建议停用 / 保持 / 待人工」清单（不写任何状态、不调 LLM）。",
       "description_source": "handler",
@@ -9180,7 +9180,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1055"
+        "agent/server_routes/routes_skills_mgmt.py:1078"
       ],
       "description": "撤销一次自动停用（恢复 enabled 与标签，写审计）。",
       "description_source": "handler",
@@ -9205,7 +9205,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:498"
+        "agent/server_routes/routes_skills_mgmt.py:517"
       ],
       "description": "AI 辅助生成技能",
       "description_source": "handler",
@@ -9230,7 +9230,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:525"
+        "agent/server_routes/routes_skills_mgmt.py:544"
       ],
       "description": "手动创建技能 — 直接提交完整字段",
       "description_source": "handler",
@@ -9255,7 +9255,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1577"
+        "agent/server_routes/routes_skills_mgmt.py:1602"
       ],
       "description": "扫描整个技能库，列出 Jaccard≥阈值的重复对",
       "description_source": "handler",
@@ -9282,7 +9282,7 @@
         "scripts/mock_metrics_server.py"
       ],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:61"
+        "agent/server_routes/routes_skills_mgmt.py:73"
       ],
       "description": "技能管理系统健康检查",
       "description_source": "handler",
@@ -9308,8 +9308,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:639",
-        "agent/server_routes/routes_skills_mgmt.py:667"
+        "agent/server_routes/routes_skills_mgmt.py:658",
+        "agent/server_routes/routes_skills_mgmt.py:686"
       ],
       "description": "扫描 ~/.claude/skills/*/SKILL.md，返回可导入候选（**只读**，不落库）",
       "description_source": "handler",
@@ -9334,7 +9334,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:540"
+        "agent/server_routes/routes_skills_mgmt.py:559"
       ],
       "description": "从外部来源安装技能",
       "description_source": "handler",
@@ -9359,7 +9359,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:561"
+        "agent/server_routes/routes_skills_mgmt.py:580"
       ],
       "description": "外来安装预检：拉取来源并评估（与云枢自身功能重复/阻断项），不落库。",
       "description_source": "handler",
@@ -9384,7 +9384,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:226"
+        "agent/server_routes/routes_skills_mgmt.py:236"
       ],
       "description": "文件轨里每条技能：是否已提交进 git（tracked）+ 形状告警。只读。",
       "description_source": "handler",
@@ -9409,7 +9409,7 @@
         "scripts/verify_observability_metrics.py"
       ],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1743"
+        "agent/server_routes/routes_skills_mgmt.py:1769"
       ],
       "description": "Layer 1: 意图匹配 — 在元数据索引上做快速检索",
       "description_source": "handler",
@@ -9434,7 +9434,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1630"
+        "agent/server_routes/routes_skills_mgmt.py:1655"
       ],
       "description": "合并两个重复技能",
       "description_source": "handler",
@@ -9459,7 +9459,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1553"
+        "agent/server_routes/routes_skills_mgmt.py:1578"
       ],
       "description": "列出所有分类与标签 (供前端过滤面板)",
       "description_source": "handler",
@@ -9484,7 +9484,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:309"
+        "agent/server_routes/routes_skills_mgmt.py:319"
       ],
       "description": "云枢**元生功能**：内置工具 + 常驻机制，以及「技能 × 元生功能」的重叠提示。",
       "description_source": "handler",
@@ -9509,7 +9509,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:579"
+        "agent/server_routes/routes_skills_mgmt.py:598"
       ],
       "description": "外部导入·待人工放行队列（外来源草稿，最新在前）",
       "description_source": "handler",
@@ -9534,7 +9534,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1159"
+        "agent/server_routes/routes_skills_mgmt.py:1183"
       ],
       "description": "批量放行待放行队列（显式 ids；force 豁免必须带原因）",
       "description_source": "handler",
@@ -9560,7 +9560,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1088"
+        "agent/server_routes/routes_skills_mgmt.py:1112"
       ],
       "description": "读取人工复核/强制发布审计记录（技能中心可视化；最新在前）",
       "description_source": "handler",
@@ -9585,7 +9585,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:719"
+        "agent/server_routes/routes_skills_mgmt.py:742"
       ],
       "description": "批量审核所有 pending_review 状态的技能",
       "description_source": "handler",
@@ -9611,7 +9611,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1192"
+        "agent/server_routes/routes_skills_mgmt.py:1216"
       ],
       "description": "获取或更新审核阈值",
       "description_source": "handler",
@@ -9637,7 +9637,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:132"
+        "agent/server_routes/routes_skills_mgmt.py:141"
       ],
       "description": "高级搜索 — 支持分类/标签/状态/全文/分页/排序",
       "description_source": "handler",
@@ -9662,7 +9662,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:822"
+        "agent/server_routes/routes_skills_mgmt.py:845"
       ],
       "description": "斜杠命令注册表：已发布+启用技能 → 会话可输入 /skill:<id> 提示",
       "description_source": "handler",
@@ -9687,7 +9687,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1976"
+        "agent/server_routes/routes_skills_mgmt.py:2002"
       ],
       "description": "Slash 命令解析器 — 统一技能操作入口",
       "description_source": "handler",
@@ -9712,7 +9712,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1729"
+        "agent/server_routes/routes_skills_mgmt.py:1755"
       ],
       "description": "三层架构统计摘要 — 供前端可视化",
       "description_source": "handler",
@@ -9737,7 +9737,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:357"
+        "agent/server_routes/routes_skills_mgmt.py:367"
       ],
       "description": "转化队列：每条外来技能转化的**判定 / 审核 / 卡片 / 落地目标**。",
       "description_source": "handler",
@@ -9762,7 +9762,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:379"
+        "agent/server_routes/routes_skills_mgmt.py:398"
       ],
       "description": "单条转化详情：审核发现（带行号）、五面对比、卡片正文、将回滚的文件。",
       "description_source": "handler",
@@ -9787,7 +9787,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:422"
+        "agent/server_routes/routes_skills_mgmt.py:441"
       ],
       "description": "P5：LLM 按**原文引用**重写卡片分节（严格引用校验，验不过的整条丢弃）。",
       "description_source": "handler",
@@ -9812,7 +9812,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:395"
+        "agent/server_routes/routes_skills_mgmt.py:414"
       ],
       "description": "按 transform_id **反向补丁回滚**：只删 P2 写进 skills_repo 的那几个文件。",
       "description_source": "handler",
@@ -9837,7 +9837,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:592"
+        "agent/server_routes/routes_skills_mgmt.py:611"
       ],
       "description": "上传 zip 技能包并安装到三层架构文件仓库",
       "description_source": "handler",
@@ -9864,7 +9864,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_skills_mgmt.py:1783"
+        "agent/server_routes/routes_skills_mgmt.py:1810"
       ],
       "description": "技能使用台账聚合（match / load / exec，默认近 7 天）",
       "description_source": "handler",
@@ -9889,7 +9889,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:491"
+        "plugins/skills.py:500"
       ],
       "description": "运行时技能「一键自动分类」：为未归类（含未分类存量）重新判定，可自动建类。",
       "description_source": "handler",
@@ -9939,7 +9939,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:463"
+        "plugins/skills.py:472"
       ],
       "description": "【G1-B / M0 已冻结】原「为缺描述的已知内置技能自动补中文说明」",
       "description_source": "handler",
@@ -9966,7 +9966,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/skills.py:412"
+        "plugins/skills.py:421"
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
@@ -10046,7 +10046,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:634"
+        "agent/server_routes/routes_subagent.py:714"
       ],
       "description": "获取指定分身详情",
       "description_source": "handler",
@@ -10071,7 +10071,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:651"
+        "agent/server_routes/routes_subagent.py:731"
       ],
       "description": "导出可带走 bundle（只读；**导出前必经密钥闸**）",
       "description_source": "handler",
@@ -10096,7 +10096,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:995"
+        "agent/server_routes/routes_subagent.py:1072"
       ],
       "description": "**真委派**：把任务交给指定分身，经真实执行器跑（八要素 + 隔离 + Trace + 成本）",
       "description_source": "handler",
@@ -10121,7 +10121,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:941"
+        "agent/server_routes/routes_subagent.py:1018"
       ],
       "description": "销毁指定分身",
       "description_source": "handler",
@@ -10144,7 +10144,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:963"
+        "agent/server_routes/routes_subagent.py:1040"
       ],
       "description": "在指定分身中执行任务",
       "description_source": "handler",
@@ -10169,7 +10169,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:701"
+        "agent/server_routes/routes_subagent.py:778"
       ],
       "description": "下载**预构建**的离线包（``<name>.tar.gz``）—— 把\"可带走\"交付到产品面",
       "description_source": "handler",
@@ -10194,7 +10194,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1229"
+        "agent/server_routes/routes_subagent.py:1307"
       ],
       "description": "热更新分身配置",
       "description_source": "handler",
@@ -10217,7 +10217,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:800"
+        "agent/server_routes/routes_subagent.py:877"
       ],
       "description": "接收分身/远端的委派结果回调（**只落账，不执行任何工具、不建/改容器**）",
       "description_source": "handler",
@@ -10242,7 +10242,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:554"
+        "agent/server_routes/routes_subagent.py:636"
       ],
       "description": "主权分身能力投影（六层二十面 + 三态 + 证据）—— 组装台「主权清单」的数据源",
       "description_source": "handler",
@@ -10267,7 +10267,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:858"
+        "agent/server_routes/routes_subagent.py:935"
       ],
       "description": "创建新分身",
       "description_source": "handler",
@@ -10292,7 +10292,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:1126"
+        "agent/server_routes/routes_subagent.py:1204"
       ],
       "description": "**临时分身委派**：不要求先存在分身 —— 与模型侧 ``delegate`` 工具同一条链路",
       "description_source": "handler",
@@ -10319,7 +10319,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:577"
+        "agent/server_routes/routes_subagent.py:658"
       ],
       "description": "委派记录（最近 N 条，**最新在前**）——「子代理」下拉的历史数据源",
       "description_source": "handler",
@@ -10344,7 +10344,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:732"
+        "agent/server_routes/routes_subagent.py:809"
       ],
       "description": "从 bundle 导入一个分身（非法 bundle ⇒ 400 且**不建容器**）",
       "description_source": "handler",
@@ -10369,7 +10369,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_subagent.py:521"
+        "agent/server_routes/routes_subagent.py:604"
       ],
       "description": "获取所有活跃分身列表（附带委派执行通道可用性，供 UI 提前提示）。",
       "description_source": "handler",
@@ -10398,8 +10398,8 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/admin.py:111",
-        "plugins/admin.py:144"
+        "plugins/admin.py:118",
+        "plugins/admin.py:154"
       ],
       "description": "获取系统提示词模板及预览信息",
       "description_source": "handler",
@@ -10526,7 +10526,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin.py:181"
+        "plugins/admin.py:197"
       ],
       "description": "重置系统提示词为默认",
       "description_source": "handler",
@@ -10677,7 +10677,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:819"
+        "plugins/system_tools.py:874"
       ],
       "description": "「云枢当前正在执行什么」—— 审计链尾部 + 进行中的子代理委派（只读）。",
       "description_source": "handler",
@@ -10702,7 +10702,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:732"
+        "plugins/system_tools.py:787"
       ],
       "description": "列出可执行命令白名单（界面用它渲染按钮，**不接受自由输入**）。",
       "description_source": "handler",
@@ -10727,7 +10727,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:804"
+        "plugins/system_tools.py:859"
       ],
       "description": "按白名单执行一条命令（`shell=False`，cwd 锁仓库根）。",
       "description_source": "handler",
@@ -10752,7 +10752,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2156"
+        "app_server.py:2159"
       ],
       "description": "测试端点：测试除法运算（正常情况）",
       "description_source": "handler",
@@ -10777,7 +10777,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2132"
+        "app_server.py:2135"
       ],
       "description": "测试端点：触发除零错误以验证堆栈捕获",
       "description_source": "handler",
@@ -10802,7 +10802,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2145"
+        "app_server.py:2148"
       ],
       "description": "测试端点：触发空指针错误以验证堆栈捕获",
       "description_source": "handler",
@@ -10827,7 +10827,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:792"
+        "plugins/skills.py:801"
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
@@ -10852,7 +10852,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:741"
+        "plugins/skills.py:750"
       ],
       "description": "获取工具列表及使用统计（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -10879,7 +10879,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/skills.py:854"
+        "plugins/skills.py:863"
       ],
       "description": "获取工具健康状态（追踪、成功率、评分）",
       "description_source": "handler",
@@ -10905,8 +10905,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:802",
-        "plugins/skills.py:816"
+        "plugins/skills.py:811",
+        "plugins/skills.py:825"
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
@@ -10931,7 +10931,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:845"
+        "plugins/skills.py:854"
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
@@ -10956,7 +10956,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:830"
+        "plugins/skills.py:839"
       ],
       "description": "云枢技能/扩展/工具域插件（T1.5）：技能 / 扩展 / 工具管理。",
       "description_source": "module",
@@ -10981,7 +10981,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/skills.py:862"
+        "plugins/skills.py:871"
       ],
       "description": "获取所有工具和技能的启用状态摘要（供快捷开关栏使用）",
       "description_source": "handler",
@@ -11008,7 +11008,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/skills.py:776"
+        "plugins/skills.py:785"
       ],
       "description": "切换工具启用状态",
       "description_source": "handler",
@@ -11033,7 +11033,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:507"
+        "plugins/admin_api.py:512"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -11059,8 +11059,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:496",
-        "plugins/admin_api.py:529"
+        "plugins/admin_api.py:501",
+        "plugins/admin_api.py:534"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -11085,7 +11085,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:466"
+        "plugins/admin_api.py:471"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -11111,7 +11111,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/admin_api.py:487"
+        "plugins/admin_api.py:492"
       ],
       "description": "云枢管理后台 API 插件（2026-09-01 新增）：登录 / 用户 / 角色 / 菜单 / 审计 / 通知 / 仪表盘。",
       "description_source": "module",
@@ -11138,7 +11138,7 @@
         "agent/memory_import/targets.py"
       ],
       "where": [
-        "plugins/memory.py:699"
+        "plugins/memory.py:705"
       ],
       "description": "添加单条向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11163,7 +11163,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:722"
+        "plugins/memory.py:728"
       ],
       "description": "批量添加向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11188,7 +11188,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:859"
+        "plugins/memory.py:865"
       ],
       "description": "清空向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11214,8 +11214,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:744",
-        "plugins/memory.py:759"
+        "plugins/memory.py:750",
+        "plugins/memory.py:765"
       ],
       "description": "按 ID 获取记忆项（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11240,7 +11240,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:811"
+        "plugins/memory.py:817"
       ],
       "description": "获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11265,7 +11265,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:658"
+        "plugins/memory.py:664"
       ],
       "description": "语义搜索向量记忆",
       "description_source": "handler",
@@ -11290,7 +11290,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:685"
+        "plugins/memory.py:691"
       ],
       "description": "获取向量记忆统计（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11392,7 +11392,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:579"
+        "plugins/system_tools.py:634"
       ],
       "description": "数据清洗",
       "description_source": "handler",
@@ -11415,7 +11415,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:530"
+        "plugins/system_tools.py:585"
       ],
       "description": "CSS 选择器提取",
       "description_source": "handler",
@@ -11438,7 +11438,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:602"
+        "plugins/system_tools.py:657"
       ],
       "description": "下载文件",
       "description_source": "handler",
@@ -11461,7 +11461,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:466"
+        "plugins/system_tools.py:521"
       ],
       "description": "HTTP GET 请求",
       "description_source": "handler",
@@ -11484,7 +11484,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:484"
+        "plugins/system_tools.py:539"
       ],
       "description": "HTTP POST 请求",
       "description_source": "handler",
@@ -11509,7 +11509,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:558"
+        "plugins/system_tools.py:613"
       ],
       "description": "搜索互联网",
       "description_source": "handler",
@@ -11534,7 +11534,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:628"
+        "plugins/system_tools.py:683"
       ],
       "description": "获取当前搜索引擎状态和切换日志（用于前端显示）",
       "description_source": "handler",
@@ -11557,7 +11557,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:615"
+        "plugins/system_tools.py:670"
       ],
       "description": "Web 模块统计",
       "description_source": "handler",
@@ -11580,7 +11580,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:503"
+        "plugins/system_tools.py:558"
       ],
       "description": "XPath 提取",
       "description_source": "handler",
@@ -11630,7 +11630,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:377"
+        "agent/server_routes/routes_workflow_learning.py:386"
       ],
       "description": "批量把外部 agent 的技能转换为本地技能（自动合并/加强/新建）",
       "description_source": "handler",
@@ -11655,7 +11655,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:320"
+        "agent/server_routes/routes_workflow_learning.py:337"
       ],
       "description": "把外部 agent 的技能描述翻译为云枢 SKILL 并注册",
       "description_source": "handler",
@@ -11680,7 +11680,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:308"
+        "agent/server_routes/routes_workflow_learning.py:325"
       ],
       "description": "列出当前可转换为 Skill 的工作流（满足质量门控且未转换过）",
       "description_source": "handler",
@@ -11706,7 +11706,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:150"
+        "agent/server_routes/routes_workflow_learning.py:175"
       ],
       "description": "按 ID 直接执行工作流 (人工触发)",
       "description_source": "handler",
@@ -11731,7 +11731,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:63"
+        "agent/server_routes/routes_workflow_learning.py:88"
       ],
       "description": "工作流学习系统 API 路由",
       "description_source": "module",
@@ -11756,7 +11756,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:76"
+        "agent/server_routes/routes_workflow_learning.py:101"
       ],
       "description": "从一次成功的 LLM 交互中学习方法",
       "description_source": "handler",
@@ -11781,7 +11781,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:109"
+        "agent/server_routes/routes_workflow_learning.py:134"
       ],
       "description": "模拟匹配 — 返回候选工作流列表 (不执行)",
       "description_source": "handler",
@@ -11806,7 +11806,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:128"
+        "agent/server_routes/routes_workflow_learning.py:153"
       ],
       "description": "尝试匹配并执行本地工作流 (优先于 LLM)",
       "description_source": "handler",
@@ -11832,7 +11832,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:175"
+        "agent/server_routes/routes_workflow_learning.py:200"
       ],
       "description": "列出所有工作流（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -11859,8 +11859,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:201",
-        "agent/server_routes/routes_workflow_learning.py:213"
+        "agent/server_routes/routes_workflow_learning.py:226",
+        "agent/server_routes/routes_workflow_learning.py:238"
       ],
       "description": "工作流学习系统 API 路由",
       "description_source": "module",
@@ -11885,7 +11885,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:260"
+        "agent/server_routes/routes_workflow_learning.py:285"
       ],
       "description": "把指定工作流抽象为 Skill 并注册到 skills_mgmt",
       "description_source": "handler",
@@ -11910,7 +11910,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:241"
+        "agent/server_routes/routes_workflow_learning.py:266"
       ],
       "description": "工作流学习系统 API 路由",
       "description_source": "module",
@@ -11936,7 +11936,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "agent/server_routes/routes_workflow_learning.py:226"
+        "agent/server_routes/routes_workflow_learning.py:251"
       ],
       "description": "工作流学习系统 API 路由",
       "description_source": "module",
@@ -11961,7 +11961,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:62"
+        "plugins/system_tools.py:114"
       ],
       "description": "列出工作区内容",
       "description_source": "handler",
@@ -11986,7 +11986,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:99"
+        "plugins/system_tools.py:151"
       ],
       "description": "删除工作区文件",
       "description_source": "handler",
@@ -12011,7 +12011,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:115"
+        "plugins/system_tools.py:167"
       ],
       "description": "工作区信息",
       "description_source": "handler",
@@ -12036,7 +12036,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/system_tools.py:77"
+        "plugins/system_tools.py:129"
       ],
       "description": "写入工作区文件",
       "description_source": "handler",
@@ -12063,9 +12063,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:867",
-        "plugins/chat.py:875",
-        "plugins/chat.py:891"
+        "plugins/chat.py:886",
+        "plugins/chat.py:894",
+        "plugins/chat.py:910"
       ],
       "description": "列出已添加的工作区（路径/名称/添加时间）",
       "description_source": "handler",
@@ -12264,7 +12264,7 @@
         "agent/log_system/dashboard.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:1424"
+        "agent/server_routes/routes_logging.py:1464"
       ],
       "description": "可观测性仪表盘：重定向到统一工作台（2026-10-03 legacy 收敛续作）。",
       "description_source": "handler",
@@ -12575,7 +12575,7 @@
         "scripts/monitoring_longrun/gen_derived_config.py"
       ],
       "where": [
-        "agent/server_routes/routes_logging.py:1143"
+        "agent/server_routes/routes_logging.py:1183"
       ],
       "description": "Prometheus 格式指标导出",
       "description_source": "handler",
@@ -12600,7 +12600,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2111"
+        "app_server.py:2114"
       ],
       "description": "[简易] 用户行为回放页面",
       "description_source": "handler",
@@ -12625,7 +12625,7 @@
         "app_server.py"
       ],
       "where": [
-        "app_server.py:2103"
+        "app_server.py:2106"
       ],
       "description": "搜索引擎状态监控页面",
       "description_source": "handler",
