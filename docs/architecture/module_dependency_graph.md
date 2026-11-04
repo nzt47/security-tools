@@ -910,6 +910,7 @@ flowchart LR
     agent_digestion_service -.-> agent_observability_trace_v2
     agent_digestion_service -.-> agent_descriptors_registry
     agent_digestion_service -.-> agent_observability_events
+    agent_digestion_shadow -.-> agent_safe_paths
     agent_digestion_shadow -.-> agent_monitoring_cost_brake
     agent_digestion_shadow -.-> agent_observability_events
     agent_digestion_shadow -.-> agent_audit_facade
@@ -2713,6 +2714,9 @@ flowchart LR
     agent_tools_prompt_guard --> agent
     agent_tools_prompt_guard -.-> agent_lines
     agent_ui_panels_data --> agent_ui_panels_schema
+    agent_ui_panels_data -.-> agent_safe_paths
+    agent_ui_panels_data -.-> agent_safe_paths
+    agent_ui_panels_data -.-> agent_safe_paths
     agent_ui_panels_data -.-> agent_security
     agent_ui_panels_data -.-> agent_observability_events
     agent_ui_panels_data -.-> agent_digestion_shadow
@@ -2794,7 +2798,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 720
 - 模块节点数: 622
-- 依赖边数: 2044
-- 跨层调用数: 1298
+- 依赖边数: 2048
+- 跨层调用数: 1302
 - 违规调用数: 0
 - 动态 import 数: 1
