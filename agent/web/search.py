@@ -935,7 +935,8 @@ class SearchEngine:
                         api_key_updated.append(engine_name)
 
         if api_key_updated:
-            logger.info(log_dict({'module_name': 'search', 'action': 'update_config', 'msg': '[搜索引擎] API Keys 已更新: %s' % api_key_updated}))
+            # [C-6-B4 2026-11-04] 引擎名由 "*_api_key" 键派生，与密钥同一股数据流 ⇒ 只记数量
+            logger.info(log_dict({'module_name': 'search', 'action': 'update_config', 'msg': '[搜索引擎] API Keys 已更新: %d 个引擎' % len(api_key_updated)}))
 
         if "engine_priority" in config:
             self.set_engine_priority(config["engine_priority"])

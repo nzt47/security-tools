@@ -29,6 +29,7 @@ P3 配置审计:
 """
 
 import getpass
+import hashlib
 import json
 import logging
 import os
@@ -54,6 +55,16 @@ from agent.logging_utils import log_dict
 from agent.utils.cross_process_lock import CrossProcessLock, LockUnavailable
 
 logger = logging.getLogger(__name__)
+
+
+def _env_key_fp(key) -> str:
+    """环境变量名指纹（C-6-B4 2026-11-04）：sha256 前 8 位
+
+    日志里不能出现「装着密钥的环境变量名」原文：它和值属于同一股数据流，
+    py/clear-text-logging-sensitive-data 会判成明文泄漏。指纹可回答"是哪一项"。
+    """
+    text = str(key or "")
+    return hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
 
 #: 跨进程锁的有限等待上限（秒）——**兜底值**，正常从 observability_config 读取。
 #: 【为什么是 10s（不易）】写 .env 本身是毫秒级操作；10s 只可能来自"另一个进程
@@ -240,10 +251,11 @@ class EnvConfigManager:
             os.environ[key] = value
             # 【P3 配置审计】写入审计日志（脱敏后）
             self._audit_log('set', key, old_value, value)
+            # [C-6-B4 2026-11-04] key 是「装着密钥的环境变量名」，与值同一股数据流 ⇒ 只打指纹
             logger.info(log_dict({
                 'module_name': 'env_config',
                 'action': 'env_config.set',
-                'message': f'[Env配置] 已更新 {key}（.env + os.environ）'
+                'message': f'[Env配置] 已更新 key_fp={_env_key_fp(key)}（.env + os.environ）'
             }))
 
     def delete(self, key: str):

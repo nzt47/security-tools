@@ -391,9 +391,10 @@ class EgressChainMonitor:
             from agent.circuit_breaker import get_circuit_breaker
             breaker = get_circuit_breaker(CHAIN_BREAKER_NAME)
             breaker.force_open()
-            logger.error("出域链路熔断已打开: breaker=%s scope=%s host=%s kinds=%s",
+            # [C-6-B4 2026-11-04] 只记命中种类数，不记 kinds 本体（与命中密钥同一股数据流）
+            logger.error("出域链路熔断已打开: breaker=%s scope=%s host=%s kinds_count=%d",
                          CHAIN_BREAKER_NAME, verdict.scope, verdict.target_host,
-                         verdict.secret_kinds)
+                         len(verdict.secret_kinds or ()))
             return True
         except Exception as exc:  # noqa: BLE001 熔断失败不影响拦截本身
             logger.warning("出域熔断打开失败（拦截仍生效）: %s: %s",

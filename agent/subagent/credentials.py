@@ -123,8 +123,11 @@ def refs_to_specs(refs: Iterable[Mapping[str, Any]], *,
                    or env_var_name(source, name))
         value = str(env.get(env_var) or "")
         if not value:
-            logger.warning("[Credentials] 引用 %s/%s 在到达端无值（槽位 %s）⇒ 跳过签发",
-                           source or "?", name, env_var)
+            # [C-6-B4 2026-11-04] 引用名/槽位名由环境变量名派生（与凭证同一股数据流），
+            # 只打指纹：能回答"是哪一项"，不可还原明文。
+            logger.warning("[Credentials] 引用指纹 %s 在到达端无值（槽位指纹 %s）⇒ 跳过签发",
+                           fingerprint("%s/%s" % (source or "?", name)),
+                           fingerprint(env_var))
             continue
         specs.append({"name": name, "value": value, "source": source,
                       "env_var": env_var})

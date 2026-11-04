@@ -22,6 +22,7 @@ import re
 import time
 import json
 import uuid
+import hashlib
 import logging
 import threading
 from dataclasses import dataclass
@@ -33,6 +34,12 @@ from . import admission
 # learner 不 import matcher，无循环依赖。
 from .learner import term_stream
 from .observability import logger, emit_metric, traced_action
+
+
+def _task_fp(text) -> str:
+    """任务文本指纹（C-6-B4 2026-11-04）：sha256 前 8 位，不落原文"""
+    raw = str(text or "")
+    return hashlib.sha256(raw.encode("utf-8", "replace")).hexdigest()[:8]
 from agent.logging_utils import log_dict
 
 
@@ -475,8 +482,11 @@ class WorkflowMatcher:
             emit_metric("yunshu_wf_match_latency_ms",
                         value=elapsed, labels={"success": "true"},
                         kind="histogram")
-            logger.info("[Matcher] '%s...' → %d 候选, %d 通过, %.2fms",
-                        task_text[:30], len(candidates), len(results), elapsed)
+            # [C-6-B4 2026-11-04] 任务文本不再进日志（它与业务/凭据上下文同一股数据流），
+            # 只留指纹 + 长度：仍可判断"是不是同一条任务"。
+            logger.info("[Matcher] task_fp=%s len=%d → %d 候选, %d 通过, %.2fms",
+                        _task_fp(task_text), len(str(task_text or "")),
+                        len(candidates), len(results), elapsed)
             return results
 
 
