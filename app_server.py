@@ -2087,11 +2087,14 @@ def chat_page():
 @app.route("/static/<path:subpath>")
 def spa_fallback(subpath):
     from flask import make_response, send_from_directory, abort
-    full_path = os.path.join(app.static_folder, subpath)
-    # [不易] spa.html 已删除，静态资源未命中时返回 404，不再回退到已删除的模板
-    if os.path.isfile(full_path):
+    from werkzeug.exceptions import NotFound
+    # [不易] spa.html 已删除，静态资源未命中时返回 404，不再回退到已删除的模板。
+    # [C-6-B1 2026-11-04] 不再自己 os.path.join + isfile 判断：那会让 URL 里的
+    # subpath 进路径表达式（py/path-injection）。send_from_directory 内部用
+    # safe_join 归一化并自行拒绝越界/不存在的文件 —— 未命中即 NotFound -> 404。
+    try:
         resp = make_response(send_from_directory(app.static_folder, subpath))
-    else:
+    except NotFound:
         abort(404)
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'

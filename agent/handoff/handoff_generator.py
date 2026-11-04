@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 import tempfile
@@ -257,10 +258,15 @@ def _render_markdown(meta: Dict[str, Any], session_id: str, message_count: int,
 
 
 def _write_temp_file(content: str, session_id: str) -> str:
-    """写入 OS 临时目录，返回绝对路径。"""
+    """写入 OS 临时目录，返回绝对路径。
+
+    【C-6-B1 2026-11-04】文件名里的会话标识改用 **sha256 摘要**：`session_id`
+    来自请求，原先靠 `re.sub` 清洗后拼进文件名 —— CodeQL 不认正则清洗当 sanitizer
+    （§8 陷阱 14）。摘要字符集是常量 hex，落点固定为 OS 临时目录。
+    """
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe_sid = re.sub(r"[^\w-]", "_", session_id)
-    filename = f"yunshu_handoff_{safe_sid}_{ts}.md"
+    sid_key = hashlib.sha256(str(session_id or "").encode("utf-8")).hexdigest()[:12]
+    filename = f"yunshu_handoff_{ts}_{sid_key}.md"
     file_path = Path(tempfile.gettempdir()) / filename
     try:
         file_path.write_text(content, encoding="utf-8")

@@ -36,6 +36,17 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().replace(microsecond=0).isoformat()
 
 
+def _path_key(value: Any) -> str:
+    """路径片段用 **sha256 摘要**（C-6-B1 2026-11-04）
+
+    `plan_id` / `skill.id` 都可能是调用方给的字符串：它们**只作为哈希输入**，
+    真正的路径片段是常量字符集的 hex —— 目录穿越在构造上不可能。
+    为什么不再靠正则清洗：CodeQL 不认「正则清洗」当 sanitizer（§8 陷阱 14，
+    本仓三次应验），摘要命名是被认的三种断链之一（同 `monitoring/replay_storage`）。
+    """
+    return hashlib.sha256(str(value or "").encode("utf-8")).hexdigest()[:12]
+
+
 def _svc(skills_service: Any = None) -> Any:
     if skills_service is not None:
         return skills_service
@@ -316,11 +327,13 @@ def _audit(action: str, target: str, payload: Dict[str, Any],
 
 def _write_split(skill: Any, *, plan_id: str, draft_dir: Any = None) -> Dict[str, Any]:
     base = Path(draft_dir) if draft_dir else DEFAULT_SPLIT_DIR
-    root = base / plan_id / str(skill.id)
+    # 目录名走摘要（plan_id / skill.id 不进路径表达式）；子草稿保持可读 id 便于人工审阅
+    root = base / _path_key(plan_id) / _path_key(skill.id)
     sections = _content_sections(str(getattr(skill, "content", "") or ""))
     if not sections:
         sections = [{"title": "正文", "body": str(getattr(skill, "description", "") or "")}]
     files: List[str] = []
+    id_map: Dict[str, str] = {}
     for i, sec in enumerate(sections, start=1):
         child = f"{skill.id}-part-{i:02d}"
         title = str(sec.get("title") or f"第 {i} 部分")
@@ -335,15 +348,20 @@ def _write_split(skill: Any, *, plan_id: str, draft_dir: Any = None) -> Dict[str
             "---\n\n"
             f"# {title}\n\n{sec.get('body', '')}\n"
         )
-        path = root / f"{child}.md"
+        path = root / f"part-{i:02d}.md"   # 文件名常量（子草稿 id 只在正文 front matter 里）
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(text.encode("utf-8"))
         files.append(str(path.relative_to(root).as_posix()))
+        id_map[child] = files[-1]
     manifest = {
         "parent_id": skill.id,
         "plan_id": plan_id,
+        "dir_key": _path_key(plan_id),
+        "skill_key": _path_key(skill.id),
         "created_at": _now_iso(),
         "parts": files,
+        # 文件名是常量（part-01.md），子草稿 id 只在正文 front matter 与这里可查
+        "part_ids": id_map,
         "note": "子草稿未注册/未启用；人工审阅后走吞噬安装链路",
     }
     (root / "manifest.json").write_text(

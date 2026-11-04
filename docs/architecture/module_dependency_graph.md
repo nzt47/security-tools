@@ -105,6 +105,7 @@ flowchart LR
         agent_prometheus_exporter["agent.prometheus_exporter"]:::crosslayer
         agent_rate_limiter["agent.rate_limiter"]:::crosslayer
         agent_response_workflows["agent.response_workflows"]:::crosslayer
+        agent_safe_paths["agent.safe_paths"]:::crosslayer
         agent_safety_guard["agent.safety_guard"]
         agent_scheduling["agent.scheduling"]:::crosslayer
         agent_search_aggregator["agent.search_aggregator"]:::crosslayer
@@ -1555,6 +1556,7 @@ flowchart LR
     agent_observability_escape --> agent_observability_events
     agent_observability_events -.-> agent_utils_cross_process_lock
     agent_observability_events -.-> agent_utils_obs_hooks
+    agent_observability_events -.-> agent_safe_paths
     agent_observability_events --> agent_observability_trace_v2
     agent_observability_events --> agent_observability_trace_v2
     agent_observability_events -.-> agent_skills_mgmt_log_archiver
@@ -1945,6 +1947,7 @@ flowchart LR
     agent_security_tenant -.-> agent_observability_trace_v2
     agent_security_tenant -.-> agent_lines_models
     agent_security_utils --> agent_logging_utils
+    agent_self_healing_levels -.-> agent_safe_paths
     agent_self_healing_levels -.-> agent_observability_events
     agent_self_healing_levels -.-> agent_audit_facade
     agent_self_healing_levels -.-> agent_monitoring_alert_evaluator
@@ -2789,9 +2792,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 719
-- 模块节点数: 621
-- 依赖边数: 2042
-- 跨层调用数: 1296
+- 扫描文件数: 720
+- 模块节点数: 622
+- 依赖边数: 2044
+- 跨层调用数: 1298
 - 违规调用数: 0
 - 动态 import 数: 1
