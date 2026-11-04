@@ -794,13 +794,20 @@ def install_hooks():
         orig_do_summarize = _orig_do_summarize
 
         def _patched_do_chat(self, messages, system_prompt="",
-                             max_tokens=1024, temperature=0.7):
+                             max_tokens=1024, temperature=0.7, extra_body=None):
             start = time.time()
             error = ""
             response_obj = None
             try:
-                response_obj = orig_do_chat(self, messages, system_prompt,
-                                            max_tokens, temperature)
+                # extra_body 只在**真的带了**才往下传：漏传会让上游 TypeError
+                # （2026-11-05 实测 shard5 红）；而无条件多传一个位置参数，又会打断
+                # 既有的「5 参 _do_chat 替身」（单测里有），所以按需透传。
+                if extra_body is None:
+                    response_obj = orig_do_chat(self, messages, system_prompt,
+                                                max_tokens, temperature)
+                else:
+                    response_obj = orig_do_chat(self, messages, system_prompt,
+                                                max_tokens, temperature, extra_body)
                 return response_obj
             except Exception as e:
                 error = str(e)

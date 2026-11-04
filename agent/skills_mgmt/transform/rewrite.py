@@ -36,6 +36,17 @@ MAX_INPUT_CHARS = 12000
 MAX_QUOTE_CHARS = 240
 #: 一次最多要多少条（防止模型刷屏）
 MAX_ITEMS = 40
+#: 单次请求的输出预算（tokens）。**别往下调**：本机模型 deepseek-flash 是推理模型，
+#: 输出预算先被推理 token 吃掉 —— 2026-11-05 实测 4000 全给了 reasoning
+#: （finish_reason=length、content 为空、一条都产不出来），抬到 8000 才拿到正文
+#: （同一条技能 32/32 通过严格引用校验）。
+MAX_OUTPUT_TOKENS = 8000
+#: 单次 LLM 调用的超时（秒）。推理模型的正文常要 60–100 s，默认 30 s 必超时
+#: （2026-11-05 实测：预算抬到 8000 后每次都在 30 s 处 APITimeoutError，3 次重试全废）。
+DRAFT_TIMEOUT_SECONDS = 180
+#: 起草时**关掉推理**（DeepSeek thinking 模式）。摘录是机械活，思考只会吃掉输出预算：
+#: 2026-11-05 实测同一提示词 reasoning 在 0–8000+ 之间抖，抖满就回空正文（见 MAX_OUTPUT_TOKENS）。
+THINKING_DISABLED = {"thinking": {"type": "disabled"}}
 
 
 def _norm(text: str) -> str:
@@ -135,13 +146,15 @@ def default_chat() -> Optional[Callable[[str, str], str]]:
     """按 .env 构造 LLM 调用（不可用返回 None，调用方据此降级/报错）。"""
     try:
         from agent.skills_mgmt.service import _build_default_llm
-        svc = _build_default_llm()
+        svc = _build_default_llm(timeout=DRAFT_TIMEOUT_SECONDS)
         if svc is None:
             return None
 
         def _call(prompt: str, system: str) -> str:
+            # 输出预算见 MAX_OUTPUT_TOKENS（推理模型会先把预算花在 reasoning 上）
             return svc.chat([{"role": "user", "content": prompt}],
-                            system_prompt=system, max_tokens=4000, temperature=0.1)
+                            system_prompt=system, max_tokens=MAX_OUTPUT_TOKENS,
+                            temperature=0.1, extra_body=THINKING_DISABLED)
 
         return _call
     except Exception:  # noqa: BLE001 构建失败就当没配 LLM
@@ -225,6 +238,13 @@ def draft_sections(text: str, *, title: str = "", chat: Optional[Callable[[str, 
         return {"ok": False, "reason": "LLM 调用失败：%s" % type(e).__name__,
                 "sections": {}, "kept": [], "dropped": []}
 
+    if not str(raw or "").strip():
+        # 推理模型把输出预算全用在 reasoning 上时，上游会回空正文（finish_reason=length）。
+        # 这时**不能**当成「原文没有内涵」——要说清是没产出，别再让人以为技能没内容。
+        return {"ok": False,
+                "reason": "模型没有产出正文（推理 token 占满输出预算 %d），这次不写卡片"
+                          % MAX_OUTPUT_TOKENS,
+                "sections": {}, "kept": [], "dropped": [], "stats": {"total": 0, "verified": 0}}
     data = _extract_json(raw)
     items = data.get("items") if isinstance(data, dict) else None
     result = verify_items(body, items)

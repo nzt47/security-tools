@@ -3,6 +3,7 @@
 import logging
 import os
 import time
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -296,7 +297,8 @@ class LLMService:
             raise LLMServiceError(f"摘要生成失败（已重试 {self.max_retries} 次）: {e}") from e
     
     def _do_chat(self, messages: list[dict], system_prompt: str = "",
-                 max_tokens: int = 1024, temperature: float = 0.7) -> str:
+                 max_tokens: int = 1024, temperature: float = 0.7,
+                 extra_body: Optional[dict] = None) -> str:
         """实际的对话生成逻辑（不含重试）
 
         【DSML 根因防线】本方法**按定义永远不下发 `tools`**（没有该形参），
@@ -321,13 +323,14 @@ class LLMService:
                 full_messages.append({"role": "system", "content": system_prompt})
             full_messages.extend(messages)
             logger.info("├─ Provider: %s | Model: %s", self.provider, self.model)
-            response = client.chat.completions.create(
-                model=self.model,
-                messages=full_messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-            )
-            result = response.choices[0].message.content.strip()
+            kwargs = dict(model=self.model, messages=full_messages,
+                          max_tokens=max_tokens, temperature=temperature)
+            if extra_body:
+                # 透传给上游（OpenAI 兼容端的 `extra_body`）。用途：DeepSeek thinking 模式
+                # `{"thinking": {"type": "disabled"}}` —— 纯摘录类调用不该把预算花在推理上。
+                kwargs["extra_body"] = extra_body
+            response = client.chat.completions.create(**kwargs)
+            result = (response.choices[0].message.content or "").strip()
             logger.info("│ ✓ 对话生成成功，长度: %d 字符", len(result))
             return result
         
@@ -348,7 +351,8 @@ class LLMService:
             return result
     
     def chat(self, messages: list[dict], system_prompt: str = "",
-             max_tokens: int = 1024, temperature: float = 0.7) -> str:
+             max_tokens: int = 1024, temperature: float = 0.7,
+             extra_body: Optional[dict] = None) -> str:
         """调用 LLM 生成对话响应（带重试机制）
 
         Args:
@@ -367,7 +371,8 @@ class LLMService:
             return ""
         
         try:
-            return self._chat_with_retry(messages, system_prompt, max_tokens, temperature)
+            return self._chat_with_retry(messages, system_prompt, max_tokens, temperature,
+                                         extra_body)
         except Exception as e:
             logger.error("└─────────────────────────────────────────────")
             logger.error("│ ✗ [LLM对话] 所有 %d 次尝试均失败", self.max_retries)
@@ -384,7 +389,7 @@ class LLMService:
             outcome = self._fallback_after_failure(
                 "chat", e,
                 lambda shadow: shadow._chat_with_retry(
-                    messages, system_prompt, max_tokens, temperature))
+                    messages, system_prompt, max_tokens, temperature, extra_body))
             if outcome.get("succeeded"):
                 logger.warning("│ ↩ 已降级到 %s 完成对话（%s）",
                                outcome.get("to"), outcome.get("chain_source"))
