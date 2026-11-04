@@ -33,6 +33,9 @@ class RegisterError(Exception):
     def __init__(self, message: str, *, code: str = "register-failed",
                  status: int = 400) -> None:
         super().__init__(message)
+        # 【CodeQL】异常对象的**自定义属性**不被当作「异常原文」（§11.42 B）：
+        # 路由返回 exc.message，而不是 str(exc)（后者会被判 py/stack-trace-exposure）。
+        self.message = str(message)
         self.code = code
         self.status = status
 

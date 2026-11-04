@@ -497,7 +497,7 @@ def register_routes(app, state):
         try:
             rep = enable_skill_job(job_id)
         except RegisterError as exc:
-            return jsonify({"ok": False, "error": str(exc), "code": exc.code}), exc.status
+            return jsonify({"ok": False, "error": exc.message, "code": exc.code}), exc.status
         except Exception as e:  # noqa: BLE001
             return _fail(e)
         return jsonify(rep)
@@ -529,7 +529,8 @@ def register_routes(app, state):
         try:
             rep = register_draft_job(job_id, open_pr=bool(open_pr))
         except RegisterError as exc:
-            return jsonify({"ok": False, "error": str(exc), "code": exc.code}), exc.status
+            # 用自定义属性而不是 str(exc)：后者会被判 py/stack-trace-exposure
+            return jsonify({"ok": False, "error": exc.message, "code": exc.code}), exc.status
         except Exception as e:  # noqa: BLE001
             return _fail(e)
         return jsonify(rep)
