@@ -26,7 +26,8 @@ se.set_http_client(http)
 # 设置 API Key
 se.update_config({"tavily_api_key": api_key})
 
-print("API Keys configured:", {name: bool(value) for name, value in se._api_keys.items()})
+# [C-6-B4 2026-11-04] 只报数量：连 bool(value) 这种派生也会被 CodeQL 追成明文泄漏
+print("API Keys configured: %d 个引擎" % len(se._api_keys))
 print("Config engines:", sorted((se._config or {}).keys()))
 
 # 测试搜索
