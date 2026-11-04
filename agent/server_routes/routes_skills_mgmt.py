@@ -476,6 +476,32 @@ def register_routes(app, state):
                         "card_md": drafted.get("card_md") or "",
                         "dropped": drafted.get("dropped") or []})
 
+    @app.route("/api/skills-mgmt/transforms/enable", methods=["POST"])
+    @require_token
+    @audit_action("skill.transform.enable", subject_arg="job_id")
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_transform_enable():
+        """S5：把已登记（registered）的技能作业启用 —— 双写文件轨 + 主轨，台账 → enabled。
+
+        Body: {job_id, confirm}。只做启用方向；停用仍在技能中心（避免两个停用入口）。
+        """
+        from agent.skills_mgmt.transform.register import RegisterError, enable_skill_job
+
+        data = request.get_json(silent=True) or {}
+        job_id = str(data.get("job_id") or "").strip()
+        if not job_id:
+            return jsonify({"ok": False, "error": "缺少 job_id"}), 400
+        if data.get("confirm") is not True:
+            return jsonify({"ok": False, "error": "启用需要显式 confirm=true"}), 400
+        try:
+            rep = enable_skill_job(job_id)
+        except RegisterError as exc:
+            return jsonify({"ok": False, "error": str(exc), "code": exc.code}), exc.status
+        except Exception as e:  # noqa: BLE001
+            return _fail(e)
+        return jsonify(rep)
+
     @app.route("/api/skills-mgmt/transforms/register", methods=["POST"])
     @require_token
     @audit_action("skill.transform.register", subject_arg="job_id")
@@ -489,7 +515,7 @@ def register_routes(app, state):
         - `open_pr=true` 才 commit → push → 建 PR；默认停在工作区等人工 review；
         - 目标已存在 / 形态不是 skill / 状态不对 ⇒ 400/409，不覆盖任何既有技能。
         """
-        from agent.skills_mgmt.transform.register import RegisterError, register_skill_job
+        from agent.skills_mgmt.transform.register import RegisterError, register_draft_job
 
         data = request.get_json(silent=True) or {}
         job_id = str(data.get("job_id") or "").strip()
@@ -501,7 +527,7 @@ def register_routes(app, state):
         if isinstance(open_pr, str):
             open_pr = open_pr.strip().lower() not in ("0", "false", "no", "")
         try:
-            rep = register_skill_job(job_id, open_pr=bool(open_pr))
+            rep = register_draft_job(job_id, open_pr=bool(open_pr))
         except RegisterError as exc:
             return jsonify({"ok": False, "error": str(exc), "code": exc.code}), exc.status
         except Exception as e:  # noqa: BLE001

@@ -88,37 +88,33 @@ describe('ReviewPanel', () => {
     vi.stubGlobal('confirm', vi.fn(() => true))
     render(<ReviewPanel />)
     await screen.findByText('ing_ai')
-    const registerBtn = screen.getByRole('button', { name: '登记为工作流 ing_ai' }) as HTMLButtonElement
-    expect(registerBtn.disabled, '未绑定时不允许登记').toBe(true)
+    // S5：本页不再有「登记」按钮 —— 登记统一在「技能中心 → 转化队列」
+    expect(screen.queryByRole('button', { name: '登记为工作流 ing_ai' })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'AI 绑定 ing_ai' }))
     expect(await screen.findByText(/AI 建议：绑定/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '应用绑定 ing_ai' }))
-    await waitFor(() => expect(screen.getByText(/已登记为工作流 wf-demo/)).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(/已写回绑定 2\/2/)).toBeTruthy())
+    expect(screen.getAllByText(/转化队列/).length).toBeGreaterThan(0)
     expect(f.mock.calls.some((call) => String(call[0]).endsWith('/autobind'))).toBe(true)
-    expect(f.mock.calls.some((call) => String(call[0]).endsWith('/register'))).toBe(true)
+    expect(f.mock.calls.some((call) => String(call[0]).endsWith('/register'))).toBe(false)
   })
 
-  it('按技能安装：调 install-skill 并给出结果', async () => {
+  it('草稿页不再提供安装/登记入口（S5 收口：登记统一去转化队列）', async () => {
     api.hubGet.mockImplementation((url: string) => url === '/api/ingestion/drafts'
       ? Promise.resolve({ data: { items: [{
         draft_id: 'ing_sk', form: 'workflow', skill_id: 'code-refactor', skill_name: '代码重构',
         source_ref: 'path:C:/skills/code-refactor', bound_steps: 0, total_steps: 18,
       }] } })
       : Promise.resolve({ ok: true, total: 0, items: [] }))
-    const f = vi.fn(async (_url: string, _init?: RequestInit) => ({
-      ok: true, json: async () => ({ data: { result: { skill_id: 'code-refactor' } } }),
-    }))
-    vi.stubGlobal('fetch', f)
-    vi.stubGlobal('confirm', vi.fn(() => true))
     render(<ReviewPanel />)
     await screen.findByText('ing_sk')
-    fireEvent.click(screen.getByRole('button', { name: '按技能安装 ing_sk' }))
-    await waitFor(() => expect(screen.getByText(/已按技能安装：code-refactor/)).toBeTruthy())
-    expect(String(f.mock.calls[0][0])).toContain('/api/ingestion/drafts/ing_sk/install-skill')
+    expect(screen.queryByRole('button', { name: '按技能安装 ing_sk' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '登记为工作流 ing_sk' })).toBeNull()
+    expect(screen.getByText(/登记与启用统一在/)).toBeTruthy()
   })
 
-  it('tool 草稿：AI 实现 → 校验 → 写回 → 登记为工具', async () => {
+  it('tool 草稿：AI 实现 → 校验 → 写回（登记去转化队列）', async () => {
     let implemented = false
     api.hubGet.mockImplementation((url: string) => url === '/api/ingestion/drafts'
       ? Promise.resolve({ data: { items: [{
@@ -147,20 +143,14 @@ describe('ReviewPanel', () => {
     vi.stubGlobal('confirm', vi.fn(() => true))
     render(<ReviewPanel />)
     await screen.findByText('ing_tool')
-    const regBtn = screen.getByRole('button', { name: '登记为工具 ing_tool' }) as HTMLButtonElement
-    expect(regBtn.disabled, '未写回实现前不能登记').toBe(true)
+    expect(screen.queryByRole('button', { name: '登记为工具 ing_tool' })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'AI 实现 ing_tool' }))
     expect(await screen.findByText(/静态校验通过/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '应用实现 ing_tool' }))
     await waitFor(() => expect(screen.getByText(/已写回实现草稿/)).toBeTruthy())
-    await waitFor(() => expect(
-      (screen.getByRole('button', { name: '登记为工具 ing_tool' }) as HTMLButtonElement).disabled,
-    ).toBe(false))
-
-    fireEvent.click(screen.getByRole('button', { name: '登记为工具 ing_tool' }))
-    await waitFor(() => expect(screen.getByText(/已登记为工具 demo_tool/)).toBeTruthy())
-    expect(f.mock.calls.some((call) => String(call[0]).endsWith('/register-tool'))).toBe(true)
+    expect(screen.getAllByText(/转化队列/).length).toBeGreaterThan(0)
+    expect(f.mock.calls.some((call) => String(call[0]).endsWith('/register-tool'))).toBe(false)
   })
 
   it('审核 / 放行走各自端点', async () => {
