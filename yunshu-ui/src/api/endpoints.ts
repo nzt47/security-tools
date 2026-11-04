@@ -59,6 +59,8 @@ export const skillTransformRedraft = (transformId: string) =>
   `/api/skills-mgmt/transforms/${encodeURIComponent(transformId)}/redraft`;
 /** S5：把隔离区技能草稿登记成文件轨技能（只登记不启用；open_pr 才开 PR） */
 export const SKILLS_MGMT_TRANSFORM_REGISTER = '/api/skills-mgmt/transforms/register';
+/** S5：把已登记的技能作业启用（双写文件轨+主轨；不是停用入口） */
+export const SKILLS_MGMT_TRANSFORM_ENABLE = '/api/skills-mgmt/transforms/enable';
 /** 分层加载：L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单（?layer=） */
 export const skillCardLayer = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/card`;
 

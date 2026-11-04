@@ -112,6 +112,62 @@ def test_intake_校验失败会回滚目录(tmp_path, monkeypatch):
     assert jobs.get_job(job["job_id"], root=tmp_path)["status"] == "candidate"
 
 
+def test_启用双写文件轨与主轨(tmp_path, monkeypatch):
+    tdir = _draft(tmp_path)
+    job = _job(tmp_path, tdir)
+    _patch_intake(monkeypatch)
+    register_skill_job(job["job_id"], root=tmp_path)
+
+    enabled_calls = []
+
+    class FakeSvc:
+        def set_enabled(self, skill_id, enabled):
+            enabled_calls.append((skill_id, enabled))
+            return None
+
+    import agent.state_manager as state_mod
+    monkeypatch.setattr(state_mod, "get_skills_mgmt_service", lambda: FakeSvc(), raising=False)
+
+    from agent.skills_mgmt.transform.register import enable_skill_job
+    rep = enable_skill_job(job["job_id"], root=tmp_path)
+    assert rep["ok"] is True and rep["enabled"] is True
+    assert enabled_calls == [("gamma-draft", True)]
+    md = (tmp_path / "data" / "skills_repo" / "gamma-draft" / "skill.md").read_text(encoding="utf-8")
+    assert "enabled: true" in md, "文件轨必须同步改（§8 陷阱 7 双写）"
+    assert jobs.get_job(job["job_id"], root=tmp_path)["status"] == "enabled"
+
+
+def test_未登记不能启用(tmp_path):
+    tdir = _draft(tmp_path)
+    job = _job(tmp_path, tdir)
+    from agent.skills_mgmt.transform.register import enable_skill_job
+    with pytest.raises(RegisterError) as exc:
+        enable_skill_job(job["job_id"], root=tmp_path)
+    assert exc.value.code == "job-status"
+
+
+def test_主轨失败回滚文件轨(tmp_path, monkeypatch):
+    tdir = _draft(tmp_path)
+    job = _job(tmp_path, tdir)
+    _patch_intake(monkeypatch)
+    register_skill_job(job["job_id"], root=tmp_path)
+
+    class BoomSvc:
+        def set_enabled(self, skill_id, enabled):
+            raise RuntimeError("db locked")
+
+    import agent.state_manager as state_mod
+    monkeypatch.setattr(state_mod, "get_skills_mgmt_service", lambda: BoomSvc(), raising=False)
+
+    from agent.skills_mgmt.transform.register import enable_skill_job
+    with pytest.raises(RegisterError) as exc:
+        enable_skill_job(job["job_id"], root=tmp_path)
+    assert exc.value.code == "enable-failed"
+    md = (tmp_path / "data" / "skills_repo" / "gamma-draft" / "skill.md").read_text(encoding="utf-8")
+    assert "enabled: false" in md, "主轨失败必须把文件轨回滚（两轨一致）"
+    assert jobs.get_job(job["job_id"], root=tmp_path)["status"] == "registered"
+
+
 def test_非技能形态拒绝(tmp_path, monkeypatch):
     tdir = _draft(tmp_path)
     job = _job(tmp_path, tdir, form="tool")
@@ -139,3 +195,65 @@ def test_缺_SKILL_md_拒绝(tmp_path, monkeypatch):
     with pytest.raises(RegisterError) as exc:
         register_skill_job(job["job_id"], root=tmp_path)
     assert exc.value.code == "draft-missing"
+
+def _tool_draft(tmp_path: Path) -> Path:
+    tdir = tmp_path / "drafts" / "ing_tool"
+    (tdir / "agent" / "tools").mkdir(parents=True)
+    (tdir / "data" / "tool_definitions").mkdir(parents=True)
+    (tdir / "tests" / "unit").mkdir(parents=True)
+    (tdir / "agent" / "tools" / "demo_tool.py").write_text("TOOL_NAME = 'demo_tool'\n", encoding="utf-8")
+    (tdir / "data" / "tool_definitions" / "demo_tool.yaml").write_text(
+        "name: demo_tool\nstatus: draft\nenabled: false\n", encoding="utf-8")
+    (tdir / "tests" / "unit" / "test_demo_tool.py").write_text("def test_x():\n    assert True\n", encoding="utf-8")
+    (tdir / "manifest.json").write_text(json.dumps({
+        "draft_id": "ing_tool", "form": "tool", "skill_id": "demo-tool",
+        "files": ["manifest.json", "agent/tools/demo_tool.py",
+                  "data/tool_definitions/demo_tool.yaml", "tests/unit/test_demo_tool.py"],
+    }, ensure_ascii=False), encoding="utf-8")
+    return tdir
+
+
+def test_工具草稿登记搬三件产物且保持未启用(tmp_path):
+    tdir = _tool_draft(tmp_path)
+    job = jobs.upsert_job(source="ingestion", source_ref="ing_tool", form="tool",
+                          title="demo", artifacts=str(tdir), root=tmp_path)
+    from agent.skills_mgmt.transform.register import register_draft_job
+    rep = register_draft_job(job["job_id"], root=tmp_path)
+    assert rep["ok"] is True and rep["enabled"] is False
+    assert (tmp_path / "agent" / "tools" / "demo_tool.py").is_file()
+    yaml_text = (tmp_path / "data" / "tool_definitions" / "demo_tool.yaml").read_text(encoding="utf-8")
+    assert "enabled: false" in yaml_text, "登记不等于启用"
+    assert (tmp_path / "tests" / "unit" / "test_demo_tool.py").is_file()
+    assert jobs.get_job(job["job_id"], root=tmp_path)["status"] == "registered"
+
+
+def test_工具目标已存在整体拒绝(tmp_path):
+    tdir = _tool_draft(tmp_path)
+    job = jobs.upsert_job(source="ingestion", source_ref="ing_tool", form="tool",
+                          title="demo", artifacts=str(tdir), root=tmp_path)
+    existing = tmp_path / "data" / "tool_definitions" / "demo_tool.yaml"
+    existing.parent.mkdir(parents=True)
+    existing.write_text("name: demo_tool\nenabled: true\n", encoding="utf-8")
+    from agent.skills_mgmt.transform.register import register_draft_job
+    with pytest.raises(RegisterError) as exc:
+        register_draft_job(job["job_id"], root=tmp_path)
+    assert exc.value.code == "target-exists"
+    # 不能出现半套：agent/tools 那份也不该被写进去
+    assert not (tmp_path / "agent" / "tools" / "demo_tool.py").exists()
+
+
+def test_工作流草稿未绑定工具拒绝登记(tmp_path):
+    tdir = tmp_path / "drafts" / "ing_wf"
+    (tdir / "workflows").mkdir(parents=True)
+    (tdir / "workflows" / "wf-demo.json").write_text(json.dumps({
+        "id": "wf-demo", "name": "演示工作流", "status": "draft", "enabled": False,
+        "steps": [{"step_id": "step_1", "tool_name": "", "params_template": {}}],
+    }, ensure_ascii=False), encoding="utf-8")
+    job = jobs.upsert_job(source="ingestion", source_ref="ing_wf", form="workflow",
+                          title="演示", artifacts=str(tdir), root=tmp_path)
+    from agent.skills_mgmt.transform.register import register_draft_job
+    with pytest.raises(RegisterError) as exc:
+        register_draft_job(job["job_id"], root=tmp_path)
+    assert exc.value.code == "workflow-unbound"
+    assert jobs.get_job(job["job_id"], root=tmp_path)["status"] == "candidate"
+

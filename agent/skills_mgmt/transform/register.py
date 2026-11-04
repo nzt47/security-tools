@@ -154,4 +154,187 @@ def register_skill_job(job_id: str, *, open_pr: bool = False,
     }
 
 
-__all__ = ["REGISTRABLE", "RegisterError", "register_skill_job"]
+def enable_skill_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, Any]:
+    """把已登记（registered）的技能作业启用（S5 第三批：启用也进队列）
+
+    **双写**（§8 陷阱 7）：先改文件轨 skill.md 的 enabled: true（失败即中止），
+    再走主轨 set_enabled（唯一落库点，自带审计 + 钩子），最后台账 registered → enabled。
+    只做"启用"这一个方向：停用仍留在技能中心（避免把停用做成两个入口）。
+
+    Raises:
+        RegisterError: 作业不存在 / 状态不是 registered / 目标不是 skill / 文件轨缺失
+    """
+    from agent.skills_mgmt.file_store import SkillMDParser
+
+    base = Path(root) if root else ROOT
+    job = _jobs.get_job(str(job_id), root=root)
+    if job is None:
+        raise RegisterError("作业不存在: %s" % job_id, code="job-not-found", status=404)
+    status = str(job.get("status") or "")
+    if status != "registered":
+        raise RegisterError("只有 registered 的作业能启用（当前 %s）" % status,
+                            code="job-status", status=409)
+    target = job.get("target") or {}
+    if str(target.get("kind") or "") != "skill":
+        raise RegisterError("只有技能作业能在这里启用（当前 %s）" % target.get("kind"),
+                            code="job-form", status=409)
+    skill_id = str(target.get("id") or "").strip()
+    if not _ID_RE.match(skill_id):
+        raise RegisterError("作业目标 id 非法：%r" % skill_id, code="skill-id-invalid")
+
+    md_path = base / SKILLS_REPO / skill_id / "skill.md"
+    if not md_path.is_file():
+        raise RegisterError("文件轨里没有 %s/skill.md" % skill_id,
+                            code="file-track-missing", status=409)
+    try:
+        text = md_path.read_text(encoding="utf-8")
+        patched = SkillMDParser.patch_front_matter(text, {"enabled": True})
+        if patched != text:
+            md_path.write_text(patched, encoding="utf-8")
+    except Exception as exc:  # noqa: BLE001
+        raise RegisterError("写文件轨失败：%s" % type(exc).__name__,
+                            code="write-failed", status=500) from exc
+
+    try:
+        from agent.state_manager import get_skills_mgmt_service
+        svc = get_skills_mgmt_service()
+        svc.set_enabled(skill_id, True)
+    except Exception as exc:  # noqa: BLE001
+        # 文件已改成 enabled: true，主轨失败 ⇒ 回滚文件，保持两轨一致
+        try:
+            md_path.write_text(text, encoding="utf-8")
+        except OSError:
+            logger.warning("[transform.enable] 回滚文件轨失败 skill=%s", skill_id)
+        raise RegisterError("主轨启用失败：%s" % type(exc).__name__,
+                            code="enable-failed", status=500) from exc
+
+    enabled_job = _jobs.transition(job_id, "enabled", root=root,
+                                   note="从转化队列启用（双写：文件轨 + 主轨）")
+    return {"ok": True, "job": enabled_job, "skill_id": skill_id, "enabled": True,
+            "file_track": str(md_path)}
+
+
+def register_tool_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, Any]:
+    """把工具**骨架**草稿登记进仓库（仍 status=draft / enabled=false，不会立刻可用）
+
+    只搬三件产物：agent/tools/<name>.py（NotImplementedError 骨架）、
+    data/tool_definitions/<name>.yaml（enabled: false）、tests/unit/test_<name>.py。
+    任一目标已存在 ⇒ 整体拒绝（不做半套复制）。
+    """
+    import json
+
+    base = Path(root) if root else ROOT
+    job = _jobs.get_job(str(job_id), root=root)
+    if job is None:
+        raise RegisterError("作业不存在: %s" % job_id, code="job-not-found", status=404)
+    if str(job.get("status") or "") not in REGISTRABLE:
+        raise RegisterError("作业当前状态 %s 不能登记" % job.get("status"),
+                            code="job-status", status=409)
+    draft_dir = Path(str(job.get("artifacts") or ""))
+    manifest_path = draft_dir / "manifest.json"
+    try:
+        manifest = json.loads(_read_text(manifest_path) or "{}")
+    except ValueError:
+        manifest = {}
+    files = [str(f) for f in (manifest.get("files") or []) if str(f).strip()]
+    wanted = [f for f in files if f.endswith(".py") or f.endswith(".yaml")]
+    if not wanted:
+        raise RegisterError("草稿 manifest 里没有可登记的产物（.py/.yaml）",
+                            code="draft-missing", status=409)
+    # 先整体检查目标是否存在，再复制（避免半套）
+    for rel in wanted:
+        if (base / rel).exists():
+            raise RegisterError("目标已存在，不覆盖：%s" % rel, code="target-exists", status=409)
+    copied = []
+    for rel in wanted:
+        src = draft_dir / rel
+        if not src.is_file():
+            continue
+        dst = base / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dst)
+        copied.append(rel)
+    if str(job.get("status") or "") == "candidate":
+        _jobs.transition(job_id, "normalized", root=root, note="登记前规范化")
+    registered = _jobs.transition(job_id, "registered", root=root,
+                                  target={"kind": "tool", "id": str(manifest.get("skill_id") or "")},
+                                  note="从草稿登记（工具骨架，未启用）")
+    return {"ok": True, "job": registered, "form": "tool", "copied": copied,
+            "enabled": False,
+            "next": "人工补实现与测试 → 审批 → 在工具与接入里启用"}
+
+
+def register_workflow_job(job_id: str, *, root: Optional[Any] = None) -> Dict[str, Any]:
+    """把工作流草稿登记进工作流仓库（status=draft / enabled=false）
+
+    步骤**没绑定工具**时拒绝：登记一条跑不起来的记录只会让匹配器给出假候选。
+    """
+    import json
+
+    base = Path(root) if root else ROOT
+    job = _jobs.get_job(str(job_id), root=root)
+    if job is None:
+        raise RegisterError("作业不存在: %s" % job_id, code="job-not-found", status=404)
+    if str(job.get("status") or "") not in REGISTRABLE:
+        raise RegisterError("作业当前状态 %s 不能登记" % job.get("status"),
+                            code="job-status", status=409)
+    draft_dir = Path(str(job.get("artifacts") or ""))
+    wf_files = sorted((draft_dir / "workflows").glob("*.json")) if (draft_dir / "workflows").is_dir() else []
+    if not wf_files:
+        raise RegisterError("草稿里没有 workflows/*.json", code="draft-missing", status=409)
+    try:
+        raw = json.loads(_read_text(wf_files[0]) or "{}")
+    except ValueError as exc:
+        raise RegisterError("工作流草稿不是合法 JSON", code="draft-broken", status=409) from exc
+    steps = raw.get("steps") or []
+    unbound = [i for i, s in enumerate(steps, start=1) if not str(s.get("tool_name") or "").strip()]
+    if unbound:
+        raise RegisterError(
+            "还有 %d 个步骤没绑定工具（第 %s 步）⇒ 登记后也跑不起来；先在草稿里补 tool_name/params_template"
+            % (len(unbound), ", ".join(str(i) for i in unbound[:5])),
+            code="workflow-unbound", status=409)
+
+    from agent.state_manager import get_workflow_learning_service
+    from agent.workflow_learning.models import LearnedWorkflow
+
+    payload = dict(raw)
+    payload.setdefault("task_signature", str(raw.get("name") or raw.get("id") or ""))
+    payload["status"] = "draft"
+    payload["enabled"] = False
+    try:
+        wf = LearnedWorkflow(**payload)
+    except Exception as exc:  # noqa: BLE001 模型校验失败要如实回
+        raise RegisterError("工作流模型校验未通过：%s" % type(exc).__name__,
+                            code="workflow-invalid", status=409) from exc
+    svc = get_workflow_learning_service()
+    if svc.get(wf.id) is not None:
+        raise RegisterError("工作流仓库里已有 %s，不覆盖" % wf.id,
+                            code="target-exists", status=409)
+    svc.register_workflow(wf)
+    if str(job.get("status") or "") == "candidate":
+        _jobs.transition(job_id, "normalized", root=root, note="登记前规范化")
+    registered = _jobs.transition(job_id, "registered", root=root,
+                                  target={"kind": "workflow", "id": wf.id},
+                                  note="从草稿登记（工作流，未启用）")
+    return {"ok": True, "job": registered, "form": "workflow", "workflow_id": wf.id,
+            "enabled": False, "next": "在工作流页启用（本动作只登记）"}
+
+
+def register_draft_job(job_id: str, *, open_pr: bool = False,
+                       root: Optional[Any] = None) -> Dict[str, Any]:
+    """按作业形态分派登记（skill / tool / workflow）；只有 skill 支持开 PR。"""
+    job = _jobs.get_job(str(job_id), root=root)
+    if job is None:
+        raise RegisterError("作业不存在: %s" % job_id, code="job-not-found", status=404)
+    form = str(job.get("form") or "")
+    if form == "skill":
+        return register_skill_job(job_id, open_pr=open_pr, root=root)
+    if form == "tool":
+        return register_tool_job(job_id, root=root)
+    if form == "workflow":
+        return register_workflow_job(job_id, root=root)
+    raise RegisterError("未知形态：%r" % form, code="job-form", status=409)
+
+
+__all__ = ["REGISTRABLE", "RegisterError", "enable_skill_job", "register_draft_job",
+           "register_skill_job", "register_tool_job", "register_workflow_job"]

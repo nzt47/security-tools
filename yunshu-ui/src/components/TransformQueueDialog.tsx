@@ -18,6 +18,7 @@ import { authHeader } from '../lib/apiToken'
 import {
   SKILLS_MGMT_TRANSFORMS,
   SKILLS_MGMT_TRANSFORM_REGISTER,
+  SKILLS_MGMT_TRANSFORM_ENABLE,
   skillTransform,
   skillTransformRedraft,
   skillTransformRollback,
@@ -136,6 +137,7 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
   } | null>(null)
 
   const [registerJob, setRegisterJob] = useState<Job | null>(null)
+  const [enableJob, setEnableJob] = useState<Job | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -175,6 +177,30 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
       const pr = j.pr && j.pr.pr_url ? `，PR：${j.pr.pr_url}` : '（未开 PR，改动停在工作区）'
       setNotice(`已登记 ${j.skill_id} → 文件轨${pr}；只登记未启用，启用请到技能中心`)
       setRegisterJob(null)
+      await load()
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const doEnable = async () => {
+    const job = enableJob
+    if (!job) return
+    setBusy(job.job_id + ':enable')
+    setNotice('')
+    setError('')
+    try {
+      const r = await fetch(SKILLS_MGMT_TRANSFORM_ENABLE, {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: job.job_id, confirm: true }),
+      })
+      const j = await r.json()
+      if (!r.ok || j.ok === false) throw new Error(j.error || j.code || `HTTP ${r.status}`)
+      setNotice(`已启用 ${j.skill_id}（文件轨 + 主轨双写）`)
+      setEnableJob(null)
       await load()
     } catch (e) {
       setError(String((e as Error).message || e))
@@ -315,12 +341,20 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
                     {j.target?.id && (
                       <span className="text-slate-500">{j.form} → {j.target.kind}:{j.target.id}</span>
                     )}
-                    {j.form === 'skill' && ['candidate', 'normalized', 'reviewed'].includes(j.status) && (
+                    {['candidate', 'normalized', 'reviewed'].includes(j.status) && (
                       <button type="button"
                         className="rounded border border-emerald-800/70 px-1.5 py-0.5 text-[10px] text-emerald-300 hover:bg-emerald-950/40"
-                        onClick={() => { setRegisterJob(j); setNotice('') }}
-                        title="把这条草稿登记进文件轨（只登记、不启用）">
-                        登记为技能
+                        onClick={() => { setRegisterJob(j); setEnableJob(null); setNotice('') }}
+                        title="把这条草稿登记进仓库（只登记、不启用）">
+                        {j.form === 'tool' ? '登记为工具' : j.form === 'workflow' ? '登记为工作流' : '登记为技能'}
+                      </button>
+                    )}
+                    {j.form === 'skill' && j.status === 'registered' && (
+                      <button type="button"
+                        className="rounded border border-cyan-800/70 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:bg-cyan-950/40"
+                        onClick={() => { setEnableJob(j); setRegisterJob(null); setNotice('') }}
+                        title="启用这条已登记的技能（文件轨 + 主轨双写）">
+                        启用
                       </button>
                     )}
                     <code className="ml-auto text-slate-600">{j.job_id}</code>
@@ -347,8 +381,12 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
                 登记 <span className="font-mono">{registerJob.title || registerJob.source_ref}</span> 为技能？
               </div>
               <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
-                只写文件轨（data/skills_repo/&lt;id&gt;/）并跑入轨校验，<b>不启用</b>；目标已存在会被拒绝。
-                「只到工作区」需要你之后自己 commit / 开 PR。
+                {registerJob.form === 'tool'
+                  ? '把骨架的 .py / .yaml / 测试搬到真实路径，仍 status=draft、enabled=false；目标已存在会被拒绝。'
+                  : registerJob.form === 'workflow'
+                    ? '登记进工作流仓库（status=draft、enabled=false）；步骤还没绑定工具会被拒绝。'
+                    : '写文件轨并跑入轨校验，不启用；目标已存在会被拒绝。'}
+                {registerJob.form === 'skill' ? '「只到工作区」需要你之后自己 commit / 开 PR。' : ''}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <button type="button" disabled={!!busy} onClick={() => void doRegister(true)}
@@ -361,6 +399,29 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
                   只登记到工作区
                 </button>
                 <button type="button" onClick={() => setRegisterJob(null)}
+                  className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
+
+          {enableJob && (
+            <div className="mb-3 rounded-lg border border-cyan-900/60 bg-cyan-950/20 px-3 py-2">
+              <div className="text-[11px] text-cyan-200">
+                启用 <span className="font-mono">{enableJob.target?.id || enableJob.title}</span>？
+              </div>
+              <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                会双写：先改文件轨 skill.md 的 enabled: true，再走主轨 set_enabled（带审计）。
+                主轨失败会回滚文件，两轨保持一致。停用仍在技能中心。
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button type="button" disabled={!!busy} onClick={() => void doEnable()}
+                  className="flex items-center gap-1 rounded border border-cyan-800 px-2 py-1 text-[10px] text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40">
+                  {busy === enableJob.job_id + ':enable' ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
+                  确认启用
+                </button>
+                <button type="button" onClick={() => setEnableJob(null)}
                   className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
                   取消
                 </button>
