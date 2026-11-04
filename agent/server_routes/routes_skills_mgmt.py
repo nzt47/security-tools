@@ -476,6 +476,38 @@ def register_routes(app, state):
                         "card_md": drafted.get("card_md") or "",
                         "dropped": drafted.get("dropped") or []})
 
+    @app.route("/api/skills-mgmt/transforms/register", methods=["POST"])
+    @require_token
+    @audit_action("skill.transform.register", subject_arg="job_id")
+    @trace_route("SkillsMgmt")
+    @log_request()
+    def api_skills_mgmt_transform_register():
+        """S5：把「隔离区技能草稿」登记成文件轨技能（转化队列页的显式动作）。
+
+        Body: {job_id, confirm, open_pr?}。
+        - 只登记（写 data/skills_repo/<id>/skill.md + CARD.md 并跑 intake 校验），**不启用**；
+        - `open_pr=true` 才 commit → push → 建 PR；默认停在工作区等人工 review；
+        - 目标已存在 / 形态不是 skill / 状态不对 ⇒ 400/409，不覆盖任何既有技能。
+        """
+        from agent.skills_mgmt.transform.register import RegisterError, register_skill_job
+
+        data = request.get_json(silent=True) or {}
+        job_id = str(data.get("job_id") or "").strip()
+        if not job_id:
+            return jsonify({"ok": False, "error": "缺少 job_id"}), 400
+        if data.get("confirm") is not True:
+            return jsonify({"ok": False, "error": "登记需要显式 confirm=true"}), 400
+        open_pr = data.get("open_pr", False)
+        if isinstance(open_pr, str):
+            open_pr = open_pr.strip().lower() not in ("0", "false", "no", "")
+        try:
+            rep = register_skill_job(job_id, open_pr=bool(open_pr))
+        except RegisterError as exc:
+            return jsonify({"ok": False, "error": str(exc), "code": exc.code}), exc.status
+        except Exception as e:  # noqa: BLE001
+            return _fail(e)
+        return jsonify(rep)
+
     @app.route("/api/skills-mgmt/backfill", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token

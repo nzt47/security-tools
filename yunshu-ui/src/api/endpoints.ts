@@ -57,6 +57,8 @@ export const skillTransformRollback = (transformId: string) =>
 /** P5：LLM 按原文引用重写卡片分节（默认 dry_run 预览；落盘只写 card_llm.md） */
 export const skillTransformRedraft = (transformId: string) =>
   `/api/skills-mgmt/transforms/${encodeURIComponent(transformId)}/redraft`;
+/** S5：把隔离区技能草稿登记成文件轨技能（只登记不启用；open_pr 才开 PR） */
+export const SKILLS_MGMT_TRANSFORM_REGISTER = '/api/skills-mgmt/transforms/register';
 /** 分层加载：L0 摘要 / L1 能力卡 / L2 全文 / L3 脚本清单（?layer=） */
 export const skillCardLayer = (skillId: string) => `/api/skills-mgmt/${encodeURIComponent(skillId)}/card`;
 
