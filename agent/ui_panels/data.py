@@ -68,20 +68,37 @@ def _clamp(value: Any, *, low: int = 1, high: int = 500, default: int = 50) -> i
     return max(low, min(high, n))
 
 
-def _read_json(path: str) -> Optional[Dict[str, Any]]:
+def _read_json(path: Any) -> Optional[Dict[str, Any]]:
+    """读一个 JSON 对象（解析不到/不存在 ⇒ None）
+
+    【C-6-B1 2026-11-04】`path` 可能是面板参数派生出来的：先经
+    `safe_paths.enumerate_path` 逐段列目录解析，用户串只参与名字等值比较、
+    不进路径表达式（CodeQL 只认这种断链，§8 陷阱 14）。
+    """
+    from agent.safe_paths import enumerate_path
+    target = enumerate_path(path)
+    if target is None:
+        return None
     try:
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(target, "r", encoding="utf-8") as fh:
             data = json.load(fh)
         return data if isinstance(data, dict) else None
     except (OSError, ValueError, json.JSONDecodeError):
         return None
 
 
-def _read_jsonl(path: str, *, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-    """读 JSONL（损坏行跳过；``limit=None`` 读全量）"""
+def _read_jsonl(path: Any, *, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    """读 JSONL（损坏行跳过；``limit=None`` 读全量）
+
+    路径解析同 `_read_json`：解析不到（文件/目录不存在）⇒ 空列表。
+    """
     out: List[Dict[str, Any]] = []
+    from agent.safe_paths import enumerate_path
+    target = enumerate_path(path)
+    if target is None:
+        return out
     try:
-        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+        with open(target, "r", encoding="utf-8", errors="ignore") as fh:
             for line in fh:
                 line = line.strip()
                 if not line:
@@ -165,23 +182,33 @@ def _promote_prs(*, promote_dir: Optional[str] = None,
     """
     try:
         from agent.digestion.internalize import DEFAULT_PROMOTE_DIR, PROMOTE_DIR_ENV
-        base = str(promote_dir or os.environ.get(PROMOTE_DIR_ENV) or DEFAULT_PROMOTE_DIR)
+        raw = str(promote_dir or os.environ.get(PROMOTE_DIR_ENV) or DEFAULT_PROMOTE_DIR)
     except Exception:  # noqa: BLE001
-        base = str(promote_dir or "")
-    if not base or not os.path.isdir(base):
+        raw = str(promote_dir or "")
+    if not raw:
+        return []
+    # 【C-6-B1 2026-11-04】目录可能与面板参数同源：逐段列目录解析，
+    # 之后只用 listdir 出来的真实子项（用户串不进路径表达式）。解析不到 ⇒ 没有决策。
+    from agent.safe_paths import enumerate_path
+    base = enumerate_path(raw)
+    if base is None or not base.is_dir():
         return []
     out: List[Dict[str, Any]] = []
-    for slug in sorted(os.listdir(base)):
-        slug_dir = os.path.join(base, slug)
-        if not os.path.isdir(slug_dir):
-            continue
-        for pr_id in sorted(os.listdir(slug_dir)):
-            decision = _read_json(os.path.join(slug_dir, pr_id, "decision.json"))
-            if decision is None:
-                continue
-            decision["_pr_id"] = pr_id
-            decision["_pr_dir"] = os.path.join(slug_dir, pr_id)
-            out.append(decision)
+    try:
+        slug_dirs = sorted((c for c in base.iterdir() if c.is_dir()),
+                           key=lambda item: item.name)
+        for slug_dir in slug_dirs:
+            pr_dirs = sorted((c for c in slug_dir.iterdir() if c.is_dir()),
+                             key=lambda item: item.name)
+            for pr_dir in pr_dirs:
+                decision = _read_json(pr_dir / "decision.json")
+                if decision is None:
+                    continue
+                decision["_pr_id"] = pr_dir.name
+                decision["_pr_dir"] = str(pr_dir)
+                out.append(decision)
+    except OSError:      # 目录不可读/竞态删除 ⇒ 当「没有决策」
+        return out
     return out[-int(limit):] if limit > 0 else out
 
 

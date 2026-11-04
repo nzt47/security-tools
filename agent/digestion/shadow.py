@@ -1440,6 +1440,18 @@ class ManualReviewItem:
         return cls(**{k: v for k, v in dict(data or {}).items() if k in known})
 
 
+def _read_path(path: Any) -> Optional[Any]:
+    """只读路径 → 真实存在的 Path（C-6-B1 2026-11-04）
+
+    `manual_reviews.jsonl` / `shadow_ledger.jsonl` 的路径可能由**面板参数**给的
+    `directory` 派生而来：这里经 `safe_paths.enumerate_path` 逐段列目录解析，
+    用户串只参与**名字等值比较**、不进路径表达式（CodeQL 只认这种断链，§8 陷阱 14）。
+    文件还没落盘 / 目录不存在时返回 None，调用方按「没有记录」处理。
+    """
+    from agent.safe_paths import enumerate_path
+    return enumerate_path(path)
+
+
 class ManualReviewQueue:
     """人工抽检队列（JSONL 落盘；**同 (能力, 用例) 以最后一条为准**）
 
@@ -1723,8 +1735,11 @@ class ManualReviewQueue:
 
     def rows(self) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
+        target = _read_path(self.path)
+        if target is None:            # 还没落盘 / 目录不存在 ⇒ 没有记录
+            return out
         try:
-            with open(self.path, "r", encoding="utf-8") as fh:
+            with open(target, "r", encoding="utf-8") as fh:
                 for line in fh:
                     line = line.strip()
                     if not line:
@@ -1948,8 +1963,11 @@ class ShadowLedger:
 
     def rows(self, capability_id: str = "") -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
+        target = _read_path(self.path)
+        if target is None:            # 还没落盘 / 目录不存在 ⇒ 没有记录
+            return out
         try:
-            with open(self.path, "r", encoding="utf-8") as fh:
+            with open(target, "r", encoding="utf-8") as fh:
                 for line in fh:
                     line = line.strip()
                     if not line:
