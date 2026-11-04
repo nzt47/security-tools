@@ -13,10 +13,11 @@
  *   · **默认只预览**：先看清"将删除哪些文件"，再点确认（§8 陷阱 31）。
  */
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, Archive, ChevronDown, ChevronRight, Loader2, RotateCcw, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, Archive, CheckCircle2, ChevronDown, ChevronRight, Loader2, RotateCcw, Sparkles, X } from 'lucide-react'
 import { authHeader } from '../lib/apiToken'
 import {
   SKILLS_MGMT_TRANSFORMS,
+  SKILLS_MGMT_TRANSFORM_REGISTER,
   skillTransform,
   skillTransformRedraft,
   skillTransformRollback,
@@ -134,6 +135,8 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
     verified?: number
   } | null>(null)
 
+  const [registerJob, setRegisterJob] = useState<Job | null>(null)
+
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -154,6 +157,31 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
   useEffect(() => {
     if (open) void load()
   }, [open, load])
+
+  const doRegister = async (openPr: boolean) => {
+    const job = registerJob
+    if (!job) return
+    setBusy(job.job_id)
+    setNotice('')
+    setError('')
+    try {
+      const r = await fetch(SKILLS_MGMT_TRANSFORM_REGISTER, {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: job.job_id, confirm: true, open_pr: openPr }),
+      })
+      const j = await r.json()
+      if (!r.ok || j.ok === false) throw new Error(j.error || j.code || `HTTP ${r.status}`)
+      const pr = j.pr && j.pr.pr_url ? `，PR：${j.pr.pr_url}` : '（未开 PR，改动停在工作区）'
+      setNotice(`已登记 ${j.skill_id} → 文件轨${pr}；只登记未启用，启用请到技能中心`)
+      setRegisterJob(null)
+      await load()
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    } finally {
+      setBusy('')
+    }
+  }
 
   const toggle = async (id: string) => {
     if (openId === id) {
@@ -287,6 +315,14 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
                     {j.target?.id && (
                       <span className="text-slate-500">{j.form} → {j.target.kind}:{j.target.id}</span>
                     )}
+                    {j.form === 'skill' && ['candidate', 'normalized', 'reviewed'].includes(j.status) && (
+                      <button type="button"
+                        className="rounded border border-emerald-800/70 px-1.5 py-0.5 text-[10px] text-emerald-300 hover:bg-emerald-950/40"
+                        onClick={() => { setRegisterJob(j); setNotice('') }}
+                        title="把这条草稿登记进文件轨（只登记、不启用）">
+                        登记为技能
+                      </button>
+                    )}
                     <code className="ml-auto text-slate-600">{j.job_id}</code>
                   </li>
                 ))}
@@ -302,6 +338,33 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
             <div className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-6 text-center text-[11px] text-slate-500">
               还没有转化记录。用 <code className="text-slate-400">python scripts/skill_transform.py &lt;路径&gt; --apply</code> 落地一条后再回来。
               {broken > 0 && <div className="mt-2 text-amber-400/80">{broken} 个目录的 manifest 缺失或损坏（已跳过）</div>}
+            </div>
+          )}
+
+          {registerJob && (
+            <div className="mb-3 rounded-lg border border-emerald-900/60 bg-emerald-950/20 px-3 py-2">
+              <div className="text-[11px] text-emerald-200">
+                登记 <span className="font-mono">{registerJob.title || registerJob.source_ref}</span> 为技能？
+              </div>
+              <div className="mt-1 text-[10px] leading-relaxed text-slate-400">
+                只写文件轨（data/skills_repo/&lt;id&gt;/）并跑入轨校验，<b>不启用</b>；目标已存在会被拒绝。
+                「只到工作区」需要你之后自己 commit / 开 PR。
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button type="button" disabled={!!busy} onClick={() => void doRegister(true)}
+                  className="flex items-center gap-1 rounded border border-emerald-800 px-2 py-1 text-[10px] text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40">
+                  {busy === registerJob.job_id ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
+                  登记并开 PR
+                </button>
+                <button type="button" disabled={!!busy} onClick={() => void doRegister(false)}
+                  className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:bg-slate-800 disabled:opacity-40">
+                  只登记到工作区
+                </button>
+                <button type="button" onClick={() => setRegisterJob(null)}
+                  className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:bg-slate-800">
+                  取消
+                </button>
+              </div>
             </div>
           )}
 
