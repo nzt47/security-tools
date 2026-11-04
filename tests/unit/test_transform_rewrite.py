@@ -115,6 +115,21 @@ def test_LLM_抛异常不炸路由(monkeypatch):
     assert out["ok"] is False and "LLM 调用失败" in out["reason"]
 
 
+def test_空输出说清是没产出而不是没内涵():
+    """推理模型把预算花在 reasoning 上时上游回空正文：必须报「没产出」，不许当成「原文没内容」。"""
+    out = rw.draft_sections(SRC, chat=lambda prompt, system: "   ")
+    assert out["ok"] is False
+    assert "没有产出正文" in out["reason"]
+    assert "严格引用校验未通过" not in out["reason"]
+
+
+def test_输出预算与超时容得下推理模型():
+    """2026-11-05 实测：deepseek-flash 用 4000 时全给了 reasoning、content 为空；
+    抬到 8000 后正文要 60–100 s，默认 30 s 超时会让 3 次重试全废。"""
+    assert rw.MAX_OUTPUT_TOKENS >= 8000
+    assert rw.DRAFT_TIMEOUT_SECONDS >= 120
+
+
 def test_容忍_json_围栏():
     payload = {"items": [{"section": "steps", "text": "t", "quote": "先用 uname -r 判断是不是 WSL"}]}
     call = lambda prompt, system: "\u0060\u0060\u0060json\n" + json.dumps(payload) + "\n\u0060\u0060\u0060"

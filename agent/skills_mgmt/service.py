@@ -94,7 +94,7 @@ _NOT_PROSE_PREFIXES = ("---", "```", "<", "{", "}", "import ", "from ", "def ",
                        "if ", "for ", "while ", "then ", "do ", "done", "fi")
 
 
-def _build_default_llm() -> Any:
+def _build_default_llm(timeout: Optional[int] = None) -> Any:
     """按 .env 构建默认 LLMService（与 process_distill / memory_import 同口径）。
 
     【为什么不用 agent.state_manager.get_llm_client】那个名字**不存在**
@@ -116,12 +116,18 @@ def _build_default_llm() -> Any:
                    or os.environ.get("DEEPSEEK_API_KEY", "")).strip()
         if not key:
             return None
+        # `timeout` 只在调用方显式要求更长时下传；不传就沿用 LLMService 的默认口径
+        # （硬编码边界值扫描把 `timeout=<字面量>` 记为未配置化，所以这里不落数字）。
+        kwargs: Dict[str, Any] = {}
+        if timeout:
+            kwargs["timeout"] = timeout
         return LLMService(
             provider=os.environ.get("LLM_PROVIDER", "deepseek").strip().lower(),
             api_key=key,
             model=os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
             base_url=(os.environ.get("LLM_BASE_URL", "")
                       or os.environ.get("DEEPSEEK_BASE_URL", "")),
+            **kwargs,
         )
     except Exception as exc:  # noqa: BLE001 构建失败 ⇒ 规则草稿（不阻断）
         logger.warning("[Service] 默认 LLM 构建失败，再定义走规则草稿: %s", exc)
