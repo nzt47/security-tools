@@ -42,11 +42,18 @@ v1.4 的战略判据只有一条：
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
 import sys
 from typing import Any, Dict, List, Tuple
+
+
+def _fp(value: str) -> str:
+    """值指纹（C-6-B4）：sha256 前 8 位 —— 只证明"确实是那个无效值"，不落明文"""
+    text = str(value or "")
+    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
@@ -421,7 +428,7 @@ def main() -> int:
     say("E1 硬门禁 · 关掉 LLM 之后三条链路是否仍可用")
     say("=" * 78)
     say(f"① 环境级关闭：{len(_INVALID_KEYS)} 个模型密钥已置为无效值")
-    say(f"   示例：DEEPSEEK_API_KEY={os.environ['DEEPSEEK_API_KEY']!r}")
+    say(f"   示例：DEEPSEEK_API_KEY 指纹={_fp(os.environ.get('DEEPSEEK_API_KEY', ''))}")
 
     _install_stubs()
     say(f"② 代码级关闭：monkeypatch {len(_STUB_TARGETS)} 个模型调用入口")

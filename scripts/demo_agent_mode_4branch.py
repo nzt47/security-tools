@@ -96,7 +96,8 @@ def probe_real_llm() -> dict:
         return {"available": False, "reason": "未配置 LLM_API_KEY", "key": "", "model": model}
     if api_key in _PLACEHOLDER_KEYS or api_key.startswith("sk-xxx"):
         return {"available": False,
-                "reason": f"LLM_API_KEY 是占位符 '{api_key}', 请填入真实 key (见 .env 注释)",
+                # [C-6-B4 2026-11-04] 不把 key 原文写进 reason（它会一路被 print 出来）
+                "reason": f"LLM_API_KEY 仍是占位符（长度 {len(api_key)}），请填入真实 key（见 .env 注释）",
                 "key": api_key, "model": model}
     if len(api_key) < 10:
         return {"available": False, "reason": f"LLM_API_KEY 长度不足 10 ({len(api_key)})",

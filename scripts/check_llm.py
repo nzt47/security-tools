@@ -4,8 +4,16 @@
 快速检查 LLM 配置状态
 """
 
+import hashlib
 import os
 import sys
+
+
+def _key_fp(value: str) -> str:
+    """密钥指纹（C-6-B4）：sha256 前 8 位 —— 可核对"是不是同一把"，不可还原明文。"""
+    text = str(value or "")
+    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
+
 
 def check_llm_config():
     """检查 LLM 配置状态"""
@@ -22,7 +30,7 @@ def check_llm_config():
     
     print("\nEnvironment Variables:")
     print(f"  LLM_PROVIDER: {provider or '(NOT SET)'}")
-    print(f"  LLM_API_KEY:  {api_key[:15] + '...' if api_key else '(NOT SET)'}")
+    print(f"  LLM_API_KEY:  {_key_fp(api_key) if api_key else '(NOT SET)'}")
     print(f"  LLM_MODEL:    {model or '(NOT SET)'}")
     print(f"  LLM_BASE_URL: {base_url or '(NOT SET)'}")
     

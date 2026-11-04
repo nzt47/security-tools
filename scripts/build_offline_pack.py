@@ -118,7 +118,16 @@ def main(argv=None) -> int:
     packed = apply_artifacts_to_bundle(bundle, artifacts)
     problems = validate_bundle(packed)
     if problems:
-        print("生成包不合法：\n" + "\n".join(problems[:12]), file=sys.stderr)
+        # [C-6-B4 2026-11-04] 不把校验明细直接打到 stdout/stderr：明细里可能带包内字段值，
+        # CodeQL 会按明文泄漏判。明细写文件（仍在操作者本机），控制台只给数量与路径。
+        report = os.path.join(args.dest, "validation_problems.txt")
+        try:
+            os.makedirs(args.dest, exist_ok=True)
+            with open(report, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(problems) + "\n")
+        except OSError:
+            report = "(写入失败)"
+        print("生成包不合法：%d 项（明细见 %s）" % (len(problems), report), file=sys.stderr)
         return 4
     assert_manifest_secret_free(packed)
 

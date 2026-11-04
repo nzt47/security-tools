@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import socket
 import subprocess
@@ -40,10 +41,13 @@ def run(args: list[str], timeout: int = 30) -> subprocess.CompletedProcess:
 
 
 def mask(secret: str) -> str:
-    """打码显示：仅保留前 4 位 + 后 4 位。"""
-    if len(secret) <= 8:
-        return "*" * len(secret)
-    return f"{secret[:4]}****{secret[-4:]}"
+    """打码显示（C-6-B4）：只给 **sha256 前 8 位指纹**
+
+    旧实现保留前 4 + 后 4 位 —— 仍是明文片段（CodeQL 也按明文泄漏判）。
+    指纹足以回答"是不是同一串授权码"，且不可还原。
+    """
+    text = str(secret or "")
+    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
 
 
 def current_password(config: Path) -> str:

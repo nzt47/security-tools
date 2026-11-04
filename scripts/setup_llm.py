@@ -10,10 +10,17 @@
 - 硅基流动 (SiliconFlow)
 """
 
+import hashlib
 import os
 import sys
 import json
 from pathlib import Path
+
+
+def _key_fp(value: str) -> str:
+    """密钥指纹（C-6-B4）：sha256 前 8 位 —— 可核对"是不是同一把"，不可还原明文。"""
+    text = str(value or "")
+    return "sha256:" + hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:8]
 
 class LLMConfigManager:
     """LLM 配置管理器"""
@@ -24,28 +31,28 @@ class LLMConfigManager:
             'name': 'OpenAI',
             'models': ['gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
             'default_model': 'gpt-4o',
-            'api_key_hint': 'sk-...',
+            'key_format_hint': 'sk-...',
             'base_url': 'https://api.openai.com/v1'
         },
         'anthropic': {
             'name': 'Anthropic (Claude)',
             'models': ['claude-sonnet-4-20250514', 'claude-3-5-sonnet-latest', 'claude-3-opus', 'claude-3-haiku'],
             'default_model': 'claude-3-5-sonnet-latest',
-            'api_key_hint': 'sk-ant-...',
+            'key_format_hint': 'sk-ant-...',
             'base_url': 'https://api.anthropic.com'
         },
         'siliconflow': {
             'name': 'SiliconFlow (硅基流动)',
             'models': ['Qwen/Qwen2.5-7B-Instruct', 'deepseek-ai/DeepSeek-V2.5', 'THUDM/glm-4-9b-chat'],
             'default_model': 'Qwen/Qwen2.5-7B-Instruct',
-            'api_key_hint': 'sk-...',
+            'key_format_hint': 'sk-...',
             'base_url': 'https://api.siliconflow.cn/v1'
         },
         'ollama': {
             'name': 'Ollama (本地模型)',
             'models': ['llama3', 'qwen2.5', 'deepseek-v2', 'glm4'],
             'default_model': 'qwen2.5',
-            'api_key_hint': '(本地模型无需API Key)',
+            'key_format_hint': '(本地模型无需API Key)',
             'base_url': 'http://localhost:11434/v1'
         }
     }
@@ -65,7 +72,7 @@ class LLMConfigManager:
             info = self.PROVIDERS[key]
             print(f"{i}. {info['name']}")
             print(f"   默认模型: {info['default_model']}")
-            print(f"   API Key格式: {info['api_key_hint']}")
+            print(f"   API Key格式: {info['key_format_hint']}")
             print()
         
         while True:
@@ -121,7 +128,7 @@ class LLMConfigManager:
         
         # 交互式输入
         print(f"\n请输入 {info['name']} API Key:")
-        print(f"(提示: {info['api_key_hint']})")
+        print(f"(提示: {info['key_format_hint']})")
         print(f"(也可以设置环境变量 {env_key})")
         
         api_key = input("API Key: ").strip()
@@ -325,7 +332,7 @@ def main():
             config = json.load(f)
             print(f"  提供商: {config.get('provider')}")
             print(f"  模型: {config.get('model')}")
-            print(f"  API Key: {config.get('api_key', '')[:10]}...")
+            print("  API Key: " + _key_fp(config.get("api_key", "")) + "（只显示指纹）")
         
         choice = input("\n是否重新配置? (y/N): ").strip().lower()
         if choice != 'y':
