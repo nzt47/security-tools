@@ -1163,30 +1163,15 @@
       "area": "记忆与资产/吞噬",
       "note": "草稿评审 Tab 的「删除」按钮：只删 data/ingestion/drafts/ 隔离区里的骨架草稿，按目录 listing 等值匹配（不可恢复，前端先 confirm）。"
     },
-    "/api/ingestion/drafts/<draft_id>/install-skill": {
-      "intent": "should_not_be_in_ui",
-      "area": "记忆与资产/吞噬（兼容端点）",
-      "note": "【2026-11-04 S5 收口】UI 不再提供「按技能安装」：登记/启用统一走 /api/skills-mgmt/transforms/register；本端点仅留兼容窗口（台账 verdict=deprecate），不再作为用户入口。"
-    },
     "/api/ingestion/drafts/<draft_id>/autobind": {
       "intent": "should_be_in_ui",
       "area": "记忆与资产/吞噬",
       "note": "草稿评审 Tab 的「AI 绑定」：LLM 把步骤映射到 data/tool_definitions 里的真实工具；默认 dry-run，apply 需 confirm，只写草稿目录。"
     },
-    "/api/ingestion/drafts/<draft_id>/register": {
-      "intent": "should_not_be_in_ui",
-      "area": "记忆与资产/吞噬（兼容端点）",
-      "note": "【2026-11-04 S5 收口】UI 不再提供「登记为工作流」：改由转化队列 /api/skills-mgmt/transforms/register（工作流形态）承接；本端点仅留兼容窗口（台账 verdict=deprecate）。"
-    },
     "/api/ingestion/drafts/<draft_id>/implement": {
       "intent": "should_be_in_ui",
       "area": "记忆与资产/吞噬",
       "note": "tool 草稿的「AI 实现」：LLM 读来源 SKILL.md/脚本生成实现，静态校验后写回草稿；默认 dry-run，apply 需 confirm。"
-    },
-    "/api/ingestion/drafts/<draft_id>/register-tool": {
-      "intent": "should_not_be_in_ui",
-      "area": "记忆与资产/吞噬（兼容端点）",
-      "note": "【2026-11-04 S5 收口】UI 不再提供「登记为工具」：改由转化队列 /api/skills-mgmt/transforms/register（工具形态）承接；本端点仅留兼容窗口（台账 verdict=deprecate）。"
     }
   }
 }

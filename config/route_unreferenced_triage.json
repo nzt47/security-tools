@@ -124,24 +124,6 @@
     "/logs/dashboard/data": {
       "verdict": "keep",
       "evidence": "templates/log_dashboard.html:244 用模板串 fetch 调用"
-    },
-    "/api/ingestion/drafts/*/install-skill": {
-      "verdict": "deprecate",
-      "evidence": "S5 收口（2026-11-04）：能力获取页不再提供「按技能安装」，登记/启用统一走 /api/skills-mgmt/transforms/register；该端点仅剩脚本/兼容窗口在用",
-      "action": "下个版本删除；删除前确认 scripts 与外部调用方已迁移",
-      "decided_at": "2026-11-04"
-    },
-    "/api/ingestion/drafts/*/register": {
-      "verdict": "deprecate",
-      "evidence": "S5 收口（2026-11-04）：草稿评审页不再提供「登记为工作流」，改由转化队列的 /api/skills-mgmt/transforms/register（工作流形态）承接",
-      "action": "下个版本删除（工作流未绑定工具时新端点会拒绝，语义已覆盖）",
-      "decided_at": "2026-11-04"
-    },
-    "/api/ingestion/drafts/*/register-tool": {
-      "verdict": "deprecate",
-      "evidence": "S5 收口（2026-11-04）：草稿评审页不再提供「登记为工具」，改由转化队列的 /api/skills-mgmt/transforms/register（工具形态）承接",
-      "action": "下个版本删除；新端点会先检查目标是否存在，且保持 status=draft/enabled=false",
-      "decided_at": "2026-11-04"
     }
   }
 }
