@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.request
@@ -124,6 +125,74 @@ def _audit_rows() -> Optional[int]:
     return None
 
 
+#: 【⑤ 自检进快照】四个常跑的仓库自检脚本：(键, 相对路径)。
+#: 为什么进快照：交接文档里这些数字此前都是手抄的（审计 82,348 → 82,408 就是实例），
+#: 而它们本来就有脚本、几秒出结果 —— 让卡片直接带出来，人就不用"抄 + 核"。
+_SELF_CHECKS = (
+    ("dual_track", "scripts/check_skills_dual_track.py"),
+    ("skill_md", "scripts/validate_skill_md.py"),
+    ("audit_chain", "scripts/verify_audit_chain.py"),
+    ("layer_coverage", "scripts/audit/skill_layer_coverage.py"),
+)
+
+
+def _self_check(key: str, rel: str) -> Dict[str, Any]:
+    """跑一个自检脚本并把**关键数字**抽出来（脚本本身不改任何文件）。"""
+    try:
+        proc = subprocess.run([sys.executable, str(ROOT / rel)], cwd=ROOT,
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=180)
+    except Exception as exc:  # noqa: BLE001 自检失败不能让快照整体失败
+        return {"ok": False, "error": type(exc).__name__}
+    out = (proc.stdout or "") + (proc.stderr or "")
+    data: Dict[str, Any] = {"ok": proc.returncode == 0}
+    if key == "dual_track":
+        m = re.search(r"文件轨\s*(\d+)\s*条\s*/\s*主轨\s*(\d+)\s*条", out)
+        if m:
+            data["file_track"], data["main_track"] = int(m.group(1)), int(m.group(2))
+        data["orphans_ok"] = ("无孤儿" in out)
+    elif key == "skill_md":
+        m = re.search(r"(\d+)\s*份\s*·\s*error\s*(\d+)\s*·\s*带 warning\s*(\d+)", out)
+        if m:
+            data["files"], data["errors"], data["warnings"] = (
+                int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    elif key == "audit_chain":
+        m = re.search(r"已校验\s*(\d+)\s*条", out)
+        if m:
+            data["rows"] = int(m.group(1))
+        data["breaks"] = 0 if ("0 断点" in out or "链完整" in out) else -1
+    elif key == "layer_coverage":
+        m = re.search(r"有步骤[^（]*（(\d+(?:\.\d+)?)%）.*?有触发面[^（]*（(\d+(?:\.\d+)?)%）",
+                      out, re.S)
+        if m:
+            data["steps_pct"], data["trigger_pct"] = float(m.group(1)), float(m.group(2))
+        m2 = re.search(r"平均省\s*(\d+(?:\.\d+)?)%", out)
+        if m2:
+            data["saved_pct"] = float(m2.group(1))
+    return data
+
+
+def _self_checks() -> Dict[str, Any]:
+    return {key: _self_check(key, rel) for key, rel in _SELF_CHECKS}
+
+
+#: 下一步清单（机器可读）：文档只描述判据，具体条目放这里，卡片直接读。
+NEXT_PATH = ROOT / "data" / "handoff_next.json"
+
+
+def _next_actions() -> Dict[str, Any]:
+    try:
+        doc = json.loads(NEXT_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    items = doc.get("items") if isinstance(doc, dict) else None
+    if not isinstance(items, list):
+        return {}
+    open_items = [i for i in items if isinstance(i, dict)
+                  and str(i.get("status") or "open") == "open"]
+    return {"total": len(items), "open": open_items}
+
+
 def collect() -> Dict[str, Any]:
     head = _git("rev-parse", "--short", "HEAD")
     branch = _git("rev-parse", "--abbrev-ref", "HEAD")
@@ -139,7 +208,45 @@ def collect() -> Dict[str, Any]:
         "units": _units(),
         "tools": _tools(),
         "audit_rows": _audit_rows(),
+        "selfcheck": _self_checks(),
+        "next": _next_actions(),
     }
+
+
+def _render_selfcheck(sc: Dict[str, Any]) -> str:
+    """把四项自检压成一行（失败只标注，不让卡片变噪音）。"""
+    parts: List[str] = []
+    dt = sc.get("dual_track") or {}
+    if dt.get("file_track") is not None:
+        parts.append("双轨 %s/%s%s" % (dt.get("file_track"), dt.get("main_track"),
+                                       "" if dt.get("orphans_ok") else " ⚠孤儿"))
+    sm = sc.get("skill_md") or {}
+    if sm.get("files") is not None:
+        parts.append("skill.md %s 份 %s error / %s warning" % (
+            sm.get("files"), sm.get("errors"), sm.get("warnings")))
+    ac = sc.get("audit_chain") or {}
+    if ac.get("rows") is not None:
+        parts.append("审计 %s 条 / %s 断点" % (
+            ac.get("rows"), 0 if ac.get("breaks") == 0 else "**有**"))
+    lc = sc.get("layer_coverage") or {}
+    if lc.get("steps_pct") is not None:
+        parts.append("分层 步骤 %g%% / 触发 %g%%（省 %g%%）" % (
+            lc.get("steps_pct"), lc.get("trigger_pct") or 0, lc.get("saved_pct") or 0))
+    bad = [k for k, v in sc.items() if isinstance(v, dict) and not v.get("ok", True)]
+    if bad:
+        parts.append("⚠ 未通过: " + "、".join(bad))
+    return "；".join(parts) or "（未跑）"
+
+
+def _render_next(nxt: Dict[str, Any]) -> str:
+    open_items = nxt.get("open") or []
+    if not open_items:
+        return "（无）"
+    # 卡片上只列 id（一眼能对上 data/handoff_next.json），标题留给 JSON
+    head = [str(i.get("id") or i.get("title") or "") for i in open_items[:5]]
+    more = len(open_items) - len(head)
+    return "未完成 %d 项：%s%s" % (len(nxt.get("items") or open_items),
+                                 "；".join(head), "；…" if more > 0 else "")
 
 
 def render_card(state: Dict[str, Any]) -> str:
@@ -168,8 +275,10 @@ def render_card(state: Dict[str, Any]) -> str:
             units.get("ok", "-"), units.get("warn", "-"), units.get("never", "-"),
             units.get("score", "-")),
         "- 审计：%s 条" % (state.get("audit_rows") if state.get("audit_rows") is not None else "-"),
+        "- 自检：%s" % _render_selfcheck(state.get("selfcheck") or {}),
+        "- 下一步：%s" % _render_next(state.get("next") or {}),
         "",
-        "> 口径与余量见正文；数字以本卡为准（脚本可重跑）。",
+        "> 口径与未完成项见 docs/handoff/口径.md 与 data/handoff_next.json；数字以本卡为准（脚本可重跑）。",
     ]
     return "\n".join(lines)
 

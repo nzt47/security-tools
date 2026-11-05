@@ -1,0 +1,94 @@
+{
+  "updated_at": "2026-11-06T01:25:00+08:00",
+  "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
+  "items": [
+    {
+      "id": "c6-remaining",
+      "title": "C-6 余量：stack-trace 73 条（routes_knowledge 8 / routes_feedback 8 / routes_ui_panels 7 / routes_system_prompt 6 / routes_replay 6 …）",
+      "status": "open",
+      "priority": "P1",
+      "criteria": "同一修法（返回值产生处断 taint：响应只回固定文案/异常类名，原文进日志），按文件分批；scripts/ 下的开发脚本可按契约 dismiss",
+      "next": "先做 routes_knowledge + routes_feedback（各 8 条），再 routes_ui_panels + routes_system_prompt + routes_replay"
+    },
+    {
+      "id": "descriptor-backfill-production",
+      "title": "是否把修好的 backfill_tool_descriptors.py 跑进生产台账",
+      "status": "open",
+      "priority": "P2",
+      "criteria": "跑完 DescriptorRegistry.load() 必须 0 invalid；destructive 工具的 trust.requires_approval 会从「无描述符」变成「要审批」",
+      "next": "停后端 → 跑脚本 → 重启 → 核对 loaded/invalid 计数与审批边界"
+    },
+    {
+      "id": "runtime-skill-algorithmic-art",
+      "title": "本机运行时技能 algorithmic-art（文件轨 47/主轨 49，1 条 warning）",
+      "status": "open",
+      "priority": "P2",
+      "criteria": "要么补「何时使用」正文后正式入轨，要么删草稿；未定前不要提交它",
+      "next": "等 Owner 一句话"
+    },
+    {
+      "id": "secret-scanning-pat",
+      "title": "secret scanning 1 条 github_personal_access_token（#1，2026-06-29）",
+      "status": "open",
+      "priority": "P2",
+      "criteria": "需 Owner 吊销/轮换后 dismiss；与 FLASK_API_TOKEN 无关",
+      "next": "等 Owner"
+    },
+    {
+      "id": "l1-assembly-canary",
+      "title": "L1 分层装配灰度",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "门禁已达标（步骤 100% / 触发 100% / 省 5x%）；属改变模型可见内容 ⇒ 需灰度 + 回滚开关",
+      "next": "先做灰度开关与回滚演练，再切默认"
+    },
+    {
+      "id": "c9-schedule-task-review",
+      "title": "C-9：schedule_task 观察期至 2026-11-10",
+      "status": "frozen",
+      "priority": "P3",
+      "criteria": "到期先复核最后 7 天用量，再决定「恢复/继续冻结/删除」",
+      "next": "2026-11-10 复核"
+    },
+    {
+      "id": "local-env-noise",
+      "title": "本机红但不是回归：test_network_config_test_floor（子进程探针）/ test_tool_pruning 的 9==8",
+      "status": "frozen",
+      "priority": "P3",
+      "criteria": "干净 worktree / CI 均为绿；判绿以干净 worktree 为准",
+      "next": "换机器或 CI 复测"
+    },
+    {
+      "id": "software-probe-install",
+      "title": "software_probe / software_install 受控安装通道（#1449）",
+      "status": "done",
+      "priority": "P0",
+      "criteria": "四道闸 + 默认停用；真机 probe 通过、install 未登记时 not-in-allowlist",
+      "next": "要真装软件：先在 config/software_allowlist.json 登记精确 package_id，再传 confirm=true"
+    },
+    {
+      "id": "c6-batch6",
+      "title": "C-6 第六批：4 文件 39 条 stack-trace（#1450 + #1452）",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "master 上 py/stack-trace-exposure 112 → 73",
+      "next": "-"
+    },
+    {
+      "id": "legacy-endpoints",
+      "title": "legacy 三端点删除（install-skill / register / register-tool，#1453）",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "路由 498 → 495；unreferenced 33 → 30；台账与会话意图同步收缩",
+      "next": "-"
+    },
+    {
+      "id": "handoff-revamp",
+      "title": "交接改造 ②–⑤（口径.md / 轮次拆分 / next_actions.json / 自检进快照）",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "口径.md ≤150 行；轮次归档到 docs/handoff/rounds/ 且正文只留索引；卡片带自检与下一步",
+      "next": "-"
+    }
+  ]
+}
