@@ -17,7 +17,6 @@ import {
 } from 'lucide-react'
 import { CallabilityBadge, hubGet, hubPost } from '../components/ui'
 import { authHeader, getApiToken } from '../../../lib/apiToken'
-import GenerateRequirementModal from './generate-requirement-modal'
 import ClassIcon from './class-icon'
 import ApiTokenPrompt from './api-token-prompt'
 import SkillDetailDrawer from './skill-detail-drawer'
@@ -168,7 +167,6 @@ export default function SkillAssessManager() {
   const [busy, setBusy] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [createOpen, setCreateOpen] = useState(false)
-  const [genOpen, setGenOpen] = useState(false)
   const [publishTarget, setPublishTarget] = useState<SkillItem | null>(null)
   const [needAuth, setNeedAuth] = useState(false)
   const [adviceTarget, setAdviceTarget] = useState<SkillItem | null>(null)
@@ -860,9 +858,6 @@ export default function SkillAssessManager() {
           <button type="button" className={BTN_EM} onClick={() => setCreateOpen(true)}>
             <Plus size={12} /> 新建技能
           </button>
-          <button type="button" className={BTN_EM} onClick={() => setGenOpen(true)} title="把对话提示词中的能力要求自动写成技能草稿（生成后自动评审-评估，可再审核）">
-            <Lightbulb size={12} /> 从对话要求生成
-          </button>
           <button type="button" className={BTN_EM} onClick={() => void runAll()} disabled={busy !== ''}>
             {busy === '全量自动评审-评估' ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
             全量自动评审-评估
@@ -989,9 +984,6 @@ export default function SkillAssessManager() {
           // 反馈一起关掉，用户只看到说明还是老样子（所以之前以为「没保存」）。
           // 现在只刷新背后的列表，窗口留着显示结果，由用户自己点关闭。
           onDone={() => { void load(); void loadEvents() }} />
-      )}
-      {genOpen && (
-        <GenerateRequirementModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
       )}
       {feedOpen && <FeedModal onClose={() => setFeedOpen(false)} onPick={handlePickSkill} />}
       {backfill && (

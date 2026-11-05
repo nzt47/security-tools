@@ -5,15 +5,35 @@
  * 两者执行模型不同（模型执行 vs 本地 DAG），页面不再用 Tab 混装。
  * 本页因此只留「统一 LLM 表」——运行时技能 + 技能资产按 id 合并，符合既有契约「单一 LLM 表」。
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Archive, BookOpen, GitBranch, Hammer, Sparkles } from 'lucide-react'
 import SkillAssetTable from './SkillAssetTable'
 import SkillIntakeDialog from './SkillIntakeDialog'
 import SkillCardsDialog from '../../../components/SkillCardsDialog'
+import { authHeader } from '../../../lib/apiToken'
+import { SKILLS_MGMT } from '../../../api/endpoints'
 
 export default function SkillCenter() {
   const [intakeOpen, setIntakeOpen] = useState(false)
   const [cardsOpen, setCardsOpen] = useState(false)
+  // 【2026-11-05 IA】入轨助手按需出现：46/46 已入轨时它只是个空转的弹窗。
+  // 只在「有未入轨技能」时渲染入口（带条数），入轨动作本身不变。
+  const [pendingIntake, setPendingIntake] = useState<number | null>(null)
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      try {
+        const r = await fetch(`${SKILLS_MGMT}/intake/status`, { headers: authHeader() })
+        const j = await r.json()
+        if (!alive || !r.ok || j.ok === false) return
+        const items = Array.isArray(j.items) ? j.items : []
+        setPendingIntake(items.filter((i: { tracked?: boolean }) => !i.tracked).length)
+      } catch {
+        // 只读探针：取不到就不显示入口，不影响页面其它功能
+      }
+    })()
+    return () => { alive = false }
+  }, [])
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       {/* ─── 页头 ─── */}
@@ -37,14 +57,17 @@ export default function SkillCenter() {
           >
             <BookOpen size={12} /> 能力卡
           </button>
-          <button
-            type="button"
-            onClick={() => setIntakeOpen(true)}
-            title="为什么要把技能提交进 git、新技能怎么处理、一键入轨"
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
-          >
-            <GitBranch size={12} /> 入轨助手
-          </button>
+          {/* 入轨入口只在真有「未入轨」技能时出现（46/46 已入轨时它是个空转弹窗）。 */}
+          {pendingIntake !== null && pendingIntake > 0 && (
+            <button
+              type="button"
+              onClick={() => setIntakeOpen(true)}
+              title="把未入轨的技能提交进 git（只处理未入轨项）"
+              className="flex shrink-0 items-center gap-1.5 rounded-md border border-amber-800/70 px-2.5 py-1.5 text-[11px] text-amber-300 transition-colors hover:bg-amber-500/10"
+            >
+              <GitBranch size={12} /> 入轨助手 · {pendingIntake}
+            </button>
+          )}
           {/* 2026-11-05 IA：转化队列已并入「能力获取」页（摄取 → 草稿 → 评审 → 登记 → 启用同一条流水线）。
               这里只留一句去处说明，不再挂第二个入口（禁止双入口）。 */}
           <a
