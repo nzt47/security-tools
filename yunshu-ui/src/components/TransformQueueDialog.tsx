@@ -71,7 +71,12 @@ type Job = {
   updated_at?: string
 }
 
-type Props = { open: boolean; onClose: () => void }
+/**
+ * `embedded`：同一个组件既当弹窗、也当「能力获取 → 转化队列」页内 Tab。
+ * 页内形态去掉遮罩/关闭键/固定高度，其余（作业行、登记、启用、回滚）完全一致 ——
+ * 不允许出现两份实现（那正是「同一队列两个入口」的老问题）。
+ */
+type Props = { open?: boolean; onClose?: () => void; embedded?: boolean }
 
 const JOB_STATUS_STYLE: Record<string, string> = {
   candidate: 'border-slate-700 text-slate-300',
@@ -115,7 +120,7 @@ function Badge({ text, style }: { text: string; style: string }) {
   )
 }
 
-export default function TransformQueueDialog({ open, onClose }: Props) {
+export default function TransformQueueDialog({ open, onClose, embedded = false }: Props) {
   const [items, setItems] = useState<Item[]>([])
   const [broken, setBroken] = useState(0)
   const [jobs, setJobs] = useState<Job[]>([])
@@ -157,8 +162,8 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
   }, [])
 
   useEffect(() => {
-    if (open) void load()
-  }, [open, load])
+    if (open || embedded) void load()
+  }, [open, embedded, load])
 
   const doRegister = async (openPr: boolean) => {
     const job = registerJob
@@ -292,20 +297,26 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
     }
   }
 
-  if (!open) return null
+  if (!open && !embedded) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
-      <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl">
+    <div className={embedded
+      ? 'flex min-h-0 flex-col'
+      : 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4'}>
+      <div className={embedded
+        ? 'flex min-h-0 flex-col rounded-xl border border-slate-800 bg-slate-900/60'
+        : 'flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl'}>
         <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
           <div className="flex items-center gap-2">
             <Archive size={14} className="text-cyan-400" />
             <h2 className="text-sm font-semibold text-slate-100">转化队列</h2>
             <span className="text-[11px] text-slate-500">外来技能转化归档 · 判定/审核/卡片 · 可回滚</span>
           </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
-            <X size={14} />
-          </button>
+          {!embedded && onClose && (
+            <button type="button" onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         <div className="border-b border-slate-800 bg-slate-950/40 px-4 py-2 text-[10px] leading-relaxed text-slate-500">
@@ -356,6 +367,16 @@ export default function TransformQueueDialog({ open, onClose }: Props) {
                         title="启用这条已登记的技能（文件轨 + 主轨双写）">
                         启用
                       </button>
+                    )}
+                    {/* 2026-11-05 决定：工具/工作流的「启用」**不进**队列 —— 工具草稿只是骨架，
+                        下一步是补实现 + 测试 + 审批（证据都在工具页）；工作流要先试跑。
+                        队列只负责把它们指到能判断的地方，避免「在队列里点一下就启用了」的空按钮。 */}
+                    {j.status === 'registered' && j.form !== 'skill' && (
+                      <a href={j.form === 'tool' ? '?panel=tools' : '?panel=workflow'}
+                        className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-cyan-700 hover:bg-cyan-950/40 hover:text-cyan-300"
+                        title="启用留在该页：工具要先补实现/测试并过审批，工作流要先试跑——那里才有判断依据">
+                        去{j.form === 'tool' ? '工具页' : '工作流页'}启用
+                      </a>
                     )}
                     <code className="ml-auto text-slate-600">{j.job_id}</code>
                   </li>

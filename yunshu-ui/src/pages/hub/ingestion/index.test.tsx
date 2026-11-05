@@ -163,4 +163,47 @@ describe('IngestionPage', () => {
       source: { path: 'C:/alpha' }, plan_id: 'ig_1', confirm: true, form: 'tool', draft_only: true,
     }))
   })
+
+  it('批量获取：勾选多条 → 逐条预览 + 只生成草稿（不安装/不注册/不启用）', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    api.fetchIngestionSources.mockResolvedValue({
+      roots: [], stats: { roots: 0, candidates: 2, previewable: 2 },
+      candidates: [
+        { root: 'C:/root', ecosystem: 'claude', name: 'alpha', path: 'C:/root/alpha/SKILL.md', kind: 'skill', formats: [], previewable: true, symlink: false, warnings: [] },
+        { root: 'C:/root', ecosystem: 'claude', name: 'beta', path: 'C:/root/beta/SKILL.md', kind: 'skill', formats: [], previewable: true, symlink: false, warnings: [] },
+      ],
+    })
+    api.previewIngestion.mockResolvedValue(plan())
+    api.commitIngestion.mockResolvedValue(result({ draft: true, installed: false, queued: false, draft_dir: 'data/ingestion/drafts/x' }))
+    render(<IngestionPage />)
+    await screen.findByLabelText('批量选择 alpha')
+    const batchBtn = screen.getByRole('button', { name: '批量生成草稿' }) as HTMLButtonElement
+    expect(batchBtn.disabled).toBe(true)
+    fireEvent.click(screen.getByLabelText('批量选择 alpha'))
+    fireEvent.click(screen.getByLabelText('批量选择 beta'))
+    await waitFor(() => expect(batchBtn.textContent).toContain('（2）'))
+    fireEvent.click(batchBtn)
+    await waitFor(() => expect(api.commitIngestion).toHaveBeenCalledTimes(2))
+    expect(api.commitIngestion).toHaveBeenCalledWith(expect.objectContaining({ draft_only: true, form: 'skill', confirm: true }))
+    expect(confirmSpy).toHaveBeenCalled()
+    confirmSpy.mockRestore()
+  })
+
+  it('批量获取：需 LLM 重写的候选被跳过，不提交', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    api.fetchIngestionSources.mockResolvedValue({
+      roots: [], stats: { roots: 0, candidates: 1, previewable: 1 },
+      candidates: [
+        { root: 'C:/root', ecosystem: 'claude', name: 'gamma', path: 'C:/root/gamma/SKILL.md', kind: 'skill', formats: [], previewable: true, symlink: false, warnings: [] },
+      ],
+    })
+    api.previewIngestion.mockResolvedValue(plan({ requires_rewrite: true }))
+    render(<IngestionPage />)
+    await screen.findByLabelText('批量选择 gamma')
+    fireEvent.click(screen.getByLabelText('批量选择 gamma'))
+    fireEvent.click(screen.getByRole('button', { name: '批量生成草稿' }))
+    await screen.findByText('跳过')
+    expect(api.commitIngestion).not.toHaveBeenCalled()
+    confirmSpy.mockRestore()
+  })
 })

@@ -16,6 +16,7 @@ import { Badge, Card, ErrorBox, PageHeader } from '../components/ui'
 import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
+import TransformQueueDialog from '../../../components/TransformQueueDialog'
 import {
   commitIngestion,
   fetchIngestionSources,
@@ -59,7 +60,12 @@ function dedupeTone(item: DedupeItem): 'green' | 'amber' | 'red' | 'cyan' | 'sla
   return 'slate'
 }
 
-type IngestionTab = 'acquire' | 'review' | 'governance'
+type IngestionTab = 'acquire' | 'review' | 'queue' | 'governance'
+
+/** 批量获取的单条结果（逐条预览 + 逐条生成草稿；不安装/不注册/不启用）*/
+type BatchRow = { path: string; state: string; id?: string; note?: string }
+
+const BATCH_MAX = 20
 
 function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: IngestionTab) => void }) {
   return (
@@ -72,6 +78,12 @@ function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: Ing
         className={tab === 'review' ? BTN_EM : BTN} onClick={() => onChange('review')}>
         <ShieldCheck size={12} /> 草稿评审
       </button>
+      {/* 2026-11-05 IA：转化队列从「技能中心」弹窗搬到这里 —— 摄取 → 生成草稿 → 评审 →
+          登记 → 启用是同一条流水线，队列必须和入口同页（原先在技能中心，等于把第 2 段拆走）。 */}
+      <button type="button" role="tab" aria-selected={tab === 'queue'}
+        className={tab === 'queue' ? BTN_EM : BTN} onClick={() => onChange('queue')}>
+        <GitBranch size={12} /> 转化队列
+      </button>
       <button type="button" role="tab" aria-selected={tab === 'governance'}
         className={tab === 'governance' ? BTN_EM : BTN} onClick={() => onChange('governance')}>
         <Layers size={12} /> 存量治理
@@ -81,7 +93,11 @@ function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: Ing
 }
 
 export default function IngestionPage() {
-  const [tab, setTab] = useState<IngestionTab>('acquire')
+  // 深链：?panel=ingestion&tab=queue|review|governance（技能中心已把「转化队列」指到这里）
+  const [tab, setTab] = useState<IngestionTab>(() => {
+    const t = new URLSearchParams(window.location.search).get('tab')
+    return (t === 'review' || t === 'queue' || t === 'governance') ? t : 'acquire'
+  })
   const [mode, setMode] = useState<'path' | 'text'>('path')
   const [pathInput, setPathInput] = useState('')
   const [textInput, setTextInput] = useState('')
@@ -94,6 +110,12 @@ export default function IngestionPage() {
   const [committing, setCommitting] = useState(false)
   const [result, setResult] = useState<IngestResult | null>(null)
   const [error, setError] = useState('')
+  // ── 批量获取（2026-11-05 恢复）──
+  // 旧「扫描 claude → 全量导入」被 S5 收敛成单条，结果是几十条候选只能一条条点。
+  // 批量只做「逐条预览 + 逐条生成草稿」：不安装、不注册、不启用，仍按单条去重结论记账。
+  const [batchSel, setBatchSel] = useState<string[]>([])
+  const [batchBusy, setBatchBusy] = useState('')
+  const [batchRows, setBatchRows] = useState<BatchRow[]>([])
 
   const currentSource = (): IngestSourceInput => (
     mode === 'text'
@@ -160,6 +182,38 @@ export default function IngestionPage() {
     }
   }
 
+  const runBatch = async () => {
+    const paths = batchSel.slice(0, BATCH_MAX)
+    if (paths.length === 0) return
+    if (!window.confirm('批量生成 ' + paths.length + ' 条草稿？逐条预览后只写草稿（不安装/不注册/不启用），需 LLM 重写的会被跳过。')) return
+    setBatchRows([]); setError('')
+    const rows: BatchRow[] = []
+    for (let i = 0; i < paths.length; i += 1) {
+      const path = paths[i]
+      setBatchBusy((i + 1) + '/' + paths.length)
+      try {
+        const p = await previewIngestion({ path })
+        if (p.requires_rewrite) {
+          rows.push({ path, state: '跳过', note: '需 LLM 重写（批量不代跑），请单条处理' })
+        } else {
+          const res = await commitIngestion({
+            source: { path },
+            plan_id: p.plan_id,
+            confirm: true,
+            form: 'skill',
+            draft_only: true,
+            ...(p.archive_id ? { archive_id: p.archive_id } : {}),
+          })
+          rows.push({ path, state: res.draft ? '草稿' : (res.queued ? '入队' : '未落库'), id: res.skill_id })
+        }
+      } catch (e) {
+        rows.push({ path, state: '失败', note: (e instanceof Error ? e.message : String(e)).slice(0, 160) })
+      }
+      setBatchRows([...rows])
+    }
+    setBatchBusy('')
+  }
+
   const commitLabel = form === 'skill'
     ? '生成技能草稿'
     : (form === 'tool' ? '生成工具草稿' : '生成工作流草稿')
@@ -171,6 +225,15 @@ export default function IngestionPage() {
       <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
         {tabs}
         <ReviewPanel />
+      </div>
+    )
+  }
+
+  if (tab === 'queue') {
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
+        {tabs}
+        <TransformQueueDialog embedded />
       </div>
     )
   }
@@ -251,9 +314,18 @@ export default function IngestionPage() {
           </Card>
 
           <Card title="本机可吞噬源" actions={(
-            <span className="text-[10px] text-slate-500">
-              {sources ? sources.stats.candidates + ' 个候选 / ' + sources.stats.previewable + ' 个可预览' : '未探测'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-500">
+                {sources ? sources.stats.candidates + ' 个候选 / ' + sources.stats.previewable + ' 个可预览' : '未探测'}
+              </span>
+              <button type="button" className={BTN} disabled={batchBusy !== '' || batchSel.length === 0}
+                onClick={() => void runBatch()}
+                aria-label="批量生成草稿"
+                title="逐条预览后各生成一份草稿（不安装/不注册/不启用；需 LLM 重写的跳过）">
+                {batchBusy !== '' ? <Loader2 size={12} className="animate-spin" /> : <PackagePlus size={12} />}
+                批量生成草稿{batchSel.length > 0 ? '（' + Math.min(batchSel.length, BATCH_MAX) + '）' : ''}{batchBusy ? ' ' + batchBusy : ''}
+              </button>
+            </div>
           )}>
             {!sources ? (
               <p className="text-xs text-slate-500">点「探测本机源」列出配置根下的候选；首屏会自动探测一次。</p>
@@ -275,19 +347,43 @@ export default function IngestionPage() {
                 ) : (
                   <div className="max-h-[300px] overflow-auto rounded-sm border border-slate-800">
                     {sources.candidates.slice(0, 60).map((c) => (
-                      <button key={c.path} type="button"
-                        className="flex w-full items-center gap-2 border-b border-slate-800/60 px-2 py-1.5 text-left text-[11px] text-slate-300 last:border-b-0 hover:bg-slate-800/50"
-                        onClick={() => { setMode('path'); setPathInput(c.path); resetPlan() }}>
-                        <Badge color={c.previewable ? 'cyan' : 'amber'}>{c.kind}</Badge>
-                        <span className="font-mono text-[10px] text-cyan-300">{c.ecosystem}</span>
-                        <span className="truncate">{c.name}</span>
+                      <div key={c.path}
+                        className="flex w-full items-center gap-2 border-b border-slate-800/60 px-2 py-1.5 text-left text-[11px] text-slate-300 last:border-b-0 hover:bg-slate-800/50">
+                        <input type="checkbox" className="shrink-0"
+                          aria-label={'批量选择 ' + c.name}
+                          disabled={!c.previewable}
+                          checked={batchSel.includes(c.path)}
+                          onChange={(e) => setBatchSel((prev) => e.target.checked
+                            ? (prev.includes(c.path) ? prev : [...prev, c.path].slice(0, BATCH_MAX))
+                            : prev.filter((x) => x !== c.path))} />
+                        <button type="button"
+                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                          onClick={() => { setMode('path'); setPathInput(c.path); resetPlan() }}>
+                          <Badge color={c.previewable ? 'cyan' : 'amber'}>{c.kind}</Badge>
+                          <span className="font-mono text-[10px] text-cyan-300">{c.ecosystem}</span>
+                          <span className="truncate">{c.name}</span>
+                        </button>
                         <span className="ml-auto shrink-0 text-[10px] text-slate-600">{c.previewable ? '可预览' : '仅展示'}</span>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
                 {sources.candidates.length > 60 && (
                   <p className="mt-1 text-[10px] text-slate-500">只显示前 60 个候选；可直接粘贴完整路径。</p>
+                )}
+                {batchRows.length > 0 && (
+                  <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2 text-[10px]">
+                    <div className="text-slate-500">批量结果（{batchRows.length}）：草稿只落隔离区，登记/启用仍在「转化队列」</div>
+                    <ul className="mt-1 space-y-0.5">
+                      {batchRows.map((row) => (
+                        <li key={row.path} className="flex items-center gap-2">
+                          <span className={row.state === '失败' ? 'text-rose-300' : (row.state === '跳过' ? 'text-amber-300' : 'text-emerald-300')}>{row.state}</span>
+                          <code className="truncate text-slate-400">{row.id || row.path}</code>
+                          {row.note && <span className="truncate text-slate-500">{row.note}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </>
             )}
