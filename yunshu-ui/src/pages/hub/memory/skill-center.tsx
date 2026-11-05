@@ -10,12 +10,10 @@ import { Archive, BookOpen, GitBranch, Hammer, Sparkles } from 'lucide-react'
 import SkillAssetTable from './SkillAssetTable'
 import SkillIntakeDialog from './SkillIntakeDialog'
 import SkillCardsDialog from '../../../components/SkillCardsDialog'
-import TransformQueueDialog from '../../../components/TransformQueueDialog'
 
 export default function SkillCenter() {
   const [intakeOpen, setIntakeOpen] = useState(false)
   const [cardsOpen, setCardsOpen] = useState(false)
-  const [transformsOpen, setTransformsOpen] = useState(false)
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-950">
       {/* ─── 页头 ─── */}
@@ -47,14 +45,15 @@ export default function SkillCenter() {
           >
             <GitBranch size={12} /> 入轨助手
           </button>
-          <button
-            type="button"
-            onClick={() => setTransformsOpen(true)}
-            title="外来技能转化的归档：判定 / 审核 / 卡片，可按 transform_id 回滚"
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-cyan-700 hover:bg-cyan-500/10 hover:text-cyan-300"
+          {/* 2026-11-05 IA：转化队列已并入「能力获取」页（摄取 → 草稿 → 评审 → 登记 → 启用同一条流水线）。
+              这里只留一句去处说明，不再挂第二个入口（禁止双入口）。 */}
+          <a
+            href="?panel=ingestion&tab=queue"
+            title="转化队列已搬到「能力获取 → 转化队列」（登记 / 启用 / 回滚 都在那里）"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-800 px-2.5 py-1.5 text-[11px] text-slate-500 transition-colors hover:border-slate-700 hover:text-slate-300"
           >
-            <Archive size={12} /> 转化队列
-          </button>
+            <Archive size={12} /> 转化队列已移至能力获取
+          </a>
         </div>
       </div>
 
@@ -75,7 +74,7 @@ export default function SkillCenter() {
       </div>
       <SkillCardsDialog open={cardsOpen} onClose={() => setCardsOpen(false)} />
       <SkillIntakeDialog open={intakeOpen} onClose={() => setIntakeOpen(false)} />
-      <TransformQueueDialog open={transformsOpen} onClose={() => setTransformsOpen(false)} />
+
     </div>
   )
 }
