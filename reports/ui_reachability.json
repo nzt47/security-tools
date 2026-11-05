@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-11-04T23:33:26",
+  "generated_at": "2026-11-05T19:45:18",
   "entry": "yunshu-ui/src/main.tsx",
   "scanned": {
-    "source_modules": 288,
-    "reachable_modules": 272,
-    "page_files": 112
+    "source_modules": 289,
+    "reachable_modules": 273,
+    "page_files": 113
   },
   "unreachable": [],
   "orphan_default": [],
-  "content_hash": "a5f016fa09ac3e1d",
+  "content_hash": "460babcb51e76d6f",
   "page_files": [
     "yunshu-ui/src/pages/Dashboard/index.tsx",
     "yunshu-ui/src/pages/Export/index.tsx",
@@ -37,6 +37,7 @@
     "yunshu-ui/src/pages/hub/governance/actions.tsx",
     "yunshu-ui/src/pages/hub/governance/business.tsx",
     "yunshu-ui/src/pages/hub/governance/components.tsx",
+    "yunshu-ui/src/pages/hub/governance/dev-notes.tsx",
     "yunshu-ui/src/pages/hub/governance/feedback.tsx",
     "yunshu-ui/src/pages/hub/governance/implicitEntry.tsx",
     "yunshu-ui/src/pages/hub/governance/index.tsx",
