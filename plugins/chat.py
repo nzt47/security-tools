@@ -753,6 +753,63 @@ def api_handoff():
         return jsonify({"error": "handoff 生成失败（详见服务日志）"}), 500
 
 
+@bp.route("/api/sessions/from-handoff", methods=["POST"])
+@_require_token
+def api_sessions_from_handoff():
+    """用交接文档开一个新会话（可选的续接入口）
+
+    【为什么需要它】面板在 65% 提示"建议换会话"，但换过去之后新会话对上一段一无所知 ——
+    用户只能手动复制交接文档。这里把"生成交接文档 + 建新会话 + 把文档作为首条消息"合成一步：
+      · 不传 markdown：现场为 `session_id`（缺省当前会话）生成一份；
+      · 传 markdown：直接用调用方已有的正文（避免重复一次 LLM 摘要）。
+    新会话的首条消息是 **user 角色**：它必须像"用户的续接指令"一样出现在历史里，
+    才能被上下文装配正常带上；system 角色会被装配层当成配置而不是对话。
+    """
+    from app_server import _session_mgr, logger
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({"error": "请求体必须是 JSON 对象"}), 400
+    markdown = str(data.get("markdown") or "").strip()
+    source_id = str(data.get("session_id") or "").strip() or None
+    title = str(data.get("title") or "").strip()
+    handoff_path = ""
+    if not markdown:
+        from agent.handoff.handoff_generator import generate_handoff
+        try:
+            generated = generate_handoff(
+                _HandoffStateAdapter(),
+                session_id=source_id,
+                intent=str(data.get("intent") or "").strip() or None,
+            )
+        except ValueError:
+            return jsonify({"error": "会话不存在或没有消息，无法生成交接文档"}), 400
+        except Exception:  # noqa: BLE001 生成失败不得把端点打成未处理异常
+            logger.exception("[handoff] 生成交接文档失败")
+            return jsonify({"error": "交接文档生成失败（详见服务日志）"}), 500
+        markdown = str((generated or {}).get("markdown") or "").strip()
+        handoff_path = str((generated or {}).get("path") or "")
+    if not markdown:
+        return jsonify({"error": "交接文档为空，未创建会话"}), 400
+    if not title:
+        src = _session_mgr.get_session(source_id) if source_id else None
+        base = (src or {}).get("title") or "上一会话"
+        title = "续 · " + str(base)[:40]
+    try:
+        session = _session_mgr.create_session(title=title)
+        _session_mgr.add_message(
+            session["id"], "user",
+            "【交接文档 · 续接】\n\n以下是上一段会话的交接文档，请据此继续；"
+            "需要时可先用工具核实现状再动手。\n\n" + markdown,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("[handoff] 创建续接会话失败")
+        return jsonify({"error": "创建会话失败（详见服务日志）"}), 500
+    logger.info("[handoff] 已用交接文档创建会话 %s（%d 字符）",
+                session["id"], len(markdown))
+    return jsonify({"ok": True, "session": session, "seeded_chars": len(markdown),
+                    "handoff_path": handoff_path}), 201
+
+
 # ════════════════════════════════════════════════════════════
 #  会话工作空间（任务工作目录）API
 #  默认：data/sessions/{id}/workspace；可绑定自定义本地目录（仿 DSH 添加工作区）
