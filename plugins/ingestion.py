@@ -184,6 +184,48 @@ def api_ingestion_commit():
     return _ok({"result": result.to_dict()}, message=message)
 
 
+@bp.route("/api/ingestion/direct", methods=["POST"])
+@_require_token
+def api_ingestion_direct():
+    """直通：一段文本 → 一份草稿（一次调用，跳过分级/确认两道闸）
+
+    来源本来就是文本时，适配器探测与 L0/L1/L2 判定只有「去重提示」有用；
+    本端点把 preview + commit 合成一步，**仍只产出草稿**（不安装/不注册/不启用）。
+    L2 文本默认拒绝（needs_rewrite），除非 allow_rewrite=true 才代跑一次 LLM 重写。
+    """
+    try:
+        body = _json_body()
+        if body.get("confirm") is not True:
+            from agent.ingestion.models import ConfirmationRequired
+            raise ConfirmationRequired(
+                "直通需要显式 confirm=true",
+                detail="未确认的请求不会写任何文件；确认后只落草稿。",
+            )
+        allow_rewrite = body.get("allow_rewrite") is True
+        from agent.ingestion import service
+        result, plan = service.direct(
+            str(body.get("text") or ""),
+            form=str(body.get("form") or "skill").strip().lower(),
+            label=str(body.get("label") or ""),
+            allow_rewrite=allow_rewrite,
+            llm_client=_resolve_llm_client() if allow_rewrite else None,
+        )
+    except IngestionError as exc:
+        return _fail(exc)
+    return _ok({
+        "result": result.to_dict(),
+        "plan": {
+            "plan_id": plan.plan_id,
+            "level": plan.conformance.level,
+            "adapter": plan.adapter,
+            "rewritten": plan.rewritten,
+            "dedupe": list(plan.dedupe),
+            "warnings": list(plan.warnings),
+            "merge_suggestion": plan.merge_suggestion,
+        },
+    }, message="已直通生成草稿（未安装/未注册/未启用）")
+
+
 @bp.route("/api/ingestion/drafts", methods=["GET"])
 @_require_token
 def api_ingestion_drafts():

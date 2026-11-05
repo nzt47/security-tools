@@ -5,7 +5,7 @@
  * 不做 pickObj 式猜测；计划/结果字段与 agent/ingestion/models.py 一一对应。
  */
 import { getEnvelope, postEnvelope } from '@/api/envelope'
-import { INGESTION_COMMIT, INGESTION_PREVIEW, INGESTION_SOURCES } from '@/api/endpoints'
+import { INGESTION_COMMIT, INGESTION_DIRECT, INGESTION_PREVIEW, INGESTION_SOURCES } from '@/api/endpoints'
 
 export type IngestForm = 'skill' | 'tool' | 'workflow'
 
@@ -129,6 +129,30 @@ export async function fetchIngestionSources(): Promise<SourcesView> {
 export async function previewIngestion(source: IngestSourceInput, rewrite = false): Promise<IngestPlan> {
   const data = await postEnvelope<{ plan: IngestPlan }>(INGESTION_PREVIEW, { source, rewrite })
   return data.plan
+}
+
+export interface DirectResult {
+  result: IngestResult
+  plan: {
+    plan_id: string
+    level: string
+    adapter: string
+    rewritten: boolean
+    dedupe: DedupeItem[]
+    warnings: string[]
+    merge_suggestion: MergeSuggestion | null
+  }
+}
+
+/** 直通：文本 → 草稿（一次调用；文本默认 L2，显式 allow_rewrite 才调 LLM 重写）*/
+export async function directIngestion(body: {
+  text: string
+  form: IngestForm
+  label?: string
+  allow_rewrite?: boolean
+  confirm: true
+}): Promise<DirectResult> {
+  return postEnvelope<DirectResult>(INGESTION_DIRECT, body)
 }
 
 export async function commitIngestion(body: {
