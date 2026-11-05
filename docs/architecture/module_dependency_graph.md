@@ -687,6 +687,7 @@ flowchart LR
         agent_tools_process_tools["agent.tools.process_tools"]:::crosslayer
         agent_tools_search_tools["agent.tools.search_tools"]:::crosslayer
         agent_tools_shell_tools["agent.tools.shell_tools"]:::crosslayer
+        agent_tools_software_tools["agent.tools.software_tools"]:::crosslayer
         agent_tools_subagent_tools["agent.tools.subagent_tools"]:::crosslayer
         agent_tools_system_tools["agent.tools.system_tools"]:::crosslayer
         agent_tools_task_tools["agent.tools.task_tools"]:::crosslayer
@@ -1600,6 +1601,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_web_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_ext_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_pdf_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_tools_software_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_system_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_code_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_search_tools
@@ -2701,6 +2703,8 @@ flowchart LR
     agent_tools_shell_tools -.-> agent_subagent_sandbox
     agent_tools_shell_tools -.-> agent_audit_facade
     agent_tools_shell_tools -.-> agent_subagent_sandbox
+    agent_tools_software_tools --> agent
+    agent_tools_software_tools -.-> agent_audit_facade
     agent_tools_subagent_tools --> agent
     agent_tools_subagent_tools -.-> agent_subagent_delegation
     agent_tools_subagent_tools -.-> agent_subagent_container
@@ -2811,9 +2815,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 722
-- 模块节点数: 626
-- 依赖边数: 2059
-- 跨层调用数: 1310
+- 扫描文件数: 723
+- 模块节点数: 627
+- 依赖边数: 2062
+- 跨层调用数: 1312
 - 违规调用数: 0
 - 动态 import 数: 1
