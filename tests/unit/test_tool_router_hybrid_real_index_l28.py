@@ -109,10 +109,10 @@ class TestFixtureShapeMatchesProduction:
         assert {t["name"] for t in real_tools} == {t["name"] for t in prod}, (
             "YAML 派生的工具集与 data/tool_index.json 不一致 ⇒ 本回归的「真实形状」前提失效"
         )
-        assert len(real_tools) == 90, f"真实工具数应为 90，实际 {len(real_tools)}"
+        assert len(real_tools) == 92, f"真实工具数应为 92，实际 {len(real_tools)}"
 
     def test_index_is_not_a_toy_fixture(self, real_retriever, real_tools):
-        assert real_retriever._bm25.size == len(real_tools) == 90
+        assert real_retriever._bm25.size == len(real_tools) == 92
 
 
 # ════════════════════════════════════════════════════════════

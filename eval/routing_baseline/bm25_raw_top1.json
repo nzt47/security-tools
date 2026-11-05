@@ -1,7 +1,7 @@
 {
  "schema": "w5/l28-bm25-raw-top1/v2",
  "task": "W5 批次1-B：L27/L28/A8 —— S0 可复算的证据落盘（双口径，供两次提交各用一份）",
- "generated_at": "2026-10-18T23:42:55",
+ "generated_at": "2026-11-05T22:24:53",
  "generator": "scripts/gen_baseline_bm25_raw.py（已入库；python scripts/gen_baseline_bm25_raw.py 可重建本产物）",
  "scoring_口径": {
   "current": "CJK 相邻二元组 + log idf + idf 证据下限",
@@ -12,10 +12,10 @@
   "k1": 1.5,
   "b": 0.75,
   "index_source": "data/tool_index.json",
-  "index_sha256_16": "89bc71a9483ddaad",
-  "n_docs": 90,
-  "avg_doc_length_bigram": 46.7556,
-  "avg_doc_length_unigram": 53.9
+  "index_sha256_16": "8679bc67c637a9ca",
+  "n_docs": 92,
+  "avg_doc_length_bigram": 47.0652,
+  "avg_doc_length_unigram": 54.2391
  },
  "split": {
   "source": "eval/routing_baseline/cases.json#split",
@@ -107,86 +107,86 @@
   "bigram_log": {
    "calib_all_layers": {
     "n_with_hits": 11,
-    "min": 1.903,
-    "p10": 3.0577,
-    "p50_median": 5.5503,
-    "p90": 10.9633,
-    "max": 11.4289,
-    "mean": 6.8034
+    "min": 1.9225,
+    "p10": 3.087,
+    "p50_median": 5.5928,
+    "p90": 11.0539,
+    "max": 11.541,
+    "mean": 6.8667
    },
    "calib_hybrid_tool_only": {
     "n_with_hits": 5,
-    "min": 4.9179,
-    "p10": 4.9179,
-    "p50_median": 10.1257,
-    "p90": 10.3231,
-    "max": 10.9633,
-    "mean": 9.2182
+    "min": 4.9637,
+    "p10": 4.9637,
+    "p50_median": 10.2325,
+    "p90": 10.4208,
+    "max": 11.0539,
+    "mean": 9.3033
    },
    "test_all_layers": {
     "n_with_hits": 22,
-    "min": 1.3843,
-    "p10": 3.1882,
-    "p50_median": 5.4458,
-    "p90": 13.6363,
-    "max": 16.3839,
-    "mean": 7.184
+    "min": 1.3991,
+    "p10": 3.2183,
+    "p50_median": 5.3228,
+    "p90": 13.7835,
+    "max": 16.531,
+    "mean": 7.2004
    },
    "all_all_layers": {
     "n_with_hits": 34,
-    "min": 1.3843,
-    "p10": 3.1563,
-    "p50_median": 5.2341,
-    "p90": 11.663,
-    "max": 16.3839,
-    "mean": 6.9499
+    "min": 1.3991,
+    "p10": 3.1851,
+    "p50_median": 5.8778,
+    "p90": 11.6239,
+    "max": 16.531,
+    "mean": 7.1289
    }
   },
   "uni_log": {
    "calib_all_layers": {
     "n_with_hits": 28,
-    "min": 2.6545,
-    "p10": 3.3389,
-    "p50_median": 6.3963,
-    "p90": 10.799,
-    "max": 15.3608,
-    "mean": 6.7264
+    "min": 2.6893,
+    "p10": 3.3704,
+    "p50_median": 6.436,
+    "p90": 10.919,
+    "max": 15.4935,
+    "mean": 6.7793
    },
    "calib_hybrid_tool_only": {
     "n_with_hits": 5,
-    "min": 6.3272,
-    "p10": 6.3272,
-    "p50_median": 10.2591,
-    "p90": 10.799,
-    "max": 15.3608,
-    "mean": 10.5651
+    "min": 6.3882,
+    "p10": 6.3882,
+    "p50_median": 10.365,
+    "p90": 10.919,
+    "max": 15.4935,
+    "mean": 10.668
    },
    "test_all_layers": {
     "n_with_hits": 36,
-    "min": 2.7076,
-    "p10": 3.9695,
-    "p50_median": 7.0689,
-    "p90": 12.9656,
-    "max": 16.9575,
-    "mean": 8.048
+    "min": 2.7388,
+    "p10": 4.0023,
+    "p50_median": 7.1438,
+    "p90": 12.892,
+    "max": 16.9509,
+    "mean": 8.0501
    },
    "all_all_layers": {
     "n_with_hits": 65,
-    "min": 2.6545,
-    "p10": 3.3389,
-    "p50_median": 6.4153,
-    "p90": 11.8247,
-    "max": 16.9575,
-    "mean": 7.459
+    "min": 2.6893,
+    "p10": 3.3704,
+    "p50_median": 6.436,
+    "p90": 11.943,
+    "max": 16.9509,
+    "mean": 7.547
    }
   }
  },
  "S0_derivation": {
   "rule": "S0 = calib 划分中有 BM25 命中的用例 raw_bm25_top1 的中位数（真中位数）",
-  "commit2_bigram_log": 5.5503,
-  "commit1_uni_log": 6.3963,
-  "alt_caliber_hybrid_only_commit2": 10.1257,
-  "value_used": 5.5503,
+  "commit2_bigram_log": 5.5928,
+  "commit1_uni_log": 6.436,
+  "alt_caliber_hybrid_only_commit2": 10.2325,
+  "value_used": 5.5928,
   "note": "两次提交各用同口径的 S0；value_used 即当前工作区常量口径（bigram_log）；换 hybrid_tool-only 口径时 S0 变为 alt 值（约 1.8x），该不确定度必须随分数交付"
  },
  "per_case": [
@@ -200,27 +200,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 3.338937,
+   "raw_bm25_top1_uni_log": 3.370412,
    "raw_bm25_top5_uni_log": [
     [
      "json_query",
-     3.338937
+     3.370412
     ],
     [
      "scan_mcp",
-     2.985522
+     3.017243
     ],
     [
      "list_processes",
-     2.654477
+     2.689345
     ],
     [
      "generate_tool",
-     2.551712
+     2.580286
     ],
     [
      "cancel_task",
-     2.420802
+     2.453676
     ]
    ]
   },
@@ -230,52 +230,52 @@
    "text": "当前时间",
    "gold": "check_time",
    "split": "test",
-   "raw_bm25_top1": 4.445692,
-   "raw_bm25_second": 4.071411,
+   "raw_bm25_top1": 4.482716,
+   "raw_bm25_second": 4.107028,
    "raw_bm25_top5": [
     [
      "get_file_info",
-     4.445692
+     4.482716
     ],
     [
      "get_pdf_info",
-     4.071411
+     4.107028
     ],
     [
      "get_persona_info",
-     3.781193
+     3.818951
     ],
     [
      "list_processes",
-     3.367641
+     3.40342
     ],
     [
      "ext_list",
-     3.035631
+     3.069441
     ]
    ],
    "top1_tool": "get_file_info",
-   "raw_bm25_top1_uni_log": 7.068909,
+   "raw_bm25_top1_uni_log": 7.143831,
    "raw_bm25_top5_uni_log": [
     [
      "get_persona_info",
-     7.068909
+     7.143831
     ],
     [
      "list_processes",
-     6.386564
+     6.457685
     ],
     [
      "get_task_result",
-     5.618813
+     5.702021
     ],
     [
      "ext_list",
-     5.520614
+     5.585861
     ],
     [
      "get_file_info",
-     5.088812
+     5.155751
     ]
    ]
   },
@@ -289,27 +289,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 3.338937,
+   "raw_bm25_top1_uni_log": 3.370412,
    "raw_bm25_top5_uni_log": [
     [
      "json_query",
-     3.338937
+     3.370412
     ],
     [
      "data_convert",
-     3.289706
+     3.319912
     ],
     [
      "run_lint",
-     3.088713
+     3.118935
     ],
     [
      "todo_write",
-     1.543226
+     1.56074
     ],
     [
      "notify",
-     1.478895
+     1.495781
     ]
    ]
   },
@@ -319,52 +319,52 @@
    "text": "什么时间",
    "gold": "check_time",
    "split": "test",
-   "raw_bm25_top1": 4.445692,
-   "raw_bm25_second": 4.071411,
+   "raw_bm25_top1": 4.482716,
+   "raw_bm25_second": 4.107028,
    "raw_bm25_top5": [
     [
      "get_file_info",
-     4.445692
+     4.482716
     ],
     [
      "get_pdf_info",
-     4.071411
+     4.107028
     ],
     [
      "ext_discover",
-     3.188168
+     3.218296
     ],
     [
      "web_search",
-     1.932792
+     1.954352
     ],
     [
      "todo_write",
-     1.688842
+     1.707387
     ]
    ],
    "top1_tool": "get_file_info",
-   "raw_bm25_top1_uni_log": 7.6015,
+   "raw_bm25_top1_uni_log": 7.691853,
    "raw_bm25_top5_uni_log": [
     [
      "ext_discover",
-     7.6015
+     7.691853
     ],
     [
      "get_file_info",
-     5.088812
+     5.155751
     ],
     [
      "get_pdf_info",
-     4.574155
+     4.636501
     ],
     [
      "todo_write",
-     4.17765
+     4.234554
     ],
     [
      "schedule_task",
-     3.978372
+     4.039713
     ]
    ]
   },
@@ -378,19 +378,19 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 3.338937,
+   "raw_bm25_top1_uni_log": 3.370412,
    "raw_bm25_top5_uni_log": [
     [
      "json_query",
-     3.338937
+     3.370412
     ],
     [
      "todo_write",
-     1.543226
+     1.56074
     ],
     [
      "notify",
-     1.478895
+     1.495781
     ]
    ]
   },
@@ -404,19 +404,19 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 4.243566,
+   "raw_bm25_top1_uni_log": 4.277578,
    "raw_bm25_top5_uni_log": [
     [
      "get_weather",
-     4.243566
+     4.277578
     ],
     [
      "grep",
-     3.168652
+     3.198118
     ],
     [
      "sqlite_query",
-     1.817602
+     1.836886
     ]
    ]
   },
@@ -430,23 +430,23 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.786838,
+   "raw_bm25_top1_uni_log": 6.848472,
    "raw_bm25_top5_uni_log": [
     [
      "schedule_task",
-     6.786838
+     6.848472
     ],
     [
      "search_memory",
-     5.422917
+     5.465399
     ],
     [
      "get_weather",
-     4.243566
+     4.277578
     ],
     [
      "remember",
-     4.10525
+     4.139703
     ]
    ]
   },
@@ -460,19 +460,19 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 4.926508,
+   "raw_bm25_top1_uni_log": 4.967143,
    "raw_bm25_top5_uni_log": [
     [
      "schedule_task",
-     4.926508
+     4.967143
     ],
     [
      "get_weather",
-     4.243566
+     4.277578
     ],
     [
      "weekly_report",
-     3.747892
+     3.780642
     ]
    ]
   },
@@ -486,19 +486,19 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 4.243566,
+   "raw_bm25_top1_uni_log": 4.277578,
    "raw_bm25_top5_uni_log": [
     [
      "get_weather",
-     4.243566
+     4.277578
     ],
     [
      "remember",
-     4.10525
+     4.139703
     ],
     [
      "schedule_task",
-     3.393419
+     3.424236
     ]
    ]
   },
@@ -508,36 +508,36 @@
    "text": "什么日子",
    "gold": "check_date",
    "split": "test",
-   "raw_bm25_top1": 3.188168,
-   "raw_bm25_second": 1.688842,
+   "raw_bm25_top1": 3.218296,
+   "raw_bm25_second": 1.707387,
    "raw_bm25_top5": [
     [
      "ext_discover",
-     3.188168
+     3.218296
     ],
     [
      "todo_write",
-     1.688842
+     1.707387
     ]
    ],
    "top1_tool": "ext_discover",
-   "raw_bm25_top1_uni_log": 6.337305,
+   "raw_bm25_top1_uni_log": 6.396236,
    "raw_bm25_top5_uni_log": [
     [
      "ext_discover",
-     6.337305
+     6.396236
     ],
     [
      "search_memory",
-     5.422917
+     5.465399
     ],
     [
      "todo_write",
-     4.655211
+     4.70787
     ],
     [
      "schedule_task",
-     3.393419
+     3.424236
     ]
    ]
   },
@@ -551,15 +551,15 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.396322,
+   "raw_bm25_top1_uni_log": 6.435951,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     6.396322
+     6.435951
     ],
     [
      "generate_tool",
-     3.969518
+     4.002254
     ]
    ]
   },
@@ -569,52 +569,52 @@
    "text": "状态",
    "gold": "check_health",
    "split": "test",
-   "raw_bm25_top1": 3.980816,
-   "raw_bm25_second": 3.920633,
+   "raw_bm25_top1": 3.818951,
+   "raw_bm25_second": 3.761544,
    "raw_bm25_top5": [
     [
      "get_status",
-     3.980816
+     3.818951
     ],
     [
      "get_sensor_summary",
-     3.920633
+     3.761544
     ],
     [
      "get_task_status",
-     3.497614
+     3.357751
     ],
     [
      "get_task_result",
-     2.589557
+     2.489288
     ],
     [
-     "submit_task",
-     2.490098
+     "software_probe",
+     2.464769
     ]
    ],
    "top1_tool": "get_status",
-   "raw_bm25_top1_uni_log": 7.607145,
+   "raw_bm25_top1_uni_log": 7.176254,
    "raw_bm25_top5_uni_log": [
     [
      "get_status",
-     7.607145
+     7.176254
     ],
     [
      "get_sensor_summary",
-     7.50689
+     7.082191
     ],
     [
      "get_task_status",
-     6.790906
+     6.410036
     ],
     [
      "get_task_result",
-     4.958366
+     4.686493
     ],
     [
-     "submit_task",
-     4.751557
+     "software_probe",
+     4.686493
     ]
    ]
   },
@@ -628,27 +628,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 2.654477,
+   "raw_bm25_top1_uni_log": 2.689345,
    "raw_bm25_top5_uni_log": [
     [
      "list_processes",
-     2.654477
+     2.689345
     ],
     [
      "cancel_task",
-     2.420802
+     2.453676
     ],
     [
      "run_program",
-     2.22494
+     2.255983
     ],
     [
      "workspace_init",
-     2.138432
+     2.16862
     ],
     [
      "compress",
-     1.866316
+     1.893629
     ]
    ]
   },
@@ -662,27 +662,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.415296,
+   "raw_bm25_top1_uni_log": 6.355083,
    "raw_bm25_top5_uni_log": [
     [
      "workspace_init",
-     6.415296
+     6.355083
     ],
     [
      "submit_task",
-     5.505536
+     5.456967
     ],
     [
      "list_processes",
-     5.308954
+     5.378691
     ],
     [
      "edit",
-     5.042807
+     4.999769
     ],
     [
      "cancel_task",
-     4.841605
+     4.907353
     ]
    ]
   },
@@ -722,15 +722,15 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.396322,
+   "raw_bm25_top1_uni_log": 6.435951,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     6.396322
+     6.435951
     ],
     [
      "generate_tool",
-     3.969518
+     4.002254
     ]
    ]
   },
@@ -744,27 +744,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.396322,
+   "raw_bm25_top1_uni_log": 6.435951,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     6.396322
+     6.435951
     ],
     [
      "list_mcp_connections",
-     2.713237
+     2.580286
     ],
     [
      "ext_discover",
-     2.473619
+     2.353102
+    ],
+    [
+     "software_install",
+     2.051986
     ],
     [
      "apply_patch",
-     2.089224
-    ],
-    [
-     "sqlite_query",
-     1.418917
+     1.988376
     ]
    ]
   },
@@ -778,27 +778,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.396322,
+   "raw_bm25_top1_uni_log": 6.435951,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     6.396322
+     6.435951
     ],
     [
      "web_download",
-     4.624499
+     4.662427
     ],
     [
      "apply_patch",
-     2.238629
+     2.263171
     ],
     [
      "sqlite_query",
-     1.520386
+     1.538322
     ],
     [
      "todo_write",
-     1.424189
+     1.441149
     ]
    ]
   },
@@ -812,27 +812,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.396322,
+   "raw_bm25_top1_uni_log": 6.435951,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     6.396322
+     6.435951
     ],
     [
      "list_mcp_connections",
-     2.713237
+     2.580286
     ],
     [
      "ext_discover",
-     2.473619
+     2.353102
+    ],
+    [
+     "software_install",
+     2.051986
     ],
     [
      "apply_patch",
-     2.089224
-    ],
-    [
-     "sqlite_query",
-     1.418917
+     1.988376
     ]
    ]
   },
@@ -846,27 +846,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.396322,
+   "raw_bm25_top1_uni_log": 6.435951,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     6.396322
+     6.435951
     ],
     [
      "get_file_info",
-     3.556574
+     3.591684
     ],
     [
      "get_pdf_info",
-     3.19688
+     3.229956
     ],
     [
      "diff_files",
-     2.704538
+     2.734278
     ],
     [
      "compress",
-     2.681595
+     2.711163
     ]
    ]
   },
@@ -880,19 +880,23 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 4.790388,
+   "raw_bm25_top1_uni_log": 4.378263,
    "raw_bm25_top5_uni_log": [
     [
      "ext_uninstall",
-     4.790388
+     4.378263
     ],
     [
      "todo_write",
-     3.405198
+     3.281593
     ],
     [
      "data_format_detect",
-     2.779931
+     2.806828
+    ],
+    [
+     "software_install",
+     2.529385
     ]
    ]
   },
@@ -945,27 +949,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.516605,
+   "raw_bm25_top1_uni_log": 6.385782,
    "raw_bm25_top5_uni_log": [
     [
      "todo_write",
-     6.516605
+     6.385782
     ],
     [
      "web_download",
-     4.624499
+     4.662427
     ],
     [
      "trigger_distillation",
-     4.372002
+     4.14931
     ],
     [
      "data_format_detect",
-     2.779931
+     2.806828
     ],
     [
      "apply_patch",
-     2.238629
+     2.263171
     ]
    ]
   },
@@ -979,27 +983,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 4.243566,
+   "raw_bm25_top1_uni_log": 4.277578,
    "raw_bm25_top5_uni_log": [
     [
      "get_weather",
-     4.243566
+     4.277578
     ],
     [
      "read_pdf_tables",
-     2.851341
+     2.881379
     ],
     [
      "data_format_detect",
-     2.779931
+     2.806828
     ],
     [
      "browser_navigate",
-     2.607973
+     2.636236
     ],
     [
      "delegate",
-     2.249815
+     2.276056
     ]
    ]
   },
@@ -1026,19 +1030,19 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 5.143107,
+   "raw_bm25_top1_uni_log": 5.181695,
    "raw_bm25_top5_uni_log": [
     [
      "get_sensor_summary",
-     5.143107
+     5.181695
     ],
     [
      "kb_capture",
-     4.544221
+     4.581213
     ],
     [
      "look_at_screen",
-     4.517045
+     4.556914
     ]
    ]
   },
@@ -1052,27 +1056,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 3.133652,
+   "raw_bm25_top1_uni_log": 3.170583,
    "raw_bm25_top5_uni_log": [
     [
      "web_batch",
-     3.133652
+     3.170583
     ],
     [
      "merge_pdf",
-     2.288984
+     2.319356
     ],
     [
      "browser_screenshot",
-     2.224733
+     2.254505
     ],
     [
      "split_pdf",
-     2.144474
+     2.173475
     ],
     [
      "get_clipboard",
-     1.983475
+     2.01086
     ]
    ]
   },
@@ -1125,11 +1129,11 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 7.283273,
+   "raw_bm25_top1_uni_log": 7.327608,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     7.283273
+     7.327608
     ]
    ]
   },
@@ -1139,44 +1143,44 @@
    "text": "可以",
    "gold": "confirmation",
    "split": "test",
-   "raw_bm25_top1": 3.314093,
-   "raw_bm25_second": 3.073387,
+   "raw_bm25_top1": 3.345905,
+   "raw_bm25_second": 3.10372,
    "raw_bm25_top5": [
     [
      "read_file",
-     3.314093
+     3.345905
     ],
     [
      "generate_tool",
-     3.073387
+     3.10372
     ],
     [
      "ext_discover",
-     2.889737
+     2.918856
     ]
    ],
    "top1_tool": "read_file",
-   "raw_bm25_top1_uni_log": 4.791613,
+   "raw_bm25_top1_uni_log": 4.855438,
    "raw_bm25_top5_uni_log": [
     [
      "generate_tool",
-     4.791613
+     4.855438
     ],
     [
      "read_file",
-     4.479811
+     4.537246
     ],
     [
      "ext_discover",
-     4.416293
+     4.476553
     ],
     [
      "sqlite_query",
-     2.360414
+     2.387665
     ],
     [
      "data_format_detect",
-     2.170161
+     2.194861
     ]
    ]
   },
@@ -1190,27 +1194,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 4.56587,
+   "raw_bm25_top1_uni_log": 4.603627,
    "raw_bm25_top5_uni_log": [
     [
      "stop_process",
-     4.56587
+     4.603627
     ],
     [
      "list_processes",
-     4.345504
+     4.382544
     ],
     [
      "run_program",
-     3.642332
+     3.676339
     ],
     [
      "read_pdf_tables",
-     2.851341
+     2.881379
     ],
     [
      "browser_navigate",
-     2.607973
+     2.636236
     ]
    ]
   },
@@ -1224,15 +1228,15 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 3.289706,
+   "raw_bm25_top1_uni_log": 3.319912,
    "raw_bm25_top5_uni_log": [
     [
      "data_convert",
-     3.289706
+     3.319912
     ],
     [
      "run_lint",
-     3.088713
+     3.118935
     ]
    ]
   },
@@ -1242,36 +1246,36 @@
    "text": "知道了",
    "gold": "confirmation",
    "split": "calib",
-   "raw_bm25_top1": 1.903028,
+   "raw_bm25_top1": 1.92253,
    "raw_bm25_second": null,
    "raw_bm25_top5": [
     [
      "notify",
-     1.903028
+     1.92253
     ]
    ],
    "top1_tool": "notify",
-   "raw_bm25_top1_uni_log": 6.682719,
+   "raw_bm25_top1_uni_log": 6.757852,
    "raw_bm25_top5_uni_log": [
     [
      "notify",
-     6.682719
+     6.757852
     ],
     [
      "kb_search",
-     5.13973
+     5.183762
     ],
     [
      "kb_lint",
-     3.913816
+     3.949889
     ],
     [
      "data_convert",
-     3.289706
+     3.319912
     ],
     [
      "ext_configure",
-     3.159495
+     3.193799
     ]
    ]
   },
@@ -1285,27 +1289,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 4.544221,
+   "raw_bm25_top1_uni_log": 4.581213,
    "raw_bm25_top5_uni_log": [
     [
      "kb_capture",
-     4.544221
+     4.581213
     ],
     [
      "remember",
-     4.045531
+     4.089422
     ],
     [
      "get_preferences",
-     3.520471
+     3.557525
     ],
     [
      "web_download",
-     3.475266
+     3.512086
     ],
     [
      "scan_mcp",
-     2.556212
+     2.586916
     ]
    ]
   },
@@ -1315,40 +1319,40 @@
    "text": "没问题",
    "gold": "confirmation",
    "split": "calib",
-   "raw_bm25_top1": 3.057661,
-   "raw_bm25_second": 1.838484,
+   "raw_bm25_top1": 3.086962,
+   "raw_bm25_second": 1.858391,
    "raw_bm25_top5": [
     [
      "humanize_zh",
-     3.057661
+     3.086962
     ],
     [
      "run_lint",
-     1.838484
+     1.858391
     ]
    ],
    "top1_tool": "humanize_zh",
-   "raw_bm25_top1_uni_log": 4.75209,
+   "raw_bm25_top1_uni_log": 4.80489,
    "raw_bm25_top5_uni_log": [
     [
      "humanize_zh",
-     4.75209
+     4.80489
     ],
     [
      "kb_discuss",
-     4.294202
+     4.330304
     ],
     [
      "generate_tool",
-     3.150263
+     3.180594
     ],
     [
      "run_lint",
-     2.920229
+     2.955995
     ],
     [
      "get_pdf_info",
-     2.871913
+     2.904309
     ]
    ]
   },
@@ -1358,36 +1362,36 @@
    "text": "这是一段未知的话xyz123",
    "gold": null,
    "split": "test",
-   "raw_bm25_top1": 3.156265,
+   "raw_bm25_top1": 3.185074,
    "raw_bm25_second": null,
    "raw_bm25_top5": [
     [
      "data_format_detect",
-     3.156265
+     3.185074
     ]
    ],
    "top1_tool": "data_format_detect",
-   "raw_bm25_top1_uni_log": 8.865076,
+   "raw_bm25_top1_uni_log": 8.805113,
    "raw_bm25_top5_uni_log": [
     [
      "todo_write",
-     8.865076
+     8.805113
     ],
     [
      "data_format_detect",
-     6.887468
+     6.872892
     ],
     [
      "notify",
-     6.033878
+     6.019899
     ],
     [
      "merge_pdf",
-     5.961919
+     5.831553
     ],
     [
-     "delegate",
-     5.386088
+     "run_lint",
+     5.34087
     ]
    ]
   },
@@ -1401,27 +1405,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 3.969518,
+   "raw_bm25_top1_uni_log": 4.002254,
    "raw_bm25_top5_uni_log": [
     [
      "generate_tool",
-     3.969518
+     4.002254
     ],
     [
      "run_program",
-     3.375757
+     3.27977
     ],
     [
      "merge_pdf",
-     3.264558
+     3.17224
     ],
     [
      "list_mcp_connections",
-     2.884492
+     2.804454
     ],
     [
      "data_format_detect",
-     2.443544
+     2.37725
     ]
    ]
   },
@@ -1431,36 +1435,36 @@
    "text": "你叫什么名字",
    "gold": "identity",
    "split": "calib",
-   "raw_bm25_top1": 3.188168,
-   "raw_bm25_second": 1.688842,
+   "raw_bm25_top1": 3.218296,
+   "raw_bm25_second": 1.707387,
    "raw_bm25_top5": [
     [
      "ext_discover",
-     3.188168
+     3.218296
     ],
     [
      "todo_write",
-     1.688842
+     1.707387
     ]
    ],
    "top1_tool": "ext_discover",
-   "raw_bm25_top1_uni_log": 7.956386,
+   "raw_bm25_top1_uni_log": 8.039775,
    "raw_bm25_top5_uni_log": [
     [
      "ext_discover",
-     7.956386
+     8.039775
     ],
     [
      "generate_tool",
-     3.969518
+     4.002254
     ],
     [
      "data_format_detect",
-     3.839796
+     3.894414
     ],
     [
      "todo_write",
-     3.405198
+     3.441706
     ]
    ]
   },
@@ -1474,27 +1478,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 3.338937,
+   "raw_bm25_top1_uni_log": 3.370412,
    "raw_bm25_top5_uni_log": [
     [
      "json_query",
-     3.338937
+     3.370412
     ],
     [
      "scan_mcp",
-     2.985522
+     3.017243
     ],
     [
      "list_processes",
-     2.654477
+     2.689345
     ],
     [
      "generate_tool",
-     2.551712
+     2.580286
     ],
     [
      "cancel_task",
-     2.420802
+     2.453676
     ]
    ]
   },
@@ -1508,27 +1512,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 3.338937,
+   "raw_bm25_top1_uni_log": 3.370412,
    "raw_bm25_top5_uni_log": [
     [
      "json_query",
-     3.338937
+     3.370412
     ],
     [
      "data_convert",
-     3.289706
+     3.319912
     ],
     [
      "run_lint",
-     3.088713
+     3.118935
     ],
     [
      "todo_write",
-     1.543226
+     1.56074
     ],
     [
      "notify",
-     1.478895
+     1.495781
     ]
    ]
   },
@@ -1538,52 +1542,52 @@
    "text": "当前时间",
    "gold": "time_query",
    "split": "test",
-   "raw_bm25_top1": 4.445692,
-   "raw_bm25_second": 4.071411,
+   "raw_bm25_top1": 4.482716,
+   "raw_bm25_second": 4.107028,
    "raw_bm25_top5": [
     [
      "get_file_info",
-     4.445692
+     4.482716
     ],
     [
      "get_pdf_info",
-     4.071411
+     4.107028
     ],
     [
      "get_persona_info",
-     3.781193
+     3.818951
     ],
     [
      "list_processes",
-     3.367641
+     3.40342
     ],
     [
      "ext_list",
-     3.035631
+     3.069441
     ]
    ],
    "top1_tool": "get_file_info",
-   "raw_bm25_top1_uni_log": 7.068909,
+   "raw_bm25_top1_uni_log": 7.143831,
    "raw_bm25_top5_uni_log": [
     [
      "get_persona_info",
-     7.068909
+     7.143831
     ],
     [
      "list_processes",
-     6.386564
+     6.457685
     ],
     [
      "get_task_result",
-     5.618813
+     5.702021
     ],
     [
      "ext_list",
-     5.520614
+     5.585861
     ],
     [
      "get_file_info",
-     5.088812
+     5.155751
     ]
    ]
   },
@@ -1597,15 +1601,15 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.396322,
+   "raw_bm25_top1_uni_log": 6.435951,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     6.396322
+     6.435951
     ],
     [
      "generate_tool",
-     3.969518
+     4.002254
     ]
    ]
   },
@@ -1619,27 +1623,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.396322,
+   "raw_bm25_top1_uni_log": 6.435951,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     6.396322
+     6.435951
     ],
     [
      "list_mcp_connections",
-     2.713237
+     2.580286
     ],
     [
      "ext_discover",
-     2.473619
+     2.353102
+    ],
+    [
+     "software_install",
+     2.051986
     ],
     [
      "apply_patch",
-     2.089224
-    ],
-    [
-     "sqlite_query",
-     1.418917
+     1.988376
     ]
    ]
   },
@@ -1649,36 +1653,36 @@
    "text": "你能做什么",
    "gold": "capability",
    "split": "calib",
-   "raw_bm25_top1": 3.617686,
-   "raw_bm25_second": 3.188168,
+   "raw_bm25_top1": 3.655953,
+   "raw_bm25_second": 3.218296,
    "raw_bm25_top5": [
     [
      "todo_write",
-     3.617686
+     3.655953
     ],
     [
      "ext_discover",
-     3.188168
+     3.218296
     ]
    ],
    "top1_tool": "todo_write",
-   "raw_bm25_top1_uni_log": 8.019378,
+   "raw_bm25_top1_uni_log": 8.102971,
    "raw_bm25_top5_uni_log": [
     [
      "ext_discover",
-     8.019378
+     8.102971
     ],
     [
      "generate_tool",
-     5.814532
+     5.873768
     ],
     [
      "todo_write",
-     4.734337
+     4.787364
     ],
     [
      "look_at_screen",
-     4.52175
+     4.576975
     ]
    ]
   },
@@ -1688,40 +1692,40 @@
    "text": "你有什么功能",
    "gold": "capability",
    "split": "test",
-   "raw_bm25_top1": 6.829408,
-   "raw_bm25_second": 1.688842,
+   "raw_bm25_top1": 6.891195,
+   "raw_bm25_second": 1.707387,
    "raw_bm25_top5": [
     [
      "ext_discover",
-     6.829408
+     6.891195
     ],
     [
      "todo_write",
-     1.688842
+     1.707387
     ]
    ],
    "top1_tool": "ext_discover",
-   "raw_bm25_top1_uni_log": 9.769293,
+   "raw_bm25_top1_uni_log": 9.877766,
    "raw_bm25_top5_uni_log": [
     [
      "ext_discover",
-     9.769293
+     9.877766
     ],
     [
      "generate_tool",
-     7.733961
+     7.819915
     ],
     [
      "ext_list",
-     5.65903
+     5.731523
     ],
     [
      "browser_close",
-     4.779798
+     4.815939
     ],
     [
      "todo_write",
-     3.405198
+     3.441706
     ]
    ]
   },
@@ -1731,32 +1735,32 @@
    "text": "今天天气怎么样",
    "gold": "weather",
    "split": "test",
-   "raw_bm25_top1": 4.346147,
+   "raw_bm25_top1": 4.381204,
    "raw_bm25_second": null,
    "raw_bm25_top5": [
     [
      "get_weather",
-     4.346147
+     4.381204
     ]
    ],
    "top1_tool": "get_weather",
-   "raw_bm25_top1_uni_log": 12.730699,
+   "raw_bm25_top1_uni_log": 12.832735,
    "raw_bm25_top5_uni_log": [
     [
      "get_weather",
-     12.730699
+     12.832735
     ],
     [
      "browser_close",
-     4.779798
+     4.815939
     ],
     [
      "ext_discover",
-     3.168652
+     3.198118
     ],
     [
      "todo_write",
-     1.702599
+     1.720853
     ]
    ]
   },
@@ -1766,36 +1770,36 @@
    "text": "你怎么还不回答",
    "gold": "dissatisfaction",
    "split": "test",
-   "raw_bm25_top1": 1.384266,
+   "raw_bm25_top1": 1.399094,
    "raw_bm25_second": null,
    "raw_bm25_top5": [
     [
      "fan_out",
-     1.384266
+     1.399094
     ]
    ],
    "top1_tool": "fan_out",
-   "raw_bm25_top1_uni_log": 5.745439,
+   "raw_bm25_top1_uni_log": 5.67917,
    "raw_bm25_top5_uni_log": [
     [
      "generate_tool",
-     5.745439
+     5.67917
     ],
     [
      "ext_discover",
-     4.256186
+     4.275634
     ],
     [
      "browser_close",
-     3.574812
-    ],
-    [
-     "fan_out",
-     3.174873
+     3.439606
     ],
     [
      "todo_write",
-     3.156933
+     3.12352
+    ],
+    [
+     "fan_out",
+     3.044227
     ]
    ]
   },
@@ -1809,27 +1813,27 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 2.707612,
+   "raw_bm25_top1_uni_log": 2.738809,
    "raw_bm25_top5_uni_log": [
     [
      "remember",
-     2.707612
+     2.738809
     ],
     [
      "shell_execute",
-     2.631909
+     2.663916
     ],
     [
      "ext_install",
-     2.515715
+     2.545411
     ],
     [
      "get_task_result",
-     2.471917
+     2.501255
     ],
     [
      "submit_task",
-     2.368816
+     2.397289
     ]
    ]
   },
@@ -1843,23 +1847,23 @@
    "raw_bm25_second": null,
    "raw_bm25_top5": [],
    "top1_tool": null,
-   "raw_bm25_top1_uni_log": 6.396322,
+   "raw_bm25_top1_uni_log": 6.435951,
    "raw_bm25_top5_uni_log": [
     [
      "get_preferences",
-     6.396322
+     6.435951
     ],
     [
      "cancel_task",
-     4.294202
+     4.330304
     ],
     [
      "get_weather",
-     3.367752
+     3.399394
     ],
     [
      "delegate",
-     2.612196
+     2.639846
     ]
    ]
   },
@@ -1869,52 +1873,52 @@
    "text": "帮我把这份PDF转成Word然后压缩发邮件",
    "gold": "unknown",
    "split": "calib",
-   "raw_bm25_top1": 5.550272,
-   "raw_bm25_second": 4.660016,
+   "raw_bm25_top1": 5.592831,
+   "raw_bm25_second": 4.697068,
    "raw_bm25_top5": [
     [
      "data_convert",
-     5.550272
+     5.592831
     ],
     [
      "ext_send_channel",
-     4.660016
+     4.697068
     ],
     [
      "decompress",
-     4.388065
+     4.424892
     ],
     [
      "compress",
-     3.281963
+     3.313585
     ],
     [
      "web_extract",
-     2.398375
+     2.423869
     ]
    ],
    "top1_tool": "data_convert",
-   "raw_bm25_top1_uni_log": 11.824691,
+   "raw_bm25_top1_uni_log": 11.943015,
    "raw_bm25_top5_uni_log": [
     [
      "data_convert",
-     11.824691
+     11.943015
     ],
     [
      "decompress",
-     11.05157
+     11.095371
     ],
     [
      "compress",
-     10.084767
+     10.128642
     ],
     [
      "get_clipboard",
-     9.755992
+     9.819936
     ],
     [
-     "remember",
-     8.378671
+     "notify",
+     6.70096
     ]
    ]
   },
@@ -1954,52 +1958,52 @@
     "system"
    ],
    "split": "test",
-   "raw_bm25_top1": 4.346147,
-   "raw_bm25_second": 3.920633,
+   "raw_bm25_top1": 4.381204,
+   "raw_bm25_second": 3.958326,
    "raw_bm25_top5": [
     [
      "get_weather",
-     4.346147
+     4.381204
     ],
     [
      "search_lifetrace",
-     3.920633
+     3.958326
     ],
     [
      "search_files",
-     3.081952
+     3.115373
     ],
     [
      "web_search",
-     3.012386
+     3.047786
     ],
     [
      "remember",
-     2.845258
+     2.877102
     ]
    ],
    "top1_tool": "get_weather",
-   "raw_bm25_top1_uni_log": 8.487132,
+   "raw_bm25_top1_uni_log": 8.555157,
    "raw_bm25_top5_uni_log": [
     [
      "get_weather",
-     8.487132
+     8.555157
     ],
     [
      "search_lifetrace",
-     7.111573
+     7.185745
     ],
     [
      "search_memory",
-     6.292266
+     6.365417
     ],
     [
      "web_search",
-     5.935998
+     6.008706
     ],
     [
      "search_files",
-     5.70228
+     5.767883
     ]
    ]
   },
@@ -2012,44 +2016,44 @@
     "file"
    ],
    "split": "test",
-   "raw_bm25_top1": 7.093421,
-   "raw_bm25_second": 5.788271,
+   "raw_bm25_top1": 7.164512,
+   "raw_bm25_second": 5.854318,
    "raw_bm25_top5": [
     [
      "get_file_info",
-     7.093421
+     7.164512
     ],
     [
      "read_pdf",
-     5.788271
+     5.854318
     ],
     [
      "read_file",
-     4.768268
+     4.826485
     ]
    ],
    "top1_tool": "get_file_info",
-   "raw_bm25_top1_uni_log": 7.328828,
+   "raw_bm25_top1_uni_log": 7.240128,
    "raw_bm25_top5_uni_log": [
     [
      "read_pdf",
-     7.328828
+     7.240128
     ],
     [
      "get_clipboard",
-     7.010706
+     6.902631
     ],
     [
      "read_file",
-     6.184371
+     6.11638
     ],
     [
      "edit",
-     5.103787
+     5.012652
     ],
     [
      "get_pdf_info",
-     4.458507
+     4.480623
     ]
    ]
   },
@@ -2063,52 +2067,52 @@
     "system"
    ],
    "split": "test",
-   "raw_bm25_top1": 6.586158,
-   "raw_bm25_second": 4.237078,
+   "raw_bm25_top1": 6.16281,
+   "raw_bm25_second": 5.103722,
    "raw_bm25_top5": [
     [
      "shell_execute",
-     6.586158
+     6.16281
+    ],
+    [
+     "software_install",
+     5.103722
     ],
     [
      "list_scheduled_tasks",
-     4.237078
+     3.875056
     ],
     [
      "get_task_status",
-     3.166359
+     3.061194
     ],
     [
      "distill_process_from_knowledge",
-     2.695773
-    ],
-    [
-     "git",
-     2.501483
+     2.610259
     ]
    ],
    "top1_tool": "shell_execute",
-   "raw_bm25_top1_uni_log": 10.952872,
+   "raw_bm25_top1_uni_log": 10.465246,
    "raw_bm25_top5_uni_log": [
     [
      "shell_execute",
-     10.952872
+     10.465246
+    ],
+    [
+     "software_install",
+     8.774228
     ],
     [
      "list_scheduled_tasks",
-     7.211728
+     6.797032
     ],
     [
      "get_task_status",
-     5.501608
+     5.352785
     ],
     [
      "delegate",
-     5.428585
-    ],
-    [
-     "grep",
-     4.726988
+     5.249171
     ]
    ]
   },
@@ -2121,52 +2125,52 @@
     "software"
    ],
    "split": "stale",
-   "raw_bm25_top1": 3.409751,
-   "raw_bm25_second": 2.929314,
+   "raw_bm25_top1": 8.441172,
+   "raw_bm25_second": 7.266907,
    "raw_bm25_top5": [
     [
+     "software_install",
+     8.441172
+    ],
+    [
+     "software_probe",
+     7.266907
+    ],
+    [
      "ext_install",
-     3.409751
+     3.160138
     ],
     [
      "ext_send_channel",
-     2.929314
+     2.714939
     ],
     [
      "ext_list",
-     2.893215
-    ],
-    [
-     "scan_mcp",
-     2.547834
-    ],
-    [
-     "read_pdf_tables",
-     2.254264
+     2.681637
     ]
    ],
-   "top1_tool": "ext_install",
-   "raw_bm25_top1_uni_log": 6.767258,
+   "top1_tool": "software_install",
+   "raw_bm25_top1_uni_log": 10.93016,
    "raw_bm25_top5_uni_log": [
     [
+     "software_probe",
+     10.93016
+    ],
+    [
+     "software_install",
+     8.270444
+    ],
+    [
      "ext_install",
-     6.767258
+     6.373124
     ],
     [
      "ext_send_channel",
-     6.244167
+     5.888076
     ],
     [
      "ext_list",
-     5.983662
-    ],
-    [
-     "read_pdf_tables",
-     4.866907
-    ],
-    [
-     "scan_mcp",
-     4.445383
+     5.643484
     ]
    ]
   },
@@ -2180,52 +2184,52 @@
     "pdf"
    ],
    "split": "test",
-   "raw_bm25_top1": 6.514631,
-   "raw_bm25_second": 6.267696,
+   "raw_bm25_top1": 6.596452,
+   "raw_bm25_second": 6.343236,
    "raw_bm25_top5": [
     [
      "split_pdf",
-     6.514631
+     6.596452
     ],
     [
      "read_pdf",
-     6.267696
+     6.343236
     ],
     [
      "get_pdf_info",
-     6.219085
+     6.30018
     ],
     [
      "merge_pdf",
-     5.844177
+     5.922244
     ],
     [
      "read_pdf_tables",
-     5.483255
+     5.551767
     ]
    ],
    "top1_tool": "split_pdf",
-   "raw_bm25_top1_uni_log": 8.696513,
+   "raw_bm25_top1_uni_log": 8.749265,
    "raw_bm25_top5_uni_log": [
     [
      "compress",
-     8.696513
+     8.749265
     ],
     [
      "split_pdf",
-     7.522797
+     7.562957
     ],
     [
      "submit_task",
-     7.442599
+     7.500009
     ],
     [
      "read_pdf",
-     7.411821
+     7.461466
     ],
     [
      "get_pdf_info",
-     7.072675
+     7.106452
     ]
    ]
   },
@@ -2238,52 +2242,52 @@
     "schedule"
    ],
    "split": "test",
-   "raw_bm25_top1": 13.636331,
-   "raw_bm25_second": 12.668749,
+   "raw_bm25_top1": 13.783532,
+   "raw_bm25_second": 12.807881,
    "raw_bm25_top5": [
     [
      "schedule_task",
-     13.636331
+     13.783532
     ],
     [
      "list_scheduled_tasks",
-     12.668749
+     12.807881
     ],
     [
      "cancel_scheduled_task",
-     11.526481
+     11.638807
     ],
     [
      "pause_scheduled_task",
-     11.526481
+     11.638807
     ],
     [
      "resume_scheduled_task",
-     11.357336
+     11.468957
     ]
    ],
    "top1_tool": "schedule_task",
-   "raw_bm25_top1_uni_log": 14.353329,
+   "raw_bm25_top1_uni_log": 14.563647,
    "raw_bm25_top5_uni_log": [
     [
      "list_scheduled_tasks",
-     14.353329
+     14.563647
     ],
     [
      "schedule_task",
-     11.046913
+     11.219374
     ],
     [
      "cancel_scheduled_task",
-     9.371528
+     9.52233
     ],
     [
      "pause_scheduled_task",
-     9.371528
+     9.52233
     ],
     [
      "resume_scheduled_task",
-     8.682437
+     8.824685
     ]
    ]
   },
@@ -2297,52 +2301,52 @@
     "async"
    ],
    "split": "test",
-   "raw_bm25_top1": 6.445817,
-   "raw_bm25_second": 5.86992,
+   "raw_bm25_top1": 6.51735,
+   "raw_bm25_second": 5.937996,
    "raw_bm25_top5": [
     [
      "list_async_tasks",
-     6.445817
+     6.51735
     ],
     [
      "submit_task",
-     5.86992
+     5.937996
     ],
     [
      "cancel_task",
-     5.802407
+     5.869858
     ],
     [
      "list_processes",
-     3.748701
+     3.78503
     ],
     [
      "run_program",
-     3.146471
+     3.179592
     ]
    ],
    "top1_tool": "list_async_tasks",
-   "raw_bm25_top1_uni_log": 11.616481,
+   "raw_bm25_top1_uni_log": 11.720539,
    "raw_bm25_top5_uni_log": [
     [
      "submit_task",
-     11.616481
+     11.720539
     ],
     [
      "list_async_tasks",
-     10.321863
+     10.384825
     ],
     [
      "cancel_task",
-     9.640386
+     9.702303
     ],
     [
      "get_task_result",
-     7.346632
+     7.402153
     ],
     [
      "distill_process_from_knowledge",
-     6.965449
+     7.006504
     ]
    ]
   },
@@ -2355,52 +2359,52 @@
     "extension"
    ],
    "split": "test",
-   "raw_bm25_top1": 14.776966,
-   "raw_bm25_second": 9.958189,
+   "raw_bm25_top1": 14.634993,
+   "raw_bm25_second": 9.816168,
    "raw_bm25_top5": [
     [
      "ext_install",
-     14.776966
+     14.634993
     ],
     [
      "ext_list",
-     9.958189
+     9.816168
     ],
     [
      "ext_uninstall",
-     7.431293
+     7.50265
     ],
     [
      "scan_mcp",
-     5.095668
+     4.941615
     ],
     [
      "ext_discover",
-     4.962675
+     4.854684
     ]
    ],
    "top1_tool": "ext_install",
-   "raw_bm25_top1_uni_log": 16.957469,
+   "raw_bm25_top1_uni_log": 16.672714,
    "raw_bm25_top5_uni_log": [
     [
      "ext_install",
-     16.957469
+     16.672714
     ],
     [
      "ext_list",
-     15.699569
+     15.460074
     ],
     [
      "ext_uninstall",
-     11.510883
+     11.578612
     ],
     [
      "scan_mcp",
-     9.557806
+     9.343717
     ],
     [
      "ext_discover",
-     9.354268
+     9.213265
     ]
    ]
   },
@@ -2413,52 +2417,52 @@
     "file"
    ],
    "split": "calib",
-   "raw_bm25_top1": 11.428891,
-   "raw_bm25_second": 6.195786,
+   "raw_bm25_top1": 11.540988,
+   "raw_bm25_second": 6.278308,
    "raw_bm25_top5": [
     [
      "list_directory",
-     11.428891
+     11.540988
     ],
     [
      "workspace_list",
-     6.195786
+     6.278308
     ],
     [
      "workspace_write",
-     3.884163
+     3.939237
     ],
     [
      "grep",
-     3.423898
+     3.473937
     ],
     [
      "sqlite_query",
-     3.075708
+     3.112665
     ]
    ],
    "top1_tool": "list_directory",
-   "raw_bm25_top1_uni_log": 11.493355,
+   "raw_bm25_top1_uni_log": 11.671595,
    "raw_bm25_top5_uni_log": [
     [
      "workspace_list",
-     11.493355
+     11.671595
     ],
     [
      "list_directory",
-     9.986116
+     10.130124
     ],
     [
      "workspace_write",
-     9.426699
+     9.571669
     ],
     [
      "workspace_delete",
-     7.489089
+     7.597161
     ],
     [
      "run_program",
-     6.285443
+     6.377758
     ]
    ]
   },
@@ -2468,52 +2472,52 @@
    "text": "extract text from pdf",
    "gold": "read_pdf",
    "split": "test",
-   "raw_bm25_top1": 15.630455,
-   "raw_bm25_second": 10.893586,
+   "raw_bm25_top1": 15.779605,
+   "raw_bm25_second": 10.999965,
    "raw_bm25_top5": [
     [
      "read_pdf",
-     15.630455
+     15.779605
     ],
     [
      "read_pdf_tables",
-     10.893586
+     10.999965
     ],
     [
      "web_extract",
-     9.105423
+     9.204667
     ],
     [
      "get_clipboard",
-     4.92927
+     4.988212
     ],
     [
      "split_pdf",
-     4.900233
+     4.946707
     ]
    ],
    "top1_tool": "read_pdf",
-   "raw_bm25_top1_uni_log": 15.785111,
+   "raw_bm25_top1_uni_log": 15.93363,
    "raw_bm25_top5_uni_log": [
     [
      "read_pdf",
-     15.785111
+     15.93363
     ],
     [
      "read_pdf_tables",
-     11.058759
+     11.164748
     ],
     [
      "web_extract",
-     9.098203
+     9.195983
     ],
     [
      "split_pdf",
-     4.966011
+     5.012459
     ],
     [
      "get_clipboard",
-     4.794539
+     4.851647
     ]
    ]
   },
@@ -2523,52 +2527,52 @@
    "text": "merge two pdf files",
    "gold": "merge_pdf",
    "split": "test",
-   "raw_bm25_top1": 11.514968,
-   "raw_bm25_second": 7.845323,
+   "raw_bm25_top1": 11.623896,
+   "raw_bm25_second": 7.924201,
    "raw_bm25_top5": [
     [
      "merge_pdf",
-     11.514968
+     11.623896
     ],
     [
      "read_pdf",
-     7.845323
+     7.924201
     ],
     [
      "split_pdf",
-     7.384742
+     7.461007
     ],
     [
      "read_pdf_tables",
-     6.757916
+     6.830225
     ],
     [
      "get_pdf_info",
-     4.397558
+     4.439875
     ]
    ],
    "top1_tool": "merge_pdf",
-   "raw_bm25_top1_uni_log": 11.632463,
+   "raw_bm25_top1_uni_log": 11.740726,
    "raw_bm25_top5_uni_log": [
     [
      "merge_pdf",
-     11.632463
+     11.740726
     ],
     [
      "read_pdf",
-     7.908573
+     7.987227
     ],
     [
      "split_pdf",
-     7.527105
+     7.603613
     ],
     [
      "read_pdf_tables",
-     6.846542
+     6.918729
     ],
     [
      "get_pdf_info",
-     4.306871
+     4.348463
     ]
    ]
   },
@@ -2578,44 +2582,44 @@
    "text": "split pdf into pages",
    "gold": "split_pdf",
    "split": "test",
-   "raw_bm25_top1": 16.3839,
-   "raw_bm25_second": 8.940945,
+   "raw_bm25_top1": 16.53101,
+   "raw_bm25_second": 9.022142,
    "raw_bm25_top5": [
     [
      "split_pdf",
-     16.3839
+     16.53101
     ],
     [
      "read_pdf",
-     8.940945
+     9.022142
     ],
     [
      "merge_pdf",
-     8.230075
+     8.306078
     ],
     [
      "read_pdf_tables",
-     7.643137
+     7.718082
     ]
    ],
    "top1_tool": "split_pdf",
-   "raw_bm25_top1_uni_log": 16.803659,
+   "raw_bm25_top1_uni_log": 16.950857,
    "raw_bm25_top5_uni_log": [
     [
      "split_pdf",
-     16.803659
+     16.950857
     ],
     [
      "read_pdf",
-     9.017059
+     9.097886
     ],
     [
      "merge_pdf",
-     8.30977
+     8.385291
     ],
     [
      "read_pdf_tables",
-     7.748147
+     7.822828
     ]
    ]
   },
@@ -2625,52 +2629,52 @@
    "text": "get weather in beijing",
    "gold": "get_weather",
    "split": "calib",
-   "raw_bm25_top1": 10.323075,
-   "raw_bm25_second": 5.228106,
+   "raw_bm25_top1": 10.420762,
+   "raw_bm25_second": 5.273455,
    "raw_bm25_top5": [
     [
      "get_weather",
-     10.323075
+     10.420762
     ],
     [
      "web_get",
-     5.228106
+     5.273455
     ],
     [
      "get_pdf_info",
-     3.757362
+     3.792331
     ],
     [
      "get_clipboard",
-     3.088697
+     3.119959
     ],
     [
      "workspace_list",
-     2.559145
+     2.588173
     ]
    ],
    "top1_tool": "get_weather",
-   "raw_bm25_top1_uni_log": 10.079423,
+   "raw_bm25_top1_uni_log": 10.174287,
    "raw_bm25_top5_uni_log": [
     [
      "get_weather",
-     10.079423
+     10.174287
     ],
     [
      "web_get",
-     5.252489
+     5.297552
     ],
     [
      "get_pdf_info",
-     3.642332
+     3.676339
     ],
     [
      "get_clipboard",
-     3.004274
+     3.034543
     ],
     [
      "workspace_list",
-     2.636856
+     2.666087
     ]
    ]
   },
@@ -2680,28 +2684,28 @@
    "text": "search the web for news",
    "gold": "web_search",
    "split": "calib",
-   "raw_bm25_top1": 10.125722,
-   "raw_bm25_second": 4.346147,
+   "raw_bm25_top1": 10.232507,
+   "raw_bm25_second": 4.381204,
    "raw_bm25_top5": [
     [
      "web_search",
-     10.125722
+     10.232507
     ],
     [
      "get_weather",
-     4.346147
+     4.381204
     ]
    ],
    "top1_tool": "web_search",
-   "raw_bm25_top1_uni_log": 10.259147,
+   "raw_bm25_top1_uni_log": 10.365023,
    "raw_bm25_top5_uni_log": [
     [
      "web_search",
-     10.259147
+     10.365023
     ],
     [
      "get_weather",
-     4.243566
+     4.277578
     ]
    ]
   },
@@ -2711,52 +2715,52 @@
    "text": "解析pdf",
    "gold": "read_pdf",
    "split": "calib",
-   "raw_bm25_top1": 4.917919,
-   "raw_bm25_second": 4.900233,
+   "raw_bm25_top1": 4.963704,
+   "raw_bm25_second": 4.946707,
    "raw_bm25_top5": [
     [
      "read_pdf",
-     4.917919
+     4.963704
     ],
     [
      "split_pdf",
-     4.900233
+     4.946707
     ],
     [
      "get_pdf_info",
-     4.397558
+     4.439875
     ],
     [
      "read_pdf_tables",
-     4.392687
+     4.436199
     ],
     [
      "merge_pdf",
-     4.132458
+     4.173535
     ]
    ],
    "top1_tool": "read_pdf",
-   "raw_bm25_top1_uni_log": 6.327243,
+   "raw_bm25_top1_uni_log": 6.388244,
    "raw_bm25_top5_uni_log": [
     [
      "run_lint",
-     6.327243
+     6.388244
     ],
     [
      "split_pdf",
-     4.966011
+     5.012459
     ],
     [
      "read_pdf",
-     4.946798
+     4.992434
     ],
     [
      "read_pdf_tables",
-     4.437535
+     4.480908
     ],
     [
      "get_pdf_info",
-     4.306871
+     4.348463
     ]
    ]
   },
@@ -2766,52 +2770,52 @@
    "text": "合并pdf",
    "gold": "merge_pdf",
    "split": "calib",
-   "raw_bm25_top1": 9.761135,
-   "raw_bm25_second": 4.917919,
+   "raw_bm25_top1": 9.845817,
+   "raw_bm25_second": 4.963704,
    "raw_bm25_top5": [
     [
      "merge_pdf",
-     9.761135
+     9.845817
     ],
     [
      "read_pdf",
-     4.917919
+     4.963704
     ],
     [
      "split_pdf",
-     4.900233
+     4.946707
     ],
     [
      "get_pdf_info",
-     4.397558
+     4.439875
     ],
     [
      "read_pdf_tables",
-     4.392687
+     4.436199
     ]
    ],
    "top1_tool": "merge_pdf",
-   "raw_bm25_top1_uni_log": 10.798959,
+   "raw_bm25_top1_uni_log": 10.918982,
    "raw_bm25_top5_uni_log": [
     [
      "merge_pdf",
-     10.798959
+     10.918982
     ],
     [
      "split_pdf",
-     4.966011
+     5.012459
     ],
     [
      "read_pdf",
-     4.946798
+     4.992434
     ],
     [
      "read_pdf_tables",
-     4.437535
+     4.480908
     ],
     [
      "get_pdf_info",
-     4.306871
+     4.348463
     ]
    ]
   },
@@ -2821,52 +2825,52 @@
    "text": "拆分pdf",
    "gold": "split_pdf",
    "split": "calib",
-   "raw_bm25_top1": 10.963301,
-   "raw_bm25_second": 4.917919,
+   "raw_bm25_top1": 11.053876,
+   "raw_bm25_second": 4.963704,
    "raw_bm25_top5": [
     [
      "split_pdf",
-     10.963301
+     11.053876
     ],
     [
      "read_pdf",
-     4.917919
+     4.963704
     ],
     [
      "get_pdf_info",
-     4.397558
+     4.439875
     ],
     [
      "read_pdf_tables",
-     4.392687
+     4.436199
     ],
     [
      "merge_pdf",
-     4.132458
+     4.173535
     ]
    ],
    "top1_tool": "split_pdf",
-   "raw_bm25_top1_uni_log": 15.360837,
+   "raw_bm25_top1_uni_log": 15.493498,
    "raw_bm25_top5_uni_log": [
     [
      "split_pdf",
-     15.360837
+     15.493498
     ],
     [
      "read_pdf",
-     4.946798
+     4.992434
     ],
     [
      "read_pdf_tables",
-     4.437535
+     4.480908
     ],
     [
      "get_pdf_info",
-     4.306871
+     4.348463
     ],
     [
      "merge_pdf",
-     4.165001
+     4.205895
     ]
    ]
   },
@@ -2876,52 +2880,52 @@
    "text": "查询天气",
    "gold": "get_weather",
    "split": "test",
-   "raw_bm25_top1": 11.662964,
-   "raw_bm25_second": 3.932238,
+   "raw_bm25_top1": 11.587005,
+   "raw_bm25_second": 3.734241,
    "raw_bm25_top5": [
     [
      "get_weather",
-     11.662964
+     11.587005
     ],
     [
      "get_task_status",
-     3.932238
+     3.734241
     ],
     [
      "ext_list",
-     3.593025
+     3.413603
+    ],
+    [
+     "software_probe",
+     2.741132
     ],
     [
      "sqlite_query",
-     2.382927
-    ],
-    [
-     "web_search",
-     1.664662
+     2.268432
     ]
    ],
    "top1_tool": "get_weather",
-   "raw_bm25_top1_uni_log": 12.965621,
+   "raw_bm25_top1_uni_log": 12.891977,
    "raw_bm25_top5_uni_log": [
     [
      "get_weather",
-     12.965621
+     12.891977
     ],
     [
      "get_task_status",
-     6.187065
+     5.983214
     ],
     [
      "ext_list",
-     5.412696
+     5.237582
+    ],
+    [
+     "software_probe",
+     4.374436
     ],
     [
      "sqlite_query",
-     4.083264
-    ],
-    [
-     "web_search",
-     2.609428
+     3.961541
     ]
    ]
   },
@@ -2931,52 +2935,52 @@
    "text": "搜索网页",
    "gold": "web_search",
    "split": "test",
-   "raw_bm25_top1": 3.920633,
-   "raw_bm25_second": 3.52091,
+   "raw_bm25_top1": 3.958326,
+   "raw_bm25_second": 3.553888,
    "raw_bm25_top5": [
     [
      "search_lifetrace",
-     3.920633
+     3.958326
     ],
     [
      "web_get",
-     3.52091
+     3.553888
     ],
     [
      "search_files",
-     3.081952
+     3.115373
     ],
     [
      "browser_navigate",
-     3.018576
+     3.048555
     ],
     [
      "web_search",
-     3.012386
+     3.047786
     ]
    ],
    "top1_tool": "search_lifetrace",
-   "raw_bm25_top1_uni_log": 7.62603,
+   "raw_bm25_top1_uni_log": 7.718983,
    "raw_bm25_top5_uni_log": [
     [
      "web_search",
-     7.62603
+     7.718983
     ],
     [
      "search_lifetrace",
-     7.111573
+     7.185745
     ],
     [
      "web_get",
-     6.658288
+     6.729074
     ],
     [
      "search_memory",
-     6.292266
+     6.365417
     ],
     [
      "browser_navigate",
-     6.005779
+     6.070816
     ]
    ]
   }
