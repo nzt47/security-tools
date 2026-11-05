@@ -508,7 +508,12 @@ class Scheduler:
             pass
         except Exception as e:
             success = False
-            error_msg = str(e)
+            # 【C-6】只留异常类名：error_msg 会进 log_execution → get_history，
+            # 而 /api/schedules/history 把它**原样** jsonify 出去（py/stack-trace-exposure）。
+            # 与 agent/task_scheduler.py::_run_task_body 同一口径；原文照旧进日志。
+            error_msg = f"{type(e).__name__}（详见服务日志）"
+            logger.error(log_dict({'module_name': 'scheduling', 'action': 'trigger',
+                                   'msg': '[调度系统] 触发执行失败: %s: %s' % (task_name, e)}))
 
         detail = result_msg if success else error_msg
         # 历史记录里**显式带上 executed 标志**，使"触发"与"执行"在数据上可分
@@ -662,7 +667,8 @@ class Scheduler:
             }
         except Exception as e:
             logger.error(log_dict({'module_name': 'scheduling', 'action': 'log', 'msg': '[调度系统] 读取历史失败: %s' % e}))
-            return {"ok": False, "error": str(e)}
+            # 【C-6】该返回值会被 /api/schedules/history **原样** jsonify ⇒ 只回类名
+            return {"ok": False, "error": f"{type(e).__name__}（详见服务日志）"}
 
     # ════════════════════════════════════════════════════════
     #  工具方法
