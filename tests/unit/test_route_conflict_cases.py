@@ -527,7 +527,9 @@ class TestCasesVersionSelection:
         out = capsys.readouterr().out
         assert rc == 0
         assert "决策层通过 27/50" in out
-        assert "τ 建议   : 0.0465" in out
+        # 【2026-11-05】0.0465 -> 0.0577：新增 software_probe / software_install 后检索分差分布变了
+        # （判据不变：50 个候选 τ 里 F1 最大；27/50 的通过数没变，只标定值跟着索引变）
+        assert "τ 建议   : 0.0577" in out
 
 
 class TestEvalRunsV2:
