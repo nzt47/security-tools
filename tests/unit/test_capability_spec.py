@@ -146,13 +146,13 @@ class TestCapabilitySpecFields:
 
     def test_91_条_YAML_都能解析且无一条崩溃(self):
         metas = M.load_tool_meta(force=True)
-        # 【2026-10-27】"91 条"是**入库口径**的哨兵：吞噬"登记为工具"会把 YAML 写进
+        # 【2026-10-27】"93 条"是**入库口径**的哨兵：吞噬"登记为工具"会把 YAML 写进
         # 同一个目录（+ data/dynamic_tools.json 台账），那两份都是 .gitignore 的运行时
-        # 状态。不排除的话，本机每登记一个工具这条哨兵就红（实测 94 != 91），
+        # 状态。不排除的话，本机每登记一个工具这条哨兵就红（实测 96 != 93），
         # 而 CI（无这些文件）恒绿 —— 与清单口径同一条判据（见 build_manifest）。
         runtime_only = C.runtime_registered_tool_names()
         committed = {n: m for n, m in metas.items() if n not in runtime_only}
-        assert len(committed) == 91, f"入库工具 YAML 数量变了（实测应为 91）：{len(committed)}"
+        assert len(committed) == 93, f"入库工具 YAML 数量变了（实测应为 93）：{len(committed)}"
         for name, meta in committed.items():
             d = meta.to_dict()          # 不抛异常即通过
             assert d["capability_id"], f"{name}: capability_id 为空"
@@ -169,7 +169,7 @@ class TestLocationCoverage:
         # 【2026-10-24】119 -> 127：8 个技能目录补回文件轨（此前只在 DB 里，
         # data/skills_repo/<id>/skill.md 未入仓，清单因此少算）。
         # 【2026-10-31】133 -> 135：autoresearch / pdf 入文件轨（§11.32 C · N5）。
-        assert len(manifest["entries"]) == 137
+        assert len(manifest["entries"]) == 139
         for e in manifest["entries"]:
             assert e.get("location") in ("local", "remote"), \
                 f"{e['tool_name']}: location 缺失或非法"

@@ -103,6 +103,11 @@ PLANE_MAP: dict[str, tuple[str, str, str, list[str]]] = {
     "run_program": ("act", "execute", "high", ["process"]),
     "stop_process": ("act", "execute", "medium", ["process"]),
 
+    # ── software_tools.py（2，2026-11-05 受控安装通道）────────
+    # probe 只读登记表；install 改机器状态、默认 enabled:false（四道闸见模块文档）
+    "software_probe": ("perceive", "read", "low", ["software"]),
+    "software_install": ("act", "execute", "medium", ["software"]),
+
     # ── code_tools.py（18）─────────────────────────────────
     "code_review": ("perceive", "read", "low", ["code"]),
     "humanize_zh": ("perceive", "read", "low", ["text"]),

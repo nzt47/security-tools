@@ -1,0 +1,29 @@
+name: software_install
+category: system
+description: 受控安装软件（默认停用，需 Owner 启用）。只接受 config/software_allowlist.json 里精确等值的 package_id；必须显式传 confirm=true 才执行，否则只返回将要执行的命令；winget 优先、choco 备选；装完会再探测一次核对安装态与版本，对不上就如实返回 ok=false。Install software through a controlled allowlist
+deprecated: false
+enabled: false
+version: 1.0.0
+plane: act
+effect: execute
+risk: medium
+tags: [software]
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: internal
+sandbox_allowed: false
+location: remote
+location_reason: "调用链经 agent.tools.software_tools:software_install 命中跨边界原语 subprocess.run"
+schema:
+  type: object
+  properties:
+    package_id:
+      type: string
+      description: 白名单里的精确包 id（如 Git.Git）
+    confirm:
+      type: boolean
+      description: 必须显式传 true 才会执行；缺省只返回将要执行的命令
+  required:
+  - package_id
+examples: []

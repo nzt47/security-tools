@@ -142,6 +142,8 @@ _DEFAULT_TOOL_CATEGORIES = {
             "get_clipboard", "set_clipboard", "look_at_screen",
             # 能力补全（B 档）：主动通知/提醒（schedule_task 是周期执行，不是到点提醒）
             "notify",
+            # 2026-11-05 受控软件安装通道：probe 只读（默认可用）/ install 默认停用
+            "software_probe", "software_install",
         ],
     },
     "extension": {

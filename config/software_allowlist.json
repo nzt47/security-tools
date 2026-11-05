@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "note": "software_install 的白名单（fail-closed）：只有这里精确等值的 package_id 才允许安装；\"packages\" 为空表示一个也不允许。加条目 = 人工决策，请写清 note。probe 是用于事后探测的显示名列表（精确优先，其次包含匹配）。",
+  "packages": [],
+  "_example": [
+    {
+      "id": "Git.Git",
+      "installer": "winget",
+      "probe": ["Git"],
+      "note": "示例：Git for Windows。启用前请自行核对 winget show Git.Git 的发布者"
+    }
+  ]
+}

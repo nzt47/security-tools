@@ -183,6 +183,8 @@ class Test真实数据两个口径:
               f"，其中受保护 {len(in_line)} 个；truncated={len(res.truncated)}"
               f"；token_pruned={len(res.token_pruned)}")
         assert len(res.tools) == res.max_tools == 26
+        # 【2026-11-05 复核】仍是 8：新增的两条 software_* 不在 engineering 线的 26 个名额里
+        # （本机有运行时登记工具时会变 9 —— 那是本机噪音，判绿以干净 worktree 为准）
         assert len(in_line) == 8
         assert res.truncated == []
         assert res.token_pruned == []

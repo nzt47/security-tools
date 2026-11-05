@@ -1,13 +1,13 @@
 # TASK-10 · 既有路由可验证化基线报告（机器生成）
 
-- HEAD: 3a37e7a71d52e4aaec28c07b0676396d6b7cffb6
-- 语义层状态: {"retriever_available": true, "degraded_bm25_only": true, "embedding_available": false, "bm25_docs": 90, "alpha": 0.5, "index_path": "data/tool_index.json", "embedding_health": {"mode": "hybrid", "init_failed": false, "worker_alive": false, "available": false, "failure_total": 0, "restart_attempts": 0, "max_restart_attempts": 3, "restarting": false, "retry_exhausted": false, "next_restart_in_sec": null, "last_failure": {}, "retriever_degraded": true}}
+- HEAD: a00ac2659fe734e3fe742048f70b2359a50fbfde
+- 语义层状态: {"retriever_available": true, "degraded_bm25_only": true, "embedding_available": false, "bm25_docs": 92, "alpha": 0.5, "index_path": "data/tool_index.json", "embedding_health": {"mode": "bm25_only", "init_failed": false, "worker_alive": false, "worker_ready": false, "load_cache_probe": null, "available": false, "failure_total": 0, "restart_attempts": 0, "max_restart_attempts": 3, "restarting": false, "retry_exhausted": false, "next_restart_in_sec": null, "last_failure": {}, "retriever_degraded": true}}
 
 ## 1. 意图类目表（机器派生）
 
 - 来源：agent/tool_router.py:308 TOOL_CATEGORIES（YAML 存在时由 _load_tool_categories_from_yaml() 于 :238 从 data/tool_definitions/*.yaml 派生）
-- 类别数 11，工具总数 90：async, code, core, extension, file, knowledge, pdf, schedule, system, v2, web
-- 每类工具数：{"async": 7, "code": 15, "core": 5, "extension": 12, "file": 13, "knowledge": 7, "pdf": 5, "schedule": 5, "system": 8, "v2": 4, "web": 9}
+- 类别数 11，工具总数 92：async, code, core, extension, file, knowledge, pdf, schedule, system, v2, web
+- 每类工具数：{"async": 7, "code": 15, "core": 5, "extension": 12, "file": 13, "knowledge": 7, "pdf": 5, "schedule": 5, "system": 10, "v2": 4, "web": 9}
 
 ## 2. 每层读数
 
@@ -52,26 +52,26 @@
 
 - 语义：对原始（未 min-max 归一化）BM25 top-5 分做 softmax 后的 top1 概率
 - 校准集 n=5 / 测试集 n=5
-- T = 1.41601（NLL 0.265713 -> 0.247525）
-- ECE 改前 = 0.0811 -> 改后 = 0.1103；MCE 0.3446 -> 0.3884
-- 补充（**非留出**，全标注集）ECE 改前 = 0.1172 -> 改后 = 0.0582
+- T = 1.420318（NLL 0.265396 -> 0.246946）
+- ECE 改前 = 0.0806 -> 改后 = 0.1096；MCE 0.3445 -> 0.3887
+- 补充（**非留出**，全标注集）ECE 改前 = 0.1167 -> 改后 = 0.0577
 
 | 箱 | 区间 | n | 平均置信 | 实际准确 | 差 |
 |---|---|---|---|---|---|
 | 0 | [0.0, 0.1] | 0 | None | None | None |
 | 1 | [0.1, 0.2] | 0 | None | None | None |
 | 2 | [0.2, 0.3] | 0 | None | None | None |
-| 3 | [0.3, 0.4] | 1 | 0.3884 | 0.0 | 0.3884 |
+| 3 | [0.3, 0.4] | 1 | 0.3887 | 0.0 | 0.3887 |
 | 4 | [0.4, 0.5] | 0 | None | None | None |
 | 5 | [0.5, 0.6] | 0 | None | None | None |
 | 6 | [0.6, 0.7] | 0 | None | None | None |
 | 7 | [0.7, 0.8] | 0 | None | None | None |
-| 8 | [0.8, 0.9] | 1 | 0.8902 | 1.0 | 0.1098 |
-| 9 | [0.9, 1.0] | 3 | 0.9824 | 1.0 | 0.0176 |
+| 8 | [0.8, 0.9] | 1 | 0.8927 | 1.0 | 0.1073 |
+| 9 | [0.9, 1.0] | 3 | 0.9827 | 1.0 | 0.0173 |
 
 ## 4. 拒识阈值取舍曲线
 
-- 信号：hybrid_raw_bm25 softmax top1（经 T=1.41601 温度缩放）
+- 信号：hybrid_raw_bm25 softmax top1（经 T=1.420318 温度缩放）
 
 ### 4a 标注折（n=10）—— 可给 risk
 
@@ -101,13 +101,13 @@
 | 0.2 | 1.0 | 0.0 | 56 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
 | 0.3 | 1.0 | 0.0 | 56 | 0 | {"corpus_evaltasks": 1.0, "corpus_negative": 1.0, "corpus_positive": 1.0} |
 | 0.4 | 0.9286 | 0.0714 | 52 | 4 | {"corpus_evaltasks": 0.9333, "corpus_negative": 0.8889, "corpus_positive": 0.9375} |
-| 0.5 | 0.6964 | 0.3036 | 39 | 17 | {"corpus_evaltasks": 0.6667, "corpus_negative": 0.7778, "corpus_positive": 0.6875} |
-| 0.6 | 0.4821 | 0.5179 | 27 | 29 | {"corpus_evaltasks": 0.4667, "corpus_negative": 0.3333, "corpus_positive": 0.5312} |
+| 0.5 | 0.7143 | 0.2857 | 40 | 16 | {"corpus_evaltasks": 0.7333, "corpus_negative": 0.7778, "corpus_positive": 0.6875} |
+| 0.6 | 0.5 | 0.5 | 28 | 28 | {"corpus_evaltasks": 0.5333, "corpus_negative": 0.3333, "corpus_positive": 0.5312} |
 | 0.7 | 0.4286 | 0.5714 | 24 | 32 | {"corpus_evaltasks": 0.3333, "corpus_negative": 0.3333, "corpus_positive": 0.5} |
 | 0.8 | 0.3214 | 0.6786 | 18 | 38 | {"corpus_evaltasks": 0.3333, "corpus_negative": 0.1111, "corpus_positive": 0.375} |
 | 0.9 | 0.2679 | 0.7321 | 15 | 41 | {"corpus_evaltasks": 0.2, "corpus_negative": 0.1111, "corpus_positive": 0.3438} |
 
-- 真实语料校准后分数分位：{"p10": 0.4032, "p50": 0.5864, "p90": 0.9999, "min": 0.3091, "max": 0.9999}
+- 真实语料校准后分数分位：{"p10": 0.4047, "p50": 0.5919, "p90": 0.9999, "min": 0.3097, "max": 0.9999}
 
 ## 5. 外部真实语料的层声明率（无标注，只看漏斗行为）
 
@@ -132,19 +132,19 @@
   - 证据：agent/workflow_engine/engine.py:57 把 WorkflowResult.confidence 硬编码为 1.0；实测 rule 层 41 条用例的 confidence 全部为 1.0
   - 影响：温度缩放/ECE 在规则层无对象；规则层只能报告准确率与覆盖率
 - **F2 [blocker] 语义层融合分被 min-max 归一化抹平 ⇒ 该分数不携带置信度**
-  - 证据：agent/tool_router_hybrid.py:1154-1167 _min_max_normalize 把每路召回的 max 映射为 1.0；实测 fused_top_scores=[0.4143, 0.4701, 0.6377, 0.6456, 0.6541, 0.6641, 0.6748, 0.6775, 0.7381, 0.747]
+  - 证据：agent/tool_router_hybrid.py:1154-1167 _min_max_normalize 把每路召回的 max 映射为 1.0；实测 fused_top_scores=[0.4144, 0.4702, 0.6377, 0.6466, 0.6507, 0.664, 0.6745, 0.6752, 0.7383, 0.7472]
   - 影响：直接在该分数上做拒识等价于'永不拒识'；本基线改用未归一化的原始 BM25 分作为可校准出口
 - **F3 [high] 本环境 Embedding 路不可用，语义层实际运行在 BM25-only 降级路**
-  - 证据：{"retriever_available": true, "degraded_bm25_only": true, "embedding_available": false, "bm25_docs": 90, "alpha": 0.5, "index_path": "data/tool_index.json", "embedding_health": {"mode": "hybrid", "init_failed": false, "worker_alive": false, "available": false, "failure_total": 0, "restart_attempts": 0, "max_restart_attempts": 3, "restarting": false, "retry_exhausted": false, "next_restart_in_sec": null, "last_failure": {}, "retriever_degraded": true}}
+  - 证据：{"retriever_available": true, "degraded_bm25_only": true, "embedding_available": false, "bm25_docs": 92, "alpha": 0.5, "index_path": "data/tool_index.json", "embedding_health": {"mode": "bm25_only", "init_failed": false, "worker_alive": false, "worker_ready": false, "load_cache_probe": null, "available": false, "failure_total": 0, "restart_attempts": 0, "max_restart_attempts": 3, "restarting": false, "retry_exhausted": false, "next_restart_in_sec": null, "last_failure": {}, "retriever_degraded": true}}
   - 影响：所有语义层读数描述降级路；AGENT_HYBRID_ALPHA=0.5 的融合路未被本次基线覆盖
 - **F4 [medium] 原始 BM25 softmax 分数可校准：NLL 大幅下降，但 ECE 在 n=5 的测试折上不可解释**
-  - 证据：T=1.41601，NLL 0.265713 -> 0.247525；测试折 ECE 0.0811 -> 0.1103，全标注集 ECE 0.1172 -> 0.0582
+  - 证据：T=1.420318，NLL 0.265396 -> 0.246946；测试折 ECE 0.0806 -> 0.1096，全标注集 ECE 0.1167 -> 0.0577
   - 影响：测试折 n=5，ECE 由'哪 5 条落到折里'决定；只能采信 NLL 的下降方向，不能采信 ECE 的绝对差
 - **F5 [medium] 模板层的失配是枚举上限问题，不是温度问题 ⇒ 温度缩放修不动它**
   - 证据：T=1.035686（≈1，几乎未改），ECE 0.2334 -> 0.238
   - 影响：该折 accuracy=1.0 而最高自报置信度只有 0.9（Confidence.HIGH），先把上限抬到 1.0 才能谈温度；本任务不改判定语义，故只记录
 - **F6 [high] 语义层在真实 90 工具索引上存在实际误召回**
-  - 证据：[{"id": "TOOL-010", "text": "搜索网页", "gold": "web_search", "pred": "search_lifetrace", "raw_bm25_top5": [["search_lifetrace", 3.9172], ["web_get", 3.5117], ["search_files", 3.0756], ["browser_navigate", 3.009], ["web_search", 3.0035]]}]
+  - 证据：[{"id": "TOOL-010", "text": "搜索网页", "gold": "web_search", "pred": "search_lifetrace", "raw_bm25_top5": [["search_lifetrace", 3.9583], ["web_get", 3.5539], ["search_files", 3.1154], ["browser_navigate", 3.0486], ["web_search", 3.0478]]}]
   - 影响：例：中文查询'解析pdf'在真实索引上 top1=run_lint（合成 5 工具索引下该单测是过的）⇒ 原单测的'召回正确'结论不覆盖真实索引
 - **F7 [medium] 关键词类别层存在既定误分类（仓内自带用例即已失败）**
   - 证据：[{"id": "CAT-003", "text": "执行命令", "gold": ["core", "code", "system"], "pred": ["code", "core"]}]
