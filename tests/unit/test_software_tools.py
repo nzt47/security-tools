@@ -31,6 +31,9 @@ def _fake_registry(items):
 
 def _patch_env(monkeypatch, *, installed, which="winget", run=None, allowlist=None):
     """统一装配：注册表替身 + which 替身 + subprocess 替身 + 白名单替身。"""
+    # 探测分支按 Windows 代码路径跑（CI 是 Linux，不钉住 os.name 会直接回
+    # unsupported-platform ⇒ 这几条用例在 Linux 上全红，Shard 3 实测）
+    monkeypatch.setattr(sw.os, "name", "nt", raising=False)
     monkeypatch.setattr(sw, "_iter_installed", _fake_registry(installed), raising=True)
     monkeypatch.setattr(sw.shutil, "which", lambda name: which, raising=True)
     monkeypatch.setattr(sw, "_load_allowlist", lambda: allowlist or {}, raising=True)
@@ -86,6 +89,13 @@ class TestProbe:
         assert out["matched_display_name"] == "Git"
         assert out["version"] == "2.44"
 
+    def test_非_windows_如实回_unsupported_platform(self, monkeypatch):
+        """Linux / macOS 上不假装"没装"，而是明确说"这个平台不支持探测"。"""
+        monkeypatch.setattr(sw.os, "name", "posix", raising=False)
+        out = sw.software_probe("Git")
+        assert out["ok"] is False and out["installed"] is False
+        assert out["reason"] == "unsupported-platform"
+
     def test_未安装(self, monkeypatch):
         _patch_env(monkeypatch, installed=[
             {"name": "Python 3.12", "version": "3.12.0", "path": "", "source": "registry:HKLM"},
@@ -94,6 +104,8 @@ class TestProbe:
         assert out["ok"] is True and out["installed"] is False
 
     def test_探测异常如实回失败(self, monkeypatch):
+        monkeypatch.setattr(sw.os, "name", "nt", raising=False)
+
         def _boom():
             raise RuntimeError("registry locked")
         monkeypatch.setattr(sw, "_iter_installed", _boom, raising=True)
