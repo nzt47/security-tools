@@ -1,0 +1,25 @@
+name: software_probe
+category: system
+description: 只读探测本机是否已安装某个软件（版本与安装路径），查询卸载登记表，不启动安装器、不改机器状态。Probe installed software version and path
+deprecated: false
+version: 1.0.0
+plane: perceive
+effect: read
+risk: low
+tags: [software]
+tool_type: tool
+llm_callable: true
+callable_mode: auto
+permission_level: public
+sandbox_allowed: false
+location: local
+location_reason: "调用链（agent.tools.software_tools:_software_probe）在 6 跳内未命中任何跨边界原语；另有 20 个调用点静态无法解析（见 unresolved）"
+schema:
+  type: object
+  properties:
+    name:
+      type: string
+      description: 软件显示名（如 Git、Python、Node.js）
+  required:
+  - name
+examples: []

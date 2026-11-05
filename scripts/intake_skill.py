@@ -90,6 +90,9 @@ _BASELINE_SPECS: Sequence[Tuple[str, "re.Pattern[str]", str]] = (
      "envelope_total"),
     ("tests/unit/test_capregistry_core.py",
      re.compile(r'(assert env\["data"\]\["total"\] == )(\d+)'), "envelope_total"),
+    # location 过滤查询也钉了 remote 条数（2026-11-05 新增 software_install 时漏过一位）
+    ("tests/unit/test_capregistry_core.py",
+     re.compile(r'(assert len\(remote\) == )(\d+)'), "remote"),
     ("tests/unit/test_confirm_level.py",
      re.compile(r'(assert len\(skills\) == )(\d+)(, len\(skills\))'), "skill_total"),
 )

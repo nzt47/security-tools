@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-18T22:49:49",
-  "tool_count": 90,
+  "generated_at": "2026-11-05T22:04:17",
+  "tool_count": 92,
   "categories": [
     "async",
     "code",
@@ -873,6 +873,27 @@
       "deprecated": false,
       "parameter_names": [
         "text"
+      ]
+    },
+    {
+      "name": "software_install",
+      "category": "system",
+      "description": "受控安装软件（默认停用，需 Owner 启用）。只接受 config/software_allowlist.json 里精确等值的 package_id；必须显式传 confirm=true 才执行，否则只返回将要执行的命令；winget 优先、choco 备选；装完会再探测一次核对安装态与版本，对不上就如实返回 ok=false。Install software through a controlled allowlist",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "package_id",
+        "confirm"
+      ]
+    },
+    {
+      "name": "software_probe",
+      "category": "system",
+      "description": "只读探测本机是否已安装某个软件（版本与安装路径），查询卸载登记表，不启动安装器、不改机器状态。Probe installed software version and path",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "name"
       ]
     },
     {

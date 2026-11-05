@@ -1101,7 +1101,12 @@ class LifecycleManager:
         #   且 `tests/unit/test_import_smoke.py` 曾把"模块可导入"当成覆盖。
         # 恢复：`git log --diff-filter=D -- agent/software_manager.py` 取回，
         #   但**必须先补齐真实的后端注册与安装/卸载实现**再接线。
-        # from agent.tools.software_tools import register_all as reg_software
+        # 【2026-11-05 重新接线：**新**的受控通道，不是旧空壳】
+        #   agent/tools/software_tools.py 只做两件事：software_probe（只读登记表）与
+        #   software_install（白名单 + confirm + 退出码 + 事后探测四道闸，默认 enabled:false）。
+        #   旧的那种"install() 恒返回 True"的 SoftwareManager 并没有回来 —— 见模块文档与
+        #   docs/proposals/软件安装通道_2026-11-05.md。
+        from agent.tools.software_tools import register_all as reg_software
         from agent.tools.system_tools import register_all as reg_system
         from agent.tools.code_tools import register_all as reg_code
         from agent.tools.search_tools import register_all as reg_search
@@ -1144,7 +1149,7 @@ class LifecycleManager:
         reg_web(self)
         reg_ext(self)
         reg_pdf(self)
-        # reg_software(self)   # 已注销：software_* 4 个工具是空壳（见上方 import 处说明）
+        reg_software(self)   # 新的受控通道（probe 默认可用 / install 默认停用）
         reg_system(self)
         reg_code(self)
         reg_search(self)
