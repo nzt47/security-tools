@@ -3,7 +3,7 @@
 测试覆盖:
     1. 健康检查 (路由可达)
     2. 默认参数: 返回草稿, auto_register=False
-    3. auto_register=True 时调用 create_manual
+    3. auto_register=True 已废弃：仍只落隔离区草稿（不调 create_manual）
     4. 自定义 min_cluster_size / min_success_rate / cluster_jaccard
     5. 参数边界校验: days<1 / max_skills 越界 / min_success_rate 越界
     6. 空记忆场景 (返回空 drafts)
@@ -175,7 +175,7 @@ class TestDefaultParams(_AbstractRouteTestBase):
 
 
 class TestAutoRegister(_AbstractRouteTestBase):
-    """auto_register=True"""
+    """auto_register=True（已废弃，只作文档兼容）"""
 
     def test_auto_register_已废弃_只落草稿(self):
         """2026-11-05 IA：auto_register=True 不再注册，只落隔离区草稿（台账 source=learning）。"""
