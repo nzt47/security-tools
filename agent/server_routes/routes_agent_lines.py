@@ -130,8 +130,11 @@ def _fail(message: str, status: int = 400, **extra: Any) -> Tuple[Any, int]:
 
 def _error_response(exc: BaseException) -> Tuple[Any, int]:
     """异常 → HTTP 状态码（映射规则见模块 docstring）"""
-    # 【C-6】原文只进日志；响应只回固定文案（_fail 会把它放进 error 字段）
-    message = _safe(exc, logger, "agent-lines")
+    # 【C-6 暂缓】这里必须保留 str(exc)：状态码映射与文案都依赖它（"不存在"→404、
+    # "已存在"→409、校验类 400）。要安全回显得先给 LineRegistryError / 校验异常
+    # 逐个加 message 属性并迁移全部 raise 站点 —— 那是独立改动（本批实测会连带 4 条
+    # 既有用例），故对应的 stack-trace 告警留到「agent_lines 专项」。
+    message = str(exc)
     if isinstance(exc, LineRegistryError):
         lowered = message.lower()
         if "不存在" in message or "not found" in lowered:
@@ -444,7 +447,7 @@ def _subagent_assembly_payload(line_id: str, registry: Any, meta: Dict[str, Any]
             **empty, "available": False, "mode": "unavailable",
             "semantics": "named-but-unavailable",
             "semantics_note": SUBAGENT_SEMANTICS["named-but-unavailable"],
-            "reason": _safe(e, logger, "line.unavailable"),
+            "reason": str(e),  # 【C-6 暂缓】LineUnavailable 同样需先加 message 属性
         }
     except Exception as e:  # noqa: BLE001 本块失败不得把预览端点带崩（与片段投影同款）
         logger.warning("[AgentLines] 分身装配单投影降级（预览照常）: %s", e)
