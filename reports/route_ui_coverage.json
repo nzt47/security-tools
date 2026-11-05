@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-05T12:50:11",
+  "generated_at": "2026-11-05T13:20:34",
   "totals": {
     "routes": 497,
     "live": 497,
@@ -9399,7 +9399,8 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
-        "yunshu-ui/src/pages/hub/memory/SkillIntakeDialog.tsx"
+        "yunshu-ui/src/pages/hub/memory/SkillIntakeDialog.tsx",
+        "yunshu-ui/src/pages/hub/memory/skill-center.tsx"
       ],
       "non_ui_refs": [],
       "where": [
