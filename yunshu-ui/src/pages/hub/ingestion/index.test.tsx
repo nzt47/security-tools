@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   fetchIngestionSources: vi.fn(),
   previewIngestion: vi.fn(),
   commitIngestion: vi.fn(),
+  directIngestion: vi.fn(),
 }))
 vi.mock('./api', () => api)
 
@@ -55,6 +56,7 @@ afterEach(() => {
   api.fetchIngestionSources.mockReset()
   api.previewIngestion.mockReset()
   api.commitIngestion.mockReset()
+  api.directIngestion.mockReset()
 })
 
 function setup() {
@@ -162,6 +164,22 @@ describe('IngestionPage', () => {
     await waitFor(() => expect(api.commitIngestion).toHaveBeenCalledWith({
       source: { path: 'C:/alpha' }, plan_id: 'ig_1', confirm: true, form: 'tool', draft_only: true,
     }))
+  })
+
+  it('直通：一次调用出草稿（allow_rewrite=true，仍只落草稿）', async () => {
+    setup()
+    api.directIngestion.mockResolvedValue({
+      result: result({ draft: true, installed: false, queued: false, skill_id: 'alpha', draft_dir: 'data/ingestion/drafts/ing_x' }),
+      plan: { plan_id: 'ig_1', level: 'L2', adapter: 'docs', rewritten: true, dedupe: [], warnings: [], merge_suggestion: null },
+    })
+    fireEvent.click(screen.getByRole('tab', { name: '粘贴文本' }))
+    fireEvent.change(screen.getByLabelText('粘贴文档或提示词'), { target: { value: '把会议记录整理成待办' } })
+    fireEvent.click(screen.getByRole('button', { name: '直通生成草稿' }))
+    await waitFor(() => expect(api.directIngestion).toHaveBeenCalledWith(expect.objectContaining({
+      text: '把会议记录整理成待办', form: 'skill', allow_rewrite: true, confirm: true,
+    })))
+    expect(await screen.findByText(/已直通生成草稿/)).toBeTruthy()
+    expect(api.commitIngestion).not.toHaveBeenCalled()
   })
 
   it('批量获取：勾选多条 → 逐条预览 + 只生成草稿（不安装/不注册/不启用）', async () => {

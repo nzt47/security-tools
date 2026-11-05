@@ -746,14 +746,12 @@ class TestAbstractNewSkills:
         result = abstractor.abstract_new_skills(memory_entries=entries, auto_register=False)
         assert all(not r["registered"] for r in result)
 
-    def test_auto_register_enabled(self, abstractor):
-        """auto_register=True → 尝试注册"""
+    def test_auto_register_已废弃_只落草稿(self, abstractor, tmp_path):
+        """2026-11-05 IA：auto_register=True 也不再直接注册，只落隔离区草稿 + 台账。"""
         mock_svc = MagicMock()
-        mock_skill = MagicMock()
-        mock_skill.id = "new-skill-id"
-        mock_svc.create_manual.return_value = mock_skill
         mock_svc.list_all.return_value = []
         abstractor._skills_service = mock_svc
+        abstractor._draft_dir = tmp_path / "drafts"
 
         entries = [
             make_entry(task_text="unique task xyz abc", source_id="1", success=True),
@@ -764,16 +762,25 @@ class TestAbstractNewSkills:
             memory_entries=entries, auto_register=True
         )
         assert len(result) > 0
+        assert all(r["registered"] is False for r in result)
+        mock_svc.create_manual.assert_not_called()
+        drafted = [r for r in result if r.get("drafted")]
         if result[0]["quality_gate_passed"]:
-            assert result[0]["registered"] is True
-            assert result[0]["skill_id"] == "new-skill-id"
+            assert drafted, "过了质量闸就该有草稿"
+            assert (tmp_path / "drafts" / drafted[0]["draft_id"] / "SKILL.md").is_file()
 
-    def test_register_failure_handled(self, abstractor):
-        """注册失败 → registered=False"""
+    def test_草稿写入失败不抛异常(self, abstractor, monkeypatch):
+        """草稿写不进去 → drafted=False，但学习流程不炸（也不偷偷注册）。"""
         mock_svc = MagicMock()
-        mock_svc.create_manual.side_effect = RuntimeError("db error")
         mock_svc.list_all.return_value = []
         abstractor._skills_service = mock_svc
+
+        import agent.skills_mgmt.transform.learning as learning_mod
+
+        def boom(**kwargs):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(learning_mod, "write_learning_draft", boom)
 
         entries = [
             make_entry(task_text="test task def ghi", source_id="1", success=True),
@@ -783,8 +790,9 @@ class TestAbstractNewSkills:
         result = abstractor.abstract_new_skills(
             memory_entries=entries, auto_register=True
         )
-        if result:
-            assert result[0]["registered"] is False
+        assert all(r["registered"] is False for r in result)
+        assert all(r.get("drafted") is False for r in result)
+        mock_svc.create_manual.assert_not_called()
 
 
 class TestProcessCluster:

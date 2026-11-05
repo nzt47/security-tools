@@ -184,7 +184,8 @@ class MemorySkillAbstractor:
                  max_existing_dup_jaccard: float = MAX_EXISTING_DUP_JACCARD,
                  cluster_jaccard: float = CLUSTER_JACCARD_THRESHOLD,
                  signal_filter_threshold: float = SIGNAL_FILTER_THRESHOLD,
-                 enable_signal_scoring: bool = True):
+                 enable_signal_scoring: bool = True,
+                 draft_dir: Optional[Any] = None):
         """初始化抽象器
 
         Args:
@@ -203,6 +204,8 @@ class MemorySkillAbstractor:
         self.cluster_jaccard = cluster_jaccard
         self.signal_filter_threshold = signal_filter_threshold
         self.enable_signal_scoring = enable_signal_scoring
+        # 隔离区目录（None = 默认 data/ingestion/drafts；测试注入 tmp_path）
+        self._draft_dir = draft_dir
 
     def _resolve_skills_service(self):
         if self._skills_service is not None:
@@ -228,7 +231,8 @@ class MemorySkillAbstractor:
             memory_entries: 预加载的记忆条目 (None 时自动从各源拉取最近 days 天)
             days: 自动拉取的天数范围
             max_skills: 最多生成多少个技能草稿
-            auto_register: True 时自动调用 create_manual 注册; False 只返回草稿
+            auto_register: **已废弃（保留形参兼容旧调用）**。2026-11-05 起学习一律只产出
+                隔离区草稿 + 统一台账（source=learning），不再直接 create_manual 注册。
 
         Returns:
             草稿列表, 每项形如:
@@ -239,8 +243,10 @@ class MemorySkillAbstractor:
                     draft_content_preview,
                     quality_gate_passed: bool,
                     quality_gate_reasons: List[str],
-                    registered: bool (auto_register=False 时为 False),
-                    skill_id: str | None (注册成功后返回),
+                    registered: bool (恒 False —— 学习不直接注册),
+                    drafted: bool (是否写进隔离区草稿 + 台账),
+                    draft_id / draft_dir: 草稿标识与目录,
+                    skill_id: str | None (恒 None),
                     duplicate_of: str | None (与已有技能过于相似),
                 }
         """
@@ -1265,8 +1271,11 @@ class MemorySkillAbstractor:
             "draft_default_params": draft["default_params"],
             "quality_gate_passed": passed,
             "quality_gate_reasons": reasons,
-            "registered": False,
+            "registered": False,          # 恒 False：学习不再直接注册（见下方落草稿）
             "skill_id": None,
+            "drafted": False,             # 是否写进了隔离区草稿 + 统一台账
+            "draft_id": None,
+            "draft_dir": "",
             "duplicate_of": duplicate_of or None,
             # 信号强度
             "avg_signal_strength": round(avg_signal, 3),
@@ -1286,44 +1295,38 @@ class MemorySkillAbstractor:
             avg_signal, draft["id"], len(draft["content"][:500]),
         )
 
-        # 3. 注册 (仅当通过质量门 + auto_register)
-        if passed and auto_register and not duplicate_of:
-            logger.info(
-                "[MemAbstract] _process_cluster 尝试注册 | "
-                "cluster_id=%s | skill_id=%s",
-                cluster.cluster_id, draft["id"],
-            )
+        # 3. 落草稿（**不再直接注册**）
+        #
+        # 【2026-11-05 IA 决定】学习与摄取必须同一种产物、同一本台账：
+        # 学习只产出隔离区草稿（source=learning），登记/启用由「能力获取 → 转化队列」的人决定。
+        # 原来的 auto_register 会绕过审核直写技能库，且不在台账里 —— 已废弃（参数保留但忽略）。
+        if passed and not duplicate_of:
             try:
-                svc = self._resolve_skills_service()
-                # 只传 Skill 接受的字段
-                skill_data = {
-                    "id": draft["id"],
-                    "name": draft["name"],
-                    "description": draft["description"],
-                    "content": draft["content"],
-                    "content_type": draft["content_type"],
-                    "category": draft["category"],
-                    "tags": draft["tags"],
-                    "default_params": draft["default_params"],
-                    "config_schema": draft["config_schema"],
-                    "dependencies": draft["dependencies"],
-                    "source": draft["source"],
-                    "author": draft["author"],
-                    "version": draft["version"],
-                }
-                skill = svc.create_manual(skill_data)
-                result["registered"] = True
-                result["skill_id"] = skill.id
+                from agent.skills_mgmt.transform.learning import write_learning_draft
+
+                info = write_learning_draft(
+                    skill_id=draft["id"],
+                    name=draft["name"],
+                    description=draft["description"],
+                    body=draft["content"],
+                    tags=list(draft.get("tags") or []),
+                    source_ref="memory:%s" % cluster.cluster_id,
+                    version=str(draft.get("version") or "0.1.0"),
+                    source=str(draft.get("source") or "learning:memory"),
+                    draft_dir=self._draft_dir,
+                )
+                result["drafted"] = True
+                result["draft_id"] = info["draft_id"]
+                result["draft_dir"] = info["draft_dir"]
                 logger.info(
-                    "[MemAbstract] _process_cluster: 已注册 | skill_id=%s",
-                    skill.id,
+                    "[MemAbstract] _process_cluster: 已落草稿 | draft_id=%s",
+                    info["draft_id"],
                 )
             except Exception as e:  # noqa: BLE001
                 logger.warning(
-                    "[MemAbstract] _process_cluster: 注册失败 | %s", e,
+                    "[MemAbstract] _process_cluster: 草稿写入失败 | %s", e,
                 )
-                result["registered"] = False
-                result["skill_id"] = None
+                result["drafted"] = False
 
         logger.info(
             "[MemAbstract] _process_cluster DONE | "

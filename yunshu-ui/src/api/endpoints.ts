@@ -625,6 +625,8 @@ export const COGNITIVE_REJECT = '/api/cognitive/reject';
 // 吞噬（P5）：外来能力获取的唯一入口。常量层是 React 侧唯一允许出现 /api 字面量的地方。
 export const INGESTION_PREVIEW = '/api/ingestion/preview';
 export const INGESTION_COMMIT = '/api/ingestion/commit';
+// 2026-11-05 直通：文本 → 草稿一步到位（preview+commit 合并；文本默认 L2，需 allow_rewrite）
+export const INGESTION_DIRECT = '/api/ingestion/direct';
 export const INGESTION_SOURCES = '/api/ingestion/sources';
 // P6 存量治理（scan/plan/apply）：同样只在常量层出现字面量
 export const INGESTION_GOVERNANCE_SCAN = '/api/ingestion/governance/scan';

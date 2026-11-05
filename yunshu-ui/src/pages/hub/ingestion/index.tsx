@@ -27,6 +27,8 @@ import {
   type IngestResult,
   type IngestSourceInput,
   type SourcesView,
+  directIngestion,
+  type DirectResult,
 } from './api'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100 disabled:cursor-not-allowed disabled:opacity-50'
@@ -113,6 +115,11 @@ export default function IngestionPage() {
   // ── 批量获取（2026-11-05 恢复）──
   // 旧「扫描 claude → 全量导入」被 S5 收敛成单条，结果是几十条候选只能一条条点。
   // 批量只做「逐条预览 + 逐条生成草稿」：不安装、不注册、不启用，仍按单条去重结论记账。
+  // ── 直通（2026-11-05）：文本 → 草稿一步到位 ──
+  // 文本来源恒定判 L2（docs 适配器），所以直通必须显式带 allow_rewrite=true 才调 LLM；
+  // 失败（重写未过校验/超时）时**不落草稿**，前端如实显示原因。
+  const [directBusy, setDirectBusy] = useState(false)
+  const [directResult, setDirectResult] = useState<DirectResult | null>(null)
   const [batchSel, setBatchSel] = useState<string[]>([])
   const [batchBusy, setBatchBusy] = useState('')
   const [batchRows, setBatchRows] = useState<BatchRow[]>([])
@@ -179,6 +186,21 @@ export default function IngestionPage() {
       setError('提交失败：' + (e instanceof Error ? e.message : String(e)))
     } finally {
       setCommitting(false)
+    }
+  }
+
+  const doDirect = async () => {
+    if (!textInput.trim()) { setError('请先粘贴文本'); return }
+    setDirectBusy(true); setError(''); setDirectResult(null)
+    try {
+      const r = await directIngestion({
+        text: textInput, form, label: '直通文本', allow_rewrite: true, confirm: true,
+      })
+      setDirectResult(r)
+    } catch (e) {
+      setError('直通生成失败：' + (e instanceof Error ? e.message : String(e)))
+    } finally {
+      setDirectBusy(false)
     }
   }
 
@@ -301,14 +323,35 @@ export default function IngestionPage() {
                   aria-label="粘贴文档或提示词"
                   placeholder="粘贴 markdown / 普通文档 / 提示词…"
                   onChange={(e) => { setTextInput(e.target.value); resetPlan() }} />
-                <div className="mt-2 flex justify-end">
+                <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                  <span className="mr-auto text-[10px] text-slate-500">
+                    直通 = 一次调用直接出草稿（含 1 次 LLM 重写与引用校验）；失败不落草稿。
+                  </span>
                   <button type="button" className={BTN_EM}
                     onClick={() => void doPreview(false)}
                     disabled={previewing !== '' || !textInput.trim()}>
                     {previewing === 'preview' ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
                     预览计划
                   </button>
+                  <button type="button" className={BTN_EM}
+                    onClick={() => void doDirect()}
+                    disabled={directBusy || !textInput.trim()}
+                    aria-label="直通生成草稿"
+                    title="跳过分级/确认两道闸：直接调用一次 LLM 重写 + 校验并落草稿（仍不安装/不注册/不启用）">
+                    {directBusy ? <Loader2 size={12} className="animate-spin" /> : <PackagePlus size={12} />}
+                    直接生成草稿
+                  </button>
                 </div>
+                {directResult && (
+                  <div className="mt-2 rounded-sm border border-emerald-900/50 bg-emerald-950/20 p-2 text-[10px] leading-relaxed text-emerald-200">
+                    <div>
+                      已直通生成草稿：<span className="font-mono">{directResult.result.skill_id}</span>
+                      {' · ' + directResult.plan.level + ' · 去重提示 ' + directResult.plan.dedupe.length + ' 条'}
+                    </div>
+                    <div className="break-all text-emerald-300/80">{directResult.result.draft_dir}</div>
+                    <div className="text-emerald-300/60">登记与启用去「转化队列」；这里只落草稿。</div>
+                  </div>
+                )}
               </>
             )}
           </Card>

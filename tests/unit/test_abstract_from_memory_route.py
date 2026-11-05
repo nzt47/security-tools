@@ -177,12 +177,17 @@ class TestDefaultParams(_AbstractRouteTestBase):
 class TestAutoRegister(_AbstractRouteTestBase):
     """auto_register=True"""
 
-    def test_auto_register_creates_skill(self):
-        """auto_register=True 时调用 create_manual"""
+    def test_auto_register_已废弃_只落草稿(self):
+        """2026-11-05 IA：auto_register=True 不再注册，只落隔离区草稿（台账 source=learning）。"""
         entries = self._make_cluster_entries(n=5)
+        fake_info = {"draft_id": "learn_x", "draft_dir": "data/ingestion/drafts/learn_x",
+                     "skill_id": "x", "files": [], "warnings": []}
         with patch(
             "agent.skills_mgmt.memory_abstractor.MemorySkillAbstractor._load_recent_memories",
             return_value=[MemoryEntry(**e) for e in entries],
+        ), patch(
+            "agent.skills_mgmt.transform.learning.write_learning_draft",
+            return_value=fake_info,
         ):
             resp = self.client.post(
                 "/api/skills-mgmt/abstract-from-memory",
@@ -190,10 +195,12 @@ class TestAutoRegister(_AbstractRouteTestBase):
             )
         data = resp.get_json()
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(data["registered_count"], 1)
-        self.assertEqual(self.svc.create_manual.call_count, 1)
-        # skill_id 应在响应中
-        self.assertIsNotNone(data["drafts"][0]["skill_id"])
+        # 兼容参数：不再直接注册，registered_count 恒 0
+        self.assertEqual(data["registered_count"], 0)
+        self.assertEqual(self.svc.create_manual.call_count, 0)
+        self.assertIsNone(data["drafts"][0]["skill_id"])
+        self.assertTrue(data["drafts"][0]["drafted"])
+        self.assertEqual(data["drafts"][0]["draft_id"], "learn_x")
 
 
 class TestCustomParams(_AbstractRouteTestBase):
@@ -420,10 +427,11 @@ class TestMultiClusterScenario(_AbstractRouteTestBase):
                 json={"auto_register": True, "max_skills": 5, "enable_signal_scoring": False},
             )
         data = resp.get_json()
-        # 只有 1 个聚类通过质量门 (高质量的那个)
+        # 只有 1 个聚类通过质量门 (高质量的那个) ⇒ 只有它落草稿；不通过的不落。
         self.assertEqual(data["passed_clusters"], 1)
-        self.assertEqual(data["registered_count"], 1)
-        self.assertEqual(self.svc.create_manual.call_count, 1)
+        self.assertEqual(data["registered_count"], 0)
+        self.assertEqual(self.svc.create_manual.call_count, 0)
+        self.assertEqual(sum(1 for d in data["drafts"] if d.get("drafted")), 1)
 
 
 class TestDuplicateDetection(_AbstractRouteTestBase):

@@ -19,6 +19,8 @@ interface DraftRow {
   success_rate?: number
   quality_gate_passed?: boolean
   registered?: boolean
+  drafted?: boolean
+  draft_id?: string
   duplicate_of?: string
   quality_gate_reasons?: string[]
 }
@@ -35,7 +37,6 @@ interface AbstractResult {
 export default function MemoryDraftPanel() {
   const [days, setDays] = useState('30')
   const [maxSkills, setMaxSkills] = useState('5')
-  const [register, setRegister] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [result, setResult] = useState<AbstractResult | null>(null)
@@ -46,7 +47,6 @@ export default function MemoryDraftPanel() {
       const r = await hubPost<AbstractResult>(SKILLS_MGMT_ABSTRACT_FROM_MEMORY, {
         days: Number(days || 30),
         max_skills: Number(maxSkills || 5),
-        auto_register: register,
       })
       if (r?.ok === false) { setErr('从记忆抽象失败：' + (r.error || '后端返回 ok=false')); return }
       setResult(r)
@@ -60,7 +60,7 @@ export default function MemoryDraftPanel() {
       <div className="mb-2 flex items-center gap-2">
         <Sparkles size={13} className="text-cyan-400" />
         <h3 className="text-sm font-medium text-slate-200">从记忆生成技能草稿</h3>
-        <span className="text-[10px] text-slate-500">聚类最近记忆 → 质量闸 → 草稿（默认不自动注册）</span>
+        <span className="text-[10px] text-slate-500">聚类最近记忆 → 质量闸 → 草稿（进「转化队列」，不自动注册/启用）</span>
       </div>
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-[10px] text-slate-500">
@@ -71,10 +71,6 @@ export default function MemoryDraftPanel() {
           最多草稿
           <input className={INPUT + ' w-20'} value={maxSkills} onChange={(e) => setMaxSkills(e.target.value)} aria-label="最多草稿数" />
         </label>
-        <label className="mb-1 flex items-center gap-1 text-[11px] text-slate-400">
-          <input type="checkbox" checked={register} onChange={(e) => setRegister(e.target.checked)} aria-label="自动注册草稿" />
-          自动注册草稿
-        </label>
         <button type="button" className={BTN} onClick={() => void run()} disabled={busy} aria-label="从记忆抽象技能">
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} 生成草稿
         </button>
@@ -83,7 +79,9 @@ export default function MemoryDraftPanel() {
       {result && (
         <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2 text-[11px] text-slate-300">
           <div className="text-[10px] text-slate-500">
-            聚类 {result.total_clusters ?? 0} · 过闸 {result.passed_clusters ?? 0} · 注册 {result.registered_count ?? 0}
+            聚类 {result.total_clusters ?? 0} · 过闸 {result.passed_clusters ?? 0}
+            {' · 草稿 ' + (result.drafts ?? []).filter((d) => d.drafted).length}
+            <span className="ml-1 text-slate-600">（登记/启用去「转化队列」）</span>
           </div>
           {(result.drafts ?? []).length === 0 ? (
             <div className="mt-1 text-slate-500">没有生成草稿。</div>
@@ -93,7 +91,7 @@ export default function MemoryDraftPanel() {
                 <span key={d.draft_skill_id || d.draft_name}>
                   {d.draft_name || d.draft_skill_id}
                   {d.duplicate_of ? '（重复：' + d.duplicate_of + '）' : ''}
-                  {d.quality_gate_passed === false ? '（质量闸未过）' : ''}
+                  {d.quality_gate_passed === false ? '（质量闸未过）' : (d.drafted ? '（已进转化队列）' : '（未落草稿）')}
                 </span>
               ))}
             </div>

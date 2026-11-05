@@ -1913,7 +1913,8 @@ def register_routes(app, state):
         Body:
             days: int = 30        — 回溯最近 N 天的记忆
             max_skills: int = 5   — 最多生成多少个草稿
-            auto_register: bool = False — True 时自动注册到技能库
+            auto_register: bool = False — **已废弃**（2026-11-05）：学习一律只产出
+                隔离区草稿 + 统一台账（source=learning），不再直接注册；传 True 会被忽略。
             min_cluster_size: int = 3   — 聚类最小大小 (覆盖默认)
             min_success_rate: float = 0.7 — 聚类最小成功率 (覆盖默认)
             cluster_jaccard: float = 0.5  — 聚类合并 Jaccard 阈值 (覆盖默认)
@@ -1937,6 +1938,9 @@ def register_routes(app, state):
             days = int(data.get("days", 30))
             max_skills = int(data.get("max_skills", 5))
             auto_register = bool(data.get("auto_register", False))
+            if auto_register:
+                # 兼容旧调用：参数保留但不再生效（学习不直接注册，登记/启用进转化队列）
+                logger.info("[SkillsMgmt] abstract-from-memory: auto_register 已废弃，按草稿处理")
             min_cluster_size = int(data.get("min_cluster_size",
                                             MemorySkillAbstractor.MIN_CLUSTER_SIZE))
             min_success_rate = float(data.get("min_success_rate",

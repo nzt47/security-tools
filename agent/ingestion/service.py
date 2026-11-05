@@ -1271,6 +1271,53 @@ def _write_draft_result(plan: IngestPlan, *, form: str,
     return result
 
 
+def direct(text: str, *, form: str = "skill", label: str = "",
+           allow_rewrite: bool = False, llm_client: Any = None,
+           registry: Optional[registry_mod.AdapterRegistry] = None,
+           skills_service: Any = None, archive_dir: Optional[Any] = None,
+           draft_dir: Optional[Any] = None) -> Tuple[IngestResult, IngestPlan]:
+    """直通：一段文本 → 一份草稿（一次调用，不再让人先过「分级/去重/确认」三道闸）
+
+    【为什么要有这条】能力获取的完整链路是为**外来目录/zip/JS**设计的：适配器探测 →
+    L0/L1/L2 判定 → 归一化 → 去重 → 预览确认 → 草稿。来源本来就是一段文本时，
+    这些闸门里只有「去重提示」和「审核」真正有用，其余是让人多点四次的开销（§IA 2026-11-05）。
+
+    直通**不降低安全边界**：
+      · 仍只产出草稿（draft_only=True），不安装/不注册/不启用；
+      · 仍需调用方显式要求（路由层强制 confirm）；
+      · L2（需要重写）默认**拒绝**并如实回 needs_rewrite，除非 allow_rewrite=True；
+      · 去重结果照旧返回（降级为提示，不再当闸门）。
+
+    Returns:
+        (IngestResult, IngestPlan) —— 计划一并返回，调用方要显示 L 级别/去重/警告。
+    """
+    body = str(text or "")
+    if not body.strip():
+        raise InvalidSource("直通需要非空文本", detail="请传 text（或改用 source.path）")
+    source = {"text": body, "label": str(label or "直通文本")}
+    plan = preview(source, registry=registry, dedupe=True,
+                   skills_service=skills_service)
+    if plan.requires_rewrite:
+        if not allow_rewrite:
+            raise RewriteRequired(
+                "这段文本被判为 L2（不能原样内化），直通默认不代跑 LLM",
+                detail="传 allow_rewrite=true 让它调用一次 LLM 重写并校验（慢、且可能失败）；"
+                       "或改用 /api/ingestion/preview 人工预览。",
+            )
+        plan = preview(source, registry=registry, rewrite=True,
+                       llm_client=llm_client, archive_dir=archive_dir,
+                       dedupe=True, skills_service=skills_service)
+        if not plan.rewritten:
+            raise RewriteRequired(
+                "LLM 重写未通过（引用/结构校验失败），不生成草稿",
+                detail="；".join(plan.rewrite_errors) or "见 rewrite_errors",
+            )
+    result = commit(source, plan_id=plan.plan_id, confirm=True,
+                    archive_id=plan.archive_id, form=form, draft_only=True,
+                    draft_dir=draft_dir, registry=registry)
+    return result, plan
+
+
 def commit(source: Any, *, plan_id: str, confirm: bool = False,
            registry: Optional[registry_mod.AdapterRegistry] = None,
            installer: Any = None, archive_id: str = "", rewrite: bool = False,
