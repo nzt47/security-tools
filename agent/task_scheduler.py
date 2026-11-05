@@ -628,7 +628,11 @@ class TaskScheduler:
 
         except Exception as e:
             result["status"] = "failed"
-            result["error"] = str(e)[:500]
+            # 【C-6】只回异常类名：result 会被 /api/scheduler/execute-now 与
+            # /api/schedules/history **原样** jsonify 出去，原文进响应体即
+            # py/stack-trace-exposure（§11.40 J：在**返回值产生处**断 taint，
+            # 而不是在每个 jsonify 上躲）。完整原因照旧写日志。
+            result["error"] = f"{type(e).__name__}（详见服务日志）"
             logger.error(log_dict({'module_name': 'task_scheduler', 'action': 'task', 'msg': f'[TaskScheduler] 任务执行失败: {task["name"]}: {e}'}))
 
         end_time = datetime.now()

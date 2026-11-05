@@ -21,6 +21,16 @@ from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
+#: 【C-6】响应体里**只给固定文案**：异常原文进响应即 py/stack-trace-exposure
+#: （§8 陷阱 15 / §11.42 B）。原文只进日志 —— 与 api_envelope 的 500 detail 同一句话。
+_INTERNAL_ERROR_MSG = "服务器内部错误，请稍后重试或查看服务端日志。"
+
+
+def _internal_error(exc: BaseException) -> str:
+    """记日志 + 回固定文案（返回值里不出现异常对象的任何派生串）。"""
+    logger.warning("[health-api] 请求失败: %s", exc)
+    return _INTERNAL_ERROR_MSG
+
 def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
@@ -164,7 +174,7 @@ def register_routes(app, state):
         except Exception as e:
             logger.error(f"[HealthScore] 计算健康度失败: {e}", exc_info=True)
             return jsonify({
-                "error": str(e),
+                "error": _internal_error(e),
                 "overall_score": 0,
                 "level": "critical",
                 "timestamp": datetime.now().isoformat(),
@@ -193,7 +203,7 @@ def register_routes(app, state):
             logger.error(f"[HealthScore] 计算健康度失败: {e}", exc_info=True)
             return jsonify({
                 "ok": False,
-                "error": str(e)
+                "error": _internal_error(e)
             }), 500
 
     @app.route("/api/health/trend")
@@ -214,7 +224,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(f"[HealthScore] 获取趋势失败: {e}", exc_info=True)
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": _internal_error(e)}), 500
 
     @app.route("/api/health/history")
     @trace_route("HealthScore")
@@ -240,7 +250,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(f"[HealthScore] 获取历史失败: {e}", exc_info=True)
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": _internal_error(e)}), 500
 
     @app.route("/api/health/weights", methods=["GET", "PUT"])
     @trace_route("HealthScore")
@@ -280,7 +290,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(f"[HealthScore] 权重操作失败: {e}", exc_info=True)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     @app.route("/api/health/summary")
     @trace_route("HealthScore")
@@ -304,7 +314,7 @@ def register_routes(app, state):
             return jsonify(latest.to_dict())
         except Exception as e:
             logger.error(f"[HealthScore] 获取摘要失败: {e}", exc_info=True)
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": _internal_error(e)}), 500
 
     @app.route("/api/health/alerts")
     @trace_route("HealthScore")
@@ -337,7 +347,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(f"[HealthScore] 获取告警状态失败: {e}", exc_info=True)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     # ═══════════════════════════════════════════════════════════════
     #  快速健康检查
@@ -409,7 +419,7 @@ def register_routes(app, state):
             logger.error(f"[HealthScore] 快速检查失败: {e}", exc_info=True)
             return jsonify({
                 "ok": False,
-                "error": str(e),
+                "error": _internal_error(e),
                 "score": 0,
                 "level": "critical",
             }), 500
@@ -475,7 +485,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error(f"[HealthScore] 导出失败: {e}", exc_info=True)
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": _internal_error(e)}), 500
 
 
 def _collect_system_metrics(state) -> dict:

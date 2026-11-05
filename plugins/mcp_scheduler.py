@@ -16,6 +16,7 @@
     按项目 SingletonManager 风格在函数内延迟取用。
 """
 import functools
+import logging
 
 from flask import Blueprint, request, jsonify
 
@@ -43,6 +44,26 @@ bp = Blueprint("mcp_scheduler", __name__)
 # 此处只保留**同名别名**，使全部 @_require_token / @_log_request 调用点零改动。
 from .plugin_api import log_request as _log_request, require_auth as _require_token
 
+logger = logging.getLogger(__name__)
+
+#: 响应体里**只给固定文案**：异常原文与类名都不许进响应（py/stack-trace-exposure，
+#: §8 陷阱 15 / §11.42 B）。原文只进日志；已知的配置问题在 validate 阶段已经
+#: 以 errors 列表的形式返回（那是**返回值**而非异常，不受此限制）。
+_INTERNAL_ERROR_MSG = "服务器内部错误，请稍后重试或查看服务端日志。"
+_BAD_CONFIG_MSG = "配置无效，请检查必填字段与取值后重试。"
+
+
+def _internal_error(exc: BaseException) -> str:
+    """记日志 + 回固定文案（返回值里不出现异常对象的任何派生串）。"""
+    logger.warning("[mcp-scheduler-api] 请求失败: %s", exc)
+    return _INTERNAL_ERROR_MSG
+
+
+def _bad_config(exc: BaseException) -> str:
+    """同样的口径用于 ValueError：原文进日志，响应只回 400 的固定文案。"""
+    logger.warning("[mcp-scheduler-api] 配置被拒: %s", exc)
+    return _BAD_CONFIG_MSG
+
 
 # ════════════════════════════════════════════════════════════
 #  MCP 服务管理 API
@@ -64,7 +85,7 @@ def api_mcp_services_get():
         services = _network_config_mgr.get_mcp_services()
         return _ok({"ok": True, "services": services})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/mcp/services/<string:service_id>", methods=["GET"])
@@ -79,7 +100,7 @@ def api_mcp_service_get(service_id):
             return jsonify({"ok": True, "service": service})
         return jsonify({"ok": False, "error": "服务不存在"}), 404
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/mcp/services", methods=["POST"])
@@ -100,9 +121,9 @@ def api_mcp_service_add():
         result = _network_config_mgr.add_mcp_service(service)
         return jsonify({"ok": True, "service": result})
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return jsonify({"ok": False, "error": _bad_config(e)}), 400
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/mcp/services/<string:service_id>", methods=["PUT"])
@@ -120,9 +141,9 @@ def api_mcp_service_update(service_id):
             return jsonify({"ok": True, "service": result})
         return jsonify({"ok": False, "error": "服务不存在"}), 404
     except ValueError as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        return jsonify({"ok": False, "error": _bad_config(e)}), 400
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/mcp/services/<string:service_id>", methods=["DELETE"])
@@ -137,7 +158,7 @@ def api_mcp_service_delete(service_id):
             return jsonify({"ok": True})
         return jsonify({"ok": False, "error": "服务不存在"}), 404
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/mcp/enable", methods=["POST"])
@@ -156,7 +177,7 @@ def api_mcp_enable():
         
         return jsonify({"ok": True, "enabled": enabled})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 # ════════════════════════════════════════════════════════════

@@ -13,6 +13,7 @@
 """
 import functools
 import json
+import logging
 import os
 
 from flask import Blueprint, request, jsonify
@@ -40,6 +41,25 @@ from .plugin_api import log_request as _log_request, require_auth as _require_to
 # 与上方同一条红线兼容：agent.api_envelope 只依赖 stdlib + flask，
 # 不会把 app_server 拉进本模块的导入期（PLAN-1 §4 的循环导入约定）。
 from agent.api_envelope import ok as _ok
+
+logger = logging.getLogger(__name__)
+
+#: 响应体里**只给固定文案**：异常原文与类名都不许进响应
+#: （py/stack-trace-exposure；§8 陷阱 15 / §11.42 B 的 HTTP 层口径）。
+#: 原文只进日志，供事后定位 —— 与 api_envelope 的 500 detail 同一句话。
+_INTERNAL_ERROR_MSG = "服务器内部错误，请稍后重试或查看服务端日志。"
+
+
+def _internal_error(exc: BaseException) -> str:
+    """记日志 + 回固定文案：返回值里**不出现**异常对象的任何派生串。
+
+    【不易】这里不能写 str(exc) / type(exc).__name__ / exc.message ——
+    前两者直接被判 py/stack-trace-exposure，后者只有**自定义**异常类才算安全
+    （本文件的 except 捕获的是任意异常，不是自定义类型）。已知领域错误请像
+    routes_skills_mgmt 那样单独 except XxxError: ... exc.message。
+    """
+    logger.warning("[skills-api] 请求失败: %s", exc)
+    return _INTERNAL_ERROR_MSG
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -550,7 +570,7 @@ def api_extensions_list():
         result = _extension_mgr.list_all(ext_type)
         return jsonify({"ok": True, "extensions": result})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/installed", methods=["GET"])
@@ -564,7 +584,7 @@ def api_extensions_installed():
         result = _extension_mgr.get_installed_by_type()
         return jsonify({"ok": True, **result})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/install", methods=["POST"])
@@ -586,7 +606,7 @@ def api_extensions_install():
         result = _extension_mgr.install(ext_type, source, **kwargs)
         return jsonify(result)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/uninstall", methods=["POST"])
@@ -610,7 +630,7 @@ def api_extensions_uninstall():
         result = _extension_mgr.uninstall(ext_type, ext_id, force=force)
         return jsonify(result)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/toggle", methods=["POST"])
@@ -632,7 +652,7 @@ def api_extensions_toggle():
         result = _extension_mgr.toggle(ext_type, ext_id, enabled)
         return jsonify(result)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/configure", methods=["POST"])
@@ -654,7 +674,7 @@ def api_extensions_configure():
         result = _extension_mgr.configure(ext_type, ext_id, config)
         return jsonify(result)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/discover", methods=["GET"])
@@ -668,7 +688,7 @@ def api_extensions_discover():
         result = _extension_mgr.discover_all()
         return jsonify({"ok": True, **result})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/market/search", methods=["GET"])
@@ -686,7 +706,7 @@ def api_extensions_market_search():
         result = _extension_market.search_all(query, ext_type, include_github)
         return jsonify({"ok": True, **result})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/market/recommend", methods=["GET"])
@@ -702,7 +722,7 @@ def api_extensions_market_recommend():
         result = _extension_market.get_recommendations(ext_type, limit)
         return jsonify({"ok": True, "recommendations": result})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/market/refresh", methods=["POST"])
@@ -718,7 +738,7 @@ def api_extensions_market_refresh():
             return jsonify({"ok": True, "count": len(result)})
         return jsonify({"ok": False, "error": "获取索引失败"}), 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 @bp.route("/api/extensions/channels/send", methods=["POST"])
@@ -740,7 +760,7 @@ def api_extensions_channel_send():
         result = _extension_mgr.send_channel_message(channel_id, message, **kwargs)
         return jsonify(result)
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
 
 # ════════════════════════════════════════════════════════════

@@ -370,7 +370,10 @@ class TestExtensionsAPI(unittest.TestCase):
         
         self.assertEqual(response.status_code, 500)
         self.assertFalse(data["ok"])
-        self.assertIn("数据库连接失败", data["error"])
+        # 【C-6】响应体**不再回异常原文**（py/stack-trace-exposure）：只回固定文案，
+        # 原文进服务日志。这条断言就是"原文没漏出去"的守卫。
+        self.assertEqual(data["error"], "服务器内部错误，请稍后重试或查看服务端日志。")
+        self.assertNotIn("数据库连接失败", response.data.decode("utf-8"))
         print("[测试] test_api_error_handling - 通过")
 
 
