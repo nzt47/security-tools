@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-06T01:25:00+08:00",
+  "updated_at": "2026-11-06T03:58:00+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -36,11 +36,12 @@
     },
     {
       "id": "l1-assembly-canary",
-      "title": "L1 分层装配灰度",
+      "title": "C-8 L1 装配灰度（默认 full；先灰 5 条：pdf / git / run_lint / notify / read_pdf）",
       "status": "open",
-      "priority": "P3",
-      "criteria": "门禁已达标（步骤 100% / 触发 100% / 省 5x%）；属改变模型可见内容 ⇒ 需灰度 + 回滚开关",
-      "next": "先做灰度开关与回滚演练，再切默认"
+      "priority": "P1",
+      "criteria": "新增 CP_SKILL_LAYER_MODE=full|l1（默认 full）+ CP_SKILL_LAYER_L1_IDS（逗号分隔白名单），两个都要进 agent/settings/registry.py（否则「开关零缺口」红）；context_injector 里两处 load_instruction 按开关改走 layered.load_card(layer='L1')；L1 不含示例 => 灰度期接受；回滚 = MODE 改回 full（或清空白名单），L2 全文随时可从 GET /api/skills-mgmt/<id>/card?layer=L2 取回",
+      "next": "① 加两个 env + 注册表条目；② 改 context_injector 两处；③ 守卫用例：灰名单内 L1 输出必须覆盖 L2 的全部步骤/触发面（现成基线 步骤 100% / 触发 100%）；④ 灰度一周看「技能没按预期起作用」反馈；⑤ 无回归再扩名单",
+      "owner_decision": "Owner 2026-11-06 同意「默认 full + 先灰 3-5 条」，名单由主线给（已定 5 条）"
     },
     {
       "id": "c9-schedule-task-review",
@@ -89,6 +90,15 @@
       "priority": "P2",
       "criteria": "口径.md ≤150 行；轮次归档到 docs/handoff/rounds/ 且正文只留索引；卡片带自检与下一步",
       "next": "-"
+    },
+    {
+      "id": "c7-overlap-vector",
+      "title": "C-7 重叠检测：本地 embedding 语义召回（默认关）+ 诚实版说明",
+      "status": "open",
+      "priority": "P2",
+      "owner_decision": "Owner 2026-11-06 选 (a) 本地 embedding（transformers MiniLM，无外部 API、无费用）",
+      "criteria": "现状：native_functions 用字面 containment（阈值 0.25），全语料最高 0.133 => 清单恒空（不是 bug）。向量版：复用仓库现成 sqlite-vec + 本地 embedding，把技能 L1 卡与工具 description+参数分别 embed，余弦 top-k 作为候选并与字面分并列呈现；开关 CP_SKILL_OVERLAP_VECTOR=1 默认关；首次加载实测 ~87.7s => 复用 CP_SKILL_VECTOR_PREWARM 预热或后台线程预热",
+      "next": "① 诚实版（面板显示上限分/阈值/样本数/为何为空）；② 向量候选列（默认关）；③ 阈值保持保守，别降到 0.1"
     }
   ]
 }
