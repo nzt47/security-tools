@@ -32,6 +32,7 @@ from flask import jsonify, request
 
 from agent.server_auth import log_request, require_token
 from agent.server_routes.tracing_decorator import trace_route
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -214,7 +215,7 @@ def register_routes(app, state) -> None:
             return jsonify({"ok": True, "items": items, "total": len(items)})
         except Exception as e:  # noqa: BLE001
             logger.error("[VisualWorkflows] 列表失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     @app.route("/api/visual-workflows/<vid>", methods=["GET"])
     @trace_route("VisualWorkflows")
@@ -229,7 +230,7 @@ def register_routes(app, state) -> None:
             return jsonify({"ok": True, "workflow": record})
         except Exception as e:  # noqa: BLE001
             logger.error("[VisualWorkflows] 读取失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     @app.route("/api/visual-workflows", methods=["POST"])
     @trace_route("VisualWorkflows")
@@ -270,7 +271,7 @@ def register_routes(app, state) -> None:
                             "action": "updated" if existing else "created"})
         except Exception as e:  # noqa: BLE001
             logger.error("[VisualWorkflows] 保存失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     @app.route("/api/visual-workflows/<vid>", methods=["DELETE"])
     @trace_route("VisualWorkflows")
@@ -289,4 +290,4 @@ def register_routes(app, state) -> None:
             return jsonify({"ok": True})
         except Exception as e:  # noqa: BLE001
             logger.error("[VisualWorkflows] 删除失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500

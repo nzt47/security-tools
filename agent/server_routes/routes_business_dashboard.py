@@ -22,6 +22,7 @@ from agent.server_auth import require_token, log_request
 from agent.monitoring.tracing import get_trace_id, TraceContext
 from agent.server_routes.tracing_decorator import trace_route
 from agent.logging_utils import log_dict
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +204,7 @@ def _get_business_health():
         logger.error(log_dict({'module_name': 'routes_business_dashboard', 'action': 'log', 'msg': f'获取业务指标健康状态失败: {e}'}))
         return {
             "status": "error",
-            "error": str(e),
+            "error": _safe(e, logger),
             "timestamp": time.time()
         }
 
@@ -248,7 +249,7 @@ def _get_metric_definitions():
         return {
             "definitions": [],
             "total": 0,
-            "error": str(e),
+            "error": _safe(e, logger),
             "timestamp": time.time()
         }
 

@@ -522,7 +522,7 @@ def _do_decision_with(record_id: str, *, approve: bool, note: str = "",
         logger.warning("[ApprovalRoutes] 审批动作失败 record=%s type=%s: %s",
                        record_id, name, e)
         _resp, _ = _error("approval_denied" if decision is not None
-                          else "approval_failed", str(e), status,
+                          else "approval_failed", _safe(e, logger), status,
                           decision=_public_decision(decision))
         return _resp.get_json(), status, False
 

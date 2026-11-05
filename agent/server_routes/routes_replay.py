@@ -113,7 +113,8 @@ def register_routes(app, state):
             return jsonify({
                 "ok": False,
                 "error_code": e.code,
-                "error": e.message,
+                # 【C-6】原文只进日志：error 走统一出口（py/stack-trace-exposure）
+                "error": _safe(e, logger),
             }), 500
         except (ValueError, TypeError) as e:
             return jsonify({
@@ -238,7 +239,8 @@ def register_routes(app, state):
             return jsonify({
                 "ok": False,
                 "error_code": e.code,
-                "error": e.message,
+                # 【C-6】原文只进日志：error 走统一出口（py/stack-trace-exposure）
+                "error": _safe(e, logger),
             }), 500
 
         if data is None:

@@ -7,6 +7,7 @@ import logging
 import importlib
 from flask import jsonify, request
 from agent.server_routes.tracing_decorator import trace_route
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ def register_routes(app, state):
             return jsonify(result)
         except Exception as e:
             logger.error("获取提示词配置失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     # ═══════════════════════════════════════════════════
     #  保存完整配置
@@ -117,7 +118,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error("保存提示词配置失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     # ═══════════════════════════════════════════════════
     #  重置配置
@@ -136,7 +137,7 @@ def register_routes(app, state):
             return jsonify({"ok": True})
         except Exception as e:
             logger.error("重置提示词配置失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     # ═══════════════════════════════════════════════════
     #  应用配置：生成模板 + 同步到运行文件
@@ -198,7 +199,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error("应用提示词配置失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     # ═══════════════════════════════════════════════════
     #  预览：根据配置生成模板但不保存
@@ -223,7 +224,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error("预览提示词失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     # ═══════════════════════════════════════════════════
     #  （继承原有的 system-prompt API）
@@ -250,4 +251,4 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error("检查同步状态失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500

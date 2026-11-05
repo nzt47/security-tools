@@ -39,6 +39,7 @@ from agent.server_routes.tracing_decorator import trace_route
 
 # 【P1-front 第六批 · 2026-10-05】统一响应信封（阶段 2 / R3）。只依赖 stdlib + flask。
 from agent.api_envelope import ok as _ok
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +149,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error("知识库检索失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     # ═══════════════════════════════════════════════════════════
     #  知识库 CRUD + index + lint + graph（任务6）
@@ -204,7 +205,7 @@ def register_routes(app, state):
                 "count": len(cards),
             })
         except ValueError as e:
-            return jsonify({"ok": False, "error": str(e)}), 422
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 422
 
     @app.route("/api/knowledge/cards/<slug>", methods=["GET"])
     @trace_route("Knowledge")
@@ -246,10 +247,10 @@ def register_routes(app, state):
             created = store.create(card)
         except CardConflictError as e:
             logger.warning("知识库: 创建冲突 slug=%s: %s", card.slug, e)
-            return jsonify({"ok": False, "error": str(e)}), 409
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 409
         except Exception as e:
             logger.error("知识库: 创建卡片异常: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
         return jsonify({"ok": True, "card": _card_to_dict(created)}), 201
 
     @app.route("/api/knowledge/cards/<slug>", methods=["PATCH"])
@@ -286,10 +287,10 @@ def register_routes(app, state):
             try:
                 card = store.transition(slug, to_status)
             except CardNotFoundError as e:
-                return jsonify({"ok": False, "error": str(e)}), 404
+                return jsonify({"ok": False, "error": _safe(e, logger)}), 404
             except InvalidTransitionError as e:
                 logger.warning("知识库: 非法状态迁移 slug=%s: %s", slug, e)
-                return jsonify({"ok": False, "error": str(e)}), 409
+                return jsonify({"ok": False, "error": _safe(e, logger)}), 409
             return jsonify({"ok": True, "card": _card_to_dict(card)})
 
         base = store.get(slug)
@@ -311,7 +312,7 @@ def register_routes(app, state):
             updated = store.update(base)
         except Exception as e:
             logger.warning("知识库: 更新卡片失败 slug=%s: %s", slug, e)
-            return jsonify({"ok": False, "error": str(e)}), 409
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 409
         return jsonify({"ok": True, "card": _card_to_dict(updated)})
 
     @app.route("/api/knowledge/cards/<slug>", methods=["DELETE"])
@@ -363,7 +364,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "report": asdict(report)})
         except Exception as e:
             logger.error("知识库: lint 巡检失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     @app.route("/api/knowledge/graph", methods=["GET"])
     @trace_route("Knowledge")

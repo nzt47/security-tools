@@ -22,6 +22,7 @@ from agent.server_auth import require_token
 
 from agent.jsonl_history import count_jsonl_lines, read_jsonl_tail
 from agent.server_routes.tracing_decorator import trace_route
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error("后台任务列表查询失败: %s", e)
-            return jsonify({"ok": False, "error": str(e), "tasks": []}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger), "tasks": []}), 500
 
     @app.route("/api/background/tasks/<task_id>", methods=["GET"])
     @trace_route("BackgroundTasks")
@@ -124,7 +125,7 @@ def register_routes(app, state):
             return jsonify(data)
         except Exception as e:
             logger.error("后台任务状态查询失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     @app.route("/api/background/tasks/<task_id>/result", methods=["GET"])
     @trace_route("BackgroundTasks")
@@ -137,7 +138,7 @@ def register_routes(app, state):
             return jsonify(data)
         except Exception as e:
             logger.error("后台任务结果查询失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     @app.route("/api/background/tasks/<task_id>/cancel", methods=["POST"])
     @trace_route("BackgroundTasks")
@@ -150,4 +151,4 @@ def register_routes(app, state):
             return jsonify(data), code
         except Exception as e:
             logger.error("后台任务取消失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
