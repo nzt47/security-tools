@@ -47,6 +47,7 @@ from agent.security.actor_matrix import (
     OP_VIEW_PANEL,
 )
 from agent.server_auth import require_token, resolve_request_identity
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -965,7 +966,7 @@ def register_batch(app: Any) -> None:
             except Exception as e:  # noqa: BLE001 单条异常不影响其余
                 results.append({"record_id": rid, "ok": False,
                                 "code": type(e).__name__,
-                                "message": str(e)[:200]})
+                                "message": _safe(e, logger)[:200]})
                 continue
             payload = dict(payload or {})
             payload["record_id"] = rid
