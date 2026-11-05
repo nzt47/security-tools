@@ -58,10 +58,33 @@ AUDIT_BY_RISK = {
 #: risk → 是否要求人工审批（与 ToolMeta.needs_approval 同口径，另加 critical）
 APPROVAL_RISKS = {"critical"}
 
-#: tags → 数据分级（用于 data_class）
+#: destructive 的治理三件套（validator I1 强制：requires_approval ∧ undo_hint ∧
+#: compensating_action）。本脚本**没有**来源信息，编一个具体回滚办法比缺字段更危险，
+#: 故如实写「待人工补全」—— 让缺口在治理评审里看得见，而不是让整条描述符被判 invalid
+#: 丢掉（丢掉 = 连审批边界一起消失）。
+_UNDO_HINT_TBD = "未声明：destructive 工具必须在此写明回滚办法（待人工补全）"
+_COMPENSATING_TBD = "未声明：destructive 需人工复核 + 人工补偿（待人工补全）"
+
+#: YAML 的 risk（**治理轴**五档：low/medium/high/critical）→ 描述符 RiskLevel 四级。
+#: 【为什么必须显式映射】描述符 schema 只有 low/medium/high/destructive
+#: （agent/descriptors/models.py::RiskLevel），而治理轴用的是 critical。直接透传会写出
+#: **运行时 load 不了**的条目：registry.load 判 invalid 就丢，下一次 save 连整条抹掉
+#: —— 2026-11-05 实测：96 条 cp.builtin 全部 invalid，后端一 save 台账只剩 1 条。
+#: 语义上 critical 与 destructive 同级（"会破坏/不可逆"），故 critical → destructive。
+_RISK_TO_DESCRIPTOR = {
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "critical": "destructive",
+}
+
+#: tags → 数据分级（用于 data_class）。**取值必须是 DataClass 四级**
+#: （public/internal/confidential/secret）—— 原先 channel 写的是 external，
+#: 不在枚举里，同样会被 registry 判 invalid 丢掉。
 _DATA_CLASS_BY_TAG = {
     "web": "public",
-    "channel": "external",
+    # 通道 = 消息会被发到本机之外 ⇒ 按从严分级（不是 public，也不升到 secret）
+    "channel": "confidential",
     "memory": "internal",
     "persona": "internal",
     "knowledge": "internal",
@@ -86,6 +109,10 @@ def _derive(tool: dict, meta_risk: str, meta_plane: str, meta_effect: str,
             break
     if data_class is None:
         data_class = "internal"
+    risk_level = _RISK_TO_DESCRIPTOR.get(str(meta_risk))
+    if risk_level is None:
+        # fail-closed：映射不到就不要写一条"运行时会被丢掉"的条目
+        raise ValueError("未映射的治理轴 risk: %r（工具 %s）" % (meta_risk, name))
     timeout_ms = TIMEOUT_BY_RISK.get(meta_risk, 60_000)
     idempotent = (meta_effect == "read")
 
@@ -97,7 +124,7 @@ def _derive(tool: dict, meta_risk: str, meta_plane: str, meta_effect: str,
             "output_schema": {},
         },
         "trust": {
-            "risk_level": meta_risk,
+            "risk_level": risk_level,
             "data_class": data_class,
             "requires_approval": needs_approval,
         },
@@ -111,15 +138,22 @@ def _derive(tool: dict, meta_risk: str, meta_plane: str, meta_effect: str,
             },
             "idempotent": idempotent,
         },
-        "governance": {
-            "audit_level": AUDIT_BY_RISK.get(meta_risk, "summary"),
-        },
+        "governance": _governance_block(meta_risk, risk_level),
         "evolution": {
             "stage": "shadow",
             "internalize_attempts": 0,
             "shadow_config": {},
         },
     }
+
+
+def _governance_block(meta_risk: str, risk_level: str) -> dict:
+    """governance 段（audit_level + destructive 三件套的占位说明）"""
+    gov = {"audit_level": AUDIT_BY_RISK.get(meta_risk, "summary")}
+    if risk_level == "destructive":
+        gov["undo_hint"] = _UNDO_HINT_TBD
+        gov["compensating_action"] = _COMPENSATING_TBD
+    return gov
 
 
 def _merge_keep_existing(existing: dict, derived: dict, force: bool = False) -> dict:
@@ -143,6 +177,25 @@ def _merge_keep_existing(existing: dict, derived: dict, force: bool = False) -> 
             if force or k not in cur or cur[k] in (None, "", {}, [], 0, False):
                 cur[k] = copy.deepcopy(v)
     return out
+
+
+def _validate_desc(entry: dict) -> list[str]:
+    """用**运行时同一套**模型/校验器验一遍，返回错误列表（空 = 合法）。
+
+    【为什么必须自查】本脚本写的是**运行时台账**：写进去的条目若不在枚举取值域内，
+    DescriptorRegistry.load() 会判 invalid 直接跳过，下一次 save 还会把整条抹掉。
+    2026-11-05 实测：脚本报「cp.builtin 覆盖 96/96」，而运行时一条都没加载进来
+    （96/96 全部 invalid），后端一注册新描述符就把台账写成了 1 条。
+    """
+    try:
+        from agent.descriptors.models import ToolDescriptor
+        from agent.descriptors.validator import validate_descriptor
+        result = validate_descriptor(ToolDescriptor.from_storage_dict(entry))
+    except Exception as exc:  # noqa: BLE001 解析失败也算不合法
+        return ["解析失败: " + type(exc).__name__]
+    if result.valid:
+        return []
+    return list(result.errors or ["未知校验错误"])
 
 
 def main() -> int:
@@ -177,13 +230,27 @@ def main() -> int:
 
     if args.check:
         print(f"[{'OK' if not missing else 'FAIL'}] 描述符覆盖 {len(have)}/{len(tools)} 个工具")
+        # 【C-6】覆盖 ≠ 可用：还要用运行时那套模型验一遍已有条目，
+        # 否则「96/96」可能全是 invalid（运行时一条也加载不进来）。
+        bad = []
+        for cid in sorted(have):
+            errs = _validate_desc(desc[cid])
+            if errs:
+                bad.append((cid, errs))
+        if bad:
+            print("[FAIL] %d 条 cp.builtin 描述符**不合运行时 schema**（load 会整条丢弃）：" % len(bad))
+            for cid, errs in bad[:10]:
+                print("   - %s: %s" % (cid, ("; ".join(errs))[:200]))
+            return 1
         if missing:
             print(f"   缺失 {len(missing)} 个: {missing[:20]}{' …' if len(missing) > 20 else ''}")
             print("   运行 python scripts/backfill_tool_descriptors.py 补齐")
             return 1
+        print(f"[OK] {len(have)} 条 cp.builtin 描述符全部通过运行时校验")
         return 0
 
     created = updated = 0
+    invalid: list[tuple[str, list[str]]] = []
     for name, tool in tools.items():
         cid = f"cp.builtin.{name}"
         m = meta.get(name)
@@ -199,14 +266,20 @@ def main() -> int:
             desc[cid] = _merge_keep_existing(desc[cid], derived, force=args.force)
             if json.dumps(desc[cid], ensure_ascii=False, sort_keys=True) != before:
                 updated += 1
+            errs = _validate_desc(desc[cid])
+            if errs:
+                invalid.append((cid, errs))
             continue
 
         d = {
             "meta": {"id": cid, "version": "0.1.0",
                      "created_at": _now(), "updated_at": _now()},
+            # provenance 四级只有 unknown/declared/verified/signed（ProvenanceLevel）；
+            # 本脚本产出的是「按声明派生」⇒ declared，并把声明文件登记进 evidence。
             "origin": {"source_type": "builtin", "source_id": "builtin",
-                       "provenance": "derived:tool_definitions",
-                       "evidence": [], "external_endpoint": False, "manifest_ref": ""},
+                       "provenance": "declared",
+                       "evidence": ["data/tool_definitions/" + name + ".yaml"],
+                       "external_endpoint": False, "manifest_ref": ""},
             "tenancy": {"tenant_id": "default", "scope": "project"},
         }
         d.update(derived)
@@ -218,8 +291,18 @@ def main() -> int:
             f"trace:builtin:call-side:ledger=unified_traces"
             f"@agent/data/tool_trace.db#capability_id={cid}"
             f"#read=UnifiedTraceStore.list_by_capability")
+        errs = _validate_desc(d)
+        if errs:
+            invalid.append((cid, errs))
         desc[cid] = d
         created += 1
+
+    if invalid:
+        # fail-closed：不写盘 —— 写进去也只会被运行时丢掉，还会顺手抹掉别的条目
+        print("[FAIL] %d 条派生描述符不合运行时 schema，**未写盘**：" % len(invalid))
+        for cid, errs in invalid[:10]:
+            print("   - %s: %s" % (cid, ("; ".join(errs))[:200]))
+        return 1
 
     doc.setdefault("audit", []).append({
         "ts": _now(), "action": "descriptor.backfill",
