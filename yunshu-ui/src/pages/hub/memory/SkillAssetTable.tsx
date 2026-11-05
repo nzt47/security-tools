@@ -855,8 +855,12 @@ export default function SkillAssessManager() {
           运行时 {counts.runtime} · 资产 {counts.assets} · 仅运行时 {runtimeOnlyCount}
         </span>
         <div className="ml-auto flex flex-wrap gap-1.5">
-          <button type="button" className={BTN_EM} onClick={() => setCreateOpen(true)}>
-            <Plus size={12} /> 新建技能
+          {/* 【2026-11-05 IA】「新建技能（手写）」降级为次要入口：常规路径是
+              「能力获取 → 直通」（文本 → 草稿 → 队列）或对话里让模型起草；
+              手写只给「就要一条空白技能」的场景，所以样式从主色降到中性色。 */}
+          <button type="button" className={BTN} onClick={() => setCreateOpen(true)}
+            title="手写一条空白技能（少用）：批量/外来内容请走「能力获取 → 直通」，登记与启用走「能力获取 → 转化队列」">
+            <Plus size={12} /> 新建（手写）
           </button>
           <button type="button" className={BTN_EM} onClick={() => void runAll()} disabled={busy !== ''}>
             {busy === '全量自动评审-评估' ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}

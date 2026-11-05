@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-11-05T19:05:38+08:00",
+  "repo": {
+    "branch": "master",
+    "head": "53c7536e8",
+    "origin_master": "53c7536e8",
+    "tracked_dirty_lines": 1
+  },
+  "service": {
+    "backend": "53c7536e8",
+    "frontend": "53c7536e8",
+    "bundle": "index-CjHPgHa-.js",
+    "pid": 9156
+  },
+  "skills": {
+    "file_track": 46,
+    "cards": 46
+  },
+  "scheduler": {
+    "total": 16,
+    "enabled": 16
+  },
+  "units": {
+    "ok": 10,
+    "warn": 1,
+    "never": 1,
+    "score": 91.7
+  },
+  "tools": {
+    "total": 94,
+    "disabled": [
+      "byted_bp_cdn_pagesdeploy",
+      "schedule_task"
+    ]
+  },
+  "audit_rows": 82408
+}
