@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-05T13:20:34",
+  "generated_at": "2026-11-05T19:45:16",
   "totals": {
     "routes": 497,
     "live": 497,
@@ -3121,6 +3121,7 @@
       "dead_copy": false,
       "dead_defs": [],
       "ui_refs": [
+        "yunshu-ui/src/pages/hub/governance/dev-notes.tsx",
         "yunshu-ui/src/pages/hub/governance/feedback.tsx"
       ],
       "non_ui_refs": [],
@@ -7159,7 +7160,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "scripts/handoff_snapshot.py"
+      ],
       "where": [
         "plugins/mcp_scheduler.py:174"
       ],
@@ -10644,7 +10647,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "scripts/handoff_snapshot.py"
+      ],
       "where": [
         "agent/server_routes/routes_units.py:26"
       ],
@@ -10920,7 +10925,9 @@
       "ui_refs": [
         "yunshu-ui/src/api/endpoints.ts"
       ],
-      "non_ui_refs": [],
+      "non_ui_refs": [
+        "scripts/handoff_snapshot.py"
+      ],
       "where": [
         "plugins/skills.py:750"
       ],
@@ -11382,7 +11389,8 @@
       "dead_defs": [],
       "ui_refs": [],
       "non_ui_refs": [
-        "scripts/deploy_workbench.py"
+        "scripts/deploy_workbench.py",
+        "scripts/handoff_snapshot.py"
       ],
       "where": [
         "plugins/version_info.py:37"

@@ -21,6 +21,7 @@ import {
   BookOpen, CheckCircle2, FileText, Loader2, MessageSquare, RefreshCw, Send, Star,
 } from 'lucide-react'
 import { ErrorBox, hubGet, hubPost } from '../components/ui'
+import DevNotesPanel from './dev-notes'
 import {
   FEEDBACK_LIST,
   FEEDBACK_QUALITY_CASES,
@@ -61,7 +62,8 @@ interface Summary {
   time_range_days?: number
 }
 
-type Tab = 'list' | 'report' | 'cases' | 'submit'
+// 【2026-11-05】新增 notes：开发随记（问题与想法）—— 复用反馈存储，category=dev-note。
+type Tab = 'list' | 'report' | 'cases' | 'submit' | 'notes'
 
 export default function FeedbackCenter() {
   const [tab, setTab] = useState<Tab>('list')
@@ -223,7 +225,7 @@ export default function FeedbackCenter() {
       </div>
 
       <div className="mb-2 flex items-center gap-1">
-        {([['list', '反馈列表'], ['report', '分析报告'], ['cases', '优质案例'], ['submit', '提交反馈']] as const).map(([id, label]) => (
+        {([['list', '反馈列表'], ['report', '分析报告'], ['cases', '优质案例'], ['submit', '提交反馈'], ['notes', '开发随记']] as const).map(([id, label]) => (
           <button
             key={id}
             type="button"
@@ -237,6 +239,8 @@ export default function FeedbackCenter() {
           </button>
         ))}
       </div>
+
+      {tab === 'notes' && <DevNotesPanel />}
 
       {tab === 'list' && (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
