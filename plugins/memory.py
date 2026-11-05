@@ -266,8 +266,10 @@ def api_context_status():
     #   用户看到的是"没几下就用满了"。累计压缩次数与"当前窗口占用"是两件事，
     #   编排层已在 `_check_context_usage`（TASK-S10-03）明确区分 summary_degraded / usage_high，
     #   本面板与之对齐。顺带删掉 `pct_warn = pct >= 80 or pct >= 60` 那句死代码（写等于没写）。
-    compress_degraded = compress_rounds >= 5
-    compress_warn = compress_rounds >= 3
+    # 【2026-11-05】档位改看**当前窗口**的压缩次数，不看累计摘要版本：
+    # 换会话后累计值不归零（实测 89），按它判就是「永远红」——用户会以为一直在压缩。
+    compress_degraded = compress_rounds_window >= 5
+    compress_warn = compress_rounds_window >= 3
     if pct is None:
         status_level = "unknown"
     elif pct >= 95:

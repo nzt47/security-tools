@@ -335,6 +335,15 @@ class MemoryManager:
         # 压缩阈值
         self._token_limit = config.get("token_limit", _TOKEN_LIMIT_DEFAULT)
         self._compress_threshold = config.get("compress_threshold", 0.8)
+        # 【2026-11-05 · 压缩风暴修复】压缩**不删消息**（只 save_summary），所以水位压完不降；
+        # 旧逻辑每条新消息都重新判 `>= token_limit*0.8` ⇒ 过了阈值后**每条消息压一次**
+        # （本机实测摘要版本已到 89，用户感觉"一直在压缩"）。
+        # 现在记一个"上次压缩时的正文 token"地板：再压之前正文至少要比它多长 X 倍。
+        self._compress_floor_tokens = 0
+        self._recompress_growth_ratio = float(
+            config.get("recompress_growth_ratio", 1.10))
+        if self._recompress_growth_ratio <= 1.0:
+            self._recompress_growth_ratio = 1.10
 
         # [审计改进] 内存消息窗口（滑动窗口 LRU 缓存）：
         # 最近的消息在内存中保留，get_context 不再每次读文件，
@@ -459,6 +468,12 @@ class MemoryManager:
             # 原逻辑在 get_context 内清除：后台未运行时标记会被直接丢弃（压缩永不执行）；
             # 现改由压缩执行处清除，失败则保留标记供后台下一轮重试。
             self._need_compress = False
+            # 记录本次压缩时的正文水位：下一次要么多长 10%（默认），要么永不重复压。
+            try:
+                counted_now, _ = self._compress_accounting(recent_messages)
+                self._compress_floor_tokens = int(counted_now)
+            except Exception:  # noqa: BLE001 记录失败不影响压缩结果
+                self._compress_floor_tokens = 0
             return True
         except Exception as e:
             total_elapsed = (time.time() - total_start) * 1000
@@ -512,6 +527,10 @@ class MemoryManager:
         记忆会无界增长。
         """
         counted, tool_tokens = self._compress_accounting(messages)
+        # 地板：压过之后正文没再长到 `floor * growth` 就先不压（否则每来一条消息压一次）
+        floor = getattr(self, "_compress_floor_tokens", 0) or 0
+        if floor and counted < int(floor * getattr(self, "_recompress_growth_ratio", 1.10)):
+            return False
         if tool_tokens:
             # 只在与"确实有工具结果"时才多说一句：让"为什么没压缩"可复核
             logger.info(

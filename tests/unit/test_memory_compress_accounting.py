@@ -121,6 +121,45 @@ class TestTrigger:
         assert manager._should_compress_now(mixed) is False
 
 
+
+
+class TestRecompressFloor:
+    """2026-11-05：压缩不删消息 ⇒ 水位压完不降。加一个「上次压缩水位地板」，
+    再压之前正文至少要比它多长 recompress_growth_ratio（默认 1.10）倍，
+    否则过了阈值会**每条消息压一次**（实测摘要版本 89）。"""
+
+    def test_地板未长够则不重复压(self, manager):
+        manager._compress_floor_tokens = 900
+        # 900*1.1 = 990；950 已过阈值（800）但没长够
+        assert manager._should_compress_now([_msg("user", 950)]) is False
+
+    def test_长够比例后再压(self, manager):
+        manager._compress_floor_tokens = 900
+        assert manager._should_compress_now([_msg("user", 1000)]) is True
+
+    def test_地板为_0_时行为不变(self, manager):
+        manager._compress_floor_tokens = 0
+        assert manager._should_compress_now([_msg("user", 900)]) is True
+
+    def test_比例下限被夹住(self, tmp_path):
+        """配 1.0 或更小会把地板变成「永不压缩」，必须夹回 1.10 以上。"""
+        mgr = MemoryManager(config={
+            "data_dir": str(tmp_path / "memory_ratio"),
+            "token_limit": 1000,
+            "compress_threshold": 0.8,
+            "recompress_growth_ratio": 1.0,
+            "llm": {"provider": "openai", "api_key": "sk-test-key-valid-12345", "model": "gpt-4"},
+            "async_compress": {"enabled": False},
+        })
+
+        class _Counter:
+            def count(self, text):
+                return len(text or "")
+
+        mgr._token_counter = _Counter()
+        assert mgr._recompress_growth_ratio >= 1.10
+
+
 class TestOtherEntryPointsShareTheSameRule:
     """审计 P2-1/P2-4：压缩触发的**每一处入口**都必须走同一口径"""
 
