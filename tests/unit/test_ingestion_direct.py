@@ -81,3 +81,71 @@ def test_空白文本直接拒绝():
 
     with pytest.raises(InvalidSource):
         service.direct("   ")
+
+
+# ── HTTP 层（/api/ingestion/direct）：只测鉴权后的显式确认与响应形状 ──
+
+from flask import Flask  # noqa: E402
+
+import agent.server_auth as server_auth  # noqa: E402
+import plugins.ingestion as ingestion_plugin  # noqa: E402
+import plugins.plugin_api as plugin_api  # noqa: E402
+from agent.ingestion.models import IngestResult  # noqa: E402
+
+AUTH = {'Authorization': 'Bearer test-token'}
+
+
+@pytest.fixture()
+def client(monkeypatch):
+    monkeypatch.setenv('FLASK_API_TOKEN', 'test-token')
+    monkeypatch.setattr(server_auth, '_AUTH_DISABLED_FOR_TEST', False)
+    monkeypatch.setattr(plugin_api, '_resolve_host_decorator',
+                        lambda name: getattr(server_auth, name))
+    app = Flask(__name__)
+    app.register_blueprint(ingestion_plugin.bp)
+    return app.test_client()
+
+
+class _Plan:
+    plan_id = 'ig_direct'
+    adapter = 'docs'
+    rewritten = True
+    dedupe = []
+    warnings = ['示例警告']
+    merge_suggestion = None
+
+    class conformance:  # noqa: N801 模拟模型对象
+        level = 'L2'
+
+
+def test_直通缺_confirm_不写任何文件(client):
+    resp = client.post('/api/ingestion/direct', json={'text': '一段文本'}, headers=AUTH)
+    assert resp.status_code == 400
+    body = resp.get_json()
+    assert 'confirm' in str(body)
+
+
+def test_直通成功返回结果与计划(client, monkeypatch):
+    def fake_direct(text, **kwargs):
+        assert text.startswith('把会议记录')
+        return (
+            IngestResult(plan_id='ig_direct', skill_id='alpha', name='Alpha',
+                         version='0.1.0', scripts_count=0, adapter='docs',
+                         conformance='L2', warnings=[], installed=False,
+                         rewritten=True, archive_id='', queued=False,
+                         form='skill', draft=True,
+                         draft_dir='data/ingestion/drafts/ing_x'),
+            _Plan(),
+        )
+
+    monkeypatch.setattr(service, 'direct', fake_direct)
+    resp = client.post('/api/ingestion/direct',
+                       json={'text': '把会议记录整理成待办', 'confirm': True,
+                             'allow_rewrite': True},
+                       headers=AUTH)
+    assert resp.status_code == 200
+    data = resp.get_json()['data']
+    assert data['result']['draft'] is True
+    assert data['result']['installed'] is False
+    assert data['plan']['level'] == 'L2'
+    assert data['plan']['plan_id'] == 'ig_direct'
