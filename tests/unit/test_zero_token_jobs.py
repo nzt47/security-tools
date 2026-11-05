@@ -39,6 +39,38 @@ class TestCatalog:
                     seg and "/" not in seg for seg in job["endpoint"]
                 ), job
 
+
+
+class TestLearningDrafts:
+    def test_学习作业只报草稿数不打印记忆内容(self, monkeypatch):
+        """学习抽象作业：请求体固定（days/max_skills），结果只回计数（隐私）。"""
+        captured: dict = {}
+
+        def fake_http(method, parts, timeout=0, body=None):
+            captured['method'] = method
+            captured['parts'] = parts
+            captured['body'] = body
+            return {'status': 200, 'body': {'data': {
+                'ok': True, 'total_clusters': 3, 'passed_clusters': 2,
+                'drafts': [{'drafted': True}, {'drafted': False}, {'drafted': True}],
+            }}}
+
+        monkeypatch.setattr(z, '_http_json', fake_http)
+        job = z._BY_KEY['learning_drafts']
+        ok, detail = z._job_learning_drafts(job)
+        assert ok is True
+        assert captured['method'] == 'POST'
+        assert captured['body'] == {'days': 7, 'max_skills': 3}
+        assert '草稿=2' in detail
+        assert '聚类=3' in detail
+
+    def test_学习作业在清单里且零_token(self):
+        job = z._BY_KEY['learning_drafts']
+        assert job['kind'] == 'http' and job['method'] == 'POST'
+        assert job['endpoint'][-1] == 'abstract-from-memory'
+
+
+class TestDescribe:
     def test_describe可JSON化(self):
         payload = json.loads(json.dumps(z.describe(), ensure_ascii=False))
         assert len(payload) == len(z.JOBS)

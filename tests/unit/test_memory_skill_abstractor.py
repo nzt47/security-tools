@@ -622,25 +622,33 @@ class TestEndToEnd(unittest.TestCase):
         self._created.append(skill)
         return skill
 
-    def test_end_to_end_register(self):
-        """5 条相似记忆 → 1 个草稿 → 注册成技能"""
-        abstractor = MemorySkillAbstractor(enable_signal_scoring=False, skills_service=self.svc)
-        entries = [
-            MemoryEntry(source="workflow", source_id=f"wf-{i}",
-                        task_text="analyze python code quality",
-                        success=True, tool_calls=[{"name": "grep"}],
-                        params={"lang": "python"}, tags=["python", "review"])
-            for i in range(5)
-        ]
-        results = abstractor.abstract_new_skills(
-            memory_entries=entries, auto_register=True,
-        )
-        self.assertEqual(len(results), 1)
-        r = results[0]
-        self.assertTrue(r["quality_gate_passed"])
-        self.assertTrue(r["registered"])
-        self.assertIsNotNone(r["skill_id"])
-        self.assertEqual(len(self._created), 1)
+    def test_end_to_end_只落草稿不注册(self):
+        """5 条相似记忆 → 1 个草稿（隔离区 + 台账），**不再直接注册**（2026-11-05 IA）。"""
+        import pathlib
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch("agent.skills_mgmt.transform.jobs.upsert_job", lambda **kw: None):
+            abstractor = MemorySkillAbstractor(
+                enable_signal_scoring=False, skills_service=self.svc,
+                draft_dir=pathlib.Path(tmp) / "drafts",
+            )
+            entries = [
+                MemoryEntry(source="workflow", source_id=f"wf-{i}",
+                            task_text="analyze python code quality",
+                            success=True, tool_calls=[{"name": "grep"}],
+                            params={"lang": "python"}, tags=["python", "review"])
+                for i in range(5)
+            ]
+            results = abstractor.abstract_new_skills(
+                memory_entries=entries, auto_register=True,
+            )
+            self.assertEqual(len(results), 1)
+            r = results[0]
+            self.assertTrue(r["quality_gate_passed"])
+            self.assertFalse(r["registered"], "学习不再直接注册")
+            self.assertTrue(r["drafted"], "应落一份隔离区草稿")
+            self.assertEqual(len(self._created), 0, "不得调用 create_manual")
+            self.assertTrue((pathlib.Path(r["draft_dir"]) / "SKILL.md").is_file())
 
     def test_idempotency(self):
         """重复调用产生相同 skill_id"""

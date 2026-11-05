@@ -33,7 +33,7 @@ import subprocess
 import sys
 import time
 import urllib.request
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +58,7 @@ HTTP_TIMEOUT = 120
 EP_MEMORY_REVIEW = ("api", "memory", "review")
 EP_HEALTH = ("api", "health")
 EP_SKILLS_CLASSIFY = ("api", "skills", "classify", "run-auto")
+EP_ABSTRACT_FROM_MEMORY = ("api", "skills-mgmt", "abstract-from-memory")
 EP_TOPOLOGY = ("api", "modules", "topology")
 
 JOBS: List[Dict[str, Any]] = [
@@ -110,6 +111,18 @@ JOBS: List[Dict[str, Any]] = [
         "method": "POST",
         "endpoint": EP_SKILLS_CLASSIFY,
         "note": "纯规则分类（无 LLM）：为未归类技能补分类，可自动建类",
+    },
+    {
+        "key": "learning_drafts",
+        "name": "学习·记忆抽象草稿",
+        "hour": 10,
+        "minute": 20,
+        "kind": "http",
+        "method": "POST",
+        "endpoint": EP_ABSTRACT_FROM_MEMORY,
+        "json": {"days": 7, "max_skills": 3},
+        # 零 token（聚类 + 模板生成，不调 LLM）；**只写草稿**，登记/启用仍在转化队列。
+        "note": "把最近 7 天记忆聚类后只产草稿（source=learning）；不注册、不启用",
     },
     {
         "key": "health_snapshot",
@@ -184,10 +197,16 @@ def _api_token() -> str:
     return ""
 
 
-def _http_json(method: str, endpoint_parts: Tuple[str, ...], timeout: int = HTTP_TIMEOUT) -> Dict[str, Any]:
+def _http_json(method: str, endpoint_parts: Tuple[str, ...], timeout: int = HTTP_TIMEOUT,
+               body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """打本机端点，返回 {status, body}；令牌只进请求头，不回显。"""
     url = BASE_URL.rstrip("/") + endpoint(endpoint_parts)
-    req = urllib.request.Request(url, method=method)
+    data = None
+    if body is not None:
+        data = json.dumps(body, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(url, method=method, data=data)
+    if data is not None:
+        req.add_header("Content-Type", "application/json")
     token = _api_token()
     if token:
         req.add_header("X-API-Token", token)
@@ -227,12 +246,27 @@ def _job_health_snapshot() -> Tuple[bool, str]:
     return True, "health=" + str(health.get("status")) + " 节点=" + json.dumps(counts, ensure_ascii=False)
 
 
+def _job_learning_drafts(job: Dict[str, Any]) -> Tuple[bool, str]:
+    """学习抽象：只记「产出几张草稿」，不打印记忆内容（隐私）。"""
+    r = _http_json("POST", tuple(job["endpoint"]), body=job.get("json"))
+    payload = (r.get("body") or {}).get("data") or {}
+    if not payload.get("ok", True):
+        return False, "服务端 not ok: " + _tail(str(payload.get("error", "")), 160)
+    drafts = payload.get("drafts") or []
+    drafted = sum(1 for d in drafts if d.get("drafted"))
+    return True, ("聚类=%s 过闸=%s 草稿=%d"
+                  % (payload.get("total_clusters"), payload.get("passed_clusters", 0), drafted))
+
+
 def _run_http_job(job: Dict[str, Any]) -> Tuple[bool, str]:
     if job["key"] == "health_snapshot":
         return _job_health_snapshot()
     if job["key"] == "memory_review":
         return _job_memory_review()
-    r = _http_json(job.get("method", "GET"), tuple(job["endpoint"]))
+    if job["key"] == "learning_drafts":
+        return _job_learning_drafts(job)
+    r = _http_json(job.get("method", "GET"), tuple(job["endpoint"]),
+                   body=job.get("json"))
     body = r.get("body") or {}
     if isinstance(body, dict) and body.get("code") not in (None, 200):
         return False, "服务端返回 code=" + str(body.get("code")) + " " + _tail(str(body.get("message", "")), 160)
