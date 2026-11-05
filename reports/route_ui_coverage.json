@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-11-05T19:45:16",
+  "generated_at": "2026-11-05T20:55:40",
   "totals": {
-    "routes": 497,
-    "live": 497,
+    "routes": 498,
+    "live": 498,
     "dead_copy": 0,
     "dead_definitions": 0,
-    "ui": 438,
+    "ui": 439,
     "cli_script": 15,
     "runtime_only": 11,
     "unreferenced": 33,
     "live_by_category": {
-      "ui": 438,
+      "ui": 439,
       "cli_script": 15,
       "runtime_only": 11,
       "unreferenced": 33
     },
     "by_intent": {
-      "should_be_in_ui": 416,
+      "should_be_in_ui": 417,
       "should_not_be_in_ui": 76,
       "unclassified": 5
     },
@@ -28,7 +28,7 @@
       "资产与文件": 19,
       "管理与后台": 18,
       "调度与任务": 26,
-      "对话与会话": 34,
+      "对话与会话": 35,
       "业务与评估": 18,
       "技能与工具": 134,
       "认知与学习": 6,
@@ -37,7 +37,7 @@
       "记忆与知识": 39
     }
   },
-  "frontend_endpoints": 442,
+  "frontend_endpoints": 443,
   "frontend_unmatched": [
     "/api/approval",
     "/api/approval/*/*",
@@ -1308,7 +1308,7 @@
         "scripts/probe_prefix_cache_interaction.py"
       ],
       "where": [
-        "plugins/chat.py:2617"
+        "plugins/chat.py:2674"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1331,7 +1331,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1111"
+        "plugins/chat.py:1168"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -1536,7 +1536,7 @@
         "scripts/compress_memory_now.py"
       ],
       "where": [
-        "plugins/memory.py:385"
+        "plugins/memory.py:387"
       ],
       "description": "手动触发上下文压缩（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -1561,7 +1561,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:324"
+        "plugins/memory.py:326"
       ],
       "description": "更新上下文控制参数（**已迁移到统一信封**）。",
       "description_source": "handler",
@@ -3872,7 +3872,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1089"
+        "plugins/chat.py:1146"
       ],
       "description": "云枢对话域插件（T1.2）：对话 / 会话 / 历史记录 / 语音 / 新闻 / 清空。",
       "description_source": "module",
@@ -3897,7 +3897,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1125"
+        "plugins/chat.py:1182"
       ],
       "description": "删除指定索引的历史记录（同时删除用户消息和助手回复）",
       "description_source": "handler",
@@ -4266,7 +4266,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:890"
+        "plugins/memory.py:892"
       ],
       "description": "添加知识文档（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -4896,7 +4896,7 @@
       "ui_refs": [],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:498"
+        "plugins/memory.py:500"
       ],
       "description": "【2026-10-25 修正】按序号删除**未实现**，此前恒返回 ok:true 却没删任何东西。",
       "description_source": "handler",
@@ -4921,7 +4921,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:598"
+        "plugins/memory.py:600"
       ],
       "description": "清空长期摘要",
       "description_source": "handler",
@@ -4948,7 +4948,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/memory.py:476"
+        "plugins/memory.py:478"
       ],
       "description": "触发记忆压缩",
       "description_source": "handler",
@@ -4976,7 +4976,7 @@
         "agent/modules_registry.py"
       ],
       "where": [
-        "plugins/memory.py:444"
+        "plugins/memory.py:446"
       ],
       "description": "手动添加记忆",
       "description_source": "handler",
@@ -5001,7 +5001,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:519"
+        "plugins/memory.py:521"
       ],
       "description": "按 id 删除一条长期记忆：**默认 dry-run**，真删必须 confirm=true。",
       "description_source": "handler",
@@ -5028,7 +5028,7 @@
         "agent/modules_api.py"
       ],
       "where": [
-        "plugins/memory.py:412"
+        "plugins/memory.py:414"
       ],
       "description": "获取记忆概览",
       "description_source": "handler",
@@ -5054,7 +5054,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:627"
+        "plugins/memory.py:629"
       ],
       "description": "记忆库审查接口（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -5079,7 +5079,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:610"
+        "plugins/memory.py:612"
       ],
       "description": "更新长期摘要内容",
       "description_source": "handler",
@@ -5104,7 +5104,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:1004"
+        "plugins/memory.py:1006"
       ],
       "description": "清空窗口事件记录",
       "description_source": "handler",
@@ -5130,7 +5130,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:987"
+        "plugins/memory.py:989"
       ],
       "description": "获取或更新窗口监控配置",
       "description_source": "handler",
@@ -5155,7 +5155,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:977"
+        "plugins/memory.py:979"
       ],
       "description": "获取当前活跃窗口",
       "description_source": "handler",
@@ -5180,7 +5180,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:919"
+        "plugins/memory.py:921"
       ],
       "description": "获取窗口切换事件",
       "description_source": "handler",
@@ -5205,7 +5205,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:935"
+        "plugins/memory.py:937"
       ],
       "description": "获取窗口使用统计",
       "description_source": "handler",
@@ -6575,8 +6575,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:926",
-        "plugins/chat.py:934"
+        "plugins/chat.py:983",
+        "plugins/chat.py:991"
       ],
       "description": "列出全部项目（id / name / workspace_root / created_at / updated_at）",
       "description_source": "handler",
@@ -6602,8 +6602,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:959",
-        "plugins/chat.py:988"
+        "plugins/chat.py:1016",
+        "plugins/chat.py:1045"
       ],
       "description": "改名 / 改工作空间：body {name?, path|workspace_root?, create?}（只改传了的字段）",
       "description_source": "handler",
@@ -6628,7 +6628,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:2576"
+        "plugins/chat.py:2633"
       ],
       "description": "提示词实验室「真实接口」的后端代理（2026-10-14 修 404）。",
       "description_source": "handler",
@@ -7661,8 +7661,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1023",
-        "plugins/chat.py:1032"
+        "plugins/chat.py:1080",
+        "plugins/chat.py:1089"
       ],
       "description": "列出分组及 会话→分组 归属表；?project_id= 只返回该项目下的分组",
       "description_source": "handler",
@@ -7688,8 +7688,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1047",
-        "plugins/chat.py:1062"
+        "plugins/chat.py:1104",
+        "plugins/chat.py:1119"
       ],
       "description": "重命名分组",
       "description_source": "handler",
@@ -7793,7 +7793,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:1073"
+        "plugins/chat.py:1130"
       ],
       "description": "把会话移入/移出分组：body {group_id: string|null}；null = 未分组",
       "description_source": "handler",
@@ -7896,7 +7896,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:761"
+        "plugins/chat.py:818"
       ],
       "description": "列出会话工作空间文件树（会话不存在 404）",
       "description_source": "handler",
@@ -7922,8 +7922,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:784",
-        "plugins/chat.py:810"
+        "plugins/chat.py:841",
+        "plugins/chat.py:867"
       ],
       "description": "绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区）",
       "description_source": "handler",
@@ -7948,7 +7948,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:822"
+        "plugins/chat.py:879"
       ],
       "description": "在系统文件管理器中打开该会话的工作空间目录（本机桌面应用场景）",
       "description_source": "handler",
@@ -7980,6 +7980,31 @@
       "intent": "should_be_in_ui",
       "intent_area": "会话管理",
       "intent_note": "会话管理：重命名/分组/项目归属/工作空间/智能体绑定。",
+      "ui_pending": false,
+      "domain": "对话与会话"
+    },
+    {
+      "path": "/api/sessions/from-handoff",
+      "norm": "/api/sessions/from-handoff",
+      "methods": [
+        "POST"
+      ],
+      "category": "ui",
+      "live": true,
+      "dead_copy": false,
+      "dead_defs": [],
+      "ui_refs": [
+        "yunshu-ui/src/api/endpoints.ts"
+      ],
+      "non_ui_refs": [],
+      "where": [
+        "plugins/chat.py:756"
+      ],
+      "description": "用交接文档开一个新会话（可选的续接入口）",
+      "description_source": "handler",
+      "intent": "should_be_in_ui",
+      "intent_area": "会话管理",
+      "intent_note": "2026-11-05：用交接文档开新会话（生成/复用 Markdown + 建会话 + 文档作为首条 user 消息）。入口在「会话交接文档」面板的「用这份文档开新会话」；配合上下文 65% 提示。",
       "ui_pending": false,
       "domain": "对话与会话"
     },
@@ -11215,7 +11240,7 @@
         "agent/memory_import/targets.py"
       ],
       "where": [
-        "plugins/memory.py:705"
+        "plugins/memory.py:707"
       ],
       "description": "添加单条向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11240,7 +11265,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:728"
+        "plugins/memory.py:730"
       ],
       "description": "批量添加向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11265,7 +11290,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:865"
+        "plugins/memory.py:867"
       ],
       "description": "清空向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11291,8 +11316,8 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:750",
-        "plugins/memory.py:765"
+        "plugins/memory.py:752",
+        "plugins/memory.py:767"
       ],
       "description": "按 ID 获取记忆项（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11317,7 +11342,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:817"
+        "plugins/memory.py:819"
       ],
       "description": "获取最近的向量记忆（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -11342,7 +11367,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:664"
+        "plugins/memory.py:666"
       ],
       "description": "语义搜索向量记忆",
       "description_source": "handler",
@@ -11367,7 +11392,7 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/memory.py:691"
+        "plugins/memory.py:693"
       ],
       "description": "获取向量记忆统计（legacy：原 agent/server_routes/routes_memory.py）",
       "description_source": "handler",
@@ -12141,9 +12166,9 @@
       ],
       "non_ui_refs": [],
       "where": [
-        "plugins/chat.py:886",
-        "plugins/chat.py:894",
-        "plugins/chat.py:910"
+        "plugins/chat.py:943",
+        "plugins/chat.py:951",
+        "plugins/chat.py:967"
       ],
       "description": "列出已添加的工作区（路径/名称/添加时间）",
       "description_source": "handler",
@@ -12740,5 +12765,5 @@
       "domain": "开发与内部"
     }
   ],
-  "content_hash": "13b59edda436a979"
+  "content_hash": "e33d005da5ecc05f"
 }
