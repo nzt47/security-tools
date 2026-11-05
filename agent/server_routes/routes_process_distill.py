@@ -26,6 +26,7 @@ from flask import request, jsonify
 
 from agent.server_auth import require_token, log_request
 from agent.server_routes.tracing_decorator import trace_route
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ def register_routes(app, state):
         try:
             return jsonify(_get_service().health())
         except Exception as e:  # noqa: BLE001
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     @app.route("/api/process-distill/distill", methods=["POST"])
     @trace_route("ProcessDistill")
@@ -106,8 +107,8 @@ def register_routes(app, state):
             return jsonify(result), status
         except ValueError as e:
             return jsonify({
-                "ok": False, "error": str(e), "code": "VALIDATION_ERROR",
+                "ok": False, "error": _safe(e, logger), "code": "VALIDATION_ERROR",
             }), 400
         except Exception as e:  # noqa: BLE001
             logger.exception("[ProcessDistill] distill 异常")
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500

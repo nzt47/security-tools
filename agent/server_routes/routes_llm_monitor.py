@@ -7,6 +7,7 @@ import logging
 from flask import jsonify, request
 from agent.server_auth import require_token
 from agent.server_routes.tracing_decorator import trace_route
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error("获取 LLM 监控记录失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     # ═══════════════════════════════════════════════════
     #  获取统计概览
@@ -71,7 +72,7 @@ def register_routes(app, state):
             return jsonify(stats)
         except Exception as e:
             logger.error("获取 LLM 监控统计失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     # ═══════════════════════════════════════════════════
     #  启用/禁用/清除
@@ -89,7 +90,7 @@ def register_routes(app, state):
             monitor.set_enabled(enabled)
             return jsonify({"ok": True, "enabled": enabled})
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     @app.route("/api/llm-monitor/clear", methods=["POST"])
     @trace_route("LLMMonitor")
@@ -102,4 +103,4 @@ def register_routes(app, state):
             monitor.clear()
             return jsonify({"ok": True, "cleared": count})
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500

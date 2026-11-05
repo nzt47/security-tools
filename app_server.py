@@ -26,6 +26,7 @@ import signal  # 优雅关闭：SIGTERM/SIGINT/SIGBREAK 处理器（见 _install
 import urllib.request as _ur
 import urllib.parse as _up
 import json as _js
+from agent.server_routes._errors import safe_error as _safe
 
 # 修复 Windows 控制台编码，避免中文日志乱码
 # 【S11-01 为何上移】原生扩展预导入要打印一行 `[S11-01]` 启动记录（见下），
@@ -2379,7 +2380,7 @@ def audit_auth_allowlist(app) -> dict:
         )
     except Exception as e:  # noqa: BLE001 自检失败不阻断启动
         logger.warning("[AuthGate][自检] 豁免清单审计失败（不阻断启动）: %s", e)
-        return {"ok": False, "error": str(e), "exempt_write_count": -1, "exempt_write": []}
+        return {"ok": False, "error": _safe(e, logger), "exempt_write_count": -1, "exempt_write": []}
 
     if hits:
         logger.error(
@@ -2438,7 +2439,7 @@ def audit_shadowed_exemptions(app) -> dict:
         )
     except Exception as e:  # noqa: BLE001 自检失败不阻断启动
         logger.warning("[AuthGate][自检] 影子豁免审计失败（不阻断启动）: %s", e)
-        return {"ok": False, "error": str(e), "shadowed_count": -1, "shadowed": []}
+        return {"ok": False, "error": _safe(e, logger), "shadowed_count": -1, "shadowed": []}
 
     if hits:
         logger.warning(
@@ -2486,7 +2487,7 @@ def audit_modules_registry(app) -> dict:
             (str(r.rule), r.methods) for r in app.url_map.iter_rules())
     except Exception as e:  # noqa: BLE001 自检失败不阻断启动
         logger.warning("[ModulesRegistry][自检] 声明对拍失败（不阻断启动）: %s", e)
-        return {"ok": False, "error": str(e), "declared": 0, "missing_count": -1, "missing": []}
+        return {"ok": False, "error": _safe(e, logger), "declared": 0, "missing_count": -1, "missing": []}
 
     if missing:
         logger.error(
@@ -2532,7 +2533,7 @@ def audit_plugin_manifest(app) -> dict:
             entries.append((p.name, plugin_routes(p, app)))
     except Exception as e:  # noqa: BLE001 自检失败不阻断启动
         logger.warning("[PluginManifest][自检] 派生完整性检查失败（不阻断启动）: %s", e)
-        return {"ok": False, "error": str(e), "plugins": 0, "empty_count": -1, "empty": []}
+        return {"ok": False, "error": _safe(e, logger), "plugins": 0, "empty_count": -1, "empty": []}
 
     empty = sorted(name for name, routes in entries if not routes)
     if empty:

@@ -19,6 +19,7 @@ import time
 import xml.etree.ElementTree as ET
 
 from flask import Flask, jsonify, render_template
+from agent.server_routes._errors import safe_error as _safe
 
 # ============================== 日志配置 ==============================
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -774,7 +775,7 @@ def api_mock_dashboard():
         return jsonify({"files": files, "summary": summary})
     except Exception as e:
         logger.error("[MOCK] 加载 mock_git_states.json 失败: %s", e)
-        return jsonify({"error": str(e), "files": [], "summary": {}}), 500
+        return jsonify({"error": _safe(e, logger), "files": [], "summary": {}}), 500
 
 
 # ============================== 入口 ==============================

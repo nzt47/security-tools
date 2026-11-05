@@ -18,6 +18,7 @@ import logging
 from flask import request, jsonify
 from agent.server_auth import require_token
 from agent.logging_utils import log_dict
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +107,7 @@ def register_routes(app, state):
             logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'submit_feedback', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
-                "error": str(e),
+                "error": _safe(e, logger),
                 "code": "INTERNAL_ERROR"
             }), 500
 
@@ -158,7 +159,7 @@ def register_routes(app, state):
             logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'list_feedback', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
-                "error": str(e),
+                "error": _safe(e, logger),
                 "code": "INTERNAL_ERROR"
             }), 500
 
@@ -186,7 +187,7 @@ def register_routes(app, state):
             logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'get_feedback', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
-                "error": str(e),
+                "error": _safe(e, logger),
                 "code": "INTERNAL_ERROR"
             }), 500
 
@@ -222,14 +223,14 @@ def register_routes(app, state):
         except ValueError as e:
             return jsonify({
                 "success": False,
-                "error": str(e),
+                "error": _safe(e, logger),
                 "code": "NOT_FOUND"
             }), 404
         except Exception as e:
             logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'resolve_feedback', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
-                "error": str(e),
+                "error": _safe(e, logger),
                 "code": "INTERNAL_ERROR"
             }), 500
 
@@ -257,7 +258,7 @@ def register_routes(app, state):
             logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'feedback_summary', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
-                "error": str(e),
+                "error": _safe(e, logger),
                 "code": "INTERNAL_ERROR"
             }), 500
 
@@ -298,7 +299,7 @@ def register_routes(app, state):
             logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'list_quality_cases', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
-                "error": str(e),
+                "error": _safe(e, logger),
                 "code": "INTERNAL_ERROR"
             }), 500
 
@@ -327,7 +328,7 @@ def register_routes(app, state):
             logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'feedback_report', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
-                "error": str(e),
+                "error": _safe(e, logger),
                 "code": "INTERNAL_ERROR"
             }), 500
 

@@ -27,6 +27,7 @@ from flask import jsonify, request
 from agent.logging_utils import log_dict
 from agent.server_auth import log_request, require_token
 from agent.server_routes.tracing_decorator import trace_route
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ def register_routes(app, state=None):
             })
         except Exception as e:
             logger.error("[语义层配置] 查询失败: %s", e, exc_info=True)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 
     @app.route("/api/orchestrator/semantic-config", methods=["POST"])
     @trace_route("Config")
@@ -146,5 +147,5 @@ def register_routes(app, state=None):
                 get_metrics_collector().increment_counter("count.orchestrator.semantic.config.update.failure")
             except Exception:
                 pass  # 指标采集失败不影响主链路
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _safe(e, logger)}), 500
 

@@ -11,6 +11,7 @@ import logging
 from flask import jsonify, request
 
 from agent.server_routes.tracing_decorator import trace_route
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -46,5 +47,5 @@ def register_routes(app, state=None):
             })
         except Exception as exc:  # noqa: BLE001
             logger.warning("[units] 采集失败: %s", exc)
-            return jsonify({"ok": False, "error": str(exc)}), 500
+            return jsonify({"ok": False, "error": _safe(exc, logger)}), 500
 

@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import threading
@@ -33,7 +34,10 @@ from typing import Any, Dict, List, Optional, Tuple
 from flask import Blueprint, jsonify, request
 
 from agent.server_auth import require_token
+from agent.server_routes._errors import safe_error as _safe
 from .plugin_api import Plugin, register_plugin
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("experience", __name__)
 
@@ -305,7 +309,9 @@ def experience_search():
              "verified": h["meta"].get("_verified")}
             for h in hits]})
     except Exception as exc:  # noqa: BLE001
-        return jsonify({"ok": False, "error": "检索不可用: %s" % str(exc)[:200]}), 500
+        # 【C-6】原文只进日志（py/stack-trace-exposure）
+        logger.warning("[experience] 检索不可用: %s", exc)
+        return jsonify({"ok": False, "error": _safe(exc, logger)}), 500
 
 
 # ════════════════════════════════════════════════════════════
