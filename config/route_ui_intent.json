@@ -1118,6 +1118,11 @@
       "area": "技能中心·吞噬",
       "note": "P0 后端契约；P5 前端 ingestion 叶子接入后从待办台账移除。吞噬页的预览入口（三级判定/去重/推荐形态）。"
     },
+    "/api/ingestion/direct": {
+      "intent": "should_be_in_ui",
+      "area": "技能中心·吞噬",
+      "note": "2026-11-05 直通：粘贴文本一次出草稿（仍只落草稿）。已接入能力获取页「直接生成草稿」；L2 默认拒绝，allow_rewrite=true 才代跑一次 LLM。"
+    },
     "/api/ingestion/commit": {
       "intent": "should_be_in_ui",
       "area": "技能中心·吞噬",
