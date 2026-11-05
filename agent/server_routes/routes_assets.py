@@ -19,6 +19,18 @@ from agent.server_routes.tracing_decorator import trace_route
 
 logger = logging.getLogger(__name__)
 
+#: 【C-6】响应体里**只给固定文案**：异常原文进响应即 py/stack-trace-exposure
+#: （§8 陷阱 15 / §11.42 B）。原文只进日志，供事后定位 —— 与 api_envelope
+#: 的 500 detail 同一句话。四个资产路由族共用这一个出口。
+_INTERNAL_ERROR_MSG = "服务器内部错误，请稍后重试或查看服务端日志。"
+
+
+def _internal_error(exc: BaseException) -> str:
+    """记日志 + 回固定文案（返回值里不出现异常对象的任何派生串）。"""
+    logger.warning("[assets-api] 请求失败: %s", exc)
+    return _INTERNAL_ERROR_MSG
+
+
 ASSETS_DIR = Path("data/assets")
 BACKUPS_DIR = Path("data/backups")
 
@@ -286,7 +298,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "overview": overview})
         except Exception as e:
             logger.error("[AssetsAPI] overview 失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     @app.route("/api/assets/<category>")
     @trace_route("Assets")
@@ -313,7 +325,7 @@ def register_routes(app, state):
                             "total": total, "category": category})
         except Exception as e:
             logger.error("[AssetsAPI] list %s 失败: %s", category, e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     @app.route("/api/assets/<category>/<item_id>", methods=["DELETE"])
     @trace_route("Assets")
@@ -341,7 +353,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "message": f"已删除 {category}/{item_id}"})
         except Exception as e:
             logger.error("[AssetsAPI] delete 失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     @app.route("/api/assets/<category>", methods=["POST"])
     @trace_route("Assets")
@@ -371,7 +383,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "item": new_item})
         except Exception as e:
             logger.error("[AssetsAPI] add 失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     @app.route("/api/assets/backup", methods=["POST"])
     @trace_route("Assets")
@@ -399,7 +411,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "backup_id": backup_id, "message": f"备份 {backup_id} 创建成功"})
         except Exception as e:
             logger.error("[AssetsAPI] backup 失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     @app.route("/api/assets/backup/list")
     @trace_route("Assets")
@@ -423,7 +435,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "backups": backups, "count": len(backups)})
         except Exception as e:
             logger.error("[AssetsAPI] backup list 失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     @app.route("/api/assets/backup/<backup_id>", methods=["DELETE"])
     @trace_route("Assets")
@@ -439,7 +451,7 @@ def register_routes(app, state):
             return jsonify({"ok": True, "message": f"备份 {backup_id} 已删除"})
         except Exception as e:
             logger.error("[AssetsAPI] backup delete 失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     @app.route("/api/assets/restore", methods=["POST"])
     @trace_route("Assets")
@@ -480,7 +492,7 @@ def register_routes(app, state):
             })
         except Exception as e:
             logger.error("[AssetsAPI] restore 失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500
 
     @app.route("/api/assets/export")
     @trace_route("Assets")
@@ -497,4 +509,4 @@ def register_routes(app, state):
             return send_file(str(export_file), as_attachment=True, download_name=export_file.name)
         except Exception as e:
             logger.error("[AssetsAPI] export 失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
+            return jsonify({"ok": False, "error": _internal_error(e)}), 500

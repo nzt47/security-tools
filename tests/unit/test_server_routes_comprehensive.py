@@ -529,7 +529,9 @@ class TestExtensionsListRoute:
         assert resp.status_code == 500
         data = resp.get_json()
         assert data["ok"] is False
-        assert "DB error" in data["error"]
+        # 【C-6】异常原文不许进响应体（py/stack-trace-exposure）：只回固定文案
+        assert data["error"] == "服务器内部错误，请稍后重试或查看服务端日志。"
+        assert "DB error" not in resp.get_data(as_text=True)
 
 
 class TestExtensionsInstalledRoute:

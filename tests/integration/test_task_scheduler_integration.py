@@ -364,7 +364,10 @@ class TestRunTask:
         scheduler.add_interval_task("t", func, interval_seconds=60)
         result = scheduler.run_task(scheduler.tasks[0])
         assert result["status"] == "failed"
-        assert "boom" in result["error"]
+        # 【C-6】result 会经 /api/scheduler/execute-now、/api/schedules/history
+        # 原样进响应体 ⇒ 只回异常类名，原文只进日志（py/stack-trace-exposure）。
+        assert "ValueError" in result["error"]
+        assert "boom" not in result["error"]
 
     @patch("agent.task_scheduler.subprocess.Popen")
     def test_run_system_command_success(self, mock_popen, scheduler, patch_paths, patch_scheduler_config):

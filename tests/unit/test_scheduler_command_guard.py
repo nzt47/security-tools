@@ -336,7 +336,10 @@ class TestOtherTaskTypesUnaffected:
         result = scheduler.run_task(scheduler.tasks[0])
 
         assert result["status"] == "failed"
-        assert "boom" in result["error"]
+        # 【C-6】result 会被 /api/scheduler/execute-now 与 /api/schedules/history
+        # 原样 jsonify 出去 ⇒ 只回异常类名，原文只进日志（py/stack-trace-exposure）。
+        assert "ValueError" in result["error"]
+        assert "boom" not in result["error"]
 
     def test_heartbeat_unaffected(self, scheduler, patch_paths, patch_scheduler_config):
         hb_result = {
