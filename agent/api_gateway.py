@@ -451,7 +451,9 @@ class ApiGateway:
             log_entry["success"] = False
             self._access_logger.log_access(log_entry)
             
-            return {"error": str(e), "status_code": 500}
+            # 【C-6】原文只进日志（上面那行 log_entry 已写）；响应只回固定文案
+        # （py/stack-trace-exposure：这个 dict 会被 /api/gateway 直接 jsonify）
+        return {"error": "服务器内部错误，请稍后重试或查看服务端日志。", "status_code": 500}
     
     def generate_swagger_doc(self) -> Dict:
         """生成 Swagger 文档"""

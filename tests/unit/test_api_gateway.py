@@ -416,7 +416,9 @@ class TestApiGateway:
         gateway.register_endpoint("/api/open", "get", boom, auth_required=False)
         result = gateway.handle_request(_make_request(path="/api/open"))
         assert result["status_code"] == 500
-        assert "boom" in result["error"]
+        # 【C-6】这个 dict 会被 /api/gateway 原样 jsonify ⇒ 不再回异常原文
+        assert "boom" not in result["error"]
+        assert "服务器内部错误" in result["error"]
 
     def test_generate_swagger_doc_empty(self, gateway):
         doc = gateway.generate_swagger_doc()

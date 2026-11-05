@@ -53,6 +53,7 @@ from agent.lines import (
 )
 from agent.server_auth import log_request, require_token
 from agent.server_routes.tracing_decorator import trace_route
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +130,8 @@ def _fail(message: str, status: int = 400, **extra: Any) -> Tuple[Any, int]:
 
 def _error_response(exc: BaseException) -> Tuple[Any, int]:
     """异常 → HTTP 状态码（映射规则见模块 docstring）"""
-    message = str(exc)
+    # 【C-6】原文只进日志；响应只回固定文案（_fail 会把它放进 error 字段）
+    message = _safe(exc, logger, "agent-lines")
     if isinstance(exc, LineRegistryError):
         lowered = message.lower()
         if "不存在" in message or "not found" in lowered:

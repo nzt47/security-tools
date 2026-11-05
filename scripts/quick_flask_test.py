@@ -49,7 +49,7 @@ def create_app():
             logging.error(f"健康检查失败: {e}")
             return jsonify({
                 'success': False,
-                'error': str(e)
+                'error': "服务器内部错误（详情见控制台日志）"
             }), 500
     
     @app.route('/api/sensors')
@@ -66,7 +66,7 @@ def create_app():
             logging.error(f"获取传感器数据失败: {e}")
             return jsonify({
                 'success': False,
-                'error': str(e)
+                'error': "服务器内部错误（详情见控制台日志）"
             }), 500
     
     @app.route('/api/sensors/info')
@@ -82,7 +82,7 @@ def create_app():
             logging.error(f"获取传感器信息失败: {e}")
             return jsonify({
                 'success': False,
-                'error': str(e)
+                'error': "服务器内部错误（详情见控制台日志）"
             }), 500
     
     return app

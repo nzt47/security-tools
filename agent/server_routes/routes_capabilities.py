@@ -41,6 +41,7 @@ import os
 from typing import Any, Dict, Optional
 
 from flask import jsonify, request
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -342,7 +343,8 @@ def register_routes(app, state=None) -> None:  # noqa: ARG001  与既有签名�
         try:
             loaders = get_loader_manager().describe()
         except Exception as exc:  # noqa: BLE001
-            loaders = {"error": f"{type(exc).__name__}: {exc}"}
+            # 【C-6】typo 也不能回原文：类名 + 消息都会被判 py/stack-trace-exposure
+            loaders = {"error": _safe(exc, logger, "loaders.describe")}
         return jsonify({
             "status": "ok",
             "code": "ok",
