@@ -520,6 +520,7 @@ flowchart LR
     end
     subgraph server_routes [server_routes]
         agent_server_routes["agent.server_routes"]
+        agent_server_routes__errors["agent.server_routes._errors"]
         agent_server_routes_observability["agent.server_routes.observability"]
         agent_server_routes_routes_agent_lines["agent.server_routes.routes_agent_lines"]
         agent_server_routes_routes_approval["agent.server_routes.routes_approval"]:::crosslayer
@@ -2001,11 +2002,13 @@ flowchart LR
     agent_server_routes_routes_background -.-> agent_server_auth
     agent_server_routes_routes_background -.-> agent_jsonl_history
     agent_server_routes_routes_background --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_background --> agent_server_routes__errors
     agent_server_routes_routes_background -.-> agent_async_executor
     agent_server_routes_routes_business_dashboard -.-> agent_server_auth
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_business_dashboard --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_business_dashboard -.-> agent_logging_utils
+    agent_server_routes_routes_business_dashboard --> agent_server_routes__errors
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
@@ -2026,6 +2029,7 @@ flowchart LR
     agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_feedback -.-> agent_server_auth
     agent_server_routes_routes_feedback -.-> agent_logging_utils
+    agent_server_routes_routes_feedback --> agent_server_routes__errors
     agent_server_routes_routes_feedback -.-> agent_feedback
     agent_server_routes_routes_feedback -.-> agent_feedback
     agent_server_routes_routes_feedback -.-> agent_feedback
@@ -2047,9 +2051,11 @@ flowchart LR
     agent_server_routes_routes_knowledge -.-> agent_server_auth
     agent_server_routes_routes_knowledge --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_knowledge -.-> agent_api_envelope
+    agent_server_routes_routes_knowledge --> agent_server_routes__errors
     agent_server_routes_routes_knowledge -.-> agent_tool_router_reranker
     agent_server_routes_routes_llm_monitor -.-> agent_server_auth
     agent_server_routes_routes_llm_monitor --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_llm_monitor --> agent_server_routes__errors
     agent_server_routes_routes_logging -.-> agent_server_auth
     agent_server_routes_routes_logging -.-> agent_monitoring_tracing
     agent_server_routes_routes_logging -.-> agent_monitoring_metrics
@@ -2080,6 +2086,7 @@ flowchart LR
     agent_server_routes_routes_memory_import -.-> agent_memory_import
     agent_server_routes_routes_process_distill -.-> agent_server_auth
     agent_server_routes_routes_process_distill --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_process_distill --> agent_server_routes__errors
     agent_server_routes_routes_process_distill -.-> agent_process_distill_service
     agent_server_routes_routes_replay -.-> agent_server_auth
     agent_server_routes_routes_replay -.-> agent_monitoring_replay_storage
@@ -2087,6 +2094,7 @@ flowchart LR
     agent_server_routes_routes_semantic_config -.-> agent_logging_utils
     agent_server_routes_routes_semantic_config -.-> agent_server_auth
     agent_server_routes_routes_semantic_config --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_semantic_config --> agent_server_routes__errors
     agent_server_routes_routes_semantic_config -.-> agent_orchestrator_orchestrator
     agent_server_routes_routes_semantic_config -.-> agent_orchestrator_orchestrator
     agent_server_routes_routes_semantic_config -.-> agent_monitoring_metrics
@@ -2174,6 +2182,7 @@ flowchart LR
     agent_server_routes_routes_subagent -.-> agent_subagent_role_templates
     agent_server_routes_routes_subagent -.-> agent_subagent_bundle
     agent_server_routes_routes_system_prompt --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_system_prompt --> agent_server_routes__errors
     agent_server_routes_routes_system_prompt -.-> agent_server_auth
     agent_server_routes_routes_system_prompt -.-> agent_system_prompt_config
     agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
@@ -2182,6 +2191,7 @@ flowchart LR
     agent_server_routes_routes_ui_panels -.-> agent_security
     agent_server_routes_routes_ui_panels -.-> agent_security_actor_matrix
     agent_server_routes_routes_ui_panels -.-> agent_server_auth
+    agent_server_routes_routes_ui_panels --> agent_server_routes__errors
     agent_server_routes_routes_ui_panels -.-> agent_security_tenant
     agent_server_routes_routes_ui_panels -.-> agent_security_tenant
     agent_server_routes_routes_ui_panels -.-> agent_ui_panels
@@ -2201,9 +2211,11 @@ flowchart LR
     agent_server_routes_routes_ui_panels --> agent_server_routes
     agent_server_routes_routes_ui_panels -.-> agent_security
     agent_server_routes_routes_units --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_units --> agent_server_routes__errors
     agent_server_routes_routes_units -.-> agent_monitoring
     agent_server_routes_routes_visual_workflows -.-> agent_server_auth
     agent_server_routes_routes_visual_workflows --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_visual_workflows --> agent_server_routes__errors
     agent_server_routes_routes_workflow_learning -.-> agent_server_auth
     agent_server_routes_routes_workflow_learning -.-> agent_api_envelope
     agent_server_routes_routes_workflow_learning --> agent_server_routes_tracing_decorator
@@ -2815,9 +2827,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 723
-- 模块节点数: 627
-- 依赖边数: 2062
+- 扫描文件数: 724
+- 模块节点数: 628
+- 依赖边数: 2073
 - 跨层调用数: 1312
 - 违规调用数: 0
 - 动态 import 数: 1
