@@ -444,7 +444,7 @@ def _subagent_assembly_payload(line_id: str, registry: Any, meta: Dict[str, Any]
             **empty, "available": False, "mode": "unavailable",
             "semantics": "named-but-unavailable",
             "semantics_note": SUBAGENT_SEMANTICS["named-but-unavailable"],
-            "reason": str(e),
+            "reason": _safe(e, logger, "line.unavailable"),
         }
     except Exception as e:  # noqa: BLE001 本块失败不得把预览端点带崩（与片段投影同款）
         logger.warning("[AgentLines] 分身装配单投影降级（预览照常）: %s", e)
@@ -626,7 +626,7 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
         try:
             from agent.lines.callability import MANIFEST_PATH, runtime_only_skill_entries
         except Exception as e:  # noqa: BLE001
-            return _fail(f"可调用性模块不可用: {e}", 500)
+            return _fail(_safe(e, logger, "callability.mgr"), 500)
         import json
         import os as _os
         if not _os.path.exists(MANIFEST_PATH):
@@ -635,7 +635,7 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
             with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
                 doc = json.load(f)
         except (OSError, ValueError) as e:
-            return _fail(f"可调用性清单不可读: {e}", 500)
+            return _fail(_safe(e, logger, "callability.index"), 500)
 
         runtime_skills: List[Dict[str, Any]] = []
         try:
