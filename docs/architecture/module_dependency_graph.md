@@ -610,6 +610,7 @@ flowchart LR
         agent_skills_mgmt_transform_compare["agent.skills_mgmt.transform.compare"]
         agent_skills_mgmt_transform_facets["agent.skills_mgmt.transform.facets"]:::crosslayer
         agent_skills_mgmt_transform_jobs["agent.skills_mgmt.transform.jobs"]:::crosslayer
+        agent_skills_mgmt_transform_learning["agent.skills_mgmt.transform.learning"]
         agent_skills_mgmt_transform_queue["agent.skills_mgmt.transform.queue"]:::crosslayer
         agent_skills_mgmt_transform_register["agent.skills_mgmt.transform.register"]:::crosslayer
         agent_skills_mgmt_transform_rewrite["agent.skills_mgmt.transform.rewrite"]:::crosslayer
@@ -2314,6 +2315,7 @@ flowchart LR
     agent_skills_mgmt_memory_abstractor -.-> agent_workflow_learning_service
     agent_skills_mgmt_memory_abstractor -.-> agent_feedback_collector
     agent_skills_mgmt_memory_abstractor -.-> agent_memory_long_term_memory
+    agent_skills_mgmt_memory_abstractor --> agent_skills_mgmt_transform_learning
     agent_skills_mgmt_meta_editor -.-> agent_logging_utils
     agent_skills_mgmt_native_functions -.-> agent_tools
     agent_skills_mgmt_native_functions --> agent_skills_mgmt_capability_cards
@@ -2358,6 +2360,7 @@ flowchart LR
     agent_skills_mgmt_transform_compare --> agent_skills_mgmt_capability_cards
     agent_skills_mgmt_transform_facets --> agent_skills_mgmt_capability_cards
     agent_skills_mgmt_transform_jobs -.-> agent_ingestion_rewrite
+    agent_skills_mgmt_transform_learning --> agent_skills_mgmt_transform
     agent_skills_mgmt_transform_register --> agent_skills_mgmt_file_store
     agent_skills_mgmt_transform_register -.-> agent_state_manager
     agent_skills_mgmt_transform_register -.-> agent_workflow_learning_models
@@ -2808,9 +2811,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 721
-- 模块节点数: 625
-- 依赖边数: 2057
+- 扫描文件数: 722
+- 模块节点数: 626
+- 依赖边数: 2059
 - 跨层调用数: 1310
 - 违规调用数: 0
 - 动态 import 数: 1
