@@ -773,6 +773,11 @@
       "area": "会话管理",
       "note": "生成会话交接文档。"
     },
+    "/api/sessions/from-handoff": {
+      "intent": "should_be_in_ui",
+      "area": "会话管理",
+      "note": "2026-11-05：用交接文档开新会话（生成/复用 Markdown + 建会话 + 文档作为首条 user 消息）。入口在「会话交接文档」面板的「用这份文档开新会话」；配合上下文 65% 提示。"
+    },
     "/api/handoff/*": {
       "intent": "should_be_in_ui",
       "area": "会话管理",

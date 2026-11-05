@@ -162,6 +162,8 @@ export const workflowLearnPriority = (wfId: string) => `/api/workflow-learning/w
 export const SESSIONS = '/api/sessions';
 // 会话交接文档（LLM 压缩成 Markdown + 脱敏，落盘临时目录）
 export const HANDOFF = '/api/handoff';
+// 【2026-11-05】用交接文档开新会话（生成 + 建会话 + 文档作为首条消息）
+export const SESSIONS_FROM_HANDOFF = '/api/sessions/from-handoff';
 export const SESSIONS_CURRENT = '/api/sessions/current';
 export const SESSION_GROUPS = '/api/session-groups';
 export const WORKSPACES = '/api/workspaces';

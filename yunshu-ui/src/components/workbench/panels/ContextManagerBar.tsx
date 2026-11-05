@@ -334,6 +334,21 @@ export function ContextManagerBar() {
                 </div>
               </div>
 
+              {/* 【2026-11-05】65% 换会话提示：到 80% 才会自动压缩，压完早期细节只剩摘要，
+                  所以在 65% 就提醒一次（不阻断、不自动新建会话）。 */}
+              {pct >= 65 && pct < 80 && (
+                <div className="rounded-md border border-amber-800/60 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-200">
+                  上下文已到 <b>{Math.round(pct)}%</b>：建议<b>生成交接文档并转入新会话</b>继续 ——
+                  到 {Math.round(status.compress_threshold * 100)}% 会自动压缩，压缩后早期细节只剩摘要。
+                  入口：会话头「交接文档」。
+                </div>
+              )}
+              {pct >= 80 && (
+                <div className="rounded-md border border-rose-800/60 bg-rose-500/10 px-2.5 py-1.5 text-[11px] leading-relaxed text-rose-200">
+                  上下文已到 <b>{Math.round(pct)}%</b>（超过压缩阈值）：现在生成交接文档再换会话，比等到压缩后更划算。
+                </div>
+              )}
+
               {/* 控制面板：滑块（松手 300ms 后自动保存） */}
               <div className="grid gap-2 sm:grid-cols-3">
                 {[
@@ -389,6 +404,8 @@ export function ContextManagerBar() {
                     在后台自动把<b className="text-slate-100">旧对话压缩为摘要</b>，保留关键决策与结论。
                     当前窗口已压缩 <b className="text-slate-100">{status.compress_rounds_window ?? status.compress_rounds} 次</b>
                     （累计摘要版本 <b className="text-slate-100">{status.compress_rounds}</b>）。
+                    压缩<b className="text-slate-100">不会降低水位</b>（消息不删，只并进摘要），
+                    所以两次压缩之间正文需再长 10% 才会触发第二次 —— 否则过了阈值会每条消息压一次。
                   </div>
                   <div className="rounded-md border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5">
                     <span className="text-cyan-400">② 三级水位预警</span>：

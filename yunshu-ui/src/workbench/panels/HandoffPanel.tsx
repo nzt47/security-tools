@@ -12,7 +12,7 @@
 import { useState } from 'react'
 import { FileText, Loader2 } from 'lucide-react'
 import { hubPost } from '../../pages/hub/components/ui'
-import { HANDOFF } from '@/api/endpoints'
+import { HANDOFF, SESSIONS_FROM_HANDOFF } from '@/api/endpoints'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const INPUT = 'rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
@@ -23,6 +23,9 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [result, setResult] = useState<Record<string, unknown> | null>(null)
+  // 【2026-11-05】用这份交接文档直接开新会话（面板在 65% 提示换会话，这是它的落地动作）
+  const [created, setCreated] = useState<{ id: string; title: string } | null>(null)
+  const [creating, setCreating] = useState(false)
 
   const run = async () => {
     if (!sessionId) { setErr('先在左侧选一个会话'); return }
@@ -37,6 +40,23 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
     } catch (e) {
       setErr('生成失败：' + (e instanceof Error ? e.message : String(e)))
     } finally { setBusy(false) }
+  }
+
+  /** 用已生成的交接文档开一个新会话：后端建会话并把文档作为首条 user 消息。 */
+  const createSession = async () => {
+    const markdown = typeof result?.markdown === 'string' ? (result.markdown as string) : ''
+    if (!markdown.trim()) { setErr('先生成交接文档'); return }
+    setCreating(true); setErr(''); setCreated(null)
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string; session?: { id?: string; title?: string } }>(
+        SESSIONS_FROM_HANDOFF, { markdown },
+      )
+      if (r?.error) { setErr('建会话失败：' + r.error); return }
+      const s = r?.session || {}
+      setCreated({ id: String(s.id || ''), title: String(s.title || '') })
+    } catch (e) {
+      setErr('建会话失败：' + (e instanceof Error ? e.message : String(e)))
+    } finally { setCreating(false) }
   }
 
   const markdown = typeof result?.markdown === 'string' ? (result.markdown as string) : ''
@@ -66,6 +86,20 @@ export default function HandoffPanel({ sessionId }: { sessionId: string }) {
       {path && (
         <div className="mt-2 text-[10px] text-slate-400">
           已落盘：<span className="font-mono text-slate-300">{path}</span>
+        </div>
+      )}
+      {markdown && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button type="button" className={BTN} onClick={() => void createSession()}
+            disabled={creating} aria-label="用交接文档开新会话"
+            title="新建一个会话，并把这份交接文档作为它的第一条消息，直接接着干">
+            {creating ? <Loader2 size={11} className="animate-spin" /> : <FileText size={11} />} 用这份文档开新会话
+          </button>
+          {created && (
+            <span className="text-[10px] text-emerald-300">
+              已创建：{created.title || created.id}（左侧会话列表可切换）
+            </span>
+          )}
         </div>
       )}
       {markdown && <pre className={PRE + ' mt-2'}>{markdown.slice(0, 4000)}</pre>}
