@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import ast
 import json
+import logging
 import os
 import re
 import shutil
@@ -21,6 +22,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import drafts
+
+logger = logging.getLogger(__name__)
 
 MAX_PROMPT_CHARS = 32000
 # deepseek-flash 先消耗推理 token：实测 4000 时 content 为空、16000 被截断；32000 才 finish=stop
@@ -362,7 +365,12 @@ def validate_code(code: str, name: str) -> Dict[str, Any]:
     try:
         tree = ast.parse(code)
     except SyntaxError as exc:
-        return {"ok": False, "errors": ["语法错误: " + str(exc)], "warnings": [], "schema": None}
+        # 【C-6】errors 会经 /api/ingestion/drafts/<id>/implement 装进 ok() 的 data 进响应体：
+        # 只给类名 + 固定后缀，原文（含行号与源码片段）只进日志。
+        logger.warning("[toolbuild] 待校验代码语法错误: %s", exc)
+        return {"ok": False,
+                "errors": ["%s：语法错误（详见服务日志）" % type(exc).__name__],
+                "warnings": [], "schema": None}
     allowed = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
                ast.Import, ast.ImportFrom, ast.Assign, ast.AnnAssign)
     for node in tree.body:
