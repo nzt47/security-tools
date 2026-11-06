@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-11-06T03:58:00+08:00",
+  "updated_at": "2026-11-06T19:04:59+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
       "id": "c6-remaining",
-      "title": "C-6 余量：stack-trace 73 条（routes_knowledge 8 / routes_feedback 8 / routes_ui_panels 7 / routes_system_prompt 6 / routes_replay 6 …）",
+      "title": "C-6 余 9 条（ui_panels 5 / api_envelope 2 / app_server 1 / process_distill 1）",
       "status": "open",
       "priority": "P1",
-      "criteria": "同一修法（返回值产生处断 taint：响应只回固定文案/异常类名，原文进日志），按文件分批；scripts/ 下的开发脚本可按契约 dismiss",
-      "next": "先做 routes_knowledge + routes_feedback（各 8 条），再 routes_ui_panels + routes_system_prompt + routes_replay"
+      "criteria": "同一修法（返回值产生处断 taint）；ui_panels 的 taint 在 _authorize/_error 内部，需先看清内部出口",
+      "next": "按文件从易到难：api_envelope 2 → app_server 1 → process_distill 1 → ui_panels 5"
     },
     {
       "id": "descriptor-backfill-production",
@@ -22,9 +22,9 @@
       "id": "runtime-skill-algorithmic-art",
       "title": "本机运行时技能 algorithmic-art（文件轨 47/主轨 49，1 条 warning）",
       "status": "open",
-      "priority": "P2",
-      "criteria": "要么补「何时使用」正文后正式入轨，要么删草稿；未定前不要提交它",
-      "next": "等 Owner 一句话"
+      "priority": "P3",
+      "criteria": "已从提交/派生产物中剔除（manifest 139 条、盘点表、3 处用例均回退）；文件仍只在本机 data/skills_repo/algorithmic-art（未跟踪、未提交）",
+      "next": "等 Owner 一句话：补「何时使用」正文后正式入轨，或删掉本机草稿；未定前保持不入库"
     },
     {
       "id": "secret-scanning-pat",
@@ -36,11 +36,11 @@
     },
     {
       "id": "l1-assembly-canary",
-      "title": "C-8 L1 装配灰度（默认 full；先灰 5 条：pdf / git / run_lint / notify / read_pdf）",
-      "status": "open",
+      "title": "C-8 L1 装配灰度（默认 full；灰名单 5 条真实技能）",
+      "status": "done",
       "priority": "P1",
-      "criteria": "新增 CP_SKILL_LAYER_MODE=full|l1（默认 full）+ CP_SKILL_LAYER_L1_IDS（逗号分隔白名单），两个都要进 agent/settings/registry.py（否则「开关零缺口」红）；context_injector 里两处 load_instruction 按开关改走 layered.load_card(layer='L1')；L1 不含示例 => 灰度期接受；回滚 = MODE 改回 full（或清空白名单），L2 全文随时可从 GET /api/skills-mgmt/<id>/card?layer=L2 取回",
-      "next": "① 加两个 env + 注册表条目；② 改 context_injector 两处；③ 守卫用例：灰名单内 L1 输出必须覆盖 L2 的全部步骤/触发面（现成基线 步骤 100% / 触发 100%）；④ 灰度一周看「技能没按预期起作用」反馈；⑤ 无回归再扩名单",
+      "criteria": "CP_SKILL_LAYER_MODE/CP_SKILL_LAYER_L1_IDS 已合并（#1459）；守卫用例 14 条；干净 worktree 零缺口",
+      "next": "灰度观察一周看「技能没按预期起作用」反馈；无回归再扩名单；回滚 = MODE 改回 full",
       "owner_decision": "Owner 2026-11-06 同意「默认 full + 先灰 3-5 条」，名单由主线给（已定 5 条）"
     },
     {
@@ -93,12 +93,28 @@
     },
     {
       "id": "c7-overlap-vector",
-      "title": "C-7 重叠检测：本地 embedding 语义召回（默认关）+ 诚实版说明",
-      "status": "open",
+      "title": "C-7 重叠检测：诚实版面板 + 向量候选（三种 embedding 排它单选，默认关）",
+      "status": "done",
       "priority": "P2",
       "owner_decision": "Owner 2026-11-06 选 (a) 本地 embedding（transformers MiniLM，无外部 API、无费用）",
-      "criteria": "现状：native_functions 用字面 containment（阈值 0.25），全语料最高 0.133 => 清单恒空（不是 bug）。向量版：复用仓库现成 sqlite-vec + 本地 embedding，把技能 L1 卡与工具 description+参数分别 embed，余弦 top-k 作为候选并与字面分并列呈现；开关 CP_SKILL_OVERLAP_VECTOR=1 默认关；首次加载实测 ~87.7s => 复用 CP_SKILL_VECTOR_PREWARM 预热或后台线程预热",
-      "next": "① 诚实版（面板显示上限分/阈值/样本数/为何为空）；② 向量候选列（默认关）；③ 阈值保持保守，别降到 0.1"
+      "criteria": "诚实版 #1460（阈值 0.25 / 上限分 / 为何为空）；向量候选 #1462（st_bge_m3 / native_minilm / api 三选一，默认关，设置中心可开）",
+      "next": "要用时在设置中心打开 CP_SKILL_OVERLAP_VECTOR，并在 PROVIDER 里三选一；api 需先配端点与密钥"
+    },
+    {
+      "id": "c6-tail-batch",
+      "title": "C-6 收尾：agent_lines 专项（message 属性）+ capabilities 投影（5 条归零，PR #1461/#1464）",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "stack-trace 14 → 11（agent_lines 3 条清零）；capabilities 2 条随 #1464 归零（期待 11 → 9）",
+      "next": "-"
+    },
+    {
+      "id": "ingestion-help",
+      "title": "能力获取联机帮助（7 站全链路 + 操作清单）+ 清理过时文案 + 少点几下（#1465）",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "手册覆盖入口材料→最终能力 7 站（3 自动 / 4 手动）；点候选即预览、批量 L2 自动重写、下一步直达；vitest 27 passed",
+      "next": "-"
     }
   ]
 }
