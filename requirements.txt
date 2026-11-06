@@ -204,7 +204,7 @@ numpy==2.4.6
     #   transformers
 nvidia-ml-py==13.610.43
     # via pynvml
-oauthlib==4.0.0
+oauthlib==4.0.1
     # via requests-oauthlib
 onnxruntime==1.26.0
     # via chromadb
