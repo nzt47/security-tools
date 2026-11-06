@@ -2759,6 +2759,27 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "[P0-1；agent/skills_mgmt/service.py::warm_vector_leg]",
        owner="agent/skills_mgmt/service.py"),
 
+    # · C-8 卡（2026-11-06 Owner 点头）：L1 装配灰度 —— 只改「模型看到的使用说明来自哪一层」
+    #   读取点：agent/skills_mgmt/layered.py 的 l1_enabled_for()，由 context_injector 的
+    #   _load_for_injection()（inject_instruction / inject_sensitive_skill 两处）每次注入时读取
+    #   ⇒ **热生效**，不必重启。默认 full = 逐字旧行为（L2 全文）。
+    #   【为什么是 A 级】切 l1 只是少给示例（L1 不含示例），不拆任何防护；且失配一律回落 L2。
+    _a("CP_SKILL_LAYER_MODE", CAT_SKILLS, "full",
+       "上下文注入技能「使用说明」时取哪一层（默认 full = 逐字旧行为：L2 全文）。"
+       "置 l1 ⇒ **只对 CP_SKILL_LAYER_L1_IDS 名单内**的技能改注入 L1 能力卡"
+       "（实测省 51.7% token；L1 不含示例，灰度期接受）。取值只接受 full/l1，其余（含拼错）"
+       "回退 full 并留 WARNING；L1 缺卡/技能目录缺失时**逐条回落 L2**，不会让技能用不了。"
+       "【回滚】改回 full（或清空白名单）即逐字恢复；L2 全文随时可从 "
+       "GET /api/skills-mgmt/<id>/card?layer=L2 取回 [C-8；agent/skills_mgmt/layered.py:l1_enabled_for]",
+       owner="agent/skills_mgmt/layered.py", validator=_enum("full", "l1")),
+    _c("CP_SKILL_LAYER_L1_IDS", CAT_SKILLS, "pdf,gh-cli,code-refactor,engineering-test-delivery,handoff",
+       "CP_SKILL_LAYER_MODE=l1 时的**灰度白名单**（逗号分隔技能 id；默认 = 2026-11-06 点头的 5 条试点）。"
+       "空串/只有空白 ⇒ 名单为空 ⇒ 即便 MODE=l1 也不灰任何技能（等价回滚，比改 MODE 更细的刹车）。"
+       "【对拍】灰名单内 L1 必须覆盖 L2 的全部步骤/触发面，守卫用例 "
+       "tests/unit/test_skill_layer_l1_canary.py 与 scripts/audit/skill_layer_coverage.py 同口径"
+       " [C-8；agent/skills_mgmt/layered.py:canary_ids]",
+       owner="agent/skills_mgmt/layered.py"),
+
     # · §10 A-3（2026-10-02）的六个检索旋钮：**接线**（be8185b2 把 loader.py 的三个
     #   _resolve_* 助手从"没人读"接进 match()/索引路径）当时只改了代码、**漏了登记**，
     #   于是 scan_settings.py 报 6 个"代码读到但注册表未覆盖"的缺口（本次补齐）。

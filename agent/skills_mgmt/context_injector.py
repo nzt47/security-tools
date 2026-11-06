@@ -457,6 +457,37 @@ class ContextInjector:
     #  第二层：使用说明注入
     # ──────────────────────────────────────────────
 
+    def _load_for_injection(self, skill_id: str) -> Dict[str, Any]:
+        """取「要注入的使用说明」：灰名单内走 L1 能力卡，其余/失败回落 L2 全文。
+
+        C-8 灰度（owner 2026-11-06 点头）：默认 CP_SKILL_LAYER_MODE=full ⇒ 逐字旧行为；
+        置 l1 且技能在 CP_SKILL_LAYER_L1_IDS 内 ⇒ 只注入 L1（省 token，L1 不含示例）。
+
+        [不易] 回落是硬要求：L1 缺卡、技能目录缺失、开关写错，都**不能让技能用不了** ——
+        一律退到 L2 全文（灰度期坏一条只损失省下来的 token，不损失能力）。
+        【回滚】MODE 改回 full（或清空白名单）即逐字恢复；L2 全文随时可从
+        GET /api/skills-mgmt/<id>/card?layer=L2 取回。
+        """
+        from .layered import l1_enabled_for, load_layer
+
+        if l1_enabled_for(skill_id):
+            got = load_layer(skill_id, "L1")
+            text = str(got.get("text") or "") if got.get("ok") else ""
+            if text.strip():
+                est = estimate_tokens(text)
+                logger.info(log_dict({'module_name': 'context_injector', 'action': 'inject_instruction.l1_canary', 'skill_id': skill_id, 'source': got.get('source'), 'estimated_tokens': est}))
+                return {
+                    "skill_id": skill_id,
+                    "instruction": text,
+                    "estimated_tokens": est,
+                    "instruction_chars": len(text),
+                    "layer": 1,
+                    "source": got.get("source"),
+                }
+            logger.warning(log_dict({'module_name': 'context_injector', 'action': 'inject_instruction.l1_canary.fallback', 'skill_id': skill_id, 'reason': got.get('error') or 'empty_l1'}))
+
+        return self.loader.load_instruction(skill_id)
+
     def inject_instruction(self, skill_id: str) -> Dict[str, Any]:
         """第二层 — 按需注入技能的完整使用说明
 
@@ -467,8 +498,9 @@ class ContextInjector:
         t0 = time.time()
         tid = _trace_id()
 
-        instr_data = self.loader.load_instruction(skill_id)
+        instr_data = self._load_for_injection(skill_id)
         instruction = instr_data["instruction"]
+        layer_no = int(instr_data.get("layer") or 2)
 
         # 防御：空或空白 instruction，返回空 prompt 但不报错
         if not instruction or not instruction.strip():
@@ -480,7 +512,7 @@ class ContextInjector:
                 "skill_id": skill_id,
                 "estimated_tokens": 0,
                 "truncated": False,
-                "layer": 2,
+                "layer": layer_no,
             }
 
         # 按章节边界智能取舍（内部已记录每章节 token 与取舍原因）
@@ -505,18 +537,18 @@ class ContextInjector:
         prompt = f"## 技能使用说明：{skill_id}\n\n{instruction_text}"
         elapsed = (time.time() - t0) * 1000
 
-        logger.info(log_dict({'module_name': 'context_injector', 'action': 'inject_instruction.layer2.ok', 'layer': 2, 'skill_id': skill_id, 'estimated_tokens': est_tokens, 'truncated': truncated}))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'inject_instruction.layer2.ok', 'layer': layer_no, 'skill_id': skill_id, 'estimated_tokens': est_tokens, 'truncated': truncated}))
 
         emit_metric("yunshu_skill_inject_tokens",
                     value=est_tokens, kind="histogram",
-                    labels={"layer": "2", "skill_id": skill_id})
+                    labels={"layer": str(layer_no), "skill_id": skill_id})
 
         return {
             "prompt": prompt,
             "skill_id": skill_id,
             "estimated_tokens": est_tokens,
             "truncated": truncated,
-            "layer": 2,
+            "layer": layer_no,
         }
 
     # ──────────────────────────────────────────────
@@ -556,8 +588,8 @@ class ContextInjector:
                     logger.warning(log_dict({'module_name': 'context_injector', 'action': 'inject_sensitive_skill.invalid_strategy', 'skill_id': skill_id, 'raw_strategy': raw, 'fallback': 'separate_turn'}))
                 break
 
-        # 2. 加载使用说明（隔离窗口内注入，不进主上下文）
-        instr_data = self.loader.load_instruction(skill_id)
+        # 2. 加载使用说明（隔离窗口内注入，不进主上下文；C-8 灰度同样生效）
+        instr_data = self._load_for_injection(skill_id)
         instruction = instr_data["instruction"]
         est_tokens = instr_data["estimated_tokens"]
 
