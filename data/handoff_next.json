@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-06T19:04:59+08:00",
+  "updated_at": "2026-11-06T20:15:55+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
@@ -12,11 +12,11 @@
     },
     {
       "id": "descriptor-backfill-production",
-      "title": "是否把修好的 backfill_tool_descriptors.py 跑进生产台账",
-      "status": "open",
+      "title": "把修好的 backfill_tool_descriptors.py 跑进生产台账（已完成）",
+      "status": "done",
       "priority": "P2",
-      "criteria": "跑完 DescriptorRegistry.load() 必须 0 invalid；destructive 工具的 trust.requires_approval 会从「无描述符」变成「要审批」",
-      "next": "停后端 → 跑脚本 → 重启 → 核对 loaded/invalid 计数与审批边界"
+      "criteria": "145 条（96 工具 + 49 技能）全部通过运行时校验，invalid 0；destructive 工具 13 条 requires_approval=true（预期审批边界变化）",
+      "next": "回滚：data/backups/descriptors-pre-backfill-20261106-183814.json 覆盖回 data/descriptors.json 后重启"
     },
     {
       "id": "runtime-skill-algorithmic-art",
