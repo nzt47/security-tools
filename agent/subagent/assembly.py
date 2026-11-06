@@ -67,7 +67,15 @@ logger = logging.getLogger(__name__)
 
 
 class LineUnavailable(Exception):
-    """主线不可用（不存在 / 已停用 / 档案损坏）⇒ 该任务失败，**不回退成全量授权**"""
+    """主线不可用（不存在 / 已停用 / 档案损坏）⇒ 该任务失败，**不回退成全量授权**。
+
+    [不易] `message` 是给外部响应的安全出口（C-6：已知领域异常只回 `exc.message`，
+    响应里不出现 `str(exc)` 派生的原文）。
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(str(message))
+        self.message = str(message)
 
 
 @dataclass(frozen=True)

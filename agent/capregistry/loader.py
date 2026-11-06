@@ -251,7 +251,7 @@ class Loader:
             self._do_connect(handle)
         except Exception as exc:  # noqa: BLE001  任何连接失败都必须被吞掉
             self._handle = None
-            self._enter_backoff(f"连接失败: {type(exc).__name__}: {exc}")
+            self._enter_backoff(f"连接失败: {type(exc).__name__}")
             return False
         with self._lock:
             self._handle = handle
@@ -287,7 +287,7 @@ class Loader:
                     breaker.record_result(False)
                 except Exception:  # noqa: BLE001
                     pass
-            self._enter_backoff(f"调用失败: {type(exc).__name__}: {exc}")
+            self._enter_backoff(f"调用失败: {type(exc).__name__}")
             return InvokeOutcome(
                 ok=False, code="unhealthy", loader=self.kind, path=self.kind,
                 detail=str(exc), exception=exc,
@@ -1049,7 +1049,8 @@ class LoaderManager:
             try:
                 self.loaders[kind] = factory()
             except Exception as exc:  # noqa: BLE001  单个 Loader 构造失败 ⇒ 只记不抛
-                msg = f"{type(exc).__name__}: {exc}"
+                # 【C-6】init_errors 会随 describe() 回给调用方：只回类名
+                msg = type(exc).__name__
                 self.init_errors.append({"loader": kind, "error": msg})
                 logger.error("[capregistry] Loader %s 初始化失败（不影响启动）: %s",
                              kind, msg)
@@ -1065,7 +1066,7 @@ class LoaderManager:
             try:
                 self.loaders[kind].eager_init()
             except Exception as exc:  # noqa: BLE001
-                msg = f"初始化探测失败: {type(exc).__name__}: {exc}"
+                msg = f"初始化探测失败: {type(exc).__name__}"
                 self.init_errors.append({"loader": kind, "error": msg})
                 logger.error("[capregistry] Loader %s %s（该 Loader 承载的能力标 "
                              "unhealthy，平台照常启动）", kind, msg)
@@ -1163,7 +1164,7 @@ def get_loader_manager(*, force: bool = False) -> LoaderManager:
                 empty._now = time.monotonic  # noqa: SLF001
                 empty.loaders = {}
                 empty.init_errors = [{"loader": "*",
-                                      "error": f"{type(exc).__name__}: {exc}"}]
+                                      "error": type(exc).__name__}]
                 empty._lock = threading.RLock()  # noqa: SLF001
                 empty._endpoints = {}
                 _MGR["mgr"] = empty

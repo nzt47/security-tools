@@ -530,7 +530,8 @@ def _run_fan_out(dl: Any, kwargs: Mapping[str, Any]) -> Dict[str, Any]:
                          "assembly": resolve_subagent_assembly(
                              line_id, registry, meta, available)}
             except LineUnavailable as e:
-                entry = {"ok": False, "error": str(e)}
+                # C-6 安全出口：领域异常只回自定义属性 message（不回 str(e) 派生串）
+                entry = {"ok": False, "error": getattr(e, "message", "") or "主线不可用"}
             line_cache[line_id] = entry
 
         # 显式标注 Dict[str, Any]：混合取值会被推成 dict[str, object]，

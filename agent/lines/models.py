@@ -34,6 +34,21 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+
+class LinesValidationError(ValueError):
+    """主线档案**校验类**失败（请求体不是对象 / 缺 id / max_tools 非整数 …）。
+
+    [不易] 带上 `message` 属性是为了让 REST 层有**安全出口**：C-6 口径要求响应里不出现
+    异常派生串（CodeQL `py/stack-trace-exposure`），已知领域异常只回 `exc.message`。
+    它继承 ValueError，既有调用方按 ValueError 捕获的行为不变。
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(str(message))
+        self.message = str(message)
+        #: 稳定机器码（REST 层映射状态码只看它，不再 grep 文案）
+        self.code = "invalid"
+
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TOOL_DEFS_DIR = os.path.join(_ROOT, "data", "tool_definitions")
 AGENT_LINES_DIR = os.path.join(_ROOT, "data", "agent_lines")
@@ -854,10 +869,10 @@ class LineProfile:
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "LineProfile":
         if not isinstance(raw, dict):
-            raise ValueError("主线档案必须是字典")
+            raise LinesValidationError("主线档案必须是字典")
         lid = str(raw.get("id") or "").strip()
         if not lid:
-            raise ValueError("主线档案缺少 id")
+            raise LinesValidationError("主线档案缺少 id")
         # 【坑】不能用 `raw.get("max_tools") or 20`：`0` 是 falsy，会被静默归一成 20，
         # 于是 validate() 的"max_tools 必须为正整数"从 REST 层永远不可达
         # （实测 {"max_tools":0} 会通过校验并静默变成 20）。必须只对 None/空串兜底。
@@ -865,7 +880,7 @@ class LineProfile:
         try:
             max_tools = 20 if _mt is None or _mt == "" else int(_mt)
         except (TypeError, ValueError):
-            raise ValueError(f"max_tools 必须是整数，收到: {_mt!r}")
+            raise LinesValidationError(f"max_tools 必须是整数，收到: {_mt!r}")
         return cls(
             id=lid,
             name=str(raw.get("name") or lid),

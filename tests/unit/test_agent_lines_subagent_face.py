@@ -272,5 +272,7 @@ class TestNamedButUnavailable:
         sa = body["subagent_assembly"]
         assert sa["available"] is False
         assert sa["semantics"] == "degraded"
-        assert "降级" in sa["reason"] and "boom" in sa["reason"]
+        # C-6 新契约：降级原因只回异常**类名**，原文（"boom"）只进服务日志
+        assert "降级" in sa["reason"] and "RuntimeError" in sa["reason"]
+        assert "boom" not in resp.get_data(as_text=True)
         assert body["preview"]["line_id"] == "engineering"
