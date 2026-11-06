@@ -34,6 +34,20 @@ type Card = {
 type NativeItem = { id: string; name: string; summary?: string; status?: string }
 type NativeGroup = { kind: string; title: string; desc?: string; count: number; items: NativeItem[] }
 type Overlap = { skill_id: string; name?: string; matches: { native_id: string; kind: string; score: number; reason?: string }[] }
+/** 重叠检测的**口径统计**：界面必须把「为什么清单是空的」讲出来（C-7 诚实版）。 */
+type OverlapStats = {
+  threshold: number
+  skills_total: number
+  skills_compared: number
+  tools_compared: number
+  pairs: number
+  max_text_score: number
+  max_text_pair?: { skill_id?: string; native_id?: string; score?: number }
+  max_effective_score: number
+  hinted_skills: number
+  explicit_boost: number
+  why_empty?: string
+}
 
 type Props = { open: boolean; onClose: () => void }
 
@@ -62,6 +76,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
   const [cards, setCards] = useState<Card[]>([])
   const [groups, setGroups] = useState<NativeGroup[]>([])
   const [overlaps, setOverlaps] = useState<Overlap[]>([])
+  const [stats, setStats] = useState<OverlapStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
@@ -108,6 +123,7 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
       if (!r.ok || j.ok === false) throw new Error(j.error || `HTTP ${r.status}`)
       setGroups(Array.isArray(j.groups) ? j.groups : [])
       setOverlaps(Array.isArray(j.overlaps) ? j.overlaps : [])
+      setStats(j.stats && typeof j.stats === 'object' ? (j.stats as OverlapStats) : null)
     } catch (e) {
       setError(String((e as Error).message || e))
     } finally {
@@ -208,6 +224,9 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
               内置工具（模型直接可调用）+ 常驻机制（不建文件轨但始终生效）。
               下面一并列出<strong className="text-violet-300">「技能 × 元生功能」的疑似重叠</strong> ——
               某条技能若在重复造轮子，会出现在那张清单里。
+              <br />
+              口径是<strong className="text-slate-300">字面覆盖率</strong>（阈值 0.25，未下调）：清单为空时，
+              下面会如实给出「比了多少对 / 上限分多少 / 最高的一对是谁」—— 那是口径所致，不是 bug。
             </p>
           )}
         </div>
@@ -312,12 +331,52 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
             )
           ) : (
             <div className="space-y-4">
+              {/* 口径统计：清单为空时也要说清楚「为什么空」，否则 0 条看起来像 bug */}
+              <div className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-medium text-slate-200">重叠检测口径</span>
+                  <span className="text-[10px] text-slate-600">字面覆盖率（containment）+ 点名工具强信号</span>
+                </div>
+                {stats ? (
+                  <>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                      <span>阈值 <code className="text-slate-200">{stats.threshold}</code></span>
+                      <span>
+                        比对 <code className="text-slate-200">{stats.pairs}</code> 对（
+                        {stats.skills_compared} 条技能 × {stats.tools_compared} 个元生功能）
+                      </span>
+                      <span>
+                        上限分
+                        {" "}
+                        <code className={stats.max_text_score < stats.threshold ? "text-amber-300" : "text-slate-200"}>
+                          {stats.max_text_score.toFixed(3)}
+                        </code>
+                      </span>
+                      {stats.max_text_pair?.native_id ? (
+                        <span className="text-slate-500">
+                          最高：{stats.max_text_pair.skill_id} → {stats.max_text_pair.native_id}
+                        </span>
+                      ) : null}
+                      <span>点名强信号 <code className="text-slate-200">{stats.explicit_boost.toFixed(2)}</code></span>
+                      <span>命中 <code className="text-slate-200">{stats.hinted_skills}</code> 条</span>
+                    </div>
+                    {stats.why_empty ? (
+                      <div className={`mt-1 text-[10px] leading-relaxed ${stats.hinted_skills ? "text-slate-500" : "text-amber-300/90"}`}>
+                        {stats.why_empty}
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="text-[10px] text-slate-500">（未取到口径统计）</div>
+                )}
+              </div>
+
               {filteredOverlaps.length > 0 ? (
                 <div className="rounded-lg border border-violet-900/50 bg-violet-950/20 px-3 py-2">
                   <div className="mb-1 flex items-center gap-2">
                     <span className="text-[11px] font-medium text-violet-200">疑似重叠：技能 × 元生功能</span>
                     <span className="text-[10px] text-slate-500">{filteredOverlaps.length} 条技能</span>
-                    <span className="text-[10px] text-slate-600">· 点名工具=强信号(0.6)；其余看文本覆盖率</span>
+                    <span className="text-[10px] text-slate-600">· 点名工具=强信号；其余看文本覆盖率</span>
                   </div>
                   <ul className="space-y-1">
                     {filteredOverlaps.slice(0, 20).map((o) => (
