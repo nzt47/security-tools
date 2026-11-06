@@ -67,10 +67,13 @@ def _skill_facets() -> List[Dict[str, object]]:
 
 
 def _body_of(skill: Dict[str, object]) -> str:
-    """技能侧被比的正文：触发 + 步骤 + 参数 + 约束（**不含示例**）。"""
-    parts = ((skill.get("trigger") or []) + (skill.get("steps") or [])
-             + (skill.get("params") or []) + (skill.get("guard") or []))
-    return "\n".join(str(x) for x in parts)
+    """技能侧被比的正文（触发 + 步骤 + 参数 + 约束，不含示例）。
+
+    实现在 transform.compare.facet_body —— 向量口径要同一份正文，放这里会与
+    overlap_vector 形成循环依赖（arch_rules 实测会判违规）。
+    """
+    from agent.skills_mgmt.transform.compare import facet_body
+    return facet_body(skill)
 
 
 def _explicit_mentioned(tool_id: str, body_low: str) -> bool:

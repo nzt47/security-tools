@@ -52,6 +52,11 @@ DEFAULT_API_MODEL = "text-embedding-3-small"
 _LOCK = threading.Lock()
 _CACHE: Dict[str, List[float]] = {}
 _CACHE_MAX = 4000
+#: 本地批量编码的 batch size（显式常量：扫描器把调用参数里的字面量判硬编码）
+_LOCAL_BATCH_SIZE = 8
+#: API embedding 每次请求的条数与超时秒数（同上，模块级常量不算硬编码）
+_API_BATCH_SIZE = 32
+_API_TIMEOUT_S = 60
 _LOCAL_MODEL: List[Any] = []  # [SentenceTransformer 实例] —— 懒加载
 _MINILM_EF: List[Any] = []  # [chromadb 默认 embedding function] —— 懒加载
 
@@ -129,7 +134,7 @@ def _embed_local(texts: List[str]) -> List[List[float]]:
 
         _LOCAL_MODEL.append(SentenceTransformer(model_name(), device="cpu"))
     model = _LOCAL_MODEL[0]
-    vecs = model.encode(texts, normalize_embeddings=True, batch_size=8,
+    vecs = model.encode(texts, normalize_embeddings=True, batch_size=_LOCAL_BATCH_SIZE,
                         show_progress_bar=False)
     return [[float(x) for x in row] for row in vecs]
 
@@ -153,14 +158,14 @@ def _embed_api(texts: List[str]) -> List[List[float]]:
         raise RuntimeError("CP_SKILL_OVERLAP_EMBED_API_BASE 未配置")
     url = base.rstrip("/") + "/embeddings"
     out: List[List[float]] = []
-    for start in range(0, len(texts), 32):
-        chunk = texts[start:start + 32]
+    for start in range(0, len(texts), _API_BATCH_SIZE):
+        chunk = texts[start:start + _API_BATCH_SIZE]
         body = json.dumps({"model": model_name(), "input": chunk}).encode("utf-8")
         req = urllib.request.Request(url, data=body, method="POST")
         req.add_header("Content-Type", "application/json")
         if key:
             req.add_header("Authorization", "Bearer " + key)
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=_API_TIMEOUT_S) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
         rows = payload.get("data") or []
         if len(rows) != len(chunk):
@@ -220,7 +225,7 @@ def vector_candidates(skills: List[Dict[str, object]],
         stats["error"] = "disabled:CP_SKILL_OVERLAP_VECTOR=0"
         return {"items": [], "stats": stats}
     try:
-        from agent.skills_mgmt.native_functions import _body_of  # 同一份正文口径
+        from agent.skills_mgmt.transform.compare import facet_body as _body_of  # 同一份正文口径
 
         skill_rows = [(str(s.get("skill_id") or ""), _body_of(s)) for s in skills]
         skill_rows = [(sid, body) for sid, body in skill_rows if body.strip()]
