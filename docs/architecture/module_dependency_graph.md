@@ -596,6 +596,7 @@ flowchart LR
         agent_skills_mgmt_negative_intent_detector["agent.skills_mgmt.negative_intent_detector"]
         agent_skills_mgmt_observability["agent.skills_mgmt.observability"]:::crosslayer
         agent_skills_mgmt_offline_evolver["agent.skills_mgmt.offline_evolver"]:::crosslayer
+        agent_skills_mgmt_overlap_vector["agent.skills_mgmt.overlap_vector"]
         agent_skills_mgmt_precipitate["agent.skills_mgmt.precipitate"]
         agent_skills_mgmt_registry["agent.skills_mgmt.registry"]:::crosslayer
         agent_skills_mgmt_reranker["agent.skills_mgmt.reranker"]
@@ -2338,12 +2339,15 @@ flowchart LR
     agent_skills_mgmt_native_functions -.-> agent_tools
     agent_skills_mgmt_native_functions --> agent_skills_mgmt_capability_cards
     agent_skills_mgmt_native_functions --> agent_skills_mgmt_transform_compare
+    agent_skills_mgmt_native_functions --> agent_skills_mgmt_transform_compare
+    agent_skills_mgmt_native_functions --> agent_skills_mgmt_overlap_vector
     agent_skills_mgmt_negative_intent_detector -.-> agent_logging_utils
     agent_skills_mgmt_observability -.-> agent_monitoring_business_metrics
     agent_skills_mgmt_observability -.-> agent_monitoring_tracing
     agent_skills_mgmt_offline_evolver -.-> agent_logging_utils
     agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
     agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
+    agent_skills_mgmt_overlap_vector --> agent_skills_mgmt_transform_compare
     agent_skills_mgmt_precipitate -.-> agent_logging_utils
     agent_skills_mgmt_precipitate -.-> agent_learning_metrics
     agent_skills_mgmt_precipitate --> agent_skills_mgmt_memory_abstractor
@@ -2831,9 +2835,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 724
-- 模块节点数: 628
-- 依赖边数: 2077
+- 扫描文件数: 725
+- 模块节点数: 629
+- 依赖边数: 2080
 - 跨层调用数: 1314
 - 违规调用数: 0
 - 动态 import 数: 1
