@@ -183,7 +183,11 @@ class Loader:
                 failure_threshold=0.5, min_requests=3,
                 reset_timeout=30.0, window_seconds=60.0, max_attempts=2))
         except Exception as exc:  # noqa: BLE001  熔断器不可用 ⇒ 无熔断（比起不来好）
-            self.warnings.append(f"熔断器不可用（{self.kind} 无熔断保护）: {exc}")
+            # 【C-6】warnings 会随 health()/describe() 回给调用方 ⇒ 只留类名，原文进日志
+            self.warnings.append(
+                f"熔断器不可用（{self.kind} 无熔断保护）: {type(exc).__name__}")
+            logger.warning("[capregistry] %s 熔断器不可用（无熔断保护）", self.kind,
+                           exc_info=True)
             self._breaker = None
         return self._breaker
 
