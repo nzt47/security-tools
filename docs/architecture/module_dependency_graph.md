@@ -1974,6 +1974,7 @@ flowchart LR
     agent_server_routes_routes_agent_lines -.-> agent_lines
     agent_server_routes_routes_agent_lines -.-> agent_server_auth
     agent_server_routes_routes_agent_lines --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_agent_lines --> agent_server_routes__errors
     agent_server_routes_routes_agent_lines -.-> agent_subagent_assembly
     agent_server_routes_routes_agent_lines --> agent
     agent_server_routes_routes_agent_lines -.-> agent_lines_callability
@@ -2014,6 +2015,7 @@ flowchart LR
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
+    agent_server_routes_routes_capabilities --> agent_server_routes__errors
     agent_server_routes_routes_capabilities -.-> agent_capregistry
     agent_server_routes_routes_capabilities -.-> agent_security_tenant
     agent_server_routes_routes_capabilities -.-> agent_server_auth
@@ -2829,7 +2831,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 724
 - 模块节点数: 628
-- 依赖边数: 2073
+- 依赖边数: 2075
 - 跨层调用数: 1312
 - 违规调用数: 0
 - 动态 import 数: 1
