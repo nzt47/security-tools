@@ -18834,7 +18834,7 @@
       "source_layer": "process_distill",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 275,
+      "line": 277,
       "source_file": "agent/process_distill/solidify.py",
       "is_cross_layer": true,
       "is_violation": false,
