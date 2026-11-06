@@ -64,7 +64,28 @@ def _active_path() -> str:
 
 
 class LineRegistryError(Exception):
-    """主线档案操作异常"""
+    """主线档案操作异常。
+
+    [不易] `message` 是**给外部响应**的安全出口 —— C-6 口径要求响应里不出现异常派生串
+    （CodeQL `py/stack-trace-exposure`），已知领域异常只回 `exc.message`。
+    `code` 是稳定机器码，REST 层按它映射状态码（不再从文案里 grep "不存在"/"已存在"）：
+        not_found → 404 / exists → 409 / invalid → 400
+    """
+
+    def __init__(self, message: str, *, code: str = "") -> None:
+        super().__init__(str(message))
+        self.message = str(message)
+        self.code = code or _infer_code(self.message)
+
+
+def _infer_code(message: str) -> str:
+    """没显式给 code 的老调用点仍按原关键词口径兜底（行为逐字不变）。"""
+    lowered = message.lower()
+    if "不存在" in message or "not found" in lowered:
+        return "not_found"
+    if "已存在" in message or "exists" in lowered:
+        return "exists"
+    return "invalid"
 
 
 class LineRegistry:
@@ -90,14 +111,16 @@ class LineRegistry:
             with open(path, "r", encoding="utf-8") as f:
                 raw = yaml.safe_load(f)
         except (OSError, yaml.YAMLError) as e:
-            raise LineRegistryError(f"主线档案读取失败 {line_id}: {e}") from e
+            raise LineRegistryError(f"主线档案读取失败 {line_id}: {type(e).__name__}", code="invalid") from e
         if not isinstance(raw, dict):
-            raise LineRegistryError(f"主线档案格式非法（应为字典）: {line_id}")
+            raise LineRegistryError(f"主线档案格式非法（应为字典）: {line_id}", code="invalid")
         raw.setdefault("id", line_id)
         try:
             return LineProfile.from_dict(raw)
         except ValueError as e:
-            raise LineRegistryError(f"主线档案校验失败 {line_id}: {e}") from e
+            raise LineRegistryError(
+                f"主线档案校验失败 {line_id}: {getattr(e, 'message', None) or type(e).__name__}",
+                code="invalid") from e
 
     def load_all(self) -> Dict[str, LineProfile]:
         out: Dict[str, LineProfile] = {}
@@ -123,7 +146,8 @@ class LineRegistry:
     def save(self, profile: LineProfile, *, overwrite: bool = True) -> str:
         if not _ID_RE.match(profile.id or ""):
             raise LineRegistryError(
-                f"主线 id 非法: {profile.id!r}（需小写字母开头，含小写字母/数字/_/-，2-41 字符）")
+                f"主线 id 非法: {profile.id!r}（需小写字母开头，含小写字母/数字/_/-，2-41 字符）",
+                code="invalid")
         # 与 known_tools 同款口径：把**真实**的工具名与技能 id 传进校验，
         # 让 typo 在保存时就失败，而不是等运行时静默失效。
         # 【不易】技能目录为空 ⇒ 传 None（只做结构校验）：环境读不到目录时
@@ -133,14 +157,14 @@ class LineRegistry:
         issues = profile.validate(known_tools=known or None,
                                   known_skills=known_skills or None)
         if issues:
-            raise LineRegistryError("主线档案校验失败: " + "; ".join(issues))
+            raise LineRegistryError("主线档案校验失败: " + "; ".join(issues), code="invalid")
 
         d = lines_dir()
         os.makedirs(d, exist_ok=True)
         path = _path_for(profile.id)
         with _LOCK:
             if os.path.exists(path) and not overwrite:
-                raise LineRegistryError(f"主线已存在: {profile.id}")
+                raise LineRegistryError(f"主线已存在: {profile.id}", code="exists")
             tmp = path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
                 f.write(profile.to_yaml())
@@ -155,7 +179,7 @@ class LineRegistry:
 
     def delete(self, line_id: str, *, confirm: bool = False) -> bool:
         if not confirm:
-            raise LineRegistryError("删除主线需要 confirm=True")
+            raise LineRegistryError("删除主线需要 confirm=True", code="invalid")
         path = _line_file(line_id)
         with _LOCK:
             if not path or not os.path.exists(path):
@@ -182,7 +206,7 @@ class LineRegistry:
         d = lines_dir()
         os.makedirs(d, exist_ok=True)
         if line_id and not _line_file(line_id):
-            raise LineRegistryError(f"主线不存在: {line_id}")
+            raise LineRegistryError(f"主线不存在: {line_id}", code="not_found")
         with _LOCK:
             tmp = _active_path() + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:

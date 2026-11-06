@@ -226,7 +226,10 @@ def _build_from_authority(root: str, manifest: Mapping[str, Any]
             specs.append(CapabilityRecord.from_tool_meta(
                 meta, facts=facts.get(str(name)), derived=derived))
         except Exception as exc:  # noqa: BLE001  单条坏不该毁掉整表
-            warnings.append(f"工具 {name!r} 构造失败（已跳过）: {type(exc).__name__}: {exc}")
+            # 【C-6】warning 会进 stats()["build_warnings"] ⇒ 再随 /capabilities/tools、
+            # /capabilities/health 的响应回给调用方：只留异常**类名**，原文进日志。
+            warnings.append(f"工具 {name!r} 构造失败（已跳过）: {type(exc).__name__}")
+            logger.warning("[capregistry] 工具 %r 构造失败（已跳过）", name, exc_info=True)
 
     # 技能侧：实体不在版本控制内 ⇒ 走受版本控制的清单快照（见模块 docstring 第 1 段）
     for e in manifest.get("entries") or []:
@@ -504,8 +507,10 @@ class CapabilityRegistry:
                     "module": str(c.get("module") or ""),
                 })
         except Exception as exc:  # noqa: BLE001  注册框架不可用不影响"声明层"结论
+            # 【C-6】冲突表同样会回给调用方：只回类名，原文进日志
             conflicts.append({"name": "", "kind": "registry_unavailable",
-                              "error": f"{type(exc).__name__}: {exc}"})
+                              "error": type(exc).__name__})
+            logger.warning("[capregistry] 冲突表补全失败（注册框架不可用）", exc_info=True)
         return conflicts
 
     # ── 统计 ──
@@ -648,7 +653,7 @@ def build_registry(*, root: Optional[str] = None,
     try:
         manifest = _load_manifest(base)
     except Exception as exc:  # noqa: BLE001  连快照都读不到 ⇒ 空表 + 明确告警
-        msg = f"能力清单快照不可读（{MANIFEST_PATH}）: {type(exc).__name__}: {exc}"
+        msg = f"能力清单快照不可读（{MANIFEST_PATH}）: {type(exc).__name__}"
         logger.error("[capregistry] %s ⇒ 返回空 Registry（不阻塞启动）", msg)
         return CapabilityRegistry((), degraded=True, build_warnings=[msg])
 
@@ -663,7 +668,7 @@ def build_registry(*, root: Optional[str] = None,
                                   manifest_meta=manifest,
                                   health_provider=health_provider)
     except Exception as exc:  # noqa: BLE001  降级路径：整表走快照
-        msg = f"主源构建失败，降级到清单快照: {type(exc).__name__}: {exc}"
+        msg = f"主源构建失败，降级到清单快照: {type(exc).__name__}"
         logger.warning("[capregistry] %s", msg)
         specs, warnings = _build_from_snapshot(manifest)
         return CapabilityRegistry(specs, degraded=True,
@@ -683,7 +688,7 @@ def get_registry(*, force: bool = False,
                 _SINGLETON["registry"] = build_registry(health_provider=health_provider)
                 _SINGLETON["error"] = ""
             except Exception as exc:  # noqa: BLE001  兜底：连 build_registry 都炸了
-                _SINGLETON["error"] = f"{type(exc).__name__}: {exc}"
+                _SINGLETON["error"] = type(exc).__name__
                 logger.error("[capregistry] 构建异常（返回空 Registry）: %s",
                              _SINGLETON["error"], exc_info=True)
                 _SINGLETON["registry"] = CapabilityRegistry(

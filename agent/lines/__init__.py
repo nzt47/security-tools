@@ -34,6 +34,7 @@ from .models import (
     RISKS,
     TOOL_DEFS_DIR,
     LineProfile,
+    LinesValidationError,
     ToolMeta,
     invalidate_tool_meta_cache,
     load_tool_meta,
@@ -59,7 +60,7 @@ __all__ = [
     "PLANES", "EFFECTS", "RISKS", "ToolMeta", "LineProfile",
     "load_tool_meta", "invalidate_tool_meta_cache", "TOOL_DEFS_DIR", "AGENT_LINES_DIR",
     # 注册表
-    "LineRegistry", "LineRegistryError", "get_line_registry", "lines_dir",
+    "LineRegistry", "LineRegistryError", "LinesValidationError", "get_line_registry", "lines_dir",
     # 装配
     "assemble", "AssemblyResult", "estimate_tokens",
     # 接线层

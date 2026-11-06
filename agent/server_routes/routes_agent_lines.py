@@ -26,9 +26,12 @@
     这一核心动作会退化成 401。
 
 【错误映射】
-    `LineRegistryError` → 400；消息含"不存在 / not found" → 404；
-    消息含"已存在" → 409；`ValueError`（档案字典非法）→ 400；
-    其余未预期异常 → 500（带异常文本，不吞）。
+    响应体只允许两种安全出口（C-6）：已知领域异常回自定义属性 `exc.message`，
+    未预期异常回固定文案（原文只进 `logger.exception`）。
+    `LineRegistryError` 按 `exc.code` 映射：not_found → 404 / exists → 409 / 其余 → 400；
+    `LinesValidationError`（档案字典非法 / 请求体不是对象）→ 400；
+    `LineUnavailable`（点名主线装不上）→ 400（该任务失败，不回退全量授权）；
+    其余未预期异常 → 500（**不回异常文本**，只回「服务内部错误（详见服务日志）」）。
 """
 
 from __future__ import annotations
@@ -45,6 +48,7 @@ from agent.lines import (
     RISKS,
     LineProfile,
     LineRegistryError,
+    LinesValidationError,
     assemble,
     get_line_registry,
     known_skill_ids,
@@ -117,7 +121,7 @@ def _json_body() -> Dict[str, Any]:
     if body is None:
         return {}
     if not isinstance(body, dict):
-        raise ValueError("请求体必须是 JSON 对象")
+        raise LinesValidationError("请求体必须是 JSON 对象")
     return body
 
 
@@ -129,23 +133,26 @@ def _fail(message: str, status: int = 400, **extra: Any) -> Tuple[Any, int]:
 
 
 def _error_response(exc: BaseException) -> Tuple[Any, int]:
-    """异常 → HTTP 状态码（映射规则见模块 docstring）"""
-    # 【C-6 暂缓】这里必须保留 str(exc)：状态码映射与文案都依赖它（"不存在"→404、
-    # "已存在"→409、校验类 400）。要安全回显得先给 LineRegistryError / 校验异常
-    # 逐个加 message 属性并迁移全部 raise 站点 —— 那是独立改动（本批实测会连带 4 条
-    # 既有用例），故对应的 stack-trace 告警留到「agent_lines 专项」。
-    message = str(exc)
-    if isinstance(exc, LineRegistryError):
-        lowered = message.lower()
-        if "不存在" in message or "not found" in lowered:
-            return _fail(message, 404)
-        if "已存在" in message or "exists" in lowered:
-            return _fail(message, 409)
-        return _fail(message, 400)
+    """异常 → HTTP 状态码（映射规则见模块 docstring）
+
+    【C-6 安全出口】响应体只允许两种来源：① 已知领域异常的**自定义属性** `exc.message`
+    （LineRegistryError / LinesValidationError / LineUnavailable，状态码由 `exc.code` 决定）；
+    ② 未预期异常回**固定文案**，原文只进 `logger.exception`。
+    不出现 `str(exc)` / `f"{e}"` —— 那是 `py/stack-trace-exposure` 的判定面。
+    """
+    from agent.subagent.assembly import LineUnavailable  # 局部导入：避免把装配链拉进模块导入期
+
+    if isinstance(exc, (LineRegistryError, LinesValidationError, LineUnavailable)):
+        code = str(getattr(exc, "code", "") or "invalid")
+        status = {"not_found": 404, "exists": 409}.get(code, 400)
+        return _fail(getattr(exc, "message", "") or "主线操作失败", status)
     if isinstance(exc, ValueError):
-        return _fail(message, 400)
+        # 本层自造的校验消息（非 Python 异常派生）：仍经 _fail 的固定字段回显，
+        # 但不接受「异常对象直接转字符串」的路径 —— 领域异常请改用 LinesValidationError。
+        detail = getattr(exc, "message", "") or ""
+        return _fail(detail or "请求参数非法（详见服务日志）", 400)
     logger.exception("[AgentLines] 未预期异常")
-    return _fail(f"{type(exc).__name__}: {message}", 500)
+    return _fail("服务内部错误（详见服务日志）", 500)
 
 
 def _runtime_tool_names() -> List[str]:
@@ -447,14 +454,15 @@ def _subagent_assembly_payload(line_id: str, registry: Any, meta: Dict[str, Any]
             **empty, "available": False, "mode": "unavailable",
             "semantics": "named-but-unavailable",
             "semantics_note": SUBAGENT_SEMANTICS["named-but-unavailable"],
-            "reason": str(e),  # 【C-6 暂缓】LineUnavailable 同样需先加 message 属性
+            # 安全出口：LineUnavailable.message（C-6：不回 str(exc) 派生串）
+            "reason": getattr(e, "message", "") or "主线不可用",
         }
     except Exception as e:  # noqa: BLE001 本块失败不得把预览端点带崩（与片段投影同款）
         logger.warning("[AgentLines] 分身装配单投影降级（预览照常）: %s", e)
         return {
             **empty, "available": False, "mode": "unavailable", "semantics": "degraded",
             "semantics_note": SUBAGENT_SEMANTICS["degraded"],
-            "reason": "装配单不可用（已降级）：%s" % (e,),
+            "reason": "装配单不可用（已降级：%s）" % type(e).__name__,
         }
     payload: Dict[str, Any] = dict(asm.to_dict())
     payload["available"] = True
