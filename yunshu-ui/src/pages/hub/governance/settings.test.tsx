@@ -704,7 +704,15 @@ const ENUM_ITEM = base({
   display_value: 'st_bge_m3',
   default: 'st_bge_m3',
   description: '向量候选用的 embedding（三选一，排它生效）',
-  validator: { kind: 'enum', choices: ['st_bge_m3', 'native_minilm', 'api'] },
+  validator: {
+    kind: 'enum',
+    choices: ['st_bge_m3', 'native_minilm', 'api'],
+    choice_notes: {
+      st_bge_m3: '默认。本地 BGE-m3（1024 维），中文最好',
+      native_minilm: '本地 MiniLM（384 维），最省内存',
+      api: '远程 API，按量计费，需端点与密钥',
+    },
+  },
   source: 'default',
   source_label: '默认值',
   effect: 'hot',
@@ -741,8 +749,14 @@ describe('7. 枚举项 = 排它单选', () => {
     expect(select.tagName).toBe('SELECT')
     expect(Array.from(select.options).map((o) => o.value)).toEqual(['st_bge_m3', 'native_minilm', 'api'])
     expect(screen.getByText('排它单选')).toBeInTheDocument()
+    // 选中的那个值必须有**它自己的**说明（不是只有开关总描述）
+    const noteFor = () =>
+      document.querySelector('[data-cp-setting-choice-note="CP_SKILL_OVERLAP_VECTOR_PROVIDER"]')?.textContent || ''
+    expect(noteFor()).toMatch(/BGE-m3/)
     // 同一时刻只能有一个值：改选即提交（不是自由文本，也允许回到默认值）
     fireEvent.change(select, { target: { value: 'api' } })
+    // 改选后说明要跟着换（说明与选项一一对应，不是写死的一句话）
+    expect(noteFor()).toMatch(/按量计费/)
     await waitFor(() => expect(api.changeSetting).toHaveBeenCalled())
     expect(api.changeSetting.mock.calls[0][0]).toBe('CP_SKILL_OVERLAP_VECTOR_PROVIDER')
     expect(api.changeSetting.mock.calls[0][1]).toMatchObject({ value: 'api' })

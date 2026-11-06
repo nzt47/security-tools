@@ -110,6 +110,9 @@ class Validator:
     min: Optional[float] = None
     max: Optional[float] = None
     choices: Tuple[str, ...] = ()
+    #: 每个可选值的**一句说明**（键 = choices 里的值）。UI 在单选控件下方按当前值显示，
+    #: 保证「开关注上相应说明」不只覆盖开关本身，也覆盖每个选项（enum 光有值名看不出差别）。
+    choice_notes: Dict[str, str] = field(default_factory=dict)
     pattern: str = ""
     note: str = ""
 
@@ -121,6 +124,8 @@ class Validator:
             out["max"] = self.max
         if self.choices:
             out["choices"] = list(self.choices)
+        if self.choice_notes:
+            out["choice_notes"] = dict(self.choice_notes)
         if self.pattern:
             out["pattern"] = self.pattern
         if self.note:
@@ -140,8 +145,10 @@ def _int_range(minimum: float, maximum: float) -> Validator:
     return Validator("int", min=minimum, max=maximum)
 
 
-def _enum(*choices: str) -> Validator:
-    return Validator("enum", choices=tuple(choices))
+def _enum(*choices: str, notes: Optional[Dict[str, str]] = None) -> Validator:
+    """枚举校验器；`notes` = 每个选项的一句说明（键必须是 choices 里的值，写错会在
+    `tests/unit/test_settings_registry.py::test_枚举选项说明与选项一一对应` 处报错）。"""
+    return Validator("enum", choices=tuple(choices), choice_notes=dict(notes or {}))
 
 
 # ════════════════════════════════════════════════════════════
@@ -2808,7 +2815,16 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "空串/拼错回退 st_bge_m3，旧值 local 作为别名等价于 st_bge_m3"
        " [C-7；agent/skills_mgmt/overlap_vector.py:provider]",
        owner="agent/skills_mgmt/overlap_vector.py",
-       validator=_enum("st_bge_m3", "native_minilm", "api")),
+       validator=_enum(
+           "st_bge_m3", "native_minilm", "api",
+           notes={
+               "st_bge_m3": "默认。本地 BGE-m3（1024 维），中文最好；首次加载约 87.7s，"
+                            "加载后按文本缓存，重复打开面板不再重算。",
+               "native_minilm": "本地 chromadb 自带 all-MiniLM-L6-v2（384 维，onnxruntime）："
+                                "不拉 torch、最省内存；中文弱于 BGE-m3，维度也不同。",
+               "api": "远程 OpenAI 兼容 /embeddings：无本地依赖、不占内存；按量计费、需联网，"
+                      "须先配 CP_SKILL_OVERLAP_EMBED_API_BASE 与密钥，否则如实报「未配置」。",
+           })),
     _a("CP_SKILL_OVERLAP_EMBED_MODEL", CAT_SKILLS, "",
        "embedding 模型名覆盖（缺省空串 ⇒ 按 provider 取默认：st_bge_m3 → BAAI/bge-m3、"
        "native_minilm → all-MiniLM-L6-v2、api → text-embedding-3-small）。换模型会让缓存键失效"

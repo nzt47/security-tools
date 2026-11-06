@@ -423,6 +423,10 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
     item.validator && item.validator.kind === 'enum' && Array.isArray(validatorChoices)
       ? (validatorChoices as string[])
       : []
+  // 每个选项的一句说明（后端给；键 = 选项值）——「开关都给注上相应说明」在 enum 上的落点
+  const choiceNotes =
+    (item.validator as unknown as { choice_notes?: Record<string, string> } | undefined)?.choice_notes || {}
+  const selectValue = ctx.drafts[item.key] ?? String(item.display_value ?? '')
 
   // ── 控件 ──────────────────────────────────────────────
   let control: ReactNode
@@ -452,17 +456,20 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
     )
   } else if (choices.length > 0) {
     control = (
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-col items-end gap-0.5">
+        <div className="flex items-center gap-1.5">
         <select
           aria-label={`${item.key} 的值`}
           data-cp-setting-select={item.key}
-          value={ctx.drafts[item.key] ?? String(item.display_value ?? '')}
+          value={selectValue}
           onChange={(e) => {
             const next = e.target.value
             if (confirmFirst) {
               ctx.onOpenConfirm(item)
               ctx.onDraft(item.key, next)
             } else {
+              // 先落草稿（让单选与说明立刻跟着走），再提交；回读成功后以服务端值为准
+              ctx.onDraft(item.key, next)
               ctx.onSelect(item, next)
             }
           }}
@@ -481,6 +488,15 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
           ))}
         </select>
         <span className="text-[10px] text-slate-600">排它单选</span>
+        </div>
+        {choiceNotes[selectValue] ? (
+          <span
+            className="max-w-[26rem] text-right text-[10px] leading-relaxed text-slate-500"
+            data-cp-setting-choice-note={item.key}
+          >
+            {choiceNotes[selectValue]}
+          </span>
+        ) : null}
       </div>
     )
   } else {
