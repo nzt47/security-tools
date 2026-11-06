@@ -739,10 +739,8 @@ export default function SkillAssessManager() {
                     <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setCmdTarget(it) }} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
                       命令
                     </button>
-                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); setMergeTarget(it) }}
-                      title="合并重复技能：把相似的对方并进本技能（先写两侧快照，可凭 merge_id 撤销）；判据是同一触发面只留一个主人">
-                      <Copy size={11} /> 合并重复…
-                    </button>
+                    {/* 2026-11-06：行内不再挂「合并重复…」——合并应在「发现重复」的现场发起
+                        （评审-评估报告里的 findings 出口），列表里随手点等于第二个入口。 */}
                     {/* 2026-11-06：已有文件轨的行不再显示这个按钮（47/47 都有文件轨 ⇒ 永远是个灰按钮）。
                         只有「只在主轨」的运行时行才可能出现，那才是它唯一能动手的场景。 */}
                     {it.has_file_track !== true && (
