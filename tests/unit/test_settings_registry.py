@@ -1224,3 +1224,35 @@ class TestScanRootGapsAreRegistered:
 
 
 
+
+
+def test_枚举选项说明与选项一一对应():
+    """「开关都给注上相应说明」在 enum 上的落点：选项说明的键必须是选项本身。
+
+    只校验**一致性**（键 ⊆ choices、值非空），不强制每个 enum 都写说明 —— 历史开关
+    允许暂时没有；但一旦写了，就不许写错键（否则 UI 永远显示不出来，且没人会发现）。
+    """
+    from agent.settings.registry import REGISTRY
+
+    bad = []
+    for spec in REGISTRY:
+        v = spec.validator
+        if v.kind != "enum" or not v.choice_notes:
+            continue
+        extra = set(v.choice_notes) - set(v.choices)
+        if extra:
+            bad.append(f"{spec.key}: 说明里的键不在 choices 里 {sorted(extra)}")
+        blank = [k for k, note in v.choice_notes.items() if not str(note).strip()]
+        if blank:
+            bad.append(f"{spec.key}: 这些选项的说明是空的 {blank}")
+    assert bad == [], "\n".join(bad)
+
+
+def test_向量候选的三种后端每个都有说明():
+    """本会话新增的排它开关：三个选项必须都有独立说明（不是只写一句总描述）。"""
+    from agent.settings.registry import REGISTRY
+
+    spec = next(s for s in REGISTRY if s.key == "CP_SKILL_OVERLAP_VECTOR_PROVIDER")
+    notes = spec.validator.to_dict()["choice_notes"]
+    assert set(notes) == set(spec.validator.choices) == {"st_bge_m3", "native_minilm", "api"}
+    assert len({notes[k] for k in notes}) == 3, "三个选项的说明必须各不相同"

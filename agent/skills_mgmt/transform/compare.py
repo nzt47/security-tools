@@ -48,6 +48,18 @@ def containment(a: str, b: str) -> float:
     return len(ta & tb) / float(len(ta))
 
 
+def facet_body(skill: Dict[str, object]) -> str:
+    """技能侧被对比/被嵌入的正文：触发 + 步骤 + 参数 + 约束（**不含示例**）。
+
+    【为什么放在这里】`native_functions`（字面口径）与 `overlap_vector`（向量口径）都要
+    同一份正文；放在任一方都会让两个模块互相 import（arch_rules 的 no_circular_dependency
+    实测会判违规），故下沉到这个两边都依赖的叶子模块。
+    """
+    parts = ((skill.get("trigger") or []) + (skill.get("steps") or [])
+             + (skill.get("params") or []) + (skill.get("guard") or []))
+    return "\n".join(str(x) for x in parts)
+
+
 def _flatten(value) -> str:
     if isinstance(value, list):
         return "\n".join(str(x) for x in value)

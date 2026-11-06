@@ -67,10 +67,13 @@ def _skill_facets() -> List[Dict[str, object]]:
 
 
 def _body_of(skill: Dict[str, object]) -> str:
-    """技能侧被比的正文：触发 + 步骤 + 参数 + 约束（**不含示例**）。"""
-    parts = ((skill.get("trigger") or []) + (skill.get("steps") or [])
-             + (skill.get("params") or []) + (skill.get("guard") or []))
-    return "\n".join(str(x) for x in parts)
+    """技能侧被比的正文（触发 + 步骤 + 参数 + 约束，不含示例）。
+
+    实现在 transform.compare.facet_body —— 向量口径要同一份正文，放这里会与
+    overlap_vector 形成循环依赖（arch_rules 实测会判违规）。
+    """
+    from agent.skills_mgmt.transform.compare import facet_body
+    return facet_body(skill)
 
 
 def _explicit_mentioned(tool_id: str, body_low: str) -> bool:
@@ -181,10 +184,12 @@ def overlap_stats(skills: Optional[List[Dict[str, object]]] = None,
 
 
 def native_functions() -> Dict[str, object]:
-    """界面用：分组清单 + 重叠提示 + 口径统计（只算一遍）。"""
+    """界面用：分组清单 + 重叠提示 + 口径统计 + 向量候选（默认关）。"""
     tools = list_tools()
     skills = _skill_facets()
     hints, stats = _compute(skills, tools)
+    from agent.skills_mgmt.overlap_vector import vector_candidates  # 只有开启时才真加载模型
+    vector = vector_candidates(skills, tools)
     return {
         "groups": [
             {"kind": "tool", "title": "内置工具",
@@ -197,4 +202,7 @@ def native_functions() -> Dict[str, object]:
         "overlaps": hints,
         "threshold": OVERLAP_THRESHOLD,
         "stats": stats,
+        # C-7 第二步：向量候选（默认关；与字面候选**并列**呈现，不合并计数）
+        "vector_overlaps": vector["items"],
+        "vector": vector["stats"],
     }

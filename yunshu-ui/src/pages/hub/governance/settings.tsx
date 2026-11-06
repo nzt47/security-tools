@@ -396,6 +396,8 @@ interface RowCtx {
   feedback: Record<string, SettingsChangeResponse>
   errors: Record<string, string>
   onToggle: (item: SettingsItem, next: boolean) => void
+  /** 枚举项（choices 非空）＝排它单选：选中即提交（B 级仍走确认块） */
+  onSelect: (item: SettingsItem, next: string) => void
   onOpenConfirm: (item: SettingsItem) => void
   onCloseConfirm: () => void
   onSubmitConfirm: (item: SettingsItem) => void
@@ -415,6 +417,16 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
   const feedback = ctx.feedback[item.key]
   const error = ctx.errors[item.key]
   const editing = ctx.editingKey === item.key
+  // 枚举项（后端 validator.kind === 'enum'）：**排它单选** —— 同一时刻只能有一个值生效
+  const validatorChoices = (item.validator as unknown as { choices?: unknown } | undefined)?.choices
+  const choices =
+    item.validator && item.validator.kind === 'enum' && Array.isArray(validatorChoices)
+      ? (validatorChoices as string[])
+      : []
+  // 每个选项的一句说明（后端给；键 = 选项值）——「开关都给注上相应说明」在 enum 上的落点
+  const choiceNotes =
+    (item.validator as unknown as { choice_notes?: Record<string, string> } | undefined)?.choice_notes || {}
+  const selectValue = ctx.drafts[item.key] ?? String(item.display_value ?? '')
 
   // ── 控件 ──────────────────────────────────────────────
   let control: ReactNode
@@ -441,6 +453,51 @@ function SettingRow({ item, ctx }: { item: SettingsItem; ctx: RowCtx }) {
       <span className="font-mono text-[11px] text-slate-500" data-cp-setting-value={item.key}>
         {item.display_value}
       </span>
+    )
+  } else if (choices.length > 0) {
+    control = (
+      <div className="flex flex-col items-end gap-0.5">
+        <div className="flex items-center gap-1.5">
+        <select
+          aria-label={`${item.key} 的值`}
+          data-cp-setting-select={item.key}
+          value={selectValue}
+          onChange={(e) => {
+            const next = e.target.value
+            if (confirmFirst) {
+              ctx.onOpenConfirm(item)
+              ctx.onDraft(item.key, next)
+            } else {
+              // 先落草稿（让单选与说明立刻跟着走），再提交；回读成功后以服务端值为准
+              ctx.onDraft(item.key, next)
+              ctx.onSelect(item, next)
+            }
+          }}
+          disabled={busy || editing}
+          className="w-44 rounded-sm border border-slate-700 bg-slate-950 px-2 py-1 font-mono text-[11px] text-slate-200 disabled:opacity-50"
+        >
+          {!choices.includes(String(ctx.drafts[item.key] ?? item.display_value ?? '')) && (
+            <option value={String(ctx.drafts[item.key] ?? item.display_value ?? '')}>
+              {String(ctx.drafts[item.key] ?? item.display_value ?? '（未设置）')}
+            </option>
+          )}
+          {choices.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <span className="text-[10px] text-slate-600">排它单选</span>
+        </div>
+        {choiceNotes[selectValue] ? (
+          <span
+            className="max-w-[26rem] text-right text-[10px] leading-relaxed text-slate-500"
+            data-cp-setting-choice-note={item.key}
+          >
+            {choiceNotes[selectValue]}
+          </span>
+        ) : null}
+      </div>
     )
   } else {
     control = (
@@ -946,6 +1003,7 @@ export function SettingsPanel({ searchDebounceMs = 250 }: SettingsPanelProps) {
     feedback,
     errors,
     onToggle: (item, next) => void submitValue(item, next),
+    onSelect: (item, next) => void submitValue(item, next),
     onOpenConfirm,
     onCloseConfirm: () => setEditingKey(''),
     onSubmitConfirm,

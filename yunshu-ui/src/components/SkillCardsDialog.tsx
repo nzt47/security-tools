@@ -34,6 +34,19 @@ type Card = {
 type NativeItem = { id: string; name: string; summary?: string; status?: string }
 type NativeGroup = { kind: string; title: string; desc?: string; count: number; items: NativeItem[] }
 type Overlap = { skill_id: string; name?: string; matches: { native_id: string; kind: string; score: number; reason?: string }[] }
+/** 向量候选的口径（C-7 第二步；三种 embedding 排它单选，总开关默认关）。 */
+type VectorStats = {
+  enabled: boolean
+  provider: string
+  model: string
+  threshold: number
+  skills_embedded: number
+  tools_embedded: number
+  pairs: number
+  candidates: number
+  elapsed_ms: number
+  error?: string
+}
 /** 重叠检测的**口径统计**：界面必须把「为什么清单是空的」讲出来（C-7 诚实版）。 */
 type OverlapStats = {
   threshold: number
@@ -77,6 +90,8 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
   const [groups, setGroups] = useState<NativeGroup[]>([])
   const [overlaps, setOverlaps] = useState<Overlap[]>([])
   const [stats, setStats] = useState<OverlapStats | null>(null)
+  const [vector, setVector] = useState<VectorStats | null>(null)
+  const [vectorOverlaps, setVectorOverlaps] = useState<Overlap[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
@@ -124,6 +139,8 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
       setGroups(Array.isArray(j.groups) ? j.groups : [])
       setOverlaps(Array.isArray(j.overlaps) ? j.overlaps : [])
       setStats(j.stats && typeof j.stats === 'object' ? (j.stats as OverlapStats) : null)
+      setVector(j.vector && typeof j.vector === 'object' ? (j.vector as VectorStats) : null)
+      setVectorOverlaps(Array.isArray(j.vector_overlaps) ? j.vector_overlaps : [])
     } catch (e) {
       setError(String((e as Error).message || e))
     } finally {
@@ -227,6 +244,9 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
               <br />
               口径是<strong className="text-slate-300">字面覆盖率</strong>（阈值 0.25，未下调）：清单为空时，
               下面会如实给出「比了多少对 / 上限分多少 / 最高的一对是谁」—— 那是口径所致，不是 bug。
+              <br />
+              要发现<strong className="text-cyan-300">语义级重复</strong>，在设置中心打开「向量候选」
+              （三种 embedding 排它单选：st_bge_m3 / native_minilm / api，默认关）。
             </p>
           )}
         </div>
@@ -368,6 +388,63 @@ export default function SkillCardsDialog({ open, onClose }: Props) {
                   </>
                 ) : (
                   <div className="text-[10px] text-slate-500">（未取到口径统计）</div>
+                )}
+              </div>
+
+              {/* C-7 第二步：向量候选（三种 embedding 排它单选；总开关默认关） */}
+              <div className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-medium text-slate-200">向量候选</span>
+                  <span className="text-[10px] text-slate-600">
+                    三种 embedding 排它单选：st_bge_m3 / native_minilm / api
+                  </span>
+                </div>
+                {vector?.enabled ? (
+                  <>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                      <span>来源 <code className="text-slate-200">{vector.provider}</code></span>
+                      <span>模型 <code className="text-slate-200">{vector.model}</code></span>
+                      <span>阈值 <code className="text-slate-200">{vector.threshold}</code></span>
+                      <span>
+                        嵌入 <code className="text-slate-200">{vector.skills_embedded}</code> 条技能 /
+                        {" "}
+                        <code className="text-slate-200">{vector.tools_embedded}</code> 个元生功能
+                      </span>
+                      <span>候选 <code className="text-slate-200">{vector.candidates}</code> 条</span>
+                      <span className="text-slate-600">{vector.elapsed_ms} ms</span>
+                    </div>
+                    {vector.error ? (
+                      <div className="mt-1 text-[10px] text-amber-300/90">
+                        未产出候选：{vector.error}（详情见服务端日志；api 需先配端点与密钥）
+                      </div>
+                    ) : null}
+                    {vectorOverlaps.length > 0 ? (
+                      <ul className="mt-1 space-y-1">
+                        {vectorOverlaps.slice(0, 20).map((o) => (
+                          <li key={"v-" + o.skill_id} className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                            <code className="text-slate-300">{o.skill_id}</code>
+                            <span className="text-slate-600">→</span>
+                            {o.matches.map((m) => (
+                              <span key={"v-" + o.skill_id + "-" + m.native_id} className="rounded border border-cyan-800/60 px-1 text-cyan-300">
+                                {m.native_id} {m.score}
+                              </span>
+                            ))}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : !vector.error ? (
+                      <div className="mt-1 text-[10px] text-slate-500">
+                        没有余弦 ≥ 阈值的对（阈值 0.25 未下调，属口径所致，不是 bug）
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="text-[10px] leading-relaxed text-slate-500">
+                    当前关（{vector?.error || "CP_SKILL_OVERLAP_VECTOR=0"}）。要开：
+                    「设置中心 → 技能与检索」把 CP_SKILL_OVERLAP_VECTOR 打开，
+                    并在 CP_SKILL_OVERLAP_VECTOR_PROVIDER 里三选一；
+                    选 api 还要填 CP_SKILL_OVERLAP_EMBED_API_BASE 与密钥（密钥只在设置中心显示“已配置”）。
+                  </div>
                 )}
               </div>
 
