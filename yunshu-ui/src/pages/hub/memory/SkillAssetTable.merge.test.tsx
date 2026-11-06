@@ -49,11 +49,20 @@ function setup(items: Record<string, unknown>[]) {
 }
 
 describe('合并重复技能入口', () => {
-  it('行内「更多 → 合并重复…」能打开弹窗，并提交 merge-safe（dst=本技能）', async () => {
+  it('只有一个入口：行内「更多」里不再有「合并重复…」', async () => {
     setup([{ id: 'alpha', name: 'Alpha', status: 'published', enabled: true, review: { auto_assessed: true } }])
     await screen.findByText('Alpha')
     fireEvent.click(screen.getByTitle('更多操作：建议 / 版本 / 再定义 / 命令'))
-    fireEvent.click(screen.getByRole('button', { name: /合并重复…/ }))
+    expect(screen.queryByRole('button', { name: /合并重复…/ })).toBeNull()
+  })
+
+  it('评估报告出口能打开合并弹窗，并提交 merge-safe（dst=本技能）', async () => {
+    setup([{ id: 'alpha', name: 'Alpha', status: 'published', enabled: true,
+      review: { auto_assessed: true, review_verdict: 'ok', score: 80,
+        findings: [{ code: 'OVL_OPERATION_OVERLAP', severity: 'warn', message: '与 X 操作重叠' }] } }])
+    await screen.findByText('Alpha')
+    fireEvent.click(screen.getByRole('button', { name: '展开评审-评估报告' }))
+    fireEvent.click(await screen.findByTestId('report-merge-btn'))
     const modal = await screen.findByTestId('merge-duplicates-modal')
     expect(within(modal).getByText('dup-twin')).toBeTruthy()
     // 合并前要能认出「对方是谁」：名字 + 分类 + 说明片段 + 正文规模
@@ -86,7 +95,7 @@ describe('合并重复技能入口', () => {
 it('接口没返回 other_id 时：不给「合并到本技能」，明确提示缺少 id（不再用 dup-N 合成键去打后端）', async () => {
     api.getEnvelope.mockResolvedValue({ installed: [], available: [] })
     api.hubGet.mockImplementation(async (url: string) => {
-      if (url === '/api/skills-mgmt') return { items: [{ id: 'alpha', name: 'Alpha', status: 'published', enabled: true, review: { auto_assessed: true } }], total: 1 }
+      if (url === '/api/skills-mgmt') return { items: [{ id: 'alpha', name: 'Alpha', status: 'published', enabled: true, review: { auto_assessed: true, review_verdict: 'ok', score: 80, findings: [{ code: 'OVL_OPERATION_OVERLAP', severity: 'warn', message: '与 X 操作重叠' }] } }], total: 1 }
       if (url === '/api/skills-mgmt/classes') return { groups: [] }
       if (url.includes('/assess/events')) return { records: [] }
       if (url.includes('/review/audit')) return { records: [] }
@@ -98,8 +107,8 @@ it('接口没返回 other_id 时：不给「合并到本技能」，明确提示
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ records: [] }) })))
     render(<SkillAssetTable />)
     await screen.findByText('Alpha')
-    fireEvent.click(screen.getByTitle('更多操作：建议 / 版本 / 再定义 / 命令'))
-    fireEvent.click(screen.getByRole('button', { name: /合并重复…/ }))
+    fireEvent.click(screen.getByRole('button', { name: '展开评审-评估报告' }))
+    fireEvent.click(await screen.findByTestId('report-merge-btn'))
     const modal = await screen.findByTestId('merge-duplicates-modal')
     expect(await within(modal).findByText(/缺少技能 id/)).toBeTruthy()
     expect(within(modal).queryByRole('button', { name: '合并到本技能' })).toBeNull()

@@ -251,6 +251,36 @@ describe('IngestionPage', () => {
     confirmSpy.mockRestore()
   })
 
+  it('候选惰加载：首屏 50 条 → 加载更多 → 全部展开（不再硬截断 60 条）', async () => {
+    const many = Array.from({ length: 120 }, (_, i) => ({
+      root: 'C:/root', ecosystem: 'claude', name: 'cand' + i, path: 'C:/root/cand' + i + '/SKILL.md',
+      kind: 'skill', formats: [], previewable: true, symlink: false, warnings: [],
+    }))
+    api.fetchIngestionSources.mockResolvedValue({
+      roots: [], stats: { roots: 0, candidates: 120, previewable: 120 }, candidates: many,
+    })
+    render(<IngestionPage />)
+    await screen.findByLabelText('批量选择 cand0')
+    const shown = () => screen.queryAllByLabelText(/批量选择/).length
+    expect(shown()).toBe(50)
+    expect(screen.getByText(/已显示 50 \/ 120 条/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /加载更多/ }))
+    await waitFor(() => expect(shown()).toBe(100))
+    fireEvent.click(screen.getByRole('button', { name: '全部展开' }))
+    await waitFor(() => expect(shown()).toBe(120))
+    expect(screen.getByText('已全部显示')).toBeTruthy()
+  })
+
+  it('「探测本机源」在本机可吞噬源卡片右侧（不是页头全局动作）', async () => {
+    setup()
+    await waitFor(() => expect(api.fetchIngestionSources).toHaveBeenCalledTimes(1))
+    const card = screen.getByText('本机可吞噬源').closest('div')?.parentElement
+    const btn = screen.getByRole('button', { name: '探测本机源' })
+    expect(card?.contains(btn)).toBe(true)
+    fireEvent.click(btn)
+    await waitFor(() => expect(api.fetchIngestionSources).toHaveBeenCalledTimes(2))
+  })
+
   it('点候选即自动预览（省掉「先填路径再点预览」两次操作）', async () => {
     api.fetchIngestionSources.mockResolvedValue({
       roots: [], stats: { roots: 0, candidates: 1, previewable: 1 },

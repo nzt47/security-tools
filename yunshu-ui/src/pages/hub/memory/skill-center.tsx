@@ -6,7 +6,7 @@
  * 本页因此只留「统一 LLM 表」——运行时技能 + 技能资产按 id 合并，符合既有契约「单一 LLM 表」。
  */
 import { useEffect, useState } from 'react'
-import { Archive, BookOpen, GitBranch, Hammer, Sparkles } from 'lucide-react'
+import { BookOpen, GitBranch, Hammer, Sparkles } from 'lucide-react'
 import SkillAssetTable from './SkillAssetTable'
 import SkillIntakeDialog from './SkillIntakeDialog'
 import SkillCardsDialog from '../../../components/SkillCardsDialog'
@@ -68,15 +68,8 @@ export default function SkillCenter() {
               <GitBranch size={12} /> 入轨助手 · {pendingIntake}
             </button>
           )}
-          {/* 2026-11-05 IA：转化队列已并入「能力获取」页（摄取 → 草稿 → 评审 → 登记 → 启用同一条流水线）。
-              这里只留一句去处说明，不再挂第二个入口（禁止双入口）。 */}
-          <a
-            href="?panel=ingestion&tab=queue"
-            title="转化队列已搬到「能力获取 → 转化队列」（登记 / 启用 / 回滚 都在那里）"
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-800 px-2.5 py-1.5 text-[11px] text-slate-500 transition-colors hover:border-slate-700 hover:text-slate-300"
-          >
-            <Archive size={12} /> 转化队列已移至能力获取
-          </a>
+          {/* 2026-11-06：原「转化队列已移至能力获取」去处说明已删 —— 能力获取在主导航里，
+              这里再挂一条只是重复指路（禁止双入口）。 */}
         </div>
       </div>
 

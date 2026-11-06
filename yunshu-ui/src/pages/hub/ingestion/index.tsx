@@ -70,6 +70,9 @@ type BatchRow = { path: string; state: string; id?: string; note?: string }
 
 const BATCH_MAX = 20
 
+/** 候选列表每页条数（惰加载） */
+const SOURCE_PAGE = 50
+
 function IngestionTabs({ tab, onChange, onHelp }: {
   tab: IngestionTab
   onChange: (t: IngestionTab) => void
@@ -131,6 +134,8 @@ export default function IngestionPage() {
   const [directBusy, setDirectBusy] = useState(false)
   const [directResult, setDirectResult] = useState<DirectResult | null>(null)
   const [batchSel, setBatchSel] = useState<string[]>([])
+  // 候选惰加载：首屏只渲染一页，点「加载更多」按页追加（**不再硬截断 60 条**）
+  const [sourceShown, setSourceShown] = useState(SOURCE_PAGE)
   const [batchBusy, setBatchBusy] = useState('')
   const [batchRows, setBatchRows] = useState<BatchRow[]>([])
   // ── 联机帮助（使用手册）──
@@ -163,6 +168,7 @@ export default function IngestionPage() {
     setDiscovering(true); setError('')
     try {
       setSources(await fetchIngestionSources())
+      setSourceShown(SOURCE_PAGE)  // 重新探测 ⇒ 回到第一页
     } catch (e) {
       setError('探测本机源失败：' + (e instanceof Error ? e.message : String(e)))
     } finally {
@@ -330,12 +336,6 @@ export default function IngestionPage() {
       <PageHeader
         title="能力获取"
         description="外来技能 / 文档 / 提示词 / 插件包 → 摄取、预览、生成草稿（技能卡 / 工具 / 工作流）。这里**不安装、不注册、不启用**：只产出草稿；评审 → 登记 → 启用在「草稿评审 / 转化队列」两个 Tab（点右上「使用手册」看全流程）。"
-        actions={(
-          <button type="button" className={BTN} onClick={() => void discover()} disabled={discovering}>
-            {discovering ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-            探测本机源
-          </button>
-        )}
       />
 
       {helpSeen ? null : (
@@ -430,6 +430,12 @@ export default function IngestionPage() {
               <span className="text-[10px] text-slate-500">
                 {sources ? sources.stats.candidates + ' 个候选 / ' + sources.stats.previewable + ' 个可预览' : '未探测'}
               </span>
+              {/* 探测入口收在本卡片右侧：它只服务「本机可吞噬源」，放页头会让人以为是全局动作 */}
+              <button type="button" className={BTN} onClick={() => void discover()} disabled={discovering}
+                aria-label="探测本机源">
+                {discovering ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                探测本机源
+              </button>
               <button type="button" className={BTN} disabled={batchBusy !== '' || batchSel.length === 0}
                 onClick={() => void runBatch()}
                 aria-label="批量生成草稿"
@@ -458,7 +464,7 @@ export default function IngestionPage() {
                   <p className="text-xs text-slate-500">配置根下没有可预览候选。</p>
                 ) : (
                   <div className="max-h-[300px] overflow-auto rounded-sm border border-slate-800">
-                    {sources.candidates.slice(0, 60).map((c) => (
+                    {sources.candidates.slice(0, sourceShown).map((c) => (
                       <div key={c.path}
                         className="flex w-full items-center gap-2 border-b border-slate-800/60 px-2 py-1.5 text-left text-[11px] text-slate-300 last:border-b-0 hover:bg-slate-800/50">
                         <input type="checkbox" className="shrink-0"
@@ -484,8 +490,25 @@ export default function IngestionPage() {
                     ))}
                   </div>
                 )}
-                {sources.candidates.length > 60 && (
-                  <p className="mt-1 text-[10px] text-slate-500">只显示前 60 个候选；可直接粘贴完整路径。</p>
+                {sources.candidates.length > 0 && (
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
+                    <span>
+                      已显示 {Math.min(sourceShown, sources.candidates.length)} / {sources.candidates.length} 条
+                    </span>
+                    {sources.candidates.length > sourceShown ? (
+                      <>
+                        <button type="button" className={BTN} onClick={() => setSourceShown((n) => n + SOURCE_PAGE)}>
+                          加载更多（再 {Math.min(SOURCE_PAGE, sources.candidates.length - sourceShown)} 条）
+                        </button>
+                        <button type="button" className={BTN} onClick={() => setSourceShown(sources.candidates.length)}>
+                          全部展开
+                        </button>
+                      </>
+                    ) : (
+                      <span>已全部显示</span>
+                    )}
+                    <span className="text-slate-600">· 也可直接粘贴完整路径</span>
+                  </div>
                 )}
                 {batchRows.length > 0 && (
                   <div className="mt-2 rounded-sm border border-slate-800 bg-slate-950/60 p-2 text-[10px]">
