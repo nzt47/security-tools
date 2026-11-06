@@ -304,7 +304,7 @@ def read_claude(*, claude_dir: Optional[Path] = None, include_transcripts: bool 
                 if len(records) >= cap:
                     break
         except OSError as exc:
-            sessions["warnings"].append(f"读取失败（{path.name}）：{exc}")
+            sessions["warnings"].append(f"读取失败（{path.name}）：{type(exc).__name__}")
         if len(records) >= cap:
             sessions["warnings"].append(f"总记录达到上限 {cap}，停止")
             break

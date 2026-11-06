@@ -423,8 +423,8 @@ def commit(plan_id: str, batch_ids: Optional[Sequence[str]] = None, *,
             logger.exception("批次写入失败 batch=%s", batch.batch_id)
             failed.append({
                 "batch_id": batch.batch_id, "carrier": batch.carrier,
-                "error": (f"{type(exc).__name__}: {exc}" if explain_errors
-                          else f"{type(exc).__name__}（详见服务日志）"),
+                # 【C-6】返回值里一律不放异常原文（CLI 也走日志看原因）：
+                "error": f"{type(exc).__name__}（详见服务日志）",
             })
             continue
         if not outcome.get("ok"):

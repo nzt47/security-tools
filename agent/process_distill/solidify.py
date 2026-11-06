@@ -132,7 +132,9 @@ def solidify_to_workflow(proc: DistilledProcess, *,
             gen.generate_and_store(wf)
     except Exception as e:  # noqa: BLE001
         logger.warning("[PD] workflow 固化失败: %s", e)
-        return {"action": "error", "error": str(e), "workflow_id": wf_id}
+        logger.warning("[solidify] 工作流固化失败 workflow_id=%s", wf_id, exc_info=True)
+        return {"action": "error", "error": f"{type(e).__name__}（详见服务日志）",
+                "workflow_id": wf_id}
 
     result: Dict[str, Any] = {"action": "created", "workflow_id": wf_id,
                               "steps": len(mapped)}
@@ -333,4 +335,6 @@ def solidify_to_skill(proc: DistilledProcess, *, skills_svc=None,
         return result
     except Exception as e:  # noqa: BLE001
         logger.warning("[PD] skill 固化失败: %s", e)
-        return {"action": "error", "error": str(e), "skill_id": skill_id}
+        logger.warning("[solidify] 技能固化失败 skill_id=%s", skill_id, exc_info=True)
+        return {"action": "error", "error": f"{type(e).__name__}（详见服务日志）",
+                "skill_id": skill_id}

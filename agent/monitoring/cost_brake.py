@@ -1470,7 +1470,9 @@ class CostBrake:
         except Exception as e:  # noqa: BLE001 fail-open：判定失败不得阻断主流程
             logger.warning("成本刹车判定失败（fail-open，不拦截）: %s", e)
             with self._lock:
-                self._status.reason = f"判定失败（fail-open）: {type(e).__name__}: {e}"
+                # 【C-6】reason 会随面板/健康响应回给调用方 ⇒ 只留类名（原文进日志）
+                logger.warning("[cost_brake] 判定失败（fail-open）", exc_info=True)
+                self._status.reason = f"判定失败（fail-open）: {type(e).__name__}（详见服务日志）"
             return self._status.to_dict()
 
     def _evaluate_inner(self, moment: datetime) -> Dict[str, Any]:

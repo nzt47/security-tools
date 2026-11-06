@@ -90,10 +90,10 @@ def _execute_distill(kw: Dict[str, Any],
         )
         return _slim_result(result) if slim else result
     except ValueError as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": f"{type(e).__name__}（详见服务日志）"}
     except Exception as e:  # noqa: BLE001  工具级兜底
         logger.exception("[PD] distill 执行异常")
-        return {"ok": False, "error": f"蒸馏执行异常: {e}"}
+        return {"ok": False, "error": f"蒸馏执行异常: {type(e).__name__}（详见服务日志）"}
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -165,7 +165,7 @@ def _submit_async_distill(kw: Dict[str, Any]) -> Dict[str, Any]:
                              "top_k", "max_workers")},
         )
     except Exception as e:  # noqa: BLE001
-        return {"ok": False, "error": f"提交异步蒸馏失败: {e}"}
+        return {"ok": False, "error": f"提交异步蒸馏失败: {type(e).__name__}（详见服务日志）"}
 
 
 def register_distill_tools(clear_first: bool = True) -> int:

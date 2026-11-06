@@ -357,7 +357,7 @@ def verify_vector_item(item_id: str, *,
         info = read_vector_item(item_id, limit=0, base_url=base_url, timeout=timeout)
     except RuntimeError as exc:
         # 保留原始原因（404「查不到」/ 5xx / id 不符），只在前面加一句"回执不可用"
-        raise RuntimeError(f"向量写入回执不可用：{exc}") from exc
+        raise RuntimeError(f"向量写入回执不可用：{type(exc).__name__}") from exc
     return {"ok": True, "item_id": info["id"], "char_count": info["chars"]}
 
 

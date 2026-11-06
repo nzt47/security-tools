@@ -887,7 +887,7 @@ def judge_cost_cents(day: Optional[str] = None, *,
     except Exception as e:  # noqa: BLE001 读侧失败不抛给调用方，如实标注
         return {"day": target, "source": JUDGE_COST_SOURCE,
                 "cost_normalized_cents": None, "cost_raw_cents": None,
-                "calls": None, "error": f"{type(e).__name__}: {e}"}
+                "calls": None, "error": f"{type(e).__name__}（详见服务日志）"}
     column = (agg.get("cost_columns") or {}).get("judge") or {}
     return {
         "day": target,
@@ -1066,7 +1066,8 @@ def reconcile_cost_log(path: Optional[str] = None, *,
                     model=str(rec.get("model") or ""))
                 normalized_cents += calc["cost_normalized_cents"]
     except OSError as e:
-        return {**base, "rows": 0, "consistent": None, "note": f"读取失败: {e}"}
+        return {**base, "rows": 0, "consistent": None,
+                "note": f"读取失败: {type(e).__name__}（详见服务日志）"}
     delta = round(normalized_cents - legacy_cents, 6)
     return {
         **base,
