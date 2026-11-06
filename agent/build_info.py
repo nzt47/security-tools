@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import subprocess
@@ -27,6 +28,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 #: 仓库根 = 本文件（agent/build_info.py）的上一级
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -51,7 +54,10 @@ def _run(cmd, cwd: Path, timeout: float = 10.0) -> Tuple[Optional[str], str]:
             timeout=timeout, encoding="utf-8", errors="replace",
         )
     except Exception as e:  # noqa: BLE001 无 git / 超时 / 权限问题一律降级
-        return None, "%s: %s" % (type(e).__name__, e)
+        # 【C-6】原文只进日志：error 字段会经 /api/version 进响应体（py/stack-trace-exposure）。
+        logger.warning("[build_info] 命令失败 cmd=%s: %s",
+                       (list(cmd) or ["?"])[0], e)
+        return None, "%s（详见服务日志）" % type(e).__name__
     if proc.returncode != 0:
         return None, (proc.stderr or "").strip()[:300]
     return (proc.stdout or "").strip(), ""
@@ -126,8 +132,9 @@ def frontend_info(repo_root: Path = REPO_ROOT) -> Dict[str, Any]:
         m = _MAIN_BUNDLE.search(text)
         if m:
             out["bundle"] = m.group(1)
-    except OSError as e:  # noqa: PERF203 读不到就如实报错
-        out["error"] = str(e)
+    except OSError as e:  # noqa: PERF203 读不到就如实报错（原文只进日志）
+        logger.warning("[build_info] 读取 index.html 失败: %s", e)
+        out["error"] = "%s（详见服务日志）" % type(e).__name__
     stamp = _read_build_stamp(repo_root)
     if stamp:
         if isinstance(stamp.get("commit"), str) and stamp.get("commit"):
@@ -142,8 +149,9 @@ def frontend_info(repo_root: Path = REPO_ROOT) -> Dict[str, Any]:
             ).astimezone().isoformat(timespec="seconds")
             out["built_at_source"] = "mtime"
         except OSError as e:
+            logger.warning("[build_info] 取 index.html mtime 失败: %s", e)
             if not out["error"]:
-                out["error"] = str(e)
+                out["error"] = "%s（详见服务日志）" % type(e).__name__
     return out
 
 
