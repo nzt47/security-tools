@@ -419,7 +419,14 @@ def api_ingestion_governance_apply():
     except IngestionError as exc:
         return _fail(exc)
     except ValueError as exc:
-        return _fail(InvalidSource(str(exc)))
+        # 【C-6】_fail 会把 detail 放进 problem() 的响应体 ⇒ 不得 str(exc)；
+        # 请求侧能复述的信息（action / plan_id）留在 detail，异常原文进日志。
+        logger.warning("[ingestion] 治理动作失败 plan=%s action=%s: %s",
+                       plan_id, action, exc)
+        return _fail(InvalidSource(
+            "治理动作失败（详见服务日志）",
+            detail="治理动作 %s 对计划 %s 执行失败（详见服务日志）" % (action, plan_id),
+        ))
     message = "dry-run：未改任何数据" if data.get("dry_run") else "治理动作已执行并审计"
     return _ok({"result": data}, message=message)
 
