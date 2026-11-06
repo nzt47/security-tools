@@ -953,6 +953,16 @@ def cleanup_old_logs():
 
 # ── 心跳检测函数 ──
 
+def _check_error(exc: Exception, label: str) -> Dict[str, Any]:
+    """心跳检查项失败的统一形状：**只给类名**，异常原文只进日志（C-6）。
+
+    checks[<label>]["error"] 会经 /api/heartbeat 装进 ok() 的 data 进响应体，
+    故这里不得出现 str(exc)（py/stack-trace-exposure）。
+    """
+    logger.warning("[heartbeat] %s 检查失败: %s", label, exc)
+    return {"status": "error", "error": "%s（详见服务日志）" % type(exc).__name__}
+
+
 def perform_heartbeat_check(yunshu_instance=None) -> Dict[str, Any]:
     """执行全维度心跳健康检查"""
     timestamp = datetime.now().isoformat()
@@ -985,7 +995,7 @@ def perform_heartbeat_check(yunshu_instance=None) -> Dict[str, Any]:
                 "cpu": cpu, "memory": memory, "disk": disk,
             }
     except Exception as e:
-        checks["system"] = {"status": "error", "error": str(e)[:100]}
+        checks["system"] = _check_error(e, "system")
         all_ok = False
 
     # 2. LLM 连通性
@@ -1001,7 +1011,7 @@ def perform_heartbeat_check(yunshu_instance=None) -> Dict[str, Any]:
         else:
             checks["llm"] = {"status": "not_configured", "message": "LLM 未配置"}
     except Exception as e:
-        checks["llm"] = {"status": "error", "error": str(e)[:100]}
+        checks["llm"] = _check_error(e, "llm")
         all_ok = False
 
     # 3. 记忆系统
@@ -1015,7 +1025,7 @@ def perform_heartbeat_check(yunshu_instance=None) -> Dict[str, Any]:
         else:
             checks["memory"] = {"status": "not_available", "message": "记忆系统不可用"}
     except Exception as e:
-        checks["memory"] = {"status": "error", "error": str(e)[:100]}
+        checks["memory"] = _check_error(e, "memory")
         all_ok = False
 
     # 4. 调度器状态
@@ -1034,7 +1044,7 @@ def perform_heartbeat_check(yunshu_instance=None) -> Dict[str, Any]:
             checks["scheduler"] = {"status": "stopped", "running": False, "tasks": 0}
             all_ok = False
     except Exception as e:
-        checks["scheduler"] = {"status": "error", "error": str(e)[:100]}
+        checks["scheduler"] = _check_error(e, "scheduler")
         all_ok = False
 
     # 5. 关键线程
@@ -1050,7 +1060,7 @@ def perform_heartbeat_check(yunshu_instance=None) -> Dict[str, Any]:
             "alive": alive,
         }
     except Exception as e:
-        checks["threads"] = {"status": "error", "error": str(e)[:100]}
+        checks["threads"] = _check_error(e, "threads")
         all_ok = False
 
     overall_status = "healthy" if all_ok else "degraded"

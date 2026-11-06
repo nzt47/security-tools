@@ -15,6 +15,7 @@
 """
 
 import json
+import logging
 import os
 import secrets
 
@@ -24,6 +25,8 @@ from .plugin_api import Plugin, context_limit_info, register_plugin
 
 # 配置常量与开关中心**同一份**（不再就地写 4096 之类的字面量）
 from config import MEMORY_TOKEN_LIMIT_DEFAULT  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("status", __name__)
 
@@ -808,8 +811,10 @@ def api_heartbeat():
         return _ok(hb_result)
     except Exception as e:
         # 【为什么用 _problem 而不是自造 dict】统一错误模型是 K3 的目标：
-        # 错误体只有一种形状。detail 面向本次请求，故放异常摘要（仍截断，避免泄漏长栈）。
-        return _problem(500, detail="心跳检查执行失败：" + str(e)[:200])
+        # 错误体只有一种形状。【C-6】detail 会进响应体，故**不放异常原文**（py/stack-trace-exposure）：
+        # 原文进日志，响应只给固定文案。
+        logger.warning("[status] 心跳检查执行失败: %s", e)
+        return _problem(500, detail="心跳检查执行失败（详见服务日志）")
 
 
 @bp.route("/api/heartbeat/history")
