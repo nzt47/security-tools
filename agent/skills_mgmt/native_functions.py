@@ -181,10 +181,12 @@ def overlap_stats(skills: Optional[List[Dict[str, object]]] = None,
 
 
 def native_functions() -> Dict[str, object]:
-    """界面用：分组清单 + 重叠提示 + 口径统计（只算一遍）。"""
+    """界面用：分组清单 + 重叠提示 + 口径统计 + 向量候选（默认关）。"""
     tools = list_tools()
     skills = _skill_facets()
     hints, stats = _compute(skills, tools)
+    from agent.skills_mgmt.overlap_vector import vector_candidates  # 只有开启时才真加载模型
+    vector = vector_candidates(skills, tools)
     return {
         "groups": [
             {"kind": "tool", "title": "内置工具",
@@ -197,4 +199,7 @@ def native_functions() -> Dict[str, object]:
         "overlaps": hints,
         "threshold": OVERLAP_THRESHOLD,
         "stats": stats,
+        # C-7 第二步：向量候选（默认关；与字面候选**并列**呈现，不合并计数）
+        "vector_overlaps": vector["items"],
+        "vector": vector["stats"],
     }

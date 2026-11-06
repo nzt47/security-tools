@@ -2771,7 +2771,15 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "回退 full 并留 WARNING；L1 缺卡/技能目录缺失时**逐条回落 L2**，不会让技能用不了。"
        "【回滚】改回 full（或清空白名单）即逐字恢复；L2 全文随时可从 "
        "GET /api/skills-mgmt/<id>/card?layer=L2 取回 [C-8；agent/skills_mgmt/layered.py:l1_enabled_for]",
-       owner="agent/skills_mgmt/layered.py", validator=_enum("full", "l1")),
+       owner="agent/skills_mgmt/layered.py",
+       validator=_enum(
+           "full", "l1",
+           notes={
+               "full": "默认、回滚位。上下文注入 L2 全文（逐字旧行为，含示例）；技能内容一个字不少，"
+                       "代价是 token 多（47 条技能平均比 L1 多一倍上下文）。",
+               "l1": "只对 CP_SKILL_LAYER_L1_IDS 名单内的技能改注入 L1 能力卡：省约 51.7% token，"
+                     "但 L1 不含示例；缺卡/目录缺失时逐条回落 full（不会让技能用不了）。",
+           })),
     _c("CP_SKILL_LAYER_L1_IDS", CAT_SKILLS, "pdf,gh-cli,code-refactor,engineering-test-delivery,handoff",
        "CP_SKILL_LAYER_MODE=l1 时的**灰度白名单**（逗号分隔技能 id；默认 = 2026-11-06 点头的 5 条试点）。"
        "空串/只有空白 ⇒ 名单为空 ⇒ 即便 MODE=l1 也不灰任何技能（等价回滚，比改 MODE 更细的刹车）。"
@@ -2779,6 +2787,41 @@ _a("CP_TOOL_APPROVAL_LOCK_TIMEOUT_SEC", CAT_SELF_HEALING, 5.0,
        "tests/unit/test_skill_layer_l1_canary.py 与 scripts/audit/skill_layer_coverage.py 同口径"
        " [C-8；agent/skills_mgmt/layered.py:canary_ids]",
        owner="agent/skills_mgmt/layered.py"),
+
+    # · C-7 卡（2026-11-06）：技能 × 元生功能的**向量候选**（默认关）。
+    #   读取点：agent/skills_mgmt/overlap_vector.py 的 enabled()/provider()/model_name()，
+    #   由 native_functions.vector_candidates() 在每次打开「元生功能」面板时读取 ⇒ 热生效。
+    _a("CP_SKILL_OVERLAP_VECTOR", CAT_SKILLS, False,
+       "元生功能面板是否算「技能 × 元生功能」的**向量候选**（默认关）。关闭时面板只给字面口径"
+       "（阈值 0.25，全语料上限 0.133 ⇒ 清单恒空，已如实说明）；打开后按 CP_SKILL_OVERLAP_VECTOR_PROVIDER"
+       "取 embedding，余弦 ≥ 0.25 的 top-3 与字面候选**并列**呈现（不合并计数、不下调阈值）。"
+       "【成本】local provider 首次加载 BGE-m3 实测 ~87.7s；结果按文本摘要缓存，重复打开面板不再重算"
+       " [C-7；agent/skills_mgmt/overlap_vector.py:enabled]",
+       owner="agent/skills_mgmt/overlap_vector.py"),
+    _a("CP_SKILL_OVERLAP_VECTOR_PROVIDER", CAT_SKILLS, "st_bge_m3",
+       "向量候选用**哪一种** embedding —— **三选一、排它生效**（设置中心是单选下拉，不是三个布尔）："
+       "st_bge_m3（默认，sentence-transformers BGE-m3，1024 维，中文最好，首次加载 ~87.7s）、"
+       "native_minilm（chromadb 自带 onnxruntime all-MiniLM-L6-v2，384 维，不拉 torch、内存最省，中文弱）、"
+       "api（OpenAI 兼容 POST {base}/embeddings，无本地依赖，按量计费/需联网，需配 "
+       "CP_SKILL_OVERLAP_EMBED_API_BASE 与密钥；未配端点时如实报错，不静默降级）。"
+       "【为什么排它】三者向量维度/语义空间不同，同时开会把分数混在一起排序；故取值只接受这三种，"
+       "空串/拼错回退 st_bge_m3，旧值 local 作为别名等价于 st_bge_m3"
+       " [C-7；agent/skills_mgmt/overlap_vector.py:provider]",
+       owner="agent/skills_mgmt/overlap_vector.py",
+       validator=_enum("st_bge_m3", "native_minilm", "api")),
+    _a("CP_SKILL_OVERLAP_EMBED_MODEL", CAT_SKILLS, "",
+       "embedding 模型名覆盖（缺省空串 ⇒ 按 provider 取默认：st_bge_m3 → BAAI/bge-m3、"
+       "native_minilm → all-MiniLM-L6-v2、api → text-embedding-3-small）。换模型会让缓存键失效"
+       "（缓存键含 provider+model）[C-7；agent/skills_mgmt/overlap_vector.py:model_name]",
+       owner="agent/skills_mgmt/overlap_vector.py"),
+    _c("CP_SKILL_OVERLAP_EMBED_API_BASE", CAT_SKILLS, "",
+       "API embedding 的 OpenAI 兼容端点（如 https://api.openai.com/v1）；空串 = 未配置 ⇒ api provider 明确报错。"
+       "端点属 C 级（外部地址）[C-7；agent/skills_mgmt/overlap_vector.py:_embed_api]",
+       owner="agent/skills_mgmt/overlap_vector.py"),
+    _secret("CP_SKILL_OVERLAP_EMBED_API_KEY", CAT_SKILLS,
+            "API embedding 的密钥（C 级：只显示是否已配置，永不回明文；日志里不出现原文/指纹/长度/布尔）。"
+            "仅当 CP_SKILL_OVERLAP_VECTOR_PROVIDER=api 时使用 [C-7；agent/skills_mgmt/overlap_vector.py:_embed_api]",
+            owner="agent/skills_mgmt/overlap_vector.py"),
 
     # · §10 A-3（2026-10-02）的六个检索旋钮：**接线**（be8185b2 把 loader.py 的三个
     #   _resolve_* 助手从"没人读"接进 match()/索引路径）当时只改了代码、**漏了登记**，

@@ -696,3 +696,55 @@ describe('7. 加载 / 错误态沿用既有约定', () => {
     expect(await screen.findByText(/开关登记表不可用/)).toBeInTheDocument()
   })
 })
+/** ★ 枚举项（C-7 三种 embedding）：排它单选，不是自由文本框 */
+const ENUM_ITEM = base({
+  key: 'CP_SKILL_OVERLAP_VECTOR_PROVIDER',
+  type: 'str',
+  value: 'st_bge_m3',
+  display_value: 'st_bge_m3',
+  default: 'st_bge_m3',
+  description: '向量候选用的 embedding（三选一，排它生效）',
+  validator: { kind: 'enum', choices: ['st_bge_m3', 'native_minilm', 'api'] },
+  source: 'default',
+  source_label: '默认值',
+  effect: 'hot',
+  effect_label: '热生效',
+  needs_restart: false,
+})
+
+describe('7. 枚举项 = 排它单选', () => {
+  it('渲染成单选下拉（三个选项），改选即以新值提交', async () => {
+    api.fetchSettings.mockResolvedValue({
+      ...VIEW,
+      items: [ENUM_ITEM],
+      counts: {
+        total: 1,
+        by_category: { orchestration_planning: 1 },
+        by_risk: { A: 1 },
+        editable: 1,
+        locked: 0,
+        overridden: 0,
+      },
+      categories: [{ id: 'orchestration_planning', label: '编排与规划', count: 1 }],
+    })
+    api.changeSetting.mockResolvedValue({
+      ok: true, applied: true, key: ENUM_ITEM.key, old: 'st_bge_m3', new: 'api',
+      source: 'ui_override', effect: 'hot', effect_label: '热生效',
+      audit: { seq: 21, self_hash: 'h' }, value: 'api', display_value: 'api',
+    })
+    renderPanel()
+    const select = (await waitFor(() => {
+      const el = document.querySelector('[data-cp-setting-select="CP_SKILL_OVERLAP_VECTOR_PROVIDER"]')
+      if (!el) throw new Error('还没渲染出单选下拉')
+      return el as HTMLSelectElement
+    })) as HTMLSelectElement
+    expect(select.tagName).toBe('SELECT')
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(['st_bge_m3', 'native_minilm', 'api'])
+    expect(screen.getByText('排它单选')).toBeInTheDocument()
+    // 同一时刻只能有一个值：改选即提交（不是自由文本，也允许回到默认值）
+    fireEvent.change(select, { target: { value: 'api' } })
+    await waitFor(() => expect(api.changeSetting).toHaveBeenCalled())
+    expect(api.changeSetting.mock.calls[0][0]).toBe('CP_SKILL_OVERLAP_VECTOR_PROVIDER')
+    expect(api.changeSetting.mock.calls[0][1]).toMatchObject({ value: 'api' })
+  })
+})
