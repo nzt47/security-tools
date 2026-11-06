@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-11-06T20:15:55+08:00",
+  "updated_at": "2026-11-06T22:12:33+08:00",
   "note": "交接的**机器可读**未完成清单。文档只写判据与决定，条目放这里；scripts/handoff_snapshot.py 会把 status=open 的条目直接打进交接卡。改这里 = 改交接的下一步，不需要再手抄进正文。status 取 open / done / frozen / blocked。",
   "items": [
     {
       "id": "c6-remaining",
-      "title": "C-6 余 9 条（ui_panels 5 / api_envelope 2 / app_server 1 / process_distill 1）",
+      "title": "C-6 余 1 条：routes_process_distill.py:107（producer 在蒸馏链内部）",
       "status": "open",
-      "priority": "P1",
-      "criteria": "同一修法（返回值产生处断 taint）；ui_panels 的 taint 在 _authorize/_error 内部，需先看清内部出口",
-      "next": "按文件从易到难：api_envelope 2 → app_server 1 → process_distill 1 → ui_panels 5"
+      "priority": "P2",
+      "criteria": "同一修法；需先找到 distill 结果里带异常文本的字段（route 只是 jsonify(result)）",
+      "next": "下一轮先跑 code-scanning 确认是否已随 #1469 归零；仍有则追 agent/process_distill 与 digestion 的 detail"
     },
     {
       "id": "descriptor-backfill-production",
@@ -114,6 +114,22 @@
       "status": "done",
       "priority": "P2",
       "criteria": "手册覆盖入口材料→最终能力 7 站（3 自动 / 4 手动）；点候选即预览、批量 L2 自动重写、下一步直达；vitest 27 passed",
+      "next": "-"
+    },
+    {
+      "id": "c6-panels-memory",
+      "title": "C-6 余量 8 条：ui_panels 5 / api_envelope 2 / app_server 1（#1469）",
+      "status": "done",
+      "priority": "P1",
+      "criteria": "六面板 data 层 5 处 + memory_import detail/批次失败 + 插件重载，全部只回类名/固定文案",
+      "next": "-"
+    },
+    {
+      "id": "ui-ingestion-polish",
+      "title": "能力获取体验收口：探测按钮移卡片右侧 + 候选惰加载分页 + 技能中心删指路条 + 生成文件轨/合并重复单入口（#1470）",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "候选首屏 50 条可加载更多/全部展开；合并只留评审报告出口；materialize 仅无文件轨行显示",
       "next": "-"
     }
   ]
