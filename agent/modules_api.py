@@ -385,7 +385,7 @@ def _do_action(module_id: str, action: str, user_params: dict, reason: str) -> t
         result = _forward(action, body)
     except Exception as e:  # noqa: BLE001 - 转发异常不崩接口
         _audit(module_id, action, reason, ok=False, detail=f"转发异常: {type(e).__name__}: {e}")
-        return {"ok": False, "error": f"转发失败: {e}"}, 502
+        return {"ok": False, "error": _safe(e, logger, "module.action")}, 502
 
     ok = bool(result.get("ok", True)) and int(result.get("_status_code", 200)) < 400
     _audit(module_id, action, reason, ok=ok,

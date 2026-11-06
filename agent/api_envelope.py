@@ -218,7 +218,11 @@ def install_error_handlers(app, *, enabled: Optional[bool] = None) -> Dict[str, 
         # problem() 里的中文默认 detail 取代，避免同一响应体混两种语言）。
         desc = exc.description or ""
         custom = desc if desc and desc != getattr(type(exc), "description", None) else ""
-        return problem(status, detail=custom)
+        # 【C-6】自定义 description 也只进日志：它挂在**异常对象**上，进响应体就会被判
+        # py/stack-trace-exposure（RFC 9457 的 detail 用 _DEFAULT_DETAIL 里的中文默认值）。
+        if custom:
+            logger.info("[Envelope] HTTPException %s 自定义 description: %s", status, custom)
+        return problem(status)
 
     @app.errorhandler(Exception)
     def _handle_unexpected(exc: Exception):  # noqa: ANN202

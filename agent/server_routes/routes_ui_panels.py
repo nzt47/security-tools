@@ -94,7 +94,11 @@ NEVER_AUTOMATED_OPERATION = "approval.submit"
 
 def _error(code: str, message: str, status: int = 403,
            **extra: Any) -> Tuple[Any, int]:
-    body: Dict[str, Any] = {"ok": False, "code": code, "message": message}
+    # 【C-6】message 可能来自鉴权/数据层的异常文本 ⇒ 只进日志，响应回固定文案；
+    # 机器可读的 code 与 decision 投影（extra）照旧返回，调用方据此分流。
+    logger.warning("[ui-panels] %s: %s", code, message)
+    body: Dict[str, Any] = {"ok": False, "code": code,
+                            "message": _safe(None, logger, code)}
     body.update({k: v for k, v in extra.items() if v is not None})
     return jsonify(body), status
 

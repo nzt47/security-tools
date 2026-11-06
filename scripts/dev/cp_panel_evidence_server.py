@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 
@@ -50,7 +51,9 @@ def create_app():
         try:
             return render_template("yunshu.html")
         except Exception as e:  # noqa: BLE001
-            return f"<h1>工作台模板不可用</h1><pre>{e}</pre>", 500
+            # 【C-6】别把异常原文渲进页面（py/stack-trace-exposure）
+            logging.getLogger(__name__).warning("模板渲染失败: %s", e)
+            return "<h1>工作台模板不可用</h1><pre>详情见控制台日志</pre>", 500
 
     @app.route("/static/<path:subpath>")
     def static_files(subpath: str):

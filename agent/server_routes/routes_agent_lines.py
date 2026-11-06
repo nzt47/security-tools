@@ -53,6 +53,7 @@ from agent.lines import (
 )
 from agent.server_auth import log_request, require_token
 from agent.server_routes.tracing_decorator import trace_route
+from agent.server_routes._errors import safe_error as _safe
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,10 @@ def _fail(message: str, status: int = 400, **extra: Any) -> Tuple[Any, int]:
 
 def _error_response(exc: BaseException) -> Tuple[Any, int]:
     """异常 → HTTP 状态码（映射规则见模块 docstring）"""
+    # 【C-6 暂缓】这里必须保留 str(exc)：状态码映射与文案都依赖它（"不存在"→404、
+    # "已存在"→409、校验类 400）。要安全回显得先给 LineRegistryError / 校验异常
+    # 逐个加 message 属性并迁移全部 raise 站点 —— 那是独立改动（本批实测会连带 4 条
+    # 既有用例），故对应的 stack-trace 告警留到「agent_lines 专项」。
     message = str(exc)
     if isinstance(exc, LineRegistryError):
         lowered = message.lower()
@@ -442,7 +447,7 @@ def _subagent_assembly_payload(line_id: str, registry: Any, meta: Dict[str, Any]
             **empty, "available": False, "mode": "unavailable",
             "semantics": "named-but-unavailable",
             "semantics_note": SUBAGENT_SEMANTICS["named-but-unavailable"],
-            "reason": str(e),
+            "reason": str(e),  # 【C-6 暂缓】LineUnavailable 同样需先加 message 属性
         }
     except Exception as e:  # noqa: BLE001 本块失败不得把预览端点带崩（与片段投影同款）
         logger.warning("[AgentLines] 分身装配单投影降级（预览照常）: %s", e)
@@ -624,7 +629,7 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
         try:
             from agent.lines.callability import MANIFEST_PATH, runtime_only_skill_entries
         except Exception as e:  # noqa: BLE001
-            return _fail(f"可调用性模块不可用: {e}", 500)
+            return _fail(_safe(e, logger, "callability.mgr"), 500)
         import json
         import os as _os
         if not _os.path.exists(MANIFEST_PATH):
@@ -633,7 +638,7 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
             with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
                 doc = json.load(f)
         except (OSError, ValueError) as e:
-            return _fail(f"可调用性清单不可读: {e}", 500)
+            return _fail(_safe(e, logger, "callability.index"), 500)
 
         runtime_skills: List[Dict[str, Any]] = []
         try:

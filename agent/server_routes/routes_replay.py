@@ -82,7 +82,7 @@ def register_routes(app, state):
             return jsonify({
                 "ok": False,
                 "error_code": "REPLAY_API_001",
-                "error": f"请求体解析失败: {e}",
+                "error": "请求体解析失败（详情见服务端日志）",
             }), 400
 
         # 必填字段校验（边界显性化）
@@ -120,7 +120,7 @@ def register_routes(app, state):
             return jsonify({
                 "ok": False,
                 "error_code": "REPLAY_API_003",
-                "error": f"参数类型错误: {e}",
+                "error": "参数类型错误（详情见服务端日志）",
             }), 400
 
         duration_ms = round((time.time() - start) * 1000, 2)
@@ -179,7 +179,7 @@ def register_routes(app, state):
             return jsonify({
                 "ok": False,
                 "error_code": "REPLAY_API_004",
-                "error": f"查询失败: {e}",
+                "error": "查询失败（详情见服务端日志）",
             }), 500
 
         return jsonify({
@@ -205,7 +205,7 @@ def register_routes(app, state):
             return jsonify({
                 "ok": False,
                 "error_code": "REPLAY_API_005",
-                "error": f"查询失败: {e}",
+                "error": "查询失败（详情见服务端日志）",
             }), 500
 
         if meta is None:
@@ -276,7 +276,7 @@ def register_routes(app, state):
             return jsonify({
                 "ok": False,
                 "error_code": "REPLAY_API_007",
-                "error": f"统计查询失败: {e}",
+                "error": "统计查询失败（详情见服务端日志）",
             }), 500
 
         return jsonify({"ok": True, "stats": stats})
@@ -305,7 +305,7 @@ def register_routes(app, state):
             return jsonify({
                 "ok": False,
                 "error_code": "REPLAY_API_008",
-                "error": f"清理失败: {e}",
+                "error": "清理失败（详情见服务端日志）",
             }), 500
 
         return jsonify({"ok": True, "cleaned": cleaned, "days": days})
