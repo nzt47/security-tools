@@ -170,6 +170,23 @@ class TestEnvelopeCallers:
             assert "详见服务日志" in (body.get("detail") or "")
 
 
+class TestToolbuildValidate:
+    """agent/ingestion/toolbuild.validate_code 的 errors → ok() 的 data（draft implement）。"""
+
+    def test_syntax_error_keeps_class_name_only(self, caplog):
+        from agent.ingestion import toolbuild
+
+        broken = "def demo_tool(:**kw):\n    return {}\n"
+        with caplog.at_level(logging.WARNING):
+            out = toolbuild.validate_code(broken, "demo_tool")
+        assert out["ok"] is False
+        joined = " ".join(out["errors"])
+        assert "SyntaxError" in joined, "类名必须在（否则无法判断是语法错还是别的）"
+        assert "invalid syntax" not in joined, "解释器原文不得进 errors"
+        assert any("语法错误" in str(r.getMessage()) or r.args
+                   for r in caplog.records), "原文必须进日志"
+
+
 class TestIngestionGovernance:
     """plugins/ingestion.py 治理动作：ValueError 的原文不得进 problem(detail)。"""
 
