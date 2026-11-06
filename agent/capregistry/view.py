@@ -208,7 +208,10 @@ def _build_from_authority(root: str, manifest: Mapping[str, Any]
         from agent import tools as _tools  # noqa: PLC0415
         facts = dict(_tools.registry_facts())
     except Exception as exc:  # noqa: BLE001  注册框架未就绪 ⇒ 只影响"事实"维度
-        warnings.append(f"registry_facts() 不可用（host_executor 回落到快照）: {exc}")
+        # 【C-6】warnings 随 stats() 回给调用方 ⇒ 只留类名，原文进日志
+        warnings.append("registry_facts() 不可用（host_executor 回落到快照）: "
+                        f"{type(exc).__name__}")
+        logger.warning("[capregistry] registry_facts() 不可用（回落到快照）", exc_info=True)
 
     derived_by_name: Dict[str, Dict[str, Any]] = {}
     for e in manifest.get("entries") or []:
@@ -245,7 +248,11 @@ def _build_from_authority(root: str, manifest: Mapping[str, Any]
         try:
             specs.append(CapabilityRecord.from_manifest_entry(d, spec_source="authority"))
         except Exception as exc:  # noqa: BLE001
-            warnings.append(f"技能 {e.get('tool_name')!r} 构造失败（已跳过）: {exc!r}")
+            # 【C-6】warnings 随 stats() 回给调用方 ⇒ 只留类名（原文进日志）
+            warnings.append(
+                f"技能 {e.get('tool_name')!r} 构造失败（已跳过）: {type(exc).__name__}")
+            logger.warning("[capregistry] 技能 %r 构造失败（已跳过）",
+                           e.get("tool_name"), exc_info=True)
     return specs, warnings
 
 
@@ -266,7 +273,10 @@ def _build_from_snapshot(manifest: Mapping[str, Any]
         try:
             specs.append(CapabilityRecord.from_manifest_entry(d, spec_source="snapshot"))
         except Exception as exc:  # noqa: BLE001
-            warnings.append(f"{d.get('tool_name')!r} 快照条目构造失败: {exc!r}")
+            warnings.append(
+                f"{d.get('tool_name')!r} 快照条目构造失败: {type(exc).__name__}")
+            logger.warning("[capregistry] %r 快照条目构造失败",
+                           d.get("tool_name"), exc_info=True)
     return specs, warnings
 
 
