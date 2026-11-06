@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -34,6 +35,40 @@ BUDGET_CHARS = {
 
 #: L1 降级时取正文前多少行（再有标题骨架兜底）
 _DERIVED_HEAD_LINES = 40
+
+# ──────────────────────────────────────────────────────────────
+#  C-8 L1 装配灰度（默认 full = 逐字旧行为；两个开关都登记在
+#  agent/settings/registry.py，否则「开关零缺口」必红）
+# ──────────────────────────────────────────────────────────────
+
+#: 灰度白名单的默认值 = Owner 2026-11-06 点头的 5 条试点（都真有 CARD.md）。
+#: 备注：交接文档里曾写成 pdf / git / run_lint / notify / read_pdf —— 后四个是**工具名**、
+#: 不是技能 id（skills_repo 里没有对应目录），照抄会灰出 4 个空转项，故这里改成真实技能。
+DEFAULT_L1_IDS = ("pdf", "gh-cli", "code-refactor", "engineering-test-delivery", "handoff")
+
+
+def canary_ids() -> List[str]:
+    """当前 L1 灰度白名单（逗号分隔技能 id）。
+
+    空串 / 只有空白 ⇒ **空名单** ⇒ 即便 CP_SKILL_LAYER_MODE=l1 也不灰任何技能
+    （等价回滚，比改 MODE 更细的刹车）。
+    """
+    raw = os.environ.get("CP_SKILL_LAYER_L1_IDS")
+    if raw is None:
+        return list(DEFAULT_L1_IDS)
+    return [s.strip() for s in str(raw).split(",") if s.strip()]
+
+
+def l1_enabled_for(skill_id: str) -> bool:
+    """这次要不要**只注入 L1**：MODE=l1 且该技能在灰名单内。
+
+    [不易] 只认 full / l1；其余值（含拼错、空串）一律当 full ——
+    灰度开关的失效方向必须是「回到旧行为」，不能悄悄改变模型看到的内容。
+    """
+    mode = str(os.environ.get("CP_SKILL_LAYER_MODE", "full") or "").strip().lower()
+    if mode != "l1":
+        return False
+    return skill_id in canary_ids()
 
 
 def _skill_dir(skill_id: str, repo: Optional[Path] = None) -> Optional[Path]:
