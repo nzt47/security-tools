@@ -428,8 +428,11 @@ def commit(plan_id: str, batch_ids: Optional[Sequence[str]] = None, *,
             })
             continue
         if not outcome.get("ok"):
+            # 【C-6】writer 的 error 字符串可能由异常拼成 ⇒ 响应只给固定文案，原因进日志
+            logger.warning("批次写入未成功 batch=%s carrier=%s: %s",
+                           batch.batch_id, batch.carrier, outcome.get("error"))
             failed.append({"batch_id": batch.batch_id, "carrier": batch.carrier,
-                           "error": str(outcome.get("error") or "写入失败")})
+                           "error": "写入未成功（详见服务日志）"})
             continue
         audit_ref = _audit(batch, outcome, plan_id)
         entry = {
