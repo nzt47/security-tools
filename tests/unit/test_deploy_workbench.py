@@ -3,9 +3,20 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 import pytest
+
+# 【为什么要自己补 sys.path】本文件 import 的是 `scripts.deploy_workbench`（仓根包），
+# 而 pytest.ini 用 `--import-mode=importlib` + `pythonpath = tests/unit`：仓根进 sys.path
+# 靠的是 tests/conftest.py 执行 `sys.path.insert(0, PROJECT_ROOT)`。一旦同 shard 里有
+# 别的用例改过 sys.path / cwd，本模块在**收集期**就 `ModuleNotFoundError: No module named
+# 'scripts'`（2026-11-07 PR #1475 的 Shard 6 实测两次，重跑同错；分片成员一变就可能复发）。
+# 故与 tests/boundary/* 同款：导入被测模块前显式补仓根，不依赖 import 顺序。
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 from scripts.deploy_workbench import (
     fetch_version,

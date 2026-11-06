@@ -137,11 +137,18 @@ _SELF_CHECKS = (
 
 
 def _self_check(key: str, rel: str) -> Dict[str, Any]:
-    """跑一个自检脚本并把**关键数字**抽出来（脚本本身不改任何文件）。"""
+    """跑一个自检脚本并把**关键数字**抽出来（脚本本身不改任何文件）。
+
+    【为什么强制子进程说 UTF-8】子进程的 stdout 是**管道**，Windows 上 Python 据此退回
+    本地码页（简中 = cp936）输出，而父进程按 utf-8 解码 ⇒ 中文全成替换符、正则一条也
+    匹配不上，卡片就只能写「自检：（未跑）」——2026-11-07 交接卡的实际症状。
+    显式给子进程 PYTHONIOENCODING=utf-8，两端编码才一致。
+    """
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
     try:
         proc = subprocess.run([sys.executable, str(ROOT / rel)], cwd=ROOT,
                               capture_output=True, text=True, encoding="utf-8",
-                              errors="replace", timeout=180)
+                              errors="replace", timeout=180, env=env)
     except Exception as exc:  # noqa: BLE001 自检失败不能让快照整体失败
         return {"ok": False, "error": type(exc).__name__}
     out = (proc.stdout or "") + (proc.stderr or "")
