@@ -330,12 +330,6 @@ export default function IngestionPage() {
       <PageHeader
         title="能力获取"
         description="外来技能 / 文档 / 提示词 / 插件包 → 摄取、预览、生成草稿（技能卡 / 工具 / 工作流）。这里**不安装、不注册、不启用**：只产出草稿；评审 → 登记 → 启用在「草稿评审 / 转化队列」两个 Tab（点右上「使用手册」看全流程）。"
-        actions={(
-          <button type="button" className={BTN} onClick={() => void discover()} disabled={discovering}>
-            {discovering ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-            探测本机源
-          </button>
-        )}
       />
 
       {helpSeen ? null : (
@@ -430,6 +424,12 @@ export default function IngestionPage() {
               <span className="text-[10px] text-slate-500">
                 {sources ? sources.stats.candidates + ' 个候选 / ' + sources.stats.previewable + ' 个可预览' : '未探测'}
               </span>
+              {/* 探测入口收在本卡片右侧：它只服务「本机可吞噬源」，放页头会让人以为是全局动作 */}
+              <button type="button" className={BTN} onClick={() => void discover()} disabled={discovering}
+                aria-label="探测本机源">
+                {discovering ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                探测本机源
+              </button>
               <button type="button" className={BTN} disabled={batchBusy !== '' || batchSel.length === 0}
                 onClick={() => void runBatch()}
                 aria-label="批量生成草稿"

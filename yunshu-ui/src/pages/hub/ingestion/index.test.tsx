@@ -251,6 +251,16 @@ describe('IngestionPage', () => {
     confirmSpy.mockRestore()
   })
 
+  it('「探测本机源」在本机可吞噬源卡片右侧（不是页头全局动作）', async () => {
+    setup()
+    await waitFor(() => expect(api.fetchIngestionSources).toHaveBeenCalledTimes(1))
+    const card = screen.getByText('本机可吞噬源').closest('div')?.parentElement
+    const btn = screen.getByRole('button', { name: '探测本机源' })
+    expect(card?.contains(btn)).toBe(true)
+    fireEvent.click(btn)
+    await waitFor(() => expect(api.fetchIngestionSources).toHaveBeenCalledTimes(2))
+  })
+
   it('点候选即自动预览（省掉「先填路径再点预览」两次操作）', async () => {
     api.fetchIngestionSources.mockResolvedValue({
       roots: [], stats: { roots: 0, candidates: 1, previewable: 1 },
