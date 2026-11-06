@@ -17,7 +17,7 @@ import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
 import TransformQueueDialog from '../../../components/TransformQueueDialog'
-import IngestionHelp from './IngestionHelp'
+import IngestionHelp from '../../../components/IngestionHelp'
 import {
   commitIngestion,
   fetchIngestionSources,
