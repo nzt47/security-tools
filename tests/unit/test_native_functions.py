@@ -61,6 +61,43 @@ def test_空技能正文被跳过():
     assert nf.overlap_hints(skills, FAKE_TOOLS) == []
 
 
+
+
+def test_口径统计如实给出上限分与阈值():
+    """C-7 诚实版：清单为空必须能自解释（比了多少对 / 上限分 / 最高的一对）。"""
+    skills = [{"skill_id": "paint", "name": "配色",
+               "trigger": ["需要给界面配色时"], "steps": ["先选主色再调对比度"],
+               "params": [], "guard": []}]
+    hints, stats = nf._compute(skills, FAKE_TOOLS)
+    assert hints == []
+    assert stats["threshold"] == nf.OVERLAP_THRESHOLD == 0.25
+    assert stats["pairs"] == 2 and stats["skills_compared"] == 1
+    assert stats["tools_compared"] == len(FAKE_TOOLS)
+    assert 0 <= stats["max_text_score"] < nf.OVERLAP_THRESHOLD
+    assert stats["max_text_pair"]["native_id"] in {t["id"] for t in FAKE_TOOLS}
+    assert "不是 bug" in stats["why_empty"]
+    assert "0.25" in stats["why_empty"]
+    assert "CP_SKILL_OVERLAP_VECTOR=1" in stats["why_empty"]
+
+
+def test_有命中时说明不再声称空清单():
+    skills = [{"skill_id": "demo", "name": "演示",
+               "trigger": ["需要读取文件时"], "steps": ["用 read_file 读指定文件"],
+               "params": [], "guard": []}]
+    hints, stats = nf._compute(skills, FAKE_TOOLS)
+    assert hints and stats["hinted_skills"] == 1
+    assert "不是 bug" not in stats["why_empty"]
+    assert stats["max_effective_score"] >= nf._EXPLICIT_BOOST
+
+
+def test_没有可比对对象时不说没有重叠():
+    skills = [{"skill_id": "paint", "name": "配色",
+               "trigger": ["配色"], "steps": [], "params": [], "guard": []}]
+    _hints, stats = nf._compute(skills, [{"id": "empty_tool", "summary": ""}])
+    assert stats["pairs"] == 0
+    assert "不能据此说" in stats["why_empty"]
+
+
 def test_结构契约(monkeypatch):
     from agent.server_routes import routes_skills_mgmt
     monkeypatch.setattr(server_auth, "authorize_request", lambda: (True, "t", "t"))
@@ -77,3 +114,9 @@ def test_结构契约(monkeypatch):
     assert {"tool", "resident"} <= kinds
     assert isinstance(data["overlaps"], list)
     assert data["threshold"] == nf.OVERLAP_THRESHOLD
+    # 诚实版契约：界面靠 stats 解释「为什么清单是空的」（不许只给 0 条）
+    st = data["stats"]
+    assert st["threshold"] == nf.OVERLAP_THRESHOLD
+    assert {"pairs", "skills_compared", "tools_compared", "max_text_score",
+            "max_text_pair", "hinted_skills", "why_empty"} <= set(st)
+    assert st["why_empty"]
