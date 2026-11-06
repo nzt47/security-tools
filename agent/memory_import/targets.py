@@ -335,17 +335,29 @@ def read_vector_item(item_id: str, *, limit: int = 160,
             raw = json.loads(response.read().decode("utf-8", "replace") or "{}")
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            raise RuntimeError(f"向量 id 查不到（可能已被删除）：{target}") from exc
+            raise VectorReceiptError(f"向量 id 查不到（可能已被删除）：{target}") from exc
         detail = exc.read().decode("utf-8", "replace")[:200]
-        raise RuntimeError(f"回读向量被拒绝（HTTP {exc.code}）：{detail}") from exc
+        raise VectorReceiptError(f"回读向量被拒绝（HTTP {exc.code}）：{detail}") from exc
     item = raw.get("data") if isinstance(raw, dict) and isinstance(raw.get("data"), dict) else raw
     if not isinstance(item, dict) or str(item.get("id") or "") != target:
-        raise RuntimeError(f"回读向量的响应与 id 不符：{str(raw)[:120]}")
+        raise VectorReceiptError(f"回读向量的响应与 id 不符：{str(raw)[:120]}")
     content = str(item.get("content") or "")
     cut = max(0, int(limit or 0))
     return {"id": target, "chars": len(content),
             "preview": content[:cut] + ("…" if cut and len(content) > cut else ""),
             "metadata": dict(item.get("metadata") or {})}
+
+
+class VectorReceiptError(RuntimeError):
+    """回读向量失败的**域错误**：`message` 是异常文案的安全出口（C-6 口径）。
+
+    [不易] 上层要保留「查不到 / 不符 / 5xx」这些**我们自己写的**原因，但 CodeQL 不许
+    `f"…{exc}"` 直拼异常；故把原因装进 `message` 属性，由调用方读属性而不是转异常。
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(str(message))
+        self.message = str(message)
 
 
 def verify_vector_item(item_id: str, *,
@@ -355,9 +367,12 @@ def verify_vector_item(item_id: str, *,
     try:
         # limit=0：只取存在性与字符数，不把正文搬进日志/异常
         info = read_vector_item(item_id, limit=0, base_url=base_url, timeout=timeout)
-    except RuntimeError as exc:
-        # 保留原始原因（404「查不到」/ 5xx / id 不符），只在前面加一句"回执不可用"
-        raise RuntimeError(f"向量写入回执不可用：{exc}") from exc
+    except VectorReceiptError as exc:
+        # 保留原始原因（404「查不到」/ 5xx / id 不符）：走自定义属性而不是转异常
+        raise VectorReceiptError(f"向量写入回执不可用：{exc.message}") from exc
+    except Exception as exc:  # noqa: BLE001 未知异常只回类名
+        raise VectorReceiptError(
+            f"向量写入回执不可用：{type(exc).__name__}（详见服务日志）") from exc
     return {"ok": True, "item_id": info["id"], "char_count": info["chars"]}
 
 

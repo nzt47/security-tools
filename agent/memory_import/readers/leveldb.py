@@ -322,7 +322,7 @@ def scan_leveldb(root: Path, *, max_entries: int = 50000) -> LevelDbScan:
                         scan.warnings.append(f"达到条数上限 {max_entries}，已截断")
                         break
         except OSError as exc:
-            scan.warnings.append(f"读取失败（{path.name}）：{exc}")
+            scan.warnings.append(f"读取失败（{path.name}）：{type(exc).__name__}")
     for path in tables:
         try:
             for key, value in read_sst_entries(path):
@@ -332,7 +332,7 @@ def scan_leveldb(root: Path, *, max_entries: int = 50000) -> LevelDbScan:
                     scan.warnings.append(f"达到条数上限 {max_entries}，已截断")
                     break
         except (OSError, ValueError) as exc:
-            scan.warnings.append(f"表解析失败（{path.name}）：{exc}")
+            scan.warnings.append(f"表解析失败（{path.name}）：{type(exc).__name__}")
     scan.entries = list(latest.values())
     return scan
 

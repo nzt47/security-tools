@@ -227,7 +227,7 @@ def distill_one(material: DistillMaterial, llm: Any,
         payload = _rule_fallback(material)
         return {"material_id": material.id, "ok": True,
                 "method": "rule", "payload": payload,
-                "warning": str(e)[:300]}
+                "warning": f"{type(e).__name__}（详见服务日志）"}
 
 
 def distill_parallel(materials: List[DistillMaterial], llm: Any,
@@ -261,7 +261,7 @@ def distill_parallel(materials: List[DistillMaterial], llm: Any,
                     results.append({
                         "material_id": m.id, "ok": True,
                         "method": "rule", "payload": payload,
-                        "warning": str(e)[:300],
+                        "warning": f"{type(e).__name__}（详见服务日志）",
                     })
     # 保序（按素材出现顺序）
     order = {m.id: i for i, m in enumerate(materials)}

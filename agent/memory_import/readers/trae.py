@@ -87,11 +87,11 @@ def read_vscdb(path: Path) -> Tuple[Dict[str, str], List[str]]:
     try:
         con = sqlite3.connect(uri, uri=True)
     except sqlite3.Error as exc:
-        return {}, [f"打开失败（{path}）：{exc}"]
+        return {}, [f"打开失败（{path}）：{type(exc).__name__}"]
     try:
         rows = con.execute("select key, value from ItemTable").fetchall()
     except sqlite3.Error as exc:
-        return {}, [f"读取 ItemTable 失败（{path}）：{exc}"]
+        return {}, [f"读取 ItemTable 失败（{path}）：{type(exc).__name__}"]
     finally:
         con.close()
     out: Dict[str, str] = {}
@@ -118,7 +118,7 @@ def parse_query_key(value: str) -> Tuple[List[Tuple[str, str]], str]:
     try:
         payload = json.loads(value)
     except (ValueError, TypeError) as exc:
-        return [], f"JSON 解析失败: {exc}"
+        return [], f"JSON 解析失败: {type(exc).__name__}"
     if not isinstance(payload, dict):
         return [], "值不是对象"
     resp = payload.get("response")

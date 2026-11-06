@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-06T01:17:00",
+  "generated_at": "2026-11-06T23:43:44",
   "scope": "仓库可复现口径：data/tool_definitions/*.yaml + data/skill_callability.yaml + data/skills_repo/*/skill.md + data/permission_policies.json + 注册点静态扫描（不含 .gitignore 里的运行时技能目录/台账）",
   "runtime_only_declarations": [
     "global-core-principles",
@@ -6844,7 +6844,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.process_distill.tools:_run_handler）在 6 跳内未命中任何跨边界原语；另有 13 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.process_distill.tools:_run_handler）在 6 跳内未命中任何跨边界原语；另有 14 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -6863,7 +6863,8 @@
         "logger.warning",
         "result.get",
         "str",
-        "svc.distill"
+        "svc.distill",
+        "type"
       ],
       "location_ffi": [],
       "owner": "builtin",
@@ -20472,7 +20473,7 @@
       "location_source": "declaration",
       "location_derived_source": "executor_boundary",
       "location_evidence": [
-        "调用链（agent.process_distill.tools:_run_handler）在 6 跳内未命中任何跨边界原语；另有 13 个调用点静态无法解析（见 unresolved）",
+        "调用链（agent.process_distill.tools:_run_handler）在 6 跳内未命中任何跨边界原语；另有 14 个调用点静态无法解析（见 unresolved）",
         "声明钉住 location=local，与事实判定一致"
       ],
       "location_declared": "local",
@@ -20491,7 +20492,8 @@
         "logger.warning",
         "result.get",
         "str",
-        "svc.distill"
+        "svc.distill",
+        "type"
       ],
       "location_ffi": [],
       "owner": "builtin",
