@@ -4,11 +4,11 @@
   "items": [
     {
       "id": "c6-remaining",
-      "title": "C-6 复核：4 个 producer 已修（#1472），等 master 分析确认是否归零",
-      "status": "open",
+      "title": "C-6 py/stack-trace-exposure 归零（4 → 0，三轮 SARIF 反查，#1474/#1477/#1478）",
+      "status": "done",
       "priority": "P2",
-      "criteria": "若仍余，按 sink 反查 producer：api_envelope.ok/problem、routes_ui_panels.roi_view、routes_process_distill.jsonify(result)",
-      "next": "先跑 gh api .../code-scanning/alerts?state=open 看 stack-trace 数；为 0 就把本条标 done"
+      "criteria": "master dfc3c1829 的 python 分析：stack-trace 0 条；总告警 64 → 60。真源用 SARIF codeFlows 定位（scripts/audit/codeql_flows.py）：build_info ×3、chat llm-preview、audit_coverage、ingestion ×4、solidify ×2、eval/metrics、task_scheduler ×5、status 心跳、toolbuild 语法错误",
+      "next": "共享 sink（ok/problem）以后若再报警：直接跑 python scripts/audit/codeql_flows.py --refresh --sources-only 按源修，别再改 sink 附近"
     },
     {
       "id": "descriptor-backfill-production",
@@ -25,6 +25,14 @@
       "priority": "P3",
       "criteria": "2026-11-06 23:19 经 DELETE /api/skills-mgmt/algorithmic-art 删除（主轨+文件轨），残留描述符同步清掉；备份在 data/backups/algorithmic-art-20261106-231830/",
       "next": "要重做：从备份取回 skill.md/CARD.md，再走 intake_skill.py 入轨"
+    },
+    {
+      "id": "runtime-skill-merge-brainstorming",
+      "title": "运行时「安全合并」把 pd-brainstorming-697b717a-skill 并入 brainstorming（已回退）",
+      "status": "open",
+      "priority": "P2",
+      "criteria": "2026-11-07 02:53 审计链 skill.assess.merge（actor_source=explicit）把旧技能从主轨摘掉、文件轨 enabled true→false；当场已 git checkout 回文件 + check_skills_dual_track --fix 回填，现为 47/49 / 0 孤儿。合并是否**确实有效**未判定（与 brainstorming 的 Owner 决定同一条线）",
+      "next": "等 Owner 定 brainstorming：若确认合并，就删 data/skills_repo/pd-brainstorming-697b717a-skill/ 并在干净 worktree 重派生能力基线；若不合并，查是谁/哪个调度触发了这次 merge"
     },
     {
       "id": "secret-scanning-pat",
