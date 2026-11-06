@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import {
-  AlertTriangle, ArrowRight, CheckCircle2, FileText, FolderOpen, GitBranch,
+  AlertTriangle, ArrowRight, BookOpen, CheckCircle2, FileText, FolderOpen, GitBranch,
   Layers, Loader2, PackagePlus, RefreshCw, Search, ShieldCheck,
 } from 'lucide-react'
 import { Badge, Card, ErrorBox, PageHeader } from '../components/ui'
@@ -17,6 +17,7 @@ import GovernancePanel from './governance'
 import ReviewPanel from './ReviewPanel'
 import MemoryDraftPanel from './MemoryDraftPanel'
 import TransformQueueDialog from '../../../components/TransformQueueDialog'
+import IngestionHelp from './IngestionHelp'
 import {
   commitIngestion,
   fetchIngestionSources,
@@ -69,7 +70,11 @@ type BatchRow = { path: string; state: string; id?: string; note?: string }
 
 const BATCH_MAX = 20
 
-function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: IngestionTab) => void }) {
+function IngestionTabs({ tab, onChange, onHelp }: {
+  tab: IngestionTab
+  onChange: (t: IngestionTab) => void
+  onHelp: () => void
+}) {
   return (
     <div className="mb-3 flex items-center gap-1.5" role="tablist" aria-label="能力获取子模块">
       <button type="button" role="tab" aria-selected={tab === 'acquire'}
@@ -90,12 +95,17 @@ function IngestionTabs({ tab, onChange }: { tab: IngestionTab; onChange: (t: Ing
         className={tab === 'governance' ? BTN_EM : BTN} onClick={() => onChange('governance')}>
         <Layers size={12} /> 存量治理
       </button>
+      {/* 联机帮助：四个 Tab 共用一份手册（流程是跨 Tab 的，只在获取页给会缺一站） */}
+      <button type="button" className={BTN + ' ml-auto'} onClick={onHelp}
+        aria-label="使用手册">
+        <BookOpen size={12} /> 使用手册
+      </button>
     </div>
   )
 }
 
 export default function IngestionPage() {
-  // 深链：?panel=ingestion&tab=queue|review|governance（技能中心已把「转化队列」指到这里）
+  // 深链：?panel=ingestion&tab=queue|review|governance（其它页的「转化队列」跳转都落到这里）
   const [tab, setTab] = useState<IngestionTab>(() => {
     const t = new URLSearchParams(window.location.search).get('tab')
     return (t === 'review' || t === 'queue' || t === 'governance') ? t : 'acquire'
@@ -123,6 +133,19 @@ export default function IngestionPage() {
   const [batchSel, setBatchSel] = useState<string[]>([])
   const [batchBusy, setBatchBusy] = useState('')
   const [batchRows, setBatchRows] = useState<BatchRow[]>([])
+  // ── 联机帮助（使用手册）──
+  // 首次进入给一条可关闭的提示（不自动弹窗：弹窗会挡住「预览计划」第一跳）。
+  const HELP_SEEN_KEY = 'cp.ingestion.helpSeen.v1'
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [helpSeen, setHelpSeen] = useState(true)
+  useEffect(() => {
+    try { setHelpSeen(window.localStorage.getItem(HELP_SEEN_KEY) === '1') } catch { setHelpSeen(true) }
+  }, [])
+  const openHelp = () => {
+    setHelpOpen(true)
+    setHelpSeen(true)
+    try { window.localStorage.setItem(HELP_SEEN_KEY, '1') } catch { /* 隐私模式：不记也不影响使用 */ }
+  }
 
   const currentSource = (): IngestSourceInput => (
     mode === 'text'
@@ -161,6 +184,20 @@ export default function IngestionPage() {
       setForm('skill')
     } catch (e) {
       setError((rewrite ? 'LLM 重写预览失败：' : '预览失败：') + (e instanceof Error ? e.message : String(e)))
+    } finally {
+      setPreviewing('')
+    }
+  }
+
+  /** 点候选即预览：省掉「先填路径、再点预览」这两步（用户只做一次选择）。 */
+  const previewPath = async (path: string) => {
+    setPreviewing('preview'); setError(''); setResult(null); setConfirmed(false)
+    try {
+      const p = await previewIngestion({ path }, false)
+      setPlan(p)
+      setForm('skill')
+    } catch (e) {
+      setError('预览失败：' + (e instanceof Error ? e.message : String(e)))
     } finally {
       setPreviewing('')
     }
@@ -207,27 +244,41 @@ export default function IngestionPage() {
   const runBatch = async () => {
     const paths = batchSel.slice(0, BATCH_MAX)
     if (paths.length === 0) return
-    if (!window.confirm('批量生成 ' + paths.length + ' 条草稿？逐条预览后只写草稿（不安装/不注册/不启用），需 LLM 重写的会被跳过。')) return
+    if (!window.confirm('批量生成 ' + paths.length + ' 条草稿？逐条预览后只写草稿（不安装/不注册/不启用）；遇到 L2 会自动做一次 LLM 重写（较慢），重写不过的才跳过。')) return
     setBatchRows([]); setError('')
     const rows: BatchRow[] = []
     for (let i = 0; i < paths.length; i += 1) {
       const path = paths[i]
       setBatchBusy((i + 1) + '/' + paths.length)
       try {
-        const p = await previewIngestion({ path })
+        // 【2026-11-06 自动化】L2 不再让用户回头单条处理：批量里直接代跑一次重写，
+        // 重写不过才跳过（并如实写明原因）—— 把「逐条补跑」这类繁复操作消掉。
+        let p = await previewIngestion({ path })
+        let rewritten = false
         if (p.requires_rewrite) {
-          rows.push({ path, state: '跳过', note: '需 LLM 重写（批量不代跑），请单条处理' })
-        } else {
-          const res = await commitIngestion({
-            source: { path },
-            plan_id: p.plan_id,
-            confirm: true,
-            form: 'skill',
-            draft_only: true,
-            ...(p.archive_id ? { archive_id: p.archive_id } : {}),
-          })
-          rows.push({ path, state: res.draft ? '草稿' : (res.queued ? '入队' : '未落库'), id: res.skill_id })
+          p = await previewIngestion({ path }, true)
+          rewritten = true
+          const blocked = p.requires_rewrite || (p.rewrite_errors || []).length > 0
+          if (blocked) {
+            const why = (p.rewrite_errors || []).join('；') || '重写后仍需人工处理'
+            rows.push({ path, state: '跳过', note: 'L2 自动重写未通过：' + why.slice(0, 140) })
+            setBatchRows([...rows])
+            continue
+          }
         }
+        const res = await commitIngestion({
+          source: { path },
+          plan_id: p.plan_id,
+          confirm: true,
+          form: 'skill',
+          draft_only: true,
+          ...(p.archive_id ? { archive_id: p.archive_id } : {}),
+        })
+        rows.push({
+          path,
+          state: res.draft ? (rewritten ? '草稿（自动重写）' : '草稿') : (res.queued ? '入队' : '未落库'),
+          id: res.skill_id,
+        })
       } catch (e) {
         rows.push({ path, state: '失败', note: (e instanceof Error ? e.message : String(e)).slice(0, 160) })
       }
@@ -240,13 +291,15 @@ export default function IngestionPage() {
     ? '生成技能草稿'
     : (form === 'tool' ? '生成工具草稿' : '生成工作流草稿')
 
-  const tabs = <IngestionTabs tab={tab} onChange={setTab} />
+  const tabs = <IngestionTabs tab={tab} onChange={setTab} onHelp={openHelp} />
+  const helpNode = <IngestionHelp open={helpOpen} onClose={() => setHelpOpen(false)} onGo={setTab} />
 
   if (tab === 'review') {
     return (
       <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
         {tabs}
         <ReviewPanel />
+        {helpNode}
       </div>
     )
   }
@@ -256,6 +309,7 @@ export default function IngestionPage() {
       <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
         {tabs}
         <TransformQueueDialog embedded />
+        {helpNode}
       </div>
     )
   }
@@ -265,6 +319,7 @@ export default function IngestionPage() {
       <div className="flex h-full min-h-0 flex-col overflow-auto px-5 py-4">
         {tabs}
         <GovernancePanel />
+        {helpNode}
       </div>
     )
   }
@@ -274,7 +329,7 @@ export default function IngestionPage() {
       {tabs}
       <PageHeader
         title="能力获取"
-        description="外来技能 / 文档 / 提示词 / 插件包 → 摄取、预览、生成草稿（技能卡 / 工具 / 工作流）。这里**不安装、不注册、不启用**：登记与启用统一在「技能中心 → 转化队列」。"
+        description="外来技能 / 文档 / 提示词 / 插件包 → 摄取、预览、生成草稿（技能卡 / 工具 / 工作流）。这里**不安装、不注册、不启用**：只产出草稿；评审 → 登记 → 启用在「草稿评审 / 转化队列」两个 Tab（点右上「使用手册」看全流程）。"
         actions={(
           <button type="button" className={BTN} onClick={() => void discover()} disabled={discovering}>
             {discovering ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
@@ -282,6 +337,20 @@ export default function IngestionPage() {
           </button>
         )}
       />
+
+      {helpSeen ? null : (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-cyan-900/50 bg-cyan-950/20 px-3 py-2 text-[11px] text-cyan-200"
+          data-cp-help-banner="true">
+          <BookOpen size={12} />
+          第一次用？先看 3 分钟手册：7 站链路、哪几步自动、你要点的步骤，以及怎么少点几下。
+          <button type="button" className={BTN + ' ml-auto'} onClick={openHelp}>打开使用手册</button>
+          <button type="button" className={BTN}
+            onClick={() => {
+              setHelpSeen(true)
+              try { window.localStorage.setItem(HELP_SEEN_KEY, '1') } catch { /* 隐私模式忽略 */ }
+            }}>不再提示</button>
+        </div>
+      )}
 
       {error && <div className="mb-3"><ErrorBox message={error} /></div>}
 
@@ -364,7 +433,7 @@ export default function IngestionPage() {
               <button type="button" className={BTN} disabled={batchBusy !== '' || batchSel.length === 0}
                 onClick={() => void runBatch()}
                 aria-label="批量生成草稿"
-                title="逐条预览后各生成一份草稿（不安装/不注册/不启用；需 LLM 重写的跳过）">
+                title="逐条预览后各生成一份草稿（不安装/不注册/不启用；L2 自动重写）">
                 {batchBusy !== '' ? <Loader2 size={12} className="animate-spin" /> : <PackagePlus size={12} />}
                 批量生成草稿{batchSel.length > 0 ? '（' + Math.min(batchSel.length, BATCH_MAX) + '）' : ''}{batchBusy ? ' ' + batchBusy : ''}
               </button>
@@ -401,7 +470,11 @@ export default function IngestionPage() {
                             : prev.filter((x) => x !== c.path))} />
                         <button type="button"
                           className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                          onClick={() => { setMode('path'); setPathInput(c.path); resetPlan() }}>
+                          onClick={() => {
+                            setMode('path'); setPathInput(c.path); resetPlan()
+                            // 可预览的候选：选中即自动预览（少点一次）；仅展示的候选不动
+                            if (c.previewable) void previewPath(c.path)
+                          }}>
                           <Badge color={c.previewable ? 'cyan' : 'amber'}>{c.kind}</Badge>
                           <span className="font-mono text-[10px] text-cyan-300">{c.ecosystem}</span>
                           <span className="truncate">{c.name}</span>
@@ -487,7 +560,7 @@ export default function IngestionPage() {
                   {plan.recommendation.form !== 'skill' && (
                     <p className="mt-1.5 rounded-sm border border-amber-900/50 bg-amber-950/20 p-2 text-[10px] leading-relaxed text-amber-200">
                       推荐的工作流/工具形态只产出<b>骨架草稿</b>：写到隔离目录、不注册、不启用，步骤没绑定工具就不能执行。
-                      若你只是想把这份内容变成可检索、可注入的能力，点「改为按技能安装」更省事。
+                      若你只是想把这份内容变成可检索、可注入的能力，点「改为按技能草稿」更省事（草稿仍不进模型，登记后才算能力）。
                     </p>
                   )}
                 </div>
@@ -495,7 +568,7 @@ export default function IngestionPage() {
                 {plan.requires_rewrite && (
                   <div className="rounded-sm border border-amber-900/60 bg-amber-950/20 p-2">
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-amber-200">
-                      <AlertTriangle size={12} /> L2 来源不能直接安装，需要 LLM 重写并人工预览。
+                      <AlertTriangle size={12} /> L2 来源不能直接生成草稿，需要 LLM 重写并人工预览。
                       <button type="button" className={BTN_EM + ' ml-auto'}
                         onClick={() => void doPreview(true)}
                         disabled={previewing !== ''}>
@@ -509,7 +582,7 @@ export default function IngestionPage() {
                 {plan.archive_id && (
                   <div className="text-[10px] text-slate-500">
                     重写存档：<span className="font-mono text-cyan-300">{plan.archive_id}</span>
-                    {' '}（commit 会原样安装这份草稿，不再次调用 LLM）
+                    {' '}（生成草稿时原样使用这份存档，不再次调用 LLM）
                   </div>
                 )}
                 {plan.rewrite_errors.length > 0 && (
@@ -587,7 +660,7 @@ export default function IngestionPage() {
                     ))}
                   </select>
                   <span className="text-[10px] text-slate-500">
-                    三种形态都<b>只产出草稿</b>（不注册、不启用）；登记/启用请到「技能中心 → 转化队列」
+                    三种形态都<b>只产出草稿</b>（不注册、不启用）；登记/启用请到「转化队列」Tab
                   </span>
                 </div>
 
@@ -621,7 +694,8 @@ export default function IngestionPage() {
           {result && (
             <Card title="4. 结果" actions={(
               <Badge color={result.draft ? 'cyan' : result.merged ? 'green' : 'green'}>
-                {result.draft ? '草稿' : result.merged ? '已合并' : result.installed ? '已安装' : '未安装'}
+                {/* 本页只会产出草稿：不再显示「已安装/未安装」这类过时状态 */}
+                {result.draft ? '草稿' : result.queued ? '已入队' : '未落草稿'}
               </Badge>
             )}>
               <div className="flex flex-col gap-1.5 text-[11px] text-slate-300">
@@ -647,7 +721,7 @@ export default function IngestionPage() {
                 {result.draft && (
                   <div className="text-[10px] leading-relaxed text-slate-500">
                     它<b>只是草稿</b>：不注册、不启用。到「草稿评审」页底部的「吞噬生成的骨架草稿」可以查看与删除；
-                    要登记/启用请到「技能中心 → 转化队列」。路径就是上面这个目录。
+                    要登记/启用请到「转化队列」Tab。路径就是上面这个目录。
                   </div>
                 )}
                 {result.warnings.length > 0 && (
@@ -655,11 +729,22 @@ export default function IngestionPage() {
                     {result.warnings.map((w, i) => <div key={i}>· {w}</div>)}
                   </div>
                 )}
+                {/* 下一步直达：草稿 → 评审 → 登记，省掉「自己回想在哪一页」 */}
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] text-slate-500">下一步：</span>
+                  <button type="button" className={BTN} onClick={() => setTab('review')}>
+                    去草稿评审
+                  </button>
+                  <button type="button" className={BTN} onClick={() => setTab('queue')}>
+                    去转化队列登记
+                  </button>
+                </div>
               </div>
             </Card>
           )}
         </div>
       </div>
+      {helpNode}
     </div>
   )
 }

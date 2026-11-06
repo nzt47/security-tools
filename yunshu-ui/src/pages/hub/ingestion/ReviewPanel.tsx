@@ -156,7 +156,7 @@ export default function ReviewPanel() {
       setMsg('已写回绑定 ' + rep.bound + '/' + rep.total +
         (rep.unbound && rep.unbound.length
           ? '；未绑定：' + rep.unbound.map((u) => u.step_id).join('、')
-          : '；到「技能中心 → 转化队列」点「登记为工作流」'))
+          : '；到「转化队列」Tab 点「登记为工作流」'))
       setBind(null); await loadDrafts()
     } catch (e) {
       setDraftErr('应用绑定失败：' + (e instanceof Error ? e.message : String(e)))
@@ -187,7 +187,7 @@ export default function ReviewPanel() {
     setBusy('impl-apply:' + d.draft_id); setDraftErr(''); setMsg('')
     try {
       await postJson(ingestionDraftImplement(d.draft_id), { apply: true, confirm: true })
-      setMsg('已写回实现草稿；到「技能中心 → 转化队列」点「登记为工具」才会进仓库')
+      setMsg('已写回实现草稿；到「转化队列」Tab 点「登记为工具」才会进仓库')
       setImpl(null); await loadDrafts()
     } catch (e) {
       setDraftErr('写回实现失败：' + (e instanceof Error ? e.message : String(e)))
@@ -354,7 +354,7 @@ export default function ReviewPanel() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-medium text-slate-200">吞噬生成的草稿（隔离区 · 只读预览）</h3>
           <span className="text-[10px] text-slate-500">
-            技能 / 工具 / 工作流都写到隔离目录，不注册、不启用；<b>登记与启用统一在「技能中心 → 转化队列」</b>
+            技能 / 工具 / 工作流都写到隔离目录，不注册、不启用；<b>登记与启用统一在「转化队列」Tab</b>
           </span>
           <button type="button" className={BTN + ' ml-auto'} onClick={() => void loadDrafts()} disabled={loading}
             aria-label="刷新骨架草稿">
@@ -407,7 +407,7 @@ export default function ReviewPanel() {
                       </button>
                     )}
                     <span className="text-[10px] text-slate-500">
-                      登记去「技能中心 → 转化队列」
+                      登记去「转化队列」Tab
                     </span>
                     <button type="button" className={BTN_RED} disabled={loading}
                       onClick={() => void removeDraft(d.draft_id)}

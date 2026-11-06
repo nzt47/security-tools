@@ -207,7 +207,7 @@ describe('IngestionPage', () => {
     confirmSpy.mockRestore()
   })
 
-  it('批量获取：需 LLM 重写的候选被跳过，不提交', async () => {
+  it('批量获取：L2 候选会自动重写；重写仍不过才跳过', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     api.fetchIngestionSources.mockResolvedValue({
       roots: [], stats: { roots: 0, candidates: 1, previewable: 1 },
@@ -221,7 +221,62 @@ describe('IngestionPage', () => {
     fireEvent.click(screen.getByLabelText('批量选择 gamma'))
     fireEvent.click(screen.getByRole('button', { name: '批量生成草稿' }))
     await screen.findByText('跳过')
+    // 自动化：先普通预览，再自动带 rewrite 预览一次；仍不过才跳过
+    expect(api.previewIngestion).toHaveBeenCalledTimes(2)
+    expect(api.previewIngestion).toHaveBeenLastCalledWith({ path: 'C:/root/gamma/SKILL.md' }, true)
     expect(api.commitIngestion).not.toHaveBeenCalled()
     confirmSpy.mockRestore()
+  })
+
+  it('批量获取：L2 自动重写通过后照样出草稿（不用回头单条处理）', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    api.fetchIngestionSources.mockResolvedValue({
+      roots: [], stats: { roots: 0, candidates: 1, previewable: 1 },
+      candidates: [
+        { root: 'C:/root', ecosystem: 'claude', name: 'delta', path: 'C:/root/delta/SKILL.md', kind: 'doc', formats: [], previewable: true, symlink: false, warnings: [] },
+      ],
+    })
+    api.previewIngestion
+      .mockResolvedValueOnce(plan({ requires_rewrite: true }))
+      .mockResolvedValueOnce(plan({ requires_rewrite: false, rewritten: true, archive_id: 'ir_9' }))
+    api.commitIngestion.mockResolvedValue(result({ draft: true, installed: false, queued: false, draft_dir: 'data/ingestion/drafts/delta' }))
+    render(<IngestionPage />)
+    await screen.findByLabelText('批量选择 delta')
+    fireEvent.click(screen.getByLabelText('批量选择 delta'))
+    fireEvent.click(screen.getByRole('button', { name: '批量生成草稿' }))
+    await waitFor(() => expect(api.commitIngestion).toHaveBeenCalledWith(expect.objectContaining({
+      archive_id: 'ir_9', draft_only: true, confirm: true, form: 'skill',
+    })))
+    expect(await screen.findByText('草稿（自动重写）')).toBeTruthy()
+    confirmSpy.mockRestore()
+  })
+
+  it('点候选即自动预览（省掉「先填路径再点预览」两次操作）', async () => {
+    api.fetchIngestionSources.mockResolvedValue({
+      roots: [], stats: { roots: 0, candidates: 1, previewable: 1 },
+      candidates: [
+        { root: 'C:/root', ecosystem: 'claude', name: 'epsilon', path: 'C:/root/epsilon/SKILL.md', kind: 'skill', formats: [], previewable: true, symlink: false, warnings: [] },
+      ],
+    })
+    api.previewIngestion.mockResolvedValue(plan())
+    render(<IngestionPage />)
+    fireEvent.click(await screen.findByText('epsilon'))
+    await waitFor(() => expect(api.previewIngestion).toHaveBeenCalledWith({ path: 'C:/root/epsilon/SKILL.md' }, false))
+    expect((screen.getByLabelText('本机路径') as HTMLInputElement).value).toBe('C:/root/epsilon/SKILL.md')
+  })
+
+  it('联机帮助：手册给出 7 站链路、自动/手动步骤清单，并可直达评审', async () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: '使用手册' }))
+    const dlg = await screen.findByRole('dialog', { name: '能力获取使用手册' })
+    expect(dlg.querySelectorAll('[data-cp-help-stations="true"] > li').length).toBe(7)
+    // 3 站自动（判定 / 重写 / 落草稿）、4 站要人点（入口 / 评审 / 登记 / 启用）
+    expect(screen.getAllByText('自动').length).toBe(3)
+    expect(screen.getAllByText('需要你点').length).toBe(4)
+    expect(screen.getByText(/你要操作的步骤/)).toBeTruthy()
+    expect(screen.getByText(/从入口材料到最终能力/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '去草稿评审' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '能力获取使用手册' })).toBeNull())
+    expect(screen.getByRole('tab', { name: '草稿评审' }).getAttribute('aria-selected')).toBe('true')
   })
 })
