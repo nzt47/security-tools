@@ -2463,7 +2463,7 @@
       "layer": "core",
       "file_path": "agent/modules_api.py",
       "in_degree": 0,
-      "out_degree": 6
+      "out_degree": 7
     },
     {
       "path": "agent.modules_registry",
@@ -2480,6 +2480,14 @@
       "file_path": "",
       "in_degree": 24,
       "out_degree": 4
+    },
+    {
+      "path": "agent.server_routes._errors",
+      "name": "_errors",
+      "layer": "server_routes",
+      "file_path": "",
+      "in_degree": 14,
+      "out_degree": 0
     },
     {
       "path": "agent.monitoring.config_observability",
@@ -3808,14 +3816,6 @@
       "file_path": "",
       "in_degree": 17,
       "out_degree": 2
-    },
-    {
-      "path": "agent.server_routes._errors",
-      "name": "_errors",
-      "layer": "server_routes",
-      "file_path": "",
-      "in_degree": 13,
-      "out_degree": 0
     },
     {
       "path": "agent.subagent.assembly",
@@ -13856,11 +13856,24 @@
     },
     {
       "source": "agent.modules_api",
+      "target": "agent.server_routes._errors",
+      "source_layer": "core",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 53,
+      "source_file": "agent/modules_api.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.modules_api",
       "target": "agent.rate_limiter",
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 79,
+      "line": 81,
       "source_file": "agent/modules_api.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -13873,7 +13886,7 @@
       "source_layer": "core",
       "target_layer": "health",
       "import_type": "from_import",
-      "line": 170,
+      "line": 172,
       "source_file": "agent/modules_api.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -13886,7 +13899,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 180,
+      "line": 182,
       "source_file": "agent/modules_api.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -32006,8 +32019,8 @@
   "stats": {
     "total_files": 724,
     "total_nodes": 628,
-    "total_edges": 2075,
-    "cross_layer_edges": 1312,
+    "total_edges": 2076,
+    "cross_layer_edges": 1313,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -32053,6 +32066,7 @@
       "common": 1,
       "memory": 23,
       "memory_import": 8,
+      "server_routes": 29,
       "network": 3,
       "workflow_engine": 5,
       "verification": 1,
@@ -32062,7 +32076,6 @@
       "quality": 1,
       "repair": 13,
       "retention": 9,
-      "server_routes": 29,
       "settings": 8,
       "ui_panels": 3,
       "feedback_collector": 1,

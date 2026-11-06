@@ -520,7 +520,7 @@ flowchart LR
     end
     subgraph server_routes [server_routes]
         agent_server_routes["agent.server_routes"]
-        agent_server_routes__errors["agent.server_routes._errors"]
+        agent_server_routes__errors["agent.server_routes._errors"]:::crosslayer
         agent_server_routes_observability["agent.server_routes.observability"]
         agent_server_routes_routes_agent_lines["agent.server_routes.routes_agent_lines"]
         agent_server_routes_routes_approval["agent.server_routes.routes_approval"]:::crosslayer
@@ -1425,6 +1425,7 @@ flowchart LR
     agent_modules_api --> agent_api_envelope
     agent_modules_api --> agent_modules_registry
     agent_modules_api --> agent_server_auth
+    agent_modules_api -.-> agent_server_routes__errors
     agent_modules_api --> agent_rate_limiter
     agent_modules_api -.-> agent_health_dashboard
     agent_modules_api --> agent_system_tools
@@ -2831,7 +2832,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 724
 - 模块节点数: 628
-- 依赖边数: 2075
-- 跨层调用数: 1312
+- 依赖边数: 2076
+- 跨层调用数: 1313
 - 违规调用数: 0
 - 动态 import 数: 1
