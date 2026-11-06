@@ -330,8 +330,9 @@ def delegation_signal_dictionary() -> List[Dict[str, Any]]:
     try:
         from agent.subagent.mechanical import mechanical_signal_catalog
         return mechanical_signal_catalog()
-    except Exception as e:  # noqa: BLE001 清单不可用 ⇒ 如实标注
-        return [{"error": f"机械信号清单不可用: {type(e).__name__}: {e}"}]
+    except Exception as e:  # noqa: BLE001 清单不可用 ⇒ 如实标注（原文只进日志）
+        logger.warning("[metrics] 机械信号清单不可用: %s", e)
+        return [{"error": f"机械信号清单不可用: {type(e).__name__}（详见服务日志）"}]
 
 
 def delegation_signal_kind(row: Mapping[str, Any]) -> str:

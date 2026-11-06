@@ -30,6 +30,12 @@ from config import (  # noqa: E402
 
 bp = Blueprint("chat", __name__)
 
+#: 模块级 logger：**只给没有在函数内延迟 import app_server.logger 的视图用**。
+#: 2026-11-07 修：llm-preview 的 except 分支此前直接引用全局 `logger`，而本模块的
+#: `logger` 只在各视图里 `from app_server import ... logger` 得到局部名 ⇒ 那条分支
+#: 一旦执行就 NameError（把 502 变成 500）。函数内已有局部 logger 的视图不受影响。
+_log = logging.getLogger(__name__)
+
 
 # ════════════════════════════════════════════════════════════════════════════
 #  共享装饰器（延迟包装）
@@ -2667,8 +2673,9 @@ def api_prompt_lab_llm_preview():
                           max_tokens=int(data.get("maxTokens") or 1024))
         return _ok({"text": _text or "", "model": _model, "provider": _provider})
     except Exception as _e:  # noqa: BLE001 代理失败如实回报，前端据此给出可读错误
-        logger.error("[prompt-lab][llm-preview] 代理调用失败: %s", _e)
-        return _ok({"text": ""}, message=f"{type(_e).__name__}: {_e}", status=502)
+        _log.error("[prompt-lab][llm-preview] 代理调用失败: %s", _e)
+        # 【C-6】message 会原样进响应信封；原文只进上面的 logger.error。
+        return _ok({"text": ""}, message=f"{type(_e).__name__}（详见服务日志）", status=502)
 
 
 @bp.route("/api/chat/stream", methods=["POST"])

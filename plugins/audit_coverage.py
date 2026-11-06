@@ -9,12 +9,15 @@
 新增本文件即生效，无需改 app_server.py 的任何清单 —— 与「新功能零接线」同向。
 """
 import json
+import logging
 import os
 
 from flask import Blueprint
 
 from .plugin_api import Plugin, register_plugin, require_auth as _require_token
 from agent.api_envelope import ok as _ok, problem as _problem
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("audit_coverage", __name__)
 
@@ -33,8 +36,9 @@ def api_route_ui_coverage():
             payload = json.load(fh)
     except FileNotFoundError:
         return _problem(404, detail="盘点产物不存在；请运行 python scripts/audit/route_ui_coverage.py")
-    except Exception as e:  # noqa: BLE001
-        return _problem(500, detail="读取盘点产物失败：" + str(e)[:200])
+    except Exception as e:  # noqa: BLE001 原文只进日志（problem 的 detail 会进响应体）
+        logger.warning("[audit_coverage] 读取盘点产物失败: %s", e)
+        return _problem(500, detail="读取盘点产物失败（详见服务日志）")
     return _ok(payload)
 
 

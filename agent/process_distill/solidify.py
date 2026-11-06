@@ -288,9 +288,10 @@ def solidify_to_skill(proc: DistilledProcess, *, skills_svc=None,
             )
         except Exception as fe:  # noqa: BLE001  文件轨失败不阻断（JSON 轨已成功）
             logger.warning("[PD] skill 文件轨写入失败（JSON 轨已成功）: %s", fe)
+            # 【C-6】file_error 会经 /api/process-distill/distill 进响应体：只留类名。
             return {"action": "created", "skill_id": skill_id,
                     "json_track": True, "file_track": False,
-                    "file_error": str(fe)[:200]}
+                    "file_error": "%s（详见服务日志）" % type(fe).__name__}
 
         result: Dict[str, Any] = {
             "action": "created", "skill_id": skill_id,
@@ -330,7 +331,8 @@ def solidify_to_skill(proc: DistilledProcess, *, skills_svc=None,
             except Exception as ree:  # noqa: BLE001  评审失败不阻断固化
                 logger.warning("[PD] skill 正式评审失败（已固化，状态 draft）: %s",
                                ree)
-                result["review"] = {"error": str(ree)[:200]}
+                # 【C-6】review.error 同样进响应体：只留类名（原文已进上面的 warning）。
+                result["review"] = {"error": "%s（详见服务日志）" % type(ree).__name__}
 
         return result
     except Exception as e:  # noqa: BLE001

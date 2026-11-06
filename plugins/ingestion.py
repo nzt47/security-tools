@@ -282,10 +282,16 @@ def api_ingestion_draft_autobind(draft_id: str):
     try:
         data = drafts.load_workflow(draft_id)
     except FileNotFoundError as exc:
-        return _problem(404, title="草稿不存在或不是工作流", detail=str(exc),
+        # 【C-6】detail 进响应体：只留请求侧可复述的信息（draft_id），异常原文进日志。
+        logger.warning("[ingestion] 工作流草稿不存在 draft=%s: %s", draft_id, exc)
+        return _problem(404, title="草稿不存在或不是工作流",
+                        detail="草稿 %s 不存在或不是工作流（详见服务日志）" % draft_id,
                         type_slug="draft-not-found")
     except ValueError as exc:
-        return _problem(400, title="草稿内容非法", detail=str(exc), type_slug="draft-invalid")
+        logger.warning("[ingestion] 工作流草稿内容非法 draft=%s: %s", draft_id, exc)
+        return _problem(400, title="草稿内容非法",
+                        detail="草稿 %s 内容非法（详见服务日志）" % draft_id,
+                        type_slug="draft-invalid")
     try:
         workflow, report = autobind.propose(data["workflow"], _resolve_llm_client())
     except autobind.BindError as exc:
@@ -321,7 +327,10 @@ def api_ingestion_draft_implement(draft_id: str):
     try:
         manifest = drafts.load_manifest(draft_id)["manifest"]
     except FileNotFoundError as exc:
-        return _problem(404, title="草稿不存在", detail=str(exc), type_slug="draft-not-found")
+        logger.warning("[ingestion] tool 草稿不存在 draft=%s: %s", draft_id, exc)
+        return _problem(404, title="草稿不存在",
+                        detail="草稿 %s 不存在（详见服务日志）" % draft_id,
+                        type_slug="draft-not-found")
     if str(manifest.get("form") or "") != "tool":
         return _problem(400, title="形态不支持",
                         detail="只有 tool 草稿支持 AI 实现；workflow 请用 AI 绑定",
