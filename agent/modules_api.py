@@ -50,6 +50,8 @@ from agent.modules_registry import (
 # 与既有写接口保持一致：FLASK_API_TOKEN 启用时干预端点需认证（未启用时放行）
 from agent.server_auth import require_token
 
+from agent.server_routes._errors import safe_error as _safe
+
 logger = logging.getLogger(__name__)
 
 __version__ = "0.1.0"
@@ -385,7 +387,7 @@ def _do_action(module_id: str, action: str, user_params: dict, reason: str) -> t
         result = _forward(action, body)
     except Exception as e:  # noqa: BLE001 - 转发异常不崩接口
         _audit(module_id, action, reason, ok=False, detail=f"转发异常: {type(e).__name__}: {e}")
-        return {"ok": False, "error": _safe(e, logger, "module.action")}, 502
+        return {"ok": False, "error": "转发失败（详情见服务端日志）"}, 502
 
     ok = bool(result.get("ok", True)) and int(result.get("_status_code", 200)) < 400
     _audit(module_id, action, reason, ok=ok,
