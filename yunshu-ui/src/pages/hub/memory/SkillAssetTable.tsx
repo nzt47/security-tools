@@ -743,13 +743,15 @@ export default function SkillAssessManager() {
                       title="合并重复技能：把相似的对方并进本技能（先写两侧快照，可凭 merge_id 撤销）；判据是同一触发面只留一个主人">
                       <Copy size={11} /> 合并重复…
                     </button>
-                    <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); void materializeFileTrack(it) }}
-                      disabled={busy !== '' || it.has_file_track === true}
-                      title={it.has_file_track === true
-                        ? '已有文件轨（data/skills_repo/<id>/skill.md 存在）：无需再生成（接口会 409 拒绝覆盖）'
-                        : '只在主轨的技能（没有 skill.md）：新建文件轨后才能写中文说明/展示名；已有文件轨会拒绝覆盖'}>
-                      <FilePlus size={11} /> 生成文件轨
-                    </button>
+                    {/* 2026-11-06：已有文件轨的行不再显示这个按钮（47/47 都有文件轨 ⇒ 永远是个灰按钮）。
+                        只有「只在主轨」的运行时行才可能出现，那才是它唯一能动手的场景。 */}
+                    {it.has_file_track !== true && (
+                      <button type="button" className={BTN} onClick={(e) => { closeRowMenu(e); void materializeFileTrack(it) }}
+                        disabled={busy !== ''}
+                        title="只在主轨的技能（没有 skill.md）：新建文件轨后才能写中文说明/展示名；已有文件轨会拒绝覆盖（409）">
+                        <FilePlus size={11} /> 生成文件轨
+                      </button>
+                    )}
                   </div>
                 </details>
                 <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)}

@@ -82,14 +82,22 @@ describe('SkillAssetTable · 评估/发布/调用 可见性', () => {
     expect(screen.getByText('未调用')).toBeTruthy()
   })
 
-  it('已发布的技能：发布按钮置灰且文案为「已发布」；已有文件轨时「生成文件轨」置灰', async () => {
+  it('已发布的技能：发布按钮置灰且文案为「已发布」；已有文件轨时不再显示「生成文件轨」', async () => {
     setup([{ id: 'p1', name: '已发布技能', status: 'published', enabled: true, has_file_track: true, review: { auto_assessed: true } }])
     await screen.findByText('已发布技能')
     const pub = screen.getByRole('button', { name: '已发布' }) as HTMLButtonElement
     expect(pub.disabled).toBe(true)
     fireEvent.click(screen.getByTitle('更多操作：建议 / 版本 / 再定义 / 命令'))
+    // 47/47 都有文件轨 ⇒ 灰按钮没意义；没有文件轨的人才该看到它
+    expect(screen.queryByRole('button', { name: /生成文件轨/ })).toBeNull()
+  })
+
+  it('只在主轨的运行时技能（无文件轨）：才出现「生成文件轨」且可点', async () => {
+    setup([{ id: 'ext123', name: '运行时技能', status: 'approved', enabled: true, review: { auto_assessed: true } }])
+    await screen.findByText('运行时技能')
+    fireEvent.click(screen.getByTitle('更多操作：建议 / 版本 / 再定义 / 命令'))
     const mat = screen.getByRole('button', { name: /生成文件轨/ }) as HTMLButtonElement
-    expect(mat.disabled).toBe(true)
+    expect(mat.disabled).toBe(false)
   })
 
   it('「查看内容」已合并进「详情」：行内不再有两个入口', async () => {
