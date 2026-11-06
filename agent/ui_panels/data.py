@@ -25,9 +25,12 @@ from __future__ import annotations
 import csv
 import io
 import json
+import logging
 import os
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+
+logger = logging.getLogger(__name__)
 
 from agent.ui_panels.schema import (
     absent,
@@ -523,7 +526,9 @@ def capability_map(*, registry: Any = None, stage: str = "",
             reg = DescriptorRegistry(autosave=False)
         rows = list(reg.list_with_trust())
     except Exception as e:  # noqa: BLE001 台账不可用 ⇒ 如实报错，不编造空表
-        load_error = f"{type(e).__name__}: {e}"
+        # 【C-6】error 字段会随面板响应回给调用方 ⇒ 只留类名，原文进 logger
+        logger.warning("[ui_panels] 描述符台账不可用", exc_info=True)
+        load_error = f"{type(e).__name__}（详见服务日志）"
 
     def _keep(r: Mapping[str, Any]) -> bool:
         if stage and str(r.get("stage") or "") != stage:
@@ -919,7 +924,8 @@ def roi_view(*, days: int = 7, events_dir: Optional[str] = None,
             "source_of_truth": view.get("source_of_truth"),
         }
     except Exception as e:  # noqa: BLE001
-        out["daily"] = absent(f"cost_brake 不可用: {type(e).__name__}: {e}")
+        logger.warning("[ui_panels] cost_brake 不可用", exc_info=True)
+        out["daily"] = absent(f"cost_brake 不可用: {type(e).__name__}（详见服务日志）")
 
     # ── UTC 周视图 + 滚动快照（阈值口径随附）──
     try:
@@ -1094,7 +1100,8 @@ def incidents_view(*, incidents_dir: Optional[str] = None, limit: int = 100,
         for c in list_incidents(directory=incidents_dir):
             cards.append(c.to_dict())
     except Exception as e:  # noqa: BLE001
-        err = f"{type(e).__name__}: {e}"
+        logger.warning("[ui_panels] 自愈事件读取失败", exc_info=True)
+        err = f"{type(e).__name__}（详见服务日志）"
     cards.sort(key=lambda c: str(c.get("created_at") or ""), reverse=True)
     open_cards = [c for c in cards if str(c.get("status")) == "open"]
     # 【2026-10-28】把"未闭合"拆成可闭合 / 缺要素不可闭合：
@@ -1282,7 +1289,8 @@ def memory_skills_view(*, layers: Optional[Iterable[str]] = None,
                 unit="count", sample_size=samples),
         }
     except Exception as e:  # noqa: BLE001
-        stats = dict(absent(f"LayeredMemoryStore 不可用: {type(e).__name__}: {e}"))
+        logger.warning("[ui_panels] LayeredMemoryStore 不可用", exc_info=True)
+        stats = dict(absent(f"LayeredMemoryStore 不可用: {type(e).__name__}（详见服务日志）"))
     out["layers"] = stats
     return out
 
@@ -1398,7 +1406,8 @@ def audit_export(*, limit: int = 200, start_seq: Optional[int] = None,
                 v = c.verify_chain(start_seq=lo, end_seq=hi) if lo else c.verify_chain()
             verification = v.to_dict()
     except Exception as e:  # noqa: BLE001
-        err = f"{type(e).__name__}: {e}"
+        logger.warning("[ui_panels] 审计链校验失败", exc_info=True)
+        err = f"{type(e).__name__}（详见服务日志）"
     elapsed_ms = round((_t.perf_counter() - t0) * 1000, 3)
     n = len(entries)
     return {

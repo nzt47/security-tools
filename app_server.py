@@ -1371,8 +1371,10 @@ def api_plugins_reload():
         new_manifest = loader.refresh_manifest()
         return jsonify({"ok": True, **new_manifest})
     except Exception as exc:
-        logger.error(f"[plugins] 刷新插件清单失败（旧注册表已保留）: {exc}")
-        return jsonify({"ok": False, "error": f"刷新插件清单失败（旧注册表已保留）: {exc}"}), 500
+        logger.error("[plugins] 刷新插件清单失败（旧注册表已保留）", exc_info=True)
+        # 【C-6】响应只回类名：异常原文（可能含路径/配置）只进日志
+        return jsonify({"ok": False,
+                        "error": f"刷新插件清单失败（旧注册表已保留）: {type(exc).__name__}"}), 500
 
 
 # [security] DeepSeek API key 改为从环境变量读取，避免硬编码泄露

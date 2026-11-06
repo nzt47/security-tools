@@ -77,7 +77,9 @@ class MemoryImportError(Exception):
                  title: Optional[str] = None) -> None:
         super().__init__(message)
         self.message = str(message)
-        self.detail = str(detail or message)
+        # 【C-6】detail 会进 RFC 9457 响应：**不回退到 message**（message 可能由异常原文拼成）。
+        # 需要人读细节的调用点请显式传 detail=（全部 raise 站点都是这么写的）。
+        self.detail = str(detail or "")
         if status is not None:
             self.status = int(status)
         if code is not None:

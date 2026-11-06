@@ -311,7 +311,9 @@ class TestCapabilityMap:
         view = D.capability_map(registry=_Boom())
         assert view["items"] == []
         assert view["total"]["value"] == 0
-        assert "boom" in view["load_error"]
+        # C-6 新契约：只回异常**类名**（原文进日志），响应里不出现 "boom"
+        assert "RuntimeError" in view["load_error"]
+        assert "boom" not in view["load_error"]
 
 
 class TestApprovalInbox:
@@ -1255,6 +1257,8 @@ class TestGracefulDegradation:
 
         view = D.audit_export(limit=5, chain=_Boom())
         assert view["ok"] is False
-        assert "chain closed" in view["load_error"]
+        # C-6 新契约：只回类名，原文不进响应
+        assert "RuntimeError" in view["load_error"]
+        assert "chain closed" not in view["load_error"]
         assert view["entries"] == []
         assert view["count"] == 0

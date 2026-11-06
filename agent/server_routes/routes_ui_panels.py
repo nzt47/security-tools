@@ -628,7 +628,7 @@ def _do_rollback(bundle_hash: str, body: Mapping[str, Any], *,
                      "approval_record_id": incident_id})
     except Exception as e:  # noqa: BLE001 原子性/自校验失败 → 如实回传（含 L4）
         logger.warning("[UIPanels] 整包回滚被拒 bundle=%s: %s", bundle_hash, e)
-        return _error("rollback_rejected", f"{type(e).__name__}: {e}", 409,
+        return _error("rollback_rejected", _safe(e, logger, "ui_panels.rollback"), 409,
                       level="L5", requires_approval=l5_requires_approval,
                       partial=getattr(e, "partial", None))
     return jsonify({
@@ -679,7 +679,7 @@ def _do_trace_diff(capability_id: str) -> Any:
             "sample_count": (row or {}).get("sample_count"),
         }
     except Exception as e:  # noqa: BLE001
-        return _error("trace_diff_unavailable", f"{type(e).__name__}: {e}", 503)
+        return _error("trace_diff_unavailable", _safe(e, logger, "ui_panels.trace_diff"), 503)
 
     events = []
     try:
