@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Archive, CheckCircle2, ChevronDown, ChevronRight, Loader2, RotateCcw, Sparkles, X } from 'lucide-react'
 import { authHeader } from '../lib/apiToken'
+import { hubHref } from '../workbench/hubNav'
 import {
   SKILLS_MGMT_TRANSFORMS,
   SKILLS_MGMT_TRANSFORM_REGISTER,
@@ -372,7 +373,7 @@ export default function TransformQueueDialog({ open, onClose, embedded = false }
                         下一步是补实现 + 测试 + 审批（证据都在工具页）；工作流要先试跑。
                         队列只负责把它们指到能判断的地方，避免「在队列里点一下就启用了」的空按钮。 */}
                     {j.status === 'registered' && j.form !== 'skill' && (
-                      <a href={j.form === 'tool' ? '?panel=tools' : '?panel=workflow'}
+                      <a href={hubHref(j.form === 'tool' ? 'tools' : 'workflow')}
                         className="rounded border border-slate-700 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-cyan-700 hover:bg-cyan-950/40 hover:text-cyan-300"
                         title="启用留在该页：工具要先补实现/测试并过审批，工作流要先试跑——那里才有判断依据">
                         去{j.form === 'tool' ? '工具页' : '工作流页'}启用

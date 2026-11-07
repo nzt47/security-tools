@@ -28,7 +28,7 @@ from typing import Any, Dict, List
 import yaml
 
 from .adapters.base import slugify
-from .models import IngestPlan, NormalizedSkill
+from .models import IngestPlan, InvalidSource, NormalizedSkill
 
 DEFAULT_DRAFT_DIR = Path(__file__).resolve().parents[2] / "data" / "ingestion" / "drafts"
 _STEP_RE = re.compile(r"^(?:\d+[.、)]|[-*])\s+(.+)$")
@@ -259,6 +259,16 @@ def write_workflow_draft(skill: NormalizedSkill, plan: IngestPlan, *,
     did = draft_id_for(plan.plan_id, "workflow")
     root = base / did
     steps = _extract_steps(skill.body)
+    if not steps:
+        # 【2026-11-07 实测】来源可能**根本没有步骤**（如 trae/document-skill：正文只有
+        # "When to Run" + 一句"仅用于技能搜索展示，无执行命令"）。这种来源产出 0 步骨架
+        # 一定是死草稿（requires_binding=true、不能执行），以前只是写个 warning 照样落盘，
+        # 用户拿着一个"生成成功"的空工作流无从下手 ⇒ 改为**当场拒绝**并给替代形态。
+        raise InvalidSource(
+            "该来源没有可抽取的编号步骤（0 步），不能生成工作流草稿",
+            detail="工作流需要 ≥3 步且每步能绑到云枢工具。请改用 form=skill 吸收；"
+                   "或先在来源正文里补编号步骤（1. / 2. ...）后重新预览。",
+        )
     warnings: List[str] = []
     if len(steps) < 3:
         warnings.append(f"正文只提取到 {len(steps)} 个编号步骤（建议 ≥3）；需人工补全步骤")

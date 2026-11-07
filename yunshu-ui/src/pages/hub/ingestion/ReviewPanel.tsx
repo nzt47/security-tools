@@ -13,6 +13,7 @@ import {
   ingestionDraft,
   ingestionDraftAutobind,
   ingestionDraftImplement,
+  ingestionDraftRegister,
   SKILLS_MGMT_QUEUE,
   SKILLS_MGMT_QUEUE_PUBLISH_BATCH,
   skillById,
@@ -24,6 +25,18 @@ const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 p
 const BTN_EM = BTN + ' border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10'
 const BTN_RED = BTN + ' border-red-800/70 text-red-300 hover:bg-red-500/10'
 const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-hidden focus:border-cyan-600'
+/** 草稿形态 → 人读标签（此前把 skill 也画成「工具」，点「AI 实现」会 400 form-mismatch）。 */
+const FORM_LABEL: Record<string, string> = { skill: '技能', tool: '工具', workflow: '工作流' }
+/** 生成时间：ISO → 本地「YYYY-MM-DD HH:mm」（解析失败就原样显示，不显示 Invalid Date）。 */
+function fmtTime(iso?: string): string {
+  const raw = (iso ?? '').trim()
+  if (!raw) return ''
+  const t = Date.parse(raw)
+  if (Number.isNaN(t)) return raw
+  const d = new Date(t)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
 
 interface QueueRow {
   id?: string
@@ -103,6 +116,32 @@ export default function ReviewPanel() {
 
   useEffect(() => { void loadQueue() }, [loadQueue])
   useEffect(() => { void loadDrafts() }, [loadDrafts])
+
+  /** 工作流只有「每步都绑了工具」才允许登记（后端同口径拒绝；这里先给出原因，别让人点了才报错）。 */
+  const regBlocked = (d: DraftRow): string => {
+    if (d.form !== 'workflow') return ''
+    const total = d.total_steps ?? 0
+    const bound = d.bound_steps ?? 0
+    if (total === 0) return '工作流 0 步：先补步骤（或改用技能形态）'
+    if (bound < total) return '还有 ' + (total - bound) + ' 步没绑定工具：先「AI 绑定」或人工补'
+    return ''
+  }
+
+  const registerDraft = async (d: DraftRow, enable: boolean) => {
+    const label = enable ? '登记并启用' : '登记'
+    if (enable && !window.confirm('登记并**启用**「' + (d.skill_name || d.skill_id || d.draft_id) + '」？启用后模型即可调用。')) return
+    setBusy((enable ? 'reg-on:' : 'reg:') + d.draft_id); setDraftErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ data?: { result?: Record<string, unknown> }; message?: string }>(
+        ingestionDraftRegister(d.draft_id), { enable, confirm: enable })
+      const result = (r?.data?.result ?? {}) as Record<string, unknown>
+      const target = String(result.skill_id || result.tool_name || result.workflow_id || '')
+      setMsg(label + '成功：' + (target || d.draft_id) + (enable ? '（已启用）' : '（未启用）'))
+      await loadDrafts()
+    } catch (e) {
+      setDraftErr(label + '失败：' + (e instanceof Error ? e.message : String(e)))
+    } finally { setBusy('') }
+  }
 
   const removeDraft = async (id: string) => {
     if (!window.confirm('确定删除骨架草稿「' + id + '」？整个目录会删除，不可恢复。')) return
@@ -354,7 +393,7 @@ export default function ReviewPanel() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-medium text-slate-200">吞噬生成的草稿（隔离区 · 只读预览）</h3>
           <span className="text-[10px] text-slate-500">
-            技能 / 工具 / 工作流都写到隔离目录，不注册、不启用；<b>登记与启用统一在「转化队列」Tab</b>
+            技能 / 工具 / 工作流都写到隔离目录；<b>登记与启用就在这一行</b>（登记默认不启用）
           </span>
           <button type="button" className={BTN + ' ml-auto'} onClick={() => void loadDrafts()} disabled={loading}
             aria-label="刷新骨架草稿">
@@ -364,7 +403,7 @@ export default function ReviewPanel() {
         {draftErr && <div className="mb-2"><ErrorBox message={draftErr} /></div>}
         {drafts.length === 0 ? (
           <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-            <Inbox size={11} /> 还没有草稿。在「能力获取」里生成草稿后会出现在这里（三种形态都是草稿，登记去「转化队列」）。
+            <Inbox size={11} /> 还没有草稿。在「能力获取」里生成草稿后会出现在这里；登记直接在这一行点（三种形态共用同一个登记口）。
           </div>
         ) : (
           <div className="flex flex-col gap-1">
@@ -376,9 +415,11 @@ export default function ReviewPanel() {
               return (
                 <div key={'d-' + d.draft_id} className="flex flex-wrap items-center gap-2 rounded-sm border border-slate-800 bg-slate-950/60 px-2 py-1 text-[11px]">
                   <span className="font-mono text-[10px] text-cyan-300">{d.draft_id}</span>
-                  <Badge color="cyan">{isWorkflow ? '工作流' : '工具'}</Badge>
+                  <Badge color="cyan">{FORM_LABEL[d.form ?? ''] ?? d.form ?? '草稿'}</Badge>
                   <span className="text-slate-300">{d.skill_name || d.skill_id || '—'}</span>
-                  <span className="text-[10px] text-slate-500">{d.created_at || ''}</span>
+                  {d.created_at ? (
+                    <span className="text-[10px] text-slate-500" title={d.created_at}>生成 {fmtTime(d.created_at)}</span>
+                  ) : null}
                   {isWorkflow && (
                     <span className={'text-[10px] ' + (ready ? 'text-emerald-300' : 'text-amber-300')}>
                       绑定 {bound}/{total}
@@ -398,7 +439,7 @@ export default function ReviewPanel() {
                         {busy === 'bind:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} AI 绑定
                       </button>
                     )}
-                    {!isWorkflow && (
+                    {d.form === 'tool' && (
                       <button type="button" className={BTN_EM} disabled={loading}
                         onClick={() => void implementDraft(d)}
                         title="用 LLM 读取来源 SKILL.md/脚本并生成实现（先校验，不写盘）"
@@ -406,9 +447,24 @@ export default function ReviewPanel() {
                         {busy === 'impl:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} AI 实现
                       </button>
                     )}
-                    <span className="text-[10px] text-slate-500">
-                      登记去「转化队列」Tab
-                    </span>
+                    {/* 2026-11-07：这里原是一句**死提示**「登记去「转化队列」Tab」—— 转化队列只认
+                        /api/skills-mgmt/queue 里的技能草稿，tool/workflow 骨架根本不在那儿，
+                        按提示走过去只会看到空队列。改为真实登记（三种形态同一个端点）。 */}
+                    <button type="button" className={BTN_EM} disabled={loading || regBlocked(d) !== ''}
+                      onClick={() => void registerDraft(d, false)}
+                      title={regBlocked(d) || (d.form === 'tool'
+                        ? '把实现写进 agent/tools/custom + 治理 YAML + 单测，过验证门后进台账（不启用）'
+                        : '登记进仓库/台账，不启用（启用要再过一道确认）')}
+                      aria-label={'登记草稿 ' + d.draft_id}>
+                      {busy === 'reg:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null}
+                      {d.form === 'tool' ? '登记为工具' : d.form === 'workflow' ? '登记为工作流' : '登记为技能'}
+                    </button>
+                    <button type="button" className={BTN} disabled={loading || regBlocked(d) !== ''}
+                      onClick={() => void registerDraft(d, true)}
+                      title="登记并直接启用（会再过一次确认；工具仍受审批边界约束）"
+                      aria-label={'登记并启用草稿 ' + d.draft_id}>
+                      {busy === 'reg-on:' + d.draft_id ? <Loader2 size={11} className="animate-spin" /> : null} 登记并启用
+                    </button>
                     <button type="button" className={BTN_RED} disabled={loading}
                       onClick={() => void removeDraft(d.draft_id)}
                       aria-label={'删除骨架草稿 ' + d.draft_id}>

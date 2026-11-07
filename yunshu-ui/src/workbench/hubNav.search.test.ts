@@ -13,6 +13,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   HUB_NAV,
+  hubHref,
   filterNav,
   navKeyFromSearch,
   searchForNavKey,
@@ -234,5 +235,29 @@ describe('旧深链兼容层（阶段 0 · IA 整合不断链）', () => {
     expect(navKeyFromSearch('?panel=not-a-real-panel')).toBe('')
     expect(navKeyFromSearch('?panel=')).toBe('')
     expect(navKeyFromSearch('?panel=persona/nope')).toBe('')
+  })
+})
+describe('hubHref —— 可点击深链', () => {
+  // 2026-11-07 实测回归：转化队列「去工具页启用」写成 href="?panel=tools" 会冲掉 hash，
+  // 应用读不到 panel 就回落到默认导航（会话任务）—— 点「去工具页」跳到了会话任务。
+  it('工具/工作流深链都必须是 hash 形态', () => {
+    expect(hubHref('tools')).toBe('#/workbench?panel=tools')
+    expect(hubHref('workflow')).toBe('#/workbench?panel=workflow')
+  })
+
+  it('不带 hash 的路径级 query 不是合法深链', () => {
+    expect(hubHref('tools').startsWith('#/workbench')).toBe(true)
+    expect(hubHref('tools')).not.toBe('?panel=tools')
+  })
+
+  it('未知 key 不产出半截 URL（回落到默认导航）', () => {
+    // resolveNavKey 对未知 key 返回空 ⇒ 落到 #/workbench（应用再取默认面板），
+    // 不会拼出 "?panel=not-a-real-panel" 这种应用读不懂的地址。
+    expect(hubHref('not-a-real-panel')).toBe('#/workbench')
+  })
+
+  it('深链能被 navKeyFromSearch 读回同一个 key', () => {
+    const href = hubHref('tools')
+    expect(navKeyFromSearch(href.split('?')[1] ?? '')).toBe('tools')
   })
 })
