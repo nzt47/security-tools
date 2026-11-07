@@ -206,11 +206,11 @@
     },
     {
       "id": "ci-shard6-cognitive-shadow",
-      "title": "CI shard6 的 cognitive 包遮蔽 flake（ImportError: PromptInjector）",
-      "status": "open",
+      "title": "CI shard6 的 cognitive 包遮蔽 flake（已加 sys.path 守卫，#1506 上 shard6 全绿）",
+      "status": "done",
       "priority": "P2",
       "criteria": "仓里两个同名包：仓根 cognitive/（元认知引擎）与 agent/cognitive/（认知循环）。只要 agent/ 排在 sys.path 前面，from cognitive import PromptInjector 就解析到 agent/cognitive ⇒ ImportError（本机已复现该机制）。CI 的 shard6 在 #1498/#1499 上红了两轮（3 个收集失败 + test_plan_tools SessionRestore），本机 -n 2 跑完整 shard6 3752 条全绿 —— 属导入顺序 flake，非回归",
-      "next": "在 tests/conftest.py 钉住 sys.path[0]=仓根、摘掉 agent/ 条目（autouse fixture + 模块级各一次），并补一条「agent/ 在 sys.path 前时 from cognitive 仍能 import」的用例"
+      "next": "已做：_pin_repo_root_first() 把仓根钉在 sys.path[0]、把 .../agent 挪到末尾，三个调用点（conftest 导入 / pytest_collectstart / 逐用例 autouse）。#1506 的 shard6 全绿。若再犯：先确认那三个调用点还在（有人删了 autouse fixture 就会回退）"
     },
     {
       "id": "weak-hash-queue",
@@ -219,6 +219,22 @@
       "priority": "P1",
       "criteria": "merged 937fbe69c；分桶改 SHA-256（agent/utils/bucketing.py），签名密钥派生改 PBKDF2 + 进程内缓存；code scanning weak-sensitive-data-hashing 5 → 0。另 3 条 identity/judge 的 dismiss 仍是裁决过的，别再动",
       "next": "-"
+    },
+    {
+      "id": "transform-queue-archive-delete",
+      "title": "转化队列「归档 + 二次确认彻底删除」+ 工具页「移除运行时工具」+ shard6 sys.path 守卫（#1506，已合并）",
+      "status": "done",
+      "priority": "P2",
+      "criteria": "队列：archive 终态 + remove_job 只删已归档 + artifact_targets 白名单（仓库内/系统临时目录）+ 两个端点 + 「显示已归档」开关；工具：remove_runtime_tool 只认 dynamic_tools 台账（内建拒绝）、快照→注销→删台账/YAML/实现/单测→清 UI 开关、失败回滚。顺带把真实台账 62 → 27 条（删 35 条 pytest 临时目录污染，备份 data/backups/jobs-before-cleanup-20261107-232645.json）+ conftest autouse 隔离 jobs_path",
+      "next": "已完成：6908f52a1 合并 + 部署（三处一致）；code scanning 0。队列 27 条（其中 5 条是本轮 UI 实操归档的，可在「显示已归档」里彻底删除）。附带：conftest 的 sys.path 守卫（agent/ 挪末尾）本轮 shard6 全绿。若以后要「取消归档」再单开（当前只有归档→删除单向）"
+    },
+    {
+      "id": "runtime-skill-intake-quality",
+      "title": "本机运行期技能 4 条（新增 api-multi-search-engine / document-skill），其中 document-skill 的 front matter 解析失败",
+      "status": "open",
+      "priority": "P3",
+      "criteria": "2026-11-07 23:49–23:51 有人用 UI 走「转化队列 → 登记/入轨」：新增 api-multi-search-engine（文件轨 + 主轨）与 document-skill；两条都不在 git（运行期）。document-skill/skill.md 的 front matter 被写成 description: name: ... 的多冒号单行 ⇒ YAML ScannerError，validate_skill_md 报 1 error；另有 4 条缺 description_zh/何时使用/示例的 warning（含既有的 adaptive-skill-stack / claude-code-analysis）。同期还自动改了 capability_manifest / 盘点表 / 3 个测试基线（已按口径还原，未提交）。交接卡自检因此显示 ⚠（dual_track 51/51 孤儿 / skill_md 1 error）",
+      "next": "三选一：① 修 document-skill 的 front matter（把 description 改成单引号标量、name 用技能名）并补 description_zh/何时使用/示例；② 用 DELETE /api/skills-mgmt/<id> 删掉这两条运行期技能；③ 保留现状，但把 capability 基线的自动改写关掉（入轨助手 fix_baselines 默认 false）。等 Operator 一句"
     }
   ]
 }

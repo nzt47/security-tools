@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-11-07T22:35:19+08:00",
+  "generated_at": "2026-11-08T00:43:01+08:00",
   "repo": {
     "branch": "master",
-    "head": "b66fddd31",
-    "origin_master": "b66fddd31",
-    "tracked_dirty_lines": 3
+    "head": "6908f52a1",
+    "origin_master": "fe74bb77d",
+    "tracked_dirty_lines": 2
   },
   "service": {
-    "backend": "b66fddd31",
-    "frontend": "b66fddd31",
-    "bundle": "index-C1ZJZP1s.js",
-    "pid": 48900
+    "backend": "6908f52a1",
+    "frontend": "6908f52a1",
+    "bundle": "index-BtWmLgH9.js",
+    "pid": 48936
   },
   "skills": {
-    "file_track": 49,
-    "cards": 49
+    "file_track": 51,
+    "cards": 51
   },
   "scheduler": {
     "total": 16,
@@ -35,34 +35,34 @@
       "software_install"
     ]
   },
-  "audit_rows": 82955,
+  "audit_rows": 83066,
   "selfcheck": {
     "dual_track": {
-      "ok": true,
-      "file_track": 49,
+      "ok": false,
+      "file_track": 51,
       "main_track": 51,
-      "orphans_ok": true
+      "orphans_ok": false
     },
     "skill_md": {
-      "ok": true,
-      "files": 49,
-      "errors": 0,
-      "warnings": 2
+      "ok": false,
+      "files": 51,
+      "errors": 1,
+      "warnings": 4
     },
     "audit_chain": {
       "ok": true,
-      "rows": 82955,
+      "rows": 83066,
       "breaks": 0
     },
     "layer_coverage": {
       "ok": true,
       "steps_pct": 100.0,
       "trigger_pct": 100.0,
-      "saved_pct": 53.3
+      "saved_pct": 53.1
     }
   },
   "next": {
-    "total": 27,
+    "total": 28,
     "open": [
       {
         "id": "chart-visualization-missing-assets",
@@ -79,22 +79,6 @@
         "priority": "P3",
         "criteria": "两者的落地位置是 agent/tools/custom/*.py（.gitignore 第 181 行明确其=运行时状态，与 data/dynamic_tools.json 同类）+ data/tool_definitions/*.yaml + tests/unit/test_*.py；本机 98 条工具里含这两条（seedance 为 enabled: false）",
         "next": "要入仓必须一次做齐：tool_index / 清单+盘点表 / BM25 半饱和点重标定 / 路由基线 / 路由冲突 τ 五处连锁，且 byted_seedance 的 BYTEPLUS_* 读取点要先进 agent/settings/registry.py（否则「开关零缺口」红）。未定前别只提交 YAML"
-      },
-      {
-        "id": "c10-remaining",
-        "title": "C-10 余量归零：26 → 20（#1496/#1497）→ 0（#1501 修 14 条 + 6 条 dismiss）",
-        "status": "open",
-        "priority": "P1",
-        "criteria": "#1501 已合并（c4bb9fb69）：14 条按**源**改（polynomial-redos 6 / redos 1 / clear-text-storage 2 / cookie-injection 1 / reflective-xss 1 / js xss-through-dom 3）；6 条按「设计如此」dismiss。合并后 code scanning 26 → 20 → **1**（唯一残余是 agent/env_config_manager.py 的 py/clear-text-storage：值仍被当实参传给审计写点）⇒ #1503 把敏感 key 改成「值不进审计函数」（_audit_log_sensitive，只给 action+key）",
-        "next": "#1503 合并后等 python 分析重跑，确认 code scanning = 0；若还有残余，python scripts/audit/codeql_flows.py --rule <rule> --sources-only 按源改（别动 sink）"
-      },
-      {
-        "id": "ci-shard6-cognitive-shadow",
-        "title": "CI shard6 的 cognitive 包遮蔽 flake（ImportError: PromptInjector）",
-        "status": "open",
-        "priority": "P2",
-        "criteria": "仓里两个同名包：仓根 cognitive/（元认知引擎）与 agent/cognitive/（认知循环）。只要 agent/ 排在 sys.path 前面，from cognitive import PromptInjector 就解析到 agent/cognitive ⇒ ImportError（本机已复现该机制）。CI 的 shard6 在 #1498/#1499 上红了两轮（3 个收集失败 + test_plan_tools SessionRestore），本机 -n 2 跑完整 shard6 3752 条全绿 —— 属导入顺序 flake，非回归",
-        "next": "在 tests/conftest.py 钉住 sys.path[0]=仓根、摘掉 agent/ 条目（autouse fixture + 模块级各一次），并补一条「agent/ 在 sys.path 前时 from cognitive 仍能 import」的用例"
       }
     ]
   }
