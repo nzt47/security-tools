@@ -12,6 +12,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import types
+
 import pytest
 
 from agent.skills_mgmt.transform import jobs
@@ -317,3 +319,50 @@ def test_两轨都没有时如实报找不到(tmp_path, monkeypatch):
         enable_skill_job(job["job_id"], root=tmp_path)
     assert exc.value.code == "skill-not-found"
     assert jobs.get_job(job["job_id"], root=tmp_path)["status"] == "registered"
+
+def test_作业里是旧名字时按_name_解析到主轨_id(tmp_path, monkeypatch):
+    """作业 target.id 可能记的是**名字**（或合并前的旧 id）：按 name 唯一命中就该能用。
+
+    【实测来源】2026-11-07 转化队列里 id 为 `brainstorming` 的作业：
+    主轨真实 id 是 `pd-brainstorming-697b717a-skill`（name=brainstorming），
+    文件轨也在那个 id 下。旧实现只按 id 找 ⇒ 用户只看到「文件轨里没有
+    brainstorming/skill.md」，按钮是死胡同。
+    """
+    tdir = _draft(tmp_path)
+    job = _job(tmp_path, tdir)
+    _patch_intake(monkeypatch)
+    register_skill_job(job["job_id"], root=tmp_path)
+    import shutil as _shutil
+    _shutil.rmtree(tmp_path / "data" / "skills_repo" / "gamma-draft")
+    # 主轨里同一个技能换了 id，name 仍是作业里那个
+    (tmp_path / "data" / "skills_repo" / "pd-gamma").mkdir(parents=True)
+    (tmp_path / "data" / "skills_repo" / "pd-gamma" / "skill.md").write_text(
+        "---\nid: pd-gamma\nname: gamma-draft\nenabled: false\n---\n\n# x\n", encoding="utf-8")
+
+    enabled_calls = []
+
+    class FakeSvc:
+        def get(self, skill_id):
+            if skill_id != "pd-gamma":
+                raise KeyError(skill_id)
+            return {"id": skill_id}
+
+        def list_all(self):
+            return [types.SimpleNamespace(id="pd-gamma", name="gamma-draft"),
+                    types.SimpleNamespace(id="other", name="别的技能")]
+
+        def set_enabled(self, skill_id, enabled):
+            enabled_calls.append((skill_id, enabled))
+
+    import agent.state_manager as state_mod
+    monkeypatch.setattr(state_mod, "get_skills_mgmt_service", lambda: FakeSvc(), raising=False)
+
+    from agent.skills_mgmt.transform.register import enable_skill_job
+    rep = enable_skill_job(job["job_id"], root=tmp_path)
+    assert rep["ok"] is True
+    assert rep["skill_id"] == "pd-gamma" and rep["job_target_id"] == "gamma-draft"
+    assert rep["resolved_by"] == "name"
+    assert "已按主轨 id pd-gamma 处理" in rep["note"]
+    assert enabled_calls == [("pd-gamma", True)]
+    md = (tmp_path / "data" / "skills_repo" / "pd-gamma" / "skill.md").read_text(encoding="utf-8")
+    assert "enabled: true" in md, "解析到真实 id 后，那一份文件轨也要同步改"
