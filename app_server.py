@@ -2023,11 +2023,22 @@ def index():
     分别覆盖健康仪表盘、系统监控、日志查看。保留旧首页只会让同一能力有两个入口，
     且旧页面的数据轮询不带令牌 ⇒ 在 enforce_all 下持续 401（审计 H-7，实测 105 次/分钟级）。
 
-    【目标是 /chat#/workbench】/chat 是 React SPA 的入口 HTML（templates/yunshu.html），
-    其内部 HashRouter 的工作台路由是 #/workbench。写全路径是为了让重定向意图一眼可见。
+    【目标是 /chat】/chat 是 React SPA 的入口 HTML（templates/yunshu.html），
+    其内部 HashRouter 的工作台路由是 #/workbench —— 空 hash 时前端自己会 `#/` → `#/workbench`，
+    所以这里**不再把 fragment 写进 Location**。
+
+    【为什么必须这么写（2026-11-07 修）】此前是 `redirect("/chat#/workbench")`：Location 自带
+    fragment ⇒ 浏览器按 RFC 7231 §7.1.2 用**新的** fragment 覆盖原 fragment ⇒
+    `http://host/#/workbench?panel=tools&tool=x` 冷启动直接变成 `/chat#/workbench`，
+    search 段整段丢失（`?panel=governance/approvals` 同样）。而**服务端看不到 fragment**
+    （浏览器不会把它发给服务器），所以唯一正确的做法是 Location 里不写 fragment，
+    让浏览器把原 fragment 原样带到 /chat 上：
+        \#/workbench?panel=tools&tool=x  →  302 /chat  →  /chat#/workbench?panel=tools&tool=x
+    契约由 `tests/unit/test_root_redirect_deeplink.py` 钉住；前端那一半
+    （冷启动时 hook 不得把深链改写成默认面板）见 `yunshu-ui/src/workbench/useNavUrlSync.test.tsx`。
     """
     from flask import redirect
-    return redirect("/chat#/workbench")
+    return redirect("/chat")
 
 #: /chat 的构建产物缺失页（新克隆未跑 build:flask 时的**可操作**指引）
 #: 【为什么不再是 render_template 回退】templates/yunshu.html 自 2026-10-14 起不再入库
