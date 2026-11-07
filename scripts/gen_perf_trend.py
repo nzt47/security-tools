@@ -46,6 +46,8 @@ import zipfile
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
+from agent.utils.remote_url import remote_repo_slug
+
 # 加入项目根
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -437,6 +439,19 @@ def _auto_select_source(ci_min_runs: int, repo_override: Optional[str]) -> str:
         return "local"
 
 
+def _repo_slug_from_remote(url: str) -> Optional[str]:
+    """把远端地址解析成 owner/repo；主机名不是 github.com 就返回 None。
+
+    实现在叶子模块里（含"只认主机名等值、不做 URL 子串判断"的安全口径），
+    与 configure_branch_protection.py 共用：见 agent/utils/remote_url.py。
+
+    【为什么不放在本脚本】本脚本顶部 `import matplotlib`，把它当作工具函数的
+    宿主会让**没装 matplotlib** 的地方（CI 单元测试分片）导入即失败 —— 2026-11-07
+    实测过一次 collection error。
+    """
+    return remote_repo_slug(url)
+
+
 def _infer_repo() -> Optional[str]:
     """从 git remote 推断 owner/repo"""
     try:
@@ -444,16 +459,7 @@ def _infer_repo() -> Optional[str]:
             ["git", "remote", "get-url", "origin"],
             capture_output=True, text=True, check=True, timeout=5,
         )
-        url = result.stdout.strip()
-        # git@github.com:owner/repo.git 或 https://github.com/owner/repo.git
-        if "github.com" not in url:
-            return None
-        if url.startswith("git@"):
-            path = url.split(":", 1)[1]
-        else:
-            path = url.split("github.com/", 1)[1] if "github.com/" in url else url
-        path = path.replace(".git", "").strip("/")
-        return path if "/" in path else None
+        return _repo_slug_from_remote(result.stdout)
     except Exception:
         return None
 

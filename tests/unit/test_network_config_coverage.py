@@ -24,6 +24,7 @@ import tempfile
 import shutil
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -720,8 +721,11 @@ class TestProxyUrlMasking:
 
         # 应剥离 user:pass@，保留 host:port
         assert 'user:pass@' not in proxy_url, f"不应包含认证信息: {proxy_url}"
-        assert 'proxy.example.com' in proxy_url, f"应保留 host: {proxy_url}"
-        assert '8080' in proxy_url, f"应保留 port: {proxy_url}"
+        # 【CodeQL py/incomplete-url-substring-sanitization】按解析后的 host/port 断言，
+        # 不用 'proxy.example.com' in proxy_url 的子串判断（路径/查询串里也能出现）。
+        parsed_proxy = urlsplit(proxy_url)
+        assert (parsed_proxy.hostname or '') == 'proxy.example.com', f"应保留 host: {proxy_url}"
+        assert parsed_proxy.port == 8080, f"应保留 port: {proxy_url}"
 
     def test_proxy_url_raw_preserved(self):
         """get_raw_config 中 proxy_url 应保持原始值（供代理模块使用）"""
@@ -774,7 +778,8 @@ class TestMonitoringEndpointMasking:
 
         # 应剥离 user:pass@
         assert 'admin:secret@' not in endpoint, f"不应包含认证信息: {endpoint}"
-        assert 'monitor.example.com' in endpoint, f"应保留 host: {endpoint}"
+        # 【CodeQL py/incomplete-url-substring-sanitization】同上：比解析后的 hostname
+        assert (urlsplit(endpoint).hostname or '') == 'monitor.example.com', f"应保留 host: {endpoint}"
 
     def test_monitoring_endpoint_raw_preserved(self):
         """get_raw_config 中 monitoring.endpoint 应保持原始值"""

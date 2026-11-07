@@ -34,6 +34,15 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, Optional
 
+#: 远端地址 → owner/repo 的解析（含"只认主机名等值"的安全口径）下沉到叶子模块，
+#: 与 gen_perf_trend.py 共用一份实现。见 agent/utils/remote_url.py 的模块注释。
+from agent.utils.remote_url import remote_repo_slug
+
+
+def _remote_repo_slug(remote_url: str) -> str:
+    """把远端地址解析成 owner/repo；不是 github.com 就返回空串（调用方回落 --repo）。"""
+    return remote_repo_slug(remote_url) or ""
+
 # 结构化日志
 import logging
 
@@ -323,11 +332,7 @@ def main() -> int:
             )
             remote_url = result.stdout.strip()
             # 解析 https://github.com/owner/repo.git 或 git@github.com:owner/repo.git
-            if "github.com" in remote_url:
-                if remote_url.startswith("https://"):
-                    repo = remote_url.replace("https://github.com/", "").replace(".git", "")
-                elif remote_url.startswith("git@"):
-                    repo = remote_url.split(":")[1].replace(".git", "")
+            repo = _remote_repo_slug(remote_url)
         except Exception:
             pass
 

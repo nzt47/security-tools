@@ -4,6 +4,7 @@
 
 import pytest
 from unittest.mock import Mock, patch
+from urllib.parse import urlsplit
 
 from agent.web.scraper import Scraper, SPIDER_UA_PATTERNS
 
@@ -246,5 +247,7 @@ class TestScraperLinks:
         links = result.get("links", [])
         
         # 相对链接应该被转换为绝对链接
+        # 【CodeQL py/incomplete-url-substring-sanitization】比解析后的主机名，
+        # 不做 "example.com" in url 的子串判断（evil.example.com.evil.tld 也含该子串）。
         assert len(links) >= 1
-        assert "example.com" in links[0]["url"]
+        assert (urlsplit(links[0]["url"]).hostname or "") == "example.com"

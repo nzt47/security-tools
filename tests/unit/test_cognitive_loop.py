@@ -3,6 +3,8 @@
 测试认知循环各模块：Reflection、Knowledge、ActorCritic、Debate、CognitiveLoop。
 """
 import pytest
+from urllib.parse import urlsplit
+
 from agent.cognitive.reflection import ReflectionEngine, ReflectionResult
 from agent.cognitive.knowledge import KnowledgePrecipitator, KnowledgeRecord
 from agent.cognitive.actor_critic import ActorCriticReviewer, ReviewResult
@@ -146,7 +148,9 @@ class TestKnowledge:
         r = self.precipitator.precipitate("chat", "联系信息", output)
         assert r is not None
         assert "admin@example.com" in r.entities
-        assert "https://docs.example.com" in r.entities
+        # 【CodeQL py/incomplete-url-substring-sanitization】实体里那条 URL 比解析后的结构：
+        # 子串判断会被 "https://docs.example.com.evil.tld" 这类实体骗过。
+        assert any(urlsplit(e) == urlsplit("https://docs.example.com") for e in r.entities)
 
     def test_high_confidence(self):
         """有数值+文件路径的输出应有较高置信度"""
