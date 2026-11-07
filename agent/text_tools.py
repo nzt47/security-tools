@@ -228,24 +228,43 @@ PATTERN_15_RE = re.compile(
 #  模式 17: 表情符号
 # ════════════════════════════════════════════════════════════════════════════════
 
-EMOJI_PATTERN = re.compile(
-    "["
-    "\U0001F600-\U0001F64F"  # Emoticons
-    "\U0001F300-\U0001F5FF"  # Misc symbols and pictographs
-    "\U0001F680-\U0001F6FF"  # Transport symbols
-    "\U0001F1E0-\U0001F1FF"  # Flags (regional indicators)
-    "\U00002702-\U000027B0"  # Dingbats
-    "\U000024C2-\U000024C2"  # Enclosed M
-    "\U0001F000-\U0001F02F"  # Mahjong (corrected: was overly broad range)
-    "\U0001F900-\U0001F9FF"  # Supplemental symbols
-    "\U0001FA00-\U0001FA6F"  # Chess symbols
-    "\U0001FA70-\U0001FAFF"  # Symbols extended-A
-    "\U00002600-\U000026FF"  # Misc symbols
-    "\U0000FE00-\U0000FE0F"  # Variation selectors
-    "\U0000200D"              # Zero-width joiner
-    "\U0001F0CF"              # Playing card black joker
-    "]+"
+#: 表情符号码位区间，闭区间成对给；单字符写成 lo == hi。
+#:
+#: 【为什么是数据而不是字面量字符类】原先把这 14 段直接写在一个 `[...]` 里，
+#: CodeQL 的 `py/overly-large-range` 会把这些 **astral 平面**区间的端点归一成
+#: U+FFFD，然后判"同一字符类里区间互相重叠"（一共 7 条）。改成数据驱动后：
+#:   1) 区间本身可以被单测逐条校验（有序、互不相交、端点合法）—— 比肉眼检查可靠，
+#:      毕竟这里历史上真的写错过一次（"was overly broad range"）；
+#:   2) 生成出来的字符类与原字面量**逐码位等价**（同一批码位，行为不变）。
+_EMOJI_RANGES: Tuple[Tuple[int, int], ...] = (
+    (0x1F600, 0x1F64F),  # Emoticons
+    (0x1F300, 0x1F5FF),  # Misc symbols and pictographs
+    (0x1F680, 0x1F6FF),  # Transport symbols
+    (0x1F1E0, 0x1F1FF),  # Flags (regional indicators)
+    (0x2702, 0x27B0),    # Dingbats
+    (0x24C2, 0x24C2),    # Enclosed M
+    (0x1F000, 0x1F02F),  # Mahjong
+    (0x1F900, 0x1F9FF),  # Supplemental symbols
+    (0x1FA00, 0x1FA6F),  # Chess symbols
+    (0x1FA70, 0x1FAFF),  # Symbols extended-A
+    (0x2600, 0x26FF),    # Misc symbols
+    (0xFE00, 0xFE0F),    # Variation selectors
+    (0x200D, 0x200D),    # Zero-width joiner
+    (0x1F0CF, 0x1F0CF),  # Playing card black joker
 )
+
+
+def _char_class(ranges: Tuple[Tuple[int, int], ...]) -> str:
+    """把 (lo, hi) 区间表拼成一个正则字符类的内容（单字符只写一个）。"""
+    parts = []
+    for lo, hi in ranges:
+        parts.append(re.escape(chr(lo)))
+        if hi != lo:
+            parts.append("-" + re.escape(chr(hi)))
+    return "".join(parts)
+
+
+EMOJI_PATTERN = re.compile("[" + _char_class(_EMOJI_RANGES) + "]+")
 
 
 # ════════════════════════════════════════════════════════════════════════════════
