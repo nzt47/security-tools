@@ -104,6 +104,10 @@ export interface SourceCandidate {
   previewable: boolean
   symlink: boolean
   warnings: string[]
+  /** 用过没有：空 = 没用过；draft = 生成过草稿；registered = 已入轨技能（同名）*/
+  usage?: '' | 'draft' | 'registered'
+  usage_draft_id?: string
+  usage_at?: string
 }
 
 export interface SourceRoot {

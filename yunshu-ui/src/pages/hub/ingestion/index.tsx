@@ -484,6 +484,16 @@ export default function IngestionPage() {
                           <Badge color={c.previewable ? 'cyan' : 'amber'}>{c.kind}</Badge>
                           <span className="font-mono text-[10px] text-cyan-300">{c.ecosystem}</span>
                           <span className="truncate">{c.name}</span>
+                          {/* 2026-11-07：这条用过没有 —— 100 个候选名字都差不多，
+                              没有标记只能靠记性（实测同一批里 brainstorming / byted-* 早已用过）。 */}
+                          {c.usage === 'registered' && (
+                            <span className="shrink-0 rounded-sm border border-emerald-800/70 bg-emerald-500/10 px-1 text-[10px] text-emerald-300"
+                              title="已入轨：data/skills_repo 下已有同名技能">已入轨</span>
+                          )}
+                          {c.usage === 'draft' && (
+                            <span className="shrink-0 rounded-sm border border-amber-800/70 bg-amber-500/10 px-1 text-[10px] text-amber-300"
+                              title={'生成过草稿' + (c.usage_draft_id ? '：' + c.usage_draft_id : '') + (c.usage_at ? '（' + c.usage_at + '）' : '')}>已生成草稿</span>
+                          )}
                         </button>
                         <span className="ml-auto shrink-0 text-[10px] text-slate-600">{c.previewable ? '可预览' : '仅展示'}</span>
                       </div>
