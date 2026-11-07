@@ -151,6 +151,9 @@ DRAIN_MAX_ATTEMPTS = 3
 #: 单次 `_recover_backlog`/每轮 writer 最多推进多少个窗口（防一条坏记录把单次调用拖成
 #: 无界循环；窗口数 × 窗口大小 ≥ 整份日志即可在一轮里覆盖全量）
 DRAIN_MAX_WINDOWS_PER_CALL = 64
+#: 验签时"待提交预留"的缺口上限（条）。超过即不按预留解释（只可能是大段删除），
+#: 避免一次异常触发超大范围的日志扫描/重算；实测单条缺口的场景是 1 条。
+MAX_PENDING_GAP = 512
 
 #: 审计来源（P7.2-24 审计平权：UI 与 Agent 同表）
 SOURCE_AGENT = "agent"
@@ -465,6 +468,13 @@ REASON_PAYLOAD_HASH = "payload_hash_mismatch"
 REASON_ANCHOR = "anchor_not_found"
 REASON_INVALID_ENTRY = "invalid_entry"
 
+#: 验签结论三态（**区分"预留未落库"与"真篡改"**）——
+#: 只看 ok 会把"日志里有、DB 里没有"的未提交预留报成篡改，进而把一次 SQLITE_BUSY
+#: 说成审计事故；反过来把 ok 放宽又会掩盖真篡改。故 status 显式三分。
+STATUS_OK = "ok"
+STATUS_TAMPERED = "tampered"
+STATUS_PENDING = "pending_commit"
+
 _REASON_TEXT = {
     REASON_OK: "链完整",
     REASON_EMPTY: "无记录（空链）",
@@ -479,7 +489,15 @@ _REASON_TEXT = {
 
 @dataclass
 class ChainVerification:
-    """`verify_chain` 结果：OK 或首个篡改位置（外带全部失败位置）"""
+    """verify_chain 结果：OK / 首个篡改位置（外带全部失败位置）/ 待提交预留
+
+    【为什么需要 pending_seqs（实测缺陷）】本机 2026-11-07 出现过一条"预留日志写成功、
+    入库失败后被收敛放弃重试"的记录（seq=82897）：DB 因此少一行、其后每条都报
+    "seq 不连续"，verify 的结论是 **TAMPERED** —— 与"真的删了一行"完全一样。
+    两者的处置相反（一个重放补写即可，另一个要取证/告警），必须能分开。
+    pending_seqs 就是"缺口里的这些 seq 在预留日志里有、且哈希自洽"的证据；
+    它**不改 ok**（链确实还不完整 ⇒ ok=False），只让 status / CLI 说清性质。
+    """
 
     ok: bool
     checked: int = 0
@@ -493,15 +511,33 @@ class ChainVerification:
     #: 全部异常位置（[{seq, reason, detail}]，首条即注入点；篡改点之后因哈希前向传播
     #: 而「后续全部失败」，本列表即该证据）
     bad_seqs: List[Dict[str, Any]] = field(default_factory=list)
+    #: 缺口里"预留日志有、DB 没有"且哈希自洽的 seq（升序）。非空 ⇒ 这批缺口可用
+    #: replay_journal_pending() 补写；空 ⇒ 缺口无法用日志解释（真篡改/日志已压缩）。
+    pending_seqs: List[int] = field(default_factory=list)
+
+    @property
+    def status(self) -> str:
+        """三态结论：ok / pending_commit（待补写预留）/ tampered（真篡改）"""
+        if self.ok:
+            return STATUS_OK
+        return STATUS_PENDING if self.pending_seqs else STATUS_TAMPERED
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        data["status"] = self.status
+        return data
 
     def summary(self) -> str:
         """人类可读单行结论（CLI 使用）"""
         if self.ok:
             return (f"OK — 链完整，已校验 {self.checked} 条"
                     f"（seq 1..{self.head_seq}，链头 self_hash={self.head_self_hash[:16]}…）")
+        if self.pending_seqs:
+            shown = ",".join(str(s) for s in self.pending_seqs[:8])
+            more = "" if len(self.pending_seqs) <= 8 else f" 等 {len(self.pending_seqs)} 条"
+            return (f"PENDING — 预留未落库（日志有、DB 无）: seq={shown}{more}"
+                    f"；缺口共 {len(self.pending_seqs)} 条，链上其余 {self.checked} 条自洽"
+                    f"（可用 --replay-journal 从预留日志补写）")
         return (f"TAMPERED — 首个异常 seq={self.first_bad_seq}"
                 f"（{_REASON_TEXT.get(self.reason, self.reason)}）: {self.detail}"
                 f"；异常共 {len(self.bad_seqs)} 处"
@@ -1479,6 +1515,17 @@ class AuditChain:
             except Exception as exc:  # noqa: BLE001
                 logger.warning("预留日志链头读取失败（回退 DB 链头）: %s", exc)
 
+        # 【中间空洞同样要收敛（实测缺陷）】上面的判断只看"日志链头 > DB 链头"。
+        # 而一条记录的入库失败**未必**发生在链头：它可能先被收敛放弃重试
+        # （DRAIN_MAX_ATTEMPTS），随后日志继续前进 —— 此时 链头 == DB 链头，
+        # 中间那个缺口就**永远**不会再被重放（实测 seq=82897 就这样留了一条洞，
+        # 而 verify 一直报 TAMPERED）。判据改成"DB 不是连续水位"：只要有空洞就置
+        # 收敛标志，让收敛去做它本来就精确的"哪些 seq 不在库"判定（它按 IN 查询
+        # 跳过已入库的，重复插入不会发生）。
+        if (self._journal_enabled and self._db_available
+                and not self._journal_needs_drain):
+            self._mark_drain_if_gap()
+
         if head_seq > 0:
             self._next_seq = head_seq + 1
             self._last_hash = head_hash or GENESIS_PREV_HASH
@@ -1529,6 +1576,33 @@ class AuditChain:
         if lo == 1 and count == hi:
             return hi, True
         return 0, False
+
+    def _mark_drain_if_gap(self) -> bool:
+        """DB 存在中间空洞 ⇒ 置"待收敛"标志（启动自愈；返回是否置位）
+
+        【为什么单独抽出来（可测 + 单一判据）】启动自愈与运行期自愈必须用**同一个**
+        判据：只要 1..max 里缺行，就说明有记录"分配过但没落库"，而预留日志是唯一
+        可能仍持有它们的地方。是否真的能补写由收敛自己按 IN 查询判定（已入库的会
+        被跳过），所以这个标志只是"去查一次"，不是"重插一遍"。
+
+        【日志为空时不置位】没有日志就没有补写来源，置了只会空转（见
+        ``_write_to_db_inner`` 里"DB 不可用不置标志"的同一条理由）。
+        """
+        try:
+            journal_head, _ = self._journal.head()
+        except Exception as exc:  # noqa: BLE001 读不到日志按"无来源"处理
+            logger.debug("启动检查：预留日志链头不可读: %s", exc)
+            return False
+        if journal_head <= 0:
+            return False
+        watermark, contiguous = self._committed_watermark()
+        if contiguous:
+            return False
+        self._journal_needs_drain = True
+        logger.warning("链式审计 DB 存在中间空洞（连续水位=%d，日志链头=%d）⇒ "
+                       "本次启动将由后台按预留日志精确补写缺行",
+                       watermark, journal_head)
+        return True
 
     #: 锁文件元数据槽的键（记"最后完成分配的进程 + 其链头"）。
     #: 仅供 `_resolve_head` 的快路径使用；缺失只会退化为慢路径，不影响正确性。
@@ -2906,8 +2980,173 @@ class AuditChain:
                                     else entries[0].prev_hash)
             else:
                 anchor_prev_hash = GENESIS_PREV_HASH
-        return verify_chain(entries, anchor_seq=entries[0].seq,
-                            anchor_prev_hash=anchor_prev_hash)
+        verification = verify_chain(entries, anchor_seq=entries[0].seq,
+                                    anchor_prev_hash=anchor_prev_hash)
+        if not verification.ok:
+            # 【区分"未提交预留"与"真篡改"】纯 seq 缺口未必是删记录：也可能是
+            # "日志写成功、入库失败被放弃重试"。把"日志里自洽的那批 seq"标出来，
+            # 让 CLI / 人判"重放补写"而不是"取证告警"（ok 仍为 False，不放宽）。
+            verification.pending_seqs = self._journal_pending_seqs(
+                entries, verification)
+        return verification
+
+    def _journal_pending_seqs(self, entries: List[AuditEntry],
+                              verification: ChainVerification) -> List[int]:
+        """缺口里"预留日志有、且哈希自洽"的 seq（不可解释时返回空）
+
+        【判据（四条全过才算预留，任一不过就按篡改处理）】
+        1. 首个异常必须是 **seq 缺口**（哈希/字段类异常一律不解释）；
+        2. 每个缺口 seq 在日志里都有行，且该行**两级哈希重算相等**（payload_hash +
+           self_hash）、字段合法；
+        3. 缺口之间的链接自洽：缺口首条的 prev_hash == 前一条已入库记录的 self_hash，
+           后续每条 prev_hash == 上一条（日志里的）self_hash；缺口后的第一条又用自己的
+           prev_hash 接上这条链；
+        4. 缺口**之后**的已入库记录逐条"本地自洽"（用各自存储的 prev_hash 重算
+           self_hash 相等、payload_hash 相等）。第 4 条是必要的：seq 缺口会让后续每条
+           都先报 seq 异常，从而**掩盖**其后真正的字段篡改；不补这一条，"待提交"就成了
+           掩盖篡改的口子。
+
+        【边界】只解释**中间**缺口。链尾缺失无法判定（没有后继可比），链首缺失会破坏
+        创世锚（不是"预留未落库"能解释的形态），都返回空。
+        """
+        if verification.reason != REASON_SEQ_GAP:
+            return []
+        by_seq = {int(e.seq): e for e in entries}
+        missing: List[int] = []
+        for prev, cur in zip(entries, entries[1:]):
+            if int(cur.seq) - int(prev.seq) > 1:
+                missing.extend(range(int(prev.seq) + 1, int(cur.seq)))
+            if len(missing) > MAX_PENDING_GAP:
+                return []
+        if not missing:
+            return []
+        rows = self._journal.rows_for(missing)
+        if len(rows) < len(missing):
+            return []
+        pending: Dict[int, AuditEntry] = {}
+        for seq in missing:
+            row = rows.get(seq)
+            if row is None:
+                return []
+            try:
+                entry = self._entry_from_journal_row(row)
+            except Exception as exc:  # noqa: BLE001 脏行 ⇒ 不解释
+                logger.debug("预留日志行还原失败（seq=%s）: %s", seq, exc)
+                return []
+            if int(entry.seq) != int(seq) or entry.validate():
+                return []
+            if entry.recompute_payload_hash() != entry.payload_hash:
+                return []
+            if entry.recompute_self_hash() != entry.self_hash:
+                return []
+            pending[int(seq)] = entry
+
+        # ③ 缺口 + 前后邻居的链式自洽
+        first_missing = missing[0]
+        head = by_seq.get(first_missing - 1)
+        if head is None:
+            # 缺口前面没有已入库记录 ⇒ 链首缺失，不是"预留未落库"
+            return []
+        expect_prev = head.self_hash
+        for seq in missing:
+            entry = pending[seq]
+            if entry.prev_hash != expect_prev:
+                return []
+            expect_prev = entry.self_hash
+        tail = [e for e in entries if int(e.seq) > missing[-1]]
+        if not tail:
+            return []
+        if tail[0].prev_hash != expect_prev:
+            return []
+        # ④ 缺口之后逐条本地自洽（防"用缺口掩盖字段篡改"）
+        expect_prev = pending[missing[-1]].self_hash
+        for entry in tail:
+            if entry.prev_hash != expect_prev:
+                return []
+            if entry.recompute_payload_hash() != entry.payload_hash:
+                return []
+            if entry.recompute_self_hash() != entry.self_hash:
+                return []
+            expect_prev = entry.self_hash
+        return list(missing)
+
+    def _verify_snapshot(self) -> ChainVerification:
+        """**不刷新**的现场验签：只读 DB 现有行 + 预留日志证据（不触发收敛/封存）
+
+        与 verify_chain() 的差别只有两点：不 flush（因而不触发收敛重试）、
+        不做 ring buffer 合并（补写场景在独立进程里，没有本进程的在途记录）。
+        这样 replay_journal_pending 才能报出"补写前到底缺哪几条"。
+        """
+        rows = self._query_rows(refresh=False)
+        entries = [AuditEntry.from_row(r) for r in rows]
+        if not entries:
+            return ChainVerification(ok=True, checked=0, reason=REASON_EMPTY,
+                                     detail="空链：无记录可校验")
+        anchor = GENESIS_PREV_HASH if int(entries[0].seq) <= 1 else entries[0].prev_hash
+        verification = verify_chain(entries, anchor_seq=entries[0].seq,
+                                    anchor_prev_hash=anchor)
+        if not verification.ok:
+            verification.pending_seqs = self._journal_pending_seqs(entries, verification)
+        return verification
+
+    def replay_journal_pending(self, *,
+                               seqs: Optional[Sequence[int]] = None) -> Dict[str, Any]:
+        """把"日志里自洽、DB 里缺失"的记录**补写进库**（writer 专用）
+
+        【为什么不是"再跑一遍收敛"】收敛（_recover_backlog）是**计数器驱动**的：
+        一段缺口被放弃重试后就不再进候选集，重启也未必重新判定（见
+        ``_mark_drain_if_gap``）。这里走"验签判定 + 精确补写"，判据与 verify 同源：
+        只写 ``_journal_pending_seqs`` 认可的那些，写入后**再验一次**。
+
+        【为什么要 writer】写入必须经 DB 连接与写锁；reader 角色直接拒绝
+        （见 ReadOnlyChainError），避免绕过单写者纪律。
+
+        Args:
+            seqs: 只补这些 seq（默认 = 本次验签判定的 pending_seqs）。
+
+        Returns:
+            {requested, replayed, failed, status, verification}；failed 非空时附带
+            reasons（逐条原因），便于运维定位"为什么补不进去"。
+        """
+        if self._role != "writer":
+            raise ReadOnlyChainError("只有 writer 实例可以补写预留日志中的记录")
+        # 【先按"不刷新"的方式取一次现场】verify_chain() 对 writer 会先 flush()，
+        # 而 flush() 会先跑一次收敛（_recover_backlog）——那会把缺口**自动**补上，
+        # 于是"哪些是我补的"这件事就丢了。这里刻意 refresh=False：只读已是既成事实
+        # 的行，判完再写，写完整链再验一次。
+        before = self._verify_snapshot()
+        requested = sorted({int(s) for s in (seqs or before.pending_seqs)})
+        if not requested:
+            return {"requested": [], "replayed": [], "failed": [],
+                    "status": before.status, "verification": before}
+        rows = self._journal.rows_for(requested)
+        records: List[AuditEntry] = []
+        failed: List[Dict[str, Any]] = []
+        for seq in requested:
+            row = rows.get(seq)
+            if row is None:
+                failed.append({"seq": seq, "reason": "journal_row_missing"})
+                continue
+            try:
+                entry = self._entry_from_journal_row(row)
+            except Exception as exc:  # noqa: BLE001
+                failed.append({"seq": seq, "reason": f"journal_row_invalid: {exc}"})
+                continue
+            if entry.recompute_self_hash() != entry.self_hash \
+                    or entry.recompute_payload_hash() != entry.payload_hash:
+                failed.append({"seq": seq, "reason": "journal_row_hash_mismatch"})
+                continue
+            records.append(entry)
+        if records:
+            # 走与后台 writer 相同的写入路径（含写锁 / 在途登记 / 已落盘计数）
+            self._write_to_db(records)
+        written: List[int] = []
+        if records:
+            present = self._seqs_in_db([int(e.seq) for e in records])
+            written = sorted(int(e.seq) for e in records if int(e.seq) in present)
+        verification = self.verify_chain()
+        return {"requested": requested, "replayed": written, "failed": failed,
+                "status": verification.status, "verification": verification}
 
     def chain_head(self) -> Dict[str, Any]:
         """链头信息（供校验器/面板输出）"""
