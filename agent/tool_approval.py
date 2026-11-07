@@ -895,7 +895,7 @@ def _is_consumed(approval_id: str) -> bool:
 
 def request_approval(tool: str, args: Optional[Mapping[str, Any]], *,
                      reason: str = "", session_key: str = "",
-                     source: str = "") -> Dict[str, Any]:
+                     source: str = "", origin: str = "") -> Dict[str, Any]:
     """为该次调用挂一张人工审批单（**幂等**：同一次调用不重复挂单）
 
     【幂等判据】同 ``tool`` + 同 ``args_digest`` + 同 ``session_key`` 且
@@ -921,6 +921,8 @@ def request_approval(tool: str, args: Optional[Mapping[str, Any]], *,
         reason: 为什么要调用（可选，落 payload；不进 description）。
         session_key: 会话标识（落 payload；记录侧为空串时在匹配阶段通配）。
         source: 调用来源（可选，落 payload，便于审计区分链路）。
+        origin: 审批**呈现面**（`inline_chat` = 对话内弹窗，`""`/`inbox` = 收件箱；
+            见 `agent/approval_surface`。落 payload，`/api/approval/pending` 据此默认过滤）。
 
     Returns:
         ``{"ok": True, "approval_id": str, "reused": bool, "state": str}``
@@ -962,6 +964,8 @@ def request_approval(tool: str, args: Optional[Mapping[str, Any]], *,
             "args_preview": _clip(preview, _PAYLOAD_PREVIEW_MAX),
             "session_key": skey,
             "source": str(source or ""),
+            # 【2026-11-08】呈现面：对话内弹窗的挂单不进收件箱待办（Operator 要求）
+            "origin": str(origin or ""),
             "reason": str(reason or ""),
             "risk": risk,
             "requested_at": _iso_now(),

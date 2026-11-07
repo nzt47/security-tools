@@ -75,7 +75,7 @@ export function fetchCapabilityMap(
 
 /** 审批收件箱（P0）：待审 + 批量裁决分组 + 气泡可见性 */
 export function fetchApprovalInbox(
-  params: { limit?: number; object_type?: string } = {},
+  params: { limit?: number; object_type?: string; include_inline?: boolean } = {},
 ): Promise<ApprovalInboxView> {
   const q = buildQuery(params)
   return request<ApprovalInboxView>(`${PREFIX}/approvals/inbox${q ? `?${q}` : ''}`)

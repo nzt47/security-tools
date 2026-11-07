@@ -297,6 +297,9 @@ export interface BatchGroup {
 }
 
 export interface ApprovalInboxView {
+  /** 被"对话内弹窗"接管、因此未列在本页的条数（>0 时说明少的那些在哪） */
+  inline_hidden?: number
+  include_inline?: boolean
   ok: boolean;
   panel: PanelMeta;
   generated_at: string;

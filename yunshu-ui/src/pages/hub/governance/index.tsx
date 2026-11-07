@@ -528,17 +528,20 @@ function describeBatchFailures(out: BatchDecisionResult): string {
 }
 
 export function ApprovalInboxPanel() {
+  // 【2026-11-08 Operator 要求】对话里触发的工具审批**在对话内弹窗裁决**，不再进这里。
+  // 默认隐藏它们；勾上「含对话内审批」可看全量（排障/审计），否则人会以为"单子丢了"。
+  const [includeInline, setIncludeInline] = useState(false)
   const { data, loading, error, reload } = usePanel<ApprovalInboxView>(
     // 读取失败也带上 HTTP 状态 / 后端业务码：401（无令牌）与 403 panel_denied
     // 的处置方式不同，只显示 message 会糊成一句 "HTTP 4xx"（同上）。
     async () => {
       try {
-        return await fetchApprovalInbox({ limit: 100 })
+        return await fetchApprovalInbox({ limit: 100, include_inline: includeInline })
       } catch (e) {
         throw new Error(describeApiError(e))
       }
     },
-    [],
+    [includeInline],
   )
   const { state: sec } = useSecurityState()
   const [selected, setSelected] = useState<Record<string, boolean>>({})
@@ -598,17 +601,35 @@ export function ApprovalInboxPanel() {
         <>
           <PanelHeader
             title="审批收件箱"
-            description="批量裁决=逐条走同一审批链（会话+CSRF+链接+二次认证+矩阵），无旁路"
+            description={'批量裁决=逐条走同一审批链（会话+CSRF+链接+二次认证+矩阵），无旁路；'
+              + '对话里触发的工具审批在对话内弹窗确认，默认不出现在这里（勾下方开关可看）'}
             priority={data.panel?.priority}
             datasources={data.panel?.datasources}
             actions={
               <span className="flex items-center gap-2 text-xs">
                 <MetricValue metric={data.pending_total} label="待审" />
                 <MetricValue metric={data.bubble_hidden} label="不出气泡" />
+                {data.inline_hidden ? (
+                  <span className="text-[11px] text-slate-500" data-testid="approvals-inline-hidden"
+                    title="这些审批是对话里发起的：工作台会直接弹窗让你「批准并继续 / 拒绝」，不属于要在收件箱里翻待办的那一类">
+                    另有 {data.inline_hidden} 条在对话内弹窗
+                  </span>
+                ) : null}
               </span>
             }
           />
           {data.error && <div className="mb-2 text-xs text-red-300">{data.error}</div>}
+
+          {/* 默认只列"需要你来翻"的待办；对话内审批可按需展开（排障/审计） */}
+          <label className="mb-2 flex items-center gap-1.5 text-[11px] text-slate-500">
+            <input
+              type="checkbox"
+              data-testid="approvals-include-inline"
+              checked={includeInline}
+              onChange={(e) => setIncludeInline(e.target.checked)}
+            />
+            含「对话内弹窗」审批（{data.inline_hidden ?? 0} 条）
+          </label>
 
           {/* ★ 批量裁决：同策略同风险一键批（分组键来自后端） */}
           <div className="mb-3 rounded-lg border border-slate-800 bg-slate-900/50 p-3">

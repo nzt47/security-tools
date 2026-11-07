@@ -651,7 +651,7 @@ def _capability_card(row: Mapping[str, Any]) -> Dict[str, Any]:
 
 
 def approval_inbox(*, flow: Any = None, limit: int = 50,
-                   object_type: str = "") -> Dict[str, Any]:
+                   object_type: str = "", include_inline: bool = False) -> Dict[str, Any]:
     """审批收件箱（P0）：待审记录 + 批量裁决分组键
 
     批量裁决口径（§7「同策略同风险一键批」）：
@@ -671,10 +671,24 @@ def approval_inbox(*, flow: Any = None, limit: int = 50,
             return {"ok": False, "error": f"审批流不可用: {type(e).__name__}",
                     "items": [], "count": 0}
     try:
-        records = flow.list({"state": "pending_review"}, limit=limit)
+        # 多取一些再过滤：对话内弹窗接管的单默认**不进收件箱待办**
+        # （2026-11-08 Operator 要求），但排障时可用 include_inline=True 看全量。
+        records = flow.list({"state": "pending_review"},
+                            limit=max(limit, limit * 4) if not include_inline else limit)
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": f"待审清单读取失败: {type(e).__name__}",
                 "items": [], "count": 0}
+
+    from agent.approval_surface import is_inline_payload
+    inline_hidden = 0
+    if not include_inline:
+        kept = []
+        for _r in records:
+            if is_inline_payload(getattr(_r, "payload", None)):
+                inline_hidden += 1
+                continue
+            kept.append(_r)
+        records = kept[:limit]
 
     from agent.security import approval_guard as guard_mod
 
@@ -712,6 +726,9 @@ def approval_inbox(*, flow: Any = None, limit: int = 50,
             "manual_required": bool(r.manual_required),
             "created_at": r.created_at,
             "risk": risk,
+            # inline_chat = 对话里弹窗裁决（默认不进本收件箱）
+            "origin": str((r.payload or {}).get("origin") or "")
+            if isinstance(r.payload, dict) else "",
             "batch_key": batch_key,
             "governance": gov,
             "taint": taint,
@@ -739,6 +756,9 @@ def approval_inbox(*, flow: Any = None, limit: int = 50,
         "panel": panel_map("approval_inbox"),
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "count": n,
+        # 被对话内弹窗接管、因此未列在本页的条数（>0 时说明"少的那些"在哪，不是丢了）
+        "inline_hidden": inline_hidden,
+        "include_inline": bool(include_inline),
         "pending_total": metric(
             n, source="agent/skills_mgmt/approval.py::ApprovalFlow.list({'state':'pending_review'})",
             formula="待审记录条数（上限 200 条/页）", unit="count", sample_size=n),

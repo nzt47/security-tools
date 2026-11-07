@@ -1463,3 +1463,56 @@ def test_端到端_挂单_人工批准_命中_消费_再次判定为空():
     snap2 = TA.pending_snapshot()
     assert snap2["ok"] is True and snap2["count"] == 1
     assert snap2["items"][0]["state"] == "approved", "审批记录本身只读，不改写为已消费"
+
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  呈现面：对话内弹窗裁决 vs 审批收件箱（2026-11-08 Operator 要求）
+#
+#  「碰到需要审批的工具直接弹窗给选择，不要放审批收件箱」⇒ 审批链不变（仍挂单、
+#  仍单次消费、仍留审计），变的是**人从哪里看到它**：对话里发起的审批在对话内弹窗
+#  裁决，不进收件箱待办（可按 include_inline 展开排障）。
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_挂单可以把呈现面写进_payload_origin():
+    res = TA.request_approval(_TOOL, _ARGS, session_key="s-inline",
+                              origin="inline_chat")
+    payload = _record(res["approval_id"]).payload
+    assert payload["origin"] == "inline_chat", "呈现面没落 payload ⇒ 收件箱无从过滤"
+
+    # 不传 origin 时保持老形状（空串），不影响任何既有消费方
+    plain = TA.request_approval("write_file", {"path": "x"}, session_key="s-inbox")
+    assert _record(plain["approval_id"]).payload["origin"] == ""
+
+
+def test_收件箱默认不列对话内弹窗的待办_可按需展开():
+    from agent.ui_panels.data import approval_inbox
+
+    inline = TA.request_approval(_TOOL, _ARGS, session_key="s-inline",
+                                 origin="inline_chat")
+    inbox = TA.request_approval(_TOOL, {"command": "echo inbox"}, session_key="s-inbox")
+
+    view = approval_inbox(flow=_flow(), limit=50)
+    ids = [i["record_id"] for i in view["items"]]
+    assert inline["approval_id"] not in ids, "对话内审批不该在收件箱里堆成待办"
+    assert inbox["approval_id"] in ids, "收件箱链路自己的单必须还在"
+    assert view["inline_hidden"] == 1, "被隐藏的条数要如实报出来（否则像丢了单）"
+    assert view["include_inline"] is False
+
+    full = approval_inbox(flow=_flow(), limit=50, include_inline=True)
+    assert inline["approval_id"] in [i["record_id"] for i in full["items"]]
+    assert full["inline_hidden"] == 0
+    assert full["include_inline"] is True
+
+
+def test_呈现面标记_上下文管理器语义():
+    from agent import approval_surface as AS
+
+    assert AS.current_surface() == ""
+    with AS.inline_surface():
+        assert AS.current_surface() == AS.ORIGIN_INLINE
+        assert AS.is_inline_payload({"origin": AS.ORIGIN_INLINE}) is True
+        assert AS.is_inline_payload({"origin": ""}) is False
+        assert AS.is_inline_payload(None) is False
+    # 退出即复位（不跨请求泄漏）
+    assert AS.current_surface() == ""

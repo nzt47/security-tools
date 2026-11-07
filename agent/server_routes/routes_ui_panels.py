@@ -289,7 +289,10 @@ def register_routes(app: Any, state: Any = None) -> None:  # noqa: ARG001
             return err
         return jsonify(D.approval_inbox(
             limit=_int_arg("limit", 50, low=1, high=200),
-            object_type=request.args.get("object_type", "") or ""))
+            object_type=request.args.get("object_type", "") or "",
+            # 默认不列"对话内弹窗已接管"的待办；排障时 ?include_inline=1
+            include_inline=str(request.args.get("include_inline") or "").lower() in (
+                "1", "true", "yes", "on")))
 
     # ── 4. ROI / 成本（P1） ──
 
