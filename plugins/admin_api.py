@@ -197,11 +197,31 @@ _TOKEN_SIG_LEN = 32                    # sha256 十六进制取前 32 位
 _PROCESS_SECRET = secrets.token_bytes(32)
 
 
+#: 签名密钥的 salt / 域分隔（同一个 seed 在不同用途下派生不同密钥）
+_SIGNING_DOMAIN = b"yunshu-admin-token-v1|"
+#: PBKDF2 迭代次数：结果按 seed 缓存，进程内只算一次，所以给足安全余量
+_KDF_ITERATIONS = 120_000
+
+
+@functools.lru_cache(maxsize=8)
+def _derive_signing_key(seed: str) -> bytes:
+    """把 seed 派生成签名密钥（PBKDF2-HMAC-SHA256，进程内缓存）。
+
+    【为什么慢哈希 + 缓存】seed 是 FLASK_API_TOKEN 这类敏感值：裸 sha256 与单次 HMAC
+    在口令学上都是"无盐快速哈希"（CodeQL 的 py/weak-sensitive-data-hashing 会判，
+    PR #1496 里真的判了）。PBKDF2 是密钥派生的标准答案，但它慢（120k 迭代数十毫秒），
+    不能挂在每个请求上 —— 所以按 seed 缓存，进程生命周期内只算一次，之后 O(1)。
+
+    影响面：派生值变了 ⇒ 旧版本签发的管理后台 token 全部失效（TTL 12h、重启即换，
+    属于预期内的轮换）。
+    """
+    return hashlib.pbkdf2_hmac("sha256", seed.encode("utf-8"), _SIGNING_DOMAIN, _KDF_ITERATIONS)
+
+
 def _signing_key() -> bytes:
     """签名密钥：优先既有的 FLASK_API_TOKEN（已在 settings/registry 登记），否则进程内随机。"""
     seed = (os.environ.get("FLASK_API_TOKEN") or "").strip() or _PROCESS_SECRET.hex()
-    # 域分隔：即便 FLASK_API_TOKEN 被别处复用，本用途的签名也不会与其它用途撞车
-    return hashlib.sha256(("yunshu-admin-token-v1|" + seed).encode("utf-8")).digest()
+    return _derive_signing_key(seed)
 
 
 def _sign(user_hex: str, ts: str) -> str:

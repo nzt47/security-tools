@@ -6,11 +6,12 @@
 import json
 import os
 import random
-import hashlib
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, field
 from enum import Enum
+
+from agent.utils.bucketing import bucket_percent
 
 
 class RolloutStrategy(str, Enum):
@@ -225,10 +226,10 @@ class FeatureFlagManager:
             return True
 
         # 使用用户ID哈希确保一致性（同一用户始终看到相同结果）
+        # 【2026-11-07】MD5 → SHA-256（CodeQL py/weak-sensitive-data-hashing）：
+        # 分桶不需要弱哈希；统一走 agent.utils.bucketing，代价是样本一次性重排。
         if user_id:
-            hash_input = f"{flag.name}:{user_id}"
-            hash_val = int(hashlib.md5(hash_input.encode()).hexdigest(), 16)
-            return (hash_val % 100) < flag.percentage
+            return bucket_percent(f"{flag.name}:{user_id}") < flag.percentage
         else:
             # 无用户ID时随机
             return random.randint(1, 100) <= flag.percentage
@@ -238,9 +239,7 @@ class FeatureFlagManager:
         if not session_id:
             return False
 
-        hash_input = f"{flag.name}:{session_id}"
-        hash_val = int(hashlib.md5(hash_input.encode()).hexdigest(), 16)
-        return (hash_val % 100) < flag.percentage
+        return bucket_percent(f"{flag.name}:{session_id}") < flag.percentage
 
     def _check_internal(self, user_id: str) -> bool:
         """判断是否为内部用户"""
